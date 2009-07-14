@@ -3,6 +3,7 @@
 #include "code.h"
 #include "argument.h"
 #include "pep.h"
+#include "asm.h"
 
 // appendObjectCode
 void UnaryInstruction::appendObjectCode(QList<int> &objectCode)
@@ -401,12 +402,18 @@ void BlankLine::appendSourceLine(QStringList &assemblerListingList, QStringList 
 }
 
 bool DotBlock::processFormatTraceTags(int &sourceLine, QString &errorString) {
+    if (symbolDef.size() == 0) {
+        return true;
+    }
     errorString = ";WARNING: This is a test.";
     sourceLine = sourceCodeLine;
     return true;
 }
 
 bool DotEquate::processFormatTraceTags(int &sourceLine, QString &errorString) {
+    if (symbolDef.size() == 0) {
+        return true;
+    }
     errorString = ";WARNING: This is a test.";
     sourceLine = sourceCodeLine;
     return true;
@@ -438,6 +445,8 @@ bool NonUnaryInstruction::processSymbolTraceTags(int &sourceLine, QString &error
         break;
     case Enu::RET7:
         break;
+    default:
+        return true;
     }
     return true;
 }
