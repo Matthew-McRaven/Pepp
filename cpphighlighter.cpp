@@ -1,3 +1,22 @@
+/*
+    Pep8-1 is a virtual machine for writing machine language and assembly
+    language programs.
+    
+    Copyright (C) 2009  J. Stanley Warford, Pepperdine University
+
+    This program is free software: you can redistribute it and/or modify
+    it under the terms of the GNU General Public License as published by
+    the Free Software Foundation, either version 3 of the License, or
+    (at your option) any later version.
+
+    This program is distributed in the hope that it will be useful,
+    but WITHOUT ANY WARRANTY; without even the implied warranty of
+    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+    GNU General Public License for more details.
+
+    You should have received a copy of the GNU General Public License
+    along with this program.  If not, see <http://www.gnu.org/licenses/>.
+*/
 #include "cpphighlighter.h"
 
 CppHighlighter::CppHighlighter(QTextDocument *parent)
@@ -5,19 +24,32 @@ CppHighlighter::CppHighlighter(QTextDocument *parent)
 {
     HighlightingRule rule;
 
+
+//    functionFormat.setFontItalic(true);
+    functionFormat.setFontWeight(QFont::Bold);
+    functionFormat.setForeground(Qt::darkMagenta);
+    rule.pattern = QRegExp("\\b[A-Za-z0-9_]+(?=[\\s]*\\()");
+    rule.format = functionFormat;
+    highlightingRules.append(rule);
+
+    declarationFormat.setFontItalic(true);
+    declarationFormat.setForeground(Qt::darkBlue);
+    QStringList declarationPatterns;
+    declarationPatterns << "\\bbool\\b" << "\\bchar\\b" << "\\bconst\\b" << "\\bcase\\b"
+                    << "\\benum\\b" << "\\bint\\b" << "\\bnamespace\\b" << "\\bstruct\\b"
+                    << "\\busing\\b" << "\\#include\\b" << "\\bvoid\\b";
+    foreach (const QString &pattern, declarationPatterns) {
+        rule.pattern = QRegExp(pattern);
+        rule.format = declarationFormat;
+        highlightingRules.append(rule);
+    }
+
     keywordFormat.setForeground(Qt::darkBlue);
     keywordFormat.setFontWeight(QFont::Bold);
     QStringList keywordPatterns;
-    keywordPatterns << "\\bbool\\b" << "\\bchar\\b" << "\\bclass\\b" << "\\bconst\\b"
-                    << "\\bdouble\\b" << "\\benum\\b" << "\\bexplicit\\b"
-                    << "\\bfriend\\b" << "\\binline\\b" << "\\bint\\b"
-                    << "\\blong\\b" << "\\bnamespace\\b" << "\\boperator\\b"
-                    << "\\bprivate\\b" << "\\bprotected\\b" << "\\bpublic\\b"
-                    << "\\bshort\\b" << "\\bsignals\\b" << "\\bsigned\\b"
-                    << "\\bslots\\b" << "\\bstatic\\b" << "\\bstruct\\b"
-                    << "\\btemplate\\b" << "\\btypedef\\b" << "\\btypename\\b"
-                    << "\\bunion\\b" << "\\bunsigned\\b" << "\\bvirtual\\b"
-                    << "\\bvoid\\b" << "\\bvolatile\\b";
+    keywordPatterns << "\\bwhile\\b" << "\\bfor\\b" << "\\bswitch\\b"
+            << "\\bif\\b" << "\\bdo\\b" << "\\bnew\\b"
+            << "\\breturn\\b" << "\\belse\\b";
     foreach (const QString &pattern, keywordPatterns) {
         rule.pattern = QRegExp(pattern);
         rule.format = keywordFormat;
@@ -36,12 +68,6 @@ CppHighlighter::CppHighlighter(QTextDocument *parent)
     highlightingRules.append(rule);
 
     multiLineCommentFormat.setForeground(Qt::darkGreen);
-
-    functionFormat.setFontItalic(true);
-    functionFormat.setForeground(Qt::darkBlue);
-    rule.pattern = QRegExp("\\b[A-Za-z0-9_]+(?=[\\s]*\\()");
-    rule.format = functionFormat;
-    highlightingRules.append(rule);
 
     singleQuotationFormat.setForeground(Qt::red);
     rule.pattern = QRegExp("((\')(?![\'])(([^\'|\\\\]){1}|((\\\\)([\'|b|f|n|r|t|v|\"|\\\\]))|((\\\\)(([x|X])([0-9|A-F|a-f]{2}))))(\'))");
