@@ -1,0 +1,14 @@
+// File: fig1208.pepcpu
+// Store byte, direct addressing
+
+// MAR <- OprndSpec.
+1. A=9, B=10; MARCk
+
+// MBR <- A<low>.
+2. A=1, AMux=1, ALU=0, CMux=1, MDRMux=1; MDRCk
+
+// Initiate memory write.
+3. MemWrite
+
+// Complete memory write.
+4. MemWrite

@@ -1,0 +1,8 @@
+// File: fig1209.pepcpu
+// Add accumulator, immediate addressing
+
+// A<low> <- A<low> + Oprnd<low>. Save carry. 
+1. A=1, B=10, AMux=1, ALU=1, ANDZ=0, CMux=1, C=1; ZCk, CCk, LoadCk 
+
+// A<high> <- A<high> plus Oprnd<high> plus saved carry. 
+2. A=0, B=9, AMux=1, ALU=2, ANDZ=1, CMux=1, C=0; NCk, ZCk, VCk, CCk, LoadCk 

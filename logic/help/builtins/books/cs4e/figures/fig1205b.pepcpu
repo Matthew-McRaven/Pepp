@@ -1,0 +1,14 @@
+// File: fig1205b.pepcpu
+// Discussion followin Figure 12.5
+// Combining cycles 1 and 3
+
+// Save the status bits in T1
+// MAR <- PC, fetch instruction specifier. 
+1. A=6, B=7; MARCk 
+2. MemRead, CMux=0, C=11; LoadCk
+3. MemRead, MDRMux=0; MDRCk 
+4. AMux=0, ALU=0, CMux=1, C=8; LoadCk 
+
+// PC <- PC + 1, low-order byte first. 
+5. A=7, B=23, AMux=1, ALU=1, CMux=1, C=7; CCk, LoadCk 
+6. A=6, B=22, AMux=1, ALU=2, CMux=1, C=6; LoadCk 
