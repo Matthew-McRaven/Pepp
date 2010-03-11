@@ -33,7 +33,7 @@ PepHighlighter::PepHighlighter(QTextDocument *parent)
             << "\\bAMux\\b" << "\\bMDRMux\\b" << "\\bCMux\\b"
             << "\\bALU\\b" << "\\bCCk\\b" << "\\bVCk\\b"
             << "\\bANDZ\\b" << "\\bZCk\\b" << "\\bNCk\\b"
-            << "\\bMemRead\\b" << "\\bMemWrite\\b";
+            << "\\bMemRead\\b" << "\\bMemWrite\\b" << "^Pre(?=:)\\b" << "^Post(?=:)\\b";
     foreach (const QString &pattern, oprndPatterns) {
         rule.pattern = QRegExp(pattern);
         rule.format = oprndFormat;
@@ -50,10 +50,11 @@ PepHighlighter::PepHighlighter(QTextDocument *parent)
     rule.format = singleLineCommentFormat;
     highlightingRules.append(rule);
 
-    multiLineCommentFormat.setForeground(Qt::darkGreen);
+    multiLineCommentFormat.setForeground(Qt::white);
+    multiLineCommentFormat.setBackground(Qt::red);
 
-    commentStartExpression = QRegExp("/\\*");
-    commentEndExpression = QRegExp("\\*/");
+    commentStartExpression = QRegExp("//\\sERROR:[\\s]");
+    commentEndExpression = QRegExp("$");
 }
 
 void PepHighlighter::highlightBlock(const QString &text)
