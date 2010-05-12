@@ -2,15 +2,18 @@
 // Figure 12.5
 // Fetch the instruction specifier and increment PC by 1
 
+Pre: PC = 0x00ff, Mem[0x00ff] = 0xabcd
+Post: PC = 0x0100, Mem[0x00ff] = 0xabcd, IR = 0xabcd
+
 // Save the status bits in T1
-1. CMux=0, C=11; LoadCk
+CMux=0, C=11; LoadCk
 
 // MAR <- PC, fetch instruction specifier. 
-2. A=6, B=7; MARCk 
-3. MemRead 
-4. MemRead, MDRMux=0; MDRCk 
-5. AMux=0, ALU=0, CMux=1, C=8; LoadCk 
+A=6, B=7; MARCk
+MemRead
+MemRead, MDRMux=0; MDRCk
+AMux=0, ALU=0, CMux=1, C=8; LoadCk
 
 // PC <- PC + 1, low-order byte first. 
-6. A=7, B=23, AMux=1, ALU=1, CMux=1, C=7; CCk, LoadCk 
-7. A=6, B=22, AMux=1, ALU=2, CMux=1, C=6; LoadCk 
+A=7, B=23, AMux=1, ALU=1, CMux=1, C=7; CCk, LoadCk
+A=6, B=22, AMux=1, ALU=2, CMux=1, C=6; LoadCk
