@@ -2,8 +2,8 @@
 // Figure 12.5
 // Fetch the instruction specifier and increment PC by 1
 
-Pre: PC = 0x00ff, Mem[0x00ff] = 0xabcd
-Post: PC = 0x0100, Mem[0x00ff] = 0xabcd, IR = 0xabcd
+UnitPre: PC = 0x00ff, Mem[0x00ff] = 0xabcd
+UnitPost: PC = 0x0100, Mem[0x00ff] = 0xabcd, IR = 0xabcd
 
 // Save the status bits in T1
 CMux=0, C=11; LoadCk
