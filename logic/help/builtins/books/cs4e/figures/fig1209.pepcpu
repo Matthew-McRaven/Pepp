@@ -1,8 +1,17 @@
 // File: fig1209.pepcpu
+// Computer Systems, Fourth Edition
+// Figure 12.9
 // Add accumulator, immediate addressing
+// A <- A + Oprnd; N <- A<0, Z <- A=0, V <- {overflow}, C <- {carry}
 
-// A<low> <- A<low> + Oprnd<low>. Save carry. 
+UnitPre: A=0x0abc, IR=0x00ffff, N=1, Z=1, V=1, C=0 
+UnitPost: A=0x0abb, N=0, Z=0, V=0, C=1 
+
+// UnitPre: A=0x0001, IR=0x00ffff, N=1, Z=0, V=1, C=0 
+// UnitPost: A=0x0000, N=0, Z=1, V=0, C=1 
+
+// A<low> <- A<low> + Oprnd<low>. Save carry.
 1. A=1, B=10, AMux=1, ALU=1, ANDZ=0, CMux=1, C=1; ZCk, CCk, LoadCk 
 
-// A<high> <- A<high> plus Oprnd<high> plus saved carry. 
+// A<high> <- A<high> plus Oprnd<high> plus saved carry.
 2. A=0, B=9, AMux=1, ALU=2, ANDZ=1, CMux=1, C=0; NCk, ZCk, VCk, CCk, LoadCk 
