@@ -2,7 +2,7 @@
 // Arithmetic shift right accumulator
 
 // Arithmetic shift right of high-order byte
-1. A=0, AMux=1, ALU=13, ANDZ=0, CMux=1, C=0; NCk, ZCk, CCk, LoadCk
+A=0, AMux=1, ALU=13, ANDZ=0, CMux=1, C=0; NCk, ZCk, CCk, LoadCk
 
 // Rotate right of low-order byte
-2. A=1, AMux=1, ALU=14, ANDZ=1, CMux=1, C=1; ZCk, CCk, LoadCk
+A=1, AMux=1, ALU=14, ANDZ=1, CMux=1, C=1; ZCk, CCk, LoadCk
