@@ -1,14 +1,20 @@
 // File: fig1208.pepcpu
+// Computer Systems, Fourth Edition
+// Figure 12.8
 // Store byte, direct addressing
+// byteOprnd <- r<8..15>
+
+UnitPre: IR=0x00000f, A=0x00ab 
+UnitPost: Mem[0x000f]=0xab 
 
 // MAR <- OprndSpec.
-1. A=9, B=10; MARCk
+1. A=9, B=10; MARCk 
 
 // MBR <- A<low>.
-2. A=1, AMux=1, ALU=0, CMux=1, MDRMux=1; MDRCk
+2. A=1, AMux=1, ALU=0, CMux=1, MDRMux=1; MDRCk 
 
 // Initiate memory write.
-3. MemWrite
+3. MemWrite 
 
 // Complete memory write.
-4. MemWrite
+4. MemWrite 
