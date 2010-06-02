@@ -1,6 +1,7 @@
 // File: fig1205b.pepcpu
 // Computer Systems, Fourth Edition
 // Discussion following Figure 12.5
+// Fetch the instruction specifier and increment PC by 1
 // Combining cycles 1 and 3
 
 UnitPre: PC=0x00ff, Mem[0x00ff]=0xabcd, C=0 

@@ -1,0 +1,8 @@
+// File: exer1207g.pepcpu
+// Computer Systems, Fourth Edition
+// Exercise 12.7(g)
+// BR there
+// PC <- Oprnd, Immediate addressing
+
+UnitPre: 
+UnitPost:

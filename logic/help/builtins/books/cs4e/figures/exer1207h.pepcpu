@@ -1,0 +1,8 @@
+// File: exer1207h.pepcpu
+// Computer Systems, Fourth Edition
+// Exercise 12.7(h)
+// CALL there
+// SP <- SP-2; Mem[SP] <- PC; PC <- Oprnd, Immediate addressing
+
+UnitPre: 
+UnitPost:

@@ -1,8 +1,14 @@
 // File: fig1212.pepcpu
-// Arithmetic shift right accumulator
+// Computer Systems, Fourth Edition
+// Figure 12.12
+// ASRA
+// C <- A<15>, A<1..15> <- A<0..14>; N <- A<0, Z <- A=0 
+
+UnitPre: 
+UnitPost:
 
 // Arithmetic shift right of high-order byte
-A=0, AMux=1, ALU=13, ANDZ=0, CMux=1, C=0; NCk, ZCk, CCk, LoadCk
+1. A=0, AMux=1, ALU=13, ANDZ=0, CMux=1, C=0; NCk, ZCk, CCk, LoadCk
 
 // Rotate right of low-order byte
-A=1, AMux=1, ALU=14, ANDZ=1, CMux=1, C=1; ZCk, CCk, LoadCk
+2. A=1, AMux=1, ALU=14, ANDZ=1, CMux=1, C=1; ZCk, CCk, LoadCk

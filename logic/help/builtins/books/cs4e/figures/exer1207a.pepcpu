@@ -1,4 +1,9 @@
 // File: exer1207a.pepcpu
 // Computer Systems, Fourth Edition
 // Exercise 12.7(a)
+// STBYTEA there,n
+// byteOprnd <- A<8..15>, Indirect addressing
 
+
+UnitPre: 
+UnitPost:

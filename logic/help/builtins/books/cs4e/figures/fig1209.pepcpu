@@ -1,8 +1,8 @@
 // File: fig1209.pepcpu
 // Computer Systems, Fourth Edition
 // Figure 12.9
-// Add accumulator, immediate addressing
-// A <- A + Oprnd; N <- A<0, Z <- A=0, V <- {overflow}, C <- {carry}
+// ADDA this,i
+// A <- A + Oprnd; N <- A<0, Z <- A=0, V <- {overflow}, C <- {carry}, Immediate addressing
 
 UnitPre: A=0x0abc, IR=0x00ffff, N=1, Z=1, V=1, C=0 
 UnitPost: A=0x0abb, N=0, Z=0, V=0, C=1 

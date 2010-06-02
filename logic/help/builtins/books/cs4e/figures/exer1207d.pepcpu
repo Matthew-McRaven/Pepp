@@ -1,0 +1,8 @@
+// File: exer1207d.pepcpu
+// Computer Systems, Fourth Edition
+// Exercise 12.7(d)
+// STBYTEA there,x
+// byteOprnd <- A<8..15>, Indexed addressing
+
+UnitPre: 
+UnitPost:

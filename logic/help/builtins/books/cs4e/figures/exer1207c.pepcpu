@@ -1,0 +1,8 @@
+// File: exer1207c.pepcpu
+// Computer Systems, Fourth Edition
+// Exercise 12.7(c)
+// STBYTEA there,sf
+// byteOprnd <- A<8..15>, Stack-relative deferred addressing
+
+UnitPre: 
+UnitPost:

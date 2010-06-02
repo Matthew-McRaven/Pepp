@@ -1,0 +1,8 @@
+// File: exer1207e.pepcpu
+// Computer Systems, Fourth Edition
+// Exercise 12.7(e)
+// STBYTEA there,sx
+// byteOprnd <- A<8..15>, Stack-indexed addressing
+
+UnitPre: 
+UnitPost:

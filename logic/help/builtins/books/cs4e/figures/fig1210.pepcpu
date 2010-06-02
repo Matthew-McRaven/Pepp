@@ -1,5 +1,11 @@
 // File: fig1210.pepcpu
-// Load index register, indirect addressing
+// Computer Systems, Fourth Edition
+// Figure 12.10
+// LDX this,n
+// X <- Oprnd; N <- X<0, Z <- X=0, Indirect addressing
+
+UnitPre: 
+UnitPost:
 
 // T3<high> <- Mem[OprndSpec].
 1. A=9, B=10; MARCk

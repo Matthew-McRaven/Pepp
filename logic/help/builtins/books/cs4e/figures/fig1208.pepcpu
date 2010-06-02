@@ -1,8 +1,8 @@
 // File: fig1208.pepcpu
 // Computer Systems, Fourth Edition
 // Figure 12.8
-// Store byte, direct addressing
-// byteOprnd <- r<8..15>
+// STBYTEA there,d
+// byteOprnd <- A<8..15>, Direct addressing
 
 UnitPre: IR=0x00000f, A=0x00ab 
 UnitPost: Mem[0x000f]=0xab 

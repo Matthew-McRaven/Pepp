@@ -1,0 +1,8 @@
+// File: exer1207i.pepcpu
+// Computer Systems, Fourth Edition
+// Exercise 12.7(i)
+// NOTA
+// A <- ~A; N <- A<0, Z <- A=0
+
+UnitPre: 
+UnitPost:
