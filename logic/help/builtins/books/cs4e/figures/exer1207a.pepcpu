@@ -6,6 +6,6 @@
 // Indirect addressing: Oprnd = Mem[Mem[OprndSpec]]
 // Shortest known implementation: 12 cycles
 
-UnitPre: 
-UnitPost: 
+UnitPre: IR=0xf20000 
+UnitPost:  
 

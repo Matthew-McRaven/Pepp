@@ -5,6 +5,6 @@
 // RTL: A <- -A; N <- A<0, Z <- A=0, V <- {overflow}
 // Shortest known implementation: 2 cycles
 
-UnitPre: 
-UnitPost: 
+UnitPre: IR=0x1a0000 
+UnitPost:  
 

@@ -6,6 +6,6 @@
 // Stack-indexed addressing: Oprnd = Mem[SP + OprndSpec + X]
 // Shortest known implementation: 8 cycles
 
-UnitPre: 
-UnitPost: 
+UnitPre: IR=0xf60000 
+UnitPost:  
 

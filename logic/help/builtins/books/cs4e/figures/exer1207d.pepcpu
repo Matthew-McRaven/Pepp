@@ -6,6 +6,6 @@
 // Indexed addressing: Oprnd = Mem[OprndSpec + X]
 // Shortest known implementation: 6 cycles
 
-UnitPre: 
-UnitPost: 
+UnitPre: IR=0xf50000 
+UnitPost:  
 

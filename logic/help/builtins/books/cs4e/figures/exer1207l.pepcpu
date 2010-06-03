@@ -5,6 +5,6 @@
 // RTL: C <- A<15>, A<1..15> <- A<0..14>, A<0> <- C
 // Shortest known implementation: 2 cycles
 
-UnitPre: 
-UnitPost: 
+UnitPre: IR=0x220000 
+UnitPost:  
 

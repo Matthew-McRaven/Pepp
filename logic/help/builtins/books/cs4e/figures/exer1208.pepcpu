@@ -5,6 +5,6 @@
 // RTL: T <- Mem[7FFA]; Mem[T-1] <- IR<0..7>; Mem[T-3] <- SP; Mem[T-5] <- PC; Mem[T-7] <- X; Mem[T-9] <- A; Mem[T-10]<4..7> <- NZVC; SP <- T-10; PC <- Mem[FFFE]
 // Shortest known implementation: 57 cycles
 
-UnitPre: 
-UnitPost: 
+UnitPre: IR=0x380000 
+UnitPost:  
 

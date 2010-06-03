@@ -6,7 +6,7 @@
 // Direct addressing: Oprnd = Mem[OprndSpec]
 // Shortest known implementation: 4 cycles
 
-UnitPre: IR=0x00000f, A=0x00ab 
+UnitPre: IR=0xf1000f, A=0x00ab 
 UnitPost: Mem[0x000f]=0xab 
 
 // MAR <- OprndSpec.

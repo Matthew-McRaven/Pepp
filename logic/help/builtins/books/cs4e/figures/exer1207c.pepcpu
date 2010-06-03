@@ -6,6 +6,6 @@
 // Stack-relative deferred addressing: Oprnd = Mem[Mem[SP + OprndSpec]]
 // Shortest known implementation: 13 cycles
 
-UnitPre: 
-UnitPost: 
+UnitPre: IR=0xf40000 
+UnitPost:  
 

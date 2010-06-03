@@ -6,41 +6,41 @@
 // Indirect addressing: Oprnd = Mem[Mem[OprndSpec]]
 // Shortest known implementation: 17 cycles
 
-UnitPre: 
-UnitPost:
+UnitPre: IR=0xca0000 
+UnitPost:  
 
 // T3<high> <- Mem[OprndSpec].
-1. A=9, B=10; MARCk
-2. MemRead
-3. MemRead, MDRMux=0; MDRCk
-4. AMux=0, ALU=0, CMux=1, C=14; LoadCk
- 
+1. A=9, B=10; MARCk 
+2. MemRead 
+3. MemRead, MDRMux=0; MDRCk 
+4. AMux=0, ALU=0, CMux=1, C=14; LoadCk 
+
 // T2 <- OprndSpec + 1.
-5. A=10, B=23, AMux=1, ALU=1, CMux=1, C=13; CCk, LoadCk
-6. A=9, B=22, AMux=1, ALU=2, CMux=1, C=12; LoadCk
+5. A=10, B=23, AMux=1, ALU=1, CMux=1, C=13; CCk, LoadCk 
+6. A=9, B=22, AMux=1, ALU=2, CMux=1, C=12; LoadCk 
 
 // T3<low> <- Mem[T2].
-7. A=12, B=13; MARCk
-8. MemRead
-9. MemRead, MDRMux=0; MDRCk
-10. AMux=0, ALU=0, CMux=1, C=15; LoadCk
+7. A=12, B=13; MARCk 
+8. MemRead 
+9. MemRead, MDRMux=0; MDRCk 
+10. AMux=0, ALU=0, CMux=1, C=15; LoadCk 
 
 // Assert: T3 contains the address of the operand.
 // X<high> <- Mem[T3].
-11. A=14, B=15; MARCk
-12. MemRead
-13. MemRead, MDRMux=0; MDRCk
-14. AMux=0, ALU=0, ANDZ=0, CMux=1, C=2; NCk, ZCk, LoadCk
+11. A=14, B=15; MARCk 
+12. MemRead 
+13. MemRead, MDRMux=0; MDRCk 
+14. AMux=0, ALU=0, ANDZ=0, CMux=1, C=2; NCk, ZCk, LoadCk 
 
 // T4 <- T3 + 1.
-15. A=15, B=23, AMux=1, ALU=1, CMux=1, C=17; CCk, LoadCk
-16. A=14, B=22, AMux=1, ALU=2, CMux=1, C=16; LoadCk
+15. A=15, B=23, AMux=1, ALU=1, CMux=1, C=17; CCk, LoadCk 
+16. A=14, B=22, AMux=1, ALU=2, CMux=1, C=16; LoadCk 
 
 // X<low> <- Mem[T4].
-17. A=16, B=17; MARCk
-18. MemRead
-19. MemRead, MDRMux=0; MDRCk
-20. AMux=0, ALU=0, ANDZ=1, CMux=1, C=3; ZCk, LoadCk
+17. A=16, B=17; MARCk 
+18. MemRead 
+19. MemRead, MDRMux=0; MDRCk 
+20. AMux=0, ALU=0, ANDZ=1, CMux=1, C=3; ZCk, LoadCk 
 
 // Restore C, assumed in T1 from Fetch.
-21. A=11, AMux=1, ALU=15; CCk
+21. A=11, AMux=1, ALU=15; CCk 

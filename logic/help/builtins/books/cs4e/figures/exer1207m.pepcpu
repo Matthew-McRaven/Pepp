@@ -5,6 +5,6 @@
 // RTL: SP <- SP+4; PC <- Mem[SP]; SP <- SP+2
 // Shortest known implementation: 11 cycles
 
-UnitPre: 
-UnitPost: 
+UnitPre: IR=0x5c0000 
+UnitPost:  
 

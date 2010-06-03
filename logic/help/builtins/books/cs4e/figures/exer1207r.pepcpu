@@ -6,6 +6,6 @@
 // Immediate addressing: Oprnd = OprndSpec
 // Shortest known implementation: 2 cycles
 
-UnitPre: 
-UnitPost: 
+UnitPre: IR=0xa00000 
+UnitPost:  
 
