@@ -1,0 +1,10 @@
+// File: exer1207m.pepcpu
+// Computer Systems, Fourth Edition
+// Exercise 12.7(m)
+// RET4
+// RTL: SP <- SP+4; PC <- Mem[SP]; SP <- SP+2
+// Shortest known implementation: 11 cycles
+
+UnitPre: 
+UnitPost: 
+

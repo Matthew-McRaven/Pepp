@@ -3,6 +3,7 @@
 // Discussion following Figure 12.5
 // Fetch the instruction specifier and increment PC by 1
 // Combining cycles 1 and 3
+// Shortest known implementation: 4 cycles, not counting restoration of C
 
 UnitPre: PC=0x00ff, Mem[0x00ff]=0xabcd, C=0 
 UnitPost: PC=0x0100, IR=0x00abcd, C=0 

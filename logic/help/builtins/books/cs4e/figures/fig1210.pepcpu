@@ -2,7 +2,9 @@
 // Computer Systems, Fourth Edition
 // Figure 12.10
 // LDX this,n
-// X <- Oprnd; N <- X<0, Z <- X=0, Indirect addressing
+// RTL: X <- Oprnd; N <- X<0, Z <- X=0
+// Indirect addressing: Oprnd = Mem[Mem[OprndSpec]]
+// Shortest known implementation: 17 cycles
 
 UnitPre: 
 UnitPost:

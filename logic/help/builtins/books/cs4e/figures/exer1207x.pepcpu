@@ -1,0 +1,10 @@
+// File: exer1207x.pepcpu
+// Computer Systems, Fourth Edition
+// Exercise 12.7(x)
+// RETTR
+// RTL: NZVC <- Mem[SP]<4..7>; A <- Mem[SP+1]; X <- Mem[SP+3]; PC <- Mem[SP+5]; SP <- Mem[SP+7]
+// Shortest known implementation: 39 cycles
+
+UnitPre: 
+UnitPost: 
+

@@ -22,4 +22,3 @@ UnitPost: PC=0x0100, IR=0x00abcd, C=0
 // ...
 // Restore the carry bit from T1
 8. A=11, AMux=1, ALU=15; CCk 
-

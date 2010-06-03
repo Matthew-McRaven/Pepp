@@ -2,7 +2,10 @@
 // Computer Systems, Fourth Edition
 // Exercise 12.7(h)
 // CALL there
-// SP <- SP-2; Mem[SP] <- PC; PC <- Oprnd, Immediate addressing
+// RTL: SP <- SP-2; Mem[SP] <- PC; PC <- Oprnd
+// Immediate addressing: Oprnd = OprndSpec
+// Shortest known implementation: 13 cycles
 
 UnitPre: 
-UnitPost:
+UnitPost: 
+

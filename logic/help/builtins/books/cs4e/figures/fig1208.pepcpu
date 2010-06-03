@@ -2,7 +2,9 @@
 // Computer Systems, Fourth Edition
 // Figure 12.8
 // STBYTEA there,d
-// byteOprnd <- A<8..15>, Direct addressing
+// RTL: byteOprnd <- A<8..15>
+// Direct addressing: Oprnd = Mem[OprndSpec]
+// Shortest known implementation: 4 cycles
 
 UnitPre: IR=0x00000f, A=0x00ab 
 UnitPost: Mem[0x000f]=0xab 

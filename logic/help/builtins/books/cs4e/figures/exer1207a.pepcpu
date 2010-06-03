@@ -2,8 +2,10 @@
 // Computer Systems, Fourth Edition
 // Exercise 12.7(a)
 // STBYTEA there,n
-// byteOprnd <- A<8..15>, Indirect addressing
-
+// RTL: byteOprnd <- A<8..15>
+// Indirect addressing: Oprnd = Mem[Mem[OprndSpec]]
+// Shortest known implementation: 12 cycles
 
 UnitPre: 
-UnitPost:
+UnitPost: 
+

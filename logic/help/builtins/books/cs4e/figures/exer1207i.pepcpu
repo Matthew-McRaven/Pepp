@@ -2,7 +2,9 @@
 // Computer Systems, Fourth Edition
 // Exercise 12.7(i)
 // NOTA
-// A <- ~A; N <- A<0, Z <- A=0
+// RTL: A <- ~A; N <- A<0, Z <- A=0
+// Shortest known implementation: 2 cycles
 
 UnitPre: 
-UnitPost:
+UnitPost: 
+

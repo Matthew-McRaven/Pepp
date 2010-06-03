@@ -2,7 +2,10 @@
 // Computer Systems, Fourth Edition
 // Exercise 12.7(e)
 // STBYTEA there,sx
-// byteOprnd <- A<8..15>, Stack-indexed addressing
+// RTL: byteOprnd <- A<8..15>
+// Stack-indexed addressing: Oprnd = Mem[SP + OprndSpec + X]
+// Shortest known implementation: 8 cycles
 
 UnitPre: 
-UnitPost:
+UnitPost: 
+

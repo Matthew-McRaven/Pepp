@@ -2,7 +2,10 @@
 // Computer Systems, Fourth Edition
 // Exercise 12.7(c)
 // STBYTEA there,sf
-// byteOprnd <- A<8..15>, Stack-relative deferred addressing
+// RTL: byteOprnd <- A<8..15>
+// Stack-relative deferred addressing: Oprnd = Mem[Mem[SP + OprndSpec]]
+// Shortest known implementation: 13 cycles
 
 UnitPre: 
-UnitPost:
+UnitPost: 
+

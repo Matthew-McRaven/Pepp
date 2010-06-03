@@ -2,7 +2,10 @@
 // Computer Systems, Fourth Edition
 // Exercise 12.7(g)
 // BR there
-// PC <- Oprnd, Immediate addressing
+// RTL: PC <- Oprnd
+// Immediate addressing: Oprnd = OprndSpec
+// Shortest known implementation: 2 cycles
 
 UnitPre: 
-UnitPost:
+UnitPost: 
+

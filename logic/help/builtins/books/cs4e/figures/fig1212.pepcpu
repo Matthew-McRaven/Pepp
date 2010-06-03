@@ -2,7 +2,8 @@
 // Computer Systems, Fourth Edition
 // Figure 12.12
 // ASRA
-// C <- A<15>, A<1..15> <- A<0..14>; N <- A<0, Z <- A=0 
+// RTL: C <- A<15>, A<1..15> <- A<0..14>; N <- A<0, Z <- A=0 
+// Shortest known implementation: 2 cycles
 
 UnitPre: 
 UnitPost:

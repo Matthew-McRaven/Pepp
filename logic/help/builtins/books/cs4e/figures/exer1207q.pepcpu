@@ -1,0 +1,11 @@
+// File: exer1207q.pepcpu
+// Computer Systems, Fourth Edition
+// Exercise 12.7(q)
+// ANDA this,i
+// RTL: A <- A AND Oprnd; N <- A<0, Z <- A=0
+// Immediate addressing: Oprnd = OprndSpec
+// Shortest known implementation: 2 cycles
+
+UnitPre: 
+UnitPost: 
+

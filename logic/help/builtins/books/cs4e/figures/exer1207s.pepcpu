@@ -1,0 +1,11 @@
+// File: exer1207s.pepcpu
+// Computer Systems, Fourth Edition
+// Exercise 12.7(s)
+// CPA this,i
+// RTL: T <- A-Oprnd; N <- A<0, Z <- A=0, V <- {overflow}, C <- {carry}
+// Immediate addressing: Oprnd = OprndSpec
+// Shortest known implementation: 2 cycles
+
+UnitPre: 
+UnitPost: 
+

@@ -1,0 +1,11 @@
+// File: exer1207o.pepcpu
+// Computer Systems, Fourth Edition
+// Exercise 12.7(o)
+// SUBSP this,i
+// RTL: SP <- SP-Oprnd; N <- SP<0, Z <- SP=0, V <- {overflow}, C <- {carry}
+// Immediate addressing: Oprnd = OprndSpec
+// Shortest known implementation: 2 cycles
+
+UnitPre: 
+UnitPost: 
+
