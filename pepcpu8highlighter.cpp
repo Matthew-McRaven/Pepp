@@ -41,7 +41,7 @@ PepHighlighter::PepHighlighter(QTextDocument *parent)
     }
 
     numFormat.setForeground(Qt::darkMagenta);
-    rule.pattern = QRegExp("[0-9]+(?=(,|;))");
+    rule.pattern = QRegExp("[0-9a-fA-F]+(?=(,|;))");
     rule.format = numFormat;
     highlightingRules.append(rule);
 
