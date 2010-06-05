@@ -4,6 +4,6 @@
 // Fetch the operand specifier and increment PC by 2
 // Shortest known implementation: 8 cycles
 
-UnitPre: 
-UnitPost: 
+UnitPre: IR=0x000000, PC=0x01ff, Mem[0x01ff]=0xabcd 
+UnitPost: IR=0x00abcd, PC=0x0201 
 
