@@ -3,8 +3,21 @@
 // Exercise 12.7(j)
 // NEGA
 // RTL: A <- -A; N <- A<0, Z <- A=0, V <- {overflow}
-// Shortest known implementation: 2 cycles
+// Shortest known implementation: 3 cycles
 
-UnitPre: IR=0x1a0000 
-UnitPost:  
+UnitPre: IR=0x1a0000, A=0xffff, N=1, Z=0, V=1, C=1 
+UnitPre: N=1, Z=0, V=1, C=1, T1=0x0b // T1 stores NZVC=1011 in von Neumann step
+UnitPost: A=0x0001, N=0, Z=0, V=0, C=1 
+
+// UnitPre: IR=0x1a0000, A=0xff00, N=1, Z=0, V=1, C=0 
+// UnitPre: N=1, Z=0, V=1, C=0, T1=0x0a // T1 stores NZVC=1010 in von Neumann step
+// UnitPost: A=0x0100, N=0, Z=0, V=0, C=0 
+
+// UnitPre: IR=0x1a0000, A=0x8000, N=1, Z=0, V=0, C=0 
+// UnitPre: N=1, Z=0, V=0, C=0, T1=0x08 // T1 stores NZVC=1000 in von Neumann step
+// UnitPost: A=0x8000, N=1, Z=0, V=1, C=0 
+
+// UnitPre: IR=0x1a0000, A=0x0000, N=1, Z=0, V=1, C=0 
+// UnitPre: N=1, Z=0, V=1, C=0, T1=0x0a // T1 stores NZVC=1010 in von Neumann step
+// UnitPost: A=0x0000, N=0, Z=1, V=0, C=0 
 

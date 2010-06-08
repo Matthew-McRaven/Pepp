@@ -5,6 +5,7 @@
 // RTL: SP <- SP+4; PC <- Mem[SP]; SP <- SP+2
 // Shortest known implementation: 11 cycles
 
-UnitPre: IR=0x5c0000 
-UnitPost:  
+UnitPre: IR=0x5c0000, SP=0x00fb, Mem[0x00ff]=0xabcd 
+UnitPre: N=1, Z=0, V=1, C=0, T1=0x0a // T1 stores NZVC=1010 in von Neumann step
+UnitPost: SP=0x0101, PC=0xabcd, C=0 
 

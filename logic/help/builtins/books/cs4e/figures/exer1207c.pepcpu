@@ -6,6 +6,7 @@
 // Stack-relative deferred addressing: Oprnd = Mem[Mem[SP + OprndSpec]]
 // Shortest known implementation: 13 cycles
 
-UnitPre: IR=0xf40000 
-UnitPost:  
+UnitPre: IR=0xf400fa, SP=0x0005, Mem[0x00ff]= 0x0108, A=0x00ab 
+UnitPre: N=1, Z=0, V=1, C=0, T1=0x0a // T1 stores NZVC=1010 in von Neumann step
+UnitPost: Mem[0x0108]=0xab, N=1, Z=0, V=1, C=0 
 

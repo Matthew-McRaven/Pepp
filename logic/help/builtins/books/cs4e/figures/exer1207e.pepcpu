@@ -6,6 +6,7 @@
 // Stack-indexed addressing: Oprnd = Mem[SP + OprndSpec + X]
 // Shortest known implementation: 8 cycles
 
-UnitPre: IR=0xf60000 
-UnitPost:  
+UnitPre: IR=0xf600f1, SP=0x0008, X=0x0009, A=0x00ab 
+UnitPre: N=1, Z=0, V=1, C=0, T1=0x0a // T1 stores NZVC=1010 in von Neumann step
+UnitPost: Mem[0x0102]=0xab, N=1, Z=0, V=1, C=0 
 
