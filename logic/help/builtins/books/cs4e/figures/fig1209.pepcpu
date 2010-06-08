@@ -6,11 +6,17 @@
 // Immediate addressing: Oprnd = OprndSpec
 // Shortest known implementation: 2 cycles
 
-UnitPre: IR=0x70ffff, A=0x0abc, N=1, Z=1, V=1, C=0 
-UnitPost: A=0x0abb, N=0, Z=0, V=0, C=1 
+UnitPre: IR=0x700ff0, A=0x0f11, N=0, Z=0, V=1, C=1 
+UnitPost: A=0x1f01, N=0, Z=0, V=0, C=0 
 
-// UnitPre: IR=0x70ffff, A=0x0001, N=1, Z=0, V=1, C=0
-// UnitPost: A=0x0000, N=0, Z=1, V=0, C=1
+// UnitPre: IR=0x707ff0, A=0x0f11, N=0, Z=0, V=0, C=1 
+// UnitPost: A=0xff01, N=1, Z=0, V=1, C=0 
+
+// UnitPre: IR=0x70ff00, A=0xffab, N=1, Z=0, V=1, C=0 
+// UnitPost: A=0xfeab, N=1, Z=0, V=0, C=1 
+
+// UnitPre: IR=0x70ff00, A=0x0100, N=1, Z=0, V=1, C=0 
+// UnitPost: A=0x0000, N=0, Z=1, V=0, C=1 
 
 // A<low> <- A<low> + Oprnd<low>. Save carry.
 1. A=1, B=10, AMux=1, ALU=1, ANDZ=0, CMux=1, C=1; ZCk, CCk, LoadCk 
