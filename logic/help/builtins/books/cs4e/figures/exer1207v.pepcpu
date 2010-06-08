@@ -5,6 +5,6 @@
 // RTL: A <- SP
 // Shortest known implementation: 2 cycles
 
-UnitPre: IR=0x020000 
-UnitPost:  
+UnitPre: IR=0x020000, SP=0xabcd 
+UnitPost: A=0xabcd 
 

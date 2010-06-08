@@ -7,6 +7,9 @@
 // Direct addressing: Oprnd = Mem[OprndSpec]
 // Shortest known implementation: 5 cycles
 
-UnitPre: IR=0xd10000 
-UnitPost:  
+UnitPre: IR=0xd10012, Mem[0x0012]=0x34, A=0xabcd, N=1, Z=0 
+UnitPost: A=0xab34, N=1, Z=0 
+
+// UnitPre: IR=0xd10012, Mem[0x0012]=0x00, A=0x00cd, N=1, Z=0 
+// UnitPost: A=0x0000, N=0, Z=1 
 
