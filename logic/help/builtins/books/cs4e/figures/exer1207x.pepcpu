@@ -5,7 +5,7 @@
 // RTL: NZVC <- Mem[SP]<4..7>; A <- Mem[SP+1]; X <- Mem[SP+3]; PC <- Mem[SP+5]; SP <- Mem[SP+7]
 // Shortest known implementation: 39 cycles
 
-UnitPre: IR=0x010000, SP=0x00f7, N=1, Z=0, V=1, C=0 
+UnitPre: IR=0x010000, SP=0x00f8, N=1, Z=0, V=1, C=0 
 UnitPre: Mem[0x00f8]=0x05, Mem[0x00f9]=0x0123, Mem[0x00fb]=0x4567, Mem[0x00fd]=0x89ab, Mem[0x00ff]=0xcdef 
 UnitPost: N=0, Z=1, V=0, C=1, A=0x0123, X=0x4567, PC=0x89ab, SP=0xcdef 
 

@@ -3,24 +3,24 @@
 // Figure 12.5
 // Fetch the instruction specifier and increment PC by 1
 
-UnitPre: IR=0x000000, PC=0x00ff, Mem[0x00ff]=0xab 
-UnitPre: N=1, Z=0, V=1, C=0 
-UnitPost: IR=0xab0000, PC=0x0100 
+UnitPre: IR=0x000000, PC=0x00ff, Mem[0x00ff]=0xab
+UnitPre: N=1, Z=0, V=1, C=0
+UnitPost: IR=0xab0000, PC=0x0100
 UnitPost: N=1, Z=0, V=1, C=0, T1=0x0a // T1 stores NZVC=1010
 
 // Save the status bits in T1
-1. CMux=0, C=11; LoadCk 
+1. CMux=0, C=11; LoadCk
 
 // MAR <- PC, fetch instruction specifier.
-2. A=6, B=7; MARCk 
-3. MemRead 
-4. MemRead, MDRMux=0; MDRCk 
-5. AMux=0, ALU=0, CMux=1, C=8; LoadCk 
+2. A=6, B=7; MARCk
+3. MemRead
+4. MemRead, MDRMux=0; MDRCk
+5. AMux=0, ALU=0, CMux=1, C=8; LoadCk
 
 // PC <- PC + 1, low-order byte first.
-6. A=7, B=23, AMux=1, ALU=1, CMux=1, C=7; CCk, LoadCk 
-7. A=6, B=22, AMux=1, ALU=2, CMux=1, C=6; LoadCk 
+6. A=7, B=23, AMux=1, ALU=1, CMux=1, C=7; CCk, LoadCk
+7. A=6, B=22, AMux=1, ALU=2, CMux=1, C=6; LoadCk
 
 // ...
 // Restore the carry bit from T1
-8. A=11, AMux=1, ALU=15; CCk 
+8. A=11, AMux=1, ALU=15; CCk
