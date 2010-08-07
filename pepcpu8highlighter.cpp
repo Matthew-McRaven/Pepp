@@ -30,11 +30,6 @@ PepHighlighter::PepHighlighter(QTextDocument *parent)
     rule.format = numFormat;
     highlightingRules.append(rule);
 
-    singleLineCommentFormat.setForeground(Qt::darkGreen);
-    rule.pattern = QRegExp("//.*");
-    rule.format = singleLineCommentFormat;
-    highlightingRules.append(rule);
-
     oprndFormat.setForeground(Qt::darkBlue);
     oprndFormat.setFontWeight(QFont::Bold);
     QStringList oprndPatterns;
@@ -49,6 +44,11 @@ PepHighlighter::PepHighlighter(QTextDocument *parent)
         rule.format = oprndFormat;
         highlightingRules.append(rule);
     }
+
+    singleLineCommentFormat.setForeground(Qt::darkGreen);
+    rule.pattern = QRegExp("//.*");
+    rule.format = singleLineCommentFormat;
+    highlightingRules.append(rule);
 
     multiLineCommentFormat.setForeground(Qt::white);
     multiLineCommentFormat.setBackground(Qt::red);
