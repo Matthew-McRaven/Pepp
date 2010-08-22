@@ -10,7 +10,7 @@ UnitPre: IR=0x700ff0, A=0x0f11, N=0, Z=0, V=1, C=1
 UnitPost: A=0x1f01, N=0, Z=0, V=0, C=0 
 
 // UnitPre: IR=0x707ff0, A=0x0f11, N=0, Z=0, V=0, C=1 
-// UnitPost: A=0x8f01, N=1, Z=0, V=0, C=0
+// UnitPost: A=0x8f01, N=1, Z=0, V=1, C=0
 
 // UnitPre: IR=0x70ff00, A=0xffab, N=1, Z=0, V=1, C=0 
 // UnitPost: A=0xfeab, N=1, Z=0, V=0, C=1 
