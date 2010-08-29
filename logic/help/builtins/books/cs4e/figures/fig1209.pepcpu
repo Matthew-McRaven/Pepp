@@ -6,20 +6,20 @@
 // Immediate addressing: Oprnd = OprndSpec
 // Shortest known implementation: 2 cycles
 
-UnitPre: IR=0x700ff0, A=0x0f11, N=0, Z=0, V=1, C=1 
-UnitPost: A=0x1f01, N=0, Z=0, V=0, C=0 
+UnitPre: IR=0x700FF0, A=0x0F11, N=0, Z=0, V=1, C=1
+UnitPost: A=0x1F01, N=0, Z=0, V=0, C=0
 
-// UnitPre: IR=0x707ff0, A=0x0f11, N=0, Z=0, V=0, C=1 
-// UnitPost: A=0x8f01, N=1, Z=0, V=1, C=0
+// UnitPre: IR=0x707FF0, A=0x0F11, N=0, Z=0, V=0, C=1
+// UnitPost: A=0x8F01, N=1, Z=0, V=1, C=0
 
-// UnitPre: IR=0x70ff00, A=0xffab, N=1, Z=0, V=1, C=0 
-// UnitPost: A=0xfeab, N=1, Z=0, V=0, C=1 
+// UnitPre: IR=0x70FF00, A=0xFFAB, N=1, Z=0, V=1, C=0
+// UnitPost: A=0xFEAB, N=1, Z=0, V=0, C=1
 
-// UnitPre: IR=0x70ff00, A=0x0100, N=1, Z=0, V=1, C=0 
-// UnitPost: A=0x0000, N=0, Z=1, V=0, C=1 
+// UnitPre: IR=0x70FF00, A=0x0100, N=1, Z=0, V=1, C=0
+// UnitPost: A=0x0000, N=0, Z=1, V=0, C=1
 
 // A<low> <- A<low> + Oprnd<low>. Save carry.
-1. A=1, B=10, AMux=1, ALU=1, ANDZ=0, CMux=1, C=1; ZCk, CCk, LoadCk 
+1. A=1, B=10, AMux=1, ALU=1, ANDZ=0, CMux=1, C=1; ZCk, CCk, LoadCk
 
 // A<high> <- A<high> plus Oprnd<high> plus saved carry.
-2. A=0, B=9, AMux=1, ALU=2, ANDZ=1, CMux=1, C=0; NCk, ZCk, VCk, CCk, LoadCk 
+2. A=0, B=9, AMux=1, ALU=2, ANDZ=1, CMux=1, C=0; NCk, ZCk, VCk, CCk, LoadCk

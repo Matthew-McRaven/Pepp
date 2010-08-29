@@ -5,11 +5,17 @@
 // RTL: C <- A<15>, A<1..15> <- A<0..14>; N <- A<0, Z <- A=0
 // Shortest known implementation: 2 cycles
 
-UnitPre: IR=0x1e0000, A=0xff01, N=1, Z=1, V=1, C=0 
-UnitPost: A=0xff80, N=1, Z=0, V=1, C=1
+UnitPre: IR=0x1E0000, A=0xFF01, N=1, Z=1, V=1, C=0
+UnitPost: A=0xFF80, N=1, Z=0, V=1, C=1
+
+// UnitPre: IR=0x1E0000, A=0xFE01, N=1, Z=1, V=1, C=0
+// UnitPost: A=0xFF00, N=1, Z=0, V=1, C=1
+
+// UnitPre: IR=0x1E0000, A=0x7E01, N=1, Z=1, V=1, C=0
+// UnitPost: A=0x3F00, N=0, Z=0, V=1, C=1
 
 // Arithmetic shift right of high-order byte
-1. A=0, AMux=1, ALU=13, ANDZ=0, CMux=1, C=0; NCk, ZCk, CCk, LoadCk 
+1. A=0, AMux=1, ALU=13, ANDZ=0, CMux=1, C=0; NCk, ZCk, CCk, LoadCk
 
 // Rotate right of low-order byte
-2. A=1, AMux=1, ALU=14, ANDZ=1, CMux=1, C=1; ZCk, CCk, LoadCk 
+2. A=1, AMux=1, ALU=14, ANDZ=1, CMux=1, C=1; ZCk, CCk, LoadCk
