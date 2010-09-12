@@ -6,9 +6,9 @@
 // Indirect addressing: Oprnd = Mem[Mem[OprndSpec]]
 // Optimize to use only 17 cycles
 
-UnitPre: IR=0xca0012, Mem[0x0012]=0x26d1, Mem[0x26d1]=0x53ac 
+UnitPre: IR=0xCA0012, Mem[0x0012]=0x26D1, Mem[0x26D1]=0x53AC
 UnitPre: N=1, Z=1, V=0, C=1, T1=0x05 // NZVC=1101 stored in von Neumann step
-UnitPost: X=0x53ac, N=0, Z=0, V=0, C=1
+UnitPost: X=0x53AC, N=0, Z=0, V=0, C=1
 
 // T3<high> <- Mem[OprndSpec].
 1. A=9, B=10; MARCk 
