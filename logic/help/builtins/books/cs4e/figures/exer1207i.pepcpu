@@ -5,9 +5,8 @@
 // RTL: A <- ~A; N <- A<0, Z <- A=0
 // Shortest known implementation: 2 cycles
 
-UnitPre: IR=0x180000, A=0xffff, N=1, Z=0 
-UnitPost: A=0x0000, N=0, Z=1 
+UnitPre: IR=0x180000, A=0xFFFF, N=1, Z=0
+UnitPost: A=0x0000, N=0, Z=1
 
-// UnitPre: IR=0x180000, A=0x0ff0, N=1, Z=0 
-// UnitPost: A=0xf00f, N=1, Z=0 
-
+// UnitPre: IR=0x180000, A=0x0ff0, N=0, Z=0
+// UnitPost: A=0xf00f, N=1, Z=0
