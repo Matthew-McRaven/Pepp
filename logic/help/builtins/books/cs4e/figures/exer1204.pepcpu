@@ -25,3 +25,4 @@ UnitPost: N=1, Z=0, V=1, C=0, T1=0x0A // T1 stores NZVC=1010
 // ...
 // Restore the carry bit from T1
 8. A=11, AMux=1, ALU=15; CCk
+

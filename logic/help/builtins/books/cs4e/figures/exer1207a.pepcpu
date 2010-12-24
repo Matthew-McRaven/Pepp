@@ -9,3 +9,4 @@
 UnitPre: IR=0xF200FF, Mem[0x00FF]=0x0105, A=0x00AB
 UnitPre: N=1, Z=0, V=1, C=0, T1=0x0A // T1 stores NZVC=1010 in von Neumann step
 UnitPost: Mem[0x0105]=0xAB, N=1, Z=0, V=1, C=0
+

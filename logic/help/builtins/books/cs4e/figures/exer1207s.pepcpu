@@ -2,19 +2,19 @@
 // Computer Systems, Fourth Edition
 // Exercise 12.7(s)
 // CPA this,i
-// RTL: T <- A-Oprnd; N <- A<0, Z <- A=0, V <- {overflow}, C <- {carry}
+// RTL: T <- A-Oprnd; N <- A<0, Z <- A=0, V <- {overflow}, C <- {carry}; N <- N XOR V
 // Immediate addressing: Oprnd = OprndSpec
-// Shortest known implementation: 2 cycles
+// Shortest known implementation: 7 cycles
 
-UnitPre: IR=0xb0f010, A=0x0f11, N=0, Z=0, V=1, C=1 
-UnitPost: A=0x0f11, N=0, Z=0, V=0, C=0 
+UnitPre: IR=0xB0F010, A=0x0F11, N=0, Z=0, V=1, C=1
+UnitPost: N=0, Z=0, V=0, C=0
 
-// UnitPre: IR=0xb08010, A=0x0f11, N=0, Z=0, V=0, C=1 
-// UnitPost: A=0x0f11, N=1, Z=0, V=1, C=0 
+// UnitPre: IR=0xB08010, A=0x0F11, N=0, Z=0, V=0, C=1
+// UnitPost: N=0, Z=0, V=1, C=0
 
-// UnitPre: IR=0xb07010, A=0xffab, N=1, Z=0, V=1, C=0 
-// UnitPost: A=0xffab, N=1, Z=0, V=0, C=1 
+// UnitPre: IR=0xB07010, A=0xFFAB, N=1, Z=0, V=1, C=0
+// UnitPost: N=1, Z=0, V=0, C=1
 
-// UnitPre: IR=0xb07010, A=0x0100, N=1, Z=0, V=1, C=0 
-// UnitPost: A=0x0100, N=0, Z=1, V=0, C=1 
+// UnitPre: IR=0xB0700f, A=0x8ff0, N=1, Z=0, V=1, C=0
+// UnitPost: N=1, Z=0, V=1, C=1
 

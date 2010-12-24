@@ -10,3 +10,4 @@ UnitPost: A=0x0000, N=0, Z=1
 
 // UnitPre: IR=0x180000, A=0x0ff0, N=0, Z=0
 // UnitPost: A=0xf00f, N=1, Z=0
+

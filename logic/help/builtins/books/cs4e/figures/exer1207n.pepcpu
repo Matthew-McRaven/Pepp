@@ -17,3 +17,4 @@ UnitPost: SP=0x1F01, N=0, Z=0, V=0, C=0
 
 // UnitPre: IR=0x60FF00, SP=0x0100, N=1, Z=0, V=1, C=0
 // UnitPost: SP=0x0000, N=0, Z=1, V=0, C=1
+

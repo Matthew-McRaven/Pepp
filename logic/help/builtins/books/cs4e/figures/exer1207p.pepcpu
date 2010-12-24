@@ -6,15 +6,15 @@
 // Immediate addressing: Oprnd = OprndSpec
 // Shortest known implementation: 2 cycles
 
-UnitPre: IR=0x80f010, A=0x0f11, N=0, Z=0, V=1, C=1 
-UnitPost: A=0x1f01, N=0, Z=0, V=0, C=0 
+UnitPre: IR=0x80F010, A=0x0F11, N=0, Z=0, V=1, C=1
+UnitPost: A=0x1F01, N=0, Z=0, V=0, C=0
 
-// UnitPre: IR=0x808010, A=0x0f11, N=0, Z=0, V=0, C=1 
-// UnitPost: A=0xff01, N=1, Z=0, V=1, C=0 
+// UnitPre: IR=0x808010, A=0x0F11, N=0, Z=0, V=0, C=1
+// UnitPost: A=0x8F01, N=1, Z=0, V=1, C=0
 
-// UnitPre: IR=0x807010, A=0xffab, N=1, Z=0, V=1, C=0 
-// UnitPost: A=0xfeab, N=1, Z=0, V=0, C=1 
+// UnitPre: IR=0x807010, A=0xFFAB, N=1, Z=0, V=1, C=0
+// UnitPost: A=0x8F9B, N=1, Z=0, V=0, C=1
 
-// UnitPre: IR=0x807010, A=0x0100, N=1, Z=0, V=1, C=0 
-// UnitPost: A=0x0000, N=0, Z=1, V=0, C=1 
+// UnitPre: IR=0x807010, A=0x0100, N=1, Z=0, V=1, C=0
+// UnitPost: A=0x90F0, N=1, Z=0, V=0, C=0
 
