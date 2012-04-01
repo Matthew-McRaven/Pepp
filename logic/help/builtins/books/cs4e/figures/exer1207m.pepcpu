@@ -3,7 +3,7 @@
 // Exercise 12.7(m)
 // RET4
 // RTL: SP <- SP+4; PC <- Mem[SP]; SP <- SP+2
-// Shortest known implementation: 11 cycles
+// Shortest known implementation: 10 cycles
 
 UnitPre: IR=0x5c0000, SP=0x00fb, Mem[0x00ff]=0xabcd 
 UnitPre: N=1, Z=0, V=1, C=0, T1=0x0a // T1 stores NZVC=1010 in von Neumann step

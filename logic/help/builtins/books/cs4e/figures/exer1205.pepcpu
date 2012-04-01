@@ -2,7 +2,7 @@
 // Computer Systems, Fourth Edition
 // Exercise 12.5
 // Fetch the operand specifier and increment PC by 2
-// Shortest known implementation: 8 cycles
+// Shortest known implementation: 7 cycles
 
 UnitPre: IR=0x000000, PC=0x01FF, Mem[0x01FF]=0xABCD
 UnitPost: IR=0x00ABCD, PC=0x0201
