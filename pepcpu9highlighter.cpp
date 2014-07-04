@@ -37,9 +37,14 @@ PepHighlighter::PepHighlighter(QTextDocument *parent)
     oprndPatterns << "\\bLoadCk\\b" << "\\bC\\b" << "\\bB\\b"
             << "\\bA\\b" << "\\bMARCk\\b" << "\\bMDRCk\\b"
             << "\\bAMux\\b" << "\\bMDRMux\\b" << "\\bCMux\\b"
-            << "\\bALU\\b" << "\\bCCk\\b" << "\\bVCk\\b"
+            << "\\bALU\\b" << "\\bCSMux\\b" << "\\bSCk\\b" << "\\bCCk\\b" << "\\bVCk\\b"
             << "\\bANDZ\\b" << "\\bZCk\\b" << "\\bNCk\\b"
-            << "\\bMemRead\\b" << "\\bMemWrite\\b" << "^(\\s)*UnitPre(?=:)\\b" << "^(\\s)*UnitPost(?=:)\\b";
+            << "\\bMemRead\\b" << "\\bMemWrite\\b" << "^(\\s)*UnitPre(?=:)\\b" << "^(\\s)*UnitPost(?=:)\\b"
+               // pre/post symbols:
+            << "\\bN\\b" << "\\bZ\\b" << "\\bV\\b" << "\\bS\\b"
+            << "\\bX\\b" << "\\bSP\\b" << "\\bPC\\b" << "\\bIR\\b"
+            << "\\bT1\\b" << "\\bT2\\b" << "\\bT3\\b" << "\\bT4\\b"
+            << "\\bT5\\b" << "\\bT6\\b" << "\\bMem\\b";
     foreach (const QString &pattern, oprndPatterns) {
         rule.pattern = QRegExp(pattern);
         rule.format = oprndFormat;
