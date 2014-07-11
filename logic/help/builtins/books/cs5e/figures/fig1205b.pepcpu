@@ -10,7 +10,9 @@ UnitPost: IR=0xAB0000, PC=0x0100
 1. A=6, B=7; MARCk
 // Initiate fetch, PC<low> <- PC<low> + 1.
 2. MemRead, A=7, B=23, AMux=1, ALU=1, CMux=1, C=7; SCk, LoadCk
-// Complete fetch, PC<high> <- PC<high> + shadow carry.
-3. MemRead, A=6, B=22, AMux=1, CSMux=1, ALU=2, CMux=1, MDRMux=0, C=6; LoadCk, MDRCk
+// Continue fetch, PC<high> <- PC<high> + shadow carry.
+3. MemRead, A=6, B=22, AMux=1, CSMux=1, ALU=2, CMux=1, C=6; LoadCk
+// Complete fetch
+4. MemRead, MDRMux=0; MDRCk
 // IR <- instruction specifier.
-4. AMux=0, ALU=0, CMux=1, C=8; LoadCk
+5. AMux=0, ALU=0, CMux=1, C=8; LoadCk
