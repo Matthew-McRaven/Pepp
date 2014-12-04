@@ -34,6 +34,7 @@ PepHighlighter::PepHighlighter(QTextDocument *parent)
     oprndFormat.setForeground(Qt::darkBlue);
     oprndFormat.setFontWeight(QFont::Bold);
     QStringList oprndPatterns;
+#warning "todo: update to accomodate both one byte and two byte data busses"
     oprndPatterns << "\\bLoadCk\\b" << "\\bC\\b" << "\\bB\\b"
             << "\\bA\\b" << "\\bMARCk\\b" << "\\bMDRCk\\b"
             << "\\bAMux\\b" << "\\bMDRMux\\b" << "\\bCMux\\b"
