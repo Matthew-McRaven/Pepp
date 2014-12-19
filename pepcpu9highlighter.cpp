@@ -20,6 +20,7 @@
 */
 
 #include "pephighlighter.h"
+#include "pep.h"
 
 PepHighlighter::PepHighlighter(QTextDocument *parent)
     : QSyntaxHighlighter(parent)
@@ -35,17 +36,32 @@ PepHighlighter::PepHighlighter(QTextDocument *parent)
     oprndFormat.setFontWeight(QFont::Bold);
     QStringList oprndPatterns;
 #warning "todo: update to accomodate both one byte and two byte data busses"
-    oprndPatterns << "\\bLoadCk\\b" << "\\bC\\b" << "\\bB\\b"
-            << "\\bA\\b" << "\\bMARCk\\b" << "\\bMDRCk\\b"
-            << "\\bAMux\\b" << "\\bMDRMux\\b" << "\\bCMux\\b"
-            << "\\bALU\\b" << "\\bCSMux\\b" << "\\bSCk\\b" << "\\bCCk\\b" << "\\bVCk\\b"
-            << "\\bANDZ\\b" << "\\bZCk\\b" << "\\bNCk\\b"
-            << "\\bMemRead\\b" << "\\bMemWrite\\b" << "^(\\s)*UnitPre(?=:)\\b" << "^(\\s)*UnitPost(?=:)\\b"
-               // pre/post symbols:
-            << "\\bN\\b" << "\\bZ\\b" << "\\bV\\b" << "\\bS\\b"
-            << "\\bX\\b" << "\\bSP\\b" << "\\bPC\\b" << "\\bIR\\b"
-            << "\\bT1\\b" << "\\bT2\\b" << "\\bT3\\b" << "\\bT4\\b"
-            << "\\bT5\\b" << "\\bT6\\b" << "\\bMem\\b";
+    if (Pep::cpuFeatures == Enu::OneByteDataBus) {
+        oprndPatterns << "\\bLoadCk\\b" << "\\bC\\b" << "\\bB\\b"
+                << "\\bA\\b" << "\\bMARCk\\b" << "\\bMDRCk\\b"
+                << "\\bAMux\\b" << "\\bMDRMux\\b" << "\\bCMux\\b"
+                << "\\bALU\\b" << "\\bCSMux\\b" << "\\bSCk\\b" << "\\bCCk\\b" << "\\bVCk\\b"
+                << "\\bANDZ\\b" << "\\bZCk\\b" << "\\bNCk\\b"
+                << "\\bMemRead\\b" << "\\bMemWrite\\b" << "^(\\s)*UnitPre(?=:)\\b" << "^(\\s)*UnitPost(?=:)\\b"
+                   // pre/post symbols:
+                << "\\bN\\b" << "\\bZ\\b" << "\\bV\\b" << "\\bS\\b"
+                << "\\bX\\b" << "\\bSP\\b" << "\\bPC\\b" << "\\bIR\\b"
+                << "\\bT1\\b" << "\\bT2\\b" << "\\bT3\\b" << "\\bT4\\b"
+                << "\\bT5\\b" << "\\bT6\\b" << "\\bMem\\b";
+    }
+    if (Pep::cpuFeatures == Enu::TwoByteDataBus){
+        oprndPatterns << "\\bLoadCk\\b" << "\\bC\\b" << "\\bB\\b"
+                << "\\bA\\b" << "\\bMARCk\\b" << "\\bMARMux\\b"
+                << "\\bMDROCk\\b" << "\\bMDRECk\\b" << "\\bMDROMux\\b" << "\\bMDREMux\\b" << "\\bEOMux\\b" << "\\bCMux\\b"
+                << "\\bAMux\\b"<< "\\bALU\\b" << "\\bCSMux\\b" << "\\bSCk\\b" << "\\bCCk\\b" << "\\bVCk\\b"
+                << "\\bANDZ\\b" << "\\bZCk\\b" << "\\bNCk\\b"
+                << "\\bMemRead\\b" << "\\bMemWrite\\b" << "^(\\s)*UnitPre(?=:)\\b" << "^(\\s)*UnitPost(?=:)\\b"
+                   // pre/post symbols:
+                << "\\bN\\b" << "\\bZ\\b" << "\\bV\\b" << "\\bS\\b"
+                << "\\bX\\b" << "\\bSP\\b" << "\\bPC\\b" << "\\bIR\\b"
+                << "\\bT1\\b" << "\\bT2\\b" << "\\bT3\\b" << "\\bT4\\b"
+                << "\\bT5\\b" << "\\bT6\\b" << "\\bMem\\b";
+    }
     foreach (const QString &pattern, oprndPatterns) {
         rule.pattern = QRegExp(pattern);
         rule.format = oprndFormat;
