@@ -14,6 +14,6 @@ UnitPost: A=0xFF80, N=1, Z=0, V=1, C=1
 // UnitPost: A=0x3F00, N=0, Z=0, V=1, C=1
 
 // Arithmetic shift right of high-order byte
-1. A=0, AMux=1, ALU=13, ANDZ=0, CMux=1, C=0; NCk, ZCk, SCk, LoadCk
+1. A=0, AMux=1, ALU=13, AndZ=0, CMux=1, C=0; NCk, ZCk, SCk, LoadCk
 // Rotate right of low-order byte
-2. A=1, AMux=1, CSMux=1, ALU=14, ANDZ=1, CMux=1, C=1; ZCk, CCk, LoadCk
+2. A=1, AMux=1, CSMux=1, ALU=14, AndZ=1, CMux=1, C=1; ZCk, CCk, LoadCk

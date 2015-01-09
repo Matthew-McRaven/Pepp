@@ -31,7 +31,7 @@ UnitPost: X=0x53AC, N=0, Z=0, V=0, C=1
 11. A=14, B=15; MARCk 
 12. MemRead 
 13. MemRead, MDRMux=0; MDRCk 
-14. AMux=0, ALU=0, ANDZ=0, CMux=1, C=2; NCk, ZCk, LoadCk 
+14. AMux=0, ALU=0, AndZ=0, CMux=1, C=2; NCk, ZCk, LoadCk
 
 // T4 <- T3 + 1.
 15. A=15, B=23, AMux=1, ALU=1, CMux=1, C=17; CCk, LoadCk 
@@ -41,7 +41,7 @@ UnitPost: X=0x53AC, N=0, Z=0, V=0, C=1
 17. A=16, B=17; MARCk 
 18. MemRead 
 19. MemRead, MDRMux=0; MDRCk 
-20. AMux=0, ALU=0, ANDZ=1, CMux=1, C=3; ZCk, LoadCk 
+20. AMux=0, ALU=0, AndZ=1, CMux=1, C=3; ZCk, LoadCk
 
 // Restore C, assumed in T1 from Fetch.
 21. A=11, AMux=1, ALU=15; CCk 

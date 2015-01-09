@@ -33,7 +33,7 @@ UnitPost: X=0x53AC, N=0, Z=0, V=0, C=1
 14. MemRead
 15. MemRead
 16. MemRead, MDRMux=0; MDRCk
-17. AMux=0, ALU=0, ANDZ=0, CMux=1, C=2; NCk, ZCk, LoadCk
+17. AMux=0, ALU=0, AndZ=0, CMux=1, C=2; NCk, ZCk, LoadCk
 
 // T4 <- T3 + 1.
 18. A=15, B=23, AMux=1, ALU=1, CMux=1, C=17; SCk, LoadCk
@@ -44,4 +44,4 @@ UnitPost: X=0x53AC, N=0, Z=0, V=0, C=1
 21. MemRead
 22. MemRead
 23. MemRead, MDRMux=0; MDRCk
-24. AMux=0, ALU=0, ANDZ=1, CMux=1, C=3; ZCk, LoadCk
+24. AMux=0, ALU=0, AndZ=1, CMux=1, C=3; ZCk, LoadCk
