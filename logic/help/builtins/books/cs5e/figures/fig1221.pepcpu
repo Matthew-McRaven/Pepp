@@ -1,0 +1,15 @@
+// File: fig1221.pepcpu
+// Computer Systems, Fifth Edition
+// Figure 12.21
+// Two-byte data bus
+// Retrieve pre-fetched InstSpec and increment PC by 1
+
+UnitPre: IR=0xAB0000, T1=0xCD, PC=0x00FF, S=0
+UnitPost: IR=0xCD0000, PC=0x0100
+
+// MAR <- PC, fetch instruction specifier.
+1. A=11, AMux=1, ALU=0, CMux=1, C=8; CCk
+
+// PC <- PC plus 1, low-order byte first.
+2. A=7, B=23, AMux=1, ALU=1, CMux=1, C=7; SCk, LoadCk
+3. A=6, B=22, AMux=1, CSMux=1, ALU=2, CMux=1, C=6; LoadCk
