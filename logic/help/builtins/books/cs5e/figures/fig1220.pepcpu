@@ -1,0 +1,22 @@
+// File: fig1220.pepcpu
+// Computer Systems, Fifth Edition
+// Figure 12.20
+// Two-byte data bus
+// Fetch InstSpec and increment PC by 1
+// Assume: InstSpec is at even address
+// Prefetch next byte
+
+UnitPre: IR=0x000000, PC=0x00FE, Mem[0x00FE]=0xAB, Mem[0x00FF]=0xCD, S=0
+UnitPost: IR=0xAB0000, T1=0xCD, PC=0x00FF
+
+// MAR <- PC, fetch instruction specifier.
+1. A=6, B=7, MARMux=1; MARCk
+2. MemRead
+3. MemRead
+4. MemRead, MDREMux=0, MDROMux=0; MDRECk, MDROCk
+5. EOMux=0, AMux=0, ALU=0, CMux=1, C=8; LoadCk
+6. EOMux=1, AMux=0, ALU=0, CMux=1, C=11; LoadCk
+
+// PC <- PC plus 1, low-order byte first.
+7. A=7, B=23, AMux=1, ALU=1, CMux=1, C=7; SCk, LoadCk
+8. A=6, B=22, AMux=1, CSMux=1, ALU=2, CMux=1, C=6; LoadCk
