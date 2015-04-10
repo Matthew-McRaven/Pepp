@@ -1,6 +1,6 @@
-// File: fig1205b.pepcpu
+// File: fig1207.pepcpu
 // Computer Systems, Fifth Edition
-// Discussion following Figure 12.5, combining cycles
+// Figure 12.7, Combine cycles from Figure 12.5
 // Fetch the instruction specifier and increment PC by 1
 
 UnitPre: IR=0x000000, PC=0x00FF, Mem[0x00FF]=0xAB, S=0
