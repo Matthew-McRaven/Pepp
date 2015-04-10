@@ -1,5 +1,5 @@
 // File: exer1207r.pepcpu
-// Computer Systems, Fourth Edition
+// Computer Systems, Fifth Edition
 // Exercise 12.7(r)
 // ORA this,i
 // RTL: A <- A OR Oprnd; N <- A<0, Z <- A=0

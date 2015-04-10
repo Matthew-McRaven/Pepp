@@ -1,5 +1,5 @@
 // File: exer1207t.pepcpu
-// Computer Systems, Fourth Edition
+// Computer Systems, Fifth Edition
 // Exercise 12.7(t)
 // LDBYTEA this,i
 // RTL: A<8..15> <- byte Oprnd; N <- A<0, Z <- A=0

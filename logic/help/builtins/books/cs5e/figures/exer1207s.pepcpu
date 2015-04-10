@@ -1,5 +1,5 @@
 // File: exer1207s.pepcpu
-// Computer Systems, Fourth Edition
+// Computer Systems, Fifth Edition
 // Exercise 12.7(s)
 // CPA this,i
 // RTL: T <- A-Oprnd; N <- A<0, Z <- A=0, V <- {overflow}, C <- {carry}; N <- N XOR V

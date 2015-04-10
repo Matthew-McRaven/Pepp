@@ -1,5 +1,5 @@
 // File: exer1207h.pepcpu
-// Computer Systems, Fourth Edition
+// Computer Systems, Fifth Edition
 // Exercise 12.7(h)
 // CALL there
 // RTL: SP <- SP-2; Mem[SP] <- PC; PC <- Oprnd

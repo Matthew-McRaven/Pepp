@@ -1,5 +1,5 @@
 // File: exer1207l.pepcpu
-// Computer Systems, Fourth Edition
+// Computer Systems, Fifth Edition
 // Exercise 12.7(l)
 // RORA
 // RTL: C <- A<15>, A<1..15> <- A<0..14>, A<0> <- C

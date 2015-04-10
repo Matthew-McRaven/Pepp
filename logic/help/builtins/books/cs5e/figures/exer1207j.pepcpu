@@ -1,5 +1,5 @@
 // File: exer1207j.pepcpu
-// Computer Systems, Fourth Edition
+// Computer Systems, Fifth Edition
 // Exercise 12.7(j)
 // NEGA
 // RTL: A <- -A; N <- A<0, Z <- A=0, V <- {overflow}
