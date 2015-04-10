@@ -1,5 +1,5 @@
 // File: exer1206.pepcpu
-// Computer Systems, Fourth Edition
+// Computer Systems, Fifth Edition
 // Exercise 12.6
 // LDX this,n
 // RTL: X <- Oprnd; N <- X<0, Z <- X=0

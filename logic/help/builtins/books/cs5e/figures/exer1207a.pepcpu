@@ -1,5 +1,5 @@
 // File: exer1207a.pepcpu
-// Computer Systems, Fourth Edition
+// Computer Systems, Fifth Edition
 // Exercise 12.7(a)
 // STBYTEA there,n
 // RTL: byteOprnd <- A<8..15>
