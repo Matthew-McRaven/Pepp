@@ -5,13 +5,13 @@
 // RTL: A <- A + Oprnd; N <- A<0, Z <- A=0, V <- {overflow}, C <- {carry}
 // Immediate addressing: Oprnd = OprndSpec
 
-UnitPre: IR=0x700FF0, A=0x0F11, N=0, Z=0, V=1, C=1
+UnitPre: IR=0x700FF0, A=0x0F11, N=1, Z=1, V=1, C=1
 UnitPost: A=0x1F01, N=0, Z=0, V=0, C=0
 
-// UnitPre: IR=0x707FF0, A=0x0F11, N=0, Z=0, V=0, C=1
+// UnitPre: IR=0x707FF0, A=0x0F11, N=0, Z=1, V=0, C=1
 // UnitPost: A=0x8F01, N=1, Z=0, V=1, C=0
 
-// UnitPre: IR=0x70FF00, A=0xFFAB, N=1, Z=0, V=1, C=0
+// UnitPre: IR=0x70FF00, A=0xFFAB, N=0, Z=1, V=1, C=0
 // UnitPost: A=0xFEAB, N=1, Z=0, V=0, C=1
 
 // UnitPre: IR=0x70FF00, A=0x0100, N=1, Z=0, V=1, C=0
