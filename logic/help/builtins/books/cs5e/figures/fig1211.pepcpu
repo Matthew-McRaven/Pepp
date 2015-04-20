@@ -28,7 +28,7 @@ UnitPost: X=0x53AC, N=0, Z=0, V=0, C=1
 11. MemRead, A=15, B=23, AMux=1, ALU=1, CMux=1, C=17; SCk, LoadCk
 12. MemRead, A=14, B=22, AMux=1, CSMux=1, ALU=2, CMux=1, C=16; LoadCk
 13. MemRead, MDRMux=0; MDRCk
-14. A=16, B=17, AMux=0, ALU=0, AndZ=0, CMux=1, C=2; NCk, ZCk, LoadCk,marck
+14. A=16, B=17, AMux=0, ALU=0, AndZ=0, CMux=1, C=2; NCk, ZCk, MARCk, LoadCk
 
 // X<low> <- Mem[T4].
 15. MemRead
