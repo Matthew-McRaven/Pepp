@@ -1,6 +1,6 @@
-// File: exer1208.pepcpu
+// File: exer1207.pepcpu
 // Computer Systems, Fifth Edition
-// Exercise 12.8
+// Exercise 12.7
 // DECO num,i trap
 // RTL: T <- Mem[0xfffa]; Mem[T-1] <- IR<0..7>; Mem[T-3] <- SP; Mem[T-5] <- PC; Mem[T-7] <- X;
 // Mem[T-9] <- A; Mem[T-10]<4..7> <- NZVC; SP <- T-10; PC <- Mem[0xfffe]

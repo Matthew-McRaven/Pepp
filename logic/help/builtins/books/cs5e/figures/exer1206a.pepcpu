@@ -1,10 +1,9 @@
-// File: exer1207a.pepcpu
+// File: exer1206a.pepcpu
 // Computer Systems, Fifth Edition
-// Exercise 12.7(a)
-// STBYTEA there,n
+// Exercise 12.6(a)
+// STBA there,n
 // RTL: byteOprnd <- A<8..15>
 // Indirect addressing: Oprnd = Mem[Mem[OprndSpec]]
-// Shortest known implementation: 12 cycles
 
 UnitPre: IR=0xF200FF, Mem[0x00FF]=0x0105, A=0x00AB
 UnitPre: N=1, Z=0, V=1, C=0, T1=0x0A // T1 stores NZVC=1010 in von Neumann step

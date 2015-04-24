@@ -1,9 +1,8 @@
-// File: exer1207v.pepcpu
+// File: exer1206v.pepcpu
 // Computer Systems, Fifth Edition
-// Exercise 12.7(v)
+// Exercise 12.6(v)
 // MOVSPA
 // RTL: A <- SP
-// Shortest known implementation: 2 cycles
 
 UnitPre: IR=0x020000, SP=0xABCD
 UnitPost: A=0xABCD

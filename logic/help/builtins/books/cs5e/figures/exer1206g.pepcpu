@@ -1,10 +1,9 @@
-// File: exer1207g.pepcpu
+// File: exer1206g.pepcpu
 // Computer Systems, Fifth Edition
-// Exercise 12.7(g)
+// Exercise 12.6(g)
 // BR there
 // RTL: PC <- Oprnd
 // Immediate addressing: Oprnd = OprndSpec
-// Shortest known implementation: 2 cycles
 
 UnitPre: IR=0x04ABCD
 UnitPost: PC=0xABCD

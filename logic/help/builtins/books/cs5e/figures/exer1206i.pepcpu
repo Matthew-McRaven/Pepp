@@ -1,9 +1,8 @@
-// File: exer1207i.pepcpu
+// File: exer1206i.pepcpu
 // Computer Systems, Fifth Edition
-// Exercise 12.7(i)
+// Exercise 12.6(i)
 // NOTA
 // RTL: A <- ~A; N <- A<0, Z <- A=0
-// Shortest known implementation: 2 cycles
 
 UnitPre: IR=0x180000, A=0xFFFF, N=1, Z=0
 UnitPost: A=0x0000, N=0, Z=1

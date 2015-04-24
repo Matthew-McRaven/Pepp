@@ -1,9 +1,8 @@
-// File: exer1207j.pepcpu
+// File: exer1206j.pepcpu
 // Computer Systems, Fifth Edition
-// Exercise 12.7(j)
+// Exercise 12.6(j)
 // NEGA
 // RTL: A <- -A; N <- A<0, Z <- A=0, V <- {overflow}
-// Shortest known implementation: 2 cycles
 
 UnitPre: IR=0x1A0000, A=0xFFFF
 UnitPre: N=1, Z=0, V=1, C=1, T1=0x0B // T1 stores NZVC=1011 in von Neumann step
