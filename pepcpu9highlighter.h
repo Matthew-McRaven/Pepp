@@ -1,7 +1,7 @@
 // File: pephighlighter.h
 /*
     Pep9CPU is a CPU simulator for executing microcode sequences to
-    implement instructions in the instruction set of the Pep/8 computer.
+    implement instructions in the instruction set of the Pep/9 computer.
 
     Copyright (C) 2010  J. Stanley Warford, Pepperdine University
 
