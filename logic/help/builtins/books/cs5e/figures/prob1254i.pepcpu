@@ -1,0 +1,32 @@
+// File: exer1207c.pepcpu
+// Computer Systems, Fourth Edition
+// Exercise 12.7(c)
+// STBYTEA there,sf
+// RTL: byteOprnd <- A<8..15>
+// Stack-relative deferred addressing: Oprnd = Mem[Mem[SP + OprndSpec]]
+// Shortest known implementation: 13 cycles
+
+UnitPre: IR=0xF400FA, SP=0x0005, Mem[0x00FF]=0x0108, A=0x00AB
+UnitPre: N=1, Z=0, V=1, C=0, T1=0x0A // T1 stores NZVC=1010 in von Neumann step
+UnitPost: Mem[0x0108]=0xAB, N=1, Z=0, V=1, C=0
+
+// T3 <- SP + OprndSpec
+1. A=5, B=10, AMux=1, ALU=1, CMux=1, C=15; CCk, LoadCk
+2. A=4, B=9, AMux=1, ALU=2, CMux=1, C=14; LoadCk
+
+// T5<high> <- Mem[T3], T4 <- T3 + 1, Start T5<low> <- Mem[T4]
+3. A=14, B=15; MARCk
+4. MemRead, A=15, B=23, AMux=1, ALU=1, CMux=1, C=17; CCk, LoadCk
+5. MemRead, A=14, B=22, AMux=1, ALU=2, CMux=1, MDRMux=0, C=16; LoadCk, MDRCk
+6. A=16, B=17, AMux=0, ALU=0, CMux=1, C=18; MARCk, LoadCk
+
+// Finish T5<low> <- Mem[T4]
+7. MemRead
+8. MemRead, MDRMux=0; MDRCk
+9. AMux=0, ALU=0, CMux=1, C=19; LoadCk
+
+// Mem[T5] <- A<low>, restore C in T1 from Fetch
+10. A=18, B=19; MARCk
+11. A=1, AMux=1, ALU=0, CMux=1, MDRMux=1; MDRCk
+12. MemWrite
+13. MemWrite, A=11, AMux=1, ALU=15; CCk

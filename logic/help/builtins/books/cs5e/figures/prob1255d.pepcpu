@@ -1,0 +1,28 @@
+// File: exer1207m.pepcpu
+// Computer Systems, Fourth Edition
+// Exercise 12.7(m)
+// RET4
+// RTL: SP <- SP+4; PC <- Mem[SP]; SP <- SP+2
+// Shortest known implementation: 10 cycles
+
+UnitPre: IR=0x5C0000, SP=0x00FB, Mem[0x00FF]=0xABCD
+UnitPre: N=1, Z=0, V=1, C=0, T1=0x0A // T1 stores NZVC=1010 in von Neumann step
+UnitPost: SP=0x0101, PC=0xABCD, C=0
+
+// SP <- SP + 4
+1. A=5, B=26, AMux=1, ALU=1, CMux=1, C=5; CCk, LoadCk
+2. A=4, B=22, AMux=1, ALU=2, CMux=1, C=4; LoadCk
+
+// PC<high> <- Mem[SP], SP <- SP + 1, MAR <- SP
+3. A=4, B=5; MARCk
+4. MemRead, A=5, B=23, AMux=1, ALU=1, CMux=1, C=5; CCk, LoadCk
+5. MemRead, A=4, B=22, AMux=1, ALU=2, CMux=1, MDRMux=0, C=4; LoadCk, MDRCk
+6. A=4, B=5, AMux=0, ALU=0, CMux=1, C=6; MARCk, LoadCk
+
+// PC<low> <- Mem[SP], SP <- SP + 1
+7. MemRead, A=5, B=23, AMux=1, ALU=1, CMux=1, C=5; CCk, LoadCk
+8. MemRead, A=4, B=22, AMux=1, ALU=2, CMux=1, MDRMux=0, C=4; LoadCk, MDRCk
+9. AMux=0, ALU=0, CMux=1, C=7; LoadCk
+
+// Restore C in T1 from Fetch
+10. A=11, AMux=1, ALU=15; CCk

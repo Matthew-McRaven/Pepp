@@ -1,0 +1,20 @@
+// File: exer1207u.pepcpu
+// Computer Systems, Fourth Edition
+// Exercise 12.7(u)
+// LDBYTEA this,d
+// RTL: A<8..15> <- byte Oprnd; N <- A<0, Z <- A=0
+// Note that N and Z depend on A<0..7> as well as A<8..15>
+// Direct addressing: Oprnd = Mem[OprndSpec]
+// Shortest known implementation: 5 cycles
+
+UnitPre: IR=0xD10012, Mem[0x0012]=0x34, A=0xABCD, N=1, Z=0
+UnitPost: A=0xAB34, N=1, Z=0
+
+// UnitPre: IR=0xD10012, Mem[0x0012]=0x00, A=0x00CD, N=1, Z=0
+// UnitPost: A=0x0000, N=0, Z=1
+
+1. A=9, B=10; MARCk
+2. MemRead
+3. MemRead, MDRMux=0; MDRCk
+4. AMux=0, ALU=0, ANDZ=0, CMux=1, C=1; ZCk, LoadCk
+5. A=0, AMux=1, ALU=0, ANDZ=1; NCk, ZCk

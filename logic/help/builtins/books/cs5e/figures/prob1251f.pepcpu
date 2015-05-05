@@ -1,0 +1,15 @@
+// File: exer1207k.pepcpu
+// Computer Systems, Fourth Edition
+// Exercise 12.7(k)
+// ROLA
+// RTL: C <- A<0>, A<0..14> <- A<1..15>, A<15> <- C
+// Shortest known implementation: 2 cycles
+
+UnitPre: IR=0x200000, A=0x800F, C=0
+UnitPost: A=0x001E, C=1
+
+// UnitPre: IR=0x200000, A=0x7FFE, C=1
+// UnitPost: A=0xFFFD, C=0
+
+1. A=1, AMux=1, ALU=12, CMux=1, C=1; CCk, LoadCk
+2. A=0, AMux=1, ALU=12, CMux=1, C=0; CCk, LoadCk

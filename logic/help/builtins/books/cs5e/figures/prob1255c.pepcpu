@@ -1,0 +1,34 @@
+// File: exer1207h.pepcpu
+// Computer Systems, Fourth Edition
+// Exercise 12.7(h)
+// CALL there
+// RTL: SP <- SP-2; Mem[SP] <- PC; PC <- Oprnd
+// Immediate addressing: Oprnd = OprndSpec
+// Shortest known implementation: 13 cycles
+
+UnitPre: IR=0x16ABCD, SP=0x0201, PC=0x1234
+UnitPre: N=1, Z=0, V=1, C=0, T1=0x0A // T1 stores NZVC=1010 in von Neumann step
+UnitPost: SP=0x01FF, Mem[0x01FF]=0x1234, PC=0xABCD, N=1, Z=0, V=1, C=0
+
+// SP <- SP-1
+1. A=5, B=23, AMux=1, ALU=3, CMux=1, C=5; CCk, LoadCk
+2. A=4, B=22, AMux=1, ALU=4, CMux=1, C=4; LoadCk
+
+// Mem[SP] <- PC<low>
+3. A=4, B=5; MARCk
+4. A=7, AMux=1, ALU=0, CMux=1, MDRMux=1; MDRCk
+5. MemWrite, A=5, B=23, AMux=1, ALU=3, CMux=1, C=5; CCk, LoadCk
+
+// SP <- SP-1
+6. MemWrite, A=4, B=22, AMux=1, ALU=4, CMux=1, C=4; LoadCk
+
+// Mem[SP] <- PC<high>
+7. A=4, B=5; MARCk
+8. A=6, AMux=1, ALU=0, CMux=1, MDRMux=1; MDRCk
+9. MemWrite, A=10, AMux=1, ALU=0, CMux=1, C=7; LoadCk
+
+// PC <- OprndSpec
+10. MemWrite, A=9, AMux=1, ALU=0, CMux=1, C=6; LoadCk
+
+// Restore C bit assumed in T1 from Fetch
+11. A=11, AMux=1, ALU=15; CCk

@@ -1,0 +1,63 @@
+// File: exer1207x.pepcpu
+// Computer Systems, Fourth Edition
+// Exercise 12.7(x)
+// RETTR
+// RTL: NZVC <- Mem[SP]<4..7>; A <- Mem[SP+1]; X <- Mem[SP+3]; PC <- Mem[SP+5]; SP <- Mem[SP+7]
+// Shortest known implementation: 39 cycles
+
+UnitPre: IR=0x010000, SP=0x00F8, N=1, Z=0, V=1, C=0
+UnitPre: Mem[0x00F8]=0x05, Mem[0x00F9]=0x0123, Mem[0x00FB]=0x4567, Mem[0x00FD]=0x89AB, Mem[0x00FF]=0xCDEF
+UnitPost: N=0, Z=1, V=0, C=1, A=0x0123, X=0x4567, PC=0x89AB, SP=0xCDEF
+
+// T1 <- Mem[SP], SP <- SP+1
+1. A=4, B=5; MARCk
+2. MemRead, A=5, B=23, AMux=1, ALU=1, CMux=1, C=5; CCk, LoadCk
+3. MemRead, MDRMux=0, A=4, B=22, AMux=1, ALU=2, CMux=1, C=4; MDRCk, LoadCk
+4. AMux=0, ALU=0, CMux=1, C=11; LoadCk
+
+// A <- Mem[SP+1], SP <- SP+2
+5. A=4, B=5; MARCk
+6. MemRead, A=5, B=23, AMux=1, ALU=1, CMux=1, C=5; CCk, LoadCk
+7. MemRead, MDRMux=0, A=4, B=22, AMux=1, ALU=2, CMux=1, C=4; MDRCk, LoadCk
+8. AMux=0, ALU=0, CMux=1, C=0; LoadCk
+9. A=4, B=5; MARCk
+10. MemRead, A=5, B=23, AMux=1, ALU=1, CMux=1, C=5; CCk, LoadCk
+11. MemRead, MDRMux=0, A=4, B=22, AMux=1, ALU=2, CMux=1, C=4; MDRCk, LoadCk
+12. AMux=0, ALU=0, CMux=1, C=1; LoadCk
+
+// X <- Mem[SP+3], SP <- SP+2
+13. A=4, B=5; MARCk
+14. MemRead, A=5, B=23, AMux=1, ALU=1, CMux=1, C=5; CCk, LoadCk
+15. MemRead, MDRMux=0, A=4, B=22, AMux=1, ALU=2, CMux=1, C=4; MDRCk, LoadCk
+16. AMux=0, ALU=0, CMux=1, C=2; LoadCk
+17. A=4, B=5; MARCk
+18. MemRead, A=5, B=23, AMux=1, ALU=1, CMux=1, C=5; CCk, LoadCk
+19. MemRead, MDRMux=0, A=4, B=22, AMux=1, ALU=2, CMux=1, C=4; MDRCk, LoadCk
+20. AMux=0, ALU=0, CMux=1, C=3; LoadCk
+
+// PC <- Mem[SP+5], SP <- SP+2
+21. A=4, B=5; MARCk
+22. MemRead, A=5, B=23, AMux=1, ALU=1, CMux=1, C=5; CCk, LoadCk
+23. MemRead, MDRMux=0, A=4, B=22, AMux=1, ALU=2, CMux=1, C=4; MDRCk, LoadCk
+24. AMux=0, ALU=0, CMux=1, C=6; LoadCk
+25. A=4, B=5; MARCk
+26. MemRead, A=5, B=23, AMux=1, ALU=1, CMux=1, C=5; CCk, LoadCk
+27. MemRead, MDRMux=0, A=4, B=22, AMux=1, ALU=2, CMux=1, C=4; MDRCk, LoadCk
+28. AMux=0, ALU=0, CMux=1, C=7; LoadCk
+
+// T2 <- Mem[SP+7], SP <- SP+2
+29. A=4, B=5; MARCk
+30. MemRead, A=5, B=23, AMux=1, ALU=1, CMux=1, C=5; CCk, LoadCk
+31. MemRead, MDRMux=0, A=4, B=22, AMux=1, ALU=2, CMux=1, C=4; MDRCk, LoadCk
+32. AMux=0, ALU=0, CMux=1, C=12; LoadCk
+33. A=4, B=5; MARCk
+34. MemRead, A=5, B=23, AMux=1, ALU=1, CMux=1, C=5; CCk, LoadCk
+35. MemRead, MDRMux=0, A=4, B=22, AMux=1, ALU=2, CMux=1, C=4; MDRCk, LoadCk
+36. AMux=0, ALU=0, CMux=1, C=13; LoadCk
+
+// SP <- T2
+37. A=12, AMux=1, ALU=0, CMux=1, C=4; LoadCk
+38. A=13, AMux=1, ALU=0, CMux=1, C=5; LoadCk
+
+// NZVC <- T1<4..7>
+39. A=11, AMux=1, ALU=15, ANDZ=0; NCk, ZCk, VCk, CCk

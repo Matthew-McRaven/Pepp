@@ -1,0 +1,13 @@
+// File: exer1207g.pepcpu
+// Computer Systems, Fourth Edition
+// Exercise 12.7(g)
+// BR there
+// RTL: PC <- Oprnd
+// Immediate addressing: Oprnd = OprndSpec
+// Shortest known implementation: 2 cycles
+
+UnitPre: IR=0x04ABCD
+UnitPost: PC=0xABCD
+
+1. A=10, AMux=1, ALU=0, CMux=1, C=7; LoadCk
+2. A=9, AMux=1, ALU=0, CMux=1, C=6; LoadCk

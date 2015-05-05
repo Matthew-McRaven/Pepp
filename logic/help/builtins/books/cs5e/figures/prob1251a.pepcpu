@@ -1,0 +1,12 @@
+// File: exer1207v.pepcpu
+// Computer Systems, Fourth Edition
+// Exercise 12.7(v)
+// MOVSPA
+// RTL: A <- SP
+// Shortest known implementation: 2 cycles
+
+UnitPre: IR=0x020000, SP=0xABCD
+UnitPost: A=0xABCD
+
+1. A=5, AMux=1, ALU=0, CMux=1, C=1; LoadCk
+2. A=4, AMux=1, ALU=0, CMux=1, C=0; LoadCk
