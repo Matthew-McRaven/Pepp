@@ -1,25 +1,24 @@
-// File: exer1207j.pepcpu
-// Computer Systems, Fourth Edition
-// Exercise 12.7(j)
+// File: prob1251e.pepcpu
+// Computer Systems, Fifth Edition
+// Problem 12.51(e)
 // NEGA
 // RTL: A <- -A; N <- A<0, Z <- A=0, V <- {overflow}
-// Shortest known implementation: 2 cycles
 
-UnitPre: IR=0x1A0000, A=0xFFFF
-UnitPre: N=1, Z=0, V=1, C=1, T1=0x0B // T1 stores NZVC=1011 in von Neumann step
-UnitPost: A=0x0001, N=0, Z=0, V=0, C=0
+UnitPre: IR=0x080000, A=0xFFFF
+UnitPre: N=1, Z=1, V=1, C=1
+UnitPost: A=0x0001, N=0, Z=0, V=0, C=1
 
-// UnitPre: IR=0x1A0000, A=0xFF00
-// UnitPre: N=1, Z=0, V=1, C=0, T1=0x0A // T1 stores NZVC=1010 in von Neumann step
+// UnitPre: IR=0x080000, A=0xFF00
+// UnitPre: N=1, Z=1, V=1, C=0
 // UnitPost: A=0x0100, N=0, Z=0, V=0, C=0
 
-// UnitPre: IR=0x1A0000, A=0x8000
-// UnitPre: N=1, Z=0, V=0, C=0, T1=0x08 // T1 stores NZVC=1000 in von Neumann step
+// UnitPre: IR=0x080000, A=0x8000
+// UnitPre: N=0, Z=1, V=0, C=0
 // UnitPost: A=0x8000, N=1, Z=0, V=1, C=0
 
-// UnitPre: IR=0x1A0000, A=0x0000
-// UnitPre: N=0, Z=1, V=1, C=0, T1=0x06 // T1 stores NZVC=0110 in von Neumann step
-// UnitPost: A=0x0000, N=0, Z=1, V=0, C=1
+// UnitPre: IR=0x080000, A=0x0000
+// UnitPre: N=1, Z=0, V=1, C=0
+// UnitPost: A=0x0000, N=0, Z=1, V=0, C=0
 
-1. A=22, B=1, AMux=1, ALU=3, ANDZ=0, CMux=1, C=1; ZCk, CCk, LoadCk
-2. A=22, B=0, AMux=1, ALU=4, ANDZ=1, CMux=1, C=0; NCk, ZCk, VCk, CCk, LoadCk
+1. A=22, B=1, AMux=1, ALU=3, AndZ=0, CMux=1, C=1; ZCk, SCk, LoadCk
+2. A=22, B=0, AMux=1, CSMux=1, ALU=4, AndZ=1, CMux=1, C=0; NCk, ZCk, VCk, LoadCk

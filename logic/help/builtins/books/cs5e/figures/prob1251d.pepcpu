@@ -1,15 +1,14 @@
-// File: exer1207i.pepcpu
-// Computer Systems, Fourth Edition
-// Exercise 12.7(i)
+// File: prob1251d.pepcpu
+// Computer Systems, Fifth Edition
+// Exercise 12.51(d)
 // NOTA
 // RTL: A <- ~A; N <- A<0, Z <- A=0
-// Shortest known implementation: 2 cycles
 
-UnitPre: IR=0x180000, A=0xFFFF, N=1, Z=0
+UnitPre: IR=0x060000, A=0xFFFF, N=1, Z=0
 UnitPost: A=0x0000, N=0, Z=1
 
-// UnitPre: IR=0x180000, A=0x0ff0, N=0, Z=0
-// UnitPost: A=0xf00f, N=1, Z=0
+// UnitPre: IR=0x060000, A=0x0FF0, N=0, Z=0
+// UnitPost: A=0xF00F, N=1, Z=0
 
-1. A=1, AMux=1, ALU=10, ANDZ=0, CMux=1, C=1; ZCk, LoadCk
-2. A=0, AMux=1, ALU=10, ANDZ=1, CMux=1, C=0; NCk, ZCk, LoadCk
+1. A=1, AMux=1, ALU=10, AndZ=0, CMux=1, C=1; ZCk, LoadCk
+2. A=0, AMux=1, ALU=10, AndZ=1, CMux=1, C=0; NCk, ZCk, LoadCk

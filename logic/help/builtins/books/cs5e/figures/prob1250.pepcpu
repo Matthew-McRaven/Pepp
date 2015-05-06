@@ -1,20 +1,21 @@
-// File: exer1205.pepcpu
-// Computer Systems, Fourth Edition
-// Exercise 12.5
+// File: prob12.50.pepcpu
+// Computer Systems, Fifth Edition
+// Problem 12.50
 // Fetch the operand specifier and increment PC by 2
-// Shortest known implementation: 7 cycles
 
-UnitPre: IR=0x000000, PC=0x01FF, Mem[0x01FF]=0xABCD
+UnitPre: IR=0x000000, PC=0x01FF, Mem[0x01FF]=0xABCD, S=0
 UnitPost: IR=0x00ABCD, PC=0x0201
 
 // MAR <- PC. Fetch OprndSpec<high>. PC <- PC + 1, low order byte first.
 // MAR <- PC.
 1. A=6, B=7; MARCk
-2. MemRead, A=7, B=23, AMux=1, ALU=1, CMux=1, C=7; CCk, LoadCk
-3. MemRead, A=6, B=22, AMux=1, ALU=2, CMux=1, MDRMux=0, C=6; LoadCk, MDRCk
-4. A=6, B=7, AMux=0, ALU=0, CMux=1, C=9; MARCk, LoadCk
+2. MemRead, A=7, B=23, AMux=1, ALU=1, CMux=1, C=7; SCk, LoadCk
+3. MemRead, A=6, B=22, AMux=1, CSMux=1, ALU=2, CMux=1, C=6; LoadCk
+4. MemRead, MDRMux=0; MDRCk
+5. A=6, B=7, AMux=0, ALU=0, CMux=1, C=9; MARCk, LoadCk
 
 // Fetch OprndSpec<low>. PC <- PC + 1, low order byte first.
-5. MemRead, A=7, B=23, AMux=1, ALU=1, CMux=1, C=7; CCk, LoadCk
-6. MemRead, A=6, B=22, AMux=1, ALU=2, CMux=1, MDRMux=0, C=6; LoadCk, MDRCk
-7. AMux=0, ALU=0, CMux=1, C=10; LoadCk
+6. MemRead, A=7, B=23, AMux=1, ALU=1, CMux=1, C=7; SCk, LoadCk
+7. MemRead, A=6, B=22, AMux=1, CSMux=1, ALU=2, CMux=1, C=6; LoadCk
+8. MemRead, MDRMux=0; MDRCk
+9. AMux=0, ALU=0, CMux=1, C=10; LoadCk
