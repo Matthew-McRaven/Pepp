@@ -4,11 +4,11 @@
 // RORA
 // RTL: C <- A<15>, A<1..15> <- A<0..14>, A<0> <- C
 
-//UnitPre: IR=0x0E0000, A=0x800F, C=0
-//UnitPost: A=0x001E, C=1
+UnitPre: IR=0x100000, A=0x800F, C=0
+UnitPost: A=0x4007, C=1
 
-1.  UnitPre: IR=0x0E0000, A=0x7FFE, C=1
-2.  UnitPost: A=0xFFFD, C=0
+// UnitPre: IR=0x100000, A=0x0FFE, C=1
+// UnitPost: A=0x87FF, C=0
 
-3. A=1, AMux=1, CSMux=0, ALU=12, CMux=1, C=1; SCk, LoadCk
-4. A=0, AMux=1, CSMux=1, ALU=12, CMux=1, C=0; CCk, LoadCk
+1. A=0, AMux=1, CSMux=0, ALU=14, CMux=1, C=0; SCk, LoadCk
+2. A=1, AMux=1, CSMux=1, ALU=14, CMux=1, C=1; CCk, LoadCk
