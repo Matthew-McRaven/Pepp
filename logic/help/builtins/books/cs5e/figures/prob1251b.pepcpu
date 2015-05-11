@@ -1,6 +1,6 @@
 // File: prob1251b.pepcpu
 // Computer Systems, Fifth Edition
-// Exercise 12.51(b)
+// Problem 12.51(b)
 // MOVFLGA
 // RTL: A<8..11> <- 0, A<12..15> <- NZVC
 

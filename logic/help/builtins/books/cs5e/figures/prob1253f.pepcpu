@@ -1,6 +1,6 @@
 // File: prob1253f.pepcpu
 // Computer Systems, Fifth Edition
-// Exercise 12.53(f)
+// Problem 12.53(f)
 // LDWA this,i
 // RTL: A <- Oprnd; N <- A<0, Z <- A=0
 // Immediate addressing: Oprnd = OprndSpec

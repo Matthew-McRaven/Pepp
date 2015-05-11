@@ -1,6 +1,6 @@
 // File: prob1251c.pepcpu
 // Computer Systems, Fifth Edition
-// Exercise 12.51(c)
+// Problem 12.51(c)
 // MOVAFLG
 // RTL: NZVC <- A<12..15>
 
