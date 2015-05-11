@@ -1,17 +1,18 @@
-// File: exer1207t.pepcpu
-// Computer Systems, Fourth Edition
-// Exercise 12.7(t)
-// LDBYTEA this,i
-// RTL: A<8..15> <- byte Oprnd; N <- A<0, Z <- A=0
-// Note that N and Z depend on A<0..7> as well as A<8..15>
+// File: prob1253f.pepcpu
+// Computer Systems, Fifth Edition
+// Exercise 12.53(f)
+// LDWA this,i
+// RTL: A <- Oprnd; N <- A<0, Z <- A=0
 // Immediate addressing: Oprnd = OprndSpec
-// Shortest known implementation: 2 cycles
 
-UnitPre: IR=0xD00012, A=0xABCD, N=1, Z=0
-UnitPost: A=0xAB12, N=1, Z=0
+UnitPre: IR=0xC0ABCD, A=0x0000, N=0, Z=1
+UnitPost: A=0xABCD, N=1, Z=0
 
-// UnitPre: IR=0xD00000, A=0x00CD, N=0, Z=0
+// UnitPre: IR=0xC07BCD, A=0x0000, N=1, Z=1
+// UnitPost: A=0x7BCD, N=0, Z=0
+
+// UnitPre: IR=0xC00000, A=0xFFFF, N=1, Z=0
 // UnitPost: A=0x0000, N=0, Z=1
 
-1. A=10, AMux=1, ALU=0, ANDZ=0, CMux=1, C=1; ZCk, LoadCk
-2. A=0, AMux=1, ALU=0, ANDZ=1; NCk, ZCk
+1. A=10, AMux=1, ALU=0, AndZ=0, CMux=1, C=1; ZCk, LoadCk
+2. A=9, AMux=1, ALU=0, AndZ=1, CMux=1, C=0; NCk, ZCk, LoadCk
