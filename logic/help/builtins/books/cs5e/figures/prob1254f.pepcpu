@@ -5,16 +5,16 @@
 // RTL: A <- Oprnd; N <- A<0, Z <- A=0
 // Indexed addressing: Oprnd = Mem[Mem[SP + OprndSpec] + X]
 
-UnitPre: IR=0xC70010, SP=0xFAFE, Mem[0xFB0E]=0x00FF, X=0x0080, Mem[0x017F]=0x26D1
-UnitPre: N=1, Z=1, V=0, C=1, S=1
+UnitPre: IR=0xC70010, SP=0xFAFE, T4=0xFF00, Mem[0xFB0E]=0x00FF
+UnitPre: X=0x0080, Mem[0x017F]=0x26D1, N=1, Z=1, V=0, C=1, S=1
 UnitPost: A=0x26D1, N=0, Z=0, V=0, C=1
 
-// UnitPre: IR=0xC700F0, SP=0xFAFE, X=0x0010, Mem[0xFBFE]=0xD126
-// UnitPre: N=0, Z=1, V=0, C=1, S=1
+// UnitPre: IR=0xC70010, SP=0xFAEE, T4=0xFF00, Mem[0xFAFE]=0x000F
+// UnitPre: X=0x0080, Mem[0x008F]=0xD126, N=1, Z=1, V=0, C=1, S=1
 // UnitPost: A=0xD126, N=1, Z=0, V=0, C=1
 
-// UnitPre: IR=0xC700F0, SP=0xFAFE, X=0x0010, Mem[0xFBFE]=0x0000, A=0xFFFF
-// UnitPre: N=1, Z=0, V=0, C=1, S=1
+// UnitPre: IR=0xC70010, SP=0xFAFE, T4=0xFF00, Mem[0xFB0E]=0x00FF
+// UnitPre: X=0x0080, Mem[0x017F]=0x0000, N=1, Z=0, V=0, C=1, S=1
 // UnitPost: A=0x0000, N=0, Z=1, V=0, C=1
 
 // T2 <- SP + OprndSpec
@@ -34,15 +34,19 @@ UnitPost: A=0x26D1, N=0, Z=0, V=0, C=1
 10. MemRead, MDRMux=0; MDRCk
 11. AMux=0, ALU=0, CMux=1, C=17; LoadCk
 
-// A<high> <- Mem[T4], T5 <- T4 + 1.
-12. A=16, B=17; MARCk
-13. MemRead, A=17, B=23, AMux=1, ALU=1, CMux=1, C=19; SCk, LoadCk
-14. MemRead, A=16, B=22, AMux=1, CSMux=1, ALU=2, CMux=1, C=18; LoadCk
-15. MemRead, MDRMux=0; MDRCk
-16. A=18, B=19, AMux=0, ALU=0, AndZ=0, CMux=1, C=0; ZCk, MARCk, LoadCk
+// T5 <- T4 + X
+12. A=17, B=3, AMux=1, ALU=1, CMux=1, C=19; SCk, LoadCk
+13. A=16, B=2, AMux=1, CSMux=1, ALU=2, CMux=1, C=18; LoadCk
 
-// A<low> <- Mem[T5].
-17. MemRead
-18. MemRead
-19. MemRead, MDRMux=0; MDRCk
-20. AMux=0, ALU=0, AndZ=1, CMux=1, C=1; NCk, ZCk, LoadCk
+// A<high> <- Mem[T5], T6 <- T5 + 1.
+14. A=18, B=19; MARCk
+15. MemRead, A=19, B=23, AMux=1, ALU=1, CMux=1, C=21; SCk, LoadCk
+16. MemRead, A=18, B=22, AMux=1, CSMux=1, ALU=2, CMux=1, C=20; LoadCk
+17. MemRead, MDRMux=0; MDRCk
+18. A=20, B=21, AMux=0, ALU=0, AndZ=0, CMux=1, C=0; NCk, ZCk, MARCk, LoadCk
+
+// A<low> <- Mem[T6].
+19. MemRead
+20. MemRead
+21. MemRead, MDRMux=0; MDRCk
+22. AMux=0, ALU=0, AndZ=1, CMux=1, C=1; ZCk, LoadCk
