@@ -1,12 +1,11 @@
-// File: exer1207g.pepcpu
-// Computer Systems, Fourth Edition
-// Exercise 12.7(g)
-// BR there
+// File: prob1255a.pepcpu
+// Computer Systems, Fifth Edition
+// Problem 12.55(a)
+// BR main
 // RTL: PC <- Oprnd
 // Immediate addressing: Oprnd = OprndSpec
-// Shortest known implementation: 2 cycles
 
-UnitPre: IR=0x04ABCD
+UnitPre: IR=0x12ABCD
 UnitPost: PC=0xABCD
 
 1. A=10, AMux=1, ALU=0, CMux=1, C=7; LoadCk

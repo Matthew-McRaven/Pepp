@@ -1,6 +1,6 @@
 // File: prob1254g.pepcpu
 // Computer Systems, Fifth Edition
-// Figure 12.54(g)
+// Problem 12.54(g)
 // STWA there,n
 // RTL: Oprnd <- A
 // Indirect addressing: Oprnd = Mem[Mem[OprndSpec]]

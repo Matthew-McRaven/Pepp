@@ -5,16 +5,13 @@
 // RTL: Oprnd <- A
 // Stack-relative deferred addressing: Oprnd = Mem[Mem[SP + OprndSpec]]
 
-UnitPre: A=0x26D1, IR=0xC40010, SP=0xFAFE, Mem[0xFB0E]=0x00FF, S=1
-UnitPost: Mem[0x00FF]=0x26D1
+UnitPre: A=0x26D1, IR=0xE40010, SP=0xFAFE, Mem[0xFB0E]=0x10FF
+UnitPre: N=1, Z=0, V=1, C=1, S=0
+UnitPost: Mem[0x10FF]=0x26D1, N=1, Z=0, V=1, C=1
 
-// UnitPre: IR=0xC40010, SP=0xFA0E, Mem[0xFA1E]=0x00FE, Mem[0x00FE]=0xD126
-// UnitPre: N=0, Z=1, V=0, C=1, S=0
-// UnitPost: A=0xD126, N=1, Z=0, V=0, C=1
-
-// UnitPre: IR=0xC40010, SP=0xFAFE, Mem[0xFB0E]=0x0000, A=0xFFFF
-// UnitPre: N=1, Z=0, V=0, C=1, S=1
-// UnitPost: A=0x0000, N=0, Z=1, V=0, C=1
+// UnitPre: A=0x26D1, IR=0xE40010, SP=0xFAFE, Mem[0xFB0E]=0x10FF
+// UnitPre: N=0, Z=1, V=0, C=0
+// UnitPost: Mem[0x10FF]=0x26D1, N=0, Z=1, V=0, C=0
 
 // T2 <- SP + OprndSpec.
 1. A=5, B=10, AMux=1, ALU=1, CMux=1, C=13; SCk, LoadCk
@@ -37,7 +34,7 @@ UnitPost: Mem[0x00FF]=0x26D1
 12. A=16, B=17; MARCk
 13. MemWrite, A=0, AMux=1, ALU=0, CMux=1, MDRMux=1; MDRCk
 14. MemWrite, A=17, B=23, AMux=1, ALU=1, CMux=1, C=19; SCk, LoadCk
-15. MemWrite, A=16, B=22, AMux=1, CSMux=1, ALU=2, CMux=1, MDRMux=0, C=18; LoadCk, MDRCk
+15. MemWrite, A=16, B=22, AMux=1, CSMux=1, ALU=2, CMux=1, C=18; LoadCk
 16. A=18, B=19, AMux=0, ALU=0, CMux=1, C=0; MARCk, LoadCk
 
 // Mem[T5] <- A<low>.
