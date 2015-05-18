@@ -1,62 +1,61 @@
 // File: prob1255f.pepcpu
 // Computer Systems, Fifth Edition
-// Problem 12.55(f)
+// Problem 12.55(f), See Figure 8.5
 // RETTR
 // RTL: NZVC <- Mem[SP]<4..7>; A <- Mem[SP+1]; X <- Mem[SP+3]; PC <- Mem[SP+5]; SP <- Mem[SP+7]
 
-UnitPre: IR=0x020000, SP=0x00F8, N=1, Z=0, V=1, C=0
-UnitPre: Mem[0x00F8]=0x05, Mem[0x00F9]=0x0123, Mem[0x00FB]=0x4567, Mem[0x00FD]=0x89AB, Mem[0x00FF]=0xCDEF
-UnitPost: N=0, Z=1, V=0, C=1, A=0x0123, X=0x4567, PC=0x89AB, SP=0xCDEF
+UnitPre: IR=0x020000, SP=0xFC05, PC=0xFC52, Mem[0xFC05]=0x08, Mem[0xFC06]=0xFE22, Mem[0xFC08]=0x0000, Mem[0xFC0A]=0x0041, Mem[0xFC0C]=0xFB8F
+UnitPre: X=0xFFFF, N=0, Z=1, V=1, C=1, S=1
+UnitPost: N=1, Z=0, V=0, C=0, A=0xFE22, X=0x0000, PC=0x0041, SP=0xFB8F
 
-// T1 <- Mem[SP], SP <- SP+1
+// NZVC <- Mem[SP]<4..7>, T2 <- SP+1
 1. A=4, B=5; MARCk
-2. MemRead, A=5, B=23, AMux=1, ALU=1, CMux=1, C=5; CCk, LoadCk
-3. MemRead, MDRMux=0, A=4, B=22, AMux=1, ALU=2, CMux=1, C=4; MDRCk, LoadCk
-4. AMux=0, ALU=0, CMux=1, C=11; LoadCk
+2. MemRead, A=5, B=23, AMux=1, ALU=1, CMux=1, C=13; SCk, LoadCk
+3. MemRead, A=4, B=22, AMux=1, CSMux=1, ALU=2, CMux=1, C=12; LoadCk
+4. MemRead, MDRMux=0; MDRCk
+5. A=12, B=13, AMux=0, ALU=15; NCk, ZCk, VCk, CCk, MARCk
 
-// A <- Mem[SP+1], SP <- SP+2
-5. A=4, B=5; MARCk
-6. MemRead, A=5, B=23, AMux=1, ALU=1, CMux=1, C=5; CCk, LoadCk
-7. MemRead, MDRMux=0, A=4, B=22, AMux=1, ALU=2, CMux=1, C=4; MDRCk, LoadCk
-8. AMux=0, ALU=0, CMux=1, C=0; LoadCk
-9. A=4, B=5; MARCk
-10. MemRead, A=5, B=23, AMux=1, ALU=1, CMux=1, C=5; CCk, LoadCk
-11. MemRead, MDRMux=0, A=4, B=22, AMux=1, ALU=2, CMux=1, C=4; MDRCk, LoadCk
-12. AMux=0, ALU=0, CMux=1, C=1; LoadCk
+// A<high> <- Mem[T2], T2 <- T2+1
+6. MemRead, A=13, B=23, AMux=1, ALU=1, CMux=1, C=13; SCk, LoadCk
+7. MemRead, A=12, B=22, AMux=1, CSMux=1, ALU=2, CMux=1, C=12; LoadCk
+8. MemRead, MDRMux=0; MDRCk
+9. A=12, B=13, AMux=0, ALU=0, CMux=1, C=0; MARCk, LoadCk
+// A<low> <- Mem[T2], T2 <- T2+1
+10. MemRead, A=13, B=23, AMux=1, ALU=1, CMux=1, C=13; SCk, LoadCk
+11. MemRead, A=12, B=22, AMux=1, CSMux=1, ALU=2, CMux=1, C=12; LoadCk
+12. MemRead, MDRMux=0; MDRCk
+13. A=12, B=13, AMux=0, ALU=0, CMux=1, C=1; MARCk, LoadCk
 
-// X <- Mem[SP+3], SP <- SP+2
-13. A=4, B=5; MARCk
-14. MemRead, A=5, B=23, AMux=1, ALU=1, CMux=1, C=5; CCk, LoadCk
-15. MemRead, MDRMux=0, A=4, B=22, AMux=1, ALU=2, CMux=1, C=4; MDRCk, LoadCk
-16. AMux=0, ALU=0, CMux=1, C=2; LoadCk
-17. A=4, B=5; MARCk
-18. MemRead, A=5, B=23, AMux=1, ALU=1, CMux=1, C=5; CCk, LoadCk
-19. MemRead, MDRMux=0, A=4, B=22, AMux=1, ALU=2, CMux=1, C=4; MDRCk, LoadCk
-20. AMux=0, ALU=0, CMux=1, C=3; LoadCk
+// X<high> <- Mem[T2], T2 <- T2+1
+14. MemRead, A=13, B=23, AMux=1, ALU=1, CMux=1, C=13; SCk, LoadCk
+15. MemRead, A=12, B=22, AMux=1, CSMux=1, ALU=2, CMux=1, C=12; LoadCk
+16. MemRead, MDRMux=0; MDRCk
+17. A=12, B=13, AMux=0, ALU=0, CMux=1, C=2; MARCk, LoadCk
+// X<low> <- Mem[T2], T2 <- T2+1
+18. MemRead, A=13, B=23, AMux=1, ALU=1, CMux=1, C=13; SCk, LoadCk
+19. MemRead, A=12, B=22, AMux=1, CSMux=1, ALU=2, CMux=1, C=12; LoadCk
+20. MemRead, MDRMux=0; MDRCk
+21. A=12, B=13, AMux=0, ALU=0, CMux=1, C=3; MARCk, LoadCk
 
-// PC <- Mem[SP+5], SP <- SP+2
-21. A=4, B=5; MARCk
-22. MemRead, A=5, B=23, AMux=1, ALU=1, CMux=1, C=5; CCk, LoadCk
-23. MemRead, MDRMux=0, A=4, B=22, AMux=1, ALU=2, CMux=1, C=4; MDRCk, LoadCk
-24. AMux=0, ALU=0, CMux=1, C=6; LoadCk
-25. A=4, B=5; MARCk
-26. MemRead, A=5, B=23, AMux=1, ALU=1, CMux=1, C=5; CCk, LoadCk
-27. MemRead, MDRMux=0, A=4, B=22, AMux=1, ALU=2, CMux=1, C=4; MDRCk, LoadCk
-28. AMux=0, ALU=0, CMux=1, C=7; LoadCk
+// PC<high> <- Mem[T2], T2 <- T2+1
+22. MemRead, A=13, B=23, AMux=1, ALU=1, CMux=1, C=13; SCk, LoadCk
+23. MemRead, A=12, B=22, AMux=1, CSMux=1, ALU=2, CMux=1, C=12; LoadCk
+24. MemRead, MDRMux=0; MDRCk
+25. A=12, B=13, AMux=0, ALU=0, CMux=1, C=6; MARCk, LoadCk
+// PC<low> <- Mem[T2], T2 <- T2+1
+26. MemRead, A=13, B=23, AMux=1, ALU=1, CMux=1, C=13; SCk, LoadCk
+27. MemRead, A=12, B=22, AMux=1, CSMux=1, ALU=2, CMux=1, C=12; LoadCk
+28. MemRead, MDRMux=0; MDRCk
+29. A=12, B=13, AMux=0, ALU=0, CMux=1, C=7; MARCk, LoadCk
 
-// T2 <- Mem[SP+7], SP <- SP+2
-29. A=4, B=5; MARCk
-30. MemRead, A=5, B=23, AMux=1, ALU=1, CMux=1, C=5; CCk, LoadCk
-31. MemRead, MDRMux=0, A=4, B=22, AMux=1, ALU=2, CMux=1, C=4; MDRCk, LoadCk
-32. AMux=0, ALU=0, CMux=1, C=12; LoadCk
-33. A=4, B=5; MARCk
-34. MemRead, A=5, B=23, AMux=1, ALU=1, CMux=1, C=5; CCk, LoadCk
-35. MemRead, MDRMux=0, A=4, B=22, AMux=1, ALU=2, CMux=1, C=4; MDRCk, LoadCk
-36. AMux=0, ALU=0, CMux=1, C=13; LoadCk
+// SP<high> <- Mem[T2], T2 <- T2+1
+30. MemRead, A=13, B=23, AMux=1, ALU=1, CMux=1, C=13; SCk, LoadCk
+31. MemRead, A=12, B=22, AMux=1, CSMux=1, ALU=2, CMux=1, C=12; LoadCk
+32. MemRead, MDRMux=0; MDRCk
+33. A=12, B=13, AMux=0, ALU=0, CMux=1, C=4; MARCk, LoadCk
+// SP<low> <- Mem[T2]
+34. MemRead
+35. MemRead
+36. MemRead, MDRMux=0; MDRCk
+37. A=12, B=13, AMux=0, ALU=0, CMux=1, C=5; MARCk, LoadCk
 
-// SP <- T2
-37. A=12, AMux=1, ALU=0, CMux=1, C=4; LoadCk
-38. A=13, AMux=1, ALU=0, CMux=1, C=5; LoadCk
-
-// NZVC <- T1<4..7>
-39. A=11, AMux=1, ALU=15, ANDZ=0; NCk, ZCk, VCk, CCk
