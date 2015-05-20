@@ -23,6 +23,5 @@ UnitPost: Mem[0x00FF]=0xABCD
 5. A=12, B=13; MARCk
 // Initiate write. MDR <- A<low>
 6. MemWrite, A=1, AMux=1, ALU=0, CMux=1, MDRMux=1; MDRCk
-// Continue write.
 7. MemWrite
 8. MemWrite
