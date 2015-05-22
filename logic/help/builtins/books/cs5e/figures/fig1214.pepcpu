@@ -13,7 +13,7 @@ UnitPost: A=0xFF80, N=1, Z=0, V=1, C=1
 // UnitPre: IR=0x0C0000, A=0x0001, N=1, Z=1, V=0, C=0, S=1
 // UnitPost: A=0x0000, N=0, Z=1, V=0, C=1
 
-// Arithmetic shift right of high-order byte
+// Arithmetic shift right of high-order byte.
 1. A=0, AMux=1, ALU=13, AndZ=0, CMux=1, C=0; NCk, ZCk, SCk, LoadCk
-// Rotate right of low-order byte
+// Rotate right of low-order byte.
 2. A=1, AMux=1, CSMux=1, ALU=14, AndZ=1, CMux=1, C=1; ZCk, CCk, LoadCk

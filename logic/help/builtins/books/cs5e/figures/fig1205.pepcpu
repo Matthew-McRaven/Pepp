@@ -6,11 +6,13 @@
 UnitPre: IR=0x000000, PC=0x00FF, Mem[0x00FF]=0xAB, S=0
 UnitPost: IR=0xAB0000, PC=0x0100
 
-// MAR <- PC, fetch instruction specifier.
+// MAR <- PC.
 1. A=6, B=7; MARCk
+// Fetch instruction specifier.
 2. MemRead
 3. MemRead
 4. MemRead, MDRMux=0; MDRCk
+// IR <- instruction specifier.
 5. AMux=0, ALU=0, CMux=1, C=8; LoadCk
 
 // PC <- PC plus 1, low-order byte first.
