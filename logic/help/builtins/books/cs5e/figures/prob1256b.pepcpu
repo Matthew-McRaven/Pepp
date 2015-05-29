@@ -5,18 +5,19 @@
 // Fetch the operand specifier and increment PC by 2
 // Assume previous pre-fetch
 
-UnitPre: IR=0x000000, PC=0x01FF, Mem[0x01FF]=0xABCD, S=0
-UnitPost: IR=0x00ABCD, PC=0x0201
+UnitPre: IR=0x000000, PC=0x01FF, T1=0xAB, Mem[0x01FE]=0xCD12, S=0
+UnitPost: IR=0x00ABCD, T1=0x12, PC=0x0201
 
-// MAR <- PC, Fetch OprndSpec<high>, PC <- PC + 1.
-1. A=6, B=7; MARCk
-2. MemRead, A=7, B=23, AMux=1, ALU=1, CMux=1, C=7; SCk, LoadCk
-3. MemRead, A=6, B=22, AMux=1, CSMux=1, ALU=2, CMux=1, C=6; LoadCk
-4. MemRead, MDRMux=0; MDRCk
-5. A=6, B=7, AMux=0, ALU=0, CMux=1, C=9; MARCk, LoadCk
+// PC <- PC + 2.
+1. A=7, B=24, AMux=1, ALU=1, CMux=1, C=7; SCk, LoadCk
+2. A=6, B=22, AMux=1, CSMux=1, ALU=2, CMux=1, C=6; LoadCk
 
-// Fetch OprndSpec<low>, PC <- PC + 1.
-6. MemRead, A=7, B=23, AMux=1, ALU=1, CMux=1, C=7; SCk, LoadCk
-7. MemRead, A=6, B=22, AMux=1, CSMux=1, ALU=2, CMux=1, C=6; LoadCk
-8. MemRead, MDRMux=0; MDRCk
-9. AMux=0, ALU=0, CMux=1, C=10; LoadCk
+// MAR <- PC, Fetch OprndSpec<low> and next instruction specifier.
+3. A=6, B=7, MARMux=1; MARCk
+// Initiate read, OprndSpec<high> <- T1.
+4. MemRead, A=11, AMux=1, ALU=0, CMux=1, C=9; LoadCk
+// Complete read, Fetch OprndSpec<high>, T1 <- next InstrSpec
+5. MemRead, 
+6. MemRead, MDREMux=0, MDROMux=0; MDRECk, MDROCk
+7. EOMux=0, AMux=0, ALU=0, CMux=1, C=10; LoadCk
+8. EOMux=1, AMux=0, ALU=0, CMux=1, C=11; LoadCk
