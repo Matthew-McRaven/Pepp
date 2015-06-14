@@ -1,0 +1,17 @@
+// File: prob1234a.pepcpu
+// Computer Systems, Fifth Edition
+// Problem 12.34(a)
+// Two-byte data bus
+// Fetch the operand specifier and increment PC by 2
+// Assume no previous pre-fetch
+
+UnitPre: IR=0x000000, PC=0x01FE, Mem[0x01FE]=0xABCD, S=0
+UnitPost: IR=0x00ABCD, PC=0x0200
+
+// MAR <- PC, Fetch OprndSpec, PC <- PC + 2.
+1. A=6, B=7, MARMux=1; MARCk
+2. MemRead, A=7, B=24, AMux=1, ALU=1, CMux=1, C=7; SCk, LoadCk
+3. MemRead, A=6, B=22, AMux=1, CSMux=1, ALU=2, CMux=1, C=6; LoadCk
+4. MemRead, MDREMux=0, MDROMux=0; MDRECk, MDROCk
+5. EOMux=0, AMux=0, ALU=0, CMux=1, C=9; LoadCk
+6. EOMux=1, AMux=0, ALU=0, CMux=1, C=10; LoadCk

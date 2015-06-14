@@ -1,0 +1,95 @@
+// File: prob1233e.pepcpu
+// Computer Systems, Fifth Edition
+// Problem 12.33(e), See Figure 8.5
+// DECO 0x0003,d trap
+// RTL: T <- Mem[0xFFF6]; Mem[T-1] <- IR<0..7>; Mem[T-3] <- SP; Mem[T-5] <- PC; Mem[T-7] <- X;
+// Mem[T-9] <- A; Mem[T-10]<4..7> <- NZVC; SP <- T-10; PC <- Mem[0xFFFE]
+
+UnitPre: IR=0x390003, Mem[0xFFF6]=0xFC0F, SP=0xFB8F, PC=0x0041, X=0x0000
+UnitPre: A=0xFE22, N=1, Z=0, V=0, C=0, Mem[0xFFFE]=0xFC52, Mem[0xFC08]=0xFFFF
+UnitPost: Mem[0xFC0E]=0x39, Mem[0xFC0C]=0xFB8F, Mem[0xFC0A]=0x0041, Mem[0xFC08]=0x0000
+UnitPost: Mem[0xFC06]=0xFE22, Mem[0xFC05]=0x08, SP=0xFC05, PC=0xFC52
+
+// T2<high> <- Mem[FFF6], T6 <- 0xF7
+1. A=31, B=29; MARCk
+2. MemRead, A=29, AMux=1, ALU=0, CMux=1, C=21; LoadCk
+3. MemRead, A=21, B=23, AMux=1, ALU=1, CMux=1, C=21; LoadCk
+4. MemRead, MDRMux=0; MDRCk
+5. A=31, B=21, AMux=0, ALU=0, CMux=1, C=12; MARCk, LoadCk
+// T2<low> <- Mem[FFF7]
+6. MemRead
+7. MemRead
+8. MemRead, MDRMux=0; MDRCk
+9. AMux=0, ALU=0, CMux=1, C=13; LoadCk
+
+// T2 <- T2-1
+10. A=13, B=31, AMux=1, ALU=1, CMux=1, C=13; SCk, LoadCk
+11. A=12, B=31, AMux=1, CSMux=1, ALU=2, CMux=1, C=12; LoadCk
+
+// Mem[T2] <- IR<0..7>; T2 <- T2-1
+12. A=12, B=13; MARCk
+13. MemWrite, A=8, AMux=1, ALU=0, CMux=1, MDRMux=1; MDRCk
+14. MemWrite, A=13, B=31, AMux=1, ALU=1, CMux=1, C=13; SCk, LoadCk
+15. MemWrite, A=12, B=31, AMux=1, CSMux=1, ALU=2, CMux=1, C=12; LoadCk
+
+// Mem[T2] <- SP<low>; T2 <- T2-1
+16. A=12, B=13; MARCk
+17. MemWrite, A=5, AMux=1, ALU=0, CMux=1, MDRMux=1; MDRCk
+18. MemWrite, A=13, B=31, AMux=1, ALU=1, CMux=1, C=13; SCk, LoadCk
+19. MemWrite, A=12, B=31, AMux=1, CSMux=1, ALU=2, CMux=1, C=12; LoadCk
+// Mem[T2] <- SP<high>; T2 <- T2-1
+20. A=12, B=13; MARCk
+21. MemWrite, A=4, AMux=1, ALU=0, CMux=1, MDRMux=1; MDRCk
+22. MemWrite, A=13, B=31, AMux=1, ALU=1, CMux=1, C=13; SCk, LoadCk
+23. MemWrite, A=12, B=31, AMux=1, CSMux=1, ALU=2, CMux=1, C=12; LoadCk
+
+// Mem[T2] <- PC<low>; T2 <- T2-1
+24. A=12, B=13; MARCk
+25. MemWrite, A=7, AMux=1, ALU=0, CMux=1, MDRMux=1; MDRCk
+26. MemWrite, A=13, B=31, AMux=1, ALU=1, CMux=1, C=13; SCk, LoadCk
+27. MemWrite, A=12, B=31, AMux=1, CSMux=1, ALU=2, CMux=1, C=12; LoadCk
+// Mem[T2] <- PC<high>; T2 <- T2-1
+28. A=12, B=13; MARCk
+29. MemWrite, A=6, AMux=1, ALU=0, CMux=1, MDRMux=1; MDRCk
+30. MemWrite, A=13, B=31, AMux=1, ALU=1, CMux=1, C=13; SCk, LoadCk
+31. MemWrite, A=12, B=31, AMux=1, CSMux=1, ALU=2, CMux=1, C=12; LoadCk
+
+// Mem[T2] <- X<low>; T2 <- T2-1
+32. A=12, B=13; MARCk
+33. MemWrite, A=3, AMux=1, ALU=0, CMux=1, MDRMux=1; MDRCk
+34. MemWrite, A=13, B=31, AMux=1, ALU=1, CMux=1, C=13; SCk, LoadCk
+35. MemWrite, A=12, B=31, AMux=1, CSMux=1, ALU=2, CMux=1, C=12; LoadCk
+// Mem[T2] <- X<high>; T2 <- T2-1
+36. A=12, B=13; MARCk
+37. MemWrite, A=2, AMux=1, ALU=0, CMux=1, MDRMux=1; MDRCk
+38. MemWrite, A=13, B=31, AMux=1, ALU=1, CMux=1, C=13; SCk, LoadCk
+39. MemWrite, A=12, B=31, AMux=1, CSMux=1, ALU=2, CMux=1, C=12; LoadCk
+
+// Mem[T2] <- A<low>; T2 <- T2-1
+40. A=12, B=13; MARCk
+41. MemWrite, A=1, AMux=1, ALU=0, CMux=1, MDRMux=1; MDRCk
+42. MemWrite, A=13, B=31, AMux=1, ALU=1, CMux=1, C=13; SCk, LoadCk
+43. MemWrite, A=12, B=31, AMux=1, CSMux=1, ALU=2, CMux=1, C=12; LoadCk
+// Mem[T2] <- A<high>; T2 <- T2-1
+44. A=12, B=13; MARCk
+45. MemWrite, A=0, AMux=1, ALU=0, CMux=1, MDRMux=1; MDRCk
+46. MemWrite, A=13, B=31, AMux=1, ALU=1, CMux=1, C=13; SCk, LoadCk
+47. MemWrite, A=12, B=31, AMux=1, CSMux=1, ALU=2, CMux=1, C=12; LoadCk
+
+// Mem[T2]<4..7> <- NZVC, SP <- T2
+48. A=12, B=13; MARCk
+49. MemWrite, CMux=0, MDRMux=1; MDRCk
+50. MemWrite, A=12, AMux=1, ALU=0, CMux=1, C=4; LoadCk
+51. MemWrite, A=13, AMux=1, ALU=0, CMux=1, C=5; LoadCk
+
+// PC<high> <- Mem[FFFE]
+52. A=31, B=30; MARCk
+53. MemRead
+54. MemRead
+33. MemRead, MDRMux=0; MDRCk
+56. A=31, B=31, AMux=0, ALU=0, CMux=1, C=6; MARCk, LoadCk
+// PC<low> <- Mem[FFFF]
+57. MemRead
+58. MemRead
+59. MemRead, MDRMux=0; MDRCk
+60. AMux=0, ALU=0, CMux=1, C=7; LoadCk
