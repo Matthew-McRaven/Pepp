@@ -18,21 +18,16 @@ UnitPost: A=0x26D1, N=0, Z=0, V=0, C=1
 // UnitPre: N=1, Z=0, V=0, C=1, S=0
 // UnitPost: A=0x0000, N=0, Z=1, V=0, C=1
 
-// T2 <- SP + OprndSpec + X
+// T2 <- SP + OprndSpec + X.
 1. A=5, B=10, AMux=1, ALU=1, CMux=1, C=13; SCk, LoadCk
 2. A=4, B=9, AMux=1, CSMux=1, ALU=2, CMux=1, C=12; LoadCk
 3. A=13, B=3, AMux=1, ALU=1, CMux=1, C=13; SCk, LoadCk
 4. A=12, B=2, AMux=1, CSMux=1, ALU=2, CMux=1, C=12; LoadCk
 
-// A<high> <- Mem[T2], T3 <- T2 + 1.
-5. A=12, B=13; MARCk
-6. MemRead, A=13, B=23, AMux=1, ALU=1, CMux=1, C=15; SCk, LoadCk
-7. MemRead, A=12, B=22, AMux=1, CSMux=1, ALU=2, CMux=1, C=14; LoadCk
-8. MemRead, MDRMux=0; MDRCk
-9. A=14, B=15, AMux=0, ALU=0, AndZ=0, CMux=1, C=0; NCk, ZCk, MARCk, LoadCk
-
-// A<low> <- Mem[T3].
-10. MemRead
-11. MemRead
-12. MemRead, MDRMux=0; MDRCk
-13. AMux=0, ALU=0, AndZ=1, CMux=1, C=1; ZCk, LoadCk
+// A <- Mem[T2].
+5. A=12, B=13, MARMux=1; MARCk
+6. MemRead
+7. MemRead
+8. MemRead, MDREMux=0, MDROMux=0; MDRECk, MDROCk
+9. EOMux=0, AMux=0, ALU=0, AndZ=0, CMux=1, C=0; NCk, ZCk, LoadCk
+10. EOMux=1, AMux=0, ALU=0, AndZ=1, CMux=1, C=1; ZCk, LoadCk

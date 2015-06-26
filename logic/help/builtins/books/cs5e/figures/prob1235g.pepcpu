@@ -6,35 +6,19 @@
 // RTL: Oprnd <- A
 // Indirect addressing: Oprnd = Mem[Mem[OprndSpec]]
 
-UnitPre: A=0x53AC, IR=0xE20012, Mem[0x0012]=0x26D1, S=1
-UnitPost: Mem[0x26D1]=0x53AC
+UnitPre: A=0x53AC, IR=0xE20012, Mem[0x0012]=0x26D2, S=1
+UnitPost: Mem[0x26D2]=0x53AC
 
-// UnitPre: A=0x53AC, IR=0xE200FF, Mem[0x00FF]=0x26D1, S=0
-// UnitPost: Mem[0x26D1]=0x53AC
+// MAR <- Mem[OprndSpec].
+1. A=9, B=10, MARMux=1; MARCk
+2. MemRead
+3. MemRead
+4. MemRead, MDREMux=0, MDROMux=0; MDRECk, MDROCk
+5. MARMux=0; MARCk
 
-// T3<high> <- Mem[OprndSpec], T2 <- OprndSpec + 1.
-1. A=9, B=10; MARCk
-2. MemRead, A=10, B=23, AMux=1, ALU=1, CMux=1, C=13; SCk, LoadCk
-3. MemRead, A=9, B=22, AMux=1, CSMux=1, ALU=2, CMux=1, C=12; LoadCk
-4. MemRead, MDRMux=0; MDRCk
-5. A=12, B=13, AMux=0, ALU=0, CMux=1, C=14; MARCk, LoadCk
-
-// T3<low> <- Mem[T2].
-6. MemRead
-7. MemRead
-8. MemRead, MDRMux=0; MDRCk
-9. AMux=0, ALU=0, CMux=1, C=15; LoadCk
-
-// Assert: T3 contains the address of the operand.
-// Mem[T3] <- A<high>, T4 <- T3 + 1.
-10. A=14, B=15; MARCk
-11. A=0, AMux=1, ALU=0, CMux=1, MDRMux=1; MDRCk
-12. MemWrite, A=15, B=23, AMux=1, ALU=1, CMux=1, C=17; SCk, LoadCk
-13. MemWrite, A=14, B=22, AMux=1, CSMux=1, ALU=2, CMux=1, C=16; LoadCk
-14. MemWrite, A=1, AMux=1, ALU=0, CMux=1, MDRMux=1; MDRCk
-
-// Mem[T4] <- A<low>.
-15. A=16, B=17; MARCk
-16. MemWrite
-17. MemWrite
-18. MemWrite
+// Mem[MAR] <- A
+6. A=0, AMux=1, ALU=0, CMux=1, MDREMux=1; MDRECk
+7. A=1, AMux=1, ALU=0, CMux=1, MDROMux=1; MDROCk
+8. MemWrite
+9. MemWrite
+10. MemWrite
