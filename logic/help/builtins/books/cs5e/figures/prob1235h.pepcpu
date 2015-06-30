@@ -16,14 +16,8 @@ UnitPost: Mem[0xFB0E]=0x26D1
 1. A=5, B=10, AMux=1, ALU=1, CMux=1, C=13; SCk, LoadCk
 2. A=4, B=9, AMux=1, CSMux=1, ALU=2, CMux=1, C=12; LoadCk
 
-// Mem[T2] <- A<high>, T3 <- T2 + 1.
-3. A=12, B=13; MARCk
-4. MemWrite, A=0, AMux=1, ALU=0, CMux=1, MDRMux=1; MDRCk
-5. MemWrite, A=13, B=23, AMux=1, ALU=1, CMux=1, C=15; SCk, LoadCk
-6. MemWrite, A=12, B=22, AMux=1, CSMux=1, ALU=2, CMux=1, MDRMux=0, C=14; LoadCk
-
-// Mem[T3] <- A<low>.
-7. A=14, B=15; MARCk
-8. MemWrite, A=1, AMux=1, ALU=0, CMux=1, MDRMux=1; MDRCk
-9. MemWrite
-10. MemWrite
+// Mem[T2] <- A<high>.
+3. A=12, B=13. MARMux=1; MARCk
+4. MemWrite, A=0, AMux=1, ALU=0, CMux=1, MDREMux=1; MDRECk
+5. MemWrite, A=1, AMux=1, ALU=0, CMux=1, MDROMux=1; MDROCk
+6. MemWriteadCk

@@ -18,27 +18,15 @@ UnitPost: Mem[0x10FF]=0x26D1, N=1, Z=0, V=1, C=1
 1. A=5, B=10, AMux=1, ALU=1, CMux=1, C=13; SCk, LoadCk
 2. A=4, B=9, AMux=1, CSMux=1, ALU=2, CMux=1, C=12; LoadCk
 
-// T4<high> <- Mem[T2], T3 <- T2 + 1.
-3. A=12, B=13; MARCk
-4. MemRead, A=13, B=23, AMux=1, ALU=1, CMux=1, C=15; SCk, LoadCk
-5. MemRead, A=12, B=22, AMux=1, CSMux=1, ALU=2, CMux=1, C=14; LoadCk
-6. MemRead, MDRMux=0; MDRCk
-7. A=14, B=15, AMux=0, ALU=0, CMux=1, C=16; MARCk, LoadCk
+// MAR <- Mem[T2].
+3. A=12, B=13, MARMux=1; MARCk
+4. MemRead
+5. MemRead
+6. MemRead, MDREMux=0, MDROMux=0; MDRECk, MDROCk
+7. MARMux=0; MARCk
 
-// T4<low> <- Mem[T3].
-8. MemRead
-9. MemRead
-10. MemRead, MDRMux=0; MDRCk
-11. AMux=0, ALU=0, CMux=1, C=17; LoadCk
+// Mem[MAR] <-A.
+8. MemWrite, A=0, AMux=1, ALU=0, CMux=1, MDREMux=1; MDRECk
+9. MemWrite, A=1, AMux=1, ALU=0, CMux=1, MDROMux=1; MDROCk
+10. MemWrite
 
-// Mem[T4] <- A<high>, T5 <- T4 + 1.
-12. A=16, B=17; MARCk
-13. MemWrite, A=0, AMux=1, ALU=0, CMux=1, MDRMux=1; MDRCk
-14. MemWrite, A=17, B=23, AMux=1, ALU=1, CMux=1, C=19; SCk, LoadCk
-15. MemWrite, A=16, B=22, AMux=1, CSMux=1, ALU=2, CMux=1, C=18; LoadCk
-16. A=18, B=19, AMux=0, ALU=0, CMux=1, C=0; MARCk, LoadCk
-
-// Mem[T5] <- A<low>.
-17. MemWrite, A=1, AMux=1, ALU=0, CMux=1, MDRMux=1; MDRCk
-18. MemWrite
-19. MemWrite

@@ -17,8 +17,6 @@ UnitPost: Mem[0x26D2]=0x53AC
 5. MARMux=0; MARCk
 
 // Mem[MAR] <- A
-6. A=0, AMux=1, ALU=0, CMux=1, MDREMux=1; MDRECk
-7. A=1, AMux=1, ALU=0, CMux=1, MDROMux=1; MDROCk
+6. MemWrite, A=0, AMux=1, ALU=0, CMux=1, MDREMux=1; MDRECk
+7. MemWrite, A=1, AMux=1, ALU=0, CMux=1, MDROMux=1; MDROCk
 8. MemWrite
-9. MemWrite
-10. MemWrite
