@@ -5,23 +5,14 @@
 // RET
 // RTL: PC <- Mem[SP]; SP <- SP+2
 
-UnitPre: IR=0x010000, SP=0xFAFF, Mem[0xFAFF]=0x1234
-UnitPre: N=1, Z=0, V=1, C=0, S=0
-UnitPost: SP=0xFB01, PC=0x1234, N=1, Z=0, V=1, C=0
+UnitPre: IR=0x010000, SP=0xFAFE, Mem[0xFAFE]=0x1234
+UnitPre: N=0, Z=1, V=0, C=1, S=1
+UnitPost: SP=0xFB00, PC=0x1234, N=0, Z=1, V=0, C=1
 
-// UnitPre: IR=0x010000, SP=0xFAFE, Mem[0xFAFE]=0x1234
-// UnitPre: N=0, Z=1, V=0, C=1, S=1
-// UnitPost: SP=0xFB00, PC=0x1234, N=0, Z=1, V=0, C=1
-
-// PC<high> <- Mem[SP], SP <- SP + 1
-1. A=4, B=5; MARCk
-2. MemRead, A=5, B=23, AMux=1, ALU=1, CMux=1, C=5; SCk, LoadCk
+// PC <- Mem[SP], SP <- SP + 2.
+1. A=4, B=5, MARMux=1; MARCk
+2. MemRead, A=5, B=24, AMux=1, ALU=1, CMux=1, C=5; SCk, LoadCk
 3. MemRead, A=4, B=22, AMux=1, CSMux=1, ALU=2, CMux=1, C=4; LoadCk
-4. MemRead, AMux=0, ALU=0, CMux=1, MDRMux=0, C=6; LoadCk, MDRCk
-5. A=4, B=5, AMux=0, ALU=0, CMux=1, C=6; MARCk, LoadCk
-
-// PC<low> <- Mem[SP], SP <- SP + 1
-6. MemRead, A=5, B=23, AMux=1, ALU=1, CMux=1, C=5; SCk, LoadCk
-7. MemRead, A=4, B=22, AMux=1, CSMux=1, ALU=2, CMux=1, C=4; LoadCk
-8. MemRead, MDRMux=0; MDRCk
-9. AMux=0, ALU=0, CMux=1, C=7; LoadCk
+4. MemRead, MDREMux=0, MDROMux=0; MDRECk, MDROCk
+5. EOMux=0, AMux=0, ALU=0, CMux=1, C=6; LoadCk
+6. EOMux=1, AMux=0, ALU=0, CMux=1, C=7; LoadCk

@@ -18,15 +18,10 @@ UnitPost: PC=0x26D1, N=1, Z=1, V=0, C=1
 1. A=10, B=3, AMux=1, ALU=1, CMux=1, C=13; SCk, LoadCk
 2. A=9, B=2, AMux=1, CSMux=1, ALU=2, CMux=1, C=12; LoadCk
 
-// PC<high> <- Mem[T2], T3 <- T2 + 1.
+// PC <- Mem[T2].
 3. A=12, B=13; MARCk
-4. MemRead, A=13, B=23, AMux=1, ALU=1, CMux=1, C=15; SCk, LoadCk
-5. MemRead, A=12, B=22, AMux=1, CSMux=1, ALU=2, CMux=1, C=14; LoadCk
-6. MemRead, MDRMux=0; MDRCk
-7. A=14, B=15, AMux=0, ALU=0, CMux=1, C=6; MARCk, LoadCk
-
-// PC<low> <- Mem[T3].
-8. MemRead
-9. MemRead
-10. MemRead, MDRMux=0; MDRCk
-11. AMux=0, ALU=0, CMux=1, C=7; LoadCk
+4. MemRead
+5. MemRead
+6. MemRead, MDREMux=0, MDROMux=0; MDRECk, MDROCk
+7. EOMux=0, AMux=0, ALU=0, CMux=1, C=6; LoadCk
+8. EOMux=1, AMux=0, ALU=0, CMux=1, C=7; LoadCk

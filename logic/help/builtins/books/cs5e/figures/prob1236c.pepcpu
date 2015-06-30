@@ -6,26 +6,17 @@
 // RTL: SP <- SP-2; Mem[SP] <- PC; PC <- Oprnd
 // Immediate addressing: Oprnd = OprndSpec
 
-UnitPre: IR=0x24ABCD, SP=0xFB01, PC=0x1234
-UnitPre: N=1, Z=0, V=1, C=0, S=0
-UnitPost: SP=0xFAFF, Mem[0xFAFF]=0x1234, PC=0xABCD, N=1, Z=0, V=1, C=0
+UnitPre: IR=0x24ABCD, SP=0xFB00, PC=0x1234
+UnitPre: N=0, Z=1, V=0, C=1, S=1
+UnitPost: SP=0xFAFE, Mem[0xFAFE]=0x1234, PC=0xABCD, N=0, Z=1, V=0, C=1
 
-// UnitPre: IR=0x24ABCD, SP=0xFB00, PC=0x1234
-// UnitPre: N=0, Z=1, V=0, C=1, S=1
-// UnitPost: SP=0xFAFE, Mem[0xFAFE]=0x1234, PC=0xABCD, N=0, Z=1, V=0, C=1
-
-// SP <- SP-1
-1. A=5, B=23, AMux=1, ALU=3, CMux=1, C=5; SCk, LoadCk
+// SP <- SP-2.
+1. A=5, B=24, AMux=1, ALU=3, CMux=1, C=5; SCk, LoadCk
 2. A=4, B=22, AMux=1, CSMux=1, ALU=4, CMux=1, C=4; LoadCk
 
-// Mem[SP] <- PC<low>, SP <- SP-1
-3. A=4, B=5; MARCk
-4. MemWrite, A=7, AMux=1, ALU=0, CMux=1, MDRMux=1; MDRCk
-5. MemWrite, A=5, B=23, AMux=1, ALU=3, CMux=1, C=5; SCk, LoadCk
-6. MemWrite, A=4, B=22, AMux=1, CSMux=1, ALU=4, CMux=1, C=4; LoadCk
-
-// Mem[SP] <- PC<high>, PC <- OprndSpec
-7. A=4, B=5; MARCk
-8. MemWrite, A=6, AMux=1, ALU=0, CMux=1, MDRMux=1; MDRCk
-9. MemWrite, A=10, AMux=1, ALU=0, CMux=1, C=7; LoadCk
-10. MemWrite, A=9, AMux=1, ALU=0, CMux=1, C=6; LoadCk
+// Mem[SP] <- PC, PC <- OprndSpec.
+3. A=4, B=5, MARMux=1; MARCk
+4. MemWrite, A=6, AMux=1, ALU=0, CMux=1, MDREMux=1; MDRECk
+5. MemWrite, A=7, AMux=1, ALU=0, CMux=1, MDROMux=1; MDROCk
+6. MemWrite, A=9, AMux=1, ALU=0, CMux=1, C=6; LoadCk
+7. A=10, AMux=1, ALU=0, CMux=1, C=7; LoadCk
