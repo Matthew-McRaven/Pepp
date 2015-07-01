@@ -23,7 +23,7 @@ UnitPost: A=0x26D1, N=0, Z=0, V=0, C=1
 2. A=4, B=9, AMux=1, CSMux=1, ALU=2, CMux=1, C=12; LoadCk
 
 // A <- Mem[T2].
-3. A=12, B=13; MARCk
+3. A=12, B=13, MARMux=1; MARCk
 4. MemRead
 5. MemRead
 6. MemRead, MDREMux=0, MDROMux=0; MDRECk, MDROCk
