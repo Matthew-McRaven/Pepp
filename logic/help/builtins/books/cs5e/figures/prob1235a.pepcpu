@@ -18,6 +18,6 @@ UnitPost: A=0x26D1, N=0, Z=0, V=0, C=1
 1. A=9, B=10, MARMux=1; MARCk
 2. MemRead
 3. MemRead
-4. MemRead, MDREMux=0 MDROMux=0; MDRECk, MDROCk
+4. MemRead, MDREMux=0, MDROMux=0; MDRECk, MDROCk 
 5. EOMux=0, AMux=0, ALU=0, AndZ=0, CMux=1, C=0; NCk, ZCk, LoadCk
 6. EOMux=1, AMux=0, ALU=0, AndZ=1, CMux=1, C=1; ZCk, LoadCk
