@@ -6,20 +6,20 @@
 // RTL: Oprnd <- A
 // Stack-relative deferred addressing: Oprnd = Mem[Mem[SP + OprndSpec]]
 
-UnitPre: A=0x26D1, IR=0xE40010, SP=0xFAFE, Mem[0xFB0E]=0x10FF
+UnitPre: A=0x26D1, IR=0xE40010, SP=0xFAFE, Mem[0xFB0E]=0x10FE
 UnitPre: N=1, Z=0, V=1, C=1, S=0
-UnitPost: Mem[0x10FF]=0x26D1, N=1, Z=0, V=1, C=1
+UnitPost: Mem[0x10FE]=0x26D1, N=1, Z=0, V=1, C=1
 
-// UnitPre: A=0x26D1, IR=0xE40010, SP=0xFAFE, Mem[0xFB0E]=0x10FF
+// UnitPre: A=0x26D1, IR=0xE40010, SP=0xFA7E, Mem[0xFA8E]=0x10FE
 // UnitPre: N=0, Z=1, V=0, C=0
-// UnitPost: Mem[0x10FF]=0x26D1, N=0, Z=1, V=0, C=0
+// UnitPost: Mem[0x10FE]=0x26D1, N=0, Z=1, V=0, C=0
 
 // T2 <- SP + OprndSpec.
 1. A=5, B=10, AMux=1, ALU=1, CMux=1, C=13; SCk, LoadCk
 2. A=4, B=9, AMux=1, CSMux=1, ALU=2, CMux=1, C=12; LoadCk
 
 // MAR <- Mem[T2].
-3. A=12, B=13, MARMux=1; MARCk
+3. A=12, B=13, MARMux=1; MARCk 
 4. MemRead
 5. MemRead
 6. MemRead, MDREMux=0, MDROMux=0; MDRECk, MDROCk

@@ -23,5 +23,5 @@ UnitPost: Mem[0xFBFE]=0x26D1, N=1, Z=1, V=0, C=1
 // Mem[T2] <- A.
 5. A=12, B=13, MARMux=1; MARCk
 6. MemWrite, A=0, AMux=1, ALU=0, CMux=1, MDREMux=1; MDRECk
-7. MemWrite, A=1, AMux=1, ALU=0, CMux=1, MDROMux=1; MDREOCk
+7. MemWrite, A=1, AMux=1, ALU=0, CMux=1, MDROMux=1; MDROCk 
 8. MemWrite

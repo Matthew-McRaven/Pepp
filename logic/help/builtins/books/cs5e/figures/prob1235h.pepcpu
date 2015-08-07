@@ -9,15 +9,15 @@
 UnitPre: A=0x26D1, IR=0xE30010, SP=0xFAFE, S=0
 UnitPost: Mem[0xFB0E]=0x26D1
 
-// UnitPre: A=0x26D1, IR=0xE30010, SP=0xFAEF, S=1
-// UnitPost: Mem[0xFAFF]=0x26D1
+// UnitPre: A=0x26D1, IR=0xE30010, SP=0xFA7E, S=1
+// UnitPost: Mem[0xFA8E]=0x26D1
 
 // T2 <- SP + OprndSpec
 1. A=5, B=10, AMux=1, ALU=1, CMux=1, C=13; SCk, LoadCk
 2. A=4, B=9, AMux=1, CSMux=1, ALU=2, CMux=1, C=12; LoadCk
 
 // Mem[T2] <- A<high>.
-3. A=12, B=13. MARMux=1; MARCk
+3. A=12, B=13, MARMux=1; MARCk
 4. MemWrite, A=0, AMux=1, ALU=0, CMux=1, MDREMux=1; MDRECk
 5. MemWrite, A=1, AMux=1, ALU=0, CMux=1, MDROMux=1; MDROCk
-6. MemWriteadCk
+6. MemWrite
