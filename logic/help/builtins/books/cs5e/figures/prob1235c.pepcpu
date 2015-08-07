@@ -32,4 +32,4 @@ UnitPost: A=0xD126, N=1, Z=0, V=0, C=1
 9. MemRead
 10. MemRead, MDREMux=0, MDROMux=0; MDRECk, MDROCk
 11. EOMux=0, AMux=0, ALU=0, AndZ=0, CMux=1, C=0; NCk, ZCk, LoadCk
-12. EOMux=1, AMux=0, ALU=0, AndZ=1, CMux=1, C=0; ZCk, LoadCk
+12. EOMux=1, AMux=0, ALU=0, AndZ=1, CMux=1, C=1; ZCk, LoadCk

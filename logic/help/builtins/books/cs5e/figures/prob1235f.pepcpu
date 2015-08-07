@@ -6,12 +6,12 @@
 // RTL: A <- Oprnd; N <- A<0, Z <- A=0
 // Stack-indexed deferred addressing: Oprnd = Mem[Mem[SP + OprndSpec] + X]
 
-UnitPre: IR=0xC70010, SP=0xFAFE, T4=0xFF00, Mem[0xFB0E]=0x00FF
-UnitPre: X=0x0080, Mem[0x017F]=0x26D1, N=1, Z=1, V=0, C=1, S=0
+UnitPre: IR=0xC70010, SP=0xFAFE, T4=0xFF00, Mem[0xFB0E]=0x00FE
+UnitPre: X=0x0080, Mem[0x017E]=0x26D1, N=1, Z=1, V=0, C=1, S=0
 UnitPost: A=0x26D1, N=0, Z=0, V=0, C=1
 
-// UnitPre: IR=0xC70010, SP=0xFAEE, T4=0xFF00, Mem[0xFAFE]=0x000F
-// UnitPre: X=0x0080, Mem[0x008F]=0xD126, N=1, Z=1, V=0, C=1, S=1
+// UnitPre: IR=0xC70010, SP=0xFAEE, T4=0xFF00, Mem[0xFAFE]=0x000E
+// UnitPre: X=0x0080, Mem[0x008E]=0xD126, N=1, Z=1, V=0, C=1, S=1
 // UnitPost: A=0xD126, N=1, Z=0, V=0, C=1
 
 // UnitPre: IR=0xC70010, SP=0xFAFE, T4=0xFF00, Mem[0xFB0E]=0x00FF
@@ -27,8 +27,8 @@ UnitPost: A=0x26D1, N=0, Z=0, V=0, C=1
 4. MemRead
 5. MemRead
 6. MemRead, MDREMux=0, MDROMux=0; MDRECk, MDROCk
-7. EOMux=0, AMux=0, ALU=0, CMux=1, C=16; NCk, ZCk, LoadCk
-8. EOMux=1, AMux=0, ALU=0, CMux=1, C=17; ZCk, LoadCk
+7. EOMux=0, AMux=0, ALU=0, CMux=1, C=16; LoadCk
+8. EOMux=1, AMux=0, ALU=0, CMux=1, C=17; LoadCk
 
 // T5 <- T4 + X.
 9. A=17, B=3, AMux=1, ALU=1, CMux=1, C=19; SCk, LoadCk
