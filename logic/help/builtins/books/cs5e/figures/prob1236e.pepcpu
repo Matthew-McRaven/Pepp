@@ -1,15 +1,16 @@
 // File: prob1236e.pepcpu
 // Computer Systems, Fifth Edition
-// Problem 12.36(e), See Figure 8.5
+// Problem 12.36(e), See Memory Alignment in Section 12.2
 // Two-byte data bus
+// All items stored at even address, right justified
 // DECO 0x0003,d trap
-// RTL: T <- Mem[0xFFF6]; Mem[T-2] <- IR<0..7>; Mem[T-4] <- SP; Mem[T-6] <- PC; Mem[T-8] <- X;
-// Mem[T-10] <- A; Mem[T-12]<4..7> <- NZVC; SP <- T-12; PC <- Mem[0xFFFE]
+// RTL: T <- Mem[0xFFF6]; Mem[T-2]<8..15> <- IR<0..7>; Mem[T-4] <- SP; Mem[T-6] <- PC; Mem[T-8] <- X;
+// Mem[T-10] <- A; Mem[T-12]<12..15> <- NZVC; SP <- T-12; PC <- Mem[0xFFFE]
 
 UnitPre: IR=0x390003, Mem[0xFFF6]=0xFC0E, SP=0xFB8E, PC=0x0040, X=0x0000
 UnitPre: A=0xFE22, N=1, Z=0, V=0, C=0, Mem[0xFFFE]=0xFC52, Mem[0xFC08]=0xFFFF
-UnitPost: Mem[0xFC0E]=0x39, Mem[0xFC0C]=0xFB8E, Mem[0xFC0A]=0x0040, Mem[0xFC08]=0x0000
-UnitPost: Mem[0xFC06]=0xFE22, Mem[0xFC05]=0x08, SP=0xFC05, PC=0xFC52
+UnitPost: Mem[0xFC0D]=0x39, Mem[0xFC0A]=0xFB8E, Mem[0xFC08]=0x0040, Mem[0xFC06]=0x0000
+UnitPost: Mem[0xFC04]=0xFE22, Mem[0xFC03]=0x08, SP=0xFC02, PC=0xFC52
 
 // T2 <- Mem[FFF6] - 2.
 1. A=31, B=29, MARMux=1; MARCk
@@ -17,11 +18,11 @@ UnitPost: Mem[0xFC06]=0xFE22, Mem[0xFC05]=0x08, SP=0xFC05, PC=0xFC52
 3. MemRead
 4. MemRead, MDREMux=0, MDROMux=0; MDRECk, MDROCk
 5. EOMux=1, AMux=0, B=30, ALU=1, CMux=1, C=13; SCk, LoadCk
-6. EOMux=0, AMux=0, B=31, ALU=2, CMux=1, C=12; LoadCk
+6. EOMux=0, AMux=0, B=31, ALU=2, CMux=1, C=12, CSMux=1; LoadCk
 
-// Mem[T2] <- IR<0..7>; T2 <- T2-2.
+// Mem[T2]<8..15> <- IR<0..7>; T2 <- T2-2.
 7. A=12, B=13, MARMux=1; MARCk
-8. MemWrite, A=8, AMux=1, ALU=0, CMux=1, MDREMux=1; MDRECk
+8. MemWrite, A=8, AMux=1, ALU=0, CMux=1, MDROMux=1; MDROCk
 9. MemWrite, A=13, B=30, AMux=1, ALU=1, CMux=1, C=13; SCk, LoadCk
 10. MemWrite, A=12, B=31, AMux=1, CSMux=1, ALU=2, CMux=1, C=12; LoadCk
 
@@ -53,9 +54,9 @@ UnitPost: Mem[0xFC06]=0xFE22, Mem[0xFC05]=0x08, SP=0xFC05, PC=0xFC52
 29. MemWrite, A=13, B=30, AMux=1, ALU=1, CMux=1, C=13; SCk, LoadCk
 30. A=12, B=31, AMux=1, CSMux=1, ALU=2, CMux=1, C=12; LoadCk
 
-// Mem[T2]<4..7> <- NZVC, SP <- T2
+// Mem[T2]<12..15> <- NZVC, SP <- T2
 31. A=12, B=13, MARMux=1; MARCk
-32. MemWrite, CMux=0, MDREMux=1; MDRECk
+32. MemWrite, CMux=0, MDROMux=1; MDROCk
 33. MemWrite, A=12, AMux=1, ALU=0, CMux=1, C=4; LoadCk
 34. MemWrite, A=13, AMux=1, ALU=0, CMux=1, C=5; LoadCk
 
