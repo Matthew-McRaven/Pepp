@@ -20,5 +20,3 @@ UnitPost: A=0x0001, N=0, Z=0, V=0, C=1
 // UnitPre: N=1, Z=0, V=1, C=0
 // UnitPost: A=0x0000, N=0, Z=1, V=0, C=0
 
-1. A=22, B=1, AMux=1, ALU=3, AndZ=0, CMux=1, C=1; ZCk, SCk, LoadCk
-2. A=22, B=0, AMux=1, CSMux=1, ALU=4, AndZ=1, CMux=1, C=0; NCk, ZCk, VCk, LoadCk

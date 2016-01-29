@@ -7,5 +7,3 @@
 UnitPre: IR=0x030000, SP=0xABCD
 UnitPost: A=0xABCD
 
-1. A=5, AMux=1, ALU=0, CMux=1, C=1; LoadCk
-2. A=4, AMux=1, ALU=0, CMux=1, C=0; LoadCk
