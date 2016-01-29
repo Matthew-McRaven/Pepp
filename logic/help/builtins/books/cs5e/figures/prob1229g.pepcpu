@@ -10,5 +10,3 @@ UnitPost: A=0x4007, C=1
 // UnitPre: IR=0x100000, A=0x0FFE, C=1
 // UnitPost: A=0x87FF, C=0
 
-1. A=0, AMux=1, CSMux=0, ALU=14, CMux=1, C=0; SCk, LoadCk
-2. A=1, AMux=1, CSMux=1, ALU=14, CMux=1, C=1; CCk, LoadCk
