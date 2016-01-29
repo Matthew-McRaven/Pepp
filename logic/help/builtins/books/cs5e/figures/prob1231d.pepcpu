@@ -17,12 +17,3 @@ UnitPost: N=0, Z=0, V=0, C=0
 // UnitPre: IR=0xA0700f, A=0x8ff0, N=0, Z=1, V=0, C=0, S=0
 // UnitPost: N=1, Z=0, V=1, C=1
 
-1. A=1, B=10, AMux=1, ALU=3, AndZ=0; ZCk, SCk
-2. A=0, B=9, AMux=1, CSMux=1, ALU=4, AndZ=1; NCk, ZCk, VCk, CCk
-
-// N <- N XOR V
-3. CMux=0, C=12; LoadCk // Store NZVC in 12
-4. A=12, AMux=1, ALU=11, CMux=1, C=13; LoadCk // Shift left twice into 13
-5. A=13, AMux=1, ALU=11, CMux=1, C=13; LoadCk
-6. A=13, B=12, AMux=1, ALU=9, CMux=1, C=12; LoadCk // XOR into 12
-7. A=12, AMux=1, ALU=15, CMux=1; NCk // Store into N

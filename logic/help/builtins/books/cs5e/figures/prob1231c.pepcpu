@@ -11,5 +11,3 @@ UnitPost: A=0xABFF, N=1, Z=0
 // UnitPre: IR=0x900000, A=0x0000, N=1, Z=0
 // UnitPost: A=0x0000, N=0, Z=1
 
-1. A=1, B=10, AMux=1, ALU=7, AndZ=0, CMux=1, C=1; ZCk, LoadCk
-2. A=0, B=9, AMux=1, ALU=7, AndZ=1, CMux=1, C=0; NCk, ZCk, LoadCk
