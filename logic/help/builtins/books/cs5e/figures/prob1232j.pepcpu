@@ -13,18 +13,3 @@ UnitPost: Mem[0x010E]=0x26D1, N=1, Z=1, V=0, C=1
 // UnitPre: N=0, Z=1, V=0, C=1, S=1
 // UnitPost: Mem[0x001E]=0xD126, N=0, Z=1, V=0, C=1
 
-// T2 <- OprndSpec + X.
-1. A=10, B=3, AMux=1, ALU=1, CMux=1, C=13; SCk, LoadCk
-2. A=9, B=2, AMux=1, CSMux=1, ALU=2, CMux=1, C=12; LoadCk
-
-// Mem[T2] <- A<high>, T3 <- T2 + 1.
-3. A=12, B=13; MARCk
-4. MemWrite, A=0, AMux=1, ALU=0, CMux=1, MDRMux=1; MDRCk
-5. MemWrite, A=13, B=23, AMux=1, ALU=1, CMux=1, C=15; SCk, LoadCk
-6. MemWrite, A=12, B=22, AMux=1, CSMux=1, ALU=2, CMux=1, C=14; LoadCk
-7. A=14, B=15; MARCk
-
-// Mem[T3] <- A<low>.
-8. MemWrite, A=1, AMux=1, ALU=0, CMux=1, MDRMux=1; MDRCk
-9. MemWrite
-10. MemWrite

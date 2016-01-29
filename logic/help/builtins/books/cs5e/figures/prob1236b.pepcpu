@@ -14,14 +14,3 @@ UnitPost: PC=0x26D1, N=1, Z=1, V=0, C=1
 // UnitPre: N=0, Z=1, V=0, C=1, S=1
 // UnitPost: PC=0xD126, N=0, Z=1, V=0, C=1
 
-// T2 <- OprndSpec + X
-1. A=10, B=3, AMux=1, ALU=1, CMux=1, C=13; SCk, LoadCk
-2. A=9, B=2, AMux=1, CSMux=1, ALU=2, CMux=1, C=12; LoadCk
-
-// PC <- Mem[T2].
-3. A=12, B=13, MARMux=1; MARCk
-4. MemRead
-5. MemRead
-6. MemRead, MDREMux=0, MDROMux=0; MDRECk, MDROCk
-7. EOMux=0, AMux=0, ALU=0, CMux=1, C=6; LoadCk
-8. EOMux=1, AMux=0, ALU=0, CMux=1, C=7; LoadCk

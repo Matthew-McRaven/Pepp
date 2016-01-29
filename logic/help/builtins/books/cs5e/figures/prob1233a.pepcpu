@@ -8,5 +8,3 @@
 UnitPre: IR=0x12ABCD
 UnitPost: PC=0xABCD
 
-1. A=10, AMux=1, ALU=0, CMux=1, C=7; LoadCk
-2. A=9, AMux=1, ALU=0, CMux=1, C=6; LoadCk

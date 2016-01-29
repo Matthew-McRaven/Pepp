@@ -9,14 +9,3 @@
 UnitPre: A=0x53AC, IR=0xE20012, Mem[0x0012]=0x26D2, S=1
 UnitPost: Mem[0x26D2]=0x53AC
 
-// MAR <- Mem[OprndSpec].
-1. A=9, B=10, MARMux=1; MARCk
-2. MemRead
-3. MemRead
-4. MemRead, MDREMux=0, MDROMux=0; MDRECk, MDROCk
-5. MARMux=0; MARCk
-
-// Mem[MAR] <- A
-6. MemWrite, A=0, AMux=1, ALU=0, CMux=1, MDREMux=1; MDRECk
-7. MemWrite, A=1, AMux=1, ALU=0, CMux=1, MDROMux=1; MDROCk
-8. MemWrite
