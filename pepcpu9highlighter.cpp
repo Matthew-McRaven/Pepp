@@ -82,11 +82,22 @@ PepHighlighter::PepHighlighter(QTextDocument *parent)
     commentEndExpression = QRegExp("$");
 }
 
+void PepHighlighter::forceAllFeatures(bool features)
+{
+    forcedFeatures=features;
+}
+
 void PepHighlighter::highlightBlock(const QString &text)
 {
-    qDebug()<<Pep::cpuFeatures;
-    QVector<HighlightingRule> highlightingRules =
-            Pep::cpuFeatures==Enu::CPUType::OneByteDataBus?highlightingRulesOne:highlightingRulesTwo;
+    QVector<HighlightingRule> highlightingRules;
+    if(forcedFeatures){
+        highlightingRules=highlightingRulesOne;
+        highlightingRules.append(highlightingRulesTwo);
+    }
+    else{
+        highlightingRules=Pep::cpuFeatures==Enu::CPUType::OneByteDataBus?highlightingRulesOne:highlightingRulesTwo;
+    }
+
     foreach (const HighlightingRule &rule, highlightingRules) {
         QRegExp expression(rule.pattern);
         expression.setCaseSensitivity(Qt::CaseInsensitive);
