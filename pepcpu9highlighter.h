@@ -48,6 +48,7 @@ private:
     };
     QVector<HighlightingRule> highlightingRulesOne;
     QVector<HighlightingRule> highlightingRulesTwo;
+    QVector<HighlightingRule> highlightingRulesAll;
     QRegExp commentStartExpression;
     QRegExp commentEndExpression;
 

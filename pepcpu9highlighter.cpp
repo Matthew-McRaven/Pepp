@@ -74,6 +74,8 @@ PepHighlighter::PepHighlighter(QTextDocument *parent)
     rule.pattern = QRegExp("//.*");
     rule.format = singleLineCommentFormat;
     highlightingRulesOne.append(rule);
+    highlightingRulesAll.append(highlightingRulesOne);
+    highlightingRulesAll.append(highlightingRulesTwo);
     highlightingRulesTwo.append(rule);
     multiLineCommentFormat.setForeground(Qt::white);
     multiLineCommentFormat.setBackground(Qt::red);
@@ -91,8 +93,7 @@ void PepHighlighter::highlightBlock(const QString &text)
 {
     QVector<HighlightingRule> highlightingRules;
     if(forcedFeatures){
-        highlightingRules=highlightingRulesOne;
-        highlightingRules.append(highlightingRulesTwo);
+        highlightingRules=highlightingRulesAll;
     }
     else{
         highlightingRules=Pep::cpuFeatures==Enu::CPUType::OneByteDataBus?highlightingRulesOne:highlightingRulesTwo;
