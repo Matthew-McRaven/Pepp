@@ -30,13 +30,11 @@ PepHighlighter::PepHighlighter(QTextDocument *parent)
     numFormat.setForeground(Qt::darkMagenta);
     rule.pattern = QRegExp("(0x)?[0-9a-fA-F]+(?=(,|;|(\\s)*$|\\]|(\\s)*//))");
     rule.format = numFormat;
-    highlightingRules.append(rule);
-
+    highlightingRulesOne.append(rule);
+    highlightingRulesTwo.append(rule);
     oprndFormat.setForeground(Qt::darkBlue);
     oprndFormat.setFontWeight(QFont::Bold);
     QStringList oprndPatterns;
-#pragma message("todo: update to accomodate both one byte and two byte data busses")
-    if (Pep::cpuFeatures == Enu::OneByteDataBus) {
         oprndPatterns << "\\bLoadCk\\b" << "\\bC\\b" << "\\bB\\b"
                 << "\\bA\\b" << "\\bMARCk\\b" << "\\bMDRCk\\b"
                 << "\\bAMux\\b" << "\\bMDRMux\\b" << "\\bCMux\\b"
@@ -48,8 +46,12 @@ PepHighlighter::PepHighlighter(QTextDocument *parent)
                 << "\\bX\\b" << "\\bSP\\b" << "\\bPC\\b" << "\\bIR\\b"
                 << "\\bT1\\b" << "\\bT2\\b" << "\\bT3\\b" << "\\bT4\\b"
                 << "\\bT5\\b" << "\\bT6\\b" << "\\bMem\\b";
-    }
-    else if (Pep::cpuFeatures == Enu::TwoByteDataBus){
+        foreach (const QString &pattern, oprndPatterns) {
+            rule.pattern = QRegExp(pattern);
+            rule.format = oprndFormat;
+            highlightingRulesOne.append(rule);
+        }
+        oprndPatterns.clear();
         oprndPatterns << "\\bLoadCk\\b" << "\\bC\\b" << "\\bB\\b"
                 << "\\bA\\b" << "\\bMARCk\\b" << "\\bMARMux\\b"
                 << "\\bMDROCk\\b" << "\\bMDRECk\\b" << "\\bMDROMux\\b" << "\\bMDREMux\\b" << "\\bEOMux\\b" << "\\bCMux\\b"
@@ -61,18 +63,18 @@ PepHighlighter::PepHighlighter(QTextDocument *parent)
                 << "\\bX\\b" << "\\bSP\\b" << "\\bPC\\b" << "\\bIR\\b"
                 << "\\bT1\\b" << "\\bT2\\b" << "\\bT3\\b" << "\\bT4\\b"
                 << "\\bT5\\b" << "\\bT6\\b" << "\\bMem\\b";
-    }
-    foreach (const QString &pattern, oprndPatterns) {
-        rule.pattern = QRegExp(pattern);
-        rule.format = oprndFormat;
-        highlightingRules.append(rule);
-    }
+        foreach (const QString &pattern, oprndPatterns) {
+            rule.pattern = QRegExp(pattern);
+            rule.format = oprndFormat;
+            highlightingRulesTwo.append(rule);
+        }
+
 
     singleLineCommentFormat.setForeground(Qt::darkGreen);
     rule.pattern = QRegExp("//.*");
     rule.format = singleLineCommentFormat;
-    highlightingRules.append(rule);
-
+    highlightingRulesOne.append(rule);
+    highlightingRulesTwo.append(rule);
     multiLineCommentFormat.setForeground(Qt::white);
     multiLineCommentFormat.setBackground(Qt::red);
 
@@ -82,6 +84,9 @@ PepHighlighter::PepHighlighter(QTextDocument *parent)
 
 void PepHighlighter::highlightBlock(const QString &text)
 {
+    qDebug()<<Pep::cpuFeatures;
+    QVector<HighlightingRule> highlightingRules =
+            Pep::cpuFeatures==Enu::CPUType::OneByteDataBus?highlightingRulesOne:highlightingRulesTwo;
     foreach (const HighlightingRule &rule, highlightingRules) {
         QRegExp expression(rule.pattern);
         expression.setCaseSensitivity(Qt::CaseInsensitive);

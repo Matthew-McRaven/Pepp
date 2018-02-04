@@ -45,8 +45,8 @@ private:
         QRegExp pattern;
         QTextCharFormat format;
     };
-    QVector<HighlightingRule> highlightingRules;
-
+    QVector<HighlightingRule> highlightingRulesOne;
+    QVector<HighlightingRule> highlightingRulesTwo;
     QRegExp commentStartExpression;
     QRegExp commentEndExpression;
 
