@@ -74,9 +74,9 @@ PepHighlighter::PepHighlighter(QTextDocument *parent)
     rule.pattern = QRegExp("//.*");
     rule.format = singleLineCommentFormat;
     highlightingRulesOne.append(rule);
+    highlightingRulesTwo.append(rule);
     highlightingRulesAll.append(highlightingRulesOne);
     highlightingRulesAll.append(highlightingRulesTwo);
-    highlightingRulesTwo.append(rule);
     multiLineCommentFormat.setForeground(Qt::white);
     multiLineCommentFormat.setBackground(Qt::red);
 
