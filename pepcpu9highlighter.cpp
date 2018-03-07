@@ -23,7 +23,7 @@
 #include "pep.h"
 
 PepHighlighter::PepHighlighter(QTextDocument *parent)
-    : QSyntaxHighlighter(parent)
+    : QSyntaxHighlighter(parent),forcedFeatures(false)
 {
     HighlightingRule rule;
 
@@ -88,9 +88,10 @@ void PepHighlighter::forceAllFeatures(bool features)
 {
     forcedFeatures=features;
 }
-
+#include <qdebug>
 void PepHighlighter::highlightBlock(const QString &text)
 {
+
     QVector<HighlightingRule> highlightingRules;
     if(forcedFeatures){
         highlightingRules=highlightingRulesAll;
