@@ -88,7 +88,6 @@ void PepHighlighter::forceAllFeatures(bool features)
 {
     forcedFeatures=features;
 }
-#include <qdebug>
 void PepHighlighter::highlightBlock(const QString &text)
 {
 
