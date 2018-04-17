@@ -27,7 +27,33 @@ PepHighlighter::PepHighlighter(QTextDocument *parent)
 {
     HighlightingRule rule;
 
-    numFormat.setForeground(Qt::darkMagenta);
+    highlightingRulesOne.clear();
+    highlightingRulesTwo.clear();
+    highlightingRulesAll.clear();
+    conditionalFormat.setForeground(color.conditionalHighlight);
+    QStringList keywords;
+    keywords << "if"<<"else"<<"goto"<<"stop";
+    foreach (const QString &pattern, keywords) {
+        rule.pattern = QRegExp(pattern);
+        rule.format = conditionalFormat;
+        highlightingRulesOne.append(rule);
+        highlightingRulesTwo.append(rule);
+    }
+    branchFunctionFormat.setForeground(color.branchFunctionHighlight);
+    for(QString function : Pep::branchFuncToMnemonMap.values())
+    {
+        rule.pattern=QRegExp(function,Qt::CaseInsensitive);
+        rule.format =branchFunctionFormat;
+        highlightingRulesOne.append(rule);
+        highlightingRulesTwo.append(rule);
+    }
+    symbolFormat.setForeground(color.symbolHighlight);
+    rule.pattern=QRegExp("^(\\S)*(?=:)\\b");
+    rule.format = symbolFormat;
+
+    highlightingRulesOne.append(rule);
+    highlightingRulesTwo.append(rule);
+    numFormat.setForeground(color.rightOfExpression);
     rule.pattern = QRegExp("(0x)?[0-9a-fA-F]+(?=(,|;|(\\s)*$|\\]|(\\s)*//))");
     rule.format = numFormat;
     highlightingRulesOne.append(rule);
@@ -75,6 +101,7 @@ PepHighlighter::PepHighlighter(QTextDocument *parent)
     rule.format = singleLineCommentFormat;
     highlightingRulesOne.append(rule);
     highlightingRulesTwo.append(rule);
+
     highlightingRulesAll.append(highlightingRulesOne);
     highlightingRulesAll.append(highlightingRulesTwo);
     multiLineCommentFormat.setForeground(Qt::white);
