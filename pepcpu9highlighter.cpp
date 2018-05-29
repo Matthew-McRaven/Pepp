@@ -30,6 +30,28 @@ PepHighlighter::PepHighlighter(QTextDocument *parent)
     highlightingRulesOne.clear();
     highlightingRulesTwo.clear();
     highlightingRulesAll.clear();
+    numFormat.setForeground(color.rightOfExpression);
+    rule.pattern = QRegExp("(0x)?[0-9a-fA-F]+(?=(,|;|(\\s)*$|\\]|(\\s)*//))");
+    rule.format = numFormat;
+    highlightingRulesOne.append(rule);
+    highlightingRulesTwo.append(rule);
+
+    symbolFormat.setForeground(color.symbolHighlight);
+    rule.pattern = QRegExp("^(\\S)*(?=:)\\b");
+    rule.format = symbolFormat;
+    highlightingRulesOne.append(rule);
+    highlightingRulesTwo.append(rule);
+    identFormat.setForeground(color.seqCircuitColor);
+    QStringList symLoc;
+    symLoc << ("else \\w+")
+           << ("if \\w+ \\w+")
+           << ("goto \\w+");
+    foreach (const QString &pattern, symLoc) {
+        rule.pattern = QRegExp(pattern);
+        rule.format = identFormat;
+        highlightingRulesOne.append(rule);
+        highlightingRulesTwo.append(rule);
+    }
     conditionalFormat.setForeground(color.conditionalHighlight);
     QStringList keywords;
     keywords << "if"<<"else"<<"goto"<<"stop";
@@ -42,8 +64,8 @@ PepHighlighter::PepHighlighter(QTextDocument *parent)
     branchFunctionFormat.setForeground(color.branchFunctionHighlight);
     for(QString function : Pep::branchFuncToMnemonMap.values())
     {
-        rule.pattern=QRegExp(function,Qt::CaseInsensitive);
-        rule.format =branchFunctionFormat;
+        rule.pattern = QRegExp(function,Qt::CaseInsensitive);
+        rule.format = branchFunctionFormat;
         highlightingRulesOne.append(rule);
         highlightingRulesTwo.append(rule);
     }
