@@ -19,8 +19,8 @@
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 
-#ifndef PEPHIGHLIGHTER_H
-#define PEPHIGHLIGHTER_H
+#ifndef PEPASMHIGHLIGHTER_H
+#define PEPASMHIGHLIGHTER_H
 
 #include <QSyntaxHighlighter>
 
@@ -31,10 +31,10 @@ QT_BEGIN_NAMESPACE
 class QTextDocument;
 QT_END_NAMESPACE
 
-class PepHighlighter : public QSyntaxHighlighter
+class PepASMHighlighter : public QSyntaxHighlighter
 {
 public:
-    PepHighlighter(QTextDocument *parent = 0);
+    PepASMHighlighter(QTextDocument *parent = 0);
 
 protected:
     void highlightBlock(const QString &text);

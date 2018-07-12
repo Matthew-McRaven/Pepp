@@ -18,9 +18,9 @@
     You should have received a copy of the GNU General Public License
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
-#include "pephighlighter.h"
+#include "pepasmhighlighter.h"
 
-PepHighlighter::PepHighlighter(QTextDocument *parent)
+PepASMHighlighter::PepASMHighlighter(QTextDocument *parent)
     : QSyntaxHighlighter(parent)
 {
     HighlightingRule rule;
@@ -91,7 +91,7 @@ PepHighlighter::PepHighlighter(QTextDocument *parent)
     commentEndExpression = QRegExp("$");
 }
 
-void PepHighlighter::highlightBlock(const QString &text)
+void PepASMHighlighter::highlightBlock(const QString &text)
 {
     foreach (const HighlightingRule &rule, highlightingRules) {
         QRegExp expression(rule.pattern);
