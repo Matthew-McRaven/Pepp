@@ -1,6 +1,6 @@
 // File: cpphighlighter.cpp
 /*
-    Pep8-1 is a virtual machine for writing machine language and assembly
+    Pep9 is a virtual machine for writing machine language and assembly
     language programs.
     
     Copyright (C) 2009  J. Stanley Warford, Pepperdine University
@@ -20,21 +20,26 @@
 */
 #include "cpphighlighter.h"
 
-CppHighlighter::CppHighlighter(QTextDocument *parent)
+CppHighlighter::CppHighlighter(const PepColors::Colors &colors, QTextDocument *parent)
     : QSyntaxHighlighter(parent)
+{
+    rebuildHighlightingRules(colors);
+}
+
+void CppHighlighter::rebuildHighlightingRules(const PepColors::Colors &colors)
 {
     HighlightingRule rule;
 
 
 //    functionFormat.setFontItalic(true);
     functionFormat.setFontWeight(QFont::Bold);
-    functionFormat.setForeground(Qt::darkMagenta);
+    functionFormat.setForeground(colors.rightOfExpression);
     rule.pattern = QRegExp("\\b[A-Za-z0-9_]+(?=[\\s]*\\()");
     rule.format = functionFormat;
     highlightingRules.append(rule);
 
     declarationFormat.setFontItalic(true);
-    declarationFormat.setForeground(Qt::darkBlue);
+    declarationFormat.setForeground(colors.leftOfExpression);
     QStringList declarationPatterns;
     declarationPatterns << "\\bbool\\b" << "\\bchar\\b" << "\\bconst\\b" << "\\bcase\\b"
                     << "\\benum\\b" << "\\bint\\b" << "\\bnamespace\\b" << "\\bstruct\\b"
@@ -45,7 +50,7 @@ CppHighlighter::CppHighlighter(QTextDocument *parent)
         highlightingRules.append(rule);
     }
 
-    keywordFormat.setForeground(Qt::darkBlue);
+    keywordFormat.setForeground(colors.leftOfExpression);
     keywordFormat.setFontWeight(QFont::Bold);
     QStringList keywordPatterns;
     keywordPatterns << "\\bwhile\\b" << "\\bfor\\b" << "\\bswitch\\b"
@@ -58,17 +63,17 @@ CppHighlighter::CppHighlighter(QTextDocument *parent)
     }
 
     classFormat.setFontWeight(QFont::Bold);
-    classFormat.setForeground(Qt::darkMagenta);
+    classFormat.setForeground(colors.rightOfExpression);
     rule.pattern = QRegExp("\\bQ[A-Za-z]+\\b");
     rule.format = classFormat;
     highlightingRules.append(rule);
 
-    singleLineCommentFormat.setForeground(Qt::darkGreen);
+    singleLineCommentFormat.setForeground(colors.comment);
     rule.pattern = QRegExp("//[^\n]*");
     rule.format = singleLineCommentFormat;
     highlightingRules.append(rule);
 
-    multiLineCommentFormat.setForeground(Qt::darkGreen);
+    multiLineCommentFormat.setForeground(colors.comment);
 
     singleQuotationFormat.setForeground(Qt::red);
     rule.pattern = QRegExp("((\')(?![\'])(([^\'|\\\\]){1}|((\\\\)([\'|b|f|n|r|t|v|\"|\\\\]))|((\\\\)(([x|X])([0-9|A-F|a-f]{2}))))(\'))");

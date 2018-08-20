@@ -1,6 +1,6 @@
 // File: cpphighlighter.h
 /*
-    Pep8-1 is a virtual machine for writing machine language and assembly
+    Pep9 is a virtual machine for writing machine language and assembly
     language programs.
     
     Copyright (C) 2009  J. Stanley Warford, Pepperdine University
@@ -26,7 +26,7 @@
 
 #include <QHash>
 #include <QTextCharFormat>
-
+#include "colors.h"
 QT_BEGIN_NAMESPACE
 class QTextDocument;
 QT_END_NAMESPACE
@@ -34,8 +34,8 @@ QT_END_NAMESPACE
 class CppHighlighter : public QSyntaxHighlighter
 {
 public:
-    CppHighlighter(QTextDocument *parent = 0);
-
+    CppHighlighter(const PepColors::Colors &colors, QTextDocument *parent = nullptr);
+    void rebuildHighlightingRules(const PepColors::Colors &colors);
 protected:
     void highlightBlock(const QString &text);
 
