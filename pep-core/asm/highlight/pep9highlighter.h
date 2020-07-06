@@ -22,11 +22,12 @@
 #ifndef PEPASMHIGHLIGHTER_H
 #define PEPASMHIGHLIGHTER_H
 
-#include <QSyntaxHighlighter>
-
 #include <QHash>
+#include <QSyntaxHighlighter>
 #include <QTextCharFormat>
-#include "colors.h"
+
+#include "style/colors.h"
+
 QT_BEGIN_NAMESPACE
 class QTextDocument;
 QT_END_NAMESPACE

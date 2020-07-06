@@ -19,8 +19,10 @@
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 #include "pepasmhighlighter.h"
-#include "enu.h"
-#include "pep.h"
+
+#include "pep/enu.h"
+#include "pep/pep.h"
+
 PepASMHighlighter::PepASMHighlighter(PepColors::Colors colors, QTextDocument *parent)
     : QSyntaxHighlighter(parent)
 {

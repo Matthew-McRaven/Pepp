@@ -20,8 +20,11 @@
 */
 
 #include "pepmicrohighlighter.h"
-#include "pep.h"
+
 #include <QTextDocument>
+
+#include "pep/pep.h"
+
 PepMicroHighlighter::PepMicroHighlighter(Enu::CPUType type, bool fullCtrlSection, const PepColors::Colors color, QTextDocument *parent)
     : QSyntaxHighlighter(parent), cpuType(type),
       /*RestyleableItem(color, parent),*/ forcedFeatures(false), fullCtrlSection(fullCtrlSection)
