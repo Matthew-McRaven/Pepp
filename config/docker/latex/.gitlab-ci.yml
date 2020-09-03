@@ -28,7 +28,7 @@ Deploy images:
   # Push the image back to the NAS with the new tag.
   script:
     - docker pull ${REMOTE_IMAGE}:${CI_VERSION}
-    - docker tag  ${REMOTE_IMAGE}:${CI_VERSION} ${REMOTE_LATLONG_IMAGE}:${CI_COMMIT_TAG}
+    - docker tag  ${REMOTE_IMAGE}:${CI_VERSION} ${REMOTE_IMAGE}:${CI_COMMIT_TAG}
     - docker push ${REMOTE_IMAGE}:${CI_COMMIT_TAG}
     - docker rmi  ${REMOTE_IMAGE}:${CI_VERSION} ${REMOTE_IMAGE}:${CI_COMMIT_TAG}
   after_script:
