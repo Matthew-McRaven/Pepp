@@ -1,25 +1,26 @@
+#include "range.hpp"
 /*
  * Range-based storage device.
  */
-template <typename offset_t>
-	requires (components::storage::UnsignedIntegral<offset_t>)
-components::storage::storage_range<offset_t>::storage_range(offset_t max_offset, uint8_t default_value): 
+template <typename offset_t, typename val_size_t>
+	requires (components::storage::UnsignedIntegral<offset_t> && components::storage::Integral<val_size_t>)
+components::storage::storage_range<offset_t, val_size_t>::storage_range(offset_t max_offset, val_size_t default_value): 
 	_max_offset(max_offset), _default(default_value), _storage()
 {
 
 }
 
-template <typename offset_t>
-	requires (components::storage::UnsignedIntegral<offset_t>)
-void components::storage::storage_range<offset_t>::clear(uint8_t fill_val)
+template <typename offset_t, typename val_size_t>
+	requires (components::storage::UnsignedIntegral<offset_t> && components::storage::Integral<val_size_t>)
+void components::storage::storage_range<offset_t, val_size_t>::clear(val_size_t fill_val)
 {
 	_storage.clear();
 	_default = fill_val;
 }
 
-template <typename offset_t>
-	requires (components::storage::UnsignedIntegral<offset_t>)
-uint8_t components::storage::storage_range<offset_t>::read_byte(offset_t offset) const
+template <typename offset_t, typename val_size_t>
+	requires (components::storage::UnsignedIntegral<offset_t> && components::storage::Integral<val_size_t>)
+val_size_t components::storage::storage_range<offset_t, val_size_t>::read(offset_t offset) const
 {
 	static auto comp = [](const components::storage::storage_span<offset_t>& lhs, offset_t rhs){
 		return std::get<0>(lhs.span) < rhs;
@@ -37,16 +38,16 @@ uint8_t components::storage::storage_range<offset_t>::read_byte(offset_t offset)
 	return _default;
 }
 
-template <typename offset_t>
-	requires (components::storage::UnsignedIntegral<offset_t>)
-uint8_t components::storage::storage_range<offset_t>::get_byte(offset_t offset) const
+template <typename offset_t, typename val_size_t>
+	requires (components::storage::UnsignedIntegral<offset_t> && components::storage::Integral<val_size_t>)
+val_size_t components::storage::storage_range<offset_t, val_size_t>::get(offset_t offset) const
 {
-	return read_byte(offset);
+	return read(offset);
 }
 
-template <typename offset_t>
-	requires (components::storage::UnsignedIntegral<offset_t>)
-void components::storage::storage_range<offset_t>::write_byte(offset_t offset, uint8_t value)
+template <typename offset_t, typename val_size_t>
+	requires (components::storage::UnsignedIntegral<offset_t> && components::storage::Integral<val_size_t>)
+void components::storage::storage_range<offset_t, val_size_t>::write(offset_t offset, val_size_t value)
 {
 	if(offset > _max_offset) oob_write_helper(offset, value);
 
@@ -101,24 +102,24 @@ void components::storage::storage_range<offset_t>::write_byte(offset_t offset, u
 	}
 }
 
-template <typename offset_t>
-	requires (components::storage::UnsignedIntegral<offset_t>)
-void components::storage::storage_range<offset_t>::set_byte(offset_t offset, uint8_t value)
+template <typename offset_t, typename val_size_t>
+	requires (components::storage::UnsignedIntegral<offset_t> && components::storage::Integral<val_size_t>)
+void components::storage::storage_range<offset_t, val_size_t>::set(offset_t offset, val_size_t value)
 {
-	write_byte(offset, value);
+	write(offset, value);
 }
 
 
-template <typename offset_t>
-	requires (components::storage::UnsignedIntegral<offset_t>)
-offset_t components::storage::storage_range<offset_t>::max_offset() const noexcept
+template <typename offset_t, typename val_size_t>
+	requires (components::storage::UnsignedIntegral<offset_t> && components::storage::Integral<val_size_t>)
+offset_t components::storage::storage_range<offset_t, val_size_t>::max_offset() const noexcept
 {
 	return _max_offset;
 }
 
-template <typename offset_t>
-	requires (components::storage::UnsignedIntegral<offset_t>)
-void components::storage::storage_range<offset_t>::resize(offset_t new_offset) noexcept
+template <typename offset_t, typename val_size_t>
+	requires (components::storage::UnsignedIntegral<offset_t> && components::storage::Integral<val_size_t>)
+void components::storage::storage_range<offset_t, val_size_t>::resize(offset_t new_offset) noexcept
 {
 	_max_offset = new_offset;
 	clear();
