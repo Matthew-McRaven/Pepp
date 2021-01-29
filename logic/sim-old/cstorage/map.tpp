@@ -24,6 +24,7 @@ val_size_t components::storage::storage_map<offset_t, val_size_t>::read(offset_t
 	if(offset > this->_max_offset) oob_read_helper(offset);
 	else if(auto key = _storage.find(offset); key != _storage.end()) return key->second;
 	else return _default;
+	return 0; // Never reached, since oob throws. Needed to silence compiler warning.
 }
 
 template <typename offset_t, typename val_size_t>
@@ -33,6 +34,7 @@ val_size_t components::storage::storage_map<offset_t, val_size_t>::get(offset_t 
 	if(offset > this->_max_offset) oob_read_helper(offset);
 	else if(auto key = _storage.find(offset); key != _storage.end()) return key->second;
 	else return _default;
+	return 0; // Never reached, since oob throws. Needed to silence compiler warning.
 }
 
 template <typename offset_t, typename val_size_t>

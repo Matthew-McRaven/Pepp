@@ -22,6 +22,7 @@ val_size_t components::storage::storage_block<offset_t, val_size_t>::read(offset
 {
 	if(offset > this->_max_offset) oob_read_helper(offset);
 	else return _storage.at(offset);
+	return 0; // Never reached, since oob throws. Needed to silence compiler warning.
 }
 
 template <typename offset_t, typename val_size_t>
@@ -30,6 +31,7 @@ val_size_t components::storage::storage_block<offset_t, val_size_t>::get(offset_
 {
 	if(offset > this->_max_offset) oob_read_helper(offset);
 	else return _storage.at(offset);
+	return 0; // Never reached, since oob throws. Needed to silence compiler warning.
 }
 
 template <typename offset_t, typename val_size_t>
