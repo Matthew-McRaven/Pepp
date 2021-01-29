@@ -15,11 +15,11 @@ concept UnsignedIntegral = Integral<T> && !SignedIntegral<T>;
 
 template <typename offset_t>
 	requires (UnsignedIntegral<offset_t>)
-[[noreturn]] void oob_read_helper(offset_t offsetFromBase);
+void oob_read_helper(offset_t offsetFromBase);
 
 template <typename offset_t, typename val_size_t=uint8_t>
 	requires (UnsignedIntegral<offset_t> && Integral<val_size_t>)
-[[noreturn]] void oob_write_helper(offset_t offsetFromBase, val_size_t value);
+void oob_write_helper(offset_t offsetFromBase, val_size_t value);
 
 template<typename addr_t, typename val_size_t=uint8_t>
 	requires (UnsignedIntegral<addr_t>)
