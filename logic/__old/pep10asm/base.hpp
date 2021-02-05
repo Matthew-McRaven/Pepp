@@ -26,7 +26,7 @@ public:
     //void setTraceData(QList<TraceCommand> trace);
 
     // Can the code line be addressed?
-    virtual bool contains_memory_address() {return false; } 
+    virtual bool contains_memory_address() {return object_code_bytes() != 0; } 
 
 
     // Get the assembler listing, which is memaddress + object code + sourceLine.
@@ -38,7 +38,7 @@ public:
     virtual bool is_code() const { return false;}
 
 
-    virtual std::optional<std::shared_ptr<symbol_t>> symbolic_operand() const { return nullptr;}
+    virtual std::optional<std::shared_ptr<const symbol_t>> symbolic_operand() const { return nullptr;}
     friend void swap(linear_line& first, linear_line& second)
     {
         using std::swap;
