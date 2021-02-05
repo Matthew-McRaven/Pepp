@@ -32,9 +32,7 @@ std::string masm::ir::comment_line<address_size_t>::generate_listing_string() co
 template <typename address_size_t>
 std::string masm::ir::comment_line<address_size_t>::generate_source_string() const
 {
-	// Unwrap variant if it is a string, and return it.
-    if(auto pval = std::get_if<std::string>(&this->comment)) return std::string{*pval};
-	else return "";
+    return this->comment.value_or("");
 }
 
 template <typename address_size_t>

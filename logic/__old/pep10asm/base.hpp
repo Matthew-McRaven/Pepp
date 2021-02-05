@@ -38,8 +38,7 @@ public:
     virtual bool is_code() const { return false;}
 
 
-    virtual bool has_symbolic_operand() const {return false;}
-    virtual std::shared_ptr<symbol_t> get_symbolic_operand() const { return nullptr;}
+    virtual std::optional<std::shared_ptr<symbol_t>> symbolic_operand() const { return nullptr;}
     friend void swap(linear_line& first, linear_line& second)
     {
         using std::swap;
@@ -61,9 +60,9 @@ public:
     // What is the address of this line of code, if it emits object code?
     address_size_t base_address = {0};
     //Not all lines are capable of having a breakpoint (comments), so default to empty rather than false.
-    std::variant<std::monostate, bool> breakpoint = {std::monostate()};
+    std::optional<bool> breakpoint = {};
     // Track if the current line has a comment, and if so, what is it.
-    std::variant<std::monostate, std::string> comment = {std::monostate()};
+    std::optional<std::string> comment = {};
     // The line number (0 indexed) of the line of code in the source program or listing..
     address_size_t source_line = 0, listing_line = 0;
 
