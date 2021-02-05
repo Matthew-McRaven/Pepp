@@ -2,19 +2,28 @@
 
 // TODO: Switch to stl format when available.
 #include <fmt/core.h>
+#include <stdexcept>
 #include <type_traits>
+
 
 #include "masm/conversion.hpp"
 template <typename address_size_t>
 masm::ir::char_argument<address_size_t>::char_argument(std::string char_value) : char_value_(std::move(char_value))
 {
-
+    address_size_t dummy;
+    if(auto len = masm::byte_string_length(char_value_); len != 1) {
+        throw std::logic_error(fmt::format("Character strings may only be 1 byte. Recieved {} bytes.", len));
+    }
+    else if(!masm::unqouted_string_to_integral(char_value_, 1, dummy)) {
+        throw std::logic_error(fmt::format("Character strings must be convertible to uint8_t. Check your escape codes."));     
+    }
 }
 
 template <typename address_size_t>
 address_size_t masm::ir::char_argument<address_size_t>::argument_value() const
 {
-	address_size_t val;
+    // Must initialize to 0, or JS runtime value is undefined.
+	address_size_t val = 0;
 	masm::unqouted_string_to_integral<address_size_t>(char_value_, 1, val);
 	return val;
 }
@@ -78,20 +87,27 @@ address_size_t masm::ir::hex_argument<address_size_t>::argument_value() const
 template <typename address_size_t>
 std::string masm::ir::hex_argument<address_size_t>::argument_string() const
 {
-    return fmt::format("0x{4:X}", hex_value_);
+    return fmt::format("0x{:04X}", hex_value_);
 }
 
 template <typename address_size_t>
 masm::ir::string_argument<address_size_t>::string_argument(std::string string_value):
 	string_value_(std::move(string_value))
 {
-
+    address_size_t dummy;
+    if(auto len = masm::byte_string_length(string_value_); len > 2) {
+        throw std::logic_error(fmt::format("Strings may be up to 2 bytes. Recieved {} bytes.", len));
+    }
+    else if(!masm::unqouted_string_to_integral(string_value_, sizeof(address_size_t), dummy)) {
+        throw std::logic_error(fmt::format("Character strings must be convertible to address_size_t. Check your escape codes."));     
+    }
 }
 
 template <typename address_size_t>
 address_size_t masm::ir::string_argument<address_size_t>::argument_value() const
 {
-	address_size_t val;
+    // Must initialize to 0, or JS runtime value is undefined.
+	address_size_t val = 0;
 	masm::unqouted_string_to_integral<address_size_t>(string_value_, 2, val);
 	return val;
 }
