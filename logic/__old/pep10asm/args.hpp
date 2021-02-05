@@ -67,6 +67,7 @@ private:
     address_size_t hex_value_;
 };
 
+// String argument used for instructions. At most sizeof(address_size_t) bytes.
 template <typename address_size_t>
 class string_argument: public lir_argument<address_size_t>
 {
@@ -75,6 +76,21 @@ public:
     virtual ~string_argument() override = default;
     virtual address_size_t argument_value() const override;
     virtual std::string argument_string() const override;
+private:
+    std::string string_value_;
+};
+
+// Extended string argument. Does not support argument_value(), because it is
+// arbitrarily lengthed.
+template <typename address_size_t>
+class ascii_argument: public lir_argument<address_size_t>
+{
+public:
+    explicit ascii_argument(std::string string_value, size_t max_size = 2);
+    virtual ~ascii_argument() override = default;
+    virtual address_size_t argument_value() const override;
+    virtual std::string argument_string() const override;
+    std::vector<uint8_t> argument_bytes() const;
 private:
     std::string string_value_;
 };

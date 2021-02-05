@@ -94,9 +94,10 @@ template <typename address_size_t>
 masm::ir::string_argument<address_size_t>::string_argument(std::string string_value):
 	string_value_(std::move(string_value))
 {
+
     address_size_t dummy;
-    if(auto len = masm::byte_string_length(string_value_); len > 2) {
-        throw std::logic_error(fmt::format("Strings may be up to 2 bytes. Recieved {} bytes.", len));
+    if(auto len = masm::byte_string_length(string_value_); len > sizeof(address_size_t)) {
+        throw std::logic_error(fmt::format("Strings may be up to {} bytes. Recieved {} bytes.", sizeof(address_size_t), len));
     }
     else if(!masm::unqouted_string_to_integral(string_value_, sizeof(address_size_t), dummy)) {
         throw std::logic_error(fmt::format("Character strings must be convertible to address_size_t. Check your escape codes."));     
@@ -117,6 +118,43 @@ std::string masm::ir::string_argument<address_size_t>::argument_string() const
 {
     return string_value_;
 }
+
+
+
+
+
+
+
+
+template <typename address_size_t>
+masm::ir::ascii_argument<address_size_t>::ascii_argument(std::string string_value, size_t max_size):
+	string_value_(std::move(string_value))
+{
+
+    address_size_t dummy;
+    if(auto len = masm::byte_string_length(string_value_); len > max_size) {
+        throw std::logic_error(fmt::format("Strings may be up to {} bytes. Recieved {} bytes.", max_size, len));
+    }
+}
+
+template <typename address_size_t>
+address_size_t masm::ir::ascii_argument<address_size_t>::argument_value() const
+{
+    throw std::logic_error("Unsupported operation!");
+}
+
+template <typename address_size_t>
+std::string masm::ir::ascii_argument<address_size_t>::argument_string() const
+{
+    return string_value_;
+}
+
+template <typename address_size_t>
+std::vector<uint8_t> masm::ir::ascii_argument<address_size_t>::argument_bytes() const
+{
+    return masm::byte_vector(string_value_);
+}
+
 
 template <typename address_size_t>
 masm::ir::symbol_ref_argument<address_size_t>::symbol_ref_argument(std::shared_ptr<const symbol::SymbolEntry<address_size_t>>  ref_value):
