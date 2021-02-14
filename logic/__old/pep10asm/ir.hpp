@@ -1,91 +1,74 @@
 #pragma once
-class UnaryInstruction: public AsmCode
+
+#include <optional>
+
+#include "isa/pep10/defs.hpp"
+#include "masm/ir/base.hpp"
+#include "masm/ir/args.hpp"
+namespace asmb::pep10 {
+
+class unary_instruction: public masm::ir::linear_line<uint16_t>
 {
 public:
-    UnaryInstruction() = default;
-    ~UnaryInstruction() override = default;
-    UnaryInstruction(const UnaryInstruction& other);
-    UnaryInstruction& operator=(UnaryInstruction other);
-    AsmCode *cloneAsmCode() const override;
+    unary_instruction();
+    ~unary_instruction() override = default;
+    unary_instruction(const unary_instruction& other);
+    unary_instruction& operator=(unary_instruction other);
+    std::shared_ptr<masm::ir::linear_line<uint16_t>> clone() const override;
 
+    // Get the assembler listing, which is memaddress + object code + sourceLine.
+    std::string generate_listing_string() const override;
+    // Returns the properly formatted source line.
+    std::string generate_source_string() const override;
+    uint16_t object_code_bytes() const override;
+    void append_object_code(std::vector<uint8_t>& code) const override;
 
-    void appendObjectCode(QList<int> &objectCode) const override;
-//    NO LONGER WITH PEP/9. FOR RET1, RET2, ..., RET7
-//    bool processSymbolTraceTags(int &sourceLine, QString &errorString);
+    bool is_code() const override { return true;}
 
-    // AsmCode interface
-    QString getAssemblerListing() const override;
-    QString getAssemblerSource() const override;
-    quint16 objectCodeLength() const override;
-
-    bool hasBreakpoint() const override;
-    void setBreakpoint(bool b) override;
-    bool isCode() const  override { return true;}
-
-    Pep9::ISA::EMnemonic getMnemonic() const;
-    void setMnemonic(Pep9::ISA::EMnemonic);
-
-    bool tracksTraceTags() const override;
-
-    friend void swap(UnaryInstruction& first, UnaryInstruction& second)
+    friend void swap(unary_instruction& first, unary_instruction& second)
     {
         using std::swap;
-        swap(static_cast<AsmCode&>(first), static_cast<AsmCode&>(second));
-        swap(first.breakpoint, second.breakpoint);
+        swap(static_cast<masm::ir::linear_line<uint16_t>&>(first), 
+            static_cast<masm::ir::linear_line<uint16_t>&>(second)
+        );
         swap(first.mnemonic, second.mnemonic);
     }
-private:
-    Pep9::ISA::EMnemonic mnemonic;
-    bool breakpoint = false;
+    
+    isa::pep10::instruction_mnemonic mnemonic;
 };
 
-class NonUnaryInstruction: public AsmCode
+class nonunary_instruction: public masm::ir::linear_line<uint16_t>
 {
 public:
-    NonUnaryInstruction() = default;
-     ~NonUnaryInstruction() override = default;
-    NonUnaryInstruction(const NonUnaryInstruction& other);
-    NonUnaryInstruction& operator=(NonUnaryInstruction other);
-    AsmCode *cloneAsmCode() const override;
-    // ~NonUnaryInstruction() { delete argument; }
-    void appendObjectCode(QList<int> &objectCode) const override;
+    nonunary_instruction();
+    ~nonunary_instruction() override = default;
+    nonunary_instruction(const nonunary_instruction& other);
+    nonunary_instruction& operator=(nonunary_instruction other);
+    std::shared_ptr<masm::ir::linear_line<uint16_t>> clone() const override;
 
-    // AsmCode interface
-    QString getAssemblerListing() const override;
-    QString getAssemblerSource() const override;
-    quint16 objectCodeLength() const override;
+    // Get the assembler listing, which is memaddress + object code + sourceLine.
+    std::string generate_listing_string() const override;
+    // Returns the properly formatted source line.
+    std::string generate_source_string() const override;
+    uint16_t object_code_bytes() const override;
+    void append_object_code(std::vector<uint8_t>& code) const override;
+    std::optional<std::shared_ptr<const symbol::entry<uint16_t>>> symbolic_operand() const override;
 
-    bool hasBreakpoint() const override;
-    void setBreakpoint(bool b) override;
-    bool isCode() const  override { return true;}
+    bool is_code() const override { return true;}
 
-    Pep9::ISA::EMnemonic getMnemonic() const;
-    void setMnemonic(Pep9::ISA::EMnemonic);
-
-    Pep9::ISA::EAddrMode getAddressingMode() const;
-    void setAddressingMode(Pep9::ISA::EAddrMode);
-
-    bool hasSymbolicOperand() const override;
-    QSharedPointer<const SymbolEntry> getSymbolicOperand() const override;
-    QSharedPointer<AsmArgument> getArgument() const;
-    void setArgument(QSharedPointer<AsmArgument>);
-
-    bool tracksTraceTags() const override;
-
-    friend void swap(NonUnaryInstruction& first, NonUnaryInstruction& second)
+    friend void swap(nonunary_instruction& first, nonunary_instruction& second)
     {
         using std::swap;
-        swap(static_cast<AsmCode&>(first), static_cast<AsmCode&>(second));
+        swap(static_cast<masm::ir::linear_line<uint16_t>&>(first), 
+            static_cast<masm::ir::linear_line<uint16_t>&>(second)
+        );
         swap(first.mnemonic, second.mnemonic);
-        swap(first.addressingMode, second.addressingMode);
+        swap(first.addressing_mode, second.addressing_mode);
         swap(first.argument, second.argument);
-        swap(first.breakpoint, second.breakpoint);
     }
-private:
-    Pep9::ISA::EMnemonic mnemonic;
-    Pep9::ISA::EAddrMode addressingMode;
-    QSharedPointer<AsmArgument> argument = nullptr;
-    bool breakpoint = false;
-};
 
-#include "pep9ir.hpp"
+    isa::pep10::instruction_mnemonic mnemonic;
+    isa::pep10::addressing_mode addressing_mode;
+    std::shared_ptr<masm::ir::lir_argument<uint16_t>> argument = nullptr;
+};
+} // End namespace asmb::pep10
