@@ -33,7 +33,6 @@ public:
         swap(static_cast<linear_line<address_size_t>&>(first), static_cast<linear_line<address_size_t>&>(second));
         swap(first.argument, second.argument);
     }
-public:
     std::shared_ptr<masm::ir::symbol_ref_argument<address_size_t> >argument = {nullptr};
 };
 
