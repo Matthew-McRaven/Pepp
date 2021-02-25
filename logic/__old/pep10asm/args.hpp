@@ -2,7 +2,7 @@
 
 #include <climits>
 #include <string>
-
+#include <vector>
 #include "symbol/entry.hpp"
 
 namespace masm::ir {
@@ -15,6 +15,7 @@ public:
     virtual ~lir_argument() = default;
     virtual address_size_t argument_value() const = 0;
     virtual std::string argument_string() const = 0;
+    virtual bool fits_in(std::size_t num_bytes) const = 0;
 };
 
 // Concrete argument classes
@@ -24,8 +25,9 @@ class char_argument: public lir_argument<address_size_t>
 public:
     explicit char_argument(std::string char_value);
     virtual ~char_argument() override = default;
-    virtual address_size_t argument_value() const override;
-    virtual std::string argument_string() const override;
+    address_size_t argument_value() const override;
+    std::string argument_string() const override;
+    bool fits_in(std::size_t num_bytes) const override;
 private:
     std::string char_value_;
 };
@@ -36,8 +38,9 @@ class dec_argument: public lir_argument<address_size_t>
 public:
     explicit dec_argument(address_size_t dec_value);
     virtual ~dec_argument() override = default;
-    virtual address_size_t argument_value() const override;
-    virtual std::string argument_string() const override;
+    address_size_t argument_value() const override;
+    std::string argument_string() const override;
+    bool fits_in(std::size_t num_bytes) const override;
 private:
     address_size_t dec_value_;
 };
@@ -49,8 +52,9 @@ class unsigned_dec_argument: public lir_argument<address_size_t>
 public:
     explicit unsigned_dec_argument(address_size_t dec_value);
     virtual ~unsigned_dec_argument() override = default;
-    virtual address_size_t argument_value() const override;
-    virtual std::string argument_string() const override;
+    address_size_t argument_value() const override;
+    std::string argument_string() const override;
+    bool fits_in(std::size_t num_bytes) const override;
 private:
     address_size_t dec_value_;
 };
@@ -61,8 +65,9 @@ class hex_argument: public lir_argument<address_size_t>
 public:
     explicit hex_argument(address_size_t hex_value);
     virtual ~hex_argument() override = default;
-    virtual address_size_t argument_value() const override;
-    virtual std::string argument_string() const override;
+    address_size_t argument_value() const override;
+    std::string argument_string() const override;
+    bool fits_in(std::size_t num_bytes) const override;
 private:
     address_size_t hex_value_;
 };
@@ -74,8 +79,9 @@ class string_argument: public lir_argument<address_size_t>
 public:
     explicit string_argument(std::string string_value);
     virtual ~string_argument() override = default;
-    virtual address_size_t argument_value() const override;
-    virtual std::string argument_string() const override;
+    address_size_t argument_value() const override;
+    std::string argument_string() const override;
+    bool fits_in(std::size_t num_bytes) const override;
 private:
     std::string string_value_;
 };
@@ -88,9 +94,10 @@ class ascii_argument: public lir_argument<address_size_t>
 public:
     explicit ascii_argument(std::string string_value, size_t max_size = 2);
     virtual ~ascii_argument() override = default;
-    virtual address_size_t argument_value() const override;
-    virtual std::string argument_string() const override;
+    address_size_t argument_value() const override;
+    std::string argument_string() const override;
     std::vector<uint8_t> argument_bytes() const;
+    bool fits_in(std::size_t num_bytes) const override;
 private:
     std::string string_value_;
 };
@@ -101,8 +108,9 @@ class symbol_ref_argument: public lir_argument<address_size_t>
 public:
     explicit symbol_ref_argument(std::shared_ptr<const symbol::SymbolEntry<address_size_t> > ref_value);
     virtual ~symbol_ref_argument() override = default;
-    virtual address_size_t argument_value() const override;
-    virtual std::string argument_string() const override;
+    address_size_t argument_value() const override;
+    std::string argument_string() const override;
+    bool fits_in(std::size_t num_bytes) const override;
     std::shared_ptr<const symbol::SymbolEntry<address_size_t> > symbol_value();
 private:
     std::shared_ptr<const symbol::SymbolEntry<address_size_t> > ref_value_;
