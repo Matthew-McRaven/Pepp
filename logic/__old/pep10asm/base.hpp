@@ -59,12 +59,12 @@ public:
     bool emits_object_code = {false};
     // What is the address of this line of code, if it emits object code?
     address_size_t base_address = {0};
-    //Not all lines are capable of having a breakpoint (comments), so default to empty rather than false.
+    // Not all lines are capable of having a breakpoint (comments), so default to empty rather than false.
     std::optional<bool> breakpoint = {};
     // Track if the current line has a comment, and if so, what is it.
     std::optional<std::string> comment = {};
     // The line number (0 indexed) of the line of code in the source program or listing..
-    address_size_t source_line = 0, listing_line = 0;
+    std::size_t source_line = 0, listing_line = 0;
 
     // Before attempting to use, check if the symbol is null.
     // Dereferencing an empty shared pointer causes memory access violatations that are hard to debug.
