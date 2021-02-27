@@ -35,7 +35,7 @@ std::string masm::ir::dot_address<address_size_t>::generate_listing_string() con
     // Potentially skip codegen
     std::string code_string = "";
     if(this->emits_object_code) {
-		code_string = fmt::format("{:04X}", this->argument->argument_value());
+		code_string = fmt::format("{:04X}", this->argument->value());
     }
 
 	return fmt::format("{:<6}{:>7}{}",
@@ -53,7 +53,7 @@ std::string masm::ir::dot_address<address_size_t>::generate_source_string() cons
         symbol_string = this->symbol_entry->getName()+":";
     }
     auto dot_string = ".ADDRSS";
-    auto operand_string = argument->argument_string();
+    auto operand_string = argument->string();
 	std::string comment = this->comment.value_or("");
     return fmt::format("{:<9}{:<8}{:<12}{}",
 		symbol_string,
@@ -148,7 +148,7 @@ std::string masm::ir::dot_align<address_size_t>::generate_source_string() const
         symbol_string = this->symbol_entry->getName()+":";
     }
     auto dot_string = ".ALIGN";
-    auto operand_string = argument->argument_string();
+    auto operand_string = argument->string();
 	std::string comment = this->comment.value_or("");
     return fmt::format("{:<9}{:<8}{:<12}{}",
 		symbol_string,
@@ -169,7 +169,7 @@ template <typename address_size_t>
 address_size_t masm::ir::dot_align<address_size_t>::num_bytes_generated() const
 {
 	
-	auto value = argument->argument_value();
+	auto value = argument->value();
     if(direction == AlignDirection::kTop) {
 		return (value - (this->base_address % value)) % value;
 	}
@@ -215,7 +215,8 @@ std::string masm::ir::dot_ascii<address_size_t>::generate_listing_string() const
 	
 	auto bytes_emitted = 0;
 
-	decltype(std::string().substr({},{})) aliased = this->argument->argument_string();
+	decltype(std::string().substr({},{})) aliased = this->argument->
+	string();
 	// Remove double quote character from either end of string.
 	aliased = aliased.substr(1, aliased.length()-2);
 	auto bytes = masm::byte_vector(aliased);
@@ -252,7 +253,7 @@ std::string masm::ir::dot_ascii<address_size_t>::generate_source_string() const
         symbol_string = this->symbol_entry->getName()+":";
     }
     auto dot_string = ".ASCII";
-    auto operand_string = argument->argument_string();
+    auto operand_string = argument->string();
 	std::string comment = this->comment.value_or("");
     return fmt::format("{:<9}{:<8}{:<12}{}",
 		symbol_string,
@@ -266,7 +267,7 @@ std::string masm::ir::dot_ascii<address_size_t>::generate_source_string() const
 template <typename address_size_t>
 address_size_t masm::ir::dot_ascii<address_size_t>::object_code_bytes() const
 {
-	decltype(std::string().substr({},{})) aliased = this->argument->argument_string();
+	decltype(std::string().substr({},{})) aliased = this->argument->string();
 	// Remove double quote character from either end of string.
 	aliased = aliased.substr(1, aliased.length()-2);
     return masm::byte_string_length(aliased);
@@ -309,7 +310,7 @@ std::string masm::ir::dot_block<address_size_t>::generate_listing_string() const
 	
 	auto bytes_emitted = 0;
 
-	auto bytes = std::vector(this->argument->argument_value(), 0);
+	auto bytes = std::vector(this->argument->value(), 0);
 	auto bytes_head = bytes.begin();
     while(this->emits_object_code && (bytes_head!=bytes.end()) && (bytes_emitted<3)) {		
 		code_string.append(fmt::format("{:02X}", *bytes_head++));
@@ -343,7 +344,7 @@ std::string masm::ir::dot_block<address_size_t>::generate_source_string() const
         symbol_string = this->symbol_entry->getName()+":";
     }
     auto dot_string = ".BLOCK";
-    auto operand_string = argument->argument_string();
+    auto operand_string = argument->string();
 	std::string comment = this->comment.value_or("");
     return fmt::format("{:<9}{:<8}{:<12}{}",
 		symbol_string,
@@ -357,7 +358,7 @@ std::string masm::ir::dot_block<address_size_t>::generate_source_string() const
 template <typename address_size_t>
 address_size_t masm::ir::dot_block<address_size_t>::object_code_bytes() const
 {
-	return this->argument->argument_value();
+	return this->argument->value();
 }
 
 template <typename address_size_t>
@@ -410,7 +411,7 @@ std::string masm::ir::dot_burn<address_size_t>::generate_source_string() const
         symbol_string = this->symbol_entry->getName()+":";
     }
     auto dot_string = ".BURN";
-    auto operand_string = argument->argument_string();
+    auto operand_string = argument->string();
 	std::string comment = this->comment.value_or("");
     return fmt::format("{:<9}{:<8}{:<12}{}",
 		symbol_string,
@@ -458,7 +459,7 @@ std::string masm::ir::dot_byte<address_size_t>::generate_listing_string() const
     // Potentially skip codegen
     std::string code_string = "";
 	if(this->emits_object_code) {
-		code_string = fmt::format("{:02X}", this->argument->argument_value() & 0xff);
+		code_string = fmt::format("{:02X}", this->argument->value() & 0xff);
 	}
 
 
@@ -479,7 +480,7 @@ std::string masm::ir::dot_byte<address_size_t>::generate_source_string() const
         symbol_string = this->symbol_entry->getName()+":";
     }
     auto dot_string = ".BYTE";
-    auto operand_string = argument->argument_string();
+    auto operand_string = argument->string();
 	std::string comment = this->comment.value_or("");
     return fmt::format("{:<9}{:<8}{:<12}{}",
 		symbol_string,
@@ -597,7 +598,7 @@ std::string masm::ir::dot_equate<address_size_t>::generate_source_string() const
         symbol_string = this->symbol_entry->getName()+":";
     }
     auto dot_string = ".EQUATE";
-    auto operand_string = argument->argument_string();
+    auto operand_string = argument->string();
 	std::string comment = this->comment.value_or("");
     return fmt::format("{:<9}{:<8}{:<12}{}",
 		symbol_string,
@@ -650,7 +651,7 @@ std::string masm::ir::dot_word<address_size_t>::generate_listing_string() const
     // Potentially skip codegen
     std::string code_string = "";
 	if(this->emits_object_code) {
-		code_string = fmt::format("{:04X}", this->argument->argument_value());
+		code_string = fmt::format("{:04X}", this->argument->value());
 	}
 
 
@@ -671,7 +672,7 @@ std::string masm::ir::dot_word<address_size_t>::generate_source_string() const
         symbol_string = this->symbol_entry->getName()+":";
     }
     auto dot_string = ".BYTE";
-    auto operand_string = argument->argument_string();
+    auto operand_string = argument->string();
 	std::string comment = this->comment.value_or("");
     return fmt::format("{:<9}{:<8}{:<12}{}",
 		symbol_string,
