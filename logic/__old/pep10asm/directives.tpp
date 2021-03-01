@@ -395,7 +395,7 @@ template <typename address_size_t>
 std::string masm::ir::dot_burn<address_size_t>::generate_listing_string() const
 {
 	auto temp = fmt::format("{:<6} {:<6}{}",
-		fmt::format("0x{:04X}", this->base_address),
+		"",
 		"", // Doesn't generate any code!
 		generate_source_string()
 	);
@@ -406,15 +406,12 @@ std::string masm::ir::dot_burn<address_size_t>::generate_listing_string() const
 template <typename address_size_t>
 std::string masm::ir::dot_burn<address_size_t>::generate_source_string() const
 {
-    std::string symbol_string;
-    if (this->symbol_entry != nullptr) {
-        symbol_string = this->symbol_entry->getName()+":";
-    }
+
     auto dot_string = ".BURN";
     auto operand_string = argument->string();
 	std::string comment = this->comment.value_or("");
     return fmt::format("{:<9}{:<8}{:<12}{}",
-		symbol_string,
+		"",
 		dot_string,
 		operand_string,
 		comment
@@ -504,7 +501,7 @@ bool masm::ir::dot_byte<address_size_t>::tracks_trace_tags() const
 }
 
 /*
- * .BURN
+ * .END
  */
 template <typename address_size_t>
 masm::ir::dot_end<address_size_t>::dot_end(const masm::ir::dot_end<address_size_t>& other)
