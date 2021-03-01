@@ -616,7 +616,7 @@ bool masm::ir::dot_equate<address_size_t>::tracks_trace_tags() const
 }
 
 /*
- * .BYTE
+ * .WORD
  */
 template <typename address_size_t>
 masm::ir::dot_word<address_size_t>::dot_word()
