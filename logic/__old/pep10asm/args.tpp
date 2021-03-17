@@ -221,7 +221,7 @@ bool masm::ir::ascii_argument<address_size_t>::fits_in(std::size_t num_bytes) co
  * Symbol reference argument
  */ 
 template <typename address_size_t>
-masm::ir::symbol_ref_argument<address_size_t>::symbol_ref_argument(std::shared_ptr<const symbol::SymbolEntry<address_size_t>>  ref_value):
+masm::ir::symbol_ref_argument<address_size_t>::symbol_ref_argument(std::shared_ptr<const symbol::entry<address_size_t>>  ref_value):
 	value_(std::move(ref_value))
 {
 
@@ -230,17 +230,20 @@ masm::ir::symbol_ref_argument<address_size_t>::symbol_ref_argument(std::shared_p
 template <typename address_size_t>
 address_size_t masm::ir::symbol_ref_argument<address_size_t>::value() const
 {
-    return value_->getValue();
+    // Symbol (value_) has an associated symbol::value (value_->value). That value has a value() function that returns
+    // an address_size_t (value_->value->value()).
+    // TODO: Clean up value API.
+    return value_->value->value();
 }
 
 template <typename address_size_t>
 std::string masm::ir::symbol_ref_argument<address_size_t>::string() const
 {
-    return value_->getName();
+    return value_->name;
 }
 
 template <typename address_size_t>
-std::shared_ptr<const symbol::SymbolEntry<address_size_t> > masm::ir::symbol_ref_argument<address_size_t>::symbol_value()
+std::shared_ptr<const symbol::entry<address_size_t> > masm::ir::symbol_ref_argument<address_size_t>::symbol_value()
 {
     return value_;
 }

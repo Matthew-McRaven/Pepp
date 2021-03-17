@@ -50,7 +50,7 @@ std::string masm::ir::dot_address<address_size_t>::generate_source_string() cons
 {
     std::string symbol_string;
     if (this->symbol_entry != nullptr) {
-        symbol_string = this->symbol_entry->getName()+":";
+        symbol_string = this->symbol_entry->name + ":";
     }
     auto dot_string = ".ADDRSS";
     auto operand_string = argument->string();
@@ -71,7 +71,7 @@ address_size_t masm::ir::dot_address<address_size_t>::object_code_bytes() const
 }
 
 template <typename address_size_t>
-std::optional<std::shared_ptr<const symbol::SymbolEntry<address_size_t> > > masm::ir::dot_address<address_size_t>::symbolic_operand() const
+std::optional<std::shared_ptr<const symbol::entry<address_size_t> > > masm::ir::dot_address<address_size_t>::symbolic_operand() const
 {
     // The value of a .addrss instruction is always the value of another symbol.
     return argument.get()->symbol_value();
@@ -145,7 +145,7 @@ std::string masm::ir::dot_align<address_size_t>::generate_source_string() const
 {
     std::string symbol_string;
     if (this->symbol_entry != nullptr) {
-        symbol_string = this->symbol_entry->getName()+":";
+        symbol_string = this->symbol_entry->name + ":";
     }
     auto dot_string = ".ALIGN";
     auto operand_string = argument->string();
@@ -250,7 +250,7 @@ std::string masm::ir::dot_ascii<address_size_t>::generate_source_string() const
 {
     std::string symbol_string;
     if (this->symbol_entry != nullptr) {
-        symbol_string = this->symbol_entry->getName()+":";
+        symbol_string = this->symbol_entry->name + ":";
     }
     auto dot_string = ".ASCII";
     auto operand_string = argument->string();
@@ -341,7 +341,7 @@ std::string masm::ir::dot_block<address_size_t>::generate_source_string() const
 {
     std::string symbol_string;
     if (this->symbol_entry != nullptr) {
-        symbol_string = this->symbol_entry->getName()+":";
+        symbol_string = this->symbol_entry->name + ":";
     }
     auto dot_string = ".BLOCK";
     auto operand_string = argument->string();
@@ -474,7 +474,7 @@ std::string masm::ir::dot_byte<address_size_t>::generate_source_string() const
 {
     std::string symbol_string;
     if (this->symbol_entry != nullptr) {
-        symbol_string = this->symbol_entry->getName()+":";
+        symbol_string = this->symbol_entry->name + ":";
     }
     auto dot_string = ".BYTE";
     auto operand_string = argument->string();
@@ -592,7 +592,7 @@ std::string masm::ir::dot_equate<address_size_t>::generate_source_string() const
 {
     std::string symbol_string;
     if (this->symbol_entry != nullptr) {
-        symbol_string = this->symbol_entry->getName()+":";
+        symbol_string = this->symbol_entry->name + ":";
     }
     auto dot_string = ".EQUATE";
     auto operand_string = argument->string();
@@ -666,7 +666,7 @@ std::string masm::ir::dot_word<address_size_t>::generate_source_string() const
 {
     std::string symbol_string;
     if (this->symbol_entry != nullptr) {
-        symbol_string = this->symbol_entry->getName()+":";
+        symbol_string = this->symbol_entry->name + ":";
     }
     auto dot_string = ".BYTE";
     auto operand_string = argument->string();

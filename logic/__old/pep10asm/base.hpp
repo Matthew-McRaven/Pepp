@@ -11,7 +11,7 @@ template <typename address_size_t>
 class linear_line
 {
 public:
-	using symbol_t = symbol::SymbolEntry<address_size_t>;
+	using symbol_t = symbol::entry<address_size_t>;
     linear_line();
     linear_line(const linear_line& other);
     virtual ~linear_line() = 0;

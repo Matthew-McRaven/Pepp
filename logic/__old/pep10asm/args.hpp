@@ -106,14 +106,14 @@ template <typename address_size_t>
 class symbol_ref_argument: public lir_argument<address_size_t>
 {
 public:
-    explicit symbol_ref_argument(std::shared_ptr<const symbol::SymbolEntry<address_size_t> > ref_value);
+    explicit symbol_ref_argument(std::shared_ptr<const symbol::entry<address_size_t> > ref_value);
     virtual ~symbol_ref_argument() override = default;
     address_size_t value() const override;
     std::string string() const override;
     bool fits_in(std::size_t num_bytes) const override;
-    std::shared_ptr<const symbol::SymbolEntry<address_size_t> > symbol_value();
+    std::shared_ptr<const symbol::entry<address_size_t> > symbol_value();
 private:
-    std::shared_ptr<const symbol::SymbolEntry<address_size_t> > value_;
+    std::shared_ptr<const symbol::entry<address_size_t> > value_;
 
 };
 

@@ -24,7 +24,7 @@ public:
     std::string generate_source_string() const override;
     address_size_t object_code_bytes() const override;
 
-    std::optional<std::shared_ptr<const symbol::SymbolEntry<address_size_t>>> symbolic_operand() const override;
+    std::optional<std::shared_ptr<const symbol::entry<address_size_t>>> symbolic_operand() const override;
 
 
     friend void swap(dot_address& first, dot_address& second)
