@@ -7,9 +7,9 @@ class macro_invocation: public linear_line<address_size_t>
 public:
     macro_invocation();
     ~macro_invocation() override = default;
-    macro_invocation(const MacroInvoke& other);
-    macro_invocation& operator=(macro_invocation other);
-    std::shared_ptr<linear_line<address_size_t> > < *clone() const override;
+    macro_invocation(const macro_invocation<address_size_t>& other);
+    macro_invocation& operator=(macro_invocation<address_size_t> other);
+    std::shared_ptr<linear_line<address_size_t> > clone() const override;
 
     // Get the assembler listing, which is memaddress + object code + sourceLine.
     std::string generate_listing_string() const override;
@@ -17,7 +17,7 @@ public:
     std::string generate_source_string() const override;
     address_size_t object_code_bytes() const override;
 
-    friend void swap(MacroInvoke& first, MacroInvoke& second)
+    friend void swap(macro_invocation<address_size_t>& first, macro_invocation<address_size_t>& second)
     {
         using std::swap;
         swap(static_cast<linear_line<address_size_t>&>(first), 

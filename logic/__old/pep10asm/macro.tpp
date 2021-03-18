@@ -1,4 +1,4 @@
-#include "macro.tpp"
+#include "macro.hpp"
 
 template <typename address_size_t>
 masm::ir::macro_invocation<address_size_t>::macro_invocation()
@@ -28,20 +28,20 @@ std::shared_ptr<masm::ir::linear_line<address_size_t>> masm::ir::macro_invocatio
 }
 
 template <typename address_size_t>
-std::string masm::ir::dot_ascii<address_size_t>::generate_listing_string() const
+std::string masm::ir::macro_invocation<address_size_t>::generate_listing_string() const
 {
 	auto temp = fmt::format("{:<6} {:<6};@{} {}",
 		""
 		"",
-		macro->name,
+		macro->header.name,
 		boost::algorithm::join(macro->macro_args, ", ")
 	);
 	
-	for(auto line : macro.body_ir.value().ir_lines)
+	for(auto line : macro->body_ir.value().ir_lines)
 	{
-		temp.append(fmt::format("\n{}}", line->generate_listing_string()))
+		temp.append(fmt::format("\n{}}", line->generate_listing_string()));
 	}
-	temp.append(fmt::format("\n;End @{}", macro->name);
+	temp.append(fmt::format("\n;End @{}", macro->header.name));
 	if(this->comment) {
 		// TODO: Figure out where to place comments in listing!!
 	}
@@ -55,8 +55,8 @@ std::string masm::ir::macro_invocation<address_size_t>::generate_source_string()
     if (this->symbol_entry != nullptr) {
         symbol_string = this->symbol_entry->name + ":";
     }
-	auto macro_name = macro->name;
-	auto operand_string = boost::algorithm::join(macro->macro_args, ", ")
+	auto macro_name = macro->header.name;
+	auto operand_string = boost::algorithm::join(macro->macro_args, ", ");
 	std::string comment = this->comment.value_or("");
     return fmt::format("{:<9}{:<8}{:<12}{}",
 		symbol_string,
@@ -71,8 +71,9 @@ template <typename address_size_t>
 address_size_t masm::ir::macro_invocation<address_size_t>::object_code_bytes() const
 {
 	address_size_t bytes = 0;
-	for(auto line : macro.body_ir.value().ir_lines)
+	for(auto line : macro->body_ir.value().ir_lines)
 	{
 		bytes += line->object_code_bytes();
 	}
+	return bytes;
 }
