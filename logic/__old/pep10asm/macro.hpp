@@ -1,37 +1,31 @@
 #pragma once
-
-class MacroInvoke: public AsmCode
+#include "base.hpp"
+namespace masm::ir {
+template <typename address_size_t>
+class macro_invocation: public linear_line<address_size_t>
 {
-private:
-    QStringList argumentList;
-    QSharedPointer<ModuleInstance> macroInstance;
 public:
-    MacroInvoke() = default;
-    ~MacroInvoke() override = default;
-    MacroInvoke(const MacroInvoke& other);
-    MacroInvoke& operator=(MacroInvoke other);
-    AsmCode *cloneAsmCode() const override;
-    void appendObjectCode(QList<int> &objectCode) const override;
-    void adjustMemAddress(int addressDelta) override;
+    macro_invocation();
+    ~macro_invocation() override = default;
+    macro_invocation(const MacroInvoke& other);
+    macro_invocation& operator=(macro_invocation other);
+    std::shared_ptr<linear_line<address_size_t> > < *clone() const override;
 
-    // AsmCode interface
-    QString getAssemblerListing() const override;
-    QString getAssemblerSource() const override;
-    quint16 objectCodeLength() const override;
-
-    QStringList getArgumentList() const;
-    void setArgumentList(QStringList);
-
-    QSharedPointer<ModuleInstance> getMacroInstance() const;
-    void setMacroInstance(QSharedPointer<ModuleInstance>);
-
+    // Get the assembler listing, which is memaddress + object code + sourceLine.
+    std::string generate_listing_string() const override;
+    // Returns the properly formatted source line.
+    std::string generate_source_string() const override;
+    address_size_t object_code_bytes() const override;
 
     friend void swap(MacroInvoke& first, MacroInvoke& second)
     {
         using std::swap;
-        swap(static_cast<AsmCode&>(first), static_cast<AsmCode&>(second));
-        swap(first.argumentList, second.argumentList);
-        swap(first.macroInstance, second.macroInstance);
+        swap(static_cast<linear_line<address_size_t>&>(first), 
+            static_cast<linear_line<address_size_t>&>(second));
+        swap(first.macro, second.macro);
     }
+
+    std::shared_ptr<masm::elf::macro_subsection<address_size_t> > macro;
 };
+}; // End namespace masm::ir
 #include "macro.tpp"

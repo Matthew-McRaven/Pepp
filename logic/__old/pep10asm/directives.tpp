@@ -215,8 +215,7 @@ std::string masm::ir::dot_ascii<address_size_t>::generate_listing_string() const
 	
 	auto bytes_emitted = 0;
 
-	decltype(std::string().substr({},{})) aliased = this->argument->
-	string();
+	decltype(std::string().substr({},{})) aliased = this->argument->string();
 	// Remove double quote character from either end of string.
 	aliased = aliased.substr(1, aliased.length()-2);
 	auto bytes = masm::byte_vector(aliased);
