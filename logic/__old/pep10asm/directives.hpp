@@ -57,6 +57,8 @@ public:
     std::string generate_source_string() const override;
     address_size_t object_code_bytes() const override;;
 
+    void set_begin_address(address_size_t addr) override;
+    void set_end_address(address_size_t addr) override;
     address_size_t num_bytes_generated() const;
 
 
@@ -69,7 +71,7 @@ public:
     }
 
     std::shared_ptr<masm::ir::lir_argument<address_size_t>> argument = {nullptr};
-    AlignDirection direction;
+    AlignDirection direction = {AlignDirection::kTop};
 };
 
 template <typename address_size_t>

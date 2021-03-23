@@ -39,7 +39,7 @@ std::string masm::ir::dot_address<address_size_t>::generate_listing_string() con
     }
 
 	return fmt::format("{:<6}{:>7}{}",
-		fmt::format("0x{:04X}", this->base_address),
+		fmt::format("0x{:04X}", this->base_address()),
 		code_string,
 		generate_source_string()
 	);
@@ -121,7 +121,7 @@ std::string masm::ir::dot_align<address_size_t>::generate_listing_string() const
     }
 
 	auto temp = fmt::format("{:<6} {:<6}{}",
-		fmt::format("0x{:04X}", this->base_address),
+		fmt::format("0x{:04X}", this->base_address()),
 		code_string,
 		generate_source_string()
 	);
@@ -160,6 +160,22 @@ std::string masm::ir::dot_align<address_size_t>::generate_source_string() const
 }
 
 template <typename address_size_t>
+void masm::ir::dot_align<address_size_t>::set_begin_address(address_size_t addr)
+{
+	auto value = argument->value();
+	auto span = (value - (addr % value)) % value;
+	this->address_span = {addr, addr+span};
+}
+
+template <typename address_size_t>
+void masm::ir::dot_align<address_size_t>::set_end_address(address_size_t addr)
+{
+	auto value = argument->value();
+	auto span = addr % value;
+	this->address_span = {addr-span, addr};
+}
+
+template <typename address_size_t>
 address_size_t masm::ir::dot_align<address_size_t>::object_code_bytes() const
 {
     return this->num_bytes_generated();
@@ -169,13 +185,7 @@ template <typename address_size_t>
 address_size_t masm::ir::dot_align<address_size_t>::num_bytes_generated() const
 {
 	
-	auto value = argument->value();
-    if(direction == AlignDirection::kTop) {
-		return (value - (this->base_address % value)) % value;
-	}
-	else {
-		throw std::logic_error("I don't know how to do this.");
-	}
+	return std::get<1>(this->address_span) - std::get<0>(this->address_span);
 }
 
 /*
@@ -226,7 +236,7 @@ std::string masm::ir::dot_ascii<address_size_t>::generate_listing_string() const
     }
 
 	auto temp = fmt::format("{:<6} {:<6}{}",
-		fmt::format("0x{:04X}", this->base_address),
+		fmt::format("0x{:04X}", this->base_address()),
 		code_string,
 		generate_source_string()
 	);
@@ -317,7 +327,7 @@ std::string masm::ir::dot_block<address_size_t>::generate_listing_string() const
     }
 
 	auto temp = fmt::format("{:<6} {:<6}{}",
-		fmt::format("0x{:04X}", this->base_address),
+		fmt::format("0x{:04X}", this->base_address()),
 		code_string,
 		generate_source_string()
 	);
@@ -460,7 +470,7 @@ std::string masm::ir::dot_byte<address_size_t>::generate_listing_string() const
 
 
 	auto temp = fmt::format("{:<6} {:<6}{}",
-		fmt::format("0x{:04X}", this->base_address),
+		fmt::format("0x{:04X}", this->base_address()),
 		code_string,
 		generate_source_string()
 	);
@@ -652,7 +662,7 @@ std::string masm::ir::dot_word<address_size_t>::generate_listing_string() const
 
 
 	auto temp = fmt::format("{:<6} {:<6}{}",
-		fmt::format("0x{:04X}", this->base_address),
+		fmt::format("0x{:04X}", this->base_address()),
 		code_string,
 		generate_source_string()
 	);

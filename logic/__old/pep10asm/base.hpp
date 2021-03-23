@@ -27,8 +27,10 @@ public:
 
     // Can the code line be addressed?
     virtual bool contains_memory_address() {return object_code_bytes() != 0; } 
-
-
+    virtual address_size_t base_address() const {return std::get<0>(address_span);};
+    virtual void set_begin_address(address_size_t addr) {address_span = {addr, addr+object_code_bytes()};}
+    virtual void set_end_address(address_size_t addr) {address_span = {addr-object_code_bytes(), addr};}
+    
     // Get the assembler listing, which is memaddress + object code + sourceLine.
     virtual std::string generate_listing_string() const = 0;
     // Returns the properly formatted source line.
@@ -43,7 +45,7 @@ public:
     {
         using std::swap;
         swap(first.emits_object_code, second.emits_object_code);
-        swap(first.base_address, second.base_address);
+        swap(first.address_span, second.address_span);
         swap(first.breakpoint, second.breakpoint);
         swap(first.comment, second.comment);
         swap(first.source_line, second.source_line);
@@ -57,8 +59,6 @@ public:
     // a .BURN directive, then this should be set to false. If this is false, object code
     // length should be 0.
     bool emits_object_code = {false};
-    // What is the address of this line of code, if it emits object code?
-    address_size_t base_address = {0};
     // Not all lines are capable of having a breakpoint (comments), so default to empty rather than false.
     std::optional<bool> breakpoint = {};
     // Track if the current line has a comment, and if so, what is it.
@@ -72,6 +72,9 @@ public:
     
     // Information collected during assembly to enable memory tracing features.
     // QList<TraceCommand> trace;
+protected:
+    // What memory region is spanned by this instruction.
+    std::tuple<address_size_t, address_size_t> address_span;
 };
 }; // End namespace masm::ir.
 #include "base.tpp"
