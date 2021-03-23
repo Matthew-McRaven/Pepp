@@ -12,7 +12,7 @@ namespace masm::backend
 	{
 		TOP,
 		BOTTOM
-	}
+	};
 
 	template <typename addr_size_t>
 	struct region 
@@ -34,7 +34,15 @@ namespace masm::backend
 		std::list<region<addr_size_t> > control_script
 	) -> bool;
 	
-	auto assign_section(std::shared_ptr<masm::project::project<addr_size_t> >& project, 
+	template <typename addr_size_t>
+	auto assign_section_top(std::shared_ptr<masm::project::project<addr_size_t> >& project, 
+		std::shared_ptr<masm::elf::image<addr_size_t> >& image,
+		std::shared_ptr<masm::elf::code_section<addr_size_t> >& section,
+		addr_size_t& base_address
+	) -> bool;
+
+	template <typename addr_size_t>
+	auto assign_section_bottom(std::shared_ptr<masm::project::project<addr_size_t> >& project, 
 		std::shared_ptr<masm::elf::image<addr_size_t> >& image,
 		std::shared_ptr<masm::elf::code_section<addr_size_t> >& section,
 		addr_size_t& base_address
