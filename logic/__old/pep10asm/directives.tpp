@@ -226,8 +226,6 @@ std::string masm::ir::dot_ascii<address_size_t>::generate_listing_string() const
 	auto bytes_emitted = 0;
 
 	decltype(std::string().substr({},{})) aliased = this->argument->string();
-	// Remove double quote character from either end of string.
-	aliased = aliased.substr(1, aliased.length()-2);
 	auto bytes = masm::byte_vector(aliased);
 	auto bytes_head = bytes.begin();
     while(this->emits_object_code && (bytes_head!=bytes.end()) && (bytes_emitted<3)) {		
@@ -267,7 +265,7 @@ std::string masm::ir::dot_ascii<address_size_t>::generate_source_string() const
     return fmt::format("{:<9}{:<8}{:<12}{}",
 		symbol_string,
 		dot_string,
-		operand_string,
+		"\""+operand_string+"\"",
 		comment
 	);
 
@@ -277,8 +275,6 @@ template <typename address_size_t>
 address_size_t masm::ir::dot_ascii<address_size_t>::object_code_bytes() const
 {
 	decltype(std::string().substr({},{})) aliased = this->argument->string();
-	// Remove double quote character from either end of string.
-	aliased = aliased.substr(1, aliased.length()-2);
     return masm::byte_string_length(aliased);
 }
 
