@@ -42,9 +42,10 @@ template <typename address_size_t>
 class dot_align: public masm::ir::linear_line<address_size_t>
 {
 public:
-    enum class AlignDirection
+    enum class align_direction
     {
-        kTop, kBottom
+        kNext, // The next byte should be aligned properly
+        kPrevious // The previous byte should be aligned properly
     };
     dot_align();
     virtual ~dot_align() override = default;
@@ -55,7 +56,7 @@ public:
     // linear_line interface
     std::string generate_listing_string() const override;
     std::string generate_source_string() const override;
-    address_size_t object_code_bytes() const override;;
+    address_size_t object_code_bytes() const override;
 
     void set_begin_address(address_size_t addr) override;
     void set_end_address(address_size_t addr) override;
@@ -67,11 +68,11 @@ public:
         using std::swap;
         swap(static_cast<linear_line<address_size_t>&>(first), static_cast<linear_line<address_size_t>&>(second));
         swap(first.argument, second.argument);
-        swap(first.numBytesGenerated, second.numBytesGenerated);
+        swap(first.direction, second.direction);
     }
 
     std::shared_ptr<masm::ir::lir_argument<address_size_t>> argument = {nullptr};
-    AlignDirection direction = {AlignDirection::kTop};
+    align_direction direction = {align_direction::kNext};
 };
 
 template <typename address_size_t>
