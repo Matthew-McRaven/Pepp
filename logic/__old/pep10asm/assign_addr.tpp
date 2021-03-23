@@ -30,9 +30,9 @@ auto masm::backend::assign_image(std::shared_ptr<masm::project::project<addr_siz
 	for(auto& region : control_script) {
 		std::list<tls_ptr_t> region_sections;
 
-		for(auto& section : region->input_sections) {
+		for(auto& section : region.input_sections) {
 			tls_ptr_t match = nullptr;
-			auto matched = std::remove_if(unmatched_sections.begin(), unmatched_sections.end, [&section](const auto& it) {
+			auto matched = std::remove_if(unmatched_sections.begin(), unmatched_sections.end(), [&section](const auto& it) {
 				return it->header.name == section;
 			});
 
@@ -50,28 +50,32 @@ auto masm::backend::assign_image(std::shared_ptr<masm::project::project<addr_siz
 	// Multiple control scripts may end up generating the same binary.
 	// Sort the regions by address to make effectively identical scripts assign address in the same order.
 	// This is mainly to help debug, but it also provides stability in terms of error message ordering.
-	matched_sections.sort([](const auto& lhs, const auto& rhs) {return lhs.base_address < rhs.base_address;});
+	matched_sections.sort([](const auto& lhs, const auto& rhs) {
+		return std::get<0>(lhs).base_address < std::get<0>(rhs).base_address;
+	});
 
 	bool success = true;
 	for(auto& packed_region : matched_sections) {
 		auto region = std::get<0>(packed_region);
 		auto output_sections = std::get<1>(packed_region);
-		addr_size_t base_address = region->base_address;
+		addr_size_t base_address = region.base_address;
 
-		if(region->align_direction == masm::backend::align_direction::TOP) {
+		if(region.direction == masm::backend::align_direction::TOP) {
 			for(auto& section : output_sections) {
-				base_address += (region->alignment) - (base_address % (region->alignment));
+				base_address += ((region.alignment) - (base_address % (region.alignment))) % (region.alignment);
+				auto as_code = std::static_pointer_cast<masm::elf::code_section<addr_size_t>>(section);
 				// Ensure the current section starts on an alignment boundary.
-				success &= assign_section_top(project, image, section, base_address);
+				success &= assign_section_top(project, image, as_code, base_address);
 				
 			}
 		}
 		// Must start from last section and assign addresses from bottom to top.
-		else if(region->align_direction == masm::backend::align_direction::BOTTOM) {
+		else if(region.direction == masm::backend::align_direction::BOTTOM) {
 			for(auto& section : boost::adaptors::reverse(output_sections)) {
-				success &= assign_section_bottom(project, image, section, base_address);
+				auto as_code = std::static_pointer_cast<masm::elf::code_section<addr_size_t>>(section);
+				success &= assign_section_bottom(project, image, as_code, base_address);
 				// Ensure the current section starts on an alignment boundary.s
-				base_address -= (base_address % (region->alignment));
+				base_address -= (base_address % (region.alignment));
 			}
 		}
 		
@@ -93,7 +97,7 @@ auto masm::backend::assign_section_top(std::shared_ptr<masm::project::project<ad
 	for(auto& line : ir) {
 		line->set_begin_address(base_address);
 		if(line->symbol_entry){
-			line->symbol_entry->value = symbol::value_location<addr_size_t>(line->base_address(), 0);
+			line->symbol_entry->value = std::make_shared<symbol::value_location<addr_size_t>>(line->base_address(), 0);
 		}
 
 		// Ensure that alignment directives (e.g., .ALIGN 2) are the proper direction
@@ -103,7 +107,8 @@ auto masm::backend::assign_section_top(std::shared_ptr<masm::project::project<ad
 
 		// Recurse into macro modules.
 		if(auto as_macro = std::dynamic_pointer_cast<masm::ir::macro_invocation<addr_size_t>>(line); as_macro) {
-			success &= assign_section_top(project, image, as_macro->macro, base_address);
+			auto as_code = std::static_pointer_cast<masm::elf::code_section<addr_size_t>>(as_macro->macro);
+			success &= assign_section_top(project, image, as_code, base_address);
 		} 
 		 // Don't increment the base address for macros, since it will be incremented in recursive call.
 		else {
@@ -131,17 +136,18 @@ auto masm::backend::assign_section_bottom(std::shared_ptr<masm::project::project
 	for(auto& line : boost::adaptors::reverse(ir)) {
 		// Ensure that alignment directives (e.g., .ALIGN 2) are the proper direction
 		if(auto as_align = std::dynamic_pointer_cast<masm::ir::dot_align<addr_size_t>>(line); as_align) {
-			as_align->direction = masm::ir::dot_align<addr_size_t>::align_directionn::kPrevious;
+			as_align->direction = masm::ir::dot_align<addr_size_t>::align_direction::kPrevious;
 		}
 
 		line->set_end_address(base_address);
 		if(line->symbol_entry){
-			line->symbol_entry->value = symbol::value_location<addr_size_t>(line->base_address(), 0);
+			line->symbol_entry->value = std::make_shared<symbol::value_location<addr_size_t>>(line->base_address(), 0);
 		};
 
 		// Recurse into macro modules.
 		if(auto as_macro = std::dynamic_pointer_cast<masm::ir::macro_invocation<addr_size_t>>(line); as_macro) {
-			success &= assign_section_bottom(project, image, as_macro->macro, base_address);
+			auto as_code = std::static_pointer_cast<masm::elf::code_section<addr_size_t>>(as_macro->macro);
+			success &= assign_section_top(project, image, as_code, base_address);;
 		} 
 		 // Don't increment the base address for macros, since it will be incremented in recursive call.
 		else {

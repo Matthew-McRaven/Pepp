@@ -17,12 +17,12 @@ namespace masm::backend
 	template <typename addr_size_t>
 	struct region 
 	{
-		addr_size_t base_address;
-		align_direction direction;
+		addr_size_t base_address = {0};
+		align_direction direction = {align_direction::TOP};
 		// Converted to "1<<alignment". Determines what address each named section must be aligned to.
 		// Alignments other than 0 may lead to gaps between sections, which will be padded with 0's
 		// via a .BLOCK directive.
-		uint16_t alignment; 
+		uint16_t alignment = {1}; 
 		
 		std::list<std::string> input_sections;
 	};
@@ -50,4 +50,4 @@ namespace masm::backend
 
 } // End namespace masm::backend
 
-#include "assignaddr.tpp"
+#include "assign_addr.tpp"
