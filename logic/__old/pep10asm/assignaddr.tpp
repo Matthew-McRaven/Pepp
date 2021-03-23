@@ -3,8 +3,8 @@
 #include "masm/ir/directives.hpp"
 #include "masm/ir/macro.hpp"
 
-#include "masm/symbol/entry.hpp"
-#include "masm/symbol/value.hpp"
+#include "symbol/entry.hpp"
+#include "symbol/value.hpp"
 
 
 #include <boost/range/adaptor/reversed.hpp>
@@ -82,7 +82,7 @@ auto masm::backend::assign_image(std::shared_ptr<masm::project::project<addr_siz
 }
 
 template <typename addr_size_t>
-auto masm::backend::assign_section_top<addr_size_t>(std::shared_ptr<masm::project::project<addr_size_t> >& project, 
+auto masm::backend::assign_section_top(std::shared_ptr<masm::project::project<addr_size_t> >& project, 
 	std::shared_ptr<masm::elf::image<addr_size_t> >& image,
 	std::shared_ptr<masm::elf::code_section<addr_size_t> >& section,
 	addr_size_t& base_address
@@ -93,12 +93,12 @@ auto masm::backend::assign_section_top<addr_size_t>(std::shared_ptr<masm::projec
 	for(auto& line : ir) {
 		line->set_begin_address(base_address);
 		if(line->symbol_entry){
-			line->symbol_entry->value = masm::symbol::value_location<addr_size_t>(line->base_address(), 0);
+			line->symbol_entry->value = symbol::value_location<addr_size_t>(line->base_address(), 0);
 		}
 
 		// Ensure that alignment directives (e.g., .ALIGN 2) are the proper direction
 		if(auto as_align = std::dynamic_pointer_cast<masm::ir::dot_align<addr_size_t>>(line); as_align) {
-			as_align->direction = as_align::align_direction::kNext;
+			as_align->direction = masm::ir::dot_align<addr_size_t>::align_direction::kNext;
 		}
 
 		// Recurse into macro modules.
@@ -120,7 +120,7 @@ auto masm::backend::assign_section_top<addr_size_t>(std::shared_ptr<masm::projec
 }
 
 template <typename addr_size_t>
-auto masm::backend::assign_section_bottom<addr_size_t>(std::shared_ptr<masm::project::project<addr_size_t> >& project, 
+auto masm::backend::assign_section_bottom(std::shared_ptr<masm::project::project<addr_size_t> >& project, 
 	std::shared_ptr<masm::elf::image<addr_size_t> >& image,
 	std::shared_ptr<masm::elf::code_section<addr_size_t> >& section,
 	addr_size_t& base_address
@@ -131,12 +131,12 @@ auto masm::backend::assign_section_bottom<addr_size_t>(std::shared_ptr<masm::pro
 	for(auto& line : boost::adaptors::reverse(ir)) {
 		// Ensure that alignment directives (e.g., .ALIGN 2) are the proper direction
 		if(auto as_align = std::dynamic_pointer_cast<masm::ir::dot_align<addr_size_t>>(line); as_align) {
-			as_align->direction = as_align::align_direction::kPrevious;
+			as_align->direction = masm::ir::dot_align<addr_size_t>::align_directionn::kPrevious;
 		}
 
 		line->set_end_address(base_address);
 		if(line->symbol_entry){
-			line->symbol_entry->value = masm::symbol::value_location<addr_size_t>(line->base_address(), 0);
+			line->symbol_entry->value = symbol::value_location<addr_size_t>(line->base_address(), 0);
 		};
 
 		// Recurse into macro modules.
