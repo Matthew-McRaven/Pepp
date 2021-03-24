@@ -123,7 +123,10 @@ auto masm::backend::assign_section_top(std::shared_ptr<masm::project::project<ad
 			// Ensure that incrementing the base address won't cause our addr_size_t to overflow.
 			static const uint64_t max_addr = (1 << (8*sizeof(addr_size_t))) - 1;
 			success &=  max_addr - base_address >= line->object_code_bytes();
-			if(!success) { // TODO: Log error with message resolver.
+			if(!success) { // Log error with message resolver.
+				project->message_resolver->log_message(section, line->source_line, 
+					{masm::message_type::kWarning, ";Error: Positive address overflow."}
+				);
 				break;
 			}
 			base_address += line->object_code_bytes();
@@ -161,7 +164,10 @@ auto masm::backend::assign_section_bottom(std::shared_ptr<masm::project::project
 		else {
 			// Ensure that decrementing the base address won't cause our addr_size_t to experience negative overflow.
 			success &=   base_address >= line->object_code_bytes();
-			if(!success) { // TODO: Log error with message resolver.
+			if(!success) { // Log error with message resolver.
+				project->message_resolver->log_message(section, line->source_line, 
+					{masm::message_type::kWarning, ";Error: Negative address overflow."}
+				);
 				break;
 			}
 			base_address -= line->object_code_bytes();
