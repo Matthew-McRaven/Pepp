@@ -37,7 +37,11 @@ auto masm::backend::assign_image(std::shared_ptr<masm::project::project<addr_siz
 			});
 
 			if(matched != unmatched_sections.end()) region_sections.emplace_back(*matched);
-			else {} // TODO: Warn that an output section was unused.
+			// Warn that an output region was unused.
+			else {
+				auto message = fmt::format(";WARNING: Unused output section \"{}\"", section);
+				project->message_resolver->log_message(image->sections[0], 0, {masm::message_type::kWarning, message});
+			} 
 
 			// Remove only moves items to end, it doesn't pop items from container.
 			unmatched_sections.erase(matched, unmatched_sections.end());
@@ -45,7 +49,11 @@ auto masm::backend::assign_image(std::shared_ptr<masm::project::project<addr_siz
 		matched_sections.emplace_back(sectionized_region_t(region, region_sections));
 	}
 
-	for(auto section : unmatched_sections) {} // TODO: Warn that an input section was unused.
+	// Warn that an input section was unused.
+	for(auto section : unmatched_sections) {
+		auto message = fmt::format(";WARNING: Unused source section \"{}\"", section->header.name);
+		project->message_resolver->log_message(section, 0, {masm::message_type::kWarning, message});
+	} 
 
 	// Multiple control scripts may end up generating the same binary.
 	// Sort the regions by address to make effectively identical scripts assign address in the same order.
