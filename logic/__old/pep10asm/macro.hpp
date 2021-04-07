@@ -16,7 +16,8 @@ public:
     // Returns the properly formatted source line.
     std::string generate_source_string() const override;
     address_size_t object_code_bytes() const override;
-
+    void append_object_code(std::vector<uint8_t>& code) const override;
+    
     friend void swap(macro_invocation<address_size_t>& first, macro_invocation<address_size_t>& second)
     {
         using std::swap;

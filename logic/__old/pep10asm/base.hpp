@@ -2,6 +2,7 @@
 
 #include <memory>
 #include <variant>
+#include <vector>
 #include "symbol/entry.hpp"
 
 namespace masm::ir {
@@ -38,6 +39,7 @@ public:
     virtual address_size_t object_code_bytes() const {return 0;}
 
     virtual bool is_code() const { return false;}
+    virtual void append_object_code(std::vector<uint8_t>& code) const = 0;
 
 
     virtual std::optional<std::shared_ptr<const symbol_t>> symbolic_operand() const { return nullptr;}

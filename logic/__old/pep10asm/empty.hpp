@@ -18,7 +18,8 @@ public:
     // linear_line interface
     std::string generate_listing_string() const override;
     std::string generate_source_string() const override;
-
+    void append_object_code(std::vector<uint8_t>& code) const override;
+    
     friend void swap(comment_line& first, comment_line& second)
     {
         using std::swap;
@@ -39,6 +40,7 @@ public:
     // linear_line interface
     std::string generate_listing_string() const override;
     std::string generate_source_string() const override;
+    void append_object_code(std::vector<uint8_t>& code) const override;
 
     friend void swap(blank_line& first, blank_line& second)
     {

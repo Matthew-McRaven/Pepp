@@ -71,6 +71,12 @@ address_size_t masm::ir::dot_address<address_size_t>::object_code_bytes() const
 }
 
 template <typename address_size_t>
+void masm::ir::dot_address<address_size_t>::append_object_code(std::vector<uint8_t>& bytes) const
+{
+	assert(0);
+}
+
+template <typename address_size_t>
 std::optional<std::shared_ptr<const symbol::entry<address_size_t> > > masm::ir::dot_address<address_size_t>::symbolic_operand() const
 {
     // The value of a .addrss instruction is always the value of another symbol.
@@ -182,6 +188,12 @@ address_size_t masm::ir::dot_align<address_size_t>::object_code_bytes() const
 }
 
 template <typename address_size_t>
+void masm::ir::dot_align<address_size_t>::append_object_code(std::vector<uint8_t>& bytes) const
+{
+	assert(0);
+}
+
+template <typename address_size_t>
 address_size_t masm::ir::dot_align<address_size_t>::num_bytes_generated() const
 {
 	
@@ -278,6 +290,11 @@ address_size_t masm::ir::dot_ascii<address_size_t>::object_code_bytes() const
     return masm::byte_string_length(aliased);
 }
 
+template <typename address_size_t>
+void masm::ir::dot_ascii<address_size_t>::append_object_code(std::vector<uint8_t>& bytes) const
+{
+	assert(0);
+}
 /*
  * .BLOCK
  */
@@ -367,6 +384,12 @@ address_size_t masm::ir::dot_block<address_size_t>::object_code_bytes() const
 }
 
 template <typename address_size_t>
+void masm::ir::dot_block<address_size_t>::append_object_code(std::vector<uint8_t>& bytes) const
+{
+	assert(0);
+}
+
+template <typename address_size_t>
 bool masm::ir::dot_block<address_size_t>::tracks_trace_tags() const
 {
 	return true;
@@ -424,6 +447,11 @@ std::string masm::ir::dot_burn<address_size_t>::generate_source_string() const
 
 }
 
+template <typename address_size_t>
+void masm::ir::dot_burn<address_size_t>::append_object_code(std::vector<uint8_t>& bytes) const
+{
+	return;
+}
 
 /*
  * .BYTE
@@ -500,6 +528,12 @@ address_size_t masm::ir::dot_byte<address_size_t>::object_code_bytes() const
 }
 
 template <typename address_size_t>
+void masm::ir::dot_byte<address_size_t>::append_object_code(std::vector<uint8_t>& bytes) const
+{
+	assert(0);
+}
+
+template <typename address_size_t>
 bool masm::ir::dot_byte<address_size_t>::tracks_trace_tags() const
 {
 	return true;
@@ -555,6 +589,11 @@ std::string masm::ir::dot_end<address_size_t>::generate_source_string() const
 
 }
 
+template <typename address_size_t>
+void masm::ir::dot_end<address_size_t>::append_object_code(std::vector<uint8_t>& bytes) const
+{
+	return;
+}
 /*
  * .EQUATE
  */
@@ -609,6 +648,12 @@ std::string masm::ir::dot_equate<address_size_t>::generate_source_string() const
 		comment
 	);
 
+}
+
+template <typename address_size_t>
+void masm::ir::dot_equate<address_size_t>::append_object_code(std::vector<uint8_t>& bytes) const
+{
+	return;
 }
 
 template <typename address_size_t>
@@ -689,6 +734,12 @@ template <typename address_size_t>
 address_size_t masm::ir::dot_word<address_size_t>::object_code_bytes() const
 {
 	return 2;
+}
+
+template <typename address_size_t>
+void masm::ir::dot_word<address_size_t>::append_object_code(std::vector<uint8_t>& bytes) const
+{
+	assert(0);
 }
 
 template <typename address_size_t>

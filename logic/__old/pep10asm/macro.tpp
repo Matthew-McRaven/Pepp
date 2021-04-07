@@ -77,3 +77,11 @@ address_size_t masm::ir::macro_invocation<address_size_t>::object_code_bytes() c
 	}
 	return bytes;
 }
+
+template <typename address_size_t>
+void masm::ir::macro_invocation<address_size_t>::append_object_code(std::vector<uint8_t>& bytes) const
+{
+	for(const auto& line: macro->body_ir.value().ir_lines) {
+		line->append_object_code(bytes);
+	}
+}

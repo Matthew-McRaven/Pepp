@@ -36,6 +36,13 @@ std::string masm::ir::comment_line<address_size_t>::generate_source_string() con
 }
 
 template <typename address_size_t>
+void masm::ir::comment_line<address_size_t>::append_object_code(std::vector<uint8_t>& bytes) const
+{
+	return;
+}
+
+
+template <typename address_size_t>
 masm::ir::blank_line<address_size_t>::blank_line(const masm::ir::blank_line<address_size_t>& other)
 {
 
@@ -67,3 +74,10 @@ std::string masm::ir::blank_line<address_size_t>::generate_source_string() const
 {
 	return {};
 }
+
+template <typename address_size_t>
+void masm::ir::blank_line<address_size_t>::append_object_code(std::vector<uint8_t>& bytes) const
+{
+	assert(0);
+}
+
