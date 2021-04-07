@@ -73,8 +73,8 @@ address_size_t masm::ir::dot_address<address_size_t>::object_code_bytes() const
 template <typename address_size_t>
 void masm::ir::dot_address<address_size_t>::append_object_code(std::vector<uint8_t>& bytes) const
 {
-	bytes.emplace_back((symbol_entry->value() >> 8 ) & 0xff);
-	bytes.emplace_back(symbol_entry->value() & 0xff);
+	bytes.emplace_back((argument->value() >> 8 ) & 0xff);
+	bytes.emplace_back(argument->value() & 0xff);
 }
 
 template <typename address_size_t>
