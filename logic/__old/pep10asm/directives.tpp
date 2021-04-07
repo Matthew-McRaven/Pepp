@@ -73,7 +73,8 @@ address_size_t masm::ir::dot_address<address_size_t>::object_code_bytes() const
 template <typename address_size_t>
 void masm::ir::dot_address<address_size_t>::append_object_code(std::vector<uint8_t>& bytes) const
 {
-	assert(0);
+	bytes.emplace_back((symbol_entry->value() >> 8 ) & 0xff);
+	bytes.emplace_back(symbol_entry->value() & 0xff);
 }
 
 template <typename address_size_t>
@@ -190,7 +191,8 @@ address_size_t masm::ir::dot_align<address_size_t>::object_code_bytes() const
 template <typename address_size_t>
 void masm::ir::dot_align<address_size_t>::append_object_code(std::vector<uint8_t>& bytes) const
 {
-	assert(0);
+	// TODO: Allow fill values other than 0.
+	for(auto it=0; it<this->num_bytes_generated(); it++) bytes.emplace_back(0);
 }
 
 template <typename address_size_t>
@@ -293,7 +295,7 @@ address_size_t masm::ir::dot_ascii<address_size_t>::object_code_bytes() const
 template <typename address_size_t>
 void masm::ir::dot_ascii<address_size_t>::append_object_code(std::vector<uint8_t>& bytes) const
 {
-	assert(0);
+	for(auto ch : argument->string()) bytes.emplace_back((uint8_t) ch);
 }
 /*
  * .BLOCK
@@ -386,7 +388,7 @@ address_size_t masm::ir::dot_block<address_size_t>::object_code_bytes() const
 template <typename address_size_t>
 void masm::ir::dot_block<address_size_t>::append_object_code(std::vector<uint8_t>& bytes) const
 {
-	assert(0);
+	for(auto it=0; it<argument->value(); it++) bytes.emplace_back(0);
 }
 
 template <typename address_size_t>
@@ -530,7 +532,7 @@ address_size_t masm::ir::dot_byte<address_size_t>::object_code_bytes() const
 template <typename address_size_t>
 void masm::ir::dot_byte<address_size_t>::append_object_code(std::vector<uint8_t>& bytes) const
 {
-	assert(0);
+	bytes.emplace_back(argument->value() & 0xff);;
 }
 
 template <typename address_size_t>
@@ -739,7 +741,8 @@ address_size_t masm::ir::dot_word<address_size_t>::object_code_bytes() const
 template <typename address_size_t>
 void masm::ir::dot_word<address_size_t>::append_object_code(std::vector<uint8_t>& bytes) const
 {
-	assert(0);
+	bytes.emplace_back((argument->value() >> 8 ) & 0xff);
+	bytes.emplace_back(argument->value() & 0xff);
 }
 
 template <typename address_size_t>
