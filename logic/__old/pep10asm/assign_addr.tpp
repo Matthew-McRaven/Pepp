@@ -19,8 +19,7 @@ auto masm::backend::assign_image(std::shared_ptr<masm::project::project<addr_siz
 	using tls_ptr_t = std::shared_ptr<masm::elf::top_level_section<addr_size_t> >;
 
 	// Keep track of which sections *have not* been matched by our control script.
-	std::list<tls_ptr_t> unmatched_sections;
-	std::copy(image->sections.begin(), image->sections.end(), std::back_inserter(unmatched_sections));
+	std::list<tls_ptr_t> unmatched_sections = {image->section};
 
 	// Track which sections have been matched, as well as the base addresses associated with those sections.
 	using sectionized_region_t = std::tuple<masm::backend::region<addr_size_t>, std::list<tls_ptr_t>>;
@@ -40,7 +39,7 @@ auto masm::backend::assign_image(std::shared_ptr<masm::project::project<addr_siz
 			// Warn that an output region was unused.
 			else {
 				auto message = fmt::format(";WARNING: Unused output section \"{}\"", section);
-				project->message_resolver->log_message(image->sections[0], 0, {masm::message_type::kWarning, message});
+				project->message_resolver->log_message(image->section, 0, {masm::message_type::kWarning, message});
 			} 
 
 			// Remove only moves items to end, it doesn't pop items from container.
