@@ -1,4 +1,5 @@
 #include "macro.hpp"
+#include <boost/algorithm/string.hpp>
 
 template <typename address_size_t>
 masm::ir::macro_invocation<address_size_t>::macro_invocation()

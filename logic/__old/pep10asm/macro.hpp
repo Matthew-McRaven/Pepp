@@ -1,5 +1,6 @@
 #pragma once
 #include "base.hpp"
+#include "masm/project/section.hpp"
 namespace masm::ir {
 template <typename address_size_t>
 class macro_invocation: public linear_line<address_size_t>

@@ -78,6 +78,6 @@ std::string masm::ir::blank_line<address_size_t>::generate_source_string() const
 template <typename address_size_t>
 void masm::ir::blank_line<address_size_t>::append_object_code(std::vector<uint8_t>& bytes) const
 {
-	assert(0);
+	
 }
 

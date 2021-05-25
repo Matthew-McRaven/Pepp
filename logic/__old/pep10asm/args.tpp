@@ -149,7 +149,7 @@ masm::ir::string_argument<address_size_t>::string_argument(std::string string_va
 	value_(std::move(string_value))
 {
 
-    address_size_t dummy;
+    address_size_t dummy = 0;
     if(auto len = masm::byte_string_length(value_); len > sizeof(address_size_t)) {
         throw std::logic_error(fmt::format("Strings may be up to {} bytes. Recieved {} bytes.", sizeof(address_size_t), len));
     }
