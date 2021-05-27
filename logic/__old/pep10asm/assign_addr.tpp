@@ -16,16 +16,19 @@ auto masm::backend::assign_image(std::shared_ptr<masm::project::project<addr_siz
 ) -> bool
 {
 	using tls_ptr_t = std::shared_ptr<masm::elf::top_level_section<addr_size_t> >;
-	auto section = image->section;
-	auto as_code = std::static_pointer_cast<masm::elf::code_section<addr_size_t>>(section);
+	std::vector<tls_ptr_t> sections = {image->os};
+	if(image->user) sections.emplace_back(image->user);
+	for(auto& section : sections) {
+		auto as_code = std::static_pointer_cast<masm::elf::code_section<addr_size_t>>(section);
 
-	if(section->body_ir->BURN_address) {
-		auto start_address = section->body_ir->BURN_address.value();
-		return assign_section_backward(project, image, as_code, start_address);
-	}
-	else {
-		auto start_address = uint16_t{0};
-		return assign_section_forward(project, image, as_code, start_address);
+		if(section->body_ir->BURN_address) {
+			auto start_address = section->body_ir->BURN_address.value();
+			return assign_section_backward(project, image, as_code, start_address);
+		}
+		else {
+			auto start_address = uint16_t{0};
+			return assign_section_forward(project, image, as_code, start_address);
+		}
 	}
 }
 
