@@ -290,7 +290,7 @@ std::string masm::ir::dot_ascii<address_size_t>::generate_source_string() const
 template <typename address_size_t>
 address_size_t masm::ir::dot_ascii<address_size_t>::object_code_bytes() const
 {
-	decltype(std::string().substr({},{})) aliased = this->argument->string();
+	auto aliased = this->argument->string();
     return masm::byte_string_length(aliased);
 }
 
@@ -298,7 +298,12 @@ template <typename address_size_t>
 void masm::ir::dot_ascii<address_size_t>::append_object_code(std::vector<uint8_t>& bytes) const
 {
 	if(!this->emits_object_code) return;
-	for(auto ch : argument->string()) bytes.emplace_back((uint8_t) ch);
+	// Must convert to vector using helper to handle escaped codes.
+	auto vals = masm::byte_vector(argument->string());
+	// Reserve first for improved performance.
+	bytes.reserve(bytes.size() + distance(vals.begin(),vals.end()));
+	bytes.insert(bytes.end(), vals.begin(), vals.end());
+	
 }
 /*
  * .BLOCK
