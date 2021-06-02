@@ -45,8 +45,33 @@ auto masm::backend::assign_section_forward(std::shared_ptr<masm::project::projec
 	auto &ir = section->body_ir->ir_lines;
 	for(auto& line : ir) {
 		line->set_begin_address(base_address);
-		if(line->symbol_entry){
+		
+		// If an operand is undefined, raise an error.
+		if(auto op = line->symbolic_operand(); op && *op) {
+			if((*op)->state == symbol::definition_state::kUndefined) {
+				success = false;
+				project->message_resolver->log_message(section, line->source_line, 
+					{masm::message_type::kError, fmt::format(";Error: Undefined symbolic operand \"{}\".", (*op)->name)}
+				);
+			}
+		}
+
+		// If a symbol is singly defined, assign in an address
+		if(line->symbol_entry && line->symbol_entry->state == symbol::definition_state::kSingle){
 			line->symbol_entry->value = std::make_shared<symbol::value_location<addr_size_t>>(line->base_address(), 0);
+		}
+		// If a symbol is multiplt defined or externally multiply defined, raise an error
+		else if(line->symbol_entry && line->symbol_entry->state == symbol::definition_state::kMultiple){
+			success = false;
+			project->message_resolver->log_message(section, line->source_line, 
+				{masm::message_type::kError, fmt::format(";Error: Multiply defined symbol \"{}\".", line->symbol_entry->name)}
+			);
+		}
+		else if(line->symbol_entry && line->symbol_entry->state == symbol::definition_state::kExternalMultiple){
+			success = false;
+			project->message_resolver->log_message(section, line->source_line, 
+				{masm::message_type::kError, fmt::format(";Error: Conflicting definition of \"{}\" with .EXPORT.", line->symbol_entry->name)}
+			);
 		}
 
 		// Ensure that alignment directives (e.g., .ALIGN 2) are the proper direction
@@ -66,7 +91,7 @@ auto masm::backend::assign_section_forward(std::shared_ptr<masm::project::projec
 			success &=  max_addr - base_address >= line->object_code_bytes();
 			if(!success) { // Log error with message resolver.
 				project->message_resolver->log_message(section, line->source_line, 
-					{masm::message_type::kWarning, ";Error: Positive address overflow."}
+					{masm::message_type::kError, ";Error: Positive address overflow."}
 				);
 				break;
 			}
@@ -86,15 +111,35 @@ auto masm::backend::assign_section_backward(std::shared_ptr<masm::project::proje
 	auto success = true;
 	auto &ir = section->body_ir->ir_lines;
 	for(auto& line : boost::adaptors::reverse(ir)) {
-		// Ensure that alignment directives (e.g., .ALIGN 2) are the proper direction
-		if(auto as_align = std::dynamic_pointer_cast<masm::ir::dot_align<addr_size_t>>(line); as_align) {
-			as_align->direction = masm::ir::dot_align<addr_size_t>::align_direction::kPrevious;
+		line->set_end_address(base_address);
+
+		// If an operand is undefined, raise an error.
+		if(auto op = line->symbolic_operand(); op && *op) {
+			if((*op)->state == symbol::definition_state::kUndefined) {
+				success = false;
+				project->message_resolver->log_message(section, line->source_line, 
+					{masm::message_type::kError, fmt::format(";Error: Undefined symbolic operand \"{}\".", (*op)->name)}
+				);
+			}
 		}
 
-		line->set_end_address(base_address);
-		if(line->symbol_entry){
+		// If a symbol is singly defined, assign in an address
+		if(line->symbol_entry && line->symbol_entry->state == symbol::definition_state::kSingle){
 			line->symbol_entry->value = std::make_shared<symbol::value_location<addr_size_t>>(line->base_address(), 0);
-		};
+		}
+		// If a symbol is multiplt defined or externally multiply defined, raise an error
+		else if(line->symbol_entry && line->symbol_entry->state == symbol::definition_state::kMultiple){
+			success = false;
+			project->message_resolver->log_message(section, line->source_line, 
+				{masm::message_type::kError, fmt::format(";Error: Multiply defined symbol \"{}\".", line->symbol_entry->name)}
+			);
+		}
+		else if(line->symbol_entry && line->symbol_entry->state == symbol::definition_state::kExternalMultiple){
+			success = false;
+			project->message_resolver->log_message(section, line->source_line, 
+				{masm::message_type::kError, fmt::format(";Error: Conflicting definition of \"{}\" with .EXPORT.", line->symbol_entry->name)}
+			);
+		}
 
 		// Recurse into macro modules.
 		if(auto as_macro = std::dynamic_pointer_cast<masm::ir::macro_invocation<addr_size_t>>(line); as_macro) {
@@ -107,7 +152,7 @@ auto masm::backend::assign_section_backward(std::shared_ptr<masm::project::proje
 			success &=   base_address >= line->object_code_bytes();
 			if(!success) { // Log error with message resolver.
 				project->message_resolver->log_message(section, line->source_line, 
-					{masm::message_type::kWarning, ";Error: Negative address overflow."}
+					{masm::message_type::kError, ";Error: Negative address overflow."}
 				);
 				break;
 			}
