@@ -88,8 +88,9 @@ auto masm::backend::assign_section_forward(std::shared_ptr<masm::project::projec
 		else {
 			// Ensure that incrementing the base address won't cause our addr_size_t to overflow.
 			static const uint64_t max_addr = (1 << (8*sizeof(addr_size_t))) - 1;
-			success &=  max_addr - base_address >= line->object_code_bytes();
-			if(!success) { // Log error with message resolver.
+			bool address_overflow = max_addr - base_address < line->object_code_bytes();
+			if(address_overflow) { // Log error with message resolver.
+				success = false;
 				project->message_resolver->log_message(section, line->source_line, 
 					{masm::message_type::kError, ";Error: Positive address overflow."}
 				);
@@ -149,8 +150,9 @@ auto masm::backend::assign_section_backward(std::shared_ptr<masm::project::proje
 		 // Don't increment the base address for macros, since it will be incremented in recursive call.
 		else {
 			// Ensure that decrementing the base address won't cause our addr_size_t to experience negative overflow.
-			success &=   base_address >= line->object_code_bytes();
-			if(!success) { // Log error with message resolver.
+			bool address_overflow =   base_address + 1< line->object_code_bytes();
+			if(address_overflow) { // Log error with message resolver.
+				success = false;
 				project->message_resolver->log_message(section, line->source_line, 
 					{masm::message_type::kError, ";Error: Negative address overflow."}
 				);
