@@ -40,6 +40,7 @@ std::string masm::ir::macro_invocation<address_size_t>::generate_listing_string(
 	
 	for(auto line : macro->body_ir.value().ir_lines)
 	{
+		// TODO: Skip line if it is a .END
 		temp.append(fmt::format("\n{}}", line->generate_listing_string()));
 	}
 	temp.append(fmt::format("\n;End @{}", macro->header.name));

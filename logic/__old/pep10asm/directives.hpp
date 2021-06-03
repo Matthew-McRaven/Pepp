@@ -252,6 +252,8 @@ public:
     address_size_t object_code_bytes() const override;
     void append_object_code(std::vector<uint8_t>& code) const override;
 
+    std::optional<std::shared_ptr<const symbol::entry<address_size_t>>> symbolic_operand() const override;
+
     bool tracks_trace_tags() const override;
 
     friend void swap(dot_word& first, dot_word& second)

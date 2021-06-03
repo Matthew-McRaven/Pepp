@@ -6,7 +6,7 @@
 #include "symbol/table.hpp"
 
 /*
- * .BLOCK
+ * .ADDRSS
  */
 template <typename address_size_t>
 masm::ir::dot_address<address_size_t>::dot_address(const masm::ir::dot_address<address_size_t>& other)
@@ -93,6 +93,7 @@ masm::ir::dot_align<address_size_t>::dot_align()
 {
 	this->emits_object_code = true;
 }
+
 template <typename address_size_t>
 masm::ir::dot_align<address_size_t>::dot_align(const masm::ir::dot_align<address_size_t>& other)
 {
@@ -212,6 +213,7 @@ masm::ir::dot_ascii<address_size_t>::dot_ascii()
 {
 	this->emits_object_code = true;
 }
+
 template <typename address_size_t>
 masm::ir::dot_ascii<address_size_t>::dot_ascii(const masm::ir::dot_ascii<address_size_t>& other)
 {
@@ -225,7 +227,6 @@ masm::ir::dot_ascii<address_size_t> &masm::ir::dot_ascii<address_size_t>::operat
     swap(*this, other);
     return *this;
 }
-
 
 template <typename address_size_t>
 std::shared_ptr<masm::ir::linear_line<address_size_t>> masm::ir::dot_ascii<address_size_t>::clone() const
@@ -305,6 +306,7 @@ void masm::ir::dot_ascii<address_size_t>::append_object_code(std::vector<uint8_t
 	bytes.insert(bytes.end(), vals.begin(), vals.end());
 	
 }
+
 /*
  * .BLOCK
  */
@@ -313,6 +315,7 @@ masm::ir::dot_block<address_size_t>::dot_block()
 {
 	this->emits_object_code = true;
 }
+
 template <typename address_size_t>
 masm::ir::dot_block<address_size_t>::dot_block(const masm::ir::dot_block<address_size_t>& other)
 {
@@ -730,7 +733,7 @@ std::string masm::ir::dot_word<address_size_t>::generate_source_string() const
     if (this->symbol_entry != nullptr) {
         symbol_string = this->symbol_entry->name + ":";
     }
-    auto dot_string = ".BYTE";
+    auto dot_string = ".WORD";
     auto operand_string = argument->string();
 	std::string comment = this->comment.value_or("");
     return fmt::format("{:<9}{:<8}{:<12}{}",
@@ -754,6 +757,15 @@ void masm::ir::dot_word<address_size_t>::append_object_code(std::vector<uint8_t>
 	if(!this->emits_object_code) return;
 	bytes.emplace_back((argument->value() >> 8 ) & 0xff);
 	bytes.emplace_back(argument->value() & 0xff);
+}
+
+template <typename address_size_t>
+std::optional<std::shared_ptr<const symbol::entry<address_size_t> > > masm::ir::dot_word<address_size_t>::symbolic_operand() const
+{
+    if(auto as_symbolic = std::dynamic_pointer_cast<masm::ir::symbol_ref_argument<address_size_t>>(argument)) {
+		return as_symbolic->symbol_value();
+	}
+    return std::nullopt;
 }
 
 template <typename address_size_t>
