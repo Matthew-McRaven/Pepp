@@ -59,12 +59,11 @@ std::string masm::ir::macro_invocation<address_size_t>::generate_source_string()
     }
 	auto macro_name = macro->header.name;
 	auto operand_string = boost::algorithm::join(macro->macro_args, ", ");
-	std::string comment = this->comment.value_or("");
     return fmt::format("{:<9}{:<8}{:<12}{}",
 		symbol_string,
 		macro_name,
 		operand_string,
-		comment
+		this->get_formatted_comment()
 	);
 
 }

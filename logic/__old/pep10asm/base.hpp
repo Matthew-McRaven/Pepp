@@ -40,6 +40,7 @@ public:
 
     virtual bool is_code() const { return false;}
     virtual void append_object_code(std::vector<uint8_t>& code) const = 0;
+    std::string get_formatted_comment() const;
 
 
     virtual std::optional<std::shared_ptr<const symbol_t>> symbolic_operand() const { return nullptr;}

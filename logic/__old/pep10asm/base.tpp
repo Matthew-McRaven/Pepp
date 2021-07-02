@@ -22,3 +22,10 @@ masm::ir::linear_line<address_size_t>::linear_line(const linear_line<address_siz
 
 template <typename address_size_t>
 masm::ir::linear_line<address_size_t>::~linear_line() = default;
+
+template <typename address_size_t>
+std::string masm::ir::linear_line<address_size_t>::get_formatted_comment() const
+{
+	if (this->comment) return ";"+*comment;
+	else return "";
+}

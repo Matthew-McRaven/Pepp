@@ -54,12 +54,11 @@ std::string masm::ir::dot_address<address_size_t>::generate_source_string() cons
     }
     auto dot_string = ".ADDRSS";
     auto operand_string = argument->string();
-	std::string comment = this->comment.value_or("");
     return fmt::format("{:<9}{:<8}{:<12}{}",
 		symbol_string,
 		dot_string,
 		operand_string,
-		comment
+		this->get_formatted_comment()
 	);
 
 }
@@ -158,12 +157,11 @@ std::string masm::ir::dot_align<address_size_t>::generate_source_string() const
     }
     auto dot_string = ".ALIGN";
     auto operand_string = argument->string();
-	std::string comment = this->comment.value_or("");
     return fmt::format("{:<9}{:<8}{:<12}{}",
 		symbol_string,
 		dot_string,
 		operand_string,
-		comment
+		this->get_formatted_comment()
 	);
 
 }
@@ -278,12 +276,11 @@ std::string masm::ir::dot_ascii<address_size_t>::generate_source_string() const
     }
     auto dot_string = ".ASCII";
     auto operand_string = argument->string();
-	std::string comment = this->comment.value_or("");
     return fmt::format("{:<9}{:<8}{:<12}{}",
 		symbol_string,
 		dot_string,
 		"\""+operand_string+"\"",
-		comment
+		this->get_formatted_comment()
 	);
 
 }
@@ -380,12 +377,11 @@ std::string masm::ir::dot_block<address_size_t>::generate_source_string() const
     }
     auto dot_string = ".BLOCK";
     auto operand_string = argument->string();
-	std::string comment = this->comment.value_or("");
     return fmt::format("{:<9}{:<8}{:<12}{}",
 		symbol_string,
 		dot_string,
 		operand_string,
-		comment
+		this->get_formatted_comment()
 	);
 
 }
@@ -451,12 +447,11 @@ std::string masm::ir::dot_burn<address_size_t>::generate_source_string() const
 
     auto dot_string = ".BURN";
     auto operand_string = argument->string();
-	std::string comment = this->comment.value_or("");
     return fmt::format("{:<9}{:<8}{:<12}{}",
 		"",
 		dot_string,
 		operand_string,
-		comment
+		this->get_formatted_comment()
 	);
 
 }
@@ -525,12 +520,11 @@ std::string masm::ir::dot_byte<address_size_t>::generate_source_string() const
     }
     auto dot_string = ".BYTE";
     auto operand_string = argument->string();
-	std::string comment = this->comment.value_or("");
     return fmt::format("{:<9}{:<8}{:<12}{}",
 		symbol_string,
 		dot_string,
 		operand_string,
-		comment
+		this->get_formatted_comment()
 	);
 
 }
@@ -594,12 +588,11 @@ template <typename address_size_t>
 std::string masm::ir::dot_end<address_size_t>::generate_source_string() const
 {
     auto dot_string = ".END";
-	std::string comment = this->comment.value_or("");
     return fmt::format("{:<9}{:<8}{:<12}{}",
 		"",
 		dot_string,
 		"",
-		comment
+		this->get_formatted_comment()
 	);
 
 }
@@ -655,12 +648,11 @@ std::string masm::ir::dot_equate<address_size_t>::generate_source_string() const
     }
     auto dot_string = ".EQUATE";
     auto operand_string = argument->string();
-	std::string comment = this->comment.value_or("");
     return fmt::format("{:<9}{:<8}{:<12}{}",
 		symbol_string,
 		dot_string,
 		operand_string,
-		comment
+		this->get_formatted_comment()
 	);
 
 }
@@ -735,12 +727,11 @@ std::string masm::ir::dot_word<address_size_t>::generate_source_string() const
     }
     auto dot_string = ".WORD";
     auto operand_string = argument->string();
-	std::string comment = this->comment.value_or("");
     return fmt::format("{:<9}{:<8}{:<12}{}",
 		symbol_string,
 		dot_string,
 		operand_string,
-		comment
+		this->get_formatted_comment()
 	);
 
 }
