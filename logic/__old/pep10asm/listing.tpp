@@ -27,18 +27,7 @@ std::string masm::utils::generate_formatted_bytecode(std::shared_ptr<masm::elf::
 	assert(bytes_per_line > 0);
 
 	auto object_code =  get_bytecode(image);
-	return generate_formatted_bytecode(object_code, bytes_per_line);
+	return format_bytecode(object_code, bytes_per_line);
 
 }
 
-std::string masm::utils::generate_formatted_bytecode(const std::vector<uint8_t>& object_code,
-		uint8_t bytes_per_line)
-{
-	std::string object_string = "";
-    for (int i = 0; i < object_code.size(); i++) {
-        object_string +=(fmt::format("{:02x}", object_code[i]));
-        object_string += (((i % bytes_per_line) == bytes_per_line - 1) ? "\n" : " ");
-    }
-    object_string.append("zz");
-	return object_string;
-}
