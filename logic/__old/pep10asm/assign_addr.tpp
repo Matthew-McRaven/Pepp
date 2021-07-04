@@ -44,7 +44,7 @@ auto masm::backend::assign_section_line_numbers(std::shared_ptr<masm::project::p
 	addr_size_t& listing_line
 ) -> bool
 {
-	addr_size_t source_line = 0
+	addr_size_t source_line = 0;
 	auto success = true;
 	auto &ir = section->body_ir->ir_lines;
 	for(auto& line : ir) {
