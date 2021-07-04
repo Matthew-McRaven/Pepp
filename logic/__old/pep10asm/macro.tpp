@@ -40,7 +40,8 @@ std::string masm::ir::macro_invocation<address_size_t>::generate_listing_string(
 	
 	for(auto line : macro->body_ir.value().ir_lines)
 	{
-		// TODO: Skip line if it is a .END
+		// Don't include a macros .END directive. This would make the listing confusing.
+		if(auto as_end = std::dynamic_pointer_cast<masm::ir::dot_end<address_size_t>>(line); as_end) continue;
 		temp.append(fmt::format("\n{}}", line->generate_listing_string()));
 	}
 	temp.append(fmt::format("\n;End @{}", macro->header.name));
