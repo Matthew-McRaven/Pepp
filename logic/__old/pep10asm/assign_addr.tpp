@@ -30,6 +30,32 @@ auto masm::backend::assign_image(std::shared_ptr<masm::project::project<addr_siz
 			auto start_address = uint16_t{0};
 			success &= assign_section_forward(project, image, as_code, start_address);
 		}
+		address_size_t listing_line = 0
+		success &= assign_section_line_numbers(project, image, section, listing_line);
+	}
+	
+	return success;
+}
+
+template <typename addr_size_t>
+auto masm::backend::assign_section_line_numbers(std::shared_ptr<masm::project::project<addr_size_t> >& project, 
+	std::shared_ptr<masm::elf::image<addr_size_t> >& image,
+	std::shared_ptr<masm::elf::code_section<addr_size_t> >& section,
+	addr_size_t& listing_line
+) -> bool
+{
+	addr_size_t source_line = 0
+	auto success = true;
+	auto &ir = section->body_ir->ir_lines;
+	for(auto& line : ir) {
+		line->source_line = source_line;
+		line->listing_line = listing_line;
+		// Recurse into macro modules.
+		if(auto as_macro = std::dynamic_pointer_cast<masm::ir::macro_invocation<addr_size_t>>(line); as_macro) {
+			auto as_code = std::static_pointer_cast<masm::elf::code_section<addr_size_t>>(as_macro->macro);
+			success &= assign_section_line_numbers(project, image, as_code, listing_line_number);
+		} else listing_line += 1;
+		source_line += 1;
 	}
 	return success;
 }
