@@ -31,7 +31,7 @@ auto masm::backend::assign_image(std::shared_ptr<masm::project::project<addr_siz
 			success &= assign_section_forward(project, image, as_code, start_address);
 		}
 		addr_size_t listing_line = 0;
-		success &= assign_section_line_numbers(project, image, section, listing_line);
+		success &= assign_section_line_numbers(project, image, as_code, listing_line);
 	}
 	
 	return success;
@@ -84,7 +84,10 @@ auto masm::backend::assign_section_forward(std::shared_ptr<masm::project::projec
 
 		// If a symbol is singly defined, assign in an address
 		if(line->symbol_entry && line->symbol_entry->state == symbol::definition_state::kSingle){
-			line->symbol_entry->value = std::make_shared<symbol::value_location<addr_size_t>>(line->base_address(), 0);
+			auto type = symbol::Type::kEmpty;
+			if(line->bytes_type() == masm::ir::ByteType::kData) type = symbol::Type::kObject;
+			else if(line->bytes_type() == masm::ir::ByteType::kCode) type = symbol::Type::kCode;
+			line->symbol_entry->value = std::make_shared<symbol::value_location<addr_size_t>>(line->base_address(), 0, type);
 		}
 		// If a symbol is multiplt defined or externally multiply defined, raise an error
 		else if(line->symbol_entry && line->symbol_entry->state == symbol::definition_state::kMultiple){
@@ -152,7 +155,10 @@ auto masm::backend::assign_section_backward(std::shared_ptr<masm::project::proje
 
 		// If a symbol is singly defined, assign in an address
 		if(line->symbol_entry && line->symbol_entry->state == symbol::definition_state::kSingle){
-			line->symbol_entry->value = std::make_shared<symbol::value_location<addr_size_t>>(line->base_address(), 0);
+			auto type = symbol::Type::kEmpty;
+			if(line->bytes_type() == masm::ir::ByteType::kData) type = symbol::Type::kObject;
+			else if(line->bytes_type() == masm::ir::ByteType::kCode) type = symbol::Type::kCode;
+			line->symbol_entry->value = std::make_shared<symbol::value_location<addr_size_t>>(line->base_address(), 0, type);
 		}
 		// If a symbol is multiplt defined or externally multiply defined, raise an error
 		else if(line->symbol_entry && line->symbol_entry->state == symbol::definition_state::kMultiple){
