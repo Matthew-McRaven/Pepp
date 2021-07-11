@@ -12,14 +12,14 @@ namespace components::storage{
 // TODO: Refactor using a memory span.
 template<typename offset_t, typename val_size_t=uint8_t>
 	requires (components::storage::UnsignedIntegral<offset_t> && components::storage::Integral<val_size_t>)
-class storage_bicast: public components::storage::storage_base<offset_t, val_size_t>
+class Bicast: public components::storage::Base<offset_t, val_size_t>
 {
 public:
 	// TODO: Rule of 5.
 	// TODO: Copy-swap.
 	using storager_ptr_t = std::shared_ptr<components::storage::storage_base<offset_t, val_size_t>>;
-	storage_bicast(storager_ptr_t primary, storager_ptr_t replica);
-    virtual ~storage_bicast() = default;
+	Bicast(storager_ptr_t primary, storager_ptr_t replica);
+    virtual ~Bicast() = default;
 	void clear(val_size_t fill_val=0) override;
     // Read / Write functions that may generate signals or trap for IO.
     val_size_t read(offset_t offset) const override;

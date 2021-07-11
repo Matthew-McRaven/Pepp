@@ -11,14 +11,14 @@ namespace components::storage{
 // TODO: Refactor using a memory span.
 template<typename offset_t, typename val_size_t=uint8_t>
 	requires (components::storage::UnsignedIntegral<offset_t> && components::storage::Integral<val_size_t>)
-class storage_base
+class Base
 {
 public:
 	// TODO: Rule of 5.
 	// TODO: Copy-swap.
     // TODO: Ban copying "C.67: A polymorphic class should suppress copying"
-	storage_base(offset_t max_offset);
-	virtual ~storage_base() = default;
+	Base(offset_t max_offset);
+	virtual ~Base() = default;
 	virtual void clear(val_size_t fill_val=0) = 0;
     // Read / Write functions that may generate signals or trap for IO.
     virtual val_size_t read(offset_t offset) const = 0;

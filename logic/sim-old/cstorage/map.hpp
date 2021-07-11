@@ -10,12 +10,12 @@
 namespace components::storage {
 template <typename offset_t, typename val_size_t=uint8_t>
 	requires (components::storage::UnsignedIntegral<offset_t> && components::storage::Integral<val_size_t>)
-class storage_map: public components::storage::storage_base<offset_t, val_size_t>
+class Map: public components::storage::Base<offset_t, val_size_t>
 {
 public:
 	// TODO: Rule of 5.
 	// TODO: Copy-swap.
-	storage_map(offset_t max_offset, val_size_t default_value=0);
+	Map(offset_t max_offset, val_size_t default_value=0);
 	void clear(val_size_t fill_val=0) override;
     // Read / Write functions that may generate signals or trap for IO.
     val_size_t read(offset_t offset) const override;

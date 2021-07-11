@@ -4,8 +4,8 @@
  */
 template <typename offset_t, typename val_size_t>
 	requires (components::storage::UnsignedIntegral<offset_t> && components::storage::Integral<val_size_t>)
-components::storage::storage_range<offset_t, val_size_t>::storage_range(offset_t max_offset, val_size_t default_value): 
-	components::storage::storage_base<offset_t, val_size_t>(max_offset),
+components::storage::Range<offset_t, val_size_t>::Range(offset_t max_offset, val_size_t default_value): 
+	components::storage::Base<offset_t, val_size_t>(max_offset),
 	_default(default_value), _storage()
 {
 
@@ -13,7 +13,7 @@ components::storage::storage_range<offset_t, val_size_t>::storage_range(offset_t
 
 template <typename offset_t, typename val_size_t>
 	requires (components::storage::UnsignedIntegral<offset_t> && components::storage::Integral<val_size_t>)
-void components::storage::storage_range<offset_t, val_size_t>::clear(val_size_t fill_val)
+void components::storage::Range<offset_t, val_size_t>::clear(val_size_t fill_val)
 {
 	_storage.clear();
 	_default = fill_val;
@@ -21,7 +21,7 @@ void components::storage::storage_range<offset_t, val_size_t>::clear(val_size_t 
 
 template <typename offset_t, typename val_size_t>
 	requires (components::storage::UnsignedIntegral<offset_t> && components::storage::Integral<val_size_t>)
-val_size_t components::storage::storage_range<offset_t, val_size_t>::read(offset_t offset) const
+val_size_t components::storage::Range<offset_t, val_size_t>::read(offset_t offset) const
 {
 	static auto comp = [](const components::storage::storage_span<offset_t>& lhs, offset_t rhs){
 		return std::get<0>(lhs.span) < rhs;
@@ -41,14 +41,14 @@ val_size_t components::storage::storage_range<offset_t, val_size_t>::read(offset
 
 template <typename offset_t, typename val_size_t>
 	requires (components::storage::UnsignedIntegral<offset_t> && components::storage::Integral<val_size_t>)
-val_size_t components::storage::storage_range<offset_t, val_size_t>::get(offset_t offset) const
+val_size_t components::storage::Range<offset_t, val_size_t>::get(offset_t offset) const
 {
 	return read(offset);
 }
 
 template <typename offset_t, typename val_size_t>
 	requires (components::storage::UnsignedIntegral<offset_t> && components::storage::Integral<val_size_t>)
-void components::storage::storage_range<offset_t, val_size_t>::write(offset_t offset, val_size_t value)
+void components::storage::Range<offset_t, val_size_t>::write(offset_t offset, val_size_t value)
 {
 	if(offset > this->_max_offset) oob_write_helper(offset, value);
 
@@ -105,14 +105,14 @@ void components::storage::storage_range<offset_t, val_size_t>::write(offset_t of
 
 template <typename offset_t, typename val_size_t>
 	requires (components::storage::UnsignedIntegral<offset_t> && components::storage::Integral<val_size_t>)
-void components::storage::storage_range<offset_t, val_size_t>::set(offset_t offset, val_size_t value)
+void components::storage::Range<offset_t, val_size_t>::set(offset_t offset, val_size_t value)
 {
 	write(offset, value);
 }
 
 template <typename offset_t, typename val_size_t>
 	requires (components::storage::UnsignedIntegral<offset_t> && components::storage::Integral<val_size_t>)
-void components::storage::storage_range<offset_t, val_size_t>::resize(offset_t new_offset) noexcept
+void components::storage::Range<offset_t, val_size_t>::resize(offset_t new_offset) noexcept
 {
 	this->_max_offset = new_offset;
 	clear();

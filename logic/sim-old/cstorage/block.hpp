@@ -12,13 +12,13 @@ namespace components::storage{
 // TODO: Refactor using a memory span.
 template<typename offset_t, typename val_size_t=uint8_t>
 	requires (components::storage::UnsignedIntegral<offset_t> && components::storage::Integral<val_size_t>)
-class storage_block: public components::storage::storage_base<offset_t, val_size_t>
+class Block: public components::storage::Base<offset_t, val_size_t>
 {
 public:
 	// TODO: Rule of 5.
 	// TODO: Copy-swap.
-	storage_block(offset_t max_offset);
-    virtual ~storage_block() = default;
+	Block(offset_t max_offset);
+    virtual ~Block() = default;
 	void clear(val_size_t fill_val=0) override;
     // Read / Write functions that may generate signals or trap for IO.
     val_size_t read(offset_t offset) const override;
