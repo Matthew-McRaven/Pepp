@@ -100,7 +100,7 @@ std::shared_ptr<const typename components::storage::Channel<offset_t, val_size_t
 	fixup = ptr->next_node;
 	while(fixup) {
 		// Must cahce next node, or we will lose it forever.
-		fixup_next = fixup->next_npde;
+		fixup_next = fixup->next_node;
 		// Force the node to point to the new "latest" value in either direction.
 		fixup->prev_node = fixup->next_node = ptr;
 		// And mark the node as empty, so that next_event and previous_event will "skip" this node.
@@ -119,7 +119,7 @@ template<typename offset_t, typename val_size_t>
 std::shared_ptr<const typename components::storage::Channel<offset_t, val_size_t>::Event> components::storage::Channel<offset_t, val_size_t>::event_at(size_t time) const
 {
 	// No event can have a timestamp higher than the distance between the tail and head.
-	if(time >= tail->displacement) return nullptr;
+	if(time > tail->displacement) return nullptr;
 	auto ptr = head;
 	while(ptr->displacement != time) ptr = ptr->next_node;
 	return ptr;
@@ -183,7 +183,7 @@ template<typename offset_t, typename val_size_t>
 std::shared_ptr<typename components::storage::Channel<offset_t, val_size_t>::Event> components::storage::Channel<offset_t, val_size_t>::mutable_event_at(size_t time)
 {
 	// No event can have a timestamp higher than the distance between the tail and head.
-	if(time >= tail->displacement) return nullptr;
+	if(time > tail->displacement) return nullptr;
 	auto ptr = head;
 	while(ptr->displacement != time) ptr = ptr->next_node;
 	return ptr;
