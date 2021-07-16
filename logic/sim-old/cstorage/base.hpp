@@ -35,7 +35,7 @@ public:
 	// Resizing the underlying storage may indeed throw due to lack of memory or a myriad of other STL problems.
 	// If this is the case, there is absolutely nothing we can do to fix application state -- we are out of memory.
 	// Just terminate directly.
-    virtual void resize(offset_t new_offset) = 0;
+    virtual outcome<void> resize(offset_t new_offset) = 0;
 	
 protected:
 	offset_t _max_offset;

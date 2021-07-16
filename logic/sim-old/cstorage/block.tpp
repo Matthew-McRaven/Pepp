@@ -53,9 +53,10 @@ outcome<void> components::storage::Block<offset_t, val_size_t>::write(offset_t o
 
 template <typename offset_t, typename val_size_t>
 	requires (components::storage::UnsignedIntegral<offset_t> && components::storage::Integral<val_size_t>)
-void components::storage::Block<offset_t, val_size_t>::resize(offset_t new_offset)
+outcome<void> components::storage::Block<offset_t, val_size_t>::resize(offset_t new_offset)
 {
 	this->_max_offset = new_offset;
 	_storage.resize(new_offset+1);
 	clear();
+	return outcome<void>(OUTCOME_V2_NAMESPACE::in_place_type<void>);
 }

@@ -25,7 +25,7 @@ public:
 
     // Change the size of the chip at runtime, to avoid creating and deleting
     // an excessive number of chip instances.
-    void resize(offset_t new_offset) override;
+    outcome<void> resize(offset_t new_offset) override;
 private:
 	val_size_t _default;
 	std::map<offset_t, val_size_t> _storage;

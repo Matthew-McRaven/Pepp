@@ -31,7 +31,7 @@ public:
     // offset_t max_offset() const noexcept;
     // Change the size of the chip at runtime, to avoid creating and deleting
     // an excessive number of chip instances.
-    void resize(offset_t new_offset) override;
+    outcome<void> resize(offset_t new_offset) override;
 private:
 	std::vector<val_size_t> _storage;
 };

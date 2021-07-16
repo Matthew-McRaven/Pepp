@@ -10,7 +10,9 @@
 enum class StorageErrc
 {
   Success     = 0, // 0 should not represent an error
-  NoMMInput, // Storage operation failed because there was no memory-mapped input available. This is recoverable
+  NoMMInput, // Storage operation failed because there was no memory-mapped input available. This is recoverable.
+  ResizeError, // Attempted to resize a component which may not be resized. This is recoverable by creating additional instances of the class.
+  Unwritable, // Write failed because the device doesn't support writing. The value written was ignored. This is recoverable.
 };
 
 namespace std
@@ -39,6 +41,8 @@ namespace detail
         return "Storage access successful";
       case StorageErrc::NoMMInput:
         return "No memory-mapped input available";
+      case StorageErrc::ResizeError:
+        return "Storage resize failed";
       default:
         return "unknown";
       }
@@ -50,6 +54,8 @@ namespace detail
       {
       case StorageErrc::NoMMInput:
         return make_error_condition(std::errc::io_error);
+      case StorageErrc::ResizeError:
+        return make_error_condition(std::errc::not_enough_memory);
       default:
         // I have no mapping for this code
         return std::error_condition(c, *this);
