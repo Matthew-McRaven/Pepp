@@ -18,14 +18,14 @@ public:
 	Map(offset_t max_offset, val_size_t default_value=0);
 	void clear(val_size_t fill_val=0) override;
     // Read / Write functions that may generate signals or trap for IO.
-    val_size_t read(offset_t offset) const override;
-	val_size_t get(offset_t offset) const override;
-    void write(offset_t offset, val_size_t value) override;
-    void set(offset_t offset, val_size_t value) override;
+	outcome<val_size_t> get(offset_t offset) const override;
+	outcome<void> set(offset_t offset, val_size_t value) override;
+    outcome<val_size_t> read(offset_t offset) const override;
+    outcome<void> write(offset_t offset, val_size_t value) override;
 
     // Change the size of the chip at runtime, to avoid creating and deleting
     // an excessive number of chip instances.
-    void resize(offset_t new_offset) noexcept override;
+    void resize(offset_t new_offset) override;
 private:
 	val_size_t _default;
 	std::map<offset_t, val_size_t> _storage;

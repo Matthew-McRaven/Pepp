@@ -21,13 +21,31 @@ void components::storage::Range<offset_t, val_size_t>::clear(val_size_t fill_val
 
 template <typename offset_t, typename val_size_t>
 	requires (components::storage::UnsignedIntegral<offset_t> && components::storage::Integral<val_size_t>)
-val_size_t components::storage::Range<offset_t, val_size_t>::read(offset_t offset) const
+outcome<val_size_t> components::storage::Range<offset_t, val_size_t>::get(offset_t offset) const
+{
+	auto result = read(offset);
+	if(result.has_failure()) return result.failure();
+	else return result.value(); 
+}
+
+template <typename offset_t, typename val_size_t>
+	requires (components::storage::UnsignedIntegral<offset_t> && components::storage::Integral<val_size_t>)
+outcome<void> components::storage::Range<offset_t, val_size_t>::set(offset_t offset, val_size_t value)
+{
+	auto result = write(offset, value);
+	if(result.has_failure()) return result.failure();
+	else return outcome<void>(OUTCOME_V2_NAMESPACE::in_place_type<void>);
+}
+
+template <typename offset_t, typename val_size_t>
+	requires (components::storage::UnsignedIntegral<offset_t> && components::storage::Integral<val_size_t>)
+outcome<val_size_t> components::storage::Range<offset_t, val_size_t>::read(offset_t offset) const
 {
 	static auto comp = [](const components::storage::storage_span<offset_t>& lhs, offset_t rhs){
 		return std::get<0>(lhs.span) < rhs;
 	};
 
-	if(offset > this->_max_offset) oob_read_helper(offset);
+	if(offset > this->_max_offset) return oob_read_helper(offset);
 	else {
 		for(auto& span : _storage) {
 			if (auto dist = offset - std::get<0>(span.span);
@@ -41,16 +59,9 @@ val_size_t components::storage::Range<offset_t, val_size_t>::read(offset_t offse
 
 template <typename offset_t, typename val_size_t>
 	requires (components::storage::UnsignedIntegral<offset_t> && components::storage::Integral<val_size_t>)
-val_size_t components::storage::Range<offset_t, val_size_t>::get(offset_t offset) const
+outcome<void> components::storage::Range<offset_t, val_size_t>::write(offset_t offset, val_size_t value)
 {
-	return read(offset);
-}
-
-template <typename offset_t, typename val_size_t>
-	requires (components::storage::UnsignedIntegral<offset_t> && components::storage::Integral<val_size_t>)
-void components::storage::Range<offset_t, val_size_t>::write(offset_t offset, val_size_t value)
-{
-	if(offset > this->_max_offset) oob_write_helper(offset, value);
+	if(offset > this->_max_offset) return oob_write_helper(offset, value);
 
 	bool inserted = false, check_merge = false;
 	// Attempt to modify an existing delta in-place if possible.
@@ -101,18 +112,12 @@ void components::storage::Range<offset_t, val_size_t>::write(offset_t offset, va
 			}
 		}
 	}
+	return outcome<void>(OUTCOME_V2_NAMESPACE::in_place_type<void>);
 }
 
 template <typename offset_t, typename val_size_t>
 	requires (components::storage::UnsignedIntegral<offset_t> && components::storage::Integral<val_size_t>)
-void components::storage::Range<offset_t, val_size_t>::set(offset_t offset, val_size_t value)
-{
-	write(offset, value);
-}
-
-template <typename offset_t, typename val_size_t>
-	requires (components::storage::UnsignedIntegral<offset_t> && components::storage::Integral<val_size_t>)
-void components::storage::Range<offset_t, val_size_t>::resize(offset_t new_offset) noexcept
+void components::storage::Range<offset_t, val_size_t>::resize(offset_t new_offset) 
 {
 	this->_max_offset = new_offset;
 	clear();

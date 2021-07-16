@@ -4,8 +4,8 @@
 #include <vector>
 #include <type_traits>
 
-#include "helper.hpp"
 #include "base.hpp"
+#include "helper.hpp"
 
 namespace components::storage{
 
@@ -17,20 +17,21 @@ class Block: public components::storage::Base<offset_t, val_size_t>
 public:
 	// TODO: Rule of 5.
 	// TODO: Copy-swap.
+	// Allocating underlying storage can fail, but we can't recover from this error. Terminate directly.
 	Block(offset_t max_offset);
-    virtual ~Block() = default;
+    virtual ~Block() noexcept = default;
 	void clear(val_size_t fill_val=0) override;
     // Read / Write functions that may generate signals or trap for IO.
-    val_size_t read(offset_t offset) const override;
-	val_size_t get(offset_t offset) const override;
-    void write(offset_t offset, val_size_t value) override;
-    void set(offset_t offset, val_size_t value) override;
+	outcome<val_size_t> get(offset_t offset) const override;
+	outcome<void> set(offset_t offset, val_size_t value) override;
+    outcome<val_size_t> read(offset_t offset) const override;
+    outcome<void> write(offset_t offset, val_size_t value) override;
 
 	// Number of bytes contained by this chip
     // offset_t max_offset() const noexcept;
     // Change the size of the chip at runtime, to avoid creating and deleting
     // an excessive number of chip instances.
-    void resize(offset_t new_offset) noexcept override;
+    void resize(offset_t new_offset) override;
 private:
 	std::vector<val_size_t> _storage;
 };

@@ -5,6 +5,7 @@
 #include <type_traits>
 
 #include "helper.hpp"
+#include "outcome_helper.hpp"
 
 namespace components::storage{
 
@@ -14,23 +15,27 @@ template<typename offset_t, typename val_size_t=uint8_t>
 class Base
 {
 public:
+
 	// TODO: Rule of 5.
 	// TODO: Copy-swap.
     // TODO: Ban copying "C.67: A polymorphic class should suppress copying"
 	Base(offset_t max_offset);
-	virtual ~Base() = default;
+	virtual ~Base() noexcept = default;
 	virtual void clear(val_size_t fill_val=0) = 0;
     // Read / Write functions that may generate signals or trap for IO.
-    virtual val_size_t read(offset_t offset) const = 0;
-	virtual val_size_t get(offset_t offset) const = 0;
-    virtual void write(offset_t offset, val_size_t value) = 0;
-    virtual void set(offset_t offset, val_size_t value) = 0;
+	virtual outcome<val_size_t> get(offset_t offset) const = 0;
+	virtual outcome<void> set(offset_t offset, val_size_t value) = 0;
+    virtual outcome<val_size_t> read(offset_t offset) const = 0;
+    virtual outcome<void> write(offset_t offset, val_size_t value) = 0;
 
 	// Number of bytes contained by this chip
-    virtual offset_t max_offset() const noexcept;
+    virtual offset_t max_offset() const;
     // Change the size of the chip at runtime, to avoid creating and deleting
     // an excessive number of chip instances.
-    virtual void resize(offset_t new_offset) noexcept = 0;
+	// Resizing the underlying storage may indeed throw due to lack of memory or a myriad of other STL problems.
+	// If this is the case, there is absolutely nothing we can do to fix application state -- we are out of memory.
+	// Just terminate directly.
+    virtual void resize(offset_t new_offset) = 0;
 	
 protected:
 	offset_t _max_offset;
