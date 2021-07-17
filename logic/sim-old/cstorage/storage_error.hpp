@@ -13,6 +13,8 @@ enum class StorageErrc
   NoMMInput, // Storage operation failed because there was no memory-mapped input available. This is recoverable.
   ResizeError, // Attempted to resize a component which may not be resized. This is recoverable by creating additional instances of the class.
   Unwritable, // Write failed because the device doesn't support writing. The value written was ignored. This is recoverable.
+  NoAvailableHistory, // Attempted to read a storage device whose history has been exhausted. This is recoverable.
+  HistoryDisabled // Attempted to read a storage device which has history disabled. This is recoverable.
 };
 
 namespace std

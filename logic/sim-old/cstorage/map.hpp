@@ -8,9 +8,9 @@
 #include "components/storage/base.hpp"
 
 namespace components::storage {
-template <typename offset_t, typename val_size_t=uint8_t>
+template <typename offset_t, bool enable_history=true, typename val_size_t=uint8_t>
 	requires (components::storage::UnsignedIntegral<offset_t> && components::storage::Integral<val_size_t>)
-class Map: public components::storage::Base<offset_t, val_size_t>
+class Map: public components::storage::Base<offset_t, enable_history, val_size_t>
 {
 public:
 	// TODO: Rule of 5.
@@ -22,6 +22,11 @@ public:
 	outcome<void> set(offset_t offset, val_size_t value) override;
     outcome<val_size_t> read(offset_t offset) const override;
     outcome<void> write(offset_t offset, val_size_t value) override;
+	
+	// Provide undo functionality if the class has history enabled.
+	bool can_undo() const override;
+	outcome<val_size_t> unread(offset_t offset) override;
+	outcome<val_size_t> unwrite(offset_t offset) override;
 
     // Change the size of the chip at runtime, to avoid creating and deleting
     // an excessive number of chip instances.
