@@ -47,4 +47,4 @@ struct quick_status_code_from_enum<StorageErrc>
 SYSTEM_ERROR2_NAMESPACE_END
 
 // Kind helper method to convert enum to type-erased system code.
-SYSTEM_ERROR2_NAMESPACE::system_code status_code(StorageErrc c) { return c; }
+SYSTEM_ERROR2_NAMESPACE::system_code status_code(StorageErrc c);// { return c; }
