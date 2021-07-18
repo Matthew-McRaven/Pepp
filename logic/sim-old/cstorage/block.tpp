@@ -7,7 +7,7 @@ template <typename offset_t, bool enable_history, typename val_size_t>
 components::storage::Block<offset_t, enable_history, val_size_t>::Block(offset_t max_offset) requires(enable_history): 
 	components::storage::Base<offset_t, enable_history, val_size_t>(max_offset),
 	_storage(std::vector<val_size_t>(this->_max_offset + 1)),
-	_delta(new components::delta::Vector<offset_t, val_size_t>(*this))
+	_delta(std::make_unique<components::delta::Vector<offset_t, val_size_t>>(*this))
 {
 
 }
@@ -16,7 +16,7 @@ template <typename offset_t, bool enable_history, typename val_size_t>
 	requires (components::storage::UnsignedIntegral<offset_t> && components::storage::Integral<val_size_t>)
 components::storage::Block<offset_t, enable_history, val_size_t>::Block(offset_t max_offset) requires(!enable_history): 
 	components::storage::Base<offset_t, enable_history, val_size_t>(max_offset),
-	_storage(std::vector<val_size_t>(this->_max_offset + 1))
+	_storage(std::vector<val_size_t>(this->_max_offset + 1)), _delta(nullptr)
 {
 
 }
