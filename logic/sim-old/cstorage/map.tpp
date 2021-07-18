@@ -3,9 +3,19 @@
  */
 template <typename offset_t, bool enable_history, typename val_size_t>
 	requires (components::storage::UnsignedIntegral<offset_t> && components::storage::Integral<val_size_t>)
-components::storage::Map<offset_t, enable_history, val_size_t>::Map(offset_t max_offset, val_size_t default_value): 
-	components::storage::Base<offset_t, enable_history, val_size_t>(max_offset),
-	_default(default_value), _storage()
+components::storage::Map<offset_t, enable_history, val_size_t>::Map(offset_t max_offset, val_size_t default_value)
+	requires(enable_history): components::storage::Base<offset_t, enable_history, val_size_t>(max_offset),
+	_default(default_value), _storage(),
+	_delta(std::make_unique<components::delta::Vector<offset_t, val_size_t>>(*this))
+{
+
+}
+
+template <typename offset_t, bool enable_history, typename val_size_t>
+	requires (components::storage::UnsignedIntegral<offset_t> && components::storage::Integral<val_size_t>)
+components::storage::Map<offset_t, enable_history, val_size_t>::Map(offset_t max_offset, val_size_t default_value)
+	requires(!enable_history): components::storage::Base<offset_t, enable_history, val_size_t>(max_offset),
+	_default(default_value), _storage(), _delta(nullptr)
 {
 
 }

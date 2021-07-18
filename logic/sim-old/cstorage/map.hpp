@@ -15,7 +15,8 @@ class Map: public components::storage::Base<offset_t, enable_history, val_size_t
 public:
 	// TODO: Rule of 5.
 	// TODO: Copy-swap.
-	Map(offset_t max_offset, val_size_t default_value=0);
+	Map(offset_t max_offset, val_size_t default_value=0) requires(enable_history);
+	Map(offset_t max_offset, val_size_t default_value=0) requires(!enable_history);
 	void clear(val_size_t fill_val=0) override;
     // Read / Write functions that may generate signals or trap for IO.
 	outcome<val_size_t> get(offset_t offset) const override;

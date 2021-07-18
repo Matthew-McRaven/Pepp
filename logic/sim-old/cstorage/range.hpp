@@ -17,7 +17,8 @@ class Range: public components::storage::Base<offset_t, enable_history, val_size
 public:
 	// TODO: Rule of 5.
 	// TODO: Copy-swap.
-	Range(offset_t max_offset, val_size_t default_value=0);
+	Range(offset_t max_offset, val_size_t default_value=0) requires(enable_history);
+	Range(offset_t max_offset, val_size_t default_value=0) requires(!enable_history);
 	virtual ~Range() = default;
 	void clear(val_size_t fill_val=0) override;
     // Read / Write functions that may generate signals or trap for IO.
@@ -37,7 +38,7 @@ public:
 private:
 	val_size_t _default;
 	std::vector<components::storage::storage_span<offset_t, val_size_t> > _storage;
-	std::unique_ptr<components::delta::Vector<offset_t, val_size_t>> _delta {nullptr};
+	std::unique_ptr<components::delta::Vector<offset_t, val_size_t>> _delta;
 };
-}; // End namespace components::storage
+} // End namespace components::storage
 #include "range.tpp"
