@@ -26,10 +26,10 @@ public:
     outcome<val_size_t> read(offset_t offset) const override;
     outcome<void> write(offset_t offset, val_size_t value) override;
 
-	// Provide undo functionality if the class has history enabled.
-	bool can_undo() const override;
-	outcome<val_size_t> unread(offset_t offset) override;
-	outcome<val_size_t> unwrite(offset_t offset) override;
+	// Provide  building block of `undo` using layered deltas.
+	bool deltas_enabled() const override;
+	outcome<void> clear_delta() override;
+	outcome<std::unique_ptr<components::delta::Base<offset_t, val_size_t>>> take_delta() override;
 
     // Change the size of the chip at runtime, to avoid creating and deleting
     // an excessive number of chip instances.
@@ -37,6 +37,7 @@ public:
 private:
 	val_size_t _default;
 	std::vector<components::storage::storage_span<offset_t, val_size_t> > _storage;
+	std::unique_ptr<components::delta::Vector<offset_t, val_size_t>> _delta {nullptr};
 };
 }; // End namespace components::storage
 #include "range.tpp"
