@@ -139,10 +139,7 @@ template <typename offset_t, bool enable_history, typename val_size_t>
 outcome<void> components::storage::Range<offset_t, enable_history, val_size_t>::clear_delta()
 {	
 	if constexpr(enable_history) {
-		// Helper for enabling std::swap.
-		using std::swap;
-		auto _ = std::make_unique<components::delta::Vector<offset_t, val_size_t>>(*this);
-		swap(_, _delta);
+		_delta->clear();
 		return outcome<void>(OUTCOME_V2_NAMESPACE::in_place_type<void>);
 	}
 	else {
