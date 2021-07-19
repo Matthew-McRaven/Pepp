@@ -141,7 +141,7 @@ outcome<void> components::storage::Range<offset_t, enable_history, val_size_t>::
 	if constexpr(enable_history) {
 		// Helper for enabling std::swap.
 		using std::swap;
-		std::unique_ptr<components::delta::Vector<offset_t, val_size_t>> _{};
+		auto _ = std::make_unique<components::delta::Vector<offset_t, val_size_t>>(*this);
 		swap(_, _delta);
 		return outcome<void>(OUTCOME_V2_NAMESPACE::in_place_type<void>);
 	}
@@ -157,7 +157,7 @@ outcome<std::unique_ptr<components::delta::Base<offset_t, val_size_t>>> componen
 	if constexpr(enable_history) {
 		// Helper for enabling std::swap.
 		using std::swap;
-		std::unique_ptr<components::delta::Vector<offset_t, val_size_t>> ret{};
+		auto ret = std::make_unique<components::delta::Vector<offset_t, val_size_t>>(*this);
 		swap(ret, _delta);
 		return {std::move(ret)};
 	}
