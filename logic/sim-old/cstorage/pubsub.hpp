@@ -67,6 +67,7 @@ public:
 	{
 	public:
 		Endpoint(std::shared_ptr<const Event> event, publisher_id_t id, std::shared_ptr<Channel> channel);
+		std::optional<val_size_t> current_value() const;
 		// Step forward one logical timestep through the state graph, and return the value of that node.
 		// Must be const so that storage devices derived from this class can have a read(...) const method.
 		std::optional<val_size_t> next_value() const;

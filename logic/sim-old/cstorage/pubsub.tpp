@@ -17,6 +17,13 @@ components::storage::Channel<offset_t, val_size_t>::Endpoint::Endpoint(std::shar
 
 template<typename offset_t, typename val_size_t>
 	requires (components::storage::UnsignedIntegral<offset_t> && components::storage::Integral<val_size_t>)
+std::optional<val_size_t> components::storage::Channel<offset_t, val_size_t>::Endpoint::current_value() const
+{
+	return this->event->value;
+}
+
+template<typename offset_t, typename val_size_t>
+	requires (components::storage::UnsignedIntegral<offset_t> && components::storage::Integral<val_size_t>)
 std::optional<val_size_t> components::storage::Channel<offset_t, val_size_t>::Endpoint::next_value() const
 {
 	// If we pass next_event the index of the last event, it'll return the last event.
