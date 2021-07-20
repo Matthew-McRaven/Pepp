@@ -12,7 +12,9 @@ enum class StorageErrc
   ResizeError, // Attempted to resize a component which may not be resized. This is recoverable by creating additional instances of the class.
   Unwritable, // Write failed because the device doesn't support writing. The value written was ignored. This is recoverable.
   NoAvailableDelta, // Attempted to read a storage device whose history has been exhausted. This is recoverable.
-  DeltaDisabled // Attempted to read a storage device which has history disabled. This is recoverable.
+  DeltaDisabled, // Attempted to read a storage device which has history disabled. This is recoverable.
+  OOBRead, // Attempted to read beyond the end of the storage. This is not recoverable.
+  OOBWrite, // Attempted to write beyond the end of the storage. This is not recoverable.
 };
 
 // To synthesise a custom status code domain for `StorageErrc`, inject the following
@@ -40,6 +42,8 @@ struct quick_status_code_from_enum<StorageErrc>
     {StorageErrc::Unwritable, "Storage cannot be written to", {errc::not_supported}},
     {StorageErrc::NoAvailableDelta, "No delta is stored in this class", {errc::no_message}},
     {StorageErrc::DeltaDisabled, "Instance has deltas disabled", {errc::not_supported}},
+    {StorageErrc::OOBRead, "Attempted to read beyond the end of the storage", {errc::bad_address}},
+    {StorageErrc::OOBWrite, "Attempted to write beyond the end of the storage", {errc::bad_address}},
     };
     return v;
   }
