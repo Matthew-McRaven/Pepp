@@ -9,7 +9,8 @@ template <typename offset_t>
 std::exception_ptr components::storage::oob_read_helper(offset_t offset)
 {
 	// TODO: Replace libfmt with STL's std::format. 
-    return std::make_exception_ptr(std::out_of_range(fmt::format("Out of range memory read at: {x}", offset))); 
+	auto err_str = fmt::format("Out-of-range-memory read at: {:x}", offset);
+    return std::make_exception_ptr(std::out_of_range(err_str)); 
 }
 
 template <typename offset_t, typename val_size_t>
@@ -17,5 +18,6 @@ template <typename offset_t, typename val_size_t>
 std::exception_ptr components::storage::oob_write_helper(offset_t offset, val_size_t value)
 {
 	// TODO: Replace libfmt with STL's std::format. 
-    return std::make_exception_ptr(std::out_of_range(fmt::format("Out of range memory write at: {x}", offset))); 
+	auto err_str = fmt::format("Out-of-range-memory write at: {:x}", offset);
+    return std::make_exception_ptr(std::out_of_range(err_str)); 
 }
