@@ -148,7 +148,7 @@ template <typename offset_t, bool enable_history, typename val_size_t>
 	requires (components::storage::UnsignedIntegral<offset_t> && components::storage::Integral<val_size_t>)
 void components::storage::Output<offset_t, enable_history, val_size_t>::clear(val_size_t fill_val)
 {
-	this-> _last_read_value = fill_val;
+	this-> _last_write_value = fill_val;
 	// TODO: Must add clear method to pubsub.
 }
 
@@ -167,7 +167,8 @@ template <typename offset_t, bool enable_history, typename val_size_t>
 outcome<void> components::storage::Output<offset_t, enable_history, val_size_t>::set(offset_t offset, val_size_t value)
 {
 	if(offset > this->_max_offset) return oob_write_helper(offset, value);
-	return *(this->last_write_value = value);
+	this->_last_write_value = value;
+	return outcome<void>(OUTCOME_V2_NAMESPACE::in_place_type<void>);
 }
 
 template <typename offset_t, bool enable_history, typename val_size_t>
@@ -183,11 +184,12 @@ outcome<void> components::storage::Output<offset_t, enable_history, val_size_t>:
 {
 	if(offset > this->_max_offset) return oob_write_helper(offset, value);
 	if constexpr(enable_history) {
-		_delta.add_delta();
+		_delta->add_delta();
 	}
 	// Add a new value to the state-graph, and updated cached last_write_value.
 	_endpoint->append_value(value);
-	return this->_last_write_value = value;
+	this->_last_write_value = value;
+	return outcome<void>(OUTCOME_V2_NAMESPACE::in_place_type<void>);
 }
 
 template <typename offset_t, bool enable_history, typename val_size_t>
