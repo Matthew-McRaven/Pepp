@@ -29,7 +29,8 @@ template <typename offset_t, bool enable_history, typename val_size_t>
 void components::storage::Input<offset_t, enable_history, val_size_t>::clear(val_size_t fill_val)
 {
 	this-> _last_read_value = fill_val;
-	// TODO: Must add clear method to pubsub.
+	// Remove any IO events from the endpoint.
+	this->_storage->clear(fill_val);
 }
 
 template <typename offset_t, bool enable_history, typename val_size_t>
@@ -149,7 +150,8 @@ template <typename offset_t, bool enable_history, typename val_size_t>
 void components::storage::Output<offset_t, enable_history, val_size_t>::clear(val_size_t fill_val)
 {
 	this-> _last_write_value = fill_val;
-	// TODO: Must add clear method to pubsub.
+	// Remove any IO events from the endpoint.
+	this->_storage->clear(fill_val);
 }
 
 template <typename offset_t, bool enable_history, typename val_size_t>

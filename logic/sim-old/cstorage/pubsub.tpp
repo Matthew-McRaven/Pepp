@@ -187,6 +187,20 @@ std::shared_ptr<const typename components::storage::Channel<offset_t, val_size_t
 
 template<typename offset_t, typename val_size_t>
 	requires (components::storage::UnsignedIntegral<offset_t> && components::storage::Integral<val_size_t>)
+std::shared_ptr<const typename components::storage::Channel<offset_t, val_size_t>::Event> 
+	components::storage::Channel<offset_t, val_size_t>::clear(val_size_t default_value)
+{
+	// Revert to the first event in the graph, which is the default value.
+	// Depend on the fact that revert event will default to head when given an OOB time/publisher combo.
+	this->revert_event(0, 0);
+	auto temp = std::make_shared<Event>(default_value, 0, false, nullptr, 0);
+	// Both head and tail will point to the same object, so we only need to update one.
+	head->next_node = head->prev_node = temp;
+	return head = tail = temp;
+}
+
+template<typename offset_t, typename val_size_t>
+	requires (components::storage::UnsignedIntegral<offset_t> && components::storage::Integral<val_size_t>)
 std::shared_ptr<typename components::storage::Channel<offset_t, val_size_t>::Event> components::storage::Channel<offset_t, val_size_t>::mutable_event_at(size_t time)
 {
 	// No event can have a timestamp higher than the distance between the tail and head.

@@ -32,7 +32,6 @@ public:
 	using version_t = uint32_t;
 	using publisher_id_t = uint16_t;
 	class Endpoint;
-
 protected:
 	class Event;
 	// Add an event to the event queue. Must track publisher in order to allow undo of writes.
@@ -59,6 +58,8 @@ protected:
 public:
 	// Pick a value for the root of the state graph.
 	Channel(val_size_t default_value);
+	// Jump backward to the default-valued event.
+	std::shared_ptr<const Event> clear(val_size_t default_value);
 	// Create a new subscriber+publisher on the present channel.
 	std::shared_ptr<Endpoint> new_endpoint();
 
