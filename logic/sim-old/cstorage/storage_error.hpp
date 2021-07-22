@@ -15,6 +15,9 @@ enum class StorageErrc
   DeltaDisabled, // Attempted to read a storage device which has history disabled. This is recoverable.
   OOBRead, // Attempted to read beyond the end of the storage. This is not recoverable.
   OOBWrite, // Attempted to write beyond the end of the storage. This is not recoverable.
+  IllegalInsert, // Inserting a storage into a layer failed because an offset is not contained within 2<<sizeof(offset_t). This is not recoverable.
+  ResizeTooSmall, // Resizing a layered device would cause a chip to have unreachable offsets. This is not recoverable.
+
 };
 
 // To synthesise a custom status code domain for `StorageErrc`, inject the following
