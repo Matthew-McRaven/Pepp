@@ -2,6 +2,7 @@
 // Taken from:
 // https://github.com/ned14/status-code
 #include <initializer_list>
+
 #include <outcome.hpp>
 
 // This is the custom error code enum

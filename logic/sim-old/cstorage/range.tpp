@@ -31,7 +31,7 @@ void components::storage::Range<offset_t, enable_history, val_size_t>::clear(val
 
 template <typename offset_t, bool enable_history, typename val_size_t>
 	requires (components::storage::UnsignedIntegral<offset_t> && components::storage::Integral<val_size_t>)
-outcome<val_size_t> components::storage::Range<offset_t, enable_history, val_size_t>::get(offset_t offset) const
+result<val_size_t> components::storage::Range<offset_t, enable_history, val_size_t>::get(offset_t offset) const
 {
 	static auto comp = [](const components::storage::storage_span<offset_t>& lhs, offset_t rhs){
 		return std::get<0>(lhs.span) < rhs;
@@ -51,7 +51,7 @@ outcome<val_size_t> components::storage::Range<offset_t, enable_history, val_siz
 
 template <typename offset_t, bool enable_history, typename val_size_t>
 	requires (components::storage::UnsignedIntegral<offset_t> && components::storage::Integral<val_size_t>)
-outcome<void> components::storage::Range<offset_t, enable_history, val_size_t>::set(offset_t offset, val_size_t value)
+result<void> components::storage::Range<offset_t, enable_history, val_size_t>::set(offset_t offset, val_size_t value)
 {
 	if(offset > this->_max_offset) return oob_write_helper(offset, value);
 
@@ -104,12 +104,12 @@ outcome<void> components::storage::Range<offset_t, enable_history, val_size_t>::
 			}
 		}
 	}
-	return outcome<void>(OUTCOME_V2_NAMESPACE::in_place_type<void>);
+	return result<void>(OUTCOME_V2_NAMESPACE::in_place_type<void>);
 }
 
 template <typename offset_t, bool enable_history, typename val_size_t>
 	requires (components::storage::UnsignedIntegral<offset_t> && components::storage::Integral<val_size_t>)
-outcome<val_size_t> components::storage::Range<offset_t, enable_history, val_size_t>::read(offset_t offset) const
+result<val_size_t> components::storage::Range<offset_t, enable_history, val_size_t>::read(offset_t offset) const
 {
 	// No need to perform any delta computation, as reading never changes the state of non-memory-mapped storage.
 	return get(offset);
@@ -117,7 +117,7 @@ outcome<val_size_t> components::storage::Range<offset_t, enable_history, val_siz
 
 template <typename offset_t, bool enable_history, typename val_size_t>
 	requires (components::storage::UnsignedIntegral<offset_t> && components::storage::Integral<val_size_t>)
-outcome<void> components::storage::Range<offset_t, enable_history, val_size_t>::write(offset_t offset, val_size_t value)
+result<void> components::storage::Range<offset_t, enable_history, val_size_t>::write(offset_t offset, val_size_t value)
 {
 	if constexpr(enable_history) {
 		// This is a redundant check with set(), but it is very important that we don't generate illegal deltas.
@@ -136,11 +136,11 @@ bool components::storage::Range<offset_t, enable_history, val_size_t>::deltas_en
 
 template <typename offset_t, bool enable_history, typename val_size_t>
 	requires (components::storage::UnsignedIntegral<offset_t> && components::storage::Integral<val_size_t>)
-outcome<void> components::storage::Range<offset_t, enable_history, val_size_t>::clear_delta()
+result<void> components::storage::Range<offset_t, enable_history, val_size_t>::clear_delta()
 {	
 	if constexpr(enable_history) {
 		_delta->clear();
-		return outcome<void>(OUTCOME_V2_NAMESPACE::in_place_type<void>);
+		return result<void>(OUTCOME_V2_NAMESPACE::in_place_type<void>);
 	}
 	else {
 		return status_code(StorageErrc::DeltaDisabled);
@@ -149,7 +149,7 @@ outcome<void> components::storage::Range<offset_t, enable_history, val_size_t>::
 
 template <typename offset_t, bool enable_history, typename val_size_t>
 	requires (components::storage::UnsignedIntegral<offset_t> && components::storage::Integral<val_size_t>)
-outcome<std::unique_ptr<components::delta::Base<offset_t, val_size_t>>> components::storage::Range<offset_t, enable_history, val_size_t>::take_delta()
+result<std::unique_ptr<components::delta::Base<offset_t, val_size_t>>> components::storage::Range<offset_t, enable_history, val_size_t>::take_delta()
 {	
 	if constexpr(enable_history) {
 		// Helper for enabling std::swap.
@@ -165,9 +165,9 @@ outcome<std::unique_ptr<components::delta::Base<offset_t, val_size_t>>> componen
 
 template <typename offset_t, bool enable_history, typename val_size_t>
 	requires (components::storage::UnsignedIntegral<offset_t> && components::storage::Integral<val_size_t>)
-outcome<void> components::storage::Range<offset_t, enable_history, val_size_t>::resize(offset_t new_offset) 
+result<void> components::storage::Range<offset_t, enable_history, val_size_t>::resize(offset_t new_offset) 
 {
 	this->_max_offset = new_offset;
 	clear();
-	return outcome<void>(OUTCOME_V2_NAMESPACE::in_place_type<void>);
+	return result<void>(OUTCOME_V2_NAMESPACE::in_place_type<void>);
 }

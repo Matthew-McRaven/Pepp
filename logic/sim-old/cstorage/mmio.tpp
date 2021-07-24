@@ -35,7 +35,7 @@ void components::storage::Input<offset_t, enable_history, val_size_t>::clear(val
 
 template <typename offset_t, bool enable_history, typename val_size_t>
 	requires (components::storage::UnsignedIntegral<offset_t> && components::storage::Integral<val_size_t>)
-outcome<val_size_t> components::storage::Input<offset_t, enable_history, val_size_t>::get(offset_t offset) const
+result<val_size_t> components::storage::Input<offset_t, enable_history, val_size_t>::get(offset_t offset) const
 {
 	if(offset > this->_max_offset) return oob_read_helper(offset);
 	
@@ -44,14 +44,14 @@ outcome<val_size_t> components::storage::Input<offset_t, enable_history, val_siz
 
 template <typename offset_t, bool enable_history, typename val_size_t>
 	requires (components::storage::UnsignedIntegral<offset_t> && components::storage::Integral<val_size_t>)
-outcome<void> components::storage::Input<offset_t, enable_history, val_size_t>::set(offset_t offset, val_size_t value)
+result<void> components::storage::Input<offset_t, enable_history, val_size_t>::set(offset_t offset, val_size_t value)
 {
 	return status_code(StorageErrc::Unwritable);
 }
 
 template <typename offset_t, bool enable_history, typename val_size_t>
 	requires (components::storage::UnsignedIntegral<offset_t> && components::storage::Integral<val_size_t>)
-outcome<val_size_t> components::storage::Input<offset_t, enable_history, val_size_t>::read(offset_t offset) const
+result<val_size_t> components::storage::Input<offset_t, enable_history, val_size_t>::read(offset_t offset) const
 {
 	if(offset > this->_max_offset) return oob_read_helper(offset);
 	if constexpr(enable_history) {
@@ -66,7 +66,7 @@ outcome<val_size_t> components::storage::Input<offset_t, enable_history, val_siz
 
 template <typename offset_t, bool enable_history, typename val_size_t>
 	requires (components::storage::UnsignedIntegral<offset_t> && components::storage::Integral<val_size_t>)
-outcome<void> components::storage::Input<offset_t, enable_history, val_size_t>::write(offset_t offset, val_size_t value)
+result<void> components::storage::Input<offset_t, enable_history, val_size_t>::write(offset_t offset, val_size_t value)
 {
 	return status_code(StorageErrc::Unwritable);
 }
@@ -87,11 +87,11 @@ bool components::storage::Input<offset_t, enable_history, val_size_t>::deltas_en
 
 template <typename offset_t, bool enable_history, typename val_size_t>
 	requires (components::storage::UnsignedIntegral<offset_t> && components::storage::Integral<val_size_t>)
-outcome<void> components::storage::Input<offset_t, enable_history, val_size_t>::clear_delta()
+result<void> components::storage::Input<offset_t, enable_history, val_size_t>::clear_delta()
 {	
 	if constexpr(enable_history) {
 		_delta->clear();
-		return outcome<void>(OUTCOME_V2_NAMESPACE::in_place_type<void>);
+		return result<void>(OUTCOME_V2_NAMESPACE::in_place_type<void>);
 	}
 	else {
 		return status_code(StorageErrc::DeltaDisabled);
@@ -100,7 +100,7 @@ outcome<void> components::storage::Input<offset_t, enable_history, val_size_t>::
 
 template <typename offset_t, bool enable_history, typename val_size_t>
 	requires (components::storage::UnsignedIntegral<offset_t> && components::storage::Integral<val_size_t>)
-outcome<std::unique_ptr<components::delta::Base<offset_t, val_size_t>>> components::storage::Input<offset_t, enable_history, val_size_t>::take_delta()
+result<std::unique_ptr<components::delta::Base<offset_t, val_size_t>>> components::storage::Input<offset_t, enable_history, val_size_t>::take_delta()
 {	
 	if constexpr(enable_history) {
 		// Helper for enabling std::swap.
@@ -116,7 +116,7 @@ outcome<std::unique_ptr<components::delta::Base<offset_t, val_size_t>>> componen
 
 template <typename offset_t, bool enable_history, typename val_size_t>
 	requires (components::storage::UnsignedIntegral<offset_t> && components::storage::Integral<val_size_t>)
-outcome<void> components::storage::Input<offset_t, enable_history, val_size_t>::resize(offset_t new_offset)
+result<void> components::storage::Input<offset_t, enable_history, val_size_t>::resize(offset_t new_offset)
 {
 	return StorageErrc::ResizeError;
 }
@@ -156,7 +156,7 @@ void components::storage::Output<offset_t, enable_history, val_size_t>::clear(va
 
 template <typename offset_t, bool enable_history, typename val_size_t>
 	requires (components::storage::UnsignedIntegral<offset_t> && components::storage::Integral<val_size_t>)
-outcome<val_size_t> components::storage::Output<offset_t, enable_history, val_size_t>::get(offset_t offset) const
+result<val_size_t> components::storage::Output<offset_t, enable_history, val_size_t>::get(offset_t offset) const
 {
 	if(offset > this->_max_offset) return oob_read_helper(offset);
 
@@ -166,23 +166,23 @@ outcome<val_size_t> components::storage::Output<offset_t, enable_history, val_si
 
 template <typename offset_t, bool enable_history, typename val_size_t>
 	requires (components::storage::UnsignedIntegral<offset_t> && components::storage::Integral<val_size_t>)
-outcome<void> components::storage::Output<offset_t, enable_history, val_size_t>::set(offset_t offset, val_size_t value)
+result<void> components::storage::Output<offset_t, enable_history, val_size_t>::set(offset_t offset, val_size_t value)
 {
 	if(offset > this->_max_offset) return oob_write_helper(offset, value);
 	this->_last_write_value = value;
-	return outcome<void>(OUTCOME_V2_NAMESPACE::in_place_type<void>);
+	return result<void>(OUTCOME_V2_NAMESPACE::in_place_type<void>);
 }
 
 template <typename offset_t, bool enable_history, typename val_size_t>
 	requires (components::storage::UnsignedIntegral<offset_t> && components::storage::Integral<val_size_t>)
-outcome<val_size_t> components::storage::Output<offset_t, enable_history, val_size_t>::read(offset_t offset) const
+result<val_size_t> components::storage::Output<offset_t, enable_history, val_size_t>::read(offset_t offset) const
 {
 	return get(offset);
 }
 
 template <typename offset_t, bool enable_history, typename val_size_t>
 	requires (components::storage::UnsignedIntegral<offset_t> && components::storage::Integral<val_size_t>)
-outcome<void> components::storage::Output<offset_t, enable_history, val_size_t>::write(offset_t offset, val_size_t value)
+result<void> components::storage::Output<offset_t, enable_history, val_size_t>::write(offset_t offset, val_size_t value)
 {
 	if(offset > this->_max_offset) return oob_write_helper(offset, value);
 	if constexpr(enable_history) {
@@ -191,7 +191,7 @@ outcome<void> components::storage::Output<offset_t, enable_history, val_size_t>:
 	// Add a new value to the state-graph, and updated cached last_write_value.
 	_endpoint->append_value(value);
 	this->_last_write_value = value;
-	return outcome<void>(OUTCOME_V2_NAMESPACE::in_place_type<void>);
+	return result<void>(OUTCOME_V2_NAMESPACE::in_place_type<void>);
 }
 
 template <typename offset_t, bool enable_history, typename val_size_t>
@@ -210,11 +210,11 @@ bool components::storage::Output<offset_t, enable_history, val_size_t>::deltas_e
 
 template <typename offset_t, bool enable_history, typename val_size_t>
 	requires (components::storage::UnsignedIntegral<offset_t> && components::storage::Integral<val_size_t>)
-outcome<void> components::storage::Output<offset_t, enable_history, val_size_t>::clear_delta()
+result<void> components::storage::Output<offset_t, enable_history, val_size_t>::clear_delta()
 {	
 	if constexpr(enable_history) {
 		_delta->clear();
-		return outcome<void>(OUTCOME_V2_NAMESPACE::in_place_type<void>);
+		return result<void>(OUTCOME_V2_NAMESPACE::in_place_type<void>);
 	}
 	else {
 		return status_code(StorageErrc::DeltaDisabled);
@@ -223,7 +223,7 @@ outcome<void> components::storage::Output<offset_t, enable_history, val_size_t>:
 
 template <typename offset_t, bool enable_history, typename val_size_t>
 	requires (components::storage::UnsignedIntegral<offset_t> && components::storage::Integral<val_size_t>)
-outcome<std::unique_ptr<components::delta::Base<offset_t, val_size_t>>> components::storage::Output<offset_t, enable_history, val_size_t>::take_delta()
+result<std::unique_ptr<components::delta::Base<offset_t, val_size_t>>> components::storage::Output<offset_t, enable_history, val_size_t>::take_delta()
 {	
 	if constexpr(enable_history) {
 		// Helper for enabling std::swap.
@@ -239,7 +239,7 @@ outcome<std::unique_ptr<components::delta::Base<offset_t, val_size_t>>> componen
 
 template <typename offset_t, bool enable_history, typename val_size_t>
 	requires (components::storage::UnsignedIntegral<offset_t> && components::storage::Integral<val_size_t>)
-outcome<void> components::storage::Output<offset_t, enable_history, val_size_t>::resize(offset_t new_offset)
+result<void> components::storage::Output<offset_t, enable_history, val_size_t>::resize(offset_t new_offset)
 {
 	return StorageErrc::ResizeError;
 }
