@@ -2,7 +2,7 @@
 
 #include <optional>
 
-#include "isa/pep10/defs.hpp"
+#include "isa/pep10/pep10.hpp"
 #include "masm/ir/base.hpp"
 #include "masm/ir/args.hpp"
 namespace asmb::pep10 {
