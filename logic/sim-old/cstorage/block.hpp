@@ -19,8 +19,8 @@ public:
 	// TODO: Rule of 5.
 	// TODO: Copy-swap.
 	// Allocating underlying storage can fail, but we can't recover from this error. Terminate directly.
-	Block(offset_t max_offset) requires(enable_history);
-	Block(offset_t max_offset) requires(!enable_history);
+	Block(offset_t max_offset, val_size_t default_value=0) requires(enable_history);
+	Block(offset_t max_offset, val_size_t default_value=0) requires(!enable_history);
     virtual ~Block() noexcept = default;
 	void clear(val_size_t fill_val=0) override;
     // Read / Write functions that may generate signals or trap for IO.
