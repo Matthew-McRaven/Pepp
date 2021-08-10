@@ -40,6 +40,15 @@ template <typename offset_t, bool enable_history, typename val_size_t>
 void components::storage::Layered<offset_t, enable_history, val_size_t>::clear(val_size_t fill_val)
 {
 	for(auto& [offset, storage] : _storage) storage->clear(fill_val);
+	
+	if constexpr(enable_history) {
+		auto ret = clear_delta();
+		// If there's an error because there's no deltas enabled, we don't care.
+		if(ret.has_error() && ret.error() != status_code(StorageErrc::DeltaDisabled)) {
+			// Unrecoverable delta issue, kill application.
+			ret.value();
+		}
+	}
 }
 
 template <typename offset_t, bool enable_history, typename val_size_t>
