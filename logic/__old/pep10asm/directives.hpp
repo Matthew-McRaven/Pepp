@@ -237,6 +237,60 @@ public:
 };
 
 template <typename address_size_t>
+class dot_input: public masm::ir::linear_line<address_size_t>
+{
+public:
+    dot_input() = default;
+    ~dot_input() override = default;
+    dot_input(const dot_input& other);
+    dot_input& operator=(dot_input other);
+    std::shared_ptr<linear_line<address_size_t> > clone() const override;
+
+    // linear_line interface
+    std::string generate_listing_string() const override;
+    std::string generate_source_string() const override;
+    void append_object_code(std::vector<uint8_t>& code) const override;
+
+    bool tracks_trace_tags() const override;
+
+    friend void swap(dot_input& first, dot_input& second)
+    {
+        using std::swap;
+        swap(static_cast<linear_line<address_size_t>&>(first), static_cast<linear_line<address_size_t>&>(second));
+        swap(first.argument, second.argument);
+    }
+
+    std::shared_ptr<masm::ir::symbol_ref_argument<address_size_t> > argument = nullptr;
+};
+
+template <typename address_size_t>
+class dot_output: public masm::ir::linear_line<address_size_t>
+{
+public:
+    dot_output() = default;
+    ~dot_output() override = default;
+    dot_output(const dot_output & other);
+    dot_output& operator=(dot_output other);
+    std::shared_ptr<linear_line<address_size_t> > clone() const override;
+
+    // linear_line interface
+    std::string generate_listing_string() const override;
+    std::string generate_source_string() const override;
+    void append_object_code(std::vector<uint8_t>& code) const override;
+
+    bool tracks_trace_tags() const override;
+
+    friend void swap(dot_output& first, dot_output& second)
+    {
+        using std::swap;
+        swap(static_cast<linear_line<address_size_t>&>(first), static_cast<linear_line<address_size_t>&>(second));
+        swap(first.argument, second.argument);
+    }
+
+    std::shared_ptr<masm::ir::symbol_ref_argument<address_size_t> > argument = nullptr;
+};
+
+template <typename address_size_t>
 class dot_word: public masm::ir::linear_line<address_size_t>
 {
 public:
