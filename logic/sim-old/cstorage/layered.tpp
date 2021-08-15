@@ -1,5 +1,5 @@
 #include "storage_error.hpp"
-#include "components/delta/layered.hpp"
+#include "components/delta/grouped.hpp"
 /*
 * Layered-based storage device.
 */
@@ -152,7 +152,7 @@ template <typename offset_t, bool enable_history, typename val_size_t>
 result<std::unique_ptr<components::delta::Base<offset_t, val_size_t>>> components::storage::Layered<offset_t, enable_history, val_size_t>::take_delta()
 {	
 	if constexpr(enable_history) {
-		auto ret = std::make_unique<components::delta::Layered<offset_t, val_size_t>>(*this);
+		auto ret = std::make_unique<components::delta::Grouped<offset_t, val_size_t>>();
 		// We can't handle a failing delta, so just throw is there is a failure.
 		for(auto &[_, storage] : _storage) ret->add_delta(std::move(storage->take_delta().value()));
 		return {std::move(ret)};
