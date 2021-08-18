@@ -4,6 +4,9 @@
 #include <vector>
 #include <type_traits>
 
+#include <boost/range/any_range.hpp>
+#include <boost/range/join.hpp>
+
 #include "base.hpp"
 #include "helper.hpp"
 
@@ -33,7 +36,13 @@ public:
 	Layered(offset_t max_offset, val_size_t default_value, ReadMiss read_policy, WriteMiss write_policy) requires(!enable_history);
     virtual ~Layered() noexcept = default;
 	result<void> append_storage(offset_t offset, storage_t storage);
-
+	result<offset_t> storage_to_offset(const components::storage::Base<offset_t, enable_history, val_size_t>* to_find) const;
+	
+	using offset_storage_tuple_t = std::tuple<offset_t, storage_t>;
+	using storage_range_t = boost::any_range<const offset_storage_tuple_t, boost::forward_traversal_tag, 
+		const offset_storage_tuple_t&, std::ptrdiff_t>;
+	auto contained_storage() const -> decltype(storage_range_t{});
+	
 	void clear(val_size_t fill_val=0) override;
     // Read / Write functions that may generate signals or trap for IO.
 	result<val_size_t> get(offset_t offset) const override;
@@ -55,7 +64,7 @@ private:
 	val_size_t _default_value;
 	ReadMiss _read_policy;
 	WriteMiss _write_policy;
-	std::vector<std::tuple<offset_t, storage_t>> _storage;
+	std::vector<offset_storage_tuple_t> _storage;
 };
 
 }; // End namespace components::storage

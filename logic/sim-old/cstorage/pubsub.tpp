@@ -1,4 +1,7 @@
 #include "pubsub.hpp"
+
+#include <bit>
+
 // Channel:Event
 template<typename offset_t, typename val_size_t>
 	requires (components::storage::UnsignedIntegral<offset_t> && components::storage::Integral<val_size_t>)
@@ -17,9 +20,46 @@ components::storage::Channel<offset_t, val_size_t>::Endpoint::Endpoint(std::shar
 
 template<typename offset_t, typename val_size_t>
 	requires (components::storage::UnsignedIntegral<offset_t> && components::storage::Integral<val_size_t>)
+std::shared_ptr<typename components::storage::Channel<offset_t, val_size_t>::Endpoint> 
+	components::storage::Channel<offset_t, val_size_t>::Endpoint::clone() const
+{
+	auto ret = channel->new_endpoint();
+	ret->event = channel->event_at(event->displacement);
+	return ret;
+}
+
+template<typename offset_t, typename val_size_t>
+	requires (components::storage::UnsignedIntegral<offset_t> && components::storage::Integral<val_size_t>)
 std::optional<val_size_t> components::storage::Channel<offset_t, val_size_t>::Endpoint::current_value() const
 {
 	return this->event->value;
+}
+
+template<typename offset_t, typename val_size_t>
+	requires (components::storage::UnsignedIntegral<offset_t> && components::storage::Integral<val_size_t>)
+std::size_t components::storage::Channel<offset_t, val_size_t>::Endpoint::event_id() const
+{
+	return reinterpret_cast<std::size_t>((void*)this->event.get());
+}
+
+template<typename offset_t, typename val_size_t>
+	requires (components::storage::UnsignedIntegral<offset_t> && components::storage::Integral<val_size_t>)
+val_size_t components::storage::Channel<offset_t, val_size_t>::Endpoint::set_to_head()
+{
+	// Even if we are at head, return the value.
+	auto new_event = channel->event_at(0);
+	this->event = new_event;
+	return event->value;
+}
+
+template<typename offset_t, typename val_size_t>
+	requires (components::storage::UnsignedIntegral<offset_t> && components::storage::Integral<val_size_t>)
+val_size_t components::storage::Channel<offset_t, val_size_t>::Endpoint::set_to_tail()
+{
+	// Even if we are at tail, return the value.
+	auto new_event = channel->latest_event();
+	this->event = new_event;
+	return event->value;
 }
 
 template<typename offset_t, typename val_size_t>

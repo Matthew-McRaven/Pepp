@@ -32,7 +32,24 @@ result<void> components::storage::Layered<offset_t, enable_history, val_size_t>:
 	auto tuple = std::tuple<offset_t, storage_t>{offset, storage};
 	_storage.emplace_back(tuple);
 	return result<void>(OUTCOME_V2_NAMESPACE::in_place_type<void>);
+}
 
+template <typename offset_t, bool enable_history, typename val_size_t>
+	requires (components::storage::UnsignedIntegral<offset_t> && components::storage::Integral<val_size_t>)
+result<offset_t> components::storage::Layered<offset_t, enable_history, val_size_t>::storage_to_offset(
+	const components::storage::Base<offset_t, enable_history, val_size_t>* to_find) const
+{	
+	for(auto& [offset, storage] : _storage)
+		if(storage.get() == to_find) return offset;
+	return status_code(StorageErrc::NoSuchDevice);
+}
+
+template <typename offset_t, bool enable_history, typename val_size_t>
+	requires (components::storage::UnsignedIntegral<offset_t> && components::storage::Integral<val_size_t>)
+auto components::storage::Layered<offset_t, enable_history, val_size_t>::contained_storage() const 
+	-> decltype(components::storage::Layered<offset_t, enable_history, val_size_t>::storage_range_t{})
+{	
+	return storage_range_t(_storage.cbegin(), _storage.cend());
 }
 
 template <typename offset_t, bool enable_history, typename val_size_t>
@@ -152,7 +169,7 @@ template <typename offset_t, bool enable_history, typename val_size_t>
 result<std::unique_ptr<components::delta::Base<offset_t, val_size_t>>> components::storage::Layered<offset_t, enable_history, val_size_t>::take_delta()
 {	
 	if constexpr(enable_history) {
-		auto ret = std::make_unique<components::delta::Grouped<offset_t, val_size_t>>();
+		auto ret = std::make_unique<components::delta::Grouped<offset_t, val_size_t>>(this);
 		// We can't handle a failing delta, so just throw is there is a failure.
 		for(auto &[_, storage] : _storage) ret->add_delta(std::move(storage->take_delta().value()));
 		return {std::move(ret)};

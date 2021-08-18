@@ -68,13 +68,21 @@ public:
 	{
 	public:
 		Endpoint(std::shared_ptr<const Event> event, publisher_id_t id, std::shared_ptr<Channel> channel);
+		// Return a new endpoint which points to the same event, but with a different producer ID.
+		std::shared_ptr<Endpoint> clone() const;
+
 		std::optional<val_size_t> current_value() const;
+		std::size_t event_id() const;
+		// Provide ways to seek an endpoint to the beggining or end of a stream.
+		val_size_t set_to_head();
+		val_size_t set_to_tail();
 		// Step forward one logical timestep through the state graph, and return the value of that node.
 		// Must be const so that storage devices derived from this class can have a read(...) const method.
 		std::optional<val_size_t> next_value() const;
 		// Add a new node to the state graph whose value is new_value.
 		void append_value(val_size_t new_value);
 		// Step backwards one logical timestep through the state graph, and return the value of that node.
+		// Functions exactly as a previous_value() should behave.
 		std::optional<val_size_t>  unread();
 		// Step backwards through the state graph until the node before this endpoint's last write.
 		std::optional<val_size_t>  unwrite();
