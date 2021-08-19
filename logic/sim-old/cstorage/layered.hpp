@@ -50,6 +50,11 @@ public:
     result<val_size_t> read(offset_t offset) const override;
     result<void> write(offset_t offset, val_size_t value) override;
 
+	// Return the most deeply nested device of a grouped device. If the device is not a grouped device, return this.
+	// If offset is out of bounds, return an OOB-related error code.
+	virtual result<const Base<offset_t, enable_history, val_size_t>*> device_at(offset_t offset) const override;
+	virtual result<Base<offset_t, enable_history, val_size_t>*> device_at(offset_t offset) override;
+
 	// Provide  building block of `undo` using layered deltas.
 	bool deltas_enabled() const override;
 	result<void> clear_delta() override;

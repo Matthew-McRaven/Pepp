@@ -147,6 +147,41 @@ result<void> components::storage::Layered<offset_t, enable_history, val_size_t>:
 
 template <typename offset_t, bool enable_history, typename val_size_t>
 	requires (components::storage::UnsignedIntegral<offset_t> && components::storage::Integral<val_size_t>)
+result<const components::storage::Base<offset_t, enable_history, val_size_t>*>
+	components::storage::Layered<offset_t, enable_history, val_size_t>::device_at(offset_t offset) const 
+{
+	using base_t = components::storage::Base<offset_t, enable_history, val_size_t>;
+	// TODO: Change to OOBAccess.
+	if(offset > this->_max_offset) return status_code(StorageErrc::OOBRead);
+	else {
+		for(auto& [_storage_offset, storage] : _storage) {
+			auto adjusted_offset = offset - _storage_offset;
+			if(_storage_offset <= offset && adjusted_offset <= storage->max_offset()) 
+				return std::const_pointer_cast<const base_t>(storage)->device_at(adjusted_offset);
+		}
+	}
+	return status_code(StorageErrc::OOBRead);
+}
+
+template <typename offset_t, bool enable_history, typename val_size_t>
+	requires (components::storage::UnsignedIntegral<offset_t> && components::storage::Integral<val_size_t>)
+result<components::storage::Base<offset_t, enable_history, val_size_t>*>
+	components::storage::Layered<offset_t, enable_history, val_size_t>::device_at(offset_t offset) 
+{
+	// TODO: Change to OOBAccess.
+	if(offset > this->_max_offset) return status_code(StorageErrc::OOBRead);
+	else {
+		for(auto& [_storage_offset, storage] : _storage) {
+			auto adjusted_offset = offset - _storage_offset;
+			if(_storage_offset <= offset && adjusted_offset <= storage->max_offset()) 
+				 return storage->device_at(adjusted_offset);
+		}
+	}
+	return status_code(StorageErrc::OOBRead);
+}
+
+template <typename offset_t, bool enable_history, typename val_size_t>
+	requires (components::storage::UnsignedIntegral<offset_t> && components::storage::Integral<val_size_t>)
 bool components::storage::Layered<offset_t, enable_history, val_size_t>::deltas_enabled() const
 {
 	return enable_history;

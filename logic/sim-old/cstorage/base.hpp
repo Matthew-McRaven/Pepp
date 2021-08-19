@@ -30,6 +30,11 @@ public:
     virtual result<val_size_t> read(offset_t offset) const = 0;
     virtual result<void> write(offset_t offset, val_size_t value) = 0;
 
+	// Return the most deeply nested device of a grouped device. If the device is not a grouped device, return this.
+	// If offset is out of bounds, return an OOB-related error code.
+	virtual result<const Base*> device_at(offset_t offset) const;
+	virtual result<Base*> device_at(offset_t offset);
+
 	// Provide  building block of `undo` using layered deltas.
 	virtual bool deltas_enabled() const = 0;
 	virtual result<void> clear_delta() = 0;
