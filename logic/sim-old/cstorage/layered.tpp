@@ -76,8 +76,9 @@ result<val_size_t> components::storage::Layered<offset_t, enable_history, val_si
 	if(offset > this->_max_offset) return oob_read_helper(offset);
 	else {
 		for(auto& [_storage_offset, storage] : _storage) {
-			if(_storage_offset <= offset && offset <= storage->max_offset()) 
-				return storage->get(offset - _storage_offset);
+			auto adjusted_offset = offset - _storage_offset;
+			if(_storage_offset <= offset && adjusted_offset <= storage->max_offset()) 
+				return storage->get(adjusted_offset);
 		}
 	}
 	switch(this->_read_policy)
@@ -94,8 +95,9 @@ result<void> components::storage::Layered<offset_t, enable_history, val_size_t>:
 	if(offset > this->_max_offset) return oob_write_helper(offset, value);
 	else {
 		for(auto& [_storage_offset, storage] : _storage) {
-			if(_storage_offset <= offset && offset <= storage->max_offset()) 
-				return storage->set(offset - _storage_offset, value);
+			auto adjusted_offset = offset - _storage_offset;
+			if(_storage_offset <= offset && adjusted_offset <= storage->max_offset()) 
+				return storage->set(adjusted_offset, value);
 		}
 	}
 	switch(this->_write_policy)
@@ -112,8 +114,9 @@ result<val_size_t> components::storage::Layered<offset_t, enable_history, val_si
 	if(offset > this->_max_offset) return oob_read_helper(offset);
 	else {
 		for(auto& [_storage_offset, storage] : _storage) {
-			if(_storage_offset <= offset && offset <= storage->max_offset()) 
-				return storage->read(offset - _storage_offset);
+			auto adjusted_offset = offset - _storage_offset;
+			if(_storage_offset <= offset && adjusted_offset <= storage->max_offset()) 
+				return storage->read(adjusted_offset);
 		}
 	}
 	switch(this->_read_policy)
@@ -130,8 +133,9 @@ result<void> components::storage::Layered<offset_t, enable_history, val_size_t>:
 	if(offset > this->_max_offset) return oob_write_helper(offset, value);
 	else {
 		for(auto& [_storage_offset, storage] : _storage) {
-			if(_storage_offset <= offset && offset <= storage->max_offset()) 
-				return storage->write(offset - _storage_offset, value);
+			auto adjusted_offset = offset - _storage_offset;
+			if(_storage_offset <= offset && adjusted_offset <= storage->max_offset()) 
+				return storage->write(adjusted_offset, value);
 		}
 	}
 	switch(this->_write_policy)
