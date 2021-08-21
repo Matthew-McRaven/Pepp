@@ -50,7 +50,7 @@ result<void> components::storage::load_bytes(
 	
 	for(auto [index, byte] : bytes | boost::adaptors::indexed(0))
 	{
-		auto res = storage.((offset+index)%modulo, byte);
+		auto res = storage.set((offset+index)%modulo, byte);
 		if(res.has_failure()) return res.error().clone();
 	}
 	return result<void>(OUTCOME_V2_NAMESPACE::in_place_type<void>);
