@@ -16,6 +16,7 @@ enum class StorageErrc
   DeltaDisabled, // Attempted to read a storage device which has history disabled. This is recoverable.
   OOBRead, // Attempted to read beyond the end of the storage. This is not recoverable.
   OOBWrite, // Attempted to write beyond the end of the storage. This is not recoverable.
+  IllegalWrite, // Attempting to write to a read-only address. This is not recoverable.
   IllegalInsert, // Inserting a storage into a layer failed because an offset is not contained within 2<<sizeof(offset_t). This is not recoverable.
   ResizeTooSmall, // Resizing a layered device would cause a chip to have unreachable offsets. This is not recoverable.
   NoSuchDevice, // When searching for a sub-device, the pointer passed was not a member of the layered storage. This is not recoverable.
@@ -48,6 +49,7 @@ struct quick_status_code_from_enum<StorageErrc>
     {StorageErrc::DeltaDisabled, "Instance has deltas disabled", {errc::not_supported}},
     {StorageErrc::OOBRead, "Attempted to read beyond the end of the storage", {errc::bad_address}},
     {StorageErrc::OOBWrite, "Attempted to write beyond the end of the storage", {errc::bad_address}},
+    {StorageErrc::IllegalWrite, "Attempted to write to a read-only storage device", {errc::invalid_argument}},
     {StorageErrc::IllegalInsert, "Insert into layered device would cause unreachable offsets", {errc::invalid_argument}},
     {StorageErrc::ResizeTooSmall, "Resizing layered device would create unreachable offsets", {errc::invalid_argument}},
     {StorageErrc::NoSuchDevice, "Could not find passed device in container", {errc::invalid_argument}},
