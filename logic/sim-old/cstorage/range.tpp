@@ -6,7 +6,7 @@ template <typename offset_t, bool enable_history, typename val_size_t>
 	requires (components::storage::UnsignedIntegral<offset_t> && components::storage::Integral<val_size_t>)
 components::storage::Range<offset_t, enable_history, val_size_t>::Range(offset_t max_offset, val_size_t default_value)
 	requires(enable_history): components::storage::Base<offset_t, enable_history, val_size_t>(max_offset),
-	_default(default_value), _storage(),
+	_default(default_value), _storage({}),
 	_delta(std::make_unique<components::delta::Vector<offset_t, val_size_t>>(*this))
 {
 
@@ -16,7 +16,7 @@ template <typename offset_t, bool enable_history, typename val_size_t>
 	requires (components::storage::UnsignedIntegral<offset_t> && components::storage::Integral<val_size_t>)
 components::storage::Range<offset_t, enable_history, val_size_t>::Range(offset_t max_offset, val_size_t default_value)
 	requires(!enable_history): components::storage::Base<offset_t, enable_history, val_size_t>(max_offset),
-	_default(default_value), _storage(), _delta(nullptr)
+	_default(default_value), _storage({}), _delta(nullptr)
 {
 
 }
@@ -65,9 +65,10 @@ result<void> components::storage::Range<offset_t, enable_history, val_size_t>::s
 	if(offset > this->_max_offset) return oob_write_helper(offset, value);
 
 	bool inserted = false, check_merge = false;
-	// Attempt to modify an existing delta in-place if possible.
+	// Attempt to modify an existing span in-place if possible.
 	for(auto& span : _storage) {
 		if (auto dist = offset - std::get<0>(span.span);
+			offset >= std::get<0>(span.span) && 
 			dist <= std::get<1>(span.span) - std::get<0>(span.span)) {
 				span.value[dist] = value;
 				inserted = true;
@@ -80,12 +81,16 @@ result<void> components::storage::Range<offset_t, enable_history, val_size_t>::s
 			check_merge = true;
 		}
 	}
-	// Couldn't find an exisiting delta to modify, so must create new delta.
+	// Couldn't find an exisiting span to modify, so must create new span.
 	if(!inserted) {
 		_storage.push_back({{offset, offset}, {value}});
+		// Ensure that spans are stored in ascending order.
+		std::sort(_storage.begin(), _storage.end(), [](auto lhs, auto rhs){
+			return std::get<0>(lhs.span) < std::get<0>(rhs.span);
+		});
 		check_merge = true;
 	}
-	// Check if we can merge any two deltas into a single delta.
+	// Check if we can merge any two spans into a single span.
 	// Since we apply this step anytime our data changes, there is at most one change,
 	// which means ranges may now be connected, but no range will overlap (i.e. have 
 	// duplicate data elements).
@@ -98,7 +103,7 @@ result<void> components::storage::Range<offset_t, enable_history, val_size_t>::s
 
 		// Allow endpoint to be re-computed as we remove elements
 		for(int it=0; it<_storage.size()-1; it++) {
-			// Since our deltas are sorted, only next could be adjacent to
+			// Since our spans are sorted, only next could be adjacent to
 			// current on current's right/upper bound. Since we iterate from 0>0xffff,
 			// no need to compare LHS.
 			auto cur = _storage[it];
@@ -108,7 +113,7 @@ result<void> components::storage::Range<offset_t, enable_history, val_size_t>::s
 				// Merge current+next into current.
 				cur.span = {std::get<0>(cur.span), std::get<1>(next.span)};
 				cur.value.insert(cur.value.end(), next.value.begin(), next.value.end());
-				// Remove next delta, since it has been merged in.
+				// Remove next span, since it has been merged in.
 				_storage.erase(_storage.begin()+it+1);
 			}
 		}
@@ -120,7 +125,7 @@ template <typename offset_t, bool enable_history, typename val_size_t>
 	requires (components::storage::UnsignedIntegral<offset_t> && components::storage::Integral<val_size_t>)
 result<val_size_t> components::storage::Range<offset_t, enable_history, val_size_t>::read(offset_t offset) const
 {
-	// No need to perform any delta computation, as reading never changes the state of non-memory-mapped storage.
+	// No need to perform any span computation, as reading never changes the state of non-memory-mapped storage.
 	return get(offset);
 }
 
