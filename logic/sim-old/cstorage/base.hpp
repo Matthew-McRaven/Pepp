@@ -54,6 +54,12 @@ protected:
 
 };
 
+// Will "wrap-around" if bytes exceed maximum offset.
+template<typename offset_t, bool enable_history, typename val_size_t=uint8_t>
+	requires (UnsignedIntegral<offset_t> && Integral<val_size_t>)
+result<void> load_bytes(components::storage::Base<offset_t, enable_history, val_size_t>& storage, 
+	const std::vector<uint8_t>& bytes, uint16_t offset);
+
 }; // End namespace components::memory
 
 #include "base.tpp"
