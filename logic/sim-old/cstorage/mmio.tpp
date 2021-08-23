@@ -130,6 +130,13 @@ result<void> components::storage::Input<offset_t, enable_history, val_size_t>::r
 	return StorageErrc::ResizeError;
 }
 
+template<typename offset_t, bool enable_history, typename val_size_t>
+void components::storage::buffer_input(Input<offset_t, enable_history, val_size_t>& storage, const std::vector<uint8_t>& values)
+{
+	// Make a new endpoint, so we don't modify the currently-pointed-to event
+	auto endpoint = storage.endpoint()->clone();
+	for(auto value : values) endpoint->append_value(value);
+}
 /*
 * Memory-mapped output storage device backed by a pubsub Topic.
 */

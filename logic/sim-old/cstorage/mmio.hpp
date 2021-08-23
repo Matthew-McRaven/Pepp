@@ -51,6 +51,9 @@ private:
 };
 
 template<typename offset_t, bool enable_history, typename val_size_t=uint8_t>
+void buffer_input(Input<offset_t, enable_history, val_size_t>& storage, const std::vector<uint8_t>& values);
+
+template<typename offset_t, bool enable_history, typename val_size_t=uint8_t>
 	requires (components::storage::UnsignedIntegral<offset_t> && components::storage::Integral<val_size_t>)
 class Output: public components::storage::Base<offset_t, enable_history, val_size_t>
 {
