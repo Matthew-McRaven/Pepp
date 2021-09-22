@@ -20,6 +20,7 @@ public:
     std::shared_ptr<linear_line<address_size_t> > clone() const override;
 
     // linear_line interface
+    ByteType bytes_type() const override;
     std::string generate_listing_string() const override;
     std::string generate_source_string() const override;
     address_size_t object_code_bytes() const override;
@@ -55,6 +56,7 @@ public:
     std::shared_ptr<linear_line<address_size_t> > clone() const override;;
 
     // linear_line interface
+    ByteType bytes_type() const override;
     std::string generate_listing_string() const override;
     std::string generate_source_string() const override;
     address_size_t object_code_bytes() const override;
@@ -88,6 +90,7 @@ public:
     std::shared_ptr<linear_line<address_size_t> > clone() const override;
 
     // linear_line interface
+    ByteType bytes_type() const override;
     std::string generate_listing_string() const override;
     std::string generate_source_string() const override;
     address_size_t object_code_bytes() const override;
@@ -115,6 +118,7 @@ public:
     std::shared_ptr<linear_line<address_size_t> > clone() const override;
 
     // linear_line interface
+    ByteType bytes_type() const override;
     std::string generate_listing_string() const override;
     std::string generate_source_string() const override;
     address_size_t object_code_bytes() const override;
@@ -168,6 +172,7 @@ public:
     std::shared_ptr<linear_line<address_size_t> > clone() const override;
 
     // linear_line interface
+    ByteType bytes_type() const override;
     std::string generate_listing_string() const override;
     std::string generate_source_string() const override;
     address_size_t object_code_bytes() const override;
@@ -301,6 +306,7 @@ public:
     std::shared_ptr<linear_line<address_size_t> > clone() const override;
 
     // linear_line interface
+    ByteType bytes_type() const override;
     std::string generate_listing_string() const override;
     std::string generate_source_string() const override;
     address_size_t object_code_bytes() const override;

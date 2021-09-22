@@ -29,6 +29,12 @@ std::shared_ptr<masm::ir::linear_line<address_size_t>> masm::ir::macro_invocatio
 }
 
 template <typename address_size_t>
+masm::ir::ByteType masm::ir::macro_invocation<address_size_t>::bytes_type() const
+{
+    return masm::ir::ByteType::kData;
+}
+
+template <typename address_size_t>
 std::string masm::ir::macro_invocation<address_size_t>::generate_listing_string() const
 {
 	auto args = boost::algorithm::join(macro->macro_args, ", ");

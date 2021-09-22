@@ -12,6 +12,7 @@ public:
     macro_invocation& operator=(macro_invocation<address_size_t> other);
     std::shared_ptr<linear_line<address_size_t> > clone() const override;
 
+    masm::ir::ByteType bytes_type() const override;
     // Get the assembler listing, which is memaddress + object code + sourceLine.
     std::string generate_listing_string() const override;
     // Returns the properly formatted source line.

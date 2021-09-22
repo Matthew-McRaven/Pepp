@@ -30,6 +30,12 @@ std::shared_ptr<masm::ir::linear_line<address_size_t>> masm::ir::dot_address<add
 }
 
 template <typename address_size_t>
+masm::ir::ByteType masm::ir::dot_address<address_size_t>::bytes_type() const
+{
+    return masm::ir::ByteType::kData;
+}
+
+template <typename address_size_t>
 std::string masm::ir::dot_address<address_size_t>::generate_listing_string() const
 {
     // Potentially skip codegen
@@ -112,6 +118,12 @@ template <typename address_size_t>
 std::shared_ptr<masm::ir::linear_line<address_size_t>> masm::ir::dot_align<address_size_t>::clone() const
 {
     return std::make_shared<dot_align<address_size_t> >(*this);
+}
+
+template <typename address_size_t>
+masm::ir::ByteType masm::ir::dot_align<address_size_t>::bytes_type() const
+{
+    return masm::ir::ByteType::kData;
 }
 
 template <typename address_size_t>
@@ -233,6 +245,12 @@ std::shared_ptr<masm::ir::linear_line<address_size_t>> masm::ir::dot_ascii<addre
 }
 
 template <typename address_size_t>
+masm::ir::ByteType masm::ir::dot_ascii<address_size_t>::bytes_type() const
+{
+    return masm::ir::ByteType::kData;
+}
+
+template <typename address_size_t>
 std::string masm::ir::dot_ascii<address_size_t>::generate_listing_string() const
 {
     // Potentially skip codegen
@@ -332,6 +350,12 @@ template <typename address_size_t>
 std::shared_ptr<masm::ir::linear_line<address_size_t>> masm::ir::dot_block<address_size_t>::clone() const
 {
     return std::make_shared<dot_block<address_size_t> >(*this);
+}
+
+template <typename address_size_t>
+masm::ir::ByteType masm::ir::dot_block<address_size_t>::bytes_type() const
+{
+    return masm::ir::ByteType::kData;
 }
 
 template <typename address_size_t>
@@ -490,6 +514,12 @@ template <typename address_size_t>
 std::shared_ptr<masm::ir::linear_line<address_size_t>> masm::ir::dot_byte<address_size_t>::clone() const
 {
     return std::make_shared<dot_byte<address_size_t> >(*this);
+}
+
+template <typename address_size_t>
+masm::ir::ByteType masm::ir::dot_byte<address_size_t>::bytes_type() const
+{
+    return masm::ir::ByteType::kData;
 }
 
 template <typename address_size_t>
@@ -824,6 +854,12 @@ template <typename address_size_t>
 std::shared_ptr<masm::ir::linear_line<address_size_t>> masm::ir::dot_word<address_size_t>::clone() const
 {
     return std::make_shared<dot_word<address_size_t> >(*this);
+}
+
+template <typename address_size_t>
+masm::ir::ByteType masm::ir::dot_word<address_size_t>::bytes_type() const
+{
+    return masm::ir::ByteType::kData;
 }
 
 template <typename address_size_t>

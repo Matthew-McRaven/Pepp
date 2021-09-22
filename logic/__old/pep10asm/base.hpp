@@ -7,6 +7,12 @@
 
 namespace masm::ir {
 
+enum class ByteType
+{
+    kData, // The line injects bytes into the bytecode, but is not meant to be executed.
+    kCode, // The line injects bytes into the bytecode, and is meant to be executed.
+    kNoBytes // The line does not inject bytes into the bytecode.
+};
 // Represent a single line of a linear ir code
 template <typename address_size_t>
 class linear_line
@@ -21,6 +27,8 @@ public:
 
     // Can this line have trace tags?
     virtual bool tracks_trace_tags() const {return false;}
+    // If this line generates bytes in the byte stream, are those bytes code or data?
+    virtual ByteType bytes_type() const {return ByteType::kNoBytes;}
 
     // Detailed information about how the instruction interacts with the memory trace.
     //QList<TraceCommand> getTraceData() const;
