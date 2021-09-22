@@ -87,7 +87,9 @@ auto masm::backend::assign_section_forward(std::shared_ptr<masm::project::projec
 			auto type = symbol::Type::kEmpty;
 			if(line->bytes_type() == masm::ir::ByteType::kData) type = symbol::Type::kObject;
 			else if(line->bytes_type() == masm::ir::ByteType::kCode) type = symbol::Type::kCode;
-			line->symbol_entry->value = std::make_shared<symbol::value_location<addr_size_t>>(line->base_address(), 0, type);
+			// Don't adjust the values of EQUATE objects!!
+			if(auto as_equate = std::dynamic_pointer_cast<masm::ir::dot_equate<addr_size_t>>(line); !as_equate)
+				line->symbol_entry->value = std::make_shared<symbol::value_location<addr_size_t>>(line->base_address(), 0, type);
 		}
 		// If a symbol is multiplt defined or externally multiply defined, raise an error
 		else if(line->symbol_entry && line->symbol_entry->state == symbol::definition_state::kMultiple){
@@ -158,7 +160,9 @@ auto masm::backend::assign_section_backward(std::shared_ptr<masm::project::proje
 			auto type = symbol::Type::kEmpty;
 			if(line->bytes_type() == masm::ir::ByteType::kData) type = symbol::Type::kObject;
 			else if(line->bytes_type() == masm::ir::ByteType::kCode) type = symbol::Type::kCode;
-			line->symbol_entry->value = std::make_shared<symbol::value_location<addr_size_t>>(line->base_address(), 0, type);
+			// Don't adjust the values of EQUATE objects!!
+			if(auto as_equate = std::dynamic_pointer_cast<masm::ir::dot_equate<addr_size_t>>(line); !as_equate)
+				line->symbol_entry->value = std::make_shared<symbol::value_location<addr_size_t>>(line->base_address(), 0, type);
 		}
 		// If a symbol is multiplt defined or externally multiply defined, raise an error
 		else if(line->symbol_entry && line->symbol_entry->state == symbol::definition_state::kMultiple){
