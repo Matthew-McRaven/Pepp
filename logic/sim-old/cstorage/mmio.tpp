@@ -168,6 +168,15 @@ void components::storage::Output<offset_t, enable_history, val_size_t>::clear(va
 	this-> _last_write_value = fill_val;
 	// Remove any IO events from the endpoint.
 	this->_storage->clear(fill_val);
+
+	if constexpr(enable_history) {
+		auto ret = clear_delta();
+		// If there's an error because there's no deltas enabled, we don't care.
+		if(ret.has_error() && ret.error() != status_code(StorageErrc::DeltaDisabled)) {
+			// Unrecoverable delta issue, kill application.
+			ret.value();
+		}
+	}
 }
 
 template <typename offset_t, bool enable_history, typename val_size_t>
