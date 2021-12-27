@@ -4,7 +4,7 @@
 template <typename address_size_t>
 masm::ir::macro_invocation<address_size_t>::macro_invocation()
 {
-	this->emits_object_code = true;
+    this->emits_object_code = true;
 }
 template <typename address_size_t>
 masm::ir::macro_invocation<address_size_t>::macro_invocation(
@@ -25,7 +25,7 @@ masm::ir::macro_invocation<address_size_t> &masm::ir::macro_invocation<address_s
 template <typename address_size_t>
 std::shared_ptr<masm::ir::linear_line<address_size_t>> masm::ir::macro_invocation<address_size_t>::clone() const
 {
-    return std::make_shared<macro_invocation<address_size_t> >(*this);
+    return std::make_shared<macro_invocation<address_size_t>>(*this);
 }
 
 template <typename address_size_t>
@@ -37,25 +37,25 @@ masm::ir::ByteType masm::ir::macro_invocation<address_size_t>::bytes_type() cons
 template <typename address_size_t>
 std::string masm::ir::macro_invocation<address_size_t>::generate_listing_string() const
 {
-	auto args = boost::algorithm::join(macro->macro_args, ", ");
+    auto args = boost::algorithm::join(macro->macro_args, ", ");
 	auto temp = fmt::format("{:<6} {:<6};@{} {}",
 		" ",
 		" ",
 		macro->header.name,
 		args
 	);
-	
+
 	for(auto line : macro->body_ir.value().ir_lines)
 	{
-		// Don't include a macros .END directive. This would make the listing confusing.
+        // Don't include a macros .END directive. This would make the listing confusing.
 		if(auto as_end = std::dynamic_pointer_cast<masm::ir::dot_end<address_size_t>>(line); as_end) continue;
-		temp.append(fmt::format("\n{}", line->generate_listing_string()));
-	}
-	temp.append(fmt::format("{:<13}}\n;End @{} {}", "", macro->header.name, args));
-	if(this->comment) {
-		// TODO: Figure out where to place comments in listing!!
-	}
-	return temp;
+        temp.append(fmt::format("\n{}", line->generate_listing_string()));
+    }
+    temp.append(fmt::vformat("{:<13}}\n;End @{} {}", fmt::make_format_args("", macro->header.name, args)));
+    if (this->comment) {
+        // TODO: Figure out where to place comments in listing!!
+    }
+    return temp;
 }
 
 template <typename address_size_t>
@@ -65,8 +65,8 @@ std::string masm::ir::macro_invocation<address_size_t>::generate_source_string()
     if (this->symbol_entry != nullptr) {
         symbol_string = this->symbol_entry->name + ":";
     }
-	auto macro_name = macro->header.name;
-	auto operand_string = boost::algorithm::join(macro->macro_args, ", ");
+    auto macro_name = macro->header.name;
+    auto operand_string = boost::algorithm::join(macro->macro_args, ", ");
     return fmt::format("{:<9}{:<8}{:<12}{}",
 		symbol_string,
 		macro_name,
@@ -79,19 +79,19 @@ std::string masm::ir::macro_invocation<address_size_t>::generate_source_string()
 template <typename address_size_t>
 address_size_t masm::ir::macro_invocation<address_size_t>::object_code_bytes() const
 {
-	address_size_t bytes = 0;
+    address_size_t bytes = 0;
 	for(auto line : macro->body_ir.value().ir_lines)
 	{
-		bytes += line->object_code_bytes();
-	}
-	return bytes;
+        bytes += line->object_code_bytes();
+    }
+    return bytes;
 }
 
 template <typename address_size_t>
 void masm::ir::macro_invocation<address_size_t>::append_object_code(std::vector<uint8_t>& bytes) const
 {
 	if(!this->emits_object_code) return;
-	for(const auto& line: macro->body_ir.value().ir_lines) {
-		line->append_object_code(bytes);
-	}
+    for (const auto &line : macro->body_ir.value().ir_lines) {
+        line->append_object_code(bytes);
+    }
 }
