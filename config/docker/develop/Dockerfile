@@ -56,3 +56,6 @@ RUN cd /emsdk/llvm/git/src/compiler-rt && \
 
 # LLD links ~2-10x faster than ld, so just delete ld.
 RUN rm -f /usr/bin/ld && ln -s /emsdk/llvm/git/build_main_64/bin/lld /usr/bin/ld
+
+# Include NVM
+RUN curl -o- https://raw.githubusercontent.com/nvm-sh/nvm/v0.39.1/install.sh | bash
