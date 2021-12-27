@@ -17,19 +17,16 @@ template <class T>
 concept UnsignedIntegral = Integral<T> && !SignedIntegral<T>;
 
 template <typename offset_t>
-	requires (UnsignedIntegral<offset_t>)
-StorageErrc oob_read_helper(offset_t offsetFromBase);
+requires(UnsignedIntegral<offset_t>) StorageErrc oob_read_helper(offset_t offsetFromBase);
 
-template <typename offset_t, typename val_size_t=uint8_t>
-	requires (UnsignedIntegral<offset_t> && Integral<val_size_t>)
-StorageErrc oob_write_helper(offset_t offsetFromBase, val_size_t value);
+template <typename offset_t, typename val_size_t = uint8_t>
+requires(UnsignedIntegral<offset_t> &&Integral<val_size_t>) StorageErrc
+    oob_write_helper(offset_t offsetFromBase, val_size_t value);
 
-template<typename addr_t, typename val_size_t=uint8_t>
-	requires (UnsignedIntegral<addr_t>)
-struct storage_span
-{
-	std::tuple<addr_t, addr_t> span;
-	std::vector<val_size_t> value;
+template <typename addr_t, typename val_size_t = uint8_t>
+requires(UnsignedIntegral<addr_t>) struct storage_span {
+    std::tuple<addr_t, addr_t> span;
+    std::vector<val_size_t> value;
 };
 
 }; // End namespace components::storage
