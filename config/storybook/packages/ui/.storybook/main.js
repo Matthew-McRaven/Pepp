@@ -6,12 +6,7 @@ module.exports = {
   ],
   "addons": [
     "@storybook/addon-links",
-    {
-      name: "@storybook/addon-essentials",
-      options: {
-      },
-    },
-
+    "@storybook/addon-essentials"
   ],
   webpackFinal: async (config, { configType }) => {
     // `configType` has a value of 'DEVELOPMENT' or 'PRODUCTION'
