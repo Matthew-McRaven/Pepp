@@ -17,7 +17,7 @@ RUN apt-get update && export DEBIAN_FRONTEND=noninteractive \
      && apt-get -y install --no-install-recommends g++-10 make zip cmake git libsqlite3-dev zlib1g-dev \
      libreadline-gplv2-dev libncursesw5-dev libssl-dev tk-dev libgdbm-dev libc6-dev libbz2-dev libffi-dev \
      python3.9 python3.9-dev python3.9-distutils vim ripgrep doxygen clang-tidy ssh-client lcov libsecret-1-0 \
-     libx11-dev libxkbfile-dev lsb-release wget software-properties-common
+     libx11-dev libxkbfile-dev lsb-release wget software-properties-common graphviz
      
 # Install pip for python 3.9
 RUN curl https://bootstrap.pypa.io/get-pip.py | python3.9
