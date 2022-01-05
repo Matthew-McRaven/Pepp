@@ -49,6 +49,3 @@ RUN source /emsdk/emsdk_env.sh \
     && ./b2 --clean-all -n \
     && emconfigure ./b2 cxxflags="-fPIC -std=c++17" link=static runtime-link=static -j 20 --build-dir=./build-js --stagedir=./stage-js \
     && emconfigure ./b2 cxxflags="-fPIC -std=c++17" link=static runtime-link=static -j 20 install --build-dir=./build-js --stagedir=./stage-js
-
-# LLD links ~2-10x faster than ld, so just delete ld.
-RUN cd /usr/bin && rm ld && ln -s $(which ldd-14) ld
