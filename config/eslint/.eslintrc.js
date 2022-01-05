@@ -7,7 +7,6 @@ module.exports = {
   extends: [
     'plugin:react/recommended',
     'airbnb',
-    './config/base.eslintrc.json',
   ],
   parser: '@typescript-eslint/parser',
   parserOptions: {
