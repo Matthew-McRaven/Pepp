@@ -1,18 +1,26 @@
-/** @type {import('eslint').Linter.Config} */
 module.exports = {
-    root: true,
-    extends: [
-        './configs/base.eslintrc.json',
-        './configs/warnings.eslintrc.json',
-        './configs/errors.eslintrc.json',
-        './configs/xss.eslintrc.json'
-    ],
-    ignorePatterns: [
-        '**/{node_modules,lib}',
-        'plugins'
-    ],
-    parserOptions: {
-        tsconfigRootDir: __dirname,
-        project: 'tsconfig.json'
-    }
+  env: {
+    browser: true,
+    es2021: true,
+    node: true,
+  },
+  extends: [
+    'plugin:react/recommended',
+    'airbnb',
+    './config/base.eslintrc.json',
+  ],
+  parser: '@typescript-eslint/parser',
+  parserOptions: {
+    ecmaFeatures: {
+      jsx: true,
+    },
+    ecmaVersion: 12,
+    sourceType: 'module',
+  },
+  plugins: [
+    'react',
+    '@typescript-eslint',
+  ],
+  rules: {
+  },
 };
