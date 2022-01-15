@@ -13,12 +13,12 @@
         "downlevelIteration": true,
         "esModuleInterop": true,
         "resolveJsonModule": true,
-        "module": "commonjs",
+        "module": "ES2020",
         "moduleResolution": "node",
-        "target": "ES2017",
+        "target": "ES2020",
         "jsx": "react",
         "lib": [
-            "ES2017",
+            "ES2020",
             "dom"
         ],
         "sourceMap": true,
