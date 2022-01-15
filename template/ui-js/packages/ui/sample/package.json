@@ -12,7 +12,7 @@
     "@testing-library/jest-dom": "^5.15.1",
     "@types/enzyme": "^3.10.10",
     "@types/enzyme-adapter-react-16": "^1.0.6",
-    "@types/jest": "^27.0.3",
+    "@types/jest": "^27.4.0",
     "@types/react": "^17.0.36",
     "enzyme": "^3.11.0",
     "enzyme-adapter-react-16": "^1.15.6",
@@ -26,6 +26,8 @@
   },
   "peerDependencies": {
     "css-loader": "^5.2.7",
+    "react": "^16.0.2",
+    "react-dom": "^16.0.2",
     "react-router": "^16.0.2",
     "react-router-dom": "^16.0.2",
     "sass": "^1.43.4",

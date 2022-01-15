@@ -5,6 +5,7 @@
 		"outDir": "lib",
 		"baseUrl": "."
 	},
+	"types": ["jest", "node"],
 	"include": [
 		"src",
 	]
