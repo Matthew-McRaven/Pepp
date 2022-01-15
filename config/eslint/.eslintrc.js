@@ -3,7 +3,7 @@ module.exports = {
     browser: true,
     es2021: true,
     node: true,
-    'jest/globals': true
+    jest: true,
   },
   settings: {
     'import/resolver': {
@@ -32,7 +32,12 @@ module.exports = {
   ],
   rules: {
     'react/jsx-filename-extension': [1, { extensions: ['.tsx', '.jsx'] }],
-    'import/no-extraneous-dependencies': ['error', { devDependencies: ['**/*.test.[tj]sx', '**/*.spec.[tj]s?x', '**/*.setup.[tj]s?x'], peerDependencies: true }],
+    'import/no-extraneous-dependencies':
+      ['error', { devDependencies: ['**/*.test.tsx', '**/*.setup.ts'], peerDependencies: true }],
     'import/extensions': ['error', { tsx: 'never', ts: 'never' }],
+    'no-use-before-define': 'off',
+    '@typescript-eslint/no-use-before-define': ['error'],
+    'max-len': ['warn', { code: 120, ignoreComments: true }],
+
   },
 };
