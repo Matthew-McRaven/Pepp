@@ -1,4 +1,4 @@
 import Button from "./components/Button"
-import StoriedComponent from "./components/StoriedComponent"
+import RegistersPane from "./components/RegistersPane"
 
-export { Button, StoriedComponent }
+export { Button, RegistersPane }
