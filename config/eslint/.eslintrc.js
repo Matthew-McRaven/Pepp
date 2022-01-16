@@ -7,9 +7,8 @@ module.exports = {
   },
   settings: {
     'import/resolver': {
-      node: {
+      typescript: {
         extensions: ['.js', '.jsx', '.ts', '.tsx'],
-        moduleDirectory: ['node_modules', 'src/'],
       },
     },
   },
@@ -29,6 +28,7 @@ module.exports = {
   plugins: [
     'react',
     '@typescript-eslint',
+    'import',
   ],
   rules: {
     'react/jsx-filename-extension': [1, { extensions: ['.tsx', '.jsx'] }],
