@@ -4,7 +4,7 @@ import RegistersPane from './RegistersPane';
 
 describe('<RegistersPane />', () => {
   it('has been mounted', () => {
-    const component = shallow(<RegistersPane />);
+    const component = shallow(<RegistersPane flags={[]} registers={[]} />);
     expect(component.length).toBe(1);
   });
 });
