@@ -20,10 +20,10 @@ export interface RegistersPaneProps {
   flags: FlagDefinition[]
   registers: RegisterDefinition[]
 }
-const Flag = (props: FlagDefinition & { count: number }) => {
-  const { name, value, count } = props;
+const Flag = (props: FlagDefinition) => {
+  const { name, value } = props;
   return (
-    <div className="Flag" style={{ width: `${100 / count}%` }}>
+    <div className="Flag">
       {name}
       <input type="checkbox" readOnly checked={value} />
     </div>
@@ -32,18 +32,18 @@ const Flag = (props: FlagDefinition & { count: number }) => {
 const Register = (props: RegisterDefinition) => {
   const { name, views, value } = props;
   return (
-    <tr>
-      <td>{name}</td>
+    <div className="Register">
+      <div>{name}</div>
       {views.map((Hoc) => (
-        <td>
+        <div>
           <Hoc
             error={() => { }}
             state={value}
             setState={() => { }}
           />
-        </td>
+        </div>
       ))}
-    </tr>
+    </div>
   );
 };
 
@@ -51,13 +51,13 @@ const RegistersPane = (props: RegistersPaneProps) => {
   const { flags, registers } = props;
   return (
     <div className="RegistersPane" data-testid="RegistersPane">
-      <div className="Flags">{flags.map((definition) => Flag({ ...definition, count: flags.length }))}</div>
-      <table>
-        <thead />
-        <tbody>
-          {registers.map((definition) => Register(definition))}
-        </tbody>
-      </table>
+      <div className="Flags">
+        {flags.map((definition) => Flag(definition))}
+      </div>
+      <p />
+      <div className="Registers">
+        {registers.map((definition) => Register(definition))}
+      </div>
     </div>
   );
 };
