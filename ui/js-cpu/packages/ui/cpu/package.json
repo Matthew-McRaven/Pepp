@@ -51,5 +51,8 @@
   "bugs": {
     "url": "https://gitlab.com/pep10/pepsuite/issues"
   },
-  "homepage": "https://gitlab.com/pep10/pepsuite#readme"
+  "homepage": "https://gitlab.com/pep10/pepsuite#readme",
+  "dependencies": {
+    "@pep10/ui-help": "^1.0.0"
+  }
 }
