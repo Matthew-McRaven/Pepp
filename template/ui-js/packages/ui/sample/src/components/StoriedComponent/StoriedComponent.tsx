@@ -1,9 +1,18 @@
 import React from 'react';
 import './StoriedComponent.scss';
 
-const StoriedComponent = (props: { text: string }) =>
-	<div className={'StoriedComponent'} data-testid="StoriedComponent">
-		{props.text}
-	</div>;
+export interface StoriedComponentProps {
+  heading: string;
+  content: React.ReactNode;
+}
+
+const StoriedComponent = (props: { text: string }) => {
+  const { text } = props;
+  return (
+    <div className="StoriedComponent" data-testid="StoriedComponent">
+      {text}
+    </div>
+  );
+};
 
 export default StoriedComponent;

@@ -12,12 +12,10 @@
         "story": "templates/component/TemplateName.stories.tsx",
         "docs": "templates/component/TemplateName.stories.mdx",
         "style": "templates/component/TemplateName.scss",
-        "test": "templates/component/TemplateName.test.tsx",
-        "types": "templates/component/TemplateName.d.ts"
+        "test": "templates/component/TemplateName.test.tsx"
       },
       "withIndex": true,
       "withDocs": true,
-      "withTypes": true,
       "withStory": true,
       "withStyle": true,
       "withTest": true,
