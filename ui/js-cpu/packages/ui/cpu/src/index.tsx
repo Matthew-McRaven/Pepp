@@ -1,4 +1,4 @@
-import Button from "./components/Button"
-import RegistersPane from "./components/RegistersPane"
+import Button from './Button';
+import RegistersPane from './RegistersPane';
 
-export { Button, RegistersPane }
+export { Button, RegistersPane };
