@@ -1,6 +1,7 @@
 .RegistersPane {
   font-family: 'Courier New', Courier, monospace;
   position: relative;
+  // TODO: Remove pixel-based max width
   max-width: 650px;
   .Registers {
     display: grid;
