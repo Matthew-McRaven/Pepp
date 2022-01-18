@@ -1,5 +1,5 @@
 import React from 'react';
-import { Integral } from '@pep10/ui-help/';
+import { Integral } from '@pep10/ui-converters/';
 import RegistersPane from './RegistersPane';
 
 export default {

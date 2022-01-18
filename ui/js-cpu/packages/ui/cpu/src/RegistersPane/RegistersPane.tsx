@@ -1,7 +1,7 @@
 import React from 'react';
 import './RegistersPane.scss';
 
-import { Base } from '@pep10/ui-help';
+import { Base } from '@pep10/ui-converters';
 
 export interface FlagDefinition {
   name: string
