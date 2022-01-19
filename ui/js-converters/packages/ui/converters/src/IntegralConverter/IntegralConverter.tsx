@@ -69,7 +69,7 @@ export const IntegralConverter = (props: IntegralConverterProps) => {
     const stringValue = e.currentTarget.value;
     // If the string is empty (after striping base prefix), set to 0.
     if (regexBasePrefix(base).exec(stringValue)) {
-      setState(0); return undefined;
+      setLocalState(0); return undefined;
     }
     // Reject values that don't match the regex
     const regex = regexFromBase(base, isSigned || false);
