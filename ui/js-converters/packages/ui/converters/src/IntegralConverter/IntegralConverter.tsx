@@ -1,4 +1,4 @@
-import React, { ChangeEvent } from 'react';
+import React, { ChangeEvent, useState } from 'react';
 import './IntegralConverter.scss';
 
 import type { HigherOrderConverterProps, BaseConverterProps } from '../BaseConverter';
@@ -49,7 +49,18 @@ export const IntegralConverter = (props: IntegralConverterProps) => {
   if (isSigned && base !== 10) throw Error('isSigned can only be true in base 10');
   else if (!byteLength) throw Error('byteLength must be defined');
   else if (byteLength <= 0) throw Error('byteLength must be positive');
-  else if (byteLength > 4) throw Error('byteLength must be less or equal to than 4. Only 32-bit integers are supported');
+  else if (byteLength > 4) {
+    throw Error('byteLength must be less or equal to than 4. Only 32-bit integers are supported');
+  }
+
+  // Keep track of the string without clobbering global state
+  const [localState, setLocalState] = useState(state);
+  // Track if state has changed externally
+  const [lastSeenState, setLastSeenState] = useState(state);
+  if (lastSeenState !== state) {
+    setLastSeenState(state);
+    setLocalState(state);
+  }
 
   const onChange = (e: ChangeEvent<HTMLInputElement>) => {
     // Reject changes when read only
@@ -58,7 +69,7 @@ export const IntegralConverter = (props: IntegralConverterProps) => {
     const stringValue = e.currentTarget.value;
     // If the string is empty (after striping base prefix), set to 0.
     if (regexBasePrefix(base).exec(stringValue)) {
-      setState(0); return undefined;
+      setLocalState(0); return undefined;
     }
     // Reject values that don't match the regex
     const regex = regexFromBase(base, isSigned || false);
@@ -95,7 +106,7 @@ export const IntegralConverter = (props: IntegralConverterProps) => {
       }
     }
 
-    setState(bitValue);
+    setLocalState(bitValue);
     return undefined;
   };
 
@@ -103,25 +114,43 @@ export const IntegralConverter = (props: IntegralConverterProps) => {
     if (isSigned) {
       // If the high order bit of state is a 1, then we must sign extend
       // eslint-disable-next-line no-bitwise
-      if ((state >>> 0) & ((2 ** (8 * byteLength)) >>> 1)) {
+      if ((localState >>> 0) & ((2 ** (8 * byteLength)) >>> 1)) {
         // left-pad from bit 31 down to bit 8*byteLength-1
         // eslint-disable-next-line no-bitwise
         const maskPattern = (0xFFFFFFFF >>> 0) - ((2 ** (8 * byteLength) - 1) >>> 0);
         // eslint-disable-next-line no-bitwise
-        const paddedState = (maskPattern | state) >> 0;
+        const paddedState = (maskPattern | localState) >> 0;
         // eslint-disable-next-line no-bitwise
         // console.log(maskPattern.toString(16), (paddedState >>> 0).toString(16), paddedState);
         return `${Number(paddedState)}`;
       }
     }
     // Add prefix to value if necessary
-    return `${basePrefix(base)}${state.toString(base).toUpperCase()}`;
+    return `${basePrefix(base)}${localState.toString(base).toUpperCase()}`;
   };
+
+  const onCommitChange = () => {
+    setState(localState);
+  };
+  // Trigger validation on "enter" keypress
+  const onKeyPress = (event: React.KeyboardEvent<HTMLInputElement>) => {
+    switch (event.key.toLowerCase()) {
+      case 'enter': onCommitChange(); break;
+      default: break;
+    }
+  };
+
   // TODO: Derive better solution for this...
   const maxLen = () => basePrefix(2).length + 8 * byteLength;
   return (
     <div className="IntegralConverter" data-testid="IntegralConverter">
-      <input value={formatValue()} onChange={onChange} style={{ width: '100%', maxWidth: `${maxLen()}ch` }} />
+      <input
+        value={formatValue()}
+        onBlur={onCommitChange}
+        onKeyPress={onKeyPress}
+        onChange={onChange}
+        style={{ width: '100%', maxWidth: `${maxLen()}ch` }}
+      />
     </div>
   );
 };
