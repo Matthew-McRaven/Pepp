@@ -33,7 +33,7 @@ RUN git clone --jobs 10 --recursive --branch boost-${BOOST_VERSION}  https://git
 
 # Install EMSDK
 RUN cd /emsdk && git pull && ./emsdk install latest && ./emsdk activate latest
-RUN source /emsdk/emsdk_env.sh && npm i -g yarn
+RUN source /emsdk/emsdk_env.sh && npm i -g yarn corepack && yarn set version stable
 
 # Copy boost configuration, which is necessary for building python librs correctly.
 COPY user-config.jam /boost/user-config.jam
