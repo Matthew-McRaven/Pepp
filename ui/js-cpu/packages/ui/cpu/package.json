@@ -1,6 +1,6 @@
 {
   "name": "@pep10/ui-cpu",
-  "version": "0.1.1",
+  "version": "0.2.0",
   "description": "Library that renders various CPU components.",
   "main": "dist/index",
   "types": "dist/index",
