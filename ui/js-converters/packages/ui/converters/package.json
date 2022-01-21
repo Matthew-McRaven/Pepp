@@ -40,7 +40,7 @@
     "compile": "tsc -p tsconfig.json",
     "prepublishOnly": "npm run build",
     "test": "npx jest",
-    "test:ci": "npx jest --ci --reporters=default --reporters=jest-junit"
+    "test:ci": "npx jest --ci --reporters=default --reporters=jest-junit --coverageReporters=cobertura --coverage"
   },
   "repository": {
     "type": "git",
