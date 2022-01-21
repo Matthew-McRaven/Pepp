@@ -134,7 +134,7 @@ def write_data(data, handle):
     handle.write(HEADER)
 
     tree.write(handle, xml_declaration=False, encoding="unicode")
-    print("Coverage percent is: " + root.get("line-rate"))
+    print(f"Coverage percent is: {100*float(root.get('line-rate'))}")
 
 
 def main():
