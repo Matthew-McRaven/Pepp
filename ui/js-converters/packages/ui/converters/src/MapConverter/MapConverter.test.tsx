@@ -24,7 +24,7 @@ describe('Integral <MapConverter />', () => {
         map={map}
         setState={() => { }}
       />);
-      expect(component.find('input').props.value).toBe(`${i}`);
+      expect(component.find('input').prop('value')).toBe(`${i}`);
     });
   });
 });
