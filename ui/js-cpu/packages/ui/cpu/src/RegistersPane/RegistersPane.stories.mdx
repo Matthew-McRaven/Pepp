@@ -106,6 +106,23 @@ import { Meta } from '@storybook/addon-docs';
   
 `}</style>
 
-# Welcome to Storybook
+# Specification 
 
-Here is texty text that renders correctly
+The registers pane consists of two sections:
+  * A view for status bits (also known as flags)
+  * A view for registers
+
+The sections should behave as follows:
+
+## Status Bits / Flags View
+* A single flag shall consist of a Label (top) and a check box (bottom)
+* Flags must be equally spaced, but do not need to span the full width of the widget
+* Flags may be read-only or editable
+* Read-only flags must follow [REQ-1](https://gitlab.com/pep10/pepsuite/-/requirements_management/requirements)
+
+## Registers View
+* A single row shall consist of a name, and at least one and at most two numeric views
+* Within a row, text and numeric views shall be equally spaced as if in a grid
+* Rows may individually be read-only or editable, but must be consistent within a row
+* Behaviors the numeric views within the row should behave as if they belonged to a ConverterContainer
+* Read-only numeric views must follow [REQ-1](https://gitlab.com/pep10/pepsuite/-/requirements_management/requirements)
