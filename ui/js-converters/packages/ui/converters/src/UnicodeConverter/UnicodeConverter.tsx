@@ -36,6 +36,11 @@ export const UnicodeConverter = (props: UnicodeConverterProps) => {
     setLocalState(parseValue(state));
   }
 
+  const bytesFromString = (string: string) => {
+    const encoder = new TextEncoder();
+    return encoder.encode(string);
+  };
+
   // If localState is bad, reset to known-good external state
   const resetValue = () => { setLocalState(parseValue(state)); };
 
@@ -50,9 +55,8 @@ export const UnicodeConverter = (props: UnicodeConverterProps) => {
       setState(0);
       return undefined;
     }
-    const encoder = new TextEncoder();
-    const bytes = encoder.encode(localState);
 
+    const bytes = bytesFromString(localState);
     let accumulator = 0n;
 
     if (bytes.length > byteLength) {
@@ -84,7 +88,8 @@ export const UnicodeConverter = (props: UnicodeConverterProps) => {
     // Reject changes when read only
     if (isReadOnly) return;
     const stringValue = e.currentTarget.value;
-    setLocalState(stringValue);
+    if (bytesFromString(stringValue).length > byteLength) return;
+    if (stringValue) setLocalState(stringValue);
   };
 
   // Trigger validation on "enter" keypress
