@@ -1,26 +1,26 @@
 {
-    "compilerOptions": {
-        "skipLibCheck": true,
-        "declaration": true,
-        "declarationMap": true,
-        "noImplicitAny": true,
-        "noEmitOnError": false,
-        "noImplicitThis": true,
-        "noUnusedLocals": true,
-        "strictNullChecks": true,
-        "experimentalDecorators": true,
-        "emitDecoratorMetadata": true,
-        "downlevelIteration": true,
-        "esModuleInterop": true,
-        "resolveJsonModule": true,
-        "module": "ES2020",
-        "moduleResolution": "node",
-        "target": "ES2020",
-        "jsx": "react",
-        "lib": [
-            "ES2020",
-            "dom"
-        ],
-        "sourceMap": true,
-    }
+  "compilerOptions": {
+    "skipLibCheck": true,
+    "declaration": true,
+    "declarationMap": true,
+    "noImplicitAny": true,
+    "noEmitOnError": false,
+    "noImplicitThis": true,
+    "noUnusedLocals": true,
+    "strictNullChecks": true,
+    "experimentalDecorators": true,
+    "emitDecoratorMetadata": true,
+    "downlevelIteration": true,
+    "esModuleInterop": true,
+    "resolveJsonModule": true,
+    "module": "ES2020",
+    "moduleResolution": "node",
+    "target": "ES2020",
+    "jsx": "react",
+    "lib": [
+      "ES2020",
+      "dom"
+    ],
+    "sourceMap": true
+  }
 }
