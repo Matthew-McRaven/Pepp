@@ -97,7 +97,13 @@ export const UnicodeConverter = (props: UnicodeConverterProps) => {
 
   return (
     <div className="UnicodeConverter" data-testid="UnicodeConverter">
-      <input value={localState} onChange={onChange} onBlur={onValidate} onKeyPress={onKeyPress} />
+      <input
+        className={`Input-${(isReadOnly || false) ? 'ro' : 'edit'}`}
+        value={localState}
+        onChange={onChange}
+        onBlur={onValidate}
+        onKeyPress={onKeyPress}
+      />
     </div>
   );
 };
@@ -105,7 +111,14 @@ export const UnicodeConverter = (props: UnicodeConverterProps) => {
 export const toHigherOrder = (byteLength: number) => {
   const localFn = (props: HigherOrderConverterProps) => {
     const { error, state, setState } = props;
-    return <UnicodeConverter byteLength={byteLength} state={state} setState={setState} error={error} />;
+    return (
+      <UnicodeConverter
+        byteLength={byteLength}
+        state={state}
+        setState={setState}
+        error={error}
+      />
+    );
   };
   return localFn;
 };

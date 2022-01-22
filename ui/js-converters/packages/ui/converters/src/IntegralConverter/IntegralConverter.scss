@@ -1,3 +1,17 @@
 .IntegralConverter {
   font-family: 'Courier New', Courier, monospace;
+  .Input-ro {
+    border-top-style: hidden;
+    border-right-style: hidden;
+    border-left-style: hidden;
+    border-bottom-style: hidden;
+    outline: none;
+    caret-color: transparent;
+  }
+  .Input-ro:hover {
+    cursor: default;
+  }
+  .Input-ro:focus{
+    cursor: default; 
+  }
 }
