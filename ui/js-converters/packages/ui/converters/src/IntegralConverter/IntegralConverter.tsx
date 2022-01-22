@@ -88,7 +88,7 @@ export const IntegralConverter = (props: IntegralConverterProps) => {
     const signedMinValue = -(2 ** (8 * byteLength - 1));
     // Must strip base prefix from string before parsing
     // Coerce signed to unsigned using shift 0: https://stackoverflow.com/a/16155417
-    let bitValue = parseInt(match[0], base);
+    let bitValue = parseInt(stringValue.substring(basePrefix(base).length), base);
     // console.log(stringValue, bitValue, unsignedMaxValue, bitValue & unsignedMaxValue)
 
     // Constrain values to (unsigned) [0,2**byteLength - 1]
