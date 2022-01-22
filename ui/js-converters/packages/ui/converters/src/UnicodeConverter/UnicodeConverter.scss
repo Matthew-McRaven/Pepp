@@ -1,11 +1,7 @@
 .UnicodeConverter {
   font-family: 'Courier New', Courier, monospace;
   .Input-ro {
-    border-top-style: hidden;
-    border-right-style: hidden;
-    border-left-style: hidden;
-    border-bottom-style: hidden;
-    outline: none;
+    border-color: transparent;
     caret-color: transparent;
   }
   .Input-ro:hover {
