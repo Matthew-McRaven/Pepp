@@ -29,6 +29,7 @@ module.exports = {
     'react',
     '@typescript-eslint',
     'import',
+    'json-format',
   ],
   rules: {
     'react/jsx-filename-extension': [1, { extensions: ['.tsx', '.jsx'] }],
@@ -38,6 +39,7 @@ module.exports = {
     'no-use-before-define': 'off',
     '@typescript-eslint/no-use-before-define': ['error'],
     'max-len': ['warn', { code: 120, ignoreComments: true }],
+    'eol-last': ['error', 'always'],
 
   },
 };
