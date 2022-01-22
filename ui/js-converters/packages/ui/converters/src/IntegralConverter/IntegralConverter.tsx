@@ -145,6 +145,7 @@ export const IntegralConverter = (props: IntegralConverterProps) => {
   return (
     <div className="IntegralConverter" data-testid="IntegralConverter">
       <input
+        className={`Input-${(isReadOnly || false) ? 'ro' : 'edit'}`}
         value={formatValue()}
         onBlur={onCommitChange}
         onKeyPress={onKeyPress}
