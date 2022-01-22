@@ -2,11 +2,7 @@
   // FIXME: Fonts don't render control characters.
   font-family: 'Courier New', Courier, monospace;
   input {
-    border-top-style: hidden;
-    border-right-style: hidden;
-    border-left-style: hidden;
-    border-bottom-style: hidden;
-    outline: none;
+    border-color: transparent;
     caret-color: transparent;
   }
   input:hover {
