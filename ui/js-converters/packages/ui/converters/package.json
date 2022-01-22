@@ -2,11 +2,29 @@
   "name": "@pep10/ui-converters",
   "version": "0.2.1",
   "description": "Components designed to convert values between different bases and text encodings.",
+  "homepage": "https://gitlab.com/pep10/pepsuite#readme",
+  "bugs": {
+    "url": "https://gitlab.com/pep10/pepsuite/issues"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+ssh://git@gitlab.com/pep10/pepsuite.git"
+  },
+  "license": "GPL-3.0",
+  "author": "Matthew McRaven",
   "main": "src/index.ts",
   "types": "src/index.ts",
   "files": [
     "src"
   ],
+  "scripts": {
+    "build": "npm run clean && npm run compile",
+    "clean": "rimraf -rf ./dist",
+    "compile": "tsc -p tsconfig.json",
+    "prepublishOnly": "npm run build",
+    "test": "npx jest",
+    "test:ci": "npx jest --ci --reporters=default --reporters=jest-junit --coverageReporters=cobertura --coverage"
+  },
   "devDependencies": {
     "@jest/globals": "^27.3.1",
     "@testing-library/jest-dom": "^5.15.1",
@@ -33,23 +51,5 @@
     "sass": "^1.43.4",
     "sass-loader": "^10.2.0",
     "style-loader": "^2.0.0"
-  },
-  "scripts": {
-    "build": "npm run clean && npm run compile",
-    "clean": "rimraf -rf ./dist",
-    "compile": "tsc -p tsconfig.json",
-    "prepublishOnly": "npm run build",
-    "test": "npx jest",
-    "test:ci": "npx jest --ci --reporters=default --reporters=jest-junit --coverageReporters=cobertura --coverage"
-  },
-  "repository": {
-    "type": "git",
-    "url": "git+ssh://git@gitlab.com/pep10/pepsuite.git"
-  },
-  "author": "Matthew McRaven",
-  "license": "GPL-3.0",
-  "bugs": {
-    "url": "https://gitlab.com/pep10/pepsuite/issues"
-  },
-  "homepage": "https://gitlab.com/pep10/pepsuite#readme"
+  }
 }
