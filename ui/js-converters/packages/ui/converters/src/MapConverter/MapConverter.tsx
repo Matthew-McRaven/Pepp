@@ -15,7 +15,7 @@ export const MapConverter = (props: MapConverterProps) => {
 
   return (
     <div className="MapConverter" data-testid="MapConverter">
-      {map(state)}
+      <input value={map(state)} onChange={() => { }} />
     </div>
   );
 };
