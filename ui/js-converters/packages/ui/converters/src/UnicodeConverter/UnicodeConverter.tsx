@@ -89,7 +89,7 @@ export const UnicodeConverter = (props: UnicodeConverterProps) => {
     if (isReadOnly) return;
     const stringValue = e.currentTarget.value;
     if (bytesFromString(stringValue).length > byteLength) return;
-    if (stringValue) setLocalState(stringValue);
+    setLocalState(stringValue);
   };
 
   // Trigger validation on "enter" keypress
