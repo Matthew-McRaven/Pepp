@@ -3,11 +3,13 @@ import './IntegralConverter.scss';
 
 import type { HigherOrderConverterProps, BaseConverterProps } from '../BaseConverter';
 
+export type SupportedBases = 2 | 10 | 16
+
 export interface IntegralConverterProps extends BaseConverterProps {
   // Only makes sense when working with base10
   isSigned?: boolean;
   // Currently supported bases [2, 10, 16]
-  base: number;
+  base: SupportedBases;
   // Must enforce that newState is in (unsigned) [0, 2**byteLength - 1].
   // eslint-disable-next-line no-unused-vars
   setState: (newState: number) => void;
@@ -158,7 +160,7 @@ export const IntegralConverter = (props: IntegralConverterProps) => {
 
 // ESLint keeps trying to "fix" this line, and breaking it worse than it originally was.
 // eslint-disable-next-line max-len
-export const toHigherOrder = (base: number, byteLength: number, readOnly?: boolean, isSigned?: boolean) => {
+export const toHigherOrder = (base: SupportedBases, byteLength: number, readOnly?: boolean, isSigned?: boolean) => {
   const localFn = (props: HigherOrderConverterProps) => {
     const { error, state, setState } = props;
     return (
