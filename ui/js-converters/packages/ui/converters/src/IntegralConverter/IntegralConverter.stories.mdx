@@ -134,13 +134,14 @@ All converters must follow the following spec:
 * Characters not used to represent an integer of a given base (or its prefix) must be rejected
 * External state only updates when focus is lost, or "enter" is pressed
 * Bases outside of `[2,10,16]` must be rejected
-* Leading 0's (also known as 0 padding) are prohibited
+* Leading zero (also known as zero padding) are prohibited
 * Read-only converters must follow [REQ-1](https://gitlab.com/pep10/pepsuite/-/requirements_management/requirements)
 
 Additionally, depending on the base, the following behaviors shall be observed: 
 
 ### Base 2
 * Must be able to represent numbers in `[0,2**(N)-1]`
+* Leading zeros are not allowed (e.g., 0b001)
 * Must reject numbers outside acceptable range
 * Must reject strings that don't match regex `0(b|B)[0-1]+`
 * Base 2 converters must start with the prefix `0b` or `0B`
@@ -149,12 +150,14 @@ Additionally, depending on the base, the following behaviors shall be observed:
 
 ### Base 10 (unsigned)
 * Must be able to represent numbers in `[0,2**(N)-1]`
+* Leading zeros are not allowed (e.g., reject 01)
 * Must reject numbers outside acceptable range
 * Must reject strings that don't match regex `[0-9]+`
 * Unsigned decimal converters must reject negative numbers
 
 ### Base 10 (signed)
 * Must only accept numbers in `[-2**(N-1),2**(N-1)-1]`
+* Leading zeros are not allowed (e.g., reject 01)
 * Must reject numbers outside acceptable range
 * Must reject strings that don't match regex `(-)?[0-9]+`
 * The string `-0` must retain its leading minus signed
@@ -162,6 +165,7 @@ Additionally, depending on the base, the following behaviors shall be observed:
 
 ### Base 16
 * Must be able to represent numbers in `[0,2**(N)-1]`
+* Leading zeros are not allowed (e.g., reject 0x01)
 * Must reject numbers outside acceptable range
 * Must reject strings that don't match regex `0(x|X)[0-9A-Fa-f]+`
 * Base 16 converters must start with the prefix `0x` or `0X`
