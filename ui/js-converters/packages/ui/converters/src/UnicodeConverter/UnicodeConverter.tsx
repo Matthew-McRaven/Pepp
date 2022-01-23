@@ -53,13 +53,13 @@ export const UnicodeConverter = (props: UnicodeConverterProps) => {
     const encoder = new TextEncoder();
     const bytes = encoder.encode(localState);
 
-    let accumulator = 0n;
+    let accumulator = BigInt(0);
 
     if (bytes.length > byteLength) {
       error(`${localState} does not fit in ${byteLength} bytes. Recieved ${byteLength} bytes.`);
       return resetValue();
     }
-    bytes.forEach((e) => { accumulator = accumulator * 256n + BigInt(e); });
+    bytes.forEach((e) => { accumulator = accumulator * BigInt(256) + BigInt(e); });
 
     const downCasted = BigInt.asUintN(8 * byteLength, accumulator);
     // Don't accept value if it doesn't fit in byteLength bytes.
