@@ -1,4 +1,4 @@
-packages=( 'nsfw' 'oniguruma')
+packages=( 'nsfw' 'oniguruma' 'native-keymap')
 for package in ${packages[@]}; do
 	cat node_modules/${package}/package.json > /tmp/package.json
 	rm node_modules/${package}/package.json
