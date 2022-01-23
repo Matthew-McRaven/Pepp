@@ -36,6 +36,21 @@ describe('1-byte Hexadecimal <IntegralConverter />', () => {
     expect(state).toBe(0);
   });
 
+  it('doesn\'t clear when given invalid value', () => {
+    let state = 0x80;
+    const setState = (newState: number) => { state = newState; };
+    const wrapper = shallow(<IntegralConverter
+      byteLength={1}
+      error={() => { }}
+      state={state}
+      setState={setState}
+      base={16}
+    />);
+    wrapper.find('input').simulate('change', { currentTarget: { value: 'F0x' } });
+    wrapper.find('input').simulate('blur', {});
+    expect(state).toBe(0x80);
+  });
+
   // Check that prefixes 0x and 0x work
   it('accepts uppercase X ', () => {
     let state = 5;

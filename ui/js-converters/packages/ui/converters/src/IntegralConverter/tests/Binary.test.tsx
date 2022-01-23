@@ -65,6 +65,21 @@ describe('Binary <IntegralConverter />', () => {
     expect(state).toBe(5);
   });
 
+  it('doesn\'t clear when given invalid value', () => {
+    let state = 0b101;
+    const setState = (newState: number) => { state = newState; };
+    const wrapper = shallow(<IntegralConverter
+      byteLength={1}
+      error={() => { }}
+      state={state}
+      setState={setState}
+      base={2}
+    />);
+    wrapper.find('input').simulate('change', { currentTarget: { value: 'F0b' } });
+    wrapper.find('input').simulate('blur', {});
+    expect(state).toBe(0b101);
+  });
+
   it('can have it\'s value set in [0,255]', () => {
     let state = 0xff;
     const setState = (newState: number) => { state = newState; };
