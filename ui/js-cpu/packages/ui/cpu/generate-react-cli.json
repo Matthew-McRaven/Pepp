@@ -5,7 +5,7 @@
   "testLibrary": "Enzyme",
   "component": {
     "default": {
-      "path": "src/components",
+      "path": "src/",
       "customTemplates": {
         "index": "templates/component/index.ts",
         "component": "templates/component/TemplateName.tsx",
