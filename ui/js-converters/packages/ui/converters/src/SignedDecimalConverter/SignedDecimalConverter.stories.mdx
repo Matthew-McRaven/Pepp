@@ -138,3 +138,4 @@ All converters must follow the following spec:
 * Must reject strings that don't match regex `(-)?[0-9]+`
 * The string `-0` must retain its leading minus signed
 * At any time, typing a '-' shall toggle the sign.
+  * Due to 2's complement magic, 0 and -2**(N-1) shall map to themselves, all other values should toggle signs.

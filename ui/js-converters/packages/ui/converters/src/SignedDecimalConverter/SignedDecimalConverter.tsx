@@ -16,6 +16,10 @@ export const SignedDecimalConverter = (props: SignedDecimalConverterProps) => {
     byteLength, error, isReadOnly, state, setState,
   } = props;
 
+  const unsignedMaxValue = (2 ** (8 * byteLength)) - 1;
+  // eslint-disable-next-line no-bitwise
+  const allOnes = unsignedMaxValue >>> 0;
+
   // Preconditions
   if (!byteLength) throw Error('byteLength must be defined');
   else if (byteLength <= 0) throw Error('byteLength must be positive');
@@ -48,10 +52,6 @@ export const SignedDecimalConverter = (props: SignedDecimalConverterProps) => {
     if (!match) return error(`${stringValue} did not match regex for base-${10}`);
 
     // I'm a C++ programmer, I know how bitwise operations work.
-
-    const unsignedMaxValue = (2 ** (8 * byteLength)) - 1;
-    // eslint-disable-next-line no-bitwise
-    const allOnes = unsignedMaxValue >>> 0;
     const signedMaxValue = (2 ** (8 * byteLength - 1) - 1);
     const signedMinValue = -(2 ** (8 * byteLength - 1));
     // Must strip base prefix from string before parsing
@@ -96,6 +96,10 @@ export const SignedDecimalConverter = (props: SignedDecimalConverterProps) => {
   const onKeyPress = (event: React.KeyboardEvent<HTMLInputElement>) => {
     switch (event.key.toLowerCase()) {
       case 'enter': onCommitChange(); break;
+      case '-':
+        // eslint-disable-next-line no-bitwise
+        setLocalState((~localState + 1) & allOnes);
+        break;
       default: break;
     }
   };
