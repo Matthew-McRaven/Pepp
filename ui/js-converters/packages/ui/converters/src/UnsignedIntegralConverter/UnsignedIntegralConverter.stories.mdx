@@ -137,12 +137,16 @@ Additionally, depending on the base, the following behaviors shall be observed:
 
 ### Base 2
 * Must be able to represent numbers in `[0,2**(N)-1]`
-* Leading zeros are not allowed (e.g., 0b001)
+* Leading zeros are not allowed (e.g., 0b001, 0001)
 * Must reject numbers outside acceptable range
-* Must reject strings that don't match regex `0(b|B)[0-1]+`
-* Base 2 converters must start with the prefix `0b` or `0B`
-* Prefix should be auto-corrected to lowercase `0b`
-* An empty string should be represented as `0b0`
+* Prefixes:
+  * Must must start with the prefix `0b` or `0B`
+  * Prefix should be auto-corrected to lowercase `0b`
+  * Must reject strings that don't match regex `0(b|B)[0-1]+`
+  * An empty string should be represented as `0b0`
+* Prefixless
+  * Must reject strings that don't match regex `[[01]+]`
+  * An empty string should be represented as `0`
 
 ### Base 10 (unsigned)
 * Must be able to represent numbers in `[0,2**(N)-1]`
@@ -153,9 +157,14 @@ Additionally, depending on the base, the following behaviors shall be observed:
 
 ### Base 16
 * Must be able to represent numbers in `[0,2**(N)-1]`
-* Leading zeros are not allowed (e.g., reject 0x01)
+* Leading zeros are not allowed (e.g., reject 0x01, 001)
 * Must reject numbers outside acceptable range
-* Must reject strings that don't match regex `0(x|X)[0-9A-Fa-f]+`
-* Base 16 converters must start with the prefix `0x` or `0X`
-* Prefix should be auto-corrected to lowercase `0x`
 * Hex characters in the number portion should be corrected to upper case
+* Prefixed:
+  * Must reject strings that don't match regex `0(x|X)[0-9A-Fa-f]+`
+  * Must start with the prefix `0x` or `0X`
+  * Prefix should be auto-corrected to lowercase `0x`
+  * An empty strign should be represented as `0x0`
+* Prefixless:
+  * Must reject strings that don't match regex `[[0-9A-Fa-f]+]`
+  * An empty string should be represented as `0`

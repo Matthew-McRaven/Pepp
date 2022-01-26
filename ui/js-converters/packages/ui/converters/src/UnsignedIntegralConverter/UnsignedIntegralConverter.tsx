@@ -8,6 +8,8 @@ export type SupportedBases = 2 | 10 | 16
 export interface UnsignedIntegralConverterProps extends BaseConverterProps {
   // Currently supported bases [2, 10, 16]
   base: SupportedBases;
+  // Are 0x and 0b prefixes required?
+  prefixless?: boolean;
   // Must enforce that newState is in (unsigned) [0, 2**byteLength - 1].
   // eslint-disable-next-line no-unused-vars
   setState: (newState: number) => void;
@@ -25,11 +27,15 @@ const basePrefix = (base: number): string => {
 const regexBasePrefix = (base: number): RegExp => RegExp(`^${basePrefix(base)}$`);
 
 // Get a regex that allows only valid strings for a given base.
-const regexFromBase = (base: number): RegExp => {
+const regexFromBase = (base: number, prefixless: boolean): RegExp => {
   switch (base) {
-    case 2: return /^0[b|B][0|1]+/;
-    case 10: return /^[0-9]+/;
-    case 16: return /^0[x|X][0-9,a-f,A-F]+/;
+    case 2:
+      if (prefixless) return /^[01]+$/;
+      return /^0[bB][01]+$/;
+    case 10: return /^[0-9]+$/;
+    case 16:
+      if (prefixless) return /^[0-9a-fA-F]+$/;
+      return /^0[xX][0-9a-fA-F]+$/;
     default: throw Error('Unsupported base');
   }
 };
@@ -39,7 +45,7 @@ const regexFromBase = (base: number): RegExp => {
 // it would have the effect of converting between bases.
 export const UnsignedIntegralConverter = (props: UnsignedIntegralConverterProps) => {
   const {
-    base, byteLength, error, isReadOnly, state, setState,
+    base, byteLength, error, isReadOnly, prefixless, state, setState,
   } = props;
 
   // Preconditions
@@ -62,14 +68,16 @@ export const UnsignedIntegralConverter = (props: UnsignedIntegralConverterProps)
     // Reject changes when read only
     if (isReadOnly) return undefined;
 
-    const stringValue = e.currentTarget.value;
+    const stringValue = e.currentTarget.value.toLowerCase();
+    // If the string is empty and is prefixless, set to 0.
     // If the string is empty (after striping base prefix), set to 0.
-    if (regexBasePrefix(base).exec(stringValue)) {
+    if ((prefixless && /^$/.exec(stringValue))
+      || (!prefixless && regexBasePrefix(base).exec(stringValue))) {
       setLocalState(0); return undefined;
     }
 
     // Reject values that don't match the regex
-    const regex = regexFromBase(base);
+    const regex = regexFromBase(base, prefixless || false);
     const match = regex.exec(stringValue);
     if (!match) return error(`${stringValue} did not match regex for base-${base}`);
 
@@ -78,7 +86,8 @@ export const UnsignedIntegralConverter = (props: UnsignedIntegralConverterProps)
     const unsignedMaxValue = (2 ** (8 * byteLength)) - 1;
     // Must strip base prefix from string before parsing
     // Coerce signed to unsigned using shift 0: https://stackoverflow.com/a/16155417
-    let bitValue = parseInt(stringValue.substring(basePrefix(base).length), base);
+    const substring = prefixless ? stringValue : stringValue.substring(basePrefix(base).length);
+    let bitValue = parseInt(substring, base);
     // console.log(stringValue, bitValue, unsignedMaxValue, bitValue & unsignedMaxValue)
 
     // Constrain values to (unsigned) [0,2**byteLength - 1]
@@ -93,7 +102,7 @@ export const UnsignedIntegralConverter = (props: UnsignedIntegralConverterProps)
     return undefined;
   };
   // Add prefix to value if necessary
-  const formatValue = () => `${basePrefix(base)}${localState.toString(base).toUpperCase()}`;
+  const formatValue = () => `${prefixless ? '' : basePrefix(base)}${localState.toString(base).toUpperCase()}`;
   const onCommitChange = () => {
     setState(localState);
   };
