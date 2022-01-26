@@ -3,6 +3,7 @@ import { act } from 'react-dom/test-utils';
 import { mount, shallow } from 'enzyme';
 import ConverterContainer from './ConverterContainer';
 import { toHigherOrder as IntegralToHigher } from '../UnsignedIntegralConverter';
+import { toHigherOrder as UnicodeToHigher } from '../UnicodeConverter';
 
 describe('Integral <ConverterContainer />', () => {
   const children = [
@@ -29,5 +30,17 @@ describe('Integral <ConverterContainer />', () => {
       // And must re-find the converters, because the old reference is invalid
       component.find('UnsignedIntegralConverter').forEach((converter) => { expect(converter.prop('state')).toBe(i); });
     });
+  });
+});
+
+describe('Integral <ConverterContainer />', () => {
+  const children = [
+    IntegralToHigher(2, 1),
+    IntegralToHigher(10, 1),
+    IntegralToHigher(16, 1),
+    UnicodeToHigher(1)];
+  it('has been mounted', () => {
+    const component = shallow(<ConverterContainer error={() => { }}>{children}</ConverterContainer>);
+    expect(component.length).toBe(1);
   });
 });
