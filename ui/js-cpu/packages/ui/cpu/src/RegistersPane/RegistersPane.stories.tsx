@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Integral } from '@pep10/ui-converters/';
+import { UnsignedIntegral } from '@pep10/ui-converters/';
 import RegistersPane, { FlagDefinition } from './RegistersPane';
 
 export default {
@@ -24,7 +24,7 @@ const SampleRegisters = (regs: RegDef[], readOnly: boolean) => regs.map(({ name,
     setState: localSetState,
     readOnly,
     name,
-    views: [(Integral.toHigherOrder(16, 2, readOnly)), (Integral.toHigherOrder(10, 2, readOnly, true))],
+    views: [(UnsignedIntegral.toHigherOrder(16, 2, readOnly)), (UnsignedIntegral.toHigherOrder(10, 2, readOnly))],
   };
 });
 
