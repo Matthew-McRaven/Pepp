@@ -108,8 +108,9 @@ import { Meta } from '@storybook/addon-docs';
 
 # Specification
 
-* All code points in [0, 255] must be rendered as if the were from the 8-bit ASCII plane
-* The number of characters in the display must always match the number of bytes. That is, characters must be rendered as ASCII8
+* All code points in [0, 127] must be rendered as if the were from the 7-bit ASCII plane
+* ASCII Characters above 128 may be rendered in a platform-dependent way (e.g., characters [128, 255] have undefined behavior).
+* The number of characters in the display must always match the number of bytes.
 * Control characters shall be rendered using conventional symbols (see https://ascii.cl/control-characters.htm)
 * Control character shall be rendered within a single char-width box
 * Multi-byte characters must be disallowed (e.g., copy-paste would fail)
