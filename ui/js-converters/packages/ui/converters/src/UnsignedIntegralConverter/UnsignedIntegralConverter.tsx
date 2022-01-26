@@ -1,13 +1,11 @@
 import React, { ChangeEvent, useState } from 'react';
-import './IntegralConverter.scss';
+import './UnsignedIntegralConverter.scss';
 
 import type { HigherOrderConverterProps, BaseConverterProps } from '../BaseConverter';
 
 export type SupportedBases = 2 | 10 | 16
 
-export interface IntegralConverterProps extends BaseConverterProps {
-  // Only makes sense when working with base10
-  isSigned?: boolean;
+export interface UnsignedIntegralConverterProps extends BaseConverterProps {
   // Currently supported bases [2, 10, 16]
   base: SupportedBases;
   // Must enforce that newState is in (unsigned) [0, 2**byteLength - 1].
@@ -27,13 +25,10 @@ const basePrefix = (base: number): string => {
 const regexBasePrefix = (base: number): RegExp => RegExp(`^${basePrefix(base)}$`);
 
 // Get a regex that allows only valid strings for a given base.
-// Is signed is only followed in base10
-const regexFromBase = (base: number, isSigned: boolean): RegExp => {
+const regexFromBase = (base: number): RegExp => {
   switch (base) {
     case 2: return /^0[b|B][0|1]+/;
-    case 10:
-      if (isSigned) return /^-?[0-9]+/;
-      return /^[0-9]+/;
+    case 10: return /^[0-9]+/;
     case 16: return /^0[x|X][0-9,a-f,A-F]+/;
     default: throw Error('Unsupported base');
   }
@@ -42,14 +37,13 @@ const regexFromBase = (base: number, isSigned: boolean): RegExp => {
 // Component that displays a byte in different bases.
 // If multiple components are linked to the same state
 // it would have the effect of converting between bases.
-export const IntegralConverter = (props: IntegralConverterProps) => {
+export const UnsignedIntegralConverter = (props: UnsignedIntegralConverterProps) => {
   const {
-    base, byteLength, error, isReadOnly, isSigned, state, setState,
+    base, byteLength, error, isReadOnly, state, setState,
   } = props;
 
   // Preconditions
-  if (isSigned && base !== 10) throw Error('isSigned can only be true in base 10');
-  else if (!byteLength) throw Error('byteLength must be defined');
+  if (!byteLength) throw Error('byteLength must be defined');
   else if (byteLength <= 0) throw Error('byteLength must be positive');
   else if (byteLength > 4) {
     throw Error('byteLength must be less or equal to than 4. Only 32-bit integers are supported');
@@ -72,68 +66,34 @@ export const IntegralConverter = (props: IntegralConverterProps) => {
     // If the string is empty (after striping base prefix), set to 0.
     if (regexBasePrefix(base).exec(stringValue)) {
       setLocalState(0); return undefined;
-    } if (isSigned && stringValue === '-') {
-      setLocalState(0); return undefined;
     }
 
     // Reject values that don't match the regex
-    const regex = regexFromBase(base, isSigned || false);
+    const regex = regexFromBase(base);
     const match = regex.exec(stringValue);
     if (!match) return error(`${stringValue} did not match regex for base-${base}`);
 
     // I'm a C++ programmer, I know how bitwise operations work.
 
     const unsignedMaxValue = (2 ** (8 * byteLength)) - 1;
-    // eslint-disable-next-line no-bitwise
-    const allOnes = unsignedMaxValue >>> 0;
-    const signedMaxValue = (2 ** (8 * byteLength - 1) - 1);
-    const signedMinValue = -(2 ** (8 * byteLength - 1));
     // Must strip base prefix from string before parsing
     // Coerce signed to unsigned using shift 0: https://stackoverflow.com/a/16155417
     let bitValue = parseInt(stringValue.substring(basePrefix(base).length), base);
     // console.log(stringValue, bitValue, unsignedMaxValue, bitValue & unsignedMaxValue)
 
     // Constrain values to (unsigned) [0,2**byteLength - 1]
-    if (isSigned) {
-      // TODO: Check that this works for 32 bit values.
-      // TODO: If stringValue has leading -, keep it in the render.
-      // In theory, min/max values are floats, so this should be safe.
-      if (bitValue > signedMaxValue || bitValue < signedMinValue) {
-        return error(`${stringValue} not in [${signedMinValue}, ${signedMaxValue}]`);
-      }
-      // eslint-disable-next-line no-bitwise
-      bitValue = (bitValue & allOnes) >>> 0;
-    } else {
-      // eslint-disable-next-line no-bitwise
-      bitValue >>>= 0;
-      if (bitValue > unsignedMaxValue || bitValue < 0) {
-        return error(`${stringValue} not in [0, ${unsignedMaxValue}]`);
-      }
+
+    // eslint-disable-next-line no-bitwise
+    bitValue >>>= 0;
+    if (bitValue > unsignedMaxValue || bitValue < 0) {
+      return error(`${stringValue} not in [0, ${unsignedMaxValue}]`);
     }
 
     setLocalState(bitValue);
     return undefined;
   };
-
-  const formatValue = () => {
-    if (isSigned) {
-      // If the high order bit of state is a 1, then we must sign extend
-      // eslint-disable-next-line no-bitwise
-      if ((localState >>> 0) & ((2 ** (8 * byteLength)) >>> 1)) {
-        // left-pad from bit 31 down to bit 8*byteLength-1
-        // eslint-disable-next-line no-bitwise
-        const maskPattern = (0xFFFFFFFF >>> 0) - ((2 ** (8 * byteLength) - 1) >>> 0);
-        // eslint-disable-next-line no-bitwise
-        const paddedState = (maskPattern | localState) >> 0;
-        // eslint-disable-next-line no-bitwise
-        // console.log(maskPattern.toString(16), (paddedState >>> 0).toString(16), paddedState);
-        return `${Number(paddedState)}`;
-      }
-    }
-    // Add prefix to value if necessary
-    return `${basePrefix(base)}${localState.toString(base).toUpperCase()}`;
-  };
-
+  // Add prefix to value if necessary
+  const formatValue = () => `${basePrefix(base)}${localState.toString(base).toUpperCase()}`;
   const onCommitChange = () => {
     setState(localState);
   };
@@ -148,7 +108,7 @@ export const IntegralConverter = (props: IntegralConverterProps) => {
   // TODO: Derive better solution for this...
   const maxLen = () => basePrefix(2).length + 8 * byteLength;
   return (
-    <div className="IntegralConverter" data-testid="IntegralConverter">
+    <div className="UnsignedIntegralConverter" data-testid="UnsignedIntegralConverter">
       <input
         className={`Input-${(isReadOnly || false) ? 'ro' : 'edit'}`}
         value={formatValue()}
@@ -163,15 +123,14 @@ export const IntegralConverter = (props: IntegralConverterProps) => {
 
 // ESLint keeps trying to "fix" this line, and breaking it worse than it originally was.
 // eslint-disable-next-line max-len
-export const toHigherOrder = (base: SupportedBases, byteLength: number, readOnly?: boolean, isSigned?: boolean) => {
+export const toHigherOrder = (base: SupportedBases, byteLength: number, readOnly?: boolean) => {
   const localFn = (props: HigherOrderConverterProps) => {
     const { error, state, setState } = props;
     return (
-      <IntegralConverter
+      <UnsignedIntegralConverter
         base={base}
         byteLength={byteLength}
         error={error}
-        isSigned={isSigned || false}
         isReadOnly={readOnly || false}
         state={state}
         setState={setState}

@@ -1,15 +1,15 @@
 import React from 'react';
 import { shallow } from 'enzyme';
-import { IntegralConverter } from '../IntegralConverter';
+import { UnsignedIntegralConverter } from '../UnsignedIntegralConverter';
 
 /** **************************
 * Binary Integral Converter *
 **************************** */
-describe('Binary <IntegralConverter />', () => {
+describe('Binary <UnsignedIntegralConverter />', () => {
   it('has been mounted', () => {
     let state = 5;
     const setState = (newState: number) => { state = newState; };
-    const component = shallow(<IntegralConverter
+    const component = shallow(<UnsignedIntegralConverter
       byteLength={1}
       error={() => { }}
       state={state}
@@ -22,7 +22,7 @@ describe('Binary <IntegralConverter />', () => {
   it('defaults to 0 ', () => {
     let state = 5;
     const setState = (newState: number) => { state = newState; };
-    const wrapper = shallow(<IntegralConverter
+    const wrapper = shallow(<UnsignedIntegralConverter
       byteLength={1}
       error={() => { }}
       state={state}
@@ -38,7 +38,7 @@ describe('Binary <IntegralConverter />', () => {
   it('accepts uppercase B ', () => {
     let state = 5;
     const setState = (newState: number) => { state = newState; };
-    const wrapper = shallow(<IntegralConverter
+    const wrapper = shallow(<UnsignedIntegralConverter
       byteLength={1}
       error={() => { }}
       state={state}
@@ -53,7 +53,7 @@ describe('Binary <IntegralConverter />', () => {
   it('accepts lowercase b ', () => {
     let state = 5;
     const setState = (newState: number) => { state = newState; };
-    const wrapper = shallow(<IntegralConverter
+    const wrapper = shallow(<UnsignedIntegralConverter
       byteLength={1}
       error={() => { }}
       state={state}
@@ -68,7 +68,7 @@ describe('Binary <IntegralConverter />', () => {
   it('doesn\'t clear when given invalid value', () => {
     let state = 0b101;
     const setState = (newState: number) => { state = newState; };
-    const wrapper = shallow(<IntegralConverter
+    const wrapper = shallow(<UnsignedIntegralConverter
       byteLength={1}
       error={() => { }}
       state={state}
@@ -83,7 +83,7 @@ describe('Binary <IntegralConverter />', () => {
   it('can have it\'s value set in [0,255]', () => {
     let state = 0xff;
     const setState = (newState: number) => { state = newState; };
-    const wrapper = shallow(<IntegralConverter
+    const wrapper = shallow(<UnsignedIntegralConverter
       byteLength={1}
       error={() => { }}
       state={state}
@@ -100,7 +100,7 @@ describe('Binary <IntegralConverter />', () => {
   it('rejects negative numbers', () => {
     let state = 5;
     const setState = (newState: number) => { state = newState; };
-    const wrapper = shallow(<IntegralConverter
+    const wrapper = shallow(<UnsignedIntegralConverter
       byteLength={1}
       error={() => { }}
       state={state}
@@ -115,7 +115,7 @@ describe('Binary <IntegralConverter />', () => {
   it('rejects numbers larger than 255', () => {
     let state = 5;
     const setState = (newState: number) => { state = newState; };
-    const wrapper = shallow(<IntegralConverter
+    const wrapper = shallow(<UnsignedIntegralConverter
       byteLength={1}
       error={() => { }}
       state={state}
@@ -131,7 +131,7 @@ describe('Binary <IntegralConverter />', () => {
   it('rejects decimal strings', () => {
     let state = 5;
     const setState = (newState: number) => { state = newState; };
-    const wrapper = shallow(<IntegralConverter
+    const wrapper = shallow(<UnsignedIntegralConverter
       byteLength={1}
       error={() => { }}
       state={state}
@@ -146,7 +146,7 @@ describe('Binary <IntegralConverter />', () => {
   it('rejects hexadecimal strings', () => {
     let state = 5;
     const setState = (newState: number) => { state = newState; };
-    const wrapper = shallow(<IntegralConverter
+    const wrapper = shallow(<UnsignedIntegralConverter
       byteLength={1}
       error={() => { }}
       state={state}

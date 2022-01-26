@@ -1,22 +1,20 @@
 import React from 'react';
 import { shallow } from 'enzyme';
-import { IntegralConverter } from '../IntegralConverter';
+import { SignedDecimalConverter } from './SignedDecimalConverter';
 
 /** ***************************
 * 1-byte signed Decimal Integral Converter *
 ***************************** */
 
-describe('1-byte Unsigned Decimal <IntegralConverter />', () => {
+describe('1-byte <SignedDecimalConverter />', () => {
   let state = 5;
   const setState = (newState: number) => { state = newState; };
   it('has been mounted', () => {
-    const component = shallow(<IntegralConverter
+    const component = shallow(<SignedDecimalConverter
       byteLength={1}
       error={() => { }}
-      isSigned
       state={state}
       setState={setState}
-      base={10}
     />);
     expect(component.length).toBe(1);
   });
@@ -24,13 +22,11 @@ describe('1-byte Unsigned Decimal <IntegralConverter />', () => {
   // Default to 0 when only given prefix
   state = 255;
   it('defaults to 0 ', () => {
-    const wrapper = shallow(<IntegralConverter
+    const wrapper = shallow(<SignedDecimalConverter
       byteLength={1}
       error={() => { }}
-      isSigned
       state={state}
       setState={setState}
-      base={10}
     />);
     wrapper.find('input').simulate('change', { currentTarget: { value: '' } });
     wrapper.find('input').simulate('blur', {});
@@ -38,13 +34,11 @@ describe('1-byte Unsigned Decimal <IntegralConverter />', () => {
   });
 
   it('can have it\'s value set in [-128,127]', () => {
-    const wrapper = shallow(<IntegralConverter
+    const wrapper = shallow(<SignedDecimalConverter
       byteLength={1}
       error={() => { }}
-      isSigned
       state={state}
       setState={setState}
-      base={10}
     />);
     Array.from(Array(255).keys()).forEach((i) => {
       wrapper.find('input').simulate('change', { currentTarget: { value: `${i - 128}` } });
@@ -55,13 +49,11 @@ describe('1-byte Unsigned Decimal <IntegralConverter />', () => {
   });
 
   it('rejects numbers greater than 127', () => {
-    const wrapper = shallow(<IntegralConverter
+    const wrapper = shallow(<SignedDecimalConverter
       byteLength={1}
       error={() => { }}
-      isSigned
       state={state}
       setState={setState}
-      base={10}
     />);
     wrapper.find('input').simulate('change', { currentTarget: { value: '128' } });
     wrapper.find('input').simulate('blur', {});
@@ -69,13 +61,11 @@ describe('1-byte Unsigned Decimal <IntegralConverter />', () => {
   });
 
   it('rejects numbers less than -128', () => {
-    const wrapper = shallow(<IntegralConverter
+    const wrapper = shallow(<SignedDecimalConverter
       byteLength={1}
       error={() => { }}
-      isSigned
       state={state}
       setState={setState}
-      base={10}
     />);
     wrapper.find('input').simulate('change', { currentTarget: { value: '-129' } });
     wrapper.find('input').simulate('blur', {});
@@ -85,13 +75,11 @@ describe('1-byte Unsigned Decimal <IntegralConverter />', () => {
   // Set state to something other than 1 for following tests.
   state = 2;
   it('rejects binary strings', () => {
-    const wrapper = shallow(<IntegralConverter
+    const wrapper = shallow(<SignedDecimalConverter
       byteLength={1}
       error={() => { }}
-      isSigned
       state={state}
       setState={setState}
-      base={10}
     />);
     wrapper.find('input').simulate('change', { currentTarget: { value: '0b01' } });
     wrapper.find('input').simulate('blur', {});
@@ -99,13 +87,11 @@ describe('1-byte Unsigned Decimal <IntegralConverter />', () => {
   });
 
   it('rejects hexadecimal strings', () => {
-    const wrapper = shallow(<IntegralConverter
+    const wrapper = shallow(<SignedDecimalConverter
       byteLength={1}
       error={() => { }}
-      isSigned
       state={state}
       setState={setState}
-      base={10}
     />);
     wrapper.find('input').simulate('change', { currentTarget: { value: '0x01' } });
     wrapper.find('input').simulate('blur', {});
@@ -120,13 +106,11 @@ describe('2-byte Unsigned Decimal <IntegralConverter />', () => {
   let state = 5;
   const setState = (newState: number) => { state = newState; };
   it('has been mounted', () => {
-    const component = shallow(<IntegralConverter
+    const component = shallow(<SignedDecimalConverter
       byteLength={2}
       error={() => { }}
-      isSigned
       state={state}
       setState={setState}
-      base={10}
     />);
     expect(component.length).toBe(1);
   });
@@ -134,13 +118,11 @@ describe('2-byte Unsigned Decimal <IntegralConverter />', () => {
   // Default to 0 when only given prefix
   state = 255;
   it('defaults to 0 ', () => {
-    const wrapper = shallow(<IntegralConverter
+    const wrapper = shallow(<SignedDecimalConverter
       byteLength={2}
       error={() => { }}
-      isSigned
       state={state}
       setState={setState}
-      base={10}
     />);
     wrapper.find('input').simulate('change', { currentTarget: { value: '' } });
     wrapper.find('input').simulate('blur', {});
@@ -148,13 +130,11 @@ describe('2-byte Unsigned Decimal <IntegralConverter />', () => {
   });
 
   it('can have it\'s value set in [-2**16-1,2**(16-1)-1]', () => {
-    const wrapper = shallow(<IntegralConverter
+    const wrapper = shallow(<SignedDecimalConverter
       byteLength={2}
       error={() => { }}
-      isSigned
       state={state}
       setState={setState}
-      base={10}
     />);
     Array.from(Array(0x1000).keys()).forEach((i) => {
       wrapper.find('input').simulate('change', { currentTarget: { value: `${i - 0x8000}` } });
@@ -165,13 +145,11 @@ describe('2-byte Unsigned Decimal <IntegralConverter />', () => {
   });
 
   it('rejects numbers greater than 2**(16-1)-1', () => {
-    const wrapper = shallow(<IntegralConverter
+    const wrapper = shallow(<SignedDecimalConverter
       byteLength={2}
       error={() => { }}
-      isSigned
       state={state}
       setState={setState}
-      base={10}
     />);
     wrapper.find('input').simulate('change', { currentTarget: { value: '32768' } });
     wrapper.find('input').simulate('blur', {});
@@ -179,13 +157,11 @@ describe('2-byte Unsigned Decimal <IntegralConverter />', () => {
   });
 
   it('rejects numbers less than -2**16-1', () => {
-    const wrapper = shallow(<IntegralConverter
+    const wrapper = shallow(<SignedDecimalConverter
       byteLength={2}
       error={() => { }}
-      isSigned
       state={state}
       setState={setState}
-      base={10}
     />);
     wrapper.find('input').simulate('change', { currentTarget: { value: '-32769' } });
     wrapper.find('input').simulate('blur', {});
@@ -195,13 +171,11 @@ describe('2-byte Unsigned Decimal <IntegralConverter />', () => {
   // Set state to something other than 1 for following tests.
   state = 2;
   it('rejects binary strings', () => {
-    const wrapper = shallow(<IntegralConverter
+    const wrapper = shallow(<SignedDecimalConverter
       byteLength={2}
       error={() => { }}
-      isSigned
       state={state}
       setState={setState}
-      base={10}
     />);
     wrapper.find('input').simulate('change', { currentTarget: { value: '0b01' } });
     wrapper.find('input').simulate('blur', {});
@@ -209,13 +183,11 @@ describe('2-byte Unsigned Decimal <IntegralConverter />', () => {
   });
 
   it('rejects hexadecimal strings', () => {
-    const wrapper = shallow(<IntegralConverter
+    const wrapper = shallow(<SignedDecimalConverter
       byteLength={2}
       error={() => { }}
-      isSigned
       state={state}
       setState={setState}
-      base={10}
     />);
     wrapper.find('input').simulate('change', { currentTarget: { value: '0x01' } });
     wrapper.find('input').simulate('blur', {});

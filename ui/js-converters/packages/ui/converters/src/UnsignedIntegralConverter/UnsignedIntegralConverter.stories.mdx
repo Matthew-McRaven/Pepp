@@ -1,0 +1,161 @@
+import { Meta } from '@storybook/addon-docs';
+
+<Meta title="Converters/UnsignedIntegralConverter/Docs" />
+
+<style>{`
+  .subheading {
+    --mediumdark: '#999999';
+    font-weight: 900;
+    font-size: 13px;
+    color: #999;
+    letter-spacing: 6px;
+    line-height: 24px;
+    text-transform: uppercase;
+    margin-bottom: 12px;
+    margin-top: 40px;
+  }
+
+  .link-list {
+    display: grid;
+    grid-template-columns: 1fr;
+    grid-template-rows: 1fr 1fr;
+    row-gap: 10px;
+  }
+
+  @media (min-width: 620px) {
+    .link-list {
+      row-gap: 20px;
+      column-gap: 20px;
+      grid-template-columns: 1fr 1fr;
+    }
+  }
+
+  @media all and (-ms-high-contrast:none) {
+  .link-list {
+      display: -ms-grid;
+      -ms-grid-columns: 1fr 1fr;
+      -ms-grid-rows: 1fr 1fr;
+    }
+  }
+
+  .link-item {
+    display: block;
+    padding: 20px 30px 20px 15px;
+    border: 1px solid #00000010;
+    border-radius: 5px;
+    transition: background 150ms ease-out, border 150ms ease-out, transform 150ms ease-out;
+    color: #333333;
+    display: flex;
+    align-items: flex-start;
+  }
+
+  .link-item:hover {
+    border-color: #1EA7FD50;
+    transform: translate3d(0, -3px, 0);
+    box-shadow: rgba(0, 0, 0, 0.08) 0 3px 10px 0;
+  }
+
+  .link-item:active {
+    border-color: #1EA7FD;
+    transform: translate3d(0, 0, 0);
+  }
+
+  .link-item strong {
+    font-weight: 700;
+    display: block;
+    margin-bottom: 2px;
+  }
+  
+  .link-item img {
+    height: 40px;
+    width: 40px;
+    margin-right: 15px;
+    flex: none;
+  }
+
+  .link-item span {
+    font-size: 14px;
+    line-height: 20px;
+  }
+
+  .tip {
+    display: inline-block;
+    border-radius: 1em;
+    font-size: 11px;
+    line-height: 12px;
+    font-weight: 700;
+    background: #E7FDD8;
+    color: #66BF3C;
+    padding: 4px 12px;
+    margin-right: 10px;
+    vertical-align: top;
+  }
+
+  .tip-wrapper {
+    font-size: 13px;
+    line-height: 20px;
+    margin-top: 40px;
+    margin-bottom: 40px;
+  }
+
+  .tip-wrapper code {
+    font-size: 12px;
+    display: inline-block;
+  }
+
+  
+`}</style>
+
+# Specification
+There are three major classes of integral converters:
+* Binary converters
+* Decimal converters
+* Hexadecimal converters
+
+## Terms
+* Converters may be refered to in any of the following formats:
+  * Binary == base 2
+  * Decimal == base 10
+  * Hexadecimal == base 16
+* \*\* is the exponentiation operator
+
+## Assumptions
+* *N* is the length of the converter in bytes
+
+
+## General Behavior
+All converters must follow the following spec:
+* Integral converters, regardless of base, shall have the same width if within the same group
+  * This width should be able to the longest string within the group
+* Characters not used to represent an integer of a given base (or its prefix) must be rejected
+* External state only updates when focus is lost, or "enter" is pressed
+* Bases outside of `[2,10,16]` must be rejected
+* Leading zero (also known as zero padding) are prohibited
+* Read-only converters must follow [REQ-1](https://gitlab.com/pep10/pepsuite/-/requirements_management/requirements)
+
+Additionally, depending on the base, the following behaviors shall be observed: 
+
+### Base 2
+* Must be able to represent numbers in `[0,2**(N)-1]`
+* Leading zeros are not allowed (e.g., 0b001)
+* Must reject numbers outside acceptable range
+* Must reject strings that don't match regex `0(b|B)[0-1]+`
+* Base 2 converters must start with the prefix `0b` or `0B`
+* Prefix should be auto-corrected to lowercase `0b`
+* An empty string should be represented as `0b0`
+
+### Base 10 (unsigned)
+* Must be able to represent numbers in `[0,2**(N)-1]`
+* Leading zeros are not allowed (e.g., reject 01)
+* Must reject numbers outside acceptable range
+* Must reject strings that don't match regex `[0-9]+`
+* Unsigned decimal converters must reject negative numbers
+
+### Base 16
+* Must be able to represent numbers in `[0,2**(N)-1]`
+* Leading zeros are not allowed (e.g., reject 0x01)
+* Must reject numbers outside acceptable range
+* Must reject strings that don't match regex `0(x|X)[0-9A-Fa-f]+`
+* Base 16 converters must start with the prefix `0x` or `0X`
+* Prefix should be auto-corrected to lowercase `0x`
+* Hex characters in the number portion should be corrected to upper case
