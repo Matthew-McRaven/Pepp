@@ -7,9 +7,9 @@ import { SignedDecimalConverter } from './SignedDecimalConverter';
 ***************************** */
 
 describe('1-byte <SignedDecimalConverter />', () => {
-  let state = 5;
-  const setState = (newState: number) => { state = newState; };
   it('has been mounted', () => {
+    let state = 5;
+    const setState = (newState: number) => { state = newState; };
     const component = shallow(<SignedDecimalConverter
       byteLength={1}
       error={() => { }}
@@ -20,8 +20,9 @@ describe('1-byte <SignedDecimalConverter />', () => {
   });
 
   // Default to 0 when only given prefix
-  state = 255;
   it('defaults to 0 ', () => {
+    let state = 255;
+    const setState = (newState: number) => { state = newState; };
     const wrapper = shallow(<SignedDecimalConverter
       byteLength={1}
       error={() => { }}
@@ -34,6 +35,8 @@ describe('1-byte <SignedDecimalConverter />', () => {
   });
 
   it('can have it\'s value set in [-128,127]', () => {
+    let state = 5;
+    const setState = (newState: number) => { state = newState; };
     const wrapper = shallow(<SignedDecimalConverter
       byteLength={1}
       error={() => { }}
@@ -49,6 +52,8 @@ describe('1-byte <SignedDecimalConverter />', () => {
   });
 
   it('rejects numbers greater than 127', () => {
+    let state = 5;
+    const setState = (newState: number) => { state = newState; };
     const wrapper = shallow(<SignedDecimalConverter
       byteLength={1}
       error={() => { }}
@@ -61,6 +66,8 @@ describe('1-byte <SignedDecimalConverter />', () => {
   });
 
   it('rejects numbers less than -128', () => {
+    let state = 5;
+    const setState = (newState: number) => { state = newState; };
     const wrapper = shallow(<SignedDecimalConverter
       byteLength={1}
       error={() => { }}
@@ -73,8 +80,9 @@ describe('1-byte <SignedDecimalConverter />', () => {
   });
 
   // Set state to something other than 1 for following tests.
-  state = 2;
   it('rejects binary strings', () => {
+    let state = 5;
+    const setState = (newState: number) => { state = newState; };
     const wrapper = shallow(<SignedDecimalConverter
       byteLength={1}
       error={() => { }}
@@ -87,6 +95,8 @@ describe('1-byte <SignedDecimalConverter />', () => {
   });
 
   it('rejects hexadecimal strings', () => {
+    let state = 5;
+    const setState = (newState: number) => { state = newState; };
     const wrapper = shallow(<SignedDecimalConverter
       byteLength={1}
       error={() => { }}
@@ -103,9 +113,9 @@ describe('1-byte <SignedDecimalConverter />', () => {
 * 2-byte signed Decimal Integral Converter *
 ***************************** */
 describe('2-byte Unsigned Decimal <IntegralConverter />', () => {
-  let state = 5;
-  const setState = (newState: number) => { state = newState; };
   it('has been mounted', () => {
+    let state = 5;
+    const setState = (newState: number) => { state = newState; };
     const component = shallow(<SignedDecimalConverter
       byteLength={2}
       error={() => { }}
@@ -116,8 +126,9 @@ describe('2-byte Unsigned Decimal <IntegralConverter />', () => {
   });
 
   // Default to 0 when only given prefix
-  state = 255;
   it('defaults to 0 ', () => {
+    let state = 255;
+    const setState = (newState: number) => { state = newState; };
     const wrapper = shallow(<SignedDecimalConverter
       byteLength={2}
       error={() => { }}
@@ -130,6 +141,8 @@ describe('2-byte Unsigned Decimal <IntegralConverter />', () => {
   });
 
   it('can have it\'s value set in [-2**16-1,2**(16-1)-1]', () => {
+    let state = 5;
+    const setState = (newState: number) => { state = newState; };
     const wrapper = shallow(<SignedDecimalConverter
       byteLength={2}
       error={() => { }}
@@ -145,6 +158,8 @@ describe('2-byte Unsigned Decimal <IntegralConverter />', () => {
   });
 
   it('rejects numbers greater than 2**(16-1)-1', () => {
+    let state = 5;
+    const setState = (newState: number) => { state = newState; };
     const wrapper = shallow(<SignedDecimalConverter
       byteLength={2}
       error={() => { }}
@@ -157,6 +172,8 @@ describe('2-byte Unsigned Decimal <IntegralConverter />', () => {
   });
 
   it('rejects numbers less than -2**16-1', () => {
+    let state = 5;
+    const setState = (newState: number) => { state = newState; };
     const wrapper = shallow(<SignedDecimalConverter
       byteLength={2}
       error={() => { }}
@@ -169,8 +186,9 @@ describe('2-byte Unsigned Decimal <IntegralConverter />', () => {
   });
 
   // Set state to something other than 1 for following tests.
-  state = 2;
   it('rejects binary strings', () => {
+    let state = 5;
+    const setState = (newState: number) => { state = newState; };
     const wrapper = shallow(<SignedDecimalConverter
       byteLength={2}
       error={() => { }}
@@ -183,6 +201,8 @@ describe('2-byte Unsigned Decimal <IntegralConverter />', () => {
   });
 
   it('rejects hexadecimal strings', () => {
+    let state = 5;
+    const setState = (newState: number) => { state = newState; };
     const wrapper = shallow(<SignedDecimalConverter
       byteLength={2}
       error={() => { }}
