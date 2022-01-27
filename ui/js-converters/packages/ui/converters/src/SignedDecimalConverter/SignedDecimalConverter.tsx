@@ -26,7 +26,8 @@ export const SignedDecimalConverter = (props: SignedDecimalConverterProps) => {
   else if (byteLength > 4) {
     throw Error('byteLength must be less or equal to than 4. Only 32-bit integers are supported');
   }
-
+  // Keep track if a - should appear in front of a zero
+  const [signedZero, setSignedZero] = useState(false);
   // Keep track of the string without clobbering global state
   const [localState, setLocalState] = useState(state);
   // Track if state has changed externally
@@ -41,10 +42,14 @@ export const SignedDecimalConverter = (props: SignedDecimalConverterProps) => {
     if (isReadOnly) return undefined;
 
     const stringValue = e.currentTarget.value;
-
     // If the string is empty (after striping base prefix), set to 0.
-    if (/^-?$/.exec(stringValue)) {
-      setLocalState(0); return undefined;
+    if (/^-0?$/.exec(stringValue)) {
+      return undefined;
+    } if (/^$/.exec(stringValue)) {
+      setSignedZero(false);
+      setLocalState(0);
+    } else {
+      setSignedZero(false);
     }
 
     // Reject values that don't match the regex
@@ -74,6 +79,7 @@ export const SignedDecimalConverter = (props: SignedDecimalConverterProps) => {
   };
 
   const formatValue = () => {
+    if (localState === 0 && signedZero) return '-0';
     // If the high order bit of state is a 1, then we must sign extend
     // eslint-disable-next-line no-bitwise
     if ((localState >>> 0) & ((2 ** (8 * byteLength)) >>> 1)) {
@@ -94,11 +100,22 @@ export const SignedDecimalConverter = (props: SignedDecimalConverterProps) => {
   };
   // Trigger validation on "enter" keypress
   const onKeyPress = (event: React.KeyboardEvent<HTMLInputElement>) => {
+    const asString = formatValue();
     switch (event.key.toLowerCase()) {
       case 'enter': onCommitChange(); break;
       case '-':
+        setSignedZero(true);
         // eslint-disable-next-line no-bitwise
         setLocalState((~localState + 1) & allOnes);
+        event.preventDefault();
+        break;
+      case 'backspace':
+        if (asString === '-0') {
+          setSignedZero(false);
+        } else if (localState >= 128 && asString.length <= 2) {
+          setSignedZero(true);
+          setLocalState(0);
+        } else if (localState < 128 && asString.length <= 1) setLocalState(0);
         break;
       default: break;
     }
@@ -112,7 +129,7 @@ export const SignedDecimalConverter = (props: SignedDecimalConverterProps) => {
         className={`Input-${(isReadOnly || false) ? 'ro' : 'edit'}`}
         value={formatValue()}
         onBlur={onCommitChange}
-        onKeyPress={onKeyPress}
+        onKeyDown={onKeyPress}
         onChange={onChange}
         style={{ width: '100%', maxWidth: `${maxLen()}ch` }}
       />
