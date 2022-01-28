@@ -1,1 +1,1 @@
-cloc --fullpath --not-match-d="(node_modules|build|dist|3rd-party|plugins|\.browser_modules|bin.*lib|src-gen).*" --not-match-f "(yarn.lock|gen_.*)" .
+cloc --fullpath --not-match-d="(node_modules|build|dist|3rd-party|plugins|\.browser_modules|src-gen).*" --not-match-f "(yarn.lock|gen_.*)" .
