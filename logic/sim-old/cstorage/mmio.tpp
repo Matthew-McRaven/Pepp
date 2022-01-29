@@ -255,3 +255,18 @@ requires(components::storage::UnsignedIntegral<offset_t> &&components::storage::
     result<void> components::storage::Output<offset_t, enable_history, val_size_t>::resize(offset_t new_offset) {
     return StorageErrc::ResizeError;
 }
+
+template <typename offset_t, bool enable_history, typename val_size_t>
+std::vector<uint8_t> components::storage::read_output(Output<offset_t, enable_history, val_size_t> &storage)
+{
+    // Make a new endpoint, so we don't modify the currently-pointed-to event
+    auto endpoint = storage.endpoint()->clone();
+    std::vector<uint8_t> output;
+    endpoint->set_to_head();
+    auto value = endpoint->next_value();
+    while(value.has_value()) {
+        output.emplace_back(*value);
+        value = endpoint->next_value();
+    }
+    return output;
+}

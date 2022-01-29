@@ -97,6 +97,8 @@ requires(components::storage::UnsignedIntegral<offset_t> &&components::storage::
     std::unique_ptr<components::delta::Output<offset_t, val_size_t>> _delta{nullptr};
 };
 
+template <typename offset_t, bool enable_history, typename val_size_t = uint8_t>
+std::vector<uint8_t> read_output(Output<offset_t, enable_history, val_size_t> &storage);
 } // End namespace components::storage
 
 #include "mmio.tpp"
