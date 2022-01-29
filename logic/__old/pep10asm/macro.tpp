@@ -34,7 +34,7 @@ std::string masm::ir::macro_invocation<address_size_t>::generate_listing_string(
             continue;
         temp.append(fmt::format("\n{}", line->generate_listing_string()));
     }
-    const auto formatted = fmt::vformat("{:<13}}\n;End @{} {}", fmt::make_format_args("", macro->header.name, args));
+    const auto formatted = fmt::vformat("{:<13}\n;End @{} {}", fmt::make_format_args("", macro->header.name, args));
     temp.append(formatted);
     if (this->comment) {
         // TODO: Figure out where to place comments in listing!!
