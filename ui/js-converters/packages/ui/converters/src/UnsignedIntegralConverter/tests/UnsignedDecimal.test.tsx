@@ -2,15 +2,16 @@ import React from 'react';
 import { shallow } from 'enzyme';
 import { UnsignedIntegralConverter } from '../UnsignedIntegralConverter';
 
-/** ***************************
-* 1-byte Unsigned Decimal Integral Converter *
-***************************** */
-describe('1-byte Unsigned Decimal <UnsignedIntegralConverter />', () => {
-  it('has been mounted', () => {
+/** ******************************************
+* N-byte Unsigned Decimal Integral Converter *
+******************************************** */
+describe.each([1, 2])('%i-byte Unsigned Decimal <UnsignedIntegralConverter />', (len) => {
+  //  Test 1 - Test initialization
+  it(`${len}-Byte has been mounted`, () => {
     let state = 5;
     const setState = (newState: number) => { state = newState; };
     const component = shallow(<UnsignedIntegralConverter
-      byteLength={1}
+      byteLength={len}
       error={() => { }}
       state={state}
       setState={setState}
@@ -19,12 +20,12 @@ describe('1-byte Unsigned Decimal <UnsignedIntegralConverter />', () => {
     expect(component.length).toBe(1);
   });
 
-  // Default to 0 when only given prefix
-  it('defaults to 0 ', () => {
+  // Test 2 - Default to 0 when only given prefix
+  it(`${len}-Byte defaults to 0`, () => {
     let state = 255;
     const setState = (newState: number) => { state = newState; };
     const wrapper = shallow(<UnsignedIntegralConverter
-      byteLength={1}
+      byteLength={len}
       error={() => { }}
       state={state}
       setState={setState}
@@ -35,28 +36,28 @@ describe('1-byte Unsigned Decimal <UnsignedIntegralConverter />', () => {
     expect(state).toBe(0);
   });
 
-  it('can have it\'s value set in [0,255]', () => {
-    let state = 5;
+  // Test 3 - Do not clear control if invalid character entered
+  it(`${len}-Byte doesn\'t clear when given invalid value`, () => {
+    let state = 80;
     const setState = (newState: number) => { state = newState; };
     const wrapper = shallow(<UnsignedIntegralConverter
-      byteLength={1}
+      byteLength={len}
       error={() => { }}
       state={state}
       setState={setState}
       base={10}
     />);
-    Array.from(Array(255).keys()).forEach((i) => {
-      wrapper.find('input').simulate('change', { currentTarget: { value: `${i}` } });
-      wrapper.find('input').simulate('blur', {});
-      expect(state).toBe(i);
-    });
+    wrapper.find('input').simulate('change', { currentTarget: { value: 'F0x' } });
+    wrapper.find('input').simulate('blur', {});
+    expect(state).toBe(80);
   });
 
-  it('rejects negative numbers', () => {
+  // Test 4 - Reject negative numbers
+  it(`${len}-Byte rejects negative numbers`, () => {
     let state = 5;
     const setState = (newState: number) => { state = newState; };
     const wrapper = shallow(<UnsignedIntegralConverter
-      byteLength={1}
+      byteLength={len}
       error={() => { }}
       state={state}
       setState={setState}
@@ -67,161 +68,76 @@ describe('1-byte Unsigned Decimal <UnsignedIntegralConverter />', () => {
     expect(state).not.toBe(-25);
   });
 
-  it('rejects numbers larger than 255', () => {
+  // Test 5 - Test that all valid values can be entered
+  // End range differs for 1 and 2 byte controls
+  const endRange = (2 ** (8 * len));
+  it(`${len}-Byte can have it\'s value set in [0,${endRange - 1}]`, () => {
+    const lastValue = endRange - 1;
     let state = 5;
     const setState = (newState: number) => { state = newState; };
     const wrapper = shallow(<UnsignedIntegralConverter
-      byteLength={1}
+      byteLength={len}
       error={() => { }}
       state={state}
       setState={setState}
       base={10}
     />);
-    wrapper.find('input').simulate('change', { currentTarget: { value: '257' } });
-    wrapper.find('input').simulate('blur', {});
-    expect(state).not.toBe(257);
-  });
-
-  // Set state to something other than 1 for following tests.
-  it('rejects binary strings', () => {
-    let state = 2;
-    const setState = (newState: number) => { state = newState; };
-    const wrapper = shallow(<UnsignedIntegralConverter
-      byteLength={1}
-      error={() => { }}
-      state={state}
-      setState={setState}
-      base={10}
-    />);
-    wrapper.find('input').simulate('change', { currentTarget: { value: '0b01' } });
-    wrapper.find('input').simulate('blur', {});
-    expect(state).not.toBe(1);
-  });
-
-  it('rejects hexadecimal strings', () => {
-    let state = 5;
-    const setState = (newState: number) => { state = newState; };
-    const wrapper = shallow(<UnsignedIntegralConverter
-      byteLength={1}
-      error={() => { }}
-      state={state}
-      setState={setState}
-      base={10}
-    />);
-    wrapper.find('input').simulate('change', { currentTarget: { value: '0x01' } });
-    wrapper.find('input').simulate('blur', {});
-    expect(state).not.toBe(1);
-  });
-});
-
-/** ***************************
-* 2-byte Unsigned Decimal Integral Converter *
-***************************** */
-describe('2-byte Unsigned Decimal <UnsignedIntegralConverter />', () => {
-  it('has been mounted', () => {
-    let state = 5;
-    const setState = (newState: number) => { state = newState; };
-    const component = shallow(<UnsignedIntegralConverter
-      byteLength={2}
-      error={() => { }}
-      state={state}
-      setState={setState}
-      base={10}
-    />);
-    expect(component.length).toBe(1);
-  });
-
-  // Default to 0 when only given prefix
-  it('defaults to 0 ', () => {
-    let state = 255;
-    const setState = (newState: number) => { state = newState; };
-    const wrapper = shallow(<UnsignedIntegralConverter
-      byteLength={2}
-      error={() => { }}
-      state={state}
-      setState={setState}
-      base={10}
-    />);
-    wrapper.find('input').simulate('change', { currentTarget: { value: '' } });
-    wrapper.find('input').simulate('blur', {});
-    expect(state).toBe(0);
-  });
-
-  it('can have it\'s value set in [0,65535]', () => {
-    let state = 5;
-    const setState = (newState: number) => { state = newState; };
-    const wrapper = shallow(<UnsignedIntegralConverter
-      byteLength={2}
-      error={() => { }}
-      state={state}
-      setState={setState}
-      base={10}
-    />);
-    Array.from(Array(0x10000).keys()).forEach((i) => {
+    Array.from(Array(lastValue).keys()).forEach((i) => {
       wrapper.find('input').simulate('change', { currentTarget: { value: `${i}` } });
       wrapper.find('input').simulate('blur', {});
       expect(state).toBe(i);
     });
   });
 
-  it('rejects negative numbers', () => {
+  // Test 6 - Test number outside of range is not picked up.
+  it(`${len}-Byte rejects numbers larger than ${endRange - 1}`, () => {
     let state = 5;
+    const outsideRange = endRange + 1;
     const setState = (newState: number) => { state = newState; };
     const wrapper = shallow(<UnsignedIntegralConverter
-      byteLength={2}
+      byteLength={len}
       error={() => { }}
       state={state}
       setState={setState}
       base={10}
     />);
-    wrapper.find('input').simulate('change', { currentTarget: { value: '-25' } });
+    wrapper.find('input').simulate('change', { currentTarget: { value: `${outsideRange}` } });
     wrapper.find('input').simulate('blur', {});
-    expect(state).not.toBe(-25);
+    expect(state).not.toBe(outsideRange);
+    expect(state).toBe(5);
   });
 
-  it('rejects numbers larger than 65535', () => {
+  // Test 7 - Reject binary prefix. Keep last good state
+  it(`${len}-Byte rejects binary strings`, () => {
     let state = 5;
     const setState = (newState: number) => { state = newState; };
     const wrapper = shallow(<UnsignedIntegralConverter
-      byteLength={2}
+      byteLength={len}
       error={() => { }}
       state={state}
       setState={setState}
       base={10}
     />);
-    wrapper.find('input').simulate('change', { currentTarget: { value: '65537' } });
+    wrapper.find('input').simulate('change', { currentTarget: { value: '0b11' } });
     wrapper.find('input').simulate('blur', {});
-    expect(state).not.toBe(65537);
+    expect(state).not.toBe(0b11);
+    expect(state).toBe(5);
   });
 
-  // Set state to something other than 1 for following tests.
-  it('rejects binary strings', () => {
+  // Test 8 - Reject hex. Keep last good state
+  it(`${len}-Byte rejects hexadecimal strings`, () => {
     let state = 5;
     const setState = (newState: number) => { state = newState; };
     const wrapper = shallow(<UnsignedIntegralConverter
-      byteLength={2}
+      byteLength={len}
       error={() => { }}
       state={state}
       setState={setState}
       base={10}
     />);
-    wrapper.find('input').simulate('change', { currentTarget: { value: '0b01' } });
+    wrapper.find('input').simulate('change', { currentTarget: { value: '0x1f' } });
     wrapper.find('input').simulate('blur', {});
-    expect(state).not.toBe(1);
-  });
-
-  it('rejects hexadecimal strings', () => {
-    let state = 5;
-    const setState = (newState: number) => { state = newState; };
-    const wrapper = shallow(<UnsignedIntegralConverter
-      byteLength={2}
-      error={() => { }}
-      state={state}
-      setState={setState}
-      base={10}
-    />);
-    wrapper.find('input').simulate('change', { currentTarget: { value: '0x01' } });
-    wrapper.find('input').simulate('blur', {});
-    expect(state).not.toBe(1);
+    expect(state).not.toBe(0x1f);
+    expect(state).toBe(5);
   });
 });
