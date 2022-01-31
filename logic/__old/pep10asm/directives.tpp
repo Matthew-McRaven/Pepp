@@ -268,27 +268,29 @@ template <typename address_size_t> masm::ir::ByteType masm::ir::dot_block<addres
 template <typename address_size_t> std::string masm::ir::dot_block<address_size_t>::generate_listing_string() const {
     // Potentially skip codegen
     std::string code_string = "";
-
     auto bytes_emitted = 0;
 
-    auto bytes = std::vector(this->argument->value(), 0);
-    auto bytes_head = bytes.begin();
-    while (this->emits_object_code && (bytes_head != bytes.end()) && (bytes_emitted < 3)) {
-        code_string.append(fmt::format("{:02X}", *bytes_head++));
+    const auto max_bytes = this->argument->value();
+    auto fill_value = 0;
+    auto bytes_head = 0;
+    while (this->emits_object_code && (bytes_head < max_bytes) && (bytes_emitted < 3)) {
+        code_string.append(fmt::format("{:02X}", fill_value));
+        ++bytes_head;
         ++bytes_emitted;
     }
 
-    auto temp = fmt::format("{:<6} {:<6}{}", fmt::format("0x{:04X}", this->base_address()), code_string,
-                            generate_source_string());
+    auto temp = fmt::vformat("{:<6} {:<6}{}", fmt::make_format_args(fmt::format("0x{:04X}", this->base_address()), code_string,
+                            generate_source_string()));
 
-    while (bytes_head != bytes.end()) {
+    while (this->emits_object_code && bytes_head < max_bytes) {
         code_string = "";
         bytes_emitted = 0;
-        while (this->emits_object_code && (bytes_head != bytes.end()) && (bytes_emitted < 3)) {
-            code_string.append(fmt::format("{:02X}", *bytes_head++));
+        while (bytes_emitted < 3 && bytes_head < max_bytes) {
+            code_string.append(fmt::format("{:02X}", fill_value));
+            ++bytes_head;
             ++bytes_emitted;
         }
-
+        std::cout <<"here"<<std::endl;
         temp.append(fmt::format("\n        {:<6}", code_string));
     }
     return temp;
