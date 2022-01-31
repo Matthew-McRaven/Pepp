@@ -26,16 +26,16 @@ template <typename address_size_t> masm::ir::ByteType masm::ir::macro_invocation
 template <typename address_size_t>
 std::string masm::ir::macro_invocation<address_size_t>::generate_listing_string() const {
     auto args = boost::algorithm::join(macro->macro_args, ", ");
-    auto temp = fmt::format("{:<6} {:<6};@{} {}", " ", " ", macro->header.name, args);
+    auto temp = fmt::format("{:<6} {:<7};@{} {}", " ", " ", macro->header.name, args);
     if (this->comment) 
-        auto temp = fmt::format("{:<13}{}", " ", this->get_formatted_comment());
+        auto temp = fmt::format("{:<14}{}", " ", this->get_formatted_comment());
     for (auto line : macro->body_ir.value().ir_lines) {
         // Don't include a macros .END directive. This would make the listing confusing.
         if (auto as_end = std::dynamic_pointer_cast<masm::ir::dot_end<address_size_t>>(line); as_end)
             continue;
         temp.append(fmt::format("\n{}", line->generate_listing_string()));
     }
-    const auto formatted = fmt::vformat("\n{:<13};End @{} {}", fmt::make_format_args(" ", macro->header.name, args));
+    const auto formatted = fmt::vformat("\n{:<14};End @{} {}", fmt::make_format_args(" ", macro->header.name, args));
     temp.append(formatted);
 
     return temp;
