@@ -22,7 +22,7 @@ template <typename address_size_t> std::string masm::ir::comment_line<address_si
 }
 
 template <typename address_size_t> std::string masm::ir::comment_line<address_size_t>::generate_source_string() const {
-    return this->comment.value_or("");
+    return ";"+this->comment.value_or("");
 }
 
 template <typename address_size_t>
