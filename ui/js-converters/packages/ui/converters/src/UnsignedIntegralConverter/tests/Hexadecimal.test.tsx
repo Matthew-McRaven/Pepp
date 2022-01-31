@@ -115,7 +115,7 @@ describe.each([1, 2])('%i1-byte Hexadecimal <UnsignedIntegralConverter />', (len
       setState={setState}
       base={16}
     />);
-    Array.from(Array(256).keys()).forEach((i) => {
+    Array.from(Array(endRange).keys()).forEach((i) => {
       wrapper.find('input').simulate('change', { currentTarget: { value: `0x${i.toString(16)}` } });
       wrapper.find('input').simulate('blur', {});
       expect(state).toBe(i);
