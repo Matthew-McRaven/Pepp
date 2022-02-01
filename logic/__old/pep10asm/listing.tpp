@@ -6,9 +6,21 @@
 template <typename addr_size_t>
 std::string masm::utils::generate_listing(std::shared_ptr<masm::elf::top_level_section<addr_size_t>> &image) {
     std::stringstream out_stream;
+    out_stream << "-------------------------------------------------------------------------------" << std::endl;
+    out_stream << "       Object" << std::endl;
+    out_stream << "Addr   code   Symbol   Mnemon  Operand     Comment" << std::endl;
+    out_stream << "-------------------------------------------------------------------------------" << std::endl;
+
     for (const auto &line : image->body_ir->ir_lines) {
         out_stream << line->generate_listing_string() << std::endl;
     }
+    out_stream << "-------------------------------------------------------------------------------" << std::endl;
+    out_stream << "Symbol Table" << std::endl;
+    out_stream << "--------------------------------"<<std::endl;
+    out_stream <<"Symbol    Value     Symbol    Value" << std::endl;
+    out_stream << "--------------------------------"<<std::endl;
+    out_stream << symbol::symbol_table_listing<uint16_t>(image->symbol_table);
+    out_stream << "--------------------------------"<<std::endl;
     return out_stream.str();
 }
 
