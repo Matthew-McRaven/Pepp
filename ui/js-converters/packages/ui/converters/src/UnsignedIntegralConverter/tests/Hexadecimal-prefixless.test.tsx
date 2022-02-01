@@ -74,7 +74,7 @@ describe.each([1, 2])('%i-byte Hexadecimal <UnsignedIntegralConverter />', (len)
   });
 
   // Test 5 -Do not clear control if invalid character entered
-  it(`${len}-Byte doesn\'t clear when given invalid value`, () => {
+  it(`${len}-Byte doesn't clear when given invalid value`, () => {
     let state = 0x80;
     const setState = (newState: number) => { state = newState; };
     const wrapper = shallow(<UnsignedIntegralConverter
