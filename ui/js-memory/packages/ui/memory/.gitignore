@@ -1,7 +1,0 @@
-.DS_Store
-/node_modules
-/*.log
-/.rpt2_cache
-# rollup build output
-/dist
-/themes
