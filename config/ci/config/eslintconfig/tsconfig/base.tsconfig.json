@@ -11,6 +11,8 @@
     "experimentalDecorators": true,
     "emitDecoratorMetadata": true,
     "downlevelIteration": true,
+    "forceConsistentCasingInFileNames": true,
+    "allowSyntheticDefaultImports": true,
     "esModuleInterop": true,
     "resolveJsonModule": true,
     "module": "commonJs",
@@ -19,7 +21,8 @@
     "jsx": "react",
     "lib": [
       "ES2015",
-      "dom"
+      "dom",
+      "dom.iterable"
     ],
     "sourceMap": true
   }
