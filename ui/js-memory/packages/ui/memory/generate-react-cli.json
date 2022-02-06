@@ -1,0 +1,25 @@
+{
+  "usesTypeScript": true,
+  "usesCssModule": true,
+  "cssPreprocessor": "scss",
+  "testLibrary": "Enzyme",
+  "component": {
+    "default": {
+      "path": "src/",
+      "customTemplates": {
+        "index": "templates/component/index.ts",
+        "component": "templates/component/TemplateName.tsx",
+        "story": "templates/component/TemplateName.stories.tsx",
+        "docs": "templates/component/TemplateName.stories.mdx",
+        "style": "templates/component/TemplateName.scss",
+        "test": "templates/component/TemplateName.test.tsx"
+      },
+      "withIndex": true,
+      "withDocs": true,
+      "withStory": true,
+      "withStyle": true,
+      "withTest": true,
+      "withLazy": false
+    }
+  }
+}
