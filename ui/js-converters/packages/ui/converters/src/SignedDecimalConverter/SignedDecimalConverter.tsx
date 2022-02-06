@@ -52,8 +52,9 @@ export const SignedDecimalConverter = (props: SignedDecimalConverterProps) => {
       setSignedZero(false);
     }
 
-    // Reject values that don't match the regex
-    const match = /-?[0-9]+/.exec(stringValue);
+    // Reject values that don't match the regex.
+    // Must anchor against start / end, otherwise strings like f0x will match.
+    const match = /^-?[0-9]+$/.exec(stringValue);
     if (!match) return error(`${stringValue} did not match regex for base-${10}`);
 
     // I'm a C++ programmer, I know how bitwise operations work.
