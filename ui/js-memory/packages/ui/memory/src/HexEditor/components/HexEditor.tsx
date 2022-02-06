@@ -79,7 +79,7 @@ interface HexEditorState {
   viewportRowOffset: number,
   visibleStartIndex: number,
   visibleStopIndex: number,
-};
+}
 
 interface HexEditorAction {
   cursorOffset?: number,
@@ -94,7 +94,7 @@ interface HexEditorAction {
   viewportRowOffset?: number,
   visibleStartIndex?: number,
   visibleStopIndex?: number,
-};
+}
 
 const reducer = (
   prevState: HexEditorState,
@@ -622,7 +622,7 @@ const HexEditor: React.RefForwardingComponent<HexEditorHandle, HexEditorProps> =
       case editMode === EDIT_MODE_ASCII: {
         if (!readOnly) {
           const key = Keycoder.fromEvent(e.nativeEvent);
-          if (key.isPrintableCharacter && key.charCode != null) {
+          if (key.isPrintableCharacter() && key.charCode != null) {
             const value = shiftKey ? key.shift.charCode : key.charCode;
             if (value != null) {
               setValue(selectionEnd, value);
@@ -631,12 +631,10 @@ const HexEditor: React.RefForwardingComponent<HexEditorHandle, HexEditorProps> =
           }
         }
         e.preventDefault();
-        return;
       }
 
       // Ignore
       default:
-        return;
     }
   }, [setValue, setSelectionRange]);
 
@@ -651,8 +649,8 @@ const HexEditor: React.RefForwardingComponent<HexEditorHandle, HexEditorProps> =
     e.preventDefault();
     const clipboardText = e.clipboardData.getData('Text');
     const values = currentEditMode === EDIT_MODE_ASCII
-      ? clipboardText.split('').map(v => v.charCodeAt(0))
-      : (clipboardText.replace(/[^0-9a-f]/gi, '').match(/.{2}/g) || []).map(v => parseInt(v, 16));
+      ? clipboardText.split('').map((v) => v.charCodeAt(0))
+      : (clipboardText.replace(/[^0-9a-f]/gi, '').match(/.{2}/g) || []).map((v) => parseInt(v, 16));
     values.forEach((value, i) => {
       if (i < maxOffset) {
         setValue(cursorOffset + i, value);

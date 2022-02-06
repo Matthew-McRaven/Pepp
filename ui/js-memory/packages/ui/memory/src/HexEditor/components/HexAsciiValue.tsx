@@ -37,7 +37,7 @@ interface Props {
   setSelectionStart?: SetSelectionBoundaryCallback,
   style?: React.CSSProperties,
   value?: number | null,
-};
+}
 
 const HexByteAscii = ({
   className,
@@ -57,7 +57,7 @@ const HexByteAscii = ({
   value = 0x00,
 }: Props, ref: React.Ref<HTMLDivElement>) => {
   const formattedValue = useMemo(
-    () => (formatValue && value != null ? formatValue(value) : value),
+    () => (value != null ? formatValue(value) : value),
     [value, formatValue],
   );
 
