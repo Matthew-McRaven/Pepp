@@ -1,3 +1,4 @@
+/* eslint-disable react/prop-types */
 import React, {
   forwardRef,
   memo,
@@ -19,7 +20,9 @@ export interface HexEditorBodyProps {
   className?: string,
   height: number,
   itemRenderer?: React.ComponentType<ListChildComponentProps>,
+  // eslint-disable-next-line no-unused-vars
   onItemsRendered: (props: ListOnItemsRenderedProps) => any,
+  // eslint-disable-next-line no-unused-vars
   onScroll?: (props: ListOnScrollProps) => any,
   overscanCount: number,
   rowCount: number,
@@ -27,7 +30,7 @@ export interface HexEditorBodyProps {
   rows: number,
   style?: React.CSSProperties,
   width: number,
-};
+}
 
 const HexEditorBody: React.RefForwardingComponent<List, HexEditorBodyProps> = ({
   children: bodyChildren,
@@ -39,7 +42,6 @@ const HexEditorBody: React.RefForwardingComponent<List, HexEditorBodyProps> = ({
   overscanCount,
   rowCount,
   rowHeight,
-  rows,
   style,
   width,
 }, ref: React.Ref<List>) => {
@@ -49,6 +51,7 @@ const HexEditorBody: React.RefForwardingComponent<List, HexEditorBodyProps> = ({
         children: listChildren,
         ...props
       }, ref: React.Ref<HTMLDivElement>) => (
+        // eslint-disable-next-line react/jsx-props-no-spreading
         <div ref={ref} {...props}>
           {listChildren}
           {(

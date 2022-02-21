@@ -1,3 +1,4 @@
+/* eslint-disable react/require-default-props */
 import React, {
   forwardRef,
   memo,
@@ -21,17 +22,14 @@ import { byteToAscii } from '../utils';
 interface Props {
   className?: string,
   classNames?: HexEditorClassNames,
-  columnIndex?: number,
   formatValue?: ValueFormatter,
   isCursor?: boolean,
-  isEditing?: boolean,
   isSelected?: boolean,
   isSelectionCursor?: boolean,
   isSelectionEnd?: boolean,
   isSelectionStart?: boolean,
   offset?: number,
   placeholder?: string | JSX.Element | null,
-  rowIndex?: number,
   setSelectionEnd?: SetSelectionBoundaryCallback,
   setSelectionRange?: SetSelectionRangeCallback,
   setSelectionStart?: SetSelectionBoundaryCallback,
@@ -95,6 +93,7 @@ const HexByteAscii = ({
   }, [offset, setSelectionRange]);
 
   return (
+    // eslint-disable-next-line jsx-a11y/click-events-have-key-events, jsx-a11y/no-static-element-interactions
     <div
       className={joinClassNames(
         className,

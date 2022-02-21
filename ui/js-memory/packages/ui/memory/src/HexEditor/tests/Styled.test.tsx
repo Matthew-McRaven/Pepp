@@ -1,11 +1,12 @@
 import React from 'react';
 import { shallow } from 'enzyme';
 import { StyledHexEditor } from '..';
+import { MemoryLike } from '../components/MemoryLike';
 
 describe('<StyledHexEdtior />', () => {
   it('has been mounted', () => {
     // `data` contains the bytes to show. It can also be `Uint8Array`!
-    const data = new Array(100).fill(0);
+    const data = new Uint8Array(100).fill(0);
     // If `data` is large, you probably want it to be mutable rather than cloning it over and over.
     // `nonce` can be used to update the editor when `data` is reference that does not change.
     let nonce = 0;
@@ -17,7 +18,7 @@ describe('<StyledHexEdtior />', () => {
     const component = shallow(<StyledHexEditor
       showAscii
       columns={0x10}
-      data={data}
+      data={new MemoryLike(data)}
       nonce={nonce}
       onSetValue={handleSetValue}
     />);

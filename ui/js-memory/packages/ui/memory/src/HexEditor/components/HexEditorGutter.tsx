@@ -1,10 +1,11 @@
+/* eslint-disable react/require-default-props */
 import React, { forwardRef, memo } from 'react';
 
 interface Props {
   children?: React.ReactNode,
   className?: string,
   style?: React.CSSProperties,
-};
+}
 
 const HexEditorGutter = ({
   children = <>&nbsp;</>,

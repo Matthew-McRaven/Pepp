@@ -15,6 +15,7 @@ const StyledHexEditor: React.RefForwardingComponent<HexEditorHandle, HexEditorPr
   inlineStyles = EMPTY_INLINE_STYLES,
   ...restProps
 }: HexEditorProps, ref) => (
+  // eslint-disable-next-line react/jsx-props-no-spreading
   <HexEditor inlineStyles={inlineStyles} ref={ref} {...restProps} />
 );
 

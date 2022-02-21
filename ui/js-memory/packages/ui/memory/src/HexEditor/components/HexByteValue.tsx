@@ -1,3 +1,5 @@
+/* eslint-disable no-bitwise */
+/* eslint-disable react/require-default-props */
 import React, {
   forwardRef,
   memo,
@@ -28,18 +30,15 @@ interface Props {
   isSelectionEnd?: boolean,
   isSelectionStart?: boolean,
   offset?: number,
-  rowIndex?: number,
   setSelectionEnd?: SetSelectionBoundaryCallback,
   setSelectionRange?: (
-    start: number | null,
-    end?: number | null,
-    direction?: SelectionDirectionType | null,
-    takeFocus?: boolean,
+    // eslint-disable-next-line no-unused-vars
+    start: number | null, end?: number | null, direction?: SelectionDirectionType | null, takeFocus?: boolean,
   ) => void,
   setSelectionStart?: SetSelectionBoundaryCallback,
   style?: React.CSSProperties,
   value?: number | null,
-};
+}
 
 const HexByte = ({
   className,
@@ -94,6 +93,7 @@ const HexByte = ({
   }, [offset, setSelectionRange]);
 
   return (
+    // eslint-disable-next-line jsx-a11y/click-events-have-key-events, jsx-a11y/no-static-element-interactions
     <div
       className={joinClassNames(
         className,

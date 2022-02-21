@@ -15,6 +15,7 @@ const StyledAutoSizeHexEditor: React.RefForwardingComponent<HexEditorHandle, Aut
   inlineStyles = EMPTY_INLINE_STYLES,
   ...restProps
 }: AutoSizeHexEditorProps, ref) => (
+  // eslint-disable-next-line react/jsx-props-no-spreading
   <AutoSizeHexEditor inlineStyles={inlineStyles} ref={ref} {...restProps} />
 );
 

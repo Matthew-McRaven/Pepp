@@ -1,3 +1,4 @@
+/* eslint-disable react/prop-types */
 import React, {
   forwardRef,
   memo,
@@ -28,7 +29,7 @@ interface AutoSizeHexEditorState {
   rowHeight: number,
   rows: number,
   scrollbarWidth: number,
-};
+}
 
 interface AutoSizeHexEditorAction {
   asciiWidth?: number,
@@ -39,7 +40,7 @@ interface AutoSizeHexEditorAction {
   rowHeight?: number,
   rows?: number,
   scrollbarWidth?: number,
-};
+}
 
 const reducer = (
   prevState: AutoSizeHexEditorState,
@@ -92,7 +93,7 @@ const AutoSizeHexEditor: React.RefForwardingComponent<HexEditorHandle, AutoSizeH
     setState({
       asciiWidth: explicitAsciiWidth == null ? asciiWidth : explicitAsciiWidth,
       byteWidth: explicitByteWidth == null ? byteWidth : explicitByteWidth,
-      gutterWidth: explicitGutterWidth == null? gutterWidth : explicitGutterWidth,
+      gutterWidth: explicitGutterWidth == null ? gutterWidth : explicitGutterWidth,
       labelWidth: explicitLabelWidth == null ? labelWidth : explicitLabelWidth,
       rowHeight: explicitRowHeight == null ? rowHeight : explicitRowHeight,
       scrollbarWidth: explicitScrollbarWidth == null ? scrollbarWidth : explicitScrollbarWidth,
@@ -107,9 +108,9 @@ const AutoSizeHexEditor: React.RefForwardingComponent<HexEditorHandle, AutoSizeH
   ]);
 
   const formatOffset = useMemo(() => {
-    const padToLength = 2 * Math.ceil(formatHex(Math.max(0, props.data.length - 1)).length / 2);
+    const padToLength = 2 * Math.ceil(formatHex(Math.max(0, props.data.maxOffset() - 1)).length / 2);
     return (offset: number) => formatHex(offset, padToLength);
-  }, [props.data.length]);
+  }, [props.data]);
 
   const measureStyles = useMemo(() => ({
     ascii: { ...measureStyle, ...inlineStyles.ascii },
@@ -131,7 +132,7 @@ const AutoSizeHexEditor: React.RefForwardingComponent<HexEditorHandle, AutoSizeH
         formatValue={props.formatValue}
         gutterWidth={explicitGutterWidth}
         labelWidth={explicitLabelWidth}
-        offset={props.data.length}
+        offset={props.data.maxOffset()}
         onMeasure={handleMeasure}
         style={measureStyle}
         styles={measureStyles}
@@ -207,6 +208,7 @@ const AutoSizeHexEditor: React.RefForwardingComponent<HexEditorHandle, AutoSizeH
               rowHeight={rowHeight}
               rows={rows}
               width={width}
+              // eslint-disable-next-line react/jsx-props-no-spreading
               {...props}
               style={{
                 ...props.style,

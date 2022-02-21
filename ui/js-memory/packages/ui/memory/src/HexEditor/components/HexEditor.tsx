@@ -1,3 +1,4 @@
+/* eslint-disable react/prop-types */
 import React, {
   forwardRef,
   memo,
@@ -63,6 +64,7 @@ import INLINE_STYLES, { INPUT_STYLE } from '../constants/inlineStyles';
 import HexEditorRow from './HexEditorRow';
 import HexEditorContext, { HexEditorContextInterface } from '../contexts/HexEditorContext';
 import HexEditorBody from './HexEditorBody';
+import { MemoryLike } from './MemoryLike';
 
 interface HexEditorState {
   cursorOffset: number,
@@ -108,7 +110,7 @@ const HexEditor: React.RefForwardingComponent<HexEditorHandle, HexEditorProps> =
   className,
   classNames = CLASS_NAMES,
   columns,
-  data = [],
+  data = new MemoryLike(new Uint8Array()),
   formatValue = byteToAscii,
   height,
   highlightColumn = false,
@@ -148,7 +150,7 @@ const HexEditor: React.RefForwardingComponent<HexEditorHandle, HexEditorProps> =
   });
 
   const columnData = useMemo(
-    () => new Array(columns).fill(0).map((_v, i) => i),
+    () => new MemoryLike(new Uint8Array(columns).fill(0).map((_v, i) => i)),
     [columns],
   );
 
@@ -173,7 +175,7 @@ const HexEditor: React.RefForwardingComponent<HexEditorHandle, HexEditorProps> =
       showAscii,
       ...state,
     };
-  }, [columns, data, data.length, readOnly, rows, showAscii, state]);
+  }, [columns, data, readOnly, rows, showAscii, state]);
 
   const blur = useCallback(() => {
     if (inputRef.current) {
@@ -199,13 +201,14 @@ const HexEditor: React.RefForwardingComponent<HexEditorHandle, HexEditorProps> =
     }
 
     const {
-      data: currentData,
+      // data: currentData,
       editMode: currentEditMode,
       selectionStart: prevSelectionStart,
       selectionEnd: prevSelectionEnd,
       selectionDirection: prevSelectionDirection,
     } = stateRef.current;
-    const dataLength = data.length;
+
+    const dataLength = data.maxOffset() - data.minOffset();
 
     let selectionStart = start;
     let selectionEnd = end;
@@ -243,11 +246,12 @@ const HexEditor: React.RefForwardingComponent<HexEditorHandle, HexEditorProps> =
     let selectedValue = '';
     for (let i = selectionStart; i < selectionEnd; i += 1) {
       selectedValue += currentEditMode === EDIT_MODE_ASCII
-        ? String.fromCharCode(currentData[i])
-        : formatHexByte(currentData[i]);
+        ? String.fromCharCode(data.at(i))
+        : formatHexByte(data.at(i));
     }
 
     if (selectionStart === selectionEnd && selectionStart >= dataLength) {
+      // eslint-disable-next-line no-multi-assign
       selectionStart = selectionEnd = dataLength - 1;
     }
 
@@ -268,11 +272,11 @@ const HexEditor: React.RefForwardingComponent<HexEditorHandle, HexEditorProps> =
     } catch (e) {
       // shrug
     }
-  }, [focus, data.length]);
+  }, [focus, data.maxOffset()]);
 
   useEffect(() => {
     if (state.selectionAnchor != null) {
-      const handleWindowMouseUp = (_e: MouseEvent) => {
+      const handleWindowMouseUp = () => {
         setState({ selectionAnchor: null });
         focus();
       };
@@ -286,7 +290,6 @@ const HexEditor: React.RefForwardingComponent<HexEditorHandle, HexEditorProps> =
   const setSelectionStart = useCallback((
     offset: number,
     editMode?: EditModeType,
-    _e?: React.MouseEvent,
   ) => {
     const {
       selectionAnchor,
@@ -385,19 +388,14 @@ const HexEditor: React.RefForwardingComponent<HexEditorHandle, HexEditorProps> =
     } = e;
 
     const {
-      columns,
-      data,
       editMode,
       nybbleHigh,
       nybbleOffset,
-      readOnly,
-      rows,
       selectionStart,
       selectionEnd,
       selectionDirection,
-      showAscii,
     } = stateRef.current;
-    const dataLength = data.length;
+    const dataLength = data.maxOffset();
 
     const isSelection = selectionStart !== selectionEnd;
     const isMacKeyboard = isMacLike();
@@ -546,7 +544,7 @@ const HexEditor: React.RefForwardingComponent<HexEditorHandle, HexEditorProps> =
           const cursorPosition = isSelection
             ? selectionEnd - 1
             : selectionEnd + offset;
-          setSelectionRange(Math.min(cursorPosition, data.length - 1));
+          setSelectionRange(Math.min(cursorPosition, data.maxOffset() - 1));
         }
         e.preventDefault();
         return;
@@ -641,10 +639,11 @@ const HexEditor: React.RefForwardingComponent<HexEditorHandle, HexEditorProps> =
   const handlePaste = useCallback((e: React.ClipboardEvent<HTMLInputElement>) => {
     const {
       cursorOffset,
+      // eslint-disable-next-line no-shadow
       data,
       editMode: currentEditMode,
     } = stateRef.current;
-    const dataLength = data.length;
+    const dataLength = data.maxOffset();
     const maxOffset = dataLength - cursorOffset;
     e.preventDefault();
     const clipboardText = e.clipboardData.getData('Text');
@@ -688,14 +687,14 @@ const HexEditor: React.RefForwardingComponent<HexEditorHandle, HexEditorProps> =
   }, [columns, state.cursorOffset]);
 
   const rowCount = useMemo(
-    () => Math.ceil(data.length / columns),
-    [data.length, columns],
+    () => Math.ceil(data.maxOffset() / columns),
+    [data.maxOffset(), columns],
   );
 
   const formatOffset = useMemo(() => {
-    const padToLength = 2 * Math.ceil(formatHex(Math.max(0, data.length - 1)).length / 2);
+    const padToLength = 2 * Math.ceil(formatHex(Math.max(0, data.maxOffset() - 1)).length / 2);
     return (offset: number) => formatHex(offset, padToLength);
-  }, [data.length]);
+  }, [data.maxOffset()]);
 
   const { formatHeaderOffset, formatHeaderValue } = useMemo(() => ({
     formatHeaderOffset: () => formatOffset(0).replace(/./g, '\u00A0'),
@@ -831,7 +830,7 @@ const HexEditor: React.RefForwardingComponent<HexEditorHandle, HexEditorProps> =
               formatOffset={formatHeaderOffset}
               formatValue={formatHeaderValue}
               isHeader
-              labelOffset={data.length}
+              labelOffset={data.maxOffset()}
               nonce={nonce}
               showAscii={showAscii}
               showLabel={showRowLabels}

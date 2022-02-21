@@ -2,6 +2,8 @@ import {
   Align,
   ListOnItemsRenderedProps,
 } from 'react-window';
+import React from 'react';
+import type { MemoryLikeType } from './components/MemoryLike';
 
 import {
   EDIT_MODE_ASCII,
@@ -22,22 +24,20 @@ export type SelectionDirectionType = (
   | typeof SELECTION_DIRECTION_NONE
 );
 
-export type SetSelectionBoundaryCallback = (
-  offset: number,
-  editMode?: EditModeType,
-  e?: React.MouseEvent,
-) => void;
+// eslint-disable-next-line no-unused-vars
+export type SetSelectionBoundaryCallback = (offset: number, editMode?: EditModeType, e?: React.MouseEvent) => void;
 
 export type SetSelectionRangeCallback = (
-  start: number | null,
-  end?: number | null,
-  direction?: SelectionDirectionType | null,
-  takeFocus?: boolean,
+  // eslint-disable-next-line no-unused-vars
+  start: number | null, end?: number | null,
+  // eslint-disable-next-line no-unused-vars
+  direction?: SelectionDirectionType | null, takeFocus?: boolean,
 ) => void;
 
-export type ValueFormatter = (value: number) => string | JSX.Element | null;
+// eslint-disable-next-line no-unused-vars
+export type ValueFormatter = (value: number) => string | React.Component | null;
 
-export type HexEditorBodyChildren = JSX.Element | null | (() => JSX.Element);
+export type HexEditorBodyChildren = React.Component | null | (() => React.Component);
 
 export interface BaseHexEditorProps {
   asciiPlaceholder?: string | JSX.Element | null,
@@ -45,15 +45,19 @@ export interface BaseHexEditorProps {
   children?: HexEditorBodyChildren,
   className?: string,
   classNames?: HexEditorClassNames,
-  data: Uint8Array | number[],
+  data: MemoryLikeType,
   formatValue?: ValueFormatter,
   inlineStyles?: HexEditorInlineStyles,
   highlightColumn?: boolean,
   inputStyle?: React.CSSProperties | null,
   nonce?: number | string,
+  // eslint-disable-next-line no-unused-vars
   onBlur?: (e: React.FocusEvent) => void,
+  // eslint-disable-next-line no-unused-vars
   onFocus?: (e: React.FocusEvent) => void,
+  // eslint-disable-next-line no-unused-vars
   onSetValue?: (offset: number, value: number) => void,
+  // eslint-disable-next-line no-unused-vars
   onItemsRendered?: (props: ListOnItemsRenderedProps) => void,
   overscanCount?: number,
   readOnly?: boolean,
@@ -62,7 +66,7 @@ export interface BaseHexEditorProps {
   showRowLabels?: boolean,
   style?: React.CSSProperties | null,
   tabIndex?: number,
-};
+}
 
 export interface AutoSizeHexEditorProps extends BaseHexEditorProps {
   asciiWidth?: number,
@@ -76,7 +80,7 @@ export interface AutoSizeHexEditorProps extends BaseHexEditorProps {
   rows?: number,
   scrollbarWidth?: number,
   width?: number,
-};
+}
 
 export interface HexEditorProps extends BaseHexEditorProps {
   columns: number,
@@ -84,21 +88,25 @@ export interface HexEditorProps extends BaseHexEditorProps {
   rowHeight: number,
   rows: number,
   width: number,
-};
+}
 
 export interface HexEditorHandle {
   blur(): void,
   focus(): void,
+  // eslint-disable-next-line no-unused-vars
   scrollTo(scrollTop: number): void,
+  // eslint-disable-next-line no-unused-vars
   scrollToItem(rowIndex: number, align: Align): void,
   setSelectionRange(
-    start: number | null,
-    end?: number | null,
-    direction?: SelectionDirectionType | null,
-    takeFocus?: boolean,
+    // eslint-disable-next-line no-unused-vars
+    start: number | null, end?: number | null,
+    // eslint-disable-next-line no-unused-vars
+    direction?: SelectionDirectionType | null, takeFocus?: boolean,
   ): void,
+
+  // eslint-disable-next-line no-unused-vars
   setValue(offset: number, value: number): void,
-};
+}
 
 export interface HexEditorClassNames {
   ascii?: string,
@@ -135,7 +143,7 @@ export interface HexEditorClassNames {
   selectionEnd?: string,
   selectionForward?: string,
   selectionStart?: string,
-};
+}
 
 export interface HexEditorInlineStyles {
   ascii?: React.CSSProperties,
@@ -148,4 +156,4 @@ export interface HexEditorInlineStyles {
   header?: React.CSSProperties,
   offsetLabel?: React.CSSProperties,
   row?: React.CSSProperties,
-};
+}

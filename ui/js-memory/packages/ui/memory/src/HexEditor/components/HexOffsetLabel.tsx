@@ -1,3 +1,4 @@
+/* eslint-disable react/require-default-props */
 import React, {
   forwardRef,
   memo,
@@ -6,10 +7,11 @@ import React, {
 
 interface Props {
   className?: string,
+  // eslint-disable-next-line no-unused-vars
   formatOffset?: (offset: number) => number | string,
   offset?: number | null,
   style?: React.CSSProperties,
-};
+}
 
 const HexOffsetLabel = ({
   className,

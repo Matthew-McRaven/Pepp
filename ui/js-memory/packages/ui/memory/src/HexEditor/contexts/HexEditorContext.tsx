@@ -10,6 +10,8 @@ import {
 } from '../types';
 import { SELECTION_DIRECTION_NONE } from '../constants';
 import { formatHex } from '../utils';
+import { MemoryLike } from '../components/MemoryLike';
+import type { MemoryLikeType } from '../components/MemoryLike';
 
 export interface HexEditorContextInterface {
   asciiPlaceholder: string | JSX.Element | null,
@@ -18,7 +20,7 @@ export interface HexEditorContextInterface {
   cursorColumn?: number,
   cursorOffset: number,
   cursorRow?: number,
-  data: Uint8Array | number[],
+  data: MemoryLikeType,
   formatOffset: (offset: number) => string,
   formatValue: ValueFormatter,
   isEditing: boolean,
@@ -44,7 +46,7 @@ const HexEditorContext = createContext<HexEditorContextInterface>({
   cursorColumn: undefined,
   cursorOffset: 0,
   cursorRow: undefined,
-  data: [],
+  data: new MemoryLike(new Uint8Array()),
   formatOffset: formatHex,
   formatValue: formatHex,
   isEditing: false,
@@ -55,12 +57,12 @@ const HexEditorContext = createContext<HexEditorContextInterface>({
   selectionDirection: SELECTION_DIRECTION_NONE,
   selectionEnd: 0,
   selectionStart: 0,
-  setSelectionEnd: () => {},
-  setSelectionRange: () => {},
-  setSelectionStart: () => {},
+  setSelectionEnd: () => { },
+  setSelectionRange: () => { },
+  setSelectionStart: () => { },
   showAscii: false,
   showRowLabels: false,
   styles: {},
-})
+});
 
 export default HexEditorContext;

@@ -26,6 +26,8 @@ import HexOffsetLabel from './HexOffsetLabel';
 import HexEditorGutter from './HexEditorGutter';
 import HexByteValue from './HexByteValue';
 import HexAsciiValue from './HexAsciiValue';
+import { MemoryLike } from './MemoryLike';
+import type { MemoryLikeType } from './MemoryLike';
 
 export interface HexEditorRowProps {
   asciiPlaceholder?: string | JSX.Element | null,
@@ -35,8 +37,9 @@ export interface HexEditorRowProps {
   cursorColumn?: number,
   cursorOffset?: number,
   cursorRow?: number,
-  data?: Uint8Array | number[],
+  data?: MemoryLikeType,
   disabled?: boolean,
+  // eslint-disable-next-line no-unused-vars
   formatOffset?: (offset: number) => string | number,
   formatValue?: ValueFormatter,
   isEditing?: boolean,
@@ -51,21 +54,19 @@ export interface HexEditorRowProps {
   selectionStart?: number,
   setSelectionEnd?: SetSelectionBoundaryCallback,
   setSelectionRange?: (
-    start: number | null,
-    end?: number | null,
-    direction?: SelectionDirectionType | null,
-    takeFocus?: boolean,
+    // eslint-disable-next-line no-unused-vars
+    start: number | null, end?: number | null, direction?: SelectionDirectionType | null, takeFocus?: boolean,
   ) => void,
   setSelectionStart?: SetSelectionBoundaryCallback,
   showAscii?: boolean,
   showLabel?: boolean,
   style?: React.CSSProperties,
   styles?: HexEditorInlineStyles,
-};
+}
 
 function areRowPropsEquivalent(prevProps: HexEditorRowProps, nextProps: HexEditorRowProps) {
   const {
-    columns: prevColumns = prevProps.data ? prevProps.data.length : 0,
+    columns: prevColumns = prevProps.data ? prevProps.data.maxOffset() : 0,
     cursorOffset: prevCursorOffset,
     cursorRow: prevCursorRow,
     isEditing: prevIsEditing,
@@ -77,7 +78,7 @@ function areRowPropsEquivalent(prevProps: HexEditorRowProps, nextProps: HexEdito
     ...prevRest
   } = prevProps;
   const {
-    columns: nextColumns = nextProps.data ? nextProps.data.length : 0,
+    columns: nextColumns = nextProps.data ? nextProps.data.maxOffset() : 0,
     cursorOffset: nextCursorOffset,
     cursorRow: nextCursorRow,
     isEditing: nextIsEditing,
@@ -163,7 +164,7 @@ const HexEditorRow = ({
   cursorColumn,
   cursorOffset,
   cursorRow,
-  data = [],
+  data = new MemoryLike(new Uint8Array()),
   disabled = false,
   formatOffset,
   formatValue,
@@ -184,11 +185,9 @@ const HexEditorRow = ({
   style,
   styles = EMPTY_INLINE_STYLES,
 }: HexEditorRowProps, ref: React.Ref<HTMLDivElement>) => {
-  const dataOffsets = useMemo(() => {
-    return new Array(columns == null ? data.length - dataOffset : columns)
-      .fill(0)
-      .map((_v, i) => (dataOffset + i));
-  }, [dataOffset, columns, data.length]);
+  const dataOffsets = useMemo(() => new Array(columns == null ? data.maxOffset() - dataOffset : columns)
+    .fill(0)
+    .map((_v, i) => (dataOffset + i)), [dataOffset, columns, data.maxOffset()]);
 
   const isSelecting = selectionEnd > selectionStart;
   const isCurrentRow = cursorRow != null && rowIndex === cursorRow;
@@ -213,7 +212,7 @@ const HexEditorRow = ({
           />
         </>
       )}
-      {!(columns || data.length) ? null : (
+      {!(columns || data.maxOffset()) ? null : (
         <div className={classNames.byteValues} style={styles.byteValues}>
           {dataOffsets.map((offset, columnIndex) => {
             const isCurrentColumn = cursorColumn != null && columnIndex === cursorColumn;
@@ -228,10 +227,11 @@ const HexEditorRow = ({
             );
 
             let value = null;
-            if (offset < data.length) {
+            if (offset < data.maxOffset()) {
               value = isCursor && nybbleHigh != null
-                ? (nybbleHigh << 4) | (0x0f & data[offset])
-                : data[offset];
+                // eslint-disable-next-line no-bitwise
+                ? (nybbleHigh << 4) | (0x0f & data.at(offset))
+                : data.at(offset);
             }
 
             return (
@@ -249,7 +249,7 @@ const HexEditorRow = ({
                 isSelectionStart={isSelectionStart && !disabled}
                 key={offset}
                 offset={offset}
-                rowIndex={rowIndex}
+                // rowIndex={rowIndex}
                 setSelectionEnd={setSelectionEnd}
                 setSelectionRange={setSelectionRange}
                 setSelectionStart={setSelectionStart}
@@ -278,16 +278,16 @@ const HexEditorRow = ({
                   : isSelectionEnd
               );
 
-              const value = offset < data.length ? data[offset] : null;
+              const value = offset < data.maxOffset() ? data.at(offset) : null;
 
               return (
                 <HexAsciiValue
                   className={isHeader ? classNames.asciiHeader : classNames.ascii}
                   classNames={classNames}
-                  columnIndex={columnIndex}
+                  // columnIndex={columnIndex}
                   formatValue={formatValue}
                   isCursor={isCursor && !disabled}
-                  isEditing={isEditing && !disabled}
+                  // isEditing={isEditing && !disabled}
                   isSelected={isSelected && !disabled}
                   isSelectionCursor={isSelectionCursor && !disabled}
                   isSelectionEnd={isSelectionEnd && !disabled}
@@ -295,7 +295,7 @@ const HexEditorRow = ({
                   key={offset}
                   offset={offset}
                   placeholder={asciiPlaceholder}
-                  rowIndex={rowIndex}
+                  // rowIndex={rowIndex}
                   setSelectionEnd={setSelectionEnd}
                   setSelectionRange={setSelectionRange}
                   setSelectionStart={setSelectionStart}

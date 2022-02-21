@@ -1,3 +1,4 @@
+/* eslint-disable react/require-default-props */
 import React, { useLayoutEffect, useRef } from 'react';
 
 import {
@@ -25,12 +26,13 @@ interface Props {
   byteWidth?: number,
   className?: string,
   classNames?: HexEditorClassNames,
-  data?: Uint8Array | number[],
+  // eslint-disable-next-line no-unused-vars
   formatOffset?: (offset: number) => string | number,
   formatValue?: ValueFormatter,
   gutterWidth?: number,
   labelWidth?: number,
   offset?: number,
+  // eslint-disable-next-line no-unused-vars
   onMeasure?: (measurements: {
     asciiWidth: number,
     byteWidth: number,
@@ -43,7 +45,7 @@ interface Props {
   style?: React.CSSProperties | null,
   styles?: HexEditorInlineStyles,
   value?: number,
-};
+}
 
 const HexEditorMeasureRow = ({
   asciiPlaceholder,
