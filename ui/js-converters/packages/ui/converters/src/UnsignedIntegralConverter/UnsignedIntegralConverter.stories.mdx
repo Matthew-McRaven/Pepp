@@ -121,7 +121,8 @@ There are three major classes of integral converters:
 
 ## Assumptions
 * *N* is the length of the converter in bytes
-
+  * Therefore, 2**8N is the length of the converter in bits.
+  
 
 ## General Behavior
 All converters must follow the following spec:
@@ -136,7 +137,7 @@ All converters must follow the following spec:
 Additionally, depending on the base, the following behaviors shall be observed: 
 
 ### Base 2
-* Must be able to represent numbers in `[0,2**(N)-1]`
+* Must be able to represent numbers in `[0,2**(8N)-1]`
 * Leading zeros are not allowed (e.g., 0b001, 0001)
 * Must reject numbers outside acceptable range
 * Prefixes:
@@ -149,14 +150,14 @@ Additionally, depending on the base, the following behaviors shall be observed:
   * An empty string should be represented as `0`
 
 ### Base 10 (unsigned)
-* Must be able to represent numbers in `[0,2**(N)-1]`
+* Must be able to represent numbers in `[0,2**(8N)-1]`
 * Leading zeros are not allowed (e.g., reject 01)
 * Must reject numbers outside acceptable range
 * Must reject strings that don't match regex `[0-9]+`
 * Unsigned decimal converters must reject negative numbers
 
 ### Base 16
-* Must be able to represent numbers in `[0,2**(N)-1]`
+* Must be able to represent numbers in `[0,2**(8N)-1]`
 * Leading zeros are not allowed (e.g., reject 0x01, 001)
 * Must reject numbers outside acceptable range
 * Hex characters in the number portion should be corrected to upper case

@@ -106,36 +106,28 @@ import { Meta } from '@storybook/addon-docs';
   
 `}</style>
 
-# Specification
-There are three major classes of integral converters:
-* Binary converters
-* Decimal converters
-* Hexadecimal converters
-
-Decimal converters have two subtypes:
-* signed
-* unsigned
 
 ## Terms
 * Converters may be refered to in any of the following formats:
-  * Binary == base 2
   * Decimal == base 10
-  * Hexadecimal == base 16
 * \*\* is the exponentiation operator
 
 ## Assumptions
 * *N* is the length of the converter in bytes
 
 
-## General Behavior
+## Signed Decimal Behavior
 All converters must follow the following spec:
 * Signed decimal converter shall have the same width as an integral converter of the same byte length
 * External state only updates when focus is lost, or "enter" is pressed
-* Leading zeros are not allowed (e.g., reject 01)
+* Leading zeros are not allowed (e.g., reject 01, -01)
 * Read-only converters must follow [REQ-1](https://gitlab.com/pep10/pepsuite/-/requirements_management/requirements)
-* Must only accept numbers in `[-2**(N-1),2**(N-1)-1]`
+* Must only accept numbers in `[-2**(8N-1),2**(8N-1)-1]`
 * Must reject numbers outside acceptable range
 * Must reject strings that don't match regex `(-)?[0-9]+`
 * The string `-0` must retain its leading minus signed
 * At any time, typing a '-' shall toggle the sign.
-  * Due to 2's complement magic,-2**(N-1) shall map to itself, all other values should toggle signs.
+  * Due to 2's complement magic,-2**(8N-1) shall map to itself, all other values should toggle signs.
+* Values will be stored as [two's complement notation](https://www.cs.cornell.edu/~tomf/notes/cps104/twoscomp.html).
+  * For example, -35 in a 1 byte converter would be stored as (2**8N-35+1=221).
+  * This notation is used because it keeps bit-pattern consistency with the unsigned converters. Without specifying how negative numbers are stored, it would be impossible to share values between converter types.
