@@ -363,7 +363,8 @@ const HexEditor: React.RefForwardingComponent<HexEditorHandle, HexEditorProps> =
     scrollToItem,
     setSelectionRange,
     setValue,
-  }), [blur, focus, scrollTo, scrollToItem, setSelectionRange, setValue]);
+    width,
+  }), [blur, focus, scrollTo, scrollToItem, setSelectionRange, setValue, width]);
 
   const handleBlur = useCallback((e: React.FocusEvent<HTMLInputElement>) => {
     setState({ isFocused: false });

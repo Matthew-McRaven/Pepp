@@ -106,6 +106,7 @@ export interface HexEditorHandle {
 
   // eslint-disable-next-line no-unused-vars
   setValue(offset: number, value: number): void,
+  width: number,
 }
 
 export interface HexEditorClassNames {
