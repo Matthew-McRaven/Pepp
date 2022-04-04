@@ -1,7 +1,7 @@
 import React, { useState, useCallback } from 'react';
 import './FlatMemoryView.scss';
 
-import { Integral } from '@pep10/ui-converters/';
+import { UnsignedIntegral } from '@pep10/ui-converters/';
 import * as HexEditor from '../HexEditor';
 import oneDarkPro from '../HexEditor/themes/oneDarkPro';
 
@@ -51,7 +51,7 @@ const FlatMemoryView = (props: FlatMemoryViewProps) => {
       <div style={{ display: 'flex', justifyContent: 'space-between' }}>
         <div style={{ display: 'flex' }}>
           Scroll to:
-          <Integral.IntegralConverter
+          <UnsignedIntegral.UnsignedIntegralConverter
             base={16}
             byteLength={2}
             state={value}
