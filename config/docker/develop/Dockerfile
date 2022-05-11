@@ -21,12 +21,15 @@ RUN apt-get update && export DEBIAN_FRONTEND=noninteractive \
 
 WORKDIR /
 
+# Install LLVM 14
+RUN wget https://apt.llvm.org/llvm.sh && chmod +x llvm.sh &&  ./llvm.sh 14 && rm llvm.sh
+
 # Download boost code.
 RUN git clone --jobs 10 --recursive --branch boost-${BOOST_VERSION}  https://github.com/boostorg/boost && git clone https://github.com/emscripten-core/emsdk.git /emsdk
 
-# Install EMSDK
-RUN cd /emsdk && git pull && ./emsdk install 3.1.8  && ./emsdk activate 3.1.8
-RUN source /emsdk/emsdk_env.sh && npm i -g corepack && yarn set version stable
+# Install EMSDK, yarn
+# Must combine, otherwise a layer is the same in multi-arch builds, breaking everything
+RUN cd /emsdk && git pull && ./emsdk install 3.1.8  && ./emsdk activate 3.1.8 && source /emsdk/emsdk_env.sh && npm i -g corepack && yarn set version stable
 
 # Boost will install to /usr/local/lib
 RUN cd boost && ./bootstrap.sh \
