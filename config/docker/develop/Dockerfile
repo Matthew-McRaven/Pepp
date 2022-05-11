@@ -29,7 +29,8 @@ RUN git clone --jobs 10 --recursive --branch boost-${BOOST_VERSION}  https://git
 
 # Install EMSDK, yarn
 # Must combine, otherwise a layer is the same in multi-arch builds, breaking everything
-RUN cd /emsdk && git pull && ./emsdk install 3.1.8  && ./emsdk activate 3.1.8 && source /emsdk/emsdk_env.sh && npm i -g corepack && yarn set version stable
+RUN cd /emsdk && git pull && ./emsdk install 3.1.8  && ./emsdk activate 3.1.8 && echo uname -a /arch.delete
+RUN source /emsdk/emsdk_env.sh && npm i -g corepack && yarn set version stable
 
 # Boost will install to /usr/local/lib
 RUN cd boost && ./bootstrap.sh \
