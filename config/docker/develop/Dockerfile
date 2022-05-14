@@ -17,7 +17,7 @@ RUN apt-get update && export DEBIAN_FRONTEND=noninteractive \
      && apt-get -y install --no-install-recommends g++-10 make zip cmake git libsqlite3-dev zlib1g-dev \
      libreadline-dev libncursesw5-dev libssl-dev tk-dev libgdbm-dev libc6-dev libbz2-dev libffi-dev \
      vim ripgrep doxygen clang-tidy ssh-client lcov libsecret-1-0 libsecret-1-dev\
-     libx11-dev libxkbfile-dev lsb-release wget software-properties-common
+     libx11-dev libxkbfile-dev lsb-release wget software-properties-common git-lfs
 
 WORKDIR /
 
