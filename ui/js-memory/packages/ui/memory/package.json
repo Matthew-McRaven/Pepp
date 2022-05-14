@@ -1,6 +1,6 @@
 {
   "name": "@pep10/ui-memory",
-  "version": "0.3.0",
+  "version": "0.3.1",
   "description": "Components designed as part of the PepSuite memory subsystem.",
   "homepage": "https://gitlab.com/pep10/pepsuite#readme",
   "bugs": {
