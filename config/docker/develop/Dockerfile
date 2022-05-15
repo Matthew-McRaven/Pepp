@@ -4,38 +4,41 @@
 ARG VARIANT="ubuntu-22.04"
 
 
-FROM mcr.microsoft.com/vscode/devcontainers/cpp:0-${VARIANT}
+FROM mcr.microsoft.com/vscode/devcontainers/cpp:0-${VARIANT} as base
 
-# Must occur after the "FROM" directive
-ARG BOOST_VERSION="1.76.0"
 SHELL ["/bin/bash", "-c"]
 
-# Required to move an ARG to an environment variable.
-RUN echo $BOOST_VERSION
 # Install additional packages.
 RUN apt-get update && export DEBIAN_FRONTEND=noninteractive \
-     && apt-get -y install --no-install-recommends g++-10 make zip cmake git libsqlite3-dev zlib1g-dev \
-     libreadline-dev libncursesw5-dev libssl-dev tk-dev libgdbm-dev libc6-dev libbz2-dev libffi-dev \
+     && apt-get -y install --no-install-recommends make zip cmake git \
      vim ripgrep doxygen clang-tidy ssh-client lcov libsecret-1-0 libsecret-1-dev\
      libx11-dev libxkbfile-dev lsb-release wget software-properties-common git-lfs
 
 WORKDIR /
 
+FROM base as boost-build
+# Must occur after the "FROM" directive
+ARG BOOST_VERSION="1.76.0"
 # Download boost code.
 RUN git clone --jobs 10 --recursive --branch boost-${BOOST_VERSION}  https://github.com/boostorg/boost && git clone https://github.com/emscripten-core/emsdk.git /emsdk
 
-# Install EMSDK, yarn
+# Install EMSDK
 # Must combine, otherwise a layer is the same in multi-arch builds, breaking everything
 RUN cd /emsdk && git pull && ./emsdk install 3.1.8  && ./emsdk activate 3.1.8 && echo uname -a /arch.delete
-RUN source /emsdk/emsdk_env.sh && npm i -g corepack && yarn set version stable
 
 # Boost will install to /usr/local/lib
-RUN cd boost && ./bootstrap.sh \
-    && ./b2 cxxflags="-fPIC -std=c++17" address-model=64 link=static runtime-link=static -j 20 threading=multi --build-dir=./build-native --stagedir=./stage-native \
-    && ./b2 cxxflags="-fPIC -std=c++17" address-model=64 link=static runtime-link=static -j 20 threading=multi install --build-dir=./build-native --stagedir=./stage-native
+RUN cd boost && ./bootstrap.sh --prefix=/bmagic \
+    && ./b2 cxxflags="-fPIC -std=c++17" address-model=64 link=static runtime-link=static -j 20 threading=multi install --build-dir=./build-native --stagedir=./stage-native --prefix=/bmagic
 
 RUN source /emsdk/emsdk_env.sh \
     && cd boost \
     && ./b2 --clean-all -n \
-    && emconfigure ./b2 cxxflags="-fPIC -std=c++17" link=static runtime-link=static -j 20 --build-dir=./build-js --stagedir=./stage-js \
-    && emconfigure ./b2 cxxflags="-fPIC -std=c++17" link=static runtime-link=static -j 20 install --build-dir=./build-js --stagedir=./stage-js
+    && emconfigure ./b2 cxxflags="-fPIC -std=c++17" link=static runtime-link=static -j 20 install --build-dir=./build-js --stagedir=./stage-js --prefix=/bmagic
+
+
+
+FROM base as final
+COPY --from=boost-build /bmagic /usr/local
+COPY --from=boost-build /emsdk /emsdk
+# Install yarn into emsdk node environment
+RUN source /emsdk/emsdk_env.sh && npm i -g corepack && corepack prepare --activate yarn@3.2.0
