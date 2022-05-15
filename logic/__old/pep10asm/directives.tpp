@@ -34,7 +34,7 @@ template <typename address_size_t> std::string masm::ir::dot_address<address_siz
         code_string = fmt::format("{:04X}", this->argument->value());
     }
 
-    return fmt::format("{:<6} {:<6} {}", fmt::format("0x{:04X}", this->base_address()), code_string,
+    return fmt::format("{:<6} {:<6} {}", fmt::format("{:04X}", this->base_address()), code_string,
                        generate_source_string());
 }
 
@@ -103,7 +103,7 @@ template <typename address_size_t> std::string masm::ir::dot_align<address_size_
         --bytes_remaining;
     }
 
-    auto temp = fmt::format("{:<6} {:<6} {}", fmt::format("0x{:04X}", this->base_address()), code_string,
+    auto temp = fmt::format("{:<6} {:<6} {}", fmt::format("{:04X}", this->base_address()), code_string,
                             generate_source_string());
 
     while (bytes_remaining > 0) {
@@ -198,7 +198,7 @@ template <typename address_size_t> std::string masm::ir::dot_ascii<address_size_
         ++bytes_emitted;
     }
 
-    auto temp = fmt::format("{:<6} {:<6} {}", fmt::format("0x{:04X}", this->base_address()), code_string,
+    auto temp = fmt::format("{:<6} {:<6} {}", fmt::format("{:04X}", this->base_address()), code_string,
                             generate_source_string());
 
     while (bytes_head != bytes.end()) {
@@ -279,8 +279,8 @@ template <typename address_size_t> std::string masm::ir::dot_block<address_size_
         ++bytes_emitted;
     }
 
-    auto temp = fmt::vformat("{:<6} {:<6} {}", fmt::make_format_args(fmt::format("0x{:04X}", this->base_address()), code_string,
-                            generate_source_string()));
+    auto temp = fmt::vformat("{:<6} {:<6} {}", fmt::make_format_args(fmt::format("{:04X}", this->base_address()),
+                                                                     code_string, generate_source_string()));
 
     while (this->emits_object_code && bytes_head < max_bytes) {
         code_string = "";
@@ -290,7 +290,7 @@ template <typename address_size_t> std::string masm::ir::dot_block<address_size_
             ++bytes_head;
             ++bytes_emitted;
         }
-        std::cout <<"here"<<std::endl;
+        std::cout << "here" << std::endl;
         temp.append(fmt::format("\n        {:<6}", code_string));
     }
     return temp;
@@ -389,7 +389,7 @@ template <typename address_size_t> std::string masm::ir::dot_byte<address_size_t
         code_string = fmt::format("{:02X}", this->argument->value() & 0xff);
     }
 
-    auto temp = fmt::format("{:<6} {:<6} {}", fmt::format("0x{:04X}", this->base_address()), code_string,
+    auto temp = fmt::format("{:<6} {:<6} {}", fmt::format("{:04X}", this->base_address()), code_string,
                             generate_source_string());
 
     return temp;
@@ -607,7 +607,7 @@ template <typename address_size_t> std::string masm::ir::dot_word<address_size_t
         code_string = fmt::format("{:04X}", this->argument->value());
     }
 
-    auto temp = fmt::format("{:<6} {:<6} {}", fmt::format("0x{:04X}", this->base_address()), code_string,
+    auto temp = fmt::format("{:<6} {:<6} {}", fmt::format("{:04X}", this->base_address()), code_string,
                             generate_source_string());
 
     return temp;
