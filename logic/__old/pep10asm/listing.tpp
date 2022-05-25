@@ -47,21 +47,27 @@ std::string masm::utils::generate_pretty_object_code(std::shared_ptr<masm::elf::
                                                      uint8_t base, bool include_comment) {
     assert(base > 0);
     std::stringstream ss;
-    std::size_t maxLen = 1;
+    addr_size_t maxLen = 1;
+    // Must do separate loop to compute offset of comment, otherwise comments will cascade to the right
+    for (const auto &line : image->body_ir->ir_lines)
+        maxLen = std::max(line->object_code_bytes(), maxLen);
+
     for (const auto &line : image->body_ir->ir_lines) {
         std::vector<uint8_t> object_code;
         line->append_object_code(object_code);
-        maxLen = std::max(object_code.size(), maxLen);
         auto formatted_bytes = ::utils::bytes_to_nbit_string(object_code, 255, base, 4, false, base == 2);
+
         auto addr_string =
             line->bytes_type() == masm::ir::ByteType::kNoBytes ? "    " : fmt::format("{:04X}", line->base_address());
-        // std::cout << addr_string << std::endl;
-        auto fmt = fmt::format("{{:4}} {} {{}}",
-                               "{:" + std::to_string(maxLen * (std::size_t)(std::log(256) / std::log(base))) + "}");
+
+        const auto middle_pad_len = maxLen * (std::size_t)(std::log(256) / std::log(base));
+
+        auto fmt = fmt::format("{{:4}} {} {{}}", "{:" + std::to_string(middle_pad_len) + "}");
         auto formatted = fmt::vformat(fmt, fmt::make_format_args(addr_string, formatted_bytes,
                                                                  include_comment ? line->get_formatted_comment() : ""));
+        // std::cout << formatted << std::endl;
         boost::algorithm::trim_right(formatted);
-        // std::cout << fmt << std::endl;
+
         if (formatted.size())
             ss << formatted << "\n";
     }
