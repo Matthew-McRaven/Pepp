@@ -1,5 +1,6 @@
 #include "listing.hpp"
 
+#include <boost/algorithm/string.hpp>
 #include <fmt/core.h>
 
 #include "utils/format.hpp"
@@ -16,11 +17,11 @@ std::string masm::utils::generate_listing(std::shared_ptr<masm::elf::top_level_s
     }
     out_stream << "-------------------------------------------------------------------------------" << std::endl;
     out_stream << "Symbol Table" << std::endl;
-    out_stream << "--------------------------------"<<std::endl;
-    out_stream <<"Symbol    Value     Symbol    Value" << std::endl;
-    out_stream << "--------------------------------"<<std::endl;
+    out_stream << "--------------------------------" << std::endl;
+    out_stream << "Symbol    Value     Symbol    Value" << std::endl;
+    out_stream << "--------------------------------" << std::endl;
     out_stream << symbol::symbol_table_listing<uint16_t>(image->symbol_table);
-    out_stream << "--------------------------------"<<std::endl;
+    out_stream << "--------------------------------" << std::endl;
     return out_stream.str();
 }
 
@@ -39,4 +40,37 @@ std::string masm::utils::generate_formatted_bytecode(std::shared_ptr<masm::elf::
 
     auto object_code = get_bytecode(image);
     return ::utils::bytes_to_hex_string(object_code, bytes_per_line, true);
+}
+
+template <typename addr_size_t>
+std::string masm::utils::generate_pretty_object_code(std::shared_ptr<masm::elf::top_level_section<addr_size_t>> &image,
+                                                     uint8_t base, bool include_comment) {
+    assert(base > 0);
+    std::stringstream ss;
+    addr_size_t maxLen = 1;
+    // Must do separate loop to compute offset of comment, otherwise comments will cascade to the right
+    for (const auto &line : image->body_ir->ir_lines)
+        maxLen = std::max(line->object_code_bytes(), maxLen);
+
+    for (const auto &line : image->body_ir->ir_lines) {
+        std::vector<uint8_t> object_code;
+        line->append_object_code(object_code);
+        auto formatted_bytes = ::utils::bytes_to_nbit_string(object_code, 255, base, 4, false, base == 2);
+
+        auto addr_string =
+            line->bytes_type() == masm::ir::ByteType::kNoBytes ? "    " : fmt::format("{:04X}", line->base_address());
+
+        const auto middle_pad_len = maxLen * (std::size_t)(std::log(256) / std::log(base));
+
+        auto fmt = fmt::format("{{:4}} {} {{}}", "{:" + std::to_string(middle_pad_len) + "}");
+        auto formatted = fmt::vformat(fmt, fmt::make_format_args(addr_string, formatted_bytes,
+                                                                 include_comment ? line->get_formatted_comment() : ""));
+        // std::cout << formatted << std::endl;
+        boost::algorithm::trim_right(formatted);
+
+        if (formatted.size())
+            ss << formatted << "\n";
+    }
+
+    return ss.str();
 }
