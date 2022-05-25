@@ -56,7 +56,8 @@ std::string masm::utils::generate_pretty_object_code(std::shared_ptr<masm::elf::
         auto addr_string =
             line->bytes_type() == masm::ir::ByteType::kNoBytes ? "    " : fmt::format("{:04X}", line->base_address());
         // std::cout << addr_string << std::endl;
-        auto fmt = fmt::format("{{:4}} {} {{}}", "{:" + std::to_string(maxLen) + "}");
+        auto fmt = fmt::format("{{:4}} {} {{}}",
+                               "{:" + std::to_string(maxLen * (std::size_t)(std::log(256) / std::log(base))) + "}");
         auto formatted = fmt::vformat(fmt, fmt::make_format_args(addr_string, formatted_bytes,
                                                                  include_comment ? line->get_formatted_comment() : ""));
         boost::algorithm::trim_right(formatted);
