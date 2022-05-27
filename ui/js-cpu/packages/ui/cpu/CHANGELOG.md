@@ -3,6 +3,22 @@
 All notable changes to this project will be documented in this file.
 See [Conventional Commits](https://conventionalcommits.org) for commit guidelines.
 
+# [0.4.0](https://gitlab.com/pep10/pepsuite/compare/v0.2.1...v0.4.0) (2022-05-27)
+
+
+### Bug Fixes
+
+* **ui:** fix broken storybook tests ([d348212](https://gitlab.com/pep10/pepsuite/commit/d348212518a8f32c89d056767ec1be3420c93452)), closes [#349](https://gitlab.com/pep10/pepsuite/issues/349)
+
+
+### Features
+
+* **ui:** allow editable registers in RegistersPane ([0ac6280](https://gitlab.com/pep10/pepsuite/commit/0ac628043293b2be1f23bc65accc38d5bcd86e05)), closes [#294](https://gitlab.com/pep10/pepsuite/issues/294)
+
+
+
+
+
 # [0.3.0](https://gitlab.com/pep10/pepsuite/compare/v0.2.1...v0.3.0) (2022-05-14)
 
 
