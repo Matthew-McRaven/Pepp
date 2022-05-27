@@ -80,7 +80,8 @@ const HexEditorBody: React.RefForwardingComponent<List, HexEditorBodyProps> = ({
       style={{ ...style, overflowY: 'scroll' }}
       width={width}
     >
-      {itemRenderer}
+      {/*Upgrading yarn applied a TSC pathch, which broke this previously-working line */}
+      {itemRenderer as any}
     </List>
   );
 };
