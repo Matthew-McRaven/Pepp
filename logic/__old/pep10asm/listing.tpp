@@ -48,11 +48,27 @@ std::string masm::utils::generate_pretty_object_code(std::shared_ptr<masm::elf::
     assert(base > 0);
     std::stringstream ss;
     addr_size_t maxLen = 1;
+
+    std::list<std::shared_ptr<const masm::ir::linear_line<addr_size_t>>> lines;
+
+    std::function<void(std::shared_ptr<masm::elf::code_section<addr_size_t>>)> enumerate_lines;
+    enumerate_lines = [&](std::shared_ptr<masm::elf::code_section<addr_size_t>> section) {
+        for (const auto &line : section->body_ir->ir_lines) {
+            // Don't enqueue macro lines, otherwise object code will show up twice.
+            if (auto ptr = std::dynamic_pointer_cast<masm::ir::macro_invocation<addr_size_t>>(line); ptr)
+                enumerate_lines(ptr->macro);
+            else
+                lines.push_back(line);
+        }
+    };
+    enumerate_lines(std::dynamic_pointer_cast<masm::elf::code_section<addr_size_t>>(image));
+
     // Must do separate loop to compute offset of comment, otherwise comments will cascade to the right
-    for (const auto &line : image->body_ir->ir_lines)
+    for (const auto &line : lines)
         maxLen = std::max(line->object_code_bytes(), maxLen);
 
-    for (const auto &line : image->body_ir->ir_lines) {
+    // This will
+    for (const auto &line : lines) {
         std::vector<uint8_t> object_code;
         line->append_object_code(object_code);
         auto formatted_bytes = ::utils::bytes_to_nbit_string(object_code, 255, base, 4, false, base == 2);
@@ -71,6 +87,5 @@ std::string masm::utils::generate_pretty_object_code(std::shared_ptr<masm::elf::
         if (formatted.size())
             ss << formatted << "\n";
     }
-
     return ss.str();
 }
