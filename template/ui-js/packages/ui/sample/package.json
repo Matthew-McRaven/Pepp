@@ -1,6 +1,6 @@
 {
   "name": "@pep10/ui-sample",
-  "version": "0.4.0",
+  "version": "0.4.1",
   "description": "Base configuration for a UI library",
   "homepage": "https://gitlab.com/pep10/pepsuite#readme",
   "bugs": {
