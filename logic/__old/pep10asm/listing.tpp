@@ -15,6 +15,8 @@ std::string masm::utils::generate_listing(std::shared_ptr<masm::elf::top_level_s
     for (const auto &line : image->body_ir->ir_lines) {
         out_stream << line->generate_listing_string() << std::endl;
     }
+    // Add newline between listing and symbol table, see #395
+    out_stream << std::endl;
     out_stream << "-------------------------------------------------------------------------------" << std::endl;
     out_stream << "Symbol Table" << std::endl;
     out_stream << "--------------------------------" << std::endl;
