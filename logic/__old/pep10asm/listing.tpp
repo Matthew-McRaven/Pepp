@@ -18,12 +18,12 @@ std::string masm::utils::generate_listing(std::shared_ptr<masm::elf::top_level_s
     // Add newline between listing and symbol table, see #395
     out_stream << std::endl;
     out_stream << "-------------------------------------------------------------------------------" << std::endl;
-    out_stream << "Symbol Table" << std::endl;
-    out_stream << "--------------------------------" << std::endl;
-    out_stream << "Symbol    Value     Symbol    Value" << std::endl;
-    out_stream << "--------------------------------" << std::endl;
+    out_stream << "Symbol table" << std::endl;
+    out_stream << "--------------------------------------" << std::endl;
+    out_stream << "Symbol    Value        Symbol    Value" << std::endl;
+    out_stream << "--------------------------------------" << std::endl;
     out_stream << symbol::symbol_table_listing<uint16_t>(image->symbol_table);
-    out_stream << "--------------------------------" << std::endl;
+    out_stream << "--------------------------------------" << std::endl;
     return out_stream.str();
 }
 
