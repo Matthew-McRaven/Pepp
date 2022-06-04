@@ -1,6 +1,6 @@
 {
   "name": "@pep10/ui-converters",
-  "version": "0.4.1",
+  "version": "0.5.0",
   "description": "Components designed to convert values between different bases and text encodings.",
   "homepage": "https://gitlab.com/pep10/pepsuite#readme",
   "bugs": {
