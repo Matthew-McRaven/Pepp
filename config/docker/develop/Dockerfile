@@ -41,4 +41,4 @@ FROM base as final
 COPY --from=boost-build /bmagic /usr/local
 COPY --from=boost-build /emsdk /emsdk
 # Install yarn into emsdk node environment
-RUN source /emsdk/emsdk_env.sh && npm i -g corepack && corepack prepare --activate yarn@3.2.0
+RUN echo uname -a /arch && source /emsdk/emsdk_env.sh && npm i -g corepack && corepack prepare --activate yarn@3.2.1
