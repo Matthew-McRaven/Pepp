@@ -15,12 +15,12 @@
     "allowSyntheticDefaultImports": true,
     "esModuleInterop": true,
     "resolveJsonModule": true,
-    "module": "commonJs",
+    "module": "ES2020",
     "moduleResolution": "node",
-    "target": "ES2015",
+    "target": "ES2020",
     "jsx": "react",
     "lib": [
-      "ES2015",
+      "ES2020",
       "dom",
       "dom.iterable"
     ],
