@@ -12,7 +12,8 @@ SHELL ["/bin/bash", "-c"]
 RUN apt-get update && export DEBIAN_FRONTEND=noninteractive \
      && apt-get -y install --no-install-recommends make zip cmake git \
      vim ripgrep doxygen clang-tidy ssh-client lcov libsecret-1-0 libsecret-1-dev\
-     libx11-dev libxkbfile-dev lsb-release wget software-properties-common git-lfs
+     libx11-dev libxkbfile-dev lsb-release wget software-properties-common git-lfs \
+     cloc
 
 WORKDIR /
 
@@ -40,5 +41,7 @@ RUN source /emsdk/emsdk_env.sh \
 FROM base as final
 COPY --from=boost-build /bmagic /usr/local
 COPY --from=boost-build /emsdk /emsdk
+# Really remove any traces of existing yarn.
+RUN apt remove -y yarn || true && npm r -g yarn
 # Install yarn into emsdk node environment
-RUN echo uname -a /arch && source /emsdk/emsdk_env.sh && npm i -g corepack && corepack prepare --activate yarn@3.2.1
+RUN echo uname -a /arch && source /emsdk/emsdk_env.sh && corepack prepare yarn@3.2.1 --activate && corepack enable
