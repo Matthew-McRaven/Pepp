@@ -42,6 +42,6 @@ FROM base as final
 COPY --from=boost-build /bmagic /usr/local
 COPY --from=boost-build /emsdk /emsdk
 # Really remove any traces of existing yarn.
-RUN apt remove -y yarn || true && npm r -g yarn
+RUN apt remove -y yarn || true
 # Install yarn into emsdk node environment
-RUN echo uname -a /arch && source /emsdk/emsdk_env.sh && corepack prepare yarn@3.2.1 --activate && corepack enable
+RUN echo uname -a /arch && source /emsdk/emsdk_env.sh && npm i -g corepack && corepack prepare yarn@3.2.1 --activate && corepack enable
