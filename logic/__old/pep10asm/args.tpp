@@ -29,7 +29,7 @@ template <typename address_size_t> address_size_t masm::ir::char_argument<addres
 }
 
 template <typename address_size_t> std::string masm::ir::char_argument<address_size_t>::string() const {
-    return fmt::format("'{:}'", value_);
+    return fmt::format("'{}'", value_);
     ;
 }
 
