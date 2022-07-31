@@ -19,6 +19,7 @@ TEST_CASE("Instruction: ADDSP,i", "[isa::pep10]") {
     auto target_reg_values = std::vector<uint16_t>{0x0000, 0x0001, 0x7fff, 0x8000, 0x8FFF, 0xFFFF};
     // Loop over a subset of possible values for the target register.
     for (auto target_reg_val : target_reg_values) {
+      bool local_pass = true;
       for (uint8_t start_stat = 0; start_stat < 0b1'0000; start_stat++) {
         for (uint16_t opspec = 0; static_cast<uint32_t>(opspec) + 1 < 0x1'0000; opspec++) {
           // Object code for instruction under test.
@@ -30,24 +31,25 @@ TEST_CASE("Instruction: ADDSP,i", "[isa::pep10]") {
           isa::pep10::load_bytes(machine, program, 0).value();
 
           auto ret = machine->step();
-          REQUIRE(ret.has_value());
-          CHECK(ret.value() == step::Result::kNominal);
+          local_pass &= ret.has_value();
+          //CHECK(ret.value() == step::Result::kNominal);
 
           // Check that other registers were not mutated.
-          CHECK(machine->read_register(isa::pep10::Register::X) == 0);
-          CHECK(machine->read_register(isa::pep10::Register::A) == 0);
-          CHECK(machine->read_register(isa::pep10::Register::TR) == 0);
-          CHECK(machine->read_packed_csr() == start_stat);
+          local_pass &= (machine->read_register(isa::pep10::Register::X) == 0);
+          local_pass &= (machine->read_register(isa::pep10::Register::A) == 0);
+          local_pass &= (machine->read_register(isa::pep10::Register::TR) == 0);
+          local_pass &= (machine->read_packed_csr() == start_stat);
           // PC incremented by 3.
-          CHECK(machine->read_register(isa::pep10::Register::PC) == 0x03);
+          local_pass &= (machine->read_register(isa::pep10::Register::PC) == 0x03);
           // IS has the correct instruction mnemonic
-          CHECK(machine->read_register(isa::pep10::Register::IS) == 0xF0);
+          local_pass &= (machine->read_register(isa::pep10::Register::IS) == 0xF0);
           // OS loaded the Mem[0x0001-0x0002].
-          CHECK(machine->read_register(isa::pep10::Register::OS) == opspec);
+          local_pass &= (machine->read_register(isa::pep10::Register::OS) == opspec);
           // Check that target register had arithmetic performed.
           auto new_target = machine->read_register(target_reg);
-          CHECK(new_target == static_cast<uint16_t>(target_reg_val + opspec));
+          local_pass &= (new_target == static_cast<uint16_t>(target_reg_val + opspec));
         }
+        CHECK(local_pass);
       }
     }
   }
