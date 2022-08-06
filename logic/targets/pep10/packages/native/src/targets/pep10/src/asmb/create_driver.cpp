@@ -118,9 +118,11 @@ std::tuple<bool, typename asmb::pep10::driver::driver_t::group_t> asmb::pep10::d
                                                                                                 std::string os_text) {
   using namespace asmb::pep10::driver;
   auto driver = make_driver();
-  auto ex = registry::instance();
+  auto ex = registry();
   auto fill_registry = [&ex](std::shared_ptr<masm::macro_registry> reg) {
-    for (const auto &macro : ex.macros())
+    // TODO: Reference correct book (all spelled out), and handle case where book is not found.
+    auto cs6e = *(ex.find_book("cs6e"));
+    for (const auto &macro : cs6e->macros())
       reg->register_macro(macro.name, macro.text, masm::MacroType::CoreMacro);
   };
 

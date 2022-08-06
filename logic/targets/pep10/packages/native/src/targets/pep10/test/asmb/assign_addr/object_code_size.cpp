@@ -12,14 +12,17 @@ TEST_CASE("Check that reported byte length matches actual byte length.", "[asmb:
 
   SECTION("Check OS length.") {
 
-    auto ex = registry::instance();
+    auto ex = registry();
+    auto maybe_cs6e = ex.find_book("Computer Systems, 6th Edition");
+    REQUIRE(maybe_cs6e);
+    auto cs6e = *maybe_cs6e;
     /* TODO: Fix when builtins are stable.
     auto fig_os = ex.find("pep10", 9, "00").value();
     auto text_os = fig_os.elements.at(element_type::kPep);*/
     auto file = std::make_shared<masm::project::source>();
     file->name = "os";
     file->body = ""; //text_os;
-    for (const auto &macro : ex.macros())
+    for (const auto &macro : cs6e->macros())
       CHECK(file->macro_registry->register_macro(macro.name, macro.text, masm::MacroType::CoreMacro));
     // TODO: Fix test when assembler driver is fixed.
     /*auto res = driver->assemble_os(project, file, masm::project::toolchain_stage::PACK);
