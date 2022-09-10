@@ -660,7 +660,7 @@ result<void> isa::pep10::LocalProcessor<enable_history>::nonunary_dispatch(uint8
     write_NZVC(*this, CSR::V, (~(acc ^ decoded_operand) & (acc ^ temp_word)) >> 15);
     // Carry out iff result is unsigned less than register or operand.
     write_NZVC(*this, CSR::C, temp_word < acc || temp_word < static_cast<uint16_t>(1 + ~decoded_operand));
-    // Invert N bit if there was unsigned overflow.
+    // Invert N bit if there was signed overflow.
     write_NZVC(*this, CSR::N, read_NZVC(*this, CSR::N) ^ read_NZVC(*this, CSR::V));
     break;
   case instruction_mnemonic::CPWX:
