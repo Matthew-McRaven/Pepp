@@ -21,27 +21,27 @@ FROM base as boost-build
 # Must occur after the "FROM" directive
 ARG BOOST_VERSION="1.76.0"
 # Download boost code.
-RUN git clone --jobs 10 --recursive --branch boost-${BOOST_VERSION}  https://github.com/boostorg/boost && git clone https://github.com/emscripten-core/emsdk.git /emsdk
-
-# Install EMSDK
-# Must combine, otherwise a layer is the same in multi-arch builds, breaking everything
-RUN cd /emsdk && git pull && ./emsdk install 3.1.8  && ./emsdk activate 3.1.8 && echo uname -a /arch.delete
+RUN git clone --jobs 10 --recursive --branch boost-${BOOST_VERSION}  https://github.com/boostorg/boost
 
 # Boost will install to /usr/local/lib
 RUN cd boost && ./bootstrap.sh --prefix=/bmagic \
     && ./b2 cxxflags="-fPIC -std=c++17" address-model=64 link=static runtime-link=static -j 20 threading=multi install --build-dir=./build-native --stagedir=./stage-native --prefix=/bmagic
 
-RUN source /emsdk/emsdk_env.sh \
-    && cd boost \
-    && ./b2 --clean-all -n \
-    && emconfigure ./b2 cxxflags="-fPIC -std=c++17" link=static runtime-link=static -j 20 install --build-dir=./build-js --stagedir=./stage-js --prefix=/bmagic
-
-
-
 FROM base as final
 COPY --from=boost-build /bmagic /usr/local
-COPY --from=boost-build /emsdk /emsdk
+ENV NVM_DIR /usr/local/nvm
+ENV NODE_VERSION 14.20.0
+ENV NODE_PATH $NVM_DIR/versions/node/v$NODE_VERSION/lib/node_modules
+ENV PATH      $NVM_DIR/versions/node/v$NODE_VERSION/bin:$PATH
+
+# If nvm destination dir doesn't exist, then nvm will crash on install.
+RUN mkdir -p /usr/local/nvm
+
 # Really remove any traces of existing yarn.
 RUN apt remove -y yarn || true
-# Install yarn into emsdk node environment
-RUN echo uname -a /arch && source /emsdk/emsdk_env.sh && npm i -g corepack && corepack prepare yarn@3.2.1 --activate && corepack enable
+# Install NVM
+RUN curl -o- https://raw.githubusercontent.com/nvm-sh/nvm/v0.39.1/install.sh | bash
+
+RUN source $NVM_DIR/nvm.sh && nvm install $NODE_VERSION && nvm use $NODE_VERSION
+# Install yarn
+RUN echo uname -a /arch && corepack prepare yarn@3.2.1 --activate && corepack enable
