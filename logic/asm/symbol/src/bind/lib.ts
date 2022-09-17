@@ -1,4 +1,4 @@
-import bindings from '@pepsuite/bindings';
+import bindings from '@pep10/bindings';
 
 import path from 'path';
 
