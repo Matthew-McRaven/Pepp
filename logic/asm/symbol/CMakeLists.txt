@@ -9,7 +9,9 @@ target_link_libraries(symbol-test PUBLIC symbol)
 
 if (true)
     # Bad, ugly, evil
-    include_directories(${CMAKE_JS_INC} ../../../node_modules/node-addon-api/ /home/gpu/.cmake-js/node-x64/v14.20.0/include/node)
+    get_filename_component(NODE_BIN ${NODE_PATH} DIRECTORY)
+    get_filename_component(NODE_ROOT ${NODE_BIN} DIRECTORY)
+    include_directories(${CMAKE_JS_INC} ../../../node_modules/node-addon-api/ ${NODE_ROOT}/include/node)
     make_napi_module(bind-symbol16 bind 16)
     target_link_libraries(bind-symbol16 PUBLIC symbol fmt magic_enum)
     make_napi_module(bind-symbol32 bind 32)
