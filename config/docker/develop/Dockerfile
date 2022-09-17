@@ -10,7 +10,7 @@ RUN apt-get update && export DEBIAN_FRONTEND=noninteractive \
      && apt-get -y install --no-install-recommends make zip cmake git \
      vim ripgrep doxygen clang-tidy ssh-client lcov libsecret-1-0 libsecret-1-dev\
      libx11-dev libxkbfile-dev lsb-release wget software-properties-common git-lfs \
-     cloc
+     cloc clang llvm lld
 
 WORKDIR /
 
