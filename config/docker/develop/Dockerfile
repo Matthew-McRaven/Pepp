@@ -7,10 +7,10 @@ SHELL ["/bin/bash", "-c"]
 
 # Install additional packages.
 RUN apt-get update && export DEBIAN_FRONTEND=noninteractive \
-     && apt-get -y install --no-install-recommends make zip cmake git \
+     && apt-get -y install --no-install-recommends make zip git \
      vim ripgrep doxygen clang-tidy ssh-client lcov libsecret-1-0 libsecret-1-dev\
      libx11-dev libxkbfile-dev lsb-release wget software-properties-common git-lfs \
-     cloc clang llvm lld
+     cloc
 
 WORKDIR /
 
@@ -30,4 +30,7 @@ COPY --from=boost-build /bmagic /usr/local
 
 # Really remove any traces of existing yarn, then reinstall.
 RUN apt remove -y yarn || true && corepack prepare yarn@3.2.1 --activate && corepack enable
+RUN wget https://apt.llvm.org/llvm.sh && chmod +x llvm.sh && ./llvm.sh 14 && rm llvm.sh
+RUN wget -O cmake.sh "https://github.com/Kitware/CMake/releases/download/v3.24.2/cmake-3.24.2-linux-$(arch).sh" && bash cmake.sh --skip-license --exclude-subdir
+
 
