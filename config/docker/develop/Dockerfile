@@ -30,7 +30,7 @@ COPY --from=boost-build /bmagic /usr/local
 
 # Really remove any traces of existing yarn, then reinstall.
 RUN apt remove -y yarn || true && corepack prepare yarn@3.2.1 --activate && corepack enable
-RUN wget https://apt.llvm.org/llvm.sh && chmod +x llvm.sh && ./llvm.sh 14 && rm llvm.sh
+RUN wget https://apt.llvm.org/llvm.sh && chmod +x llvm.sh && ./llvm.sh 14 all && rm llvm.sh
 RUN wget -O cmake.sh "https://github.com/Kitware/CMake/releases/download/v3.24.2/cmake-3.24.2-linux-$(arch).sh" && bash cmake.sh --skip-license --exclude-subdir
 
 
