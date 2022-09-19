@@ -7,7 +7,7 @@
   },
   "scripts": {
     "pretest": "tsc -p tsconfig.json",
-    "test": "npx jest"
+    "test": "yarn node --experimental-vm-modules $(yarn bin jest)"
   },
   "name": "@pep10/logic-symbol",
   "type": "module",
