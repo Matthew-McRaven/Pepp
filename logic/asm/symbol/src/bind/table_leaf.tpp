@@ -112,6 +112,25 @@ Napi::Value LeafTable<addr_size_t>::define(const Napi::CallbackInfo &info) {
 }
 
 template<typename addr_size_t>
+Napi::Value LeafTable<addr_size_t>::mark_global(const Napi::CallbackInfo &info) {
+  Napi::Env env = info.Env();
+
+  // Perform type checking on arguments, and coerce to C++ string type.
+  if (info.Length() != 1) {
+    Napi::TypeError::New(env, "Expected 1 argument").ThrowAsJavaScriptException();
+    return env.Null();
+  } else if (!info[0].IsString()) {
+    Napi::TypeError::New(env, "First argument must be a string").ThrowAsJavaScriptException();
+    return env.Null();
+  }
+  Napi::String name = info[0].As<Napi::String>();
+  std::string name_as_str = name.Utf8Value();
+
+  table->mark_global(name_as_str);
+
+  return env.Null();
+}
+template<typename addr_size_t>
 Napi::Value LeafTable<addr_size_t>::table_index(const Napi::CallbackInfo &info) {
   Napi::Env env = info.Env();
   if (info.Length() != 0) {
@@ -240,6 +259,7 @@ Napi::Function LeafTable<addr_size_t>::GetClass(Napi::Env env, std::string suffi
       LeafTable::InstanceMethod("get", &LeafTable::get),
       LeafTable::InstanceMethod("reference", &LeafTable::reference),
       LeafTable::InstanceMethod("define", &LeafTable::define),
+      LeafTable::InstanceMethod("markGlobal", &LeafTable::mark_global),
       //LeafTable::InstanceMethod("definitionState", &LeafTable::definition_state),
       //LeafTable::InstanceMethod("binding", &LeafTable::binding),
       //LeafTable::InstanceMethod("value", &LeafTable::value),

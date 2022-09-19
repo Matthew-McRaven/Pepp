@@ -74,6 +74,8 @@ export interface ILeafTableNative extends ITableNative {
     reference(name: string): ISymbolNative | null
 
     define(name: string): ISymbolNative | null
+
+    markGlobal(name: string): null
 }
 
 export interface IBranchTableNative extends ITableNative {
