@@ -36,23 +36,24 @@ describe('symbol.multitable', () => {
     const { midLeaf, bottomLeaf } = createTables();
     midLeaf.reference('inaccessible');
     expect(bottomLeaf.exists('inaccessible', TraversalPolicy.children)).toBe(false);
-    const global = midLeaf.reference('accessible');
+    const globalSym = midLeaf.reference('accessible');
     // TODO: Make visitors global-aware (#440), so that exists will work here.
-    expect(global).not.toBeNull();
+    expect(globalSym).not.toBeNull();
     midLeaf.markGlobal('accessible');
-        global!.setConst(0xFEED);
-        expect(midLeaf.reference('accessible')!.value()).toEqual(global!.value());
+        globalSym!.setConst(0xFEED);
+        expect(midLeaf.reference('accessible')!.value()).toEqual(globalSym!.value());
   });
 
   it('makes ancestor tables inaccessible to descendant table when TravesalPolicy.siblings unless marked global', () => {
     const { midLeaf, bottomLeaf } = createTables();
     midLeaf.reference('inaccessible');
     expect(bottomLeaf.exists('inaccessible', TraversalPolicy.siblings)).toBe(false);
+    const globalSym = midLeaf.reference('accessible');
     // TODO: Make visitors global-aware (#440), so that exists will work here.
-    expect(global).not.toBeNull();
+    expect(globalSym).not.toBeNull();
     midLeaf.markGlobal('accessible');
-        global!.setConst(0xFEED);
-        expect(midLeaf.reference('accessible')!.value()).toEqual(global!.value());
+        globalSym!.setConst(0xFEED);
+        expect(midLeaf.reference('accessible')!.value()).toEqual(globalSym!.value());
   });
   it('makes ancestor tables accessible to descendant table when TravesalPolicy.wholeTree', () => {
     const { midLeaf, bottomLeaf } = createTables();
