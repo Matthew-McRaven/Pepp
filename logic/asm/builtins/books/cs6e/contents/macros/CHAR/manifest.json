@@ -1,0 +1,10 @@
+{
+  "type": "macro",
+  "arch": "pep10",
+  "items": {
+    "CHARI": "{name}.pepm",
+    "CHARISP": "{name}.pepm",
+    "CHARO": "{name}.pepm",
+    "CHAROSP": "{name}.pepm"
+  }
+}

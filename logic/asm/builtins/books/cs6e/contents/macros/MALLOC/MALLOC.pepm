@@ -1,0 +1,12 @@
+@MALLOC 0
+;******* malloc()
+;        Precondition: @MALLOC is the last statment before .END
+;        Precondition: A contains number of bytes
+;        Postcondition: X contains pointer to bytes
+malloc:  LDWX    hpPtr,d     ;returned pointer
+         ADDA    hpPtr,d     ;allocate from heap
+         STWA    hpPtr,d     ;update hpPtr
+         RET                 
+hpPtr:   .WORD heap          ;address of next free byte
+heap:    .BLOCK  1           ;first byte in the heap
+.END

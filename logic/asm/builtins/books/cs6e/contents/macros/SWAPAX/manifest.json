@@ -1,0 +1,7 @@
+{
+  "type": "macro",
+  "arch": "pep10",
+  "items": {
+    "SWAPAX": "{name}.pepm"
+  }
+}

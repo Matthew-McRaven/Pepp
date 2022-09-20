@@ -1,0 +1,6 @@
+@CHARI 2
+; Read a single byte into $1 using addressing mode $2.
+; Uses accumulator as a temporary
+LDBA charIn, d
+STBA $1, $2
+.END

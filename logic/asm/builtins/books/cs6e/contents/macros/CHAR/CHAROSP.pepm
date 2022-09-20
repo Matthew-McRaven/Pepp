@@ -1,0 +1,8 @@
+@CHAROSP 2
+; Implements CHARO using the stack to cache the contents of A.
+; Alternative to the accumulator-destroying CHARO.
+STWA -2, s
+LDBA $1, $2
+STBA charOut, d
+LDWA -2, s
+.END

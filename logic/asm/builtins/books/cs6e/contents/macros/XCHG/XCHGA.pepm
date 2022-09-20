@@ -1,0 +1,13 @@
+@XCHGA 2
+;$1: Operand specifier
+;$2: Addressing mode
+         SUBSP   4,i        ;Allocate temporaries #2h#2h
+         STWA    0,s        ;Save A, Mem[SP] <- A
+         LDWA    $1,$2      ;A <- Mem[Opr]
+         STWA    2,s        ;Mem[SP+2] <- A;
+         LDWA    0,s        ;A<-Mem[SP]
+         STWA    $1,$2      ;Mem[Opr]<-Mem[SP]
+         LDWA    2,s        ;A<-Mem[SP+2]
+         ADDSP   4,i        ;Deallocate temporaries #2h#2h
+         .END
+

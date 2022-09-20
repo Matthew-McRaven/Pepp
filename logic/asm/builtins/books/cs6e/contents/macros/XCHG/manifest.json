@@ -1,0 +1,8 @@
+{
+  "type": "macro",
+  "arch": "pep10",
+  "items": {
+    "XCHGA": "{name}.pepm",
+    "XCHGX": "{name}.pepm"
+  }
+}

@@ -1,0 +1,14 @@
+@XCHGX 2
+; $1: Operand specifier
+; $2: Addressing mode
+         SUBSP   6, i        ;Allocate temporaries #2h#2h#2h
+         STWA    2,s         ;Save A, Mem[SP] <- A
+         STWX    0,s         ;Save X, Mem[SP+2] <- X
+         LDWA    $1,$2       ;A <- Mem[Opr]
+         STWA    4,s         ;Mem[SP+4] <- A;
+         LDWA    0,s         ;A<-Mem[SP] (which is X)
+         STWA    $1,$2       ;Mem[Opr]<-Mem[SP]
+         LDWA    2, s        ;Restore A, A <- Mem[SP+2]
+         LDWX    4,s         ;X<-Mem[SP+4]. Perform last so NZVCS are correct.
+         ADDSP   6, i        ;Deallocate temporaries #2h#2h#2h
+         .END

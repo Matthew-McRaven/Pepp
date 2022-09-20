@@ -1,0 +1,9 @@
+@SWAPAX 0
+; Swap the values of A and X.
+         SUBSP   4, i        ;Allocate temporaries #2h#2h
+         STWA    0, s        ;Save A
+         STWX    2, s        ;Save X
+         LDWX    0, s        ;Move X <- A
+         LDWA    2, s        ;Move A <- old X
+         ADDSP   4, i        ;Deallocate temporaries #2h#2h
+         .END
