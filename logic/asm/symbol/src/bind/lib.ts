@@ -4,14 +4,6 @@ import path from 'path';
 
 import { fileURLToPath } from 'url';
 
-const filename = fileURLToPath(import.meta.url);
-const dirname = path.dirname(filename);
-
-const addon16 = bindings({
-  bindings: 'bind-symbol16.node',
-  userDefinedTries: [[`${dirname}`, 'bindings'], [`${dirname}/../../dist`, 'bindings']],
-});
-
 interface ISymbolNative {
     name(): string;
 
@@ -87,6 +79,14 @@ export interface IBranchTableNative extends ITableNative {
 export interface IBranchTableNativeCtor {
     new(): IBranchTableNative
 }
+
+const filename = fileURLToPath(import.meta.url);
+const dirname = path.dirname(filename);
+
+const addon16 = bindings({
+  bindings: 'bind-symbol16.node',
+  userDefinedTries: [[`${dirname}`, 'bindings'], [`${dirname}/../../dist`, 'bindings']],
+});
 
 export const LeafTable = {
   u16: addon16.LeafTable as new() => ILeafTableNative,
