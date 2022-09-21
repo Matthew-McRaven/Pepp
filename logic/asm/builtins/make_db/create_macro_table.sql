@@ -5,4 +5,4 @@ CREATE TABLE macros
     name TEXT not null UNIQUE,
     arch TEXT not null,
     body TEXT
-) STRICT;
+);

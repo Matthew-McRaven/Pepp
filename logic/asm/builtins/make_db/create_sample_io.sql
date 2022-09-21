@@ -5,4 +5,4 @@ CREATE TABLE sample_io
     input     TEXT,
     output    TEXT,
     FOREIGN KEY (figure_id) REFERENCES macros (id)
-) STRICT;
+);

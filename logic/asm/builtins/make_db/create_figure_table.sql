@@ -9,4 +9,4 @@ CREATE TABLE figures
     FOREIGN KEY (linked) REFERENCES table_of_figures (id),
     FOREIGN KEY (figure_id) REFERENCES table_of_figures (id),
     CHECK ( (body IS NULL) != (linked IS NULL) )
-) STRICT;
+);
