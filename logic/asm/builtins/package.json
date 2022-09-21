@@ -8,7 +8,7 @@
     "sqlite3": "^5.1.1"
   },
   "scripts": {
-    "pretest": "tsc -p tsconfig.json && python3 -m make_db dist",
+    "build": "tsc -p tsconfig.json && python3 -m make_db dist",
     "test": "yarn node --experimental-vm-modules $(yarn bin jest)"
   },
   "name": "@pep10/logic-builtins",
