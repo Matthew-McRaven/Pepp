@@ -54,18 +54,6 @@ export interface IBook {
 
 }
 
-export interface IBookRegistry {
-    // Only explore CWD and no others.
-    new(): IBookRegistry
-
-    // Only explores these directories. Will not touch CWD.
-    new(dirs: Array<string>): IBookRegistry
-
-    findBook(name: string): IBook | null
-
-    books(): Array<IBook>
-}
-
 export class Book implements IBook {
     #db: Database
 
