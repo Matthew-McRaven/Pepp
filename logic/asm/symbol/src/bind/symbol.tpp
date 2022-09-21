@@ -19,7 +19,8 @@
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 
-#include "./value.hpp"
+#include <boost/algorithm/string.hpp>
+#include <magic_enum.hpp>
 
 template<typename addr_size_t>
 Symbol<addr_size_t>::Symbol(const Napi::CallbackInfo &info): Napi::ObjectWrap<Symbol<addr_size_t>>(info) {
