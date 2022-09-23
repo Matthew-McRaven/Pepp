@@ -1,9 +1,6 @@
 {
   "main": "dist/lib.js",
   "dependencies": {
-    "@pep10/bindings": "^1.0.0",
-    "file-uri-to-path": "^2.0.0",
-    "node-addon-api": "^5.0.0",
     "sqlite": "^4.1.2",
     "sqlite3": "^5.1.1"
   },
