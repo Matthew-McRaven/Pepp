@@ -1,23 +1,27 @@
 {
+  "name": "@pepnext/logic-macro",
+  "version": "3.0.0",
+  "description": "Identify and manipulate macro expressions.",
+  "repository": "https://gitlab.com/pepnext/logic/macro",
+  "license": "GPL-3.0",
+  "author": "Matthew McRaven",
+  "type": "module",
   "main": "dist/lib.js",
   "scripts": {
     "build": "tsc -p tsconfig.json",
-    "test": "node --experimental-vm-modules $(npm bin jest)/jest"
+    "fix": "node $(npm bin)/eslint --fix src/**",
+    "test": "node --experimental-vm-modules $(npm bin)/jest"
   },
-  "packageManager": "npm@6.14.17",
-  "repository": "https://gitlab.com/pepnext/logic/macro",
-  "name": "@pepnext/logic-macro",
-  "type": "module",
-  "version": "3.0.0",
-  "description": "Identify and manipulate macro expressions.",
-  "author": "Matthew McRaven",
-  "license": "GPL-3.0",
-  "publishConfig": {
-    "@pepnext:registry": "https://gitlab.com/api/v4/projects/39773348/packages/npm/"
+  "eslintConfig": {
+    "extends": "./node_modules/@pepnext/eslint/.eslintrc.js"
+  },
+  "dependencies": {
+    "asty-astq": "^1.13.6",
+    "peggy": "^2.0.1"
   },
   "devDependencies": {
     "@jest/globals": "^27.3.1",
-    "@pepnext/eslint": "^3.0.0",
+    "@pepnext/eslint": "^3.0.3",
     "@pepnext/tsconfig": "^3.0.0",
     "@types/jest": "^27.4.0",
     "jest": "^27.3.1",
@@ -26,8 +30,8 @@
     "ts-jest": "^27.0.7",
     "typescript": "^4.8.3"
   },
-  "dependencies": {
-    "asty-astq": "^1.13.6",
-    "peggy": "^2.0.1"
+  "packageManager": "npm@6.14.17",
+  "publishConfig": {
+    "@pepnext:registry": "https://gitlab.com/api/v4/projects/39773348/packages/npm/"
   }
 }
