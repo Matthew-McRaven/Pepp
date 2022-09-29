@@ -1,4 +1,4 @@
 {
-  "name": "eslint",
+  "name": "@pepnext/eslint",
   "packageManager": "npm@6.14.17"
 }
