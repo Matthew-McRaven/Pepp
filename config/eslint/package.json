@@ -3,9 +3,28 @@
   "author": "Matthew McRaven",
   "repository": "https://gitlab.com/config/eslint",
   "packageManager": "npm@6.14.17",
-  "version": "3.0.0",
+  "version": "3.0.1",
   "license": "GPL-3.0",
   "publishConfig": {
     "@pepnext:registry": "https://gitlab.com/api/v4/projects/39773453/packages/npm/"
+  },
+  "devDependencies": {
+    "@typescript-eslint/eslint-plugin": "~4.33.0",
+    "@typescript-eslint/parser": "~4.33.0",
+    "eslint": "~7.32.0",
+    "eslint-config-airbnb": "~18.2.1",
+    "eslint-import-resolver-typescript": "^2.5.0",
+    "eslint-plugin-deprecation": "~1.2.0",
+    "eslint-plugin-import": "^2.25.4",
+    "eslint-plugin-jest": "^24.0.0",
+    "eslint-plugin-json-format": "^2.0.1",
+    "eslint-plugin-jsx-a11y": "^6.5.1",
+    "eslint-plugin-no-null": "^1.0.2",
+    "eslint-plugin-no-unsanitized": "^3.1.5",
+    "eslint-plugin-react": "^7.28.0",
+    "eslint-plugin-react-hooks": "^4.3.0"
+  },
+  "peerDependencies": {
+    "typescript": "^4.8.4"
   }
 }
