@@ -28,7 +28,7 @@ debugger:
     - node -p "require('node-addon-api').include"
     - npm config get prefix
     - ls $(npm config get prefix)
-    - cmake-js print-configure
+    - node $(npm bin)/cmake-js print-configure
 
 
 ##################
