@@ -15,6 +15,24 @@ variables:
 ##################
 #  Main Package  #
 ##################
+debugger:
+  variables:
+    GIT_SUBMODULE_STRATEGY: recursive
+  image: registry.gitlab.com/pepnext/docker/develop:${BUILD_VERSION}
+  stage: build
+  needs: [ ]
+  tags:
+    - docker
+  script:
+    - npm ci
+    - node -p "require('node-addon-api').include"
+    - npm config get prefix
+    - ls $(npm config get prefix)
+
+
+##################
+#  Main Package  #
+##################
 build:linux:npm:
   variables:
     GIT_SUBMODULE_STRATEGY: recursive
