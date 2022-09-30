@@ -29,6 +29,7 @@ debugger:
     - npm config get prefix
     - ls $(npm config get prefix)
     - node $(npm bin)/cmake-js print-configure
+    - which node
 
 
 ##################
