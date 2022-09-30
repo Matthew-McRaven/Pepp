@@ -30,6 +30,7 @@ debugger:
     - ls $(npm config get prefix)
     - node $(npm bin)/cmake-js print-configure
     - which node
+    - ls /usr/local/include
 
 
 ##################
