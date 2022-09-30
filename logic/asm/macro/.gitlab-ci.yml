@@ -1,0 +1,45 @@
+stages:
+  - build
+  - test
+
+# Variables that must be injected into every pipeline
+variables:
+  BUILD_VERSION: v0.6.0
+  GIT_LFS_SKIP_SMUDGE: '1'
+  # Append dist, because I have generated files there
+  SAST_EXCLUDED_PATHS: spec, test, tests, tmp, dist
+  # Gemnasium crashes my pipelines... this will disable it.
+  DS_EXCLUDED_ANALYZERS: "gemnasium"
+
+##################
+# Helper anchors #
+##################
+# A well-configured emscripten environment
+.node: &node
+  variables:
+    GIT_SUBMODULE_STRATEGY: recursive
+  image: registry.gitlab.com/pep10/pepsuite/develop:${BUILD_VERSION}
+
+##################
+#  Main Package  #
+##################
+build:
+  variables:
+    GIT_SUBMODULE_STRATEGY: recursive
+  image: registry.gitlab.com/pepnext/docker/develop:${BUILD_VERSION}
+  stage: build
+  needs: [ ]
+  tags:
+    - docker
+  script:
+    - npm run build
+    - npm test
+
+##################
+#    Run SAST    #
+##################
+include:
+  - template: Security/SAST.gitlab-ci.yml
+  - template: Security/Dependency-Scanning.gitlab-ci.yml
+  - template: Security/License-Scanning.gitlab-ci.yml
+  - template: Security/Secret-Detection.gitlab-ci.yml
