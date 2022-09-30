@@ -1,26 +1,39 @@
 {
   "main": "dist/lib.js",
   "dependencies": {
+    "asty-astq": "^1.13.6",
+    "peggy": "^2.0.1",
     "sqlite": "^4.1.2",
     "sqlite3": "^5.1.1"
   },
   "scripts": {
-    "build": "tsc -p tsconfig.json && python3 -m make_db dist",
-    "test": "yarn node --experimental-vm-modules $(yarn bin jest)"
+    "build": "node $(npm bin)/tsc -p tsconfig.json && python3 -m make_db dist",
+    "fix": "node $(npm bin)/eslint --fix src/**",
+    "test": "node --experimental-vm-modules $(npm bin)/jest"
   },
-  "name": "@pep10/logic-builtins",
+  "name": "@pepnext/logic-builtins",
   "type": "module",
-  "version": "1.0.0",
-  "description": "Does some magic stuff",
+  "version": "3.0.0",
+  "description": "Manage figures and macros for various textbook editions.",
   "author": "Matthew McRaven",
   "license": "GPL-3.0",
+  "eslintConfig": {
+    "extends": "./node_modules/@pepnext/eslint/.eslintrc.js"
+  },
   "devDependencies": {
     "@jest/globals": "^27.3.1",
+    "@pepnext/eslint": "^3.0.3",
+    "@pepnext/tsconfig": "^3.0.0",
     "@types/jest": "^27.4.0",
+    "@types/sqlite3": "^3.1.8",
     "jest": "^27.3.1",
     "jest-junit": "^13.0.0",
     "rimraf": "^3.0.2",
     "ts-jest": "^27.0.7",
     "typescript": "^4.8.3"
+  },
+  "packageManager": "npm@6.14.17",
+  "publishConfig": {
+    "@pepnext:registry": "https://gitlab.com/api/v4/projects/39773350/packages/npm/"
   }
 }
