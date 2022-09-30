@@ -1,0 +1,71 @@
+stages:
+  - build
+  - test
+  - deploy
+
+# Variables that must be injected into every pipeline
+variables:
+  BUILD_VERSION: v0.6.0
+  GIT_LFS_SKIP_SMUDGE: '1'
+  # Append dist, because I have generated files there
+  SAST_EXCLUDED_PATHS: spec, test, tests, tmp, dist
+  # Gemnasium crashes my pipelines... this will disable it.
+  DS_EXCLUDED_ANALYZERS: "gemnasium"
+
+##################
+#  Main Package  #
+##################
+build:linux:npm:
+  variables:
+    GIT_SUBMODULE_STRATEGY: recursive
+  image: registry.gitlab.com/pepnext/docker/develop:${BUILD_VERSION}
+  stage: build
+  needs: [ ]
+  tags:
+    - docker
+  script:
+    - npm ci
+    - npm run build
+    - npm test
+
+build:linux:cmake:
+  variables:
+    GIT_SUBMODULE_STRATEGY: recursive
+  image: registry.gitlab.com/pepnext/docker/develop:${BUILD_VERSION}
+  stage: build
+  needs: [ ]
+  tags:
+    - docker
+  script:
+    - npm ci
+    - cmake -B build .
+    - cmake --build build
+    - cd build
+    - ctest
+
+##################
+#    Run SAST    #
+##################
+include:
+  - template: Security/SAST.gitlab-ci.yml
+  - template: Security/Dependency-Scanning.gitlab-ci.yml
+  - template: Security/License-Scanning.gitlab-ci.yml
+  - template: Security/Secret-Detection.gitlab-ci.yml
+
+#######################
+# Conditional Publish #
+#######################
+publish:
+  variables:
+    GIT_SUBMODULE_STRATEGY: recursive
+  image: registry.gitlab.com/pepnext/docker/develop:${BUILD_VERSION}
+  stage: deploy
+  needs: [ build:linux:npm ]
+  tags:
+    - docker
+  script:
+    - export published_version=$(npm view @pepnext/eslint version || echo "0.0.0")
+    - export current_version=$(jq -r .version < package.json)
+    - npm i -g semver
+    - echo "//${CI_SERVER_HOST}/api/v4/projects/${CI_PROJECT_ID}/packages/npm/:_authToken=${CI_JOB_TOKEN}" >> .npmrc
+    - echo "const s=require('semver');process.exit(s.gt('$current_version', '$published_version'))" | node - || npm publish
