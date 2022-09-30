@@ -23,6 +23,7 @@ build:
   tags:
     - docker
   script:
+    - npm ci
     - npm run build
     - npm test
 
