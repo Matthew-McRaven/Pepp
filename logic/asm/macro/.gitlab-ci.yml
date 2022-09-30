@@ -12,15 +12,6 @@ variables:
   DS_EXCLUDED_ANALYZERS: "gemnasium"
 
 ##################
-# Helper anchors #
-##################
-# A well-configured emscripten environment
-.node: &node
-  variables:
-    GIT_SUBMODULE_STRATEGY: recursive
-  image: registry.gitlab.com/pep10/pepsuite/develop:${BUILD_VERSION}
-
-##################
 #  Main Package  #
 ##################
 build:
