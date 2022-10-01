@@ -103,7 +103,7 @@ macro(make_napi_module target_name root bitness)
 
     # Include other possible Node headers by getting the node executable dir
     find_program(NODE_BIN_LOCATION node)
-    cmake_path(GET ${NODE_BIN_LOCATION} PARENT_PATH NODE_PARENT_DIR)
+    cmake_path(GET NODE_BIN_LOCATION PARENT_PATH NODE_PARENT_DIR)
 
     # Add any files given to us by cmake-js, these are likely to be empty.
     add_library(${target_name} SHARED ${sources} ${CMAKE_JS_SRC})
