@@ -68,7 +68,7 @@ publish:
     - export current_version=$(jq -r .version < package.json)
     - npm i -g semver
     - export NODE_PATH=`npm config get prefix`/lib/node_modules/
-    - echo "//${CI_SERVER_HOST}/api/v4/projects/${CI_PROJECT_ID}/packages/npm/:_authToken=${CI_JOB_TOKEN}" >> .npmrc
+    - printf "//${CI_SERVER_HOST}/api/v4/projects/${CI_PROJECT_ID}/packages/npm/:_authToken=${CI_JOB_TOKEN}" >> .npmrc
     - cat .npmrc
     - npm config ls
     - echo "const s=require('semver');process.exit(s.gt('$current_version', '$published_version'))" | node - || npm publish
