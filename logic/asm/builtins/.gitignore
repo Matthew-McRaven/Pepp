@@ -4,3 +4,5 @@ build
 **/reg.cpp
 gen_*.h
 reg_*.cpp
+node_modules/
+dist/

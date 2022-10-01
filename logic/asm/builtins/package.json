@@ -1,24 +1,24 @@
 {
+  "name": "@pepnext/logic-builtins",
+  "version": "3.0.1",
+  "description": "Manage figures and macros for various textbook editions.",
+  "license": "GPL-3.0",
+  "author": "Matthew McRaven",
+  "type": "module",
   "main": "dist/lib.js",
-  "dependencies": {
-    "asty-astq": "^1.13.6",
-    "peggy": "^2.0.1",
-    "sqlite": "^4.1.2",
-    "sqlite3": "^5.1.1"
-  },
   "scripts": {
     "build": "node $(npm bin)/tsc -p tsconfig.json && python3 -m make_db dist",
     "fix": "node $(npm bin)/eslint --fix src/**",
     "test": "node --experimental-vm-modules $(npm bin)/jest"
   },
-  "name": "@pepnext/logic-builtins",
-  "type": "module",
-  "version": "3.0.0",
-  "description": "Manage figures and macros for various textbook editions.",
-  "author": "Matthew McRaven",
-  "license": "GPL-3.0",
   "eslintConfig": {
     "extends": "./node_modules/@pepnext/eslint/.eslintrc.js"
+  },
+  "dependencies": {
+    "asty-astq": "^1.13.6",
+    "peggy": "^2.0.1",
+    "sqlite": "^4.1.2",
+    "sqlite3": "^5.1.1"
   },
   "devDependencies": {
     "@jest/globals": "^27.3.1",
