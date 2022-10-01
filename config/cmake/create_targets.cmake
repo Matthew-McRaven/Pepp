@@ -101,11 +101,15 @@ macro(make_napi_module target_name root bitness)
     string(REPLACE "\n" "" TARGET_NODE_ROOT ${TARGET_NODE_ROOT})
     string(REPLACE "\"" "" TARGET_NODE_ROOT ${TARGET_NODE_ROOT})
 
+    # Include other possible Node headers by getting the node executable dir
+    find_program(NODE_BIN_LOCATION node)
+    cmake_path(GET ${NODE_BIN_LOCATION} PARENT_PATH NODE_PARENT_DIR)
+
     # Add any files given to us by cmake-js, these are likely to be empty.
     add_library(${target_name} SHARED ${sources} ${CMAKE_JS_SRC})
     target_link_libraries(${target_name} ${CMAKE_JS_LIB})
 
-    target_include_directories(${target_name} PRIVATE ${NODE_ADDON_API_DIR} ${TARGET_NODE_ROOT}/include/node)
+    target_include_directories(${target_name} PRIVATE ${NODE_ADDON_API_DIR} ${TARGET_NODE_ROOT}/include/node ${NODE_PARENT_DIR}/../include/node)
     set_target_properties(${target_name} PROPERTIES PREFIX "" SUFFIX ".node")
 
     # Define NAPI_VERSION
