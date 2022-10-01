@@ -85,7 +85,7 @@ publish:
   tags:
     - docker
   script:
-    - export published_version=$(npm view @pepnext/eslint version || echo "0.0.0")
+    - export published_version=$(npm view @pepnext/logic-symbol version || echo "0.0.0")
     - export current_version=$(jq -r .version < package.json)
     - npm i -g semver
     - echo "//${CI_SERVER_HOST}/api/v4/projects/${CI_PROJECT_ID}/packages/npm/:_authToken=${CI_JOB_TOKEN}" >> .npmrc
