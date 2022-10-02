@@ -1,4 +1,4 @@
-import Button from './Button';
 import RegistersPane from './RegistersPane';
 
-export { Button, RegistersPane };
+// eslint-disable-next-line import/prefer-default-export
+export { RegistersPane };
