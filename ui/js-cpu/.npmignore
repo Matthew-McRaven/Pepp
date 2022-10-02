@@ -1,0 +1,15 @@
+dist/**/*test*
+dist/**/*stories*
+src
+storybook-static
+coverage
+.scripts/
+.storybook/
+.templates/
+.idea/
+.git*
+jest.*
+package.*
+*.tgz
+tsconfig*
+*.xml
