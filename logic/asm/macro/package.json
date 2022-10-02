@@ -10,7 +10,8 @@
   "scripts": {
     "build": "node $(npm bin)/tsc -p tsconfig.json",
     "fix": "node $(npm bin)/eslint --fix src/**",
-    "test": "node --experimental-vm-modules $(npm bin)/jest"
+    "test": "node --experimental-vm-modules $(npm bin)/jest",
+    "test:ci": "node --experimental-vm-modules $(npm bin)/jest --ci --reporters=default --reporters=jest-junit --coverageReporters=cobertura --coverage && python3 .scripts/scripts/merge-cobertura.py -o coverage.xml coverage/cobertura-coverage.xml"
   },
   "eslintConfig": {
     "extends": "./node_modules/@pepnext/eslint/.eslintrc.js"
