@@ -65,7 +65,7 @@ describe('Binary <UnsignedIntegralConverter />', () => {
         />);
     const input = getInput();
     fireEvent.change(input, { target: { value: '0B011' } });
-    expect(input).toHaveValue('101');
+    expect(input).toHaveValue('0b11');
     cleanup();
   });
 
@@ -85,7 +85,7 @@ describe('Binary <UnsignedIntegralConverter />', () => {
         />);
     const input = getInput();
     fireEvent.change(input, { target: { value: '0b11' } });
-    expect(input).toHaveValue('101');
+    expect(input).toHaveValue('0b11');
     cleanup();
   });
 
@@ -104,7 +104,7 @@ describe('Binary <UnsignedIntegralConverter />', () => {
         />);
     const input = getInput();
     fireEvent.change(input, { target: { value: 'F0b' } });
-    expect(input).toHaveValue('101');
+    expect(input).toHaveValue('0b101');
     cleanup();
   });
 
@@ -123,7 +123,7 @@ describe('Binary <UnsignedIntegralConverter />', () => {
         />);
     const input = getInput();
     fireEvent.change(input, { target: { value: '-25' } });
-    expect(input).toHaveValue('101');
+    expect(input).toHaveValue('0b101');
     cleanup();
   });
 
@@ -143,7 +143,7 @@ describe('Binary <UnsignedIntegralConverter />', () => {
     Array.from(Array(256).keys()).forEach((i) => {
       const input = getInput();
       fireEvent.change(input, { target: { value: `0b${(i).toString(2)}` } });
-      expect(input).toHaveValue(`${(i).toString(2)}`);
+      expect(input).toHaveValue(`0b${(i).toString(2)}`);
     });
     cleanup();
   });
