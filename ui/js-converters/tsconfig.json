@@ -1,5 +1,5 @@
 {
-	"extends": "../../../configs/base.tsconfig",
+	"extends": "./node_modules/@pepnext/tsconfig/base.tsconfig",
 	"compilerOptions": {
 		"rootDir": "src",
 		"outDir": "dist",
@@ -10,6 +10,6 @@
 		"node"
 	],
 	"include": [
-		"src",
+		"src"
 	]
 }
