@@ -25,6 +25,7 @@ build:
     - npm ci
     - npm run build
     - npm run test:ci
+  coverage: '/^\s*Coverage .*\d+.*/'
   artifacts:
     expire_in: 1 week
     when: always
