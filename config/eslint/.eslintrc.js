@@ -5,6 +5,9 @@ module.exports = {
     node: true,
     jest: true,
   },
+  globals: {
+    JSX: "readonly"
+  }
   settings: {
     'import/resolver': {
       typescript: {
