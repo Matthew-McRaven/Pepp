@@ -15,7 +15,7 @@ publish:
     GIT_SUBMODULE_STRATEGY: recursive
   image: registry.gitlab.com/pepnext/docker/develop:${BUILD_VERSION}
   stage: deploy
-  needs: [ build ]
+  needs: [ ]
   tags:
     - docker
   script:
