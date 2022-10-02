@@ -26,7 +26,7 @@ build:
   script:
     - npm ci
     - npm run build
-    - npm test:ci
+    - npm run test:ci
 
 ##################
 #    Run SAST    #
