@@ -16,7 +16,7 @@
   "scripts": {
     "build": "npm run clean && node $(npm bin)/tsc -p tsconfig.json",
     "build-storybook": "build-storybook",
-    "clean": "rimraf -rf ./dist",
+    "clean": "npx rimraf -rf ./dist",
     "prepublishOnly": "npm run build",
     "start-storybook": "start-storybook -p 6006",
     "storybook:export": "build-storybook",
