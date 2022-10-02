@@ -1,46 +1,45 @@
 import React from 'react';
-import { act } from 'react-dom/test-utils';
-import { mount, shallow } from 'enzyme';
+import {
+  screen, render, cleanup,
+} from '@testing-library/react';
+import userEvent from '@testing-library/user-event';
 import ConverterContainer from './ConverterContainer';
 import { toHigherOrder as IntegralToHigher } from '../UnsignedIntegralConverter';
-import { toHigherOrder as UnicodeToHigher } from '../UnicodeConverter';
 
+jest.setTimeout(10000);
 describe('Integral <ConverterContainer />', () => {
   const children = [
     IntegralToHigher(2, 1),
     IntegralToHigher(10, 1),
     IntegralToHigher(16, 1)];
   it('has been mounted', () => {
-    const component = shallow(<ConverterContainer error={() => { }}>{children}</ConverterContainer>);
-    expect(component.length).toBe(1);
+    render(<ConverterContainer error={() => null}>{children}</ConverterContainer>);
+    expect(screen.getAllByTestId('ConverterContainer').length).toBe(1);
+    cleanup();
   });
   it('has three children', () => {
-    const component = shallow(<ConverterContainer error={() => { }}>{children}</ConverterContainer>);
-    expect(component.prop('children').length).toBe(3);
+    render(<ConverterContainer error={() => null}>{children}</ConverterContainer>);
+    expect(screen.getByTestId('ConverterContainer').children.length).toBe(3);
+    cleanup();
   });
   it('links the state of children', async () => {
-    const component = mount(<ConverterContainer error={() => { }}>{children}</ConverterContainer>);
-    const converters = component.find('UnsignedIntegralConverter');
-    // This was a pain: https://stackoverflow.com/a/56512772
-    Array.from(Array(256).keys()).forEach((i) => {
-      // Needed because DOM is being updated
-      act(() => { converters.get(0).props.setState(i); });
-      // And top-level component must be re-rendered
-      component.update();
-      // And must re-find the converters, because the old reference is invalid
-      component.find('UnsignedIntegralConverter').forEach((converter) => { expect(converter.prop('state')).toBe(i); });
-    });
-  });
-});
-
-describe('Integral <ConverterContainer />', () => {
-  const children = [
-    IntegralToHigher(2, 1),
-    IntegralToHigher(10, 1),
-    IntegralToHigher(16, 1),
-    UnicodeToHigher(1)];
-  it('has been mounted', () => {
-    const component = shallow(<ConverterContainer error={() => { }}>{children}</ConverterContainer>);
-    expect(component.length).toBe(1);
+    const { rerender } = render(<ConverterContainer
+            error={() => null}>{children}</ConverterContainer>);
+    const converters = screen.getAllByTestId('UnsignedIntegralConverter-input');
+    expect(converters.length).toBe(3);
+    for (let i = 0; i < 256; i += 1) {
+      const input = converters[1] as HTMLInputElement;
+      // TODO: This bit doesn't work, selection seems to be disabled on my elements...
+      input.setSelectionRange(0, input.value.length);
+      // TODO: So we must inject some backspace characters into the char stream...
+      // eslint-disable-next-line no-await-in-loop
+      await userEvent.type(input, `{backspace}{backspace}{backspace}${i}{Enter}`);
+      // rerender must be called, or sibling components won't be updated.
+      rerender(<ConverterContainer error={() => null}>{children}</ConverterContainer>);
+      expect(converters[1]).toHaveValue(`${i}`);
+      expect(converters[2]).toHaveValue(`0x${i.toString(16).toUpperCase()}`);
+      expect(converters[0]).toHaveValue(`0b${i.toString(2)}`);
+    }
+    cleanup();
   });
 });
