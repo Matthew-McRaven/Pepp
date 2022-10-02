@@ -22,14 +22,14 @@ describe.each([1, 2])('%i-byte Hexadecimal <UnsignedIntegralConverter />', (len)
     };
     render(<UnsignedIntegralConverter
             byteLength={len}
-            error={() => {
-            }}
+            error={() => null}
             prefixless={prefixless}
             state={state}
             setState={setState}
             base={16}
         />);
-    expect(component.length).toBe(1);
+    expect(screen.getAllByTestId('UnsignedIntegralConverter').length).toBe(1);
+    cleanup();
   });
 
   // Test 2 - Default to 0 on empty input
@@ -40,16 +40,16 @@ describe.each([1, 2])('%i-byte Hexadecimal <UnsignedIntegralConverter />', (len)
     };
     render(<UnsignedIntegralConverter
             byteLength={len}
-            error={() => {
-            }}
+            error={() => null}
             prefixless={prefixless}
             state={state}
             setState={setState}
             base={16}
         />);
-    wrapper.find('input').simulate('change', { currentTarget: { value: '' } });
-    wrapper.find('input').simulate('blur', {});
-    expect(state).toBe(0);
+    const input = getInput();
+    fireEvent.change(input, { target: { value: '' } });
+    expect(input).toHaveValue('0');
+    cleanup();
   });
 
   // Test 3 -Check that prefix 0X is rejected.
@@ -60,16 +60,16 @@ describe.each([1, 2])('%i-byte Hexadecimal <UnsignedIntegralConverter />', (len)
     };
     render(<UnsignedIntegralConverter
             byteLength={len}
-            error={() => {
-            }}
+            error={() => null}
             prefixless={prefixless}
             state={state}
             setState={setState}
             base={16}
         />);
-    wrapper.find('input').simulate('change', { currentTarget: { value: '0X3' } });
-    wrapper.find('input').simulate('blur', {});
-    expect(state).not.toBe(3);
+    const input = getInput();
+    fireEvent.change(input, { target: { value: '0X3' } });
+    expect(input).toHaveValue('5');
+    cleanup();
   });
 
   // Test 4 -Check that prefix 0x is rejected
@@ -80,16 +80,16 @@ describe.each([1, 2])('%i-byte Hexadecimal <UnsignedIntegralConverter />', (len)
     };
     render(<UnsignedIntegralConverter
             byteLength={len}
-            error={() => {
-            }}
+            error={() => null}
             prefixless={prefixless}
             state={state}
             setState={setState}
             base={16}
         />);
-    wrapper.find('input').simulate('change', { currentTarget: { value: '0x5' } });
-    wrapper.find('input').simulate('blur', {});
-    expect(state).not.toBe(5);
+    const input = getInput();
+    fireEvent.change(input, { target: { value: '0x5' } });
+    expect(input).toHaveValue('3');
+    cleanup();
   });
 
   // Test 5 -Do not clear control if invalid character entered
@@ -100,16 +100,16 @@ describe.each([1, 2])('%i-byte Hexadecimal <UnsignedIntegralConverter />', (len)
     };
     render(<UnsignedIntegralConverter
             byteLength={len}
-            error={() => {
-            }}
+            error={() => null}
             prefixless={prefixless}
             state={state}
             setState={setState}
             base={16}
         />);
-    wrapper.find('input').simulate('change', { currentTarget: { value: 'F0x' } });
-    wrapper.find('input').simulate('blur', {});
-    expect(state).toBe(0x80);
+    const input = getInput();
+    fireEvent.change(input, { target: { value: 'F0x' } });
+    expect(input).toHaveValue('80');
+    cleanup();
   });
 
   // Test 6 -Reject negative numbers
@@ -120,40 +120,40 @@ describe.each([1, 2])('%i-byte Hexadecimal <UnsignedIntegralConverter />', (len)
     };
     render(<UnsignedIntegralConverter
             byteLength={len}
-            error={() => {
-            }}
+            error={() => null}
             prefixless={prefixless}
             state={state}
             setState={setState}
             base={16}
         />);
-    wrapper.find('input').simulate('change', { currentTarget: { value: '-25' } });
-    wrapper.find('input').simulate('blur', {});
-    expect(state).not.toBe(-25);
+    const input = getInput();
+    fireEvent.change(input, { target: { value: '-25' } });
+    expect(input).toHaveValue('5');
+    cleanup();
   });
 
   // Test 7 -Test that all valid characters can be entered
   //  End range differs for 1 and 2 byte controls
   const endRange = (2 ** (8 * len));
-  it(`${len}-Byte can have it\'s value set in [0,${endRange - 1}]`, () => {
+  it(`${len}-Byte can have it's value set in [0,${endRange - 1}]`, () => {
     let state = endRange - 1;
     const setState = (newState: number) => {
       state = newState;
     };
     render(<UnsignedIntegralConverter
             byteLength={len}
-            error={() => {
-            }}
+            error={() => null}
             prefixless={prefixless}
             state={state}
             setState={setState}
             base={16}
         />);
     Array.from(Array(endRange).keys()).forEach((i) => {
-      wrapper.find('input').simulate('change', { currentTarget: { value: `${i.toString(16)}` } });
-      wrapper.find('input').simulate('blur', {});
-      expect(state).toBe(i);
+      const input = getInput();
+      fireEvent.change(input, { target: { value: `${i.toString(16)}` } });
+      expect(input).toHaveValue(`${i.toString(16).toUpperCase()}`);
     });
+    cleanup();
   });
 
   // Test 8 -Test number outside of range is not picked up.
@@ -164,16 +164,15 @@ describe.each([1, 2])('%i-byte Hexadecimal <UnsignedIntegralConverter />', (len)
     };
     render(<UnsignedIntegralConverter
             byteLength={len}
-            error={() => {
-            }}
+            error={() => null}
             prefixless={prefixless}
             state={state}
             setState={setState}
             base={16}
         />);
-    wrapper.find('input').simulate('change', { currentTarget: { value: `${(endRange + 1).toString(16)}` } });
-    wrapper.find('input').simulate('blur', {});
-    expect(state).not.toBe(endRange + 1);
-    expect(state).toBe(state);
+    const input = getInput();
+    fireEvent.change(input, { target: { value: `${(endRange + 1).toString(16)}` } });
+    expect(input).toHaveValue('5');
+    cleanup();
   });
 });
