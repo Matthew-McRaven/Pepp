@@ -1,10 +1,16 @@
 import React from 'react';
-import { shallow } from 'enzyme';
+import { cleanup, render, screen } from '@testing-library/react';
 import { AsciiMapConverter } from './AsciiMapConverter';
 
 describe('<AsciiMapConverter />', () => {
   it('has been mounted', () => {
-    const component = shallow(<AsciiMapConverter byteLength={1} error={() => { }} state={5} setState={() => { }} />);
-    expect(component.length).toBe(1);
+    render(<AsciiMapConverter
+            byteLength={1}
+            error={() => null}
+            state={5}
+            setState={() => null}
+        />);
+    expect(screen.getAllByTestId('MapConverter').length).toBe(1);
+    cleanup();
   });
 });

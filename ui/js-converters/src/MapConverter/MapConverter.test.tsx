@@ -1,30 +1,33 @@
 import React from 'react';
-import { shallow } from 'enzyme';
+import { cleanup, render, screen } from '@testing-library/react';
 import { MapConverter } from './MapConverter';
 
 describe('Integral <MapConverter />', () => {
   const mapValues = Array.from({ length: 256 }, (e, i) => `${i}`);
   const map = (key: number) => mapValues[key] || '';
   it('has been mounted', () => {
-    const component = shallow(<MapConverter
-      byteLength={1}
-      error={() => { }}
-      state={5}
-      map={map}
-      setState={() => { }}
-    />);
-    expect(component.length).toBe(1);
+    render(<MapConverter
+            byteLength={1}
+            error={() => null}
+            state={5}
+            map={map}
+            setState={() => null}
+        />);
+    expect(screen.getAllByTestId('MapConverter-input').length).toBe(1);
+    cleanup();
   });
   it('renders each character correctly', () => {
     Array.from(Array(256).keys()).forEach((i) => {
-      const component = shallow(<MapConverter
-        byteLength={1}
-        error={() => { }}
-        state={i}
-        map={map}
-        setState={() => { }}
-      />);
-      expect(component.find('input').prop('value')).toBe(`${i}`);
+      render(<MapConverter
+                byteLength={1}
+                error={() => null}
+                state={i}
+                map={map}
+                setState={() => null}
+            />, {});
+      const converter = screen.getByTestId('MapConverter-input');
+      expect(converter).toHaveValue(`${i}`);
+      cleanup();
     });
   });
 });

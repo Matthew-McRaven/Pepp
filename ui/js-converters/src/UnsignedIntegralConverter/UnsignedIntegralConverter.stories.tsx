@@ -8,26 +8,27 @@ export default {
 };
 
 interface TemplateArgs {
-  base: 2 | 10 | 16;
-  byteLength: 1 | 2 | 3 | 4;
-  isReadOnly?: boolean;
-  prefixless?: boolean
+    base: 2 | 10 | 16;
+    byteLength: 1 | 2 | 3 | 4;
+    isReadOnly?: boolean;
+    prefixless?: boolean
 }
+
 const Template = (args: TemplateArgs) => {
   const {
     base, byteLength, isReadOnly, prefixless,
   } = args;
   const [state, setState] = useState(0);
   return (
-    <UnsignedIntegralConverter
-      byteLength={byteLength}
-      error={() => { }}
-      prefixless={prefixless || false}
-      state={state}
-      setState={setState}
-      base={base}
-      isReadOnly={isReadOnly || false}
-    />
+        <UnsignedIntegralConverter
+            byteLength={byteLength}
+            error={() => null}
+            prefixless={prefixless || false}
+            state={state}
+            setState={setState}
+            base={base}
+            isReadOnly={isReadOnly || false}
+        />
   );
 };
 

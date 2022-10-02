@@ -6,8 +6,8 @@ import './AsciiMapConverter.scss';
 import { MapConverter } from '../MapConverter';
 
 export interface AsciiMapConverterProps extends BaseConverterProps {
-  state: number;
-  byteLength: 1
+    state: number;
+    byteLength: 1
 }
 
 const consecutive = Array.from({ length: 256 }, (e, i) => String.fromCharCode(i));
@@ -17,15 +17,15 @@ export const AsciiMapConverter = (props: AsciiMapConverterProps) => {
   if (byteLength !== 1) throw new Error('byteLength must be 1');
   const errorMap = (value: number) => {
     if (value < 0 || value > 255) throw new Error(`${value} outside the range of valid ASCII characters.`);
-    return consecutive.at(value);
+    return consecutive[value];
   };
-  // errorMap can return undefined, but in that case it raises an error, so being undefined is
-  // the least of our worries.
+    // errorMap can return undefined, but in that case it raises an error, so being undefined is
+    // the least of our worries.
   const map = errorMap as MappingFunction;
-  return <MapConverter error={error} map={map} state={state} byteLength={byteLength} setState={() => { }} />;
+  return <MapConverter error={error} map={map} state={state} byteLength={byteLength} setState={() => null}/>;
 };
 
 export const toHigherOrder = () => (props: HigherOrderConverterProps) => {
   const { state, error } = props;
-  return <AsciiMapConverter error={error} state={state} setState={() => { }} byteLength={1} />;
+  return <AsciiMapConverter error={error} state={state} setState={() => null} byteLength={1}/>;
 };

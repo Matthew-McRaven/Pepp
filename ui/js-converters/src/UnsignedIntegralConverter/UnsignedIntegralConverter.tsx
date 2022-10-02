@@ -6,21 +6,25 @@ import type { HigherOrderConverterProps, BaseConverterProps } from '../BaseConve
 export type SupportedBases = 2 | 10 | 16
 
 export interface UnsignedIntegralConverterProps extends BaseConverterProps {
-  // Currently supported bases [2, 10, 16]
-  base: SupportedBases;
-  // Are 0x and 0b prefixes required?
-  prefixless?: boolean;
-  // Must enforce that newState is in (unsigned) [0, 2**byteLength - 1].
-  // eslint-disable-next-line no-unused-vars
-  setState: (newState: number) => void;
+    // Currently supported bases [2, 10, 16]
+    base: SupportedBases;
+    // Are 0x and 0b prefixes required?
+    prefixless?: boolean;
+    // Must enforce that newState is in (unsigned) [0, 2**byteLength - 1].
+    // eslint-disable-next-line no-unused-vars
+    setState: (newState: number) => void;
 }
 
 const basePrefix = (base: number): string => {
   switch (base) {
-    case 2: return '0b';
-    case 10: return '';
-    case 16: return '0x';
-    default: throw Error('Unsupported base');
+    case 2:
+      return '0b';
+    case 10:
+      return '';
+    case 16:
+      return '0x';
+    default:
+      throw Error('Unsupported base');
   }
 };
 // Return a regex that matches a line containing only the prefix.
@@ -32,11 +36,13 @@ const regexFromBase = (base: number, prefixless: boolean): RegExp => {
     case 2:
       if (prefixless) return /^[01]+$/;
       return /^0[bB][01]+$/;
-    case 10: return /^[0-9]+$/;
+    case 10:
+      return /^[0-9]+$/;
     case 16:
       if (prefixless) return /^[0-9a-fA-F]+$/;
       return /^0[xX][0-9a-fA-F]+$/;
-    default: throw Error('Unsupported base');
+    default:
+      throw Error('Unsupported base');
   }
 };
 
@@ -72,8 +78,9 @@ export const UnsignedIntegralConverter = (props: UnsignedIntegralConverterProps)
     // If the string is empty and is prefixless, set to 0.
     // If the string is empty (after striping base prefix), set to 0.
     if ((prefixless && /^$/.exec(stringValue))
-      || (!prefixless && regexBasePrefix(base).exec(stringValue))) {
-      setLocalState(0); return undefined;
+            || (!prefixless && regexBasePrefix(base).exec(stringValue))) {
+      setLocalState(0);
+      return undefined;
     }
 
     // Reject values that don't match the regex
@@ -101,32 +108,36 @@ export const UnsignedIntegralConverter = (props: UnsignedIntegralConverterProps)
     setLocalState(bitValue);
     return undefined;
   };
-  // Add prefix to value if necessary
+    // Add prefix to value if necessary
   const formatValue = () => `${prefixless ? '' : basePrefix(base)}${localState.toString(base).toUpperCase()}`;
   const onCommitChange = () => {
     setState(localState);
   };
-  // Trigger validation on "enter" keypress
+    // Trigger validation on "enter" keypress
   const onKeyPress = (event: React.KeyboardEvent<HTMLInputElement>) => {
     switch (event.key.toLowerCase()) {
-      case 'enter': onCommitChange(); break;
-      default: break;
+      case 'enter':
+        onCommitChange();
+        break;
+      default:
+        break;
     }
   };
 
   // TODO: Derive better solution for this...
   const maxLen = () => basePrefix(2).length + 8 * byteLength;
   return (
-    <div className="UnsignedIntegralConverter" data-testid="UnsignedIntegralConverter">
-      <input
-        className={`Input-${(isReadOnly || false) ? 'ro' : 'edit'}`}
-        value={formatValue()}
-        onBlur={onCommitChange}
-        onKeyPress={onKeyPress}
-        onChange={onChange}
-        style={{ width: '100%', maxWidth: `${maxLen()}ch` }}
-      />
-    </div>
+        <div className="UnsignedIntegralConverter" data-testid="UnsignedIntegralConverter">
+            <input
+                className={`Input-${(isReadOnly || false) ? 'ro' : 'edit'}`}
+                data-testid={'UnsignedIntegralConverter-input'}
+                value={formatValue()}
+                onBlur={onCommitChange}
+                onKeyPress={onKeyPress}
+                onChange={onChange}
+                style={{ width: '100%', maxWidth: `${maxLen()}ch` }}
+            />
+        </div>
   );
 };
 
@@ -136,14 +147,14 @@ export const toHigherOrder = (base: SupportedBases, byteLength: number, readOnly
   const localFn = (props: HigherOrderConverterProps) => {
     const { error, state, setState } = props;
     return (
-      <UnsignedIntegralConverter
-        base={base}
-        byteLength={byteLength}
-        error={error}
-        isReadOnly={readOnly || false}
-        state={state}
-        setState={setState}
-      />
+            <UnsignedIntegralConverter
+                base={base}
+                byteLength={byteLength}
+                error={error}
+                isReadOnly={readOnly || false}
+                state={state}
+                setState={setState}
+            />
     );
   };
   return localFn;

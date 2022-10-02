@@ -2,9 +2,7 @@ import React, { useState } from 'react';
 import './UnicodeConverter.scss';
 import type { HigherOrderConverterProps, BaseConverterProps } from '../BaseConverter';
 
-export interface UnicodeConverterProps extends BaseConverterProps {
-
-}
+export type UnicodeConverterProps = BaseConverterProps
 
 // eslint-disable-next-line import/prefer-default-export
 export const UnicodeConverter = (props: UnicodeConverterProps) => {
@@ -42,13 +40,14 @@ export const UnicodeConverter = (props: UnicodeConverterProps) => {
   };
 
   // If localState is bad, reset to known-good external state
-  const resetValue = () => { setLocalState(parseValue(state)); };
+  const resetValue = () => {
+    setLocalState(parseValue(state));
+  };
 
   // Call when wanting to commit `localState` to global `state`
   const onValidate = () => {
     // Reject changes when read only
     if (isReadOnly) return undefined;
-
     // If string is empty, set to 0.
     if (localState.length === 0) {
       setLocalState(parseValue(0));
@@ -95,11 +94,14 @@ export const UnicodeConverter = (props: UnicodeConverterProps) => {
   // Trigger validation on "enter" keypress
   const onKeyPress = (event: React.KeyboardEvent<HTMLInputElement>) => {
     switch (event.key.toLowerCase()) {
-      case 'enter': onValidate(); break;
-      default: break;
+      case 'enter':
+        onValidate();
+        break;
+      default:
+        break;
     }
   };
-
+  const roString = `${(isReadOnly || false) ? 'ro' : 'edit'}`;
   return (
     <div className="UnicodeConverter" data-testid="UnicodeConverter">
       <input value={localState} onChange={onChange} onBlur={onValidate} onKeyPress={onKeyPress} />

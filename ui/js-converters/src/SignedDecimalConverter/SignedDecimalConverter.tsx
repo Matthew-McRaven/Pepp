@@ -4,8 +4,8 @@ import './SignedDecimalConverter.scss';
 import type { HigherOrderConverterProps, BaseConverterProps } from '../BaseConverter';
 
 export interface SignedDecimalConverterProps extends BaseConverterProps {
-  // eslint-disable-next-line no-unused-vars
-  setState: (newState: number) => void;
+    // eslint-disable-next-line no-unused-vars
+    setState: (newState: number) => void;
 }
 
 // Component that displays a byte in different bases.
@@ -45,7 +45,8 @@ export const SignedDecimalConverter = (props: SignedDecimalConverterProps) => {
     // If the string is empty (after striping base prefix), set to 0.
     if (/^-0?$/.exec(stringValue)) {
       return undefined;
-    } if (/^$/.exec(stringValue)) {
+    }
+    if (/^$/.exec(stringValue)) {
       setSignedZero(false);
       setLocalState(0);
     } else {
@@ -99,11 +100,13 @@ export const SignedDecimalConverter = (props: SignedDecimalConverterProps) => {
   const onCommitChange = () => {
     setState(localState);
   };
-  // Trigger validation on "enter" keypress
+    // Trigger validation on "enter" keypress
   const onKeyPress = (event: React.KeyboardEvent<HTMLInputElement>) => {
     const asString = formatValue();
     switch (event.key.toLowerCase()) {
-      case 'enter': onCommitChange(); break;
+      case 'enter':
+        onCommitChange();
+        break;
       case '-':
         setSignedZero(true);
         // eslint-disable-next-line no-bitwise
@@ -118,23 +121,25 @@ export const SignedDecimalConverter = (props: SignedDecimalConverterProps) => {
           setLocalState(0);
         } else if (localState < 128 && asString.length <= 1) setLocalState(0);
         break;
-      default: break;
+      default:
+        break;
     }
   };
 
   // TODO: Derive better solution for this...
   const maxLen = () => 2 + 8 * byteLength;
   return (
-    <div className="SignedDecimalConverter" data-testid="SignedDecimalConverter">
-      <input
-        className={`Input-${(isReadOnly || false) ? 'ro' : 'edit'}`}
-        value={formatValue()}
-        onBlur={onCommitChange}
-        onKeyDown={onKeyPress}
-        onChange={onChange}
-        style={{ width: '100%', maxWidth: `${maxLen()}ch` }}
-      />
-    </div>
+        <div className="SignedDecimalConverter" data-testid="SignedDecimalConverter">
+            <input
+                className={`Input-${(isReadOnly || false) ? 'ro' : 'edit'}`}
+                data-testid={'SignedDecimalConverter-input'}
+                value={formatValue()}
+                onBlur={onCommitChange}
+                onKeyDown={onKeyPress}
+                onChange={onChange}
+                style={{ width: '100%', maxWidth: `${maxLen()}ch` }}
+            />
+        </div>
   );
 };
 
@@ -144,13 +149,13 @@ export const toHigherOrder = (byteLength: number, readOnly?: boolean) => {
   const localFn = (props: HigherOrderConverterProps) => {
     const { error, state, setState } = props;
     return (
-      <SignedDecimalConverter
-        byteLength={byteLength}
-        error={error}
-        isReadOnly={readOnly || false}
-        state={state}
-        setState={setState}
-      />
+            <SignedDecimalConverter
+                byteLength={byteLength}
+                error={error}
+                isReadOnly={readOnly || false}
+                state={state}
+                setState={setState}
+            />
     );
   };
   return localFn;
