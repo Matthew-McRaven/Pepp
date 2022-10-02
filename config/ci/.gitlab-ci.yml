@@ -25,7 +25,6 @@ build:
     - npm ci
     - npm run build
     - npm run test:ci
-    - ls -lah coverage
   artifacts:
     expire_in: 1 week
     when: always
@@ -34,7 +33,7 @@ build:
         - junit.xml
       coverage_report:
         coverage_format: cobertura
-        path: coverage/coverage.xml
+        path: coverage/cobertura-coverage.xml
 
 
 ##################
