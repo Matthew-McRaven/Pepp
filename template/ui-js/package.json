@@ -19,7 +19,6 @@
     "clean": "npx rimraf -rf ./dist",
     "prepublishOnly": "npm run build",
     "start-storybook": "start-storybook -p 6006",
-    "storybook:export": "build-storybook",
     "test": "npx jest",
     "test:ci": "npx jest --ci --reporters=default --reporters=jest-junit --coverageReporters=cobertura --coverage && python3 .scripts/scripts/merge-cobertura.py -o coverage.xml  coverage/cobertura-coverage.xml"
   },
