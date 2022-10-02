@@ -1,6 +1,6 @@
 {
   "name": "@pepnext/ui-sample",
-  "version": "3.0.0",
+  "version": "3.0.1",
   "description": "Base configuration for our UI libraries.",
   "repository": {
     "type": "git",
@@ -10,11 +10,8 @@
   "author": "Matthew McRaven",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
-  "files": [
-    "dist"
-  ],
   "scripts": {
-    "build": "npm run clean && node $(npm bin)/tsc -p tsconfig.json",
+    "build": "npm run clean && node $(npm bin)/tsc -p tsconfig.json && copyfiles --up 1 src/**/*.scss dist/",
     "build-storybook": "build-storybook",
     "clean": "npx rimraf -rf ./dist",
     "prepublishOnly": "npm run build",
@@ -48,6 +45,7 @@
     "@types/react": "^18.0.0",
     "babel-loader": "^8.2.3",
     "chromatic": "^6.0.6",
+    "copyfiles": "^2.4.1",
     "identity-obj-proxy": "^3.0.0",
     "jest": "^27.3.1",
     "jest-junit": "^13.0.0",
