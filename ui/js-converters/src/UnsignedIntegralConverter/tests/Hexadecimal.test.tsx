@@ -21,13 +21,13 @@ describe.each([1, 2])('%i1-byte Hexadecimal <UnsignedIntegralConverter />', (len
     };
     render(<UnsignedIntegralConverter
             byteLength={len}
-            error={() => {
-            }}
+            error={() => null}
             state={state}
-            s:etState={setState}
+            setState={setState}
             base={16}
-        />);:
-    expect(component.length).toBe(1);
+        />);
+    expect(screen.getAllByTestId('UnsignedIntegralConverter').length).toBe(1);
+    cleanup();
   });
 
   // Test 2 - Default to 0 when only given prefix
@@ -38,15 +38,15 @@ describe.each([1, 2])('%i1-byte Hexadecimal <UnsignedIntegralConverter />', (len
     };
     render(<UnsignedIntegralConverter
             byteLength={len}
-            error={() => {
-            }}
+            error={() => null}
             state={state}
             setState={setState}
             base={16}
         />);
-    wrapper.find('input').simulate('change', { currentTarget: { value: '0x' } });
-    wrapper.find('input').simulate('blur', {});
-    expect(state).toBe(0);
+    const input = getInput();
+    fireEvent.change(input, { target: { value: '0x' } });
+    expect(input).toHaveValue('0x0');
+    cleanup();
   });
 
   // Test 3 - Check that prefixes 0X with leading zero.
@@ -58,15 +58,15 @@ describe.each([1, 2])('%i1-byte Hexadecimal <UnsignedIntegralConverter />', (len
     };
     render(<UnsignedIntegralConverter
             byteLength={len}
-            error={() => {
-            }}
+            error={() => null}
             state={state}
             setState={setState}
             base={16}
         />);
-    wrapper.find('input').simulate('change', { currentTarget: { value: '0X03' } });
-    wrapper.find('input').simulate('blur', {});
-    expect(state).toBe(3);
+    const input = getInput();
+    fireEvent.change(input, { target: { value: '0X03' } });
+    expect(input).toHaveValue('0x3');
+    cleanup();
   });
 
   // Test 4 - Check that prefixes 0X with leading zero.
@@ -78,15 +78,15 @@ describe.each([1, 2])('%i1-byte Hexadecimal <UnsignedIntegralConverter />', (len
     };
     render(<UnsignedIntegralConverter
             byteLength={len}
-            error={() => {
-            }}
+            error={() => null}
             state={state}
             setState={setState}
             base={16}
         />);
-    wrapper.find('input').simulate('change', { currentTarget: { value: '0x05' } });
-    wrapper.find('input').simulate('blur', {});
-    expect(state).toBe(5);
+    const input = getInput();
+    fireEvent.change(input, { target: { value: '0x05' } });
+    expect(input).toHaveValue('0x5');
+    cleanup();
   });
 
   // Test 5 - Do not clear control if invalid character entered
@@ -97,15 +97,15 @@ describe.each([1, 2])('%i1-byte Hexadecimal <UnsignedIntegralConverter />', (len
     };
     render(<UnsignedIntegralConverter
             byteLength={len}
-            error={() => {
-            }}
+            error={() => null}
             state={state}
             setState={setState}
             base={16}
         />);
-    wrapper.find('input').simulate('change', { currentTarget: { value: 'F0x' } });
-    wrapper.find('input').simulate('blur', {});
-    expect(state).toBe(0x80);
+    const input = getInput();
+    fireEvent.change(input, { target: { value: 'f0x' } });
+    expect(input).toHaveValue('0x80');
+    cleanup();
   });
 
   // Test 6 - Reject negative numbers
@@ -116,38 +116,38 @@ describe.each([1, 2])('%i1-byte Hexadecimal <UnsignedIntegralConverter />', (len
     };
     render(<UnsignedIntegralConverter
             byteLength={len}
-            error={() => {
-            }}
+            error={() => null}
             state={state}
             setState={setState}
             base={16}
         />);
-    wrapper.find('input').simulate('change', { currentTarget: { value: '-25' } });
-    wrapper.find('input').simulate('blur', {});
-    expect(state).not.toBe(-25);
+    const input = getInput();
+    fireEvent.change(input, { target: { value: '-25' } });
+    expect(input).toHaveValue('0x5');
+    cleanup();
   });
 
   // Test 7 - Test that all valid characters can be entered
   //  End range differs for 1 and 2 byte controls
   const endRange = (2 ** (8 * len));
-  it(`${len}-Byte can have it\'s value set in [0,${endRange - 1}]`, () => {
+  it(`${len}-Byte can have it's value set in [0,${endRange - 1}]`, () => {
     let state = endRange - 1;
     const setState = (newState: number) => {
       state = newState;
     };
     render(<UnsignedIntegralConverter
             byteLength={len}
-            error={() => {
-            }}
+            error={() => null}
             state={state}
             setState={setState}
             base={16}
         />);
+    const input = getInput();
     Array.from(Array(endRange).keys()).forEach((i) => {
-      wrapper.find('input').simulate('change', { currentTarget: { value: `0x${i.toString(16)}` } });
-      wrapper.find('input').simulate('blur', {});
-      expect(state).toBe(i);
+      fireEvent.change(input, { target: { value: `0x${i.toString(16)}` } });
+      expect(input).toHaveValue(`0x${i.toString(16).toUpperCase()}`);
     });
+    cleanup();
   });
 
   // Test 8 - Test number outside of range is not picked up.
@@ -158,16 +158,15 @@ describe.each([1, 2])('%i1-byte Hexadecimal <UnsignedIntegralConverter />', (len
     };
     render(<UnsignedIntegralConverter
             byteLength={len}
-            error={() => {
-            }}
+            error={() => null}
             state={state}
             setState={setState}
             base={16}
         />);
-    wrapper.find('input').simulate('change', { currentTarget: { value: `0x${(endRange + 1).toString(16)}` } });
-    wrapper.find('input').simulate('blur', {});
-    expect(state).not.toBe(endRange + 1);
-    expect(state).toBe(state);
+    const input = getInput();
+    fireEvent.change(input, { target: { value: `0x${(endRange + 1).toString(16)}` } });
+    expect(input).toHaveValue('0x5');
+    cleanup();
   });
 
   // Test 9 - Reject binary prefix. Keep last good state
@@ -178,16 +177,15 @@ describe.each([1, 2])('%i1-byte Hexadecimal <UnsignedIntegralConverter />', (len
     };
     render(<UnsignedIntegralConverter
             byteLength={len}
-            error={() => {
-            }}
+            error={() => null}
             state={state}
             setState={setState}
             base={16}
         />);
-    wrapper.find('input').simulate('change', { currentTarget: { value: '0b1' } });
-    wrapper.find('input').simulate('blur', {});
-    expect(state).not.toBe(1);
-    expect(state).toBe(state);
+    const input = getInput();
+    fireEvent.change(input, { target: { value: '0b1' } });
+    expect(input).toHaveValue('0x5');
+    cleanup();
   });
 
   // Test 10 - Reject decimal. Keep last good state
@@ -198,15 +196,14 @@ describe.each([1, 2])('%i1-byte Hexadecimal <UnsignedIntegralConverter />', (len
     };
     render(<UnsignedIntegralConverter
             byteLength={len}
-            error={() => {
-            }}
+            error={() => null}
             state={state}
             setState={setState}
             base={16}
         />);
-    wrapper.find('input').simulate('change', { currentTarget: { value: '01' } });
-    wrapper.find('input').simulate('blur', {});
-    expect(state).not.toBe(1);
-    expect(state).toBe(state);
+    const input = getInput();
+    fireEvent.change(input, { target: { value: '01' } });
+    expect(input).toHaveValue('0x5');
+    cleanup();
   });
 });
