@@ -1,20 +1,21 @@
 import React, { useState } from 'react';
-import { UnsignedIntegral } from '@pep10/ui-converters/';
+import { UnsignedIntegral } from '@pepnext/ui-converters';
 import RegistersPane, { FlagDefinition } from './RegistersPane';
 
 export default {
   title: 'CPU/RegistersPane',
   component: RegistersPane,
-  argTypes: {
-  },
+  argTypes: {},
 };
+
 interface RegDef {
-  name: string
-  state: number
+    name: string
+    state: number
 }
+
 interface FlagDef {
-  name: string
-  state: boolean
+    name: string
+    state: boolean
 }
 
 const SampleRegisters = (regs: RegDef[], readOnly: boolean) => regs.map(({ name, state }) => {
@@ -45,10 +46,10 @@ const Template = (args: { regs: RegDef[], flags: FlagDef[], readOnly: boolean })
     };
   });
   return (
-    <RegistersPane
-      registers={SampleRegisters(localRegs, localReadOnly)}
-      flags={editableFlags}
-    />
+        <RegistersPane
+            registers={SampleRegisters(localRegs, localReadOnly)}
+            flags={editableFlags}
+        />
   );
 };
 const regs = {

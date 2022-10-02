@@ -1,10 +1,11 @@
 import React from 'react';
-import { shallow } from 'enzyme';
+import { cleanup, render, screen } from '@testing-library/react';
 import RegistersPane from './RegistersPane';
 
 describe('<RegistersPane />', () => {
   it('has been mounted', () => {
-    const component = shallow(<RegistersPane flags={[]} registers={[]} />);
-    expect(component.length).toBe(1);
+    render(<RegistersPane flags={[]} registers={[]}/>);
+    expect(screen.getAllByTestId('RegistersPane').length).toBe(1);
+    cleanup();
   });
 });
