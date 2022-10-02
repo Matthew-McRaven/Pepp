@@ -68,7 +68,7 @@ describe('Prefixless Binary <UnsignedIntegralConverter />', () => {
         />);
     const input = getInput();
     fireEvent.change(input, { target: { value: '0B11' } });
-    expect(input).toHaveValue('11');
+    expect(input).toHaveValue('101');
     cleanup();
   });
 
@@ -88,7 +88,7 @@ describe('Prefixless Binary <UnsignedIntegralConverter />', () => {
         />);
     const input = getInput();
     fireEvent.change(input, { target: { value: '0b101' } });
-    expect(input).toHaveValue('101');
+    expect(input).toHaveValue('11');
     cleanup();
   });
 
