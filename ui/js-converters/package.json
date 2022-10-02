@@ -17,7 +17,7 @@
     "build": "npm run clean && node $(npm bin)/tsc -p tsconfig.json",
     "clean": "rimraf -rf ./dist",
     "prepublishOnly": "npm run build",
-    "test": "npm run jest",
+    "test": "npx jest",
     "test:ci": "npx jest --ci --reporters=default --reporters=jest-junit --coverageReporters=cobertura --coverage"
   },
   "eslintConfig": {
