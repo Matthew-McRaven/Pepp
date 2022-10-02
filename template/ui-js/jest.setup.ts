@@ -5,11 +5,11 @@
 import '@testing-library/jest-dom';
 
 // setup file
-import { configure } from 'enzyme';
 
 import '@testing-library/jest-dom/extend-expect';
 import 'jest';
 
-import Adapter from 'enzyme-adapter-react-16';
+// Needed for TextEncoder to work correctly
+import { TextEncoder } from 'util';
 
-configure({ adapter: new Adapter() });
+global.TextEncoder = TextEncoder;
