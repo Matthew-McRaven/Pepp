@@ -21,13 +21,13 @@ describe.each([1, 2])('%i-byte Unsigned Decimal <UnsignedIntegralConverter />', 
     };
     render(<UnsignedIntegralConverter
             byteLength={len}
-            error={() => {
-            }}
+            error={() => null}
             state={state}
             setState={setState}
             base={10}
         />);
-    expect(component.length).toBe(1);
+    expect(screen.getAllByTestId('UnsignedIntegralConverter').length).toBe(1);
+    cleanup();
   });
 
   // Test 2 - Default to 0 when only given prefix
@@ -38,15 +38,15 @@ describe.each([1, 2])('%i-byte Unsigned Decimal <UnsignedIntegralConverter />', 
     };
     render(<UnsignedIntegralConverter
             byteLength={len}
-            error={() => {
-            }}
+            error={() => null}
             state={state}
             setState={setState}
             base={10}
         />);
-    wrapper.find('input').simulate('change', { currentTarget: { value: '' } });
-    wrapper.find('input').simulate('blur', {});
-    expect(state).toBe(0);
+    const input = getInput();
+    fireEvent.change(input, { target: { value: '' } });
+    expect(input).toHaveValue('0');
+    cleanup();
   });
 
   // Test 3 - Do not clear control if invalid character entered
@@ -57,15 +57,15 @@ describe.each([1, 2])('%i-byte Unsigned Decimal <UnsignedIntegralConverter />', 
     };
     render(<UnsignedIntegralConverter
             byteLength={len}
-            error={() => {
-            }}
+            error={() => null}
             state={state}
             setState={setState}
             base={10}
         />);
-    wrapper.find('input').simulate('change', { currentTarget: { value: 'F0x' } });
-    wrapper.find('input').simulate('blur', {});
-    expect(state).toBe(80);
+    const input = getInput();
+    fireEvent.change(input, { target: { value: 'f0x' } });
+    expect(input).toHaveValue('80');
+    cleanup();
   });
 
   // Test 4 - Reject negative numbers
@@ -76,21 +76,21 @@ describe.each([1, 2])('%i-byte Unsigned Decimal <UnsignedIntegralConverter />', 
     };
     render(<UnsignedIntegralConverter
             byteLength={len}
-            error={() => {
-            }}
+            error={() => null}
             state={state}
             setState={setState}
             base={10}
         />);
-    wrapper.find('input').simulate('change', { currentTarget: { value: '-25' } });
-    wrapper.find('input').simulate('blur', {});
-    expect(state).not.toBe(-25);
+    const input = getInput();
+    fireEvent.change(input, { target: { value: '-25' } });
+    expect(input).toHaveValue('5');
+    cleanup();
   });
 
   // Test 5 - Test that all valid values can be entered
   // End range differs for 1 and 2 byte controls
   const endRange = (2 ** (8 * len));
-  it(`${len}-Byte can have it\'s value set in [0,${endRange - 1}]`, () => {
+  it(`${len}-Byte can have it's value set in [0,${endRange - 1}]`, () => {
     const lastValue = endRange - 1;
     let state = 5;
     const setState = (newState: number) => {
@@ -98,17 +98,17 @@ describe.each([1, 2])('%i-byte Unsigned Decimal <UnsignedIntegralConverter />', 
     };
     render(<UnsignedIntegralConverter
             byteLength={len}
-            error={() => {
-            }}
+            error={() => null}
             state={state}
             setState={setState}
             base={10}
         />);
     Array.from(Array(lastValue).keys()).forEach((i) => {
-      wrapper.find('input').simulate('change', { currentTarget: { value: `${i}` } });
-      wrapper.find('input').simulate('blur', {});
-      expect(state).toBe(i);
+      const input = getInput();
+      fireEvent.change(input, { target: { value: `${i}` } });
+      expect(input).toHaveValue(`${i}`);
     });
+    cleanup();
   });
 
   // Test 6 - Test number outside of range is not picked up.
@@ -120,16 +120,15 @@ describe.each([1, 2])('%i-byte Unsigned Decimal <UnsignedIntegralConverter />', 
     };
     render(<UnsignedIntegralConverter
             byteLength={len}
-            error={() => {
-            }}
+            error={() => null}
             state={state}
             setState={setState}
             base={10}
         />);
-    wrapper.find('input').simulate('change', { currentTarget: { value: `${outsideRange}` } });
-    wrapper.find('input').simulate('blur', {});
-    expect(state).not.toBe(outsideRange);
-    expect(state).toBe(5);
+    const input = getInput();
+    fireEvent.change(input, { target: { value: `${outsideRange}` } });
+    expect(input).toHaveValue('5');
+    cleanup();
   });
 
   // Test 7 - Reject binary prefix. Keep last good state
@@ -140,16 +139,15 @@ describe.each([1, 2])('%i-byte Unsigned Decimal <UnsignedIntegralConverter />', 
     };
     render(<UnsignedIntegralConverter
             byteLength={len}
-            error={() => {
-            }}
+            error={() => null}
             state={state}
             setState={setState}
             base={10}
         />);
-    wrapper.find('input').simulate('change', { currentTarget: { value: '0b11' } });
-    wrapper.find('input').simulate('blur', {});
-    expect(state).not.toBe(0b11);
-    expect(state).toBe(5);
+    const input = getInput();
+    fireEvent.change(input, { target: { value: '0b11' } });
+    expect(input).toHaveValue('5');
+    cleanup();
   });
 
   // Test 8 - Reject hex. Keep last good state
@@ -160,15 +158,14 @@ describe.each([1, 2])('%i-byte Unsigned Decimal <UnsignedIntegralConverter />', 
     };
     render(<UnsignedIntegralConverter
             byteLength={len}
-            error={() => {
-            }}
+            error={() => null}
             state={state}
             setState={setState}
             base={10}
         />);
-    wrapper.find('input').simulate('change', { currentTarget: { value: '0x1f' } });
-    wrapper.find('input').simulate('blur', {});
-    expect(state).not.toBe(0x1f);
-    expect(state).toBe(5);
+    const input = getInput();
+    fireEvent.change(input, { target: { value: '0x1f' } });
+    expect(input).toHaveValue('5');
+    cleanup();
   });
 });
