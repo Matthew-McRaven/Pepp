@@ -13,8 +13,14 @@ module.exports = {
     },
   },
   extends: [
+    'eslint:recommended',
     'plugin:react/recommended',
-    'airbnb',
+    'plugin:react-hooks/recommended',
+    'plugin:@typescript-eslint/eslint-recommended',
+    'plugin:@typescript-eslint/recommended',
+    'airbnb-base',
+    'plugin:import/errors',
+    'plugin:import/warnings',
     'plugin:import/typescript',
   ],
   parser: '@typescript-eslint/parser',
@@ -44,6 +50,5 @@ module.exports = {
     '@typescript-eslint/no-shadow': 'error',
     'no-unused-vars': 'off',
     '@typescript-eslint/no-unused-vars': 'error',
-
   },
 };
