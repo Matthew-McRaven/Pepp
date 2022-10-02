@@ -8,15 +8,18 @@
   },
   "license": "GPL-3.0",
   "author": "Matthew McRaven",
-  "main": "src/index.ts",
-  "types": "src/index.ts",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
   "files": [
-    "src"
+    "dist"
   ],
   "scripts": {
     "build": "npm run clean && node $(npm bin)/tsc -p tsconfig.json",
+    "build-storybook": "build-storybook",
     "clean": "rimraf -rf ./dist",
     "prepublishOnly": "npm run build",
+    "start-storybook": "start-storybook -p 6006",
+    "storybook:export": "build-storybook",
     "test": "npx jest",
     "test:ci": "npx jest --ci --reporters=default --reporters=jest-junit --coverageReporters=cobertura --coverage"
   },
@@ -24,14 +27,26 @@
     "extends": "./node_modules/@pepnext/eslint/.eslintrc.js"
   },
   "devDependencies": {
+    "@babel/core": "^7.16.0",
     "@jest/globals": "^27.3.1",
+    "@mdx-js/react": "^2.1.3",
     "@pepnext/eslint": "^3.0.3",
     "@pepnext/tsconfig": "^3.0.0",
+    "@storybook/addon-actions": "^6.5.12",
+    "@storybook/addon-controls": "^6.5.12",
+    "@storybook/addon-docs": "^6.5.12",
+    "@storybook/addon-essentials": "^6.5.12",
+    "@storybook/addon-links": "^6.5.12",
+    "@storybook/addon-storyshots": "^6.5.12",
+    "@storybook/cli": "^6.5.12",
+    "@storybook/react": "^6.5.12",
     "@testing-library/jest-dom": "^5.15.1",
     "@testing-library/react": "^13.4.0",
     "@testing-library/user-event": "^14.4.3",
     "@types/jest": "^27.4.0",
     "@types/react": "^18.0.0",
+    "babel-loader": "^8.2.3",
+    "chromatic": "^6.0.6",
     "identity-obj-proxy": "^3.0.0",
     "jest": "^27.3.1",
     "jest-junit": "^13.0.0",

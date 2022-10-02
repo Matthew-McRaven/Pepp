@@ -1,0 +1,3 @@
+[submodule ".storybook"]
+	path = .storybook
+	url = git@gitlab.com:pepnext/config/storybook.git
