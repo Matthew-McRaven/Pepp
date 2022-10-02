@@ -74,6 +74,7 @@ publish:
   tags:
     - docker
   script:
+    - npm ci
     - export published_version=$(npm view @pepnext/ui-converters version || echo "0.0.0")
     - export current_version=$(jq -r .version < package.json)
     - npm i -g semver
