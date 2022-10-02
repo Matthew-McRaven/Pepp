@@ -37,6 +37,31 @@ include:
   - template: Security/License-Scanning.gitlab-ci.yml
   - template: Security/Secret-Detection.gitlab-ci.yml
 
+##################
+#  Run Chromatic #
+##################
+test:chromatic:
+  variables:
+    GIT_SUBMODULE_STRATEGY: recursive
+  image: registry.gitlab.com/pepnext/docker/develop:${BUILD_VERSION}
+  stage: test
+  needs: [ build ]
+  tags:
+    - docker
+  script:
+    - npm ci
+    - npm run build-storybook
+    - npx chromatic --exit-zero-on-changes --project-token ${CHROMATIC_PROJECT_TOKEN} --junit-report junit.xml -d storybook-static
+  rules:
+    - if: $CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH || $CI_COMMIT_BRANCH == 'dev'
+      when: on_success
+  artifacts:
+    expire_in: 1 week
+    when: always
+    reports:
+      junit:
+        - junit.xml
+
 #######################
 # Conditional Publish #
 #######################
