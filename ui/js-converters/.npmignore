@@ -1,5 +1,3 @@
-dist/**/*test*
-dist/**/*stories*
 src
 storybook-static
 coverage
