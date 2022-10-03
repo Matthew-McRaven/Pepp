@@ -13,7 +13,6 @@ import {
   HexEditorInlineStyles,
   ValueFormatter,
 } from '../types';
-
 import {
   EMPTY_CLASSNAMES,
   EMPTY_INLINE_STYLES,
@@ -30,38 +29,38 @@ import { MemoryLike } from './MemoryLike';
 import type { MemoryLikeType } from './MemoryLike';
 
 export interface HexEditorRowProps {
-  asciiPlaceholder?: string | JSX.Element | null,
-  className?: string,
-  classNames?: HexEditorClassNames,
-  columns?: number,
-  cursorColumn?: number,
-  cursorOffset?: number,
-  cursorRow?: number,
-  data?: MemoryLikeType,
-  disabled?: boolean,
-  // eslint-disable-next-line no-unused-vars
-  formatOffset?: (offset: number) => string | number,
-  formatValue?: ValueFormatter,
-  isEditing?: boolean,
-  isHeader?: boolean,
-  labelOffset?: number | null,
-  nonce?: number | string,
-  nybbleHigh?: number | null,
-  offset?: number,
-  rowIndex?: number,
-  selectionDirection?: SelectionDirectionType,
-  selectionEnd?: number,
-  selectionStart?: number,
-  setSelectionEnd?: SetSelectionBoundaryCallback,
-  setSelectionRange?: (
+    asciiPlaceholder?: string | JSX.Element | null,
+    className?: string,
+    classNames?: HexEditorClassNames,
+    columns?: number,
+    cursorColumn?: number,
+    cursorOffset?: number,
+    cursorRow?: number,
+    data?: MemoryLikeType,
+    disabled?: boolean,
     // eslint-disable-next-line no-unused-vars
-    start: number | null, end?: number | null, direction?: SelectionDirectionType | null, takeFocus?: boolean,
-  ) => void,
-  setSelectionStart?: SetSelectionBoundaryCallback,
-  showAscii?: boolean,
-  showLabel?: boolean,
-  style?: React.CSSProperties,
-  styles?: HexEditorInlineStyles,
+    formatOffset?: (offset: number) => string | number,
+    formatValue?: ValueFormatter,
+    isEditing?: boolean,
+    isHeader?: boolean,
+    labelOffset?: number | null,
+    nonce?: number | string,
+    nybbleHigh?: number | null,
+    offset?: number,
+    rowIndex?: number,
+    selectionDirection?: SelectionDirectionType,
+    selectionEnd?: number,
+    selectionStart?: number,
+    setSelectionEnd?: SetSelectionBoundaryCallback,
+    setSelectionRange?: (
+        // eslint-disable-next-line no-unused-vars
+        start: number | null, end?: number | null, direction?: SelectionDirectionType | null, takeFocus?: boolean,
+    ) => void,
+    setSelectionStart?: SetSelectionBoundaryCallback,
+    showAscii?: boolean,
+    showLabel?: boolean,
+    style?: React.CSSProperties,
+    styles?: HexEditorInlineStyles,
 }
 
 function areRowPropsEquivalent(prevProps: HexEditorRowProps, nextProps: HexEditorRowProps) {
@@ -123,7 +122,7 @@ function areRowPropsEquivalent(prevProps: HexEditorRowProps, nextProps: HexEdito
 
   if (
     prevSelectionStart != null && prevSelectionEnd != null
-    && nextSelectionStart != null && nextSelectionEnd != null
+        && nextSelectionStart != null && nextSelectionEnd != null
   ) {
     const prevHasSelection = hasSelection(prevOffset, prevOffsetEnd, prevSelectionStart, prevSelectionEnd);
     const nextHasSelection = hasSelection(nextOffset, nextOffsetEnd, nextSelectionStart, nextSelectionEnd);
@@ -193,121 +192,121 @@ const HexEditorRow = ({
   const isCurrentRow = cursorRow != null && rowIndex === cursorRow;
 
   return (
-    <div className={className} ref={ref} style={style}>
-      {!showLabel ? null : (
-        <>
-          <HexOffsetLabel
-            className={joinClassNames({
-              [classNames.offsetLabelHeader || '']: isHeader,
-              [classNames.offsetLabel || '']: !isHeader,
-              [classNames.currentRow || '']: isCurrentRow,
-            })}
-            formatOffset={formatOffset}
-            offset={labelOffset == null ? dataOffset : labelOffset}
-            style={styles.offsetLabel}
-          />
-          <HexEditorGutter
-            className={isHeader ? classNames.gutterHeader : classNames.gutter}
-            style={styles.gutter}
-          />
-        </>
-      )}
-      {!(columns || data.maxOffset()) ? null : (
-        <div className={classNames.byteValues} style={styles.byteValues}>
-          {dataOffsets.map((offset, columnIndex) => {
-            const isCurrentColumn = cursorColumn != null && columnIndex === cursorColumn;
-            const isCursor = offset === cursorOffset && !isSelecting;
-            const isSelected = offset >= selectionStart && offset < selectionEnd;
-            const isSelectionStart = offset === selectionStart;
-            const isSelectionEnd = offset === selectionEnd - 1;
-            const isSelectionCursor = isSelecting && (
-              selectionDirection === SELECTION_DIRECTION_BACKWARD
-                ? isSelectionStart
-                : isSelectionEnd
-            );
+        <div className={className} ref={ref} style={style}>
+            {!showLabel ? null : (
+                <>
+                    <HexOffsetLabel
+                        className={joinClassNames({
+                          [classNames.offsetLabelHeader || '']: isHeader,
+                          [classNames.offsetLabel || '']: !isHeader,
+                          [classNames.currentRow || '']: isCurrentRow,
+                        })}
+                        formatOffset={formatOffset}
+                        offset={labelOffset == null ? dataOffset : labelOffset}
+                        style={styles.offsetLabel}
+                    />
+                    <HexEditorGutter
+                        className={isHeader ? classNames.gutterHeader : classNames.gutter}
+                        style={styles.gutter}
+                    />
+                </>
+            )}
+            {!(columns || data.maxOffset()) ? null : (
+                <div className={classNames.byteValues} style={styles.byteValues}>
+                    {dataOffsets.map((offset, columnIndex) => {
+                      const isCurrentColumn = cursorColumn != null && columnIndex === cursorColumn;
+                      const isCursor = offset === cursorOffset && !isSelecting;
+                      const isSelected = offset >= selectionStart && offset < selectionEnd;
+                      const isSelectionStart = offset === selectionStart;
+                      const isSelectionEnd = offset === selectionEnd - 1;
+                      const isSelectionCursor = isSelecting && (
+                        selectionDirection === SELECTION_DIRECTION_BACKWARD
+                          ? isSelectionStart
+                          : isSelectionEnd
+                      );
 
-            let value = null;
-            if (offset < data.maxOffset()) {
-              value = isCursor && nybbleHigh != null
-                // eslint-disable-next-line no-bitwise
-                ? (nybbleHigh << 4) | (0x0f & data.at(offset))
-                : data.at(offset);
-            }
+                      let value = null;
+                      if (offset < data.maxOffset()) {
+                        value = isCursor && nybbleHigh != null
+                        // eslint-disable-next-line no-bitwise
+                          ? (nybbleHigh << 4) | (0x0f & data.at(offset))
+                          : data.at(offset);
+                      }
 
-            return (
-              <HexByteValue
-                className={isHeader ? classNames.byteHeader : classNames.byte}
-                classNames={classNames}
-                columnIndex={columnIndex}
-                isCurrentColumn={isCurrentColumn}
-                isCurrentRow={isCurrentRow}
-                isCursor={isCursor && !disabled}
-                isEditing={isEditing && !disabled}
-                isSelected={isSelected && !disabled}
-                isSelectionCursor={isSelectionCursor && !disabled}
-                isSelectionEnd={isSelectionEnd && !disabled}
-                isSelectionStart={isSelectionStart && !disabled}
-                key={offset}
-                offset={offset}
-                // rowIndex={rowIndex}
-                setSelectionEnd={setSelectionEnd}
-                setSelectionRange={setSelectionRange}
-                setSelectionStart={setSelectionStart}
-                style={styles.byte}
-                value={value}
-              />
-            );
-          })}
+                      return (
+                            <HexByteValue
+                                className={isHeader ? classNames.byteHeader : classNames.byte}
+                                classNames={classNames}
+                                columnIndex={columnIndex}
+                                isCurrentColumn={isCurrentColumn}
+                                isCurrentRow={isCurrentRow}
+                                isCursor={isCursor && !disabled}
+                                isEditing={isEditing && !disabled}
+                                isSelected={isSelected && !disabled}
+                                isSelectionCursor={isSelectionCursor && !disabled}
+                                isSelectionEnd={isSelectionEnd && !disabled}
+                                isSelectionStart={isSelectionStart && !disabled}
+                                key={offset}
+                                offset={offset}
+                                // rowIndex={rowIndex}
+                                setSelectionEnd={setSelectionEnd}
+                                setSelectionRange={setSelectionRange}
+                                setSelectionStart={setSelectionStart}
+                                style={styles.byte}
+                                value={value}
+                            />
+                      );
+                    })}
+                </div>
+            )}
+            {!showAscii ? null : (
+                <>
+                    <HexEditorGutter
+                        className={isHeader ? classNames.gutterHeader : classNames.gutter}
+                        style={styles.gutter}
+                    />
+                    <div className={classNames.asciiValues} style={styles.asciiValues}>
+                        {dataOffsets.map((offset, columnIndex) => {
+                          const isCursor = offset === cursorOffset && !isSelecting;
+                          const isSelected = offset >= selectionStart && offset < selectionEnd;
+                          const isSelectionStart = offset === selectionStart;
+                          const isSelectionEnd = offset === selectionEnd - 1;
+                          const isSelectionCursor = isSelecting && (
+                            selectionDirection === SELECTION_DIRECTION_BACKWARD
+                              ? isSelectionStart
+                              : isSelectionEnd
+                          );
+
+                          const value = offset < data.maxOffset() ? data.at(offset) : null;
+
+                          return (
+                                <HexAsciiValue
+                                    className={isHeader ? classNames.asciiHeader : classNames.ascii}
+                                    classNames={classNames}
+                                    // columnIndex={columnIndex}
+                                    formatValue={formatValue}
+                                    isCursor={isCursor && !disabled}
+                                    // isEditing={isEditing && !disabled}
+                                    isSelected={isSelected && !disabled}
+                                    isSelectionCursor={isSelectionCursor && !disabled}
+                                    isSelectionEnd={isSelectionEnd && !disabled}
+                                    isSelectionStart={isSelectionStart && !disabled}
+                                    key={offset}
+                                    offset={offset}
+                                    placeholder={asciiPlaceholder}
+                                    // rowIndex={rowIndex}
+                                    setSelectionEnd={setSelectionEnd}
+                                    setSelectionRange={setSelectionRange}
+                                    setSelectionStart={setSelectionStart}
+                                    style={styles.ascii}
+                                    value={value}
+                                />
+                          );
+                        })}
+                    </div>
+                </>
+            )}
         </div>
-      )}
-      {!showAscii ? null : (
-        <>
-          <HexEditorGutter
-            className={isHeader ? classNames.gutterHeader : classNames.gutter}
-            style={styles.gutter}
-          />
-          <div className={classNames.asciiValues} style={styles.asciiValues}>
-            {dataOffsets.map((offset, columnIndex) => {
-              const isCursor = offset === cursorOffset && !isSelecting;
-              const isSelected = offset >= selectionStart && offset < selectionEnd;
-              const isSelectionStart = offset === selectionStart;
-              const isSelectionEnd = offset === selectionEnd - 1;
-              const isSelectionCursor = isSelecting && (
-                selectionDirection === SELECTION_DIRECTION_BACKWARD
-                  ? isSelectionStart
-                  : isSelectionEnd
-              );
-
-              const value = offset < data.maxOffset() ? data.at(offset) : null;
-
-              return (
-                <HexAsciiValue
-                  className={isHeader ? classNames.asciiHeader : classNames.ascii}
-                  classNames={classNames}
-                  // columnIndex={columnIndex}
-                  formatValue={formatValue}
-                  isCursor={isCursor && !disabled}
-                  // isEditing={isEditing && !disabled}
-                  isSelected={isSelected && !disabled}
-                  isSelectionCursor={isSelectionCursor && !disabled}
-                  isSelectionEnd={isSelectionEnd && !disabled}
-                  isSelectionStart={isSelectionStart && !disabled}
-                  key={offset}
-                  offset={offset}
-                  placeholder={asciiPlaceholder}
-                  // rowIndex={rowIndex}
-                  setSelectionEnd={setSelectionEnd}
-                  setSelectionRange={setSelectionRange}
-                  setSelectionStart={setSelectionStart}
-                  style={styles.ascii}
-                  value={value}
-                />
-              );
-            })}
-          </div>
-        </>
-      )}
-    </div>
   );
 };
 

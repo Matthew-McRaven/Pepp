@@ -11,12 +11,12 @@ import hexEditorStyles from '../utils/styles';
 
 import AutoSizeHexEditor from './AutoSizeHexEditor';
 
-const StyledAutoSizeHexEditor: React.RefForwardingComponent<HexEditorHandle, AutoSizeHexEditorProps> = ({
+const StyledAutoSizeHexEditor: React.ForwardRefRenderFunction<HexEditorHandle, AutoSizeHexEditorProps> = ({
   inlineStyles = EMPTY_INLINE_STYLES,
   ...restProps
 }: AutoSizeHexEditorProps, ref) => (
-  // eslint-disable-next-line react/jsx-props-no-spreading
-  <AutoSizeHexEditor inlineStyles={inlineStyles} ref={ref} {...restProps} />
+    // eslint-disable-next-line react/jsx-props-no-spreading
+    <AutoSizeHexEditor inlineStyles={inlineStyles} ref={ref} {...restProps} />
 );
 
 StyledAutoSizeHexEditor.displayName = 'StyledAutoSizeHexEditor';

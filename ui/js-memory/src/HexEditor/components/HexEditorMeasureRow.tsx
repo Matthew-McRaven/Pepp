@@ -20,36 +20,35 @@ import HexByteValue from './HexByteValue';
 import HexAsciiValue from './HexAsciiValue';
 
 interface Props {
-  asciiPlaceholder?: string | JSX.Element | null,
-  asciiValue?: number,
-  asciiWidth?: number,
-  byteWidth?: number,
-  className?: string,
-  classNames?: HexEditorClassNames,
-  // eslint-disable-next-line no-unused-vars
-  formatOffset?: (offset: number) => string | number,
-  formatValue?: ValueFormatter,
-  gutterWidth?: number,
-  labelWidth?: number,
-  offset?: number,
-  // eslint-disable-next-line no-unused-vars
-  onMeasure?: (measurements: {
-    asciiWidth: number,
-    byteWidth: number,
-    gutterWidth: number,
-    labelWidth: number,
-    rowHeight: number,
-    scrollbarWidth: number,
-  }) => void,
-  rowHeight?: number,
-  style?: React.CSSProperties | null,
-  styles?: HexEditorInlineStyles,
-  value?: number,
+    asciiPlaceholder?: string | JSX.Element | null,
+    asciiValue?: number,
+    asciiWidth?: number,
+    byteWidth?: number,
+    className?: string,
+    classNames?: HexEditorClassNames,
+    // eslint-disable-next-line no-unused-vars
+    formatOffset?: (offset: number) => string | number,
+    formatValue?: ValueFormatter,
+    gutterWidth?: number,
+    labelWidth?: number,
+    offset?: number,
+    // eslint-disable-next-line no-unused-vars
+    onMeasure?: (measurements: {
+        asciiWidth: number,
+        byteWidth: number,
+        gutterWidth: number,
+        labelWidth: number,
+        rowHeight: number,
+        scrollbarWidth: number,
+    }) => void,
+    rowHeight?: number,
+    style?: React.CSSProperties | null,
+    styles?: HexEditorInlineStyles,
+    value?: number,
 }
 
 const HexEditorMeasureRow = ({
-  asciiPlaceholder,
-  asciiValue,
+  asciiPlaceholder, asciiValue,
   asciiWidth: explicitAsciiWidth,
   byteWidth: explicitByteWidth,
   className,
@@ -116,36 +115,36 @@ const HexEditorMeasureRow = ({
   }, [onMeasure]);
 
   return (
-    <div className={className} style={style || undefined} ref={measureContainerRef}>
-      <HexEditorGutter
-        className={classNames.gutter}
-        ref={measureGutterRef}
-        style={{ width: explicitGutterWidth, height: explicitRowHeight, ...styles.gutter }}
-      />
-      <HexOffsetLabel
-        className={classNames.offsetLabel}
-        formatOffset={formatOffset}
-        ref={measureLabelRef}
-        offset={offset}
-        style={{ width: explicitLabelWidth, height: explicitRowHeight, ...styles.offsetLabel }}
-      />
-      <HexByteValue
-        className={classNames.byte}
-        classNames={classNames}
-        ref={measureByteRef}
-        style={{ width: explicitByteWidth, height: explicitRowHeight, ...styles.byte }}
-        value={value}
-      />
-      <HexAsciiValue
-        className={classNames.ascii}
-        classNames={classNames}
-        formatValue={formatValue}
-        placeholder={asciiPlaceholder}
-        ref={measureAsciiRef}
-        style={{ width: explicitAsciiWidth, height: explicitRowHeight, ...styles.ascii }}
-        value={asciiValue == null ? value : asciiValue}
-      />
-    </div>
+        <div className={className} style={style || undefined} ref={measureContainerRef}>
+            <HexEditorGutter
+                className={classNames.gutter}
+                ref={measureGutterRef}
+                style={{ width: explicitGutterWidth, height: explicitRowHeight, ...styles.gutter }}
+            />
+            <HexOffsetLabel
+                className={classNames.offsetLabel}
+                formatOffset={formatOffset}
+                ref={measureLabelRef}
+                offset={offset}
+                style={{ width: explicitLabelWidth, height: explicitRowHeight, ...styles.offsetLabel }}
+            />
+            <HexByteValue
+                className={classNames.byte}
+                classNames={classNames}
+                ref={measureByteRef}
+                style={{ width: explicitByteWidth, height: explicitRowHeight, ...styles.byte }}
+                value={value}
+            />
+            <HexAsciiValue
+                className={classNames.ascii}
+                classNames={classNames}
+                formatValue={formatValue}
+                placeholder={asciiPlaceholder}
+                ref={measureAsciiRef}
+                style={{ width: explicitAsciiWidth, height: explicitRowHeight, ...styles.ascii }}
+                value={asciiValue == null ? value : asciiValue}
+            />
+        </div>
   );
 };
 

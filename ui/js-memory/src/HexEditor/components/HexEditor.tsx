@@ -67,35 +67,35 @@ import HexEditorBody from './HexEditorBody';
 import { MemoryLike } from './MemoryLike';
 
 interface HexEditorState {
-  cursorOffset: number,
-  editMode: EditModeType,
-  isFocused: boolean,
-  nybbleHigh: number | null,
-  nybbleOffset: number,
-  overscanStartIndex: number,
-  overscanStopIndex: number,
-  selectionAnchor: number | null,
-  selectionDirection: SelectionDirectionType,
-  selectionEnd: number,
-  selectionStart: number,
-  viewportRowOffset: number,
-  visibleStartIndex: number,
-  visibleStopIndex: number,
+    cursorOffset: number,
+    editMode: EditModeType,
+    isFocused: boolean,
+    nybbleHigh: number | null,
+    nybbleOffset: number,
+    overscanStartIndex: number,
+    overscanStopIndex: number,
+    selectionAnchor: number | null,
+    selectionDirection: SelectionDirectionType,
+    selectionEnd: number,
+    selectionStart: number,
+    viewportRowOffset: number,
+    visibleStartIndex: number,
+    visibleStopIndex: number,
 }
 
 interface HexEditorAction {
-  cursorOffset?: number,
-  editMode?: EditModeType,
-  isFocused?: boolean,
-  nybbleHigh?: number | null,
-  nybbleOffset?: number,
-  selectionAnchor?: number | null,
-  selectionDirection?: SelectionDirectionType,
-  selectionEnd?: number,
-  selectionStart?: number,
-  viewportRowOffset?: number,
-  visibleStartIndex?: number,
-  visibleStopIndex?: number,
+    cursorOffset?: number,
+    editMode?: EditModeType,
+    isFocused?: boolean,
+    nybbleHigh?: number | null,
+    nybbleOffset?: number,
+    selectionAnchor?: number | null,
+    selectionDirection?: SelectionDirectionType,
+    selectionEnd?: number,
+    selectionStart?: number,
+    viewportRowOffset?: number,
+    visibleStartIndex?: number,
+    visibleStopIndex?: number,
 }
 
 const reducer = (
@@ -103,7 +103,7 @@ const reducer = (
   mergeState: HexEditorAction,
 ) => ({ ...prevState, ...mergeState });
 
-const HexEditor: React.RefForwardingComponent<HexEditorHandle, HexEditorProps> = ({
+const HexEditor: React.ForwardRefRenderFunction<HexEditorHandle, HexEditorProps> = ({
   asciiPlaceholder = <>&nbsp;</>,
   autoFocus = false,
   children,
@@ -509,7 +509,7 @@ const HexEditor: React.RefForwardingComponent<HexEditorHandle, HexEditorProps> =
       case ctrlKey || metaKey:
         return;
 
-      // Go back one row or column
+        // Go back one row or column
       case which === KEY_PAGE_UP:
       case which === KEY_UP:
       case which === KEY_LEFT: {
@@ -596,6 +596,7 @@ const HexEditor: React.RefForwardingComponent<HexEditorHandle, HexEditorProps> =
         if (!readOnly) {
           const nybbleValue = KEY_VALUES[which];
           if (nybbleOffset && nybbleHigh != null) {
+            // eslint-disable-next-line no-bitwise
             const value = (nybbleHigh << 4) | nybbleValue;
             setValue(selectionEnd, value);
             setSelectionRange(Math.min(selectionEnd + 1, dataLength - 1));
@@ -618,7 +619,7 @@ const HexEditor: React.RefForwardingComponent<HexEditorHandle, HexEditorProps> =
       }
 
       // Edit ascii value
-      case editMode === EDIT_MODE_ASCII: {
+      case editMode === EDIT_MODE_ASCII:
         if (!readOnly) {
           const key = Keycoder.fromEvent(e.nativeEvent);
           if (key.isPrintableCharacter() && key.charCode != null) {
@@ -630,9 +631,9 @@ const HexEditor: React.RefForwardingComponent<HexEditorHandle, HexEditorProps> =
           }
         }
         e.preventDefault();
-      }
 
-      // Ignore
+        break;
+        // Ignore
       default:
     }
   }, [setValue, setSelectionRange]);
@@ -641,10 +642,10 @@ const HexEditor: React.RefForwardingComponent<HexEditorHandle, HexEditorProps> =
     const {
       cursorOffset,
       // eslint-disable-next-line no-shadow
-      data,
+      data: innerData,
       editMode: currentEditMode,
     } = stateRef.current;
-    const dataLength = data.maxOffset();
+    const dataLength = innerData.maxOffset();
     const maxOffset = dataLength - cursorOffset;
     e.preventDefault();
     const clipboardText = e.clipboardData.getData('Text');
@@ -708,7 +709,7 @@ const HexEditor: React.RefForwardingComponent<HexEditorHandle, HexEditorProps> =
   } = useMemo(() => {
     const isForwardSelection = (
       state.selectionStart !== state.selectionEnd
-      && state.selectionDirection !== SELECTION_DIRECTION_BACKWARD
+            && state.selectionDirection !== SELECTION_DIRECTION_BACKWARD
     );
     const nextCursorColumn = isForwardSelection
       ? (state.cursorOffset - 1) % columns
@@ -797,65 +798,65 @@ const HexEditor: React.RefForwardingComponent<HexEditorHandle, HexEditorProps> =
   ]);
 
   return (
-    <HexEditorContext.Provider value={hexEditorContext}>
-      <div
-        className={joinClassNames(
-          className,
-          {
-            [classNames.editAscii || '']: state.editMode === EDIT_MODE_ASCII,
-            [classNames.editHex || '']: state.editMode === EDIT_MODE_HEX,
-            [classNames.notFocused || '']: !state.isFocused && state.selectionAnchor == null,
-          },
-        )}
-        style={editorStyle}
-      >
-        <input
-          onBlur={handleBlur}
-          onFocus={handleFocus}
-          onKeyDown={handleKeyDown}
-          onPaste={handlePaste}
-          ref={inputRef}
-          style={inputStyle || undefined}
-          tabIndex={tabIndex}
-          type="text"
-        />
-        {!showColumnLabels ? null : (
-          <div className={classNames.header} style={headerStyle}>
-            <HexEditorRow
-              className={classNames.rowHeader}
-              classNames={classNames}
-              columns={columns}
-              cursorColumn={cursorColumn}
-              data={columnData}
-              disabled
-              formatOffset={formatHeaderOffset}
-              formatValue={formatHeaderValue}
-              isHeader
-              labelOffset={data.maxOffset()}
-              nonce={nonce}
-              showAscii={showAscii}
-              showLabel={showRowLabels}
-              style={inlineStyles.row}
-              styles={inlineStyles}
-            />
-          </div>
-        )}
-        <HexEditorBody
-          className={classNames.body}
-          height={showColumnLabels ? height - rowHeight : height}
-          onItemsRendered={handleItemsRendered}
-          overscanCount={overscanCount || rows}
-          rowCount={rowCount}
-          rowHeight={rowHeight}
-          rows={rows}
-          ref={rowListRef}
-          style={bodyStyle}
-          width={width}
-        >
-          {children}
-        </HexEditorBody>
-      </div>
-    </HexEditorContext.Provider>
+        <HexEditorContext.Provider value={hexEditorContext}>
+            <div
+                className={joinClassNames(
+                  className,
+                  {
+                    [classNames.editAscii || '']: state.editMode === EDIT_MODE_ASCII,
+                    [classNames.editHex || '']: state.editMode === EDIT_MODE_HEX,
+                    [classNames.notFocused || '']: !state.isFocused && state.selectionAnchor == null,
+                  },
+                )}
+                style={editorStyle}
+            >
+                <input
+                    onBlur={handleBlur}
+                    onFocus={handleFocus}
+                    onKeyDown={handleKeyDown}
+                    onPaste={handlePaste}
+                    ref={inputRef}
+                    style={inputStyle || undefined}
+                    tabIndex={tabIndex}
+                    type="text"
+                />
+                {!showColumnLabels ? null : (
+                    <div className={classNames.header} style={headerStyle}>
+                        <HexEditorRow
+                            className={classNames.rowHeader}
+                            classNames={classNames}
+                            columns={columns}
+                            cursorColumn={cursorColumn}
+                            data={columnData}
+                            disabled
+                            formatOffset={formatHeaderOffset}
+                            formatValue={formatHeaderValue}
+                            isHeader
+                            labelOffset={data.maxOffset()}
+                            nonce={nonce}
+                            showAscii={showAscii}
+                            showLabel={showRowLabels}
+                            style={inlineStyles.row}
+                            styles={inlineStyles}
+                        />
+                    </div>
+                )}
+                <HexEditorBody
+                    className={classNames.body}
+                    height={showColumnLabels ? height - rowHeight : height}
+                    onItemsRendered={handleItemsRendered}
+                    overscanCount={overscanCount || rows}
+                    rowCount={rowCount}
+                    rowHeight={rowHeight}
+                    rows={rows}
+                    ref={rowListRef}
+                    style={bodyStyle}
+                    width={width}
+                >
+                    {children}
+                </HexEditorBody>
+            </div>
+        </HexEditorContext.Provider>
   );
 };
 

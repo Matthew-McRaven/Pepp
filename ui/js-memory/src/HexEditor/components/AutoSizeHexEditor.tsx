@@ -21,25 +21,25 @@ import HexEditor from './HexEditor';
 import HexEditorMeasureRow from './HexEditorMeasureRow';
 
 interface AutoSizeHexEditorState {
-  asciiWidth: number,
-  byteWidth: number,
-  columns: number,
-  gutterWidth: number,
-  labelWidth: number,
-  rowHeight: number,
-  rows: number,
-  scrollbarWidth: number,
+    asciiWidth: number,
+    byteWidth: number,
+    columns: number,
+    gutterWidth: number,
+    labelWidth: number,
+    rowHeight: number,
+    rows: number,
+    scrollbarWidth: number,
 }
 
 interface AutoSizeHexEditorAction {
-  asciiWidth?: number,
-  byteWidth?: number,
-  columns?: number,
-  gutterWidth?: number,
-  labelWidth?: number,
-  rowHeight?: number,
-  rows?: number,
-  scrollbarWidth?: number,
+    asciiWidth?: number,
+    byteWidth?: number,
+    columns?: number,
+    gutterWidth?: number,
+    labelWidth?: number,
+    rowHeight?: number,
+    rows?: number,
+    scrollbarWidth?: number,
 }
 
 const reducer = (
@@ -47,7 +47,7 @@ const reducer = (
   mergeState: AutoSizeHexEditorAction,
 ) => ({ ...prevState, ...mergeState });
 
-const AutoSizeHexEditor: React.RefForwardingComponent<HexEditorHandle, AutoSizeHexEditorProps> = ({
+const AutoSizeHexEditor: React.ForwardRefRenderFunction<HexEditorHandle, AutoSizeHexEditorProps> = ({
   asciiPlaceholder,
   asciiWidth: explicitAsciiWidth,
   byteWidth: explicitByteWidth,
@@ -83,13 +83,13 @@ const AutoSizeHexEditor: React.RefForwardingComponent<HexEditorHandle, AutoSizeH
     rowHeight,
     scrollbarWidth,
   }: {
-    asciiWidth: number,
-    byteWidth: number,
-    gutterWidth: number,
-    labelWidth: number,
-    rowHeight: number,
-    scrollbarWidth: number,
-  }) => {
+        asciiWidth: number,
+        byteWidth: number,
+        gutterWidth: number,
+        labelWidth: number,
+        rowHeight: number,
+        scrollbarWidth: number,
+    }) => {
     setState({
       asciiWidth: explicitAsciiWidth == null ? asciiWidth : explicitAsciiWidth,
       byteWidth: explicitByteWidth == null ? byteWidth : explicitByteWidth,
@@ -120,106 +120,106 @@ const AutoSizeHexEditor: React.RefForwardingComponent<HexEditorHandle, AutoSizeH
   }), [inlineStyles, measureStyle]);
 
   return (
-    <>
-      <HexEditorMeasureRow
-        asciiPlaceholder={asciiPlaceholder}
-        asciiValue={0x41}
-        asciiWidth={explicitAsciiWidth}
-        byteWidth={explicitByteWidth}
-        className={props.className}
-        classNames={classNames}
-        formatOffset={formatOffset}
-        formatValue={props.formatValue}
-        gutterWidth={explicitGutterWidth}
-        labelWidth={explicitLabelWidth}
-        offset={props.data.maxOffset()}
-        onMeasure={handleMeasure}
-        style={measureStyle}
-        styles={measureStyles}
-        value={0x00}
-      />
-      <AutoSizer
-        disableWidth={explicitWidth != null || explicitColumns != null}
-        disableHeight={explicitHeight != null || explicitRows != null}
-      >
-        {({ width: autoSizerWidth, height: autoSizerHeight }) => {
-          // Horizontal
-          let width = explicitWidth == null ? autoSizerWidth : explicitWidth;
-          let columns = explicitColumns;
-          if (columns != null && width == null) {
-            // Calculate width from the columns and component measurements
-            width = state.scrollbarWidth;
-            if (props.showRowLabels) {
-              width += state.labelWidth + state.gutterWidth;
-            }
-            width += columns * state.byteWidth;
-            if (props.showAscii) {
-              width += (columns * state.asciiWidth) + state.gutterWidth;
-            }
-            width = Math.ceil(width);
-          } else if (width != null) {
-            // Determine the number of columns using the width
-            let remainingWidth = width - state.scrollbarWidth;
-            if (props.showRowLabels) {
-              remainingWidth -= state.labelWidth + state.gutterWidth;
-            }
-            if (props.showAscii) {
-              remainingWidth -= state.gutterWidth;
-            }
-            const columnMinimumWidth = props.showAscii
-              ? state.asciiWidth + state.byteWidth
-              : state.byteWidth;
-            columns = Math.max(1, Math.floor(remainingWidth / columnMinimumWidth));
-          } else {
-            console.warn('Horizontal size inference failed!');
-            columns = 1;
-          }
-
-          // Vertical
-          let height = explicitHeight == null ? autoSizerHeight : explicitHeight;
-          let rows = explicitRows;
-          const rowHeight = explicitRowHeight == null ? state.rowHeight : explicitRowHeight;
-          if (rows != null && height == null) {
-            // Calculate height from the columns and component measurements
-            height = rows * rowHeight;
-            if (props.showColumnLabels) {
-              height += rowHeight;
-            }
-            height = Math.ceil(height);
-          } else if (height != null) {
-            // Determine the number of rows using the height
-            rows = Math.max(1, height && rowHeight && Math.floor(height / rowHeight));
-            if (rows && props.showColumnLabels) {
-              rows -= 1;
-            }
-          } else {
-            console.warn('Vertical size inference failed!');
-            rows = 1;
-          }
-
-          return (
-            <HexEditor
-              asciiPlaceholder={asciiPlaceholder}
-              classNames={classNames}
-              columns={columns}
-              height={height}
-              inlineStyles={inlineStyles}
-              ref={ref}
-              rowHeight={rowHeight}
-              rows={rows}
-              width={width}
-              // eslint-disable-next-line react/jsx-props-no-spreading
-              {...props}
-              style={{
-                ...props.style,
-                width,
-                height,
-              }}
+        <>
+            <HexEditorMeasureRow
+                asciiPlaceholder={asciiPlaceholder}
+                asciiValue={0x41}
+                asciiWidth={explicitAsciiWidth}
+                byteWidth={explicitByteWidth}
+                className={props.className}
+                classNames={classNames}
+                formatOffset={formatOffset}
+                formatValue={props.formatValue}
+                gutterWidth={explicitGutterWidth}
+                labelWidth={explicitLabelWidth}
+                offset={props.data.maxOffset()}
+                onMeasure={handleMeasure}
+                style={measureStyle}
+                styles={measureStyles}
+                value={0x00}
             />
-          );
-        }}
-      </AutoSizer>
-    </>
+            <AutoSizer
+                disableWidth={explicitWidth != null || explicitColumns != null}
+                disableHeight={explicitHeight != null || explicitRows != null}
+            >
+                {({ width: autoSizerWidth, height: autoSizerHeight }) => {
+                  // Horizontal
+                  let width = explicitWidth == null ? autoSizerWidth : explicitWidth;
+                  let columns = explicitColumns;
+                  if (columns != null && width == null) {
+                    // Calculate width from the columns and component measurements
+                    width = state.scrollbarWidth;
+                    if (props.showRowLabels) {
+                      width += state.labelWidth + state.gutterWidth;
+                    }
+                    width += columns * state.byteWidth;
+                    if (props.showAscii) {
+                      width += (columns * state.asciiWidth) + state.gutterWidth;
+                    }
+                    width = Math.ceil(width);
+                  } else if (width != null) {
+                    // Determine the number of columns using the width
+                    let remainingWidth = width - state.scrollbarWidth;
+                    if (props.showRowLabels) {
+                      remainingWidth -= state.labelWidth + state.gutterWidth;
+                    }
+                    if (props.showAscii) {
+                      remainingWidth -= state.gutterWidth;
+                    }
+                    const columnMinimumWidth = props.showAscii
+                      ? state.asciiWidth + state.byteWidth
+                      : state.byteWidth;
+                    columns = Math.max(1, Math.floor(remainingWidth / columnMinimumWidth));
+                  } else {
+                    console.warn('Horizontal size inference failed!');
+                    columns = 1;
+                  }
+
+                  // Vertical
+                  let height = explicitHeight == null ? autoSizerHeight : explicitHeight;
+                  let rows = explicitRows;
+                  const rowHeight = explicitRowHeight == null ? state.rowHeight : explicitRowHeight;
+                  if (rows != null && height == null) {
+                    // Calculate height from the columns and component measurements
+                    height = rows * rowHeight;
+                    if (props.showColumnLabels) {
+                      height += rowHeight;
+                    }
+                    height = Math.ceil(height);
+                  } else if (height != null) {
+                    // Determine the number of rows using the height
+                    rows = Math.max(1, height && rowHeight && Math.floor(height / rowHeight));
+                    if (rows && props.showColumnLabels) {
+                      rows -= 1;
+                    }
+                  } else {
+                    console.warn('Vertical size inference failed!');
+                    rows = 1;
+                  }
+
+                  return (
+                        <HexEditor
+                            asciiPlaceholder={asciiPlaceholder}
+                            classNames={classNames}
+                            columns={columns}
+                            height={height}
+                            inlineStyles={inlineStyles}
+                            ref={ref}
+                            rowHeight={rowHeight}
+                            rows={rows}
+                            width={width}
+                            // eslint-disable-next-line react/jsx-props-no-spreading
+                            {...props}
+                            style={{
+                              ...props.style,
+                              width,
+                              height,
+                            }}
+                        />
+                  );
+                }}
+            </AutoSizer>
+        </>
   );
 };
 
