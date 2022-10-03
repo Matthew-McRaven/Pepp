@@ -7,7 +7,7 @@ module.exports = {
   },
   globals: {
     JSX: "readonly"
-  }
+  },
   settings: {
     'import/resolver': {
       typescript: {
