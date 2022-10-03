@@ -23,6 +23,7 @@ build:
     - docker
   script:
     - npm ci
+    - npm run typecheck
     - npm run build
     - npm run test:ci
   coverage: '/^\s*Coverage .*\d+.*/'
