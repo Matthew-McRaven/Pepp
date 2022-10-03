@@ -1,13 +1,13 @@
 import React, { useState, useCallback } from 'react';
 import './FlatMemoryView.scss';
 
-import { UnsignedIntegral } from '@pep10/ui-converters/';
+import { UnsignedIntegral } from '@pepnext/ui-converters';
 import * as HexEditor from '../HexEditor';
 import oneDarkPro from '../HexEditor/themes/oneDarkPro';
 
 export interface FlatMemoryViewProps {
-  data: HexEditor.MemoryLike
-  columns: number
+    data: HexEditor.MemoryLike
+    columns: number
 }
 
 const FlatMemoryView = (props: FlatMemoryViewProps) => {
@@ -16,7 +16,7 @@ const FlatMemoryView = (props: FlatMemoryViewProps) => {
   // `nonce` can be used to update the editor when `data` is reference that does not change.
   const [nonce, setNonce] = useState(0);
   // The callback facilitates updates to the source data.
-  const handleSetValue = React.useCallback((offset, value) => {
+  const handleSetValue = React.useCallback((offset: number, value: number) => {
     data.set(offset, value);
     setNonce((v: number) => (v + 1));
   }, [data]);
@@ -30,49 +30,56 @@ const FlatMemoryView = (props: FlatMemoryViewProps) => {
   }, []);
 
   const it = (
-    <HexEditor.StyledHexEditor
-      showRowLabels
-      showAscii
-      columns={columns}
-      data={data}
-      nonce={nonce}
-      onSetValue={handleSetValue}
-      theme={{ hexEditor: oneDarkPro }}
-      ref={measureRef}
-    />
+        <HexEditor.StyledHexEditor
+            showRowLabels
+            showAscii
+            columns={columns}
+            data={data}
+            nonce={nonce}
+            onSetValue={handleSetValue}
+            theme={{ hexEditor: oneDarkPro }}
+            ref={measureRef}
+        />
   );
   const [value, setValue] = React.useState(0);
 
   return (
-    <div style={{ maxWidth: width }}>
-      <div style={{ height: '500px' }}>
-        {it}
-      </div>
-      <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-        <div style={{ display: 'flex' }}>
-          Scroll to:
-          <UnsignedIntegral.UnsignedIntegralConverter
-            base={16}
-            byteLength={2}
-            state={value}
-            setState={(newState: number) => {
-              ref.current?.scrollToItem(Math.floor(newState / columns), 'start');
-              setValue(newState);
-            }}
-            error={() => { }}
-          />
+        <div style={{ maxWidth: width }} data-testid="FlatMemoryView">
+            <div style={{ height: '500px' }}>
+                {it}
+            </div>
+            <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                <div style={{ display: 'flex' }}>
+                    Scroll to:
+                    <UnsignedIntegral.UnsignedIntegralConverter
+                        base={16}
+                        byteLength={2}
+                        state={value}
+                        setState={(newState: number) => {
+                          ref.current?.scrollToItem(Math.floor(newState / columns), 'start');
+                          setValue(newState);
+                        }}
+                        error={() => {
+                        }}
+                    />
+                </div>
+                <button type="button" onClick={() => {
+                  ref.current?.scrollTo(100);
+                }}>
+                    SP
+                </button>
+                <button type="button" onClick={() => {
+                  ref.current?.scrollTo(100);
+                }}>
+                    PC
+                </button>
+                <button type="button" onClick={() => {
+                  ref.current?.scrollTo(100);
+                }}>
+                    T
+                </button>
+            </div>
         </div>
-        <button type="button" onClick={() => { ref.current?.scrollTo(100); }}>
-          SP
-        </button>
-        <button type="button" onClick={() => { ref.current?.scrollTo(100); }}>
-          PC
-        </button>
-        <button type="button" onClick={() => { ref.current?.scrollTo(100); }}>
-          T
-        </button>
-      </div>
-    </div>
   );
 };
 
