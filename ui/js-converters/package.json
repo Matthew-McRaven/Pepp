@@ -1,6 +1,6 @@
 {
   "name": "@pepnext/ui-converters",
-  "version": "3.0.1",
+  "version": "3.1.0",
   "description": "Components designed to convert values between different bases and text encodings.",
   "repository": {
     "type": "git",
@@ -8,10 +8,24 @@
   },
   "license": "GPL-3.0",
   "author": "Matthew McRaven",
-  "main": "dist/index.js",
-  "types": "dist/index.d.ts",
+  "main": "./dist/index.es.js",
+  "module": "./dist/index.es.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "import": "./dist/index.es.js",
+      "require": "./dist/index.umd.js"
+    }
+  },
+  "files": [
+    "dist/",
+    "src/",
+    "!**/*.test.*",
+    "!**/*.stories.*"
+  ],
   "scripts": {
-    "build": "npm run clean && node $(npm bin)/tsc -p tsconfig.json && copyfiles --up 1 src/**/*.scss dist/",
+    "build": "npm run clean && vite build",
+    "typecheck": "node $(npm bin)/tsc -p tsconfig.json --noEmit",
     "build-storybook": "build-storybook",
     "clean": "npx rimraf -rf ./dist",
     "prepublishOnly": "npm run build",
@@ -28,6 +42,7 @@
     "@mdx-js/react": "^2.1.3",
     "@pepnext/eslint": "^3.0.3",
     "@pepnext/tsconfig": "^3.0.0",
+    "@rollup/plugin-typescript": "^8.5.0",
     "@storybook/addon-actions": "^6.5.12",
     "@storybook/addon-controls": "^6.5.12",
     "@storybook/addon-docs": "^6.5.12",
@@ -43,6 +58,7 @@
     "@testing-library/user-event": "^14.4.3",
     "@types/jest": "^27.4.0",
     "@types/react": "^18.0.0",
+    "@vitejs/plugin-react": "^2.1.0",
     "babel-loader": "^8.2.3",
     "chromatic": "^6.0.6",
     "copyfiles": "^2.4.1",
@@ -53,6 +69,7 @@
     "rimraf": "^3.0.2",
     "ts-jest": "^27.0.7",
     "typescript": "^4.8.3",
+    "vite": "^3.1.4",
     "webpack": "^5.74.0"
   },
   "peerDependencies": {
