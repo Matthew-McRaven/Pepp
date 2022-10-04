@@ -1,6 +1,6 @@
 {
   "name": "@pepnext/ui-converters",
-  "version": "3.2.0",
+  "version": "3.2.1",
   "description": "Components designed to convert values between different bases and text encodings.",
   "repository": {
     "type": "git",
@@ -61,11 +61,13 @@
     "@vitejs/plugin-react": "^2.1.0",
     "babel-loader": "^8.2.3",
     "chromatic": "^6.0.6",
+    "conventional-changelog-angular": "^5.0.13",
     "copyfiles": "^2.4.1",
     "identity-obj-proxy": "^3.0.0",
     "jest": "^27.3.1",
     "jest-junit": "^13.0.0",
     "jsdom": "^19.0.0",
+    "q": "^1.5.1",
     "rimraf": "^3.0.2",
     "ts-jest": "^27.0.7",
     "typescript": "^4.8.3",
