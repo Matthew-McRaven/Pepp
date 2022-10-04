@@ -1,0 +1,19 @@
+{
+  "name": "@pepsuite/config-ci",
+  "version": "3.0.0",
+  "description": "Shared gitlab configurations",
+  "repository": {
+    "type": "git",
+    "url": "git+https://gitlab.com/pepnext/config/ci.git"
+  },
+  "author": "Matthew McRaven",
+  "license": "GPL-3.0",
+  "bugs": {
+    "url": "https://gitlab.com/pepnext/config/ci/issues"
+  },
+  "homepage": "https://gitlab.com/pepnext/config/ci#readme",
+  "dependencies": {
+    "conventional-changelog-angular": "^5.0.13",
+    "q": "^1.5.1"
+  }
+}
