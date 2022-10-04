@@ -1,15 +1,13 @@
 {
   "name": "@pepnext/ui-converters",
-  "version": "3.1.0",
+  "version": "3.2.0",
   "description": "Components designed to convert values between different bases and text encodings.",
   "repository": {
     "type": "git",
-    "url": "git@gitlab.com:pepnext/ui/converters.gitt"
+    "url": "git@gitlab.com:pepnext/ui/converters.git"
   },
   "license": "GPL-3.0",
   "author": "Matthew McRaven",
-  "main": "./dist/index.es.js",
-  "module": "./dist/index.es.js",
   "types": "./dist/index.d.ts",
   "exports": {
     ".": {
@@ -30,9 +28,11 @@
     "clean": "npx rimraf -rf ./dist",
     "prepublishOnly": "npm run build",
     "start-storybook": "start-storybook -p 6006",
-    "test": "npx jest",
-    "test:ci": "npx jest --ci --reporters=default --reporters=jest-junit --coverageReporters=cobertura --coverage && python3 .scripts/scripts/merge-cobertura.py -o coverage.xml  coverage/cobertura-coverage.xml"
+    "test": "node $(npm bin)/jest",
+    "test:ci": "npm run test -- --ci --reporters=default --reporters=jest-junit --coverageReporters=cobertura --coverage && npm run globcov",
+    "globcov": "python3 .scripts/scripts/merge-cobertura.py -o coverage.xml  coverage/cobertura-coverage.xml"
   },
+  "type": "module",
   "eslintConfig": {
     "extends": "./node_modules/@pepnext/eslint/.eslintrc.js"
   },
