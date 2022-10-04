@@ -114,7 +114,7 @@ tag:
     - ec=$?
     # If the exit code was 1, then tag and push. Otherwise, give up without crashing
     # Must use weird push syntax, see: https://stackoverflow.com/a/37198851.
-    - ([ $eq -ne 0 ] && git tag "$TAG" && git push --force origin "$TAG":"$TAG") || true
+    - ([ $ec -ne 0 ] && git tag "$TAG" && git push --force origin "$TAG":"$TAG") || true
   rules:
     - if: $CI_COMMIT_TAG =~ "/^$/" && $CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH
 
