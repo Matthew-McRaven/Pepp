@@ -95,6 +95,7 @@ tag:
     - job: build
       optional: true
     - job: 'test:chromatic'
+      optional: true
   tags:
     - docker
   script:
