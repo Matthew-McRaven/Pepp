@@ -27,6 +27,9 @@ build:
     - npm run typecheck
     - npm run build
     - npm run test:ci
+  rules:
+    - if: $CI_COMMIT_TAG
+      when: never
   coverage: '/^\s*Coverage .*\d+.*/'
   artifacts:
     expire_in: 1 week
@@ -102,7 +105,7 @@ tag:
     - export current_version=$(jq -r .version < package.json)
     - npm i -g semver
     - export NODE_PATH=`npm config get prefix`/lib/node_modules/
-    - echo "const s=require('semver');process.exit(s.gt('$current_version', '$published_version'))" | node - || git push --tags
+    - echo "const s=require('semver');process.exit(s.gt('$current_version', '$published_version'))" | node - || git push --force --tags
   rules:
     - if: $CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH
     - if: $CI_COMMIT_TAG
@@ -122,8 +125,7 @@ release:
     - npx conventional-changelog-cli -n conventional.config.cjs > changelog.md
     - npm publish
   rules:
-    - if: $CI_COMMIT_BRANCH != $CI_DEFAULT_BRANCH
-      when: never
+    - if: $CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH
     - if: $CI_COMMIT_TAG
   release:
     name: 'Release $CI_COMMIT_TAG'
