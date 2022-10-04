@@ -92,7 +92,11 @@ tag:
     GIT_SUBMODULE_STRATEGY: recursive
   image: registry.gitlab.com/pepnext/docker/develop:${BUILD_VERSION}
   stage: tag
-  needs: [ build ]
+  # Note, this job should never be run if build isn't. Make sure that this job will not trigger (via rules)
+  # in all cases where build doesn't trigger.
+  needs:
+    - job: build
+      optional: true
   tags:
     - docker
   script:
