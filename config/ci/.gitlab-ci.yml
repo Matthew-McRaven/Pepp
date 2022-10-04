@@ -142,8 +142,9 @@ changelog:
   tags:
     - docker
   script:
+    - cd .gitlab
     - npm ci
-    - npx conventional-changelog-cli -n conventional.config.cjs -r 2 > changelog.md
+    - npx conventional-changelog-cli -n conventional.config.cjs -k ../package.json -r 2 > ../changelog.md
   rules:
     - if: $CI_COMMIT_TAG
   artifacts:
