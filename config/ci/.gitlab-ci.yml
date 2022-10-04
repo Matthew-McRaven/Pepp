@@ -1,6 +1,7 @@
 stages:
   - build
   - test
+  - tag
   - deploy
 
 # Variables that must be injected into every pipeline
@@ -63,6 +64,8 @@ test:chromatic:
     - npm run build-storybook
     - npx chromatic --exit-zero-on-changes --project-token ${CHROMATIC_PROJECT_TOKEN} --junit-report junit.xml -d storybook-static
   rules:
+    - if: $CI_COMMIT_TAG
+      when: never
     - if: $CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH || $CI_COMMIT_BRANCH == 'dev'
       when: on_success
       changes:
@@ -81,19 +84,50 @@ test:chromatic:
 #######################
 # Conditional Publish #
 #######################
-publish:
+tag:
   variables:
     GIT_SUBMODULE_STRATEGY: recursive
   image: registry.gitlab.com/pepnext/docker/develop:${BUILD_VERSION}
-  stage: deploy
+  stage: tag
   needs: [ build ]
   tags:
     - docker
   script:
-    - npm ci
+    - git config --global user.email "${GITLAB_USER_EMAIL}"
+    - git config --global user.name "${GITLAB_USER_NAME}"
+    # See https://stackoverflow.com/questions/65234416/gitlab-ci-cd-cannot-git-push-from-gitlab-ci-yml
+    - git remote set-url origin "https://gitlab-ci-token:$PROJECT_ACCESS_TOKEN@$CI_SERVER_HOST/$CI_PROJECT_PATH.git"
+    - git tag "v$(jq -r .version < package.json)"
     - export published_version=$(npm view @pepnext/ui-converters version || echo "0.0.0")
     - export current_version=$(jq -r .version < package.json)
     - npm i -g semver
     - export NODE_PATH=`npm config get prefix`/lib/node_modules/
+    - echo "const s=require('semver');process.exit(s.gt('$current_version', '$published_version'))" | node - || git push --tags
+  rules:
+    - if: $CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH
+    - if: $CI_COMMIT_TAG
+      when: never
+
+release:
+  variables:
+    GIT_SUBMODULE_STRATEGY: recursive
+  image: registry.gitlab.com/pepnext/docker/develop:${BUILD_VERSION}
+  stage: deploy
+  needs: [ ]
+  tags:
+    - docker
+  script:
+    - npm ci
     - printf "\n//${CI_SERVER_HOST}/api/v4/projects/${CI_PROJECT_ID}/packages/npm/:_authToken=${CI_JOB_TOKEN}" >> .npmrc
-    - echo "const s=require('semver');process.exit(s.gt('$current_version', '$published_version'))" | node - || npm publish
+    - npx conventional-changelog-cli -n conventional.config.cjs > changelog.md
+    - npm publish
+  rules:
+    - if: $CI_COMMIT_BRANCH != $CI_DEFAULT_BRANCH
+      when: never
+    - if: $CI_COMMIT_TAG
+  release:
+    name: 'Release $CI_COMMIT_TAG'
+    description: './changelog.md'
+    tag_name: '$CI_COMMIT_TAG'
+
+
