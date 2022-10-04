@@ -113,7 +113,7 @@ tag:
     - if: $CI_COMMIT_TAG =~ "/^$/" && $CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH
 
 
-release:
+publish:
   variables:
     GIT_SUBMODULE_STRATEGY: recursive
   image: registry.gitlab.com/pepnext/docker/develop:${BUILD_VERSION}
@@ -124,8 +124,18 @@ release:
   script:
     - npm ci
     - printf "\n//${CI_SERVER_HOST}/api/v4/projects/${CI_PROJECT_ID}/packages/npm/:_authToken=${CI_JOB_TOKEN}" >> .npmrc
-    - npx conventional-changelog-cli -n conventional.config.cjs > changelog.md
     - npm publish
+  rules:
+    - if: $CI_COMMIT_TAG
+
+release:
+  stage: deploy
+  image: registry.gitlab.com/gitlab-org/release-cli:latest
+  needs: [ ]
+  tags:
+    - docker
+  script:
+    - npx conventional-changelog-cli -n conventional.config.cjs > changelog.md
   rules:
     - if: $CI_COMMIT_TAG
   release:
