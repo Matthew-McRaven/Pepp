@@ -1,8 +1,9 @@
-stages:
-  - build
-  - test
-  - tag
-  - deploy
+# You must provide the following stages
+#stages:
+#  - build
+#  - test
+#  - tag
+#  - deploy
 
 # Variables that must be injected into every pipeline
 variables:
