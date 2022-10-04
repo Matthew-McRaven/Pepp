@@ -13,4 +13,4 @@ variables:
 
 # Pin to a known-good version so that CI can't spontaneously break.
 include:
-  remote: https://gitlab.com/pepnext/config/ci/-/raw/5cd15698e21e2f096fb5616b14cd7ff42d3fb2ed/ui.yml
+  remote: https://gitlab.com/pepnext/config/ci/-/raw/9d4add96a447c15f30c01c9b9f4dc06cd58192b4/ui.yml
