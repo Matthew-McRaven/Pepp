@@ -1,6 +1,6 @@
 {
   "name": "@pepnext/logic-macro",
-  "version": "3.0.1",
+  "version": "3.0.2",
   "description": "Identify and manipulate macro expressions.",
   "repository": "https://gitlab.com/pepnext/logic/macro",
   "license": "GPL-3.0",
@@ -13,6 +13,12 @@
     }
   },
   "types": "./dist/index.d.ts",
+  "files": [
+    "dist/",
+    "src/",
+    "!**/*.test.*",
+    "!**/*.stories.*"
+  ],
   "scripts": {
     "build": "npm run clean && vite build",
     "clean": "npx rimraf -rf ./dist",
