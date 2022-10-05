@@ -15,9 +15,7 @@
   "types": "./dist/index.d.ts",
   "files": [
     "dist/",
-    "src/",
-    "!**/*.test.*",
-    "!**/*.stories.*"
+    "src/"
   ],
   "scripts": {
     "build": "npm run clean && vite build",
