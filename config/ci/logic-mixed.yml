@@ -51,12 +51,12 @@ build:linux:cmake:
     - docker
   script:
     - npm ci
-    - cmake -B build .
+    - cmake -B build -DCMAKE_BUILD_TYPE=Debug -Dcode_coverage=1 -DENABLE_TESTING=1 .
     - cmake --build build
     - cd build
     - ctest
-    - python3 ./scripts/llvm-cov-helper.py build
-    - python3 ./scripts/lcov_cobertura.py coverage.lcov
+    - python3 ./scripts/scripts/llvm-cov-helper.py build
+    - python3 ./scripts/scripts/lcov_cobertura.py coverage.lcov
     - lcov --summary coverage.lcov
   coverage: '/^\s*lines.*/'
   rules:
