@@ -1,6 +1,6 @@
 import { fileURLToPath } from 'url';
 import * as path from 'node:path';
-import { BookRegistry } from '../src/lib';
+import { BookRegistry } from '../src/index';
 
 describe('builtins.BookRegistry', () => {
   // @ts-ignore I use this configuration...
