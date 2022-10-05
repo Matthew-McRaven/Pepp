@@ -58,6 +58,7 @@ build:linux:cmake:
     - python3 ./scripts/llvm-cov-helper.py build
     - python3 ./scripts/lcov_cobertura.py coverage.lcov
     - lcov --summary coverage.lcov
+  coverage: '/^\s*lines.*/'
   rules:
     - if: '$CI_COMMIT_TAG =~ "/^$/"'
   artifacts:
