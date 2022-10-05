@@ -1,6 +1,6 @@
 {
   "name": "@pepnext/logic-builtins",
-  "version": "3.0.3",
+  "version": "3.0.4",
   "description": "Manage figures and macros for various textbook editions.",
   "license": "GPL-3.0",
   "author": "Matthew McRaven",
@@ -14,7 +14,9 @@
   "types": "./dist/index.d.ts",
   "files": [
     "dist/",
-    "src/"
+    "src/",
+    "make_db/",
+    "books/"
   ],
   "scripts": {
     "build": "npm run clean && vite build && python3 -m make_db dist",
