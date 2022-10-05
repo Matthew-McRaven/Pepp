@@ -10,6 +10,7 @@
   "scripts": {
     "prebuild": "cmake-js -BRelease . -p$(nproc) ",
     "build": "node $(npm bin)/tsc -p tsconfig.json",
+    "install": "npm run build",
     "test": "npm run test:native && npm run test:js",
     "test:js": "node --experimental-vm-modules $(npm bin)/jest",
     "test:native": "./build/symbol-test"
