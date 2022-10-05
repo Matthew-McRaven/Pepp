@@ -120,7 +120,7 @@ const AutoSizeHexEditor: React.ForwardRefRenderFunction<HexEditorHandle, AutoSiz
   }), [inlineStyles, measureStyle]);
 
   return (
-        <>
+        <div data-testid={'AutoSizeHexEditor'}>
             <HexEditorMeasureRow
                 asciiPlaceholder={asciiPlaceholder}
                 asciiValue={0x41}
@@ -219,7 +219,7 @@ const AutoSizeHexEditor: React.ForwardRefRenderFunction<HexEditorHandle, AutoSiz
                   );
                 }}
             </AutoSizer>
-        </>
+        </div>
   );
 };
 

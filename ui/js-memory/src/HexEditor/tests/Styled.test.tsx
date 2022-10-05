@@ -1,10 +1,12 @@
 import React from 'react';
-import { shallow } from 'enzyme';
+import {
+  screen, render, cleanup, waitFor,
+} from '@testing-library/react';
 import { StyledHexEditor } from '..';
 import { MemoryLike } from '../components/MemoryLike';
 
 describe('<StyledHexEdtior />', () => {
-  it('has been mounted', () => {
+  it('has been mounted', async () => {
     // `data` contains the bytes to show. It can also be `Uint8Array`!
     const data = new Uint8Array(100).fill(0);
     // If `data` is large, you probably want it to be mutable rather than cloning it over and over.
@@ -15,13 +17,15 @@ describe('<StyledHexEdtior />', () => {
       data[offset] = value;
       nonce += 1;
     };
-    const component = shallow(<StyledHexEditor
-      showAscii
-      columns={0x10}
-      data={new MemoryLike(data)}
-      nonce={nonce}
-      onSetValue={handleSetValue}
-    />);
-    expect(component.length).toBe(1);
+    const element = () => <StyledHexEditor
+            showAscii
+            columns={0x10}
+            data={new MemoryLike(data)}
+            nonce={nonce}
+            onSetValue={handleSetValue}
+        />;
+    render(element());
+    await waitFor(() => expect(screen.getAllByTestId('AutoSizeHexEditor').length).toBe(1));
+    cleanup();
   });
 });
