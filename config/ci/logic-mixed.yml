@@ -50,8 +50,9 @@ build:linux:cmake:
   tags:
     - docker
   script:
-    - npm ci
-    - cmake -B build -DCMAKE_BUILD_TYPE=Debug -Dcode_coverage=1 -DENABLE_TESTING=1 .
+    # Must ignore scripts or we will trigger a cmake-js build
+    - npm ci --ignore-scripts
+    - cmake -B build -DCMAKE_C_COMPILER=$(which clang) -DCMAKE_CXX_COMPILER=$(which clang++) -DCMAKE_BUILD_TYPE=Debug -Dcode_coverage=1 -DENABLE_TESTING=1 .
     - cmake --build build
     - cd build
     - ctest
