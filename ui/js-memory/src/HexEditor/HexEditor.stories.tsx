@@ -20,7 +20,7 @@ const StyledHexEditorTemplate = () => {
   // `nonce` can be used to update the editor when `data` is reference that does not change.
   const [nonce, setNonce] = useState(0);
   // The callback facilitates updates to the source data.
-  const handleSetValue = React.useCallback((offset, value) => {
+  const handleSetValue = React.useCallback((offset:any, value:any) => {
     memHandle.set(offset, value);
     setNonce((v: number) => (v + 1));
   }, [data]);
@@ -47,7 +47,7 @@ const AutoSizeHexEditorTemplate = () => {
   // `nonce` can be used to update the editor when `data` is reference that does not change.
   const [nonce, setNonce] = useState(0);
   // The callback facilitates updates to the source data.
-  const handleSetValue = React.useCallback((offset, value) => {
+  const handleSetValue = React.useCallback((offset:any, value:any) => {
     memHandle.set(offset, value);
     setNonce((v: number) => (v + 1));
   }, [data]);
