@@ -115,7 +115,8 @@ const HexEditorMeasureRow = ({
   }, [onMeasure]);
 
   return (
-        <div className={className} style={style || undefined} ref={measureContainerRef}>
+        <div className={className} style={style || undefined} ref={measureContainerRef}
+             data-testid={'MeasureRow'}>
             <HexEditorGutter
                 className={classNames.gutter}
                 ref={measureGutterRef}

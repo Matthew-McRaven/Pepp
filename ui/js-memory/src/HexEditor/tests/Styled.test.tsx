@@ -25,7 +25,7 @@ describe('<StyledHexEdtior />', () => {
             onSetValue={handleSetValue}
         />;
     render(element());
-    await waitFor(() => expect(screen.getAllByTestId('AutoSizeHexEditor').length).toBe(1));
+    await waitFor(() => expect(screen.getAllByTestId('MeasureRow').length).toBe(1));
     cleanup();
   });
 });
