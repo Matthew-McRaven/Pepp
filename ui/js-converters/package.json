@@ -1,6 +1,6 @@
 {
   "name": "@pepnext/ui-converters",
-  "version": "3.2.10",
+  "version": "3.2.11",
   "description": "Components designed to convert values between different bases and text encodings.",
   "repository": {
     "type": "git",
