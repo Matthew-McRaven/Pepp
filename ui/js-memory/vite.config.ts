@@ -10,7 +10,7 @@ export default defineConfig(() => ({
     lib: {
       formats: ['es', 'umd'],
       entry: resolve(__dirname, 'src/index.ts'),
-      name: 'converters',
+      name: 'memory',
       fileName: (format) => `index.${format}.js`,
     },
     rollupOptions: {
