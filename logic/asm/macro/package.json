@@ -12,6 +12,7 @@
       "require": "./dist/index.umd.js"
     }
   },
+  "types": "./dist/index.d.ts",
   "scripts": {
     "build": "npm run clean && vite build",
     "clean": "npx rimraf -rf ./dist",
