@@ -47,16 +47,15 @@ const HexEditorBody: React.ForwardRefRenderFunction<List, HexEditorBodyProps> = 
 }, ref: React.Ref<List>) => {
   const innerElementType = useMemo(() => {
     if (bodyChildren) {
-      const bodyRender = (props: any, ref: React.ForwardedRef<any>) =>
-                // eslint-disable-next-line react/jsx-props-no-spreading
-                <div ref={ref} {...props}>
-                    {props.children}
-                    {(
-                        typeof bodyChildren === 'function'
-                          ? bodyChildren()
-                          : bodyChildren
-                    )}
-                </div>;
+      // eslint-disable-next-line react/jsx-props-no-spreading
+      const bodyRender = (props: any, refInner: React.ForwardedRef<any>) => <div ref={refInner} {...props}>
+                {props.children}
+                {(
+                    typeof bodyChildren === 'function'
+                      ? bodyChildren()
+                      : bodyChildren
+                )}
+            </div>;
 
       return forwardRef(bodyRender);
     }
