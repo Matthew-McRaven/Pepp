@@ -7,6 +7,11 @@
   "author": "Matthew McRaven",
   "type": "module",
   "main": "dist/lib.js",
+  "files": [
+    "3rd-party/",
+    "src/",
+    ".cmake"
+  ],
   "scripts": {
     "prebuild": "cmake-js -BRelease . -p$(nproc) ",
     "build": "node $(npm bin)/tsc -p tsconfig.json",
