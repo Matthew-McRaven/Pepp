@@ -4,5 +4,6 @@ build
 node_modules/
 dist/
 coverage
-*.xml
 *.tgz
+junit.xml
+coverage.xml
