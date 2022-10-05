@@ -1,0 +1,3 @@
+[submodule ".gitlab"]
+	path = .gitlab
+	url = https://gitlab.com/pepnext/config/ci.git
