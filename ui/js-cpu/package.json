@@ -8,19 +8,36 @@
   },
   "license": "GPL-3.0",
   "author": "Matthew McRaven",
-  "main": "dist/index.js",
-  "types": "dist/index.d.ts",
+  "type": "module",
+  "exports": {
+    ".": {
+      "import": "./dist/index.es.js",
+      "require": "./dist/index.umd.js"
+    }
+  },
+  "types": "./dist/index.d.ts",
+  "files": [
+    "dist/",
+    "src/",
+    "!**/*.test.*",
+    "!**/*.stories.*"
+  ],
   "scripts": {
-    "build": "npm run clean && node $(npm bin)/tsc -p tsconfig.json && copyfiles --up 1 src/**/*.scss dist/",
+    "build": "npm run clean && vite build",
     "build-storybook": "build-storybook",
     "clean": "npx rimraf -rf ./dist",
+    "globcov": "python3 .scripts/scripts/merge-cobertura.py -o coverage.xml  coverage/cobertura-coverage.xml",
     "prepublishOnly": "npm run build",
     "start-storybook": "start-storybook -p 6006",
-    "test": "npx jest",
-    "test:ci": "npx jest --ci --reporters=default --reporters=jest-junit --coverageReporters=cobertura --coverage && python3 .scripts/scripts/merge-cobertura.py -o coverage.xml  coverage/cobertura-coverage.xml"
+    "test": "node $(npm bin)/jest",
+    "test:ci": "npm run test -- --ci --reporters=default --reporters=jest-junit --coverageReporters=cobertura --coverage && npm run globcov",
+    "typecheck": "node $(npm bin)/tsc -p tsconfig.json --noEmit"
   },
   "eslintConfig": {
     "extends": "./node_modules/@pepnext/eslint/.eslintrc.js"
+  },
+  "dependencies": {
+    "@pepnext/ui-converters": "^3.0.0"
   },
   "devDependencies": {
     "@babel/core": "^7.16.0",
@@ -28,6 +45,7 @@
     "@mdx-js/react": "^2.1.3",
     "@pepnext/eslint": "^3.0.3",
     "@pepnext/tsconfig": "^3.0.0",
+    "@rollup/plugin-typescript": "^8.5.0",
     "@storybook/addon-actions": "^6.5.12",
     "@storybook/addon-controls": "^6.5.12",
     "@storybook/addon-docs": "^6.5.12",
@@ -43,6 +61,7 @@
     "@testing-library/user-event": "^14.4.3",
     "@types/jest": "^27.4.0",
     "@types/react": "^18.0.0",
+    "@vitejs/plugin-react": "^2.1.0",
     "babel-loader": "^8.2.3",
     "chromatic": "^6.0.6",
     "copyfiles": "^2.4.1",
@@ -53,6 +72,7 @@
     "rimraf": "^3.0.2",
     "ts-jest": "^27.0.7",
     "typescript": "^4.8.3",
+    "vite": "^3.1.4",
     "webpack": "^5.74.0"
   },
   "peerDependencies": {
@@ -68,8 +88,5 @@
   "packageManager": "npm@6.14.17",
   "publishConfig": {
     "@pepnext:registry": "https://gitlab.com/api/v4/projects/39878881/packages/npm/"
-  },
-  "dependencies": {
-    "@pepnext/ui-converters": "^3.0.0"
   }
 }
