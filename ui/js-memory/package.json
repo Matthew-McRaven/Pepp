@@ -24,11 +24,13 @@
     "test:ci": "npx jest --ci --reporters=default --reporters=jest-junit --coverageReporters=cobertura --coverage && python3 .scripts/scripts/merge-cobertura.py -o coverage.xml  coverage/cobertura-coverage.xml"
   },
   "dependencies": {
+    "@pepnext/ui-converters": "^3.0.1",
     "classnames": "^2.2.6",
     "keycode-js": "^2.0.3",
     "keycoder": "^1.1.1",
     "react-virtualized-auto-sizer": "^1.0.2",
-    "react-window": "^1.8.5"
+    "react-window": "^1.8.5",
+    "styled-components": "^5.3.6"
   },
   "eslintConfig": {
     "extends": "./node_modules/@pepnext/eslint/.eslintrc.js"
@@ -54,6 +56,9 @@
     "@testing-library/user-event": "^14.4.3",
     "@types/jest": "^27.4.0",
     "@types/react": "^18.0.0",
+    "@types/react-virtualized-auto-sizer": "^1.0.1",
+    "@types/react-window": "^1.8.5",
+    "@types/styled-components": "^5.1.22",
     "babel-loader": "^8.2.3",
     "chromatic": "^6.0.6",
     "copyfiles": "^2.4.1",
