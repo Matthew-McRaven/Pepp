@@ -4,7 +4,7 @@
   "description": "Base configuration for our UI libraries.",
   "repository": {
     "type": "git",
-    "url": "git@gitlab.com:pepnext/ui/sample.gitt"
+    "url": "git@gitlab.com:pepnext/ui/sample.git"
   },
   "license": "GPL-3.0",
   "author": "Matthew McRaven",
