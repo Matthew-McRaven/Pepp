@@ -31,6 +31,7 @@
     "test:ci": "npm run test -- --ci --reporters=default --reporters=jest-junit --coverageReporters=cobertura --coverage && npm run globcov",
     "typecheck": "node $(npm bin)/tsc -p tsconfig.json --noEmit"
   },
+  "type": "module",
   "dependencies": {
     "@pepnext/ui-converters": "^3.0.1",
     "classnames": "^2.2.6",
