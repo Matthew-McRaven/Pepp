@@ -13,4 +13,4 @@ variables:
 
 # Pin to a known-good version so that CI can't spontaneously break.
 include:
-  remote: https://gitlab.com/pepnext/config/ci/-/raw/016bdf4f8c6036c1709d309aefba677e09d0ab06/logic-mixed.yml
+  remote: https://gitlab.com/pepnext/config/ci/-/raw/cbdb26bbd3be80fb0e68e684b3ffdd7a3d4b0a20/logic-mixed.yml
