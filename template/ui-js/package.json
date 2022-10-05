@@ -8,10 +8,22 @@
   },
   "license": "GPL-3.0",
   "author": "Matthew McRaven",
-  "main": "dist/index.js",
-  "types": "dist/index.d.ts",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "import": "./dist/index.es.js",
+      "require": "./dist/index.umd.js"
+    }
+  },
+  "files": [
+    "dist/",
+    "src/",
+    "!**/*.test.*",
+    "!**/*.stories.*"
+  ],
   "scripts": {
-    "build": "npm run clean && node $(npm bin)/tsc -p tsconfig.json && copyfiles --up 1 src/**/*.scss dist/",
+    "build": "npm run clean && vite build",
+    "typecheck": "node $(npm bin)/tsc -p tsconfig.json --noEmit",
     "build-storybook": "build-storybook",
     "clean": "npx rimraf -rf ./dist",
     "prepublishOnly": "npm run build",
@@ -54,6 +66,9 @@
     "rimraf": "^3.0.2",
     "ts-jest": "^27.0.7",
     "typescript": "^4.8.3",
+    "@vitejs/plugin-react": "^2.1.0",
+    "@rollup/plugin-typescript": "^8.5.0",
+    "vite": "^3.1.4",
     "webpack": "^5.74.0"
   },
   "peerDependencies": {
