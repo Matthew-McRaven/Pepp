@@ -135,6 +135,8 @@ publish:
 
 
 changelog:
+  variables:
+    GIT_SUBMODULE_STRATEGY: recursive
   image: registry.gitlab.com/pepnext/docker/develop:${BUILD_VERSION}
   stage: build
   needs: [ ]
