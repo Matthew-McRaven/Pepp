@@ -20,21 +20,21 @@ import {
 import { byteToAscii } from '../utils';
 
 interface Props {
-  className?: string,
-  classNames?: HexEditorClassNames,
-  formatValue?: ValueFormatter,
-  isCursor?: boolean,
-  isSelected?: boolean,
-  isSelectionCursor?: boolean,
-  isSelectionEnd?: boolean,
-  isSelectionStart?: boolean,
-  offset?: number,
-  placeholder?: string | JSX.Element | null,
-  setSelectionEnd?: SetSelectionBoundaryCallback,
-  setSelectionRange?: SetSelectionRangeCallback,
-  setSelectionStart?: SetSelectionBoundaryCallback,
-  style?: React.CSSProperties,
-  value?: number | null,
+    className?: string,
+    classNames?: HexEditorClassNames,
+    formatValue?: ValueFormatter,
+    isCursor?: boolean,
+    isSelected?: boolean,
+    isSelectionCursor?: boolean,
+    isSelectionEnd?: boolean,
+    isSelectionStart?: boolean,
+    offset?: number,
+    placeholder?: string | JSX.Element | null,
+    setSelectionEnd?: SetSelectionBoundaryCallback,
+    setSelectionRange?: SetSelectionRangeCallback,
+    setSelectionStart?: SetSelectionBoundaryCallback,
+    style?: React.CSSProperties,
+    value?: number | null,
 }
 
 const HexByteAscii = ({
@@ -93,37 +93,37 @@ const HexByteAscii = ({
   }, [offset, setSelectionRange]);
 
   return (
-    // eslint-disable-next-line jsx-a11y/click-events-have-key-events, jsx-a11y/no-static-element-interactions
-    <div
-      className={joinClassNames(
-        className,
-        {
-          [classNames.cursor || '']: isCursor,
-          [classNames.highlight || '']: isCursor || isSelectionCursor,
-          [classNames.invalid || '']: value == null,
-          [classNames.selection || '']: isSelected,
-          [classNames.selectionCursor || '']: isSelectionCursor,
-          [classNames.selectionEnd || '']: isSelectionEnd,
-          [classNames.selectionStart || '']: isSelectionStart,
-        },
-      )}
-      data-offset={offset}
-      onClick={setSelectionRange && handleClick}
-      onDoubleClick={setSelectionRange && handleDoubleClick}
-      onMouseDown={setSelectionStart && handleMouseDown}
-      onMouseMove={setSelectionEnd && handleMouseMove}
-      ref={ref}
-      style={style}
-    >
-      {placeholder == null ? formattedValue : (
-        <>
+        // eslint-disable-next-line jsx-a11y/click-events-have-key-events, jsx-a11y/no-static-element-interactions
+        <div
+            className={joinClassNames(
+              className,
+              {
+                [classNames.cursor || '']: isCursor,
+                [classNames.highlight || '']: isCursor || isSelectionCursor,
+                [classNames.invalid || '']: value == null,
+                [classNames.selection || '']: isSelected,
+                [classNames.selectionCursor || '']: isSelectionCursor,
+                [classNames.selectionEnd || '']: isSelectionEnd,
+                [classNames.selectionStart || '']: isSelectionStart,
+              },
+            )}
+            data-offset={offset}
+            onClick={setSelectionRange && handleClick}
+            onDoubleClick={setSelectionRange && handleDoubleClick}
+            onMouseDown={setSelectionStart && handleMouseDown}
+            onMouseMove={setSelectionEnd && handleMouseMove}
+            ref={ref}
+            style={style}
+        >
+            {placeholder == null ? formattedValue as string : (
+                <>
           <span style={{ position: 'absolute' }}>
-            {formattedValue}
+            {formattedValue as string}
           </span>
-          {placeholder}
-        </>
-      )}
-    </div>
+                    {placeholder as string}
+                </>
+            )}
+        </div>
   );
 };
 

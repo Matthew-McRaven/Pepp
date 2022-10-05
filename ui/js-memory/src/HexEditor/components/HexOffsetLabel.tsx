@@ -6,11 +6,11 @@ import React, {
 } from 'react';
 
 interface Props {
-  className?: string,
-  // eslint-disable-next-line no-unused-vars
-  formatOffset?: (offset: number) => number | string,
-  offset?: number | null,
-  style?: React.CSSProperties,
+    className?: string,
+    // eslint-disable-next-line no-unused-vars
+    formatOffset?: (offset: number) => number | string,
+    offset?: number | null,
+    style?: React.CSSProperties,
 }
 
 const HexOffsetLabel = ({
@@ -25,13 +25,13 @@ const HexOffsetLabel = ({
   );
 
   return (
-    <div
-      className={className}
-      ref={ref}
-      style={style}
-    >
-      {formattedOffset}
-    </div>
+        <div
+            className={className}
+            ref={ref}
+            style={style}
+        >
+            {formattedOffset}
+        </div>
   );
 };
 

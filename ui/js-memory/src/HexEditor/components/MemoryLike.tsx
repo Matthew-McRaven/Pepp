@@ -1,16 +1,19 @@
 export interface MemoryLikeType {
-  // eslint-disable-next-line no-unused-vars
-  at(offset: number): number;
-  // eslint-disable-next-line no-unused-vars
-  set(offset: number, value: number): void;
-  minOffset(): number;
-  maxOffset(): number;
+    // eslint-disable-next-line no-unused-vars
+    at(offset: number): number;
+
+    // eslint-disable-next-line no-unused-vars
+    set(offset: number, value: number): void;
+
+    minOffset(): number;
+
+    maxOffset(): number;
 }
 
 export class MemoryLike implements MemoryLikeType {
-  data: Uint8Array
+  data: Uint8Array;
 
-  // Passes ownership of data to consturcted class!!
+  // Passes ownership of data to constructed class!!
   constructor(data: Uint8Array) {
     this.data = data;
   }
