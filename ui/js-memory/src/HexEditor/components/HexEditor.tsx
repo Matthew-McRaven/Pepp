@@ -279,12 +279,14 @@ const HexEditor: React.ForwardRefRenderFunction<HexEditorHandle, HexEditorProps>
       const handleWindowMouseUp = () => {
         setState({ selectionAnchor: null });
         focus();
+        return () => null;
       };
       window.addEventListener('mouseup', handleWindowMouseUp);
       return () => {
         window.removeEventListener('mouseup', handleWindowMouseUp);
       };
     }
+    return () => null;
   }, [state.selectionAnchor, focus]);
 
   const setSelectionStart = useCallback((
@@ -796,7 +798,6 @@ const HexEditor: React.ForwardRefRenderFunction<HexEditorHandle, HexEditorProps>
     state.selectionEnd,
     state.selectionStart,
   ]);
-
   return (
         <HexEditorContext.Provider value={hexEditorContext}>
             <div
