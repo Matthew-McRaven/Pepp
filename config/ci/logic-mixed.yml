@@ -55,6 +55,10 @@ build:linux:cmake:
     - cmake -B build -DCMAKE_C_COMPILER=$(which clang-14) -DCMAKE_CXX_COMPILER=$(which clang++-14) -DCMAKE_BUILD_TYPE=Debug -Dcode_coverage=1 -DENABLE_TESTING=1 .
     - cmake --build build
     - (cd build && ctest)
+    - which llvm-profdata-14
+    - which llvm-cov-14
+    - alias llvm-profdata="llvm-profdata-14"
+    - alias llvm-cov="llvm-cov-14"
     - python3 .scripts/scripts/llvm-cov-helper.py build
     - python3 .scripts/scripts/lcov_cobertura.py coverage.lcov
     - lcov --summary coverage.lcov
