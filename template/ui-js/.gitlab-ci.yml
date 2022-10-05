@@ -1,6 +1,7 @@
 stages:
   - build
   - test
+  - tag
   - deploy
 
 # Variables that must be injected into every pipeline
@@ -10,89 +11,6 @@ variables:
   # Append dist, because I have generated files there
   SAST_EXCLUDED_PATHS: spec, test, tests, tmp, dist
 
-##################
-#  Main Package  #
-##################
-build:
-  variables:
-    GIT_SUBMODULE_STRATEGY: recursive
-  image: registry.gitlab.com/pepnext/docker/develop:${BUILD_VERSION}
-  stage: build
-  needs: [ ]
-  tags:
-    - docker
-  script:
-    - npm ci
-    - npm run build
-    - npm run test:ci
-  coverage: '/^\s*Coverage .*\d+.*/'
-  artifacts:
-    expire_in: 1 week
-    when: always
-    reports:
-      junit:
-        - junit.xml
-      coverage_report:
-        coverage_format: cobertura
-        path: coverage/cobertura-coverage.xml
-
-
-##################
-#    Run SAST    #
-##################
+# Pin to a known-good version so that CI can't spontaneously break.
 include:
-  - template: Security/SAST.gitlab-ci.yml
-  - template: Security/Dependency-Scanning.gitlab-ci.yml
-  - template: Security/License-Scanning.gitlab-ci.yml
-  - template: Security/Secret-Detection.gitlab-ci.yml
-
-##################
-#  Run Chromatic #
-##################
-test:chromatic:
-  variables:
-    GIT_SUBMODULE_STRATEGY: recursive
-  image: registry.gitlab.com/pepnext/docker/develop:${BUILD_VERSION}
-  stage: test
-  needs: [ build ]
-  tags:
-    - docker
-  script:
-    - npm ci
-    - npm run build-storybook
-    - npx chromatic --exit-zero-on-changes --project-token ${CHROMATIC_PROJECT_TOKEN} --junit-report junit.xml -d storybook-static
-  rules:
-    - if: $CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH || $CI_COMMIT_BRANCH == 'dev'
-      when: on_success
-      changes:
-        paths:
-          - src/**/*
-          - package.json
-          - package-lock.json
-          - .storybook/**/*
-  artifacts:
-    expire_in: 1 week
-    when: always
-    reports:
-      junit:
-        - junit.xml
-
-#######################
-# Conditional Publish #
-#######################
-publish:
-  variables:
-    GIT_SUBMODULE_STRATEGY: recursive
-  image: registry.gitlab.com/pepnext/docker/develop:${BUILD_VERSION}
-  stage: deploy
-  needs: [ build ]
-  tags:
-    - docker
-  script:
-    - npm ci
-    - export published_version=$(npm view @pepnext/ui-sample version || echo "0.0.0")
-    - export current_version=$(jq -r .version < package.json)
-    - npm i -g semver
-    - export NODE_PATH=`npm config get prefix`/lib/node_modules/
-    - printf "\n//${CI_SERVER_HOST}/api/v4/projects/${CI_PROJECT_ID}/packages/npm/:_authToken=${CI_JOB_TOKEN}" >> .npmrc
-    - echo "const s=require('semver');process.exit(s.gt('$current_version', '$published_version'))" | node - || npm publish
+  remote: https://gitlab.com/pepnext/config/ci/-/raw/ed977d9e31038e5c816f674b54365dce8225474e/ui.yml
