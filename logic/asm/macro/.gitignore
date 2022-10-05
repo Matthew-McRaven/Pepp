@@ -1,5 +1,6 @@
-node_modules/
 dist/
+node_modules/
+storybook-static/
 coverage/
 junit.xml
 coverage.xml
