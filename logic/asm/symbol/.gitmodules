@@ -10,3 +10,9 @@
 [submodule ".cmake"]
 	path = .cmake
 	url = https://gitlab.com/pepnext/config/cmake-scripts.git
+[submodule ".gitlab"]
+	path = .gitlab
+	url = https://gitlab.com/pepnext/config/ci.git
+[submodule ".scripts"]
+	path = .scripts
+	url = https://gitlab.com/pepnext/scripts.git
