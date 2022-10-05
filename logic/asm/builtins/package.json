@@ -15,8 +15,6 @@
     "extends": "./node_modules/@pepnext/eslint/.eslintrc.js"
   },
   "dependencies": {
-    "asty-astq": "^1.13.6",
-    "peggy": "^2.0.1",
     "sqlite": "^4.1.2",
     "sqlite3": "^5.1.1"
   },
