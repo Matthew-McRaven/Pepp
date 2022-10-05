@@ -16,8 +16,9 @@
     "clean": "npx rimraf -rf ./dist",
     "prepublishOnly": "npm run build",
     "start-storybook": "start-storybook -p 6006",
-    "test": "npx jest",
-    "test:ci": "npx jest --ci --reporters=default --reporters=jest-junit --coverageReporters=cobertura --coverage && python3 .scripts/scripts/merge-cobertura.py -o coverage.xml  coverage/cobertura-coverage.xml"
+    "test": "node $(npm bin)/jest",
+    "test:ci": "npm run test -- --ci --reporters=default --reporters=jest-junit --coverageReporters=cobertura --coverage && npm run globcov",
+    "globcov": "python3 .scripts/scripts/merge-cobertura.py -o coverage.xml  coverage/cobertura-coverage.xml"
   },
   "eslintConfig": {
     "extends": "./node_modules/@pepnext/eslint/.eslintrc.js"
