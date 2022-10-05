@@ -1,4 +1,4 @@
-import { parseMacroDeclaration } from '../src/lib';
+import { parseMacroDeclaration } from '../src/index';
 
 describe('macro.parser with valid macro declarations', () => {
   it('can parse a macro with an empty body', async () => {
