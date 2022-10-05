@@ -6,6 +6,7 @@
     "type": "git",
     "url": "git@gitlab.com:pepnext/ui/cpu.gitt"
   },
+  "type": "module",
   "license": "GPL-3.0",
   "author": "Matthew McRaven",
   "main": "dist/index.js",
