@@ -1,8 +1,8 @@
 .DS_Store
 .vscode
 build
-**/reg.cpp
-gen_*.h
-reg_*.cpp
 node_modules/
 dist/
+coverage
+*.xml
+*.tgz
