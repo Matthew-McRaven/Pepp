@@ -21,6 +21,7 @@
     "!**/*.test.*",
     "!**/*.stories.*"
   ],
+  "type": "module",
   "scripts": {
     "build": "npm run clean && vite build",
     "typecheck": "node $(npm bin)/tsc -p tsconfig.json --noEmit",
