@@ -1,6 +1,6 @@
 {
   "name": "@pepnext/ui-memory",
-  "version": "3.0.0",
+  "version": "3.2.0",
   "description": "Components designed as part of the PepSuite memory subsystem.",
   "homepage": "https://gitlab.com/pepnext/ui/memorye#readme",
   "bugs": {
@@ -12,8 +12,14 @@
   },
   "license": "GPL-3.0",
   "author": "Matthew McRaven",
-  "main": "src/index.tsx",
-  "types": "src/index.tsx",
+  "type": "module",
+  "exports": {
+    ".": {
+      "import": "./dist/index.es.js",
+      "require": "./dist/index.umd.js"
+    }
+  },
+  "types": "./dist/index.d.ts",
   "files": [
     "dist/",
     "src/",
@@ -31,7 +37,9 @@
     "test:ci": "npm run test -- --ci --reporters=default --reporters=jest-junit --coverageReporters=cobertura --coverage && npm run globcov",
     "typecheck": "node $(npm bin)/tsc -p tsconfig.json --noEmit"
   },
-  "type": "module",
+  "eslintConfig": {
+    "extends": "./node_modules/@pepnext/eslint/.eslintrc.js"
+  },
   "dependencies": {
     "@pepnext/ui-converters": "^3.0.1",
     "classnames": "^2.2.6",
@@ -40,9 +48,6 @@
     "react-virtualized-auto-sizer": "^1.0.2",
     "react-window": "^1.8.5",
     "styled-components": "^5.3.6"
-  },
-  "eslintConfig": {
-    "extends": "./node_modules/@pepnext/eslint/.eslintrc.js"
   },
   "devDependencies": {
     "@babel/core": "^7.16.0",
