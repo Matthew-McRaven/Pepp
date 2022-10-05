@@ -11,5 +11,11 @@
 	],
 	"include": [
 		"src"
-	]
+	],
+	"exclude": [
+    "**/*.test.tsx",
+    "**/*.stories.tsx",
+    "**/*.test.ts"
+  ]
+
 }
