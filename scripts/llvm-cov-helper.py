@@ -8,7 +8,7 @@ profraws = [str(profraw.absolute()) for profraw in Path('build/coverage').rglob(
 
 print(sys.argv)
 print(profraws)
-os.system(f'llvm-profdata merge {" ".join(profraws)} --output coverage.profdata')
+os.system(f'llvm-profdata-14 merge {" ".join(profraws)} --output coverage.profdata')
 
 executable = stat.S_IEXEC | stat.S_IXUSR
 
@@ -60,5 +60,5 @@ for root, dirs, files in os.walk(sys.argv[1]):
 
 regex = "\"(catch)|(elfio)|(ngraph)|(magic_enum)|(fmt)|(outcome)|(cereal)|(.*/test)\""
 os.system(
-    f'llvm-cov export --ignore-filename-regex={regex} --instr-profile coverage.profdata --format=lcov {" --object ".join(tests)}> coverage.lcov')
+    f'llvm-cov-14 export --ignore-filename-regex={regex} --instr-profile coverage.profdata --format=lcov {" --object ".join(tests)}> coverage.lcov')
 os.system("genhtml -o \"coverage\" coverage.lcov")
