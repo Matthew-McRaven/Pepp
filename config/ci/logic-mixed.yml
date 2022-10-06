@@ -26,7 +26,7 @@ build:linux:npm:
   script:
     - npm ci
     - npm run build
-    - npm test
+    - npm test:ci
   coverage: '/^\s*Coverage .*\d+.*/'
   rules:
     - if: '$CI_COMMIT_TAG =~ "/^$/"'
