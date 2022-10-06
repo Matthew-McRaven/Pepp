@@ -22,13 +22,13 @@
     "!**/*.stories.*"
   ],
   "scripts": {
-    "build": "npm run clean && vite build",
-    "typecheck": "node $(npm bin)/tsc -p tsconfig.json --noEmit",
-    "build-storybook": "build-storybook",
+    "build": "npm run clean && npx vite build",
+    "typecheck": "npx tsc -p tsconfig.json --noEmit",
+    "build-storybook": "npx build-storybook",
     "clean": "npx rimraf -rf ./dist",
     "prepublishOnly": "npm run build",
-    "start-storybook": "start-storybook -p 6006",
-    "test": "node $(npm bin)/jest",
+    "start-storybook": "npx start-storybook -p 6006",
+    "test": "npx jest",
     "test:ci": "npm run test -- --ci --reporters=default --reporters=jest-junit --coverageReporters=cobertura --coverage && npm run globcov",
     "globcov": "python3 .scripts/scripts/merge-cobertura.py -o coverage.xml  coverage/cobertura-coverage.xml"
   },
