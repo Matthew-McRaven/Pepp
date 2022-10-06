@@ -7,3 +7,4 @@ coverage
 *.tgz
 junit.xml
 coverage.xml
+**/__pycache__
