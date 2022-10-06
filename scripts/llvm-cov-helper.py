@@ -4,7 +4,7 @@ import sys
 
 from pathlib import Path
 
-profraws = [str(profraw.absolute()) for profraw in Path('build/coverage').rglob('*.profraw')]
+profraws = [str(profraw.absolute()) for profraw in Path('build').rglob('*.profraw')]
 
 print(sys.argv)
 print(profraws)
