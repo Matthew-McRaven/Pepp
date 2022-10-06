@@ -25,6 +25,7 @@ with this program; if not, write to the Free Software Foundation, Inc.,
 import argparse
 import glob
 import sys
+import os
 
 try:
     from xml.etree.ElementTree import Element, ElementTree, SubElement, iterparse
@@ -117,7 +118,9 @@ def write_data(data, handle):
     for item in data:
         obj = SubElement(classes, "class")
         print(item)
-        obj.set("name", item.rsplit("/", 1)[1])
+        # Windows paths use a different separator...
+        if os.name == "nt": obj.set("name", item.rsplit("\\", 1)[1])
+        else: obj.set("name", item.rsplit("/", 1)[1])
         obj.set("filename", item)
         obj.set("line-rate", str(line_rates[item]))
         obj.set("branch-rate", "0")
