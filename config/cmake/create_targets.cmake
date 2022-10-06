@@ -97,9 +97,12 @@ macro(make_napi_module target_name root bitness)
             WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}
             OUTPUT_VARIABLE TARGET_NODE_ROOT
             )
-    # Node injects a \n, we must remove. See: https://stackoverflow.com/questions/56288848/unix-make-file-fails-with-cmakejs-when-adding-a-dependency
+    # NPM isn't always available...
+    if(NOT "${TARGET_NODE_ROOT}" STREQUAL "")
+        # Node injects a \n, we must remove. See: https://stackoverflow.com/questions/56288848/unix-make-file-fails-with-cmakejs-when-adding-a-dependency
     string(REPLACE "\n" "" TARGET_NODE_ROOT ${TARGET_NODE_ROOT})
     string(REPLACE "\"" "" TARGET_NODE_ROOT ${TARGET_NODE_ROOT})
+    endif()
 
     # Include other possible Node headers by getting the node executable dir
     find_program(NODE_BIN_LOCATION node)
@@ -107,9 +110,8 @@ macro(make_napi_module target_name root bitness)
 
     # Add any files given to us by cmake-js, these are likely to be empty.
     add_library(${target_name} SHARED ${sources} ${CMAKE_JS_SRC})
-    target_link_libraries(${target_name} ${CMAKE_JS_LIB})
 
-    target_include_directories(${target_name} PRIVATE ${NODE_ADDON_API_DIR} ${TARGET_NODE_ROOT}/include/node ${NODE_PARENT_DIR}/../include/node)
+    target_include_directories(${target_name} PRIVATE ${CMAKE_JS_INC} ${NODE_ADDON_API_DIR} ${TARGET_NODE_ROOT}/include/node ${NODE_PARENT_DIR}/../include/node)
     set_target_properties(${target_name} PROPERTIES PREFIX "" SUFFIX ".node")
 
     # Define NAPI_VERSION
