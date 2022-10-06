@@ -1,6 +1,6 @@
 {
   "name": "@pepnext/logic-macro",
-  "version": "3.0.2",
+  "version": "3.1.0",
   "description": "Identify and manipulate macro expressions.",
   "repository": "https://gitlab.com/pepnext/logic/macro",
   "license": "GPL-3.0",
@@ -18,13 +18,13 @@
     "src/"
   ],
   "scripts": {
-    "build": "npm run clean && vite build",
+    "build": "npm run clean && npx vite build",
     "clean": "npx rimraf -rf ./dist",
     "globcov": "python3 .scripts/scripts/merge-cobertura.py -o coverage.xml  coverage/cobertura-coverage.xml",
     "prepublishOnly": "npm run build",
-    "test": "node --experimental-vm-modules $(npm bin)/jest",
+    "test": "npx cross-env NODE_OPTIONS=--experimental-vm-modules npx jest",
     "test:ci": "npm run test -- --ci --reporters=default --reporters=jest-junit --coverageReporters=cobertura --coverage && npm run globcov",
-    "typecheck": "node $(npm bin)/tsc -p tsconfig.json --noEmit"
+    "typecheck": "npx tsc -p tsconfig.json --noEmit"
   },
   "eslintConfig": {
     "extends": "./node_modules/@pepnext/eslint/.eslintrc.js"
@@ -39,6 +39,7 @@
     "@pepnext/tsconfig": "^3.0.0",
     "@rollup/plugin-typescript": "^8.5.0",
     "@types/jest": "^27.4.0",
+    "cross-env": "^7.0.3",
     "jest": "^27.3.1",
     "jest-junit": "^13.0.0",
     "rimraf": "^3.0.2",
