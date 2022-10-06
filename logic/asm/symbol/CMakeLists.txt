@@ -31,6 +31,6 @@ target_link_libraries(symbol-test PUBLIC symbol)
 
 #message(${NODE_ROOT}/include/node)
 make_napi_module(bind-symbol16 bind 16)
-target_link_libraries(bind-symbol16 PUBLIC symbol fmt magic_enum)
+target_link_libraries(bind-symbol16 PUBLIC symbol fmt magic_enum ${CMAKE_JS_LIB})
 make_napi_module(bind-symbol32 bind 32)
-target_link_libraries(bind-symbol32 PUBLIC symbol fmt magic_enum)
+target_link_libraries(bind-symbol32 PUBLIC symbol fmt magic_enum ${CMAKE_JS_LIB})

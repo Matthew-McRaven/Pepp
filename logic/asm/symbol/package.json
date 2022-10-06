@@ -22,7 +22,7 @@
     "prepublishOnly": "npm run build",
     "test:js": "npx cross-env NODE_OPTIONS=--experimental-vm-modules npx jest",
     "test:ci:js": "npm run test:js -- --ci --reporters=default --reporters=jest-junit --coverageReporters=cobertura --coverage && npm run globcov",
-    "test:native": "npm exec -c build/symbol-test",
+    "test:native": "cd build && ctest -C Release",
     "test:ci": "npm run test:ci:js && npm run test:native"
   },
   "eslintConfig": {
