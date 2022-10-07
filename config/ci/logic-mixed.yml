@@ -73,6 +73,20 @@ build:linux:cmake:
         path: coverage.xml
       junit: junit.xml
 
+build:windows:npm:
+  variables:
+    GIT_SUBMODULE_STRATEGY: recursive
+  stage: build
+  needs: [ ]
+  tags:
+    - windows
+  script:
+    - npm ci
+    - npm run build
+    - npm run test:ci
+  coverage: '/^\s*Coverage .*\d+.*/'
+  rules:
+    - if: '$CI_COMMIT_TAG =~ "/^$/"'
 
 
 ##################
@@ -96,6 +110,7 @@ tag:
   # in all cases where build doesn't trigger.
   needs:
     - job: build:linux:npm
+    - job: build:windows:npm
   tags:
     - docker
   script:
