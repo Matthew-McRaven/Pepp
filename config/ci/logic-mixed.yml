@@ -24,7 +24,7 @@ build:linux:npm:
   tags:
     - docker
   script:
-    - npm ci --ignore-scripts
+    - npm ci
     - npm run test:ci
   coverage: '/^\s*Coverage .*\d+.*/'
   rules:
