@@ -21,7 +21,7 @@
   "scripts": {
     "build": "npm run clean && npx vite build && python3 -m make_db dist",
     "clean": "npx rimraf -rf ./dist",
-    "docs": "npx typedocs --out docs src/index.ts",
+    "docs": "npx typedoc --out docs src/index.ts",
     "globcov": "python3 .scripts/scripts/merge-cobertura.py -o coverage.xml  coverage/cobertura-coverage.xml",
     "prepublishOnly": "npm run build",
     "test": "npx cross-env NODE_OPTIONS=--experimental-vm-modules npx jest",
