@@ -17,6 +17,7 @@
     "build": "npx tsc -p tsconfig.json",
     "install": "npm run build",
     "clean": "npx rimraf -rf ./dist",
+    "docs": "npx typedoc --out docs src/bind/lib.ts",
     "globcov": "python3 .scripts/scripts/merge-cobertura.py -o coverage.xml  coverage/cobertura-coverage.xml",
     "test": "npm run test:native && npm run test:js",
     "prepublishOnly": "npm run build",
@@ -44,6 +45,7 @@
     "jest-junit": "^13.0.0",
     "rimraf": "^3.0.2",
     "ts-jest": "^27.0.7",
+    "typedoc": "^0.23.15",
     "typescript": "^4.8.3"
   },
   "packageManager": "npm@6.14.17",
