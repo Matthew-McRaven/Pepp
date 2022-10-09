@@ -13,4 +13,4 @@ variables:
 
 # Pin to a known-good version so that CI can't spontaneously break.
 include:
-  remote: https://gitlab.com/pepnext/config/ci/-/raw/9a2336fa56fb7575f62e999d7ee78fe8c9517d5d/logic-purejs.yml
+  remote: https://gitlab.com/pepnext/config/ci/-/raw/5e8af693649eb73799265875b5eacceba28500fd/logic-purejs.yml

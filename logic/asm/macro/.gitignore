@@ -5,3 +5,4 @@ coverage/
 junit.xml
 coverage.xml
 *.tgz
+docs/
