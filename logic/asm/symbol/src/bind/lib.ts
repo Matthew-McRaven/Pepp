@@ -4,7 +4,7 @@ import path from 'path';
 
 import { fileURLToPath } from 'url';
 
-interface ISymbolNative {
+export interface ISymbolNative {
     name(): string;
 
     value(): number
