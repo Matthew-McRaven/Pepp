@@ -1,4 +1,4 @@
-import { parseIncludeDeclarations } from '../../src/lib';
+import { parseIncludeDeclarations } from '../../../../src/lib';
 
 describe('targets-pep10.include_detector', () => {
   it('defaults to "bm" os if no .linkos is present', async () => {
