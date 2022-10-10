@@ -1,1 +1,1 @@
-export * from './pasm';
+export * from './asm';
