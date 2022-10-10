@@ -1,11 +1,17 @@
 {
-  "name": "@pep10/target-pep10",
-  "version": "1.0.0",
-  "description": "Does some magic stuff",
+  "name": "@pepnext/targets-pep10",
+  "version": "3.0.0",
+  "description": ".",
+  "repository": "https://gitlab.com/pepnext/targets/pep10",
   "license": "GPL-3.0",
   "author": "Matthew McRaven",
   "type": "module",
-  "main": "dist/lib.js",
+  "main": "dist/index.js",
+  "files": [
+    "3rd-party/",
+    "src/",
+    ".cmake"
+  ],
   "scripts": {
     "prebuild": "npx cmake-js -BRelease . -p8 ",
     "build": "npx tsc -p tsconfig.json",
@@ -41,5 +47,9 @@
     "rimraf": "^3.0.2",
     "ts-jest": "^27.0.7",
     "typescript": "^4.8.3"
+  },
+  "packageManager": "npm@6.14.17",
+  "publishConfig": {
+    "@pepnext:registry": "https://gitlab.com/api/v4/projects/39773403/packages/npm/"
   }
 }
