@@ -7,7 +7,7 @@ export default {
   transform: {
     '^.+\\.ts?$': 'ts-jest',
   },
-  testMatch: ['**/*.test.(js|ts|ts)'],
+  testMatch: ['**/*.(js|ts|ts)'],
   globals: {
     'ts-jest': {
       useESM: true,
