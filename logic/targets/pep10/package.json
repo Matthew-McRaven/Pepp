@@ -7,8 +7,18 @@
   "type": "module",
   "main": "dist/lib.js",
   "scripts": {
-    "build": "tsc -p tsconfig.json",
-    "test": "yarn node --experimental-vm-modules $(yarn bin jest)"
+    "prebuild": "npx cmake-js -BRelease . -p8 ",
+    "build": "npx tsc -p tsconfig.json",
+    "clean": "npx rimraf -rf ./dist",
+    "docs": "npx typedoc --out docs src/index.ts",
+    "globcov": "python3 .scripts/scripts/merge-cobertura.py -o coverage.xml  coverage/cobertura-coverage.xml",
+    "install": "npm run build",
+    "prepublishOnly": "npm run build",
+    "test": "npm run test:native && npm run test:js",
+    "test:ci": "npm run test:ci:js && npm run test:native",
+    "test:ci:js": "npm run test:js -- --ci --reporters=default --reporters=jest-junit --coverageReporters=cobertura --coverage && npm run globcov",
+    "test:js": "npx cross-env NODE_OPTIONS=--experimental-vm-modules npx jest",
+    "test:native": "cd build && ctest -C Release"
   },
   "eslintConfig": {
     "extends": "./node_modules/@pepnext/eslint/.eslintrc.js"
