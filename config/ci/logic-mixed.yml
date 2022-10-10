@@ -193,6 +193,8 @@ release:
 pages:
   stage: deploy
   needs: [ 'build:linux:npm' ]
+  tags:
+    - docker
   script:
     - mv docs/ public
   artifacts:
