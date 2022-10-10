@@ -40,7 +40,7 @@
   "devDependencies": {
     "@jest/globals": "^27.3.1",
     "@pepnext/eslint": "^3.0.7",
-    "@pepnext/tsconfig": "^3.0.0",
+    "@pepnext/tsconfig": "^3.0.1",
     "@types/jest": "^27.4.0",
     "jest": "^27.3.1",
     "jest-junit": "^13.0.0",
