@@ -7,3 +7,9 @@
 [submodule ".gitlab"]
 	path = .gitlab
 	url = https://gitlab.com/pepnext/config/ci.git
+[submodule "3rd-party/magic_enum"]
+	path = 3rd-party/magic_enum
+	url = https://gitlab.com/pepnext/3rd-party/magic_enum.git
+[submodule "3rd-party/catch"]
+	path = 3rd-party/catch
+	url = https://gitlab.com/pepnext/3rd-party/catch.git
