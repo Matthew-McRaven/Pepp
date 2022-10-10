@@ -50,7 +50,7 @@ endMacro()
 
 # Helper to make a PUBLIC library with cpp sources.
 macro(make_library target_name root)
-    file(GLOB_RECURSE sources CONFIGURE_DEPENDS "src/${root}/**/*.cpp")
+    file(GLOB_RECURSE sources CONFIGURE_DEPENDS "src/${root}/**/*.cpp" "src/${root}/*.cpp")
     make_target(${target_name} PUBLIC)
 endMacro()
 
