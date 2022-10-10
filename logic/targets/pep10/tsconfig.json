@@ -1,7 +1,7 @@
 {
-  "extends": "../../../../configs/base.tsconfig",
+  "extends": "./node_modules/@pepnext/tsconfig/base.tsconfig.json",
   "compilerOptions": {
-    "rootDir": "src",
+    "rootDir": "src/bind",
     "outDir": "dist",
     "baseUrl": "."
   },
@@ -10,7 +10,6 @@
     "node"
   ],
   "include": [
-    "src",
-    "../../../../configs/types"
+    "src/bind"
   ]
 }

@@ -1,5 +1,18 @@
 {
+  "name": "@pep10/target-pep10",
+  "version": "1.0.0",
+  "description": "Does some magic stuff",
+  "license": "GPL-3.0",
+  "author": "Matthew McRaven",
+  "type": "module",
   "main": "dist/lib.js",
+  "scripts": {
+    "build": "tsc -p tsconfig.json",
+    "test": "yarn node --experimental-vm-modules $(yarn bin jest)"
+  },
+  "eslintConfig": {
+    "extends": "./node_modules/@pepnext/eslint/.eslintrc.js"
+  },
   "dependencies": {
     "@pepnext/bindings": "^1.0.0",
     "astq": "^2.7.9",
@@ -8,18 +21,10 @@
     "node-addon-api": "^5.0.0",
     "peggy": "^2.0.1"
   },
-  "scripts": {
-    "build": "tsc -p tsconfig.json",
-    "test": "yarn node --experimental-vm-modules $(yarn bin jest)"
-  },
-  "name": "@pep10/target-pep10",
-  "type": "module",
-  "version": "1.0.0",
-  "description": "Does some magic stuff",
-  "author": "Matthew McRaven",
-  "license": "GPL-3.0",
   "devDependencies": {
     "@jest/globals": "^27.3.1",
+    "@pepnext/eslint": "^3.0.7",
+    "@pepnext/tsconfig": "^3.0.0",
     "@types/jest": "^27.4.0",
     "jest": "^27.3.1",
     "jest-junit": "^13.0.0",
