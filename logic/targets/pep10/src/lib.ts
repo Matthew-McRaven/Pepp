@@ -1,1 +1,1 @@
-export * from './asm';
+export * as asm from './asm';

@@ -1,8 +1,7 @@
 // import { parse } from './peg';
 
-export { parseIncludeDeclarations } from './peg';
+export * as peg from './peg';
 
-export const dummy = 0;
 export const x = `
 export enum TargetType {
     user = 0,
