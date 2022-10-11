@@ -23,7 +23,7 @@ Unary =
       
 NonUnary =
     _ symbol:symbol? _ identifier:identifier _ arg:argument _ addr:("," _ addr:identifier{return addr;})? _ comment:comment? nl {
-        builder.createNonUnary({symbol, op:identifier, addr, arg, comment})
+        builder.createNonUnary({loc:location(), symbol, op:identifier, addr, arg, comment})
     }
     
 Section =
@@ -71,7 +71,7 @@ identifier "identifier" =
     $[a-zA-Z]+
 
 nonDigit =
-    [^0-9 \\t\\r\\n,'",| ]
+    [^0-9 \\t\\r\\n,'",| ;]
 
 digits =
     [0-9]
