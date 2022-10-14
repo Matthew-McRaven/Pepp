@@ -1,7 +1,8 @@
-/* eslint-disable max-len */
+/* eslint-disable max-len,no-useless-escape */
 import { default as peggy } from 'peggy';
 import { default as asty } from 'asty';
 import { ASTBuilder } from './detectors';
+import type { TypedNode } from './nodes';
 
 const contents = `{{
   let builder = options.builder;
@@ -46,13 +47,13 @@ Macro =
 Blank =
     _ nl {builder.createBlank()}
 
-argument = identifier / number
+argument = identifierArg / number / char / string
 
 number =
     hexadecimal / decimal
 
 hexadecimal "hexadecimal constant" =
-   "0" [xX] digits:[0-9a-fA-F]+ {return parseInt(digits.join(''), 16)}
+   "0" [xX] digits:[0-9a-fA-F]+ {return {type:'hex', value:parseInt(digits.join(''), 16)} }
 
 decimal "signed decimal constant" =
     sign:[\\+\\-]?  digits:digits+ non:$nonDigit* {
@@ -60,15 +61,44 @@ decimal "signed decimal constant" =
             if(asNum === 0 && non.match(/x/i)) error(\`Malformed hex constant with leading '$\{sign}'\`)
             else if(non) error(\`Unexpected non-digit characters in decimal: $\{non}\`)
             if(sign && sign === '-') asNum *= -1
-            return asNum
+            return {type:'decimal', value:asNum}
         }
 
 
 symbol "symbol" =
     identifier: identifier (":") {return identifier}
 
+// Args need to be wrapped in the type-annotated object. Normal identifiers must not have this wrapping. 
+// Use this production rule to wrap the ret val of an identifier.
+identifierArg = 
+  value:identifier {return {type:'identifier', value}}
+
 identifier "identifier" =
-    $[a-zA-Z]+
+    h:$[a-zA-Z]r:$[a-zA-Z0-9]* {return h+r||''}
+
+string = 
+    '"' text:$stext* '"' {return {type:'string', value:text}} 
+
+char = 
+    "'" text:$ctext* "'" {return {type:'char', value:text}} 
+
+stext = 
+    stringLit / escapeLit / hexLit
+    
+ctext = 
+    charLit / escapeLit / hexLit
+    
+hexLit = 
+    "\\\\" [xX] hex:[0-9a-fA-F] 
+    
+escapeLit = 
+    "\\\\" [bfnrtv]
+    
+stringLit = 
+    [^\\n\\\\"]
+    
+charLit = 
+    [^\\n\\\\']
 
 nonDigit =
     [^0-9 \\t\\r\\n,'",| ;]
@@ -91,5 +121,5 @@ export const parse = (text: string) => {
   const parser = peggy.generate(contents.toString(), ({ builder } as unknown) as any);
   builder.pushBranch('default');
   parser.parse(`${text}\n`);
-  return builder.root;
+  return builder.root as TypedNode;
 };

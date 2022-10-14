@@ -22,7 +22,8 @@ export class ASTBuilder {
 
   pushBranch(name) {
     const active = this.getActive();
-    const node = this.#ctx.create(`${this.activeName()}.${name}`);
+    const node = this.#ctx.create('SectionDivider');
+    node.set('name', name);
     active.add(node);
     this.#activeStack.push(node);
   }
@@ -33,8 +34,8 @@ export class ASTBuilder {
   }
 
   createComment({ loc, comment }) {
-    const node = this.#ctx.create(`${this.activeName()}.Comment`);
-    node.type = 'comment';
+    const node = this.#ctx.create('Comment');
+    node.T = 'comment';
     node.set({ comment });
     node.L = { L: loc.start.line, C: loc.start.column, O: loc.start.offset };
     this.pushTerminal(node);
@@ -43,8 +44,8 @@ export class ASTBuilder {
   createUnary({
     loc, symbol, op, comment,
   }) {
-    const node = this.#ctx.create(`${this.activeName()}.Unary`);
-    node.type = 'unary';
+    const node = this.#ctx.create('Unary');
+    node.T = 'unary';
     node.set({ comment, symbol, op });
     node.L = { L: loc.start.line, C: loc.start.column, O: loc.start.offset };
     this.pushTerminal(node);
@@ -53,8 +54,8 @@ export class ASTBuilder {
   createNonUnary({
     loc, symbol, op, arg, addr, comment,
   }) {
-    const node = this.#ctx.create(`${this.activeName()}.NonUnary`);
-    node.type = 'nonunary';
+    const node = this.#ctx.create('NonUnary');
+    node.T = 'nonunary';
     node.set({
       symbol, op, arg, addr, comment,
     });
@@ -65,15 +66,17 @@ export class ASTBuilder {
   createSection({ loc, name, comment }) {
     this.popBranch();
     this.pushBranch(name);
-    this.getActive().L = { L: loc.start.line, C: loc.start.column, O: loc.start.offset };
-    this.getActive().set({ comment });
+    const N = this.getActive();
+    N.T = 'Pseudo.Section';
+    N.L = { L: loc.start.line, C: loc.start.column, O: loc.start.offset };
+    N.set({ name, comment });
   }
 
   createDot({
     loc, symbol, directive, args, comment,
   }) {
-    const node = this.#ctx.create(`${this.activeName()}.Pseudo`);
-    node.type = 'pseudo';
+    const node = this.#ctx.create('Pseudo');
+    node.T = 'pseudo';
     // eslint-disable-next-line no-param-reassign
     if (args.length === 1 && args[0] === null) args = [];
     node.set({
@@ -84,16 +87,16 @@ export class ASTBuilder {
   }
 
   createBlank() {
-    const node = this.#ctx.create(`${this.activeName()}.Empty`);
-    node.type = 'blank';
+    const node = this.#ctx.create('Empty');
+    node.T = 'blank';
     this.pushTerminal(node);
   }
 
   createMacro({
     loc, symbol, macro, args, comment,
   }) {
-    const node = this.#ctx.create(`${this.activeName()}.Macro`);
-    node.type = 'macro';
+    const node = this.#ctx.create('Macro');
+    node.T = 'macro';
     // eslint-disable-next-line no-param-reassign
     if (args.length === 1 && args[0] === null) args = [];
     node.set({
