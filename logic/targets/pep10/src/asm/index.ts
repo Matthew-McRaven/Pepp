@@ -1,7 +1,7 @@
 // import { parse } from './peg';
 
 export * as peg from './peg';
-
+export * as visit from './visitors';
 export const x = `
 export enum TargetType {
     user = 0,
