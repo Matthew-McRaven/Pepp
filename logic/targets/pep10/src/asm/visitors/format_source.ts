@@ -27,6 +27,8 @@ export const formatLine = (line: TypedNode): string => {
   const args:ArgValue[] = [];
   switch (T) {
     case 'blank': return '';
+    // TODO: add "indentedcomment".
+    // TODO: stop indenting normal comment. Should be left justified.
     case 'comment': return `;${A.comment}`.padStart(25, ' ');
     case 'unary': return `${formatSymbol(A.symbol)}${formatOp('', A.op.toLowerCase(), [])}${formatTrailingComment(A.comment)}`;
     case 'nonunary':
