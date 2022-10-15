@@ -27,11 +27,11 @@
 /* jshint -W030 */
 /* eslint no-unused-expressions: 0 */
 
-const ASTy = require("../lib/asty.node.js")
+const AstyTest = require("../lib/asty.node.js")
 
 describe("ASTy Library", function () {
     it("node base functionality", function () {
-        const asty = new ASTy()
+        const asty = new AstyTest()
         const node = asty.create("foo")
         expect(asty.isA(node)).toBeTruthy()
         expect(typeof node).toEqual("object")
@@ -47,7 +47,7 @@ describe("ASTy Library", function () {
         expect(asty.isA(node2)).toBeTruthy()
     })
     it("node tree structure", function () {
-        const asty = new ASTy()
+        const asty = new AstyTest()
         const node1 = asty.create("1")
         const node11 = asty.create("1.1")
         const node12 = asty.create("1.2")
@@ -65,7 +65,7 @@ describe("ASTy Library", function () {
         expect(node122.parent()).toEqual(node12)
     })
     it("node extension functionality", function () {
-        const asty = new ASTy()
+        const asty = new AstyTest()
         asty.extend({
             foo: function (arg) {
                 return "<" + arg + ">"
@@ -76,7 +76,7 @@ describe("ASTy Library", function () {
         expect(node.foo("bar")).toEqual("<bar>")
     })
     it("node serialize/unserialize functionality", function () {
-        const asty = new ASTy()
+        const asty = new AstyTest()
         const node1 = asty.create("1")
         node1.set("foo", "bar")
         expect(node1.get("foo")).toEqual("bar")
@@ -93,9 +93,9 @@ describe("ASTy Library", function () {
         node1.add(node11, node12)
         node12.add(node121, node122)
         const dump1 = node1.dump()
-        const dump2 = ASTy.unserialize(ASTy.serialize(node1)).dump()
+        const dump2 = AstyTest.unserialize(AstyTest.serialize(node1)).dump()
         expect(dump1).toEqual(dump2)
-        const dump3 = ASTy.unserialize(node1.serialize()).dump()
+        const dump3 = AstyTest.unserialize(node1.serialize()).dump()
         expect(dump1).toEqual(dump3)
     })
 })
