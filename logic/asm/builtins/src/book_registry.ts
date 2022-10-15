@@ -18,9 +18,11 @@ export class BookRegistry implements IBookRegistry {
 
   #books: IBook[];
 
-  // Does not explicitly search CWD. If you want to search CWD, pass it in the list.
+  // Always search the dist/ directory of this project. It is otherwise very difficult to get access to that dir.
+  // CWD is not searched, as this is easy to add manually.
   constructor(paths: string[]) {
-    this.#searchPaths = paths.map((item) => `/${path.relative('/', item)}`);
+    const augmentedPaths = paths.concat([__dirname, `${path.resolve(__dirname, '..')}/dist`]);
+    this.#searchPaths = augmentedPaths.map((item) => `/${path.relative('/', item)}`);
     this.#books = [];
   }
 
