@@ -1,5 +1,5 @@
 module.exports =  {
   roots: ['tst'],
   testPathIgnorePatterns: ['node_modules/'],
-  testMatch: ['**/*.js'],
+  testMatch: ['**/*test.js'],
 };
