@@ -27,24 +27,24 @@
 /* jshint -W030 */
 /* eslint no-unused-expressions: 0 */
 
-const chai = require("chai")
-const expect = chai.expect
-chai.config.includeStack = true
-
 const ASTy = require("../lib/asty.node.js")
 
 describe("ASTy Library", function () {
     it("node base functionality", function () {
         const asty = new ASTy()
         const node = asty.create("foo")
-        expect(asty.isA(node)).to.be.true
-        expect(node).to.be.a("object")
-        expect(node).to.include.keys("T", "L", "A", "P", "C")
-        expect(node.type()).to.be.equal("foo")
-        expect(node).to.respondTo("type")
-        expect(node).to.respondTo("dump")
+        expect(asty.isA(node)).toBeTruthy()
+        expect(typeof node).toEqual("object")
+        expect(node).toHaveProperty("T")
+        expect(node).toHaveProperty("L")
+        expect(node).toHaveProperty("A")
+        expect(node).toHaveProperty("P")
+        expect(node).toHaveProperty("C")
+        expect(node.type()).toEqual("foo")
+        expect(()=>node.type()).not.toThrow()
+        expect(()=>node.dump()).not.toThrow()
         const node2 = node.create("foo")
-        expect(asty.isA(node2)).to.be.true
+        expect(asty.isA(node2)).toBeTruthy()
     })
     it("node tree structure", function () {
         const asty = new ASTy()
@@ -55,12 +55,14 @@ describe("ASTy Library", function () {
         const node122 = asty.create("1.2.2")
         node1.add(node11, node12)
         node12.add(node121, node122)
-        expect(node1.parent()).to.be.equal(null)
-        expect(node1.childs()).to.have.members([ node11, node12 ])
-        expect(node12.parent()).to.be.equal(node1)
-        expect(node12.childs()).to.have.members([ node121, node122 ])
-        expect(node121.parent()).to.be.equal(node12)
-        expect(node122.parent()).to.be.equal(node12)
+        expect(node1.parent()).toEqual(null)
+        expect(node1.childs()).toContain(node11)
+        expect(node1.childs()).toContain(node12)
+        expect(node12.parent()).toEqual(node1)
+        expect(node12.childs()).toContain(node121)
+        expect(node12.childs()).toContain(node122)
+        expect(node121.parent()).toEqual(node12)
+        expect(node122.parent()).toEqual(node12)
     })
     it("node extension functionality", function () {
         const asty = new ASTy()
@@ -70,20 +72,19 @@ describe("ASTy Library", function () {
             }
         })
         const node = asty.create("foo")
-        expect(node).to.be.a("object")
-        expect(node).to.respondTo("foo")
-        expect(node.foo("bar")).to.be.equal("<bar>")
+        expect(typeof node).toEqual("object")
+        expect(node.foo("bar")).toEqual("<bar>")
     })
     it("node serialize/unserialize functionality", function () {
         const asty = new ASTy()
         const node1 = asty.create("1")
         node1.set("foo", "bar")
-        expect(node1.get("foo")).to.be.equal("bar")
+        expect(node1.get("foo")).toEqual("bar")
         node1.unset("foo")
-        expect(node1.get("foo")).to.be.equal(undefined)
+        expect(node1.get("foo")).toEqual(undefined)
         node1.set("foo", "bar")
         node1.unset([ "foo" ])
-        expect(node1.get("foo")).to.be.equal(undefined)
+        expect(node1.get("foo")).toEqual(undefined)
         node1.set("foo", { bar: 42, quux: "7" })
         const node11 = asty.create("1.1")
         const node12 = asty.create("1.2")
@@ -93,9 +94,9 @@ describe("ASTy Library", function () {
         node12.add(node121, node122)
         const dump1 = node1.dump()
         const dump2 = ASTy.unserialize(ASTy.serialize(node1)).dump()
-        expect(dump1).to.be.equal(dump2)
+        expect(dump1).toEqual(dump2)
         const dump3 = ASTy.unserialize(node1.serialize()).dump()
-        expect(dump1).to.be.equal(dump3)
+        expect(dump1).toEqual(dump3)
     })
 })
 
