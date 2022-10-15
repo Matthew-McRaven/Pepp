@@ -27,7 +27,7 @@
 /* jshint -W030 */
 /* eslint no-unused-expressions: 0 */
 
-const AstyTest = require("../lib/asty.node.js")
+const AstyTest = require("../dist/index.umd.js")
 
 describe("ASTy Library", function () {
     it("node base functionality", function () {
