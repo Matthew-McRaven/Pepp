@@ -1,6 +1,6 @@
 {
     "name": "@pepnext/asty",
-    "version": "1.9.0",
+    "version": "1.9.1",
     "description": "Abstract Syntax Tree (AST) Data Structure",
     "keywords": [
         "ast",
@@ -10,12 +10,17 @@
         "data",
         "structure"
     ],
+    "types": "src/index.d.ts",
     "exports": {
         ".": {
             "import": "./dist/index.es.js",
             "require": "./dist/index.umd.js"
         }
     },
+    "files": [
+        "dist",
+        "src"
+    ],
     "license": "MIT",
     "repository": "https://gitlab.com/3rd-party/asty",
     "author": "Matthew McRaven",
