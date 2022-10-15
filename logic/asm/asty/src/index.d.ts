@@ -1,115 +1,113 @@
 // Derived from: https://github.com/rse/asty/pull/2
-declare module 'asty' {
-    export class Context {
-        create: Node['create'];
+export class Context {
+    create: Node['create'];
 
-        isA(node: any): node is Node;
+    isA(node: any): node is Node;
 
-        version(): Version;
+    version(): Version;
 
-        extend(nodeMethods: Record<string, Function>): Context;
+    extend(nodeMethods: Record<string, Function>): Context;
 
-        static serialize(node: Node): string;
+    static serialize(node: Node): string;
 
-        static unserialize(input: string): Node;
-    }
+    static unserialize(input: string): Node;
+}
 
-    export interface Node {
-        T: string | symbol;
-        A: Record<string, any>;
-        C: this[];
+export interface Node {
+    T: string | symbol;
+    A: Record<string, any>;
+    C: this[];
 
-        create(type: this['T'], attrMap?: this['A'], childs?: this[]): this;
+    create(type: this['T'], attrMap?: this['A'], childs?: this[]): this;
 
-        type(): this['T'];
+    type(): this['T'];
 
-        type(type: this['T']): this;
+    type(type: this['T']): this;
 
-        pos(): Position;
+    pos(): Position;
 
-        pos(line: number, column: number, offset: number): this;
+    pos(line: number, column: number, offset: number): this;
 
-        set(name: string, value?: any): this;
+    set(name: string, value?: any): this;
 
-        set(attrMap: this['A']): this;
+    set(attrMap: this['A']): this;
 
-        unset(name: string | string[]): this;
+    unset(name: string | string[]): this;
 
-        get(name: string): any;
+    get(name: string): any;
 
-        get(names: string[]): any[];
+    get(names: string[]): any[];
 
-        attrs(): string[];
+    attrs(): string[];
 
-        nth(): number;
+    nth(): number;
 
-        ins(pos: number, ...childs: Array<this | this[]>): this;
+    ins(pos: number, ...childs: Array<this | this[]>): this;
 
-        add(...childs: Array<this | this[]>): this;
+    add(...childs: Array<this | this[]>): this;
 
-        del(...childs: Array<this | this[]>): this;
+    del(...childs: Array<this | this[]>): this;
 
-        childs(begin?: number, end?: number): this;
+    childs(begin?: number, end?: number): this;
 
-        child(pos: number): this;
+    child(pos: number): this;
 
-        parent(): this;
+    parent(): this;
 
-        serialize(): string;
+    serialize(): string;
 
-        merge(node: this, takePos?: boolean, attrMap?: this['A']): this;
+    merge(node: this, takePos?: boolean, attrMap?: this['A']): this;
 
-        walk(callback: WalkCallback, when?: WalkWhen): this;
+    walk(callback: WalkCallback, when?: WalkWhen): this;
 
-        walkAsync(callback: WalkCallbackAsync, when?: WalkWhen): Promise<this>;
+    walkAsync(callback: WalkCallbackAsync, when?: WalkWhen): Promise<this>;
 
-        dump(maxDepth?: number, colorize?: Colorize, unicode?: boolean): string;
-    }
+    dump(maxDepth?: number, colorize?: Colorize, unicode?: boolean): string;
+}
 
-    export type WalkCallback = (
-        node: Node,
-        depth: number,
-        parent: Node,
-        when: WalkWhen
-    ) => void;
+export type WalkCallback = (
+    node: Node,
+    depth: number,
+    parent: Node,
+    when: WalkWhen
+) => void;
 
-    export type WalkCallbackAsync = (
-        node: Node,
-        depth: number,
-        parent: Node,
-        when: WalkWhen
-    ) => Promise<void>;
+export type WalkCallbackAsync = (
+    node: Node,
+    depth: number,
+    parent: Node,
+    when: WalkWhen
+) => Promise<void>;
 
-    export type WalkWhen = 'both' | 'downward' | 'upward';
-    export type Colorize = (type: ColorizeType, text: string) => string;
-    export type ColorizeType =
-        | 'boolean'
-        | 'bracket'
-        | 'colon'
-        | 'column'
-        | 'comma'
-        | 'key'
-        | 'line'
-        | 'number'
-        | 'object'
-        | 'parenthesis'
-        | 'position'
-        | 'slash'
-        | 'string'
-        | 'tree'
-        | 'type'
-        | 'value';
+export type WalkWhen = 'both' | 'downward' | 'upward';
+export type Colorize = (type: ColorizeType, text: string) => string;
+export type ColorizeType =
+    | 'boolean'
+    | 'bracket'
+    | 'colon'
+    | 'column'
+    | 'comma'
+    | 'key'
+    | 'line'
+    | 'number'
+    | 'object'
+    | 'parenthesis'
+    | 'position'
+    | 'slash'
+    | 'string'
+    | 'tree'
+    | 'type'
+    | 'value';
 
-    export interface Version {
-        major: number;
-        minor: number;
-        micro: number;
-        date: number;
-    }
+export interface Version {
+    major: number;
+    minor: number;
+    micro: number;
+    date: number;
+}
 
-    export interface Position {
-        line: number;
-        column: number;
-        offset: number;
-    }
+export interface Position {
+    line: number;
+    column: number;
+    offset: number;
 }
