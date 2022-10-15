@@ -41,6 +41,7 @@ export class BookRegistry implements IBookRegistry {
       try {
         const book = new Book(file);
         await book.init();
+        if (this.#books.filter((v) => v.name === book.name).length > 0) return;
         this.#books.push(book);
       } catch (e) {
         console.log(`${file} was not a valid book database. It failed to load with error:`);
