@@ -10,8 +10,12 @@
         "data",
         "structure"
     ],
-    "browser": "lib/asty.browser.js",
-    "main": "lib/asty.node.js",
+    "exports": {
+        ".": {
+            "import": "./dist/index.es.js",
+            "require": "./dist/index.umd.js"
+        }
+    },
     "license": "MIT",
     "repository": "https://gitlab.com/3rd-party/asty",
     "author": "Matthew McRaven",
