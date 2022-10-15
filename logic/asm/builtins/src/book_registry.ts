@@ -3,8 +3,15 @@
 import path from 'node:path';
 import fs from 'node:fs';
 
+import { fileURLToPath } from 'url';
 import type { IBook } from './book';
 import { Book } from './book';
+
+// See: https://bobbyhadz.com/blog/javascript-dirname-is-not-defined-in-es-module-scope
+// eslint-disable-next-line no-underscore-dangle
+const __filename = fileURLToPath(import.meta.url);
+// eslint-disable-next-line no-underscore-dangle
+const __dirname = path.dirname(__filename);
 
 export interface IBookRegistry {
     findBook(name: string): IBook | null
