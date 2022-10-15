@@ -40,7 +40,7 @@ class ASTYCtx {
                 "childs", "child", "parent",
                 "serialize" ],
             [ ASTYMerge, "merge" ],
-            [ ASTYWalk,  "walk" ],
+            [ ASTYWalk,  "walk", "walkAsync" ],
             [ ASTYDump,  "dump" ]
         ]
         mixins.forEach((mixin) => {

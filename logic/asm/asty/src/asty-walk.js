@@ -37,5 +37,19 @@ export default class ASTYWalk {
         _walk(this, 0, null)
         return this
     }
+    /*  walk the AST recursively  asynchronously, awaiting every cb/walk call. */
+    async walkAsync (cb, when = "downward") {
+        let _walk = async (node, depth, parent) => {
+            if (when === "downward" || when === "both")
+                await cb(node, depth, parent, "downward")
+            await Promise.allSettled(node.C.map(async (child) => {
+                await _walk(child, depth + 1, node)
+            }))
+            if (when === "upward" || when === "both")
+                await cb(node, depth, parent, "upward")
+        }
+        await _walk(this, 0, null)
+        return this
+    }
 }
 
