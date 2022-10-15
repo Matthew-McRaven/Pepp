@@ -21,7 +21,8 @@
     "author": "Matthew McRaven",
     "devDependencies": {
         "@pepnext/eslint": "^3.0.7",
-        "jest": "^27.3.1"
+        "jest": "^27.3.1",
+        "jest-junit": "^14.0.1"
     },
     "engines": {
         "node": ">=12.0.0"
@@ -29,7 +30,9 @@
     "scripts": {
         "prepublishOnly": "npx vite build",
         "build": "npx vite build",
-        "test": "npx jest"
+        "test": "npx jest",
+        "test:ci": "npm run test -- --ci --reporters=default --reporters=jest-junit --coverageReporters=cobertura --coverage",
+        "globcov": "python3 .scripts/scripts/merge-cobertura.py -o coverage.xml  coverage/cobertura-coverage.xml"
     },
     "publishConfig": {
         "@pepnext:registry": "https://gitlab.com/api/v4/projects/40246872/packages/npm/"
