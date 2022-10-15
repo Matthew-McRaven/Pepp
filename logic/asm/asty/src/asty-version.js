@@ -28,10 +28,10 @@
 /* global $date:  false */
 
 const version = {
-    major: $major,
-    minor: $minor,
-    micro: $micro,
-    date:  $date
+    major: 1,
+    minor: 9,
+    micro: 0,
+    date:  20221015
 }
 
 export default version
