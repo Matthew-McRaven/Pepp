@@ -17,6 +17,7 @@ export interface Node {
     T: string | symbol;
     A: Record<string, any>;
     C: this[];
+    L: Position
 
     create(type: this['T'], attrMap?: this['A'], childs?: this[]): this;
 
