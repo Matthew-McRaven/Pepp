@@ -27,7 +27,7 @@
 /* jshint -W030 */
 /* eslint no-unused-expressions: 0 */
 
-const AstyTest = require("../dist/index.umd.js")
+import { default as AstyTest } from "../dist/index.es.js"
 
 describe("ASTy Library", function () {
     it("node base functionality", function () {
