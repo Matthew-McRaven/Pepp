@@ -9,4 +9,3 @@ malloc:  LDWX    hpPtr,d     ;returned pointer
          RET                 
 hpPtr:   .WORD heap          ;address of next free byte
 heap:    .BLOCK  1           ;first byte in the heap
-.END

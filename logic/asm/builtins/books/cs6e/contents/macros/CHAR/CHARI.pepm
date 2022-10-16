@@ -3,4 +3,3 @@
 ; Uses accumulator as a temporary
 LDBA charIn, d
 STBA $1, $2
-.END

@@ -1,6 +1,6 @@
 {
   "name": "@pepnext/logic-builtins",
-  "version": "3.1.3",
+  "version": "3.1.4",
   "description": "Manage figures and macros for various textbook editions.",
   "license": "GPL-3.0",
   "author": "Matthew McRaven",

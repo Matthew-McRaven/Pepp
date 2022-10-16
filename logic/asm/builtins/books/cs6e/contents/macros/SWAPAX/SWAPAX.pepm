@@ -6,4 +6,3 @@
          LDWX    0, s        ;Move X <- A
          LDWA    2, s        ;Move A <- old X
          ADDSP   4, i        ;Deallocate temporaries #2h#2h
-         .END

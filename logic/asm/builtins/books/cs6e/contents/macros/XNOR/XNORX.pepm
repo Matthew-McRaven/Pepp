@@ -1,4 +1,3 @@
 @XNORX 2
 XORX $1, $2
 NOTX
-.END

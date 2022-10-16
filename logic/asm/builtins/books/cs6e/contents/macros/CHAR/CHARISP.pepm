@@ -5,4 +5,3 @@ STWA -2, s
 LDBA charIn, d
 STBA $1, $2
 LDWA -2, s
-.END

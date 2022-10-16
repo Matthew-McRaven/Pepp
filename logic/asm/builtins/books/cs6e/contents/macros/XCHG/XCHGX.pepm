@@ -11,4 +11,3 @@
          LDWA    2, s        ;Restore A, A <- Mem[SP+2]
          LDWX    4,s         ;X<-Mem[SP+4]. Perform last so NZVCS are correct.
          ADDSP   6, i        ;Deallocate temporaries #2h#2h#2h
-         .END

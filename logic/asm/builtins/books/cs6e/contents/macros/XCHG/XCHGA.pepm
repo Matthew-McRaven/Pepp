@@ -9,5 +9,3 @@
          STWA    $1,$2      ;Mem[Opr]<-Mem[SP]
          LDWA    2,s        ;A<-Mem[SP+2]
          ADDSP   4,i        ;Deallocate temporaries #2h#2h
-         .END
-
