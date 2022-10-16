@@ -1,6 +1,6 @@
 {
     "name": "@pepnext/asty",
-    "version": "1.9.2",
+    "version": "1.9.3",
     "description": "Abstract Syntax Tree (AST) Data Structure",
     "keywords": [
         "ast",
@@ -11,6 +11,7 @@
         "structure"
     ],
     "types": "src/index.d.ts",
+    "type": "module",
     "exports": {
         ".": {
             "import": "./dist/index.es.js",
