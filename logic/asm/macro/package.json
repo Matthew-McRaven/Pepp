@@ -1,6 +1,6 @@
 {
   "name": "@pepnext/logic-macro",
-  "version": "3.1.0",
+  "version": "3.1.1",
   "description": "Identify and manipulate macro expressions.",
   "repository": "https://gitlab.com/pepnext/logic/macro",
   "license": "GPL-3.0",
@@ -37,6 +37,7 @@
   "devDependencies": {
     "@jest/globals": "^27.3.1",
     "@pepnext/eslint": "^3.0.3",
+    "@pepnext/logic-builtins": "^3.1.3",
     "@pepnext/tsconfig": "^3.0.0",
     "@rollup/plugin-typescript": "^8.5.0",
     "@types/jest": "^27.4.0",

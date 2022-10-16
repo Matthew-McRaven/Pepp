@@ -12,7 +12,7 @@ MacroDecl =
     "@" name:$([a-zA-Z][a-zA-Z0-9]*) _+ count:$[0-9]+ _* {return [name, Number.parseInt(count,10)]}
 
 Rest =
-    text: $[^\r\n]+ {return [undefined, text]}
+    text: $[^\r\n]* {return [undefined, text]}
 
 nl "newline"=
    [\n] / [\r][\n]
@@ -25,7 +25,7 @@ _ "whitespace" =
 const parseMacroDeclaration = (body: string): undefined | ParsedMacro => {
   const parser = peggy.generate(grammar);
   try {
-    const lines = parser.parse(body);
+    const lines = parser.parse(!body.endsWith('\n') ? `${body}\n` : body);
     // If there's no lines, there is no macro.
     if (lines.length === 0) return undefined;
     // If the first line isn't a macro declaration, it isn't a macro.

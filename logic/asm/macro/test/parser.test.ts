@@ -46,11 +46,11 @@ describe('macro.parser with invalid macro declarations', () => {
     const parsed = parseMacroDeclaration(text);
     expect(parsed).toBeUndefined();
   });
-  it('must end in \\n', async () => {
+  it('will be gracious about newlines', async () => {
     const texts = ['@test 0', '@test 0\nLorem Ipsum'];
     texts.forEach((text) => {
       const parsed = parseMacroDeclaration(text);
-      expect(parsed).toBeUndefined();
+      expect(parsed).not.toBeUndefined();
     });
   });
   it('requires an argc', async () => {
