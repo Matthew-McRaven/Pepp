@@ -10,18 +10,17 @@ const program = `
     ;comment
 `;
 const formatted = `
-symbol: hello    world, d      ;comment
-        inst     "char"
-s:      asra                   ;comment
-        .ASCII   "Hi s\\tan \\x00"
-        @macrO   0xA, 'ba'     ;comment
-        fish     -25, go
-                 ;comment
+symbol:  hello    world, d      ;comment
+         inst     "char"
+s:       asra                   ;comment
+         .ASCII   "Hi s\\tan \\x00"
+         @macrO   0xA, 'ba'     ;comment
+         fish     -25, go
+;comment
 `;
 describe('asm.visit.formatSource for all node types', () => {
   it('processes program stress test', () => {
-    const tree = asm.peg.parse(program);
-    console.log(tree.dump());
+    const tree = asm.peg.parseRoot(program);
     expect(asm.visit.formatTree(tree)).toEqual(formatted);
   });
 });

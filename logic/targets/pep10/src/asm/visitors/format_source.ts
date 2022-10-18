@@ -1,8 +1,8 @@
 import type { ArgValue, TypedNode } from '../peg/nodes';
 
-const formatSymbol = (name: string | null): string => {
-  if (!name) return '        ';
-  return (`${name}:`).padEnd(8, ' ');
+const formatSymbol = (name: string | null, minuend?:number): string => {
+  if (!name) return ''.padEnd(9 - (minuend || 0), ' ');
+  return (`${name}:`).padEnd(9 - (minuend || 0), ' ');
 };
 
 const formatArg = (arg: ArgValue): string => {
