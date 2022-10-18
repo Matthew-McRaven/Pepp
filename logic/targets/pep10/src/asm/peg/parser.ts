@@ -1,11 +1,12 @@
 /* eslint-disable max-len,no-useless-escape */
 import { default as peggy } from 'peggy';
-import { default as asty } from 'asty';
+import { default as asty } from '@pepnext/asty';
 import { ASTBuilder } from './detectors';
-import type { TypedNode } from './nodes';
+import type { TypedNode } from '../ast/nodes';
 
 const contents = `{{
   let builder = options.builder;
+  let sections = options.sections;
 }}
 start = Term
 
@@ -29,6 +30,7 @@ NonUnary =
     
 Section =
     _ ".section"i _ head: identifier _ comment:comment? nl {
+      if(!sections) error("Sections are not allowed");
       builder.createSection({loc:location(), name:head, comment})
     }
     
@@ -115,11 +117,17 @@ nl "newline"=
 comment "comment" =
     ";" value:$[^\\r\\n\\|]*{return value}`;
 
-export const parse = (text: string) => {
-  const ASTy = asty as any;
+const ASTy = asty as any;
+
+export const parseRoot = (text: string) => {
   const builder = new ASTBuilder(new ASTy());
-  const parser = peggy.generate(contents.toString(), ({ builder } as unknown) as any);
+  const parser = peggy.generate(contents, ({ builder, sections: true } as unknown) as any);
   builder.pushBranch('default');
   parser.parse(`${text}\n`);
   return builder.root as TypedNode;
+};
+export const parseMacro = (text: string, root:TypedNode) => {
+  const builder = new ASTBuilder(root.A.ctx, root);
+  const parser = peggy.generate(contents, ({ builder, sections: false } as unknown) as any);
+  parser.parse(`${text}\n`);
 };

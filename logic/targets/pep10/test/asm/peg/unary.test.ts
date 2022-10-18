@@ -2,7 +2,7 @@ import { asm } from '../../../src/lib';
 
 describe('asm.peg for unary', () => {
   it('detects unary instructions at start of line', () => {
-    const root = asm.peg.parse('hi\n');
+    const root = asm.peg.parseRoot('hi\n');
     // C[0] is default section, C[0].C[0] is first line of code
     const unary = root.C[0].C[0];
     expect(unary.T).toStrictEqual('unary');
@@ -11,7 +11,7 @@ describe('asm.peg for unary', () => {
     expect(unary.A.op).toBe('hi');
   });
   it('detects unary instructions with comments', () => {
-    const root = asm.peg.parse('hi;world\n');
+    const root = asm.peg.parseRoot('hi;world\n');
     // C[0] is default section, C[0].C[0] is first line of code
     const unary = root.C[0].C[0];
     expect(unary.T).toStrictEqual('unary');
@@ -21,7 +21,7 @@ describe('asm.peg for unary', () => {
     expect(unary.A.comment).toBe('world');
   });
   it('detects unary instructions with whitespace', () => {
-    const root = asm.peg.parse('  hi\n\tworld\n');
+    const root = asm.peg.parseRoot('  hi\n\tworld\n');
     // C[0] is default section, C[0].C[0] is first line of code
     const unary0 = root.C[0].C[0];
     expect(unary0.T).toStrictEqual('unary');

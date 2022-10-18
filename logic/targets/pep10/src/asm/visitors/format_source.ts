@@ -1,4 +1,4 @@
-import type { ArgValue, TypedNode } from '../peg/nodes';
+import type { ArgValue, TypedNode } from '../ast/nodes';
 
 const formatSymbol = (name: string | null, minuend?:number): string => {
   if (!name) return ''.padEnd(9 - (minuend || 0), ' ');

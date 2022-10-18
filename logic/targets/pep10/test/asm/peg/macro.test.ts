@@ -2,7 +2,7 @@ import { asm } from '../../../src/lib';
 
 describe('asm.peg for macro', () => {
   it('detects 0-arity macro at the start of the line', () => {
-    const root = asm.peg.parse('@END\n');
+    const root = asm.peg.parseRoot('@END\n');
     // C[0] is default section, C[0].C[0] is first line of code
     const macro = root.C[0].C[0];
     expect(macro.T).toStrictEqual('macro');
@@ -12,7 +12,7 @@ describe('asm.peg for macro', () => {
     expect(macro.A.args.length).toBe(0);
   });
   it('detects 0-arity macro preceded by whitespace', () => {
-    const root = asm.peg.parse('\t @END\n');
+    const root = asm.peg.parseRoot('\t @END\n');
     // C[0] is default section, C[0].C[0] is first line of code
     const macro = root.C[0].C[0];
     expect(macro.T).toStrictEqual('macro');
@@ -22,7 +22,7 @@ describe('asm.peg for macro', () => {
     expect(macro.A.args.length).toBe(0);
   });
   it('detects 1-arity macro at the start of the line', () => {
-    const root = asm.peg.parse('@BLAGH 1\n');
+    const root = asm.peg.parseRoot('@BLAGH 1\n');
     // C[0] is default section, C[0].C[0] is first line of code
     const macro = root.C[0].C[0];
     expect(macro.T).toStrictEqual('macro');
@@ -33,7 +33,7 @@ describe('asm.peg for macro', () => {
     expect(macro.A.args[0]).toStrictEqual({ type: 'decimal', value: 1 });
   });
   it('detects >1-arity macro at the start of the line', () => {
-    const root = asm.peg.parse('@BLAGH 1,2,3\n');
+    const root = asm.peg.parseRoot('@BLAGH 1,2,3\n');
     // C[0] is default section, C[0].C[0] is first line of code
     const macro = root.C[0].C[0];
     expect(macro.T).toStrictEqual('macro');

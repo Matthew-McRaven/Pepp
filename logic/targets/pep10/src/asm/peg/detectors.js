@@ -1,7 +1,10 @@
 export class ASTBuilder {
-  constructor(ctx) {
+  constructor(ctx, root) {
     this.#ctx = ctx;
-    this.root = ctx.create('.');
+    if (!root) {
+      this.root = ctx.create('root');
+      this.root.set({ errors: [], ctx: this.#ctx });
+    } else this.root = root;
     this.#activeStack = [this.root];
   }
 
@@ -17,13 +20,17 @@ export class ASTBuilder {
 
   pushTerminal(node) {
     const active = this.getActive();
+    node.A.ctx = active.ctx;
+    node.A.errors = [];
     active.add(node);
   }
 
   pushBranch(name) {
     const active = this.getActive();
-    const node = this.#ctx.create('SectionDivider');
+    const node = this.#ctx.create('sectionGroup');
     node.set('name', name);
+    node.A.ctx = active.ctx;
+    node.A.errors = [];
     active.add(node);
     this.#activeStack.push(node);
   }
@@ -38,6 +45,7 @@ export class ASTBuilder {
     node.T = 'comment';
     node.set({ comment });
     node.L = { L: loc.start.line, C: loc.start.column, O: loc.start.offset };
+    node.set('rootMappedL', node.L);
     this.pushTerminal(node);
   }
 
@@ -48,6 +56,7 @@ export class ASTBuilder {
     node.T = 'unary';
     node.set({ comment, symbol, op });
     node.L = { L: loc.start.line, C: loc.start.column, O: loc.start.offset };
+    node.set('rootMappedL', node.L);
     this.pushTerminal(node);
   }
 
@@ -60,6 +69,7 @@ export class ASTBuilder {
       symbol, op, arg, addr, comment,
     });
     node.L = { L: loc.start.line, C: loc.start.column, O: loc.start.offset };
+    node.set('rootMappedL', node.L);
     this.pushTerminal(node);
   }
 
@@ -67,8 +77,9 @@ export class ASTBuilder {
     this.popBranch();
     this.pushBranch(name);
     const N = this.getActive();
-    N.T = 'Pseudo.Section';
+    N.T = 'pseudo.section';
     N.L = { L: loc.start.line, C: loc.start.column, O: loc.start.offset };
+    N.set('rootMappedL', N.L);
     N.set({ name, comment });
   }
 
@@ -83,6 +94,7 @@ export class ASTBuilder {
       symbol, directive, args, comment,
     });
     node.L = { L: loc.start.line, C: loc.start.column, O: loc.start.offset };
+    node.set('rootMappedL', node.L);
     this.pushTerminal(node);
   }
 
@@ -103,6 +115,7 @@ export class ASTBuilder {
       symbol, macro, args, comment,
     });
     node.L = { L: loc.start.line, C: loc.start.column, O: loc.start.offset };
+    node.set('rootMappedL', node.L);
     this.pushTerminal(node);
   }
 

@@ -2,7 +2,7 @@ import { asm } from '../../../src/lib';
 
 describe('asm.peg for comments', () => {
   it('detects comments at start of line', () => {
-    const root = asm.peg.parse(';hi\n');
+    const root = asm.peg.parseRoot(';hi\n');
     // C[0] is default section, C[0].C[0] is first line of code
     const comment = root.C[0].C[0];
     expect(comment.T).toStrictEqual('comment');
@@ -11,7 +11,7 @@ describe('asm.peg for comments', () => {
     expect(comment.A.comment).toBe('hi');
   });
   it('detects comments after a space', () => {
-    const root = asm.peg.parse('  ;hi\n');
+    const root = asm.peg.parseRoot('  ;hi\n');
     // C[0] is default section, C[0].C[0] is first line of code
     const comment = root.C[0].C[0];
     expect(comment.T).toStrictEqual('comment');
@@ -20,7 +20,7 @@ describe('asm.peg for comments', () => {
     expect(comment.A.comment).toBe('hi');
   });
   it('detects comments after a tab', () => {
-    const root = asm.peg.parse('\t;hi\n');
+    const root = asm.peg.parseRoot('\t;hi\n');
     // C[0] is default section, C[0].C[0] is first line of code
     const comment = root.C[0].C[0];
     expect(comment.T).toStrictEqual('comment');
@@ -29,7 +29,7 @@ describe('asm.peg for comments', () => {
     expect(comment.A.comment).toBe('hi');
   });
   it('detects multiple comments', () => {
-    const root = asm.peg.parse('\t;hi\n  ;world\n');
+    const root = asm.peg.parseRoot('\t;hi\n  ;world\n');
     // C[0] is default section, C[0].C[0] is first line of code
     const comment0 = root.C[0].C[0];
     expect(comment0.T).toStrictEqual('comment');
