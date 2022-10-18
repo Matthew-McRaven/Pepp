@@ -30,18 +30,22 @@
     "extends": "./node_modules/@pepnext/eslint/.eslintrc.js"
   },
   "dependencies": {
+    "@pepnext/asty": "^1.9.0",
     "@pepnext/bindings": "^1.0.0",
+    "@pepnext/logic-macro": "^3.1.0",
     "astq": "^2.7.9",
-    "asty": "^1.8.18",
     "file-uri-to-path": "^2.0.0",
     "node-addon-api": "^5.0.0",
-    "peggy": "^2.0.1"
+    "peggy": "^2.0.1",
+    "toposort": "^2.0.2"
   },
   "devDependencies": {
     "@jest/globals": "^27.3.1",
     "@pepnext/eslint": "^3.0.7",
+    "@pepnext/logic-builtins": "^3.1.0",
     "@pepnext/tsconfig": "^3.0.1",
     "@types/jest": "^27.4.0",
+    "@types/toposort": "^2.0.3",
     "cross-env": "^7.0.3",
     "jest": "^27.3.1",
     "jest-junit": "^13.0.0",
