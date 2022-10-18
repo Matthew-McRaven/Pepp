@@ -22,23 +22,25 @@ const formatTrailingComment = (comment: string | null):string => {
   return `;${comment}`;
 };
 
-export const formatLine = (line: TypedNode): string => {
+export const formatLine = (line: TypedNode, symbolMinuend?:number): string => {
   const { T, A } = line;
   const args:ArgValue[] = [];
   switch (T) {
     case 'blank': return '';
     // TODO: add "indentedcomment".
     // TODO: stop indenting normal comment. Should be left justified.
-    case 'comment': return `;${A.comment}`.padStart(25, ' ');
-    case 'unary': return `${formatSymbol(A.symbol)}${formatOp('', A.op.toLowerCase(), [])}${formatTrailingComment(A.comment)}`;
+    case 'comment':
+      if (A.indent === undefined) return `;${A.comment}`;
+      throw Error('Unrecognized indentation type');
+    case 'unary': return `${formatSymbol(A.symbol, symbolMinuend)}${formatOp('', A.op.toLowerCase(), [])}${formatTrailingComment(A.comment)}`;
     case 'nonunary':
       args.push(A.arg);
       if (A.addr) args.push({ type: 'identifier', value: A.addr.toLowerCase() });
-      return `${formatSymbol(A.symbol)}${formatOp('', A.op.toLowerCase(), args)}${formatTrailingComment(A.comment)}`;
-    case 'pseudo': return `${formatSymbol(A.symbol)}${formatOp('.', A.directive.toUpperCase(), A.args)}${formatTrailingComment(A.comment)}`;
+      return `${formatSymbol(A.symbol, symbolMinuend)}${formatOp('', A.op.toLowerCase(), args)}${formatTrailingComment(A.comment)}`;
+    case 'pseudo': return `${formatSymbol(A.symbol, symbolMinuend)}${formatOp('.', A.directive.toUpperCase(), A.args)}${formatTrailingComment(A.comment)}`;
     case 'section':
-      return `${formatSymbol('')}${formatOp('.', 'SECTION', [{ type: 'string', value: A.name }])}${formatTrailingComment(A.comment)}`;
-    case 'macro': return `${formatSymbol(A.symbol)}${formatOp('@', A.macro, A.args)}${formatTrailingComment(A.comment)}`;
+      return `${formatSymbol('', symbolMinuend)}${formatOp('.', 'SECTION', [{ type: 'string', value: A.name }])}${formatTrailingComment(A.comment)}`;
+    case 'macro': return `${formatSymbol(A.symbol, symbolMinuend)}${formatOp('@', A.macro, A.args)}${formatTrailingComment(A.comment)}`;
     default: throw new Error('Unexpected node type');
   }
 };
