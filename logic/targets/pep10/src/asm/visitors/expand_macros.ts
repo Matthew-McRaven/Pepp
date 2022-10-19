@@ -84,6 +84,7 @@ export const pushDownSymbols = (tree:TypedNode) => {
         else {
           // Construct on separate line (not in create(...)) so that we can ensure type correctness.
           const values: PseudoAttrib = {
+            symtab: child.A.symtab,
             directive: 'EQUATE',
             symbol: parent.A.symbol,
             args: [{ type: 'identifier', value: child.A.symbol }],

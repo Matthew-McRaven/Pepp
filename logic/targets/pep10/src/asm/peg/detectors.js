@@ -1,9 +1,12 @@
+import { BranchTable } from '@pepnext/logic-symbol';
+
 export class ASTBuilder {
   constructor(ctx, root) {
     this.#ctx = ctx;
     if (!root) {
       this.root = ctx.create('root');
       this.root.set({ errors: [], ctx: this.#ctx });
+      this.root.set('symtab', new BranchTable.u16());
     } else this.root = root;
     this.#activeStack = [this.root];
   }
@@ -22,6 +25,7 @@ export class ASTBuilder {
     const active = this.getActive();
     node.A.ctx = active.ctx;
     node.A.errors = [];
+    node.A.symtab = active.A.symtab;
     active.add(node);
   }
 
@@ -31,6 +35,7 @@ export class ASTBuilder {
     node.set('name', name);
     node.A.ctx = active.ctx;
     node.A.errors = [];
+    node.A.symtab = active.A.symtab.addLeaf();
     active.add(node);
     this.#activeStack.push(node);
   }
