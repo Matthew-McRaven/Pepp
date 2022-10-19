@@ -26,8 +26,7 @@ make_interface(symbol symbol)
 target_include_directories(symbol INTERFACE ${Boost_INCLUDE_DIRS})
 target_link_libraries(symbol INTERFACE fmt)
 
-make_test(symbol-test test)
-target_link_libraries(symbol-test PUBLIC symbol)
+make_test(symbol-test test symbol)
 
 #message(${NODE_ROOT}/include/node)
 make_napi_module(bind-symbol16 bind 16)
