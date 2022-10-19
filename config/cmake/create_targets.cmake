@@ -65,7 +65,7 @@ endMacro()
 macro(make_test target_name root dep)
     file(GLOB_RECURSE sources CONFIGURE_DEPENDS "${root}/**/*.cpp" "${root}/*.cpp")
 
-    if ({sources})
+    if (sources)
         inject_cxx_standard()
         inject_code_coverage()
 
