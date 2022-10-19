@@ -16,3 +16,6 @@
 [submodule ".scripts"]
 	path = .scripts
 	url = https://gitlab.com/pepnext/scripts.git
+[submodule ".tsconfig"]
+	path = .tsconfig
+	url = https://gitlab.com/pepnext/config/tsconfig.git
