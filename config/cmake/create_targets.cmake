@@ -62,18 +62,20 @@ endMacro()
 
 # Helper to create a unit test program for unit tests.
 # Assumes that it is being called from the root of a library, so tests reside in ./test.
-macro(make_test target_name root)
+macro(make_test target_name root dep)
     file(GLOB_RECURSE sources CONFIGURE_DEPENDS "${root}/**/*.cpp" "${root}/*.cpp")
 
-    inject_cxx_standard()
-    inject_code_coverage()
+    if ({sources})
+        inject_cxx_standard()
+        inject_code_coverage()
 
-    add_executable(${target_name} ${sources})
+        add_executable(${target_name} ${sources})
 
-    # Every test *should* use catch, so we will link against it here.
-    target_link_libraries(${target_name} PRIVATE catch)
-    # And run the test with the correct reporting options.
-    add_test(NAME ${target_name} COMMAND ${target_name} -r junit --out junit.xml)
+        # Every test *should* use catch, so we will link against it here.
+        target_link_libraries(${target_name} PRIVATE catch ${dep})
+        # And run the test with the correct reporting options.
+        add_test(NAME ${target_name} COMMAND ${target_name} -r junit --out junit.xml)
+    endif ()
 endmacro()
 
 # Helper to create a unit test program for unit tests.
@@ -98,11 +100,11 @@ macro(make_napi_module target_name root bitness)
             OUTPUT_VARIABLE TARGET_NODE_ROOT
             )
     # NPM isn't always available...
-    if(NOT "${TARGET_NODE_ROOT}" STREQUAL "")
+    if (NOT "${TARGET_NODE_ROOT}" STREQUAL "")
         # Node injects a \n, we must remove. See: https://stackoverflow.com/questions/56288848/unix-make-file-fails-with-cmakejs-when-adding-a-dependency
-    string(REPLACE "\n" "" TARGET_NODE_ROOT ${TARGET_NODE_ROOT})
-    string(REPLACE "\"" "" TARGET_NODE_ROOT ${TARGET_NODE_ROOT})
-    endif()
+        string(REPLACE "\n" "" TARGET_NODE_ROOT ${TARGET_NODE_ROOT})
+        string(REPLACE "\"" "" TARGET_NODE_ROOT ${TARGET_NODE_ROOT})
+    endif ()
 
     # Include other possible Node headers by getting the node executable dir
     find_program(NODE_BIN_LOCATION node)
