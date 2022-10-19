@@ -13,12 +13,12 @@
     ".cmake"
   ],
   "scripts": {
-    "prebuild": "npm explore @pepnext/logic-symbol -- npm run build && npx cmake-js -BRelease . -p8 ",
+    "prebuild": "npx cmake-js -BRelease . -p8 ",
     "build": "npx tsc -p tsconfig.json",
     "clean": "npx rimraf -rf ./dist",
     "docs": "npx typedoc --out docs src/lib.ts",
     "globcov": "python3 .scripts/scripts/merge-cobertura.py -o coverage.xml  coverage/cobertura-coverage.xml",
-    "install": "npm run build",
+    "install": "npm explore @pepnext/logic-symbol -- npm run build",
     "prepublishOnly": "npm run build",
     "test": "npm run test:native && npm run test:js",
     "test:ci": "npm run test:ci:js && npm run test:native",
