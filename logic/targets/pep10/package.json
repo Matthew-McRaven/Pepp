@@ -13,7 +13,7 @@
     ".cmake"
   ],
   "scripts": {
-    "prebuild": "npx cmake-js -BRelease . -p8 ",
+    "prebuild": "npm explore @pepnext/logic-symbol -- npm run build && npx cmake-js -BRelease . -p8 ",
     "build": "npx tsc -p tsconfig.json",
     "clean": "npx rimraf -rf ./dist",
     "docs": "npx typedoc --out docs src/lib.ts",
@@ -33,6 +33,7 @@
     "@pepnext/asty": "^1.9.0",
     "@pepnext/bindings": "^1.0.0",
     "@pepnext/logic-macro": "^3.1.0",
+    "@pepnext/logic-symbol": "^3.1.0",
     "astq": "^2.7.9",
     "file-uri-to-path": "^2.0.0",
     "node-addon-api": "^5.0.0",

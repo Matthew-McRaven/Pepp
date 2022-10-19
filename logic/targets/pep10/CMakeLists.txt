@@ -23,10 +23,11 @@ add_subdirectory(3rd-party)
 
 enable_testing()
 make_library(targets-pep10-isa isa)
-target_include_directories(targets-pep10-isa INTERFACE ${Boost_INCLUDE_DIRS})
+set_property(TARGET targets-pep10-isa PROPERTY POSITION_INDEPENDENT_CODE ON)
+target_include_directories(targets-pep10-isa PUBLIC ${Boost_INCLUDE_DIRS})
 target_link_libraries(targets-pep10-isa PUBLIC magic_enum)
 
-make_test(targets-pep10-isa-test test)
+make_test(targets-pep10-isa-test test/isa)
 target_link_libraries(targets-pep10-isa-test PUBLIC targets-pep10-isa)
 
 make_napi_module(bind-targets-pep10-16 bind 16)
