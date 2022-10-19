@@ -48,6 +48,8 @@ public:
   Napi::Value enumerate_symbols(const Napi::CallbackInfo &info);
   // policy.
   Napi::Value listing(const Napi::CallbackInfo &info);
+  // policy.
+  Napi::Value find(const Napi::CallbackInfo &info);
 
 private:
   std::shared_ptr<symbol::BranchTable<addr_size_t>> table;
@@ -79,6 +81,8 @@ public:
   Napi::Value enumerate_symbols(const Napi::CallbackInfo &info);
   // policy.
   Napi::Value listing(const Napi::CallbackInfo &info);
+  // policy.
+  Napi::Value find(const Napi::CallbackInfo &info);
 
 private:
   std::shared_ptr<symbol::LeafTable<addr_size_t>> table;

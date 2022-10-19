@@ -56,6 +56,8 @@ export interface ITableNative {
 
     listing(policy: TraversalPolicy): string
 
+    find(name:string, policy: TraversalPolicy): Array<ISymbolNative>
+
     // If two tables point to the same underlying data source, then the table indices will be equal.
     tableIndex(): number
 }

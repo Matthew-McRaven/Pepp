@@ -27,10 +27,21 @@ describe('symbol.multitable', () => {
   it('constructs a large tree without throwing', () => {
     expect(() => createTables()).not.toThrow();
   });
-  it('can find by name', () => {
+  it('can reference+exist by name', () => {
     const { top, bottomLeaf } = createTables();
     bottomLeaf.reference('hello');
     expect(top.exists('hello', TraversalPolicy.children)).toBe(true);
+  });
+  it('can 1 symbol find by name', () => {
+    const { top, bottomLeaf } = createTables();
+    bottomLeaf.reference('hello');
+    expect(top.find('hello', TraversalPolicy.children).length).toEqual(1);
+  });
+  it('can 2 symbols find by name', () => {
+    const { top, bottomLeaf, midLeaf } = createTables();
+    bottomLeaf.reference('hello');
+    midLeaf.reference('hello');
+    expect(top.find('hello', TraversalPolicy.children).length).toEqual(2);
   });
   it(' makes ancestor tables inaccessible to descendant table when TravesalPolicy.children unless marked global', () => {
     const { midLeaf, bottomLeaf } = createTables();

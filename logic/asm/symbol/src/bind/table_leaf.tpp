@@ -254,6 +254,37 @@ Napi::Value LeafTable<addr_size_t>::listing(const Napi::CallbackInfo &info) {
 }
 
 template<typename addr_size_t>
+Napi::Value LeafTable<addr_size_t>::find(const Napi::CallbackInfo &info) {
+  Napi::Env env = info.Env();
+  if (info.Length() < 1 || info.Length() > 2) {
+    Napi::TypeError::New(env, "Expected at [1,2] arguments").ThrowAsJavaScriptException();
+    return env.Null();
+  } else if (!info[0].IsString()) {
+    Napi::TypeError::New(env, "First argument must be a string").ThrowAsJavaScriptException();
+    return env.Null();
+  } else if (info.Length() == 2 && !info[1].IsNumber()) {
+    Napi::TypeError::New(env,
+                         "Second argument must be a number (see TraversalPolicy)").ThrowAsJavaScriptException();
+    return env.Null();
+  }
+
+  // No bounds checking on traversal policies, that's the algorithm's job.
+  auto policy = symbol::TraversalPolicy::kChildren;
+  if (info.Length() == 1)
+    policy = static_cast<symbol::TraversalPolicy>(info[1].ToNumber().Int32Value());
+
+  auto symbols = symbol::select_by_name<addr_size_t>(this->table, info[0].ToString().Utf8Value(), policy);
+  auto array = Napi::Array::New(env, symbols.size());
+  uint64_t idx = 0;
+  for (auto &item : symbols) {
+    auto sym = Symbol<addr_size_t>::GetClass(env, ADDR_SUFFIX).New(
+        {Napi::External<std::shared_ptr<symbol::entry<addr_size_t>>>::New(env, &item)});
+    array[idx++] = sym;
+  }
+  return array;
+}
+
+template<typename addr_size_t>
 Napi::Function LeafTable<addr_size_t>::GetClass(Napi::Env env, std::string suffix) {
   return LeafTable<addr_size_t>::DefineClass(env, ("LeafTable" + suffix).c_str(), {
       LeafTable::InstanceMethod("get", &LeafTable::get),
@@ -269,5 +300,6 @@ Napi::Function LeafTable<addr_size_t>::GetClass(Napi::Env env, std::string suffi
       LeafTable::InstanceMethod("exists", &LeafTable::exists),
       LeafTable::InstanceMethod("enumerateSymbols", &LeafTable::enumerate_symbols),
       LeafTable::InstanceMethod("listing", &LeafTable::listing),
+      LeafTable::InstanceMethod("find", &LeafTable::find),
   });
 }
