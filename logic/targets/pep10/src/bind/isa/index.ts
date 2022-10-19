@@ -14,14 +14,12 @@ const splitIntoBytes = (arg:number, count: number):Uint8Array => {
   let it = 0;
   let temp = arg;
   while (it < count) {
-    console.log(arg, it, temp % 256);
     ret[count - it - 1] = temp % 256;
     it += 1;
     // TODO: Handle 64 bit ints
     // eslint-disable-next-line no-bitwise
     temp >>= 8;
   }
-  console.log(ret);
   return ret;
 };
 

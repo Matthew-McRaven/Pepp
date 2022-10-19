@@ -36,9 +36,7 @@ export const nodeToHex = (node:TypedNode, bytes: Uint8Array, startIndex:number) 
     case 'pseudo': psuedoToHex(node, bytes, startIndex);
       break;
     case 'nonunary':
-      console.log(node.A.op, node.A.addr);
       argBytes = isa.nonunaryMnemonicToOpcode(node.A.op, node.A.addr || 'i') || Uint8Array.from([0]);
-      console.log(argBytes);
       bytes.set(argBytes, startIndex);
       argBytes = isa.argToBytes(node.A.arg, createSymbolLookup(node));
       bytes.set(argBytes, startIndex + 1);
