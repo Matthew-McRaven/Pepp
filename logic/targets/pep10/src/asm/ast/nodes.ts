@@ -13,6 +13,7 @@ export interface ExtendedAttrib{
     ctx: ASTy.Context
     errors: Error[]
     rootMappedL : Position | undefined
+    address?: number
 }
 export type ArgValue = CharLit | StringLit | Identifier | Decimal | Hexadecimal
 
