@@ -175,8 +175,8 @@ Napi::Value Symbol<addr_size_t>::is_addr(const Napi::CallbackInfo &info) {
 template<typename addr_size_t>
 Napi::Value Symbol<addr_size_t>::set_addr(const Napi::CallbackInfo &info) {
   Napi::Env env = info.Env();
-  if (info.Length() != 2) {
-    Napi::TypeError::New(env, "Expected [2,3] argument").ThrowAsJavaScriptException();
+  if (info.Length() != 3) {
+    Napi::TypeError::New(env, "Expected 3 arguments").ThrowAsJavaScriptException();
   } else if (!info[0].IsNumber()) {
     Napi::TypeError::New(env, "Argument 1 must be a number").ThrowAsJavaScriptException();
   } else if (!info[1].IsNumber()) {

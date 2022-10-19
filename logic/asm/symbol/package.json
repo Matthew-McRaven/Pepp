@@ -1,6 +1,6 @@
 {
   "name": "@pepnext/logic-symbol",
-  "version": "3.2.0",
+  "version": "3.2.1",
   "description": "Manipulate symbol locations, values, and properties.",
   "repository": "https://gitlab.com/pepnext/logic/symbol",
   "license": "GPL-3.0",
