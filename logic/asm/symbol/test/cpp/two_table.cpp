@@ -28,6 +28,24 @@ TEST_CASE("Validate functionality for 2 symbol table.") {
         CHECK(z != y);
     }
 
+    //  Dave: Added get tests
+    SECTION("Get by name using reference.") {
+      auto st = std::make_shared<symbol::BranchTable<uint16_t>>();
+      auto st1 = symbol::insert_leaf<uint16_t>(st);
+      auto st2 = symbol::insert_leaf<uint16_t>(st);
+      auto x = st1->get("hello");
+      CHECK(x == std::nullopt);
+      auto y = st1->get("hello");
+      CHECK(y == std::nullopt);
+      auto x1 = st1->reference("hello");
+      auto x2 = st1->get("hello");
+      CHECK(x1 == x2);
+      auto y1 = st2->define("hello");   //  Uses define instead of reference
+      auto y2 = st2->get("hello");
+      CHECK(y1 == y2);
+      CHECK(x1 != y1);
+    }
+
     SECTION("Symbol existence checks.") {
         auto st = std::make_shared<symbol::BranchTable<uint16_t>>();
         auto st1 = symbol::insert_leaf<uint16_t>(st);
@@ -43,7 +61,19 @@ TEST_CASE("Validate functionality for 2 symbol table.") {
         CHECK(symbol::exists<uint16_t>({st}, "hello"));
     }
 
-    SECTION("define() a local in one table does not affect the other.") {
+    //  Dave: Check symbol directly against pointer
+    SECTION("Symbol existence checks.") {
+      auto st = std::make_shared<symbol::BranchTable<uint16_t>>();
+      auto st1 = symbol::insert_leaf<uint16_t>(st);
+      auto st2 = symbol::insert_leaf<uint16_t>(st);
+      st1->reference("hello");
+      // Check that traversal policy is respected.
+      // This calls exists from table directly
+      CHECK(st1->exists("hello"));
+      CHECK_FALSE(st2->exists("hello"));
+    }
+
+  SECTION("define() a local in one table does not affect the other.") {
         auto st = std::make_shared<symbol::BranchTable<uint16_t>>();
         auto st1 = symbol::insert_leaf<uint16_t>(st);
         auto st2 = symbol::insert_leaf<uint16_t>(st);

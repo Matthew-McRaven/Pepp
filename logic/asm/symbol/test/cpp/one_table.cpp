@@ -19,7 +19,17 @@ TEST_CASE("Validate functionality for 1 symbol table.") {
         CHECK(x == y);
     }
 
-    SECTION("Require case matching.") {
+    //  Dave: Added get tests
+    SECTION("Get by name using reference.") {
+      auto st = std::make_shared<symbol::LeafTable<uint16_t>>();
+      auto z = st->get("hello");
+      CHECK(z == std::nullopt);
+      auto x = st->reference("hello");
+      auto y = st->get("hello");
+      CHECK(x == y);
+    }
+
+  SECTION("Require case matching.") {
         auto st = std::make_shared<symbol::LeafTable<uint16_t>>();
         auto x = st->reference("hello");
         auto y = st->reference("Hello");
@@ -30,19 +40,32 @@ TEST_CASE("Validate functionality for 1 symbol table.") {
         auto st = std::make_shared<symbol::LeafTable<uint16_t>>();
         // Discard reference returned by st.
         st->reference("hello");
+        //  Uses visitor pattern in visit.hpp
         CHECK_FALSE(symbol::exists<uint16_t>({st}, "bye"));
         CHECK_FALSE(symbol::exists<uint16_t>({st}, "Hello"));
         CHECK(symbol::exists<uint16_t>({st}, "hello"));
     }
 
-    SECTION("Undefined => defined => multiply defined") {
+    //  Dave: Check symbol directly against pointer
+    SECTION("Symbol existence checks with pointer.") {
+      auto st = std::make_shared<symbol::LeafTable<uint16_t>>();
+      st->reference("hello");
+      //  Uses table specific exists function
+      CHECK_FALSE(st->exists("bye"));
+      CHECK_FALSE(st->exists("Hello"));
+      CHECK(      st->exists("hello"));
+    }
+
+  SECTION("Undefined => defined => multiply defined") {
         auto st = std::make_shared<symbol::LeafTable<uint16_t>>();
         auto x = st->reference("hello");
         CHECK(x->state == symbol::definition_state::kUndefined);
         st->define(x->name);
         CHECK(x->state == symbol::definition_state::kSingle);
+        CHECK(x.use_count() == 2);
         st->define(x->name);
         CHECK(x->state == symbol::definition_state::kMultiple);
+        CHECK(x.use_count() == 2);
     }
 
     SECTION("Define before reference.") {
@@ -50,6 +73,52 @@ TEST_CASE("Validate functionality for 1 symbol table.") {
         st->define("hello");
         auto x = st->reference("hello");
         CHECK(x->state == symbol::definition_state::kSingle);
+    }
+
+    //  Dave: Test that define works like Reference
+    SECTION("Add symbol via define(std::string).") {
+      auto st = std::make_shared<symbol::LeafTable<uint16_t>>();
+      auto x = st->define("hello");
+      // 2. 1 for local copy, 1 in map.
+      CHECK(x.use_count() == 2);
+    }
+
+    //  Dave: Test that define works like Reference
+    SECTION("Find by name using Define.") {
+      auto st = std::make_shared<symbol::LeafTable<uint16_t>>();
+      auto x = st->define("hello");
+      auto y = st->define("hello");
+      CHECK(x->state == symbol::definition_state::kMultiple);
+      CHECK(x == y);
+    }
+
+    //  Dave: Test that define works like Reference
+    //  Dave: Added get tests
+    SECTION("Get by name using define.") {
+      auto st = std::make_shared<symbol::LeafTable<uint16_t>>();
+      auto z = st->get("hello");
+      CHECK(z == std::nullopt);
+      auto x = st->define("hello");
+      auto y = st->get("hello");
+      CHECK(x == y);
+    }
+
+    //  Dave: Test that define works like Reference
+    SECTION("Require case matching using define.") {
+      auto st = std::make_shared<symbol::LeafTable<uint16_t>>();
+      auto x = st->define("hello");
+      auto y = st->define("Hello");
+      CHECK_FALSE(x == y);
+    }
+
+    //  Dave: Test that define works like Reference
+    //  Dave: Check symbol directly against pointer
+    SECTION("Symbol existence checks with pointer.") {
+      auto st = std::make_shared<symbol::LeafTable<uint16_t>>();
+      st->define("hello");
+      CHECK_FALSE(st->exists("bye"));
+      CHECK_FALSE(st->exists("Hello"));
+      CHECK(      st->exists("hello"));
     }
 
     for (int it = 0; it < 4; it++) {
@@ -102,6 +171,7 @@ TEST_CASE("Validate functionality for 1 symbol table.") {
         CHECK(x1->value->value() == 19);
         CHECK(x2->value->value() == 29);
     }
+
     SECTION("Redundant mark as global") {
         auto st = std::make_shared<symbol::LeafTable<uint16_t>>();
         auto x = st->reference("hello");
@@ -109,5 +179,15 @@ TEST_CASE("Validate functionality for 1 symbol table.") {
         st->mark_global("hello");
         CHECK(x->binding == symbol::binding_t::kGlobal);
         CHECK(x->state == symbol::definition_state::kUndefined);
+    }
+
+    //  Dave: Test that define works like Reference
+    SECTION("Redundant mark as global using define") {
+      auto st = std::make_shared<symbol::LeafTable<uint16_t>>();
+      auto x = st->define("hello");
+      st->mark_global("hello");
+      st->mark_global("hello"); //  Ignored
+      CHECK(x->binding == symbol::binding_t::kGlobal);
+      CHECK(x->state == symbol::definition_state::kSingle);
     }
 }
