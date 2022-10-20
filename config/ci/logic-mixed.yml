@@ -25,6 +25,7 @@ build:linux:npm:
     - docker
   script:
     - npm ci
+    - npm run build
     - npm run test:ci
     - npm run docs
   coverage: '/^\s*Coverage .*\d+.*/'
@@ -84,6 +85,7 @@ build:windows:npm:
     - windows
   script:
     - npm ci
+    - npm run build
     - npm run test:ci
   coverage: '/^\s*Coverage .*\d+.*/'
   rules:
