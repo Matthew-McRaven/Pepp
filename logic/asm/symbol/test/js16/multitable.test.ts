@@ -1,5 +1,5 @@
 // eslint-disable-next-line import/no-extraneous-dependencies
-import { BranchTable, TraversalPolicy } from '../../src/bind/lib';
+import { BranchTable, TraversalPolicy } from '../../src/bind';
 
 describe('symbol.multitable', () => {
   const createTables = () => {

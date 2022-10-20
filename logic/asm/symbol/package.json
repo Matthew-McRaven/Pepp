@@ -1,12 +1,13 @@
 {
   "name": "@pepnext/logic-symbol",
-  "version": "3.2.1",
+  "version": "3.2.2",
   "description": "Manipulate symbol locations, values, and properties.",
   "repository": "https://gitlab.com/pepnext/logic/symbol",
   "license": "GPL-3.0",
   "author": "Matthew McRaven",
   "type": "module",
-  "main": "dist/lib.js",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
   "files": [
     "3rd-party/",
     "src/",

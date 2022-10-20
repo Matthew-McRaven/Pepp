@@ -1,7 +1,7 @@
 // eslint-disable-next-line import/no-extraneous-dependencies
 import {
   BranchTable,
-} from '../../src/bind/lib';
+} from '../../src/bind';
 
 describe('symbol.symbol', () => {
   it('crashes', () => {
