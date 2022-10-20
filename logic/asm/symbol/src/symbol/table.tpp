@@ -23,15 +23,17 @@
 #include "visit.hpp"
 
 template<typename value_t>
-[[maybe_unused]] symbol::BranchTable<value_t>::BranchTable(std::shared_ptr<BranchTable<value_t>> parent) : parent_(
-    parent) {}
+[[maybe_unused]] symbol::BranchTable<value_t>::BranchTable(std::shared_ptr<BranchTable<value_t>> parent) :
+parent_(parent) {}
 
 template<typename value_t> void symbol::BranchTable<value_t>::add_child(NodeType<value_t> child) {
   children_.push_back(child);
 }
 
 template<typename value_t>
-symbol::LeafTable<value_t>::LeafTable(std::shared_ptr<BranchTable<value_t>> parent) : parent_(parent) {}
+symbol::LeafTable<value_t>::LeafTable(std::shared_ptr<BranchTable<value_t>> parent) :
+  parent_(parent) {}
+
 template<typename value_t>
 std::optional<std::shared_ptr<symbol::entry<value_t>>> symbol::LeafTable<value_t>::get(const std::string &name) const {
   if (auto item = name_to_entry_.find(name); item != name_to_entry_.end())
@@ -45,9 +47,11 @@ typename symbol::LeafTable<value_t>::entry_ptr_t symbol::LeafTable<value_t>::ref
   // Create a local definition if one does not already exist
   entry_ptr_t local_definition;
   if (auto pair = name_to_entry_.find(name); pair == name_to_entry_.end()) {
+    //  Symbol is  new, just add to map
     local_definition = std::make_shared<symbol::entry<value_t>>(*this, name);
     name_to_entry_[name] = local_definition;
   } else {
+    //  Get pointer to existing definition
     local_definition = pair->second;
   }
 
@@ -62,10 +66,12 @@ typename symbol::LeafTable<value_t>::entry_ptr_t symbol::LeafTable<value_t>::ref
   }
 
   // If there's more than one global definition, we already know that the program is invalid.
-  if (global_count > 1)
+  if (global_count > 1) {
     local_definition->state = symbol::definition_state::kExternalMultiple;
-    // If there's one definition, take on most of the properties of that definition
-  else if (global_count == 1) {
+    //  Local variable should be treated as global if name is already in global space
+    local_definition->binding = symbol::binding_t::kGlobal;
+  // If there's one definition, take on most of the properties of that definition
+  }else if (global_count == 1) {
     for (auto other : symbols) {
       if (other->binding == symbol::binding_t::kGlobal) {
         local_definition->value = std::make_shared<symbol::value_pointer<value_t>>(other);
@@ -89,7 +95,7 @@ typename symbol::LeafTable<value_t>::entry_ptr_t symbol::LeafTable<value_t>::def
 
   switch (entry->binding) {
   case symbol::binding_t::kImported:entry->state = definition_state::kExternalMultiple;
-    return entry;
+      break;
   case symbol::binding_t::kGlobal:
     if (entry->state == definition_state::kUndefined)
       entry->state = definition_state::kSingle;
@@ -107,14 +113,15 @@ typename symbol::LeafTable<value_t>::entry_ptr_t symbol::LeafTable<value_t>::def
         other->state = entry->state;
       }
     }
-    return entry;
+      break;
   case symbol::binding_t::kLocal:
     if (entry->state == definition_state::kUndefined)
       entry->state = definition_state::kSingle;
     else if (entry->state == definition_state::kSingle)
       entry->state = definition_state::kMultiple;
-    return entry;
+   break;
   }
+  return entry;
 }
 
 template<typename value_t> void symbol::LeafTable<value_t>::mark_global(const std::string &name) {
@@ -130,6 +137,7 @@ template<typename value_t> void symbol::LeafTable<value_t>::mark_global(const st
     if (&other->parent == &*this)
       continue; // We will be examining our symbols later.
     if (other->binding == symbol::binding_t::kGlobal) {
+      //  If other symbols exist with the same name in global space, mark with external multiple
       other->state = symbol::definition_state::kExternalMultiple;
       symbol->state = symbol::definition_state::kExternalMultiple;
     } else if (other->binding == symbol::binding_t::kLocal) {

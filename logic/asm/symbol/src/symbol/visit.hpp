@@ -46,6 +46,15 @@ template <typename value_t> struct RootVisitor {
 template <typename value_t> class SelectByNameVisitor {
   public:
     SelectByNameVisitor(std::string name);
+    SelectByNameVisitor() = delete;
+    ~SelectByNameVisitor() = default;
+
+    //	Copying and move OK
+    SelectByNameVisitor( const SelectByNameVisitor& ) = default;
+    SelectByNameVisitor& operator =( const SelectByNameVisitor& ) = default;
+    SelectByNameVisitor( SelectByNameVisitor&& ) noexcept = default;
+    SelectByNameVisitor& operator=( SelectByNameVisitor&& ) noexcept = default;
+
     std::list<std::shared_ptr<symbol::entry<value_t>>> operator()(std::shared_ptr<BranchTable<value_t>> table);
     std::list<std::shared_ptr<symbol::entry<value_t>>> operator()(std::shared_ptr<LeafTable<value_t>> table);
 
@@ -57,6 +66,14 @@ template <typename value_t> class SelectByNameVisitor {
 template <typename value_t> class ExistenceVisitor {
   public:
     ExistenceVisitor(std::string name);
+    ExistenceVisitor() = delete;
+    ~ExistenceVisitor() = default;
+
+    //	Copying and move OK
+    ExistenceVisitor( const ExistenceVisitor& ) = default;
+    ExistenceVisitor& operator =( const ExistenceVisitor& ) = default;
+    ExistenceVisitor( ExistenceVisitor&& ) noexcept = default;
+    ExistenceVisitor& operator=( ExistenceVisitor&& ) noexcept = default;
 
     bool operator()(std::shared_ptr<BranchTable<value_t>> table);
     bool operator()(std::shared_ptr<LeafTable<value_t>> table);
@@ -70,6 +87,14 @@ template <typename value_t> class AdjustOffsetVisitor {
   public:
     AdjustOffsetVisitor(value_t offset);
     AdjustOffsetVisitor(value_t offset, value_t threshold);
+    AdjustOffsetVisitor() = delete;
+    ~AdjustOffsetVisitor() = default;
+
+    //	Copying and move OK
+    AdjustOffsetVisitor( const AdjustOffsetVisitor& ) = default;
+    AdjustOffsetVisitor& operator =( const AdjustOffsetVisitor& ) = default;
+    AdjustOffsetVisitor( AdjustOffsetVisitor&& ) noexcept = default;
+    AdjustOffsetVisitor& operator=( AdjustOffsetVisitor&& ) noexcept = default;
 
     void operator()(std::shared_ptr<BranchTable<value_t>> table);
     void operator()(std::shared_ptr<LeafTable<value_t>> table);

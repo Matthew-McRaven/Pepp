@@ -27,6 +27,7 @@
 #include <iostream>
 #include <list>
 #include <map>
+#include <memory>
 #include <optional>
 #include <string>
 #include <variant>
@@ -72,9 +73,16 @@ using NodeType =
  */
 template<typename value_t> class BranchTable : public std::enable_shared_from_this<BranchTable<value_t>> {
 public:
-  explicit BranchTable() = default;
+  //! Default constructor only used for Global BranchTable
+  BranchTable() = default;
   [[maybe_unused]] explicit BranchTable(std::shared_ptr<BranchTable<value_t>> parent);
   ~BranchTable() = default;
+
+  //	Copying and move OK
+  BranchTable( const BranchTable& ) = default;
+  BranchTable& operator =( const BranchTable& ) = default;
+  BranchTable( BranchTable&& ) noexcept = default;
+  BranchTable& operator=( BranchTable&& ) noexcept = default;
 
   /*!
    * \brief Register an existing symbol table as a child of this table.
@@ -89,9 +97,9 @@ public:
    * Please don't abuse the fact that children are non-const.
    */
   std::list<NodeType<value_t>> children() { return children_; }
+
   //! A pointer to the parent of this table. If the pointer is null, this table is the root of the tree.
   const std::weak_ptr<BranchTable<value_t>> parent_ = {};
-
 private:
   std::list<NodeType<value_t>> children_;
 };
@@ -103,13 +111,35 @@ public:
   using const_range =
       boost::any_range<const entry_ptr_t, boost::forward_traversal_tag, const entry_ptr_t &, std::ptrdiff_t>;
 
-  explicit LeafTable() = default;
+  LeafTable() = default;
   explicit LeafTable(std::shared_ptr<BranchTable<value_t>> parent);
   ~LeafTable() = default;
 
-  //!< Unlike reference, get() will not create an entry in the table if the symbol fails to be found.
+  //	Copying and move OK
+  LeafTable( const LeafTable& ) = default;
+  LeafTable& operator =( const LeafTable& ) = default;
+  LeafTable( LeafTable&& ) noexcept = default;
+  LeafTable& operator=( LeafTable&& ) noexcept = default;
+
+  /*!
+   * \brief Unlike reference, get() will not create an entry in the table if the symbol fails
+   * to be found.
+   * \returns Pointer to found symbol or nullopt if not found.
+   */
   std::optional<entry_ptr_t> get(const std::string &name) const;
+
+  /*!
+   * \brief Create a symbol entry. Do data validations checks to see if
+   * symbol is already declared globally.
+   * \returns Pointer to symbol.
+   */
   entry_ptr_t reference(const std::string &name);
+
+  /*!
+   * \brief May a symbol entry. Do data validations checks to see if
+   * symbol is already declared globally. Sets state of variable
+   * \returns Pointer to symbol.
+   */
   entry_ptr_t define(const std::string &name);
 
   /*!
@@ -117,7 +147,7 @@ public:
    * This function handles walking the tree and pointing other local symbols to this tables global instance.
    */
   void mark_global(const std::string &name);
-  //! Returns true if this table (not checking any other table in the hierarchy) contains a symbol with the matchign
+  //! Returns true if this table (not checking any other table in the hierarchy) contains a symbol with the matching
   //! name.
   bool exists(const std::string &name) const;
 
