@@ -21,7 +21,7 @@
     "build": "npx tsc -p tsconfig.json",
     "install": "npm run build",
     "clean": "npx rimraf -rf ./dist",
-    "docs": "npx typedoc --out docs src/bind/lib.ts",
+    "docs": "npx typedoc --out docs src/bind/index.ts",
     "globcov": "python3 .scripts/scripts/merge-cobertura.py -o coverage.xml  coverage/cobertura-coverage.xml",
     "test": "npm run test:native && npm run test:js",
     "prepublishOnly": "npm run build",
