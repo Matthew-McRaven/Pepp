@@ -9,5 +9,8 @@
   </component>
   <component name="VcsDirectoryMappings">
     <mapping directory="$PROJECT_DIR$" vcs="Git" />
+    <mapping directory="$PROJECT_DIR$/3rd-party/catch" vcs="Git" />
+    <mapping directory="$PROJECT_DIR$/3rd-party/elfio" vcs="Git" />
+    <mapping directory="$PROJECT_DIR$/3rd-party/fmt" vcs="Git" />
   </component>
 </project>
