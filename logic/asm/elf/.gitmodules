@@ -16,3 +16,6 @@
 [submodule "3rd-party/catch"]
 	path = 3rd-party/catch
 	url = https://gitlab.com/pepnext/3rd-party/catch.git
+[submodule ".cmake"]
+	path = .cmake
+	url = https://gitlab.com/pepnext/config/cmake-scripts.git
