@@ -79,10 +79,10 @@ public:
   ~BranchTable() = default;
 
   //	Copying and move OK
-  BranchTable( const BranchTable& ) = default;
-  BranchTable& operator =( const BranchTable& ) = default;
-  BranchTable( BranchTable&& ) noexcept = default;
-  BranchTable& operator=( BranchTable&& ) noexcept = default;
+  BranchTable(const BranchTable &) = default;
+  BranchTable &operator=(const BranchTable &) = default;
+  BranchTable(BranchTable &&) noexcept = default;
+  BranchTable &operator=(BranchTable &&) noexcept = default;
 
   /*!
    * \brief Register an existing symbol table as a child of this table.
@@ -116,10 +116,10 @@ public:
   ~LeafTable() = default;
 
   //	Copying and move OK
-  LeafTable( const LeafTable& ) = default;
-  LeafTable& operator =( const LeafTable& ) = default;
-  LeafTable( LeafTable&& ) noexcept = default;
-  LeafTable& operator=( LeafTable&& ) noexcept = default;
+  LeafTable(const LeafTable &) = default;
+  LeafTable &operator=(const LeafTable &) = default;
+  LeafTable(LeafTable &&) noexcept = default;
+  LeafTable &operator=(LeafTable &&) noexcept = default;
 
   /*!
    * \brief Unlike reference, get() will not create an entry in the table if the symbol fails
@@ -129,15 +129,15 @@ public:
   std::optional<entry_ptr_t> get(const std::string &name) const;
 
   /*!
-   * \brief Create a symbol entry. Do data validations checks to see if
+   * \brief Create a symbol entry if it doesn't already exist. Do data validations checks to see if
    * symbol is already declared globally.
    * \returns Pointer to symbol.
    */
   entry_ptr_t reference(const std::string &name);
 
   /*!
-   * \brief May a symbol entry. Do data validations checks to see if
-   * symbol is already declared globally. Sets state of variable
+   * \brief Create a symbol entry if it doesn't already exist. Do data validations checks to see if
+   * symbol is already declared globally. Sets definition state of variable.
    * \returns Pointer to symbol.
    */
   entry_ptr_t define(const std::string &name);
