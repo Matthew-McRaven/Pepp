@@ -17,6 +17,9 @@ public:
   Napi::Value type(const Napi::CallbackInfo &info);
   Napi::Value size(const Napi::CallbackInfo &info);
   Napi::Value relocatable(const Napi::CallbackInfo &info);
+  // st_shndx as bigint
+  Napi::Value set_section_index(const Napi::CallbackInfo &info);
+  Napi::Value section_index(const Napi::CallbackInfo &info);
   // If two symbol values share a symbolIndex, then they point to the same underlying symbol.
   Napi::Value symbol_index(const Napi::CallbackInfo &info);
 

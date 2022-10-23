@@ -7,11 +7,15 @@ import { fileURLToPath } from 'url';
 export interface ISymbolNative {
     name(): string;
 
-    value(): number
+    value(): bigint
 
     type(): string
 
-    size(): string
+    size(): bigint
+
+    setSectionIndex(st_shndx: bigint): void
+
+    sectionIndex(): bigint
 
     relocatable(): boolean
 

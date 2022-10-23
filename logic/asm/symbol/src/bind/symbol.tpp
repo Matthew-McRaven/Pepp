@@ -88,7 +88,7 @@ Napi::Value Symbol<addr_size_t>::value(const Napi::CallbackInfo &info) {
   switch (_symbol->value->type()) {
   case symbol::Type::kDeleted:
   case symbol::Type::kEmpty: return env.Undefined();
-  default:return Napi::Number::New(env, _symbol->value->value());
+  default:return Napi::BigInt::New(env, static_cast<uint64_t>(_symbol->value->value()));
   }
 }
 
@@ -112,8 +112,36 @@ Napi::Value Symbol<addr_size_t>::size(const Napi::CallbackInfo &info) {
   switch (_symbol->value->type()) {
   case symbol::Type::kDeleted:
   case symbol::Type::kEmpty:return env.Undefined();
-  default:return Napi::Number::New(env, _symbol->value->size());
+  default:return Napi::BigInt::New(env, static_cast<uint64_t>(_symbol->value->size()));
   }
+}
+
+template<typename addr_size_t>
+Napi::Value Symbol<addr_size_t>::set_section_index(const Napi::CallbackInfo &info) {
+  Napi::Env env = info.Env();
+  if (info.Length() != 1) {
+    Napi::TypeError::New(env, "Expected 1 argument").ThrowAsJavaScriptException();
+  } else if (!info[0].IsBigInt()) {
+    Napi::TypeError::New(env, "Argument 1 must be a bigint").ThrowAsJavaScriptException();
+  } else {
+    bool lossless;
+    auto bi = info[0].As<Napi::BigInt>();
+    auto value = bi.Uint64Value(&lossless);
+    if (!lossless || value >= 1ul << 32)
+      Napi::TypeError::New(env, "BigInt must be smaller than 2^32 -1").ThrowAsJavaScriptException();
+    _symbol->section_index = static_cast<uint32_t>(value);
+  }
+  return env.Undefined();
+}
+
+template<typename addr_size_t>
+Napi::Value Symbol<addr_size_t>::section_index(const Napi::CallbackInfo &info) {
+  Napi::Env env = info.Env();
+  if (info.Length() != 0) {
+    Napi::TypeError::New(env, "Expected 0 arguments").ThrowAsJavaScriptException();
+    return env.Undefined();
+  }
+  return Napi::BigInt::New(env, static_cast<uint64_t>(_symbol->section_index));
 }
 
 template<typename addr_size_t>
@@ -287,6 +315,8 @@ Napi::Function Symbol<addr_size_t>::GetClass(Napi::Env env, std::string suffix) 
       Symbol::InstanceMethod("value", &Symbol::value),
       Symbol::InstanceMethod("type", &Symbol::type),
       Symbol::InstanceMethod("size", &Symbol::size),
+      Symbol::InstanceMethod("setSectionIndex", &Symbol::set_section_index),
+      Symbol::InstanceMethod("sectionIndex", &Symbol::section_index),
       Symbol::InstanceMethod("relocatable", &Symbol::relocatable),
       Symbol::InstanceMethod("symbolIndex", &Symbol::symbol_index),
       Symbol::InstanceMethod("isConst", &Symbol::is_const),
