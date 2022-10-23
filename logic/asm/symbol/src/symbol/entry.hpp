@@ -31,13 +31,13 @@
 
 namespace symbol {
 
-template <typename value_t> class LeafTable;
+template<typename value_t> class LeafTable;
 
 // Currently unused, will eventuallly be used to track trace tag information alongside a symbol.
 // TODO: Determine how to track debugging information.
 struct format {
-    SymbolReprFormat format;
-    uint32_t size = 0;
+  SymbolReprFormat format;
+  uint32_t size = 0;
 };
 
 /*!
@@ -58,26 +58,27 @@ struct format {
  *
  * \tparam value_t An unsigned integral type that is large enough to contain the largest address on the target system.
  */
-template <typename value_t> class entry {
+template<typename value_t> class entry {
 
-  public:
-    // Default constructor, assumes value is symbol::value_empty
-    entry(typename symbol::LeafTable<value_t> &parent, std::string name);
-    ~entry() = default;
+public:
+  // Default constructor, assumes value is symbol::value_empty
+  entry(typename symbol::LeafTable<value_t> &parent, std::string name);
+  ~entry() = default;
 
-    //! Non-owning reference to containing symbol table.
-    typename symbol::LeafTable<value_t> const &parent;
+  //! Non-owning reference to containing symbol table.
+  typename symbol::LeafTable<value_t> const &parent;
 
-    //! Unique name as appearing in source code.
-    std::string name;
-    //! Keep track of how many times this symbol's name has been defined.
-    definition_state state;
-    /*! The binding type of this symbol (i.e., global vs local).
-     * \sa symbol::binding*/
-    binding_t binding;
-    /*! The value taken on by this symbol.
-     * \sa symbol::abstract_value */
-    std::shared_ptr<symbol::abstract_value<value_t>> value;
+  //! Unique name as appearing in source code.
+  std::string name;
+  //! Keep track of how many times this symbol's name has been defined.
+  definition_state state;
+  /*! The binding type of this symbol (i.e., global vs local).
+   * \sa symbol::binding*/
+  binding_t binding;
+  /*! The value taken on by this symbol.
+   * \sa symbol::abstract_value */
+  std::shared_ptr<symbol::abstract_value<value_t>> value;
+
 };
 
 } // end namespace symbol

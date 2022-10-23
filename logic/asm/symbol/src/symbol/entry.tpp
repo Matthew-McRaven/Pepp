@@ -22,7 +22,7 @@
 
 #include "value.hpp"
 
-template <typename value_t>
+template<typename value_t>
 symbol::entry<value_t>::entry(symbol::LeafTable<value_t> &parent, std::string name)
     : parent(parent), state(definition_state::kUndefined), name(name), binding(binding_t::kLocal),
       value(std::make_shared<symbol::value_empty<value_t>>()) {}
