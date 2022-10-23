@@ -127,7 +127,8 @@ Napi::Value Symbol<addr_size_t>::set_section_index(const Napi::CallbackInfo &inf
     bool lossless;
     auto bi = info[0].As<Napi::BigInt>();
     auto value = bi.Uint64Value(&lossless);
-    if (!lossless || value >= 1ul << 32)
+    // Hex should be  2^32 +1 represented as a u64.
+    if (!lossless || value >= 0x1'0000'0000ull)
       Napi::TypeError::New(env, "BigInt must be smaller than 2^32 -1").ThrowAsJavaScriptException();
     _symbol->section_index = static_cast<uint32_t>(value);
   }
