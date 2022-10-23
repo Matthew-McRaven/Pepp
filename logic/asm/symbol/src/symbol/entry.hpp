@@ -79,6 +79,12 @@ public:
    * \sa symbol::abstract_value */
   std::shared_ptr<symbol::abstract_value<value_t>> value;
 
+  /*! The section in respect to which this symbol is defined.
+   * Setting this field require knowledge of hte final layout of the elf file,
+   * therefore, this value is set late in the assembly process
+   */
+  // Elf32 uses 16bit, ELF64 use 32bit, so just pick the largest of the two types.
+  uint32_t section_index = {};
 };
 
 } // end namespace symbol
