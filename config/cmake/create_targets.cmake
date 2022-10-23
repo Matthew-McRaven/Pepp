@@ -117,7 +117,7 @@ macro(make_napi_module target_name root bitness)
     set_target_properties(${target_name} PROPERTIES PREFIX "" SUFFIX ".node")
 
     # Define NAPI_VERSION
-    add_definitions(-DNAPI_VERSION=5)
+    add_definitions(-DNAPI_VERSION=6)
 
     # Handle defines which handle different bitness of libraries
     target_compile_definitions(${target_name} PUBLIC -DADDR_TYPE=uint${bitness}_t)
