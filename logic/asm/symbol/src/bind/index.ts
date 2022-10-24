@@ -4,10 +4,20 @@ import path from 'path';
 
 import { fileURLToPath } from 'url';
 
+export enum DefintionState{
+    undefined = 0,
+    single = 1,
+    multiple = 2,
+    externalMultiple =3
+}
 export interface ISymbolNative {
     name(): string;
 
     value(): bigint
+
+    definitionState(): DefintionState
+
+    binding(): string
 
     type(): string
 

@@ -63,7 +63,14 @@ Napi::Value Symbol<addr_size_t>::definition_state(const Napi::CallbackInfo &info
   }
   if (!_symbol)
     return env.Undefined();
-  return Napi::String::New(env, "Placeholder");
+  switch (_symbol->state) {
+  case symbol::definition_state::kUndefined: return Napi::Number::New(env, 0);
+  case symbol::definition_state::kSingle: return Napi::Number::New(env, 1);
+  case symbol::definition_state::kMultiple: return Napi::Number::New(env, 2);
+  case symbol::definition_state::kExternalMultiple: return Napi::Number::New(env, 3);
+  }
+  Napi::TypeError::New(env, "Unexpected definition state").ThrowAsJavaScriptException();
+  return env.Null();
 }
 
 template<typename addr_size_t>
@@ -75,7 +82,13 @@ Napi::Value Symbol<addr_size_t>::binding(const Napi::CallbackInfo &info) {
     if (!_symbol)
       return env.Undefined();
   }
-  return Napi::String::New(env, "Placeholder");
+  switch (_symbol->binding) {
+  case symbol::binding_t::kGlobal: return Napi::String::New(env, "global");
+  case symbol::binding_t::kImported: return Napi::String::New(env, "weak");
+  case symbol::binding_t::kLocal: return Napi::String::New(env, "local");
+  }
+  Napi::TypeError::New(env, "Unexpected binding").ThrowAsJavaScriptException();
+  return env.Null();
 }
 
 template<typename addr_size_t>
@@ -99,7 +112,14 @@ Napi::Value Symbol<addr_size_t>::type(const Napi::CallbackInfo &info) {
     Napi::TypeError::New(env, "Expected 0 arguments").ThrowAsJavaScriptException();
     return Napi::String::New(env, magic_enum::enum_name(symbol::Type::kDeleted).data());
   }
-  return Napi::String::New(env, magic_enum::enum_name(_symbol->value->type()).data());
+  switch (_symbol->value->type()) {
+  case symbol::Type::kDeleted: return Napi::String::New(env, "notype");
+  case symbol::Type::kEmpty: return Napi::String::New(env, "notype");
+  case symbol::Type::kObject: return Napi::String::New(env, "object");
+  case symbol::Type::kCode: return Napi::String::New(env, "func");
+  }
+  Napi::TypeError::New(env, "Unexpected type").ThrowAsJavaScriptException();
+  return env.Null();
 }
 
 template<typename addr_size_t>
