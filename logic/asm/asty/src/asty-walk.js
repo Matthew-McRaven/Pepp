@@ -30,7 +30,7 @@ export default class ASTYWalk {
                 cb(node, depth, parent, "downward")
             // Manual iteration should be most efficient here, no extra copies created
             if(direction === "backward") {
-                for(let idx=node.C.length; idx>0; idx-=1) _walk(node.C[idx], depth + 1, node)
+                for(let idx=node.C.length-1; idx>0; idx-=1) _walk(node.C[idx], depth + 1, node)
             }
             else node.C.forEach((child) => {_walk(child, depth + 1, node)})
             if (when === "upward" || when === "both")
@@ -46,7 +46,7 @@ export default class ASTYWalk {
                 await cb(node, depth, parent, "downward")
             // Manual iteration should be most efficient here, no extra copies created
             if(direction === "backward") {
-                for(let idx=node.C.length; idx>0; idx-=1) await _walk(node.C[idx], depth + 1, node)
+                for(let idx=node.C.length-1; idx>0; idx-=1) await _walk(node.C[idx], depth + 1, node)
             }
             else await Promise.allSettled(node.C.map(async (child) => {await _walk(child, depth + 1, node)}))
             if (when === "upward" || when === "both")
