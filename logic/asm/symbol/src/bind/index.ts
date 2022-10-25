@@ -13,7 +13,7 @@ export enum DefintionState{
 export interface ISymbolNative {
     name(): string;
 
-    value(): bigint
+    value(): bigint | undefined
 
     definitionState(): DefintionState
 
