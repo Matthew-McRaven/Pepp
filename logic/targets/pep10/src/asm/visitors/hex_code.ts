@@ -10,7 +10,7 @@ const { isa } = bind;
 export const createSymbolLookup = (node: TypedNode) => (name:string) => {
   const matches = node.A.symtab.find(name, TraversalPolicy.children);
   if (matches.length !== 1) return 0;
-  return matches[0].value();
+  return Number(matches[0].value());
 };
 
 const psuedoToHex = (node:Pseudo, bytes: Uint8Array, startIndex:number) => {
