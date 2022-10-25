@@ -14,9 +14,9 @@ export interface Identifier {
 
 export interface Decimal {
     type: 'decimal'
-    value: number
+    value: bigint
 }
 export interface Hexadecimal{
     type: 'hex'
-    value: number
+    value: bigint
 }

@@ -13,7 +13,7 @@ export interface ExtendedAttrib{
     ctx: ASTy.Context
     errors: Error[]
     rootMappedL : Position | undefined
-    address?: number
+    address?: bigint
 }
 export type ArgValue = CharLit | StringLit | Identifier | Decimal | Hexadecimal
 
@@ -62,6 +62,8 @@ export type PseudoAttrib = {
     args: Array<ArgValue>
     comment: string | null
     symtab: ILeafTableNative
+    // TODO: Fill in during address assignment
+    precomputedSize?: bigint
 } & ExtendedAttrib
 
 export interface Pseudo extends Node{

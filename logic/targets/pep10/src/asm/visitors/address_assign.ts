@@ -9,8 +9,8 @@ const { isa } = bind;
 
 export const createSymbolLookup = (node: TypedNode) => (name:string) => {
   const matches = node.A.symtab.find(name, TraversalPolicy.children);
-  if (matches.length !== 1) return 0;
-  return Number(matches[0].value());
+  if (matches.length !== 1) return 0n;
+  return matches[0].value() || 0n;
 };
 
 export const setTreeAddresses = (tree:TypedNode) => {
@@ -27,7 +27,7 @@ export const setTreeAddresses = (tree:TypedNode) => {
           case 'WORD':
             if (node.A.symbol) {
               symbolArray = node.A.symtab.find(node.A.symbol, TraversalPolicy.children);
-              if (symbolArray.length === 1) symbolArray[0].setAddr(address, 0, 'code');
+              if (symbolArray.length === 1) symbolArray[0].setAddr(address, 0n, 'code');
               if (symbolArray.length > 1) throw new Error('Multiply defined symbol');
             }
             break;
@@ -37,8 +37,7 @@ export const setTreeAddresses = (tree:TypedNode) => {
             if (symbolArray.length !== 1) throw new Error('Symbol lookup error on .EQUATE');
             symbolArray[0].setConst(isa.argToNumber(node.A.args[0], createSymbolLookup(node)));
             break;
-
-          default: node.A.address = address;
+          default: break;
         }
         break;
 
@@ -51,7 +50,7 @@ export const setTreeAddresses = (tree:TypedNode) => {
           if (symbolArray.length > 1) throw new Error('Multiply defined symbol');
         }
         break;
-      default: node.A.address = address;
+      default: break;
     }
     address += nodeSize(node);
   };

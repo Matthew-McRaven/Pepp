@@ -55,14 +55,14 @@ number =
     hexadecimal / decimal
 
 hexadecimal "hexadecimal constant" =
-   "0" [xX] digits:[0-9a-fA-F]+ {return {type:'hex', value:parseInt(digits.join(''), 16)} }
+   "0" [xX] digits:[0-9a-fA-F]+ {return {type:'hex', value:BigInt('0x'+digits.join(''))} }
 
 decimal "signed decimal constant" =
     sign:[\\+\\-]?  digits:digits+ non:$nonDigit* {
-            let asNum = parseInt(digits.join(''), 10)
-            if(asNum === 0 && non.match(/x/i)) error(\`Malformed hex constant with leading '$\{sign}'\`)
+            let asNum = BigInt(digits.join(''))
+            if(asNum === 0n && non.match(/x/i)) error(\`Malformed hex constant with leading '$\{sign}'\`)
             else if(non) error(\`Unexpected non-digit characters in decimal: $\{non}\`)
-            if(sign && sign === '-') asNum *= -1
+            if(sign && sign === '-') asNum *= -1n
             return {type:'decimal', value:asNum}
         }
 
