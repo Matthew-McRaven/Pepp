@@ -41,6 +41,8 @@ export default class ASTYSerialize {
                         case "string":
                             clone.A[key] = value
                             break
+                        case "bigint":
+                            clone[A] = `${value.ToString()}n`
                         default:
                             /*  use the slow approach only for non-atomic attributes  */
                             clone.A[key] = JSON.parse(JSON.stringify(value))
@@ -69,6 +71,7 @@ export default class ASTYSerialize {
                         case "boolean":
                         case "number":
                         case "string":
+                            // TODO: Handle big-ints
                             node.set(key, value)
                             break
                         default:
