@@ -51,8 +51,8 @@ describe('symbol.multitable', () => {
     // TODO: Make visitors global-aware (#440), so that exists will work here.
     expect(globalSym).not.toBeNull();
     midLeaf.markGlobal('accessible');
-        globalSym!.setConst(0xFEED);
-        expect(midLeaf.reference('accessible')!.value()).toEqual(globalSym!.value());
+        globalSym!.setConst(0xFEEDn);
+        expect(midLeaf.reference('accessible')!.value().toString()).toEqual(globalSym!.value().toString());
   });
 
   it('makes ancestor tables inaccessible to descendant table when TravesalPolicy.siblings unless marked global', () => {
@@ -63,8 +63,8 @@ describe('symbol.multitable', () => {
     // TODO: Make visitors global-aware (#440), so that exists will work here.
     expect(globalSym).not.toBeNull();
     midLeaf.markGlobal('accessible');
-        globalSym!.setConst(0xFEED);
-        expect(midLeaf.reference('accessible')!.value()).toEqual(globalSym!.value());
+        globalSym!.setConst(0xFEEDn);
+        expect(midLeaf.reference('accessible')!.value().toString()).toEqual(globalSym!.value().toString());
   });
   it('makes ancestor tables accessible to descendant table when TravesalPolicy.wholeTree', () => {
     const { midLeaf, bottomLeaf } = createTables();

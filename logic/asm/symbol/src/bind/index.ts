@@ -33,11 +33,11 @@ export interface ISymbolNative {
 
     isConst(): boolean
 
-    setConst(value: number): undefined
+    setConst(value: bigint): undefined
 
     isAddr(): boolean
 
-    setAddr(base: number, offset: number, type: 'object' | 'code'): undefined
+    setAddr(base: bigint, offset: bigint, type: 'object' | 'code'): undefined
 
     isSymPtr(): boolean
 

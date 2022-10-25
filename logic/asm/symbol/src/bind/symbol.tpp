@@ -200,11 +200,14 @@ Napi::Value Symbol<addr_size_t>::set_const(const Napi::CallbackInfo &info) {
   Napi::Env env = info.Env();
   if (info.Length() != 1) {
     Napi::TypeError::New(env, "Expected 1 argument").ThrowAsJavaScriptException();
-  } else if (!info[0].IsNumber()) {
-    Napi::TypeError::New(env, "Argument 1 must be a number").ThrowAsJavaScriptException();
+  } else if (!info[0].IsBigInt()) {
+    Napi::TypeError::New(env, "Argument 1 must be a bigint").ThrowAsJavaScriptException();
   } else {
-    _symbol->value =
-        std::make_shared<symbol::value_const<addr_size_t>>(static_cast<addr_size_t>(info[0].ToNumber().Int64Value()));
+    bool lossless;
+    auto u64 = info[0].As<Napi::BigInt>().Uint64Value(&lossless);
+    if (!lossless)
+      Napi::TypeError::New(env, "Argument 1 must fit in a 64 bit int").ThrowAsJavaScriptException();
+    _symbol->value = std::make_shared<symbol::value_const<addr_size_t>>(u64);
   }
   return env.Undefined();
 }
@@ -226,15 +229,20 @@ Napi::Value Symbol<addr_size_t>::set_addr(const Napi::CallbackInfo &info) {
   Napi::Env env = info.Env();
   if (info.Length() != 3) {
     Napi::TypeError::New(env, "Expected 3 arguments").ThrowAsJavaScriptException();
-  } else if (!info[0].IsNumber()) {
-    Napi::TypeError::New(env, "Argument 1 must be a number").ThrowAsJavaScriptException();
-  } else if (!info[1].IsNumber()) {
-    Napi::TypeError::New(env, "Argument 2 must be a number").ThrowAsJavaScriptException();
+  } else if (!info[0].IsBigInt()) {
+    Napi::TypeError::New(env, "Argument 1 must be a biting").ThrowAsJavaScriptException();
+  } else if (!info[1].IsBigInt()) {
+    Napi::TypeError::New(env, "Argument 2 must be a bigint").ThrowAsJavaScriptException();
   } else if (!info[2].IsString()) {
     Napi::TypeError::New(env, "Argument 3 must be a string").ThrowAsJavaScriptException();
   } else {
-    auto base = static_cast<addr_size_t>(info[0].ToNumber().Int64Value());
-    auto offset = static_cast<addr_size_t>(info[1].ToNumber().Int64Value());
+    bool lossless;
+    auto base = info[0].As<Napi::BigInt>().Uint64Value(&lossless);
+    if (!lossless)
+      Napi::TypeError::New(env, "Argument 1 must fit in a 64 bit int").ThrowAsJavaScriptException();
+    auto offset = info[1].As<Napi::BigInt>().Uint64Value(&lossless);
+    if (!lossless)
+      Napi::TypeError::New(env, "Argument 2 must fit in a 64 bit int").ThrowAsJavaScriptException();
     auto type_name = info[2].ToString();
 
     auto type = symbol::Type::kDeleted;
