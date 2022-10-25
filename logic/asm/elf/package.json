@@ -1,6 +1,6 @@
 {
   "name": "@pepnext/logic-elf",
-  "version": "3.0.0",
+  "version": "3.0.1",
   "description": "Create and read ELF files.",
   "repository": "https://gitlab.com/pepnext/logic/elf",
   "license": "GPL-3.0",
