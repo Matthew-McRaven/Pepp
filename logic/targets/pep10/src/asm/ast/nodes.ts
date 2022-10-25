@@ -24,7 +24,7 @@ export interface Root extends Node{
 
 export interface SectionGroup extends Node{
     T: 'sectionGroup'
-    A: Omit<ExtendedAttrib, 'rootMappedL'> & {symtab:ILeafTableNative}
+    A: Omit<ExtendedAttrib, 'rootMappedL'> & {symtab:ILeafTableNative, name:string, args:ArgValue, st_shndx?:bigint}
 }
 export interface BlankLine extends Node{
     T: 'blank'
