@@ -59,9 +59,9 @@ export interface Node {
 
     merge(node: this, takePos?: boolean, attrMap?: this['A']): this;
 
-    walk(callback: WalkCallback, when?: WalkWhen): this;
+    walk(callback: WalkCallback, when?: WalkWhen, arrayDirection?: 'forward'|'backward'): this;
 
-    walkAsync(callback: WalkCallbackAsync, when?: WalkWhen): Promise<this>;
+    walkAsync(callback: WalkCallbackAsync, when?: WalkWhen, arrayDirection?: 'forward'|'backward'): Promise<this>;
 
     dump(maxDepth?: number, colorize?: Colorize, unicode?: boolean): string;
 }

@@ -24,13 +24,15 @@
 
 export default class ASTYWalk {
     /*  walk the AST recursively  */
-    walk (cb, when = "downward") {
+    walk (cb, when = "downward", direction="normal") {
         let _walk = (node, depth, parent) => {
             if (when === "downward" || when === "both")
                 cb(node, depth, parent, "downward")
-            node.C.forEach((child) => {
-                _walk(child, depth + 1, node)
-            })
+            // Manual iteration should be most efficient here, no extra copies created
+            if(direction === "backward") {
+                for(let idx=node.C.length; idx>0; idx-=1) _walk(node.C[idx], depth + 1, node)
+            }
+            else node.C.forEach((child) => {_walk(child, depth + 1, node)})
             if (when === "upward" || when === "both")
                 cb(node, depth, parent, "upward")
         }
@@ -38,13 +40,15 @@ export default class ASTYWalk {
         return this
     }
     /*  walk the AST recursively  asynchronously, awaiting every cb/walk call. */
-    async walkAsync (cb, when = "downward") {
+    async walkAsync (cb, when = "downward", direction="forward") {
         let _walk = async (node, depth, parent) => {
             if (when === "downward" || when === "both")
                 await cb(node, depth, parent, "downward")
-            await Promise.allSettled(node.C.map(async (child) => {
-                await _walk(child, depth + 1, node)
-            }))
+            // Manual iteration should be most efficient here, no extra copies created
+            if(direction === "backward") {
+                for(let idx=node.C.length; idx>0; idx-=1) await _walk(node.C[idx], depth + 1, node)
+            }
+            else await Promise.allSettled(node.C.map(async (child) => {await _walk(child, depth + 1, node)}))
             if (when === "upward" || when === "both")
                 await cb(node, depth, parent, "upward")
         }
