@@ -19,6 +19,7 @@ export interface ELFSymbol32 {
   st_name: string
   st_value: bigint
   st_size: bigint
+  st_bind: bigint
   st_info: bigint
   st_other: bigint
   st_shndx: bigint
@@ -43,7 +44,7 @@ export interface IWriter {
 
   // Return a UByte4 containing the section
   writeSectionBytes(name:string, flags:SectionHeaderFlags32, bytes: Uint8Array): bigint;
-  writeSymbols(sectionName:string, symbols:ELFSymbol32[]): void;
+  writeSymbols(strtabSectionName:string, symtabSectionName: string, symbols:ELFSymbol32[]): void;
   writeRelocations(relocations:(ELFRel32|ELFRelA32)[]): void;
 
   dumpToFile(path:string): boolean;

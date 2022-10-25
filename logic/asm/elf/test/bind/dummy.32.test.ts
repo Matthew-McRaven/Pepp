@@ -29,4 +29,21 @@ describe('ELF32 Writer', () => {
     wr.writeSectionBytes('.text', {} as any, bytes);
     wr.writeSectionBytes('test', {} as any, new TextEncoder().encode('hello cruel world'));
   });
+  it('can write a symtab without crashing', () => {
+    const wr = new Writer(32);
+    const bytes = Uint8Array.from([0x01, 0x02, 0x04, 0x08, 0x10]);
+    wr.writeSectionBytes('.text', {} as any, bytes);
+    const test = wr.writeSectionBytes('test', {} as any, new TextEncoder().encode('hello cruel world'));
+    wr.writeSymbols('.strtab', '.symtab', [{
+      size: 32,
+      st_name: 'hello',
+      st_value: 0xFEEDn,
+      st_size: 0x2n,
+      st_bind: 0n,
+      st_info: 0n,
+      st_other: 0n,
+      st_shndx: test,
+    }]);
+    wr.dumpToFile('magic.elf');
+  });
 });

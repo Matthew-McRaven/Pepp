@@ -46,6 +46,8 @@ public:
   // Returns boolean describing if the write was successful.
   Napi::Value dump_to_file(const Napi::CallbackInfo &info);
 private:
+  std::tuple<ELFIO::section *, bool /*is_new*/> get_or_create_section(std::string name);
+  ELFIO::Elf_Word write_string_impl(std::string section_name, std::string value);
   uint8_t bitness;
   std::shared_ptr<ELFIO::elfio> elf;
   std::map<std::string /*strtab section name*/, std::map<std::string /*string contents*/, uint64_t/*string index*/>>
