@@ -10,7 +10,7 @@ describe('asm.visit.registerSystemCalls', () => {
       argCount: 0, body: 'LDWT magic,i\nUSCALL\n', name: 'magic', type: MacroType.SystemMacro,
     });
   });
-  it('SCALL', () => {
+  it('properly formats SCALL', () => {
     const tree = asm.peg.parseRoot('.SCALL magic');
     const macroRegistry = new Registry();
     asm.visit.registerSystemCalls(tree, (body) => macroRegistry.register(body, MacroType.SystemMacro));
