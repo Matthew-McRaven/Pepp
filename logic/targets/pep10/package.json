@@ -18,7 +18,7 @@
     "clean": "npx rimraf -rf ./dist",
     "docs": "npx typedoc --out docs src/lib.ts",
     "globcov": "python3 .scripts/scripts/merge-cobertura.py -o coverage.xml  coverage/cobertura-coverage.xml",
-    "install": "npm explore @pepnext/logic-symbol -- npm run build",
+    "install": "npm explore @pepnext/logic-symbol -- npm run build && npm explore @pepnext/logic-elf -- npm run build",
     "prepublishOnly": "npm run build",
     "test": "npm run test:native && npm run test:js",
     "test:ci": "npm run test:ci:js && npm run test:native",
@@ -32,6 +32,7 @@
   "dependencies": {
     "@pepnext/asty": "^1.9.0",
     "@pepnext/bindings": "^1.0.0",
+    "@pepnext/logic-elf": "^3.0.1",
     "@pepnext/logic-macro": "^3.1.0",
     "@pepnext/logic-symbol": "^3.1.0",
     "astq": "^2.7.9",
