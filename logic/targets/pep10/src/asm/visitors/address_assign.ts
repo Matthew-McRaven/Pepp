@@ -3,7 +3,7 @@ import { ISymbolNative, TraversalPolicy } from '@pepnext/logic-symbol';
 import { TypedNode } from '../ast/nodes';
 // eslint-disable-next-line import/no-named-default
 import { default as bind } from '../../bind';
-import { nodeSize } from './size';
+import { nodeSize, treeSize } from './size';
 
 const { isa } = bind;
 
@@ -13,15 +13,29 @@ export const createSymbolLookup = (node: TypedNode) => (name:string) => {
   return matches[0].value() || 0n;
 };
 
-export const setTreeAddresses = (tree:TypedNode) => {
+export interface AddressOpts {
+  baseAddress?: bigint;
+  direction?: 'forward' | 'backward'
+}
+export const setTreeAddresses = (tree:TypedNode, options?: AddressOpts) => {
   let symbolArray: Array<ISymbolNative> = [];
-  let address = 0;
+  let address = options ? options.baseAddress || 0n : 0n;
+  const direction = options ? options.direction || 'forward' : 'forward';
+  const whenVisit = direction === 'forward' ? 'downward' : 'upward';
   const wrapper = (node:TypedNode) => {
+    // This function writes bytes from low address=>high address. We need to move the address pointer around to get these
+    // bytes in the right spot.
+    const addressAfterDecrement = treeSize(node, address, direction);
+    // Write is inclusive of endpoints, so if we need to write 2 bytes, we only need to step backwards 1 address.
+    let adjustedBackwards = addressAfterDecrement - 1n;
+    // Don't step the address pointer forward on 0 sized nodes
+    if (adjustedBackwards < 0n) adjustedBackwards = 0n;
+    if (direction === 'backward') address -= adjustedBackwards;
+
     node.A.address = address;
     switch (node.T) {
       // Handle equate, block, byte
       case 'pseudo':
-        node.A.address = address;
         switch (node.A.directive) {
           case 'BYTE':
           case 'WORD':
@@ -43,16 +57,17 @@ export const setTreeAddresses = (tree:TypedNode) => {
 
       case 'nonunary':
       case 'unary':
-        node.A.address = address;
         if (node.A.symbol) {
           symbolArray = node.A.symtab.find(node.A.symbol, TraversalPolicy.children);
-          if (symbolArray.length === 1) symbolArray[0].setAddr(address, 0, 'code');
+          if (symbolArray.length === 1) symbolArray[0].setAddr(address, 0n, 'code');
           if (symbolArray.length > 1) throw new Error('Multiply defined symbol');
         }
         break;
       default: break;
     }
-    address += nodeSize(node);
+    if (direction === 'forward') address += nodeSize(node, address, direction);
+    // Now we need to re-subtract the 1n offset, which is stored in addressAfterDecrement.
+    else if (direction === 'backward') address = addressAfterDecrement;
   };
-  tree.walk(wrapper);
+  tree.walk(wrapper, whenVisit, direction);
 };
