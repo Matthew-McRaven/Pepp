@@ -30,7 +30,8 @@ describe('asm.peg for pseudo', () => {
     // Check that the directive is correct
     expect(pseudo.A.directive).toBe('BLAGH');
     expect(pseudo.A.args.length).toBe(1);
-    expect(pseudo.A.args[0]).toStrictEqual({ type: 'decimal', value: 1 });
+    expect(pseudo.A.args[0].type).toStrictEqual('decimal');
+    expect(pseudo.A.args[0].value.toString()).toStrictEqual('1');
   });
   it('detects >1-arity dot commands at the start of the line', () => {
     const root = asm.peg.parseRoot('.BLAGH 1,2,3\n');
@@ -42,8 +43,11 @@ describe('asm.peg for pseudo', () => {
     expect(pseudo.A.directive).toBe('BLAGH');
     // Check that all args are correct.
     expect(pseudo.A.args.length).toBe(3);
-    expect(pseudo.A.args[0]).toStrictEqual({ type: 'decimal', value: 1 });
-    expect(pseudo.A.args[1]).toStrictEqual({ type: 'decimal', value: 2 });
-    expect(pseudo.A.args[2]).toStrictEqual({ type: 'decimal', value: 3 });
+    expect(pseudo.A.args[0].type).toStrictEqual('decimal');
+    expect(pseudo.A.args[0].value.toString()).toStrictEqual('1');
+    expect(pseudo.A.args[1].type).toStrictEqual('decimal');
+    expect(pseudo.A.args[1].value.toString()).toStrictEqual('2');
+    expect(pseudo.A.args[2].type).toStrictEqual('decimal');
+    expect(pseudo.A.args[2].value.toString()).toStrictEqual('3');
   });
 });

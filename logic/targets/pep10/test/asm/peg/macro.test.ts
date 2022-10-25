@@ -30,7 +30,8 @@ describe('asm.peg for macro', () => {
     // Check that the macro is correct
     expect(macro.A.macro).toBe('BLAGH');
     expect(macro.A.args.length).toBe(1);
-    expect(macro.A.args[0]).toStrictEqual({ type: 'decimal', value: 1 });
+    expect(macro.A.args[0].type).toStrictEqual('decimal');
+    expect(macro.A.args[0].value.toString()).toStrictEqual('1');
   });
   it('detects >1-arity macro at the start of the line', () => {
     const root = asm.peg.parseRoot('@BLAGH 1,2,3\n');
@@ -42,8 +43,11 @@ describe('asm.peg for macro', () => {
     expect(macro.A.macro).toBe('BLAGH');
     // Check that all args are correct.
     expect(macro.A.args.length).toBe(3);
-    expect(macro.A.args[0]).toStrictEqual({ type: 'decimal', value: 1 });
-    expect(macro.A.args[1]).toStrictEqual({ type: 'decimal', value: 2 });
-    expect(macro.A.args[2]).toStrictEqual({ type: 'decimal', value: 3 });
+    expect(macro.A.args[0].type).toStrictEqual('decimal');
+    expect(macro.A.args[0].value.toString()).toStrictEqual('1');
+    expect(macro.A.args[1].type).toStrictEqual('decimal');
+    expect(macro.A.args[1].value.toString()).toStrictEqual('2');
+    expect(macro.A.args[2].type).toStrictEqual('decimal');
+    expect(macro.A.args[2].value.toString()).toStrictEqual('3');
   });
 });

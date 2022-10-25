@@ -9,7 +9,8 @@ describe('asm.peg for nonunary', () => {
     if (nonunary.T !== 'nonunary') throw new Error('impossible');
     // Check that the nonunary op is correct
     expect(nonunary.A.op).toBe('hi');
-    expect(nonunary.A.arg).toStrictEqual({ type: 'decimal', value: 5 });
+    expect(nonunary.A.arg.type).toStrictEqual('decimal');
+    expect(nonunary.A.arg.value.toString()).toStrictEqual('5');
     expect(nonunary.A.addr).toBe(null);
   });
   it('detects nonunary instructions with no addr mode with comments', () => {
@@ -20,7 +21,8 @@ describe('asm.peg for nonunary', () => {
     if (nonunary.T !== 'nonunary') throw new Error('impossible');
     // Check that the nonunary op is correct
     expect(nonunary.A.op).toBe('hi');
-    expect(nonunary.A.arg).toStrictEqual({ type: 'decimal', value: 5 });
+    expect(nonunary.A.arg.type).toStrictEqual('decimal');
+    expect(nonunary.A.arg.value.toString()).toStrictEqual('5');
     expect(nonunary.A.addr).toBe(null);
     expect(nonunary.A.comment).toBe('world');
   });
@@ -33,7 +35,8 @@ describe('asm.peg for nonunary', () => {
     if (nonunary.T !== 'nonunary') throw new Error('impossible');
     // Check that the nonunary op is correct
     expect(nonunary.A.op).toBe('hi');
-    expect(nonunary.A.arg).toStrictEqual({ type: 'decimal', value: 5 });
+    expect(nonunary.A.arg.type).toStrictEqual('decimal');
+    expect(nonunary.A.arg.value.toString()).toStrictEqual('5');
     expect(nonunary.A.addr).toBe('v');
   });
   it('detects nonunary instructions with addr mode with comments', () => {
@@ -44,7 +47,8 @@ describe('asm.peg for nonunary', () => {
     if (nonunary.T !== 'nonunary') throw new Error('impossible');
     // Check that the nonunary op is correct
     expect(nonunary.A.op).toBe('hi');
-    expect(nonunary.A.arg).toStrictEqual({ type: 'decimal', value: 5 });
+    expect(nonunary.A.arg.type).toStrictEqual('decimal');
+    expect(nonunary.A.arg.value.toString()).toStrictEqual('5');
     expect(nonunary.A.addr).toBe('v');
     expect(nonunary.A.comment).toBe('world');
   });
