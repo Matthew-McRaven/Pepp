@@ -39,11 +39,18 @@ describe('ELF32 Writer', () => {
       st_name: 'hello',
       st_value: 0xFEEDn,
       st_size: 0x2n,
-      st_bind: 0n,
       st_info: 0n,
       st_other: 0n,
       st_shndx: test,
     }]);
     wr.dumpToFile('magic.elf');
+  });
+  it('can access a symtab without crashing', () => {
+    const wr = new Writer(32);
+    wr.writeSectionBytes('test', {} as any, new TextEncoder().encode('hello cruel world'));
+    const sec = wr.getSection('test');
+    expect(sec).not.toBeUndefined();
+    expect(sec!.getAddress().toString()).toEqual('0');
+    expect(sec!.getSize().toString()).toEqual('17');
   });
 });

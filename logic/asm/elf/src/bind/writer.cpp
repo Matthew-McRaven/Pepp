@@ -1,5 +1,8 @@
 #include "writer.hpp"
 #include <iostream>
+
+#include "./section.hpp"
+
 bind::ELFWriter::ELFWriter(const Napi::CallbackInfo &info)
     : Napi::ObjectWrap<ELFWriter>(info), string_cache() {
   auto env = info.Env();
@@ -203,6 +206,21 @@ Napi::Value bind::ELFWriter::dump_to_file(const Napi::CallbackInfo &info) {
   return Napi::Boolean::New(env, elf->save(file_name));
 }
 
+Napi::Value bind::ELFWriter::get_section(const Napi::CallbackInfo &info) {
+  auto env = info.Env();
+  if (info.Length() != 1) {
+    Napi::TypeError::New(env, "Expected 1 argument").ThrowAsJavaScriptException();
+  } else if (!info[0].IsString()) {
+    Napi::TypeError::New(env, "First argument must be a string").ThrowAsJavaScriptException();
+  }
+  auto section_name = info[0].ToString().Utf8Value();
+  auto [ptr, is_new] = this->get_or_create_section(section_name, false);
+  if (ptr == nullptr)
+    return env.Undefined();
+  return ELFSection::GetClass(env).New({Napi::External<std::shared_ptr<ELFIO::elfio>>::New(env, &elf),
+                                        Napi::External<ELFIO::section>::New(env, ptr)});
+}
+
 Napi::Function bind::ELFWriter::GetClass(Napi::Env env) {
   return bind::ELFWriter::DefineClass(env, "ELFWriter", {
       ELFWriter::InstanceMethod("writeEntryPoint", &ELFWriter::write_entry_point),
@@ -214,16 +232,20 @@ Napi::Function bind::ELFWriter::GetClass(Napi::Env env) {
       ELFWriter::InstanceMethod("writeSymbols", &ELFWriter::write_symbols),
       ELFWriter::InstanceMethod("writeRelocations", &ELFWriter::write_relocations),
       ELFWriter::InstanceMethod("dumpToFile", &ELFWriter::dump_to_file),
+      ELFWriter::InstanceMethod("getSection", &ELFWriter::get_section),
   });
 }
 
-std::tuple<ELFIO::section *, bool> bind::ELFWriter::get_or_create_section(std::string name) {
+std::tuple<ELFIO::section *, bool> bind::ELFWriter::get_or_create_section(std::string name, bool allow_create) {
   // See if the section already exists
   auto section_it = std::find_if(elf->sections.begin(), elf->sections.end(),
                                  [&name](const auto &item) { return item->get_name() == name; });
   // Either create or reference existing section.
   if (section_it == elf->sections.end())
-    return std::make_tuple(elf->sections.add(name), true);
+    if (allow_create)
+      return std::make_tuple(elf->sections.add(name), true);
+    else
+      return std::make_tuple(nullptr, false);
   else
     return std::make_tuple((*section_it).get(), false);
 }

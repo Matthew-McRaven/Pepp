@@ -1,6 +1,6 @@
 {
   "name": "@pepnext/logic-elf",
-  "version": "3.0.2",
+  "version": "3.1.0",
   "description": "Create and read ELF files.",
   "repository": "https://gitlab.com/pepnext/logic/elf",
   "license": "GPL-3.0",
@@ -22,12 +22,12 @@
     "clean": "npx rimraf -rf ./dist",
     "docs": "npx typedoc --out docs src/bind/index.ts",
     "globcov": "python3 .scripts/scripts/merge-cobertura.py -o coverage.xml  coverage/cobertura-coverage.xml",
-    "test": "npm run test:native && npm run test:js",
     "prepublishOnly": "npm run build",
-    "test:js": "npx cross-env NODE_OPTIONS=--experimental-vm-modules npx jest",
+    "test": "npm run test:native && npm run test:js",
+    "test:ci": "npm run test:ci:js && npm run test:native",
     "test:ci:js": "npm run test:js -- --ci --reporters=default --reporters=jest-junit --coverageReporters=cobertura --coverage && npm run globcov",
-    "test:native": "cd build && ctest -C Release",
-    "test:ci": "npm run test:ci:js && npm run test:native"
+    "test:js": "npx cross-env NODE_OPTIONS=--experimental-vm-modules npx jest",
+    "test:native": "cd build && ctest -C Release"
   },
   "eslintConfig": {
     "extends": "./node_modules/@pepnext/eslint/.eslintrc.js"

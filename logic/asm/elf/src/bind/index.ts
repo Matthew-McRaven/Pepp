@@ -32,6 +32,21 @@ export interface ELFRel32 {
 
 export type ELFRelA32 = ELFRel32 | { r_addend: bigint }
 
+export interface ISection {
+  getAddress(): bigint
+  getSize(): bigint
+}
+
+export interface ISegment {
+  setType(type:bigint): void
+  setVAddress(address:bigint): void
+  setPAddress(address:bigint): void
+  setMemorySize(size:bigint): void
+  setFileSize(size:bigint): void
+  setFlags(flags:bigint): void
+  addSection(name:ISection): void;
+}
+
 export interface IWriter {
   writeEntryPoint(arg:bigint): void;
   writeEType(arg:bigint): void;
@@ -46,6 +61,8 @@ export interface IWriter {
   writeSymbols(strtabSectionName:string, symtabSectionName: string, symbols:ELFSymbol32[]): void;
   writeRelocations(relocations:(ELFRel32|ELFRelA32)[]): void;
 
+  addSegment():ISegment
+  getSection(name:string): ISection | undefined
   dumpToFile(path:string): boolean;
 }
 

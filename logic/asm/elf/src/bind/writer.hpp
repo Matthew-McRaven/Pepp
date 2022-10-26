@@ -45,8 +45,12 @@ public:
   // file name as string
   // Returns boolean describing if the write was successful.
   Napi::Value dump_to_file(const Napi::CallbackInfo &info);
+
+  // section name as string
+  // Returns an ISection if the section exists
+  Napi::Value get_section(const Napi::CallbackInfo &info);
 private:
-  std::tuple<ELFIO::section *, bool /*is_new*/> get_or_create_section(std::string name);
+  std::tuple<ELFIO::section *, bool /*is_new*/> get_or_create_section(std::string name, bool allow_create = true);
   ELFIO::Elf_Word write_string_impl(std::string section_name, std::string value);
   uint8_t bitness;
   std::shared_ptr<ELFIO::elfio> elf;
