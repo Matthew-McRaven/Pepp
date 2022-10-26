@@ -19,7 +19,6 @@ export interface ELFSymbol32 {
   st_name: string
   st_value: bigint
   st_size: bigint
-  st_bind: bigint
   st_info: bigint
   st_other: bigint
   st_shndx: bigint

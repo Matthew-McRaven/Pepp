@@ -158,11 +158,6 @@ Napi::Value bind::ELFWriter::write_symbols(const Napi::CallbackInfo &info) {
       Napi::TypeError::New(env, "st_size must be a bigint").ThrowAsJavaScriptException();
     ELFIO::Elf_Xword size = temp;
 
-    temp = symObject.Get("st_bind").As<Napi::BigInt>().Uint64Value(&lossless);
-    if (!lossless)
-      Napi::TypeError::New(env, "st_bind must be a bigint").ThrowAsJavaScriptException();
-    unsigned char bind = temp;
-
     temp = symObject.Get("st_info").As<Napi::BigInt>().Uint64Value(&lossless);
     if (!lossless)
       Napi::TypeError::New(env, "st_info must be a bigint").ThrowAsJavaScriptException();
@@ -177,7 +172,7 @@ Napi::Value bind::ELFWriter::write_symbols(const Napi::CallbackInfo &info) {
     if (!lossless)
       Napi::TypeError::New(env, "st_shndx must be a bigint").ThrowAsJavaScriptException();
     ELFIO::Elf_Half shndx = temp;
-    sym_ac.add_symbol(name, value, size, bind, info, other, shndx);
+    sym_ac.add_symbol(name, value, size, info, other, shndx);
   }
 
   // Defer filling in these values, since strtab may not exist until after the filler loop.
