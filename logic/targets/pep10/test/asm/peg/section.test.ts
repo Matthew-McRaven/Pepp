@@ -6,6 +6,6 @@ describe('asm.peg for section', () => {
     // Check that there are two sections with one line each.
     expect(root.C.length).toBe(2);
     expect(root.C[0].C.length).toBe(1);
-    expect(root.C[1].C.length).toBe(1);
+    expect(root.C[1].C.length).toBe(2);
   });
 });

@@ -4,9 +4,11 @@ import {
   Writer, IWriter, ELFSymbol32, st_info,
 } from '@pepnext/logic-elf';
 import { Root, SectionGroup, TypedNode } from '../ast/nodes';
-import { treeToHex, updateSymbolShndx } from '../visitors';
+import { treeToHex } from '../visitors';
 
-export const createElf = (node:TypedNode):unknown => {
+import { updateSymbolShndx } from './shndx_annotation';
+
+export const createElf = (node:TypedNode):IWriter => {
   const writer:IWriter = new Writer(32);
   const sectionGroups = node.C as SectionGroup[];
 
@@ -17,15 +19,16 @@ export const createElf = (node:TypedNode):unknown => {
 
   // Write code / data sections.
 
+  const baseAddresses = new Map<string, bigint>();
   const collater = new Map<string, Uint8Array[]>();
   // Gather all sections that have the same name.
   sectionGroups.forEach((s) => {
     let array: Uint8Array[] = [];
+    if (!baseAddresses.has(s.A.name)) baseAddresses.set(s.A.name, s.A.address || 0n);
     if (collater.has(s.A.name)) array = collater.get(s.A.name) || [];
     array.push(treeToHex(s));
     collater.set(s.A.name, array);
   });
-
   // Merge bytes of all sections that have the same name.
   const collated = new Map<string, Uint8Array>();
   Array.from(collater.entries()).forEach(([k, v]) => {
@@ -53,7 +56,15 @@ export const createElf = (node:TypedNode):unknown => {
 
   // Create sections for each set of bytes, and update all relevant SectionGroups.
   collated.forEach((v, k) => {
-    const shndx = writer.writeSectionBytes(k, {} as any, v);
+    const shndx = writer.writeSectionBytes(k, {
+      size: 32,
+      sh_type: 1n, // Always assume that lines in source program are progbits.
+      sh_flags: 0n, // Compose flags from .SECTION directive. Default to WAX.
+      sh_addr: baseAddresses.get(k) || 0n,
+      sh_link: 0n, // See TIS ELF spec, Figure 1-12. Will always be 0 for our programs.
+      sh_info: 0n, // See TIS ELF spec, Figure 1-12. Will always be 0 for our programs.
+      sh_addr_align: 1n, // TODO: Look for any .ALIGN directives, and take on the largest value or else 1n.
+    }, v);
     setShndx(k, shndx);
   });
 
@@ -71,20 +82,22 @@ export const createElf = (node:TypedNode):unknown => {
     if (s.definitionState() === DefintionState.undefined && !deduplicatedSymbols.has(s.name())) deduplicatedSymbols.set(s.name(), s);
     else if (s.binding() === 'global') deduplicatedSymbols.set(s.name(), s);
   });
-  // Create the ELF symbol spec for the deduplicate symbols.
+  // Create the ELF symbol format for the deduplicate symbols.
   const elfSymbols: ELFSymbol32[] = [];
   deduplicatedSymbols.forEach((s) => {
     elfSymbols.push({
       size: 32,
       st_name: s.name(),
-      st_size: BigInt(s.size()),
-      st_value: BigInt(s.value()),
+      st_size: s.size() || 0n,
+      st_bind: 1n,
+      st_value: s.value() || 0n,
       st_shndx: s.sectionIndex(),
       st_info: st_info(s.binding(), s.type()),
       st_other: 0n, // Only contains visibility, which we will leave at default for now
-    } as ELFSymbol32);
+    });
   });
-  // writer.writeSymbols('.symtab', elfSymbols);
+  console.log(elfSymbols);
+  if (elfSymbols.length !== 0) writer.writeSymbols('.strtab', '.symtab', elfSymbols);
 
   // Write relocation entries
   // Make sure to relocate any usages of pushed-down symbols.
@@ -93,12 +106,12 @@ export const createElf = (node:TypedNode):unknown => {
   // Write addr:line mapping
   // TODO: Implement after writing visitor.
 
-  // Write MMIO fields as JSON, add to OS.MMIO.
+  // Write MMIO fields as JSON, add to MMIO.
   // If none, do not write section at all.
   // TODO: Implement when OS is assembling successfully
 
   // Write debug info
   // TODO: Implement after adding debug info
 
-  return node as unknown;
+  return writer;
 };

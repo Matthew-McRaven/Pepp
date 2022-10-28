@@ -7,6 +7,6 @@ export enum ErrorSeverity {
 export interface ParseError {
     what: string
     relativeTo: unknown
-    row: number
+    line: number
     severity: ErrorSeverity
 }

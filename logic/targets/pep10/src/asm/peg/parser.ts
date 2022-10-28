@@ -122,7 +122,7 @@ const ASTy = asty as any;
 export const parseRoot = (text: string) => {
   const builder = new ASTBuilder(new ASTy());
   const parser = peggy.generate(contents, ({ builder, sections: true } as unknown) as any);
-  builder.pushBranch('default');
+  builder.pushBranch('.text');
   parser.parse(`${text}\n`);
   return builder.root as TypedNode;
 };

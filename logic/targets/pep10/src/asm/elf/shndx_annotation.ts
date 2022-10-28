@@ -1,5 +1,6 @@
 import { TypedNode } from '../ast/nodes';
 
+// Meant to be called by elf flattening code, not by the user of the library directly.
 export const updateSymbolShndx = (root: TypedNode) => {
   let closestShndx = 0n;
   root.walk((node:TypedNode) => {

@@ -31,6 +31,7 @@ export class ASTBuilder {
 
   pushBranch(name) {
     const active = this.getActive();
+    if (active.T !== 'root') throw new Error('No nested sections!!');
     const node = this.#ctx.create('sectionGroup');
     node.set('name', name);
     node.A.ctx = active.ctx;
@@ -81,11 +82,13 @@ export class ASTBuilder {
   createSection({ loc, name, comment }) {
     this.popBranch();
     this.pushBranch(name);
-    const N = this.getActive();
-    N.T = 'pseudo.section';
+    const N = this.#ctx.create('pseudo.section');
     N.L = { L: loc.start.line, C: loc.start.column, O: loc.start.offset };
     N.set('rootMappedL', N.L);
-    N.set({ name, comment });
+    N.set({
+      comment, args: [{ type: 'identifier', value: name }], symbol: null, directive: 'SECTION',
+    });
+    this.pushTerminal(N);
   }
 
   createDot({

@@ -4,6 +4,7 @@
     * Can now call `asm.visit.formatSource`
 * `asm.visit.insertMacroSubtrees`
 * `asm.visit.pushDownSymbols` Move symbols attached to macros to the first addressable line of code.
+* `asm.visit.flattenMacros` Macro the multi-level macro tree into a single level
 * `asm.visit.validateSemantics` (TODO) Validate addressing modes, argument sizes & types , symbol usage.
 * `asm.visit.normalize` (TODO) Fix casing on nodes.
 * `asm.visit.extractSymbols` Extract all symbol definitions and symbol references into the node's symbol table.

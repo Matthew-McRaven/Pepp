@@ -34,14 +34,15 @@ export const setTreeAddresses = (tree:TypedNode, options?: AddressOpts) => {
 
     node.A.address = address;
     switch (node.T) {
-      // Handle equate, block, byte
+      // Handle equate, block, byte, EQUATE
       case 'pseudo':
-        switch (node.A.directive) {
+        switch (node.A.directive.toUpperCase()) {
           case 'BYTE':
           case 'WORD':
+          case 'BLOCK':
             if (node.A.symbol) {
               symbolArray = node.A.symtab.find(node.A.symbol, TraversalPolicy.children);
-              if (symbolArray.length === 1) symbolArray[0].setAddr(address, 0n, 'code');
+              if (symbolArray.length === 1) symbolArray[0].setAddr(address, 0n, 'object');
               if (symbolArray.length > 1) throw new Error('Multiply defined symbol');
             }
             break;

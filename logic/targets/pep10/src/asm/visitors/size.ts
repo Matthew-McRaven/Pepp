@@ -4,7 +4,7 @@ import { Pseudo, TypedNode } from '../ast/nodes';
 const pseudoSize = (node:Pseudo, baseAddress?: bigint, direction?:'forward'|'backward'): bigint => {
   if (node.A.precomputedSize !== undefined) return node.A.precomputedSize;
   let argv = 0n;
-  switch (node.A.directive) {
+  switch (node.A.directive.toUpperCase()) {
     case 'ALIGN':
       if (typeof node.A.args[0].value === 'string') throw new Error('ALIGN arg must be a number');
       argv = node.A.args[0].value;

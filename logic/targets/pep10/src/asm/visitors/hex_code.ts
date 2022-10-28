@@ -16,7 +16,7 @@ export const createSymbolLookup = (node: TypedNode) => (name:string) => {
 const psuedoToHex = (node:Pseudo, bytes: Uint8Array, startIndex:bigint) => {
   let argBytes: Uint8Array = new Uint8Array(0);
   let argValue = 0n;
-  switch (node.A.directive) {
+  switch (node.A.directive.toUpperCase()) {
     case 'BLOCK':
       argValue = isa.argToNumber(node.A.args[0], createSymbolLookup(node));
       bytes.set(new Array(Number(argValue)), Number(startIndex));
