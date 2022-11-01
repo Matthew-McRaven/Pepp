@@ -40,7 +40,7 @@ export interface Elf {
      * Helpers not present in elfio, but make library usage easier in TS.
      */
     addSection(name:string): Section
-    getSection(index:bigint): Section | undefined
+    getSection(index:bigint|string): Section | undefined
 
     addSegment(): Segment
     getSegment(index:bigint): Segment | undefined

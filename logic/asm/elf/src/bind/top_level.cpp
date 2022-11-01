@@ -130,7 +130,7 @@ Napi::Value bind::Elf::add_section(const Napi::CallbackInfo &info) {
   bind::detail::count_args(info, 1, 1);
   auto ptr = elf->sections.add(bind::detail::parse_arg_string(info, 0, "string"));
   Napi::EscapableHandleScope scope(info.Env());
-  auto sec = Section::GetClass(env).New({Napi::External < std::shared_ptr < ELFIO::elfio >> ::New(env, &elf),
+  auto sec = Section::GetClass(env).New({Napi::External<std::shared_ptr<ELFIO::elfio >>::New(env, &elf),
                                          Napi::External<ELFIO::section>::New(env, ptr)});
   scope.Escape(sec);
   sec_map[ptr->get_index()] = ptr;
@@ -140,12 +140,24 @@ Napi::Value bind::Elf::get_section(const Napi::CallbackInfo &info) {
   validate_elf_ptr(info);
   auto env = info.Env();
   bind::detail::count_args(info, 1, 1);
-  uint64_t index = bind::detail::parse_arg_bigint(info, 0, "bigint");
-  if (auto sec = sec_map.find(index); sec == sec_map.end())
+  if (info[0].IsBigInt()) {
+    uint64_t index = bind::detail::parse_arg_bigint(info, 0, "bigint");
+    if (auto sec = sec_map.find(index); sec == sec_map.end())
+      return env.Undefined();
+    else
+      return Section::GetClass(env).New({Napi::External<std::shared_ptr<ELFIO::elfio >>::New(env, &elf),
+                                         Napi::External<ELFIO::section>::New(env, sec->second)});
+  } else if (info[0].IsString()) {
+    auto name = bind::detail::parse_arg_string(info, 0, "string");
+    for (const auto &it : elf->sections) {
+      if (it->get_name() == name) {
+        return Section::GetClass(env).New({Napi::External<std::shared_ptr<ELFIO::elfio >>::New(env, &elf),
+                                           Napi::External<ELFIO::section>::New(env, &*it)});
+      }
+    }
     return env.Undefined();
-  else
-    return Section::GetClass(env).New({Napi::External < std::shared_ptr < ELFIO::elfio >> ::New(env, &elf),
-                                       Napi::External<ELFIO::section>::New(env, sec->second)});
+  } else
+    return env.Undefined();
 }
 
 Napi::Value bind::Elf::add_segment(const Napi::CallbackInfo &info) {
@@ -154,7 +166,7 @@ Napi::Value bind::Elf::add_segment(const Napi::CallbackInfo &info) {
   bind::detail::count_args(info, 0, 0);
   auto ptr = elf->segments.add();
   Napi::EscapableHandleScope scope(info.Env());
-  auto seg = Segment::GetClass(env).New({Napi::External < std::shared_ptr < ELFIO::elfio >> ::New(env, &elf),
+  auto seg = Segment::GetClass(env).New({Napi::External<std::shared_ptr<ELFIO::elfio >>::New(env, &elf),
                                          Napi::External<ELFIO::segment>::New(env, ptr)});
 
   scope.Escape(seg);
@@ -169,7 +181,7 @@ Napi::Value bind::Elf::get_segment(const Napi::CallbackInfo &info) {
   if (auto seg = seg_map.find(index); seg == seg_map.end())
     return env.Undefined();
   else
-    return Segment::GetClass(env).New({Napi::External < std::shared_ptr < ELFIO::elfio >> ::New(env, &elf),
+    return Segment::GetClass(env).New({Napi::External<std::shared_ptr<ELFIO::elfio >>::New(env, &elf),
                                        Napi::External<ELFIO::segment>::New(env, seg->second)});
 }
 
