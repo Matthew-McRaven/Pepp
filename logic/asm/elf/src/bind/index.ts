@@ -16,7 +16,7 @@ import type {
 } from './section_relocation';
 import { StringAccessor } from './section_string';
 import {
-  st_type, st_bind, st_visibility, Symbol, SymbolAccessor,
+  st_type, st_bind, st_visibility, Symbol, SymbolAccessor, writeSymbols,
 } from './section_symbol';
 import {
   p_type, p_flags, Segment,
@@ -82,8 +82,8 @@ export const addRelocations = (elf:Elf, relocations:(Rel|RelA)[]) => {
 };
 
 export class CachedStringAccessor implements StringAccessor {
-  constructor(elf:Elf, strSec:Section) {
-    this.#stringCache = new StringCache();
+  constructor(elf:Elf, strSec:Section, cache?:StringCache) {
+    this.#stringCache = cache === undefined ? new StringCache() : cache;
     this.#stringSection = strSec;
     this.#nativeAccessor = new native.StringAccessor(elf, strSec);
   }
@@ -108,8 +108,8 @@ export class CachedStringAccessor implements StringAccessor {
 }
 
 export class CachedSymbolAccessor implements SymbolAccessor {
-  constructor(elf:Elf, strSec:Section, symSec: Section) {
-    this.#stringCache = new CachedStringAccessor(elf, strSec);
+  constructor(elf:Elf, strSec:Section, symSec: Section, cache?: StringCache) {
+    this.#stringCache = new CachedStringAccessor(elf, strSec, cache === undefined ? new StringCache() : cache);
     this.#nativeAccessor = new native.SymbolAccessor(elf, strSec, symSec);
   }
 
