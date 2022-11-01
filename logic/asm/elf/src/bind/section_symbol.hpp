@@ -32,7 +32,5 @@ private:
   std::shared_ptr <ELFIO::string_section_accessor> strs;
   std::shared_ptr <ELFIO::symbol_section_accessor> syms;
   ELFIO::section *strSec, *symSec;
-  // Always at least 1 because of symbol 0, the undefined symbol
-  uint64_t symbol_count = 1;
 };
 };

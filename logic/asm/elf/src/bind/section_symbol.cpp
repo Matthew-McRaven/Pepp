@@ -108,14 +108,13 @@ Napi::Value bind::SymbolAccessor::add_symbol(const Napi::CallbackInfo &info) {
   } else {
     // TODO: Throw error on unexpected type.
   }
-  symbol_count++;
   uint64_t symIdx = syms->add_symbol(name, v[0], v[1], v[2], v[3], v[4], v[5]);
   return Napi::BigInt::New(env, symIdx);
 }
 
 Napi::Value bind::SymbolAccessor::update_info(const Napi::CallbackInfo &info) {
   bind::detail::count_args(info, 0, 0);
-  symSec->set_info(symbol_count);
+  symSec->set_info(syms->get_symbols_num());
   return info.Env().Null();
 }
 
