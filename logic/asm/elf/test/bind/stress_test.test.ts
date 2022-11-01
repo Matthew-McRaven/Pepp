@@ -65,6 +65,6 @@ describe('Stress test', () => {
     symtab.updateInfo();
     native.saveElfToFile(wr, 'magic3.elf');
     // Must be called after save, otherwise offsets are uninitialized...
-    console.log(wr.validate());
+    expect(wr.validate()).toEqual(true);
   });
 });
