@@ -34,7 +34,7 @@ Napi::Value bind::SymbolAccessor::get_symbol_count(const Napi::CallbackInfo &inf
 Napi::Value bind::SymbolAccessor::get_symbol(const Napi::CallbackInfo &info) {
   auto env = info.Env();
   bind::detail::count_args(info, 1, 1);
-  std::variant <uint64_t, std::string> arg;
+  std::variant<uint64_t, std::string> arg;
   if (info[0].IsString()) {
     arg = bind::detail::parse_arg_string(info, 0, "string");
   } else if (info[0].IsBigInt()) {

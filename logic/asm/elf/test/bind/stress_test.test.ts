@@ -1,6 +1,5 @@
-import { native, markSymtab, markStrtab } from '../../src/bind';
 import {
-  CachedStringAccessor, e_type, p_type, sh_flags, sh_type, updateSegementMemorySize,
+  CachedStringAccessor, e_type, p_type, sh_flags, sh_type, updateSegementMemorySize, native, markSymtab, markStrtab, writeSymbols,
 } from '../../dist';
 
 describe('Stress test', () => {
@@ -25,15 +24,15 @@ describe('Stress test', () => {
     text.setAddress(0n);
     text.appendData(tdat);
 
-    const helloName = 'hello';
     const helloIndex = strtab.addString('hello');
-    expect(helloIndex).toEqual(strtab.addString(helloName));
-    symtab.addSymbol({
-      name: helloIndex, binding: 0n, other: 0n, shndx: text.getIndex(), size: 2n, type: 0n, value: 0xFFFFn,
-    });
-    symtab.addSymbol({
-      name: undefined, binding: 0n, other: 0n, shndx: text.getIndex(), size: 2n, type: 0n, value: 0xFFFFn,
-    });
+    writeSymbols(wr, '.strtab', '.symtab', [
+      {
+        name: helloIndex, binding: 0n, other: 0n, shndx: text.getIndex(), size: 2n, type: 0n, value: 0xFFFFn,
+      },
+      {
+        name: undefined, binding: 0n, other: 0n, shndx: text.getIndex(), size: 2n, type: 0n, value: 0xFFFFn,
+      },
+    ]);
 
     const bss = wr.addSection('.bss');
     bss.setType(sh_type.SHT_NOBITS);

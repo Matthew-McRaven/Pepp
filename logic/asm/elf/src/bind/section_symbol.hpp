@@ -29,8 +29,8 @@ public:
 
 private:
   ELFIO::elfio *elf;
-  std::shared_ptr <ELFIO::string_section_accessor> strs;
-  std::shared_ptr <ELFIO::symbol_section_accessor> syms;
+  std::shared_ptr<ELFIO::string_section_accessor> strs;
+  std::shared_ptr<ELFIO::symbol_section_accessor> syms;
   ELFIO::section *strSec, *symSec;
 };
 };

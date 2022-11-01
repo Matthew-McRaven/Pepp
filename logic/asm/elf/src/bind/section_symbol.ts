@@ -1,6 +1,10 @@
 /* eslint-disable camelcase,no-bitwise */
-// import { Elf } from './top_level';
-// import { Section } from './section';
+import { Elf } from './top_level';
+import {
+  markStrtab, markSymtab, Section, sh_type,
+} from './section';
+import StringCache from './string_cache';
+import { CachedSymbolAccessor } from './index';
 
 export const st_bind = {
   STB_LOCAL: 0n,
@@ -54,3 +58,20 @@ export interface SymbolAccessor {
     // update sh_info on the symtab.
     updateInfo(): void
 }
+
+export const writeSymbols = (elf:Elf, maybeStrSection:Section|string|bigint, maybeSymSection:Section|string|bigint, symbols:Symbol[], cache?:StringCache) => {
+  const strSection = typeof maybeStrSection === 'object' ? maybeStrSection : elf.getSection(maybeStrSection);
+  const symSection = typeof maybeSymSection === 'object' ? maybeSymSection : elf.getSection(maybeSymSection);
+
+  if (strSection === undefined) throw new Error('Undefined string section');
+  else if (symSection === undefined) throw new Error('Undefined symbol section');
+
+  // Be nice and set all section flags for the user.
+  if (strSection.getType() === sh_type.SHT_NULL) markStrtab(strSection);
+  if (symSection.getType() === sh_type.SHT_NULL) markSymtab(symSection, strSection.getIndex(), elf.getDefaultEntrySize(sh_type.SHT_SYMTAB));
+
+  const symAccessor = new CachedSymbolAccessor(elf, strSection, symSection, cache);
+  symbols.forEach(((s) => symAccessor.addSymbol(s)));
+
+  symAccessor.updateInfo();
+};

@@ -36,7 +36,7 @@ export type {
 };
 export type { StringAccessor };
 export {
-  st_type, st_bind, st_visibility, Symbol, SymbolAccessor,
+  st_type, st_bind, st_visibility, Symbol, SymbolAccessor, writeSymbols,
 };
 export { p_type, p_flags, Segment };
 export { StringCache };
