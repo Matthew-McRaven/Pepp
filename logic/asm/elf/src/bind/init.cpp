@@ -25,7 +25,7 @@ Napi::Object Init(Napi::Env env, Napi::Object exports) {
   exports.Set(Napi::String::New(env, "saveElfToFile"), Napi::Function::New<bind::save_file>(env));
   exports.Set(Napi::String::New(env, "loadElfFromFile"), Napi::Function::New<bind::load_file>(env));
   exports.Set(Napi::String::New(env, "saveElfToBuffer"), Napi::Function::New<bind::save_buffer>(env));
-  exports.Set(Napi::String::New(env, "loadElfFromBuffer"), Napi::Function::New<bind::load_buffer>(env));
+  //exports.Set(Napi::String::New(env, "loadElfFromBuffer"), Napi::Function::New<bind::load_buffer>(env));
 
   return exports;
 }

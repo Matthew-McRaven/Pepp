@@ -24,8 +24,8 @@ public:
   Napi::Value add_rel_entry(const Napi::CallbackInfo &info);
 
 private:
-  std::shared_ptr<ELFIO::elfio> elf;
-  std::shared_ptr<ELFIO::relocation_section_accessor> rels;
+  ELFIO::elfio *elf;
+  std::shared_ptr <ELFIO::relocation_section_accessor> rels;
   ELFIO::section *section;
 };
 
@@ -44,8 +44,8 @@ public:
   Napi::Value add_rela_entry(const Napi::CallbackInfo &info);
 
 private:
-  std::shared_ptr<ELFIO::elfio> elf;
-  std::shared_ptr<ELFIO::relocation_section_accessor> rels;
+  ELFIO::elfio *elf;
+  std::shared_ptr <ELFIO::relocation_section_accessor> rels;
   ELFIO::section *section;
 };
 }

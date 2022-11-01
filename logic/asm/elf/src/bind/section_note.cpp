@@ -2,6 +2,8 @@
 // Created by gpu on 10/27/22.
 //
 
+#include "./section.hpp"
+#include "./top_level.hpp"
 #include "./section_note.hpp"
 #include "./utils.hpp"
 
@@ -9,9 +11,9 @@ bind::NoteAccessor::NoteAccessor(const Napi::CallbackInfo &info)
     : Napi::ObjectWrap<NoteAccessor>(info) {
   bind::detail::count_args(info, 2, 2);
   this->elf =
-      *bind::detail::parse_arg_external<std::shared_ptr<ELFIO::elfio>>(info, 0, "shared pointer to an elf file");
-  this->section = bind::detail::parse_arg_external<ELFIO::section>(info, 1, "raw pointer to an elf segment");
-  this->notes = std::make_shared<ELFIO::note_section_accessor>(*elf.get(), section);
+      bind::detail::parse_arg_wrapped<bind::Elf>(info, 0, "elf file")->get_elfio();
+  this->section = bind::detail::parse_arg_wrapped<bind::Section>(info, 1, "elf section")->get_raw_section();
+  this->notes = std::make_shared<ELFIO::note_section_accessor>(*elf, section);
 }
 
 Napi::Value bind::NoteAccessor::get_index(const Napi::CallbackInfo &info) {

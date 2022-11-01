@@ -1,7 +1,6 @@
 /* eslint-disable camelcase,no-bitwise */
-import { Elf } from './top_level';
-import { Section } from './section';
-import StringCache from './string_cache';
+// import { Elf } from './top_level';
+// import { Section } from './section';
 
 export const st_bind = {
   STB_LOCAL: 0n,
@@ -33,7 +32,7 @@ export const st_visibility = {
 } as const;
 
 export interface Symbol {
-    name: string | undefined
+    name: string | bigint | undefined
     value: bigint
     size: bigint
     /** @see {@link st_info,st_bind} */
@@ -46,10 +45,12 @@ export interface Symbol {
 }
 
 export interface SymbolAccessor {
-    new(elf:Elf, strSection:Section, cache:StringCache, symSection:Section): SymbolAccessor
+    /* new(elf:Elf, strSection:Section, symSection:Section): SymbolAccessor */
     getIndex(): bigint
 
     getSymbolCount(): bigint
     getSymbol(index:bigint|string): Symbol | undefined
     addSymbol(symbol:Symbol): bigint
+    // update sh_info on the symtab.
+    updateInfo(): void
 }

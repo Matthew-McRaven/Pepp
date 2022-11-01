@@ -1,12 +1,13 @@
-import { native, StringCache } from '../../src/bind';
+import { native } from '../../src/bind';
 
 describe('ELF32 Writer', () => {
   it('Constructs', () => {
-    expect(() => new native.Elf(32, new StringCache())).not.toThrow();
+    expect(() => new native.Elf()).not.toThrow();
   });
   it('can set metadata', () => {
     expect(() => {
-      const e = new native.Elf(32, new StringCache());
+      const e = new native.Elf();
+      e.init(32);
       e.getClass();
       e.getVersion();
       e.getOSABI();

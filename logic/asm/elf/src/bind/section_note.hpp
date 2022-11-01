@@ -21,8 +21,8 @@ public:
   Napi::Value get_note(const Napi::CallbackInfo &info);
   Napi::Value add_note(const Napi::CallbackInfo &info);
 private:
-  std::shared_ptr<ELFIO::elfio> elf;
-  std::shared_ptr<ELFIO::note_section_accessor> notes;
+  ELFIO::elfio *elf;
+  std::shared_ptr <ELFIO::note_section_accessor> notes;
   ELFIO::section *section;
 
 };

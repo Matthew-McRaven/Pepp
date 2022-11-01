@@ -4,11 +4,11 @@ import path from 'path';
 import { fileURLToPath } from 'url';
 
 // Local imports
-import type {
-  Elf, saveElfToFile, saveElfToBuffer, loadElfFromFile, loadElfFromBuffer,
+import {
+  Elf, saveElfToFile, saveElfToBuffer, loadElfFromFile, loadElfFromBuffer, e_type,
 } from './top_level';
 import {
-  sh_type, sh_flags, SectionHeader, Section,
+  sh_type, sh_flags, SectionHeader, Section, markStrtab, markSymtab,
 } from './section';
 import type { Note, NoteAccessor } from './section_note';
 import type {
@@ -24,11 +24,11 @@ import {
 import StringCache from './string_cache';
 
 // Local exports
-export type {
-  Elf, saveElfToFile, saveElfToBuffer, loadElfFromFile, loadElfFromBuffer,
+export {
+  Elf, saveElfToFile, saveElfToBuffer, loadElfFromFile, loadElfFromBuffer, e_type,
 };
 export {
-  sh_type, sh_flags, SectionHeader, Section,
+  sh_type, sh_flags, SectionHeader, Section, markStrtab, markSymtab,
 };
 export type { Note, NoteAccessor };
 export type {
@@ -54,9 +54,12 @@ export const native = {
   NoteAccessor: addon.NoteAccessor as new(elf:Elf, section:Section, cache:StringCache)=>NoteAccessor,
   RelAccessor: addon.RelAccessor as new(elf:Elf, section:Section)=>RelAccessor,
   RelAAccessor: addon.RelAAccessor as new(elf:Elf, section:Section)=>RelAAccessor,
-  StringAccessor: addon.StringAccessor as new(elf:Elf, section:Section, cache:StringCache)=>StringAccessor,
-  SymbolAccessor: addon.SymbolAccessor as new(elf:Elf, strSec:Section, cache:StringCache, symSec: Section)=>SymbolAccessor,
-  Elf: addon.Elf as new(bitness:32|64, cache:StringCache)=>Elf,
+  StringAccessor: addon.StringAccessor as new(elf:Elf, section:Section)=>StringAccessor,
+  SymbolAccessor: addon.SymbolAccessor as new(elf:Elf, strSec:Section, symSec: Section)=>SymbolAccessor,
+  Elf: addon.Elf as new()=>Elf,
+  saveElfToFile: addon.saveElfToFile as saveElfToFile,
+  loadElfFromFile: addon.loadElfFomFile as loadElfFromFile,
+  saveElfToBuffer: addon.saveElfToBuffer as saveElfToBuffer,
 };
 
 /* Export addon-dependent helpers */
@@ -76,4 +79,74 @@ export const addRelocations = (elf:Elf, relocations:(Rel|RelA)[]) => {
     const relaWriter = new addon.RelAAccessor(elf, relaSec) as RelAAccessor;
     rela.forEach((r) => relaWriter.addRelAEntry(r));
   }
+};
+
+export class CachedStringAccessor implements StringAccessor {
+  constructor(elf:Elf, strSec:Section) {
+    this.#stringCache = new StringCache();
+    this.#stringSection = strSec;
+    this.#nativeAccessor = new native.StringAccessor(elf, strSec);
+  }
+
+  #stringSection: Section
+
+  #nativeAccessor : StringAccessor
+
+  #stringCache: StringCache
+
+  addString(name: string): bigint {
+    const has = this.#stringCache.has(this.#stringSection.getName(), name);
+    if (has !== undefined) return has;
+    const added = this.#nativeAccessor.addString(name);
+    this.#stringCache.insert(this.#stringSection.getName(), name, added);
+    return added;
+  }
+
+  getString(index: bigint): string | undefined {
+    return this.#nativeAccessor.getString(index);
+  }
+}
+
+export class CachedSymbolAccessor implements SymbolAccessor {
+  constructor(elf:Elf, strSec:Section, symSec: Section) {
+    this.#stringCache = new CachedStringAccessor(elf, strSec);
+    this.#nativeAccessor = new native.SymbolAccessor(elf, strSec, symSec);
+  }
+
+  #nativeAccessor : SymbolAccessor
+
+  #stringCache: CachedStringAccessor
+
+  addSymbol(symbol: Symbol): bigint {
+    const cachedName = typeof symbol.name === 'string' ? this.#stringCache.addString(symbol.name) : symbol.name;
+    return this.#nativeAccessor.addSymbol({ ...symbol, name: cachedName });
+  }
+
+  getIndex(): bigint {
+    return this.#nativeAccessor.getIndex();
+  }
+
+  getSymbol(index: bigint | string): Symbol | undefined {
+    return this.#nativeAccessor.getSymbol(index);
+  }
+
+  getSymbolCount(): bigint {
+    return this.#nativeAccessor.getSymbolCount();
+  }
+
+  updateInfo() {
+    return this.#nativeAccessor.updateInfo();
+  }
+}
+
+export const updateSegementMemorySize = (elf:Elf, segment:Segment) => {
+  let bytes = 0n;
+  for (let index = 0n; index < segment.getSectionCount(); index += 1n) {
+    const secIndex = segment.getSectionIndexAt(index);
+    const section = elf.getSection(secIndex);
+
+    bytes += section !== undefined ? section.getSize() : 0n;
+  }
+  segment.setMemorySize(bytes);
+  return bytes;
 };

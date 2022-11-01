@@ -19,6 +19,8 @@ public:
   Napi::Value get_type(const Napi::CallbackInfo &info);
   Napi::Value set_type(const Napi::CallbackInfo &info);
 
+  Napi::Value set_entry_size(const Napi::CallbackInfo &info);
+
   Napi::Value get_flags(const Napi::CallbackInfo &info);
   Napi::Value set_flags(const Napi::CallbackInfo &info);
 
@@ -35,13 +37,14 @@ public:
   Napi::Value set_address(const Napi::CallbackInfo &info);
 
   Napi::Value get_size(const Napi::CallbackInfo &info);
+  Napi::Value set_size(const Napi::CallbackInfo &info);
   Napi::Value set_data(const Napi::CallbackInfo &info);
   Napi::Value append_data(const Napi::CallbackInfo &info);
 
   // Used by segment, accessors
-  ELFIO::section *get_raw_Section() { return section; }
+  ELFIO::section *get_raw_section() { return section; }
 private:
-  std::shared_ptr<ELFIO::elfio> elf;
+  ELFIO::elfio *elf;
   ELFIO::section *section;
 };
 }

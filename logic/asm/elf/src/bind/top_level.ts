@@ -1,9 +1,18 @@
 import { Section } from './section';
 import { Segment } from './segment';
-import StringCache from './string_cache';
+
+export const e_type = {
+  ET_NONE: 0n,
+  ET_REL: 1n,
+  ET_EXEC: 2n,
+  ET_DYN: 3n,
+  ET_CORE: 4n,
+};
 
 export interface Elf {
+    init(bitWidth:32 | 64): boolean
     validate(): string|true
+
     getClass(): 32 | 64
 
     getVersion(): bigint
@@ -25,6 +34,8 @@ export interface Elf {
     getEntry(): bigint
     setEntry(address:bigint): void;
 
+    getDefaultEntrySize(sectionType: bigint): bigint;
+
     /*
      * Helpers not present in elfio, but make library usage easier in TS.
      */
@@ -33,8 +44,6 @@ export interface Elf {
 
     addSegment(): Segment
     getSegment(index:bigint): Segment | undefined
-
-    getStringCache(): StringCache
 }
 
 export type saveElfToFile = (elf:Elf, path:string)=>boolean;

@@ -11,7 +11,7 @@ namespace bind {
 
 class SymbolAccessor : public Napi::ObjectWrap<SymbolAccessor> {
 public:
-  // Takes 4 args, 1st is std::shared_ptr<ELFIO::elf>, 2nd is a Section, 3rd is a Section, 4th is Object StringCache.
+  // Takes 3 args, 1st is std::shared_ptr<ELFIO::elf>, 2nd is a Section, 3rd is a Section.
   SymbolAccessor(const Napi::CallbackInfo &info);
   static Napi::Function GetClass(Napi::Env env);
 
@@ -24,12 +24,15 @@ public:
   // Symbol => bigint
   Napi::Value add_symbol(const Napi::CallbackInfo &info);
 
+  // void => void
+  Napi::Value update_info(const Napi::CallbackInfo &info);
+
 private:
-  Napi::BigInt add_string(const Napi::CallbackInfo &info, std::string symbol);
-  std::shared_ptr<ELFIO::elfio> elf;
-  std::shared_ptr<ELFIO::string_section_accessor> strs;
-  std::shared_ptr<ELFIO::symbol_section_accessor> syms;
+  ELFIO::elfio *elf;
+  std::shared_ptr <ELFIO::string_section_accessor> strs;
+  std::shared_ptr <ELFIO::symbol_section_accessor> syms;
   ELFIO::section *strSec, *symSec;
-  Napi::Object strcache;
+  // Always at least 1 because of symbol 0, the undefined symbol
+  uint64_t symbol_count = 1;
 };
 };

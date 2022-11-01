@@ -11,7 +11,7 @@ namespace bind {
 
 class StringAccessor : public Napi::ObjectWrap<StringAccessor> {
 public:
-  // Takes 3 args, 1st is std::shared_ptr<ELFIO::elf>, 2nd is a Section, 3rd is Object StringCache.
+  // Takes 2 args, 1st is std::shared_ptr<ELFIO::elf>, 2nd is a Section
   StringAccessor(const Napi::CallbackInfo &info);
   static Napi::Function GetClass(Napi::Env env);
 
@@ -23,8 +23,8 @@ public:
   Napi::Value add_string(const Napi::CallbackInfo &info);
 
 private:
-  std::shared_ptr<ELFIO::elfio> elf;
-  std::shared_ptr<ELFIO::string_section_accessor> strs;
+  ELFIO::elfio *elf;
+  std::shared_ptr <ELFIO::string_section_accessor> strs;
   ELFIO::section *section;
   Napi::Object strcache;
 };

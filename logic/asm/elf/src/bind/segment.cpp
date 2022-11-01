@@ -100,7 +100,7 @@ Napi::Value bind::Segment::get_section_index_at(const Napi::CallbackInfo &info) 
 Napi::Value bind::Segment::add_section(const Napi::CallbackInfo &info) {
   bind::detail::count_args(info, 1, 1);
   auto external_section = bind::detail::parse_arg_wrapped<bind::Section>(info, 0, "ISection");
-  auto as_section_ptr = external_section->get_raw_Section();
+  auto as_section_ptr = external_section->get_raw_section();
   segment->add_section(as_section_ptr, as_section_ptr->get_addr_align());
   recompute_file_size_impl();
   return info.Env().Null();
@@ -147,7 +147,8 @@ void bind::Segment::recompute_file_size_impl() {
   ELFIO::Elf_Xword accumulate = 0;
   for (ELFIO::Elf_Half secNum = 0; secNum < segment->get_sections_num(); secNum++) {
     auto shndx = segment->get_section_index_at(secNum);
-    accumulate += elf->sections[shndx]->get_size();
+    auto sec = elf->sections[shndx];
+    if(sec->get_type() == ELFIO::SHT_PROGBITS) accumulate += sec->get_size();
   }
   segment->set_file_size(accumulate);
 }

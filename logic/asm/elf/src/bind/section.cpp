@@ -5,8 +5,8 @@ bind::Section::Section(const Napi::CallbackInfo &info)
     : Napi::ObjectWrap<Section>(info) {
   bind::detail::count_args(info, 2, 2);
   this->elf =
-      *bind::detail::parse_arg_external<std::shared_ptr<ELFIO::elfio>>(info, 0, "shared pointer to an elf file");
-  this->section = bind::detail::parse_arg_external<ELFIO::section>(info, 1, "raw pointer to an elf segment");
+      &**bind::detail::parse_arg_external<std::shared_ptr<ELFIO::elfio>>(info, 0, "elf file");
+  this->section = bind::detail::parse_arg_external<ELFIO::section>(info, 1, "elf section");
 }
 
 Napi::Value bind::Section::get_index(const Napi::CallbackInfo &info) {
@@ -33,6 +33,12 @@ Napi::Value bind::Section::get_type(const Napi::CallbackInfo &info) {
 Napi::Value bind::Section::set_type(const Napi::CallbackInfo &info) {
   bind::detail::count_args(info, 1, 1);
   section->set_type(bind::detail::parse_arg_bigint(info, 0, "bigint"));
+  return info.Env().Null();
+}
+
+Napi::Value bind::Section::set_entry_size(const Napi::CallbackInfo &info) {
+  bind::detail::count_args(info, 1, 1);
+  section->set_entry_size(bind::detail::parse_arg_bigint(info, 0, "bigint"));
   return info.Env().Null();
 }
 
@@ -96,12 +102,18 @@ Napi::Value bind::Section::get_size(const Napi::CallbackInfo &info) {
   return Napi::BigInt::New(info.Env(), static_cast<uint64_t>(section->get_size()));
 }
 
+Napi::Value bind::Section::set_size(const Napi::CallbackInfo &info) {
+  bind::detail::count_args(info, 1, 1);
+  section->set_size(bind::detail::parse_arg_bigint(info, 0, "bigint"));
+  return info.Env().Null();
+}
+
 Napi::Value bind::Section::set_data(const Napi::CallbackInfo &info) {
   bind::detail::count_args(info, 1, 1);
   auto array = bind::detail::parse_arg_uint8array(info, 0, "Uint8Array");
   auto buffer = array.ArrayBuffer();
   section->set_data((const char *) buffer.Data(), buffer.ByteLength());
-  return info.Env().Null();
+  return Napi::Number::New(info.Env(), buffer.ByteLength());
 }
 
 Napi::Value bind::Section::append_data(const Napi::CallbackInfo &info) {
@@ -119,6 +131,7 @@ Napi::Function bind::Section::GetClass(Napi::Env env) {
       Section::InstanceMethod("setName", &Section::set_name),
       Section::InstanceMethod("getType", &Section::get_type),
       Section::InstanceMethod("setType", &Section::set_type),
+      Section::InstanceMethod("setEntrySize", &Section::set_entry_size),
       Section::InstanceMethod("getFlags", &Section::get_flags),
       Section::InstanceMethod("setFlags", &Section::set_flags),
       Section::InstanceMethod("getInfo", &Section::get_info),
@@ -130,6 +143,7 @@ Napi::Function bind::Section::GetClass(Napi::Env env) {
       Section::InstanceMethod("getAddress", &Section::get_address),
       Section::InstanceMethod("setAddress", &Section::set_address),
       Section::InstanceMethod("getSize", &Section::get_size),
+      Section::InstanceMethod("setSize", &Section::set_size),
       Section::InstanceMethod("setData", &Section::set_data),
       Section::InstanceMethod("appendData", &Section::append_data),
   });

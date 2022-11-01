@@ -2,19 +2,21 @@
 // Created by gpu on 10/27/22.
 //
 
+#include "./section.hpp"
 #include "./section_symbol.hpp"
 #include "./utils.hpp"
 #include <variant>
 #include <fmt/core.h>
 
+#include "./top_level.hpp"
+
 bind::SymbolAccessor::SymbolAccessor(const Napi::CallbackInfo &info)
     : Napi::ObjectWrap<SymbolAccessor>(info) {
-  bind::detail::count_args(info, 4, 4);
+  bind::detail::count_args(info, 3, 3);
   this->elf =
-      *bind::detail::parse_arg_external<std::shared_ptr<ELFIO::elfio>>(info, 0, "shared pointer to an elf file");
-  this->strSec = bind::detail::parse_arg_external<ELFIO::section>(info, 1, "raw pointer to an elf section");
-  this->strcache = bind::detail::parse_arg_object(info, 2, "StringCache");
-  this->symSec = bind::detail::parse_arg_external<ELFIO::section>(info, 3, "raw pointer to an elf section");
+      bind::detail::parse_arg_wrapped<bind::Elf>(info, 0, "elf file")->get_elfio();
+  this->strSec = bind::detail::parse_arg_wrapped<bind::Section>(info, 1, "elf section")->get_raw_section();
+  this->symSec = bind::detail::parse_arg_wrapped<bind::Section>(info, 2, "elf section")->get_raw_section();
   this->strs = std::make_shared<ELFIO::string_section_accessor>(strSec);
   this->syms = std::make_shared<ELFIO::symbol_section_accessor>(*elf, symSec);
 }
@@ -32,7 +34,7 @@ Napi::Value bind::SymbolAccessor::get_symbol_count(const Napi::CallbackInfo &inf
 Napi::Value bind::SymbolAccessor::get_symbol(const Napi::CallbackInfo &info) {
   auto env = info.Env();
   bind::detail::count_args(info, 1, 1);
-  std::variant<uint64_t, std::string> arg;
+  std::variant <uint64_t, std::string> arg;
   if (info[0].IsString()) {
     arg = bind::detail::parse_arg_string(info, 0, "string");
   } else if (info[0].IsBigInt()) {
@@ -85,7 +87,7 @@ Napi::Value bind::SymbolAccessor::add_symbol(const Napi::CallbackInfo &info) {
   // Ensure that all keys are present as bigints, and parse into values array 'v'.
   for (const auto &key : keys) {
     if (!object.Has(key) || !object.Get(key).IsBigInt()) {
-      auto error_message = fmt::format("Argument 1 must have property '{}' as bigint", key);
+      auto error_message = fmt::format("Argument 0 must have property '{}' as bigint", key);
       Napi::TypeError::New(env, error_message).ThrowAsJavaScriptException();
     }
     v[index++] = object.Get(key).As<Napi::BigInt>().Uint64Value(&lossless);
@@ -93,48 +95,28 @@ Napi::Value bind::SymbolAccessor::add_symbol(const Napi::CallbackInfo &info) {
       Napi::TypeError::New(env, fmt::format("{} must fit in 64 bits", key)).ThrowAsJavaScriptException();
   }
 
-  uint64_t str = 0;
-  if (object.Get("name").IsBigInt()) {
-    str = object.Get("name").As<Napi::BigInt>().Uint64Value(&lossless);
+  uint64_t name = 0;
+  auto name_key = object.Get("name");
+  if (name_key.IsBigInt()) {
+    bool lossless;
+    name = name_key.As<Napi::BigInt>().Uint64Value(&lossless);
     if (!lossless)
-      Napi::TypeError::New(env, "name must fit in 64 bits").ThrowAsJavaScriptException();
+      Napi::TypeError::New(env, fmt::format("BigInt name must fit in 64 bits")).ThrowAsJavaScriptException();
+  } else if (name_key.IsString()) {
+    auto name_string = name_key.ToString().Utf8Value();
+    name = strs->add_string(name_string);
+  } else {
+    // TODO: Throw error on unexpected type.
   }
-  uint64_t symIdx = syms->add_symbol(str, v[0], v[1], v[2], v[3], v[4], v[5]);
+  symbol_count++;
+  uint64_t symIdx = syms->add_symbol(name, v[0], v[1], v[2], v[3], v[4], v[5]);
   return Napi::BigInt::New(env, symIdx);
 }
 
-Napi::BigInt bind::SymbolAccessor::add_string(const Napi::CallbackInfo &info, std::string value) {
-  static const auto error_has = "symcache must have a 'has(string, string)=>bigint|undefined'";
-  static const auto error_insert = "symcache must have a 'insert(string, string, bigint)=>bigint'";
-
-  auto env = info.Env();
-  bind::detail::count_args(info, 1, 1);
-
-  // Convert std::strings to JS strings
-  auto value_str = Napi::String::New(env, value);
-  auto section_str = Napi::String::New(env, strSec->get_name());
-
-  // Check if the symcache has a "has" function. If so, call it as has(string,string)=>bigint|undefined.
-  if (!this->strcache.Has("has"))
-    Napi::TypeError::New(env, error_has).ThrowAsJavaScriptException();
-  auto has = this->strcache.Get("has");
-  if (!has.IsFunction())
-    Napi::TypeError::New(env, error_has).ThrowAsJavaScriptException();
-  auto result = has.As<Napi::Function>().Call({section_str, value_str});
-
-  // If "has" returns undefined, then the string isn't in the cache. We need to add the string to the section+cache.
-  if (result.IsUndefined()) {
-    auto index_as_bigint = Napi::BigInt::New(env, static_cast<uint64_t>(strs->add_string(value)));
-
-    // Check if the symcache has an "insert" function. If so, call it as insert(string,string,bigint)=>bigint.
-    if (!this->strcache.Has("insert"))
-      Napi::TypeError::New(env, error_insert).ThrowAsJavaScriptException();
-    auto insert = this->strcache.Get("insert");
-    if (!insert.IsFunction())
-      Napi::TypeError::New(env, error_insert).ThrowAsJavaScriptException();
-    return has.As<Napi::Function>().Call({section_str, info[0], index_as_bigint}).As<Napi::BigInt>();
-  } else
-    return result.As<Napi::BigInt>();
+Napi::Value bind::SymbolAccessor::update_info(const Napi::CallbackInfo &info) {
+  bind::detail::count_args(info, 0, 0);
+  symSec->set_info(symbol_count);
+  return info.Env().Null();
 }
 
 Napi::Function bind::SymbolAccessor::GetClass(Napi::Env env) {
@@ -143,5 +125,6 @@ Napi::Function bind::SymbolAccessor::GetClass(Napi::Env env) {
       SymbolAccessor::InstanceMethod("getSymbolCount", &SymbolAccessor::get_symbol_count),
       SymbolAccessor::InstanceMethod("getSymbol", &SymbolAccessor::get_symbol),
       SymbolAccessor::InstanceMethod("addSymbol", &SymbolAccessor::add_symbol),
+      SymbolAccessor::InstanceMethod("updateInfo", &SymbolAccessor::update_info),
   });
 }
