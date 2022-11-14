@@ -6,7 +6,11 @@
   "license": "GPL-3.0",
   "author": "Matthew McRaven",
   "type": "module",
-  "main": "dist/.js",
+  "main": "dist/index.js",
+  "bin": {
+    "pdt-convert": "./dist/bin/convert/index.js",
+    "pdt-sample": "./dist/bin/sample/index.js"
+  },
   "files": [
     "3rd-party/",
     "src/",
