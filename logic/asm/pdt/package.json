@@ -19,7 +19,7 @@
   "scripts": {
     "build": "npx tsc -p tsconfig.json",
     "clean": "npx rimraf -rf ./dist",
-    "docs": "npx typedoc --out docs src/bind/index.ts",
+    "docs": "npx typedoc --out docs src/index.ts",
     "globcov": "python3 .scripts/scripts/merge-cobertura.py -o coverage.xml  coverage/cobertura-coverage.xml",
     "test": " npx cross-env NODE_OPTIONS=--experimental-vm-modules npx jest",
     "test:ci": "npm run test -- --ci --reporters=default --reporters=jest-junit --coverageReporters=cobertura --coverage && npm run globcov",
