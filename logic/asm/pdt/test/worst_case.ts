@@ -1,6 +1,6 @@
 import {
   Bus, Clock, Device, Logic, Root, Socket,
-} from '../../bind';
+} from '../src';
 
 const ram: Device.Memory.Type = {
   name: 'RAM',
