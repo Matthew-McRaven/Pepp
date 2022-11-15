@@ -19,15 +19,15 @@ inject_cxx_standard()
 
 # HACK, until we provide a better mechanism for building boost.
 find_package(Boost 1.75.0 REQUIRED)
-add_subdirectory(3rd-party)
+#add_subdirectory(3rd-party)
 
-enable_testing()
-make_library(logic-pdt pdt)
-set_property(TARGET logic-pdt PROPERTY POSITION_INDEPENDENT_CODE ON)
-target_include_directories(logic-pdt PUBLIC ${Boost_INCLUDE_DIRS})
+#enable_testing()
+#make_library(logic-pdt pdt)
+#set_property(TARGET logic-pdt PROPERTY POSITION_INDEPENDENT_CODE ON)
+#target_include_directories(logic-pdt PUBLIC ${Boost_INCLUDE_DIRS})
 #target_link_libraries(logic-pdt PUBLIC magic_enum)
 
-make_test(logic-pdt-test test/pdt logic-pdt)
+#make_test(logic-pdt-test test/pdt logic-pdt)
 
 #make_napi_module(bind-targets-pep10-16 bind 16)
 #target_link_libraries(bind-targets-pep10-16 PUBLIC targets-pep10-isa magic_enum ${CMAKE_JS_LIB})
