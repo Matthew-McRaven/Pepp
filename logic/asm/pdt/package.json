@@ -13,7 +13,9 @@
   },
   "files": [
     "src/",
-    "dist/"
+    "dist/",
+    ".tsconfig",
+    "tsconfig.json"
   ],
   "scripts": {
     "build": "npx tsc -p tsconfig.json",
