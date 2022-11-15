@@ -7,5 +7,3 @@ export interface Type extends Device, Identifiable{
     ro: boolean
     cacheable: boolean
 }
-
-export const serializeToDB = async (db:any) => db + 0;

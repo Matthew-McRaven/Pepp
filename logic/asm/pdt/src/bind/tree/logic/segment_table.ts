@@ -2,7 +2,7 @@ import { ChainedInitiator, Identifiable } from '../utils';
 
 export interface SegmentDescriptor {
     base: string
-    length: string
+    size: string
     flags: string
 }
 
@@ -11,5 +11,3 @@ export interface Type extends ChainedInitiator, Identifiable {
     compatible:'segment-table'
     'initial-segments': SegmentDescriptor[]
 }
-
-export const serializeToDB = async (db:any) => db + 0;

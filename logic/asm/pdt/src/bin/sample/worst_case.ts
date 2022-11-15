@@ -1,10 +1,9 @@
 import {
-  Bus, Clock, Device, Logic, Root,
+  Bus, Clock, Device, Logic, Root, Socket,
 } from '../../bind';
 
 const ram: Device.Memory.Type = {
   name: 'RAM',
-  'device-id': null,
   type: 'device',
   compatible: 'memory',
   storage: 'dense',
@@ -16,7 +15,6 @@ const ram: Device.Memory.Type = {
 
 const charIn: Device.Memory.Type = {
   name: 'charIn',
-  'device-id': null,
   type: 'device',
   compatible: 'memory',
   storage: 'mmi',
@@ -28,7 +26,6 @@ const charIn: Device.Memory.Type = {
 
 const charOut: Device.Memory.Type = {
   name: 'charOut',
-  'device-id': null,
   type: 'device',
   compatible: 'memory',
   storage: 'mmo',
@@ -40,7 +37,6 @@ const charOut: Device.Memory.Type = {
 
 const diskIn: Device.Memory.Type = {
   name: 'diskIn',
-  'device-id': null,
   type: 'device',
   compatible: 'memory',
   storage: 'mmi',
@@ -52,7 +48,6 @@ const diskIn: Device.Memory.Type = {
 
 const pwrOff: Device.Memory.Type = {
   name: 'pwrOff',
-  'device-id': null,
   type: 'device',
   compatible: 'memory',
   storage: 'mmo',
@@ -64,7 +59,6 @@ const pwrOff: Device.Memory.Type = {
 
 const busio: Bus.Simple.Type = {
   name: 'bus-io',
-  'device-id': null,
   type: 'bus',
   compatible: 'simple',
   'base-address': '0x10',
@@ -75,18 +69,17 @@ const busio: Bus.Simple.Type = {
 
 const cpuInitiator: Bus.Remapper.Type = {
   name: 'remapper',
-  'device-id': null,
-  type: 'bus-initiator',
-  compatible: 'remap',
+  type: 'bus',
+  compatible: 'initiator',
+  feat: 'remap',
   'address-map': [
-    { base: '0x0000', length: '0xFFFB', device: 'RAM' },
-    { base: '0xFFFC', length: '0x10', device: 'bus-io' },
+    { base: '0x0000', size: '0xFFFB', device: '/bus0/RAM' },
+    { base: '0xFFFC', size: '0x10', device: '/bus0/bus-io' },
   ],
 };
 
 const bus0: Bus.Simple.Type = {
   name: 'bus0',
-  'device-id': null,
   type: 'bus',
   compatible: 'simple',
   'base-address': '0x0',
@@ -97,7 +90,6 @@ const bus0: Bus.Simple.Type = {
 
 const oscillator: Clock.Fixed.Type = {
   name: 'oscillator',
-  'device-id': null,
   type: 'clock',
   compatible: 'fixed',
   frequency: '0x1000',
@@ -105,7 +97,6 @@ const oscillator: Clock.Fixed.Type = {
 
 const clkCPU: Clock.Composite.Type = {
   name: 'clk-cpu',
-  'device-id': null,
   type: 'clock',
   compatible: 'composite',
   operation: 'multiply',
@@ -116,7 +107,6 @@ const clkCPU: Clock.Composite.Type = {
 
 const clkMux: Clock.Mux.Type = {
   name: 'clk-mux',
-  'device-id': null,
   type: 'clock',
   compatible: 'mux',
   clocks: ['/clktree/oscillator', '/clktree/clk-cpu'],
@@ -124,7 +114,6 @@ const clkMux: Clock.Mux.Type = {
 
 const clockTree:Clock.Tree.Type = {
   name: 'clktree',
-  'device-id': null,
   type: 'clock',
   compatible: 'tree',
   children: [oscillator, clkCPU, clkMux],
@@ -132,13 +121,12 @@ const clockTree:Clock.Tree.Type = {
 
 const segTable: Logic.SegmentTable.Type = {
   name: 'segment-table',
-  'device-id': null,
   type: 'logic',
   compatible: 'segment-table',
   'initial-segments': [
-    { base: '0x0000', length: '0x8000', flags: 'rwxc' },
-    { base: '0x8000', length: '0x7FFB', flags: 'r xc' },
-    { base: '0xFFFC', length: '0x0004', flags: 'rw  ' },
+    { base: '0x0000', size: '0x8000', flags: 'rwxc' },
+    { base: '0x8000', size: '0x7FFB', flags: 'r xc' },
+    { base: '0xFFFC', size: '0x0004', flags: 'rw  ' },
   ],
   initiator: '/bus0/remapper',
 };
@@ -152,7 +140,6 @@ const cacheDesc: Logic.Cache.Config = {
 
 const l10: Logic.Cache.Type = {
   name: 'l1_0',
-  'device-id': null,
   type: 'logic',
   compatible: 'cache',
   u: cacheDesc,
@@ -161,7 +148,6 @@ const l10: Logic.Cache.Type = {
 
 const l11: Logic.Cache.Type = {
   name: 'l1_1',
-  'device-id': null,
   type: 'logic',
   compatible: 'cache',
   u: cacheDesc,
@@ -170,46 +156,41 @@ const l11: Logic.Cache.Type = {
 
 const l2: Logic.Cache.Type = {
   name: 'l2',
-  'device-id': null,
   type: 'logic',
   compatible: 'cache',
   u: cacheDesc,
   initiator: '/cluster0/segment-table',
 };
 
-const cpu0: Logic.CPU.Pep10ISA.Type = {
-  name: '0',
-  'device-id': null,
-  type: 'logic',
-  compatible: 'cpu',
-  model: 'pepperdine,pep10-isa',
-  feat: '',
-  'i-initiator': '/cluster0/segment-table',
-  'd-initiator': '/cluster0/l1_0',
+const cpu0: Socket.CS5Ep.Type = {
+  name: 'cpu0',
+  type: 'socket',
+  compatible: 'cs5e+',
+  processor: { model: 'pepperdine,pep10-isa', cpuid: 0 },
+  iinitiator: '/cluster0/segment-table',
+  dinitiator: '/cluster0/l1_0',
   clock: '/clktree/clk-cpu',
 };
 
-const cpu1: Logic.CPU.Pep10ISA.Type = {
-  name: '1',
-  'device-id': null,
-  type: 'logic',
-  compatible: 'cpu',
-  model: 'pepperdine,pep10-isa',
-  feat: '',
-  'i-initiator': '/cluster0/segment-table',
-  'd-initiator': '/cluster0/l1_1',
+const cpu1: Socket.CS5Ep.Type = {
+  name: 'cpu1',
+  type: 'socket',
+  compatible: 'cs5e+',
+  processor: { model: 'pepperdine,pep10-isa', cpuid: 1 },
+  iinitiator: '/cluster0/segment-table',
+  dinitiator: '/cluster0/l1_1',
   clock: '/clktree/clk-cpu',
 };
 
 const cluster0: Logic.Cluster.Type = {
   name: 'cluster0',
-  'device-id': null,
   type: 'logic',
   compatible: 'cluster',
   children: [segTable, cpu0, l10, l2, cpu1, l11],
 };
 
 const root:Root.Type = {
+  name: '/',
   type: 'root',
   version: 2,
   compatible: 'pepperdine,pep10-isa',

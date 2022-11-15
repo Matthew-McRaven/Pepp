@@ -6,5 +6,5 @@ export const placeholder = () => {
 export const unused = () => null;
 
 export {
-  Bus, Clock, Device, Logic, Node, Root,
-} from './type';
+  Bus, Clock, Device, Logic, Node, Root, Socket,
+} from './tree';

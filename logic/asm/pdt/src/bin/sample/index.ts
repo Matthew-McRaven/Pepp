@@ -1,2 +1,4 @@
 #!/usr/bin/env node
-console.log('hello world');
+import * as c from './worst_case';
+
+console.log(JSON.stringify(c.default));

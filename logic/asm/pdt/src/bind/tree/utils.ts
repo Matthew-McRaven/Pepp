@@ -1,6 +1,5 @@
 export interface Identifiable {
     name: string
-    'device-id': null | number
 }
 
 export interface Device {
@@ -9,7 +8,7 @@ export interface Device {
 }
 
 export interface BusInitiator {
-    type: 'bus-initiator'
+    type: 'bus'
 }
 
 export interface Clock {

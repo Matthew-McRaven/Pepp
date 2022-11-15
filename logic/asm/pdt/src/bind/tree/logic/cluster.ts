@@ -1,12 +1,10 @@
-import * as cpus from './cpu';
 import * as SegmentTable from './segment_table';
 import * as Cache from './cache';
 import { Identifiable } from '../utils';
-
-type AllowedCPUs= cpus.Pep10ISA.Type
+import * as Socket from '../socket';
 
 export interface Type extends Identifiable{
     type: 'logic'
     compatible: 'cluster'
-    children: Array<AllowedCPUs | Cache.Type | SegmentTable.Type>
+    children: Array<Socket.All | Cache.Type | SegmentTable.Type>
 }

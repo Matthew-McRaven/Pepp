@@ -13,5 +13,3 @@ export interface Type extends ChainedInitiator, Identifiable {
     i?: Config
     d?: Config
 }
-
-export const serializeToDB = async (db:any) => db + 0;

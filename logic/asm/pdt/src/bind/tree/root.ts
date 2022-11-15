@@ -1,8 +1,9 @@
 import * as Bus from './bus';
 import * as Clock from './clock';
 import * as Logic from './logic';
+import { Identifiable } from './utils';
 
-export interface Type{
+export interface Type extends Identifiable{
     type: 'root'
     version: number
     compatible: string
@@ -10,4 +11,3 @@ export interface Type{
 }
 
 export type All = Type
-export const serializeToDB = async (db:any) => db + 0;
