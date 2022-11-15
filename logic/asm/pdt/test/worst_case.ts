@@ -71,7 +71,7 @@ const cpuInitiator: Bus.Remapper.Type = {
   name: 'remapper',
   type: 'bus',
   compatible: 'initiator',
-  feat: 'remap',
+  features: 'remap',
   'address-map': [
     { base: '0x0000', size: '0xFFFB', device: '/bus0/RAM' },
     { base: '0xFFFC', size: '0x10', device: '/bus0/bus-io' },

@@ -9,6 +9,6 @@ export interface Mappings {
 
 export interface Type extends BusInitiator, Identifiable {
     compatible: 'initiator'
-    feat: 'remap'
+    features: 'remap'
     'address-map': Mappings[]
 }
