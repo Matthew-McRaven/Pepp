@@ -96,6 +96,7 @@ export interface Section {
     setSize(size:bigint):void;
     setData(bytes:Uint8Array): void
     appendData(bytes:Uint8Array): void
+    getData(): Uint8Array
 }
 
 export const markSymtab = (section: Section, link:bigint, entrySize:bigint) => {

@@ -40,6 +40,7 @@ public:
   Napi::Value set_size(const Napi::CallbackInfo &info);
   Napi::Value set_data(const Napi::CallbackInfo &info);
   Napi::Value append_data(const Napi::CallbackInfo &info);
+  Napi::Value get_data(const Napi::CallbackInfo &info);
 
   // Used by segment, accessors
   ELFIO::section *get_raw_section() { return section; }

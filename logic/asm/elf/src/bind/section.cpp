@@ -124,6 +124,13 @@ Napi::Value bind::Section::append_data(const Napi::CallbackInfo &info) {
   return info.Env().Null();
 }
 
+Napi::Value bind::Section::get_data(const Napi::CallbackInfo &info) {
+  bind::detail::count_args(info, 0, 0);
+  auto arr = Napi::TypedArrayOf<uint8_t>::New(info.Env(), section->get_size());
+  memcpy(arr.Data(), section->get_data(), section->get_size());
+  return arr;
+}
+
 Napi::Function bind::Section::GetClass(Napi::Env env) {
   return bind::Section::DefineClass(env, "Section", {
       Section::InstanceMethod("getIndex", &Section::get_index),
@@ -146,5 +153,6 @@ Napi::Function bind::Section::GetClass(Napi::Env env) {
       Section::InstanceMethod("setSize", &Section::set_size),
       Section::InstanceMethod("setData", &Section::set_data),
       Section::InstanceMethod("appendData", &Section::append_data),
+      Section::InstanceMethod("getData", &Section::get_data),
   });
 }

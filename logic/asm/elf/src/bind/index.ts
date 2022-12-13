@@ -139,6 +139,24 @@ export class CachedSymbolAccessor implements SymbolAccessor {
   }
 }
 
+export const segmentToBytes = (elf:Elf, seg:Segment) => {
+  let byteCount = 0n;
+  for (let it = 0n; it < seg.getSectionCount(); it += 1n) {
+    const sec = elf.getSection(seg.getSectionIndexAt(it));
+    if (sec !== undefined) byteCount += sec.getSize();
+  }
+  const bytes = new Uint8Array(Number(byteCount));
+  let offset = 0n;
+  for (let it = 0n; it < seg.getSectionCount(); it += 1n) {
+    const sec = elf.getSection(seg.getSectionIndexAt(it));
+    if (sec !== undefined) {
+      bytes.set(sec.getData(), Number(offset));
+      offset += sec.getSize();
+    }
+  }
+  return bytes;
+};
+
 export const updateSegementMemorySize = (elf:Elf, segment:Segment) => {
   let bytes = 0n;
   for (let index = 0n; index < segment.getSectionCount(); index += 1n) {
