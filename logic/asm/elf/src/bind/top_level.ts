@@ -41,9 +41,11 @@ export interface Elf {
      */
     addSection(name:string): Section
     getSection(index:bigint|string): Section | undefined
+    sectionCount(): bigint
 
     addSegment(): Segment
     getSegment(index:bigint): Segment | undefined
+    segmentCount(): bigint
 }
 
 export type saveElfToFile = (elf:Elf, path:string)=>boolean;

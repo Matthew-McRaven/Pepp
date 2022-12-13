@@ -40,14 +40,16 @@ public:
 
   Napi::Value add_section(const Napi::CallbackInfo &info);
   Napi::Value get_section(const Napi::CallbackInfo &info);
+  Napi::Value section_count(const Napi::CallbackInfo &info);
 
   Napi::Value add_segment(const Napi::CallbackInfo &info);
   Napi::Value get_segment(const Napi::CallbackInfo &info);
+  Napi::Value segment_count(const Napi::CallbackInfo &info);
 
   ELFIO::elfio *get_elfio() { return &*elf; }
 private:
   void validate_elf_ptr(const Napi::CallbackInfo &info);
-  std::shared_ptr <ELFIO::elfio> elf;
+  std::shared_ptr<ELFIO::elfio> elf;
   std::map<uint64_t, ELFIO::section *> sec_map;
   std::map<uint64_t, ELFIO::segment *> seg_map;
 };

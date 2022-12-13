@@ -160,6 +160,13 @@ Napi::Value bind::Elf::get_section(const Napi::CallbackInfo &info) {
     return env.Undefined();
 }
 
+Napi::Value bind::Elf::section_count(const Napi::CallbackInfo &info) {
+  validate_elf_ptr(info);
+  auto env = info.Env();
+  bind::detail::count_args(info, 0, 0);
+  return Napi::BigInt::New(env, (uint64_t) elf->sections.size());
+}
+
 Napi::Value bind::Elf::add_segment(const Napi::CallbackInfo &info) {
   validate_elf_ptr(info);
   auto env = info.Env();
@@ -185,6 +192,13 @@ Napi::Value bind::Elf::get_segment(const Napi::CallbackInfo &info) {
                                        Napi::External<ELFIO::segment>::New(env, seg->second)});
 }
 
+Napi::Value bind::Elf::segment_count(const Napi::CallbackInfo &info) {
+  validate_elf_ptr(info);
+  auto env = info.Env();
+  bind::detail::count_args(info, 0, 0);
+  return Napi::BigInt::New(env, (uint64_t) elf->segments.size());
+}
+
 Napi::Function bind::Elf::GetClass(Napi::Env env) {
   return bind::Elf::DefineClass(env, "Elf", {
       Elf::InstanceMethod("init", &Elf::init),
@@ -206,8 +220,10 @@ Napi::Function bind::Elf::GetClass(Napi::Env env) {
       Elf::InstanceMethod("getDefaultEntrySize", &Elf::get_default_entry_size),
       Elf::InstanceMethod("addSection", &Elf::add_section),
       Elf::InstanceMethod("getSection", &Elf::get_section),
+      Elf::InstanceMethod("sectionCount", &Elf::section_count),
       Elf::InstanceMethod("addSegment", &Elf::add_segment),
       Elf::InstanceMethod("getSegment", &Elf::get_segment),
+      Elf::InstanceMethod("segmentCount", &Elf::segment_count),
   });
 }
 
