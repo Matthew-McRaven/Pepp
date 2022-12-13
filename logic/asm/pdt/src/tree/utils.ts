@@ -16,5 +16,5 @@ export interface Clock {
 }
 
 export interface ChainedInitiator {
-    initiator: string
+    target: string
 }

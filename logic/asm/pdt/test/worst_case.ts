@@ -128,7 +128,7 @@ const segTable: Logic.SegmentTable.Type = {
     { base: '0x8000', size: '0x7FFB', flags: 'r xc' },
     { base: '0xFFFC', size: '0x0004', flags: 'rw  ' },
   ],
-  initiator: '/bus0/remapper',
+  target: '/bus0/remapper',
 };
 
 const cacheDesc: Logic.Cache.Config = {
@@ -143,7 +143,7 @@ const l10: Logic.Cache.Type = {
   type: 'logic',
   compatible: 'cache',
   u: cacheDesc,
-  initiator: '/cluster0/segment-table',
+  target: '/cluster0/segment-table',
 };
 
 const l11: Logic.Cache.Type = {
@@ -151,7 +151,7 @@ const l11: Logic.Cache.Type = {
   type: 'logic',
   compatible: 'cache',
   u: cacheDesc,
-  initiator: '/cluster0/segment-table',
+  target: '/cluster0/segment-table',
 };
 
 const l2: Logic.Cache.Type = {
@@ -159,7 +159,7 @@ const l2: Logic.Cache.Type = {
   type: 'logic',
   compatible: 'cache',
   u: cacheDesc,
-  initiator: '/cluster0/segment-table',
+  target: '/cluster0/segment-table',
 };
 
 const cpu0: Socket.CS5Ep.Type = {
@@ -167,8 +167,8 @@ const cpu0: Socket.CS5Ep.Type = {
   type: 'socket',
   compatible: 'cs5e+',
   processor: { model: 'pepperdine,pep10-isa', cpuid: 0 },
-  iinitiator: '/cluster0/segment-table',
-  dinitiator: '/cluster0/l1_0',
+  itarget: '/cluster0/segment-table',
+  dtarget: '/cluster0/l1_0',
   clock: '/clktree/clk-cpu',
 };
 
@@ -177,8 +177,8 @@ const cpu1: Socket.CS5Ep.Type = {
   type: 'socket',
   compatible: 'cs5e+',
   processor: { model: 'pepperdine,pep10-isa', cpuid: 1 },
-  iinitiator: '/cluster0/segment-table',
-  dinitiator: '/cluster0/l1_1',
+  itarget: '/cluster0/segment-table',
+  dtarget: '/cluster0/l1_1',
   clock: '/clktree/clk-cpu',
 };
 

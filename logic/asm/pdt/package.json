@@ -1,6 +1,6 @@
 {
   "name": "@pepnext/logic-pdt",
-  "version": "3.0.2",
+  "version": "3.0.3",
   "description": "Tools to interact with the Pep Device Tree",
   "repository": "https://gitlab.com/pepnext/logic/pdt",
   "license": "GPL-3.0",
