@@ -1,5 +1,5 @@
 /* eslint-disable no-bitwise */
-import { BusInitiator, Identifiable } from '../utils';
+import { Identifiable } from '../utils';
 
 export interface Mappings {
     base: string
@@ -7,8 +7,13 @@ export interface Mappings {
     device: string
 }
 
-export interface Type extends BusInitiator, Identifiable {
-    compatible: 'initiator'
-    features: 'remap'
+export const Match = {
+  type: 'bus',
+  compatible: 'initiator',
+  features: 'remap',
+} as const;
+type Helper = typeof Match
+
+export interface Type extends Identifiable, Helper {
     'address-map': Mappings[]
 }

@@ -3,7 +3,12 @@ import * as Composite from './composite';
 import * as Fixed from './fixed';
 import * as Mux from './mux';
 
-export interface Type extends Clock, Identifiable {
-    compatible: 'tree'
+export const Match = {
+  ...Clock,
+  compatible: 'tree',
+} as const;
+type Helper = typeof Match
+
+export interface Type extends Identifiable, Helper {
     children: Array<Composite.Type | Fixed.Type | Mux.Type >
 }

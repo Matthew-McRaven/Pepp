@@ -7,14 +7,10 @@ export interface Device {
     'base-address': string
 }
 
-export interface BusInitiator {
-    type: 'bus'
-}
-
-export interface Clock {
-    type: 'clock'
-}
-
 export interface ChainedInitiator {
     target: string
 }
+
+export const Clock = {
+  type: 'clock',
+};

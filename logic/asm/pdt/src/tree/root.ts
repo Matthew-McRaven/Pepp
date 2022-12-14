@@ -3,7 +3,12 @@ import * as Clock from './clock';
 import * as Logic from './logic';
 import { Identifiable } from './utils';
 
-export interface Type extends Identifiable{
+export const Match = {
+  type: 'root',
+} as const;
+type Helper = typeof Match
+
+export interface Type extends Identifiable, Helper{
     type: 'root'
     version: number
     compatible: string

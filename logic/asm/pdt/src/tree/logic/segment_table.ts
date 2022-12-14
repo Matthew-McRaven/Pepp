@@ -6,8 +6,12 @@ export interface SegmentDescriptor {
     flags: string
 }
 
-export interface Type extends ChainedInitiator, Identifiable {
-    type: 'logic'
-    compatible:'segment-table'
+export const Match = {
+  type: 'logic',
+  compatible: 'segment-table',
+} as const;
+type Helper = typeof Match
+
+export interface Type extends ChainedInitiator, Identifiable, Helper {
     'initial-segments': SegmentDescriptor[]
 }

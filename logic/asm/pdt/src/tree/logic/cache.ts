@@ -6,9 +6,14 @@ export interface Config {
     'tag-bits': string
     'line-bits': string
 }
-export interface Type extends ChainedInitiator, Identifiable {
-    type: 'logic'
-    compatible: 'cache'
+
+export const Match = {
+  type: 'logic',
+  compatible: 'cache',
+} as const;
+type Helper = typeof Match
+
+export interface Type extends ChainedInitiator, Identifiable, Helper {
     u?: Config
     i?: Config
     d?: Config
