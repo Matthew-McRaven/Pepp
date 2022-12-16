@@ -2,7 +2,7 @@ cmake_minimum_required(VERSION 3.10)
 
 
 project(symbol VERSION 3.0.0)
-
+set(CMAKE_OSX_ARCHITECTURES "x86_64;arm64" CACHE INTERNAL "" FORCE)
 if (NOT "${BOOST_ROOT} " MATCHES "^[ \t\r\n]*$")
     # Do nothing, var is already set.
 elseif (NOT "$ENV{BOOST_ROOT} " MATCHES "^[ \t\r\n]*$")
