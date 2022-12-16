@@ -116,7 +116,7 @@ tag:
     - job: build:linux:npm
     - job: build:windows:npm
   tags:
-    - docker
+    - light
   script:
     - package_name=$(jq -r .name < package.json)
     - published_version=`npm view $package_name version || echo "0.0.0"`
@@ -143,7 +143,7 @@ publish:
   stage: deploy
   needs: [ ]
   tags:
-    - docker
+    - light
   script:
     - npm ci
     - printf "\n//${CI_SERVER_HOST}/api/v4/projects/${CI_PROJECT_ID}/packages/npm/:_authToken=${CI_JOB_TOKEN}" >> .npmrc
@@ -159,7 +159,7 @@ changelog:
   stage: build
   needs: [ ]
   tags:
-    - docker
+    - light
   script:
     - (cd .gitlab && npm ci)
     # Must run git commands from main package, otherwise submodule's changelog will be generated.
@@ -180,7 +180,7 @@ release:
   image: registry.gitlab.com/gitlab-org/release-cli:latest
   needs: [ changelog ]
   tags:
-    - docker
+    - light
   script:
     - echo  "Uploading changelog"
   rules:
@@ -197,7 +197,7 @@ pages:
   stage: deploy
   needs: [ 'build:linux:npm' ]
   tags:
-    - docker
+    - light
   script:
     - mv docs/ public
   artifacts:
