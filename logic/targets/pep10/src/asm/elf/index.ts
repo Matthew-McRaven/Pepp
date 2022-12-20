@@ -1,48 +1,48 @@
 /* eslint-disable camelcase */
 import { DefintionState, ISymbolNative, TraversalPolicy } from '@pepnext/logic-symbol';
 import {
-  Writer, IWriter, ELFSymbol32, st_info,
+  e_type, Elf, native, sh_type, st_bind, st_type, Symbol as ElfSymbol, writeSymbols,
 } from '@pepnext/logic-elf';
 import { Root, SectionGroup, TypedNode } from '../ast/nodes';
 import { treeToHex } from '../visitors';
 
 import { updateSymbolShndx } from './shndx_annotation';
 
-export const createElf = (node:TypedNode):IWriter => {
-  const writer:IWriter = new Writer(32);
+export const parseType = (type:string) => {
+  switch (type.toLowerCase()) {
+    case 'notype': return st_type.STT_NOTYPE;
+    case 'object': return st_type.STT_OBJECT;
+    case 'func': return st_type.STT_FUNC;
+    case 'section': return st_type.STT_SECTION;
+    case 'file': return st_type.STT_FILE;
+    case 'common': return st_type.STT_COMMON;
+    default: throw new Error('Unrecognized type');
+  }
+};
+
+export const parseBind = (bind:string) => {
+  switch (bind.toLowerCase()) {
+    case 'local': return st_bind.STB_LOCAL;
+    case 'global': return st_bind.STB_GLOBAL;
+    case 'weak': return st_bind.STB_WEAK;
+    default: throw new Error('Unrecognized binding');
+  }
+};
+
+// eslint-disable-next-line no-bitwise
+export const st_info = (bind:bigint, type:bigint) => (bind & 0xfn) | ((type & 0x4n) << 4n);
+
+export const createElf = (node:TypedNode):Elf => {
+  const writer = new native.Elf();
+  writer.init(32);
   const sectionGroups = node.C as SectionGroup[];
 
   // Write global info
-  writer.writeEType(1n/* ET_REL: https://docs.oracle.com/cd/E19683-01/816-1386/chapter6-43405/index.html */);
-  writer.writeEMachine(0x5041n /* PA */); // P 10 with the second digit in hex.
-  writer.writeOSABI(0n /* ELFOSABI_NONE */);
+  writer.setType(e_type.ET_REL);
+  writer.setMachine(0x5041n /* PA */); // P 10 with the second digit in hex.
+  writer.setOSABI(0n /* ELFOSABI_NONE */);
 
   // Write code / data sections.
-
-  const baseAddresses = new Map<string, bigint>();
-  const collater = new Map<string, Uint8Array[]>();
-  // Gather all sections that have the same name.
-  sectionGroups.forEach((s) => {
-    let array: Uint8Array[] = [];
-    if (!baseAddresses.has(s.A.name)) baseAddresses.set(s.A.name, s.A.address || 0n);
-    if (collater.has(s.A.name)) array = collater.get(s.A.name) || [];
-    array.push(treeToHex(s));
-    collater.set(s.A.name, array);
-  });
-  // Merge bytes of all sections that have the same name.
-  const collated = new Map<string, Uint8Array>();
-  Array.from(collater.entries()).forEach(([k, v]) => {
-    // Allocate an array to hold concat of all arrays.
-    const length = v.reduce((prevLen:number, arr:Uint8Array) => prevLen + arr.length, 0);
-    const combinedBytes = new Uint8Array(length);
-    // Insert each array at the next open spot in the combined array.
-    v.reduce((prevLen, arr:Uint8Array) => {
-      combinedBytes.set(arr, prevLen);
-      return prevLen + arr.length;
-    }, 0);
-    // Then store the final section:byte mapping.
-    collated.set(k, combinedBytes);
-  });
 
   // Helper to update the st_shndx of each section
   const setShndx = (name:string, st_shndx:bigint) => {
@@ -54,18 +54,17 @@ export const createElf = (node:TypedNode):IWriter => {
     });
   };
 
-  // Create sections for each set of bytes, and update all relevant SectionGroups.
-  collated.forEach((v, k) => {
-    const shndx = writer.writeSectionBytes(k, {
-      size: 32,
-      sh_type: 1n, // Always assume that lines in source program are progbits.
-      sh_flags: 0n, // Compose flags from .SECTION directive. Default to WAX.
-      sh_addr: baseAddresses.get(k) || 0n,
-      sh_link: 0n, // See TIS ELF spec, Figure 1-12. Will always be 0 for our programs.
-      sh_info: 0n, // See TIS ELF spec, Figure 1-12. Will always be 0 for our programs.
-      sh_addr_align: 1n, // TODO: Look for any .ALIGN directives, and take on the largest value or else 1n.
-    }, v);
-    setShndx(k, shndx);
+  // TODO: Optionally randomize section orders
+  sectionGroups.forEach((s) => {
+    let section = writer.getSection(s.A.name);
+    if (section === undefined) {
+      section = writer.addSection(s.A.name);
+      section.setType(sh_type.SHT_PROGBITS);
+      section.setFlags(0n /* TODO */);
+      section.setAddress(s.A.address || 0n);
+      setShndx(s.A.name, section.getIndex());
+    }
+    section.appendData(treeToHex(s));
   });
 
   // Update shndx on symbol declarations
@@ -83,21 +82,24 @@ export const createElf = (node:TypedNode):IWriter => {
     else if (s.binding() === 'global') deduplicatedSymbols.set(s.name(), s);
   });
   // Create the ELF symbol format for the deduplicate symbols.
-  const elfSymbols: ELFSymbol32[] = [];
+  const elfSymbols: ElfSymbol[] = [];
   deduplicatedSymbols.forEach((s) => {
     elfSymbols.push({
-      size: 32,
-      st_name: s.name(),
-      st_size: s.size() || 0n,
-      st_bind: 1n,
-      st_value: s.value() || 0n,
-      st_shndx: s.sectionIndex(),
-      st_info: st_info(s.binding(), s.type()),
-      st_other: 0n, // Only contains visibility, which we will leave at default for now
+      name: s.name(),
+      size: s.size() || 0n,
+      binding: 1n,
+      type: 1n,
+      value: s.value() || 0n,
+      shndx: s.sectionIndex(),
+      other: 0n, // Only contains visibility, which we will leave at default for now
     });
   });
-  console.log(elfSymbols);
-  if (elfSymbols.length !== 0) writer.writeSymbols('.strtab', '.symtab', elfSymbols);
+  if (elfSymbols.length > 0) {
+    // Rely on writeSymbols to set strtab/symtab info/links/sizes.
+    writer.addSection('.strtab');
+    writer.addSection('.symtab');
+    writeSymbols(writer, '.strtab', '.symtab', elfSymbols);
+  }
 
   // Write relocation entries
   // Make sure to relocate any usages of pushed-down symbols.

@@ -2,6 +2,9 @@ import {
   MacroType, Registry,
 } from '@pepnext/logic-macro';
 import { BookRegistry } from '@pepnext/logic-builtins';
+import {
+  native, p_flags, p_type, sh_flags,
+} from '@pepnext/logic-elf';
 
 import * as visitors from '../visitors';
 import * as peg from '../peg';
@@ -48,11 +51,6 @@ export const assembleBareMetal = async (program: string) => {
       name: '.text',
       address: 0n,
       direction: 'forward',
-    }, {
-      name: 'stack',
-      // TODO: Allow STACK to be renamed to .BSS
-      address: 0xFFFAn,
-      direction: 'backward',
     },
     {
       name: 'memvec',
@@ -61,29 +59,30 @@ export const assembleBareMetal = async (program: string) => {
     },
   ];
   if (tree.T !== 'root') throw new Error('Expected tree root');
+
   assignAddressesBySectionName(tree, infos);
   const file = elf.createElf(tree);
-  /*
-   const textSeg = file.addSegment()
-   const textSec = file.getSection(".text")
-   textSeg.addSection(textSec)
-   textSeg.setVAddress(0n);
-   textSeg.setPAddress(0n);
-   textSeg.setMemorySize(textSec.size());
 
-   const memvecSeg = file.addSegment();
-   const memvecSec = file.getSection("memvec");
-   memvecSeg.addSection(memvecSec)
-   // TODO: Do some fiddling around with segment sizes/addresses to handle addralign.
-   memvecSeg.setVAddress(memvecSec.getAddress());
-   memvecSeg.setPAddress(memvecSec.getAddress());
-   memvecSeg.setMemorySize(memvecSec.getSize());
+  const textSeg = file.addSegment();
+  const textSec = file.getSection('.text');
+  if (!textSec) throw new Error('Expected .text section');
+  textSec.setFlags(sh_flags.SHF_ALLOC | sh_flags.SHF_WRITE | sh_flags.SHF_EXECINSTR);
+  textSeg.addSection(textSec);
+  textSeg.setVAddress(0n);
+  textSeg.setPAddress(0n);
+  textSeg.setType(p_type.PT_LOAD);
+  textSeg.setFlags(p_flags.PF_R | p_flags.PF_W | p_flags.PF_X);
 
-   const bssSeg= file.addSegment();
-   bssSeg.setVAddress(memvecSec.getAddress()-2);
-   bssSeg.setPAddress(memvecSec.getAddress()-2);
-   bssSeg.setMemorySize(0x1000n);
+  const memvecSeg = file.addSegment();
+  const memvecSec = file.getSection('memvec');
+  if (!memvecSec) throw new Error('Expected memvec section');
+  memvecSec.setFlags(sh_flags.SHF_ALLOC | sh_flags.SHF_WRITE);
+  memvecSeg.addSection(memvecSec);
+  // TODO: Do some fiddling around with segment sizes/addresses to handle addralign.
+  memvecSeg.setVAddress(memvecSec.getAddress());
+  memvecSeg.setPAddress(memvecSec.getAddress());
+  memvecSeg.setType(p_type.PT_LOAD);
+  memvecSeg.setFlags(p_flags.PF_R | p_flags.PF_W);
 
-   */
-  file.dumpToFile('magic2.elf');
+  native.saveElfToFile(file, 'magic2.elf');
 };

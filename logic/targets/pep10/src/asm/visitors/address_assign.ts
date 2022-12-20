@@ -3,7 +3,7 @@ import { ISymbolNative, TraversalPolicy } from '@pepnext/logic-symbol';
 import { TypedNode } from '../ast/nodes';
 // eslint-disable-next-line import/no-named-default
 import { default as bind } from '../../bind';
-import { nodeSize, treeSize } from './size';
+import { nodeSize } from './size';
 
 const { isa } = bind;
 
@@ -22,17 +22,18 @@ export const setTreeAddresses = (tree:TypedNode, options?: AddressOpts) => {
   let address = options ? options.baseAddress || 0n : 0n;
   const direction = options ? options.direction || 'forward' : 'forward';
   const whenVisit = direction === 'forward' ? 'downward' : 'upward';
+  let didBackwardAddressAdjustment = false;
   const wrapper = (node:TypedNode) => {
-    // This function writes bytes from low address=>high address. We need to move the address pointer around to get these
-    // bytes in the right spot.
-    const addressAfterDecrement = treeSize(node, address, direction);
-    // Write is inclusive of endpoints, so if we need to write 2 bytes, we only need to step backwards 1 address.
-    let adjustedBackwards = addressAfterDecrement - 1n;
-    // Don't step the address pointer forward on 0 sized nodes
-    if (adjustedBackwards < 0n) adjustedBackwards = 0n;
-    if (direction === 'backward') address -= adjustedBackwards;
-
+    if (direction === 'backward') {
+      // This function writes bytes from low address=>high address. We need to move the address pointer around to get these
+      // bytes in the right spot.
+      const size = nodeSize(node, address, direction);
+      address -= size - 1n;
+      didBackwardAddressAdjustment = true;
+    }
     node.A.address = address;
+
+    if (node.T === 'sectionGroup') console.log(address, node.dump());
     switch (node.T) {
       // Handle equate, block, byte, EQUATE
       case 'pseudo':
@@ -67,8 +68,7 @@ export const setTreeAddresses = (tree:TypedNode, options?: AddressOpts) => {
       default: break;
     }
     if (direction === 'forward') address += nodeSize(node, address, direction);
-    // Now we need to re-subtract the 1n offset, which is stored in addressAfterDecrement.
-    else if (direction === 'backward') address = addressAfterDecrement;
+    if (didBackwardAddressAdjustment) address -= 1n;
   };
   tree.walk(wrapper, whenVisit, direction);
 };
