@@ -1,5 +1,8 @@
 include_guard()
 
+# We always want universal builds, so do not set on a per-target basis
+SET(CMAKE_OSX_ARCHITECTURES "x86_64;arm64" CACHE INTERNAL "" FORCE)
+
 # Helper to find and enable clang-tidy
 macro(inject_clang_tidy)
     # Run clang tidy iff it is installed and on the path.
