@@ -1,3 +1,6 @@
 [submodule ".gitlab"]
 	path = .gitlab
 	url = https://gitlab.com/pepnext/config/ci
+[submodule ".tsconfig"]
+	path = .tsconfig
+	url = https://gitlab.com/pepnext/config/tsconfig
