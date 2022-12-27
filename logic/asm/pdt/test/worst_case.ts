@@ -9,8 +9,8 @@ const ram: Device.Memory.Type = {
   storage: 'dense',
   ro: false,
   cacheable: true,
-  'base-address': '0x10000',
-  size: '0xFFFB',
+  minOffset: '0x10000',
+  maxOffset: '0x1FFFB',
 };
 
 const charIn: Device.Memory.Type = {
@@ -20,8 +20,8 @@ const charIn: Device.Memory.Type = {
   storage: 'mmi',
   ro: false,
   cacheable: false,
-  'base-address': '0x2',
-  size: '0x1',
+  minOffset: '0x2',
+  maxOffset: '0x2',
 };
 
 const charOut: Device.Memory.Type = {
@@ -31,8 +31,8 @@ const charOut: Device.Memory.Type = {
   storage: 'mmo',
   ro: false,
   cacheable: false,
-  'base-address': '0x3',
-  size: '0x1',
+  minOffset: '0x3',
+  maxOffset: '0x3',
 };
 
 const diskIn: Device.Memory.Type = {
@@ -42,8 +42,8 @@ const diskIn: Device.Memory.Type = {
   storage: 'mmi',
   ro: false,
   cacheable: false,
-  'base-address': '0x4',
-  size: '0x1',
+  minOffset: '0x4',
+  maxOffset: '0x4',
 };
 
 const pwrOff: Device.Memory.Type = {
@@ -53,16 +53,16 @@ const pwrOff: Device.Memory.Type = {
   storage: 'mmo',
   ro: false,
   cacheable: false,
-  'base-address': '0x5',
-  size: '0x1',
+  minOffset: '0x5',
+  maxOffset: '0x5',
 };
 
 const busio: Bus.Simple.Type = {
   name: 'bus-io',
   type: 'bus',
   compatible: 'simple',
-  'base-address': '0x10',
-  size: '0x6',
+  minOffset: '0x10',
+  maxOffset: '0x15',
   'child-addend': '0x2',
   children: [charIn, charOut, diskIn, pwrOff],
 };
@@ -82,8 +82,8 @@ const bus0: Bus.Simple.Type = {
   name: 'bus0',
   type: 'bus',
   compatible: 'simple',
-  'base-address': '0x0',
-  size: '0x20000',
+  minOffset: '0x0',
+  maxOffset: '0x20000',
   'child-addend': '0x0',
   children: [ram, busio, cpuInitiator],
 };

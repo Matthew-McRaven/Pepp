@@ -3,8 +3,8 @@ export interface Identifiable {
 }
 
 export interface Device {
-    size: string
-    'base-address': string
+    maxOffset: string
+    minOffset: string
 }
 
 export interface ChainedInitiator {
