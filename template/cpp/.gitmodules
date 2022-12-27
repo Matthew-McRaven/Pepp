@@ -4,3 +4,6 @@
 [submodule ".tsconfig"]
 	path = .tsconfig
 	url = https://gitlab.com/pepnext/config/tsconfig
+[submodule "3rd-party/catch"]
+	path = 3rd-party/catch
+	url = https://gitlab.com/pepnext/3rd-party/catch
