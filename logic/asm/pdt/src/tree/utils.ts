@@ -2,7 +2,7 @@ export interface Identifiable {
     name: string
 }
 
-export interface Device {
+export interface Target {
     maxOffset: string
     minOffset: string
 }

@@ -1,6 +1,6 @@
-import type { Identifiable, Device } from '../utils';
+import type { Identifiable, Target } from '../utils';
 import * as Remapper from './remap';
-import * as DeviceT from '../device';
+import * as TargetT from '../device';
 
 export const Match = {
   type: 'bus',
@@ -8,7 +8,7 @@ export const Match = {
 } as const;
 type Helper = typeof Match
 
-export interface Type extends Identifiable, Device, Helper {
+export interface Type extends Identifiable, Target, Helper {
     'child-addend': string
-    children: Array<Remapper.Type | DeviceT.All | Type>
+    children: Array<Remapper.Type | TargetT.All | Type>
 }
