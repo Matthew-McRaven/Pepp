@@ -1,6 +1,6 @@
 {
   "name": "@pepnext/template-mixed",
-  "version": "3.0.",
+  "version": "3.0.0",
   "description": "Simple template for mixed JS/C++ projects.",
   "repository": "https://gitlab.com/pepnext/template/mixed-js-c++",
   "license": "GPL-3.0",
