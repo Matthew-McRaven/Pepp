@@ -1,7 +1,7 @@
 {
   "extends": "./.tsconfig/base.tsconfig.json",
   "compilerOptions": {
-    "rootDir": "src/bind",
+    "rootDir": "src",
     "outDir": "dist",
     "baseUrl": "."
   },
@@ -10,6 +10,6 @@
     "node"
   ],
   "include": [
-    "src/bind"
+    "src"
   ]
 }

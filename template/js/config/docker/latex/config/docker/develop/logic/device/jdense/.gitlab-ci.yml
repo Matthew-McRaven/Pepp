@@ -11,7 +11,7 @@ generate:
   stage: build
   tags:
     - light
-  script: cp .gitlab/logic-mixed.yml generated.yml
+  script: cp .gitlab/logic-purejs.yml generated.yml
   artifacts:
     paths:
       - generated.yml

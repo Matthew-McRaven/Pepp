@@ -1,6 +1,6 @@
 {
-  "name": "@pepnext/template-mixed",
-  "version": "3.0.",
+  "name": "@pepnext/template-js",
+  "version": "3.0.0",
   "description": "Simple template for mixed JS/C++ projects.",
   "repository": "https://gitlab.com/pepnext/template/mixed-js-c++",
   "license": "GPL-3.0",
@@ -9,39 +9,29 @@
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
   "files": [
-    "3rd-party/",
     "src/",
     ".cmake",
-    "CMakeLists.txt",
     ".tsconfig",
     "tsconfig.json"
   ],
   "scripts": {
-    "prebuild": "npx cmake-js -BRelease . -p8 ",
     "build": "npx tsc -p tsconfig.json",
     "clean": "npx rimraf -rf ./dist",
-    "docs": "npx typedoc --out docs src/bind/index.ts",
+    "docs": "npx typedoc --out docs src/index.ts",
     "globcov": "python3 .scripts/scripts/merge-cobertura.py -o coverage.xml  coverage/cobertura-coverage.xml",
-    "test": "npm run test:native && npm run test:js",
+    "test": "npm run test:js",
     "prepublishOnly": "npm run build",
     "test:js": "npx cross-env NODE_OPTIONS=--experimental-vm-modules npx jest",
     "test:ci:js": "npm run test:js -- --ci --reporters=default --reporters=jest-junit --coverageReporters=cobertura --coverage && npm run globcov",
-    "test:native": "cd build && ctest -C Release",
-    "test:ci": "npm run test:ci:js && npm run test:native"
+    "test:ci": "npm run test:ci:js"
   },
   "eslintConfig": {
     "extends": "./node_modules/@pepnext/eslint/.eslintrc.js"
-  },
-  "dependencies": {
-    "@pepnext/bindings": "^1.0.0",
-    "file-uri-to-path": "^2.0.0",
-    "node-addon-api": "^5.0.0"
   },
   "devDependencies": {
     "@jest/globals": "^27.3.1",
     "@pepnext/eslint": "^3.0.3",
     "@types/jest": "^27.4.0",
-    "cmake-js": "^6.3.2",
     "cross-env": "^7.0.3",
     "jest": "^27.3.1",
     "jest-junit": "^13.0.0",
@@ -52,6 +42,6 @@
   },
   "packageManager": "npm@6.14.17",
   "publishConfig": {
-    "@pepnext:registry": "https://gitlab.com/api/v4/projects/<your_number_here>/packages/npm/"
+    "@pepnext:registry": "https://gitlab.com/api/v4/projects/10/packages/npm/"
   }
 }
