@@ -19,7 +19,7 @@
     "prebuild": "npx cmake-js -BRelease . -p8 ",
     "build": "npx tsc -p tsconfig.json",
     "clean": "npx rimraf -rf ./dist",
-    "docs": "npx typedoc --out docs src/bind/index.ts",
+    "docs": "npx typedoc --out docs src/index.ts",
     "globcov": "python3 .scripts/scripts/merge-cobertura.py -o coverage.xml  coverage/cobertura-coverage.xml",
     "prepublishOnly": "npm run build",
     "test": "echo \"no tests to run\"",
