@@ -19,7 +19,7 @@ generate:
 # Pin to a known-good version so that CI can't spontaneously break.
 execute:
   variables:
-    SKIP_CMAKE_BUILD: true
+    SKIP_CMAKE_BUILD: 'true'
   stage: test
   trigger:
     strategy: depend
