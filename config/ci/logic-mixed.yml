@@ -68,7 +68,7 @@ build:linux:cmake:
     - lcov --summary coverage.lcov
   coverage: '/^\s*lines.*/'
   rules:
-    - if: $SKIP_CMAKE_BUILD != 'true' && '$CI_COMMIT_TAG =~ "/^$/"'
+    - if: '$SKIP_CMAKE_BUILD != \"true\" && $CI_COMMIT_TAG =~ "/^$/"'
   artifacts:
     expire_in: 7 days
     reports:
