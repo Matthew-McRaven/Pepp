@@ -25,6 +25,7 @@ build:linux:npm:
   tags:
     - docker
   script:
+    - echo $SKIP_CMAKE_BUILD
     - npm ci
     - npm run build
     - npm run test:ci
