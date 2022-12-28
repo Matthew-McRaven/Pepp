@@ -21,20 +21,18 @@
     "clean": "npx rimraf -rf ./dist",
     "docs": "npx typedoc --out docs src/bind/index.ts",
     "globcov": "python3 .scripts/scripts/merge-cobertura.py -o coverage.xml  coverage/cobertura-coverage.xml",
-    "test": "npm run test:native && npm run test:js",
     "prepublishOnly": "npm run build",
-    "test:js": "npx cross-env NODE_OPTIONS=--experimental-vm-modules npx jest",
-    "test:ci:js": "npm run test:js -- --ci --reporters=default --reporters=jest-junit --coverageReporters=cobertura --coverage && npm run globcov",
-    "test:native": "cd build && ctest -C Release",
-    "test:ci": "npm run test:ci:js && npm run test:native"
+    "test": "echo \"no tests to run\"",
+    "test:ci": "echo \"no tests to run\"",
+    "test:ci:js": "echo \"no tests to run\"",
+    "test:js": "echo \"no tests to run\"",
+    "test:native": "echo \"no tests to run\""
   },
   "eslintConfig": {
     "extends": "./node_modules/@pepnext/eslint/.eslintrc.js"
   },
   "dependencies": {
-    "@pepnext/bindings": "^1.0.0",
-    "file-uri-to-path": "^2.0.0",
-    "node-addon-api": "^5.0.0"
+    "@pepnext/logic-pdt": "^3.1.2"
   },
   "devDependencies": {
     "@jest/globals": "^27.3.1",
