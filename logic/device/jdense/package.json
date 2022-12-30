@@ -1,8 +1,8 @@
 {
-  "name": "@pepnext/template-js",
+  "name": "@pepnext/device-jdense",
   "version": "3.0.0",
-  "description": "Simple template for mixed JS/C++ projects.",
-  "repository": "https://gitlab.com/pepnext/template/mixed-js-c++",
+  "description": "Device for contiguous memory, written in TS.",
+  "repository": "https://gitlab.com/pepnext/device/jdense+",
   "license": "GPL-3.0",
   "author": "Matthew McRaven",
   "type": "module",
@@ -10,7 +10,6 @@
   "types": "dist/index.d.ts",
   "files": [
     "src/",
-    ".cmake",
     ".tsconfig",
     "tsconfig.json"
   ],
@@ -42,6 +41,6 @@
   },
   "packageManager": "npm@6.14.17",
   "publishConfig": {
-    "@pepnext:registry": "https://gitlab.com/api/v4/projects/10/packages/npm/"
+    "@pepnext:registry": "https://gitlab.com/api/v4/projects/42208909/packages/npm/"
   }
 }
