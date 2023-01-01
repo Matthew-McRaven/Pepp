@@ -1,4 +1,3 @@
-
-describe("placeholder", ()=>{
-  it("does nothing", ()=>undefined)
-})
+describe('placeholder', () => {
+  it('does nothing', () => undefined);
+});

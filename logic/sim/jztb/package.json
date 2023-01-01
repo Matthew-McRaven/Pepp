@@ -42,5 +42,8 @@
   "packageManager": "npm@6.14.17",
   "publishConfig": {
     "@pepnext:registry": "https://gitlab.com/api/v4/projects/42213108/packages/npm/"
+  },
+  "dependencies": {
+    "@pepnext/device-interface": "^3.0.1"
   }
 }
