@@ -1,6 +1,6 @@
 {
   "name": "@pepnext/device-interface",
-  "version": "3.0.1",
+  "version": "3.0.2",
   "description": "TS/C++ APIs for communicating between simulator devices.",
   "repository": "https://gitlab.com/pepnext/device/interface",
   "license": "LGPL-3.0",
@@ -11,6 +11,7 @@
   "files": [
     "src/",
     ".cmake",
+    "dist/",
     "CMakeLists.txt",
     ".tsconfig",
     "tsconfig.json"
