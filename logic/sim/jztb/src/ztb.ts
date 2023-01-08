@@ -1,8 +1,11 @@
 import {
-  TraceBuffer, TraceBufferStatus, TraceCommitHook, Trace as TraceMod,
+  Trace as TraceModule, TraceTypes,
 } from '@pepnext/device-interface';
 
-type Trace<T> = TraceMod.Trace<T>;
+type Trace<T> = TraceTypes.Trace<T>;
+type TraceBuffer = TraceModule.TraceBuffer
+type TraceBufferStatus = TraceModule.TraceBufferStatus
+type TraceCommitHook = TraceModule.TraceCommitHook
 
 // eslint-disable-next-line import/prefer-default-export
 export class ZTB implements TraceBuffer {
