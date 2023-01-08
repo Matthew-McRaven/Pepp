@@ -1,6 +1,6 @@
 {
   "name": "@pepnext/device-interface",
-  "version": "3.0.3",
+  "version": "3.1.0",
   "description": "TS/C++ APIs for communicating between simulator devices.",
   "repository": "https://gitlab.com/pepnext/device/interface",
   "license": "LGPL-3.0",
