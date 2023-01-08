@@ -1,6 +1,6 @@
 {
   "name": "@pepnext/device-jlltb",
-  "version": "3.0.0",
+  "version": "3.0.1",
   "description": "Linked list trace buffer implemented in typescript.",
   "repository": "https://gitlab.com/pepnext/device/jlltb",
   "license": "GPL-3.0",
@@ -10,6 +10,7 @@
   "types": "dist/index.d.ts",
   "files": [
     "src/",
+    "dist/",
     ".cmake",
     ".tsconfig",
     "tsconfig.json"
@@ -19,15 +20,18 @@
     "clean": "npx rimraf -rf ./dist",
     "docs": "npx typedoc --out docs src/index.ts",
     "globcov": "python3 .scripts/scripts/merge-cobertura.py -o coverage.xml  coverage/cobertura-coverage.xml",
-    "test": "npm run test:js",
     "prepublishOnly": "npm run build",
-    "test:js": "npx cross-env NODE_OPTIONS=--experimental-vm-modules npx jest",
-    "test:ci:js": "npm run test:js -- --ci --reporters=default --reporters=jest-junit --coverageReporters=cobertura --coverage && npm run globcov",
+    "test": "npm run test:js",
     "test:ci": "npm run test:ci:js",
+    "test:ci:js": "npm run test:js -- --ci --reporters=default --reporters=jest-junit --coverageReporters=cobertura --coverage && npm run globcov",
+    "test:js": "npx cross-env NODE_OPTIONS=--experimental-vm-modules npx jest",
     "typecheck": "npx tsc -p tsconfig.json --noEmit"
   },
   "eslintConfig": {
     "extends": "./node_modules/@pepnext/eslint/.eslintrc.js"
+  },
+  "dependencies": {
+    "@pepnext/device-interface": "^3.1.0"
   },
   "devDependencies": {
     "@jest/globals": "^27.3.1",
@@ -44,8 +48,5 @@
   "packageManager": "npm@6.14.17",
   "publishConfig": {
     "@pepnext:registry": "https://gitlab.com/api/v4/projects/42401651/packages/npm/"
-  },
-  "dependencies": {
-    "@pepnext/device-interface": "^3.1.0"
   }
 }
