@@ -10,6 +10,7 @@
   "types": "dist/index.d.ts",
   "files": [
     "src/",
+    "dist/",
     ".cmake",
     ".tsconfig",
     "tsconfig.json"
