@@ -23,7 +23,8 @@
     "prepublishOnly": "npm run build",
     "test:js": "npx cross-env NODE_OPTIONS=--experimental-vm-modules npx jest",
     "test:ci:js": "npm run test:js -- --ci --reporters=default --reporters=jest-junit --coverageReporters=cobertura --coverage && npm run globcov",
-    "test:ci": "npm run test:ci:js"
+    "test:ci": "npm run test:ci:js",
+    "typecheck": "npx tsc -p tsconfig.json --noEmit"
   },
   "eslintConfig": {
     "extends": "./node_modules/@pepnext/eslint/.eslintrc.js"
