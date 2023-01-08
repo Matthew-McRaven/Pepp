@@ -10,6 +10,7 @@
   "types": "dist/index.d.ts",
   "files": [
     "src/",
+    "dist/",
     ".tsconfig",
     "tsconfig.json"
   ],
@@ -22,15 +23,24 @@
     "test": "npm run test:js",
     "test:ci": "npm run test:ci:js",
     "test:ci:js": "npm run test:js -- --ci --reporters=default --reporters=jest-junit --coverageReporters=cobertura --coverage && npm run globcov",
-    "test:js": "npx cross-env NODE_OPTIONS=--experimental-vm-modules npx jest"
+    "test:js": "npx cross-env NODE_OPTIONS=--experimental-vm-modules npx jest",
+    "typecheck": "npx tsc -p tsconfig.json --noEmit"
   },
   "eslintConfig": {
     "extends": "./node_modules/@pepnext/eslint/.eslintrc.js"
   },
+  "dependencies": {
+    "@pepnext/device-interface": "^3.0.0",
+    "@pepnext/logic-pdt": "^3.1.2",
+    "lodash": "^4.17.21"
+  },
   "devDependencies": {
     "@jest/globals": "^27.3.1",
+    "@pepnext/device-jlltb": "^3.0.1",
+    "@pepnext/device-jztb": "^3.0.4",
     "@pepnext/eslint": "^3.0.3",
     "@types/jest": "^27.4.0",
+    "@types/lodash": "^4.14.191",
     "cross-env": "^7.0.3",
     "jest": "^27.3.1",
     "jest-junit": "^13.0.0",
