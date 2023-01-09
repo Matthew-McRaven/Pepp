@@ -6,3 +6,4 @@ export * as Device from './device';
 export * as System from './system';
 export * as Target from './target';
 export * as TargetOperation from './target_operation';
+export { Initiator, SplitInitiator } from './initiator';
