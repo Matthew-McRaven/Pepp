@@ -1,6 +1,6 @@
 {
   "name": "@pepnext/device-jdense",
-  "version": "3.0.0",
+  "version": "3.0.1",
   "description": "Device for contiguous memory, written in TS.",
   "repository": "https://gitlab.com/pepnext/device/jdense+",
   "license": "GPL-3.0",
@@ -30,7 +30,7 @@
     "extends": "./node_modules/@pepnext/eslint/.eslintrc.js"
   },
   "dependencies": {
-    "@pepnext/device-interface": "^3.0.0",
+    "@pepnext/device-interface": "^3.1.0",
     "@pepnext/logic-pdt": "^3.1.2",
     "lodash": "^4.17.21"
   },
