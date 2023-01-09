@@ -1,3 +1,4 @@
+export * as Clock from './clock';
 export * as Trace from './trace';
 export * as TraceTypes from './trace/index';
 export * as Interposer from './interposer';

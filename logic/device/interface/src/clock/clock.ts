@@ -1,6 +1,6 @@
 import { Target } from '../target';
 
-export enum tickError {
+export enum TickError {
     Success =0,
     NoMMInput,
     Terminate,
@@ -14,7 +14,7 @@ export interface TickResult {
     pause: boolean
     sync: boolean
     delay: {kind:'tick' | 'clock', period: number}
-    error: tickError
+    error: TickError
 }
 
 export interface FrequencyChangeHook {
@@ -34,15 +34,6 @@ export interface Clocked {
     getClock: ()=>Clock
     tick: (current_tick:number)=>TickResult
     reset: () => void
-}
-
-export interface Initiator {
-    setTarget: (target:Target)=>void;
-}
-
-export interface SplitInitiator {
-    setITarget: (target:Target)=>void;
-    setDTarget: (target:Target)=>void;
 }
 
 export const DisabledClock = {
