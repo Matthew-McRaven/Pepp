@@ -1,6 +1,6 @@
 {
   "name": "@pepnext/device-jztb",
-  "version": "3.0.4",
+  "version": "3.0.5",
   "description": "Javascript implementation of the Zero Trace Buffer.",
   "repository": "https://gitlab.com/pepnext/device/jztb",
   "license": "GPL-3.0",
