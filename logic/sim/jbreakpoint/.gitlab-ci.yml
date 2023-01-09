@@ -16,7 +16,7 @@ generate:
     paths:
       - generated.yml
 # Pin to a known-good version so that CI can't spontaneously break.
-.execute: #Renove `.` to enable job
+execute:
   stage: test
   trigger:
     strategy: depend
