@@ -1,5 +1,3 @@
-import { Target } from '../target';
-
 export enum TickError {
     Success =0,
     NoMMInput,

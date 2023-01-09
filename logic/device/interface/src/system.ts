@@ -1,9 +1,10 @@
 import {
-  Clock, Clocked, Initiator, SplitInitiator, TickResult,
+  Clock, Clocked, TickResult,
 } from './clock/clock';
 import { Device } from './device';
 import { NonNativeTarget } from './target';
 import { Traceable, TraceBuffer } from './trace';
+import { Initiator, SplitInitiator } from './initiator';
 
 export const enum TickMode {
     Increment, // Execute only the next tick, even if no clocked device is ticked.
