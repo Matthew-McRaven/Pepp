@@ -1,8 +1,8 @@
 {
-  "name": "@pepnext/device-jlltb",
-  "version": "3.0.2",
+  "name": "@pepnext/sim-jlltb",
+  "version": "3.0.3",
   "description": "Linked list trace buffer implemented in typescript.",
-  "repository": "https://gitlab.com/pepnext/device/jlltb",
+  "repository": "https://gitlab.com/pepnext/sim/jlltb",
   "license": "GPL-3.0",
   "author": "Matthew McRaven",
   "type": "module",
