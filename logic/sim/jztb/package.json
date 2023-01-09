@@ -1,8 +1,8 @@
 {
-  "name": "@pepnext/device-jztb",
-  "version": "3.0.5",
+  "name": "@pepnext/sim-jztb",
+  "version": "3.0.6",
   "description": "Javascript implementation of the Zero Trace Buffer.",
-  "repository": "https://gitlab.com/pepnext/device/jztb",
+  "repository": "https://gitlab.com/pepnext/sim/jztb",
   "license": "GPL-3.0",
   "author": "Matthew McRaven",
   "type": "module",
