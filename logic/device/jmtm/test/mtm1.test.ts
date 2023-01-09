@@ -1,6 +1,6 @@
 // import toBuffer from 'typedarray-to-buffer';
 import { TargetOperation, Clock, Device } from '@pepnext/device-interface';
-import { JLLTB as LLTB } from '@pepnext/device-jlltb';
+import { JLLTB as LLTB } from '@pepnext/sim-jlltb';
 import { JDense } from '@pepnext/device-jdense';
 import { MTM1 } from '../src/mtm1';
 import { MTMRegister } from '../src/mtm_socket';

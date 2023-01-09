@@ -1,6 +1,6 @@
 // import toBuffer from 'typedarray-to-buffer';
 import { TargetOperation, Clock, Device } from '@pepnext/device-interface';
-import { JLLTB as LLTB } from '@pepnext/device-jlltb';
+import { JLLTB as LLTB } from '@pepnext/sim-jlltb';
 import { MTM0 } from '../src/mtm0';
 import { MTMRegister } from '../src/mtm_socket';
 // import { JConditionalBreakpointInterposer } from '../../sim/sim/bp_interposer/src';
