@@ -1,8 +1,8 @@
 import { Device, Target } from '@pepnext/device-interface';
 // eslint-disable-next-line import/no-extraneous-dependencies
-import { JZTB } from '@pepnext/device-jztb';
+import { JZTB } from '@pepnext/sim-jztb';
 // eslint-disable-next-line import/no-extraneous-dependencies
-import { JLLTB } from '@pepnext/device-jlltb';
+import { JLLTB } from '@pepnext/sim-jlltb';
 import { JDense } from '../src';
 
 type DevicePOD = Device.DevicePOD

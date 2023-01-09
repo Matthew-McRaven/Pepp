@@ -36,9 +36,9 @@
   },
   "devDependencies": {
     "@jest/globals": "^27.3.1",
-    "@pepnext/device-jlltb": "^3.0.1",
-    "@pepnext/device-jztb": "^3.0.4",
     "@pepnext/eslint": "^3.0.3",
+    "@pepnext/sim-jlltb": "^3.0.1",
+    "@pepnext/sim-jztb": "^3.0.4",
     "@types/jest": "^27.4.0",
     "@types/lodash": "^4.14.191",
     "cross-env": "^7.0.3",
