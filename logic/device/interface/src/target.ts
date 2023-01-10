@@ -6,7 +6,8 @@ export enum BaseAccessError {
     Unmapped, //  Attempted to read a physical address with no device present.
     OOBAccess, //  Attempted out-of-bound access on a storage device.
     NeedsMMI, //  Attempted to read MMI that had no buffered input.
-    Breakpoint
+    Breakpoint, // Memory access triggered a memory breakpoint
+    FullTraceBuffer, // Attempted memory access would overflow the trace buffer. Flush the trace buffer and try again.
 }
 export interface BaseAccessResult {
     completed: boolean
