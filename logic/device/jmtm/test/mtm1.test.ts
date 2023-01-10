@@ -1,10 +1,10 @@
-// import toBuffer from 'typedarray-to-buffer';
+import toBuffer from 'typedarray-to-buffer';
 import { TargetOperation, Clock, Device } from '@pepnext/device-interface';
 import { JLLTB as LLTB } from '@pepnext/sim-jlltb';
 import { JDense } from '@pepnext/device-jdense';
 import { MTM1 } from '../src/mtm1';
 import { MTMRegister } from '../src/mtm_socket';
-// import { JConditionalBreakpointInterposer } from '../../sim/sim/bp_interposer/src';
+import { JConditionalBreakpointInterposer } from '@pepnext/sim-jbreakpoint';
 
 type Operation = TargetOperation.Operation
 const { TickError } = Clock;
@@ -134,7 +134,7 @@ describe('McRaven Test Machine v1', () => {
         tick: 2,
       }]);
   });
-  /* it('Can have PC breakpoints set', () => {
+  it('Can have PC breakpoints set', () => {
     const mtm1 = new MTM1(pod, '/dummy', 1);
     mtm1.setTarget(new JDense(ramPOD, 0n, 0xFFFFn, 0));
     const bp = new JConditionalBreakpointInterposer();
@@ -147,11 +147,11 @@ describe('McRaven Test Machine v1', () => {
     mtm1.register.setInterposer(bp);
     let tick = mtm1.tick(1);
     expect(tick.pause).toEqual(true);
-    expect(tick.error).toEqual(tickError.Breakpoint);
+    expect(tick.error).toEqual(TickError.Breakpoint);
     tick = mtm1.tick(2);
     expect(tick.pause).toEqual(false);
-    expect(tick.error).toEqual(tickError.Success);
-  }); */
+    expect(tick.error).toEqual(TickError.Success);
+  }); 
   it('Increments its instruction/cycle counts', () => {
     const mtm1 = new MTM1(pod, '/dummy', 1);
     mtm1.setTarget(new JDense(ramPOD, 0n, 0xFFFFn, 0));

@@ -38,8 +38,9 @@
   },
   "devDependencies": {
     "@jest/globals": "^27.3.1",
-    "@pepnext/sim-jlltb": "^3.0.2",
     "@pepnext/eslint": "^3.0.3",
+    "@pepnext/sim-jbreakpoint": "^3.0.0",
+    "@pepnext/sim-jlltb": "^3.0.2",
     "@types/jest": "^27.4.0",
     "@types/lodash": "^4.14.191",
     "@types/typedarray-to-buffer": "^4.0.0",
