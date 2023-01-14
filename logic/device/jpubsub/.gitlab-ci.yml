@@ -4,6 +4,7 @@ variables:
   GIT_LFS_SKIP_SMUDGE: '1'
   # Append dist, because I have generated files there
   SAST_EXCLUDED_PATHS: spec, test, tests, tmp, dist
+  SKIP_NPM_PUBLISH: yes
 
 generate:
   variables:
@@ -16,7 +17,7 @@ generate:
     paths:
       - generated.yml
 # Pin to a known-good version so that CI can't spontaneously break.
-.execute: #Renove `.` to enable job
+execute:
   stage: test
   trigger:
     strategy: depend
