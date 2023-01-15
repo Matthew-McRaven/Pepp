@@ -1,16 +1,12 @@
-export interface Event {
-    value:number
-    publisherID: number
-    empty: boolean
-    displacement:number
-    nextNode:Event|null
-    prevNode:Event|null
-}
+// eslint-disable-next-line max-classes-per-file
+import * as event from './event';
+import type { Event } from './event';
+
 export class Endpoint {
-  constructor(publisherID:number, channel:Channel, event:Event) {
+  constructor(publisherID:number, channel:Channel, e:Event) {
     this.#publisherID = publisherID;
     this.#channel = channel;
-    this.#event = event;
+    this.#event = e;
   }
 
   setToTail() {
@@ -62,14 +58,15 @@ export class Endpoint {
 
   #event:Readonly<Event>;
 }
+
 export class Channel {
   constructor(defaultValue:number) {
     this.#defaultValue = defaultValue;
-    const event:Event = {
+    const e:event.Event = {
       displacement: 0, empty: false, publisherID: 0, value: this.#defaultValue, prevNode: null, nextNode: null,
     };
-    this.#head = event;
-    this.#tail = event;
+    this.#head = e;
+    this.#tail = e;
   }
 
   currentValue():number {
@@ -90,7 +87,7 @@ export class Channel {
     return this.#tail;
   }
 
-  revert(publisherID: number, time:number):Event {
+  revert(publisherID: number, time:number):Readonly<Event> {
     let fixup:Event|null = null;
     let fixupNext:Event|null = null;
     // Find the last node which the publisher added, or the head.
@@ -137,14 +134,9 @@ export class Channel {
       if (!e) return null;
       return this.next(e);
     }
-    let e: Event | null = eventOrTime;
-    if (!eventOrTime.nextNode) return eventOrTime;
-    // Otherwise traverse the list, continuing over empty nodes.
-    // In this case, stop when the current node is non-empty, or until the end of the list.
-    do {
-      e = e!.nextNode;
-    } while (e!.empty && e!.nextNode);
-    return e;
+    // Return tail instead of null if at end of list
+    const next = event.next(eventOrTime);
+    return next === null ? eventOrTime : next;
   }
 
   previous(eventOrTime:Event|number):Readonly<Event>|null {
@@ -155,14 +147,9 @@ export class Channel {
       if (!e) return null;
       return this.previous(e);
     }
-    let e: Event | null = eventOrTime;
-    if (!eventOrTime.prevNode) return eventOrTime;
-    // Otherwise traverse the list, continuing over empty nodes.
-    // Stop when the current node is non-empty, or until the start of the list.
-    do {
-      e = e.prevNode;
-    } while (e && e.empty && e.prevNode);
-    return e;
+    // Return head instead of null if at start of list
+    const next = event.previous(eventOrTime);
+    return next === null ? eventOrTime : next;
   }
 
   latest():Readonly<Event> {
