@@ -7,6 +7,15 @@ describe('Pub/Sub Queue', () => {
     const p1 = ch.endpoint();
     expect(p1.append(255)).toMatchObject({ publisherID: 1, value: 255 });
   });
+  it('read past end returns null for 1prod/1cons', () => {
+    const ch = new Channel(5);
+    expect(ch.latest()).toMatchObject({ publisherID: 0, value: 5, displacement: 0 });
+    const p1 = ch.endpoint();
+    const c1 = ch.endpoint();
+    expect(p1.append(255)).toMatchObject({ publisherID: 1, value: 255 });
+    expect(c1.next()).toMatchObject({ value: 255 });
+    expect(c1.next()).toEqual(null);
+  });
   it('handles publish+read for 1prod/1cons', () => {
     const ch = new Channel(0);
     const p1 = ch.endpoint();
