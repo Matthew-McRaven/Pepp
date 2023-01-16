@@ -1,4 +1,4 @@
-import {TraceTypes, Trace} from "@pepnext/device-interface";
+import { TraceTypes, Trace } from '@pepnext/device-interface';
 
 export interface TraceGroup {
   tick: number
@@ -59,7 +59,12 @@ export class LLTB implements Trace.TraceBuffer {
     this.#pending = [];
   }
 
-  push(trace: TraceTypes.Trace<any>): Trace.TraceBufferStatus {
+  push(trace: TraceTypes.Trace<any>|Array<TraceTypes.Trace<any>>): Trace.TraceBufferStatus {
+    if (Array.isArray(trace)) {
+      const filtered = trace.filter((t) => this.#tracked.has(t.device));
+      filtered.forEach((t) => this.#pending.push(t));
+      return { success: true, overflow: this.#pending.length + this.#staged.length >= this.#maxLength };
+    }
     if (!this.#tracked.has(trace.device)) return { success: true, overflow: false };
     this.#pending.push(trace);
     return { success: true, overflow: this.#pending.length + this.#staged.length >= this.#maxLength };

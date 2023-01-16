@@ -1,6 +1,6 @@
 {
   "name": "@pepnext/sim-jlltb",
-  "version": "3.0.3",
+  "version": "3.0.4",
   "description": "Linked list trace buffer implemented in typescript.",
   "repository": "https://gitlab.com/pepnext/sim/jlltb",
   "license": "GPL-3.0",
@@ -31,7 +31,7 @@
     "extends": "./node_modules/@pepnext/eslint/.eslintrc.js"
   },
   "dependencies": {
-    "@pepnext/device-interface": "^3.1.0"
+    "@pepnext/device-interface": "^3.2.0"
   },
   "devDependencies": {
     "@jest/globals": "^27.3.1",
