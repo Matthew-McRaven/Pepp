@@ -1,6 +1,6 @@
 {
   "name": "@pepnext/sim-jztb",
-  "version": "3.0.6",
+  "version": "3.0.7",
   "description": "Javascript implementation of the Zero Trace Buffer.",
   "repository": "https://gitlab.com/pepnext/sim/jztb",
   "license": "GPL-3.0",
@@ -30,7 +30,7 @@
     "extends": "./node_modules/@pepnext/eslint/.eslintrc.js"
   },
   "dependencies": {
-    "@pepnext/device-interface": "^3.0.1"
+    "@pepnext/device-interface": "^3.2.0"
   },
   "devDependencies": {
     "@jest/globals": "^27.3.1",

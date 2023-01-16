@@ -20,7 +20,7 @@ export class ZTB implements TraceBuffer {
   }
 
   // eslint-disable-next-line class-methods-use-this,no-undef
-  push(trace: Trace<any>): TraceBufferStatus {
+  push(trace: Trace<any>|Array<Trace<any>>): TraceBufferStatus {
     // eslint-disable-next-line no-void
     void trace;
     return { success: true, overflow: false };
