@@ -118,7 +118,7 @@ export class JMMI implements Target.NonNativeTarget, Device.NonNativeDevice, Tra
     // have already occured.
     if (this.#traceBuffer && traces.length > 0) {
       const result = this.#traceBuffer.push(traces);
-      if (result.success === false) {
+      if (!result.success) {
         traces.forEach((trace) => this.undo(trace));
         return {
           completed: false, advance: false, pause: false, sync, error: Target.BaseAccessError.FullTraceBuffer,
@@ -179,7 +179,11 @@ export class JMMI implements Target.NonNativeTarget, Device.NonNativeDevice, Tra
 
   clear(value:number) {
     this.#defaultValue = value;
-    this.#channels.forEach((c) => c.c.clear(this.#defaultValue));
+    this.#channels.forEach((c) => {
+      c.c.clear(this.#defaultValue);
+      // eslint-disable-next-line no-param-reassign
+      c.last = this.#defaultValue;
+    });
   }
 
   do(trace: TraceTypes.Trace<any>):boolean {
@@ -188,6 +192,7 @@ export class JMMI implements Target.NonNativeTarget, Device.NonNativeDevice, Tra
     const { payload } = <MMITrace> trace;
     const channel = this.#channels[payload.index];
     channel.read.next();
+    channel.last = channel.read.currentEvent().value;
     return true;
   }
 
@@ -197,6 +202,7 @@ export class JMMI implements Target.NonNativeTarget, Device.NonNativeDevice, Tra
     const { payload } = <MMITrace> trace;
     const channel = this.#channels[payload.index];
     channel.read.unread();
+    channel.last = channel.read.currentEvent().value;
     return true;
   }
 
