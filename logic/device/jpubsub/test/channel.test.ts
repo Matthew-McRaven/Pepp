@@ -57,8 +57,9 @@ describe('Pub/Sub Queue', () => {
     expect(c1.next()).toMatchObject({ value: 0xed });
     expect(c1.unread()).toMatchObject({ value: 0xfe });
     p2.unwrite();
-    expect(c1.next()).toMatchObject({ value: 0xfe });
+    expect(c1.next()).toEqual(null);
     p1.unwrite();
     expect(c1.next()).toMatchObject({ value: 6 });
+    expect(c1.next()).toEqual(null);
   });
 });
