@@ -41,6 +41,7 @@ export class Endpoint {
     // The only way the previous node of event is null is if we are at head.
     // In that case, return null to indicate that you should stop calling this function.
     if (!oldEvent || oldEvent === this.#event) return null;
+    this.#event = oldEvent;
     return oldEvent;
   }
 
@@ -50,6 +51,7 @@ export class Endpoint {
     // The only way the previous node of event is null is if we are at head.
     // In that case, return null to indicate that you should stop calling this function.
     if (!oldEvent || oldEvent === this.#event) return null;
+    this.#event = oldEvent;
     return oldEvent;
   }
 
