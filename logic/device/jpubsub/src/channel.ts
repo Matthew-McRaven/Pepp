@@ -20,6 +20,8 @@ export class Endpoint {
     return this.#event;
   }
 
+  currentEvent(): Readonly<EventAndID> { return this.#event; }
+
   next() {
     // If we pass next the time index of the most recent event, it'll return the most recent event.
     // In this case, there is no new value to read, so return a null and don't modify current event.
