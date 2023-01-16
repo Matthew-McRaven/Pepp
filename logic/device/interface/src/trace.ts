@@ -14,7 +14,8 @@ export interface TraceBuffer {
     traceDevice: (device: number, enabled:boolean)=>void;
     tick: (currentTick: number) => void;
 
-    push:(trace: Trace<any>)=>TraceBufferStatus
+    // If an array, either all elements are pushed, or none of them are.
+    push:(trace: Trace<any>|Array<Trace<any>>)=>TraceBufferStatus
     pop:()=>void
     pending(): IterableIterator<Trace<any>>
 
