@@ -114,21 +114,17 @@ export class JMMI implements Target.NonNativeTarget, Device.NonNativeDevice, Tra
     }
 
     let sync = false;
-    // Push each trace onto trace buffer. If it overflows but succeeds, then request sync.\
-    // If it fails, back out
-    if (this.#traceBuffer) {
-      // TODO: Replace with atomic multi-enqueue / "space check"
-      for (let it = 0; it < traces.length; it += 1) {
-        const push = this.#traceBuffer.push(traces[it]);
-        if (push.overflow) sync = true;
-        if (!push.success) {
-          traces.forEach((trace) => this.undo(trace));
-          this.#traceBuffer.discard();
-          return {
-            completed: false, advance: false, pause: false, sync, error: Target.BaseAccessError.FullTraceBuffer,
-          };
-        }
+    // Atomically push all traces onto trace buffer. If this fails, we must back out the traces, because these actions
+    // have already occured.
+    if (this.#traceBuffer && traces.length > 0) {
+      const result = this.#traceBuffer.push(traces);
+      if (result.success === false) {
+        traces.forEach((trace) => this.undo(trace));
+        return {
+          completed: false, advance: false, pause: false, sync, error: Target.BaseAccessError.FullTraceBuffer,
+        };
       }
+      sync = result.overflow;
       this.#traceBuffer.stage();
     }
     return {
