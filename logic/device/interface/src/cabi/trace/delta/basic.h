@@ -1,5 +1,5 @@
 #pragma once
-#include "types.h"
+#include "../../types.h"
 
 // Not compiler-independent, but GCC/Clang/MSVC support this syntax. Needed to align final uint16_t.
 #pragma pack(push, 1)
