@@ -54,7 +54,7 @@ export class JMMO implements Target.NonNativeTarget, Device.NonNativeDevice, Tra
     return this.#maxOffset;
   }
 
-  endpoint(address:bigint): Endpoint | null {
+  #endpoint(address:bigint): Endpoint | null {
     if (address < this.minOffset() || address > this.maxOffset()) return null;
     const index = Number(address - this.minOffset());
     const channel = this.#channels[index];
@@ -62,7 +62,7 @@ export class JMMO implements Target.NonNativeTarget, Device.NonNativeDevice, Tra
   }
 
   bytes(address:bigint): Iterable<number> {
-    const endpoint = this.endpoint(address);
+    const endpoint = this.#endpoint(address);
     if (address < this.minOffset() || address > this.maxOffset() || endpoint === null) return [][Symbol.iterator]();
     endpoint.setToHead();
     return {
