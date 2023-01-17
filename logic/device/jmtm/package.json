@@ -32,6 +32,7 @@
   "dependencies": {
     "@pepnext/device-interface": "^3.1.0",
     "@pepnext/device-jdense": "^3.0.0",
+    "@pepnext/device-jpubsub": "^3.0.0",
     "@pepnext/logic-pdt": "^3.1.2",
     "lodash": "^4.17.21",
     "typedarray-to-buffer": "^4.0.0"
