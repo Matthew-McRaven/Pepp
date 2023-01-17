@@ -2,9 +2,9 @@ import toBuffer from 'typedarray-to-buffer';
 import { TargetOperation, Clock, Device } from '@pepnext/device-interface';
 import { JLLTB as LLTB } from '@pepnext/sim-jlltb';
 import { JDense } from '@pepnext/device-jdense';
+import { JConditionalBreakpointInterposer } from '@pepnext/sim-jbreakpoint';
 import { MTM1 } from '../src/mtm1';
 import { MTMRegister } from '../src/mtm_socket';
-import { JConditionalBreakpointInterposer } from '@pepnext/sim-jbreakpoint';
 
 type Operation = TargetOperation.Operation
 const { TickError } = Clock;
@@ -17,7 +17,7 @@ describe('McRaven Test Machine v1', () => {
   const pod:DevicePOD = {
     baseName: 'test',
     fullName: '/cluster0/test0',
-    compatible: 'mtm0',
+    compatible: 'mtm1',
     deviceID: 0,
   };
   const ramPOD: DevicePOD = {
@@ -151,7 +151,7 @@ describe('McRaven Test Machine v1', () => {
     tick = mtm1.tick(2);
     expect(tick.pause).toEqual(false);
     expect(tick.error).toEqual(TickError.Success);
-  }); 
+  });
   it('Increments its instruction/cycle counts', () => {
     const mtm1 = new MTM1(pod, '/dummy', 1);
     mtm1.setTarget(new JDense(ramPOD, 0n, 0xFFFFn, 0));
