@@ -1,8 +1,8 @@
 {
-  "name": "@pepnext/template-mixed",
+  "name": "@pepnext/sim-cztb",
   "version": "3.0.0",
-  "description": "Simple template for mixed JS/C++ projects.",
-  "repository": "https://gitlab.com/pepnext/template/mixed-js-cpp",
+  "description": "A discard-only trace buffer implemented in C++ with TS bindings.",
+  "repository": "https://gitlab.com/pepnext/sim/cztb",
   "license": "GPL-3.0",
   "author": "Matthew McRaven",
   "type": "module",
@@ -52,6 +52,6 @@
   },
   "packageManager": "npm@6.14.17",
   "publishConfig": {
-    "@pepnext:registry": "https://gitlab.com/api/v4/projects/<your_number_here>/packages/npm/"
+    "@pepnext:registry": "https://gitlab.com/api/v4/projects/42701193/packages/npm/"
   }
 }
