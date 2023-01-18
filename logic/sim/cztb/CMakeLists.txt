@@ -1,7 +1,7 @@
 cmake_minimum_required(VERSION 3.22)
 
 
-project(PLACEHOLDER VERSION 3.0.0)
+project(cjztb VERSION 3.0.0)
 if (NOT "${BOOST_ROOT} " MATCHES "^[ \t\r\n]*$")
     # Do nothing, var is already set.
 elseif (NOT "$ENV{BOOST_ROOT} " MATCHES "^[ \t\r\n]*$")
@@ -21,11 +21,11 @@ find_package(Boost 1.75.0 REQUIRED)
 add_subdirectory(3rd-party)
 
 enable_testing()
-make_library(PLACEHOLDER dummy)
-target_include_directories(PLACEHOLDER PUBLIC ${Boost_INCLUDE_DIRS})
+make_library(cztb dummy)
+target_include_directories(cztb PUBLIC ${Boost_INCLUDE_DIRS})
 
-make_test(PLACEHOLDER-test test PLACEHOLDER)
+make_test(cztb-test test cztb)
 
 #message(${NODE_ROOT}/include/node)
-make_napi_module(bind-PLACEHOLDER bind 0)
-target_link_libraries(bind-PLACEHOLDER PUBLIC PLACEHOLDER ${CMAKE_JS_LIB})
+make_napi_module(bind-cztb bind 0)
+target_link_libraries(bind-cztb PUBLIC cztb ${CMAKE_JS_LIB})
