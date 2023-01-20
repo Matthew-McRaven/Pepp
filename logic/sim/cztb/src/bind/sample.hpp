@@ -2,7 +2,7 @@
 
 #include <napi.h>
 #include <node_api.h>
-#include "../dummy/sample.hpp"
+#include "sim/trace/ztb.hpp"
 namespace bind {
 
 class TestWrapper : public Napi::ObjectWrap<TestWrapper> {
@@ -13,6 +13,6 @@ public:
 
   Napi::Value foo(const Napi::CallbackInfo &info);
 private:
-  Test _test = {};
+  sim::trace::ZTB _test;
 };
 }
