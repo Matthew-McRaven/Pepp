@@ -12,6 +12,7 @@ else ()
 endif ()
 
 include(./.cmake/create_targets.cmake)
+include(./.cmake/include_device_interface.cmake)
 
 # Needed at top level so that we report the right standard to the console.
 inject_cxx_standard()
@@ -21,8 +22,9 @@ find_package(Boost 1.75.0 REQUIRED)
 add_subdirectory(3rd-party)
 
 enable_testing()
-make_library(cztb dummy)
+make_library(cztb sim)
 target_include_directories(cztb PUBLIC ${Boost_INCLUDE_DIRS})
+target_link_libraries(cztb PUBLIC device-interface)
 
 make_test(cztb-test test cztb)
 
