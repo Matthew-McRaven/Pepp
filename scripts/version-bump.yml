@@ -1,0 +1,42 @@
+#################
+# Version Bumps #
+#################
+versions:bump:
+  <<: *emscripten
+  # Ignore cache, as cache seems to break chromatic  
+  stage: deploy
+  needs: ['build:core:wasm', 'test:ui']
+  tags:
+    - docker
+  script:
+    - source scripts/loop-install.sh
+    - |
+      {
+        echo "@${CI_PROJECT_ROOT_NAMESPACE}:registry=${CI_API_V4_URL}/projects/${CI_PROJECT_ID}/packages/npm/"
+        echo "${CI_API_V4_URL#https?}/projects/${CI_PROJECT_ID}/packages/npm/:_authToken=${CI_JOB_TOKEN}"
+      } | tee --append .npmrc
+    - git fetch && git symbolic-ref -q HEAD > /dev/null || (git branch -d ${CI_COMMIT_REF_NAME} || true && git checkout -b ${CI_COMMIT_REF_NAME} && git branch --set-upstream-to=origin/${CI_COMMIT_REF_NAME} ${CI_COMMIT_REF_NAME})
+    - git config --global user.email "${GITLAB_USER_EMAIL}"
+    - git config --global user.name "${GITLAB_USER_NAME}"
+    # Needed to push from CI pipeline
+    # See https://stackoverflow.com/questions/65234416/gitlab-ci-cd-cannot-git-push-from-gitlab-ci-yml
+    - git remote set-url origin "https://gitlab-ci-token:$PROJECT_ACCESS_TOKEN@$CI_SERVER_HOST/$CI_PROJECT_PATH.git"
+    # Magic to make these files look like they haven't been changed, allowing me to `lerna publish`
+    - git update-index --assume-unchanged .npmrc packages/native/core/dist/* yarn.lock
+    - export NPM_CONFIG_REGISTRY=${CI_API_V4_URL}/projects/${CI_PROJECT_ID}/packages/npm
+    - echo ${NPM_CONFIG_REGISTRY}
+    - echo $(git diff)
+    - "npx lerna version --no-push -m 'build: release %v [skip ci]' --conventional-commits --changelog-preset angular --yes --force-publish"
+    # This is ugly, and could break things, but I **must** update the lock file or future CI will fail
+    - yarn
+    - git add yarn.lock
+    - git commit --amend --no-edit
+    - git tag --delete v$(jq -r .version < lerna.json )
+    - git tag v$(jq -r .version < lerna.json )
+    - git push && git push v$(jq -r .version < lerna.json )
+    - "npx lerna publish from-package --force-publish"
+  rules:
+    - if: $CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH
+      changes:
+        - packages/**/*
+        - bin/**/*
