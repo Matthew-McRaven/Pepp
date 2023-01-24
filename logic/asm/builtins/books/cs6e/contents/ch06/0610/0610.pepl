@@ -1,0 +1,40 @@
+-------------------------------------------------------------------------------
+      Object
+Addr  code   Symbol   Mnemon  Operand     Comment
+-------------------------------------------------------------------------------
+             ;File: fig0610.pep
+             ;Computer Systems, Fifth edition
+             ;Figure 6.10
+             ;
+0000  1C0004          BR      main        
+0003  00     letter:  .BLOCK  1           ;global variable #1c
+             ;
+0004  51FAF2 main:    LDBA    charIn,d    ;scanf("%c", &letter)
+0007  710003          STBA    letter,d    
+000A  510003 while:   LDBA    letter,d    ;while (letter != '*')
+000D  90002A          CPBA    '*',i       
+0010  22002E          BREQ    endWh       
+0013  900020 if:      CPBA    ' ',i       ;if (letter == ' ')
+0016  240022          BRNE    else        
+0019  50000A          LDBA    '\n',i      ;printf("\n")
+001C  71FAF4          STBA    charOut,d   
+001F  1C0025          BR      endIf       
+0022  71FAF4 else:    STBA    charOut,d   ;printf("%c", letter)
+0025  51FAF2 endIf:   LDBA    charIn,d    ;scanf("%c", &letter)
+0028  710003          STBA    letter,d    
+002B  1C000A          BR      while       
+002E  09     endWh:   STOP                
+002F                  .END                  
+-------------------------------------------------------------------------------
+
+
+Symbol table
+--------------------------------------
+Symbol    Value        Symbol    Value
+--------------------------------------
+charIn    FAF2         charOut   FAF4         
+else      0022         endIf     0025         
+endWh     002E         if        0013         
+letter    0003         main      0004         
+while     000A         
+--------------------------------------

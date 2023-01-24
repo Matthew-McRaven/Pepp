@@ -1,0 +1,10 @@
+{
+  "type": "macro",
+  "arch": "pep10",
+  "items": {
+    "ASLX2": "{name}.pepm",
+    "ASLX3": "{name}.pepm",
+    "ASLX4": "{name}.pepm",
+    "ASLX5": "{name}.pepm"
+  }
+}

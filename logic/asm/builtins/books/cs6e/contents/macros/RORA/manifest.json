@@ -1,0 +1,10 @@
+{
+  "type": "macro",
+  "arch": "pep10",
+  "items": {
+    "RORA2": "{name}.pepm",
+    "RORA3": "{name}.pepm",
+    "RORA4": "{name}.pepm",
+    "RORA5": "{name}.pepm"
+  }
+}

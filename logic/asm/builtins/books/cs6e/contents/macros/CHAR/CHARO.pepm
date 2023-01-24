@@ -1,0 +1,3 @@
+@CHARO 2
+LDBA $1, $2
+STBA charOut, d
