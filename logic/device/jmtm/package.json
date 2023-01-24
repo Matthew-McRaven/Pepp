@@ -1,0 +1,60 @@
+{
+  "name": "@pepnext/device-jmtm",
+  "version": "3.0.0",
+  "description": "McRaven Test Machine implementation in TS.",
+  "repository": "https://gitlab.com/pepnext/device/jmtm",
+  "license": "GPL-3.0",
+  "author": "Matthew McRaven",
+  "type": "module",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "files": [
+    "src/",
+    "dist/",
+    ".tsconfig",
+    "tsconfig.json"
+  ],
+  "scripts": {
+    "build": "npx tsc -p tsconfig.json",
+    "clean": "npx rimraf -rf ./dist",
+    "docs": "npx typedoc --out docs src/index.ts",
+    "globcov": "python3 .scripts/scripts/merge-cobertura.py -o coverage.xml  coverage/cobertura-coverage.xml",
+    "prepublishOnly": "npm run build",
+    "test": "npm run test:js",
+    "test:ci": "npm run test:ci:js",
+    "test:ci:js": "npm run test:js -- --ci --reporters=default --reporters=jest-junit --coverageReporters=cobertura --coverage && npm run globcov",
+    "test:js": "npx cross-env NODE_OPTIONS=--experimental-vm-modules npx jest",
+    "typecheck": "npx tsc -p tsconfig.json --noEmit"
+  },
+  "eslintConfig": {
+    "extends": "./node_modules/@pepnext/eslint/.eslintrc.js"
+  },
+  "dependencies": {
+    "@pepnext/device-interface": "^3.1.0",
+    "@pepnext/device-jdense": "^3.0.0",
+    "@pepnext/device-jpubsub": "^3.0.0",
+    "@pepnext/logic-pdt": "^3.1.2",
+    "lodash": "^4.17.21",
+    "typedarray-to-buffer": "^4.0.0"
+  },
+  "devDependencies": {
+    "@jest/globals": "^27.3.1",
+    "@pepnext/eslint": "^3.0.3",
+    "@pepnext/sim-jbreakpoint": "^3.0.0",
+    "@pepnext/sim-jlltb": "^3.0.2",
+    "@types/jest": "^27.4.0",
+    "@types/lodash": "^4.14.191",
+    "@types/typedarray-to-buffer": "^4.0.0",
+    "cross-env": "^7.0.3",
+    "jest": "^27.3.1",
+    "jest-junit": "^13.0.0",
+    "rimraf": "^3.0.2",
+    "ts-jest": "^27.0.7",
+    "typedoc": "^0.23.15",
+    "typescript": "^4.8.3"
+  },
+  "packageManager": "npm@6.14.17",
+  "publishConfig": {
+    "@pepnext:registry": "https://gitlab.com/api/v4/projects/42426951/packages/npm/"
+  }
+}
