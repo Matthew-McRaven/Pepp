@@ -1,0 +1,28 @@
+# Variables that must be injected into every pipeline
+variables:
+  BUILD_VERSION: v0.6.0
+  GIT_LFS_SKIP_SMUDGE: '1'
+  # Append dist, because I have generated files there
+  SAST_EXCLUDED_PATHS: spec, test, tests, tmp, dist
+
+
+generate:
+  variables:
+    GIT_SUBMODULE_STRATEGY: recursive
+  stage: build
+  tags:
+    - light
+  script: cp .gitlab/logic-mixed.yml generated.yml
+  artifacts:
+    paths:
+      - generated.yml
+# Pin to a known-good version so that CI can't spontaneously break.
+execute:
+  variables:
+    SKIP_CMAKE_BUILD: 'true'
+  stage: test
+  trigger:
+    strategy: depend
+    include:
+      - artifact: generated.yml
+        job: generate
