@@ -1,0 +1,24 @@
+[submodule ".gitlab"]
+	path = .gitlab
+	url = https://gitlab.com/pepnext/config/ci.git
+[submodule ".tsconfig"]
+	path = .tsconfig
+	url = https://gitlab.com/pepnext/config/tsconfig.git
+[submodule ".scripts"]
+	path = .scripts
+	url = https://gitlab.com/pepnext/scripts.git
+[submodule "3rd-party/elfio"]
+	path = 3rd-party/elfio
+	url = https://gitlab.com/pepnext/3rd-party/elfio.git
+[submodule "3rd-party/fmt"]
+	path = 3rd-party/fmt
+	url = https://gitlab.com/pepnext/3rd-party/fmt.git
+[submodule "3rd-party/catch"]
+	path = 3rd-party/catch
+	url = https://gitlab.com/pepnext/3rd-party/catch.git
+[submodule ".cmake"]
+	path = .cmake
+	url = https://gitlab.com/pepnext/config/cmake-scripts.git
+[submodule "3rd-party/.magic_enum"]
+	path = 3rd-party/magic_enum
+	url = https://gitlab.com/pepnext/3rd-party/magic_enum.git
