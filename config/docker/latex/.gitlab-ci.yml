@@ -1,0 +1,34 @@
+image: docker:19
+
+variables:
+  REMOTE_IMAGE: registry.gitlab.com/pep10/writing/latex
+  CI_VERSION: ci.${CI_COMMIT_SHORT_SHA}
+  
+before_script:
+- docker login -u ${CI_USER} -p ${CI_TOKEN} registry.gitlab.com
+
+Build LaTex:
+  stage: build
+  script:
+  - docker build . -t ${REMOTE_IMAGE}:${CI_VERSION}
+  - docker push ${REMOTE_IMAGE}:${CI_VERSION}
+
+Deploy images:
+  stage: deploy
+  # Don't clone any code at all.
+  # See: https://gitlab.com/gitlab-org/gitlab-foss/-/issues/21337
+  variables:
+    GIT_STRATEGY: none
+  # The script does as follows:
+  # For each image, pull the remote image associated with the current commit's CI build.
+  # Retag the CI build with the commit tag.
+  # Push the image back to the NAS with the new tag.
+  script:
+  - docker pull ${REMOTE_IMAGE}:${CI_VERSION}
+  - docker tag  ${REMOTE_IMAGE}:${CI_VERSION} ${REMOTE_IMAGE}:${CI_COMMIT_TAG}
+  - docker push ${REMOTE_IMAGE}:${CI_COMMIT_TAG}
+  - docker rmi  ${REMOTE_IMAGE}:${CI_VERSION} ${REMOTE_IMAGE}:${CI_COMMIT_TAG}
+  after_script:
+  - echo "Deployment finished."
+  only:
+  - tags
