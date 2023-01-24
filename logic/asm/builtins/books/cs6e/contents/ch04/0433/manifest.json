@@ -1,0 +1,14 @@
+{
+  "type": "figure",
+  "name": "04:33",
+  "kind": "sample",
+  "arch": "pep10",
+  "default_os": "os:bm",
+  "ios": [
+    "io0"
+  ],
+  "items": {
+    "pepb": "05:03",
+    "peph": "05:03"
+  }
+}

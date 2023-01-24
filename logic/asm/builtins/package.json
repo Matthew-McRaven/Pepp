@@ -1,0 +1,58 @@
+{
+  "name": "@pepnext/logic-builtins",
+  "version": "3.1.5",
+  "description": "Manage figures and macros for various textbook editions.",
+  "license": "GPL-3.0",
+  "author": "Matthew McRaven",
+  "type": "module",
+  "exports": {
+    ".": {
+      "import": "./dist/index.js",
+      "require": "./dist/index.js"
+    }
+  },
+  "types": "./dist/index.d.ts",
+  "files": [
+    "dist/",
+    "src/",
+    "make_db/",
+    "books/"
+  ],
+  "scripts": {
+    "build": "npm run clean && npx tsc -p tsconfig.json && python3 -m make_db dist",
+    "clean": "npx rimraf -rf ./dist",
+    "docs": "npx typedoc --out docs src/index.ts",
+    "globcov": "python3 .scripts/scripts/merge-cobertura.py -o coverage.xml  coverage/cobertura-coverage.xml",
+    "prepublishOnly": "npm run build",
+    "test": "npx cross-env NODE_OPTIONS=--experimental-vm-modules npx jest",
+    "test:ci": "npm run test -- --ci --reporters=default --reporters=jest-junit --coverageReporters=cobertura --coverage && npm run globcov",
+    "typecheck": "npx tsc -p tsconfig.json --noEmit"
+  },
+  "eslintConfig": {
+    "extends": "./node_modules/@pepnext/eslint/.eslintrc.js"
+  },
+  "dependencies": {
+    "sqlite": "^4.1.2",
+    "sqlite3": "^5.1.1"
+  },
+  "devDependencies": {
+    "@jest/globals": "^27.3.1",
+    "@pepnext/eslint": "^3.0.3",
+    "@pepnext/tsconfig": "^3.0.0",
+    "@rollup/plugin-typescript": "^8.5.0",
+    "@types/jest": "^27.4.0",
+    "@types/sqlite3": "^3.1.8",
+    "cross-env": "^7.0.3",
+    "jest": "^27.3.1",
+    "jest-junit": "^13.0.0",
+    "rimraf": "^3.0.2",
+    "ts-jest": "^27.0.7",
+    "typedoc": "^0.23.15",
+    "typescript": "^4.8.3",
+    "vite": "^3.1.4"
+  },
+  "packageManager": "npm@6.14.17",
+  "publishConfig": {
+    "@pepnext:registry": "https://gitlab.com/api/v4/projects/39773350/packages/npm/"
+  }
+}
