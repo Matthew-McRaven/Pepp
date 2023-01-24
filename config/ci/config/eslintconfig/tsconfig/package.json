@@ -1,0 +1,11 @@
+{
+  "name": "@pepnext/tsconfig",
+  "author": "Matthew McRaven",
+  "repository": "https://gitlab.com/config/tsconfig",
+  "packageManager": "npm@6.14.17",
+  "version": "3.0.2",
+  "license": "GPL-3.0",
+  "publishConfig": {
+    "@pepnext:registry": "https://gitlab.com/api/v4/projects/39773341/packages/npm/"
+  }
+}
