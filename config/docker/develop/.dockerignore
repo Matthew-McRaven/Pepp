@@ -1,0 +1,7 @@
+cpython
+cpython/
+cpython/**/*
+boost
+boost/
+boost/**/*
+.*bz2
