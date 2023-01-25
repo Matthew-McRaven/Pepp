@@ -33,20 +33,24 @@ const Template = (args: TemplateArgs) => {
 
 // Decimal converters
 export const UnsignedDecimal1Byte = Template.bind({});
-UnsignedDecimal1Byte.args = { base: 10, byteLength: 1 };
+UnsignedDecimal1Byte.args = { base: 10, byteLength: 1, isReadOnly: false };
 export const UnsignedDecimal2Byte = Template.bind({});
-UnsignedDecimal2Byte.args = { base: 10, byteLength: 2 };
+UnsignedDecimal2Byte.args = { base: 10, byteLength: 2, isReadOnly: false };
 
 export const SignedDecimal1Byte = Template.bind({});
-SignedDecimal1Byte.args = { base: 10, byteLength: 1, isSigned: true };
+SignedDecimal1Byte.args = {
+  base: 10, byteLength: 1, isSigned: true, isReadOnly: false,
+};
 export const SignedDecimal2Byte = Template.bind({});
-SignedDecimal2Byte.args = { base: 10, byteLength: 2, isSigned: true };
+SignedDecimal2Byte.args = {
+  base: 10, byteLength: 2, isSigned: true, isReadOnly: false,
+};
 
 export const Binary = Template.bind({});
-Binary.args = { base: 2, byteLength: 1 };
+Binary.args = { base: 2, byteLength: 1, isReadOnly: false };
 
 // Binary converters
 export const Hex1Byte = Template.bind({});
-Hex1Byte.args = { base: 16, byteLength: 1 };
+Hex1Byte.args = { base: 16, byteLength: 1, isReadOnly: false };
 export const Hex2Byte = Template.bind({});
-Hex2Byte.args = { base: 16, byteLength: 2 };
+Hex2Byte.args = { base: 16, byteLength: 2, isReadOnly: false };

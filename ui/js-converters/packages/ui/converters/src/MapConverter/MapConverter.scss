@@ -1,4 +1,14 @@
 .MapConverter {
   // FIXME: Fonts don't render control characters.
   font-family: 'Courier New', Courier, monospace;
+  input {
+    border-color: transparent;
+    caret-color: transparent;
+  }
+  input:hover {
+    cursor: default;
+  }
+  input:focus{
+    cursor: default; 
+  }
 }
