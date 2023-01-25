@@ -1,0 +1,20 @@
+{
+  "extends": "./node_modules/@pepnext/tsconfig/base.tsconfig",
+  "compilerOptions": {
+    "rootDir": "src",
+    "outDir": "dist",
+    "baseUrl": "."
+  },
+  "types": [
+    "jest",
+    "node"
+  ],
+  "include": [
+    "src"
+  ],
+  "exclude": [
+    "**/*.test.tsx",
+    "**/*.stories.tsx",
+    "**/*.test.ts"
+  ]
+}
