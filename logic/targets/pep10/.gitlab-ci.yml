@@ -1,0 +1,16 @@
+stages:
+  - build
+  - test
+  - tag
+  - deploy
+
+# Variables that must be injected into every pipeline
+variables:
+  BUILD_VERSION: v0.6.0
+  GIT_LFS_SKIP_SMUDGE: '1'
+  # Append dist, because I have generated files there
+  SAST_EXCLUDED_PATHS: spec, test, tests, tmp, dist
+
+# Pin to a known-good version so that CI can't spontaneously break.
+include:
+  remote: https://gitlab.com/pepnext/config/ci/-/raw/1893dd4838e3255f7ad356cbe90770278c91b5be/logic-mixed.yml
