@@ -1,0 +1,48 @@
+{
+    "name": "@pepnext/asty",
+    "version": "1.11.1",
+    "description": "Abstract Syntax Tree (AST) Data Structure",
+    "keywords": [
+        "ast",
+        "abstract",
+        "syntax",
+        "tree",
+        "data",
+        "structure"
+    ],
+    "types": "src/index.d.ts",
+    "type": "module",
+    "exports": {
+        ".": {
+            "import": "./dist/index.es.js",
+            "require": "./dist/index.umd.js"
+        }
+    },
+    "files": [
+        "dist",
+        "src"
+    ],
+    "license": "MIT",
+    "repository": "https://gitlab.com/3rd-party/asty",
+    "author": "Matthew McRaven",
+    "devDependencies": {
+        "@pepnext/eslint": "^3.0.7",
+        "cross-env": "^7.0.3",
+        "jest": "^27.3.1",
+        "jest-junit": "^14.0.1",
+        "vite": "^3.1.8"
+    },
+    "engines": {
+        "node": ">=12.0.0"
+    },
+    "scripts": {
+        "prepublishOnly": "npx vite build",
+        "build": "npx vite build",
+        "test": "npx cross-env NODE_OPTIONS=--experimental-vm-modules npx jest",
+        "test:ci": "npm run test -- --ci --reporters=default --reporters=jest-junit --coverageReporters=cobertura --coverage",
+        "globcov": "python3 .scripts/scripts/merge-cobertura.py -o coverage.xml  coverage/cobertura-coverage.xml"
+    },
+    "publishConfig": {
+        "@pepnext:registry": "https://gitlab.com/api/v4/projects/40246872/packages/npm/"
+    }
+}
