@@ -1,0 +1,5 @@
+add_subdirectory(emu)
+add_subdirectory(asmb)
+add_subdirectory(builtins)
+add_subdirectory(elf)
+add_subdirectory(isa)
