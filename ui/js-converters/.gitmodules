@@ -1,0 +1,12 @@
+[submodule ".storybook"]
+	path = .storybook
+	url = https://gitlab.com/pepnext/config/storybook.git
+[submodule ".templates"]
+	path = .templates
+	url = https://gitlab.com/pepnext/config/component-template
+[submodule ".scripts"]
+	path = .scripts
+	url = https://gitlab.com/pepnext/scripts.git
+[submodule ".gitlab"]
+	path = .gitlab
+	url = https://gitlab.com/pepnext/config/ci.git

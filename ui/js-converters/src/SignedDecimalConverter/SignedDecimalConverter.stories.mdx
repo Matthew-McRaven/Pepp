@@ -1,0 +1,133 @@
+import { Meta } from '@storybook/addon-docs';
+
+<Meta title="Converters/SignedDecimalConverter/Docs" />
+
+<style>{`
+  .subheading {
+    --mediumdark: '#999999';
+    font-weight: 900;
+    font-size: 13px;
+    color: #999;
+    letter-spacing: 6px;
+    line-height: 24px;
+    text-transform: uppercase;
+    margin-bottom: 12px;
+    margin-top: 40px;
+  }
+
+  .link-list {
+    display: grid;
+    grid-template-columns: 1fr;
+    grid-template-rows: 1fr 1fr;
+    row-gap: 10px;
+  }
+
+  @media (min-width: 620px) {
+    .link-list {
+      row-gap: 20px;
+      column-gap: 20px;
+      grid-template-columns: 1fr 1fr;
+    }
+  }
+
+  @media all and (-ms-high-contrast:none) {
+  .link-list {
+      display: -ms-grid;
+      -ms-grid-columns: 1fr 1fr;
+      -ms-grid-rows: 1fr 1fr;
+    }
+  }
+
+  .link-item {
+    display: block;
+    padding: 20px 30px 20px 15px;
+    border: 1px solid #00000010;
+    border-radius: 5px;
+    transition: background 150ms ease-out, border 150ms ease-out, transform 150ms ease-out;
+    color: #333333;
+    display: flex;
+    align-items: flex-start;
+  }
+
+  .link-item:hover {
+    border-color: #1EA7FD50;
+    transform: translate3d(0, -3px, 0);
+    box-shadow: rgba(0, 0, 0, 0.08) 0 3px 10px 0;
+  }
+
+  .link-item:active {
+    border-color: #1EA7FD;
+    transform: translate3d(0, 0, 0);
+  }
+
+  .link-item strong {
+    font-weight: 700;
+    display: block;
+    margin-bottom: 2px;
+  }
+  
+  .link-item img {
+    height: 40px;
+    width: 40px;
+    margin-right: 15px;
+    flex: none;
+  }
+
+  .link-item span {
+    font-size: 14px;
+    line-height: 20px;
+  }
+
+  .tip {
+    display: inline-block;
+    border-radius: 1em;
+    font-size: 11px;
+    line-height: 12px;
+    font-weight: 700;
+    background: #E7FDD8;
+    color: #66BF3C;
+    padding: 4px 12px;
+    margin-right: 10px;
+    vertical-align: top;
+  }
+
+  .tip-wrapper {
+    font-size: 13px;
+    line-height: 20px;
+    margin-top: 40px;
+    margin-bottom: 40px;
+  }
+
+  .tip-wrapper code {
+    font-size: 12px;
+    display: inline-block;
+  }
+
+  
+`}</style>
+
+
+## Terms
+* Converters may be refered to in any of the following formats:
+  * Decimal == base 10
+* \*\* is the exponentiation operator
+
+## Assumptions
+* *N* is the length of the converter in bytes
+
+
+## Signed Decimal Behavior
+All converters must follow the following spec:
+* Signed decimal converter shall have the same width as an integral converter of the same byte length
+* External state only updates when focus is lost, or "enter" is pressed
+* Leading zeros are not allowed (e.g., reject 01, -01)
+* Read-only converters must follow [REQ-1](https://gitlab.com/pep10/pepsuite/-/requirements_management/requirements)
+* Must only accept numbers in `[-2**(8N-1),2**(8N-1)-1]`
+* Must reject numbers outside acceptable range
+* Must reject strings that don't match regex `(-)?[0-9]+`
+* The string `-0` must retain its leading minus signed
+* At any time, typing a '-' shall toggle the sign.
+  * Due to 2's complement magic,-2**(8N-1) shall map to itself, all other values should toggle signs.
+* Values will be stored as [two's complement notation](https://www.cs.cornell.edu/~tomf/notes/cps104/twoscomp.html).
+  * For example, -35 in a 1 byte converter would be stored as (2**8N-35+1=221).
+  * This notation is used because it keeps bit-pattern consistency with the unsigned converters. Without specifying how negative numbers are stored, it would be impossible to share values between converter types.

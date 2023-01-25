@@ -1,0 +1,13 @@
+.SignedDecimalConverter{
+  font-family: 'Courier New', Courier, monospace;
+  .Input-ro {
+    border-color: transparent;
+    caret-color: transparent;
+  }
+  .Input-ro:hover {
+    cursor: default;
+  }
+  .Input-ro:focus{
+    cursor: default; 
+  }
+}
