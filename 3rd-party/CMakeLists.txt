@@ -1,0 +1,5 @@
+ADD_SUBDIRECTORY(catch)
+ADD_SUBDIRECTORY(elfio)
+ADD_SUBDIRECTORY(fmt)
+ADD_SUBDIRECTORY(magic_enum)
+add_subdirectory(outcome)
