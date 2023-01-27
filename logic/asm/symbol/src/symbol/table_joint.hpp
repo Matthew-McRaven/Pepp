@@ -1,52 +1,10 @@
 #pragma once
 
-// File: table.hpp
-/*
-    The Pep/10 suite of applications (Pep10, Pep10CPU, Pep10Term) are
-    simulators for the Pep/10 virtual machine, and allow users to
-    create, simulate, and debug across various levels of abstraction.
-
-    Copyright (C) 2021 J. Stanley Warford & Matthew McRaven, Pepperdine
-   University
-
-    This program is free software: you can redistribute it and/or modify
-    it under the terms of the GNU General Public License as published by
-    the Free Software Foundation, either version 3 of the License, or
-    (at your option) any later version.
-
-    This program is distributed in the hope that it will be useful,
-    but WITHOUT ANY WARRANTY; without even the implied warranty of
-    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-    GNU General Public License for more details.
-
-    You should have received a copy of the GNU General Public License
-    along with this program.  If not, see <http://www.gnu.org/licenses/>.
-*/
-
 #include <QEnableSharedFromThis>
-#include <QSharedPointer>
-#include <QString>
-#include <iostream>
-#include <optional>
 
 #include "entry.hpp"
-// #include "visit.hpp"
-
 namespace symbol {
 
-namespace detail {
-template <typename T> class asConstKeyValueRange {
-public:
-  asConstKeyValueRange(T &data) : m_data{data} {}
-
-  auto begin() { return m_data.constKeyValueBegin(); }
-
-  auto end() { return m_data.constKeyValueEnd(); }
-
-private:
-  T &m_data;
-};
-} // namespace detail
 /*
  * Some implementation ideas drawn from:
  * Design and Implementation of the Symbol Table for Object-Oriented Programming
@@ -68,10 +26,6 @@ private:
  */
 class Table : public QEnableSharedFromThis<Table> {
 public:
-  using entry_ptr_t = QSharedPointer<symbol::Entry>;
-  using map_t = QMap<QString, entry_ptr_t>;
-  using range = decltype(std::declval<map_t &>().asKeyValueRange());
-  using const_range = detail::asConstKeyValueRange<const map_t>;
   //! Default constructor only used for Global BranchTable
   Table() = default;
   [[maybe_unused]] explicit Table(QSharedPointer<Table> parent);
@@ -84,15 +38,28 @@ public:
   Table &operator=(Table &&) noexcept = default;
 
   /*!
-   * \brief Create and register a new symbol table as a child of this table
+   * \brief Register an existing symbol table as a child of this table.
+   * Instead of calling this directly, it is usually best to use insert_table.
+   * This method make sure that the added table has the proper parent, and the
+   * parent has an owning reference to the child. \arg child A symbol table that
+   * is whose parent is this. \sa symbol::insert_table.
    */
-  QSharedPointer<Table> addChild();
+  void add_child(QSharedPointer<Table> child);
   /*!
    * \brief Fetch the list of all children under this table.
    * \returns A mutable list of all children under this table.
    * Please don't abuse the fact that children are non-const.
    */
-  QList<QSharedPointer<Table>> children();
+  QList<Table> children() { return children_; }
+
+  //! A pointer to the parent of this table. If the pointer is null, this table
+  //! is the root of the tree.
+  const QWeakPointer<Table> parent_ = QWeakPointer<Table>(nullptr);
+
+  using entry_ptr_t = QSharedPointer<symbol::Entry>;
+  using map_t = QMap<QString, entry_ptr_t>;
+  using range = map_t::iterator;
+  using const_range = map_t::const_iterator;
 
   /*!
    * \brief Unlike reference, get() will not create an entry in the table if the
@@ -131,12 +98,8 @@ public:
   //! transformations by visitors.
   auto entries() -> range;
 
-  //! A pointer to the parent of this table. If the pointer is null, this table
-  //! is the root of the tree.
-  const QWeakPointer<Table> parent;
-
 private:
-  QList<QSharedPointer<Table>> _children;
-  map_t _name_to_entry;
+  QList<Table> children_;
+  map_t name_to_entry_;
 };
-} // end namespace symbol
+} // namespace symbol

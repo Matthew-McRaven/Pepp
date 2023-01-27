@@ -11,24 +11,16 @@ else ()
     message("Not attempting to set BOOST_ROOT")
 endif ()
 
-include(./.cmake/create_targets.cmake)
+include(../../../config/cmake/create_targets.cmake)
 
 # Needed at top level so that we report the right standard to the console.
 inject_cxx_standard()
 
 # HACK, until we provide a better mechanism for building boost.
-find_package(Boost 1.75.0 REQUIRED)
-add_subdirectory(3rd-party)
-
+# find_package(Boost 1.75.0 REQUIRED)
 enable_testing()
-make_interface(symbol symbol)
-target_include_directories(symbol INTERFACE ${Boost_INCLUDE_DIRS})
-target_link_libraries(symbol INTERFACE fmt)
+make_library(symbol symbol)
+target_include_directories(symbol PRIVATE fmt)
+target_link_libraries(symbol PRIVATE "fmt;Qt6::Core")
 
-make_test(symbol-test test symbol)
-
-#message(${NODE_ROOT}/include/node)
-make_napi_module(bind-symbol16 bind 16)
-target_link_libraries(bind-symbol16 PUBLIC symbol fmt magic_enum ${CMAKE_JS_LIB})
-make_napi_module(bind-symbol32 bind 32)
-target_link_libraries(bind-symbol32 PUBLIC symbol fmt magic_enum ${CMAKE_JS_LIB})
+make_test(symbol-test test "symbol;Qt6::Core")

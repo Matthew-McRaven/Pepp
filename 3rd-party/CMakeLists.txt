@@ -1,5 +1,6 @@
 ADD_SUBDIRECTORY(catch)
 ADD_SUBDIRECTORY(elfio)
 ADD_SUBDIRECTORY(fmt)
+set_property(TARGET fmt PROPERTY POSITION_INDEPENDENT_CODE ON)
 ADD_SUBDIRECTORY(magic_enum)
 add_subdirectory(outcome)
