@@ -1,15 +1,41 @@
+// File: visit.cpp
+/*
+    The Pep/10 suite of applications (Pep10, Pep10CPU, Pep10Term) are
+    simulators for the Pep/10 virtual machine, and allow users to
+    create, simulate, and debug across various levels of abstraction.
+
+    Copyright (C) 2021 J. Stanley Warford & Matthew McRaven, Pepperdine
+   University
+
+    This program is free software: you can redistribute it and/or modify
+    it under the terms of the GNU General Public License as published by
+    the Free Software Foundation, either version 3 of the License, or
+    (at your option) any later version.
+
+    This program is distributed in the hope that it will be useful,
+    but WITHOUT ANY WARRANTY; without even the implied warranty of
+    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+    GNU General Public License for more details.
+
+    You should have received a copy of the GNU General Public License
+    along with this program.  If not, see <http://www.gnu.org/licenses/>.
+*/
 #include "visit.hpp"
 
 #include <fmt/core.h>
 
 #include "table.hpp"
+// Bitflags for determining which symbols to access during operations
 enum SelectMode {
   kSelf = 1,
   kChildren = 2,
 };
+
+// "bit shift" the children bit into self.
 SelectMode toChild(SelectMode mode) {
   return static_cast<SelectMode>((mode & kChildren ? kSelf : 0) | kChildren);
 }
+
 SelectMode policyToMode(symbol::TraversalPolicy policy) {
   switch (policy) {
   case symbol::TraversalPolicy::kChildren:
@@ -25,6 +51,8 @@ SelectMode policyToMode(symbol::TraversalPolicy policy) {
     qFatal("Unhandled traversal policy");
   }
 }
+
+// Get the proper root for a given traversal policy
 QSharedPointer<symbol::Table>
 policyToTargetTable(symbol::TraversalPolicy policy,
                     QSharedPointer<symbol::Table> table) {
@@ -102,7 +130,7 @@ void adjustOffsetImpl(QSharedPointer<symbol::Table> table, quint64 offset,
     for (auto entry : table->entries()) {
       auto value = entry.second->value;
       if (!value->relocatable() || value->value()() < threshold) {
-        // pass
+        // pass, assignment logic would have been more convoluted without this
       } else if (auto location =
                      qSharedPointerCast<symbol::value::Location>(value);
                  !value.isNull())

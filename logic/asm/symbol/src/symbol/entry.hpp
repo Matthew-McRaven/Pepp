@@ -59,7 +59,7 @@ struct format {
  * being set to handle relocation. Simply put, the symbol doesn't know enough to
  * update these fields.
  *
- * Values have 64 bits, with an optional bitmask in the value.
+ * Values have 64 bits, with a mandatory bitmask and length in the value.
  */
 class Entry {
 
@@ -76,10 +76,10 @@ public:
   //! Keep track of how many times this symbol's name has been defined.
   DefinitionState state;
   /*! The binding type of this symbol (i.e., global vs local).
-   * \sa symbol::binding*/
+   * \sa symbol::Binding*/
   Binding binding;
   /*! The value taken on by this symbol.
-   * \sa symbol::abstract_value */
+   * \sa symbol::value ::Abstract*/
   QSharedPointer<symbol::value::Abstract> value;
 
   /*! The section in respect to which this symbol is defined.
