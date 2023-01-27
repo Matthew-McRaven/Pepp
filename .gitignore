@@ -9,3 +9,4 @@ junit.xml
 coverage.xml
 **/__pycache__
 cmake-build-*
+CMakeLists.txt.user
