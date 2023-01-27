@@ -39,21 +39,22 @@ macro(make_target target_name TYPE)
 
     # PUBLIC is not a valid visibility for libraries, so must exclude that TYPE.
     if (${TYPE} STREQUAL PUBLIC)
-        add_library(${target_name} ${sources})
+        qt6_add_library(${target_name} ${sources})
     else ()
-        add_library(${target_name} ${TYPE} ${sources})
+        qt6_add_library(${target_name} ${TYPE} ${sources})
     endif ()
 
     # Mark src/ as the root from where includes should take place.
     target_include_directories(${target_name} ${TYPE} ${CMAKE_CURRENT_LIST_DIR}/src)
     # And always link against boost...
-    target_link_libraries(${target_name} ${TYPE} ${Boost_LIBRARIES})
+    # target_link_libraries(${target_name} ${TYPE} ${Boost_LIBRARIES})
 
 endMacro()
 
 # Helper to make a PUBLIC library with cpp sources.
 macro(make_library target_name root)
-    file(GLOB_RECURSE sources CONFIGURE_DEPENDS "src/${root}/**/*.cpp" "src/${root}/*.cpp")
+    file(GLOB_RECURSE sources CONFIGURE_DEPENDS "src/${root}/**/*.cpp" "src/${root}/*.cpp"
+        "src/${root}/**/*.hpp" "src/${root}/*.hpp")
     make_target(${target_name} PUBLIC)
 endMacro()
 

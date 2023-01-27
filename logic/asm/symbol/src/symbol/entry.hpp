@@ -6,7 +6,8 @@
     simulators for the Pep/10 virtual machine, and allow users to
     create, simulate, and debug across various levels of abstraction.
 
-    Copyright (C) 2021 J. Stanley Warford & Matthew McRaven, Pepperdine University
+    Copyright (C) 2021 J. Stanley Warford & Matthew McRaven, Pepperdine
+   University
 
     This program is free software: you can redistribute it and/or modify
     it under the terms of the GNU General Public License as published by
@@ -22,71 +23,71 @@
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 
-#include <climits>
-#include <memory>
-#include <string>
+#include <QtCore>
 
 #include "types.hpp"
 #include "value.hpp"
 
 namespace symbol {
 
-template<typename value_t> class LeafTable;
+class Table;
 
-// Currently unused, will eventuallly be used to track trace tag information alongside a symbol.
+// Currently unused, will eventually be used to track trace tag information
+// alongside a symbol.
 // TODO: Determine how to track debugging information.
 struct format {
   SymbolReprFormat format;
-  uint32_t size = 0;
+  quint32 size = 0;
 };
 
 /*!
- * \brief A symbol represents a named value or location in memory that may be defined at most once.
+ * \brief A symbol represents a named value or location in memory that may be
+ * defined at most once.
  *
- * Symbols provided by this namespace are meant to be flexibile--supporting microprogrammin and ELF usage.
+ * Symbols provided by this namespace are meant to be flexibile--supporting
+ * microprogramming and ELF usage.
  *
- * Symbols that are undefined after linkage should cause an error; symbols defined multiple times should cause
- * immediate errors.
- * Some examples of symbol values are: currently undefined (symbol::empty), an address of a line of code
+ * Symbols that are undefined after linkage should cause an error; symbols
+ * defined multiple times should cause immediate errors. Some examples of symbol
+ * values are: currently undefined (symbol::empty), an address of a line of code
  * (symbol::value_location), or a numeric constant (symbol::value_const)
  *
- * As this class exposes all of its data publicly, it is up to the user to ensure that properties such as binding
- * and definition state are updated correctly.
- * This API decision was made because it is impossible for a symbol to know if its value is being set because it is
- * defined, or if the value is being set to handle relocation. Simply put, the symbol doesn't know enough to update
- * these fields.
+ * As this class exposes all of its data publicly, it is up to the user to
+ * ensure that properties such as binding and definition state are updated
+ * correctly. This API decision was made because it is impossible for a symbol
+ * to know if its value is being set because it is defined, or if the value is
+ * being set to handle relocation. Simply put, the symbol doesn't know enough to
+ * update these fields.
  *
- * \tparam value_t An unsigned integral type that is large enough to contain the largest address on the target system.
+ * Values have 64 bits, with an optional bitmask in the value.
  */
-template<typename value_t> class entry {
+class Entry {
 
 public:
   // Default constructor, assumes value is symbol::value_empty
-  entry(typename symbol::LeafTable<value_t> &parent, std::string name);
-  ~entry() = default;
+  Entry(symbol::Table &parent, QString name);
+  ~Entry() = default;
 
   //! Non-owning reference to containing symbol table.
-  typename symbol::LeafTable<value_t> const &parent;
+  typename symbol::Table const &parent;
 
   //! Unique name as appearing in source code.
-  std::string name;
+  QString name;
   //! Keep track of how many times this symbol's name has been defined.
-  definition_state state;
+  DefinitionState state;
   /*! The binding type of this symbol (i.e., global vs local).
    * \sa symbol::binding*/
-  binding_t binding;
+  Binding binding;
   /*! The value taken on by this symbol.
    * \sa symbol::abstract_value */
-  std::shared_ptr<symbol::abstract_value<value_t>> value;
+  QSharedPointer<symbol::value::Abstract> value;
 
   /*! The section in respect to which this symbol is defined.
    * Setting this field require knowledge of hte final layout of the elf file,
    * therefore, this value is set late in the assembly process
    */
-  // Elf32 uses 16bit, ELF64 use 32bit, so just pick the largest of the two types.
-  uint32_t section_index = {};
+  // Elf32 uses 16bit, ELF64 use 32bit, so just pick the largest of the two
+  // types.
+  quint32 section_index = {};
 };
-
 } // end namespace symbol
-
-#include "entry.tpp"
