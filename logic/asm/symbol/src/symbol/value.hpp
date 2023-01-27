@@ -70,7 +70,7 @@ public:
    * by the ELF standard.
    *
    * \returns The kind of object represented by this value.
-   * \sa symbol::type
+   * \sa symbol::Type
    */
   virtual Type type() const = 0;
 

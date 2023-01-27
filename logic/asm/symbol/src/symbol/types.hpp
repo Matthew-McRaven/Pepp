@@ -1,6 +1,6 @@
 #pragma once
 
-// File: entry.tpp
+// File: entry.hpp
 /*
     The Pep/10 suite of applications (Pep10, Pep10CPU, Pep10Term) are
     simulators for the Pep/10 virtual machine, and allow users to
@@ -50,7 +50,7 @@ enum class SymbolReprFormat : qint32 { kNone, kChar, kDec, kHex };
  * quickly, as there is no way to recove Very often, this property is modified
  * via symbol::table<T>::define(...) for a particular symbol .
  *
- * \sa symbol::table::define
+ * \sa symbol::Table::define
  */
 enum class DefinitionState {
   kUndefined, //!< A symbol is not defined, and referenced 1+ times.
@@ -90,7 +90,8 @@ enum class Type {
   kConstant,
   /*! The associated symbol's value is that of another symbol.
    * It was mainly used to migrate IO ports from the operating system to user
-   * programs. \deprecated With the advent of the new ELF linker, symbols should
+   * programs.
+   * \deprecated With the advent of the new ELF linker, symbols should
    * not migrate between symbol tables. Does not map to any ELF symbol type, as
    * this value is deprecated.*/
   kPtrToSym,

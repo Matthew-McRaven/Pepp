@@ -107,7 +107,7 @@ symbol::Table::entry_ptr_t symbol::Table::define(const QString &name) {
   return entry;
 }
 
-void symbol::Table::mark_global(const QString &name) {
+void symbol::Table::markGlobal(const QString &name) {
   auto symbol = reference(name);
   symbol->binding = symbol::Binding::kGlobal;
 

@@ -57,14 +57,9 @@ private:
  * \brief A symbol table which does not contain any symbols, but instead
  * contains other symbol tables.
  *
- * This table forms the inner node of a hierarchical symbol table.
- * It contains no symbols of its own, to separate the functionality of
- * containing symbols from containing tables. Like the LeafTable, it is add
- * only. No symbols or tables are allowed to be deleted to prevent confusion
- * when dealing with externals' definitions changing.
- *
- * \tparam value_t An unsigned integral type that is large enough to contain the
- * largest address on the target system.
+ * Unlike the previous branch+leaf design, this table contains symbols and has
+ * child tables. Symbols are not allowed to be removed, but they are allowed to
+ * be marked as deleted.
  */
 class Table : public QEnableSharedFromThis<Table> {
 public:
@@ -72,7 +67,7 @@ public:
   using map_t = QMap<QString, entry_ptr_t>;
   using range = decltype(std::declval<map_t &>().asKeyValueRange());
   using const_range = detail::asConstKeyValueRange<const map_t>;
-  //! Default constructor only used for Global BranchTable
+  //! Default constructor only used for top level Tables
   Table() = default;
   [[maybe_unused]] explicit Table(QSharedPointer<Table> parent);
   ~Table() = default;
@@ -96,14 +91,15 @@ public:
 
   /*!
    * \brief Unlike reference, get() will not create an entry in the table if the
-   * symbol fails to be found. \returns Pointer to found symbol or nullopt if
-   * not found.
+   * symbol fails to be found.
+   * \returns Pointer to found symbol or nullopt if not found.
    */
   std::optional<entry_ptr_t> get(const QString &name) const;
 
   /*!
    * \brief Create a symbol entry if it doesn't already exist. Do data
-   * validations checks to see if symbol is already declared globally. \returns
+   * validations checks to see if symbol is already declared globally.
+   * \returns
    * Pointer to symbol.
    */
   entry_ptr_t reference(const QString &name);
@@ -111,7 +107,8 @@ public:
   /*!
    * \brief Create a symbol entry if it doesn't already exist. Do data
    * validations checks to see if symbol is already declared globally. Sets
-   * definition state of variable. \returns Pointer to symbol.
+   * definition state of variable.
+   * \returns Pointer to symbol.
    */
   entry_ptr_t define(const QString &name);
 
@@ -120,7 +117,7 @@ public:
    * This function handles walking the tree and pointing other local symbols to
    * this tables global instance.
    */
-  void mark_global(const QString &name);
+  void markGlobal(const QString &name);
   //! Returns true if this table (not checking any other table in the hierarchy)
   //! contains a symbol with the matching name.
   bool exists(const QString &name) const;

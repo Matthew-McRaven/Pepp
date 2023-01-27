@@ -28,15 +28,17 @@
 namespace symbol {
 class Table;
 class Entry;
+/*!
+ * \brief Determine immediate parent of table
+ * \arg table A node in a hierarchical symbol table.
+ * \returns Returns the immediate parent of table if it exists, else returns
+ * table
+ */
 QSharedPointer<symbol::Table> parent(QSharedPointer<symbol::Table> table);
 
 /*!
- * \brief Determine if any table in the hierarchical symbol table contains a
- * symbol with a particular name. \arg table A node in a hierarchical symbol
- * table. \arg name The name of the symbol to be found. \returns Returns true if
- * at least one child of table contains \tparam value_t An unsigned integral
- * type that is large enough to contain the largest address on the target
- * system. \sa symbol::ExistenceVisitor
+ * \brief Returns the top-level node in a hierarchical symbol table.
+ *
  */
 QSharedPointer<symbol::Table> rootTable(QSharedPointer<symbol::Table> table);
 QList<QSharedPointer<symbol::Entry>>
@@ -44,21 +46,21 @@ selectByName(QSharedPointer<symbol::Table> table, const QString &name,
              TraversalPolicy policy = TraversalPolicy::kChildren);
 /*!
  * \brief Determine if any table in the hierarchical symbol table contains a
- * symbol with a particular name. \arg table A node in a hierarchical symbol
- * table. \arg name The name of the symbol to be found. \returns Returns true if
- * at least one child of table contains \tparam value_t An unsigned integral
- * type that is large enough to contain the largest address on the target
- * system. \sa symbol::ExistenceVisitor
+ * symbol with a particular name.
+ * \arg table A node in a hierarchical symbol table.
+ * \arg name The name of the symbol to be found.
+ * \returns Returns true if at least one child of table contains
  */
 bool exists(QSharedPointer<symbol::Table> table, const QString &name,
             TraversalPolicy policy = TraversalPolicy::kChildren);
 
 /*!
  * \brief For each symbol in table, if the value is a value_location, adjust the
- * offset field by "offset" if the base field >= threshold. \arg table A node in
- * a hierarchical symbol table. \arg offset \arg threshold \tparam value_t
- * Anunsigned integral type that is large enough to contain the largest address
- * on the target system. \sa symbol::AdjustOffsetVisitor
+ * offset field by "offset" if the base field >= threshold.
+ * \arg table A node in a hierarchical symbol table.
+ * \arg offset value that Location's offset will be set to
+ * \arg threshold value above with a Location's base must be for the offset to
+ * be applied.
  */
 void adjustOffset(QSharedPointer<symbol::Table> table, quint64 offset,
                   quint64 threshold = 0,
@@ -67,8 +69,6 @@ void adjustOffset(QSharedPointer<symbol::Table> table, quint64 offset,
 /*!
  * \brief Create a list of all symbols in the symbol table
  * \arg table A node in a hierarchical symbol table.
- * \tparam value_t An unsigned integral type that is large enough to contain the
- * largest address on the target system. \sa symbol::EnumerationVisitor
  */
 QList<QSharedPointer<symbol::Entry>>
 enumerate(QSharedPointer<symbol::Table> table,
@@ -77,8 +77,6 @@ enumerate(QSharedPointer<symbol::Table> table,
 /*!
  * \brief Create a string representation of a symbol table
  * \arg table A node in a hierarchical symbol table.
- * \tparam value_t An unsigned integral type that is large enough to contain the
- * largest address on the target system. \sa symbol::EnumerationVisitor
  */
 QString tableListing(QSharedPointer<symbol::Table> table, quint8 maxBytes,
                      TraversalPolicy policy = TraversalPolicy::kChildren);

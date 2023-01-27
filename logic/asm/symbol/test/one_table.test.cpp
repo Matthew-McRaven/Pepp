@@ -185,8 +185,8 @@ TEST_CASE("Validate functionality for 1 symbol table.") {
   SECTION("Redundant mark as global") {
     auto st = QSharedPointer<symbol::Table>::create();
     auto x = st->reference("hello");
-    st->mark_global("hello");
-    st->mark_global("hello");
+    st->markGlobal("hello");
+    st->markGlobal("hello");
     CHECK(x->binding == symbol::Binding::kGlobal);
     CHECK(x->state == symbol::DefinitionState::kUndefined);
   }
@@ -195,8 +195,8 @@ TEST_CASE("Validate functionality for 1 symbol table.") {
   SECTION("Redundant mark as global using define") {
     auto st = QSharedPointer<symbol::Table>::create();
     auto x = st->define("hello");
-    st->mark_global("hello");
-    st->mark_global("hello"); //  Ignored
+    st->markGlobal("hello");
+    st->markGlobal("hello"); //  Ignored
     CHECK(x->binding == symbol::Binding::kGlobal);
     CHECK(x->state == symbol::DefinitionState::kSingle);
   }
