@@ -52,7 +52,7 @@ TEST_CASE("Validate functionality for multiple symbol tables.") {
     CHECK(y2 != z1);
   }
 
-    //  Dave: Added get tests
+  //  Dave: Added get tests
   SECTION("Get by name using reference.") {
     auto b1 = QSharedPointer<symbol::Table>::create();
     auto b2 = b1->addChild();
@@ -68,10 +68,10 @@ TEST_CASE("Validate functionality for multiple symbol tables.") {
     auto x1 = l1->reference("hello");
     auto x2 = l1->get("hello");
     CHECK(x2 == x1);
-    auto y1 = l2->define("hello");   //  Uses define instead of reference
+    auto y1 = l2->define("hello"); //  Uses define instead of reference
     auto y2 = l2->get("hello");
     CHECK(y2 == y1);
-    auto z1 = l3->define("hello");   //  Uses define instead of reference
+    auto z1 = l3->define("hello"); //  Uses define instead of reference
     auto z2 = l3->get("hello");
     CHECK(z2 == z2);
   }
@@ -132,7 +132,8 @@ TEST_CASE("Validate functionality for multiple symbol tables.") {
     l2->define(y->name);
     CHECK(y->state == symbol::DefinitionState::kMultiple);
 
-    // Defining a local symbol doesn't affect the state of a symbol in another table.
+    // Defining a local symbol doesn't affect the state of a symbol in another
+    // table.
     CHECK(z->state == symbol::DefinitionState::kUndefined);
   }
 
@@ -190,15 +191,15 @@ TEST_CASE("Validate functionality for multiple symbol tables.") {
     CHECK(z->state == symbol::DefinitionState::kExternalMultiple);
   }
 
-/*
- *  Test 2 Tree structures
- *          Branch1     Branch2
- *             |        |     |
- *           Leaf1    Leaf2 Leaf3
- */
+  /*
+   *  Test 2 Tree structures
+   *          Branch1     Branch2
+   *             |        |     |
+   *           Leaf1    Leaf2 Leaf3
+   */
   SECTION("Symbol existence checks with 2 independent trees.") {
     auto b1 = QSharedPointer<symbol::Table>::create();
-    auto b2 = b1->addChild();
+    auto b2 = QSharedPointer<symbol::Table>::create();
     auto l1 = b1->addChild();
     auto l2 = b2->addChild();
     auto l3 = b2->addChild();
@@ -234,7 +235,7 @@ TEST_CASE("Validate functionality for multiple symbol tables.") {
 
   SECTION("Multiple global definitions with 2 independent trees.") {
     auto b1 = QSharedPointer<symbol::Table>::create();
-    auto b2 = b1->addChild();
+    auto b2 = QSharedPointer<symbol::Table>::create();
     auto l1 = b1->addChild();
     auto l2 = b2->addChild();
     auto l3 = b2->addChild();
@@ -248,7 +249,8 @@ TEST_CASE("Validate functionality for multiple symbol tables.") {
     CHECK(x->state == symbol::DefinitionState::kUndefined);
     CHECK(y->state == symbol::DefinitionState::kUndefined);
 
-    //  Marking second branch as global does not trigger external multiple error in other branch
+    //  Marking second branch as global does not trigger external multiple error
+    //  in other branch
     l2->markGlobal("hello");
     CHECK(x->binding == symbol::Binding::kGlobal);
     CHECK(y->binding == symbol::Binding::kGlobal);
