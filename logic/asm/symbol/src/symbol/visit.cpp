@@ -23,6 +23,8 @@
 #include "visit.hpp"
 
 #include <fmt/core.h>
+#include <sstream>
+#include <string>
 
 #include "table.hpp"
 // Bitflags for determining which symbols to access during operations
