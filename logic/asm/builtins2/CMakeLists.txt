@@ -18,4 +18,3 @@ qt_add_resources(builtins "builts" PREFIX "/"
         FILES ${cs6e-res})
 
 make_test(builtins-test test "builtins;Qt6::Core")
-
