@@ -10,10 +10,10 @@ class Figure : public QObject {
   Q_PROPERTY(bool isOS READ isOS WRITE setIsOS NOTIFY isOSChanged);
   Q_PROPERTY(QSharedPointer<const Figure> defaultOS READ defaultOS WRITE
                  setDefaultOS NOTIFY defaultOSChanged);
-  Q_PROPERTY(const QList<QSharedPointer<builtins::Test>> tests READ tests NOTIFY
-                 testsChanged);
-  Q_PROPERTY(const QMap<QString, QSharedPointer<builtins::Element>> elements
-                 READ elements NOTIFY elementsChanged);
+  Q_PROPERTY(const QList<QSharedPointer<const builtins::Test>> tests READ tests
+                 NOTIFY testsChanged);
+  Q_PROPERTY(const QMap<QString, QSharedPointer<const builtins::Element>>
+                 elements READ elements NOTIFY elementsChanged);
 
 public:
   Figure(Architecture arch, QString chapter, QString figure);
@@ -30,10 +30,10 @@ public:
   QSharedPointer<const Figure> defaultOS() const;
   bool setDefaultOS(QSharedPointer<const Figure>);
 
-  const QList<QSharedPointer<builtins::Test>> tests() const;
+  const QList<QSharedPointer<const builtins::Test>> tests() const;
   void addTest(QSharedPointer<builtins::Test> test);
 
-  const QMap<QString, QSharedPointer<builtins::Element>> elements() const;
+  const QMap<QString, QSharedPointer<const builtins::Element>> elements() const;
   bool addElement(QString name, QSharedPointer<builtins::Element> element);
 
 signals:
@@ -47,7 +47,7 @@ private:
   const QString _chapterName, _figureName;
   bool _isOS = false;
   QSharedPointer<const Figure> _defaultOS = nullptr;
-  QList<QSharedPointer<builtins::Test>> _tests = {};
-  QMap<QString, QSharedPointer<builtins::Element>> _elements = {};
+  QList<QSharedPointer<const builtins::Test>> _tests = {};
+  QMap<QString, QSharedPointer<const builtins::Element>> _elements = {};
 };
 } // end namespace builtins

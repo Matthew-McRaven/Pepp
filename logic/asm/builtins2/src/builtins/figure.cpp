@@ -34,7 +34,8 @@ bool builtins::Figure::setDefaultOS(QSharedPointer<const Figure> defaultOS) {
   return false;
 }
 
-const QList<QSharedPointer<builtins::Test>> builtins::Figure::tests() const {
+const QList<QSharedPointer<const builtins::Test>>
+builtins::Figure::tests() const {
   return _tests;
 }
 
@@ -43,7 +44,7 @@ void builtins::Figure::addTest(QSharedPointer<Test> test) {
   emit testsChanged();
 }
 
-const QMap<QString, QSharedPointer<builtins::Element>>
+const QMap<QString, QSharedPointer<const builtins::Element>>
 builtins::Figure::elements() const {
   return _elements;
 }
