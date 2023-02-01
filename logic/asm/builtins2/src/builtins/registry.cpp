@@ -49,7 +49,11 @@ QByteArray read(QString path) {
 
 QSharedPointer<builtins::Element>
 builtins::detail::loadElement(QString elementPath) {
-  return nullptr;
+  auto element = QSharedPointer<builtins::Element>::create();
+  QString data = read(elementPath);
+  element->contents = data;
+  element->generated = false;
+  return element;
 }
 
 QSharedPointer<builtins::Element>
@@ -106,15 +110,19 @@ builtins::detail::loadFigure(QString manifestPath) {
 
   // Add elements
   auto items = manifest["items"];
-  auto itemsArray = items.toArray();
-  for (auto itemTemplatePath : qAsConst(itemsArray)) {
-    auto itemPath = itemTemplatePath.toString()
-                        .replace("{ch}", chapterName)
+  auto itemsArray = items.toObject();
+  auto itemsArrayKeys = itemsArray.keys();
+  for (auto language : qAsConst(itemsArrayKeys)) {
+    QString itemTemplatePath = itemsArray[language].toString();
+    auto itemPath = itemTemplatePath.replace("{ch}", chapterName)
                         .replace("{fig}", figureName);
+    qDebug() << itemPath;
     auto item = loadElement(manifestDir.absoluteFilePath(itemPath));
+    item->figure = figure;
+    item->language = language;
     if (item == nullptr)
       qFatal("Invalid item");
-    figure->addElement(itemPath.split("\\.").last(), item);
+    figure->addElement(language, item);
   }
 
   return figure;
