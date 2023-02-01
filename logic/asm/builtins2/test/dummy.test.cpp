@@ -1,5 +1,3 @@
+#include "builtins/registry.hpp"
 #include <QDebug>
-#include <QDirIterator>
-#include <QFile>
-
-int main() { return 0; }
+int main() { builtins::Registry(nullptr); }
