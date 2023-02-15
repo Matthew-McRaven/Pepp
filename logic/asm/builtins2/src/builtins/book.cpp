@@ -45,7 +45,7 @@ const QList<QSharedPointer<builtins::Macro>> builtins::Book::macros() const {
 QSharedPointer<const builtins::Macro>
 builtins::Book::findMacro(QString name) const {
   QList<QSharedPointer<const builtins::Macro>> temp;
-  for (auto macroPtr : _macros) {
+  for (const auto &macroPtr : _macros) {
     if (macroPtr->name == name)
       temp.push_back(macroPtr);
   }
