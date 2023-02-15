@@ -8,6 +8,13 @@ namespace builtins {
 class Figure;
 class Macro;
 
+/*!
+ * \brief The Book class
+ *
+ * Multiple figures with the same chapter:figure name will cause a runtime
+ * crash. Multiple macros with the same name and arity will cause a runtime
+ * crash.
+ */
 class Book : public QObject {
   Q_OBJECT
   Q_PROPERTY(QString name READ name CONSTANT);
@@ -18,16 +25,33 @@ class Book : public QObject {
 
 public:
   explicit Book(QString name);
+  //! Return the full name of the textbook
   QString name() const;
+  //! Returns the list of all figures contained by the book.
   const QList<QSharedPointer<builtins::Figure>> figures() const;
+  //! If the book contains a matching figure, return that figure, otherwise
+  //! return nullptr. We do not allow multiple figures with the same name.
   QSharedPointer<const builtins::Figure> findFigure(QString chapter,
                                                     QString figure) const;
+  //! Register an figure as part of the current book.
+  //! Returns false if a figure by this name already exists, and true otherwise.
+  //! If returning false, the figure was not added to the book.
   bool addFigure(QSharedPointer<builtins::Figure> figure);
+  //! Return the list of all macros which are contained by this book.
   const QList<QSharedPointer<builtins::Macro>> macros() const;
+  //! If the book contains a matching macro, return that macro, otherwise
+  //! return nullptr. We do not allow multiple macros with the same name and
+  //! arity.
   QSharedPointer<const builtins::Macro> findMacro(QString name) const;
+  //! Register a macro as part of the current book.
+  //! Returns false if a macro by this name and arity already exists, and true
+  //! otherwise. If returning false, the macro was not added to the book.
   bool addMacro(QSharedPointer<builtins::Macro> macro);
 signals:
+  //! Emitted whenever an element or test is added to a figure, or a new figure
+  //! is added.
   void figuresChanged();
+  //! Emitted whenever a new macro is added.
   void macrosChanged();
 
 private:

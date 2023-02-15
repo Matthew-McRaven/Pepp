@@ -2,6 +2,18 @@
 #include "elements.hpp"
 #include <QtCore>
 namespace builtins {
+
+/*!
+ * \brief Represents a single figure in a textbook
+ *
+ * A figure is composed of multiple textual elements, and may include a set of
+ * test input:output pairs.
+ *
+ * This class is meant to be usable in both C++ and QML, so some Q_PROPERTYs
+ * have a public API as a variant, but also provide a typesafe API for C++.
+ * \see builtins::Figure#_tests \see builtins::Figure#_elements
+ *
+ */
 class Figure : public QObject {
   Q_OBJECT
   Q_PROPERTY(builtins::Architecture arch READ arch CONSTANT);
