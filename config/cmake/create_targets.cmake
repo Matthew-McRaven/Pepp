@@ -28,6 +28,22 @@ endmacro()
 
 # Helper that can be used to create either an interface or shared library
 # Variable "sources" must have the list of files you want included in the library.
+macro(make_exec target_name root)
+    file(GLOB_RECURSE sources CONFIGURE_DEPENDS "src/${root}/**/*.cpp" "src/${root}/*.cpp"
+      "src/${root}/**/*.hpp" "src/${root}/*.hpp")
+    inject_cxx_standard()
+    inject_clang_tidy()
+    inject_code_coverage()
+
+    SET(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -gdwarf-4")
+    SET(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -gdwarf-4")
+
+    qt_add_executable(${target_name} ${sources})
+
+endMacro()
+
+# Helper that can be used to create either an interface or shared library
+# Variable "sources" must have the list of files you want included in the library.
 macro(make_target target_name TYPE)
 
     inject_cxx_standard()
