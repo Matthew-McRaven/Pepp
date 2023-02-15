@@ -10,6 +10,7 @@ SET(CMAKE_OSX_ARCHITECTURES "x86_64;arm64" CACHE INTERNAL "" FORCE)
 add_subdirectory(3rd-party)
 
 find_package(Qt6 6.4 COMPONENTS Quick Core Gui Qml REQUIRED)
+find_package(Boost 1.76.0 REQUIRED)
 
 set(CMAKE_AUTOMOC ON)
 set(CMAKE_AUTORCC ON)
