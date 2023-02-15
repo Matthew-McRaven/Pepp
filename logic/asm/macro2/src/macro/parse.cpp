@@ -24,15 +24,8 @@ struct macro {
 template <typename Iterator>
 struct macro_parser : qi::grammar<Iterator, macro(), ascii::space_type> {
   macro_parser() : macro_parser::base_type(start) {
-    using ascii::char_;
-    using qi::double_;
-    using qi::int_;
-    using qi::lexeme;
-    using qi::lit;
-    using qi::no_skip;
-
     start %=
-        qi::no_skip['@'] >> qi::lexeme[+(qi::char_ - ascii::space)] >> int_;
+        qi::no_skip["@"] >> qi::no_skip[+(qi::char_ - qi::space)] >> qi::int_;
   }
   qi::rule<Iterator, macro(), ascii::space_type> start;
 };
