@@ -8,5 +8,5 @@ target_include_directories(macro PRIVATE ${Boost_INCLUDE_DIR})
 target_link_libraries(macro PRIVATE "Qt6::Core;${Boost_LIBRARIES}")
 
 if(NOT IOS)
-make_test(macro-test test "macro;Qt6::Core;${Boost_LIBRARIES}")
+make_test(macro-test test "macro;Qt6::Core;${Boost_LIBRARIES};catch")
 endif()
