@@ -47,23 +47,21 @@ QByteArray read(QString path) {
   return bytes;
 }
 
-QSharedPointer<builtins::Element>
-builtins::detail::loadElement(QString elementPath) {
-  auto element = QSharedPointer<builtins::Element>::create();
+builtins::Element *builtins::detail::loadElement(QString elementPath) {
+  auto element = new builtins::Element();
   QString data = read(elementPath);
   element->contents = data;
   element->generated = false;
   return element;
 }
 
-QSharedPointer<builtins::Element>
-builtins::detail::generateElement(QString fromElementPath,
-                                  void *asm_toolchains) {
+builtins::Element *builtins::detail::generateElement(QString fromElementPath,
+                                                     void *asm_toolchains) {
   return nullptr;
 }
 
-QSharedPointer<builtins::Test> builtins::detail::loadTest(QString testDirPath) {
-  auto test = QSharedPointer<builtins::Test>::create();
+builtins::Test *builtins::detail::loadTest(QString testDirPath) {
+  auto test = new builtins::Test();
   QDirIterator dir(testDirPath);
   while (dir.hasNext()) {
     auto file = dir.next();
@@ -116,7 +114,6 @@ builtins::detail::loadFigure(QString manifestPath) {
     QString itemTemplatePath = itemsArray[language].toString();
     auto itemPath = itemTemplatePath.replace("{ch}", chapterName)
                         .replace("{fig}", figureName);
-    qDebug() << itemPath;
     auto item = loadElement(manifestDir.absoluteFilePath(itemPath));
     item->figure = figure;
     item->language = language;
@@ -177,7 +174,6 @@ QList<QString> builtins::detail::enumerateBooks(QString prefix) {
   QDirIterator iter(prefix);
   while (iter.hasNext()) {
     auto next = iter.next();
-    qDebug() << next;
     auto maybeManifest = QFile(QDir(next).filePath("toc.json"));
     if (maybeManifest.exists())
       ret.push_back(maybeManifest.fileName());

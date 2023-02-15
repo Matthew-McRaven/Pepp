@@ -24,11 +24,11 @@ class Figure;
 class Element;
 class Macro;
 namespace detail {
-QSharedPointer<::builtins::Element> loadElement(QString elementPath);
-QSharedPointer<::builtins::Element> generateElement(QString fromElementPath,
-                                                    void *asm_toolchains);
-QSharedPointer<::builtins::Test> loadTest(QString testDirPath);
-QSharedPointer<::builtins::Figure> loadFigure(QString manifestPath);
+::builtins::Element *loadElement(QString elementPath);
+::builtins::Element *generateElement(QString fromElementPath,
+                                     void *asm_toolchains);
+::builtins::Test *loadTest(QString testDirPath);
+QSharedPointer<builtins::Figure> loadFigure(QString manifestPath);
 void linkFigureOS(QString manifestPath,
                   QSharedPointer<::builtins::Figure> figure,
                   QSharedPointer<const builtins::Book> book);
