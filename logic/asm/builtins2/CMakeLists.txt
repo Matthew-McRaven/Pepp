@@ -17,4 +17,6 @@ target_link_libraries(builtins PRIVATE "fmt;Qt6::Core;Qt6::Gui")
 qt_add_resources(builtins "builts" PREFIX "/"
         FILES ${cs6e-res})
 
+if(NOT IOS)
 make_test(builtins-test test "builtins;Qt6::Core;Qt6::Gui;Qt6::Qml;Qt6::Quick")
+endif()
