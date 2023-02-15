@@ -18,5 +18,5 @@ qt_add_resources(builtins "builts" PREFIX "/"
         FILES ${cs6e-res})
 
 if(NOT IOS)
-make_test(builtins-test test "builtins;Qt6::Core;Qt6::Gui;Qt6::Qml;Qt6::Quick")
+make_test(test-builtins test "builtins;Qt6::Core;Qt6::Gui;Qt6::Qml;Qt6::Quick")
 endif()
