@@ -7,11 +7,12 @@ set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 add_subdirectory(3rd-party)
 
-find_package(Qt6 6.4 COMPONENTS Quick Core REQUIRED)
+find_package(Qt6 6.4 COMPONENTS Quick Core Gui Qml REQUIRED)
 
 set(CMAKE_AUTOMOC ON)
 set(CMAKE_AUTORCC ON)
 add_subdirectory(logic)
+add_subdirectory(bin)
 
 # Derived from: https://vicrucann.github.io/tutorials/quick-cmake-doxygen/
 # first we can indicate the documentation build as an option and set it to ON by default
