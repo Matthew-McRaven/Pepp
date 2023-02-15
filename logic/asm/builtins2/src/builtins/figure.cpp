@@ -8,7 +8,7 @@ builtins::Figure::~Figure() {
   for (auto value : _tests) {
     delete value;
   }
-  for (auto value : _elements.values()) {
+  for (auto value : _elements) {
     delete value;
   }
 }
@@ -22,6 +22,7 @@ QString builtins::Figure::figureName() const { return _figureName; }
 bool builtins::Figure::isOS() const { return _isOS; }
 
 bool builtins::Figure::setIsOS(bool value) {
+  // Do not omit OS if isOS remains unchanged
   if (value != _isOS) {
     _isOS = value;
     emit isOSChanged();
@@ -35,6 +36,7 @@ const builtins::Figure *builtins::Figure::defaultOS() const {
 }
 
 bool builtins::Figure::setDefaultOS(const Figure *defaultOS) {
+  // Do not emit event if OS remains unchanged.
   if (_defaultOS != defaultOS) {
     _defaultOS = defaultOS;
     emit defaultOSChanged();
@@ -48,12 +50,16 @@ const QList<const builtins::Test *> builtins::Figure::typesafeTests() const {
 }
 
 QVariantList builtins::Figure::tests() const {
+  // Convert type-correct map to a QVariantMap, which can be accessed natively
+  // in QML
   QVariantList v;
   for (auto x : _tests)
     v.push_back(QVariant::fromValue(x));
   return v;
 }
 void builtins::Figure::addTest(const Test *test) {
+  // Unlike elements, do not de-duplicate tests, as this appears to be
+  // difficult.
   _tests.push_back(test);
   emit testsChanged();
 }
@@ -64,6 +70,8 @@ builtins::Figure::typesafeElements() const {
 }
 
 QVariantMap builtins::Figure::elements() const {
+  // Convert type-correct map to a QVariantMap, which can be accessed natively
+  // in QML
   QVariantMap v;
   for (auto key = _elements.keyBegin(); key != _elements.keyEnd(); key++)
     v[*key] = QVariant::fromValue(_elements[*key]);
@@ -71,6 +79,8 @@ QVariantMap builtins::Figure::elements() const {
 }
 
 bool builtins::Figure::addElement(QString name, const Element *element) {
+  // Only signal update if the figure does not already contain an element of the
+  // same name (e.g., programming language)
   if (auto it = _elements.constFind(name); it == _elements.constEnd()) {
     _elements[name] = element;
     emit elementsChanged();

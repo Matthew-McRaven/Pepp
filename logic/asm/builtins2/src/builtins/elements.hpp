@@ -7,15 +7,20 @@
 Q_MOC_INCLUDE("builtins/figure.hpp")
 namespace builtins {
 Q_NAMESPACE
+//! Describe which architecture a help item is to be used with.
 enum class Architecture {
-  PEP8 = 8,
-  PEP9 = 90,
-  PEP10 = 100,
-  RISCV = 1000,
+  PEP8 = 80,    //! The figure must be used with the Pep/8 toolchain.
+  PEP9 = 90,    //! The figure must be used with the Pep/9 toolchain.
+  PEP10 = 100,  //! The figure must be use with the Pep/10 toolchain
+  RISCV = 1000, //! The figure must be used with the RISC-V toolchain, which is
+                //! undefined as of 2023-02-14.
 };
 Q_ENUM_NS(Architecture);
 
 class Figure;
+/*!
+ * \brief Contains a unit of content that makes up a help item
+ */
 struct Element : public QObject {
 private:
   Q_OBJECT
@@ -25,11 +30,22 @@ private:
   Q_PROPERTY(QWeakPointer<Figure> figure MEMBER figure);
 
 public:
+  //! Is the element created dynamicaly at runtime (e.g., pepo/pepb/peph/pepl),
+  //! or is it "baked in" to the QRC (pep/c)
   bool generated;
-  QString language, contents;
+  //! The programming language this element is written in
+  QString language;
+  //! The textual contents of the element
+  QString contents;
+  //! The figure which contains this element. Needed to access default OS / test
+  //! items.
   QWeakPointer<Figure> figure;
 };
 
+/*!
+ * \brief A single input:output pair that can be used to unit test an
+ * figure.
+ */
 struct Test : public QObject {
 private:
   Q_OBJECT
@@ -37,7 +53,12 @@ private:
   Q_PROPERTY(QVariant output MEMBER output);
 
 public:
-  QVariant input, output;
+  //! If present, it is a string containing the input on which the figure should
+  //! be run.
+  QVariant input;
+  //! If present, it is the required output of the figure when run on the
+  //! supplied input.
+  QVariant output;
 };
 
 struct Macro : public QObject {
