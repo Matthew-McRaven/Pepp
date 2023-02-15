@@ -8,15 +8,18 @@ class Figure : public QObject {
   Q_PROPERTY(QString chapterName READ chapterName CONSTANT);
   Q_PROPERTY(QString figureName READ figureName CONSTANT);
   Q_PROPERTY(bool isOS READ isOS WRITE setIsOS NOTIFY isOSChanged);
-  Q_PROPERTY(QSharedPointer<const Figure> defaultOS READ defaultOS WRITE
-                 setDefaultOS NOTIFY defaultOSChanged);
-  Q_PROPERTY(const QList<QSharedPointer<const builtins::Test>> tests READ tests
-                 NOTIFY testsChanged);
-  Q_PROPERTY(const QMap<QString, QSharedPointer<const builtins::Element>>
-                 elements READ elements NOTIFY elementsChanged);
+  Q_PROPERTY(const Figure *defaultOS READ defaultOS WRITE setDefaultOS NOTIFY
+                 defaultOSChanged);
+  // Must use variants if we want these to be accessed from QML.
+  // We provide a type safe version, which should be used instead if in C++.
+  // See builtins::Test for properties
+  Q_PROPERTY(QVariantList tests READ tests NOTIFY testsChanged);
+  // See builtins::Element for available properties
+  Q_PROPERTY(QVariantMap elements READ elements NOTIFY elementsChanged);
 
 public:
   Figure(Architecture arch, QString chapter, QString figure);
+  ~Figure();
 
   builtins::Architecture arch() const;
 
@@ -27,14 +30,20 @@ public:
   bool isOS() const;
   bool setIsOS(bool value);
 
-  QSharedPointer<const Figure> defaultOS() const;
-  bool setDefaultOS(QSharedPointer<const Figure>);
+  const Figure *defaultOS() const;
+  bool setDefaultOS(const Figure *);
 
-  const QList<QSharedPointer<const builtins::Test>> tests() const;
-  void addTest(QSharedPointer<builtins::Test> test);
+  const QList<const builtins::Test *> typesafeTests() const;
+  // Creates variant list on-the-fly, please limit # of calls.
+  QVariantList tests() const;
+  // Transfer ownership to this. Must be deleted in this object's destructor
+  void addTest(const builtins::Test *test);
 
-  const QMap<QString, QSharedPointer<const builtins::Element>> elements() const;
-  bool addElement(QString name, QSharedPointer<builtins::Element> element);
+  const QMap<QString, const builtins::Element *> typesafeElements() const;
+  // Creates variant map on-the-fly, please limit # of calls.
+  QVariantMap elements() const;
+  // Transfer ownership to this. Must be deleted in this object's destructor
+  bool addElement(QString name, const builtins::Element *element);
 
 signals:
   void isOSChanged();
@@ -46,8 +55,12 @@ private:
   const Architecture _arch;
   const QString _chapterName, _figureName;
   bool _isOS = false;
-  QSharedPointer<const Figure> _defaultOS = nullptr;
-  QList<QSharedPointer<const builtins::Test>> _tests = {};
-  QMap<QString, QSharedPointer<const builtins::Element>> _elements = {};
+  // Non-owning
+  const Figure *_defaultOS = nullptr;
+  // Owns pointers
+  QList<const builtins::Test *> _tests = {};
+  // Owns pointers
+  QMap<QString, const builtins::Element *> _elements = {};
 };
 } // end namespace builtins
+Q_DECLARE_METATYPE(builtins::Figure);
