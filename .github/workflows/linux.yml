@@ -8,6 +8,8 @@ jobs:
       image: registry.gitlab.com/pepnext/docker/develop:v0.6.0
     steps:
       - uses: actions/checkout@v3
+        with:
+          submodules: 'true'
       - run: apt-get install -y python3-pip zstd
       - name: test
         id: cache-primes
