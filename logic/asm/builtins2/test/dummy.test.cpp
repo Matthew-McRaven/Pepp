@@ -1,3 +1,6 @@
 #include "builtins/registry.hpp"
 #include <QDebug>
-int main() { builtins::Registry(nullptr); }
+int main() {
+  auto x = builtins::Registry(nullptr);
+  return 0;
+}

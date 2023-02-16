@@ -1,5 +1,7 @@
 #include "book.hpp"
 #include "figure.hpp"
+
+#include "macro/macro.hpp"
 builtins::Book::Book(QString name) : QObject(nullptr), _name(name) {}
 
 QString builtins::Book::name() const { return _name; }
@@ -38,15 +40,15 @@ bool builtins::Book::addFigure(QSharedPointer<Figure> figure) {
     return false;
 }
 
-const QList<QSharedPointer<builtins::Macro>> builtins::Book::macros() const {
+const QList<QSharedPointer<macro::Parsed>> builtins::Book::macros() const {
   return _macros;
 }
 
-QSharedPointer<const builtins::Macro>
+QSharedPointer<const macro::Parsed>
 builtins::Book::findMacro(QString name) const {
-  QList<QSharedPointer<const builtins::Macro>> temp;
+  QList<QSharedPointer<const macro::Parsed>> temp;
   for (const auto &macroPtr : _macros) {
-    if (macroPtr->name == name)
+    if (macroPtr->name() == name)
       temp.push_back(macroPtr);
   }
   if (auto length = temp.length(); length == 0)
@@ -59,10 +61,10 @@ builtins::Book::findMacro(QString name) const {
   }
 }
 
-bool builtins::Book::addMacro(QSharedPointer<Macro> macro) {
+bool builtins::Book::addMacro(QSharedPointer<macro::Parsed> macro) {
   // TODO: Adding N macros will take N^2 time because of the calls to find.
   // Will be necessary to speed this up for large N.
-  if (findMacro(macro->name) == nullptr) {
+  if (findMacro(macro->name()) == nullptr) {
     _macros.push_back(macro);
     return true;
   } else

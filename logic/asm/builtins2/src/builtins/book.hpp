@@ -1,12 +1,12 @@
 #pragma once
 
+#include "macro/macro.hpp"
 #include <QObject>
 #include <QtCore>
 Q_MOC_INCLUDE("builtins/figure.hpp")
 
 namespace builtins {
 class Figure;
-class Macro;
 
 /*!
  * \brief The Book class
@@ -20,7 +20,7 @@ class Book : public QObject {
   Q_PROPERTY(QString name READ name CONSTANT);
   Q_PROPERTY(const QList<QSharedPointer<builtins::Figure>> figures READ figures
                  NOTIFY figuresChanged);
-  Q_PROPERTY(const QList<QSharedPointer<builtins::Macro>> macros READ macros
+  Q_PROPERTY(const QList<QSharedPointer<macro::Parsed>> macros READ macros
                  NOTIFY macrosChanged);
 
 public:
@@ -38,15 +38,15 @@ public:
   //! If returning false, the figure was not added to the book.
   bool addFigure(QSharedPointer<builtins::Figure> figure);
   //! Return the list of all macros which are contained by this book.
-  const QList<QSharedPointer<builtins::Macro>> macros() const;
+  const QList<QSharedPointer<macro::Parsed>> macros() const;
   //! If the book contains a matching macro, return that macro, otherwise
   //! return nullptr. We do not allow multiple macros with the same name and
   //! arity.
-  QSharedPointer<const builtins::Macro> findMacro(QString name) const;
+  QSharedPointer<const macro::Parsed> findMacro(QString name) const;
   //! Register a macro as part of the current book.
   //! Returns false if a macro by this name and arity already exists, and true
   //! otherwise. If returning false, the macro was not added to the book.
-  bool addMacro(QSharedPointer<builtins::Macro> macro);
+  bool addMacro(QSharedPointer<macro::Parsed> macro);
 signals:
   //! Emitted whenever an element or test is added to a figure, or a new figure
   //! is added.
@@ -57,6 +57,6 @@ signals:
 private:
   QString _name;
   QList<QSharedPointer<builtins::Figure>> _figures = {};
-  QList<QSharedPointer<builtins::Macro>> _macros = {};
+  QList<QSharedPointer<macro::Parsed>> _macros = {};
 };
 } // end namespace builtins
