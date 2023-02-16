@@ -25,6 +25,7 @@ set_target_properties(demo-macro-parse PROPERTIES
     MACOSX_BUNDLE TRUE
     WIN32_EXECUTABLE TRUE
 )
+set_target_properties(demo-macro-parse PROPERTIES FOLDER "qtc_runnable")
 
 target_link_libraries(demo-macro-parse
     PRIVATE Qt6::Quick macro)
