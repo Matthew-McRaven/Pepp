@@ -25,7 +25,7 @@ set_target_properties(demo-fig-view PROPERTIES
     MACOSX_BUNDLE TRUE
     WIN32_EXECUTABLE TRUE
 )
-
+set_target_properties(demo-fig-view PROPERTIES FOLDER "qtc_runnable")
 target_link_libraries(demo-fig-view PRIVATE Qt6::Quick builtins)
 
 install(TARGETS demo-fig-view
