@@ -180,7 +180,23 @@ builtins::detail::loadMacro(QString manifestPath) {
 void builtins::detail::linkFigureOS(QString manifestPath,
                                     QSharedPointer<Figure> figure,
                                     QSharedPointer<const Book> book) {
-  // TODO: implement
+  // Read figure manifest to determine if figure is an OS, or if it links against an existing figure.
+  auto manifestBytes = read(manifestPath);
+  auto manifest = QJsonDocument::fromJson(manifestBytes);
+  auto isOs = manifest["is_os"];
+  if (isOs.isBool() && isOs.toBool())
+    return;
+  QString chFig = manifest["default_os"].toString();
+  // Chapter and figure are separated by : in a manifest file.
+  if (chFig.indexOf(":") == -1)
+    qFatal("Invalid OS figure name");
+  auto osChFigSplit = chFig.split(":");
+  auto osChapterName = osChFigSplit[0];
+  auto osFigureName = osChFigSplit[1];
+  auto os = book->findFigure(osChapterName, osFigureName);
+  if (!os)
+    qFatal("Could not find OS");
+  figure->setDefaultOS(os.data());
 }
 
 QSharedPointer<builtins::Book> builtins::detail::loadBook(QString tocPath) {
