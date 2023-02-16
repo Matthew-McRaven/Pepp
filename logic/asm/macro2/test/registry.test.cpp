@@ -5,14 +5,14 @@
 TEST_CASE("macro::Registry") {
   SECTION("registers macros") {
     macro::Registry reg;
-    auto parsed = new macro::Parsed("alpha", 0, "body");
+    auto parsed = new macro::Parsed("alpha", 0, "body", "none");
     auto registered = reg.registerMacro(macro::Type::Core, parsed);
     CHECK(registered != nullptr);
     CHECK(registered->contents() == parsed);
   }
   SECTION("can find macros by name") {
     macro::Registry reg;
-    auto parsed = new macro::Parsed("alpha", 0, "body");
+    auto parsed = new macro::Parsed("alpha", 0, "body", "none");
     auto registered = reg.registerMacro(macro::Type::Core, parsed);
     CHECK(registered != nullptr);
     CHECK(registered->contents() == parsed);
@@ -20,16 +20,16 @@ TEST_CASE("macro::Registry") {
   }
   SECTION("reject macros with duplicate names") {
     macro::Registry reg;
-    auto parsed = new macro::Parsed("alpha", 0, "body");
-    auto parsed2 = new macro::Parsed("alpha", 0, "body");
+    auto parsed = new macro::Parsed("alpha", 0, "body", "none");
+    auto parsed2 = new macro::Parsed("alpha", 0, "body", "none");
     auto registered = reg.registerMacro(macro::Type::Core, parsed);
     CHECK(registered != nullptr);
     CHECK(reg.registerMacro(macro::Type::Core, parsed2) == nullptr);
   }
   SECTION("distinguishes macro types") {
     macro::Registry reg;
-    auto parsed = new macro::Parsed("alpha", 0, "body");
-    auto parsed2 = new macro::Parsed("beta", 0, "body");
+    auto parsed = new macro::Parsed("alpha", 0, "body", "none");
+    auto parsed2 = new macro::Parsed("beta", 0, "body", "none");
     CHECK(reg.registerMacro(macro::Type::Core, parsed) != nullptr);
     CHECK(reg.registerMacro(macro::Type::System, parsed2) != nullptr);
     CHECK(reg.findMacrosByType(macro::Type::Core).size() == 1);
