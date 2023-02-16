@@ -2,6 +2,9 @@
 
 #include <QObject>
 Q_MOC_INCLUDE("builtins/book.hpp")
+namespace macro {
+class Parsed;
+}
 namespace builtins {
 class Book;
 class Registry : public QObject {
@@ -22,7 +25,6 @@ private:
 class Test;
 class Figure;
 class Element;
-class Macro;
 namespace detail {
 ::builtins::Element *loadElement(QString elementPath);
 ::builtins::Element *generateElement(QString fromElementPath,
@@ -32,7 +34,7 @@ QSharedPointer<builtins::Figure> loadFigure(QString manifestPath);
 void linkFigureOS(QString manifestPath,
                   QSharedPointer<::builtins::Figure> figure,
                   QSharedPointer<const builtins::Book> book);
-QList<QSharedPointer<::builtins::Macro>> loadMacro(QString manifestPath);
+QList<QSharedPointer<::macro::Parsed>> loadMacro(QString manifestPath);
 QSharedPointer<::builtins::Book> loadBook(QString tocPath);
 QList<QString> enumerateBooks(QString prefix);
 } // end namespace detail
