@@ -21,5 +21,6 @@ public:
 class MacroParser : public QObject {
   Q_OBJECT
 public:
+  // Ownership of parse result is transfered to caller.
   Q_INVOKABLE MacroParseResult *parse(QString arg);
 };
