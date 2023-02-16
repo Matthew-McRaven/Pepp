@@ -11,6 +11,10 @@ add_subdirectory(3rd-party)
 
 find_package(Qt6 6.4 COMPONENTS Quick Core Gui Qml REQUIRED)
 
+# Emscripten build forget to set boost_INCLUDE_DIR correctly
+set(Boost_INCLUDE_DIR "$ENV{BOOST_ROOT}")
+find_package(Boost 1.81.0 REQUIRED)
+
 set(CMAKE_AUTOMOC ON)
 set(CMAKE_AUTORCC ON)
 add_subdirectory(logic)

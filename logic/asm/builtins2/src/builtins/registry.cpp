@@ -2,6 +2,8 @@
 #include "book.hpp"
 #include "elements.hpp"
 #include "figure.hpp"
+#include "macro/macro.hpp"
+#include "macro/parse.hpp"
 #include <QDir>
 #include <QDirIterator>
 #include <QJsonDocument>
@@ -140,16 +142,61 @@ builtins::detail::loadFigure(QString manifestPath) {
   return figure;
 }
 
-QList<QSharedPointer<builtins::Macro>>
+QList<QSharedPointer<macro::Parsed>>
 builtins::detail::loadMacro(QString manifestPath) {
-  // TODO: Awaiting implementation of macro parser
-  return {};
+  QList<QSharedPointer<macro::Parsed>> ret;
+  auto manifestDir = QFileInfo(manifestPath).dir();
+  // Read macro manifest get macro names;
+  auto manifestBytes = read(manifestPath);
+  auto manifest = QJsonDocument::fromJson(manifestBytes);
+
+  // Add elements
+  auto items =
+      manifest["items"]; // The key in the manifest which contains elements
+  auto itemsArray =
+      items.toObject(); // Get the element name:value pairs as a map
+  auto itemsArrayKeys = itemsArray.keys(); // Make the name:value pairs iterable
+  for (const auto &name : qAsConst(itemsArrayKeys)) {
+    // Perform templatization on manifest values.
+    QString itemTemplatePath = itemsArray[name].toString();
+    auto itemPath = itemTemplatePath.replace("{name}", name);
+
+    // Load the macro
+    auto macroText = read(manifestDir.absoluteFilePath(itemPath));
+    auto macroBody = macroText.sliced(macroText.indexOf("\n") + 1);
+    auto parsed = macro::analyze_macro_definition(macroText);
+
+    if (!std::get<0>(
+            parsed)) // Crash on failure for ease of initial prototyping
+      qFatal("Invalid item");
+    auto macro = QSharedPointer<macro::Parsed>::create(
+        std::get<1>(parsed), std::get<2>(parsed), macroBody,
+        manifest["arch"].toString());
+    ret.push_back(macro);
+  }
+  return ret;
 }
 
 void builtins::detail::linkFigureOS(QString manifestPath,
                                     QSharedPointer<Figure> figure,
                                     QSharedPointer<const Book> book) {
-  // TODO: implement
+  // Read figure manifest to determine if figure is an OS, or if it links against an existing figure.
+  auto manifestBytes = read(manifestPath);
+  auto manifest = QJsonDocument::fromJson(manifestBytes);
+  auto isOs = manifest["is_os"];
+  if (isOs.isBool() && isOs.toBool())
+    return;
+  QString chFig = manifest["default_os"].toString();
+  // Chapter and figure are separated by : in a manifest file.
+  if (chFig.indexOf(":") == -1)
+    qFatal("Invalid OS figure name");
+  auto osChFigSplit = chFig.split(":");
+  auto osChapterName = osChFigSplit[0];
+  auto osFigureName = osChFigSplit[1];
+  auto os = book->findFigure(osChapterName, osFigureName);
+  if (!os)
+    qFatal("Could not find OS");
+  figure->setDefaultOS(os.data());
 }
 
 QSharedPointer<builtins::Book> builtins::detail::loadBook(QString tocPath) {
