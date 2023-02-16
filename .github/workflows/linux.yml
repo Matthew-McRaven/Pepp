@@ -1,0 +1,29 @@
+name: CI Build
+run-name: CI Build
+on: [push]
+jobs:
+  linux:
+    runs-on: ubuntu-latest #[self-hosted, linux]
+    container:
+      image: registry.gitlab.com/pepnext/docker/develop:v0.6.0
+    steps:
+      - uses: actions/checkout@v3
+        with:
+          submodules: 'true'
+      - run: apt-get install -y python3-pip zstd
+      - name: test
+        id: cache-primes
+        uses: actions/cache@v3
+        with:
+          path: install-qt-action
+          key: install-qt-action
+      - name: Install Qt
+        uses: jurplel/install-qt-action@v3
+        with:
+          version: '6.4.2'
+          cache: 'true'
+          setup-python: 'false'
+          dir: $RUNNER_WORKSPACE/qt
+      - run: export BOOST_ROOT=/usr/local/lib
+      - run: cmake -B ../build .
+      - run: cd ../build && make -j20 && make test
