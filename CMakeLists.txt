@@ -9,7 +9,9 @@ set(CMAKE_CXX_STANDARD_REQUIRED ON)
 SET(CMAKE_OSX_ARCHITECTURES "x86_64;arm64" CACHE INTERNAL "" FORCE)
 add_subdirectory(3rd-party)
 
-find_package(Qt6 6.4 COMPONENTS Quick Core Gui Qml REQUIRED)
+set_property(GLOBAL PROPERTY USE_FOLDERS ON)
+
+find_package(Qt6 6.4 COMPONENTS Quick Core Gui Qml Test REQUIRED)
 
 # Emscripten build forget to set boost_INCLUDE_DIR correctly
 set(Boost_INCLUDE_DIR "$ENV{BOOST_ROOT}")
