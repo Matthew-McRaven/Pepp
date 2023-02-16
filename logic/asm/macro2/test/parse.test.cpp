@@ -1,7 +1,7 @@
 #include "catch.hpp"
 
 #include "macro/parse.hpp"
-TEST_CASE("Test symbol values.") {
+TEST_CASE("Macro Parsing") {
   SECTION("added spaces") {
     CHECK(std::get<0>(macro::analyze_macro_definition(u"@deci 0"_qs)));
     CHECK(std::get<0>(macro::analyze_macro_definition(u"@deci 	0"_qs)));
@@ -30,4 +30,8 @@ TEST_CASE("Test symbol values.") {
     CHECK(std::get<0>(macro::analyze_macro_definition("@deci 2 ;fail")) ==
           false);
   }
+  // TODO: Can parse a macro with a body
+  // TODO: Requires arg count
+  // TODO: Requires @
+  // TODO: Rejects symbols, other chars.
 }
