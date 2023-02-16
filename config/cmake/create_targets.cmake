@@ -80,21 +80,11 @@ macro(make_interface target_name)
     make_target(${target_name} INTERFACE)
 endMacro()
 
-# Helper to create a unit test program for unit tests.
-# Assumes that it is being called from the root of a library, so tests reside in ./test.
-macro(make_test target_name root dep)
-    file(GLOB_RECURSE sources CONFIGURE_DEPENDS "${root}/**/*.cpp" "${root}/*.cpp")
-
-    if (sources)
-        inject_cxx_standard()
-        inject_code_coverage()
-
-        add_executable(${target_name} ${sources})
-
-        # Every test *should* use catch, so we will link against it here.
-        target_link_libraries(${target_name} PRIVATE catch ${dep})
-        # And run the test with the correct reporting options.
-        add_test(NAME ${target_name} COMMAND ${target_name} -r junit --out junit.xml)
-    endif ()
-endmacro()
-
+macro(make_qtest target_name file dep)
+  inject_cxx_standard()
+  inject_code_coverage()
+  add_executable(${target_name} ${file})
+  target_link_libraries(${target_name} PRIVATE ${dep})
+  # And run the test with the correct reporting options.
+  add_test(NAME ${target_name} COMMAND ${target_name})
+endMacro()
