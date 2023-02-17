@@ -34,7 +34,7 @@ Window {
       anchors.top: parent.top
       anchors.left: parent.left
       anchors.right: parent.right
-      anchors.bottom: actionBar.bottom
+      anchors.bottom: actionBar.top
       placeholderText: "Add macro text"
     }
     Rectangle {
