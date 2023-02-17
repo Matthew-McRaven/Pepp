@@ -86,5 +86,5 @@ macro(make_qtest target_name file dep)
   add_executable(${target_name} ${file})
   target_link_libraries(${target_name} PRIVATE ${dep})
   # And run the test with the correct reporting options.
-  add_test(NAME ${target_name} COMMAND ${target_name})
+  add_test(NAME ${target_name} COMMAND ${target_name} "--rerun-failed" "--output-on-failure")
 endMacro()
