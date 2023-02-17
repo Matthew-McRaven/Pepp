@@ -22,7 +22,6 @@
 */
 #include "visit.hpp"
 
-#include <fmt/core.h>
 #include <sstream>
 #include <string>
 
@@ -171,21 +170,19 @@ QString symbol::tableListing(QSharedPointer<Table> table, quint8 maxBytes,
   auto symbols = enumerate(table, policy);
   auto it = symbols.cbegin();
   // Compute the bitwidth of the symbol table.
-  const auto template_string =
-      fmt::vformat(":0{}X", fmt::make_format_args(maxBytes * 2));
   // Helper lambda to pretty print a single symbol.
-  auto format = [&template_string, &maxBytes](const auto &sym) {
-    return fmt::vformat(
-        "{:<9} {" + template_string + "}",
-        fmt::make_format_args(sym->name.toStdString(), sym->value->value()()));
+  auto format = [&maxBytes](const auto &sym) {
+    return u"%1 0x%2"_qs.arg(sym->name.leftJustified(9, ' '))
+        .arg(QString::number(sym->value->value()(), 16).toUpper(), 2 * maxBytes,
+             u'0');
   };
   std::ostringstream ss;
   bool lhs = true;
   while (it != symbols.cend()) {
     if (lhs)
-      ss << format(*it++);
+      ss << format(*it++).toStdString();
     else
-      ss << "         " << format(*it++) << std::endl;
+      ss << "         " << format(*it++).toStdString() << std::endl;
     lhs ^= true;
   }
 

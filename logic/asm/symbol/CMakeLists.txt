@@ -4,8 +4,7 @@ include(../../../config/cmake/create_targets.cmake)
 
 enable_testing()
 make_library(symbol symbol)
-target_include_directories(symbol PRIVATE fmt)
-target_link_libraries(symbol PRIVATE "fmt;Qt6::Core")
+target_link_libraries(symbol PRIVATE "Qt6::Core")
 
 if(NOT IOS)
   make_qtest(test-symbol-ntable test/n_table.test.cpp "symbol;Qt6::Core;Qt6::Test")
