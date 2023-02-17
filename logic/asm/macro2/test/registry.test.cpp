@@ -1,39 +1,42 @@
-#include <catch.hpp>
-
-#include "macro/macro.hpp"
 #include "macro/registry.hpp"
-TEST_CASE("macro::Registry") {
-  SECTION("registers macros") {
+#include "macro/macro.hpp"
+#include <QTest>
+class MacroRegistry : public QObject {
+  Q_OBJECT
+private slots:
+  void registersMacros() {
     macro::Registry reg;
     auto parsed = new macro::Parsed("alpha", 0, "body", "none");
     auto registered = reg.registerMacro(macro::Type::Core, parsed);
-    CHECK(registered != nullptr);
-    CHECK(registered->contents() == parsed);
+    QCOMPARE_NE(registered, nullptr);
+    QCOMPARE(registered->contents(), parsed);
   }
-  SECTION("can find macros by name") {
+  void findByName() {
     macro::Registry reg;
     auto parsed = new macro::Parsed("alpha", 0, "body", "none");
     auto registered = reg.registerMacro(macro::Type::Core, parsed);
-    CHECK(registered != nullptr);
-    CHECK(registered->contents() == parsed);
-    CHECK(reg.findMacro("alpha") == registered);
+    QCOMPARE_NE(registered, nullptr);
+    QCOMPARE(registered->contents(), parsed);
+    QCOMPARE(reg.findMacro("alpha"), registered);
   }
-  SECTION("reject macros with duplicate names") {
+  void rejectDuplicateNames() {
     macro::Registry reg;
     auto parsed = new macro::Parsed("alpha", 0, "body", "none");
     auto parsed2 = new macro::Parsed("alpha", 0, "body", "none");
     auto registered = reg.registerMacro(macro::Type::Core, parsed);
-    CHECK(registered != nullptr);
-    CHECK(reg.registerMacro(macro::Type::Core, parsed2) == nullptr);
+    QCOMPARE_NE(registered, nullptr);
+    QCOMPARE(reg.registerMacro(macro::Type::Core, parsed2), nullptr);
   }
-  SECTION("distinguishes macro types") {
+  void delineatesTypes() {
     macro::Registry reg;
     auto parsed = new macro::Parsed("alpha", 0, "body", "none");
     auto parsed2 = new macro::Parsed("beta", 0, "body", "none");
-    CHECK(reg.registerMacro(macro::Type::Core, parsed) != nullptr);
-    CHECK(reg.registerMacro(macro::Type::System, parsed2) != nullptr);
-    CHECK(reg.findMacrosByType(macro::Type::Core).size() == 1);
-    CHECK(reg.findMacrosByType(macro::Type::System).size() == 1);
-    CHECK(reg.findMacrosByType(macro::Type::User).size() == 0);
+    QVERIFY(reg.registerMacro(macro::Type::Core, parsed) != nullptr);
+    QVERIFY(reg.registerMacro(macro::Type::System, parsed2) != nullptr);
+    QVERIFY(reg.findMacrosByType(macro::Type::Core).size() == 1);
+    QVERIFY(reg.findMacrosByType(macro::Type::System).size() == 1);
+    QVERIFY(reg.findMacrosByType(macro::Type::User).size() == 0);
   }
-}
+};
+#include "registry.test.moc"
+QTEST_MAIN(MacroRegistry);
