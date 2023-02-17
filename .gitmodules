@@ -4,9 +4,6 @@
 [submodule "3rd-party/magic_enum"]
 	path = 3rd-party/magic_enum
 	url = https://github.com/Neargye/magic_enum
-[submodule "3rd-party/catch"]
-	path = 3rd-party/catch
-	url = https://gitlab.com/pepnext/3rd-party/catch
 [submodule "3rd-party/elfio"]
 	path = 3rd-party/elfio
 	url = https://gitlab.com/pepnext/3rd-party/elfio

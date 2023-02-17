@@ -26,4 +26,6 @@ jobs:
           dir: $RUNNER_WORKSPACE/qt
       - run: export BOOST_ROOT=/usr/local/lib
       - run: cmake -B ../build .
-      - run: cd ../build && make -j20 && make test
+      - run: export CTEST_OUTPUT_ON_FAILURE=TRUE
+      # Must set platform, because the container is non-gui
+      - run: export QT_QPA_PLATFORM=offscreen && cd ../build && make -j20 && (make test || (cat ../build/Testing/Temporary/LastTest.log && exit 1))
