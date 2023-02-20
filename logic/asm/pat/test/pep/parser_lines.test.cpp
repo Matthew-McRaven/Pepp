@@ -26,7 +26,7 @@ private slots:
       QVERIFY2(
           parse(value.begin(), value.end(), pat::pep::parse::unary, result),
           value.data());
-      qWarning() << QString::fromStdString(result.comment)
+      qWarning() << QString::fromStdString(result.comment) << result.hasComment
                  << QString::fromStdString(result.identifier)
                  << QString::fromStdString(result.symbol);
     }
@@ -43,7 +43,7 @@ private slots:
           value.data());
       qWarning()
           << QString::fromStdString(result.comment)
-          << QString::fromStdString(result.identifier)
+          << QString::fromStdString(result.identifier) << result.hasComment
           << (boost::get<pat::pep::parse::DecimalLiteral>(result.arg).value)
           << QString::fromStdString(result.addr)
           << QString::fromStdString(result.symbol);
@@ -59,7 +59,8 @@ private slots:
           value.data());
       qWarning() << QString::fromStdString(result.comment)
                  << QString::fromStdString(result.identifier)
-                 << result.args.size() << QString::fromStdString(result.symbol);
+                 << result.hasComment << result.args.size()
+                 << QString::fromStdString(result.symbol);
     }
   }
   void testMacro() {
@@ -72,7 +73,8 @@ private slots:
           value.data());
       qWarning() << QString::fromStdString(result.comment)
                  << QString::fromStdString(result.identifier)
-                 << result.args.size() << QString::fromStdString(result.symbol);
+                 << result.hasComment << result.args.size()
+                 << QString::fromStdString(result.symbol);
     }
   }
 };
