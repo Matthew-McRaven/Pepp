@@ -32,34 +32,40 @@ const auto comment_def = lexeme[lit(";") >> *(char_)];
 BOOST_SPIRIT_DEFINE(comment);
 
 const auto symbol = parse::identifier_def >> lit(":");
-
+const auto setComment = [](auto &ctx) { _val(ctx).hasComment = true; };
 // Unary Line
-// BUG: empty comments will have no contents. Need a bool flag to detect.
-rule<class unary, parse::UnaryType> unary = "unary";
-const auto unary_def = skip(space)[-symbol >> identifier_def >> -comment_def];
+// 3rd template param = true needed to force auto attribute propogation with
+// semantic actions
+rule<class unary, parse::UnaryType, true> unary = "unary";
+const auto unary_def =
+    skip(space)[-symbol >> identifier_def >> -comment_def[setComment]];
 BOOST_SPIRIT_DEFINE(unary);
 
 // NonUnary Line
-// BUG: empty comments will have no contents. Need a bool flag to detect.
-rule<class nonunary, parse::NonUnaryType> nonunary = "nonunary";
+// 3rd template param = true needed to force auto attribute propogation with
+// semantic actions.
+rule<class nonunary, parse::NonUnaryType, true> nonunary = "nonunary";
 const auto nonunary_def =
     skip(space)[-symbol >> identifier_def >> parse::argument >>
-                -("," >> identifier_def) >> -comment_def];
+                -("," >> identifier_def) >> -comment_def[setComment]];
 BOOST_SPIRIT_DEFINE(nonunary);
 
 // Directive Line
-// BUG: empty comments will have no contents. Need a bool flag to detect.
-rule<class directive, parse::DirectiveType> directive = "directive";
+// 3rd template param = true needed to force auto attribute propogation with
+// semantic actions.
+rule<class directive, parse::DirectiveType, true> directive = "directive";
 const auto directive_def =
     skip(space)[-symbol >> lexeme["." >> identifier_def] >>
-                *(parse::argument % ",") >> -comment_def];
+                *(parse::argument % ",") >> -comment_def[setComment]];
 BOOST_SPIRIT_DEFINE(directive);
 
 // Directive Line
-// BUG: empty comments will have no contents. Need a bool flag to detect.
-rule<class macro, parse::MacroType> macro = "macro";
-const auto macro_def = skip(space)[-symbol >> lexeme["@" >> identifier_def] >>
-                                   *(parse::argument % ",") >> -comment_def];
+// 3rd template param = true needed to force auto attribute propogation with
+// semantic actions.
+rule<class macro, parse::MacroType, true> macro = "macro";
+const auto macro_def =
+    skip(space)[-symbol >> lexeme["@" >> identifier_def] >>
+                *(parse::argument % ",") >> -comment_def[setComment]];
 BOOST_SPIRIT_DEFINE(macro);
 
 // Lines

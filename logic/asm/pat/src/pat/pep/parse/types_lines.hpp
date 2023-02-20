@@ -13,24 +13,28 @@ struct CommentType {
 
 struct UnaryType {
   std::string symbol, identifier, comment;
+  bool hasComment = false;
 };
 
 struct NonUnaryType {
   std::string symbol, identifier;
   parse::Value arg;
   std::string addr, comment;
+  bool hasComment = false;
 };
 
 struct DirectiveType {
   std::string symbol, identifier;
   std::vector<parse::Value> args;
   std::string comment;
+  bool hasComment = false;
 };
 
 struct MacroType {
   std::string symbol, identifier;
   std::vector<parse::Value> args;
   std::string comment;
+  bool hasComment = false;
 };
 
 typedef boost::variant<BlankType, CommentType, UnaryType, NonUnaryType,
