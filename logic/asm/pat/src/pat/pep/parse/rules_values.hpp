@@ -1,6 +1,6 @@
 #pragma once
 
-#include "../ast/values.hpp"
+#include "./types_values.hpp"
 #include <QtCore>
 #include <boost/spirit/home/x3.hpp>
 
@@ -26,35 +26,35 @@ const auto escape_hex_code = lit("\\") >> lit("x") |
 const auto inner_char = (char_ - "\\") | escape_codes | escape_hex_code;
 
 // Character Literal
-rule<class character, pep::ast::CharacterLiteral> character = "character";
+rule<class character, parse::CharacterLiteral> character = "character";
 const auto character_def = lexeme["'" >> raw[-(inner_char - "'")] >> "'"];
 BOOST_SPIRIT_DEFINE(character);
 
 // String Literal
-rule<class strings, pep::ast::StringLiteral> strings = "strings";
+rule<class strings, parse::StringLiteral> strings = "strings";
 const auto strings_def = lexeme["\"" >> raw[*(inner_char - "\"")] >> "\""];
 BOOST_SPIRIT_DEFINE(strings);
 
 // Identifier
 const auto ident_char =
     char_ - (space | "\"" | lit("'") | lit(":") | lit(";") | "," | ".");
-rule<class identifier, pep::ast::Identifier> identifier = "identifier";
+rule<class identifier, parse::Identifier> identifier = "identifier";
 const auto identifier_def = lexeme[raw[(ident_char - digit) >> *ident_char]];
 BOOST_SPIRIT_DEFINE(identifier);
 
 // Decimal Literal
-rule<class decimal, pep::ast::DecimalLiteral> decimal = "decimal";
+rule<class decimal, parse::DecimalLiteral> decimal = "decimal";
 const auto decimal_def = int_;
 BOOST_SPIRIT_DEFINE(decimal);
 
 // Hexadecimal Literal
-rule<class hexadecimal, pep::ast::HexadecimalLiteral> hexadecimal =
+rule<class hexadecimal, parse::HexadecimalLiteral> hexadecimal =
     "hexadecimal";
 const auto hexadecimal_def = "0x" >> no_skip[uint_parser<quint64, 16>{}];
 BOOST_SPIRIT_DEFINE(hexadecimal);
 
 // Argument Non-terminal
-rule<class argument, pep::ast::Value> argument = "argument";
+rule<class argument, parse::Value> argument = "argument";
 const auto argument_def =
     strings | character | identifier | hexadecimal | decimal;
 BOOST_SPIRIT_DEFINE(argument);
