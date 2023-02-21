@@ -7,7 +7,17 @@ class Entry;
 namespace pat::ast::argument {
 struct Symbolic : public Base {
 public:
+  explicit Symbolic();
   Symbolic(QSharedPointer<symbol::Entry> value, bits::BitOrder endian);
+  Symbolic(const Symbolic &other);
+  Symbolic(Symbolic &&other) noexcept;
+  Symbolic &operator=(Symbolic other);
+  friend void swap(Symbolic &first, Symbolic &second) {
+    using std::swap;
+    swap(first._value, second._value);
+    swap(first._endian, second._endian);
+  }
+
   bool isNumeric() const override { return true; }
   bool isFixedSize() const override { return true; }
   bool isWide() const override { return false; }
@@ -23,7 +33,7 @@ public:
   QString string() const override;
 
 private:
-  const bits::BitOrder _endian;
-  const QSharedPointer<symbol::Entry> _value;
+  bits::BitOrder _endian;
+  QSharedPointer<symbol::Entry> _value;
 };
 } // namespace pat::ast::argument

@@ -4,7 +4,17 @@
 namespace pat::ast::argument {
 class Character : public Base {
 public:
-  Character(QString value);
+  explicit Character();
+  explicit Character(QString value);
+  Character(const Character &other);
+  Character(Character &&other) noexcept;
+  Character &operator=(Character other);
+  friend void swap(Character &first, Character &second) {
+    using std::swap;
+    swap(first._value, second._value);
+    swap(first._valueAsBytes, second._valueAsBytes);
+  }
+
   bool isNumeric() const override { return false; }
   bool isFixedSize() const override { return true; }
   bool isWide() const override { return false; }
@@ -20,7 +30,7 @@ public:
   QString string() const override;
 
 private:
-  const QString _value;
-  QByteArray _valueAsBytes;
+  QString _value = {};
+  QByteArray _valueAsBytes = {};
 };
 }; // namespace pat::ast::argument

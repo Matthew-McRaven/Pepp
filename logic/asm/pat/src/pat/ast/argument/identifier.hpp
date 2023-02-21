@@ -4,7 +4,16 @@
 namespace pat::ast::argument {
 struct Identifier : public Base {
 public:
-  Identifier(QString value);
+  explicit Identifier();
+  explicit Identifier(QString value);
+  Identifier(const Identifier &other);
+  Identifier(Identifier &&other) noexcept;
+  Identifier &operator=(Identifier other);
+  friend void swap(Identifier &first, Identifier &second) {
+    using std::swap;
+    swap(first._value, second._value);
+  }
+
   bool isNumeric() const override { return false; }
   bool isFixedSize() const override { return false; }
   bool isWide() const override { return false; }
@@ -20,6 +29,6 @@ public:
   QString string() const override;
 
 private:
-  const QString _value;
+  QString _value = {};
 };
 } // namespace pat::ast::argument
