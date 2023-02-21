@@ -69,7 +69,7 @@ const auto macro_def =
 BOOST_SPIRIT_DEFINE(macro);
 
 // Lines
-rule<class line, parse::LineType> line = "line";
+rule<class line, std::vector<parse::LineType>> line = "line";
 const auto line_def =
     (directive | macro | unary | nonunary | comment | blank) % eol;
 BOOST_SPIRIT_DEFINE(line);
