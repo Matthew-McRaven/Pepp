@@ -1,0 +1,57 @@
+#pragma once
+#include "./directive.hpp"
+
+namespace pat::ast::node {
+class Skip : public Directive {
+public:
+  struct Config {
+    QString name = u"BLOCK"_qs;
+    bits::BitOrder endian = bits::BitOrder::LittleEndian;
+    bool emitFill = false;
+    bool useDefaultFill = true;
+    quint8 defaultFill = 0;
+  };
+  explicit Skip();
+  Skip(QSharedPointer<argument::Base> argument, FileLocation sourceLocation,
+       QWeakPointer<Base> parent = {});
+  Skip(const Skip &other);
+  Skip(Skip &&other) noexcept;
+  Skip &operator=(Skip other);
+  friend void swap(Skip &first, Skip &second) {
+    using std::swap;
+    swap((Directive &)first, (Directive &)second);
+    swap(first._config, second._config);
+    swap(first._argument, second._argument);
+    swap(first._fill, second._fill);
+    swap(first._emitsBytes, second._emitsBytes);
+  }
+
+  const Config &config() const;
+  void setConfig(Config config);
+  QSharedPointer<const argument::Base> fill() const;
+  void setFill(QSharedPointer<argument::Base> fill);
+
+  // ast::Value interface
+  QSharedPointer<Value> clone() const override;
+  bits::BitOrder endian() const override;
+  quint64 size() const override;
+  bool bits(QByteArray &out, bits::BitSelection src,
+            bits::BitSelection dest) const override;
+  bool bytes(QByteArray &out, qsizetype start, qsizetype length) const override;
+  QString string() const override;
+
+  // ast::node::Base interface
+  const AddressSpan &addressSpan() const override;
+  void updateAddressSpan(void *update) const override;
+  bool emitsBytes() const override;
+  void setEmitsBytes(bool emitBytes) override;
+
+private:
+  Config _config = {};
+  QSharedPointer<argument::Base> _argument = nullptr; // numeric && fixedSize
+  QSharedPointer<argument::Base> _fill =
+      nullptr; // numeric && fixedSize. Uses default config if nullptr &&
+               // config.allowDefaultPad
+  bool _emitsBytes = true;
+};
+} // namespace pat::ast::node
