@@ -41,11 +41,20 @@ private slots:
     QVERIFY(r);
   }
 
-  void parseNumber() {
-    using pat::pep::parse::decimal;
+  void parseSignedNumber() {
+    using pat::pep::parse::signed_decimal;
+    auto value = "-1025"s;
+    pat::pep::parse::DecimalLiteral result;
+    auto r = parse(value.begin(), value.end(), signed_decimal, result);
+    qDebug() << (qint64)result.value;
+    QVERIFY(r);
+  }
+
+  void parseUnsignedNumber() {
+    using pat::pep::parse::unsigned_decimal;
     auto value = "1025"s;
     pat::pep::parse::DecimalLiteral result;
-    auto r = parse(value.begin(), value.end(), decimal, result);
+    auto r = parse(value.begin(), value.end(), unsigned_decimal, result);
     qDebug() << result.value;
     QVERIFY(r);
   }
