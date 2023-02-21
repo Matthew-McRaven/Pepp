@@ -38,8 +38,8 @@ const auto strings_def = lexeme["\"" >> raw[*(inner_char - "\"")] >> "\""];
 BOOST_SPIRIT_DEFINE(strings);
 
 // Identifier
-const auto ident_char =
-    char_ - (space | "\"" | lit("'") | lit(":") | lit(";") | "," | ".");
+const auto ident_char = char_ - (space | "\"" | lit("'") | lit(":") | lit(";") |
+                                 lit(",") | lit(".") | lit("-"));
 rule<class identifier, parse::Identifier> identifier = "identifier";
 const auto identifier_def = lexeme[raw[(ident_char - digit) >> *ident_char]];
 BOOST_SPIRIT_DEFINE(identifier);
