@@ -18,6 +18,12 @@ pat::ast::node::ASCII &pat::ast::node::ASCII::operator=(ASCII other) {
   return *this;
 }
 
+const pat::ast::node::ASCII::Config &pat::ast::node::ASCII::config() const {
+  return _config;
+}
+
+void pat::ast::node::ASCII::setConfig(Config config) { _config = config; }
+
 pat::ast::node::ASCII::ValidateResult pat::ast::node::ASCII::validate_argument(
     QSharedPointer<const argument::Base> argument) {
   if (argument->isText())

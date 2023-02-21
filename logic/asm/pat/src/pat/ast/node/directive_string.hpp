@@ -22,6 +22,9 @@ struct ASCII : public Directive {
     swap(first._emitsBytes, second._emitsBytes);
   }
 
+  const Config &config() const;
+  void setConfig(Config config);
+
   struct ValidateResult {
     bool valid = true;
     QString errorMessage = {};
