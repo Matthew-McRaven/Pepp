@@ -61,9 +61,6 @@ Item {
 
       //  Update code listing
       onActivated: figCol.listing = currentValue
-/*      function changeIndex(index){
-        currentIndex = 0;
-      }*/
 
       //  Use similar size as topic title
       font.pointSize: 22
@@ -125,19 +122,22 @@ Item {
     }
 
     //  Figure contents
-    TextArea {
-      id: figContent
-
+    ScrollView {
       Layout.alignment: Qt.AlignCenter
       Layout.fillHeight: true;
       Layout.fillWidth: true
-      font.family: "Courier New"
 
-      //textFormat: TextEdit.RichText
-      wrapMode: TextEdit.NoWordWrap
-      readOnly: true;
+      TextArea {
+        id: figContent
 
-      text: figCol.listing
+        font.family: "Courier New"
+
+        //textFormat: TextEdit.RichText
+        wrapMode: TextEdit.NoWordWrap
+        readOnly: true;
+
+        text: figCol.listing
+      }
     }
 
     Row {
