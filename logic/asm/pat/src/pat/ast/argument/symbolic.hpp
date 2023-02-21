@@ -33,7 +33,7 @@ public:
   QString string() const override;
 
 private:
-  bits::BitOrder _endian;
-  QSharedPointer<symbol::Entry> _value;
+  bits::BitOrder _endian = bits::BitOrder::LittleEndian;
+  QSharedPointer<symbol::Entry> _value = nullptr;
 };
 } // namespace pat::ast::argument
