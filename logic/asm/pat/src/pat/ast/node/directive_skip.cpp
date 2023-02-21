@@ -38,6 +38,15 @@ void pat::ast::node::Skip::setFill(QSharedPointer<argument::Base> fill) {
   _fill = fill;
 }
 
+pat::ast::node::Skip::ValidateResult pat::ast::node::Skip::validate_argument(
+    QSharedPointer<const argument::Base> argument) {
+  if (!argument->isFixedSize())
+    return {.valid = false, .errorMessage = u"Argument must be fixed size"_qs};
+  else if (!argument->isNumeric())
+    return {.valid = false, .errorMessage = u"Argument must be numeric"_qs};
+  return {.valid = true};
+}
+
 QSharedPointer<pat::ast::Value> pat::ast::node::Skip::clone() const {
   return QSharedPointer<Skip>::create(*this);
 }

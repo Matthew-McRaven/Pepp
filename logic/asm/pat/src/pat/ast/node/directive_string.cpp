@@ -18,6 +18,13 @@ pat::ast::node::ASCII &pat::ast::node::ASCII::operator=(ASCII other) {
   return *this;
 }
 
+pat::ast::node::ASCII::ValidateResult pat::ast::node::ASCII::validate_argument(
+    QSharedPointer<const argument::Base> argument) {
+  if (argument->isText())
+    return {.valid = true};
+  return {.valid = false, .errorMessage = u"Argument must be string"_qs};
+}
+
 QSharedPointer<pat::ast::Value> pat::ast::node::ASCII::clone() const {
   return QSharedPointer<ASCII>::create(*this);
 }

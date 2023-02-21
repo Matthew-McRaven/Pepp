@@ -1,9 +1,9 @@
 #include "./directive_bytes.hpp"
-
+#include "../argument/base.hpp"
 pat::ast::node::Byte1::Byte1() : Directive() {}
 
 pat::ast::node::Byte1::Byte1(
-    const QList<QSharedPointer<const argument::Base>> argument,
+    QList<QSharedPointer<const argument::Base>> argument,
     FileLocation sourceLocation, QWeakPointer<node::Base> parent)
     : Directive(sourceLocation, parent), _argument(argument) {}
 
@@ -25,6 +25,22 @@ const pat::ast::node::Byte1::Config &pat::ast::node::Byte1::config() const {
 }
 
 void pat::ast::node::Byte1::setConfig(Config config) { _config = config; }
+
+pat::ast::node::Byte1::ValidateResult pat::ast::node::Byte1::validate_argument(
+    const QList<QSharedPointer<const argument::Base>> argument) {
+  for (qsizetype it = 0; it < argument.size(); it++) {
+    auto arg = argument[it];
+    if (!arg->isFixedSize())
+      return {.valid = false,
+              .argumentIndex = it,
+              .errorMessage = u"Argument must be fixed size"_qs};
+    else if (!arg->isNumeric())
+      return {.valid = false,
+              .argumentIndex = it,
+              .errorMessage = u"Argument must be numeric"_qs};
+  }
+  return {.valid = true};
+}
 
 QSharedPointer<pat::ast::Value> pat::ast::node::Byte1::clone() const {
   return QSharedPointer<Byte1>::create(*this);
@@ -87,6 +103,22 @@ const pat::ast::node::Byte2::Config &pat::ast::node::Byte2::config() const {
 }
 
 void pat::ast::node::Byte2::setConfig(Config config) { _config = config; }
+
+pat::ast::node::Byte2::ValidateResult pat::ast::node::Byte2::validate_argument(
+    const QList<QSharedPointer<const argument::Base>> argument) {
+  for (qsizetype it = 0; it < argument.size(); it++) {
+    auto arg = argument[it];
+    if (!arg->isFixedSize())
+      return {.valid = false,
+              .argumentIndex = it,
+              .errorMessage = u"Argument must be fixed size"_qs};
+    else if (!arg->isNumeric())
+      return {.valid = false,
+              .argumentIndex = it,
+              .errorMessage = u"Argument must be numeric"_qs};
+  }
+  return {.valid = true};
+}
 
 QSharedPointer<pat::ast::Value> pat::ast::node::Byte2::clone() const {
   return QSharedPointer<Byte2>::create(*this);

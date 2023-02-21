@@ -31,6 +31,13 @@ public:
   QSharedPointer<const argument::Base> fill() const;
   void setFill(QSharedPointer<argument::Base> fill);
 
+  struct ValidateResult {
+    bool valid = true;
+    QString errorMessage = {};
+  };
+  static ValidateResult
+  validate_argument(QSharedPointer<const argument::Base> argument);
+
   // ast::Value interface
   QSharedPointer<Value> clone() const override;
   bits::BitOrder endian() const override;

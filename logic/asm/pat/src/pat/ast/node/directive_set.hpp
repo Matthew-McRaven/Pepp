@@ -29,6 +29,13 @@ public:
   const Config &config() const;
   void setConfig(Config config);
 
+  struct ValidateResult {
+    bool valid = true;
+    QString errorMessage = {};
+  };
+  static ValidateResult
+  validate_argument(QSharedPointer<const argument::Base> argument);
+
   // ast::Value interface
   QSharedPointer<Value> clone() const override;
   bits::BitOrder endian() const override;

@@ -27,6 +27,14 @@ struct Align : public Directive {
   const Config &config() const;
   void setConfig(Config config);
   void setPad(QSharedPointer<argument::Base> pad);
+
+  struct ValidateResult {
+    bool valid = true;
+    QString errorMessage = {};
+  };
+  static ValidateResult
+  validate_argument(QSharedPointer<const argument::Base> argument);
+
   // ast::Value interface
   QSharedPointer<Value> clone() const override;
   bits::BitOrder endian() const override;
