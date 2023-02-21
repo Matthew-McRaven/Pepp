@@ -13,16 +13,18 @@ struct StringLiteral : public TextLiteral {};
 struct Identifier : public TextLiteral {};
 
 struct NumericLiteral {
-  int64_t value;
+  uint64_t value;
 };
-struct DecimalLiteral : public NumericLiteral {};
+struct DecimalLiteral : public NumericLiteral {
+  bool isSigned = false;
+};
 struct HexadecimalLiteral : public NumericLiteral {};
 
 typedef boost::variant<StringLiteral, CharacterLiteral, Identifier,
                        DecimalLiteral, HexadecimalLiteral>
     Value;
 using boost::fusion::operator<<;
-} // namespace pat::pep::ast
+} // namespace pat::pep::parse
 
 BOOST_FUSION_ADAPT_STRUCT(pat::pep::parse::CharacterLiteral, value);
 BOOST_FUSION_ADAPT_STRUCT(pat::pep::parse::StringLiteral, value);
