@@ -2,13 +2,28 @@
 #include "../../bits/operations.hpp"
 #include "../../bits/order.hpp"
 #include "symbol/entry.hpp"
+pat::ast::argument::Symbolic::Symbolic() {}
+
 pat::ast::argument::Symbolic::Symbolic(QSharedPointer<symbol::Entry> value,
                                        bits::BitOrder endian)
-    : _endian(endian), _value(value) {}
+    : Base(), _endian(endian), _value(value) {}
+
+pat::ast::argument::Symbolic::Symbolic(const Symbolic &other)
+    : Base(), _endian(other._endian), _value(other._value) {}
+
+pat::ast::argument::Symbolic::Symbolic(Symbolic &&other) noexcept : Symbolic() {
+  swap(*this, other);
+}
+
+pat::ast::argument::Symbolic &
+pat::ast::argument::Symbolic::operator=(Symbolic other) {
+  swap(*this, other);
+  return *this;
+}
 
 QSharedPointer<pat::ast::Value> pat::ast::argument::Symbolic::clone() const {
   // BUG: Symbol needs to be forked into a new table!!
-  return QSharedPointer<Symbolic>::create(_value, _endian);
+  return QSharedPointer<Symbolic>::create(*this);
 }
 
 pat::bits::BitOrder pat::ast::argument::Symbolic::endian() const {

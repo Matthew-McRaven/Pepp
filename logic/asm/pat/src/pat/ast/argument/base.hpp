@@ -4,6 +4,9 @@
 namespace pat::ast::argument {
 class Base : public pat::ast::Value {
 public:
+  explicit Base();
+  friend void swap(Base &first, Base &second) { using std::swap; }
+
   virtual bool
   isNumeric() const = 0; // Does the argument make sense as a quint64?
   virtual bool isFixedSize() const = 0; // Can different arguments of this type
@@ -20,5 +23,9 @@ public:
   virtual bool bytes(QByteArray &out, qsizetype start,
                      qsizetype length) const override = 0;
   virtual QString string() const override = 0;
+
+protected:
+  Base(const Base &other) = delete;
+  Base &operator=(const Base &other) = delete;
 };
 } // namespace pat::ast::argument

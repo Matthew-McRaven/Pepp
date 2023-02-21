@@ -4,7 +4,16 @@
 namespace pat::ast::argument {
 struct Numeric : public Base {
 public:
+  explicit Numeric();
   Numeric(qint64 value, quint8 size, bits::BitOrder endian);
+  friend void swap(Numeric &first, Numeric &second) {
+    using std::swap;
+    swap((Base &)first, (Base &)second);
+    swap(first._endian, second._endian);
+    swap(first._size, second._size);
+    swap(first._value, second._value);
+  }
+
   bool isNumeric() const override { return true; }
   bool isFixedSize() const override { return true; }
   bool isWide() const override { return false; }
@@ -20,8 +29,10 @@ public:
   virtual QString string() const override = 0;
 
 protected:
-  const bits::BitOrder _endian;
-  const quint8 _size;
-  const qint64 _value;
+  Numeric(const Numeric &other);
+  Numeric &operator=(const Numeric &other);
+  bits::BitOrder _endian = bits::BitOrder::NotApplicable;
+  quint8 _size = 0;
+  qint64 _value = 0;
 };
 } // namespace pat::ast::argument

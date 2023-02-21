@@ -1,5 +1,7 @@
 #include "numeric.hpp"
 #include "../../bits/operations.hpp"
+pat::ast::argument::Numeric::Numeric() : Base() {}
+
 pat::ast::argument::Numeric::Numeric(qint64 value, quint8 size,
                                      bits::BitOrder endian)
     : _endian(endian), _size(size), _value(value) {
@@ -26,4 +28,18 @@ bool pat::ast::argument::Numeric::bits(QByteArray &out, bits::BitSelection src,
 bool pat::ast::argument::Numeric::bytes(QByteArray &out, qsizetype start,
                                         qsizetype length) const {
   throw std::logic_error("Unimplemented");
+}
+
+pat::ast::argument::Numeric::Numeric(const Numeric &other)
+    : Base(), _endian(other._endian), _size(other._size), _value(other._value) {
+
+}
+
+pat::ast::argument::Numeric &
+pat::ast::argument::Numeric::operator=(const Numeric &other) {
+  // Base::operator=(other); // Needed if we add data to Base.
+  this->_endian = other._endian;
+  this->_size = other._size;
+  this->_value = other._value;
+  return *this;
 }

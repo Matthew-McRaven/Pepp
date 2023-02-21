@@ -12,5 +12,11 @@ struct Value {
   virtual bool bytes(QByteArray &out, qsizetype start,
                      qsizetype length) const = 0;
   virtual QString string() const = 0;
+  friend void swap(Value &first, Value &second) { using std::swap; }
+
+protected:
+  explicit Value() = default;
+  Value(const Value &other) = delete;
+  Value &operator=(const Value &other) = delete;
 };
 }; // namespace pat::ast
