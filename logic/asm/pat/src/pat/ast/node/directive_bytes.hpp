@@ -8,7 +8,7 @@ struct Byte1 : public Directive {
     bits::BitOrder endian = bits::BitOrder::LittleEndian;
   };
   explicit Byte1();
-  Byte1(const QList<QSharedPointer<const argument::Base>> argument,
+  Byte1(QList<QSharedPointer<const argument::Base>> argument,
         FileLocation sourceLocation, QWeakPointer<Base> parent);
   Byte1(const Byte1 &other);
   Byte1(Byte1 &&other) noexcept;
@@ -23,6 +23,13 @@ struct Byte1 : public Directive {
 
   const Config &config() const;
   void setConfig(Config config);
+  struct ValidateResult {
+    bool valid = true;
+    qsizetype argumentIndex = 0;
+    QString errorMessage = {};
+  };
+  static ValidateResult
+  validate_argument(const QList<QSharedPointer<const argument::Base>> argument);
 
   // ast::Value interface
   QSharedPointer<Value> clone() const override;
@@ -68,6 +75,14 @@ struct Byte2 : public Directive {
 
   const Config &config() const;
   void setConfig(Config config);
+
+  struct ValidateResult {
+    bool valid = true;
+    qsizetype argumentIndex = 0;
+    QString errorMessage = {};
+  };
+  static ValidateResult
+  validate_argument(const QList<QSharedPointer<const argument::Base>> argument);
 
   // ast::Value interface
   QSharedPointer<Value> clone() const override;

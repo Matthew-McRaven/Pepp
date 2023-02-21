@@ -1,4 +1,5 @@
 #include "./directive_set.hpp"
+#include "pat/ast/argument/base.hpp"
 
 pat::ast::node::Set::Set() : Directive() {}
 
@@ -21,6 +22,15 @@ const pat::ast::node::Set::Config &pat::ast::node::Set::config() const {
 }
 
 void pat::ast::node::Set::setConfig(Config config) { _config = config; }
+
+pat::ast::node::Set::ValidateResult pat::ast::node::Set::validate_argument(
+    QSharedPointer<const argument::Base> argument) {
+  if (!argument->isFixedSize())
+    return {.valid = false, .errorMessage = u"Argument must be fixed size"_qs};
+  else if (!argument->isNumeric())
+    return {.valid = false, .errorMessage = u"Argument must be numeric"_qs};
+  return {.valid = true};
+}
 
 QSharedPointer<pat::ast::Value> pat::ast::node::Set::clone() const {
   return QSharedPointer<Set>::create(*this);

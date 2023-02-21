@@ -28,6 +28,20 @@ void pat::ast::node::Align::setPad(QSharedPointer<argument::Base> pad) {
   _pad = pad;
 }
 
+pat::ast::node::Align::ValidateResult pat::ast::node::Align::validate_argument(
+    QSharedPointer<const argument::Base> argument) {
+  if (!argument->isFixedSize())
+    return {.valid = false, .errorMessage = u"Argument must be fixed size"_qs};
+  else if (!argument->isNumeric())
+    return {.valid = false, .errorMessage = u"Argument must be numeric"_qs};
+  quint64 value;
+  argument->value(reinterpret_cast<quint8 *>(&value), argument->size());
+  if (auto log = log2(value); floor(log) != ceil(log))
+    return {.valid = false,
+            .errorMessage = u"Argument must be a power of 2"_qs};
+  return {.valid = true};
+}
+
 QSharedPointer<pat::ast::Value> pat::ast::node::Align::clone() const {
   return QSharedPointer<Align>::create(*this);
 }
