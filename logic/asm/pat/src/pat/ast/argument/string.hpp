@@ -11,7 +11,6 @@ public:
   ShortString &operator=(ShortString other);
   friend void swap(ShortString &first, ShortString &second) {
     using std::swap;
-    swap(first._endian, second._endian);
     swap(first._size, second._size);
     swap(first._value, second._value);
     swap(first._valueAsBytes, second._valueAsBytes);
@@ -22,17 +21,14 @@ public:
   bool isWide() const override { return false; }
   bool isText() const override { return true; }
   bool isIdentifier() const override { return false; }
-  QSharedPointer<Value> clone() const override;
-  virtual bits::BitOrder endian() const override;
-  bool value(quint8 *dest, quint16 length) const override;
+  QSharedPointer<Base> clone() const override;
+  bool
+  value(quint8 *dest, qsizetype length,
+        bits::BitOrder destEndian = bits::BitOrder::BigEndian) const override;
   quint64 size() const override;
-  bool bits(QByteArray &out, bits::BitSelection src,
-            bits::BitSelection dest) const override;
-  bool bytes(QByteArray &out, qsizetype start, qsizetype length) const override;
   QString string() const override;
 
 private:
-  bits::BitOrder _endian = bits::BitOrder::NotApplicable;
   quint8 _size = 0;
   QString _value = {};
   QByteArray _valueAsBytes = {};
@@ -47,7 +43,6 @@ public:
   LongString &operator=(LongString other);
   friend void swap(LongString &first, LongString &second) {
     using std::swap;
-    swap(first._endian, second._endian);
     swap(first._value, second._value);
     swap(first._valueAsBytes, second._valueAsBytes);
   }
@@ -57,17 +52,14 @@ public:
   bool isWide() const override { return size() > 8; }
   bool isText() const override { return true; }
   bool isIdentifier() const override { return false; }
-  QSharedPointer<Value> clone() const override;
-  virtual bits::BitOrder endian() const override;
-  bool value(quint8 *dest, quint16 length) const override;
+  QSharedPointer<Base> clone() const override;
+  bool
+  value(quint8 *dest, qsizetype length,
+        bits::BitOrder destEndian = bits::BitOrder::BigEndian) const override;
   quint64 size() const override;
-  bool bits(QByteArray &out, bits::BitSelection src,
-            bits::BitSelection dest) const override;
-  bool bytes(QByteArray &out, qsizetype start, qsizetype length) const override;
   QString string() const override;
 
 private:
-  bits::BitOrder _endian = bits::BitOrder::NotApplicable;
   QString _value = {};
   QByteArray _valueAsBytes = {};
 };

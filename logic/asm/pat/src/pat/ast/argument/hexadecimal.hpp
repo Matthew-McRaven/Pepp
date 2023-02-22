@@ -13,7 +13,7 @@ public:
     swap((Numeric &)first, (Numeric &)second);
   }
 
-  QSharedPointer<Value> clone() const override;
+  QSharedPointer<Base> clone() const override;
   QString string() const override;
 };
 } // namespace pat::ast::argument
