@@ -23,23 +23,14 @@ pat::pep::ast::node::Burn::validate_argument(
   return {.valid = true};
 }
 
-QSharedPointer<pat::ast::Value> pat::pep::ast::node::Burn::clone() const {
+QSharedPointer<pat::ast::node::Base> pat::pep::ast::node::Burn::clone() const {
   return QSharedPointer<Burn>::create(*this);
-}
-
-pat::bits::BitOrder pat::pep::ast::node::Burn::endian() const {
-  return bits::BitOrder::NotApplicable;
 }
 
 quint64 pat::pep::ast::node::Burn::size() const { return 0; }
 
-bool pat::pep::ast::node::Burn::bits(QByteArray &out, bits::BitSelection src,
-                                     bits::BitSelection dest) const {
-  return true;
-}
-
-bool pat::pep::ast::node::Burn::bytes(QByteArray &out, qsizetype start,
-                                      qsizetype length) const {
+bool pat::pep::ast::node::Burn::value(quint8 *dest, qsizetype length,
+                                      bits::BitOrder destEndian) const {
   return true;
 }
 

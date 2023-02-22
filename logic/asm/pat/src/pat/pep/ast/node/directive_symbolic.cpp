@@ -7,20 +7,10 @@ pat::pep::ast::node::Symbolic::Symbolic(
     pat::ast::node::FileLocation sourceLocation, QWeakPointer<Base> parent)
     : Directive(sourceLocation, parent), _argument(argument) {}
 
-pat::bits::BitOrder pat::pep::ast::node::Symbolic::endian() const {
-  return bits::BitOrder::NotApplicable;
-}
-
 quint64 pat::pep::ast::node::Symbolic::size() const { return 0; }
 
-bool pat::pep::ast::node::Symbolic::bits(QByteArray &out,
-                                         bits::BitSelection src,
-                                         bits::BitSelection dest) const {
-  return true;
-}
-
-bool pat::pep::ast::node::Symbolic::bytes(QByteArray &out, qsizetype start,
-                                          qsizetype length) const {
+bool pat::pep::ast::node::Symbolic::value(quint8 *dest, qsizetype length,
+                                          bits::BitOrder destEndian) const {
   return true;
 }
 

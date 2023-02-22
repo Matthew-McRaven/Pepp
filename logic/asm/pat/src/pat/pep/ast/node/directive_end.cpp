@@ -23,23 +23,14 @@ void pat::pep::ast::node::End::setDoNotEmit(bool doNotEmit) {
   _doNotEmit = doNotEmit;
 }
 
-QSharedPointer<pat::ast::Value> pat::pep::ast::node::End::clone() const {
+QSharedPointer<pat::ast::node::Base> pat::pep::ast::node::End::clone() const {
   return QSharedPointer<End>::create(*this);
-}
-
-pat::bits::BitOrder pat::pep::ast::node::End::endian() const {
-  return bits::BitOrder::NotApplicable;
 }
 
 quint64 pat::pep::ast::node::End::size() const { return 0; }
 
-bool pat::pep::ast::node::End::bits(QByteArray &out, bits::BitSelection src,
-                                    bits::BitSelection dest) const {
-  return true;
-}
-
-bool pat::pep::ast::node::End::bytes(QByteArray &out, qsizetype start,
-                                     qsizetype length) const {
+bool pat::pep::ast::node::End::value(quint8 *dest, qsizetype length,
+                                     bits::BitOrder destEndian) const {
   return true;
 }
 
