@@ -15,68 +15,68 @@ class PepAstVisitor_ArgFromParseTree : public QObject {
 private slots:
   void testChar() {
     auto value = toValue(u"'a'"_qs);
-    auto visit = visitors::ParseToArg();
+    auto visit = visitor::ParseToArg();
     auto arg = value.apply_visitor(visit);
-    auto asTyped = dynamic_cast<pat::ast::argument::Character *>(arg);
+    auto asTyped = qSharedPointerCast<pat::ast::argument::Character>(arg);
     QCOMPARE_NE(asTyped, nullptr);
   }
 
   void testShortString() {
     auto value = toValue(u"\"ab\""_qs);
-    auto visit = visitors::ParseToArg();
+    auto visit = visitor::ParseToArg();
     auto arg = value.apply_visitor(visit);
-    auto asTyped = dynamic_cast<pat::ast::argument::ShortString *>(arg);
+    auto asTyped = qSharedPointerCast<pat::ast::argument::ShortString>(arg);
     QCOMPARE_NE(asTyped, nullptr);
   }
 
   void testLongString() {
     auto value = toValue(u"\"abc\""_qs);
-    auto visit = visitors::ParseToArg();
+    auto visit = visitor::ParseToArg();
     auto arg = value.apply_visitor(visit);
-    auto asTyped = dynamic_cast<pat::ast::argument::LongString *>(arg);
+    auto asTyped = qSharedPointerCast<pat::ast::argument::LongString>(arg);
     QCOMPARE_NE(asTyped, nullptr);
   }
 
   void testSignedDecimal() {
     auto value = toValue(u"-10"_qs);
-    auto visit = visitors::ParseToArg();
+    auto visit = visitor::ParseToArg();
     auto arg = value.apply_visitor(visit);
-    auto asTyped = dynamic_cast<pat::ast::argument::SignedDecimal *>(arg);
+    auto asTyped = qSharedPointerCast<pat::ast::argument::SignedDecimal>(arg);
     QCOMPARE_NE(asTyped, nullptr);
   }
 
   void testUnsignedDecimal() {
     auto value = toValue(u"10"_qs);
-    auto visit = visitors::ParseToArg();
+    auto visit = visitor::ParseToArg();
     auto arg = value.apply_visitor(visit);
-    auto asTyped = dynamic_cast<pat::ast::argument::UnsignedDecimal *>(arg);
+    auto asTyped = qSharedPointerCast<pat::ast::argument::UnsignedDecimal>(arg);
     QCOMPARE_NE(asTyped, nullptr);
   }
 
   void testHexadecimal() {
     auto value = toValue(u"0x10"_qs);
-    auto visit = visitors::ParseToArg();
+    auto visit = visitor::ParseToArg();
     auto arg = value.apply_visitor(visit);
-    auto asTyped = dynamic_cast<pat::ast::argument::Hexadecimal *>(arg);
+    auto asTyped = qSharedPointerCast<pat::ast::argument::Hexadecimal>(arg);
     QCOMPARE_NE(asTyped, nullptr);
   }
 
   void testSymbol() {
     auto value = toValue(u"ab"_qs);
-    auto visit = visitors::ParseToArg();
+    auto visit = visitor::ParseToArg();
     visit.preferIdent = false;
     visit.symTab = QSharedPointer<symbol::Table>::create();
     auto arg = value.apply_visitor(visit);
-    auto asTyped = dynamic_cast<pat::ast::argument::Symbolic *>(arg);
+    auto asTyped = qSharedPointerCast<pat::ast::argument::Symbolic>(arg);
     QCOMPARE_NE(asTyped, nullptr);
   }
 
   void testIdentifier() {
     auto value = toValue(u"cd"_qs);
-    auto visit = visitors::ParseToArg();
+    auto visit = visitor::ParseToArg();
     visit.preferIdent = true;
     auto arg = value.apply_visitor(visit);
-    auto asTyped = dynamic_cast<pat::ast::argument::Identifier *>(arg);
+    auto asTyped = qSharedPointerCast<pat::ast::argument::Identifier>(arg);
     QCOMPARE_NE(asTyped, nullptr);
   }
 };
