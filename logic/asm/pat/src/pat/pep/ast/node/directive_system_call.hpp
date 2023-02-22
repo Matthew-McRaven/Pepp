@@ -27,7 +27,7 @@ public:
       QSharedPointer<const ::pat::ast::argument::Symbolic> argument);
 
   // Value interface
-  QSharedPointer<pat::ast::Value> clone() const;
+  QSharedPointer<pat::ast::node::Base> clone() const;
   QString string() const;
 
 private:
@@ -56,7 +56,7 @@ public:
       QSharedPointer<const ::pat::ast::argument::Symbolic> argument);
 
   // Value interface
-  QSharedPointer<pat::ast::Value> clone() const;
+  QSharedPointer<pat::ast::node::Base> clone() const;
   QString string() const;
 };
 } // namespace pat::pep::ast::node

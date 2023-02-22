@@ -30,12 +30,11 @@ public:
   void setArgument(QSharedPointer<pat::ast::argument::Base> argument);
 
   // Value interface
-  QSharedPointer<pat::ast::Value> clone() const override;
-  bits::BitOrder endian() const override;
+  QSharedPointer<pat::ast::node::Base> clone() const override;
   quint64 size() const override;
-  bool bits(QByteArray &out, bits::BitSelection src,
-            bits::BitSelection dest) const override;
-  bool bytes(QByteArray &out, qsizetype start, qsizetype length) const override;
+  bool
+  value(quint8 *dest, qsizetype length,
+        bits::BitOrder destEndian = bits::BitOrder::BigEndian) const override;
   QString string() const override;
 
 private:
@@ -96,25 +95,15 @@ void Instruction_AAA<ISA>::setArgument(
 }
 
 template <typename ISA>
-QSharedPointer<pat::ast::Value> Instruction_AAA<ISA>::clone() const {
+QSharedPointer<pat::ast::node::Base> Instruction_AAA<ISA>::clone() const {
   return QSharedPointer<Instruction_AAA<ISA>>::create(*this);
-}
-
-template <typename ISA> bits::BitOrder Instruction_AAA<ISA>::endian() const {
-  return bits::BitOrder::BigEndian;
 }
 
 template <typename ISA> quint64 Instruction_AAA<ISA>::size() const { return 3; }
 
 template <typename ISA>
-bool Instruction_AAA<ISA>::bits(QByteArray &out, bits::BitSelection src,
-                                bits::BitSelection dest) const {
-  throw std::logic_error("Unimplemented");
-}
-
-template <typename ISA>
-bool Instruction_AAA<ISA>::bytes(QByteArray &out, qsizetype start,
-                                 qsizetype length) const {
+bool Instruction_AAA<ISA>::value(quint8 *dest, qsizetype length,
+                                 bits::BitOrder destEndian) const {
   throw std::logic_error("Unimplemented");
 }
 

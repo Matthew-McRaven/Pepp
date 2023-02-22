@@ -28,8 +28,8 @@ public:
       QSharedPointer<const ::pat::ast::argument::Symbolic> argument);
 
   // Value interface
-  QSharedPointer<pat::ast::Value> clone() const;
-  QString string() const;
+  QSharedPointer<pat::ast::node::Base> clone() const override;
+  QString string() const override;
 };
 
 class Import : public ::pat::pep::ast::node::Symbolic {
@@ -54,7 +54,7 @@ public:
       QSharedPointer<const ::pat::ast::argument::Symbolic> argument);
 
   // Value interface
-  QSharedPointer<pat::ast::Value> clone() const;
-  QString string() const;
+  QSharedPointer<pat::ast::node::Base> clone() const override;
+  QString string() const override;
 };
 } // namespace pat::pep::ast::node

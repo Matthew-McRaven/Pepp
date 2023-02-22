@@ -24,13 +24,11 @@ public:
   void setSymbol(QSharedPointer<symbol::Entry> symbol);
 
   // Value interface
-  virtual QSharedPointer<pat::ast::Value> clone() const override = 0;
-  bits::BitOrder endian() const override;
+  virtual QSharedPointer<pat::ast::node::Base> clone() const override = 0;
   virtual quint64 size() const override = 0;
-  virtual bool bits(QByteArray &out, bits::BitSelection src,
-                    bits::BitSelection dest) const override = 0;
-  virtual bool bytes(QByteArray &out, qsizetype start,
-                     qsizetype length) const override = 0;
+  virtual bool value(
+      quint8 *dest, qsizetype length,
+      bits::BitOrder destEndian = bits::BitOrder::BigEndian) const override = 0;
   virtual QString string() const override = 0;
 
   // Base interface
@@ -80,10 +78,6 @@ QSharedPointer<symbol::Entry> Instruction<ISA>::symbol() {
 template <typename ISA>
 void Instruction<ISA>::setSymbol(QSharedPointer<symbol::Entry> symbol) {
   _symbol = symbol;
-}
-
-template <typename ISA> bits::BitOrder Instruction<ISA>::endian() const {
-  return bits::BitOrder::BigEndian;
 }
 
 template <typename ISA>

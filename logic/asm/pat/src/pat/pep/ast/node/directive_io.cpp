@@ -24,7 +24,7 @@ pat::pep::ast::node::Input::validate_argument(
   return {.valid = true};
 }
 
-QSharedPointer<pat::ast::Value> pat::pep::ast::node::Input::clone() const {
+QSharedPointer<pat::ast::node::Base> pat::pep::ast::node::Input::clone() const {
   return QSharedPointer<Input>::create(*this);
 }
 
@@ -57,7 +57,8 @@ pat::pep::ast::node::Output::validate_argument(
   return {.valid = true};
 }
 
-QSharedPointer<pat::ast::Value> pat::pep::ast::node::Output::clone() const {
+QSharedPointer<pat::ast::node::Base>
+pat::pep::ast::node::Output::clone() const {
   return QSharedPointer<Output>::create(*this);
 }
 
