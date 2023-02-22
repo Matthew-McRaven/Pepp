@@ -19,24 +19,15 @@ pat::ast::node::Section &pat::ast::node::Section::operator=(Section other) {
   return *this;
 }
 
-QSharedPointer<pat::ast::Value> pat::ast::node::Section::clone() const {
+QSharedPointer<pat::ast::node::Base> pat::ast::node::Section::clone() const {
   return QSharedPointer<Section>::create(*this);
-}
-
-pat::bits::BitOrder pat::ast::node::Section::endian() const {
-  return bits::BitOrder::NotApplicable;
 }
 
 quint64 pat::ast::node::Section::size() const { return 0; }
 
-bool pat::ast::node::Section::bits(QByteArray &out, bits::BitSelection src,
-                                   bits::BitSelection dest) const {
-  throw std::logic_error("Unimplemented");
-}
-
-bool pat::ast::node::Section::bytes(QByteArray &out, qsizetype start,
-                                    qsizetype length) const {
-  throw std::logic_error("Unimplemented");
+bool pat::ast::node::Section::value(quint8 *dest, qsizetype length,
+                                    bits::BitOrder destEndian) const {
+  return true;
 }
 
 QString pat::ast::node::Section::string() const {

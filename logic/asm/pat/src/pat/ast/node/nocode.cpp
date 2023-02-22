@@ -15,23 +15,14 @@ pat::ast::node::Blank &pat::ast::node::Blank::operator=(Blank other) {
   return *this;
 }
 
-QSharedPointer<pat::ast::Value> pat::ast::node::Blank::clone() const {
+QSharedPointer<pat::ast::node::Base> pat::ast::node::Blank::clone() const {
   return QSharedPointer<node::Blank>::create(*this);
-}
-
-pat::bits::BitOrder pat::ast::node::Blank::endian() const {
-  return pat::bits::BitOrder::NotApplicable;
 }
 
 quint64 pat::ast::node::Blank::size() const { return 0; }
 
-bool pat::ast::node::Blank::bits(QByteArray &out, bits::BitSelection src,
-                                 bits::BitSelection dest) const {
-  return true;
-}
-
-bool pat::ast::node::Blank::bytes(QByteArray &out, qsizetype start,
-                                  qsizetype length) const {
+bool pat::ast::node::Blank::value(quint8 *dest, qsizetype length,
+                                  bits::BitOrder destEndian) const {
   return true;
 }
 
@@ -82,27 +73,14 @@ void pat::ast::node::Comment::setIndent(IndentLevel indent) {
   _indent = indent;
 }
 
-QSharedPointer<pat::ast::Value> pat::ast::node::Comment::clone() const {
-  auto ret = QSharedPointer<node::Comment>::create(_comment, sourceLocation(),
-                                                   QWeakPointer<Comment>{});
-  ret->setConfig(_config);
-  ret->setIndent(_indent);
-  return ret;
-}
-
-pat::bits::BitOrder pat::ast::node::Comment::endian() const {
-  return bits::BitOrder::NotApplicable;
+QSharedPointer<pat::ast::node::Base> pat::ast::node::Comment::clone() const {
+  return QSharedPointer<node::Comment>::create(*this);
 }
 
 quint64 pat::ast::node::Comment::size() const { return 0; }
 
-bool pat::ast::node::Comment::bits(QByteArray &out, bits::BitSelection src,
-                                   bits::BitSelection dest) const {
-  return true;
-}
-
-bool pat::ast::node::Comment::bytes(QByteArray &out, qsizetype start,
-                                    qsizetype length) const {
+bool pat::ast::node::Comment::value(quint8 *dest, qsizetype length,
+                                    bits::BitOrder destEndian) const {
   return true;
 }
 

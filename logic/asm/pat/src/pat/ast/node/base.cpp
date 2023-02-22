@@ -1,9 +1,9 @@
 #include "./base.hpp"
-pat::ast::node::Base::Base() : Value() {}
+pat::ast::node::Base::Base() {}
 
 pat::ast::node::Base::Base(FileLocation sourceLocation,
                            QWeakPointer<Base> parent)
-    : Value(), _parent(parent), _sourceLocation(sourceLocation) {}
+    : _parent(parent), _sourceLocation(sourceLocation) {}
 
 QWeakPointer<pat::ast::node::Base> pat::ast::node::Base::parent() {
   return _parent;
@@ -29,8 +29,7 @@ pat::ast::node::Base::listingLocation() const {
 void pat::ast::node::Base::setListingLocation(FileLocation listingLocation) {}
 
 pat::ast::node::Base::Base(const Base &other)
-    : Value(/*other*/), _parent(other._parent),
-      _sourceLocation(other._sourceLocation),
+    : _parent(other._parent), _sourceLocation(other._sourceLocation),
       _listingLocation(other._listingLocation) {}
 
 pat::ast::node::Base &pat::ast::node::Base::operator=(const Base &other) {
