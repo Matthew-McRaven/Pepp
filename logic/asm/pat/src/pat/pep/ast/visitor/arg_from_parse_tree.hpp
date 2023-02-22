@@ -14,57 +14,64 @@ namespace pat::ast::argument {
 class Base;
 };
 
-namespace pat::pep::ast::visitors {
-struct ParseToArg : public boost::static_visitor<pat::ast::argument::Base *> {
+namespace pat::pep::ast::visitor {
+struct ParseToArg
+    : public boost::static_visitor<QSharedPointer<pat::ast::argument::Base>> {
   bool preferIdent = false;             // in
   QSharedPointer<symbol::Table> symTab; // in
 
   std::optional<QString> error = std::nullopt; // out
-  pat::ast::argument::Base *operator()(const pep::parse::CharacterLiteral &);
-  pat::ast::argument::Base *operator()(const pep::parse::StringLiteral &);
-  pat::ast::argument::Base *operator()(const pep::parse::Identifier &);
-  pat::ast::argument::Base *operator()(const pep::parse::DecimalLiteral &);
-  pat::ast::argument::Base *operator()(const pep::parse::HexadecimalLiteral &);
+  QSharedPointer<pat::ast::argument::Base>
+  operator()(const pep::parse::CharacterLiteral &);
+  QSharedPointer<pat::ast::argument::Base>
+  operator()(const pep::parse::StringLiteral &);
+  QSharedPointer<pat::ast::argument::Base>
+  operator()(const pep::parse::Identifier &);
+  QSharedPointer<pat::ast::argument::Base>
+  operator()(const pep::parse::DecimalLiteral &);
+  QSharedPointer<pat::ast::argument::Base>
+  operator()(const pep::parse::HexadecimalLiteral &);
 };
 
-pat::ast::argument::Base *
+QSharedPointer<pat::ast::argument::Base>
 ParseToArg::operator()(const pep::parse::CharacterLiteral &line) {
-  return new pat::ast::argument::Character(QString::fromStdString(line.value));
+  return QSharedPointer<pat::ast::argument::Character>::create(
+      QString::fromStdString(line.value));
 }
 
-pat::ast::argument::Base *
+QSharedPointer<pat::ast::argument::Base>
 ParseToArg::operator()(const pep::parse::StringLiteral &line) {
   auto asQString = QString::fromStdString(line.value);
   if (auto length = bits::escapedStringLength(asQString); length <= 2) {
-    return new pat::ast::argument::ShortString(asQString, length,
-                                               bits::BitOrder::BigEndian);
+    return QSharedPointer<pat::ast::argument::ShortString>::create(
+        asQString, length, bits::BitOrder::BigEndian);
   } else
-    return new pat::ast::argument::LongString(asQString,
-                                              bits::BitOrder::BigEndian);
+    return QSharedPointer<pat::ast::argument::LongString>::create(
+        asQString, bits::BitOrder::BigEndian);
 }
-pat::ast::argument::Base *
+QSharedPointer<pat::ast::argument::Base>
 ParseToArg::operator()(const pep::parse::Identifier &line) {
   auto asQString = QString::fromStdString(line.value);
   if (preferIdent)
-    return new pat::ast::argument::Identifier(asQString);
+    return QSharedPointer<pat::ast::argument::Identifier>::create(asQString);
   else {
     auto asSymbol = symTab->reference(asQString);
-    return new pat::ast::argument::Symbolic(asSymbol,
-                                            bits::BitOrder::BigEndian);
+    return QSharedPointer<pat::ast::argument::Symbolic>::create(
+        asSymbol, bits::BitOrder::BigEndian);
   }
 }
-pat::ast::argument::Base *
+QSharedPointer<pat::ast::argument::Base>
 ParseToArg::operator()(const pep::parse::DecimalLiteral &line) {
   if (line.isSigned)
-    return new pat::ast::argument::SignedDecimal(line.value, 2,
-                                                 bits::BitOrder::BigEndian);
+    return QSharedPointer<pat::ast::argument::SignedDecimal>::create(
+        line.value, 2, bits::BitOrder::BigEndian);
   else
-    return new pat::ast::argument::UnsignedDecimal(line.value, 2,
-                                                   bits::BitOrder::BigEndian);
+    return QSharedPointer<pat::ast::argument::UnsignedDecimal>::create(
+        line.value, 2, bits::BitOrder::BigEndian);
 }
-pat::ast::argument::Base *
+QSharedPointer<pat::ast::argument::Base>
 ParseToArg::operator()(const pep::parse::HexadecimalLiteral &line) {
-  return new pat::ast::argument::Hexadecimal(line.value, 2,
-                                             bits::BitOrder::BigEndian);
+  return QSharedPointer<pat::ast::argument::Hexadecimal>::create(
+      line.value, 2, bits::BitOrder::BigEndian);
 }
-} // namespace pat::pep::ast::visitors
+} // namespace pat::pep::ast::visitor
