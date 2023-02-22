@@ -32,24 +32,15 @@ pat::ast::node::Set::ValidateResult pat::ast::node::Set::validate_argument(
   return {.valid = true};
 }
 
-QSharedPointer<pat::ast::Value> pat::ast::node::Set::clone() const {
+QSharedPointer<pat::ast::node::Base> pat::ast::node::Set::clone() const {
   return QSharedPointer<Set>::create(*this);
-}
-
-pat::bits::BitOrder pat::ast::node::Set::endian() const {
-  return bits::BitOrder::NotApplicable;
 }
 
 quint64 pat::ast::node::Set::size() const { return 0; }
 
-bool pat::ast::node::Set::bits(QByteArray &out, bits::BitSelection src,
-                               bits::BitSelection dest) const {
-  throw std::logic_error("Unimplemented");
-}
-
-bool pat::ast::node::Set::bytes(QByteArray &out, qsizetype start,
-                                qsizetype length) const {
-  throw std::logic_error("Unimplemented");
+bool pat::ast::node::Set::value(quint8 *dest, qsizetype length,
+                                bits::BitOrder destEndian) const {
+  return true;
 }
 
 QString pat::ast::node::Set::string() const {

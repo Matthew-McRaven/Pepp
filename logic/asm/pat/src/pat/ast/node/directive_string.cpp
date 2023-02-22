@@ -31,23 +31,14 @@ pat::ast::node::ASCII::ValidateResult pat::ast::node::ASCII::validate_argument(
   return {.valid = false, .errorMessage = u"Argument must be string"_qs};
 }
 
-QSharedPointer<pat::ast::Value> pat::ast::node::ASCII::clone() const {
+QSharedPointer<pat::ast::node::Base> pat::ast::node::ASCII::clone() const {
   return QSharedPointer<ASCII>::create(*this);
-}
-
-pat::bits::BitOrder pat::ast::node::ASCII::endian() const {
-  return _argument->endian();
 }
 
 quint64 pat::ast::node::ASCII::size() const { return _argument->size(); }
 
-bool pat::ast::node::ASCII::bits(QByteArray &out, bits::BitSelection src,
-                                 bits::BitSelection dest) const {
-  throw std::logic_error("Unimplemented");
-}
-
-bool pat::ast::node::ASCII::bytes(QByteArray &out, qsizetype start,
-                                  qsizetype length) const {
+bool pat::ast::node::ASCII::value(quint8 *dest, qsizetype length,
+                                  bits::BitOrder destEndian) const {
   throw std::logic_error("Unimplemented");
 }
 

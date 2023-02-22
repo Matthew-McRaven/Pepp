@@ -5,7 +5,6 @@ namespace pat::ast::node {
 struct Byte1 : public Directive {
   struct Config {
     QString name = u"BYTE"_qs;
-    bits::BitOrder endian = bits::BitOrder::LittleEndian;
   };
   explicit Byte1();
   Byte1(QList<QSharedPointer<const argument::Base>> argument,
@@ -32,12 +31,11 @@ struct Byte1 : public Directive {
   validate_argument(const QList<QSharedPointer<const argument::Base>> argument);
 
   // ast::Value interface
-  QSharedPointer<Value> clone() const override;
-  bits::BitOrder endian() const override;
+  QSharedPointer<Base> clone() const override;
   quint64 size() const override;
-  bool bits(QByteArray &out, bits::BitSelection src,
-            bits::BitSelection dest) const override;
-  bool bytes(QByteArray &out, qsizetype start, qsizetype length) const override;
+  bool
+  value(quint8 *dest, qsizetype length,
+        bits::BitOrder destEndian = bits::BitOrder::BigEndian) const override;
   QString string() const override;
 
   // ast::node::Base interface
@@ -56,7 +54,6 @@ private:
 struct Byte2 : public Directive {
   struct Config {
     QString name = u"WORD"_qs;
-    bits::BitOrder endian = bits::BitOrder::LittleEndian;
   };
 
   explicit Byte2();
@@ -85,12 +82,11 @@ struct Byte2 : public Directive {
   validate_argument(const QList<QSharedPointer<const argument::Base>> argument);
 
   // ast::Value interface
-  QSharedPointer<Value> clone() const override;
-  bits::BitOrder endian() const override;
+  QSharedPointer<Base> clone() const override;
   quint64 size() const override;
-  bool bits(QByteArray &out, bits::BitSelection src,
-            bits::BitSelection dest) const override;
-  bool bytes(QByteArray &out, qsizetype start, qsizetype length) const override;
+  bool
+  value(quint8 *dest, qsizetype length,
+        bits::BitOrder destEndian = bits::BitOrder::BigEndian) const override;
   QString string() const override;
 
   // ast::node::Base interface

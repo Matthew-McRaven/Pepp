@@ -36,12 +36,11 @@ struct Align : public Directive {
   validate_argument(QSharedPointer<const argument::Base> argument);
 
   // ast::Value interface
-  QSharedPointer<Value> clone() const override;
-  bits::BitOrder endian() const override;
+  QSharedPointer<Base> clone() const override;
   quint64 size() const override;
-  bool bits(QByteArray &out, bits::BitSelection src,
-            bits::BitSelection dest) const override;
-  bool bytes(QByteArray &out, qsizetype start, qsizetype length) const override;
+  bool
+  value(quint8 *dest, qsizetype length,
+        bits::BitOrder destEndian = bits::BitOrder::BigEndian) const override;
   QString string() const override;
 
   // ast::node::Base interface

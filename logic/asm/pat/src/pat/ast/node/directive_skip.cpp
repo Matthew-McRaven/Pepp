@@ -47,12 +47,8 @@ pat::ast::node::Skip::ValidateResult pat::ast::node::Skip::validate_argument(
   return {.valid = true};
 }
 
-QSharedPointer<pat::ast::Value> pat::ast::node::Skip::clone() const {
+QSharedPointer<pat::ast::node::Base> pat::ast::node::Skip::clone() const {
   return QSharedPointer<Skip>::create(*this);
-}
-
-pat::bits::BitOrder pat::ast::node::Skip::endian() const {
-  return _config.endian;
 }
 
 quint64 pat::ast::node::Skip::size() const {
@@ -61,13 +57,8 @@ quint64 pat::ast::node::Skip::size() const {
   return size;
 }
 
-bool pat::ast::node::Skip::bits(QByteArray &out, bits::BitSelection src,
-                                bits::BitSelection dest) const {
-  throw std::logic_error("Unimplemented");
-}
-
-bool pat::ast::node::Skip::bytes(QByteArray &out, qsizetype start,
-                                 qsizetype length) const {
+bool pat::ast::node::Skip::value(quint8 *dest, qsizetype length,
+                                 bits::BitOrder destEndian) const {
   throw std::logic_error("Unimplemented");
 }
 

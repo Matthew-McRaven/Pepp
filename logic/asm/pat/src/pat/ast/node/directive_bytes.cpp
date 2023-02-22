@@ -42,23 +42,14 @@ pat::ast::node::Byte1::ValidateResult pat::ast::node::Byte1::validate_argument(
   return {.valid = true};
 }
 
-QSharedPointer<pat::ast::Value> pat::ast::node::Byte1::clone() const {
+QSharedPointer<pat::ast::node::Base> pat::ast::node::Byte1::clone() const {
   return QSharedPointer<Byte1>::create(*this);
-}
-
-pat::bits::BitOrder pat::ast::node::Byte1::endian() const {
-  return _config.endian;
 }
 
 quint64 pat::ast::node::Byte1::size() const { return _argument.size(); }
 
-bool pat::ast::node::Byte1::bits(QByteArray &out, bits::BitSelection src,
-                                 bits::BitSelection dest) const {
-  throw std::logic_error("Unimplemented");
-}
-
-bool pat::ast::node::Byte1::bytes(QByteArray &out, qsizetype start,
-                                  qsizetype length) const {
+bool pat::ast::node::Byte1::value(quint8 *dest, qsizetype length,
+                                  bits::BitOrder destEndian) const {
   throw std::logic_error("Unimplemented");
 }
 
@@ -120,23 +111,14 @@ pat::ast::node::Byte2::ValidateResult pat::ast::node::Byte2::validate_argument(
   return {.valid = true};
 }
 
-QSharedPointer<pat::ast::Value> pat::ast::node::Byte2::clone() const {
+QSharedPointer<pat::ast::node::Base> pat::ast::node::Byte2::clone() const {
   return QSharedPointer<Byte2>::create(*this);
-}
-
-pat::bits::BitOrder pat::ast::node::Byte2::endian() const {
-  return _config.endian;
 }
 
 quint64 pat::ast::node::Byte2::size() const { return 2 * _argument.size(); }
 
-bool pat::ast::node::Byte2::bits(QByteArray &out, bits::BitSelection src,
-                                 bits::BitSelection dest) const {
-  throw std::logic_error("Unimplemented");
-}
-
-bool pat::ast::node::Byte2::bytes(QByteArray &out, qsizetype start,
-                                  qsizetype length) const {
+bool pat::ast::node::Byte2::value(quint8 *dest, qsizetype length,
+                                  bits::BitOrder destEndian) const {
   throw std::logic_error("Unimplemented");
 }
 

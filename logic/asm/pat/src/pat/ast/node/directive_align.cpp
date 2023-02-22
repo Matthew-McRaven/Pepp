@@ -42,25 +42,16 @@ pat::ast::node::Align::ValidateResult pat::ast::node::Align::validate_argument(
   return {.valid = true};
 }
 
-QSharedPointer<pat::ast::Value> pat::ast::node::Align::clone() const {
+QSharedPointer<pat::ast::node::Base> pat::ast::node::Align::clone() const {
   return QSharedPointer<Align>::create(*this);
-}
-
-pat::bits::BitOrder pat::ast::node::Align::endian() const {
-  return _argument->endian();
 }
 
 quint64 pat::ast::node::Align::size() const {
   throw std::logic_error("Unimplemented");
 }
 
-bool pat::ast::node::Align::bits(QByteArray &out, bits::BitSelection src,
-                                 bits::BitSelection dest) const {
-  throw std::logic_error("Unimplemented");
-}
-
-bool pat::ast::node::Align::bytes(QByteArray &out, qsizetype start,
-                                  qsizetype length) const {
+bool pat::ast::node::Align::value(quint8 *dest, qsizetype length,
+                                  bits::BitOrder destEndian) const {
   throw std::logic_error("Unimplemented");
 }
 
