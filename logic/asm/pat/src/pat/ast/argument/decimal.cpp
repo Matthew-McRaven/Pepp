@@ -20,7 +20,7 @@ pat::ast::argument::SignedDecimal::operator=(SignedDecimal other) {
   return *this;
 }
 
-QSharedPointer<pat::ast::Value>
+QSharedPointer<pat::ast::argument::Base>
 pat::ast::argument::SignedDecimal::clone() const {
   return QSharedPointer<SignedDecimal>::create(*this);
 }
@@ -51,7 +51,7 @@ pat::ast::argument::UnsignedDecimal::operator=(UnsignedDecimal other) {
   return *this;
 }
 
-QSharedPointer<pat::ast::Value>
+QSharedPointer<pat::ast::argument::Base>
 pat::ast::argument::UnsignedDecimal::clone() const {
   return QSharedPointer<UnsignedDecimal>::create(*this);
 }

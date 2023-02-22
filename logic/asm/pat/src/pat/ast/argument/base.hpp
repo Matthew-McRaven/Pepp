@@ -1,8 +1,8 @@
 #pragma once
-#include "../value.hpp"
+#include "pat/bits/order.hpp"
 #include <QtCore>
 namespace pat::ast::argument {
-class Base : public pat::ast::Value {
+class Base {
 public:
   explicit Base();
   friend void swap(Base &first, Base &second) { using std::swap; }
@@ -15,14 +15,12 @@ public:
   virtual bool isText() const = 0;      // Is the argument ASCII or UTF-8 text?
   virtual bool isIdentifier()
       const = 0; // Is the argument an unquoted string that is not a symbol?
-  virtual bits::BitOrder endian() const override = 0;
-  virtual bool value(quint8 *dest, quint16 length) const = 0;
-  virtual quint64 size() const override = 0;
-  virtual bool bits(QByteArray &out, bits::BitSelection src,
-                    bits::BitSelection dest) const override = 0;
-  virtual bool bytes(QByteArray &out, qsizetype start,
-                     qsizetype length) const override = 0;
-  virtual QString string() const override = 0;
+  virtual QSharedPointer<Base> clone() const = 0;
+  virtual bool
+  value(quint8 *dest, qsizetype length,
+        bits::BitOrder destEndian = bits::BitOrder::BigEndian) const = 0;
+  virtual quint64 size() const = 0;
+  virtual QString string() const = 0;
 
 protected:
   Base(const Base &other) = delete;

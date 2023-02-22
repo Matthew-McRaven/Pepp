@@ -19,7 +19,8 @@ pat::ast::argument::Hexadecimal::operator=(Hexadecimal other) {
   return *this;
 }
 
-QSharedPointer<pat::ast::Value> pat::ast::argument::Hexadecimal::clone() const {
+QSharedPointer<pat::ast::argument::Base>
+pat::ast::argument::Hexadecimal::clone() const {
   return QSharedPointer<Hexadecimal>::create(*this);
 }
 
