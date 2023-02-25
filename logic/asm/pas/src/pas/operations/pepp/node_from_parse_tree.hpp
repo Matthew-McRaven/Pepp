@@ -48,7 +48,8 @@ toAST(const std::vector<pas::parse::pepp::LineType> &lines) {
   createActive();
   for (const auto &line : lines) {
     auto node = line.apply_visitor(visitor);
-    activeSection->addChild(node);
+    // TODO: If section, create new section.
+    ast::addChild(*activeSection, node);
   }
   return root;
 }
