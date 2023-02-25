@@ -25,15 +25,15 @@ private:
 class Registered : public QObject {
   Q_OBJECT
   Q_PROPERTY(const Parsed *contents READ contents CONSTANT)
-  Q_PROPERTY(Type type READ type CONSTANT)
+  Q_PROPERTY(types::Type type READ type CONSTANT)
 public:
   // Takes ownership of contents and changes its parent to this
-  Registered(Type type, Parsed *contents, QObject *parent = nullptr);
+  Registered(types::Type type, Parsed *contents, QObject *parent = nullptr);
   const Parsed *contents() const;
-  Type type() const;
+  types::Type type() const;
 
 private:
   const Parsed *_contents;
-  Type _type;
+  types::Type _type;
 };
 } // namespace macro
