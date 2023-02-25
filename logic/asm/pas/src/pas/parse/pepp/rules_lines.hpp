@@ -28,7 +28,7 @@ BOOST_SPIRIT_DEFINE(blank);
 
 // Comment Line
 inline rule<class comment, CommentType> comment = "comment";
-const auto comment_def = lexeme[lit(";") >> *(char_)];
+const auto comment_def = skip(space)[lexeme[lit(";") >> *(char_)]];
 BOOST_SPIRIT_DEFINE(comment);
 
 inline const auto symbol = identifier_def >> lit(":");
