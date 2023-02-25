@@ -1,5 +1,6 @@
 include_guard()
-
+# Allows us to not use __declspec(dll...) everywhere
+set(CMAKE_WINDOWS_EXPORT_ALL_SYMBOLS ON)
 # We always want universal builds, so do not set on a per-target basis
 SET(CMAKE_OSX_ARCHITECTURES "x86_64;arm64" CACHE INTERNAL "" FORCE)
 
@@ -87,4 +88,10 @@ macro(make_qtest target_name file dep)
   target_link_libraries(${target_name} PRIVATE ${dep})
   # And run the test with the correct reporting options.
   add_test(NAME ${target_name} COMMAND ${target_name})
+  if(WIN32)
+    add_custom_command(TARGET ${target_name} POST_BUILD
+      COMMAND ${CMAKE_COMMAND} -E copy $<TARGET_RUNTIME_DLLS:${target_name}> $<TARGET_FILE_DIR:${target_name}>
+      COMMAND_EXPAND_LISTS
+      )
+  endif()
 endMacro()

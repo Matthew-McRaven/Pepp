@@ -27,6 +27,8 @@
 #include <QVariant>
 #include <QtCore>
 
+#include "symbol_globals.hpp"
+
 /*!
  * \file types.hpp
  * \namespace symbol
@@ -38,7 +40,7 @@
  *
  * */
 namespace symbol {
-Q_NAMESPACE
+Q_NAMESPACE_EXPORT(SYMBOL_EXPORT)
 // Format for symbols
 enum class SymbolReprFormat : qint32 { kNone, kChar, kDec, kHex };
 

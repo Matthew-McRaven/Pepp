@@ -4,9 +4,11 @@
 #include <QString>
 #include <QtCore>
 #include <optional>
+#include "builtins_globals.hpp"
 Q_MOC_INCLUDE("builtins/figure.hpp")
 namespace builtins {
-Q_NAMESPACE
+Q_NAMESPACE_EXPORT(BUILTINS_EXPORT)
+
 //! Describe which architecture a help item is to be used with.
 enum class Architecture {
   PEP8 = 80,    //! The figure must be used with the Pep/8 toolchain.

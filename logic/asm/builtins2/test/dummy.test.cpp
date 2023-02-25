@@ -11,4 +11,4 @@ private slots:
 // Must be after class declaration.
 #include "dummy.test.moc"
 
-QTEST_MAIN(Builtins);
+QTEST_GUILESS_MAIN(Builtins);
