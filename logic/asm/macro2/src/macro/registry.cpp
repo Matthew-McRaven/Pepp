@@ -1,5 +1,6 @@
 #include "./registry.hpp"
 #include "./macro.hpp"
+#include "./registered.hpp"
 macro::Registry::Registry(QObject *parent) : QObject{parent} {}
 
 bool macro::Registry::contains(QString name) const {

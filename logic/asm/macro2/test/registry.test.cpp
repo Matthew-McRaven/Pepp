@@ -1,5 +1,6 @@
 #include "macro/registry.hpp"
 #include "macro/macro.hpp"
+#include "macro/registered.hpp"
 #include <QTest>
 class MacroRegistry : public QObject {
   Q_OBJECT
