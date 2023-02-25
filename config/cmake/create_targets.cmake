@@ -1,5 +1,6 @@
 include_guard()
-
+# Allows us to not use __declspec(dll...) everywhere
+set(CMAKE_WINDOWS_EXPORT_ALL_SYMBOLS ON)
 # We always want universal builds, so do not set on a per-target basis
 SET(CMAKE_OSX_ARCHITECTURES "x86_64;arm64" CACHE INTERNAL "" FORCE)
 

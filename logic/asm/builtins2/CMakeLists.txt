@@ -13,6 +13,7 @@ include(../../../config/cmake/create_targets.cmake)
 enable_testing()
 make_library(builtins builtins)
 target_link_libraries(builtins PUBLIC "Qt6::Core;Qt6::Gui;macro")
+target_compile_definitions(builtins PRIVATE BUILTINS_LIBRARY)
 qt_add_resources(builtins "builtins" PREFIX "/" FILES ${cs6e-res})
 
 if(NOT IOS)
