@@ -58,7 +58,8 @@ toAST(const std::vector<pas::parse::pepp::LineType> &lines) {
   qsizetype loc = 0;
   for (const auto &line : lines) {
     QSharedPointer<ast::Node> node = line.apply_visitor(visitor);
-    node->set(ast::generic::SourceLocation{.value = loc++});
+    node->set(
+        ast::generic::SourceLocation{.value = {.line = loc++, .valid = true}});
 
     // Create a new section group under child if the node is a section.
     if (pas::ops::pepp::isSection()(*node)) {
