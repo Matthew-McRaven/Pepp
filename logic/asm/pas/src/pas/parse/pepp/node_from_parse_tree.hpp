@@ -313,8 +313,9 @@ void checkArgumentSizes(QSharedPointer<ast::Node> node) {
     auto mnemonic = node->get<ast::pepp::Instruction<ISA>>().value;
     auto arg = node->get<ast::generic::Argument>().value;
     // TODO: Handle "byte" argument for LDWr x,i
-    detail::addError(
-        node, {.severity = S::Fatal, .message = errorFromWordString(arg)});
+    if (arg->requiredBytes() > 2)
+      detail::addError(
+          node, {.severity = S::Fatal, .message = errorFromWordString(arg)});
   }
 }
 }; // namespace pas::parse::pepp
