@@ -9,6 +9,7 @@ struct Message {
     Fatal,
   } severity;
   QString message;
+  bool operator==(const Message &other) const = default;
 };
 
 struct Error {
