@@ -78,6 +78,22 @@ std::optional<T> apply_if(Node &node, ops::ConstOp<bool> &predicate,
 
 // If there is a result, it must be accumulated inside transform.
 template <typename T>
+void apply_recurse(const Node &node, ops::ConstOp<T> &transform) {
+  node.apply_self(transform);
+  for (auto &child : children(node))
+    apply_recurse(*child, transform);
+}
+
+// If there is a result, it must be accumulated inside transform.
+template <typename T>
+void apply_recurse(Node &node, ops::MutatingOp<T> &transform) {
+  node.apply_self(transform);
+  for (auto &child : children(node))
+    apply_recurse(*child, transform);
+}
+
+// If there is a result, it must be accumulated inside transform.
+template <typename T>
 void apply_recurse_if(const Node &node, ops::ConstOp<bool> &predicate,
                       ops::ConstOp<T> &transform) {
   apply_self_if(node, predicate, transform);
