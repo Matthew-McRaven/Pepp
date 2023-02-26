@@ -63,7 +63,7 @@ private slots:
   void parseAny() {
     auto value = "0xcade"s;
     Value result;
-    auto r = parse<typeof(value.begin())>(value.begin(), value.end(), argument,
+    auto r = parse(value.begin(), value.end(), argument,
                                           result);
     QVERIFY(r);
     qDebug() << boost::get<HexadecimalLiteral>(result).value;
