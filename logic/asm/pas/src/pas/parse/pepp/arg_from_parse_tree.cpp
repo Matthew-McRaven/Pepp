@@ -9,13 +9,13 @@
 #include "pas/bits/strings.hpp"
 using namespace pas::ast::value;
 QSharedPointer<pas::ast::value::Base>
-pas::operations::pepp::ParseToArg::operator()(const CharacterLiteral &line) {
+pas::parse::pepp::ParseToArg::operator()(const CharacterLiteral &line) {
   return QSharedPointer<pas::ast::value::Character>::create(
       QString::fromStdString(line.value));
 }
 
 QSharedPointer<pas::ast::value::Base>
-pas::operations::pepp::ParseToArg::operator()(const StringLiteral &line) {
+pas::parse::pepp::ParseToArg::operator()(const StringLiteral &line) {
   auto asQString = QString::fromStdString(line.value);
   if (auto length = pas::bits::escapedStringLength(asQString); length <= 2) {
     return QSharedPointer<pas::ast::value::ShortString>::create(
@@ -26,7 +26,7 @@ pas::operations::pepp::ParseToArg::operator()(const StringLiteral &line) {
 }
 
 QSharedPointer<pas::ast::value::Base>
-pas::operations::pepp::ParseToArg::operator()(const Identifier &line) {
+pas::parse::pepp::ParseToArg::operator()(const Identifier &line) {
   auto asQString = QString::fromStdString(line.value);
   if (preferIdent)
     return QSharedPointer<pas::ast::value::Identifier>::create(asQString);
@@ -38,7 +38,7 @@ pas::operations::pepp::ParseToArg::operator()(const Identifier &line) {
 }
 
 QSharedPointer<pas::ast::value::Base>
-pas::operations::pepp::ParseToArg::operator()(const DecimalLiteral &line) {
+pas::parse::pepp::ParseToArg::operator()(const DecimalLiteral &line) {
   if (line.isSigned)
     return QSharedPointer<pas::ast::value::SignedDecimal>::create(
         line.value, 2, bits::BitOrder::BigEndian);
@@ -48,7 +48,7 @@ pas::operations::pepp::ParseToArg::operator()(const DecimalLiteral &line) {
 }
 
 QSharedPointer<pas::ast::value::Base>
-pas::operations::pepp::ParseToArg::operator()(const HexadecimalLiteral &line) {
+pas::parse::pepp::ParseToArg::operator()(const HexadecimalLiteral &line) {
   return QSharedPointer<pas::ast::value::Hexadecimal>::create(
       line.value, 2, bits::BitOrder::BigEndian);
 }

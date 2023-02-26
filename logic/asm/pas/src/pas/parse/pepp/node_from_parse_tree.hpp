@@ -1,5 +1,4 @@
 #pragma once
-#include "./is.hpp"
 #include "arg_from_parse_tree.hpp"
 #include "node_from_parse_tree.hpp"
 #include "pas/ast/generic/attr_comment.hpp"
@@ -15,6 +14,7 @@
 #include "pas/ast/value/hexadecimal.hpp"
 #include "pas/ast/value/string.hpp"
 #include "pas/errors.hpp"
+#include "pas/operations/pepp/is.hpp"
 #include "pas/parse/pepp/rules_lines.hpp"
 #include "symbol/table.hpp"
 #include <boost/variant/static_visitor.hpp>
@@ -22,8 +22,7 @@
 #include <pas/ast/generic/attr_argument.hpp>
 #include <pas/ast/generic/attr_directive.hpp>
 #include <pas/ast/generic/attr_sec_flags.hpp>
-namespace pas::operations::pepp {
-using namespace pas::parse::pepp;
+namespace pas::parse::pepp {
 template <typename ISA>
 struct FromParseTree
     : public boost::static_visitor<QSharedPointer<pas::ast::Node>> {
@@ -89,7 +88,7 @@ using namespace pas::ast;
 template <typename T>
 QList<QSharedPointer<pas::ast::value::Base>>
 parse_arg(const T &line, ST symTab, bool preferIdent = false) {
-  auto visitor = pas::operations::pepp::ParseToArg();
+  auto visitor = pas::parse::pepp::ParseToArg();
   visitor.symTab = symTab;
   visitor.preferIdent = preferIdent;
   QList<QSharedPointer<pas::ast::value::Base>> arguments;
@@ -125,16 +124,14 @@ template <typename ISA> void checkArgumentSizes(QSharedPointer<Node>);
 
 } // namespace detail
 template <typename ISA>
-QSharedPointer<pas::ast::Node>
-pas::operations::pepp::FromParseTree<ISA>::operator()(
+QSharedPointer<pas::ast::Node> pas::parse::pepp::FromParseTree<ISA>::operator()(
     const pas::parse::pepp::BlankType &line) {
   return QSharedPointer<pas::ast::Node>::create(
       ast::generic::Type{.value = ast::generic::Type::Blank});
 }
 
 template <typename ISA>
-QSharedPointer<pas::ast::Node>
-pas::operations::pepp::FromParseTree<ISA>::operator()(
+QSharedPointer<pas::ast::Node> pas::parse::pepp::FromParseTree<ISA>::operator()(
     const pas::parse::pepp::CommentType &line) {
   auto ret = QSharedPointer<pas::ast::Node>::create(
       ast::generic::Type{.value = ast::generic::Type::Comment});
@@ -146,8 +143,7 @@ pas::operations::pepp::FromParseTree<ISA>::operator()(
 }
 
 template <typename ISA>
-QSharedPointer<pas::ast::Node>
-pas::operations::pepp::FromParseTree<ISA>::operator()(
+QSharedPointer<pas::ast::Node> pas::parse::pepp::FromParseTree<ISA>::operator()(
     const pas::parse::pepp::UnaryType &line) {
   using pas::ast::generic::Type;
   auto ret =
@@ -172,8 +168,7 @@ pas::operations::pepp::FromParseTree<ISA>::operator()(
 }
 
 template <typename ISA>
-QSharedPointer<pas::ast::Node>
-pas::operations::pepp::FromParseTree<ISA>::operator()(
+QSharedPointer<pas::ast::Node> pas::parse::pepp::FromParseTree<ISA>::operator()(
     const pas::parse::pepp::NonUnaryType &line) {
   using pas::ast::generic::Type;
   auto ret =
@@ -191,7 +186,7 @@ pas::operations::pepp::FromParseTree<ISA>::operator()(
   ret->set(ast::pepp::Instruction<ISA>{.value = instr});
 
   // Validate that arg is appropriate for instruction.
-  auto visitor = pas::operations::pepp::ParseToArg();
+  auto visitor = pas::parse::pepp::ParseToArg();
   visitor.symTab = symTab;
   auto arg = line.arg.apply_visitor(visitor);
   if (!(arg->isFixedSize() && arg->isNumeric()))
@@ -231,8 +226,7 @@ pas::operations::pepp::FromParseTree<ISA>::operator()(
   return ret;
 }
 template <typename ISA>
-QSharedPointer<pas::ast::Node>
-pas::operations::pepp::FromParseTree<ISA>::operator()(
+QSharedPointer<pas::ast::Node> pas::parse::pepp::FromParseTree<ISA>::operator()(
     const pas::parse::pepp::DirectiveType &line) {
   using convert_fn = std::function<QSharedPointer<pas::ast::Node>(
       const pas::parse::pepp::DirectiveType &, QSharedPointer<symbol::Table>)>;
@@ -265,16 +259,15 @@ pas::operations::pepp::FromParseTree<ISA>::operator()(
 }
 
 template <typename ISA>
-QSharedPointer<pas::ast::Node>
-pas::operations::pepp::FromParseTree<ISA>::operator()(
+QSharedPointer<pas::ast::Node> pas::parse::pepp::FromParseTree<ISA>::operator()(
     const pas::parse::pepp::MacroType &line) {
-  return nullptr;
+  throw std::logic_error("Unimplemented");
 }
 
 template <typename ISA>
 template <typename T>
 QSharedPointer<ast::Node> FromParseTree<ISA>::operator()(const T &line) {
-  return nullptr;
+  throw std::logic_error("Unimplemented");
 }
 
 QString errorFromByteString(QSharedPointer<ast::value::Base> arg) {
@@ -321,4 +314,4 @@ void checkArgumentSizes(QSharedPointer<ast::Node> node) {
         node, {.severity = S::Fatal, .message = errorFromWordString(arg)});
   }
 }
-}; // namespace pas::operations::pepp
+}; // namespace pas::parse::pepp

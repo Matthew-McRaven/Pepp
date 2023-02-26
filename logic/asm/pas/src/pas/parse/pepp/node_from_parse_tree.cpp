@@ -17,8 +17,8 @@ using S = Message::Severity;
 namespace EP = pas::errors::pepp;
 using Error = pas::ast::generic::Error;
 QSharedPointer<Node>
-pas::operations::pepp::detail::addError(QSharedPointer<Node> node,
-                                        pas::ast::generic::Message msg) {
+pas::parse::pepp::detail::addError(QSharedPointer<Node> node,
+                                   pas::ast::generic::Message msg) {
   QList<Message> messages;
   if (node->has<generic::Error>())
     messages = node->get<generic::Error>().value;
@@ -27,8 +27,9 @@ pas::operations::pepp::detail::addError(QSharedPointer<Node> node,
   return node;
 }
 
-QSharedPointer<Node> pas::operations::pepp::detail::gen_io_scall_extern(
-    const DirectiveType &line, ST symTab, QString directive) {
+QSharedPointer<Node>
+pas::parse::pepp::detail::gen_io_scall_extern(const DirectiveType &line,
+                                              ST symTab, QString directive) {
   auto ret = QSharedPointer<pas::ast::Node>::create(
       generic::Type{.value = generic::Type::Directive});
   ret->set(generic::Directive{.value = directive});
@@ -61,7 +62,7 @@ bool isPow2(QSharedPointer<pas::ast::value::Base> arg) {
 }
 
 QSharedPointer<pas::ast::Node>
-pas::operations::pepp::detail::align(const DirectiveType &line, ST symTab) {
+pas::parse::pepp::detail::align(const DirectiveType &line, ST symTab) {
   auto ret = QSharedPointer<pas::ast::Node>::create(
       generic::Type{.value = generic::Type::Directive});
   ret->set(generic::Directive{.value = u"ALIGN"_qs});
@@ -85,7 +86,7 @@ pas::operations::pepp::detail::align(const DirectiveType &line, ST symTab) {
 }
 
 QSharedPointer<pas::ast::Node>
-pas::operations::pepp::detail::ascii(const DirectiveType &line, ST symTab) {
+pas::parse::pepp::detail::ascii(const DirectiveType &line, ST symTab) {
   auto ret = QSharedPointer<pas::ast::Node>::create(
       generic::Type{.value = generic::Type::Directive});
   ret->set(generic::Directive{.value = u"ASCII"_qs});
@@ -110,7 +111,7 @@ pas::operations::pepp::detail::ascii(const DirectiveType &line, ST symTab) {
 }
 
 QSharedPointer<pas::ast::Node>
-pas::operations::pepp::detail::block(const DirectiveType &line, ST symTab) {
+pas::parse::pepp::detail::block(const DirectiveType &line, ST symTab) {
   auto ret = QSharedPointer<pas::ast::Node>::create(
       generic::Type{.value = generic::Type::Directive});
   ret->set(generic::Directive{.value = u"BLOCK"_qs});
@@ -135,7 +136,7 @@ pas::operations::pepp::detail::block(const DirectiveType &line, ST symTab) {
 }
 
 QSharedPointer<pas::ast::Node>
-pas::operations::pepp::detail::burn(const DirectiveType &line, ST symTab) {
+pas::parse::pepp::detail::burn(const DirectiveType &line, ST symTab) {
   auto ret = QSharedPointer<pas::ast::Node>::create(
       generic::Type{.value = generic::Type::Directive});
   ret->set(generic::Directive{.value = u"BURN"_qs});
@@ -160,7 +161,7 @@ pas::operations::pepp::detail::burn(const DirectiveType &line, ST symTab) {
 }
 
 QSharedPointer<pas::ast::Node>
-pas::operations::pepp::detail::byte(const DirectiveType &line, ST symTab) {
+pas::parse::pepp::detail::byte(const DirectiveType &line, ST symTab) {
   auto ret = QSharedPointer<pas::ast::Node>::create(
       generic::Type{.value = generic::Type::Directive});
   ret->set(generic::Directive{.value = u"BYTE"_qs});
@@ -185,7 +186,7 @@ pas::operations::pepp::detail::byte(const DirectiveType &line, ST symTab) {
 }
 
 QSharedPointer<pas::ast::Node>
-pas::operations::pepp::detail::end(const DirectiveType &line, ST symTab) {
+pas::parse::pepp::detail::end(const DirectiveType &line, ST symTab) {
   auto ret = QSharedPointer<pas::ast::Node>::create(
       generic::Type{.value = generic::Type::Directive});
   ret->set(generic::Directive{.value = u"END"_qs});
@@ -204,7 +205,7 @@ pas::operations::pepp::detail::end(const DirectiveType &line, ST symTab) {
 }
 
 QSharedPointer<pas::ast::Node>
-pas::operations::pepp::detail::equate(const DirectiveType &line, ST symTab) {
+pas::parse::pepp::detail::equate(const DirectiveType &line, ST symTab) {
   auto ret = QSharedPointer<pas::ast::Node>::create(
       generic::Type{.value = generic::Type::Directive});
   ret->set(generic::Directive{.value = u"EQUATE"_qs});
@@ -231,35 +232,35 @@ pas::operations::pepp::detail::equate(const DirectiveType &line, ST symTab) {
 }
 
 QSharedPointer<Node>
-pas::operations::pepp::detail::_export(const DirectiveType &line, ST symTab) {
+pas::parse::pepp::detail::_export(const DirectiveType &line, ST symTab) {
   return detail::gen_io_scall_extern(line, symTab, "EXPORT");
 }
 
-QSharedPointer<Node>
-pas::operations::pepp::detail::import(const DirectiveType &line, ST symTab) {
+QSharedPointer<Node> pas::parse::pepp::detail::import(const DirectiveType &line,
+                                                      ST symTab) {
   return detail::gen_io_scall_extern(line, symTab, "IMPORT");
 }
 
-QSharedPointer<Node>
-pas::operations::pepp::detail::input(const DirectiveType &line, ST symTab) {
+QSharedPointer<Node> pas::parse::pepp::detail::input(const DirectiveType &line,
+                                                     ST symTab) {
 
   return detail::gen_io_scall_extern(line, symTab, "INPUT");
 }
 
-QSharedPointer<Node>
-pas::operations::pepp::detail::output(const DirectiveType &line, ST symTab) {
+QSharedPointer<Node> pas::parse::pepp::detail::output(const DirectiveType &line,
+                                                      ST symTab) {
 
   return detail::gen_io_scall_extern(line, symTab, "OUTPUT");
 }
 
-QSharedPointer<Node>
-pas::operations::pepp::detail::scall(const DirectiveType &line, ST symTab) {
+QSharedPointer<Node> pas::parse::pepp::detail::scall(const DirectiveType &line,
+                                                     ST symTab) {
 
   return detail::gen_io_scall_extern(line, symTab, "SCALL");
 }
 
 QSharedPointer<Node>
-pas::operations::pepp::detail::section(const DirectiveType &line, ST symTab) {
+pas::parse::pepp::detail::section(const DirectiveType &line, ST symTab) {
   auto ret = QSharedPointer<pas::ast::Node>::create(
       generic::Type{.value = generic::Type::Directive});
   ret->set(generic::Directive{.value = u"SECTION"_qs});
@@ -288,14 +289,14 @@ pas::operations::pepp::detail::section(const DirectiveType &line, ST symTab) {
   return ret;
 }
 
-QSharedPointer<Node>
-pas::operations::pepp::detail::uscall(const DirectiveType &line, ST symTab) {
+QSharedPointer<Node> pas::parse::pepp::detail::uscall(const DirectiveType &line,
+                                                      ST symTab) {
 
   return detail::gen_io_scall_extern(line, symTab, "USCALL");
 }
 
-QSharedPointer<Node>
-pas::operations::pepp::detail::word(const DirectiveType &line, ST symTab) {
+QSharedPointer<Node> pas::parse::pepp::detail::word(const DirectiveType &line,
+                                                    ST symTab) {
   auto ret = QSharedPointer<pas::ast::Node>::create(
       generic::Type{.value = generic::Type::Directive});
   ret->set(generic::Directive{.value = u"WORD"_qs});
