@@ -297,6 +297,7 @@ template <typename ISA>
 void checkArgumentSizes(QSharedPointer<ast::Node> node) {
   using S = pas::ast::generic::Message::Severity;
   namespace EP = pas::errors::pepp;
+  auto exemptedFromLength = QSet<QString>{u"ASCII"_qs, u"SECTION"_qs};
   if (node->has<ast::generic::Directive>() &&
       node->has<ast::generic::Argument>()) {
     auto directive = node->get<ast::generic::Directive>().value;
@@ -304,7 +305,8 @@ void checkArgumentSizes(QSharedPointer<ast::Node> node) {
     if (directive.toUpper() == u"BYTE"_qs && arg->requiredBytes() > 1)
       detail::addError(
           node, {.severity = S::Fatal, .message = errorFromByteString(arg)});
-    else if (directive.toUpper() != "ASCII" && arg->requiredBytes() > 2)
+    else if (!exemptedFromLength.contains(directive.toUpper()) &&
+             arg->requiredBytes() > 2)
       detail::addError(
           node, {.severity = S::Fatal, .message = errorFromWordString(arg)});
 
