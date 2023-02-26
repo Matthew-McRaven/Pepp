@@ -102,6 +102,8 @@ private slots:
     QCOMPARE_NE(node.data(), nullptr);
     bool ret = node->apply_self(*fn);
     QCOMPARE(ret, true);
+    QVERIFY2(!node->has<pas::ast::generic::Error>(),
+             "Passing tests must not generate errors");
   };
   void testVisitor_data() {
     QTest::addColumn<QString>("input");
