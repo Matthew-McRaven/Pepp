@@ -3,6 +3,7 @@
 #include "node_from_parse_tree.hpp"
 #include "pas/ast/generic/attr_comment.hpp"
 #include "pas/ast/generic/attr_comment_indent.hpp"
+#include "pas/ast/generic/attr_error.hpp"
 #include "pas/ast/generic/attr_location.h"
 #include "pas/ast/generic/attr_symbol.hpp"
 #include "pas/ast/generic/attr_type.hpp"
@@ -10,11 +11,15 @@
 #include "pas/ast/pepp/attr_addr.hpp"
 #include "pas/ast/pepp/attr_instruction.hpp"
 #include "pas/ast/value/base.hpp"
+#include "pas/ast/value/hexadecimal.hpp"
+#include "pas/ast/value/string.hpp"
+#include "pas/errors.hpp"
 #include "pas/parse/pepp/rules_lines.hpp"
 #include "symbol/table.hpp"
 #include <boost/variant/static_visitor.hpp>
 #include <boost/variant/variant.hpp>
 #include <pas/ast/generic/attr_argument.hpp>
+#include <pas/ast/generic/attr_directive.hpp>
 namespace pas::operations::pepp {
 using namespace pas::parse::pepp;
 template <typename ISA>
@@ -47,10 +52,10 @@ toAST(const std::vector<pas::parse::pepp::LineType> &lines) {
     visitor.symTab = activeSection->get<ast::generic::SymbolTable>().value;
   };
   createActive();
-  qsizetype loc = 0 ;
+  qsizetype loc = 0;
   for (const auto &line : lines) {
     auto node = line.apply_visitor(visitor);
-    node->set(ast::generic::SourceLocation{.value=loc++});
+    node->set(ast::generic::SourceLocation{.value = loc++});
     // TODO: If section, create new section.
     ast::addChild(*activeSection, node);
   }
@@ -71,8 +76,6 @@ parse_arg(const T &line, ST symTab, bool preferIdent = false) {
   QList<QSharedPointer<pas::ast::value::Base>> arguments;
   for (const auto &arg : line.args) {
     auto shared = arg.apply_visitor(visitor);
-    if (visitor.error)
-      throw std::logic_error("Error");
     arguments.push_back(shared);
   }
   return arguments;
@@ -97,6 +100,9 @@ QSharedPointer<Node> scall(const DirectiveType &line, ST symTab);
 QSharedPointer<Node> section(const DirectiveType &line, ST symTab);
 QSharedPointer<Node> uscall(const DirectiveType &line, ST symTab);
 QSharedPointer<Node> word(const DirectiveType &line, ST symTab);
+QSharedPointer<Node> addError(QSharedPointer<Node> node,
+                              pas::ast::generic::Message msg);
+template <typename ISA> void checkArgumentSizes(QSharedPointer<Node>);
 
 } // namespace detail
 template <typename ISA>
@@ -134,7 +140,9 @@ pas::operations::pepp::FromParseTree<ISA>::operator()(
 
   auto instr = ISA::parseMnemonic(QString::fromStdString(line.identifier));
   if (instr == ISA::Mnemonic::INVALID)
-    throw std::logic_error("Error");
+    return detail::addError(
+        ret, {.severity = pas::ast::generic::Message::Severity::Fatal,
+              .message = pas::errors::pepp::invalidMnemonic});
   ret->set(ast::pepp::Instruction<ISA>{.value = instr});
 
   if (line.hasComment)
@@ -158,7 +166,9 @@ pas::operations::pepp::FromParseTree<ISA>::operator()(
 
   auto instr = ISA::parseMnemonic(QString::fromStdString(line.identifier));
   if (instr == ISA::Mnemonic::INVALID)
-    throw std::logic_error("Error");
+    return detail::addError(
+        ret, {.severity = pas::ast::generic::Message::Severity::Fatal,
+              .message = pas::errors::pepp::invalidMnemonic});
   ret->set(ast::pepp::Instruction<ISA>{.value = instr});
 
   // Validate that arg is appropriate for instruction.
@@ -166,22 +176,33 @@ pas::operations::pepp::FromParseTree<ISA>::operator()(
   visitor.symTab = symTab;
   auto arg = line.arg.apply_visitor(visitor);
   if (!(arg->isFixedSize() && arg->isNumeric()))
-    throw std::logic_error("Error");
+    return detail::addError(
+        ret, {.severity = pas::ast::generic::Message::Severity::Fatal,
+              .message = pas::errors::pepp::expectedNumeric});
   ret->set(ast::generic::Argument{.value = arg});
+  checkArgumentSizes<ISA>(ret);
 
   // Validate addressing mode is appropriate for instruction.
   if (line.addr.empty() && ISA::requiresAddressingMode(instr))
-    throw std::logic_error("Error");
+    return detail::addError(
+        ret, {.severity = pas::ast::generic::Message::Severity::Fatal,
+              .message = pas::errors::pepp::requiredAddrMode});
   else if (!line.addr.empty()) {
     auto addr = ISA::parseAddressingMode(QString::fromStdString(line.addr));
-    if (ISA::isAType(instr) && !ISA::isValidATypeAddressingMode(addr))
-      throw std::logic_error("Error");
-    else if (ISA::isAAAType(instr) && !ISA::isValidAAATypeAddressingMode(addr))
-      throw std::logic_error("Error");
-    else if (ISA::isRAAAType(instr) &&
-             !ISA::isValidRAAATypeAddressingMode(addr))
-      throw std::logic_error("Error");
-    ret->set(ast::pepp::AddressingMode<ISA>{.value = addr});
+    if (addr == ISA::AddressingMode::INVALID)
+      return detail::addError(
+          ret, {.severity = pas::ast::generic::Message::Severity::Fatal,
+                .message = pas::errors::pepp::invalidAddrMode});
+    else if ((ISA::isAType(instr) && !ISA::isValidATypeAddressingMode(addr)) ||
+             (ISA::isAAAType(instr) &&
+              !ISA::isValidAAATypeAddressingMode(addr)) ||
+             (ISA::isRAAAType(instr) &&
+              !ISA::isValidRAAATypeAddressingMode(addr)))
+      return detail::addError(
+          ret, {.severity = pas::ast::generic::Message::Severity::Fatal,
+                .message = pas::errors::pepp::illegalAddrMode});
+    else
+      ret->set(ast::pepp::AddressingMode<ISA>{.value = addr});
   }
 
   if (line.hasComment)
@@ -210,9 +231,18 @@ pas::operations::pepp::FromParseTree<ISA>::operator()(
   auto identifier = QString::fromStdString(line.identifier).toUpper();
   if (auto converter = converters.find(identifier);
       converter != converters.end()) {
-    return converter.value()(line, symTab);
+    auto ret = converter.value()(line, symTab);
+    checkArgumentSizes<ISA>(ret);
+    return ret;
+  } else {
+    auto ret = QSharedPointer<pas::ast::Node>::create(
+        ast::generic::Type{.value = ast::generic::Type::Directive});
+    ret->set(ast::generic::Directive{
+        .value = QString::fromStdString(line.identifier)});
+    return detail::addError(
+        ret, {.severity = pas::ast::generic::Message::Severity::Fatal,
+              .message = pas::errors::pepp::invalidDirective});
   }
-  throw std::logic_error("No match");
 }
 
 template <typename ISA>
@@ -226,5 +256,50 @@ template <typename ISA>
 template <typename T>
 QSharedPointer<ast::Node> FromParseTree<ISA>::operator()(const T &line) {
   return nullptr;
+}
+
+QString errorFromByteString(QSharedPointer<ast::value::Base> arg) {
+
+  if (dynamic_cast<ast::value::Hexadecimal *>(arg.data()) != nullptr)
+    return pas::errors::pepp::hexTooBig1;
+  else if (dynamic_cast<ast::value::ShortString *>(arg.data()) != nullptr)
+    return pas::errors::pepp::strTooLong1;
+  else
+    return pas::errors::pepp::decTooBig1;
+}
+
+QString errorFromWordString(QSharedPointer<ast::value::Base> arg) {
+
+  if (dynamic_cast<ast::value::Hexadecimal *>(arg.data()) != nullptr)
+    return pas::errors::pepp::hexTooBig2;
+  else if (dynamic_cast<ast::value::ShortString *>(arg.data()) != nullptr)
+    return pas::errors::pepp::strTooLong2;
+  else
+    return pas::errors::pepp::decTooBig2;
+}
+
+template <typename ISA>
+void checkArgumentSizes(QSharedPointer<ast::Node> node) {
+  using S = pas::ast::generic::Message::Severity;
+  namespace EP = pas::errors::pepp;
+  if (node->has<ast::generic::Directive>() &&
+      node->has<ast::generic::Argument>()) {
+    auto directive = node->get<ast::generic::Directive>().value;
+    auto arg = node->get<ast::generic::Argument>().value;
+    if (directive.toUpper() == u"BYTE"_qs && arg->requiredBytes() > 1)
+      detail::addError(
+          node, {.severity = S::Fatal, .message = errorFromByteString(arg)});
+    else if (directive.toUpper() != "ASCII" && arg->requiredBytes() > 2)
+      detail::addError(
+          node, {.severity = S::Fatal, .message = errorFromWordString(arg)});
+
+  } else if (node->has<ast::pepp::Instruction<ISA>>() &&
+             node->has<ast::generic::Argument>()) {
+    auto mnemonic = node->get<ast::pepp::Instruction<ISA>>().value;
+    auto arg = node->get<ast::generic::Argument>().value;
+    // TODO: Handle "byte" argument for LDWr x,i
+    detail::addError(
+        node, {.severity = S::Fatal, .message = errorFromWordString(arg)});
+  }
 }
 }; // namespace pas::operations::pepp
