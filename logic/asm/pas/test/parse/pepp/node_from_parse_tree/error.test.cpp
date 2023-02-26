@@ -41,7 +41,14 @@ private slots:
     auto actualErrors = visit.errors;
     for (int it = 0; it < qMin(errors.size(), actualErrors.size()); it++) {
       QCOMPARE(errors[it].first, actualErrors[it].first);
-      QCOMPARE(errors[it].second, actualErrors[it].second);
+      if (errors[it].second.message != actualErrors[it].second.message) {
+        int y = 5;
+      }
+      QCOMPARE(errors[it].second.message, actualErrors[it].second.message);
+      QCOMPARE(errors[it].second.severity, actualErrors[it].second.severity);
+    }
+    if (errors.size() != actualErrors.size()) {
+      int x = 5;
     }
     QCOMPARE(errors.size(), actualErrors.size());
   }
@@ -53,8 +60,22 @@ private slots:
     QTest::addRow("unary: invalid mnemonic")
         << u"rat"_qs << QList<Error>{makeFatal(0, E::invalidMnemonic)};
     // NonUnary Instructions -- BR/Call family
+    QTest::addRow("nonunary: invalid mnemonic")
+        << u"brg k"_qs << QList<Error>{makeFatal(0, E::invalidMnemonic)};
+    QTest::addRow("nonunary: 3-byte string")
+        << u"br \"abc\""_qs << QList<Error>{makeFatal(0, E::expectedNumeric)};
+    // Check that 0xFFFF->0x1_0000 triggers hex constant to be too big.
+    QTest::addRow("nonunary: 2-byte hex") << u"br 0xFFFF"_qs << QList<Error>{};
+    QTest::addRow("nonunary: 3-byte hex")
+        << u"br 0x10000"_qs << QList<Error>{makeFatal(0, E::hexTooBig2)};
+    QTest::addRow("nonunary: illegall addressing mode")
+        << u"br 0x10,sf"_qs << QList<Error>{makeFatal(0, E::illegalAddrMode)};
     // NonUnary Instructions -- Not stores
+    // - requires addre mode
+    // - max 2 byte arguments
     // NonUnary Instructions -- Stores
+    // - don't allow I addressing mode
+    // max 2 byte arguments
     /*
      * Directives
      */
