@@ -25,12 +25,18 @@ pas::ast::value::Character::clone() const {
 }
 
 bool pas::ast::value::Character::value(quint8 *dest, qsizetype length,
-                                          bits::BitOrder destEndian) const {
+                                       bits::BitOrder destEndian) const {
   return bits::copy(reinterpret_cast<const quint8 *>(_valueAsBytes.data()),
                     bits::hostOrder(), size(), dest, destEndian, length);
 }
 
-quint64 pas::ast::value::Character::size() const { return _value.size(); }
+quint64 pas::ast::value::Character::size() const {
+  return _valueAsBytes.size();
+}
+
+quint64 pas::ast::value::Character::requiredBytes() const {
+  return _valueAsBytes.size();
+}
 
 QString pas::ast::value::Character::string() const {
   throw std::logic_error("Unimplemented");

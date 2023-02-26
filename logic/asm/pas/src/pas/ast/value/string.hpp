@@ -26,6 +26,7 @@ public:
   value(quint8 *dest, qsizetype length,
         bits::BitOrder destEndian = bits::BitOrder::BigEndian) const override;
   quint64 size() const override;
+  quint64 requiredBytes() const override;
   QString string() const override;
 
 private:
@@ -57,6 +58,7 @@ public:
   value(quint8 *dest, qsizetype length,
         bits::BitOrder destEndian = bits::BitOrder::BigEndian) const override;
   quint64 size() const override;
+  quint64 requiredBytes() const override;
   QString string() const override;
 
 private:

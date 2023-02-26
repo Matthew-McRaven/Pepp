@@ -23,6 +23,7 @@ public:
   value(quint8 *dest, qsizetype length,
         bits::BitOrder targetEndian = bits::BitOrder::BigEndian) const override;
   quint64 size() const override;
+  quint64 requiredBytes() const override;
   virtual QString string() const override = 0;
 
 protected:

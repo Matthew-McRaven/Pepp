@@ -23,10 +23,12 @@ pas::ast::value::Identifier::clone() const {
 }
 
 bool pas::ast::value::Identifier::value(quint8 *dest, qsizetype length,
-                                           bits::BitOrder destEndian) const {
+                                        bits::BitOrder destEndian) const {
   return true;
 }
 
 quint64 pas::ast::value::Identifier::size() const { return 0; }
+
+quint64 pas::ast::value::Identifier::requiredBytes() const { return 0; }
 
 QString pas::ast::value::Identifier::string() const { return _value; }

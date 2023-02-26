@@ -4,7 +4,7 @@
 pas::ast::value::ShortString::ShortString() : Base() {}
 
 pas::ast::value::ShortString::ShortString(QString value, quint8 size,
-                                             bits::BitOrder endian)
+                                          bits::BitOrder endian)
     : _size(size), _value(value), _valueAsBytes({}) {
   bool okay = bits::escapedStringToBytes(value, _valueAsBytes);
   if (!okay)
@@ -33,12 +33,14 @@ pas::ast::value::ShortString::clone() const {
 }
 
 bool pas::ast::value::ShortString::value(quint8 *dest, qsizetype length,
-                                            bits::BitOrder destEndian) const {
+                                         bits::BitOrder destEndian) const {
   return bits::copy(reinterpret_cast<const quint8 *>(_valueAsBytes.data()),
                     bits::hostOrder(), size(), dest, destEndian, length);
 }
 
 quint64 pas::ast::value::ShortString::size() const { return _size; }
+
+quint64 pas::ast::value::ShortString::requiredBytes() const { return _size; }
 
 QString pas::ast::value::ShortString::string() const {
   throw std::logic_error("Unimplemented");
@@ -72,12 +74,16 @@ pas::ast::value::LongString::clone() const {
 }
 
 bool pas::ast::value::LongString::value(quint8 *dest, qsizetype length,
-                                           bits::BitOrder destEndian) const {
+                                        bits::BitOrder destEndian) const {
   return bits::copy(reinterpret_cast<const quint8 *>(_valueAsBytes.data()),
                     bits::hostOrder(), size(), dest, destEndian, length);
 }
 
 quint64 pas::ast::value::LongString::size() const {
+  return _valueAsBytes.size();
+}
+
+quint64 pas::ast::value::LongString::requiredBytes() const {
   return _valueAsBytes.size();
 }
 

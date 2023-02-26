@@ -19,7 +19,12 @@ public:
   virtual bool value(quint8 *dest, qsizetype length,
                      pas::bits::BitOrder destEndian =
                          pas::bits::BitOrder::BigEndian) const = 0;
-  virtual quint64 size() const = 0;
+  // Size and requiredBytes may mismatch if size<8 and arg is bigger than
+  // 2**(8*size). e.g. size=2, arg=0x1_0000
+  virtual quint64
+  size() const = 0; // Number of bytes to be allocated in the bitstream.
+  virtual quint64
+  requiredBytes() const = 0; // Minimum number of bytes to represent value
   virtual QString string() const = 0;
 
 protected:
