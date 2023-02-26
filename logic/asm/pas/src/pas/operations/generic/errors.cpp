@@ -11,7 +11,7 @@ void pas::ops::generic::collectErrors::operator()(const ast::Node &node) {
     if (node.has<Location>())
       location = node.get<Location>();
     for (auto error : node.get<Error>().value) {
-      errors.push_back(QPair<Location, Message>{{}, error});
+      errors.push_back(QPair<Location, Message>{location, error});
     }
   }
 }

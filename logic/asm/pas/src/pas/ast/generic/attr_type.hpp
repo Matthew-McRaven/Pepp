@@ -8,6 +8,7 @@ struct Type {
     Comment,
     Blank,
     MacroInvoke,
+    Structural, // Root or section group nodes
   };
   static const inline QString attributeName = u"generic:type"_qs;
   Types value; // The type of the node (i.e., pseudodirective, comment)

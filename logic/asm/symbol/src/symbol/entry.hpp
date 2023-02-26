@@ -28,6 +28,8 @@
 #include "types.hpp"
 #include "value.hpp"
 
+#include "symbol_globals.hpp"
+
 namespace symbol {
 
 class Table;
@@ -35,7 +37,7 @@ class Table;
 // Currently unused, will eventually be used to track trace tag information
 // alongside a symbol.
 // TODO: Determine how to track debugging information.
-struct format {
+struct SYMBOL_EXPORT format {
   SymbolReprFormat format;
   quint32 size = 0;
 };
@@ -61,7 +63,7 @@ struct format {
  *
  * Values have 64 bits, with a mandatory bitmask and length in the value.
  */
-class Entry {
+class SYMBOL_EXPORT Entry {
 
 public:
   // Default constructor, assumes value is symbol::value_empty

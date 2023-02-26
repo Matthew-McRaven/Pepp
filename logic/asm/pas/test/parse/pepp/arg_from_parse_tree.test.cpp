@@ -7,11 +7,11 @@
 #include "pas/ast/value/identifier.hpp"
 #include "pas/ast/value/string.hpp"
 #include "pas/ast/value/symbolic.hpp"
-#include "pas/operations/pepp/arg_from_parse_tree.hpp"
+#include "pas/parse/pepp/arg_from_parse_tree.hpp"
 #include "pas/parse/pepp/rules_values.hpp"
 using namespace pas::parse::pepp;
 using namespace pas::ast::value;
-class PasOpsPepp_ArgFromParseTree : public QObject {
+class PasParsePepp_ArgFromParseTree : public QObject {
   Q_OBJECT
 private slots:
   void character() {
@@ -20,7 +20,7 @@ private slots:
     auto asStd = input.toStdString();
     Value result;
     QVERIFY(parse(asStd.begin(), asStd.end(), argument, result));
-    auto visit = pas::operations::pepp::ParseToArg();
+    auto visit = pas::parse::pepp::ParseToArg();
     auto ret = result.apply_visitor(visit);
     if (willCast)
       QCOMPARE_NE(dynamic_cast<Character *>(ret.data()), nullptr);
@@ -42,7 +42,7 @@ private slots:
     auto asStd = input.toStdString();
     Value result;
     QVERIFY(parse(asStd.begin(), asStd.end(), argument, result));
-    auto visit = pas::operations::pepp::ParseToArg();
+    auto visit = pas::parse::pepp::ParseToArg();
     auto ret = result.apply_visitor(visit);
     if (willCast)
       QCOMPARE_NE(dynamic_cast<ShortString *>(ret.data()), nullptr);
@@ -66,7 +66,7 @@ private slots:
     auto asStd = input.toStdString();
     Value result;
     QVERIFY(parse(asStd.begin(), asStd.end(), argument, result));
-    auto visit = pas::operations::pepp::ParseToArg();
+    auto visit = pas::parse::pepp::ParseToArg();
     auto ret = result.apply_visitor(visit);
     if (willCast)
       QCOMPARE_NE(dynamic_cast<LongString *>(ret.data()), nullptr);
@@ -88,7 +88,7 @@ private slots:
     auto asStd = input.toStdString();
     Value result;
     QVERIFY(parse(asStd.begin(), asStd.end(), argument, result));
-    auto visit = pas::operations::pepp::ParseToArg();
+    auto visit = pas::parse::pepp::ParseToArg();
     auto ret = result.apply_visitor(visit);
     if (willCast)
       QCOMPARE_NE(dynamic_cast<UnsignedDecimal *>(ret.data()), nullptr);
@@ -109,7 +109,7 @@ private slots:
     auto asStd = input.toStdString();
     Value result;
     QVERIFY(parse(asStd.begin(), asStd.end(), argument, result));
-    auto visit = pas::operations::pepp::ParseToArg();
+    auto visit = pas::parse::pepp::ParseToArg();
     auto ret = result.apply_visitor(visit);
     if (willCast)
       QCOMPARE_NE(dynamic_cast<SignedDecimal *>(ret.data()), nullptr);
@@ -130,7 +130,7 @@ private slots:
     auto asStd = input.toStdString();
     Value result;
     QVERIFY(parse(asStd.begin(), asStd.end(), argument, result));
-    auto visit = pas::operations::pepp::ParseToArg();
+    auto visit = pas::parse::pepp::ParseToArg();
     auto ret = result.apply_visitor(visit);
     if (willCast)
       QCOMPARE_NE(dynamic_cast<Hexadecimal *>(ret.data()), nullptr);
@@ -151,7 +151,7 @@ private slots:
     auto asStd = input.toStdString();
     Value result;
     QVERIFY(parse(asStd.begin(), asStd.end(), argument, result));
-    auto visit = pas::operations::pepp::ParseToArg();
+    auto visit = pas::parse::pepp::ParseToArg();
     visit.preferIdent = true;
     auto ret = result.apply_visitor(visit);
     if (willCast)
@@ -174,7 +174,7 @@ private slots:
     auto asStd = input.toStdString();
     Value result;
     QVERIFY(parse(asStd.begin(), asStd.end(), argument, result));
-    auto visit = pas::operations::pepp::ParseToArg();
+    auto visit = pas::parse::pepp::ParseToArg();
     visit.symTab = QSharedPointer<symbol::Table>::create();
     auto ret = result.apply_visitor(visit);
     if (willCast)
@@ -192,4 +192,4 @@ private slots:
 
 #include "arg_from_parse_tree.test.moc"
 
-QTEST_MAIN(PasOpsPepp_ArgFromParseTree);
+QTEST_MAIN(PasParsePepp_ArgFromParseTree);

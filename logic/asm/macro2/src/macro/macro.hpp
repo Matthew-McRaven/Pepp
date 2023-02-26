@@ -2,9 +2,11 @@
 
 #include <QObject>
 
+#include "macro_globals.hpp"
 #include "./types.hpp"
+
 namespace macro {
-class Parsed : public QObject {
+class MACRO_EXPORT Parsed : public QObject {
   Q_OBJECT
   Q_PROPERTY(QString name READ name CONSTANT);
   Q_PROPERTY(QString body READ body CONSTANT);

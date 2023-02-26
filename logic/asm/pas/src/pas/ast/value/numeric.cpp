@@ -18,7 +18,7 @@ bool pas::ast::value::Numeric::value(quint8 *dest, qsizetype length,
 quint64 pas::ast::value::Numeric::size() const { return _size; }
 
 quint64 pas::ast::value::Numeric::requiredBytes() const {
-  return ceil(log2(_value) / 8);
+  return ceil(log2(_value + 1) / 8);
 }
 
 pas::ast::value::Numeric::Numeric(const Numeric &other)

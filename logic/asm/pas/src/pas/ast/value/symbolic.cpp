@@ -37,7 +37,7 @@ quint64 pas::ast::value::Symbolic::size() const {
 }
 
 quint64 pas::ast::value::Symbolic::requiredBytes() const {
-  return ceil(log2(_value->value->value()()) / 8);
+  return ceil(log2(_value->value->value()() + 1) / 8);
 }
 
 QString pas::ast::value::Symbolic::string() const { return _value->name; }

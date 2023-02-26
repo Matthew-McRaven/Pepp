@@ -4,7 +4,7 @@
 #include "pas/isa/pep10.hpp"
 #include "pas/operations/generic/is.hpp"
 #include "pas/operations/pepp/is.hpp"
-#include "pas/operations/pepp/node_from_parse_tree.hpp"
+#include "pas/parse/pepp/node_from_parse_tree.hpp"
 #include "pas/parse/pepp/rules_lines.hpp"
 
 // Declare all matchers as globals, so they don't fall out of scope in data fn.
@@ -78,7 +78,7 @@ QSharedPointer<pas::ops::ConstOp<bool>> isWord = []() {
 }();
 
 using pas::ast::Node;
-class PasOpsPepp_NodeFromParseTree : public QObject {
+class PasParsePepp_NodeFromParseTree_Pass : public QObject {
   Q_OBJECT
 private slots:
   void testVisitor() {
@@ -86,13 +86,15 @@ private slots:
     QFETCH(QSharedPointer<pas::ops::ConstOp<bool>>, fn);
     auto asStd = input.toStdString();
     using namespace pas::parse::pepp;
-    std::vector<LineType> result;
+    std::vector<pas::parse::pepp::LineType> result;
     bool success = true;
-    QVERIFY_THROWS_NO_EXCEPTION(
-        [&]() { success = parse(asStd.begin(), asStd.end(), line, result); }());
+    QVERIFY_THROWS_NO_EXCEPTION([&]() {
+      success =
+          parse(asStd.begin(), asStd.end(), pas::parse::pepp::line, result);
+    }());
     QVERIFY(success);
     QCOMPARE(result.size(), 1);
-    auto visit = pas::operations::pepp::FromParseTree<pas::isa::Pep10ISA>();
+    auto visit = pas::parse::pepp::FromParseTree<pas::isa::Pep10ISA>();
     visit.symTab = QSharedPointer<symbol::Table>::create();
     QSharedPointer<Node> node;
     QVERIFY_THROWS_NO_EXCEPTION(
@@ -234,6 +236,6 @@ private slots:
   }
 };
 
-#include "node_from_parse_tree.test.moc"
+#include "pass.test.moc"
 
-QTEST_MAIN(PasOpsPepp_NodeFromParseTree);
+QTEST_MAIN(PasParsePepp_NodeFromParseTree_Pass);
