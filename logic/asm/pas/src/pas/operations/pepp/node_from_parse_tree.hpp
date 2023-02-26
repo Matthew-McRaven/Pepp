@@ -3,6 +3,7 @@
 #include "node_from_parse_tree.hpp"
 #include "pas/ast/generic/attr_comment.hpp"
 #include "pas/ast/generic/attr_comment_indent.hpp"
+#include "pas/ast/generic/attr_location.h"
 #include "pas/ast/generic/attr_symbol.hpp"
 #include "pas/ast/generic/attr_type.hpp"
 #include "pas/ast/node.hpp"
@@ -46,8 +47,10 @@ toAST(const std::vector<pas::parse::pepp::LineType> &lines) {
     visitor.symTab = activeSection->get<ast::generic::SymbolTable>().value;
   };
   createActive();
+  qsizetype loc = 0 ;
   for (const auto &line : lines) {
     auto node = line.apply_visitor(visitor);
+    node->set(ast::generic::SourceLocation{.value=loc++});
     // TODO: If section, create new section.
     ast::addChild(*activeSection, node);
   }
