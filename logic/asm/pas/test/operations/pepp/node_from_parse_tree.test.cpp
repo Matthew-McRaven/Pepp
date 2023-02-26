@@ -219,6 +219,8 @@ private slots:
     QTest::newRow(".SCALL: mixed case") << ".sCaLl hi" << isSCall;
     QTest::newRow(".SCALL: comment") << ".SCALL hi;10" << isSCall;
     // SECTION
+    QTest::newRow(".SECTION: mixed case") << ".SeCtIoN \"data\"" << isSection;
+    QTest::newRow(".SECTION: comment") << ".SECTION \"hi\";10" << isSection;
     // TODO: Implement
     // USCALL
     QTest::newRow(".USCALL: mixed case") << ".UsCaLl hi" << isUSCall;

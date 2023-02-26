@@ -1,4 +1,5 @@
 #include "./is.hpp"
+#include "pas/ast/generic/attr_sec_flags.hpp"
 
 #include <pas/ast/generic/attr_directive.hpp>
 bool isArgumentedDirective(const pas::ast::Node &node, const QString name) {
@@ -47,7 +48,9 @@ bool pas::ops::pepp::isSection::operator()(const ast::Node &node) {
          node.has<ast::generic::Directive>() &&
          (node.get<ast::generic::Directive>().value.toUpper() ==
           u"SECTION"_qs) &&
-         node.has<ast::generic::ArgumentList>();
+         node.has<ast::generic::SectionFlags>() &&
+         (node.has<ast::generic::ArgumentList>() ||
+          node.has<ast::generic::Argument>());
 }
 
 bool pas::ops::pepp::isUSCall::operator()(const ast::Node &node) {

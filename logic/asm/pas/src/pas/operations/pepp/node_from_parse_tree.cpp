@@ -1,5 +1,6 @@
 #include "./node_from_parse_tree.hpp"
 #include "pas/ast/generic/attr_error.hpp"
+#include "pas/ast/generic/attr_sec_flags.hpp"
 #include "pas/ast/value/symbolic.hpp"
 #include "pas/errors.hpp"
 #include <pas/ast/generic/attr_argument.hpp>
@@ -7,6 +8,7 @@
 #include <pas/ast/generic/attr_directive.hpp>
 #include <pas/ast/generic/attr_symbol.hpp>
 #include <pas/ast/value/hexadecimal.hpp>
+#include <pas/ast/value/identifier.hpp>
 using ST = QSharedPointer<symbol::Table>;
 using namespace pas::parse::pepp;
 using namespace pas::ast;
@@ -94,8 +96,8 @@ pas::operations::pepp::detail::ascii(const DirectiveType &line, ST symTab) {
         ret, {.severity = S::Fatal, .message = EP::expectNArguments.arg(1)});
   auto arg = args[0];
   if (!arg->isText())
-    return addError(ret,
-                    {.severity = S::Fatal, .message = EP::asciiRequiresString});
+    return addError(ret, {.severity = S::Fatal,
+                          .message = EP::dotRequiresString.arg(u".ASCII"_qs)});
   ret->set(generic::Argument{.value = arg});
 
   if (!line.symbol.empty())
@@ -258,7 +260,32 @@ pas::operations::pepp::detail::scall(const DirectiveType &line, ST symTab) {
 
 QSharedPointer<Node>
 pas::operations::pepp::detail::section(const DirectiveType &line, ST symTab) {
-  throw std::logic_error("Unimplemented");
+  auto ret = QSharedPointer<pas::ast::Node>::create(
+      generic::Type{.value = generic::Type::Directive});
+  ret->set(generic::Directive{.value = u"SECTION"_qs});
+
+  auto args = detail::parse_arg(line, symTab, true);
+
+  // TODO: Handle section flags (second argument).
+  if (args.size() != 1)
+    return addError(
+        ret, {.severity = S::Fatal, .message = EP::expectNArguments.arg(1)});
+  auto arg = args[0];
+  if (!arg->isText())
+    return addError(ret,
+                    {.severity = S::Fatal,
+                     .message = EP::dotRequiresString.arg(u".SECTION"_qs)});
+  ret->set(generic::Argument{.value = arg});
+  ret->set(generic::SectionFlags{
+      .value = {.R = 1, .W = 1, .X = 1}}); // Default to read/write/execute
+
+  if (!line.symbol.empty())
+    return addError(ret, {.severity = S::Fatal,
+                          .message = EP::noDefineSymbol.arg(".SECTION")});
+
+  if (line.hasComment)
+    ret->set(generic::Comment{.value = QString::fromStdString(line.comment)});
+  return ret;
 }
 
 QSharedPointer<Node>

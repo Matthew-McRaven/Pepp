@@ -12,8 +12,8 @@ inline const QString requiredAddrMode =
 inline const QString badLineStart = u""_qs;
 inline const QString equateRequiresSymbol =
     u".EQUATE must have a symbol definition."_qs;
-inline const QString asciiRequiresString =
-    u".ASCII requires a string constant argument."_qs;
+inline const QString dotRequiresString =
+    u"%1 requires a string constant argument."_qs;
 inline const QString argAfterMnemonic = u""_qs;
 inline const QString expectedNumeric =
     u"Expected a decimal, hexadecimal, os symbolic argument."_qs;
