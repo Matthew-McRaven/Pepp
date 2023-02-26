@@ -98,7 +98,7 @@ private slots:
     QVERIFY_THROWS_NO_EXCEPTION(
         [&]() { node = result[0].apply_visitor(visit); }());
     QCOMPARE_NE(node.data(), nullptr);
-    bool ret = node->apply(*fn);
+    bool ret = node->apply_self(*fn);
     QCOMPARE(ret, true);
   };
   void testVisitor_data() {
