@@ -40,14 +40,17 @@ struct FromParseTree
 template <typename ISA>
 QSharedPointer<pas::ast::Node>
 toAST(const std::vector<pas::parse::pepp::LineType> &lines) {
-  auto root = QSharedPointer<pas::ast::Node>::create();
+  static const auto structuralType =
+      ast::generic::Type{.value = ast::generic::Type::Structural};
+  // TODO: Fix parent relationships
+  auto root = QSharedPointer<pas::ast::Node>::create(structuralType);
   root->set(ast::generic::SymbolTable{
       .value = QSharedPointer<symbol::Table>::create()});
   QSharedPointer<pas::ast::Node> activeSection;
   auto visitor = FromParseTree<ISA>();
   auto createActive = [&](ast::generic::SectionFlags flags,
                           QString sectionName) {
-    activeSection = QSharedPointer<pas::ast::Node>::create();
+    activeSection = QSharedPointer<pas::ast::Node>::create(structuralType);
     activeSection->set(ast::generic::SymbolTable{
         .value = root->get<ast::generic::SymbolTable>().value->addChild()});
     ast::addChild(*root, activeSection);
@@ -65,7 +68,7 @@ toAST(const std::vector<pas::parse::pepp::LineType> &lines) {
       if (node->has<ast::generic::Argument>() &&
           node->has<ast::generic::SectionFlags>()) {
         auto sectionName = node->get<ast::generic::Argument>().value->string();
-        auto flags = node->get<ast::generic::SectionFlags>().value;
+        auto flags = node->get<ast::generic::SectionFlags>();
         createActive(flags, sectionName);
       } else {
         node->set(ast::generic::Error{
