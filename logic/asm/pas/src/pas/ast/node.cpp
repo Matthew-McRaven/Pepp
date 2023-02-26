@@ -5,7 +5,7 @@
 
 pas::ast::Node::Node(const pas::ast::generic::Type type,
                      QWeakPointer<Node> parent) {
-  set<generic::Type>({.value = type});
+  set(type);
   set<generic::Parent>({.value = parent});
   set<generic::Children>({});
 }
