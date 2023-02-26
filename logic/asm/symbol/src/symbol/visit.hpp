@@ -24,7 +24,9 @@
 */
 #include <QSharedPointer>
 
+#include "symbol_globals.hpp"
 #include "types.hpp"
+
 namespace symbol {
 class Table;
 class Entry;
@@ -34,14 +36,14 @@ class Entry;
  * \returns Returns the immediate parent of table if it exists, else returns
  * table
  */
-QSharedPointer<symbol::Table> parent(QSharedPointer<symbol::Table> table);
+SYMBOL_EXPORT QSharedPointer<symbol::Table> parent(QSharedPointer<symbol::Table> table);
 
 /*!
  * \brief Returns the top-level node in a hierarchical symbol table.
  *
  */
-QSharedPointer<symbol::Table> rootTable(QSharedPointer<symbol::Table> table);
-QList<QSharedPointer<symbol::Entry>>
+SYMBOL_EXPORT QSharedPointer<symbol::Table> rootTable(QSharedPointer<symbol::Table> table);
+SYMBOL_EXPORT QList<QSharedPointer<symbol::Entry>>
 selectByName(QSharedPointer<symbol::Table> table, const QString &name,
              TraversalPolicy policy = TraversalPolicy::kChildren);
 /*!
@@ -51,7 +53,7 @@ selectByName(QSharedPointer<symbol::Table> table, const QString &name,
  * \arg name The name of the symbol to be found.
  * \returns Returns true if at least one child of table contains
  */
-bool exists(QSharedPointer<symbol::Table> table, const QString &name,
+SYMBOL_EXPORT bool exists(QSharedPointer<symbol::Table> table, const QString &name,
             TraversalPolicy policy = TraversalPolicy::kChildren);
 
 /*!
@@ -62,7 +64,7 @@ bool exists(QSharedPointer<symbol::Table> table, const QString &name,
  * \arg threshold value above with a Location's base must be for the offset to
  * be applied.
  */
-void adjustOffset(QSharedPointer<symbol::Table> table, quint64 offset,
+SYMBOL_EXPORT void adjustOffset(QSharedPointer<symbol::Table> table, quint64 offset,
                   quint64 threshold = 0,
                   TraversalPolicy policy = TraversalPolicy::kChildren);
 
@@ -70,7 +72,7 @@ void adjustOffset(QSharedPointer<symbol::Table> table, quint64 offset,
  * \brief Create a list of all symbols in the symbol table
  * \arg table A node in a hierarchical symbol table.
  */
-QList<QSharedPointer<symbol::Entry>>
+SYMBOL_EXPORT QList<QSharedPointer<symbol::Entry>>
 enumerate(QSharedPointer<symbol::Table> table,
           TraversalPolicy policy = TraversalPolicy::kChildren);
 
@@ -78,6 +80,6 @@ enumerate(QSharedPointer<symbol::Table> table,
  * \brief Create a string representation of a symbol table
  * \arg table A node in a hierarchical symbol table.
  */
-QString tableListing(QSharedPointer<symbol::Table> table, quint8 maxBytes,
+SYMBOL_EXPORT QString tableListing(QSharedPointer<symbol::Table> table, quint8 maxBytes,
                      TraversalPolicy policy = TraversalPolicy::kChildren);
 } // end namespace symbol

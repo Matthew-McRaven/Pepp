@@ -3,6 +3,9 @@
 #include <QHash>
 #include <QStandardItemModel>
 #include <QString>
+
+#include "builtins_globals.hpp"
+
 namespace builtins {
 
 #define SHARED_CONSTANT(type, name, value)                                     \
@@ -15,7 +18,7 @@ namespace builtins {
  *
  * These roles are used to
  */
-class FigureConstants : public QObject {
+class BUILTINS_EXPORT FigureConstants : public QObject {
   Q_OBJECT
   QML_ELEMENT
   QML_SINGLETON
@@ -37,7 +40,7 @@ public:
 };
 
 class Registry;
-class BookModel : public QStandardItemModel {
+class BUILTINS_EXPORT BookModel : public QStandardItemModel {
   Q_OBJECT
 public:
   BookModel(QSharedPointer<builtins::Registry> registry);

@@ -2,12 +2,13 @@
 
 #include <QObject>
 Q_MOC_INCLUDE("builtins/book.hpp")
+#include "builtins_globals.hpp"
 namespace macro {
 class Parsed;
 }
 namespace builtins {
 class Book;
-class Registry : public QObject {
+class BUILTINS_EXPORT Registry : public QObject {
   Q_OBJECT
   Q_PROPERTY(
       QList<QSharedPointer<const builtins::Book>> books READ books CONSTANT);

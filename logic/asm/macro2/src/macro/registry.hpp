@@ -2,6 +2,7 @@
 
 #include <QObject>
 
+#include "macro_globals.hpp"
 #include "./types.hpp"
 
 namespace macro {
@@ -9,7 +10,7 @@ namespace macro {
 class Parsed;
 class Registered;
 
-class Registry : public QObject {
+class MACRO_EXPORT Registry : public QObject {
   Q_OBJECT
 public:
   explicit Registry(QObject *parent = nullptr);

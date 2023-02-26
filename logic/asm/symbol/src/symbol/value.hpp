@@ -26,13 +26,14 @@
 #include <QSharedPointer>
 #include <QtCore>
 
+#include "symbol_globals.hpp"
 #include "types.hpp"
 
 namespace symbol {
 class Entry;
 }
 namespace symbol::value {
-struct MaskedBits {
+struct SYMBOL_EXPORT MaskedBits {
   quint8 byteCount;
   quint64 bitPattern, mask;
   quint64 operator()();
@@ -47,7 +48,7 @@ struct MaskedBits {
  * memory. Since all of these types have different value types, a common API is
  * needed to allow them to act as drop-in replacements for each other.
  */
-class Abstract {
+class SYMBOL_EXPORT Abstract {
 private:
 public:
   Abstract() = default;
@@ -88,7 +89,7 @@ public:
 /*!
  * \brief Represent a value that is indefinite (not yet defined).
  */
-class Empty : public Abstract {
+class SYMBOL_EXPORT Empty : public Abstract {
 public:
   explicit Empty(quint8 bytes);
   virtual ~Empty() override = default;
@@ -105,7 +106,7 @@ private:
  * A deleted value should never be propagated into an ELF binary--the linker
  * should error if deleted values are stuffed into the symbol table.
  */
-class Deleted : public Abstract {
+class SYMBOL_EXPORT Deleted : public Abstract {
 public:
   Deleted() = default;
   virtual ~Deleted() override = default;
@@ -116,7 +117,7 @@ public:
 /*!
  * \brief Represent a value that is an integral constant.
  */
-class Constant : public Abstract {
+class SYMBOL_EXPORT Constant : public Abstract {
   MaskedBits _value;
 
 public:
@@ -142,7 +143,7 @@ public:
  * to move the program around in memory. After creation, the base address is
  * immutable.
  */
-class Location : public Abstract {
+class SYMBOL_EXPORT Location : public Abstract {
 
 public:
   // Type must be kCode or kObject.
@@ -194,7 +195,7 @@ private:
  * This value cannot be relocated, since it acts like a numeric constant rather
  * than a location.
  */
-class Pointer : public Abstract {
+class SYMBOL_EXPORT Pointer : public Abstract {
 public:
   explicit Pointer(QSharedPointer<const symbol::Entry> ptr);
   ~Pointer() override = default;

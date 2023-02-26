@@ -1,6 +1,7 @@
 #pragma once
 #include "elements.hpp"
 #include <QtCore>
+#include "builtins_globals.hpp"
 namespace builtins {
 
 /*!
@@ -14,7 +15,7 @@ namespace builtins {
  * \see builtins::Figure#_tests \see builtins::Figure#_elements
  *
  */
-class Figure : public QObject {
+class BUILTINS_EXPORT Figure : public QObject {
   Q_OBJECT
   Q_PROPERTY(builtins::Architecture arch READ arch CONSTANT);
   Q_PROPERTY(QString chapterName READ chapterName CONSTANT);
