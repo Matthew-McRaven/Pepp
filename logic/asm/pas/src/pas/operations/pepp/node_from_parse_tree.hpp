@@ -5,7 +5,7 @@
 #include "pas/ast/generic/attr_comment.hpp"
 #include "pas/ast/generic/attr_comment_indent.hpp"
 #include "pas/ast/generic/attr_error.hpp"
-#include "pas/ast/generic/attr_location.h"
+#include "pas/ast/generic/attr_location.hpp"
 #include "pas/ast/generic/attr_symbol.hpp"
 #include "pas/ast/generic/attr_type.hpp"
 #include "pas/ast/node.hpp"
