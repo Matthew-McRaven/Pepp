@@ -78,19 +78,19 @@ std::optional<T> apply_if(Node &node, ops::ConstOp<bool> &predicate,
 
 // If there is a result, it must be accumulated inside transform.
 template <typename T>
-void apply_recurse(const Node &node, ops::ConstOp<bool> &predicate,
-                   ops::ConstOp<T> &transform) {
+void apply_recurse_if(const Node &node, ops::ConstOp<bool> &predicate,
+                      ops::ConstOp<T> &transform) {
   apply_self_if(node, predicate, transform);
   for (auto &child : children(node))
-    apply_recurse(child, predicate, transform);
+    apply_recurse_if(child, predicate, transform);
 }
 
 // If there is a result, it must be accumulated inside transform.
 template <typename T>
-void apply_recurse(Node &node, ops::ConstOp<bool> &predicate,
-                   ops::MutatingOp<T> &transform) {
+void apply_recurse_if(Node &node, ops::ConstOp<bool> &predicate,
+                      ops::MutatingOp<T> &transform) {
   apply_self_if(node, predicate, transform);
   for (auto &child : children(node))
-    apply_recurse(child, predicate, transform);
+    apply_recurse_if(child, predicate, transform);
 }
 } // namespace pas::ast
