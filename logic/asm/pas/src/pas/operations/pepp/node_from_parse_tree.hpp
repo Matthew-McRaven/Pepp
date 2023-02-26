@@ -1,4 +1,5 @@
 #pragma once
+#include "./is.hpp"
 #include "arg_from_parse_tree.hpp"
 #include "node_from_parse_tree.hpp"
 #include "pas/ast/generic/attr_comment.hpp"
@@ -20,6 +21,7 @@
 #include <boost/variant/variant.hpp>
 #include <pas/ast/generic/attr_argument.hpp>
 #include <pas/ast/generic/attr_directive.hpp>
+#include <pas/ast/generic/attr_sec_flags.hpp>
 namespace pas::operations::pepp {
 using namespace pas::parse::pepp;
 template <typename ISA>
@@ -44,19 +46,35 @@ toAST(const std::vector<pas::parse::pepp::LineType> &lines) {
       .value = QSharedPointer<symbol::Table>::create()});
   QSharedPointer<pas::ast::Node> activeSection;
   auto visitor = FromParseTree<ISA>();
-  auto createActive = [&]() {
+  auto createActive = [&](ast::generic::SectionFlags flags,
+                          QString sectionName) {
     activeSection = QSharedPointer<pas::ast::Node>::create();
     activeSection->set(ast::generic::SymbolTable{
         .value = root->get<ast::generic::SymbolTable>().value->addChild()});
     ast::addChild(*root, activeSection);
     visitor.symTab = activeSection->get<ast::generic::SymbolTable>().value;
   };
-  createActive();
+  createActive({}, u".data"_qs);
   qsizetype loc = 0;
   for (const auto &line : lines) {
-    auto node = line.apply_visitor(visitor);
+    QSharedPointer<ast::Node> node = line.apply_visitor(visitor);
     node->set(ast::generic::SourceLocation{.value = loc++});
-    // TODO: If section, create new section.
+
+    // Create a new section group under child if the node is a section.
+    if (pas::ops::pepp::isSection()(*node)) {
+      if (node->has<ast::generic::Argument>() &&
+          node->has<ast::generic::SectionFlags>()) {
+        auto sectionName = node->get<ast::generic::Argument>().value->string();
+        auto flags = node->get<ast::generic::SectionFlags>().value;
+        createActive(flags, sectionName);
+      } else {
+        node->set(ast::generic::Error{
+            .value = {ast::generic::Message{
+                .severity = ast::generic::Message::Severity::Fatal,
+                .message = pas::errors::pepp::invalidSection}}});
+      }
+    }
+
     ast::addChild(*activeSection, node);
   }
   return root;

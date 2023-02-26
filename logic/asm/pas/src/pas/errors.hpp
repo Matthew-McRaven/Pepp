@@ -4,6 +4,7 @@ namespace pas::errors::pepp {
 // Bad instructions and command;
 inline const QString invalidMnemonic = u"Invalid mnemonic."_qs;
 inline const QString invalidDirective = u"Invalid dot command."_qs;
+inline const QString invalidSection = u"Invalid section directive."_qs;
 inline const QString illegalAddrMode =
     u"Illegal addressing mode for this instruction"_qs;
 inline const QString invalidAddrMode = u"Invalid addressing mode."_qs;
