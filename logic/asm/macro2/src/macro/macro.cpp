@@ -12,12 +12,3 @@ QString macro::Parsed::body() const { return _body; }
 quint8 macro::Parsed::argCount() const { return _argCount; }
 
 QString macro::Parsed::architecture() const { return _architecture; }
-
-macro::Registered::Registered(Type type, Parsed *contents, QObject *parent)
-    : QObject(parent), _contents(contents), _type(type) {
-  contents->setParent(this);
-}
-
-const macro::Parsed *macro::Registered::contents() const { return _contents; }
-
-macro::Type macro::Registered::type() const { return _type; }

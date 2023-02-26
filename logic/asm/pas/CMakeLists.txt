@@ -1,0 +1,17 @@
+cmake_minimum_required(VERSION 3.10)
+
+include(../../../config/cmake/create_targets.cmake)
+
+make_library(pas pas)
+target_link_libraries(pas PUBLIC "Qt6::Core;symbol")
+target_include_directories(pas PUBLIC ${Boost_INCLUDE_DIR})
+
+if(NOT IOS)
+  make_qtest(test-pas-parse-pepp-values- test/parse/pepp/parser_values.test.cpp "pas;Qt6::Core;Qt6::Test")
+  make_qtest(test-pas-parse-pepp-lines test/parse/pepp/parser_lines.test.cpp "pas;Qt6::Core;Qt6::Test")
+  make_qtest(test-pas-ops-pepp-afpt test/operations/pepp/arg_from_parse_tree.test.cpp "pas;Qt6::Core;Qt6::Test")
+  make_qtest(test-pas-ops-pepp-nfpt test/operations/pepp/node_from_parse_tree.test.cpp "pas;Qt6::Core;Qt6::Test")
+  #make_qtest(test-pat-pep-from-tree-comment test/pep/ast/visitor/from_parse_tree/comment.test.cpp "pas;Qt6::Core;Qt6::Test")
+  #make_qtest(test-pat-pep-arg-from-parse-tree test/pep/ast/visitor/arg_from_parse_tree.test.cpp "pas;Qt6::Core;Qt6::Test")
+  set_target_properties(test-pas-ops-pepp-nfpt PROPERTIES FOLDER "qtc_runnable")
+endif()

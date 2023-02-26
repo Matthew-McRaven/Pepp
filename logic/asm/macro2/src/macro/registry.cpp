@@ -1,5 +1,6 @@
 #include "./registry.hpp"
 #include "./macro.hpp"
+#include "./registered.hpp"
 macro::Registry::Registry(QObject *parent) : QObject{parent} {}
 
 bool macro::Registry::contains(QString name) const {
@@ -14,7 +15,7 @@ const macro::Registered *macro::Registry::findMacro(QString name) const {
 }
 
 QList<const macro::Registered *>
-macro::Registry::findMacrosByType(Type type) const {
+macro::Registry::findMacrosByType(types::Type type) const {
   QList<const Registered *> ret;
   for (const auto &macro : _macros) {
     if (macro->type() == type)
@@ -28,7 +29,7 @@ void macro::Registry::clear() {
   emit cleared();
 }
 
-const macro::Registered *macro::Registry::registerMacro(Type type,
+const macro::Registered *macro::Registry::registerMacro(types::Type type,
                                                         Parsed *macro) {
   if (contains(macro->name())) {
     delete macro;
