@@ -10,10 +10,6 @@ pas::ast::Node::Node(const pas::ast::generic::Type type,
   set<generic::Children>({});
 }
 
-bool pas::ast::Node::apply(ops::ConstOp<bool> &predicate) {
-  return predicate(*this);
-}
-
 QWeakPointer<const pas::ast::Node> pas::ast::parent(const Node &node) {
   return node.get<generic::Parent>().value;
 }
