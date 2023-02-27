@@ -197,7 +197,7 @@ QSharedPointer<pas::ast::Node> pas::parse::pepp::FromParseTree<ISA>::operator()(
         ret, {.severity = pas::ast::generic::Message::Severity::Fatal,
               .message = pas::errors::pepp::expectedNumeric});
   ret->set(ast::generic::Argument{.value = arg});
-  checkArgumentSizes<ISA>(ret);
+  detail::checkArgumentSizes<ISA>(ret);
 
   // Validate addressing mode is appropriate for instruction.
   if (line.addr.empty() && ISA::requiresAddressingMode(instr))
@@ -248,7 +248,7 @@ QSharedPointer<pas::ast::Node> pas::parse::pepp::FromParseTree<ISA>::operator()(
   if (auto converter = converters.find(identifier);
       converter != converters.end()) {
     auto ret = converter.value()(line, symTab);
-    checkArgumentSizes<ISA>(ret);
+    detail::checkArgumentSizes<ISA>(ret);
     return ret;
   } else {
     auto ret = QSharedPointer<pas::ast::Node>::create(
@@ -294,7 +294,7 @@ QString errorFromWordString(QSharedPointer<ast::value::Base> arg) {
 }
 
 template <typename ISA>
-void checkArgumentSizes(QSharedPointer<ast::Node> node) {
+void detail::checkArgumentSizes(QSharedPointer<ast::Node> node) {
   using S = pas::ast::generic::Message::Severity;
   namespace EP = pas::errors::pepp;
   auto exemptedFromLength = QSet<QString>{u"ASCII"_qs, u"SECTION"_qs};
