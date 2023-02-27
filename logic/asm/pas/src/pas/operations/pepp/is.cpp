@@ -1,5 +1,5 @@
 #include "./is.hpp"
-#include "pas/ast/generic/attr_sec_flags.hpp"
+#include "pas/ast/generic/attr_sec.hpp"
 
 #include <pas/ast/generic/attr_directive.hpp>
 bool isArgumentedDirective(const pas::ast::Node &node, const QString name) {
