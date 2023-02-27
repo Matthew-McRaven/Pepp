@@ -15,6 +15,7 @@ struct Message {
 struct Error {
   static const inline QString attributeName = u"generic:error"_qs;
   QList<Message> value = {};
+  bool operator==(const Error &other) const = default;
 };
 } // namespace pas::ast::generic
 

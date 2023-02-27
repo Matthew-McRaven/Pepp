@@ -12,6 +12,7 @@ struct Type {
   };
   static const inline QString attributeName = u"generic:type"_qs;
   Types value; // The type of the node (i.e., pseudodirective, comment)
+  bool operator==(const Type &other) const = default;
 };
 } // namespace pas::ast::generic
 
