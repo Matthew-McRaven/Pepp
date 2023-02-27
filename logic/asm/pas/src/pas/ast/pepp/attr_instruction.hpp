@@ -5,6 +5,7 @@ namespace pas::ast::pepp {
 template <typename ISA> struct Instruction {
   static const inline QString attributeName = u"pepp:instr"_qs;
   typename ISA::Mnemonic value = {};
+  bool operator==(const Instruction<ISA> &other) const = default;
 };
 } // namespace pas::ast::pepp
 // Must add this to ISA declaration.

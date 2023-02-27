@@ -3,8 +3,8 @@
 namespace pas::ast::generic {
 struct Comment {
   static const inline QString attributeName = u"generic:comment"_qs;
-  QString value =
-      {};
+  QString value = {};
+  bool operator==(const Comment &other) const = default;
 };
 } // namespace pas::ast::generic
 
