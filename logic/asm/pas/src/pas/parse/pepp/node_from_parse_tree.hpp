@@ -157,6 +157,8 @@ QSharedPointer<pas::ast::Node> pas::parse::pepp::FromParseTree<ISA>::operator()(
         .value = symTab->define(QString::fromStdString(line.symbol))});
 
   auto instr = ISA::parseMnemonic(QString::fromStdString(line.identifier));
+
+  // Triggered by something of the form symbol: instruction ;comment, where instruction is not a valid mnemonic.
   if (instr == ISA::Mnemonic::INVALID)
     return detail::addError(
         ret, {.severity = pas::ast::generic::Message::Severity::Fatal,
@@ -182,6 +184,7 @@ QSharedPointer<pas::ast::Node> pas::parse::pepp::FromParseTree<ISA>::operator()(
         .value = symTab->define(QString::fromStdString(line.symbol))});
 
   auto instr = ISA::parseMnemonic(QString::fromStdString(line.identifier));
+  // Triggered by something of the form symbol: instruction arg,addr ;comment, where instruction is not a valid mnemonic.
   if (instr == ISA::Mnemonic::INVALID)
     return detail::addError(
         ret, {.severity = pas::ast::generic::Message::Severity::Fatal,
@@ -192,6 +195,7 @@ QSharedPointer<pas::ast::Node> pas::parse::pepp::FromParseTree<ISA>::operator()(
   auto visitor = pas::parse::pepp::ParseToArg();
   visitor.symTab = symTab;
   auto arg = line.arg.apply_visitor(visitor);
+  // Triggered when the argument is a string of length 3.
   if (!(arg->isFixedSize() && arg->isNumeric()))
     return detail::addError(
         ret, {.severity = pas::ast::generic::Message::Severity::Fatal,
@@ -200,16 +204,19 @@ QSharedPointer<pas::ast::Node> pas::parse::pepp::FromParseTree<ISA>::operator()(
   checkArgumentSizes<ISA>(ret);
 
   // Validate addressing mode is appropriate for instruction.
+  // Triggered when a non-branch instruction is missing an addressing mode.
   if (line.addr.empty() && ISA::requiresAddressingMode(instr))
     return detail::addError(
         ret, {.severity = pas::ast::generic::Message::Severity::Fatal,
               .message = pas::errors::pepp::requiredAddrMode});
   else if (!line.addr.empty()) {
     auto addr = ISA::parseAddressingMode(QString::fromStdString(line.addr));
+    // Triggered when an instruction is not in the valid addressing mode set, like "p".
     if (addr == ISA::AddressingMode::INVALID)
       return detail::addError(
           ret, {.severity = pas::ast::generic::Message::Severity::Fatal,
                 .message = pas::errors::pepp::invalidAddrMode});
+    // Triggered when an addressing mode doesn't work with an instruction, like sfx with br, and i with stwa.
     else if ((ISA::isAType(instr) && !ISA::isValidATypeAddressingMode(addr)) ||
              (ISA::isAAAType(instr) &&
               !ISA::isValidAAATypeAddressingMode(addr)) ||
@@ -248,6 +255,7 @@ QSharedPointer<pas::ast::Node> pas::parse::pepp::FromParseTree<ISA>::operator()(
   if (auto converter = converters.find(identifier);
       converter != converters.end()) {
     auto ret = converter.value()(line, symTab);
+    // Triggers errors when an argument is more than 1 byte (for .BYTE) or more than 2 bytes (except for ASCII and SECTION).
     checkArgumentSizes<ISA>(ret);
     return ret;
   } else {
@@ -255,6 +263,7 @@ QSharedPointer<pas::ast::Node> pas::parse::pepp::FromParseTree<ISA>::operator()(
         ast::generic::Type{.value = ast::generic::Type::Directive});
     ret->set(ast::generic::Directive{
         .value = QString::fromStdString(line.identifier)});
+    // Triggered when the dot command is not in the above map.
     return detail::addError(
         ret, {.severity = pas::ast::generic::Message::Severity::Fatal,
               .message = pas::errors::pepp::invalidDirective});
