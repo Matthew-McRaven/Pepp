@@ -60,6 +60,11 @@ QList<QSharedPointer<Node>> children(const Node &node);
 QList<QSharedPointer<Node>> children(Node &node);
 void addChild(Node &parent, QSharedPointer<Node> child);
 
+// Shorthand to reduce template verbosity in calling contexts
+template <typename T> bool matches(const Node &node, const T &value) {
+  return node.has<T>() && node.get<T>() == value;
+}
+
 template <typename T>
 std::optional<T> apply_self_if(const Node &node, ops::ConstOp<bool> &predicate,
                                ops::ConstOp<T> &transform) {
