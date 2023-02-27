@@ -1,6 +1,6 @@
 #include "./node_from_parse_tree.hpp"
 #include "pas/ast/generic/attr_error.hpp"
-#include "pas/ast/generic/attr_sec_flags.hpp"
+#include "pas/ast/generic/attr_sec.hpp"
 #include "pas/ast/value/symbolic.hpp"
 #include "pas/errors.hpp"
 #include <pas/ast/generic/attr_argument.hpp>
@@ -16,16 +16,6 @@ using pas::ast::generic::Message;
 using S = Message::Severity;
 namespace EP = pas::errors::pepp;
 using Error = pas::ast::generic::Error;
-QSharedPointer<Node>
-pas::parse::pepp::detail::addError(QSharedPointer<Node> node,
-                                   pas::ast::generic::Message msg) {
-  QList<Message> messages;
-  if (node->has<generic::Error>())
-    messages = node->get<generic::Error>().value;
-  messages.push_back(msg);
-  node->set(generic::Error{.value = messages});
-  return node;
-}
 
 QSharedPointer<Node>
 pas::parse::pepp::detail::gen_io_scall_extern(const DirectiveType &line,

@@ -38,3 +38,13 @@ void pas::ast::addChild(Node &parent, QSharedPointer<Node> child) {
   childList.append(child);
   parent.set(generic::Children{.value = childList});
 }
+
+QSharedPointer<pas::ast::Node> pas::ast::addError(QSharedPointer<Node> node,
+                                                  generic::Message msg) {
+  QList<generic::Message> messages;
+  if (node->has<generic::Error>())
+    messages = node->get<generic::Error>().value;
+  messages.push_back(msg);
+  node->set(generic::Error{.value = messages});
+  return node;
+}

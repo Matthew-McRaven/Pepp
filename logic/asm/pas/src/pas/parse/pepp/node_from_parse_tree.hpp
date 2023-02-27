@@ -5,6 +5,7 @@
 #include "pas/ast/generic/attr_comment_indent.hpp"
 #include "pas/ast/generic/attr_error.hpp"
 #include "pas/ast/generic/attr_location.hpp"
+#include "pas/ast/generic/attr_macro.hpp"
 #include "pas/ast/generic/attr_symbol.hpp"
 #include "pas/ast/generic/attr_type.hpp"
 #include "pas/ast/node.hpp"
@@ -17,12 +18,11 @@
 #include "pas/operations/pepp/is.hpp"
 #include "pas/parse/pepp/rules_lines.hpp"
 #include "symbol/table.hpp"
-#include "pas/ast/generic/attr_macro.hpp"
 #include <boost/variant/static_visitor.hpp>
 #include <boost/variant/variant.hpp>
 #include <pas/ast/generic/attr_argument.hpp>
 #include <pas/ast/generic/attr_directive.hpp>
-#include <pas/ast/generic/attr_sec_flags.hpp>
+#include <pas/ast/generic/attr_sec.hpp>
 namespace pas::parse::pepp {
 template <typename ISA>
 struct FromParseTree
@@ -122,8 +122,6 @@ QSharedPointer<Node> scall(const DirectiveType &line, ST symTab);
 QSharedPointer<Node> section(const DirectiveType &line, ST symTab);
 QSharedPointer<Node> uscall(const DirectiveType &line, ST symTab);
 QSharedPointer<Node> word(const DirectiveType &line, ST symTab);
-QSharedPointer<Node> addError(QSharedPointer<Node> node,
-                              pas::ast::generic::Message msg);
 template <typename ISA> void checkArgumentSizes(QSharedPointer<Node>);
 
 } // namespace detail
@@ -159,9 +157,9 @@ QSharedPointer<pas::ast::Node> pas::parse::pepp::FromParseTree<ISA>::operator()(
 
   auto instr = ISA::parseMnemonic(QString::fromStdString(line.identifier));
   if (instr == ISA::Mnemonic::INVALID)
-    return detail::addError(
-        ret, {.severity = pas::ast::generic::Message::Severity::Fatal,
-              .message = pas::errors::pepp::invalidMnemonic});
+    return addError(ret,
+                    {.severity = pas::ast::generic::Message::Severity::Fatal,
+                     .message = pas::errors::pepp::invalidMnemonic});
   ret->set(ast::pepp::Instruction<ISA>{.value = instr});
 
   if (line.hasComment)
@@ -184,9 +182,9 @@ QSharedPointer<pas::ast::Node> pas::parse::pepp::FromParseTree<ISA>::operator()(
 
   auto instr = ISA::parseMnemonic(QString::fromStdString(line.identifier));
   if (instr == ISA::Mnemonic::INVALID)
-    return detail::addError(
-        ret, {.severity = pas::ast::generic::Message::Severity::Fatal,
-              .message = pas::errors::pepp::invalidMnemonic});
+    return addError(ret,
+                    {.severity = pas::ast::generic::Message::Severity::Fatal,
+                     .message = pas::errors::pepp::invalidMnemonic});
   ret->set(ast::pepp::Instruction<ISA>{.value = instr});
 
   // Validate that arg is appropriate for instruction.
@@ -194,31 +192,31 @@ QSharedPointer<pas::ast::Node> pas::parse::pepp::FromParseTree<ISA>::operator()(
   visitor.symTab = symTab;
   auto arg = line.arg.apply_visitor(visitor);
   if (!(arg->isFixedSize() && arg->isNumeric()))
-    return detail::addError(
-        ret, {.severity = pas::ast::generic::Message::Severity::Fatal,
-              .message = pas::errors::pepp::expectedNumeric});
+    return addError(ret,
+                    {.severity = pas::ast::generic::Message::Severity::Fatal,
+                     .message = pas::errors::pepp::expectedNumeric});
   ret->set(ast::generic::Argument{.value = arg});
   detail::checkArgumentSizes<ISA>(ret);
 
   // Validate addressing mode is appropriate for instruction.
   if (line.addr.empty() && ISA::requiresAddressingMode(instr))
-    return detail::addError(
-        ret, {.severity = pas::ast::generic::Message::Severity::Fatal,
-              .message = pas::errors::pepp::requiredAddrMode});
+    return addError(ret,
+                    {.severity = pas::ast::generic::Message::Severity::Fatal,
+                     .message = pas::errors::pepp::requiredAddrMode});
   else if (!line.addr.empty()) {
     auto addr = ISA::parseAddressingMode(QString::fromStdString(line.addr));
     if (addr == ISA::AddressingMode::INVALID)
-      return detail::addError(
-          ret, {.severity = pas::ast::generic::Message::Severity::Fatal,
-                .message = pas::errors::pepp::invalidAddrMode});
+      return addError(ret,
+                      {.severity = pas::ast::generic::Message::Severity::Fatal,
+                       .message = pas::errors::pepp::invalidAddrMode});
     else if ((ISA::isAType(instr) && !ISA::isValidATypeAddressingMode(addr)) ||
              (ISA::isAAAType(instr) &&
               !ISA::isValidAAATypeAddressingMode(addr)) ||
              (ISA::isRAAAType(instr) &&
               !ISA::isValidRAAATypeAddressingMode(addr)))
-      return detail::addError(
-          ret, {.severity = pas::ast::generic::Message::Severity::Fatal,
-                .message = pas::errors::pepp::illegalAddrMode});
+      return addError(ret,
+                      {.severity = pas::ast::generic::Message::Severity::Fatal,
+                       .message = pas::errors::pepp::illegalAddrMode});
     else
       ret->set(ast::pepp::AddressingMode<ISA>{.value = addr});
   }
@@ -249,16 +247,16 @@ QSharedPointer<pas::ast::Node> pas::parse::pepp::FromParseTree<ISA>::operator()(
   if (auto converter = converters.find(identifier);
       converter != converters.end()) {
     auto ret = converter.value()(line, symTab);
-    detail::checkArgumentSizes<ISA>(ret);
+    checkArgumentSizes<ISA>(ret);
     return ret;
   } else {
     auto ret = QSharedPointer<pas::ast::Node>::create(
         ast::generic::Type{.value = ast::generic::Type::Directive});
     ret->set(ast::generic::Directive{
         .value = QString::fromStdString(line.identifier)});
-    return detail::addError(
-        ret, {.severity = pas::ast::generic::Message::Severity::Fatal,
-              .message = pas::errors::pepp::invalidDirective});
+    return addError(ret,
+                    {.severity = pas::ast::generic::Message::Severity::Fatal,
+                     .message = pas::errors::pepp::invalidDirective});
   }
 }
 
@@ -271,10 +269,11 @@ QSharedPointer<pas::ast::Node> pas::parse::pepp::FromParseTree<ISA>::operator()(
 
   if (!line.symbol.empty())
     ret->set(ast::generic::SymbolDeclaration{
-                                             .value = symTab->define(QString::fromStdString(line.symbol))});
+        .value = symTab->define(QString::fromStdString(line.symbol))});
 
-  ret->set(ast::generic::Macro{.value=QString::fromStdString(line.identifier)});
-  ret->set(ast::generic::ArgumentList{.value=detail::parse_arg(line, symTab, true)});
+  ret->set(
+      ast::generic::Macro{.value = QString::fromStdString(line.identifier)});
+  ret->set(ast::generic::ArgumentList{.value = parse_arg(line, symTab, true)});
 
   if (line.hasComment)
     ret->set(
@@ -319,12 +318,12 @@ void detail::checkArgumentSizes(QSharedPointer<ast::Node> node) {
     auto directive = node->get<ast::generic::Directive>().value;
     auto arg = node->get<ast::generic::Argument>().value;
     if (directive.toUpper() == u"BYTE"_qs && arg->requiredBytes() > 1)
-      detail::addError(
-          node, {.severity = S::Fatal, .message = errorFromByteString(arg)});
+      addError(node,
+               {.severity = S::Fatal, .message = errorFromByteString(arg)});
     else if (!exemptedFromLength.contains(directive.toUpper()) &&
              arg->requiredBytes() > 2)
-      detail::addError(
-          node, {.severity = S::Fatal, .message = errorFromWordString(arg)});
+      addError(node,
+               {.severity = S::Fatal, .message = errorFromWordString(arg)});
 
   } else if (node->has<ast::pepp::Instruction<ISA>>() &&
              node->has<ast::generic::Argument>()) {
@@ -332,8 +331,8 @@ void detail::checkArgumentSizes(QSharedPointer<ast::Node> node) {
     auto arg = node->get<ast::generic::Argument>().value;
     // TODO: Handle "byte" argument for LDWr x,i
     if (arg->requiredBytes() > 2)
-      detail::addError(
-          node, {.severity = S::Fatal, .message = errorFromWordString(arg)});
+      addError(node,
+               {.severity = S::Fatal, .message = errorFromWordString(arg)});
   }
 }
 }; // namespace pas::parse::pepp

@@ -2,6 +2,7 @@
 
 #include "./generic/attr_type.hpp"
 #include "./op.hpp"
+#include "pas/ast/generic/attr_error.hpp"
 #include <QMetaType>
 #include <QtCore>
 
@@ -58,8 +59,11 @@ const generic::Type type(const Node &node);
 // override;
 QList<QSharedPointer<Node>> children(const Node &node);
 QList<QSharedPointer<Node>> children(Node &node);
+// Does not update child's parent pointer.
 void addChild(Node &parent, QSharedPointer<Node> child);
 
+QSharedPointer<Node> addError(QSharedPointer<Node> node,
+                              pas::ast::generic::Message msg);
 // Shorthand to reduce template verbosity in calling contexts
 template <typename T> bool matches(const Node &node, const T &value) {
   return node.has<T>() && node.get<T>() == value;
