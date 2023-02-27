@@ -26,7 +26,9 @@ QSharedPointer<pas::ops::ConstOp<bool>> isAAAType =
     QSharedPointer<pas::ops::pepp::isAAAType<pas::isa::Pep10ISA>>::create();
 QSharedPointer<pas::ops::ConstOp<bool>> isRAAAType =
     QSharedPointer<pas::ops::pepp::isRAAAType<pas::isa::Pep10ISA>>::create();
-
+// Macro
+QSharedPointer<pas::ops::ConstOp<bool>> isMacro =
+    QSharedPointer<pas::ops::generic::isMacro>::create();
 // Directives
 QSharedPointer<pas::ops::ConstOp<bool>> isAlign =
     QSharedPointer<pas::ops::generic::isAlign>::create();
@@ -235,6 +237,13 @@ private slots:
     QTest::newRow(".WORD: comment") << ".WORD 10;10" << isWord;
     QTest::newRow(".WORD: hex") << ".WORD 0x10" << isWord;
     QTest::newRow(".WORD: symbolic") << ".WORD hi" << isWord;
+    // Macro
+    QTest::newRow("@macro: mixed case") << "@oP 10" << isMacro;
+    QTest::newRow("@macro: symbol") << "s:@op 10" << isMacro;
+    QTest::newRow("@macro: comment") << "@op 10;10" << isMacro;
+    QTest::newRow("@macro: hex") << "@op 0x10" << isMacro;
+    QTest::newRow("@macro: symbolic") << "@op hi" << isMacro;
+    QTest::newRow("@macro: multi-arg") << "@op hi, 10" << isMacro;
   }
 };
 

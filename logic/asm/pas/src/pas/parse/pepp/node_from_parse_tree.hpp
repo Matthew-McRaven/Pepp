@@ -17,6 +17,7 @@
 #include "pas/operations/pepp/is.hpp"
 #include "pas/parse/pepp/rules_lines.hpp"
 #include "symbol/table.hpp"
+#include "pas/ast/generic/attr_macro.hpp"
 #include <boost/variant/static_visitor.hpp>
 #include <boost/variant/variant.hpp>
 #include <pas/ast/generic/attr_argument.hpp>
@@ -264,7 +265,22 @@ QSharedPointer<pas::ast::Node> pas::parse::pepp::FromParseTree<ISA>::operator()(
 template <typename ISA>
 QSharedPointer<pas::ast::Node> pas::parse::pepp::FromParseTree<ISA>::operator()(
     const pas::parse::pepp::MacroType &line) {
-  throw std::logic_error("Unimplemented");
+  using Type = pas::ast::generic::Type;
+  auto ret =
+      QSharedPointer<pas::ast::Node>::create(Type{.value = Type::MacroInvoke});
+
+  if (!line.symbol.empty())
+    ret->set(ast::generic::SymbolDeclaration{
+                                             .value = symTab->define(QString::fromStdString(line.symbol))});
+
+  ret->set(ast::generic::Macro{.value=QString::fromStdString(line.identifier)});
+  ret->set(ast::generic::ArgumentList{.value=detail::parse_arg(line, symTab, true)});
+
+  if (line.hasComment)
+    ret->set(
+        ast::generic::Comment{.value = QString::fromStdString(line.comment)});
+
+  return ret;
 }
 
 template <typename ISA>
