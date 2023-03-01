@@ -247,7 +247,7 @@ QSharedPointer<pas::ast::Node> pas::parse::pepp::FromParseTree<ISA>::operator()(
   if (auto converter = converters.find(identifier);
       converter != converters.end()) {
     auto ret = converter.value()(line, symTab);
-    checkArgumentSizes<ISA>(ret);
+    pas::parse::pepp::detail::checkArgumentSizes<ISA>(ret);
     return ret;
   } else {
     auto ret = QSharedPointer<pas::ast::Node>::create(
@@ -273,7 +273,8 @@ QSharedPointer<pas::ast::Node> pas::parse::pepp::FromParseTree<ISA>::operator()(
 
   ret->set(
       ast::generic::Macro{.value = QString::fromStdString(line.identifier)});
-  ret->set(ast::generic::ArgumentList{.value = parse_arg(line, symTab, true)});
+  ret->set(ast::generic::ArgumentList{
+      .value = detail::parse_arg(line, symTab, true)});
 
   if (line.hasComment)
     ret->set(

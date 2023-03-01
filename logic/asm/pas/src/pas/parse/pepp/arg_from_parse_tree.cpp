@@ -32,8 +32,7 @@ pas::parse::pepp::ParseToArg::operator()(const Identifier &line) {
     return QSharedPointer<pas::ast::value::Identifier>::create(asQString);
   else {
     auto asSymbol = symTab->reference(asQString);
-    return QSharedPointer<pas::ast::value::Symbolic>::create(
-        asSymbol, bits::BitOrder::BigEndian);
+    return QSharedPointer<pas::ast::value::Symbolic>::create(asSymbol);
   }
 }
 
