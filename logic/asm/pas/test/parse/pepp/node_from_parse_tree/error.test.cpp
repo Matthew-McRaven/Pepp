@@ -74,20 +74,24 @@ private slots:
     QTest::addRow("nonunary: missing address mode-2 byte")
         << u"ldwa 0xda"_qs << QList<Error>{makeFatal(0, E::requiredAddrMode)};
     // - max 2 byte arguments
-    QTest::addRow("nonunary: max 1 byte arguments")
-        << u"ldba 0x0bada,d"_qs << QList<Error>{makeFatal(0, E::hexTooBig1)};
+    // LDBA must allow 2 byte operands. Non-I addressing modes need 2 bytes to
+    // access all of main memory. Undecided (2023-03-01) if LDBA i should allow
+    // 2 bytes.
+    QTest::addRow("nonunary: max 2 byte arguments")
+        << u"ldba 0xabadbeefee,d"_qs
+        << QList<Error>{makeFatal(0, E::hexTooBig2)};
     QTest::addRow("nonunary: max 2 byte arguments")
         << u"ldwa 0xabadbeefee,d"_qs
         << QList<Error>{makeFatal(0, E::hexTooBig2)};
 
     // NonUnary Instructions -- Stores
-    // - don't allow I addressing mode-Immediate addressing seems to be allowed
+    // - don't allow I addressing mode
     QTest::addRow("nonunary store: I is bad addressing mode-1 byte")
         << u"stba 0xfc16,i"_qs
-        << QList<Error>{makeFatal(0, E::invalidAddrMode)};
+        << QList<Error>{makeFatal(0, E::illegalAddrMode)};
     QTest::addRow("nonunary store: I is bad addressing mode-2 byte")
         << u"stwa 0xfc16,i"_qs
-        << QList<Error>{makeFatal(0, E::invalidAddrMode)};
+        << QList<Error>{makeFatal(0, E::illegalAddrMode)};
 
     // max 2 byte arguments
     /*
@@ -164,7 +168,8 @@ private slots:
         << QList<Error>{makeFatal(0, E::expectedNumeric)};
     // - no symbol
     QTest::addRow(".BURN: no symbols")
-        << u"ret .BURN"_qs << QList<Error>{makeFatal(0, E::expectedNumeric)};
+        << u"ret: .BURN 0xfe"_qs
+        << QList<Error>{makeFatal(0, E::noDefineSymbol.arg(("BURN")))};
     // - exactly 1 arg
     QTest::addRow(".BURN: exactly 1 argument")
         << u".BLOCK \"Very\", \"Bad\""_qs << QList<Error>{makeFatal(0, arg1)};
@@ -225,37 +230,31 @@ private slots:
 
     //  Loop through symbols above
     for (auto &symbol : sharedSymbols) {
-      const bool isCall = symbol.contains("CALL");
       // - no symbol
-      QString label = symbol + u": no symbols"_qs;
-      QString command = QString("ret: %1").arg(symbol);
-      QTest::addRow(label.toUtf8())
-          << command << QList<Error>{makeFatal(0, E::invalidMnemonic)};
-      // - exactly 1 arg
-      label = symbol + u": min 1 argument"_qs;
-      command = QString("%1").arg(symbol);
-      QTest::addRow(label.toUtf8())
-          << command << QList<Error>{makeFatal(0, E::invalidMnemonic)};
-      label = symbol + u": max 1 argument"_qs;
-      command = QString("%1 0x00, 0x01").arg(symbol);
+      QString label = "." + symbol + u": no symbols"_qs;
+      QString command = QString("ret: .%1 hi").arg(symbol);
       QTest::addRow(label.toUtf8())
           << command
-          << QList<Error>{makeFatal(0, isCall ? E::requiredAddrMode
-                                              : E::invalidMnemonic)};
+          << QList<Error>{makeFatal(0, E::noDefineSymbol.arg(symbol))};
+      // - exactly 1 arg
+      label = "." + symbol + u": min 1 argument"_qs;
+      command = QString(".%1").arg(symbol);
+      QTest::addRow(label.toUtf8())
+          << command << QList<Error>{makeFatal(0, E::expectNArguments.arg(1))};
+      label = "." + symbol + u": max 1 argument"_qs;
+      command = QString(".%1 hi, world").arg(symbol);
+      QTest::addRow(label.toUtf8())
+          << command << QList<Error>{makeFatal(0, E::expectNArguments.arg(1))};
       // - arg must be symbolic
       label = symbol + u": arg must be symbolic"_qs;
-      command = QString("%1 \"bad\"").arg(symbol);
+      command = QString(".%1 \"bad\"").arg(symbol);
       QTest::addRow(label.toUtf8())
-          << command
-          << QList<Error>{makeFatal(0, isCall ? E::expectedNumeric
-                                              : E::invalidMnemonic)};
+          << command << QList<Error>{makeFatal(0, E::expectedSymbolic)};
       // - arg must not be non-symbolic
       label = symbol + u": arg must not be non-symbolic"_qs;
-      command = QString("%1 0xbad").arg(symbol);
+      command = QString(".%1 0xbad").arg(symbol);
       QTest::addRow(label.toUtf8())
-          << command
-          << QList<Error>{makeFatal(0, isCall ? E::requiredAddrMode
-                                              : E::invalidMnemonic)};
+          << command << QList<Error>{makeFatal(0, E::expectedSymbolic)};
     }
 
     // Section
