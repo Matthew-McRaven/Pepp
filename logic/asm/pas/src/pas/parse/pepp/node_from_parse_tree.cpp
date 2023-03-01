@@ -77,7 +77,8 @@ pas::parse::pepp::detail::align(const DirectiveType &line, ST symTab) {
     return addError(
         ret, {.severity = S::Fatal, .message = EP::expectNArguments.arg(1)});
   auto arg = args[0];
-  // Triggers when you pass an argument that is non-constant, and not a decimal power of 2.
+  // Triggers when you pass an argument that is non-constant, and not a decimal
+  // power of 2.
   if (!(arg->isFixedSize() && arg->isNumeric() && isPow2(arg)))
     return addError(ret, {.severity = S::Fatal, .message = EP::alignPow2});
   ret->set(generic::Argument{.value = arg});
@@ -166,8 +167,8 @@ pas::parse::pepp::detail::burn(const DirectiveType &line, ST symTab) {
 
   // Triggers when you define a symbol.
   if (!line.symbol.empty())
-      return addError(ret,
-                      {.severity = S::Fatal, .message = EP::noDefineSymbol.arg("BURN")});
+    return addError(
+        ret, {.severity = S::Fatal, .message = EP::noDefineSymbol.arg("BURN")});
   if (line.hasComment)
     ret->set(generic::Comment{.value = QString::fromStdString(line.comment)});
   return ret;
@@ -214,7 +215,7 @@ pas::parse::pepp::detail::end(const DirectiveType &line, ST symTab) {
   // Triggers when you declare a symbol
   if (!line.symbol.empty())
     return addError(
-        ret, {.severity = S::Fatal, .message = EP::noDefineSymbol.arg(1)});
+        ret, {.severity = S::Fatal, .message = EP::noDefineSymbol.arg(".END")});
 
   if (line.hasComment)
     ret->set(generic::Comment{.value = QString::fromStdString(line.comment)});
