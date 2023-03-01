@@ -59,11 +59,11 @@ void forkSymbolValues(symbol::ForkMap &map,
   }
 }
 
-symbol::ForkMap symbol::fork(QSharedPointer<const Table> from) {
-  auto map = ForkMap();
+QSharedPointer<symbol::ForkMap> symbol::fork(QSharedPointer<const Table> from) {
+  auto map = QSharedPointer<ForkMap>::create();
   auto to = QSharedPointer<symbol::Table>::create();
-  forkTables(map, from, to);
-  forkSymbolRefs(map, from, to);
-  forkSymbolValues(map, from, to);
+  forkTables(*map, from, to);
+  forkSymbolRefs(*map, from, to);
+  forkSymbolValues(*map, from, to);
   return map;
 }

@@ -15,5 +15,5 @@ private:
   QMap<const Entry *, QSharedPointer<Entry>> _symbolMap;
 };
 
-ForkMap fork(QSharedPointer<const symbol::Table> from);
+QSharedPointer<ForkMap> fork(QSharedPointer<const symbol::Table> from);
 } // namespace symbol
