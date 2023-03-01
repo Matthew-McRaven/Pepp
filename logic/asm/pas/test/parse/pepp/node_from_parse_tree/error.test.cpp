@@ -83,26 +83,30 @@ private slots:
     QTest::addRow("nonunary: max 1 byte arguments")
         << u"ldba 0x0bada,d"_qs << QList<Error>{makeFatal(0, E::hexTooBig1)};
     QTest::addRow("nonunary: max 2 byte arguments")
-        << u"ldwa 0xabadbeefee,d"_qs << QList<Error>{makeFatal(0, E::hexTooBig2)};
+        << u"ldwa 0xabadbeefee,d"_qs
+        << QList<Error>{makeFatal(0, E::hexTooBig2)};
 
     // NonUnary Instructions -- Stores
     // - don't allow I addressing mode-Immediate addressing seems to be allowed
     QTest::addRow("nonunary store: I is bad addressing mode-1 byte")
-        << u"stba 0xfc16,i"_qs << QList<Error>{makeFatal(0, E::invalidAddrMode)};
+        << u"stba 0xfc16,i"_qs
+        << QList<Error>{makeFatal(0, E::invalidAddrMode)};
     QTest::addRow("nonunary store: I is bad addressing mode-2 byte")
-        << u"stwa 0xfc16,i"_qs << QList<Error>{makeFatal(0, E::invalidAddrMode)};
+        << u"stwa 0xfc16,i"_qs
+        << QList<Error>{makeFatal(0, E::invalidAddrMode)};
 
     // max 2 byte arguments
     /*
      * Directives
      */
-    //  Message that return variables need to be converted to string for compare to work.
+    //  Message that return variables need to be converted to string for compare
+    //  to work.
     const QString arg0 = E::expectNArguments.arg(0);
     const QString arg1 = E::expectNArguments.arg(1);
     const QString ascii = E::dotRequiresString.arg(".ASCII");
     const QString end = E::noDefineSymbol.arg(".END");
 
-//    const QString missing( "Message not in errors.hpp");
+    //    const QString missing( "Message not in errors.hpp");
 
     // ALIGN
     // - only decimal powers of 2 args
@@ -117,13 +121,16 @@ private slots:
     QTest::addRow(".ASCII: no characters")
         << u".ASCII"_qs << QList<Error>{makeFatal(0, arg1)};
     // - no numeric (unsigned/signed decimal / hex)
-    //  ".ASCII requires a string constant argument." - message not in errors.hpp
+    //  ".ASCII requires a string constant argument." - message not in
+    //  errors.hpp
     QTest::addRow(".ASCII: no hex")
         << u".ASCII 0xdad"_qs << QList<Error>{makeFatal(0, ascii)};
-    //  ".ASCII requires a string constant argument." - message not in errors.hpp
+    //  ".ASCII requires a string constant argument." - message not in
+    //  errors.hpp
     QTest::addRow(".ASCII: no unsigned decimals")
         << u".ASCII 42"_qs << QList<Error>{makeFatal(0, ascii)};
-    //  ".ASCII requires a string constant argument." - message not in errors.hpp
+    //  ".ASCII requires a string constant argument." - message not in
+    //  errors.hpp
     QTest::addRow(".ASCII: no signed decimals")
         << u".ASCII -42"_qs << QList<Error>{makeFatal(0, ascii)};
     // - exactly 1 arg
@@ -139,7 +146,8 @@ private slots:
         << u".BLOCK '*'"_qs << QList<Error>{makeFatal(0, E::expectedNumeric)};
     // - no strings (long or short)
     QTest::addRow(".BLOCK: no strings")
-        << u".BLOCK \"Bad\""_qs << QList<Error>{makeFatal(0, E::expectedNumeric)};
+        << u".BLOCK \"Bad\""_qs
+        << QList<Error>{makeFatal(0, E::expectedNumeric)};
     // - exactly 1 arg
     QTest::addRow(".BLOCK: max 1 argument")
         << u".BLOCK 12,34"_qs << QList<Error>{makeFatal(0, arg1)};
@@ -158,7 +166,8 @@ private slots:
     QTest::addRow(".BURN: no characters")
         << u".BLOCK '*'"_qs << QList<Error>{makeFatal(0, E::expectedNumeric)};
     QTest::addRow(".BURN: no strings")
-        << u".BLOCK \"Bad\""_qs << QList<Error>{makeFatal(0, E::expectedNumeric)};
+        << u".BLOCK \"Bad\""_qs
+        << QList<Error>{makeFatal(0, E::expectedNumeric)};
     // - no symbol
     QTest::addRow(".BURN: no symbols")
         << u"ret .BURN"_qs << QList<Error>{makeFatal(0, E::expectedNumeric)};
@@ -183,7 +192,8 @@ private slots:
     QTest::addRow(".BYTE: no characters")
         << u".BYTE '*'"_qs << QList<Error>{makeFatal(0, E::expectedNumeric)};
     QTest::addRow(".BYTE: no strings")
-        << u".BYTE \"Bad\""_qs << QList<Error>{makeFatal(0, E::expectedNumeric)};
+        << u".BYTE \"Bad\""_qs
+        << QList<Error>{makeFatal(0, E::expectedNumeric)};
     QTest::addRow(".BYTE: fit in 8 bits-hex")
         << u".BYTE 0x0bad"_qs << QList<Error>{makeFatal(0, E::hexTooBig1)};
     QTest::addRow(".BYTE: fit in 8 bits-decimal")
@@ -202,55 +212,56 @@ private slots:
     // Equate
     // - requires symbol
     QTest::addRow(".EQUATE: no symbol")
-        << u".EQUATE 10"_qs << QList<Error>{makeFatal(0, E::equateRequiresSymbol)};
+        << u".EQUATE 10"_qs
+        << QList<Error>{makeFatal(0, E::equateRequiresSymbol)};
     // - exactly 1 argument
     QTest::addRow(".EQUATE: max 1 arguement")
         << u"failure: .EQUATE 10,0x1234"_qs << QList<Error>{makeFatal(0, arg1)};
     // - arg fits in 16 bits
     QTest::addRow(".EQUATE: fit in 16 bits-decimal")
-        << u"failure: .EQUATE 666666"_qs << QList<Error>{makeFatal(0, E::decTooBig2)};
+        << u"failure: .EQUATE 666666"_qs
+        << QList<Error>{makeFatal(0, E::decTooBig2)};
     QTest::addRow(".EQUATE: fit in 16 bits-hex")
-        << u"failure: .EQUATE 0xbadbeef"_qs << QList<Error>{makeFatal(0, E::hexTooBig2)};
+        << u"failure: .EQUATE 0xbadbeef"_qs
+        << QList<Error>{makeFatal(0, E::hexTooBig2)};
 
     // Export / Import / Input / Output / SCall / USCall
-    QString sharedSymbols []{
-        "EXPORT",
-        "IMPORT",
-        "INPUT",
-        "OUTPUT",
-        "SCALL",
-        "USCALL"
-    };
+    QString sharedSymbols[]{"EXPORT", "IMPORT", "INPUT",
+                            "OUTPUT", "SCALL",  "USCALL"};
 
     //  Loop through symbols above
-    for( auto& symbol : sharedSymbols )
-    {
-        const bool isCall = symbol.contains("CALL");
-        // - no symbol
-        QString label = symbol + u": no symbols"_qs;
-        QString command = QString( "ret: %1" ).arg(symbol);
-        QTest::addRow(label.toUtf8())
-            << command << QList<Error>{makeFatal(0, E::invalidMnemonic)};
-        // - exactly 1 arg
-        label = symbol + u": min 1 argument"_qs;
-        command = QString( "%1" ).arg(symbol);
-        QTest::addRow(label.toUtf8())
-            << command << QList<Error>{makeFatal(0, E::invalidMnemonic)};
-        label = symbol + u": max 1 argument"_qs;
-        command = QString( "%1 0x00, 0x01" ).arg(symbol);
-        QTest::addRow(label.toUtf8())
-            << command << QList<Error>{
-               makeFatal(0, isCall ? E::requiredAddrMode : E::invalidMnemonic)};
-        // - arg must be symbolic
-        label = symbol + u": arg must be symbolic"_qs;
-        command = QString( "%1 \"bad\"" ).arg(symbol);
-        QTest::addRow(label.toUtf8())
-            << command << QList<Error>{makeFatal(0, isCall ? E::expectedNumeric : E::invalidMnemonic)};
-        // - arg must not be non-symbolic
-        label = symbol + u": arg must not be non-symbolic"_qs;
-        command = QString( "%1 0xbad" ).arg(symbol);
-        QTest::addRow(label.toUtf8())
-            << command << QList<Error>{makeFatal(0, isCall ? E::requiredAddrMode : E::invalidMnemonic)};
+    for (auto &symbol : sharedSymbols) {
+      const bool isCall = symbol.contains("CALL");
+      // - no symbol
+      QString label = symbol + u": no symbols"_qs;
+      QString command = QString("ret: %1").arg(symbol);
+      QTest::addRow(label.toUtf8())
+          << command << QList<Error>{makeFatal(0, E::invalidMnemonic)};
+      // - exactly 1 arg
+      label = symbol + u": min 1 argument"_qs;
+      command = QString("%1").arg(symbol);
+      QTest::addRow(label.toUtf8())
+          << command << QList<Error>{makeFatal(0, E::invalidMnemonic)};
+      label = symbol + u": max 1 argument"_qs;
+      command = QString("%1 0x00, 0x01").arg(symbol);
+      QTest::addRow(label.toUtf8())
+          << command
+          << QList<Error>{makeFatal(0, isCall ? E::requiredAddrMode
+                                              : E::invalidMnemonic)};
+      // - arg must be symbolic
+      label = symbol + u": arg must be symbolic"_qs;
+      command = QString("%1 \"bad\"").arg(symbol);
+      QTest::addRow(label.toUtf8())
+          << command
+          << QList<Error>{makeFatal(0, isCall ? E::expectedNumeric
+                                              : E::invalidMnemonic)};
+      // - arg must not be non-symbolic
+      label = symbol + u": arg must not be non-symbolic"_qs;
+      command = QString("%1 0xbad").arg(symbol);
+      QTest::addRow(label.toUtf8())
+          << command
+          << QList<Error>{makeFatal(0, isCall ? E::requiredAddrMode
+                                              : E::invalidMnemonic)};
     }
 
     // Section
@@ -258,10 +269,12 @@ private slots:
     QTest::addRow("SECTION: min 1 argument")
         << u"SECTION"_qs << QList<Error>{makeFatal(0, E::invalidMnemonic)};
     QTest::addRow("SECTION: max 1 argument")
-        << u"SECTION 0x00, 0x01"_qs << QList<Error>{makeFatal(0, E::invalidMnemonic)};
+        << u"SECTION 0x00, 0x01"_qs
+        << QList<Error>{makeFatal(0, E::invalidMnemonic)};
     // - no symbol
     QTest::addRow("SECTION: no symbol")
-        << u"ret: SECTION 1"_qs << QList<Error>{makeFatal(0, E::invalidMnemonic)};
+        << u"ret: SECTION 1"_qs
+        << QList<Error>{makeFatal(0, E::invalidMnemonic)};
 
     // Word
     // - exactly 1 arg
@@ -273,7 +286,8 @@ private slots:
     QTest::addRow(".WORD: no characters")
         << u".WORD '*'"_qs << QList<Error>{makeFatal(0, E::expectedNumeric)};
     QTest::addRow(".WORD: no strings")
-        << u".WORD \"Bad\""_qs << QList<Error>{makeFatal(0, E::expectedNumeric)};
+        << u".WORD \"Bad\""_qs
+        << QList<Error>{makeFatal(0, E::expectedNumeric)};
     QTest::addRow(".WORD: fit in 16 bits-hex")
         << u".WORD 0x0baadbeef"_qs << QList<Error>{makeFatal(0, E::hexTooBig2)};
     QTest::addRow(".WORD: fit in 16 bits-decimal")
