@@ -13,6 +13,9 @@ public:
                 QWeakPointer<Node> parent = {});
   template <typename T> bool has() const;
   template <typename T> const T get() const;
+  // do not modify
+  const QMap<QString, QVariant> attributes() const;
+  void fromAttributes(const QMap<QString, QVariant> attributes);
   template <typename T> void set(T attribute);
   template <typename T> T apply_self(ops::ConstOp<T> &transform) const;
   template <typename T> T apply_self(ops::MutatingOp<T> &transform);

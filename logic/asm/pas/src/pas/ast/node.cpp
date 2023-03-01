@@ -10,6 +10,19 @@ pas::ast::Node::Node(const pas::ast::generic::Type type,
   set<generic::Children>({});
 }
 
+const QMap<QString, QVariant> pas::ast::Node::attributes() const {
+  auto ret = _attributes;
+  // Attempt to prevent common data from being modified
+  ret.detach();
+  return ret;
+}
+
+void pas::ast::Node::fromAttributes(const QMap<QString, QVariant> attributes) {
+  for (auto key = attributes.keyBegin(); key != attributes.keyEnd(); ++key) {
+    _attributes[*key] = attributes[*key];
+  }
+}
+
 QWeakPointer<const pas::ast::Node> pas::ast::parent(const Node &node) {
   return node.get<generic::Parent>().value;
 }
