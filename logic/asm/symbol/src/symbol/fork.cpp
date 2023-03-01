@@ -22,11 +22,11 @@ QSharedPointer<symbol::Entry> symbol::ForkMap::map(const Entry *from) {
 
 void forkTables(symbol::ForkMap &map, QSharedPointer<const symbol::Table> from,
                 QSharedPointer<symbol::Table> toParent) {
-
   map.addMapping(&*from, toParent);
   for (auto childIt = from->cbegin(); childIt != from->cend(); ++childIt)
     forkTables(map, (*childIt), toParent);
 }
+
 void forkSymbolRefs(symbol::ForkMap &map,
                     QSharedPointer<const symbol::Table> from,
                     QSharedPointer<symbol::Table> toParent) {
