@@ -4,8 +4,7 @@
 #include "symbol/entry.hpp"
 pas::ast::value::Symbolic::Symbolic() {}
 
-pas::ast::value::Symbolic::Symbolic(QSharedPointer<symbol::Entry> value,
-                                    bits::BitOrder endian)
+pas::ast::value::Symbolic::Symbolic(QSharedPointer<symbol::Entry> value)
     : Base(), _value(value) {}
 
 pas::ast::value::Symbolic::Symbolic(const Symbolic &other) : Base() {}
@@ -18,6 +17,10 @@ pas::ast::value::Symbolic &
 pas::ast::value::Symbolic::operator=(Symbolic other) {
   swap(*this, other);
   return *this;
+}
+
+QSharedPointer<const symbol::Entry> pas::ast::value::Symbolic::symbol() const {
+  return _value;
 }
 
 QSharedPointer<pas::ast::value::Base> pas::ast::value::Symbolic::clone() const {
