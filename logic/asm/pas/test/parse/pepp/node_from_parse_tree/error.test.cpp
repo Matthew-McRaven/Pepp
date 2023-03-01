@@ -41,14 +41,8 @@ private slots:
     auto actualErrors = visit.errors;
     for (int it = 0; it < qMin(errors.size(), actualErrors.size()); it++) {
       QCOMPARE(errors[it].first, actualErrors[it].first);
-      if (errors[it].second.message != actualErrors[it].second.message) {
-        int y = 5;
-      }
       QCOMPARE(errors[it].second.message, actualErrors[it].second.message);
       QCOMPARE(errors[it].second.severity, actualErrors[it].second.severity);
-    }
-    if (errors.size() != actualErrors.size()) {
-      int x = 5;
     }
     QCOMPARE(errors.size(), actualErrors.size());
   }
