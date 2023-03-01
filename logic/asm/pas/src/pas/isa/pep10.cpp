@@ -127,7 +127,8 @@ bool pas::isa::Pep10ISA::isAType(Mnemonic mnemonic) {
   return type == T::A_ix;
 }
 
-bool pas::isa::Pep10ISA::isValidATypeAddressingMode(AddressingMode addr) {
+bool pas::isa::Pep10ISA::isValidATypeAddressingMode(Mnemonic,
+                                                    AddressingMode addr) {
   using AM = AddressingMode;
   return addr == AM::I || addr == AM::X;
 }
@@ -138,7 +139,8 @@ bool pas::isa::Pep10ISA::isAAAType(Mnemonic mnemonic) {
   return type == T::AAA_all || type == T::AAA_i;
 }
 
-bool pas::isa::Pep10ISA::isValidAAATypeAddressingMode(AddressingMode addr) {
+bool pas::isa::Pep10ISA::isValidAAATypeAddressingMode(Mnemonic,
+                                                      AddressingMode addr) {
   using AM = AddressingMode;
   return !(addr == AM::ALL || addr == AM::INVALID || addr == AM::NONE);
 }
@@ -149,9 +151,13 @@ bool pas::isa::Pep10ISA::isRAAAType(Mnemonic mnemonic) {
   return type == T::RAAA_all || type == T::RAAA_noi;
 }
 
-bool pas::isa::Pep10ISA::isValidRAAATypeAddressingMode(AddressingMode addr) {
+bool pas::isa::Pep10ISA::isValidRAAATypeAddressingMode(Mnemonic mnemonic,
+                                                       AddressingMode addr) {
+  using T = InstructionType;
   using AM = AddressingMode;
-  return !(addr == AM::ALL || addr == AM::INVALID || addr == AM::NONE);
+  auto type = opcodeLUT[opcode(mnemonic)].instr.type;
+  return !(addr == AM::ALL || addr == AM::INVALID || addr == AM::NONE ||
+           (type == T::RAAA_noi && addr == AM::I));
 }
 
 bool pas::isa::Pep10ISA::requiresAddressingMode(Mnemonic mnemonic) {
