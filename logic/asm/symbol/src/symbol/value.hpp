@@ -34,8 +34,8 @@ class Entry;
 }
 namespace symbol::value {
 struct SYMBOL_EXPORT MaskedBits {
-  quint8 byteCount;
-  quint64 bitPattern, mask;
+  quint8 byteCount = 0;
+  quint64 bitPattern = 0, mask = 0;
   quint64 operator()();
   bool operator==(const MaskedBits &other) const;
 };
@@ -84,6 +84,12 @@ public:
    * otherwise.
    */
   virtual bool relocatable() const { return false; }
+
+  /*!
+   *
+   * \returns A shallow copy of the derived class
+   */
+  virtual QSharedPointer<Abstract> clone() const = 0;
 };
 
 /*!
@@ -91,10 +97,22 @@ public:
  */
 class SYMBOL_EXPORT Empty : public Abstract {
 public:
+  explicit Empty();
   explicit Empty(quint8 bytes);
+  Empty(const Empty &other);
+  Empty(Empty &&other) noexcept;
+  Empty &operator=(Empty other);
+  friend void swap(Empty &first, Empty &second) {
+    using std::swap;
+    // swap((Abstract &)first, (Abstract &)second); // Add if data in base class
+    // gets data
+    swap(first._bytes, second._bytes);
+  }
   virtual ~Empty() override = default;
+
   MaskedBits value() const override;
   Type type() const override;
+  QSharedPointer<Abstract> clone() const override;
 
 private:
   quint8 _bytes;
@@ -108,10 +126,20 @@ private:
  */
 class SYMBOL_EXPORT Deleted : public Abstract {
 public:
-  Deleted() = default;
+  explicit Deleted();
+  Deleted(Deleted &&other) noexcept;
+  Deleted(const Deleted &other);
+  Deleted &operator=(Deleted other);
+  friend void swap(Deleted &first, Deleted &second) {
+    using std::swap;
+    // swap((Abstract &)first, (Abstract &)second); // Add if data in base class
+    // gets data.
+  }
   virtual ~Deleted() override = default;
+
   MaskedBits value() const override;
   symbol::Type type() const override;
+  QSharedPointer<Abstract> clone() const override;
 };
 
 /*!
@@ -121,10 +149,22 @@ class SYMBOL_EXPORT Constant : public Abstract {
   MaskedBits _value;
 
 public:
+  explicit Constant();
   explicit Constant(MaskedBits value);
+  Constant(const Constant &other);
+  Constant(Constant &&other) noexcept;
+  Constant &operator=(Constant other);
+  friend void swap(Constant &first, Constant &second) {
+    using std::swap;
+    // swap((Abstract &)first, (Abstract &)second); // Add if data in base class
+    // gets data.
+    swap(first._value, second._value);
+  }
   virtual ~Constant() override = default;
+
   MaskedBits value() const override;
   symbol::Type type() const override;
+  QSharedPointer<Abstract> clone() const override;
 
   /*!
    * \brief Overwrite the internal value of this object using the given
@@ -146,14 +186,30 @@ public:
 class SYMBOL_EXPORT Location : public Abstract {
 
 public:
+  // Type defaults to kConstant, to avoid participation in relocation.
+  explicit Location();
   // Type must be kCode or kObject.
   explicit Location(quint8 bytes, quint64 base, quint64 offset,
                     symbol::Type type);
+  Location(const Location &other);
+  Location(Location &&other) noexcept;
+  Location &operator=(Location other);
+  friend void swap(Location &first, Location &second) {
+    using std::swap;
+    // swap((Abstract &)first, (Abstract &)second); // Add if data in base class
+    // gets data.
+    swap(first._bytes, second._bytes);
+    swap(first._base, second._base);
+    swap(first._offset, second._offset);
+    swap(first._type, second._type);
+  }
   virtual ~Location() override = default;
+
   // Inherited via value.
   virtual MaskedBits value() const override;
   symbol::Type type() const override;
   bool relocatable() const override;
+  QSharedPointer<Abstract> clone() const override;
 
   /*!
    * \brief Increment the existing offset of this object.
@@ -182,9 +238,9 @@ public:
   quint64 base() const;
 
 private:
-  quint8 _bytes;
-  quint64 _base, _offset;
-  symbol::Type _type;
+  quint8 _bytes = 0;
+  quint64 _base = 0, _offset = 0;
+  symbol::Type _type = symbol::Type::kConstant;
 };
 
 /*!
@@ -197,14 +253,26 @@ private:
  */
 class SYMBOL_EXPORT Pointer : public Abstract {
 public:
+  explicit Pointer();
   explicit Pointer(QSharedPointer<const symbol::Entry> ptr);
+  Pointer(const Pointer &other);
+  Pointer(Pointer &&other) noexcept;
+  Pointer &operator=(Pointer other);
+  friend void swap(Pointer &first, Pointer &second) {
+    using std::swap;
+    // swap((Abstract &)first, (Abstract &)second); // Add if data in base class
+    // gets data.
+    swap(first.symbol_pointer, second.symbol_pointer);
+  }
   ~Pointer() override = default;
+
   // Inherited via value.
   MaskedBits value() const override;
   symbol::Type type() const override;
+  QSharedPointer<Abstract> clone() const override;
 
   //! Symbol whose value is to be taken on. Does not need to belong to the same
   //! table.
-  QSharedPointer<const symbol::Entry> symbol_pointer;
+  QSharedPointer<const symbol::Entry> symbol_pointer = {};
 };
 }; // namespace symbol::value

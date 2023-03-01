@@ -12,6 +12,20 @@ QList<QSharedPointer<symbol::Table>> symbol::Table::children() {
   return _children;
 }
 
+symbol::Table::child_iterator symbol::Table::begin() {
+  return _children.begin();
+}
+
+symbol::Table::child_iterator symbol::Table::end() { return _children.end(); }
+
+symbol::Table::child_const_iterator symbol::Table::cbegin() const {
+  return child_const_iterator(_children.cbegin());
+}
+
+symbol::Table::child_const_iterator symbol::Table::cend() const {
+  return child_const_iterator(_children.cend());
+}
+
 std::optional<symbol::Table::entry_ptr_t>
 symbol::Table::get(const QString &name) const {
   if (auto item = _name_to_entry.find(name); item != _name_to_entry.end())
@@ -148,4 +162,23 @@ auto symbol::Table::entries() const -> symbol::Table::const_range {
 symbol::Table::range symbol::Table::entries() {
   return _name_to_entry.asKeyValueRange();
   ;
+}
+
+symbol::Table::child_const_iterator::child_const_iterator(iter_t init)
+    : it(init) {}
+
+symbol::Table::child_const_iterator &
+symbol::Table::child_const_iterator::operator++() {
+  ++it;
+  return *this;
+}
+
+const QSharedPointer<const symbol::Table>
+symbol::Table::child_const_iterator::operator*() const {
+  return it->constCast<const symbol::Table>();
+}
+
+bool symbol::Table::child_const_iterator::operator!=(
+    const child_const_iterator &rhs) const {
+  return it != rhs.it;
 }
