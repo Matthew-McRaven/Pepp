@@ -2,8 +2,8 @@
 
 #include <QObject>
 
-#include "macro_globals.hpp"
 #include "./types.hpp"
+#include "macro_globals.hpp"
 
 namespace macro {
 
@@ -15,6 +15,7 @@ class MACRO_EXPORT Registry : public QObject {
 public:
   explicit Registry(QObject *parent = nullptr);
   bool contains(QString name) const;
+  // Returns nullptr if not found.
   const Registered *findMacro(QString name) const;
   // FIXME: Replace with an iterator so as not to force additional memory
   // allocations.
