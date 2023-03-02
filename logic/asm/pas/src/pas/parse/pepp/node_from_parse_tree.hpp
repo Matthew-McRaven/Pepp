@@ -47,39 +47,15 @@ toAST(const std::vector<pas::parse::pepp::LineType> &lines) {
   auto root = QSharedPointer<pas::ast::Node>::create(structuralType);
   root->set(ast::generic::SymbolTable{
       .value = QSharedPointer<symbol::Table>::create()});
-  QSharedPointer<pas::ast::Node> activeSection;
   auto visitor = FromParseTree<ISA>();
-  auto createActive = [&](ast::generic::SectionFlags flags,
-                          QString sectionName) {
-    activeSection = QSharedPointer<pas::ast::Node>::create(structuralType);
-    activeSection->set(ast::generic::SymbolTable{
-        .value = root->get<ast::generic::SymbolTable>().value->addChild()});
-    ast::addChild(*root, activeSection);
-    visitor.symTab = activeSection->get<ast::generic::SymbolTable>().value;
-  };
-  createActive({}, u".data"_qs);
+  visitor.symTab = root->get<ast::generic::SymbolTable>().value;
   qsizetype loc = 0;
   for (const auto &line : lines) {
     QSharedPointer<ast::Node> node = line.apply_visitor(visitor);
     node->set(
         ast::generic::SourceLocation{.value = {.line = loc++, .valid = true}});
-
-    // Create a new section group under child if the node is a section.
-    if (pas::ops::pepp::isSection()(*node)) {
-      if (node->has<ast::generic::Argument>() &&
-          node->has<ast::generic::SectionFlags>()) {
-        auto sectionName = node->get<ast::generic::Argument>().value->string();
-        auto flags = node->get<ast::generic::SectionFlags>();
-        createActive(flags, sectionName);
-      } else {
-        node->set(ast::generic::Error{
-            .value = {ast::generic::Message{
-                .severity = ast::generic::Message::Severity::Fatal,
-                .message = pas::errors::pepp::invalidSection}}});
-      }
-    }
-
-    ast::addChild(*activeSection, node);
+    // Grouping into sections is now handled in ops::treeify.
+    ast::addChild(*root, node);
   }
   return root;
 }
