@@ -4,6 +4,7 @@
 #include "pas/ast/generic/attr_comment.hpp"
 #include "pas/ast/generic/attr_comment_indent.hpp"
 #include "pas/ast/generic/attr_error.hpp"
+#include "pas/ast/generic/attr_hide.hpp"
 #include "pas/ast/generic/attr_location.hpp"
 #include "pas/ast/generic/attr_macro.hpp"
 #include "pas/ast/generic/attr_symbol.hpp"
@@ -40,10 +41,10 @@ struct FromParseTree
 
 template <typename ISA>
 QSharedPointer<pas::ast::Node>
-toAST(const std::vector<pas::parse::pepp::LineType> &lines) {
+toAST(const std::vector<pas::parse::pepp::LineType> &lines,
+      bool hideEnd = false) {
   static const auto structuralType =
       ast::generic::Type{.value = ast::generic::Type::Structural};
-  // TODO: Fix parent relationships
   auto root = QSharedPointer<pas::ast::Node>::create(structuralType);
   root->set(ast::generic::SymbolTable{
       .value = QSharedPointer<symbol::Table>::create()});
@@ -54,6 +55,15 @@ toAST(const std::vector<pas::parse::pepp::LineType> &lines) {
     QSharedPointer<ast::Node> node = line.apply_visitor(visitor);
     node->set(
         ast::generic::SourceLocation{.value = {.line = loc++, .valid = true}});
+    if (node->has<ast::generic::Hide>()) {
+      auto hide = node->get<ast::generic::Hide>().value;
+      hide.source = hideEnd;
+      hide.listing = hideEnd;
+      node->set(ast::generic::Hide{.value = hide});
+    } else
+      node->set(
+          ast::generic::Hide{.value = {.source = hideEnd, .listing = hideEnd}});
+
     // Grouping into sections is now handled in ops::treeify.
     ast::addChild(*root, node);
   }
