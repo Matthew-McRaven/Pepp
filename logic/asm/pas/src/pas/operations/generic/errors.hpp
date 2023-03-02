@@ -1,6 +1,4 @@
 #pragma once
-
-#pragma once
 #include "pas/ast/op.hpp"
 #include <QtCore>
 namespace pas::ast {
