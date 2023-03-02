@@ -7,7 +7,7 @@
 #include <QtCore>
 
 namespace pas::ast {
-class Node {
+class Node : public QEnableSharedFromThis<Node> {
 public:
   explicit Node(const pas::ast::generic::Type type,
                 QWeakPointer<Node> parent = {});
