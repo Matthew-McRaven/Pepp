@@ -81,6 +81,14 @@ std::optional<T> apply_self_if(const Node &node, ops::ConstOp<bool> &predicate,
 }
 
 template <typename T>
+std::optional<T> apply_self_if(Node &node, ops::ConstOp<bool> &predicate,
+                               ops::MutatingOp<T> &transform) {
+  if (!node.apply_self(predicate))
+    return std::nullopt;
+  return node.apply_self(transform);
+}
+
+template <typename T>
 std::optional<T> apply_if(Node &node, ops::ConstOp<bool> &predicate,
                           ops::MutatingOp<T> &transform) {
   if (!node.apply_self(predicate))
