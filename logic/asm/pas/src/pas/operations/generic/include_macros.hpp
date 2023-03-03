@@ -14,6 +14,12 @@ struct IncludeMacros : public pas::ops::MutatingOp<bool> {
     QString macroName;
     QStringList args;
     bool operator==(const MacroInvocation &other) const = default;
+    inline friend size_t qHash(const pas::ops::generic::IncludeMacros::MacroInvocation& invoke, size_t seed=0) {
+        seed = qHash(invoke.macroName, seed);
+        for(const auto& arg : invoke.args)
+            seed = qHash(arg, seed);
+        return seed;
+    }
   };
   QSharedPointer<macro::Registry> registry;
   using node_t = QSharedPointer<pas::ast::Node>;
