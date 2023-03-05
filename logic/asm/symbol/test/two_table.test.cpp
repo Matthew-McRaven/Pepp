@@ -119,6 +119,26 @@ private slots:
     QCOMPARE(x->state, symbol::DefinitionState::kExternalMultiple);
     QCOMPARE(y->state, symbol::DefinitionState::kExternalMultiple);
   }
+
+  void externalSymbolTable() {
+    auto st1 = QSharedPointer<symbol::Table>::create();
+    auto st2 = QSharedPointer<symbol::Table>::create();
+
+    auto x = st1->define("hello");
+    auto x_val = QSharedPointer<symbol::value::Constant>::create();
+    x_val->setValue({.byteCount = 2, .bitPattern = 0xfeed, .mask = 0x8FFF});
+    x->value = x_val;
+    st1->markGlobal("hello");
+
+    auto maybe_y = st2->import(*st1, "hello");
+    QVERIFY(maybe_y.has_value());
+    auto y = maybe_y.value();
+    QCOMPARE(x->binding, symbol::Binding::kGlobal);
+    QCOMPARE(y->binding, symbol::Binding::kImported);
+    QCOMPARE(x->state, symbol::DefinitionState::kSingle);
+    QCOMPARE(y->state, symbol::DefinitionState::kSingle);
+    QCOMPARE(x->value->value(), y->value->value());
+  }
 };
 #include "two_table.test.moc"
 QTEST_MAIN(Symbol2Table)
