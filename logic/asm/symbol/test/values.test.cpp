@@ -58,7 +58,8 @@ private slots:
     QCOMPARE(value.value()(), base + end_offset);
     QVERIFY(value.relocatable());
   }
-  // Can't test external symbol value here, as it will require a symbol table.
+  // Can't test internal or external symbol pointer value here, as it will
+  // require a symbol table.
 };
 
 #include "values.test.moc"
