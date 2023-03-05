@@ -70,7 +70,7 @@ symbol::Table::entry_ptr_t symbol::Table::reference(const QString &name) {
     for (auto &other : symbols) {
       if (other->binding == symbol::Binding::kGlobal) {
         local_definition->value =
-            QSharedPointer<symbol::value::Pointer>::create(other);
+            QSharedPointer<symbol::value::InternalPointer>::create(other);
         // Mark the symbol as imported, so that we can tell the difference
         // between our global symbols and others' globals.
         local_definition->binding = symbol::Binding::kImported;
@@ -103,7 +103,8 @@ symbol::Table::entry_ptr_t symbol::Table::define(const QString &name) {
       if (&other->parent == &*this)
         continue;
       else if (other->binding == symbol::Binding::kImported) {
-        other->value = QSharedPointer<symbol::value::Pointer>::create(entry);
+        other->value =
+            QSharedPointer<symbol::value::InternalPointer>::create(entry);
         // Mark the symbol as imported, so that we can tell the difference
         // between our global symbols and others' globals.
         other->binding = symbol::Binding::kImported;
@@ -141,7 +142,8 @@ void symbol::Table::markGlobal(const QString &name) {
       other->state = symbol::DefinitionState::kExternalMultiple;
       symbol->state = symbol::DefinitionState::kExternalMultiple;
     } else if (other->binding == symbol::Binding::kLocal) {
-      other->value = QSharedPointer<symbol::value::Pointer>::create(symbol);
+      other->value =
+          QSharedPointer<symbol::value::InternalPointer>::create(symbol);
       // Mark the symbol as imported, so that we can tell the difference between
       // our global symbols and others' globals.
       other->binding = symbol::Binding::kImported;

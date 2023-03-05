@@ -49,9 +49,9 @@ void forkSymbolValues(symbol::ForkMap &map,
     auto fromSymbol = fromSymbolPair.second;
     auto toSymbol = map.map(&*fromSymbol);
     if (auto asPointerVal =
-            dynamic_cast<symbol::value::Pointer *>(&*fromSymbol->value);
+            dynamic_cast<symbol::value::InternalPointer *>(&*fromSymbol->value);
         asPointerVal != nullptr) {
-      toSymbol->value = QSharedPointer<symbol::value::Pointer>::create(
+      toSymbol->value = QSharedPointer<symbol::value::InternalPointer>::create(
           map.map(&*asPointerVal->symbol_pointer));
     } else {
       toSymbol->value = fromSymbol->value->clone();

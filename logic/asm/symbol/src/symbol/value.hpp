@@ -31,7 +31,8 @@
 
 namespace symbol {
 class Entry;
-}
+class Table;
+} // namespace symbol
 namespace symbol::value {
 struct SYMBOL_EXPORT MaskedBits {
   quint8 byteCount = 0;
@@ -244,27 +245,30 @@ private:
 };
 
 /*!
- * \brief Represent a value that take on the value of another symbol.
+ * \brief Represent a value that take on the value of another symbol across
+ * different symbol table hierachies.
  *
  * Used to reference symbols' values that are taken from other tables.
  *
  * This value cannot be relocated, since it acts like a numeric constant rather
  * than a location.
  */
-class SYMBOL_EXPORT Pointer : public Abstract {
+class SYMBOL_EXPORT ExternalPointer : public Abstract {
 public:
-  explicit Pointer();
-  explicit Pointer(QSharedPointer<const symbol::Entry> ptr);
-  Pointer(const Pointer &other);
-  Pointer(Pointer &&other) noexcept;
-  Pointer &operator=(Pointer other);
-  friend void swap(Pointer &first, Pointer &second) {
+  explicit ExternalPointer();
+  explicit ExternalPointer(QSharedPointer<symbol::Table> table,
+                           QSharedPointer<const symbol::Entry> ptr);
+  ExternalPointer(const ExternalPointer &other);
+  ExternalPointer(ExternalPointer &&other) noexcept;
+  ExternalPointer &operator=(ExternalPointer other);
+  friend void swap(ExternalPointer &first, ExternalPointer &second) {
     using std::swap;
     // swap((Abstract &)first, (Abstract &)second); // Add if data in base class
     // gets data.
     swap(first.symbol_pointer, second.symbol_pointer);
+    swap(first.symbol_table, second.symbol_table);
   }
-  ~Pointer() override = default;
+  ~ExternalPointer() override = default;
 
   // Inherited via value.
   MaskedBits value() const override;
@@ -272,7 +276,42 @@ public:
   QSharedPointer<Abstract> clone() const override;
 
   //! Symbol whose value is to be taken on. Does not need to belong to the same
-  //! table.
+  //! table. Does not need to have a common parent table.
+  QSharedPointer<const symbol::Entry> symbol_pointer = {};
+  QWeakPointer<symbol::Table> symbol_table;
+};
+
+/*!
+ * \brief Represent a value that take on the value of another symbol within the
+ * same symbol table hierachy.
+ *
+ * Used to reference symbols' values that are taken from other tables.
+ *
+ * This value cannot be relocated, since it acts like a numeric constant rather
+ * than a location.
+ */
+class SYMBOL_EXPORT InternalPointer : public Abstract {
+public:
+  explicit InternalPointer();
+  explicit InternalPointer(QSharedPointer<const symbol::Entry> ptr);
+  InternalPointer(const InternalPointer &other);
+  InternalPointer(InternalPointer &&other) noexcept;
+  InternalPointer &operator=(InternalPointer other);
+  friend void swap(InternalPointer &first, InternalPointer &second) {
+    using std::swap;
+    // swap((Abstract &)first, (Abstract &)second); // Add if data in base class
+    // gets data.
+    swap(first.symbol_pointer, second.symbol_pointer);
+  }
+  ~InternalPointer() override = default;
+
+  // Inherited via value.
+  MaskedBits value() const override;
+  symbol::Type type() const override;
+  QSharedPointer<Abstract> clone() const override;
+
+  //! Symbol whose value is to be taken on. Does not need to belong to the same
+  //! table, but must have a common parent table.
   QSharedPointer<const symbol::Entry> symbol_pointer = {};
 };
 }; // namespace symbol::value
