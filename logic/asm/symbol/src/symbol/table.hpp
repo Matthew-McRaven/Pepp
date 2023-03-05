@@ -107,6 +107,14 @@ public:
   child_const_iterator cend() const;
 
   /*!
+   * \brief Create a symbol locally that points to a symbol in an external
+   * table. Handles setting various symbol flags correctly for import.
+   * \returns a define()'ed symbol if name is in other, else nullopt if not
+   * found.
+   */
+  std::optional<entry_ptr_t> import(symbol::Table &other, const QString &name);
+
+  /*!
    * \brief Unlike reference, get() will not create an entry in the table if
    * the symbol fails to be found. \returns Pointer to found symbol or
    * nullopt if not found.

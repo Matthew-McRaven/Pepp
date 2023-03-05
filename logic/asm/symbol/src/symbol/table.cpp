@@ -27,6 +27,20 @@ symbol::Table::child_const_iterator symbol::Table::cend() const {
 }
 
 std::optional<symbol::Table::entry_ptr_t>
+symbol::Table::import(Table &other, const QString &name) {
+  auto extSym = other.get(name);
+  if (extSym == std::nullopt)
+    return std::nullopt;
+  auto intSym = this->define(name);
+  intSym->binding = symbol::Binding::kImported;
+  auto value = QSharedPointer<symbol::value::ExternalPointer>::create();
+  value->symbol_pointer = extSym.value();
+  value->symbol_table = other.sharedFromThis();
+  intSym->value = value;
+  return intSym;
+}
+
+std::optional<symbol::Table::entry_ptr_t>
 symbol::Table::get(const QString &name) const {
   if (auto item = _name_to_entry.find(name); item != _name_to_entry.end())
     return item.value();
