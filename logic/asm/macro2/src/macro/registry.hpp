@@ -25,7 +25,8 @@ public:
   // Returns nullptr if the macro already exists in the registry. In this case,
   // registry will delete macro.
   // Returned pointer is non-owning
-  const Registered *registerMacro(types::Type type, Parsed *macro);
+  QSharedPointer<const Registered> registerMacro(types::Type type,
+                                                 QSharedPointer<Parsed> macro);
 
 signals:
   //! Emitted when a macro is successfully registered.
