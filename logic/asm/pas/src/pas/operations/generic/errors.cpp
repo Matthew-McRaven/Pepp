@@ -1,6 +1,4 @@
 #include "./errors.hpp"
-#include "pas/ast/generic/attr_error.hpp"
-#include "pas/ast/generic/attr_location.hpp"
 #include "pas/ast/node.hpp"
 void pas::ops::generic::collectErrors::operator()(const ast::Node &node) {
   using Location = ast::generic::SourceLocation;

@@ -1,12 +1,10 @@
 #pragma once
+#include "pas/ast/generic/attr_error.hpp"
+#include "pas/ast/generic/attr_location.hpp"
 #include "pas/ast/op.hpp"
 #include <QtCore>
 namespace pas::ast {
 class Node;
-namespace generic {
-class Message;
-class SourceLocation;
-} // namespace generic
 } // namespace pas::ast
 
 namespace pas::ops::generic {
