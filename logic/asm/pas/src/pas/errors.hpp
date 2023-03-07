@@ -1,6 +1,10 @@
 #pragma once
 #include <QtCore>
 namespace pas::errors::pepp {
+// Macro issues
+inline const QString macroLoop = u"Macro invocation loop detected."_qs;
+inline const QString noSuchMacro = u"No such macro \"%1\""_qs;
+inline const QString macroWrongArity = u"%1 expected %2 args, received %3."_qs;
 // Bad instructions and command;
 inline const QString invalidMnemonic = u"Invalid mnemonic."_qs;
 inline const QString invalidDirective = u"Invalid dot command."_qs;
