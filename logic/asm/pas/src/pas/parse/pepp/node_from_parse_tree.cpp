@@ -309,3 +309,25 @@ QSharedPointer<Node> pas::parse::pepp::detail::word(const DirectiveType &line,
     ret->set(generic::Comment{.value = QString::fromStdString(line.comment)});
   return ret;
 }
+
+QString pas::parse::pepp::errorFromWordString(
+    QSharedPointer<pas::ast::value::Base> arg) {
+
+  if (dynamic_cast<pas::ast::value::Hexadecimal *>(arg.data()) != nullptr)
+    return pas::errors::pepp::hexTooBig2;
+  else if (dynamic_cast<pas::ast::value::ShortString *>(arg.data()) != nullptr)
+    return pas::errors::pepp::strTooLong2;
+  else
+    return pas::errors::pepp::decTooBig2;
+}
+
+QString pas::parse::pepp::errorFromByteString(
+    QSharedPointer<pas::ast::value::Base> arg) {
+
+  if (dynamic_cast<pas::ast::value::Hexadecimal *>(arg.data()) != nullptr)
+    return pas::errors::pepp::hexTooBig1;
+  else if (dynamic_cast<pas::ast::value::ShortString *>(arg.data()) != nullptr)
+    return pas::errors::pepp::strTooLong1;
+  else
+    return pas::errors::pepp::decTooBig1;
+}

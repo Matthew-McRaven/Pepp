@@ -42,14 +42,16 @@ struct FromParseTree
 template <typename ISA>
 QSharedPointer<pas::ast::Node>
 toAST(const std::vector<pas::parse::pepp::LineType> &lines,
-      bool hideEnd = false) {
-  static const auto structuralType =
-      ast::generic::Type{.value = ast::generic::Type::Structural};
-  auto root = QSharedPointer<pas::ast::Node>::create(structuralType);
-  root->set(ast::generic::SymbolTable{
-      .value = QSharedPointer<symbol::Table>::create()});
+      QSharedPointer<pas::ast::Node> parent = nullptr, bool hideEnd = false) {
+  if (parent == nullptr) {
+    static const auto structuralType =
+        ast::generic::Type{.value = ast::generic::Type::Structural};
+    parent = QSharedPointer<pas::ast::Node>::create(structuralType);
+    parent->set(ast::generic::SymbolTable{
+        .value = QSharedPointer<symbol::Table>::create()});
+  }
   auto visitor = FromParseTree<ISA>();
-  visitor.symTab = root->get<ast::generic::SymbolTable>().value;
+  visitor.symTab = parent->get<ast::generic::SymbolTable>().value;
   qsizetype loc = 0;
   for (const auto &line : lines) {
     QSharedPointer<ast::Node> node = line.apply_visitor(visitor);
@@ -65,9 +67,9 @@ toAST(const std::vector<pas::parse::pepp::LineType> &lines,
           ast::generic::Hide{.value = {.source = hideEnd, .listing = hideEnd}});
 
     // Grouping into sections is now handled in ops::treeify.
-    ast::addChild(*root, node);
+    ast::addChild(*parent, node);
   }
-  return root;
+  return parent;
 }
 
 namespace detail {
@@ -275,25 +277,9 @@ QSharedPointer<ast::Node> FromParseTree<ISA>::operator()(const T &line) {
   throw std::logic_error("Unimplemented");
 }
 
-QString errorFromByteString(QSharedPointer<ast::value::Base> arg) {
+QString errorFromByteString(QSharedPointer<ast::value::Base> arg);
 
-  if (dynamic_cast<ast::value::Hexadecimal *>(arg.data()) != nullptr)
-    return pas::errors::pepp::hexTooBig1;
-  else if (dynamic_cast<ast::value::ShortString *>(arg.data()) != nullptr)
-    return pas::errors::pepp::strTooLong1;
-  else
-    return pas::errors::pepp::decTooBig1;
-}
-
-QString errorFromWordString(QSharedPointer<ast::value::Base> arg) {
-
-  if (dynamic_cast<ast::value::Hexadecimal *>(arg.data()) != nullptr)
-    return pas::errors::pepp::hexTooBig2;
-  else if (dynamic_cast<ast::value::ShortString *>(arg.data()) != nullptr)
-    return pas::errors::pepp::strTooLong2;
-  else
-    return pas::errors::pepp::decTooBig2;
-}
+QString errorFromWordString(QSharedPointer<ast::value::Base> arg);
 
 template <typename ISA>
 void detail::checkArgumentSizes(QSharedPointer<ast::Node> node) {
