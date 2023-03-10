@@ -1,4 +1,5 @@
 #include "./node.hpp"
+#include "pas/ast/generic/attr_address.hpp"
 #include "pas/ast/generic/attr_children.hpp"
 #include "pas/ast/generic/attr_parent.hpp"
 #include "pas/ast/generic/attr_type.hpp"
@@ -60,4 +61,8 @@ QSharedPointer<pas::ast::Node> pas::ast::addError(QSharedPointer<Node> node,
   messages.push_back(msg);
   node->set(generic::Error{.value = messages});
   return node;
+}
+
+void pas::ast::setAddress(Node &node, quint64 start, quint64 end) {
+  node.set(generic::Address{.value = {.start = start, .end = end}});
 }

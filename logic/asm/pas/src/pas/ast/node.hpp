@@ -74,6 +74,7 @@ QList<QSharedPointer<Node>> children(const Node &node);
 QList<QSharedPointer<Node>> children(Node &node);
 // Does not update child's parent pointer.
 void addChild(Node &parent, QSharedPointer<Node> child);
+void setAddress(Node &node, quint64 start, quint64 end);
 
 QSharedPointer<Node> addError(QSharedPointer<Node> node,
                               pas::ast::generic::Message msg);
