@@ -42,6 +42,10 @@ struct isSet : public pas::ops::ConstOp<bool> {
   bool operator()(const ast::Node &node);
 };
 
+struct isDirective : public pas::ops::ConstOp<bool> {
+  bool operator()(const ast::Node &node);
+};
+
 struct isMacro : public pas::ops::ConstOp<bool> {
   bool operator()(const ast::Node &node);
 };

@@ -95,6 +95,12 @@ bool pas::ops::generic::isSet::operator()(const ast::Node &node) {
          node.has<ast::generic::Argument>();
 }
 
+bool pas::ops::generic::isDirective::operator()(const ast::Node &node) {
+  return node.get<ast::generic::Type>().value ==
+             ast::generic::Type::Directive &&
+         node.has<ast::generic::Directive>();
+}
+
 bool pas::ops::generic::isMacro::operator()(const ast::Node &node) {
   return node.get<ast::generic::Type>().value ==
              ast::generic::Type::MacroInvoke &&
