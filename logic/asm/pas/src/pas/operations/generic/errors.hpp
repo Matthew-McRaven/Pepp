@@ -8,7 +8,7 @@ class Node;
 } // namespace pas::ast
 
 namespace pas::ops::generic {
-struct collectErrors : public pas::ops::ConstOp<void> {
+struct CollectErrors : public pas::ops::ConstOp<void> {
   QList<QPair<ast::generic::SourceLocation, ast::generic::Message>> errors;
   void operator()(const ast::Node &node);
 };

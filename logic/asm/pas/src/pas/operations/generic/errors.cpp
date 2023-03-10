@@ -1,6 +1,6 @@
 #include "./errors.hpp"
 #include "pas/ast/node.hpp"
-void pas::ops::generic::collectErrors::operator()(const ast::Node &node) {
+void pas::ops::generic::CollectErrors::operator()(const ast::Node &node) {
   using Location = ast::generic::SourceLocation;
   using Message = ast::generic::Message;
   using Error = ast::generic::Error;
