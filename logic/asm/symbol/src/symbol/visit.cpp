@@ -71,6 +71,14 @@ policyToTargetTable(symbol::TraversalPolicy policy,
   }
 }
 
+QSharedPointer<const symbol::Table>
+symbol::rootTable(QSharedPointer<const Table> table) {
+  if (auto parent = table->parent.lock(); !parent.isNull())
+    return rootTable(parent);
+  else
+    return table;
+}
+
 QSharedPointer<symbol::Table> symbol::rootTable(QSharedPointer<Table> table) {
   if (auto parent = table->parent.lock(); !parent.isNull())
     return rootTable(parent);
@@ -195,6 +203,14 @@ QString symbol::tableListing(QSharedPointer<Table> table, quint8 maxBytes,
 }
 
 QSharedPointer<symbol::Table> symbol::parent(QSharedPointer<Table> table) {
+  if (table->parent) {
+    if (auto parent = table->parent.lock(); parent)
+      return parent;
+  }
+  return table;
+}
+QSharedPointer<const symbol::Table>
+symbol::parent(QSharedPointer<const Table> table) {
   if (table->parent) {
     if (auto parent = table->parent.lock(); parent)
       return parent;
