@@ -7,6 +7,15 @@
 
 #include <pas/ast/pepp/attr_addr.hpp>
 namespace pas::ops::pepp {
+
+template <typename ISA> struct isUnary : public pas::ops::ConstOp<bool> {
+  bool operator()(const ast::Node &node);
+};
+
+template <typename ISA> struct isNonUnary : public pas::ops::ConstOp<bool> {
+  bool operator()(const ast::Node &node);
+};
+
 template <typename ISA> struct isUType : public pas::ops::ConstOp<bool> {
   bool operator()(const ast::Node &node);
 };
@@ -64,6 +73,28 @@ struct isUSCall : public pas::ops::ConstOp<bool> {
 };
 
 } // namespace pas::ops::pepp
+
+template <typename ISA>
+bool pas::ops::pepp::isUnary<ISA>::operator()(const ast::Node &node) {
+  if (!node.has<ast::pepp::Instruction<ISA>>())
+    return false;
+  else if (node.get<ast::generic::Type>().value !=
+           ast::generic::Type::Instruction)
+    return false;
+  auto instr = node.get<ast::pepp::Instruction<ISA>>().value;
+  return ISA::isUType(instr) || ISA::isRType(instr);
+}
+
+template <typename ISA>
+bool pas::ops::pepp::isNonUnary<ISA>::operator()(const ast::Node &node) {
+  if (!node.has<ast::pepp::Instruction<ISA>>())
+    return false;
+  else if (node.get<ast::generic::Type>().value !=
+           ast::generic::Type::Instruction)
+    return false;
+  auto instr = node.get<ast::pepp::Instruction<ISA>>().value;
+  return ISA::isAType(instr) || ISA::isAAAType(instr) || ISA::isRAAAType(instr);
+}
 
 template <typename ISA>
 bool pas::ops::pepp::isUType<ISA>::operator()(const ast::Node &node) {
