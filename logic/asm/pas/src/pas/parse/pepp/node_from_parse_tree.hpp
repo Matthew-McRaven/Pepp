@@ -43,7 +43,7 @@ template <typename ISA>
 QSharedPointer<pas::ast::Node>
 toAST(const std::vector<pas::parse::pepp::LineType> &lines,
       QSharedPointer<pas::ast::Node> parent = nullptr, bool hideEnd = false) {
-  if (parent == nullptr) {
+  if (parent.isNull()) {
     static const auto structuralType =
         ast::generic::Type{.value = ast::generic::Type::Structural};
     parent = QSharedPointer<pas::ast::Node>::create(structuralType);
