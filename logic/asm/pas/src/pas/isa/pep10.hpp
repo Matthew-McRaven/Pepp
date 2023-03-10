@@ -269,7 +269,7 @@ struct Pep10ISA {
   static bool isValidRAAATypeAddressingMode(AddressingMode addr);
 
   static bool requiresAddressingMode(Mnemonic mnemonic);
-
+  static bool canElideAddressingMode(Mnemonic mnemonic, AddressingMode addr);
   constexpr static std::array<Opcode, 256> opcodeLUT =
       detail::pep10::initOpcodes();
 };
