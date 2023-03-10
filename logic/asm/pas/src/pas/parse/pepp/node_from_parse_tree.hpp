@@ -57,6 +57,7 @@ toAST(const std::vector<pas::parse::pepp::LineType> &lines,
     QSharedPointer<ast::Node> node = line.apply_visitor(visitor);
     node->set(
         ast::generic::SourceLocation{.value = {.line = loc++, .valid = true}});
+    // BUG: Always hides all nodes if hideEnd.
     if (node->has<ast::generic::Hide>()) {
       auto hide = node->get<ast::generic::Hide>().value;
       hide.source = hideEnd;
