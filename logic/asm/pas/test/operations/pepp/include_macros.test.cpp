@@ -31,7 +31,7 @@ private slots:
     QCOMPARE(children.size(), 2);
     QVERIFY(children[0]->has<pas::ast::generic::Children>());
     auto grandchildren = children[0]->get<pas::ast::generic::Children>().value;
-    QCOMPARE(grandchildren.size(), 1);
+    QCOMPARE(grandchildren.size(), 3);
   }
   void errorOnIncorrectArgCount() {
     auto registry = QSharedPointer<macro::Registry>::create();
@@ -102,11 +102,11 @@ private slots:
     QCOMPARE(children.size(), 2);
     QVERIFY(children[0]->has<pas::ast::generic::Children>());
     auto grandchildren = children[0]->get<pas::ast::generic::Children>().value;
-    QCOMPARE(grandchildren.size(), 2);
-    QVERIFY(grandchildren[0]->has<pas::ast::generic::Children>());
+    QCOMPARE(grandchildren.size(), 4);
+    QVERIFY(grandchildren[1]->has<pas::ast::generic::Children>());
     auto greatgrandchildren =
-        grandchildren[0]->get<pas::ast::generic::Children>().value;
-    QCOMPARE(greatgrandchildren.size(), 1);
+        grandchildren[1]->get<pas::ast::generic::Children>().value;
+    QCOMPARE(greatgrandchildren.size(), 3);
   }
   void rejectsMacroLoops() {}
   void rejectsMacroLoops_data() {
