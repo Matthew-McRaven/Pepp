@@ -35,6 +35,7 @@ struct IncludeMacros : public pas::ops::MutatingOp<bool> {
   bool operator()(ast::Node &node) override;
   bool pushMacroInvocation(MacroInvocation invoke);
   void popMacroInvocation(MacroInvocation invoke);
+  void addExtraChildren(ast::Node &node);
 
 private:
   QSet<MacroInvocation> _chain = {};
