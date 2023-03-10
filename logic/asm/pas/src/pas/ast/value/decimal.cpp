@@ -2,15 +2,13 @@
 
 pas::ast::value::SignedDecimal::SignedDecimal() : Numeric() {}
 
-pas::ast::value::SignedDecimal::SignedDecimal(qint64 value, quint16 size,
-                                                 bits::BitOrder endian)
-    : Numeric(value, size, endian) {}
+pas::ast::value::SignedDecimal::SignedDecimal(qint64 value, quint16 size)
+    : Numeric(value, size) {}
 
 pas::ast::value::SignedDecimal::SignedDecimal(const SignedDecimal &other)
     : Numeric(other) {}
 
-pas::ast::value::SignedDecimal::SignedDecimal(
-    SignedDecimal &&other) noexcept {
+pas::ast::value::SignedDecimal::SignedDecimal(SignedDecimal &&other) noexcept {
   swap(*this, other);
 }
 
@@ -31,13 +29,10 @@ QString pas::ast::value::SignedDecimal::string() const {
 
 pas::ast::value::UnsignedDecimal::UnsignedDecimal() : Numeric() {}
 
-pas::ast::value::UnsignedDecimal::UnsignedDecimal(quint64 value,
-                                                     quint16 size,
-                                                     bits::BitOrder endian)
-    : Numeric(value, size, endian) {}
+pas::ast::value::UnsignedDecimal::UnsignedDecimal(quint64 value, quint16 size)
+    : Numeric(value, size) {}
 
-pas::ast::value::UnsignedDecimal::UnsignedDecimal(
-    const UnsignedDecimal &other)
+pas::ast::value::UnsignedDecimal::UnsignedDecimal(const UnsignedDecimal &other)
     : Numeric(other) {}
 
 pas::ast::value::UnsignedDecimal::UnsignedDecimal(

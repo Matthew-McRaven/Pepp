@@ -5,7 +5,7 @@ namespace pas::ast::value {
 class SignedDecimal : public Numeric {
 public:
   explicit SignedDecimal();
-  SignedDecimal(qint64 value, quint16 size, bits::BitOrder endian);
+  SignedDecimal(qint64 value, quint16 size);
   SignedDecimal(const SignedDecimal &other);
   SignedDecimal(SignedDecimal &&other) noexcept;
   SignedDecimal &operator=(SignedDecimal other);
@@ -21,7 +21,7 @@ public:
 class UnsignedDecimal : public Numeric {
 public:
   explicit UnsignedDecimal();
-  UnsignedDecimal(quint64 value, quint16 size, bits::BitOrder endian);
+  UnsignedDecimal(quint64 value, quint16 size);
   UnsignedDecimal(const UnsignedDecimal &other);
   UnsignedDecimal(UnsignedDecimal &&other) noexcept;
   UnsignedDecimal &operator=(UnsignedDecimal other);

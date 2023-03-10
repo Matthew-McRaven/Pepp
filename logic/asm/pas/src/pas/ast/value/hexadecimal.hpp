@@ -4,7 +4,7 @@ namespace pas::ast::value {
 class Hexadecimal : public Numeric {
 public:
   explicit Hexadecimal();
-  Hexadecimal(quint64 value, quint16 size, bits::BitOrder endian);
+  Hexadecimal(quint64 value, quint16 size);
   Hexadecimal(const Hexadecimal &other);
   Hexadecimal(Hexadecimal &&other) noexcept;
   Hexadecimal &operator=(Hexadecimal other);

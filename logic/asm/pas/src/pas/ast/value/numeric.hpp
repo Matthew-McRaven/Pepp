@@ -5,7 +5,7 @@ namespace pas::ast::value {
 struct Numeric : public Base {
 public:
   explicit Numeric();
-  Numeric(qint64 value, quint8 size, bits::BitOrder endian);
+  Numeric(qint64 value, quint8 size);
   friend void swap(Numeric &first, Numeric &second) {
     using std::swap;
     swap((Base &)first, (Base &)second);
