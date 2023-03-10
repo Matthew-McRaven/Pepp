@@ -19,6 +19,10 @@ pas::ast::value::Symbolic::operator=(Symbolic other) {
   return *this;
 }
 
+QSharedPointer<symbol::Entry> pas::ast::value::Symbolic::symbol() {
+  return _value;
+}
+
 QSharedPointer<const symbol::Entry> pas::ast::value::Symbolic::symbol() const {
   return _value;
 }

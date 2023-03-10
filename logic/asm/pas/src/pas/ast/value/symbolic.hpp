@@ -16,6 +16,7 @@ public:
     using std::swap;
     swap(first._value, second._value);
   }
+  QSharedPointer<symbol::Entry> symbol();
   QSharedPointer<const symbol::Entry> symbol() const;
   bool isNumeric() const override { return true; }
   bool isFixedSize() const override { return true; }
