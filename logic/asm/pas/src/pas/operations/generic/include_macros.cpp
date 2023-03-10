@@ -3,10 +3,15 @@
 #include "macro/macro.hpp"
 #include "macro/registered.hpp"
 #include "macro/registry.hpp"
+#include "pas/ast/generic/attr_argument.hpp"
 #include "pas/ast/generic/attr_children.hpp"
 #include "pas/ast/generic/attr_macro.hpp"
 #include "pas/ast/node.hpp"
+#include "pas/ast/value/base.hpp"
+#include "pas/driver/common.hpp"
 #include "pas/errors.hpp"
+#include "pas/operations/generic/errors.hpp"
+
 void appendError(pas::ast::Node &node, QString message) {
   using namespace pas::ast::generic;
   Error err;
@@ -23,6 +28,12 @@ bool pas::ops::generic::IncludeMacros::operator()(ast::Node &node) {
     return false;
   auto macroName = node.get<ast::generic::Macro>().value;
   QStringList args = {};
+  if (node.has<ast::generic::ArgumentList>()) {
+    for (auto &arg : node.get<ast::generic::ArgumentList>().value)
+      args.push_back(arg->string());
+  } else if (node.has<ast::generic::Argument>())
+    args.push_back(node.get<ast::generic::Argument>().value->string());
+
   auto macroInvoke = MacroInvocation{.macroName = macroName, .args = args};
   if (!pushMacroInvocation(macroInvoke)) {
     appendError(node, errors::pepp::macroLoop);
@@ -45,12 +56,14 @@ bool pas::ops::generic::IncludeMacros::operator()(ast::Node &node) {
   for (int it = 0; it < args.size(); it++)
     macroText.replace(u"%"_qs + QString::number(it), args[it]);
 
-  auto converted = convertFn(macroText);
-
-  // Update parent/child relationships
-  node.set(ast::generic::Children{.value = converted});
+  auto converted = convertFn(macroText, node.sharedFromThis());
+  // TODO: Add error handling.
+  if (converted.hadError)
+    throw std::logic_error("Unhandled exception");
+  // Update parent/child relationships -- Now updated in convertFn
+  /*node.set(ast::generic::Children{.value = converted.root});
   for (auto &n : converted)
-    ast::setParent(*n, node.sharedFromThis());
+    ast::setParent(*n, node.sharedFromThis());*/
 
   popMacroInvocation(macroInvoke);
   return true;
@@ -71,13 +84,15 @@ void pas::ops::generic::IncludeMacros::popMacroInvocation(
 
 bool pas::ops::generic::includeMacros(
     ast::Node &root,
-    std::function<QList<QSharedPointer<ast::Node>>(QString)> convertFn,
+    std::function<pas::driver::ParseResult(QString, QSharedPointer<ast::Node>)>
+        convertFn,
     QSharedPointer<macro::Registry> registry) {
   static auto isMacro = pas::ops::generic::isMacro();
   auto convert = IncludeMacros();
   convert.convertFn = convertFn;
   convert.registry = registry;
   ast::apply_recurse_if(root, isMacro, convert);
-  // TODO: Catch parsing errors;
-  return true;
+  auto errors = pas::ops::generic::CollectErrors();
+  ast::apply_recurse(root, errors);
+  return errors.errors.size() == 0;
 }
