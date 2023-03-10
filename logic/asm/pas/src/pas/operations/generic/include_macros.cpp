@@ -22,10 +22,11 @@ void appendError(pas::ast::Node &node, QString message) {
   node.set(err);
 }
 bool pas::ops::generic::IncludeMacros::operator()(ast::Node &node) {
-  // TODO: Add error messages when returning.
   // Node should be a macro
-  if (!node.has<ast::generic::Macro>())
+  if (!node.has<ast::generic::Macro>()) {
+    appendError(node, errors::pepp::expectedAMacro);
     return false;
+  }
   auto macroName = node.get<ast::generic::Macro>().value;
   QStringList args = {};
   if (node.has<ast::generic::ArgumentList>()) {
@@ -56,14 +57,15 @@ bool pas::ops::generic::IncludeMacros::operator()(ast::Node &node) {
   for (int it = 0; it < args.size(); it++)
     macroText.replace(u"%"_qs + QString::number(it), args[it]);
 
+  // Function handles parenting macroText's nodes as node's children.
+  // Parent/child relationships also established.
   auto converted = convertFn(macroText, node.sharedFromThis());
-  // TODO: Add error handling.
-  if (converted.hadError)
-    throw std::logic_error("Unhandled exception");
-  // Update parent/child relationships -- Now updated in convertFn
-  /*node.set(ast::generic::Children{.value = converted.root});
-  for (auto &n : converted)
-    ast::setParent(*n, node.sharedFromThis());*/
+
+  if (converted.hadError) {
+    for (auto &error : converted.errors)
+      appendError(node, error);
+    return false;
+  }
 
   popMacroInvocation(macroInvoke);
   return true;
