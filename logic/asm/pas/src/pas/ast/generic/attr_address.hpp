@@ -3,12 +3,12 @@
 namespace pas::ast::generic {
 struct Address {
   struct Span {
-    quint64 start, end;
+    quint64 start = 0, end = 0;
     bool operator==(const Span &other) const = default;
   };
 
   static const inline QString attributeName = u"generic:address"_qs;
-  QString value = {};
+  Span value = {};
   bool operator==(const Address &other) const = default;
 };
 } // namespace pas::ast::generic
