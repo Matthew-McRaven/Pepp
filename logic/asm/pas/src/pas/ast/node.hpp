@@ -13,6 +13,8 @@ public:
                 QWeakPointer<Node> parent = {});
   template <typename T> bool has() const;
   template <typename T> const T get() const;
+  // Get && remove from attributes.
+  template <typename T> T take();
   // do not modify
   const QMap<QString, QVariant> attributes() const;
   void fromAttributes(const QMap<QString, QVariant> attributes);
@@ -38,6 +40,14 @@ template <typename T> const T Node::get() const {
   QVariant attribute = _attributes[T::attributeName];
   if (attribute.userType() != qMetaTypeId<T>())
     throw std::logic_error("Cannot convert");
+  return attribute.value<T>();
+}
+
+template <typename T> T Node::take() {
+  QVariant attribute = _attributes[T::attributeName];
+  if (attribute.userType() != qMetaTypeId<T>())
+    throw std::logic_error("Cannot convert");
+  _attributes.remove(T::attributeName);
   return attribute.value<T>();
 }
 
