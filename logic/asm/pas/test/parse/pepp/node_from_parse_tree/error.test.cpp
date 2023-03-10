@@ -36,7 +36,7 @@ private slots:
     QVERIFY2(success, "Failed to parse");
 
     auto root = pas::parse::pepp::toAST<pas::isa::Pep10ISA>(result);
-    auto visit = pas::ops::generic::collectErrors();
+    auto visit = pas::ops::generic::CollectErrors();
     pas::ast::apply_recurse<void>(*root, visit);
     auto actualErrors = visit.errors;
     for (int it = 0; it < qMin(errors.size(), actualErrors.size()); it++) {
