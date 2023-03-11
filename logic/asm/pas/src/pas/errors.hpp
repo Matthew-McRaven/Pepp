@@ -51,7 +51,7 @@ inline const QString strTooLong2 = u"String operands must have length 2."_qs;
 inline const QString decTooBig1 =
     u"Decimal constant is out of range [-128,255]"_qs;
 inline const QString decTooBig2 =
-    u"Decimal constant is out of range [-32678,65536]"_qs;
+    u"Decimal constant is out of range [-32678,65535]"_qs;
 inline const QString hexTooBig1 =
     u"Hexadecimal constant is out of range [0x00, 0xFF]"_qs;
 inline const QString hexTooBig2 =
