@@ -133,7 +133,7 @@ private slots:
         << u".ASCII -42"_qs << QList<Error>{makeFatal(0, ascii)};
     // - exactly 1 arg
     QTest::addRow(".ASCII: max 1 argument")
-        << u".ASCII \"Bad\" \"Beef\""_qs << QList<Error>{makeFatal(0, arg1)};
+        << u".ASCII \"Bad\", \"Beef\""_qs << QList<Error>{makeFatal(0, arg1)};
 
     // BLOCK
     // - no signed
