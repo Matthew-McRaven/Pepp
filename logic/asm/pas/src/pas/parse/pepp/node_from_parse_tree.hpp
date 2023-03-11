@@ -214,8 +214,7 @@ QSharedPointer<pas::ast::Node> pas::parse::pepp::FromParseTree<ISA>::operator()(
              (ISA::isAAAType(instr) &&
               !ISA::isValidAAATypeAddressingMode(instr, addr)) ||
              (ISA::isRAAAType(instr) &&
-
-              !ISA::isValidRAAATypeAddressingMode(addr)))
+              !ISA::isValidRAAATypeAddressingMode(instr, addr)))
       return addError(ret,
                       {.severity = pas::ast::generic::Message::Severity::Fatal,
                        .message = pas::errors::pepp::illegalAddrMode});
@@ -252,7 +251,7 @@ QSharedPointer<pas::ast::Node> pas::parse::pepp::FromParseTree<ISA>::operator()(
     auto ret = converter.value()(line, symTab);
     // Triggers errors when an argument is more than 1 byte (for .BYTE) or more
     // than 2 bytes (except for ASCII and SECTION).
-    checkArgumentSizes<ISA>(ret);
+    detail::checkArgumentSizes<ISA>(ret);
     return ret;
   } else {
     auto ret = QSharedPointer<pas::ast::Node>::create(
