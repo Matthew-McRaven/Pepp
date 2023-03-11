@@ -64,6 +64,7 @@ private slots:
 
     // Validate tree
     auto root = res.root;
+    qWarning() << pas::ops::pepp::formatSource<Pep10ISA>(*root).join("\n");
     QVERIFY(root->has<pas::ast::generic::Children>());
     auto children = root->get<pas::ast::generic::Children>().value;
     QCOMPARE(children.size(), 2);
@@ -82,7 +83,6 @@ private slots:
     QCOMPARE(children.size(), 7);
     for (auto &child : children)
       QVERIFY(!pas::ops::generic::isMacro()(*child));
-    qWarning() << pas::ops::pepp::formatSource<Pep10ISA>(*root).join("\n");
   }
 };
 
