@@ -29,10 +29,11 @@ private slots:
     // Convert input string to parsed lines.
     std::vector<pas::parse::pepp::LineType> result;
     bool success = true;
+    auto current = asStd.begin();
     QVERIFY_THROWS_NO_EXCEPTION([&]() {
-      success =
-          parse(asStd.begin(), asStd.end(), pas::parse::pepp::line, result);
+      success = parse(current, asStd.end(), pas::parse::pepp::line, result);
     }());
+    QVERIFY2(current == asStd.end(), "Partial parse failure");
     QVERIFY2(success, "Failed to parse");
 
     auto root = pas::parse::pepp::toAST<pas::isa::Pep10ISA>(result);
@@ -133,7 +134,7 @@ private slots:
         << u".ASCII -42"_qs << QList<Error>{makeFatal(0, ascii)};
     // - exactly 1 arg
     QTest::addRow(".ASCII: max 1 argument")
-        << u".ASCII \"Bad\" \"Beef\""_qs << QList<Error>{makeFatal(0, arg1)};
+        << u".ASCII \"Bad\", \"Beef\""_qs << QList<Error>{makeFatal(0, arg1)};
 
     // BLOCK
     // - no signed
@@ -259,15 +260,16 @@ private slots:
 
     // Section
     // - exactly 1 arg (an identifier)
-    QTest::addRow("SECTION: min 1 argument")
-        << u"SECTION"_qs << QList<Error>{makeFatal(0, E::invalidMnemonic)};
-    QTest::addRow("SECTION: max 1 argument")
-        << u"SECTION 0x00, 0x01"_qs
-        << QList<Error>{makeFatal(0, E::invalidMnemonic)};
+    QTest::addRow(".SECTION: min 1 argument")
+        << u".SECTION"_qs
+        << QList<Error>{makeFatal(0, E::expectNArguments.arg(1))};
+    QTest::addRow(".SECTION: max 1 argument")
+        << u".SECTION 0x00, 0x01"_qs
+        << QList<Error>{makeFatal(0, E::expectNArguments.arg(1))};
     // - no symbol
-    QTest::addRow("SECTION: no symbol")
-        << u"ret: SECTION 1"_qs
-        << QList<Error>{makeFatal(0, E::invalidMnemonic)};
+    QTest::addRow(".SECTION: no symbol")
+        << u"ret: .SECTION \"data\""_qs
+        << QList<Error>{makeFatal(0, E::noDefineSymbol.arg(".SECTION"))};
 
     // Word
     // - exactly 1 arg

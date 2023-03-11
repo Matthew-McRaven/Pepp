@@ -8,6 +8,7 @@ namespace pas::parse::pepp {
 using boost::spirit::x3::char_;
 using boost::spirit::x3::char_range;
 using boost::spirit::x3::digit;
+using boost::spirit::x3::eol;
 using boost::spirit::x3::eps;
 using boost::spirit::x3::int_;
 using boost::spirit::x3::lexeme;
@@ -19,6 +20,7 @@ using boost::spirit::x3::rule;
 using boost::spirit::x3::space;
 using boost::spirit::x3::uint_parser;
 using boost::spirit::x3::ulong_long;
+
 // character / string components
 const auto escape_codes = lit("\\b") | lit("\\f") | lit("\\n") | lit("\\r") |
                           lit("\\t") | lit("\\v") | lit("\\\"") | lit("\\'");
@@ -39,7 +41,7 @@ BOOST_SPIRIT_DEFINE(strings);
 
 // Identifier
 const auto ident_char = char_ - (space | "\"" | lit("'") | lit(":") | lit(";") |
-                                 lit(",") | lit(".") | lit("-"));
+                                 lit(",") | lit(".") | lit("-") | eol);
 inline rule<class identifier, Identifier> identifier = "identifier";
 const auto identifier_def = lexeme[raw[(ident_char - digit) >> *ident_char]];
 BOOST_SPIRIT_DEFINE(identifier);
