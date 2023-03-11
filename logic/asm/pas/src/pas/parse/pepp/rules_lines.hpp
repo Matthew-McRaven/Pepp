@@ -51,7 +51,7 @@ inline rule<class nonunary, NonUnaryType, true> nonunary = "nonunary";
 // -thing doesn't work, so fake it by injecting an empty string into struct.
 const auto nonunary_def =
     skip(space)[(symbol | attr(std::string{})) >> identifier_def >> argument >>
-                -("," >> identifier_def) >>
+                (("," >> identifier_def) | (attr(std::string{}))) >>
                 (comment_def[setComment] | attr(std::string{}))];
 BOOST_SPIRIT_DEFINE(nonunary);
 
