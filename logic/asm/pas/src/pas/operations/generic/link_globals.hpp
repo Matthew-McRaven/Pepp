@@ -22,4 +22,7 @@ struct LinkGlobals : public pas::ops::MutatingOp<void> {
   void operator()(ast::Node &node);
   void updateSymbol(QSharedPointer<symbol::Entry> symbol);
 };
+
+void linkGlobals(ast::Node &node, QSharedPointer<pas::driver::Globals> globals,
+                 QSet<QString> exportDirectives);
 } // namespace pas::ops::generic
