@@ -48,8 +48,8 @@ quint16 pas::ops::pepp::size(const ast::Node &node, quint16 at,
     for (auto &child : node.get<ast::generic::Children>().value) {
       auto innerAt = at + (direction == Direction::Forward ? ret : -ret);
       ret += size<ISA>(*child, innerAt, direction);
-      return ret;
     }
+    return ret;
   } else if (pepp::isUnary<ISA>()(node))
     return 1;
   else if (pepp::isNonUnary<ISA>()(node))
