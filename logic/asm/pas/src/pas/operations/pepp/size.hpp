@@ -43,7 +43,7 @@ quint16 pas::ops::pepp::size(const ast::Node &node, quint16 at,
       return item.value()(node, at, direction);
     }
     return 0;
-  } else if (generic::isMacro()(node)) {
+  } else if (generic::isMacro()(node) || generic::isStructural()(node)) {
     quint16 ret = 0;
     for (auto &child : node.get<ast::generic::Children>().value) {
       auto innerAt = at + (direction == Direction::Forward ? ret : -ret);
