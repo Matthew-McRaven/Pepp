@@ -68,12 +68,24 @@ public:
   using map_t = QMap<QString, entry_ptr_t>;
   using range = decltype(std::declval<map_t &>().asKeyValueRange());
   using const_range = detail::asConstKeyValueRange<const map_t>;
+
+  // See: https://stackoverflow.com/a/54127343
+  struct child_const_iterator {
+    using iter_t =
+        typename QList<QSharedPointer<symbol::Table>>::const_iterator;
+    iter_t it;
+    child_const_iterator(iter_t init);
+    child_const_iterator &operator++();
+    const QSharedPointer<const symbol::Table> operator*() const;
+    bool operator!=(const child_const_iterator &rhs) const;
+  };
+  using child_iterator = QList<QSharedPointer<symbol::Table>>::iterator;
   //! Default constructor only used for top level Tables
   Table() = default;
   [[maybe_unused]] explicit Table(QSharedPointer<Table> parent);
   ~Table() = default;
 
-  //	Copying and move OK
+  //  Copying and move OK
   Table(const Table &) = default;
   Table &operator=(const Table &) = default;
   Table(Table &&) noexcept = default;
@@ -89,11 +101,23 @@ public:
    * Please don't abuse the fact that children are non-const.
    */
   QList<QSharedPointer<Table>> children();
+  child_iterator begin();
+  child_iterator end();
+  child_const_iterator cbegin() const;
+  child_const_iterator cend() const;
 
   /*!
-   * \brief Unlike reference, get() will not create an entry in the table if the
-   * symbol fails to be found.
-   * \returns Pointer to found symbol or nullopt if not found.
+   * \brief Create a symbol locally that points to a symbol in an external
+   * table. Handles setting various symbol flags correctly for import.
+   * \returns a define()'ed symbol if name is in other, else nullopt if not
+   * found.
+   */
+  std::optional<entry_ptr_t> import(symbol::Table &other, const QString &name);
+
+  /*!
+   * \brief Unlike reference, get() will not create an entry in the table if
+   * the symbol fails to be found. \returns Pointer to found symbol or
+   * nullopt if not found.
    */
   std::optional<entry_ptr_t> get(const QString &name) const;
 

@@ -29,14 +29,13 @@ void macro::Registry::clear() {
   emit cleared();
 }
 
-const macro::Registered *macro::Registry::registerMacro(types::Type type,
-                                                        Parsed *macro) {
+QSharedPointer<const macro::Registered>
+macro::Registry::registerMacro(types::Type type, QSharedPointer<Parsed> macro) {
   if (contains(macro->name())) {
-    delete macro;
     return nullptr;
   }
   auto registered = QSharedPointer<Registered>::create(type, macro);
   _macros[macro->name()] = registered;
   emit macrosChanged();
-  return registered.data();
+  return registered;
 }

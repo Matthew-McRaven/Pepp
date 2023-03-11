@@ -262,14 +262,17 @@ struct Pep10ISA {
   static bool isUType(Mnemonic mnemonic);
   static bool isRType(Mnemonic mnemonic);
   static bool isAType(Mnemonic mnemonic);
-  static bool isValidATypeAddressingMode(AddressingMode addr);
+  static bool isValidATypeAddressingMode(Mnemonic mnemonic,
+                                         AddressingMode addr);
   static bool isAAAType(Mnemonic mnemonic);
-  static bool isValidAAATypeAddressingMode(AddressingMode addr);
+  static bool isValidAAATypeAddressingMode(Mnemonic mnemonic,
+                                           AddressingMode addr);
   static bool isRAAAType(Mnemonic mnemonic);
-  static bool isValidRAAATypeAddressingMode(AddressingMode addr);
+  static bool isValidRAAATypeAddressingMode(Mnemonic mnemonic,
+                                            AddressingMode addr);
 
   static bool requiresAddressingMode(Mnemonic mnemonic);
-
+  static bool canElideAddressingMode(Mnemonic mnemonic, AddressingMode addr);
   constexpr static std::array<Opcode, 256> opcodeLUT =
       detail::pep10::initOpcodes();
 };

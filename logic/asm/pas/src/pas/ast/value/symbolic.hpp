@@ -8,7 +8,7 @@ namespace pas::ast::value {
 struct Symbolic : public Base {
 public:
   explicit Symbolic();
-  Symbolic(QSharedPointer<symbol::Entry> value, bits::BitOrder endian);
+  Symbolic(QSharedPointer<symbol::Entry> value);
   Symbolic(const Symbolic &other);
   Symbolic(Symbolic &&other) noexcept;
   Symbolic &operator=(Symbolic other);
@@ -16,7 +16,8 @@ public:
     using std::swap;
     swap(first._value, second._value);
   }
-
+  QSharedPointer<symbol::Entry> symbol();
+  QSharedPointer<const symbol::Entry> symbol() const;
   bool isNumeric() const override { return true; }
   bool isFixedSize() const override { return true; }
   bool isWide() const override { return false; }

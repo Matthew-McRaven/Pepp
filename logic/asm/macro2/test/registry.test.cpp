@@ -7,14 +7,16 @@ class MacroRegistry : public QObject {
 private slots:
   void registersMacros() {
     macro::Registry reg;
-    auto parsed = new macro::Parsed("alpha", 0, "body", "none");
+    auto parsed =
+        QSharedPointer<macro::Parsed>::create("alpha", 0, "body", "none");
     auto registered = reg.registerMacro(macro::types::Type::Core, parsed);
     QCOMPARE_NE(registered, nullptr);
     QCOMPARE(registered->contents(), parsed);
   }
   void findByName() {
     macro::Registry reg;
-    auto parsed = new macro::Parsed("alpha", 0, "body", "none");
+    auto parsed =
+        QSharedPointer<macro::Parsed>::create("alpha", 0, "body", "none");
     auto registered = reg.registerMacro(macro::types::Type::Core, parsed);
     QCOMPARE_NE(registered, nullptr);
     QCOMPARE(registered->contents(), parsed);
@@ -22,16 +24,20 @@ private slots:
   }
   void rejectDuplicateNames() {
     macro::Registry reg;
-    auto parsed = new macro::Parsed("alpha", 0, "body", "none");
-    auto parsed2 = new macro::Parsed("alpha", 0, "body", "none");
+    auto parsed =
+        QSharedPointer<macro::Parsed>::create("alpha", 0, "body", "none");
+    auto parsed2 =
+        QSharedPointer<macro::Parsed>::create("alpha", 0, "body", "none");
     auto registered = reg.registerMacro(macro::types::Type::Core, parsed);
     QCOMPARE_NE(registered, nullptr);
     QCOMPARE(reg.registerMacro(macro::types::Type::Core, parsed2), nullptr);
   }
   void delineatesTypes() {
     macro::Registry reg;
-    auto parsed = new macro::Parsed("alpha", 0, "body", "none");
-    auto parsed2 = new macro::Parsed("beta", 0, "body", "none");
+    auto parsed =
+        QSharedPointer<macro::Parsed>::create("alpha", 0, "body", "none");
+    auto parsed2 =
+        QSharedPointer<macro::Parsed>::create("beta", 0, "body", "none");
     QVERIFY(reg.registerMacro(macro::types::Type::Core, parsed) != nullptr);
     QVERIFY(reg.registerMacro(macro::types::Type::System, parsed2) != nullptr);
     QVERIFY(reg.findMacrosByType(macro::types::Type::Core).size() == 1);

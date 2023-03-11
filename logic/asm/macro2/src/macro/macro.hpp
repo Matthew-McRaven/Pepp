@@ -2,8 +2,8 @@
 
 #include <QObject>
 
-#include "macro_globals.hpp"
 #include "./types.hpp"
+#include "macro_globals.hpp"
 
 namespace macro {
 class MACRO_EXPORT Parsed : public QObject {
@@ -13,8 +13,7 @@ class MACRO_EXPORT Parsed : public QObject {
   Q_PROPERTY(quint8 argCount READ argCount CONSTANT);
   Q_PROPERTY(QString architecture READ architecture CONSTANT)
 public:
-  Parsed(QString name, quint8 argCount, QString body, QString architecture,
-         QObject *parent = nullptr);
+  Parsed(QString name, quint8 argCount, QString body, QString architecture);
   QString name() const;
   QString body() const;
   quint8 argCount() const;

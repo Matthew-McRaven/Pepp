@@ -1,6 +1,12 @@
 #pragma once
 #include <QtCore>
 namespace pas::errors::pepp {
+// Macro issues
+inline const QString macroLoop = u"Macro invocation loop detected."_qs;
+inline const QString noSuchMacro = u"No such macro \"%1\""_qs;
+inline const QString macroWrongArity = u"%1 expected %2 args, received %3."_qs;
+inline const QString expectedAMacro =
+    u"Can only apply this operation to a macro node."_qs;
 // Bad instructions and command;
 inline const QString invalidMnemonic = u"Invalid mnemonic."_qs;
 inline const QString invalidDirective = u"Invalid dot command."_qs;
@@ -45,7 +51,7 @@ inline const QString strTooLong2 = u"String operands must have length 2."_qs;
 inline const QString decTooBig1 =
     u"Decimal constant is out of range [-128,255]"_qs;
 inline const QString decTooBig2 =
-    u"Decimal constant is out of range [-32678,65536]"_qs;
+    u"Decimal constant is out of range [-32678,65535]"_qs;
 inline const QString hexTooBig1 =
     u"Hexadecimal constant is out of range [0x00, 0xFF]"_qs;
 inline const QString hexTooBig2 =

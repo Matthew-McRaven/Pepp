@@ -3,6 +3,7 @@
 #include "pas/ast/generic/attr_comment.hpp"
 #include "pas/ast/generic/attr_comment_indent.hpp"
 #include "pas/ast/generic/attr_directive.hpp"
+#include "pas/ast/generic/attr_macro.hpp"
 #include "pas/ast/node.hpp"
 
 bool pas::ops::generic::isBlank::operator()(const ast::Node &node) {
@@ -92,4 +93,16 @@ bool pas::ops::generic::isSet::operator()(const ast::Node &node) {
          directiveAliases.contains(
              node.get<ast::generic::Directive>().value.toUpper()) &&
          node.has<ast::generic::Argument>();
+}
+
+bool pas::ops::generic::isDirective::operator()(const ast::Node &node) {
+  return node.get<ast::generic::Type>().value ==
+             ast::generic::Type::Directive &&
+         node.has<ast::generic::Directive>();
+}
+
+bool pas::ops::generic::isMacro::operator()(const ast::Node &node) {
+  return node.get<ast::generic::Type>().value ==
+             ast::generic::Type::MacroInvoke &&
+         node.has<ast::generic::Macro>();
 }

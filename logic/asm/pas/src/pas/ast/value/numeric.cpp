@@ -2,8 +2,7 @@
 #include "pas/bits/operations.hpp"
 pas::ast::value::Numeric::Numeric() : Base() {}
 
-pas::ast::value::Numeric::Numeric(qint64 value, quint8 size,
-                                  bits::BitOrder endian)
+pas::ast::value::Numeric::Numeric(qint64 value, quint8 size)
     : _size(size), _value(value) {
   if (size > 8)
     throw std::logic_error("Numeric constants must be <=8 bytes");

@@ -26,7 +26,9 @@ QSharedPointer<pas::ops::ConstOp<bool>> isAAAType =
     QSharedPointer<pas::ops::pepp::isAAAType<pas::isa::Pep10ISA>>::create();
 QSharedPointer<pas::ops::ConstOp<bool>> isRAAAType =
     QSharedPointer<pas::ops::pepp::isRAAAType<pas::isa::Pep10ISA>>::create();
-
+// Macro
+QSharedPointer<pas::ops::ConstOp<bool>> isMacro =
+    QSharedPointer<pas::ops::generic::isMacro>::create();
 // Directives
 QSharedPointer<pas::ops::ConstOp<bool>> isAlign =
     QSharedPointer<pas::ops::generic::isAlign>::create();
@@ -84,6 +86,7 @@ private slots:
   void testVisitor() {
     QFETCH(QString, input);
     QFETCH(QSharedPointer<pas::ops::ConstOp<bool>>, fn);
+    QFETCH(bool, symbol);
     auto asStd = input.toStdString();
     using namespace pas::parse::pepp;
     std::vector<pas::parse::pepp::LineType> result;
@@ -104,137 +107,158 @@ private slots:
     QCOMPARE(ret, true);
     QVERIFY2(!node->has<pas::ast::generic::Error>(),
              "Passing tests must not generate errors");
+    QCOMPARE(symbol, node->has<pas::ast::generic::SymbolDeclaration>());
   };
   void testVisitor_data() {
     QTest::addColumn<QString>("input");
     QTest::addColumn<QSharedPointer<pas::ops::ConstOp<bool>>>("fn");
+    QTest::addColumn<bool>("symbol");
 
     // Blank lines
-    QTest::newRow("Blank: no spaces") << "" << isBlank;
-    QTest::newRow("Blank: spaces") << " \t" << isBlank;
+    QTest::newRow("Blank: no spaces") << "" << isBlank << false;
+    QTest::newRow("Blank: spaces") << " \t" << isBlank << false;
 
     // Comment lines
-    QTest::newRow("Comment: no spaces") << ";magic" << isComment;
-    QTest::newRow("Comment: spaces") << " \t;magic" << isComment;
+    QTest::newRow("Comment: no spaces") << ";magic" << isComment << false;
+    QTest::newRow("Comment: spaces") << " \t;magic" << isComment << false;
 
     /*
      * Unary instructions
      */
     // U type
-    QTest::newRow("Unary-U: no spaces") << "ret" << isUType;
-    QTest::newRow("Unary-U: spaces") << " \tret" << isUType;
-    QTest::newRow("Unary-U: symbol, no spaces") << "s:ret" << isUType;
-    QTest::newRow("Unary-U: symbol, spaces") << "s:\t ret" << isUType;
-    QTest::newRow("Unary-U: comment, no spaces") << "ret;hi" << isUType;
-    QTest::newRow("Unary-U: comment, spaces") << "ret \t;hi" << isUType;
+    QTest::newRow("Unary-U: no spaces") << "ret" << isUType << false;
+    QTest::newRow("Unary-U: spaces") << " \tret" << isUType << false;
+    QTest::newRow("Unary-U: symbol, no spaces") << "s:ret" << isUType << true;
+    QTest::newRow("Unary-U: symbol, spaces") << "s:\t ret" << isUType << true;
+    QTest::newRow("Unary-U: comment, no spaces")
+        << "ret;hi" << isUType << false;
+    QTest::newRow("Unary-U: comment, spaces")
+        << "ret \t;hi" << isUType << false;
 
     // R type
-    QTest::newRow("Unary-R: no spaces") << "asla" << isRType;
-    QTest::newRow("Unary-R: spaces") << " \taslx" << isRType;
-    QTest::newRow("Unary-R: symbol, no spaces") << "s:rora" << isRType;
-    QTest::newRow("Unary-R: symbol, spaces") << "s:\t rorx" << isRType;
-    QTest::newRow("Unary-R: comment, no spaces") << "rola;rola" << isRType;
-    QTest::newRow("Unary-R: comment, spaces") << "rolx \t;rolx" << isRType;
+    QTest::newRow("Unary-R: no spaces") << "asla" << isRType << false;
+    QTest::newRow("Unary-R: spaces") << " \taslx" << isRType << false;
+    QTest::newRow("Unary-R: symbol, no spaces") << "s:rora" << isRType << true;
+    QTest::newRow("Unary-R: symbol, spaces") << "s:\t rorx" << isRType << true;
+    QTest::newRow("Unary-R: comment, no spaces")
+        << "rola;rola" << isRType << false;
+    QTest::newRow("Unary-R: comment, spaces")
+        << "rolx \t;rolx" << isRType << false;
 
     /*
      * NonUnary instructions
      */
     // A type
-    QTest::newRow("NonUnary-A: no addr") << "br x" << isAType;
-    QTest::newRow("NonUnary-A: addr") << "br x,x" << isAType;
-    QTest::newRow("NonUnary-A: symbol, no spaces") << "s:br x,x" << isAType;
-    QTest::newRow("NonUnary-A: symbol, spaces") << "s: \tbr x,x" << isAType;
-    QTest::newRow("NonUnary-A: comment, no spaces") << "br x,x;x" << isAType;
-    QTest::newRow("NonUnary-A: comment, spaces") << "br x,x\t;x" << isAType;
+    QTest::newRow("NonUnary-A: no addr") << "br x" << isAType << false;
+    QTest::newRow("NonUnary-A: addr") << "br x,x" << isAType << false;
+    QTest::newRow("NonUnary-A: symbol, no spaces")
+        << "s:br x,x" << isAType << true;
+    QTest::newRow("NonUnary-A: symbol, spaces")
+        << "s: \tbr x,x" << isAType << true;
+    QTest::newRow("NonUnary-A: comment, no spaces")
+        << "br x,x;x" << isAType << false;
+    QTest::newRow("NonUnary-A: comment, spaces")
+        << "br x,x\t;x" << isAType << false;
 
     // AAA type
-    QTest::newRow("NonUnary-AAA: addr") << "ldwt x,i" << isAAAType;
+    QTest::newRow("NonUnary-AAA: addr") << "ldwt x,i" << isAAAType << false;
     QTest::newRow("NonUnary-AAA: symbol, no spaces")
-        << "s:scall x,x" << isAAAType;
+        << "s:scall x,x" << isAAAType << true;
     QTest::newRow("NonUnary-AAA: symbol, spaces")
-        << "s: \tscall n,x" << isAAAType;
+        << "s: \tscall n,x" << isAAAType << true;
     QTest::newRow("NonUnary-AAA: comment, no spaces")
-        << "scall s,x;x" << isAAAType;
+        << "scall s,x;x" << isAAAType << false;
     QTest::newRow("NonUnary-AAA: comment, spaces")
-        << "scall x,sf\t;x" << isAAAType;
+        << "scall x,sf\t;x" << isAAAType << false;
 
     // RAAA type
-    QTest::newRow("NonUnary-RAAA: addr") << "adda x,i" << isRAAAType;
+    QTest::newRow("NonUnary-RAAA: addr") << "adda x,i" << isRAAAType << false;
     QTest::newRow("NonUnary-RAAA: symbol, no spaces")
-        << "s:addx x,x" << isRAAAType;
+        << "s:addx x,x" << isRAAAType << true;
     QTest::newRow("NonUnary-RAAA: symbol, spaces")
-        << "s: \tsuba n,x" << isRAAAType;
+        << "s: \tsuba n,x" << isRAAAType << true;
     QTest::newRow("NonUnary-RAAA: comment, no spaces")
-        << "subx s,x;x" << isRAAAType;
+        << "subx s,x;x" << isRAAAType << false;
     QTest::newRow("NonUnary-RAAA: comment, spaces")
-        << "ora x,sf\t;x" << isRAAAType;
+        << "ora x,sf\t;x" << isRAAAType << false;
 
     /*
      * Directives
      */
     // ALIGN
-    QTest::newRow(".ALIGN: mixed case") << ".AlIgN 8" << isAlign;
-    QTest::newRow(".ALIGN: symbol") << "s:.align 8" << isAlign;
-    QTest::newRow(".ALIGN: comment") << ".ALIGN 8;s" << isAlign;
+    QTest::newRow(".ALIGN: mixed case") << ".AlIgN 8" << isAlign << false;
+    QTest::newRow(".ALIGN: symbol") << "s:.align 8" << isAlign << true;
+    QTest::newRow(".ALIGN: comment") << ".ALIGN 8;s" << isAlign << false;
     // ASCII
-    QTest::newRow(".ASCII: mixed case") << ".AsCiI \"h\"" << isASCII;
-    QTest::newRow(".ASCII: symbol") << "s:.ASCII \"s\"" << isASCII;
-    QTest::newRow(".ASCII: comment") << ".ASCII \"s\";s" << isASCII;
-    // QTest::newRow(".ASCII: character") << ".ascii 'a'" << isASCII;
-    QTest::newRow(".ASCII: short string") << ".ASCII \"hi\"" << isASCII;
-    QTest::newRow(".ASCII: long string") << ".ASCII \"hello\"" << isASCII;
+    QTest::newRow(".ASCII: mixed case") << ".AsCiI \"h\"" << isASCII << false;
+    QTest::newRow(".ASCII: symbol") << "s:.ASCII \"s\"" << isASCII << true;
+    QTest::newRow(".ASCII: comment") << ".ASCII \"s\";s" << isASCII << false;
+    // QTest::newRow(".ASCII: character") << ".ascii 'a'" << isASCII ;
+    QTest::newRow(".ASCII: short string")
+        << ".ASCII \"hi\"" << isASCII << false;
+    QTest::newRow(".ASCII: long string")
+        << ".ASCII \"hello\"" << isASCII << false;
     // BLOCK
-    QTest::newRow(".BLOCK: mixed case") << ".BlOcK 10" << isBlock;
-    QTest::newRow(".BLOCK: symbol") << "s:.BLOCK 10" << isBlock;
-    QTest::newRow(".BLOCK: comment") << ".BLOCK 10;10" << isBlock;
-    QTest::newRow(".BLOCK: hex") << ".BLOCK 0x10" << isBlock;
-    QTest::newRow(".BLOCK: symbolic") << ".BLOCK hi" << isBlock;
+    QTest::newRow(".BLOCK: mixed case") << ".BlOcK 10" << isBlock << false;
+    QTest::newRow(".BLOCK: symbol") << "s:.BLOCK 10" << isBlock << true;
+    QTest::newRow(".BLOCK: comment") << ".BLOCK 10;10" << isBlock << false;
+    QTest::newRow(".BLOCK: hex") << ".BLOCK 0x10" << isBlock << false;
+    QTest::newRow(".BLOCK: symbolic") << ".BLOCK hi" << isBlock << false;
     // TODO: No signed.
     // BURN
-    QTest::newRow(".BYTE: mixed case") << ".BuRn 0x10" << isBurn;
-    QTest::newRow(".BYTE: comment") << ".BURN 0x10;10" << isBurn;
+    QTest::newRow(".BYTE: mixed case") << ".BuRn 0x10" << isBurn << false;
+    QTest::newRow(".BYTE: comment") << ".BURN 0x10;10" << isBurn << false;
     // BYTE
-    QTest::newRow(".BYTE: mixed case") << ".ByTe 10" << isByte;
-    QTest::newRow(".BYTE: symbol") << "s:.BYTE 10" << isByte;
-    QTest::newRow(".BYTE: comment") << ".BYTE 10;10" << isByte;
-    QTest::newRow(".BYTE: hex") << ".BYTE 0x10" << isByte;
-    QTest::newRow(".BYTE: symbolic") << ".BYTE hi" << isByte;
+    QTest::newRow(".BYTE: mixed case") << ".ByTe 10" << isByte << false;
+    QTest::newRow(".BYTE: symbol") << "s:.BYTE 10" << isByte << true;
+    QTest::newRow(".BYTE: comment") << ".BYTE 10;10" << isByte << false;
+    QTest::newRow(".BYTE: hex") << ".BYTE 0x10" << isByte << false;
+    QTest::newRow(".BYTE: symbolic") << ".BYTE hi" << isByte << false;
     // END
-    QTest::newRow(".END: mixed case") << ".EnD" << isEnd;
-    QTest::newRow(".END: comment") << ".END ;hi" << isEnd;
+    QTest::newRow(".END: mixed case") << ".EnD" << isEnd << false;
+    QTest::newRow(".END: comment") << ".END ;hi" << isEnd << false;
     // EQUATE
-    QTest::newRow(".EQUATE: mixed case") << "s:.EQUATE 10" << isEquate;
-    QTest::newRow(".EQUATE: comment") << "s:.EQUATE 10;10" << isEquate;
-    QTest::newRow(".EQUATE: hex") << "s:.EQUATE 0x10" << isEquate;
-    QTest::newRow(".EQUATE: symbolic") << "s:.EQUATE hi" << isEquate;
+    QTest::newRow(".EQUATE: mixed case") << "s:.EQUATE 10" << isEquate << true;
+    QTest::newRow(".EQUATE: comment") << "s:.EQUATE 10;10" << isEquate << true;
+    QTest::newRow(".EQUATE: hex") << "s:.EQUATE 0x10" << isEquate << true;
+    QTest::newRow(".EQUATE: symbolic") << "s:.EQUATE hi" << isEquate << true;
     // EXPORT
-    QTest::newRow(".EXPORT: mixed case") << ".ExPoRt hi" << isExport;
-    QTest::newRow(".EXPORT: comment") << ".EXPORT hi ;hi" << isExport;
+    QTest::newRow(".EXPORT: mixed case") << ".ExPoRt hi" << isExport << false;
+    QTest::newRow(".EXPORT: comment") << ".EXPORT hi ;hi" << isExport << false;
     // IMPORT
-    QTest::newRow(".IMPORT: mixed case") << ".ImPoRt hi" << isImport;
-    QTest::newRow(".IMPORT: comment") << ".IMPORT hi;hi" << isImport;
+    QTest::newRow(".IMPORT: mixed case") << ".ImPoRt hi" << isImport << false;
+    QTest::newRow(".IMPORT: comment") << ".IMPORT hi;hi" << isImport << false;
     // INPUT
-    QTest::newRow(".INPUT: mixed case") << ".InPuT hi" << isInput;
-    QTest::newRow(".INPUT: comment") << ".INPUT hi;hi" << isInput;
+    QTest::newRow(".INPUT: mixed case") << ".InPuT hi" << isInput << false;
+    QTest::newRow(".INPUT: comment") << ".INPUT hi;hi" << isInput << false;
     // OUTPUT
-    QTest::newRow(".OUTPUT: mixed case") << ".OuTpUt hi" << isOutput;
-    QTest::newRow(".OUTPUT: comment") << ".OUTPUT hi;hi" << isOutput;
+    QTest::newRow(".OUTPUT: mixed case") << ".OuTpUt hi" << isOutput << false;
+    QTest::newRow(".OUTPUT: comment") << ".OUTPUT hi;hi" << isOutput << false;
     // SCALL
-    QTest::newRow(".SCALL: mixed case") << ".sCaLl hi" << isSCall;
-    QTest::newRow(".SCALL: comment") << ".SCALL hi;10" << isSCall;
+    QTest::newRow(".SCALL: mixed case") << ".sCaLl hi" << isSCall << false;
+    QTest::newRow(".SCALL: comment") << ".SCALL hi;10" << isSCall << false;
     // SECTION
-    QTest::newRow(".SECTION: mixed case") << ".SeCtIoN \"data\"" << isSection;
-    QTest::newRow(".SECTION: comment") << ".SECTION \"hi\";10" << isSection;
+    QTest::newRow(".SECTION: mixed case")
+        << ".SeCtIoN \"data\"" << isSection << false;
+    QTest::newRow(".SECTION: comment")
+        << ".SECTION \"hi\";10" << isSection << false;
     // TODO: Implement
     // USCALL
-    QTest::newRow(".USCALL: mixed case") << ".UsCaLl hi" << isUSCall;
-    QTest::newRow(".USCALL: comment") << ".USCALL hi;10" << isUSCall;
+    QTest::newRow(".USCALL: mixed case") << ".UsCaLl hi" << isUSCall << false;
+    QTest::newRow(".USCALL: comment") << ".USCALL hi;10" << isUSCall << false;
     // WORD
-    QTest::newRow(".WORD: mixed case") << ".WoRd 10" << isWord;
-    QTest::newRow(".WORD: symbol") << "s:.WORD 10" << isWord;
-    QTest::newRow(".WORD: comment") << ".WORD 10;10" << isWord;
-    QTest::newRow(".WORD: hex") << ".WORD 0x10" << isWord;
-    QTest::newRow(".WORD: symbolic") << ".WORD hi" << isWord;
+    QTest::newRow(".WORD: mixed case") << ".WoRd 10" << isWord << false;
+    QTest::newRow(".WORD: symbol") << "s:.WORD 10" << isWord << true;
+    QTest::newRow(".WORD: comment") << ".WORD 10;10" << isWord << false;
+    QTest::newRow(".WORD: hex") << ".WORD 0x10" << isWord << false;
+    QTest::newRow(".WORD: symbolic") << ".WORD hi" << isWord << false;
+    // Macro
+    QTest::newRow("@macro: mixed case") << "@oP 10" << isMacro << false;
+    QTest::newRow("@macro: symbol") << "s:@op 10" << isMacro << true;
+    QTest::newRow("@macro: comment") << "@op 10;10" << isMacro << false;
+    QTest::newRow("@macro: hex") << "@op 0x10" << isMacro << false;
+    QTest::newRow("@macro: symbolic") << "@op hi" << isMacro << false;
+    QTest::newRow("@macro: multi-arg") << "@op hi, 10" << isMacro << false;
   }
 };
 

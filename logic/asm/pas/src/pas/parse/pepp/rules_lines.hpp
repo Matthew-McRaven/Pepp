@@ -6,6 +6,7 @@
 #include <QtCore>
 #include <boost/spirit/home/x3.hpp>
 namespace pas::parse::pepp {
+using boost::spirit::x3::attr;
 using boost::spirit::x3::char_;
 using boost::spirit::x3::char_range;
 using boost::spirit::x3::digit;
@@ -31,41 +32,49 @@ inline rule<class comment, CommentType> comment = "comment";
 const auto comment_def = skip(space)[lexeme[lit(";") >> *(char_)]];
 BOOST_SPIRIT_DEFINE(comment);
 
-inline const auto symbol = identifier_def >> lit(":");
+inline const auto symbol = identifier_def >> ":";
 inline const auto setComment = [](auto &ctx) { _val(ctx).hasComment = true; };
 // Unary Line
 // 3rd template param = true needed to force auto attribute propogation with
 // semantic actions
 inline rule<class unary, UnaryType, true> unary = "unary";
+// -thing doesn't work, so fake it by injecting an empty string into struct.
 const auto unary_def =
-    skip(space)[-symbol >> identifier_def >> -comment_def[setComment]];
+    skip(space)[(symbol | attr(std::string{})) >> identifier_def >>
+                (comment_def[setComment] | attr(std::string{}))];
 BOOST_SPIRIT_DEFINE(unary);
 
 // NonUnary Line
 // 3rd template param = true needed to force auto attribute propogation with
 // semantic actions.
 inline rule<class nonunary, NonUnaryType, true> nonunary = "nonunary";
+// -thing doesn't work, so fake it by injecting an empty string into struct.
 const auto nonunary_def =
-    skip(space)[-symbol >> identifier_def >> argument >>
-                -("," >> identifier_def) >> -comment_def[setComment]];
+    skip(space)[(symbol | attr(std::string{})) >> identifier_def >> argument >>
+                -("," >> identifier_def) >>
+                (comment_def[setComment] | attr(std::string{}))];
 BOOST_SPIRIT_DEFINE(nonunary);
 
 // Directive Line
 // 3rd template param = true needed to force auto attribute propogation with
 // semantic actions.
 inline rule<class directive, DirectiveType, true> directive = "directive";
+// -thing doesn't work, so fake it by injecting an empty string into struct.
 const auto directive_def =
-    skip(space)[-symbol >> lexeme["." >> identifier_def] >> *(argument % ",") >>
-                -comment_def[setComment]];
+    skip(space)[(symbol | attr(std::string{})) >>
+                lexeme["." >> identifier_def] >> *(argument % ",") >>
+                (comment_def[setComment] | attr(std::string{}))];
 BOOST_SPIRIT_DEFINE(directive);
 
 // Directive Line
 // 3rd template param = true needed to force auto attribute propogation with
 // semantic actions.
 inline rule<class macro, MacroType, true> macro = "macro";
+// -thing doesn't work, so fake it by injecting an empty string into struct.
 const auto macro_def =
-    skip(space)[-symbol >> lexeme["@" >> identifier_def] >> *(argument % ",") >>
-                -comment_def[setComment]];
+    skip(space)[(symbol | attr(std::string{})) >>
+                lexeme["@" >> identifier_def] >> *(argument % ",") >>
+                (comment_def[setComment] | attr(std::string{}))];
 BOOST_SPIRIT_DEFINE(macro);
 
 // Lines

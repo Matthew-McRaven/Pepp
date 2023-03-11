@@ -2,9 +2,8 @@
 
 pas::ast::value::Hexadecimal::Hexadecimal() : Numeric() {}
 
-pas::ast::value::Hexadecimal::Hexadecimal(quint64 value, quint16 size,
-                                             bits::BitOrder endian)
-    : Numeric(value, size, endian) {}
+pas::ast::value::Hexadecimal::Hexadecimal(quint64 value, quint16 size)
+    : Numeric(value, size) {}
 
 pas::ast::value::Hexadecimal::Hexadecimal(const Hexadecimal &other)
     : Numeric(other) {}

@@ -2,8 +2,8 @@
 
 #include <QObject>
 
-#include "macro_globals.hpp"
 #include "./types.hpp"
+#include "macro_globals.hpp"
 
 namespace macro {
 
@@ -15,6 +15,7 @@ class MACRO_EXPORT Registry : public QObject {
 public:
   explicit Registry(QObject *parent = nullptr);
   bool contains(QString name) const;
+  // Returns nullptr if not found.
   const Registered *findMacro(QString name) const;
   // FIXME: Replace with an iterator so as not to force additional memory
   // allocations.
@@ -24,7 +25,8 @@ public:
   // Returns nullptr if the macro already exists in the registry. In this case,
   // registry will delete macro.
   // Returned pointer is non-owning
-  const Registered *registerMacro(types::Type type, Parsed *macro);
+  QSharedPointer<const Registered> registerMacro(types::Type type,
+                                                 QSharedPointer<Parsed> macro);
 
 signals:
   //! Emitted when a macro is successfully registered.
