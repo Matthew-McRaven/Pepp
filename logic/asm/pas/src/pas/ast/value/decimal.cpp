@@ -24,7 +24,7 @@ pas::ast::value::SignedDecimal::clone() const {
 }
 
 QString pas::ast::value::SignedDecimal::string() const {
-  throw std::logic_error("Unimplemented");
+  return QString::number(_value);
 }
 
 pas::ast::value::UnsignedDecimal::UnsignedDecimal() : Numeric() {}
@@ -52,5 +52,5 @@ pas::ast::value::UnsignedDecimal::clone() const {
 }
 
 QString pas::ast::value::UnsignedDecimal::string() const {
-  throw std::logic_error("Unimplemented");
+  return QString::number(_value);
 }
