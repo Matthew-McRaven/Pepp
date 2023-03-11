@@ -29,10 +29,11 @@ private slots:
     // Convert input string to parsed lines.
     std::vector<pas::parse::pepp::LineType> result;
     bool success = true;
+    auto current = asStd.begin();
     QVERIFY_THROWS_NO_EXCEPTION([&]() {
-      success =
-          parse(asStd.begin(), asStd.end(), pas::parse::pepp::line, result);
+      success = parse(current, asStd.end(), pas::parse::pepp::line, result);
     }());
+    QVERIFY2(current == asStd.end(), "Partial parse failure");
     QVERIFY2(success, "Failed to parse");
 
     auto root = pas::parse::pepp::toAST<pas::isa::Pep10ISA>(result);
