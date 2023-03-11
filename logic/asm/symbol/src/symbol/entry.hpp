@@ -71,7 +71,7 @@ public:
   ~Entry() = default;
 
   //! Non-owning reference to containing symbol table.
-  typename symbol::Table const &parent;
+  typename symbol::Table &parent;
 
   //! Unique name as appearing in source code.
   QString name;
