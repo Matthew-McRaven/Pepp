@@ -1,7 +1,7 @@
 #pragma once
 #include <QtCore>
 namespace symbol {
-class AggregateTable;
+class Entry;
 class Table;
 } // namespace symbol
 
@@ -20,8 +20,11 @@ struct ParseResult {
   QStringList errors;
 };
 struct Globals {
-  QSharedPointer<symbol::AggregateTable> table;
+  QMap<QString, QSharedPointer<symbol::Entry>> table;
   QSharedPointer<macro::Registry> macroRegistry;
+  bool contains(QString symbol) const;
+  QSharedPointer<symbol::Entry> get(QString symbol);
+  bool add(QSharedPointer<symbol::Entry> symbol);
 };
 
 // Holds different REPResentations of a target
