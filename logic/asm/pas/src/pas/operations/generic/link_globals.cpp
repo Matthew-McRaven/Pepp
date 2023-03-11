@@ -72,3 +72,12 @@ void pas::ops::generic::LinkGlobals::updateSymbol(
   symbol->value = QSharedPointer<symbol::value::ExternalPointer>::create(
       global->parent.sharedFromThis(), global);
 }
+
+void pas::ops::generic::linkGlobals(ast::Node &node,
+                                    QSharedPointer<driver::Globals> globals,
+                                    QSet<QString> exportDirectives) {
+  auto visit = LinkGlobals();
+  visit.globals = globals;
+  visit.exportDirectives = exportDirectives;
+  ast::apply_recurse(node, visit);
+}
