@@ -36,7 +36,8 @@ QString pas::ops::generic::detail::formatComment(const ast::Node &node) {
 QString pas::ops::generic::detail::format(QString symbol, QString invoke,
                                           QStringList args, QString comment) {
   auto joinedArgs = args.join(", ");
-  return u"%1%2%3%4"_qs.arg(symbol, 8, ' ')
+  return u"%1%2%3%4"_qs
+      .arg(symbol.isEmpty() ? u""_qs : u"%1:"_qs.arg(symbol), 8, ' ')
       .arg(invoke, 7, ' ')
       .arg(joinedArgs, 8, ' ')
       .arg(comment.isEmpty() ? "" : ";" + comment);
