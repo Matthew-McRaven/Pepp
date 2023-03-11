@@ -260,15 +260,16 @@ private slots:
 
     // Section
     // - exactly 1 arg (an identifier)
-    QTest::addRow("SECTION: min 1 argument")
-        << u"SECTION"_qs << QList<Error>{makeFatal(0, E::invalidMnemonic)};
-    QTest::addRow("SECTION: max 1 argument")
-        << u"SECTION 0x00, 0x01"_qs
-        << QList<Error>{makeFatal(0, E::invalidMnemonic)};
+    QTest::addRow(".SECTION: min 1 argument")
+        << u".SECTION"_qs
+        << QList<Error>{makeFatal(0, E::expectNArguments.arg(1))};
+    QTest::addRow(".SECTION: max 1 argument")
+        << u".SECTION 0x00, 0x01"_qs
+        << QList<Error>{makeFatal(0, E::expectNArguments.arg(1))};
     // - no symbol
-    QTest::addRow("SECTION: no symbol")
-        << u"ret: SECTION 1"_qs
-        << QList<Error>{makeFatal(0, E::invalidMnemonic)};
+    QTest::addRow(".SECTION: no symbol")
+        << u"ret: .SECTION \"data\""_qs
+        << QList<Error>{makeFatal(0, E::noDefineSymbol.arg(".SECTION"))};
 
     // Word
     // - exactly 1 arg
