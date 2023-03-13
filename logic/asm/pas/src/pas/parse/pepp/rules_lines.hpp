@@ -29,7 +29,7 @@ BOOST_SPIRIT_DEFINE(blank);
 
 // Comment Line
 inline rule<class comment, CommentType> comment = "comment";
-const auto comment_def = skip(space)[lexeme[lit(";") >> *(char_)]];
+const auto comment_def = skip(space - eol)[lexeme[lit(";") >> *(char_)]];
 BOOST_SPIRIT_DEFINE(comment);
 
 inline const auto symbol = identifier_def >> ":";
@@ -40,8 +40,8 @@ inline const auto setComment = [](auto &ctx) { _val(ctx).hasComment = true; };
 inline rule<class unary, UnaryType, true> unary = "unary";
 // -thing doesn't work, so fake it by injecting an empty string into struct.
 const auto unary_def =
-    skip(space)[(symbol | attr(std::string{})) >> identifier_def >>
-                (comment_def[setComment] | attr(std::string{}))];
+    skip(space - eol)[(symbol | attr(std::string{})) >> identifier_def >>
+                      (comment_def[setComment] | attr(std::string{}))];
 BOOST_SPIRIT_DEFINE(unary);
 
 // NonUnary Line
@@ -49,10 +49,10 @@ BOOST_SPIRIT_DEFINE(unary);
 // semantic actions.
 inline rule<class nonunary, NonUnaryType, true> nonunary = "nonunary";
 // -thing doesn't work, so fake it by injecting an empty string into struct.
-const auto nonunary_def =
-    skip(space)[(symbol | attr(std::string{})) >> identifier_def >> argument >>
-                (("," >> identifier_def) | (attr(std::string{}))) >>
-                (comment_def[setComment] | attr(std::string{}))];
+const auto nonunary_def = skip(
+    space - eol)[(symbol | attr(std::string{})) >> identifier_def >> argument >>
+                 (("," >> identifier_def) | (attr(std::string{}))) >>
+                 (comment_def[setComment] | attr(std::string{}))];
 BOOST_SPIRIT_DEFINE(nonunary);
 
 // Directive Line
@@ -60,10 +60,11 @@ BOOST_SPIRIT_DEFINE(nonunary);
 // semantic actions.
 inline rule<class directive, DirectiveType, true> directive = "directive";
 // -thing doesn't work, so fake it by injecting an empty string into struct.
-const auto directive_def = skip(
-    space)[(symbol | attr(std::string{})) >> lexeme["." >> identifier_def] >>
-           ((argument % ",") | attr(std::vector<Value>{})) >>
-           (comment_def[setComment] | attr(std::string{}))];
+const auto directive_def =
+    skip(space -
+         eol)[(symbol | attr(std::string{})) >> lexeme["." >> identifier_def] >>
+              ((argument % ",") | attr(std::vector<Value>{})) >>
+              (comment_def[setComment] | attr(std::string{}))];
 BOOST_SPIRIT_DEFINE(directive);
 
 // Directive Line
@@ -71,10 +72,11 @@ BOOST_SPIRIT_DEFINE(directive);
 // semantic actions.
 inline rule<class macro, MacroType, true> macro = "macro";
 // -thing doesn't work, so fake it by injecting an empty string into struct.
-const auto macro_def = skip(
-    space)[(symbol | attr(std::string{})) >> lexeme["@" >> identifier_def] >>
-           ((argument % ",") | attr(std::vector<Value>{})) >>
-           (comment_def[setComment] | attr(std::string{}))];
+const auto macro_def =
+    skip(space -
+         eol)[(symbol | attr(std::string{})) >> lexeme["@" >> identifier_def] >>
+              ((argument % ",") | attr(std::vector<Value>{})) >>
+              (comment_def[setComment] | attr(std::string{}))];
 BOOST_SPIRIT_DEFINE(macro);
 
 // Lines

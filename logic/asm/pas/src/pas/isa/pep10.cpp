@@ -161,7 +161,7 @@ bool pas::isa::Pep10ISA::isValidRAAATypeAddressingMode(Mnemonic mnemonic,
 }
 
 bool pas::isa::Pep10ISA::requiresAddressingMode(Mnemonic mnemonic) {
-  return !isAType(mnemonic);
+  return isAAAType(mnemonic) | isRAAAType(mnemonic);
 }
 
 bool pas::isa::Pep10ISA::canElideAddressingMode(Mnemonic mnemonic,

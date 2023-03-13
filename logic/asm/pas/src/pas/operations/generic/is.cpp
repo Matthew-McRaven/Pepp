@@ -106,3 +106,7 @@ bool pas::ops::generic::isMacro::operator()(const ast::Node &node) {
              ast::generic::Type::MacroInvoke &&
          node.has<ast::generic::Macro>();
 }
+
+bool pas::ops::generic::isStructural::operator()(const ast::Node &node) {
+  return node.get<ast::generic::Type>().value == ast::generic::Type::Structural;
+}

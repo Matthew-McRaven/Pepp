@@ -5,6 +5,11 @@ namespace pas::ast {
 class Node;
 }
 namespace pas::ops::generic {
+// Nodes that exist to contain other nodes
+struct isStructural : public pas::ops::ConstOp<bool> {
+  bool operator()(const ast::Node &node);
+};
+
 struct isBlank : public pas::ops::ConstOp<bool> {
   bool operator()(const ast::Node &node);
 };
