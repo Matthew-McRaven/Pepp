@@ -2,6 +2,7 @@
 #include "./common.hpp"
 #include "pas/ast/node.hpp"
 #include "pas/driver/common.hpp"
+#include "pas/operations/generic/errors.hpp"
 #include "pas/operations/generic/include_macros.hpp"
 #include "pas/parse/pepp/node_from_parse_tree.hpp"
 #include "pas/parse/pepp/rules_lines.hpp"
@@ -52,7 +53,11 @@ createParser(bool hideEnd) {
       return ret;
     }
     ret.root = pas::parse::pepp::toAST<ISA>(result, parent, hideEnd);
-    ret.hadError = false;
+    auto errors = ops::generic::CollectErrors();
+    ast::apply_recurse(*ret.root, errors);
+    ret.hadError = errors.errors.size() != 0;
+    for (auto &error : errors.errors)
+      ret.errors.push_back(error.second.message);
     return ret;
   };
 }
