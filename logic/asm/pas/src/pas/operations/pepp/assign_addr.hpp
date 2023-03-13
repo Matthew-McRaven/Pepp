@@ -38,9 +38,10 @@ void pas::ops::pepp::detail::assignAddressesImpl(ast::Node &node, quint16 &base,
     symBase = base;
   }
   if (node.has<ast::generic::SymbolDeclaration>()) {
+    auto isCode = node.has<ast::pepp::Instruction<ISA>>();
     auto symbol = node.get<ast::generic::SymbolDeclaration>().value;
-    symbol->value =
-        QSharedPointer<symbol::value::Location>::create(2, symBase, 0);
+    symbol->value = QSharedPointer<symbol::value::Location>::create(
+        2, symBase, 0, isCode ? symbol::Type::kCode : symbol::Type::kObject);
   }
 }
 
