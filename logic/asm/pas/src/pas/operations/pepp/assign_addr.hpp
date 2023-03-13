@@ -27,14 +27,21 @@ void pas::ops::pepp::detail::assignAddressesImpl(ast::Node &node, quint16 &base,
                                                  Direction direction) {
   auto size = pepp::size<ISA>(node, base, direction);
   auto symBase = base;
+  quint16 newBase = base;
   if (direction == Direction::Forward) {
-    // size is 1-index, while base is 0-indexed. Offset by 1.
-    ast::setAddress(node, base, base + size - 1);
-    base += size;
+    // Must explicitly handle address wrap-around, because math inside set
+    // address widens implicitly.
+    newBase = (base + size) % 0xFFFF;
+    // size is 1-index, while base is 0-indexed. Offset by 1. Unless size is 0,
+    // in which case no adjustment is necessary.
+    ast::setAddress(node, base, (newBase - (size > 0 ? 1 : 0)) % 0xFFFF);
+    base = newBase;
   } else {
-    // size is 1-index, while base is 0-indexed. Offset by 1.
-    ast::setAddress(node, base - size + 1, base);
-    base -= size;
+    newBase = (base - size) % 0xFFFF;
+    // size is 1-index, while base is 0-indexed. Offset by 1. Unless size is 0,
+    // in which case no adjustment is necessary.
+    ast::setAddress(node, (newBase + (size > 0 ? 1 : 0)) % 0xFFFF, base);
+    base = newBase;
     symBase = base;
   }
   if (node.has<ast::generic::SymbolDeclaration>()) {
