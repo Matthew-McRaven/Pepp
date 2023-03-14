@@ -1,4 +1,7 @@
 #pragma once
+#include "pas/ast/value/symbolic.hpp"
+#include "symbol/table.hpp"
+#include "symbol/visit.hpp"
 #pragma once
 #include "pas/ast/op.hpp"
 #include "pas/operations/pepp/size.hpp"
@@ -44,7 +47,33 @@ void pas::ops::pepp::detail::assignAddressesImpl(ast::Node &node, quint16 &base,
     base = newBase;
     symBase = base;
   }
-  if (node.has<ast::generic::SymbolDeclaration>()) {
+
+  auto isEquate = pas::ops::generic::isSet();
+  isEquate.directiveAliases = {"EQUATE"};
+  // EQUATEs don't use addresses, and must be handled differently
+  if (node.has<ast::generic::Directive>() && isEquate(node)) {
+    auto symbol = node.get<ast::generic::SymbolDeclaration>().value;
+    auto argument = node.get<ast::generic::Argument>().value;
+    // Check if the argument is a symbol, if so, determine if argument belongs
+    // to a different tree (i.e., is global).
+    if (auto symbolic = dynamic_cast<ast::value::Symbolic *>(&*argument);
+        symbolic != nullptr) {
+      auto other = symbolic->symbol();
+      if (symbol::rootTable(other->parent.sharedFromThis()) ==
+          symbol::rootTable(symbol->parent.sharedFromThis())) {
+        symbol->value =
+            QSharedPointer<symbol::value::InternalPointer>::create(other);
+      } else {
+        symbol->value = QSharedPointer<symbol::value::ExternalPointer>::create(
+            other->parent.sharedFromThis(), other);
+      }
+    } else {
+      auto bits = symbol::value::MaskedBits{
+          .byteCount = 2, .bitPattern = 0, .mask = 0xFFFF};
+      argument->value(reinterpret_cast<quint8 *>(&bits.bitPattern), 8);
+      symbol->value = QSharedPointer<symbol::value::Constant>::create(bits);
+    }
+  } else if (node.has<ast::generic::SymbolDeclaration>()) {
     auto isCode = node.has<ast::pepp::Instruction<ISA>>();
     auto symbol = node.get<ast::generic::SymbolDeclaration>().value;
     symbol->value = QSharedPointer<symbol::value::Location>::create(
