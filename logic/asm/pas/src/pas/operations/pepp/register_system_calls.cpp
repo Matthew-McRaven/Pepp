@@ -5,6 +5,8 @@
 #include "pas/ast/value/base.hpp"
 #include "pas/operations/generic/is.hpp"
 
+#include <pas/ast/value/symbolic.hpp>
+
 // TODO: Determine if 1-indexed of 0-indexed.
 const QString unarySCallMacro = "LDWT %1\nUSCALL\n";
 const QString nonunarySCallMacro = "LDWT %1\nSCALL %%1,%%2\n";
@@ -20,8 +22,9 @@ bool pas::ops::pepp::RegisterSystemCalls::operator()(ast::Node &node) {
     addedError = true;
     ast::addError(node, {.severity = Message::Severity::Fatal,
                          .message = u"%1 missing argument."_qs.arg(macroKind)});
-  } else if (auto argument = node.get<ast::generic::Argument>().value;
-             !argument->isIdentifier()) {
+  } else if (auto argument = dynamic_cast<ast::value::Symbolic *>(
+                 &*node.get<ast::generic::Argument>().value);
+             argument == nullptr) {
     addedError = true;
     ast::addError(
         node,
