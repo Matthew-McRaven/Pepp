@@ -63,6 +63,14 @@ QSharedPointer<pas::ast::Node> pas::ast::addError(QSharedPointer<Node> node,
   return node;
 }
 
+void pas::ast::addError(Node &node, generic::Message msg) {
+  QList<generic::Message> messages;
+  if (node.has<generic::Error>())
+    messages = node.get<generic::Error>().value;
+  messages.push_back(msg);
+  node.set(generic::Error{.value = messages});
+}
+
 void pas::ast::setAddress(Node &node, quint64 start, quint64 end) {
   node.set(generic::Address{.value = {.start = start, .end = end}});
 }

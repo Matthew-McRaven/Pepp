@@ -78,6 +78,7 @@ void setAddress(Node &node, quint64 start, quint64 end);
 
 QSharedPointer<Node> addError(QSharedPointer<Node> node,
                               pas::ast::generic::Message msg);
+void addError(Node &node, pas::ast::generic::Message msg);
 // Shorthand to reduce template verbosity in calling contexts
 template <typename T> bool matches(const Node &node, const T &value) {
   return node.has<T>() && node.get<T>() == value;
