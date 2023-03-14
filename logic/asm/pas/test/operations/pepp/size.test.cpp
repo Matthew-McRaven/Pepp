@@ -154,7 +154,7 @@ private slots:
 
   void byteSize() {
     auto ret = pas::driver::pepp::createParser<Pep10ISA>(false)(
-        u".BYTE 0\n .BYTE 1\n.BYTE 0xFFFF"_qs, nullptr);
+        u".BYTE 0\n .BYTE 1\n.BYTE 0xFF"_qs, nullptr);
     QVERIFY(!ret.hadError);
     auto children = ret.root->get<pas::ast::generic::Children>().value;
     QCOMPARE(children.size(), 3);
