@@ -8,8 +8,10 @@
 #include <pas/ast/value/symbolic.hpp>
 
 // TODO: Determine if 1-indexed of 0-indexed.
-const QString unarySCallMacro = "LDWT %1\nUSCALL\n";
-const QString nonunarySCallMacro = "LDWT %1\nSCALL %%1,%%2\n";
+const QString unarySCallMacro = "LDWT %1, i\nUSCALL\n";
+// Must manually add %1, %2 later. Macro syntax conflicts with QString::arg, and
+// can't escape %#.
+const QString nonunarySCallMacro = "LDWT %1, i\nSCALL ";
 using pas::ast::generic::Message;
 
 bool pas::ops::pepp::RegisterSystemCalls::operator()(ast::Node &node) {
