@@ -136,7 +136,26 @@ private slots:
     QTest::addRow("ALIGN 4 @ 0") << qsizetype(4) << qsizetype(0);
     QTest::addRow("ALIGN 8 @ 0") << qsizetype(8) << qsizetype(0);
   }
-
+  void equate() {
+    QString body = ".block 1\ns:.EQUATE 10\nn:.EQUATE s";
+    auto ret = pas::driver::pepp::createParser<Pep10ISA>(false)(body, nullptr);
+    QVERIFY(!ret.hadError);
+    auto children = ret.root->get<pas::ast::generic::Children>().value;
+    QCOMPARE(children.size(), 3);
+    pas::ops::pepp::assignAddresses<Pep10ISA>(*ret.root);
+    childRange(ret.root, 0, 0, 0);
+    childRange(ret.root, 1, 1, 1);
+    childRange(ret.root, 2, 1, 1);
+    QVERIFY(children[1]->has<pas::ast::generic::SymbolDeclaration>());
+    QCOMPARE(children[1]
+                 ->get<pas::ast::generic::SymbolDeclaration>()
+                 .value->value->value()(),
+             10);
+    QCOMPARE(children[2]
+                 ->get<pas::ast::generic::SymbolDeclaration>()
+                 .value->value->value()(),
+             10);
+  }
   // Don't test macros, they shouldn't survive as nodes into the address
   // assignment stage.
   // Empty lines do not matter.
