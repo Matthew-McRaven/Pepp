@@ -29,11 +29,11 @@ bool pas::ops::pepp::RegisterSystemCalls::operator()(ast::Node &node) {
          .message = u"%1 expected a identifier argument."_qs.arg(macroKind)});
   } else if (macroKind.toUpper() == "SCALL") {
     auto name = argument->string();
-    auto parsed = QSharedPointer<macro::Parsed>::create(
-        name, 2, nonunarySCallMacro.arg(name), "pep/10");
+    parsed = QSharedPointer<macro::Parsed>::create(
+        name, 2, nonunarySCallMacro.arg(name) + "%1, %2\n", "pep/10");
   } else if (macroKind.toUpper() == "USCALL") {
     auto name = argument->string();
-    auto parsed = QSharedPointer<macro::Parsed>::create(
+    parsed = QSharedPointer<macro::Parsed>::create(
         name, 0, unarySCallMacro.arg(name), "pep/10");
   } else {
     addedError = true;
@@ -42,7 +42,7 @@ bool pas::ops::pepp::RegisterSystemCalls::operator()(ast::Node &node) {
   }
 
   // Attempt to register macro, and propogate error if it already exists.
-  if (parsed &&
+  if (!parsed.isNull() &&
       registry->registerMacro(macro::types::System, parsed) == nullptr) {
     addedError = true;
     ast::addError(node, {.severity = Message::Severity::Fatal,
