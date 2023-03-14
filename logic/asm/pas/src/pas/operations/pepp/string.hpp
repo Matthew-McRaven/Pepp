@@ -13,6 +13,7 @@
 
 namespace pas::ops::pepp {
 
+template <typename ISA> QString format(const ast::Node &node);
 template <typename ISA> struct FormatSource : public pas::ops::ConstOp<void> {
   QStringList ret;
   void operator()(const ast::Node &node) override;
@@ -25,21 +26,27 @@ template <typename ISA> QString formatNonUnary(const ast::Node &node);
 } // namespace detail
 } // namespace pas::ops::pepp
 
-template <typename ISA>
-void pas::ops::pepp::FormatSource<ISA>::operator()(const ast::Node &node) {
+template <typename ISA> QString pas::ops::pepp::format(const ast::Node &node) {
   using namespace pas::ops::generic;
   if (generic::isDirective()(node))
-    ret.push_back(generic::detail::formatDirective(node));
+    return generic::detail::formatDirective(node);
   else if (generic::isMacro()(node))
-    ret.push_back(generic::detail::formatMacro(node));
+    return generic::detail::formatMacro(node);
   else if (generic::isComment()(node))
-    ret.push_back(generic::detail::formatComment(node));
+    return generic::detail::formatComment(node);
   else if (generic::isBlank()(node))
-    ret.push_back(generic::detail::formatBlank(node));
+    return generic::detail::formatBlank(node);
   else if (pepp::isUnary<ISA>()(node))
-    ret.push_back(pepp::detail::formatUnary<ISA>(node));
+    return pepp::detail::formatUnary<ISA>(node);
   else if (pepp::isNonUnary<ISA>()(node))
-    ret.push_back(pepp::detail::formatNonUnary<ISA>(node));
+    return pepp::detail::formatNonUnary<ISA>(node);
+  else
+    return "";
+}
+template <typename ISA>
+void pas::ops::pepp::FormatSource<ISA>::operator()(const ast::Node &node) {
+  ret.push_back(format<ISA>(node));
+}
 }
 
 template <typename ISA>
