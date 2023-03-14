@@ -70,7 +70,8 @@ void pas::ops::pepp::detail::assignAddressesImpl(ast::Node &node, quint16 &base,
     } else {
       auto bits = symbol::value::MaskedBits{
           .byteCount = 2, .bitPattern = 0, .mask = 0xFFFF};
-      argument->value(reinterpret_cast<quint8 *>(&bits.bitPattern), 8);
+      argument->value(reinterpret_cast<quint8 *>(&bits.bitPattern), 8,
+                      bits::hostOrder());
       symbol->value = QSharedPointer<symbol::value::Constant>::create(bits);
     }
   } else if (node.has<ast::generic::SymbolDeclaration>()) {
