@@ -32,7 +32,6 @@ bool pas::ops::pepp::RegisterSystemCalls::operator()(ast::Node &node) {
     auto parsed = QSharedPointer<macro::Parsed>::create(
         name, 2, nonunarySCallMacro.arg(name), "pep/10");
   } else if (macroKind.toUpper() == "USCALL") {
-
     auto name = argument->string();
     auto parsed = QSharedPointer<macro::Parsed>::create(
         name, 0, unarySCallMacro.arg(name), "pep/10");
