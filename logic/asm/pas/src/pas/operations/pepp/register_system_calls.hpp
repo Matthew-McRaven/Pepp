@@ -10,6 +10,8 @@ struct RegisterSystemCalls : public pas::ops::MutatingOp<bool> {
   bool addedError = false;
   bool operator()(pas::ast::Node &node) override;
 };
+
+// Returns true if operation succeded.
 bool registerSystemCalls(pas::ast::Node &node,
                          QSharedPointer<macro::Registry> registry);
 } // namespace pas::ops::pepp

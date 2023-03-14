@@ -57,5 +57,5 @@ bool pas::ops::pepp::registerSystemCalls(
   auto visit = RegisterSystemCalls();
   visit.registry = registry;
   ast::apply_recurse_if(node, is, visit);
-  return visit.addedError;
+  return !visit.addedError;
 }
