@@ -1,25 +1,37 @@
 #pragma once
 #include "./string.hpp"
+#include "pas/ast/generic/attr_address.hpp"
+#include "pas/ast/generic/attr_comment.hpp"
+#include "pas/ast/generic/attr_hide.hpp"
+#include "pas/ast/generic/attr_symbol.hpp"
 #include "pas/ast/node.hpp"
 #include "pas/ast/op.hpp"
 #include "pas/ast/value/base.hpp"
 #include "pas/operations/generic/is.hpp"
 #include "pas/operations/generic/string.hpp"
 #include "pas/operations/pepp/is.hpp"
+#include "pas/operations/pepp/size.hpp"
 #include "symbol/entry.hpp"
 #include <QtCore>
-#include <pas/ast/generic/attr_comment.hpp>
-#include <pas/ast/generic/attr_symbol.hpp>
 
 namespace pas::ops::pepp {
 
 template <typename ISA> QString format(const ast::Node &node);
+template <typename ISA>
+QStringList list(const ast::Node &node, quint16 bytesPerLine);
 template <typename ISA> struct FormatSource : public pas::ops::ConstOp<void> {
   QStringList ret;
   void operator()(const ast::Node &node) override;
 };
+template <typename ISA> struct FormatListing : public pas::ops::ConstOp<void> {
+  QStringList ret;
+  quint8 bytesPerLine = 3;
+  void operator()(const ast::Node &node) override;
+};
 
 template <typename ISA> QStringList formatSource(const ast::Node &node);
+template <typename ISA>
+QStringList formatListing(const ast::Node &node, quint16 bytesPerLine = 3);
 namespace detail {
 template <typename ISA> QString formatUnary(const ast::Node &node);
 template <typename ISA> QString formatNonUnary(const ast::Node &node);
@@ -43,16 +55,93 @@ template <typename ISA> QString pas::ops::pepp::format(const ast::Node &node) {
   else
     return "";
 }
+
+template <typename ISA>
+QStringList pas::ops::pepp::list(const pas::ast::Node &node,
+                                 quint16 bytesPerLine) {
+  auto type = node.get<ast::generic::Type>().value;
+  if (type == ast::generic::Type::Structural)
+    return {};
+  QStringList ret;
+  QList<quint8> bytes;
+
+  // If the node wants to hide object code, leave the bytes empty.
+  // If the node has no address, then it can emit no bytes
+  if ((!node.has<ast::generic::Hide>() ||
+       node.get<ast::generic::Hide>().value.object ==
+           ast::generic::Hide::In::Object::Emit) &&
+      node.has<ast::generic::Address>()) {
+    auto address = node.get<ast::generic::Address>().value;
+    auto length = quint16(address.end - address.start);
+    bytes.resize(length);
+    toBytes<ISA>(node, bytes.data(), length);
+  }
+
+  QString address;
+  if (node.has<ast::generic::Address>())
+    address = u"0x%1"_qs.arg(
+        QString::number(node.get<ast::generic::Address>().value.start), 4, '0');
+
+  quint16 bytesEmitted = 0;
+  QString prettyBytes = "";
+
+  // Accumulate the first row's worth of object code bytes.
+  while (bytesEmitted < bytesPerLine && bytesEmitted < bytes.size())
+    prettyBytes +=
+        u"%1"_qs.arg(QString::number(bytes[bytesEmitted++], 16), 2, QChar('0'));
+  // TODO: Fix sizes, padding.
+  ret.push_back(
+      u"%1 %2 %3"_qs.arg(address).arg(prettyBytes).arg(format<ISA>(node)));
+
+  // Emit remaining object code bytes on their own lines.
+  while (bytesEmitted < bytesPerLine && bytesEmitted < bytes.size()) {
+    prettyBytes +=
+        u"%1"_qs.arg(QString::number(bytes[bytesEmitted++], 16), 2, QChar('0'));
+    if (bytesEmitted % bytesPerLine == 0) {
+      // TODO: fix sizes.
+      ret.push_front(u"%1 %2"_qs.arg("").arg(prettyBytes));
+      prettyBytes = "";
+    }
+  }
+
+  // Handle any bytes in excess of % bytesPerLine.
+  if (prettyBytes.size() > 0)
+    // TODO: fix sizes.
+    ret.push_front(u"%1 %2"_qs.arg("").arg(prettyBytes));
+  return ret;
+}
+
 template <typename ISA>
 void pas::ops::pepp::FormatSource<ISA>::operator()(const ast::Node &node) {
   ret.push_back(format<ISA>(node));
 }
+
+template <typename ISA>
+void pas::ops::pepp::FormatListing<ISA>::operator()(const ast::Node &node) {
+  for (auto &line : list<ISA>(node))
+    ret.push_back(line);
 }
 
 template <typename ISA>
 QStringList pas::ops::pepp::formatSource(const ast::Node &node) {
   auto visit = FormatSource<ISA>();
-  ast::apply_recurse(node, visit);
+  // Do not visit structural nodes, because this will inject unneeded newlines.
+  auto is = generic::Negate<generic::isStructural>();
+  ast::apply_recurse_if(node, is, visit);
+  return visit.ret;
+}
+
+template <typename ISA>
+QStringList pas::ops::pepp::formatListing(const ast::Node &node,
+                                          quint16 bytesPerLine) {
+  auto visit = FormatListing<ISA>();
+  visit.bytesPerLine = bytesPerLine;
+  // Do not visit structural nodes, because this will inject unneeded newlines.
+  // Do not visit macro nodes, otherwise macro invocation AND macro body will be
+  // printed. At this point, macros should not exist anyways.
+  auto is =
+      generic::Negate<generic::Or<generic::isStructural, generic::isMacro>>();
+  ast::apply_recurse_if(node, is, visit);
   return visit.ret;
 }
 
