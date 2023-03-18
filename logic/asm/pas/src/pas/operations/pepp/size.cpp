@@ -1,4 +1,5 @@
 #include "./size.hpp"
+#include "pas/operations/pepp/assign_addr.hpp"
 
 quint16 pas::ops::pepp::detail::sizeAlign(const ast::Node node, quint16 at,
                                           Direction direction) {
@@ -33,4 +34,17 @@ quint16 pas::ops::pepp::detail::sizeByte(const ast::Node, quint16, Direction) {
 
 quint16 pas::ops::pepp::detail::sizeWord(const ast::Node, quint16, Direction) {
   return 2;
+}
+
+pas::ops::pepp::Direction pas::ops::pepp::direction(const ast::Node &node) {
+
+  auto children = ast::children(node);
+  return detail::hasBurn(children) ? Direction::Backward : Direction::Forward;
+}
+
+quint16 pas::ops::pepp::baseAddress(const ast::Node &node) {
+  if (direction(node) == pas::ops::pepp::Direction::Forward)
+    return 0;
+  auto children = ast::children(node);
+  return detail::getBurnArg(children);
 }

@@ -9,7 +9,7 @@
 
 using pas::isa::Pep10ISA;
 using pas::ops::pepp::Direction;
-using pas::ops::pepp::size;
+using pas::ops::pepp::explicitSize;
 class PasOpsPepp_Size : public QObject {
   Q_OBJECT
 private slots:
@@ -20,8 +20,8 @@ private slots:
     auto children = ret.root->get<pas::ast::generic::Children>().value;
     QCOMPARE(children.size(), 2);
     for (auto &base : {0, 200, 0xfffe}) {
-      QCOMPARE(size<Pep10ISA>(*ret.root, base, Direction::Forward), 2);
-      QCOMPARE(size<Pep10ISA>(*ret.root, base, Direction::Backward), 2);
+      QCOMPARE(explicitSize<Pep10ISA>(*ret.root, base, Direction::Forward), 2);
+      QCOMPARE(explicitSize<Pep10ISA>(*ret.root, base, Direction::Backward), 2);
     }
   }
   void nonUnary() {
@@ -31,8 +31,8 @@ private slots:
     auto children = ret.root->get<pas::ast::generic::Children>().value;
     QCOMPARE(children.size(), 2);
     for (auto &base : {0, 200, 0xfffe}) {
-      QCOMPARE(size<Pep10ISA>(*ret.root, base, Direction::Forward), 6);
-      QCOMPARE(size<Pep10ISA>(*ret.root, base, Direction::Backward), 6);
+      QCOMPARE(explicitSize<Pep10ISA>(*ret.root, base, Direction::Forward), 6);
+      QCOMPARE(explicitSize<Pep10ISA>(*ret.root, base, Direction::Backward), 6);
     }
   }
   void size0Directives() {
@@ -43,8 +43,8 @@ private slots:
     auto children = ret.root->get<pas::ast::generic::Children>().value;
     QCOMPARE(children.size(), 1);
     for (auto &base : {0, 200, 0xfffe}) {
-      QCOMPARE(size<Pep10ISA>(*ret.root, base, Direction::Forward), 0);
-      QCOMPARE(size<Pep10ISA>(*ret.root, base, Direction::Backward), 0);
+      QCOMPARE(explicitSize<Pep10ISA>(*ret.root, base, Direction::Forward), 0);
+      QCOMPARE(explicitSize<Pep10ISA>(*ret.root, base, Direction::Backward), 0);
     }
   }
   void size0Directives_data() {
@@ -63,8 +63,10 @@ private slots:
     QCOMPARE(children.size(), 1);
     auto len = pas::bits::escapedStringLength(arg);
     for (auto &base : {0, 200, 0xfffe}) {
-      QCOMPARE(size<Pep10ISA>(*ret.root, base, Direction::Forward), len);
-      QCOMPARE(size<Pep10ISA>(*ret.root, base, Direction::Backward), len);
+      QCOMPARE(explicitSize<Pep10ISA>(*ret.root, base, Direction::Forward),
+               len);
+      QCOMPARE(explicitSize<Pep10ISA>(*ret.root, base, Direction::Backward),
+               len);
     }
   }
 
@@ -91,10 +93,11 @@ private slots:
     auto forwardToNextAlign = (align - (base % align)) % align;
     auto forwardEnd = base + forwardToNextAlign;
     auto forwardSize = forwardEnd - base;
-    QCOMPARE(size<Pep10ISA>(*ret.root, base, Direction::Forward), forwardSize);
+    QCOMPARE(explicitSize<Pep10ISA>(*ret.root, base, Direction::Forward),
+             forwardSize);
     auto backwardStart = base - (base % align);
     auto backwardSize = base - backwardStart;
-    QCOMPARE(size<Pep10ISA>(*ret.root, base, Direction::Backward),
+    QCOMPARE(explicitSize<Pep10ISA>(*ret.root, base, Direction::Backward),
              backwardSize);
   }
   void align_data() {
@@ -127,8 +130,10 @@ private slots:
     auto children = ret.root->get<pas::ast::generic::Children>().value;
     QCOMPARE(children.size(), 1);
     for (auto &base : {0, 200, 0xfffe}) {
-      QCOMPARE(size<Pep10ISA>(*ret.root, base, Direction::Forward), count);
-      QCOMPARE(size<Pep10ISA>(*ret.root, base, Direction::Backward), count);
+      QCOMPARE(explicitSize<Pep10ISA>(*ret.root, base, Direction::Forward),
+               count);
+      QCOMPARE(explicitSize<Pep10ISA>(*ret.root, base, Direction::Backward),
+               count);
     }
   }
 
@@ -147,8 +152,8 @@ private slots:
     auto children = ret.root->get<pas::ast::generic::Children>().value;
     QCOMPARE(children.size(), 3);
     for (auto &base : {0, 200, 0xfffe}) {
-      QCOMPARE(size<Pep10ISA>(*ret.root, base, Direction::Forward), 6);
-      QCOMPARE(size<Pep10ISA>(*ret.root, base, Direction::Backward), 6);
+      QCOMPARE(explicitSize<Pep10ISA>(*ret.root, base, Direction::Forward), 6);
+      QCOMPARE(explicitSize<Pep10ISA>(*ret.root, base, Direction::Backward), 6);
     }
   }
 
@@ -159,8 +164,8 @@ private slots:
     auto children = ret.root->get<pas::ast::generic::Children>().value;
     QCOMPARE(children.size(), 3);
     for (auto &base : {0, 200, 0xfffe}) {
-      QCOMPARE(size<Pep10ISA>(*ret.root, base, Direction::Forward), 3);
-      QCOMPARE(size<Pep10ISA>(*ret.root, base, Direction::Backward), 3);
+      QCOMPARE(explicitSize<Pep10ISA>(*ret.root, base, Direction::Forward), 3);
+      QCOMPARE(explicitSize<Pep10ISA>(*ret.root, base, Direction::Backward), 3);
     }
   }
 
@@ -175,8 +180,8 @@ private slots:
     auto ret = pas::ops::generic::includeMacros(
         *res.root, pas::driver::pepp::createParser<Pep10ISA>(true), registry);
     QVERIFY(ret);
-    QCOMPARE(size<Pep10ISA>(*res.root, 0, Direction::Forward), 3);
-    QCOMPARE(size<Pep10ISA>(*res.root, 0, Direction::Backward), 3);
+    QCOMPARE(explicitSize<Pep10ISA>(*res.root, 0, Direction::Forward), 3);
+    QCOMPARE(explicitSize<Pep10ISA>(*res.root, 0, Direction::Backward), 3);
   }
 
   void empty() {
@@ -186,8 +191,8 @@ private slots:
     auto children = ret.root->get<pas::ast::generic::Children>().value;
     QCOMPARE(children.size(), 4);
     for (auto &base : {0, 200, 0xfffe}) {
-      QCOMPARE(size<Pep10ISA>(*ret.root, base, Direction::Forward), 0);
-      QCOMPARE(size<Pep10ISA>(*ret.root, base, Direction::Backward), 0);
+      QCOMPARE(explicitSize<Pep10ISA>(*ret.root, base, Direction::Forward), 0);
+      QCOMPARE(explicitSize<Pep10ISA>(*ret.root, base, Direction::Backward), 0);
     }
   }
 };
