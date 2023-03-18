@@ -54,4 +54,36 @@ struct isDirective : public pas::ops::ConstOp<bool> {
 struct isMacro : public pas::ops::ConstOp<bool> {
   bool operator()(const ast::Node &node);
 };
+
+template <typename op> struct Negate : public pas::ops::ConstOp<bool> {
+  op operation;
+  bool operator()(const ast::Node &node);
+};
+template <typename lhs, typename rhs>
+struct Or : public pas::ops::ConstOp<bool> {
+  lhs op1;
+  rhs op2;
+  bool operator()(const ast::Node &node);
+};
+template <typename lhs, typename rhs>
+struct And : public pas::ops::ConstOp<bool> {
+  lhs op1;
+  rhs op2;
+  bool operator()(const ast::Node &node);
+};
 } // namespace pas::ops::generic
+
+template <typename op>
+bool pas::ops::generic::Negate<op>::operator()(const ast::Node &node) {
+  return !operation(node);
+}
+
+template <typename lhs, typename rhs>
+bool pas::ops::generic::Or<lhs, rhs>::operator()(const ast::Node &node) {
+  return op1(node) || op2(node);
+}
+
+template <typename lhs, typename rhs>
+bool pas::ops::generic::And<lhs, rhs>::operator()(const ast::Node &node) {
+  return op1(node) && op2(node);
+}
