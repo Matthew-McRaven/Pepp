@@ -1,5 +1,4 @@
 #pragma once
-#include "./string.hpp"
 #include "pas/ast/generic/attr_children.hpp"
 #include "pas/ast/generic/attr_comment.hpp"
 #include "pas/ast/generic/attr_directive.hpp"
@@ -8,6 +7,8 @@
 #include "pas/ast/node.hpp"
 #include "pas/ast/op.hpp"
 #include "pas/ast/value/base.hpp"
+#include "pas/operations/generic/is.hpp"
+#include "pas/operations/pepp/is.hpp"
 #include <QtCore>
 
 namespace pas::ops::pepp {
