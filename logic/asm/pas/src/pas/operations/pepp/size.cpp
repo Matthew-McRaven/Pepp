@@ -37,7 +37,6 @@ quint16 pas::ops::pepp::detail::sizeWord(const ast::Node, quint16, Direction) {
 }
 
 pas::ops::pepp::Direction pas::ops::pepp::direction(const ast::Node &node) {
-
   auto children = ast::children(node);
   return detail::hasBurn(children) ? Direction::Backward : Direction::Forward;
 }
