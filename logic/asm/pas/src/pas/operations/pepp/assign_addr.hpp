@@ -28,7 +28,7 @@ template <typename ISA> void assignAddresses(ast::Node &section);
 template <typename ISA>
 void pas::ops::pepp::detail::assignAddressesImpl(ast::Node &node, quint16 &base,
                                                  Direction direction) {
-  auto size = pepp::size<ISA>(node, base, direction);
+  auto size = pepp::explicitSize<ISA>(node, base, direction);
   auto symBase = base;
   quint16 newBase = base;
   if (direction == Direction::Forward) {

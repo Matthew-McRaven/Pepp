@@ -11,7 +11,6 @@
 
 using pas::isa::Pep10ISA;
 using pas::ops::pepp::Direction;
-using pas::ops::pepp::size;
 void childRange(QSharedPointer<pas::ast::Node> parent, qsizetype index,
                 qsizetype start, qsizetype end) {
   QVERIFY(parent->has<pas::ast::generic::Children>());

@@ -22,11 +22,18 @@ public:
   template <typename T> T apply_self(ops::ConstOp<T> &transform) const;
   template <typename T> T apply_self(ops::MutatingOp<T> &transform);
   template <typename T>
-  std::optional<T> apply_self(ops::ConstOp<bool> &predicate,
-                              ops::ConstOp<T> &transform) const;
+  std::optional<T> apply_self_if(ops::ConstOp<bool> &predicate,
+                                 ops::ConstOp<T> &transform) const;
   template <typename T>
-  std::optional<T> apply_self(ops::ConstOp<bool> &predicate,
-                              ops::MutatingOp<T> &transform);
+  std::optional<T> apply_self_if(ops::ConstOp<bool> &predicate,
+                                 ops::MutatingOp<T> &transform);
+  // To be used in recurse, because optional<void> is illegal.
+  template <typename T>
+  void apply_self_if_void(ops::ConstOp<bool> &predicate,
+                          ops::ConstOp<T> &transform) const;
+  template <typename T>
+  void apply_self_if_void(ops::ConstOp<bool> &predicate,
+                          ops::MutatingOp<T> &transform);
 
 private:
   QVariantMap _attributes;
@@ -101,6 +108,20 @@ std::optional<T> apply_self_if(Node &node, ops::ConstOp<bool> &predicate,
 }
 
 template <typename T>
+void apply_self_if_void(const Node &node, ops::ConstOp<bool> &predicate,
+                        ops::ConstOp<T> &transform) {
+  if (node.apply_self(predicate))
+    node.apply_self(transform);
+}
+
+template <typename T>
+void apply_self_if_void(Node &node, ops::ConstOp<bool> &predicate,
+                        ops::MutatingOp<T> &transform) {
+  if (node.apply_self(predicate))
+    node.apply_self(transform);
+}
+
+template <typename T>
 std::optional<T> apply_if(Node &node, ops::ConstOp<bool> &predicate,
                           ops::MutatingOp<T> &transform) {
   if (!node.apply_self(predicate))
@@ -128,7 +149,7 @@ void apply_recurse(Node &node, ops::MutatingOp<T> &transform) {
 template <typename T>
 void apply_recurse_if(const Node &node, ops::ConstOp<bool> &predicate,
                       ops::ConstOp<T> &transform) {
-  apply_self_if(node, predicate, transform);
+  apply_self_if_void(node, predicate, transform);
   for (auto &child : children(node))
     apply_recurse_if(*child, predicate, transform);
 }
@@ -137,7 +158,7 @@ void apply_recurse_if(const Node &node, ops::ConstOp<bool> &predicate,
 template <typename T>
 void apply_recurse_if(Node &node, ops::ConstOp<bool> &predicate,
                       ops::MutatingOp<T> &transform) {
-  apply_self_if(node, predicate, transform);
+  apply_self_if_void(node, predicate, transform);
   for (auto &child : children(node))
     apply_recurse_if(*child, predicate, transform);
 }
