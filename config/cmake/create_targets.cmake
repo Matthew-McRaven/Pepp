@@ -36,9 +36,11 @@ macro(make_exec target_name root)
     inject_clang_tidy()
     inject_code_coverage()
 
-    SET(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -gdwarf-4")
-    SET(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -gdwarf-4")
-
+    # Silences compiler warnings on PE platforms.
+    if(!MSVC)
+        SET(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -gdwarf-4")
+        SET(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -gdwarf-4")
+    endif()
     qt_add_executable(${target_name} ${sources})
 
 endMacro()
