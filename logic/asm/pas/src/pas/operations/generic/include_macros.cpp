@@ -132,18 +132,3 @@ void pas::ops::generic::IncludeMacros::addExtraChildren(ast::Node &node) {
 
   node.set<ast::generic::Children>(ast::generic::Children{.value = children});
 }
-
-bool pas::ops::generic::includeMacros(
-    ast::Node &root,
-    std::function<pas::driver::ParseResult(QString, QSharedPointer<ast::Node>)>
-        convertFn,
-    QSharedPointer<macro::Registry> registry) {
-  static auto isMacro = pas::ops::generic::isMacro();
-  auto convert = IncludeMacros();
-  convert.convertFn = convertFn;
-  convert.registry = registry;
-  ast::apply_recurse_if(root, isMacro, convert);
-  auto errors = pas::ops::generic::CollectErrors();
-  ast::apply_recurse(root, errors);
-  return errors.errors.size() == 0;
-}

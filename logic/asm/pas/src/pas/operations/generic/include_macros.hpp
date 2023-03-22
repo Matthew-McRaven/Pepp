@@ -1,5 +1,8 @@
 #pragma once
+#include "pas/ast/node.hpp"
 #include "pas/ast/op.hpp"
+#include "errors.hpp"
+#include "is.hpp"
 #include <QtCore>
 
 namespace pas::driver {
@@ -41,9 +44,20 @@ private:
   QSet<MacroInvocation> _chain = {};
 };
 
-bool includeMacros(
+// BUG: Shouldn't be inline, but MSVC refuses to find this function in a CPP file, when GCC and clang can.
+inline bool includeMacros(
     ast::Node &root,
-    std::function<driver::ParseResult(QString, QSharedPointer<ast::Node>)>
-        convert,
-    QSharedPointer<macro::Registry>);
+    std::function<pas::driver::ParseResult(QString, QSharedPointer<ast::Node>)>
+        convertFn,
+    QSharedPointer<macro::Registry> registry)
+{
+    static auto isMacro = pas::ops::generic::isMacro();
+    auto converter = IncludeMacros();
+    converter.convertFn = convertFn;
+    converter.registry = registry;
+    ast::apply_recurse_if(root, isMacro, converter);
+    auto errors = pas::ops::generic::CollectErrors();
+    ast::apply_recurse(root, errors);
+    return errors.errors.size() == 0;
+}
 } // namespace pas::ops::generic
