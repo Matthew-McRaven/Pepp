@@ -170,7 +170,7 @@ pas::parse::pepp::detail::byte(const DirectiveType &line, ST symTab) {
       generic::Type{.value = generic::Type::Directive});
   ret->set(generic::Directive{.value = u"BYTE"_qs});
 
-  auto args = detail::parse_arg(line, symTab);
+  auto args = detail::parse_arg(line, symTab, false, 1);
   // Triggers when you pass 0 or 2+ arguments.
   if (args.size() != 1)
     return addError(

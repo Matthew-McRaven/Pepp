@@ -80,10 +80,11 @@ using namespace pas::ast;
 
 template <typename T>
 QList<QSharedPointer<pas::ast::value::Base>>
-parse_arg(const T &line, ST symTab, bool preferIdent = false) {
+parse_arg(const T &line, ST symTab, bool preferIdent = false, std::optional<quint8> sizeOverride =std::nullopt) {
   auto visitor = pas::parse::pepp::ParseToArg();
   visitor.symTab = symTab;
   visitor.preferIdent = preferIdent;
+  visitor.sizeOverride = sizeOverride;
   QList<QSharedPointer<pas::ast::value::Base>> arguments;
   for (const auto &arg : line.args) {
     auto shared = arg.apply_visitor(visitor);
