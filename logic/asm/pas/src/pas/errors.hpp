@@ -23,7 +23,7 @@ inline const QString dotRequiresString =
     u"%1 requires a string constant argument."_qs;
 inline const QString argAfterMnemonic = u""_qs;
 inline const QString expectedNumeric =
-    u"Expected a decimal, hexadecimal, os symbolic argument."_qs;
+    u"Expected a decimal, hexadecimal, or symbolic argument."_qs;
 inline const QString expectNArguments = u"Expected %1 argument(s)."_qs;
 inline const QString expectedSymbolic = u"Expected a symbolic argument."_qs;
 // Address problems
