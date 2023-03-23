@@ -139,7 +139,7 @@ private slots:
     // BLOCK
     // - no signed
     QTest::addRow(".BLOCK: no negative decimals")
-        << u".BLOCK -42"_qs << QList<Error>{makeFatal(0, E::decTooBig2)};
+        << u".BLOCK -42"_qs << QList<Error>{makeFatal(0, E::decUnsigned2)};
     // - no chars
     QTest::addRow(".BLOCK: no characters")
         << u".BLOCK '*'"_qs << QList<Error>{makeFatal(0, E::expectedNumeric)};
@@ -177,10 +177,6 @@ private slots:
     // - arg must fit in 16 bits
     QTest::addRow(".BURN: fit in 16 bits-hex")
         << u".BLOCK 0xbadbeef"_qs << QList<Error>{makeFatal(0, E::hexTooBig2)};
-    QTest::addRow(".BURN: fit in 16 bits-decimal")
-        << u".BLOCK 666666"_qs << QList<Error>{makeFatal(0, E::decTooBig2)};
-    QTest::addRow(".BURN: fit in 16 bits-negative decimal")
-        << u".BLOCK -32679"_qs << QList<Error>{makeFatal(0, E::decTooBig2)};
 
     // Byte
     // - exactly 1 arg
@@ -288,7 +284,7 @@ private slots:
     QTest::addRow(".WORD: fit in 16 bits-decimal")
         << u".WORD 65536"_qs << QList<Error>{makeFatal(0, E::decTooBig2)};
     QTest::addRow(".WORD: fit in 16 bits-negative decimal")
-        << u".WORD -32679"_qs << QList<Error>{makeFatal(0, E::decTooBig2)};
+        << u".WORD -32769"_qs << QList<Error>{makeFatal(0, E::decTooBig2)};
 
     //  Missing errors
     //  invalidDirective
