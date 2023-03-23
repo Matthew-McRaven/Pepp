@@ -23,6 +23,10 @@ pas::ast::value::SignedDecimal::clone() const {
   return QSharedPointer<SignedDecimal>::create(*this);
 }
 
+quint64 pas::ast::value::SignedDecimal::requiredBytes() const {
+    return ceil(log2(~_value + 1) / 8);
+}
+
 QString pas::ast::value::SignedDecimal::string() const {
   return QString::number(_value);
 }
@@ -46,10 +50,13 @@ pas::ast::value::UnsignedDecimal::operator=(UnsignedDecimal other) {
   return *this;
 }
 
+
+
 QSharedPointer<pas::ast::value::Base>
 pas::ast::value::UnsignedDecimal::clone() const {
   return QSharedPointer<UnsignedDecimal>::create(*this);
 }
+
 
 QString pas::ast::value::UnsignedDecimal::string() const {
   return QString::number(_value);

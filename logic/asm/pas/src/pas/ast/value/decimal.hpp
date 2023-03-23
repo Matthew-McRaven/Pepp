@@ -15,6 +15,8 @@ public:
   }
 
   QSharedPointer<Base> clone() const override;
+  // Must negate value before computing max bit value
+  quint64 requiredBytes() const override;
   QString string() const override;
 };
 
