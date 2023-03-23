@@ -80,7 +80,7 @@ quint16 pas::ops::pepp::detail::nonUnaryToBytes(const pas::ast::Node &node,
     return 0;
   typename ISA::Mnemonic mnemonic =
       node.get<pas::ast::pepp::Instruction<ISA>>().value;
-  typename ISA::addrMode addr =
+  typename ISA::AddressingMode addr =
       node.get<pas::ast::pepp::AddressingMode<ISA>>().value;
   dest[0] = ISA::opcode(mnemonic, addr);
   auto arg = node.get<pas::ast::generic::Argument>().value;
