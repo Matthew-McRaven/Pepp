@@ -125,6 +125,9 @@ pas::parse::pepp::detail::block(const DirectiveType &line, ST symTab) {
   if (!(arg->isFixedSize() && arg->isNumeric()))
     return addError(ret,
                     {.severity = S::Fatal, .message = EP::expectedNumeric});
+  else if(arg->isSigned())
+      return addError(ret,
+                      {.severity = S::Fatal, .message = EP::decUnsigned2});
   ret->set(generic::Argument{.value = arg});
 
   if (!line.symbol.empty())
