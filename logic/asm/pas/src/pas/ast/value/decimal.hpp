@@ -13,7 +13,7 @@ public:
     using std::swap;
     swap((Numeric &)first, (Numeric &)second);
   }
-
+  bool isSigned() const override { return true; }
   QSharedPointer<Base> clone() const override;
   // Must negate value before computing max bit value
   quint64 requiredBytes() const override;
