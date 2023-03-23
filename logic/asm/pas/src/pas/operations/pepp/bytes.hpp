@@ -85,5 +85,5 @@ quint16 pas::ops::pepp::detail::nonUnaryToBytes(const pas::ast::Node &node,
   dest[0] = ISA::opcode(mnemonic, addr);
   auto arg = node.get<pas::ast::generic::Argument>().value;
   arg->value((dest + 1), 2, pas::bits::BitOrder::BigEndian);
-  return true;
+  return 3;
 }
