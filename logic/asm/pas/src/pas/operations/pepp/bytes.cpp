@@ -26,7 +26,7 @@ quint16 blockToBytes(const pas::ast::Node &node, quint8 *dest, quint64 length) {
   auto size = argument->size();
   if (length < size)
     return 0;
-  argument->value(dest, size);
+  memset(dest, 0, size);
   return size;
 }
 
