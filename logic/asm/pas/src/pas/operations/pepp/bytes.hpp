@@ -46,7 +46,7 @@ quint16 pas::ops::pepp::detail::nodeToBytes(const pas::ast::Node &node,
   if (pas::ops::generic::isStructural()(node)) {
     quint64 adjustedLength = destLength;
     for (auto &child : node.get<ast::generic::Children>().value) {
-      auto size = nodeToBytes<ISA>(child, dest, adjustedLength);
+      auto size = nodeToBytes<ISA>(*child, dest, adjustedLength);
       dest += size;
       adjustedLength -= size;
     }
