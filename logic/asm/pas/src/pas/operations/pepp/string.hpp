@@ -115,7 +115,7 @@ void pas::ops::pepp::FormatSource<ISA>::operator()(const ast::Node &node) {
 
 template <typename ISA>
 void pas::ops::pepp::FormatListing<ISA>::operator()(const ast::Node &node) {
-  for (auto &line : list<ISA>(node))
+  for (auto &line : list<ISA>(node, bytesPerLine))
     ret.push_back(line);
 }
 
