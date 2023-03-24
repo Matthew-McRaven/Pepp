@@ -64,19 +64,15 @@ QStringList pas::ops::pepp::list(const pas::ast::Node &node,
   if (type == ast::generic::Type::Structural)
     return {};
   QStringList ret;
-  QList<quint8> bytes;
+  QList<quint8> bytes = {};
 
   // If the node wants to hide object code, leave the bytes empty.
   // If the node has no address, then it can emit no bytes
   if ((!node.has<ast::generic::Hide>() ||
        node.get<ast::generic::Hide>().value.object ==
            ast::generic::Hide::In::Object::Emit) &&
-      node.has<ast::generic::Address>()) {
-    auto address = node.get<ast::generic::Address>().value;
-    auto length = quint16(address.end - address.start);
-    bytes.resize(length);
-    toBytes<ISA>(node, bytes.data(), length);
-  }
+      node.has<ast::generic::Address>())
+    bytes = toBytes<ISA>(node);
 
   QString address;
   if (node.has<ast::generic::Address>())
