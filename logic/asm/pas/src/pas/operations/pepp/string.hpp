@@ -17,24 +17,36 @@
 
 namespace pas::ops::pepp {
 
+// Non-recursively format a single node as source.
 template <typename ISA> QString format(const ast::Node &node);
+// Non-recursively format a signle node as listing.
 template <typename ISA>
 QStringList list(const ast::Node &node, quint16 bytesPerLine);
+
+// Helper to format with ast::apply methods.
 template <typename ISA> struct FormatSource : public pas::ops::ConstOp<void> {
   QStringList ret;
   void operator()(const ast::Node &node) override;
 };
+
+// Helper to format with ast::apply methods.
 template <typename ISA> struct FormatListing : public pas::ops::ConstOp<void> {
   QStringList ret;
   quint8 bytesPerLine = 3;
   void operator()(const ast::Node &node) override;
 };
 
+// Format entire tree recursively as source.
 template <typename ISA> QStringList formatSource(const ast::Node &node);
+// Format entire tree recursively as listing.
 template <typename ISA>
 QStringList formatListing(const ast::Node &node, quint16 bytesPerLine = 3);
+
+
 namespace detail {
+// Format single unary node as source.
 template <typename ISA> QString formatUnary(const ast::Node &node);
+// Format single non-unary node as source.
 template <typename ISA> QString formatNonUnary(const ast::Node &node);
 } // namespace detail
 } // namespace pas::ops::pepp
