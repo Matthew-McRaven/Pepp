@@ -98,9 +98,13 @@ QStringList pas::ops::pepp::list(const pas::ast::Node &node,
   while (bytesEmitted < bytesPerLine && bytesEmitted < bytes.size())
     prettyBytes +=
         u"%1"_qs.arg(QString::number(bytes[bytesEmitted++], 16), 2, QChar('0'));
+
   // TODO: Fix sizes, padding.
-  ret.push_back(
-      u"%1 %2 %3"_qs.arg(address).arg(prettyBytes).arg(format<ISA>(node)));
+  auto tempString = u"%1 %2 %3"_qs.arg(address).arg(prettyBytes).arg(format<ISA>(node));
+  // Perform right-strip of string. `QString::trimmed() const` trims both ends.
+  qsizetype lastIndex = tempString.size() - 1;
+  while(QChar(tempString[lastIndex]).isSpace() && lastIndex > 0) lastIndex--;
+  ret.push_back(tempString.left(lastIndex));
 
   // Emit remaining object code bytes on their own lines.
   while (bytesEmitted < bytesPerLine && bytesEmitted < bytes.size()) {
