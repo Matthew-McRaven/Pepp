@@ -23,7 +23,7 @@ inline const QString dotRequiresString =
     u"%1 requires a string constant argument."_qs;
 inline const QString argAfterMnemonic = u""_qs;
 inline const QString expectedNumeric =
-    u"Expected a decimal, hexadecimal, os symbolic argument."_qs;
+    u"Expected a decimal, hexadecimal, or symbolic argument."_qs;
 inline const QString expectNArguments = u"Expected %1 argument(s)."_qs;
 inline const QString expectedSymbolic = u"Expected a symbolic argument."_qs;
 // Address problems
@@ -51,7 +51,9 @@ inline const QString strTooLong2 = u"String operands must have length 2."_qs;
 inline const QString decTooBig1 =
     u"Decimal constant is out of range [-128,255]"_qs;
 inline const QString decTooBig2 =
-    u"Decimal constant is out of range [-32678,65535]"_qs;
+    u"Decimal constant is out of range [-32768,65535]"_qs;
+inline const QString decUnsigned2 =
+    u"Decimal constant is out of range [0,65535]"_qs;
 inline const QString hexTooBig1 =
     u"Hexadecimal constant is out of range [0x00, 0xFF]"_qs;
 inline const QString hexTooBig2 =

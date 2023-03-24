@@ -15,6 +15,7 @@ public:
   virtual bool isText() const = 0;      // Is the argument ASCII or UTF-8 text?
   virtual bool isIdentifier()
       const = 0; // Is the argument an unquoted string that is not a symbol?
+  virtual bool isSigned() const = 0;    // If read as a number, should the value be stored in a signed typed
   virtual QSharedPointer<Base> clone() const = 0;
   virtual bool value(quint8 *dest, qsizetype length,
                      pas::bits::BitOrder destEndian =

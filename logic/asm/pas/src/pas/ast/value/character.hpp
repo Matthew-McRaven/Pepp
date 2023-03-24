@@ -20,6 +20,7 @@ public:
   bool isWide() const override { return false; }
   bool isText() const override { return false; }
   bool isIdentifier() const override { return false; }
+  bool isSigned() const override { return false; }
   QSharedPointer<Base> clone() const override;
   bool
   value(quint8 *dest, qsizetype length,

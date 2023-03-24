@@ -18,6 +18,7 @@ public:
   bool isWide() const override { return false; }
   bool isText() const override { return false; }
   bool isIdentifier() const override { return false; }
+  bool isSigned() const override { return false; }
   virtual QSharedPointer<Base> clone() const override = 0;
   bool
   value(quint8 *dest, qsizetype length,

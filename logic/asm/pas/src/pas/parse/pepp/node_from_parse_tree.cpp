@@ -125,6 +125,9 @@ pas::parse::pepp::detail::block(const DirectiveType &line, ST symTab) {
   if (!(arg->isFixedSize() && arg->isNumeric()))
     return addError(ret,
                     {.severity = S::Fatal, .message = EP::expectedNumeric});
+  else if(arg->isSigned())
+      return addError(ret,
+                      {.severity = S::Fatal, .message = EP::decUnsigned2});
   ret->set(generic::Argument{.value = arg});
 
   if (!line.symbol.empty())
@@ -170,7 +173,7 @@ pas::parse::pepp::detail::byte(const DirectiveType &line, ST symTab) {
       generic::Type{.value = generic::Type::Directive});
   ret->set(generic::Directive{.value = u"BYTE"_qs});
 
-  auto args = detail::parse_arg(line, symTab);
+  auto args = detail::parse_arg(line, symTab, false, 1);
   // Triggers when you pass 0 or 2+ arguments.
   if (args.size() != 1)
     return addError(

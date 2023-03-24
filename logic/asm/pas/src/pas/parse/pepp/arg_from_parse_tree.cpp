@@ -40,13 +40,13 @@ QSharedPointer<pas::ast::value::Base>
 pas::parse::pepp::ParseToArg::operator()(const DecimalLiteral &line) {
   if (line.isSigned)
     return QSharedPointer<pas::ast::value::SignedDecimal>::create(line.value,
-                                                                  2);
+                                                                  sizeOverride.value_or(2));
   else
     return QSharedPointer<pas::ast::value::UnsignedDecimal>::create(line.value,
-                                                                    2);
+                                                                    sizeOverride.value_or(2));
 }
 
 QSharedPointer<pas::ast::value::Base>
 pas::parse::pepp::ParseToArg::operator()(const HexadecimalLiteral &line) {
-  return QSharedPointer<pas::ast::value::Hexadecimal>::create(line.value, 2);
+  return QSharedPointer<pas::ast::value::Hexadecimal>::create(line.value, sizeOverride.value_or(2));
 }

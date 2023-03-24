@@ -46,10 +46,11 @@ quint16 pas::ops::pepp::detail::nodeToBytes(const pas::ast::Node &node,
   if (pas::ops::generic::isStructural()(node)) {
     quint64 adjustedLength = destLength;
     for (auto &child : node.get<ast::generic::Children>().value) {
-      auto size = nodeToBytes<ISA>(child, dest, adjustedLength);
+      auto size = nodeToBytes<ISA>(*child, dest, adjustedLength);
       dest += size;
       adjustedLength -= size;
     }
+    return true;
   } else if (pas::ops::generic::isDirective()(node))
     return detail::directiveToBytes(node, dest, destLength);
   else if (pas::ops::pepp::isUnary<ISA>()(node))
@@ -80,10 +81,10 @@ quint16 pas::ops::pepp::detail::nonUnaryToBytes(const pas::ast::Node &node,
     return 0;
   typename ISA::Mnemonic mnemonic =
       node.get<pas::ast::pepp::Instruction<ISA>>().value;
-  typename ISA::addrMode addr =
+  typename ISA::AddressingMode addr =
       node.get<pas::ast::pepp::AddressingMode<ISA>>().value;
   dest[0] = ISA::opcode(mnemonic, addr);
   auto arg = node.get<pas::ast::generic::Argument>().value;
-  arg->value((dest + 1), 1, pas::bits::BitOrder::BigEndian);
-  return true;
+  arg->value((dest + 1), 2, pas::bits::BitOrder::BigEndian);
+  return 3;
 }
