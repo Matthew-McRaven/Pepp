@@ -50,6 +50,7 @@ quint16 pas::ops::pepp::detail::nodeToBytes(const pas::ast::Node &node,
       dest += size;
       adjustedLength -= size;
     }
+    return true;
   } else if (pas::ops::generic::isDirective()(node))
     return detail::directiveToBytes(node, dest, destLength);
   else if (pas::ops::pepp::isUnary<ISA>()(node))
