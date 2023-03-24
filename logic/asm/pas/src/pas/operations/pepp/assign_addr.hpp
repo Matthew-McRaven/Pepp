@@ -2,7 +2,6 @@
 #include "pas/ast/value/symbolic.hpp"
 #include "symbol/table.hpp"
 #include "symbol/visit.hpp"
-#pragma once
 #include "pas/ast/op.hpp"
 #include "pas/operations/pepp/size.hpp"
 #include <QtCore>
