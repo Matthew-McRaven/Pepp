@@ -9,6 +9,7 @@
 #include "pas/ast/value/base.hpp"
 #include "pas/operations/generic/is.hpp"
 #include "pas/operations/generic/string.hpp"
+#include "pas/operations/pepp/bytes.hpp"
 #include "pas/operations/pepp/is.hpp"
 #include "pas/operations/pepp/size.hpp"
 #include "symbol/entry.hpp"
