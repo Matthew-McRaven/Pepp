@@ -77,7 +77,7 @@ QStringList pas::ops::pepp::list(const pas::ast::Node &node,
     return {};
   QStringList ret;
   QList<quint8> bytes = {};
-
+  const auto byteCharCount = 3*bytesPerLine - 1;
   // If the node wants to hide object code, leave the bytes empty.
   // If the node has no address, then it can emit no bytes
   if ((!node.has<ast::generic::Hide>() ||
@@ -99,10 +99,9 @@ QStringList pas::ops::pepp::list(const pas::ast::Node &node,
     prettyBytes +=
         u"%1"_qs.arg(QString::number(bytes[bytesEmitted++], 16), 2, QChar('0'));
 
-  // TODO: Fix sizes, padding.
-  auto tempString = u"%1 %2 %3"_qs.arg(address).arg(prettyBytes).arg(format<ISA>(node));
+  auto tempString = u"%1 %2 %3"_qs.arg(address, 6).arg(prettyBytes, byteCharCount).arg(format<ISA>(node));
   // Perform right-strip of string. `QString::trimmed() const` trims both ends.
-  qsizetype lastIndex = tempString.size() - 1;
+  qsizetype lastIndex = tempString.size()-1;
   while(QChar(tempString[lastIndex]).isSpace() && lastIndex > 0) lastIndex--;
   ret.push_back(tempString.left(lastIndex));
 
@@ -111,16 +110,14 @@ QStringList pas::ops::pepp::list(const pas::ast::Node &node,
     prettyBytes +=
         u"%1"_qs.arg(QString::number(bytes[bytesEmitted++], 16), 2, QChar('0'));
     if (bytesEmitted % bytesPerLine == 0) {
-      // TODO: fix sizes.
-      ret.push_front(u"%1 %2"_qs.arg("").arg(prettyBytes));
+      ret.push_front(u"%1 %2"_qs.arg("", 6).arg(prettyBytes, byteCharCount));
       prettyBytes = "";
     }
   }
 
   // Handle any bytes in excess of % bytesPerLine.
   if (prettyBytes.size() > 0)
-    // TODO: fix sizes.
-    ret.push_front(u"%1 %2"_qs.arg("").arg(prettyBytes));
+    ret.push_front(u"%1 %2"_qs.arg("",6).arg(prettyBytes, byteCharCount));
   return ret;
 }
 
