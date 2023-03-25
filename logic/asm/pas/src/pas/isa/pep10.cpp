@@ -71,11 +71,11 @@ pas::isa::Pep10ISA::parseMnemonic(const QString &mnemonic) {
 }
 
 QString pas::isa::Pep10ISA::string(Mnemonic mnemonic) {
-  return QMetaEnum::fromType<Mnemonic>().valueToKey((int)mnemonic);
+  return QString(QMetaEnum::fromType<Mnemonic>().valueToKey((int)mnemonic)).toLower();
 }
 
 QString pas::isa::Pep10ISA::string(AddressingMode addr) {
-  return QMetaEnum::fromType<AddressingMode>().valueToKey((int)addr);
+  return QString(QMetaEnum::fromType<AddressingMode>().valueToKey((int)addr)).toLower();
 }
 
 bool pas::isa::Pep10ISA::isMnemonicUnary(Mnemonic mnemonic) {
