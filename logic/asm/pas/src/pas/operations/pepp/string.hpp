@@ -89,7 +89,7 @@ QStringList pas::ops::pepp::list(const pas::ast::Node &node,
   QString address;
   if (node.has<ast::generic::Address>())
     address = u"%1"_qs.arg(
-      QString::number(node.get<ast::generic::Address>().value.start), 4, '0').toUpper(0);
+      QString::number(node.get<ast::generic::Address>().value.start), 4, '0').toUpper();
 
   quint16 bytesEmitted = 0;
   QString prettyBytes = "";
@@ -113,14 +113,14 @@ QStringList pas::ops::pepp::list(const pas::ast::Node &node,
     prettyBytes +=
       u"%1"_qs.arg(QString::number(bytes[bytesEmitted++], 16), 2, QChar('0')).toUpper();
     if (bytesEmitted % bytesPerLine == 0) {
-      ret.push_front(u"%1 %2"_qs.arg("", 6).arg(prettyBytes, byteCharCount));
+      ret.push_front(u"%1 %2"_qs.arg("", 4).arg(prettyBytes, byteCharCount));
       prettyBytes="";
     }
   }
 
   // Handle any bytes in excess of % bytesPerLine.
   if (prettyBytes.size() > 0)
-    ret.push_back(u"%1 %2"_qs.arg("",6).arg(prettyBytes, byteCharCount));
+    ret.push_back(u"%1 %2"_qs.arg("",4).arg(prettyBytes, byteCharCount));
   return ret;
 }
 
