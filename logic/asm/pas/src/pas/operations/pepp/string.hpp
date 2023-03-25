@@ -105,6 +105,8 @@ QStringList pas::ops::pepp::list(const pas::ast::Node &node,
   while(QChar(tempString[lastIndex]).isSpace() && lastIndex > 0) lastIndex--;
   // If line is all spaces, then the string should be empty. Otherwise, we need to add 1 to last index to convert index (0-based) to size (1-based).
   ret.push_back(lastIndex==0 ? u""_qs : tempString.left(lastIndex+1));
+  // pretty bytes have been printed, so we can clear this accumulator value for the next line.
+  prettyBytes = "";
 
   // Emit remaining object code bytes on their own lines.
   while (bytesEmitted < bytesPerLine && bytesEmitted < bytes.size()) {
@@ -112,13 +114,13 @@ QStringList pas::ops::pepp::list(const pas::ast::Node &node,
         u"%1"_qs.arg(QString::number(bytes[bytesEmitted++], 16), 2, QChar('0'));
     if (bytesEmitted % bytesPerLine == 0) {
       ret.push_front(u"%1 %2"_qs.arg("", 6).arg(prettyBytes, byteCharCount));
-      prettyBytes = "";
+      prettyBytes="";
     }
   }
 
   // Handle any bytes in excess of % bytesPerLine.
   if (prettyBytes.size() > 0)
-    ret.push_front(u"%1 %2"_qs.arg("",6).arg(prettyBytes, byteCharCount));
+    ret.push_back(u"%1 %2"_qs.arg("",6).arg(prettyBytes, byteCharCount));
   return ret;
 }
 
