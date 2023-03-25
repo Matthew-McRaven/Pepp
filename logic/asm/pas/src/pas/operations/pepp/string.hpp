@@ -88,8 +88,8 @@ QStringList pas::ops::pepp::list(const pas::ast::Node &node,
 
   QString address;
   if (node.has<ast::generic::Address>())
-    address = u"0x%1"_qs.arg(
-        QString::number(node.get<ast::generic::Address>().value.start), 4, '0');
+    address = u"%1"_qs.arg(
+      QString::number(node.get<ast::generic::Address>().value.start), 4, '0').toUpper(0);
 
   quint16 bytesEmitted = 0;
   QString prettyBytes = "";
@@ -97,7 +97,7 @@ QStringList pas::ops::pepp::list(const pas::ast::Node &node,
   // Accumulate the first row's worth of object code bytes.
   while (bytesEmitted < bytesPerLine && bytesEmitted < bytes.size())
     prettyBytes +=
-        u"%1"_qs.arg(QString::number(bytes[bytesEmitted++], 16), 2, QChar('0'));
+      u"%1"_qs.arg(QString::number(bytes[bytesEmitted++], 16), 2, QChar('0')).toUpper();
 
   auto tempString = u"%1 %2 %3"_qs.arg(address, 6).arg(prettyBytes, byteCharCount).arg(format<ISA>(node));
   // Perform right-strip of string. `QString::trimmed() const` trims both ends.
@@ -111,7 +111,7 @@ QStringList pas::ops::pepp::list(const pas::ast::Node &node,
   // Emit remaining object code bytes on their own lines.
   while (bytesEmitted < bytesPerLine && bytesEmitted < bytes.size()) {
     prettyBytes +=
-        u"%1"_qs.arg(QString::number(bytes[bytesEmitted++], 16), 2, QChar('0'));
+      u"%1"_qs.arg(QString::number(bytes[bytesEmitted++], 16), 2, QChar('0')).toUpper();
     if (bytesEmitted % bytesPerLine == 0) {
       ret.push_front(u"%1 %2"_qs.arg("", 6).arg(prettyBytes, byteCharCount));
       prettyBytes="";
