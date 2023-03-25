@@ -29,7 +29,7 @@ BOOST_SPIRIT_DEFINE(blank);
 
 // Comment Line
 inline rule<class comment, CommentType> comment = "comment";
-const auto comment_def = skip(space - eol)[lexeme[lit(";") >> *(char_)]];
+const auto comment_def = skip(space - eol)[lexeme[lit(";") >> *(char_-eol)]];
 BOOST_SPIRIT_DEFINE(comment);
 
 inline const auto symbol = identifier_def >> ":";
