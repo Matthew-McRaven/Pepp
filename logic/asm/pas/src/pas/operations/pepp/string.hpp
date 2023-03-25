@@ -103,7 +103,8 @@ QStringList pas::ops::pepp::list(const pas::ast::Node &node,
   // Perform right-strip of string. `QString::trimmed() const` trims both ends.
   qsizetype lastIndex = tempString.size()-1;
   while(QChar(tempString[lastIndex]).isSpace() && lastIndex > 0) lastIndex--;
-  ret.push_back(tempString.left(lastIndex));
+  // If line is all spaces, then the string should be empty. Otherwise, we need to add 1 to last index to convert index (0-based) to size (1-based).
+  ret.push_back(lastIndex==0 ? u""_qs : tempString.left(lastIndex+1));
 
   // Emit remaining object code bytes on their own lines.
   while (bytesEmitted < bytesPerLine && bytesEmitted < bytes.size()) {
