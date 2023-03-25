@@ -77,7 +77,7 @@ QStringList pas::ops::pepp::list(const pas::ast::Node &node,
     return {};
   QStringList ret;
   QList<quint8> bytes = {};
-  const auto byteCharCount = 3*bytesPerLine - 1;
+  const auto byteCharCount = 2*bytesPerLine;
   // If the node wants to hide object code, leave the bytes empty.
   // If the node has no address, then it can emit no bytes
   if ((!node.has<ast::generic::Hide>() ||
