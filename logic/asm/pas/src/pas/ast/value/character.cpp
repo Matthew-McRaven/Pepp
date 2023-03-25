@@ -39,5 +39,5 @@ quint64 pas::ast::value::Character::requiredBytes() const {
 }
 
 QString pas::ast::value::Character::string() const {
-  throw std::logic_error("Unimplemented");
+  return u"'%1'"_qs.arg(_value);
 }

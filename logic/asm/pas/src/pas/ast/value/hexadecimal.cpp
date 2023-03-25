@@ -24,5 +24,5 @@ pas::ast::value::Hexadecimal::clone() const {
 }
 
 QString pas::ast::value::Hexadecimal::string() const {
-  throw std::logic_error("Unimplemented");
+    return u"0x%1"_qs.arg(QString::number(_value, 16), 2*_size, QChar('0'));
 }
