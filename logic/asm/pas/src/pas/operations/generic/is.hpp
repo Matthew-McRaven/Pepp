@@ -55,6 +55,14 @@ struct isMacro : public pas::ops::ConstOp<bool> {
   bool operator()(const ast::Node &node);
 };
 
+struct SourceHidden : public pas::ops::ConstOp<bool> {
+  bool operator()(const ast::Node &node);
+};
+
+struct ListingHidden : public pas::ops::ConstOp<bool> {
+  bool operator()(const ast::Node &node);
+};
+
 template <typename op> struct Negate : public pas::ops::ConstOp<bool> {
   op operation;
   bool operator()(const ast::Node &node);
