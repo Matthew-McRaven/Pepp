@@ -119,12 +119,12 @@ QStringList pas::ops::pepp::list(const pas::ast::Node &node,
   prettyBytes = "";
 
   // Emit remaining object code bytes on their own lines.
-  while (bytesEmitted < bytesPerLine && bytesEmitted < bytes.size()) {
+  while (bytesEmitted < bytes.size()) {
     prettyBytes +=
         u"%1"_qs.arg(QString::number(bytes[bytesEmitted++], 16), 2, QChar('0'))
             .toUpper();
     if (bytesEmitted % bytesPerLine == 0) {
-      ret.push_front(u"%1 %2"_qs.arg("", 4).arg(prettyBytes, byteCharCount));
+      ret.push_back(u"%1 %2"_qs.arg("", 4).arg(prettyBytes, byteCharCount));
       prettyBytes = "";
     }
   }
