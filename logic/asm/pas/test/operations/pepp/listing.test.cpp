@@ -89,7 +89,8 @@ private slots:
         << ".BLOCK 4"
         << QStringList{"0000 000000         .BLOCK 4", "         00"};
 
-    // QTest::addRow("BYTE 0xFE") << "\n" << QStringList{""};
+    QTest::addRow("BYTE 0xFE")
+        << ".BYTE 0xFE" << QStringList{"0000     FE         .BYTE  0xFE"};
 
     // QTest::addRow("END: no comment") << "\n" << QStringList{""};
     // QTest::addRow("END: comment") << "\n" << QStringList{""};
