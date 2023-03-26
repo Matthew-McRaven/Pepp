@@ -100,14 +100,28 @@ private slots:
         << ".END;the world"
         << QStringList{"                    .END            ;the world"};
 
-    // QTest::addRow("EQUATE: no comment") << "\n" << QStringList{""};
-    // QTest::addRow("EQUATE: comment") << "\n" << QStringList{""};
-    // QTest::addRow("EQUATE: symbolic") << "\n" << QStringList{""};
-    // QTest::addRow("EQUATE: hex") << "\n" << QStringList{""};
-    // QTest::addRow("EQUATE: unsigned") << "\n" << QStringList{""};
-    // QTest::addRow("EQUATE: signed") << "\n" << QStringList{""};
-    // QTest::addRow("EQUATE: char") << "\n" << QStringList{""};
-    // QTest::addRow("EQUATE: string") << "\n" << QStringList{""};
+    QTest::addRow("EQUATE: no comment")
+        << "s:.EQUATE 10" << QStringList{"            s:       .EQUATE 10"};
+    QTest::addRow("EQUATE: comment")
+        << "s:.EQUATE 10;hi"
+        << QStringList{"            s:       .EQUATE 10      ;hi"};
+    QTest::addRow("EQUATE: symbolic")
+        << "s:.EQUATE y\n.block 0x3\ny:.block 0"
+        << QStringList{"            s:       .EQUATE y",
+                       "0000 000000         .BLOCK  0x0003",
+                       "0003        y:       .BLOCK  0"};
+    QTest::addRow("EQUATE: hex")
+        << "s:.EQUATE 0x2"
+        << QStringList{"            s:       .EQUATE 0x0002"};
+    QTest::addRow("EQUATE: unsigned")
+        << "s:.EQUATE 2" << QStringList{"            s:       .EQUATE 2"};
+    QTest::addRow("EQUATE: signed")
+        << "s: .EQUATE -2" << QStringList{"            s:       .EQUATE -2"};
+    QTest::addRow("EQUATE: char")
+        << "s: .EQUATE 's'" << QStringList{"            s:       .EQUATE 's'"};
+    QTest::addRow("EQUATE: string")
+        << "s: .EQUATE \"hi\""
+        << QStringList{"            s:       .EQUATE \"hi\""};
 
     for (auto &str :
          {".IMPORT", ".EXPORT", ".SCALL", ".USCALL", ".INPUT", ".OUTPUT"}) {
