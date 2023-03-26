@@ -94,8 +94,11 @@ private slots:
     QTest::addRow("BYTE 0xFE")
         << ".BYTE 0xFE" << QStringList{"0000     FE         .BYTE   0xFE"};
 
-    // QTest::addRow("END: no comment") << "\n" << QStringList{""};
-    // QTest::addRow("END: comment") << "\n" << QStringList{""};
+    QTest::addRow("END: no comment")
+        << ".END" << QStringList{"                    .END"};
+    QTest::addRow("END: comment")
+        << ".END;the world"
+        << QStringList{"                    .END            ;the world"};
 
     // QTest::addRow("EQUATE: no comment") << "\n" << QStringList{""};
     // QTest::addRow("EQUATE: comment") << "\n" << QStringList{""};
@@ -110,7 +113,7 @@ private slots:
          {".IMPORT", ".EXPORT", ".SCALL", ".USCALL", ".INPUT", ".OUTPUT"}) {
       QTest::addRow("%s", str)
           << u"%1 s"_qs.arg(str)
-          << QStringList{u"                   %1s"_qs.arg(str, -8)};
+          << QStringList{u"                    %1s"_qs.arg(str, -8)};
     }
 
     QTest::addRow("WORD 0xFFFE")
