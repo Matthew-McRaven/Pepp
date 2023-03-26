@@ -15,7 +15,7 @@ public:
     swap(first._valueAsBytes, second._valueAsBytes);
   }
 
-  bool isNumeric() const override { return false; }
+  bool isNumeric() const override { return true; }
   bool isFixedSize() const override { return true; }
   bool isWide() const override { return false; }
   bool isText() const override { return false; }
