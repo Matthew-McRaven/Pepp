@@ -150,7 +150,9 @@ template <typename ISA>
 QStringList pas::ops::pepp::formatSource(const ast::Node &node) {
   auto visit = FormatSource<ISA>();
   // Do not visit structural nodes, because this will inject unneeded newlines.
-  auto is = generic::Negate<generic::isStructural>();
+  // Do not visit hidden nodes.
+  auto is = generic::And<generic::Negate<generic::isStructural>,
+                         generic::Negate<generic::SourceHidden>>();
   ast::apply_recurse_if(node, is, visit);
   return visit.ret;
 }
@@ -163,8 +165,10 @@ QStringList pas::ops::pepp::formatListing(const ast::Node &node,
   // Do not visit structural nodes, because this will inject unneeded newlines.
   // Do not visit macro nodes, otherwise macro invocation AND macro body will be
   // printed. At this point, macros should not exist anyways.
-  auto is =
-      generic::Negate<generic::Or<generic::isStructural, generic::isMacro>>();
+  // Do not print/visit hidden nodes.
+  auto is = generic::And<
+      generic::Negate<generic::Or<generic::isStructural, generic::isMacro>>,
+      generic::Negate<generic::ListingHidden>>();
   ast::apply_recurse_if(node, is, visit);
   return visit.ret;
 }

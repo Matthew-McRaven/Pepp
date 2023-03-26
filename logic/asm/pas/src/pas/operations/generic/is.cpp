@@ -6,6 +6,8 @@
 #include "pas/ast/generic/attr_macro.hpp"
 #include "pas/ast/node.hpp"
 
+#include <pas/ast/generic/attr_hide.hpp>
+
 bool pas::ops::generic::isBlank::operator()(const ast::Node &node) {
   return node.get<ast::generic::Type>().value == ast::generic::Type::Blank;
 }
@@ -109,4 +111,14 @@ bool pas::ops::generic::isMacro::operator()(const ast::Node &node) {
 
 bool pas::ops::generic::isStructural::operator()(const ast::Node &node) {
   return node.get<ast::generic::Type>().value == ast::generic::Type::Structural;
+}
+
+bool pas::ops::generic::SourceHidden::operator()(const ast::Node &node) {
+  return node.has<ast::generic::Hide>() &&
+         node.get<ast::generic::Hide>().value.source;
+}
+
+bool pas::ops::generic::ListingHidden::operator()(const ast::Node &node) {
+  return node.has<ast::generic::Hide>() &&
+         node.get<ast::generic::Hide>().value.listing;
 }
