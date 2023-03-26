@@ -36,12 +36,13 @@ QString pas::ops::generic::detail::formatComment(const ast::Node &node) {
 QString pas::ops::generic::detail::format(QString symbol, QString invoke,
                                           QStringList args, QString comment) {
   auto joinedArgs = args.join(", ");
-  auto symPlaceholder = symbol.isEmpty() ? u"        "_qs : u"%1"_qs.arg(symbol+":", -9, QChar(' '));
-  auto ret = u"%1%2%3%4"_qs
-      .arg(symPlaceholder)
-      .arg(invoke, -7, ' ')
-      .arg(joinedArgs, -8, ' ')
-      .arg(comment.isEmpty() ? "" : ";" + comment);
+  auto symPlaceholder = symbol.isEmpty()
+                            ? u"        "_qs
+                            : u"%1"_qs.arg(symbol + ":", -9, QChar(' '));
+  auto ret = u"%1%2%3%4"_qs.arg(symPlaceholder)
+                 .arg(invoke, -8, ' ')
+                 .arg(joinedArgs, -8, ' ')
+                 .arg(comment.isEmpty() ? "" : ";" + comment);
   return ret;
 }
 
