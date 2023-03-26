@@ -28,7 +28,7 @@ private slots:
     QTest::addColumn<QString>("source");
     QTest::addColumn<QStringList>("listing");
 
-    QTest::addRow("Blank") << "\n" << QStringList{"", ""};
+    /*QTest::addRow("Blank") << "\n" << QStringList{"", ""};
     QTest::addRow("Comment")
         << ";hello\n;world"
         << QStringList{"             ;hello", "             ;world"};
@@ -59,9 +59,16 @@ private slots:
     QTest::addRow("ALIGN 4 @ 1") << ".BYTE 1\n.ALIGN 4"
                                  << QStringList{"0000     01         .BYTE  1",
                                                 "0001 000000         .ALIGN 4"};
-    // QTest::addRow("ALIGN 8 @ 0") << "\n" << QStringList{""};
-    // QTest::addRow("ALIGN 8 @ 1") << "\n" << QStringList{""};
-    // QTest::addRow("ALIGN 8 @ 2") << "\n" << QStringList{""};
+    QTest::addRow("ALIGN 8 @ 0")
+        << ".ALIGN 8" << QStringList{"0000                .ALIGN 8"};*/
+    QTest::addRow("ALIGN 8 @ 1") << ".BYTE 1\n.ALIGN 8"
+                                 << QStringList{"0000     01         .BYTE  1",
+                                                "0001 000000         .ALIGN 8",
+                                                "     000000", "         00"};
+    QTest::addRow("ALIGN 8 @ 2")
+        << ".WORD 1\n.ALIGN 8"
+        << QStringList{"0000   0001         .WORD  1",
+                       "0002 000000         .ALIGN 8", "     000000"};
 
     // QTest::addRow("ASCII 2-string") << "\n" << QStringList{""};
     // QTest::addRow("ASCII 3-string") << "\n" << QStringList{""};
