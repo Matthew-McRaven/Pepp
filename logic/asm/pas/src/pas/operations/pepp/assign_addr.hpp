@@ -6,6 +6,7 @@
 #include "symbol/table.hpp"
 #include "symbol/visit.hpp"
 #include <QtCore>
+#include <pas/ast/generic/attr_hide.hpp>
 
 namespace pas::ast {
 class Node;
@@ -47,14 +48,21 @@ void pas::ops::pepp::detail::assignAddressesImpl(ast::Node &node, quint16 &base,
   0){
 
   }*/
+
   static const QSet<QString> addresslessDirectives = {
       u"END"_qs,   u"EQUATE"_qs, u"EXPORT"_qs,  u"IMPORT"_qs, u"INPUT"_qs,
       u"OUTPT"_qs, u"SCALL"_qs,  u"SECTION"_qs, u"USCALL"_qs};
   if (type == pas::ast::generic::Type::Directive &&
       addresslessDirectives.contains(
-          node.get<pas::ast::generic::Directive>()
-              .value)) { /*skip to symbol resolution*/
-  } else if (direction == Direction::Forward) {
+          node.get<pas::ast::generic::Directive>().value)) {
+    pas::ast::generic::Hide hide;
+    if (node.has<ast::generic::Hide>())
+      hide = node.get<ast::generic::Hide>();
+    hide.value.addressInListing = true;
+    node.set(hide);
+  }
+
+  if (direction == Direction::Forward) {
     // Must explicitly handle address wrap-around, because math inside set
     // address widens implicitly.
     newBase = (base + size) % 0xFFFF;

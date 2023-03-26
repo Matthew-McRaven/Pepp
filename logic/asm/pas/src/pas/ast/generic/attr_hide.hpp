@@ -11,6 +11,7 @@ struct Hide {
       NoEmit_NoCountSize,
       Emit
     } object = Object::Emit;
+    bool addressInListing = false;
 
     bool operator==(const In &other) const = default;
   } value = {};

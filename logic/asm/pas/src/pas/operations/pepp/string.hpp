@@ -42,7 +42,6 @@ template <typename ISA> QStringList formatSource(const ast::Node &node);
 template <typename ISA>
 QStringList formatListing(const ast::Node &node, quint16 bytesPerLine = 3);
 
-
 namespace detail {
 // Format single unary node as source.
 template <typename ISA> QString formatUnary(const ast::Node &node);
@@ -77,7 +76,7 @@ QStringList pas::ops::pepp::list(const pas::ast::Node &node,
     return {};
   QStringList ret;
   QList<quint8> bytes = {};
-  const auto byteCharCount = 2*bytesPerLine;
+  const auto byteCharCount = 2 * bytesPerLine;
   // If the node wants to hide object code, leave the bytes empty.
   // If the node has no address, then it can emit no bytes
   if ((!node.has<ast::generic::Hide>() ||
@@ -87,9 +86,14 @@ QStringList pas::ops::pepp::list(const pas::ast::Node &node,
     bytes = toBytes<ISA>(node);
 
   QString address;
-  if (node.has<ast::generic::Address>())
-    address = u"%1"_qs.arg(
-      QString::number(node.get<ast::generic::Address>().value.start), 4, '0').toUpper();
+  if (node.has<ast::generic::Address>() &&
+      !(node.has<ast::generic::Hide>() &&
+        node.get<ast::generic::Hide>().value.addressInListing))
+    address =
+        u"%1"_qs
+            .arg(QString::number(node.get<ast::generic::Address>().value.start),
+                 4, '0')
+            .toUpper();
 
   quint16 bytesEmitted = 0;
   QString prettyBytes = "";
@@ -97,30 +101,37 @@ QStringList pas::ops::pepp::list(const pas::ast::Node &node,
   // Accumulate the first row's worth of object code bytes.
   while (bytesEmitted < bytesPerLine && bytesEmitted < bytes.size())
     prettyBytes +=
-      u"%1"_qs.arg(QString::number(bytes[bytesEmitted++], 16), 2, QChar('0')).toUpper();
+        u"%1"_qs.arg(QString::number(bytes[bytesEmitted++], 16), 2, QChar('0'))
+            .toUpper();
 
-  auto tempString = u"%1 %2 %3"_qs.arg(address, 4).arg(prettyBytes, byteCharCount).arg(format<ISA>(node));
+  auto tempString = u"%1 %2 %3"_qs.arg(address, 4)
+                        .arg(prettyBytes, byteCharCount)
+                        .arg(format<ISA>(node));
   // Perform right-strip of string. `QString::trimmed() const` trims both ends.
-  qsizetype lastIndex = tempString.size()-1;
-  while(QChar(tempString[lastIndex]).isSpace() && lastIndex > 0) lastIndex--;
-  // If line is all spaces, then the string should be empty. Otherwise, we need to add 1 to last index to convert index (0-based) to size (1-based).
-  ret.push_back(lastIndex==0 ? u""_qs : tempString.left(lastIndex+1));
-  // pretty bytes have been printed, so we can clear this accumulator value for the next line.
+  qsizetype lastIndex = tempString.size() - 1;
+  while (QChar(tempString[lastIndex]).isSpace() && lastIndex > 0)
+    lastIndex--;
+  // If line is all spaces, then the string should be empty. Otherwise, we need
+  // to add 1 to last index to convert index (0-based) to size (1-based).
+  ret.push_back(lastIndex == 0 ? u""_qs : tempString.left(lastIndex + 1));
+  // pretty bytes have been printed, so we can clear this accumulator value for
+  // the next line.
   prettyBytes = "";
 
   // Emit remaining object code bytes on their own lines.
   while (bytesEmitted < bytesPerLine && bytesEmitted < bytes.size()) {
     prettyBytes +=
-      u"%1"_qs.arg(QString::number(bytes[bytesEmitted++], 16), 2, QChar('0')).toUpper();
+        u"%1"_qs.arg(QString::number(bytes[bytesEmitted++], 16), 2, QChar('0'))
+            .toUpper();
     if (bytesEmitted % bytesPerLine == 0) {
       ret.push_front(u"%1 %2"_qs.arg("", 4).arg(prettyBytes, byteCharCount));
-      prettyBytes="";
+      prettyBytes = "";
     }
   }
 
   // Handle any bytes in excess of % bytesPerLine.
   if (prettyBytes.size() > 0)
-    ret.push_back(u"%1 %2"_qs.arg("",4).arg(prettyBytes, byteCharCount));
+    ret.push_back(u"%1 %2"_qs.arg("", 4).arg(prettyBytes, byteCharCount));
   return ret;
 }
 
