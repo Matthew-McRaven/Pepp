@@ -50,8 +50,8 @@ void pas::ops::pepp::detail::assignAddressesImpl(ast::Node &node, quint16 &base,
   }*/
 
   static const QSet<QString> addresslessDirectives = {
-      u"END"_qs,   u"EQUATE"_qs, u"EXPORT"_qs,  u"IMPORT"_qs, u"INPUT"_qs,
-      u"OUTPT"_qs, u"SCALL"_qs,  u"SECTION"_qs, u"USCALL"_qs};
+      u"END"_qs,    u"EQUATE"_qs, u"EXPORT"_qs,  u"IMPORT"_qs, u"INPUT"_qs,
+      u"OUTPUT"_qs, u"SCALL"_qs,  u"SECTION"_qs, u"USCALL"_qs};
   if (type == pas::ast::generic::Type::Directive &&
       addresslessDirectives.contains(
           node.get<pas::ast::generic::Directive>().value)) {
