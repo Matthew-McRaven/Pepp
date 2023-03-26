@@ -71,7 +71,7 @@ pas::isa::Pep10ISA::parseMnemonic(const QString &mnemonic) {
 }
 
 QString pas::isa::Pep10ISA::string(Mnemonic mnemonic) {
-  return QString(QMetaEnum::fromType<Mnemonic>().valueToKey((int)mnemonic)).toLower();
+  return QString(QMetaEnum::fromType<Mnemonic>().valueToKey((int)mnemonic)).toUpper();
 }
 
 QString pas::isa::Pep10ISA::string(AddressingMode addr) {
