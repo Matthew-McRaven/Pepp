@@ -150,6 +150,7 @@ template <typename ISA>
 QStringList pas::ops::pepp::formatSource(const ast::Node &node) {
   auto visit = FormatSource<ISA>();
   // Do not visit structural nodes, because this will inject unneeded newlines.
+  // Do not visit hidden nodes.
   auto is = generic::And<generic::Negate<generic::isStructural>,
                          generic::Negate<generic::SourceHidden>>();
   ast::apply_recurse_if(node, is, visit);

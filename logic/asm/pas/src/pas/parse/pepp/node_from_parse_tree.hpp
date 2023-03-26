@@ -57,15 +57,19 @@ toAST(const std::vector<pas::parse::pepp::LineType> &lines,
     QSharedPointer<ast::Node> node = line.apply_visitor(visitor);
     node->set(
         ast::generic::SourceLocation{.value = {.line = loc++, .valid = true}});
-    // BUG: Always hides all nodes if hideEnd.
-    if (node->has<ast::generic::Hide>()) {
-      auto hide = node->get<ast::generic::Hide>().value;
-      hide.source = hideEnd;
-      hide.listing = hideEnd;
-      node->set(ast::generic::Hide{.value = hide});
-    } else
-      node->set(
-          ast::generic::Hide{.value = {.source = hideEnd, .listing = hideEnd}});
+
+    // Only apply hideEnd if the node is an .END directive
+    if (ast::type(*node).value == ast::generic::Type::Directive &&
+        node->get<ast::generic::Directive>().value == "END") {
+      if (node->has<ast::generic::Hide>()) {
+        auto hide = node->get<ast::generic::Hide>().value;
+        hide.source = hideEnd;
+        hide.listing = hideEnd;
+        node->set(ast::generic::Hide{.value = hide});
+      } else
+        node->set(ast::generic::Hide{
+            .value = {.source = hideEnd, .listing = hideEnd}});
+    }
 
     // Grouping into sections is now handled in ops::treeify.
     ast::addChild(*parent, node);
@@ -80,7 +84,8 @@ using namespace pas::ast;
 
 template <typename T>
 QList<QSharedPointer<pas::ast::value::Base>>
-parse_arg(const T &line, ST symTab, bool preferIdent = false, std::optional<quint8> sizeOverride =std::nullopt) {
+parse_arg(const T &line, ST symTab, bool preferIdent = false,
+          std::optional<quint8> sizeOverride = std::nullopt) {
   auto visitor = pas::parse::pepp::ParseToArg();
   visitor.symTab = symTab;
   visitor.preferIdent = preferIdent;
