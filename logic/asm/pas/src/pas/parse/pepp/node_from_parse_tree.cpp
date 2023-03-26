@@ -122,12 +122,11 @@ pas::parse::pepp::detail::block(const DirectiveType &line, ST symTab) {
         ret, {.severity = S::Fatal, .message = EP::expectNArguments.arg(1)});
   auto arg = args[0];
   // Triggers when you pass an argument that is a string that is too long.
-  if (!(arg->isFixedSize() && arg->isNumeric()))
+  if (!(arg->isFixedSize() && arg->isNumeric()) || arg->isText())
     return addError(ret,
                     {.severity = S::Fatal, .message = EP::expectedNumeric});
-  else if(arg->isSigned())
-      return addError(ret,
-                      {.severity = S::Fatal, .message = EP::decUnsigned2});
+  else if (arg->isSigned())
+    return addError(ret, {.severity = S::Fatal, .message = EP::decUnsigned2});
   ret->set(generic::Argument{.value = arg});
 
   if (!line.symbol.empty())
@@ -180,7 +179,7 @@ pas::parse::pepp::detail::byte(const DirectiveType &line, ST symTab) {
         ret, {.severity = S::Fatal, .message = EP::expectNArguments.arg(1)});
   auto arg = args[0];
   // Triggers when you pass an argument that is a string that is too long.
-  if (!(arg->isFixedSize() && arg->isNumeric()))
+  if (!(arg->isFixedSize() && arg->isNumeric()) || arg->isText())
     return addError(ret,
                     {.severity = S::Fatal, .message = EP::expectedNumeric});
   ret->set(generic::Argument{.value = arg});
@@ -325,7 +324,7 @@ QSharedPointer<Node> pas::parse::pepp::detail::word(const DirectiveType &line,
         ret, {.severity = S::Fatal, .message = EP::expectNArguments.arg(1)});
   auto arg = args[0];
   // Triggers when you pass a string that is too long
-  if (!(arg->isFixedSize() && arg->isNumeric()))
+  if (!(arg->isFixedSize() && arg->isNumeric()) || arg->isText())
     return addError(ret,
                     {.severity = S::Fatal, .message = EP::expectedNumeric});
   ret->set(generic::Argument{.value = arg});

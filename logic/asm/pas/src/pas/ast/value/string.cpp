@@ -43,7 +43,7 @@ quint64 pas::ast::value::ShortString::size() const { return _size; }
 quint64 pas::ast::value::ShortString::requiredBytes() const { return _size; }
 
 QString pas::ast::value::ShortString::string() const {
-  throw std::logic_error("Unimplemented");
+  return u"\"%1\""_qs.arg(_value);
 }
 
 pas::ast::value::LongString::LongString() : Base() {}
@@ -88,5 +88,5 @@ quint64 pas::ast::value::LongString::requiredBytes() const {
 }
 
 QString pas::ast::value::LongString::string() const {
-  throw std::logic_error("Unimplemented");
+  return u"\"%1\""_qs.arg(_value);
 }

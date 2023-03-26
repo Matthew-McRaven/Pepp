@@ -1,11 +1,12 @@
 #pragma once
+#include "pas/ast/generic/attr_directive.hpp"
+#include "pas/ast/op.hpp"
 #include "pas/ast/value/symbolic.hpp"
+#include "pas/operations/pepp/size.hpp"
 #include "symbol/table.hpp"
 #include "symbol/visit.hpp"
-#pragma once
-#include "pas/ast/op.hpp"
-#include "pas/operations/pepp/size.hpp"
 #include <QtCore>
+#include <pas/ast/generic/attr_hide.hpp>
 
 namespace pas::ast {
 class Node;
@@ -31,19 +32,49 @@ void pas::ops::pepp::detail::assignAddressesImpl(ast::Node &node, quint16 &base,
   auto size = pepp::explicitSize<ISA>(node, base, direction);
   auto symBase = base;
   quint16 newBase = base;
+  // Skip over nodes where addresses make no sense
+  auto type = pas::ast::type(node).value;
+  if (type == pas::ast::generic::Type::Blank ||
+      type == pas::ast::generic::Type::Comment)
+    return;
+  /*quint16 alignSize = 0;
+  if(type == pas::ast::generic::Type::Directive &&
+  node.get<ast::generic::Directive>().value == "ALIGN") { auto arg =
+  node.get<ast::generic::ArgumentList>().value[0];
+    arg->value((quint8*)(&alignSize), 2, pas::bits::hostOrder()) ;
+  }
+  if(type == pas::ast::generic::Type::Directive &&
+  node.get<ast::generic::Directive>().value == "ALIGN" && base % alignSize ==
+  0){
+
+  }*/
+
+  static const QSet<QString> addresslessDirectives = {
+      u"END"_qs,    u"EQUATE"_qs, u"EXPORT"_qs,  u"IMPORT"_qs, u"INPUT"_qs,
+      u"OUTPUT"_qs, u"SCALL"_qs,  u"SECTION"_qs, u"USCALL"_qs};
+  if (type == pas::ast::generic::Type::Directive &&
+      addresslessDirectives.contains(
+          node.get<pas::ast::generic::Directive>().value)) {
+    pas::ast::generic::Hide hide;
+    if (node.has<ast::generic::Hide>())
+      hide = node.get<ast::generic::Hide>();
+    hide.value.addressInListing = true;
+    node.set(hide);
+  }
+
   if (direction == Direction::Forward) {
     // Must explicitly handle address wrap-around, because math inside set
     // address widens implicitly.
     newBase = (base + size) % 0xFFFF;
     // size is 1-index, while base is 0-indexed. Offset by 1. Unless size is 0,
     // in which case no adjustment is necessary.
-    ast::setAddress(node, base, (newBase - (size > 0 ? 1 : 0)) % 0xFFFF);
+    ast::setAddress(node, base, size);
     base = newBase;
   } else {
     newBase = (base - size) % 0xFFFF;
     // size is 1-index, while base is 0-indexed. Offset by 1. Unless size is 0,
     // in which case no adjustment is necessary.
-    ast::setAddress(node, (newBase + (size > 0 ? 1 : 0)) % 0xFFFF, base);
+    ast::setAddress(node, (newBase + (size > 0 ? 1 : 0)) % 0xFFFF, size);
     base = newBase;
     symBase = base;
   }
