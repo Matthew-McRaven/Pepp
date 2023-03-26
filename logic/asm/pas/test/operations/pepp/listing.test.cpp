@@ -109,7 +109,8 @@ private slots:
         QTest::addRow(str) << QString::fromStdString(str) << QStringList{};
     }*/
 
-    // QTest::addRow("WORD 0xFFFE") << "\n" << QStringList{""};*/
+    QTest::addRow("WORD 0xFFFE")
+        << ".WORD 0xFFFE" << QStringList{"0000   FFFE         .WORD  0xFFFE"};
   }
 
   void macros() {}
