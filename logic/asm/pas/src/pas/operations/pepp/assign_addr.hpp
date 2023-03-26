@@ -38,20 +38,27 @@ void pas::ops::pepp::detail::assignAddressesImpl(ast::Node &node, quint16 &base,
   static const QSet<QString> addresslessDirectives = {u"END"_qs, u"EQUATE"_qs, u"EXPORT"_qs, u"IMPORT"_qs,
                                                       u"INPUT"_qs, u"OUTPT"_qs, u"SCALL"_qs, u"SECTION"_qs, u"USCALL"_qs};
   if(type == pas::ast::generic::Type::Directive && addresslessDirectives.contains(node.get<pas::ast::generic::Directive>().value)) return;
+  /*quint16 alignSize = 0;
+  if(type == pas::ast::generic::Type::Directive && node.get<ast::generic::Directive>().value == "ALIGN") {
+    auto arg = node.get<ast::generic::ArgumentList>().value[0];
+    arg->value((quint8*)(&alignSize), 2, pas::bits::hostOrder()) ;
+  }
+  if(type == pas::ast::generic::Type::Directive && node.get<ast::generic::Directive>().value == "ALIGN" && base % alignSize == 0){
 
-  if (direction == Direction::Forward) {
+  }*/
+  else if (direction == Direction::Forward) {
     // Must explicitly handle address wrap-around, because math inside set
     // address widens implicitly.
     newBase = (base + size) % 0xFFFF;
     // size is 1-index, while base is 0-indexed. Offset by 1. Unless size is 0,
     // in which case no adjustment is necessary.
-    ast::setAddress(node, base, (newBase - (size > 0 ? 1 : 0)) % 0xFFFF);
+    ast::setAddress(node, base,  size);
     base = newBase;
   } else {
     newBase = (base - size) % 0xFFFF;
     // size is 1-index, while base is 0-indexed. Offset by 1. Unless size is 0,
     // in which case no adjustment is necessary.
-    ast::setAddress(node, (newBase + (size > 0 ? 1 : 0)) % 0xFFFF, base);
+    ast::setAddress(node, (newBase + (size > 0 ? 1 : 0)) % 0xFFFF, size);
     base = newBase;
     symBase = base;
   }

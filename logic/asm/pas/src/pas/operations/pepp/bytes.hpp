@@ -27,9 +27,9 @@ quint16 nonUnaryToBytes(const pas::ast::Node &node, quint8 *dest,
 
 template <typename ISA>
 QList<quint8> pas::ops::pepp::toBytes(const pas::ast::Node &node) {
-  qsizetype size = pepp::implicitSize<ISA>(node);
-  auto bytes = QList<quint8>(size);
-  if (detail::nodeToBytes<ISA>(node, bytes.data(), size))
+  auto addr = node.get<ast::generic::Address>().value;
+  auto bytes = QList<quint8>(addr.size);
+  if (detail::nodeToBytes<ISA>(node, bytes.data(), addr.size))
     return bytes;
   else
     return {};

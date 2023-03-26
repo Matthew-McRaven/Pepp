@@ -20,7 +20,7 @@ void childRange(QSharedPointer<pas::ast::Node> parent, qsizetype index,
   QVERIFY(child->has<pas::ast::generic::Address>());
   auto address = child->get<pas::ast::generic::Address>().value;
   QCOMPARE(address.start, start % 0xFFFF);
-  QCOMPARE(address.end, end % 0xFFFF);
+  QCOMPARE(address.size, end % 0xFFFF);
 }
 class PasOpsPepp_AssignAddress : public QObject {
   Q_OBJECT
@@ -52,8 +52,8 @@ private slots:
     auto children = ret.root->get<pas::ast::generic::Children>().value;
     QCOMPARE(children.size(), 2);
     pas::ops::pepp::assignAddresses<Pep10ISA>(*ret.root);
-    childRange(ret.root, 0, base + 0, base + 2);
-    childRange(ret.root, 1, base + 3, base + 5);
+    childRange(ret.root, 0, base + 0, 2);
+    childRange(ret.root, 1, base + 3, 2);
   }
   void nonunary_data() {
     QTest::addColumn<qsizetype>("base");
@@ -72,9 +72,9 @@ private slots:
     auto children = ret.root->get<pas::ast::generic::Children>().value;
     QCOMPARE(children.size(), 3);
     pas::ops::pepp::assignAddresses<Pep10ISA>(*ret.root);
-    childRange(ret.root, 0, base + 0, base + 0);
-    childRange(ret.root, 1, base + 0, base + 1);
-    childRange(ret.root, 2, base + 2, base + 2);
+    childRange(ret.root, 0, base + 0, 0);
+    childRange(ret.root, 1, base + 0, 1);
+    childRange(ret.root, 2, base + 2, 2);
   }
   void size0Directives_data() {
     QTest::addColumn<qsizetype>("base");
@@ -95,10 +95,9 @@ private slots:
     auto children = ret.root->get<pas::ast::generic::Children>().value;
     QCOMPARE(children.size(), 2);
     pas::ops::pepp::assignAddresses<Pep10ISA>(*ret.root);
-    childRange(ret.root, 0, base + 0, base + 1);
-    childRange(ret.root, 1, base + 2, base + 2 + len - 1);
+    childRange(ret.root, 0, base + 0, 1);
+    childRange(ret.root, 1, base + 2, len);
   }
-
   void ascii_data() {
     QTest::addColumn<qsizetype>("base");
     QTest::addColumn<QString>("arg");
@@ -121,10 +120,9 @@ private slots:
     auto children = ret.root->get<pas::ast::generic::Children>().value;
     QCOMPARE(children.size(), 3);
     pas::ops::pepp::assignAddresses<Pep10ISA>(*ret.root);
-    childRange(ret.root, 0, base + 0, base + 0);
-    childRange(ret.root, 1, base + 1,
-               (base % align + align) - (base + 1) % align);
-    childRange(ret.root, 2, base % align + align, base % align + align);
+    childRange(ret.root, 0, base + 0, 1);
+    childRange(ret.root, 1, base + 1, align - 1);
+    childRange(ret.root, 2, align, 0);
   }
   void align_data() {
     QTest::addColumn<qsizetype>("align");
@@ -143,8 +141,8 @@ private slots:
     QCOMPARE(children.size(), 3);
     pas::ops::pepp::assignAddresses<Pep10ISA>(*ret.root);
     childRange(ret.root, 0, 0, 0);
-    childRange(ret.root, 1, 1, 1);
-    childRange(ret.root, 2, 1, 1);
+    childRange(ret.root, 1, 1, 0);
+    childRange(ret.root, 2, 1, 0);
     QVERIFY(children[1]->has<pas::ast::generic::SymbolDeclaration>());
     QCOMPARE(children[1]
                  ->get<pas::ast::generic::SymbolDeclaration>()

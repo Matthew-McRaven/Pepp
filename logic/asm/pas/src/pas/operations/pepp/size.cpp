@@ -6,12 +6,14 @@ quint16 pas::ops::pepp::detail::sizeAlign(const ast::Node node, quint16 at,
   auto argument = node.get<ast::generic::Argument>().value;
   quint16 align = 0;
   argument->value(reinterpret_cast<quint8 *>(&align), 2, bits::hostOrder());
+  quint16 ret = 0;
   if (direction == Direction::Forward)
-    return (align - (at % align)) % align;
+    ret =  (align - (at % align)) % align;
   else if (direction == Direction::Backward)
-    return at % align;
+    ret =  at % align;
   else
-    return 0;
+    ret = 0;
+  return ret;
 }
 
 quint16 pas::ops::pepp::detail::sizeASCII(const ast::Node node, quint16,

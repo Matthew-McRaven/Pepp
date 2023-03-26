@@ -3,7 +3,7 @@
 namespace pas::ast::generic {
 struct Address {
   struct Span {
-    quint64 start = 0, end = 0;
+    quint64 start = 0, size = 0;
     bool operator==(const Span &other) const = default;
   };
 

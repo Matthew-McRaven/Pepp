@@ -71,6 +71,6 @@ void pas::ast::addError(Node &node, generic::Message msg) {
   node.set(generic::Error{.value = messages});
 }
 
-void pas::ast::setAddress(Node &node, quint64 start, quint64 end) {
-  node.set(generic::Address{.value = {.start = start, .end = end}});
+void pas::ast::setAddress(Node &node, quint64 start, quint64 size) {
+  node.set(generic::Address{.value = {.start = start, .size = size}});
 }

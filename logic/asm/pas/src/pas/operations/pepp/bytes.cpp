@@ -5,11 +5,10 @@
 #include "pas/ast/value/base.hpp"
 quint16 alignToBytes(const pas::ast::Node &node, quint8 *dest, quint64 length) {
   auto address = node.get<pas::ast::generic::Address>().value;
-  auto size = address.end = address.start;
-  if (length < size)
+  if (length < address.size)
     return 0;
-  memset(dest, 0, address.end - address.start);
-  return size;
+  memset(dest, 0, address.size);
+  return address.size;
 }
 
 quint16 asciiToBytes(const pas::ast::Node &node, quint8 *dest, quint64 length) {
