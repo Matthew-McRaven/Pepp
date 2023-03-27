@@ -74,9 +74,11 @@ void pas::ops::pepp::detail::assignAddressesImpl(ast::Node &node, quint16 &base,
     newBase = (base - size) % 0x10000;
     // size is 1-index, while base is 0-indexed. Offset by 1. Unless size is 0,
     // in which case no adjustment is necessary.
-    ast::setAddress(node, (newBase + (size > 0 ? 1 : 0)) % 0x10000, size);
+    auto adjustedAddress = newBase + (size > 0 ? 1 : 0);
+    // If we use newBase, we are off-by-one when size is non-zero.
+    symBase = adjustedAddress;
+    ast::setAddress(node, adjustedAddress % 0x10000, size);
     base = newBase;
-    symBase = base;
   }
 
   auto isEquate = pas::ops::generic::isSet();
