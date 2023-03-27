@@ -86,18 +86,18 @@ private slots:
       QTest::addRow("%s", str) << qsizetype(0) << QString::fromStdString(str);
   }
 
-  /*void ascii() {
+  void ascii() {
     QFETCH(qsizetype, base);
     QFETCH(QString, arg);
     auto len = pas::bits::escapedStringLength(arg);
-    QString body = u".block 2\n.ASCII \"%1\""_qs.arg(arg);
+    QString body = u".BURN 0x00FF\n.block 2\n.ASCII \"%1\""_qs.arg(arg);
     auto ret = pas::driver::pepp::createParser<Pep10ISA>(false)(body, nullptr);
     QVERIFY(!ret.hadError);
     auto children = ret.root->get<pas::ast::generic::Children>().value;
-    QCOMPARE(children.size(), 2);
+    QCOMPARE(children.size(), 3);
     pas::ops::pepp::assignAddresses<Pep10ISA>(*ret.root);
-    childRange(ret.root, 0, base + 0, 2);
-    childRange(ret.root, 1, base + 2, len);
+    childRange(ret.root, 1, 0xFF - len - 2 + 1, 2);
+    childRange(ret.root, 2, 0xFF - len + 1, len);
   }
   void ascii_data() {
     QTest::addColumn<qsizetype>("base");
@@ -110,51 +110,51 @@ private slots:
     QTest::addRow("long string: 1 escaped") << qsizetype(0) << "a.\\n";
     QTest::addRow("long string: 2 escaped") << qsizetype(0) << "a\\r\\n";
     QTest::addRow("long string: 2 hex") << qsizetype(0) << "a\\xff\\x00";
-  }
+  } /*
 
-  void align() {
-    QFETCH(qsizetype, align);
-    QFETCH(qsizetype, base);
-    QString body = u".block 1\n.ALIGN %1\n.block 0"_qs.arg(align);
-    auto ret = pas::driver::pepp::createParser<Pep10ISA>(false)(body, nullptr);
-    QVERIFY(!ret.hadError);
-    auto children = ret.root->get<pas::ast::generic::Children>().value;
-    QCOMPARE(children.size(), 3);
-    pas::ops::pepp::assignAddresses<Pep10ISA>(*ret.root);
-    childRange(ret.root, 0, base + 0, 1);
-    childRange(ret.root, 1, base + 1, align - 1);
-    childRange(ret.root, 2, align, 0);
-  }
-  void align_data() {
-    QTest::addColumn<qsizetype>("align");
-    QTest::addColumn<qsizetype>("base");
+   void align() {
+     QFETCH(qsizetype, align);
+     QFETCH(qsizetype, base);
+     QString body = u".block 1\n.ALIGN %1\n.block 0"_qs.arg(align);
+     auto ret = pas::driver::pepp::createParser<Pep10ISA>(false)(body, nullptr);
+     QVERIFY(!ret.hadError);
+     auto children = ret.root->get<pas::ast::generic::Children>().value;
+     QCOMPARE(children.size(), 3);
+     pas::ops::pepp::assignAddresses<Pep10ISA>(*ret.root);
+     childRange(ret.root, 0, base + 0, 1);
+     childRange(ret.root, 1, base + 1, align - 1);
+     childRange(ret.root, 2, align, 0);
+   }
+   void align_data() {
+     QTest::addColumn<qsizetype>("align");
+     QTest::addColumn<qsizetype>("base");
 
-    // QTest::addRow("ALIGN 1 @ 0") << qsizetype(1) << qsizetype(0);
-    QTest::addRow("ALIGN 2 @ 0") << qsizetype(2) << qsizetype(0);
-    QTest::addRow("ALIGN 4 @ 0") << qsizetype(4) << qsizetype(0);
-    QTest::addRow("ALIGN 8 @ 0") << qsizetype(8) << qsizetype(0);
-  }
-  void equate() {
-    QString body = ".block 1\ns:.EQUATE 10\nn:.EQUATE s";
-    auto ret = pas::driver::pepp::createParser<Pep10ISA>(false)(body, nullptr);
-    QVERIFY(!ret.hadError);
-    auto children = ret.root->get<pas::ast::generic::Children>().value;
-    QCOMPARE(children.size(), 3);
-    pas::ops::pepp::assignAddresses<Pep10ISA>(*ret.root);
-    childRange(ret.root, 0, 0, 1);
-    // EQUATE generates no bytecode, and has no address.
-    // childRange(ret.root, 1, 1, 0);
-    // childRange(ret.root, 2, 1, 0);
-    QVERIFY(children[1]->has<pas::ast::generic::SymbolDeclaration>());
-    QCOMPARE(children[1]
-                 ->get<pas::ast::generic::SymbolDeclaration>()
-                 .value->value->value()(),
-             10);
-    QCOMPARE(children[2]
-                 ->get<pas::ast::generic::SymbolDeclaration>()
-                 .value->value->value()(),
-             10);
-  }*/
+     // QTest::addRow("ALIGN 1 @ 0") << qsizetype(1) << qsizetype(0);
+     QTest::addRow("ALIGN 2 @ 0") << qsizetype(2) << qsizetype(0);
+     QTest::addRow("ALIGN 4 @ 0") << qsizetype(4) << qsizetype(0);
+     QTest::addRow("ALIGN 8 @ 0") << qsizetype(8) << qsizetype(0);
+   }
+   void equate() {
+     QString body = ".block 1\ns:.EQUATE 10\nn:.EQUATE s";
+     auto ret = pas::driver::pepp::createParser<Pep10ISA>(false)(body, nullptr);
+     QVERIFY(!ret.hadError);
+     auto children = ret.root->get<pas::ast::generic::Children>().value;
+     QCOMPARE(children.size(), 3);
+     pas::ops::pepp::assignAddresses<Pep10ISA>(*ret.root);
+     childRange(ret.root, 0, 0, 1);
+     // EQUATE generates no bytecode, and has no address.
+     // childRange(ret.root, 1, 1, 0);
+     // childRange(ret.root, 2, 1, 0);
+     QVERIFY(children[1]->has<pas::ast::generic::SymbolDeclaration>());
+     QCOMPARE(children[1]
+                  ->get<pas::ast::generic::SymbolDeclaration>()
+                  .value->value->value()(),
+              10);
+     QCOMPARE(children[2]
+                  ->get<pas::ast::generic::SymbolDeclaration>()
+                  .value->value->value()(),
+              10);
+   }*/
   // Don't test macros, they shouldn't survive as nodes into the address
   // assignment stage.
   // Empty lines do not matter.
