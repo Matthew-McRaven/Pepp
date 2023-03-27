@@ -139,7 +139,7 @@ symbol::value::MaskedBits symbol::value::Location::value() const {
   return {.byteCount = _bytes,
           .bitPattern = _base + _offset,
           // Computing bitmask: https://stackoverflow.com/a/1392065
-          .mask = (8ul << _bytes) - 1};
+          .mask = (1ull << 8 * _bytes) - 1};
 }
 
 symbol::Type symbol::value::Location::type() const { return _type; }
