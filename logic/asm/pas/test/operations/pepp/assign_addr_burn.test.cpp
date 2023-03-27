@@ -133,27 +133,26 @@ private slots:
     QTest::addRow("ALIGN 4 @ 0") << qsizetype(4) << qsizetype(0xFFFC);
     QTest::addRow("ALIGN 8 @ 0") << qsizetype(8) << qsizetype(0xFFF8);
   }
-  /*void equate() {
-    QString body = ".block 1\ns:.EQUATE 10\nn:.EQUATE s";
+  void equate() {
+    QString body = ".BURN 0xFFFF\ny:.block 1\ns:.EQUATE 10\nn:.EQUATE y";
     auto ret = pas::driver::pepp::createParser<Pep10ISA>(false)(body, nullptr);
-    QVERIFY(!ret.hadError);
+    auto errors = ret.errors.join("\n").toStdString();
+    QVERIFY2(!ret.hadError, errors.data());
     auto children = ret.root->get<pas::ast::generic::Children>().value;
-    QCOMPARE(children.size(), 3);
+    QCOMPARE(children.size(), 4);
     pas::ops::pepp::assignAddresses<Pep10ISA>(*ret.root);
-    childRange(ret.root, 0, 0, 1);
-    // EQUATE generates no bytecode, and has no address.
-    // childRange(ret.root, 1, 1, 0);
-    // childRange(ret.root, 2, 1, 0);
-    QVERIFY(children[1]->has<pas::ast::generic::SymbolDeclaration>());
-    QCOMPARE(children[1]
-                 ->get<pas::ast::generic::SymbolDeclaration>()
-                 .value->value->value()(),
-             10);
+    childRange(ret.root, 1, 0xFFFF, 1);
+    QVERIFY(children[2]->has<pas::ast::generic::SymbolDeclaration>());
     QCOMPARE(children[2]
                  ->get<pas::ast::generic::SymbolDeclaration>()
                  .value->value->value()(),
              10);
-  }*/
+    QVERIFY(children[3]->has<pas::ast::generic::SymbolDeclaration>());
+    QCOMPARE(children[3]
+                 ->get<pas::ast::generic::SymbolDeclaration>()
+                 .value->value->value()(),
+             0xFFFF);
+  }
   // Don't test macros, they shouldn't survive as nodes into the address
   // assignment stage.
   // Empty lines do not matter.
