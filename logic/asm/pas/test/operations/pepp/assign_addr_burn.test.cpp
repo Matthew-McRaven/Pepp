@@ -19,7 +19,7 @@ void childRange(QSharedPointer<pas::ast::Node> parent, qsizetype index,
   auto child = children[index];
   QVERIFY(child->has<pas::ast::generic::Address>());
   auto address = child->get<pas::ast::generic::Address>().value;
-  QCOMPARE(address.start, start % 0xFFFF);
+  QCOMPARE(address.start, start % 0x10000);
   QCOMPARE(address.size, size);
 }
 class PasOpsPepp_AssignAddressBurn : public QObject {
