@@ -63,19 +63,19 @@ private slots:
     // QTest::addRow("0xFFFE") << qsizetype(0xFFFE);
   }
 
-  /*void size0Directives() {
+  void size0Directives() {
     QFETCH(qsizetype, base);
     QFETCH(QString, directive);
-    QString body = u"%1 s\n.block 2\n%1 s"_qs.arg(directive);
+    QString body = u".BURN 0xABCD\n%1 s\n.block 2\n%1 s"_qs.arg(directive);
     auto ret = pas::driver::pepp::createParser<Pep10ISA>(false)(body, nullptr);
     QVERIFY(!ret.hadError);
     auto children = ret.root->get<pas::ast::generic::Children>().value;
-    QCOMPARE(children.size(), 3);
+    QCOMPARE(children.size(), 4);
     pas::ops::pepp::assignAddresses<Pep10ISA>(*ret.root);
-    // Size 0 directives have no address.
-    // childRange(ret.root, 0, base + 0, 0);
-    childRange(ret.root, 1, base + 0, 2);
-    // childRange(ret.root, 2, base + 2, 0);
+
+    childRange(ret.root, 1, 0xABCD - 2, 0);
+    childRange(ret.root, 2, 0xABCD - 1, 2);
+    childRange(ret.root, 3, 0xABCD, 0);
   }
   void size0Directives_data() {
     QTest::addColumn<qsizetype>("base");
@@ -86,7 +86,7 @@ private slots:
       QTest::addRow("%s", str) << qsizetype(0) << QString::fromStdString(str);
   }
 
-  void ascii() {
+  /*void ascii() {
     QFETCH(qsizetype, base);
     QFETCH(QString, arg);
     auto len = pas::bits::escapedStringLength(arg);
