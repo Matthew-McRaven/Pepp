@@ -65,16 +65,16 @@ void pas::ops::pepp::detail::assignAddressesImpl(ast::Node &node, quint16 &base,
   if (direction == Direction::Forward) {
     // Must explicitly handle address wrap-around, because math inside set
     // address widens implicitly.
-    newBase = (base + size) % 0xFFFF;
+    newBase = (base + size) % 0x10000;
     // size is 1-index, while base is 0-indexed. Offset by 1. Unless size is 0,
     // in which case no adjustment is necessary.
     ast::setAddress(node, base, size);
     base = newBase;
   } else {
-    newBase = (base - size) % 0xFFFF;
+    newBase = (base - size) % 0x10000;
     // size is 1-index, while base is 0-indexed. Offset by 1. Unless size is 0,
     // in which case no adjustment is necessary.
-    ast::setAddress(node, (newBase + (size > 0 ? 1 : 0)) % 0xFFFF, size);
+    ast::setAddress(node, (newBase + (size > 0 ? 1 : 0)) % 0x10000, size);
     base = newBase;
     symBase = base;
   }
