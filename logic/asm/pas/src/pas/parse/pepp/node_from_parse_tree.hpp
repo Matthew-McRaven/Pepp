@@ -113,6 +113,7 @@ QSharedPointer<Node> _export(const DirectiveType &line, ST symTab);
 QSharedPointer<Node> import(const DirectiveType &line, ST symTab);
 QSharedPointer<Node> input(const DirectiveType &line, ST symTab);
 QSharedPointer<Node> output(const DirectiveType &line, ST symTab);
+QSharedPointer<Node> org(const DirectiveType &line, ST symTab);
 QSharedPointer<Node> scall(const DirectiveType &line, ST symTab);
 QSharedPointer<Node> section(const DirectiveType &line, ST symTab);
 QSharedPointer<Node> uscall(const DirectiveType &line, ST symTab);
@@ -242,14 +243,14 @@ QSharedPointer<pas::ast::Node> pas::parse::pepp::FromParseTree<ISA>::operator()(
       const pas::parse::pepp::DirectiveType &, QSharedPointer<symbol::Table>)>;
 
   static QMap<QString, convert_fn> converters = {
-      {u"ALIGN"_qs, detail::align},     {u"ASCII"_qs, detail::ascii},
-      {u"BLOCK"_qs, detail::block},     {u"BURN"_qs, detail::burn},
-      {u"BYTE"_qs, detail::byte},       {u"END"_qs, detail::end},
-      {u"EQUATE"_qs, detail::equate},   {u"EXPORT"_qs, detail::_export},
-      {u"IMPORT"_qs, detail::import},   {u"INPUT"_qs, detail::input},
-      {u"OUTPUT"_qs, detail::output},   {u"SCALL"_qs, detail::scall},
-      {u"SECTION"_qs, detail::section}, {u"USCALL"_qs, detail::uscall},
-      {u"WORD"_qs, detail::word}};
+      {u"ALIGN"_qs, detail::align},   {u"ASCII"_qs, detail::ascii},
+      {u"BLOCK"_qs, detail::block},   {u"BURN"_qs, detail::burn},
+      {u"BYTE"_qs, detail::byte},     {u"END"_qs, detail::end},
+      {u"EQUATE"_qs, detail::equate}, {u"EXPORT"_qs, detail::_export},
+      {u"IMPORT"_qs, detail::import}, {u"INPUT"_qs, detail::input},
+      {u"OUTPUT"_qs, detail::output}, {u"ORG"_qs, detail::org},
+      {u"SCALL"_qs, detail::scall},   {u"SECTION"_qs, detail::section},
+      {u"USCALL"_qs, detail::uscall}, {u"WORD"_qs, detail::word}};
 
   auto identifier = QString::fromStdString(line.identifier).toUpper();
   if (auto converter = converters.find(identifier);

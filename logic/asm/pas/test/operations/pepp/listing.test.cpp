@@ -122,7 +122,10 @@ private slots:
     QTest::addRow("EQUATE: string")
         << "s: .EQUATE \"hi\""
         << QStringList{"            s:       .EQUATE \"hi\""};
-
+    QTest::addRow("ORG") << ".BLOCK 1\n.ORG 0x8000\n.BLOCK 1"
+                         << QStringList{"0000                .BLOCK  1",
+                                        "                    .ORG    0x8000",
+                                        "8000                .BLOCK  1"};
     for (auto &str :
          {".IMPORT", ".EXPORT", ".SCALL", ".USCALL", ".INPUT", ".OUTPUT"}) {
       QTest::addRow("%s", str)

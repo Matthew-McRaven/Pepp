@@ -47,6 +47,11 @@ struct isSet : public pas::ops::ConstOp<bool> {
   bool operator()(const ast::Node &node);
 };
 
+struct isOrg : public pas::ops::ConstOp<bool> {
+  QList<QString> directiveAliases = {u"ORG"_qs};
+  bool operator()(const ast::Node &node);
+};
+
 struct isDirective : public pas::ops::ConstOp<bool> {
   bool operator()(const ast::Node &node);
 };

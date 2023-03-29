@@ -153,8 +153,8 @@ pas::parse::pepp::detail::burn(const DirectiveType &line, ST symTab) {
   // Triggers when the argument is not a hex constant.
   if (auto asHex = dynamic_cast<pas::ast::value::Hexadecimal *>(arg.data());
       asHex == nullptr)
-    return addError(ret,
-                    {.severity = S::Fatal, .message = EP::burnRequiresHex});
+    return addError(
+        ret, {.severity = S::Fatal, .message = EP::requiresHex.arg(".BURN")});
   ret->set(generic::Argument{.value = arg});
 
   // Triggers when you define a symbol.
@@ -264,6 +264,33 @@ QSharedPointer<Node> pas::parse::pepp::detail::output(const DirectiveType &line,
                                                       ST symTab) {
 
   return detail::gen_io_scall_extern(line, symTab, "OUTPUT");
+}
+
+QSharedPointer<pas::ast::Node>
+pas::parse::pepp::detail::org(const DirectiveType &line, ST symTab) {
+  auto ret = QSharedPointer<pas::ast::Node>::create(
+      generic::Type{.value = generic::Type::Directive});
+  ret->set(generic::Directive{.value = u"ORG"_qs});
+
+  auto args = detail::parse_arg(line, symTab);
+  // Triggers when you pass 0 or 2+ arguments.
+  if (args.size() != 1)
+    return addError(
+        ret, {.severity = S::Fatal, .message = EP::expectNArguments.arg(1)});
+  auto arg = args[0];
+  // Triggers when the argument is not a hex constant.
+  if (auto asHex = dynamic_cast<pas::ast::value::Hexadecimal *>(arg.data());
+      asHex == nullptr)
+    return addError(
+        ret, {.severity = S::Fatal, .message = EP::requiresHex.arg(".ORG")});
+  ret->set(generic::Argument{.value = arg});
+
+  if (!line.symbol.empty())
+    ret->set(generic::SymbolDeclaration{
+        .value = symTab->define(QString::fromStdString(line.symbol))});
+  if (line.hasComment)
+    ret->set(generic::Comment{.value = QString::fromStdString(line.comment)});
+  return ret;
 }
 
 QSharedPointer<Node> pas::parse::pepp::detail::scall(const DirectiveType &line,

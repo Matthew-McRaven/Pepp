@@ -122,3 +122,13 @@ bool pas::ops::generic::ListingHidden::operator()(const ast::Node &node) {
   return node.has<ast::generic::Hide>() &&
          node.get<ast::generic::Hide>().value.listing;
 }
+
+bool pas::ops::generic::isOrg::operator()(const ast::Node &node) {
+  using namespace pas;
+  return node.get<ast::generic::Type>().value ==
+             ast::generic::Type::Directive &&
+         node.has<ast::generic::Directive>() &&
+         (directiveAliases.contains(
+             node.get<ast::generic::Directive>().value.toUpper())) &&
+         node.has<ast::generic::Argument>();
+}

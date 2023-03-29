@@ -40,8 +40,8 @@ inline const QString noDefineSymbol = u"%1 may not define a symbol."_qs;
 // Burn problems
 inline const QString onlyOSBurn = u""_qs;
 inline const QString os1Burn = u""_qs;
-inline const QString burnRequiresHex =
-    u".BURN requires a hexadecimal argument in range of [0x0000,0xFFFF]."_qs;
+inline const QString requiresHex =
+    u"%1 requires a hexadecimal argument in range of [0x0000,0xFFFF]."_qs;
 // Malformed values
 inline const QString malformedChar = u""_qs;
 inline const QString malformedString = u""_qs;
