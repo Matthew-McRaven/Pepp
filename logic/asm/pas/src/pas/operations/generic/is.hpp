@@ -84,6 +84,19 @@ struct And : public pas::ops::ConstOp<bool> {
   rhs op2;
   bool operator()(const ast::Node &node);
 };
+
+template <typename op> struct ForAll : public pas::ops::ConstOp<void> {
+  bool result = true;
+  op operation;
+  void operator()(const ast::Node &node);
+};
+
+template <typename op> struct Exists : public pas::ops::ConstOp<void> {
+  bool result = false;
+  op operation;
+  void operator()(const ast::Node &node);
+};
+
 } // namespace pas::ops::generic
 
 template <typename op>
@@ -99,4 +112,14 @@ bool pas::ops::generic::Or<lhs, rhs>::operator()(const ast::Node &node) {
 template <typename lhs, typename rhs>
 bool pas::ops::generic::And<lhs, rhs>::operator()(const ast::Node &node) {
   return op1(node) && op2(node);
+}
+
+template <typename op>
+void pas::ops::generic::ForAll<op>::operator()(const ast::Node &node) {
+  result &= operation(node);
+}
+
+template <typename op>
+void pas::ops::generic::Exists<op>::operator()(const ast::Node &node) {
+  result |= operation(node);
 }
