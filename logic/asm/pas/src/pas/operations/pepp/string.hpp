@@ -89,11 +89,11 @@ QStringList pas::ops::pepp::list(const pas::ast::Node &node,
   if (node.has<ast::generic::Address>() &&
       !(node.has<ast::generic::Hide>() &&
         node.get<ast::generic::Hide>().value.addressInListing))
-    address =
-        u"%1"_qs
-            .arg(QString::number(node.get<ast::generic::Address>().value.start),
-                 4, '0')
-            .toUpper();
+    address = u"%1"_qs
+                  .arg(QString::number(
+                           node.get<ast::generic::Address>().value.start, 16),
+                       4, '0')
+                  .toUpper();
 
   quint16 bytesEmitted = 0;
   QString prettyBytes = "";
