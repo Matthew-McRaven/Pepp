@@ -84,7 +84,7 @@ private slots:
     QTest::addRow("BLOCK 0")
         << "s: .BLOCK 0" << QStringList{"0000        s:       .BLOCK  0"};
     QTest::addRow("BLOCK 1")
-        << ".BLOCK 1" << QStringList{"0000                .BLOCK  1"};
+        << ".BLOCK 1" << QStringList{"0000     00         .BLOCK  1"};
     QTest::addRow("BLOCK 0x2")
         << ".BLOCK 0x2" << QStringList{"0000   0000         .BLOCK  0x0002"};
     QTest::addRow("BLOCK 4")
@@ -123,9 +123,9 @@ private slots:
         << "s: .EQUATE \"hi\""
         << QStringList{"            s:       .EQUATE \"hi\""};
     QTest::addRow("ORG") << ".BLOCK 1\n.ORG 0x8000\n.BLOCK 1"
-                         << QStringList{"0000                .BLOCK  1",
+                         << QStringList{"0000     00         .BLOCK  1",
                                         "                    .ORG    0x8000",
-                                        "8000                .BLOCK  1"};
+                                        "8000     00         .BLOCK  1"};
     for (auto &str :
          {".IMPORT", ".EXPORT", ".SCALL", ".USCALL", ".INPUT", ".OUTPUT"}) {
       QTest::addRow("%s", str)

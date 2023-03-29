@@ -24,7 +24,8 @@ quint16 asciiToBytes(const pas::ast::Node &node, quint8 *dest, quint64 length) {
 
 quint16 blockToBytes(const pas::ast::Node &node, quint8 *dest, quint64 length) {
   auto argument = node.get<pas::ast::generic::Argument>().value;
-  auto size = argument->size();
+  quint16 size = 0;
+  argument->value(reinterpret_cast<quint8 *>(&size), 2, pas::bits::hostOrder());
   if (length < size)
     return 0;
   memset(dest, 0, size);
