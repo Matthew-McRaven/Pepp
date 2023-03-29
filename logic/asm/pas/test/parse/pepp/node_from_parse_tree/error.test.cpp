@@ -158,9 +158,11 @@ private slots:
     // BURN -- no symbol, only allows hex
     // - no decimal
     QTest::addRow(".BURN: no unsigned decimals")
-        << u".BURN 33333"_qs << QList<Error>{makeFatal(0, E::burnRequiresHex)};
+        << u".BURN 33333"_qs
+        << QList<Error>{makeFatal(0, E::requiresHex.arg(".BURN"))};
     QTest::addRow(".BURN: no negative decimals")
-        << u".BURN -42"_qs << QList<Error>{makeFatal(0, E::burnRequiresHex)};
+        << u".BURN -42"_qs
+        << QList<Error>{makeFatal(0, E::requiresHex.arg(".BURN"))};
     // - no text (chars/longstr/shortstr)
     QTest::addRow(".BURN: no characters")
         << u".BLOCK '*'"_qs << QList<Error>{makeFatal(0, E::expectedNumeric)};
@@ -253,6 +255,13 @@ private slots:
       QTest::addRow(label.toUtf8())
           << command << QList<Error>{makeFatal(0, E::expectedSymbolic)};
     }
+    // ORG
+    QTest::addRow(".ORG: no unsigned decimals")
+        << u".ORG 33333"_qs
+        << QList<Error>{makeFatal(0, E::requiresHex.arg(".ORG"))};
+    QTest::addRow(".ORG: no negative decimals")
+        << u".ORG -42"_qs
+        << QList<Error>{makeFatal(0, E::requiresHex.arg(".ORG"))};
 
     // Section
     // - exactly 1 arg (an identifier)

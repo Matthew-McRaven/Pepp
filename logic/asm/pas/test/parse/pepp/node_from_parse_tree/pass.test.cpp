@@ -66,6 +66,8 @@ QSharedPointer<pas::ops::ConstOp<bool>> isInput =
     QSharedPointer<pas::ops::pepp::isInput>::create();
 QSharedPointer<pas::ops::ConstOp<bool>> isOutput =
     QSharedPointer<pas::ops::pepp::isOutput>::create();
+QSharedPointer<pas::ops::ConstOp<bool>> isOrg =
+    QSharedPointer<pas::ops::generic::isOrg>::create();
 QSharedPointer<pas::ops::ConstOp<bool>> isSCall =
     QSharedPointer<pas::ops::pepp::isSCall>::create();
 QSharedPointer<pas::ops::ConstOp<bool>> isSection =
@@ -234,6 +236,10 @@ private slots:
     // OUTPUT
     QTest::newRow(".OUTPUT: mixed case") << ".OuTpUt hi" << isOutput << false;
     QTest::newRow(".OUTPUT: comment") << ".OUTPUT hi;hi" << isOutput << false;
+    // ORG
+    QTest::newRow(".ORG: mixed case") << ".OrG 0xBAAD" << isOrg << false;
+    QTest::newRow(".ORG: comment") << ".ORG 0xBEEF;10" << isOrg << false;
+    QTest::newRow(".ORG: symbol") << "s:.ORG 0xFFAD;10" << isOrg << true;
     // SCALL
     QTest::newRow(".SCALL: mixed case") << ".sCaLl hi" << isSCall << false;
     QTest::newRow(".SCALL: comment") << ".SCALL hi;10" << isSCall << false;

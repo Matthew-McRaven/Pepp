@@ -155,6 +155,17 @@ private slots:
                  .value->value->value()(),
              10);
   }
+
+  void org() {
+    QString body = "adda 0,i\n.ORG 0x8000\nldwa 0,i";
+    auto ret = pas::driver::pepp::createParser<Pep10ISA>(false)(body, nullptr);
+    QVERIFY(!ret.hadError);
+    auto children = ret.root->get<pas::ast::generic::Children>().value;
+    QCOMPARE(children.size(), 3);
+    pas::ops::pepp::assignAddresses<Pep10ISA>(*ret.root);
+    childRange(ret.root, 0, 0, 3);
+    childRange(ret.root, 2, 0x8000, 3);
+  }
   // Don't test macros, they shouldn't survive as nodes into the address
   // assignment stage.
   // Empty lines do not matter.

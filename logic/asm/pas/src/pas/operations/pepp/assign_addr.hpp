@@ -61,8 +61,11 @@ void pas::ops::pepp::detail::assignAddressesImpl(ast::Node &node, quint16 &base,
     hide.value.addressInListing = true;
     node.set(hide);
   }
-
-  if (direction == Direction::Forward) {
+  if (generic::isOrg()(node)) {
+    auto arg = node.get<ast::generic::Argument>().value;
+    arg->value(reinterpret_cast<quint8 *>(&base), 2, bits::hostOrder());
+    newBase = symBase = base;
+  } else if (direction == Direction::Forward) {
     // Must explicitly handle address wrap-around, because math inside set
     // address widens implicitly.
     newBase = (base + size) % 0x10000;
