@@ -20,13 +20,13 @@ quint16 baseAddress(const ast::Node &node);
 // Use when you have a root node, and you don't have a pre-specified `at`.
 // If you want to place your code at a custom location in memory, use explicit
 // size. Will search for a BURN, and use the `at=argument`. Otherwise `at=0`.
-template <typename ISA> quint16 implicitSize(const ast::Node &node);
+template <typename ISA> qsizetype implicitSize(const ast::Node &node);
 
 // Makes no assumption about if the node is a root, or any placement parameters.
 // Use this if you want to place code at a non-standard location in memory.
 template <typename ISA>
-quint16 explicitSize(const ast::Node &node, quint16 at,
-                     Direction direction = Direction::Forward);
+qsizetype explicitSize(const ast::Node &node, quint16 at,
+                       Direction direction = Direction::Forward);
 
 namespace detail {
 quint16 sizeAlign(const ast::Node, quint16 at, Direction direction);
@@ -38,12 +38,12 @@ quint16 sizeWord(const ast::Node, quint16 at, Direction direction);
 } // namespace pas::ops::pepp
 
 template <typename ISA>
-quint16 pas::ops::pepp::implicitSize(const pas::ast::Node &node) {
+qsizetype pas::ops::pepp::implicitSize(const pas::ast::Node &node) {
   return explicitSize<ISA>(node, baseAddress(node), direction(node));
 }
 template <typename ISA>
-quint16 pas::ops::pepp::explicitSize(const ast::Node &node, quint16 at,
-                                     Direction direction) {
+qsizetype pas::ops::pepp::explicitSize(const ast::Node &node, quint16 at,
+                                       Direction direction) {
   using sizeFn = std::function<quint16(const ast::Node &, quint16, Direction)>;
   static const QMap<QString, sizeFn> directiveMap = {
       {u"ALIGN"_qs, &detail::sizeAlign},
@@ -59,7 +59,7 @@ quint16 pas::ops::pepp::explicitSize(const ast::Node &node, quint16 at,
     }
     return 0;
   } else if (generic::isMacro()(node) || generic::isStructural()(node)) {
-    quint16 ret = 0;
+    qsizetype ret = 0;
     for (auto &child : node.get<ast::generic::Children>().value) {
       auto innerAt = at + (direction == Direction::Forward ? ret : -ret);
       ret += explicitSize<ISA>(*child, innerAt, direction);
