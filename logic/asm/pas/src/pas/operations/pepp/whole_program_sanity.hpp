@@ -35,7 +35,7 @@ struct Features {
 
 template <typename ISA>
 bool checkWholeProgramSanity(ast::Node &node, Features features) {
-  if (explicitSize<ISA>(node) > 0x10000) {
+  if (implicitSize<ISA>(node) > 0x10000) {
     // Add error to first "real" node
   } else if (!validateDirectives<ISA>(node))
     // Visitor adds its own errors, just signal error
