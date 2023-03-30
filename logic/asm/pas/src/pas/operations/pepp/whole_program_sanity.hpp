@@ -8,7 +8,7 @@ namespace pas::ops::pepp {
 template <typename ISA>
 struct ValidateDirectives : public pas::ops::MutatingOp<void> {
   bool valid = true;
-  void operator()(ast::Node &node) { valid &= ISA::isValidDirective(true); }
+    void operator()(ast::Node &node) { valid &= ISA::isLegalDirective(node.get<pas::ast::generic::Directive>().value); }
 };
 
 template <typename ISA> bool validateDirectives(ast::Node &node) {
