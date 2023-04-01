@@ -4,7 +4,7 @@
 
 namespace pas::ops::pepp {
 
-typedef bool(*SelectorFn)(const ast::Node&);
+using SelectorFn = std::function<bool(const ast::Node&)>;
 QSharedPointer<const pas::ast::Node> findFirst(const ast::Node& node, SelectorFn selector);
 QSharedPointer<pas::ast::Node> findFirst(ast::Node& node, SelectorFn selector);
 }
