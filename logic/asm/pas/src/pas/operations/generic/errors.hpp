@@ -12,4 +12,6 @@ struct CollectErrors : public pas::ops::ConstOp<void> {
   QList<QPair<ast::generic::SourceLocation, ast::generic::Message>> errors;
   void operator()(const ast::Node &node);
 };
+
+QList<QPair<ast::generic::SourceLocation, ast::generic::Message>> collectErrors(const ast::Node& node);
 } // namespace pas::ops::generic

@@ -13,3 +13,10 @@ void pas::ops::generic::CollectErrors::operator()(const ast::Node &node) {
     }
   }
 }
+
+QList<QPair<pas::ast::generic::SourceLocation, pas::ast::generic::Message>> pas::ops::generic::collectErrors(const ast::Node &node)
+{
+  CollectErrors errors;
+  pas::ast::apply_recurse(node, errors);
+  return errors.errors;
+}
