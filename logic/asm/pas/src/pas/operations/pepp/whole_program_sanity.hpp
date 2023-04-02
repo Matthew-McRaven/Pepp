@@ -51,6 +51,14 @@ template <typename ISA>
 bool checkWholeProgramSanity(ast::Node &node, Features features) {
   if (implicitSize<ISA>(node) > 0x10000) {
     // Add error to first "real" node
+    auto target =
+        ops::generic::findFirst(node, pas::ops::pepp::findNonStructural);
+    // No need to error check. If size is non-zero, there must exist some node
+    // that is non-structural.
+    ast::addError(target,
+                  {.severity = pas::ast::generic::Message::Severity::Fatal,
+                   .message = pas::errors::pepp::objTooBig});
+    return false;
   } else if (!validateDirectives<ISA>(node))
     // Visitor adds its own errors, just signal error
     return false;
