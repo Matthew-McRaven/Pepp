@@ -3,7 +3,8 @@
 
 namespace pas::ops::pepp {
 namespace detail {
-bool findFirstNonStructural(const ast::Node& node)
+bool findNonStructural(const ast::Node &node);
 }
-static const generic::SelectorFn findFirstCode;
-}
+static const ops::generic::SelectorFn findNonStructural =
+    detail::findNonStructural;
+} // namespace pas::ops::pepp
