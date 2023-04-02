@@ -87,7 +87,7 @@ private slots:
     QCOMPARE(errors.size(), 1);
     QCOMPARE(errors[0].second.message, E::undefinedSymbol.arg("s"));
   }
-  /*void noMultiplyDefined() {
+  void noMultiplyDefined() {
     QString source = "s:.BLOCK 2\ns:.block 2\n.END";
     auto parsed = pas::driver::pepp::createParser<pas::isa::Pep10ISA>(false)(
         source, nullptr);
@@ -98,7 +98,7 @@ private slots:
     QCOMPARE(errors.size(), 2);
     QCOMPARE(errors[0].second.message, E::multiplyDefinedSymbol.arg("s"));
     QCOMPARE(errors[0].second.message, E::multiplyDefinedSymbol.arg("s"));
-  }*/
+  }
 };
 
 #include "whole_program_sanity.test.moc"

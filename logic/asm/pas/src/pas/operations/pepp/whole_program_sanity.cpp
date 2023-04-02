@@ -4,6 +4,8 @@
 #include "pas/operations/generic/is.hpp"
 #include "symbol/entry.hpp"
 
+#include <pas/ast/generic/attr_symbol.hpp>
+
 bool pas::ops::pepp::IsOSFeature::operator()(const ast::Node &node) {
   static const auto osDirectives = QSet<QString>{
       "BURN", "EXPORT", "IMPORT", "INPUT", "OUTPUT", "SCALL", "USCALL"};
@@ -55,6 +57,7 @@ bool annotateUndefinedArgument(pas::ast::Node &node,
   } else
     return false;
 }
+
 void pas::ops::pepp::ErrorOnUndefinedSymbolicArgument::operator()(
     ast::Node &node) {
   if (node.has<ast::generic::Argument>())
@@ -67,6 +70,28 @@ void pas::ops::pepp::ErrorOnUndefinedSymbolicArgument::operator()(
 
 bool pas::ops::pepp::errorOnUndefinedSymbolicArgument(ast::Node &node) {
   ErrorOnUndefinedSymbolicArgument visit;
+  ast::apply_recurse(node, visit);
+  return visit.hadError;
+}
+
+void pas::ops::pepp::ErrorOnMultipleSymbolDefiniton::operator()(
+    ast::Node &node) {
+  if (node.has<ast::generic::SymbolDeclaration>()) {
+    auto symbol = node.get<ast::generic::SymbolDeclaration>().value;
+    // Don't need to check for undefined. Undefined is impossible if we have a
+    // symbol declaration.
+    if (symbol->state == symbol::DefinitionState::kSingle)
+      return;
+    hadError |= true;
+    ast::addError(
+        node, {.severity = pas::ast::generic::Message::Severity::Fatal,
+               .message =
+                   pas::errors::pepp::multiplyDefinedSymbol.arg(symbol->name)});
+  }
+}
+
+bool pas::ops::pepp::errorOnMultipleSymbolDefiniton(ast::Node &node) {
+  ErrorOnMultipleSymbolDefiniton visit;
   ast::apply_recurse(node, visit);
   return visit.hadError;
 }
