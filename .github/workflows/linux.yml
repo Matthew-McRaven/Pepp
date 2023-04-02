@@ -28,4 +28,4 @@ jobs:
       - run: cmake -B ../build .
       - run: export CTEST_OUTPUT_ON_FAILURE=TRUE
       # Must set platform, because the container is non-gui
-      - run: export QT_QPA_PLATFORM=offscreen && cd ../build && make -j20 && (make test || (cat ../build/Testing/Temporary/LastTest.log && exit 1))
+      - run: export QT_QPA_PLATFORM=offscreen && cd ../build && make -j6 && (make test || (cat ../build/Testing/Temporary/LastTest.log && exit 1))
