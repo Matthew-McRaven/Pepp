@@ -1,22 +1,27 @@
 #pragma once
+#include "pas/ast/generic/attr_directive.hpp"
 #include "pas/ast/node.hpp"
 #include "pas/ast/op.hpp"
 #include "pas/errors.hpp"
-#include "pas/ast/generic/attr_directive.hpp"
+#include "pas/operations/generic/find.hpp"
 #include "pas/operations/generic/is.hpp"
+#include "pas/operations/pepp/find.hpp"
 
 namespace pas::ops::pepp {
 template <typename ISA>
 struct ValidateDirectives : public pas::ops::MutatingOp<void> {
   bool valid = true;
-    void operator()(ast::Node &node) {
-        auto localValid =  ISA::isLegalDirective(node.get<pas::ast::generic::Directive>().value);
-        valid &= localValid;
-        if(!localValid) {
-            auto message = pas::errors::pepp::illegalDirective.arg("."+node.get<pas::ast::generic::Directive>().value);
-            ast::addError(node, {.severity = ast::generic::Message::Severity::Fatal, .message=message});
-        }
+  void operator()(ast::Node &node) {
+    auto localValid =
+        ISA::isLegalDirective(node.get<pas::ast::generic::Directive>().value);
+    valid &= localValid;
+    if (!localValid) {
+      auto message = pas::errors::pepp::illegalDirective.arg(
+          "." + node.get<pas::ast::generic::Directive>().value);
+      ast::addError(node, {.severity = ast::generic::Message::Severity::Fatal,
+                           .message = message});
     }
+  }
 };
 
 template <typename ISA> bool validateDirectives(ast::Node &node) {
