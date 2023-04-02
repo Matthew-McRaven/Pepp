@@ -47,6 +47,13 @@ struct Features {
   bool allowOSFeatures = false;
 };
 
+struct ErrorOnUndefinedSymbolicArgument : public pas::ops::MutatingOp<void> {
+  bool hadError = false;
+  void operator()(ast::Node &node);
+};
+
+bool errorOnUndefinedSymbolicArgument(ast::Node &node);
+
 template <typename ISA>
 bool checkWholeProgramSanity(ast::Node &node, Features features) {
   if (implicitSize<ISA>(node) > 0x10000) {
@@ -78,6 +85,8 @@ bool checkWholeProgramSanity(ast::Node &node, Features features) {
     ast::addError(target,
                   {.severity = pas::ast::generic::Message::Severity::Fatal,
                    .message = pas::errors::pepp::missingEnd});
+    return false;
+  } else if (errorOnUndefinedSymbolicArgument(node)) {
     return false;
   }
 

@@ -42,7 +42,7 @@ private slots:
   }
   void noOSFeatures() {
     QFETCH(QString, op);
-    QString source = u".%1 s\n.END"_qs.arg(op);
+    QString source = u".%1 s\ns:.block 1\n.END"_qs.arg(op);
     auto parsed = pas::driver::pepp::createParser<pas::isa::Pep10ISA>(false)(
         source, nullptr);
     pas::ops::pepp::assignAddresses<pas::isa::Pep10ISA>(*parsed.root);
@@ -76,6 +76,29 @@ private slots:
     QCOMPARE(errors.size(), 1);
     QCOMPARE(errors[0].second.message, E::missingEnd);
   }
+  void noUndefinedDefinedArg() {
+    QString source = "LDWA s,i\n.END";
+    auto parsed = pas::driver::pepp::createParser<pas::isa::Pep10ISA>(false)(
+        source, nullptr);
+    pas::ops::pepp::assignAddresses<pas::isa::Pep10ISA>(*parsed.root);
+    QVERIFY(!pas::ops::pepp::checkWholeProgramSanity<pas::isa::Pep10ISA>(
+        *parsed.root, {.allowOSFeatures = false}));
+    auto errors = pas::ops::generic::collectErrors(*parsed.root);
+    QCOMPARE(errors.size(), 1);
+    QCOMPARE(errors[0].second.message, E::undefinedSymbol.arg("s"));
+  }
+  /*void noMultiplyDefined() {
+    QString source = "s:.BLOCK 2\ns:.block 2\n.END";
+    auto parsed = pas::driver::pepp::createParser<pas::isa::Pep10ISA>(false)(
+        source, nullptr);
+    pas::ops::pepp::assignAddresses<pas::isa::Pep10ISA>(*parsed.root);
+    QVERIFY(!pas::ops::pepp::checkWholeProgramSanity<pas::isa::Pep10ISA>(
+        *parsed.root, {.allowOSFeatures = false}));
+    auto errors = pas::ops::generic::collectErrors(*parsed.root);
+    QCOMPARE(errors.size(), 2);
+    QCOMPARE(errors[0].second.message, E::multiplyDefinedSymbol.arg("s"));
+    QCOMPARE(errors[0].second.message, E::multiplyDefinedSymbol.arg("s"));
+  }*/
 };
 
 #include "whole_program_sanity.test.moc"

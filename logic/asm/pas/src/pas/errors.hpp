@@ -34,7 +34,8 @@ inline const QString objTooBig = u"Object code must fit within 65536 bytes."_qs;
 inline const QString missingEnd = u"Missing .END."_qs;
 inline const QString onlyCommentAfterEnd = u""_qs;
 // Symbol problems
-inline const QString undefinedSymbol = u""_qs;
+inline const QString undefinedSymbol = u"Undefined symbol %1."_qs;
+inline const QString multiplyDefinedSymbol = u"Multiply defined symbol %1."_qs;
 inline const QString symbolNeedsDotInst = u""_qs;
 inline const QString previouslyDefinedSymbol = u""_qs;
 inline const QString tooLongSymbol = u""_qs;
