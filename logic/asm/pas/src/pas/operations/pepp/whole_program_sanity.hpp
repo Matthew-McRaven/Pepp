@@ -66,7 +66,21 @@ bool checkWholeProgramSanity(ast::Node &node, Features features) {
     // Add error to all nodes with OS features
     errorOnOSFeatures(node);
     return false;
+  } else if (ops::generic::findFirst(node, pas::ops::pepp::findUnhiddenEnd) ==
+             nullptr) {
+    // Add error to first "real" node if present
+    auto target =
+        ops::generic::findFirst(node, pas::ops::pepp::findNonStructural);
+    // BUG: will throw when program is empty.
+    if (target == nullptr)
+      throw std::logic_error(
+          "Unhandled nullptr in pepp::whole_program_sanity.");
+    ast::addError(target,
+                  {.severity = pas::ast::generic::Message::Severity::Fatal,
+                   .message = pas::errors::pepp::missingEnd});
+    return false;
   }
+
   return true;
 }
 } // namespace pas::ops::pepp
