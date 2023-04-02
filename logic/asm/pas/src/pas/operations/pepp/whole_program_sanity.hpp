@@ -67,5 +67,6 @@ bool checkWholeProgramSanity(ast::Node &node, Features features) {
     errorOnOSFeatures(node);
     return false;
   }
+  return true;
 }
 } // namespace pas::ops::pepp
