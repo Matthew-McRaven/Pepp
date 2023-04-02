@@ -10,7 +10,7 @@ bool pas::ops::pepp::IsOSFeature::operator()(const ast::Node &node) {
 }
 
 bool pas::ops::pepp::hasOSFeatures(ast::Node &node) {
-  pas::ops::generic::ForAll<IsOSFeature> feats;
+  pas::ops::generic::Exists<IsOSFeature> feats;
   ast::apply_recurse(node, feats);
   return feats.result;
 }
