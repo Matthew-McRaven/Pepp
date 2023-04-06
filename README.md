@@ -60,19 +60,11 @@ It integrates all the programming features of Pep/9 and the graphical CPU intera
 The IDE includes a command-line version of the Pep/9 and Pep/10 virtual machine.s
 It uses the assembler from the PepIDE application to create a .pepo file, and the simulator to execute the .pepo file.
 
+Teachers can script PepTerm to batch test assembly language homework submissions. 
+
 # Contributing
 Please see [our Contribution Guidelines](CONTRIBUTING.md) before contributing to this project.
 
 # Build from Sources
 It is recommened to build the application from within Qt Creator.
 Boost > 1.76.0 is required on the build machine, and boost's path must be exported for visibility in CMake.
-
-
-
-
-
-
-
-
-
-Teachers can script PepTerm to batch test assembly language homework submissions. 
