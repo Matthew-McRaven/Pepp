@@ -11,7 +11,7 @@ class PasOpsPepp_WholeProgramSanity : public QObject {
   Q_OBJECT
 private slots:
   void noBurn() {
-    QString source = ".BURN 0xFFFF\n.BLOCK 1\n.END";
+    QString source = ".BURN 0xFFFF\n.BLOCK 1\n";
     auto parsed = pas::driver::pepp::createParser<pas::isa::Pep10ISA>(false)(
         source, nullptr);
     pas::ops::pepp::assignAddresses<pas::isa::Pep10ISA>(*parsed.root);
@@ -22,7 +22,7 @@ private slots:
     QCOMPARE(errors[0].second.message, E::illegalDirective.arg(".BURN"));
   }
   void size0xFFFF() {
-    QString source = ".BLOCK 0xFFFF\n.END";
+    QString source = ".BLOCK 0xFFFF\n";
     auto parsed = pas::driver::pepp::createParser<pas::isa::Pep10ISA>(false)(
         source, nullptr);
     pas::ops::pepp::assignAddresses<pas::isa::Pep10ISA>(*parsed.root);
@@ -30,7 +30,7 @@ private slots:
         *parsed.root, {.allowOSFeatures = false}));
   }
   void size0x10000() {
-    QString source = ".BLOCK 0xFFFF\n.BLOCK 2\n.END";
+    QString source = ".BLOCK 0xFFFF\n.BLOCK 2\n";
     auto parsed = pas::driver::pepp::createParser<pas::isa::Pep10ISA>(false)(
         source, nullptr);
     pas::ops::pepp::assignAddresses<pas::isa::Pep10ISA>(*parsed.root);
@@ -42,7 +42,7 @@ private slots:
   }
   void noOSFeatures() {
     QFETCH(QString, op);
-    QString source = u".%1 s\ns:.block 1\n.END"_qs.arg(op);
+    QString source = u".%1 s\ns:.block 1\n"_qs.arg(op);
     auto parsed = pas::driver::pepp::createParser<pas::isa::Pep10ISA>(false)(
         source, nullptr);
     pas::ops::pepp::assignAddresses<pas::isa::Pep10ISA>(*parsed.root);
@@ -65,7 +65,7 @@ private slots:
     QTest::addRow("SCALL") << "SCALL";
   }
 
-  void requireEnd() {
+  /*void requireEnd() {
     QString source = ".BLOCK 2";
     auto parsed = pas::driver::pepp::createParser<pas::isa::Pep10ISA>(false)(
         source, nullptr);
@@ -75,9 +75,21 @@ private slots:
     auto errors = pas::ops::generic::collectErrors(*parsed.root);
     QCOMPARE(errors.size(), 1);
     QCOMPARE(errors[0].second.message, E::missingEnd);
+  }*/
+  void noRequiresEnd() {
+    QString source = ".BLOCK 2\n.END";
+    auto parsed = pas::driver::pepp::createParser<pas::isa::Pep10ISA>(false)(
+        source, nullptr);
+    pas::ops::pepp::assignAddresses<pas::isa::Pep10ISA>(*parsed.root);
+    QVERIFY(!pas::ops::pepp::checkWholeProgramSanity<pas::isa::Pep10ISA>(
+        *parsed.root, {.allowOSFeatures = false}));
+    auto errors = pas::ops::generic::collectErrors(*parsed.root);
+    QCOMPARE(errors.size(), 1);
+    QCOMPARE(errors[0].second.message, E::illegalDirective.arg(".END"));
   }
+
   void noUndefinedDefinedArg() {
-    QString source = "LDWA s,i\n.END";
+    QString source = "LDWA s,i\n";
     auto parsed = pas::driver::pepp::createParser<pas::isa::Pep10ISA>(false)(
         source, nullptr);
     pas::ops::pepp::assignAddresses<pas::isa::Pep10ISA>(*parsed.root);
@@ -88,7 +100,7 @@ private slots:
     QCOMPARE(errors[0].second.message, E::undefinedSymbol.arg("s"));
   }
   void noMultiplyDefined() {
-    QString source = "s:.BLOCK 2\ns:.block 2\n.END";
+    QString source = "s:.BLOCK 2\ns:.block 2\n";
     auto parsed = pas::driver::pepp::createParser<pas::isa::Pep10ISA>(false)(
         source, nullptr);
     pas::ops::pepp::assignAddresses<pas::isa::Pep10ISA>(*parsed.root);
