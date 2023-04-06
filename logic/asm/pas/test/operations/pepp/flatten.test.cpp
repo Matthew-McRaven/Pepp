@@ -5,6 +5,7 @@
 #include "pas/driver/pepp.hpp"
 #include "pas/isa/pep10.hpp"
 #include "pas/operations/generic/errors.hpp"
+#include "pas/operations/generic/include_macros.hpp"
 #include "pas/operations/generic/is.hpp"
 #include "pas/operations/pepp/string.hpp"
 #include <QObject>

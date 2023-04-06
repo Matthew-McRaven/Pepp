@@ -1,3 +1,4 @@
+#include "pas/operations/generic/include_macros.hpp"
 #include "macro/macro.hpp"
 #include "macro/registry.hpp"
 #include "pas/ast/generic/attr_children.hpp"
