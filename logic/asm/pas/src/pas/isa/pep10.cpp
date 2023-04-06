@@ -172,9 +172,8 @@ bool pas::isa::Pep10ISA::canElideAddressingMode(Mnemonic mnemonic,
 }
 
 bool pas::isa::Pep10ISA::isLegalDirective(QString directive) {
-  static const auto valid =
-      QSet<QString>{"ALIGN",  "ASCII",  "BLOCK",   "BYTE",   "END",
-                    "EQUATE", "EXPORT", "IMPORT",  "INPUT",  "OUTPUT",
-                    "ORG",    "SCALL",  "SECTION", "USCALL", "WORD"};
+  static const auto valid = QSet<QString>{
+      "ALIGN", "ASCII",  "BLOCK", "BYTE",  "EQUATE",  "EXPORT", "IMPORT",
+      "INPUT", "OUTPUT", "ORG",   "SCALL", "SECTION", "USCALL", "WORD"};
   return valid.contains(directive.toUpper());
 }

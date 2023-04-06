@@ -80,7 +80,7 @@ bool checkWholeProgramSanity(ast::Node &node, Features features) {
     // Add error to all nodes with OS features
     errorOnOSFeatures(node);
     return false;
-  } else if (ops::generic::findFirst(node, pas::ops::pepp::findUnhiddenEnd) ==
+  } /*else if (ops::generic::findFirst(node, pas::ops::pepp::findUnhiddenEnd) ==
              nullptr) {
     // Add error to first "real" node if present
     auto target =
@@ -93,7 +93,8 @@ bool checkWholeProgramSanity(ast::Node &node, Features features) {
                   {.severity = pas::ast::generic::Message::Severity::Fatal,
                    .message = pas::errors::pepp::missingEnd});
     return false;
-  } else if (errorOnUndefinedSymbolicArgument(node))
+  }*/
+  else if (errorOnUndefinedSymbolicArgument(node))
     // Visitor adds its own errors, just signal error
     return false;
   else if (errorOnMultipleSymbolDefiniton(node))
