@@ -35,7 +35,7 @@ struct Source {
 };
 struct Nodes {
   static const inline QString name = u"ast_node_list"_qs;
-  QList<QSharedPointer<ast::Node>> value;
+  QSharedPointer<ast::Node> value;
 };
 struct Object {
   static const inline QString name = u"object_code_list"_qs;
@@ -67,20 +67,24 @@ template <typename stage> struct Pipeline {
   using target_ptr = QSharedPointer<Target<stage>>;
   using transform_list = QList<QSharedPointer<Transform<stage>>>;
   QList<QPair<target_ptr, transform_list>> pipelines;
-  bool assemble();
+  bool assemble(stage target);
 };
 
 // Maybe transforms should be a list / graph?
 // How can I have the OS go down a different path than the user program? -- Each
 // target has its own pipeline How do I insert passess with side effects that do
 // not change the stage? -- Transforms can start and end in the same stage.
-template <typename stage> bool Pipeline<stage>::assemble() {
+template <typename stage> bool Pipeline<stage>::assemble(stage targetStage) {
   for (auto &[target, ops] : this->pipelines) {
     for (auto &op : ops) {
-      if (op(globals, target))
+      // Must explicitly deref op, or will attempt to call operator() on
+      // QSharedPointer<>.
+      if (op->operator()(globals, target))
         target->stage = op->toStage();
       else
         return false;
+      if ((int)target->stage >= (int)targetStage)
+        break;
     }
   }
   return true;

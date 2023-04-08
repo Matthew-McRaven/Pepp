@@ -1,7 +1,9 @@
 #include <QObject>
 #include <QTest>
 
+#include "pas/driver/pep10.hpp"
 #include "pas/isa/pep10.hpp"
+#include "pas/operations/generic/errors.hpp"
 #include "pas/operations/generic/is.hpp"
 #include "pas/operations/pepp/is.hpp"
 #include "pas/parse/pepp/node_from_parse_tree.hpp"
@@ -84,34 +86,7 @@ QSharedPointer<pas::ops::ConstOp<bool>> isWord = []() {
 using pas::ast::Node;
 class PasParsePepp_NodeFromParseTree_Pass : public QObject {
   Q_OBJECT
-private slots:
-  void testVisitor() {
-    QFETCH(QString, input);
-    QFETCH(QSharedPointer<pas::ops::ConstOp<bool>>, fn);
-    QFETCH(bool, symbol);
-    auto asStd = input.toStdString();
-    using namespace pas::parse::pepp;
-    std::vector<pas::parse::pepp::LineType> result;
-    bool success = true;
-    QVERIFY_THROWS_NO_EXCEPTION([&]() {
-      success =
-          parse(asStd.begin(), asStd.end(), pas::parse::pepp::line, result);
-    }());
-    QVERIFY(success);
-    QCOMPARE(result.size(), 1);
-    auto visit = pas::parse::pepp::FromParseTree<pas::isa::Pep10ISA>();
-    visit.symTab = QSharedPointer<symbol::Table>::create();
-    QSharedPointer<Node> node;
-    QVERIFY_THROWS_NO_EXCEPTION(
-        [&]() { node = result[0].apply_visitor(visit); }());
-    QCOMPARE_NE(node.data(), nullptr);
-    bool ret = node->apply_self(*fn);
-    QCOMPARE(ret, true);
-    QVERIFY2(!node->has<pas::ast::generic::Error>(),
-             "Passing tests must not generate errors");
-    QCOMPARE(symbol, node->has<pas::ast::generic::SymbolDeclaration>());
-  };
-  void testVisitor_data() {
+  void add_data() {
     QTest::addColumn<QString>("input");
     QTest::addColumn<QSharedPointer<pas::ops::ConstOp<bool>>>("fn");
     QTest::addColumn<bool>("symbol");
@@ -266,6 +241,65 @@ private slots:
     QTest::newRow("@macro: symbolic") << "@op hi" << isMacro << false;
     QTest::newRow("@macro: multi-arg") << "@op hi, 10" << isMacro << false;
   }
+private slots:
+  void testVisitor() {
+    // Direct approach
+    QFETCH(QString, input);
+    QFETCH(QSharedPointer<pas::ops::ConstOp<bool>>, fn);
+    QFETCH(bool, symbol);
+    auto asStd = input.toStdString();
+    using namespace pas::parse::pepp;
+    std::vector<pas::parse::pepp::LineType> result;
+    bool success = true;
+    QVERIFY_THROWS_NO_EXCEPTION([&]() {
+      success =
+          parse(asStd.begin(), asStd.end(), pas::parse::pepp::line, result);
+    }());
+    QVERIFY(success);
+    QCOMPARE(result.size(), 1);
+    auto visit = pas::parse::pepp::FromParseTree<pas::isa::Pep10ISA>();
+    visit.symTab = QSharedPointer<symbol::Table>::create();
+    QSharedPointer<Node> node;
+    QVERIFY_THROWS_NO_EXCEPTION(
+        [&]() { node = result[0].apply_visitor(visit); }());
+    QCOMPARE_NE(node.data(), nullptr);
+    bool ret = node->apply_self(*fn);
+    QCOMPARE(ret, true);
+    QVERIFY2(!node->has<pas::ast::generic::Error>(),
+             "Passing tests must not generate errors");
+    QCOMPARE(symbol, node->has<pas::ast::generic::SymbolDeclaration>());
+  };
+  void testVisitor_data() { add_data(); }
+
+  void testDriver() {
+    // Direct approach
+    QFETCH(QString, input);
+    QFETCH(QSharedPointer<pas::ops::ConstOp<bool>>, fn);
+    QFETCH(bool, symbol);
+    auto asStd = input.toStdString();
+    auto pipeline = pas::driver::pep10::pipeline(input, {.isOS = false});
+    auto pipelines = pas::driver::Pipeline<pas::driver::pep10::Stage>{};
+    pipelines.pipelines.push_back(pipeline);
+    QVERIFY(pipelines.assemble(pas::driver::pep10::Stage::Parse));
+    QCOMPARE(pipelines.pipelines[0].first->stage,
+             pas::driver::pep10::Stage::IncludeMacros);
+    QVERIFY(pipelines.pipelines[0].first->bodies.contains(
+        pas::driver::repr::Nodes::name));
+    QSharedPointer<Node> node =
+        pipelines.pipelines[0]
+            .first->bodies[pas::driver::repr::Nodes::name]
+            .value<pas::driver::repr::Nodes>()
+            .value;
+    QCOMPARE_NE(node.data(), nullptr);
+    QCOMPARE(pas::ast::children(*node).size(), 1);
+    node = pas::ast::children(*node).at(0);
+    bool ret = node->apply_self(*fn);
+    QCOMPARE(ret, true);
+    QVERIFY2(pas::ops::generic::collectErrors(*node).size() == 0,
+             "Passing tests must not generate errors");
+    QCOMPARE(symbol, node->has<pas::ast::generic::SymbolDeclaration>());
+  };
+  void testDriver_data() { add_data(); }
 };
 
 #include "pass.test.moc"

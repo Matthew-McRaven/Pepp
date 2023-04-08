@@ -10,20 +10,6 @@
 #include <functional>
 
 namespace pas::driver::pepp {
-Q_NAMESPACE;
-enum class Stage {
-  Start,
-  Parse,
-  IncludeMacros,
-  FlattenMacros,
-  PushDownSymbols,
-  GroupNodes,
-  RegisterExports,
-  AssignAddresses,
-  ExportToObject,
-  End
-};
-Q_ENUM_NS(Stage);
 
 template <typename ISA>
 std::function<ParseResult(QString, QSharedPointer<ast::Node>)>
