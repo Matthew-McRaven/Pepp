@@ -83,7 +83,7 @@ template <typename stage> bool Pipeline<stage>::assemble(stage targetStage) {
         target->stage = op->toStage();
       else
         return false;
-      if ((int)target->stage >= (int)targetStage)
+      if ((int)target->stage > (int)targetStage)
         break;
     }
   }
