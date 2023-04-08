@@ -4,6 +4,7 @@
 #include "pas/ast/generic/attr_directive.hpp"
 #include "pas/ast/value/base.hpp"
 #include "pas/operations/generic/is.hpp"
+#include "pas/operations/pepp/is.hpp"
 
 #include <pas/ast/value/symbolic.hpp>
 
@@ -58,7 +59,8 @@ bool pas::ops::pepp::RegisterSystemCalls::operator()(ast::Node &node) {
 
 bool pas::ops::pepp::registerSystemCalls(
     ast::Node &node, QSharedPointer<macro::Registry> registry) {
-  auto is = pas::ops::generic::isDirective();
+  auto is = pas::ops::generic::Or<pas::ops::pepp::isSCall,
+                                  pas::ops::pepp::isUSCall>();
   auto visit = RegisterSystemCalls();
   visit.registry = registry;
   ast::apply_recurse_if(node, is, visit);
