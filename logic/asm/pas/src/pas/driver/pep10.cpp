@@ -124,6 +124,7 @@ pas::driver::pep10::stages(QString body, Features feats) {
 
   auto wps = QSharedPointer<TransformWholeProgramSanity>::create();
   wps->isOS = feats.isOS;
+  wps->ignoreUndefinedSymbols = feats.ignoreUndefinedSymbols;
   pipe.push_back(wps);
 
   return {target, pipe};

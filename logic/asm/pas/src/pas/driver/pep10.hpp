@@ -60,6 +60,7 @@ public:
 class TransformWholeProgramSanity : public driver::Transform<Stage> {
 public:
   bool isOS = false;
+  bool ignoreUndefinedSymbols = false;
   bool operator()(QSharedPointer<Globals>,
                   QSharedPointer<pas::driver::Target<Stage>> target) override;
   Stage toStage() override;
@@ -75,6 +76,7 @@ public:
 
 struct Features {
   bool isOS = false;
+  bool ignoreUndefinedSymbols = false;
 };
 
 struct TargetDefinition {
