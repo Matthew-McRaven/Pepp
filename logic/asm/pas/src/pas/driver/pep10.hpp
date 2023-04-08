@@ -86,4 +86,6 @@ struct TargetDefinition {
 QPair<QSharedPointer<Target<Stage>>, QList<QSharedPointer<Transform<Stage>>>>
 stages(QString body, Features feats);
 
+QSharedPointer<driver::Pipeline<Stage>>
+pipeline(QList<QPair<QString, Features>> targets);
 } // namespace pas::driver::pep10

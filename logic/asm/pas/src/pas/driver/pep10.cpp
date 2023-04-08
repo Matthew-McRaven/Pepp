@@ -130,11 +130,11 @@ pas::driver::pep10::stages(QString body, Features feats) {
 }
 
 QSharedPointer<pas::driver::Pipeline<pas::driver::pep10::Stage>>
-pas::driver::pep10::assemble(QList<QPair<QString, Features>> targets) {
+pas::driver::pep10::pipeline(QList<QPair<QString, Features>> targets) {
   auto ret = QSharedPointer<Pipeline<Stage>>::create();
   ret->globals = QSharedPointer<Globals>::create();
   ret->globals->macroRegistry = QSharedPointer<macro::Registry>::create();
   for (auto &[body, feats] : targets)
-    ret->pipelines.push_back(pipeline(body, feats));
+    ret->pipelines.push_back(stages(body, feats));
   return ret;
 }
