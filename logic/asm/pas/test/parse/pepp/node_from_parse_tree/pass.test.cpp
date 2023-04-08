@@ -277,7 +277,7 @@ private slots:
     QFETCH(QSharedPointer<pas::ops::ConstOp<bool>>, fn);
     QFETCH(bool, symbol);
     auto asStd = input.toStdString();
-    auto pipeline = pas::driver::pep10::pipeline(input, {.isOS = false});
+    auto pipeline = pas::driver::pep10::stages(input, {.isOS = false});
     auto pipelines = pas::driver::Pipeline<pas::driver::pep10::Stage>{};
     pipelines.pipelines.push_back(pipeline);
     QVERIFY(pipelines.assemble(pas::driver::pep10::Stage::Parse));

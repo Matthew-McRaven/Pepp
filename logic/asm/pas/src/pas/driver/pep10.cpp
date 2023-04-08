@@ -105,7 +105,7 @@ pas::driver::pep10::TransformWholeProgramSanity::toStage() {
 
 QPair<QSharedPointer<pas::driver::Target<pas::driver::pep10::Stage>>,
       QList<QSharedPointer<pas::driver::Transform<pas::driver::pep10::Stage>>>>
-pas::driver::pep10::pipeline(QString body, Features feats) {
+pas::driver::pep10::stages(QString body, Features feats) {
   auto target = QSharedPointer<Target<Stage>>::create();
   target->stage = Stage::Start;
   target->kind =

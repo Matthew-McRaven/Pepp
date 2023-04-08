@@ -69,7 +69,7 @@ private slots:
 
     QSharedPointer<pas::ast::Node> root;
     if (useDriver) {
-      auto pipeline = pas::driver::pep10::pipeline(input, {.isOS = false});
+      auto pipeline = pas::driver::pep10::stages(input, {.isOS = false});
       auto pipelines = pas::driver::Pipeline<pas::driver::pep10::Stage>{};
       pipelines.pipelines.push_back(pipeline);
       pipelines.globals = QSharedPointer<pas::driver::Globals>::create();

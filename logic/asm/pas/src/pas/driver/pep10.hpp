@@ -82,7 +82,8 @@ struct TargetDefinition {
   QString body;
   Stage to = Stage::Start;
 };
+// Returns a single target's stages
 QPair<QSharedPointer<Target<Stage>>, QList<QSharedPointer<Transform<Stage>>>>
-pipeline(QString body, Features feats);
+stages(QString body, Features feats);
 
 } // namespace pas::driver::pep10
