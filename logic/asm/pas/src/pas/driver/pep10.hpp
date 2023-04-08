@@ -59,6 +59,7 @@ public:
 
 class TransformWholeProgramSanity : public driver::Transform<Stage> {
 public:
+  bool isOS = false;
   bool operator()(QSharedPointer<Globals>,
                   QSharedPointer<pas::driver::Target<Stage>> target) override;
   Stage toStage() override;

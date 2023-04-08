@@ -95,7 +95,7 @@ bool pas::driver::pep10::TransformWholeProgramSanity::operator()(
   auto root = target->bodies[repr::Nodes::name].value<repr::Nodes>().value;
   // TODO: tie class variable to OS features.
   return pas::ops::pepp::checkWholeProgramSanity<pas::isa::Pep10ISA>(
-      *root, {.allowOSFeatures = false});
+      *root, {.allowOSFeatures = isOS});
 }
 
 pas::driver::pep10::Stage
@@ -121,6 +121,20 @@ pas::driver::pep10::pipeline(QString body, Features feats) {
   pipe.push_back(QSharedPointer<TransformGroup>::create());
   pipe.push_back(QSharedPointer<TransformRegisterExports>::create());
   pipe.push_back(QSharedPointer<TransformAssignAddresses>::create());
-  pipe.push_back(QSharedPointer<TransformWholeProgramSanity>::create());
+
+  auto wps = QSharedPointer<TransformWholeProgramSanity>::create();
+  wps->isOS = feats.isOS;
+  pipe.push_back(wps);
+
   return {target, pipe};
+}
+
+QSharedPointer<pas::driver::Pipeline<pas::driver::pep10::Stage>>
+pas::driver::pep10::assemble(QList<QPair<QString, Features>> targets) {
+  auto ret = QSharedPointer<Pipeline<Stage>>::create();
+  ret->globals = QSharedPointer<Globals>::create();
+  ret->globals->macroRegistry = QSharedPointer<macro::Registry>::create();
+  for (auto &[body, feats] : targets)
+    ret->pipelines.push_back(pipeline(body, feats));
+  return ret;
 }
