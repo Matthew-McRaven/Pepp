@@ -13,4 +13,3 @@ charOut: .BLOCK  1
          .OUTPUT pwrOff
          .EXPORT pwrOff
 pwrOff:  .BLOCK  1
-.END
