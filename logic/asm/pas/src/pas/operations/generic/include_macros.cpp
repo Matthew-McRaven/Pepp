@@ -63,7 +63,7 @@ bool pas::ops::generic::IncludeMacros::operator()(ast::Node &node) {
   // Perform macro arg substitution on body.
   auto macroText = macroContents->body();
   for (int it = 0; it < args.size(); it++)
-    macroText.replace(u"%"_qs + QString::number(it), args[it]);
+    macroText = macroText.replace(u"$"_qs + QString::number(it + 1), args[it]);
 
   // Function handles parenting macroText's nodes as node's children.
   // Parent/child relationships also established.
