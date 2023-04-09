@@ -4,6 +4,7 @@
 #include "pas/bits/strings.hpp"
 #include "pas/driver/pepp.hpp"
 #include "pas/isa/pep10.hpp"
+#include "pas/operations/generic/include_macros.hpp"
 #include <QObject>
 #include <QTest>
 

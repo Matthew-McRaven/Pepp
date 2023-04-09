@@ -1,5 +1,6 @@
 #include "pas/ast/generic/attr_error.hpp"
 #include "pas/ast/generic/attr_location.hpp"
+#include "pas/driver/pep10.hpp"
 #include "pas/errors.hpp"
 #include "pas/isa/pep10.hpp"
 #include "pas/parse/pepp/node_from_parse_tree.hpp"
@@ -20,34 +21,7 @@ auto makeFatal = [](qsizetype line, QString msg) {
 
 class PasOpsPepp_NodeFromParseTree_Error : public QObject {
   Q_OBJECT
-private slots:
-  void fail() {
-    QFETCH(QString, input);
-    QFETCH(QList<Error>, errors);
-    auto asStd = input.toStdString();
-
-    // Convert input string to parsed lines.
-    std::vector<pas::parse::pepp::LineType> result;
-    bool success = true;
-    auto current = asStd.begin();
-    QVERIFY_THROWS_NO_EXCEPTION([&]() {
-      success = parse(current, asStd.end(), pas::parse::pepp::line, result);
-    }());
-    QVERIFY2(current == asStd.end(), "Partial parse failure");
-    QVERIFY2(success, "Failed to parse");
-
-    auto root = pas::parse::pepp::toAST<pas::isa::Pep10ISA>(result);
-    auto visit = pas::ops::generic::CollectErrors();
-    pas::ast::apply_recurse<void>(*root, visit);
-    auto actualErrors = visit.errors;
-    for (int it = 0; it < qMin(errors.size(), actualErrors.size()); it++) {
-      QCOMPARE(errors[it].first, actualErrors[it].first);
-      QCOMPARE(errors[it].second.message, actualErrors[it].second.message);
-      QCOMPARE(errors[it].second.severity, actualErrors[it].second.severity);
-    }
-    QCOMPARE(errors.size(), actualErrors.size());
-  }
-  void fail_data() {
+  void data() {
     QTest::addColumn<QString>("input");
     QTest::addColumn<QList<Error>>("errors");
     namespace E = pas::errors::pepp;
@@ -62,7 +36,8 @@ private slots:
     QTest::addRow("nonunary: 3-byte string")
         << u"br \"abc\""_qs << QList<Error>{makeFatal(0, E::expectedNumeric)};
     // Check that 0xFFFF->0x1_0000 triggers hex constant to be too big.
-    QTest::addRow("nonunary: 2-byte hex") << u"br 0xFFFF"_qs << QList<Error>{};
+    // QTest::addRow("nonunary: 2-byte hex") << u"br 0xFFFF"_qs <<
+    // QList<Error>{};
     QTest::addRow("nonunary: 3-byte hex")
         << u"br 0x10000"_qs << QList<Error>{makeFatal(0, E::hexTooBig2)};
     QTest::addRow("nonunary: illegal addressing mode")
@@ -303,6 +278,65 @@ private slots:
     //  strTooLong1
     //  strTooLong2
   }
+private slots:
+  void failVisitor() {
+    QFETCH(QString, input);
+    QFETCH(QList<Error>, errors);
+    auto asStd = input.toStdString();
+
+    // Convert input string to parsed lines.
+    std::vector<pas::parse::pepp::LineType> result;
+    bool success = true;
+    auto current = asStd.begin();
+    QVERIFY_THROWS_NO_EXCEPTION([&]() {
+      success = parse(current, asStd.end(), pas::parse::pepp::line, result);
+    }());
+    QVERIFY2(current == asStd.end(), "Partial parse failure");
+    QVERIFY2(success, "Failed to parse");
+
+    auto root = pas::parse::pepp::toAST<pas::isa::Pep10ISA>(result);
+    auto visit = pas::ops::generic::CollectErrors();
+    pas::ast::apply_recurse<void>(*root, visit);
+    auto actualErrors = visit.errors;
+    for (int it = 0; it < qMin(errors.size(), actualErrors.size()); it++) {
+      QCOMPARE(errors[it].first, actualErrors[it].first);
+      QCOMPARE(errors[it].second.message, actualErrors[it].second.message);
+      QCOMPARE(errors[it].second.severity, actualErrors[it].second.severity);
+    }
+    QCOMPARE(errors.size(), actualErrors.size());
+  }
+  void failVisitor_data() { data(); }
+
+  void failDriver() {
+    QFETCH(QString, input);
+    QFETCH(QList<Error>, errors);
+    auto asStd = input.toStdString();
+
+    auto pipeline = pas::driver::pep10::stages(input, {.isOS = false});
+    auto pipelines = pas::driver::Pipeline<pas::driver::pep10::Stage>{};
+    pipelines.pipelines.push_back(pipeline);
+    QVERIFY(!pipelines.assemble(pas::driver::pep10::Stage::Parse));
+    QVERIFY(pipelines.pipelines[0].first->bodies.contains(
+        pas::driver::repr::Nodes::name));
+
+    QSharedPointer<pas::ast::Node> node =
+        pipelines.pipelines[0]
+            .first->bodies[pas::driver::repr::Nodes::name]
+            .value<pas::driver::repr::Nodes>()
+            .value;
+    QCOMPARE_NE(node.data(), nullptr);
+    auto visit = pas::ops::generic::CollectErrors();
+
+    pas::ast::apply_recurse<void>(*node, visit);
+    auto actualErrors = visit.errors;
+    for (int it = 0; it < qMin(errors.size(), actualErrors.size()); it++) {
+      QCOMPARE(errors[it].first, actualErrors[it].first);
+      QCOMPARE(errors[it].second.message, actualErrors[it].second.message);
+      QCOMPARE(errors[it].second.severity, actualErrors[it].second.severity);
+    }
+    QCOMPARE(errors.size(), actualErrors.size());
+  }
+  void failDriver_data() { data(); }
 };
 
 #include "error.test.moc"

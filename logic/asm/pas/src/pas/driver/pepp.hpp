@@ -3,7 +3,6 @@
 #include "pas/ast/node.hpp"
 #include "pas/driver/common.hpp"
 #include "pas/operations/generic/errors.hpp"
-#include "pas/operations/generic/include_macros.hpp"
 #include "pas/parse/pepp/node_from_parse_tree.hpp"
 #include "pas/parse/pepp/rules_lines.hpp"
 #include <QObject>
@@ -11,20 +10,6 @@
 #include <functional>
 
 namespace pas::driver::pepp {
-Q_NAMESPACE;
-enum class Stage {
-  Start,
-  Parse,
-  IncludeMacros,
-  FlattenMacros,
-  PushDownSymbols,
-  GroupNodes,
-  RegisterExports,
-  AssignAddresses,
-  ExportToObject,
-  End
-};
-Q_ENUM_NS(Stage);
 
 template <typename ISA>
 std::function<ParseResult(QString, QSharedPointer<ast::Node>)>

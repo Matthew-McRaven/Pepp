@@ -6,6 +6,7 @@
 #include "pas/operations/generic/find.hpp"
 #include "pas/operations/generic/is.hpp"
 #include "pas/operations/pepp/find.hpp"
+#include "pas/operations/pepp/size.hpp"
 
 namespace pas::ops::pepp {
 template <typename ISA>
@@ -45,6 +46,7 @@ void errorOnOSFeatures(ast::Node &node);
 
 struct Features {
   bool allowOSFeatures = false;
+  bool ignoreUndefinedSymbols = false;
 };
 
 struct ErrorOnUndefinedSymbolicArgument : public pas::ops::MutatingOp<void> {
@@ -94,7 +96,8 @@ bool checkWholeProgramSanity(ast::Node &node, Features features) {
                    .message = pas::errors::pepp::missingEnd});
     return false;
   }*/
-  else if (errorOnUndefinedSymbolicArgument(node))
+  else if (!features.ignoreUndefinedSymbols &&
+           errorOnUndefinedSymbolicArgument(node))
     // Visitor adds its own errors, just signal error
     return false;
   else if (errorOnMultipleSymbolDefiniton(node))
