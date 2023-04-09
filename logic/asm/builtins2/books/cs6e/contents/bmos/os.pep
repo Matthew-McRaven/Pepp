@@ -1,5 +1,5 @@
          .SECTION ".STACK"
-bp:      WORD bp
+bp:      .WORD bp
 
          .SECTION "memvec"
          .INPUT  diskIn
