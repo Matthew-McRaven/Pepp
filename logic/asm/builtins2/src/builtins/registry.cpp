@@ -105,6 +105,7 @@ builtins::detail::loadFigure(QString manifestPath) {
 
   auto figure =
       QSharedPointer<builtins::Figure>::create(arch, chapterName, figureName);
+  figure->setIsOS(manifest["is_os"].toBool(false));
 
   // Add tests
   auto ios = manifest["ios"];
@@ -180,7 +181,8 @@ builtins::detail::loadMacro(QString manifestPath) {
 void builtins::detail::linkFigureOS(QString manifestPath,
                                     QSharedPointer<Figure> figure,
                                     QSharedPointer<const Book> book) {
-  // Read figure manifest to determine if figure is an OS, or if it links against an existing figure.
+  // Read figure manifest to determine if figure is an OS, or if it links
+  // against an existing figure.
   auto manifestBytes = read(manifestPath);
   auto manifest = QJsonDocument::fromJson(manifestBytes);
   auto isOs = manifest["is_os"];
