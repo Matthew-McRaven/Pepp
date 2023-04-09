@@ -3,7 +3,7 @@
   "name": "05:16",
   "kind": "sample",
   "arch": "pep10",
-  "default_os": "os:bm",
+  "default_os": "os:full",
   "ios": [
     "io0"
   ],
