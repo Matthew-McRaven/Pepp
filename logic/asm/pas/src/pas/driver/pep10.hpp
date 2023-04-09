@@ -89,5 +89,6 @@ QPair<QSharedPointer<Target<Stage>>, QList<QSharedPointer<Transform<Stage>>>>
 stages(QString body, Features feats);
 
 QSharedPointer<driver::Pipeline<Stage>>
-pipeline(QList<QPair<QString, Features>> targets);
+pipeline(QList<QPair<QString, Features>> targets,
+         QSharedPointer<macro::Registry> registry = nullptr);
 } // namespace pas::driver::pep10
