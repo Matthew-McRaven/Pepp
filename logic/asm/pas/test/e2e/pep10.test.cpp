@@ -11,13 +11,15 @@
 
 class PasE2E_Pep10 : public QObject {
   Q_OBJECT
-  QSharedPointer<macro::Registry> registry;
-  void loadBookMacros(QSharedPointer<const builtins::Book> book) {
+  QSharedPointer<const builtins::Book> book;
+  void loadBookMacros(QSharedPointer<macro::Registry> registry) {
     for (auto &macro : book->macros())
       registry->registerMacro(macro::types::Core, macro);
   }
-  void injectFakeSCallMacros() {
-    QStringList nonunary = {"DECI", "DECO", "STRO"};
+
+  QStringList nonunary = {"DECI", "CHARI", "CHARO", "STRO", "DECO"};
+
+  void injectFakeSCallMacros(QSharedPointer<macro::Registry> registry) {
     for (auto &macro : nonunary)
       registry->registerMacro(
           macro::types::Core,
@@ -26,10 +28,19 @@ class PasE2E_Pep10 : public QObject {
   }
 
 private slots:
-  void standaloneUser() {
+  void standalone() {
     QFETCH(QString, body);
+    QFETCH(bool, isOS);
+
+    // Load macros on each iteration to prevent macros from migrating between
+    // tests.
+    auto registry = QSharedPointer<macro::Registry>::create();
+    loadBookMacros(registry);
+    if (!isOS)
+      injectFakeSCallMacros(registry);
+
     auto pipeline = pas::driver::pep10::pipeline(
-        {{body, {.isOS = false, .ignoreUndefinedSymbols = true}}}, registry);
+        {{body, {.isOS = isOS, .ignoreUndefinedSymbols = !isOS}}}, registry);
     auto result = pipeline->assemble(pas::driver::pep10::Stage::End);
     auto target = pipeline->pipelines[0].first;
     QVERIFY(target->bodies.contains(pas::driver::repr::Nodes::name));
@@ -51,25 +62,20 @@ private slots:
     QVERIFY(result);
   }
 
-  void standaloneUser_data() {
+  void standalone_data() {
     QTest::addColumn<QString>("body");
+    QTest::addColumn<bool>("isOS");
     auto registry = builtins::Registry(nullptr);
-    auto book = registry.findBook("Computer Systems, 6th Edition");
+    this->book = registry.findBook("Computer Systems, 6th Edition");
     QVERIFY(!book.isNull());
 
-    this->registry = QSharedPointer<macro::Registry>::create();
-    loadBookMacros(book);
-    injectFakeSCallMacros();
-
     for (auto &fig : book->figures()) {
-      if (fig->isOS())
-        continue;
-      else if (!fig->typesafeElements().contains("pep"))
+      if (!fig->typesafeElements().contains("pep"))
         continue;
       auto chName = fig->chapterName().toStdString();
       auto figName = fig->figureName().toStdString();
       QTest::addRow("Figure %s.%s", chName.data(), figName.data())
-          << fig->typesafeElements()["pep"]->contents;
+          << fig->typesafeElements()["pep"]->contents << fig->isOS();
     }
   }
 };
