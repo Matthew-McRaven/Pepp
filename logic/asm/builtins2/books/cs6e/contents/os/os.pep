@@ -647,4 +647,3 @@ exitPrnt:RET
          .WORD loader      ;Loader program counter
          .WORD trap        ;Trap program counter
 ;
-         .END                  
