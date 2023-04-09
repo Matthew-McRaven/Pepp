@@ -99,7 +99,8 @@ bool pas::driver::pep10::TransformWholeProgramSanity::operator()(
   auto root = target->bodies[repr::Nodes::name].value<repr::Nodes>().value;
   // TODO: tie class variable to OS features.
   return pas::ops::pepp::checkWholeProgramSanity<pas::isa::Pep10ISA>(
-      *root, {.allowOSFeatures = isOS});
+      *root, {.allowOSFeatures = isOS,
+              .ignoreUndefinedSymbols = ignoreUndefinedSymbols});
 }
 
 pas::driver::pep10::Stage
@@ -135,10 +136,14 @@ pas::driver::pep10::stages(QString body, Features feats) {
 }
 
 QSharedPointer<pas::driver::Pipeline<pas::driver::pep10::Stage>>
-pas::driver::pep10::pipeline(QList<QPair<QString, Features>> targets) {
+pas::driver::pep10::pipeline(QList<QPair<QString, Features>> targets,
+                             QSharedPointer<macro::Registry> registry) {
   auto ret = QSharedPointer<Pipeline<Stage>>::create();
   ret->globals = QSharedPointer<Globals>::create();
-  ret->globals->macroRegistry = QSharedPointer<macro::Registry>::create();
+  if (registry)
+    ret->globals->macroRegistry = registry;
+  else
+    ret->globals->macroRegistry = QSharedPointer<macro::Registry>::create();
   for (auto &[body, feats] : targets)
     ret->pipelines.push_back(stages(body, feats));
   return ret;

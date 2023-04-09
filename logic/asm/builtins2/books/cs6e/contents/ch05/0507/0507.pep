@@ -10,4 +10,3 @@
          .WORD   5           ;Decimal 5
          .WORD   3           ;Decimal 3
          .WORD   0x0030      ;Mask for ASCII char
-         .END

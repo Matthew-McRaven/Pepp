@@ -6,7 +6,7 @@
 num:     .BLOCK  2           ;Storage for one integer #2d
 ;
 main:    LDWT    DECI,i      ;Get the number
-         SCALL   num,d      
+         SCALL   num,d
          LDWT    DECO,i      ;and output it
          SCALL   num,d
          LDWT    STRO,i      ;Output " + 1 = "
@@ -16,6 +16,5 @@ main:    LDWT    DECI,i      ;Get the number
          STWA    num,d       ;Store the sum
          LDWT    DECO,i      ;Output the sum
          SCALL   num,d
-         RET                
+         RET
 msg:     .ASCII  " + 1 = \x00"
-         .END                  

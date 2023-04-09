@@ -26,7 +26,7 @@ inline const QString expectedNumeric =
     u"Expected a decimal, hexadecimal, or symbolic argument."_qs;
 inline const QString expectNArguments = u"Expected %1 argument(s)."_qs;
 inline const QString expectedSymbolic = u"Expected a symbolic argument."_qs;
-inline const QString illegalDirective = u"1 is not a valid directive."_qs;
+inline const QString illegalDirective = u"%1 is not a valid directive."_qs;
 inline const QString illegalInUser = u"%1 cannot be used in a user program."_qs;
 // Address problems
 inline const QString objTooBig = u"Object code must fit within 65536 bytes."_qs;

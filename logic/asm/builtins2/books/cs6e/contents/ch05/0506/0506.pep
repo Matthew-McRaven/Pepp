@@ -10,4 +10,3 @@
          STBA    0xFAAC,d    ;Output first character
          STBA    0xFAAE,d    ;Store byte to power off port
          .BLOCK  1           ;Storage for first character
-         .END

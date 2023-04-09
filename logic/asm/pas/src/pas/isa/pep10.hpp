@@ -245,6 +245,7 @@ struct Pep10ISA {
 
   static Mnemonic defaultMnemonic();
   static AddressingMode defaultAddressingMode();
+  static AddressingMode defaultAddressingMode(Mnemonic mnemonic);
   static quint8 opcode(Mnemonic mnemonic);
   static quint8 opcode(Mnemonic mnemonic, AddressingMode addr);
   static AddressingMode parseAddressingMode(const QString &addr);

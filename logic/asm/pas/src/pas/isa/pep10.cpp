@@ -8,6 +8,14 @@ pas::isa::Pep10ISA::AddressingMode pas::isa::Pep10ISA::defaultAddressingMode() {
   return AddressingMode::INVALID;
 }
 
+pas::isa::Pep10ISA::AddressingMode
+pas::isa::Pep10ISA::defaultAddressingMode(Mnemonic mnemonic) {
+  if (isAType(mnemonic))
+    return AddressingMode::I;
+  else
+    return defaultAddressingMode();
+}
+
 quint8 pas::isa::Pep10ISA::opcode(Mnemonic mnemonic) {
   return static_cast<quint8>(mnemonic);
 }

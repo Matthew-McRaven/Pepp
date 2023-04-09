@@ -7,4 +7,3 @@
          LDBA    'i',i       ;Output 'i'
          STBA    0xFAAC,d
          STBA    0xFAAE,d    ;Store byte to power off port
-         .END
