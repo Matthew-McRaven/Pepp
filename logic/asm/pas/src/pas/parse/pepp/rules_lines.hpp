@@ -24,12 +24,12 @@ using boost::spirit::x3::uint_parser;
 
 // Blank Line
 inline rule<class blank, BlankType> blank = "blank";
-const auto blank_def = eps;
+const auto blank_def = skip(space - eol)[eps];
 BOOST_SPIRIT_DEFINE(blank);
 
 // Comment Line
 inline rule<class comment, CommentType> comment = "comment";
-const auto comment_def = skip(space - eol)[lexeme[lit(";") >> *(char_-eol)]];
+const auto comment_def = skip(space - eol)[lexeme[lit(";") >> *(char_ - eol)]];
 BOOST_SPIRIT_DEFINE(comment);
 
 inline const auto symbol = identifier_def >> ":";
