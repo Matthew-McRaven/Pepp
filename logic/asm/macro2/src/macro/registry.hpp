@@ -22,14 +22,14 @@ public:
   QList<const Registered *> findMacrosByType(types::Type type) const;
   void clear();
   // Ownership of macro is always transfered to this.
-  // Returns nullptr if the macro already exists in the registry. In this case,
-  // registry will delete macro.
+  // Returns nullptr if the macro already exists in the registry.
   // Returned pointer is non-owning
   QSharedPointer<const Registered> registerMacro(types::Type type,
                                                  QSharedPointer<Parsed> macro);
+  void removeMacro(QString name);
 
 signals:
-  //! Emitted when a macro is successfully registered.
+  //! Emitted when a macro is successfully registered or removed.
   void macrosChanged();
   //! Emitted when clear() is called.
   void cleared();
