@@ -162,11 +162,9 @@ class PasOpsPepp_NodeFromParseTree_Error : public QObject {
     QTest::addRow(".BYTE: max 1 argument")
         << u".BYTE 0x00, 0x01"_qs << QList<Error>{makeFatal(0, arg1)};
     // - arg must fit in 8 bits
-    QTest::addRow(".BYTE: no characters")
-        << u".BYTE '*'"_qs << QList<Error>{makeFatal(0, E::expectedNumeric)};
-    QTest::addRow(".BYTE: no strings")
-        << u".BYTE \"Bad\""_qs
-        << QList<Error>{makeFatal(0, E::expectedNumeric)};
+
+    QTest::addRow(".BYTE: no long strings")
+        << u".BYTE \"Bad\""_qs << QList<Error>{makeFatal(0, E::strTooLong1)};
     QTest::addRow(".BYTE: fit in 8 bits-hex")
         << u".BYTE 0x0bad"_qs << QList<Error>{makeFatal(0, E::hexTooBig1)};
     QTest::addRow(".BYTE: fit in 8 bits-decimal")
@@ -258,11 +256,8 @@ class PasOpsPepp_NodeFromParseTree_Error : public QObject {
     QTest::addRow(".WORD: max 1 argument")
         << u".WORD 0x0bad, 0x0dad"_qs << QList<Error>{makeFatal(0, arg1)};
     // - arg must fit in 16 bits
-    QTest::addRow(".WORD: no characters")
-        << u".WORD '*'"_qs << QList<Error>{makeFatal(0, E::expectedNumeric)};
-    QTest::addRow(".WORD: no strings")
-        << u".WORD \"Bad\""_qs
-        << QList<Error>{makeFatal(0, E::expectedNumeric)};
+    QTest::addRow(".WORD: no long strings")
+        << u".WORD \"Bad\""_qs << QList<Error>{makeFatal(0, E::strTooLong2)};
     QTest::addRow(".WORD: fit in 16 bits-hex")
         << u".WORD 0x0baadbeef"_qs << QList<Error>{makeFatal(0, E::hexTooBig2)};
     QTest::addRow(".WORD: fit in 16 bits-decimal")

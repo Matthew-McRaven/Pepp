@@ -179,7 +179,9 @@ pas::parse::pepp::detail::byte(const DirectiveType &line, ST symTab) {
         ret, {.severity = S::Fatal, .message = EP::expectNArguments.arg(1)});
   auto arg = args[0];
   // Triggers when you pass an argument that is a string that is too long.
-  if (!(arg->isFixedSize() && arg->isNumeric()) || arg->isText())
+  if (arg->isText() && arg->size() > 1)
+    return addError(ret, {.severity = S::Fatal, .message = EP::strTooLong1});
+  else if (!(arg->isFixedSize() && arg->isNumeric()))
     return addError(ret,
                     {.severity = S::Fatal, .message = EP::expectedNumeric});
   ret->set(generic::Argument{.value = arg});
@@ -351,7 +353,9 @@ QSharedPointer<Node> pas::parse::pepp::detail::word(const DirectiveType &line,
         ret, {.severity = S::Fatal, .message = EP::expectNArguments.arg(1)});
   auto arg = args[0];
   // Triggers when you pass a string that is too long
-  if (!(arg->isFixedSize() && arg->isNumeric()) || arg->isText())
+  if (arg->isText() && arg->size() > 2)
+    return addError(ret, {.severity = S::Fatal, .message = EP::strTooLong2});
+  else if (!(arg->isFixedSize() && arg->isNumeric()))
     return addError(ret,
                     {.severity = S::Fatal, .message = EP::expectedNumeric});
   ret->set(generic::Argument{.value = arg});

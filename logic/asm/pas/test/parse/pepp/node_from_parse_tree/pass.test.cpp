@@ -191,6 +191,8 @@ class PasParsePepp_NodeFromParseTree_Pass : public QObject {
     QTest::newRow(".BYTE: comment") << ".BYTE 10;10" << isByte << false;
     QTest::newRow(".BYTE: hex") << ".BYTE 0x10" << isByte << false;
     QTest::newRow(".BYTE: symbolic") << ".BYTE hi" << isByte << false;
+    QTest::newRow(".BYTE: char") << ".BYTE 'i'" << isByte << false;
+    QTest::newRow(".BYTE: string") << ".BYTE \"i\"" << isByte << false;
     // END
     QTest::newRow(".END: mixed case") << ".EnD" << isEnd << false;
     QTest::newRow(".END: comment") << ".END ;hi" << isEnd << false;
@@ -233,6 +235,8 @@ class PasParsePepp_NodeFromParseTree_Pass : public QObject {
     QTest::newRow(".WORD: comment") << ".WORD 10;10" << isWord << false;
     QTest::newRow(".WORD: hex") << ".WORD 0x10" << isWord << false;
     QTest::newRow(".WORD: symbolic") << ".WORD hi" << isWord << false;
+    QTest::newRow(".WORD: char") << ".WORD 'h'" << isWord << false;
+    QTest::newRow(".WORD: string") << ".WORD \"hi\"" << isWord << false;
     // Macro
     QTest::newRow("@macro: mixed case") << "@oP 10" << isMacro << false;
     QTest::newRow("@macro: symbol") << "s:@op 10" << isMacro << true;
