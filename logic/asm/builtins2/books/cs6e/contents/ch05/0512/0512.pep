@@ -16,6 +16,5 @@
          STWA    0x0003,d    ;Store the sum
          LDWT    DECO,i      ;Output the sum
          SCALL   0x0003,d
-         RET                
+         RET
          .ASCII  " + 1 = \x00"
-         .END                  

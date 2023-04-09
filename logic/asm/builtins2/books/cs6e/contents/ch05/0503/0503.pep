@@ -8,4 +8,3 @@
          STBA    0xFAAC,d    ;Store byte accumulator output device
          STBA    0xFAAE,d    ;Store byte to power off port
          .ASCII  "Hi"        ;ASCII "Hi" characters
-         .END

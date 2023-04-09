@@ -29,4 +29,3 @@
          LDWT    DECO,i      ;Output the sum
          SCALL   0x0003,d
          RET
-         .END
