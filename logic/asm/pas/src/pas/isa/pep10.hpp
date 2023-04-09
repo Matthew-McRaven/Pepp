@@ -10,7 +10,7 @@ enum class Mnemonic {
   MOVSPA = 0x2,
   MOVASP = 0x3,
   MOVFLGA = 0x4,
-  MOVAFLG = 0x45,
+  MOVAFLG = 0x5,
   MOVTA = 0x6,
   USCALL = 0x7,
   NOP = 0x8,

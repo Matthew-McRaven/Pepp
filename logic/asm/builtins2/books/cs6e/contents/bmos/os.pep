@@ -1,5 +1,5 @@
          .SECTION ".STACK"
-bp:      WORD bp
+bp:      .WORD bp
 
          .SECTION "memvec"
          .INPUT  diskIn
@@ -13,4 +13,3 @@ charOut: .BLOCK  1
          .OUTPUT pwrOff
          .EXPORT pwrOff
 pwrOff:  .BLOCK  1
-.END

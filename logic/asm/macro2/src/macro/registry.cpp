@@ -39,3 +39,10 @@ macro::Registry::registerMacro(types::Type type, QSharedPointer<Parsed> macro) {
   emit macrosChanged();
   return registered;
 }
+
+void macro::Registry::removeMacro(QString name) {
+  if (!contains(name))
+    return;
+  _macros.remove(name);
+  emit macrosChanged();
+}
