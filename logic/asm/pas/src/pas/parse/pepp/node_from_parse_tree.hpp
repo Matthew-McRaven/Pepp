@@ -206,7 +206,12 @@ QSharedPointer<pas::ast::Node> pas::parse::pepp::FromParseTree<ISA>::operator()(
     return addError(ret,
                     {.severity = pas::ast::generic::Message::Severity::Fatal,
                      .message = pas::errors::pepp::requiredAddrMode});
-  else if (!line.addr.empty()) {
+  else if (line.addr.empty()) {
+    // TODO: add code to ISA to allow different default addressing modes on a
+    // per-instruction basis.
+    ret->set(ast::pepp::AddressingMode<ISA>{
+        .value = ISA::defaultAddressingMode(instr)});
+  } else if (!line.addr.empty()) {
     auto addr = ISA::parseAddressingMode(QString::fromStdString(line.addr));
     // Triggered when an instruction is not in the valid addressing mode set,
     // like "p".
