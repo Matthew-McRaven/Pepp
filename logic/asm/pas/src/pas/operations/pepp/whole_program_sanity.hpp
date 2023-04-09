@@ -6,6 +6,7 @@
 #include "pas/operations/generic/find.hpp"
 #include "pas/operations/generic/is.hpp"
 #include "pas/operations/pepp/find.hpp"
+#include "pas/operations/pepp/size.hpp"
 
 namespace pas::ops::pepp {
 template <typename ISA>
