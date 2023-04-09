@@ -28,7 +28,7 @@ charOut: .BLOCK  1           ;Memory-mapped output device #2h.
          .EXPORT pwrOff      ;Allow pwrOff to be referenced in user programs.
 pwrOff:  .BLOCK  1           ;Memory-mapped shutdown device #2h.
 ;******* Operating system ROM
-         .BURN   0xFFFF      
+;        .BURN   0xFFFF      ; To be replaced with .ORG
 ;
 ;Place entry point flags in read-only memory, as these
 ;  may only be modified by the simulator.
