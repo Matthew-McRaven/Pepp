@@ -281,9 +281,11 @@ template <typename ISA>
 QSharedPointer<pas::ast::Node> pas::parse::pepp::FromParseTree<ISA>::operator()(
     const pas::parse::pepp::MacroType &line) {
   using Type = pas::ast::generic::Type;
+  // Must share root symbol table until we have ability to limit symbol
+  // visibility.
   auto ret =
       QSharedPointer<pas::ast::Node>::create(Type{.value = Type::MacroInvoke});
-  ret->set(ast::generic::SymbolTable{.value = symTab->addChild()});
+  ret->set(ast::generic::SymbolTable{.value = symTab});
   if (!line.symbol.empty())
     ret->set(ast::generic::SymbolDeclaration{
         .value = symTab->define(QString::fromStdString(line.symbol))});

@@ -28,7 +28,7 @@ void nonunary_test(macro::Registry *registry) {
   auto contents = macro->contents();
   QCOMPARE(contents->name(), u"s"_qs);
   QCOMPARE(contents->argCount(), 2);
-  QCOMPARE(contents->body(), u"LDWT s, i\nSCALL %1, %2\n"_qs);
+  QCOMPARE(contents->body(), u"LDWT s, i\nSCALL $1, $2\n"_qs);
 }
 
 void duplicates_test(macro::Registry *macro) {
