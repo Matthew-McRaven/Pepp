@@ -28,7 +28,7 @@ set_target_properties(demo-pep10-asm PROPERTIES
 set_target_properties(demo-pep10-asm PROPERTIES FOLDER "qtc_runnable")
 
 target_link_libraries(demo-pep10-asm
-    PRIVATE Qt6::Quick macro pas builtins)
+    PRIVATE Qt6::Quick macro pas builtins Qt6::Widgets)
 
 install(TARGETS demo-pep10-asm
     BUNDLE DESTINATION .

@@ -1,12 +1,15 @@
 #include <QGuiApplication>
-#include <QQmlApplicationEngine>
-
 #include <QLocale>
+#include <QQmlApplicationEngine>
 #include <QQuickItem>
 #include <QTranslator>
 #include <qvariant.h>
 
+#include <QComboBox>
+#include <qstringlistmodel.h>
 
+#include "assembly.hpp"
+#include "figure.hpp"
 int main(int argc, char *argv[]) {
   QGuiApplication app(argc, argv);
 
@@ -28,9 +31,13 @@ int main(int argc, char *argv[]) {
     qDebug() << f.filePath();
   }*/
   QQmlApplicationEngine engine;
-  /*qmlRegisterType<MacroParseResult>("edu.pepperdine.cslab.p10asm", 1, 0,
-                                    "MacroParseResult");
-  qmlRegisterType<MacroParser>("edu.pepperdine.cslab.macroparse", 1, 0,
+  qmlRegisterType<FigureManager>("edu.pepperdine.cslab.p10asm", 1, 0,
+                                 "FigureManager");
+  qmlRegisterType<builtins::Figure>("edu.pepperdine.cslab.p10asm", 1, 0,
+                                    "Figure");
+  qmlRegisterType<AssemblyManger>("edu.pepperdine.cslab.p10asm", 1, 0,
+                                  "AssemblyManager");
+  /*qmlRegisterType<MacroParser>("edu.pepperdine.cslab.macroparse", 1, 0,
                                "MacroParser");*/
   const QUrl url(u"qrc:/pep10asm/src/main.qml"_qs);
   QObject::connect(
@@ -41,6 +48,5 @@ int main(int argc, char *argv[]) {
       },
       Qt::QueuedConnection);
   engine.load(url);
-
   return app.exec();
 }

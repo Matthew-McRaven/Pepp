@@ -1,5 +1,7 @@
 #include "parser.hpp"
 #include "macro/parse.hpp"
+
+/*
 MacroParseResult::MacroParseResult(QObject *parent) : QObject(parent) {}
 
 MacroParseResult::MacroParseResult(QObject *parent, bool valid, QString name,
@@ -22,3 +24,4 @@ MacroParseResult *MacroParser::parse(QString arg) {
     return new MacroParseResult(nullptr, true, std::get<1>(parse),
                                 std::get<2>(parse));
 }
+*/

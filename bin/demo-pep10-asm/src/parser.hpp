@@ -1,26 +1,24 @@
 #pragma once
 
+#include "pas/ast/node.hpp"
 #include <QObject>
-struct MacroParseResult : public QObject {
+
+/*struct ParseResult : public QObject {
   Q_OBJECT;
-  Q_PROPERTY(bool valid READ valid CONSTANT)
-  Q_PROPERTY(QString name READ name CONSTANT)
-  Q_PROPERTY(quint8 argc READ argc CONSTANT)
+  Q_PROPERTY(bool passed READ passed CONSTANT)
+  Q_PROPERTY(QStringList errors READ errors CONSTANT);
+  Q_PROPERTY(QString source READ source CONSTANT);
+  Q_PROPERTY(QString list READ list CONSTANT);
+
+  ParseResult(QObject *parent);
+  ParseResult(QObject *parent, QSharedPointer<const pas::ast::Node>);
 
 public:
-  MacroParseResult(QObject *parent);
-  MacroParseResult(QObject *parent, bool valid, QString name, quint8 argc);
-  bool valid() const;
-  QString name() const;
-  quint8 argc() const;
-  bool _valid = false;
-  QString _name = "";
-  quint8 _argc = 0;
 };
 
-class MacroParser : public QObject {
+class Parser : public QObject {
   Q_OBJECT
 public:
   // Ownership of parse result is transfered to caller.
-  Q_INVOKABLE MacroParseResult *parse(QString arg);
-};
+  Q_INVOKABLE QList<ParseResult> *parse(QString arg);
+};*/
