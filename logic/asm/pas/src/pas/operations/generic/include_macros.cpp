@@ -108,7 +108,7 @@ void pas::ops::generic::IncludeMacros::addExtraChildren(ast::Node &node) {
   auto start = QSharedPointer<ast::Node>::create(commentType);
   start->set(ast::generic::CommentIndent{
       .value = ast::generic::CommentIndent::Level::Instruction});
-  start->set(ast::generic::Comment{.value = detail::formatMacro(node)});
+  start->set(ast::generic::Comment{.value = detail::formatMacro(node, {})});
 
   // Use an empty .BLOCK to avoid having to complex line manipulations.
   if (node.has<ast::generic::SymbolDeclaration>()) {

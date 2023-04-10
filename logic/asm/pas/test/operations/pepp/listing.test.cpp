@@ -16,8 +16,8 @@ private slots:
     auto str = parsed.errors.join("\n").toStdString();
     QVERIFY2(!parsed.hadError, str.data());
     pas::ops::pepp::assignAddresses<pas::isa::Pep10ISA>(*parsed.root);
-    auto actualListing =
-        pas::ops::pepp::formatListing<pas::isa::Pep10ISA>(*parsed.root, 3);
+    auto actualListing = pas::ops::pepp::formatListing<pas::isa::Pep10ISA>(
+        *parsed.root, {.bytesPerLine = 3});
     // FIXME: remove
     auto actualListingText = actualListing.join("\n").toStdString();
     QVERIFY2(actualListing.size() == listing.size(), actualListingText.data());
