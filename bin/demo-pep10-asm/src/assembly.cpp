@@ -56,7 +56,6 @@ void AssemblyManger::clearUsrTxt() {
 }
 
 void AssemblyManger::clearOsTxt() {
-
   _osTxt = "";
   emit osTxtChanged();
 }
