@@ -11,7 +11,7 @@ add_subdirectory(3rd-party)
 
 set_property(GLOBAL PROPERTY USE_FOLDERS ON)
 
-find_package(Qt6 6.4 COMPONENTS Quick Core Gui Qml Test REQUIRED)
+find_package(Qt6 6.4 COMPONENTS Quick Core Gui Qml Test Widgets REQUIRED)
 
 # Emscripten build forget to set boost_INCLUDE_DIR correctly
 set(Boost_INCLUDE_DIR "$ENV{BOOST_ROOT}")
