@@ -283,7 +283,7 @@ QSharedPointer<pas::ast::Node> pas::parse::pepp::FromParseTree<ISA>::operator()(
   using Type = pas::ast::generic::Type;
   auto ret =
       QSharedPointer<pas::ast::Node>::create(Type{.value = Type::MacroInvoke});
-  ret->set(ast::generic::SymbolTable{.value = symTab->addChild()});
+  ret->set(ast::generic::SymbolTable{.value = symTab});
   if (!line.symbol.empty())
     ret->set(ast::generic::SymbolDeclaration{
         .value = symTab->define(QString::fromStdString(line.symbol))});
