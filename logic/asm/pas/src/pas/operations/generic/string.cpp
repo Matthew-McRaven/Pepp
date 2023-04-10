@@ -9,11 +9,13 @@
 #include "pas/ast/value/base.hpp"
 #include "symbol/entry.hpp"
 
-QString pas::ops::generic::detail::formatBlank(const ast::Node &node) {
+QString pas::ops::generic::detail::formatBlank(const ast::Node &node,
+                                               SourceOptions opts) {
   return u""_qs;
 }
 
-QString pas::ops::generic::detail::formatComment(const ast::Node &node) {
+QString pas::ops::generic::detail::formatComment(const ast::Node &node,
+                                                 SourceOptions opts) {
   QString lpad = "%1;%2";
 
   // TODO: Allow "size" of instruction ident to be variable
@@ -46,9 +48,8 @@ QString pas::ops::generic::detail::format(QString symbol, QString invoke,
   return ret;
 }
 
-QString
-pas::ops::generic::detail::formatDirectiveOrMacro(const pas::ast::Node &node,
-                                                  QString invoke) {
+QString pas::ops::generic::detail::formatDirectiveOrMacro(
+    const pas::ast::Node &node, QString invoke, SourceOptions opts) {
   QString symbol = "";
   if (node.has<pas::ast::generic::SymbolDeclaration>()) {
     symbol = node.get<pas::ast::generic::SymbolDeclaration>().value->name;
@@ -65,19 +66,33 @@ pas::ops::generic::detail::formatDirectiveOrMacro(const pas::ast::Node &node,
   QString comment = "";
   if (node.has<pas::ast::generic::Comment>())
     comment = node.get<pas::ast::generic::Comment>().value;
+  if (opts.printErrors)
+    comment += formatErrorsAsComments(node);
   return detail::format(symbol, invoke, args, comment);
 }
 
-QString pas::ops::generic::detail::formatDirective(const ast::Node &node) {
+QString pas::ops::generic::detail::formatDirective(const ast::Node &node,
+                                                   SourceOptions opts) {
   if (!node.has<ast::generic::Directive>())
     throw std::logic_error("Directive missing directive element");
   return formatDirectiveOrMacro(
-      node, u".%1"_qs.arg(node.get<ast::generic::Directive>().value));
+      node, u".%1"_qs.arg(node.get<ast::generic::Directive>().value), opts);
 }
 
-QString pas::ops::generic::detail::formatMacro(const ast::Node &node) {
+QString pas::ops::generic::detail::formatMacro(const ast::Node &node,
+                                               SourceOptions opts) {
   if (!node.has<ast::generic::Macro>())
     throw std::logic_error("Macro missing directive macro");
   return formatDirectiveOrMacro(
-      node, u"@%1"_qs.arg(node.get<ast::generic::Macro>().value));
+      node, u"@%1"_qs.arg(node.get<ast::generic::Macro>().value), opts);
+}
+
+QString
+pas::ops::generic::detail::formatErrorsAsComments(const ast::Node &node) {
+  QString ret = "";
+  if (node.has<pas::ast::generic::Error>())
+    for (auto &error : node.get<pas::ast::generic::Error>().value)
+      ret += u";ERROR: %1"_qs.arg(error.message);
+
+  return ret;
 }
