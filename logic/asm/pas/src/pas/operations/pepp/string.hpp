@@ -157,7 +157,6 @@ void pas::ops::pepp::FormatListing<ISA>::operator()(const ast::Node &node) {
 template <typename ISA>
 QStringList pas::ops::pepp::formatSource(const ast::Node &node,
                                          SourceOptions opts) {
-
   auto visit = FormatSource<ISA>();
   visit.opts = opts;
   // Do not visit structural nodes, because this will inject unneeded newlines.
