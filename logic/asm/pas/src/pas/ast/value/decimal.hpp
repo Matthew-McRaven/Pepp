@@ -18,6 +18,7 @@ public:
   // Must negate value before computing max bit value
   quint64 requiredBytes() const override;
   QString string() const override;
+  QString rawString() const override;
 };
 
 class UnsignedDecimal : public Numeric {
@@ -34,5 +35,6 @@ public:
 
   QSharedPointer<Base> clone() const override;
   QString string() const override;
+  QString rawString() const override;
 };
 } // namespace pas::ast::value

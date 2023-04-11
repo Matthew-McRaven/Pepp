@@ -32,3 +32,5 @@ quint64 pas::ast::value::Identifier::size() const { return 0; }
 quint64 pas::ast::value::Identifier::requiredBytes() const { return 0; }
 
 QString pas::ast::value::Identifier::string() const { return _value; }
+
+QString pas::ast::value::Identifier::rawString() const { return string(); }

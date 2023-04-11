@@ -15,5 +15,6 @@ public:
 
   QSharedPointer<Base> clone() const override;
   QString string() const override;
+  QString rawString() const override;
 };
 } // namespace pas::ast::value
