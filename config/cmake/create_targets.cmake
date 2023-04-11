@@ -52,10 +52,10 @@ macro(make_target target_name TYPE)
     inject_cxx_standard()
     inject_clang_tidy()
     inject_code_coverage()
-
-    SET(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -gdwarf-4")
-    SET(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -gdwarf-4")
-
+    if(NOT WIN32)
+        SET(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -gdwarf-4")
+        SET(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -gdwarf-4")
+    endif()
     # PUBLIC is not a valid visibility for libraries, so must exclude that TYPE.
     if (${TYPE} STREQUAL PUBLIC)
         qt6_add_library(${target_name} ${sources})
