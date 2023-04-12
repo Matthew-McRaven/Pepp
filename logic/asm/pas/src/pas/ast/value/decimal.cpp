@@ -24,15 +24,19 @@ pas::ast::value::SignedDecimal::clone() const {
 }
 
 quint64 pas::ast::value::SignedDecimal::requiredBytes() const {
-    // Handle _value = 0b1000...0, otherwise we take log of negative number.
-    if(_value*-1==_value) return sizeof(_value);
-    // Must subtract 1 bit (log2(n)+1), because the top order bit holds sign, not data.
-    return ceil((log2(-1*_value)+1) / 8);
+  // Handle _value = 0b1000...0, otherwise we take log of negative number.
+  if (_value * -1 == _value)
+    return sizeof(_value);
+  // Must subtract 1 bit (log2(n)+1), because the top order bit holds sign, not
+  // data.
+  return ceil((log2(-1 * _value) + 1) / 8);
 }
 
 QString pas::ast::value::SignedDecimal::string() const {
   return QString::number(_value);
 }
+
+QString pas::ast::value::SignedDecimal::rawString() const { return string(); }
 
 pas::ast::value::UnsignedDecimal::UnsignedDecimal() : Numeric() {}
 
@@ -53,14 +57,13 @@ pas::ast::value::UnsignedDecimal::operator=(UnsignedDecimal other) {
   return *this;
 }
 
-
-
 QSharedPointer<pas::ast::value::Base>
 pas::ast::value::UnsignedDecimal::clone() const {
   return QSharedPointer<UnsignedDecimal>::create(*this);
 }
 
-
 QString pas::ast::value::UnsignedDecimal::string() const {
   return QString::number(_value);
 }
+
+QString pas::ast::value::UnsignedDecimal::rawString() const { return string(); }

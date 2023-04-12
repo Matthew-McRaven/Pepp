@@ -1,5 +1,7 @@
 #include "pas/driver/pepp.hpp"
 #include "pas/isa/pep10.hpp"
+#include "pas/operations/generic/group.hpp"
+#include "pas/operations/pepp/addressable.hpp"
 #include "pas/operations/pepp/assign_addr.hpp"
 #include "pas/operations/pepp/string.hpp"
 #include <QObject>
@@ -15,6 +17,8 @@ private slots:
         source, nullptr);
     auto str = parsed.errors.join("\n").toStdString();
     QVERIFY2(!parsed.hadError, str.data());
+    pas::ops::generic::groupSections(
+        *parsed.root, pas::ops::pepp::isAddressable<pas::isa::Pep10ISA>);
     pas::ops::pepp::assignAddresses<pas::isa::Pep10ISA>(*parsed.root);
     auto actualListing = pas::ops::pepp::formatListing<pas::isa::Pep10ISA>(
         *parsed.root, {.bytesPerLine = 3});

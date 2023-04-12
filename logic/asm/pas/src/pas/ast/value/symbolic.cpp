@@ -48,3 +48,5 @@ quint64 pas::ast::value::Symbolic::requiredBytes() const {
 }
 
 QString pas::ast::value::Symbolic::string() const { return _value->name; }
+
+QString pas::ast::value::Symbolic::rawString() const { return string(); }

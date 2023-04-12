@@ -6,7 +6,10 @@
 #include "pas/driver/pep10.hpp"
 #include "pas/driver/pepp.hpp"
 #include "pas/isa/pep10.hpp"
+#include "pas/operations/generic/group.hpp"
+#include "pas/operations/pepp/addressable.hpp"
 #include "pas/operations/pepp/size.hpp"
+#include "pas/operations/pepp/string.hpp"
 #include <QObject>
 #include <QTest>
 
@@ -83,9 +86,8 @@ void equate_test(QSharedPointer<pas::ast::Node> root, qsizetype base) {
 
 void org_test(QSharedPointer<pas::ast::Node> root, qsizetype base) {
   auto children = root->get<pas::ast::generic::Children>().value;
-  QCOMPARE(children.size(), 3);
-  childRange(root, 0, 0, 3);
-  childRange(root, 2, 0x8000, 3);
+  QCOMPARE(children.size(), 2);
+  childRange(root, 1, 0x8000, 3);
 }
 
 class PasOpsPepp_AssignAddress : public QObject {
@@ -113,13 +115,22 @@ private slots:
                  .first->bodies[pas::driver::repr::Nodes::name]
                  .value<pas::driver::repr::Nodes>()
                  .value;
+
     } else {
       auto parseRoot = pas::driver::pepp::createParser<Pep10ISA>(false);
       auto res = parseRoot(body, nullptr);
       QVERIFY(!res.hadError);
+      pas::ops::generic::groupSections(*res.root,
+                                       pas::ops::pepp::isAddressable<Pep10ISA>);
       pas::ops::pepp::assignAddresses<Pep10ISA>(*res.root);
       root = res.root;
     }
+
+    // All code is moved from root to section, so we must adjust root
+    auto sections = pas::ast::children(*root);
+    QCOMPARE(sections.size(), 1);
+    root = sections[0];
+
     validate(root, base);
   }
   void smoke_data() {
@@ -181,11 +192,9 @@ private slots:
         << &equate_test;
 
     QTest::addRow(".ORG @ 0: visitor")
-        << qsizetype(0) << false << u"adda 0,i\n.ORG 0x8000\nldwa 0,i"_qs
-        << &org_test;
+        << qsizetype(0) << false << u".ORG 0x8000\nldwa 0,i"_qs << &org_test;
     QTest::addRow(".ORG @ 0: driver")
-        << qsizetype(0) << true << u"adda 0,i\n.ORG 0x8000\nldwa 0,i"_qs
-        << &org_test;
+        << qsizetype(0) << true << u".ORG 0x8000\nldwa 0,i"_qs << &org_test;
   }
 
   void align() {
@@ -214,9 +223,16 @@ private slots:
       auto parseRoot = pas::driver::pepp::createParser<Pep10ISA>(false);
       auto res = parseRoot(body, nullptr);
       QVERIFY(!res.hadError);
+      pas::ops::generic::groupSections(*res.root,
+                                       pas::ops::pepp::isAddressable<Pep10ISA>);
       pas::ops::pepp::assignAddresses<Pep10ISA>(*res.root);
       root = res.root;
     }
+    // All code is moved from root to section, so we must adjust root
+    auto sections = pas::ast::children(*root);
+    QCOMPARE(sections.size(), 1);
+    root = sections[0];
+
     auto children = root->get<pas::ast::generic::Children>().value;
     QCOMPARE(children.size(), 3);
     childRange(root, 0, base + 0, 1);

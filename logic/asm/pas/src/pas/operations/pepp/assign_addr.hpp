@@ -1,5 +1,6 @@
 #pragma once
 #include "pas/ast/generic/attr_directive.hpp"
+#include "pas/ast/generic/attr_sec.hpp"
 #include "pas/ast/op.hpp"
 #include "pas/ast/value/symbolic.hpp"
 #include "pas/operations/pepp/size.hpp"
@@ -22,8 +23,8 @@ void assignAddressesImpl(ast::Node &node, quint16 &start,
 bool hasBurn(QList<QSharedPointer<ast::Node>> &list);
 quint16 getBurnArg(QList<QSharedPointer<ast::Node>> &list);
 } // namespace detail
-// Only works if the given a single section.
-template <typename ISA> void assignAddresses(ast::Node &section);
+// Handles multiple, nested sections.
+template <typename ISA> void assignAddresses(ast::Node &root);
 } // namespace pas::ops::pepp
 
 template <typename ISA>
@@ -119,16 +120,39 @@ void pas::ops::pepp::detail::assignAddressesImpl(ast::Node &node, quint16 &base,
 }
 
 template <typename ISA> void pas::ops::pepp::assignAddresses(ast::Node &root) {
-  quint16 base = 0;
-  if (root.has<ast::generic::Children>()) {
-    auto children = root.get<ast::generic::Children>().value;
-    if (detail::hasBurn(children)) {
-      base = detail::getBurnArg(children);
-      for (auto child = children.rbegin(); child != children.rend(); ++child)
-        detail::assignAddressesImpl<ISA>(**child, base, Direction::Backward);
-    } else {
-      for (auto &child : children)
-        detail::assignAddressesImpl<ISA>(*child, base, Direction::Forward);
-    }
+  QMap<QString, quint16> map;
+  // Assign addresses section-by-section.
+  // Assumes no nested sections, because this is impossible with ELF.
+  // If we allow subsections (like NASM), this will need to move to full
+  // recursion.
+  for (auto &child : children(root)) {
+    if (generic::isStructural()(*child)) {
+      if (!child->has<pas::ast::generic::SectionName>())
+        throw std::logic_error("Sections must be named");
+
+      auto name = child->get<pas::ast::generic::SectionName>().value;
+      auto sectionChildren = pas::ast::children(*child);
+      bool hasBurn = detail::hasBurn(sectionChildren);
+
+      // Setup entry in address table if the section hasn't been encountered
+      // before.
+      if (!map.contains(name)) {
+        if (hasBurn)
+          map[name] = detail::getBurnArg(sectionChildren);
+        else
+          map[name] = 0;
+      }
+
+      quint16 *base = &map[name];
+      if (hasBurn)
+        for (auto child = sectionChildren.rbegin();
+             child != sectionChildren.rend(); ++child)
+          detail::assignAddressesImpl<ISA>(**child, *base, Direction::Backward);
+      else
+        for (auto &child : sectionChildren)
+          detail::assignAddressesImpl<ISA>(*child, *base, Direction::Forward);
+
+    } else
+      throw std::logic_error("code needs to be in a section!");
   }
 }

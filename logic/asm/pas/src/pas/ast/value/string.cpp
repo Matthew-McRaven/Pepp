@@ -46,6 +46,8 @@ QString pas::ast::value::ShortString::string() const {
   return u"\"%1\""_qs.arg(_value);
 }
 
+QString pas::ast::value::ShortString::rawString() const { return _value; }
+
 pas::ast::value::LongString::LongString() : Base() {}
 
 pas::ast::value::LongString::LongString(QString value, bits::BitOrder endian)
@@ -90,3 +92,5 @@ quint64 pas::ast::value::LongString::requiredBytes() const {
 QString pas::ast::value::LongString::string() const {
   return u"\"%1\""_qs.arg(_value);
 }
+
+QString pas::ast::value::LongString::rawString() const { return _value; }

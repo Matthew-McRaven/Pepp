@@ -31,6 +31,7 @@ public:
   quint64 size() const override;
   quint64 requiredBytes() const override;
   QString string() const override;
+  QString rawString() const override;
 
 private:
   QSharedPointer<symbol::Entry> _value = nullptr;

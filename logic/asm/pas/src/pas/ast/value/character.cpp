@@ -41,3 +41,5 @@ quint64 pas::ast::value::Character::requiredBytes() const {
 QString pas::ast::value::Character::string() const {
   return u"'%1'"_qs.arg(_value);
 }
+
+QString pas::ast::value::Character::rawString() const { return _value; }

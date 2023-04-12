@@ -24,5 +24,8 @@ pas::ast::value::Hexadecimal::clone() const {
 }
 
 QString pas::ast::value::Hexadecimal::string() const {
-    return u"0x%1"_qs.arg(QString::number(_value, 16).toUpper(), 2*_size, QChar('0'));
+  return u"0x%1"_qs.arg(QString::number(_value, 16).toUpper(), 2 * _size,
+                        QChar('0'));
 }
+
+QString pas::ast::value::Hexadecimal::rawString() const { return string(); }

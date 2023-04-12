@@ -4,6 +4,8 @@
 #include "pas/driver/pepp.hpp"
 #include "pas/errors.hpp"
 #include "pas/isa/pep10.hpp"
+#include "pas/operations/generic/group.hpp"
+#include "pas/operations/pepp/addressable.hpp"
 #include "pas/operations/pepp/assign_addr.hpp"
 #include <QObject>
 #include <QTest>
@@ -20,8 +22,7 @@ private slots:
 
     QSharedPointer<pas::ast::Node> root;
     if (useDriver) {
-      auto pipeline =
-          pas::driver::pep10::stages(source, {.isOS = useOSFeats});
+      auto pipeline = pas::driver::pep10::stages(source, {.isOS = useOSFeats});
       auto pipelines = pas::driver::Pipeline<pas::driver::pep10::Stage>{};
       pipelines.pipelines.push_back(pipeline);
       pipelines.globals = QSharedPointer<pas::driver::Globals>::create();
@@ -45,6 +46,8 @@ private slots:
           pas::driver::pepp::createParser<pas::isa::Pep10ISA>(false);
       auto res = parseRoot(source, nullptr);
       QVERIFY(!res.hadError);
+      pas::ops::generic::groupSections(
+          *res.root, pas::ops::pepp::isAddressable<pas::isa::Pep10ISA>);
       pas::ops::pepp::assignAddresses<pas::isa::Pep10ISA>(*res.root);
       root = res.root;
       QCOMPARE(pas::ops::pepp::checkWholeProgramSanity<pas::isa::Pep10ISA>(
