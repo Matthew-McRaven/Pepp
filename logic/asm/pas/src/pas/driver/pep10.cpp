@@ -2,8 +2,10 @@
 #include "pas/driver/pepp.hpp"
 #include "pas/isa/pep10.hpp"
 #include "pas/operations/generic/flatten.hpp"
+#include "pas/operations/generic/group.hpp"
 #include "pas/operations/generic/include_macros.hpp"
 #include "pas/operations/generic/link_globals.hpp"
+#include "pas/operations/pepp/addressable.hpp"
 #include "pas/operations/pepp/assign_addr.hpp"
 #include "pas/operations/pepp/register_system_calls.hpp"
 #include "pas/operations/pepp/whole_program_sanity.hpp"
@@ -58,6 +60,9 @@ pas::driver::pep10::TransformFlattenMacros::toStage() {
 bool pas::driver::pep10::TransformGroup::operator()(
     QSharedPointer<Globals>,
     QSharedPointer<pas::driver::Target<Stage>> target) {
+  auto root = target->bodies[repr::Nodes::name].value<repr::Nodes>().value;
+  pas::ops::generic::groupSections(
+      *root, pas::ops::pepp::isAddressable<isa::Pep10ISA>);
   return true;
 }
 
