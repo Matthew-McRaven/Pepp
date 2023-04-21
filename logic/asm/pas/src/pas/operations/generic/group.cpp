@@ -54,7 +54,7 @@ void pas::ops::generic::GroupSections::operator()(ast::Node &node) {
     newChildren.value.push_back(currentSection);
     /*noAddressableNodes=true*/
     // Only start a new section if an org is embeded in the middle of another.
-  } else if (pas::ops::pepp::isOrg()(node) && hasSeenAddressable) {
+  } else if (pas::ops::generic::isOrg()(node) && hasSeenAddressable) {
     auto newSection =
         QSharedPointer<pas::ast::Node>::create(Type{.value = Type::Structural});
     newSection->set(currentSection->get<SectionName>());

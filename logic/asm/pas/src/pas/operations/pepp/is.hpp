@@ -55,10 +55,6 @@ struct isInput : public pas::ops::ConstOp<bool> {
   bool operator()(const ast::Node &node);
 };
 
-struct isOrg : public pas::ops::ConstOp<bool> {
-  bool operator()(const ast::Node &node);
-};
-
 struct isOutput : public pas::ops::ConstOp<bool> {
   bool operator()(const ast::Node &node);
 };

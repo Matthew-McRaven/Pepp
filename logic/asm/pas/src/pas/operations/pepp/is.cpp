@@ -56,8 +56,3 @@ bool pas::ops::pepp::isSection::operator()(const ast::Node &node) {
 bool pas::ops::pepp::isUSCall::operator()(const ast::Node &node) {
   return isArgumentedDirective(node, u"USCALL"_qs);
 }
-
-bool pas::ops::pepp::isOrg::operator()(const ast::Node &node) {
-
-  return isArgumentedDirective(node, u"ORG"_qs);
-}
