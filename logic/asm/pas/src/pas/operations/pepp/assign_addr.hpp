@@ -50,9 +50,14 @@ void pas::ops::pepp::detail::assignAddressesImpl(ast::Node &node, quint16 &base,
 
   }*/
 
-  static const QSet<QString> addresslessDirectives = {
-      u"END"_qs,    u"EQUATE"_qs, u"EXPORT"_qs,  u"IMPORT"_qs, u"INPUT"_qs,
-      u"OUTPUT"_qs, u"SCALL"_qs,  u"SECTION"_qs, u"USCALL"_qs};
+  static const QSet<QString>
+      addresslessDirectives =
+          {
+              u"END"_qs,    u"EXPORT"_qs, u"IMPORT"_qs,  u"INPUT"_qs,
+              u"OUTPUT"_qs, u"SCALL"_qs,  u"SECTION"_qs, u"USCALL"_qs,
+              u"SECTION"_qs}; // Don't skip ORG, because it updates the base
+                              // address. Also do not skip EQUATE, because it
+                              // modifies symbols.
   if (type == pas::ast::generic::Type::Directive &&
       addresslessDirectives.contains(
           node.get<pas::ast::generic::Directive>().value)) {
@@ -61,34 +66,16 @@ void pas::ops::pepp::detail::assignAddressesImpl(ast::Node &node, quint16 &base,
       hide = node.get<ast::generic::Hide>();
     hide.value.addressInListing = true;
     node.set(hide);
+    return;
   }
+  auto isEquate = pas::ops::generic::isSet();
+  isEquate.directiveAliases = {"EQUATE"};
   if (generic::isOrg()(node)) {
     auto arg = node.get<ast::generic::Argument>().value;
     arg->value(reinterpret_cast<quint8 *>(&base), 2, bits::hostOrder());
     newBase = symBase = base;
-  } else if (direction == Direction::Forward) {
-    // Must explicitly handle address wrap-around, because math inside set
-    // address widens implicitly.
-    newBase = (base + size) % 0x10000;
-    // size is 1-index, while base is 0-indexed. Offset by 1. Unless size is 0,
-    // in which case no adjustment is necessary.
-    ast::setAddress(node, base, size);
-    base = newBase;
-  } else {
-    newBase = (base - size) % 0x10000;
-    // size is 1-index, while base is 0-indexed. Offset by 1. Unless size is 0,
-    // in which case no adjustment is necessary.
-    auto adjustedAddress = newBase + (size > 0 ? 1 : 0);
-    // If we use newBase, we are off-by-one when size is non-zero.
-    symBase = adjustedAddress;
-    ast::setAddress(node, adjustedAddress % 0x10000, size);
-    base = newBase;
-  }
-
-  auto isEquate = pas::ops::generic::isSet();
-  isEquate.directiveAliases = {"EQUATE"};
-  // EQUATEs don't use addresses, and must be handled differently
-  if (node.has<ast::generic::Directive>() && isEquate(node)) {
+  } else if (node.has<ast::generic::Directive>() && isEquate(node)) {
+    // EQUATEs don't use addresses, and must be handled differently
     auto symbol = node.get<ast::generic::SymbolDeclaration>().value;
     auto argument = node.get<ast::generic::Argument>().value;
     // Check if the argument is a symbol, if so, determine if argument belongs
@@ -111,7 +98,27 @@ void pas::ops::pepp::detail::assignAddressesImpl(ast::Node &node, quint16 &base,
                       bits::hostOrder());
       symbol->value = QSharedPointer<symbol::value::Constant>::create(bits);
     }
-  } else if (node.has<ast::generic::SymbolDeclaration>()) {
+    return; // Must return early, or symbol will be clobbered below.
+  } else if (direction == Direction::Forward) {
+    // Must explicitly handle address wrap-around, because math inside set
+    // address widens implicitly.
+    newBase = (base + size) % 0x10000;
+    // size is 1-index, while base is 0-indexed. Offset by 1. Unless size is 0,
+    // in which case no adjustment is necessary.
+    ast::setAddress(node, base, size);
+    base = newBase;
+  } else {
+    newBase = (base - size) % 0x10000;
+    // size is 1-index, while base is 0-indexed. Offset by 1. Unless size is 0,
+    // in which case no adjustment is necessary.
+    auto adjustedAddress = newBase + (size > 0 ? 1 : 0);
+    // If we use newBase, we are off-by-one when size is non-zero.
+    symBase = adjustedAddress;
+    ast::setAddress(node, adjustedAddress % 0x10000, size);
+    base = newBase;
+  }
+
+  if (node.has<ast::generic::SymbolDeclaration>()) {
     auto isCode = node.has<ast::pepp::Instruction<ISA>>();
     auto symbol = node.get<ast::generic::SymbolDeclaration>().value;
     symbol->value = QSharedPointer<symbol::value::Location>::create(
