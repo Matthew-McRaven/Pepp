@@ -259,7 +259,75 @@ private slots:
     QTest::addRow("ALIGN 8 @ 0: driver")
         << qsizetype(8) << qsizetype(0) << true;
   }
+  void sequential_sections() {
+    QString body = u"ldwa 0,i\n.SECTION \"l\"\nldwa 0,i"_qs;
+    auto pipeline = pas::driver::pep10::stages(body, {.isOS = false});
+    auto pipelines = pas::driver::Pipeline<pas::driver::pep10::Stage>{};
+    pipelines.pipelines.push_back(pipeline);
+    pipelines.globals = QSharedPointer<pas::driver::Globals>::create();
+    pipelines.globals->macroRegistry =
+        QSharedPointer<macro::Registry>::create();
+    QVERIFY(pipelines.assemble(pas::driver::pep10::Stage::AssignAddresses));
+    QCOMPARE(pipelines.pipelines[0].first->stage,
+             pas::driver::pep10::Stage::WholeProgramSanity);
+    QVERIFY(pipelines.pipelines[0].first->bodies.contains(
+        pas::driver::repr::Nodes::name));
+    auto root = pipelines.pipelines[0]
+                    .first->bodies[pas::driver::repr::Nodes::name]
+                    .value<pas::driver::repr::Nodes>()
+                    .value;
 
+    // All code is moved from root to section, so we must adjust root
+    auto sections = pas::ast::children(*root);
+    QCOMPARE(sections.size(), 2);
+    QCOMPARE(pas::ast::children(*sections[0]).size(), 1);
+    QCOMPARE(pas::ast::children(*sections[1]).size(), 2);
+    childRange(sections[0], 0, 0, 3);
+    childRange(sections[1], 1, 3, 3);
+  }
+  void sequential_org_sections() {
+    QString body = "LDWA 0,i\n"
+                   ".SECTION \"s0\"\n"
+                   ".ORG 0x8000\n"
+                   "LDWA 0,i\n"
+                   ".SECTION \"s1\"\n"
+                   "LDWA 0,i\n"
+                   ".SECTION \"s2\"\n"
+                   ".ORG 0x9000\n"
+                   "LDWA 0,i\n"
+                   ".SECTION \"s3\"\n"
+                   "LDWA 0,i";
+    auto pipeline = pas::driver::pep10::stages(body, {.isOS = false});
+    auto pipelines = pas::driver::Pipeline<pas::driver::pep10::Stage>{};
+    pipelines.pipelines.push_back(pipeline);
+    pipelines.globals = QSharedPointer<pas::driver::Globals>::create();
+    pipelines.globals->macroRegistry =
+        QSharedPointer<macro::Registry>::create();
+    QVERIFY(pipelines.assemble(pas::driver::pep10::Stage::AssignAddresses));
+    QCOMPARE(pipelines.pipelines[0].first->stage,
+             pas::driver::pep10::Stage::WholeProgramSanity);
+    QVERIFY(pipelines.pipelines[0].first->bodies.contains(
+        pas::driver::repr::Nodes::name));
+    auto root = pipelines.pipelines[0]
+                    .first->bodies[pas::driver::repr::Nodes::name]
+                    .value<pas::driver::repr::Nodes>()
+                    .value;
+    // for (auto l : pas::ops::pepp::formatListing<Pep10ISA>(*root, {}))
+    // qCritical() << l;
+    // All code is moved from root to section, so we must adjust root
+    auto sections = pas::ast::children(*root);
+    QCOMPARE(sections.size(), 5);
+    QCOMPARE(pas::ast::children(*sections[0]).size(), 1);
+    QCOMPARE(pas::ast::children(*sections[1]).size(), 3);
+    QCOMPARE(pas::ast::children(*sections[2]).size(), 2);
+    QCOMPARE(pas::ast::children(*sections[3]).size(), 3);
+    QCOMPARE(pas::ast::children(*sections[4]).size(), 2);
+    childRange(sections[0], 0, 0x8000 - 3, 3);
+    childRange(sections[1], 2, 0x8000, 3);
+    childRange(sections[2], 1, 0x9000 - 3, 3);
+    childRange(sections[3], 2, 0x9000, 3);
+    childRange(sections[4], 1, 0x9000 + 3, 3);
+  }
   // Don't test macros, they shouldn't survive as nodes into the address
   // assignment stage.
   // Empty lines do not matter.

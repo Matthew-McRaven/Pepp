@@ -1,6 +1,7 @@
 #include "pas/driver/pep10.hpp"
 #include "pas/driver/pepp.hpp"
 #include "pas/isa/pep10.hpp"
+#include "pas/operations/generic/combine.hpp"
 #include "pas/operations/generic/flatten.hpp"
 #include "pas/operations/generic/group.hpp"
 #include "pas/operations/generic/include_macros.hpp"
@@ -90,6 +91,7 @@ bool pas::driver::pep10::TransformAssignAddresses::operator()(
 
   auto root = target->bodies[repr::Nodes::name].value<repr::Nodes>().value;
   pas::ops::pepp::assignAddresses<pas::isa::Pep10ISA>(*root);
+  pas::ops::generic::concatSectionAddresses(*root);
   return true;
 }
 
