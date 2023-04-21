@@ -53,6 +53,7 @@ void pas::ops::generic::detail::addOffset(ast::Node &section,
       address.start += offset;
       child->set(pas::ast::generic::Address{.value = address});
     }
+    // Relocate symbols so that symtab will have latest address
     if (child->has<ast::generic::SymbolDeclaration>()) {
       auto sym = child->get<ast::generic::SymbolDeclaration>().value;
       if (auto asLocation =
