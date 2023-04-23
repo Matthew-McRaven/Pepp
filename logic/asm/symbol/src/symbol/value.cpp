@@ -110,7 +110,7 @@ symbol::value::Location::Location() {}
 
 symbol::value::Location::Location(quint8 bytes, quint64 base, quint64 offset,
                                   Type type)
-    : _bytes(bytes), _base(base), _offset(offset) {
+    : _bytes(bytes), _base(base), _offset(offset), _type(type) {
   switch (type) {
   case symbol::Type::kObject:
     [[fallthrough]];

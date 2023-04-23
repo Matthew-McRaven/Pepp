@@ -242,7 +242,7 @@ private:
   // Byte count
   quint8 _bytes = 0;
   quint64 _base = 0, _offset = 0;
-  symbol::Type _type = symbol::Type::kConstant;
+  symbol::Type _type = symbol::Type::kEmpty;
 };
 
 /*!
