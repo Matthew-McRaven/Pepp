@@ -240,10 +240,10 @@ class PasOpsPepp_NodeFromParseTree_Error : public QObject {
     // - exactly 1 arg (an identifier)
     QTest::addRow(".SECTION: min 1 argument")
         << u".SECTION"_qs
-        << QList<Error>{makeFatal(0, E::expectNArguments.arg(1))};
-    QTest::addRow(".SECTION: max 1 argument")
-        << u".SECTION 0x00, 0x01"_qs
-        << QList<Error>{makeFatal(0, E::expectNArguments.arg(1))};
+        << QList<Error>{makeFatal(0, E::expectNMArguments.arg(1, 2))};
+    QTest::addRow(".SECTION: max 2 argument")
+        << u".SECTION 0x0, 0x1, 0x2"_qs
+        << QList<Error>{makeFatal(0, E::expectNMArguments.arg(1, 2))};
     // - no symbol
     QTest::addRow(".SECTION: no symbol")
         << u"ret: .SECTION \"data\""_qs
