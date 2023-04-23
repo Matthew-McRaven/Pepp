@@ -2,6 +2,7 @@
 #include "pas/ast/generic/attr_parent.hpp"
 #include "pas/ast/generic/attr_sec.hpp"
 #include "pas/ast/value/base.hpp"
+#include "pas/operations/generic/suppress_object.hpp"
 #include "pas/operations/pepp/is.hpp"
 
 pas::ops::generic::GroupSections::GroupSections(
@@ -46,6 +47,7 @@ void pas::ops::generic::GroupSections::operator()(ast::Node &node) {
       flags.value.R = flagText.contains("R", Qt::CaseInsensitive);
       flags.value.W = flagText.contains("W", Qt::CaseInsensitive);
       flags.value.X = flagText.contains("X", Qt::CaseInsensitive);
+      flags.value.Z = flagText.contains("Z", Qt::CaseInsensitive);
     }
 
     newSection->set(flags);
@@ -88,4 +90,10 @@ void pas::ops::generic::groupSections(
   auto sharedRoot = root.sharedFromThis();
   for (auto child : sections.newChildren.value)
     child->set(ast::generic::Parent{.value = sharedRoot});
+
+  auto suppress = ops::generic::SuppressObject{};
+  // Propogate Z flag (suppress object code)
+  for (auto &child : sections.newChildren.value)
+    if (child->get<ast::generic::SectionFlags>().value.Z)
+      ast::apply_recurse(*child, suppress);
 }
