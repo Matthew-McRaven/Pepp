@@ -37,6 +37,8 @@ void pas::obj::pep10::combineSections(ast::Node &root) {
   root.set(ast::generic::Children{.value = newChildren});
 }
 
+static const auto strTabStr = ".strtab";
+
 ELFIO::elfio pas::obj::pep10::createElf() {
   static const char p10mac[2] = {'p', 'x'};
   ELFIO::elfio ret;
@@ -44,19 +46,22 @@ ELFIO::elfio pas::obj::pep10::createElf() {
   ret.set_os_abi(ELFIO::ELFOSABI_NONE);
   ret.set_type(ELFIO::ET_EXEC);
   ret.set_machine(*p10mac);
+  // Create strtab early, so that it will be before any code sections.
+  auto strTab = ret.sections.add(strTabStr);
+  strTab->set_type(ELFIO::SHT_STRTAB);
   return ret;
 }
 
 void writeSymtab(ELFIO::elfio &elf, symbol::Table &table, QString prefix) {
   ELFIO::section *strTab = nullptr;
   for (auto &sec : elf.sections) {
-    if (sec->get_name() == ".strtab" && sec->get_type() == ELFIO::SHT_SYMTAB) {
+    if (sec->get_name() == strTabStr && sec->get_type() == ELFIO::SHT_STRTAB) {
       strTab = sec.get();
       break;
     }
   }
   if (strTab == nullptr) {
-    strTab = elf.sections.add(".strtab");
+    strTab = elf.sections.add(strTabStr);
     strTab->set_type(ELFIO::SHT_STRTAB);
   }
   auto symTab = elf.sections.add(u"%1.symtab"_qs.arg(prefix).toStdString());
@@ -111,8 +116,8 @@ void writeSymtab(ELFIO::elfio &elf, symbol::Table &table, QString prefix) {
   symAc.arrange_local_symbols();
 }
 
-void pas::obj::pep10::writeOS(ELFIO::elfio &elf, ast::Node &os) {
-
+void writeTree(ELFIO::elfio &elf, pas::ast::Node &node, QString prefix) {
+  using namespace pas;
   ELFIO::segment *activeSeg = nullptr;
 
   auto getOrCreateBSS = [&](ast::generic::SectionFlags::Flags &flags) {
@@ -147,9 +152,11 @@ void pas::obj::pep10::writeOS(ELFIO::elfio &elf, ast::Node &os) {
     return activeSeg;
   };
 
-  for (auto &astSec : ast::children(os)) {
+  for (auto &astSec : ast::children(node)) {
     // Don't emit 0-sized sections.
     auto secName = astSec->get<ast::generic::SectionName>().value;
+    if (secName.startsWith("."))
+      secName = secName.mid(1);
     auto secFlags = astSec->get<ast::generic::SectionFlags>().value;
     auto traits = pas::ops::generic::detail::getTraits(*astSec);
     auto align = traits.alignment;
@@ -160,7 +167,7 @@ void pas::obj::pep10::writeOS(ELFIO::elfio &elf, ast::Node &os) {
     if (size == 0)
       continue; // 0-sized sections are meaningless, do not emit.
 
-    auto sec = elf.sections.add(u"os.%1"_qs.arg(secName).toStdString());
+    auto sec = elf.sections.add(u"%1.%2"_qs.arg(prefix, secName).toStdString());
     sec->set_type(ELFIO::SHT_PROGBITS);
     auto shFlags = ELFIO::SHF_ALLOC;
     shFlags |= secFlags.X ? ELFIO::SHF_EXECINSTR : 0;
@@ -190,7 +197,14 @@ void pas::obj::pep10::writeOS(ELFIO::elfio &elf, ast::Node &os) {
         line->get<ast::generic::SymbolDeclaration>().value->section_index =
             sec->get_index();
   }
-  if (os.has<ast::generic::SymbolTable>())
-    writeSymtab(elf, *os.get<ast::generic::SymbolTable>().value, u"os"_qs);
-  qDebug() << elf.segments.size();
+  if (node.has<ast::generic::SymbolTable>())
+    writeSymtab(elf, *node.get<ast::generic::SymbolTable>().value, prefix);
+}
+void pas::obj::pep10::writeOS(ELFIO::elfio &elf, ast::Node &os) {
+  writeTree(elf, os, "os");
+  elf.set_entry(/*TODO:determine OS entry point*/ 0x000);
+}
+
+void pas::obj::pep10::writeUser(ELFIO::elfio &elf, ast::Node &user) {
+  writeTree(elf, user, "usr");
 }
