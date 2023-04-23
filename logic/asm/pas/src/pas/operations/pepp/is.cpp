@@ -48,7 +48,6 @@ bool pas::ops::pepp::isSection::operator()(const ast::Node &node) {
          node.has<ast::generic::Directive>() &&
          (node.get<ast::generic::Directive>().value.toUpper() ==
           u"SECTION"_qs) &&
-         node.has<ast::generic::SectionFlags>() &&
          (node.has<ast::generic::ArgumentList>() ||
           node.has<ast::generic::Argument>());
 }
