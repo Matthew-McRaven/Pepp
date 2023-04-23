@@ -28,6 +28,9 @@ template <typename ISA>
 qsizetype explicitSize(const ast::Node &node, quint16 at,
                        Direction direction = Direction::Forward);
 
+// Compute the size of a contiguous region from the addresses.
+qsizetype sizeFromAddress(const ast::Node &node);
+
 namespace detail {
 quint16 sizeAlign(const ast::Node, quint16 at, Direction direction);
 quint16 sizeASCII(const ast::Node, quint16 at, Direction direction);
