@@ -1,9 +1,5 @@
 ;******* Pep/9 Operating System, 2019/03/03
 ;
-true:    .EQUATE 1
-false:   .EQUATE 0
-         .EXPORT true
-         .EXPORT false
 ;
 ;******* Operating system RAM
          .SECTION "stack", "rwz"
@@ -14,6 +10,10 @@ osSPTemp:.BLOCK  2           ;Store system stack pointer when calling user progr
 addrMask:.BLOCK  2           ;Addressing mode mask #2h.
 opAddr:  .BLOCK  2           ;Trap instruction operand address #2h.
 
+true:    .EQUATE 1
+false:   .EQUATE 0
+         .EXPORT true
+         .EXPORT false
 ;******* Operating system ROM
          .SECTION "text", "rx"
 ;
@@ -631,7 +631,7 @@ exitPrnt:RET
 trpHnd:   .WORD  disp        ;Address of first instruction in trap handler.
 initPC:   .WORD  trap        ;Address of first instruction to execute on boot.
           .SECTION "memvec", "rw"
-          .ORG   0xFFFC
+          .ORG   0xFFFA
 initSp:   .WORD  osRAM       ;Initial stack pointer. Must be updated before
                              ; calling main or OS state will be clobbered.
 ;Do not allow diskIn to be referenced in user programs.
