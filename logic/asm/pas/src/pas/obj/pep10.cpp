@@ -45,7 +45,7 @@ ELFIO::elfio pas::obj::pep10::createElf() {
   ret.create(ELFIO::ELFCLASS32, ELFIO::ELFDATA2MSB);
   ret.set_os_abi(ELFIO::ELFOSABI_NONE);
   ret.set_type(ELFIO::ET_EXEC);
-  ret.set_machine(*p10mac);
+  ret.set_machine(*(quint16 *)p10mac);
   // Create strtab early, so that it will be before any code sections.
   auto strTab = ret.sections.add(strTabStr);
   strTab->set_type(ELFIO::SHT_STRTAB);
