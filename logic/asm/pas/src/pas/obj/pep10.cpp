@@ -96,10 +96,8 @@ void writeSymtab(ELFIO::elfio &elf, symbol::Table &table, QString prefix) {
       secIdx = ELFIO::SHN_ABS;
     }
 
-    quint8 bind;
-    if (entry->binding == symbol::Binding::kLocal)
-      bind = ELFIO::STB_LOCAL;
-    else if (entry->binding == symbol::Binding::kGlobal)
+    quint8 bind = ELFIO::STB_LOCAL;
+    if (entry->binding == symbol::Binding::kGlobal)
       bind = ELFIO::STB_GLOBAL;
     else if (entry->binding == symbol::Binding::kImported)
       bind = ELFIO::STB_WEAK;
