@@ -13,7 +13,7 @@ set_target_properties(pepp-term PROPERTIES
 set_target_properties(pepp-term PROPERTIES FOLDER "qtc_runnable")
 
 target_link_libraries(pepp-term
-    PRIVATE macro pas builtins)
+    PRIVATE cli macro pas builtins Qt6::Core)
 
 install(TARGETS pepp-term
     BUNDLE DESTINATION .
