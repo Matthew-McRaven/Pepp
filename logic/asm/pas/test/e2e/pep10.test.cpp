@@ -4,6 +4,7 @@
 #include "builtins/registry.hpp"
 #include "macro/registry.hpp"
 #include "pas/isa/pep10.hpp"
+#include "pas/obj/pep10.hpp"
 #include "pas/operations/generic/errors.hpp"
 #include "pas/operations/pepp/string.hpp"
 #include <QObject>
@@ -29,6 +30,8 @@ class PasE2E_Pep10 : public QObject {
 
 private slots:
   void standalone() {
+    QFETCH(QString, chapter);
+    QFETCH(QString, figure);
     QFETCH(QString, body);
     QFETCH(bool, isOS);
 
@@ -59,10 +62,13 @@ private slots:
       for (auto &error : pas::ops::generic::collectErrors(*root))
         qCritical() << error.first.value.line << error.second.message;
     }
+
     QVERIFY(result);
   }
 
   void standalone_data() {
+    QTest::addColumn<QString>("chapter");
+    QTest::addColumn<QString>("figure");
     QTest::addColumn<QString>("body");
     QTest::addColumn<bool>("isOS");
     auto registry = builtins::Registry(nullptr);
@@ -75,11 +81,14 @@ private slots:
       auto chName = fig->chapterName().toStdString();
       auto figName = fig->figureName().toStdString();
       QTest::addRow("Figure %s.%s", chName.data(), figName.data())
+          << fig->chapterName() << fig->figureName()
           << fig->typesafeElements()["pep"]->contents << fig->isOS();
     }
   }
 
   void unified() {
+    QFETCH(QString, chapter);
+    QFETCH(QString, figure);
     QFETCH(QString, userBody);
     QFETCH(QString, osBody);
 
@@ -120,10 +129,18 @@ private slots:
       for (auto &error : pas::ops::generic::collectErrors(*userRoot))
         qCritical() << "USER: " << error.second.message;
     }
+    auto elf = pas::obj::pep10::createElf();
+    pas::obj::pep10::combineSections(*osRoot);
+    pas::obj::pep10::writeOS(elf, *osRoot);
+    pas::obj::pep10::combineSections(*userRoot);
+    pas::obj::pep10::writeUser(elf, *userRoot);
+    elf.save(u"%1.%2.elf"_qs.arg(chapter, figure).toStdString());
     QVERIFY(result);
   }
 
   void unified_data() {
+    QTest::addColumn<QString>("chapter");
+    QTest::addColumn<QString>("figure");
     QTest::addColumn<QString>("userBody");
     QTest::addColumn<QString>("osBody");
     auto registry = builtins::Registry(nullptr);
@@ -143,6 +160,7 @@ private slots:
       auto chName = fig->chapterName().toStdString();
       auto figName = fig->figureName().toStdString();
       QTest::addRow("Figure %s.%s with OS", chName.data(), figName.data())
+          << fig->chapterName() << fig->figureName()
           << fig->typesafeElements()["pep"]->contents
           << defaultOS->typesafeElements()["pep"]->contents;
     }

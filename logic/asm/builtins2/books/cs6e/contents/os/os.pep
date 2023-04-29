@@ -1,34 +1,21 @@
 ;******* Pep/9 Operating System, 2019/03/03
 ;
-true:    .EQUATE 1
-false:   .EQUATE 0
-         .EXPORT true
-         .EXPORT false
 ;
 ;******* Operating system RAM
+         .SECTION "stack", "rwz"
 osRAM:   .BLOCK  128         ;System stack area
 wordTemp:.BLOCK  1           ;Temporary word storage #1h
 byteTemp:.BLOCK  1           ;Least significant byte of wordTemp #1h
 osSPTemp:.BLOCK  2           ;Store system stack pointer when calling user program #2h.
 addrMask:.BLOCK  2           ;Addressing mode mask #2h.
 opAddr:  .BLOCK  2           ;Trap instruction operand address #2h.
-;Do not allow diskIn to be referenced in user programs.
-         .INPUT  diskIn      ;Mark diskIn as a memory-mapped input device
-diskIn:  .BLOCK  1           ;Memory-mapped input device #2h.
 
-         .EXPORT charIn      ;Allow charIn to be referenced in user programs.
-         .INPUT  charIn      ;Mark charIn as a memory-mapped input device
-charIn:  .BLOCK  1           ;Memory-mapped input device #2h.
-
-         .EXPORT charOut     ;Allow charOut to be referenced in user programs.
-         .OUTPUT charOut     ;Mark charOut as a memory-mapped output device
-charOut: .BLOCK  1           ;Memory-mapped output device #2h.
-
-         .OUTPUT pwrOff      ;Mark pwfOff as a memory-mapped output device
-         .EXPORT pwrOff      ;Allow pwrOff to be referenced in user programs.
-pwrOff:  .BLOCK  1           ;Memory-mapped shutdown device #2h.
+true:    .EQUATE 1
+false:   .EQUATE 0
+         .EXPORT true
+         .EXPORT false
 ;******* Operating system ROM
-;        .BURN   0xFFFF      ; To be replaced with .ORG
+         .SECTION "text", "rx"
 ;
 ;Place entry point flags in read-only memory, as these
 ;  may only be modified by the simulator.
@@ -640,10 +627,25 @@ prntMore:LDBA    msgAddr,sfx ;Test next char
 exitPrnt:RET
 ;
 ;******* Vectors for system memory map
-         .WORD osRAM       ;User stack pointer
-         .WORD wordTemp    ;System stack pointer
-         .WORD pwrOff      ;Memory-mapped power off device
-         .WORD disp        ;Dispatcher program counter
-         .WORD loader      ;Loader program counter
-         .WORD trap        ;Trap program counter
 ;
+trpHnd:   .WORD  disp        ;Address of first instruction in trap handler.
+initPC:   .WORD  trap        ;Address of first instruction to execute on boot.
+          .SECTION "memvec", "rw"
+          .ORG   0xFFFA
+initSp:   .WORD  osRAM       ;Initial stack pointer. Must be updated before
+                             ; calling main or OS state will be clobbered.
+;Do not allow diskIn to be referenced in user programs.
+         .INPUT  diskIn      ;Mark diskIn as a memory-mapped input device
+diskIn:  .BLOCK  1           ;Memory-mapped input device #1h.
+
+         .EXPORT charIn      ;Allow charIn to be referenced in user programs.
+         .INPUT  charIn      ;Mark charIn as a memory-mapped input device
+charIn:  .BLOCK  1           ;Memory-mapped input device #1h.
+
+         .EXPORT charOut     ;Allow charOut to be referenced in user programs.
+         .OUTPUT charOut     ;Mark charOut as a memory-mapped output device
+charOut: .BLOCK  1           ;Memory-mapped output device #1h.
+
+         .OUTPUT pwrOff      ;Mark pwfOff as a memory-mapped output device
+         .EXPORT pwrOff      ;Allow pwrOff to be referenced in user programs.
+pwrOff:  .BLOCK  1           ;Memory-mapped shutdown device #1h.

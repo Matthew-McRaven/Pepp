@@ -310,19 +310,28 @@ pas::parse::pepp::detail::section(const DirectiveType &line, ST symTab) {
   auto args = detail::parse_arg(line, symTab, true);
 
   // TODO: Handle section flags (second argument).
-  // Triggers when you pass 0 or 2+ arguments.
-  if (args.size() != 1)
-    return addError(
-        ret, {.severity = S::Fatal, .message = EP::expectNArguments.arg(1)});
+  // Triggers when you pass 0 or 3+ arguments.
+  if (args.size() == 0 || args.size() > 2)
+    return addError(ret, {.severity = S::Fatal,
+                          .message = EP::expectNMArguments.arg(1, 2)});
   auto arg = args[0];
   // Triggers when the argument is not a string
   if (!arg->isText())
     return addError(ret,
                     {.severity = S::Fatal,
                      .message = EP::dotRequiresString.arg(u".SECTION"_qs)});
-  ret->set(generic::Argument{.value = arg});
-  ret->set(generic::SectionFlags{
-      .value = {.R = 1, .W = 1, .X = 1}}); // Default to read/write/execute
+
+  if (args.size() == 2) {
+    auto flagArg = args[1];
+    if (!flagArg->isText())
+      return addError(
+          ret, {.severity = S::Fatal, .message = EP::sectionFlagsString});
+  }
+
+  if (args.size() == 1)
+    ret->set(ast::generic::Argument{.value = arg});
+  else
+    ret->set(ast::generic::ArgumentList{.value = args});
 
   // Triggers when you define a symbol.
   if (!line.symbol.empty())

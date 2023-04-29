@@ -1,7 +1,8 @@
-         .SECTION ".STACK"
+         .SECTION "stack", "rwz"
 bp:      .WORD bp
 
-         .SECTION "memvec"
+         .SECTION "memvec", "rw"
+         .ORG    0xFFFC
          .INPUT  diskIn
 diskIn:  .BLOCK  1
          .INPUT  charIn

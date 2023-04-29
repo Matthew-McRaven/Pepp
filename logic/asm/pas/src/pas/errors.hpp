@@ -25,7 +25,9 @@ inline const QString argAfterMnemonic = u""_qs;
 inline const QString expectedNumeric =
     u"Expected a decimal, hexadecimal, or symbolic argument."_qs;
 inline const QString expectNArguments = u"Expected %1 argument(s)."_qs;
+inline const QString expectNMArguments = u"Expected %1 to %2 argument(s)."_qs;
 inline const QString expectedSymbolic = u"Expected a symbolic argument."_qs;
+inline const QString sectionFlagsString = u"SECTION flags must be a string."_qs;
 inline const QString illegalDirective = u"%1 is not a valid directive."_qs;
 inline const QString illegalInUser = u"%1 cannot be used in a user program."_qs;
 // Address problems
