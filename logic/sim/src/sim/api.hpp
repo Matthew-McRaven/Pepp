@@ -44,9 +44,10 @@ template <typename Payload> struct Packet {
 #pragma pack(pop)
 
 struct Registry {
+  virtual ~Registry() = default;
   typedef void (*packet_dtor)(void *);
-  void registerDTOR(Flags flags, packet_dtor dtor);
-  packet_dtor getDTOR(Flags flags); // nullptr indicates no DTOR.
+  virtual void registerDTOR(Flags flags, packet_dtor dtor) = 0;
+  virtual packet_dtor getDTOR(Flags flags) = 0; // nullptr indicates no DTOR.
 };
 } // namespace Packet
 
@@ -58,6 +59,7 @@ struct Buffer;
 struct Analyzer {
   virtual ~Analyzer() = 0;
 };
+Analyzer::~Analyzer() = default;
 
 struct Buffer {
   using AnalyzerHookID = quint32;
@@ -68,7 +70,7 @@ struct Buffer {
     OverflowAndRetry,   // Operation did not succeed. Retry current step after
                         // sync'ing buffer. Object is NOT pending.
   };
-  virtual ~Buffer() = 0;
+  virtual ~Buffer() = default;
   virtual Status push(void *trace) = 0; // "trace" is a Packet struct.
   virtual void trace(quint16 deviceID, bool enabled = true);
   virtual void setPacketRegistry(Packet::Registry *registry);
@@ -78,6 +80,7 @@ struct Buffer {
 };
 
 struct Producer {
+  virtual ~Producer() = default;
   virtual bool setTraceBuffer(Buffer *tb) = 0;
   virtual bool applyTrace(void *trace) = 0;   // trace is a Packet struct.
   virtual bool unapplyTrace(void *trace) = 0; // trace is a Packet struct.
@@ -110,13 +113,13 @@ struct Result {
 
 // AKA Clock
 struct Source {
-  virtual ~Source() = 0;
+  virtual ~Source() = default;
   virtual Type interval() = 0;
 };
 
 // AKA something clocked
 struct Listener {
-  virtual ~Listener() = 0;
+  virtual ~Listener() = default;
   virtual const Source *getSource() = 0;
   virtual void setSource(Source *) = 0;
   virtual Result tick(Tick::Type currentTick) = 0;
@@ -151,7 +154,7 @@ struct Result {
 
 template <typename Address> struct Interposer {
   enum class Result { Success = 0, Breakpoint };
-
+  ~Interposer() = default;
   Result tryRead(Address address, quint8 length, Operation op);
   Result tryWrite(Address address, const quint8 *data, quint8 length,
                   Operation op);
@@ -161,7 +164,7 @@ template <typename Address> struct Target {
   struct AddressSpan {
     Address minOffset, length;
   };
-  virtual ~Target() = 0;
+  virtual ~Target() = default;
   virtual AddressSpan span() const = 0;
   virtual Result read(Address address, quint8 *dest, quint8 length,
                       Operation op) const = 0;
@@ -173,7 +176,7 @@ template <typename Address> struct Target {
 };
 
 template <typename Address> struct Initiator {
-  virtual ~Initiator() = 0;
+  virtual ~Initiator() = default;
   virtual void
   setTarget(Target<Address>
                 *target) = 0; // Sets all targets. e.g., both I and D paths.
@@ -190,14 +193,14 @@ struct Scheduler {
                // ticked.
     Jump, // Execute up to and including the next tick with a clocked device.
   };
-  virtual ~Scheduler() = 0;
+  virtual ~Scheduler() = default;
   virtual Tick::Listener *next(Tick::Type current, Mode mode) = 0;
   virtual void schedule(Tick::Listener *listener, Tick::Type startingOn) = 0;
   virtual void reschedule(Device::ID device, Tick::Type startingOn) = 0;
 };
 
 template <typename Address> struct System {
-  virtual ~System() = 0;
+  virtual ~System() = default;
   virtual void addTarget(const Device::Descriptor device,
                          Memory::Target<Address> *target) = 0;
   virtual void addClock(const Device::Descriptor device,
