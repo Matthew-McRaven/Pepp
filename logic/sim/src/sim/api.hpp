@@ -155,9 +155,9 @@ struct Result {
 template <typename Address> struct Interposer {
   enum class Result { Success = 0, Breakpoint };
   ~Interposer() = default;
-  Result tryRead(Address address, quint8 length, Operation op);
-  Result tryWrite(Address address, const quint8 *data, quint8 length,
-                  Operation op);
+  virtual Result tryRead(Address address, quint8 length, Operation op) = 0;
+  virtual Result tryWrite(Address address, const quint8 *data, quint8 length,
+                          Operation op) = 0;
 };
 
 template <typename Address> struct Target {
