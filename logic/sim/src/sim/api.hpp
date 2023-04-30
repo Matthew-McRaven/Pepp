@@ -1,7 +1,6 @@
 #pragma once
 #include <QtCore>
 #include <type_traits>
-
 namespace sim::api {
 
 namespace Device {
@@ -53,6 +52,8 @@ template <typename Payload> struct Packet {
       src = bytes;
     else
       src = &bytes;
+    // Should use bits::memcpy, but don't want to make bits library a
+    // requirement for API.
     memcpy(dst, src, qMin(sizeof(Bytes), sizeof(Payload)));
   };
 };
