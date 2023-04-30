@@ -13,10 +13,36 @@ struct Descriptor {
 } // namespace Device
 
 namespace Packet {
+// clang-format off
+/*
+ * Flags allow a device to cast a memory location to the correct kind of Packet
+ * by encoding type information.
+ * scope:
+ *   0: The meaning of the flags do not depend on the ID field of the Packet
+ *   1: One must delegate to the device that created the packet to
+ *      return type information
+ * dyn:
+ *   0: The containing packet's payload contains no fields who point to
+ *      heap-allocated object. No destructor is necessary
+ *   1: The containg packet's payload contains at least one field who points to
+ *      a heap-allocated  object. If scope==0, then the Buffer is responsible
+ *      for finding and calling a suitable destructor for the packet. If
+ *      scope==1, the Buffer may delegate to the device which created the
+ *      packet.
+ * kind:
+ *   When scope==0, all packets with the same kind bits must have identical
+ *   storage layouts. When scope==1, only packets belonging to the same device
+ *   must have the same storage layout.
+ *
+ * Special values:
+ *   0b0'0'000'000 indicates and empty Packet.
+ *   0bx'x'111'111 indicates an uninitialized type.
+ */
+ //clang-format on
 struct Flags {
-  quint16 delta : 1; // 0=stats, 1=delta;
-  quint16 deviceKind : 9;
-  quint16 dataKind : 6;
+  quint8 scope : 1; // 0=global, 1=specific to device;
+  quint8 dyn : 1;   // 1=some data allocated with malloc/new. Must be destroyed.
+  quint8 kind : 6;
   inline operator quint16() const {
     union {
       Flags flags;
@@ -26,7 +52,7 @@ struct Flags {
     return type.bits;
   }
 };
-static_assert(sizeof(Flags) == sizeof(quint16));
+static_assert(sizeof(Flags) == sizeof(quint8));
 
 #pragma pack(push, 1)
 template <typename Payload> struct Packet {
