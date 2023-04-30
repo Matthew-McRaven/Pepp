@@ -5,10 +5,10 @@
 
 namespace sim::memory {
 template <typename Address>
-class Dense : public api::Memory::Target<Address>, api::Trace::Producer {
+class Dense : public api::memory::Target<Address>, api::trace::Producer {
 public:
-  using AddressSpan = typename api::Memory::Target<Address>::AddressSpan;
-  Dense(api::Device::Descriptor device, AddressSpan span,
+  using AddressSpan = typename api::memory::Target<Address>::AddressSpan;
+  Dense(api::device::Descriptor device, AddressSpan span,
         quint8 defaultValue = 0);
   ~Dense() = default;
   Dense(Dense &&other) noexcept = default;
@@ -20,16 +20,16 @@ public:
 
   // Target interface
   AddressSpan span() const override;
-  api::Memory::Result read(Address address, quint8 *dest, quint8 length,
-                           api::Memory::Operation op) const override;
-  api::Memory::Result write(Address address, const quint8 *src, quint8 length,
-                            api::Memory::Operation op) override;
+  api::memory::Result read(Address address, quint8 *dest, quint8 length,
+                           api::memory::Operation op) const override;
+  api::memory::Result write(Address address, const quint8 *src, quint8 length,
+                            api::memory::Operation op) override;
   void clear(quint8 fill) override;
-  void setInterposer(api::Memory::Interposer<Address> *inter) override;
+  void setInterposer(api::memory::Interposer<Address> *inter) override;
 
   // Producer interface
-  void setTraceBuffer(api::Trace::Buffer *tb) override;
-  quint8 packetSize(api::Packet::Flags) const override;
+  void setTraceBuffer(api::trace::Buffer *tb) override;
+  quint8 packetSize(api::packet::Flags) const override;
   bool applyTrace(void *trace) override;
   bool unapplyTrace(void *trace) override;
 
@@ -39,15 +39,15 @@ public:
 private:
   quint8 _fill;
   AddressSpan _span;
-  api::Device::Descriptor _device;
+  api::device::Descriptor _device;
   QVector<quint8> _data;
 
-  api::Memory::Interposer<Address> *_inter = nullptr;
-  api::Trace::Buffer *_tb = nullptr;
+  api::memory::Interposer<Address> *_inter = nullptr;
+  api::trace::Buffer *_tb = nullptr;
 };
 
 template <typename Address>
-sim::memory::Dense<Address>::Dense(api::Device::Descriptor device,
+sim::memory::Dense<Address>::Dense(api::device::Descriptor device,
                                    AddressSpan span, quint8 fill)
     : _fill(fill), _span(span), _device(device) {
   _data.fill(_fill, _span.length); // Resizes before filling.
@@ -60,9 +60,9 @@ sim::memory::Dense<Address>::span() const {
 }
 
 template <typename Address>
-sim::api::Memory::Result
+sim::api::memory::Result
 sim::memory::Dense<Address>::read(Address address, quint8 *dest, quint8 length,
-                                  api::Memory::Operation op) const {
+                                  api::memory::Operation op) const {
 
   // Subtract rather than add to avoid potential overflow.
   // Equivalently address + qMin(0, length-1) < _span.minOffset+_span.length-1
@@ -74,14 +74,14 @@ sim::memory::Dense<Address>::read(Address address, quint8 *dest, quint8 length,
             .advance = false,
             .pause = true,
             .sync = false,
-            .error = api::Memory::Error::OOBAccess};
-  auto error = api::Memory::Error::Success;
+            .error = api::memory::Error::OOBAccess};
+  auto error = api::memory::Error::Success;
   bool pause = false;
   if (op.effectful && _inter) {
     auto res = _inter->tryRead(address, length, op);
-    if (res == api::Memory::Interposer<Address>::Result::Breakpoint) {
+    if (res == api::memory::Interposer<Address>::Result::Breakpoint) {
       pause = true;
-      error = api::Memory::Error::Breakpoint;
+      error = api::memory::Error::Breakpoint;
     }
   }
   bits::memcpy(dest, _data.constData() + (address - _span.minOffset), length);
@@ -96,11 +96,11 @@ namespace detail {
 template <typename Address, typename T>
 using payload = bits::trace::AddressedPayload<Address, T>;
 template <typename Address>
-api::Trace::Buffer::Status alloc(void **dest, quint8 length,
-                                 api::Trace::Buffer *tb) {
-  using namespace api::Packet;
+api::trace::Buffer::Status alloc(void **dest, quint8 length,
+                                 api::trace::Buffer *tb) {
+  using namespace api::packet;
   auto bit_ceil = std::bit_ceil(length);
-  api::Trace::Buffer::Status ret;
+  api::trace::Buffer::Status ret;
   quint8 size = 0;
   switch (bit_ceil) {
   case 1:
@@ -131,8 +131,8 @@ api::Trace::Buffer::Status alloc(void **dest, quint8 length,
 
 template <typename Address, typename dtype>
 quint8 *init_help(void *packet, quint16 dataLen, Address address,
-                  api::Device::ID id) {
-  using namespace api::Packet;
+                  api::device::ID id) {
+  using namespace api::packet;
   using pkt = Packet<payload<Address, dtype>>;
   pkt *ptr = new (packet) pkt(id, bits::trace::flags<Address, dtype>());
   ptr->payload.address = address;
@@ -144,7 +144,7 @@ quint8 *init_help(void *packet, quint16 dataLen, Address address,
 
 template <typename Address>
 quint8 *init(void *packet, quint16 dataLen, Address address,
-             api::Device::ID id) {
+             api::device::ID id) {
   auto bit_ceil = std::bit_ceil(dataLen);
   switch (bit_ceil) {
   case 1:
@@ -167,9 +167,9 @@ quint8 *init(void *packet, quint16 dataLen, Address address,
 } // namespace detail
 
 template <typename Address>
-sim::api::Memory::Result
+sim::api::memory::Result
 sim::memory::Dense<Address>::write(Address address, const quint8 *src,
-                                   quint8 length, api::Memory::Operation op) {
+                                   quint8 length, api::memory::Operation op) {
   // Subtract rather than add to avoid potential overflow.
   // Equivalently address + qMin(0, length-1) < _span.minOffset+_span.length-1
   // length is 1-indexed, address are 0, so must convert by -1.
@@ -180,14 +180,14 @@ sim::memory::Dense<Address>::write(Address address, const quint8 *src,
             .advance = false,
             .pause = true,
             .sync = false,
-            .error = api::Memory::Error::OOBAccess};
-  auto error = api::Memory::Error::Success;
+            .error = api::memory::Error::OOBAccess};
+  auto error = api::memory::Error::Success;
   bool pause = false;
   if (op.effectful && _inter) {
     auto res = _inter->tryWrite(address, src, length, op);
-    if (res == api::Memory::Interposer<Address>::Result::Breakpoint) {
+    if (res == api::memory::Interposer<Address>::Result::Breakpoint) {
       pause = true;
-      error = api::Memory::Error::Breakpoint;
+      error = api::memory::Error::Breakpoint;
     }
   }
   bool success = true, sync = false;
@@ -196,12 +196,12 @@ sim::memory::Dense<Address>::write(Address address, const quint8 *src,
     void *packet = nullptr;
     auto res = detail::alloc<Address>(&packet, length, _tb);
     switch (res) {
-    case api::Trace::Buffer::Status::Success:
+    case api::trace::Buffer::Status::Success:
       break;
-    case api::Trace::Buffer::Status::OverflowAndRetry:
+    case api::trace::Buffer::Status::OverflowAndRetry:
       success = false;
       [[fallthrough]];
-    case api::Trace::Buffer::Status::OverflowAndSuccess:
+    case api::trace::Buffer::Status::OverflowAndSuccess:
       sync = true;
     }
     // Even with success we might get nullptr, in which case the Buffer is
@@ -230,17 +230,17 @@ void sim::memory::Dense<Address>::clear(quint8 fill) {
 
 template <typename Address>
 void sim::memory::Dense<Address>::setInterposer(
-    api::Memory::Interposer<Address> *inter) {
+    api::memory::Interposer<Address> *inter) {
   this->_inter = inter;
 }
 
 template <typename Address>
-void sim::memory::Dense<Address>::setTraceBuffer(api::Trace::Buffer *tb) {
+void sim::memory::Dense<Address>::setTraceBuffer(api::trace::Buffer *tb) {
   this->_tb = tb;
 }
 
 template <typename Address>
-quint8 Dense<Address>::packetSize(api::Packet::Flags flags) const {
+quint8 Dense<Address>::packetSize(api::packet::Flags flags) const {
   throw std::logic_error("unimplemented");
 }
 

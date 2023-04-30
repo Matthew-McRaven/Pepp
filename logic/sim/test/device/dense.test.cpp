@@ -3,9 +3,9 @@
 
 #include "sim/device/dense.hpp"
 
-static const sim::api::Memory::Operation op_rw{
+static const sim::api::memory::Operation op_rw{
     .speculative = false,
-    .kind = sim::api::Memory::Operation::Kind::data,
+    .kind = sim::api::memory::Operation::Kind::data,
     .effectful = true};
 
 class SimDevice_Dense : public QObject {
@@ -18,9 +18,9 @@ private slots:
     // Hardcode arrays only go up to 8 for now, see `truth`.
     QVERIFY2(length <= 8, "Length must be less than 8.");
 
-    auto desc = sim::api::Device::Descriptor{
+    auto desc = sim::api::device::Descriptor{
         .id = 0, .compatible = nullptr, .baseName = "dev", .fullName = "/dev"};
-    auto span = sim::api::Memory::Target<quint8>::AddressSpan{
+    auto span = sim::api::memory::Target<quint8>::AddressSpan{
         .minOffset = minOffset, .length = 255};
     sim::memory::Dense<quint8> dev(desc, span, 0xFE);
 
@@ -32,7 +32,7 @@ private slots:
       QVERIFY(ret.advance);
       QVERIFY(!ret.pause);
       QVERIFY(!ret.sync);
-      QCOMPARE(ret.error, sim::api::Memory::Error::Success);
+      QCOMPARE(ret.error, sim::api::memory::Error::Success);
     };
     auto compare = [&length](const quint8 *lhs, const quint8 *rhs) {
       if (lhs == nullptr || rhs == nullptr)
@@ -71,9 +71,9 @@ private slots:
   }
 
   void oob() {
-    auto desc = sim::api::Device::Descriptor{
+    auto desc = sim::api::device::Descriptor{
         .id = 0, .compatible = nullptr, .baseName = "dev", .fullName = "/dev"};
-    auto span = sim::api::Memory::Target<quint8>::AddressSpan{.minOffset = 0x10,
+    auto span = sim::api::memory::Target<quint8>::AddressSpan{.minOffset = 0x10,
                                                               .length = 1};
     sim::memory::Dense<quint8> dev(desc, span, 0xFE);
 
@@ -85,8 +85,8 @@ private slots:
       QVERIFY(oob ^ ret.advance);
       QVERIFY(!(oob ^ ret.pause));
       QVERIFY(!ret.sync);
-      QCOMPARE(ret.error, oob ? sim::api::Memory::Error::OOBAccess
-                              : sim::api::Memory::Error::Success);
+      QCOMPARE(ret.error, oob ? sim::api::memory::Error::OOBAccess
+                              : sim::api::memory::Error::Success);
     };
     verify(false);
     QCOMPARE(*tmp, 0xFE);

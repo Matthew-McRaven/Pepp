@@ -3,16 +3,16 @@
 #include <type_traits>
 namespace sim::api {
 
-namespace Device {
+namespace device {
 using ID = quint16; // Only use 9 bits (max of 512)!
 struct Descriptor {
-  Device::ID id;
+  device::ID id;
   void *compatible;
   QString baseName, fullName;
 };
 } // namespace Device
 
-namespace Packet {
+namespace packet {
 // clang-format off
 /*
  * Flags allow a device to cast a memory location to the correct kind of Packet
@@ -93,7 +93,7 @@ template <typename Payload> struct Packet {
   // type.
   //  [typdevice, type] are used to compute length if a pointer to the end of
   //  the packet is acquired.
-  Device::ID device = 0;
+  device::ID device = 0;
   // Flags are always stored as u16. If u16 bit is not set, then the upper 8
   // bits are unspecified.
   union {
@@ -103,10 +103,10 @@ template <typename Payload> struct Packet {
   } type;
 
   Packet() {}
-  Packet(Device::ID id, Flags flags) : device(device), payload(), type(flags) {}
+  Packet(device::ID id, Flags flags) : device(device), payload(), type(flags) {}
   // Must be declared inline, otherwise fails to compile.
   template <typename Bytes>
-  Packet(Device::ID device, Bytes bytes, Flags flags)
+  Packet(device::ID device, Bytes bytes, Flags flags)
       : device(device), payload(), type(flags) {
     void *dst, *src;
     if constexpr (std::is_pointer_v<std::decay_t<Payload>>)
@@ -132,7 +132,7 @@ struct Registry {
 };
 } // namespace Packet
 
-namespace Trace {
+namespace trace {
 
 // Forward declare, will be needed inside analyzer.
 struct Buffer;
@@ -158,7 +158,7 @@ struct Buffer {
   // placement.
   virtual Status request(quint8 length, void **traceDest) = 0;
   virtual void trace(quint16 deviceID, bool enabled = true) = 0;
-  virtual void setPacketRegistry(api::Packet::Registry *registry) = 0;
+  virtual void setPacketRegistry(api::packet::Registry *registry) = 0;
 
   [[nodiscard]] virtual AnalyzerHookID registerAnalyzer(Analyzer *analyzer) = 0;
   [[nodiscard]] virtual Analyzer *unregisterAnalyzer(AnalyzerHookID id) = 0;
@@ -167,13 +167,13 @@ struct Buffer {
 struct Producer {
   virtual ~Producer() = default;
   virtual void setTraceBuffer(Buffer *tb) = 0;
-  virtual quint8 packetSize(Packet::Flags flags) const = 0;
+  virtual quint8 packetSize(packet::Flags flags) const = 0;
   virtual bool applyTrace(void *trace) = 0;   // trace is a Packet struct.
   virtual bool unapplyTrace(void *trace) = 0; // trace is a Packet struct.
 };
 } // namespace Trace
 
-namespace Tick {
+namespace tick {
 using Type = quint32; // System will crash at 2^32 ticks.
 enum class Error : quint8 {
   Success = 0, // Scheduler should re-schedule this device at the next available
@@ -208,11 +208,11 @@ struct Listener {
   virtual ~Listener() = default;
   virtual const Source *getSource() = 0;
   virtual void setSource(Source *) = 0;
-  virtual Result tick(Tick::Type currentTick) = 0;
+  virtual Result tick(tick::Type currentTick) = 0;
 };
 } // namespace Tick
 
-namespace Memory {
+namespace memory {
 struct Operation {
   bool speculative;
   enum class Kind : bool { instruction = false, data = true } kind;
@@ -280,26 +280,26 @@ struct Scheduler {
     Jump, // Execute up to and including the next tick with a clocked device.
   };
   virtual ~Scheduler() = default;
-  virtual Tick::Listener *next(Tick::Type current, Mode mode) = 0;
-  virtual void schedule(Tick::Listener *listener, Tick::Type startingOn) = 0;
-  virtual void reschedule(Device::ID device, Tick::Type startingOn) = 0;
+  virtual tick::Listener *next(tick::Type current, Mode mode) = 0;
+  virtual void schedule(tick::Listener *listener, tick::Type startingOn) = 0;
+  virtual void reschedule(device::ID device, tick::Type startingOn) = 0;
 };
 
 template <typename Address> struct System {
   virtual ~System() = default;
-  virtual void addTarget(const Device::Descriptor device,
-                         Memory::Target<Address> *target) = 0;
-  virtual void addClock(const Device::Descriptor device,
-                        Tick::Source *clock) = 0;
-  virtual void addClocked(const Device::Descriptor device,
-                          Tick::Listener *clocked) = 0;
+  virtual void addTarget(const device::Descriptor device,
+                         memory::Target<Address> *target) = 0;
+  virtual void addClock(const device::Descriptor device,
+                        tick::Source *clock) = 0;
+  virtual void addClocked(const device::Descriptor device,
+                          tick::Listener *clocked) = 0;
 
   // Returns (current tick, result of ticking that clocked device).
-  virtual std::pair<Tick::Type, Tick::Result> tick(Scheduler::Mode mode) = 0;
-  virtual Tick::Type currentTick() const = 0;
-  virtual Device::ID nextID() = 0;
+  virtual std::pair<tick::Type, tick::Result> tick(Scheduler::Mode mode) = 0;
+  virtual tick::Type currentTick() const = 0;
+  virtual device::ID nextID() = 0;
 
-  virtual void setTraceBuffer(Trace::Buffer *buffer) = 0;
+  virtual void setTraceBuffer(trace::Buffer *buffer) = 0;
 };
 
 } // namespace sim::api
