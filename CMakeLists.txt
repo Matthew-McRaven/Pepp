@@ -20,6 +20,7 @@ find_package(Boost 1.76.0 REQUIRED)
 set(CMAKE_AUTOMOC ON)
 set(CMAKE_AUTORCC ON)
 enable_testing()
+include(config/cmake/create_targets.cmake)
 add_subdirectory(logic)
 add_subdirectory(bin)
 
