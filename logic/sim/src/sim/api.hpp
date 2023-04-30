@@ -31,16 +31,32 @@ static_assert(sizeof(Flags) == sizeof(quint16));
 
 #pragma pack(push, 1)
 template <typename Payload> struct Packet {
-  Packet(Device::ID device, Payload payload, Flags flags)
-      : device(device), payload(payload), type(flags) {}
   quint8 length = sizeof(Packet);
-  Device::ID device;
-  Payload payload;
+  Device::ID device = 0;
+  Payload payload = {};
   union {
     Flags flags;
-    quint16 bits;
+    quint16 bits = 0;
   } type;
+
+  Packet() {}
+  // Must be declared inline, otherwise fails to compile.
+  template <typename Bytes>
+  Packet(Device::ID device, Bytes bytes, Flags flags)
+      : device(device), payload(), type(flags) {
+    void *dst, *src;
+    if constexpr (std::is_pointer_v<std::decay_t<Payload>>)
+      dst = this->payload;
+    else
+      dst = &this->payload;
+    if constexpr (std::is_pointer_v<std::decay_t<Bytes>>)
+      src = bytes;
+    else
+      src = &bytes;
+    memcpy(dst, src, qMin(sizeof(Bytes), sizeof(Payload)));
+  };
 };
+
 #pragma pack(pop)
 
 struct Registry {
