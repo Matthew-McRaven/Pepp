@@ -231,7 +231,21 @@ constexpr std::array<Opcode, 256> initOpcodes() {
   add_all({.mnemon = M::SUBSP, .type = T::AAA_all, .unary = 0});
   return ret;
 };
-} // namespace pas::isa::detail::pep10
+
+enum class Register : quint8 {
+  A = 0,
+  X = 1,
+  SP = 2,
+  PC = 3,
+  IS = 4,
+  OS = 5,
+  TR = 6,
+};
+Q_ENUM_NS(Register);
+
+enum class CSR : quint8 { N, Z, V, C };
+Q_ENUM_NS(CSR);
+} // namespace isa::detail::pep10
 
 namespace isa {
 struct Pep10 {
@@ -240,6 +254,8 @@ struct Pep10 {
   using InstructionType = detail::pep10::InstructionType;
   using Instruction = detail::pep10::Instruction;
   using Opcode = detail::pep10::Opcode;
+  using Register = detail::pep10::Register;
+  using CSR = detail::pep10::Register;
 
   static Mnemonic defaultMnemonic();
   static AddressingMode defaultAddressingMode();
@@ -276,4 +292,4 @@ struct Pep10 {
       detail::pep10::initOpcodes();
   static bool isLegalDirective(QString directive);
 };
-} // namespace pas::isa
+} // namespace isa
