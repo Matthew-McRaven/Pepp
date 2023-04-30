@@ -128,9 +128,9 @@ struct Listener {
 
 namespace Memory {
 struct Operation {
-  enum class speculative : bool { no = false, yes = true } speculative;
-  enum class kind : bool { instruction = false, data = true } kind;
-  enum class effectful : bool { no = false, yes = true } effectful;
+  bool speculative;
+  enum class Kind : bool { instruction = false, data = true } kind;
+  bool effectful;
 };
 
 enum class Error : quint8 {
