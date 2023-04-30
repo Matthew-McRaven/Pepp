@@ -1,4 +1,5 @@
 #pragma once
+#include "bits/operations/copy.hpp"
 #include "sim/api.hpp"
 
 namespace sim::memory {
@@ -91,7 +92,7 @@ sim::memory::Dense<Address>::read(Address address, quint8 *dest, quint8 length,
       error = api::Memory::Error::Breakpoint;
     }
   }
-  memcpy(dest, _data.constData() + (address - _span.minOffset), length);
+  bits::memcpy(dest, _data.constData() + (address - _span.minOffset), length);
   return {.completed = true,
           .advance = true,
           .pause = pause,
@@ -128,7 +129,8 @@ sim::memory::Dense<Address>::write(Address address, const quint8 *src,
     Packets trace;
     quint64 buf = 0;
     if (length <= 8)
-      memcpy(&buf, _data.constData() + (address - _span.minOffset), length);
+      bits::memcpy(&buf, _data.constData() + (address - _span.minOffset),
+                   length);
     switch (length) {
     case 1:
       trace.u8 = api::Packet::Packet<quint8>{_device.id, *(quint8 *)&buf,
