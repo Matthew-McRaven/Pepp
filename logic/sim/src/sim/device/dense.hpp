@@ -1,6 +1,7 @@
 #pragma once
 #include "bits/operations/copy.hpp"
 #include "sim/api.hpp"
+#include "sim/trace/common.hpp"
 
 namespace sim::memory {
 template <typename Address>
@@ -28,6 +29,7 @@ public:
 
   // Producer interface
   void setTraceBuffer(api::Trace::Buffer *tb) override;
+  quint8 packetSize(api::Packet::Flags) const override;
   bool applyTrace(void *trace) override;
   bool unapplyTrace(void *trace) override;
 
@@ -42,16 +44,6 @@ private:
 
   api::Memory::Interposer<Address> *_inter = nullptr;
   api::Trace::Buffer *_tb = nullptr;
-
-  union Packets {
-    // Must have ctor, or compiler complains about non-trivial members.
-    Packets() { memset(this, 0, sizeof(*this)); };
-    api::Packet::Packet<quint8> u8;
-    api::Packet::Packet<quint8[2]> u16;
-    api::Packet::Packet<quint8[4]> u32;
-    api::Packet::Packet<quint8[8]> u64;
-    api::Packet::Packet<quint8 *> un;
-  };
 };
 
 template <typename Address>
@@ -100,6 +92,80 @@ sim::memory::Dense<Address>::read(Address address, quint8 *dest, quint8 length,
           .error = error};
 }
 
+namespace detail {
+template <typename Address, typename T>
+using payload = bits::trace::AddressedPayload<Address, T>;
+template <typename Address>
+api::Trace::Buffer::Status alloc(void **dest, quint8 length,
+                                 api::Trace::Buffer *tb) {
+  using namespace api::Packet;
+  auto bit_ceil = std::bit_ceil(length);
+  api::Trace::Buffer::Status ret;
+  quint8 size = 0;
+  switch (bit_ceil) {
+  case 1:
+    size = sizeof(payload<Address, quint8>);
+    break;
+  case 2:
+    size = sizeof(payload<Address, quint8[2]>);
+    break;
+  case 4:
+    size = sizeof(payload<Address, quint8[4]>);
+    break;
+  case 8:
+    size = sizeof(payload<Address, quint8[8]>);
+    break;
+  case 16:
+    size = sizeof(payload<Address, quint8[16]>);
+    break;
+  case 32:
+    size = sizeof(payload<Address, quint8[32]>);
+    break;
+  case 64:
+    size = sizeof(payload<Address, quint8[64]>);
+    break;
+  }
+  ret = tb->request(size, dest);
+  return ret;
+}
+
+template <typename Address, typename dtype>
+quint8 *init_help(void *packet, quint16 dataLen, Address address,
+                  api::Device::ID id) {
+  using namespace api::Packet;
+  using pkt = Packet<payload<Address, dtype>>;
+  pkt *ptr = new (packet) pkt(id, bits::trace::flags<Address, dtype>());
+  ptr->payload.address = address;
+  if constexpr (std::is_pointer_v<std::decay_t<dtype>>)
+    return ptr->payload.data;
+  else
+    return &(ptr->payload.data);
+}
+
+template <typename Address>
+quint8 *init(void *packet, quint16 dataLen, Address address,
+             api::Device::ID id) {
+  auto bit_ceil = std::bit_ceil(dataLen);
+  switch (bit_ceil) {
+  case 1:
+    return init_help<Address, quint8>(packet, dataLen, address, id);
+  case 2:
+    return init_help<Address, quint8[2]>(packet, dataLen, address, id);
+  case 4:
+    return init_help<Address, quint8[4]>(packet, dataLen, address, id);
+  case 8:
+    return init_help<Address, quint8[8]>(packet, dataLen, address, id);
+  case 16:
+    return init_help<Address, quint8[16]>(packet, dataLen, address, id);
+  case 32:
+    return init_help<Address, quint8[32]>(packet, dataLen, address, id);
+  case 64:
+    return init_help<Address, quint8[64]>(packet, dataLen, address, id);
+  }
+  throw std::logic_error("impossible");
+}
+} // namespace detail
+
 template <typename Address>
 sim::api::Memory::Result
 sim::memory::Dense<Address>::write(Address address, const quint8 *src,
@@ -125,35 +191,10 @@ sim::memory::Dense<Address>::write(Address address, const quint8 *src,
     }
   }
   bool success = true, sync = false;
-  if (_tb) {
-    Packets trace;
-    quint64 buf = 0;
-    if (length <= 8)
-      bits::memcpy(&buf, _data.constData() + (address - _span.minOffset),
-                   length);
-    switch (length) {
-    case 1:
-      trace.u8 = api::Packet::Packet<quint8>{_device.id, *(quint8 *)&buf,
-                                             api::Packet::Flags{}};
-      break;
-    case 2:
-      trace.u16 = api::Packet::Packet<quint8[2]>{_device.id, (quint8 *)&buf,
-                                                 api::Packet::Flags{}};
-      break;
-    case 4:
-      trace.u32 = api::Packet::Packet<quint8[4]>{_device.id, (quint8 *)&buf,
-                                                 api::Packet::Flags{}};
-      break;
-    case 8:
-      trace.u64 = api::Packet::Packet<quint8[8]>{_device.id, (quint8 *)&buf,
-                                                 api::Packet::Flags{}};
-      break;
-    default:
-      throw std::logic_error(
-          "Can't handle write whose length is not in [1,2,4,8].");
-      break;
-    }
-    auto res = _tb->push(&trace);
+  if (op.effectful && _tb) {
+    // Attempt to allocate space in the buffer for local trace packet.
+    void *packet = nullptr;
+    auto res = detail::alloc<Address>(&packet, length, _tb);
     switch (res) {
     case api::Trace::Buffer::Status::Success:
       break;
@@ -163,9 +204,17 @@ sim::memory::Dense<Address>::write(Address address, const quint8 *src,
     case api::Trace::Buffer::Status::OverflowAndSuccess:
       sync = true;
     }
+    // Even with success we might get nullptr, in which case the Buffer is
+    // telling us it doesn't want our trace.
+    if (packet != nullptr) {
+      auto offset = address - _span.minOffset;
+      auto dest = detail::init(packet, length, offset, _device.id);
+      bits::memcpy(dest, _data.constData() + offset, length);
+      bits::memcpy_xor(dest, dest, src, length);
+    }
   }
   if (success)
-    memcpy(_data.data() + (address - _span.minOffset), src, length);
+    bits::memcpy(_data.data() + (address - _span.minOffset), src, length);
   return {.completed = success,
           .advance = success,
           .pause = pause,
@@ -188,6 +237,11 @@ void sim::memory::Dense<Address>::setInterposer(
 template <typename Address>
 void sim::memory::Dense<Address>::setTraceBuffer(api::Trace::Buffer *tb) {
   this->_tb = tb;
+}
+
+template <typename Address>
+quint8 Dense<Address>::packetSize(api::Packet::Flags flags) const {
+  throw std::logic_error("unimplemented");
 }
 
 template <typename Address>
