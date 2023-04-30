@@ -169,7 +169,6 @@ template <typename Address> struct Target {
                        Operation op) = 0;
   virtual void clear(quint8 fill) = 0;
 
-  virtual void setTraceBuffer(Trace::Buffer *tb) = 0;
   virtual void setInterposer(Interposer<Address> *inter) = 0;
 };
 
