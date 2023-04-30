@@ -72,11 +72,11 @@ struct Buffer {
   };
   virtual ~Buffer() = default;
   virtual Status push(void *trace) = 0; // "trace" is a Packet struct.
-  virtual void trace(quint16 deviceID, bool enabled = true);
-  virtual void setPacketRegistry(Packet::Registry *registry);
+  virtual void trace(quint16 deviceID, bool enabled = true) = 0;
+  virtual void setPacketRegistry(api::Packet::Registry *registry) = 0;
 
-  [[nodiscard]] virtual AnalyzerHookID registerAnalyzer(Analyzer *analyzer);
-  [[nodiscard]] virtual Analyzer *unregisterAnalyzer(AnalyzerHookID id);
+  [[nodiscard]] virtual AnalyzerHookID registerAnalyzer(Analyzer *analyzer) = 0;
+  [[nodiscard]] virtual Analyzer *unregisterAnalyzer(AnalyzerHookID id) = 0;
 };
 
 struct Producer {
