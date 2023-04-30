@@ -137,7 +137,11 @@ struct Buffer {
                         // sync'ing buffer. Object is NOT pending.
   };
   virtual ~Buffer() = default;
-  virtual Status push(void *trace) = 0; // "trace" is a Packet struct.
+  // To avoid double-buffering, request that the buffer provide a sufficient
+  // number of bytes. Callers can then use placement new to construct their
+  // Packet in-place. If traceDest is nullptr, do not attempt to perform
+  // placement.
+  virtual Status request(quint8 length, void **traceDest) = 0;
   virtual void trace(quint16 deviceID, bool enabled = true) = 0;
   virtual void setPacketRegistry(api::Packet::Registry *registry) = 0;
 
