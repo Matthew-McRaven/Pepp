@@ -164,7 +164,7 @@ template <typename Address> struct Target {
   virtual ~Target() = 0;
   virtual AddressSpan span() const = 0;
   virtual Result read(Address address, quint8 *dest, quint8 length,
-                      Operation op) = 0;
+                      Operation op) const = 0;
   virtual Result write(Address address, const quint8 *src, quint8 length,
                        Operation op) = 0;
   virtual void clear(quint8 fill) = 0;
