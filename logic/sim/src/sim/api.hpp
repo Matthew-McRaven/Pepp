@@ -54,17 +54,41 @@ struct Flags {
 };
 static_assert(sizeof(Flags) == sizeof(quint8));
 
+
+
 #pragma pack(push, 1)
+struct EmptyPacket {
+  union {
+    quint8 size = 0;
+    quint8 type;
+  } const field;
+};
+
+/*
+ * Assume there is a Packet<T>* ptr;
+ * if *(quint8*)ptr ==0, then Packet<T> is really an EmptyPacket.
+ *
+ * That is, in the empty case, no fields are present, and the size and type
+ * fields collapse to 0. While technically a EmptyPacket is size 1, this rule
+ * gives us the nice property that when we start at a 0 in a array of Packets,
+ * we can safely skip to the next non-zero byte.
+ *
+ * However, this means that type != 0 for all real Packets, otherwise the packet
+ * will be misinterpreted.
+ */
+
 template <typename Payload> struct Packet {
   quint8 length = sizeof(Packet);
-  Device::ID device = 0;
   Payload payload = {};
+  Device::ID device = 0;
   union {
     Flags flags;
-    quint16 bits = 0;
+    quint8 bits =
+        0b0'0'111'111; // Mark the type as unitialized rather that empty (0).
   } type;
 
   Packet() {}
+  Packet(Device::ID id, Flags flags): device(device), payload(), type(flags){}
   // Must be declared inline, otherwise fails to compile.
   template <typename Bytes>
   Packet(Device::ID device, Bytes bytes, Flags flags)
@@ -83,7 +107,6 @@ template <typename Payload> struct Packet {
     memcpy(dst, src, qMin(sizeof(Bytes), sizeof(Payload)));
   };
 };
-
 #pragma pack(pop)
 
 struct Registry {
