@@ -17,6 +17,10 @@ namespace Packet {
 /*
  * Flags allow a device to cast a memory location to the correct kind of Packet
  * by encoding type information.
+ * kind:
+ *   When scope==0, all packets with the same kind bits must have identical
+ *   storage layouts. When scope==1, only packets belonging to the same device
+ *   must have the same storage layout.
  * scope:
  *   0: The meaning of the flags do not depend on the ID field of the Packet
  *   1: One must delegate to the device that created the packet to
@@ -29,22 +33,29 @@ namespace Packet {
  *      for finding and calling a suitable destructor for the packet. If
  *      scope==1, the Buffer may delegate to the device which created the
  *      packet.
- * kind:
- *   When scope==0, all packets with the same kind bits must have identical
- *   storage layouts. When scope==1, only packets belonging to the same device
- *   must have the same storage layout.
+ * u16:
+ *   0: treat the flags as a 1-bytes value.
+ *   1: treat the flags as a 2-byte value.
+ * Special values for bits :
+ *   0b0000'0000 indicates and empty Packet that is size 1.
+ *   0bxxxx'xxxx'xxxx'xxx1 indicates the flags should be treated as a u16.
  *
- * Special values:
- *   0b0'0'000'000 indicates and empty Packet.
- *   0bx'x'111'111 indicates an uninitialized type.
+ * Bits are orgnized so that all common addresses traces can fit in 0bxxx'xxx'0'0,
+ * where at least one x is 1. This does mean that only 2-byte flags can hold
+ * dynamic data.
  */
- //clang-format on
+// clang-format on
 struct Flags {
-  quint8 scope : 1; // 0=global, 1=specific to device;
-  quint8 dyn : 1;   // 1=some data allocated with malloc/new. Must be destroyed.
-  quint8 kind : 6;
+  Flags() = default;
+  quint16 dyn : 1 =
+      0; // 1=some data allocated with malloc/new. Must be destroyed.
+  quint16 kind : 13 = 0;
+  quint16 scope : 1 = 0; // 0=global, 1=specific to device;
+  quint16 u16 : 1 = 0;   // Must always be 1 if flags is non-zero. Indicate that
+                         // flags take 2 bytes, not 1.
   inline operator quint16() const {
-    union {
+    union Type {
+      Type() : flags() {}
       Flags flags;
       quint16 bits;
     } type;
@@ -52,9 +63,7 @@ struct Flags {
     return type.bits;
   }
 };
-static_assert(sizeof(Flags) == sizeof(quint8));
-
-
+static_assert(sizeof(Flags) == sizeof(quint16));
 
 #pragma pack(push, 1)
 struct EmptyPacket {
@@ -80,15 +89,21 @@ struct EmptyPacket {
 template <typename Payload> struct Packet {
   quint8 length = sizeof(Packet);
   Payload payload = {};
+  // Device must be after payload, so it is at a fixed location relative to
+  // type.
+  //  [typdevice, type] are used to compute length if a pointer to the end of
+  //  the packet is acquired.
   Device::ID device = 0;
+  // Flags are always stored as u16. If u16 bit is not set, then the upper 8
+  // bits are unspecified.
   union {
     Flags flags;
-    quint8 bits =
-        0b0'0'111'111; // Mark the type as unitialized rather that empty (0).
+    quint16 bits =
+        0b0000'0000'0000'0001; // Mark the type as 2 bytes, uninitialized.
   } type;
 
   Packet() {}
-  Packet(Device::ID id, Flags flags): device(device), payload(), type(flags){}
+  Packet(Device::ID id, Flags flags) : device(device), payload(), type(flags) {}
   // Must be declared inline, otherwise fails to compile.
   template <typename Bytes>
   Packet(Device::ID device, Bytes bytes, Flags flags)
