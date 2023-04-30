@@ -9,14 +9,18 @@ template <typename Address, Pow2 Data> struct AddressedPayload {
   Data data;
 };
 
-template <typename Address, Pow2 Data> sim::api::Packet::Flags flags() {
+template <typename Address, Pow2 Data>
+constexpr sim::api::Packet::Flags flags() {
   // Only have 3 bits to store pow^2, so we can only stor up to 64.
   static_assert(sizeof(Data) <= 64);
   sim::api::Packet::Flags flags;
-  flags.scope = 0;
   flags.dyn = 0;
   flags.kind = ((bits::ceil_log2((sizeof(Address)) + 1) & 0b111) << 3) |
                ((bits::ceil_log2(sizeof(Data)) + 1) & 0b111);
+  flags.scope = 0;
+  flags.u16 = 0;
+
+  // assert(quint8(flags) != 0);
   return flags;
 }
 
