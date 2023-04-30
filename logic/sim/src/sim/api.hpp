@@ -78,8 +78,8 @@ struct Buffer {
 
 struct Producer {
   virtual bool setTraceBuffer(Buffer *tb) = 0;
-  virtual bool apply_trace(void *trace) = 0;   // trace is a Packet struct.
-  virtual bool unapply_trace(void *trace) = 0; // trace is a Packet struct.
+  virtual bool applyTrace(void *trace) = 0;   // trace is a Packet struct.
+  virtual bool unapplyTrace(void *trace) = 0; // trace is a Packet struct.
 };
 } // namespace Trace
 
