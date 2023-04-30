@@ -159,7 +159,7 @@ template <typename Address> struct Interposer {
 
 template <typename Address> struct Target {
   struct AddressSpan {
-    Address base, length;
+    Address minOffset, length;
   };
   virtual ~Target() = 0;
   virtual AddressSpan span() const = 0;
