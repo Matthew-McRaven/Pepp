@@ -1,5 +1,5 @@
 #include "character.hpp"
-#include "../../bits/operations.hpp"
+#include "bits/operations/copy.hpp"
 pas::ast::value::Character::Character() : Base() {}
 
 pas::ast::value::Character::Character(QString value)
@@ -24,10 +24,10 @@ pas::ast::value::Character::clone() const {
   return QSharedPointer<Character>::create(*this);
 }
 
-bool pas::ast::value::Character::value(quint8 *dest, qsizetype length,
-                                       bits::BitOrder destEndian) const {
-  return bits::copy(reinterpret_cast<const quint8 *>(_valueAsBytes.data()),
-                    bits::hostOrder(), size(), dest, destEndian, length);
+void pas::ast::value::Character::value(quint8 *dest, qsizetype length,
+                                       bits::Order destEndian) const {
+  bits::memcpy_endian(dest, destEndian, length, _valueAsBytes.constData(),
+                      bits::hostOrder(), size());
 }
 
 quint64 pas::ast::value::Character::size() const {

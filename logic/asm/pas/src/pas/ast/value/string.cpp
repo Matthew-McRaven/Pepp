@@ -1,10 +1,10 @@
 #include "./string.hpp"
-#include "pas/bits/operations.hpp"
-#include "pas/bits/strings.hpp"
+#include "bits/operations/copy.hpp"
+#include "bits/strings.hpp"
 pas::ast::value::ShortString::ShortString() : Base() {}
 
 pas::ast::value::ShortString::ShortString(QString value, quint8 size,
-                                          bits::BitOrder endian)
+                                          bits::Order endian)
     : _size(size), _value(value), _valueAsBytes({}) {
   bool okay = bits::escapedStringToBytes(value, _valueAsBytes);
   if (!okay)
@@ -32,10 +32,10 @@ pas::ast::value::ShortString::clone() const {
   return QSharedPointer<ShortString>::create(*this);
 }
 
-bool pas::ast::value::ShortString::value(quint8 *dest, qsizetype length,
-                                         bits::BitOrder destEndian) const {
-  return bits::copy(reinterpret_cast<const quint8 *>(_valueAsBytes.data()),
-                    bits::hostOrder(), size(), dest, destEndian, length);
+void pas::ast::value::ShortString::value(quint8 *dest, qsizetype length,
+                                         bits::Order destEndian) const {
+  bits::memcpy_endian(dest, destEndian, length, _valueAsBytes.data(),
+                      bits::hostOrder(), size());
 }
 
 quint64 pas::ast::value::ShortString::size() const { return _size; }
@@ -50,7 +50,7 @@ QString pas::ast::value::ShortString::rawString() const { return _value; }
 
 pas::ast::value::LongString::LongString() : Base() {}
 
-pas::ast::value::LongString::LongString(QString value, bits::BitOrder endian)
+pas::ast::value::LongString::LongString(QString value, bits::Order endian)
     : _value(value), _valueAsBytes({}) {
   bool okay = bits::escapedStringToBytes(value, _valueAsBytes);
   if (!okay)
@@ -75,10 +75,10 @@ pas::ast::value::LongString::clone() const {
   return QSharedPointer<LongString>::create(*this);
 }
 
-bool pas::ast::value::LongString::value(quint8 *dest, qsizetype length,
-                                        bits::BitOrder destEndian) const {
-  return bits::copy(reinterpret_cast<const quint8 *>(_valueAsBytes.data()),
-                    bits::hostOrder(), size(), dest, destEndian, length);
+void pas::ast::value::LongString::value(quint8 *dest, qsizetype length,
+                                        bits::Order destEndian) const {
+  bits::memcpy_endian(dest, destEndian, length, _valueAsBytes.data(),
+                      bits::hostOrder(), size());
 }
 
 quint64 pas::ast::value::LongString::size() const {

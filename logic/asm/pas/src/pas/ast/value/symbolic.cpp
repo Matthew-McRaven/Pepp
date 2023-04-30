@@ -1,6 +1,6 @@
 #include "./symbolic.hpp"
-#include "pas/bits/operations.hpp"
-#include "pas/bits/order.hpp"
+#include "bits/operations/copy.hpp"
+#include "bits/order.hpp"
 #include "symbol/entry.hpp"
 pas::ast::value::Symbolic::Symbolic() {}
 
@@ -32,11 +32,11 @@ QSharedPointer<pas::ast::value::Base> pas::ast::value::Symbolic::clone() const {
   return QSharedPointer<Symbolic>::create(*this);
 }
 
-bool pas::ast::value::Symbolic::value(quint8 *dest, qsizetype length,
-                                      bits::BitOrder destEndian) const {
+void pas::ast::value::Symbolic::value(quint8 *dest, qsizetype length,
+                                      bits::Order destEndian) const {
   auto src = _value->value->value()();
-  return bits::copy(reinterpret_cast<quint8 *>(&src), bits::hostOrder(), size(),
-                    dest, destEndian, length);
+  bits::memcpy_endian(dest, destEndian, length, &src, bits::hostOrder(),
+                      size());
 }
 
 quint64 pas::ast::value::Symbolic::size() const {

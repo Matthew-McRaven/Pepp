@@ -1,4 +1,5 @@
 #include "./combine.hpp"
+#include "bits/order.hpp"
 #include "pas/ast/generic/attr_address.hpp"
 #include "pas/ast/generic/attr_argument.hpp"
 #include "pas/ast/generic/attr_symbol.hpp"
@@ -35,7 +36,7 @@ pas::ops::generic::detail::getTraits(const ast::Node &section) {
       auto arg = child->get<pas::ast::generic::Argument>().value;
       quint64 dest = 0;
       arg->value(reinterpret_cast<quint8 *>(&dest), sizeof(dest),
-                 pas::bits::hostOrder());
+                 bits::hostOrder());
       align = qMax(dest, align);
     }
   }

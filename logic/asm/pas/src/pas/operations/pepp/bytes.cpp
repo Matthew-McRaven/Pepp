@@ -18,14 +18,14 @@ quint16 asciiToBytes(const pas::ast::Node &node, quint8 *dest, quint64 length) {
     return 0;
   // Strings are always host order, since they are single bytes, not multi-byte.
   // Single bytes have no order.
-  argument->value(dest, size, pas::bits::hostOrder());
+  argument->value(dest, size, bits::hostOrder());
   return size;
 }
 
 quint16 blockToBytes(const pas::ast::Node &node, quint8 *dest, quint64 length) {
   auto argument = node.get<pas::ast::generic::Argument>().value;
   quint16 size = 0;
-  argument->value(reinterpret_cast<quint8 *>(&size), 2, pas::bits::hostOrder());
+  argument->value(reinterpret_cast<quint8 *>(&size), 2, bits::hostOrder());
   if (length < size)
     return 0;
   memset(dest, 0, size);

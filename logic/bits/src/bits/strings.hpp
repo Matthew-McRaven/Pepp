@@ -1,8 +1,8 @@
 #pragma once
 #include <QtCore>
-namespace pas::bits {
+namespace bits {
 template <typename Iterator>
-bool characters_to_byte(Iterator &start, Iterator end, uint8_t &value) {
+bool charactersToByte(Iterator &start, Iterator end, uint8_t &value) {
   // If start == end, then there are no characters to parse!
   if (start == end) {
     return false;
@@ -36,7 +36,6 @@ bool characters_to_byte(Iterator &start, Iterator end, uint8_t &value) {
           return false;
       }
     } else {
-
       throw std::logic_error("I don't know where this was ever used!");
       value = static_cast<uint8_t>('\\');
     }
@@ -49,4 +48,4 @@ bool characters_to_byte(Iterator &start, Iterator end, uint8_t &value) {
 bool startsWithHexPrefix(const QString &string);
 qsizetype escapedStringLength(const QString string);
 bool escapedStringToBytes(const QString &string, QByteArray &output);
-} // namespace pas::bits
+} // namespace bits

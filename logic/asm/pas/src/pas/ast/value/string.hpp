@@ -5,7 +5,7 @@ namespace pas::ast::value {
 struct ShortString : public Base {
 public:
   explicit ShortString();
-  ShortString(QString value, quint8 size, bits::BitOrder endian);
+  ShortString(QString value, quint8 size, bits::Order endian);
   ShortString(const ShortString &other);
   ShortString(ShortString &&other) noexcept;
   ShortString &operator=(ShortString other);
@@ -23,9 +23,8 @@ public:
   bool isIdentifier() const override { return false; }
   bool isSigned() const override { return false; }
   QSharedPointer<Base> clone() const override;
-  bool
-  value(quint8 *dest, qsizetype length,
-        bits::BitOrder destEndian = bits::BitOrder::BigEndian) const override;
+  void value(quint8 *dest, qsizetype length,
+             bits::Order destEndian = bits::hostOrder()) const override;
   quint64 size() const override;
   quint64 requiredBytes() const override;
   QString string() const override;
@@ -40,7 +39,7 @@ private:
 struct LongString : public Base {
 public:
   explicit LongString();
-  LongString(QString value, bits::BitOrder endian);
+  LongString(QString value, bits::Order endian);
   LongString(const LongString &other);
   LongString(LongString &&other) noexcept;
   LongString &operator=(LongString other);
@@ -57,9 +56,8 @@ public:
   bool isIdentifier() const override { return false; }
   bool isSigned() const override { return false; }
   QSharedPointer<Base> clone() const override;
-  bool
-  value(quint8 *dest, qsizetype length,
-        bits::BitOrder destEndian = bits::BitOrder::BigEndian) const override;
+  void value(quint8 *dest, qsizetype length,
+             bits::Order destEndian = bits::hostOrder()) const override;
   quint64 size() const override;
   quint64 requiredBytes() const override;
   QString string() const override;

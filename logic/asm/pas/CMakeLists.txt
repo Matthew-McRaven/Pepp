@@ -3,11 +3,10 @@ cmake_minimum_required(VERSION 3.10)
 include(../../../config/cmake/create_targets.cmake)
 
 make_library(pas pas)
-target_link_libraries(pas PUBLIC "Qt6::Core;symbol;macro;elfio")
+target_link_libraries(pas PUBLIC "Qt6::Core;bits;symbol;macro;elfio")
 target_include_directories(pas PUBLIC ${Boost_INCLUDE_DIR})
 
 if(NOT IOS)
-  make_qtest(test-pas-bits-copy test/bits/copy.test.cpp "pas;Qt6::Core;Qt6::Test")
   make_qtest(test-pas-parse-pepp-values- test/parse/pepp/parser_values.test.cpp "pas;Qt6::Core;Qt6::Test")
   make_qtest(test-pas-parse-pepp-lines test/parse/pepp/parser_lines.test.cpp "pas;Qt6::Core;Qt6::Test")
   make_qtest(test-pas-parse-pepp-afpt test/parse/pepp/arg_from_parse_tree.test.cpp "pas;Qt6::Core;Qt6::Test")

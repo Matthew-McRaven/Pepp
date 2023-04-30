@@ -1,5 +1,5 @@
 #include "numeric.hpp"
-#include "pas/bits/operations.hpp"
+#include "bits/operations/copy.hpp"
 pas::ast::value::Numeric::Numeric() : Base() {}
 
 pas::ast::value::Numeric::Numeric(qint64 value, quint8 size)
@@ -8,10 +8,10 @@ pas::ast::value::Numeric::Numeric(qint64 value, quint8 size)
     throw std::logic_error("Numeric constants must be <=8 bytes");
 }
 
-bool pas::ast::value::Numeric::value(quint8 *dest, qsizetype length,
-                                     bits::BitOrder destEndian) const {
-  return bits::copy(reinterpret_cast<const quint8 *>(&_value),
-                    bits::hostOrder(), _size, dest, destEndian, length);
+void pas::ast::value::Numeric::value(quint8 *dest, qsizetype length,
+                                     bits::Order destEndian) const {
+  bits::memcpy_endian(dest, destEndian, length, &_value, bits::hostOrder(),
+                      _size);
 }
 
 quint64 pas::ast::value::Numeric::size() const { return _size; }

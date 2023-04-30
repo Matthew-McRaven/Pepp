@@ -1,6 +1,6 @@
 #pragma once
 #include <QtCore>
-namespace pas::bits {
+namespace bits {
 struct BitSelection {
   qsizetype byteOffset;
   quint8 bitmask;
@@ -17,4 +17,4 @@ struct ByteSelection {
 };
 void bitSelect(const quint8 src, BitSelection srcOp, quint8 &out,
                BitSelection destOp);
-} // namespace pas::bits
+} // namespace bits

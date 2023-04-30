@@ -1,7 +1,7 @@
 #include "pas/operations/pepp/size.hpp"
+#include "bits/strings.hpp"
 #include "macro/macro.hpp"
 #include "macro/registry.hpp"
-#include "pas/bits/strings.hpp"
 #include "pas/driver/pepp.hpp"
 #include "pas/isa/pep10.hpp"
 #include "pas/operations/generic/include_macros.hpp"
@@ -62,7 +62,7 @@ private slots:
     QVERIFY(!ret.hadError);
     auto children = ret.root->get<pas::ast::generic::Children>().value;
     QCOMPARE(children.size(), 1);
-    auto len = pas::bits::escapedStringLength(arg);
+    auto len = bits::escapedStringLength(arg);
     for (auto &base : {0, 200, 0xfffe}) {
       QCOMPARE(explicitSize<Pep10ISA>(*ret.root, base, Direction::Forward),
                len);
