@@ -3,14 +3,15 @@
 #include <type_traits>
 
 namespace sim::api {
-using DeviceID = quint16; // Only use 9 bits (max of 512)!
 
-struct Device {
-  virtual ~Device() = 0;
-  virtual QString baseName() const = 0;
-  virtual DeviceID id() const = 0;
-  virtual void *comptabible() const = 0;
+namespace Device {
+using ID = quint16; // Only use 9 bits (max of 512)!
+struct Descriptor {
+  Device::ID id;
+  void *compatible;
+  QString baseName, fullName;
 };
+} // namespace Device
 
 namespace Packet {
 struct Flags {
@@ -30,10 +31,10 @@ static_assert(sizeof(Flags) == sizeof(quint16));
 
 #pragma pack(push, 1)
 template <typename Payload> struct Packet {
-  Packet(DeviceID device, Payload payload, Flags flags)
+  Packet(Device::ID device, Payload payload, Flags flags)
       : device(device), payload(payload), type(flags) {}
   quint8 length = sizeof(Packet);
-  DeviceID device;
+  Device::ID device;
   Payload payload;
   union {
     Flags flags;
@@ -193,19 +194,22 @@ struct Scheduler {
   virtual ~Scheduler() = 0;
   virtual Tick::Listener *next(Tick::Type current, Mode mode) = 0;
   virtual void schedule(Tick::Listener *listener, Tick::Type startingOn) = 0;
-  virtual void reschedule(DeviceID device, Tick::Type startingOn) = 0;
+  virtual void reschedule(Device::ID device, Tick::Type startingOn) = 0;
 };
 
 template <typename Address> struct System {
   virtual ~System() = 0;
-  virtual void addTarget(Memory::Target<Address> *target) = 0;
-  virtual void addClock(Tick::Source *clock) = 0;
-  virtual void addClocked(Tick::Listener *clocked) = 0;
+  virtual void addTarget(const Device::Descriptor device,
+                         Memory::Target<Address> *target) = 0;
+  virtual void addClock(const Device::Descriptor device,
+                        Tick::Source *clock) = 0;
+  virtual void addClocked(const Device::Descriptor device,
+                          Tick::Listener *clocked) = 0;
 
   // Returns (current tick, result of ticking that clocked device).
   virtual std::pair<Tick::Type, Tick::Result> tick(Scheduler::Mode mode) = 0;
   virtual Tick::Type currentTick() const = 0;
-  virtual DeviceID nextID() = 0;
+  virtual Device::ID nextID() = 0;
 
   virtual void setTraceBuffer(Trace::Buffer *buffer) = 0;
 };
