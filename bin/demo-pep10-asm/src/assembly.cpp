@@ -1,9 +1,9 @@
 #include "./assembly.hpp"
 #include "builtins/book.hpp"
 #include "builtins/registry.hpp"
+#include "isa/pep10.hpp"
 #include "macro/registry.hpp"
 #include "pas/driver/pep10.hpp"
-#include "pas/isa/pep10.hpp"
 #include "pas/operations/pepp/string.hpp"
 
 void AssemblyManger::onSelectionChanged(builtins::Figure *figure) {
@@ -36,8 +36,7 @@ void AssemblyManger::onAssemble() {
   auto osRoot = osTarget->bodies[pas::driver::repr::Nodes::name]
                     .value<pas::driver::repr::Nodes>()
                     .value;
-  this->_osTxt =
-      pas::ops::pepp::formatListing<pas::isa::Pep10ISA>(*osRoot).join("\n");
+  this->_osTxt = pas::ops::pepp::formatListing<isa::Pep10>(*osRoot).join("\n");
   emit osTxtChanged();
 
   auto userTarget = pipe->pipelines[1].first;
@@ -46,7 +45,7 @@ void AssemblyManger::onAssemble() {
                       .value<pas::driver::repr::Nodes>()
                       .value;
   this->_usrTxt =
-      pas::ops::pepp::formatListing<pas::isa::Pep10ISA>(*userRoot).join("\n");
+      pas::ops::pepp::formatListing<isa::Pep10>(*userRoot).join("\n");
   emit usrTxtChanged();
 }
 

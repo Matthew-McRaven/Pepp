@@ -1,19 +1,19 @@
 #include "pas/operations/generic/link_globals.hpp"
+#include "isa/pep10.hpp"
 #include "pas/driver/common.hpp"
 #include "pas/driver/pepp.hpp"
-#include "pas/isa/pep10.hpp"
 #include "symbol/value.hpp"
 #include <QObject>
 #include <QTest>
 
-using pas::isa::Pep10ISA;
+using isa::Pep10;
 class PasOpsPepp_LinkGlobals : public QObject {
   Q_OBJECT
 private slots:
   void linkIntraTree() {
     QString body = "s:.block 10\n.EXPORT s\nLDWA s,i\n.END\n.END";
     auto globals = QSharedPointer<pas::driver::Globals>::create();
-    auto ret = pas::driver::pepp::createParser<Pep10ISA>(false)(body, nullptr);
+    auto ret = pas::driver::pepp::createParser<isa::Pep10>(false)(body, nullptr);
     QVERIFY(!ret.hadError);
     pas::ops::generic::linkGlobals(*ret.root, globals, {u"EXPORT"_qs});
     QVERIFY(globals->contains("s"));
@@ -33,7 +33,7 @@ private slots:
     QVERIFY(globals->contains("s"));
     QCOMPARE(globals->get("s")->binding, symbol::Binding::kGlobal);
 
-    auto ret = pas::driver::pepp::createParser<Pep10ISA>(false)(body, nullptr);
+    auto ret = pas::driver::pepp::createParser<isa::Pep10>(false)(body, nullptr);
     QVERIFY(!ret.hadError);
     pas::ops::generic::linkGlobals(*ret.root, globals, {u"EXPORT"_qs});
 
@@ -62,7 +62,7 @@ private slots:
     QVERIFY(globals->contains("s"));
     QCOMPARE(globals->get("s")->binding, symbol::Binding::kGlobal);
 
-    auto ret = pas::driver::pepp::createParser<Pep10ISA>(false)(body, nullptr);
+    auto ret = pas::driver::pepp::createParser<isa::Pep10>(false)(body, nullptr);
     QVERIFY(!ret.hadError);
     pas::ops::generic::linkGlobals(*ret.root, globals, {u"EXPORT"_qs});
 

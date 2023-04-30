@@ -1,10 +1,10 @@
 #include "pas/operations/generic/include_macros.hpp"
+#include "isa/pep10.hpp"
 #include "macro/macro.hpp"
 #include "macro/registry.hpp"
 #include "pas/ast/generic/attr_children.hpp"
 #include "pas/driver/pep10.hpp"
 #include "pas/driver/pepp.hpp"
-#include "pas/isa/pep10.hpp"
 #include "pas/operations/generic/errors.hpp"
 #include <QObject>
 #include <QTest>
@@ -54,7 +54,7 @@ void validNesting_test(QSharedPointer<pas::ast::Node> root) {
   QCOMPARE(greatgrandchildren.size(), 3);
 }
 
-using pas::isa::Pep10ISA;
+using isa::Pep10;
 class PasOpsPepp_IncludeMacro : public QObject {
   Q_OBJECT
 
@@ -89,11 +89,11 @@ private slots:
                  .value<pas::driver::repr::Nodes>()
                  .value;
     } else {
-      auto parseRoot = pas::driver::pepp::createParser<Pep10ISA>(false);
+      auto parseRoot = pas::driver::pepp::createParser<isa::Pep10>(false);
       auto res = parseRoot(input, nullptr);
       QVERIFY(!res.hadError);
       auto ret = pas::ops::generic::includeMacros(
-          *res.root, pas::driver::pepp::createParser<Pep10ISA>(true), registry);
+          *res.root, pas::driver::pepp::createParser<isa::Pep10>(true), registry);
       QCOMPARE(ret, !errors);
 
       root = res.root;

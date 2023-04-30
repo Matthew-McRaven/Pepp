@@ -1,5 +1,5 @@
+#include "isa/pep10.hpp"
 #include "pas/driver/pepp.hpp"
-#include "pas/isa/pep10.hpp"
 #include "pas/operations/generic/group.hpp"
 #include "pas/operations/pepp/addressable.hpp"
 #include "pas/operations/pepp/assign_addr.hpp"
@@ -13,14 +13,14 @@ private slots:
   void smoke() {
     QFETCH(QString, source);
     QFETCH(QStringList, listing);
-    auto parsed = pas::driver::pepp::createParser<pas::isa::Pep10ISA>(false)(
-        source, nullptr);
+    auto parsed =
+        pas::driver::pepp::createParser<isa::Pep10>(false)(source, nullptr);
     auto str = parsed.errors.join("\n").toStdString();
     QVERIFY2(!parsed.hadError, str.data());
-    pas::ops::generic::groupSections(
-        *parsed.root, pas::ops::pepp::isAddressable<pas::isa::Pep10ISA>);
-    pas::ops::pepp::assignAddresses<pas::isa::Pep10ISA>(*parsed.root);
-    auto actualListing = pas::ops::pepp::formatListing<pas::isa::Pep10ISA>(
+    pas::ops::generic::groupSections(*parsed.root,
+                                     pas::ops::pepp::isAddressable<isa::Pep10>);
+    pas::ops::pepp::assignAddresses<isa::Pep10>(*parsed.root);
+    auto actualListing = pas::ops::pepp::formatListing<isa::Pep10>(
         *parsed.root, {.bytesPerLine = 3});
     // FIXME: remove
     auto actualListingText = actualListing.join("\n").toStdString();

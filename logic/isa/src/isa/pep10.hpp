@@ -1,8 +1,6 @@
 #pragma once
-#include "pas/ast/pepp/attr_addr.hpp"
-#include "pas/ast/pepp/attr_instruction.hpp"
 #include <QtCore>
-namespace pas::isa::detail::pep10 {
+namespace isa::detail::pep10 {
 Q_NAMESPACE;
 enum class Mnemonic {
   RET = 0x0,
@@ -235,8 +233,8 @@ constexpr std::array<Opcode, 256> initOpcodes() {
 };
 } // namespace pas::isa::detail::pep10
 
-namespace pas::isa {
-struct Pep10ISA {
+namespace isa {
+struct Pep10 {
   using Mnemonic = detail::pep10::Mnemonic;
   using AddressingMode = detail::pep10::AddressingMode;
   using InstructionType = detail::pep10::InstructionType;
@@ -279,6 +277,3 @@ struct Pep10ISA {
   static bool isLegalDirective(QString directive);
 };
 } // namespace pas::isa
-
-Q_DECLARE_METATYPE(pas::ast::pepp::Instruction<pas::isa::Pep10ISA>);
-Q_DECLARE_METATYPE(pas::ast::pepp::AddressingMode<pas::isa::Pep10ISA>);

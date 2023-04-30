@@ -2,8 +2,8 @@
 #include "builtins/book.hpp"
 #include "builtins/figure.hpp"
 #include "builtins/registry.hpp"
+#include "isa/pep10.hpp"
 #include "macro/registry.hpp"
-#include "pas/isa/pep10.hpp"
 #include "pas/obj/pep10.hpp"
 #include "pas/operations/generic/errors.hpp"
 #include "pas/operations/pepp/string.hpp"
@@ -53,8 +53,7 @@ private slots:
     // print out error messages before failing -- enables debugging broken
     // tests.
     if (!result) {
-      QStringList body =
-          pas::ops::pepp::formatSource<pas::isa::Pep10ISA>(*root);
+      QStringList body = pas::ops::pepp::formatSource<isa::Pep10>(*root);
       for (auto &line : body)
         qCritical() << line;
       qCritical() << "";
@@ -121,7 +120,7 @@ private slots:
     // print out error messages before failing -- enables debugging broken
     // tests.
     if (!result) {
-      auto lines = pas::ops::pepp::formatListing<pas::isa::Pep10ISA>(*userRoot);
+      auto lines = pas::ops::pepp::formatListing<isa::Pep10>(*userRoot);
       for (auto &line : lines)
         qCritical() << line;
       for (auto &error : pas::ops::generic::collectErrors(*osRoot))

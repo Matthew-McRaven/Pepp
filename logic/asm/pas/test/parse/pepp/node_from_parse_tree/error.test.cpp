@@ -1,8 +1,8 @@
+#include "isa/pep10.hpp"
 #include "pas/ast/generic/attr_error.hpp"
 #include "pas/ast/generic/attr_location.hpp"
 #include "pas/driver/pep10.hpp"
 #include "pas/errors.hpp"
-#include "pas/isa/pep10.hpp"
 #include "pas/parse/pepp/node_from_parse_tree.hpp"
 #include <QObject>
 #include <QTest>
@@ -289,7 +289,7 @@ private slots:
     QVERIFY2(current == asStd.end(), "Partial parse failure");
     QVERIFY2(success, "Failed to parse");
 
-    auto root = pas::parse::pepp::toAST<pas::isa::Pep10ISA>(result);
+    auto root = pas::parse::pepp::toAST<isa::Pep10>(result);
     auto visit = pas::ops::generic::CollectErrors();
     pas::ast::apply_recurse<void>(*root, visit);
     auto actualErrors = visit.errors;

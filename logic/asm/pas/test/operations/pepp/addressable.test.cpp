@@ -1,7 +1,7 @@
 #include "pas/operations/pepp/addressable.hpp"
+#include "isa/pep10.hpp"
 #include "pas/ast/node.hpp"
 #include "pas/driver/pep10.hpp"
-#include "pas/isa/pep10.hpp"
 #include <QObject>
 #include <QTest>
 
@@ -21,7 +21,7 @@ private slots:
                     .value;
     auto children = pas::ast::children(*root);
     QCOMPARE(children.size(), 1);
-    QCOMPARE(pas::ops::pepp::isAddressable<pas::isa::Pep10ISA>(*children[0]),
+    QCOMPARE(pas::ops::pepp::isAddressable<isa::Pep10>(*children[0]),
              addressable);
   }
   void smoke_data() {

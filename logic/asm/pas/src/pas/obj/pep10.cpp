@@ -1,9 +1,9 @@
 #include "./pep10.hpp"
 #include "bits/operations/copy.hpp"
+#include "isa/pep10.hpp"
 #include "pas/ast/generic/attr_children.hpp"
 #include "pas/ast/generic/attr_sec.hpp"
 #include "pas/ast/generic/attr_symbol.hpp"
-#include "pas/isa/pep10.hpp"
 #include "pas/operations/generic/combine.hpp"
 #include "pas/operations/pepp/bytes.hpp"
 #include "pas/operations/pepp/gather_ios.hpp"
@@ -208,7 +208,7 @@ void writeTree(ELFIO::elfio &elf, pas::ast::Node &node, QString prefix,
     auto align = traits.alignment;
     ELFIO::Elf64_Addr baseAddr = traits.base;
     auto size = traits.size;
-    auto bytes = pas::ops::pepp::toBytes<isa::Pep10ISA>(*astSec);
+    auto bytes = pas::ops::pepp::toBytes<isa::Pep10>(*astSec);
     if (size == 0)
       continue; // 0-sized sections are meaningless, do not emit.
 

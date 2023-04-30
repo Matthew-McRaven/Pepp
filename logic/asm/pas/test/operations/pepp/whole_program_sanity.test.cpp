@@ -1,9 +1,9 @@
 #include "pas/operations/pepp/whole_program_sanity.hpp"
+#include "isa/pep10.hpp"
 #include "macro/registry.hpp"
 #include "pas/driver/pep10.hpp"
 #include "pas/driver/pepp.hpp"
 #include "pas/errors.hpp"
-#include "pas/isa/pep10.hpp"
 #include "pas/operations/generic/group.hpp"
 #include "pas/operations/pepp/addressable.hpp"
 #include "pas/operations/pepp/assign_addr.hpp"
@@ -42,15 +42,14 @@ private slots:
                  .value<pas::driver::repr::Nodes>()
                  .value;
     } else {
-      auto parseRoot =
-          pas::driver::pepp::createParser<pas::isa::Pep10ISA>(false);
+      auto parseRoot = pas::driver::pepp::createParser<isa::Pep10>(false);
       auto res = parseRoot(source, nullptr);
       QVERIFY(!res.hadError);
       pas::ops::generic::groupSections(
-          *res.root, pas::ops::pepp::isAddressable<pas::isa::Pep10ISA>);
-      pas::ops::pepp::assignAddresses<pas::isa::Pep10ISA>(*res.root);
+          *res.root, pas::ops::pepp::isAddressable<isa::Pep10>);
+      pas::ops::pepp::assignAddresses<isa::Pep10>(*res.root);
       root = res.root;
-      QCOMPARE(pas::ops::pepp::checkWholeProgramSanity<pas::isa::Pep10ISA>(
+      QCOMPARE(pas::ops::pepp::checkWholeProgramSanity<isa::Pep10>(
                    *root, {.allowOSFeatures = useOSFeats}),
                errors.size() == 0);
     }
@@ -126,10 +125,10 @@ private slots:
 
   /*void requireEnd() {
     QString source = ".BLOCK 2";
-    auto parsed = pas::driver::pepp::createParser<pas::isa::Pep10ISA>(false)(
+    auto parsed = pas::driver::pepp::createParser<isa::Pep10>(false)(
         source, nullptr);
-    pas::ops::pepp::assignAddresses<pas::isa::Pep10ISA>(*parsed.root);
-    QVERIFY(!pas::ops::pepp::checkWholeProgramSanity<pas::isa::Pep10ISA>(
+    pas::ops::pepp::assignAddresses<isa::Pep10>(*parsed.root);
+    QVERIFY(!pas::ops::pepp::checkWholeProgramSanity<isa::Pep10>(
         *parsed.root, {.allowOSFeatures = false}));
     auto errors = pas::ops::generic::collectErrors(*parsed.root);
     QCOMPARE(errors.size(), 1);
