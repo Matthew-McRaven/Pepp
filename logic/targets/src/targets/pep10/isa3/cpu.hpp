@@ -44,13 +44,13 @@ private:
   sim::api::trace::Buffer *_tb = nullptr;
 
   quint16 readReg(::isa::Pep10::Register reg);
-  sim::api::memory::Error writeReg(::isa::Pep10::Register reg, quint16 val);
+  void writeReg(::isa::Pep10::Register reg, quint16 val);
   bool readCSR(::isa::Pep10::CSR csr);
-  sim::api::memory::Error writeCSR(::isa::Pep10::CSR csr, bool val);
+  void writeCSR(::isa::Pep10::CSR csr, bool val);
   quint8 packCSR(bool n, bool z, bool v, bool c);
   std::tuple<bool, bool, bool, bool> unpackCSR(quint8 value);
   quint8 readPackedCSR();
-  sim::api::memory::Error writePackedCSR(quint8 val);
+  void writePackedCSR(quint8 val);
 
   sim::api::tick::Result unaryDispatch(quint8 is);
   sim::api::tick::Result nonunaryDispatch(quint8 is, quint16 os, quint16 pc);

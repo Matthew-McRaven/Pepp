@@ -51,16 +51,12 @@ targets::pep10::isa::CPU::tick(sim::api::tick::Type currentTick) {
   auto is_result = _memory->read(pc, &is, 1, rw_i);
   if (!is_result.completed)
     return {}; // TODO: Fill in fields
-  auto wb_is = writeReg(Register::IS, is);
-  if (wb_is != sim::api::memory::Error::Success)
-    return {};
+  writeReg(Register::IS, is);
 
   sim::api::tick::Result ret;
   if (::isa::Pep10::isOpcodeUnary(is)) {
     // Increment PC and writeback
-    auto wb_pc = writeReg(Register::PC, pc += 1);
-    if (wb_pc != sim::api::memory::Error::Success)
-      return {};
+    writeReg(Register::PC, pc += 1);
     // Execute unary dispatch
     ret = unaryDispatch(is);
   } else {
@@ -70,10 +66,7 @@ targets::pep10::isa::CPU::tick(sim::api::tick::Type currentTick) {
         _memory->read(pc, reinterpret_cast<quint8 *>(&os), 2, rw_i);
     if (!os_result.completed)
       return {}; // TODO: Fill in fields
-    auto wb_os = writeReg(Register::OS, os);
-    if (wb_os != sim::api::memory::Error::Success)
-      return {};
-
+    writeReg(Register::OS, os);
     // Execute nonunary dispatch, which is responsible for writing back PC.
     ret = nonunaryDispatch(is, os, pc += 2);
   }
@@ -124,12 +117,13 @@ quint16 targets::pep10::isa::CPU::readReg(::isa::Pep10::Register reg) {
   return ret;
 }
 
-sim::api::memory::Error
-targets::pep10::isa::CPU::writeReg(::isa::Pep10::Register reg, quint16 val) {
-  return _regs
-      .write(static_cast<quint8>(reg) * 2, reinterpret_cast<quint8 *>(&val), 2,
-             rw_d)
-      .error;
+void targets::pep10::isa::CPU::writeReg(::isa::Pep10::Register reg,
+                                        quint16 val) {
+  if (!_regs
+           .write(static_cast<quint8>(reg) * 2,
+                  reinterpret_cast<quint8 *>(&val), 2, rw_d)
+           .completed)
+    throw std::logic_error("failed to write register");
 }
 
 bool targets::pep10::isa::CPU::readCSR(::isa::Pep10::CSR csr) {
@@ -138,12 +132,9 @@ bool targets::pep10::isa::CPU::readCSR(::isa::Pep10::CSR csr) {
   return ret;
 }
 
-sim::api::memory::Error
-targets::pep10::isa::CPU::writeCSR(::isa::Pep10::CSR csr, bool val) {
-  return _csrs
-      .write(static_cast<quint8>(csr), reinterpret_cast<quint8 *>(&val), 1,
-             rw_d)
-      .error;
+void targets::pep10::isa::CPU::writeCSR(::isa::Pep10::CSR csr, bool val) {
+  _csrs.write(static_cast<quint8>(csr), reinterpret_cast<quint8 *>(&val), 1,
+              rw_d);
 }
 
 quint8 targets::pep10::isa::CPU::packCSR(bool n, bool z, bool v, bool c) {
@@ -161,14 +152,15 @@ quint8 targets::pep10::isa::CPU::readPackedCSR() {
   return packCSR(ctx[0], ctx[1], ctx[2], ctx[3]);
 }
 
-sim::api::memory::Error targets::pep10::isa::CPU::writePackedCSR(quint8 val) {
+void targets::pep10::isa::CPU::writePackedCSR(quint8 val) {
   auto [n, z, v, c] = unpackCSR(val);
   quint8 ctx[4];
   ctx[0] = n;
   ctx[1] = z;
   ctx[2] = v;
   ctx[3] = c;
-  return _csrs.write(0, ctx, 4, rw_d).error;
+  if (!_csrs.write(0, ctx, 4, rw_d).completed)
+    throw std::logic_error("Failed to write CSR");
 }
 
 sim::api::tick::Result targets::pep10::isa::CPU::unaryDispatch(quint8 is) {
@@ -189,34 +181,26 @@ sim::api::tick::Result targets::pep10::isa::CPU::unaryDispatch(quint8 is) {
     mem_res = _memory->read(sp, reinterpret_cast<quint8 *>(&tmp), 2, rw_d);
     if (!mem_res.completed)
       throw std::logic_error("Unhandled");
-    else if (writeReg(Register::PC, tmp) != sim::api::memory::Error::Success)
-      throw std::logic_error("Unhandled");
-    else if (writeReg(Register::SP, sp + 2) != sim::api::memory::Error::Success)
-      throw std::logic_error("Unhandled");
+    writeReg(Register::PC, tmp);
+    writeReg(Register::SP, sp + 2);
     break;
 
   case mn::MOVSPA:
-    if (writeReg(Register::A, sp) != sim::api::memory::Error::Success)
-      throw std::logic_error("unhandled");
+    writeReg(Register::A, sp);
     break;
   case mn::MOVASP:
-    if (writeReg(Register::SP, a) != sim::api::memory::Error::Success)
-      throw std::logic_error("unhandled");
+    writeReg(Register::SP, a);
     break;
 
   case mn::MOVFLGA:
-    if (writeReg(Register::A, readPackedCSR()) !=
-        sim::api::memory::Error::Success)
-      throw std::logic_error("unhandled");
+    writeReg(Register::A, readPackedCSR());
     break;
   case mn::MOVAFLG:
-    if (writePackedCSR(a) != sim::api::memory::Error::Success)
-      throw std::logic_error("unhandled");
+    writePackedCSR(a);
     break;
 
   case mn::MOVTA:
-    if (writeReg(Register::TR, a) != sim::api::memory::Error::Success)
-      throw std::logic_error("unhandled");
+    writeReg(Register::TR, a);
     break;
 
   case mn::NOP:
@@ -226,21 +210,15 @@ sim::api::tick::Result targets::pep10::isa::CPU::unaryDispatch(quint8 is) {
     tmp = ~a;
     n = tmp & 0x8000;
     z = tmp == 0x0000;
-    if (writeReg(Register::A, tmp) != sim::api::memory::Error::Success)
-      throw std::logic_error("unhandled");
-    else if (writePackedCSR(packCSR(n, z, v, c)) !=
-             sim::api::memory::Error::Success)
-      throw std::logic_error("unhandled");
+    writeReg(Register::A, tmp);
+    writePackedCSR(packCSR(n, z, v, c));
     break;
   case mn::NOTX:
     tmp = ~x;
     n = tmp & 0x8000;
     z = tmp == 0x0000;
-    if (writeReg(Register::X, tmp) != sim::api::memory::Error::Success)
-      throw std::logic_error("unhandled");
-    else if (writePackedCSR(packCSR(n, z, v, c)) !=
-             sim::api::memory::Error::Success)
-      throw std::logic_error("unhandled");
+    writeReg(Register::X, tmp);
+    writePackedCSR(packCSR(n, z, v, c));
     break;
 
   case mn::NEGA:
@@ -248,22 +226,16 @@ sim::api::tick::Result targets::pep10::isa::CPU::unaryDispatch(quint8 is) {
     n = tmp & 0x8000;
     z = tmp == 0x0000;
     v = tmp == 0x8000;
-    if (writeReg(Register::A, tmp) != sim::api::memory::Error::Success)
-      throw std::logic_error("unhandled");
-    else if (writePackedCSR(packCSR(n, z, v, c)) !=
-             sim::api::memory::Error::Success)
-      throw std::logic_error("unhandled");
+    writeReg(Register::A, tmp);
+    writePackedCSR(packCSR(n, z, v, c));
     break;
   case mn::NEGX:
     tmp = ~x + 1;
     n = tmp & 0x8000;
     z = tmp == 0x0000;
     v = tmp == 0x8000;
-    if (writeReg(Register::X, tmp) != sim::api::memory::Error::Success)
-      throw std::logic_error("unhandled");
-    else if (writePackedCSR(packCSR(n, z, v, c)) !=
-             sim::api::memory::Error::Success)
-      throw std::logic_error("unhandled");
+    writeReg(Register::X, tmp);
+    writePackedCSR(packCSR(n, z, v, c));
     break;
 
   case mn::ASLA:
@@ -279,11 +251,8 @@ sim::api::tick::Result targets::pep10::isa::CPU::unaryDispatch(quint8 is) {
     v = (a ^ tmp) >> 15;
     // Carry out if register starts with high order 1.
     c = a & 0x8000;
-    if (writeReg(Register::A, tmp) != sim::api::memory::Error::Success)
-      throw std::logic_error("unhandled");
-    else if (writePackedCSR(packCSR(n, z, v, c)) !=
-             sim::api::memory::Error::Success)
-      throw std::logic_error("unhandled");
+    writeReg(Register::A, tmp);
+    writePackedCSR(packCSR(n, z, v, c));
     break;
   case mn::ASLX:
     // Store in temp, because we need acc for status bit computation.
@@ -298,11 +267,8 @@ sim::api::tick::Result targets::pep10::isa::CPU::unaryDispatch(quint8 is) {
     v = (x ^ tmp) >> 15;
     // Carry out if register starts with high order 1.
     c = x & 0x8000;
-    if (writeReg(Register::X, tmp) != sim::api::memory::Error::Success)
-      throw std::logic_error("unhandled");
-    else if (writePackedCSR(packCSR(n, z, v, c)) !=
-             sim::api::memory::Error::Success)
-      throw std::logic_error("unhandled");
+    writeReg(Register::X, tmp);
+    writePackedCSR(packCSR(n, z, v, c));
     break;
 
   case mn::ASRA:
@@ -315,11 +281,8 @@ sim::api::tick::Result targets::pep10::isa::CPU::unaryDispatch(quint8 is) {
     z = tmp == 0x000;
     // Carry out if register starts with low order 1.
     c = a & 0x1;
-    if (writeReg(Register::A, tmp) != sim::api::memory::Error::Success)
-      throw std::logic_error("unhandled");
-    else if (writePackedCSR(packCSR(n, z, v, c)) !=
-             sim::api::memory::Error::Success)
-      throw std::logic_error("unhandled");
+    writeReg(Register::A, tmp);
+    writePackedCSR(packCSR(n, z, v, c));
     break;
   case mn::ASRX:
     // Shift all bits to the right by 1 position. Since using unsigned shift,
@@ -331,11 +294,8 @@ sim::api::tick::Result targets::pep10::isa::CPU::unaryDispatch(quint8 is) {
     z = tmp == 0x000;
     // Carry out if register starts with low order 1.
     c = x & 0x1;
-    if (writeReg(Register::X, tmp) != sim::api::memory::Error::Success)
-      throw std::logic_error("unhandled");
-    else if (writePackedCSR(packCSR(n, z, v, c)) !=
-             sim::api::memory::Error::Success)
-      throw std::logic_error("unhandled");
+    writeReg(Register::X, tmp);
+    writePackedCSR(packCSR(n, z, v, c));
     break;
 
   case mn::ROLA:
@@ -343,22 +303,16 @@ sim::api::tick::Result targets::pep10::isa::CPU::unaryDispatch(quint8 is) {
     tmp = static_cast<quint16>(a << 1 | (c ? 1 : 0));
     // Carry out if register starts with high order 1.
     c = a & 0x8000;
-    if (writeReg(Register::A, tmp) != sim::api::memory::Error::Success)
-      throw std::logic_error("unhandled");
-    else if (writePackedCSR(packCSR(n, z, v, c)) !=
-             sim::api::memory::Error::Success)
-      throw std::logic_error("unhandled");
+    writeReg(Register::A, tmp);
+    writePackedCSR(packCSR(n, z, v, c));
     break;
   case mn::ROLX:
     // Shift the carry in to low order bit.
     tmp = static_cast<quint16>(x << 1 | (c ? 1 : 0));
     // Carry out if register starts with high order 1.
     c = x & 0x8000;
-    if (writeReg(Register::X, tmp) != sim::api::memory::Error::Success)
-      throw std::logic_error("unhandled");
-    else if (writePackedCSR(packCSR(n, z, v, c)) !=
-             sim::api::memory::Error::Success)
-      throw std::logic_error("unhandled");
+    writeReg(Register::X, tmp);
+    writePackedCSR(packCSR(n, z, v, c));
     break;
 
   case mn::RORA:
@@ -366,22 +320,16 @@ sim::api::tick::Result targets::pep10::isa::CPU::unaryDispatch(quint8 is) {
     tmp = a >> 1 | (c ? 1 << 15 : 0);
     // Carry out if register starts with low order 1.
     c = a & 0x1;
-    if (writeReg(Register::A, tmp) != sim::api::memory::Error::Success)
-      throw std::logic_error("unhandled");
-    else if (writePackedCSR(packCSR(n, z, v, c)) !=
-             sim::api::memory::Error::Success)
-      throw std::logic_error("unhandled");
+    writeReg(Register::A, tmp);
+    writePackedCSR(packCSR(n, z, v, c));
     break;
   case mn::RORX:
     // Shift the carry in to high order bit.
     tmp = x >> 1 | (c ? 1 << 15 : 0);
     // Carry out if register starts with low order 1.
     c = x & 0x1;
-    if (writeReg(Register::X, tmp) != sim::api::memory::Error::Success)
-      throw std::logic_error("unhandled");
-    else if (writePackedCSR(packCSR(n, z, v, c)) !=
-             sim::api::memory::Error::Success)
-      throw std::logic_error("unhandled");
+    writeReg(Register::X, tmp);
+    writePackedCSR(packCSR(n, z, v, c));
     break;
 
   case mn::SRET:
@@ -396,8 +344,7 @@ sim::api::tick::Result targets::pep10::isa::CPU::unaryDispatch(quint8 is) {
     mem_res = _memory->read(sp, reinterpret_cast<quint8 *>(&tmp), 1, rw_d);
     if (!mem_res.completed)
       throw std::logic_error("Unhandled");
-    else if (writePackedCSR(tmp) != sim::api::memory::Error::Success)
-      throw std::logic_error("unhandled");
+    writePackedCSR(tmp);
 
     // Load A into ctx
     mem_res = _memory->read(sp + 1, ctx + 2 * static_cast<quint8>(Register::A),
@@ -458,16 +405,14 @@ sim::api::tick::Result targets::pep10::isa::CPU::unaryDispatch(quint8 is) {
     if (!mem_res.completed)
       throw std::logic_error("Unhandled");
     // And update SP with OS's SP.
-    if (writeReg(Register::SP, tmp) != sim::api::memory::Error::Success)
-      throw std::logic_error("unhandled");
+    writeReg(Register::SP, tmp);
 
     // Read trap handler pc.
     // TODO: replace placeholder
     mem_res = _memory->read(0xFED0, reinterpret_cast<quint8 *>(&tmp), 2, rw_d);
     if (!mem_res.completed)
       throw std::logic_error("Unhandled");
-    if (writeReg(Register::PC, tmp) != sim::api::memory::Error::Success)
-      throw std::logic_error("unhandled");
+    writeReg(Register::PC, tmp);
   }
   // TODO
   return {};
@@ -531,51 +476,39 @@ targets::pep10::isa::CPU::nonunaryDispatch(quint8 is, quint16 os, quint16 pc) {
     if (!mem_res.completed)
       throw std::logic_error("Unhandled");
     pc = operand;
-    if (writeReg(Register::SP, sp) != sim::api::memory::Error::Success)
-      throw std::logic_error("unhandled");
+    writeReg(Register::SP, sp);
     break;
 
   case mn::LDWT:
-    if (writeReg(Register::TR, operand) != sim::api::memory::Error::Success)
-      throw std::logic_error("unhandled");
+    writeReg(Register::TR, operand);
     break;
   case mn::LDWA:
-    if (writeReg(Register::A, operand) != sim::api::memory::Error::Success)
-      throw std::logic_error("unhandled");
+    writeReg(Register::A, operand);
     n = operand & 0x8000;
     z = operand == 0x0000;
-    if (writePackedCSR(packCSR(n, z, v, c)) != sim::api::memory::Error::Success)
-      throw std::logic_error("unhandled");
+    writePackedCSR(packCSR(n, z, v, c));
     break;
   case mn::LDWX:
-    if (writeReg(Register::X, operand) != sim::api::memory::Error::Success)
-      throw std::logic_error("unhandled");
+    writeReg(Register::X, operand);
     n = operand & 0x8000;
     z = operand == 0x0000;
-    if (writePackedCSR(packCSR(n, z, v, c)) != sim::api::memory::Error::Success)
-      throw std::logic_error("unhandled");
+    writePackedCSR(packCSR(n, z, v, c));
     break;
 
   // LDBx instructions depend on decodeLoadOperand to 0-fill upper byte.
   case mn::LDBA:
-    if (writeReg(Register::A, operand) != sim::api::memory::Error::Success)
-      throw std::logic_error("unhandled");
+    writeReg(Register::A, operand);
     // LDBx always clears n.
     n = 0;
     z = operand == 0x0000;
-    if (writePackedCSR(packCSR(n, z, v, c)) != sim::api::memory::Error::Success)
-      throw std::logic_error("unhandled");
-    break;
-
+    writePackedCSR(packCSR(n, z, v, c));
     break;
   case mn::LDBX:
-    if (writeReg(Register::X, operand) != sim::api::memory::Error::Success)
-      throw std::logic_error("unhandled");
+    writeReg(Register::X, operand);
     // LDBx always clears n.
     n = 0;
     z = operand == 0x0000;
-    if (writePackedCSR(packCSR(n, z, v, c)) != sim::api::memory::Error::Success)
-      throw std::logic_error("unhandled");
+    writePackedCSR(packCSR(n, z, v, c));
     break;
 
   case mn::STWA:
@@ -615,8 +548,7 @@ targets::pep10::isa::CPU::nonunaryDispatch(quint8 is, quint16 os, quint16 pc) {
     c = tmp < a || tmp < static_cast<quint16>(1 + ~operand);
     // Invert N bit if there was signed overflow.
     n ^= v;
-    if (writePackedCSR(packCSR(n, z, v, c)) != sim::api::memory::Error::Success)
-      throw std::logic_error("unhandled");
+    writePackedCSR(packCSR(n, z, v, c));
     break;
   case mn::CPWX:
     tmp = x + ~operand + 1;
@@ -633,8 +565,7 @@ targets::pep10::isa::CPU::nonunaryDispatch(quint8 is, quint16 os, quint16 pc) {
     c = tmp < x || tmp < static_cast<quint16>(1 + ~operand);
     // Invert N bit if there was signed overflow.
     n ^= v;
-    if (writePackedCSR(packCSR(n, z, v, c)) != sim::api::memory::Error::Success)
-      throw std::logic_error("unhandled");
+    writePackedCSR(packCSR(n, z, v, c));
     break;
 
   case mn::CPBA:
@@ -646,8 +577,7 @@ targets::pep10::isa::CPU::nonunaryDispatch(quint8 is, quint16 os, quint16 pc) {
     z = tmp == 0x00;
     // RTL specifies that VC get 0.
     v = c = 0;
-    if (writePackedCSR(packCSR(n, z, v, c)) != sim::api::memory::Error::Success)
-      throw std::logic_error("unhandled");
+    writePackedCSR(packCSR(n, z, v, c));
     break;
   case mn::CPBX:
     // The result is the decoded operand specifier plus the accumulator
@@ -658,15 +588,13 @@ targets::pep10::isa::CPU::nonunaryDispatch(quint8 is, quint16 os, quint16 pc) {
     z = tmp == 0x00;
     // RTL specifies that VC get 0.
     v = c = 0;
-    if (writePackedCSR(packCSR(n, z, v, c)) != sim::api::memory::Error::Success)
-      throw std::logic_error("unhandled");
+    writePackedCSR(packCSR(n, z, v, c));
     break;
 
   case mn::ADDA:
     // The result is the decoded operand specifier plus the accumulator
     tmp = a + operand;
-    if (writeReg(Register::A, tmp) != sim::api::memory::Error::Success)
-      throw std::logic_error("unhandled");
+    writeReg(Register::A, tmp);
     // Is negative if high order bit is 1.
     n = tmp & 0x8000;
     // Is zero if all bits are 0's.
@@ -678,14 +606,12 @@ targets::pep10::isa::CPU::nonunaryDispatch(quint8 is, quint16 os, quint16 pc) {
     v = (~(a ^ operand) & (a ^ tmp)) >> 15;
     // Carry out iff result is unsigned less than register or operand.
     c = tmp < a || tmp < operand;
-    if (writePackedCSR(packCSR(n, z, v, c)) != sim::api::memory::Error::Success)
-      throw std::logic_error("unhandled");
+    writePackedCSR(packCSR(n, z, v, c));
     break;
   case mn::ADDX:
     // The result is the decoded operand specifier plus the index register.
     tmp = x + operand;
-    if (writeReg(Register::X, tmp) != sim::api::memory::Error::Success)
-      throw std::logic_error("unhandled");
+    writeReg(Register::X, tmp);
     // Is negative if high order bit is 1.
     n = tmp & 0x8000;
     // Is zero if all bits are 0's.
@@ -697,15 +623,13 @@ targets::pep10::isa::CPU::nonunaryDispatch(quint8 is, quint16 os, quint16 pc) {
     v = (~(x ^ operand) & (x ^ tmp)) >> 15;
     // Carry out iff result is unsigned less than register or operand.
     c = tmp < x || tmp < operand;
-    if (writePackedCSR(packCSR(n, z, v, c)) != sim::api::memory::Error::Success)
-      throw std::logic_error("unhandled");
+    writePackedCSR(packCSR(n, z, v, c));
     break;
 
   case mn::SUBA:
     // The result is the negated decoded operand specifier plus the accumulator
     tmp = a + ~operand + 1;
-    if (writeReg(Register::A, tmp) != sim::api::memory::Error::Success)
-      throw std::logic_error("unhandled");
+    writeReg(Register::A, tmp);
     // Is negative if high order bit is 1.
     n = tmp & 0x8000;
     // Is zero if all bits are 0's.
@@ -717,115 +641,92 @@ targets::pep10::isa::CPU::nonunaryDispatch(quint8 is, quint16 os, quint16 pc) {
     v = (~(a ^ operand) & (a ^ tmp)) >> 15;
     // Carry out iff result is unsigned less than register or operand.
     c = tmp < a || tmp < static_cast<quint16>(1 + ~operand);
-    if (writePackedCSR(packCSR(n, z, v, c)) != sim::api::memory::Error::Success)
-      throw std::logic_error("unhandled");
+    writePackedCSR(packCSR(n, z, v, c));
     break;
   case mn::SUBX:
     // The result is the negated decoded operand specifier plus the index
     // register
     tmp = x + ~operand + 1;
-    if (writeReg(Register::X, tmp) != sim::api::memory::Error::Success)
-      throw std::logic_error("unhandled");
+    writeReg(Register::X, tmp);
     // Is negative if high order bit is 1.
     n = tmp & 0x8000;
     // Is zero if all bits are 0's.
     z = tmp == 0x0000;
     // There is a signed overflow iff the high order bits of the register and
     // operand are the same, and one input & the output differ in sign.
-    // >> Shifts in 0's (unsigned shorts), so after shift, only high order bit
-    // remain.
     v = (~(x ^ operand) & (x ^ tmp)) >> 15;
     // Carry out iff result is unsigned less than register or operand.
     c = tmp < x || tmp < static_cast<quint16>(1 + ~operand);
-    if (writePackedCSR(packCSR(n, z, v, c)) != sim::api::memory::Error::Success)
-      throw std::logic_error("unhandled");
+    writePackedCSR(packCSR(n, z, v, c));
     break;
 
   case mn::ANDA:
     tmp = a & operand;
-    if (writeReg(Register::A, tmp) != sim::api::memory::Error::Success)
-      throw std::logic_error("unhandled");
+    writeReg(Register::A, tmp);
     // Is negative if high order bit is 1.
     n = tmp & 0x8000;
     // Is zero if all bits are 0's.
     z = tmp == 0x0000;
-    if (writePackedCSR(packCSR(n, z, v, c)) != sim::api::memory::Error::Success)
-      throw std::logic_error("unhandled");
+    writePackedCSR(packCSR(n, z, v, c));
     break;
   case mn::ANDX:
     tmp = x & operand;
-    if (writeReg(Register::X, tmp) != sim::api::memory::Error::Success)
-      throw std::logic_error("unhandled");
+    writeReg(Register::X, tmp);
     // Is negative if high order bit is 1.
     n = tmp & 0x8000;
     // Is zero if all bits are 0's.
     z = tmp == 0x0000;
-    if (writePackedCSR(packCSR(n, z, v, c)) != sim::api::memory::Error::Success)
-      throw std::logic_error("unhandled");
+    writePackedCSR(packCSR(n, z, v, c));
     break;
 
   case mn::ORA:
     tmp = a | operand;
-    if (writeReg(Register::A, tmp) != sim::api::memory::Error::Success)
-      throw std::logic_error("unhandled");
+    writeReg(Register::A, tmp);
     // Is negative if high order bit is 1.
     n = tmp & 0x8000;
     // Is zero if all bits are 0's.
     z = tmp == 0x0000;
-    if (writePackedCSR(packCSR(n, z, v, c)) != sim::api::memory::Error::Success)
-      throw std::logic_error("unhandled");
+    writePackedCSR(packCSR(n, z, v, c));
     break;
   case mn::ORX:
     tmp = x | operand;
-    if (writeReg(Register::X, tmp) != sim::api::memory::Error::Success)
-      throw std::logic_error("unhandled");
+    writeReg(Register::X, tmp);
     // Is negative if high order bit is 1.
     n = tmp & 0x8000;
     // Is zero if all bits are 0's.
     z = tmp == 0x0000;
-    if (writePackedCSR(packCSR(n, z, v, c)) != sim::api::memory::Error::Success)
-      throw std::logic_error("unhandled");
+    writePackedCSR(packCSR(n, z, v, c));
     break;
 
   case mn::XORA:
     tmp = a ^ operand;
-    if (writeReg(Register::A, tmp) != sim::api::memory::Error::Success)
-      throw std::logic_error("unhandled");
+    writeReg(Register::A, tmp);
     // Is negative if high order bit is 1.
     n = tmp & 0x8000;
     // Is zero if all bits are 0's.
     z = tmp == 0x0000;
-    if (writePackedCSR(packCSR(n, z, v, c)) != sim::api::memory::Error::Success)
-      throw std::logic_error("unhandled");
+    writePackedCSR(packCSR(n, z, v, c));
     break;
   case mn::XORX:
     tmp = x ^ operand;
-    if (writeReg(Register::X, tmp) != sim::api::memory::Error::Success)
-      throw std::logic_error("unhandled");
+    writeReg(Register::X, tmp);
     // Is negative if high order bit is 1.
     n = tmp & 0x8000;
     // Is zero if all bits are 0's.
     z = tmp == 0x0000;
-    if (writePackedCSR(packCSR(n, z, v, c)) != sim::api::memory::Error::Success)
-      throw std::logic_error("unhandled");
+    writePackedCSR(packCSR(n, z, v, c));
     break;
 
   case mn::ADDSP:
-    if (writeReg(Register::SP, sp + operand) !=
-        sim::api::memory::Error::Success)
-      throw std::logic_error("unhandled");
+    writeReg(Register::SP, sp + operand);
     break;
   case mn::SUBSP:
-    if (writeReg(Register::SP, sp - operand) !=
-        sim::api::memory::Error::Success)
-      throw std::logic_error("unhandled");
+    writeReg(Register::SP, sp - operand);
     break;
   }
 
   // Increment PC and writeback
-  auto wb_pc = writeReg(Register::PC, pc);
-  if (wb_pc != sim::api::memory::Error::Success)
-    throw std::logic_error("unhandled");
+  writeReg(Register::PC, pc);
   // TODO
   return {};
 }
