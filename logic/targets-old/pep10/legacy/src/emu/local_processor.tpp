@@ -404,7 +404,8 @@ template<bool enable_history> result<void> isa::pep10::LocalProcessor<enable_his
 
   case instruction_mnemonic::SCALL:
     // TODO: Intentional fallthrough annotation.
-  case instruction_mnemonic::USCALL:vector_value = _owner.address_from_vector(MemoryVector::kSystem_Stack);
+  case instruction_mnemonic::USCALL:
+    vector_value = _owner.address_from_vector(MemoryVector::kSystem_Stack);
     outcome_word = std::move(read_word(vector_value));
     if (outcome_word.has_failure())
       return outcome_word.error().clone();
@@ -526,7 +527,8 @@ result<void> isa::pep10::LocalProcessor<enable_history>::nonunary_dispatch(uint8
       write_register(*this, Register::PC, decoded_operand);
     }
     break;
-  case instruction_mnemonic::CALL:sp -= 2;
+  case instruction_mnemonic::CALL:
+    sp -= 2;
     outcome_void = std::move(write_word(sp, read_register(*this, Register::PC)));
     if (outcome_void.has_error())
       return outcome_void.error().clone();
@@ -538,9 +540,11 @@ result<void> isa::pep10::LocalProcessor<enable_history>::nonunary_dispatch(uint8
 
     _call_depth += 1;
     break;
-  case instruction_mnemonic::ADDSP:write_register(*this, Register::SP, sp + decoded_operand);
+  case instruction_mnemonic::ADDSP:
+    write_register(*this, Register::SP, sp + decoded_operand);
     break;
-  case instruction_mnemonic::SUBSP:write_register(*this, Register::SP, sp - decoded_operand);
+  case instruction_mnemonic::SUBSP:
+    write_register(*this, Register::SP, sp - decoded_operand);
     break;
 
   case instruction_mnemonic::ADDA:
@@ -604,7 +608,8 @@ result<void> isa::pep10::LocalProcessor<enable_history>::nonunary_dispatch(uint8
     write_NZVC(*this, CSR::C, temp_word < idx || temp_word < static_cast<uint16_t>(1 + ~decoded_operand));
     break;
 
-  case instruction_mnemonic::ANDA:temp_word = acc & decoded_operand;
+  case instruction_mnemonic::ANDA:
+    temp_word = acc & decoded_operand;
     write_register(*this, Register::A, temp_word);
     // Is negative if high order bit is 1.
     write_NZVC(*this, CSR::N, temp_word & 0x8000);
@@ -928,7 +933,8 @@ result<uint16_t> isa::pep10::LocalProcessor<enable_history>::decode_store_operan
   case addressing_mode::X:return addr + read_register(*this, Register::X);
   case addressing_mode::SX:addr += read_register(*this, Register::SP) + read_register(*this, Register::X);
     return addr;
-  case addressing_mode::SF:return read_word(addr + read_register(*this, Register::SP));
+  case addressing_mode::SF:
+    return read_word(addr + read_register(*this, Register::SP));
   case addressing_mode::SFX:outcome_word = std::move(read_word(addr + read_register(*this, Register::SP)));
     if (outcome_word.has_error())
       return outcome_word.error().clone();
