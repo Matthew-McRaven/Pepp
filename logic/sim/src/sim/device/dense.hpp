@@ -72,9 +72,7 @@ sim::memory::Dense<Address>::read(Address address, quint8 *dest, quint8 length,
   if (address < _span.minOffset ||
       maxDestAddr - qMax(0, _span.length - 1) > _span.minOffset)
     return {.completed = false,
-            .advance = false,
             .pause = true,
-            .sync = false,
             .error = api::memory::Error::OOBAccess};
   auto error = api::memory::Error::Success;
   bool pause = false;
@@ -86,11 +84,7 @@ sim::memory::Dense<Address>::read(Address address, quint8 *dest, quint8 length,
     }
   }
   bits::memcpy(dest, _data.constData() + (address - _span.minOffset), length);
-  return {.completed = true,
-          .advance = true,
-          .pause = pause,
-          .sync = false,
-          .error = error};
+  return {.completed = true, .pause = pause, .error = error};
 }
 
 namespace detail {
@@ -174,9 +168,7 @@ sim::memory::Dense<Address>::write(Address address, const quint8 *src,
   if (address < _span.minOffset ||
       maxDestAddr - qMax(0, _span.length - 1) > _span.minOffset)
     return {.completed = false,
-            .advance = false,
             .pause = true,
-            .sync = false,
             .error = api::memory::Error::OOBAccess};
   auto error = api::memory::Error::Success;
   bool pause = false;
@@ -202,11 +194,7 @@ sim::memory::Dense<Address>::write(Address address, const quint8 *src,
   }
   if (success)
     bits::memcpy(_data.data() + (address - _span.minOffset), src, length);
-  return {.completed = success,
-          .advance = success,
-          .pause = pause,
-          .sync = sync,
-          .error = error};
+  return {.completed = success, .pause = pause, .error = error};
 }
 
 template <typename Address>

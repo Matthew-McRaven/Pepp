@@ -187,10 +187,8 @@ enum class Error : quint8 {
 };
 
 struct Result {
-  bool pause; // After this tick, should control be returned to execution
-              // environment? Yes (1) or no (0);
-  bool sync;  // If pausing, execution environment must sync/commit time warp
-              // store? sync (1) or no sync (0).
+  bool pause;      // After this tick, should control be returned to execution
+                   // environment? Yes (1) or no (0);
   bool tick_delay; // Should the delay be interpreted in ticks (1) or clock
                    // intervals (0).
   Error error;
@@ -229,13 +227,9 @@ enum class Error : quint8 {
 
 struct Result {
   bool completed; // Did the operation complete? Yes (1), or No (0).
-  bool advance;   // Should a logic FSM retry the current state? Success (1) or
-                  // Retry (0).
   bool pause;     // Should a logic FSM be interrupted at the end of the current
                   // tick? yes (1) or no (0).
-  bool sync;   // On pausing, is the device required to sync timewarpstore? sync
-               // (1) or no sync (0).
-  Error error; // Additionally error information.
+  Error error;    // Additional error information.
 };
 
 template <typename Address> struct Interposer {

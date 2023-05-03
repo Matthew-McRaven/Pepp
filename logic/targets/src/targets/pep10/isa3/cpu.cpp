@@ -838,9 +838,7 @@ targets::pep10::isa::CPU::decodeStoreOperand(quint8 is, quint16 os,
   auto instruction = ::isa::Pep10::opcodeLUT[is];
   sim::api::memory::Result mem_res = {
       .completed = true,
-      .advance = true,
       .pause = false,
-      .sync = false,
       .error = sim::api::memory::Error::Success,
   };
 
@@ -883,9 +881,7 @@ targets::pep10::isa::CPU::decodeLoadOperand(quint8 is, quint16 os,
   auto instruction = ::isa::Pep10::opcodeLUT[is];
   sim::api::memory::Result mem_res = {
       .completed = true,
-      .advance = true,
       .pause = false,
-      .sync = false,
       .error = sim::api::memory::Error::Success,
   };
   auto mnemon = instruction.instr.mnemon;

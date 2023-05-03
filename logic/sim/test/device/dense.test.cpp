@@ -29,9 +29,7 @@ private slots:
     auto ret = dev.read(0x10, tmp, length, op_rw);
     auto verify = [&ret]() {
       QVERIFY(ret.completed);
-      QVERIFY(ret.advance);
       QVERIFY(!ret.pause);
-      QVERIFY(!ret.sync);
       QCOMPARE(ret.error, sim::api::memory::Error::Success);
     };
     auto compare = [&length](const quint8 *lhs, const quint8 *rhs) {
@@ -82,9 +80,7 @@ private slots:
     auto ret = dev.read(0x10, tmp, 1, op_rw);
     auto verify = [&ret](bool oob) {
       QVERIFY(oob ^ ret.completed);
-      QVERIFY(oob ^ ret.advance);
       QVERIFY(!(oob ^ ret.pause));
-      QVERIFY(!ret.sync);
       QCOMPARE(ret.error, oob ? sim::api::memory::Error::OOBAccess
                               : sim::api::memory::Error::Success);
     };
