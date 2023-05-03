@@ -96,12 +96,9 @@ sim::memory::Dense<Address>::read(Address address, quint8 *dest, quint8 length,
 namespace detail {
 template <typename Address, typename T>
 using payload = bits::trace::AddressedPayload<Address, T>;
-template <typename Address>
-api::trace::Buffer::Status alloc(void **dest, quint8 length,
-                                 api::trace::Buffer *tb) {
+template <typename Address> void *alloc(quint8 length, api::trace::Buffer *tb) {
   using namespace api::packet;
   auto bit_ceil = std::bit_ceil(length);
-  api::trace::Buffer::Status ret;
   quint8 size = 0;
   switch (bit_ceil) {
   case 1:
@@ -126,8 +123,7 @@ api::trace::Buffer::Status alloc(void **dest, quint8 length,
     size = sizeof(payload<Address, quint8[64]>);
     break;
   }
-  ret = tb->request(size, dest);
-  return ret;
+  return tb->alloc(size);
 }
 
 template <typename Address, typename dtype>
@@ -194,17 +190,7 @@ sim::memory::Dense<Address>::write(Address address, const quint8 *src,
   bool success = true, sync = false;
   if (op.effectful && _tb) {
     // Attempt to allocate space in the buffer for local trace packet.
-    void *packet = nullptr;
-    auto res = detail::alloc<Address>(&packet, length, _tb);
-    switch (res) {
-    case api::trace::Buffer::Status::Success:
-      break;
-    case api::trace::Buffer::Status::OverflowAndRetry:
-      success = false;
-      [[fallthrough]];
-    case api::trace::Buffer::Status::OverflowAndSuccess:
-      sync = true;
-    }
+    void *packet = detail::alloc<Address>(length, _tb);
     // Even with success we might get nullptr, in which case the Buffer is
     // telling us it doesn't want our trace.
     if (packet != nullptr) {

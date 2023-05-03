@@ -143,21 +143,16 @@ struct Analyzer {
 };
 Analyzer::~Analyzer() = default;
 
+// Ex
 struct Buffer {
   using AnalyzerHookID = quint32;
-  enum class Status : quint8 {
-    Success = 0,        // Object is now pending.
-    OverflowAndSuccess, // Operation succeeded, but the next operation might
-                        // not. Sync the buffer. Object IS pending.
-    OverflowAndRetry,   // Operation did not succeed. Retry current step after
-                        // sync'ing buffer. Object is NOT pending.
-  };
   virtual ~Buffer() = default;
   // To avoid double-buffering, request that the buffer provide a sufficient
   // number of bytes. Callers can then use placement new to construct their
-  // Packet in-place. If traceDest is nullptr, do not attempt to perform
+  // Packet in-place. If return is nullptr, do not attempt to perform
   // placement.
-  virtual Status request(quint8 length, void **traceDest) = 0;
+  // Throws a bad alloc exception if there is no space in buffer.
+  virtual void *alloc(quint8 length) = 0;
   virtual void trace(quint16 deviceID, bool enabled = true) = 0;
   virtual void setPacketRegistry(api::packet::Registry *registry) = 0;
 
