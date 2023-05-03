@@ -245,6 +245,17 @@ Q_ENUM_NS(Register);
 
 enum class CSR : quint8 { N, Z, V, C };
 Q_ENUM_NS(CSR);
+
+enum class MemoryVectors : quint16 {
+  TrapHandler = 0xFFF6,
+  Dispatcher = 0xFFF8,
+  SystemStackPtr = 0xFFFA,
+  DiskIn = 0xFFFC,
+  CharIn = 0xFFFD,
+  CharOut = 0xFFFE,
+  PwrOff = 0xFFFF,
+};
+Q_ENUM_NS(MemoryVectors)
 } // namespace isa::detail::pep10
 
 namespace isa {
@@ -256,6 +267,7 @@ struct Pep10 {
   using Opcode = detail::pep10::Opcode;
   using Register = detail::pep10::Register;
   using CSR = detail::pep10::Register;
+  using MemoryVectors = detail::pep10::MemoryVectors;
   static const quint8 RegisterCount;
   static const quint8 CSRCount;
 
