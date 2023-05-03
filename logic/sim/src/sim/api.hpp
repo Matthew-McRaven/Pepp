@@ -10,7 +10,8 @@ struct Descriptor {
   void *compatible;
   QString baseName, fullName;
 };
-} // namespace Device
+using IDGenerator = std::function<ID()>;
+} // namespace device
 
 namespace packet {
 // clang-format off
@@ -298,6 +299,7 @@ template <typename Address> struct System {
   virtual std::pair<tick::Type, tick::Result> tick(Scheduler::Mode mode) = 0;
   virtual tick::Type currentTick() const = 0;
   virtual device::ID nextID() = 0;
+  virtual device::IDGenerator nextIDGenerator() = 0;
 
   virtual void setTraceBuffer(trace::Buffer *buffer) = 0;
 };
