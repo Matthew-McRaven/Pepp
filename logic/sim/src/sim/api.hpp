@@ -131,7 +131,7 @@ struct Registry {
   virtual void registerDTOR(Flags flags, packet_dtor dtor) = 0;
   virtual packet_dtor getDTOR(Flags flags) = 0; // nullptr indicates no DTOR.
 };
-} // namespace Packet
+} // namespace packet
 
 namespace trace {
 
@@ -168,11 +168,15 @@ struct Buffer {
 struct Producer {
   virtual ~Producer() = default;
   virtual void setTraceBuffer(Buffer *tb) = 0;
+  // Have the produce communicate with the Buffer that it would like to traced.
+  // In the case of a CPU with register banks, calling trace() should cause the
+  // CPU to make its register banks trace()'ed too.
+  virtual void trace(bool enabled) = 0;
   virtual quint8 packetSize(packet::Flags flags) const = 0;
   virtual bool applyTrace(void *trace) = 0;   // trace is a Packet struct.
   virtual bool unapplyTrace(void *trace) = 0; // trace is a Packet struct.
 };
-} // namespace Trace
+} // namespace trace
 
 namespace tick {
 using Type = quint32; // System will crash at 2^32 ticks.
@@ -211,7 +215,7 @@ struct Listener {
   virtual void setSource(Source *) = 0;
   virtual Result tick(tick::Type currentTick) = 0;
 };
-} // namespace Tick
+} // namespace tick
 
 namespace memory {
 struct Operation {
@@ -272,7 +276,7 @@ template <typename Address> struct Initiator {
             Target<Address> *target) = 0; // Sets one target within the
                                           // initiator. Datatype undetermined.
 };
-} // namespace Memory
+} // namespace memory
 
 struct Scheduler {
   enum class Mode {
