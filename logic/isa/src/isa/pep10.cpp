@@ -170,6 +170,30 @@ bool isa::Pep10::isValidRAAATypeAddressingMode(Mnemonic mnemonic,
            (type == T::RAAA_noi && addr == AM::I));
 }
 
+bool isa::Pep10::isValidAddressingMode(Mnemonic mnemonic, AddressingMode addr) {
+  using T = InstructionType;
+  using AM = AddressingMode;
+  auto type = opcodeLUT[opcode(mnemonic)].instr.type;
+  switch (type) {
+  case detail::pep10::InstructionType::Invalid:
+    [[fallthrough]];
+  case detail::pep10::InstructionType::U_none:
+    [[fallthrough]];
+  case detail::pep10::InstructionType::R_none:
+    return false;
+  case detail::pep10::InstructionType::A_ix:
+    return addr == AM::X || addr == AM::I;
+  case detail::pep10::InstructionType::AAA_i:
+    return addr == AM::I;
+  case detail::pep10::InstructionType::AAA_all:
+  case detail::pep10::InstructionType::RAAA_all:
+    return !(addr == AM::ALL || addr == AM::INVALID || addr == AM::NONE);
+  case detail::pep10::InstructionType::RAAA_noi:
+    return !(addr == AM::ALL || addr == AM::INVALID || addr == AM::NONE ||
+             addr == AM::I);
+  }
+}
+
 bool isa::Pep10::requiresAddressingMode(Mnemonic mnemonic) {
   return isAAAType(mnemonic) | isRAAAType(mnemonic);
 }

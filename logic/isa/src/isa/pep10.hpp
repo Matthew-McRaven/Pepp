@@ -287,6 +287,7 @@ struct Pep10 {
   static bool isRAAAType(Mnemonic mnemonic);
   static bool isValidRAAATypeAddressingMode(Mnemonic mnemonic,
                                             AddressingMode addr);
+  static bool isValidAddressingMode(Mnemonic mnemonic, AddressingMode addr);
 
   static bool requiresAddressingMode(Mnemonic mnemonic);
   static bool canElideAddressingMode(Mnemonic mnemonic, AddressingMode addr);
