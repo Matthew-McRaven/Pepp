@@ -45,12 +45,20 @@ sim::api::tick::Result
 targets::pep10::isa::CPU::tick(sim::api::tick::Type currentTick) {
   using Register = ::isa::Pep10::Register;
   quint16 pc = readReg(Register::PC);
-
+  static const auto retMemErr = [](const sim::api::memory::Result &res) {
+    return sim::api::tick::Result{
+        .pause = false,
+        .tick_delay = 0,
+        .error = res.error == sim::api::memory::Error::NeedsMMI
+                     ? sim::api::tick::Error::NoMMInput
+                     : sim::api::tick::Error::Terminate,
+        .delay = 0};
+  };
   // Instruction specifier fetch + writeback.
   quint8 is = 0;
-  auto is_result = _memory->read(pc, &is, 1, rw_i);
-  if (!is_result.completed)
-    return {}; // TODO: Fill in fields
+  auto isResult = _memory->read(pc, &is, 1, rw_i);
+  if (!isResult.completed)
+    return retMemErr(isResult);
   writeReg(Register::IS, is);
 
   sim::api::tick::Result ret;
@@ -62,14 +70,15 @@ targets::pep10::isa::CPU::tick(sim::api::tick::Type currentTick) {
   } else {
     // Instruction specifier fetch + writeback.
     quint16 os = 0;
-    auto os_result =
-        _memory->read(pc, reinterpret_cast<quint8 *>(&os), 2, rw_i);
-    if (!os_result.completed)
-      return {}; // TODO: Fill in fields
+    auto osResult = _memory->read(pc, reinterpret_cast<quint8 *>(&os), 2, rw_i);
+    if (!osResult.completed)
+      return retMemErr(osResult);
     writeReg(Register::OS, os);
     // Execute nonunary dispatch, which is responsible for writing back PC.
     ret = nonunaryDispatch(is, os, pc += 2);
   }
+  // TODO: Check for BP's
+  ret.pause = false;
   return ret;
 }
 
@@ -176,11 +185,17 @@ sim::api::tick::Result targets::pep10::isa::CPU::unaryDispatch(quint8 is) {
   quint8 ctx[std::max<quint64>(registersBytes, 10)];
   auto [n, z, v, c] = unpackCSR(readPackedCSR());
 
+  auto retErr = sim::api::tick::Error::Success;
   switch (mnemonic.instr.mnemon) {
   case mn::RET:
     mem_res = _memory->read(sp, reinterpret_cast<quint8 *>(&tmp), 2, rw_d);
-    if (!mem_res.completed)
-      throw std::logic_error("Unhandled");
+    if (mem_res.error == sim::api::memory::Error::NeedsMMI) {
+      retErr = sim::api::tick::Error::NoMMInput;
+      break;
+    } else if (!mem_res.completed) {
+      tmp = 0;
+      qCritical() << "Failed to access memory";
+    }
     writeReg(Register::PC, tmp);
     writeReg(Register::SP, sp + 2);
     break;
@@ -336,52 +351,70 @@ sim::api::tick::Result targets::pep10::isa::CPU::unaryDispatch(quint8 is) {
     // Fill ctx with all register's current values.
     // Then we can do a single write back to _regs and only generate 1 trace
     // packet.
-    if (_regs.read(0, ctx, _regs.span().length, rw_d).error !=
-        sim::api::memory::Error::Success)
-      throw std::logic_error("Unhandled");
+    mem_res = _regs.read(0, ctx, _regs.span().length, rw_d);
+    if (mem_res.error == sim::api::memory::Error::NeedsMMI) {
+      retErr = sim::api::tick::Error::NoMMInput;
+      break;
+    } else if (!mem_res.completed)
+      qCritical() << "Failed to access memory";
 
     // Reload NZVC
     mem_res = _memory->read(sp, reinterpret_cast<quint8 *>(&tmp), 1, rw_d);
-    if (!mem_res.completed)
-      throw std::logic_error("Unhandled");
+    if (mem_res.error == sim::api::memory::Error::NeedsMMI) {
+      retErr = sim::api::tick::Error::NoMMInput;
+      break;
+    } else if (!mem_res.completed) {
+      tmp = 0;
+      qCritical() << "Failed to access memory";
+    }
     writePackedCSR(tmp);
 
     // Load A into ctx
     mem_res = _memory->read(sp + 1, ctx + 2 * static_cast<quint8>(Register::A),
                             2, rw_d);
-    if (!mem_res.completed)
-      throw std::logic_error("Unhandled");
+    if (mem_res.error == sim::api::memory::Error::NeedsMMI) {
+      retErr = sim::api::tick::Error::NoMMInput;
+      break;
+    } else if (!mem_res.completed)
+      qCritical() << "Failed to access memory";
 
     // Load X into ctx
     mem_res = _memory->read(sp + 3, ctx + 2 * static_cast<quint8>(Register::X),
                             2, rw_d);
-    if (!mem_res.completed)
-      throw std::logic_error("Unhandled");
+    if (mem_res.error == sim::api::memory::Error::NeedsMMI) {
+      retErr = sim::api::tick::Error::NoMMInput;
+      break;
+    } else if (!mem_res.completed)
+      qCritical() << "Failed to access memory";
 
     // Load PC into ctx
     mem_res = _memory->read(sp + 5, ctx + 2 * static_cast<quint8>(Register::PC),
                             2, rw_d);
-    if (!mem_res.completed)
-      throw std::logic_error("Unhandled");
+    if (mem_res.error == sim::api::memory::Error::NeedsMMI) {
+      retErr = sim::api::tick::Error::NoMMInput;
+      break;
+    } else if (!mem_res.completed)
+      qCritical() << "Failed to access memory";
 
     // Load SP into ctx
     mem_res = _memory->read(sp + 7, ctx + 2 * static_cast<quint8>(Register::SP),
                             2, rw_d);
-    if (!mem_res.completed)
-      throw std::logic_error("Unhandled");
+    if (mem_res.error == sim::api::memory::Error::NeedsMMI) {
+      retErr = sim::api::tick::Error::NoMMInput;
+      break;
+    } else if (!mem_res.completed)
+      qCritical() << "Failed to access memory";
 
     // Bulk write-back regs, saving a number of bits on trace metadata.
-    if (_regs.write(0, ctx, registersBytes, rw_d).error !=
-        sim::api::memory::Error::Success)
-      throw std::logic_error("Unhandled");
+    if (!_regs.write(0, ctx, registersBytes, rw_d).completed)
+      throw std::logic_error("Failed to write registers");
 
-    // WARNING! Not in spec, but must be done to prevent system stack from being
-    // clobbered. Write system stack address.
-    // TODO: replace placeholder
     tmp = sp + 10;
-    mem_res = _memory->write(0xFEED, reinterpret_cast<quint8 *>(&tmp), 2, rw_d);
+    mem_res = _memory->write(
+        static_cast<quint16>(::isa::Pep10::MemoryVectors::SystemStackPtr),
+        reinterpret_cast<quint8 *>(&tmp), 2, rw_d);
     if (!mem_res.completed)
-      throw std::logic_error("Unhandled");
+      qCritical() << "Failed to access memory";
     break;
 
   case mn::USCALL:
@@ -396,26 +429,41 @@ sim::api::tick::Result targets::pep10::isa::CPU::unaryDispatch(quint8 is) {
     ctx[9] = is;
 
     // Read system stack address.
-    // TODO: replace placeholder
-    mem_res = _memory->read(0xFEED, reinterpret_cast<quint8 *>(&tmp), 2, rw_d);
-    if (!mem_res.completed)
-      throw std::logic_error("Unhandled");
+    mem_res = _memory->read(
+        static_cast<quint16>(::isa::Pep10::MemoryVectors::SystemStackPtr),
+        reinterpret_cast<quint8 *>(&tmp), 2, rw_d);
+    if (mem_res.error == sim::api::memory::Error::NeedsMMI) {
+      retErr = sim::api::tick::Error::NoMMInput;
+      break;
+    } else if (!mem_res.completed) {
+      tmp = 0;
+      qCritical() << "Failed to access memory";
+    }
+
     // Allocate ctx frame with -=.
     mem_res = _memory->write(tmp -= 10, ctx, 10, rw_d);
     if (!mem_res.completed)
-      throw std::logic_error("Unhandled");
+      qCritical() << "Failed to access memory";
     // And update SP with OS's SP.
     writeReg(Register::SP, tmp);
 
     // Read trap handler pc.
-    // TODO: replace placeholder
-    mem_res = _memory->read(0xFED0, reinterpret_cast<quint8 *>(&tmp), 2, rw_d);
-    if (!mem_res.completed)
-      throw std::logic_error("Unhandled");
+    mem_res = _memory->read(
+        static_cast<quint16>(::isa::Pep10::MemoryVectors::TrapHandler),
+        reinterpret_cast<quint8 *>(&tmp), 2, rw_d);
+    if (mem_res.error == sim::api::memory::Error::NeedsMMI)
+      retErr = sim::api::tick::Error::NoMMInput;
+    else if (!mem_res.completed)
+      qCritical() << "Failed to access memory";
     writeReg(Register::PC, tmp);
+  default:
+    retErr = sim::api::tick::Error::Terminate;
   }
-  // TODO
-  return {};
+  return {.pause = false,
+          .tick_delay = 0,
+          .error = retErr,
+          .delay = sim::api::tick::Type(
+              retErr != sim::api::tick::Error::Success ? 1 : 0)};
 }
 
 sim::api::tick::Result
@@ -428,19 +476,30 @@ targets::pep10::isa::CPU::nonunaryDispatch(quint8 is, quint16 os, quint16 pc) {
           x = readReg(Register::X);
   sim::api::memory::Result mem_res;
 
-  // TODO
-  if (0 == 1)
-    throw std::logic_error("illegal addressing mode");
-
   quint16 operand = 0;
-  if (::isa::Pep10::isStore(is) &&
-      !decodeStoreOperand(is, os, operand).completed)
-    throw std::logic_error("fallthrough");
-  else if (!decodeLoadOperand(is, os, operand).completed)
-    throw std::logic_error("fallthrough");
 
   quint16 tmp = 0;
   auto [n, z, v, c] = unpackCSR(readPackedCSR());
+
+  auto instrDef = ::isa::Pep10::opcodeLUT[is];
+  auto retErr = sim::api::tick::Error::Success;
+  if (::isa::Pep10::isValidAddressingMode(instrDef.instr.mnemon,
+                                          instrDef.mode)) {
+    mem_res = ::isa::Pep10::isStore(is) ? decodeStoreOperand(is, os, operand)
+                                        : decodeLoadOperand(is, os, operand);
+    if (mem_res.error == sim::api::memory::Error::NeedsMMI)
+      retErr = sim::api::tick::Error::NoMMInput;
+    else if (!mem_res.completed)
+      qCritical() << "Failed to access memory";
+  } else
+    retErr = sim::api::tick::Error::Terminate;
+
+  if (retErr != sim::api::tick::Error::Success)
+    return {
+        .tick_delay = 0,
+        .error = retErr,
+        .delay = 0,
+    };
 
   switch (mnemonic.instr.mnemon) {
   case mn::BR:
@@ -473,8 +532,11 @@ targets::pep10::isa::CPU::nonunaryDispatch(quint8 is, quint16 os, quint16 pc) {
   case mn::CALL:
     // Write PC to stack
     mem_res = _memory->write(sp -= 2, reinterpret_cast<quint8 *>(&pc), 2, rw_d);
-    if (!mem_res.completed)
-      throw std::logic_error("Unhandled");
+    if (mem_res.error == sim::api::memory::Error::NeedsMMI) {
+      retErr = sim::api::tick::Error::NoMMInput;
+      break;
+    } else if (!mem_res.completed)
+      qCritical() << "Failed to access memory";
     pc = operand;
     writeReg(Register::SP, sp);
     break;
@@ -514,23 +576,23 @@ targets::pep10::isa::CPU::nonunaryDispatch(quint8 is, quint16 os, quint16 pc) {
   case mn::STWA:
     mem_res = _memory->write(operand, reinterpret_cast<quint8 *>(&a), 2, rw_d);
     if (!mem_res.completed)
-      throw std::logic_error("Unhandled");
+      qCritical() << "Failed to access memory";
     break;
   case mn::STWX:
     mem_res = _memory->write(operand, reinterpret_cast<quint8 *>(&x), 2, rw_d);
     if (!mem_res.completed)
-      throw std::logic_error("Unhandled");
+      qCritical() << "Failed to access memory";
     break;
 
   case mn::STBA:
     mem_res = _memory->write(operand, reinterpret_cast<quint8 *>(&a), 1, rw_d);
     if (!mem_res.completed)
-      throw std::logic_error("Unhandled");
+      qCritical() << "Failed to access memory";
     break;
   case mn::STBX:
     mem_res = _memory->write(operand, reinterpret_cast<quint8 *>(&x), 1, rw_d);
     if (!mem_res.completed)
-      throw std::logic_error("Unhandled");
+      qCritical() << "Failed to access memory";
     break;
 
   case mn::CPWA:
@@ -539,10 +601,10 @@ targets::pep10::isa::CPU::nonunaryDispatch(quint8 is, quint16 os, quint16 pc) {
     n = tmp & 0x8000;
     // Is zero if all bits are 0's.
     z = tmp == 0x0000;
-    // There is a signed overflow iff the high order bits of the register and
-    // operand are the same, and one input & the output differ in sign.
-    // >> Shifts in 0's (unsigned shorts), so after shift, only high order bit
-    // remain.
+    // There is a signed overflow iff the high order bits of the register
+    // and operand are the same, and one input & the output differ in sign.
+    // >> Shifts in 0's (unsigned shorts), so after shift, only high order
+    // bit remain.
     v = (~(a ^ operand) & (a ^ tmp)) >> 15;
     // Carry out iff result is unsigned less than register or operand.
     c = tmp < a || tmp < static_cast<quint16>(1 + ~operand);
@@ -556,10 +618,10 @@ targets::pep10::isa::CPU::nonunaryDispatch(quint8 is, quint16 os, quint16 pc) {
     n = tmp & 0x8000;
     // Is zero if all bits are 0's.
     z = tmp == 0x0000;
-    // There is a signed overflow iff the high order bits of the register and
-    // operand are the same, and one input & the output differ in sign.
-    // >> Shifts in 0's (unsigned shorts), so after shift, only high order bit
-    // remain.
+    // There is a signed overflow iff the high order bits of the register
+    // and operand are the same, and one input & the output differ in sign.
+    // >> Shifts in 0's (unsigned shorts), so after shift, only high order
+    // bit remain.
     v = (~(x ^ operand) & (x ^ tmp)) >> 15;
     // Carry out iff result is unsigned less than register or operand.
     c = tmp < x || tmp < static_cast<quint16>(1 + ~operand);
@@ -599,10 +661,10 @@ targets::pep10::isa::CPU::nonunaryDispatch(quint8 is, quint16 os, quint16 pc) {
     n = tmp & 0x8000;
     // Is zero if all bits are 0's.
     z = tmp == 0x0000;
-    // There is a signed overflow iff the high order bits of the register and
-    // operand are the same, and one input & the output differ in sign.
-    // >> Shifts in 0's (unsigned shorts), so after shift, only high order bit
-    // remain.
+    // There is a signed overflow iff the high order bits of the register
+    // and operand are the same, and one input & the output differ in sign.
+    // >> Shifts in 0's (unsigned shorts), so after shift, only high order
+    // bit remain.
     v = (~(a ^ operand) & (a ^ tmp)) >> 15;
     // Carry out iff result is unsigned less than register or operand.
     c = tmp < a || tmp < operand;
@@ -616,10 +678,10 @@ targets::pep10::isa::CPU::nonunaryDispatch(quint8 is, quint16 os, quint16 pc) {
     n = tmp & 0x8000;
     // Is zero if all bits are 0's.
     z = tmp == 0x0000;
-    // There is a signed overflow iff the high order bits of the register and
-    // operand are the same, and one input & the output differ in sign.
-    // >> Shifts in 0's (unsigned shorts), so after shift, only high order bit
-    // remain.
+    // There is a signed overflow iff the high order bits of the register
+    // and operand are the same, and one input & the output differ in sign.
+    // >> Shifts in 0's (unsigned shorts), so after shift, only high order
+    // bit remain.
     v = (~(x ^ operand) & (x ^ tmp)) >> 15;
     // Carry out iff result is unsigned less than register or operand.
     c = tmp < x || tmp < operand;
@@ -627,17 +689,18 @@ targets::pep10::isa::CPU::nonunaryDispatch(quint8 is, quint16 os, quint16 pc) {
     break;
 
   case mn::SUBA:
-    // The result is the negated decoded operand specifier plus the accumulator
+    // The result is the negated decoded operand specifier plus the
+    // accumulator
     tmp = a + ~operand + 1;
     writeReg(Register::A, tmp);
     // Is negative if high order bit is 1.
     n = tmp & 0x8000;
     // Is zero if all bits are 0's.
     z = tmp == 0x0000;
-    // There is a signed overflow iff the high order bits of the register and
-    // operand are the same, and one input & the output differ in sign.
-    // >> Shifts in 0's (unsigned shorts), so after shift, only high order bit
-    // remain.
+    // There is a signed overflow iff the high order bits of the register
+    // and operand are the same, and one input & the output differ in sign.
+    // >> Shifts in 0's (unsigned shorts), so after shift, only high order
+    // bit remain.
     v = (~(a ^ operand) & (a ^ tmp)) >> 15;
     // Carry out iff result is unsigned less than register or operand.
     c = tmp < a || tmp < static_cast<quint16>(1 + ~operand);
@@ -652,8 +715,8 @@ targets::pep10::isa::CPU::nonunaryDispatch(quint8 is, quint16 os, quint16 pc) {
     n = tmp & 0x8000;
     // Is zero if all bits are 0's.
     z = tmp == 0x0000;
-    // There is a signed overflow iff the high order bits of the register and
-    // operand are the same, and one input & the output differ in sign.
+    // There is a signed overflow iff the high order bits of the register
+    // and operand are the same, and one input & the output differ in sign.
     v = (~(x ^ operand) & (x ^ tmp)) >> 15;
     // Carry out iff result is unsigned less than register or operand.
     c = tmp < x || tmp < static_cast<quint16>(1 + ~operand);
@@ -723,12 +786,17 @@ targets::pep10::isa::CPU::nonunaryDispatch(quint8 is, quint16 os, quint16 pc) {
   case mn::SUBSP:
     writeReg(Register::SP, sp - operand);
     break;
+  default:
+    retErr = sim::api::tick::Error::Terminate;
   }
 
   // Increment PC and writeback
   writeReg(Register::PC, pc);
-  // TODO
-  return {};
+  return {.pause = false,
+          .tick_delay = 0,
+          .error = retErr,
+          .delay = sim::api::tick::Type(
+              (retErr == sim::api::tick::Error::Success) ? 1 : 0)};
 }
 
 sim::api::memory::Result
