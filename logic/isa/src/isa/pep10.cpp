@@ -1,8 +1,11 @@
 #include "pep10.hpp"
+#include <QMetaEnum>
+const quint8 isa::Pep10::RegisterCount =
+    QMetaEnum::fromType<detail::pep10::Register>().keyCount();
+const quint8 isa::Pep10::CSRCount =
+    QMetaEnum::fromType<detail::pep10::CSR>().keyCount();
 
-isa::Pep10::Mnemonic isa::Pep10::defaultMnemonic() {
-  return Mnemonic::INVALID;
-}
+isa::Pep10::Mnemonic isa::Pep10::defaultMnemonic() { return Mnemonic::INVALID; }
 
 isa::Pep10::AddressingMode isa::Pep10::defaultAddressingMode() {
   return AddressingMode::INVALID;
@@ -67,8 +70,7 @@ isa::Pep10::parseAddressingMode(const QString &addr) {
     return ret;
 }
 
-isa::Pep10::Mnemonic
-isa::Pep10::parseMnemonic(const QString &mnemonic) {
+isa::Pep10::Mnemonic isa::Pep10::parseMnemonic(const QString &mnemonic) {
   bool ok = true;
   auto ret = QMetaEnum::fromType<Mnemonic>().keyToValue(
       mnemonic.toUpper().toUtf8().data(), &ok);
@@ -137,8 +139,7 @@ bool isa::Pep10::isAType(Mnemonic mnemonic) {
   return type == T::A_ix;
 }
 
-bool isa::Pep10::isValidATypeAddressingMode(Mnemonic,
-                                                    AddressingMode addr) {
+bool isa::Pep10::isValidATypeAddressingMode(Mnemonic, AddressingMode addr) {
   using AM = AddressingMode;
   return addr == AM::I || addr == AM::X;
 }
@@ -149,8 +150,7 @@ bool isa::Pep10::isAAAType(Mnemonic mnemonic) {
   return type == T::AAA_all || type == T::AAA_i;
 }
 
-bool isa::Pep10::isValidAAATypeAddressingMode(Mnemonic,
-                                                      AddressingMode addr) {
+bool isa::Pep10::isValidAAATypeAddressingMode(Mnemonic, AddressingMode addr) {
   using AM = AddressingMode;
   return !(addr == AM::ALL || addr == AM::INVALID || addr == AM::NONE);
 }
@@ -162,7 +162,7 @@ bool isa::Pep10::isRAAAType(Mnemonic mnemonic) {
 }
 
 bool isa::Pep10::isValidRAAATypeAddressingMode(Mnemonic mnemonic,
-                                                       AddressingMode addr) {
+                                               AddressingMode addr) {
   using T = InstructionType;
   using AM = AddressingMode;
   auto type = opcodeLUT[opcode(mnemonic)].instr.type;
@@ -175,7 +175,7 @@ bool isa::Pep10::requiresAddressingMode(Mnemonic mnemonic) {
 }
 
 bool isa::Pep10::canElideAddressingMode(Mnemonic mnemonic,
-                                                AddressingMode addr) {
+                                        AddressingMode addr) {
   return isAType(mnemonic) && addr == AddressingMode::I;
 }
 

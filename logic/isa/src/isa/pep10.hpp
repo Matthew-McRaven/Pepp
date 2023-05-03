@@ -256,6 +256,8 @@ struct Pep10 {
   using Opcode = detail::pep10::Opcode;
   using Register = detail::pep10::Register;
   using CSR = detail::pep10::Register;
+  static const quint8 RegisterCount;
+  static const quint8 CSRCount;
 
   static Mnemonic defaultMnemonic();
   static AddressingMode defaultAddressingMode();
