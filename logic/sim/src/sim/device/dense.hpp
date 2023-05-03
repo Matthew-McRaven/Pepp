@@ -29,6 +29,7 @@ public:
 
   // Producer interface
   void setTraceBuffer(api::trace::Buffer *tb) override;
+  void trace(bool enabled) override;
   quint8 packetSize(api::packet::Flags) const override;
   bool applyTrace(void *trace) override;
   bool unapplyTrace(void *trace) override;
@@ -237,6 +238,11 @@ void sim::memory::Dense<Address>::setInterposer(
 template <typename Address>
 void sim::memory::Dense<Address>::setTraceBuffer(api::trace::Buffer *tb) {
   this->_tb = tb;
+}
+
+template <typename Address> void Dense<Address>::trace(bool enabled) {
+  if (this->_tb)
+    _tb->trace(_device.id, enabled);
 }
 
 template <typename Address>
