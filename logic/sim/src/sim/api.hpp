@@ -178,12 +178,10 @@ using Type = quint32; // System will crash at 2^32 ticks.
 enum class Error : quint8 {
   Success = 0, // Scheduler should re-schedule this device at the next available
                // clock interval.
-  NoMMInput,  // Scheduler should suspend execution of all devices until more MM
-              // input is provided.
-  Terminate,  // Scheduler should terminate execution of all devices, as the
-              // device has entered an invalid state.
-  Breakpoint, // Scheduler should suspend execution of all devices until
-              // "resume" or "step" is hit.
+  NoMMInput, // Scheduler should suspend execution of all devices until more MM
+             // input is provided.
+  Terminate, // Scheduler should terminate execution of all devices, as the
+             // device has entered an invalid state.
 };
 
 struct Result {
