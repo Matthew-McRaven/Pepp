@@ -219,10 +219,11 @@ struct Operation {
 
 enum class Error : quint8 {
   Success = 0,
-  Unmapped,  //  Attempted to read a physical address with no device present.
-  OOBAccess, //  Attempted out-of-bound access on a storage device.
-  NeedsMMI,  //  Attempted to read MMI that had no buffered input.
-  Breakpoint
+  Unmapped,   // Attempted to read a physical address with no device present.
+  OOBAccess,  // Attempted out-of-bound access on a storage device.
+  NeedsMMI,   // Attempted to read MMI that had no buffered input.
+  Breakpoint, // Memory access triggered a breakpoint.
+  Terminate,  // Generic failure condition.
 };
 
 struct Result {
