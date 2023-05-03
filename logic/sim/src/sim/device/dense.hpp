@@ -51,7 +51,8 @@ template <typename Address>
 sim::memory::Dense<Address>::Dense(api::device::Descriptor device,
                                    AddressSpan span, quint8 fill)
     : _fill(fill), _span(span), _device(device) {
-  _data.fill(_fill, _span.length); // Resizes before filling.
+  _data.fill(_fill,
+             _span.maxOffset - _span.minOffset + 1); // Resizes before filling.
 }
 
 template <typename Address>
@@ -65,12 +66,9 @@ sim::api::memory::Result
 sim::memory::Dense<Address>::read(Address address, quint8 *dest, quint8 length,
                                   api::memory::Operation op) const {
 
-  // Subtract rather than add to avoid potential overflow.
-  // Equivalently address + qMin(0, length-1) < _span.minOffset+_span.length-1
-  // length is 1-indexed, address are 0, so must convert by -1.
+  // Length is 1-indexed, address are 0, so must convert by -1.
   auto maxDestAddr = (address + qMax(0, length - 1));
-  if (address < _span.minOffset ||
-      maxDestAddr - qMax(0, _span.length - 1) > _span.minOffset)
+  if (address < _span.minOffset || maxDestAddr > _span.maxOffset)
     return {.completed = false,
             .pause = true,
             .error = api::memory::Error::OOBAccess};
@@ -161,12 +159,9 @@ template <typename Address>
 sim::api::memory::Result
 sim::memory::Dense<Address>::write(Address address, const quint8 *src,
                                    quint8 length, api::memory::Operation op) {
-  // Subtract rather than add to avoid potential overflow.
-  // Equivalently address + qMin(0, length-1) < _span.minOffset+_span.length-1
-  // length is 1-indexed, address are 0, so must convert by -1.
+  // Length is 1-indexed, address are 0, so must convert by -1.
   auto maxDestAddr = (address + qMax(0, length - 1));
-  if (address < _span.minOffset ||
-      maxDestAddr - qMax(0, _span.length - 1) > _span.minOffset)
+  if (address < _span.minOffset || maxDestAddr > _span.maxOffset)
     return {.completed = false,
             .pause = true,
             .error = api::memory::Error::OOBAccess};

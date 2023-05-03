@@ -17,15 +17,16 @@ sim::api::memory::Operation rw_i = {
 targets::pep10::isa::CPU::CPU(sim::api::device::Descriptor device,
                               sim::api::device::IDGenerator gen)
     : _device(device),
-      _regs(
-          {.id = gen(),
-           .baseName = "regs",
-           .fullName = _device.fullName + "/regs"},
-          {.minOffset = 0, .length = quint8(::isa::Pep10::RegisterCount * 2)}),
+      _regs({.id = gen(),
+             .baseName = "regs",
+             .fullName = _device.fullName + "/regs"},
+            {.minOffset = 0,
+             .maxOffset = quint8(::isa::Pep10::RegisterCount * 2 - 1)}),
       _csrs({.id = gen(),
              .baseName = "csrs",
              .fullName = _device.fullName + "/csrs"},
-            {.minOffset = 0, .length = ::isa::Pep10::CSRCount}) {}
+            {.minOffset = 0, .maxOffset = quint8(::isa::Pep10::CSRCount - 1)}) {
+}
 
 sim::api::memory::Target<quint8> *targets::pep10::isa::CPU::regs() {
   return &_regs;
@@ -366,7 +367,8 @@ sim::api::tick::Result targets::pep10::isa::CPU::unaryDispatch(quint8 is) {
     // Fill ctx with all register's current values.
     // Then we can do a single write back to _regs and only generate 1 trace
     // packet.
-    mem_res = _regs.read(0, ctx, _regs.span().length, rw_d);
+    tmp = (_regs.span().maxOffset - _regs.span().minOffset + 1);
+    mem_res = _regs.read(0, ctx, tmp, rw_d);
     if (mem_res.error == sim::api::memory::Error::NeedsMMI) {
       retErr = sim::api::tick::Error::NoMMInput;
       break;
