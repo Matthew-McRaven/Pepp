@@ -103,6 +103,12 @@ template <typename Address>
 api::memory::Result Input<Address>::write(Address address, const quint8 *src,
                                           quint8 length,
                                           api::memory::Operation op) {
+  // Length is 1-indexed, address are 0, so must convert by -1.
+  auto maxDestAddr = (address + qMax(0, length - 1));
+  if (address < _span.minOffset || maxDestAddr > _span.maxOffset)
+    return {.completed = false,
+            .pause = true,
+            .error = api::memory::Error::OOBAccess};
   return {
       .completed = true,
       .pause = false,
