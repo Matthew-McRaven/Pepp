@@ -138,6 +138,10 @@ namespace trace {
 // Forward declare, will be needed inside analyzer.
 struct Buffer;
 
+/*
+ * Maybe I can ditch interposers?
+ * The main use of interposers is snooping on reads / writes
+ */
 struct Analyzer {
   virtual ~Analyzer() = 0;
 };
