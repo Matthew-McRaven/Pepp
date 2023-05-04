@@ -65,7 +65,6 @@ template <typename Address>
 sim::api::memory::Result
 sim::memory::Dense<Address>::read(Address address, quint8 *dest, quint8 length,
                                   api::memory::Operation op) const {
-
   // Length is 1-indexed, address are 0, so must convert by -1.
   auto maxDestAddr = (address + qMax(0, length - 1));
   if (address < _span.minOffset || maxDestAddr > _span.maxOffset)

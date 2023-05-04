@@ -106,7 +106,6 @@ targets::pep10::isa::CPU::packetSize(sim::api::packet::Flags flags) const {
 }
 
 bool targets::pep10::isa::CPU::applyTrace(void *trace) {
-
   throw std::logic_error("unimplemented");
 }
 
@@ -499,7 +498,6 @@ sim::api::tick::Result targets::pep10::isa::CPU::unaryDispatch(quint8 is) {
 
 sim::api::tick::Result
 targets::pep10::isa::CPU::nonunaryDispatch(quint8 is, quint16 os, quint16 pc) {
-
   using mn = ::isa::Pep10::Mnemonic;
   using Register = ::isa::Pep10::Register;
 
