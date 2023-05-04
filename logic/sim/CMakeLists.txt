@@ -8,5 +8,6 @@ target_compile_definitions(sim PRIVATE SIM_LIBRARY)
 
 if(NOT IOS)
   make_qtest(test-sim-device-dense test/device/dense.test.cpp "sim;Qt6::Core;${Boost_LIBRARIES};Qt6::Test")
-  set_target_properties(test-sim-device-dense  PROPERTIES FOLDER "qtc_runnable")
+  make_qtest(test-sim-device-pubsub test/device/pubsub.test.cpp "sim;Qt6::Core;${Boost_LIBRARIES};Qt6::Test")
+  set_target_properties(test-sim-device-pubsub  PROPERTIES FOLDER "qtc_runnable")
 endif()
