@@ -111,7 +111,7 @@ api::memory::Result Output<Address>::write(Address address, const quint8 *src,
 }
 
 template <typename Address> void Output<Address>::clear(quint8 fill) {
-  _endpoint->clear();
+  _endpoint->set_to_head();
 }
 
 template <typename Address>
