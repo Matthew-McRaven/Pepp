@@ -192,6 +192,7 @@ bool isa::Pep10::isValidAddressingMode(Mnemonic mnemonic, AddressingMode addr) {
     return !(addr == AM::ALL || addr == AM::INVALID || addr == AM::NONE ||
              addr == AM::I);
   }
+  return false;
 }
 
 bool isa::Pep10::requiresAddressingMode(Mnemonic mnemonic) {
