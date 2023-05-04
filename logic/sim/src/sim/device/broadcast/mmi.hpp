@@ -53,8 +53,8 @@ template <typename Address>
 Input<Address>::Input(api::device::Descriptor device, AddressSpan span,
                       quint8 defaultValue)
     : _fill(defaultValue), _span(span),
-      _channel(QSharedPointer<detail::Channel<Address, quint8>>::create(_fill),
-               _endpoint(_channel->new_endpoint())) {
+      _channel(QSharedPointer<detail::Channel<Address, quint8>>::create(_fill)),
+      _endpoint(_channel->new_endpoint()) {
   if (_span.minOffset != _span.maxOffset)
     throw std::logic_error("MMI only handles bytes.");
 }
