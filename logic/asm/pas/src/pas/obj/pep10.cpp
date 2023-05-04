@@ -1,9 +1,9 @@
 #include "./pep10.hpp"
+#include "bits/operations/copy.hpp"
+#include "isa/pep10.hpp"
 #include "pas/ast/generic/attr_children.hpp"
 #include "pas/ast/generic/attr_sec.hpp"
 #include "pas/ast/generic/attr_symbol.hpp"
-#include "pas/bits/operations.hpp"
-#include "pas/isa/pep10.hpp"
 #include "pas/operations/generic/combine.hpp"
 #include "pas/operations/pepp/bytes.hpp"
 #include "pas/operations/pepp/gather_ios.hpp"
@@ -208,7 +208,7 @@ void writeTree(ELFIO::elfio &elf, pas::ast::Node &node, QString prefix,
     auto align = traits.alignment;
     ELFIO::Elf64_Addr baseAddr = traits.base;
     auto size = traits.size;
-    auto bytes = pas::ops::pepp::toBytes<isa::Pep10ISA>(*astSec);
+    auto bytes = pas::ops::pepp::toBytes<isa::Pep10>(*astSec);
     if (size == 0)
       continue; // 0-sized sections are meaningless, do not emit.
 
@@ -316,10 +316,10 @@ void pas::obj::pep10::writeOS(ELFIO::elfio &elf, ast::Node &os) {
     quint8 desc[2 + 4]; // ELF_half (16b for symtab section index) and
                         // ELF32_WORD (32b for symbol index)
     auto stIndex = symTab->get_index();
-    pas::bits::copy((quint8 *)&stIndex, pas::bits::hostOrder(), sizeof(stIndex),
-                    desc + 0, pas::bits::BitOrder::BigEndian, 2);
-    pas::bits::copy((quint8 *)&it, pas::bits::hostOrder(), sizeof(it), desc + 2,
-                    pas::bits::BitOrder::BigEndian, 4);
+    bits::memcpy_endian(desc + 0, bits::Order::BigEndian, 2, &stIndex,
+                        bits::hostOrder(), sizeof(stIndex));
+    bits::memcpy_endian(desc + 2, bits::Order::BigEndian, 4, &it,
+                        bits::hostOrder(), sizeof(it));
     noteSecAc.add_note(
         target->direction == ops::pepp::IO::Direction::kInput ? 0x11 : 0x12,
         "pepp.mmios", (char *)desc, sizeof(desc));
@@ -343,9 +343,8 @@ void pas::obj::pep10::writeUser(ELFIO::elfio &elf, ast::Node &user) {
     quint8 desc[] = "  diskIn";
     auto noteIndex = seg->get_index();
     // Must use copy helper to maintain stable bit order between hosts.
-    pas::bits::copy((quint8 *)&noteIndex, pas::bits::hostOrder(),
-                    sizeof(noteIndex), desc + 0, pas::bits::BitOrder::BigEndian,
-                    2);
+    bits::memcpy_endian(desc + 0, bits::Order::BigEndian, 2, &noteIndex,
+                        bits::hostOrder(), sizeof(noteIndex));
     // Skip null character
     noteAc.add_note(0x10, "pepp.mmios", (char *)desc, sizeof(desc) - 1);
   }

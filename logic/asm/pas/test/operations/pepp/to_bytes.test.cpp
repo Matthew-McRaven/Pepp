@@ -1,8 +1,8 @@
 #include <QObject>
 #include <QTest>
 
+#include "isa/pep10.hpp"
 #include "pas/driver/pepp.hpp"
-#include "pas/isa/pep10.hpp"
 #include "pas/operations/pepp/assign_addr.hpp"
 #include "pas/operations/pepp/bytes.hpp"
 
@@ -13,13 +13,12 @@ private slots:
     QFETCH(QString, source);
     QFETCH(QList<quint8>, bytes);
     try {
-      auto parsed = pas::driver::pepp::createParser<pas::isa::Pep10ISA>(false)(
-          source, nullptr);
+      auto parsed =
+          pas::driver::pepp::createParser<isa::Pep10>(false)(source, nullptr);
       auto str = parsed.errors.join("\n").toStdString();
       QVERIFY2(!parsed.hadError, str.data());
-      pas::ops::pepp::assignAddresses<pas::isa::Pep10ISA>(*parsed.root);
-      auto actualBytes =
-          pas::ops::pepp::toBytes<pas::isa::Pep10ISA>(*parsed.root);
+      pas::ops::pepp::assignAddresses<isa::Pep10>(*parsed.root);
+      auto actualBytes = pas::ops::pepp::toBytes<isa::Pep10>(*parsed.root);
       QCOMPARE(actualBytes, bytes);
     } catch (...) {
       int x = 5;

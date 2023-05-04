@@ -1,8 +1,8 @@
 #include <QObject>
 #include <QTest>
 
+#include "isa/pep10.hpp"
 #include "pas/driver/pep10.hpp"
-#include "pas/isa/pep10.hpp"
 #include "pas/operations/generic/errors.hpp"
 #include "pas/operations/generic/is.hpp"
 #include "pas/operations/pepp/is.hpp"
@@ -19,15 +19,15 @@ QSharedPointer<pas::ops::ConstOp<bool>> isComment =
 
 // Instructions
 QSharedPointer<pas::ops::ConstOp<bool>> isUType =
-    QSharedPointer<pas::ops::pepp::isUType<pas::isa::Pep10ISA>>::create();
+    QSharedPointer<pas::ops::pepp::isUType<isa::Pep10>>::create();
 QSharedPointer<pas::ops::ConstOp<bool>> isRType =
-    QSharedPointer<pas::ops::pepp::isRType<pas::isa::Pep10ISA>>::create();
+    QSharedPointer<pas::ops::pepp::isRType<isa::Pep10>>::create();
 QSharedPointer<pas::ops::ConstOp<bool>> isAType =
-    QSharedPointer<pas::ops::pepp::isAType<pas::isa::Pep10ISA>>::create();
+    QSharedPointer<pas::ops::pepp::isAType<isa::Pep10>>::create();
 QSharedPointer<pas::ops::ConstOp<bool>> isAAAType =
-    QSharedPointer<pas::ops::pepp::isAAAType<pas::isa::Pep10ISA>>::create();
+    QSharedPointer<pas::ops::pepp::isAAAType<isa::Pep10>>::create();
 QSharedPointer<pas::ops::ConstOp<bool>> isRAAAType =
-    QSharedPointer<pas::ops::pepp::isRAAAType<pas::isa::Pep10ISA>>::create();
+    QSharedPointer<pas::ops::pepp::isRAAAType<isa::Pep10>>::create();
 // Macro
 QSharedPointer<pas::ops::ConstOp<bool>> isMacro =
     QSharedPointer<pas::ops::generic::isMacro>::create();
@@ -261,7 +261,7 @@ private slots:
     }());
     QVERIFY(success);
     QCOMPARE(result.size(), 1);
-    auto visit = pas::parse::pepp::FromParseTree<pas::isa::Pep10ISA>();
+    auto visit = pas::parse::pepp::FromParseTree<isa::Pep10>();
     visit.symTab = QSharedPointer<symbol::Table>::create();
     QSharedPointer<Node> node;
     QVERIFY_THROWS_NO_EXCEPTION(

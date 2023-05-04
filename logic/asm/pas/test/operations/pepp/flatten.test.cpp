@@ -1,10 +1,10 @@
 #include "pas/operations/generic/flatten.hpp"
+#include "isa/pep10.hpp"
 #include "macro/macro.hpp"
 #include "macro/registry.hpp"
 #include "pas/ast/generic/attr_children.hpp"
 #include "pas/driver/pep10.hpp"
 #include "pas/driver/pepp.hpp"
-#include "pas/isa/pep10.hpp"
 #include "pas/operations/generic/errors.hpp"
 #include "pas/operations/generic/include_macros.hpp"
 #include "pas/operations/generic/is.hpp"
@@ -12,11 +12,11 @@
 #include <QObject>
 #include <QTest>
 
-using pas::isa::Pep10ISA;
+using isa::Pep10;
 typedef void (*testFn)(QSharedPointer<pas::ast::Node>);
 
 void single_test(QSharedPointer<pas::ast::Node> root) {
-  // qWarning() << pas::ops::pepp::formatSource<Pep10ISA>(*root).join("\n");
+  // qWarning() << pas::ops::pepp::formatSource<isa::Pep10>(*root).join("\n");
   QVERIFY(root->has<pas::ast::generic::Children>());
   auto children = root->get<pas::ast::generic::Children>().value;
   QCOMPARE(children.size(), 3);
@@ -25,7 +25,7 @@ void single_test(QSharedPointer<pas::ast::Node> root) {
 }
 
 void nesting_test(QSharedPointer<pas::ast::Node> root) {
-  // qWarning() << pas::ops::pepp::formatSource<Pep10ISA>(*root).join("\n");
+  // qWarning() << pas::ops::pepp::formatSource<isa::Pep10>(*root).join("\n");
   QVERIFY(root->has<pas::ast::generic::Children>());
   auto children = root->get<pas::ast::generic::Children>().value;
   QCOMPARE(children.size(), 5);
@@ -59,11 +59,11 @@ private slots:
                  .value<pas::driver::repr::Nodes>()
                  .value;
     } else {
-      auto parseRoot = pas::driver::pepp::createParser<Pep10ISA>(false);
+      auto parseRoot = pas::driver::pepp::createParser<isa::Pep10>(false);
       auto res = parseRoot(input, nullptr);
       QVERIFY(!res.hadError);
       auto ret = pas::ops::generic::includeMacros(
-          *res.root, pas::driver::pepp::createParser<Pep10ISA>(true), registry);
+          *res.root, pas::driver::pepp::createParser<isa::Pep10>(true), registry);
       root = res.root;
       pas::ops::generic::flattenMacros(*root);
     }

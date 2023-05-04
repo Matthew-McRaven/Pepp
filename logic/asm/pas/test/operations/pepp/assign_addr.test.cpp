@@ -1,11 +1,11 @@
 #include "pas/operations/pepp/assign_addr.hpp"
+#include "bits/strings.hpp"
+#include "isa/pep10.hpp"
 #include "macro/macro.hpp"
 #include "macro/registry.hpp"
 #include "pas/ast/generic/attr_address.hpp"
-#include "pas/bits/strings.hpp"
 #include "pas/driver/pep10.hpp"
 #include "pas/driver/pepp.hpp"
-#include "pas/isa/pep10.hpp"
 #include "pas/operations/generic/group.hpp"
 #include "pas/operations/pepp/addressable.hpp"
 #include "pas/operations/pepp/size.hpp"
@@ -13,7 +13,7 @@
 #include <QObject>
 #include <QTest>
 
-using pas::isa::Pep10ISA;
+using isa::Pep10;
 using pas::ops::pepp::Direction;
 void childRange(QSharedPointer<pas::ast::Node> parent, qsizetype index,
                 qsizetype start, qsizetype end) {
@@ -117,12 +117,12 @@ private slots:
                  .value;
 
     } else {
-      auto parseRoot = pas::driver::pepp::createParser<Pep10ISA>(false);
+      auto parseRoot = pas::driver::pepp::createParser<isa::Pep10>(false);
       auto res = parseRoot(body, nullptr);
       QVERIFY(!res.hadError);
       pas::ops::generic::groupSections(*res.root,
-                                       pas::ops::pepp::isAddressable<Pep10ISA>);
-      pas::ops::pepp::assignAddresses<Pep10ISA>(*res.root);
+                                       pas::ops::pepp::isAddressable<isa::Pep10>);
+      pas::ops::pepp::assignAddresses<isa::Pep10>(*res.root);
       root = res.root;
     }
 
@@ -220,12 +220,12 @@ private slots:
                  .value<pas::driver::repr::Nodes>()
                  .value;
     } else {
-      auto parseRoot = pas::driver::pepp::createParser<Pep10ISA>(false);
+      auto parseRoot = pas::driver::pepp::createParser<isa::Pep10>(false);
       auto res = parseRoot(body, nullptr);
       QVERIFY(!res.hadError);
       pas::ops::generic::groupSections(*res.root,
-                                       pas::ops::pepp::isAddressable<Pep10ISA>);
-      pas::ops::pepp::assignAddresses<Pep10ISA>(*res.root);
+                                       pas::ops::pepp::isAddressable<isa::Pep10>);
+      pas::ops::pepp::assignAddresses<isa::Pep10>(*res.root);
       root = res.root;
     }
     // All code is moved from root to section, so we must adjust root
@@ -312,7 +312,7 @@ private slots:
                     .first->bodies[pas::driver::repr::Nodes::name]
                     .value<pas::driver::repr::Nodes>()
                     .value;
-    // for (auto l : pas::ops::pepp::formatListing<Pep10ISA>(*root, {}))
+    // for (auto l : pas::ops::pepp::formatListing<isa::Pep10>(*root, {}))
     // qCritical() << l;
     // All code is moved from root to section, so we must adjust root
     auto sections = pas::ast::children(*root);

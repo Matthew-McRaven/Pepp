@@ -1,11 +1,11 @@
 #include "pas/operations/pepp/register_system_calls.hpp"
+#include "isa/pep10.hpp"
 #include "macro/macro.hpp"
 #include "macro/registered.hpp"
 #include "macro/registry.hpp"
 #include "pas/ast/generic/attr_children.hpp"
 #include "pas/driver/pep10.hpp"
 #include "pas/driver/pepp.hpp"
-#include "pas/isa/pep10.hpp"
 #include <QObject>
 #include <QTest>
 
@@ -35,7 +35,7 @@ void duplicates_test(macro::Registry *macro) {
   // Nothing to verify, program is in invalid state.
 }
 
-using pas::isa::Pep10ISA;
+using isa::Pep10;
 class PasOpsPepp_RegisterSystemCalls : public QObject {
   Q_OBJECT
 private slots:
@@ -68,7 +68,7 @@ private slots:
                  .value<pas::driver::repr::Nodes>()
                  .value;
     } else {
-      auto parseRoot = pas::driver::pepp::createParser<Pep10ISA>(false);
+      auto parseRoot = pas::driver::pepp::createParser<isa::Pep10>(false);
       auto res = parseRoot(input, nullptr);
       QVERIFY(!res.hadError);
       QCOMPARE(pas::ops::pepp::registerSystemCalls(*res.root, registry),

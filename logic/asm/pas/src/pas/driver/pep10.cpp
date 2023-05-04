@@ -1,6 +1,6 @@
 #include "pas/driver/pep10.hpp"
+#include "isa/pep10.hpp"
 #include "pas/driver/pepp.hpp"
-#include "pas/isa/pep10.hpp"
 #include "pas/operations/generic/combine.hpp"
 #include "pas/operations/generic/flatten.hpp"
 #include "pas/operations/generic/group.hpp"
@@ -16,7 +16,7 @@ bool pas::driver::pep10::TransformParse::operator()(
     QSharedPointer<pas::driver::Target<Stage>> target) {
   auto source = target->bodies[repr::Source::name];
   auto body = source.value<repr::Source>().value;
-  auto parser = pas::driver::pepp::createParser<pas::isa::Pep10ISA>(false);
+  auto parser = pas::driver::pepp::createParser<isa::Pep10>(false);
   auto parsed = parser(body, nullptr);
   target->bodies[repr::Nodes::name] =
       QVariant::fromValue(repr::Nodes{.value = parsed.root});
@@ -36,7 +36,7 @@ bool pas::driver::pep10::TransformIncludeMacros::operator()(
     QSharedPointer<pas::driver::Target<Stage>> target) {
   auto root = target->bodies[repr::Nodes::name].value<repr::Nodes>().value;
   return pas::ops::generic::includeMacros(
-      *root, pas::driver::pepp::createParser<pas::isa::Pep10ISA>(true),
+      *root, pas::driver::pepp::createParser<isa::Pep10>(true),
       globals->macroRegistry);
 };
 
@@ -62,8 +62,8 @@ bool pas::driver::pep10::TransformGroup::operator()(
     QSharedPointer<Globals>,
     QSharedPointer<pas::driver::Target<Stage>> target) {
   auto root = target->bodies[repr::Nodes::name].value<repr::Nodes>().value;
-  pas::ops::generic::groupSections(
-      *root, pas::ops::pepp::isAddressable<isa::Pep10ISA>);
+  pas::ops::generic::groupSections(*root,
+                                   pas::ops::pepp::isAddressable<isa::Pep10>);
   return true;
 }
 
@@ -90,7 +90,7 @@ bool pas::driver::pep10::TransformAssignAddresses::operator()(
     QSharedPointer<pas::driver::Target<Stage>> target) {
 
   auto root = target->bodies[repr::Nodes::name].value<repr::Nodes>().value;
-  pas::ops::pepp::assignAddresses<pas::isa::Pep10ISA>(*root);
+  pas::ops::pepp::assignAddresses<isa::Pep10>(*root);
   pas::ops::generic::concatSectionAddresses(*root);
   return true;
 }
@@ -105,7 +105,7 @@ bool pas::driver::pep10::TransformWholeProgramSanity::operator()(
     QSharedPointer<pas::driver::Target<Stage>> target) {
   auto root = target->bodies[repr::Nodes::name].value<repr::Nodes>().value;
   // TODO: tie class variable to OS features.
-  return pas::ops::pepp::checkWholeProgramSanity<pas::isa::Pep10ISA>(
+  return pas::ops::pepp::checkWholeProgramSanity<isa::Pep10>(
       *root, {.allowOSFeatures = isOS,
               .ignoreUndefinedSymbols = ignoreUndefinedSymbols});
 }

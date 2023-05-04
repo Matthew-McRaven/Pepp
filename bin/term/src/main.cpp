@@ -1,9 +1,9 @@
 #include "builtins/book.hpp"
 #include "builtins/figure.hpp"
 #include "builtins/registry.hpp"
+#include "isa/pep10.hpp"
 #include "macro/registry.hpp"
 #include "pas/driver/pep10.hpp"
-#include "pas/isa/pep10.hpp"
 #include "pas/obj/pep10.hpp"
 #include "pas/operations/generic/errors.hpp"
 #include "pas/operations/pepp/bytes.hpp"
@@ -259,6 +259,6 @@ void AsmTask::run() {
   if (elfOut.has_value()) {
     elf.save(elfOut.value());
   }
-  qDebug() << pas::ops::pepp::toBytes<pas::isa::Pep10ISA>(*userRoot);
+  qDebug() << pas::ops::pepp::toBytes<isa::Pep10>(*userRoot);
   emit finished(0);
 }

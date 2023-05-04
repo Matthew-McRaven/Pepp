@@ -1,5 +1,5 @@
 #pragma once
-#include "pas/bits/order.hpp"
+#include "bits/order.hpp"
 #include <QtCore>
 namespace pas::ast::value {
 class Base {
@@ -18,9 +18,8 @@ public:
   virtual bool isSigned() const = 0; // If read as a number, should the value be
                                      // stored in a signed typed
   virtual QSharedPointer<Base> clone() const = 0;
-  virtual bool value(quint8 *dest, qsizetype length,
-                     pas::bits::BitOrder destEndian =
-                         pas::bits::BitOrder::BigEndian) const = 0;
+  virtual void value(quint8 *dest, qsizetype length,
+                     bits::Order destEndian = bits::Order::BigEndian) const = 0;
   // Size and requiredBytes may mismatch if size<8 and arg is bigger than
   // 2**(8*size). e.g. size=2, arg=0x1_0000
   virtual quint64
