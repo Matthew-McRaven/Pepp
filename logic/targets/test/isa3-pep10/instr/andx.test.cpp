@@ -67,7 +67,7 @@ private slots:
 
       // Object code for instruction under test.
       auto program = std::array<quint8, 3>{
-          0xC0, static_cast<uint8_t>((opspec >> 8) & 0xff),
+          0xC8, static_cast<uint8_t>((opspec >> 8) & 0xff),
           static_cast<uint8_t>(opspec & 0xff)};
 
       cpu->regs()->clear(0);
@@ -88,7 +88,7 @@ private slots:
       QCOMPARE(rreg(isa::Pep10::Register::A), 0);
       QCOMPARE(rreg(isa::Pep10::Register::TR), 0);
       QCOMPARE(rreg(isa::Pep10::Register::PC), 0x3);
-      QCOMPARE(rreg(isa::Pep10::Register::IS), 0xC0);
+      QCOMPARE(rreg(isa::Pep10::Register::IS), 0xC8);
       // OS loaded the Mem[0x0001-0x0002].
       QCOMPARE(rreg(isa::Pep10::Register::OS), opspec);
       // Check that target register had arithmetic performed.
