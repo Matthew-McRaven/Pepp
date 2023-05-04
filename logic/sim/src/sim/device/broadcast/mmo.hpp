@@ -42,7 +42,7 @@ private:
   quint8 _fill;
   AddressSpan _span;
   api::device::Descriptor _device;
-  QSharedPointer<typename detail::Channel<Address, quint8>::Channel> _channel;
+  QSharedPointer<typename detail::Channel<Address, quint8>> _channel;
   QSharedPointer<typename detail::Channel<Address, quint8>::Endpoint> _endpoint;
 
   api::memory::Interposer<Address> *_inter = nullptr;
