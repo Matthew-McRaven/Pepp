@@ -22,8 +22,8 @@ class SimDevice_MMI : public QObject {
   Q_OBJECT
 private slots:
   void smoke() {
-    auto in =
-        QSharedPointer<sim::memory::Input<quint16>>::create(desc, span, 0);
+    QVERIFY_THROWS_NO_EXCEPTION(
+        QSharedPointer<sim::memory::Input<quint16>>::create(desc, span, 0));
   }
 
   void read() {
@@ -45,6 +45,7 @@ private slots:
     // Out of MMI
     QCOMPARE(in->read(0, &tmp, 1, rw).error, sim::api::memory::Error::NeedsMMI);
   }
+  // TODO: Unread
 };
 
 #include "mmi.test.moc"
