@@ -6,6 +6,7 @@
 namespace sim::memory {
 template <typename Address>
 class Output : public sim::api::memory::Target<Address>, api::trace::Producer {
+public:
   using AddressSpan = typename api::memory::Target<Address>::AddressSpan;
   Output(api::device::Descriptor device, AddressSpan span,
          quint8 defaultValue = 0);
