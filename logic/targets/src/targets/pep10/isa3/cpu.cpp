@@ -74,8 +74,7 @@ targets::pep10::isa::CPU::tick(sim::api::tick::Type currentTick) {
     // Instruction specifier fetch + writeback.
     quint16 os = 0;
     auto osResult = _memory->read(pc, reinterpret_cast<quint8 *>(&os), 2, rw_i);
-    if (bits::hostOrder() != bits::Order::LittleEndian)
-      os = bits::byteswap(os);
+    os = bits::hostOrder() != bits::Order::BigEndian ? bits::byteswap(os) : os;
     if (!osResult.completed)
       return retMemErr(osResult);
     writeReg(Register::OS, os);
@@ -127,15 +126,15 @@ quint16 targets::pep10::isa::CPU::readReg(::isa::Pep10::Register reg) {
   quint16 ret = 0;
   _regs.read(static_cast<quint8>(reg) * 2, reinterpret_cast<quint8 *>(&ret), 2,
              rw_d);
-  if (bits::hostOrder() != bits::Order::LittleEndian)
+  if (bits::hostOrder() != bits::Order::BigEndian)
     ret = bits::byteswap(ret);
   return ret;
 }
 
 void targets::pep10::isa::CPU::writeReg(::isa::Pep10::Register reg,
                                         quint16 val) {
-  if (bits::hostOrder() != bits::Order::LittleEndian)
-    bits::byteswap(val);
+  if (bits::hostOrder() != bits::Order::BigEndian)
+    val = bits::byteswap(val);
   if (!_regs
            .write(static_cast<quint8>(reg) * 2,
                   reinterpret_cast<quint8 *>(&val), 2, rw_d)
@@ -184,7 +183,7 @@ sim::api::tick::Result targets::pep10::isa::CPU::unaryDispatch(quint8 is) {
   using mn = ::isa::Pep10::Mnemonic;
   using Register = ::isa::Pep10::Register;
 
-  static const bool swap = bits::hostOrder() != bits::Order::LittleEndian;
+  static const bool swap = bits::hostOrder() != bits::Order::BigEndian;
   auto mnemonic = ::isa::Pep10::opcodeLUT[is];
   quint16 a = readReg(Register::A), sp = readReg(Register::SP),
           x = readReg(Register::X);
@@ -501,7 +500,7 @@ targets::pep10::isa::CPU::nonunaryDispatch(quint8 is, quint16 os, quint16 pc) {
   using mn = ::isa::Pep10::Mnemonic;
   using Register = ::isa::Pep10::Register;
 
-  static const bool swap = bits::hostOrder() != bits::Order::LittleEndian;
+  static const bool swap = bits::hostOrder() != bits::Order::BigEndian;
   auto mnemonic = ::isa::Pep10::opcodeLUT[is];
   quint16 a = readReg(Register::A), sp = readReg(Register::SP),
           x = readReg(Register::X);
@@ -846,7 +845,7 @@ targets::pep10::isa::CPU::decodeStoreOperand(quint8 is, quint16 os,
   using Register = ::isa::Pep10::Register;
   using am = ::isa::Pep10::AddressingMode;
 
-  static const bool swap = bits::hostOrder() != bits::Order::LittleEndian;
+  static const bool swap = bits::hostOrder() != bits::Order::BigEndian;
   auto instruction = ::isa::Pep10::opcodeLUT[is];
   sim::api::memory::Result mem_res = {
       .completed = true,
@@ -897,7 +896,7 @@ targets::pep10::isa::CPU::decodeLoadOperand(quint8 is, quint16 os,
   using mn = ::isa::Pep10::Mnemonic;
   using am = ::isa::Pep10::AddressingMode;
 
-  static const bool swap = bits::hostOrder() != bits::Order::LittleEndian;
+  static const bool swap = bits::hostOrder() != bits::Order::BigEndian;
   auto instruction = ::isa::Pep10::opcodeLUT[is];
   sim::api::memory::Result mem_res = {
       .completed = true,
