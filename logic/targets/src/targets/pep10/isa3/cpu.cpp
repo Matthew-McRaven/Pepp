@@ -63,11 +63,12 @@ targets::pep10::isa::CPU::tick(sim::api::tick::Type currentTick) {
   if (!isResult.completed)
     return retMemErr(isResult);
   writeReg(Register::IS, is);
+  pc += 1;
 
   sim::api::tick::Result ret;
   if (::isa::Pep10::isOpcodeUnary(is)) {
     // Increment PC and writeback
-    writeReg(Register::PC, pc += 1);
+    writeReg(Register::PC, pc);
     // Execute unary dispatch
     ret = unaryDispatch(is);
   } else {
