@@ -88,7 +88,7 @@ api::memory::Result Input<Address>::read(Address address, quint8 *dest,
     throw std::logic_error("unimplemented tracing");
   bool completed = true;
   if (!op.effectful) {
-    quint8 tmp = _endpoint->current_value();
+    quint8 tmp = *_endpoint->current_value();
     bits::memcpy(dest, &tmp, 1);
   } else if (auto next = _endpoint->next_value(); !next) {
     completed = false;
