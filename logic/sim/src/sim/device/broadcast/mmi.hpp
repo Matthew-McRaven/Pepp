@@ -149,4 +149,10 @@ template <typename Address> bool Input<Address>::unapplyTrace(void *trace) {
   throw std::logic_error("unimplemented");
 }
 
+template <typename Address>
+QSharedPointer<typename detail::Channel<Address, quint8>::Endpoint>
+Input<Address>::endpoint() {
+  return _channel->new_endpoint();
+}
+
 } // namespace sim::memory
