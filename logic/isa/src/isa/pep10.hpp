@@ -266,7 +266,7 @@ struct Pep10 {
   using Instruction = detail::pep10::Instruction;
   using Opcode = detail::pep10::Opcode;
   using Register = detail::pep10::Register;
-  using CSR = detail::pep10::Register;
+  using CSR = detail::pep10::CSR;
   using MemoryVectors = detail::pep10::MemoryVectors;
   static const quint8 RegisterCount;
   static const quint8 CSRCount;
