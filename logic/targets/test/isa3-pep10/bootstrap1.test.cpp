@@ -1,6 +1,7 @@
 #include <QTest>
 #include <QtCore>
 
+#include "bits/operations/swap.hpp"
 #include "sim/device/dense.hpp"
 #include "targets/pep10/isa3/cpu.hpp"
 sim::api::memory::Operation rw = {.speculative = false,
@@ -39,6 +40,8 @@ private slots:
 
     regs->read(static_cast<quint8>(isa::Pep10::Register::PC) * 2,
                reinterpret_cast<quint8 *>(&tmp), 2, rw);
+    tmp =
+        bits::hostOrder() != bits::Order::BigEndian ? bits::byteswap(tmp) : tmp;
     QCOMPARE(tmp, 1);
 
     // Check that A can be modified.
