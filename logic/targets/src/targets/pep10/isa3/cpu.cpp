@@ -306,7 +306,7 @@ sim::api::tick::Result targets::pep10::isa::CPU::unaryDispatch(quint8 is) {
     // must explicitly perform sign extension by hand.
     tmp = static_cast<quint16>(a >> 1 | ((a & 0x8000) ? 1 << 15 : 0));
     // Is negative if high order bit is 1.
-    n = tmp * 0x8000;
+    n = tmp & 0x8000;
     // Is zero if all bits are 0's.
     z = tmp == 0x000;
     // Carry out if register starts with low order 1.
@@ -319,7 +319,7 @@ sim::api::tick::Result targets::pep10::isa::CPU::unaryDispatch(quint8 is) {
     // must explicitly perform sign extension by hand.
     tmp = static_cast<quint16>(x >> 1 | ((x & 0x8000) ? 1 << 15 : 0));
     // Is negative if high order bit is 1.
-    n = tmp * 0x8000;
+    n = tmp & 0x8000;
     // Is zero if all bits are 0's.
     z = tmp == 0x000;
     // Carry out if register starts with low order 1.
