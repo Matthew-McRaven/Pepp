@@ -43,7 +43,7 @@ private slots:
     QCOMPARE(tmp, 1);
 
     // Check that A can be modified.
-    quint8 v = 0b0001'0000;
+    quint8 v = 0b0001'0000; // NOTA
     QVERIFY(mem.write(0x01, &v, 1, rw).completed);
     regs->read(static_cast<quint8>(isa::Pep10::Register::A) * 2,
                reinterpret_cast<quint8 *>(&tmp), 2, rw);
