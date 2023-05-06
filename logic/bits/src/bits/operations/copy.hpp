@@ -4,6 +4,22 @@
 #include <cstring>
 namespace bits {
 using ::memcpy;
+void memclr(void *dest, quint16 length);
+template <std::integral T, std::integral U> T memcpy_endian(U src) {
+  return memcpy_endian<T>(&src, bits::hostOrder(), sizeof(U));
+}
+
+template <std::integral T>
+T memcpy_endian(const void *src, Order srcOrder, quint16 srcLen) {
+  T dest = 0;
+  memcpy_endian(&dest, bits::hostOrder(), sizeof(T), src, srcOrder, srcLen);
+  return dest;
+}
+
+template <std::integral T>
+void memcpy_endian(void *dest, Order destOrder, quint16 destLen, T src) {
+  memcpy_endian(dest, destOrder, destLen, &src, bits::hostOrder(), sizeof(T));
+}
 // When src is longer than dest, truncates high-order bytes (like casting
 // u16->u8). When dest is longer than src, dest is 0-padded.
 void memcpy_endian(void *dest, Order destOrder, quint16 destLen,

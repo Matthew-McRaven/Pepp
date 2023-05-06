@@ -31,8 +31,10 @@ public:
   void setTraceBuffer(api::trace::Buffer *tb) override;
   void trace(bool enabled) override;
   quint8 packetSize(api::packet::Flags) const override;
-  bool applyTrace(void *trace) override;
-  bool unapplyTrace(void *trace) override;
+  bool applyTrace(void *payload, quint8 size,
+                  api::packet::Flags flags) override;
+  bool unapplyTrace(void *payload, quint8 size,
+                    api::packet::Flags flags) override;
 
   // Helpers
   QSharedPointer<typename detail::Channel<Address, quint8>::Endpoint>
@@ -134,11 +136,15 @@ quint8 Output<Address>::packetSize(api::packet::Flags) const {
   throw std::logic_error("unimplemented");
 }
 
-template <typename Address> bool Output<Address>::applyTrace(void *trace) {
+template <typename Address>
+bool Output<Address>::applyTrace(void *payload, quint8 size,
+                                 api::packet::Flags flags) {
   throw std::logic_error("unimplemented");
 }
 
-template <typename Address> bool Output<Address>::unapplyTrace(void *trace) {
+template <typename Address>
+bool Output<Address>::unapplyTrace(void *payload, quint8 size,
+                                   api::packet::Flags flags) {
   throw std::logic_error("unimplemented");
 }
 

@@ -1,5 +1,6 @@
 #include "cpu.hpp"
 #include "bits/operations/swap.hpp"
+#include "targets/pep10/isa3/helpers.hpp"
 #include <bit>
 
 sim::api::memory::Operation rw_d = {
@@ -105,11 +106,13 @@ targets::pep10::isa::CPU::packetSize(sim::api::packet::Flags flags) const {
   throw std::logic_error("unimplemented");
 }
 
-bool targets::pep10::isa::CPU::applyTrace(void *trace) {
+bool targets::pep10::isa::CPU::applyTrace(void *payload, quint8 size,
+                                          sim::api::packet::Flags flags) {
   throw std::logic_error("unimplemented");
 }
 
-bool targets::pep10::isa::CPU::unapplyTrace(void *trace) {
+bool targets::pep10::isa::CPU::unapplyTrace(void *payload, quint8 size,
+                                            sim::api::packet::Flags flags) {
   throw std::logic_error("unimplemented");
 }
 
@@ -125,58 +128,38 @@ void targets::pep10::isa::CPU::setTarget(
 
 quint16 targets::pep10::isa::CPU::readReg(::isa::Pep10::Register reg) {
   quint16 ret = 0;
-  _regs.read(static_cast<quint8>(reg) * 2, reinterpret_cast<quint8 *>(&ret), 2,
-             rw_d);
-  if (bits::hostOrder() != bits::Order::BigEndian)
-    ret = bits::byteswap(ret);
+  if (!isa::readRegister<quint8>(&_regs, reg, ret, rw_d).completed)
+    throw std::logic_error("failed to read register");
   return ret;
 }
 
 void targets::pep10::isa::CPU::writeReg(::isa::Pep10::Register reg,
                                         quint16 val) {
-  if (bits::hostOrder() != bits::Order::BigEndian)
-    val = bits::byteswap(val);
-  if (!_regs
-           .write(static_cast<quint8>(reg) * 2,
-                  reinterpret_cast<quint8 *>(&val), 2, rw_d)
-           .completed)
+  if (!isa::writeRegister<quint8>(&_regs, reg, val, rw_d).completed)
     throw std::logic_error("failed to write register");
 }
 
 bool targets::pep10::isa::CPU::readCSR(::isa::Pep10::CSR csr) {
-  quint8 ret = 0;
-  _csrs.read(static_cast<quint8>(csr), &ret, 1, rw_d);
+  bool ret = 0;
+  if (!isa::readCSR(&_csrs, csr, ret, rw_d).completed)
+    throw std::logic_error("failed to read csr");
   return ret;
 }
 
 void targets::pep10::isa::CPU::writeCSR(::isa::Pep10::CSR csr, bool val) {
-  _csrs.write(static_cast<quint8>(csr), reinterpret_cast<quint8 *>(&val), 1,
-              rw_d);
-}
-
-quint8 targets::pep10::isa::CPU::packCSR(bool n, bool z, bool v, bool c) {
-  return (n << 3) | (z << 2) | (v << 1) | (c << 0);
-}
-
-std::tuple<bool, bool, bool, bool>
-targets::pep10::isa::CPU::unpackCSR(quint8 value) {
-  return {value & 0b1000, value & 0b0100, value & 0b0010, value & 0b0001};
+  if (!isa::writeCSR<quint8>(&_csrs, csr, val, rw_d).completed)
+    throw std::logic_error("failed to write csr");
 }
 
 quint8 targets::pep10::isa::CPU::readPackedCSR() {
-  quint8 ctx[4];
-  _csrs.read(0, ctx, 4, rw_d);
-  return packCSR(ctx[0], ctx[1], ctx[2], ctx[3]);
+  quint8 ret = 0;
+  if (!isa::readPackedCSR(&_csrs, ret, rw_d).completed)
+    throw std::logic_error("failed to read multiple csr");
+  return ret;
 }
 
 void targets::pep10::isa::CPU::writePackedCSR(quint8 val) {
-  auto [n, z, v, c] = unpackCSR(val);
-  quint8 ctx[4];
-  ctx[0] = n;
-  ctx[1] = z;
-  ctx[2] = v;
-  ctx[3] = c;
-  if (!_csrs.write(0, ctx, 4, rw_d).completed)
+  if (!isa::writePackedCSR(&_csrs, val, rw_d).completed)
     throw std::logic_error("Failed to write CSR");
 }
 
