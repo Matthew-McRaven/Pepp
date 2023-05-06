@@ -4,6 +4,7 @@
 #include "builtins/registry.hpp"
 #include "isa/pep10.hpp"
 #include "macro/registry.hpp"
+#include "obj/memmap.hpp"
 #include "obj/mmio.hpp"
 #include "pas/obj/pep10.hpp"
 #include "pas/operations/generic/errors.hpp"
@@ -108,6 +109,7 @@ private slots:
     QFETCH(QString, figure);
     QFETCH(QString, userBody);
     QFETCH(QString, osBody);
+    QFETCH(bool, isFullOS);
 
     // Load macros on each iteration to prevent macros from migrating between
     // tests.
@@ -164,6 +166,31 @@ private slots:
 
     auto buf = ::obj::getMMIBuffers(elf);
     QCOMPARE(buf.size(), 1);
+
+    auto memMap = obj::getMemoryMap(elf);
+    if (isFullOS) {
+      QCOMPARE(memMap.size(), 4);
+      // user memory
+      memMap[0].seg = 0;
+      auto uMem = obj::AddressRegion{
+          .r = 1, .w = 1, .x = 1, .minOffset = 0, .maxOffset = 0xfa25};
+      QCOMPARE(memMap[0], uMem);
+      // System stack
+      memMap[1].seg = 0;
+      auto ss = obj::AddressRegion{
+          .r = 1, .w = 1, .x = 0, .minOffset = 0xfa26, .maxOffset = 0xfaad};
+      QCOMPARE(memMap[1], ss);
+      // OS text
+      memMap[2].seg = 0;
+      auto txt = obj::AddressRegion{
+          .r = 1, .w = 0, .x = 1, .minOffset = 0xfaae, .maxOffset = 0xfff9};
+      QCOMPARE(memMap[2], txt);
+      // Carveout for MMIO
+      memMap[3].seg = 0;
+      auto mmio = obj::AddressRegion{
+          .r = 1, .w = 1, .x = 0, .minOffset = 0xfffa, .maxOffset = 0xffff};
+      QCOMPARE(memMap[3], mmio);
+    }
   }
 
   void unified_data() {
@@ -171,6 +198,7 @@ private slots:
     QTest::addColumn<QString>("figure");
     QTest::addColumn<QString>("userBody");
     QTest::addColumn<QString>("osBody");
+    QTest::addColumn<bool>("isFullOS");
     auto registry = builtins::Registry(nullptr);
     this->book = registry.findBook("Computer Systems, 6th Edition");
     QVERIFY(!book.isNull());
@@ -190,7 +218,8 @@ private slots:
       QTest::addRow("Figure %s.%s with OS", chName.data(), figName.data())
           << fig->chapterName() << fig->figureName()
           << fig->typesafeElements()["pep"]->contents
-          << defaultOS->typesafeElements()["pep"]->contents;
+          << defaultOS->typesafeElements()["pep"]->contents
+          << bool(defaultOS->figureName() == "full");
     }
   }
 };
