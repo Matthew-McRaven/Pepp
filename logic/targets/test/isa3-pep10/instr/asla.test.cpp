@@ -4,6 +4,7 @@
 #include "bits/operations/swap.hpp"
 #include "sim/device/dense.hpp"
 #include "targets/pep10/isa3/cpu.hpp"
+#include "targets/pep10/isa3/helpers.hpp"
 auto desc_mem = sim::api::device::Descriptor{
     .id = 1,
     .baseName = "ram",
@@ -47,16 +48,14 @@ private slots:
 
     // Can't capture CPU directly b/c structured bindings.
     auto _cpu = cpu;
-    auto rreg = [&](isa::Pep10::Register reg) {
-      quint16 tmp;
-      _cpu->regs()->read(static_cast<quint16>(reg) * 2,
-                         reinterpret_cast<quint8 *>(&tmp), 2, rw);
-      return bits::hostOrder() != bits::Order::BigEndian ? bits::byteswap(tmp)
-                                                         : tmp;
+    auto rreg = [&](isa::Pep10::Register reg) -> quint16 {
+      quint16 tmp = 0;
+      targets::pep10::isa::readRegister(_cpu->regs(), reg, tmp, rw);
+      return tmp;
     };
     auto rcsr = [&](isa::Pep10::CSR csr) {
-      quint8 tmp;
-      _cpu->csrs()->read(static_cast<quint8>(csr), &tmp, 1, rw);
+      bool tmp = 0;
+      targets::pep10::isa::readCSR(_cpu->csrs(), csr, tmp, rw);
       return tmp;
     };
 
