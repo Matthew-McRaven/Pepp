@@ -4,11 +4,29 @@
 #include "builtins/registry.hpp"
 #include "isa/pep10.hpp"
 #include "macro/registry.hpp"
+#include "obj/mmio.hpp"
 #include "pas/obj/pep10.hpp"
 #include "pas/operations/generic/errors.hpp"
 #include "pas/operations/pepp/string.hpp"
 #include <QObject>
 #include <QTest>
+
+static const auto is_diskIn = [](const auto &x) {
+  return x.name == "diskIn" && x.direction == obj::IO::Direction::kInput &&
+         x.minOffset == 0xFFFC && x.maxOffset == 0xFFFC;
+};
+static const auto is_charIn = [](const auto &x) {
+  return x.name == "charIn" && x.direction == obj::IO::Direction::kInput &&
+         x.minOffset == 0xFFFD && x.maxOffset == 0xFFFD;
+};
+static const auto is_charOut = [](const auto &x) {
+  return x.name == "charOut" && x.direction == obj::IO::Direction::kOutput &&
+         x.minOffset == 0xFFFE && x.maxOffset == 0xFFFE;
+};
+static const auto is_pwrOff = [](const auto &x) {
+  return x.name == "pwrOff" && x.direction == obj::IO::Direction::kOutput &&
+         x.minOffset == 0xFFFF && x.maxOffset == 0xFFFF;
+};
 
 class PasE2E_Pep10 : public QObject {
   Q_OBJECT
@@ -135,6 +153,17 @@ private slots:
     pas::obj::pep10::writeUser(elf, *userRoot);
     elf.save(u"%1.%2.elf"_qs.arg(chapter, figure).toStdString());
     QVERIFY(result);
+
+    // Verify MMIO information.
+    auto decs = ::obj::getMMIODeclarations(elf);
+    QCOMPARE(decs.length(), 4);
+    QCOMPARE(std::find_if(decs.cbegin(), decs.cend(), is_diskIn), decs.cend());
+    QCOMPARE(std::find_if(decs.cbegin(), decs.cend(), is_charIn), decs.cend());
+    QCOMPARE(std::find_if(decs.cbegin(), decs.cend(), is_charOut), decs.cend());
+    QCOMPARE(std::find_if(decs.cbegin(), decs.cend(), is_pwrOff), decs.cend());
+
+    auto buf = ::obj::getMMIBuffers(elf);
+    QCOMPARE(buf.size(), 1);
   }
 
   void unified_data() {

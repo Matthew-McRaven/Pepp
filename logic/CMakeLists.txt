@@ -1,5 +1,6 @@
 add_subdirectory(bits)
 add_subdirectory(isa)
+add_subdirectory(obj)
 add_subdirectory(asm)
 add_subdirectory(sim)
 add_subdirectory(targets)

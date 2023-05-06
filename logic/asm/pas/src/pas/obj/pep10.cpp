@@ -1,6 +1,7 @@
 #include "./pep10.hpp"
 #include "bits/operations/copy.hpp"
 #include "isa/pep10.hpp"
+#include "obj/mmio.hpp"
 #include "pas/ast/generic/attr_children.hpp"
 #include "pas/ast/generic/attr_sec.hpp"
 #include "pas/ast/generic/attr_symbol.hpp"
@@ -56,38 +57,6 @@ ELFIO::section *addStrTab(ELFIO::elfio &elf) {
   return strTab;
 }
 
-ELFIO::section *addNoteSec(ELFIO::elfio &elf) {
-  // Only create note sec & segment if they do not already exist.
-
-  ELFIO::section *noteSec = nullptr;
-  for (auto &sec : elf.sections) {
-    if (sec->get_type() == ELFIO::SHT_NOTE)
-      noteSec = &*sec;
-  }
-  if (noteSec == nullptr) {
-    noteSec = elf.sections.add(".mmio");
-    noteSec->set_type(ELFIO::SHT_NOTE);
-  }
-
-  return noteSec;
-}
-
-void addNoteSeg(ELFIO::elfio &elf) {
-  auto noteSec = addNoteSec(elf);
-  ELFIO::segment *noteSeg = nullptr;
-  for (auto &seg : elf.segments) {
-    if (seg->get_type() == ELFIO::PT_NOTE)
-      noteSeg = &*seg;
-  }
-  if (noteSeg == nullptr) {
-    if (noteSeg == nullptr) {
-      noteSeg = elf.segments.add();
-      noteSeg->set_type(ELFIO::PT_NOTE);
-      noteSeg->add_section(noteSec, 1);
-    }
-  }
-}
-
 ELFIO::elfio pas::obj::pep10::createElf() {
   static const char p10mac[2] = {'p', 'x'};
   ELFIO::elfio ret;
@@ -97,7 +66,7 @@ ELFIO::elfio pas::obj::pep10::createElf() {
   ret.set_machine(*(quint16 *)p10mac);
   // Create strtab/notes early, so that it will be before any code sections.
   addStrTab(ret);
-  addNoteSec(ret);
+  ::obj::addMMIONoteSection(ret);
   return ret;
 }
 
@@ -275,11 +244,6 @@ void pas::obj::pep10::writeOS(ELFIO::elfio &elf, ast::Node &os) {
   writeTree(elf, os, "os", true);
   elf.set_entry(/*TODO:determine OS entry point*/ 0x000);
 
-  // Add notes regarding MMIO symbols
-  auto noteSec = addNoteSec(elf);
-  addNoteSeg(elf);
-
-  auto noteSecAc = ELFIO::note_section_accessor(elf, noteSec);
   auto mmios = pas::ops::pepp::gatherIODefinitions(os);
 
   // Find symbol table for os or crash.
@@ -289,63 +253,17 @@ void pas::obj::pep10::writeOS(ELFIO::elfio &elf, ast::Node &os) {
       symTab = &*sec;
   }
   Q_ASSERT(symTab != nullptr);
-  auto symTabAc = ELFIO::symbol_section_accessor(elf, symTab);
-
-  // Iterate over the symtab first, since it is much longer than MMIO list
-  for (ELFIO::Elf_Xword it = 1; it < symTabAc.get_symbols_num(); it++) {
-    std::string name;
-    ELFIO::Elf64_Addr value;
-    ELFIO::Elf_Xword size;
-    unsigned char bind, type, other;
-    ELFIO::Elf_Half index;
-    // Skip to next iteration if it does not name a valid symbol
-    if (!symTabAc.get_symbol(it, name, value, size, bind, type, index, other))
-      continue;
-
-    // Search the MMIO list for a matching entry, skip to next iteration if no
-    // match.
-    QString nameQs = QString::fromStdString(name);
-    auto target = std::find_if(
-        mmios.cbegin(), mmios.cend(),
-        [&nameQs](const ops::pepp::IO &io) { return io.name == nameQs; });
-    if (target == mmios.cend())
-      continue;
-
-    // Must use copy helper to maintain stable bit order between host
-    // platforms.
-    quint8 desc[2 + 4]; // ELF_half (16b for symtab section index) and
-                        // ELF32_WORD (32b for symbol index)
-    auto stIndex = symTab->get_index();
-    bits::memcpy_endian(desc + 0, bits::Order::BigEndian, 2, &stIndex,
-                        bits::hostOrder(), sizeof(stIndex));
-    bits::memcpy_endian(desc + 2, bits::Order::BigEndian, 4, &it,
-                        bits::hostOrder(), sizeof(it));
-    noteSecAc.add_note(
-        target->direction == ops::pepp::IO::Direction::kInput ? 0x11 : 0x12,
-        "pepp.mmios", (char *)desc, sizeof(desc));
-  }
+  ::obj::addMMIODeclarations(elf, symTab, mmios);
 }
 
 void pas::obj::pep10::writeUser(ELFIO::elfio &elf, ast::Node &user) {
   writeTree(elf, user, "usr", false);
 
   // Add notes regarding MMIO buffering.
-  auto noteSec = addNoteSec(elf);
-  addNoteSeg(elf);
-
-  auto noteAc = ELFIO::note_section_accessor(elf, noteSec);
   for (auto &seg : elf.segments) {
     // Only LOPROC+1 segments need buffering.
     if (seg->get_type() != ELFIO::PT_LOPROC + 0x1)
       continue;
-
-    // Leave two bytes for section index.
-    quint8 desc[] = "  diskIn";
-    auto noteIndex = seg->get_index();
-    // Must use copy helper to maintain stable bit order between hosts.
-    bits::memcpy_endian(desc + 0, bits::Order::BigEndian, 2, &noteIndex,
-                        bits::hostOrder(), sizeof(noteIndex));
-    // Skip null character
-    noteAc.add_note(0x10, "pepp.mmios", (char *)desc, sizeof(desc) - 1);
+    ::obj::addMMIBuffer(elf, seg.get());
   }
 }
