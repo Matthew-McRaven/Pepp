@@ -33,7 +33,7 @@ sim::api::memory::Result readCSR(sim::api::memory::Target<Address> *target,
                                  ::isa::Pep10::CSR csr, bool &value,
                                  sim::api::memory::Operation op) {
   return target->read(static_cast<quint8>(csr),
-                      reinterpret_cast<quint8 *>(value), 1, op);
+                      reinterpret_cast<quint8 *>(&value), 1, op);
 }
 
 template <typename Address>
@@ -41,7 +41,7 @@ sim::api::memory::Result writeCSR(sim::api::memory::Target<Address> *target,
                                   ::isa::Pep10::CSR csr, bool value,
                                   sim::api::memory::Operation op) {
   return target->write(static_cast<quint8>(csr),
-                       reinterpret_cast<quint8 *>(value), 1, op);
+                       reinterpret_cast<quint8 *>(&value), 1, op);
 }
 
 quint8 packCSR(bool n, bool z, bool v, bool c);
