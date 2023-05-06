@@ -155,7 +155,7 @@ struct Analyzer {
 
   virtual ~Analyzer() = 0;
 };
-Analyzer::~Analyzer() = default;
+// Analyzer::~Analyzer() = default;
 
 // Ex
 struct Buffer {

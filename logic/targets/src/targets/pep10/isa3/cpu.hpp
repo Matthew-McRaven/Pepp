@@ -49,8 +49,6 @@ private:
   void writeReg(::isa::Pep10::Register reg, quint16 val);
   bool readCSR(::isa::Pep10::CSR csr);
   void writeCSR(::isa::Pep10::CSR csr, bool val);
-  quint8 packCSR(bool n, bool z, bool v, bool c);
-  std::tuple<bool, bool, bool, bool> unpackCSR(quint8 value);
   quint8 readPackedCSR();
   void writePackedCSR(quint8 val);
 

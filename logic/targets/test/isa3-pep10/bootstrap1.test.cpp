@@ -4,6 +4,7 @@
 #include "bits/operations/swap.hpp"
 #include "sim/device/dense.hpp"
 #include "targets/pep10/isa3/cpu.hpp"
+#include "targets/pep10/isa3/helpers.hpp"
 sim::api::memory::Operation rw = {.speculative = false,
                                   .kind =
                                       sim::api::memory::Operation::Kind::data,
@@ -31,28 +32,29 @@ private slots:
     auto regs = cpu.regs();
     quint16 tmp = 0;
 
+    using Register = isa::Pep10::Register;
     // Check that PC is incremented when executing NOP.
-    regs->read(static_cast<quint8>(isa::Pep10::Register::PC) * 2,
-               reinterpret_cast<quint8 *>(&tmp), 2, rw);
+    QVERIFY(targets::pep10::isa::readRegister(regs, Register::PC, tmp, rw)
+                .completed);
     QCOMPARE(tmp, 0);
 
     auto tick = cpu.tick(0);
 
-    regs->read(static_cast<quint8>(isa::Pep10::Register::PC) * 2,
-               reinterpret_cast<quint8 *>(&tmp), 2, rw);
-    tmp =
-        bits::hostOrder() != bits::Order::BigEndian ? bits::byteswap(tmp) : tmp;
+    QVERIFY(targets::pep10::isa::readRegister(regs, Register::PC, tmp, rw)
+                .completed);
     QCOMPARE(tmp, 1);
 
     // Check that A can be modified.
     quint8 v = 0b0001'0000; // NOTA
     QVERIFY(mem.write(0x01, &v, 1, rw).completed);
-    regs->read(static_cast<quint8>(isa::Pep10::Register::A) * 2,
-               reinterpret_cast<quint8 *>(&tmp), 2, rw);
+    QVERIFY(targets::pep10::isa::readRegister(regs, Register::A, tmp, rw)
+                .completed);
     QCOMPARE(tmp, 0);
+
     tick = cpu.tick(1);
-    regs->read(static_cast<quint8>(isa::Pep10::Register::A) * 2,
-               reinterpret_cast<quint8 *>(&tmp), 2, rw);
+
+    QVERIFY(targets::pep10::isa::readRegister(regs, Register::A, tmp, rw)
+                .completed);
     QCOMPARE(tmp, 0xFFFF);
   }
 };
