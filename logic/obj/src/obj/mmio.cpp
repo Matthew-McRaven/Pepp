@@ -85,9 +85,9 @@ QList<obj::AddressedIO> obj::getMMIODeclarations(const ELFIO::elfio &elf) {
     return {};
   auto noteAc = ELFIO::const_note_section_accessor(elf, noteSec);
   auto ret = QList<obj::AddressedIO>{};
-  ELFIO::Elf_Word type, descSize;
+  ELFIO::Elf_Word type = 0, descSize = 0;
   std::string name;
-  char *desc;
+  char *desc = 0;
   for (int it = 0; it < noteAc.get_notes_num(); it++) {
     // Check that note exists and is from me.
     if (!noteAc.get_note(it, type, name, desc, descSize))
@@ -96,15 +96,15 @@ QList<obj::AddressedIO> obj::getMMIODeclarations(const ELFIO::elfio &elf) {
       continue;
 
     // Copy out symbol table index + symbol index into that table.
-    ELFIO::Elf_Half stIndex;
-    ELFIO::Elf_Xword symIt;
+    ELFIO::Elf_Half stIndex = 0;
+    ELFIO::Elf_Xword symIt = 0;
     bits::memcpy_endian(&stIndex, bits::hostOrder(), sizeof(stIndex), desc + 0,
                         bits::Order::BigEndian, 2);
     bits::memcpy_endian(&symIt, bits::hostOrder(), sizeof(it), desc + 2,
                         bits::Order::BigEndian, 4);
     auto symTab = elf.sections[stIndex];
     auto symTabAc = ELFIO::symbol_section_accessor(elf, symTab);
-
+    std::cout << std::string(desc);
     // If symbol exists, extract contents.
     ELFIO::Elf64_Addr value;
     ELFIO::Elf_Xword size;
