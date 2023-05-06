@@ -143,6 +143,16 @@ struct Buffer;
  * The main use of interposers is snooping on reads / writes
  */
 struct Analyzer {
+  struct Mode {
+    enum class Kind {
+      Streaming,
+      Batch,
+    } kind;
+  };
+  struct FilterArgs {
+    bool f;
+  };
+
   virtual ~Analyzer() = 0;
 };
 Analyzer::~Analyzer() = default;
@@ -172,8 +182,15 @@ struct Producer {
   // CPU to make its register banks trace()'ed too.
   virtual void trace(bool enabled) = 0;
   virtual quint8 packetSize(packet::Flags flags) const = 0;
-  virtual bool applyTrace(void *trace) = 0;   // trace is a Packet struct.
-  virtual bool unapplyTrace(void *trace) = 0; // trace is a Packet struct.
+  // Give pointer to payload rather than trace.
+  // Any changes to bit format of trace now only impacts the Buffer doing the
+  // analysis.
+  virtual bool
+  applyTrace(void *payload, quint8 size,
+             packet::Flags flags) = 0; // trace is a unknown payload struct.
+  virtual bool
+  unapplyTrace(void *payload, quint8 size,
+               packet::Flags flags) = 0; // trace is a unknown payload struct.
 };
 } // namespace trace
 
