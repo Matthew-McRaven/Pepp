@@ -69,10 +69,8 @@ void obj::addMMIODeclarations(ELFIO::elfio &elf, ELFIO::section *symTab,
     quint8 desc[2 + 4]; // ELF_half (16b for symtab section index) and
                         // ELF32_WORD (32b for symbol index)
     auto stIndex = symTab->get_index();
-    bits::memcpy_endian(desc + 0, bits::Order::BigEndian, 2, &stIndex,
-                        bits::hostOrder(), sizeof(stIndex));
-    bits::memcpy_endian(desc + 2, bits::Order::BigEndian, 4, &it,
-                        bits::hostOrder(), sizeof(it));
+    bits::memcpy_endian(desc + 0, bits::Order::BigEndian, 2, stIndex);
+    bits::memcpy_endian(desc + 2, bits::Order::BigEndian, 4, it);
     noteAc.add_note(target->direction == ::obj::IO::Direction::kInput ? 0x11
                                                                       : 0x12,
                     "pepp.mmios", (char *)desc, sizeof(desc));
@@ -96,12 +94,10 @@ QList<obj::AddressedIO> obj::getMMIODeclarations(const ELFIO::elfio &elf) {
       continue;
 
     // Copy out symbol table index + symbol index into that table.
-    ELFIO::Elf_Half stIndex = 0;
-    ELFIO::Elf_Xword symIt = 0;
-    bits::memcpy_endian(&stIndex, bits::hostOrder(), sizeof(stIndex), desc + 0,
-                        bits::Order::BigEndian, 2);
-    bits::memcpy_endian(&symIt, bits::hostOrder(), sizeof(it), desc + 2,
-                        bits::Order::BigEndian, 4);
+    auto stIndex = bits::memcpy_endian<ELFIO::Elf_Half>(
+        desc + 0, bits::Order::BigEndian, 2);
+    auto symIt = bits::memcpy_endian<ELFIO::Elf_Xword>(
+        desc + 2, bits::Order::BigEndian, 4);
     auto symTab = elf.sections[stIndex];
     auto symTabAc = ELFIO::symbol_section_accessor(elf, symTab);
     std::cout << std::string(desc);
@@ -130,10 +126,9 @@ void obj::addMMIBuffer(ELFIO::elfio &elf, const ELFIO::segment *bufferableSeg) {
   auto noteAc = ELFIO::note_section_accessor(elf, noteSec);
   // Leave two bytes for section index.
   quint8 desc[] = "  diskIn";
-  auto bufferableIndex = bufferableSeg->get_index();
   // Must use copy helper to maintain stable bit order between hosts.
-  bits::memcpy_endian(desc + 0, bits::Order::BigEndian, 2, &bufferableIndex,
-                      bits::hostOrder(), sizeof(bufferableIndex));
+  bits::memcpy_endian(desc + 0, bits::Order::BigEndian, 2,
+                      bufferableSeg->get_index());
   // No longer skip null character so that it is easy to turn into string on
   // simulator side.
   noteAc.add_note(0x10, "pepp.mmios", (char *)desc, sizeof(desc));
@@ -157,11 +152,10 @@ QList<obj::MMIBuffer> obj::getMMIBuffers(const ELFIO::elfio &elf) {
     else if (type != 0x10)
       continue;
 
-    ELFIO::Elf_Half segIdx;
     char *port = desc + 2;
     // Must use copy helper to maintain stable bit order between hosts.
-    bits::memcpy_endian(&segIdx, bits::hostOrder(), sizeof(segIdx), desc + 0,
-                        bits::Order::BigEndian, 2);
+    auto segIdx = bits::memcpy_endian<ELFIO::Elf_Half>(
+        desc + 0, bits::Order::BigEndian, 2);
     if (elf.segments.size() - 1 < segIdx)
       continue;
     ret.push_back(
