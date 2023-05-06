@@ -167,27 +167,27 @@ private slots:
     auto buf = ::obj::getMMIBuffers(elf);
     QCOMPARE(buf.size(), 1);
 
-    auto memMap = obj::getMemoryMap(elf);
+    auto memMap = obj::getLoadableSegments(elf);
     if (isFullOS) {
       QCOMPARE(memMap.size(), 4);
       // user memory
       memMap[0].seg = 0;
-      auto uMem = obj::AddressRegion{
+      auto uMem = obj::SegmentRegion{
           .r = 1, .w = 1, .x = 1, .minOffset = 0, .maxOffset = 0xfa25};
       QCOMPARE(memMap[0], uMem);
       // System stack
       memMap[1].seg = 0;
-      auto ss = obj::AddressRegion{
+      auto ss = obj::SegmentRegion{
           .r = 1, .w = 1, .x = 0, .minOffset = 0xfa26, .maxOffset = 0xfaad};
       QCOMPARE(memMap[1], ss);
       // OS text
       memMap[2].seg = 0;
-      auto txt = obj::AddressRegion{
+      auto txt = obj::SegmentRegion{
           .r = 1, .w = 0, .x = 1, .minOffset = 0xfaae, .maxOffset = 0xfff9};
       QCOMPARE(memMap[2], txt);
       // Carveout for MMIO
       memMap[3].seg = 0;
-      auto mmio = obj::AddressRegion{
+      auto mmio = obj::SegmentRegion{
           .r = 1, .w = 1, .x = 0, .minOffset = 0xfffa, .maxOffset = 0xffff};
       QCOMPARE(memMap[3], mmio);
     }
