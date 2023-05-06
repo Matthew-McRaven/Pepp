@@ -1,5 +1,7 @@
 #include "./copy.hpp"
 
+void bits::memclr(void *dest, quint16 length) { memset(dest, 0, length); }
+
 void bits::memcpy_endian(void *dest, Order destOrder, quint16 destLen,
                          const void *src, Order srcOrder, quint16 srcLen) {
   // At most 1 offset will be used at a time, determined by which pointer is

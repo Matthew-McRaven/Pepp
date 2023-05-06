@@ -4,6 +4,7 @@
 #include <cstring>
 namespace bits {
 using ::memcpy;
+void memclr(void *dest, quint16 length);
 template <std::integral T, std::integral U> T memcpy_endian(U src) {
   return memcpy_endian<T>(&src, bits::hostOrder(), sizeof(U));
 }
