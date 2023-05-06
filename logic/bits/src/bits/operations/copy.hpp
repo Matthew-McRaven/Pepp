@@ -11,8 +11,7 @@ template <std::integral T, std::integral U> T memcpy_endian(U src) {
 template <std::integral T>
 T memcpy_endian(const void *src, Order srcOrder, quint16 srcLen) {
   T dest = 0;
-  memcpy_endian(&dest, bits::hostOrder(), sizeof(T), &src, bits::hostOrder(),
-                sizeof(T));
+  memcpy_endian(&dest, bits::hostOrder(), sizeof(T), src, srcOrder, srcLen);
   return dest;
 }
 
