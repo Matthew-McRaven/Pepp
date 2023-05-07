@@ -185,7 +185,8 @@ targets::pep10::isa::System::output(QString name) {
 }
 
 QSharedPointer<targets::pep10::isa::System>
-targets::pep10::isa::systemFromElf(ELFIO::elfio &elf, bool loadUserImmediate) {
+targets::pep10::isa::systemFromElf(const ELFIO::elfio &elf,
+                                   bool loadUserImmediate) {
   auto segs = obj::getLoadableSegments(elf);
   auto memmap = obj::mergeSegmentRegions(segs);
   auto mmios = obj::getMMIODeclarations(elf);
