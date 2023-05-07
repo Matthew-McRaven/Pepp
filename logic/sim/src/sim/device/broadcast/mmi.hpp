@@ -26,6 +26,7 @@ public:
                             api::memory::Operation op) override;
   void clear(quint8 fill) override;
   void setInterposer(api::memory::Interposer<Address> *inter) override;
+  void dump(quint8 *dest, qsizetype maxLen) const override;
 
   // Producer interface
   void setTraceBuffer(api::trace::Buffer *tb) override;
@@ -126,6 +127,14 @@ template <typename Address> void Input<Address>::clear(quint8 fill) {
 template <typename Address>
 void Input<Address>::setInterposer(api::memory::Interposer<Address> *inter) {
   _inter = inter;
+}
+
+template <typename Address>
+void Input<Address>::dump(quint8 *dest, qsizetype maxLen) const {
+  if (maxLen <= 0)
+    throw std::logic_error("dump requires non-0 size");
+  auto v = *_endpoint->current_value();
+  bits::memcpy(dest, &v, std::min<quint64>(sizeof(v), maxLen));
 }
 
 template <typename Address>

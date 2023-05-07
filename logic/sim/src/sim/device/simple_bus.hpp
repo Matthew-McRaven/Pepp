@@ -24,6 +24,7 @@ public:
                             api::memory::Operation op) override;
   void clear(quint8 fill) override;
   void setInterposer(sim::api::memory::Interposer<Address> *inter) override;
+  void dump(quint8 *dest, qsizetype maxLen) const override;
 
   // Bus API
   void pushFrontTarget(AddressSpan at, api::memory::Target<Address> *target);
@@ -96,7 +97,7 @@ private:
   // Marked as mutable so that access can be const even when it is doing a
   // write. Reduces amount of code by 2x because read/write use same
   // implementation now.
-  mutable QVector<Region> _regions = {};
+  mutable QList<Region> _regions = {};
 };
 
 template <typename Address>
@@ -130,6 +131,16 @@ template <typename Address>
 void SimpleBus<Address>::setInterposer(
     sim::api::memory::Interposer<Address> *inter) {
   this->_inter = inter;
+}
+
+template <typename Address>
+void SimpleBus<Address>::dump(quint8 *dest, qsizetype maxLen) const {
+  if (maxLen <= 0)
+    throw std::logic_error("dump requires non-0 size");
+  for (auto rit = _regions.crbegin(); rit != _regions.crend(); ++rit) {
+    auto adjust = rit->span.minOffset;
+    rit->target->dump(dest + adjust, maxLen - adjust);
+  }
 }
 
 template <typename Address>

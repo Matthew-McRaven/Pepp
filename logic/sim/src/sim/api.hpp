@@ -273,6 +273,10 @@ template <typename Address> struct Target {
   virtual void clear(quint8 fill) = 0;
 
   virtual void setInterposer(Interposer<Address> *inter) = 0;
+
+  // Return a QList of length maxOffset-minOffset+1, containing all the bytes of
+  // the target.
+  virtual void dump(quint8 *dest, qsizetype maxLen) const = 0;
 };
 
 template <typename Address> struct Initiator {
