@@ -469,6 +469,7 @@ sim::api::tick::Result targets::pep10::isa::CPU::unaryDispatch(quint8 is) {
     if (swap)
       tmp = bits::byteswap(tmp);
     writeReg(Register::PC, tmp);
+    break;
   default:
     retErr = sim::api::tick::Error::Terminate;
   }
