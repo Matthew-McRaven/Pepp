@@ -134,7 +134,14 @@ private slots:
     auto osRoot = osTarget->bodies[pas::driver::repr::Nodes::name]
                       .value<pas::driver::repr::Nodes>()
                       .value;
-
+    if (pipeline->pipelines[0].first->stage != pas::driver::pep10::Stage::End) {
+      auto lines = pas::ops::pepp::formatListing<isa::Pep10>(*osRoot);
+      for (auto &line : lines)
+        qCritical() << line;
+      for (auto &error : pas::ops::generic::collectErrors(*osRoot))
+        qCritical() << "OS:   " << error.second.message;
+      QVERIFY(false);
+    }
     auto userTarget = pipeline->pipelines[1].first;
     QVERIFY(userTarget->bodies.contains(pas::driver::repr::Nodes::name));
     auto userRoot = userTarget->bodies[pas::driver::repr::Nodes::name]
