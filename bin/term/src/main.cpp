@@ -1,3 +1,5 @@
+#include "./run.hpp"
+#include "./task.hpp"
 #include "builtins/book.hpp"
 #include "builtins/figure.hpp"
 #include "builtins/registry.hpp"
@@ -10,25 +12,6 @@
 #include <CLI11.hpp>
 #include <QDebug>
 #include <QtCore>
-
-class Task : public QObject {
-  Q_OBJECT
-public:
-  Task(QObject *parent = nullptr);
-  virtual ~Task() = default;
-  virtual void run() = 0;
-signals:
-  void finished(int ret);
-};
-
-class ListTask : public Task {
-public:
-  ListTask(int ed, QObject *parent = nullptr);
-  void run() override;
-
-private:
-  int ed;
-};
 
 class GetFigTask : public Task {
 public:
@@ -99,13 +82,41 @@ int main(int argc, char **argv) {
   auto asmSC = app.add_subcommand("asm", "Assemble stuff");
   std::string userName;
   std::optional<std::string> osName = std::nullopt, elfName = std::nullopt;
-  auto osOpt = app.add_option("--os", osName);
+  auto osOpt = asmSC->add_option("--os", osName);
   auto elfOpt = asmSC->add_option("--elf", elfName)->default_val("a.elf");
   auto userOpt = asmSC->add_option("user", userName)->required()->expected(1);
   asmSC->callback([&]() {
     task = [&](QObject *parent) {
       auto ret = new AsmTask(edValue, userName, "a.pepo", parent);
+      if (osOpt)
+        ret->setOsFname(*osName);
       ret->emitElfTo(elfOpt->as<std::string>());
+      return ret;
+    };
+  });
+
+  std::string elfIn, charIn, charOut, memDump;
+  uint64_t maxSteps;
+  ELFIO::elfio elf;
+  auto runSC = app.add_subcommand("run", "Run ISA3 programs");
+  auto charInOpt = runSC->add_option("--charIn", charIn)->default_val("-");
+  auto charOutOpt = runSC->add_option("--charOut", charOut)->default_val("-");
+  auto memDumpOpt =
+      runSC->add_option("--memDump", memDump)->default_val("mem.bin");
+  auto elfInOpt = runSC->add_option("elf", elfIn)->required()->expected(1);
+  auto maxStepsOpt =
+      runSC->add_option("--max,-m", maxSteps)->default_val(10'000);
+  runSC->callback([&]() {
+    task = [&](QObject *parent) {
+      elf.load(elfIn);
+      auto ret = new RunTask(elf, parent);
+      if (charInOpt)
+        ret->setCharIn(charIn);
+      if (charOutOpt)
+        ret->setCharOut(charOut);
+      if (memDumpOpt)
+        ret->setMemDump(memDump);
+      ret->setMaxSteps(maxSteps);
       return ret;
     };
   });

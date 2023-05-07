@@ -628,11 +628,11 @@ exitPrnt:RET
 ;
 ;******* Vectors for system memory map
 ;
-trpHnd:   .WORD  disp        ;Address of first instruction in trap handler.
-initPC:   .WORD  trap        ;Address of first instruction to execute on boot.
+trpHnd:   .WORD  trap        ;Address of first instruction in trap handler.
+initPC:   .WORD  disp        ;Address of first instruction to execute on boot.
           .SECTION "memvec", "rw"
           .ORG   0xFFFA
-initSp:   .WORD  osRAM       ;Initial stack pointer. Must be updated before
+initSp:   .WORD  wordTemp    ;Initial stack pointer. Must be updated before
                              ; calling main or OS state will be clobbered.
 ;Do not allow diskIn to be referenced in user programs.
          .INPUT  diskIn      ;Mark diskIn as a memory-mapped input device

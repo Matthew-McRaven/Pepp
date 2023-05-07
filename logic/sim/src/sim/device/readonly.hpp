@@ -62,7 +62,9 @@ api::memory::Result ReadOnly<Address>::write(Address address, const quint8 *src,
     return {.completed = false,
             .pause = true,
             .error = api::memory::Error::OOBAccess};
-  else if (_hardFail) {
+  else if (!op.effectful) {
+    return _target->write(address, src, length, op);
+  } else if (_hardFail) {
     return {.completed = false,
             .pause = false,
             .error = sim::api::memory::Error::writeToRO};

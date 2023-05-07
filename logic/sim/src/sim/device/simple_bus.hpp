@@ -58,8 +58,10 @@ private:
       // mutable.
       for (auto reg : _regions) {
         if (reg.span.minOffset <= (address + offset) &&
-            (address + offset) <= reg.span.maxOffset)
+            (address + offset) <= reg.span.maxOffset) {
           region = reg;
+          break;
+        }
       }
 
       if (region.target == nullptr) {

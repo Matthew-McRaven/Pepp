@@ -213,7 +213,7 @@ sim::api::tick::Result targets::pep10::isa::CPU::unaryDispatch(quint8 is) {
     break;
 
   case mn::MOVTA:
-    writeReg(Register::TR, a);
+    writeReg(Register::A, readReg(Register::TR));
     break;
 
   case mn::NOP:
@@ -469,6 +469,7 @@ sim::api::tick::Result targets::pep10::isa::CPU::unaryDispatch(quint8 is) {
     if (swap)
       tmp = bits::byteswap(tmp);
     writeReg(Register::PC, tmp);
+    break;
   default:
     retErr = sim::api::tick::Error::Terminate;
   }
@@ -607,14 +608,14 @@ targets::pep10::isa::CPU::nonunaryDispatch(quint8 is, quint16 os, quint16 pc) {
   case mn::STBA:
     tmp = swap ? bits::byteswap(a) : a;
     mem_res =
-        _memory->write(operand, reinterpret_cast<quint8 *>(&tmp), 1, rw_d);
+        _memory->write(operand, reinterpret_cast<quint8 *>(&tmp) + 1, 1, rw_d);
     if (!mem_res.completed)
       qCritical() << "Failed to access memory";
     break;
   case mn::STBX:
     tmp = swap ? bits::byteswap(x) : x;
     mem_res =
-        _memory->write(operand, reinterpret_cast<quint8 *>(&tmp), 1, rw_d);
+        _memory->write(operand, reinterpret_cast<quint8 *>(&tmp) + 1, 1, rw_d);
     if (!mem_res.completed)
       qCritical() << "Failed to access memory";
     break;
@@ -896,8 +897,9 @@ targets::pep10::isa::CPU::decodeLoadOperand(quint8 is, quint16 os,
     decoded = os;
     break;
   case am::D:
-    mem_res = _memory->read(os, reinterpret_cast<quint8 *>(&decoded),
-                            isByte ? 1 : 2, rw_i);
+    mem_res = _memory->read(
+        os, reinterpret_cast<quint8 *>(&decoded) + int(isByte ? 1 : 0),
+        isByte ? 1 : 2, rw_i);
     if (swap)
       decoded = bits::byteswap(decoded);
     break;
@@ -908,28 +910,32 @@ targets::pep10::isa::CPU::decodeLoadOperand(quint8 is, quint16 os,
 
     if (swap)
       decoded = bits::byteswap(decoded);
-    mem_res = _memory->read(decoded, reinterpret_cast<quint8 *>(&decoded),
-                            isByte ? 1 : 2, rw_i);
+    mem_res = _memory->read(
+        decoded, reinterpret_cast<quint8 *>(&decoded) + int(isByte ? 1 : 0),
+        isByte ? 1 : 2, rw_i);
     if (swap)
       decoded = bits::byteswap(decoded);
     break;
   case am::S:
     mem_res = _memory->read(os + readReg(Register::SP),
-                            reinterpret_cast<quint8 *>(&decoded),
+                            reinterpret_cast<quint8 *>(&decoded) +
+                                int(isByte ? 1 : 0),
                             isByte ? 1 : 2, rw_i);
     if (swap)
       decoded = bits::byteswap(decoded);
     break;
   case am::X:
     mem_res = _memory->read(os + readReg(Register::X),
-                            reinterpret_cast<quint8 *>(&decoded),
+                            reinterpret_cast<quint8 *>(&decoded) +
+                                int(isByte ? 1 : 0),
                             isByte ? 1 : 2, rw_i);
     if (swap)
       decoded = bits::byteswap(decoded);
     break;
   case am::SX:
     mem_res = _memory->read(os + readReg(Register::SP) + readReg(Register::X),
-                            reinterpret_cast<quint8 *>(&decoded),
+                            reinterpret_cast<quint8 *>(&decoded) +
+                                int(isByte ? 1 : 0),
                             isByte ? 1 : 2, rw_i);
     if (swap)
       decoded = bits::byteswap(decoded);
@@ -942,8 +948,9 @@ targets::pep10::isa::CPU::decodeLoadOperand(quint8 is, quint16 os,
 
     if (swap)
       decoded = bits::byteswap(decoded);
-    mem_res = _memory->read(decoded, reinterpret_cast<quint8 *>(&decoded),
-                            isByte ? 1 : 2, rw_i);
+    mem_res = _memory->read(
+        decoded, reinterpret_cast<quint8 *>(&decoded) + int(isByte ? 1 : 0),
+        isByte ? 1 : 2, rw_i);
     if (swap)
       decoded = bits::byteswap(decoded);
     break;
@@ -956,7 +963,8 @@ targets::pep10::isa::CPU::decodeLoadOperand(quint8 is, quint16 os,
     if (swap)
       decoded = bits::byteswap(decoded);
     mem_res = _memory->read(decoded + readReg(Register::X),
-                            reinterpret_cast<quint8 *>(&decoded),
+                            reinterpret_cast<quint8 *>(&decoded) +
+                                int(isByte ? 1 : 0),
                             isByte ? 1 : 2, rw_i);
     if (swap)
       decoded = bits::byteswap(decoded);

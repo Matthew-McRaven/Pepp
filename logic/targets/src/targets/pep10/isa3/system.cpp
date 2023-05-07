@@ -31,10 +31,10 @@ sim::api::device::Descriptor desc_mmo(sim::api::device::ID id, QString name) {
           .fullName = u"/bus/mmo-%1"_qs.arg(name)};
 }
 
-sim::api::memory::Operation rw = {.speculative = false,
-                                  .kind =
-                                      sim::api::memory::Operation::Kind::data,
-                                  .effectful = true};
+const sim::api::memory::Operation gs = {
+    .speculative = false,
+    .kind = sim::api::memory::Operation::Kind::data,
+    .effectful = false};
 
 targets::pep10::isa::System::System(QList<obj::MemoryRegion> regions,
                                     QList<obj::AddressedIO> mmios)
@@ -67,7 +67,7 @@ targets::pep10::isa::System::System(QList<obj::MemoryRegion> regions,
       auto size = seg->get_file_size();
       if (fileData == nullptr)
         continue;
-      mem->write(base, reinterpret_cast<const quint8 *>(fileData), size, rw);
+      mem->write(base, reinterpret_cast<const quint8 *>(fileData), size, gs);
       base += size;
     }
   }
@@ -93,6 +93,7 @@ targets::pep10::isa::System::System(QList<obj::MemoryRegion> regions,
       _mmo[mmio.name] = mem;
     }
   }
+  _cpu->setTarget(&*_bus);
 }
 
 std::pair<sim::api::tick::Type, sim::api::tick::Result>
@@ -123,9 +124,11 @@ void targets::pep10::isa::System::setBootFlagAddress(quint16 addr) {
 void targets::pep10::isa::System::setBootFlags(bool enableLoader,
                                                bool enableDispatcher) {
   quint16 value = (enableLoader ? 1 << 0 : 0) | (enableDispatcher ? 1 << 1 : 0);
+  if (bits::hostOrder() != bits::Order::BigEndian)
+    value = bits::byteswap(value);
   if (_bootFlg) {
     auto ret =
-        _bus->write(*_bootFlg, reinterpret_cast<quint8 *>(&value), 2, rw);
+        _bus->write(*_bootFlg, reinterpret_cast<quint8 *>(&value), 2, gs);
     Q_ASSERT(ret.completed);
   }
 }
@@ -138,7 +141,7 @@ quint16 targets::pep10::isa::System::getBootFlags() const {
   quint8 buf[2];
   bits::memclr(buf, 2);
   if (_bootFlg) {
-    auto ret = _bus->read(*_bootFlg, buf, 2, rw);
+    auto ret = _bus->read(*_bootFlg, buf, 2, gs);
     Q_ASSERT(ret.completed);
   }
   return bits::memcpy_endian<quint16>(buf, bits::Order::BigEndian, 2);
@@ -148,16 +151,16 @@ void targets::pep10::isa::System::init() {
   quint8 buf[2];
   // Initalize PC to dispatcher
   _bus->read(static_cast<quint16>(::isa::Pep10::MemoryVectors::Dispatcher), buf,
-             2, rw);
+             2, gs);
   writeRegister(cpu()->regs(), ::isa::Pep10::Register::PC,
                 bits::memcpy_endian<quint16>(buf, bits::Order::BigEndian, 2),
-                rw);
+                gs);
   // Initalize SP to system stack pointer
   _bus->read(static_cast<quint16>(::isa::Pep10::MemoryVectors::SystemStackPtr),
-             buf, 2, rw);
+             buf, 2, gs);
   writeRegister(cpu()->regs(), ::isa::Pep10::Register::SP,
                 bits::memcpy_endian<quint16>(buf, bits::Order::BigEndian, 2),
-                rw);
+                gs);
 }
 
 targets::pep10::isa::CPU *targets::pep10::isa::System::cpu() { return &*_cpu; }
@@ -184,7 +187,8 @@ targets::pep10::isa::System::output(QString name) {
 }
 
 QSharedPointer<targets::pep10::isa::System>
-targets::pep10::isa::systemFromElf(ELFIO::elfio &elf, bool loadUserImmediate) {
+targets::pep10::isa::systemFromElf(const ELFIO::elfio &elf,
+                                   bool loadUserImmediate) {
   auto segs = obj::getLoadableSegments(elf);
   auto memmap = obj::mergeSegmentRegions(segs);
   auto mmios = obj::getMMIODeclarations(elf);
@@ -202,7 +206,7 @@ targets::pep10::isa::systemFromElf(ELFIO::elfio &elf, bool loadUserImmediate) {
       if (ptr == nullptr)
         continue;
       const auto ret =
-          bus->write(address, ptr, buffer.seg->get_memory_size(), rw);
+          bus->write(address, ptr, buffer.seg->get_memory_size(), gs);
       Q_ASSERT(ret.completed);
       Q_ASSERT(ret.error == sim::api::memory::Error::Success);
       address += buffer.seg->get_memory_size();

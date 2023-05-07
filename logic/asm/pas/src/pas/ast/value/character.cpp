@@ -1,9 +1,16 @@
 #include "character.hpp"
 #include "bits/operations/copy.hpp"
+#include "bits/strings.hpp"
 pas::ast::value::Character::Character() : Base() {}
 
 pas::ast::value::Character::Character(QString value)
-    : Base(), _value(value), _valueAsBytes({}) {}
+    : Base(), _value(value), _valueAsBytes({}) {
+  bool okay = bits::escapedStringToBytes(value, _valueAsBytes);
+  if (!okay)
+    throw std::logic_error("Invalid escape sequence in character");
+  else if (_valueAsBytes.length() > 1)
+    throw std::logic_error("Too many bytes for character");
+}
 
 pas::ast::value::Character::Character(const Character &other)
     : Base(), _value(other._value), _valueAsBytes(other._valueAsBytes) {}

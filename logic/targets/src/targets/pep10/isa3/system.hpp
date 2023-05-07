@@ -59,5 +59,6 @@ private:
 };
 
 // loadUserImmediate bypasses loading user program to DDR.
-QSharedPointer<System> systemFromElf(ELFIO::elfio &elf, bool loadUserImmediate);
+QSharedPointer<System> systemFromElf(const ELFIO::elfio &elf,
+                                     bool loadUserImmediate);
 } // namespace targets::pep10::isa
