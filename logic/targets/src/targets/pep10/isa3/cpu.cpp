@@ -213,7 +213,7 @@ sim::api::tick::Result targets::pep10::isa::CPU::unaryDispatch(quint8 is) {
     break;
 
   case mn::MOVTA:
-    writeReg(Register::TR, a);
+    writeReg(Register::A, readReg(Register::TR));
     break;
 
   case mn::NOP:
