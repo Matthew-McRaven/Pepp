@@ -83,12 +83,12 @@ QList<obj::AddressedIO> obj::getMMIODeclarations(const ELFIO::elfio &elf) {
     return {};
   auto noteAc = ELFIO::const_note_section_accessor(elf, noteSec);
   auto ret = QList<obj::AddressedIO>{};
-  ELFIO::Elf_Word type = 0, descSize = 0;
+  ELFIO::Elf_Word noteType = 0, descSize = 0;
   std::string name;
   char *desc = 0;
   for (int it = 0; it < noteAc.get_notes_num(); it++) {
     // Check that note exists and is from me.
-    if (!noteAc.get_note(it, type, name, desc, descSize))
+    if (!noteAc.get_note(it, noteType, name, desc, descSize))
       continue;
     else if (name != "pepp.mmios")
       continue;
@@ -100,22 +100,21 @@ QList<obj::AddressedIO> obj::getMMIODeclarations(const ELFIO::elfio &elf) {
         desc + 2, bits::Order::BigEndian, 4);
     auto symTab = elf.sections[stIndex];
     auto symTabAc = ELFIO::symbol_section_accessor(elf, symTab);
-    std::cout << std::string(desc);
     // If symbol exists, extract contents.
     ELFIO::Elf64_Addr value;
     ELFIO::Elf_Xword size;
-    unsigned char bind, type, other;
+    unsigned char bind, symbolType, other;
     ELFIO::Elf_Half index;
     // Skip to next iteration if it does not name a valid symbol.
-    if (!symTabAc.get_symbol(symIt, name, value, size, bind, type, index,
+    if (!symTabAc.get_symbol(symIt, name, value, size, bind, symbolType, index,
                              other))
       continue;
-    ret.push_back(
-        obj::AddressedIO{{.name = QString::fromStdString(name),
-                          .direction = (type == 0x11) ? IO::Direction::kOutput
-                                                      : IO::Direction::kInput},
-                         static_cast<quint16>(value),
-                         static_cast<quint16>(value + size)});
+    ret.push_back(obj::AddressedIO{
+        {.name = QString::fromStdString(name),
+         .direction = (noteType == 0x11) ? IO::Direction::kInput
+                                         : IO::Direction::kOutput},
+        static_cast<quint16>(value),
+        static_cast<quint16>(value + std::max<typeof(size)>(size - 1, 0))});
   }
   return ret;
 }
