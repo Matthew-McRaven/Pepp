@@ -175,7 +175,7 @@ private slots:
     Value result;
     QVERIFY(parse(asStd.begin(), asStd.end(), argument, result));
     auto visit = pas::parse::pepp::ParseToArg();
-    visit.symTab = QSharedPointer<symbol::Table>::create();
+    visit.symTab = QSharedPointer<symbol::Table>::create(2);
     auto ret = result.apply_visitor(visit);
     if (willCast)
       QCOMPARE_NE(dynamic_cast<Symbolic *>(ret.data()), nullptr);

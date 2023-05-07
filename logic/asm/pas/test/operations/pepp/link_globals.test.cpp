@@ -13,7 +13,8 @@ private slots:
   void linkIntraTree() {
     QString body = "s:.block 10\n.EXPORT s\nLDWA s,i\n.END\n.END";
     auto globals = QSharedPointer<pas::driver::Globals>::create();
-    auto ret = pas::driver::pepp::createParser<isa::Pep10>(false)(body, nullptr);
+    auto ret =
+        pas::driver::pepp::createParser<isa::Pep10>(false)(body, nullptr);
     QVERIFY(!ret.hadError);
     pas::ops::generic::linkGlobals(*ret.root, globals, {u"EXPORT"_qs});
     QVERIFY(globals->contains("s"));
@@ -24,7 +25,7 @@ private slots:
   void linkInterTree() {
     QString body = "LDWA s,i";
     auto globals = QSharedPointer<pas::driver::Globals>::create();
-    auto otherTable = QSharedPointer<symbol::Table>::create();
+    auto otherTable = QSharedPointer<symbol::Table>::create(2);
     otherTable->define("s");
     otherTable->markGlobal("s");
     globals->add(*otherTable->get("s"));
@@ -33,7 +34,8 @@ private slots:
     QVERIFY(globals->contains("s"));
     QCOMPARE(globals->get("s")->binding, symbol::Binding::kGlobal);
 
-    auto ret = pas::driver::pepp::createParser<isa::Pep10>(false)(body, nullptr);
+    auto ret =
+        pas::driver::pepp::createParser<isa::Pep10>(false)(body, nullptr);
     QVERIFY(!ret.hadError);
     pas::ops::generic::linkGlobals(*ret.root, globals, {u"EXPORT"_qs});
 
@@ -53,7 +55,7 @@ private slots:
   void multiDefine() {
     QString body = "s:LDWA s,i";
     auto globals = QSharedPointer<pas::driver::Globals>::create();
-    auto otherTable = QSharedPointer<symbol::Table>::create();
+    auto otherTable = QSharedPointer<symbol::Table>::create(2);
     otherTable->define("s");
     otherTable->markGlobal("s");
     globals->add(*otherTable->get("s"));
@@ -62,7 +64,8 @@ private slots:
     QVERIFY(globals->contains("s"));
     QCOMPARE(globals->get("s")->binding, symbol::Binding::kGlobal);
 
-    auto ret = pas::driver::pepp::createParser<isa::Pep10>(false)(body, nullptr);
+    auto ret =
+        pas::driver::pepp::createParser<isa::Pep10>(false)(body, nullptr);
     QVERIFY(!ret.hadError);
     pas::ops::generic::linkGlobals(*ret.root, globals, {u"EXPORT"_qs});
 

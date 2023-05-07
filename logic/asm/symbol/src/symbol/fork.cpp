@@ -52,7 +52,7 @@ void forkSymbolValues(symbol::ForkMap &map,
             dynamic_cast<symbol::value::InternalPointer *>(&*fromSymbol->value);
         asPointerVal != nullptr) {
       toSymbol->value = QSharedPointer<symbol::value::InternalPointer>::create(
-          map.map(&*asPointerVal->symbol_pointer));
+          asPointerVal->size(), map.map(&*asPointerVal->symbol_pointer));
     } else {
       toSymbol->value = fromSymbol->value->clone();
     }
@@ -61,7 +61,7 @@ void forkSymbolValues(symbol::ForkMap &map,
 
 QSharedPointer<symbol::ForkMap> symbol::fork(QSharedPointer<const Table> from) {
   auto map = QSharedPointer<ForkMap>::create();
-  auto to = QSharedPointer<symbol::Table>::create();
+  auto to = QSharedPointer<symbol::Table>::create(from->pointerSize());
   forkTables(*map, from, to);
   forkSymbolRefs(*map, from, to);
   forkSymbolValues(*map, from, to);

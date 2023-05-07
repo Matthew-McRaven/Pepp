@@ -48,7 +48,7 @@ toAST(const std::vector<pas::parse::pepp::LineType> &lines,
         ast::generic::Type{.value = ast::generic::Type::Structural};
     parent = QSharedPointer<pas::ast::Node>::create(structuralType);
     parent->set(ast::generic::SymbolTable{
-        .value = QSharedPointer<symbol::Table>::create()});
+        .value = QSharedPointer<symbol::Table>::create(2)});
   }
   auto visitor = FromParseTree<ISA>();
   visitor.symTab = parent->get<ast::generic::SymbolTable>().value;

@@ -262,7 +262,7 @@ private slots:
     QVERIFY(success);
     QCOMPARE(result.size(), 1);
     auto visit = pas::parse::pepp::FromParseTree<isa::Pep10>();
-    visit.symTab = QSharedPointer<symbol::Table>::create();
+    visit.symTab = QSharedPointer<symbol::Table>::create(2);
     QSharedPointer<Node> node;
     QVERIFY_THROWS_NO_EXCEPTION(
         [&]() { node = result[0].apply_visitor(visit); }());

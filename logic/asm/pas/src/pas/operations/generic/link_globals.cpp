@@ -70,7 +70,7 @@ void pas::ops::generic::LinkGlobals::updateSymbol(
     break;
   }
   symbol->value = QSharedPointer<symbol::value::ExternalPointer>::create(
-      global->parent.sharedFromThis(), global);
+      symbol->parent.pointerSize(), global->parent.sharedFromThis(), global);
 }
 
 void pas::ops::generic::linkGlobals(ast::Node &node,

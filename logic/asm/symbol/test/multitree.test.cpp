@@ -11,8 +11,8 @@ private slots:
    *           Leaf1    Leaf2 Leaf3
    */
   void independentExistenceQCOMPAREs() {
-    auto b1 = QSharedPointer<symbol::Table>::create();
-    auto b2 = QSharedPointer<symbol::Table>::create();
+    auto b1 = QSharedPointer<symbol::Table>::create(2);
+    auto b2 = QSharedPointer<symbol::Table>::create(2);
     auto l1 = b1->addChild();
     auto l2 = b2->addChild();
     auto l3 = b2->addChild();
@@ -46,8 +46,8 @@ private slots:
     QVERIFY(!symbol::exists(l1, "y", symbol::TraversalPolicy::kWholeTree));
   }
   void independentGlobals() {
-    auto b1 = QSharedPointer<symbol::Table>::create();
-    auto b2 = QSharedPointer<symbol::Table>::create();
+    auto b1 = QSharedPointer<symbol::Table>::create(2);
+    auto b2 = QSharedPointer<symbol::Table>::create(2);
     auto l1 = b1->addChild();
     auto l2 = b2->addChild();
     auto l3 = b2->addChild();

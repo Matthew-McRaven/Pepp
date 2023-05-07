@@ -119,9 +119,7 @@ void writeSymtab(ELFIO::elfio &elf, symbol::Table &table, QString prefix) {
 
     if (entry->state == symbol::DefinitionState::kUndefined)
       secIdx = ELFIO::SHN_UNDEF;
-
-    symAc.add_symbol(nameIdx, value->value()(), value->value().byteCount, info,
-                     0,
+    symAc.add_symbol(nameIdx, value->value()(), entry->value->size(), info, 0,
                      secIdx); // leave other as 0, don't mess with visibility.
   }
 

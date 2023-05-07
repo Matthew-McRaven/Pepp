@@ -55,6 +55,12 @@ public:
   Abstract() = default;
   virtual ~Abstract() = default;
   /*!
+   * \brief If the symbol points to code/data, it is the number of bytes needed
+   * to fully represent that data. If the symbol is constant, it is the number
+   * of bytes needed to hold the constant.
+   */
+  virtual quint32 size() const = 0;
+  /*!
    * \brief Convert the internal value to MaskedBits, or throw an exception if
    * conversion is not possible.
    *
@@ -111,6 +117,7 @@ public:
   }
   virtual ~Empty() override = default;
 
+  quint32 size() const override;
   MaskedBits value() const override;
   Type type() const override;
   QSharedPointer<Abstract> clone() const override;
@@ -138,6 +145,7 @@ public:
   }
   virtual ~Deleted() override = default;
 
+  quint32 size() const override;
   MaskedBits value() const override;
   symbol::Type type() const override;
   QSharedPointer<Abstract> clone() const override;
@@ -163,6 +171,7 @@ public:
   }
   virtual ~Constant() override = default;
 
+  quint32 size() const override;
   MaskedBits value() const override;
   symbol::Type type() const override;
   QSharedPointer<Abstract> clone() const override;
@@ -190,8 +199,11 @@ public:
   // Type defaults to kConstant, to avoid participation in relocation.
   explicit Location();
   // Type must be kCode or kObject.
-  explicit Location(quint8 bytes, quint64 base, quint64 offset,
-                    symbol::Type type);
+  // pointedSize is the number of bytes stored at the pointer, while pointerSize
+  // is the number of bytes to store the pointer. i.e., in pep10 `x:.block 65`
+  // would have a pointedSize of 65 and a pointerSize of 2.
+  explicit Location(quint16 pointedSize, quint16 pointerSize, quint64 base,
+                    quint64 offset, symbol::Type type);
   Location(const Location &other);
   Location(Location &&other) noexcept;
   Location &operator=(Location other);
@@ -199,13 +211,15 @@ public:
     using std::swap;
     // swap((Abstract &)first, (Abstract &)second); // Add if data in base class
     // gets data.
-    swap(first._bytes, second._bytes);
+    swap(first._pointerSize, second._pointerSize);
+    swap(first._pointedSize, second._pointedSize);
     swap(first._base, second._base);
     swap(first._offset, second._offset);
     swap(first._type, second._type);
   }
   virtual ~Location() override = default;
 
+  quint32 size() const override;
   // Inherited via value.
   virtual MaskedBits value() const override;
   symbol::Type type() const override;
@@ -240,7 +254,7 @@ public:
 
 private:
   // Byte count
-  quint8 _bytes = 0;
+  quint16 _pointerSize, _pointedSize = 0;
   quint64 _base = 0, _offset = 0;
   symbol::Type _type = symbol::Type::kEmpty;
 };
@@ -256,8 +270,8 @@ private:
  */
 class SYMBOL_EXPORT ExternalPointer : public Abstract {
 public:
-  explicit ExternalPointer();
-  explicit ExternalPointer(QSharedPointer<symbol::Table> table,
+  explicit ExternalPointer(quint16 ptrSize);
+  explicit ExternalPointer(quint16 ptrSize, QSharedPointer<symbol::Table> table,
                            QSharedPointer<const symbol::Entry> ptr);
   ExternalPointer(const ExternalPointer &other);
   ExternalPointer(ExternalPointer &&other) noexcept;
@@ -268,9 +282,11 @@ public:
     // gets data.
     swap(first.symbol_pointer, second.symbol_pointer);
     swap(first.symbol_table, second.symbol_table);
+    swap(first._ptrSize, second._ptrSize);
   }
   ~ExternalPointer() override = default;
 
+  quint32 size() const override;
   // Inherited via value.
   MaskedBits value() const override;
   symbol::Type type() const override;
@@ -280,6 +296,9 @@ public:
   //! table. Does not need to have a common parent table.
   QSharedPointer<const symbol::Entry> symbol_pointer = {};
   QWeakPointer<symbol::Table> symbol_table;
+
+private:
+  quint16 _ptrSize;
 };
 
 /*!
@@ -293,8 +312,9 @@ public:
  */
 class SYMBOL_EXPORT InternalPointer : public Abstract {
 public:
-  explicit InternalPointer();
-  explicit InternalPointer(QSharedPointer<const symbol::Entry> ptr);
+  explicit InternalPointer(quint16 ptrSize);
+  explicit InternalPointer(quint16 ptrSize,
+                           QSharedPointer<const symbol::Entry> ptr);
   InternalPointer(const InternalPointer &other);
   InternalPointer(InternalPointer &&other) noexcept;
   InternalPointer &operator=(InternalPointer other);
@@ -303,9 +323,11 @@ public:
     // swap((Abstract &)first, (Abstract &)second); // Add if data in base class
     // gets data.
     swap(first.symbol_pointer, second.symbol_pointer);
+    swap(first._ptrSize, second._ptrSize);
   }
   ~InternalPointer() override = default;
 
+  quint32 size() const override;
   // Inherited via value.
   MaskedBits value() const override;
   symbol::Type type() const override;
@@ -314,5 +336,8 @@ public:
   //! Symbol whose value is to be taken on. Does not need to belong to the same
   //! table, but must have a common parent table.
   QSharedPointer<const symbol::Entry> symbol_pointer = {};
+
+private:
+  quint16 _ptrSize;
 };
 }; // namespace symbol::value

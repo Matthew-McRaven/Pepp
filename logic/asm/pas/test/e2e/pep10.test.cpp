@@ -9,6 +9,8 @@
 #include "pas/obj/pep10.hpp"
 #include "pas/operations/generic/errors.hpp"
 #include "pas/operations/pepp/string.hpp"
+#include "sim/device/simple_bus.hpp"
+#include "targets/pep10/isa3/system.hpp"
 #include <QObject>
 #include <QTest>
 
@@ -105,6 +107,7 @@ private slots:
   }
 
   void unified() {
+    QFETCH(QString, figName);
     QFETCH(QString, chapter);
     QFETCH(QString, figure);
     QFETCH(QString, userBody);
@@ -154,15 +157,20 @@ private slots:
     pas::obj::pep10::combineSections(*userRoot);
     pas::obj::pep10::writeUser(elf, *userRoot);
     elf.save(u"%1.%2.elf"_qs.arg(chapter, figure).toStdString());
+    elf.load(u"%1.%2.elf"_qs.arg(chapter, figure).toStdString());
     QVERIFY(result);
 
     // Verify MMIO information.
     auto decs = ::obj::getMMIODeclarations(elf);
     QCOMPARE(decs.length(), 4);
-    QCOMPARE(std::find_if(decs.cbegin(), decs.cend(), is_diskIn), decs.cend());
-    QCOMPARE(std::find_if(decs.cbegin(), decs.cend(), is_charIn), decs.cend());
-    QCOMPARE(std::find_if(decs.cbegin(), decs.cend(), is_charOut), decs.cend());
-    QCOMPARE(std::find_if(decs.cbegin(), decs.cend(), is_pwrOff), decs.cend());
+    QCOMPARE_NE(std::find_if(decs.cbegin(), decs.cend(), is_diskIn),
+                decs.cend());
+    QCOMPARE_NE(std::find_if(decs.cbegin(), decs.cend(), is_charIn),
+                decs.cend());
+    QCOMPARE_NE(std::find_if(decs.cbegin(), decs.cend(), is_charOut),
+                decs.cend());
+    QCOMPARE_NE(std::find_if(decs.cbegin(), decs.cend(), is_pwrOff),
+                decs.cend());
 
     auto buf = ::obj::getMMIBuffers(elf);
     QCOMPARE(buf.size(), 1);
@@ -191,9 +199,24 @@ private slots:
           .r = 1, .w = 1, .x = 0, .minOffset = 0xfffa, .maxOffset = 0xffff};
       QCOMPARE(memMap[3], mmio);
     }
+    // Must write to file to "finish" setting up segment values.
+    elf.save(u"%1.elf"_qs.arg(figName).toStdString());
+    QSharedPointer<targets::pep10::isa::System> sys;
+    QVERIFY_THROWS_NO_EXCEPTION([&sys, &elf]() {
+      sys = targets::pep10::isa::systemFromElf(elf, true);
+    }());
+    QVector<quint8> dump(0x1'00'00);
+    sys->bus()->dump(dump.data(), dump.size());
+    QFile memDump(u"%1.mem.bin"_qs.arg(figName));
+    if (memDump.open(QFile::WriteOnly)) {
+      memDump.write(reinterpret_cast<const char *>(dump.constData()),
+                    dump.size());
+      memDump.close();
+    }
   }
 
   void unified_data() {
+    QTest::addColumn<QString>("figName");
     QTest::addColumn<QString>("chapter");
     QTest::addColumn<QString>("figure");
     QTest::addColumn<QString>("userBody");
@@ -216,6 +239,7 @@ private slots:
       auto chName = fig->chapterName().toStdString();
       auto figName = fig->figureName().toStdString();
       QTest::addRow("Figure %s.%s with OS", chName.data(), figName.data())
+          << u"%1.%2"_qs.arg(fig->chapterName()).arg(fig->figureName())
           << fig->chapterName() << fig->figureName()
           << fig->typesafeElements()["pep"]->contents
           << defaultOS->typesafeElements()["pep"]->contents

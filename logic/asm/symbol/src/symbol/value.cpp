@@ -38,6 +38,8 @@ symbol::value::Empty &symbol::value::Empty::operator=(Empty other) {
   return *this;
 }
 
+quint32 symbol::value::Empty::size() const { return 0; }
+
 symbol::value::MaskedBits symbol::value::Empty::value() const {
   return {.byteCount = _bytes, .bitPattern = 0, .mask = 0x0};
 }
@@ -60,6 +62,8 @@ symbol::value::Deleted &symbol::value::Deleted::operator=(Deleted other) {
   swap(*this, other);
   return *this;
 }
+
+quint32 symbol::value::Deleted::size() const { return 0; }
 
 symbol::value::MaskedBits symbol::value::Deleted::value() const {
   qWarning() << "Attempting to access value of symbol::value::Deleted";
@@ -90,6 +94,8 @@ symbol::value::Constant &symbol::value::Constant::operator=(Constant other) {
   return *this;
 }
 
+quint32 symbol::value::Constant::size() const { return _value.byteCount; }
+
 symbol::value::MaskedBits symbol::value::Constant::value() const {
   return _value;
 }
@@ -108,9 +114,10 @@ void symbol::value::Constant::setValue(MaskedBits value) {
 
 symbol::value::Location::Location() {}
 
-symbol::value::Location::Location(quint8 bytes, quint64 base, quint64 offset,
-                                  Type type)
-    : _bytes(bytes), _base(base), _offset(offset), _type(type) {
+symbol::value::Location::Location(quint16 pointedSize, quint16 pointerSize,
+                                  quint64 base, quint64 offset, Type type)
+    : _pointedSize(pointedSize), _pointerSize(pointerSize), _base(base),
+      _offset(offset), _type(type) {
   switch (type) {
   case symbol::Type::kObject:
     [[fallthrough]];
@@ -123,8 +130,8 @@ symbol::value::Location::Location(quint8 bytes, quint64 base, quint64 offset,
 }
 
 symbol::value::Location::Location(const Location &other)
-    : _bytes(other._bytes), _base(other._base), _offset(other._offset),
-      _type(other._type) {}
+    : _pointerSize(other._pointerSize), _pointedSize(other._pointedSize),
+      _base(other._base), _offset(other._offset), _type(other._type) {}
 
 symbol::value::Location::Location(Location &&other) noexcept {
   swap(*this, other);
@@ -135,11 +142,13 @@ symbol::value::Location &symbol::value::Location::operator=(Location other) {
   return *this;
 }
 
+quint32 symbol::value::Location::size() const { return _pointedSize; }
+
 symbol::value::MaskedBits symbol::value::Location::value() const {
-  return {.byteCount = _bytes,
+  return {.byteCount = static_cast<quint8>(_pointerSize),
           .bitPattern = _base + _offset,
           // Computing bitmask: https://stackoverflow.com/a/1392065
-          .mask = (1ull << 8 * _bytes) - 1};
+          .mask = (1ull << 8 * _pointerSize) - 1};
 }
 
 symbol::Type symbol::value::Location::type() const { return _type; }
@@ -158,13 +167,15 @@ quint64 symbol::value::Location::offset() const { return _offset; }
 
 quint64 symbol::value::Location::base() const { return _base; }
 
-symbol::value::InternalPointer::InternalPointer() {}
+symbol::value::InternalPointer::InternalPointer(quint16 ptrSize)
+    : _ptrSize(ptrSize) {}
 
-symbol::value::InternalPointer::InternalPointer(QSharedPointer<const Entry> ptr)
-    : symbol_pointer(ptr) {}
+symbol::value::InternalPointer::InternalPointer(quint16 ptrSize,
+                                                QSharedPointer<const Entry> ptr)
+    : _ptrSize(ptrSize), symbol_pointer(ptr) {}
 
 symbol::value::InternalPointer::InternalPointer(const InternalPointer &other)
-    : symbol_pointer(other.symbol_pointer) {}
+    : _ptrSize(other._ptrSize), symbol_pointer(other.symbol_pointer) {}
 
 symbol::value::InternalPointer::InternalPointer(
     InternalPointer &&other) noexcept {
@@ -176,6 +187,8 @@ symbol::value::InternalPointer::operator=(InternalPointer other) {
   swap(*this, other);
   return *this;
 }
+
+quint32 symbol::value::InternalPointer::size() const { return _ptrSize; }
 
 symbol::value::MaskedBits symbol::value::InternalPointer::value() const {
   if (symbol_pointer.isNull())
@@ -199,14 +212,17 @@ bool symbol::value::MaskedBits::operator==(const MaskedBits &other) const {
          this->bitPattern == other.bitPattern && this->mask == other.mask;
 }
 
-symbol::value::ExternalPointer::ExternalPointer() {}
+symbol::value::ExternalPointer::ExternalPointer(quint16 ptrSize)
+    : _ptrSize(ptrSize) {}
 
-symbol::value::ExternalPointer::ExternalPointer(QSharedPointer<Table> table,
+symbol::value::ExternalPointer::ExternalPointer(quint16 ptrSize,
+                                                QSharedPointer<Table> table,
                                                 QSharedPointer<const Entry> ptr)
-    : symbol_table(table), symbol_pointer(ptr) {}
+    : symbol_table(table), symbol_pointer(ptr), _ptrSize(ptrSize) {}
 
 symbol::value::ExternalPointer::ExternalPointer(const ExternalPointer &other)
-    : symbol_table(other.symbol_table), symbol_pointer(other.symbol_pointer) {}
+    : symbol_table(other.symbol_table), symbol_pointer(other.symbol_pointer),
+      _ptrSize(other._ptrSize) {}
 
 symbol::value::ExternalPointer::ExternalPointer(
     ExternalPointer &&other) noexcept {
@@ -218,6 +234,8 @@ symbol::value::ExternalPointer::operator=(ExternalPointer other) {
   swap(*this, other);
   return *this;
 }
+
+quint32 symbol::value::ExternalPointer::size() const { return _ptrSize; }
 
 symbol::value::MaskedBits symbol::value::ExternalPointer::value() const {
   auto locked_table = symbol_table.lock();

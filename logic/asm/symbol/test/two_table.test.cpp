@@ -9,7 +9,7 @@ class Symbol2Table : public QObject {
   Q_OBJECT
 private slots:
   void independentReferences() {
-    auto st = QSharedPointer<symbol::Table>::create();
+    auto st = QSharedPointer<symbol::Table>::create(2);
     auto st1 = st->addChild();
     auto st2 = st->addChild();
     auto x = st1->reference("hello");
@@ -19,7 +19,7 @@ private slots:
     QCOMPARE_NE(x, y);
   }
   void findByName() {
-    auto st = QSharedPointer<symbol::Table>::create();
+    auto st = QSharedPointer<symbol::Table>::create(2);
     auto st1 = st->addChild();
     auto st2 = st->addChild();
     auto x = st1->reference("hello");
@@ -32,7 +32,7 @@ private slots:
   }
   //  Dave: Added get tests
   void getByName() {
-    auto st = QSharedPointer<symbol::Table>::create();
+    auto st = QSharedPointer<symbol::Table>::create(2);
     auto st1 = st->addChild();
     auto st2 = st->addChild();
     auto x = st1->get("hello");
@@ -48,7 +48,7 @@ private slots:
     QCOMPARE_NE(x1, y1);
   }
   void existenceQCOMPAREs() {
-    auto st = QSharedPointer<symbol::Table>::create();
+    auto st = QSharedPointer<symbol::Table>::create(2);
     auto st1 = st->addChild();
     auto st2 = st->addChild();
     // Discard reference returned by st.
@@ -63,7 +63,7 @@ private slots:
   }
   //  Dave: QCOMPARE symbol directly against pointer
   void existenceRespectsTraversalPolicy() {
-    auto st = QSharedPointer<symbol::Table>::create();
+    auto st = QSharedPointer<symbol::Table>::create(2);
     auto st1 = st->addChild();
     auto st2 = st->addChild();
     st1->reference("hello");
@@ -73,7 +73,7 @@ private slots:
     QVERIFY(!st2->exists("hello"));
   }
   void localityOfDefines() {
-    auto st = QSharedPointer<symbol::Table>::create();
+    auto st = QSharedPointer<symbol::Table>::create(2);
     auto st1 = st->addChild();
     auto st2 = st->addChild();
     auto x = st1->reference("hello");
@@ -88,7 +88,7 @@ private slots:
     QCOMPARE(y->state, symbol::DefinitionState::kUndefined);
   }
   void singleValidGlobal() {
-    auto st = QSharedPointer<symbol::Table>::create();
+    auto st = QSharedPointer<symbol::Table>::create(2);
     auto st1 = st->addChild();
     auto st2 = st->addChild();
     auto x = st1->reference("hello");
@@ -107,7 +107,7 @@ private slots:
     QCOMPARE(y->state, symbol::DefinitionState::kExternalMultiple);
   }
   void multipleGlobal() {
-    auto st = QSharedPointer<symbol::Table>::create();
+    auto st = QSharedPointer<symbol::Table>::create(2);
     auto st1 = st->addChild();
     auto st2 = st->addChild();
     auto x = st1->reference("hello");
@@ -121,8 +121,8 @@ private slots:
   }
 
   void externalSymbolTable() {
-    auto st1 = QSharedPointer<symbol::Table>::create();
-    auto st2 = QSharedPointer<symbol::Table>::create();
+    auto st1 = QSharedPointer<symbol::Table>::create(2);
+    auto st2 = QSharedPointer<symbol::Table>::create(2);
 
     auto x = st1->define("hello");
     auto x_val = QSharedPointer<symbol::value::Constant>::create();
