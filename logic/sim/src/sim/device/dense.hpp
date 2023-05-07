@@ -83,6 +83,16 @@ sim::memory::Dense<Address>::read(Address address, quint8 *dest, Address length,
       error = api::memory::Error::Breakpoint;
     }
   }
+  if (op.effectful && _tb) {
+    using Read = sim::trace::ReadPayload<Address>;
+    api::trace::Buffer::Guard<true> guard(
+        _tb, sizeof(api::packet::Packet<Read>), _device.id, Read::flags());
+    if (guard) {
+      auto payload = Read{.address = address, .length = length};
+      auto it = new (guard.data())
+          api::packet::Packet<Read>(_device.id, payload, Read::flags());
+    }
+  }
   bits::memcpy(dest, _data.constData() + (address - _span.minOffset), length);
   return {.completed = true, .pause = pause, .error = error};
 }
@@ -190,7 +200,7 @@ sim::memory::Dense<Address>::write(Address address, const quint8 *src,
   if (op.effectful && _tb) {
     // Attempt to allocate space in the buffer for local trace packet.
     auto [size, flags] = detail::info<Address>(length);
-    api::trace::Buffer::Guard<true> guard(_tb, size, _device.id, flags);
+    api::trace::Buffer::Guard<false> guard(_tb, size, _device.id, flags);
     // Even with success we might get nullptr, in which case the Buffer is
     // telling us it doesn't want our trace.
     if (guard) {

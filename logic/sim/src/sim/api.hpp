@@ -171,19 +171,26 @@ struct Buffer {
 
   [[nodiscard]] virtual AnalyzerHookID registerAnalyzer(Analyzer *analyzer) = 0;
   [[nodiscard]] virtual Analyzer *unregisterAnalyzer(AnalyzerHookID id) = 0;
-  // If  perm, then the trace should live for a long time (i.e., on the heap).
-  // If !perm, then the trace is allowed to expire as soon as commit returns.
-  template <bool perm> struct Guard {
+  // If  ephemeral, then the trace is allowed to expire as soon as commit
+  // returns.
+  // If !ephemeral, then the trace *should* persist after commit. However, the
+  // implementation is not required to offer this property.
+  // If you have a bus
+  // system A->B->C: C must be alloc'ed+committed before B can alloc, and B
+  // before A. No two alloc's may overlap in lifetime. This applies even when
+  // swapping between temp/perm traces.
+  template <bool ephemeral> struct Guard {
     Guard(Buffer *parent, quint8 length, device::ID id, packet::Flags flags)
-        : _parent(parent), _data(perm ? parent->palloc(length, id, flags)
-                                      : parent->talloc(length, id, flags)) {}
+        : _parent(parent),
+          _data(ephemeral ? parent->ealloc(length, id, flags)
+                          : parent->palloc(length, id, flags)) {}
     ~Guard() {
       if (!_data)
         ; // Don't commit an empty ptr.
-      else if (perm)
-        _parent->pcommit();
+      else if (ephemeral)
+        _parent->ecommit();
       else
-        _parent->tcommit();
+        _parent->pcommit();
     }
     operator bool() { return _data != nullptr; }
     void *data() { return _data; }
@@ -198,10 +205,10 @@ protected:
   [[nodiscard]] virtual void *palloc(quint8 length, device::ID id,
                                      packet::Flags flags) = 0;
   virtual void pcommit() = 0;
-  // Allocate and commit temporary traces.
-  [[nodiscard]] virtual void *talloc(quint8 length, device::ID id,
+  // Allocate and commit ephemeral traces.
+  [[nodiscard]] virtual void *ealloc(quint8 length, device::ID id,
                                      packet::Flags flags) = 0;
-  virtual void tcommit() = 0;
+  virtual void ecommit() = 0;
 };
 
 struct Producer {
