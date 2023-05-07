@@ -1,4 +1,5 @@
 #include "./system.hpp"
+#include "obj/bytes.hpp"
 #include "obj/memmap.hpp"
 #include "obj/mmio.hpp"
 #include "sim/device/broadcast/mmi.hpp"
@@ -90,7 +91,7 @@ targets::pep10::isa::System::System(QList<obj::MemoryRegion> regions,
       // Disk in must not raise an error, otherwise loader will not work.
       else if (mmio.name == "diskIn") {
         mem->setFailPolicy(sim::api::memory::FailPolicy::YieldDefaultValue);
-        mem->clear(0x03 /*ASCII end of text*/);
+        mem->clear('z' /*Loader sentinel character*/);
       }
     } else {
       auto mem = QSharedPointer<sim::memory::Output<quint16>>::create(
@@ -222,14 +223,22 @@ targets::pep10::isa::systemFromElf(const ELFIO::elfio &elf,
   } else {
     for (auto buffer : buffers) {
       auto mmi = ret->input(buffer.portName);
-      auto endpoint = mmi->endpoint();
-      auto seg = buffer.seg;
       Q_ASSERT(mmi != nullptr);
-      for (int i = 0; i < seg->get_memory_size(); i++) {
-        auto byte = i < seg->get_file_size() ? seg->get_data()[i] : 0;
+      auto endpoint = mmi->endpoint();
+      auto bytesAsHex = obj::segmentAsAsciiHex(buffer.seg);
+      /*std::cout << "[SGLD]<";
+      std::cout.write((char *)bytesAsHex.data(), bytesAsHex.size());
+      std::cout << std::endl;*/
+      for (auto byte : bytesAsHex)
         endpoint->append_value(byte);
-      }
     }
+
+    auto diskIn = ret->input("diskIn");
+    Q_ASSERT(diskIn != nullptr);
+    auto endpoint = diskIn->endpoint();
+    endpoint->append_value(' ');
+    endpoint->append_value('z');
+    endpoint->append_value('z');
   }
 
   if (auto bootFlg = obj::getBootFlagsAddress(elf); bootFlg)
