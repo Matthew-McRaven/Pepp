@@ -196,14 +196,12 @@ quint8 SimpleBus<Address>::packetSize(api::packet::Flags flags) const {
 template <typename Address>
 bool SimpleBus<Address>::applyTrace(void *payload, quint8 size,
                                     api::packet::Flags flags) {
-
   throw std::logic_error("unimplemented");
 }
 
 template <typename Address>
 bool SimpleBus<Address>::unapplyTrace(void *payload, quint8 size,
                                       api::packet::Flags flags) {
-
   throw std::logic_error("unimplemented");
 }
 
