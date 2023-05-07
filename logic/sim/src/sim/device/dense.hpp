@@ -176,6 +176,7 @@ sim::memory::Dense<Address>::write(Address address, const quint8 *src,
       error = api::memory::Error::Breakpoint;
     }
   }
+  auto offset = address - _span.minOffset;
   bool success = true, sync = false;
   if (op.effectful && _tb) {
     // Attempt to allocate space in the buffer for local trace packet.
@@ -183,14 +184,12 @@ sim::memory::Dense<Address>::write(Address address, const quint8 *src,
     // Even with success we might get nullptr, in which case the Buffer is
     // telling us it doesn't want our trace.
     if (packet != nullptr) {
-      auto offset = address - _span.minOffset;
       auto dest = detail::init(packet, length, offset, _device.id);
-      bits::memcpy(dest, _data.constData() + offset, length);
-      bits::memcpy_xor(dest, dest, src, length);
+      bits::memcpy_xor(dest, _data.constData() + offset, src, length);
     }
   }
   if (success)
-    bits::memcpy(_data.data() + (address - _span.minOffset), src, length);
+    bits::memcpy(_data.data() + offset, src, length);
   return {.completed = success, .pause = pause, .error = error};
 }
 
