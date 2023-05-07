@@ -4,7 +4,7 @@
 #include "sim/trace/common.hpp"
 namespace sim::memory {
 template <typename Address>
-class SimpleBus : public api::memory::Target<Address> {
+class SimpleBus : public api::memory::Target<Address>, api::trace::Producer {
 public:
   using AddressSpan = typename api::memory::Target<Address>::AddressSpan;
   SimpleBus(api::device::Descriptor device, AddressSpan span);
@@ -26,6 +26,15 @@ public:
   void setInterposer(sim::api::memory::Interposer<Address> *inter) override;
   void dump(quint8 *dest, qsizetype maxLen) const override;
 
+  // Producer interface
+  void setTraceBuffer(api::trace::Buffer *tb) override;
+  void trace(bool enabled) override;
+  quint8 packetSize(api::packet::Flags flags) const override;
+  bool applyTrace(void *payload, quint8 size,
+                  api::packet::Flags flags) override;
+  bool unapplyTrace(void *payload, quint8 size,
+                    api::packet::Flags flags) override;
+
   // Bus API
   void pushFrontTarget(AddressSpan at, api::memory::Target<Address> *target);
   api::memory::Target<Address> *deviceAt(Address address);
@@ -34,6 +43,7 @@ private:
   AddressSpan _span;
   api::device::Descriptor _device;
   api::memory::Interposer<Address> *_inter = nullptr;
+  api::trace::Buffer *_tb = nullptr;
 
   struct Region {
     AddressSpan span;
@@ -115,13 +125,35 @@ template <typename Address>
 api::memory::Result SimpleBus<Address>::read(Address address, quint8 *dest,
                                              Address length,
                                              api::memory::Operation op) const {
-  return access<quint8 *, false>(address, dest, length, op);
+  auto ret = access<quint8 *, false>(address, dest, length, op);
+  if (op.effectful && _tb) {
+    using Read = sim::trace::ReadPayload<Address>;
+    api::trace::Buffer::Guard<true> guard(
+        _tb, sizeof(api::packet::Packet<Read>), _device.id, Read::flags());
+    if (guard) {
+      auto payload = Read{.address = address, .length = length};
+      auto it = new (guard.data())
+          api::packet::Packet<Read>(_device.id, payload, Read::flags());
+    }
+  }
+  return ret;
 }
 template <typename Address>
 api::memory::Result SimpleBus<Address>::write(Address address,
                                               const quint8 *src, Address length,
                                               api::memory::Operation op) {
-  return access<const quint8 *, true>(address, src, length, op);
+  auto ret = access<const quint8 *, true>(address, src, length, op);
+  if (op.effectful && _tb) {
+    using Write = sim::trace::WriteThroughPayload<Address>;
+    api::trace::Buffer::Guard<true> guard(
+        _tb, sizeof(api::packet::Packet<Write>), _device.id, Write::flags());
+    if (guard) {
+      auto payload = Write{.address = address, .length = length};
+      auto it = new (guard.data())
+          api::packet::Packet<Write>(_device.id, payload, Write::flags());
+    }
+  }
+  return ret;
 }
 
 template <typename Address> void SimpleBus<Address>::clear(quint8 fill) {
@@ -143,6 +175,36 @@ void SimpleBus<Address>::dump(quint8 *dest, qsizetype maxLen) const {
     auto adjust = rit->span.minOffset;
     rit->target->dump(dest + adjust, maxLen - adjust);
   }
+}
+
+template <typename Address>
+void SimpleBus<Address>::setTraceBuffer(api::trace::Buffer *tb) {
+  _tb = tb;
+  // TODO: cast memory targets to Producer and setTraceBuffer.
+}
+
+template <typename Address> void SimpleBus<Address>::trace(bool enabled) {
+  if (_tb)
+    _tb->trace(_device.id, enabled);
+}
+
+template <typename Address>
+quint8 SimpleBus<Address>::packetSize(api::packet::Flags flags) const {
+  throw std::logic_error("unimplemented");
+}
+
+template <typename Address>
+bool SimpleBus<Address>::applyTrace(void *payload, quint8 size,
+                                    api::packet::Flags flags) {
+
+  throw std::logic_error("unimplemented");
+}
+
+template <typename Address>
+bool SimpleBus<Address>::unapplyTrace(void *payload, quint8 size,
+                                      api::packet::Flags flags) {
+
+  throw std::logic_error("unimplemented");
 }
 
 template <typename Address>

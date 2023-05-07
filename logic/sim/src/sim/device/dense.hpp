@@ -83,6 +83,16 @@ sim::memory::Dense<Address>::read(Address address, quint8 *dest, Address length,
       error = api::memory::Error::Breakpoint;
     }
   }
+  if (op.effectful && _tb) {
+    using Read = sim::trace::ReadPayload<Address>;
+    api::trace::Buffer::Guard<true> guard(
+        _tb, sizeof(api::packet::Packet<Read>), _device.id, Read::flags());
+    if (guard) {
+      auto payload = Read{.address = address, .length = length};
+      auto it = new (guard.data())
+          api::packet::Packet<Read>(_device.id, payload, Read::flags());
+    }
+  }
   bits::memcpy(dest, _data.constData() + (address - _span.minOffset), length);
   return {.completed = true, .pause = pause, .error = error};
 }
