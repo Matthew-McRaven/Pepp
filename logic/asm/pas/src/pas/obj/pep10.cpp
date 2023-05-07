@@ -252,6 +252,7 @@ void pas::obj::pep10::writeOS(ELFIO::elfio &elf, ast::Node &os) {
   }
   Q_ASSERT(symTab != nullptr);
   ::obj::addMMIODeclarations(elf, symTab, mmios);
+  ::obj::setBootFlagAddress(elf);
 }
 
 void pas::obj::pep10::writeUser(ELFIO::elfio &elf, ast::Node &user) {
