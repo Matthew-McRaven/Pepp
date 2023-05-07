@@ -124,6 +124,8 @@ void targets::pep10::isa::System::setBootFlagAddress(quint16 addr) {
 void targets::pep10::isa::System::setBootFlags(bool enableLoader,
                                                bool enableDispatcher) {
   quint16 value = (enableLoader ? 1 << 0 : 0) | (enableDispatcher ? 1 << 1 : 0);
+  if (bits::hostOrder() != bits::Order::BigEndian)
+    value = bits::byteswap(value);
   if (_bootFlg) {
     auto ret =
         _bus->write(*_bootFlg, reinterpret_cast<quint8 *>(&value), 2, rw);
