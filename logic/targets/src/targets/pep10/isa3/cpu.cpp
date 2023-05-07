@@ -607,14 +607,14 @@ targets::pep10::isa::CPU::nonunaryDispatch(quint8 is, quint16 os, quint16 pc) {
   case mn::STBA:
     tmp = swap ? bits::byteswap(a) : a;
     mem_res =
-        _memory->write(operand, reinterpret_cast<quint8 *>(&tmp), 1, rw_d);
+        _memory->write(operand, reinterpret_cast<quint8 *>(&tmp) + 1, 1, rw_d);
     if (!mem_res.completed)
       qCritical() << "Failed to access memory";
     break;
   case mn::STBX:
     tmp = swap ? bits::byteswap(x) : x;
     mem_res =
-        _memory->write(operand, reinterpret_cast<quint8 *>(&tmp), 1, rw_d);
+        _memory->write(operand, reinterpret_cast<quint8 *>(&tmp) + 1, 1, rw_d);
     if (!mem_res.completed)
       qCritical() << "Failed to access memory";
     break;
