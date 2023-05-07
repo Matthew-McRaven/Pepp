@@ -266,13 +266,17 @@ template <typename Address> struct Target {
   };
   virtual ~Target() = default;
   virtual AddressSpan span() const = 0;
-  virtual Result read(Address address, quint8 *dest, quint8 length,
+  virtual Result read(Address address, quint8 *dest, Address length,
                       Operation op) const = 0;
-  virtual Result write(Address address, const quint8 *src, quint8 length,
+  virtual Result write(Address address, const quint8 *src, Address length,
                        Operation op) = 0;
   virtual void clear(quint8 fill) = 0;
 
   virtual void setInterposer(Interposer<Address> *inter) = 0;
+
+  // Return a QList of length maxOffset-minOffset+1, containing all the bytes of
+  // the target.
+  virtual void dump(quint8 *dest, qsizetype maxLen) const = 0;
 };
 
 template <typename Address> struct Initiator {
@@ -301,13 +305,6 @@ struct Scheduler {
 
 template <typename Address> struct System {
   virtual ~System() = default;
-  virtual void addTarget(const device::Descriptor device,
-                         memory::Target<Address> *target) = 0;
-  virtual void addClock(const device::Descriptor device,
-                        tick::Source *clock) = 0;
-  virtual void addClocked(const device::Descriptor device,
-                          tick::Listener *clocked) = 0;
-
   // Returns (current tick, result of ticking that clocked device).
   virtual std::pair<tick::Type, tick::Result> tick(Scheduler::Mode mode) = 0;
   virtual tick::Type currentTick() const = 0;

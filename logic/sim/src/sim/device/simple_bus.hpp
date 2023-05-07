@@ -18,12 +18,13 @@ public:
 
   // Target interface
   AddressSpan span() const override;
-  api::memory::Result read(Address address, quint8 *dest, quint8 length,
+  api::memory::Result read(Address address, quint8 *dest, Address length,
                            api::memory::Operation op) const override;
-  api::memory::Result write(Address address, const quint8 *src, quint8 length,
+  api::memory::Result write(Address address, const quint8 *src, Address length,
                             api::memory::Operation op) override;
   void clear(quint8 fill) override;
   void setInterposer(sim::api::memory::Interposer<Address> *inter) override;
+  void dump(quint8 *dest, qsizetype maxLen) const override;
 
   // Bus API
   void pushFrontTarget(AddressSpan at, api::memory::Target<Address> *target);
@@ -40,7 +41,7 @@ private:
   };
   Region regionAt(Address address);
   template <typename Data, bool w>
-  api::memory::Result access(Address address, Data data, quint8 length,
+  api::memory::Result access(Address address, Data data, Address length,
                              api::memory::Operation op) const {
     // Length is 1-indexed, address are 0, so must convert by -1.
     auto maxDestAddr = (address + qMax(0, length - 1));
@@ -69,7 +70,7 @@ private:
       // Compute how many bytes we can read without OOB'ing on the device.
       auto devSpan = region.target->span();
       auto devLength = devSpan.maxOffset - devSpan.minOffset + 1;
-      auto usableLength = std::min<Address>(length, devLength);
+      auto usableLength = std::min<qsizetype>(length, devLength);
 
       // Convert bus address => device address
       auto busToDev = (address + offset) - region.span.minOffset;
@@ -96,7 +97,7 @@ private:
   // Marked as mutable so that access can be const even when it is doing a
   // write. Reduces amount of code by 2x because read/write use same
   // implementation now.
-  mutable QVector<Region> _regions = {};
+  mutable QList<Region> _regions = {};
 };
 
 template <typename Address>
@@ -110,13 +111,13 @@ typename SimpleBus<Address>::AddressSpan SimpleBus<Address>::span() const {
 
 template <typename Address>
 api::memory::Result SimpleBus<Address>::read(Address address, quint8 *dest,
-                                             quint8 length,
+                                             Address length,
                                              api::memory::Operation op) const {
   return access<quint8 *, false>(address, dest, length, op);
 }
 template <typename Address>
 api::memory::Result SimpleBus<Address>::write(Address address,
-                                              const quint8 *src, quint8 length,
+                                              const quint8 *src, Address length,
                                               api::memory::Operation op) {
   return access<const quint8 *, true>(address, src, length, op);
 }
@@ -130,6 +131,16 @@ template <typename Address>
 void SimpleBus<Address>::setInterposer(
     sim::api::memory::Interposer<Address> *inter) {
   this->_inter = inter;
+}
+
+template <typename Address>
+void SimpleBus<Address>::dump(quint8 *dest, qsizetype maxLen) const {
+  if (maxLen <= 0)
+    throw std::logic_error("dump requires non-0 size");
+  for (auto rit = _regions.crbegin(); rit != _regions.crend(); ++rit) {
+    auto adjust = rit->span.minOffset;
+    rit->target->dump(dest + adjust, maxLen - adjust);
+  }
 }
 
 template <typename Address>

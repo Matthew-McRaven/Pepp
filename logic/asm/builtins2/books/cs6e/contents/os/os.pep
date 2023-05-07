@@ -19,19 +19,19 @@ false:   .EQUATE 0
 ;
 ;Place entry point flags in read-only memory, as these
 ;  may only be modified by the simulator.
-strtFlg: .WORD   3           ;Entry point flags
+bootFlg: .WORD   3           ;Entry point flags
 doLoad:  .EQUATE 0x0001      ;System entry point will load program from disk.
 doExec:  .EQUATE 0x0002      ;System entry point will execute the program
 
 ;
 ;******* System Entry Point
 disp:    LDWX    0,i         ;X <- 0
-         LDWA    strtFlg,d   ;Load start flags
+         LDWA    bootFlg,d   ;Load start flags
          ANDA    doLoad,i    ;Check if the start flags indicate
          BREQ    callMain    ;  loading is to be performed
          CALL    loader      ;If so, begin load
 
-callMain:LDWA    strtFlg,d  ;Reload start flags
+callMain:LDWA    bootFlg,d  ;Reload start flags
          ANDA    doExec,i   ;Check if the start flags indicate
          BREQ    shutdown   ;  user program is to be run
 ;Transfer control to method that will execute main
@@ -49,7 +49,7 @@ hang:    BR      hang
 ;
 retVal:  .EQUATE 0           ;Main return value #2d
 execMain:MOVSPA              ;Preserve system stack pointer
-         STWA    osSPTemp,d
+         STWA    initSp,d
          LDWA    osRAM,i     ;Load address of user stack
          MOVASP              ;Switch to user stack
          SUBSP   2,i         ;Allocate @param #retVal
@@ -61,7 +61,7 @@ execMain:MOVSPA              ;Preserve system stack pointer
 mainCln: LDWA    0,s         ;Load return value
          BRNE    mainErr     ;If retval is not zero, report error
          ADDSP   2,i         ;Deallocate @param #retVal
-         LDWA    osSPTemp,d  ;Restore system stack pointer
+         LDWA    initSp,d  ;Restore system stack pointer
          MOVASP              ;OS Stack might be clobbered during by syscalls
          BR      shutdown    ;  So branch instead of call
 ;

@@ -16,7 +16,7 @@ private slots:
    */
 
   void independentReferences() {
-    auto b1 = QSharedPointer<symbol::Table>::create();
+    auto b1 = QSharedPointer<symbol::Table>::create(2);
     auto b2 = b1->addChild();
     auto l1 = b1->addChild();
     auto l2 = b2->addChild();
@@ -33,7 +33,7 @@ private slots:
     QCOMPARE_NE(y, z);
   }
   void findByName() {
-    auto b1 = QSharedPointer<symbol::Table>::create();
+    auto b1 = QSharedPointer<symbol::Table>::create(2);
     auto b2 = b1->addChild();
     auto l1 = b1->addChild();
     auto l2 = b2->addChild();
@@ -54,7 +54,7 @@ private slots:
   }
   //  Dave: Added get tests
   void getByName() {
-    auto b1 = QSharedPointer<symbol::Table>::create();
+    auto b1 = QSharedPointer<symbol::Table>::create(2);
     auto b2 = b1->addChild();
     auto l1 = b1->addChild();
     auto l2 = b2->addChild();
@@ -76,7 +76,7 @@ private slots:
     QCOMPARE(z2, z2);
   }
   void existenceChecks() {
-    auto b1 = QSharedPointer<symbol::Table>::create();
+    auto b1 = QSharedPointer<symbol::Table>::create(2);
     auto b2 = b1->addChild();
     auto l1 = b1->addChild();
     auto l2 = b2->addChild();
@@ -111,7 +111,7 @@ private slots:
     QVERIFY(symbol::exists(l1, "y", symbol::TraversalPolicy::kWholeTree));
   }
   void localityOfDefines() {
-    auto b1 = QSharedPointer<symbol::Table>::create();
+    auto b1 = QSharedPointer<symbol::Table>::create(2);
     auto b2 = b1->addChild();
     auto l1 = b1->addChild();
     auto l2 = b2->addChild();
@@ -135,7 +135,7 @@ private slots:
     QCOMPARE(z->state, symbol::DefinitionState::kUndefined);
   }
   void singleValidGlobal() {
-    auto b1 = QSharedPointer<symbol::Table>::create();
+    auto b1 = QSharedPointer<symbol::Table>::create(2);
     auto b2 = b1->addChild();
     auto l1 = b1->addChild();
     auto l2 = b2->addChild();
@@ -166,7 +166,7 @@ private slots:
     QCOMPARE(z->state, symbol::DefinitionState::kExternalMultiple);
   }
   void multipleGlobal() {
-    auto b1 = QSharedPointer<symbol::Table>::create();
+    auto b1 = QSharedPointer<symbol::Table>::create(2);
     auto b2 = b1->addChild();
     auto l1 = b1->addChild();
     auto l2 = b2->addChild();

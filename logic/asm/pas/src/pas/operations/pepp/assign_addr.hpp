@@ -85,11 +85,11 @@ void pas::ops::pepp::detail::assignAddressesImpl(ast::Node &node, quint16 &base,
       auto other = symbolic->symbol();
       if (symbol::rootTable(other->parent.sharedFromThis()) ==
           symbol::rootTable(symbol->parent.sharedFromThis())) {
-        symbol->value =
-            QSharedPointer<symbol::value::InternalPointer>::create(other);
+        symbol->value = QSharedPointer<symbol::value::InternalPointer>::create(
+            sizeof(quint16), other);
       } else {
         symbol->value = QSharedPointer<symbol::value::ExternalPointer>::create(
-            other->parent.sharedFromThis(), other);
+            sizeof(quint16), other->parent.sharedFromThis(), other);
       }
     } else {
       auto bits = symbol::value::MaskedBits{
@@ -122,7 +122,8 @@ void pas::ops::pepp::detail::assignAddressesImpl(ast::Node &node, quint16 &base,
     auto isCode = node.has<ast::pepp::Instruction<ISA>>();
     auto symbol = node.get<ast::generic::SymbolDeclaration>().value;
     symbol->value = QSharedPointer<symbol::value::Location>::create(
-        2, symBase, 0, isCode ? symbol::Type::kCode : symbol::Type::kObject);
+        size, sizeof(quint16), symBase, 0,
+        isCode ? symbol::Type::kCode : symbol::Type::kObject);
   }
 }
 

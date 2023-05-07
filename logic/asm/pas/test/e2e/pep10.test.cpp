@@ -9,6 +9,8 @@
 #include "pas/obj/pep10.hpp"
 #include "pas/operations/generic/errors.hpp"
 #include "pas/operations/pepp/string.hpp"
+#include "sim/device/simple_bus.hpp"
+#include "targets/pep10/isa3/system.hpp"
 #include <QObject>
 #include <QTest>
 
@@ -105,6 +107,7 @@ private slots:
   }
 
   void unified() {
+    QFETCH(QString, figName);
     QFETCH(QString, chapter);
     QFETCH(QString, figure);
     QFETCH(QString, userBody);
@@ -154,46 +157,69 @@ private slots:
     pas::obj::pep10::combineSections(*userRoot);
     pas::obj::pep10::writeUser(elf, *userRoot);
     elf.save(u"%1.%2.elf"_qs.arg(chapter, figure).toStdString());
+    elf.load(u"%1.%2.elf"_qs.arg(chapter, figure).toStdString());
     QVERIFY(result);
 
     // Verify MMIO information.
     auto decs = ::obj::getMMIODeclarations(elf);
     QCOMPARE(decs.length(), 4);
-    QCOMPARE(std::find_if(decs.cbegin(), decs.cend(), is_diskIn), decs.cend());
-    QCOMPARE(std::find_if(decs.cbegin(), decs.cend(), is_charIn), decs.cend());
-    QCOMPARE(std::find_if(decs.cbegin(), decs.cend(), is_charOut), decs.cend());
-    QCOMPARE(std::find_if(decs.cbegin(), decs.cend(), is_pwrOff), decs.cend());
+    QCOMPARE_NE(std::find_if(decs.cbegin(), decs.cend(), is_diskIn),
+                decs.cend());
+    QCOMPARE_NE(std::find_if(decs.cbegin(), decs.cend(), is_charIn),
+                decs.cend());
+    QCOMPARE_NE(std::find_if(decs.cbegin(), decs.cend(), is_charOut),
+                decs.cend());
+    QCOMPARE_NE(std::find_if(decs.cbegin(), decs.cend(), is_pwrOff),
+                decs.cend());
 
     auto buf = ::obj::getMMIBuffers(elf);
     QCOMPARE(buf.size(), 1);
-
-    auto memMap = obj::getMemoryMap(elf);
+    auto memMap = obj::getLoadableSegments(elf);
+    auto mergeMap = obj::mergeSegmentRegions(memMap);
     if (isFullOS) {
-      QCOMPARE(memMap.size(), 4);
-      // user memory
-      memMap[0].seg = 0;
-      auto uMem = obj::AddressRegion{
-          .r = 1, .w = 1, .x = 1, .minOffset = 0, .maxOffset = 0xfa25};
-      QCOMPARE(memMap[0], uMem);
-      // System stack
-      memMap[1].seg = 0;
-      auto ss = obj::AddressRegion{
-          .r = 1, .w = 1, .x = 0, .minOffset = 0xfa26, .maxOffset = 0xfaad};
-      QCOMPARE(memMap[1], ss);
+      QCOMPARE(mergeMap.size(), 3);
+      // user memory + system stack
+      mergeMap[0].segs = {};
+      auto uMem = obj::MemoryRegion{
+          .r = 1, .w = 1, .minOffset = 0, .maxOffset = 0xfaad};
+      QCOMPARE(mergeMap[0], uMem);
       // OS text
-      memMap[2].seg = 0;
-      auto txt = obj::AddressRegion{
-          .r = 1, .w = 0, .x = 1, .minOffset = 0xfaae, .maxOffset = 0xfff9};
-      QCOMPARE(memMap[2], txt);
+      mergeMap[1].segs = {};
+      auto txt = obj::MemoryRegion{
+          .r = 1, .w = 0, .minOffset = 0xfaae, .maxOffset = 0xfff9};
+      QCOMPARE(mergeMap[1], txt);
       // Carveout for MMIO
-      memMap[3].seg = 0;
-      auto mmio = obj::AddressRegion{
-          .r = 1, .w = 1, .x = 0, .minOffset = 0xfffa, .maxOffset = 0xffff};
-      QCOMPARE(memMap[3], mmio);
+      mergeMap[2].segs = {};
+      auto mmio = obj::MemoryRegion{
+          .r = 1, .w = 1, .minOffset = 0xfffa, .maxOffset = 0xffff};
+      QCOMPARE(mergeMap[2], mmio);
+    }
+    // Must write to file to "finish" setting up segment values.
+    elf.save(u"%1.elf"_qs.arg(figName).toStdString());
+    QSharedPointer<targets::pep10::isa::System> sys;
+    QVERIFY_THROWS_NO_EXCEPTION([&sys, &elf]() {
+      sys = targets::pep10::isa::systemFromElf(elf, true);
+    }());
+    QVector<quint8> dump(0x1'00'00);
+    sys->bus()->dump(dump.data(), dump.size());
+    QFile memDump(u"%1.mem.bin"_qs.arg(figName));
+    if (memDump.open(QFile::WriteOnly)) {
+      memDump.write(reinterpret_cast<const char *>(dump.constData()),
+                    dump.size());
+      memDump.close();
+    }
+
+    auto bootFlg = ::obj::getBootFlagsAddress(elf);
+    auto systemBootFlg = sys->getBootFlagAddress();
+    QCOMPARE(bootFlg.has_value(), systemBootFlg.has_value());
+    if (bootFlg) {
+      QCOMPARE(*bootFlg, 0xfaae);
+      QCOMPARE(*systemBootFlg, *bootFlg);
+      QCOMPARE(sys->getBootFlags(), 3);
     }
   }
-
   void unified_data() {
+    QTest::addColumn<QString>("figName");
     QTest::addColumn<QString>("chapter");
     QTest::addColumn<QString>("figure");
     QTest::addColumn<QString>("userBody");
@@ -216,6 +242,7 @@ private slots:
       auto chName = fig->chapterName().toStdString();
       auto figName = fig->figureName().toStdString();
       QTest::addRow("Figure %s.%s with OS", chName.data(), figName.data())
+          << u"%1.%2"_qs.arg(fig->chapterName()).arg(fig->figureName())
           << fig->chapterName() << fig->figureName()
           << fig->typesafeElements()["pep"]->contents
           << defaultOS->typesafeElements()["pep"]->contents

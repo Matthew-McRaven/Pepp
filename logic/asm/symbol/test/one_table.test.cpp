@@ -8,14 +8,14 @@ class Symbol1Table : public QObject {
   Q_OBJECT
 private slots:
   void findByName() {
-    auto st = QSharedPointer<symbol::Table>::create();
+    auto st = QSharedPointer<symbol::Table>::create(2);
     auto x = st->reference("hello");
     auto y = st->reference("hello");
     QCOMPARE(x, y);
   }
   //  Dave: Added get tests
   void getByName() {
-    auto st = QSharedPointer<symbol::Table>::create();
+    auto st = QSharedPointer<symbol::Table>::create(2);
     auto z = st->get("hello");
     QCOMPARE(z, std::nullopt);
     auto x = st->reference("hello");
@@ -23,13 +23,13 @@ private slots:
     QCOMPARE(x, y);
   }
   void getByReferences() {
-    auto st = QSharedPointer<symbol::Table>::create();
+    auto st = QSharedPointer<symbol::Table>::create(2);
     auto x = st->reference("hello");
     auto y = st->reference("Hello");
     QCOMPARE_NE(x, y);
   }
   void caseSensitive() {
-    auto st = QSharedPointer<symbol::Table>::create();
+    auto st = QSharedPointer<symbol::Table>::create(2);
     // Discard reference returned by st.
     st->reference("hello");
     //  Uses visitor pattern in visit.hpp
@@ -38,7 +38,7 @@ private slots:
     QVERIFY(symbol::exists(st, "hello"));
   }
   void existenceChecksTable() {
-    auto st = QSharedPointer<symbol::Table>::create();
+    auto st = QSharedPointer<symbol::Table>::create(2);
     st->reference("hello");
     //  Uses table specific exists function
     QVERIFY(!st->exists("bye"));
@@ -46,7 +46,7 @@ private slots:
     QVERIFY(st->exists("hello"));
   }
   void existenceChecksFunction() {
-    auto st = QSharedPointer<symbol::Table>::create();
+    auto st = QSharedPointer<symbol::Table>::create(2);
     // Discard reference returned by st.
     st->reference("hello");
     //  Uses visitor pattern in visit.hpp
@@ -55,7 +55,7 @@ private slots:
     QVERIFY(symbol::exists(st, "hello"));
   }
   void progressThroughDefinitionStates() {
-    auto st = QSharedPointer<symbol::Table>::create();
+    auto st = QSharedPointer<symbol::Table>::create(2);
     auto x = st->reference("hello");
     QCOMPARE(x->state, symbol::DefinitionState::kUndefined);
     st->define(x->name);
@@ -66,7 +66,7 @@ private slots:
     // CHECK(x.use_count() == 2);
   }
   void defineBeforeReference() {
-    auto st = QSharedPointer<symbol::Table>::create();
+    auto st = QSharedPointer<symbol::Table>::create(2);
     st->define("hello");
     auto x = st->reference("hello");
     QCOMPARE(x->state, symbol::DefinitionState::kSingle);
@@ -75,14 +75,14 @@ private slots:
   // same symbol.
   //  Dave: Test that define works like Reference
   void findByNameDefine() {
-    auto st = QSharedPointer<symbol::Table>::create();
+    auto st = QSharedPointer<symbol::Table>::create(2);
     auto x = st->define("hello");
     auto y = st->define("hello");
     QCOMPARE(x->state, symbol::DefinitionState::kMultiple);
     QCOMPARE(x, y);
   }
   void defineAndGet() {
-    auto st = QSharedPointer<symbol::Table>::create();
+    auto st = QSharedPointer<symbol::Table>::create(2);
     auto z = st->get("hello");
     QCOMPARE(z, std::nullopt);
     auto x = st->define("hello");
@@ -90,13 +90,13 @@ private slots:
     QCOMPARE(x, y);
   }
   void defineCaseSensitive() {
-    auto st = QSharedPointer<symbol::Table>::create();
+    auto st = QSharedPointer<symbol::Table>::create(2);
     auto x = st->define("hello");
     auto y = st->define("Hello");
     QCOMPARE_NE(x, y);
   }
   void defineAndExists() {
-    auto st = QSharedPointer<symbol::Table>::create();
+    auto st = QSharedPointer<symbol::Table>::create(2);
     st->define("hello");
     QVERIFY(!st->exists("bye"));
     QVERIFY(!st->exists("Hello"));
@@ -104,7 +104,7 @@ private slots:
   }
   void multiReference() {
     for (int it = 0; it < 4; it++) {
-      auto st = QSharedPointer<symbol::Table>::create();
+      auto st = QSharedPointer<symbol::Table>::create(2);
       for (int i = 0; i < it; i++)
         st->reference("hello");
       QCOMPARE(st->reference("hello")->state,
@@ -113,7 +113,7 @@ private slots:
   }
   void multiDefines() {
     for (int it = 2; it < 4; it++) {
-      auto st = QSharedPointer<symbol::Table>::create();
+      auto st = QSharedPointer<symbol::Table>::create(2);
       for (int i = 0; i < it; i++)
         st->define("hello");
       QCOMPARE(st->reference("hello")->state,
@@ -121,17 +121,17 @@ private slots:
     }
   }
   void allOffsetModification() {
-    auto st = QSharedPointer<symbol::Table>::create();
+    auto st = QSharedPointer<symbol::Table>::create(2);
     auto x0 = st->define("h0");
     auto x1 = st->define("h1");
     auto x2 = st->define("h2");
 
     x0->value = QSharedPointer<symbol::value::Location>::create(
-        2, 10, 0, symbol::Type::kObject);
+        2, 2, 10, 0, symbol::Type::kObject);
     x1->value = QSharedPointer<symbol::value::Location>::create(
-        2, 20, 0, symbol::Type::kObject);
+        2, 2, 20, 0, symbol::Type::kObject);
     x2->value = QSharedPointer<symbol::value::Location>::create(
-        2, 30, 0, symbol::Type::kCode);
+        2, 2, 30, 0, symbol::Type::kCode);
     symbol::adjustOffset(st, 1, 10);
 
     QCOMPARE(x0->value->value()(), 11);
@@ -139,24 +139,24 @@ private slots:
     QCOMPARE(x2->value->value()(), 31);
   }
   void listingNoThrow() {
-    auto st = QSharedPointer<symbol::Table>::create();
+    auto st = QSharedPointer<symbol::Table>::create(2);
     auto x0 = st->define("h0");
     auto x1 = st->define("h1");
     auto x2 = st->define("h2");
     QVERIFY_THROWS_NO_EXCEPTION(symbol::tableListing(st, 2));
   }
   void thresholdOffsetModification() {
-    auto st = QSharedPointer<symbol::Table>::create();
+    auto st = QSharedPointer<symbol::Table>::create(2);
     auto x0 = st->define("h0");
     auto x1 = st->define("h1");
     auto x2 = st->define("h2");
 
     x0->value = QSharedPointer<symbol::value::Location>::create(
-        2, 10, 0, symbol::Type::kObject);
+        2, 2, 10, 0, symbol::Type::kObject);
     x1->value = QSharedPointer<symbol::value::Location>::create(
-        2, 20, 0, symbol::Type::kObject);
+        2, 2, 20, 0, symbol::Type::kObject);
     x2->value = QSharedPointer<symbol::value::Location>::create(
-        2, 30, 0, symbol::Type::kCode);
+        2, 2, 30, 0, symbol::Type::kCode);
     symbol::adjustOffset(st, -1, 12);
 
     QCOMPARE(x0->value->value()(), 10);
@@ -164,7 +164,7 @@ private slots:
     QCOMPARE(x2->value->value()(), 29);
   }
   void redundantMarkGlobal() {
-    auto st = QSharedPointer<symbol::Table>::create();
+    auto st = QSharedPointer<symbol::Table>::create(2);
     auto x = st->reference("hello");
     st->markGlobal("hello");
     st->markGlobal("hello");
@@ -172,7 +172,7 @@ private slots:
     QCOMPARE(x->state, symbol::DefinitionState::kUndefined);
   }
   void globalwithDefine() {
-    auto st = QSharedPointer<symbol::Table>::create();
+    auto st = QSharedPointer<symbol::Table>::create(2);
     auto x = st->define("hello");
     st->markGlobal("hello");
     st->markGlobal("hello"); //  Ignored

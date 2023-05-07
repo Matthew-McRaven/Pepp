@@ -52,7 +52,7 @@ private slots:
     auto base = 7;
     auto start_offset = 11, end_offset = 13;
     auto value =
-        symbol::value::Location(2, base, start_offset, symbol::Type::kCode);
+        symbol::value::Location(2, 2, base, start_offset, symbol::Type::kCode);
     QCOMPARE(value.value()(), base + start_offset);
     QVERIFY_THROWS_NO_EXCEPTION(value.setOffset(end_offset));
     QCOMPARE(value.value()(), base + end_offset);

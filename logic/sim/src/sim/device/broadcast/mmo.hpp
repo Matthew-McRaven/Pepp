@@ -20,12 +20,13 @@ public:
 
   // Target interface
   AddressSpan span() const override;
-  api::memory::Result read(Address address, quint8 *dest, quint8 length,
+  api::memory::Result read(Address address, quint8 *dest, Address length,
                            api::memory::Operation op) const override;
-  api::memory::Result write(Address address, const quint8 *src, quint8 length,
+  api::memory::Result write(Address address, const quint8 *src, Address length,
                             api::memory::Operation op) override;
   void clear(quint8 fill) override;
   void setInterposer(api::memory::Interposer<Address> *inter) override;
+  void dump(quint8 *dest, qsizetype maxLen) const override;
 
   // Producer interface
   void setTraceBuffer(api::trace::Buffer *tb) override;
@@ -68,7 +69,7 @@ typename Output<Address>::AddressSpan Output<Address>::span() const {
 
 template <typename Address>
 api::memory::Result Output<Address>::read(Address address, quint8 *dest,
-                                          quint8 length,
+                                          Address length,
                                           api::memory::Operation op) const {
   // Length is 1-indexed, address are 0, so must convert by -1.
   auto maxDestAddr = (address + qMax(0, length - 1));
@@ -85,7 +86,7 @@ api::memory::Result Output<Address>::read(Address address, quint8 *dest,
 
 template <typename Address>
 api::memory::Result Output<Address>::write(Address address, const quint8 *src,
-                                           quint8 length,
+                                           Address length,
                                            api::memory::Operation op) {
   // Length is 1-indexed, address are 0, so must convert by -1.
   auto maxDestAddr = (address + qMax(0, length - 1));
@@ -119,6 +120,14 @@ template <typename Address> void Output<Address>::clear(quint8 fill) {
 template <typename Address>
 void Output<Address>::setInterposer(api::memory::Interposer<Address> *inter) {
   _inter = inter;
+}
+
+template <typename Address>
+void Output<Address>::dump(quint8 *dest, qsizetype maxLen) const {
+  if (maxLen <= 0)
+    throw std::logic_error("dump requires non-0 size");
+  auto v = *_endpoint->current_value();
+  bits::memcpy(dest, &v, std::min<quint64>(sizeof(v), maxLen));
 }
 
 template <typename Address>

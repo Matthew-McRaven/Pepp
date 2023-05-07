@@ -81,7 +81,7 @@ public:
   };
   using child_iterator = QList<QSharedPointer<symbol::Table>>::iterator;
   //! Default constructor only used for top level Tables
-  Table() = default;
+  explicit Table(quint16 pointerSize);
   [[maybe_unused]] explicit Table(QSharedPointer<Table> parent);
   ~Table() = default;
 
@@ -157,7 +157,11 @@ public:
   //! is the root of the tree.
   const QWeakPointer<Table> parent;
 
+  //! Number of bytes needed to store a pointer to another symbol
+  quint16 pointerSize() const;
+
 private:
+  quint16 _pointerSize;
   QList<QSharedPointer<Table>> _children;
   map_t _name_to_entry;
 };

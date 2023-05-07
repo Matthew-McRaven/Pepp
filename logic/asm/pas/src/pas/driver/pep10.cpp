@@ -122,7 +122,7 @@ pas::driver::pep10::stages(QString body, Features feats) {
   target->stage = Stage::Start;
   target->kind =
       feats.isOS ? Target<Stage>::Kind::OS : Target<Stage>::Kind::User;
-  target->symbolTable = QSharedPointer<symbol::Table>::create();
+  target->symbolTable = QSharedPointer<symbol::Table>::create(2);
   target->bodies[repr::Source::name] =
       QVariant::fromValue(repr::Source{.value = body});
 
