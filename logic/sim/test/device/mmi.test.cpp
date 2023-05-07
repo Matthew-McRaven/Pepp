@@ -44,6 +44,10 @@ private slots:
     QCOMPARE(tmp, 20);
     // Out of MMI
     QCOMPARE(in->read(0, &tmp, 1, rw).error, sim::api::memory::Error::NeedsMMI);
+    // Soft-fail MMI, should yield default value
+    in->setFailPolicy(sim::api::memory::FailPolicy::YieldDefaultValue);
+    QVERIFY(in->read(0, &tmp, 1, rw).completed);
+    QCOMPARE(tmp, 0);
   }
   // TODO: Unread
 };
