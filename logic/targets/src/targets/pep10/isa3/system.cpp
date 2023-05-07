@@ -5,6 +5,7 @@
 #include "sim/device/broadcast/mmo.hpp"
 #include "sim/device/simple_bus.hpp"
 #include "targets/pep10/isa3/cpu.hpp"
+#include "targets/pep10/isa3/helpers.hpp"
 
 using AddressSpan = sim::api::memory::Target<quint16>::AddressSpan;
 sim::api::device::Descriptor desc_cpu(sim::api::device::ID id) {
@@ -107,6 +108,50 @@ void targets::pep10::isa::System::setTraceBuffer(
   throw std::logic_error("Unimplemented");
 }
 
+void targets::pep10::isa::System::setBootFlagAddress(quint16 addr) {
+  _bootFlg = addr;
+}
+
+void targets::pep10::isa::System::setBootFlags(bool enableLoader,
+                                               bool enableDispatcher) {
+  quint16 value = (enableLoader ? 1 << 0 : 0) | (enableDispatcher ? 1 << 1 : 0);
+  if (_bootFlg) {
+    auto ret =
+        _bus->write(*_bootFlg, reinterpret_cast<quint8 *>(&value), 2, rw);
+    Q_ASSERT(ret.completed);
+  }
+}
+
+std::optional<quint16> targets::pep10::isa::System::getBootFlagAddress() {
+  return _bootFlg;
+}
+
+quint16 targets::pep10::isa::System::getBootFlags() const {
+  quint8 buf[2];
+  bits::memclr(buf, 2);
+  if (_bootFlg) {
+    auto ret = _bus->read(*_bootFlg, buf, 2, rw);
+    Q_ASSERT(ret.completed);
+  }
+  return bits::memcpy_endian<quint16>(buf, bits::Order::BigEndian, 2);
+}
+
+void targets::pep10::isa::System::init() {
+  quint8 buf[2];
+  // Initalize PC to dispatcher
+  _bus->read(static_cast<quint16>(::isa::Pep10::MemoryVectors::Dispatcher), buf,
+             2, rw);
+  writeRegister(cpu()->regs(), ::isa::Pep10::Register::PC,
+                bits::memcpy_endian<quint16>(buf, bits::Order::BigEndian, 2),
+                rw);
+  // Initalize SP to system stack pointer
+  _bus->read(static_cast<quint16>(::isa::Pep10::MemoryVectors::SystemStackPtr),
+             buf, 2, rw);
+  writeRegister(cpu()->regs(), ::isa::Pep10::Register::SP,
+                bits::memcpy_endian<quint16>(buf, bits::Order::BigEndian, 2),
+                rw);
+}
+
 targets::pep10::isa::CPU *targets::pep10::isa::System::cpu() { return &*_cpu; }
 
 sim::memory::SimpleBus<quint16> *targets::pep10::isa::System::bus() {
@@ -167,6 +212,8 @@ targets::pep10::isa::systemFromElf(ELFIO::elfio &elf, bool loadUserImmediate) {
     }
   }
 
-  // TODO: Determine what the dispatcher flags should be, from ELF + params.
+  if (auto bootFlg = obj::getBootFlagsAddress(elf); bootFlg)
+    ret->setBootFlagAddress(*bootFlg);
+
   return ret;
 }

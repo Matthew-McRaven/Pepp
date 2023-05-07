@@ -27,6 +27,12 @@ public:
   sim::api::device::IDGenerator nextIDGenerator() override;
   void setTraceBuffer(sim::api::trace::Buffer *buffer) override;
 
+  // Set default register values, modify dispatcher / loader behavior.
+  void setBootFlagAddress(quint16 addr);
+  void setBootFlags(bool enableLoader = true, bool enableDispatcher = true);
+  std::optional<quint16> getBootFlagAddress();
+  quint16 getBootFlags() const;
+  void init();
   CPU *cpu();
   sim::memory::SimpleBus<quint16> *bus();
   QStringList inputs() const;
@@ -40,6 +46,7 @@ private:
     return _nextID++;
   };
   sim::api::tick::Type _tick = 0;
+  std::optional<quint16> _bootFlg = std::nullopt;
 
   QSharedPointer<CPU> _cpu;
   QSharedPointer<sim::memory::SimpleBus<quint16>> _bus;
