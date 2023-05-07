@@ -84,6 +84,14 @@ targets::pep10::isa::System::System(QList<obj::MemoryRegion> regions,
           AddressSpan{.minOffset = mmio.minOffset, .maxOffset = mmio.maxOffset},
           &*mem);
       _mmi[mmio.name] = mem;
+      // By default, charIn should raise an error when it runs out of input.
+      if (mmio.name == "charIn")
+        mem->setFailPolicy(sim::api::memory::FailPolicy::RaiseError);
+      // Disk in must not raise an error, otherwise loader will not work.
+      else if (mmio.name == "diskIn") {
+        mem->setFailPolicy(sim::api::memory::FailPolicy::YieldDefaultValue);
+        mem->clear(0x03 /*ASCII end of text*/);
+      }
     } else {
       auto mem = QSharedPointer<sim::memory::Output<quint16>>::create(
           desc_mmi(nextID(), mmio.name), span);

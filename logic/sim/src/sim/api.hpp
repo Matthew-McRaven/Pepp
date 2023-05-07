@@ -230,6 +230,15 @@ struct Listener {
 } // namespace tick
 
 namespace memory {
+
+// If select memory operations fail (e.g., lack of MMI, unmapped address in
+// bus), specify the behavior of the target.
+enum class FailPolicy {
+  YieldDefaultValue, // The target picks some arbitrary default value, and
+                     // returns it successfully.
+  RaiseError         // The target returns an appropriate error message.
+};
+
 struct Operation {
   bool speculative;
   enum class Kind : bool { instruction = false, data = true } kind;

@@ -40,6 +40,7 @@ public:
   // Helpers
   QSharedPointer<typename detail::Channel<Address, quint8>::Endpoint>
   endpoint();
+  void setFailPolicy(api::memory::FailPolicy policy);
 
 private:
   quint8 _fill;
@@ -47,6 +48,7 @@ private:
   api::device::Descriptor _device;
   QSharedPointer<detail::Channel<Address, quint8>> _channel;
   QSharedPointer<typename detail::Channel<Address, quint8>::Endpoint> _endpoint;
+  api::memory::FailPolicy _policy = api::memory::FailPolicy::RaiseError;
 
   api::memory::Interposer<Address> *_inter = nullptr;
   api::trace::Buffer *_tb = nullptr;
@@ -93,9 +95,12 @@ api::memory::Result Input<Address>::read(Address address, quint8 *dest,
   if (!op.effectful) {
     quint8 tmp = *_endpoint->current_value();
     bits::memcpy(dest, &tmp, 1);
-  } else if (auto next = _endpoint->next_value(); !next) {
+  } else if (auto next = _endpoint->next_value();
+             _policy == api::memory::FailPolicy::RaiseError && !next) {
     completed = false;
     error = api::memory::Error::NeedsMMI;
+  } else if (_policy == api::memory::FailPolicy::YieldDefaultValue && !next) {
+    bits::memcpy(dest, &_fill, 1);
   } else {
     quint8 tmp = *next;
     bits::memcpy(dest, &tmp, 1);
@@ -168,6 +173,11 @@ template <typename Address>
 QSharedPointer<typename detail::Channel<Address, quint8>::Endpoint>
 Input<Address>::endpoint() {
   return _channel->new_endpoint();
+}
+
+template <typename Address>
+void Input<Address>::setFailPolicy(api::memory::FailPolicy policy) {
+  _policy = policy;
 }
 
 } // namespace sim::memory
