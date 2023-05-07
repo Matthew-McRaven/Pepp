@@ -243,6 +243,7 @@ enum class Error : quint8 {
   NeedsMMI,   // Attempted to read MMI that had no buffered input.
   Breakpoint, // Memory access triggered a breakpoint.
   Terminate,  // Generic failure condition.
+  writeToRO,  // Attempt to write to read-only memory.
 };
 
 struct Result {
