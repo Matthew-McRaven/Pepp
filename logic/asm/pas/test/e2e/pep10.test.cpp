@@ -208,8 +208,16 @@ private slots:
                     dump.size());
       memDump.close();
     }
-  }
 
+    auto bootFlg = ::obj::getBootFlagsAddress(elf);
+    auto systemBootFlg = sys->getBootFlagAddress();
+    QCOMPARE(bootFlg.has_value(), systemBootFlg.has_value());
+    if (bootFlg) {
+      QCOMPARE(*bootFlg, 0xfaae);
+      QCOMPARE(*systemBootFlg, *bootFlg);
+      QCOMPARE(sys->getBootFlags(), 3);
+    }
+  }
   void unified_data() {
     QTest::addColumn<QString>("figName");
     QTest::addColumn<QString>("chapter");
