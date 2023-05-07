@@ -116,7 +116,6 @@ sim::memory::SimpleBus<quint16> *targets::pep10::isa::System::bus() {
 QStringList targets::pep10::isa::System::inputs() const { return _mmi.keys(); }
 
 sim::memory::Input<quint16> *targets::pep10::isa::System::input(QString name) {
-
   if (auto find = _mmi.find(name); find != _mmi.end())
     return &**find;
   return nullptr;
