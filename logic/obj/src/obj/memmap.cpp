@@ -3,7 +3,10 @@
 QList<obj::SegmentRegion> obj::getLoadableSegments(const ELFIO::elfio &elf) {
   auto ret = QList<obj::SegmentRegion>{};
   for (auto &seg : elf.segments) {
-    if (seg->get_type() != ELFIO::PT_LOAD)
+    // Treat buffered segments as loadable, otherwise there will be a memory
+    // hole where the buffered segments are supposed to go.
+    if (!(seg->get_type() == ELFIO::PT_LOAD ||
+          seg->get_type() == ELFIO::PT_LOPROC + 1))
       continue;
     bool r = seg->get_flags() & ELFIO::PF_R, w = seg->get_flags() & ELFIO::PF_W,
          x = seg->get_flags() & ELFIO::PF_X;
@@ -25,22 +28,33 @@ obj::mergeSegmentRegions(QList<SegmentRegion> regions) {
   auto ret = QList<obj::MemoryRegion>{};
   auto similar = [](const MemoryRegion &reg, const SegmentRegion &seg) {
     return reg.r == seg.r && reg.w == seg.w &&
-           reg.maxOffset + 1 == seg.minOffset;
+           // Check overlap from either end, PT_LOAD segments are sorted by
+           // vaddr, but buffered segments are not.
+           (reg.maxOffset + 1 == seg.minOffset ||
+            seg.maxOffset + 1 == reg.minOffset);
   };
   for (auto &reg : regions) {
-    if (ret.size() > 0 && similar(ret.back(), reg)) {
-      auto &back = ret.back();
-      back.maxOffset = reg.maxOffset;
-      back.segs.push_back(reg.seg);
-    } else {
+    bool found = false;
+    // Attempt to merge the newly visited region into an exising region if
+    // possible. Necessary otherwise we end up with too many memory chips and
+    // lose perf.
+    for (auto &it : ret) {
+      if (!similar(it, reg))
+        continue;
+      it.maxOffset = std::max(it.maxOffset, reg.maxOffset);
+      it.minOffset = std::min(it.minOffset, reg.minOffset);
+      // Prevent non-loading segments from being auto-loaded at system creation.
+      // i.e., user programs.
+      if (reg.seg->get_type() == ELFIO::PT_LOAD)
+        it.segs.push_back(reg.seg);
+      found = true;
+    }
+    if (!found)
       ret.push_back(MemoryRegion{.r = reg.r,
                                  .w = reg.w,
                                  .minOffset = reg.minOffset,
                                  .maxOffset = reg.maxOffset,
-                                 .segs = {reg.seg}
-
-      });
-    }
+                                 .segs = {reg.seg}});
   }
   return ret;
 }

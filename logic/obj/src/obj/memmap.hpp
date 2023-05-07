@@ -17,6 +17,7 @@ struct MemoryRegion {
   bool r, w;
   quint16 minOffset, maxOffset;
   QList<const ELFIO::segment *> segs;
+  bool operator==(const MemoryRegion &other) const = default;
 };
 // Merge "similar" SegmentRegion's into a single effective unit.
 // Reduces the number of unique memory targets needed to implement system.

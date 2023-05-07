@@ -54,9 +54,12 @@ targets::pep10::isa::System::System(QList<obj::MemoryRegion> regions,
     // Perform load!
     quint16 base = 0;
     for (const auto seg : reg.segs) {
-      mem->write(base, reinterpret_cast<const quint8 *>(seg->get_data()),
-                 seg->get_file_size(), rw);
-      base += seg->get_file_size();
+      auto fileData = seg->get_data();
+      auto size = seg->get_file_size();
+      if (fileData == nullptr)
+        continue;
+      mem->write(base, reinterpret_cast<const quint8 *>(fileData), size, rw);
+      base += size;
     }
   }
 
@@ -143,9 +146,11 @@ targets::pep10::isa::systemFromElf(ELFIO::elfio &elf, bool loadUserImmediate) {
     quint16 address = 0;
     auto bus = ret->bus();
     for (auto buffer : buffers) {
-      const auto ret = bus->write(
-          address, reinterpret_cast<const quint8 *>(buffer.seg->get_data()),
-          buffer.seg->get_memory_size(), rw);
+      auto ptr = reinterpret_cast<const quint8 *>(buffer.seg->get_data());
+      if (ptr == nullptr)
+        continue;
+      const auto ret =
+          bus->write(address, ptr, buffer.seg->get_memory_size(), rw);
       Q_ASSERT(ret.completed);
       Q_ASSERT(ret.error == sim::api::memory::Error::Success);
       address += buffer.seg->get_memory_size();

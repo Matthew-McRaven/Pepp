@@ -263,5 +263,15 @@ void pas::obj::pep10::writeUser(ELFIO::elfio &elf, ast::Node &user) {
     if (seg->get_type() != ELFIO::PT_LOPROC + 0x1)
       continue;
     ::obj::addMMIBuffer(elf, seg.get());
+    // The "buffered" segments need to not overlap with default RWX segment,
+    // otherwise user program will always be loaded automatically.
+    // So, adjust the addreses+sizes of the default segment to exclude our
+    // buffered one.
+    auto newAddr = seg->get_physical_address() + seg->get_memory_size();
+    auto delta = newAddr - elf.segments[0]->get_physical_address();
+    elf.segments[0]->set_physical_address(newAddr);
+    elf.segments[0]->set_virtual_address(newAddr);
+    elf.segments[0]->set_memory_size(elf.segments[0]->get_memory_size() -
+                                     delta);
   }
 }
