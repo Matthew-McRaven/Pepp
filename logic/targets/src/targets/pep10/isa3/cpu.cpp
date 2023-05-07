@@ -900,7 +900,7 @@ targets::pep10::isa::CPU::decodeLoadOperand(quint8 is, quint16 os,
     mem_res = _memory->read(
         os, reinterpret_cast<quint8 *>(&decoded) + int(isByte ? 1 : 0),
         isByte ? 1 : 2, rw_i);
-    if (!swap)
+    if (swap)
       decoded = bits::byteswap(decoded);
     break;
   case am::N:
