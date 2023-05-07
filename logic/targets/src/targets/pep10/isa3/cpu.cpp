@@ -898,7 +898,7 @@ targets::pep10::isa::CPU::decodeLoadOperand(quint8 is, quint16 os,
     break;
   case am::D:
     mem_res = _memory->read(
-        os, reinterpret_cast<quint8 *>(&decoded) + int(isByte ? 1 : 0),
+        os, reinterpret_cast<quint8 *>(&decoded) + int(isByte && swap ? 1 : 0),
         isByte ? 1 : 2, rw_i);
     if (swap)
       decoded = bits::byteswap(decoded);
@@ -910,16 +910,17 @@ targets::pep10::isa::CPU::decodeLoadOperand(quint8 is, quint16 os,
 
     if (swap)
       decoded = bits::byteswap(decoded);
-    mem_res = _memory->read(
-        decoded, reinterpret_cast<quint8 *>(&decoded) + int(isByte ? 1 : 0),
-        isByte ? 1 : 2, rw_i);
+    mem_res = _memory->read(decoded,
+                            reinterpret_cast<quint8 *>(&decoded) +
+                                int(isByte && swap ? 1 : 0),
+                            isByte ? 1 : 2, rw_i);
     if (swap)
       decoded = bits::byteswap(decoded);
     break;
   case am::S:
     mem_res = _memory->read(os + readReg(Register::SP),
                             reinterpret_cast<quint8 *>(&decoded) +
-                                int(isByte ? 1 : 0),
+                                int(isByte && swap ? 1 : 0),
                             isByte ? 1 : 2, rw_i);
     if (swap)
       decoded = bits::byteswap(decoded);
@@ -927,7 +928,7 @@ targets::pep10::isa::CPU::decodeLoadOperand(quint8 is, quint16 os,
   case am::X:
     mem_res = _memory->read(os + readReg(Register::X),
                             reinterpret_cast<quint8 *>(&decoded) +
-                                int(isByte ? 1 : 0),
+                                int(isByte && swap ? 1 : 0),
                             isByte ? 1 : 2, rw_i);
     if (swap)
       decoded = bits::byteswap(decoded);
@@ -935,7 +936,7 @@ targets::pep10::isa::CPU::decodeLoadOperand(quint8 is, quint16 os,
   case am::SX:
     mem_res = _memory->read(os + readReg(Register::SP) + readReg(Register::X),
                             reinterpret_cast<quint8 *>(&decoded) +
-                                int(isByte ? 1 : 0),
+                                int(isByte && swap ? 1 : 0),
                             isByte ? 1 : 2, rw_i);
     if (swap)
       decoded = bits::byteswap(decoded);
@@ -948,9 +949,10 @@ targets::pep10::isa::CPU::decodeLoadOperand(quint8 is, quint16 os,
 
     if (swap)
       decoded = bits::byteswap(decoded);
-    mem_res = _memory->read(
-        decoded, reinterpret_cast<quint8 *>(&decoded) + int(isByte ? 1 : 0),
-        isByte ? 1 : 2, rw_i);
+    mem_res = _memory->read(decoded,
+                            reinterpret_cast<quint8 *>(&decoded) +
+                                int(isByte && swap ? 1 : 0),
+                            isByte ? 1 : 2, rw_i);
     if (swap)
       decoded = bits::byteswap(decoded);
     break;
@@ -964,7 +966,7 @@ targets::pep10::isa::CPU::decodeLoadOperand(quint8 is, quint16 os,
       decoded = bits::byteswap(decoded);
     mem_res = _memory->read(decoded + readReg(Register::X),
                             reinterpret_cast<quint8 *>(&decoded) +
-                                int(isByte ? 1 : 0),
+                                int(isByte && swap ? 1 : 0),
                             isByte ? 1 : 2, rw_i);
     if (swap)
       decoded = bits::byteswap(decoded);
