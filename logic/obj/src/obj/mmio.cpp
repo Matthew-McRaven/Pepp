@@ -162,3 +162,73 @@ QList<obj::MMIBuffer> obj::getMMIBuffers(const ELFIO::elfio &elf) {
   }
   return ret;
 }
+
+static const quint8 bootFlagAddrSize = 2;
+static const quint8 bootFlagSizeSize = 2;
+void obj::setBootFlagAddress(ELFIO::elfio &elf, QString name) {
+  auto nameStd = name.toStdString();
+  // Temporaries to store symbols.
+  std::string _name;
+  ELFIO::Elf64_Addr value;
+  ELFIO::Elf_Xword size;
+  unsigned char bind, symbolType, other;
+  ELFIO::Elf_Half index;
+  for (int i = 0; i < elf.sections.size(); i++) {
+    auto sec = elf.sections[i];
+    if (sec->get_type() != ELFIO::SHT_SYMTAB)
+      continue;
+    auto symTabAc = ELFIO::const_symbol_section_accessor(elf, sec);
+    for (int j = 0; j < symTabAc.get_symbols_num(); j++) {
+      // Skip to next iteration if it does not name a valid symbol.
+      if (!symTabAc.get_symbol(j, _name, value, size, bind, symbolType, index,
+                               other))
+        continue;
+      if (nameStd == _name)
+        goto found;
+    }
+  }
+  return;
+found:
+  auto noteSec = addMMIONoteSection(elf);
+  auto noteAc = ELFIO::note_section_accessor(elf, noteSec);
+  quint8 desc[bootFlagAddrSize + bootFlagSizeSize];
+  bits::memcpy_endian(desc, bits::Order::BigEndian, bootFlagAddrSize, &value,
+                      bits::hostOrder(), bootFlagAddrSize);
+  bits::memcpy_endian(desc + bootFlagAddrSize, bits::Order::BigEndian,
+                      bootFlagSizeSize, &size, bits::hostOrder(),
+                      bootFlagSizeSize);
+  noteAc.add_note(0x10, "pepp.boot", (char *)desc, sizeof(desc));
+  ;
+}
+
+std::optional<quint16> obj::getBootFlagsAddress(const ELFIO::elfio &elf) {
+  auto noteSec = getMMIONoteSection(elf);
+  if (noteSec == nullptr)
+    return {};
+  auto noteAc = ELFIO::const_note_section_accessor(elf, noteSec);
+  std::optional<quint16> ret = std::nullopt;
+
+  ELFIO::Elf_Word noteType = 0, descSize = 0;
+  std::string name;
+  char *desc;
+  for (int it = 0; it < noteAc.get_notes_num(); it++) {
+    // Check that note exists and is from me.
+    if (!noteAc.get_note(it, noteType, name, desc, descSize))
+      continue;
+    else if (name != "pepp.boot")
+      continue;
+
+    auto addr = bits::memcpy_endian<ELFIO::Elf64_Addr>(
+        desc, bits::Order::BigEndian,
+        std::min<quint64>(descSize, bootFlagAddrSize));
+    auto size = bits::memcpy_endian<ELFIO::Elf64_Addr>(
+        desc + bootFlagAddrSize, bits::Order::BigEndian,
+        std::min<quint64>(descSize - bootFlagAddrSize, bootFlagSizeSize));
+    quint64 tmp = 0;
+    bits::memcpy_endian(&tmp, bits::hostOrder(), size, &addr, bits::hostOrder(),
+                        sizeof(addr));
+    ret = tmp;
+    break;
+  }
+  return ret;
+}

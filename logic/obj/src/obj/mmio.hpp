@@ -27,4 +27,8 @@ struct MMIBuffer {
   QString portName;
 };
 QList<MMIBuffer> getMMIBuffers(const ELFIO::elfio &elf);
+
+// Automatically finds the boot flag in the symbol table and adds a note.
+void setBootFlagAddress(ELFIO::elfio &elf, QString name = "bootFlg");
+std::optional<quint16> getBootFlagsAddress(const ELFIO::elfio &elf);
 } // namespace obj
