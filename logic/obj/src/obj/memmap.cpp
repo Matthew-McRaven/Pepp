@@ -29,7 +29,7 @@ obj::mergeSegmentRegions(QList<SegmentRegion> regions) {
   };
   for (auto &reg : regions) {
     if (ret.size() > 0 && similar(ret.back(), reg)) {
-      auto back = ret.back();
+      auto &back = ret.back();
       back.maxOffset = reg.maxOffset;
       back.segs.push_back(reg.seg);
     } else {
