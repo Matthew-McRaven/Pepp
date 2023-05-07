@@ -4,6 +4,6 @@
 
 namespace obj {
 // WARNING: does not work well with non-contiguous buffered segments.
-QList<quint8> bufferedSegmentsAsAsciiHex(const ELFIO::elfio &elf,
-                                         QString suffix = "zz");
+// Does not emit trailing space.
+QList<quint8> segmentAsAsciiHex(const ELFIO::segment *segment);
 } // namespace obj

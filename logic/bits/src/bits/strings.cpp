@@ -36,11 +36,15 @@ qsizetype bits::bytesToAsciiHex(quint8 *out, qsizetype outLength,
   static const quint8 chars[] = "0123456789ABCDEF";
   qsizetype outIt = 0;
   for (int inIt = 0; inIt < inLength; inIt++) {
-    if (outIt + 3 > outLength)
+    if (outIt + 2 <= outLength) {
+      out[outIt++] = chars[(in[inIt] >> 4) & 0x0f];
+      out[outIt++] = chars[in[inIt] & 0xf];
+    } else
       break;
-    out[outIt++] = chars[(in[inIt] >> 4) & 0x0f];
-    out[outIt++] = chars[in[inIt] & 0xf];
-    out[outIt++] = ' ';
+    if (outIt + 1 <= outLength) {
+      out[outIt++] = ' ';
+    } else
+      break;
   }
   return outIt;
 }
