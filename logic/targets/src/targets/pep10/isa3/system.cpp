@@ -3,6 +3,7 @@
 #include "obj/mmio.hpp"
 #include "sim/device/broadcast/mmi.hpp"
 #include "sim/device/broadcast/mmo.hpp"
+#include "sim/device/readonly.hpp"
 #include "sim/device/simple_bus.hpp"
 #include "targets/pep10/isa3/cpu.hpp"
 #include "targets/pep10/isa3/helpers.hpp"
@@ -48,9 +49,16 @@ targets::pep10::isa::System::System(QList<obj::MemoryRegion> regions,
         .maxOffset = static_cast<quint16>(reg.maxOffset - reg.minOffset)};
     auto mem = QSharedPointer<sim::memory::Dense<quint16>>::create(
         desc_dense(nextID()), span);
-    _bus->pushFrontTarget(
-        {.minOffset = reg.minOffset, .maxOffset = reg.maxOffset}, &*mem);
     _rawMemory.push_back(mem);
+    sim::api::memory::Target<quint16> *target = &*mem;
+    if (!reg.w) {
+      auto ro = QSharedPointer<sim::memory::ReadOnly<quint16>>::create(false);
+      _readonly.push_back(ro);
+      ro->setTarget(target);
+      target = &*ro;
+    }
+    _bus->pushFrontTarget(
+        {.minOffset = reg.minOffset, .maxOffset = reg.maxOffset}, target);
 
     // Perform load!
     quint16 base = 0;

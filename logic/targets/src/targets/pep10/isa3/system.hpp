@@ -12,6 +12,7 @@ template <typename Address> class Dense;
 template <typename Address> class SimpleBus;
 template <typename Address> class Input;
 template <typename Address> class Output;
+template <typename Address> class ReadOnly;
 } // namespace memory
 } // namespace sim
 namespace targets::pep10::isa {
@@ -48,12 +49,13 @@ private:
   sim::api::tick::Type _tick = 0;
   std::optional<quint16> _bootFlg = std::nullopt;
 
-  QSharedPointer<CPU> _cpu;
-  QSharedPointer<sim::memory::SimpleBus<quint16>> _bus;
-  QVector<QSharedPointer<sim::memory::Dense<quint16>>> _rawMemory;
+  QSharedPointer<CPU> _cpu = nullptr;
+  QSharedPointer<sim::memory::SimpleBus<quint16>> _bus = nullptr;
+  QVector<QSharedPointer<sim::memory::Dense<quint16>>> _rawMemory = {};
+  QVector<QSharedPointer<sim::memory::ReadOnly<quint16>>> _readonly = {};
 
-  QMap<QString, QSharedPointer<sim::memory::Input<quint16>>> _mmi;
-  QMap<QString, QSharedPointer<sim::memory::Output<quint16>>> _mmo;
+  QMap<QString, QSharedPointer<sim::memory::Input<quint16>>> _mmi = {};
+  QMap<QString, QSharedPointer<sim::memory::Output<quint16>>> _mmo = {};
 };
 
 // loadUserImmediate bypasses loading user program to DDR.
