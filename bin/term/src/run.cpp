@@ -28,17 +28,17 @@ void RunTask::run() {
     auto charInEndpoint = charIn->endpoint();
     std::stringstream buffer;
     if (_charIn == "-") {
-      while (!std::cin.eof()) {
-        std::string line;
-        std::getline(std::cin, line);
-        buffer << line;
-      }
+      QFile stdF;
+      stdF.open(0, QIODevice::OpenModeFlag::ReadOnly);
+      auto x = stdF.readAll();
+      buffer << x.toStdString();
+      stdF.close();
     } else {
       std::ifstream t(_charIn);
       buffer << t.rdbuf();
     }
     auto str = buffer.str();
-    std::cout << "CIN" << str << std::endl;
+    std::cout << "[ CIN]<" << str << std::endl;
     for (int it = 0; it < str.size(); it++)
       charInEndpoint->append_value(str[it]);
   }
