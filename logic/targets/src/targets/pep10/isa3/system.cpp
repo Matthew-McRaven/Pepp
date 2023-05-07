@@ -93,6 +93,7 @@ targets::pep10::isa::System::System(QList<obj::MemoryRegion> regions,
       _mmo[mmio.name] = mem;
     }
   }
+  _cpu->setTarget(&*_bus);
 }
 
 std::pair<sim::api::tick::Type, sim::api::tick::Result>
