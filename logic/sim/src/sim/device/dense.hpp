@@ -190,7 +190,7 @@ sim::memory::Dense<Address>::write(Address address, const quint8 *src,
   if (op.effectful && _tb) {
     // Attempt to allocate space in the buffer for local trace packet.
     auto [size, flags] = detail::info<Address>(length);
-    api::trace::Buffer::Guard<true> guard(_tb, size, _device.id, flags);
+    api::trace::Buffer::Guard<false> guard(_tb, size, _device.id, flags);
     // Even with success we might get nullptr, in which case the Buffer is
     // telling us it doesn't want our trace.
     if (guard) {
