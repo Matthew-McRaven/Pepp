@@ -49,7 +49,7 @@ hang:    BR      hang
 ;
 retVal:  .EQUATE 0           ;Main return value #2d
 execMain:MOVSPA              ;Preserve system stack pointer
-         STWA    osSPTemp,d
+         STWA    initSp,d
          LDWA    osRAM,i     ;Load address of user stack
          MOVASP              ;Switch to user stack
          SUBSP   2,i         ;Allocate @param #retVal
@@ -61,7 +61,7 @@ execMain:MOVSPA              ;Preserve system stack pointer
 mainCln: LDWA    0,s         ;Load return value
          BRNE    mainErr     ;If retval is not zero, report error
          ADDSP   2,i         ;Deallocate @param #retVal
-         LDWA    osSPTemp,d  ;Restore system stack pointer
+         LDWA    initSp,d  ;Restore system stack pointer
          MOVASP              ;OS Stack might be clobbered during by syscalls
          BR      shutdown    ;  So branch instead of call
 ;
