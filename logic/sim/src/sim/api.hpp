@@ -301,13 +301,6 @@ struct Scheduler {
 
 template <typename Address> struct System {
   virtual ~System() = default;
-  virtual void addTarget(const device::Descriptor device,
-                         memory::Target<Address> *target) = 0;
-  virtual void addClock(const device::Descriptor device,
-                        tick::Source *clock) = 0;
-  virtual void addClocked(const device::Descriptor device,
-                          tick::Listener *clocked) = 0;
-
   // Returns (current tick, result of ticking that clocked device).
   virtual std::pair<tick::Type, tick::Result> tick(Scheduler::Mode mode) = 0;
   virtual tick::Type currentTick() const = 0;
