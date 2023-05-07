@@ -126,6 +126,7 @@ api::memory::Result Input<Address>::write(Address address, const quint8 *src,
 }
 
 template <typename Address> void Input<Address>::clear(quint8 fill) {
+  _fill = fill;
   _endpoint->set_to_head();
 }
 

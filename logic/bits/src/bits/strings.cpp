@@ -30,3 +30,21 @@ bool bits::escapedStringToBytes(const QString &string, QByteArray &output) {
   }
   return okay;
 }
+
+qsizetype bits::bytesToAsciiHex(quint8 *out, qsizetype outLength,
+                                const quint8 *in, quint16 inLength) {
+  static const quint8 chars[] = "0123456789ABCDEF";
+  qsizetype outIt = 0;
+  for (int inIt = 0; inIt < inLength; inIt++) {
+    if (outIt + 2 <= outLength) {
+      out[outIt++] = chars[(in[inIt] >> 4) & 0x0f];
+      out[outIt++] = chars[in[inIt] & 0xf];
+    } else
+      break;
+    if (outIt + 1 <= outLength) {
+      out[outIt++] = ' ';
+    } else
+      break;
+  }
+  return outIt;
+}
