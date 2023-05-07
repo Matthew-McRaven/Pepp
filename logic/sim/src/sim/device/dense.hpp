@@ -89,43 +89,52 @@ sim::memory::Dense<Address>::read(Address address, quint8 *dest, Address length,
 
 namespace detail {
 template <typename Address, typename T>
-using payload = bits::trace::AddressedPayload<Address, T>;
-template <typename Address> void *alloc(quint8 length, api::trace::Buffer *tb) {
+using payload = sim::trace::AddressedPayload<Address, T>;
+template <typename Address>
+std::tuple<quint8, api::packet::Flags> info(quint8 length) {
   using namespace api::packet;
+  api::packet::Flags flags;
   auto bit_ceil = std::bit_ceil(length);
   quint8 size = 0;
   switch (bit_ceil) {
   case 1:
     size = sizeof(payload<Address, quint8>);
+    flags = payload<Address, quint8>::flags();
     break;
   case 2:
     size = sizeof(payload<Address, quint8[2]>);
+    flags = payload<Address, quint8[2]>::flags();
     break;
   case 4:
     size = sizeof(payload<Address, quint8[4]>);
+    flags = payload<Address, quint8[4]>::flags();
     break;
   case 8:
     size = sizeof(payload<Address, quint8[8]>);
+    flags = payload<Address, quint8[8]>::flags();
     break;
   case 16:
     size = sizeof(payload<Address, quint8[16]>);
+    flags = payload<Address, quint8[16]>::flags();
     break;
   case 32:
     size = sizeof(payload<Address, quint8[32]>);
+    flags = payload<Address, quint8[32]>::flags();
     break;
   case 64:
     size = sizeof(payload<Address, quint8[64]>);
+    flags = payload<Address, quint8[64]>::flags();
     break;
   }
-  return tb->alloc(size);
+  return {size, flags};
 }
 
 template <typename Address, typename dtype>
 quint8 *init_help(void *packet, quint16 dataLen, Address address,
-                  api::device::ID id) {
+                  api::device::ID id, api::packet::Flags flags) {
   using namespace api::packet;
   using pkt = Packet<payload<Address, dtype>>;
-  pkt *ptr = new (packet) pkt(id, bits::trace::flags<Address, dtype>());
+  pkt *ptr = new (packet) pkt(id, flags);
   ptr->payload.address = address;
   if constexpr (std::is_pointer_v<std::decay_t<dtype>>)
     return ptr->payload.data;
@@ -134,24 +143,24 @@ quint8 *init_help(void *packet, quint16 dataLen, Address address,
 }
 
 template <typename Address>
-quint8 *init(void *packet, quint16 dataLen, Address address,
-             api::device::ID id) {
+quint8 *init(void *packet, quint16 dataLen, Address address, api::device::ID id,
+             api::packet::Flags flags) {
   auto bit_ceil = std::bit_ceil(dataLen);
   switch (bit_ceil) {
   case 1:
-    return init_help<Address, quint8>(packet, dataLen, address, id);
+    return init_help<Address, quint8>(packet, dataLen, address, id, flags);
   case 2:
-    return init_help<Address, quint8[2]>(packet, dataLen, address, id);
+    return init_help<Address, quint8[2]>(packet, dataLen, address, id, flags);
   case 4:
-    return init_help<Address, quint8[4]>(packet, dataLen, address, id);
+    return init_help<Address, quint8[4]>(packet, dataLen, address, id, flags);
   case 8:
-    return init_help<Address, quint8[8]>(packet, dataLen, address, id);
+    return init_help<Address, quint8[8]>(packet, dataLen, address, id, flags);
   case 16:
-    return init_help<Address, quint8[16]>(packet, dataLen, address, id);
+    return init_help<Address, quint8[16]>(packet, dataLen, address, id, flags);
   case 32:
-    return init_help<Address, quint8[32]>(packet, dataLen, address, id);
+    return init_help<Address, quint8[32]>(packet, dataLen, address, id, flags);
   case 64:
-    return init_help<Address, quint8[64]>(packet, dataLen, address, id);
+    return init_help<Address, quint8[64]>(packet, dataLen, address, id, flags);
   }
   throw std::logic_error("impossible");
 }
@@ -180,11 +189,12 @@ sim::memory::Dense<Address>::write(Address address, const quint8 *src,
   bool success = true, sync = false;
   if (op.effectful && _tb) {
     // Attempt to allocate space in the buffer for local trace packet.
-    void *packet = detail::alloc<Address>(length, _tb);
+    auto [size, flags] = detail::info<Address>(length);
+    api::trace::Buffer::Guard<true> guard(_tb, size, _device.id, flags);
     // Even with success we might get nullptr, in which case the Buffer is
     // telling us it doesn't want our trace.
-    if (packet != nullptr) {
-      auto dest = detail::init(packet, length, offset, _device.id);
+    if (guard) {
+      auto dest = detail::init(guard.data(), length, offset, _device.id, flags);
       bits::memcpy_xor(dest, _data.constData() + offset, src, length);
     }
   }

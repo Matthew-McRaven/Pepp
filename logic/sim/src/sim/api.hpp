@@ -166,12 +166,42 @@ struct Buffer {
   // Packet in-place. If return is nullptr, do not attempt to perform
   // placement.
   // Throws a bad alloc exception if there is no space in buffer.
-  virtual void *alloc(quint8 length) = 0;
   virtual void trace(quint16 deviceID, bool enabled = true) = 0;
   virtual void setPacketRegistry(api::packet::Registry *registry) = 0;
 
   [[nodiscard]] virtual AnalyzerHookID registerAnalyzer(Analyzer *analyzer) = 0;
   [[nodiscard]] virtual Analyzer *unregisterAnalyzer(AnalyzerHookID id) = 0;
+  // If  perm, then the trace should live for a long time (i.e., on the heap).
+  // If !perm, then the trace is allowed to expire as soon as commit returns.
+  template <bool perm> struct Guard {
+    Guard(Buffer *parent, quint8 length, device::ID id, packet::Flags flags)
+        : _parent(parent), _data(perm ? parent->palloc(length, id, flags)
+                                      : parent->talloc(length, id, flags)) {}
+    ~Guard() {
+      if (!_data)
+        ; // Don't commit an empty ptr.
+      else if (perm)
+        _parent->pcommit();
+      else
+        _parent->tcommit();
+    }
+    operator bool() { return _data != nullptr; }
+    void *data() { return _data; }
+
+  private:
+    Buffer *_parent;
+    void *_data;
+  };
+
+protected:
+  // Allocate and commit permant(ish) traces.
+  [[nodiscard]] virtual void *palloc(quint8 length, device::ID id,
+                                     packet::Flags flags) = 0;
+  virtual void pcommit() = 0;
+  // Allocate and commit temporary traces.
+  [[nodiscard]] virtual void *talloc(quint8 length, device::ID id,
+                                     packet::Flags flags) = 0;
+  virtual void tcommit() = 0;
 };
 
 struct Producer {
