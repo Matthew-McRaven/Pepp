@@ -45,9 +45,9 @@ struct HasRangesReverse<T, decltype(&std::ranges::reverse, T())>
 } // namespace detail
 
 // Use (better) range version when possible
-template <std::integral T, typename std::enable_if_t<
-                               detail::HasRangesReverse<T>::value, bool> = true>
-constexpr T byteswap(T value) noexcept {
+template <std::integral T>
+constexpr typename std::enable_if<detail::HasRangesReverse<T>::value, T>::type
+byteswap(T value) noexcept {
   // Sample code from: https://en.cppreference.com/w/cpp/numeric/byteswap
   // Waiting on my compiler to support byteswap...
   static_assert(std::has_unique_object_representations_v<T>,
@@ -58,10 +58,9 @@ constexpr T byteswap(T value) noexcept {
 }
 
 // Otherwise use fallback Qt implementation.
-template <
-    std::integral T,
-    typename std::enable_if_t<!detail::HasRangesReverse<T>::value, bool> = true>
-constexpr T byteswap(T value) noexcept {
+template <std::integral T>
+constexpr typename std::enable_if<!detail::HasRangesReverse<T>::value, T>::type
+byteswap(T value) noexcept {
   static_assert(std::has_unique_object_representations_v<T>,
                 "T may not have padding bits");
   if (bits::hostOrder() == bits::Order::LittleEndian)
