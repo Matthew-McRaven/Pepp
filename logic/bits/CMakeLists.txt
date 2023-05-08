@@ -1,5 +1,12 @@
 cmake_minimum_required(VERSION 3.10)
 
+try_compile(BITS_HAS_RANGES_REVERSE ${CMAKE_BINARY_DIR}/compile_tests ${CMAKE_CURRENT_LIST_DIR}/compile-test/ranges_reverse.cpp)
+if(BITS_HAS_RANGES_REVERSE)
+    message("Using std::ranges::reverse for byteswap")
+else()
+    message("Using Qt helpers for byteswap")
+endif()
+
 make_library(bits bits)
 target_link_libraries(bits PUBLIC "Qt6::Core")
 target_include_directories(bits PUBLIC ${Boost_INCLUDE_DIR})
