@@ -75,6 +75,11 @@ api::memory::Result Output<Address>::read(Address address, quint8 *dest,
     return {.completed = false,
             .pause = true,
             .error = api::memory::Error::OOBAccess};
+  // Copy last-written value, so that memory dumps look right.
+  if (auto end = _endpoint->current_value(); end) {
+    quint8 tmp = *end;
+    bits::memcpy(dest, &tmp, 1);
+  }
   return {
       .completed = true,
       .pause = false,
