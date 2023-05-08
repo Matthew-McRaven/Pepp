@@ -29,21 +29,19 @@ void RunTask::run() {
   bool fail = false;
   if (auto charIn = system->input("charIn"); !_charIn.empty() && charIn) {
     auto charInEndpoint = charIn->endpoint();
-    std::stringstream buffer;
+    QString buffer;
     if (_charIn == "-") {
       QFile stdF;
-      stdF.open(0, QIODevice::OpenModeFlag::ReadOnly);
-      auto x = stdF.readAll();
-      buffer << x.toStdString();
-      stdF.close();
+      stdF.open(0, QIODevice::ReadOnly | QIODevice::Text);
+      buffer = stdF.readAll();
     } else {
-      std::ifstream t(_charIn);
-      buffer << t.rdbuf();
+      QFile f(QString::fromStdString(_charIn));
+      f.open(QIODevice::ReadOnly | QIODevice::Text);
+      buffer = f.readAll();
     }
-    auto str = buffer.str();
-    std::cout << "[ CIN]<" << str << std::endl;
-    for (int it = 0; it < str.size(); it++)
-      charInEndpoint->append_value(str[it]);
+    auto asStd = buffer.toStdString();
+    for (int it = 0; it < asStd.size(); it++)
+      charInEndpoint->append_value(asStd[it]);
   }
   auto printReg = [&](isa::Pep10::Register reg) {
     quint16 tmp = 0;
@@ -76,28 +74,34 @@ void RunTask::run() {
   if (auto charOut = system->output("charOut"); !_charOut.empty() && charOut) {
     auto charOutEndpoint = charOut->endpoint();
     charOutEndpoint->set_to_head();
-    auto writeOut = [&](std::ostream &outF) {
+    auto writeOut = [&](QTextStream &outF) {
       for (auto next = charOutEndpoint->next_value(); next.has_value();
            next = charOutEndpoint->next_value()) {
         outF << *next;
       }
-      outF << std::endl;
+      outF << "\n";
     };
-    if (!_memDump.empty()) {
-      QVector<quint8> dump(0x1'00'00);
-      system->bus()->dump(dump.data(), dump.size());
-      QFile memDump(QString::fromStdString(_memDump));
-      if (memDump.open(QFile::WriteOnly)) {
-        memDump.write(reinterpret_cast<const char *>(dump.constData()),
-                      dump.size());
-        memDump.close();
-      }
-    }
-    if (_charOut == "-")
-      writeOut(std::cout);
-    else {
-      std::ofstream out(_charOut);
+
+    if (_charOut == "-") {
+      QTextStream out(stdout, QIODevice::WriteOnly | QIODevice::Truncate |
+                                  QIODevice::Text);
       writeOut(out);
+    } else {
+      QFile f(QString::fromStdString(_charOut));
+      f.open(QIODevice::WriteOnly | QIODevice::Truncate | QIODevice::Text);
+      QTextStream out(&f);
+      writeOut(out);
+    }
+  }
+
+  if (!_memDump.empty()) {
+    QVector<quint8> dump(0x1'00'00);
+    system->bus()->dump(dump.data(), dump.size());
+    QFile memDump(QString::fromStdString(_memDump));
+    if (memDump.open(QIODevice::WriteOnly | QIODevice::Truncate)) {
+      memDump.write(reinterpret_cast<const char *>(dump.constData()),
+                    dump.size());
+      memDump.close();
     }
   }
   emit finished(0);
