@@ -1,6 +1,5 @@
 cmake_minimum_required(VERSION 3.10)
 
-enable_testing()
 make_library(targets .)
 target_include_directories(targets PUBLIC ${Boost_INCLUDE_DIR})
 target_link_libraries(targets PUBLIC "Qt6::Core;${Boost_LIBRARIES};bits;sim;isa;elfio;obj")
