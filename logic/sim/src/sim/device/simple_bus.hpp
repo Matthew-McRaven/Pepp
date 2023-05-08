@@ -3,6 +3,7 @@
 #include "sim/api.hpp"
 #include "sim/trace/common.hpp"
 #include <iostream>
+#include <iomanip>
 namespace sim::memory {
 template <typename Address>
 class SimpleBus : public api::memory::Target<Address>, api::trace::Producer {
