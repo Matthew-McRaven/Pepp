@@ -138,39 +138,49 @@ namespace trace {
 // Forward declare, will be needed inside analyzer.
 struct Buffer;
 
-/*
- * Maybe I can ditch interposers?
- * The main use of interposers is snooping on reads / writes
- */
 struct Analyzer {
-  struct Mode {
-    enum class Kind {
-      Streaming,
-      Batch,
-    } kind;
+  enum class Mode {
+    Streaming, // Will run on each commit for a trace where filters match.
+    Batch,     // Will run at some (delayed) point after a trace is committed.
   };
   struct FilterArgs {
-    bool f;
+    Mode mode = Mode::Batch;
+    enum Lifetime : quint8 {
+      kExpired = 1 << 0,   // Permanent, cannnot be undone.
+      kPermanent = 1 << 1, // Permanent, *can* be undone.
+      kEphemeral = 1 << 2  // Ephemeral, cannot be undone.
+    };
+    // Permanent can be backward. Permanent/Ephemeral/Expired can be forward.
+    enum Direction : quint8 {
+      kForward = 1 << 0,  // Simulator is stepping forward.
+      kBackward = 1 << 1, // Simulator is stepping backward.
+    };
+    quint8 lifetime = kExpired | kPermanent | kEphemeral,
+           direction = kForward | kBackward;
+    QList<device::ID> trackedDevices = {};
+    std::function<bool(packet::Flags)> flags;
   };
 
+  // Only called in Buffer decides evaluate packet, and it matched filters.
+  virtual bool analyze(void *payload, quint8 size, packet::Flags flags);
+  virtual bool unanalyze(void *payload, quint8 size, packet::Flags flags);
+  // Called on registration with Buffer to determine when to invoke analyzer.
+  // At some point, I may allow one analyzer to produce multiple filters.
+  virtual FilterArgs filter() const = 0;
   virtual ~Analyzer() = 0;
 };
-// Analyzer::~Analyzer() = default;
 
-// Ex
 struct Buffer {
-  using AnalyzerHookID = quint32;
   virtual ~Buffer() = default;
-  // To avoid double-buffering, request that the buffer provide a sufficient
-  // number of bytes. Callers can then use placement new to construct their
-  // Packet in-place. If return is nullptr, do not attempt to perform
-  // placement.
-  // Throws a bad alloc exception if there is no space in buffer.
+
   virtual void trace(quint16 deviceID, bool enabled = true) = 0;
   virtual void setPacketRegistry(api::packet::Registry *registry) = 0;
 
-  [[nodiscard]] virtual AnalyzerHookID registerAnalyzer(Analyzer *analyzer) = 0;
-  [[nodiscard]] virtual Analyzer *unregisterAnalyzer(AnalyzerHookID id) = 0;
+  // If true, the analyzer will be eligible for analyzing packets. If false,
+  // the buffer rejected the analyzer. This may occur in the future when an
+  // untrusted analyzer attempts to analyze a trusted device.
+  virtual bool registerAnalyzer(Analyzer *analyzer) = 0;
+  virtual void unregisterAnalyzer(Analyzer *analyzer) = 0;
   // If  ephemeral, then the trace is allowed to expire as soon as commit
   // returns.
   // If !ephemeral, then the trace *should* persist after commit. However, the
@@ -179,6 +189,7 @@ struct Buffer {
   // system A->B->C: C must be alloc'ed+committed before B can alloc, and B
   // before A. No two alloc's may overlap in lifetime. This applies even when
   // swapping between temp/perm traces.
+  // See palloc notes on design.
   template <bool ephemeral> struct Guard {
     Guard(Buffer *parent, quint8 length, device::ID id, packet::Flags flags)
         : _parent(parent),
@@ -201,6 +212,12 @@ struct Buffer {
   };
 
 protected:
+  // To avoid double-buffering, request that the buffer provide a sufficient
+  // number of bytes. Callers can then use placement new to construct their
+  // Packet in-place. If return is nullptr, do not attempt to perform
+  // placement.
+  // Throws a bad alloc exception if there is no space in buffer.
+
   // Allocate and commit permant(ish) traces.
   [[nodiscard]] virtual void *palloc(quint8 length, device::ID id,
                                      packet::Flags flags) = 0;
