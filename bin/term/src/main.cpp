@@ -302,22 +302,48 @@ void AsmTask::run() {
                       .value<pas::driver::repr::Nodes>()
                       .value;
   if (!result) {
-    auto osErrors = pas::ops::generic::collectErrors(*osRoot);
-    for (auto &err : osErrors)
-      std::cerr << err.first.value.line << err.second.message.toStdString()
-                << std::endl;
-    auto userErrors = pas::ops::generic::collectErrors(*userRoot);
-    for (auto &err : userErrors)
-      std::cerr << err.first.value.line << err.second.message.toStdString()
+    std::cerr << "Assembly failed, check error log" << std::endl;
+    QFileInfo err(QString::fromStdString(userIn));
+    QString errFName = err.path() + "/" + err.completeBaseName() + ".err.txt";
+    QFile errF(errFName);
+    if (errF.open(QFile::OpenModeFlag::WriteOnly)) {
+      bool hadOsErr = false;
+      auto ts = QTextStream(&errF);
+      auto osErrors = pas::ops::generic::collectErrors(*osRoot);
+      auto userErrors = pas::ops::generic::collectErrors(*userRoot);
+      if (!osErrors.empty()) {
+        ts << "OS Errors:\n";
+        auto splitOS = QString::fromStdString(osContents).split("\n");
+        for (const auto &err : osErrors) {
+          ts << ";Line " << err.first.value.line + 1 << "\n";
+          ts << splitOS[err.first.value.line]
+             << " ;ERROR: " << err.second.message << "\n";
+        }
+        ts << "User Errors:\n";
+      }
+      if (!userErrors.empty()) {
+        auto splitUser = QString::fromStdString(userContents).split("\n");
+        for (const auto &err : userErrors) {
+          ts << ";Line " << err.first.value.line + 1 << "\n";
+          ts << splitUser[err.first.value.line]
+             << " ;ERROR: " << err.second.message << "\n";
+        }
+      }
+      errF.close();
+    } else
+      std::cerr << "Failed to open error log: " << errFName.toStdString()
                 << std::endl;
     return emit finished(1);
   }
-  auto elf = pas::obj::pep10::createElf();
-  pas::obj::pep10::combineSections(*osRoot);
-  pas::obj::pep10::writeOS(elf, *osRoot);
-  pas::obj::pep10::combineSections(*userRoot);
-  pas::obj::pep10::writeUser(elf, *userRoot);
+
+  // Assembly succeded!
+
   if (elfOut.has_value()) {
+    auto elf = pas::obj::pep10::createElf();
+    pas::obj::pep10::combineSections(*osRoot);
+    pas::obj::pep10::writeOS(elf, *osRoot);
+    pas::obj::pep10::combineSections(*userRoot);
+    pas::obj::pep10::writeUser(elf, *userRoot);
     elf.save(elfOut.value());
   }
 
