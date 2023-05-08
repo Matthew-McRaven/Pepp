@@ -23,13 +23,14 @@ QList<quint8> obj::segmentAsAsciiHex(const ELFIO::segment *segment) {
   for (auto buffer : buffered) {
     if (it + 1 > ret.size())
       throw std::logic_error("Dest buffer too small");
-    auto i = bits::bytesToAsciiHex(ret.data() + it, ret.length() - it,
+    auto i = bits::bytesToAsciiHex((char *)ret.data() + it, ret.length() - it,
                                    reinterpret_cast<const quint8 *>(buffer.src),
-                                   buffer.srcLength);
+                                   buffer.srcLength, true);
     it += i;
   }
   while (it + 1 < ret.size()) {
-    auto i = bits::bytesToAsciiHex(ret.data() + it, ret.length() - it, zero, 1);
+    auto i = bits::bytesToAsciiHex((char *)ret.data() + it, ret.length() - it,
+                                   zero, 1, false);
     it += i;
   }
   return ret;
