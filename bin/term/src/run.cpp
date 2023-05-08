@@ -105,6 +105,7 @@ void RunTask::run() {
            next = charOutEndpoint->next_value()) {
         outF << *next;
       }
+      outF << std::endl;
     };
     if (!_memDump.empty()) {
       QVector<quint8> dump(0x1'00'00);
