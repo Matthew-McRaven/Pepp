@@ -2,6 +2,7 @@
 #include "bits/operations/copy.hpp"
 #include "sim/api.hpp"
 #include "sim/trace/common.hpp"
+#include <iostream>
 namespace sim::memory {
 template <typename Address>
 class SimpleBus : public api::memory::Target<Address>, api::trace::Producer {
@@ -134,6 +135,10 @@ api::memory::Result SimpleBus<Address>::read(Address address, quint8 *dest,
           api::packet::Packet<Read>(_device.id, payload, Read::flags());
     }
   }
+  std::cout << u"[%1]>"_qs.arg(QString::number(address, 16), 4).toStdString();
+  for (int it = 0; it < length; it++)
+    std::cout << std::hex << std::setw(2) << std::setfill('0') << (int)dest[it];
+  std::cout << std::endl;
   return ret;
 }
 template <typename Address>
@@ -151,6 +156,10 @@ api::memory::Result SimpleBus<Address>::write(Address address,
           api::packet::Packet<Write>(_device.id, payload, Write::flags());
     }
   }
+  std::cout << u"[%1]<"_qs.arg(QString::number(address, 16), 4).toStdString();
+  for (int it = 0; it < length; it++)
+    std::cout << std::hex << std::setw(2) << std::setfill('0') << (int)src[it];
+  std::cout << std::endl;
   return ret;
 }
 

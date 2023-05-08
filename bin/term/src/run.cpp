@@ -1,4 +1,5 @@
 #include "./run.hpp"
+#include "obj/mmio.hpp"
 #include "sim/device/broadcast/mmi.hpp"
 #include "sim/device/broadcast/mmo.hpp"
 #include "sim/device/simple_bus.hpp"
@@ -17,11 +18,13 @@ RunTask::RunTask(const ELFIO::elfio &elf, QObject *parent)
     : Task(parent), _elf(elf) {}
 
 void RunTask::run() {
-  auto system = targets::pep10::isa::systemFromElf(_elf, true);
+
+  bool loadIm = false | !(obj::getBootFlagsAddress(_elf).has_value());
+  auto system = targets::pep10::isa::systemFromElf(_elf, loadIm);
   system->init();
-  system->setBootFlags(false, true);
-  // targets::pep10::isa::writeRegister(system->cpu()->regs(),
-  //                                    isa::Pep10::Register::PC, 0, gs);
+  system->setBootFlags(!loadIm, true);
+  /*targets::pep10::isa::writeRegister(system->cpu()->regs(),
+                                     isa::Pep10::Register::PC, 0, gs);*/
   auto pwrOff = system->output("pwrOff");
   auto endpoint = pwrOff->endpoint();
   bool fail = false;
@@ -78,9 +81,9 @@ void RunTask::run() {
                           .valueToKey((int)instr.mode),
                       3)
                  .toStdString()
-          << "|";
+          << ";";
     } else {
-      std::cout << "          |";
+      std::cout << "          ;";
     }
     printReg(isa::Pep10::Register::PC);
     printReg(isa::Pep10::Register::A);
