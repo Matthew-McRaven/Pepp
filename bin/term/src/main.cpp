@@ -24,6 +24,16 @@ private:
   std::string ch, fig;
 };
 
+class GetMacroTask : public Task {
+public:
+  GetMacroTask(int ed, std::string name, QObject *parent = nullptr);
+  void run() override;
+
+private:
+  int ed;
+  std::string name;
+};
+
 class AsmTask : public Task {
 public:
   AsmTask(int ed, std::string userFname, std::string out,
@@ -70,13 +80,14 @@ int main(int argc, char **argv) {
   auto macroOpt = get_selector->add_option("--macro", macro, "");
   get_selector->require_option(1);
   get->callback([&]() {
-    if (chOpt->count() > 0) {
+    if (chOpt->count() > 0)
       task = [&](QObject *parent) {
         return new GetFigTask(edValue, ch, fig, parent);
       };
-
-    } else
-      throw std::logic_error("agh");
+    else if (macroOpt->count() > 0)
+      task = [&](QObject *parent) {
+        return new GetMacroTask(edValue, macro, parent);
+      };
   });
 
   auto asmSC = app.add_subcommand("asm", "Assemble stuff");
@@ -202,6 +213,31 @@ void GetFigTask::run() {
     return emit finished(2);
 
   auto body = figure->typesafeElements()["pep"]->contents;
+  std::cout << body.toStdString() << std::endl;
+
+  emit finished(0);
+}
+
+GetMacroTask::GetMacroTask(int ed, std::string name, QObject *parent)
+    : Task(parent), ed(ed), name(name) {}
+
+void GetMacroTask::run() {
+  QString bookName;
+  switch (ed) {
+  case 6:
+    bookName = "Computer Systems, 6th Edition";
+  default:
+    emit finished(1);
+  }
+
+  auto reg = builtins::Registry(nullptr);
+  auto book = reg.findBook(bookName);
+
+  auto macro = book->findMacro(QString::fromStdString(name));
+  if (macro.isNull())
+    return emit finished(1);
+
+  auto body = macro->body();
   std::cout << body.toStdString() << std::endl;
 
   emit finished(0);
