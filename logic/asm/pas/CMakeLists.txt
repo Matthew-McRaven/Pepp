@@ -1,7 +1,5 @@
 cmake_minimum_required(VERSION 3.10)
 
-include(../../../config/cmake/create_targets.cmake)
-
 make_library(pas pas)
 target_link_libraries(pas PUBLIC "Qt6::Core;bits;symbol;macro;elfio;isa;obj")
 target_include_directories(pas PUBLIC ${Boost_INCLUDE_DIR})

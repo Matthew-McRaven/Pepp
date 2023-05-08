@@ -1,4 +1,3 @@
-
 cmake_minimum_required(VERSION 3.10)
 file(GLOB_RECURSE cs6e-res-abs CONFIGURE_DEPENDS "books/cs6e/*")
 
@@ -8,9 +7,6 @@ foreach(f-abs IN LISTS cs6e-res-abs)
     list(APPEND cs6e-res "${f-rel}")
 endforeach()
 
-include(../../../config/cmake/create_targets.cmake)
-
-enable_testing()
 make_library(builtins builtins)
 target_link_libraries(builtins PUBLIC "Qt6::Core;Qt6::Gui;macro")
 target_compile_definitions(builtins PRIVATE BUILTINS_LIBRARY)
