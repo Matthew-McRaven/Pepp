@@ -94,7 +94,7 @@ int main(int argc, char **argv) {
   std::string userName;
   std::optional<std::string> osName = std::nullopt, elfName = std::nullopt;
   auto osOpt = asmSC->add_option("--os", osName);
-  auto elfOpt = asmSC->add_option("--elf", elfName)->default_val("a.elf");
+  auto elfOpt = asmSC->add_option("--elf", elfName);
   auto userOpt = asmSC->add_option("user", userName)->required()->expected(1);
   asmSC->callback([&]() {
     task = [&](QObject *parent) {
