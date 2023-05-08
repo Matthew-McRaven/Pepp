@@ -240,10 +240,10 @@ struct Producer {
   // Any changes to bit format of trace now only impacts the Buffer doing the
   // analysis.
   virtual bool
-  applyTrace(void *payload, quint8 size,
+  applyTrace(void *payload,
              packet::Flags flags) = 0; // trace is a unknown payload struct.
   virtual bool
-  unapplyTrace(void *payload, quint8 size,
+  unapplyTrace(void *payload,
                packet::Flags flags) = 0; // trace is a unknown payload struct.
 };
 } // namespace trace

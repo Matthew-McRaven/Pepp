@@ -30,10 +30,8 @@ public:
   void setTraceBuffer(api::trace::Buffer *tb) override;
   void trace(bool enabled) override;
   quint8 packetSize(api::packet::Flags flags) const override;
-  bool applyTrace(void *payload, quint8 size,
-                  api::packet::Flags flags) override;
-  bool unapplyTrace(void *payload, quint8 size,
-                    api::packet::Flags flags) override;
+  bool applyTrace(void *payload, api::packet::Flags flags) override;
+  bool unapplyTrace(void *payload, api::packet::Flags flags) override;
 
   // Bus API
   void pushFrontTarget(AddressSpan at, api::memory::Target<Address> *target);
@@ -194,14 +192,12 @@ quint8 SimpleBus<Address>::packetSize(api::packet::Flags flags) const {
 }
 
 template <typename Address>
-bool SimpleBus<Address>::applyTrace(void *payload, quint8 size,
-                                    api::packet::Flags flags) {
+bool SimpleBus<Address>::applyTrace(void *payload, api::packet::Flags flags) {
   throw std::logic_error("unimplemented");
 }
 
 template <typename Address>
-bool SimpleBus<Address>::unapplyTrace(void *payload, quint8 size,
-                                      api::packet::Flags flags) {
+bool SimpleBus<Address>::unapplyTrace(void *payload, api::packet::Flags flags) {
   throw std::logic_error("unimplemented");
 }
 

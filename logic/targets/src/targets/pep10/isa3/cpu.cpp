@@ -106,12 +106,12 @@ targets::pep10::isa::CPU::packetSize(sim::api::packet::Flags flags) const {
   throw std::logic_error("unimplemented");
 }
 
-bool targets::pep10::isa::CPU::applyTrace(void *payload, quint8 size,
+bool targets::pep10::isa::CPU::applyTrace(void *payload,
                                           sim::api::packet::Flags flags) {
   throw std::logic_error("unimplemented");
 }
 
-bool targets::pep10::isa::CPU::unapplyTrace(void *payload, quint8 size,
+bool targets::pep10::isa::CPU::unapplyTrace(void *payload,
                                             sim::api::packet::Flags flags) {
   throw std::logic_error("unimplemented");
 }
