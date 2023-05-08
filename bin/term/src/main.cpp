@@ -40,13 +40,14 @@ public:
   AsmTask(int ed, std::string userFname, std::string out,
           QObject *parent = nullptr);
   void setOsFname(std::string fname);
+  void setOsListingFname(std::string fname);
   void emitElfTo(std::string fname);
   void run() override;
 
 private:
   int ed;
   std::string userIn, pepoOut;
-  std::optional<std::string> osIn, peplOut, elfOut;
+  std::optional<std::string> osIn, peplOut, elfOut, osListOut;
 };
 
 using task_factory_t = std::function<Task *(QObject *)>;
@@ -92,17 +93,21 @@ int main(int argc, char **argv) {
   });
 
   auto asmSC = app.add_subcommand("asm", "Assemble stuff");
-  std::string userName;
+  std::string userName, osListing;
   std::optional<std::string> osName = std::nullopt, elfName = std::nullopt;
   auto osOpt = asmSC->add_option("--os", osName);
   auto elfOpt = asmSC->add_option("--elf", elfName);
+  auto osListingOpt = asmSC->add_option("--os-listing", osListing);
   auto userOpt = asmSC->add_option("user", userName)->required()->expected(1);
   asmSC->callback([&]() {
     task = [&](QObject *parent) {
       auto ret = new AsmTask(edValue, userName, "a.pepo", parent);
       if (osOpt)
         ret->setOsFname(*osName);
-      ret->emitElfTo(elfOpt->as<std::string>());
+      if (elfOpt)
+        ret->emitElfTo(*elfName);
+      if (osListingOpt)
+        ret->setOsListingFname(osListing);
       return ret;
     };
   });
@@ -264,6 +269,8 @@ AsmTask::AsmTask(int ed, std::string userFname, std::string out,
 
 void AsmTask::setOsFname(std::string fname) { osIn = fname; }
 
+void AsmTask::setOsListingFname(std::string fname) { osListOut = fname; }
+
 void AsmTask::emitElfTo(std::string fname) { elfOut = fname; }
 
 void AsmTask::run() {
@@ -362,7 +369,23 @@ void AsmTask::run() {
       std::cerr << "Failed to open listing for writing: "
                 << peplFName.toStdString() << std::endl;
   } catch (std::exception &e) {
-    std::cerr << "Failed to generate listing due to internal bug.\n";
+    std::cerr << "Failed to generate user listing due to internal bug.\n";
+  }
+  if (osListOut) {
+    try {
+      auto lines = pas::ops::pepp::formatListing<isa::Pep10>(*osRoot);
+      QFile peplF(QString::fromStdString(*osListOut));
+      if (peplF.open(QFile::OpenModeFlag::WriteOnly)) {
+        auto ts = QTextStream(&peplF);
+        for (auto &line : lines)
+          ts << line << "\n";
+        peplF.close();
+      } else
+        std::cerr << "Failed to open listing for writing: " << *osListOut
+                  << std::endl;
+    } catch (std::exception &e) {
+      std::cerr << "Failed to generate listing due to internal bug.\n";
+    }
   }
 
   QFileInfo pepo(QString::fromStdString(userIn));
