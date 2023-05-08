@@ -321,6 +321,15 @@ void AsmTask::run() {
     elf.save(elfOut.value());
   }
 
+  QFileInfo pepo(QString::fromStdString(userIn));
+  QString pepoFName = pepo.path() + "/" + pepo.completeBaseName() + ".pepo";
   auto userBytes = pas::ops::pepp::toBytes<isa::Pep10>(*userRoot);
-  emit finished(0);
+  auto userBytesStr = pas::ops::pepp::bytesToObject(userBytes);
+  QFile pepoF(pepoFName);
+  if (pepoF.open(QFile::OpenModeFlag::WriteOnly)) {
+    QTextStream(&pepoF) << (userBytesStr) << "\n";
+    pepoF.close();
+  }
+
+  return emit finished(0);
 }
