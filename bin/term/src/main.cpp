@@ -110,14 +110,27 @@ int main(int argc, char **argv) {
   uint64_t maxSteps;
   ELFIO::elfio elf;
   auto runSC = app.add_subcommand("run", "Run ISA3 programs");
-  auto charInOpt = runSC->add_option("-i,--charIn", charIn)->default_val("-");
+  auto charInOpt = runSC->add_option(
+      "-i,--charIn", charIn,
+      "File whose contents are to be buffered behind charIn. The value `-` "
+      "will cause charIn to be taken from stdin. When using `-`, failure to "
+      "provide stdin will cause program to freeze.");
   auto charOutOpt =
-      runSC->add_option("-o,--charOut", charOut)->default_val("-");
-  auto memDumpOpt =
-      runSC->add_option("--memDump", memDump)->default_val("mem.bin");
+      runSC
+          ->add_option("-o,--charOut", charOut,
+                       "File to which the contents of charOut will be written. "
+                       "The value `-` specifies stdout")
+          ->default_val("-");
+  auto memDumpOpt = runSC->add_option(
+      "--memDump", memDump,
+      "File to which post-simulation memory-dump will be written.");
   auto elfInOpt = runSC->add_option("elf", elfIn)->required()->expected(1);
   auto maxStepsOpt =
-      runSC->add_option("--max,-m", maxSteps)->default_val(10'000);
+      runSC
+          ->add_option("--max,-m", maxSteps,
+                       "Maximum number of instructions that will be executed "
+                       "before terminating simulator.")
+          ->default_val(10'000);
   runSC->callback([&]() {
     task = [&](QObject *parent) {
       elf.load(elfIn);
