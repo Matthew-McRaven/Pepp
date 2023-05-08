@@ -97,18 +97,20 @@ template <typename Payload> struct Packet {
   device::ID device = 0;
   // Flags are always stored as u16. If u16 bit is not set, then the upper 8
   // bits are unspecified.
-  union {
+  union FlagBits{
+    FlagBits(){}
     Flags flags;
     quint16 bits =
         0b0000'0000'0000'0001; // Mark the type as 2 bytes, uninitialized.
   } type;
 
   Packet() {}
-  Packet(device::ID id, Flags flags) : device(device), payload(), type(flags) {}
+  Packet(device::ID id, Flags flags) : device(device), payload(), type() {type.flags = flags;}
   // Must be declared inline, otherwise fails to compile.
   template <typename Bytes>
   Packet(device::ID device, Bytes bytes, Flags flags)
-      : device(device), payload(), type(flags) {
+      : device(device), payload(), type() {
+    type.flags = flags;
     void *dst, *src;
     if constexpr (std::is_pointer_v<std::decay_t<Payload>>)
       dst = this->payload;

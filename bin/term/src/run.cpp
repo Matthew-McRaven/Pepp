@@ -5,6 +5,7 @@
 #include "targets/pep10/isa3/cpu.hpp"
 #include "targets/pep10/isa3/helpers.hpp"
 #include "targets/pep10/isa3/system.hpp"
+#include <sstream>
 
 auto gs = sim::api::memory::Operation{
     .speculative = false,
