@@ -62,36 +62,6 @@ void RunTask::run() {
     auto ret = system->tick(sim::api::Scheduler::Mode::Jump);
     noMMI = ret.second.error == sim::api::tick::Error::NoMMInput;
     fail |= ret.second.error != sim::api::tick::Error::Success;
-    quint16 tmp = 0;
-    targets::pep10::isa::readRegister(system->cpu()->regs(),
-                                      isa::Pep10::Register::IS, tmp, gs);
-    auto instr = isa::Pep10::opcodeLUT[tmp];
-    std::cout << u"%1"_qs
-                     .arg(QMetaEnum::fromType<isa::detail::pep10::Mnemonic>()
-                              .valueToKey((int)instr.instr.mnemon),
-                          7)
-                     .toStdString();
-    if (!instr.instr.unary) {
-      targets::pep10::isa::readRegister(system->cpu()->regs(),
-                                        isa::Pep10::Register::OS, tmp, gs);
-      std::cout
-          << u" %1, "_qs.arg(QString::number(tmp, 16), 4, '0').toStdString();
-      std::cout
-          << u"%1"_qs
-                 .arg(QMetaEnum::fromType<isa::detail::pep10::AddressingMode>()
-                          .valueToKey((int)instr.mode),
-                      3)
-                 .toStdString()
-          << ";";
-    } else {
-      std::cout << "          ;";
-    }
-    printReg(isa::Pep10::Register::PC);
-    printReg(isa::Pep10::Register::A);
-    printReg(isa::Pep10::Register::X);
-    printReg(isa::Pep10::Register::SP);
-    printReg(isa::Pep10::Register::TR);
-    std::cout << std::endl;
     if (fail)
       break;
   }
