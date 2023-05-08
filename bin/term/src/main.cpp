@@ -9,6 +9,7 @@
 #include "pas/obj/pep10.hpp"
 #include "pas/operations/generic/errors.hpp"
 #include "pas/operations/pepp/bytes.hpp"
+#include "pas/operations/pepp/string.hpp"
 #include <CLI11.hpp>
 #include <QDebug>
 #include <QtCore>
@@ -331,8 +332,8 @@ void AsmTask::run() {
       }
       errF.close();
     } else
-      std::cerr << "Failed to open error log: " << errFName.toStdString()
-                << std::endl;
+      std::cerr << "Failed to open error log for writing: "
+                << errFName.toStdString() << std::endl;
     return emit finished(1);
   }
 
@@ -347,6 +348,24 @@ void AsmTask::run() {
     elf.save(elfOut.value());
   }
 
+  try {
+    auto lines = pas::ops::pepp::formatListing<isa::Pep10>(*userRoot);
+    QFileInfo pepl(QString::fromStdString(userIn));
+    QString peplFName = pepl.path() + "/" + pepl.completeBaseName() + ".pepl";
+    QFile peplF(peplFName);
+    if (peplF.open(QFile::OpenModeFlag::WriteOnly)) {
+      auto ts = QTextStream(&peplF);
+      for (auto &line : lines)
+        ts << line << "\n";
+      peplF.close();
+    } else
+      std::cerr << "Failed to open listing for writing: "
+                << peplFName.toStdString() << std::endl;
+
+  } catch (std::exception &e) {
+    std::cerr << "Failed to generate listing due to internal bug.\n";
+  }
+
   QFileInfo pepo(QString::fromStdString(userIn));
   QString pepoFName = pepo.path() + "/" + pepo.completeBaseName() + ".pepo";
   auto userBytes = pas::ops::pepp::toBytes<isa::Pep10>(*userRoot);
@@ -355,7 +374,9 @@ void AsmTask::run() {
   if (pepoF.open(QFile::OpenModeFlag::WriteOnly)) {
     QTextStream(&pepoF) << (userBytesStr) << "\n";
     pepoF.close();
-  }
+  } else
+    std::cerr << "Failed to open object code for writing: "
+              << pepoFName.toStdString() << std::endl;
 
   return emit finished(0);
 }
