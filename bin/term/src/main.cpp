@@ -110,8 +110,9 @@ int main(int argc, char **argv) {
   uint64_t maxSteps;
   ELFIO::elfio elf;
   auto runSC = app.add_subcommand("run", "Run ISA3 programs");
-  auto charInOpt = runSC->add_option("--charIn", charIn)->default_val("-");
-  auto charOutOpt = runSC->add_option("--charOut", charOut)->default_val("-");
+  auto charInOpt = runSC->add_option("-i,--charIn", charIn)->default_val("-");
+  auto charOutOpt =
+      runSC->add_option("-o,--charOut", charOut)->default_val("-");
   auto memDumpOpt =
       runSC->add_option("--memDump", memDump)->default_val("mem.bin");
   auto elfInOpt = runSC->add_option("elf", elfIn)->required()->expected(1);
