@@ -33,7 +33,7 @@ bool bits::escapedStringToBytes(const QString &string, QByteArray &output) {
 
 qsizetype bits::bytesToAsciiHex(char *out, qsizetype outLength,
                                 const quint8 *in, quint16 inLength,
-                                bool separator) {
+                                QVector<SeparatorRule> separators) {
   static const quint8 chars[] = "0123456789ABCDEF";
   qsizetype outIt = 0;
   for (int inIt = 0; inIt < inLength; inIt++) {
@@ -42,12 +42,15 @@ qsizetype bits::bytesToAsciiHex(char *out, qsizetype outLength,
       out[outIt++] = chars[in[inIt] & 0xf];
     } else
       break;
-    if (!separator)
-      continue;
-    else if (outIt + 1 <= outLength)
-      out[outIt++] = ' ';
-    else
+
+    if (outIt + 1 > outLength)
       break;
+    for (auto &rule : separators) {
+      if ((inIt + 1) % rule.modulus == 0) {
+        out[outIt++] = rule.separator;
+        break;
+      }
+    }
   }
   return outIt;
 }

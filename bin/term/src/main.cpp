@@ -9,6 +9,7 @@
 #include "pas/obj/pep10.hpp"
 #include "pas/operations/generic/errors.hpp"
 #include "pas/operations/pepp/bytes.hpp"
+#include "pas/operations/pepp/string.hpp"
 #include <CLI11.hpp>
 #include <QDebug>
 #include <QtCore>
@@ -94,7 +95,7 @@ int main(int argc, char **argv) {
   std::string userName;
   std::optional<std::string> osName = std::nullopt, elfName = std::nullopt;
   auto osOpt = asmSC->add_option("--os", osName);
-  auto elfOpt = asmSC->add_option("--elf", elfName)->default_val("a.elf");
+  auto elfOpt = asmSC->add_option("--elf", elfName);
   auto userOpt = asmSC->add_option("user", userName)->required()->expected(1);
   asmSC->callback([&]() {
     task = [&](QObject *parent) {
@@ -110,13 +111,27 @@ int main(int argc, char **argv) {
   uint64_t maxSteps;
   ELFIO::elfio elf;
   auto runSC = app.add_subcommand("run", "Run ISA3 programs");
-  auto charInOpt = runSC->add_option("--charIn", charIn)->default_val("-");
-  auto charOutOpt = runSC->add_option("--charOut", charOut)->default_val("-");
-  auto memDumpOpt =
-      runSC->add_option("--memDump", memDump)->default_val("mem.bin");
+  auto charInOpt = runSC->add_option(
+      "-i,--charIn", charIn,
+      "File whose contents are to be buffered behind charIn. The value `-` "
+      "will cause charIn to be taken from stdin. When using `-`, failure to "
+      "provide stdin will cause program to freeze.");
+  auto charOutOpt =
+      runSC
+          ->add_option("-o,--charOut", charOut,
+                       "File to which the contents of charOut will be written. "
+                       "The value `-` specifies stdout")
+          ->default_val("-");
+  auto memDumpOpt = runSC->add_option(
+      "--mem-dump", memDump,
+      "File to which post-simulation memory-dump will be written.");
   auto elfInOpt = runSC->add_option("elf", elfIn)->required()->expected(1);
   auto maxStepsOpt =
-      runSC->add_option("--max,-m", maxSteps)->default_val(10'000);
+      runSC
+          ->add_option("--max,-m", maxSteps,
+                       "Maximum number of instructions that will be executed "
+                       "before terminating simulator.")
+          ->default_val(10'000);
   runSC->callback([&]() {
     task = [&](QObject *parent) {
       elf.load(elfIn);
@@ -288,24 +303,79 @@ void AsmTask::run() {
                       .value<pas::driver::repr::Nodes>()
                       .value;
   if (!result) {
-    auto osErrors = pas::ops::generic::collectErrors(*osRoot);
-    for (auto &err : osErrors)
-      std::cerr << err.first.value.line << err.second.message.toStdString()
-                << std::endl;
-    auto userErrors = pas::ops::generic::collectErrors(*userRoot);
-    for (auto &err : userErrors)
-      std::cerr << err.first.value.line << err.second.message.toStdString()
-                << std::endl;
+    std::cerr << "Assembly failed, check error log" << std::endl;
+    QFileInfo err(QString::fromStdString(userIn));
+    QString errFName = err.path() + "/" + err.completeBaseName() + ".err.txt";
+    QFile errF(errFName);
+    if (errF.open(QFile::OpenModeFlag::WriteOnly)) {
+      bool hadOsErr = false;
+      auto ts = QTextStream(&errF);
+      auto osErrors = pas::ops::generic::collectErrors(*osRoot);
+      auto userErrors = pas::ops::generic::collectErrors(*userRoot);
+      if (!osErrors.empty()) {
+        ts << "OS Errors:\n";
+        auto splitOS = QString::fromStdString(osContents).split("\n");
+        for (const auto &err : osErrors) {
+          ts << ";Line " << err.first.value.line + 1 << "\n";
+          ts << splitOS[err.first.value.line]
+             << " ;ERROR: " << err.second.message << "\n";
+        }
+        ts << "User Errors:\n";
+      }
+      if (!userErrors.empty()) {
+        auto splitUser = QString::fromStdString(userContents).split("\n");
+        for (const auto &err : userErrors) {
+          ts << ";Line " << err.first.value.line + 1 << "\n";
+          ts << splitUser[err.first.value.line]
+             << " ;ERROR: " << err.second.message << "\n";
+        }
+      }
+      errF.close();
+    } else
+      std::cerr << "Failed to open error log for writing: "
+                << errFName.toStdString() << std::endl;
     return emit finished(1);
   }
-  auto elf = pas::obj::pep10::createElf();
-  pas::obj::pep10::combineSections(*osRoot);
-  pas::obj::pep10::writeOS(elf, *osRoot);
-  pas::obj::pep10::combineSections(*userRoot);
-  pas::obj::pep10::writeUser(elf, *userRoot);
+
+  // Assembly succeded!
+
   if (elfOut.has_value()) {
+    auto elf = pas::obj::pep10::createElf();
+    pas::obj::pep10::combineSections(*osRoot);
+    pas::obj::pep10::writeOS(elf, *osRoot);
+    pas::obj::pep10::combineSections(*userRoot);
+    pas::obj::pep10::writeUser(elf, *userRoot);
     elf.save(elfOut.value());
   }
-  qDebug() << pas::ops::pepp::toBytes<isa::Pep10>(*userRoot);
-  emit finished(0);
+
+  try {
+    auto lines = pas::ops::pepp::formatListing<isa::Pep10>(*userRoot);
+    QFileInfo pepl(QString::fromStdString(userIn));
+    QString peplFName = pepl.path() + "/" + pepl.completeBaseName() + ".pepl";
+    QFile peplF(peplFName);
+    if (peplF.open(QFile::OpenModeFlag::WriteOnly)) {
+      auto ts = QTextStream(&peplF);
+      for (auto &line : lines)
+        ts << line << "\n";
+      peplF.close();
+    } else
+      std::cerr << "Failed to open listing for writing: "
+                << peplFName.toStdString() << std::endl;
+  } catch (std::exception &e) {
+    std::cerr << "Failed to generate listing due to internal bug.\n";
+  }
+
+  QFileInfo pepo(QString::fromStdString(userIn));
+  QString pepoFName = pepo.path() + "/" + pepo.completeBaseName() + ".pepo";
+  auto userBytes = pas::ops::pepp::toBytes<isa::Pep10>(*userRoot);
+  auto userBytesStr = pas::ops::pepp::bytesToObject(userBytes);
+  QFile pepoF(pepoFName);
+  if (pepoF.open(QFile::OpenModeFlag::WriteOnly)) {
+    QTextStream(&pepoF) << (userBytesStr) << "\n";
+    pepoF.close();
+  } else
+    std::cerr << "Failed to open object code for writing: "
+              << pepoFName.toStdString() << std::endl;
+
+  return emit finished(0);
 }

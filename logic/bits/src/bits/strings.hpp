@@ -48,7 +48,13 @@ bool charactersToByte(Iterator &start, Iterator end, uint8_t &value) {
 bool startsWithHexPrefix(const QString &string);
 qsizetype escapedStringLength(const QString string);
 bool escapedStringToBytes(const QString &string, QByteArray &output);
+struct SeparatorRule {
+  bool skipFirst;
+  char separator;
+  quint16 modulus;
+};
+
 // Separates every byte with a space.
 qsizetype bytesToAsciiHex(char *out, qsizetype outLength, const quint8 *in,
-                          quint16 inLength, bool separator);
+                          quint16 inLength, QVector<SeparatorRule> separator);
 } // namespace bits
