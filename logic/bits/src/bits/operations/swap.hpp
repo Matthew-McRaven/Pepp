@@ -1,11 +1,11 @@
 #pragma once
+#include "bits/order.hpp"
+#include <QtEndian>
 #include <algorithm>
 #include <bit>
 #include <concepts>
 #include <cstring> // for memcpy.
 #include <ranges>
-#include <QtEndian>
-#include "bits/order.hpp"
 namespace bits {
 namespace detail {
 // Sample code from: https://en.cppreference.com/w/cpp/numeric/bit_cast
@@ -26,8 +26,6 @@ bit_cast(const From &src) noexcept {
   return dst;
 }
 } // namespace detail
-#ifndef std::ranges::reverse
-#endif
 #if __cpp_lib_bit_cast == 201806L
 using ::std::bit_cast;
 #else
@@ -36,18 +34,40 @@ using detail::bit_cast;
 #if __cpp_lib_byteswap == 202110L
 using ::std::byteswap;
 #else
-// Sample code from: https://en.cppreference.com/w/cpp/numeric/byteswap
-// Waiting on my compiler to support byteswap...
-template <std::integral T> constexpr T byteswap(T value) noexcept {
+namespace detail {
+template <typename T, typename = T> struct HasRangesReverse : std::false_type {
+  using value = T;
+};
+
+template <typename T>
+struct HasRangesReverse<T, decltype(&std::ranges::reverse, T())>
+    : std::true_type {};
+} // namespace detail
+
+// Use (better) range version when possible
+template <std::integral T, typename std::enable_if_t<
+                               detail::HasRangesReverse<T>::value, bool> = true>
+constexpr T byteswap(T value) noexcept {
+  // Sample code from: https://en.cppreference.com/w/cpp/numeric/byteswap
+  // Waiting on my compiler to support byteswap...
   static_assert(std::has_unique_object_representations_v<T>,
                 "T may not have padding bits");
-  // auto value_representation = bit_cast<std::array<std::byte, sizeof(T)>>(value);
-  if(bits::hostOrder() == bits::Order::LittleEndian)
-      return qToBigEndian(value);
+  auto value_representation = bit_cast<std::array<std::byte, sizeof(T)>>(value);
+  std::ranges::reverse(value_representation);
+  return bit_cast<T>(value_representation);
+}
+
+// Otherwise use fallback Qt implementation.
+template <
+    std::integral T,
+    typename std::enable_if_t<!detail::HasRangesReverse<T>::value, bool> = true>
+constexpr T byteswap(T value) noexcept {
+  static_assert(std::has_unique_object_representations_v<T>,
+                "T may not have padding bits");
+  if (bits::hostOrder() == bits::Order::LittleEndian)
+    return qToBigEndian(value);
   else
-      return qToLittleEndian(value);
-  //std::ranges::reverse(value_representation);
-  //return bit_cast<T>(value_representation);
+    return qToLittleEndian(value);
 }
 #endif
 } // namespace bits
