@@ -56,10 +56,12 @@ void RunTask::run() {
                      .toStdString()
               << " ";
   };
+  bool noMMI = false;
   while (system->currentTick() < _maxSteps &&
          !endpoint->next_value().has_value()) {
-    fail |= system->tick(sim::api::Scheduler::Mode::Jump).second.error !=
-            sim::api::tick::Error::Success;
+    auto ret = system->tick(sim::api::Scheduler::Mode::Jump);
+    noMMI = ret.second.error == sim::api::tick::Error::NoMMInput;
+    fail |= ret.second.error != sim::api::tick::Error::Success;
     quint16 tmp = 0;
     targets::pep10::isa::readRegister(system->cpu()->regs(),
                                       isa::Pep10::Register::IS, tmp, gs);
@@ -92,6 +94,10 @@ void RunTask::run() {
     std::cout << std::endl;
     if (fail)
       break;
+  }
+  if (noMMI) {
+    std::cout << "Program request data from charIn, but not data is present. "
+                 "Terminating.\n";
   }
   if (system->currentTick() >= _maxSteps) {
     std::cout << "Exceeded max number of steps. Possible infinite loop\n";
