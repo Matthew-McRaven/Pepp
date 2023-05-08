@@ -122,7 +122,7 @@ int main(int argc, char **argv) {
                        "The value `-` specifies stdout")
           ->default_val("-");
   auto memDumpOpt = runSC->add_option(
-      "--memDump", memDump,
+      "--mem-dump", memDump,
       "File to which post-simulation memory-dump will be written.");
   auto elfInOpt = runSC->add_option("elf", elfIn)->required()->expected(1);
   auto maxStepsOpt =
