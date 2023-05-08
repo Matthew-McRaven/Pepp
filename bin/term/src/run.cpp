@@ -18,7 +18,6 @@ RunTask::RunTask(const ELFIO::elfio &elf, QObject *parent)
     : Task(parent), _elf(elf) {}
 
 void RunTask::run() {
-
   bool loadIm = false | !(obj::getBootFlagsAddress(_elf).has_value());
   auto system = targets::pep10::isa::systemFromElf(_elf, loadIm);
   system->init();
