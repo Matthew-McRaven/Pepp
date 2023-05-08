@@ -9,6 +9,7 @@
 #include <QtCore>
 
 namespace pas::ops::pepp {
+QString bytesToObject(const QList<quint8> &bytes, quint8 bytesPerLine = 16);
 template <typename ISA> QList<quint8> toBytes(const pas::ast::Node &node);
 namespace detail {
 template <typename ISA>
