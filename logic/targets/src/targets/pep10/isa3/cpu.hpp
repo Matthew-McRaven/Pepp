@@ -27,10 +27,8 @@ public:
   void setTraceBuffer(sim::api::trace::Buffer *tb) override;
   void trace(bool enabled) override;
   quint8 packetSize(sim::api::packet::Flags flags) const override;
-  bool applyTrace(void *payload, quint8 size,
-                  sim::api::packet::Flags flags) override;
-  bool unapplyTrace(void *payload, quint8 size,
-                    sim::api::packet::Flags flags) override;
+  bool applyTrace(void *payload, sim::api::packet::Flags flags) override;
+  bool unapplyTrace(void *payload, sim::api::packet::Flags flags) override;
 
   // Initiator interface
   void setTarget(sim::api::memory::Target<quint16> *target) override;

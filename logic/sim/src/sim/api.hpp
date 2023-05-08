@@ -162,8 +162,8 @@ struct Analyzer {
   };
 
   // Only called in Buffer decides evaluate packet, and it matched filters.
-  virtual bool analyze(void *payload, quint8 size, packet::Flags flags);
-  virtual bool unanalyze(void *payload, quint8 size, packet::Flags flags);
+  virtual bool analyze(void *payload, packet::Flags flags);
+  virtual bool unanalyze(void *payload, packet::Flags flags);
   // Called on registration with Buffer to determine when to invoke analyzer.
   // At some point, I may allow one analyzer to produce multiple filters.
   virtual FilterArgs filter() const = 0;
@@ -240,10 +240,10 @@ struct Producer {
   // Any changes to bit format of trace now only impacts the Buffer doing the
   // analysis.
   virtual bool
-  applyTrace(void *payload, quint8 size,
+  applyTrace(void *payload,
              packet::Flags flags) = 0; // trace is a unknown payload struct.
   virtual bool
-  unapplyTrace(void *payload, quint8 size,
+  unapplyTrace(void *payload,
                packet::Flags flags) = 0; // trace is a unknown payload struct.
 };
 } // namespace trace

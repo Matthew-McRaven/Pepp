@@ -49,6 +49,6 @@ bool startsWithHexPrefix(const QString &string);
 qsizetype escapedStringLength(const QString string);
 bool escapedStringToBytes(const QString &string, QByteArray &output);
 // Separates every byte with a space.
-qsizetype bytesToAsciiHex(quint8 *out, qsizetype outLength, const quint8 *in,
-                          quint16 inLength);
+qsizetype bytesToAsciiHex(char *out, qsizetype outLength, const quint8 *in,
+                          quint16 inLength, bool separator);
 } // namespace bits

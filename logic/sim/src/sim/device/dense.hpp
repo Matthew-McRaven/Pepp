@@ -32,10 +32,8 @@ public:
   void setTraceBuffer(api::trace::Buffer *tb) override;
   void trace(bool enabled) override;
   quint8 packetSize(api::packet::Flags) const override;
-  bool applyTrace(void *payload, quint8 size,
-                  api::packet::Flags flags) override;
-  bool unapplyTrace(void *payload, quint8 size,
-                    api::packet::Flags flags) override;
+  bool applyTrace(void *payload, api::packet::Flags flags) override;
+  bool unapplyTrace(void *payload, api::packet::Flags flags) override;
 
   // Helpers
   const quint8 *constData() const;
@@ -146,6 +144,7 @@ quint8 *init_help(void *packet, quint16 dataLen, Address address,
   using pkt = Packet<payload<Address, dtype>>;
   pkt *ptr = new (packet) pkt(id, flags);
   ptr->payload.address = address;
+  ptr->payload.length = dataLen;
   if constexpr (std::is_pointer_v<std::decay_t<dtype>>)
     return ptr->payload.data;
   else
@@ -249,13 +248,13 @@ quint8 Dense<Address>::packetSize(api::packet::Flags flags) const {
 }
 
 template <typename Address>
-bool sim::memory::Dense<Address>::applyTrace(void *payload, quint8 size,
+bool sim::memory::Dense<Address>::applyTrace(void *payload,
                                              api::packet::Flags flags) {
   return false;
 }
 
 template <typename Address>
-bool sim::memory::Dense<Address>::unapplyTrace(void *payload, quint8 size,
+bool sim::memory::Dense<Address>::unapplyTrace(void *payload,
                                                api::packet::Flags flags) {
   return false;
 }
