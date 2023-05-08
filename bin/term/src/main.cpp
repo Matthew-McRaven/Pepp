@@ -320,6 +320,7 @@ void AsmTask::run() {
   if (elfOut.has_value()) {
     elf.save(elfOut.value());
   }
-  qDebug() << pas::ops::pepp::toBytes<isa::Pep10>(*userRoot);
+
+  auto userBytes = pas::ops::pepp::toBytes<isa::Pep10>(*userRoot);
   emit finished(0);
 }
