@@ -66,7 +66,7 @@ struct DefaultValue {
 };
 
 template <typename Address, Pow2 Data> struct AddressedPayload {
-  Address address;
+  Address address, length;
   Data data;
 
   static constexpr sim::api::packet::Flags flags() {

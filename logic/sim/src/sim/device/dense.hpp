@@ -144,6 +144,7 @@ quint8 *init_help(void *packet, quint16 dataLen, Address address,
   using pkt = Packet<payload<Address, dtype>>;
   pkt *ptr = new (packet) pkt(id, flags);
   ptr->payload.address = address;
+  ptr->payload.length = dataLen;
   if constexpr (std::is_pointer_v<std::decay_t<dtype>>)
     return ptr->payload.data;
   else
