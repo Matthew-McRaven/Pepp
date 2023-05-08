@@ -19,9 +19,10 @@ QList<quint8> obj::segmentAsAsciiHex(const ELFIO::segment *segment) {
                             .src = segment->get_data()});
   static const quint8 zero[] = {0x00};
   qsizetype it = 0;
-  // 2 characters for each byte, 1 byte for each space
+  // 2 characters for each byte, 1 byte for each space. Do not leave space for
+  // trailing separator.
   QList<quint8> ret(std::max<qsizetype>(0, 3 * rawBytes - 1));
-  ret.last() = 0;
+  // Copy over segment's file bytes
   for (auto buffer : buffered) {
     if (it + 1 > ret.size())
       throw std::logic_error("Dest buffer too small");
@@ -30,6 +31,7 @@ QList<quint8> obj::segmentAsAsciiHex(const ELFIO::segment *segment) {
                                    buffer.srcLength, rules);
     it += i;
   }
+  // Copy over 0's in excess of file size, but required for memsize.
   while (it + 1 < ret.size()) {
     auto i = bits::bytesToAsciiHex((char *)ret.data() + it, ret.length() - it,
                                    zero, 1, rules);
