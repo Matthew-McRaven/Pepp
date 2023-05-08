@@ -361,7 +361,6 @@ void AsmTask::run() {
     } else
       std::cerr << "Failed to open listing for writing: "
                 << peplFName.toStdString() << std::endl;
-
   } catch (std::exception &e) {
     std::cerr << "Failed to generate listing due to internal bug.\n";
   }
