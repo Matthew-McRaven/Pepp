@@ -162,8 +162,8 @@ struct Analyzer {
   };
 
   // Only called in Buffer decides evaluate packet, and it matched filters.
-  virtual bool analyze(void *payload, quint8 size, packet::Flags flags);
-  virtual bool unanalyze(void *payload, quint8 size, packet::Flags flags);
+  virtual bool analyze(void *payload, packet::Flags flags);
+  virtual bool unanalyze(void *payload, packet::Flags flags);
   // Called on registration with Buffer to determine when to invoke analyzer.
   // At some point, I may allow one analyzer to produce multiple filters.
   virtual FilterArgs filter() const = 0;
