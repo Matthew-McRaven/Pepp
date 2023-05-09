@@ -279,25 +279,25 @@ void AsmTask::run() {
   auto book = bookRegistry.findBook("Computer Systems, 6th Edition");
   for (auto &macro : book->macros())
     macroRegistry->registerMacro(macro::types::Core, macro);
+  QString userContents;
+  {
+    QFile uIn(QString::fromStdString(userIn)); // auto-closes
+    uIn.open(QIODevice::ReadOnly | QIODevice::Text);
+    userContents = uIn.readAll();
+  }
 
-  std::ifstream uIn(userIn);
-  std::stringstream uBuf;
-  uBuf << uIn.rdbuf();
-  std::string userContents = uBuf.str();
   // If no OS, default to full.
-  std::string osContents;
+  QString osContents;
   if (osIn->empty()) {
     auto os = book->findFigure("os", "full");
-    osContents = os->typesafeElements()["pep"]->contents.toStdString();
+    osContents = os->typesafeElements()["pep"]->contents;
   } else {
-    std::ifstream _osIn(osIn.value());
-    std::stringstream osBuf;
-    osBuf << _osIn.rdbuf();
-    osContents = osBuf.str();
+    QFile oIn(QString::fromStdString(*osIn)); // auto-closes
+    oIn.open(QIODevice::ReadOnly | QIODevice::Text);
+    osContents = oIn.readAll();
   }
   auto pipeline = pas::driver::pep10::pipeline(
-      {{QString::fromStdString(osContents), {.isOS = true}},
-       {QString::fromStdString(userContents), {.isOS = false}}},
+      {{osContents, {.isOS = true}}, {userContents, {.isOS = false}}},
       macroRegistry);
   auto result = pipeline->assemble(pas::driver::pep10::Stage::End);
 
@@ -314,14 +314,15 @@ void AsmTask::run() {
     QFileInfo err(QString::fromStdString(userIn));
     QString errFName = err.path() + "/" + err.completeBaseName() + ".err.txt";
     QFile errF(errFName);
-    if (errF.open(QFile::OpenModeFlag::WriteOnly)) {
+    if (errF.open(QIODevice::WriteOnly | QIODevice::Truncate |
+                  QIODevice::Text)) {
       bool hadOsErr = false;
       auto ts = QTextStream(&errF);
       auto osErrors = pas::ops::generic::collectErrors(*osRoot);
       auto userErrors = pas::ops::generic::collectErrors(*userRoot);
       if (!osErrors.empty()) {
         ts << "OS Errors:\n";
-        auto splitOS = QString::fromStdString(osContents).split("\n");
+        auto splitOS = osContents.split("\n");
         for (const auto &err : osErrors) {
           ts << ";Line " << err.first.value.line + 1 << "\n";
           ts << splitOS[err.first.value.line]
@@ -330,7 +331,7 @@ void AsmTask::run() {
         ts << "User Errors:\n";
       }
       if (!userErrors.empty()) {
-        auto splitUser = QString::fromStdString(userContents).split("\n");
+        auto splitUser = userContents.split("\n");
         for (const auto &err : userErrors) {
           ts << ";Line " << err.first.value.line + 1 << "\n";
           ts << splitUser[err.first.value.line]
@@ -360,11 +361,11 @@ void AsmTask::run() {
     QFileInfo pepl(QString::fromStdString(userIn));
     QString peplFName = pepl.path() + "/" + pepl.completeBaseName() + ".pepl";
     QFile peplF(peplFName);
-    if (peplF.open(QFile::OpenModeFlag::WriteOnly)) {
+    if (peplF.open(QIODevice::WriteOnly | QIODevice::Truncate |
+                   QIODevice::Text)) {
       auto ts = QTextStream(&peplF);
       for (auto &line : lines)
         ts << line << "\n";
-      peplF.close();
     } else
       std::cerr << "Failed to open listing for writing: "
                 << peplFName.toStdString() << std::endl;
@@ -387,18 +388,19 @@ void AsmTask::run() {
       std::cerr << "Failed to generate listing due to internal bug.\n";
     }
   }
-
-  QFileInfo pepo(QString::fromStdString(userIn));
-  QString pepoFName = pepo.path() + "/" + pepo.completeBaseName() + ".pepo";
-  auto userBytes = pas::ops::pepp::toBytes<isa::Pep10>(*userRoot);
-  auto userBytesStr = pas::ops::pepp::bytesToObject(userBytes);
-  QFile pepoF(pepoFName);
-  if (pepoF.open(QFile::OpenModeFlag::WriteOnly)) {
-    QTextStream(&pepoF) << (userBytesStr) << "\n";
-    pepoF.close();
-  } else
-    std::cerr << "Failed to open object code for writing: "
-              << pepoFName.toStdString() << std::endl;
+  {
+    QFileInfo pepo(QString::fromStdString(userIn));
+    QString pepoFName = pepo.path() + "/" + pepo.completeBaseName() + ".pepo";
+    auto userBytes = pas::ops::pepp::toBytes<isa::Pep10>(*userRoot);
+    auto userBytesStr = pas::ops::pepp::bytesToObject(userBytes);
+    QFile pepoF(pepoFName);
+    if (pepoF.open(QIODevice::WriteOnly | QIODevice::Truncate |
+                   QIODevice::Text)) {
+      QTextStream(&pepoF) << userBytesStr << "\n";
+    } else
+      std::cerr << "Failed to open object code for writing: "
+                << pepoFName.toStdString() << std::endl;
+  }
 
   return emit finished(0);
 }
