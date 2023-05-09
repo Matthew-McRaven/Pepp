@@ -79,7 +79,7 @@ void RunTask::run() {
     auto writeOut = [&](std::ostream &outF) {
       for (auto next = charOutEndpoint->next_value(); next.has_value();
            next = charOutEndpoint->next_value()) {
-        outF << *next;
+        outF << char(*next);
       }
       outF << std::endl;
     };
