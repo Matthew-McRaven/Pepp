@@ -1,26 +1,14 @@
 #include "ls.hpp"
-#include "builtins/book.hpp"
+#include "./shared.hpp"
 #include "builtins/figure.hpp"
-#include "builtins/registry.hpp"
 #include <iostream>
 
 ListTask::ListTask(int ed, QObject *parent) : Task(parent), ed(ed) {}
 
 void ListTask::run() {
-  QString bookName;
-  switch (ed) {
-  case 6:
-    bookName = "Computer Systems, 6th Edition";
-  default:
-    emit finished(1);
-  }
-
-  auto reg = builtins::Registry(nullptr);
-  auto book = reg.findBook(bookName);
-
+  auto book = detail::book(ed);
   if (book.isNull())
-    emit finished(1);
-
+    return emit finished(1);
   auto figures = book->figures();
   auto macros = book->macros();
 
@@ -38,5 +26,5 @@ void ListTask::run() {
         << u"%1 %2"_qs.arg(macro->name()).arg(macro->argCount()).toStdString()
         << std::endl;
 
-  emit finished(0);
+  return emit finished(0);
 }
