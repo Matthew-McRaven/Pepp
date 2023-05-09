@@ -180,7 +180,6 @@ void writeTree(ELFIO::elfio &elf, pas::ast::Node &node, QString prefix,
       continue; // 0-sized sections are meaningless, do not emit.
 
     auto sec = elf.sections.add(u"%1.%2"_qs.arg(prefix, secName).toStdString());
-    sec->set_type(ELFIO::SHT_PROGBITS);
     // All sections from AST correspond to bits in Pep/10 memory, so alloc
     auto shFlags = ELFIO::SHF_ALLOC;
     shFlags |= secFlags.X ? ELFIO::SHF_EXECINSTR : 0;
@@ -275,4 +274,24 @@ void pas::obj::pep10::writeUser(ELFIO::elfio &elf, ast::Node &user) {
     elf.segments[0]->set_memory_size(elf.segments[0]->get_memory_size() -
                                      delta);
   }
+}
+
+void pas::obj::pep10::writeUser(ELFIO::elfio &elf, QList<quint8> bytes) {
+  auto align = 1;
+  ELFIO::Elf64_Addr baseAddr = 0;
+  auto size = bytes.size();
+  auto sec = elf.sections.add("usr.txt");
+  sec->set_type(ELFIO::SHT_PROGBITS);
+  // All sections from AST correspond to bits in Pep/10 memory, so alloc
+  sec->set_flags(ELFIO::SHF_ALLOC | ELFIO::SHF_WRITE | ELFIO::SHF_EXECINSTR);
+  sec->set_addr_align(align);
+  sec->set_data((const char *)bytes.constData(), size);
+  auto seg = elf.segments.add();
+  seg->set_align(1);
+  seg->set_virtual_address(0x0);
+  seg->set_physical_address(0x0);
+  seg->set_memory_size(size);
+  seg->set_type(ELFIO::PT_LOPROC + 1);
+  seg->set_flags(ELFIO::PF_R | ELFIO::PF_W | ELFIO::PF_X);
+  seg->add_section(sec, 1);
 }
