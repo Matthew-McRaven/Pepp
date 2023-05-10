@@ -54,3 +54,18 @@ qsizetype bits::bytesToAsciiHex(char *out, qsizetype outLength,
   }
   return outIt;
 }
+
+std::optional<QList<quint8>> bits::asciiHexToByte(const char *in,
+                                                  quint16 inLength) {
+  QList<quint8> ret = {};
+  ret.reserve(inLength / 3 + 2);
+  qsizetype inIt = 0;
+  char *endptr = nullptr;
+  while (inIt + 3 < inLength) {
+    ret.push_back(strtol(in + inIt, &endptr, 16));
+    if (endptr > in + inIt + 2)
+      return std::nullopt;
+    inIt += 3;
+  }
+  return ret;
+}

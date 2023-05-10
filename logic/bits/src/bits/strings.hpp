@@ -57,4 +57,5 @@ struct SeparatorRule {
 // Separates every byte with a space.
 qsizetype bytesToAsciiHex(char *out, qsizetype outLength, const quint8 *in,
                           quint16 inLength, QVector<SeparatorRule> separator);
+std::optional<QList<quint8>> asciiHexToByte(const char *in, quint16 inLength);
 } // namespace bits
