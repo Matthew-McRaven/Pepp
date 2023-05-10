@@ -1,4 +1,7 @@
 #include "./run.hpp"
+#include "./shared.hpp"
+#include "bits/strings.hpp"
+#include "builtins/figure.hpp"
 #include "obj/mmio.hpp"
 #include "sim/device/broadcast/mmi.hpp"
 #include "sim/device/broadcast/mmo.hpp"
@@ -14,12 +17,54 @@ auto gs = sim::api::memory::Operation{
     .effectful = false,
 };
 
-RunTask::RunTask(const ELFIO::elfio &elf, QObject *parent)
-    : Task(parent), _elf(elf) {}
+RunTask::RunTask(int ed, std::string fname, QObject *parent)
+    : Task(parent), _ed(ed), _objIn(fname) {}
+
+bool RunTask::loadToElf() {
+  auto ret = QSharedPointer<ELFIO::elfio>::create();
+  if (ret->load(_objIn)) {
+    _elf = ret;
+    return true;
+  }
+  auto book = detail::book(_ed);
+  if (book.isNull())
+    return false;
+  QString osContents;
+  if (!_osIn.has_value()) {
+    auto os = book->findFigure("os", "full");
+    osContents = os->typesafeElements()["pep"]->contents;
+  } else {
+    QFile oIn(QString::fromStdString(*_osIn)); // auto-closes
+    oIn.open(QIODevice::ReadOnly | QIODevice::Text);
+    osContents = oIn.readAll();
+  }
+  auto macroRegistry = detail::registry(book, {});
+  detail::AsmHelper helper(macroRegistry, osContents);
+  auto result = helper.assemble();
+  if (!result) {
+    std::cerr << "OS assembly failed" << std::endl;
+    return false;
+  }
+  QFile objF(QString::fromStdString(_objIn));
+  if (!objF.open(QIODevice::ReadOnly | QIODevice::Text)) {
+    std::cerr << "Failed to open object code: " << _objIn << std::endl;
+    return false;
+  }
+  auto objText = objF.readAll().toStdString();
+  auto bytes = bits::asciiHexToByte(objText.data(), objText.size());
+  if (!bytes)
+    return false;
+  _elf = helper.elf(*bytes);
+  _elf->save("tmp.elf");
+  _elf->load("tmp.elf");
+  return true;
+}
 
 void RunTask::run() {
-  bool loadIm = false | !(obj::getBootFlagsAddress(_elf).has_value());
-  auto system = targets::pep10::isa::systemFromElf(_elf, loadIm);
+  if (!loadToElf())
+    return emit finished(1);
+  bool loadIm = false | !(obj::getBootFlagsAddress(*_elf).has_value());
+  auto system = targets::pep10::isa::systemFromElf(*_elf, loadIm);
   system->init();
   system->setBootFlags(!loadIm, true);
   /*targets::pep10::isa::writeRegister(system->cpu()->regs(),
@@ -114,3 +159,5 @@ void RunTask::setCharIn(std::string fname) { this->_charIn = fname; }
 void RunTask::setMemDump(std::string fname) { _memDump = fname; }
 
 void RunTask::setMaxSteps(quint64 maxSteps) { this->_maxSteps = maxSteps; }
+
+void RunTask::setOsIn(std::string fname) { _osIn = fname; }

@@ -70,9 +70,8 @@ int main(int argc, char **argv) {
     };
   });
 
-  std::string elfIn, charIn, charOut, memDump;
+  std::string objIn, charIn, charOut, memDump, osIn;
   uint64_t maxSteps;
-  ELFIO::elfio elf;
   auto runSC = app.add_subcommand("run", "Run ISA3 programs");
   auto charInOpt = runSC->add_option(
       "-i,--charIn", charIn,
@@ -88,23 +87,27 @@ int main(int argc, char **argv) {
   auto memDumpOpt = runSC->add_option(
       "--mem-dump", memDump,
       "File to which post-simulation memory-dump will be written.");
-  auto elfInOpt = runSC->add_option("elf", elfIn)->required()->expected(1);
+  auto elfInOpt =
+      runSC->add_option("elfOrPepo", objIn)->required()->expected(1);
   auto maxStepsOpt =
       runSC
           ->add_option("--max,-m", maxSteps,
                        "Maximum number of instructions that will be executed "
                        "before terminating simulator.")
           ->default_val(10'000);
+  auto osInOpt =
+      runSC->add_option("--os", osIn, "File from which os will be read.");
   runSC->callback([&]() {
     task = [&](QObject *parent) {
-      elf.load(elfIn);
-      auto ret = new RunTask(elf, parent);
-      if (charInOpt)
+      auto ret = new RunTask(edValue, objIn, parent);
+      if (*charInOpt)
         ret->setCharIn(charIn);
-      if (charOutOpt)
+      if (*charOutOpt)
         ret->setCharOut(charOut);
-      if (memDumpOpt)
+      if (*memDumpOpt)
         ret->setMemDump(memDump);
+      if (*osInOpt)
+        ret->setOsIn(osIn);
       ret->setMaxSteps(maxSteps);
       return ret;
     };
