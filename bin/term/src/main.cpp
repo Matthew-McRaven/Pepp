@@ -60,11 +60,11 @@ int main(int argc, char **argv) {
   asmSC->callback([&]() {
     task = [&](QObject *parent) {
       auto ret = new AsmTask(edValue, userName, "a.pepo", parent);
-      if (osOpt)
+      if (*osOpt)
         ret->setOsFname(*osName);
-      if (elfOpt)
+      if (*elfOpt)
         ret->emitElfTo(*elfName);
-      if (osListingOpt)
+      if (*osListingOpt)
         ret->setOsListingFname(osListing);
       return ret;
     };
