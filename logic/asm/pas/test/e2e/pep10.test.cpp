@@ -160,15 +160,16 @@ private slots:
     }
     auto elf = pas::obj::pep10::createElf();
     pas::obj::pep10::combineSections(*osRoot);
-    pas::obj::pep10::writeOS(elf, *osRoot);
+    pas::obj::pep10::writeOS(*elf, *osRoot);
     pas::obj::pep10::combineSections(*userRoot);
-    pas::obj::pep10::writeUser(elf, *userRoot);
-    elf.save(u"%1.%2.elf"_qs.arg(chapter, figure).toStdString());
-    elf.load(u"%1.%2.elf"_qs.arg(chapter, figure).toStdString());
+    pas::obj::pep10::writeUser(*elf, *userRoot);
+    // Segments are not layed out correctly until saving.
+    elf->save(u"%1.%2.elf"_qs.arg(chapter, figure).toStdString());
+    elf->load(u"%1.%2.elf"_qs.arg(chapter, figure).toStdString());
     QVERIFY(result);
 
     // Verify MMIO information.
-    auto decs = ::obj::getMMIODeclarations(elf);
+    auto decs = ::obj::getMMIODeclarations(*elf);
     QCOMPARE(decs.length(), 4);
     QCOMPARE_NE(std::find_if(decs.cbegin(), decs.cend(), is_diskIn),
                 decs.cend());
@@ -179,9 +180,9 @@ private slots:
     QCOMPARE_NE(std::find_if(decs.cbegin(), decs.cend(), is_pwrOff),
                 decs.cend());
 
-    auto buf = ::obj::getMMIBuffers(elf);
+    auto buf = ::obj::getMMIBuffers(*elf);
     QCOMPARE(buf.size(), 1);
-    auto memMap = obj::getLoadableSegments(elf);
+    auto memMap = obj::getLoadableSegments(*elf);
     auto mergeMap = obj::mergeSegmentRegions(memMap);
     if (isFullOS) {
       QCOMPARE(mergeMap.size(), 3);
@@ -201,11 +202,9 @@ private slots:
           .r = 1, .w = 1, .minOffset = 0xfffa, .maxOffset = 0xffff};
       QCOMPARE(mergeMap[2], mmio);
     }
-    // Must write to file to "finish" setting up segment values.
-    elf.save(u"%1.elf"_qs.arg(figName).toStdString());
     QSharedPointer<targets::pep10::isa::System> sys;
     QVERIFY_THROWS_NO_EXCEPTION([&sys, &elf]() {
-      sys = targets::pep10::isa::systemFromElf(elf, true);
+      sys = targets::pep10::isa::systemFromElf(*elf, true);
     }());
     QVector<quint8> dump(0x1'00'00);
     sys->bus()->dump(dump.data(), dump.size());
@@ -216,7 +215,7 @@ private slots:
       memDump.close();
     }
 
-    auto bootFlg = ::obj::getBootFlagsAddress(elf);
+    auto bootFlg = ::obj::getBootFlagsAddress(*elf);
     auto systemBootFlg = sys->getBootFlagAddress();
     QCOMPARE(bootFlg.has_value(), systemBootFlg.has_value());
     if (bootFlg) {

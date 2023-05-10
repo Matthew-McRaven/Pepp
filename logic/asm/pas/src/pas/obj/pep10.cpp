@@ -57,16 +57,16 @@ ELFIO::section *addStrTab(ELFIO::elfio &elf) {
   return strTab;
 }
 
-ELFIO::elfio pas::obj::pep10::createElf() {
+QSharedPointer<ELFIO::elfio> pas::obj::pep10::createElf() {
   static const char p10mac[2] = {'p', 'x'};
-  ELFIO::elfio ret;
-  ret.create(ELFIO::ELFCLASS32, ELFIO::ELFDATA2MSB);
-  ret.set_os_abi(ELFIO::ELFOSABI_NONE);
-  ret.set_type(ELFIO::ET_EXEC);
-  ret.set_machine(*(quint16 *)p10mac);
+  auto ret = QSharedPointer<ELFIO::elfio>::create();
+  ret->create(ELFIO::ELFCLASS32, ELFIO::ELFDATA2MSB);
+  ret->set_os_abi(ELFIO::ELFOSABI_NONE);
+  ret->set_type(ELFIO::ET_EXEC);
+  ret->set_machine(*(quint16 *)p10mac);
   // Create strtab/notes early, so that it will be before any code sections.
-  addStrTab(ret);
-  ::obj::addMMIONoteSection(ret);
+  addStrTab(*ret);
+  ::obj::addMMIONoteSection(*ret);
   return ret;
 }
 
