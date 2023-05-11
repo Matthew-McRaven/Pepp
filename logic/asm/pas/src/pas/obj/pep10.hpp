@@ -5,7 +5,7 @@
 
 namespace pas::obj::pep10 {
 void combineSections(pas::ast::Node &root);
-ELFIO::elfio createElf();
+QSharedPointer<ELFIO::elfio> createElf();
 void writeOS(ELFIO::elfio &elf, pas::ast::Node &os);
 void writeUser(ELFIO::elfio &elf, pas::ast::Node &user);
 void writeUser(ELFIO::elfio &elf, QList<quint8> bytes);

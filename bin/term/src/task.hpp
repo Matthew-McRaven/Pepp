@@ -9,12 +9,3 @@ public:
 signals:
   void finished(int ret);
 };
-
-class ListTask : public Task {
-public:
-  ListTask(int ed, QObject *parent = nullptr);
-  void run() override;
-
-private:
-  int ed;
-};

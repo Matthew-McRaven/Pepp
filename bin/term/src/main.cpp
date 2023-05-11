@@ -1,54 +1,12 @@
+#include "./asm/asm.hpp"
+#include "./get/fig.hpp"
+#include "./get/macro.hpp"
+#include "./ls.hpp"
 #include "./run.hpp"
 #include "./task.hpp"
-#include "builtins/book.hpp"
-#include "builtins/figure.hpp"
-#include "builtins/registry.hpp"
-#include "isa/pep10.hpp"
-#include "macro/registry.hpp"
-#include "pas/driver/pep10.hpp"
-#include "pas/obj/pep10.hpp"
-#include "pas/operations/generic/errors.hpp"
-#include "pas/operations/pepp/bytes.hpp"
-#include "pas/operations/pepp/string.hpp"
 #include <CLI11.hpp>
 #include <QDebug>
 #include <QtCore>
-
-class GetFigTask : public Task {
-public:
-  GetFigTask(int ed, std::string ch, std::string fig,
-             QObject *parent = nullptr);
-  void run() override;
-
-private:
-  int ed;
-  std::string ch, fig;
-};
-
-class GetMacroTask : public Task {
-public:
-  GetMacroTask(int ed, std::string name, QObject *parent = nullptr);
-  void run() override;
-
-private:
-  int ed;
-  std::string name;
-};
-
-class AsmTask : public Task {
-public:
-  AsmTask(int ed, std::string userFname, std::string out,
-          QObject *parent = nullptr);
-  void setOsFname(std::string fname);
-  void setOsListingFname(std::string fname);
-  void emitElfTo(std::string fname);
-  void run() override;
-
-private:
-  int ed;
-  std::string userIn, pepoOut;
-  std::optional<std::string> osIn, peplOut, elfOut, osListOut;
-};
 
 using task_factory_t = std::function<Task *(QObject *)>;
 #include "main.moc"
@@ -102,19 +60,18 @@ int main(int argc, char **argv) {
   asmSC->callback([&]() {
     task = [&](QObject *parent) {
       auto ret = new AsmTask(edValue, userName, "a.pepo", parent);
-      if (osOpt)
+      if (*osOpt)
         ret->setOsFname(*osName);
-      if (elfOpt)
+      if (*elfOpt)
         ret->emitElfTo(*elfName);
-      if (osListingOpt)
+      if (*osListingOpt)
         ret->setOsListingFname(osListing);
       return ret;
     };
   });
 
-  std::string elfIn, charIn, charOut, memDump;
+  std::string objIn, charIn, charOut, memDump, osIn;
   uint64_t maxSteps;
-  ELFIO::elfio elf;
   auto runSC = app.add_subcommand("run", "Run ISA3 programs");
   auto charInOpt = runSC->add_option(
       "-i,--charIn", charIn,
@@ -130,23 +87,26 @@ int main(int argc, char **argv) {
   auto memDumpOpt = runSC->add_option(
       "--mem-dump", memDump,
       "File to which post-simulation memory-dump will be written.");
-  auto elfInOpt = runSC->add_option("elf", elfIn)->required()->expected(1);
+  auto elfInOpt =
+      runSC->add_option("elfOrPepo", objIn)->required()->expected(1);
   auto maxStepsOpt =
       runSC
           ->add_option("--max,-m", maxSteps,
                        "Maximum number of instructions that will be executed "
                        "before terminating simulator.")
           ->default_val(10'000);
+  auto osInOpt =
+      runSC->add_option("--os", osIn, "File from which os will be read.");
   runSC->callback([&]() {
     task = [&](QObject *parent) {
-      elf.load(elfIn);
-      auto ret = new RunTask(elf, parent);
-      if (charInOpt)
+      auto ret = new RunTask(edValue, objIn, parent);
+      if (*charInOpt)
         ret->setCharIn(charIn);
-      if (charOutOpt)
-        ret->setCharOut(charOut);
-      if (memDumpOpt)
+      ret->setCharOut(charOut);
+      if (*memDumpOpt)
         ret->setMemDump(memDump);
+      if (*osInOpt)
+        ret->setOsIn(osIn);
       ret->setMaxSteps(maxSteps);
       return ret;
     };
@@ -172,235 +132,3 @@ int main(int argc, char **argv) {
 }
 
 Task::Task(QObject *parent) : QObject(parent) {}
-
-ListTask::ListTask(int ed, QObject *parent) : Task(parent), ed(ed) {}
-
-void ListTask::run() {
-  QString bookName;
-  switch (ed) {
-  case 6:
-    bookName = "Computer Systems, 6th Edition";
-  default:
-    emit finished(1);
-  }
-
-  auto reg = builtins::Registry(nullptr);
-  auto book = reg.findBook(bookName);
-
-  if (book.isNull())
-    emit finished(1);
-
-  auto figures = book->figures();
-  auto macros = book->macros();
-
-  std::cout << "Figures: " << std::endl;
-  for (auto &figure : figures)
-    std::cout << u"%1.%2"_qs.arg(figure->chapterName(), figure->figureName())
-                     .toStdString()
-              << std::endl;
-
-  std::cout << std::endl;
-
-  std::cout << "Macros: " << std::endl;
-  for (auto &macro : macros)
-    std::cout
-        << u"%1 %2"_qs.arg(macro->name()).arg(macro->argCount()).toStdString()
-        << std::endl;
-
-  emit finished(0);
-}
-
-GetFigTask::GetFigTask(int ed, std::string ch, std::string fig, QObject *parent)
-    : Task(parent), ed(ed), ch(ch), fig(fig) {}
-
-void GetFigTask::run() {
-  QString bookName;
-  switch (ed) {
-  case 6:
-    bookName = "Computer Systems, 6th Edition";
-  default:
-    emit finished(1);
-  }
-
-  auto reg = builtins::Registry(nullptr);
-  auto book = reg.findBook(bookName);
-
-  auto figure =
-      book->findFigure(QString::fromStdString(ch), QString::fromStdString(fig));
-  if (figure.isNull())
-    return emit finished(1);
-  if (!figure->typesafeElements().contains("pep"))
-    return emit finished(2);
-
-  auto body = figure->typesafeElements()["pep"]->contents;
-  std::cout << body.toStdString() << std::endl;
-
-  emit finished(0);
-}
-
-GetMacroTask::GetMacroTask(int ed, std::string name, QObject *parent)
-    : Task(parent), ed(ed), name(name) {}
-
-void GetMacroTask::run() {
-  QString bookName;
-  switch (ed) {
-  case 6:
-    bookName = "Computer Systems, 6th Edition";
-  default:
-    emit finished(1);
-  }
-
-  auto reg = builtins::Registry(nullptr);
-  auto book = reg.findBook(bookName);
-
-  auto macro = book->findMacro(QString::fromStdString(name));
-  if (macro.isNull())
-    return emit finished(1);
-
-  auto body = macro->body();
-  std::cout << body.toStdString() << std::endl;
-
-  emit finished(0);
-}
-
-AsmTask::AsmTask(int ed, std::string userFname, std::string out,
-                 QObject *parent)
-    : Task(parent), ed(ed), userIn(userFname), pepoOut(out) {}
-
-void AsmTask::setOsFname(std::string fname) { osIn = fname; }
-
-void AsmTask::setOsListingFname(std::string fname) { osListOut = fname; }
-
-void AsmTask::emitElfTo(std::string fname) { elfOut = fname; }
-
-void AsmTask::run() {
-  auto bookRegistry = builtins::Registry(nullptr);
-  auto macroRegistry = QSharedPointer<macro::Registry>::create();
-  auto book = bookRegistry.findBook("Computer Systems, 6th Edition");
-  for (auto &macro : book->macros())
-    macroRegistry->registerMacro(macro::types::Core, macro);
-  QString userContents;
-  {
-    QFile uIn(QString::fromStdString(userIn)); // auto-closes
-    uIn.open(QIODevice::ReadOnly | QIODevice::Text);
-    userContents = uIn.readAll();
-  }
-
-  // If no OS, default to full.
-  QString osContents;
-  if (osIn->empty()) {
-    auto os = book->findFigure("os", "full");
-    osContents = os->typesafeElements()["pep"]->contents;
-  } else {
-    QFile oIn(QString::fromStdString(*osIn)); // auto-closes
-    oIn.open(QIODevice::ReadOnly | QIODevice::Text);
-    osContents = oIn.readAll();
-  }
-  auto pipeline = pas::driver::pep10::pipeline(
-      {{osContents, {.isOS = true}}, {userContents, {.isOS = false}}},
-      macroRegistry);
-  auto result = pipeline->assemble(pas::driver::pep10::Stage::End);
-
-  auto osTarget = pipeline->pipelines[0].first;
-  auto osRoot = osTarget->bodies[pas::driver::repr::Nodes::name]
-                    .value<pas::driver::repr::Nodes>()
-                    .value;
-  auto userTarget = pipeline->pipelines[1].first;
-  auto userRoot = userTarget->bodies[pas::driver::repr::Nodes::name]
-                      .value<pas::driver::repr::Nodes>()
-                      .value;
-  if (!result) {
-    std::cerr << "Assembly failed, check error log" << std::endl;
-    QFileInfo err(QString::fromStdString(userIn));
-    QString errFName = err.path() + "/" + err.completeBaseName() + ".err.txt";
-    QFile errF(errFName);
-    if (errF.open(QIODevice::WriteOnly | QIODevice::Truncate |
-                  QIODevice::Text)) {
-      bool hadOsErr = false;
-      auto ts = QTextStream(&errF);
-      auto osErrors = pas::ops::generic::collectErrors(*osRoot);
-      auto userErrors = pas::ops::generic::collectErrors(*userRoot);
-      if (!osErrors.empty()) {
-        ts << "OS Errors:\n";
-        auto splitOS = osContents.split("\n");
-        for (const auto &err : osErrors) {
-          ts << ";Line " << err.first.value.line + 1 << "\n";
-          ts << splitOS[err.first.value.line]
-             << " ;ERROR: " << err.second.message << "\n";
-        }
-        ts << "User Errors:\n";
-      }
-      if (!userErrors.empty()) {
-        auto splitUser = userContents.split("\n");
-        for (const auto &err : userErrors) {
-          ts << ";Line " << err.first.value.line + 1 << "\n";
-          ts << splitUser[err.first.value.line]
-             << " ;ERROR: " << err.second.message << "\n";
-        }
-      }
-      errF.close();
-    } else
-      std::cerr << "Failed to open error log for writing: "
-                << errFName.toStdString() << std::endl;
-    return emit finished(1);
-  }
-
-  // Assembly succeded!
-
-  if (elfOut.has_value()) {
-    auto elf = pas::obj::pep10::createElf();
-    pas::obj::pep10::combineSections(*osRoot);
-    pas::obj::pep10::writeOS(elf, *osRoot);
-    pas::obj::pep10::combineSections(*userRoot);
-    pas::obj::pep10::writeUser(elf, *userRoot);
-    elf.save(elfOut.value());
-  }
-
-  try {
-    auto lines = pas::ops::pepp::formatListing<isa::Pep10>(*userRoot);
-    QFileInfo pepl(QString::fromStdString(userIn));
-    QString peplFName = pepl.path() + "/" + pepl.completeBaseName() + ".pepl";
-    QFile peplF(peplFName);
-    if (peplF.open(QIODevice::WriteOnly | QIODevice::Truncate |
-                   QIODevice::Text)) {
-      auto ts = QTextStream(&peplF);
-      for (auto &line : lines)
-        ts << line << "\n";
-    } else
-      std::cerr << "Failed to open listing for writing: "
-                << peplFName.toStdString() << std::endl;
-  } catch (std::exception &e) {
-    std::cerr << "Failed to generate user listing due to internal bug.\n";
-  }
-  if (osListOut) {
-    try {
-      auto lines = pas::ops::pepp::formatListing<isa::Pep10>(*osRoot);
-      QFile peplF(QString::fromStdString(*osListOut));
-      if (peplF.open(QFile::OpenModeFlag::WriteOnly)) {
-        auto ts = QTextStream(&peplF);
-        for (auto &line : lines)
-          ts << line << "\n";
-        peplF.close();
-      } else
-        std::cerr << "Failed to open listing for writing: " << *osListOut
-                  << std::endl;
-    } catch (std::exception &e) {
-      std::cerr << "Failed to generate listing due to internal bug.\n";
-    }
-  }
-  {
-    QFileInfo pepo(QString::fromStdString(userIn));
-    QString pepoFName = pepo.path() + "/" + pepo.completeBaseName() + ".pepo";
-    auto userBytes = pas::ops::pepp::toBytes<isa::Pep10>(*userRoot);
-    auto userBytesStr = pas::ops::pepp::bytesToObject(userBytes);
-    QFile pepoF(pepoFName);
-    if (pepoF.open(QIODevice::WriteOnly | QIODevice::Truncate |
-                   QIODevice::Text)) {
-      QTextStream(&pepoF) << userBytesStr << "\n";
-    } else
-      std::cerr << "Failed to open object code for writing: "
-                << pepoFName.toStdString() << std::endl;
-  }
-
-  return emit finished(0);
-}
