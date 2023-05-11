@@ -6,11 +6,14 @@
 #include "pas/operations/pepp/bytes.hpp"
 #include <iostream>
 
-AsmTask::AsmTask(int ed, std::string userFname, std::string out,
-                 QObject *parent)
-    : Task(parent), ed(ed), userIn(userFname), pepoOut(out) {}
+AsmTask::AsmTask(int ed, std::string userFname, QObject *parent)
+    : Task(parent), ed(ed), userIn(userFname) {}
 
 void AsmTask::setOsFname(std::string fname) { osIn = fname; }
+
+void AsmTask::setErrName(std::string fname) { errOut = fname; }
+
+void AsmTask::setPepoName(std::string fname) { pepoOut = fname; }
 
 void AsmTask::setOsListingFname(std::string fname) { osListOut = fname; }
 
@@ -44,9 +47,15 @@ void AsmTask::run() {
   auto result = helper.assemble();
   if (!result) {
     std::cerr << "Assembly failed, check error log" << std::endl;
-    QFileInfo err(QString::fromStdString(userIn));
-    QString errFName = err.path() + "/" + err.completeBaseName() + ".err.txt";
+    QString errFName;
+    if (errOut) {
+      errFName = QString::fromStdString(*errOut);
+    } else {
+      QFileInfo err(QString::fromStdString(userIn));
+      errFName = err.path() + "/" + err.completeBaseName() + ".err.txt";
+    }
     QFile errF(errFName);
+
     if (errF.open(QIODevice::WriteOnly | QIODevice::Truncate |
                   QIODevice::Text)) {
       auto ts = QTextStream(&errF);
@@ -96,9 +105,15 @@ void AsmTask::run() {
       std::cerr << "Failed to generate listing due to internal bug.\n";
     }
   }
+
   {
-    QFileInfo pepo(QString::fromStdString(userIn));
-    QString pepoFName = pepo.path() + "/" + pepo.completeBaseName() + ".pepo";
+    QString pepoFName;
+    if (pepoOut) {
+      pepoFName = QString::fromStdString(*pepoOut);
+    } else {
+      QFileInfo pepo(QString::fromStdString(userIn));
+      pepoFName = pepo.path() + "/" + pepo.completeBaseName() + ".pepo";
+    }
     auto userBytes = helper.bytes(false);
     auto userBytesStr = pas::ops::pepp::bytesToObject(userBytes);
     QFile pepoF(pepoFName);

@@ -51,22 +51,27 @@ int main(int argc, char **argv) {
   });
 
   auto asmSC = app.add_subcommand("asm", "Assemble stuff");
-  std::string userName, osListing;
+  std::string userName, osListing, pepoOut, errOut;
   std::optional<std::string> osName = std::nullopt, elfName = std::nullopt;
   auto osOpt = asmSC->add_option("--os", osName);
   auto elfOpt = asmSC->add_option("--elf", elfName);
+  auto pepoOpt = asmSC->add_option("-o", pepoOut);
+  auto errOpt = asmSC->add_option("-e", errOut);
   auto osListingOpt = asmSC->add_option("--os-listing", osListing);
-  auto userOpt =
-      asmSC->add_option("-s,user", userName)->required()->expected(1);
+  asmSC->add_option("-s,user", userName)->required()->expected(1);
   asmSC->callback([&]() {
     task = [&](QObject *parent) {
-      auto ret = new AsmTask(edValue, userName, "a.pepo", parent);
+      auto ret = new AsmTask(edValue, userName, parent);
       if (*osOpt)
         ret->setOsFname(*osName);
       if (*elfOpt)
         ret->emitElfTo(*elfName);
       if (*osListingOpt)
         ret->setOsListingFname(osListing);
+      if (*errOpt)
+        ret->setErrName(errOut);
+      if (*pepoOpt)
+        ret->setPepoName(pepoOut);
       return ret;
     };
   });
