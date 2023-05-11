@@ -56,7 +56,8 @@ int main(int argc, char **argv) {
   auto osOpt = asmSC->add_option("--os", osName);
   auto elfOpt = asmSC->add_option("--elf", elfName);
   auto osListingOpt = asmSC->add_option("--os-listing", osListing);
-  auto userOpt = asmSC->add_option("user", userName)->required()->expected(1);
+  auto userOpt =
+      asmSC->add_option("-s,user", userName)->required()->expected(1);
   asmSC->callback([&]() {
     task = [&](QObject *parent) {
       auto ret = new AsmTask(edValue, userName, "a.pepo", parent);
