@@ -102,8 +102,7 @@ int main(int argc, char **argv) {
       auto ret = new RunTask(edValue, objIn, parent);
       if (*charInOpt)
         ret->setCharIn(charIn);
-      if (*charOutOpt)
-        ret->setCharOut(charOut);
+      ret->setCharOut(charOut);
       if (*memDumpOpt)
         ret->setMemDump(memDump);
       if (*osInOpt)
