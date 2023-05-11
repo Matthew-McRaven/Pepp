@@ -53,9 +53,9 @@ bool detail::AsmHelper::assemble() {
 QStringList detail::AsmHelper::errors() {
   using ErrList = decltype(pas::ops::generic::collectErrors(*_osRoot));
   bool hadOsErr = false;
-  auto osErrors = pas::ops::generic::collectErrors(*_osRoot);
+  auto osErrors = _osRoot.isNull() ? ErrList{} : pas::ops::generic::collectErrors(*_osRoot);
   ErrList userErrors =
-      _user ? pas::ops::generic::collectErrors(*_userRoot) : ErrList{};
+      _user && !_userRoot.isNull() ? pas::ops::generic::collectErrors(*_userRoot) : ErrList{};
   QStringList ret;
   if (!osErrors.empty()) {
     ret << "OS Errors:\n";
