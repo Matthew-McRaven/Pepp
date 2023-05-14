@@ -335,9 +335,9 @@ template <typename Address> struct Target {
   };
   virtual ~Target() = default;
   virtual AddressSpan span() const = 0;
-  virtual Result read(Address address, quint8 *dest, Address length,
+  virtual Result read(Address address, bits::span<quint8> dest,
                       Operation op) const = 0;
-  virtual Result write(Address address, const quint8 *src, Address length,
+  virtual Result write(Address address, bits::span<const quint8> src,
                        Operation op) = 0;
   virtual void clear(quint8 fill) = 0;
 

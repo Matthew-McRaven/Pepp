@@ -20,9 +20,9 @@ public:
 
   // Target interface
   AddressSpan span() const override;
-  api::memory::Result read(Address address, quint8 *dest, Address length,
+  api::memory::Result read(Address address, bits::span<quint8> dest,
                            api::memory::Operation op) const override;
-  api::memory::Result write(Address address, const quint8 *src, Address length,
+  api::memory::Result write(Address address, bits::span<const quint8> src,
                             api::memory::Operation op) override;
   void clear(quint8 fill) override;
   void setInterposer(sim::api::memory::Interposer<Address> *inter) override;
@@ -53,10 +53,10 @@ private:
   };
   Region regionAt(Address address);
   template <typename Data, bool w>
-  api::memory::Result access(Address address, Data data, Address length,
+  api::memory::Result access(Address address, std::span<Data> data,
                              api::memory::Operation op) const {
     // Length is 1-indexed, address are 0, so must convert by -1.
-    auto maxDestAddr = (address + qMax(0, length - 1));
+    auto maxDestAddr = (address + std::max<Address>(0, data.size() - 1));
     if (address < _span.minOffset || maxDestAddr > _span.maxOffset)
       return {.completed = false,
               .pause = true,
@@ -64,6 +64,7 @@ private:
     bool pause = false;
     auto error = api::memory::Error::Success;
     Address offset = 0;
+    auto length = data.size();
     while (length > 0) {
       Region region = {{}, nullptr};
       // Inline body of regionAt manually, so that I can violate const with
@@ -85,14 +86,15 @@ private:
       auto devSpan = region.target->span();
       auto devLength = devSpan.maxOffset - devSpan.minOffset + 1;
       auto usableLength = std::min<qsizetype>(length, devLength);
+      auto subspan = data.subspan(offset, usableLength);
 
       // Convert bus address => device address
       auto busToDev = (address + offset) - region.span.minOffset;
       api::memory::Result acc;
       if constexpr (w)
-        acc = region.target->write(busToDev, data + offset, usableLength, op);
+        acc = region.target->write(busToDev, subspan, op);
       else
-        acc = region.target->read(busToDev, data + offset, usableLength, op);
+        acc = region.target->read(busToDev, subspan, op);
 
       // Forward any errors from child device.
       pause |= acc.pause;
@@ -124,16 +126,16 @@ typename SimpleBus<Address>::AddressSpan SimpleBus<Address>::span() const {
 }
 
 template <typename Address>
-api::memory::Result SimpleBus<Address>::read(Address address, quint8 *dest,
-                                             Address length,
+api::memory::Result SimpleBus<Address>::read(Address address,
+                                             bits::span<quint8> dest,
                                              api::memory::Operation op) const {
-  auto ret = access<quint8 *, false>(address, dest, length, op);
+  auto ret = access<quint8, false>(address, dest, op);
   if (op.effectful && _tb) {
     using Read = sim::trace::ReadPayload<Address>;
     api::trace::Buffer::Guard<true> guard(
         _tb, sizeof(api::packet::Packet<Read>), _device.id, Read::flags());
     if (guard) {
-      auto payload = Read{.address = address, .length = length};
+      auto payload = Read{.address = address, .length = dest.size()};
       auto it = new (guard.data())
           api::packet::Packet<Read>(_device.id, payload, Read::flags());
     }
@@ -142,15 +144,15 @@ api::memory::Result SimpleBus<Address>::read(Address address, quint8 *dest,
 }
 template <typename Address>
 api::memory::Result SimpleBus<Address>::write(Address address,
-                                              const quint8 *src, Address length,
+                                              bits::span<const quint8> src,
                                               api::memory::Operation op) {
-  auto ret = access<const quint8 *, true>(address, src, length, op);
+  auto ret = access<const quint8, true>(address, src, op);
   if (op.effectful && _tb) {
     using Write = sim::trace::WriteThroughPayload<Address>;
     api::trace::Buffer::Guard<true> guard(
         _tb, sizeof(api::packet::Packet<Write>), _device.id, Write::flags());
     if (guard) {
-      auto payload = Write{.address = address, .length = length};
+      auto payload = Write{.address = address, .length = src.size()};
       auto it = new (guard.data())
           api::packet::Packet<Write>(_device.id, payload, Write::flags());
     }

@@ -18,9 +18,9 @@ public:
 
   // Target interface
   AddressSpan span() const override;
-  api::memory::Result read(Address address, quint8 *dest, Address length,
+  api::memory::Result read(Address address, bits::span<quint8> dest,
                            api::memory::Operation op) const override;
-  api::memory::Result write(Address address, const quint8 *src, Address length,
+  api::memory::Result write(Address address, bits::span<const quint8> src,
                             api::memory::Operation op) override;
   void clear(quint8 fill) override;
   void setInterposer(api::memory::Interposer<Address> *inter) override;
@@ -45,25 +45,25 @@ typename ReadOnly<Address>::AddressSpan ReadOnly<Address>::span() const {
 }
 
 template <typename Address>
-api::memory::Result ReadOnly<Address>::read(Address address, quint8 *dest,
-                                            Address length,
+api::memory::Result ReadOnly<Address>::read(Address address,
+                                            bits::span<quint8> dest,
                                             api::memory::Operation op) const {
-  return _target->read(address, dest, length, op);
+  return _target->read(address, dest, op);
 }
 
 template <typename Address>
-api::memory::Result ReadOnly<Address>::write(Address address, const quint8 *src,
-                                             Address length,
+api::memory::Result ReadOnly<Address>::write(Address address,
+                                             bits::span<const quint8> src,
                                              api::memory::Operation op) {
   // Length is 1-indexed, address are 0, so must convert by -1.
-  auto maxDestAddr = (address + qMax(0, length - 1));
+  auto maxDestAddr = (address + std::max<Address>(0, src.size() - 1));
   if (address < _target->span().minOffset ||
       maxDestAddr > _target->span().maxOffset)
     return {.completed = false,
             .pause = true,
             .error = api::memory::Error::OOBAccess};
   else if (!op.effectful) {
-    return _target->write(address, src, length, op);
+    return _target->write(address, src, op);
   } else if (_hardFail) {
     return {.completed = false,
             .pause = false,

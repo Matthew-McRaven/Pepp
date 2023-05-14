@@ -46,9 +46,9 @@ private slots:
     for (int i = 0; i < 2; i++) {
       auto m = memArr[i];
       bits::memcpy_endian(bufSpan, bits::Order::BigEndian, quint16(0x0001));
-      QVERIFY(m->write(0, buf, 2, rw).completed);
+      QVERIFY(m->write(0, bufSpan, rw).completed);
       bits::memclr(bufSpan);
-      QVERIFY(bus->read(0 + i * 2, buf, 2, rw).completed);
+      QVERIFY(bus->read(0 + i * 2, bufSpan, rw).completed);
       for (int j = 0; j < 1; j++)
         QCOMPARE(buf[j], j);
     }
@@ -61,13 +61,13 @@ private slots:
     bits::span bufSpan = {buf};
     for (int it = 0; it < 6; it++)
       buf[it] = it;
-    QVERIFY(bus->write(0, buf, sizeof(buf), rw).completed);
+    QVERIFY(bus->write(0, {buf}, rw).completed);
     bits::memclr(bufSpan);
 
     // Can write to bus and read each individual memory.
     for (int i = 0; i < 2; i++) {
       auto m = memArr[i];
-      QVERIFY(m->read(0, buf, 2, rw).completed);
+      QVERIFY(m->read(0, bufSpan.first(2), rw).completed);
       for (int j = 0; j < 1; j++)
         QCOMPARE(buf[j], i * 2 + j);
     }
@@ -80,7 +80,7 @@ private slots:
     bits::span bufSpan = {buf};
     for (int it = 0; it < 6; it++)
       buf[it] = it;
-    QVERIFY(bus->write(0, buf, sizeof(buf), rw).completed);
+    QVERIFY(bus->write(0, {buf}, rw).completed);
     bits::memclr(bufSpan);
 
     bus->dump(buf, sizeof(buf));
@@ -109,13 +109,13 @@ private slots:
     bits::memclr(outSpan);
     bits::memcpy_endian(bufSpan.subspan(0, 2), bits::Order::BigEndian,
                         quint16(0x0001));
-    m1->write(0, buf + 0, 2, rw);
+    m1->write(0, bufSpan.subspan(0, 2), rw);
     bits::memcpy_endian(bufSpan.subspan(4, 2), bits::Order::BigEndian,
                         quint16(0x0405));
-    m2->write(0, buf + 4, 2, rw);
+    m2->write(0, bufSpan.subspan(4, 2), rw);
     bits::memcpy_endian(bufSpan.subspan(8, 2), bits::Order::BigEndian,
                         quint16(0x0809));
-    m3->write(0, buf + 8, 2, rw);
+    m3->write(0, bufSpan.subspan(8, 2), rw);
 
     bus->dump(out, sizeof(out));
     for (int it = 0; it < sizeof(out); it++)

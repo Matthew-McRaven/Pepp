@@ -31,9 +31,9 @@ private slots:
         QSharedPointer<sim::memory::Output<quint16>>::create(desc, span, 0);
     auto endpoint = out->endpoint();
     quint8 tmp = 10;
-    QVERIFY(out->write(0, &tmp, 1, rw).completed);
+    QVERIFY(out->write(0, {&tmp, 1}, rw).completed);
     tmp = 20;
-    QVERIFY(out->write(0, &tmp, 1, rw).completed);
+    QVERIFY(out->write(0, {&tmp, 1}, rw).completed);
     auto _1 = endpoint->next_value();
     QVERIFY(_1.has_value());
     QCOMPARE(*_1, 10);

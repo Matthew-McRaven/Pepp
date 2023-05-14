@@ -68,7 +68,7 @@ targets::pep10::isa::System::System(QList<obj::MemoryRegion> regions,
       auto size = seg->get_file_size();
       if (fileData == nullptr)
         continue;
-      mem->write(base, reinterpret_cast<const quint8 *>(fileData), size, gs);
+      mem->write(base, {reinterpret_cast<const quint8 *>(fileData), size}, gs);
       base += size;
     }
   }
@@ -137,7 +137,7 @@ void targets::pep10::isa::System::setBootFlags(bool enableLoader,
     value = bits::byteswap(value);
   if (_bootFlg) {
     auto ret =
-        _bus->write(*_bootFlg, reinterpret_cast<quint8 *>(&value), 2, gs);
+        _bus->write(*_bootFlg, {reinterpret_cast<quint8 *>(&value), 2}, gs);
     Q_ASSERT(ret.completed);
   }
 }
@@ -151,7 +151,7 @@ quint16 targets::pep10::isa::System::getBootFlags() const {
   bits::span<quint8> bufSpan = {buf};
   bits::memclr(bufSpan);
   if (_bootFlg) {
-    auto ret = _bus->read(*_bootFlg, buf, 2, gs);
+    auto ret = _bus->read(*_bootFlg, bufSpan, gs);
     Q_ASSERT(ret.completed);
   }
   return bits::memcpy_endian<quint16>(bufSpan, bits::Order::BigEndian);
@@ -159,16 +159,16 @@ quint16 targets::pep10::isa::System::getBootFlags() const {
 
 void targets::pep10::isa::System::init() {
   quint8 buf[2];
-  bits::span<const quint8> bufSpan = {buf};
+  bits::span<quint8> bufSpan = {buf};
   // Initalize PC to dispatcher
-  _bus->read(static_cast<quint16>(::isa::Pep10::MemoryVectors::Dispatcher), buf,
-             2, gs);
+  _bus->read(static_cast<quint16>(::isa::Pep10::MemoryVectors::Dispatcher),
+             bufSpan, gs);
   writeRegister(cpu()->regs(), ::isa::Pep10::Register::PC,
                 bits::memcpy_endian<quint16>(bufSpan, bits::Order::BigEndian),
                 gs);
   // Initalize SP to system stack pointer
   _bus->read(static_cast<quint16>(::isa::Pep10::MemoryVectors::SystemStackPtr),
-             buf, 2, gs);
+             bufSpan, gs);
   writeRegister(cpu()->regs(), ::isa::Pep10::Register::SP,
                 bits::memcpy_endian<quint16>(bufSpan, bits::Order::BigEndian),
                 gs);
@@ -217,7 +217,7 @@ targets::pep10::isa::systemFromElf(const ELFIO::elfio &elf,
       if (ptr == nullptr)
         continue;
       const auto ret =
-          bus->write(address, ptr, buffer.seg->get_memory_size(), gs);
+          bus->write(address, {ptr, buffer.seg->get_memory_size()}, gs);
       Q_ASSERT(ret.completed);
       Q_ASSERT(ret.error == sim::api::memory::Error::Success);
       address += buffer.seg->get_memory_size();

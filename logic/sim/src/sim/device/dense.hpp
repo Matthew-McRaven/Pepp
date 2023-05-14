@@ -20,9 +20,9 @@ public:
 
   // Target interface
   AddressSpan span() const override;
-  api::memory::Result read(Address address, quint8 *dest, Address length,
+  api::memory::Result read(Address address, bits::span<quint8> dest,
                            api::memory::Operation op) const override;
-  api::memory::Result write(Address address, const quint8 *src, Address length,
+  api::memory::Result write(Address address, bits::span<const quint8> src,
                             api::memory::Operation op) override;
   void clear(quint8 fill) override;
   void setInterposer(api::memory::Interposer<Address> *inter) override;
@@ -66,10 +66,10 @@ sim::memory::Dense<Address>::span() const {
 
 template <typename Address>
 sim::api::memory::Result
-sim::memory::Dense<Address>::read(Address address, quint8 *dest, Address length,
+sim::memory::Dense<Address>::read(Address address, std::span<quint8> dest,
                                   api::memory::Operation op) const {
   // Length is 1-indexed, address are 0, so must convert by -1.
-  auto maxDestAddr = (address + qMax(0, length - 1));
+  auto maxDestAddr = (address + std::max<Address>(0, dest.size() - 1));
   if (address < _span.minOffset || maxDestAddr > _span.maxOffset)
     return {.completed = false,
             .pause = true,
@@ -77,7 +77,7 @@ sim::memory::Dense<Address>::read(Address address, quint8 *dest, Address length,
   auto error = api::memory::Error::Success;
   bool pause = false;
   if (op.effectful && _inter) {
-    auto res = _inter->tryRead(address, length, op);
+    auto res = _inter->tryRead(address, dest.size(), op);
     if (res == api::memory::Interposer<Address>::Result::Breakpoint) {
       pause = true;
       error = api::memory::Error::Breakpoint;
@@ -88,15 +88,14 @@ sim::memory::Dense<Address>::read(Address address, quint8 *dest, Address length,
     api::trace::Buffer::Guard<true> guard(
         _tb, sizeof(api::packet::Packet<Read>), _device.id, Read::flags());
     if (guard) {
-      auto payload = Read{.address = address, .length = length};
+      auto payload = Read{.address = address, .length = dest.size()};
       auto it = new (guard.data())
           api::packet::Packet<Read>(_device.id, payload, Read::flags());
     }
   }
-  bits::memcpy(
-      bits::span<quint8>{dest, length},
-      bits::span<const quint8>{_data.constData(), std::size_t(_data.size())}
-          .subspan(address - _span.minOffset));
+  bits::memcpy(dest, bits::span<const quint8>{_data.constData(),
+                                              std::size_t(_data.size())}
+                         .subspan(address - _span.minOffset));
   return {.completed = true, .pause = pause, .error = error};
 }
 
@@ -181,11 +180,10 @@ quint8 *init(void *packet, quint16 dataLen, Address address, api::device::ID id,
 } // namespace detail
 
 template <typename Address>
-sim::api::memory::Result
-sim::memory::Dense<Address>::write(Address address, const quint8 *src,
-                                   Address length, api::memory::Operation op) {
+sim::api::memory::Result sim::memory::Dense<Address>::write(
+    Address address, bits::span<const quint8> src, api::memory::Operation op) {
   // Length is 1-indexed, address are 0, so must convert by -1.
-  auto maxDestAddr = (address + qMax(0, length - 1));
+  auto maxDestAddr = (address + std::max<Address>(0, src.size() - 1));
   if (address < _span.minOffset || maxDestAddr > _span.maxOffset)
     return {.completed = false,
             .pause = true,
@@ -193,7 +191,7 @@ sim::memory::Dense<Address>::write(Address address, const quint8 *src,
   auto error = api::memory::Error::Success;
   bool pause = false;
   if (op.effectful && _inter) {
-    auto res = _inter->tryWrite(address, src, length, op);
+    auto res = _inter->tryWrite(address, src.data(), src.size(), op);
     if (res == api::memory::Interposer<Address>::Result::Breakpoint) {
       pause = true;
       error = api::memory::Error::Breakpoint;
@@ -201,25 +199,26 @@ sim::memory::Dense<Address>::write(Address address, const quint8 *src,
   }
   auto offset = address - _span.minOffset;
   bool success = true, sync = false;
+  auto dataSpan =
+      bits::span<quint8>{_data.data(), std::size_t(_data.size())}.subspan(
+          offset);
   if (op.effectful && _tb) {
     // Attempt to allocate space in the buffer for local trace packet.
-    auto [size, flags] = detail::info<Address>(length);
+    auto [size, flags] = detail::info<Address>(src.size());
     api::trace::Buffer::Guard<false> guard(_tb, size, _device.id, flags);
     // Even with success we might get nullptr, in which case the Buffer is
     // telling us it doesn't want our trace.
     if (guard) {
-      auto dest = detail::init(guard.data(), length, offset, _device.id, flags);
-      bits::memcpy_xor(
-          bits::span<quint8>{dest, length},
-          bits::span<const quint8>{_data.constData() + offset, length},
-          bits::span<const quint8>{src, length});
+      auto dest =
+          detail::init(guard.data(), src.size(), offset, _device.id, flags);
+      bits::memcpy_xor(bits::span<quint8>{dest, src.size()}, dataSpan, src);
     }
   }
   auto data =
       bits::span<quint8>{_data.data(), std::size_t(_data.length())}.subspan(
           offset);
   if (success)
-    bits::memcpy(data, std::span<const quint8>{src, length});
+    bits::memcpy(dataSpan, src);
   return {.completed = success, .pause = pause, .error = error};
 }
 

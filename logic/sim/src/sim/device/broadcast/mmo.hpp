@@ -20,9 +20,9 @@ public:
 
   // Target interface
   AddressSpan span() const override;
-  api::memory::Result read(Address address, quint8 *dest, Address length,
+  api::memory::Result read(Address address, bits::span<quint8> dest,
                            api::memory::Operation op) const override;
-  api::memory::Result write(Address address, const quint8 *src, Address length,
+  api::memory::Result write(Address address, bits::span<const quint8> src,
                             api::memory::Operation op) override;
   void clear(quint8 fill) override;
   void setInterposer(api::memory::Interposer<Address> *inter) override;
@@ -68,11 +68,11 @@ typename Output<Address>::AddressSpan Output<Address>::span() const {
 }
 
 template <typename Address>
-api::memory::Result Output<Address>::read(Address address, quint8 *dest,
-                                          Address length,
+api::memory::Result Output<Address>::read(Address address,
+                                          bits::span<quint8> dest,
                                           api::memory::Operation op) const {
   // Length is 1-indexed, address are 0, so must convert by -1.
-  auto maxDestAddr = (address + qMax(0, length - 1));
+  auto maxDestAddr = (address + std::max<Address>(0, dest.size() - 1));
   if (address < _span.minOffset || maxDestAddr > _span.maxOffset)
     return {.completed = false,
             .pause = true,
@@ -80,8 +80,7 @@ api::memory::Result Output<Address>::read(Address address, quint8 *dest,
   // Copy last-written value, so that memory dumps look right.
   if (auto end = _endpoint->current_value(); end) {
     quint8 tmp = *end;
-    bits::memcpy(bits::span<quint8>{dest, 1},
-                 bits::span<const quint8>{&tmp, 1});
+    bits::memcpy(dest, bits::span<const quint8>{&tmp, 1});
   }
   return {
       .completed = true,
@@ -91,11 +90,11 @@ api::memory::Result Output<Address>::read(Address address, quint8 *dest,
 }
 
 template <typename Address>
-api::memory::Result Output<Address>::write(Address address, const quint8 *src,
-                                           Address length,
+api::memory::Result Output<Address>::write(Address address,
+                                           bits::span<const quint8> src,
                                            api::memory::Operation op) {
   // Length is 1-indexed, address are 0, so must convert by -1.
-  auto maxDestAddr = (address + qMax(0, length - 1));
+  auto maxDestAddr = (address + std::max<Address>(0, src.size() - 1));
   if (address < _span.minOffset || maxDestAddr > _span.maxOffset)
     return {.completed = false,
             .pause = true,
@@ -103,7 +102,7 @@ api::memory::Result Output<Address>::write(Address address, const quint8 *src,
   auto error = api::memory::Error::Success;
   bool pause = false;
   if (op.effectful && _inter) {
-    auto res = _inter->tryWrite(address, src, length, op);
+    auto res = _inter->tryWrite(address, src.data(), src.size(), op);
     if (res == api::memory::Interposer<Address>::Result::Breakpoint) {
       pause = true;
       error = api::memory::Error::Breakpoint;
@@ -113,7 +112,7 @@ api::memory::Result Output<Address>::write(Address address, const quint8 *src,
     throw std::logic_error("no tracing yet");
   if (op.effectful) {
     quint8 tmp;
-    bits::memcpy(bits::span<quint8>{&tmp, 1}, bits::span<const quint8>{src, 1});
+    bits::memcpy(bits::span<quint8>{&tmp, 1}, src);
     _endpoint->append_value(tmp);
   }
   return {.completed = true, .pause = pause, .error = error};

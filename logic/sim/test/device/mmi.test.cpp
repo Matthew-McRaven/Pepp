@@ -34,19 +34,20 @@ private slots:
     endpoint->append_value(20);
     quint8 tmp;
     // Read advances state
-    QVERIFY(in->read(0, &tmp, 1, rw).completed);
+    QVERIFY(in->read(0, {&tmp, 1}, rw).completed);
     QCOMPARE(tmp, 10);
-    // Get does not
-    QVERIFY(in->read(0, &tmp, 1, gs).completed);
+    // Get does not modify current value.
+    QVERIFY(in->read(0, {&tmp, 1}, gs).completed);
     QCOMPARE(tmp, 10);
     // Read advances state
-    QVERIFY(in->read(0, &tmp, 1, rw).completed);
+    QVERIFY(in->read(0, {&tmp, 1}, rw).completed);
     QCOMPARE(tmp, 20);
     // Out of MMI
-    QCOMPARE(in->read(0, &tmp, 1, rw).error, sim::api::memory::Error::NeedsMMI);
+    QCOMPARE(in->read(0, {&tmp, 1}, rw).error,
+             sim::api::memory::Error::NeedsMMI);
     // Soft-fail MMI, should yield default value
     in->setFailPolicy(sim::api::memory::FailPolicy::YieldDefaultValue);
-    QVERIFY(in->read(0, &tmp, 1, rw).completed);
+    QVERIFY(in->read(0, {&tmp, 1}, rw).completed);
     QCOMPARE(tmp, 0);
   }
   // TODO: Unread

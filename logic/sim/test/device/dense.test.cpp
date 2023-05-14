@@ -26,7 +26,7 @@ private slots:
 
     quint64 reg = 0;
     quint8 *tmp = (quint8 *)&reg;
-    auto ret = dev.read(0x10, tmp, length, op_rw);
+    auto ret = dev.read(0x10, {tmp, length}, op_rw);
     auto verify = [&ret]() {
       QVERIFY(ret.completed);
       QVERIFY(!ret.pause);
@@ -44,13 +44,13 @@ private slots:
 
     quint8 truth[8] = {0, 1, 2, 3, 4, 5, 6, 7};
     memcpy(tmp, truth, length);
-    ret = dev.write(0x10, tmp, length, op_rw);
+    ret = dev.write(0x10, {tmp, length}, op_rw);
     verify();
     compare(truth, tmp);
     // Check that data ends up in correct location in backing store.
     // i.e., the read API didn't do some awful bitmath it wasn't supposed to.
     compare(truth, dev.constData() + 0x10 - minOffset);
-    ret = dev.read(0x10, tmp, 1, op_rw);
+    ret = dev.read(0x10, {tmp, 1}, op_rw);
     verify();
     compare(truth, tmp);
   }
@@ -77,7 +77,7 @@ private slots:
 
     quint64 reg = 0;
     quint8 *tmp = (quint8 *)&reg;
-    auto ret = dev.read(0x10, tmp, 1, op_rw);
+    auto ret = dev.read(0x10, {tmp, 1}, op_rw);
     auto verify = [&ret](bool oob) {
       QVERIFY(oob ^ ret.completed);
       QVERIFY(!(oob ^ ret.pause));
@@ -88,18 +88,18 @@ private slots:
     QCOMPARE(*tmp, 0xFE);
 
     *tmp = 0xca;
-    ret = dev.read(0x9, tmp, 1, op_rw);
+    ret = dev.read(0x9, {tmp, 1}, op_rw);
     verify(true);
     QCOMPARE(*tmp, 0xCA); // Read should not update tmp.
-    ret = dev.read(0x11, tmp, 1, op_rw);
+    ret = dev.read(0x11, {tmp, 1}, op_rw);
     verify(true);
     QCOMPARE(*tmp, 0xCA); // Read should not update tmp.
 
     // Neither write will stick, so tmp is meaningless
     *tmp = 0xfe;
-    ret = dev.write(0x9, tmp, 1, op_rw);
+    ret = dev.write(0x9, {tmp, 1}, op_rw);
     verify(true);
-    ret = dev.write(0x11, tmp, 1, op_rw);
+    ret = dev.write(0x11, {tmp, 1}, op_rw);
     verify(true);
   }
 };

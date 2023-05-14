@@ -70,9 +70,9 @@ private slots:
     tmp = bits::hostOrder() != bits::Order::BigEndian ? bits::byteswap(target)
                                                       : target;
     cpu->regs()->write(static_cast<quint16>(target_reg) * 2,
-                       reinterpret_cast<quint8 *>(&tmp), 2, rw);
+                       {reinterpret_cast<quint8 *>(&tmp), 2}, rw);
 
-    QVERIFY(mem->write(0, program.data(), program.size(), rw).completed);
+    QVERIFY(mem->write(0, {program.data(), program.size()}, rw).completed);
 
     auto tick = cpu->tick(0);
     QCOMPARE(tick.error, sim::api::tick::Error::Success);
