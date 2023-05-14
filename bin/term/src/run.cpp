@@ -63,12 +63,35 @@ bool RunTask::loadToElf() {
 void RunTask::run() {
   if (!loadToElf())
     return emit finished(1);
-  bool loadIm = false | !(obj::getBootFlagsAddress(*_elf).has_value());
-  auto system = targets::pep10::isa::systemFromElf(*_elf, loadIm);
+  bool hasBootFlag = (obj::getBootFlagsAddress(*_elf).has_value());
+  // Skip loading logic if there flag is set or there are no boot flags.
+  bool skipLoad = _skipLoad | !hasBootFlag;
+  auto system = targets::pep10::isa::systemFromElf(*_elf, skipLoad);
   system->init();
-  system->setBootFlags(!loadIm, true);
-  /*targets::pep10::isa::writeRegister(system->cpu()->regs(),
-                                     isa::Pep10::Register::PC, 0, gs);*/
+  // Skip dispatching logic if flag is set and there are boot flags.
+  system->setBootFlags(!skipLoad, !_skipDispatch);
+
+  // Perform any requested register overrides.
+  for (auto [reg, val] : _regOverrides.asKeyValueRange()) {
+    QMetaEnum enu;
+    switch (_ed) {
+    case 6:
+      enu = QMetaEnum::fromType<::isa::Pep10::Register>();
+      break;
+    default:
+      throw std::logic_error("Unhandled book");
+    }
+    bool ok = true;
+    // Always compare in caps
+    auto transformed = QString::fromStdString(reg).toUpper().toStdString();
+    auto regEnu = enu.keyToValue(transformed.c_str(), &ok);
+    if (!ok)
+      throw std::logic_error("Invalid register");
+    targets::pep10::isa::writeRegister(
+        system->cpu()->regs(), static_cast<isa::Pep10::Register>(regEnu), val,
+        gs);
+  }
+
   auto pwrOff = system->output("pwrOff");
   auto endpoint = pwrOff->endpoint();
   bool fail = false;
@@ -202,3 +225,11 @@ void RunTask::setMemDump(std::string fname) { _memDump = fname; }
 void RunTask::setMaxSteps(quint64 maxSteps) { this->_maxSteps = maxSteps; }
 
 void RunTask::setOsIn(std::string fname) { _osIn = fname; }
+
+void RunTask::setSkipLoad(bool skip) { _skipLoad = skip; }
+
+void RunTask::setSkipDispatch(bool skip) { _skipDispatch = skip; }
+
+void RunTask::addRegisterOverride(std::string name, quint16 value) {
+  _regOverrides[name] = value;
+}
