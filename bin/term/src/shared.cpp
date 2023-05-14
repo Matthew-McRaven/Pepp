@@ -7,6 +7,7 @@
 #include "pas/operations/pepp/bytes.hpp"
 #include "pas/operations/pepp/string.hpp"
 #include <iostream>
+#include "macro/parse.cpp"
 
 QSharedPointer<const builtins::Book> detail::book(int ed) {
   QString bookName;
@@ -23,7 +24,30 @@ QSharedPointer<const builtins::Book> detail::book(int ed) {
   return book;
 }
 
-detail::AsmHelper::AsmHelper(QSharedPointer<macro::Registry> registry,
+void detail::addMacro(::macro::Registry &registry, std::string directory, QString arch)
+{
+  QDirIterator it(QString::fromStdString(directory), {"*.pepm"}, QDir::Files);
+  while (it.hasNext()) {
+    QFile macroFile(it.next());
+    if (macroFile.open(QIODevice::ReadOnly | QIODevice::Text)) {
+        QString macroContents = macroFile.readAll();
+        auto macroExpanded = ::macro::analyze_macro_definition(macroContents);
+        if(!std::get<0>(macroExpanded))
+            continue;
+        auto macroBody = macroContents.sliced(macroContents.indexOf("\n"));
+        auto macro = QSharedPointer<::macro::Parsed>::create(std::get<1>(macroExpanded), std::get<2>(macroExpanded), macroBody, arch);
+        registry.registerMacro(::macro::types::User, macro);
+    }
+  }
+}
+
+void detail::addMacros(::macro::Registry &registry, const std::list<std::string> &dirs, QString arch)
+{
+  for(auto & dir: dirs)
+    addMacro(registry, dir, arch);
+}
+
+detail::AsmHelper::AsmHelper(QSharedPointer<::macro::Registry> registry,
                              QString os)
     : _reg(registry), _os(os) {}
 
@@ -118,8 +142,8 @@ QList<quint8> detail::AsmHelper::bytes(bool os) {
 QSharedPointer<macro::Registry>
 detail::registry(QSharedPointer<const builtins::Book> book,
                  QStringList directory) {
-  auto macroRegistry = QSharedPointer<macro::Registry>::create();
+  auto macroRegistry = QSharedPointer<::macro::Registry>::create();
   for (auto &macro : book->macros())
-    macroRegistry->registerMacro(macro::types::Core, macro);
+    macroRegistry->registerMacro(::macro::types::Core, macro);
   return macroRegistry;
 }

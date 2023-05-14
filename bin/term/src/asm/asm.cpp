@@ -17,6 +17,8 @@ void AsmTask::setPepoName(std::string fname) { pepoOut = fname; }
 
 void AsmTask::setOsListingFname(std::string fname) { osListOut = fname; }
 
+void AsmTask::setMacroDirs(std::list<std::string> dirs) {macroDirs = dirs; }
+
 void AsmTask::emitElfTo(std::string fname) { elfOut = fname; }
 
 void AsmTask::run() {
@@ -24,6 +26,7 @@ void AsmTask::run() {
   if (book.isNull())
     return emit finished(1);
   auto macroRegistry = detail::registry(book, {});
+  detail::addMacros(*macroRegistry, macroDirs, "Pep/10");
 
   QString userContents;
   {
