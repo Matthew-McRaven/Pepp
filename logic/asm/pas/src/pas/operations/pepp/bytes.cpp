@@ -76,13 +76,16 @@ quint16 pas::ops::pepp::detail::directiveToBytes(const ast::Node &node,
 QString pas::ops::pepp::bytesToObject(const QList<quint8> &bytes,
                                       quint8 bytesPerLine) {
   static const char *term = "zz";
+  static const bits::span<const char> termSpan = {term, 3};
   auto obj = QList<char>((bytes.size()) * 3 + 2);
+  auto objSpan = std::span<char>{obj.data(), std::size_t(obj.size())};
   QList<bits::SeparatorRule> rules = {
       {.skipFirst = true, .separator = '\n', .modulus = bytesPerLine},
       {.skipFirst = false, .separator = ' ', .modulus = 1}};
   auto it = bits::bytesToAsciiHex(
-      {obj.data(), static_cast<std::size_t>(obj.size())},
-      {bytes.constData(), static_cast<std::size_t>(bytes.size())}, rules);
-  bits::memcpy(obj.data() + it, term, std::min<quint64>(2, obj.size() - it));
+      objSpan, {bytes.constData(), static_cast<std::size_t>(bytes.size())},
+      rules);
+
+  bits::memcpy(objSpan.subspan(it), termSpan);
   return QString::fromLocal8Bit(obj.data(), obj.size());
 }

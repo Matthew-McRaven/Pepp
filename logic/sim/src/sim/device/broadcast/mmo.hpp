@@ -78,7 +78,8 @@ api::memory::Result Output<Address>::read(Address address, quint8 *dest,
   // Copy last-written value, so that memory dumps look right.
   if (auto end = _endpoint->current_value(); end) {
     quint8 tmp = *end;
-    bits::memcpy(dest, &tmp, 1);
+    bits::memcpy(bits::span<quint8>{dest, 1},
+                 bits::span<const quint8>{&tmp, 1});
   }
   return {
       .completed = true,
@@ -110,7 +111,7 @@ api::memory::Result Output<Address>::write(Address address, const quint8 *src,
     throw std::logic_error("no tracing yet");
   if (op.effectful) {
     quint8 tmp;
-    bits::memcpy(&tmp, src, 1);
+    bits::memcpy(bits::span<quint8>{&tmp, 1}, bits::span<const quint8>{src, 1});
     _endpoint->append_value(tmp);
   }
   return {.completed = true, .pause = pause, .error = error};
@@ -130,7 +131,8 @@ void Output<Address>::dump(quint8 *dest, qsizetype maxLen) const {
   if (maxLen <= 0)
     throw std::logic_error("dump requires non-0 size");
   auto v = *_endpoint->current_value();
-  bits::memcpy(dest, &v, std::min<quint64>(sizeof(v), maxLen));
+  bits::memcpy(bits::span<quint8>{dest, std::size_t(maxLen)},
+               bits::span<const quint8>{&v, sizeof(v)});
 }
 
 template <typename Address>

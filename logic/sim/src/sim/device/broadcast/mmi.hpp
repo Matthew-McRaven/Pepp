@@ -92,16 +92,19 @@ api::memory::Result Input<Address>::read(Address address, quint8 *dest,
   bool completed = true;
   if (!op.effectful) {
     quint8 tmp = *_endpoint->current_value();
-    bits::memcpy(dest, &tmp, 1);
+    bits::memcpy(bits::span<quint8>{dest, 1},
+                 bits::span<const quint8>{&tmp, 1});
   } else if (auto next = _endpoint->next_value();
              _policy == api::memory::FailPolicy::RaiseError && !next) {
     completed = false;
     error = api::memory::Error::NeedsMMI;
   } else if (_policy == api::memory::FailPolicy::YieldDefaultValue && !next) {
-    bits::memcpy(dest, &_fill, 1);
+    bits::memcpy(bits::span<quint8>{dest, 1},
+                 bits::span<const quint8>{&_fill, 1});
   } else {
     quint8 tmp = *next;
-    bits::memcpy(dest, &tmp, 1);
+    bits::memcpy(bits::span<quint8>{dest, 1},
+                 bits::span<const quint8>{&tmp, 1});
   }
   return {.completed = completed, .pause = pause, .error = error};
 }
@@ -138,7 +141,8 @@ void Input<Address>::dump(quint8 *dest, qsizetype maxLen) const {
   if (maxLen <= 0)
     throw std::logic_error("dump requires non-0 size");
   auto v = *_endpoint->current_value();
-  bits::memcpy(dest, &v, std::min<quint64>(sizeof(v), maxLen));
+  bits::memcpy(bits::span<quint8>{dest, std::size_t(maxLen)},
+               bits::span<const quint8>{&v, sizeof(v)});
 }
 
 template <typename Address>

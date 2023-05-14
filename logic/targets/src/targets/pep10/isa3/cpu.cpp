@@ -173,10 +173,13 @@ sim::api::tick::Result targets::pep10::isa::CPU::unaryDispatch(quint8 is) {
           x = readReg(Register::X);
   sim::api::memory::Result mem_res;
   quint16 tmp = 0;
+  bits::span<const quint8> tmpSpan = {reinterpret_cast<const quint8 *>(&tmp),
+                                      sizeof(tmp)};
   quint8 tmp8 = 0;
   // Long enough to either hold all regs or one ctx switch block.
   static const quint8 registersBytes = 2 * ::isa::Pep10::RegisterCount;
-  quint8 ctx[std::max<quint64>(registersBytes, 10)];
+  quint8 ctx[std::max<std::size_t>(registersBytes, 10)];
+  auto ctxSpan = bits::span<quint8>{ctx, sizeof(ctx)};
   auto [n, z, v, c] = unpackCSR(readPackedCSR());
 
   auto retErr = sim::api::tick::Error::Success;
@@ -427,14 +430,14 @@ sim::api::tick::Result targets::pep10::isa::CPU::unaryDispatch(quint8 is) {
     // Must byteswap because we are using "host" variables.
     ctx[0] = readPackedCSR();
     tmp = swap ? bits::byteswap(a) : a;
-    bits::memcpy(ctx + 1, &tmp, 2);
+    bits::memcpy(ctxSpan.subspan(1, 2), tmpSpan);
     tmp = swap ? bits::byteswap(x) : x;
-    bits::memcpy(ctx + 3, &tmp, 2);
+    bits::memcpy(ctxSpan.subspan(3, 2), tmpSpan);
     tmp = readReg(Register::PC);
     tmp = swap ? bits::byteswap(tmp) : tmp;
-    bits::memcpy(ctx + 5, &tmp, 2);
+    bits::memcpy(ctxSpan.subspan(5, 2), tmpSpan);
     tmp = swap ? bits::byteswap(sp) : sp;
-    bits::memcpy(ctx + 7, &tmp, 2);
+    bits::memcpy(ctxSpan.subspan(7, 2), tmpSpan);
     ctx[9] = is;
 
     // Read system stack address.

@@ -5,7 +5,12 @@
 #include <cstring>
 
 namespace bits {
-using ::memcpy;
+template <typename T, typename U, std::size_t destSize = std::dynamic_extent,
+          std::size_t srcSize = std::dynamic_extent>
+void memcpy(bits::span<T, destSize> dest, bits::span<const U, srcSize> src) {
+  auto len = std::min(dest.size_bytes(), src.size_bytes());
+  ::memcpy(dest.data(), src.data(), len);
+}
 template <typename T, std::size_t size = std::dynamic_extent>
 void memclr(bits::span<T, size> dest) {
   memset(dest.data(), 0, dest.size_bytes());

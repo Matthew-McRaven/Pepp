@@ -91,7 +91,10 @@ sim::memory::Dense<Address>::read(Address address, quint8 *dest, Address length,
           api::packet::Packet<Read>(_device.id, payload, Read::flags());
     }
   }
-  bits::memcpy(dest, _data.constData() + (address - _span.minOffset), length);
+  bits::memcpy(
+      bits::span<quint8>{dest, length},
+      bits::span<const quint8>{_data.constData(), std::size_t(_data.size())}
+          .subspan(address - _span.minOffset));
   return {.completed = true, .pause = pause, .error = error};
 }
 
@@ -210,8 +213,11 @@ sim::memory::Dense<Address>::write(Address address, const quint8 *src,
           bits::span<const quint8>{src, length});
     }
   }
+  auto data =
+      bits::span<quint8>{_data.data(), std::size_t(_data.length())}.subspan(
+          offset);
   if (success)
-    bits::memcpy(_data.data() + offset, src, length);
+    bits::memcpy(data, std::span<const quint8>{src, length});
   return {.completed = success, .pause = pause, .error = error};
 }
 
@@ -231,8 +237,9 @@ template <typename Address>
 void Dense<Address>::dump(quint8 *dest, qsizetype maxLen) const {
   if (maxLen <= 0)
     throw std::logic_error("dump requires non-0 size");
-  bits::memcpy(dest, _data.constData(),
-               std::min<qsizetype>(maxLen, _data.size()));
+  bits::memcpy(
+      bits::span<quint8>{dest, std::size_t(maxLen)},
+      bits::span<const quint8>{_data.constData(), std::size_t(_data.size())});
 }
 
 template <typename Address>
