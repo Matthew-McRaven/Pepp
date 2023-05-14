@@ -60,7 +60,7 @@ targets::pep10::isa::CPU::tick(sim::api::tick::Type currentTick) {
   };
   // Instruction specifier fetch + writeback.
   quint8 is = 0;
-  auto isResult = _memory->read(pc, &is, 1, rw_i);
+  auto isResult = _memory->read(pc, {&is, 1}, rw_i);
   if (!isResult.completed)
     return retMemErr(isResult);
   writeReg(Register::IS, is);
@@ -75,7 +75,8 @@ targets::pep10::isa::CPU::tick(sim::api::tick::Type currentTick) {
   } else {
     // Instruction specifier fetch + writeback.
     quint16 os = 0;
-    auto osResult = _memory->read(pc, reinterpret_cast<quint8 *>(&os), 2, rw_i);
+    auto osResult =
+        _memory->read(pc, {reinterpret_cast<quint8 *>(&os), 2}, rw_i);
     os = bits::hostOrder() != bits::Order::BigEndian ? bits::byteswap(os) : os;
     if (!osResult.completed)
       return retMemErr(osResult);
@@ -106,12 +107,12 @@ targets::pep10::isa::CPU::packetSize(sim::api::packet::Flags flags) const {
   throw std::logic_error("unimplemented");
 }
 
-bool targets::pep10::isa::CPU::applyTrace(void *payload,
+bool targets::pep10::isa::CPU::applyTrace(bits::span<const quint8> payload,
                                           sim::api::packet::Flags flags) {
   throw std::logic_error("unimplemented");
 }
 
-bool targets::pep10::isa::CPU::unapplyTrace(void *payload,
+bool targets::pep10::isa::CPU::unapplyTrace(bits::span<const quint8> payload,
                                             sim::api::packet::Flags flags) {
   throw std::logic_error("unimplemented");
 }
@@ -173,16 +174,19 @@ sim::api::tick::Result targets::pep10::isa::CPU::unaryDispatch(quint8 is) {
           x = readReg(Register::X);
   sim::api::memory::Result mem_res;
   quint16 tmp = 0;
+  bits::span<const quint8> tmpSpan = {reinterpret_cast<const quint8 *>(&tmp),
+                                      sizeof(tmp)};
   quint8 tmp8 = 0;
   // Long enough to either hold all regs or one ctx switch block.
   static const quint8 registersBytes = 2 * ::isa::Pep10::RegisterCount;
-  quint8 ctx[std::max<quint64>(registersBytes, 10)];
+  quint8 ctx[std::max<std::size_t>(registersBytes, 10)];
+  auto ctxSpan = bits::span<quint8>{ctx, sizeof(ctx)};
   auto [n, z, v, c] = unpackCSR(readPackedCSR());
 
   auto retErr = sim::api::tick::Error::Success;
   switch (mnemonic.instr.mnemon) {
   case mn::RET:
-    mem_res = _memory->read(sp, reinterpret_cast<quint8 *>(&tmp), 2, rw_d);
+    mem_res = _memory->read(sp, {reinterpret_cast<quint8 *>(&tmp), 2}, rw_d);
     // Must byteswap tmp if on big endian host, as _memory stores in little
     // endian
     if (swap)
@@ -350,7 +354,7 @@ sim::api::tick::Result targets::pep10::isa::CPU::unaryDispatch(quint8 is) {
     // Then we can do a single write back to _regs and only generate 1 trace
     // packet.
     tmp = (_regs.span().maxOffset - _regs.span().minOffset + 1);
-    mem_res = _regs.read(0, ctx, tmp, rw_d);
+    mem_res = _regs.read(0, {ctx, tmp}, rw_d);
     if (mem_res.error == sim::api::memory::Error::NeedsMMI) {
       retErr = sim::api::tick::Error::NoMMInput;
       break;
@@ -358,7 +362,7 @@ sim::api::tick::Result targets::pep10::isa::CPU::unaryDispatch(quint8 is) {
       qCritical() << "Failed to access memory";
 
     // Reload NZVC
-    mem_res = _memory->read(sp, reinterpret_cast<quint8 *>(&tmp8), 1, rw_d);
+    mem_res = _memory->read(sp, {reinterpret_cast<quint8 *>(&tmp8), 1}, rw_d);
     if (mem_res.error == sim::api::memory::Error::NeedsMMI) {
       retErr = sim::api::tick::Error::NoMMInput;
       break;
@@ -370,8 +374,8 @@ sim::api::tick::Result targets::pep10::isa::CPU::unaryDispatch(quint8 is) {
 
     // Load A into ctx. No need for byteswap, _memory is little endian as are
     // regs.
-    mem_res = _memory->read(sp + 1, ctx + 2 * static_cast<quint8>(Register::A),
-                            2, rw_d);
+    mem_res = _memory->read(
+        sp + 1, {ctx + 2 * static_cast<quint8>(Register::A), 2}, rw_d);
     swap ? bits::byteswap(tmp) : tmp;
     if (mem_res.error == sim::api::memory::Error::NeedsMMI) {
       retErr = sim::api::tick::Error::NoMMInput;
@@ -380,8 +384,8 @@ sim::api::tick::Result targets::pep10::isa::CPU::unaryDispatch(quint8 is) {
       qCritical() << "Failed to access memory";
 
     // Load X into ctx
-    mem_res = _memory->read(sp + 3, ctx + 2 * static_cast<quint8>(Register::X),
-                            2, rw_d);
+    mem_res = _memory->read(
+        sp + 3, {ctx + 2 * static_cast<quint8>(Register::X), 2}, rw_d);
     if (mem_res.error == sim::api::memory::Error::NeedsMMI) {
       retErr = sim::api::tick::Error::NoMMInput;
       break;
@@ -389,8 +393,8 @@ sim::api::tick::Result targets::pep10::isa::CPU::unaryDispatch(quint8 is) {
       qCritical() << "Failed to access memory";
 
     // Load PC into ctx
-    mem_res = _memory->read(sp + 5, ctx + 2 * static_cast<quint8>(Register::PC),
-                            2, rw_d);
+    mem_res = _memory->read(
+        sp + 5, {ctx + 2 * static_cast<quint8>(Register::PC), 2}, rw_d);
     if (mem_res.error == sim::api::memory::Error::NeedsMMI) {
       retErr = sim::api::tick::Error::NoMMInput;
       break;
@@ -398,8 +402,8 @@ sim::api::tick::Result targets::pep10::isa::CPU::unaryDispatch(quint8 is) {
       qCritical() << "Failed to access memory";
 
     // Load SP into ctx
-    mem_res = _memory->read(sp + 7, ctx + 2 * static_cast<quint8>(Register::SP),
-                            2, rw_d);
+    mem_res = _memory->read(
+        sp + 7, {ctx + 2 * static_cast<quint8>(Register::SP), 2}, rw_d);
     if (mem_res.error == sim::api::memory::Error::NeedsMMI) {
       retErr = sim::api::tick::Error::NoMMInput;
       break;
@@ -407,7 +411,7 @@ sim::api::tick::Result targets::pep10::isa::CPU::unaryDispatch(quint8 is) {
       qCritical() << "Failed to access memory";
 
     // Bulk write-back regs, saving a number of bits on trace metadata.
-    if (!_regs.write(0, ctx, registersBytes, rw_d).completed)
+    if (!_regs.write(0, {ctx, registersBytes}, rw_d).completed)
       throw std::logic_error("Failed to write registers");
 
     tmp = sp + 10;
@@ -416,7 +420,7 @@ sim::api::tick::Result targets::pep10::isa::CPU::unaryDispatch(quint8 is) {
       tmp = bits::byteswap(tmp);
     mem_res = _memory->write(
         static_cast<quint16>(::isa::Pep10::MemoryVectors::SystemStackPtr),
-        reinterpret_cast<quint8 *>(&tmp), 2, rw_d);
+        {reinterpret_cast<quint8 *>(&tmp), 2}, rw_d);
     if (!mem_res.completed)
       qCritical() << "Failed to access memory";
     break;
@@ -427,20 +431,20 @@ sim::api::tick::Result targets::pep10::isa::CPU::unaryDispatch(quint8 is) {
     // Must byteswap because we are using "host" variables.
     ctx[0] = readPackedCSR();
     tmp = swap ? bits::byteswap(a) : a;
-    bits::memcpy(ctx + 1, &tmp, 2);
+    bits::memcpy(ctxSpan.subspan(1, 2), tmpSpan);
     tmp = swap ? bits::byteswap(x) : x;
-    bits::memcpy(ctx + 3, &tmp, 2);
+    bits::memcpy(ctxSpan.subspan(3, 2), tmpSpan);
     tmp = readReg(Register::PC);
     tmp = swap ? bits::byteswap(tmp) : tmp;
-    bits::memcpy(ctx + 5, &tmp, 2);
+    bits::memcpy(ctxSpan.subspan(5, 2), tmpSpan);
     tmp = swap ? bits::byteswap(sp) : sp;
-    bits::memcpy(ctx + 7, &tmp, 2);
+    bits::memcpy(ctxSpan.subspan(7, 2), tmpSpan);
     ctx[9] = is;
 
     // Read system stack address.
     mem_res = _memory->read(
         static_cast<quint16>(::isa::Pep10::MemoryVectors::SystemStackPtr),
-        reinterpret_cast<quint8 *>(&tmp), 2, rw_d);
+        {reinterpret_cast<quint8 *>(&tmp), 2}, rw_d);
     if (mem_res.error == sim::api::memory::Error::NeedsMMI) {
       retErr = sim::api::tick::Error::NoMMInput;
       break;
@@ -452,7 +456,7 @@ sim::api::tick::Result targets::pep10::isa::CPU::unaryDispatch(quint8 is) {
       tmp = bits::byteswap(tmp);
 
     // Allocate ctx frame with -=.
-    mem_res = _memory->write(tmp -= 10, ctx, 10, rw_d);
+    mem_res = _memory->write(tmp -= 10, {ctx, 10}, rw_d);
     if (!mem_res.completed)
       qCritical() << "Failed to access memory";
     // And update SP with OS's SP.
@@ -461,7 +465,7 @@ sim::api::tick::Result targets::pep10::isa::CPU::unaryDispatch(quint8 is) {
     // Read trap handler pc.
     mem_res = _memory->read(
         static_cast<quint16>(::isa::Pep10::MemoryVectors::TrapHandler),
-        reinterpret_cast<quint8 *>(&tmp), 2, rw_d);
+        {reinterpret_cast<quint8 *>(&tmp), 2}, rw_d);
     if (mem_res.error == sim::api::memory::Error::NeedsMMI)
       retErr = sim::api::tick::Error::NoMMInput;
     else if (!mem_res.completed)
@@ -548,7 +552,7 @@ targets::pep10::isa::CPU::nonunaryDispatch(quint8 is, quint16 os, quint16 pc) {
     // Write PC to stack
     tmp = swap ? bits::byteswap(pc) : pc;
     mem_res =
-        _memory->write(sp -= 2, reinterpret_cast<quint8 *>(&tmp), 2, rw_d);
+        _memory->write(sp -= 2, {reinterpret_cast<quint8 *>(&tmp), 2}, rw_d);
     if (mem_res.error == sim::api::memory::Error::NeedsMMI) {
       retErr = sim::api::tick::Error::NoMMInput;
       break;
@@ -593,29 +597,29 @@ targets::pep10::isa::CPU::nonunaryDispatch(quint8 is, quint16 os, quint16 pc) {
   case mn::STWA:
     tmp = swap ? bits::byteswap(a) : a;
     mem_res =
-        _memory->write(operand, reinterpret_cast<quint8 *>(&tmp), 2, rw_d);
+        _memory->write(operand, {reinterpret_cast<quint8 *>(&tmp), 2}, rw_d);
     if (!mem_res.completed)
       qCritical() << "Failed to access memory";
     break;
   case mn::STWX:
     tmp = swap ? bits::byteswap(x) : x;
     mem_res =
-        _memory->write(operand, reinterpret_cast<quint8 *>(&tmp), 2, rw_d);
+        _memory->write(operand, {reinterpret_cast<quint8 *>(&tmp), 2}, rw_d);
     if (!mem_res.completed)
       qCritical() << "Failed to access memory";
     break;
 
   case mn::STBA:
     tmp = swap ? bits::byteswap(a) : a;
-    mem_res =
-        _memory->write(operand, reinterpret_cast<quint8 *>(&tmp) + 1, 1, rw_d);
+    mem_res = _memory->write(operand, {reinterpret_cast<quint8 *>(&tmp) + 1, 1},
+                             rw_d);
     if (!mem_res.completed)
       qCritical() << "Failed to access memory";
     break;
   case mn::STBX:
     tmp = swap ? bits::byteswap(x) : x;
-    mem_res =
-        _memory->write(operand, reinterpret_cast<quint8 *>(&tmp) + 1, 1, rw_d);
+    mem_res = _memory->write(operand, {reinterpret_cast<quint8 *>(&tmp) + 1, 1},
+                             rw_d);
     if (!mem_res.completed)
       qCritical() << "Failed to access memory";
     break;
@@ -844,7 +848,8 @@ targets::pep10::isa::CPU::decodeStoreOperand(quint8 is, quint16 os,
     decoded = os;
     break;
   case am::N:
-    mem_res = _memory->read(os, reinterpret_cast<quint8 *>(&decoded), 2, rw_i);
+    mem_res =
+        _memory->read(os, {reinterpret_cast<quint8 *>(&decoded), 2}, rw_i);
     if (swap)
       decoded = bits::byteswap(decoded);
     break;
@@ -859,13 +864,13 @@ targets::pep10::isa::CPU::decodeStoreOperand(quint8 is, quint16 os,
     break;
   case am::SF:
     mem_res = _memory->read(os + readReg(Register::SP),
-                            reinterpret_cast<quint8 *>(&decoded), 2, rw_i);
+                            {reinterpret_cast<quint8 *>(&decoded), 2}, rw_i);
     if (swap)
       decoded = bits::byteswap(decoded);
     break;
   case am::SFX:
     mem_res = _memory->read(os + readReg(Register::SP),
-                            reinterpret_cast<quint8 *>(&decoded), 2, rw_i);
+                            {reinterpret_cast<quint8 *>(&decoded), 2}, rw_i);
     decoded += readReg(Register::X);
     if (swap)
       decoded = bits::byteswap(decoded);
@@ -898,76 +903,85 @@ targets::pep10::isa::CPU::decodeLoadOperand(quint8 is, quint16 os,
     break;
   case am::D:
     mem_res = _memory->read(
-        os, reinterpret_cast<quint8 *>(&decoded) + int(isByte && swap ? 1 : 0),
-        isByte ? 1 : 2, rw_i);
+        os,
+        {reinterpret_cast<quint8 *>(&decoded) + int(isByte && swap ? 1 : 0),
+         std::size_t(isByte ? 1 : 2)},
+        rw_i);
     if (swap)
       decoded = bits::byteswap(decoded);
     break;
   case am::N:
-    mem_res = _memory->read(os, reinterpret_cast<quint8 *>(&decoded), 2, rw_i);
+    mem_res =
+        _memory->read(os, {reinterpret_cast<quint8 *>(&decoded), 2}, rw_i);
     if (!mem_res.completed)
       return mem_res;
 
     if (swap)
       decoded = bits::byteswap(decoded);
-    mem_res = _memory->read(decoded,
-                            reinterpret_cast<quint8 *>(&decoded) +
-                                int(isByte && swap ? 1 : 0),
-                            isByte ? 1 : 2, rw_i);
+    mem_res = _memory->read(
+        decoded,
+        {reinterpret_cast<quint8 *>(&decoded) + int(isByte && swap ? 1 : 0),
+         std::size_t(isByte ? 1 : 2)},
+        rw_i);
     if (swap)
       decoded = bits::byteswap(decoded);
     break;
   case am::S:
-    mem_res = _memory->read(os + readReg(Register::SP),
-                            reinterpret_cast<quint8 *>(&decoded) +
-                                int(isByte && swap ? 1 : 0),
-                            isByte ? 1 : 2, rw_i);
+    mem_res = _memory->read(
+        os + readReg(Register::SP),
+        {reinterpret_cast<quint8 *>(&decoded) + int(isByte && swap ? 1 : 0),
+         std::size_t(isByte ? 1 : 2)},
+        rw_i);
     if (swap)
       decoded = bits::byteswap(decoded);
     break;
   case am::X:
-    mem_res = _memory->read(os + readReg(Register::X),
-                            reinterpret_cast<quint8 *>(&decoded) +
-                                int(isByte && swap ? 1 : 0),
-                            isByte ? 1 : 2, rw_i);
+    mem_res = _memory->read(
+        os + readReg(Register::X),
+        {reinterpret_cast<quint8 *>(&decoded) + int(isByte && swap ? 1 : 0),
+         std::size_t(isByte ? 1 : 2)},
+        rw_i);
     if (swap)
       decoded = bits::byteswap(decoded);
     break;
   case am::SX:
-    mem_res = _memory->read(os + readReg(Register::SP) + readReg(Register::X),
-                            reinterpret_cast<quint8 *>(&decoded) +
-                                int(isByte && swap ? 1 : 0),
-                            isByte ? 1 : 2, rw_i);
+    mem_res = _memory->read(
+        os + readReg(Register::SP) + readReg(Register::X),
+        {reinterpret_cast<quint8 *>(&decoded) + int(isByte && swap ? 1 : 0),
+         std::size_t(isByte ? 1 : 2)},
+        rw_i);
     if (swap)
       decoded = bits::byteswap(decoded);
     break;
   case am::SF:
     mem_res = _memory->read(os + readReg(Register::SP),
-                            reinterpret_cast<quint8 *>(&decoded), 2, rw_i);
+                            {reinterpret_cast<quint8 *>(&decoded), 2}, rw_i);
     if (!mem_res.completed)
       return mem_res;
 
     if (swap)
       decoded = bits::byteswap(decoded);
-    mem_res = _memory->read(decoded,
-                            reinterpret_cast<quint8 *>(&decoded) +
-                                int(isByte && swap ? 1 : 0),
-                            isByte ? 1 : 2, rw_i);
+    mem_res = _memory->read(
+        decoded,
+        {reinterpret_cast<quint8 *>(&decoded) + int(isByte && swap ? 1 : 0),
+         std::size_t(isByte ? 1 : 2)},
+        rw_i);
     if (swap)
       decoded = bits::byteswap(decoded);
     break;
   case am::SFX:
     mem_res = _memory->read(os + readReg(Register::SP),
-                            reinterpret_cast<quint8 *>(&decoded), 2, rw_i);
+                            {reinterpret_cast<quint8 *>(&decoded), 2}, rw_i);
     if (!mem_res.completed)
       return mem_res;
 
     if (swap)
       decoded = bits::byteswap(decoded);
-    mem_res = _memory->read(decoded + readReg(Register::X),
-                            reinterpret_cast<quint8 *>(&decoded) +
-                                int(isByte && swap ? 1 : 0),
-                            isByte ? 1 : 2, rw_i);
+    mem_res = _memory->read(
+        decoded + readReg(Register::X),
+        {reinterpret_cast<quint8 *>(&decoded) + int(isByte && swap ? 1 : 0),
+         std::size_t(isByte ? 1 : 2)},
+        rw_i);
     if (swap)
       decoded = bits::byteswap(decoded);
     break;

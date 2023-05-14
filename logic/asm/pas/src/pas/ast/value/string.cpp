@@ -32,10 +32,13 @@ pas::ast::value::ShortString::clone() const {
   return QSharedPointer<ShortString>::create(*this);
 }
 
-void pas::ast::value::ShortString::value(quint8 *dest, qsizetype length,
+void pas::ast::value::ShortString::value(bits::span<quint8> dest,
                                          bits::Order destEndian) const {
-  bits::memcpy_endian(dest, destEndian, length, _valueAsBytes.data(),
-                      bits::hostOrder(), size());
+  bits::memcpy_endian(
+      dest, destEndian,
+      bits::span<const quint8>{
+          reinterpret_cast<const quint8 *>(_valueAsBytes.data()), size()},
+      bits::hostOrder());
 }
 
 quint64 pas::ast::value::ShortString::size() const { return _size; }
@@ -75,10 +78,13 @@ pas::ast::value::LongString::clone() const {
   return QSharedPointer<LongString>::create(*this);
 }
 
-void pas::ast::value::LongString::value(quint8 *dest, qsizetype length,
+void pas::ast::value::LongString::value(bits::span<quint8> dest,
                                         bits::Order destEndian) const {
-  bits::memcpy_endian(dest, destEndian, length, _valueAsBytes.data(),
-                      bits::hostOrder(), size());
+  bits::memcpy_endian(
+      dest, destEndian,
+      bits::span<const quint8>{
+          reinterpret_cast<const quint8 *>(_valueAsBytes.data()), size()},
+      bits::hostOrder());
 }
 
 quint64 pas::ast::value::LongString::size() const {

@@ -8,10 +8,12 @@ pas::ast::value::Numeric::Numeric(qint64 value, quint8 size)
     throw std::logic_error("Numeric constants must be <=8 bytes");
 }
 
-void pas::ast::value::Numeric::value(quint8 *dest, qsizetype length,
+void pas::ast::value::Numeric::value(bits::span<quint8> dest,
                                      bits::Order destEndian) const {
-  bits::memcpy_endian(dest, destEndian, length, &_value, bits::hostOrder(),
-                      _size);
+  bits::memcpy_endian(dest, destEndian,
+                      bits::span<const quint8>{
+                          reinterpret_cast<const quint8 *>(&_value), size()},
+                      bits::hostOrder());
 }
 
 quint64 pas::ast::value::Numeric::size() const { return _size; }

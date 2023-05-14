@@ -22,7 +22,7 @@ pas::ast::value::Identifier::clone() const {
   return QSharedPointer<Identifier>::create(*this);
 }
 
-void pas::ast::value::Identifier::value(quint8 *dest, qsizetype length,
+void pas::ast::value::Identifier::value(bits::span<quint8> dest,
                                         bits::Order destEndian) const {}
 
 quint64 pas::ast::value::Identifier::size() const { return 0; }

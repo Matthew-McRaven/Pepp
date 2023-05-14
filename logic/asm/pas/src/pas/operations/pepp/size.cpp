@@ -6,7 +6,8 @@ quint16 pas::ops::pepp::detail::sizeAlign(const ast::Node node, quint16 at,
                                           Direction direction) {
   auto argument = node.get<ast::generic::Argument>().value;
   quint16 align = 0;
-  argument->value(reinterpret_cast<quint8 *>(&align), 2, bits::hostOrder());
+  argument->value(bits::span<quint8>{reinterpret_cast<quint8 *>(&align), 2},
+                  bits::hostOrder());
   quint16 ret = 0;
   if (direction == Direction::Forward)
     ret = (align - (at % align)) % align;
@@ -27,7 +28,8 @@ quint16 pas::ops::pepp::detail::sizeBlock(const ast::Node node, quint16,
                                           Direction) {
   auto argument = node.get<ast::generic::Argument>().value;
   quint16 ret = 0;
-  argument->value(reinterpret_cast<quint8 *>(&ret), 2, bits::hostOrder());
+  argument->value(bits::span<quint8>{reinterpret_cast<quint8 *>(&ret), 2},
+                  bits::hostOrder());
   return ret;
 }
 

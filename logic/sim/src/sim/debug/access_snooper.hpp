@@ -13,8 +13,11 @@ struct Decoded {
 };
 
 template <typename Addr>
-Decoded decodeRead(void *payload, sim::api::packet::Flags flags) {
-  auto casted = static_cast<sim::trace::ReadPayload<Addr> *>(payload);
+Decoded decodeRead(bits::span<const quint8> payload,
+                   sim::api::packet::Flags flags) {
+  Q_ASSERT(sizeof(sim::trace::ReadPayload<Addr>) <= payload.size());
+  auto casted =
+      reinterpret_cast<const sim::trace::ReadPayload<Addr> *>(payload.data());
   return {.success = true,
           .write = false,
           .addrBytes = sizeof(Addr),
@@ -22,8 +25,11 @@ Decoded decodeRead(void *payload, sim::api::packet::Flags flags) {
           .length = casted->length};
 }
 template <typename Addr>
-Decoded decodeWriteThrough(void *payload, sim::api::packet::Flags flags) {
-  auto casted = static_cast<sim::trace::WriteThroughPayload<Addr> *>(payload);
+Decoded decodeWriteThrough(bits::span<const quint8> payload,
+                           sim::api::packet::Flags flags) {
+  Q_ASSERT(sizeof(sim::trace::WriteThroughPayload<Addr>) <= payload.size());
+  auto casted = reinterpret_cast<const sim::trace::WriteThroughPayload<Addr> *>(
+      payload.data());
   return {.success = true,
           .write = true,
           .addrBytes = sizeof(Addr),
@@ -31,9 +37,12 @@ Decoded decodeWriteThrough(void *payload, sim::api::packet::Flags flags) {
           .length = casted->length};
 }
 template <typename Addr, typename Data>
-Decoded decodeAddressedWrite(void *payload, sim::api::packet::Flags flags) {
+Decoded decodeAddressedWrite(bits::span<const quint8> payload,
+                             sim::api::packet::Flags flags) {
+  Q_ASSERT(sizeof(sim::trace::AddressedPayload<Addr, Data>) <= payload.size());
   auto casted =
-      static_cast<sim::trace::AddressedPayload<Addr, Data> *>(payload);
+      reinterpret_cast<const sim::trace::AddressedPayload<Addr, Data> *>(
+          payload.data());
   return {.success = true,
           .write = true,
           .addrBytes = sizeof(Addr),
@@ -41,7 +50,8 @@ Decoded decodeAddressedWrite(void *payload, sim::api::packet::Flags flags) {
           .length = 0};
 }
 
-Decoded decode(void *payload, sim::api::packet::Flags flags) {
+Decoded decode(bits::span<const quint8> payload,
+               sim::api::packet::Flags flags) {
   switch ((quint16)flags) {
   case 0b0000'0000: // Empty Packet
     return {.success = true, .address = 0, .length = 0};
@@ -131,8 +141,10 @@ class AccessSnooper : public sim::api::trace::Analyzer {
 public:
   explicit AccessSnooper(sim::api::memory::Target<Address> *target);
   // Analyzer interface
-  bool analyze(void *payload, api::packet::Flags flags) override;
-  bool unanalyze(void *payload, api::packet::Flags flags) override;
+  bool analyze(bits::span<const quint8> payload,
+               api::packet::Flags flags) override;
+  bool unanalyze(bits::span<const quint8> payload,
+                 api::packet::Flags flags) override;
   FilterArgs filter() const override;
 
 private:
@@ -141,8 +153,8 @@ private:
 };
 
 template <typename Address>
-bool sim::debug::AccessSnooper<Address>::analyze(void *payload,
-                                                 api::packet::Flags flags) {
+bool sim::debug::AccessSnooper<Address>::analyze(
+    bits::span<const quint8> payload, api::packet::Flags flags) {
   auto decoded = detail::decode(payload, flags);
   printData(decoded, false);
   return decoded.success;
@@ -150,8 +162,8 @@ bool sim::debug::AccessSnooper<Address>::analyze(void *payload,
 
 template <typename Address>
 // We already printed access to console... can't really "undo" that.
-bool sim::debug::AccessSnooper<Address>::unanalyze(void *payload,
-                                                   api::packet::Flags flags) {
+bool sim::debug::AccessSnooper<Address>::unanalyze(
+    bits::span<const quint8> payload, api::packet::Flags flags) {
   auto decoded = detail::decode(payload, flags);
   printData(decoded, true);
   return decoded.success;
@@ -172,12 +184,14 @@ void AccessSnooper<Address>::printData(detail::Decoded decoded, bool dir) {
                      .toStdString()
               << (decoded.write ^ dir ? ">" : "<");
     char str[64];
+    std::span<char> strSpan = str;
     quint8 data[16];
+    std::span<quint8> dataSpan = data;
     quint64 it = 0;
     while (it < decoded.length) {
       auto count = std::min<quint64>(sizeof(data), decoded.length - it);
       target->read(decoded.address + count, data, count, detail::gs);
-      bits::bytesToAsciiHex(str, sizeof(str), data, sizeof(data), false);
+      bits::bytesToAsciiHex(strSpan, dataSpan, {});
       std::cout.write(str, count * 2);
       it += count;
     }

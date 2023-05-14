@@ -20,20 +20,22 @@ public:
 
   // Target interface
   AddressSpan span() const override;
-  api::memory::Result read(Address address, quint8 *dest, Address length,
+  api::memory::Result read(Address address, bits::span<quint8> dest,
                            api::memory::Operation op) const override;
-  api::memory::Result write(Address address, const quint8 *src, Address length,
+  api::memory::Result write(Address address, bits::span<const quint8> src,
                             api::memory::Operation op) override;
   void clear(quint8 fill) override;
   void setInterposer(api::memory::Interposer<Address> *inter) override;
-  void dump(quint8 *dest, qsizetype maxLen) const override;
+  void dump(bits::span<quint8> dest) const override;
 
   // Producer interface
   void setTraceBuffer(api::trace::Buffer *tb) override;
   void trace(bool enabled) override;
   quint8 packetSize(api::packet::Flags) const override;
-  bool applyTrace(void *payload, api::packet::Flags flags) override;
-  bool unapplyTrace(void *payload, api::packet::Flags flags) override;
+  bool applyTrace(bits::span<const quint8> payload,
+                  api::packet::Flags flags) override;
+  bool unapplyTrace(bits::span<const quint8> payload,
+                    api::packet::Flags flags) override;
 
   // Helpers
   const quint8 *constData() const;
@@ -64,10 +66,10 @@ sim::memory::Dense<Address>::span() const {
 
 template <typename Address>
 sim::api::memory::Result
-sim::memory::Dense<Address>::read(Address address, quint8 *dest, Address length,
+sim::memory::Dense<Address>::read(Address address, std::span<quint8> dest,
                                   api::memory::Operation op) const {
   // Length is 1-indexed, address are 0, so must convert by -1.
-  auto maxDestAddr = (address + qMax(0, length - 1));
+  auto maxDestAddr = (address + std::max<Address>(0, dest.size() - 1));
   if (address < _span.minOffset || maxDestAddr > _span.maxOffset)
     return {.completed = false,
             .pause = true,
@@ -75,7 +77,7 @@ sim::memory::Dense<Address>::read(Address address, quint8 *dest, Address length,
   auto error = api::memory::Error::Success;
   bool pause = false;
   if (op.effectful && _inter) {
-    auto res = _inter->tryRead(address, length, op);
+    auto res = _inter->tryRead(address, dest.size(), op);
     if (res == api::memory::Interposer<Address>::Result::Breakpoint) {
       pause = true;
       error = api::memory::Error::Breakpoint;
@@ -86,12 +88,14 @@ sim::memory::Dense<Address>::read(Address address, quint8 *dest, Address length,
     api::trace::Buffer::Guard<true> guard(
         _tb, sizeof(api::packet::Packet<Read>), _device.id, Read::flags());
     if (guard) {
-      auto payload = Read{.address = address, .length = length};
+      auto payload = Read{.address = address, .length = Address(dest.size())};
       auto it = new (guard.data())
           api::packet::Packet<Read>(_device.id, payload, Read::flags());
     }
   }
-  bits::memcpy(dest, _data.constData() + (address - _span.minOffset), length);
+  bits::memcpy(dest, bits::span<const quint8>{_data.constData(),
+                                              std::size_t(_data.size())}
+                         .subspan(address - _span.minOffset));
   return {.completed = true, .pause = pause, .error = error};
 }
 
@@ -176,11 +180,10 @@ quint8 *init(void *packet, quint16 dataLen, Address address, api::device::ID id,
 } // namespace detail
 
 template <typename Address>
-sim::api::memory::Result
-sim::memory::Dense<Address>::write(Address address, const quint8 *src,
-                                   Address length, api::memory::Operation op) {
+sim::api::memory::Result sim::memory::Dense<Address>::write(
+    Address address, bits::span<const quint8> src, api::memory::Operation op) {
   // Length is 1-indexed, address are 0, so must convert by -1.
-  auto maxDestAddr = (address + qMax(0, length - 1));
+  auto maxDestAddr = (address + std::max<Address>(0, src.size() - 1));
   if (address < _span.minOffset || maxDestAddr > _span.maxOffset)
     return {.completed = false,
             .pause = true,
@@ -188,7 +191,7 @@ sim::memory::Dense<Address>::write(Address address, const quint8 *src,
   auto error = api::memory::Error::Success;
   bool pause = false;
   if (op.effectful && _inter) {
-    auto res = _inter->tryWrite(address, src, length, op);
+    auto res = _inter->tryWrite(address, src.data(), src.size(), op);
     if (res == api::memory::Interposer<Address>::Result::Breakpoint) {
       pause = true;
       error = api::memory::Error::Breakpoint;
@@ -196,19 +199,26 @@ sim::memory::Dense<Address>::write(Address address, const quint8 *src,
   }
   auto offset = address - _span.minOffset;
   bool success = true, sync = false;
+  auto dataSpan =
+      bits::span<quint8>{_data.data(), std::size_t(_data.size())}.subspan(
+          offset);
   if (op.effectful && _tb) {
     // Attempt to allocate space in the buffer for local trace packet.
-    auto [size, flags] = detail::info<Address>(length);
+    auto [size, flags] = detail::info<Address>(src.size());
     api::trace::Buffer::Guard<false> guard(_tb, size, _device.id, flags);
     // Even with success we might get nullptr, in which case the Buffer is
     // telling us it doesn't want our trace.
     if (guard) {
-      auto dest = detail::init(guard.data(), length, offset, _device.id, flags);
-      bits::memcpy_xor(dest, _data.constData() + offset, src, length);
+      auto dest =
+          detail::init(guard.data(), src.size(), offset, _device.id, flags);
+      bits::memcpy_xor(bits::span<quint8>{dest, src.size()}, dataSpan, src);
     }
   }
+  auto data =
+      bits::span<quint8>{_data.data(), std::size_t(_data.length())}.subspan(
+          offset);
   if (success)
-    bits::memcpy(_data.data() + offset, src, length);
+    bits::memcpy(dataSpan, src);
   return {.completed = success, .pause = pause, .error = error};
 }
 
@@ -225,11 +235,11 @@ void sim::memory::Dense<Address>::setInterposer(
 }
 
 template <typename Address>
-void Dense<Address>::dump(quint8 *dest, qsizetype maxLen) const {
-  if (maxLen <= 0)
+void Dense<Address>::dump(bits::span<quint8> dest) const {
+  if (dest.size() <= 0)
     throw std::logic_error("dump requires non-0 size");
-  bits::memcpy(dest, _data.constData(),
-               std::min<qsizetype>(maxLen, _data.size()));
+  bits::memcpy(dest, bits::span<const quint8>{_data.constData(),
+                                              std::size_t(_data.size())});
 }
 
 template <typename Address>
@@ -248,14 +258,16 @@ quint8 Dense<Address>::packetSize(api::packet::Flags flags) const {
 }
 
 template <typename Address>
-bool sim::memory::Dense<Address>::applyTrace(void *payload,
+bool sim::memory::Dense<Address>::applyTrace(bits::span<const quint8> payload,
                                              api::packet::Flags flags) {
+  throw std::logic_error("unimplemented");
   return false;
 }
 
 template <typename Address>
-bool sim::memory::Dense<Address>::unapplyTrace(void *payload,
+bool sim::memory::Dense<Address>::unapplyTrace(bits::span<const quint8> payload,
                                                api::packet::Flags flags) {
+  throw std::logic_error("unimplemented");
   return false;
 }
 

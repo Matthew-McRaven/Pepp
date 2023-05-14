@@ -39,15 +39,16 @@ private slots:
     auto [bus, m1, m2, m3] = make();
     sim::api::memory::Target<quint16> *memArr[3] = {&*m1, &*m2, &*m3};
     quint8 buf[2];
-    bits::memclr(buf, sizeof(buf) * sizeof(*buf));
+    bits::span bufSpan = {buf};
+    bits::memclr(bufSpan);
 
     // Can write to each individual memory and read on bus.
     for (int i = 0; i < 2; i++) {
       auto m = memArr[i];
-      bits::memcpy_endian(buf, bits::Order::BigEndian, 2, quint16(0x0001));
-      QVERIFY(m->write(0, buf, 2, rw).completed);
-      bits::memclr(buf, 2);
-      QVERIFY(bus->read(0 + i * 2, buf, 2, rw).completed);
+      bits::memcpy_endian(bufSpan, bits::Order::BigEndian, quint16(0x0001));
+      QVERIFY(m->write(0, bufSpan, rw).completed);
+      bits::memclr(bufSpan);
+      QVERIFY(bus->read(0 + i * 2, bufSpan, rw).completed);
       for (int j = 0; j < 1; j++)
         QCOMPARE(buf[j], j);
     }
@@ -57,15 +58,16 @@ private slots:
     auto [bus, m1, m2, m3] = make();
     sim::api::memory::Target<quint16> *memArr[3] = {&*m1, &*m2, &*m3};
     quint8 buf[6];
+    bits::span bufSpan = {buf};
     for (int it = 0; it < 6; it++)
       buf[it] = it;
-    QVERIFY(bus->write(0, buf, sizeof(buf), rw).completed);
-    bits::memclr(buf, sizeof(buf) * sizeof(*buf));
+    QVERIFY(bus->write(0, {buf}, rw).completed);
+    bits::memclr(bufSpan);
 
     // Can write to bus and read each individual memory.
     for (int i = 0; i < 2; i++) {
       auto m = memArr[i];
-      QVERIFY(m->read(0, buf, 2, rw).completed);
+      QVERIFY(m->read(0, bufSpan.first(2), rw).completed);
       for (int j = 0; j < 1; j++)
         QCOMPARE(buf[j], i * 2 + j);
     }
@@ -75,12 +77,13 @@ private slots:
     auto [bus, m1, m2, m3] = make();
     sim::api::memory::Target<quint16> *memArr[3] = {&*m1, &*m2, &*m3};
     quint8 buf[6];
+    bits::span bufSpan = {buf};
     for (int it = 0; it < 6; it++)
       buf[it] = it;
-    QVERIFY(bus->write(0, buf, sizeof(buf), rw).completed);
-    bits::memclr(buf, sizeof(buf) * sizeof(*buf));
+    QVERIFY(bus->write(0, {buf}, rw).completed);
+    bits::memclr(bufSpan);
 
-    bus->dump(buf, sizeof(buf));
+    bus->dump({buf});
 
     for (int it = 0; it < 6; it++)
       QCOMPARE(buf[it], it);
@@ -100,16 +103,21 @@ private slots:
     bus->pushFrontTarget(Span{.minOffset = 8, .maxOffset = 9}, &*m3);
 
     quint8 buf[10], out[10];
-    bits::memclr(buf, sizeof(buf));
-    bits::memclr(out, sizeof(out));
-    bits::memcpy_endian(buf + 0, bits::Order::BigEndian, 2, quint16(0x0001));
-    m1->write(0, buf + 0, 2, rw);
-    bits::memcpy_endian(buf + 4, bits::Order::BigEndian, 2, quint16(0x0405));
-    m2->write(0, buf + 4, 2, rw);
-    bits::memcpy_endian(buf + 8, bits::Order::BigEndian, 2, quint16(0x0809));
-    m3->write(0, buf + 8, 2, rw);
+    bits::span bufSpan = {buf};
+    bits::span outSpan = {out};
+    bits::memclr(bufSpan);
+    bits::memclr(outSpan);
+    bits::memcpy_endian(bufSpan.subspan(0, 2), bits::Order::BigEndian,
+                        quint16(0x0001));
+    m1->write(0, bufSpan.subspan(0, 2), rw);
+    bits::memcpy_endian(bufSpan.subspan(4, 2), bits::Order::BigEndian,
+                        quint16(0x0405));
+    m2->write(0, bufSpan.subspan(4, 2), rw);
+    bits::memcpy_endian(bufSpan.subspan(8, 2), bits::Order::BigEndian,
+                        quint16(0x0809));
+    m3->write(0, bufSpan.subspan(8, 2), rw);
 
-    bus->dump(out, sizeof(out));
+    bus->dump({out});
     for (int it = 0; it < sizeof(out); it++)
       QCOMPARE(buf[it], out[it]);
   }

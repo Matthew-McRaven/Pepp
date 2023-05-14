@@ -51,7 +51,7 @@ bool RunTask::loadToElf() {
     return false;
   }
   auto objText = objF.readAll().toStdString();
-  auto bytes = bits::asciiHexToByte(objText.data(), objText.size());
+  auto bytes = bits::asciiHexToByte({objText.data(), objText.size()});
   if (!bytes)
     return false;
   _elf = helper.elf(*bytes);
@@ -182,7 +182,7 @@ void RunTask::run() {
 
   if (!_memDump.empty()) {
     QVector<quint8> dump(0x1'00'00);
-    system->bus()->dump(dump.data(), dump.size());
+    system->bus()->dump({dump.data(), std::size_t(dump.size())});
     QFile memDump(QString::fromStdString(_memDump));
     if (memDump.open(QIODevice::WriteOnly | QIODevice::Truncate)) {
       memDump.write(reinterpret_cast<const char *>(dump.constData()),

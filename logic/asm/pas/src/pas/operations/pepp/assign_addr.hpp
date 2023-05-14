@@ -72,7 +72,8 @@ void pas::ops::pepp::detail::assignAddressesImpl(ast::Node &node, quint16 &base,
   isEquate.directiveAliases = {"EQUATE"};
   if (generic::isOrg()(node)) {
     auto arg = node.get<ast::generic::Argument>().value;
-    arg->value(reinterpret_cast<quint8 *>(&base), 2, bits::hostOrder());
+    arg->value(bits::span<quint8>{reinterpret_cast<quint8 *>(&base), 2},
+               bits::hostOrder());
     newBase = symBase = base;
   } else if (node.has<ast::generic::Directive>() && isEquate(node)) {
     // EQUATEs don't use addresses, and must be handled differently
@@ -94,8 +95,9 @@ void pas::ops::pepp::detail::assignAddressesImpl(ast::Node &node, quint16 &base,
     } else {
       auto bits = symbol::value::MaskedBits{
           .byteCount = 2, .bitPattern = 0, .mask = 0xFFFF};
-      argument->value(reinterpret_cast<quint8 *>(&bits.bitPattern), 8,
-                      bits::hostOrder());
+      argument->value(
+          bits::span<quint8>{reinterpret_cast<quint8 *>(&bits.bitPattern), 8},
+          bits::hostOrder());
       symbol->value = QSharedPointer<symbol::value::Constant>::create(bits);
     }
     return; // Must return early, or symbol will be clobbered below.

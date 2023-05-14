@@ -31,19 +31,18 @@ bool bits::escapedStringToBytes(const QString &string, QByteArray &output) {
   return okay;
 }
 
-qsizetype bits::bytesToAsciiHex(char *out, qsizetype outLength,
-                                const quint8 *in, quint16 inLength,
+qsizetype bits::bytesToAsciiHex(span<char> out, span<const quint8> in,
                                 QVector<SeparatorRule> separators) {
   static const quint8 chars[] = "0123456789ABCDEF";
   qsizetype outIt = 0;
-  for (int inIt = 0; inIt < inLength; inIt++) {
-    if (outIt + 2 <= outLength) {
+  for (int inIt = 0; inIt < in.size(); inIt++) {
+    if (outIt + 2 <= out.size()) {
       out[outIt++] = chars[(in[inIt] >> 4) & 0x0f];
       out[outIt++] = chars[in[inIt] & 0xf];
     } else
       break;
 
-    if (outIt + 1 > outLength)
+    if (outIt + 1 > out.size())
       break;
     for (auto &rule : separators) {
       if ((inIt + 1) % rule.modulus == 0) {
@@ -55,15 +54,14 @@ qsizetype bits::bytesToAsciiHex(char *out, qsizetype outLength,
   return outIt;
 }
 
-std::optional<QList<quint8>> bits::asciiHexToByte(const char *in,
-                                                  quint16 inLength) {
+std::optional<QList<quint8>> bits::asciiHexToByte(span<const char> in) {
   QList<quint8> ret = {};
-  ret.reserve(inLength / 3 + 2);
+  ret.reserve(in.size() / 3 + 2);
   qsizetype inIt = 0;
   char *endptr = nullptr;
-  while (inIt + 3 < inLength) {
-    ret.push_back(strtol(in + inIt, &endptr, 16));
-    if (endptr > in + inIt + 2)
+  while (inIt + 3 < in.size()) {
+    ret.push_back(strtol(in.subspan(inIt).data(), &endptr, 16));
+    if (endptr > in.subspan(inIt + 2).data())
       return std::nullopt;
     inIt += 3;
   }

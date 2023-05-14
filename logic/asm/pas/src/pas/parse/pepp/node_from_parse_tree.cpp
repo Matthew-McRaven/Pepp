@@ -50,7 +50,8 @@ pas::parse::pepp::detail::gen_io_scall_extern(const DirectiveType &line,
 
 bool isPow2(QSharedPointer<pas::ast::value::Base> arg) {
   quint64 val = 0;
-  arg->value(reinterpret_cast<quint8 *>(&val), 8, bits::hostOrder());
+  arg->value(bits::span<quint8>{reinterpret_cast<quint8 *>(&val), 8},
+             bits::hostOrder());
   auto val_log2 = log2(val);
   return ceil(val_log2) == floor(val_log2);
 }

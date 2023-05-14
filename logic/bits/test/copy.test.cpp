@@ -26,7 +26,7 @@ private slots:
     else if (destOrder == Order::LittleEndian)
       dest = reinterpret_cast<quint8 *>(&dest_le);
     auto src = srcData.constData();
-    memcpy_endian(dest, destOrder, destLen, src, srcOrder, srcLen);
+    memcpy_endian({dest, destLen}, destOrder, {src, srcLen}, srcOrder);
     for (int it = 0; it < destLen; it++)
       verify(dest, it, destGolden[it]);
   }

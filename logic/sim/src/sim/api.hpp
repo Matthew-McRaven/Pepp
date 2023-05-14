@@ -1,4 +1,5 @@
 #pragma once
+#include "bits/span.hpp"
 #include <QtCore>
 #include <type_traits>
 namespace sim::api {
@@ -97,15 +98,17 @@ template <typename Payload> struct Packet {
   device::ID device = 0;
   // Flags are always stored as u16. If u16 bit is not set, then the upper 8
   // bits are unspecified.
-  union FlagBits{
-    FlagBits(){}
+  union FlagBits {
+    FlagBits() {}
     Flags flags;
     quint16 bits =
         0b0000'0000'0000'0001; // Mark the type as 2 bytes, uninitialized.
   } type;
 
   Packet() {}
-  Packet(device::ID id, Flags flags) : device(device), payload(), type() {type.flags = flags;}
+  Packet(device::ID id, Flags flags) : device(device), payload(), type() {
+    type.flags = flags;
+  }
   // Must be declared inline, otherwise fails to compile.
   template <typename Bytes>
   Packet(device::ID device, Bytes bytes, Flags flags)
@@ -164,8 +167,8 @@ struct Analyzer {
   };
 
   // Only called in Buffer decides evaluate packet, and it matched filters.
-  virtual bool analyze(void *payload, packet::Flags flags);
-  virtual bool unanalyze(void *payload, packet::Flags flags);
+  virtual bool analyze(bits::span<const quint8> payload, packet::Flags flags);
+  virtual bool unanalyze(bits::span<const quint8> payload, packet::Flags flags);
   // Called on registration with Buffer to determine when to invoke analyzer.
   // At some point, I may allow one analyzer to produce multiple filters.
   virtual FilterArgs filter() const = 0;
@@ -242,10 +245,10 @@ struct Producer {
   // Any changes to bit format of trace now only impacts the Buffer doing the
   // analysis.
   virtual bool
-  applyTrace(void *payload,
+  applyTrace(bits::span<const quint8> payload,
              packet::Flags flags) = 0; // trace is a unknown payload struct.
   virtual bool
-  unapplyTrace(void *payload,
+  unapplyTrace(bits::span<const quint8> payload,
                packet::Flags flags) = 0; // trace is a unknown payload struct.
 };
 } // namespace trace
@@ -332,9 +335,9 @@ template <typename Address> struct Target {
   };
   virtual ~Target() = default;
   virtual AddressSpan span() const = 0;
-  virtual Result read(Address address, quint8 *dest, Address length,
+  virtual Result read(Address address, bits::span<quint8> dest,
                       Operation op) const = 0;
-  virtual Result write(Address address, const quint8 *src, Address length,
+  virtual Result write(Address address, bits::span<const quint8> src,
                        Operation op) = 0;
   virtual void clear(quint8 fill) = 0;
 
@@ -342,7 +345,7 @@ template <typename Address> struct Target {
 
   // Return a QList of length maxOffset-minOffset+1, containing all the bytes of
   // the target.
-  virtual void dump(quint8 *dest, qsizetype maxLen) const = 0;
+  virtual void dump(bits::span<quint8> dest) const = 0;
 };
 
 template <typename Address> struct Initiator {

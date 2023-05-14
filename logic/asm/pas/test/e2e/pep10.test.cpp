@@ -207,7 +207,7 @@ private slots:
       sys = targets::pep10::isa::systemFromElf(*elf, true);
     }());
     QVector<quint8> dump(0x1'00'00);
-    sys->bus()->dump(dump.data(), dump.size());
+    sys->bus()->dump({dump.data(), std::size_t(dump.size())});
     QFile memDump(u"%1.mem.bin"_qs.arg(figName));
     if (memDump.open(QFile::WriteOnly)) {
       memDump.write(reinterpret_cast<const char *>(dump.constData()),

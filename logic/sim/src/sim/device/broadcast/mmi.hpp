@@ -20,20 +20,22 @@ public:
 
   // Target interface
   AddressSpan span() const override;
-  api::memory::Result read(Address address, quint8 *dest, Address length,
+  api::memory::Result read(Address address, bits::span<quint8> dest,
                            api::memory::Operation op) const override;
-  api::memory::Result write(Address address, const quint8 *src, Address length,
+  api::memory::Result write(Address address, bits::span<const quint8> src,
                             api::memory::Operation op) override;
   void clear(quint8 fill) override;
   void setInterposer(api::memory::Interposer<Address> *inter) override;
-  void dump(quint8 *dest, qsizetype maxLen) const override;
+  void dump(bits::span<quint8> dest) const override;
 
   // Producer interface
   void setTraceBuffer(api::trace::Buffer *tb) override;
   void trace(bool enabled) override;
   quint8 packetSize(api::packet::Flags) const override;
-  bool applyTrace(void *payload, api::packet::Flags flags) override;
-  bool unapplyTrace(void *payload, api::packet::Flags flags) override;
+  bool applyTrace(bits::span<const quint8> payload,
+                  api::packet::Flags flags) override;
+  bool unapplyTrace(bits::span<const quint8> payload,
+                    api::packet::Flags flags) override;
 
   // Helpers
   QSharedPointer<typename detail::Channel<Address, quint8>::Endpoint>
@@ -68,11 +70,11 @@ typename Input<Address>::AddressSpan Input<Address>::span() const {
 }
 
 template <typename Address>
-api::memory::Result Input<Address>::read(Address address, quint8 *dest,
-                                         Address length,
+api::memory::Result Input<Address>::read(Address address,
+                                         bits::span<quint8> dest,
                                          api::memory::Operation op) const {
   // Length is 1-indexed, address are 0, so must convert by -1.
-  auto maxDestAddr = (address + qMax(0, length - 1));
+  auto maxDestAddr = (address + std::max<Address>(0, dest.size() - 1));
   if (address < _span.minOffset || maxDestAddr > _span.maxOffset)
     return {.completed = false,
             .pause = true,
@@ -80,7 +82,7 @@ api::memory::Result Input<Address>::read(Address address, quint8 *dest,
   auto error = api::memory::Error::Success;
   bool pause = false;
   if (op.effectful && _inter) {
-    auto res = _inter->tryRead(address, length, op);
+    auto res = _inter->tryRead(address, dest.size(), op);
     if (res == api::memory::Interposer<Address>::Result::Breakpoint) {
       pause = true;
       error = api::memory::Error::Breakpoint;
@@ -92,26 +94,26 @@ api::memory::Result Input<Address>::read(Address address, quint8 *dest,
   bool completed = true;
   if (!op.effectful) {
     quint8 tmp = *_endpoint->current_value();
-    bits::memcpy(dest, &tmp, 1);
+    bits::memcpy(dest, bits::span<const quint8>{&tmp, 1});
   } else if (auto next = _endpoint->next_value();
              _policy == api::memory::FailPolicy::RaiseError && !next) {
     completed = false;
     error = api::memory::Error::NeedsMMI;
   } else if (_policy == api::memory::FailPolicy::YieldDefaultValue && !next) {
-    bits::memcpy(dest, &_fill, 1);
+    bits::memcpy(dest, bits::span<const quint8>{&_fill, 1});
   } else {
     quint8 tmp = *next;
-    bits::memcpy(dest, &tmp, 1);
+    bits::memcpy(dest, bits::span<const quint8>{&tmp, 1});
   }
   return {.completed = completed, .pause = pause, .error = error};
 }
 
 template <typename Address>
-api::memory::Result Input<Address>::write(Address address, const quint8 *src,
-                                          Address length,
+api::memory::Result Input<Address>::write(Address address,
+                                          bits::span<const quint8> src,
                                           api::memory::Operation op) {
   // Length is 1-indexed, address are 0, so must convert by -1.
-  auto maxDestAddr = (address + qMax(0, length - 1));
+  auto maxDestAddr = (address + std::max<Address>(0, src.size() - 1));
   if (address < _span.minOffset || maxDestAddr > _span.maxOffset)
     return {.completed = false,
             .pause = true,
@@ -134,11 +136,11 @@ void Input<Address>::setInterposer(api::memory::Interposer<Address> *inter) {
 }
 
 template <typename Address>
-void Input<Address>::dump(quint8 *dest, qsizetype maxLen) const {
-  if (maxLen <= 0)
+void Input<Address>::dump(bits::span<quint8> dest) const {
+  if (dest.size() <= 0)
     throw std::logic_error("dump requires non-0 size");
   auto v = *_endpoint->current_value();
-  bits::memcpy(dest, &v, std::min<quint64>(sizeof(v), maxLen));
+  bits::memcpy(dest, bits::span<const quint8>{&v, sizeof(v)});
 }
 
 template <typename Address>
@@ -157,12 +159,14 @@ quint8 Input<Address>::packetSize(api::packet::Flags) const {
 }
 
 template <typename Address>
-bool Input<Address>::applyTrace(void *payload, api::packet::Flags flags) {
+bool Input<Address>::applyTrace(bits::span<const quint8> payload,
+                                api::packet::Flags flags) {
   throw std::logic_error("unimplemented");
 }
 
 template <typename Address>
-bool Input<Address>::unapplyTrace(void *payload, api::packet::Flags flags) {
+bool Input<Address>::unapplyTrace(bits::span<const quint8> payload,
+                                  api::packet::Flags flags) {
   throw std::logic_error("unimplemented");
 }
 
