@@ -30,11 +30,9 @@ void bits::memcpy_endian(std::span<quint8> dest, Order destOrder,
 }
 
 // TODO: might be able to vectorize this for large lens.
-void bits::memcpy_xor(void *dest, const void *src1, const void *src2,
-                      quint16 len) {
-  for (auto it = 0; it < len; it++) {
-    *(static_cast<quint8 *>(dest) + it) =
-        *(static_cast<const quint8 *>(src1) + it) ^
-        *(static_cast<const quint8 *>(src2) + it);
-  }
+void bits::memcpy_xor(bits::span<quint8> dest, bits::span<const quint8> src1,
+                      bits::span<const quint8> src2) {
+  auto len = std::min(dest.size(), std::min(src1.size(), src2.size()));
+  for (auto it = 0; it < len; it++)
+    dest[it] = src1[it] ^ src2[it];
 }

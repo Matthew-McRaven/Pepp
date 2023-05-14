@@ -31,5 +31,6 @@ void memcpy_endian(span<quint8> dest, Order destOrder, T src) {
                 bits::hostOrder());
 }
 
-void memcpy_xor(void *dest, const void *src1, const void *src2, quint16 len);
+void memcpy_xor(bits::span<quint8> dest, bits::span<const quint8> src1,
+                bits::span<const quint8> src2);
 } // namespace bits

@@ -204,7 +204,10 @@ sim::memory::Dense<Address>::write(Address address, const quint8 *src,
     // telling us it doesn't want our trace.
     if (guard) {
       auto dest = detail::init(guard.data(), length, offset, _device.id, flags);
-      bits::memcpy_xor(dest, _data.constData() + offset, src, length);
+      bits::memcpy_xor(
+          bits::span<quint8>{dest, length},
+          bits::span<const quint8>{_data.constData() + offset, length},
+          bits::span<const quint8>{src, length});
     }
   }
   if (success)
