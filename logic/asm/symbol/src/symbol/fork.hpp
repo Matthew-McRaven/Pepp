@@ -1,9 +1,12 @@
 #pragma once
 #include <QtCore>
+
+#include "symbol_globals.hpp"
+
 namespace symbol {
 class Table;
 class Entry;
-class ForkMap {
+class SYMBOL_EXPORT ForkMap {
 public:
   void addMapping(const Table *from, QSharedPointer<Table> to);
   void addMapping(const Entry *from, QSharedPointer<Entry> to);
@@ -15,5 +18,5 @@ private:
   QMap<const Entry *, QSharedPointer<Entry>> _symbolMap;
 };
 
-QSharedPointer<ForkMap> fork(QSharedPointer<const symbol::Table> from);
+QSharedPointer<ForkMap> SYMBOL_EXPORT fork(QSharedPointer<const symbol::Table> from);
 } // namespace symbol

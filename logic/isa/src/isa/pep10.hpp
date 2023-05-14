@@ -286,8 +286,8 @@ struct Pep10 {
   using Register = detail::pep10::Register;
   using CSR = detail::pep10::CSR;
   using MemoryVectors = detail::pep10::MemoryVectors;
-  static const quint8 RegisterCount;
-  static const quint8 CSRCount;
+  static constexpr quint8 RegisterCount = 7;
+  static constexpr quint8 CSRCount = 4;
 
   static Mnemonic defaultMnemonic();
   static AddressingMode defaultAddressingMode();

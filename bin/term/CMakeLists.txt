@@ -12,8 +12,16 @@ set_target_properties(pepp-term PROPERTIES
 )
 set_target_properties(pepp-term PROPERTIES FOLDER "qtc_runnable")
 
+# See: https://github.com/BoostGSoC14/boost.http/pull/47/commits/21db2a954ee5e6b6e3fbc98b487047158073c33a
+# Must link against extra libs on windows for boot asio to work.
+list(APPEND SOCK_LIB "")
+if(MSVC OR MINGW)
+  list(APPEND SOCK_LIB ws2_32)
+  list(APPEND SOCK_LIB mswsock)
+endif()
+
 target_link_libraries(pepp-term
-    PRIVATE cli macro pas builtins isa targets sim Qt6::Core)
+    PRIVATE cli macro pas builtins isa targets sim Qt6::Core ${SOCK_LIB})
 
 install(TARGETS pepp-term
     BUNDLE DESTINATION .

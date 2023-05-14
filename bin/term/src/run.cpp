@@ -107,7 +107,7 @@ void RunTask::run() {
 #if defined(__unix__) || defined(TARGET_OS_MAC)
       boost::asio::posix::stream_descriptor in(ioService, STDIN_FILENO);
 #elif defined(_WIN32) || defined(WIN32)
-      throw std::logic_error("Unimplemented on Windows");
+      boost::asio::windows::stream_handle in(ioService, stdin);
 #endif
       boost::asio::steady_timer timer(ioService);
 
