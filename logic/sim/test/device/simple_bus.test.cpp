@@ -83,7 +83,7 @@ private slots:
     QVERIFY(bus->write(0, {buf}, rw).completed);
     bits::memclr(bufSpan);
 
-    bus->dump(buf, sizeof(buf));
+    bus->dump({buf});
 
     for (int it = 0; it < 6; it++)
       QCOMPARE(buf[it], it);
@@ -117,7 +117,7 @@ private slots:
                         quint16(0x0809));
     m3->write(0, bufSpan.subspan(8, 2), rw);
 
-    bus->dump(out, sizeof(out));
+    bus->dump({out});
     for (int it = 0; it < sizeof(out); it++)
       QCOMPARE(buf[it], out[it]);
   }

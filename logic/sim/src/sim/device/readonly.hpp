@@ -24,7 +24,7 @@ public:
                             api::memory::Operation op) override;
   void clear(quint8 fill) override;
   void setInterposer(api::memory::Interposer<Address> *inter) override;
-  void dump(quint8 *dest, qsizetype maxLen) const override;
+  void dump(bits::span<quint8> dest) const override;
 
   // Initiator interface
   void setTarget(sim::api::memory::Target<Address> *target) override;
@@ -85,8 +85,8 @@ void ReadOnly<Address>::setInterposer(api::memory::Interposer<Address> *inter) {
 }
 
 template <typename Address>
-void ReadOnly<Address>::dump(quint8 *dest, qsizetype maxLen) const {
-  _target->dump(dest, maxLen);
+void ReadOnly<Address>::dump(bits::span<quint8> dest) const {
+  _target->dump(dest);
 }
 
 template <typename Address>

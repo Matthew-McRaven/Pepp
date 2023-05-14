@@ -345,7 +345,7 @@ template <typename Address> struct Target {
 
   // Return a QList of length maxOffset-minOffset+1, containing all the bytes of
   // the target.
-  virtual void dump(quint8 *dest, qsizetype maxLen) const = 0;
+  virtual void dump(bits::span<quint8> dest) const = 0;
 };
 
 template <typename Address> struct Initiator {

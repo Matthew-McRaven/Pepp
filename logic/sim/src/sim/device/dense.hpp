@@ -26,7 +26,7 @@ public:
                             api::memory::Operation op) override;
   void clear(quint8 fill) override;
   void setInterposer(api::memory::Interposer<Address> *inter) override;
-  void dump(quint8 *dest, qsizetype maxLen) const override;
+  void dump(bits::span<quint8> dest) const override;
 
   // Producer interface
   void setTraceBuffer(api::trace::Buffer *tb) override;
@@ -88,7 +88,7 @@ sim::memory::Dense<Address>::read(Address address, std::span<quint8> dest,
     api::trace::Buffer::Guard<true> guard(
         _tb, sizeof(api::packet::Packet<Read>), _device.id, Read::flags());
     if (guard) {
-      auto payload = Read{.address = address, .length = dest.size()};
+      auto payload = Read{.address = address, .length = Address(dest.size())};
       auto it = new (guard.data())
           api::packet::Packet<Read>(_device.id, payload, Read::flags());
     }
@@ -235,12 +235,11 @@ void sim::memory::Dense<Address>::setInterposer(
 }
 
 template <typename Address>
-void Dense<Address>::dump(quint8 *dest, qsizetype maxLen) const {
-  if (maxLen <= 0)
+void Dense<Address>::dump(bits::span<quint8> dest) const {
+  if (dest.size() <= 0)
     throw std::logic_error("dump requires non-0 size");
-  bits::memcpy(
-      bits::span<quint8>{dest, std::size_t(maxLen)},
-      bits::span<const quint8>{_data.constData(), std::size_t(_data.size())});
+  bits::memcpy(dest, bits::span<const quint8>{_data.constData(),
+                                              std::size_t(_data.size())});
 }
 
 template <typename Address>

@@ -26,7 +26,7 @@ public:
                             api::memory::Operation op) override;
   void clear(quint8 fill) override;
   void setInterposer(sim::api::memory::Interposer<Address> *inter) override;
-  void dump(quint8 *dest, qsizetype maxLen) const override;
+  void dump(bits::span<quint8> dest) const override;
 
   // Producer interface
   void setTraceBuffer(api::trace::Buffer *tb) override;
@@ -135,7 +135,7 @@ api::memory::Result SimpleBus<Address>::read(Address address,
     api::trace::Buffer::Guard<true> guard(
         _tb, sizeof(api::packet::Packet<Read>), _device.id, Read::flags());
     if (guard) {
-      auto payload = Read{.address = address, .length = dest.size()};
+      auto payload = Read{.address = address, .length = Address(dest.size())};
       auto it = new (guard.data())
           api::packet::Packet<Read>(_device.id, payload, Read::flags());
     }
@@ -152,7 +152,7 @@ api::memory::Result SimpleBus<Address>::write(Address address,
     api::trace::Buffer::Guard<true> guard(
         _tb, sizeof(api::packet::Packet<Write>), _device.id, Write::flags());
     if (guard) {
-      auto payload = Write{.address = address, .length = src.size()};
+      auto payload = Write{.address = address, .length = Address(src.size())};
       auto it = new (guard.data())
           api::packet::Packet<Write>(_device.id, payload, Write::flags());
     }
@@ -172,12 +172,13 @@ void SimpleBus<Address>::setInterposer(
 }
 
 template <typename Address>
-void SimpleBus<Address>::dump(quint8 *dest, qsizetype maxLen) const {
-  if (maxLen <= 0)
+void SimpleBus<Address>::dump(bits::span<quint8> dest) const {
+  if (dest.size() <= 0)
     throw std::logic_error("dump requires non-0 size");
   for (auto rit = _regions.crbegin(); rit != _regions.crend(); ++rit) {
-    auto adjust = rit->span.minOffset;
-    rit->target->dump(dest + adjust, maxLen - adjust);
+    auto start = rit->span.minOffset;
+    auto end = rit->span.maxOffset;
+    rit->target->dump(dest.subspan(start, end - start + 1));
   }
 }
 
