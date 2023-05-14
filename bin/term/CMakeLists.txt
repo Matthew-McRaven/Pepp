@@ -24,5 +24,6 @@ if(Python3_FOUND)
         add_test(NAME test-term-ls COMMAND ${Python3_EXECUTABLE} test/ls.py $<TARGET_FILE:pepp-term> WORKING_DIRECTORY ${CMAKE_CURRENT_LIST_DIR})
         add_test(NAME test-term-get COMMAND ${Python3_EXECUTABLE} test/get.py $<TARGET_FILE:pepp-term> WORKING_DIRECTORY ${CMAKE_CURRENT_LIST_DIR})
         add_test(NAME test-term-asmrun COMMAND ${Python3_EXECUTABLE} test/asmrun.py $<TARGET_FILE:pepp-term> WORKING_DIRECTORY ${CMAKE_CURRENT_LIST_DIR})
+        add_subdirectory(test/samples)
 endif()
 
