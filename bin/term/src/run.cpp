@@ -11,7 +11,7 @@
 #include "targets/pep10/isa3/system.hpp"
 #include <boost/asio.hpp>
 
-auto gs = sim::api::memory::Operation{
+static const auto gs = sim::api::memory::Operation{
     .speculative = false,
     .kind = sim::api::memory::Operation::Kind::data,
     .effectful = false,
