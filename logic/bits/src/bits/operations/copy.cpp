@@ -33,7 +33,8 @@ void bits::memcpy_endian(std::span<quint8> dest, Order destOrder,
 void bits::memcpy_xor(void *dest, const void *src1, const void *src2,
                       quint16 len) {
   for (auto it = 0; it < len; it++) {
-    *static_cast<quint8 *>(dest) =
-        *static_cast<const quint8 *>(src1) ^ *static_cast<const quint8 *>(src2);
+    *(static_cast<quint8 *>(dest) + it) =
+        *(static_cast<const quint8 *>(src1) + it) ^
+        *(static_cast<const quint8 *>(src2) + it);
   }
 }
