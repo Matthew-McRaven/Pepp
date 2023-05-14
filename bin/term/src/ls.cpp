@@ -13,10 +13,12 @@ void ListTask::run() {
   auto macros = book->macros();
 
   std::cout << "Figures: " << std::endl;
-  for (auto &figure : figures)
-    std::cout << u"%1.%2"_qs.arg(figure->chapterName(), figure->figureName())
-                     .toStdString()
-              << std::endl;
+  for (auto &figure : figures) {
+    std::cout << u"%1.%2"_qs.arg(figure->chapterName(), figure->figureName()).leftJustified(10)
+                     .toStdString();
+    std::cout << figure->typesafeElements().keys().join(", ").toStdString();
+    std::cout << std::endl;
+    }
 
   std::cout << std::endl;
 
