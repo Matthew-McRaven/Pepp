@@ -40,14 +40,14 @@ private slots:
     sim::api::memory::Target<quint16> *memArr[3] = {&*m1, &*m2, &*m3};
     quint8 buf[2];
     bits::span bufSpan = {buf};
-    bits::memclr(buf, sizeof(buf) * sizeof(*buf));
+    bits::memclr(bufSpan);
 
     // Can write to each individual memory and read on bus.
     for (int i = 0; i < 2; i++) {
       auto m = memArr[i];
       bits::memcpy_endian(bufSpan, bits::Order::BigEndian, quint16(0x0001));
       QVERIFY(m->write(0, buf, 2, rw).completed);
-      bits::memclr(buf, 2);
+      bits::memclr(bufSpan);
       QVERIFY(bus->read(0 + i * 2, buf, 2, rw).completed);
       for (int j = 0; j < 1; j++)
         QCOMPARE(buf[j], j);
@@ -58,10 +58,11 @@ private slots:
     auto [bus, m1, m2, m3] = make();
     sim::api::memory::Target<quint16> *memArr[3] = {&*m1, &*m2, &*m3};
     quint8 buf[6];
+    bits::span bufSpan = {buf};
     for (int it = 0; it < 6; it++)
       buf[it] = it;
     QVERIFY(bus->write(0, buf, sizeof(buf), rw).completed);
-    bits::memclr(buf, sizeof(buf) * sizeof(*buf));
+    bits::memclr(bufSpan);
 
     // Can write to bus and read each individual memory.
     for (int i = 0; i < 2; i++) {
@@ -76,10 +77,11 @@ private slots:
     auto [bus, m1, m2, m3] = make();
     sim::api::memory::Target<quint16> *memArr[3] = {&*m1, &*m2, &*m3};
     quint8 buf[6];
+    bits::span bufSpan = {buf};
     for (int it = 0; it < 6; it++)
       buf[it] = it;
     QVERIFY(bus->write(0, buf, sizeof(buf), rw).completed);
-    bits::memclr(buf, sizeof(buf) * sizeof(*buf));
+    bits::memclr(bufSpan);
 
     bus->dump(buf, sizeof(buf));
 
@@ -102,8 +104,9 @@ private slots:
 
     quint8 buf[10], out[10];
     bits::span bufSpan = {buf};
-    bits::memclr(buf, sizeof(buf));
-    bits::memclr(out, sizeof(out));
+    bits::span outSpan = {out};
+    bits::memclr(bufSpan);
+    bits::memclr(outSpan);
     bits::memcpy_endian(bufSpan.subspan(0, 2), bits::Order::BigEndian,
                         quint16(0x0001));
     m1->write(0, buf + 0, 2, rw);

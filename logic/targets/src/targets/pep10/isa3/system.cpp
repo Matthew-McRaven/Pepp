@@ -148,12 +148,12 @@ std::optional<quint16> targets::pep10::isa::System::getBootFlagAddress() {
 
 quint16 targets::pep10::isa::System::getBootFlags() const {
   quint8 buf[2];
-  bits::memclr(buf, 2);
+  bits::span<quint8> bufSpan = {buf};
+  bits::memclr(bufSpan);
   if (_bootFlg) {
     auto ret = _bus->read(*_bootFlg, buf, 2, gs);
     Q_ASSERT(ret.completed);
   }
-  bits::span<const quint8> bufSpan = {buf};
   return bits::memcpy_endian<quint16>(bufSpan, bits::Order::BigEndian);
 }
 

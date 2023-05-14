@@ -1,7 +1,5 @@
 #include "./copy.hpp"
 
-void bits::memclr(void *dest, quint16 length) { memset(dest, 0, length); }
-
 void bits::memcpy_endian(std::span<quint8> dest, Order destOrder,
                          std::span<const quint8> src, Order srcOrder) {
   // At most 1 offset will be used at a time, determined by which pointer is
@@ -32,7 +30,8 @@ void bits::memcpy_endian(std::span<quint8> dest, Order destOrder,
 // TODO: might be able to vectorize this for large lens.
 void bits::memcpy_xor(bits::span<quint8> dest, bits::span<const quint8> src1,
                       bits::span<const quint8> src2) {
-  auto len = std::min(dest.size(), std::min(src1.size(), src2.size()));
+  auto len = std::min(dest.size_bytes(),
+                      std::min(src1.size_bytes(), src2.size_bytes()));
   for (auto it = 0; it < len; it++)
     dest[it] = src1[it] ^ src2[it];
 }

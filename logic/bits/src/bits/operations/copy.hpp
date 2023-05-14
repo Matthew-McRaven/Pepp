@@ -6,7 +6,11 @@
 
 namespace bits {
 using ::memcpy;
-void memclr(void *dest, quint16 length);
+template <typename T, std::size_t size = std::dynamic_extent>
+void memclr(bits::span<T, size> dest) {
+  memset(dest.data(), 0, dest.size_bytes());
+}
+
 template <std::integral T, std::integral U> T memcpy_endian(U src) {
   return memcpy_endian<T>({&src, sizeof(U)}, bits::hostOrder());
 }
