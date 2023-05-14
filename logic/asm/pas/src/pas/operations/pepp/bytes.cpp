@@ -76,8 +76,9 @@ QString pas::ops::pepp::bytesToObject(const QList<quint8> &bytes,
   QList<bits::SeparatorRule> rules = {
       {.skipFirst = true, .separator = '\n', .modulus = bytesPerLine},
       {.skipFirst = false, .separator = ' ', .modulus = 1}};
-  auto it = bits::bytesToAsciiHex(obj.data(), obj.size(), bytes.constData(),
-                                  bytes.size(), rules);
+  auto it = bits::bytesToAsciiHex(
+      {obj.data(), static_cast<std::size_t>(obj.size())},
+      {bytes.constData(), static_cast<std::size_t>(bytes.size())}, rules);
   bits::memcpy(obj.data() + it, term, std::min<quint64>(2, obj.size() - it));
   return QString::fromLocal8Bit(obj.data(), obj.size());
 }

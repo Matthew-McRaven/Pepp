@@ -1,4 +1,5 @@
 #pragma once
+#include "bits/span.hpp"
 #include <QtCore>
 namespace bits {
 template <typename Iterator>
@@ -55,7 +56,7 @@ struct SeparatorRule {
 };
 
 // Separates every byte with a space.
-qsizetype bytesToAsciiHex(char *out, qsizetype outLength, const quint8 *in,
-                          quint16 inLength, QVector<SeparatorRule> separator);
-std::optional<QList<quint8>> asciiHexToByte(const char *in, quint16 inLength);
+qsizetype bytesToAsciiHex(span<char> out, span<const quint8> in,
+                          QVector<SeparatorRule> separator);
+std::optional<QList<quint8>> asciiHexToByte(span<const char> in);
 } // namespace bits

@@ -17,8 +17,9 @@ private slots:
                                   0x20, 0x45, 0x44, 0x20, 0x42,
                                   0x45, 0x20, 0x45, 0x46, 0x20};*/
     bits::memclr(dst, sizeof(dst));
-    QCOMPARE(bits::bytesToAsciiHex(dst, sizeof(dst), src, sizeof(src), rules),
-             sizeof(dst));
+    QCOMPARE(
+        bits::bytesToAsciiHex({dst, sizeof(dst)}, {src, sizeof(src)}, rules),
+        sizeof(dst));
     QString dstStr = QString::fromLocal8Bit(reinterpret_cast<const char *>(dst),
                                             sizeof(dst));
     QCOMPARE(dstStr, golden);

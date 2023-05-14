@@ -51,7 +51,7 @@ bool RunTask::loadToElf() {
     return false;
   }
   auto objText = objF.readAll().toStdString();
-  auto bytes = bits::asciiHexToByte(objText.data(), objText.size());
+  auto bytes = bits::asciiHexToByte({objText.data(), objText.size()});
   if (!bytes)
     return false;
   _elf = helper.elf(*bytes);
