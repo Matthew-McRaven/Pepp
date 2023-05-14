@@ -15,7 +15,7 @@ class TestCase(unittest.TestCase):
                           f.write(ret.stdout)
                   with open(f"{cwd}/in.pep", "wb") as f:
                           f.write(b"USCALL")
-                except:
+                except IOError:
                   self.fail("Writing contents should not fail")
 
                 ret = subprocess.run([executable, "asm", "-s", "in.pep", "--os", "os.pep",
@@ -31,14 +31,19 @@ class TestCase(unittest.TestCase):
                 ret = subprocess.run([executable, "get", "--ch", "05", "--fig", "27"], cwd=cwd, capture_output=True)
                 self.assertEqual(ret.returncode, 0)
                 self.assertNotEqual(len(ret.stdout), 0)
-                with open(f"{cwd}/in.pep", "wb") as f:
-                        f.write(ret.stdout)
+
+                try:
+                  with open(f"{cwd}/in.pep", "wb") as f:
+                    f.write(ret.stdout)
+                  with open(f"{cwd}/in.txt", "wt") as f:
+                    f.write("10\n")
+                    f.write("20\n")
+                except IOError:
+                  self.fail("Writing contents should not fail")
 
                 ret = subprocess.run([executable, "asm", "-s", "in.pep", "-o", "out.pepo", "--elf", "in.elf"], cwd=cwd, capture_output=True)
                 self.assertEqual(ret.returncode, 0)
-                with open(f"{cwd}/in.txt", "wt") as f:
-                    f.write("10\n")
-                    f.write("20\n")
+
 
                 ret = subprocess.run([executable, "run", "-s", "in.elf", "-i", "in.txt", "-o", "-"], cwd=cwd, capture_output=True)
                 self.assertEqual(ret.returncode, 0)
@@ -49,38 +54,25 @@ class TestCase(unittest.TestCase):
                 ret = subprocess.run([executable, "get", "--ch", "05", "--fig", "27"], cwd=cwd, capture_output=True)
                 self.assertEqual(ret.returncode, 0)
                 self.assertNotEqual(len(ret.stdout), 0)
-                with open(f"{cwd}/in.pep", "wb") as f:
+                try:
+                  with open(f"{cwd}/in.pep", "wb") as f:
                         f.write(ret.stdout)
+                  with open(f"{cwd}/in.txt", "wt") as f:
+                    f.write("10\n")
+                    f.write("20\n")
+                except IOError:
+                  self.fail("Writing contents should not fail")
 
                 ret = subprocess.run([executable, "asm", "in.pep", "--elf", "in.elf"], cwd=cwd, capture_output=True)
                 self.assertEqual(ret.returncode, 0)
-                with open(f"{cwd}/in.txt", "wt") as f:
-                    f.write("10\n")
-                    f.write("20\n")
 
                 ret = subprocess.run([executable, "run", "in.elf", "-i", "in.txt", "-o", "-"], cwd=cwd, capture_output=True)
                 self.assertEqual(ret.returncode, 0)
                 self.assertEqual(ret.stdout, b"score = 25\n\n")
 
-                def test_0527_flags(self):
-                    with tempfile.TemporaryDirectory() as cwd:
-                            ret = subprocess.run([executable, "get", "--ch", "05", "--fig", "27"], cwd=cwd, capture_output=True)
-                            self.assertEqual(ret.returncode, 0)
-                            self.assertNotEqual(len(ret.stdout), 0)
-                            with open(f"{cwd}/in.pep", "wb") as f:
-                                    f.write(ret.stdout)
-
-                            ret = subprocess.run([executable, "asm", "-s", "in.pep", "-o", "out.pepo", "--elf", "in.elf"], cwd=cwd, capture_output=True)
-                            self.assertEqual(ret.returncode, 0)
-                            with open(f"{cwd}/in.txt", "wt") as f:
-                                f.write("10\n")
-                                f.write("20\n")
-
-                            ret = subprocess.run([executable, "run", "-s", "in.elf", "-i", "in.txt", "-o", "-"], cwd=cwd, capture_output=True)
-                            self.assertEqual(ret.returncode, 0)
-                            self.assertEqual(ret.stdout, b"score = 25\n\n")
     def test_macro_dir_1(self):
         with tempfile.TemporaryDirectory() as cwd:
+              try:
                 os.makedirs(f"{cwd}/macros")
                 with open(f"{cwd}/macros/mac.pepm", "wt") as f:
                     f.write("@MAC 0\nLDWA 0,i")
@@ -92,9 +84,12 @@ class TestCase(unittest.TestCase):
                 with open(f"{cwd}/in.pepo", "rt") as f:
                     contents = "\n".join(f.readlines()).strip()
                     self.assertEqual(contents, "40 00 00 zz")
+              except IOError:
+                self.fail("Writing contents should not fail")
 
     def test_macro_dir_2(self):
         with tempfile.TemporaryDirectory() as cwd:
+              try:
                 os.makedirs(f"{cwd}/macros1")
                 os.makedirs(f"{cwd}/macros2")
                 with open(f"{cwd}/macros1/mac.pepm", "wt") as f:
@@ -110,11 +105,16 @@ class TestCase(unittest.TestCase):
                 with open(f"{cwd}/in.pepo", "rt") as f:
                     contents = "\n".join(f.readlines()).strip()
                     self.assertEqual(contents, "40 00 00 61 00 00 zz")
+              except IOError:
+                self.fail("Writing contents should not fail")
 
     def test_reg_override(self):
         with tempfile.TemporaryDirectory() as cwd:
-                with open(f"{cwd}/in.pep", "wt") as f:
+                try:
+                  with open(f"{cwd}/in.pep", "wt") as f:
                     f.write("STBA charOut,d\nLDBA 1,i\nSTBA pwrOff,d")
+                except IOError:
+                  self.fail("Writing contents should not fail")
                 ret = subprocess.run([executable, "asm", "in.pep", "--elf", "in.elf"], cwd=cwd, capture_output=True)
                 self.assertEqual(ret.returncode, 0)
 
