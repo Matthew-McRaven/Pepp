@@ -51,21 +51,27 @@ int main(int argc, char **argv) {
   });
 
   auto asmSC = app.add_subcommand("asm", "Assemble stuff");
-  std::string userName, osListing;
+  std::string userName, osListing, pepoOut, errOut;
   std::optional<std::string> osName = std::nullopt, elfName = std::nullopt;
   auto osOpt = asmSC->add_option("--os", osName);
   auto elfOpt = asmSC->add_option("--elf", elfName);
+  auto pepoOpt = asmSC->add_option("-o", pepoOut);
+  auto errOpt = asmSC->add_option("-e", errOut);
   auto osListingOpt = asmSC->add_option("--os-listing", osListing);
-  auto userOpt = asmSC->add_option("user", userName)->required()->expected(1);
+  asmSC->add_option("-s,user", userName)->required()->expected(1);
   asmSC->callback([&]() {
     task = [&](QObject *parent) {
-      auto ret = new AsmTask(edValue, userName, "a.pepo", parent);
+      auto ret = new AsmTask(edValue, userName, parent);
       if (*osOpt)
         ret->setOsFname(*osName);
       if (*elfOpt)
         ret->emitElfTo(*elfName);
       if (*osListingOpt)
         ret->setOsListingFname(osListing);
+      if (*errOpt)
+        ret->setErrName(errOut);
+      if (*pepoOpt)
+        ret->setPepoName(pepoOut);
       return ret;
     };
   });
@@ -78,23 +84,20 @@ int main(int argc, char **argv) {
       "File whose contents are to be buffered behind charIn. The value `-` "
       "will cause charIn to be taken from stdin. When using `-`, failure to "
       "provide stdin will cause program to freeze.");
-  auto charOutOpt =
-      runSC
-          ->add_option("-o,--charOut", charOut,
-                       "File to which the contents of charOut will be written. "
-                       "The value `-` specifies stdout")
-          ->default_val("-");
+  runSC
+      ->add_option("-o,--charOut", charOut,
+                   "File to which the contents of charOut will be written. "
+                   "The value `-` specifies stdout")
+      ->default_val("-");
   auto memDumpOpt = runSC->add_option(
       "--mem-dump", memDump,
       "File to which post-simulation memory-dump will be written.");
-  auto elfInOpt =
-      runSC->add_option("elfOrPepo", objIn)->required()->expected(1);
-  auto maxStepsOpt =
-      runSC
-          ->add_option("--max,-m", maxSteps,
-                       "Maximum number of instructions that will be executed "
-                       "before terminating simulator.")
-          ->default_val(10'000);
+  runSC->add_option("-s,obj", objIn)->required()->expected(1);
+  runSC
+      ->add_option("--max,-m", maxSteps,
+                   "Maximum number of instructions that will be executed "
+                   "before terminating simulator.")
+      ->default_val(10'000);
   auto osInOpt =
       runSC->add_option("--os", osIn, "File from which os will be read.");
   runSC->callback([&]() {
