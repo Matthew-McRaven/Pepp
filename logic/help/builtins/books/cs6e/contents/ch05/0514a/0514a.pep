@@ -3,10 +3,10 @@
 ;Figure 5.14(a)
 ;
          LDBA    0x0013,d
-         STBA    0xFAAD,d
+         STBA    0xFFFE,d
          LDBA    0x0014,d
-         STBA    0xFAAD,d
+         STBA    0xFFFE,d
          LDBA    0x0015,d
-         STBA    0xFAAD,d
+         STBA    0xFFFE,d
          RET
          .ASCII  "Pun"
