@@ -153,22 +153,24 @@ quint16 targets::pep10::isa::System::getBootFlags() const {
     auto ret = _bus->read(*_bootFlg, buf, 2, gs);
     Q_ASSERT(ret.completed);
   }
-  return bits::memcpy_endian<quint16>(buf, bits::Order::BigEndian, 2);
+  bits::span<const quint8> bufSpan = {buf};
+  return bits::memcpy_endian<quint16>(bufSpan, bits::Order::BigEndian);
 }
 
 void targets::pep10::isa::System::init() {
   quint8 buf[2];
+  bits::span<const quint8> bufSpan = {buf};
   // Initalize PC to dispatcher
   _bus->read(static_cast<quint16>(::isa::Pep10::MemoryVectors::Dispatcher), buf,
              2, gs);
   writeRegister(cpu()->regs(), ::isa::Pep10::Register::PC,
-                bits::memcpy_endian<quint16>(buf, bits::Order::BigEndian, 2),
+                bits::memcpy_endian<quint16>(bufSpan, bits::Order::BigEndian),
                 gs);
   // Initalize SP to system stack pointer
   _bus->read(static_cast<quint16>(::isa::Pep10::MemoryVectors::SystemStackPtr),
              buf, 2, gs);
   writeRegister(cpu()->regs(), ::isa::Pep10::Register::SP,
-                bits::memcpy_endian<quint16>(buf, bits::Order::BigEndian, 2),
+                bits::memcpy_endian<quint16>(bufSpan, bits::Order::BigEndian),
                 gs);
 }
 

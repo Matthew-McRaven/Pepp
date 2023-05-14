@@ -35,8 +35,9 @@ pas::ops::generic::detail::getTraits(const ast::Node &section) {
     if (pas::ops::generic::isAlign()(*child)) {
       auto arg = child->get<pas::ast::generic::Argument>().value;
       quint64 dest = 0;
-      arg->value(reinterpret_cast<quint8 *>(&dest), sizeof(dest),
-                 bits::hostOrder());
+      auto destSpan =
+          bits::span<quint8>{reinterpret_cast<quint8 *>(&dest), sizeof(dest)};
+      arg->value(destSpan, bits::hostOrder());
       align = qMax(dest, align);
     }
   }

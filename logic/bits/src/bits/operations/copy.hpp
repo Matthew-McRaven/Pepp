@@ -1,28 +1,35 @@
 #pragma once
 #include "../order.hpp"
+#include "bits/span.hpp"
 #include <QtCore>
 #include <cstring>
+
 namespace bits {
 using ::memcpy;
 void memclr(void *dest, quint16 length);
 template <std::integral T, std::integral U> T memcpy_endian(U src) {
-  return memcpy_endian<T>(&src, bits::hostOrder(), sizeof(U));
+  return memcpy_endian<T>({&src, sizeof(U)}, bits::hostOrder());
 }
 
+// When src is longer than dest, truncates high-order bytes (like casting
+// u16->u8). When dest is longer than src, dest is 0-padded.
+void memcpy_endian(span<quint8> dest, Order destOrder, span<const quint8> src,
+                   Order srcOrder);
+
 template <std::integral T>
-T memcpy_endian(const void *src, Order srcOrder, quint16 srcLen) {
+T memcpy_endian(span<const quint8> src, Order srcOrder) {
   T dest = 0;
-  memcpy_endian(&dest, bits::hostOrder(), sizeof(T), src, srcOrder, srcLen);
+  memcpy_endian(span<quint8>{reinterpret_cast<quint8 *>(&dest), sizeof(T)},
+                bits::hostOrder(), src, srcOrder);
   return dest;
 }
 
 template <std::integral T>
-void memcpy_endian(void *dest, Order destOrder, quint16 destLen, T src) {
-  memcpy_endian(dest, destOrder, destLen, &src, bits::hostOrder(), sizeof(T));
+void memcpy_endian(span<quint8> dest, Order destOrder, T src) {
+  memcpy_endian(dest, destOrder,
+                span{reinterpret_cast<const quint8 *>(&src), sizeof(T)},
+                bits::hostOrder());
 }
-// When src is longer than dest, truncates high-order bytes (like casting
-// u16->u8). When dest is longer than src, dest is 0-padded.
-void memcpy_endian(void *dest, Order destOrder, quint16 destLen,
-                   const void *src, Order srcOrder, quint16 srcLen);
+
 void memcpy_xor(void *dest, const void *src1, const void *src2, quint16 len);
 } // namespace bits

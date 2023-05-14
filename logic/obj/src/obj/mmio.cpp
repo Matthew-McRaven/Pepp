@@ -68,9 +68,10 @@ void obj::addMMIODeclarations(ELFIO::elfio &elf, ELFIO::section *symTab,
     // platforms.
     quint8 desc[2 + 4]; // ELF_half (16b for symtab section index) and
                         // ELF32_WORD (32b for symbol index)
+    bits::span descSpan = {desc};
     auto stIndex = symTab->get_index();
-    bits::memcpy_endian(desc + 0, bits::Order::BigEndian, 2, stIndex);
-    bits::memcpy_endian(desc + 2, bits::Order::BigEndian, 4, it);
+    bits::memcpy_endian(descSpan.first(2), bits::Order::BigEndian, stIndex);
+    bits::memcpy_endian(descSpan.subspan(2), bits::Order::BigEndian, it);
     noteAc.add_note(target->direction == ::obj::IO::Direction::kInput ? 0x11
                                                                       : 0x12,
                     "pepp.mmios", (char *)desc, sizeof(desc));
@@ -92,12 +93,13 @@ QList<obj::AddressedIO> obj::getMMIODeclarations(const ELFIO::elfio &elf) {
       continue;
     else if (name != "pepp.mmios")
       continue;
-
+    auto descSpan = bits::span<const quint8>{
+        reinterpret_cast<const quint8 *>(desc), descSize};
     // Copy out symbol table index + symbol index into that table.
-    auto stIndex = bits::memcpy_endian<ELFIO::Elf_Half>(
-        desc + 0, bits::Order::BigEndian, 2);
-    auto symIt = bits::memcpy_endian<ELFIO::Elf_Xword>(
-        desc + 2, bits::Order::BigEndian, 4);
+    auto stIndex = bits::memcpy_endian<ELFIO::Elf_Half>(descSpan.first(2),
+                                                        bits::Order::BigEndian);
+    auto symIt = bits::memcpy_endian<ELFIO::Elf_Xword>(descSpan.subspan(2),
+                                                       bits::Order::BigEndian);
     auto symTab = elf.sections[stIndex];
     auto symTabAc = ELFIO::symbol_section_accessor(elf, symTab);
     // If symbol exists, extract contents.
@@ -125,8 +127,9 @@ void obj::addMMIBuffer(ELFIO::elfio &elf, const ELFIO::segment *bufferableSeg) {
   auto noteAc = ELFIO::note_section_accessor(elf, noteSec);
   // Leave two bytes for section index.
   quint8 desc[] = "  diskIn";
+  bits::span descSpan = {desc};
   // Must use copy helper to maintain stable bit order between hosts.
-  bits::memcpy_endian(desc + 0, bits::Order::BigEndian, 2,
+  bits::memcpy_endian(descSpan.first(2), bits::Order::BigEndian,
                       bufferableSeg->get_index());
   // No longer skip null character so that it is easy to turn into string on
   // simulator side.
@@ -152,9 +155,11 @@ QList<obj::MMIBuffer> obj::getMMIBuffers(const ELFIO::elfio &elf) {
       continue;
 
     char *port = desc + 2;
+    auto descSpan = bits::span<const quint8>{
+        reinterpret_cast<const quint8 *>(desc), descSize};
     // Must use copy helper to maintain stable bit order between hosts.
-    auto segIdx = bits::memcpy_endian<ELFIO::Elf_Half>(
-        desc + 0, bits::Order::BigEndian, 2);
+    auto segIdx = bits::memcpy_endian<ELFIO::Elf_Half>(descSpan.first(2),
+                                                       bits::Order::BigEndian);
     if (elf.segments.size() - 1 < segIdx)
       continue;
     ret.push_back(
@@ -192,11 +197,15 @@ found:
   auto noteSec = addMMIONoteSection(elf);
   auto noteAc = ELFIO::note_section_accessor(elf, noteSec);
   quint8 desc[bootFlagAddrSize + bootFlagSizeSize];
-  bits::memcpy_endian(desc, bits::Order::BigEndian, bootFlagAddrSize, &value,
-                      bits::hostOrder(), bootFlagAddrSize);
-  bits::memcpy_endian(desc + bootFlagAddrSize, bits::Order::BigEndian,
-                      bootFlagSizeSize, &size, bits::hostOrder(),
-                      bootFlagSizeSize);
+  bits::span descSpan = {desc};
+  bits::memcpy_endian(descSpan.first(bootFlagAddrSize), bits::Order::BigEndian,
+                      {reinterpret_cast<const quint8 *>(&value), sizeof(value)},
+                      bits::hostOrder());
+  bits::memcpy_endian(
+      descSpan.subspan(bootFlagAddrSize, bootFlagSizeSize),
+      bits::Order::BigEndian,
+      bits::span{reinterpret_cast<const quint8 *>(&size), sizeof(size)},
+      bits::hostOrder());
   noteAc.add_note(0x10, "pepp.boot", (char *)desc, sizeof(desc));
   ;
 }
@@ -217,16 +226,23 @@ std::optional<quint16> obj::getBootFlagsAddress(const ELFIO::elfio &elf) {
       continue;
     else if (name != "pepp.boot")
       continue;
-
+    auto descSpan = bits::span<const quint8>{
+        reinterpret_cast<const quint8 *>(desc), descSize};
     auto addr = bits::memcpy_endian<ELFIO::Elf64_Addr>(
-        desc, bits::Order::BigEndian,
-        std::min<quint64>(descSize, bootFlagAddrSize));
+        descSpan.first(std::min<std::size_t>(descSize, bootFlagAddrSize)),
+        bits::Order::BigEndian);
     auto size = bits::memcpy_endian<ELFIO::Elf64_Addr>(
-        desc + bootFlagAddrSize, bits::Order::BigEndian,
-        std::min<quint64>(descSize - bootFlagAddrSize, bootFlagSizeSize));
+        descSpan.subspan(
+            bootFlagAddrSize,
+            std::min<quint64>(descSize - bootFlagAddrSize, bootFlagSizeSize)),
+        bits::Order::BigEndian);
     quint64 tmp = 0;
-    bits::memcpy_endian(&tmp, bits::hostOrder(), size, &addr, bits::hostOrder(),
-                        sizeof(addr));
+    bits::memcpy_endian(
+        bits::span<quint8>{reinterpret_cast<quint8 *>(&tmp), size},
+        bits::hostOrder(),
+        bits::span<const quint8>{reinterpret_cast<const quint8 *>(&addr),
+                                 sizeof(addr)},
+        bits::hostOrder());
     ret = tmp;
     break;
   }

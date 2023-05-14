@@ -32,11 +32,12 @@ QSharedPointer<pas::ast::value::Base> pas::ast::value::Symbolic::clone() const {
   return QSharedPointer<Symbolic>::create(*this);
 }
 
-void pas::ast::value::Symbolic::value(quint8 *dest, qsizetype length,
+void pas::ast::value::Symbolic::value(bits::span<quint8> dest,
                                       bits::Order destEndian) const {
   auto src = _value->value->value()();
-  bits::memcpy_endian(dest, destEndian, length, &src, bits::hostOrder(),
-                      size());
+  auto srcSpan =
+      bits::span<const quint8>{reinterpret_cast<const quint8 *>(&src), size()};
+  bits::memcpy_endian(dest, destEndian, srcSpan, bits::hostOrder());
 }
 
 quint64 pas::ast::value::Symbolic::size() const {

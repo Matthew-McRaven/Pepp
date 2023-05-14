@@ -31,10 +31,13 @@ pas::ast::value::Character::clone() const {
   return QSharedPointer<Character>::create(*this);
 }
 
-void pas::ast::value::Character::value(quint8 *dest, qsizetype length,
+void pas::ast::value::Character::value(bits::span<quint8> dest,
                                        bits::Order destEndian) const {
-  bits::memcpy_endian(dest, destEndian, length, _valueAsBytes.constData(),
-                      bits::hostOrder(), size());
+  bits::memcpy_endian(
+      dest, destEndian,
+      bits::span<const quint8>{
+          reinterpret_cast<const quint8 *>(_valueAsBytes.constData()), size()},
+      bits::hostOrder());
 }
 
 quint64 pas::ast::value::Character::size() const {

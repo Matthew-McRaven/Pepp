@@ -20,7 +20,8 @@ quint16 pas::ops::pepp::detail::getBurnArg(
         return ret;
       else {
         child->get<pas::ast::generic::Argument>().value->value(
-            reinterpret_cast<quint8 *>(&ret), 2, bits::hostOrder());
+            bits::span<quint8>{reinterpret_cast<quint8 *>(&ret), 2},
+            bits::hostOrder());
         return ret;
       }
     }
