@@ -8,6 +8,8 @@ namespace detail {
 QSharedPointer<const builtins::Book> book(int ed);
 QSharedPointer<macro::Registry>
 registry(QSharedPointer<const builtins::Book> book, QStringList directory);
+void addMacro(macro::Registry& registry, std::string directory, QString arch);
+void addMacros(macro::Registry& registry, const std::list<std::string>& dirs, QString arch);
 
 class AsmHelper {
 public:
