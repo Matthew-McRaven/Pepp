@@ -23,7 +23,6 @@ public:
   api::memory::Result write(Address address, bits::span<const quint8> src,
                             api::memory::Operation op) override;
   void clear(quint8 fill) override;
-  void setInterposer(api::memory::Interposer<Address> *inter) override;
   void dump(bits::span<quint8> dest) const override;
 
   // Initiator interface
@@ -77,11 +76,6 @@ api::memory::Result ReadOnly<Address>::write(Address address,
 
 template <typename Address> void ReadOnly<Address>::clear(quint8 fill) {
   _target->clear(fill);
-}
-
-template <typename Address>
-void ReadOnly<Address>::setInterposer(api::memory::Interposer<Address> *inter) {
-  _target->setInterposer(inter);
 }
 
 template <typename Address>

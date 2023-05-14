@@ -25,7 +25,6 @@ public:
   api::memory::Result write(Address address, bits::span<const quint8> src,
                             api::memory::Operation op) override;
   void clear(quint8 fill) override;
-  void setInterposer(sim::api::memory::Interposer<Address> *inter) override;
   void dump(bits::span<quint8> dest) const override;
 
   // Producer interface
@@ -44,7 +43,6 @@ public:
 private:
   AddressSpan _span;
   api::device::Descriptor _device;
-  api::memory::Interposer<Address> *_inter = nullptr;
   api::trace::Buffer *_tb = nullptr;
 
   struct Region {
@@ -163,12 +161,6 @@ api::memory::Result SimpleBus<Address>::write(Address address,
 template <typename Address> void SimpleBus<Address>::clear(quint8 fill) {
   for (auto &region : _regions)
     region.target->clear(fill);
-}
-
-template <typename Address>
-void SimpleBus<Address>::setInterposer(
-    sim::api::memory::Interposer<Address> *inter) {
-  this->_inter = inter;
 }
 
 template <typename Address>
