@@ -9,7 +9,7 @@
 #include "targets/pep10/isa3/cpu.hpp"
 #include "targets/pep10/isa3/helpers.hpp"
 #include "targets/pep10/isa3/system.hpp"
-#include <sstream>
+#include <boost/asio.hpp>
 
 auto gs = sim::api::memory::Operation{
     .speculative = false,
@@ -76,17 +76,58 @@ void RunTask::run() {
     auto charInEndpoint = charIn->endpoint();
     QString buffer;
     if (_charIn == "-") {
-      QFile stdF;
-      stdF.open(0, QIODevice::ReadOnly | QIODevice::Text);
-      buffer = stdF.readAll();
+      boost::asio::io_service ioService;
+      // ASIO will need platform-dependent implementations.
+#if defined(__unix__) || defined(TARGET_OS_MAC)
+      boost::asio::posix::stream_descriptor in(ioService, STDIN_FILENO);
+#elif defined(_WIN32) || defined(WIN32)
+      throw std::logic_error("Unimplemented on Windows");
+#endif
+      boost::asio::steady_timer timer(ioService);
+
+      char buf[10];
+      // Used to communicate between read and timeout.
+      std::atomic<bool> hadSome = true;
+
+      // Read in some characters and push them into charIn.
+      // If we recevied an error, stop polling stdin.
+      std::function<void(boost::system::error_code, size_t)> readHandle =
+          [&](boost::system::error_code ec, size_t len) {
+            if (!ec) {
+              hadSome = true;
+              for (int it = 0; it < len; it++)
+                charInEndpoint->append_value(buf[it]);
+              in.async_read_some(boost::asio::buffer(buf), readHandle);
+            } else {
+              ioService.stop();
+            }
+          };
+
+      // If some data was read last time slice, then more data may be present.
+      // We should give the reader the opporunity to read more.
+      std::function<void(boost::system::error_code)> timeout = [&](auto errC) {
+        if (hadSome) {
+          hadSome = false;
+          timer.expires_from_now(boost::asio::chrono::milliseconds(100));
+          timer.async_wait(timeout);
+        } else // Otherwise we (probably) read all there was to read.
+          ioService.stop();
+      };
+
+      in.async_read_some(boost::asio::buffer(buf), readHandle);
+      // Must use timer to kill event loop, otherwise may poll FD 0 forever if
+      // empty.
+      timer.expires_from_now(boost::asio::chrono::milliseconds(100));
+      timer.async_wait(timeout);
+      ioService.run();
+
     } else {
       QFile f(QString::fromStdString(_charIn));
       f.open(QIODevice::ReadOnly | QIODevice::Text);
-      buffer = f.readAll();
+      QByteArray buffer = f.readAll();
+      for (int it = 0; it < buffer.size(); it++)
+        charInEndpoint->append_value(buffer[it]);
     }
-    auto asStd = buffer.toStdString();
-    for (int it = 0; it < asStd.size(); it++)
-      charInEndpoint->append_value(asStd[it]);
   }
   auto printReg = [&](isa::Pep10::Register reg) {
     quint16 tmp = 0;
@@ -109,7 +150,7 @@ void RunTask::run() {
       break;
   }
   if (noMMI) {
-    std::cout << "Program request data from charIn, but not data is present. "
+    std::cout << "Program request data from charIn, but no data is present. "
                  "Terminating.\n";
   }
   if (system->currentTick() >= _maxSteps) {
