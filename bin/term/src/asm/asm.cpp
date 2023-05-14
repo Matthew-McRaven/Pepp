@@ -17,7 +17,7 @@ void AsmTask::setPepoName(std::string fname) { pepoOut = fname; }
 
 void AsmTask::setOsListingFname(std::string fname) { osListOut = fname; }
 
-void AsmTask::setMacroDirs(std::list<std::string> dirs) {macroDirs = dirs; }
+void AsmTask::setMacroDirs(std::list<std::string> dirs) { macroDirs = dirs; }
 
 void AsmTask::emitElfTo(std::string fname) { elfOut = fname; }
 
@@ -31,6 +31,10 @@ void AsmTask::run() {
   QString userContents;
   {
     QFile uIn(QString::fromStdString(userIn)); // auto-closes
+    if (!uIn.exists()) {
+      std::cerr << "Source file does not exist.\n";
+      emit finished(1);
+    }
     uIn.open(QIODevice::ReadOnly | QIODevice::Text);
     userContents = uIn.readAll();
   }
@@ -42,6 +46,10 @@ void AsmTask::run() {
     osContents = os->typesafeElements()["pep"]->contents;
   } else {
     QFile oIn(QString::fromStdString(*osIn)); // auto-closes
+    if (!oIn.exists()) {
+      std::cerr << "OS file does not exist.\n";
+      emit finished(1);
+    }
     oIn.open(QIODevice::ReadOnly | QIODevice::Text);
     osContents = oIn.readAll();
   }
@@ -76,9 +84,26 @@ void AsmTask::run() {
     elf->save(elfOut.value());
   }
 
+  QString pepoFName;
+  if (pepoOut) {
+    pepoFName = QString::fromStdString(*pepoOut);
+  } else {
+    QFileInfo pepo(QString::fromStdString(userIn));
+    pepoFName = pepo.path() + "/" + pepo.completeBaseName() + ".pepo";
+  }
+  auto userBytes = helper.bytes(false);
+  auto userBytesStr = pas::ops::pepp::bytesToObject(userBytes);
+  QFile pepoF(pepoFName);
+  if (pepoF.open(QIODevice::WriteOnly | QIODevice::Truncate |
+                 QIODevice::Text)) {
+    QTextStream(&pepoF) << userBytesStr << "\n";
+  } else
+    std::cerr << "Failed to open object code for writing: "
+              << pepoFName.toStdString() << std::endl;
+
   try {
     auto lines = helper.listing(false);
-    QFileInfo pepl(QString::fromStdString(userIn));
+    QFileInfo pepl(pepoFName);
     QString peplFName = pepl.path() + "/" + pepl.completeBaseName() + ".pepl";
     QFile peplF(peplFName);
     if (peplF.open(QIODevice::WriteOnly | QIODevice::Truncate |
@@ -107,25 +132,6 @@ void AsmTask::run() {
     } catch (std::exception &e) {
       std::cerr << "Failed to generate listing due to internal bug.\n";
     }
-  }
-
-  {
-    QString pepoFName;
-    if (pepoOut) {
-      pepoFName = QString::fromStdString(*pepoOut);
-    } else {
-      QFileInfo pepo(QString::fromStdString(userIn));
-      pepoFName = pepo.path() + "/" + pepo.completeBaseName() + ".pepo";
-    }
-    auto userBytes = helper.bytes(false);
-    auto userBytesStr = pas::ops::pepp::bytesToObject(userBytes);
-    QFile pepoF(pepoFName);
-    if (pepoF.open(QIODevice::WriteOnly | QIODevice::Truncate |
-                   QIODevice::Text)) {
-      QTextStream(&pepoF) << userBytesStr << "\n";
-    } else
-      std::cerr << "Failed to open object code for writing: "
-                << pepoFName.toStdString() << std::endl;
   }
 
   return emit finished(0);
