@@ -321,14 +321,6 @@ struct Result {
   Error error;    // Additional error information.
 };
 
-template <typename Address> struct Interposer {
-  enum class Result { Success = 0, Breakpoint };
-  ~Interposer() = default;
-  virtual Result tryRead(Address address, quint8 length, Operation op) = 0;
-  virtual Result tryWrite(Address address, const quint8 *data, quint8 length,
-                          Operation op) = 0;
-};
-
 template <typename Address> struct Target {
   struct AddressSpan {
     Address minOffset, maxOffset;
@@ -340,8 +332,6 @@ template <typename Address> struct Target {
   virtual Result write(Address address, bits::span<const quint8> src,
                        Operation op) = 0;
   virtual void clear(quint8 fill) = 0;
-
-  virtual void setInterposer(Interposer<Address> *inter) = 0;
 
   // Return a QList of length maxOffset-minOffset+1, containing all the bytes of
   // the target.

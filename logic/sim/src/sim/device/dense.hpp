@@ -25,7 +25,6 @@ public:
   api::memory::Result write(Address address, bits::span<const quint8> src,
                             api::memory::Operation op) override;
   void clear(quint8 fill) override;
-  void setInterposer(api::memory::Interposer<Address> *inter) override;
   void dump(bits::span<quint8> dest) const override;
 
   // Producer interface
@@ -46,7 +45,6 @@ private:
   api::device::Descriptor _device;
   QVector<quint8> _data;
 
-  api::memory::Interposer<Address> *_inter = nullptr;
   api::trace::Buffer *_tb = nullptr;
 };
 
@@ -76,13 +74,7 @@ sim::memory::Dense<Address>::read(Address address, std::span<quint8> dest,
             .error = api::memory::Error::OOBAccess};
   auto error = api::memory::Error::Success;
   bool pause = false;
-  if (op.effectful && _inter) {
-    auto res = _inter->tryRead(address, dest.size(), op);
-    if (res == api::memory::Interposer<Address>::Result::Breakpoint) {
-      pause = true;
-      error = api::memory::Error::Breakpoint;
-    }
-  }
+
   if (op.effectful && _tb) {
     using Read = sim::trace::ReadPayload<Address>;
     api::trace::Buffer::Guard<true> guard(
@@ -190,13 +182,7 @@ sim::api::memory::Result sim::memory::Dense<Address>::write(
             .error = api::memory::Error::OOBAccess};
   auto error = api::memory::Error::Success;
   bool pause = false;
-  if (op.effectful && _inter) {
-    auto res = _inter->tryWrite(address, src.data(), src.size(), op);
-    if (res == api::memory::Interposer<Address>::Result::Breakpoint) {
-      pause = true;
-      error = api::memory::Error::Breakpoint;
-    }
-  }
+
   auto offset = address - _span.minOffset;
   bool success = true, sync = false;
   auto dataSpan =
@@ -226,12 +212,6 @@ template <typename Address>
 void sim::memory::Dense<Address>::clear(quint8 fill) {
   this->_fill = fill;
   this->_data.fill(this->_fill);
-}
-
-template <typename Address>
-void sim::memory::Dense<Address>::setInterposer(
-    api::memory::Interposer<Address> *inter) {
-  this->_inter = inter;
 }
 
 template <typename Address>

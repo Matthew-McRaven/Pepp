@@ -25,7 +25,6 @@ public:
   api::memory::Result write(Address address, bits::span<const quint8> src,
                             api::memory::Operation op) override;
   void clear(quint8 fill) override;
-  void setInterposer(api::memory::Interposer<Address> *inter) override;
   void dump(bits::span<quint8> dest) const override;
 
   // Producer interface
@@ -50,7 +49,6 @@ private:
   QSharedPointer<typename detail::Channel<Address, quint8>::Endpoint> _endpoint;
   api::memory::FailPolicy _policy = api::memory::FailPolicy::RaiseError;
 
-  api::memory::Interposer<Address> *_inter = nullptr;
   api::trace::Buffer *_tb = nullptr;
 };
 
@@ -81,13 +79,6 @@ api::memory::Result Input<Address>::read(Address address,
             .error = api::memory::Error::OOBAccess};
   auto error = api::memory::Error::Success;
   bool pause = false;
-  if (op.effectful && _inter) {
-    auto res = _inter->tryRead(address, dest.size(), op);
-    if (res == api::memory::Interposer<Address>::Result::Breakpoint) {
-      pause = true;
-      error = api::memory::Error::Breakpoint;
-    }
-  }
 
   if (op.effectful && _tb)
     throw std::logic_error("unimplemented tracing");
@@ -128,11 +119,6 @@ api::memory::Result Input<Address>::write(Address address,
 template <typename Address> void Input<Address>::clear(quint8 fill) {
   _fill = fill;
   _endpoint->set_to_head();
-}
-
-template <typename Address>
-void Input<Address>::setInterposer(api::memory::Interposer<Address> *inter) {
-  _inter = inter;
 }
 
 template <typename Address>
