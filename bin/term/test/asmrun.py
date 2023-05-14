@@ -91,6 +91,18 @@ class TestCase(unittest.TestCase):
                     contents = "\n".join(f.readlines()).strip()
                     self.assertEqual(contents, "40 00 00 61 00 00 zz")
 
+    def test_reg_override(self):
+        with tempfile.TemporaryDirectory() as cwd:
+                with open(f"{cwd}/in.pep", "wt") as f:
+                    f.write("STBA charOut,d\nLDBA 1,i\nSTBA pwrOff,d")
+                ret = subprocess.run([executable, "asm", "in.pep", "--elf", "in.elf"], cwd=cwd, capture_output=True)
+                self.assertEqual(ret.returncode, 0)
+
+                # Skip OS routines, start in user program with pre-loaded accumulator value.
+                ret = subprocess.run([executable, "run", "-s", "in.elf", "--skip-load", "--skip-dispatch", "--reg", "Pc", "0x0000", "--reg", "a", "67", "-o", "-"], cwd=cwd, capture_output=True)
+                self.assertEqual(ret.returncode, 0)
+                self.assertEqual(ret.stdout, b"C\n")
+
 
 if __name__ == "__main__":
         parser = argparse.ArgumentParser(prog="pepp-term-test")

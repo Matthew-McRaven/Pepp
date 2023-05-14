@@ -61,6 +61,7 @@ int main(int argc, char **argv) {
   auto errOpt = asmSC->add_option("-e", errOut);
   auto osListingOpt = asmSC->add_option("--os-listing", osListing);
   auto macroDirOpts = asmSC->add_option("--md,--macro-dir", macroDirs);
+
   asmSC->add_option("-s,user", userName)->required()->expected(1);
   asmSC->callback([&]() {
     task = [&](QObject *parent) {
@@ -75,14 +76,16 @@ int main(int argc, char **argv) {
         ret->setErrName(errOut);
       if (*pepoOpt)
         ret->setPepoName(pepoOut);
-      if(*macroDirOpts)
+      if (*macroDirOpts)
         ret->setMacroDirs(macroDirs);
       return ret;
     };
   });
 
+  bool skipLoad, skipDispatch;
   std::string objIn, charIn, charOut, memDump, osIn;
   uint64_t maxSteps;
+  std::map<std::string, quint64> regOverrides;
   auto runSC = app.add_subcommand("run", "Run ISA3 programs");
   auto charInOpt = runSC->add_option(
       "-i,--charIn", charIn,
@@ -105,6 +108,11 @@ int main(int argc, char **argv) {
       ->default_val(10'000);
   auto osInOpt =
       runSC->add_option("--os", osIn, "File from which os will be read.");
+  if (edValue == 6) {
+    runSC->add_flag("--skip-load", skipLoad)->group("");
+    runSC->add_flag("--skip-dispatch", skipDispatch)->group("");
+  }
+  auto regOverrideOpt = runSC->add_option("--reg", regOverrides)->group("");
   runSC->callback([&]() {
     task = [&](QObject *parent) {
       auto ret = new RunTask(edValue, objIn, parent);
@@ -116,6 +124,10 @@ int main(int argc, char **argv) {
       if (*osInOpt)
         ret->setOsIn(osIn);
       ret->setMaxSteps(maxSteps);
+      ret->setSkipLoad(skipLoad);
+      ret->setSkipDispatch(skipDispatch);
+      for (auto &reg : regOverrides)
+        ret->addRegisterOverride(reg.first, reg.second);
       return ret;
     };
   });
