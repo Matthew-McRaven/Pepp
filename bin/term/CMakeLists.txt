@@ -18,3 +18,11 @@ target_link_libraries(pepp-term
 install(TARGETS pepp-term
     BUNDLE DESTINATION .
     LIBRARY DESTINATION ${CMAKE_INSTALL_LIBDIR})
+
+find_package (Python3)
+if(Python3_FOUND)
+        add_test(NAME test-term-ls COMMAND ${Python3_EXECUTABLE} test/ls.py $<TARGET_FILE:pepp-term> WORKING_DIRECTORY ${CMAKE_CURRENT_LIST_DIR})
+        add_test(NAME test-term-get COMMAND ${Python3_EXECUTABLE} test/get.py $<TARGET_FILE:pepp-term> WORKING_DIRECTORY ${CMAKE_CURRENT_LIST_DIR})
+        add_test(NAME test-term-asmrun COMMAND ${Python3_EXECUTABLE} test/asmrun.py $<TARGET_FILE:pepp-term> WORKING_DIRECTORY ${CMAKE_CURRENT_LIST_DIR})
+endif()
+
