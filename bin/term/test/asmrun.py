@@ -6,6 +6,26 @@ import sys
 import os
 executable = ""
 class TestCase(unittest.TestCase):
+    def test_baremetal(self):
+        with tempfile.TemporaryDirectory() as cwd:
+                ret = subprocess.run([executable, "get", "--ch", "os", "--fig", "bm"], cwd=cwd, capture_output=True)
+                self.assertEqual(ret.returncode, 0)
+                try:
+                  with open(f"{cwd}/os.pep", "wb") as f:
+                          f.write(ret.stdout)
+                  with open(f"{cwd}/in.pep", "wb") as f:
+                          f.write(b"USCALL")
+                except:
+                  self.fail("Writing contents should not fail")
+
+                ret = subprocess.run([executable, "asm", "-s", "in.pep", "--os", "os.pep",
+                "-o", "out.pepo", "--elf", "in.elf"], cwd=cwd, capture_output=True)
+                self.assertEqual(ret.returncode, 0)
+
+                ret = subprocess.run([executable, "run", "-s", "in.elf"], cwd=cwd, capture_output=True)
+                self.assertEqual(ret.returncode, 0)
+                self.assertEqual(ret.stdout, b"Cannot use system calls in bare metal mode\n")
+
     def test_0527_flags(self):
         with tempfile.TemporaryDirectory() as cwd:
                 ret = subprocess.run([executable, "get", "--ch", "05", "--fig", "27"], cwd=cwd, capture_output=True)
