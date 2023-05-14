@@ -32,8 +32,10 @@ public:
   void setTraceBuffer(api::trace::Buffer *tb) override;
   void trace(bool enabled) override;
   quint8 packetSize(api::packet::Flags) const override;
-  bool applyTrace(void *payload, api::packet::Flags flags) override;
-  bool unapplyTrace(void *payload, api::packet::Flags flags) override;
+  bool applyTrace(bits::span<const quint8> payload,
+                  api::packet::Flags flags) override;
+  bool unapplyTrace(bits::span<const quint8> payload,
+                    api::packet::Flags flags) override;
 
   // Helpers
   const quint8 *constData() const;
@@ -258,14 +260,16 @@ quint8 Dense<Address>::packetSize(api::packet::Flags flags) const {
 }
 
 template <typename Address>
-bool sim::memory::Dense<Address>::applyTrace(void *payload,
+bool sim::memory::Dense<Address>::applyTrace(bits::span<const quint8> payload,
                                              api::packet::Flags flags) {
+  throw std::logic_error("unimplemented");
   return false;
 }
 
 template <typename Address>
-bool sim::memory::Dense<Address>::unapplyTrace(void *payload,
+bool sim::memory::Dense<Address>::unapplyTrace(bits::span<const quint8> payload,
                                                api::packet::Flags flags) {
+  throw std::logic_error("unimplemented");
   return false;
 }
 
