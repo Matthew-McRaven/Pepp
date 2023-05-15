@@ -39,4 +39,3 @@ msg0:    .ASCII  "*a = \x00"
 msg1:    .ASCII  "*b = \x00"
 msg2:    .ASCII  "*c = \x00"
          @MALLOC
-         .END

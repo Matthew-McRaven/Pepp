@@ -1,0 +1,13 @@
+{
+  "type": "figure",
+  "name": "04:35",
+  "kind": "sample",
+  "arch": "pep10",
+  "default_os": "os:bm",
+  "ios": [
+    "io0"
+  ],
+  "items": {
+    "pepo": "{ch}{fig}.pepo"
+  }
+}
