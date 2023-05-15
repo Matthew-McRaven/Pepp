@@ -11,17 +11,17 @@
          LDWT    DECO,i      ;Interpret First as dec
          SCALL   0x0003,d
          LDBA    '\n',i
-         STBA    0xFAAC,d
+         STBA    0xFFFE,d
          LDWT    DECO,i      ;Interpret Second and Third as dec
          SCALL   0x0005,d
          LDBA    '\n',i
-         STBA    0xFAAC,d
+         STBA    0xFFFE,d
          LDWT    HEXO,i      ;Interpret Second and Third as hex
          SCALL   0x0005,d
          LDBA    '\n',i
-         STBA    0xFAAC,d
+         STBA    0xFFFE,d
          LDBA    0x0006,d    ;Interpret Third as char
-         STBA    0xFAAC,d
+         STBA    0xFFFE,d
          LDBA    0x0008,d    ;Interpret Fourth as char
-         STBA    0xFAAC,d
+         STBA    0xFFFE,d
          RET

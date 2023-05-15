@@ -3,7 +3,7 @@
 ;Figure 5.10
 ;
          LDBA    'H',i       ;Output 'H'
-         STBA    0xFAAC,d
+         STBA    0xFFFE, d
          LDBA    'i',i       ;Output 'i'
-         STBA    0xFAAC,d
-         STBA    0xFAAE,d    ;Store byte to power off port
+         STBA    0xFFFE,d
+         STBA    0xFFFF,d    ;Store byte to power off port
