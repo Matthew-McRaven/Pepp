@@ -634,7 +634,7 @@ targets::pep10::isa::CPU::nonunaryDispatch(quint8 is, quint16 os, quint16 pc) {
     // and operand are the same, and one input & the output differ in sign.
     // >> Shifts in 0's (unsigned shorts), so after shift, only high order
     // bit remain.
-    v = (~(a ^ operand) & (a ^ tmp)) >> 15;
+    v = (~(a ^ (~operand + 1)) & (a ^ tmp)) >> 15;
     // Carry out iff result is unsigned less than register or operand.
     c = tmp < a || tmp < static_cast<quint16>(1 + ~operand);
     // Invert N bit if there was signed overflow.
@@ -651,7 +651,7 @@ targets::pep10::isa::CPU::nonunaryDispatch(quint8 is, quint16 os, quint16 pc) {
     // and operand are the same, and one input & the output differ in sign.
     // >> Shifts in 0's (unsigned shorts), so after shift, only high order
     // bit remain.
-    v = (~(x ^ operand) & (x ^ tmp)) >> 15;
+    v = (~(x ^ (~operand + 1)) & (x ^ tmp)) >> 15;
     // Carry out iff result is unsigned less than register or operand.
     c = tmp < x || tmp < static_cast<quint16>(1 + ~operand);
     // Invert N bit if there was signed overflow.
