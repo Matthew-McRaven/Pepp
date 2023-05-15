@@ -4,6 +4,7 @@
 #include "./ls.hpp"
 #include "./run.hpp"
 #include "./task.hpp"
+#include "throughput.hpp"
 #include <CLI11.hpp>
 #include <QDebug>
 #include <QtCore>
@@ -132,6 +133,12 @@ int main(int argc, char **argv) {
     };
   });
 
+  auto instrThruSC =
+      app.add_subcommand("mit", "Measure instruction throughput");
+  instrThruSC->group("");
+  instrThruSC->callback([&task]() {
+    task = [](QObject *parent) { return new ThroughputTask(parent); };
+  });
   try {
     app.parse(argc, argv);
     if (!task)
