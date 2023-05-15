@@ -105,7 +105,7 @@ int main(int argc, char **argv) {
       ->add_option("--max,-m", maxSteps,
                    "Maximum number of instructions that will be executed "
                    "before terminating simulator.")
-      ->default_val(10'000);
+      ->default_val(125'000);
   auto osInOpt =
       runSC->add_option("--os", osIn, "File from which os will be read.");
   if (edValue == 6) {
