@@ -871,9 +871,9 @@ targets::pep10::isa::CPU::decodeStoreOperand(quint8 is, quint16 os,
   case am::SFX:
     mem_res = _memory->read(os + readReg(Register::SP),
                             {reinterpret_cast<quint8 *>(&decoded), 2}, rw_i);
-    decoded += readReg(Register::X);
     if (swap)
       decoded = bits::byteswap(decoded);
+    decoded += readReg(Register::X);
     break;
   }
   return mem_res;
