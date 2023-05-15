@@ -119,9 +119,6 @@ private slots:
            next = charOutEndpoint->next_value())
         actualOut.push_back(*next);
     }
-    if (output != actualOut) {
-      int x = 5;
-    }
     QCOMPARE(actualOut, output);
   }
 
