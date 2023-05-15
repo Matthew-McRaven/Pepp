@@ -49,7 +49,6 @@ struct User {
 
 void assemble(ELFIO::elfio &elf, QString os, User user,
               QSharedPointer<macro::Registry> reg) {
-
   QList<QPair<QString, pas::driver::pep10::Features>> targets = {
       {os, {.isOS = true}}};
   if (!user.pep.isEmpty())
