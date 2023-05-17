@@ -124,6 +124,7 @@ ldErrMsg:.ASCII "Sentinel value was corrupted\x00"
 ;******* Trap handler
 oldIR:   .EQUATE 9           ;Stack address of IR on trap
 oldPC:   .EQUATE 5           ;Stack address of PC on trap
+oldA:    .EQUATE 1           ;Stack address of A on trap
 ;
 trap:    LDWX    0,i         ;
          LDBX    oldIR,s     ;X <- trapped IR
@@ -158,7 +159,9 @@ nonUnary:LDWA    oldPC,s     ;Must increment program counter
 ;
 arrDim:  .EQUATE 4           ;#2d Stack address of the array size
 arrAddr: .EQUATE 2           ;#2h Stack address of the trap array
-trapFind: MOVTA
+oldA6:   .EQUATE 7           ;Stack address of A on trap,
+                             ;+4 for locals, +2 for ret
+trapFind: LDWA   oldA6,s     ;Load system call number
           LDWX   0,i         ;Initialize array iterator
 trapLoop: CPWX   arrDim,s    ;Check if iterator is at end of array
           BREQ   trapErr     ;Did not find T in array

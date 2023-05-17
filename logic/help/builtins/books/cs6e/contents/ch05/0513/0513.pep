@@ -8,15 +8,15 @@
          .BYTE   'U'         ;Third
          .WORD   1136        ;Fourth
 ;
-         LDWT    DECO,i      ;Interpret First as dec
+         LDWA    DECO,i      ;Interpret First as dec
          SCALL   0x0003,d
          LDBA    '\n',i
          STBA    0xFFFE,d
-         LDWT    DECO,i      ;Interpret Second and Third as dec
+         LDWA    DECO,i      ;Interpret Second and Third as dec
          SCALL   0x0005,d
          LDBA    '\n',i
          STBA    0xFFFE,d
-         LDWT    HEXO,i      ;Interpret Second and Third as hex
+         LDWA    HEXO,i      ;Interpret Second and Third as hex
          SCALL   0x0005,d
          LDBA    '\n',i
          STBA    0xFFFE,d
