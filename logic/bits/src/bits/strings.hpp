@@ -13,7 +13,9 @@ bool charactersToByte(Iterator &start, Iterator end, uint8_t &value) {
     if (start == end)
       return false;
     head = *start++;
-    if (head == 'b') { // backspace
+    if (head == '\\') { // Escaped backslash
+      head = '\\';
+    } else if (head == 'b') { // backspace
       value = 8;
     } else if (head == 'f') { // form feed
       value = 12;
