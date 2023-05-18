@@ -189,12 +189,12 @@ private slots:
       // user memory + system stack
       mergeMap[0].segs = {};
       auto uMem = obj::MemoryRegion{
-          .r = 1, .w = 1, .minOffset = 0, .maxOffset = 0xfaab};
+          .r = 1, .w = 1, .minOffset = 0, .maxOffset = 0xfaa7};
       QCOMPARE(mergeMap[0], uMem);
       // OS text
       mergeMap[1].segs = {};
       auto txt = obj::MemoryRegion{
-          .r = 1, .w = 0, .minOffset = 0xfaac, .maxOffset = 0xfff9};
+          .r = 1, .w = 0, .minOffset = 0xfaa8, .maxOffset = 0xfff9};
       QCOMPARE(mergeMap[1], txt);
       // Carveout for MMIO
       mergeMap[2].segs = {};
@@ -219,7 +219,7 @@ private slots:
     auto systemBootFlg = sys->getBootFlagAddress();
     QCOMPARE(bootFlg.has_value(), systemBootFlg.has_value());
     if (bootFlg) {
-      QCOMPARE(*bootFlg, 0xfaac);
+      QCOMPARE(*bootFlg, 0xfaa8);
       QCOMPARE(*systemBootFlg, *bootFlg);
       QCOMPARE(sys->getBootFlags(), 3);
     }

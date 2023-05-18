@@ -131,14 +131,10 @@ trap:    LDWX    0,i         ;
          CPBX    0x0030,i    ;If X >= first nonunary trap opcode
          BRGE    nonUnary    ;  trap opcode is nonunary
 ;Unary System Call Helper
-unary:   LDWA    USCJT,i
-         STWA    -4,s
-         LDWA    EUSCJT,i
-         SUBA    USCJT,i
-         STWA    -2,s
-         SUBSP   4,i         ;Allocate @param #arrAddr#arrDim
-         CALL    trapFind
-         ADDSP   4,i         ;Deallocate @param #arrDim#arrAddr
+unary:   LDWX    oldA,s
+         CPWX    EUSCJT, i
+         BRGE    trapErr
+         ASLX                ;Multiply index by 2 for word size
          CALL    USCJT, x
          SRET
 ;
@@ -146,44 +142,31 @@ unary:   LDWA    USCJT,i
 nonUnary:LDWA    oldPC,s     ;Must increment program counter
          ADDA    2,i         ;  for nonunary instructions
          STWA    oldPC,s
-         LDWA    SCJT,i
-         STWA    -4,s
-         LDWA    ESCJT,i
-         SUBA    SCJT,i
-         STWA    -2,s
-         SUBSP   4,i         ;Allocate @param #arrAddr#arrDim
-         CALL    trapFind
-         ADDSP   4,i         ;Deallocate @param #arrDim#arrAddr
-         CALL    SCJT, x
+         LDWX    oldA,s
+         BRGE    trapNeg     ;Non-unary system calls must be negative
+         CPWX    ESCJT, i
+         BRLE    trapErr
+         NEGX                ;Non-unary system calls are numbered negative
+         SUBX    1,i         ;Non-unary system calls are 1-indexed, not 0
+         ASLX                ;Multiply index by 2 for word size
+         CALL    SCJT, x     ;
          SRET
 ;
-arrDim:  .EQUATE 4           ;#2d Stack address of the array size
-arrAddr: .EQUATE 2           ;#2h Stack address of the trap array
-oldA6:   .EQUATE 7           ;Stack address of A on trap,
-                             ;+4 for locals, +2 for ret
-trapFind: LDWA   oldA6,s     ;Load system call number
-          LDWX   0,i         ;Initialize array iterator
-trapLoop: CPWX   arrDim,s    ;Check if iterator is at end of array
-          BREQ   trapErr     ;Did not find T in array
-          CPWA   arrAddr,sfx ;Compare A
-          BREQ   trapFnd
-          ADDX   2,i
-          BR     trapLoop
-;
-trapFnd: RET
+trapNeg: LDWA    scNegMsg, i
+         BR      trpCom
 trapErr: LDWA    scErrMsg,i  ;Load the address of the loader error message.
-         STWA    -2,s        ;Push address of error message
+trpCom:  STWA    -2,s        ;Push address of error message
          SUBSP   2,i         ;Allocate @param #msgAddr
          CALL    prntMsg
          ADDSP   2,i         ;Deallocate @param #msgAddr
-         MOVTA
+         LDWA    oldA,s
          STWA    -2,s
          SUBSP   2,i         ;Allocate @param #num
-         CALL    hexPrint
+         CALL    numPrint
          ADDSP   2,i         ;Allocate @param #num
          BR      shutdown
+scNegMsg:.ASCII "Non-unary system calls must be negative, got \x00"
 scErrMsg:.ASCII "Could not find system call \x00"
-
 ;
 ;******* Assert valid trap addressing mode
 oldIR4:  .EQUATE 13          ;oldIR + 4 with two return addresses
@@ -283,28 +266,38 @@ addrSFX: LDWX    oldPC4,s    ;Stack-deferred indexed addressing
 ;
 ;******* System Call Jump Tables
 ;Unary System Call Jump Table
-USCJT:   .WORD SYUNOP
-EUSCJT:  .WORD trapErr
+SYUNOP:  .EQUATE 0
+         .EXPORT SYUNOP
+USCJT:   .WORD   _SYUNOP
+EUSCJT:  .EQUATE 1
 ;
 ;Nonunary System Call Jump Table
-SCJT:    .WORD SYNOP
-         .WORD DECI
-         .WORD DECO
-         .WORD HEXO
-         .WORD STRO
-ESCJT:   .WORD trapErr
+SYNOP:   .EQUATE -1
+         .EXPORT SYNOP
+SCJT:    .WORD   _SYNOP
+DECI:    .EQUATE -2
+         .EXPORT DECI
+         .WORD   _DECI
+DECO:    .EQUATE -3
+         .EXPORT DECO
+         .WORD   _DECO
+HEXO:    .EQUATE -4
+         .EXPORT HEXO
+         .WORD   _HEXO
+STRO:    .EQUATE -5
+         .EXPORT STRO
+         .WORD   _STRO
+ESCJT:   .EQUATE -6
 ;
 ;******* SYUNOP
 ;The unary no-operation system call.
-         .EXPORT SYUNOP
          .USCALL SYUNOP
-SYUNOP:  RET                 ;Return to trap handler
+_SYUNOP: RET                 ;Return to trap handler
 ;
 ;******* SYNOP
 ;The nonunary no-operation system call.
-         .EXPORT SYNOP
          .SCALL  SYNOP
-SYNOP:   LDWA    0x0001,i    ;Assert i
+_SYNOP:  LDWA    0x0001,i    ;Assert i
          STWA    addrMask,d
          CALL    assertAd
          RET                 ;Return to trap handler
@@ -316,7 +309,6 @@ SYNOP:   LDWA    0x0001,i    ;Assert i
 ;after which digits are input until the first nondigit is
 ;encountered. The status flags N,Z and V are set appropriately
 ;by this DECI routine. The C status flag is not affected.
-         .EXPORT DECI
          .SCALL  DECI
 ;
 oldNZVC: .EQUATE 15          ;Stack address of NZVC on interrupt
@@ -333,7 +325,7 @@ init:    .EQUATE 0           ;Enumerated values for state
 sign:    .EQUATE 1
 digit:   .EQUATE 2
 ;
-DECI:    LDWA    0x00FE,i    ;Assert d, n, s, sf, x, sx, sfx
+_DECI:   LDWA    0x00FE,i    ;Assert d, n, s, sf, x, sx, sfx
          STWA    addrMask,d
          CALL    assertAd
          CALL    setAddr     ;Set address of trap operand
@@ -475,10 +467,9 @@ deciMsg: .ASCII  "ERROR: Invalid DECI input\x00"
 ;Output format: If the operand is negative, the algorithm prints
 ;a single '-' followed by the magnitude. Otherwise it prints the
 ;magnitude without a leading '+'. It suppresses leading zeros.
-         .EXPORT DECO
          .SCALL  DECO
 ;
-DECO:    LDWA    0x00FF,i    ;Assert i, d, n, s, sf, x, sx, sfx
+_DECO:   LDWA    0x00FF,i    ;Assert i, d, n, s, sf, x, sx, sfx
          STWA    addrMask,d
          CALL    assertAd
          CALL    setAddr     ;Set address of trap operand
@@ -554,10 +545,9 @@ printDgt:ORX     0x0030,i    ;Convert decimal to ASCII
 ;******* HEXO
 ;The hexadecimal ouput system call.
 ;Outputs one word as four hex characters from memory.
-         .EXPORT HEXO
          .SCALL  HEXO
 ;
-HEXO:    LDWA    0x00FF,i    ;Assert i, d, n, s, sf, x, sx, sfx
+_HEXO:   LDWA    0x00FF,i    ;Assert i, d, n, s, sf, x, sx, sfx
          STWA    addrMask,d
          CALL    assertAd
          CALL    setAddr     ;Set address of trap operand
@@ -598,10 +588,9 @@ writeHex:STBA    charOut,d   ;Output nybble as hex
 ;******* STRO
 ;The string output system call.
 ;Outputs a null-terminated string from memory.
-         .EXPORT STRO
          .SCALL  STRO
 ;
-STRO:    LDWA    0x003E,i    ;Assert d, n, s, sf, x
+_STRO:   LDWA    0x003E,i    ;Assert d, n, s, sf, x
          STWA    addrMask,d
          CALL    assertAd
          CALL    setAddr     ;Set address of trap operand
