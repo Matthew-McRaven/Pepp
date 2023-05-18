@@ -23,7 +23,7 @@ using boost::spirit::x3::ulong_long;
 
 // character / string components
 const auto escape_codes = lit("\\b") | lit("\\f") | lit("\\n") | lit("\\r") |
-                          lit("\\t") | lit("\\v") | lit("\\\"") | lit("\\'");
+                          lit("\\t") | lit("\\v") | lit("\\\\");
 const auto hex_chars = char_("a", "f") | char_("A", "F") | char_("0", "9");
 const auto escape_hex_code = lit("\\") >> (lit("x") | lit("X")) >> hex_chars
                              >> hex_chars;
