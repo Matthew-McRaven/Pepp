@@ -336,8 +336,8 @@ fnPrintf: SUBSP    6,i
           LDWX     0,i
           STWX     lstChar,s
           STWX     strIdx,s
-lpPrintf: LDBA     str, sfX
-          LDBA     str, sfx
+          STWX     plceIdx,s
+lpPrintf: LDBA     str, sfx
           BREQ     ePrintf
           ADDX     1,i
           STWX     strIdx, s
@@ -345,7 +345,6 @@ lpPrintf: LDBA     str, sfX
           LDBX     status, s
           ANDX     lstPlce, i
           BRNE     detPlce
-          LDBX     status, s
           CPWA     '%', i
           BREQ     strtPlce
           CPWA     '\\', i
@@ -387,33 +386,28 @@ detPlce:  LDBX     status,s
 ePrintf:  ADDSP    6,i
           RET
 ;
-printfH:  CALL     ldNxtAd   ;X preserved
+printfH:  LDWA     ptrTo1st, sfx
           STWA     -2,s
           SUBSP    2,i
           CALL     hexPrint
           ADDSP    2,i
           BR       plceFix
-printfD:  CALL     ldNxtAd   ;X preserced
+printfD:  LDWA     ptrTo1st, sfx
           STWA     -2,s
           SUBSP    2,i
           CALL     numPrint
           ADDSP    2,i
+          LDWX     plceIdx,s    ;Num print clobbers X
           BR       plceFix
-printfS:  CALL     ldNxtAd   ;X clobbered
+printfS:  LDWA     ptrTo1st, sfx
           STWA     -2,s
           SUBSP    2,i
           CALL     prntMsg
           ADDSP    2,i
 plceFix:  ADDX     2,i
-          STWX     plceIdx,s
+stPlcIdx: STWX     plceIdx,s
           BR       printfRs
 ;
-firstVal2: .EQUATE  12
-          ; Load the value into A
-ldNxtAd:  LDWA     firstVal2,sfx
-          ADDA     2,i
-          STWA     firstVal2,sfx
-          SUBA     2,i
           RET
 mBadPlce: .ASCII "Illegal placeholder %\x00"
 ;
