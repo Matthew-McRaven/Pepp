@@ -425,8 +425,6 @@ sim::api::tick::Result targets::pep10::isa::CPU::unaryDispatch(quint8 is) {
       qCritical() << "Failed to access memory";
     break;
 
-  case mn::USCALL:
-    [[fallthrough]];
   case mn::SCALL:
     // Must byteswap because we are using "host" variables.
     ctx[0] = readPackedCSR();

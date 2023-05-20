@@ -10,8 +10,7 @@ enum class Mnemonic {
   MOVFLGA = 0x4,
   MOVAFLG = 0x5,
   MOVTA = 0x6,
-  USCALL = 0x7,
-  NOP = 0x8,
+  NOP = 0x7,
 
   // FAULTS
   UNIMPL,
@@ -145,9 +144,6 @@ constexpr std::array<Opcode, 256> initOpcodes() {
       .mode = AM::NONE};
   ret[(quint8)M::MOVTA] = {
       .instr = {.mnemon = M::MOVTA, .type = T::U_none, .unary = 1},
-      .mode = AM::NONE};
-  ret[(quint8)M::USCALL] = {
-      .instr = {.mnemon = M::USCALL, .type = T::U_none, .unary = 1},
       .mode = AM::NONE};
   ret[(quint8)M::NOP] = {
       .instr = {.mnemon = M::NOP, .type = T::U_none, .unary = 1},
