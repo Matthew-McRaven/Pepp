@@ -143,19 +143,15 @@ nonUnary:LDWA    oldPC,s     ;Must increment program counter
          ADDA    2,i         ;  for nonunary instructions
          STWA    oldPC,s
          LDWX    oldA,s
-         BRGE    trapNeg     ;Non-unary system calls must be negative
+         BRLT    trapErr     ;Non-unary system calls must be negativpositivee
          CPWX    ESCJT, i
-         BRLE    trapErr
-         NEGX                ;Non-unary system calls are numbered negative
-         SUBX    1,i         ;Non-unary system calls are 1-indexed, not 0
+         BRGE    trapErr
          ASLX                ;Multiply index by 2 for word size
          CALL    SCJT, x     ;
          SRET
 ;
-trapNeg: LDWA    scNegMsg, i
-         BR      trpCom
 trapErr: LDWA    scErrMsg,i  ;Load the address of the loader error message.
-trpCom:  STWA    -2,s        ;Push address of error message
+         STWA    -2,s        ;Push address of error message
          SUBSP   2,i         ;Allocate @param #msgAddr
          CALL    prntMsg
          ADDSP   2,i         ;Deallocate @param #msgAddr
@@ -165,7 +161,6 @@ trpCom:  STWA    -2,s        ;Push address of error message
          CALL    numPrint
          ADDSP   2,i         ;Allocate @param #num
          BR      shutdown
-scNegMsg:.ASCII "Non-unary system calls must be negative, got \x00"
 scErrMsg:.ASCII "Could not find system call \x00"
 ;
 ;******* Assert valid trap addressing mode
@@ -266,28 +261,29 @@ addrSFX: LDWX    oldPC4,s    ;Stack-deferred indexed addressing
 ;
 ;******* System Call Jump Tables
 ;Unary System Call Jump Table
-SYUNOP:  .EQUATE 0
+SYUNOP:  .EQUATE -1
          .EXPORT SYUNOP
 USCJT:   .WORD   _SYUNOP
-EUSCJT:  .EQUATE 1
+EUSCJT:  .EQUATE -2
 ;
 ;Nonunary System Call Jump Table
-SYNOP:   .EQUATE -1
-         .EXPORT SYNOP
-SCJT:    .WORD   _SYNOP
-DECI:    .EQUATE -2
+
+DECI:    .EQUATE 0
          .EXPORT DECI
-         .WORD   _DECI
-DECO:    .EQUATE -3
+SCJT:    .WORD   _DECI
+DECO:    .EQUATE 1
          .EXPORT DECO
          .WORD   _DECO
-HEXO:    .EQUATE -4
+HEXO:    .EQUATE 2
          .EXPORT HEXO
          .WORD   _HEXO
-STRO:    .EQUATE -5
+STRO:    .EQUATE 3
          .EXPORT STRO
          .WORD   _STRO
-ESCJT:   .EQUATE -6
+SNOP:    .EQUATE 4
+         .EXPORT SNOP
+         .WORD   _SNOP
+ESCJT:   .EQUATE 5
 ;
 ;******* SYUNOP
 ;The unary no-operation system call.
@@ -296,8 +292,8 @@ _SYUNOP: RET                 ;Return to trap handler
 ;
 ;******* SYNOP
 ;The nonunary no-operation system call.
-         .SCALL  SYNOP
-_SYNOP:  LDWA    0x0001,i    ;Assert i
+         .SCALL  SNOP
+_SNOP:   LDWA    0x0001,i    ;Assert i
          STWA    addrMask,d
          CALL    assertAd
          RET                 ;Return to trap handler
