@@ -127,25 +127,13 @@ oldPC:   .EQUATE 5           ;Stack address of PC on trap
 oldA:    .EQUATE 1           ;Stack address of A on trap
 ;
 trap:    LDWX    0,i         ;
-         LDBX    oldIR,s     ;X <- trapped IR
-         CPBX    0x0030,i    ;If X >= first nonunary trap opcode
-         BRGE    nonUnary    ;  trap opcode is nonunary
-;Unary System Call Helper
-unary:   LDWX    oldA,s
-         CPWX    EUSCJT, i
-         BRGE    trapErr
-         ASLX                ;Multiply index by 2 for word size
-         CALL    USCJT, x
-         SRET
-;
-;Nonunary System Call Helper
-nonUnary:LDWA    oldPC,s     ;Must increment program counter
+         LDWA    oldPC,s     ;Must increment program counter
          ADDA    2,i         ;  for nonunary instructions
          STWA    oldPC,s
          LDWX    oldA,s
-         BRLT    trapErr     ;Non-unary system calls must be negativpositivee
+         BRLT    trapErr     ;Non-unary system calls must be non-negative
          CPWX    ESCJT, i
-         BRGE    trapErr
+         BRGE    trapErr     ;System calls must be within the table
          ASLX                ;Multiply index by 2 for word size
          CALL    SCJT, x     ;
          SRET
@@ -258,16 +246,7 @@ addrSFX: LDWX    oldPC4,s    ;Stack-deferred indexed addressing
          ADDX    oldX4,s
          STWX    opAddr,d
          RET
-;
-;******* System Call Jump Tables
-;Unary System Call Jump Table
-SYUNOP:  .EQUATE -1
-         .EXPORT SYUNOP
-USCJT:   .WORD   _SYUNOP
-EUSCJT:  .EQUATE -2
-;
-;Nonunary System Call Jump Table
-
+;System Call Jump Table
 DECI:    .EQUATE 0
          .EXPORT DECI
 SCJT:    .WORD   _DECI
@@ -285,13 +264,9 @@ SNOP:    .EQUATE 4
          .WORD   _SNOP
 ESCJT:   .EQUATE 5
 ;
-;******* SYUNOP
-;The unary no-operation system call.
-         .USCALL SYUNOP
-_SYUNOP: RET                 ;Return to trap handler
 ;
-;******* SYNOP
-;The nonunary no-operation system call.
+;******* SNOP
+;The no-operation system call.
          .SCALL  SNOP
 _SNOP:   LDWA    0x0001,i    ;Assert i
          STWA    addrMask,d
