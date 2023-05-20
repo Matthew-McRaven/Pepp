@@ -24,7 +24,7 @@ void AsmTask::emitElfTo(std::string fname) { elfOut = fname; }
 void AsmTask::run() {
   auto book = detail::book(ed);
   if (book.isNull())
-    return emit finished(1);
+    return emit finished(2);
   auto macroRegistry = detail::registry(book, {});
   detail::addMacros(*macroRegistry, macroDirs, "Pep/10");
 
@@ -33,7 +33,7 @@ void AsmTask::run() {
     QFile uIn(QString::fromStdString(userIn)); // auto-closes
     if (!uIn.exists()) {
       std::cerr << "Source file does not exist.\n";
-      emit finished(1);
+      emit finished(3);
     }
     uIn.open(QIODevice::ReadOnly | QIODevice::Text);
     userContents = uIn.readAll();
@@ -48,7 +48,7 @@ void AsmTask::run() {
     QFile oIn(QString::fromStdString(*osIn)); // auto-closes
     if (!oIn.exists()) {
       std::cerr << "OS file does not exist.\n";
-      emit finished(1);
+      emit finished(4);
     }
     oIn.open(QIODevice::ReadOnly | QIODevice::Text);
     osContents = oIn.readAll();
@@ -76,7 +76,7 @@ void AsmTask::run() {
       std::cerr << "Failed to open error log for writing: "
                 << errFName.toStdString() << std::endl;
     }
-    return emit finished(1);
+    return emit finished(6);
   }
   // Assembly succeded!
   if (elfOut.has_value()) {
