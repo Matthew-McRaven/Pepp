@@ -272,6 +272,112 @@ _SNOP:   LDWA    0x0001,i    ;Assert i
          STWA    addrMask,d
          CALL    assertAd
          RET                 ;Return to trap handler
+;******** PRINTF
+;
+;
+oldSP2:  .EQUATE 9          ;oldSP + 2 with one return address
+         .SCALL   PRINTF
+_PRINTF:  LDWA     0x003E,i    ;Assert d, n, s, sf, x
+          STWA     addrMask,d
+          CALL     assertAd
+          CALL     setAddr     ;Set address of trap operand
+          LDWA     opAddr,d    ;A <- oprnd
+          STWA     -4,s
+          LDWA     oldSP2,s
+          STWA     -2,s
+          SUBSP    4,i
+          CALL     fnPrintf
+          ADDSP    4,i
+          RET
+;
+ptrTo1st: .EQUATE  10        ;Pointer to first placeholder
+str:      .EQUATE  8         ;Pointer to string with placeholders
+plceIdx:  .EQUATE  4         ;Placeholder variadic array next idx
+strIdx:   .EQUATE  2         ;Current index in str
+status:   .EQUATE  1         ;Have we seen % or \?
+lstChar:  .EQUATE  0         ;Last loaded char from str
+;Constants
+lstPlce:  .EQUATE  1         ;Last char was %
+lstEsc:   .EQUATE  2         ;Last char was \\
+fnPrintf: SUBSP    6,i
+          LDWA     0,i
+          LDWX     0,i
+          STWX     lstChar,s
+          STWX     strIdx,s
+          STWX     plceIdx,s
+lpPrintf: LDBA     str, sfx
+          BREQ     ePrintf
+          ADDX     1,i
+          STWX     strIdx, s
+         ;
+          LDBX     status, s
+          ANDX     lstPlce, i
+          BRNE     detPlce
+          CPWA     '%', i
+          BREQ     strtPlce
+          CPWA     '\\', i
+          BREQ     strtEsc
+printCh:  STBA     charOut,d
+          ;printf reset status
+printfRs: LDBA     0,i
+          STBA     status,s
+printfNx: LDWX     strIdx, s
+          BR       lpPrintf
+;Determine what to do with placeholder
+strtPlce: LDBX     lstPlce, i
+          STBX     status, s
+          BR       printfNx
+strtEsc:  LDBX     lstEsc,i
+          STBX     status, s
+          BR       printfNx
+detPlce:  LDBX     status,s
+          ANDX     lstEsc,i
+          BRNE     printCh
+          LDWX     plceIdx,s
+          ANDA     '_',i   ;Convert to uppercase
+          CPWA     'H',i
+          BREQ     printfH
+          CPWA     'D',i
+          BREQ     printfD
+          CPWA     'S',i
+          BREQ     printfS
+          ; Illegal placeholder, print message and shutdown
+          STBA     lstChar,s ;Must cache last character, overriden by prntMsg
+          LDWA     mBadPlce,i
+          STWA     -2,s
+          SUBSP    2,i
+          CALL     prntMsg
+          ADDSP    2,i
+          LDBA     lstChar,s
+          STBA     charOut,d
+          BR       shutdown
+ePrintf:  ADDSP    6,i
+          RET
+;
+printfH:  LDWA     ptrTo1st, sfx
+          STWA     -2,s
+          SUBSP    2,i
+          CALL     hexPrint
+          ADDSP    2,i
+          BR       plceFix
+printfD:  LDWA     ptrTo1st, sfx
+          STWA     -2,s
+          SUBSP    2,i
+          CALL     numPrint
+          ADDSP    2,i
+          LDWX     plceIdx,s    ;Num print clobbers X
+          BR       plceFix
+printfS:  LDWA     ptrTo1st, sfx
+          STWA     -2,s
+          SUBSP    2,i
+          CALL     prntMsg
+          ADDSP    2,i
+plceFix:  ADDX     2,i
+stPlcIdx: STWX     plceIdx,s
+          BR       printfRs
+;
+          RET
+mBadPlce: .ASCII "Illegal placeholder %\x00"
 ;
 ;******* DECI
 ;The decimal input system call.
