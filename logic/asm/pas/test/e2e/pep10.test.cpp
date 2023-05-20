@@ -39,14 +39,14 @@ class PasE2E_Pep10 : public QObject {
       registry->registerMacro(macro::types::Core, macro);
   }
 
-  QStringList nonunary = {"DECI", "CHARI", "CHARO", "STRO", "DECO"};
+  QStringList nonunary = {"DECI", "CHARI", "CHARO", "STRO", "DECO", "PRINTF"};
 
   void injectFakeSCallMacros(QSharedPointer<macro::Registry> registry) {
     for (auto &macro : nonunary)
       registry->registerMacro(
           macro::types::Core,
           QSharedPointer<macro::Parsed>::create(
-              macro, 2, "LDWT 0,i\nSCALL $1, $2", "pep/10"));
+              macro, 2, "LDWA 0,i\nSCALL $1, $2", "pep/10"));
   }
 
 private slots:
@@ -189,12 +189,12 @@ private slots:
       // user memory + system stack
       mergeMap[0].segs = {};
       auto uMem = obj::MemoryRegion{
-          .r = 1, .w = 1, .minOffset = 0, .maxOffset = 0xfaad};
+          .r = 1, .w = 1, .minOffset = 0, .maxOffset = 0xfaf9};
       QCOMPARE(mergeMap[0], uMem);
       // OS text
       mergeMap[1].segs = {};
       auto txt = obj::MemoryRegion{
-          .r = 1, .w = 0, .minOffset = 0xfaae, .maxOffset = 0xfff9};
+          .r = 1, .w = 0, .minOffset = 0xfafa, .maxOffset = 0xfff9};
       QCOMPARE(mergeMap[1], txt);
       // Carveout for MMIO
       mergeMap[2].segs = {};
@@ -219,7 +219,7 @@ private slots:
     auto systemBootFlg = sys->getBootFlagAddress();
     QCOMPARE(bootFlg.has_value(), systemBootFlg.has_value());
     if (bootFlg) {
-      QCOMPARE(*bootFlg, 0xfaae);
+      QCOMPARE(*bootFlg, 0xfafa);
       QCOMPARE(*systemBootFlg, *bootFlg);
       QCOMPARE(sys->getBootFlags(), 3);
     }

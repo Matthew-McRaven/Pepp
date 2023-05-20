@@ -85,7 +85,6 @@ private slots:
                                                         : tmp;
       QCOMPARE(rreg(isa::Pep10::Register::SP), 0);
       QCOMPARE(rreg(isa::Pep10::Register::X), 0);
-      QCOMPARE(rreg(isa::Pep10::Register::TR), 0);
       QCOMPARE(rreg(isa::Pep10::Register::PC), 0x3);
       QCOMPARE(rreg(isa::Pep10::Register::IS), 0xA0);
       // OS loaded the Mem[0x0001-0x0002].

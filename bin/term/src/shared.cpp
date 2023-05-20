@@ -96,8 +96,9 @@ QStringList detail::AsmHelper::errors() {
     auto splitUser = _user->split("\n");
     for (const auto &err : userErrors) {
       ret << ";Line " << QString::number(err.first.value.line + 1) << "\n";
-      ret << splitUser[err.first.value.line]
-          << " ;ERROR: " << err.second.message << "\n";
+      if(err.first.value.line < userErrors.size())
+        ret << splitUser[err.first.value.line];
+      ret << " ;ERROR: " << err.second.message << "\n";
     }
   }
   return ret;

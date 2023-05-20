@@ -2,6 +2,6 @@
 ;Computer Systems, Fifth edition
 ;Figure 5.16
 ;
-this:    LDWT    DECO,i
+this:    LDWA    DECO,i
          SCALL   this,d
          RET

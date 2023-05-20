@@ -188,13 +188,14 @@ void RunTask::run() {
            next = charOutEndpoint->next_value()) {
         outF << char(*next);
       }
-      outF << "\n";
     };
 
     if (_charOut == "-") {
       QTextStream out(stdout, QIODevice::WriteOnly | QIODevice::Truncate |
                                   QIODevice::Text);
       writeOut(out);
+      // If writing to terminal, ensure that there exists a \n.
+      out << "\n";
     } else {
       QFile f(QString::fromStdString(_charOut));
       f.open(QIODevice::WriteOnly | QIODevice::Truncate | QIODevice::Text);

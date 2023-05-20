@@ -216,10 +216,6 @@ sim::api::tick::Result targets::pep10::isa::CPU::unaryDispatch(quint8 is) {
     writePackedCSR(a);
     break;
 
-  case mn::MOVTA:
-    writeReg(Register::A, readReg(Register::TR));
-    break;
-
   case mn::NOP:
     break;
 
@@ -425,8 +421,6 @@ sim::api::tick::Result targets::pep10::isa::CPU::unaryDispatch(quint8 is) {
       qCritical() << "Failed to access memory";
     break;
 
-  case mn::USCALL:
-    [[fallthrough]];
   case mn::SCALL:
     // Must byteswap because we are using "host" variables.
     ctx[0] = readPackedCSR();
@@ -562,9 +556,6 @@ targets::pep10::isa::CPU::nonunaryDispatch(quint8 is, quint16 os, quint16 pc) {
     writeReg(Register::SP, sp);
     break;
 
-  case mn::LDWT:
-    writeReg(Register::TR, operand);
-    break;
   case mn::LDWA:
     writeReg(Register::A, operand);
     n = operand & 0x8000;

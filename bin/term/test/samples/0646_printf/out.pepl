@@ -1,0 +1,195 @@
+             ;File: fig0646.pep
+             ;Computer Systems, Fifth edition
+             ;Figure 6.46
+             ;
+0000 1C0008         BR      main
+            first:   .EQUATE 0       ;struct field #1c
+            last:    .EQUATE 1       ;struct field #1c
+            age:     .EQUATE 2       ;struct field #2d
+            gender:  .EQUATE 4       ;struct field #1c
+0003 000000 bill:    .BLOCK  5       ;globals #first #last #age #gender
+       0000
+             ;
+             ;******* main()
+0008 480000 main:    LDWX    first, i;scanf("%c%c%d %s", &bill.first,
+                    ;        @CHARI  bill, x
+             ; Read a single byte into bill using addressing mode x.
+             ; Uses accumulator as a temporary
+000B 51FFFD         LDBA    charIn, d
+000E 750003         STBA    bill, x
+
+             ;End @CHARI
+0011 480001         LDWX    last, i ;&bill.last,
+                    ;        @CHARI  bill, x
+             ; Read a single byte into bill using addressing mode x.
+             ; Uses accumulator as a temporary
+0014 51FFFD         LDBA    charIn, d
+0017 750003         STBA    bill, x
+
+             ;End @CHARI
+001A 480002         LDWX    age, i  ;&bill.age,
+                    ;        @DECI   bill, x
+001D 400000         LDWA    DECI, i
+0020 350003         SCALL   bill, x
+
+             ;End @DECI
+0023 480004         LDWX    gender, i;&bill.gender)
+                    ;        @CHARI  bill, x
+             ; Read a single byte into bill using addressing mode x.
+             ; Uses accumulator as a temporary
+0026 51FFFD         LDBA    charIn, d
+0029 750003         STBA    bill, x
+
+             ;End @CHARI
+002C 480000         LDWX    first, i
+002F 550003         LDBA    bill, x
+0032 73FFFA         STBA    -6, s
+0035 480001         LDWX    last, i
+0038 550003         LDBA    bill, x
+003B 73FFFB         STBA    -5, s
+003E 480002         LDWX    age, i
+0041 450003         LDWA    bill, x
+0044 63FFFC         STWA    -4, s
+0047 480004         LDWX    gender, i
+004A 550003         LDBA    bill, x
+004D 90006D         CPBA    'm', i
+0050 240059         BRNE    else
+0053 400071         LDWA    mMale, i
+0056 1C005C         BR      print
+0059 40006F else:    LDWA    mFemale, i
+005C 63FFFE print:   STWA    -2, s
+005F 400076         LDWA    msg, i
+0062 63FFF8         STWA    -8, s
+0065 F80008         SUBSP   8, i
+0068 2E0099         CALL    printf
+006B F00008         ADDSP   8, i
+006E     00 endIf:   RET
+006F   6665 mFemale: .ASCII  "fe"
+0071 6D616C mMale:   .ASCII  "male\x00"
+       6500
+0076 496E69 msg:     .ASCII  "Initials: %c%c\nAge: %d\nGender: %s\n\x00"
+     746961
+     6C733A
+     202563
+     25630A
+     416765
+     3A2025
+     640A47
+     656E64
+     65723A
+     202573
+       0A00
+                    ;        @LIBC
+             ;******* printf()
+             ;        Precondition: firstVal contains the first variadic argument
+             ;        Postcondition: str contains a pointer to a null-terminated string.
+             ;        Postcondition: X contains pointer to bytes
+            firstVal:.EQUATE 12
+            str:     .EQUATE 10      ;Pointer to string with placeholders
+            tmpPtr:  .EQUATE 6       ;To provide pointer to @STRO
+            plceIdx: .EQUATE 4       ;Placeholder variadic array next idx
+            strIdx:  .EQUATE 2       ;Current index in str
+            status:  .EQUATE 1       ;Have we seen % or \?
+            lstChar: .EQUATE 0       ;Last loaded char from str
+             ;Constants
+            lstPlce: .EQUATE 1       ;Last char was %
+0099 F80008 printf:  SUBSP   8, i
+009C 400000         LDWA    0, i
+009F 480000         LDWX    0, i
+00A2 6B0000         STWX    lstChar, s
+00A5 6B0002         STWX    strIdx, s
+00A8 6B0004         STWX    plceIdx, s
+00AB 57000A lpPrintf:LDBA    str, sfx
+00AE 22011A         BREQ    ePrintf
+00B1 A80001         ADDX    1, i
+00B4 6B0002         STWX    strIdx, s
+             ;
+00B7 5B0001         LDBX    status, s
+00BA C80001         ANDX    lstPlce, i
+00BD 2400DE         BRNE    detPlce
+00C0 800025         CPWA    '%', i
+00C3 2200D5         BREQ    strtPlce
+00C6 71FFFE printCh: STBA    charOut, d
+             ;printf reset status
+00C9 500000 printfRs:LDBA    0, i
+00CC 730001         STBA    status, s
+00CF 4B0002 printfNx:LDWX    strIdx, s
+00D2 1C00AB         BR      lpPrintf
+             ;Determine what to do with placeholder
+00D5 580001 strtPlce:LDBX    lstPlce, i
+00D8 7B0001         STBX    status, s
+00DB 1C00CF         BR      printfNx
+00DE 4B0004 detPlce: LDWX    plceIdx, s
+00E1 800025         CPWA    '%', i
+00E4 2200C6         BREQ    printCh
+00E7 C0005F         ANDA    '_', i  ;Convert to uppercase
+00EA 800048         CPWA    'H', i
+00ED 22012A         BREQ    printfH
+00F0 800044         CPWA    'D', i
+00F3 220133         BREQ    printfD
+00F6 800053         CPWA    'S', i
+00F9 22013C         BREQ    printfS
+00FC 800043         CPWA    'C', i
+00FF 22011E         BREQ    printfC
+             ; Illegal placeholder, print message and shutdown
+0102 730000         STBA    lstChar, s;Must cache last character, overriden by prntMsg
+                    ;        @STRO   mBadPlce, d
+0105 400003         LDWA    STRO, i
+0108 31015B         SCALL   mBadPlce, d
+
+             ;End @STRO
+010B 530000         LDBA    lstChar, s
+010E 71FFFE         STBA    charOut, d
+0111 5000DE         LDBA    0x00DE, i
+0114 71FFFF         STBA    pwrOff, d
+0117 1C0117 hang:    BR      hang
+011A F00008 ePrintf: ADDSP   8, i
+011D     00         RET
+             ;
+011E 56000C printfC: LDBA    firstVal, sx
+0121 71FFFE         STBA    charOut, d
+0124 A80001         ADDX    1, i
+0127 1C0155         BR      stPlcIdx
+                    ;printfH: @HEXO   firstVal, sx
+012A        printfH: .BLOCK  0
+012A 400002         LDWA    HEXO, i
+012D 36000C         SCALL   firstVal, sx
+
+             ;End @HEXO
+0130 1C0152         BR      plceFix
+                    ;printfD: @DECO   firstVal, sx
+0133        printfD: .BLOCK  0
+0133 400001         LDWA    DECO, i
+0136 36000C         SCALL   firstVal, sx
+
+             ;End @DECO
+0139 1C0152         BR      plceFix
+013C     02 printfS: MOVSPA
+013D A0000C         ADDA    firstVal, i
+0140 A30004         ADDA    plceIdx, s
+0143 630006         STWA    tmpPtr, s
+                    ;        @HEXO   tmpPtr, sf
+0146 400002         LDWA    HEXO, i
+0149 340006         SCALL   tmpPtr, sf
+
+             ;End @HEXO
+                    ;        @STRO   tmpPtr, sf
+014C 400003         LDWA    STRO, i
+014F 340006         SCALL   tmpPtr, sf
+
+             ;End @STRO
+0152 A80002 plceFix: ADDX    2, i
+0155 6B0004 stPlcIdx:STWX    plceIdx, s
+0158 1C00C9         BR      printfRs
+             ;
+015B 496C6C mBadPlce:.ASCII  "Illegal placeholder %\x00"
+     656761
+     6C2070
+     6C6163
+     65686F
+     6C6465
+     722025
+         00
+
+             ;End @LIBC
+

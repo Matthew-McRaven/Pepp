@@ -17,7 +17,7 @@ class TestCase(unittest.TestCase):
                 with open(f"{cwd}/os.pep", "wb") as f:
                     f.write(ret.stdout)
                 with open(f"{cwd}/in.pep", "wb") as f:
-                    f.write(b"USCALL")
+                    f.write(b"SCALL 0,i")
             except IOError:
                 self.fail("Writing contents should not fail")
 

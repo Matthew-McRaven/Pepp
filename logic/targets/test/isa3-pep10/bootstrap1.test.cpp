@@ -22,7 +22,7 @@ private slots:
                                                  .fullName = "/dev"};
     auto span = sim::api::memory::Target<quint16>::AddressSpan{
         .minOffset = 0, .maxOffset = 0xFFFF};
-    sim::memory::Dense<quint16> mem(desc_mem, span, 0x08 /*nop*/);
+    sim::memory::Dense<quint16> mem(desc_mem, span, (int) isa::Pep10::Mnemonic::NOP);
     auto desc_cpu = sim::api::device::Descriptor{.id = nextID(),
                                                  .compatible = nullptr,
                                                  .baseName = "cpu",
@@ -45,7 +45,7 @@ private slots:
     QCOMPARE(tmp, 1);
 
     // Check that A can be modified.
-    quint8 v = 0b0001'0000; // NOTA
+    quint8 v = (quint8) isa::Pep10::Mnemonic::NOTA;
     QVERIFY(mem.write(0x01, {&v, 1}, rw).completed);
     QVERIFY(targets::pep10::isa::readRegister(regs, Register::A, tmp, rw)
                 .completed);
