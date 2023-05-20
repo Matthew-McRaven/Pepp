@@ -38,18 +38,18 @@ private slots:
         << QStringList{"             ;hello", "             ;world"};
 
     QTest::addRow("Unary") << "asla\nasra"
-                           << QStringList{"0000     14         ASLA",
-                                          "0001     16         ASRA"};
+                           << QStringList{"0000     1C         ASLA",
+                                          "0001     1E         ASRA"};
     QTest::addRow("Unary + symbol")
-        << "abcdefg:asla" << QStringList{"0000     14 abcdefg: ASLA"};
+        << "abcdefg:asla" << QStringList{"0000     1C abcdefg: ASLA"};
     QTest::addRow("Nonunary non-br")
         << "adda 0xfaad,i\nsuba 0xbaad,sfx"
         << QStringList{"0000 A0FAAD         ADDA    0xFAAD, i",
                        "0003 B7BAAD         SUBA    0xBAAD, sfx"};
     QTest::addRow("Nonunary br")
         << "br 10,i\nbr 20,x"
-        << QStringList{"0000 1C000A         BR      10",
-                       "0003 1D0014         BR      20, x"};
+        << QStringList{"0000 24000A         BR      10",
+                       "0003 250014         BR      20, x"};
 
     QTest::addRow("ALIGN 1")
         << ".ALIGN 1" << QStringList{"0000                .ALIGN  1"};
