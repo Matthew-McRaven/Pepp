@@ -39,7 +39,7 @@ class PasE2E_Pep10 : public QObject {
       registry->registerMacro(macro::types::Core, macro);
   }
 
-  QStringList nonunary = {"DECI", "CHARI", "CHARO", "STRO", "DECO"};
+  QStringList nonunary = {"DECI", "CHARI", "CHARO", "STRO", "DECO", "PRINTF"};
 
   void injectFakeSCallMacros(QSharedPointer<macro::Registry> registry) {
     for (auto &macro : nonunary)

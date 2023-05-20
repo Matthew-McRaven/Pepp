@@ -272,7 +272,7 @@ _SNOP:   LDWA    0x0001,i    ;Assert i
          STWA    addrMask,d
          CALL    assertAd
          RET                 ;Return to trap handler
-;
+
 ;******* DECI
 ;The decimal input system call.
 ;Input format: Any number of leading spaces or line feeds are

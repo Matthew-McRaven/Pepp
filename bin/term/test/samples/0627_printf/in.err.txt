@@ -1,0 +1,2 @@
+;Line 75
+ ;ERROR: Undefined symbol tmPtr.

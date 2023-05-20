@@ -1,0 +1,87 @@
+@LIBC 0
+;******* printf()
+;        Precondition: firstVal contains the first variadic argument
+;        Postcondition: str contains a pointer to a null-terminated string.
+;        Postcondition: X contains pointer to bytes
+firstVal: .EQUATE  12        ;
+str:      .EQUATE  10        ;Pointer to string with placeholders
+tmpPtr:   .EQUATE  6         ;To provide pointer to @STRO
+plceIdx:  .EQUATE  4         ;Placeholder variadic array next idx
+strIdx:   .EQUATE  2         ;Current index in str
+status:   .EQUATE  1         ;Have we seen % or \?
+lstChar:  .EQUATE  0         ;Last loaded char from str
+;Constants
+lstPlce:  .EQUATE  1         ;Last char was %
+printf:   SUBSP    8,i
+          LDWA     0,i
+          LDWX     0,i
+          STWX     lstChar,s
+          STWX     strIdx,s
+          STWX     plceIdx,s
+lpPrintf: LDBA     str, sfx
+          BREQ     ePrintf
+          ADDX     1,i
+          STWX     strIdx, s
+         ;
+          LDBX     status, s
+          ANDX     lstPlce, i
+          BRNE     detPlce
+          CPWA     '%', i
+          BREQ     strtPlce
+printCh:  STBA     charOut,d
+          ;printf reset status
+printfRs: LDBA     0,i
+          STBA     status,s
+printfNx: LDWX     strIdx, s
+          BR       lpPrintf
+;Determine what to do with placeholder
+strtPlce: LDBX     lstPlce, i
+          STBX     status, s
+          BR       printfNx
+detPlce:  LDWX     plceIdx,s
+          CPWA     '%',i
+          BREQ     printCh
+          ANDA     '_',i   ;Convert to uppercase
+          CPWA     'H',i
+          BREQ     printfH
+          CPWA     'D',i
+          BREQ     printfD
+          CPWA     'S',i
+          BREQ     printfS
+          CPWA     'C',i
+          BREQ     printfC
+          ; Illegal placeholder, print message and shutdown
+          STBA     lstChar,s ;Must cache last character, overriden by prntMsg
+          @STRO    mBadPlce, d
+          LDBA     lstChar,s
+          STBA     charOut,d
+          LDBA     0xDE, i
+          STBA     pwrOff,d
+hang:     BR       hang
+ePrintf:  ADDSP    8,i
+          RET
+;
+printfC:  LDBA     firstVal, sx
+          STBA     charOut, d
+          ADDX     1,i
+          BR       stPlcIdx
+printfH:  @HEXO    firstVal, sx
+          BR       plceFix
+printfD:  @DECO    firstVal, sx
+          BR       plceFix
+          ;Must do addressing manually.
+          ;Compute the offset to the char* on the stack (a char**)
+printfS:  MOVSPA
+          ADDA     firstVal,i
+          ADDA     plceIdx,s
+          ;Derefernece the char** to char*
+          STWA     tmpPtr, s
+          LDWA     tmpPtr, sf
+          STWA     tmpPtr, s
+          ;Print the contents of the char*
+          @STRO    tmpPtr, sf
+plceFix:  ADDX     2,i
+stPlcIdx: STWX     plceIdx,s
+          BR       printfRs
+;
+mBadPlce: .ASCII "Illegal placeholder %\x00"
