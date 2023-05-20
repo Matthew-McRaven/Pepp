@@ -63,7 +63,7 @@ private slots:
     auto endRegVal = static_cast<quint16>(target << 1);
 
     // Object code for instruction under test.
-    auto program = std::array<quint8, 1>{0x15};
+    auto program = std::array<quint8, 1>{(quint8) isa::Pep10::Mnemonic::ASLX};
 
     cpu->regs()->clear(0);
     cpu->csrs()->clear(0);
@@ -81,9 +81,8 @@ private slots:
         bits::hostOrder() != bits::Order::BigEndian ? bits::byteswap(tmp) : tmp;
     QCOMPARE(rreg(isa::Pep10::Register::SP), 0);
     QCOMPARE(rreg(isa::Pep10::Register::A), 0);
-    QCOMPARE(rreg(isa::Pep10::Register::TR), 0);
     QCOMPARE(rreg(isa::Pep10::Register::PC), 0x1);
-    QCOMPARE(rreg(isa::Pep10::Register::IS), 0x15);
+    QCOMPARE(rreg(isa::Pep10::Register::IS), (quint8) isa::Pep10::Mnemonic::ASLX);
     // OS loaded the Mem[0x0001-0x0002].
     QCOMPARE(rreg(isa::Pep10::Register::OS), 0);
     // Check that target register had arithmetic performed.

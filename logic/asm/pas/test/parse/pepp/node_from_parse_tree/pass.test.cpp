@@ -138,11 +138,11 @@ class PasParsePepp_NodeFromParseTree_Pass : public QObject {
         << "br x,x\t;x" << isAType << false;
 
     // AAA type
-    QTest::newRow("NonUnary-AAA: addr") << "ldwt x,i" << isAAAType << false;
+    QTest::newRow("NonUnary-AAA: addr") << "ADDSP x,i" << isAAAType << false;
     QTest::newRow("NonUnary-AAA: symbol, no spaces")
-        << "s:scall x,x" << isAAAType << true;
+        << "s:ADDSP x,x" << isAAAType << true;
     QTest::newRow("NonUnary-AAA: symbol, spaces")
-        << "s: \tscall n,x" << isAAAType << true;
+        << "s: \tSUBSP n,x" << isAAAType << true;
     QTest::newRow("NonUnary-AAA: comment, no spaces")
         << "scall s,x;x" << isAAAType << false;
     QTest::newRow("NonUnary-AAA: comment, spaces")

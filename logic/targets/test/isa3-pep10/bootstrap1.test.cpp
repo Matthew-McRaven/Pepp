@@ -45,7 +45,7 @@ private slots:
     QCOMPARE(tmp, 1);
 
     // Check that A can be modified.
-    quint8 v = 0b0001'0000; // NOTA
+    quint8 v = (quint8) isa::Pep10::Mnemonic::NOTA;
     QVERIFY(mem.write(0x01, {&v, 1}, rw).completed);
     QVERIFY(targets::pep10::isa::readRegister(regs, Register::A, tmp, rw)
                 .completed);

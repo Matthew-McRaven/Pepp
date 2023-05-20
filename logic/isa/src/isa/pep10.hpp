@@ -9,37 +9,35 @@ enum class Mnemonic {
   MOVASP = 0x3,
   MOVFLGA = 0x4,
   MOVAFLG = 0x5,
-  MOVTA = 0x6,
-  NOP = 0x7,
+  NOP = 0x6,
 
   // FAULTS
   UNIMPL,
 
-  NOTA = 0x10,
-  NOTX = 0x11,
-  NEGA = 0x12,
-  NEGX = 0x13,
-  ASLA = 0x14,
-  ASLX = 0x15,
-  ASRA = 0x16,
-  ASRX = 0x17,
-  ROLA = 0x18,
-  ROLX = 0x19,
-  RORA = 0x1A,
-  RORX = 0x1B,
+  NOTA = 0x18,
+  NOTX = 0x19,
+  NEGA = 0x1A,
+  NEGX = 0x1B,
+  ASLA = 0x1C,
+  ASLX = 0x1D,
+  ASRA = 0x1E,
+  ASRX = 0x1F,
+  ROLA = 0x20,
+  ROLX = 0x21,
+  RORA = 0x22,
+  RORX = 0x23,
   // STOP,
-  BR = 0x1C,
-  BRLE = 0x1E,
-  BRLT = 0x20,
-  BREQ = 0x22,
-  BRNE = 0x24,
-  BRGE = 0x26,
-  BRGT = 0x28,
-  BRV = 0x2A,
-  BRC = 0x2C,
-  CALL = 0x2E,
-  SCALL = 0x30,
-  LDWT = 0x38,
+  BR = 0x24,
+  BRLE = 0x26,
+  BRLT = 0x28,
+  BREQ = 0x2A,
+  BRNE = 0x2C,
+  BRGE = 0x2E,
+  BRGT = 0x30,
+  BRV = 0x32,
+  BRC = 0x34,
+  CALL = 0x36,
+  SCALL = 0x38,
   LDWA = 0x40,
   LDWX = 0x48,
   LDBA = 0x50,
@@ -142,9 +140,6 @@ constexpr std::array<Opcode, 256> initOpcodes() {
   ret[(quint8)M::MOVAFLG] = {
       .instr = {.mnemon = M::MOVAFLG, .type = T::U_none, .unary = 1},
       .mode = AM::NONE};
-  ret[(quint8)M::MOVTA] = {
-      .instr = {.mnemon = M::MOVTA, .type = T::U_none, .unary = 1},
-      .mode = AM::NONE};
   ret[(quint8)M::NOP] = {
       .instr = {.mnemon = M::NOP, .type = T::U_none, .unary = 1},
       .mode = AM::NONE};
@@ -198,9 +193,8 @@ constexpr std::array<Opcode, 256> initOpcodes() {
   add_ix({.mnemon = M::BRV, .type = T::A_ix, .unary = 0});
   add_ix({.mnemon = M::BRC, .type = T::A_ix, .unary = 0});
   add_ix({.mnemon = M::CALL, .type = T::A_ix, .unary = 0});
-
   add_all({.mnemon = M::SCALL, .type = T::AAA_all, .unary = 1});
-  add_all({.mnemon = M::LDWT, .type = T::AAA_i, .unary = 0});
+
   add_all({.mnemon = M::LDWA, .type = T::RAAA_all, .unary = 0});
   add_all({.mnemon = M::LDWX, .type = T::RAAA_all, .unary = 0});
   add_all({.mnemon = M::LDBA, .type = T::RAAA_all, .unary = 0});
@@ -235,7 +229,6 @@ enum class Register : quint8 {
   PC = 3,
   IS = 4,
   OS = 5,
-  TR = 6,
 };
 Q_ENUM_NS(Register);
 
