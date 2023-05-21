@@ -2,6 +2,6 @@
 ; Implements CHARO using the stack to cache the contents of A.
 ; Alternative to the accumulator-destroying CHARI.
 STWA -2, s
-LDBA charIn, d
+LDBA 0xFFFD, d
 STBA $1, $2
 LDWA -2, s
