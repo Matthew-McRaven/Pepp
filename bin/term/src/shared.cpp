@@ -15,6 +15,9 @@ QSharedPointer<const builtins::Book> detail::book(int ed) {
   case 4:
     bookName = "Computer Systems, 4th Edition";
     break;
+  case 5:
+    bookName = "Computer Systems, 5th Edition";
+    break;
   case 6:
     bookName = "Computer Systems, 6th Edition";
     break;
