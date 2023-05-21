@@ -22,11 +22,12 @@ void ListTask::run() {
 
   std::cout << std::endl;
 
-  std::cout << "Macros: " << std::endl;
-  for (auto &macro : macros)
-    std::cout
+  if(macros.size() > 0) {
+    std::cout << "Macros: " << std::endl;
+    for (auto &macro : macros)
+      std::cout
         << u"%1 %2"_qs.arg(macro->name()).arg(macro->argCount()).toStdString()
         << std::endl;
-
+  }
   return emit finished(0);
 }
