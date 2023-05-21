@@ -1,0 +1,10 @@
+{
+  "type": "figure",
+  "name": "08:32",
+  "kind": "problem",
+  "arch": "pep9",
+  "default_os": "os:os",
+  "items": {
+    "pep": "{ch}{fig}.pep"
+  }
+}
