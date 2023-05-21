@@ -1,0 +1,12 @@
+// File: exer1207f.pepcpu
+// Computer Systems, Fourth Edition
+// Exercise 12.7(f)
+// STBYTEA there,sxf
+// RTL: byteOprnd <- A<8..15>
+// Stack-indexed deferred addressing: Oprnd = Mem[Mem[SP + OprndSpec] + X]
+// Shortest known implementation: 16 cycles
+
+UnitPre: A=0x00AB, IR=0xF700F1, SP=0x000E, Mem[0x00FF]=0x01F9, X=0x000A
+UnitPre: N=1, Z=0, V=1, C=0, T1=0x0A // T1 stores NZVC=1010 in von Neumann step
+UnitPost: Mem[0x0203]=0xAB, N=1, Z=0, V=1, C=0
+

@@ -1,0 +1,14 @@
+// File: exer1207r.pepcpu
+// Computer Systems, Fourth Edition
+// Exercise 12.7(r)
+// ORA this,i
+// RTL: A <- A OR Oprnd; N <- A<0, Z <- A=0
+// Immediate addressing: Oprnd = OprndSpec
+// Shortest known implementation: 2 cycles
+
+UnitPre: IR=0xA0ABCD, A=0x00FF, N=0, Z=0
+UnitPost: A=0xABFF, N=1, Z=0
+
+// UnitPre: IR=0xA00000, A=0x0000, N=0, Z=0
+// UnitPost: A=0x0000, N=0, Z=1
+
