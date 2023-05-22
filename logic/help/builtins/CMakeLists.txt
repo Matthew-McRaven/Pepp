@@ -13,5 +13,5 @@ target_compile_definitions(builtins PRIVATE BUILTINS_LIBRARY)
 qt_add_resources(builtins "builtins" PREFIX "/" FILES ${cs6e-res})
 
 if(NOT IOS)
-  make_qtest(test-builtins test/dummy.test.cpp "builtins;Qt6::Core;Qt6::Gui;Qt6::Qml;Qt6::Quick;Qt::Test")
+  make_qtest(test-builtins test/dummy.cpp "builtins;Qt6::Core;Qt6::Gui;Qt6::Qml;Qt6::Quick;Qt::Test")
 endif()
