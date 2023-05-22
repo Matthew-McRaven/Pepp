@@ -1,1 +1,1 @@
-cloc --fullpath --not-match-d="(node_modules|build|dist|3rd-party|plugins|\.browser_modules|src-gen|coverage|.scripts|.tsconfig|.gitlab|.cmake).*" --not-match-f "(package-lock.json|yarn.lock|gen_.*)" .
+cloc --fullpath --not-match-d="(node_modules|build|dist|3rd-party|plugins|\.browser_modules|src-gen|coverage|.scripts|.tsconfig|.gitlab|.cmake|test).*" --not-match-f "(package-lock.json|yarn.lock|gen_.*)" .

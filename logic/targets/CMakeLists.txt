@@ -6,8 +6,8 @@ target_link_libraries(targets PUBLIC "Qt6::Core;${Boost_LIBRARIES};bits;sim;isa;
 target_compile_definitions(targets PRIVATE TARGETS_LIBRARY)
 
 if(NOT IOS)
-  make_qtest(test-targets-isa3-pep10-bootstrap1 test/isa3-pep10/bootstrap1.test.cpp "targets;Qt6::Core;${Boost_LIBRARIES};Qt6::Test")
-  make_qtest(test-targets-isa3-pep10-run-figs test/isa3-pep10/figs.test.cpp "builtins;targets;Qt6::Core;${Boost_LIBRARIES};Qt6::Test;pas")
+  make_qtest(test-targets-isa3-pep10-bootstrap1 test/isa3-pep10/bootstrap1.cpp "targets;Qt6::Core;${Boost_LIBRARIES};Qt6::Test")
+  make_qtest(test-targets-isa3-pep10-run-figs test/isa3-pep10/figs.cpp "builtins;targets;Qt6::Core;${Boost_LIBRARIES};Qt6::Test;pas")
   set_target_properties(test-targets-isa3-pep10-run-figs PROPERTIES FOLDER "qtc_runnable")
   add_subdirectory(test/isa3-pep10)
 endif()
