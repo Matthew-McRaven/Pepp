@@ -1,1 +1,0 @@
-npx lerna version --no-push -m "build: release %v [skip ci]" --conventional-commits --changelog-preset angular --yes --force-publish
