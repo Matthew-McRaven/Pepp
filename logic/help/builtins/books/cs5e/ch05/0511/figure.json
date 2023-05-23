@@ -1,0 +1,10 @@
+{
+  "type": "figure",
+  "name": "05:11",
+  "kind": "sample",
+  "arch": "pep9",
+  "default_os": "os:os",
+  "items": {
+    "pep": "{ch}{fig}.pep"
+  }
+}

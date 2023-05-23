@@ -1,0 +1,20 @@
+// File: exer1207n.pepcpu
+// Computer Systems, Fourth Edition
+// Exercise 12.7(n)
+// ADDSP this,i
+// RTL: SP <- SP+Oprnd; N <- SP<0, Z <- SP=0, V <- {overflow}, C <- {carry}
+// Immediate addressing: Oprnd = OprndSpec
+// Shortest known implementation: 2 cycles
+
+UnitPre: IR=0x600FF0, SP=0x0F11, N=0, Z=0, V=1, C=1
+UnitPost: SP=0x1F01, N=0, Z=0, V=0, C=0
+
+// UnitPre: IR=0x607FF0, SP=0x0F11, N=0, Z=0, V=0, C=1
+// UnitPost: SP=0x8F01, N=1, Z=0, V=1, C=0
+
+// UnitPre: IR=0x60FF00, SP=0xFFAB, N=1, Z=0, V=1, C=0
+// UnitPost: SP=0xFEAB, N=1, Z=0, V=0, C=1
+
+// UnitPre: IR=0x60FF00, SP=0x0100, N=1, Z=0, V=1, C=0
+// UnitPost: SP=0x0000, N=0, Z=1, V=0, C=1
+

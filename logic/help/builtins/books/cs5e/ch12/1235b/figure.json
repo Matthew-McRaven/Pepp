@@ -1,0 +1,9 @@
+{
+  "type": "figure",
+  "name": "12:35b",
+  "kind": "problem",
+  "arch": "pep9",
+  "items": {
+    "pepcpu": "{ch}{fig}.pepcpu"
+  }
+}

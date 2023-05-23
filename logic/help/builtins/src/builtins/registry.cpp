@@ -189,6 +189,8 @@ void builtins::detail::linkFigureOS(QString manifestPath,
   if (isOs.isBool() && isOs.toBool())
     return;
   QString chFig = manifest["default_os"].toString();
+  if(chFig.isEmpty())
+    return;
   // Chapter and figure are separated by : in a manifest file.
   if (chFig.indexOf(":") == -1)
     qFatal("Invalid OS figure name");

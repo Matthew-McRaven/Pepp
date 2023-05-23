@@ -1,0 +1,22 @@
+// File: fig1208.pepcpu
+// Computer Systems, Fourth Edition
+// Figure 12.8
+// STBYTEA there,d
+// RTL: byteOprnd <- A<8..15>
+// Direct addressing: Oprnd = Mem[OprndSpec]
+// Shortest known implementation: 4 cycles
+
+UnitPre: IR=0xF1000F, A=0x00AB
+UnitPost: Mem[0x000F]=0xAB
+
+// MAR <- OprndSpec.
+1. A=9, B=10; MARCk
+
+// MBR <- A<low>.
+2. A=1, AMux=1, ALU=0, CMux=1, MDRMux=1; MDRCk
+
+// Initiate memory write.
+3. MemWrite
+
+// Complete memory write.
+4. MemWrite

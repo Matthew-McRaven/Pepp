@@ -1,0 +1,12 @@
+{
+  "type": "figure",
+  "name": "04:36",
+  "kind": "sample",
+  "arch": "pep8",
+  "default_os": "os:os",
+  "items": {
+    "pepb": "{ch}{fig}.pepb",
+    "peph": "{ch}{fig}.peph",
+    "pepo": "{ch}{fig}.pepo"
+  }
+}
