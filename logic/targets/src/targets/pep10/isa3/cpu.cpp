@@ -37,6 +37,10 @@ sim::api::memory::Target<quint8> *targets::pep10::isa::CPU::csrs() {
   return &_csrs;
 }
 
+targets::pep10::isa::CPU::Status targets::pep10::isa::CPU::status() const {
+  return _status;
+}
+
 const sim::api::tick::Source *targets::pep10::isa::CPU::getSource() {
   return _clock;
 }
@@ -469,6 +473,7 @@ sim::api::tick::Result targets::pep10::isa::CPU::unaryDispatch(quint8 is) {
     writeReg(Register::PC, tmp);
     break;
   default:
+    _status = Status::IllegalOpcode;
     retErr = sim::api::tick::Error::Terminate;
   }
   return {.pause = false,
@@ -807,6 +812,7 @@ targets::pep10::isa::CPU::nonunaryDispatch(quint8 is, quint16 os, quint16 pc) {
     writeReg(Register::SP, sp - operand);
     break;
   default:
+    _status = Status::IllegalOpcode;
     retErr = sim::api::tick::Error::Terminate;
   }
 

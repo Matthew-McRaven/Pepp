@@ -17,6 +17,12 @@ public:
 
   sim::api::memory::Target<quint8> *regs();
   sim::api::memory::Target<quint8> *csrs();
+  enum class Status {
+    Ok = 0,
+    IllegalOpcode = 1,
+  };
+
+  Status status() const;
 
   // Listener interface
   const sim::api::tick::Source *getSource() override;
@@ -38,6 +44,7 @@ public:
                  sim::api::memory::Target<quint16> *target) override;
 
 private:
+  Status _status = Status::Ok;
   sim::api::device::Descriptor _device;
   sim::memory::Dense<quint8> _regs, _csrs;
   sim::api::memory::Target<quint16> *_memory;
