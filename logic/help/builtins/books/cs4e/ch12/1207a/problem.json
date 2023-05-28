@@ -1,7 +1,6 @@
 {
   "type": "figure",
-  "name": "12:07w",
-  "kind": "exercise",
+  "name": "12:07a",
   "arch": "pep8",
   "items": {
     "pepcpu": "{ch}{fig}.pepcpu"

@@ -1,7 +1,6 @@
 {
   "type": "figure",
   "name": "04:35",
-  "kind": "sample",
   "arch": "pep8",
   "default_os": "os:os",
   "items": {

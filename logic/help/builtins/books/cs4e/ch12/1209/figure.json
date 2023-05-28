@@ -1,7 +1,6 @@
 {
   "type": "figure",
   "name": "12:09",
-  "kind": "sample",
   "arch": "pep8",
   "items": {
     "pepcpu": "{ch}{fig}.pepcpu"
