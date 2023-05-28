@@ -5,6 +5,6 @@
   "arch": "pep8",
   "is_os": true,
   "items": {
-    "pep": "{ch}.pep"
+    "pep": "{fig}.pep"
   }
 }
