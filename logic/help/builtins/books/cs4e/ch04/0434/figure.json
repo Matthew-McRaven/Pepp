@@ -2,7 +2,7 @@
   "type": "figure",
   "name": "04:34",
   "arch": "pep8",
-  "default_os": "os:os",
+  "default_os": "os:pep8os",
   "items": {
     "pepb": "{ch}{fig}.pepb",
     "peph": "{ch}{fig}.peph",

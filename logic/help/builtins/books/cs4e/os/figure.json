@@ -1,6 +1,6 @@
 {
   "type": "figure",
-  "name": "os:os",
+  "name": "os:pep8os",
   "kind": "mmap",
   "arch": "pep8",
   "is_os": true,

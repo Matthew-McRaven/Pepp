@@ -2,7 +2,7 @@
   "type": "figure",
   "name": "06:34",
   "arch": "pep8",
-  "default_os": "os:os",
+  "default_os": "os:pep8os",
   "items": {
     "pep": "{ch}{fig}.pep",
     "cpp": "{ch}{fig}.cpp"
