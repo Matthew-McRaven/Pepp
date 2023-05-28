@@ -1,4 +1,4 @@
-;File: exer0804.pep
+;File: prob0804.pep
 ;Computer Systems, Fifth edition
 ;Exercise 8.4
 ;
@@ -6,9 +6,9 @@
 num:     .BLOCK  2           ;global variable
 main:    DECI    num,d       ;input decimal value
          DECO    num,d       ;output decimal value
-         LDBA    '\n',i      
-         STBA    charOut,d   
+         LDBA    '\n',i
+         STBA    charOut,d
          STRO    msg,d       ;output message
-         STOP                
+         STOP
 msg:     .ASCII  "That's all.\n\x00"
-         .END                  
+         .END
