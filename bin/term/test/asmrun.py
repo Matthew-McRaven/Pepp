@@ -11,7 +11,7 @@ class TestCase(unittest.TestCase):
     def test_baremetal(self):
         with tempfile.TemporaryDirectory() as cwd:
             ret = subprocess.run(
-                [executable, "get", "--ch", "os", "--fig", "bm"], cwd=cwd, capture_output=True)
+                [executable, "get", "--ch", "os", "--fig", "pep10baremetal"], cwd=cwd, capture_output=True)
             self.assertEqual(ret.returncode, 0)
             try:
                 with open(f"{cwd}/os.pep", "wb") as f:
