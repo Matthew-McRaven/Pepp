@@ -32,6 +32,7 @@ namespace detail {
                                      void *asm_toolchains);
 ::builtins::Test *loadTest(QString testDirPath);
 QSharedPointer<builtins::Figure> loadFigure(QString manifestPath);
+QSharedPointer<builtins::Figure> loadProblem(QString manifestPath);
 void linkFigureOS(QString manifestPath,
                   QSharedPointer<::builtins::Figure> figure,
                   QSharedPointer<const builtins::Book> book);

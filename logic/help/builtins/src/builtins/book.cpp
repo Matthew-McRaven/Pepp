@@ -40,6 +40,41 @@ bool builtins::Book::addFigure(QSharedPointer<Figure> figure) {
     return false;
 }
 
+const QList<QSharedPointer<builtins::Figure>> builtins::Book::problems() const {
+  return _problems;
+}
+
+QSharedPointer<const builtins::Figure>
+builtins::Book::findProblem(QString chapter, QString problem) const {
+  QList<QSharedPointer<const builtins::Figure>> temp;
+  for (auto figurePtr : _problems) {
+    if (figurePtr->chapterName() == chapter &&
+        figurePtr->figureName() == problem) {
+      temp.push_back(figurePtr);
+    }
+  }
+  if (auto length = temp.length(); length == 0)
+    return nullptr;
+  else if (length == 1)
+    return temp.first();
+  else {
+    qDebug() << (u"More than one copy of problem {}.{}"_qs)
+                    .arg(chapter)
+                    .arg(problem);
+    return nullptr;
+  }
+}
+
+bool builtins::Book::addProblem(QSharedPointer<Figure> problem) {
+  // TODO: Adding N figures will take N^2 time because of the calls to find.
+  // Will be necessary to speed this up for large N.
+  if (findProblem(problem->chapterName(), problem->figureName()) == nullptr) {
+    _problems.push_back(problem);
+    return true;
+  } else
+    return false;
+}
+
 const QList<QSharedPointer<macro::Parsed>> builtins::Book::macros() const {
   return _macros;
 }

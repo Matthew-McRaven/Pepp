@@ -39,6 +39,18 @@ public:
   //! Returns false if a figure by this name already exists, and true otherwise.
   //! If returning false, the figure was not added to the book.
   bool addFigure(QSharedPointer<builtins::Figure> figure);
+
+  //! Returns the list of all figures contained by the book.
+  const QList<QSharedPointer<builtins::Figure>> problems() const;
+  //! If the book contains a matching figure, return that figure, otherwise
+  //! return nullptr. We do not allow multiple figures with the same name.
+  QSharedPointer<const builtins::Figure> findProblem(QString chapter,
+                                                     QString problem) const;
+  //! Register an figure as part of the current book.
+  //! Returns false if a figure by this name already exists, and true otherwise.
+  //! If returning false, the figure was not added to the book.
+  bool addProblem(QSharedPointer<builtins::Figure> problem);
+
   //! Return the list of all macros which are contained by this book.
   const QList<QSharedPointer<macro::Parsed>> macros() const;
   //! If the book contains a matching macro, return that macro, otherwise
@@ -58,7 +70,7 @@ signals:
 
 private:
   QString _name;
-  QList<QSharedPointer<builtins::Figure>> _figures = {};
+  QList<QSharedPointer<builtins::Figure>> _figures = {}, _problems = {};
   QList<QSharedPointer<macro::Parsed>> _macros = {};
 };
 } // end namespace builtins
