@@ -1,6 +1,6 @@
-;File: prob0804.pep
+;File: fig0832.pep
 ;Computer Systems, Fifth edition
-;Exercise 8.4
+;Figure 08.34
 ;
          BR      main        ;branch around data
 num:     .BLOCK  2           ;global variable
