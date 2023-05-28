@@ -3,13 +3,13 @@
 namespace isa::detail::pep10 {
 Q_NAMESPACE;
 enum class Mnemonic {
-  RET = 0x0,
-  SRET = 0x1,
-  MOVSPA = 0x2,
-  MOVASP = 0x3,
-  MOVFLGA = 0x4,
-  MOVAFLG = 0x5,
-  NOP = 0x6,
+  RET = 0x1,
+  SRET = 0x2,
+  MOVSPA = 0x3,
+  MOVASP = 0x4,
+  MOVFLGA = 0x5,
+  MOVAFLG = 0x6,
+  NOP = 0x7,
 
   // FAULTS
   UNIMPL,
@@ -99,6 +99,7 @@ struct Instruction {
 struct Opcode {
   Instruction instr;
   AddressingMode mode;
+  bool valid;
 };
 constexpr std::array<Opcode, 256> initOpcodes() {
   using M = Mnemonic;
@@ -107,81 +108,109 @@ constexpr std::array<Opcode, 256> initOpcodes() {
   auto ret = std::array<Opcode, 256>();
   auto add_ix = [&ret](Instruction i) {
     auto base = static_cast<quint8>(i.mnemon);
-    ret[base] = {.instr = i, .mode = AM::I};
-    ret[base + 1] = {.instr = i, .mode = AM::X};
+    ret[base] = {.instr = i, .mode = AM::I, .valid = true};
+    ret[base + 1] = {.instr = i, .mode = AM::X, .valid = true};
   };
   auto add_all = [&ret](Instruction i) {
     auto base = static_cast<quint8>(i.mnemon);
-    ret[base] = {.instr = i, .mode = AM::I};
-    ret[base + 1] = {.instr = i, .mode = AM::D};
-    ret[base + 2] = {.instr = i, .mode = AM::N};
-    ret[base + 3] = {.instr = i, .mode = AM::S};
-    ret[base + 4] = {.instr = i, .mode = AM::SF};
-    ret[base + 5] = {.instr = i, .mode = AM::X};
-    ret[base + 6] = {.instr = i, .mode = AM::SX};
-    ret[base + 7] = {.instr = i, .mode = AM::SFX};
+    ret[base] = {.instr = i, .mode = AM::I, .valid = true};
+    ret[base + 1] = {.instr = i, .mode = AM::D, .valid = true};
+    ret[base + 2] = {.instr = i, .mode = AM::N, .valid = true};
+    ret[base + 3] = {.instr = i, .mode = AM::S, .valid = true};
+    ret[base + 4] = {.instr = i, .mode = AM::SF, .valid = true};
+    ret[base + 5] = {.instr = i, .mode = AM::X, .valid = true};
+    ret[base + 6] = {.instr = i, .mode = AM::SX, .valid = true};
+    ret[base + 7] = {.instr = i, .mode = AM::SFX, .valid = true};
   };
 
+  ret[0x00] = {
+      .instr = {.mnemon = M::INVALID, .type = T::U_none, .unary = true},
+      .mode = AM::NONE,
+      .valid = false};
   ret[(quint8)M::RET] = {
       .instr = {.mnemon = M::RET, .type = T::U_none, .unary = 1},
-      .mode = AM::NONE};
+      .mode = AM::NONE,
+      .valid = true};
   ret[(quint8)M::SRET] = {
       .instr = {.mnemon = M::SRET, .type = T::U_none, .unary = 1},
-      .mode = AM::NONE};
+      .mode = AM::NONE,
+      .valid = true};
   ret[(quint8)M::MOVSPA] = {
       .instr = {.mnemon = M::MOVSPA, .type = T::U_none, .unary = 1},
-      .mode = AM::NONE};
+      .mode = AM::NONE,
+      .valid = true};
   ret[(quint8)M::MOVASP] = {
       .instr = {.mnemon = M::MOVASP, .type = T::U_none, .unary = 1},
-      .mode = AM::NONE};
+      .mode = AM::NONE,
+      .valid = true};
   ret[(quint8)M::MOVFLGA] = {
       .instr = {.mnemon = M::MOVFLGA, .type = T::U_none, .unary = 1},
-      .mode = AM::NONE};
+      .mode = AM::NONE,
+      .valid = true};
   ret[(quint8)M::MOVAFLG] = {
       .instr = {.mnemon = M::MOVAFLG, .type = T::U_none, .unary = 1},
-      .mode = AM::NONE};
+      .mode = AM::NONE,
+      .valid = true};
   ret[(quint8)M::NOP] = {
       .instr = {.mnemon = M::NOP, .type = T::U_none, .unary = 1},
-      .mode = AM::NONE};
+      .mode = AM::NONE,
+      .valid = true};
 
   // Gap
+  for (int it = (int)M::NOP; it < (int)M::NOTA; it++)
+    ret[it] = {
+        .instr = {.mnemon = M::INVALID, .type = T::U_none, .unary = true},
+        .mode = AM::NONE,
+        .valid = false};
 
   ret[(quint8)M::NOTA] = {
       .instr = {.mnemon = M::NOTA, .type = T::R_none, .unary = 1},
-      .mode = AM::NONE};
+      .mode = AM::NONE,
+      .valid = true};
   ret[(quint8)M::NOTX] = {
       .instr = {.mnemon = M::NOTX, .type = T::R_none, .unary = 1},
-      .mode = AM::NONE};
+      .mode = AM::NONE,
+      .valid = true};
   ret[(quint8)M::NEGA] = {
       .instr = {.mnemon = M::NEGA, .type = T::R_none, .unary = 1},
-      .mode = AM::NONE};
+      .mode = AM::NONE,
+      .valid = true};
   ret[(quint8)M::NEGX] = {
       .instr = {.mnemon = M::NEGX, .type = T::R_none, .unary = 1},
-      .mode = AM::NONE};
+      .mode = AM::NONE,
+      .valid = true};
   ret[(quint8)M::ASLA] = {
       .instr = {.mnemon = M::ASLA, .type = T::R_none, .unary = 1},
-      .mode = AM::NONE};
+      .mode = AM::NONE,
+      .valid = true};
   ret[(quint8)M::ASLX] = {
       .instr = {.mnemon = M::ASLX, .type = T::R_none, .unary = 1},
-      .mode = AM::NONE};
+      .mode = AM::NONE,
+      .valid = true};
   ret[(quint8)M::ASRA] = {
       .instr = {.mnemon = M::ASRA, .type = T::R_none, .unary = 1},
-      .mode = AM::NONE};
+      .mode = AM::NONE,
+      .valid = true};
   ret[(quint8)M::ASRX] = {
       .instr = {.mnemon = M::ASRX, .type = T::R_none, .unary = 1},
-      .mode = AM::NONE};
+      .mode = AM::NONE,
+      .valid = true};
   ret[(quint8)M::ROLA] = {
       .instr = {.mnemon = M::ROLA, .type = T::R_none, .unary = 1},
-      .mode = AM::NONE};
+      .mode = AM::NONE,
+      .valid = true};
   ret[(quint8)M::ROLX] = {
       .instr = {.mnemon = M::ROLX, .type = T::R_none, .unary = 1},
-      .mode = AM::NONE};
+      .mode = AM::NONE,
+      .valid = true};
   ret[(quint8)M::RORA] = {
       .instr = {.mnemon = M::RORA, .type = T::R_none, .unary = 1},
-      .mode = AM::NONE};
+      .mode = AM::NONE,
+      .valid = true};
   ret[(quint8)M::RORX] = {
       .instr = {.mnemon = M::RORX, .type = T::R_none, .unary = 1},
-      .mode = AM::NONE};
+      .mode = AM::NONE,
+      .valid = true};
 
   add_ix({.mnemon = M::BR, .type = T::A_ix, .unary = 0});
   add_ix({.mnemon = M::BRLE, .type = T::A_ix, .unary = 0});
