@@ -1,0 +1,10 @@
+{
+  "type": "figure",
+  "name": "os:pep10os",
+  "kind": "mmap",
+  "arch": "pep10",
+  "is_os": true,
+  "items": {
+    "pep": "{fig}.pep"
+  }
+}

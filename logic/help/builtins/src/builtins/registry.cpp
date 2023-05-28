@@ -189,7 +189,7 @@ void builtins::detail::linkFigureOS(QString manifestPath,
   if (isOs.isBool() && isOs.toBool())
     return;
   QString chFig = manifest["default_os"].toString();
-  if(chFig.isEmpty())
+  if (chFig.isEmpty())
     return;
   // Chapter and figure are separated by : in a manifest file.
   if (chFig.indexOf(":") == -1)
@@ -229,6 +229,17 @@ QSharedPointer<builtins::Book> builtins::detail::loadBook(QString tocPath) {
         qFatal("Failed to load figure");
       revisit.push_back({next, figure});
       book->addFigure(figure);
+    }
+    // If the file is named as a problem manifest, parse the figure and insert
+    // into book
+    if (next.endsWith("problem.json")) {
+      auto problem = loadFigure(next);
+      // TODO: throw exception instead
+      if (problem ==
+          nullptr) // Crash on failure for ease of initial prototyping
+        qFatal("Failed to load problem");
+      revisit.push_back({next, problem});
+      book->addProblem(problem);
     }
 
     // If the file is name as a macro manifest, parse the macro and insert into

@@ -42,7 +42,7 @@ void AsmTask::run() {
   // If no OS, default to full.
   QString osContents;
   if (osIn->empty()) {
-    auto os = book->findFigure("os", "full");
+    auto os = book->findFigure("os", "pep10os");
     osContents = os->typesafeElements()["pep"]->contents;
   } else {
     QFile oIn(QString::fromStdString(*osIn)); // auto-closes

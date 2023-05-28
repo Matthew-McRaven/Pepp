@@ -1,9 +1,8 @@
 {
   "type": "figure",
   "name": "06:04",
-  "kind": "sample",
   "arch": "pep10",
-  "default_os": "os:full",
+  "default_os": "os:pep10os",
   "ios": [
     "io0"
   ],

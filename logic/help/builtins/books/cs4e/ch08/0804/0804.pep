@@ -1,4 +1,4 @@
-;File: exer0804.pep
+;File: prob0804.pep
 ;Computer Systems, Fourth edition
 ;Exercise 8.4
 ;
@@ -6,8 +6,8 @@
 num:     .BLOCK  2           ;Global variable
 main:    DECI    num,d       ;Input decimal value
          DECO    num,d       ;Output decimal value
-         CHARO   '\n',i      
+         CHARO   '\n',i
          STRO    msg,d       ;Output message
-         STOP                
+         STOP
 msg:     .ASCII  "That's all.\n\x00"
-         .END                  
+         .END

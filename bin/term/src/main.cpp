@@ -34,17 +34,23 @@ int main(int argc, char **argv) {
 
   auto get = app.add_subcommand("get", "Fetch the body of a figure or macro");
   auto get_selector = get->add_option_group("")->required();
-  auto get_figure = get_selector->add_option_group("[--ch, --fig]");
-  std::string ch, fig, macro, type;
+  auto get_figure = get_selector->add_option_group("[--ch]");
+  std::string ch, fig, macro, type, prob;
   auto chOpt = get_figure->add_option("--ch", ch, "")->required();
-  auto figOpt = get_figure->add_option("--fig", fig, "")->required();
+  auto get_item = get_figure->add_option_group("[--fig, --prob]");
+  auto figOpt = get_item->add_option("--fig", fig, "");
+  auto probOpt = get_item->add_option("--prob", prob, "");
   auto typeOpt = get_figure->add_option("--type", type, "")->default_val("pep");
   auto macroOpt = get_selector->add_option("--macro", macro, "");
   get_selector->require_option(1);
+  get_item->require_option(1);
   get->callback([&]() {
     if (chOpt->count() > 0)
       task = [&](QObject *parent) {
-        return new GetFigTask(edValue, ch, fig, type, parent);
+        if (*figOpt)
+          return new GetFigTask(edValue, ch, fig, type, true, parent);
+        else
+          return new GetFigTask(edValue, ch, fig, type, false, parent);
       };
     else if (macroOpt->count() > 0)
       task = [&](QObject *parent) {
