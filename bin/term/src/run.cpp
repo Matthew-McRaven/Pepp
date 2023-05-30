@@ -31,7 +31,7 @@ bool RunTask::loadToElf() {
     return false;
   QString osContents;
   if (!_osIn.has_value()) {
-    auto os = book->findFigure("os", "full");
+    auto os = book->findFigure("os", "pep10os");
     osContents = os->typesafeElements()["pep"]->contents;
   } else {
     QFile oIn(QString::fromStdString(*_osIn)); // auto-closes
