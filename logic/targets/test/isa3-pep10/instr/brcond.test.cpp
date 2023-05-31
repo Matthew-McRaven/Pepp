@@ -87,7 +87,6 @@ private slots:
     // are 16 bits. Introduce chances for byte-swaps.
     for (uint16_t opspec = 0x00'00; static_cast<uint32_t>(opspec) + 1 < 0x02'00;
          opspec++) {
-
       // Object code for instruction under test.
       auto program = std::array<quint8, 3>{
           opcode, static_cast<uint8_t>((opspec >> 8) & 0xff),
