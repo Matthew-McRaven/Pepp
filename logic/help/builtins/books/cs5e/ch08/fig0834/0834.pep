@@ -1,4 +1,4 @@
-;File: fig0832.pep
+;File: fig0834.pep
 ;Computer Systems, Fifth edition
 ;Figure 08.34
 ;
