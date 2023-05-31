@@ -36,6 +36,7 @@ void ListTask::run() {
     std::cout << std::endl;
   }
 
+  if (problems.size() > 0) {
     std::cout << "\nProblems: \n";
     for (auto &problem : problems) {
       std::cout << u"%1.%2"_qs
@@ -44,6 +45,7 @@ void ListTask::run() {
                        .toStdString();
       std::cout << problem->typesafeElements().keys().join(", ").toStdString();
       std::cout << std::endl;
+    }
   }
 
   if (macros.size() > 0) {
