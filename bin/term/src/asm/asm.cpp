@@ -9,6 +9,8 @@
 AsmTask::AsmTask(int ed, std::string userFname, QObject *parent)
     : Task(parent), ed(ed), userIn(userFname) {}
 
+void AsmTask::setBm(bool forceBm) { this->forceBm = forceBm; }
+
 void AsmTask::setOsFname(std::string fname) { osIn = fname; }
 
 void AsmTask::setErrName(std::string fname) { errOut = fname; }
@@ -41,7 +43,10 @@ void AsmTask::run() {
 
   // If no OS, default to full.
   QString osContents;
-  if (osIn->empty()) {
+  if (this->forceBm) {
+    auto os = book->findFigure("os", "pep10baremetal");
+    osContents = os->typesafeElements()["pep"]->contents;
+  } else if (osIn->empty()) {
     auto os = book->findFigure("os", "pep10os");
     osContents = os->typesafeElements()["pep"]->contents;
   } else {
