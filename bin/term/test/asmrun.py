@@ -8,6 +8,32 @@ executable = ""
 
 
 class TestCase(unittest.TestCase):
+    def test_baremetal_flag_flags(self):
+        with tempfile.TemporaryDirectory() as cwd:
+            try:
+                with open(f"{cwd}/in.pep", "wb") as f:
+                    f.write(b"SCALL 0,i")
+            except IOError:
+                self.fail("Writing contents should not fail")
+
+            ret = subprocess.run([executable,
+                                  "asm",
+                                  "-s",
+                                  "in.pep",
+                                  "--bm",
+                                  "-o",
+                                  "out.pepo"],
+                                 cwd=cwd,
+                                 capture_output=True)
+            self.assertEqual(ret.returncode, 0)
+
+            ret = subprocess.run(
+                [executable, "run", "--bm","-s", "out.pepo"], cwd=cwd, capture_output=True)
+            self.assertEqual(ret.returncode, 0)
+            self.assertEqual(
+                ret.stdout,
+                b"Cannot use system calls in bare metal mode\n")
+
     def test_baremetal(self):
         with tempfile.TemporaryDirectory() as cwd:
             ret = subprocess.run(

@@ -12,6 +12,7 @@ public:
   void setCharIn(std::string fname);
   void setMemDump(std::string fname);
   void setMaxSteps(quint64 maxSteps);
+  void setBm(bool forceBm);
   void setOsIn(std::string fname);
   void setSkipLoad(bool skip);
   void setSkipDispatch(bool skip);
@@ -24,6 +25,6 @@ private:
   std::string _charOut, _charIn, _memDump;
   quint64 _maxSteps;
   std::optional<std::string> _osIn;
-  bool _skipLoad = false, _skipDispatch = false;
+  bool _skipLoad = false, _skipDispatch = false, _forceBm = false;
   QMap<std::string, quint16> _regOverrides;
 };

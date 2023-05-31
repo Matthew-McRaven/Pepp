@@ -4,6 +4,7 @@
 class AsmTask : public Task {
 public:
   AsmTask(int ed, std::string userFname, QObject *parent = nullptr);
+  void setBm(bool forceBm);
   void setOsFname(std::string fname);
   void setErrName(std::string fname);
   void setPepoName(std::string fname);
@@ -15,6 +16,7 @@ public:
 private:
   int ed;
   std::string userIn;
+  bool forceBm = false;
   std::optional<std::string> osIn, peplOut, elfOut, osListOut, errOut, pepoOut;
   std::list<std::string> macroDirs;
 };

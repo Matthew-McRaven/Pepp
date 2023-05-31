@@ -59,10 +59,15 @@ int main(int argc, char **argv) {
   });
 
   auto asmSC = app.add_subcommand("asm", "Assemble stuff");
+  bool bm;
   std::string userName, osListing, pepoOut, errOut;
   std::optional<std::string> osName = std::nullopt, elfName = std::nullopt;
   std::list<std::string> macroDirs;
   auto osOpt = asmSC->add_option("--os", osName);
+  CLI::Option *bmAsmOpt = nullptr;
+  if (edValue == 6)
+    bmAsmOpt =
+        asmSC->add_flag("--bm", bm, "Use bare metal OS.")->excludes(osOpt);
   auto elfOpt = asmSC->add_option("--elf", elfName);
   auto pepoOpt = asmSC->add_option("-o", pepoOut);
   auto errOpt = asmSC->add_option("-e", errOut);
@@ -73,7 +78,9 @@ int main(int argc, char **argv) {
   asmSC->callback([&]() {
     task = [&](QObject *parent) {
       auto ret = new AsmTask(edValue, userName, parent);
-      if (*osOpt)
+      if (bmAsmOpt && *bmAsmOpt)
+        ret->setBm(bm);
+      else if (*osOpt)
         ret->setOsFname(*osName);
       if (*elfOpt)
         ret->emitElfTo(*elfName);
@@ -89,7 +96,7 @@ int main(int argc, char **argv) {
     };
   });
 
-  bool skipLoad, skipDispatch;
+  bool skipLoad, skipDispatch /*,bm comes from asm*/;
   std::string objIn, charIn, charOut, memDump, osIn;
   uint64_t maxSteps;
   std::map<std::string, quint64> regOverrides;
@@ -115,6 +122,10 @@ int main(int argc, char **argv) {
       ->default_val(125'000);
   auto osInOpt =
       runSC->add_option("--os", osIn, "File from which os will be read.");
+  CLI::Option *bmRunOpt = nullptr;
+  if (edValue == 6)
+    bmRunOpt =
+        runSC->add_flag("--bm", bm, "Use bare metal OS.")->excludes(osInOpt);
   if (edValue == 6) {
     runSC->add_flag("--skip-load", skipLoad)->group("");
     runSC->add_flag("--skip-dispatch", skipDispatch)->group("");
@@ -128,7 +139,9 @@ int main(int argc, char **argv) {
       ret->setCharOut(charOut);
       if (*memDumpOpt)
         ret->setMemDump(memDump);
-      if (*osInOpt)
+      if (bmRunOpt && *bmRunOpt)
+        ret->setBm(bm);
+      else if (*osInOpt)
         ret->setOsIn(osIn);
       ret->setMaxSteps(maxSteps);
       ret->setSkipLoad(skipLoad);

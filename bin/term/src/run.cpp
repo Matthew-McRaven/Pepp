@@ -30,7 +30,10 @@ bool RunTask::loadToElf() {
   if (book.isNull())
     return false;
   QString osContents;
-  if (!_osIn.has_value()) {
+  if (_forceBm && _ed == 6) {
+    auto os = book->findFigure("os", "pep10baremetal");
+    osContents = os->typesafeElements()["pep"]->contents;
+  } else if (!_osIn.has_value()) {
     auto os = book->findFigure("os", "pep10os");
     osContents = os->typesafeElements()["pep"]->contents;
   } else {
@@ -224,6 +227,8 @@ void RunTask::setCharIn(std::string fname) { this->_charIn = fname; }
 void RunTask::setMemDump(std::string fname) { _memDump = fname; }
 
 void RunTask::setMaxSteps(quint64 maxSteps) { this->_maxSteps = maxSteps; }
+
+void RunTask::setBm(bool forceBm) { _forceBm = forceBm; }
 
 void RunTask::setOsIn(std::string fname) { _osIn = fname; }
 
