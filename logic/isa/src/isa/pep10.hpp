@@ -157,7 +157,7 @@ constexpr std::array<Opcode, 256> initOpcodes() {
       .valid = true};
 
   // Gap
-  for (int it = (int)M::NOP; it < (int)M::NOTA; it++)
+  for (int it = (int)M::NOP + 1; it < (int)M::NOTA; it++)
     ret[it] = {
         .instr = {.mnemon = M::INVALID, .type = T::U_none, .unary = true},
         .mode = AM::NONE,
