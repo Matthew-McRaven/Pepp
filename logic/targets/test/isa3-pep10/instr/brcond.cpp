@@ -39,21 +39,21 @@ sim::api::memory::Operation rw = {.speculative = false,
 bool taken(quint8 opcode, quint8 nzvc) {
   auto [n, z, v, c] = targets::pep10::isa::unpackCSR(nzvc);
   switch (opcode) {
-  case 0x1E: // BRLE
+  case (quint8)isa::Pep10::Mnemonic::BRLE: // BRLE
     return n || z;
-  case 0x20: // BRLT
+  case (quint8)isa::Pep10::Mnemonic::BRLT:
     return n;
-  case 0x22: // BREQ
+  case (quint8)isa::Pep10::Mnemonic::BREQ:
     return z;
-  case 0x24: // BRNE
+  case (quint8)isa::Pep10::Mnemonic::BRNE:
     return !z;
-  case 0x26: // BRGE
+  case (quint8)isa::Pep10::Mnemonic::BRGE:
     return !n;
-  case 0x28: // BRGT
+  case (quint8)isa::Pep10::Mnemonic::BRGT:
     return (!n) && (!z);
-  case 0x2a: // BRV
+  case (quint8)isa::Pep10::Mnemonic::BRV:
     return v;
-  case 0x2c: // BRC
+  case (quint8)isa::Pep10::Mnemonic::BRC:
     return c;
   }
   return false;
@@ -104,7 +104,6 @@ private slots:
       QCOMPARE(rreg(isa::Pep10::Register::SP), 0);
       QCOMPARE(rreg(isa::Pep10::Register::A), 0);
       QCOMPARE(rreg(isa::Pep10::Register::X), 0);
-      QCOMPARE(rreg(isa::Pep10::Register::TR), 0);
       QCOMPARE(rreg(isa::Pep10::Register::IS), opcode);
       // OS loaded the Mem[0x0001-0x0002].
       QCOMPARE(rreg(isa::Pep10::Register::OS), opspec);
@@ -123,7 +122,14 @@ private slots:
     QTest::addColumn<quint8>("opcode");
     QTest::addColumn<quint8>("nzvc");
     auto enu = QMetaEnum::fromType<isa::Pep10::Mnemonic>();
-    for (quint8 opcode : {0x1E, 0x20, 0x22, 0x24, 0x26, 0x28, 0x2a, 0x2c}) {
+    for (quint8 opcode :
+         {(quint8)isa::Pep10::Mnemonic::BRLE,
+          (quint8)isa::Pep10::Mnemonic::BRLT,
+          (quint8)isa::Pep10::Mnemonic::BREQ,
+          (quint8)isa::Pep10::Mnemonic::BRNE,
+          (quint8)isa::Pep10::Mnemonic::BRGE,
+          (quint8)isa::Pep10::Mnemonic::BRGT, (quint8)isa::Pep10::Mnemonic::BRV,
+          (quint8)isa::Pep10::Mnemonic::BRC}) {
       auto mnemonic = isa::Pep10::opcodeLUT[opcode];
       auto mnStr = enu.valueToKey((int)mnemonic.instr.mnemon);
       for (quint8 nzvc = 0; nzvc < 0b1111; nzvc++)
@@ -132,6 +138,6 @@ private slots:
   }
 };
 
-#include "brcond.test.moc"
+#include "brcond.moc"
 
 QTEST_MAIN(ISA3Pep10_BR_COND)
