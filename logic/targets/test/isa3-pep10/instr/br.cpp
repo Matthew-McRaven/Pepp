@@ -61,12 +61,11 @@ private slots:
     static const auto target_reg = isa::Pep10::Register::PC;
     for (uint16_t opspec = 0; static_cast<uint32_t>(opspec) + 1 < 0x1'0000;
          opspec++) {
-      auto endRegVal = static_cast<quint16>(opspec);
-
       // Object code for instruction under test.
-      auto program = std::array<quint8, 3>{
-          0x1C, static_cast<uint8_t>((opspec >> 8) & 0xff),
-          static_cast<uint8_t>(opspec & 0xff)};
+      auto program =
+          std::array<quint8, 3>{(quint8)isa::Pep10::Mnemonic::BR,
+                                static_cast<uint8_t>((opspec >> 8) & 0xff),
+                                static_cast<uint8_t>(opspec & 0xff)};
 
       cpu->regs()->clear(0);
       cpu->csrs()->clear(0);
@@ -79,8 +78,8 @@ private slots:
       QCOMPARE(rreg(isa::Pep10::Register::SP), 0);
       QCOMPARE(rreg(isa::Pep10::Register::A), 0);
       QCOMPARE(rreg(isa::Pep10::Register::X), 0);
-      QCOMPARE(rreg(isa::Pep10::Register::TR), 0);
-      QCOMPARE(rreg(isa::Pep10::Register::IS), 0x1C);
+      QCOMPARE(rreg(isa::Pep10::Register::IS),
+               (quint8)isa::Pep10::Mnemonic::BR);
       // OS loaded the Mem[0x0001-0x0002].
       QCOMPARE(rreg(isa::Pep10::Register::OS), opspec);
       QCOMPARE(rreg(isa::Pep10::Register::PC), opspec);
@@ -94,6 +93,6 @@ private slots:
   }
 };
 
-#include "br.test.moc"
+#include "br.moc"
 
 QTEST_MAIN(ISA3Pep10_BR)
