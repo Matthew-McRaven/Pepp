@@ -13,18 +13,15 @@ using task_factory_t = std::function<Task *(QObject *)>;
 #include "main.moc"
 
 int main(int argc, char **argv) {
-  CLI::App app{"Magic app", "pepp"};
-  app.set_help_flag("-h,--help", "test");
-  // auto help = app.add_flag("-h,--help");
-  app.add_flag("-f", "test");
+  CLI::App app{"Pepp Terminal", "pepp"};
+  app.set_help_flag("-h,--help", "Display this help message and exit.");
 
   int edValue = 6;
-  auto ed =
-      app.add_flag(
-             "-e,--edition", edValue,
-             "Which book edition to target. Possible values are 4, 5, and 6.")
-          ->default_val(6)
-          ->expected(4, 6);
+  auto ed = app.add_flag("-e,--edition", edValue,
+                         "Which edition of Computer Systems to target. "
+                         "Possible values are 4, 5, and 6.")
+                ->default_val(6)
+                ->expected(4, 6);
   task_factory_t task;
 
   auto list = app.add_subcommand("ls", "Produce list of figures and macros");
