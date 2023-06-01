@@ -243,6 +243,7 @@ sim::api::tick::Result targets::pep10::isa::CPU::unaryDispatch(quint8 is) {
     n = tmp & 0x8000;
     z = tmp == 0x0000;
     v = tmp == 0x8000;
+    c = a == 0x0000;
     writeReg(Register::A, tmp);
     writePackedCSR(packCSR(n, z, v, c));
     break;
@@ -251,6 +252,7 @@ sim::api::tick::Result targets::pep10::isa::CPU::unaryDispatch(quint8 is) {
     n = tmp & 0x8000;
     z = tmp == 0x0000;
     v = tmp == 0x8000;
+    c = x == 0x0000;
     writeReg(Register::X, tmp);
     writePackedCSR(packCSR(n, z, v, c));
     break;
