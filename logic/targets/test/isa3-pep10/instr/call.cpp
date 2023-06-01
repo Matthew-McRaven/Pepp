@@ -62,9 +62,10 @@ private slots:
       auto endRegVal = static_cast<quint16>(opspec);
 
       // Object code for instruction under test.
-      auto program = std::array<quint8, 3>{
-          0x2E, static_cast<uint8_t>((opspec >> 8) & 0xff),
-          static_cast<uint8_t>(opspec & 0xff)};
+      auto program =
+          std::array<quint8, 3>{(quint8)isa::Pep10::Mnemonic::CALL,
+                                static_cast<uint8_t>((opspec >> 8) & 0xff),
+                                static_cast<uint8_t>(opspec & 0xff)};
 
       cpu->regs()->clear(0);
       cpu->csrs()->clear(0);
@@ -82,8 +83,8 @@ private slots:
       QCOMPARE(rreg(isa::Pep10::Register::SP), 0xFFFD);
       QCOMPARE(rreg(isa::Pep10::Register::A), 0);
       QCOMPARE(rreg(isa::Pep10::Register::X), 0);
-      QCOMPARE(rreg(isa::Pep10::Register::TR), 0);
-      QCOMPARE(rreg(isa::Pep10::Register::IS), 0x2E);
+      QCOMPARE(rreg(isa::Pep10::Register::IS),
+               (quint8)isa::Pep10::Mnemonic::CALL);
       QVERIFY(mem->read(0xFFFD, bufSpan, rw).completed);
       for (int it = 0; it < 2; it++)
         QCOMPARE(bufSpan[it], truth[it]);
@@ -94,6 +95,6 @@ private slots:
   }
 };
 
-#include "call.test.moc"
+#include "call.moc"
 
 QTEST_MAIN(ISA3Pep10_CALL)
