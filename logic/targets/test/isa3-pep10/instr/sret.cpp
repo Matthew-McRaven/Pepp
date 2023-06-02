@@ -83,7 +83,6 @@ private slots:
     tmp = bits::hostOrder() != bits::Order::BigEndian ? bits::byteswap(tmp)
                                                       : tmp;
     QCOMPARE(tmp, 0x8086);
-
   }
 };
 
