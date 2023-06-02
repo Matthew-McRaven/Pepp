@@ -59,7 +59,6 @@ private slots:
     };
 
     for (uint16_t flg = 0; static_cast<uint32_t>(flg) + 1 < 0b1'0000; flg++) {
-
       // Object code for instruction under test.
       auto program = std::array<quint8, 1>{
           (quint8) isa::Pep10::Mnemonic::MOVFLGA};
