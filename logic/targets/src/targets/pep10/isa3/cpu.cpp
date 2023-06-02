@@ -298,6 +298,7 @@ sim::api::tick::Result targets::pep10::isa::CPU::unaryDispatch(quint8 is) {
     z = tmp == 0x000;
     // Carry out if register starts with low order 1.
     c = a & 0x1;
+    v = 0;
     writeReg(Register::A, tmp);
     writePackedCSR(packCSR(n, z, v, c));
     break;
@@ -311,6 +312,7 @@ sim::api::tick::Result targets::pep10::isa::CPU::unaryDispatch(quint8 is) {
     z = tmp == 0x000;
     // Carry out if register starts with low order 1.
     c = x & 0x1;
+    v = 0;
     writeReg(Register::X, tmp);
     writePackedCSR(packCSR(n, z, v, c));
     break;
