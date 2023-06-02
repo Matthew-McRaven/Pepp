@@ -8,7 +8,7 @@ class Node;
 } // namespace pas::ast
 
 namespace pas::driver {
-class Globals;
+struct Globals;
 }
 
 namespace symbol {
