@@ -87,9 +87,9 @@ public:
 
   //  Copying and move OK
   Table(const Table &) = default;
-  Table &operator=(const Table &) = default;
+  Table &operator=(const Table &) = delete;
   Table(Table &&) noexcept = default;
-  Table &operator=(Table &&) noexcept = default;
+  Table &operator=(Table &&) noexcept = delete;
 
   /*!
    * \brief Create and register a new symbol table as a child of this table

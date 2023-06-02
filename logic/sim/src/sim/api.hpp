@@ -106,7 +106,7 @@ template <typename Payload> struct Packet {
   } type;
 
   Packet() {}
-  Packet(device::ID id, Flags flags) : device(device), payload(), type() {
+  Packet(device::ID device, Flags flags) : device(device), payload(), type() {
     type.flags = flags;
   }
   // Must be declared inline, otherwise fails to compile.
