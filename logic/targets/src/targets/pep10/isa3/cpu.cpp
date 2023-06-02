@@ -730,7 +730,7 @@ targets::pep10::isa::CPU::nonunaryDispatch(quint8 is, quint16 os, quint16 pc) {
     // and operand are the same, and one input & the output differ in sign.
     // >> Shifts in 0's (unsigned shorts), so after shift, only high order
     // bit remain.
-    v = (~(a ^ operand) & (a ^ tmp)) >> 15;
+    v = (~(a ^ (~operand + 1)) & (a ^ tmp)) >> 15;
     // Carry out iff result is unsigned less than register or operand.
     c = tmp < a || tmp < static_cast<quint16>(1 + ~operand);
     writePackedCSR(packCSR(n, z, v, c));
@@ -746,7 +746,7 @@ targets::pep10::isa::CPU::nonunaryDispatch(quint8 is, quint16 os, quint16 pc) {
     z = tmp == 0x0000;
     // There is a signed overflow iff the high order bits of the register
     // and operand are the same, and one input & the output differ in sign.
-    v = (~(x ^ operand) & (x ^ tmp)) >> 15;
+    v = (~(x ^ (~operand + 1)) & (x ^ tmp)) >> 15;
     // Carry out iff result is unsigned less than register or operand.
     c = tmp < x || tmp < static_cast<quint16>(1 + ~operand);
     writePackedCSR(packCSR(n, z, v, c));
