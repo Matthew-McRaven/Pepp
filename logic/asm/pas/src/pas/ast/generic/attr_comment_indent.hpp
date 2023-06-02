@@ -1,7 +1,9 @@
 #pragma once
 #include <QtCore>
+#include "pas/pas_globals.hpp"
+
 namespace pas::ast::generic {
-struct CommentIndent {
+struct PAS_EXPORT CommentIndent {
   enum class Level { Left, Instruction };
   static const inline QString attributeName = u"generic:comment_indent"_qs;
   Level value = Level::Left;

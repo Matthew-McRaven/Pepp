@@ -3,22 +3,24 @@
 #include <boost/spirit/home/x3.hpp>
 #include <climits>
 #include <string>
+#include "pas/pas_globals.hpp"
+
 namespace pas::parse::pepp {
-struct TextLiteral {
+struct PAS_EXPORT TextLiteral {
   std::string value;
 };
-struct CharacterLiteral : public TextLiteral {};
+struct PAS_EXPORT CharacterLiteral : public TextLiteral {};
 
-struct StringLiteral : public TextLiteral {};
-struct Identifier : public TextLiteral {};
+struct PAS_EXPORT StringLiteral : public TextLiteral {};
+struct PAS_EXPORT Identifier : public TextLiteral {};
 
-struct NumericLiteral {
+struct PAS_EXPORT NumericLiteral {
   uint64_t value;
 };
-struct DecimalLiteral : public NumericLiteral {
+struct PAS_EXPORT DecimalLiteral : public NumericLiteral {
   bool isSigned = false;
 };
-struct HexadecimalLiteral : public NumericLiteral {};
+struct PAS_EXPORT HexadecimalLiteral : public NumericLiteral {};
 
 typedef boost::variant<StringLiteral, CharacterLiteral, Identifier,
                        DecimalLiteral, HexadecimalLiteral>

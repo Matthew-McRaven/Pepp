@@ -4,33 +4,35 @@
 #include <boost/spirit/home/x3.hpp>
 #include <climits>
 #include <string>
-namespace pas::parse::pepp {
-struct BlankType {};
+#include "pas/pas_globals.hpp"
 
-struct CommentType {
+namespace pas::parse::pepp {
+struct PAS_EXPORT BlankType {};
+
+struct PAS_EXPORT CommentType {
   std::string comment;
 };
 
-struct UnaryType {
+struct PAS_EXPORT UnaryType {
   std::string symbol, identifier, comment;
   bool hasComment = false;
 };
 
-struct NonUnaryType {
+struct PAS_EXPORT NonUnaryType {
   std::string symbol, identifier;
   Value arg;
   std::string addr, comment;
   bool hasComment = false;
 };
 
-struct DirectiveType {
+struct PAS_EXPORT DirectiveType {
   std::string symbol, identifier;
   std::vector<Value> args;
   std::string comment;
   bool hasComment = false;
 };
 
-struct MacroType {
+struct PAS_EXPORT MacroType {
   std::string symbol, identifier;
   std::vector<Value> args;
   std::string comment;

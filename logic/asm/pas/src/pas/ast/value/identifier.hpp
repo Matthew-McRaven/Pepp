@@ -1,8 +1,9 @@
 #pragma once
 #include "./base.hpp"
+#include "pas/pas_globals.hpp"
 
 namespace pas::ast::value {
-struct Identifier : public Base {
+struct PAS_EXPORT Identifier : public Base {
 public:
   explicit Identifier();
   explicit Identifier(QString value);

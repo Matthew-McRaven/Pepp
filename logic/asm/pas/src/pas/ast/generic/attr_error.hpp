@@ -1,7 +1,9 @@
 #pragma once
 #include <QtCore>
+#include "pas/pas_globals.hpp"
+
 namespace pas::ast::generic {
-struct Message {
+struct PAS_EXPORT Message {
   enum class Severity {
     Info,
     Debug,
@@ -12,7 +14,7 @@ struct Message {
   bool operator==(const Message &other) const = default;
 };
 
-struct Error {
+struct PAS_EXPORT Error {
   static const inline QString attributeName = u"generic:error"_qs;
   QList<Message> value = {};
   bool operator==(const Error &other) const = default;

@@ -1,7 +1,9 @@
 #pragma once
 #include <QtCore>
+#include "pas/pas_globals.hpp"
+
 namespace pas::ast::generic {
-struct Type {
+struct PAS_EXPORT Type {
   enum Types {
     Directive,
     Instruction,

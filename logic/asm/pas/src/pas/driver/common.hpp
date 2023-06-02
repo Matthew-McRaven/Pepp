@@ -1,8 +1,11 @@
 #pragma once
 #include <QtCore>
+#include "pas/pas_globals.hpp"
+
 namespace symbol {
 class Entry;
 class Table;
+
 } // namespace symbol
 
 namespace macro {
@@ -14,12 +17,12 @@ class Node;
 }
 
 namespace pas::driver {
-struct ParseResult {
+struct PAS_EXPORT ParseResult {
   bool hadError;
   QSharedPointer<pas::ast::Node> root;
   QStringList errors;
 };
-struct Globals {
+struct PAS_EXPORT Globals {
   QMap<QString, QSharedPointer<symbol::Entry>> table;
   QSharedPointer<macro::Registry> macroRegistry;
   bool contains(QString symbol) const;
@@ -29,15 +32,15 @@ struct Globals {
 
 // Holds different REPResentations of a target
 namespace repr {
-struct Source {
+struct PAS_EXPORT Source {
   static const inline QString name = u"source_text"_qs;
   QString value;
 };
-struct Nodes {
+struct PAS_EXPORT Nodes {
   static const inline QString name = u"ast_node_list"_qs;
   QSharedPointer<ast::Node> value;
 };
-struct Object {
+struct PAS_EXPORT Object {
   static const inline QString name = u"object_code_list"_qs;
   QList<void *> value;
 };

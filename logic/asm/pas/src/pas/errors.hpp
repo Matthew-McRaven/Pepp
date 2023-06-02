@@ -1,5 +1,7 @@
 #pragma once
 #include <QtCore>
+#include "pas/pas_globals.hpp"
+
 namespace pas::errors::pepp {
 // Macro issues
 inline const QString macroLoop = u"Macro invocation loop detected."_qs;

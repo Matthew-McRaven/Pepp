@@ -1,7 +1,9 @@
 #pragma once
 #include <QtCore>
+#include "isa_globals.hpp"
+
 namespace isa::detail::pep10 {
-Q_NAMESPACE;
+Q_NAMESPACE_EXPORT(ISA_EXPORT)
 enum class Mnemonic {
   RET = 0x1,
   SRET = 0x2,
@@ -91,12 +93,12 @@ enum class InstructionType {
   RAAA_all, //?
   RAAA_noi
 };
-struct Instruction {
+struct ISA_EXPORT Instruction {
   Mnemonic mnemon;
   InstructionType type;
   bool unary;
 };
-struct Opcode {
+struct ISA_EXPORT Opcode {
   Instruction instr;
   AddressingMode mode;
   bool valid;
@@ -277,7 +279,7 @@ Q_ENUM_NS(MemoryVectors)
 } // namespace isa::detail::pep10
 
 namespace isa {
-struct Pep10 {
+struct ISA_EXPORT Pep10 {
   using Mnemonic = detail::pep10::Mnemonic;
   using AddressingMode = detail::pep10::AddressingMode;
   using InstructionType = detail::pep10::InstructionType;

@@ -8,6 +8,7 @@
 #include "symbol/visit.hpp"
 #include <QtCore>
 #include <pas/ast/generic/attr_hide.hpp>
+#include "pas/pas_globals.hpp"
 
 namespace pas::ast {
 class Node;
@@ -20,8 +21,8 @@ namespace detail {
 template <typename ISA>
 void assignAddressesImpl(ast::Node &node, quint16 &start,
                          Direction direction = Direction::Forward);
-bool hasBurn(QList<QSharedPointer<ast::Node>> &list);
-quint16 getBurnArg(QList<QSharedPointer<ast::Node>> &list);
+bool PAS_EXPORT hasBurn(QList<QSharedPointer<ast::Node>> &list);
+quint16 PAS_EXPORT getBurnArg(QList<QSharedPointer<ast::Node>> &list);
 } // namespace detail
 // Handles multiple, nested sections.
 template <typename ISA> void assignAddresses(ast::Node &root);

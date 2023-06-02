@@ -4,6 +4,7 @@
 #include "pas/ast/op.hpp"
 #include "pas/ast/pepp/attr_addr.hpp"
 #include "pas/ast/pepp/attr_instruction.hpp"
+#include "pas/pas_globals.hpp"
 
 namespace pas::ops::pepp {
 
@@ -35,39 +36,39 @@ template <typename ISA> struct isRAAAType : public pas::ops::ConstOp<bool> {
   bool operator()(const ast::Node &node);
 };
 
-struct isBurn : public pas::ops::ConstOp<bool> {
+struct PAS_EXPORT isBurn : public pas::ops::ConstOp<bool> {
   bool operator()(const ast::Node &node);
 };
 
-struct isEnd : public pas::ops::ConstOp<bool> {
+struct PAS_EXPORT isEnd : public pas::ops::ConstOp<bool> {
   bool operator()(const ast::Node &node);
 };
 
-struct isExport : public pas::ops::ConstOp<bool> {
+struct PAS_EXPORT isExport : public pas::ops::ConstOp<bool> {
   bool operator()(const ast::Node &node);
 };
 
-struct isImport : public pas::ops::ConstOp<bool> {
+struct PAS_EXPORT isImport : public pas::ops::ConstOp<bool> {
   bool operator()(const ast::Node &node);
 };
 
-struct isInput : public pas::ops::ConstOp<bool> {
+struct PAS_EXPORT isInput : public pas::ops::ConstOp<bool> {
   bool operator()(const ast::Node &node);
 };
 
-struct isOutput : public pas::ops::ConstOp<bool> {
+struct PAS_EXPORT isOutput : public pas::ops::ConstOp<bool> {
   bool operator()(const ast::Node &node);
 };
 
-struct isSCall : public pas::ops::ConstOp<bool> {
+struct PAS_EXPORT isSCall : public pas::ops::ConstOp<bool> {
   bool operator()(const ast::Node &node);
 };
 
-struct isSection : public pas::ops::ConstOp<bool> {
+struct PAS_EXPORT isSection : public pas::ops::ConstOp<bool> {
   bool operator()(const ast::Node &node);
 };
 
-struct isUSCall : public pas::ops::ConstOp<bool> {
+struct PAS_EXPORT isUSCall : public pas::ops::ConstOp<bool> {
   bool operator()(const ast::Node &node);
 };
 

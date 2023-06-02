@@ -1,4 +1,5 @@
 #pragma once
+#include "pas/pas_globals.hpp"
 
 namespace pas::ast {
 class Node;

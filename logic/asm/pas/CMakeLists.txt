@@ -3,6 +3,7 @@ cmake_minimum_required(VERSION 3.10)
 make_library(pas pas)
 target_link_libraries(pas PUBLIC "Qt6::Core;bits;symbol;macro;elfio;isa;obj")
 target_include_directories(pas PUBLIC ${Boost_INCLUDE_DIR})
+target_compile_definitions(pas PRIVATE PAS_LIBRARY)
 
 if(NOT IOS)
   make_qtest(test-pas-parse-pepp-values- test/parse/pepp/parser_values.cpp "pas;Qt6::Core;Qt6::Test")
