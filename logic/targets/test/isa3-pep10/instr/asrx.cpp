@@ -64,7 +64,7 @@ private slots:
         static_cast<quint16>(target >> 1) | (target & 0x8000 ? 1 << 15 : 0);
 
     // Object code for instruction under test.
-    auto program = std::array<quint8, 1>{(quint8) isa::Pep10::Mnemonic::ASRX};
+    auto program = std::array<quint8, 1>{(quint8)isa::Pep10::Mnemonic::ASRX};
 
     cpu->regs()->clear(0);
     cpu->csrs()->clear(0);
@@ -83,7 +83,8 @@ private slots:
     QCOMPARE(rreg(isa::Pep10::Register::SP), 0);
     QCOMPARE(rreg(isa::Pep10::Register::A), 0);
     QCOMPARE(rreg(isa::Pep10::Register::PC), 0x1);
-    QCOMPARE(rreg(isa::Pep10::Register::IS), (quint8) isa::Pep10::Mnemonic::ASRX);
+    QCOMPARE(rreg(isa::Pep10::Register::IS),
+             (quint8)isa::Pep10::Mnemonic::ASRX);
     // OS loaded the Mem[0x0001-0x0002].
     QCOMPARE(rreg(isa::Pep10::Register::OS), 0);
     // Check that target register had arithmetic performed.
@@ -91,6 +92,7 @@ private slots:
     // Check that target status bits match RTL.
     QCOMPARE(rcsr(isa::Pep10::CSR::N), endRegVal & 0x8000 ? 1 : 0);
     QCOMPARE(rcsr(isa::Pep10::CSR::Z), endRegVal == 0);
+    QCOMPARE(rcsr(isa::Pep10::CSR::V), 0);
     auto new_A = rreg(target_reg);
     // Carry out if low order bit was non-zero
     QCOMPARE(rcsr(isa::Pep10::CSR::C), ((target & 0x1) ? 1 : 0));
