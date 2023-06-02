@@ -3,8 +3,8 @@
 #include <elfio/elfio.hpp>
 
 namespace obj {
-class MemoryRegion;
-class AddressedIO;
+struct MemoryRegion;
+struct AddressedIO;
 } // namespace obj
 namespace sim {
 namespace memory {
