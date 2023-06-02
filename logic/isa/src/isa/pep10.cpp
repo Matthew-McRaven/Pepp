@@ -1,9 +1,5 @@
 #include "pep10.hpp"
 #include <QMetaEnum>
-const quint8 isa::Pep10::RegisterCount =
-    QMetaEnum::fromType<detail::pep10::Register>().keyCount();
-const quint8 isa::Pep10::CSRCount =
-    QMetaEnum::fromType<detail::pep10::CSR>().keyCount();
 
 isa::Pep10::Mnemonic isa::Pep10::defaultMnemonic() { return Mnemonic::INVALID; }
 

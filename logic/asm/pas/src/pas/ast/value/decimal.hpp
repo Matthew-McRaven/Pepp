@@ -1,8 +1,9 @@
 #pragma once
 #include "./numeric.hpp"
+#include "pas/pas_globals.hpp"
 
 namespace pas::ast::value {
-class SignedDecimal : public Numeric {
+class PAS_EXPORT SignedDecimal : public Numeric {
 public:
   explicit SignedDecimal();
   SignedDecimal(qint64 value, quint16 size);
@@ -21,7 +22,7 @@ public:
   QString rawString() const override;
 };
 
-class UnsignedDecimal : public Numeric {
+class PAS_EXPORT UnsignedDecimal : public Numeric {
 public:
   explicit UnsignedDecimal();
   UnsignedDecimal(quint64 value, quint16 size);

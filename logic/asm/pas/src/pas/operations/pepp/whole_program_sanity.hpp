@@ -7,6 +7,7 @@
 #include "pas/operations/generic/is.hpp"
 #include "pas/operations/pepp/find.hpp"
 #include "pas/operations/pepp/size.hpp"
+#include "pas/pas_globals.hpp"
 
 namespace pas::ops::pepp {
 template <typename ISA>
@@ -32,36 +33,36 @@ template <typename ISA> bool validateDirectives(ast::Node &node) {
   return dirs.valid;
 }
 
-struct IsOSFeature : public pas::ops::ConstOp<bool> {
+struct PAS_EXPORT IsOSFeature : public pas::ops::ConstOp<bool> {
   bool operator()(const ast::Node &node);
 };
 
-bool hasOSFeatures(ast::Node &node);
+bool PAS_EXPORT hasOSFeatures(ast::Node &node);
 
-struct ErrorOnOSFeatures : public pas::ops::MutatingOp<void> {
+struct PAS_EXPORT ErrorOnOSFeatures : public pas::ops::MutatingOp<void> {
   void operator()(ast::Node &node);
 };
 
-void errorOnOSFeatures(ast::Node &node);
+void PAS_EXPORT errorOnOSFeatures(ast::Node &node);
 
-struct Features {
+struct PAS_EXPORT Features {
   bool allowOSFeatures = false;
   bool ignoreUndefinedSymbols = false;
 };
 
-struct ErrorOnUndefinedSymbolicArgument : public pas::ops::MutatingOp<void> {
+struct PAS_EXPORT ErrorOnUndefinedSymbolicArgument : public pas::ops::MutatingOp<void> {
   bool hadError = false;
   void operator()(ast::Node &node);
 };
 
-bool errorOnUndefinedSymbolicArgument(ast::Node &node);
+bool PAS_EXPORT errorOnUndefinedSymbolicArgument(ast::Node &node);
 
-struct ErrorOnMultipleSymbolDefiniton : public pas::ops::MutatingOp<void> {
+struct PAS_EXPORT ErrorOnMultipleSymbolDefiniton : public pas::ops::MutatingOp<void> {
   bool hadError = false;
   void operator()(ast::Node &node);
 };
 
-bool errorOnMultipleSymbolDefiniton(ast::Node &node);
+bool PAS_EXPORT errorOnMultipleSymbolDefiniton(ast::Node &node);
 
 template <typename ISA>
 bool checkWholeProgramSanity(ast::Node &node, Features features) {

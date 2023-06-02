@@ -182,7 +182,7 @@ sim::api::tick::Result targets::pep10::isa::CPU::unaryDispatch(quint8 is) {
                                       sizeof(tmp)};
   quint8 tmp8 = 0;
   // Long enough to either hold all regs or one ctx switch block.
-  static const quint8 registersBytes = 2 * ::isa::Pep10::RegisterCount;
+  static constexpr quint8 registersBytes = 2 * ::isa::Pep10::RegisterCount;
   quint8 ctx[std::max<std::size_t>(registersBytes, 10)];
   auto ctxSpan = bits::span<quint8>{ctx, sizeof(ctx)};
   auto [n, z, v, c] = unpackCSR(readPackedCSR());

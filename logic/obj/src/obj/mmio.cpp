@@ -116,7 +116,7 @@ QList<obj::AddressedIO> obj::getMMIODeclarations(const ELFIO::elfio &elf) {
          .direction = (noteType == 0x11) ? IO::Direction::kInput
                                          : IO::Direction::kOutput},
         static_cast<quint16>(value),
-        static_cast<quint16>(value + std::max<typeof(size)>(size - 1, 0))});
+        static_cast<quint16>(value + std::max<decltype(size)>(size - 1, 0))});
   }
   return ret;
 }

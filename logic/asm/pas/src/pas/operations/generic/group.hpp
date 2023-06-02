@@ -5,9 +5,10 @@
 #include "pas/ast/node.hpp"
 #include "pas/ast/op.hpp"
 #include <QtCore>
+#include "pas/pas_globals.hpp"
 
 namespace pas::ops::generic {
-struct GroupSections : public pas::ops::MutatingOp<void> {
+struct PAS_EXPORT GroupSections : public pas::ops::MutatingOp<void> {
   GroupSections(QString defaultSectionName,
                 std::function<bool(const ast::Node &)> addressable);
   pas::ast::generic::Children newChildren;
@@ -19,6 +20,6 @@ private:
   bool hasSeenAddressable = false;
 };
 
-void groupSections(ast::Node &root,
+void PAS_EXPORT groupSections(ast::Node &root,
                    std::function<bool(const ast::Node &)> addressable);
 } // namespace pas::ops::generic

@@ -1,9 +1,10 @@
 #pragma once
 #include <QtCore>
+#include "pas/pas_globals.hpp"
 
 namespace pas::ast::generic {
 
-struct SectionFlags {
+struct PAS_EXPORT SectionFlags {
   static const inline QString attributeName = u"generic:section_flags"_qs;
   struct Flags {
     bool R = 1, W = 1, X = 1, Z = 0;
@@ -11,7 +12,7 @@ struct SectionFlags {
   } value = {};
   bool operator==(const SectionFlags &other) const = default;
 };
-struct SectionName {
+struct PAS_EXPORT SectionName {
   static const inline QString attributeName = u"generic:section_name"_qs;
   QString value = {};
   bool operator==(const SectionName &other) const = default;

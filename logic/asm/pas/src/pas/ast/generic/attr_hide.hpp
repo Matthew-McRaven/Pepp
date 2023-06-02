@@ -1,7 +1,9 @@
 #pragma once
 #include <QtCore>
+#include "pas/pas_globals.hpp"
+
 namespace pas::ast::generic {
-struct Hide {
+struct PAS_EXPORT Hide {
   static const inline QString attributeName = u"generic:hide"_qs;
   struct In {
     bool source = false;

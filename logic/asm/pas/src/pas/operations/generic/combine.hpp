@@ -1,15 +1,17 @@
 #pragma once
 #include "pas/ast/node.hpp"
+#include "pas/pas_globals.hpp"
+
 namespace pas::ops::generic {
 namespace detail {
-struct Traits {
+struct PAS_EXPORT Traits {
   quint64 base, size, alignment;
 };
-Traits getTraits(const ast::Node &section);
+Traits PAS_EXPORT getTraits(const ast::Node &section);
 
-bool isOrgSection(const ast::Node &section);
-quint64 minAddress(const ast::Node &section);
-void addOffset(ast::Node &section, qsizetype offset);
+bool PAS_EXPORT isOrgSection(const ast::Node &section);
+quint64 PAS_EXPORT minAddress(const ast::Node &section);
+void PAS_EXPORT addOffset(ast::Node &section, qsizetype offset);
 } // namespace detail
-bool concatSectionAddresses(ast::Node &root);
+bool PAS_EXPORT concatSectionAddresses(ast::Node &root);
 } // namespace pas::ops::generic

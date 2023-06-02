@@ -7,6 +7,7 @@
 #include <QObject>
 #include <QTest>
 #include <pas/operations/generic/errors.hpp>
+#include "pas/parse/pepp/rules_lines.hpp"
 
 using SourceLocation = pas::ast::generic::SourceLocation;
 using Message = pas::ast::generic::Message;

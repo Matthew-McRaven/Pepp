@@ -1,8 +1,9 @@
 #pragma once
 #include "./base.hpp"
+#include "pas/pas_globals.hpp"
 
 namespace pas::ast::value {
-class Character : public Base {
+class PAS_EXPORT Character : public Base {
 public:
   explicit Character();
   explicit Character(QString value);

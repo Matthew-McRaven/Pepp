@@ -1,7 +1,9 @@
 #pragma once
 #include <QtCore>
+#include "pas/pas_globals.hpp"
+
 namespace pas::ast::generic {
-struct Comment {
+struct PAS_EXPORT Comment {
   static const inline QString attributeName = u"generic:comment"_qs;
   QString value = {};
   bool operator==(const Comment &other) const = default;

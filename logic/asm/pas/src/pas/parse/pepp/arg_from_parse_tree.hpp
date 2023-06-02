@@ -1,14 +1,16 @@
 #pragma once
-#include "pas/parse/pepp/rules_values.hpp"
+#include "pas/parse/pepp/types_values.hpp"
 #include "symbol/table.hpp"
 #include <QtCore>
 #include <boost/variant/static_visitor.hpp>
+#include "pas/pas_globals.hpp"
+
 namespace pas::ast::value {
 class Base;
 };
 
 namespace pas::parse::pepp {
-struct ParseToArg
+struct PAS_EXPORT ParseToArg
     : public boost::static_visitor<QSharedPointer<pas::ast::value::Base>> {
   bool preferIdent = false;             // in
   QSharedPointer<symbol::Table> symTab; // in

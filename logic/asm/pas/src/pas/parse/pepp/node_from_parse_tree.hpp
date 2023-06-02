@@ -17,13 +17,15 @@
 #include "pas/ast/value/string.hpp"
 #include "pas/errors.hpp"
 #include "pas/operations/pepp/is.hpp"
-#include "pas/parse/pepp/rules_lines.hpp"
+#include "pas/parse/pepp/types_lines.hpp"
 #include "symbol/table.hpp"
 #include <boost/variant/static_visitor.hpp>
 #include <boost/variant/variant.hpp>
 #include <pas/ast/generic/attr_argument.hpp>
 #include <pas/ast/generic/attr_directive.hpp>
 #include <pas/ast/generic/attr_sec.hpp>
+#include "pas/pas_globals.hpp"
+
 namespace pas::parse::pepp {
 template <typename ISA>
 struct FromParseTree
@@ -100,24 +102,24 @@ parse_arg(const T &line, ST symTab, bool preferIdent = false,
 
 // Most code (except name) is shared between INPUT/OUTPUT, IMPORT/EXPORT,
 // SCALL/USCALL. This fn provides the shared implementation.
-QSharedPointer<Node> gen_io_scall_extern(const DirectiveType &line, ST symTab,
+QSharedPointer<Node> PAS_EXPORT gen_io_scall_extern(const DirectiveType &line, ST symTab,
                                          QString directive);
-QSharedPointer<Node> align(const DirectiveType &line, ST symTab);
-QSharedPointer<Node> ascii(const DirectiveType &line, ST symTab);
-QSharedPointer<Node> block(const DirectiveType &line, ST symTab);
-QSharedPointer<Node> burn(const DirectiveType &line, ST symTab);
-QSharedPointer<Node> byte(const DirectiveType &line, ST symTab);
-QSharedPointer<Node> end(const DirectiveType &line, ST symTab);
-QSharedPointer<Node> equate(const DirectiveType &line, ST symTab);
-QSharedPointer<Node> _export(const DirectiveType &line, ST symTab);
-QSharedPointer<Node> import(const DirectiveType &line, ST symTab);
-QSharedPointer<Node> input(const DirectiveType &line, ST symTab);
-QSharedPointer<Node> output(const DirectiveType &line, ST symTab);
-QSharedPointer<Node> org(const DirectiveType &line, ST symTab);
-QSharedPointer<Node> scall(const DirectiveType &line, ST symTab);
-QSharedPointer<Node> section(const DirectiveType &line, ST symTab);
-QSharedPointer<Node> uscall(const DirectiveType &line, ST symTab);
-QSharedPointer<Node> word(const DirectiveType &line, ST symTab);
+QSharedPointer<Node> PAS_EXPORT align(const DirectiveType &line, ST symTab);
+QSharedPointer<Node> PAS_EXPORT ascii(const DirectiveType &line, ST symTab);
+QSharedPointer<Node> PAS_EXPORT block(const DirectiveType &line, ST symTab);
+QSharedPointer<Node> PAS_EXPORT burn(const DirectiveType &line, ST symTab);
+QSharedPointer<Node> PAS_EXPORT byte(const DirectiveType &line, ST symTab);
+QSharedPointer<Node> PAS_EXPORT end(const DirectiveType &line, ST symTab);
+QSharedPointer<Node> PAS_EXPORT equate(const DirectiveType &line, ST symTab);
+QSharedPointer<Node> PAS_EXPORT _export(const DirectiveType &line, ST symTab);
+QSharedPointer<Node> PAS_EXPORT import(const DirectiveType &line, ST symTab);
+QSharedPointer<Node> PAS_EXPORT input(const DirectiveType &line, ST symTab);
+QSharedPointer<Node> PAS_EXPORT output(const DirectiveType &line, ST symTab);
+QSharedPointer<Node> PAS_EXPORT org(const DirectiveType &line, ST symTab);
+QSharedPointer<Node> PAS_EXPORT scall(const DirectiveType &line, ST symTab);
+QSharedPointer<Node> PAS_EXPORT section(const DirectiveType &line, ST symTab);
+QSharedPointer<Node> PAS_EXPORT uscall(const DirectiveType &line, ST symTab);
+QSharedPointer<Node> PAS_EXPORT word(const DirectiveType &line, ST symTab);
 template <typename ISA> void checkArgumentSizes(QSharedPointer<Node>);
 
 } // namespace detail
@@ -308,9 +310,9 @@ QSharedPointer<ast::Node> FromParseTree<ISA>::operator()(const T &line) {
   throw std::logic_error("Unimplemented");
 }
 
-QString errorFromByteString(QSharedPointer<ast::value::Base> arg);
+QString PAS_EXPORT errorFromByteString(QSharedPointer<ast::value::Base> arg);
 
-QString errorFromWordString(QSharedPointer<ast::value::Base> arg);
+QString PAS_EXPORT errorFromWordString(QSharedPointer<ast::value::Base> arg);
 
 template <typename ISA>
 void detail::checkArgumentSizes(QSharedPointer<ast::Node> node) {

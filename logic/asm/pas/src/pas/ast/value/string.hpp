@@ -1,8 +1,9 @@
 #pragma once
 #include "./base.hpp"
+#include "pas/pas_globals.hpp"
 
 namespace pas::ast::value {
-struct ShortString : public Base {
+struct PAS_EXPORT ShortString : public Base {
 public:
   explicit ShortString();
   ShortString(QString value, quint8 size, bits::Order endian);
@@ -36,7 +37,7 @@ private:
   QByteArray _valueAsBytes = {};
 };
 
-struct LongString : public Base {
+struct PAS_EXPORT LongString : public Base {
 public:
   explicit LongString();
   LongString(QString value, bits::Order endian);

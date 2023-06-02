@@ -4,6 +4,7 @@
 #include "errors.hpp"
 #include "is.hpp"
 #include <QtCore>
+#include "pas/pas_globals.hpp"
 
 namespace pas::driver {
 class ParseResult;
@@ -18,7 +19,7 @@ class Registry;
 }
 
 namespace pas::ops::generic {
-struct IncludeMacros : public pas::ops::MutatingOp<bool> {
+struct PAS_EXPORT IncludeMacros : public pas::ops::MutatingOp<bool> {
   struct MacroInvocation {
     QString macroName;
     QStringList args;

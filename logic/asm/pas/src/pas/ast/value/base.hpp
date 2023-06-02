@@ -2,8 +2,10 @@
 #include "bits/order.hpp"
 #include "bits/span.hpp"
 #include <QtCore>
+#include "pas/pas_globals.hpp"
+
 namespace pas::ast::value {
-class Base {
+class PAS_EXPORT Base {
 public:
   explicit Base();
   friend void swap(Base &first, Base &second) { using std::swap; }

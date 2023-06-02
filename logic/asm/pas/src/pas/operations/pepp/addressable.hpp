@@ -1,5 +1,4 @@
 #pragma once
-
 #include "pas/ast/generic/attr_directive.hpp"
 #include "pas/ast/node.hpp"
 #include "pas/operations/generic/is.hpp"

@@ -1,25 +1,27 @@
 #pragma once
 #include <QtCore>
+#include "pas/pas_globals.hpp"
+
 namespace pas::ast {
 class Node;
 }
 
-struct SourceOptions {
+struct PAS_EXPORT SourceOptions {
   bool printErrors = false;
 };
-struct ListingOptions {
+struct PAS_EXPORT ListingOptions {
   SourceOptions source;
   quint16 bytesPerLine = 3;
 };
 
 namespace pas::ops::generic::detail {
-QString formatErrorsAsComments(const ast::Node &node);
-QString format(QString symbol, QString invoke, QStringList args,
+QString PAS_EXPORT formatErrorsAsComments(const ast::Node &node);
+QString PAS_EXPORT format(QString symbol, QString invoke, QStringList args,
                QString comment);
-QString formatDirectiveOrMacro(const ast::Node &node, QString invoke,
+QString PAS_EXPORT formatDirectiveOrMacro(const ast::Node &node, QString invoke,
                                SourceOptions opts);
-QString formatDirective(const ast::Node &node, SourceOptions opts);
-QString formatMacro(const ast::Node &node, SourceOptions opts);
-QString formatBlank(const ast::Node &node, SourceOptions opts);
-QString formatComment(const ast::Node &node, SourceOptions opts);
+QString PAS_EXPORT formatDirective(const ast::Node &node, SourceOptions opts);
+QString PAS_EXPORT formatMacro(const ast::Node &node, SourceOptions opts);
+QString PAS_EXPORT formatBlank(const ast::Node &node, SourceOptions opts);
+QString PAS_EXPORT formatComment(const ast::Node &node, SourceOptions opts);
 } // namespace pas::ops::generic::detail
