@@ -94,7 +94,7 @@ private slots:
       // Check that target status bits match RTL.
       QCOMPARE(rcsr(isa::Pep10::CSR::N), endRegVal & 0x8000 ? 1 : 0);
       QCOMPARE(rcsr(isa::Pep10::CSR::Z), endRegVal == 0);
-      auto input_sign_match = ~(target ^ opspec) & 0x8000;
+      auto input_sign_match = ~(target ^ (~opspec + 1 )) & 0x8000;
       auto output_sign_match = ~(endRegVal ^ target) & 0x8000;
       // Explicitly check that if input signs do no match, thatV is always
       // false.
