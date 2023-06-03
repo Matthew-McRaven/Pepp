@@ -160,10 +160,10 @@ int main(int argc, char **argv) {
     if (!task)
       throw CLI::CallForHelp();
   } catch (const CLI::CallForHelp &e) {
-    std::cout << app.help();
+    std::cout << app.help() << std::endl;
     return 0;
   } catch (const CLI::ParseError &e) {
-    std::cerr << e.what();
+    std::cerr << e.what() << std::endl;
     return 1;
   }
 
