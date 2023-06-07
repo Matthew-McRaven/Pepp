@@ -1,5 +1,3 @@
-cmake_minimum_required(VERSION 3.10)
-
 make_library(macro macro)
 target_include_directories(macro PUBLIC ${Boost_INCLUDE_DIR})
 target_link_libraries(macro PUBLIC "Qt6::Core;${Boost_LIBRARIES}")

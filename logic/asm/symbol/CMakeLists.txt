@@ -1,5 +1,3 @@
-cmake_minimum_required(VERSION 3.10)
-
 make_library(symbol symbol)
 target_link_libraries(symbol PRIVATE "Qt6::Core")
 target_compile_definitions(symbol PRIVATE SYMBOL_LIBRARY)
