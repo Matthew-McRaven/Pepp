@@ -58,8 +58,16 @@ bool RunTask::loadToElf() {
   if (!bytes)
     return false;
   _elf = helper.elf(*bytes);
-  _elf->save("tmp.elf");
-  _elf->load("tmp.elf");
+  // Need to reload to properly compute segment addresses. Store in temp
+  // directory to prevent clobbering local file contents.
+  {
+    QTemporaryDir dir;
+    if (!dir.isValid())
+      return false;
+    auto path = dir.filePath("tmp.elf").toStdString();
+    _elf->save(path);
+    _elf->load(path);
+  }
   return true;
 }
 

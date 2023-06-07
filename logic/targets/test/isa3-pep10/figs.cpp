@@ -98,9 +98,15 @@ private slots:
     auto elf = pas::obj::pep10::createElf();
     assemble(*elf, os, {.pep = userPep, .pepo = userPepo}, reg);
 
-    // Need to reload to properly compute segment addresses.
-    elf->save("tmp.elf");
-    elf->load("tmp.elf");
+    // Need to reload to properly compute segment addresses. Store in temp
+    // directory to prevent clobbering local file contents.
+    {
+      QTemporaryDir dir;
+      QVERIFY(dir.isValid());
+      auto path = dir.filePath("tmp.elf").toStdString();
+      elf->save(path);
+      elf->load(path);
+    }
     // Skip loading, to save on cycles. However, can't skip dispatch, or
     // main's stack will be wrong.
     auto system = targets::pep10::isa::systemFromElf(*elf, isBM);
