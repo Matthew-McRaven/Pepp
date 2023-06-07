@@ -10,6 +10,3 @@ get_git_head_revision(GIT_REFSPEC GIT_SHA1)
 #add_definitions("-DGIT_SHA1=${GIT_SHA1}")
 configure_file("${CMAKE_CURRENT_SOURCE_DIR}/src/about/version.cpp.in" "${CMAKE_CURRENT_BINARY_DIR}/version.cpp" @ONLY)
 target_sources(about PRIVATE "${CMAKE_CURRENT_BINARY_DIR}/version.cpp")
-
-get_target_property(MY_PROJECT_SOURCES about SOURCES)
-message(${MY_PROJECT_SOURCES})
