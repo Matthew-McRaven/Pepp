@@ -5,8 +5,8 @@ const char g_GIT_SHA1[] = GIT_SHA1;
 // Must supress formatting, or `@` will be separated from name, preventing
 // CMake substitutions.
 // clang-format off
-#define VERSION_MAJOR @PepNext_VERSION_MAJOR@
-#define VERSION_MINOR @PepNext_VERSION_MINOR@
+#define VERSION_MAJOR @Pepp_VERSION_MAJOR@
+#define VERSION_MINOR @Pepp_VERSION_MINOR@
 // clang-format on
 
 extern const int g_MAJOR_VERSION = VERSION_MAJOR;
