@@ -1,6 +1,6 @@
 cmake_minimum_required(VERSION 3.23)
 
-project(PepNext VERSION 0.1 LANGUAGES CXX)
+project(Pepp VERSION 0.6 LANGUAGES CXX)
 
 
 set(CMAKE_CXX_STANDARD 20)
