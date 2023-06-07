@@ -9,6 +9,10 @@ include(git.cmake)
 get_git_head_revision(GIT_REFSPEC GIT_SHA1)
 #add_definitions("-DGIT_SHA1=${GIT_SHA1}")
 configure_file("${CMAKE_CURRENT_SOURCE_DIR}/src/about/version.cpp.in" "${CMAKE_CURRENT_BINARY_DIR}/version.cpp" @ONLY)
+
+# Include dependency licenses without having to hard-code.
+file(GLOB_RECURSE dependency_licenses CONFIGURE_DEPENDS "data/dep/*")
+
 qt_add_resources(about "about"
   PREFIX "/about"
   BASE "data"
@@ -16,6 +20,7 @@ qt_add_resources(about "about"
     data/LICENSE_FULL data/LICENSE_NOTICE
     data/contributors.csv data/maintainers.csv
     data/repo.url
+    ${dependency_licenses}
 )
 set_source_files_properties(data/LICENSE_FULL QT_RESOURCE_ALIAS LICENSE)
 set_source_files_properties(data/LICENSE_NOTICE QT_RESOURCE_ALIAS NOTICE)
