@@ -1,7 +1,3 @@
-cmake_minimum_required(VERSION 3.16)
-
-
-
 make_exec(demo-macro-parse "./")
 
 # GLOB_RECURSE ueses abs paths, QML_FILES expects relative paths. This blob converts from abs to rel.

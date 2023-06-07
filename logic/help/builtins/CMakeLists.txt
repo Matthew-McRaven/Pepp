@@ -1,6 +1,3 @@
-cmake_minimum_required(VERSION 3.10)
-
-
 file(GLOB_RECURSE cs4e-res-abs CONFIGURE_DEPENDS "books/cs4e/*")
 SET(cs4e-res, "")
 foreach(f-abs IN LISTS cs4e-res-abs)

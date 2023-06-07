@@ -1,5 +1,3 @@
-cmake_minimum_required(VERSION 3.10)
-
 try_compile(BITS_HAS_RANGES_REVERSE ${CMAKE_BINARY_DIR}/compile_tests ${CMAKE_CURRENT_LIST_DIR}/compile-test/ranges_reverse.cpp)
 if(BITS_HAS_RANGES_REVERSE)
     message("Using std::ranges::reverse for byteswap")
