@@ -9,4 +9,8 @@ include(git.cmake)
 get_git_head_revision(GIT_REFSPEC GIT_SHA1)
 #add_definitions("-DGIT_SHA1=${GIT_SHA1}")
 configure_file("${CMAKE_CURRENT_SOURCE_DIR}/src/about/version.cpp.in" "${CMAKE_CURRENT_BINARY_DIR}/version.cpp" @ONLY)
+qt_add_resources(about "about"
+  PREFIX "/about"
+  BASE "data"
+  FILES data/LICENSE)
 target_sources(about PRIVATE "${CMAKE_CURRENT_BINARY_DIR}/version.cpp")
