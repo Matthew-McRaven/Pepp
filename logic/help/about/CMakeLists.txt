@@ -12,6 +12,6 @@ configure_file("${CMAKE_CURRENT_SOURCE_DIR}/src/about/version.cpp.in" "${CMAKE_C
 qt_add_resources(about "about"
   PREFIX "/about"
   BASE "data"
-  FILES data/LICENSE_FULL)
+  FILES data/LICENSE_FULL data/contributors.csv)
 set_source_files_properties(data/LICENSE_FULL QT_RESOURCE_ALIAS LICENSE)
 target_sources(about PRIVATE "${CMAKE_CURRENT_BINARY_DIR}/version.cpp")
