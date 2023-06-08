@@ -7,7 +7,9 @@ const char about::g_GIT_SHA1[] = GIT_SHA1;
 // clang-format off
 #define VERSION_MAJOR @Pepp_VERSION_MAJOR@
 #define VERSION_MINOR @Pepp_VERSION_MINOR@
+#define VERSION_PATCH @Pepp_VERSION_PATCH@
 // clang-format on
 
 extern const int about::g_MAJOR_VERSION = VERSION_MAJOR;
 extern const int about::g_MINOR_VERSION = VERSION_MINOR;
+extern const int about::g_PATCH_VERSION = VERSION_PATCH;
