@@ -1,4 +1,5 @@
 #include "pepp.hpp"
+#include "about/version.hpp"
 #include "read.hpp"
 
 QString about::projectRepoURL() {
@@ -49,4 +50,8 @@ QString about::licenseFull() {
 QString about::licenseNotice() {
   auto text = detail::readFile(":/about/LICENSE_NOTICE");
   return text.value_or("");
+}
+
+QString about::versionString() {
+  return u"%1.%2"_qs.arg(about::g_MAJOR_VERSION).arg(about::g_MINOR_VERSION);
 }

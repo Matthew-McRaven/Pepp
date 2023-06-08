@@ -10,6 +10,7 @@ private slots:
   void contributors() { QCOMPARE_NE(about::contributors().size(), 0); }
   void licenseText() { QCOMPARE_NE(about::licenseFull().size(), 0); }
   void licenseNotice() { QCOMPARE_NE(about::licenseNotice().size(), 0); }
+  void version() { QCOMPARE_GT(about::versionString().size(), 1); }
 };
 #include "pepp.moc"
 

@@ -10,4 +10,5 @@ QList<Maintainer> maintainers();
 QList<QString> contributors();
 QString licenseFull();
 QString licenseNotice();
+QString versionString();
 } // namespace about
