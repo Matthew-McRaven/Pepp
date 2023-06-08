@@ -19,7 +19,7 @@ if (MSVC OR MINGW)
 endif ()
 
 target_link_libraries(pepp-term
-        PRIVATE cli about macro pas builtins isa targets sim Qt6::Core ${SOCK_LIB})
+        PRIVATE TextFlow cli about macro pas builtins isa targets sim Qt6::Core ${SOCK_LIB})
 
 install(TARGETS pepp-term
         BUNDLE DESTINATION .
