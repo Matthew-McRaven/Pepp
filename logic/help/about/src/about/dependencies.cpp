@@ -1,20 +1,9 @@
 #include "dependencies.hpp"
+#include "read.hpp"
 #include <QDebug>
 
-std::optional<QString> readFile(QString fname) {
-  QFile file(fname);
-  QString fileText;
-  if (file.open(QFile::ReadOnly))
-    fileText = file.readAll();
-  else {
-    qWarning() << "Failed to open: " << fname << ".\n";
-    return std::nullopt;
-  }
-  return fileText;
-}
-
 QList<about::Dependency> about::dependencies() {
-  auto depText = readFile(":/about/dependencies.csv");
+  auto depText = detail::readFile(":/about/dependencies.csv");
   if (!depText.has_value())
     return {};
   QList<about::Dependency> ret;
@@ -33,7 +22,7 @@ QList<about::Dependency> about::dependencies() {
       qWarning() << "Failed to parse dependency row: " << line << "\n";
       return {};
     }
-    auto lineText = readFile(parts[4]);
+    auto lineText = detail::readFile(parts[4]);
     if (!lineText.has_value())
       return {};
     ret.push_back(about::Dependency{.name = parts[0],
