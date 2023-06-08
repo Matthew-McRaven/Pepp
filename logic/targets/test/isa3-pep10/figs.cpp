@@ -1,3 +1,20 @@
+/*
+ * Copyright (c) 2023 J. Stanley Warford, Matthew McRaven
+ *
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program.  If not, see <https://www.gnu.org/licenses/>.
+ */
+
 #include <QTest>
 #include <QtCore>
 
@@ -19,8 +36,8 @@
 #include <elfio/elfio.hpp>
 static const auto rw =
     sim::api::memory::Operation{.speculative = false,
-                                .kind = sim::api::memory::Operation::Kind::data,
-                                .effectful = false};
+        .kind = sim::api::memory::Operation::Kind::data,
+        .effectful = false};
 
 static const auto gs = sim::api::memory::Operation{
     .speculative = false,
@@ -59,8 +76,8 @@ void assemble(ELFIO::elfio &elf, QString os, User user,
 
   auto osTarget = pipeline->pipelines[0].first;
   auto osRoot = osTarget->bodies[pas::driver::repr::Nodes::name]
-                    .value<pas::driver::repr::Nodes>()
-                    .value;
+      .value<pas::driver::repr::Nodes>()
+      .value;
   QCOMPARE(pas::ops::generic::collectErrors(*osRoot).size(), 0);
   pas::obj::pep10::combineSections(*osRoot);
   pas::obj::pep10::writeOS(elf, *osRoot);
@@ -68,8 +85,8 @@ void assemble(ELFIO::elfio &elf, QString os, User user,
   if (!user.pep.isEmpty()) {
     auto userTarget = pipeline->pipelines[1].first;
     auto userRoot = userTarget->bodies[pas::driver::repr::Nodes::name]
-                        .value<pas::driver::repr::Nodes>()
-                        .value;
+        .value<pas::driver::repr::Nodes>()
+        .value;
     QCOMPARE(pas::ops::generic::collectErrors(*userRoot).size(), 0);
     pas::obj::pep10::combineSections(*userRoot);
     pas::obj::pep10::writeUser(elf, *userRoot);
@@ -82,7 +99,7 @@ void assemble(ELFIO::elfio &elf, QString os, User user,
 }
 
 class Targets_ISA3Pep10_Figures : public QObject {
-  Q_OBJECT
+Q_OBJECT
 private slots:
   void smoke() {
     QFETCH(QString, os);
