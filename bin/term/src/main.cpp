@@ -21,6 +21,7 @@
 #include "./ls.hpp"
 #include "./run.hpp"
 #include "./task.hpp"
+#include "about.hpp"
 #include "throughput.hpp"
 #include <CLI11.hpp>
 #include <QDebug>
@@ -40,6 +41,11 @@ int main(int argc, char **argv) {
                 ->default_val(6)
                 ->expected(4, 6);
   task_factory_t task;
+
+  auto about = app.add_subcommand(
+      "about", "Display information about licensing, Qt, and developers.");
+  about->callback(
+      [&]() { task = [&](QObject *parent) { return new AboutTask(parent); }; });
 
   auto list = app.add_subcommand("ls", "Produce list of figures and macros");
   list->callback([&]() {
