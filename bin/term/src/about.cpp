@@ -2,6 +2,7 @@
 #include "about/dependencies.hpp"
 #include "about/pepp.hpp"
 #include "about/version.hpp"
+#include <TextFlow.hpp>
 #include <iostream>
 
 AboutTask::AboutTask(QObject *parent) : Task(parent) {}
@@ -17,5 +18,16 @@ void AboutTask::run() {
   for (const auto &maintainer : about::maintainers())
     std::cout << "\t" << maintainer.name.toStdString() << " <"
               << maintainer.email.toStdString() << ">\n";
+  std::cout << "\nLicensing:\n";
+  auto lines = TextFlow::Column(about::licenseNotice().toStdString());
+  for (const auto &line : lines) {
+    std::cout
+        << "\t"
+        << QString::fromStdString(line).replace("\n", "\n\t").toStdString()
+        << "\n";
+  }
+  std::cout
+      << "\n\n\tFor further licensing info, execute this program with the "
+         "`license` subcommand.\n";
   return emit finished(0);
 }
