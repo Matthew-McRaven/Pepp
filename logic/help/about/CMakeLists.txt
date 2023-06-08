@@ -14,14 +14,14 @@ configure_file("${CMAKE_CURRENT_SOURCE_DIR}/src/about/version.cpp.in" "${CMAKE_C
 file(GLOB_RECURSE dependency_licenses CONFIGURE_DEPENDS "data/dep/*")
 
 qt_add_resources(about "about"
-  PREFIX "/about"
-  BASE "data"
-  FILES
-    data/LICENSE_FULL data/LICENSE_NOTICE
-    data/contributors.csv data/maintainers.csv
-    data/repo.url
-    ${dependency_licenses}
-)
+        PREFIX "/about"
+        BASE "data"
+        FILES
+        data/LICENSE_FULL data/LICENSE_NOTICE
+        data/contributors.csv data/maintainers.csv
+        data/repo.url
+        ${dependency_licenses}
+        )
 set_source_files_properties(data/LICENSE_FULL QT_RESOURCE_ALIAS LICENSE)
 set_source_files_properties(data/LICENSE_NOTICE QT_RESOURCE_ALIAS NOTICE)
 
