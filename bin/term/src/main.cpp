@@ -22,6 +22,7 @@
 #include "./run.hpp"
 #include "./task.hpp"
 #include "about.hpp"
+#include "license.hpp"
 #include "throughput.hpp"
 #include <CLI11.hpp>
 #include <QDebug>
@@ -43,9 +44,15 @@ int main(int argc, char **argv) {
   task_factory_t task;
 
   auto about = app.add_subcommand(
-      "about", "Display information about licensing, Qt, and developers.");
+      "about", "Display information about versioning, and developers.");
   about->callback(
       [&]() { task = [&](QObject *parent) { return new AboutTask(parent); }; });
+
+  auto license = app.add_subcommand(
+      "license", "Display information about licensing, and Qt.");
+  license->callback([&]() {
+    task = [&](QObject *parent) { return new LicenseTask(parent); };
+  });
 
   auto list = app.add_subcommand("ls", "Produce list of figures and macros");
   list->callback([&]() {
