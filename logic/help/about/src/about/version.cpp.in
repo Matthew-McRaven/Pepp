@@ -1,6 +1,6 @@
 #include "about/version.hpp"
 #define GIT_SHA1 "@GIT_SHA1@"
-const char g_GIT_SHA1[] = GIT_SHA1;
+const char about::g_GIT_SHA1[] = GIT_SHA1;
 
 // Must supress formatting, or `@` will be separated from name, preventing
 // CMake substitutions.
@@ -9,5 +9,5 @@ const char g_GIT_SHA1[] = GIT_SHA1;
 #define VERSION_MINOR @Pepp_VERSION_MINOR@
 // clang-format on
 
-extern const int g_MAJOR_VERSION = VERSION_MAJOR;
-extern const int g_MINOR_VERSION = VERSION_MINOR;
+extern const int about::g_MAJOR_VERSION = VERSION_MAJOR;
+extern const int about::g_MINOR_VERSION = VERSION_MINOR;
