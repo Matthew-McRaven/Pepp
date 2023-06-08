@@ -20,6 +20,7 @@ qt_add_resources(about "about"
         data/LICENSE_FULL data/LICENSE_NOTICE
         data/contributors.csv data/maintainers.csv
         data/repo.url
+        data/dependencies.csv
         ${dependency_licenses}
         )
 set_source_files_properties(data/LICENSE_FULL QT_RESOURCE_ALIAS LICENSE)
