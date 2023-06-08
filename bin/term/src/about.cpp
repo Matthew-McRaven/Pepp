@@ -10,7 +10,7 @@ AboutTask::AboutTask(QObject *parent) : Task(parent) {}
 void AboutTask::run() {
   std::cout << u"Pepp Terminal, Version %1\nBased on commit %2\n\n"_qs
                    .arg(about::versionString())
-                   .arg(about::g_GIT_SHA1)
+                   .arg(about::g_GIT_SHA1())
                    .toStdString();
   std::cout << "Report issues or check for updates:\n";
   std::cout << "\t" << about::projectRepoURL().toStdString() << "\n\n";
