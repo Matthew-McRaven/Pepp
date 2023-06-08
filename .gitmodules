@@ -1,3 +1,6 @@
 [submodule "3rd-party/elfio"]
 	path = 3rd-party/elfio
 	url = https://gitlab.com/pepnext/3rd-party/elfio
+[submodule "3rd-party/textflowcpp"]
+	path = 3rd-party/textflowcpp
+	url = https://github.com/Matthew-McRaven/textflowcpp
