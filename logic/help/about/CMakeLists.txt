@@ -20,9 +20,16 @@ qt_add_resources(about "about"
         data/LICENSE_FULL data/LICENSE_NOTICE
         data/contributors.csv data/maintainers.csv
         data/repo.url
+        data/dependencies.csv
         ${dependency_licenses}
         )
-set_source_files_properties(data/LICENSE_FULL QT_RESOURCE_ALIAS LICENSE)
-set_source_files_properties(data/LICENSE_NOTICE QT_RESOURCE_ALIAS NOTICE)
+set_source_files_properties("data/LICENSE_FULL" PROPERTIES QT_RESOURCE_ALIAS "LICENSE")
+set_source_files_properties("data/LICENSE_NOTICE" PROPERTIES QT_RESOURCE_ALIAS "NOTICE")
 
 target_sources(about PRIVATE "${CMAKE_CURRENT_BINARY_DIR}/version.cpp")
+
+if (NOT IOS)
+    make_qtest(test-about-dependencies test/dependencies.cpp "about;Qt6::Core;Qt::Test")
+    make_qtest(test-about-pepp test/pepp.cpp "about;Qt6::Core;Qt::Test")
+    set_target_properties(test-about-pepp PROPERTIES FOLDER "qtc_runnable")
+endif ()
