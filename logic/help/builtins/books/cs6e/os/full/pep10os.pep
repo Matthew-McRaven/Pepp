@@ -20,7 +20,7 @@ false:   .EQUATE 0
 ;Place entry point flags in read-only memory, as these
 ;  may only be modified by the simulator.
 bootFlg: .WORD   3           ;Entry point flags
-doLoad:  .EQUATE 0x0001      ;System entry point will load program from disk.
+doLoad:  .EQUATE 0x0001      ;System entry point will load program from disk
 doExec:  .EQUATE 0x0002      ;System entry point will execute the program
 
 ;
