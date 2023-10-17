@@ -46,6 +46,7 @@ shutdown:LDWA    0xDEAD,i
          STBA    pwrOff,d
 hang:    BR      hang
 
+         .BLOCK  64          ;Padding for possible future modification
 ;
 retVal:  .EQUATE 0           ;Main return value #2d
 execMain:MOVSPA              ;Preserve system stack pointer
@@ -75,7 +76,7 @@ mainErr: LDWA    execErr,i   ;Load the address of the loader error address.
          ADDSP   2,i         ;Deallocate @param #retVal
          BR      shutdown
 execErr: .ASCII "Main failed with return value \x00"
-
+         .BLOCK  64          ;Padding for possible future modification
 ;******* System Loader
 ;Data must be in the following format:
 ;Each hex number representing a byte must contain exactly two
@@ -588,6 +589,7 @@ prntMore:LDBA    msgAddr,sfx ;Test next char
          BR      prntMore
 ;
 exitPrnt:RET
+         .BLOCK  64          ;Padding for possible future modification
 ;
 ;******* Vectors for system memory map
 ;
