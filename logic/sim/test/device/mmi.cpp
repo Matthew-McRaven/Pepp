@@ -40,7 +40,7 @@ class SimDevice_MMI : public QObject {
 private slots:
   void smoke() {
     QVERIFY_THROWS_NO_EXCEPTION(
-        QSharedPointer<sim::memory::Input<quint16>>::create(desc, span, 0));
+          [](){auto x=QSharedPointer<sim::memory::Input<quint16>>::create(desc, span, 0);}());
   }
 
   void read() {
