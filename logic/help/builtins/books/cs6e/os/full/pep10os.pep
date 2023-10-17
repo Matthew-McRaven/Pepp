@@ -123,16 +123,21 @@ loadErr: LDWA    ldErrMsg,i  ;Load the address of the loader error message.
 ldErrMsg:.ASCII "Sentinel value was corrupted\x00"
 ;
 ;******* Trap handler
+;NZVC bits, A and X registers contain user data after SCALL.
+;From an OS perspective, these registers are unitialized values,
+;and must be explicity set to prevent impacts on OS correctness.
 oldIR:   .EQUATE 9           ;Stack address of IR on trap
 oldPC:   .EQUATE 5           ;Stack address of PC on trap
 oldA:    .EQUATE 1           ;Stack address of A on trap
 ;
-trap:    LDWX    0,i         ;
+trap:    LDWA    0,i
+         MOVAFLG             ;Clear user supplied NZVC bits
+         LDWX    0,i
          LDWA    oldPC,s     ;Must increment program counter
-         ADDA    2,i         ;  for nonunary instructions
+         ADDA    2,i
          STWA    oldPC,s
          LDWX    oldA,s
-         BRLT    trapErr     ;Non-unary system calls must be non-negative
+         BRLT    trapErr     ;System calls must be non-negative
          CPWX    ESCJT, i
          BRGE    trapErr     ;System calls must be within the table
          ASLX                ;Multiply index by 2 for word size

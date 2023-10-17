@@ -1,4 +1,7 @@
 # Add Padding Bytes to OS
+* Status: Accepted
+* Date: 2022-10-9
+* Deciders: Stan, Matthew
 
 ## Issue
 
@@ -8,9 +11,6 @@ We would like to design the Pep/10 OS with better facilities for being patched a
 We will add 64 bytes of padding at the end of each major section of the OS which has an explicitly assigned address in the memory map: the system entry point, the dispatcher, and the trap handler.
 
 If a bug is uncovered, the relevant section will be patched, and the ROM block will be decreased in size to keep the memory map properly aligned.
-
-## Status
-Accepted
 
 ## Constraints
 After the book is released, the memory map must not change.
@@ -46,6 +46,7 @@ An additional 192 bytes of memory will be occupied by the OS at all times.
 
 In the event of a major OS bug, the published text and actual OS implementation may differ.
 Additionally, we may need some component in the help documentation to indicate that the OS has been modified since the book was published.
+
 ## Notes 
 Computer Systems, 5th Edition shipped with a bug in the OS.
 
