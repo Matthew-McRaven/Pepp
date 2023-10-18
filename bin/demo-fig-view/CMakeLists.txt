@@ -12,8 +12,10 @@ qt_add_qml_module(demo-fig-view
         URI figview
         VERSION 1.0
         QML_FILES ${rel_qml_sources}
+        SOURCES src/book_item_model.hpp src/book_item_model.cpp
         )
-
+# Will fail to find hpp files without this, see https://bugreports.qt.io/browse/QTBUG-101146.
+target_include_directories(demo-fig-view PRIVATE src)
 set_target_properties(demo-fig-view PROPERTIES
         MACOSX_BUNDLE_GUI_IDENTIFIER my.example.com
         MACOSX_BUNDLE_BUNDLE_VERSION ${PROJECT_VERSION}

@@ -20,7 +20,7 @@ foreach (f-abs IN LISTS cs6e-res-abs)
 endforeach ()
 
 make_library(builtins builtins)
-target_link_libraries(builtins PUBLIC "Qt6::Core;Qt6::Gui;macro")
+target_link_libraries(builtins PUBLIC "Qt6::Core;macro")
 target_compile_definitions(builtins PRIVATE BUILTINS_LIBRARY)
 qt_add_resources(builtins "builtins" PREFIX "/" FILES ${cs4e-res} ${cs5e-res} ${cs6e-res})
 

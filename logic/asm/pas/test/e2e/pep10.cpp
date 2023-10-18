@@ -236,7 +236,7 @@ private slots:
     auto systemBootFlg = sys->getBootFlagAddress();
     QCOMPARE(bootFlg.has_value(), systemBootFlg.has_value());
     if (bootFlg) {
-      QCOMPARE(*bootFlg, 0xfafa);
+      QCOMPARE(*bootFlg, 0xFA36);
       QCOMPARE(*systemBootFlg, *bootFlg);
       QCOMPARE(sys->getBootFlags(), 3);
     }
