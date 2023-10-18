@@ -21,13 +21,12 @@
 #include <QStandardItemModel>
 #include <QString>
 
-#include "builtins_globals.hpp"
 
 namespace builtins {
 
 #define SHARED_CONSTANT(type, name, value)                                     \
-  static inline const type name = value;                                       \
-  Q_PROPERTY(type name MEMBER name CONSTANT)
+static inline const type name = value;                                       \
+    Q_PROPERTY(type name MEMBER name CONSTANT)
 
 /*!
  * \brief Contains constants for item model roles to be shared between QML and
@@ -35,17 +34,17 @@ namespace builtins {
  *
  * These roles are used to
  */
-class BUILTINS_EXPORT FigureConstants : public QObject {
-  Q_OBJECT
-  QML_ELEMENT
-  QML_SINGLETON
+class FigureConstants : public QObject {
+    Q_OBJECT
+    QML_ELEMENT
+    QML_SINGLETON
 
 public:
-  //! A role which contains a string description of the scope of the current
-  //! item. For example, "book", or "figure". It is used to interpret the
-  //! payload field
-  SHARED_CONSTANT(quint32, FIG_ROLE_KIND, Qt::UserRole + 1);
-  /*!
+    //! A role which contains a string description of the scope of the current
+    //! item. For example, "book", or "figure". It is used to interpret the
+    //! payload field
+    SHARED_CONSTANT(quint32, FIG_ROLE_KIND, Qt::UserRole + 1);
+    /*!
    * \brief A role which contains figures or help documentation depending on the
    * value of \sa FIG_ROLE_KIND.
    *
@@ -53,18 +52,18 @@ public:
    * builtins::Figure If FIG_ROLE_KIND == "book", then this field contains a
    * QVariantList of \sa builtins::Figure.
    */
-  SHARED_CONSTANT(quint32, FIG_ROLE_PAYLOAD, Qt::UserRole + 2);
+    SHARED_CONSTANT(quint32, FIG_ROLE_PAYLOAD, Qt::UserRole + 2);
 };
 
 class Registry;
-class BUILTINS_EXPORT BookModel : public QStandardItemModel {
-  Q_OBJECT
+class BookModel : public QStandardItemModel {
+    Q_OBJECT
 public:
-  BookModel(QSharedPointer<builtins::Registry> registry);
-  QHash<int, QByteArray> roleNames() const override;
+    BookModel(QSharedPointer<builtins::Registry> registry);
+    QHash<int, QByteArray> roleNames() const override;
 
 private:
-  QSharedPointer<builtins::Registry> _registry;
+    QSharedPointer<builtins::Registry> _registry;
 };
 } // namespace builtins
 Q_DECLARE_METATYPE(builtins::BookModel);

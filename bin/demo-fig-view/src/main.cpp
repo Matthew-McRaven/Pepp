@@ -26,7 +26,7 @@
 //#include <QDirIterator>
 #include <QQmlContext>
 
-#include "builtins/book_item_model.hpp"
+#include "book_item_model.hpp"
 #include "builtins/registry.hpp"
 int main(int argc, char *argv[]) {
   QGuiApplication app(argc, argv);
