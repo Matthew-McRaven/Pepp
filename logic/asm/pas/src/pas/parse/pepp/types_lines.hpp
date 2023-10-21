@@ -19,7 +19,6 @@
 #include "./types_values.hpp"
 #include <boost/fusion/include/adapt_struct.hpp>
 #include <boost/spirit/home/x3.hpp>
-#include <climits>
 #include <string>
 #include "pas/pas_globals.hpp"
 
@@ -61,7 +60,19 @@ typedef boost::variant<BlankType, CommentType, UnaryType, NonUnaryType,
     LineType;
 } // namespace pas::parse::pepp
 
+// Platform specific code to ignore warnings from too few args to macro invocation.
+// No literature on how to fix this correctly, and I couldn't determine a proper fix
+// due to all the layered preprocessor magic here. I tried to use BOOST_FUSION_ADAPT_STRUCT_BASE, BOOST_FUSION_ADAPT_STRUCT_C
+// directly, but still ended up with strange warnings.
+#if defined(_MSC_VER)
+#pragma warning( push )
+#pragma warning( disable : 4003)
+#endif
 BOOST_FUSION_ADAPT_STRUCT(pas::parse::pepp::BlankType);
+#if defined(_MSC_VER)
+#pragma warning( push )
+#endif
+
 BOOST_FUSION_ADAPT_STRUCT(pas::parse::pepp::CommentType, comment);
 BOOST_FUSION_ADAPT_STRUCT(pas::parse::pepp::UnaryType, symbol, identifier,
                           comment);
