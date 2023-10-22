@@ -100,6 +100,7 @@ if (Python_FOUND)
         set(OUT_NAME_WE "${CMAKE_CURRENT_SOURCE_DIR}/test/generated/${FILENAME}")
         configure_file(test/impl.cpp.in ${OUT_NAME_WE}.cpp)
         # Duplicate run script so tht we can properly set alias
+        # Must use gen_ prefix to output, or it could cause the TARGET_FILE to become a directory by accident.
         configure_file(test/sample_run.py.in ${CMAKE_CURRENT_BINARY_DIR}/gen_${target}/sample_run.py)
         set_property(SOURCE "${CMAKE_CURRENT_BINARY_DIR}/gen_${target}/sample_run.py" PROPERTY QT_RESOURCE_ALIAS "test/${FILENAME}.py")
 
