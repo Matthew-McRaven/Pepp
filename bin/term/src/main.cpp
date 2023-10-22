@@ -123,7 +123,8 @@ int main(int argc, char **argv) {
     };
   });
 
-  bool skipLoad, skipDispatch /*,bm comes from asm*/;
+  // Must initialize,
+  bool skipLoad=false, skipDispatch=false /*,bm comes from asm*/;
   std::string objIn, charIn, charOut, memDump, osIn;
   uint64_t maxSteps;
   std::map<std::string, quint64> regOverrides;
