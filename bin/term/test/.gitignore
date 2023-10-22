@@ -1,0 +1,3 @@
+# Needed to ignore generated C++ files
+# Files are generated in source tree because QT Creator had a hard time picking up on tests.
+generated/

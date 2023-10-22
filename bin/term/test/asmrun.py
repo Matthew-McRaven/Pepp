@@ -14,6 +14,7 @@
 #  along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
 import argparse
+import contextlib
 import unittest
 import subprocess
 import tempfile
@@ -46,7 +47,7 @@ class TestCase(unittest.TestCase):
                 [executable, "run", "--bm","-s", "out.pepo"], cwd=cwd, capture_output=True)
             self.assertEqual(ret.returncode, 0)
             self.assertEqual(
-                ret.stdout,
+                ret.stdout.replace(b"\r",b""),
                 b"Cannot use system calls in bare metal mode\n")
 
     def test_baremetal(self):
@@ -61,17 +62,17 @@ class TestCase(unittest.TestCase):
                     f.write(b"SCALL 0,i")
             except IOError:
                 self.fail("Writing contents should not fail")
-
-            ret = subprocess.run([executable,
-                                  "asm",
-                                  "-s",
-                                  "in.pep",
-                                  "--os",
-                                  "os.pep",
-                                  "-o",
-                                  "out.pepo",
-                                  "--elf",
-                                  "in.elf"],
+            args = [executable,
+            "asm",
+            "-s",
+            "in.pep",
+            "--os",
+            "os.pep",
+            "-o",
+            "out.pepo",
+            "--elf",
+            "in.elf"]
+            ret = subprocess.run(args,
                                  cwd=cwd,
                                  capture_output=True)
             self.assertEqual(ret.returncode, 0)
@@ -80,11 +81,12 @@ class TestCase(unittest.TestCase):
                 [executable, "run", "-s", "in.elf"], cwd=cwd, capture_output=True)
             self.assertEqual(ret.returncode, 0)
             self.assertEqual(
-                ret.stdout,
+                ret.stdout.replace(b"\r",b""),
                 b"Cannot use system calls in bare metal mode\n")
 
     def test_0527_flags(self):
         with tempfile.TemporaryDirectory() as cwd:
+            print(cwd, flush=True)
             ret = subprocess.run(
                 [executable, "get", "--ch", "05", "--fig", "27"], cwd=cwd, capture_output=True)
             self.assertEqual(ret.returncode, 0)
@@ -94,21 +96,23 @@ class TestCase(unittest.TestCase):
                 with open(f"{cwd}/in.pep", "wb") as f:
                     f.write(ret.stdout)
                 with open(f"{cwd}/in.txt", "wt") as f:
-                    f.write("10\n")
-                    f.write("20\n")
+                    f.write("10"+os.linesep)
+                    f.write("20\n"+os.linesep)
             except IOError:
                 self.fail("Writing contents should not fail")
+            args = [executable,
+            "asm",
+            "-s",
+            "in.pep",
+            "-o",
+            "out.pepo",
+            "--elf",
+            "in.elf"]
 
-            ret = subprocess.run([executable,
-                                  "asm",
-                                  "-s",
-                                  "in.pep",
-                                  "-o",
-                                  "out.pepo",
-                                  "--elf",
-                                  "in.elf"],
+            ret = subprocess.run(args,
                                  cwd=cwd,
                                  capture_output=True)
+
             self.assertEqual(ret.returncode, 0)
 
             ret = subprocess.run([executable,
@@ -122,7 +126,7 @@ class TestCase(unittest.TestCase):
                                  cwd=cwd,
                                  capture_output=True)
             self.assertEqual(ret.returncode, 0)
-            self.assertEqual(ret.stdout, b"score = 25\n\n")
+            self.assertEqual(ret.stdout.replace(b"\r",b""), b"score = 25\n\n")
 
     def test_0527_positionals(self):
         with tempfile.TemporaryDirectory() as cwd:
@@ -142,7 +146,6 @@ class TestCase(unittest.TestCase):
             ret = subprocess.run(
                 [executable, "asm", "in.pep", "--elf", "in.elf"], cwd=cwd, capture_output=True)
             self.assertEqual(ret.returncode, 0)
-
             ret = subprocess.run([executable,
                                   "run",
                                   "in.elf",
@@ -151,9 +154,10 @@ class TestCase(unittest.TestCase):
                                   "-o",
                                   "-"],
                                  cwd=cwd,
+                                 #env=dict(os.environ, ForceBP="1"),
                                  capture_output=True)
             self.assertEqual(ret.returncode, 0)
-            self.assertEqual(ret.stdout, b"score = 25\n\n")
+            self.assertEqual(ret.stdout.replace(b"\r",b""), b"score = 25\n\n")
 
     def test_macro_dir_1(self):
         with tempfile.TemporaryDirectory() as cwd:
@@ -218,30 +222,33 @@ class TestCase(unittest.TestCase):
                     f.write("STBA charOut,d\nLDBA 1,i\nSTBA pwrOff,d")
             except IOError:
                 self.fail("Writing contents should not fail")
-            ret = subprocess.run(
-                [executable, "asm", "in.pep", "--elf", "in.elf"], cwd=cwd, capture_output=True)
+            args = [executable, "asm", f"in.pep", "--elf", "in.elf"]
+            print(" ".join(args), flush=True)
+            ret = subprocess.run(args, cwd=cwd, capture_output=True)
             self.assertEqual(ret.returncode, 0)
 
             # Skip OS routines, start in user program with pre-loaded
             # accumulator value.
-            ret = subprocess.run([executable,
-                                  "run",
-                                  "-s",
-                                  "in.elf",
-                                  "--skip-load",
-                                  "--skip-dispatch",
-                                  "--reg",
-                                  "Pc",
-                                  "0x0000",
-                                  "--reg",
-                                  "a",
-                                  "67",
-                                  "-o",
-                                  "-"],
+            args = [executable,
+            "run",
+            "-s",
+            "in.elf",
+            "--skip-load",
+            "--skip-dispatch",
+            "--reg",
+            "Pc",
+            "0x0000",
+            "--reg",
+            "a",
+            "67",
+            "-o",
+            "-"]
+
+            ret = subprocess.run(args,
                                  cwd=cwd,
                                  capture_output=True)
             self.assertEqual(ret.returncode, 0)
-            self.assertEqual(ret.stdout, b"C\n")
+            self.assertEqual(ret.stdout.replace(b"\r",b""), b"C\n")
 
 
 if __name__ == "__main__":
@@ -249,6 +256,7 @@ if __name__ == "__main__":
     parser.add_argument("executable")
     args = parser.parse_args()
     executable = args.executable
-    suite = unittest.defaultTestLoader.loadTestsFromTestCase(TestCase)
-    result = unittest.TextTestRunner(verbosity=2).run(suite)
-    sys.exit(len(result.failures))
+    with contextlib.redirect_stdout(sys.stderr):
+        suite = unittest.defaultTestLoader.loadTestsFromTestCase(TestCase)
+        result = unittest.TextTestRunner(stream=sys.stderr, verbosity=2, buffer=True).run(suite)
+        assert len(result.failures) == 0

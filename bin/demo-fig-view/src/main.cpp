@@ -53,7 +53,7 @@ int main(int argc, char *argv[]) {
   QQmlApplicationEngine engine;
   engine.rootContext()->setContextProperty("global_model",
                                            QVariant::fromValue(&model));
-  const QUrl url(u"qrc:/figview/src/main.qml"_qs);
+  const QUrl url(u"qrc:/qt/qml/figview/src/main.qml"_qs);
   QObject::connect(
       &engine, &QQmlApplicationEngine::objectCreated, &app,
       [url](QObject *obj, const QUrl &objUrl) {

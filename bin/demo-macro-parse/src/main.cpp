@@ -50,7 +50,7 @@ int main(int argc, char *argv[]) {
                                     "MacroParseResult");
   qmlRegisterType<MacroParser>("edu.pepperdine.cslab.macroparse", 1, 0,
                                "MacroParser");
-  const QUrl url(u"qrc:/macroparse/src/main.qml"_qs);
+  const QUrl url(u"qrc:/qt/qml/macroparse/src/main.qml"_qs);
   QObject::connect(
       &engine, &QQmlApplicationEngine::objectCreated, &app,
       [url](QObject *obj, const QUrl &objUrl) {

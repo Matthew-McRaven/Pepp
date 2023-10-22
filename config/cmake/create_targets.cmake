@@ -27,11 +27,8 @@ macro(inject_code_coverage)
 endmacro()
 
 
-# Helper that can be used to create either an interface or shared library
-# Variable "sources" must have the list of files you want included in the library.
-macro(make_exec target_name root)
-    file(GLOB_RECURSE sources CONFIGURE_DEPENDS "src/${root}/**/*.cpp" "src/${root}/*.cpp"
-      "src/${root}/**/*.hpp" "src/${root}/*.hpp")
+# Helper to create an executable with explicit paths.
+macro(make_exec_sources target_name sources)
     inject_cxx_standard()
     inject_clang_tidy()
     inject_code_coverage()
@@ -45,6 +42,17 @@ macro(make_exec target_name root)
 
 endMacro()
 
+# Helper to collect source files from a default location.
+macro(make_exec target_name root)
+    file(GLOB_RECURSE sources CONFIGURE_DEPENDS "src/${root}/**/*.cpp" "src/${root}/*.cpp"
+      "src/${root}/**/*.hpp" "src/${root}/*.hpp")
+    make_exec_sources("${target_name}" "${sources}")
+endMacro()
+
+# Helper that can be used to create either an interface or shared library
+# Variable "sources" must have the list of files you want included in the library.
+macro(make_target target_name TYPE)
+endmacro()
 # Helper that can be used to create either an interface or shared library
 # Variable "sources" must have the list of files you want included in the library.
 macro(make_target target_name TYPE)
@@ -66,7 +74,7 @@ macro(make_target target_name TYPE)
     # Mark src/ as the root from where includes should take place.
     target_include_directories(${target_name} ${TYPE} ${CMAKE_CURRENT_LIST_DIR}/src)
     # And always link against boost...
-    # target_link_libraries(${target_name} ${TYPE} ${Boost_LIBRARIES})
+    # target_link_libraries(${target_name} ${TYPE} )
 
 endMacro()
 
@@ -87,14 +95,15 @@ macro(make_qtest target_name file dep)
   inject_cxx_standard()
   inject_code_coverage()
   add_executable(${target_name} ${file})
-  target_link_libraries(${target_name} PRIVATE ${dep})
+  target_link_libraries(${target_name} PRIVATE ${dep} ${Boost_LIBRARIES})
   # And run the test with the correct reporting options.
   add_test(NAME ${target_name} COMMAND ${target_name})
   if(WIN32)
     file(MAKE_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}/${target_name})
     set_target_properties(${target_name} PROPERTIES RUNTIME_OUTPUT_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}/${target_name})
     add_custom_command(TARGET ${target_name} POST_BUILD
-      COMMAND ${CMAKE_COMMAND} -E copy $<TARGET_RUNTIME_DLLS:${target_name}> $<TARGET_FILE_DIR:${target_name}>
+      COMMAND ${CMAKE_COMMAND}
+      ARGS -E copy $<TARGET_RUNTIME_DLLS:${target_name}> $<TARGET_FILE_DIR:${target_name}>
       COMMAND_EXPAND_LISTS
       )
   endif()

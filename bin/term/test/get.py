@@ -14,6 +14,7 @@
 #  along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
 import argparse
+import contextlib
 import unittest
 import subprocess
 import tempfile
@@ -34,7 +35,7 @@ class TestCase(unittest.TestCase):
             ret = subprocess.run(
                 [executable, "get", "--ch", "00", "--fig", "x0"], cwd=cwd, capture_output=True)
             self.assertNotEqual(ret.returncode, 0)
-            self.assertEqual(ret.stderr, b"Figure 00.x0 does not exist.\n")
+            self.assertEqual(ret.stderr.replace(b"\r", b""), b"Figure 00.x0 does not exist.\n")
 
     def test_get_no_var(self):
         with tempfile.TemporaryDirectory() as cwd:
@@ -50,7 +51,7 @@ class TestCase(unittest.TestCase):
                                  capture_output=True)
             self.assertNotEqual(ret.returncode, 0)
             self.assertEqual(
-                ret.stderr,
+                ret.stderr.replace(b"\r", b""),
                 b"Figure 05.27 does not contain a \"not\" variant.\n")
 
 
@@ -59,6 +60,7 @@ if __name__ == "__main__":
     parser.add_argument("executable")
     args = parser.parse_args()
     executable = args.executable
-    suite = unittest.defaultTestLoader.loadTestsFromTestCase(TestCase)
-    result = unittest.TextTestRunner(verbosity=2).run(suite)
-    sys.exit(len(result.failures))
+    with contextlib.redirect_stdout(sys.stderr):
+        suite = unittest.defaultTestLoader.loadTestsFromTestCase(TestCase)
+        result = unittest.TextTestRunner(stream=sys.stderr, verbosity=2, buffer=True).run(suite)
+        assert len(result.failures) == 0
