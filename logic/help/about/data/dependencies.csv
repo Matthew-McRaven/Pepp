@@ -4,3 +4,4 @@ Boost,https://www.boost.org/,Boost Software License 1.0,BSL-1.0,:/about/dep/bsl-
 CLI11,https://github.com/CLIUtils/CLI11,BSD 3-Clause "New" or "Revised" License,BSD-3-Clause,:/about/dep/cli11.txt
 ELFIO,https://github.com/serge1/ELFIO,MIT License,MIT,:/about/dep/elfio.txt
 TextFlow,https://github.com/Matthew-McRaven/textflowcpp,Boost Software License 1.0,BSL-1.0,:/about/dep/bsl-1.0.txt
+Catch2,https://github.com/catchorg/Catch2,Boost Software License 1.0,BSL-1.0,:/about/dep/bsl-1.0.txt
