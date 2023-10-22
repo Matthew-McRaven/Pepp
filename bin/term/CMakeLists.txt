@@ -23,7 +23,7 @@ set_target_properties(pepp-term PROPERTIES
 # Non-DLL platforms have empty generator expressin, so use more generator magic to only copy DLLs if the exist.
 add_custom_command(TARGET pepp-term POST_BUILD
         COMMAND ${CMAKE_COMMAND}
-        ARG
+        ARGS
         -E $<IF:$<BOOL:$<TARGET_RUNTIME_DLLS:pepp-term>>,copy,true> $<TARGET_RUNTIME_DLLS:pepp-term> $<TARGET_FILE_DIR:pepp-term>
         COMMAND_EXPAND_LISTS
 )
@@ -63,7 +63,7 @@ if (Python_FOUND)
         string(REGEX REPLACE "^.(.*)" "${FIRST_LETTER}\\1" NAME "${FILENAME}")
         set(OUT_NAME_WE "${CMAKE_CURRENT_SOURCE_DIR}/test/generated/${FILENAME}")
         configure_file(test/impl.cpp.in ${OUT_NAME_WE}.cpp)
-        make_qtest(${target} "${OUT_NAME_WE}.cpp" "Qt6::Core;Qt6::Test;Python::Python;catch")
+        make_qtest(${target} "${OUT_NAME_WE}.cpp" "Qt6::Core;Qt6::Test;Python::Python")
 
         # Update working directory for scripts where it matters.
         get_filename_component(PY_WORKDIR ${PY_SCRIPT} DIRECTORY)
@@ -115,8 +115,13 @@ if (Python_FOUND)
         # Enumerate all files in sample dir, excluding the python script.
         file(GLOB_RECURSE samples CONFIGURE_DEPENDS "${CMAKE_CURRENT_LIST_DIR}/${sampledir}/*")
         list(REMOVE_ITEM samples run.py)
+
+        # Prevent samples from being empty, cause difficult-to-debug errors.
+        if (NOT (DEFINED samples AND NOT samples STREQUAL ""))
+            message( SEND_ERROR "Samples must be non-empty for ${target}" )
+        endif()
+
         # And copy those test items to the output directory for ease of execution.
-        message("files are ${samples}")
         add_custom_command(
                 TARGET ${target} POST_BUILD
                 COMMAND ${CMAKE_COMMAND}
@@ -141,9 +146,9 @@ if (Python_FOUND)
         configure_cpp_pyest_sample(test-term-0646-printf test/samples/0646_printf)
         configure_cpp_pyest_sample(test-term-0648-printf test/samples/0648_printf)
         # This test has a input bug.
-        #configure_cpp_pyest_sample(test-term-longstr test/samples/long_strings_error)
+        # configure_cpp_pyest_sample(test-term-longstr test/samples/long_strings_error)
 
-        set_target_properties(test-term-0648-printf PROPERTIES FOLDER "qtc_runnable")
+        #set_target_properties(test-term-0648-printf PROPERTIES FOLDER "qtc_runnable")
 
     endif ()
 endif ()
