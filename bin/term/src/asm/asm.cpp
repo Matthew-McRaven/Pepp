@@ -62,7 +62,7 @@ void AsmTask::run() {
   if (this->forceBm) {
     auto os = book->findFigure("os", "pep10baremetal");
     osContents = os->typesafeElements()["pep"]->contents;
-  } else if (osIn->empty()) {
+  } else if (!osIn || osIn->empty()) {
     auto os = book->findFigure("os", "pep10os");
     osContents = os->typesafeElements()["pep"]->contents;
   } else {
