@@ -39,8 +39,10 @@ class SimDevice_MMO : public QObject {
   Q_OBJECT
 private slots:
   void smoke() {
+    auto test= [](){auto x=QSharedPointer<sim::memory::Output<quint16>>::create(desc, span, 0);};
     QVERIFY_THROWS_NO_EXCEPTION(
-        QSharedPointer<sim::memory::Output<quint16>>::create(desc, span, 0));
+         test();
+    );
   }
 
   void write() {

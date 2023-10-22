@@ -19,13 +19,13 @@
 #include "visit.hpp"
 
 #include <sstream>
-#include <string>
 
 #include "table.hpp"
 // Bitflags for determining which symbols to access during operations
-enum SelectMode {
+enum SelectMode : quint8 {
   kSelf = 1,
   kChildren = 2,
+  kError = 255,
 };
 
 // "bit shift" the children bit into self.
@@ -44,9 +44,10 @@ SelectMode policyToMode(symbol::TraversalPolicy policy) {
   case symbol::TraversalPolicy::kChildrenOnly:
     return static_cast<SelectMode>(kChildren);
     break;
-  default:
-    qFatal("Unhandled traversal policy");
+  //default: // MSVC isn't smart enough to determine that all code paths will return/exit.
   }
+  qFatal("Unhandled traversal policy");
+  return SelectMode::kError;
 }
 
 // Get the proper root for a given traversal policy
@@ -62,9 +63,10 @@ policyToTargetTable(symbol::TraversalPolicy policy,
     return symbol::parent(table);
   case symbol::TraversalPolicy::kWholeTree:
     return symbol::rootTable(table);
-  default:
-    qFatal("Unhandled traversal policy");
+  //default: // MSVC isn't smart enough to determine that all code paths will return/exit.
   }
+  qFatal("Unhandled traversal policy");
+  return nullptr;
 }
 
 QSharedPointer<const symbol::Table>
