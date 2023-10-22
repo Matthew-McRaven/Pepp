@@ -27,11 +27,8 @@ macro(inject_code_coverage)
 endmacro()
 
 
-# Helper that can be used to create either an interface or shared library
-# Variable "sources" must have the list of files you want included in the library.
-macro(make_exec target_name root)
-    file(GLOB_RECURSE sources CONFIGURE_DEPENDS "src/${root}/**/*.cpp" "src/${root}/*.cpp"
-      "src/${root}/**/*.hpp" "src/${root}/*.hpp")
+# Helper to create an executable with explicit paths.
+macro(make_exec_sources target_name sources)
     inject_cxx_standard()
     inject_clang_tidy()
     inject_code_coverage()
@@ -45,6 +42,17 @@ macro(make_exec target_name root)
 
 endMacro()
 
+# Helper to collect source files from a default location.
+macro(make_exec target_name root)
+    file(GLOB_RECURSE sources CONFIGURE_DEPENDS "src/${root}/**/*.cpp" "src/${root}/*.cpp"
+      "src/${root}/**/*.hpp" "src/${root}/*.hpp")
+    make_exec_sources("${target_name}" "${sources}")
+endMacro()
+
+# Helper that can be used to create either an interface or shared library
+# Variable "sources" must have the list of files you want included in the library.
+macro(make_target target_name TYPE)
+endmacro()
 # Helper that can be used to create either an interface or shared library
 # Variable "sources" must have the list of files you want included in the library.
 macro(make_target target_name TYPE)
