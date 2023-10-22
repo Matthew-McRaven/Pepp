@@ -2,7 +2,7 @@ cmake_minimum_required(VERSION 3.10)
 
 make_library(about about)
 target_include_directories(about PUBLIC ${Boost_INCLUDE_DIR})
-target_link_libraries(about PUBLIC "Qt6::Core;${Boost_LIBRARIES}")
+target_link_libraries(about PUBLIC "Qt6::Core" )
 #target_compile_definitions(about PRIVATE ABOUT_LIBRARY)
 
 include(git.cmake)

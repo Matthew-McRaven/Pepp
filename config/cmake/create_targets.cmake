@@ -66,7 +66,7 @@ macro(make_target target_name TYPE)
     # Mark src/ as the root from where includes should take place.
     target_include_directories(${target_name} ${TYPE} ${CMAKE_CURRENT_LIST_DIR}/src)
     # And always link against boost...
-    # target_link_libraries(${target_name} ${TYPE} ${Boost_LIBRARIES})
+    # target_link_libraries(${target_name} ${TYPE} )
 
 endMacro()
 
@@ -87,7 +87,7 @@ macro(make_qtest target_name file dep)
   inject_cxx_standard()
   inject_code_coverage()
   add_executable(${target_name} ${file})
-  target_link_libraries(${target_name} PRIVATE ${dep})
+  target_link_libraries(${target_name} PRIVATE ${dep} ${Boost_LIBRARIES})
   # And run the test with the correct reporting options.
   add_test(NAME ${target_name} COMMAND ${target_name})
   if(WIN32)
