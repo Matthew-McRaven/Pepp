@@ -30,14 +30,14 @@ def stringToPath(pth):
 class TestCase(unittest.TestCase):
     def test_assemble(self):
         with tempfile.TemporaryDirectory() as cwd:
-            self.assertEqual(os.path.exists(stringToPath(f"{os.getcwd()}/in.pep")), True)
-            ret = subprocess.run([executable, "asm", stringToPath(f"{os.getcwd()}/in.pep"), "-o", stringToPath(f"{cwd}/out.pepo"),
+            self.assertEqual(os.path.exists(stringToPath(f"{os.getcwd()}/@FILENAME@/in.pep")), True)
+            ret = subprocess.run([executable, "asm", stringToPath(f"{os.getcwd()}/@FILENAME@/in.pep"), "-o", stringToPath(f"{cwd}/out.pepo"),
             "--elf", stringToPath(f"{cwd}/out.elf")], cwd=cwd, capture_output=True)
             self.assertEqual(ret.returncode, 0, f"{ret.returncode}")
             self.assertEqual(os.path.exists(stringToPath(f"{cwd}/out.elf")), True)
 
             args = [executable, "run", stringToPath(f"{cwd}/out.elf"), "-o", stringToPath(f"{cwd}/out.txt")]
-            if os.path.exists(stringToPath(f"{os.getcwd()}/in.txt")): args.extend(["-i", stringToPath(f"{os.getcwd()}/in.txt")])
+            if os.path.exists(stringToPath(f"{os.getcwd()}/@FILENAME@/in.txt")): args.extend(["-i", stringToPath(f"{os.getcwd()}/@FILENAME@/in.txt")])
 
             ret = subprocess.run(args, cwd=cwd, capture_output=True)
             self.assertEqual(ret.returncode, 0)
@@ -46,7 +46,7 @@ class TestCase(unittest.TestCase):
             try:
               with open(stringToPath(f"{cwd}/out.txt"), "rt") as f:
                 actual = "\n".join(f.readlines())
-              with open(stringToPath(f"{os.getcwd()}/out.txt"), "rt") as f:
+              with open(stringToPath(f"{os.getcwd()}/@FILENAME@/out.txt"), "rt") as f:
                 expected = "\n".join(f.readlines())
             except IOError as e:
               print(e.strerror)

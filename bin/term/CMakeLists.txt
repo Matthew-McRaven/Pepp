@@ -75,7 +75,7 @@ if (Python_FOUND)
         )
         target_compile_definitions(${target} PRIVATE QT_NO_KEYWORDS)
         add_dependencies(${target} pepp-term)
-        file(GENERATE OUTPUT ${CMAKE_CURRENT_BINARY_DIR}/${target}/test_config.txt CONTENT "$<TARGET_FILE:pepp-term>\n${CMAKE_CURRENT_BINARY_DIR}/pythonpath.txt")
+        file(GENERATE OUTPUT $<TARGET_FILE_DIR:${target}>/test_config.txt CONTENT "$<TARGET_FILE:pepp-term>\n${CMAKE_CURRENT_BINARY_DIR}/pythonpath.txt")
     endfunction()
 
 
@@ -93,14 +93,13 @@ if (Python_FOUND)
         set(OUT_NAME_WE "${CMAKE_CURRENT_SOURCE_DIR}/test/generated/${FILENAME}")
         configure_file(test/impl.cpp.in ${OUT_NAME_WE}.cpp)
         # Duplicate run script so tht we can properly set alias
-        configure_file(test/sample_run.py ${CMAKE_CURRENT_BINARY_DIR}/${target}/sample_run.py)
+        configure_file(test/sample_run.py.in ${CMAKE_CURRENT_BINARY_DIR}/${target}/sample_run.py)
         set_property(SOURCE "${CMAKE_CURRENT_BINARY_DIR}/${target}/sample_run.py" PROPERTY QT_RESOURCE_ALIAS "test/${FILENAME}.py")
 
         make_qtest(${target} "${OUT_NAME_WE}.cpp" "Qt6::Core;Qt6::Test;Python::Python")
 
         # Update working directory for scripts where it matters.
         set_target_properties(${target} PROPERTIES WORKING_DIRECTORY ${sampledir})
-
 
         qt_add_resources(${target} "${target}"
             PREFIX "/py"
@@ -109,9 +108,9 @@ if (Python_FOUND)
 
 
         target_compile_definitions(${target} PRIVATE QT_NO_KEYWORDS)
-        add_dependencies(${target} pepp-term)
 
-        file(GENERATE OUTPUT ${CMAKE_CURRENT_BINARY_DIR}/${target}/test_config.txt CONTENT "$<TARGET_FILE:pepp-term>\n${CMAKE_CURRENT_BINARY_DIR}/pythonpath.txt")
+
+        file(GENERATE OUTPUT $<TARGET_FILE_DIR:${target}>/test_config.txt CONTENT "$<TARGET_FILE:pepp-term>\n${CMAKE_CURRENT_BINARY_DIR}/pythonpath.txt")
         # Enumerate all files in sample dir, excluding the python script.
         file(GLOB_RECURSE samples CONFIGURE_DEPENDS "${CMAKE_CURRENT_LIST_DIR}/${sampledir}/*")
         list(REMOVE_ITEM samples run.py)
@@ -122,12 +121,17 @@ if (Python_FOUND)
         endif()
 
         # And copy those test items to the output directory for ease of execution.
-        add_custom_command(
-                TARGET ${target} POST_BUILD
-                COMMAND ${CMAKE_COMMAND}
-                ARGS -E copy ${samples} $<TARGET_FILE_DIR:${target}>
-                COMMAND_EXPAND_LISTS
+        add_custom_target("${target}-makedir"
+            COMMAND ${CMAKE_COMMAND} -E make_directory $<TARGET_FILE_DIR:${target}>/${FILENAME}
+            COMMAND_EXPAND_LISTS
         )
+        add_custom_target("${target}-copyfiles"
+            COMMAND ${CMAKE_COMMAND}
+            -E copy ${samples} $<TARGET_FILE_DIR:${target}>/${FILENAME}
+            COMMAND_EXPAND_LISTS
+            DEPENDS  "${target}-makedir"
+        )
+    add_dependencies(${target} pepp-term "${target}-makedir")
     endfunction()
 
     if (NOT IOS)
