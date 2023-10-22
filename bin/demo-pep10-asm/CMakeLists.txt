@@ -8,7 +8,7 @@ foreach (f_abs IN LISTS abs_qml_sources)
     list(APPEND rel_qml_sources "${f_rel}")
 endforeach ()
 
-qt_policy(SET QTP0001 NEW)
+qt6_policy(SET QTP0001 NEW)
 
 qt_add_qml_module(demo-pep10-asm
         URI pep10asm

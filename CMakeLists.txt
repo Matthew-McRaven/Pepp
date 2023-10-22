@@ -7,11 +7,12 @@ set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 # We always want universal builds, so do not set on a per-target basis
 SET(CMAKE_OSX_ARCHITECTURES "x86_64;arm64" CACHE INTERNAL "" FORCE)
+set_property(GLOBAL PROPERTY USE_FOLDERS ON)
+find_package(Qt6 6.4 COMPONENTS Quick Core Gui Qml Test Widgets REQUIRED)
+
 add_subdirectory(3rd-party)
 
-set_property(GLOBAL PROPERTY USE_FOLDERS ON)
 
-find_package(Qt6 6.4 COMPONENTS Quick Core Gui Qml Test Widgets REQUIRED)
 
 # Emscripten build forget to set boost_INCLUDE_DIR correctly
 set(Boost_USE_STATIC_LIBS   ON)
