@@ -14,6 +14,7 @@ set_property(GLOBAL PROPERTY USE_FOLDERS ON)
 find_package(Qt6 6.4 COMPONENTS Quick Core Gui Qml Test Widgets REQUIRED)
 
 # Emscripten build forget to set boost_INCLUDE_DIR correctly
+set(Boost_USE_STATIC_LIBS   ON)
 set(Boost_INCLUDE_DIR "$ENV{BOOST_ROOT}")
 find_package(Boost 1.76.0 REQUIRED)
 
