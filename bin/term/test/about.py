@@ -14,12 +14,12 @@
 #  along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
 import argparse
+import contextlib
 import unittest
 import subprocess
 import tempfile
 import sys
 executable = ""
-
 
 class TestCase(unittest.TestCase):
     def test_about(self):
@@ -35,6 +35,7 @@ if __name__ == "__main__":
     parser.add_argument("executable")
     args = parser.parse_args()
     executable = args.executable
-    suite = unittest.defaultTestLoader.loadTestsFromTestCase(TestCase)
-    result = unittest.TextTestRunner(verbosity=2).run(suite)
-    sys.exit(len(result.failures))
+    with contextlib.redirect_stdout(sys.stderr):
+        suite = unittest.defaultTestLoader.loadTestsFromTestCase(TestCase)
+        result = unittest.TextTestRunner(stream=sys.stderr, verbosity=2, buffer=True).run(suite)
+        assert len(result.failures) == 0
