@@ -36,7 +36,7 @@ private Q_SLOTS:
     void smoke() {
         // File written out by cmake. First line is the path of pepp terminal executable.
         // The second line is a path to a file which contains the values for PYTHONHOME and PYTHONPATH
-        auto config_path = QCoreApplication::applicationDirPath()+"/test_config.txt";
+        auto config_path = QCoreApplication::applicationDirPath()+"/@FILENAME@/test_config.txt";
         QFile config_file(config_path);
         if (!config_file.open(QIODevice::ReadOnly | QIODevice::Text))
             QVERIFY2(false, "Failed to read config file");

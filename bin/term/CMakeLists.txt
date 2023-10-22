@@ -75,7 +75,14 @@ if (Python_FOUND)
         )
         target_compile_definitions(${target} PRIVATE QT_NO_KEYWORDS)
         add_dependencies(${target} pepp-term)
-        file(GENERATE OUTPUT $<TARGET_FILE_DIR:${target}>/test_config.txt CONTENT "$<TARGET_FILE:pepp-term>\n${CMAKE_CURRENT_BINARY_DIR}/pythonpath.txt")
+
+        # And copy those test items to the output directory for ease of execution.
+        add_custom_target("${target}-makedir"
+            COMMAND ${CMAKE_COMMAND} -E make_directory $<TARGET_FILE_DIR:${target}>/${FILENAME}
+            COMMAND_EXPAND_LISTS
+        )
+        file(GENERATE OUTPUT $<TARGET_FILE_DIR:${target}>/${FILENAME}/test_config.txt CONTENT "$<TARGET_FILE:pepp-term>\n${CMAKE_CURRENT_BINARY_DIR}/pythonpath.txt")
+        add_dependencies(${target} pepp-term "${target}-makedir")
     endfunction()
 
 
@@ -110,7 +117,7 @@ if (Python_FOUND)
         target_compile_definitions(${target} PRIVATE QT_NO_KEYWORDS)
 
 
-        file(GENERATE OUTPUT $<TARGET_FILE_DIR:${target}>/test_config.txt CONTENT "$<TARGET_FILE:pepp-term>\n${CMAKE_CURRENT_BINARY_DIR}/pythonpath.txt")
+
         # Enumerate all files in sample dir, excluding the python script.
         file(GLOB_RECURSE samples CONFIGURE_DEPENDS "${CMAKE_CURRENT_LIST_DIR}/${sampledir}/*")
         list(REMOVE_ITEM samples run.py)
@@ -131,7 +138,8 @@ if (Python_FOUND)
             COMMAND_EXPAND_LISTS
             DEPENDS  "${target}-makedir"
         )
-    add_dependencies(${target} pepp-term "${target}-makedir")
+        file(GENERATE OUTPUT $<TARGET_FILE_DIR:${target}>/${FILENAME}/test_config.txt CONTENT "$<TARGET_FILE:pepp-term>\n${CMAKE_CURRENT_BINARY_DIR}/pythonpath.txt")
+        add_dependencies(${target} pepp-term "${target}-copyfiles")
     endfunction()
 
     if (NOT IOS)
