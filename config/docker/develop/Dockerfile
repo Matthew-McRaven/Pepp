@@ -22,7 +22,7 @@ RUN git clone --jobs 10 --recursive --branch boost-${BOOST_VERSION}  https://git
 
 # Boost will install to /usr/local/lib
 RUN cd boost && ./bootstrap.sh --prefix=/bmagic \
-    && ./b2 cxxflags="-fPIC -std=c++17" address-model=64 link=static runtime-link=static -j 20 threading=multi install --build-dir=./build-native --stagedir=./stage-native --prefix=/bmagic
+    && ./b2 cxxflags="-fPIC -std=c++17" address-model=64 link=static -j 20 threading=multi install --build-dir=./build-native --stagedir=./stage-native --prefix=/bmagic
 
 FROM base as final
 COPY --from=boost-build /bmagic /usr/local
