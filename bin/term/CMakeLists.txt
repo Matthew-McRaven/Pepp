@@ -20,10 +20,14 @@ set_target_properties(pepp-term PROPERTIES
         WIN32_EXECUTABLE TRUE
 )
 
+# Non-DLL platforms have empty generator expressin, so use more generator magic to only copy DLLs if the exist.
 add_custom_command(TARGET pepp-term POST_BUILD
-        COMMAND ${CMAKE_COMMAND} -E copy $<TARGET_RUNTIME_DLLS:pepp-term> $<TARGET_FILE_DIR:pepp-term>
+        COMMAND ${CMAKE_COMMAND}
+        ARG
+        -E $<IF:$<BOOL:$<TARGET_RUNTIME_DLLS:pepp-term>>,copy,true> $<TARGET_RUNTIME_DLLS:pepp-term> $<TARGET_FILE_DIR:pepp-term>
         COMMAND_EXPAND_LISTS
 )
+
 
 install(TARGETS pepp-term
         BUNDLE DESTINATION .
