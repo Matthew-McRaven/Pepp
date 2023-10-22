@@ -89,7 +89,7 @@ if (Python_FOUND)
 
     function(configure_cpp_pyest_sample target sampledir)
 
-        get_filename_component(FILENAME ${sampledir} NAME_WE)
+        get_filename_component(FILENAME "${sampledir}" NAME_WE)
         # Dummy field needed by impl. This file doesn't really exist, but we will alias it to something that does.
         set(PY_SCRIPT "test/${FILENAME}.py")
         # NAME is lowercase, except first letter is upper
@@ -100,8 +100,8 @@ if (Python_FOUND)
         set(OUT_NAME_WE "${CMAKE_CURRENT_SOURCE_DIR}/test/generated/${FILENAME}")
         configure_file(test/impl.cpp.in ${OUT_NAME_WE}.cpp)
         # Duplicate run script so tht we can properly set alias
-        configure_file(test/sample_run.py.in ${CMAKE_CURRENT_BINARY_DIR}/${target}/sample_run.py)
-        set_property(SOURCE "${CMAKE_CURRENT_BINARY_DIR}/${target}/sample_run.py" PROPERTY QT_RESOURCE_ALIAS "test/${FILENAME}.py")
+        configure_file(test/sample_run.py.in ${CMAKE_CURRENT_BINARY_DIR}/gen_${target}/sample_run.py)
+        set_property(SOURCE "${CMAKE_CURRENT_BINARY_DIR}/gen_${target}/sample_run.py" PROPERTY QT_RESOURCE_ALIAS "test/${FILENAME}.py")
 
         make_qtest(${target} "${OUT_NAME_WE}.cpp" "Qt6::Core;Qt6::Test;Python::Python")
 
@@ -110,7 +110,7 @@ if (Python_FOUND)
 
         qt_add_resources(${target} "${target}"
             PREFIX "/py"
-            FILES "${CMAKE_CURRENT_BINARY_DIR}/${target}/sample_run.py"
+            FILES "${CMAKE_CURRENT_BINARY_DIR}/gen_${target}/sample_run.py"
         )
 
 
