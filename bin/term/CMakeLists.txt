@@ -112,11 +112,11 @@ if (Python_FOUND)
         file(GLOB_RECURSE samples CONFIGURE_DEPENDS "${CMAKE_CURRENT_LIST_DIR}/${sampledir}/*")
         list(REMOVE_ITEM samples run.py)
         # And copy those test items to the output directory for ease of execution.
+        message("files are ${samples}")
         add_custom_command(
                 TARGET ${target} POST_BUILD
-                COMMAND ${CMAKE_COMMAND} -E copy
-                        ${samples}
-                        $<TARGET_FILE_DIR:${target}>
+                COMMAND ${CMAKE_COMMAND}
+                ARGS -E copy ${samples} $<TARGET_FILE_DIR:${target}>
                 COMMAND_EXPAND_LISTS
         )
     endfunction()
