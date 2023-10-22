@@ -1,4 +1,15 @@
+# See: https://github.com/BoostGSoC14/boost.http/pull/47/commits/21db2a954ee5e6b6e3fbc98b487047158073c33a
+# Must link against extra libs on windows for boost asio to work.
+list(APPEND SOCK_LIB "")
+if (MSVC OR MINGW)
+    list(APPEND SOCK_LIB ws2_32)
+    list(APPEND SOCK_LIB mswsock)
+endif ()
+
 make_exec(pepp-term "./")
+
+target_link_libraries(pepp-term
+        PUBLIC TextFlow cli about macro pas builtins isa targets sim Qt6::Core ${SOCK_LIB})
 
 # GLOB_RECURSE ueses abs paths, QML_FILES expects relative paths. This blob converts from abs to rel.
 set_target_properties(pepp-term PROPERTIES
@@ -7,30 +18,130 @@ set_target_properties(pepp-term PROPERTIES
         MACOSX_BUNDLE_SHORT_VERSION_STRING ${PROJECT_VERSION_MAJOR}.${PROJECT_VERSION_MINOR}
         MACOSX_BUNDLE TRUE
         WIN32_EXECUTABLE TRUE
-        )
-set_target_properties(pepp-term PROPERTIES FOLDER "qtc_runnable")
+)
 
-# See: https://github.com/BoostGSoC14/boost.http/pull/47/commits/21db2a954ee5e6b6e3fbc98b487047158073c33a
-# Must link against extra libs on windows for boot asio to work.
-list(APPEND SOCK_LIB "")
-if (MSVC OR MINGW)
-    list(APPEND SOCK_LIB ws2_32)
-    list(APPEND SOCK_LIB mswsock)
-endif ()
-
-target_link_libraries(pepp-term
-        PRIVATE TextFlow cli about macro pas builtins isa targets sim Qt6::Core ${SOCK_LIB})
+add_custom_command(TARGET pepp-term POST_BUILD
+        COMMAND ${CMAKE_COMMAND} -E copy $<TARGET_RUNTIME_DLLS:pepp-term> $<TARGET_FILE_DIR:pepp-term>
+        COMMAND_EXPAND_LISTS
+)
 
 install(TARGETS pepp-term
         BUNDLE DESTINATION .
         LIBRARY DESTINATION ${CMAKE_INSTALL_LIBDIR})
 
-find_package(Python3)
-if (Python3_FOUND)
-    add_test(NAME test-term-about COMMAND ${Python3_EXECUTABLE} test/about.py $<TARGET_FILE:pepp-term> WORKING_DIRECTORY ${CMAKE_CURRENT_LIST_DIR})
-    add_test(NAME test-term-ls COMMAND ${Python3_EXECUTABLE} test/ls.py $<TARGET_FILE:pepp-term> WORKING_DIRECTORY ${CMAKE_CURRENT_LIST_DIR})
-    add_test(NAME test-term-get COMMAND ${Python3_EXECUTABLE} test/get.py $<TARGET_FILE:pepp-term> WORKING_DIRECTORY ${CMAKE_CURRENT_LIST_DIR})
-    add_test(NAME test-term-asmrun COMMAND ${Python3_EXECUTABLE} test/asmrun.py $<TARGET_FILE:pepp-term> WORKING_DIRECTORY ${CMAKE_CURRENT_LIST_DIR})
-    add_subdirectory(test/samples)
+set_target_properties(pepp-term PROPERTIES FOLDER "qtc_runnable")
+
+set_property(SOURCE "test/impl.cpp.in" PROPERTY SKIP_AUTOMOC ON)
+
+find_package(Python REQUIRED Development Interpreter)
+if (Python_FOUND)
+
+    # Create file which contains PYTHONHOME followed by PYTHONPATH values seperated by newlines.
+    add_custom_command(
+        COMMAND ${Python_EXECUTABLE}
+        ARGS ${CMAKE_CURRENT_LIST_DIR}/print_path.py
+        OUTPUT "${CMAKE_CURRENT_BINARY_DIR}/pythonpath.txt"
+        WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}
+    )
+    # Required logic to trigger python paths generation as part of build.
+    add_custom_target(gen-python-paths ALL DEPENDS "${CMAKE_CURRENT_BINARY_DIR}/pythonpath.txt")
+
+    add_dependencies(pepp-term gen-python-paths)
+
+    # Files are generated in source tree because QT Creator had a hard time picking up on tests.
+
+    # From a target name and a python script, create a QTest application.
+    function(configure_cpp_pytest target PY_SCRIPT)
+        get_filename_component(FILENAME ${PY_SCRIPT} NAME_WE)
+        # NAME is lowercase, except first letter is upper
+        string(SUBSTRING ${FILENAME} 0 1 FIRST_LETTER)
+        string(TOUPPER ${FIRST_LETTER} FIRST_LETTER)
+        string(REGEX REPLACE "^.(.*)" "${FIRST_LETTER}\\1" NAME "${FILENAME}")
+        set(OUT_NAME_WE "${CMAKE_CURRENT_SOURCE_DIR}/test/generated/${FILENAME}")
+        configure_file(test/impl.cpp.in ${OUT_NAME_WE}.cpp)
+        make_qtest(${target} "${OUT_NAME_WE}.cpp" "Qt6::Core;Qt6::Test;Python::Python;catch")
+
+        # Update working directory for scripts where it matters.
+        get_filename_component(PY_WORKDIR ${PY_SCRIPT} DIRECTORY)
+        set_target_properties(${target} PROPERTIES WORKING_DIRECTORY ${PY_WORKDIR})
+
+        qt_add_resources(${target} "${target}"
+            PREFIX "/py"
+            FILES "${PY_SCRIPT}"
+        )
+        target_compile_definitions(${target} PRIVATE QT_NO_KEYWORDS)
+        add_dependencies(${target} pepp-term)
+        file(GENERATE OUTPUT ${CMAKE_CURRENT_BINARY_DIR}/${target}/test_config.txt CONTENT "$<TARGET_FILE:pepp-term>\n${CMAKE_CURRENT_BINARY_DIR}/pythonpath.txt")
+    endfunction()
+
+
+
+    function(configure_cpp_pyest_sample target sampledir)
+
+        get_filename_component(FILENAME ${sampledir} NAME_WE)
+        # Dummy field needed by impl. This file doesn't really exist, but we will alias it to something that does.
+        set(PY_SCRIPT "test/${FILENAME}.py")
+        # NAME is lowercase, except first letter is upper
+        string(SUBSTRING ${FILENAME} 0 1 FIRST_LETTER)
+        string(TOUPPER ${FIRST_LETTER} FIRST_LETTER)
+        string(REGEX REPLACE "^.(.*)" "${FIRST_LETTER}\\1" NAME "${FILENAME}")
+
+        set(OUT_NAME_WE "${CMAKE_CURRENT_SOURCE_DIR}/test/generated/${FILENAME}")
+        configure_file(test/impl.cpp.in ${OUT_NAME_WE}.cpp)
+        # Duplicate run script so tht we can properly set alias
+        configure_file(test/sample_run.py ${CMAKE_CURRENT_BINARY_DIR}/${target}/sample_run.py)
+        set_property(SOURCE "${CMAKE_CURRENT_BINARY_DIR}/${target}/sample_run.py" PROPERTY QT_RESOURCE_ALIAS "test/${FILENAME}.py")
+
+        make_qtest(${target} "${OUT_NAME_WE}.cpp" "Qt6::Core;Qt6::Test;Python::Python;catch")
+
+        # Update working directory for scripts where it matters.
+        set_target_properties(${target} PROPERTIES WORKING_DIRECTORY ${sampledir})
+
+
+        qt_add_resources(${target} "${target}"
+            PREFIX "/py"
+            FILES "${CMAKE_CURRENT_BINARY_DIR}/${target}/sample_run.py"
+        )
+
+
+        target_compile_definitions(${target} PRIVATE QT_NO_KEYWORDS)
+        add_dependencies(${target} pepp-term)
+
+        file(GENERATE OUTPUT ${CMAKE_CURRENT_BINARY_DIR}/${target}/test_config.txt CONTENT "$<TARGET_FILE:pepp-term>\n${CMAKE_CURRENT_BINARY_DIR}/pythonpath.txt")
+        # Enumerate all files in sample dir, excluding the python script.
+        file(GLOB_RECURSE samples CONFIGURE_DEPENDS "${CMAKE_CURRENT_LIST_DIR}/${sampledir}/*")
+        list(REMOVE_ITEM samples run.py)
+        # And copy those test items to the output directory for ease of execution.
+        add_custom_command(
+                TARGET ${target} POST_BUILD
+                COMMAND ${CMAKE_COMMAND} -E copy
+                        ${samples}
+                        $<TARGET_FILE_DIR:${target}>
+                COMMAND_EXPAND_LISTS
+        )
+    endfunction()
+
+    if (NOT IOS)
+        configure_cpp_pytest(test-term-about test/about.py)
+        configure_cpp_pytest(test-term-asmrun test/asmrun.py)
+        configure_cpp_pytest(test-term-get test/get.py)
+        configure_cpp_pytest(test-term-ls test/ls.py )
+
+        configure_cpp_pyest_sample(test-term-0625-printf test/samples/0625_printf)
+        configure_cpp_pyest_sample(test-term-0627-printf test/samples/0627_printf)
+        configure_cpp_pyest_sample(test-term-0629-printf test/samples/0629_printf)
+        configure_cpp_pyest_sample(test-term-0636-printf test/samples/0636_printf)
+        configure_cpp_pyest_sample(test-term-0638-printf test/samples/0638_printf)
+        configure_cpp_pyest_sample(test-term-0642-printf test/samples/0642_printf)
+        configure_cpp_pyest_sample(test-term-0644-printf test/samples/0644_printf)
+        configure_cpp_pyest_sample(test-term-0646-printf test/samples/0646_printf)
+        configure_cpp_pyest_sample(test-term-0648-printf test/samples/0648_printf)
+        # This test has a input bug.
+        #configure_cpp_pyest_sample(test-term-longstr test/samples/long_strings_error)
+
+        set_target_properties(test-term-0648-printf PROPERTIES FOLDER "qtc_runnable")
+
+    endif ()
 endif ()
+
 
