@@ -159,7 +159,7 @@ void RunTask::run() {
       std::function<void(boost::system::error_code)> timeout = [&](auto errC) {
         if (hadSome) {
           hadSome = false;
-          timer.expires_from_now(boost::asio::chrono::milliseconds(100));
+          timer.expires_from_now(boost::asio::chrono::milliseconds(200));
           timer.async_wait(timeout);
         } else // Otherwise we (probably) read all there was to read.
           ioService.stop();
@@ -168,7 +168,7 @@ void RunTask::run() {
       in.async_read_some(boost::asio::buffer(buf), readHandle);
       // Must use timer to kill event loop, otherwise may poll FD 0 forever if
       // empty.
-      timer.expires_from_now(boost::asio::chrono::milliseconds(100));
+      timer.expires_from_now(boost::asio::chrono::milliseconds(200));
       timer.async_wait(timeout);
       ioService.run();
 
@@ -219,16 +219,19 @@ void RunTask::run() {
     };
 
     if (_charOut == "-") {
-      QTextStream out(stdout, QIODevice::WriteOnly | QIODevice::Truncate |
+        QTextStream out(stdout, QIODevice::WriteOnly | QIODevice::Truncate |
                                   QIODevice::Text);
       writeOut(out);
       // If writing to terminal, ensure that there exists a \n.
       out << "\n";
+      out.flush();
+
     } else {
       QFile f(QString::fromStdString(_charOut));
       f.open(QIODevice::WriteOnly | QIODevice::Truncate | QIODevice::Text);
       QTextStream out(&f);
       writeOut(out);
+      out.flush();
     }
   }
 
