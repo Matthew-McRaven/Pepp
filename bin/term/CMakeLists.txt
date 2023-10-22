@@ -96,7 +96,7 @@ if (Python_FOUND)
         configure_file(test/sample_run.py ${CMAKE_CURRENT_BINARY_DIR}/${target}/sample_run.py)
         set_property(SOURCE "${CMAKE_CURRENT_BINARY_DIR}/${target}/sample_run.py" PROPERTY QT_RESOURCE_ALIAS "test/${FILENAME}.py")
 
-        make_qtest(${target} "${OUT_NAME_WE}.cpp" "Qt6::Core;Qt6::Test;Python::Python;catch")
+        make_qtest(${target} "${OUT_NAME_WE}.cpp" "Qt6::Core;Qt6::Test;Python::Python")
 
         # Update working directory for scripts where it matters.
         set_target_properties(${target} PROPERTIES WORKING_DIRECTORY ${sampledir})
