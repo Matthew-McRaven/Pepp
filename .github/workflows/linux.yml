@@ -7,10 +7,13 @@ jobs:
     container:
       image: registry.gitlab.com/pepnext/docker/develop:v0.6.0
     steps:
+      - uses: awalsh128/cache-apt-pkgs-action@v1.3.0
+        with:
+          packages: python3-pip zstd build-essential libgl1-mesa-dev libgstreamer-gl1.0-0 libpulse-dev libxcb-glx0 libxcb-icccm4 libxcb-image0 libxcb-keysyms1 libxcb-randr0 libxcb-render-util0 libxcb-render0 libxcb-shape0 libxcb-shm0 libxcb-sync1 libxcb-util1 libxcb-xfixes0 libxcb-xinerama0 libxcb1 libxkbcommon-dev libxkbcommon-x11-0 libxcb-xkb-dev
+          version: 'apt-cache'
       - uses: actions/checkout@v3
         with:
           submodules: 'true'
-      - run: apt-get install -y python3-pip zstd
       - name: test
         id: cache-primes
         uses: actions/cache@v3
@@ -24,9 +27,12 @@ jobs:
           cache: 'true'
           setup-python: 'false'
           dir: $RUNNER_WORKSPACE/qt
+          set-env: 'true'
       - name: ccache
         uses: hendrikmuhs/ccache-action@v1.2
       - run: export BOOST_ROOT=/usr/local/lib
+      # Must set platform, because the container is non-gui
+      - run: export QT_QPA_PLATFORM=offscreen
       # Run CMake with the compiler cache
       - name: build with cmake
         uses: lukka/run-cmake@v3
@@ -37,5 +43,4 @@ jobs:
           buildWithCMake: true
           buildDirectory: '${{ github.workspace }}/../build'
       - run: export CTEST_OUTPUT_ON_FAILURE=TRUE
-      # Must set platform, because the container is non-gui
-      - run: export QT_QPA_PLATFORM=offscreen && cd ../build && (make -j test || (cat ../build/Testing/Temporary/LastTest.log && exit 1))
+      - run: cd ../build && (make -j test || (cat ../build/Testing/Temporary/LastTest.log && exit 1))
