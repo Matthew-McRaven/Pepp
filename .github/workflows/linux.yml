@@ -17,8 +17,10 @@ jobs:
             make zip git ripgrep doxygen clang-tidy ssh-client lcov
             libsecret-1-0 libsecret-1-dev libx11-dev libxkbfile-dev
             lsb-release wget software-properties-common git-lfs cloc
-            clang-16 clang-tools-16
           version: 'apt-cache'
+      - uses: KyleMayes/install-llvm-action@v1
+        with:
+          version: "16.0"
       - uses: MarkusJx/install-boost@v2.4.4
         id: install-boost
         with:
