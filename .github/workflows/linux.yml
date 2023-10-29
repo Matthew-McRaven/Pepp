@@ -4,19 +4,30 @@ on: [push]
 jobs:
   linux:
     runs-on: ubuntu-latest #[self-hosted, linux]
-    container:
-      image: registry.gitlab.com/pepnext/docker/develop:v0.6.0
     steps:
       - uses: awalsh128/cache-apt-pkgs-action@v1.3.0
         with:
-          packages: python3-pip zstd build-essential libgl1-mesa-dev libgstreamer-gl1.0-0 libpulse-dev libxcb-glx0 libxcb-icccm4 libxcb-image0 libxcb-keysyms1 libxcb-randr0 libxcb-render-util0 libxcb-render0 libxcb-shape0 libxcb-shm0 libxcb-sync1 libxcb-util1 libxcb-xfixes0 libxcb-xinerama0 libxcb1 libxkbcommon-dev libxkbcommon-x11-0 libxcb-xkb-dev
+          packages: >
+            python3-pip zstd build-essential libgl1-mesa-dev
+            libgstreamer-gl1.0-0 libpulse-dev libxcb-glx0 libxcb-icccm4
+            libxcb-image0 libxcb-keysyms1 libxcb-randr0 libxcb-render-util0
+            libxcb-render0 libxcb-shape0 libxcb-shm0 libxcb-sync1 libxcb-util1
+            libxcb-xfixes0 libxcb-xinerama0 libxcb1 libxkbcommon-dev
+            libxkbcommon-x11-0 libxcb-xkb-dev
+            make zip git ripgrep doxygen clang-tidy ssh-client lcov
+            libsecret-1-0 libsecret-1-dev libx11-dev libxkbfile-dev
+            lsb-release wget software-properties-common git-lfs cloc
+            clang-16 clang-tools-16
           version: 'apt-cache'
+      - uses: MarkusJx/install-boost@v2.4.4
+        id: install-boost
+        with:
+          boost_version: 1.83.0
       - uses: actions/checkout@v3
         with:
           submodules: 'true'
-      - name: test
+      - uses: actions/cache@v3
         id: cache-primes
-        uses: actions/cache@v3
         with:
           path: install-qt-action
           key: install-qt-action
@@ -28,13 +39,18 @@ jobs:
           setup-python: 'false'
           dir: $RUNNER_WORKSPACE/qt
           set-env: 'true'
-      - run: which cmake
-      - run: cmake --version
+      - run: echo `cmake --version` && echo `which cmake`
       - uses: hendrikmuhs/ccache-action@v1.2.10
-      - run: export BOOST_ROOT=/usr/local/lib
-      - run: export PATH="/usr/lib/ccache:/usr/local/opt/ccache/libexec:$PATH"
-      # Must set platform, because the container is non-gui
-      - run: export QT_QPA_PLATFORM=offscreen
-      - run: cmake -D CMAKE_C_COMPILER_LAUNCHER=ccache -D CMAKE_CXX_COMPILER_LAUNCHER=ccache --parallel 6 -B ../build .
-      - run: export CTEST_OUTPUT_ON_FAILURE=TRUE
+      - name: Run CMake
+        uses: lukka/run-cmake@v3
+        with:
+          buildDirectory: '${{github.workspace}}/build'
+          cmakeAppendedArgs: '-DCMAKE_ENABLE_WEBRTC:BOOL=ON -D BOOST_ROOT=/usr/local/lib -D CMAKE_C_COMPILER_LAUNCHER=ccache -D CMAKE_CXX_COMPILER_LAUNCHER=ccache'
+          cmakeBuildType: 'RelWithDebInfo'
+        env:
+          BOOST_ROOT: ${{ steps.install-boost.outputs.BOOST_ROOT }}
       - run: cd ../build && (make -j test || (cat ../build/Testing/Temporary/LastTest.log && exit 1))
+        env:
+          QT_QPA_PLATFORM: 'offscreen'
+          CTEST_OUTPUT_ON_FAILURE: 'TRUE'
+
