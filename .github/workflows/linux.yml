@@ -4,27 +4,12 @@ on: [push]
 jobs:
   linux:
     runs-on: ubuntu-latest #[self-hosted, linux]
+    container:
+      image: ghcr.io/matthew-mcraven/pepp/dev:0.8.1
     steps:
-      - uses: awalsh128/cache-apt-pkgs-action@v1.3.0
-        with:
-          packages: >
-            python3-pip zstd build-essential libgl1-mesa-dev
-            libgstreamer-gl1.0-0 libpulse-dev libxcb-glx0 libxcb-icccm4
-            libxcb-image0 libxcb-keysyms1 libxcb-randr0 libxcb-render-util0
-            libxcb-render0 libxcb-shape0 libxcb-shm0 libxcb-sync1 libxcb-util1
-            libxcb-xfixes0 libxcb-xinerama0 libxcb1 libxkbcommon-dev
-            libxkbcommon-x11-0 libxcb-xkb-dev
-            make zip git ripgrep doxygen clang-tidy lcov
-            libsecret-1-0 libsecret-1-dev libx11-dev libxkbfile-dev
-            lsb-release wget software-properties-common git-lfs cloc
-          version: 'apt-cache'
       - uses: KyleMayes/install-llvm-action@v1
         with:
           version: "16.0"
-      - uses: MarkusJx/install-boost@v2.4.4
-        id: install-boost
-        with:
-          boost_version: 1.83.0
       - uses: actions/checkout@v3
         with:
           submodules: 'true'
@@ -50,7 +35,6 @@ jobs:
           cmakeAppendedArgs: '-DCMAKE_ENABLE_WEBRTC:BOOL=ON -D BOOST_ROOT=/usr/local/lib -D CMAKE_C_COMPILER_LAUNCHER=ccache -D CMAKE_CXX_COMPILER_LAUNCHER=ccache'
           cmakeBuildType: 'RelWithDebInfo'
         env:
-          BOOST_ROOT: ${{ steps.install-boost.outputs.BOOST_ROOT }}
           Qt_DIR: $QT_ROOT_DIR
       - run: cd ../build && (make -j test || (cat ../build/Testing/Temporary/LastTest.log && exit 1))
         env:
