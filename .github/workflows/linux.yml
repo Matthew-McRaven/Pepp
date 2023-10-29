@@ -28,8 +28,11 @@ jobs:
           setup-python: 'false'
           dir: $RUNNER_WORKSPACE/qt
           set-env: 'true'
+      - uses: hendrikmuhs/ccache-action@v1.2.10
       - run: export BOOST_ROOT=/usr/local/lib
+      - run: export PATH="/usr/lib/ccache:/usr/local/opt/ccache/libexec:$PATH"
       # Must set platform, because the container is non-gui
-      - run: cmake -D -B ../build .
+      - run: export QT_QPA_PLATFORM=offscreen
+      - run: cmake -D CMAKE_C_COMPILER_LAUNCHER=ccache -D CMAKE_CXX_COMPILER_LAUNCHER=ccache --parallel 6 -B ../build .
       - run: export CTEST_OUTPUT_ON_FAILURE=TRUE
-      - run: export QT_QPA_PLATFORM=offscreen && cd ../build && make -j6 && (make -j6 test || (cat ../build/Testing/Temporary/LastTest.log && exit 1))
+      - run: cd ../build && (make -j test || (cat ../build/Testing/Temporary/LastTest.log && exit 1))
