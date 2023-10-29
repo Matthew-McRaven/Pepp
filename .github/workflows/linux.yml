@@ -35,13 +35,13 @@ jobs:
           key: install-qt-action
       - name: Install Qt
         uses: jurplel/install-qt-action@v3
+        id: install-qt
         with:
           version: '6.6.0'
           cache: 'true'
           setup-python: 'false'
-          dir: $RUNNER_WORKSPACE/qt
           set-env: 'true'
-      - run: echo `cmake --version` && echo `which cmake`
+      - run: echo "My dir is $QT_ROOT_DIR"
       - uses: hendrikmuhs/ccache-action@v1.2.10
       - name: Run CMake
         uses: lukka/run-cmake@v3
@@ -51,6 +51,7 @@ jobs:
           cmakeBuildType: 'RelWithDebInfo'
         env:
           BOOST_ROOT: ${{ steps.install-boost.outputs.BOOST_ROOT }}
+          Qt_DIR: $QT_ROOT_DIR
       - run: cd ../build && (make -j test || (cat ../build/Testing/Temporary/LastTest.log && exit 1))
         env:
           QT_QPA_PLATFORM: 'offscreen'
