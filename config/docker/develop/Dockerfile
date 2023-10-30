@@ -26,5 +26,6 @@ RUN cd boost && ./bootstrap.sh --prefix=/bmagic \
 
 FROM ubuntu:20.04 as boostOnly
 COPY --from=boost-build /bmagic /usr/local
+RUN apt update && DEBIAN_FRONTEND=noninteractive apt install sudo curl wget && rm -rf /var/lib/apt/lists/*
 SHELL ["/bin/bash", "-c"]
 
