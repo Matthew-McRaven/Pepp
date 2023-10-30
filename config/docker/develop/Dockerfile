@@ -22,11 +22,11 @@ RUN git clone --jobs 10 --recursive --branch boost-${BOOST_VERSION}  https://git
 
 # Boost will install to /usr/local/lib
 RUN cd boost && ./bootstrap.sh --prefix=/bmagic \
-    && ./b2 cxxflags="-fPIC -std=c++17" address-model=64 link=static runtime-runtime=static -j 20 threading=multi install --build-dir=./build-native --stagedir=./stage-native --prefix=/bmagic
+    && ./b2 cxxflags="-fPIC -std=c++17" address-model=64 link=static runtime-link=static -j 20 threading=multi install --build-dir=./build-native --stagedir=./stage-native --prefix=/bmagic
 
 FROM ubuntu:20.04 as boostOnly
 COPY --from=boost-build /bmagic /usr/local
-RUN apt update && DEBIAN_FRONTEND=noninteractive apt install sudo curl wget python3-pip zstd build-essential libgl1-mesa-dev \
+RUN apt update && DEBIAN_FRONTEND=noninteractive apt install -y sudo curl wget python3-pip zstd build-essential libgl1-mesa-dev \
     libgstreamer-gl1.0-0 libpulse-dev libxcb-glx0 libxcb-icccm4 \
     libxcb-image0 libxcb-keysyms1 libxcb-randr0 libxcb-render-util0 \
     libxcb-render0 libxcb-shape0 libxcb-shm0 libxcb-sync1 libxcb-util1 \
