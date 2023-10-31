@@ -1,7 +1,11 @@
 {
-  "dependencies": [
-    "boost-spirit",
-    "boost-asio"
-  ],
+  "features": {
+    "boost": { "description": "Use an packaged version of boost", "dependencies":
+      [
+        "boost-spirit",
+        "boost-asio"
+      ]
+    }
+  },
   "builtin-baseline": "06c79a9afa6f99f02f44d20df9e0848b2a56bf1b"
 }

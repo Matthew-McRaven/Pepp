@@ -11,26 +11,17 @@ jobs:
         with:
           submodules: 'true'
       - uses: hendrikmuhs/ccache-action@v1.2.10
-      - run: |
-            ls ${{ github.workspace }} &&
-            ls ${{ github.workspace }}/3rd-party &&
-            ${{ github.workspace }}/3rd-party/vcpkg/bootstrap-vcpkg.sh
-            && ${{ github.workspace }}/3rd-party/vcpkg/vcpkg integrate install
-      #- name: Setup vcpkg
-      #  uses: lukka/run-vcpkg@v11
-      #  with:
-      #    # This is the default location of the directory containing vcpkg sources.
-      #    # Change it to the right location if needed.
-      #    vcpkgDirectory: '${{ github.workspace }}/3rd-party/vcpkg'
+      - run: $GITHUB_WORKSPACE/3rd-party/vcpkg/bootstrap-vcpkg.sh && $GITHUB_WORKSPACE/3rd-party/vcpkg/vcpkg integrate install
       - name: Run CMake
         uses: lukka/run-cmake@v3
         with:
-          buildDirectory: '${{github.workspace}}/build'
-          cmakeAppendedArgs: '-DCMAKE_ENABLE_WEBRTC:BOOL=ON -D CMAKE_C_COMPILER_LAUNCHER=ccache -D CMAKE_CXX_COMPILER_LAUNCHER=ccache'
-          #-DCMAKE_TOOLCHAIN_FILE=${{ github.workspace }}/3rd-party/vcpkg/scripts/buildsystems/vcpkg.cmake -GNinja'
+          buildDirectory: '$GITHUB_WORKSPACE/build'
+          cmakeAppendedArgs: '-DCMAKE_ENABLE_WEBRTC:BOOL=ON -D CMAKE_C_COMPILER_LAUNCHER=ccache -D CMAKE_CXX_COMPILER_LAUNCHER=ccache \
+          -DCMAKE_TOOLCHAIN_FILE=$GITHUB_WORKSPACE/3rd-party/vcpkg/scripts/buildsystems/vcpkg.cmake -GNinja'
           cmakeBuildType: 'RelWithDebInfo'
       - run: cd ${{github.workspace}}/build && ctest -j $(nproc)
         env:
           QT_QPA_PLATFORM: 'offscreen'
           CTEST_OUTPUT_ON_FAILURE: 'TRUE'
+          USE_SYSTEM_BOOT: 'ON' #Don't let vcpkg install boost
 
