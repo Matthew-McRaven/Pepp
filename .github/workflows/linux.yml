@@ -2,8 +2,27 @@ name: Linux CI
 run-name: Linux_CI
 on: [push]
 jobs:
+  get_branch:
+    name: Get working branch
+    runs-on: [ubuntu-latest]
+    outputs:
+      extract_branch: ${{ steps.extract_branch.outputs.branch }}
+    steps:
+      - name: Branch used
+        id: extract_branch
+        run: |
+          if [[ "${GITHUB_EVENT_NAME}" == "push" ]]; then
+            echo "branch=${GITHUB_REF##*/}" >> $GITHUB_OUTPUT
+          elif [[ "${GITHUB_EVENT_NAME}" == "pull_request" ]]; then
+            echo "branch=${$GITHUB_BASE_REF}" >> $GITHUB_OUTPUT
+          else
+            echo "unkown event" && exit 1;
+          fi
   gcc_build_test:
     runs-on: ubuntu-latest
+    needs: get_branch
+    env:
+      BRANCH: ${{ needs.get_branch.outputs.extract_branch }}
     container:
       image: ghcr.io/matthew-mcraven/pepp/dev:0.8.2
     steps:
@@ -13,6 +32,10 @@ jobs:
       - name: Replace ld with mold
         run: pth=$(which ld) && rm $pth && ln -s $(which mold) $pth
       - uses: hendrikmuhs/ccache-action@v1.2.10
+        with:
+          append-timestamp: false
+          verbose: 2
+          key: ${{ needs.get_branch.outputs.extract_branch }}
       - name: Configure vcpkg
         run: $GITHUB_WORKSPACE/3rd-party/vcpkg/bootstrap-vcpkg.sh && $GITHUB_WORKSPACE/3rd-party/vcpkg/vcpkg integrate install
       - name: Configure CMake
