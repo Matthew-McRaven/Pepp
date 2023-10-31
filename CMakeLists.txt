@@ -16,7 +16,7 @@ add_subdirectory(3rd-party)
 
 # Emscripten build forget to set boost_INCLUDE_DIR correctly
 set(Boost_USE_STATIC_LIBS   ON)
-set(Boost_INCLUDE_DIR "$ENV{BOOST_ROOT}")
+set(Boost_ROOT ${_VCPKG_INSTALLED_DIR} CACHE PATH "Override boost root")
 find_package(Boost 1.76.0 REQUIRED)
 
 set(CMAKE_AUTOMOC ON)
