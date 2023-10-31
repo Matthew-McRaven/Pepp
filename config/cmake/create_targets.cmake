@@ -37,6 +37,8 @@ macro(make_exec_sources target_name sources)
     if(!MSVC)
         SET(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -gdwarf-4")
         SET(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -gdwarf-4")
+    elseif (CMAKE_CXX_COMPILER_ID STREQUAL "Clang")
+        add_compile_options(-ftime-trace)
     endif()
     qt_add_executable(${target_name} ${sources})
 
@@ -52,27 +54,14 @@ endMacro()
 # Helper that can be used to create either an interface or shared library
 # Variable "sources" must have the list of files you want included in the library.
 macro(make_target target_name TYPE)
-endmacro()
-# Helper that can be used to create either an interface or shared library
-# Variable "sources" must have the list of files you want included in the library.
-macro(make_target target_name TYPE)
-
     inject_cxx_standard()
     inject_clang_tidy()
     inject_code_coverage()
-    if(NOT WIN32)
+    if(!MSVC)
         SET(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -gdwarf-4")
         SET(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -gdwarf-4")
-    endif()
-    if (CMAKE_CXX_COMPILER_ID MATCHES "Clang")
-        SET(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -ftime-trace")
-        SET(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -ftime-trace")
-    endif()
-    if (CMAKE_CXX_COMPILER_ID STREQUAL "Clang" AND NOT APPLE)
-        foreach(src IN LISTS sources)
-            get_filename_component(cpp_noext ${src} NAME_WE)
-            set_source_files_properties(${src} PROPERTIES COMPILE_FLAGS -ftime-trace=""${CMAKE_CURRENT_BINARY_DIR}/${cpp_noext}.json"")
-        endforeach()
+    elseif (CMAKE_CXX_COMPILER_ID STREQUAL "Clang")
+        add_compile_options(-ftime-trace)
     endif()
     # PUBLIC is not a valid visibility for libraries, so must exclude that TYPE.
     if (${TYPE} STREQUAL PUBLIC)
@@ -82,10 +71,7 @@ macro(make_target target_name TYPE)
     endif ()
 
     # Mark src/ as the root from where includes should take place.
-    target_include_directories(${target_name} ${TYPE} ${CMAKE_CURRENT_LIST_DIR}/src)
-    # And always link against boost...
-    # target_link_libraries(${target_name} ${TYPE} )
-
+    target_include_directories(${target_name} ${TYPE} "${CMAKE_CURRENT_LIST_DIR}/src")
 endMacro()
 
 # Helper to make a PUBLIC library with cpp sources.
