@@ -5,7 +5,7 @@ jobs:
   linux:
     runs-on: ubuntu-latest #[self-hosted, linux]
     container:
-      image: ghcr.io/matthew-mcraven/pepp/dev:0.8.0
+      image: ghcr.io/matthew-mcraven/pepp/dev:0.8.1
     steps:
       - uses: actions/checkout@v3
         with:

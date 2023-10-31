@@ -69,3 +69,6 @@ ENV Boost_ROOT=/usr/local
 
 LABEL org.opencontainers.image.authors="matthew.mcraven@gmail.com"
 LABEL description="A build container using Qt $QT_VERSION and Boost $BOOST_VERSION."
+
+# Set up ccache to cache all compilations, skipping install in CI.
+RUN apt update && apt install -y ccache && rm -rf /var/lib/apt/lists/*
