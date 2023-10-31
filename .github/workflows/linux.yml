@@ -17,8 +17,8 @@ jobs:
         run: cmake -B $GITHUB_WORKSPACE/build -S $GITHUB_WORKSPACE \
                 -D CMAKE_C_COMPILER_LAUNCHER=ccache -D CMAKE_CXX_COMPILER_LAUNCHER=ccache \
                 -DCMAKE_TOOLCHAIN_FILE=$GITHUB_WORKSPACE/3rd-party/vcpkg/scripts/buildsystems/vcpkg.cmake \
-                -GNinja -DCMAKE_BUILD_TYPE=Release \
-                -DCMAKE_C_FLAGS="-g -O1" -DCMAKE_CXX_FLAGS="-g -O1"
+                -GNinja -DCMAKE_BUILD_TYPE=Debug \
+                -DCMAKE_C_FLAGS="-g -O0" -DCMAKE_CXX_FLAGS="-g -O0"
       - name: Run build
         run: cmake --build $GITHUB_WORKSPACE/build -j6
       - name: Run tests
