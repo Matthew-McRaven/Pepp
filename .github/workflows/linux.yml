@@ -5,11 +5,13 @@ jobs:
   linux:
     runs-on: ubuntu-latest #[self-hosted, linux]
     container:
-      image: ghcr.io/matthew-mcraven/pepp/dev:0.8.1
+      image: ghcr.io/matthew-mcraven/pepp/dev:0.8.2
     steps:
       - uses: actions/checkout@v3
         with:
           submodules: 'true'
+      - name: Replace ld with mold
+        run: pth=$(which ld) && rm $pth && ln -s $(which mold) $pth
       - uses: hendrikmuhs/ccache-action@v1.2.10
       - name: Configure vcpkg
         run: $GITHUB_WORKSPACE/3rd-party/vcpkg/bootstrap-vcpkg.sh && $GITHUB_WORKSPACE/3rd-party/vcpkg/vcpkg integrate install
