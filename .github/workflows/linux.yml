@@ -5,38 +5,29 @@ jobs:
   linux:
     runs-on: ubuntu-latest #[self-hosted, linux]
     container:
-      image: ghcr.io/matthew-mcraven/pepp/dev:0.7.2
+      image: ghcr.io/matthew-mcraven/pepp/dev:0.8.0
     steps:
-      - uses: KyleMayes/install-llvm-action@v1
-        with:
-          version: "16.0"
       - uses: actions/checkout@v3
         with:
           submodules: 'true'
-      - uses: actions/cache@v3
-        id: cache-primes
-        with:
-          path: install-qt-action
-          key: install-qt-action
-      - name: Install Qt
-        uses: jurplel/install-qt-action@v3
-        id: install-qt
-        with:
-          version: '6.6.0'
-          cache: 'true'
-          setup-python: 'false'
-          set-env: 'true'
-      - run: echo "My dir is $QT_ROOT_DIR"
       - uses: hendrikmuhs/ccache-action@v1.2.10
+      - run: |
+            ${{ github.workspace }}/3rd-party/vcpkg/bootstrap-vcpkg.sh
+            && ${{ github.workspace }}/3rd-party/vcpkg/vcpkg integrate install
+      #- name: Setup vcpkg
+      #  uses: lukka/run-vcpkg@v11
+      #  with:
+      #    # This is the default location of the directory containing vcpkg sources.
+      #    # Change it to the right location if needed.
+      #    vcpkgDirectory: '${{ github.workspace }}/3rd-party/vcpkg'
       - name: Run CMake
         uses: lukka/run-cmake@v3
         with:
           buildDirectory: '${{github.workspace}}/build'
-          cmakeAppendedArgs: '-DCMAKE_ENABLE_WEBRTC:BOOL=ON -D BOOST_ROOT=/usr/local/lib -D CMAKE_C_COMPILER_LAUNCHER=ccache -D CMAKE_CXX_COMPILER_LAUNCHER=ccache'
+          cmakeAppendedArgs: '-DCMAKE_ENABLE_WEBRTC:BOOL=ON -D CMAKE_C_COMPILER_LAUNCHER=ccache -D CMAKE_CXX_COMPILER_LAUNCHER=ccache'
+          #-DCMAKE_TOOLCHAIN_FILE=${{ github.workspace }}/3rd-party/vcpkg/scripts/buildsystems/vcpkg.cmake -GNinja'
           cmakeBuildType: 'RelWithDebInfo'
-        env:
-          Qt_DIR: $QT_ROOT_DIR
-      - run: cd ../build && (make -j test || (cat ../build/Testing/Temporary/LastTest.log && exit 1))
+      - run: cd ${{github.workspace}}/build && ctest -j $(nproc)
         env:
           QT_QPA_PLATFORM: 'offscreen'
           CTEST_OUTPUT_ON_FAILURE: 'TRUE'
