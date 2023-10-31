@@ -44,9 +44,8 @@ jobs:
           version: "17.0"
           directory: /llvm
       - name: Move LLVM into /, switch to clang compiler instead of GCC
-        run: |
-            cd /llvm && find -type d -exec mkdir -vp ""/{} \; -or -exec mv -nv {} ""/{} \;
-            && export CMAKE_C_COMPILER=$(which clang) && export CMAKE_CXX_COMPILER=$(which clang++)
+        run: cd /llvm && find -type d -exec mkdir -vp ""/{} \; -or -exec mv -nv {} ""/{} \; \
+             && export CMAKE_C_COMPILER=$(which clang) && export CMAKE_CXX_COMPILER=$(which clang++)
       - name: Copy custom target triplet to vcpkg
         run: cp $GITHUB_WORKSPACE/config/cmake-triplets/* $GITHUB_WORKSPACE/3rd-party/vcpkg/triplets
       - name: Configure vcpkg
