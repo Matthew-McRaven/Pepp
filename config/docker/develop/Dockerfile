@@ -67,8 +67,17 @@ ENV LANG="C.UTF-8"
 COPY --from=boost-build /bmagic /usr/local
 ENV Boost_ROOT=/usr/local
 
-LABEL org.opencontainers.image.authors="matthew.mcraven@gmail.com"
-LABEL description="A build container using Qt $QT_VERSION and Boost $BOOST_VERSION."
+# Install mold, so that we can increase link times
+ARG MOLD_VERSION="2.3.1"
+RUN --mount=type=tmpfs,target=/mold,size=2G \
+    cd mold \
+    && wget -O mold.tar.gz "https://github.com/rui314/mold/releases/download/v$MOLD_VERSION/mold-$MOLD_VERSION-$(arch)-linux.tar.gz" \
+    && tar xf mold.tar.gz && ls && cd mold-$MOLD_VERSION-$(arch)-linux \
+    && find -type d -exec mkdir -vp ""/{} \; -or -exec mv -nv {} ""/{} \;
+    # No need to clean up, all temp data should be in tmpfs
 
 # Set up ccache to cache all compilations, skipping install in CI.
 RUN apt update && apt install -y ccache && rm -rf /var/lib/apt/lists/*
+
+LABEL org.opencontainers.image.authors="matthew.mcraven@gmail.com"
+LABEL description="A build container using Qt $QT_VERSION, Boost $BOOST_VERSION, and Mold $MOLD_VERSION."
