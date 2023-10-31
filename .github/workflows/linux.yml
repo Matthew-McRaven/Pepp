@@ -11,12 +11,18 @@ jobs:
         with:
           submodules: 'true'
       - uses: hendrikmuhs/ccache-action@v1.2.10
-      - run: $GITHUB_WORKSPACE/3rd-party/vcpkg/bootstrap-vcpkg.sh && $GITHUB_WORKSPACE/3rd-party/vcpkg/vcpkg integrate install
-      - run: cmake $GITHUB_WORKSPACE/build -S $GITHUB_WORKSPACE \
-            -D CMAKE_C_COMPILER_LAUNCHER=ccache -D CMAKE_CXX_COMPILER_LAUNCHER=ccache \
-            -DCMAKE_TOOLCHAIN_FILE=$GITHUB_WORKSPACE/3rd-party/vcpkg/scripts/buildsystems/vcpkg.cmake \
-            -GNinja --config RelWithDebInfo -j 6
-      - run: cd ${{github.workspace}}/build && ctest -j 6
+      - name: Configure vcpkg
+        run: $GITHUB_WORKSPACE/3rd-party/vcpkg/bootstrap-vcpkg.sh && $GITHUB_WORKSPACE/3rd-party/vcpkg/vcpkg integrate install
+      - name: Configure CMake
+        run: cmake -B $GITHUB_WORKSPACE/build -S $GITHUB_WORKSPACE \
+                -D CMAKE_C_COMPILER_LAUNCHER=ccache -D CMAKE_CXX_COMPILER_LAUNCHER=ccache \
+                -DCMAKE_TOOLCHAIN_FILE=$GITHUB_WORKSPACE/3rd-party/vcpkg/scripts/buildsystems/vcpkg.cmake \
+                -GNinja -DCMAKE_BUILD_TYPE=Release \
+                -DCMAKE_C_FLAGS="-g -O1" -DCMAKE_CXX_FLAGS="-g -O1"
+      - name: Run build
+        run: cmake --build $GITHUB_WORKSPACE/build -j6
+      - name: Run tests
+        run: cd $GITHUB_WORKSPACE/build && ctest -j6
         env:
           QT_QPA_PLATFORM: 'offscreen'
           CTEST_OUTPUT_ON_FAILURE: 'TRUE'
