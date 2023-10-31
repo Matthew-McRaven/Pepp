@@ -1,8 +1,8 @@
-name: CI Build
-run-name: CI Build
+name: Linux CI
+run-name: Linux_CI
 on: [push]
 jobs:
-  linux:
+  gcc_build_test:
     runs-on: ubuntu-latest #[self-hosted, linux]
     container:
       image: ghcr.io/matthew-mcraven/pepp/dev:0.8.2
@@ -19,8 +19,9 @@ jobs:
         run: cmake -B $GITHUB_WORKSPACE/build -S $GITHUB_WORKSPACE \
                 -D CMAKE_C_COMPILER_LAUNCHER=ccache -D CMAKE_CXX_COMPILER_LAUNCHER=ccache \
                 -DCMAKE_TOOLCHAIN_FILE=$GITHUB_WORKSPACE/3rd-party/vcpkg/scripts/buildsystems/vcpkg.cmake \
-                -GNinja -DCMAKE_BUILD_TYPE=Debug \
+                -GNinja -DCMAKE_BUILD_TYPE=Debug -DUSE_SYSTEM_BOOT="ON" \
                 -DCMAKE_C_FLAGS="-g -O0" -DCMAKE_CXX_FLAGS="-g -O0"
+
       - name: Run build
         run: cmake --build $GITHUB_WORKSPACE/build -j6
       - name: Run tests
@@ -28,5 +29,29 @@ jobs:
         env:
           QT_QPA_PLATFORM: 'offscreen'
           CTEST_OUTPUT_ON_FAILURE: 'TRUE'
-          USE_SYSTEM_BOOT: 'ON' #Don't let vcpkg install boost
+  clang_time_trace:
+    runs-on: ubuntu-latest #[self-hosted, linux]
+    container:
+      image: ghcr.io/matthew-mcraven/pepp/dev:0.8.2
+    steps:
+      - uses: actions/checkout@v3
+        with:
+          submodules: 'true'
+      - name: Replace ld with mold
+        run: pth=$(which ld) && rm $pth && ln -s $(which mold) $pth
+      - uses: KyleMayes/install-llvm-action@v1
+        with:
+          version: "17.0"
+      - run: clang --version || clang-17 --version
+      - name: Configure vcpkg
+        run: $GITHUB_WORKSPACE/3rd-party/vcpkg/bootstrap-vcpkg.sh && $GITHUB_WORKSPACE/3rd-party/vcpkg/vcpkg integrate install
+      - name: Configure CMake
+        run: cmake -B $GITHUB_WORKSPACE/build -S $GITHUB_WORKSPACE \
+                -D CMAKE_C_COMPILER_LAUNCHER=ccache -D CMAKE_CXX_COMPILER_LAUNCHER=ccache \
+                -DCMAKE_TOOLCHAIN_FILE=$GITHUB_WORKSPACE/3rd-party/vcpkg/scripts/buildsystems/vcpkg.cmake \
+                -GNinja -DCMAKE_BUILD_TYPE=Debug -DUSE_SYSTEM_BOOT="ON" \
+                -DCMAKE_C_FLAGS="-g -O0" -DCMAKE_CXX_FLAGS="-g -O0" \
+      - name: Run build
+        run: cmake --build $GITHUB_WORKSPACE/build -j6
+
 
