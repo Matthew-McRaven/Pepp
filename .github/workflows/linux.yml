@@ -12,6 +12,8 @@ jobs:
           submodules: 'true'
       - uses: hendrikmuhs/ccache-action@v1.2.10
       - run: |
+            ls ${{ github.workspace }} &&
+            ls ${{ github.workspace }}/3rd-party &&
             ${{ github.workspace }}/3rd-party/vcpkg/bootstrap-vcpkg.sh
             && ${{ github.workspace }}/3rd-party/vcpkg/vcpkg integrate install
       #- name: Setup vcpkg
