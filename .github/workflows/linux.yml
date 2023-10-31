@@ -35,7 +35,7 @@ jobs:
         with:
           append-timestamp: false
           verbose: 2
-          description: $BRANCH
+          key: ${{ needs.get_branch.outputs.extract_branch }}
       - name: Configure vcpkg
         run: $GITHUB_WORKSPACE/3rd-party/vcpkg/bootstrap-vcpkg.sh && $GITHUB_WORKSPACE/3rd-party/vcpkg/vcpkg integrate install
       - name: Configure CMake
