@@ -12,11 +12,11 @@ jobs:
         id: extract_branch
         run: |
           if [[ "${GITHUB_EVENT_NAME}" == "push" ]]; then
-            echo "::set-output name=branch::$(echo ${GITHUB_REF##*/})"
+            echo "branch=${GITHUB_REF##*/}" >> $GITHUB_OUTPUT
           elif [[ "${GITHUB_EVENT_NAME}" == "pull_request" ]]; then
-            echo "::set-output name=branch::$(echo $GITHUB_BASE_REF)"
+            echo "branch=${$GITHUB_BASE_REF}" >> $GITHUB_OUTPUT
           else
-            echo "::set-output name=branch::INVALID_EVENT_BRANCH_UNKNOWN"
+            echo "unkown event" && exit 1;
           fi
   gcc_build_test:
     runs-on: ubuntu-latest
