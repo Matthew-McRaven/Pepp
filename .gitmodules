@@ -4,3 +4,6 @@
 [submodule "3rd-party/textflowcpp"]
 	path = 3rd-party/textflowcpp
 	url = https://github.com/Matthew-McRaven/textflowcpp
+[submodule "3rd-party/vcpkg"]
+	path = 3rd-party/vcpkg
+	url = https://github.com/microsoft/vcpkg.git
