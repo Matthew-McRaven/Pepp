@@ -1,0 +1,38 @@
+name: Gather metadata
+run-name: metadata
+on:
+  workflow_call:
+    outputs:
+      branch_name:
+        value: ${{ jobs.branch_info.outputs.branch_name }}
+        description: 'The name of the branch'
+      not_default:
+        value: ${{ jobs.branch_info.outputs.not_default }}
+        description: 'true if the branch is named main, otherwise false'
+
+jobs:
+  branch_info:
+    name: Gather branch info
+    runs-on: [ubuntu-latest]
+    outputs:
+      branch_name: ${{ steps.branch.outputs.branch }}
+      not_default: ${{ steps.branch.outputs.not_default }}
+    steps:
+      - name: set branch info
+        id: branch
+        run: |
+          if [[ "${GITHUB_EVENT_NAME}" == "push" ]]; then
+            export BRANCH="${GITHUB_REF##*/}"
+          elif [[ "${GITHUB_EVENT_NAME}" == "pull_request" ]]; then
+            export BRANCH="${$GITHUB_BASE_REF}"
+          else
+            echo "unknown event" && exit 1;
+          fi
+          if [ "$BRANCH" = "main" ]; then
+            echo "not_default=false" >> $GITHUB_OUTPUT
+          else
+            echo "not_default=true" >> $GITHUB_OUTPUT
+          fi
+          echo "branch=${BRANCH}" >> $GITHUB_OUTPUT
+          echo "Output is:"
+          cat $GITHUB_OUTPUT
