@@ -1,8 +1,11 @@
 cmake_minimum_required(VERSION 3.23)
 
 # Require explicit opt-out of vcpkg's boost.
-if(NOT DEFINED ENV{USE_SYSTEM_BOOST} OR NOT DEFINED USE_SYSTEM_BOOST)
+if( (DEFINED USE_SYSTEM_BOOST) OR (DEFINED ENV{USE_SYSTEM_BOOST}) )
+    message("Using system boost")
+else()
     list(APPEND VCPKG_MANIFEST_FEATURES "boost")
+    message("Using vcpkg boost")
 endif()
 
 project(Pepp VERSION 0.6.0 LANGUAGES CXX)

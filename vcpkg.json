@@ -1,6 +1,7 @@
 {
   "features": {
-    "boost": { "description": "Use an packaged version of boost", "dependencies":
+    "boost": { "description": "Use an packaged version of boost",
+    "dependencies":
       [
         "boost-spirit",
         "boost-asio"
