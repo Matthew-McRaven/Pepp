@@ -35,6 +35,7 @@ jobs:
       image: ghcr.io/matthew-mcraven/pepp/dev:0.8.2
     needs: branch_info
     strategy:
+      fail-fast: false
       matrix:
         compiler: [gcc, clang]
         include:
