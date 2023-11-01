@@ -2,27 +2,36 @@ name: Linux CI
 run-name: Linux_CI
 on: [push]
 jobs:
-  get_branch:
-    name: Get working branch
+  branch_info:
+    name: Get working branch information
     runs-on: [ubuntu-latest]
     outputs:
-      extract_branch: ${{ steps.extract_branch.outputs.branch }}
+      branch_name: ${{ steps.branch.outputs.branch }}
+      not_default: ${{ steps.branch.outputs.not_default }}
     steps:
-      - name: Branch used
-        id: extract_branch
+      - name: set branch info
+        id: branch
         run: |
           if [[ "${GITHUB_EVENT_NAME}" == "push" ]]; then
-            echo "branch=${GITHUB_REF##*/}" >> $GITHUB_OUTPUT
+            export BRANCH="${GITHUB_REF##*/}"
           elif [[ "${GITHUB_EVENT_NAME}" == "pull_request" ]]; then
-            echo "branch=${$GITHUB_BASE_REF}" >> $GITHUB_OUTPUT
+            export BRANCH="${$GITHUB_BASE_REF}"
           else
-            echo "unkown event" && exit 1;
+            echo "unknown event" && exit 1;
           fi
+          if [ "$BRANCH" = "main" ]; then
+            export NOT_DEFAULT="false"
+          else
+            export NOT_DEFAULT="true"
+          fi
+          echo "branch=${BRANCH}" >> $GITHUB_OUTPUT
+          echo "not_default=${NOT_DEFAULT}" >> $GITHUB_OUTPUT
   gcc_build_test:
     runs-on: ubuntu-latest
-    needs: get_branch
+    needs: branch_info
     env:
-      BRANCH: ${{ needs.get_branch.outputs.extract_branch }}
+      BRANCH_NAME: ${{ needs.branch_info.outputs.branch_name }}
+      NOT_DEFAULT: ${{ needs.branch_info.outputs.not_default }}
     container:
       image: ghcr.io/matthew-mcraven/pepp/dev:0.8.2
     steps:
@@ -35,7 +44,8 @@ jobs:
         with:
           append-timestamp: false
           verbose: 2
-          key: ${{ needs.get_branch.outputs.extract_branch }}
+          key: ${{ needs.branch_info.outputs.branch_name }}
+          restore: ${{ needs.branch_info.outputs.not_default }}
       - name: Configure vcpkg
         run: $GITHUB_WORKSPACE/3rd-party/vcpkg/bootstrap-vcpkg.sh && $GITHUB_WORKSPACE/3rd-party/vcpkg/vcpkg integrate install
       - name: Configure CMake
