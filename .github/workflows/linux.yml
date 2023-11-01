@@ -29,31 +29,65 @@ jobs:
           echo "Output is:"
           cat $GITHUB_OUTPUT
 
-  gcc_build_test:
+  build:
     runs-on: ubuntu-latest
+    container:
+      image: ghcr.io/matthew-mcraven/pepp/dev:0.8.2
     needs: branch_info
+    strategy:
+      matrix:
+        compiler: [gcc, clang]
+        include:
+          - compiler: gcc
+            triplet: "x64-linux"
+          - compiler: clang
+            triplet: "x64-linux-clang"
     env:
       BRANCH_NAME: ${{ needs.branch_info.outputs.branch_name }}
       NOT_DEFAULT: ${{ needs.branch_info.outputs.not_default }}
-    container:
-      image: ghcr.io/matthew-mcraven/pepp/dev:0.8.2
     steps:
+        # Perform shallow clone, which may break some other operations
       - uses: actions/checkout@v3
         with:
           submodules: 'true'
+
+        # mold runs significantly faster than ld
       - name: Replace ld with mold
         run: pth=$(which ld) && rm $pth && ln -s $(which mold) $pth
+
       - uses: hendrikmuhs/ccache-action@v1.2.10
+        # Prevent clang from using ccache, because it is profiling build times
+        if: ${{ matrix.compiler == 'gcc' }}
         with:
           append-timestamp: false
           verbose: 2
           key: ${{ needs.branch_info.outputs.branch_name }}
-          restore: ${{ needs.branch_info.outputs.not_default }}
+          # Builds on main should not start from a cache for correctness reasons
+          restore: ${{ needs.branch_info.outputs.not_default}}
           # action uses newline-separated values for keys
           restore-keys: |
             cache-main
-      - name: Configure vcpkg and convert shallow clone to regular
 
+        # Selectively install and configure LLVM
+      - name: Install LLVM 17
+        if: ${{ matrix.compiler == 'clang' }}
+        uses: KyleMayes/install-llvm-action@v1
+        with:
+          version: "17.0"
+          directory: /llvm
+      - name: Move LLVM into /
+        if: ${{ matrix.compiler == 'clang' }}
+        run: find /llvm -type d -exec mkdir -vp ""/{} \; -or -exec mv -nv {} ""/{} \;
+      - name: Set clang as CC/CXX
+        if: ${{ matrix.compiler == 'clang' }}
+        run: export CC=$(which clang) && export CXX=$(which clang++)
+        # Failure to copy triplet will cause vcpkg to error due to lack of CC/CXX information
+      - name: Copy custom target triplet to vcpkg
+        if: ${{ matrix.compiler == 'clang' }}
+        run: cp $GITHUB_WORKSPACE/config/cmake-triplets/* $GITHUB_WORKSPACE/3rd-party/vcpkg/triplets
+
+        # CMake configure & build
+      - name: Configure vcpkg and convert shallow clone to regular
         run: >
             cd $GITHUB_WORKSPACE/3rd-party/vcpkg
             && git fetch --unshallow
@@ -66,59 +100,32 @@ jobs:
             -D CMAKE_TOOLCHAIN_FILE=$GITHUB_WORKSPACE/3rd-party/vcpkg/scripts/buildsystems/vcpkg.cmake
             -G Ninja -DCMAKE_BUILD_TYPE=Debug -D USE_SYSTEM_BOOT="ON"
             -D CMAKE_C_FLAGS="O0" -D CMAKE_CXX_FLAGS="-O0"
-
+            -D VCPKG_TARGET_TRIPLET=${{ matrix.triplet }}
       - name: Run build
         run: cmake --build $GITHUB_WORKSPACE/build -j6
+
+
       - name: Run tests
         run: cd $GITHUB_WORKSPACE/build && ctest -j6
         env:
+          # Must be offscreen, or tests that involve GUI libraries will fail
           QT_QPA_PLATFORM: 'offscreen'
           CTEST_OUTPUT_ON_FAILURE: 'TRUE'
-  clang_time_trace:
-    runs-on: ubuntu-latest
-    container:
-      image: ghcr.io/matthew-mcraven/pepp/dev:0.8.2
-    steps:
-      - uses: actions/checkout@v3
-        with:
-          submodules: 'true'
-      - name: Replace ld with mold
-        run: pth=$(which ld) && rm $pth && ln -s $(which mold) $pth
-      - uses: KyleMayes/install-llvm-action@v1
-        with:
-          version: "17.0"
-          directory: /llvm
-      - name: Move LLVM into /
-        run: cd /llvm && ls -lah && find -type d -exec mkdir -vp ""/{} \; -or -exec mv -nv {} ""/{} \;
-      - name: Switch to clang compiler instead of GCC
-        run: export CC=$(which clang) && export CXX=$(which clang++)
-      - name: Copy custom target triplet to vcpkg
-        run: cp $GITHUB_WORKSPACE/config/cmake-triplets/* $GITHUB_WORKSPACE/3rd-party/vcpkg/triplets
-      - name: Configure vcpkg and convert shallow clone to regular
-        # GitHub actions perfom shallow clone by default, but this breaks CI.
-        run: >
-            cd $GITHUB_WORKSPACE/3rd-party/vcpkg
-            && git fetch --unshallow
-            && ./bootstrap-vcpkg.sh
-            && ./vcpkg integrate install
-      - name: Configure CMake
-        run: >
-            cmake -B $GITHUB_WORKSPACE/build -S $GITHUB_WORKSPACE
-            -D CMAKE_TOOLCHAIN_FILE=$GITHUB_WORKSPACE/3rd-party/vcpkg/scripts/buildsystems/vcpkg.cmake
-            -G Ninja -D CMAKE_BUILD_TYPE=Debug -D USE_SYSTEM_BOOT="ON"
-            -D VCPKG_TARGET_TRIPLET=x64-linux-clang
-      - name: Run build
-        run: cmake --build $GITHUB_WORKSPACE/build -j6
+
+        # Analyze build times only if clang
       - name: Download Clang build analyzer
+        if: ${{ matrix.compiler == 'clang' }}
         run: >
             git clone https://github.com/aras-p/ClangBuildAnalyzer
             && cd ClangBuildAnalyzer
             && cmake -B . -S . && cmake --build .
-      - run: ClangBuildAnalyzer/ClangBuildAnalyzer --all $GITHUB_WORKSPACE/build $GITHUB_WORKSPACE/trace.json
-      - uses: actions/upload-artifact@v3
+      - name: Run Clang build analyzer
+        if: ${{ matrix.compiler == 'clang' }}
+        run: ClangBuildAnalyzer/ClangBuildAnalyzer --all $GITHUB_WORKSPACE/build $GITHUB_WORKSPACE/trace.json
+      - name: Upload clang build trace
+        if: ${{ matrix.compiler == 'clang' }}
+        uses: actions/upload-artifact@v3
         with:
           name: clang-time-trace
           path: $GITHUB_WORKSPACE/trace.json
           retention-days: 3
-
-
