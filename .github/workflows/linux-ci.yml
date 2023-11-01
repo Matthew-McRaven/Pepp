@@ -44,14 +44,16 @@ jobs:
         # Prevent clang from using ccache, because it is profiling build times
         if: ${{ matrix.compiler == 'gcc' }}
         with:
-          append-timestamp: false
           verbose: 2
-          key: ${{ needs.branch_info.outputs.branch_name }}
+          # Based on: https://docs.github.com/en/actions/using-workflows/caching-dependencies-to-speed-up-workflows#restrictions-for-accessing-a-cache
+          # Children branches can use parent caches, not vice-versa so no worries about cache pollution
+          # Use default key should pick up the newest cache.
+          # key: ${{ needs.branch_info.outputs.branch_name }}
           # Builds on main should not start from a cache for correctness reasons
           restore: ${{ needs.branch_info.outputs.not_default}}
           # action uses newline-separated values for keys
-          restore-keys: |
-            cache-main
+          #restore-keys: |
+          #  cache-main-
 
         # Selectively install and configure LLVM
       - name: Install LLVM 17
