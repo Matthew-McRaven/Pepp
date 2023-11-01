@@ -46,6 +46,9 @@ jobs:
           verbose: 2
           key: ${{ needs.branch_info.outputs.branch_name }}
           restore: ${{ needs.branch_info.outputs.not_default }}
+          # action uses newline-separated values for keys
+          restore-keys: |
+            cache-main
       - name: Configure vcpkg
         run: $GITHUB_WORKSPACE/3rd-party/vcpkg/bootstrap-vcpkg.sh && $GITHUB_WORKSPACE/3rd-party/vcpkg/vcpkg integrate install
       - name: Configure CMake
