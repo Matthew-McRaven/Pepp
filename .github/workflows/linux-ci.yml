@@ -108,12 +108,14 @@ jobs:
       - name: Run Clang build analyzer
         if: ${{ matrix.compiler == 'clang' }}
         run: >
-          ClangBuildAnalyzer/ClangBuildAnalyzer --all $GITHUB_WORKSPACE/build $GITHUB_WORKSPACE/trace.json
+          ClangBuildAnalyzer/ClangBuildAnalyzer --all $GITHUB_WORKSPACE/build /trace.json
+          && ClangBuildAnalyzer --analyze /trace.json
           && find $GITHUB_WORKSPACE/build \( -path $GITHUB_WORKSPACE/build/vcpkg -o -path /$GITHUB_WORKSPACE/vcpkg_installed \) -prune -o -name "*json" -print
       - name: Upload clang build trace
         if: ${{ matrix.compiler == 'clang' }}
         uses: actions/upload-artifact@v3
         with:
           name: clang-time-trace
-          path: $GITHUB_WORKSPACE/trace.json
+          path: /trace.json
           retention-days: 3
+          if-no-files-found: error
