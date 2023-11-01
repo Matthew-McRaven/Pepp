@@ -52,8 +52,13 @@ jobs:
           # action uses newline-separated values for keys
           restore-keys: |
             cache-main
-      - name: Configure vcpkg
-        run: $GITHUB_WORKSPACE/3rd-party/vcpkg/bootstrap-vcpkg.sh && $GITHUB_WORKSPACE/3rd-party/vcpkg/vcpkg integrate install
+      - name: Configure vcpkg and convert shallow clone to regular
+
+        run: >
+            cd $GITHUB_WORKSPACE/3rd-party/vcpkg
+            && git fetch --unshallow
+            && ./bootstrap-vcpkg.sh
+            && ./vcpkg integrate install
       - name: Configure CMake
         run: >
             cmake -B $GITHUB_WORKSPACE/build -S $GITHUB_WORKSPACE
@@ -89,8 +94,13 @@ jobs:
         run: export CC=$(which clang) && export CXX=$(which clang++)
       - name: Copy custom target triplet to vcpkg
         run: cp $GITHUB_WORKSPACE/config/cmake-triplets/* $GITHUB_WORKSPACE/3rd-party/vcpkg/triplets
-      - name: Configure vcpkg
-        run: $GITHUB_WORKSPACE/3rd-party/vcpkg/bootstrap-vcpkg.sh && $GITHUB_WORKSPACE/3rd-party/vcpkg/vcpkg integrate install
+      - name: Configure vcpkg and convert shallow clone to regular
+        # GitHub actions perfom shallow clone by default, but this breaks CI.
+        run: >
+            cd $GITHUB_WORKSPACE/3rd-party/vcpkg
+            && git fetch --unshallow
+            && ./bootstrap-vcpkg.sh
+            && ./vcpkg integrate install
       - name: Configure CMake
         run: >
             cmake -B $GITHUB_WORKSPACE/build -S $GITHUB_WORKSPACE
