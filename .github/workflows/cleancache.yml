@@ -6,6 +6,8 @@ on:
 jobs:
   remove_ccache:
     runs-on: ubuntu-latest
+    permissions:
+      actions: write
     env:
         # Required for GitHub CLI to work.
         # See: https://docs.github.com/en/actions/using-workflows/using-github-cli-in-workflows
