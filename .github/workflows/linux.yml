@@ -24,8 +24,8 @@ jobs:
           else
             export NOT_DEFAULT="true"
           fi
-          echo "branch=${BRANCH}" >> $GITHUB_OUTPUT
-          echo "not_default=${NOT_DEFAULT}" >> $GITHUB_OUTPUT
+          echo "branch=${BRANCH}\nnot_default=${NOT_DEFAULT}" >> $GITHUB_OUTPUT
+          echo "branch is ${BRANCH} and default is ${NOT_DEFAULT}"
   gcc_build_test:
     runs-on: ubuntu-latest
     needs: branch_info
