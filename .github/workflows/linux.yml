@@ -59,7 +59,7 @@ jobs:
             cmake -B $GITHUB_WORKSPACE/build -S $GITHUB_WORKSPACE
             -D CMAKE_C_COMPILER_LAUNCHER=ccache -D CMAKE_CXX_COMPILER_LAUNCHER=ccache
             -D CMAKE_TOOLCHAIN_FILE=$GITHUB_WORKSPACE/3rd-party/vcpkg/scripts/buildsystems/vcpkg.cmake
-            -G Ninja -DCMAKE_BUILD_TYPE=Debug -D USE_SYSTEM_BOOT="ON"
+            -G Ninja -DCMAKE_BUILD_TYPE=Debug -D USE_SYSTEM_BOOST="ON"
             -D CMAKE_C_FLAGS="O0" -D CMAKE_CXX_FLAGS="-O0"
 
       - name: Run build
@@ -95,7 +95,7 @@ jobs:
         run: >
             cmake -B $GITHUB_WORKSPACE/build -S $GITHUB_WORKSPACE
             -D CMAKE_TOOLCHAIN_FILE=$GITHUB_WORKSPACE/3rd-party/vcpkg/scripts/buildsystems/vcpkg.cmake
-            -G Ninja -D CMAKE_BUILD_TYPE=Debug -D USE_SYSTEM_BOOT="ON"
+            -G Ninja -D CMAKE_BUILD_TYPE=Debug -D USE_SYSTEM_BOOST="ON"
             -D VCPKG_TARGET_TRIPLET=x64-linux-clang
       - name: Run build
         run: cmake --build $GITHUB_WORKSPACE/build -j6
