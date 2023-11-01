@@ -109,7 +109,7 @@ jobs:
         if: ${{ matrix.compiler == 'clang' }}
         run: >
           ClangBuildAnalyzer/ClangBuildAnalyzer --all $GITHUB_WORKSPACE/build /trace.json
-          && ClangBuildAnalyzer --analyze /trace.json
+          && ClangBuildAnalyzer/ClangBuildAnalyzer --analyze /trace.json
           && find $GITHUB_WORKSPACE/build \( -path $GITHUB_WORKSPACE/build/vcpkg -o -path /$GITHUB_WORKSPACE/vcpkg_installed \) -prune -o -name "*json" -print
       - name: Upload clang build trace
         if: ${{ matrix.compiler == 'clang' }}
