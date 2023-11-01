@@ -1,16 +1,11 @@
 name: Linux CI
 run-name: Linux_CI
 
-on:
-  workflow_run:
-    workflows: [metadata]
-    types: [completed]
-  push:
-    branches:
-        - '**/*'
-        - '*'
+on: [push]
 
 jobs:
+  branch_info:
+    uses: ./.github/workflows/metadata.yml
   build:
     runs-on: ubuntu-latest
     container:

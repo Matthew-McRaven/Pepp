@@ -1,6 +1,15 @@
 name: Gather metadata
 run-name: metadata
-on: [push]
+on:
+  workflow_call:
+    outputs:
+      branch_name:
+        value: ${{ jobs.branch_info.outputs.branch }}
+        description: 'The name of the branch'
+      not_default:
+        value: ${{ jobs.branch_info.outputs.not_default }}
+        description: 'true if the branch is named main, otherwise false'
+
 jobs:
   branch_info:
     name: Gather branch info
