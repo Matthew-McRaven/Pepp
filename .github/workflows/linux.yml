@@ -17,10 +17,12 @@ jobs:
         include:
           - compiler: gcc
             triplet: "x64-linux"
-            cc: ccache
-            cxx: ccache
+            ccache: ccache
+            cc: gcc
+            cxx: g++
           - compiler: clang
             triplet: "x64-linux-clang"
+            ccache: ""
             cc: clang
             cxx: clang++
     env:
@@ -76,8 +78,10 @@ jobs:
       - name: Configure CMake
         run: >
             cmake -B $GITHUB_WORKSPACE/build -S $GITHUB_WORKSPACE
-            -D CMAKE_C_COMPILER_LAUNCHER=$(which ${{ matrix.cc }})
-            -D CMAKE_CXX_COMPILER_LAUNCHER=$(which ${{ matrix.cxx }})
+            -D CMAKE_C_COMPILER_LAUNCHER=${{ matrix.ccache }}
+            -D CMAKE_CXX_COMPILER_LAUNCHER=${{ matrix.ccache }}
+            -D CMAKE_C_COMPILER=$(which ${{ matrix.cc }})
+            -D CMAKE_CXX_COMPILER=$(which ${{ matrix.cxx }})
             -D CMAKE_TOOLCHAIN_FILE=$GITHUB_WORKSPACE/3rd-party/vcpkg/scripts/buildsystems/vcpkg.cmake
             -G Ninja -DCMAKE_BUILD_TYPE=Debug -D USE_SYSTEM_BOOST="ON"
             -D VCPKG_TARGET_TRIPLET=${{ matrix.triplet }}
