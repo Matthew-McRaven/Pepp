@@ -55,11 +55,12 @@ jobs:
       - name: Configure vcpkg
         run: $GITHUB_WORKSPACE/3rd-party/vcpkg/bootstrap-vcpkg.sh && $GITHUB_WORKSPACE/3rd-party/vcpkg/vcpkg integrate install
       - name: Configure CMake
-        run: cmake -B $GITHUB_WORKSPACE/build -S $GITHUB_WORKSPACE \
-                -D CMAKE_C_COMPILER_LAUNCHER=ccache -D CMAKE_CXX_COMPILER_LAUNCHER=ccache \
-                -DCMAKE_TOOLCHAIN_FILE=$GITHUB_WORKSPACE/3rd-party/vcpkg/scripts/buildsystems/vcpkg.cmake \
-                -GNinja -DCMAKE_BUILD_TYPE=Debug -DUSE_SYSTEM_BOOT="ON" \
-                -DCMAKE_C_FLAGS="-g -O0" -DCMAKE_CXX_FLAGS="-g -O0"
+        run: >
+            cmake -B $GITHUB_WORKSPACE/build -S $GITHUB_WORKSPACE
+            -D CMAKE_C_COMPILER_LAUNCHER=ccache -D CMAKE_CXX_COMPILER_LAUNCHER=ccache
+            -D CMAKE_TOOLCHAIN_FILE=$GITHUB_WORKSPACE/3rd-party/vcpkg/scripts/buildsystems/vcpkg.cmake
+            -G Ninja -DCMAKE_BUILD_TYPE=Debug -D USE_SYSTEM_BOOT="ON"
+            -D CMAKE_C_FLAGS="O0" -D CMAKE_CXX_FLAGS="-O0"
 
       - name: Run build
         run: cmake --build $GITHUB_WORKSPACE/build -j6
@@ -85,21 +86,24 @@ jobs:
       - name: Move LLVM into /
         run: cd /llvm && ls -lah && find -type d -exec mkdir -vp ""/{} \; -or -exec mv -nv {} ""/{} \;
       - name: Switch to clang compiler instead of GCC
-        run: export CMAKE_C_COMPILER=$(which clang) && export CMAKE_CXX_COMPILER=$(which clang++)
+        run: export CC=$(which clang) && export CXX=$(which clang++)
       - name: Copy custom target triplet to vcpkg
         run: cp $GITHUB_WORKSPACE/config/cmake-triplets/* $GITHUB_WORKSPACE/3rd-party/vcpkg/triplets
       - name: Configure vcpkg
         run: $GITHUB_WORKSPACE/3rd-party/vcpkg/bootstrap-vcpkg.sh && $GITHUB_WORKSPACE/3rd-party/vcpkg/vcpkg integrate install
       - name: Configure CMake
-        run: cmake -B $GITHUB_WORKSPACE/build -S $GITHUB_WORKSPACE \
-                -DCMAKE_TOOLCHAIN_FILE=$GITHUB_WORKSPACE/3rd-party/vcpkg/scripts/buildsystems/vcpkg.cmake \
-                -GNinja -DCMAKE_BUILD_TYPE=Debug -DUSE_SYSTEM_BOOT="ON" \
-                -DCMAKE_C_FLAGS="-g -O0" -DCMAKE_CXX_FLAGS="-g -O0" -DVCPKG_TARGET_TRIPLET=x64-linux-clang \
+        run: >
+            cmake -B $GITHUB_WORKSPACE/build -S $GITHUB_WORKSPACE
+            -D CMAKE_TOOLCHAIN_FILE=$GITHUB_WORKSPACE/3rd-party/vcpkg/scripts/buildsystems/vcpkg.cmake
+            -G Ninja -D CMAKE_BUILD_TYPE=Debug -D USE_SYSTEM_BOOT="ON"
+            -D VCPKG_TARGET_TRIPLET=x64-linux-clang
       - name: Run build
         run: cmake --build $GITHUB_WORKSPACE/build -j6
       - name: Download Clang build analyzer
-        run: git clone https://github.com/aras-p/ClangBuildAnalyzer && cd ClangBuildAnalyzer \
-             && cmake -B . -S . && cmake --build . && chmod +x ./ClangBuildAnalyzer
+        run: >
+            git clone https://github.com/aras-p/ClangBuildAnalyzer
+            && cd ClangBuildAnalyzer
+            && cmake -B . -S . && cmake --build .
       - run: ClangBuildAnalyzer/ClangBuildAnalyzer --all $GITHUB_WORKSPACE/build $GITHUB_WORKSPACE/trace.json
       - uses: actions/upload-artifact@v3
         with:
