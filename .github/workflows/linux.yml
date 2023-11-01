@@ -2,27 +2,39 @@ name: Linux CI
 run-name: Linux_CI
 on: [push]
 jobs:
-  get_branch:
-    name: Get working branch
+  branch_info:
+    name: Get working branch information
     runs-on: [ubuntu-latest]
     outputs:
-      extract_branch: ${{ steps.extract_branch.outputs.branch }}
+      branch_name: ${{ steps.branch.outputs.branch }}
+      not_default: ${{ steps.branch.outputs.not_default }}
     steps:
-      - name: Branch used
-        id: extract_branch
+      - name: set branch info
+        id: branch
         run: |
           if [[ "${GITHUB_EVENT_NAME}" == "push" ]]; then
-            echo "branch=${GITHUB_REF##*/}" >> $GITHUB_OUTPUT
+            export BRANCH="${GITHUB_REF##*/}"
           elif [[ "${GITHUB_EVENT_NAME}" == "pull_request" ]]; then
-            echo "branch=${$GITHUB_BASE_REF}" >> $GITHUB_OUTPUT
+            export BRANCH="${$GITHUB_BASE_REF}"
           else
-            echo "unkown event" && exit 1;
+            echo "unknown event" && exit 1;
           fi
+          if [ "$BRANCH" = "main" ]; then
+            echo "not_default=false" >> $GITHUB_OUTPUT
+          else
+            echo "not_default=true" >> $GITHUB_OUTPUT
+          fi
+          echo "branch=${BRANCH}" >> $GITHUB_OUTPUT
+
+          echo "Output is:"
+          cat $GITHUB_OUTPUT
+
   gcc_build_test:
     runs-on: ubuntu-latest
-    needs: get_branch
+    needs: branch_info
     env:
-      BRANCH: ${{ needs.get_branch.outputs.extract_branch }}
+      BRANCH_NAME: ${{ needs.branch_info.outputs.branch_name }}
+      NOT_DEFAULT: ${{ needs.branch_info.outputs.not_default }}
     container:
       image: ghcr.io/matthew-mcraven/pepp/dev:0.8.2
     steps:
@@ -35,15 +47,20 @@ jobs:
         with:
           append-timestamp: false
           verbose: 2
-          key: ${{ needs.get_branch.outputs.extract_branch }}
+          key: ${{ needs.branch_info.outputs.branch_name }}
+          restore: ${{ needs.branch_info.outputs.not_default }}
+          # action uses newline-separated values for keys
+          restore-keys: |
+            cache-main
       - name: Configure vcpkg
         run: $GITHUB_WORKSPACE/3rd-party/vcpkg/bootstrap-vcpkg.sh && $GITHUB_WORKSPACE/3rd-party/vcpkg/vcpkg integrate install
       - name: Configure CMake
-        run: cmake -B $GITHUB_WORKSPACE/build -S $GITHUB_WORKSPACE \
-                -D CMAKE_C_COMPILER_LAUNCHER=ccache -D CMAKE_CXX_COMPILER_LAUNCHER=ccache \
-                -DCMAKE_TOOLCHAIN_FILE=$GITHUB_WORKSPACE/3rd-party/vcpkg/scripts/buildsystems/vcpkg.cmake \
-                -GNinja -DCMAKE_BUILD_TYPE=Debug -DUSE_SYSTEM_BOOT="ON" \
-                -DCMAKE_C_FLAGS="-g -O0" -DCMAKE_CXX_FLAGS="-g -O0"
+        run: >
+            cmake -B $GITHUB_WORKSPACE/build -S $GITHUB_WORKSPACE
+            -D CMAKE_C_COMPILER_LAUNCHER=ccache -D CMAKE_CXX_COMPILER_LAUNCHER=ccache
+            -D CMAKE_TOOLCHAIN_FILE=$GITHUB_WORKSPACE/3rd-party/vcpkg/scripts/buildsystems/vcpkg.cmake
+            -G Ninja -DCMAKE_BUILD_TYPE=Debug -D USE_SYSTEM_BOOT="ON"
+            -D CMAKE_C_FLAGS="O0" -D CMAKE_CXX_FLAGS="-O0"
 
       - name: Run build
         run: cmake --build $GITHUB_WORKSPACE/build -j6
@@ -69,21 +86,24 @@ jobs:
       - name: Move LLVM into /
         run: cd /llvm && ls -lah && find -type d -exec mkdir -vp ""/{} \; -or -exec mv -nv {} ""/{} \;
       - name: Switch to clang compiler instead of GCC
-        run: export CMAKE_C_COMPILER=$(which clang) && export CMAKE_CXX_COMPILER=$(which clang++)
+        run: export CC=$(which clang) && export CXX=$(which clang++)
       - name: Copy custom target triplet to vcpkg
         run: cp $GITHUB_WORKSPACE/config/cmake-triplets/* $GITHUB_WORKSPACE/3rd-party/vcpkg/triplets
       - name: Configure vcpkg
         run: $GITHUB_WORKSPACE/3rd-party/vcpkg/bootstrap-vcpkg.sh && $GITHUB_WORKSPACE/3rd-party/vcpkg/vcpkg integrate install
       - name: Configure CMake
-        run: cmake -B $GITHUB_WORKSPACE/build -S $GITHUB_WORKSPACE \
-                -DCMAKE_TOOLCHAIN_FILE=$GITHUB_WORKSPACE/3rd-party/vcpkg/scripts/buildsystems/vcpkg.cmake \
-                -GNinja -DCMAKE_BUILD_TYPE=Debug -DUSE_SYSTEM_BOOT="ON" \
-                -DCMAKE_C_FLAGS="-g -O0" -DCMAKE_CXX_FLAGS="-g -O0" -DVCPKG_TARGET_TRIPLET=x64-linux-clang \
+        run: >
+            cmake -B $GITHUB_WORKSPACE/build -S $GITHUB_WORKSPACE
+            -D CMAKE_TOOLCHAIN_FILE=$GITHUB_WORKSPACE/3rd-party/vcpkg/scripts/buildsystems/vcpkg.cmake
+            -G Ninja -D CMAKE_BUILD_TYPE=Debug -D USE_SYSTEM_BOOT="ON"
+            -D VCPKG_TARGET_TRIPLET=x64-linux-clang
       - name: Run build
         run: cmake --build $GITHUB_WORKSPACE/build -j6
       - name: Download Clang build analyzer
-        run: git clone https://github.com/aras-p/ClangBuildAnalyzer && cd ClangBuildAnalyzer \
-             && cmake -B . -S . && cmake --build . && chmod +x ./ClangBuildAnalyzer
+        run: >
+            git clone https://github.com/aras-p/ClangBuildAnalyzer
+            && cd ClangBuildAnalyzer
+            && cmake -B . -S . && cmake --build .
       - run: ClangBuildAnalyzer/ClangBuildAnalyzer --all $GITHUB_WORKSPACE/build $GITHUB_WORKSPACE/trace.json
       - uses: actions/upload-artifact@v3
         with:
