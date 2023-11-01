@@ -21,8 +21,8 @@ on:
     branches: [ "main" ]
     # Run at 2100 UTC, or 1400 PST, on Fridays.
     # Help from: https://crontab.guru/#0_21_*_*_5
-    schedule:
-      - cron: '0 21 * * 5'
+  schedule:
+    - cron: '0 21 * * 5'
 jobs:
   analyze:
     name: Analyze
