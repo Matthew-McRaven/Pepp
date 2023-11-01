@@ -1,6 +1,5 @@
 name: Linux CI
 run-name: Linux_CI
-
 on: [push]
 
 jobs:
