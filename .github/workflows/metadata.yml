@@ -4,7 +4,7 @@ on:
   workflow_call:
     outputs:
       branch_name:
-        value: ${{ jobs.branch_info.outputs.branch }}
+        value: ${{ jobs.branch_info.outputs.branch_name }}
         description: 'The name of the branch'
       not_default:
         value: ${{ jobs.branch_info.outputs.not_default }}
