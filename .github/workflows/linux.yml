@@ -97,7 +97,7 @@ jobs:
       - name: Download Clang build analyzer
         run: git clone https://github.com/aras-p/ClangBuildAnalyzer && cd ClangBuildAnalyzer \
              && cmake -B . -S . && cmake --build . && chmod +x ./ClangBuildAnalyzer
-      - run: ./ClangBuildAnalyzer --all $GITHUB_WORKSPACE/build $GITHUB_WORKSPACE/trace.json
+      - run: ClangBuildAnalyzer/ClangBuildAnalyzer --all $GITHUB_WORKSPACE/build $GITHUB_WORKSPACE/trace.json
       - uses: actions/upload-artifact@v3
         with:
           name: clang-time-trace
