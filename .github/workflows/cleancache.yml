@@ -1,20 +1,14 @@
 name: Remove merged branch's ccache entry
 run-name: clean_ccache
 on:
-  pull_request:
-    types: [closed]
+  delete
 
 jobs:
-  branch_info:
-    uses: ./.github/workflows/metadata.yml
   remove_ccache:
     runs-on: ubuntu-latest
-    needs: branch_info
-    if: github.event.pull_request.merged == true
     env:
-        suffix: ${{ needs.branch_info.outputs.branch_name }}
         # Required for GitHub CLI to work.
         # See: https://docs.github.com/en/actions/using-workflows/using-github-cli-in-workflows
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
     steps:
-    - run: gh cache delete ccache-$suffix-
+    - run: gh cache delete ccache-${{ github.event.ref }}-
