@@ -34,7 +34,8 @@ jobs:
       - name: Replace ld with mold
         run: pth=$(which ld) && rm $pth && ln -s $(which mold) $pth
 
-      - uses: hendrikmuhs/ccache-action@v1.2.10
+      - name: Enable caching of object files between builds
+        uses: hendrikmuhs/ccache-action@v1.2.10
         # Prevent clang from using ccache, because it is profiling build times
         if: ${{ matrix.compiler == 'gcc' }}
         with:
