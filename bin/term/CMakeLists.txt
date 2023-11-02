@@ -42,9 +42,9 @@ cmake_policy(SET CMP0094 NEW)
 # Prevent registry from pre-empting our python installation, needed in CI to find debug libs.
 set(Python3_FIND_REGISTRY LAST)
 
-find_package(Python 3.10 REQUIRED Development Interpreter)
+find_package(Python 3.12 OPTIONAL_COMPONENTS Development)
 
-if (Python_FOUND)
+if (Python_Development_FOUND)
     # Create file which contains PYTHONHOME followed by PYTHONPATH values seperated by newlines.
     add_custom_command(
         COMMAND ${Python_EXECUTABLE}

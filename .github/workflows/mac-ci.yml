@@ -6,5 +6,7 @@ jobs:
   build:
     uses: ./.github/workflows/generic-ci.yml
     with:
-      runs-on: "macos-latest"
+      # Current bug in Qt moc causes crashes with macos-lates
+      # See: https://bugreports.qt.io/browse/QTBUG-118086
+      runs-on: "macos-11"
       script-ext: "sh"
