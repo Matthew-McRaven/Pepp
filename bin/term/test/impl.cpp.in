@@ -23,24 +23,12 @@
 #include <QProcessEnvironment>
 #include <QCoreApplication>
 
-// Don't link against python debug libraries, causes CI crashes.
-// Inspired by: https://github.com/pybind/pybind11/blob/76b7f53649580b66b559752de6a39d98477ff1da/include/pybind11/detail/common.h#L226
-#if defined(_MSC_VER) && defined(_DEBUG)
-#undef _DEBUG
-#define DEBUG_MARKER
-#endif
-
 // Needed for python code to compile correctly.
 // See: https://stackoverflow.com/a/49359288
 #pragma push_macro("slots")
 #undef slots
 #include <Python.h>
 #pragma pop_macro("slots")
-
-#if defined(_MSC_VER) && defined(DEBUG_MARKER)
-#undef DEBUG_MARKER
-#define _DEBUG
-#endif
 
 class Term@NAME@ : public QObject {
     Q_OBJECT

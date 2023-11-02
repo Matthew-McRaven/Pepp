@@ -20,6 +20,24 @@ jobs:
       BRANCH_NAME: ${{ needs.branch_info.outputs.branch_name }}
       NOT_DEFAULT: ${{ needs.branch_info.outputs.not_default }}
     steps:
+      # Windows does not ship with python debug libraries.
+      - name: Install additonal python on Windows
+        if: ${{ contains(inputs.runs-on, 'windows') }}
+        run: curl -o python-3.12.exe "https://www.python.org/ftp/python/3.12.0/python-3.12.0-amd64.exe"
+
+       - name: Install additonal python on Windows
+         if: ${{ contains(inputs.runs-on, 'windows') }}
+         run: >
+           echo s
+           && ./python-3.12.exe /quiet InstallAllUsers=1 PrependPath=1 Include_test=0 Include_debug=1 Include_symbols=1
+           && echo $(where python)
+
+      - name: Install C++20 compatible compiler on Mac
+        if: ${{ contains(inputs.runs-on, 'macos') }}
+        run: |
+          brew update \
+          brew
+
       - name: Install CMake and Ninja
         uses: lukka/get-cmake@v3.27.7
       - name: Install Qt
@@ -35,22 +53,25 @@ jobs:
 
         # CMake configure & build
       - name: Configure vcpkg and convert shallow clone to regular
+        shell: bash
         run: >
-            cd ${{ github.workspace }}/3rd-party/vcpkg
+            cd $GITHUB_WORKSPACE/3rd-party/vcpkg
             && git fetch --unshallow
             && ./bootstrap-vcpkg.${{ inputs.script-ext }}
             && ./vcpkg integrate install
       - name: Configure CMake
+        shell: bash
         run: >
-            cmake -B ${{ github.workspace }}/build -S ${{ github.workspace }}
-            -D CMAKE_TOOLCHAIN_FILE=${{ github.workspace }}/3rd-party/vcpkg/scripts/buildsystems/vcpkg.cmake
+            cmake -B build -S .
+            -D CMAKE_TOOLCHAIN_FILE=3rd-party/vcpkg/scripts/buildsystems/vcpkg.cmake
             -DCMAKE_BUILD_TYPE=Debug
       - name: Run build
-        run: cmake --build ${{ github.workspace }}/build -j6
+        run: cmake --build build -j6
 
 
       - name: Run tests
-        run: cd ${{ github.workspace }}/build && ctest -j6 -C DEBUG
+        shell: bash
+        run: cd build && ctest -j6 -C DEBUG
         env:
           # Must be offscreen, or tests that involve GUI libraries will fail
           QT_QPA_PLATFORM: 'offscreen'

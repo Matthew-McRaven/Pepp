@@ -37,9 +37,14 @@ set_target_properties(pepp-term PROPERTIES FOLDER "qtc_runnable")
 
 set_property(SOURCE "test/impl.cpp.in" PROPERTY SKIP_AUTOMOC ON)
 
-find_package(Python REQUIRED Development Interpreter)
-if (Python_FOUND)
+# Stop searching for python on first match.
+cmake_policy(SET CMP0094 NEW)
+# Prevent registry from pre-empting our python installation, needed in CI to find debug libs.
+set(Python3_FIND_REGISTRY LAST)
 
+find_package(Python 3.10 REQUIRED Development Interpreter)
+
+if (Python_FOUND)
     # Create file which contains PYTHONHOME followed by PYTHONPATH values seperated by newlines.
     add_custom_command(
         COMMAND ${Python_EXECUTABLE}
