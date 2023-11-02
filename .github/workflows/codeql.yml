@@ -23,6 +23,7 @@ on:
     # Help from: https://crontab.guru/#0_21_*_*_5
   schedule:
     - cron: '0 21 * * 5'
+  workflow_dispatch:
 jobs:
   analyze:
     if: (github.event_name != 'pull_request') || (github.event.pull_request.draft == false)
@@ -65,11 +66,13 @@ jobs:
         && git fetch --unshallow
         && ./bootstrap-vcpkg.sh
         && ./vcpkg integrate install
+      # Eventually, when we have a GUI target, we will want to disable all tests
     - name: Configure CMake
       run: >
         cmake -B $GITHUB_WORKSPACE/build -S $GITHUB_WORKSPACE
         -D CMAKE_TOOLCHAIN_FILE=$GITHUB_WORKSPACE/3rd-party/vcpkg/scripts/buildsystems/vcpkg.cmake
-        -G Ninja -DCMAKE_BUILD_TYPE=Debug -D USE_SYSTEM_BOOST="ON"
+        -D SKIP_TERM_TESTS=true
+        -G Ninja -DCMAKE_BUILD_TYPE=Debug
 
     - name: Run build
       run: cmake --build $GITHUB_WORKSPACE/build -j6
