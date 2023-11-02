@@ -1,8 +1,12 @@
 pull_request_rules:
-  - name: "Automatic merge for Matthew when CI passes"
+  - name: "Queue PRs for Matthew to queue on CI success"
     conditions:
-      - "author=matthew-mcraven"
-      - "check-success=Linux CI"
-      - "base=main"
+      - author = matthew-mcraven
+      - check-success = Linux_CI
+      - check-success = Mac_CI
+      - check-success = Windows_CI
+      - base = main
     actions:
-      merge:
+      queue:
+        method: merge
+        name: default
