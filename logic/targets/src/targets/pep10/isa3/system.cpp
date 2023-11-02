@@ -85,7 +85,8 @@ targets::pep10::isa::System::System(QList<obj::MemoryRegion> regions,
       auto size = seg->get_file_size();
       if (fileData == nullptr)
         continue;
-      mem->write(base, {reinterpret_cast<const quint8 *>(fileData), size}, gs);
+      using size_type = bits::span<const quint8>::size_type;
+      mem->write(base, {reinterpret_cast<const quint8 *>(fileData), static_cast<size_type>(size)}, gs);
       base += size;
     }
   }
@@ -217,6 +218,7 @@ targets::pep10::isa::System::output(QString name) {
 QSharedPointer<targets::pep10::isa::System>
 targets::pep10::isa::systemFromElf(const ELFIO::elfio &elf,
                                    bool loadUserImmediate) {
+  using size_type = bits::span<const quint8>::size_type;
   auto segs = obj::getLoadableSegments(elf);
   auto memmap = obj::mergeSegmentRegions(segs);
   auto mmios = obj::getMMIODeclarations(elf);
@@ -234,7 +236,7 @@ targets::pep10::isa::systemFromElf(const ELFIO::elfio &elf,
       if (ptr == nullptr)
         continue;
       const auto ret =
-          bus->write(address, {ptr, buffer.seg->get_memory_size()}, gs);
+          bus->write(address, {ptr, static_cast<size_type>(buffer.seg->get_memory_size())}, gs);
       Q_ASSERT(ret.completed);
       Q_ASSERT(ret.error == sim::api::memory::Error::Success);
       address += buffer.seg->get_memory_size();

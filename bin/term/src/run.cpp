@@ -26,7 +26,18 @@
 #include "targets/pep10/isa3/cpu.hpp"
 #include "targets/pep10/isa3/helpers.hpp"
 #include "targets/pep10/isa3/system.hpp"
+
+// Taken from asio signal blocker.
+#if !defined(BOOST_ASIO_HAS_THREADS) || defined(BOOST_ASIO_WINDOWS) \
+|| defined(BOOST_ASIO_WINDOWS_RUNTIME) \
+|| defined(__CYGWIN__) || defined(__SYMBIAN32__) \
+||defined(BOOST_ASIO_HAS_PTHREADS)
+const bool USE_ASIO=0;
+#else
+const bool USE_ASIO=1;
 #include <boost/asio.hpp>
+#endif
+
 
 static const auto gs = sim::api::memory::Operation{
     .speculative = false,
@@ -126,7 +137,9 @@ void RunTask::run() {
   if (auto charIn = system->input("charIn"); !_charIn.empty() && charIn) {
     auto charInEndpoint = charIn->endpoint();
     QString buffer;
+
     if (_charIn == "-") {
+#if USE_ASIO
       boost::asio::io_service ioService;
       // ASIO will need platform-dependent implementations.
 #if defined(__unix__) || defined(TARGET_OS_MAC)
@@ -164,20 +177,21 @@ void RunTask::run() {
         } else // Otherwise we (probably) read all there was to read.
           ioService.stop();
       };
-
       in.async_read_some(boost::asio::buffer(buf), readHandle);
       // Must use timer to kill event loop, otherwise may poll FD 0 forever if
       // empty.
       timer.expires_from_now(boost::asio::chrono::milliseconds(200));
       timer.async_wait(timeout);
       ioService.run();
-
+#else
+        QTextStream in(stdin, QIODevice::ReadOnly | QIODevice::Text);
+        while (!in.atEnd()) charInEndpoint->append_value(in.read(1).toUtf8()[0]);
+#endif
     } else {
-      QFile f(QString::fromStdString(_charIn));
-      f.open(QIODevice::ReadOnly | QIODevice::Text);
-      QByteArray buffer = f.readAll();
-      for (int it = 0; it < buffer.size(); it++)
-        charInEndpoint->append_value(buffer[it]);
+    QFile f(QString::fromStdString(_charIn));
+    f.open(QIODevice::ReadOnly | QIODevice::Text);
+    QByteArray buffer = f.readAll();
+    for (int it = 0; it < buffer.size(); it++) charInEndpoint->append_value(buffer[it]);
     }
   }
   auto printReg = [&](isa::Pep10::Register reg) {

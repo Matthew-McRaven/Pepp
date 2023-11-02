@@ -50,10 +50,11 @@ pas::ast::value::Character::clone() const {
 
 void pas::ast::value::Character::value(bits::span<quint8> dest,
                                        bits::Order destEndian) const {
+  using size_type = bits::span<const quint8>::size_type;
   bits::memcpy_endian(
       dest, destEndian,
       bits::span<const quint8>{
-          reinterpret_cast<const quint8 *>(_valueAsBytes.constData()), size()},
+          reinterpret_cast<const quint8 *>(_valueAsBytes.constData()), static_cast<size_type>(size())},
       bits::hostOrder());
 }
 

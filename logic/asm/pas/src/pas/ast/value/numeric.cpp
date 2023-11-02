@@ -27,9 +27,11 @@ pas::ast::value::Numeric::Numeric(qint64 value, quint8 size)
 
 void pas::ast::value::Numeric::value(bits::span<quint8> dest,
                                      bits::Order destEndian) const {
+  using size_type = bits::span<const quint8>::size_type;
   bits::memcpy_endian(dest, destEndian,
                       bits::span<const quint8>{
-                          reinterpret_cast<const quint8 *>(&_value), size()},
+                          reinterpret_cast<const quint8 *>(&_value),
+                          static_cast<size_type>(size())},
                       bits::hostOrder());
 }
 
