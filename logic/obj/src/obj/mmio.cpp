@@ -228,6 +228,7 @@ found:
 }
 
 std::optional<quint16> obj::getBootFlagsAddress(const ELFIO::elfio &elf) {
+    using size_type = std::span<const quint8>::size_type;
   auto noteSec = getMMIONoteSection(elf);
   if (noteSec == nullptr)
     return {};
@@ -255,7 +256,7 @@ std::optional<quint16> obj::getBootFlagsAddress(const ELFIO::elfio &elf) {
         bits::Order::BigEndian);
     quint64 tmp = 0;
     bits::memcpy_endian(
-        bits::span<quint8>{reinterpret_cast<quint8 *>(&tmp), size},
+        bits::span<quint8>{reinterpret_cast<quint8 *>(&tmp), static_cast<size_type>(size)},
         bits::hostOrder(),
         bits::span<const quint8>{reinterpret_cast<const quint8 *>(&addr),
                                  sizeof(addr)},

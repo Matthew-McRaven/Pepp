@@ -51,10 +51,12 @@ pas::ast::value::ShortString::clone() const {
 
 void pas::ast::value::ShortString::value(bits::span<quint8> dest,
                                          bits::Order destEndian) const {
+  using size_type = bits::span<const quint8>::size_type;
   bits::memcpy_endian(
       dest, destEndian,
       bits::span<const quint8>{
-          reinterpret_cast<const quint8 *>(_valueAsBytes.data()), size()},
+          reinterpret_cast<const quint8 *>(_valueAsBytes.data()),
+          static_cast<size_type>(size())},
       bits::hostOrder());
 }
 
@@ -97,10 +99,12 @@ pas::ast::value::LongString::clone() const {
 
 void pas::ast::value::LongString::value(bits::span<quint8> dest,
                                         bits::Order destEndian) const {
+  using size_type = bits::span<const quint8>::size_type;
   bits::memcpy_endian(
       dest, destEndian,
       bits::span<const quint8>{
-          reinterpret_cast<const quint8 *>(_valueAsBytes.data()), size()},
+          reinterpret_cast<const quint8 *>(_valueAsBytes.data()),
+          static_cast<size_type>(size())},
       bits::hostOrder());
 }
 
