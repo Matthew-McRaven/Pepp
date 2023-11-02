@@ -1,5 +1,13 @@
 cmake_minimum_required(VERSION 3.23)
 
+# Require explicit opt-out of vcpkg's boost.
+if( (DEFINED USE_SYSTEM_BOOST) OR (DEFINED ENV{USE_SYSTEM_BOOST}) )
+    message("Using system boost")
+else()
+    list(APPEND VCPKG_MANIFEST_FEATURES "boost")
+    message("Using vcpkg boost")
+endif()
+
 project(Pepp VERSION 0.6.0 LANGUAGES CXX)
 
 
@@ -16,7 +24,7 @@ add_subdirectory(3rd-party)
 
 # Emscripten build forget to set boost_INCLUDE_DIR correctly
 set(Boost_USE_STATIC_LIBS   ON)
-set(Boost_INCLUDE_DIR "$ENV{BOOST_ROOT}")
+set(Boost_ROOT ${_VCPKG_INSTALLED_DIR} CACHE PATH "Override boost root")
 find_package(Boost 1.76.0 REQUIRED)
 
 set(CMAKE_AUTOMOC ON)
