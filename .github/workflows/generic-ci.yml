@@ -20,21 +20,11 @@ jobs:
       BRANCH_NAME: ${{ needs.branch_info.outputs.branch_name }}
       NOT_DEFAULT: ${{ needs.branch_info.outputs.not_default }}
     steps:
-      # Windows does not ship with python debug libraries.
-      - name: Download additonal python on Windows
-        if: ${{ contains(inputs.runs-on, 'windows') }}
-        shell: pwsh
-        run: >
-          Invoke-WebRequest "https://www.python.org/ftp/python/3.12.0/python-3.12.0-amd64.exe" -OutFile python-3.12.exe
-          && ./python-3.12.exe /quiet InstallAllUsers=0
-          PrependPath=1 Include_test=0 Include_debug=1 Include_symbols=1
-          DefaultJustForMeTargetDir=${{ github.workspace }}/python
-          && echo "{${{ github.workspace }}\\python}" >> $GITHUB_PATH
 
 
       - name: Select newer version of clang on MacOS
         if: ${{ contains(inputs.runs-on, 'macos') }}
-        run: echo "EXTRA_CMAKE_ARGS=\"-D CMAKE_C_COMPILER=$(brew --prefix llvm@15)/bin/clang -D CMAKE_CXX_COMPILER=$(brew --prefix llvm@15)/bin/clang++ \"" >> $GITHUB_ENV
+        run: echo "CMAKE_EXTRA_CONFIG_ARGS=-D CMAKE_C_COMPILER=$(brew --prefix llvm@15)/bin/clang -D CMAKE_CXX_COMPILER=$(brew --prefix llvm@15)/bin/clang++" >> $GITHUB_ENV
 
       - name: Install CMake and Ninja
         uses: lukka/get-cmake@v3.27.7
@@ -42,15 +32,13 @@ jobs:
         uses: jurplel/install-qt-action@v3
         with:
           version: '6.6.0'
-      # Must occur after install Qt, since that actions may install python too.
+      # Windows CI does not ship with python debug libraries, so must disable those tests.
       - name: Point to new python on Windows
         if: ${{ contains(inputs.runs-on, 'windows') }}
         shell: bash
         run: >
-          echo "Python3_ROOT_DIR=${{ github.workspace }}\\python" >> $GITHUB_ENV
-          && echo "PKG_CONFIG_PATH=${{ github.workspace }}\\python\\x64/lib\\pkgconfig"  >> $GITHUB_ENV
-          && echo "pythonLocation=${{ github.workspace }}\\python" >> $GITHUB_ENV
-          && echo $(which python)
+            echo "CMAKE_EXTRA_CONFIG_ARGS=-D SKIP_TERM_TESTS=true" >> $GITHUB_ENV
+
         # Perform shallow clone, which may break some other operations
       - name: Checkout source code (shallow)
         uses: actions/checkout@v3
@@ -65,21 +53,20 @@ jobs:
             && git fetch --unshallow
             && ./bootstrap-vcpkg.${{ inputs.script-ext }}
             && ./vcpkg integrate install
-            && echo $EXTRA_CMAKE_ARGS
       - name: Configure CMake
         shell: bash
         run: >
             cmake -B build -S .
             -D CMAKE_TOOLCHAIN_FILE=3rd-party/vcpkg/scripts/buildsystems/vcpkg.cmake
-            $EXTRA_CMAKE_ARGS
+            $CMAKE_EXTRA_CONFIG_ARGS
             -DCMAKE_BUILD_TYPE=Debug
       - name: Run build
-        run: cmake --build build -j6
+        run: cmake --build build -j6 --config Debug $CMAKE_EXTRA_BUILD_ARGS
 
 
       - name: Run tests
         shell: bash
-        run: cd build && ctest -j6 -C DEBUG
+        run: cd build && ctest -j6 -C Debug -vv -o LastLog.log || (cat LastTest.log exit 1)
         env:
           # Must be offscreen, or tests that involve GUI libraries will fail
           QT_QPA_PLATFORM: 'offscreen'
