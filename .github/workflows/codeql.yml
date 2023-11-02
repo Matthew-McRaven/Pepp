@@ -26,9 +26,13 @@ on:
   workflow_dispatch:
 jobs:
   analyze:
-    if: (github.event_name != 'pull_request') || (github.event.pull_request.draft == false)
     name: Analyze
+    if: (github.event_name != 'pull_request') || (github.event.pull_request.draft == false)
+
     runs-on: ubuntu-latest
+    container:
+      image: ghcr.io/matthew-mcraven/pepp/dev:0.8.2
+
     timeout-minutes: 360
     permissions:
       actions: read
