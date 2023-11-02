@@ -1,0 +1,10 @@
+name: Mac CI
+run-name: Mac_CI
+on: [push]
+
+jobs:
+  build:
+    uses: ./.github/workflows/generic-ci.yml
+    with:
+      runs-on: "macos-latest"
+      script-ext: "sh"

@@ -3,45 +3,8 @@ run-name: Windows_CI
 on: [push]
 
 jobs:
-  branch_info:
-    uses: ./.github/workflows/metadata.yml
   build:
-    runs-on: windows-latest
-    needs: branch_info
-    env:
-      BRANCH_NAME: ${{ needs.branch_info.outputs.branch_name }}
-      NOT_DEFAULT: ${{ needs.branch_info.outputs.not_default }}
-    steps:
-      - name: Install CMake and Ninja
-        uses: lukka/get-cmake@v3.27.7
-      - name: Install Qt
-        uses: jurplel/install-qt-action@v3
-
-        # Perform shallow clone, which may break some other operations
-      - name: Checkout source code (shallow)
-        uses: actions/checkout@v3
-        with:
-          submodules: 'true'
-
-        # CMake configure & build
-      - name: Configure vcpkg and convert shallow clone to regular
-        run: >
-            cd ${{ github.workspace }}\3rd-party\vcpkg
-            && git fetch --unshallow
-            && ./bootstrap-vcpkg.bat
-            && ./vcpkg integrate install
-      - name: Configure CMake
-        run: >
-            cmake -B /build -S ${{ github.workspace }}
-            -D CMAKE_TOOLCHAIN_FILE=${{ github.workspace }}\3rd-party\vcpkg\scripts\buildsystems\vcpkg.cmake
-            -DCMAKE_BUILD_TYPE=Debug
-      - name: Run build
-        run: cmake --build %GITHUB_WORKSPACE/build -j6
-
-
-      - name: Run tests
-        run: cd ${{ github.workspace }}/build && ctest -j6
-        env:
-          # Must be offscreen, or tests that involve GUI libraries will fail
-          QT_QPA_PLATFORM: 'offscreen'
-          CTEST_OUTPUT_ON_FAILURE: 'TRUE'
+    uses: ./.github/workflows/generic-ci.yml
+    with:
+      runs-on: "windows-latest"
+      script-ext: "bat"
