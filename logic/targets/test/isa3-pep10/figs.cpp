@@ -34,6 +34,9 @@
 #include "targets/pep10/isa3/helpers.hpp"
 #include "targets/pep10/isa3/system.hpp"
 #include <elfio/elfio.hpp>
+
+static const auto lf = QRegularExpression("\r");
+
 static const auto rw =
     sim::api::memory::Operation{.speculative = false,
         .kind = sim::api::memory::Operation::Kind::data,
@@ -179,18 +182,19 @@ private slots:
         continue;
       QString userPep = "", userPepo = "";
       if (figure->typesafeElements().contains("pep"))
-        userPep = figure->typesafeElements()["pep"]->contents;
+          userPep = QString(figure->typesafeElements()["pep"]->contents).replace(lf,"");
       else if (figure->typesafeElements().contains("pepo"))
-        userPepo = figure->typesafeElements()["pepo"]->contents;
-      auto os = figure->defaultOS()->typesafeElements()["pep"]->contents;
+          userPepo = QString(figure->typesafeElements()["pepo"]->contents).replace(lf, "");
+      auto os = QString(figure->defaultOS()->typesafeElements()["pep"]->contents).replace(lf, "");
       bool isBM = !os.contains("bootFlg");
       auto ch = figure->chapterName(), fig = figure->figureName();
       int num = 0;
       for (auto io : figure->typesafeTests()) {
         auto name = u"Figure %1.%2 on IO %3"_qs.arg(ch).arg(fig).arg(num);
         auto nameAsStd = name.toStdString();
-        QString input = io->input.toString();
-        QByteArray output = io->output.toString().toUtf8();
+
+        QString input = io->input.toString().replace(lf, "");
+        QByteArray output = io->output.toString().replace(lf,"").toUtf8();
         QTest::addRow(nameAsStd.c_str())
             << os << userPep << userPepo << input << output << isBM;
         num++;

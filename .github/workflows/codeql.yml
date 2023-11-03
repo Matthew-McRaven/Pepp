@@ -45,6 +45,13 @@ jobs:
         language: [ 'c-cpp']
 
     steps:
+    - name: Install CMake and Ninja
+      uses: lukka/get-cmake@v3.27.7
+    - name: Install Qt
+      uses: jurplel/install-qt-action@v3
+      with:
+        version: '6.6.0'
+
     - name: Checkout source code (shallow)
       uses: actions/checkout@v3
       with:

@@ -1,0 +1,12 @@
+name: Mac CI
+run-name: Mac_CI
+on: [push]
+
+jobs:
+  build:
+    uses: ./.github/workflows/generic-ci.yml
+    with:
+      # Current bug in Qt moc causes crashes with macos-lates
+      # See: https://bugreports.qt.io/browse/QTBUG-118086
+      runs-on: "macos-11"
+      script-ext: "sh"

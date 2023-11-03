@@ -1,0 +1,10 @@
+name: Windows CI
+run-name: Windows_CI
+on: [push]
+
+jobs:
+  build:
+    uses: ./.github/workflows/generic-ci.yml
+    with:
+      runs-on: "windows-latest"
+      script-ext: "bat"
