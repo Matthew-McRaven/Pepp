@@ -4,30 +4,26 @@ on:
   workflow_dispatch:
 
 jobs:
-  branch_info:
-    uses: ./.github/workflows/metadata.yml
   remove_ccache:
     runs-on: ubuntu-latest
-    needs: branch_info
     permissions:
       actions: write
     env:
       # Required for GitHub CLI to work.
       # See: https://docs.github.com/en/actions/using-workflows/using-github-cli-in-workflows
       GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-      BRANCH_NAME: ${{ needs.branch_info.outputs.branch_name }}
     steps:
+    - name: Checkout source code (shallow)
+      uses: actions/checkout@v3
     - name: Show caches (debug)
       run: gh cache list
     - name: Get caches
-      run: |
+      run: >
         gh api -H "Accept: application/vnd.github+json" -H "X-GitHub-Api-Version: 2022-11-28"
-        /repos/matthew-mcraven/pepp/actions/caches > caches.json
+        /repos/matthew-mcraven/pepp/actions/caches > caches.json && cat caches.json
     - name: Enumerate caches matching branch key
-      run: |
-        jq -rc ".actions_caches.[] | select( .ref | endswith(\"$BRANCH_NAME\"))
-         | select( .key | match(\"ccache\")).key" caches.json > ccache_keys.json
+      run: jq -rc '.actions_caches[] | select( .ref | endswith("${{ github.event.ref }}")) | select( .key | match("ccache")).key' caches.json > ccache_keys.txt
     - name: Delete cache keys
-      run: xargs -a ccache_keys.json -t gh cache delete {}
+      run: xargs -i -a ccache_keys.txt -t gh cache delete {}
     - name: Debug show caches
       run: gh cache list
