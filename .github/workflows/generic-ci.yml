@@ -66,8 +66,16 @@ jobs:
 
       - name: Run tests
         shell: bash
-        run: cd build && ctest -j6 -C Debug -vv -o LastLog.log || (cat LastTest.log exit 1)
+        run: cd build && ctest -j6 -C Debug -vv
         env:
           # Must be offscreen, or tests that involve GUI libraries will fail
           QT_QPA_PLATFORM: 'offscreen'
           CTEST_OUTPUT_ON_FAILURE: 'TRUE'
+
+      - name: Enable remote access for debugging
+        if: ${{ failure() }}
+        uses: mxschmitt/action-tmate@v3
+        with:
+          detached: true
+          limit-access-to-actor: true
+        timeout-minutes: 15
