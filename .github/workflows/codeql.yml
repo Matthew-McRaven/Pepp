@@ -32,7 +32,6 @@ jobs:
     runs-on: ubuntu-latest
     container:
       image: ghcr.io/matthew-mcraven/pepp/dev:0.8.2
-
     timeout-minutes: 360
     permissions:
       actions: read
@@ -48,13 +47,17 @@ jobs:
             sarif-file: 'cpp'
 
     steps:
+    # Install CodeQL and build dependencies
+    - name: install CodeQL dependencies
+      run: apt update && apt-get install -y --no-install-recommends sudo
+
+
     - name: Install CMake and Ninja
       uses: lukka/get-cmake@v3.27.7
     - name: Install Qt
       uses: jurplel/install-qt-action@v3
       with:
         version: '6.6.0'
-
     - name: Checkout source code (shallow)
       uses: actions/checkout@v3
       with:
