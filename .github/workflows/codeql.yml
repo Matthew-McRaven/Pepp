@@ -101,11 +101,11 @@ jobs:
           bin/**
           logic/**
           ui/**
-        input: sarif-results/${{matrix.sarif-file}}.sarif
-        output: sarif-results/${{matrix.sarif-file}}.sarif
+        input: results/${{matrix.sarif-file}}.sarif
+        output: results/${{matrix.sarif-file}}.sarif
     - name: Upload CodeQL results
       uses: actions/upload-artifact@v2.2.0
       with:
-        name: sarif-results
-        path: sarif-results
+        name: results
+        path: results
         retention-days: 1
