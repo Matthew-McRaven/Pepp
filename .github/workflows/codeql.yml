@@ -93,7 +93,7 @@ jobs:
       with:
         upload: False
         category: "/language:${{matrix.language}}"
-        sarif-output: /results
+        output: results
     - name: Remove 3rd-party deps from CodeQL results
       uses: advanced-security/filter-sarif@v1
       with:
@@ -102,11 +102,11 @@ jobs:
           bin/**
           logic/**
           ui/**
-        input: /results/${{matrix.sarif-file}}.sarif
-        output: /results/${{matrix.sarif-file}}.sarif
+        input: results/${{matrix.sarif-file}}.sarif
+        output: results/${{matrix.sarif-file}}.sarif
     - name: Upload CodeQL results
       uses: actions/upload-artifact@v2.2.0
       with:
         name: results
-        path: /results
+        path: results
         retention-days: 1
