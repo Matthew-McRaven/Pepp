@@ -101,7 +101,7 @@ jobs:
           bin/**
           logic/**
           ui/**
-        input: sarif-results/${{matrix.sarif-fille}}.sarif
+        input: sarif-results/${{matrix.sarif-file}}.sarif
         output: sarif-results/${{matrix.sarif-file}}.sarif
     - name: Upload CodeQL results
       uses: actions/upload-artifact@v2.2.0
