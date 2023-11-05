@@ -104,9 +104,8 @@ jobs:
           ui/**
         input: results/${{matrix.sarif-file}}.sarif
         output: results/${{matrix.sarif-file}}.sarif
-    - name: Upload CodeQL results
-      uses: actions/upload-artifact@v2.2.0
+    - name: Upload CodeQL Analysis
+      uses: github/codeql-action/upload-sarif@v2
       with:
-        name: results
-        path: results
-        retention-days: 1
+        category: "/language:${{matrix.language}}"
+        sarif_file: results
