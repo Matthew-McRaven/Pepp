@@ -31,6 +31,10 @@ jobs:
   start_matrix:
     needs: branch_info 
     uses: ./.github/workflows/build.yml
+    permissions:
+      actions: read
+      contents: read
+      security-events: write
     strategy:
       fail-fast: false
       # If you want to update images, must replace *ALL* images in the matrix manually.

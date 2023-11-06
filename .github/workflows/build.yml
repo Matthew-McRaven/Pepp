@@ -23,11 +23,6 @@ jobs:
     runs-on: ${{ inputs.runs-on }}
     # Configure repo permissions for CodeQL job, so that it may upload the SARIF outputs
     timeout-minutes: ${{ github.event.inputs.codeql && 360 || 60 }}
-    permissions:
-      actions: read
-      contents: read
-      security-events: write
-
     container:
       image: ${{ inputs.image }}
     env:
