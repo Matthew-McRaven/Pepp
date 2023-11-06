@@ -11,20 +11,20 @@ on:
       compiler_launcher: {required: True, type: string, default: ""}
       compiler_c: {required: True, type: string, default: ""}
       compiler_cpp: {required: True, type: string, default: ""}
-      codeql: {required: True, type: string, default: "False"}
+      codeql: {required: True, type: boolean, default: "False"}
       variant: {required: True, type: string, default: "Debug"}
       not_default: {required: True, type: string}
 
 jobs:
   matrix_build:
-    name: ${{ github.event.inputs.name }}
-    runs-on: ${{ github.event.inputs.runs-on }}
+    name: ${{ inputs.name }}
+    runs-on: ${{ inputs.runs-on }}
     # Configure repo permissions for CodeQL job, so that it may upload the SARIF outputs
-    timeout-minutes: ${{ inputs.codeql && '360' || '60' }}
-    permissions:
-      actions: ${{ inputs.codeql && 'read' || 'none' }}
-      contents: ${{ inputs.codeql && 'read' || 'none' }}
-      security-events: ${{ inputs.codeql && 'write' || 'none' }}
+    timeout-minutes: ${{ github.event.inputs.codeql && '360' || '60' }}
+    #permissions: actions: ${{ github.event.inputs.codeql && 'read' || 'none' }}
+      #actions:
+      #contents: ${{ github.event.inputs.codeql && 'read' || 'none' }}
+      #security-events: ${{ github.event.inputs.codeql && 'write' || 'none' }}
 
     container:
       image: ${{ inputs.image }}
