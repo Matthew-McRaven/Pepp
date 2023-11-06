@@ -29,8 +29,8 @@ jobs:
           cat $GITHUB_OUTPUT
 
   start_matrix:
-    runs-on: ubuntu-latest
     needs: branch_info 
+    uses: ./.github/workflows/build.yml
     strategy:
       fail-fast: false
       # If you want to update images, must replace *ALL* images in the matrix manually.
@@ -44,7 +44,7 @@ jobs:
         # See: https://bugreports.qt.io/browse/QTBUG-118086
         - {name: "MacOS-11; Clang 15", runs-on: "macos-11" , compiler_launcher: "ccache", compiler_c: "$(brew --prefix llvm@15)/bin/clang", compiler_cpp: "$(brew --prefix llvm@15)/bin/clang++"}
         - {name: "Windows Latest; MSVC", runs-on: "windows-latest" , compiler_launcher: "ccache",}
-    uses: ./.github/workflows/build.yml
+
     with:
       name: ${{ matrix.config.name }}
       runs-on: ${{ matrix.config.runs-on || 'ubuntu-latest' }}
