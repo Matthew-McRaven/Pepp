@@ -4,7 +4,7 @@ on:
     inputs:
       name: {required: True, type: string}
       runs-on: {required: True, type: string}
-      image: {type: string}
+      image: {type: string, default: ''}
       triplet: {type: string}
       cmake_launcher: {type: string, default: "cmake"}
       ctest_launcher: {type: string, default: "ctest"}
@@ -47,7 +47,7 @@ jobs:
 
     # Install dependencies based on enabled features
     - name: Install Qt+CMake
-      if: ${{ inputs.image }} != ''
+      if: inputs.image  == ''
       uses: ./.github/actions/install-qt-cmake
 
     - name: Install LLVM
