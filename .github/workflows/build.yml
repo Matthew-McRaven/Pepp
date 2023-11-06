@@ -6,13 +6,15 @@ on:
       runs-on: {required: True, type: string}
       image: {type: string}
       triplet: {type: string}
-      cmake_launcher: {required: True, type: string, default: "cmake"}
-      ctest_launcher: {required: True, type: string, default: "ctest"}
-      compiler_launcher: {required: True, type: string, default: ""}
-      compiler_c: {required: True, type: string, default: ""}
-      compiler_cpp: {required: True, type: string, default: ""}
-      codeql: {required: True, type: boolean, default: "False"}
-      variant: {required: True, type: string, default: "Debug"}
+      cmake_launcher: {type: string, default: "cmake"}
+      ctest_launcher: {type: string, default: "ctest"}
+      compiler_launcher: {type: string, default: ""}
+      compiler_c: {type: string, default: ""}
+      compiler_cpp: {type: string, default: ""}
+      codeql:
+        type: boolean
+        default: False
+      variant: {type: string, default: "Debug"}
       not_default: {required: True, type: string}
 
 jobs:
@@ -20,7 +22,7 @@ jobs:
     name: ${{ inputs.name }}
     runs-on: ${{ inputs.runs-on }}
     # Configure repo permissions for CodeQL job, so that it may upload the SARIF outputs
-    timeout-minutes: ${{ github.event.inputs.codeql && '360' || '60' }}
+    timeout-minutes: ${{ github.event.inputs.codeql && 360 || 60 }}
     #permissions: actions: ${{ github.event.inputs.codeql && 'read' || 'none' }}
       #actions:
       #contents: ${{ github.event.inputs.codeql && 'read' || 'none' }}

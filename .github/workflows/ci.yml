@@ -53,7 +53,7 @@ jobs:
       compiler_launcher: ${{ matrix.config.compiler_launcher || '' }}
       compiler_c: ${{ matrix.config.compiler_  || '' }}
       compiler_cpp: ${{ matrix.config.compiler_cpp || '' }}
-      codeql: ${{ matrix.config.codeql || '' }}
+      codeql: ${{ !!matrix.config.codeql }}
       variant: "debug"
       not_default: ${{ needs.branch_info.outputs.not_default || '' }}
   wasm_build:
