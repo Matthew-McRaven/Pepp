@@ -1,8 +1,7 @@
 name: CI
 run-name: CI
 on: [push]
-
-env:
+inputs:
   cpp_image: ghcr.io/matthew-mcraven/pepp/dev:0.8.2
 jobs:
   branch_info:
@@ -33,14 +32,14 @@ jobs:
 
   start_matrix:
     runs-on: ubuntu-latest
-    needs: branch_info
+    needs: branch_info 
     strategy:
       fail-fast: false
       matrix:
         config:
-        - {name: "Ubuntu 22.04; GCC", runs-on: "ubuntu-latest", image: "${{ env.cpp_image }}", compiler_launcher: "ccache", compiler_c: "", compiler_cpp: ""}
+        - {name: "Ubuntu 22.04; GCC", runs-on: "ubuntu-latest", image: "${{ inputs.cpp_image }}", compiler_launcher: "ccache", compiler_c: "", compiler_cpp: ""}
         # Do CodeQL in clang run, to prevent needing yet another target.
-        - {name: "Ubuntu 22.04; Clang 17.0", runs-on: "ubuntu-latest", image: "${{ env.cpp_image }}", triplet: "x64-linux-clang", compiler_launcher: "", compiler_c: "clang", compiler_cpp: "clang++", codeql: "True"}
+        - {name: "Ubuntu 22.04; Clang 17.0", runs-on: "ubuntu-latest", image: "${{ inputs.cpp_image }}", triplet: "x64-linux-clang", compiler_launcher: "", compiler_c: "clang", compiler_cpp: "clang++", codeql: "True"}
         #- {name: "Ubuntu 22.04; Docs", runson: "ubuntu-latest", image: "${{ env.cpp_image }}", docs_only: "True",}
         # See: https://bugreports.qt.io/browse/QTBUG-118086
         - {name: "MacOS-11; Clang 15", runs-on: "macos-11" , compiler_launcher: "ccache", compiler_c: "$(brew --prefix llvm@15)/bin/clang", compiler_cpp: "$(brew --prefix llvm@15)/bin/clang++"}
