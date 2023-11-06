@@ -80,7 +80,7 @@ jobs:
     - name: Configure vcpkg and convert shallow clone to regular
       shell: bash
       run: >
-          cd $GITHUB_WORKSPACE/3rd-party/vcpkg
+          cd 3rd-party/vcpkg
           && ([ -f $(git rev-parse --is-shallow-repository) ] && git fetch --unshallow || true)
           && chmod +x bootstrap-vcpkg.sh && ./bootstrap-vcpkg.sh
           && ./vcpkg integrate install
@@ -89,21 +89,21 @@ jobs:
       shell: bash
       run: >
           ${{ inputs.cmake_launcher }}
-          -B $GITHUB_WORKSPACE/build -S $GITHUB_WORKSPACE
+          -B build -S .
           ${{ inputs.compiler_launcher && format('-D CMAKE_C_COMPILER_LAUNCHER={0}', inputs.compiler_launcher) || '' }}
           ${{ inputs.compiler_launcher && format('-D CMAKE_CXX_COMPILER_LAUNCHER={0}', inputs.compiler_launcher) || '' }}
           ${{ inputs.compiler_c && format('-D CMAKE_C_COMPILER={0}', inputs.compiler_c) || '' }}
           ${{ inputs.compiler_xx && format('-D CMAKE_CXX_COMPILER={0}', inputs.compiler_xx) || '' }}
           ${{ inputs.triplet && format('-D VCPKG_TARGET_TRIPLET={0}', inputs.triplet) || '' }}
           ${{ inputs.image && '-D USE_SYSTEM_BOOST=\"ON\"' || '' }}
-          -D CMAKE_TOOLCHAIN_FILE=$GITHUB_WORKSPACE/3rd-party/vcpkg/scripts/buildsystems/vcpkg.cmake
+          -D CMAKE_TOOLCHAIN_FILE=3rd-party/vcpkg/scripts/buildsystems/vcpkg.cmake
           -G Ninja -DCMAKE_BUILD_TYPE=Debug
     - name: Run build
-      run: ${{ inputs.cmake_launcher }} --build $GITHUB_WORKSPACE/build -j6
+      run: ${{ inputs.cmake_launcher }} --build build -j6
 
     # Run tests, sign outputs, and upload artifacts
     - name: Run tests
-      run: ${{ inputs.ctest_launcher }} --test-dir $GITHUB_WORKSPACE/build -j6
+      run: ${{ inputs.ctest_launcher }} --test-dir build -j6
       env:
         # Must be offscreen, or tests that involve GUI libraries will fail
         QT_QPA_PLATFORM: 'offscreen'
