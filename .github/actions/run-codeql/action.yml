@@ -1,0 +1,34 @@
+name: 'Run CodeQL analysis'
+inputs:
+  language:
+    required: true
+    default: 'c-cpp'
+  sarif-file:
+    required: true
+    default: 'cpp'
+runs:
+  using: "composite"
+  # Selectively install and configure LLVM
+  steps:
+  # Don't upload, since we need to filter the results first.
+  - name: Perform CodeQL Analysis
+    uses: github/codeql-action/analyze@v2
+    with:
+      upload: False
+      category: "/language:${{inputs.language}}"
+      output: results
+  - name: Remove 3rd-party deps from CodeQL results
+    uses: advanced-security/filter-sarif@v1
+    with:
+      patterns: |
+        -3rd-party/**
+        bin/**
+        logic/**
+        ui/**
+      input: results/${{inputs.sarif-file}}.sarif
+      output: results/${{inputs.sarif-file}}.sarif
+  - name: Upload CodeQL Analysis
+    uses: github/codeql-action/upload-sarif@v2
+    with:
+      category: "/language:${{inputs.language}}"
+      sarif_file: results

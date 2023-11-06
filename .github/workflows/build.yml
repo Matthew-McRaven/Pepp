@@ -1,0 +1,118 @@
+name: Build
+on:
+  workflow_call:
+    inputs:
+      name: {required: True, type: string}
+      runs-on: {required: True, type: string}
+      image: {type: string}
+      triplet: {type: string}
+      cmake_launcher: {required: True, type: string, default: "cmake"}
+      ctest_launcher: {required: True, type: string, default: "ctest"}
+      compiler_launcher: {required: True, type: string, default: ""}
+      compiler_c: {required: True, type: string, default: ""}
+      compiler_cpp: {required: True, type: string, default: ""}
+      codeql: {required: True, type: string, default: "False"}
+      variant: {required: True, type: string, default: "Debug"}
+      not_default: {required: True, type: string}
+
+jobs:
+  matrix_build:
+    name: ${{ inputs.name }}
+    runs-on: ${{ inputs.runs-on }}
+    # Configure repo permissions for CodeQL job, so that it may upload the SARIF outputs
+    timeout-minutes: ${{ inputs.codeql && "360" || "60" }}
+    permissions:
+      actions: ${{ inputs.codeql && "read" || "none" }}
+      contents: ${{ inputs.codeql && "read" || "none" }}
+      security-events: ${{ inputs.codeql && "write" || "none" }}
+
+    container:
+      image: ${{ inputs.image }}
+    env:
+      DEBIAN_FRONTEND: noninteractive
+
+    steps:
+    # Install node only if running locally.
+    # Don't use apt, it is very slow; instead use NVM and manipulate path
+    - run: >
+        curl -o- https://raw.githubusercontent.com/nvm-sh/nvm/v0.39.3/install.sh | bash
+        && source /root/.nvm/nvm.sh && nvm install 18 && nvm alias default 18
+        && ln -s $(which node) /usr/local/bin/node
+      if: env.ACT
+      shell: bash
+
+    # Perform shallow clone, which may break some other operations
+    # Must exectute before any local actions
+    - name: Checkout source code (shallow)
+      uses: actions/checkout@v3
+      with:
+        submodules: 'true'
+
+    # Install dependencies based on enabled features
+    - name: Install Qt+CMake
+      if: matrix.image == 'none'
+      uses: ./.github/actions/install-qt-cmake
+
+    - name: Install LLVM
+      if: inputs.runs-on=='ubuntu-latest' && inputs.compiler_c == 'clang'
+      uses: ./.github/actions/install-llvm
+
+    # Prevent clang from using ccache, because it is profiling build times
+    - name: Enable caching of object files between builds
+      if: inputs.compiler_launcher == 'ccache' && inputs.not_default && !env.ACT
+      uses: hendrikmuhs/ccache-action@v1.2.10
+      with:
+        verbose: 2
+        key: ${{ inputs.name}}
+        restore: ${{ inputs.not_default }}
+
+    # Initializes the CodeQL tools for scanning. Must occur before code is built.
+    - name: Initialize CodeQL
+      if: inputs.codeql  && !env.ACT
+      uses: github/codeql-action/init@v2
+      with:
+        languages: "c-cpp"
+
+    # CMake configure & build
+    - name: Copy custom target triplets to vcpkg
+      shell: bash
+      run: cp $GITHUB_WORKSPACE/config/cmake-triplets/* $GITHUB_WORKSPACE/3rd-party/vcpkg/triplets
+    - name: Configure vcpkg and convert shallow clone to regular
+      shell: bash
+      run: >
+          cd $GITHUB_WORKSPACE/3rd-party/vcpkg
+          && ([ -f $(git rev-parse --is-shallow-repository) ] && git fetch --unshallow || true)
+          && chmod +x bootstrap-vcpkg.sh && ./bootstrap-vcpkg.sh
+          && ./vcpkg integrate install
+
+    - name: Configure CMake
+      shell: bash
+      run: >
+          ${{ inputs.cmake_launcher }}
+          -B $GITHUB_WORKSPACE/build -S $GITHUB_WORKSPACE
+          ${{ inputs.compiler_launcher && format('-D CMAKE_C_COMPILER_LAUNCHER={0}', inputs.compiler_launcher) || '' }}
+          ${{ inputs.compiler_launcher && format('-D CMAKE_CXX_COMPILER_LAUNCHER={0}', inputs.compiler_launcher) || '' }}
+          ${{ inputs.compiler_c && format('-D CMAKE_C_COMPILER={0}', inputs.compiler_c) || '' }}
+          ${{ inputs.compiler_xx && format('-D CMAKE_CXX_COMPILER={0}', inputs.compiler_xx) || '' }}
+          ${{ inputs.triplet && format('-D VCPKG_TARGET_TRIPLET={0}', inputs.triplet) || '' }}
+          ${{ inputs.image && '-D USE_SYSTEM_BOOST=\"ON\"' || '' }}
+          -D CMAKE_TOOLCHAIN_FILE=$GITHUB_WORKSPACE/3rd-party/vcpkg/scripts/buildsystems/vcpkg.cmake
+          -G Ninja -DCMAKE_BUILD_TYPE=Debug
+    - name: Run build
+      run: ${{ inputs.cmake_launcher }} --build $GITHUB_WORKSPACE/build -j6
+
+    # Run tests, sign outputs, and upload artifacts
+    - name: Run tests
+      run: ${{ inputs.ctest_launcher }} --test-dir $GITHUB_WORKSPACE/build -j6
+      env:
+        # Must be offscreen, or tests that involve GUI libraries will fail
+        QT_QPA_PLATFORM: 'offscreen'
+        CTEST_OUTPUT_ON_FAILURE: 'TRUE'
+
+    - name: Analyze buildtime for Linux-Clang
+      if: inputs.runs-on == 'ubuntu-latest' && inputs.c_compiler == 'clang'
+      uses: ./.github/actions/analyzer-buildtime
+
+    - name: Perform CodeQL analysis
+      if: inputs.codeql && !env.ACT
+      uses: ./.github/actions/run-codeql

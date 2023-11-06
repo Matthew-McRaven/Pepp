@@ -1,0 +1,66 @@
+name: CI
+run-name: CI
+on: [push]
+
+env:
+  cpp_image: ghcr.io/matthew-mcraven/pepp/dev:0.8.2
+jobs:
+  branch_info:
+    name: Gather branch info
+    runs-on: ubuntu-latest
+    outputs:
+      branch_name: ${{ steps.branch.outputs.branch }}
+      not_default: ${{ steps.branch.outputs.not_default }}
+    steps:
+      - name: set branch info
+        id: branch
+        run: |
+          if [[ "${GITHUB_EVENT_NAME}" == "push" ]]; then
+            export BRANCH="${GITHUB_REF##*/}"
+          elif [[ "${GITHUB_EVENT_NAME}" == "pull_request" ]]; then
+            export BRANCH="${$GITHUB_BASE_REF}"
+          else
+            echo "unknown event" && exit 1;
+          fi
+          if [ "$BRANCH" = "main" ]; then
+            echo "not_default=false" >> $GITHUB_OUTPUT
+          else
+            echo "not_default=true" >> $GITHUB_OUTPUT
+          fi
+          echo "branch=${BRANCH}" >> $GITHUB_OUTPUT
+          echo "Output is:"
+          cat $GITHUB_OUTPUT
+
+  start_matrix:
+    runs-on: ubuntu-latest
+    needs: branch_info
+    strategy:
+      fail-fast: false
+      matrix:
+        config:
+        - {name: "Ubuntu 22.04; GCC", runs-on: "ubuntu-latest", image: "${{ env.cpp_image }}", compiler_launcher: "ccache", compiler_c: "", compiler_cpp: ""}
+        # Do CodeQL in clang run, to prevent needing yet another target.
+        - {name: "Ubuntu 22.04; Clang 17.0", runs-on: "ubuntu-latest", image: "${{ env.cpp_image }}", triplet: "x64-linux-clang", compiler_launcher: "", compiler_c: "clang", compiler_cpp: "clang++", codeql: "True"}
+        #- {name: "Ubuntu 22.04; Docs", runson: "ubuntu-latest", image: "${{ env.cpp_image }}", docs_only: "True",}
+        # See: https://bugreports.qt.io/browse/QTBUG-118086
+        - {name: "MacOS-11; Clang 15", runs-on: "macos-11" , compiler_launcher: "ccache", compiler_c: "$(brew --prefix llvm@15)/bin/clang", compiler_cpp: "$(brew --prefix llvm@15)/bin/clang++"}
+        - {name: "Windows Latest; MSVC", runs-on: "windows-latest" , compiler_launcher: "ccache",}
+    uses: ./.github/workflows/build.yml
+    with:
+      name: ${{ matrix.config.name }}
+      runs-on: ${{ matrix.config.runs-on || 'ubuntu-latest' }}
+      image: ${{ matrix.config.image || '' }}
+      triplet: ${{ matrix.config.triplet || '' }}
+      compiler_launcher: ${{ matrix.config.compiler_launcher || '' }}
+      compiler_c: ${{ matrix.config.compiler_  || '' }}
+      compiler_cpp: ${{ matrix.config.compiler_cpp || '' }}
+      codeql: ${{ matrix.config.codeql || '' }}
+      variant: "debug"
+      not_default: ${{ needs.branch_info.outputs.not_default || '' }}
+  wasm_build:
+      runs-on: ubuntu-latest
+      needs: branch_info
+      steps:
+      - run: echo 'placeholder'
+
+

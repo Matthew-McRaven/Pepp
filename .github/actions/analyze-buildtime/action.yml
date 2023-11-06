@@ -1,0 +1,25 @@
+name: 'Install Clang build analyzer'
+# Analyze build times only if clang
+# If clang build analyzer is no longer working, try ninjatracing
+# See: git clone https://github.com/nico/ninjatracing
+runs:
+  using: "composite"
+  steps:
+  - name: Download Clang build analyzer
+    run: >
+      git clone https://github.com/aras-p/ClangBuildAnalyzer
+      && cd ClangBuildAnalyzer
+      && cmake -B . -S . && cmake --build .
+  - name: Run Clang build analyzer
+    if: ${{ matrix.compiler == 'clang' }}
+    run: >
+      ClangBuildAnalyzer/ClangBuildAnalyzer --all $GITHUB_WORKSPACE/build /trace.json
+      && ClangBuildAnalyzer/ClangBuildAnalyzer --analyze /trace.json
+      && find $GITHUB_WORKSPACE/build \( -path $GITHUB_WORKSPACE/build/vcpkg -o -path /$GITHUB_WORKSPACE/vcpkg_installed \) -prune -o -name "*json" -print
+  - name: Upload clang build trace
+    uses: actions/upload-artifact@v3
+    with:
+      name: clang-time-trace
+      path: /trace.json
+      retention-days: 3
+      if-no-files-found: error
