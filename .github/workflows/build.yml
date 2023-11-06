@@ -81,10 +81,8 @@ jobs:
     - name: Configure vcpkg and convert shallow clone to regular
       shell: bash
       run: >
-          cd 3rd-party/vcpkg
-          && ([ -f $(git rev-parse --is-shallow-repository) ] && git fetch --unshallow || true)
-          && chmod +x bootstrap-vcpkg.sh && ./bootstrap-vcpkg.sh
-          && ./vcpkg integrate install
+          cd 3rd-party/vcpkg && (git fetch --unshallow || true)
+          && chmod +x bootstrap-vcpkg.sh && ./bootstrap-vcpkg.sh && ./vcpkg integrate install
 
     - name: Configure CMake
       shell: bash
