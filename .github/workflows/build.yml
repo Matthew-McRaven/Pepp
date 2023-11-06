@@ -17,14 +17,14 @@ on:
 
 jobs:
   matrix_build:
-    name: ${{ inputs.name }}
-    runs-on: ${{ inputs.runs-on }}
+    name: ${{ github.event.inputs.name }}
+    runs-on: ${{ github.event.inputs.runs-on }}
     # Configure repo permissions for CodeQL job, so that it may upload the SARIF outputs
-    timeout-minutes: ${{ inputs.codeql && "360" || "60" }}
+    timeout-minutes: ${{ inputs.codeql && '360' || '60' }}
     permissions:
-      actions: ${{ inputs.codeql && "read" || "none" }}
-      contents: ${{ inputs.codeql && "read" || "none" }}
-      security-events: ${{ inputs.codeql && "write" || "none" }}
+      actions: ${{ inputs.codeql && 'read' || 'none' }}
+      contents: ${{ inputs.codeql && 'read' || 'none' }}
+      security-events: ${{ inputs.codeql && 'write' || 'none' }}
 
     container:
       image: ${{ inputs.image }}
