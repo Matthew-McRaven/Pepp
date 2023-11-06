@@ -6,7 +6,7 @@ on:
       runs-on: {required: True, type: string}
       image: {type: string, default: ''}
       triplet: {type: string}
-      cmake_gneerator: {type: string, default: ""}
+      cmake_generator: {type: string, default: ""}
       cmake_launcher: {type: string, default: "cmake"}
       ctest_launcher: {type: string, default: "ctest"}
       compiler_launcher: {type: string, default: ""}
