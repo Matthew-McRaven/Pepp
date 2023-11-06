@@ -6,6 +6,7 @@ on:
       runs-on: {required: True, type: string}
       image: {type: string, default: ''}
       triplet: {type: string}
+      cmake_gneerator: {type: string, default: ""}
       cmake_launcher: {type: string, default: "cmake"}
       ctest_launcher: {type: string, default: "ctest"}
       compiler_launcher: {type: string, default: ""}
@@ -90,14 +91,15 @@ jobs:
       run: >
           ${{ inputs.cmake_launcher }}
           -B build -S .
+          ${{ inputs.cmake_generator && format('-G {0}', inputs.cmake_generator) || '' }}
           ${{ inputs.compiler_launcher && format('-D CMAKE_C_COMPILER_LAUNCHER={0}', inputs.compiler_launcher) || '' }}
           ${{ inputs.compiler_launcher && format('-D CMAKE_CXX_COMPILER_LAUNCHER={0}', inputs.compiler_launcher) || '' }}
           ${{ inputs.compiler_c && format('-D CMAKE_C_COMPILER={0}', inputs.compiler_c) || '' }}
           ${{ inputs.compiler_xx && format('-D CMAKE_CXX_COMPILER={0}', inputs.compiler_xx) || '' }}
           ${{ inputs.triplet && format('-D VCPKG_TARGET_TRIPLET={0}', inputs.triplet) || '' }}
-          ${{ inputs.image && '-D USE_SYSTEM_BOOST=\"ON\"' || '' }}
+          ${{ inputs.image && '-D USE_SYSTEM_BOOST=\"ON\"' || '' }} 
           -D CMAKE_TOOLCHAIN_FILE=3rd-party/vcpkg/scripts/buildsystems/vcpkg.cmake
-          -G Ninja -DCMAKE_BUILD_TYPE=Debug
+          -DCMAKE_BUILD_TYPE=Debug
     - name: Run build
       run: ${{ inputs.cmake_launcher }} --build build -j6
 

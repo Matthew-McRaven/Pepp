@@ -41,12 +41,12 @@ jobs:
       # Trying to use `env` or inputs will fail in this context.
       matrix:
         config:
-        - {name: "Ubuntu 22.04; GCC", runs-on: "ubuntu-latest", image: "ghcr.io/matthew-mcraven/pepp/dev:0.8.2", compiler_launcher: "ccache", compiler_c: "", compiler_cpp: ""}
+        - {name: "Ubuntu 22.04; GCC", runs-on: "ubuntu-latest", image: "ghcr.io/matthew-mcraven/pepp/dev:0.8.2", compiler_launcher: "ccache", compiler_c: "", compiler_cpp: "", generator: "ninja"}
         # Do CodeQL in clang run, to prevent needing yet another target.
-        - {name: "Ubuntu 22.04; Clang 17.0", runs-on: "ubuntu-latest", image: "ghcr.io/matthew-mcraven/pepp/dev:0.8.2", triplet: "x64-linux-clang", compiler_launcher: "", compiler_c: "clang", compiler_cpp: "clang++", codeql: "True"}
+        - {name: "Ubuntu 22.04; Clang 17.0", runs-on: "ubuntu-latest", image: "ghcr.io/matthew-mcraven/pepp/dev:0.8.2", triplet: "x64-linux-clang", compiler_launcher: "", compiler_c: "clang", compiler_cpp: "clang++", codeql: "True" ,generator: "ninja"}
         #- {name: "Ubuntu 22.04; Docs", runson: "ubuntu-latest", image: "ghcr.io/matthew-mcraven/pepp/dev:0.8.2", docs_only: "True",}
         # See: https://bugreports.qt.io/browse/QTBUG-118086
-        - {name: "MacOS-11; Clang 15", runs-on: "macos-11" , compiler_launcher: "ccache", compiler_c: "$(brew --prefix llvm@15)/bin/clang", compiler_cpp: "$(brew --prefix llvm@15)/bin/clang++"}
+        - {name: "MacOS-11; Clang 15", runs-on: "macos-11" , compiler_launcher: "ccache", compiler_c: "$(brew --prefix llvm@15)/bin/clang", compiler_cpp: "$(brew --prefix llvm@15)/bin/clang++", generator: "ninja"}
         - {name: "Windows Latest; MSVC", runs-on: "windows-latest" , compiler_launcher: "ccache",}
 
     with:
