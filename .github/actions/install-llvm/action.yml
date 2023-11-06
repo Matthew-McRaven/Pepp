@@ -1,5 +1,5 @@
 name: 'Install LLVM'
-description: 'Install specific LLVM & copy VCPKG configs'
+description: 'Install specific LLVM'
 inputs:
   version:
     required: true
