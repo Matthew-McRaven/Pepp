@@ -73,6 +73,8 @@ jobs:
 
     # CMake configure & build
     - name: Copy custom target triplets to vcpkg
+      # Only execute when using a non-stan
+      if: inputs.runs-on=='ubuntu-latest'
       shell: bash
       run: cp $GITHUB_WORKSPACE/config/cmake-triplets/* $GITHUB_WORKSPACE/3rd-party/vcpkg/triplets
     - name: Configure vcpkg and convert shallow clone to regular
