@@ -117,7 +117,7 @@ jobs:
         CTEST_OUTPUT_ON_FAILURE: 'TRUE'
 
     - name: Analyze buildtime for Linux-Clang
-      if: inputs.runs-on == 'ubuntu-latest' && inputs.c_compiler == 'clang'
+      if: inputs.runs-on == 'ubuntu-latest' && inputs.compiler_c == 'clang'
       uses: ./.github/actions/analyzer-buildtime
 
     - name: Perform CodeQL analysis
