@@ -105,7 +105,7 @@ jobs:
     # Run tests, sign outputs, and upload artifacts
     - name: Run tests
       if: inputs.ctest_launcher
-      run: ${{ inputs.ctest_launcher }} --test-dir build -j6
+      run: ${{ inputs.ctest_launcher }} --test-dir build -j6 -C Debug --output-on-failure
       env:
         # Must be offscreen, or tests that involve GUI libraries will fail
         QT_QPA_PLATFORM: 'offscreen'
