@@ -85,9 +85,34 @@ if(ONLY STREQUAL "BUILD")
   add_subdirectory(logic)
   add_subdirectory(bin)
 
-  enumerate_targets(ALLTARGS logic)
-  enumerate_targets(ALLTARGS bin)
-  # message("tgts are ${ALLTARGS}")
+  # For emscripten builds, enumerate the file from projects that we would like to upload to our docs website.
+  if(EMSCRIPTEN)
+    # Enumerate all source directories which may have a sample demo program we want to display
+    enumerate_tagged_targets(TaggedTargets bin "EMBED_GH_PAGES")
+    # We need python to do some string manipulation
+    find_package(Python REQUIRED COMPONENTS Interpreter)
+
+    # Make output dir, since CMake won't do this by itself
+    add_custom_target(make-ghpages COMMAND ${CMAKE_COMMAND} -E make_directory "${CMAKE_CURRENT_BINARY_DIR}/GH_PAGES")
+    # Copy the names of all of the wasm outputs to a CSV file
+    set(outfile "${CMAKE_CURRENT_BINARY_DIR}/GH_PAGES.csv")
+    add_custom_target(
+      gen-wasm-csv ALL
+      COMMAND ${Python_EXECUTABLE}  ${CMAKE_CURRENT_LIST_DIR}/scripts/merge-wasm-csv.py "${outfile}" "${CMAKE_CURRENT_BINARY_DIR}/GH_PAGES"
+    )
+
+    # Enumerate tagged targets, and record their filenames
+    # Each target needs its own sub-target, otherwise they will conflict on output files
+    # There's probably some generator expression cleverness I could use, but it escapes me now.
+    foreach(tgt IN LISTS TaggedTargets)
+      add_custom_target(
+          ${tgt}-wasminfo
+          DEPENDS make-ghpages
+          COMMAND ${CMAKE_COMMAND} -E echo \"$<TARGET_FILE:${tgt}>\" > \"${CMAKE_CURRENT_BINARY_DIR}/GH_PAGES/${tgt}.txt\"
+      )
+      add_dependencies(gen-wasm-csv ${tgt}-wasminfo)
+    endforeach()
+  endif()
 
   if(DOXYGEN_FOUND AND SPHINX_EXECUTABLE_FOUND)
     generate_docs()
