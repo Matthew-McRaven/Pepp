@@ -44,6 +44,7 @@ jobs:
         - {name: "Ubuntu 22.04; GCC", runs-on: "ubuntu-latest", image: "ghcr.io/matthew-mcraven/pepp/dev:0.8.2", compiler_launcher: "ccache", compiler_c: "", compiler_cpp: "", generator: "ninja"}
         # Do CodeQL in clang run, to prevent needing yet another target.
         - {name: "Ubuntu 22.04; Clang 17.0", runs-on: "ubuntu-latest", image: "ghcr.io/matthew-mcraven/pepp/dev:0.8.2", triplet: "x64-linux-clang", compiler_launcher: "", compiler_c: "clang", compiler_cpp: "clang++", codeql: "True" ,generator: "ninja"}
+        - {name: "Ubuntu 22.04; EMSDK 3.1.37", runs-on: "ubuntu-latest", image: "ghcr.io/matthew-mcraven/pepp/dev:0.8.2-wasm", cmake_toolchain: '$Qt6_DIR/qt.toolchain.cmake', cmake_xargs: '-D QT_HOST_PATH=/qt/6.6.0/gcc_64 -D Boost_INCLUDE_DIR=/usr/local/include',}
         #- {name: "Ubuntu 22.04; Docs", runson: "ubuntu-latest", image: "ghcr.io/matthew-mcraven/pepp/dev:0.8.2", docs_only: "True",}
         # See: https://bugreports.qt.io/browse/QTBUG-118086
         - {name: "MacOS-11; Clang 15", runs-on: "macos-11" , compiler_launcher: "ccache", compiler_c: '$(brew --prefix llvm@15)/bin/clang', compiler_cpp: '$(brew --prefix llvm@15)/bin/clang++', generator: "ninja"}
@@ -54,21 +55,11 @@ jobs:
       runs-on: ${{ matrix.config.runs-on || 'ubuntu-latest' }}
       image: ${{ matrix.config.image || '' }}
       triplet: ${{ matrix.config.triplet || '' }}
+      cmake_xargs: ${{ matrix.config.cmake_xargs || '' }}
+      cmake_toolchain: ${{ matrix.config.cmake_toolchain || '3rd-party/vcpkg/scripts/buildsystems/vcpkg.cmake' }}
       compiler_launcher: ${{ matrix.config.compiler_launcher || '' }}
       compiler_c: ${{ matrix.config.compiler_c  || '' }}
       compiler_cpp: ${{ matrix.config.compiler_cpp || '' }}
       codeql: ${{ !!matrix.config.codeql }}
       variant: "debug"
       not_default: ${{ needs.branch_info.outputs.not_default || '' }}
-
-  start_wasm_build:
-      needs: branch_info
-      uses: ./.github/workflows/build.yml
-      with:
-        name: "Ubuntu 22.04; EMSDK 3.1.37"
-        runs-on: 'ubuntu-latest'
-        image: "ghcr.io/matthew-mcraven/pepp/dev:0.8.2-wasm"
-        variant: "debug"
-        not_default: ${{ needs.branch_info.outputs.not_default || '' }}
-        cmake_toolchain: '$Qt6_DIR/qt.toolchain.cmak'
-

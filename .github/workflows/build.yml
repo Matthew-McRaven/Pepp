@@ -7,7 +7,8 @@ on:
       image: {type: string, default: ''}
       triplet: {type: string}
       cmake_generator: {type: string, default: ""}
-      cmake_toolchain: {type: string, default: "3rd-party/vcpkg/scripts/buildsystems/vcpkg.cmake"}
+      cmake_toolchain: {type: string, required: True}
+      cmake_xargs: {type: string, default: ""}
       ctest_launcher: {type: string, default: "ctest"}
       compiler_launcher: {type: string, default: ""}
       compiler_c: {type: string, default: ""}
@@ -87,6 +88,7 @@ jobs:
     - name: Configure CMake
       shell: bash
       run: >
+          ${{ contains(inputs.name, 'EMSDK') && 'source /emsdk/emsdk_env.sh &&' || '' }}
           cmake
           -B build -S .
           ${{ inputs.cmake_generator && format('-G {0}', inputs.cmake_generator) || '' }}
@@ -97,7 +99,8 @@ jobs:
           ${{ inputs.triplet && format('-D VCPKG_TARGET_TRIPLET={0}', inputs.triplet) || '' }}
           ${{ inputs.image && '-D USE_SYSTEM_BOOST=on' || '' }}
           ${{ (inputs.runs-on == 'windows-latest' && '-D SKIP_TERM_TESTS=on') || '' }}
-          -D CMAKE_TOOLCHAIN_FILE= ${{inputs.cmake_toolchain}}
+          -D CMAKE_TOOLCHAIN_FILE=${{ inputs.cmake_toolchain }}
+          ${{ inputs.cmake_xargs }}
           -DCMAKE_BUILD_TYPE=Debug
 
     - name: Run build
