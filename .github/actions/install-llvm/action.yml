@@ -1,0 +1,18 @@
+name: 'Install LLVM'
+description: 'Install specific LLVM'
+inputs:
+  version:
+    required: true
+    default: '17.0'
+runs:
+  using: "composite"
+  # Selectively install and configure LLVM
+  steps:
+  - name: Install ${{ inputs.version }}
+    uses: KyleMayes/install-llvm-action@v1
+    with:
+      version: ${{ inputs.version }}
+      directory: /llvm
+  - name: Move LLVM into /
+    shell: bash
+    run: find /llvm -type d -exec mkdir -vp ""/{} \; -or -exec mv -nv {} ""/{} \;
