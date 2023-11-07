@@ -36,7 +36,7 @@ jobs:
       contents: read
       security-events: write
     strategy:
-      fail-fast: false
+      fail-fast: true
       # If you want to update images, must replace *ALL* images in the matrix manually.
       # Trying to use `env` or inputs will fail in this context.
       matrix:
