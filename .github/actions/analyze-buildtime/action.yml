@@ -6,16 +6,17 @@ runs:
   using: "composite"
   steps:
   - name: Download Clang build analyzer
+    shell: bash
     run: >
       git clone https://github.com/aras-p/ClangBuildAnalyzer
       && cd ClangBuildAnalyzer
       && cmake -B . -S . && cmake --build .
   - name: Run Clang build analyzer
-    if: ${{ matrix.compiler == 'clang' }}
+    shell: bash
     run: >
-      ClangBuildAnalyzer/ClangBuildAnalyzer --all $GITHUB_WORKSPACE/build /trace.json
+      ClangBuildAnalyzer/ClangBuildAnalyzer --all build /trace.json
       && ClangBuildAnalyzer/ClangBuildAnalyzer --analyze /trace.json
-      && find $GITHUB_WORKSPACE/build \( -path $GITHUB_WORKSPACE/build/vcpkg -o -path /$GITHUB_WORKSPACE/vcpkg_installed \) -prune -o -name "*json" -print
+      && find build \( -path build/vcpkg -o -path vcpkg_installed \) -prune -o -name "*json" -print
   - name: Upload clang build trace
     uses: actions/upload-artifact@v3
     with:
