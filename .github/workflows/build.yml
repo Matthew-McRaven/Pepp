@@ -7,7 +7,7 @@ on:
       image: {type: string, default: ''}
       triplet: {type: string}
       cmake_generator: {type: string, default: ""}
-      cmake_launcher: {type: string, default: "cmake"}
+      cmake_toolchain: {type: string, default: "3rd-party/vcpkg/scripts/buildsystems/vcpkg.cmake"}
       ctest_launcher: {type: string, default: "ctest"}
       compiler_launcher: {type: string, default: ""}
       compiler_c: {type: string, default: ""}
@@ -87,7 +87,7 @@ jobs:
     - name: Configure CMake
       shell: bash
       run: >
-          ${{ inputs.cmake_launcher }}
+          cmake
           -B build -S .
           ${{ inputs.cmake_generator && format('-G {0}', inputs.cmake_generator) || '' }}
           ${{ inputs.compiler_launcher && format('-D CMAKE_C_COMPILER_LAUNCHER={0}', inputs.compiler_launcher) || '' }}
@@ -97,10 +97,11 @@ jobs:
           ${{ inputs.triplet && format('-D VCPKG_TARGET_TRIPLET={0}', inputs.triplet) || '' }}
           ${{ inputs.image && '-D USE_SYSTEM_BOOST=on' || '' }}
           ${{ (inputs.runs-on == 'windows-latest' && '-D SKIP_TERM_TESTS=on') || '' }}
-          -D CMAKE_TOOLCHAIN_FILE=3rd-party/vcpkg/scripts/buildsystems/vcpkg.cmake
+          -D CMAKE_TOOLCHAIN_FILE= ${{inputs.cmake_toolchain}}
           -DCMAKE_BUILD_TYPE=Debug
+
     - name: Run build
-      run: ${{ inputs.cmake_launcher }} --build build -j6
+      run: cmake --build build -j6
 
     # Run tests, sign outputs, and upload artifacts
     - name: Run tests
