@@ -3,6 +3,7 @@ on:
   workflow_call:
     inputs:
       name: {required: True, type: string}
+      cache_name: {type: string}
       runs-on: {required: True, type: string}
       image: {type: string, default: ''}
       triplet: {type: string}
@@ -13,11 +14,10 @@ on:
       compiler_launcher: {type: string, default: ""}
       compiler_c: {type: string, default: ""}
       compiler_cpp: {type: string, default: ""}
-      codeql:
-        type: boolean
-        default: False
+      codeql: {type: boolean, default: False}
       variant: {type: string, default: "Debug"}
-      not_default: {required: True, type: string}
+      not_default: {required: True, type: boolean}
+      save_cache: {type: boolean, default: True}
 
 jobs:
   matrix_build:
@@ -59,12 +59,13 @@ jobs:
     # Prevent clang from using ccache, because it is profiling build times
     - name: Enable caching object files between builds
       # Disable ccache when running locally
-      if: inputs.compiler_launcher == 'ccache' && inputs.not_default && !env.ACT
+      if: inputs.compiler_launcher == 'ccache' && !env.ACT
       uses: hendrikmuhs/ccache-action@v1.2.10
       with:
         verbose: 2
-        key: ${{ inputs.name }}
+        key: ${{ inputs.cache_name || inputs.name }}
         restore: ${{ inputs.not_default }}
+        save: ${{ inputs.save_cache }}
 
     # Initializes the CodeQL tools for scanning. Must occur before code is built.
     - name: Initialize CodeQL
