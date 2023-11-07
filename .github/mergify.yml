@@ -1,12 +1,14 @@
 pull_request_rules:
   - name: "Queue PRs for Matthew to queue on CI success"
     conditions:
-      - author = matthew-mcraven
-      - check-success = Linux_CI
-      - check-success = Mac_CI
-      - check-success = Windows_CI
+      - author = Matthew-McRaven
+      - check-success = CI
       - base = main
     actions:
       queue:
         method: merge
         name: default
+queue_rules:
+  - name: default
+    routing_conditions:
+      - base=main
