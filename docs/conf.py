@@ -18,7 +18,7 @@ extensions = [ "breathe" ]
 templates_path = ['_templates']
 exclude_patterns = []
 
-breathe_default_project  = "all"
+breathe_default_project = "all"
 
 
 # -- Options for HTML output -------------------------------------------------
