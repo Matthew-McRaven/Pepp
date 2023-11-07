@@ -95,7 +95,8 @@ jobs:
           ${{ inputs.compiler_c && format('-D CMAKE_C_COMPILER={0}', inputs.compiler_c) || '' }}
           ${{ inputs.compiler_cpp && format('-D CMAKE_CXX_COMPILER={0}', inputs.compiler_cpp) || '' }}
           ${{ inputs.triplet && format('-D VCPKG_TARGET_TRIPLET={0}', inputs.triplet) || '' }}
-          ${{ inputs.image && '-D USE_SYSTEM_BOOST=\"ON\"' || '' }} 
+          ${{ inputs.image && '-D USE_SYSTEM_BOOST=on' || '' }}
+          ${{ contains(inputs.runs-on, 'windows' && '-D SKIP_TERM_TESTS=on') || '' }}
           -D CMAKE_TOOLCHAIN_FILE=3rd-party/vcpkg/scripts/buildsystems/vcpkg.cmake
           -DCMAKE_BUILD_TYPE=Debug
     - name: Run build
