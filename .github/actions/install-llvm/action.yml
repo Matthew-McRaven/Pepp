@@ -14,4 +14,5 @@ runs:
       version: ${{ inputs.version }}
       directory: /llvm
   - name: Move LLVM into /
+    shell: bash
     run: find /llvm -type d -exec mkdir -vp ""/{} \; -or -exec mv -nv {} ""/{} \;
