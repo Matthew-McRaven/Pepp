@@ -7,6 +7,7 @@ else()
     list(APPEND VCPKG_MANIFEST_FEATURES "boost")
     message("Using vcpkg boost")
 endif()
+
 set(Boost_USE_STATIC_LIBS   ON)
 # Allow overriding boost root if you want to point to your own boost. Must also define Boost_ROOT.
 set(Boost_ROOT ${_VCPKG_INSTALLED_DIR} CACHE PATH "Override boost root")
@@ -17,6 +18,10 @@ set(CMAKE_CXX_STANDARD_REQUIRED ON)
 SET(CMAKE_OSX_ARCHITECTURES "x86_64;arm64" CACHE INTERNAL "" FORCE)
 
 
+
+# Emscripten build forget to set boost_INCLUDE_DIR correctly
+set(Boost_USE_STATIC_LIBS   ON)
+set(Boost_ROOT ${_VCPKG_INSTALLED_DIR} CACHE PATH "Override boost root")
 
 
 # Derived from: https://vicrucann.github.io/tutorials/quick-cmake-doxygen/
@@ -76,8 +81,14 @@ if(ONLY STREQUAL "BUILD")
   enable_testing()
   set(CMAKE_WINDOWS_EXPORT_ALL_SYMBOLS ON)
   include(config/cmake/create_targets.cmake)
+  include(config/cmake/enumerate_targets.cmake)
   add_subdirectory(logic)
   add_subdirectory(bin)
+
+  enumerate_targets(ALLTARGS logic)
+  enumerate_targets(ALLTARGS bin)
+  # message("tgts are ${ALLTARGS}")
+
   if(DOXYGEN_FOUND AND SPHINX_EXECUTABLE_FOUND)
     generate_docs()
   endif()
