@@ -60,3 +60,13 @@ jobs:
       codeql: ${{ !!matrix.config.codeql }}
       variant: "debug"
       not_default: ${{ !!needs.branch_info.outputs.not_default }}
+  build_docs:
+    runs-on: ubuntu-latest
+    container:
+      image: "ghcr.io/matthew-mcraven/pepp/dev:0.8.2-docs"
+    steps:
+      # No need to check out submodules, since we only build our own docs
+      - uses: actions/checkout@v3
+      - name: Configure cmake for docs
+        run: cmake -B build -S . -DONLY=DOC
+      - run: cmake --build build
