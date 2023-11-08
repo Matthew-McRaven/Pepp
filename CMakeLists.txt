@@ -7,6 +7,7 @@ else()
     list(APPEND VCPKG_MANIFEST_FEATURES "boost")
     message("Using vcpkg boost")
 endif()
+
 set(Boost_USE_STATIC_LIBS   ON)
 # Allow overriding boost root if you want to point to your own boost. Must also define Boost_ROOT.
 set(Boost_ROOT ${_VCPKG_INSTALLED_DIR} CACHE PATH "Override boost root")
@@ -17,6 +18,10 @@ set(CMAKE_CXX_STANDARD_REQUIRED ON)
 SET(CMAKE_OSX_ARCHITECTURES "x86_64;arm64" CACHE INTERNAL "" FORCE)
 
 
+
+# Emscripten build forget to set boost_INCLUDE_DIR correctly
+set(Boost_USE_STATIC_LIBS   ON)
+set(Boost_ROOT ${_VCPKG_INSTALLED_DIR} CACHE PATH "Override boost root")
 
 
 # Derived from: https://vicrucann.github.io/tutorials/quick-cmake-doxygen/
@@ -76,8 +81,39 @@ if(ONLY STREQUAL "BUILD")
   enable_testing()
   set(CMAKE_WINDOWS_EXPORT_ALL_SYMBOLS ON)
   include(config/cmake/create_targets.cmake)
+  include(config/cmake/enumerate_targets.cmake)
   add_subdirectory(logic)
   add_subdirectory(bin)
+
+  # For emscripten builds, enumerate the file from projects that we would like to upload to our docs website.
+  if(EMSCRIPTEN)
+    # Enumerate all source directories which may have a sample demo program we want to display
+    enumerate_tagged_targets(TaggedTargets bin "EMBED_GH_PAGES")
+    # We need python to do some string manipulation
+    find_package(Python REQUIRED COMPONENTS Interpreter)
+
+    # Make output dir, since CMake won't do this by itself
+    add_custom_target(make-ghpages COMMAND ${CMAKE_COMMAND} -E make_directory "${CMAKE_CURRENT_BINARY_DIR}/GH_PAGES")
+    # Copy the names of all of the wasm outputs to a CSV file
+    set(outfile "${CMAKE_CURRENT_BINARY_DIR}/GH_PAGES.csv")
+    add_custom_target(
+      gen-wasm-csv ALL
+      COMMAND ${Python_EXECUTABLE}  ${CMAKE_CURRENT_LIST_DIR}/scripts/merge-wasm-csv.py "${outfile}" "${CMAKE_CURRENT_BINARY_DIR}/GH_PAGES"
+    )
+
+    # Enumerate tagged targets, and record their filenames
+    # Each target needs its own sub-target, otherwise they will conflict on output files
+    # There's probably some generator expression cleverness I could use, but it escapes me now.
+    foreach(tgt IN LISTS TaggedTargets)
+      add_custom_target(
+          ${tgt}-wasminfo
+          DEPENDS make-ghpages
+          COMMAND ${CMAKE_COMMAND} -E echo \"$<TARGET_FILE:${tgt}>\" > \"${CMAKE_CURRENT_BINARY_DIR}/GH_PAGES/${tgt}.txt\"
+      )
+      add_dependencies(gen-wasm-csv ${tgt}-wasminfo)
+    endforeach()
+  endif()
+
   if(DOXYGEN_FOUND AND SPHINX_EXECUTABLE_FOUND)
     generate_docs()
   endif()

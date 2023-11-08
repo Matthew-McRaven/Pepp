@@ -24,6 +24,7 @@ set_target_properties(demo-pep10-asm PROPERTIES
         WIN32_EXECUTABLE TRUE
         )
 set_target_properties(demo-pep10-asm PROPERTIES FOLDER "qtc_runnable")
+set_target_properties(demo-pep10-asm PROPERTIES EMBED_GH_PAGES ON)
 
 target_link_libraries(demo-pep10-asm
         PRIVATE Qt6::Quick macro pas builtins Qt6::Widgets)

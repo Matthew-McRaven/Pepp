@@ -24,6 +24,7 @@ set_target_properties(demo-macro-parse PROPERTIES
         WIN32_EXECUTABLE TRUE
         )
 set_target_properties(demo-macro-parse PROPERTIES FOLDER "qtc_runnable")
+set_target_properties(demo-macro-parse PROPERTIES EMBED_GH_PAGES ON)
 
 target_link_libraries(demo-macro-parse
         PRIVATE Qt6::Quick macro)
