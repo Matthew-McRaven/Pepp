@@ -124,7 +124,7 @@ QStringList pas::ops::pepp::list(const pas::ast::Node &node,
   QString prettyBytes = "";
 
   // Accumulate the first row's worth of object code bytes.
-  while (bytesEmitted < opts.bytesPerLine && bytesEmitted < bytes.size())
+  while (bytesEmitted < opts.bytesPerLine && static_cast<qsizetype>(bytesEmitted) < bytes.size())
     prettyBytes +=
         u"%1"_qs.arg(QString::number(bytes[bytesEmitted++], 16), 2, QChar('0'))
             .toUpper();
@@ -144,7 +144,7 @@ QStringList pas::ops::pepp::list(const pas::ast::Node &node,
   prettyBytes = "";
 
   // Emit remaining object code bytes on their own lines.
-  while (bytesEmitted < bytes.size()) {
+  while (static_cast<qsizetype>(bytesEmitted) < bytes.size()) {
     prettyBytes +=
         u"%1"_qs.arg(QString::number(bytes[bytesEmitted++], 16), 2, QChar('0'))
             .toUpper();
