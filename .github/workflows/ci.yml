@@ -1,11 +1,12 @@
 name: CI
-on: [push]
+on: [push, release]
 jobs:
   branch_info:
     name: Gather branch info
     runs-on: ubuntu-latest
     outputs:
       branch_name: ${{ steps.branch.outputs.branch }}
+      tag_name:    ${{ steps.branch.outputs.tag }}
       not_default: ${{ steps.branch.outputs.not_default }}
     steps:
       - name: set branch info
@@ -15,8 +16,10 @@ jobs:
             export BRANCH="${GITHUB_REF##*/}"
           elif [[ "${GITHUB_EVENT_NAME}" == "pull_request" ]]; then
             export BRANCH="${$GITHUB_BASE_REF}"
+          elif [[ "${GITHUB_EVENT_NAME}" == "release" ]]; then
+            echo "tag_name=${GITHUB_REF}" >> $GITHUB_OUTPUT
           else
-            echo "unknown event" && exit 1;
+            echo "unknown event"
           fi
           if [ "$BRANCH" = "main" ]; then
             echo "not_default=false" >> $GITHUB_OUTPUT
@@ -48,6 +51,10 @@ jobs:
   start_matrix:
     needs: [branch_info, build_docs]
     uses: ./.github/workflows/build.yml
+    concurrency:
+      group: ${{ GITHUB_SHA }}
+      # A tag should cancel a branch push, but not vice versa.
+      cancel-in-progress: ${{ !!needs.branch_info.outputs.tag_name }}
     strategy:
       fail-fast: true
       # If you want to update images, must replace *ALL* images in the matrix manually.
