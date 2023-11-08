@@ -7,6 +7,24 @@ target_link_libraries(about PUBLIC "Qt6::Core" )
 
 include(git.cmake)
 get_git_head_revision(GIT_REFSPEC GIT_SHA1)
+
+git_get_exact_tag(GIT_TAG)
+
+
+
+if(GIT_TAG MATCHES ".*NOTFOUND")
+    set(GIT_TAG "unknown")
+endif()
+
+# Let program know if it was built from a clean dir.
+# App can use that to render about info.
+git_local_changes(GIT_CLEAN_RAW)
+if(GIT_CLEAN_RAW MATCHES "CLEAN")
+    set(GIT_CLEAN "1")
+else()
+  set(GIT_CLEAN "0")
+endif()
+
 #add_definitions("-DGIT_SHA1=${GIT_SHA1}")
 configure_file("${CMAKE_CURRENT_SOURCE_DIR}/src/about/version.cpp.in" "${CMAKE_CURRENT_BINARY_DIR}/version.cpp" @ONLY)
 
