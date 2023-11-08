@@ -7,55 +7,89 @@ else()
     list(APPEND VCPKG_MANIFEST_FEATURES "boost")
     message("Using vcpkg boost")
 endif()
-
-project(Pepp VERSION 0.6.0 LANGUAGES CXX)
-
+set(Boost_USE_STATIC_LIBS   ON)
+# Allow overriding boost root if you want to point to your own boost. Must also define Boost_ROOT.
+set(Boost_ROOT ${_VCPKG_INSTALLED_DIR} CACHE PATH "Override boost root")
 
 set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 # We always want universal builds, so do not set on a per-target basis
 SET(CMAKE_OSX_ARCHITECTURES "x86_64;arm64" CACHE INTERNAL "" FORCE)
-set_property(GLOBAL PROPERTY USE_FOLDERS ON)
-find_package(Qt6 6.4 COMPONENTS Quick Core Gui Qml Test Widgets REQUIRED)
-
-add_subdirectory(3rd-party)
 
 
 
-# Emscripten build forget to set boost_INCLUDE_DIR correctly
-set(Boost_USE_STATIC_LIBS   ON)
-set(Boost_ROOT ${_VCPKG_INSTALLED_DIR} CACHE PATH "Override boost root")
-find_package(Boost 1.76.0 REQUIRED)
-
-set(CMAKE_AUTOMOC ON)
-set(CMAKE_AUTORCC ON)
-enable_testing()
-set(CMAKE_WINDOWS_EXPORT_ALL_SYMBOLS ON)
-include(config/cmake/create_targets.cmake)
-add_subdirectory(logic)
-add_subdirectory(bin)
 
 # Derived from: https://vicrucann.github.io/tutorials/quick-cmake-doxygen/
 # first we can indicate the documentation build as an option and set it to ON by default
-option(BUILD_DOC "Build documentation" ON)
+# Can be BUILD, DOC, VERSION
+set(ONLY "BUILD" CACHE STRING "Only build code/documentation/version" )
 
-# check if Doxygen is installed
+
+# Only set language one actual builds
+if(ONLY STREQUAL "BUILD")
+  set(LANGUAGES "CXX")
+endif()
+
+project(Pepp VERSION 0.6.0 LANGUAGES ${LANGUAGES})
+set_property(GLOBAL PROPERTY USE_FOLDERS ON)
+
+# check if Doxygen is installed, and if we have python for Sphinx
 find_package(Doxygen)
-if (DOXYGEN_FOUND)
-    # set input and output files
-    set(DOXYGEN_IN ${CMAKE_CURRENT_SOURCE_DIR}/doxyfile.in)
-    set(DOXYGEN_OUT ${CMAKE_CURRENT_BINARY_DIR}/Doxyfile)
+find_program(SPHINX_EXECUTABLE
+             NAMES sphinx-build
+             DOC "Path to sphinx-build executable")
 
-    # request to configure the file
-    configure_file(${DOXYGEN_IN} ${DOXYGEN_OUT} @ONLY)
-    message("Doxygen build started")
+macro(generate_docs)
+  set(DOXYGEN_OUTPUT_DIR ${CMAKE_CURRENT_BINARY_DIR}/doxygen)
+  # set input and output files
+  set(DOXYGEN_IN ${CMAKE_CURRENT_SOURCE_DIR}/doxyfile.in)
+  set(DOXYGEN_OUT ${CMAKE_CURRENT_BINARY_DIR}/Doxyfile)
 
-    # note the option ALL which allows to build the docs together with the application
-    #add_custom_target( doc_doxygen ALL
-    #    COMMAND ${DOXYGEN_EXECUTABLE} ${DOXYGEN_OUT}
-    #    WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}
-    #    COMMENT "Generating API documentation with Doxygen"
-    #    VERBATIM )
-else (DOXYGEN_FOUND)
-    message("Doxygen need to be installed to generate the doxygen documentation")
-endif (DOXYGEN_FOUND)
+  # request to configure the file
+  configure_file(${DOXYGEN_IN} ${DOXYGEN_OUT} @ONLY)
+  message("Doxygen build started")
+  message(${DOXYGEN_OUTPUT_DIR})
+  # note the option ALL which allows to build the docs together with the application
+  add_custom_target(doc_doxygen
+    COMMAND ${DOXYGEN_EXECUTABLE} ${DOXYGEN_OUT}
+    WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}
+    COMMENT "Generating API documentation with Doxygen"
+    VERBATIM )
+  add_custom_target(docs_sphinx ALL
+    COMMAND ${SPHINX_EXECUTABLE} -b html
+      -Dbreathe_projects.all=${DOXYGEN_OUTPUT_DIR}/xml
+      -Dversion=${CMAKE_PROJECT_VERSION}
+      ${CMAKE_CURRENT_LIST_DIR}/docs ${CMAKE_CURRENT_BINARY_DIR}/docs
+    WORKING_DIRECTORY ${CMAKE_CURRENT_LIST_DIR}
+    COMMENT "Generating documentation with Sphinx"
+    VERBATIM)
+  add_dependencies(docs_sphinx doc_doxygen)
+endmacro()
+
+if(ONLY STREQUAL "BUILD")
+  message("Performing build")
+  find_package(Boost 1.76.0 REQUIRED)
+  find_package(Qt6 6.4 COMPONENTS Quick Core Gui Qml Test Widgets REQUIRED)
+  add_subdirectory(3rd-party)
+  set(CMAKE_AUTOMOC ON)
+  set(CMAKE_AUTORCC ON)
+  enable_testing()
+  set(CMAKE_WINDOWS_EXPORT_ALL_SYMBOLS ON)
+  include(config/cmake/create_targets.cmake)
+  add_subdirectory(logic)
+  add_subdirectory(bin)
+  if(DOXYGEN_FOUND AND SPHINX_EXECUTABLE_FOUND)
+    generate_docs()
+  endif()
+elseif(ONLY STREQUAL "DOC")
+  message("Performing docs")
+  if(DOXYGEN_FOUND AND SPHINX_EXECUTABLE_FOUND)
+    generate_docs()
+  else()
+    message("Doxygen and Python need to be installed to generate the documentation")
+  endif()
+elseif(ONLY STREQUAL "VERSION")
+  # Write version number out to file, so we can compare against git.
+  file(WRITE version ${PROJECT_VERSION})
+endif()
+
