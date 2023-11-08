@@ -1,6 +1,8 @@
 name: CI
 on:
+  # Don't build on tags, since thos will be created during a release.
   push:
+    branches:
   release:
     types: [published]
 jobs:
