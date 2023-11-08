@@ -52,7 +52,6 @@ jobs:
       if: inputs.image  == ''
       uses: ./.github/actions/install-qt-cmake
       with:
-        cache: true
         cache-key-prefix: install-qt-${{ inputs.runs-on }}
 
     - name: Install LLVM on Linux containerized builds

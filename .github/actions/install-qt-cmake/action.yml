@@ -3,6 +3,7 @@ inputs:
   qt_version:
     required: true
     default: '6.6.0'
+  cache-key-prefix:
 runs:
   using: "composite"
   # Selectively install and configure LLVM
@@ -13,3 +14,5 @@ runs:
     uses: jurplel/install-qt-action@v3
     with:
       version: ${{ inputs.qt_version }}
+      cache: true
+      cache-key-prefix: ${{ inputs.cache-key-prefix }}
