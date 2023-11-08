@@ -51,6 +51,10 @@ jobs:
     - name: Install Qt+CMake in non-containerized builds
       if: inputs.image  == ''
       uses: ./.github/actions/install-qt-cmake
+      with:
+        cache: true
+        cache-key-prefix: install-qt-${{ inputs.runs-on }}
+        extra: "-b https://mirrors.ocf.berkeley.edu/qt/"
 
     - name: Install LLVM on Linux containerized builds
       if: inputs.runs-on=='ubuntu-latest' && inputs.compiler_c == 'clang'
