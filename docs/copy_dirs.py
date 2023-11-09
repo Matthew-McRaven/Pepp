@@ -26,6 +26,7 @@ def setup(app):
 def helper(exts, absSrcDir, absDst):
   # logger.info(f"Copying {absSrcDir} to {absDst}")
   # logger.info(f'Copying {file} to {dir}')#insert into innermost loop.
+  if not absDst.exists(): return
   for ext in exts:
     for file in pathlib.Path(absSrcDir).glob(f"{ext}"): shutil.copy(file, absDst)
 
@@ -40,4 +41,4 @@ def copy_dirs(app, exception):
       pair = pair.split("?")
       pairs.append([pathlib.Path(app.srcdir)/pair[0], pathlib.Path(app.outdir)/pair[1]])
 
-    for pair in pairs: helper(app, *pair)
+    for pair in pairs: helper(app.config.exts, *pair)
