@@ -1,3 +1,4 @@
+import sys, os
 # Configuration file for the Sphinx documentation builder.
 #
 # For the full list of built-in configuration values, see the documentation:
@@ -12,8 +13,9 @@ author = 'Matthew McRaven'
 
 # -- General configuration ---------------------------------------------------
 # https://www.sphinx-doc.org/en/master/usage/configuration.html#general-configuration
-
-extensions = [ "breathe" ]
+# The path where you put the only.py file
+sys.path.append(os.path.abspath('.'))
+extensions = [ "breathe", "scope", "copy_dirs" ]
 
 templates_path = ['_templates']
 exclude_patterns = []
@@ -26,3 +28,9 @@ breathe_default_project = "all"
 
 html_theme = 'alabaster'
 html_static_path = ['_static']
+
+html_css_files = ['css/overrides.css']
+html_theme_options = {
+  'page_width': 'auto',
+  'body_max_width': 'auto',
+}

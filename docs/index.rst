@@ -6,24 +6,26 @@
 Welcome to Pepp's documentation!
 ================================
 
-Documentation for Pepp|version|.
+Documentation for Pepp |version|.
 
 .. toctree::
-   :maxdepth: 2
+   :maxdepth: 1
    :caption: Contents:
 
+   _generated/index
 
-…
+.. only:: DEV
 
-Docs
-====
+   API Documents
+   =============
+   .. raw:: rst
+      :file: api.rst
 
-.. _doxygenindex::
-.. _doxygenfunction::
-.. _doxygenstruct::
-.. _doxygenenum::
-.. _doxygentypedef::
-.. _doxygenclass::
+.. only:: APP
+
+   .. raw:: html
+
+       <iframe src="_static/test.html" height="345px" width="100%"></iframe>
 
 Indices and tables
 ==================
