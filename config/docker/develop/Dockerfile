@@ -10,14 +10,15 @@ RUN apt update \
         cloc curl build-essential libgl1-mesa-dev libpulse-dev libxcb-glx0 libxcb-icccm4 \
         libxcb-image0 libxcb-keysyms1 libxcb-randr0 libxcb-render-util0 libxcb-render0 libxcb-shape0 \
         libxcb-shm0 libxcb-sync1 libxcb-util1 libxcb-xfixes0 libxcb-xinerama0 libxcb1 fontconfig ccache \
-        libxkbcommon-dev libxcb-xkb-dev zip unzip tar git git-lfs lsb-release software-properties-common gnupg  \
+        libxkbcommon-dev libxcb-xkb-dev zip unzip tar git git-lfs lsb-release software-properties-common gnupg \
     && rm -rf /var/lib/apt/lists/*
 # Install latest cmake that does not support modules, which is 3.27. Module detection breaks CI when the compiler doesn't support modules.
-RUN wget -O cmake.sh "https://github.com/Kitware/CMake/releases/download/v3.27.7/cmake-3.27.7-linux-$(arch).sh" \
+# Remove cmake docs, since that's 40MB we really don't need.
+RUN wget -q -O cmake.sh "https://github.com/Kitware/CMake/releases/download/v3.27.7/cmake-3.27.7-linux-$(arch).sh" \
     && chmod +x cmake.sh && mkdir /cmake && ./cmake.sh --skip-license --exclude-subdir --prefix=/cmake && rm cmake.sh \
-    && cp -r /cmake/* /usr && rm -rf /cmake
+    && cp -r /cmake/* /usr && rm -rf /cmake && rm -rf /usr/doc/cmake
 # Install ninja, which supports modules (for future development) and generally should be faster than make.
-RUN wget -O ninja.zip "https://github.com/ninja-build/ninja/releases/download/v1.11.1/ninja-linux.zip" \
+RUN wget -q -O ninja.zip "https://github.com/ninja-build/ninja/releases/download/v1.11.1/ninja-linux.zip" \
     && unzip ninja.zip -d /bin && rm ninja.zip
 # Need to pick this locale otherwise Qt complains and overrides the locale anyway.
 ENV LANG="C.UTF-8"
@@ -32,6 +33,15 @@ LABEL org.opencontainers.image.authors="matthew.mcraven@gmail.com"
 
 
 FROM base-native as base-wasm
+# Must install documentation-building tools in WASM image.
+# Otherwise it will be very difficult to build GH pages deployments.
+RUN apt update \
+    &&  apt install -y --no-install-recommends graphviz imagemagick doxygen \
+    && rm -rf /var/lib/apt/lists/*
+# Insert workaround for Qt+breathe: https://github.com/breathe-doc/breathe/issues/574
+RUN pip install Sphinx=7.1.2 Pillow \
+  && sed -i '253 i \        "property": (CMacroObject, "macro"),' "/usr/local/lib/python3.11/site-packages/breathe/renderer/sphinxrenderer.py"
+
 RUN git clone https://github.com/emscripten-core/emsdk.git /emsdk
 # Must combine, otherwise a layer is the same in multi-arch builds, breaking everything
 RUN cd /emsdk && git pull && ./emsdk install 3.1.37  && ./emsdk activate 3.1.37 && echo uname -a /emsdk.arch
@@ -94,7 +104,7 @@ ENV Boost_ROOT=/usr/local
 ARG MOLD_VERSION="2.3.1"
 RUN --mount=type=tmpfs,target=/mold,size=2G \
     cd mold \
-    && wget -O mold.tar.gz "https://github.com/rui314/mold/releases/download/v$MOLD_VERSION/mold-$MOLD_VERSION-$(arch)-linux.tar.gz" \
+    && wget -q -O mold.tar.gz "https://github.com/rui314/mold/releases/download/v$MOLD_VERSION/mold-$MOLD_VERSION-$(arch)-linux.tar.gz" \
     && tar xf mold.tar.gz && ls && cd mold-$MOLD_VERSION-$(arch)-linux \
     && find -type d -exec mkdir -vp ""/{} \; -or -exec mv -nv {} ""/{} \;
     # No need to clean up, all temp data should be in tmpfs
