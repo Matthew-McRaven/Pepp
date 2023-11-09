@@ -1,6 +1,7 @@
 cmake_minimum_required(VERSION 3.10)
 
 make_library(about about)
+set_target_properties(about PROPERTIES NEEDS_HTML_HELP ON)
 target_include_directories(about PUBLIC ${Boost_INCLUDE_DIR})
 target_link_libraries(about PUBLIC "Qt6::Core" )
 #target_compile_definitions(about PRIVATE ABOUT_LIBRARY)
