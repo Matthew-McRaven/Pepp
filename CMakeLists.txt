@@ -152,12 +152,12 @@ endfunction()
 function(inject_help_qrc WEB_HELP_QRC)
   enumerate_tagged_targets(QRCHelpTargets bin "NEEDS_HTML_HELP")
   enumerate_tagged_targets(QRCHelpTargets logic "NEEDS_HTML_HELP")
+  add_library(webqrc-generated OBJECT ${WEB_HELP_QRC})
   foreach(tgt IN LISTS QRCHelpTargets)
     # Avoids a bug/behavior where CMake's GENERATED property won't make it across directories
     # GENERATED will only work within this directory, so create bogus target which links
     # to the real target. Use OBJECT library to avoid intermediate .a/.lib files.
-    add_library(${tgt}-generated OBJECT ${WEB_HELP_QRC})
-    add_dependencies(${tgt} docs_qrc ${tgt}-generated)
+    add_dependencies(${tgt} docs_qrc webqrc-generated)
   endforeach()
 endfunction()
 
