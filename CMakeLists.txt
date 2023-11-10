@@ -235,7 +235,7 @@ if(ONLY STREQUAL "BUILD")
     inject_help_qrc(${PLACEHOLDER_HELP_QRC})
   endif()
 elseif(ONLY STREQUAL "DOC")
-    generate_docs()
+    generate_docs(${SPHINX_OUT_DIR})
 elseif(ONLY STREQUAL "VERSION")
   # Write version number out to file, so we can compare against git.
   file(WRITE version ${PROJECT_VERSION})
