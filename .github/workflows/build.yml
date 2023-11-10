@@ -31,21 +31,15 @@ jobs:
       DEBIAN_FRONTEND: noninteractive
 
     steps:
-    # Don't use apt, it is very slow; instead use NVM and manipulate path
-    - name: Install Node if running locally using `nektos/act`
-      run: >
-        curl -o- https://raw.githubusercontent.com/nvm-sh/nvm/v0.39.3/install.sh | bash
-        && source /root/.nvm/nvm.sh && nvm install 18 && nvm alias default 18
-        && ln -s $(which node) /usr/local/bin/node
-      if: env.ACT
-      shell: bash
-
     # Perform shallow clone, which may break some other operations
-    # Must exectute before any local actions
+    # Must exectute before any repo-local actions
     - name: Checkout source code (shallow)
       uses: actions/checkout@v3
       with:
         submodules: 'true'
+    # Local github runner doesn't have node installed.
+    - if: env.ACT
+      uses: ./.github/actions/install-node
 
     # Install dependencies based on enabled features
     - name: Install Qt+CMake in non-containerized builds
