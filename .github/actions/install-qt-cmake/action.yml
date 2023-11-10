@@ -16,4 +16,4 @@ runs:
     with:
       version: ${{ inputs.qt_version }}
       cache: true
-      cache-key-prefix: ${{ inputs.cache-key-prefix }}
+      extra: "--base https://mirrors.ocf.berkeley.edu/qt"
