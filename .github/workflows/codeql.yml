@@ -56,7 +56,7 @@ jobs:
       name: "Ubuntu 22.04; GCC + CodeQL"
       cache_name: "ubuntu-gcc" # Must match cache name in ci.yml
       runs-on: "ubuntu-latest"
-      image: "ghcr.io/matthew-mcraven/pepp/dev:0.8.2"
+      image: "ghcr.io/matthew-mcraven/pepp/dev:v0.9.0"
       cmake_generator: Ninja
       cmake_toolchain: 3rd-party/vcpkg/scripts/buildsystems/vcpkg.cmake
       compiler_launcher: ccache
