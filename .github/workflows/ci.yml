@@ -102,9 +102,9 @@ jobs:
     needs: [branch_info, build_docs, check_tag]
     uses: ./.github/workflows/build.yml
     concurrency:
-      group: ${{ GITHUB_SHA }}
+      group: ${{ github.sha }}
       # A tag should cancel a branch push, but not vice versa.
-      cancel-in-progress: ${{ !!needs.branch_info.outputs.tag_name }}
+      cancel-in-progress: ${{ needs.branch_info.outputs.do_release || 'false'}}
     strategy:
       fail-fast: true
       # If you want to update images, must replace *ALL* images in the matrix manually.
