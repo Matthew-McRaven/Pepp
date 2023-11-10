@@ -38,7 +38,6 @@ Window {
     //      )
     drawer.onSelectedChanged.connect(
       (arg) => {
-
         if( drawer.selected === undefined) {
           mainWindow.source = "Topic.qml"
         } else {
@@ -59,7 +58,13 @@ Window {
       id: drawer
 
       y: 0
-      width: 200
+      width: textMetrics.width
+      // Make sure the drawer is always at least as wide as the text
+      // There was an issue in WASM where the titles clipper the center area
+      TextMetrics {
+          id: textMetrics
+          text: "Computer Systems, 200th edition"
+      }
       height: window.height
       property var selected: undefined
 
@@ -107,8 +112,8 @@ Window {
                   //kind,payload
                   display, payload
                 }
-                let d = drawer.selected
-                console.log(drawer.selected)
+                //let d = drawer.selected
+                //console.log(drawer.selected)
               }
             }
           }
