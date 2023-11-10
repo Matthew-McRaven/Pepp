@@ -4,6 +4,7 @@ inputs:
     required: true
     default: '6.6.0'
   cache-key-prefix:
+    required: false
 runs:
   using: "composite"
   # Selectively install and configure LLVM
