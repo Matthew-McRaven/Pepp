@@ -3,20 +3,29 @@ on:
   # Don't build on tags, since thos will be created during a release.
   push:
     branches:
-  release:
-    types: [published]
+  workflow_dispatch:
+    inputs:
+      do_release:
+        description: 'Release this build'
+        required: false
+        default: false
+      tag_name:
+        description: 'Tag to use for release'
+        required: false
 jobs:
   branch_info:
     name: Gather branch info
     runs-on: ubuntu-latest
     outputs:
       branch_name: ${{ steps.branch.outputs.branch }}
-      tag_name:    ${{ steps.branch.outputs.tag }}
+      tag_name:    ${{ steps.branch.outputs.tag_name }}
       not_default: ${{ steps.branch.outputs.not_default }}
+      do_release:  ${{ inputs.do_release }}
     steps:
       - name: set branch info
         id: branch
         run: |
+          echo "tag_name=${{ inputs.tag_name }}" >> $GITHUB_OUTPUT
           if [[ "${GITHUB_EVENT_NAME}" == "push" ]]; then
             export BRANCH="${GITHUB_REF##*/}"
           elif [[ "${GITHUB_EVENT_NAME}" == "pull_request" ]]; then
@@ -44,25 +53,32 @@ jobs:
     # However, this greatly complicates that matrix build.
     # Instead, exit succes on not release, and run my tag logic on release.
     - name: No-op
-      if:  !needs.branch_info.outputs.tag_name
+      if:  !needs.branch_info.outputs.do_release
+      run: exit 0
     - name: Check that release tag is well-formatted, and extract the version number
-      if: !!needs.branch_info.outputs.tag_name
+      if: needs.branch_info.outputs.do_release
       shell: bash
       # Use xargs to trim spaces
       run: |
-        tag=$(grep -Eo "/v\d(\.\d)+$" <<< "${{ needs.branch_info.outputs.tag_name }}")
-        echo "VERSION_GIT=$(cut -c3- <<< ${tag} | xargs)" >> $GITHUB_ENV
+        tag=$(echo "${{ needs.branch_info.outputs.tag_name }}" | grep -Eo "/v[0-9]+(\.[0-9]+)*$")
+        echo "VERSION_GIT=$(echo "${tag}" | cut -c3- | xargs)" >> $GITHUB_ENV
     - name: Clone sources to extract project version
       uses: actions/checkout@v3
-      if: !!needs.branch_info.outputs.tag_name
+      if: needs.branch_info.outputs.do_release
+    - uses: lukka/get-cmake@v3.27.7
     - name: Extract the CMake version
-      if: !!needs.branch_info.outputs.tag_name
+      if: needs.branch_info.outputs.do_release
       run: |
         cmake -B build -S . -DONLY=VERSION
         echo "VERSION_CMAKE=$(cat version | xargs)" >> $GITHUB_ENV
     - name: CMake project version == Git tag
-      if: !!needs.branch_info.outputs.tag_name
-      run: [ "${VERSION_CMAKE}" = "cat" ] || (printf "Mismatched project versions.\n Git:${VERSION_GIT}  CMake:${VERSION_CMAKE}" && exit 1)
+      if: needs.branch_info.outputs.do_release
+      shell: bash
+      run: |
+        if [[ "$VERSION_CMAKE" != "$VERSION_GIT" ]] ; then
+          printf "Mismatched project versions. Git:$VERSION_GIT  CMake:$VERSION_CMAKE\n"
+          exit 115 # Use a sufficiently rare exit code to make this failure easy to detect
+        fi
   build_docs:
     runs-on: ubuntu-latest
     container:
@@ -115,7 +131,7 @@ jobs:
       compiler_c: ${{ matrix.config.compiler_c  || '' }}
       compiler_cpp: ${{ matrix.config.compiler_cpp || '' }}
       codeql: ${{ !!matrix.config.codeql }}
-      variant: "debug"
+      variant: ${{ needs.branch_info.outputs.do_release && 'release' || 'debug' }}
       not_default: ${{ needs.branch_info.outputs.not_default == 'true' }}
       docs_audience: ${{ matrix.config.docs_audience || '' }}
       docs_artifact: ${{ (matrix.config.docs_audience && '') || 'app-docs' }}
