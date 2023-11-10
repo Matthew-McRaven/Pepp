@@ -46,7 +46,6 @@ jobs:
   check_tag:
     name: Check tag
     needs: branch_info
-    if: needs.branch_info.outputs.tag_name
     runs-on: ubuntu-latest
     steps:
     # Conceptually, we only want to run this job iff we are a release.
@@ -104,7 +103,7 @@ jobs:
     concurrency:
       group: ${{ github.sha }}
       # A tag should cancel a branch push, but not vice versa.
-      cancel-in-progress: ${{ needs.branch_info.outputs.do_release || 'false'}}
+      cancel-in-progress: ${{ needs.branch_info.outputs.do_release || false}}
     strategy:
       fail-fast: true
       # If you want to update images, must replace *ALL* images in the matrix manually.
