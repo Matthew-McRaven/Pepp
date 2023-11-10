@@ -18,6 +18,8 @@ on:
       variant: {type: string, default: "Debug"}
       not_default: {required: True, type: boolean}
       save_cache: {type: boolean, default: True}
+      docs_artifact: {type: string}
+      docs_audience: {type: string}
 
 jobs:
   matrix_build:

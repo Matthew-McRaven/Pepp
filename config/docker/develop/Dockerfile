@@ -39,8 +39,9 @@ RUN apt update \
     &&  apt install -y --no-install-recommends graphviz imagemagick doxygen \
     && rm -rf /var/lib/apt/lists/*
 # Insert workaround for Qt+breathe: https://github.com/breathe-doc/breathe/issues/574
-RUN pip install Sphinx=7.1.2 Pillow \
-  && sed -i '253 i \        "property": (CMacroObject, "macro"),' "/usr/local/lib/python3.11/site-packages/breathe/renderer/sphinxrenderer.py"
+# Must install exactly 4.35.0, otherwise insert may fail.
+RUN pip install Sphinx==7.1.2 breathe==4.35.0 Pillow \
+  && sed -i '253 i \        "property": (CMacroObject, "macro"),' "/usr/local/lib/python3.10/dist-packages/breathe/renderer/sphinxrenderer.py"
 
 RUN git clone https://github.com/emscripten-core/emsdk.git /emsdk
 # Must combine, otherwise a layer is the same in multi-arch builds, breaking everything
