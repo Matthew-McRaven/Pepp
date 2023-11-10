@@ -9,7 +9,7 @@ on:
       triplet: {type: string}
       cmake_generator: {type: string, default: ""}
       cmake_toolchain: {type: string, required: True}
-      cmake_xargs: {type: string, default: ""}
+      cmake_xargs: {type: string}
       ctest_launcher: {type: string, default: "ctest"}
       compiler_launcher: {type: string, default: ""}
       compiler_c: {type: string, default: ""}
@@ -41,6 +41,7 @@ jobs:
         submodules: 'true'
     # Local github runner doesn't have node installed.
     - if: env.ACT
+      name: Install Node if running locally using `nektos/act`
       uses: ./.github/actions/install-node
 
     # Install dependencies based on enabled features
@@ -83,7 +84,12 @@ jobs:
       run: >
           cd 3rd-party/vcpkg && (git fetch --unshallow || true)
           && chmod +x bootstrap-vcpkg.sh && ./bootstrap-vcpkg.sh && ./vcpkg integrate install
-
+    - name: Download prebuilt help documentation
+      uses: actions/download-artifact@v3
+      if: inputs.docs_artifact
+      with:
+        name: ${{ inputs.docs_artifact }}
+        path: ${{ inputs.docs_artifact }}
     - name: Configure CMake
       shell: bash
       run: >
@@ -101,7 +107,9 @@ jobs:
           -D CMAKE_TOOLCHAIN_FILE=${{ inputs.cmake_toolchain }}
           ${{ inputs.cmake_generator && format('-G {0}', inputs.cmake_generator) || '' }}
           ${{ inputs.cmake_xargs }}
-          -DCMAKE_BUILD_TYPE=Debug
+          ${{ inputs.docs_audience && format('-D DOC_AUDIENCE={0}', inputs.docs_audience) || '' }}
+          ${{inputs.docs_artifact && format('-D DOC_PREBUILT_DIR="{0}"', inputs.docs_artifact) || '' }}
+          -D CMAKE_BUILD_TYPE=Debug
 
     - name: Run build
       run: cmake --build build -j6

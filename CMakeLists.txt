@@ -29,13 +29,13 @@ set(ONLY "BUILD" CACHE STRING "Only build code/documentation/version" )
 # APP: Build the help documentation for the windows/mac/linux builds.
 # WEB: Build the help documentation for the web build, including web assembly files.
 # DEV: Build the help with code information and architecture documents.
-set(DOC_AUDIENCE "APP" CACHE STRING "Which version of the documentation to build" FORCE)
+set(DOC_AUDIENCE "APP" CACHE STRING "Which version of the documentation to build")
 # Must disable QRC logic if emscripten, because a developer may forget to set this flag.
 if(EMSCRIPTEN)
   set(DOC_AUDIENCE "WEB")
 endif()
 # If set, skip documentation generation, and generate a QRC directly from this directory.
-set(DOC_PREBUILT_DIR CACHE DIRECTORY "Directory in which pre-built help documentation can be found" FORCE)
+set(DOC_PREBUILT_DIR CACHE STRING "Directory in which pre-built help documentation can be found")
 
 # Only set language one actual builds. Otherwise it may try to find buildtools
 # on platforms without support for C++. (e.g., documentation builds).
@@ -225,12 +225,13 @@ if(ONLY STREQUAL "BUILD")
   # Additionally, compiling >100MB of text into a QRC takes a long time.
   # We can just re-direct to the book website.
   string(COMPARE EQUAL "${DOC_AUDIENCE}" "WEB" SKIP_QRC)
-
+  MESSAGE("SKIP_QRC: ${SKIP_QRC}, DOC_AUDIENCE: ${DOC_AUDIENCE}, EMPTY_PREBUILT_DIR: ${EMPTY_PREBUILT_DIR}, Python_FOUND: ${Python_FOUND}")
+  MESSAGE("DOC_PREBUILT_DIR: ${DOC_PREBUILT_DIR}")
   if(SKIP_QRC)
     message("Not generating any help QRC")
-  elseif(Python_FOUND AND (NOT EMPTY_PREBUILT_DIR))
+  elseif(Python_FOUND AND (NOT (EMPTY_PREBUILT_DIR)))
     message("Using prebuilt help to generate help QRC")
-    help_qrc_from_dir(${DOC_PREBUILT_DIR} AND NOT SKIP_QRC)
+    help_qrc_from_dir(${DOC_PREBUILT_DIR})
   elseif(Python_FOUND AND (TARGET docs_sphinx))
     message("Use generated help to generate help QRC")
     help_qrc_from_dir(${SPHINX_OUT_DIR})

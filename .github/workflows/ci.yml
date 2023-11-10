@@ -29,7 +29,7 @@ jobs:
   build_docs:
     runs-on: ubuntu-latest
     container:
-      image: "ghcr.io/matthew-mcraven/pepp/dev:0.9.0-docs"
+      image: "ghcr.io/matthew-mcraven/pepp/dev:v0.9.0-docs"
     steps:
     # Must exectute before any repo-local actions
     - uses: actions/checkout@v3
@@ -54,10 +54,10 @@ jobs:
       # Trying to use `env` or inputs will fail in this context.
       matrix:
         config:
-        - {name: "Ubuntu 22.04; GCC", cache_name: 'ubuntu-gcc', runs-on: "ubuntu-latest", image: "ghcr.io/matthew-mcraven/pepp/dev:0.9.0", compiler_launcher: "ccache", compiler_c: "", compiler_cpp: "", cmake_generator: "Ninja"}
+        - {name: "Ubuntu 22.04; GCC", cache_name: 'ubuntu-gcc', runs-on: "ubuntu-latest", image: "ghcr.io/matthew-mcraven/pepp/dev:v0.9.0", compiler_launcher: "ccache", compiler_c: "", compiler_cpp: "", cmake_generator: "Ninja"}
         # Do CodeQL in clang run, to prevent needing yet another target.
-        - {name: "Ubuntu 22.04; Clang 17.0", cache_name: 'ubuntu-clang', runs-on: "ubuntu-latest", image: "ghcr.io/matthew-mcraven/pepp/dev:0.9.0", triplet: "x64-linux-clang", compiler_launcher: "", compiler_c: "clang", compiler_cpp: "clang++" , cmake_generator: "Ninja"}
-        - {name: "Ubuntu 22.04; EMSDK 3.1.37", cache_name: 'ubuntu-emsdk', runs-on: "ubuntu-latest", image: "ghcr.io/matthew-mcraven/pepp/dev:0.9.0-wasm", cmake_toolchain: '$Qt6_DIR/qt.toolchain.cmake', cmake_xargs: '-D QT_HOST_PATH=/qt/6.6.0/gcc_64 -D Boost_INCLUDE_DIR=/usr/local/include', docs_audience: 'WEB'}
+        - {name: "Ubuntu 22.04; Clang 17.0", cache_name: 'ubuntu-clang', runs-on: "ubuntu-latest", image: "ghcr.io/matthew-mcraven/pepp/dev:v0.9.0", triplet: "x64-linux-clang", compiler_launcher: "", compiler_c: "clang", compiler_cpp: "clang++" , cmake_generator: "Ninja"}
+        - {name: "Ubuntu 22.04; EMSDK 3.1.37", cache_name: 'ubuntu-emsdk', runs-on: "ubuntu-latest", image: "ghcr.io/matthew-mcraven/pepp/dev:v0.9.0-wasm", cmake_toolchain: '$Qt6_DIR/qt.toolchain.cmake', cmake_xargs: '-D QT_HOST_PATH=/qt/6.6.0/gcc_64 -D Boost_INCLUDE_DIR=/usr/local/include', docs_audience: 'WEB'}
         # See: https://bugreports.qt.io/browse/QTBUG-118086
         - {name: "MacOS-11; Clang 15", cache_name: 'macos-clang', runs-on: "macos-11" , compiler_launcher: "ccache", compiler_c: '$(brew --prefix llvm@15)/bin/clang', compiler_cpp: '$(brew --prefix llvm@15)/bin/clang++', cmake_generator: "Ninja"}
         - {name: "Windows Latest; MSVC", cache_name: 'windows-msvc', runs-on: "windows-latest" , compiler_launcher: "ccache",}
