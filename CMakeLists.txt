@@ -30,6 +30,10 @@ set(ONLY "BUILD" CACHE STRING "Only build code/documentation/version" )
 # WEB: Build the help documentation for the web build, including web assembly files.
 # DEV: Build the help with code information and architecture documents.
 set(DOC_AUDIENCE "APP" CACHE STRING "Which version of the documentation to build" FORCE)
+# Must disable QRC logic if emscripten, because a developer may forget to set this flag.
+if(EMSCRIPTEN)
+  set(DOC_AUDIENCE "WEB")
+endif()
 # If set, skip documentation generation, and generate a QRC directly from this directory.
 set(DOC_PREBUILT_DIR CACHE DIRECTORY "Directory in which pre-built help documentation can be found" FORCE)
 
