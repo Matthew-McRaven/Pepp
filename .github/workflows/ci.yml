@@ -53,7 +53,7 @@ jobs:
     # However, this greatly complicates that matrix build.
     # Instead, exit succes on not release, and run my tag logic on release.
     - name: No-op
-      if:  !needs.branch_info.outputs.do_release
+      if:  needs.branch_info.outputs.do_release != true
       run: exit 0
     - name: Check that release tag is well-formatted, and extract the version number
       if: needs.branch_info.outputs.do_release
