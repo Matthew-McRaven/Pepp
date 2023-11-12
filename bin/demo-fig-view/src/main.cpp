@@ -28,12 +28,28 @@
 #include <QQuickTextDocument>
 
 #include "book_item_model.hpp"
+#include "linenumbers.h"
 #include "builtins/registry.hpp"
 #include "highlight/qml_highlighter.hpp"
 #include "highlight/style.hpp"
 #include "highlight/style/map.hpp"
 #include "highlight/style/defaults.hpp"
+#include <QTextBlock>
 
+class BlockFinder: public QObject{
+    Q_OBJECT
+    QTextDocument *_doc=nullptr;
+public:
+    BlockFinder(QObject* parent=nullptr):QObject(parent){}
+    Q_INVOKABLE int find_pos( int pos){
+        if(_doc == nullptr) return -1;
+        return _doc->findBlock(pos).blockNumber();
+        return -1;
+    }
+    Q_INVOKABLE void set_document(QQuickTextDocument *doc){this->_doc=doc->textDocument();}
+};
+
+#include "main.moc"
 int main(int argc, char *argv[]) {
   QGuiApplication app(argc, argv);
   // TODO: Translator paths are likely broken
@@ -69,6 +85,8 @@ int main(int argc, char *argv[]) {
   qmlRegisterType<highlight::QMLHighlighter>("edu.pepp", 1, 0, "Highlighter");
   qmlRegisterType<highlight::Style>("edu.pepp", 1, 0, "Style");
   qmlRegisterType<highlight::style::Map>("edu.pepp", 1, 0, "StyleMap");
+  qmlRegisterType<LineNumbers>("edu.pepp", 1, 0, "LineNumbers");
+  qmlRegisterType<BlockFinder>("edu.pepp", 1, 0, "BlockFinder");
   qmlRegisterSingletonInstance<highlight::style::Defaults>("edu.pepp", 1, 0, "DefaultStyles", new highlight::style::Defaults());
   engine.load(url);
   for (const auto &object : engine.rootObjects()) {

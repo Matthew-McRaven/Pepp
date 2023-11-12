@@ -142,9 +142,44 @@ Item {
       Layout.alignment: Qt.AlignCenter
       Layout.fillHeight: true;
       Layout.fillWidth: true
+      Component.onCompleted: {
+          console.log(figContent)
+          finder.set_document(figContent.textDocument)
+          lineNumbers.update()
+      }
 
+      BlockFinder {
+          id: finder
+      }
+
+      LineNumbers {
+          id: lineNumbers
+          height: parent.height // Ensure that line numbering area spans entire text area.
+          width: 40
+      }
       TextArea {
         id: figContent
+        function update() {
+            lineNumbers.lineCount = lineCount
+            // font metrics lies about height, because it does not include intra-line padding.
+            // instead, math out from content height the line height.
+            // lineNumbers.lineHeight = metrics.height
+            lineNumbers.lineHeight = contentHeight / lineCount
+            // Use my C++ helper code to determine line number from cursors integer.
+            lineNumbers.cursorPosition = finder.find_pos(cursorPosition)
+            lineNumbers.selectionStart = finder.find_pos(selectionStart)
+            lineNumbers.selectionEnd = finder.find_pos(selectionEnd)
+            lineNumbers.update()  // Graphics area will never update without requesting it.
+        }
+
+        // Anchor otherwise line numbers overlap text edit.
+        anchors.left: lineNumbers.right
+
+        onLineCountChanged: update()
+        onHeightChanged: update()
+        onCursorPositionChanged: update()
+
+        onSelectedTextChanged: update()
 
         font.family: "Courier New"
 

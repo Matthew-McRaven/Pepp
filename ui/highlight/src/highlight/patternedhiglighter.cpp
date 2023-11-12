@@ -38,7 +38,6 @@ void PatternedHighlighter::setPatterns(QList<Pattern> rules)
 void PatternedHighlighter::highlightBlock(const QString &text)
 {
     auto prevState = previousBlockState();
-    qDebug() << prevState << " ";
     if(prevState == -1) prevState = 0;
     for(const auto & rule : _rules) {
         if(rule.from != prevState) continue;
