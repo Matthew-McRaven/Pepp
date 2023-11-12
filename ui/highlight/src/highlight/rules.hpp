@@ -27,5 +27,7 @@ struct Rule {
     // If previousBlockState is fromState, execute the rule, and set the state to toState.
     // Can be used to implemente a FSM which handles block comments.
     int fromState=0, toState=0;
+    // For this rule, search from index==0 rather than last index.
+    bool reset=false;
 };
 }

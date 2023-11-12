@@ -32,6 +32,7 @@ public:
         QRegularExpression pattern;
         QTextCharFormat format;
         int from=0, to=0;
+        bool reset=false;
     };
     PatternedHighlighter(QObject *parent = 0);
     PatternedHighlighter(QTextDocument *parent = 0);

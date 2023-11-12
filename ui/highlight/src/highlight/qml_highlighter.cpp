@@ -31,7 +31,6 @@ using namespace highlight;
 QMLHighlighter::QMLHighlighter(QObject *parent): QObject(parent),
     _highlighter(new PatternedHighlighter(this))
 {
-
 }
 
 void QMLHighlighter::set_styles(highlight::style::Map *styles)
@@ -44,29 +43,34 @@ void QMLHighlighter::set_document(QQuickTextDocument *document)
     _highlighter->setDocument(document->textDocument());
 }
 
+static const auto _4e = u"Computer Systems, 4th Edition"_qs;
+static const auto _5e = u"Computer Systems, 5th Edition"_qs;
+static const auto _6e = u"Computer Systems, 6th Edition"_qs;
+
 void QMLHighlighter::set_highlighter(QString edition, QString language)
 {
     language = language.toLower();
     if(_active.edition == edition && _active.language == language) return;
 
-    static const auto _4e = u"Computer Systems, 4th Edition"_qs;
-    static const auto _5e = u"Computer Systems, 5th Edition"_qs;
-    static const auto _6e = u"Computer Systems, 6th Edition"_qs;
+
 
     QList<Rule> _rules = {};
-    if(edition.compare(_5e, Qt::CaseInsensitive)==0 && language == "pepo"){}
-    else if(edition.compare(_5e, Qt::CaseInsensitive)==0 && language == "pep") _rules = rules_pep9_asm();
-    else if(edition.compare(_5e, Qt::CaseInsensitive)==0 && language == "c") _rules = rules_c();
-    else if(edition.compare(_6e, Qt::CaseInsensitive)==0 && language == "pepo") {}
-    else if(edition.compare(_6e, Qt::CaseInsensitive)==0 && language == "pep") _rules = rules_pep10_asm();
-    else if(edition.compare(_6e, Qt::CaseInsensitive)==0 && language == "c") _rules = rules_c();
+    if(edition.compare(_5e, Qt::CaseInsensitive)==0){
+        if(language == "pepo"){}
+        else if(language == "pep") _rules = rules_pep9_asm();
+        else if(language == "c") _rules = rules_c();
+    }
+    else if(edition.compare(_6e, Qt::CaseInsensitive)==0) {
+        if(language == "pepo"){}
+        else if(language == "pep") _rules = rules_pep10_asm();
+        else if(language == "c") _rules = rules_c();
+    }
 
     _active.edition = edition;
     _active.language = language;
 
     QList<PatternedHighlighter::Pattern> _patterns;
-    for(const auto& rule: _rules)
-    {
+    for(const auto& rule: _rules) {
         PatternedHighlighter::Pattern _pattern;
         _pattern.pattern = rule.pattern;
         auto style = _styles->getStyle(rule.style);
@@ -74,11 +78,12 @@ void QMLHighlighter::set_highlighter(QString edition, QString language)
         _pattern.format=style->format();
         _pattern.from=rule.fromState;
         _pattern.to=rule.toState;
+        _pattern.reset=rule.reset;
         _patterns.append(_pattern);
     }
+
     _highlighter->setPatterns(_patterns);
     _highlighter->rehighlight();
-
 }
 
 void QMLHighlighter::clear_highlighter()
