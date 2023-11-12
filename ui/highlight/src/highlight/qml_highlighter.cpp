@@ -67,6 +67,8 @@ void QMLHighlighter::set_highlighter(QString edition, QString language)
         auto style = _styles->getStyle(rule.style);
         if(style == nullptr) continue;
         _pattern.format=style->format();
+        _pattern.from=rule.fromState;
+        _pattern.to=rule.toState;
         _patterns.append(_pattern);
     }
     _highlighter->setPatterns(_patterns);

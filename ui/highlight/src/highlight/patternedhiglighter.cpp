@@ -22,7 +22,6 @@ using namespace highlight;
 PatternedHighlighter::PatternedHighlighter(QObject *parent): QSyntaxHighlighter(parent),
     _rules()
 {
-
 }
 
 PatternedHighlighter::PatternedHighlighter( QTextDocument *parent): QSyntaxHighlighter(parent),
@@ -39,11 +38,14 @@ void PatternedHighlighter::setPatterns(QList<Pattern> rules)
 void PatternedHighlighter::highlightBlock(const QString &text)
 {
     auto prevState = previousBlockState();
+    qDebug() << prevState << " ";
+    if(prevState == -1) prevState = 0;
     for(const auto & rule : _rules) {
-        // if(rule.fromState != prevState) continue;
+        if(rule.from != prevState) continue;
         auto match = rule.pattern.match(text);
         for(auto &match : rule.pattern.globalMatch(text)) {
             setFormat(match.capturedStart(), match.capturedLength(), rule.format);
         }
+        setCurrentBlockState(prevState = rule.to);
     }
 }
