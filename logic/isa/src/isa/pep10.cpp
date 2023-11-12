@@ -15,6 +15,7 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
+#include "pep_shared.hpp"
 #include "pep10.hpp"
 #include <QMetaEnum>
 
@@ -26,81 +27,35 @@ isa::Pep10::AddressingMode isa::Pep10::defaultAddressingMode() {
 
 isa::Pep10::AddressingMode
 isa::Pep10::defaultAddressingMode(Mnemonic mnemonic) {
-  if (isAType(mnemonic))
-    return AddressingMode::I;
-  else
-    return defaultAddressingMode();
+    if (isAType(mnemonic))
+        return AddressingMode::I;
+    else
+        return defaultAddressingMode();
 }
 
 quint8 isa::Pep10::opcode(Mnemonic mnemonic) {
-  return static_cast<quint8>(mnemonic);
+  return isa::detail::opcode(mnemonic);
 }
 
 quint8 isa::Pep10::opcode(Mnemonic mnemonic, AddressingMode addr) {
-  using M = detail::pep10::Mnemonic;
-  using AM = detail::pep10::AddressingMode;
-  auto base = opcode(mnemonic);
-  // TODO: Look up instruction type instead of doing opcode math.
-  if (base >= static_cast<quint8>(M::BR) &&
-      base <= static_cast<quint8>(M::CALL))
-    return base | (addr == AM::X ? 1 : 0);
-  switch (addr) {
-  case AM::NONE:
-    throw std::logic_error("Invalid ADDR mode");
-  case AM::I:
-    return base | 0x0;
-  case AM::D:
-    return base | 0x1;
-  case AM::N:
-    return base | 0x2;
-  case AM::S:
-    return base | 0x3;
-  case AM::SF:
-    return base | 0x4;
-  case AM::X:
-    return base | 0x5;
-  case AM::SX:
-    return base | 0x6;
-  case AM::SFX:
-    return base | 0x7;
-  case AM::ALL:
-    throw std::logic_error("Invalid ADDR mode");
-  case AM::INVALID:
-    throw std::logic_error("Invalid ADDR mode");
-  }
-  throw std::logic_error("Unreachable");
+  return isa::detail::opcode(mnemonic, addr);
 }
 
 isa::Pep10::AddressingMode
 isa::Pep10::parseAddressingMode(const QString &addr) {
-  using AM = AddressingMode;
-  bool ok = true;
-  auto ret = (AM)QMetaEnum::fromType<AddressingMode>().keyToValue(
-      addr.toUpper().toUtf8().data(), &ok);
-  if (!ok || ret == AM::ALL || ret == AM::NONE)
-    return AM::INVALID;
-  else
-    return ret;
+  return isa::detail::parseAddressingMode<AddressingMode>(addr);
 }
 
 isa::Pep10::Mnemonic isa::Pep10::parseMnemonic(const QString &mnemonic) {
-  bool ok = true;
-  auto ret = QMetaEnum::fromType<Mnemonic>().keyToValue(
-      mnemonic.toUpper().toUtf8().data(), &ok);
-  if (!ok)
-    return Mnemonic::INVALID;
-  else
-    return (Mnemonic)ret;
+  return isa::detail::parseMnemonic<Mnemonic>(mnemonic);
 }
 
 QString isa::Pep10::string(Mnemonic mnemonic) {
-  return QString(QMetaEnum::fromType<Mnemonic>().valueToKey((int)mnemonic))
-      .toUpper();
+  return isa::detail::stringMnemonic(mnemonic);
 }
 
 QString isa::Pep10::string(AddressingMode addr) {
-  return QString(QMetaEnum::fromType<AddressingMode>().valueToKey((int)addr))
-      .toLower();
+  return isa::detail::stringAddr(addr);
 }
 
 bool isa::Pep10::isMnemonicUnary(Mnemonic mnemonic) {
@@ -122,12 +77,7 @@ bool isa::Pep10::isOpcodeUnary(quint8 opcode) {
 }
 
 bool isa::Pep10::isStore(Mnemonic mnemonic) {
-  using M = detail::pep10::Mnemonic;
-  if (mnemonic == M::STBA || mnemonic == M::STWA || mnemonic == M::STBX ||
-      mnemonic == M::STWX)
-    return true;
-  else
-    return false;
+  return isa::detail::isStore(mnemonic);
 }
 
 bool isa::Pep10::isStore(quint8 opcode) {
@@ -214,12 +164,17 @@ bool isa::Pep10::requiresAddressingMode(Mnemonic mnemonic) {
 
 bool isa::Pep10::canElideAddressingMode(Mnemonic mnemonic,
                                         AddressingMode addr) {
-  return isAType(mnemonic) && addr == AddressingMode::I;
+    return isAType(mnemonic) && addr == AddressingMode::I;
+}
+
+QSet<QString> isa::Pep10::legalDirectives()
+{
+    static const auto valid = QSet<QString>{
+                                            "ALIGN", "ASCII",  "BLOCK", "BYTE",  "EQUATE",  "EXPORT", "IMPORT",
+                                            "INPUT", "OUTPUT", "ORG",   "SCALL", "SECTION", "USCALL", "WORD"};
+    return valid;
 }
 
 bool isa::Pep10::isLegalDirective(QString directive) {
-  static const auto valid = QSet<QString>{
-      "ALIGN", "ASCII",  "BLOCK", "BYTE",  "EQUATE",  "EXPORT", "IMPORT",
-      "INPUT", "OUTPUT", "ORG",   "SCALL", "SECTION", "USCALL", "WORD"};
-  return valid.contains(directive.toUpper());
+    return legalDirectives().contains(directive.toUpper());
 }
