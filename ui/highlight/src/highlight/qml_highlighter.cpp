@@ -24,6 +24,7 @@
 #include "./rules_pep_asm.h"
 #include "./style/map.hpp"
 #include "./style.hpp"
+#include "highlight/rules_clike.h"
 
 using namespace highlight;
 
@@ -52,10 +53,14 @@ void QMLHighlighter::set_highlighter(QString edition, QString language)
     static const auto _5e = u"Computer Systems, 5th Edition"_qs;
     static const auto _6e = u"Computer Systems, 6th Edition"_qs;
 
-    QList<Rule> _rules = rules_pep10_asm();
-    //if(edition.compare(_6e, Qt::CaseInsensitive) && language == "pepo");
-    //else if(edition.compare(_6e, Qt::CaseInsensitive) && language == "pep") _rules = rules_pep10_asm();
-    //else if(edition.compare(_6e, Qt::CaseInsensitive) && language == "c"){}
+    QList<Rule> _rules = {};
+    if(edition.compare(_5e, Qt::CaseInsensitive)==0 && language == "pepo"){}
+    else if(edition.compare(_5e, Qt::CaseInsensitive)==0 && language == "pep") _rules = rules_pep9_asm();
+    else if(edition.compare(_5e, Qt::CaseInsensitive)==0 && language == "c") _rules = rules_c();
+    else if(edition.compare(_6e, Qt::CaseInsensitive)==0 && language == "pepo") {}
+    else if(edition.compare(_6e, Qt::CaseInsensitive)==0 && language == "pep") _rules = rules_pep10_asm();
+    else if(edition.compare(_6e, Qt::CaseInsensitive)==0 && language == "c") _rules = rules_c();
+
     _active.edition = edition;
     _active.language = language;
 

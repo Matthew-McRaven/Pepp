@@ -19,5 +19,6 @@
 #include "rules.hpp"
 
 namespace highlight {
+QList<Rule> rules_pep9_asm();
 QList<Rule> rules_pep10_asm();
 }
