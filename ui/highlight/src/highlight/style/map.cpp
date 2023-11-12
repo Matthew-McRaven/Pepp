@@ -21,7 +21,6 @@
 
 highlight::style::Map::Map(QObject *parent): QObject(parent)
 {
-
 }
 
 ::highlight::Style* highlight::style::Map::getSymbol() const

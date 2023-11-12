@@ -26,7 +26,6 @@
 
 LineNumbers::LineNumbers(QQuickPaintedItem *parent) : QQuickPaintedItem(parent)
 {
-
 }
 
 int LineNumbers::lineCount() const

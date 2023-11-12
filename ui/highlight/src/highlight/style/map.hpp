@@ -30,6 +30,7 @@ class HIGHLIGHT_EXPORT Map : public QObject{
     Q_PROPERTY(Style* mnemonic READ getMnemonic WRITE setMnemonic NOTIFY mnemonicChanged);
     Q_PROPERTY(Style* dot READ getDot WRITE setDot NOTIFY dotChanged);
     Q_PROPERTY(Style* quoted READ getQuoted WRITE setQuoted NOTIFY quotedChanged);
+
 public:
     Map(QObject* parent=nullptr);
 

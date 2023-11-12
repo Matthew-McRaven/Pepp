@@ -41,7 +41,7 @@ public:
     int cursorPosition() const;
     int selectionStart() const;
     int selectionEnd() const;
-    virtual void paint(QPainter *painter) override;
+    void paint(QPainter *painter) override;
 
 signals:
     void lineCountChanged(int lineCount);

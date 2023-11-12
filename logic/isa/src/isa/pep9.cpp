@@ -183,6 +183,5 @@ QSet<QString> isa::Pep9::legalDirectives()
 }
 
 bool isa::Pep9::isLegalDirective(QString directive) {
-
     return legalDirectives().contains(directive.toUpper());
 }
