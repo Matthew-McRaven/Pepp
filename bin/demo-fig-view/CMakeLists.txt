@@ -27,7 +27,7 @@ set_target_properties(demo-fig-view PROPERTIES
         )
 set_target_properties(demo-fig-view PROPERTIES FOLDER "qtc_runnable")
 set_target_properties(demo-fig-view PROPERTIES EMBED_GH_PAGES ON)
-target_link_libraries(demo-fig-view PRIVATE Qt6::Quick builtins)
+target_link_libraries(demo-fig-view PRIVATE Qt6::Quick builtins highlight)
 
 install(TARGETS demo-fig-view
         BUNDLE DESTINATION .

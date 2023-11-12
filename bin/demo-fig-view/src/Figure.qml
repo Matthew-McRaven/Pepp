@@ -1,24 +1,39 @@
 import QtQuick
 import QtQuick.Controls
 import QtQuick.Layouts
-
+import edu.pepp 1.0
 Item {
+
+
+  property alias text_area:  figContent
+
 
   //required property var model
 
   ColumnLayout {
     id: figCol
 
+    Highlighter {
+        id: highlighter
+    }
+    StyleMap {
+        id: styles
+    }
     property string copyTitle: "5.7"
     property string copyContent: "This is some very long text used to test wrapping inside text control."
     property var payload
     property string listing: "Pep/10 is a virtual machine for writing machine language and assemply language programs"
     property bool copyToSource: true
-
+    signal typeChange(string type)
     //  Set page contents based on parent selected values
     Component.onCompleted: {
+      DefaultStyles.pep10_asm(styles)
+      highlighter.set_styles(styles)
+      highlighter.set_document(figContent.textDocument)
+
       copyTitle = drawer.selected.display;
       let payload = drawer.selected.payload;
+      let edition = drawer.selected.edition;
 
       copyToSource = ( payload.chapterName !== "04");
 
@@ -33,6 +48,7 @@ Item {
       let lang = Object.keys(payload.elements)[0]
       figCol.listing = payload.elements[lang].content
       figType.currentIndex = 0;
+      highlighter.set_highlighter(edition, lang)
     }
 
     spacing: 10

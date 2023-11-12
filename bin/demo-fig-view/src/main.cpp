@@ -25,12 +25,17 @@
 
 //#include <QDirIterator>
 #include <QQmlContext>
+#include <QQuickTextDocument>
 
 #include "book_item_model.hpp"
 #include "builtins/registry.hpp"
+#include "highlight/qml_highlighter.hpp"
+#include "highlight/style.hpp"
+#include "highlight/style/map.hpp"
+#include "highlight/style/defaults.hpp"
+
 int main(int argc, char *argv[]) {
   QGuiApplication app(argc, argv);
-
   // TODO: Translator paths are likely broken
   QTranslator translator;
   const QStringList uiLanguages = QLocale::system().uiLanguages();
@@ -61,14 +66,19 @@ int main(int argc, char *argv[]) {
           QCoreApplication::exit(-1);
       },
       Qt::QueuedConnection);
+  qmlRegisterType<highlight::QMLHighlighter>("edu.pepp", 1, 0, "Highlighter");
+  qmlRegisterType<highlight::Style>("edu.pepp", 1, 0, "Style");
+  qmlRegisterType<highlight::style::Map>("edu.pepp", 1, 0, "StyleMap");
+  qmlRegisterSingletonInstance<highlight::style::Defaults>("edu.pepp", 1, 0, "DefaultStyles", new highlight::style::Defaults());
   engine.load(url);
   for (const auto &object : engine.rootObjects()) {
+    // Fixup model values
     auto maybeChild = object->findChild<QObject *>(QStringLiteral("treeView"));
     if (auto casted = qobject_cast<QQuickItem *>(maybeChild);
         maybeChild && casted)
       casted->setProperty(
           "model",
-          QVariant::fromValue(&model)); // https://stackoverflow.com/a/43742398
+          QVariant::fromValue(&model)); // https://stackoverflow.com/a/4374239
   }
 
   return app.exec();
