@@ -16,59 +16,28 @@
  */
 
 #pragma once
+
 #include <QObject>
 
 #include "../highlight_globals.hpp"
 #include "./types.hpp"
 #include "../style.hpp"
 
+// Maybe I could access as properties if I used this... https://doc.qt.io/qt-6/qqmlpropertymap.html
 namespace highlight::style {
-class HIGHLIGHT_EXPORT Map : public QObject{
+class HIGHLIGHT_EXPORT Map : public QObject {
     Q_OBJECT
-    Q_PROPERTY(Style* symbol READ getSymbol WRITE setSymbol NOTIFY symbolChanged);
-    Q_PROPERTY(Style* comment READ getComment WRITE setComment NOTIFY commentChanged);
-    Q_PROPERTY(Style* mnemonic READ getMnemonic WRITE setMnemonic NOTIFY mnemonicChanged);
-    Q_PROPERTY(Style* dot READ getDot WRITE setDot NOTIFY dotChanged);
-    Q_PROPERTY(Style* quoted READ getQuoted WRITE setQuoted NOTIFY quotedChanged);
-    Q_PROPERTY(Style* warning READ getWarning WRITE setWarning NOTIFY warningChanged);
-    Q_PROPERTY(Style* error READ getError WRITE setError NOTIFY errorWarning);
 
 public:
     Map(QObject* parent=nullptr);
 
-    ::highlight::Style* getSymbol() const;
-    void setSymbol(::highlight::Style* newStyle);
-
-    ::highlight::Style* getComment() const;
-    void setComment(::highlight::Style* newStyle);
-
-    ::highlight::Style* getMnemonic() const;
-    void setMnemonic(::highlight::Style* newStyle);
-
-    ::highlight::Style* getDot() const;
-    void setDot(::highlight::Style* newStyle);
-
-    ::highlight::Style* getQuoted() const;
-    void setQuoted(::highlight::Style* newStyle);
-
-    ::highlight::Style* getWarning() const;
-    void setWarning(::highlight::Style* newStyle);
-
-    ::highlight::Style* getError() const;
-    void setError(::highlight::Style* newStyle);
-
-    ::highlight::Style* getStyle(Types type) const;
-    // returns true if style was changed.
-    bool setStyle(Types type, ::highlight::Style* newStyle);
+    Q_INVOKABLE void clear();
+    Q_INVOKABLE ::highlight::Style* getStyle(Types type) const;
+    // returns true if style was changed
+    Q_INVOKABLE bool setStyle(Types type, ::highlight::Style* newStyle);
 
 signals:
-    void symbolChanged();
-    void commentChanged();
-    void mnemonicChanged();
-    void dotChanged();
-    void quotedChanged();
-    void warningChanged();
-    void errorChanged();
+    void styleChanged();
 
 private:
     QMap<Types, ::highlight::Style*> _styles={};

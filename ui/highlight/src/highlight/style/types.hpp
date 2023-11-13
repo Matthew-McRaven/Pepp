@@ -21,13 +21,21 @@
 #include "../highlight_globals.hpp"
 namespace highlight::style {
 enum Types {
-    Symbol,
-    Comment,
+    // Shared between C/C++/Assembly
+    Comment=-1,
+    Quoted=-2,
+    Warning=-3,
+    Error=-4,
+    // Assembly-only types
+    Symbol=0,
     Mnemonic,
     Dot,
-    Quoted,
-    Warning,
-    Error,
+    // C/C++-only types
+    FunctionDec,
+    Typename,
+    Keyword,
+    OtherKeyword,
+    Class,
 };
 
 // used to expose our style types into a QML singleton.

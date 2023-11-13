@@ -62,13 +62,12 @@ QList<highlight::Rule> highlight::rules_pep9_asm()
     auto directive_re = QRegularExpression(directives_list.join("|"), QRegularExpression::PatternOption::CaseInsensitiveOption);
     rules.append({directive_re, style::Types::Dot});
 
-
-
     rules.append(Rule{.pattern=comment_re, .style=style::Types::Comment, .reset=1});
     rules.append(Rule{.pattern=warning_re, .style=style::Types::Warning, .reset=1});
     rules.append(Rule{.pattern=error_re, .style=style::Types::Error, .reset=1});
     rules.append(Rule{single_quote_re, style::Types::Quoted});
     rules.append(Rule{double_quote_re, style::Types::Quoted});
+
     return rules;
 }
 
@@ -102,7 +101,6 @@ QList<highlight::Rule> highlight::rules_pep10_asm()
     rules.append(Rule{.pattern=error_re, .style=style::Types::Error, .reset=1});
     rules.append(Rule{single_quote_re, style::Types::Quoted});
     rules.append(Rule{double_quote_re, style::Types::Quoted});
-
 
     return rules;
 }

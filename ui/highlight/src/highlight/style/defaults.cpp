@@ -31,29 +31,33 @@ void Defaults::pep10_asm(highlight::style::Map * styles)
     mnemonic->setColor(QColor("lightsteelblue"));
     mnemonic->setWeight(QFont::Weight::Bold);
     mnemonic->setItalics(false);
-    styles->setMnemonic(mnemonic);
+    styles->setStyle(Types::Mnemonic, mnemonic);
 
     Style* dot = new Style(styles);
     dot->setColor(QColor("lightsteelblue"));
     dot->setItalics(true);
-    styles->setDot(dot);
+    styles->setStyle(Types::Dot, dot);
 
     Style* symbol = new Style(styles);
     symbol->setColor(QColor(Qt::red).lighter());
     symbol->setWeight(QFont::Weight::Bold);
-    styles->setSymbol(symbol);
+    styles->setStyle(Types::Symbol, symbol);
 
     Style* comment = new Style(styles);
     comment->setColor(QColor(Qt::green).lighter());
-    styles->setComment(comment);
+    styles->setStyle(Types::Comment, comment);
+
+    Style* quote = new Style(styles);
+    quote->setColor(QColor("orangered"));
+    styles->setStyle(Types::Quoted, quote);
 
     Style* warning = new Style(styles);
     warning->setBackground(QColor("lightsteelblue"));
-    styles->setWarning(warning);
+    styles->setStyle(Types::Warning, warning);
 
     Style* error = new Style(styles);
-    error->setColor(QColor("orangered"));
-    styles->setError(error);
+    error->setBackground(QColor("orangered"));
+    styles->setStyle(Types::Error, error);
 
 }
 Q_DECLARE_METATYPE(Defaults)

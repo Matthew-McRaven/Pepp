@@ -23,77 +23,15 @@ highlight::style::Map::Map(QObject *parent): QObject(parent)
 {
 }
 
-::highlight::Style* highlight::style::Map::getSymbol() const
+void highlight::style::Map::clear()
 {
-    return _styles[Types::Symbol];
+    auto& container = _styles;
+    for(auto _style : container) delete _style;
+    _styles.clear();
+    emit styleChanged();
 }
 
-void highlight::style::Map::setSymbol(::highlight::Style* newStyle)
-{
-    if(setStyle(Types::Symbol, newStyle)) emit symbolChanged();
-}
-
-::highlight::Style* highlight::style::Map::getComment() const
-{
-    return _styles[Types::Comment];
-}
-
-void highlight::style::Map::setComment(::highlight::Style *newStyle)
-{
-    if(setStyle(Types::Comment, newStyle)) emit commentChanged();
-}
-
-::highlight::Style* highlight::style::Map::getMnemonic() const
-{
-    return _styles[Types::Mnemonic];
-}
-
-void highlight::style::Map::setMnemonic(::highlight::Style *newStyle)
-{
-    if(setStyle(Types::Mnemonic, newStyle)) emit mnemonicChanged();
-}
-
-::highlight::Style* highlight::style::Map::getDot() const
-{
-    return _styles[Types::Dot];
-}
-
-void highlight::style::Map::setDot(::highlight::Style *newStyle)
-{
-    if(setStyle(Types::Dot, newStyle)) emit dotChanged();
-}
-
-::highlight::Style* highlight::style::Map::getQuoted() const
-{
-    return _styles[Types::Quoted];
-}
-
-void highlight::style::Map::setQuoted(::highlight::Style *newStyle)
-{
-    if(setStyle(Types::Quoted, newStyle)) emit quotedChanged();
-}
-
-highlight::Style *highlight::style::Map::getWarning() const
-{
-    return _styles[Types::Warning];
-}
-
-void highlight::style::Map::setWarning(Style *newStyle)
-{
-    if(setStyle(Types::Warning, newStyle)) emit quotedChanged();
-}
-
-highlight::Style *highlight::style::Map::getError() const
-{
-    return _styles[Types::Error];
-}
-
-void highlight::style::Map::setError(Style *newStyle)
-{
-    if(setStyle(Types::Error, newStyle)) emit quotedChanged();
-}
-
-::highlight::Style *highlight::style::Map::getStyle(Types type) const
+highlight::Style *highlight::style::Map::getStyle(Types type) const
 {
     return _styles[type];
 }
@@ -112,6 +50,7 @@ bool highlight::style::Map::setStyle(highlight::style::Types key, ::highlight::S
     // and the remove its parent to prevent a double-free.
     QQmlEngine::setObjectOwnership(newStyle, QQmlEngine::CppOwnership);
     newStyle->setParent(nullptr);
+    emit styleChanged();
     return true;
 }
 
