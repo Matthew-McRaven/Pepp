@@ -30,6 +30,7 @@ void addBookItems(QStandardItem *parent,
         // the model. Therefore, we can use the data() safely.
         figureItem->setData(QVariant::fromValue(figure.data()),
                             builtins::FigureConstants::FIG_ROLE_PAYLOAD);
+        figureItem->setData(book->name(), builtins::FigureConstants::FIG_ROLE_EDITION);
         parent->appendRow(figureItem);
     }
 }
@@ -44,6 +45,7 @@ builtins::BookModel::BookModel(QSharedPointer<Registry> registry)
 
         // Mark the item as being a book
         bookItem->setData("book", builtins::FigureConstants::FIG_ROLE_KIND);
+        bookItem->setData(book->name(), builtins::FigureConstants::FIG_ROLE_EDITION);
         // Registry is read-only, and BookModel keeps it alive for the lifetime of
         // the model. Therefore, we can use the data() safely.
         auto list = QList<builtins::Figure *>();
@@ -62,5 +64,6 @@ QHash<int, QByteArray> builtins::BookModel::roleNames() const {
     // Add our custom roles, so that the can be accessed by name in QML
     roles[builtins::FigureConstants::FIG_ROLE_KIND] = "kind";
     roles[builtins::FigureConstants::FIG_ROLE_PAYLOAD] = "payload";
+    roles[builtins::FigureConstants::FIG_ROLE_EDITION] = "edition";
     return roles;
 }

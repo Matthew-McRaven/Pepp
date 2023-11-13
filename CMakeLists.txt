@@ -204,6 +204,7 @@ if(ONLY STREQUAL "BUILD")
   set(CMAKE_WINDOWS_EXPORT_ALL_SYMBOLS ON)
   include(config/cmake/create_targets.cmake)
   add_subdirectory(logic)
+  add_subdirectory(ui)
   add_subdirectory(bin)
 
   # Needed to genrate documentation

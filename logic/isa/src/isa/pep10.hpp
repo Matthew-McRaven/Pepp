@@ -342,6 +342,7 @@ struct ISA_EXPORT Pep10 {
   static bool canElideAddressingMode(Mnemonic mnemonic, AddressingMode addr);
   constexpr static std::array<Opcode, 256> opcodeLUT =
       detail::pep10::initOpcodes();
+  static QSet<QString> legalDirectives();
   static bool isLegalDirective(QString directive);
 };
 } // namespace isa

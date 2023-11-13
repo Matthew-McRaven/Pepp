@@ -19,6 +19,8 @@ import QtQuick
 import QtQuick.Window
 import QtQuick.Controls
 
+import edu.pepp 1.0
+
 Window {
   id: window
   width: 640
@@ -43,12 +45,13 @@ Window {
         } else {
           mainWindow.source = ""
           mainWindow.source = "Figure.qml"
+
           //figCol.help( drawer.selected.display,drawer.selected.payload );
         }
       }
     )
   }
-
+  signal switchedToFigure(TextEdit area)
   Rectangle {
     id: mainLoader
     anchors.fill: parent
@@ -101,6 +104,7 @@ Window {
           required property var payload
           required property var kind
           required property var display
+          required property var edition
 
           TapHandler {
             onTapped: {
@@ -110,10 +114,10 @@ Window {
               } else {
                 drawer.selected = {
                   //kind,payload
-                  display, payload
+                  display, payload, edition
                 }
                 //let d = drawer.selected
-                //console.log(drawer.selected)
+                //console.log(Object.keys(drawer.selected))
               }
             }
           }

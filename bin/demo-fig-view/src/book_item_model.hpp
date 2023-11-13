@@ -53,6 +53,8 @@ public:
    * QVariantList of \sa builtins::Figure.
    */
     SHARED_CONSTANT(quint32, FIG_ROLE_PAYLOAD, Qt::UserRole + 2);
+
+    SHARED_CONSTANT(quint32, FIG_ROLE_EDITION, Qt::UserRole + 3);
 };
 
 class Registry;

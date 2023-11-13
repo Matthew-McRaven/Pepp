@@ -1,24 +1,40 @@
 import QtQuick
 import QtQuick.Controls
 import QtQuick.Layouts
-
+import edu.pepp 1.0
 Item {
+
+
+  property alias text_area:  figContent
+
 
   //required property var model
 
   ColumnLayout {
     id: figCol
 
+    Highlighter {
+        id: highlighter
+    }
+    StyleMap {
+        id: styles
+    }
     property string copyTitle: "5.7"
     property string copyContent: "This is some very long text used to test wrapping inside text control."
     property var payload
     property string listing: "Pep/10 is a virtual machine for writing machine language and assemply language programs"
     property bool copyToSource: true
-
+    signal typeChange(string type)
     //  Set page contents based on parent selected values
     Component.onCompleted: {
+      DefaultStyles.pep10_asm(styles)
+      DefaultStyles.c(styles)
+      highlighter.set_styles(styles)
+      highlighter.set_document(figContent.textDocument)
+
       copyTitle = drawer.selected.display;
       let payload = drawer.selected.payload;
+      let edition = drawer.selected.edition;
 
       copyToSource = ( payload.chapterName !== "04");
 
@@ -33,6 +49,7 @@ Item {
       let lang = Object.keys(payload.elements)[0]
       figCol.listing = payload.elements[lang].content
       figType.currentIndex = 0;
+      highlighter.set_highlighter(edition, lang)
     }
 
     spacing: 10
@@ -126,9 +143,44 @@ Item {
       Layout.alignment: Qt.AlignCenter
       Layout.fillHeight: true;
       Layout.fillWidth: true
+      Component.onCompleted: {
+          console.log(figContent)
+          finder.set_document(figContent.textDocument)
+          lineNumbers.update()
+      }
 
+      BlockFinder {
+          id: finder
+      }
+
+      LineNumbers {
+          id: lineNumbers
+          height: parent.height // Ensure that line numbering area spans entire text area.
+          width: 40
+      }
       TextArea {
         id: figContent
+        function update() {
+            lineNumbers.lineCount = lineCount
+            // font metrics lies about height, because it does not include intra-line padding.
+            // instead, math out from content height the line height.
+            // lineNumbers.lineHeight = metrics.height
+            lineNumbers.lineHeight = contentHeight / lineCount
+            // Use my C++ helper code to determine line number from cursors integer.
+            lineNumbers.cursorPosition = finder.find_pos(cursorPosition)
+            lineNumbers.selectionStart = finder.find_pos(selectionStart)
+            lineNumbers.selectionEnd = finder.find_pos(selectionEnd)
+            lineNumbers.update()  // Graphics area will never update without requesting it.
+        }
+
+        // Anchor otherwise line numbers overlap text edit.
+        anchors.left: lineNumbers.right
+
+        onLineCountChanged: update()
+        onHeightChanged: update()
+        onCursorPositionChanged: update()
+
+        onSelectedTextChanged: update()
 
         font.family: "Courier New"
 
