@@ -30,6 +30,8 @@ class HIGHLIGHT_EXPORT Map : public QObject{
     Q_PROPERTY(Style* mnemonic READ getMnemonic WRITE setMnemonic NOTIFY mnemonicChanged);
     Q_PROPERTY(Style* dot READ getDot WRITE setDot NOTIFY dotChanged);
     Q_PROPERTY(Style* quoted READ getQuoted WRITE setQuoted NOTIFY quotedChanged);
+    Q_PROPERTY(Style* warning READ getWarning WRITE setWarning NOTIFY warningChanged);
+    Q_PROPERTY(Style* error READ getError WRITE setError NOTIFY errorWarning);
 
 public:
     Map(QObject* parent=nullptr);
@@ -49,15 +51,24 @@ public:
     ::highlight::Style* getQuoted() const;
     void setQuoted(::highlight::Style* newStyle);
 
+    ::highlight::Style* getWarning() const;
+    void setWarning(::highlight::Style* newStyle);
+
+    ::highlight::Style* getError() const;
+    void setError(::highlight::Style* newStyle);
+
     ::highlight::Style* getStyle(Types type) const;
     // returns true if style was changed.
     bool setStyle(Types type, ::highlight::Style* newStyle);
+
 signals:
     void symbolChanged();
     void commentChanged();
     void mnemonicChanged();
     void dotChanged();
     void quotedChanged();
+    void warningChanged();
+    void errorChanged();
 
 private:
     QMap<Types, ::highlight::Style*> _styles={};

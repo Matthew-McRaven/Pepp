@@ -47,6 +47,13 @@ void Defaults::pep10_asm(highlight::style::Map * styles)
     comment->setColor(QColor(Qt::green).lighter());
     styles->setComment(comment);
 
-    styles->setQuoted(comment);
+    Style* warning = new Style(styles);
+    warning->setBackground(QColor("lightsteelblue"));
+    styles->setWarning(warning);
+
+    Style* error = new Style(styles);
+    error->setColor(QColor("orangered"));
+    styles->setError(error);
+
 }
 Q_DECLARE_METATYPE(Defaults)

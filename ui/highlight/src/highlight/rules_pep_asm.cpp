@@ -34,6 +34,10 @@ const auto single_quote_re = QRegularExpression(single_quote_str, QRegularExpres
 static const auto double_quote_str="((\")((([^\"|\\\\])|((\\\\)([\'|b|f|n|r|t|v|\"|\\\\]))|((\\\\)(([x|X])([0-9|A-F|a-f]{2}))))*)(\"))";
 const auto double_quote_re = QRegularExpression(double_quote_str, QRegularExpression::PatternOption::CaseInsensitiveOption);
 
+const auto warning_re = QRegularExpression(";WARNING:[\\s].*$", QRegularExpression::PatternOption::CaseInsensitiveOption);
+
+const auto error_re = QRegularExpression(";ERROR:[\\s].*$", QRegularExpression::PatternOption::CaseInsensitiveOption);
+
 QList<highlight::Rule> highlight::rules_pep9_asm()
 {
     // For all highlighting rules, set the case sensitivity now.
@@ -61,6 +65,8 @@ QList<highlight::Rule> highlight::rules_pep9_asm()
 
 
     rules.append(Rule{.pattern=comment_re, .style=style::Types::Comment, .reset=1});
+    rules.append(Rule{.pattern=warning_re, .style=style::Types::Warning, .reset=1});
+    rules.append(Rule{.pattern=error_re, .style=style::Types::Error, .reset=1});
     rules.append(Rule{single_quote_re, style::Types::Quoted});
     rules.append(Rule{double_quote_re, style::Types::Quoted});
     return rules;
@@ -92,8 +98,12 @@ QList<highlight::Rule> highlight::rules_pep10_asm()
 
     rules.append({QRegularExpression(u"@"_qs+identifier_str+"\\b", QRegularExpression::PatternOption::CaseInsensitiveOption), style::Types::Dot});    
     rules.append(Rule{.pattern=comment_re, .style=style::Types::Symbol, .reset=1});
+    rules.append(Rule{.pattern=warning_re, .style=style::Types::Warning, .reset=1});
+    rules.append(Rule{.pattern=error_re, .style=style::Types::Error, .reset=1});
     rules.append(Rule{single_quote_re, style::Types::Quoted});
     rules.append(Rule{double_quote_re, style::Types::Quoted});
+
+
     return rules;
 }
 

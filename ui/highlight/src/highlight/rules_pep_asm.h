@@ -19,6 +19,8 @@
 #include "rules.hpp"
 
 namespace highlight {
+// Subsumes __old/pep9highlighter.cpp; See: babb87b6df834d75cfc133a36a4c19e931064079
 QList<Rule> rules_pep9_asm();
+// Builds on __old/pep9highlighter.cpp; See: babb87b6df834d75cfc133a36a4c19e931064079
 QList<Rule> rules_pep10_asm();
 }

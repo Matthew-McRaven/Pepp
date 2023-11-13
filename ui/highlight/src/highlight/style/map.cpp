@@ -73,10 +73,31 @@ void highlight::style::Map::setQuoted(::highlight::Style *newStyle)
     if(setStyle(Types::Quoted, newStyle)) emit quotedChanged();
 }
 
+highlight::Style *highlight::style::Map::getWarning() const
+{
+    return _styles[Types::Warning];
+}
+
+void highlight::style::Map::setWarning(Style *newStyle)
+{
+    if(setStyle(Types::Warning, newStyle)) emit quotedChanged();
+}
+
+highlight::Style *highlight::style::Map::getError() const
+{
+    return _styles[Types::Error];
+}
+
+void highlight::style::Map::setError(Style *newStyle)
+{
+    if(setStyle(Types::Error, newStyle)) emit quotedChanged();
+}
+
 ::highlight::Style *highlight::style::Map::getStyle(Types type) const
 {
     return _styles[type];
 }
+
 
 bool highlight::style::Map::setStyle(highlight::style::Types key, ::highlight::Style *newStyle)
 {
@@ -93,5 +114,6 @@ bool highlight::style::Map::setStyle(highlight::style::Types key, ::highlight::S
     newStyle->setParent(nullptr);
     return true;
 }
+
 
 Q_DECLARE_METATYPE(highlight::style::Map*)

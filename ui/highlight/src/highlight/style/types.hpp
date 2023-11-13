@@ -25,7 +25,9 @@ enum Types {
     Comment,
     Mnemonic,
     Dot,
-    Quoted
+    Quoted,
+    Warning,
+    Error,
 };
 
 // used to expose our style types into a QML singleton.
