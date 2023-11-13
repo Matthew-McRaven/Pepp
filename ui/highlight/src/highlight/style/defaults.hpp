@@ -28,5 +28,6 @@ class HIGHLIGHT_EXPORT Defaults : public QObject {
 public:
     Defaults();
     Q_INVOKABLE void pep10_asm(highlight::style::Map* styles);
+    Q_INVOKABLE void c(highlight::style::Map* styles);
 };
 }

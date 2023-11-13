@@ -12,23 +12,30 @@ QList<highlight::Rule> highlight::rules_c()
 {
     QList<highlight::Rule> rules;
 
-    auto lvalue_re = QRegularExpression("\\b[A-Za-z0-9_]+(?=[\\s]*\\()", QRegularExpression::PatternOption::CaseInsensitiveOption);
-    rules.append({lvalue_re, style::Types::Mnemonic});
+    auto function_re = QRegularExpression("\\b[A-Za-z0-9_]+(?=[\\s]*\\()", QRegularExpression::PatternOption::CaseInsensitiveOption);
+    rules.append({function_re, style::Types::FunctionDec});
 
-    QStringList declarationPatterns;
-    declarationPatterns << "\\bbool\\b" << "\\bchar\\b" << "\\bconst\\b" << "\\bcase\\b"
-    << "\\benum\\b" << "\\bint\\b" << "\\bnamespace\\b" << "\\bstruct\\b"
-    << "\\busing\\b" << "\\#include\\b" << "\\bvoid\\b";
-    for (const QString &pattern : declarationPatterns) {
-        auto re = QRegularExpression(pattern, QRegularExpression::PatternOption::CaseInsensitiveOption);
-        rules.append({re, style::Types::Dot});
-    }
+    QStringList typesKeywordPatterns;
+    typesKeywordPatterns << "\\bbool\\b" << "\\bchar\\b" << "\\bconst\\b" << "\\bcase\\b"
+                        << "\\benum\\b" << "\\bint\\b" << "\\bnamespace\\b" << "\\bstruct\\b"
+                        << "\\busing\\b" << "\\#include\\b" << "\\bvoid\\b";
+    auto declaration_re = QRegularExpression(typesKeywordPatterns.join("|"), QRegularExpression::PatternOption::CaseInsensitiveOption);
+    rules.append({declaration_re, style::Types::OtherKeyword});
 
-    rules.append(Rule{QRegularExpression("/\\*"), style::Types::Quoted, 0, 1});
-    rules.append(Rule{QRegularExpression("\\*/"), style::Types::Quoted, 1, 0});
-    rules.append(Rule{QRegularExpression(".*"), style::Types::Quoted, 1, 1});
-    rules.append(Rule{QRegularExpression("//.*$"), style::Types::Quoted});
-    rules.append(Rule{single_quote_re, style::Types::Quoted});
+    QStringList keywordPatterns;
+    keywordPatterns << "\\bwhile\\b" << "\\bfor\\b" << "\\bswitch\\b"
+                    << "\\bif\\b" << "\\bdo\\b" << "\\bmalloc\\b"
+                    << "\\breturn\\b" << "\\belse\\b";
+    auto keyword_re = QRegularExpression(keywordPatterns.join("|"), QRegularExpression::PatternOption::CaseInsensitiveOption);
+    rules.append({declaration_re, style::Types::Keyword});
+
+    auto class_re = QRegularExpression("\\bQ[A-Za-z]+\\b", QRegularExpression::PatternOption::CaseInsensitiveOption);
+    rules.append({class_re, style::Types::FunctionDec});
+
+    rules.append(Rule{QRegularExpression("/\\*"), style::Types::Comment, 0, 1, 1});
+    rules.append(Rule{QRegularExpression("\\*/"), style::Types::Comment, 1, 0, 1});
+    rules.append(Rule{QRegularExpression(".*"), style::Types::Comment, 1, 1, 1});
+    rules.append(Rule{QRegularExpression("//.*$"), style::Types::Comment, 0, 0, 1});
     rules.append(Rule{single_quote_re, style::Types::Quoted});
     rules.append(Rule{double_quote_re, style::Types::Quoted});
 

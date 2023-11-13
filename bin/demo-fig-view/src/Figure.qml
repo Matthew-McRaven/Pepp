@@ -28,6 +28,7 @@ Item {
     //  Set page contents based on parent selected values
     Component.onCompleted: {
       DefaultStyles.pep10_asm(styles)
+      DefaultStyles.c(styles)
       highlighter.set_styles(styles)
       highlighter.set_document(figContent.textDocument)
 

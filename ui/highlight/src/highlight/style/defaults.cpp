@@ -58,6 +58,39 @@ void Defaults::pep10_asm(highlight::style::Map * styles)
     Style* error = new Style(styles);
     error->setBackground(QColor("orangered"));
     styles->setStyle(Types::Error, error);
+}
 
+void Defaults::c(Map *styles)
+{
+    // new will not leak here, since objects get convert to smart ptr inside Styles.
+    using ::highlight::Style;
+
+    Style* function = new Style(styles);
+    function->setColor(QColor(Qt::red).lighter());
+    function->setWeight(QFont::Weight::Bold);
+    styles->setStyle(Types::FunctionDec, function);
+
+    Style* decl = new Style(styles);
+    decl->setColor(QColor("lightsteelblue"));
+    decl->setItalics(true);
+    styles->setStyle(Types::OtherKeyword, decl);
+
+    Style* keywords = new Style(styles);
+    keywords->setColor(QColor("lightsteelblue"));
+    keywords->setWeight(QFont::Weight::Bold);
+    styles->setStyle(Types::Keyword, keywords);
+
+    Style* _class = new Style(styles);
+    _class->setColor(QColor(Qt::red).lighter());
+    _class->setWeight(QFont::Weight::Bold);
+    styles->setStyle(Types::Class, _class);
+
+    Style* comment = new Style(styles);
+    comment->setColor(QColor(Qt::green).lighter());
+    styles->setStyle(Types::Comment, comment);
+
+    Style* quote = new Style(styles);
+    quote->setColor("orangered");
+    styles->setStyle(Types::Quoted, quote);
 }
 Q_DECLARE_METATYPE(Defaults)
