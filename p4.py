@@ -16,15 +16,16 @@ class Stack:
 		return ret
 	def dump(self):
 		self.VM.dump(self.sp, self.bsp)
+		
 def write_u8(VM, address, value): VM.memory[address] = 255 & value
 def write_u16(VM, address, value):
-	bytes = value.to_bytes(2, "little")
+	bytes = value.to_bytes(2, "little", signed=True if value <0 else False)
 	VM.memory[address:address+2]=bytes
 def read_u8(VM, address):
 	return int.from_bytes(VM.memory[address:address+1],"little")
 def read_u16(VM, address):
 	return int.from_bytes(VM.memory[address:address+2],"little")
-	
+
 def addDictEntry(VM, name, tokens):
 	newTail = VM.here
 	# u16 -- link
@@ -59,6 +60,8 @@ class vm (object):
 		self.dictTail = 0
 		# Address of next available byte in dictionary memory.
 		self.here = 0
+		# Pointer to "next" word to execute, pointer to interpreter.
+		self.currentWord, self.nextWord = 0, 0
 	
 	# Negative token numbers are native, positive token numbers are FORTH
 	def nativeWord(self, name, call):
@@ -76,33 +79,44 @@ class vm (object):
 		# Need to catch Stack exceptions (underflow, overflow, etc)
 		
 	def dump(self, lo, hi):
-		print(lo, hi)
 		print(str(binascii.hexlify(self.memory[lo:hi])))
 		
-def docol(VM): pass
+def next(VM):
+	VM.currentWord = VM.nextWord
+	VM.nextWord += 2
+			
+def docol(VM): 
+	VM.rStack.push(VM.current)
+	VM.currentWord = vm.nextWord + 2
+	next(VM)
 	
 def dup(VM):
 	top_2 = VM.pStack.pop(2)
 	VM.pStack.push(top_2)
 	VM.pStack.push(top_2)
+	next(VM)
 
 def plus_i16(VM):
 	lhs = int.from_bytes(VM.pStack.pop(2), "little", signed=True)
 	rhs = int.from_bytes(VM.pStack.pop(2), "little", signed=True)
 	VM.pStack.push((rhs+lhs).to_bytes(2, "little"))
+	next(VM)
 	
 def wd_tail(VM):
 	VM.pStack.push(VM.dictTail.from_bytes(2, "little"))
+	next(VM)
 	
 def dot(VM):
 	v = VM.pStack.pop(2)
 	print(hex(int.from_bytes(v, "little")))
+	next(VM)
 	
 # ( addr -- value) # Dereference a pointer
 def _q(VM):
 	addr  = int.from_bytes(VM.pStack.pop(2), "little")
 	value = read_u16(VM, addr)
 	VM.pStack.push(value.to_bytes(2, "little"))
+	next(VM)
 		
 # ( addr -- ) # Prints a null terminated string starting at address
 def printstr(VM):
@@ -111,27 +125,35 @@ def printstr(VM):
 	while (ch:=read_u8(VM, addr))  != 0: 
 		print(chr(ch), end="")
 		addr += 1
-
+	next(VM)
+	
+def exit(VM):
+	VM.esi = int.from_bytes(VM.rStack.pop(2), "little")
+	
 def bootstrap(VM):
 	VM.pStack.push([6, 7])
 	VM.nativeWord("CR", lambda: print())
 	VM.dump(3, 20)
+	token_docol = VM.nativeWord("docol", _f.partial(docol, VM))
 	token_plus_i16 = VM.nativeWord("+", _f.partial(plus_i16, VM))
 	token_dot = VM.nativeWord(".", _f.partial(dot, VM))
 	token_q = VM.nativeWord("?", _f.partial(_q, VM))
 	token_dup = VM.nativeWord("DUP", _f.partial(dup, VM))
 	token_printstr = VM.nativeWord("prntstr", _f.partial(printstr, VM))
 	token_dictTail = VM.nativeWord("wd.tail", _f.partial(wd_tail, VM))
+	
 	#VM.intWord("wde.link", ["HEXPRINT"])
 	#VM.intWord("wde.name", ["3", "+", "prntstr"])
 	# Need to know code len first.
 	#VM.intWord("wde.code", [""])
 	#VM.intWord("wde.dump", ["DUP", "wde.link", "DUP", "wde.name"])
 	VM.pStack.push([0x04, 0x00])
-	VM.execute(token_dup)
-	VM.execute(token_q)
-	VM.execute(token_dot)
-	VM.execute(token_printstr)
+	token_exc = VM.intWord("doAll", [token_dup, token_q, token_dot, token_printstr, token_halt])
+	VM.run(token_exc)
+	#VM.execute(token_dup)
+	#VM.execute(token_q)
+	#VM.execute(token_dot)
+	#VM.execute(token_printstr)
 	VM.execute(token_dup)
 	VM.execute(token_plus_i16)
 	VM.execute(token_dot)
