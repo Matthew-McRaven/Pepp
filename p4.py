@@ -2,14 +2,17 @@ import enum
 import binascii
 
 class Stack:
-	def __init__(self, VM, bsp):
+	def __init__(self, VM, bsp, limit=lambda: 0):
 		self.VM = VM
 		self.bsp = self.sp = bsp
+		self.limit = limit
 	def push(self, bytes): 
+		if self.limit()>self.sp+len(bytes): raise Exception("Stack Overflow")
 		for byte in bytes[::-1]:
 			self.sp -= 1
 			self.VM.memory[self.sp] = byte
 	def pop(self, count):
+		if self.bsp<self.sp+count: raise Exception("Stack Underflow") 
 		ret = self.VM.memory[self.sp:self.sp+count]
 		self.VM.memory[self.sp:self.sp+count]=[0]*count
 		self.sp += count
@@ -97,8 +100,8 @@ class vm (object):
 	def __init__(self):
 		self.memory = bytearray(256)
 		#0..128 is for dict and return stack, 128...224 is param stack, with lower addresses being PAD.
-		self.rStack = Stack(self, 200)
-		self.pStack = Stack(self, 240)
+		self.rStack = Stack(self, 200, lambda: self.here)
+		self.pStack = Stack(self, 240, lambda: self.rStack.sp)
 		self.words = []
 		# Address of "previous"  dictionary entry
 		self.dictTail = 0
