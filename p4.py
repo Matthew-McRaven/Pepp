@@ -121,17 +121,15 @@ class vm (object):
 	def intWord(self, name, tokens):
 		return addDictEntry(self, name, tokens)
 		
-	def execute(self, token):
-		word = self.words[-token-1]
+	def step(self):
+		cwa_exec = read_u16(self, self.currentWord)
+		token_exec = read_i16(self, cwa_exec)
+		#print(f"CWA is 0x{as_hex(self.currentWord)}, word to execute is [{as_hex(cwa_exec)}]={token_exec}")
+		word = self.words[-token_exec-1]
 		word(self)
-		# Need to catch Stack exceptions (underflow, overflow, etc)
 		
 	def run(self):
-		while self.alive:
-			cwa_exec = read_u16(self, self.currentWord)
-			token_exec = read_i16(self, cwa_exec)
-			#print(f"CWA is 0x{as_hex(self.currentWord)}, word to execute is [{as_hex(cwa_exec)}]={token_exec}")
-			self.execute(token_exec)
+		while self.alive: self.step()
 		
 	def dump(self, lo, hi):
 		print(str(binascii.hexlify(self.memory[lo:hi])))
