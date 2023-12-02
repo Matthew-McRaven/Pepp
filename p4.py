@@ -1,4 +1,4 @@
-import functools as _f
+import enum
 import binascii
 
 class Stack:
@@ -27,14 +27,21 @@ def read_u16(VM, address):
 	return int.from_bytes(VM.memory[address:address+2],"big")
 def read_i16(VM, address):
 	return int.from_bytes(VM.memory[address:address+2],"big", signed=True)
-	
-def addDictEntry(VM, name, tokens):
+
+class DictFlags(enum.IntEnum):
+	IMMEDIATE = 0x80
+	HIDDEN = 0x20
+	LEN = 0x1f
+		
+def addDictEntry(VM, name, tokens, immediate=False, hidden=False):
 	newTail = VM.here
 	# u16 -- link
 	write_u16(VM, VM.here, VM.dictTail); VM.here+=2
 	VM.dictTail = newTail
 	# u8 -- flags
-	write_u8(VM, VM.here, len(tokens)); VM.here += 1
+	write_u8(VM, VM.here, (DictFlags.IMMEDIATE if immediate else 0)
+		| (DictFlags.HIDDEN if hidden else 0)
+		| len(tokens) & DictFlags.LEN); VM.here += 1
 	# ?? I would like to encode length of block so I can dump code!!
 	# u8 -- length of name.
 	write_u8(VM, VM.here, len(name)); VM.here += 1
@@ -58,7 +65,7 @@ def getDictEntry(VM, dictTail):
 	ret = {}
 	ret["link"] = read_u16(VM, dictTail); dictTail += 2
 	ret["flag"] = read_u8(VM, dictTail); dictTail += 1
-	ret["len"] = read_u8(VM, dictTail); dictTail += 1
+	ret["len"] = read_u8(VM, dictTail) & DictFlags.LEN; dictTail += 1
 	ret["str"] = dictTail
 	# Add 2 and mask out low bit to get actual length of string
 	# EVEN: 2 => 4 => 4, which is right because we pad evens with 2 nulls
