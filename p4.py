@@ -213,7 +213,13 @@ def plus3(VM):
 def cr(VM):
 	print()
 	next(VM)
-		
+def literal(VM):
+	print(VM.currentWord, VM.nextWord)
+	number = read_i16(VM, VM.nextWord)
+	VM.pStack.push(number.to_bytes(2, "big", signed=True))
+	VM.nextWord += 2
+	next(VM)
+			
 def bootstrap(VM):
 	VM.pStack.push([6, 7])
 	(cwa_cr, _) = VM.nativeWord("CR", cr)
@@ -227,6 +233,7 @@ def bootstrap(VM):
 	(cwa_dictTail, _) = VM.nativeWord("wd.tail", wd_tail)
 	(cwa_halt, _) = VM.nativeWord("HALT", halt)
 	(cwa_plus3, _) = VM.nativeWord("3+", plus3)
+	(cwa_literal, _) = VM.nativeWord("LITERAL", literal)
 	
 	cwa_wdelink = VM.intWord("wde.link", [token_docol, cwa_q, cwa_dot, cwa_exit])
 	cwa_wdename = VM.intWord("wde.name", [token_docol, cwa_plus3, cwa_printstr, cwa_exit])
@@ -234,7 +241,8 @@ def bootstrap(VM):
 	#VM.intWord("wde.code", [""])
 	#VM.intWord("wde.dump", ["DUP", "wde.link", "DUP", "wde.name"])
 	VM.pStack.push([0x04, 0x00])
-	tokens = [cwa_dictTail, cwa_dup, cwa_wdelink, cwa_dup, cwa_wdename, cwa_halt]
+	#tokens = [cwa_dictTail, cwa_dup, cwa_wdelink, cwa_dup, cwa_wdename, cwa_halt]
+	tokens = [cwa_literal, 0xFEED, cwa_dot, cwa_halt]
 	token_exc = VM.intWord("doAll", tokens)#token_q, token_dot, token_printstr, token_halt])
 	dumpDict(VM)
 	
