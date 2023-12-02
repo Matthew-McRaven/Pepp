@@ -113,8 +113,9 @@ class vm (object):
 		
 	def execute(self, token):
 		word = self.words[-token-1]
-		word()
+		word(self)
 		# Need to catch Stack exceptions (underflow, overflow, etc)
+		
 	def run(self):
 		while self.alive:
 			cwa_exec = read_u16(self, self.currentWord)
@@ -207,17 +208,17 @@ def cr(VM):
 		
 def bootstrap(VM):
 	VM.pStack.push([6, 7])
-	(cwa_cr, _) = VM.nativeWord("CR", _f.partial(cr, VM))
-	(cwa_docol, token_docol) = VM.nativeWord("docol", _f.partial(docol, VM))
-	(cwa_plus_i16, _) = VM.nativeWord("+", _f.partial(plus_i16, VM))
-	(cwa_dot, _) = VM.nativeWord(".", _f.partial(dot, VM))
-	(cwa_q, _) = VM.nativeWord("?", _f.partial(_q, VM))
-	(cwa_exit, _) = VM.nativeWord("EXIT", _f.partial(exit, VM))
-	(cwa_dup, _) = VM.nativeWord("DUP", _f.partial(dup, VM))
-	(cwa_printstr, _) = VM.nativeWord("prntstr", _f.partial(printstr, VM))
-	(cwa_dictTail, _) = VM.nativeWord("wd.tail", _f.partial(wd_tail, VM))
-	(cwa_halt, _) = VM.nativeWord("HALT", _f.partial(halt, VM))
-	(cwa_plus3, _) = VM.nativeWord("3+", _f.partial(plus3, VM))
+	(cwa_cr, _) = VM.nativeWord("CR", cr)
+	(cwa_docol, token_docol) = VM.nativeWord("docol", docol)
+	(cwa_plus_i16, _) = VM.nativeWord("+", plus_i16)
+	(cwa_dot, _) = VM.nativeWord(".", dot)
+	(cwa_q, _) = VM.nativeWord("?", _q)
+	(cwa_exit, _) = VM.nativeWord("EXIT", exit)
+	(cwa_dup, _) = VM.nativeWord("DUP", dup)
+	(cwa_printstr, _) = VM.nativeWord("prntstr", printstr)
+	(cwa_dictTail, _) = VM.nativeWord("wd.tail", wd_tail)
+	(cwa_halt, _) = VM.nativeWord("HALT", halt)
+	(cwa_plus3, _) = VM.nativeWord("3+", plus3)
 	
 	cwa_wdelink = VM.intWord("wde.link", [token_docol, cwa_q, cwa_dot, cwa_exit])
 	cwa_wdename = VM.intWord("wde.name", [token_docol, cwa_plus3, cwa_printstr, cwa_exit])
