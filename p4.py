@@ -125,7 +125,7 @@ class DictAccessor:
 			exec_token = self.VM.memory.read_b16(cwa, signed=True)
 		
 			strs = []
-			for i in range(entry["codelen"]): strs.append((4*"0" + hex(self.VM.memory.read_b16(cwa+2*i,signed=False))[2:])[-4:])
+			for i in range(entry["codelen"]//2): strs.append((4*"0" + hex(self.VM.memory.read_b16(cwa+2*i,signed=False))[2:])[-4:])
 			#print(' '.join(a+b for a,b in zip(s[::2], s[1::2])))
 			print(f"{hex(entry['link']):4} <= {hex(entry['str']-4):4} {entry['strlen']:2}{readStr(VM,entry['str']):10} *[{hex(cwa):4}]={' '.join(strs)}")
 			# Dump the dict entry in binary
