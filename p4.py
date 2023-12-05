@@ -1,36 +1,62 @@
 import enum
 import binascii
+class Memory:
+	def __init__(self, count):
+		self.memory = bytearray(count)
 
+	# External interface
+	def read_b8(self, addr, signed=False): return self.read_n(addr, 1, signed=signed)
+	def read_b16(self, addr, signed=False): return self.read_n(addr, 2, signed=signed)
+	def write_b8(self, addr, number, signed=False): return self.write_n(addr, 1, number, signed=signed)
+	def write_b16(self, addr, number, signed=False): return self.write_n(addr, 2, number, signed=signed)
+	def write_bytes(self, addr, bytes): raise NotImplementedError()
+	# Used to make memory subscriptable
+	def __getitem__(self, index): return self.memory[index]
+	def __setitem__(self, index, value): self.memory[index] = value
+	# Meant to be used internally
+	def read_n(self, addr, length, signed=False): return int.from_bytes(self[addr:addr+length],"big", signed=signed)
+	def write_n(self, addr, length, number, signed=False): self[addr:addr+length] = number.to_bytes(length, "big", signed=signed)
+	def dump(self, lo, hi): print(str(binascii.hexlify(self.memory[lo:hi])))
+	
+# From: https://stackoverflow.com/a/14329943
+def bytes(intVal):
+	return (intVal.bitLength() + 7) // 8
+	
 class Stack:
-	def __init__(self, VM, bsp, limit=lambda: 0):
-		self.VM = VM
+	def __init__(self, memory, bsp, limit=lambda: 0):
+		self.memory = memory
 		self.bsp = self.sp = bsp
 		self.limit = limit
-	def push(self, bytes): 
-		if self.limit()>self.sp+len(bytes): raise Exception("Stack Overflow")
-		for byte in bytes[::-1]:
-			self.sp -= 1
-			self.VM.memory[self.sp] = byte
-	def pop(self, count):
+	def push_b8(self, number, signed=False): self.push_int(number, 1, signed=signed)
+	def push_b16(self, number, signed=False): self.push_int(number, 2, signed=signed)
+	def push_int(self, number, length, signed=False): 
+		if self.limit()>self.sp+length: raise Exception("Stack Overflow")
+		# Swap byte order since stack is backwards
+		self.sp -= length
+		self.memory[self.sp:self.sp+length] = number.to_bytes(length, "big")
+
+	def pop_b8(self, signed=False): return self.pop_int(1, signed=signed)
+	def pop_b16(self, signed=False): return self.pop_int(2, signed=signed)
+	def pop_int(self, length, signed=False):
+		ret = int.from_bytes(self.memory[self.sp:self.sp + length], "big", signed=signed)
+		self.sp += length
+		return ret
+		
+	def push_bytes(self, bytes):
+			if self.limit()>self.sp+len(bytes): raise Exception("Stack Overflow")
+			for byte in bytes[::-1]:
+				self.sp -= 1
+				self.memory[self.sp] = byte		
+	def pop_bytes(self, count):
 		if self.bsp<self.sp+count: raise Exception("Stack Underflow") 
-		ret = self.VM.memory[self.sp:self.sp+count]
-		self.VM.memory[self.sp:self.sp+count]=[0]*count
+		ret = self.memory[self.sp:self.sp+count]
+		self.memory[self.sp:self.sp+count]=[0]*count
 		self.sp += count
 		return ret
-	def dump(self):
-		self.VM.dump(self.sp, self.bsp)
 		
-def write_u8(VM, address, value): VM.memory[address] = 255 & value
-def write_u16(VM, address, value):
-	bytes = value.to_bytes(2, "big", signed=True if value <0 else False)
-	VM.memory[address:address+2]=bytes
-def read_u8(VM, address):
-	return int.from_bytes(VM.memory[address:address+1],"big")
-def read_u16(VM, address):
-	return int.from_bytes(VM.memory[address:address+2],"big")
-def read_i16(VM, address):
-	return int.from_bytes(VM.memory[address:address+2],"big", signed=True)
-	
+	def dump(self):
+		self.memory.dump(self.sp, self.bsp)
+			
 class DictAccessor:
 	IMMEDIATE = 0x80
 	HIDDEN = 0x20
@@ -42,21 +68,21 @@ class DictAccessor:
 	@staticmethod
 	def header(VM, name, immediate=False, hidden=False):
 		# u16 (link)
-		write_u16(VM, VM.herePP(2), VM.latest);
+		VM.memory.write_b16(VM.herePP(2), VM.latest, signed=False);
 		VM.latest = VM.here - 2
 		# u8 (number of token bytes)
-		write_u8(VM, VM.herePP(1), 0)
+		VM.memory.write_b8(VM.herePP(1), 0, signed=False)
 		# u8 (flags | string length)
-		write_u8(VM, VM.herePP(1), 
+		VM.memory.write_b8(VM.herePP(1), 
 			(DictAccessor.IMMEDIATE if immediate else 0)
 			| (DictAccessor.HIDDEN if hidden else 0)
-			| len(name) & DictAccessor.LEN)
+			| (len(name) & DictAccessor.LEN), signed=False)
 		# n * u8 name string; plus 1 or 2 u8 of null
-		for letter in bytearray(name, "utf-8"): write_u8(VM, VM.herePP(1), letter)
+		for letter in bytearray(name, "utf-8"): VM.memory.write_b8(VM.herePP(1), letter, signed=False)
 		# Always null terminate strings, and place next words on a 16b boundary
 		# So, pad evens with 2*null, odds with 1.
-		if VM.here % 2 == 0: write_u8(VM, VM.herePP(1), 0)
-		write_u8(VM, VM.herePP(1), 0)
+		if VM.here % 2 == 0: VM.memory.write_b8(VM.herePP(1), 0, signed=False)
+		VM.memory.write_b8(VM.herePP(1), 0, signed=False)
 		# Helper to dump the bytes of the entry
 		#print(binascii.hexlify(VM.memory[VM.latest:VM.here]).decode("utf-8"))
 		
@@ -66,9 +92,9 @@ class DictAccessor:
 		# Needed to return head of code field
 		cwa = VM.here
 		# n*u16code list
-		for token in tokens: write_u16(VM, VM.herePP(2), token);
+		for token in tokens: VM.memory.write_b16(VM.herePP(2), token, signed=True if token<0 else False);
 		# Update code length field
-		write_u8(VM, VM.latest+2, 2*len(tokens))
+		VM.memory.write_b8(VM.latest+2, 2*len(tokens), signed=False)
 		#print(f"Defined {(10*' '+name)[-10:]}, from {(2*'0'+hex(old)[2:])[-2:]:2}..{(2*'0'+hex(VM.here)[2:])[-2:]:2}; strlen {len(name):2}, memlen is {VM.here-old:2}")
 		return cwa
 		
@@ -76,9 +102,9 @@ class DictAccessor:
 	def find(self, name): pass
 	def entry(self, address):
 		ret = {}
-		ret["link"] = read_u16(self.VM, address); address += 2
-		ret["codelen"] = read_u8(self.VM, address); address += 1
-		ret["strlen"] = read_u8(self.VM, address) & DictAccessor.LEN; address += 1
+		ret["link"] = VM.memory.read_b16(address, signed=False); address += 2
+		ret["codelen"] = VM.memory.read_b8(address, signed=False); address += 1
+		ret["strlen"] = VM.memory.read_b8(address, signed=False) & DictAccessor.LEN; address += 1
 		ret["str"] = address
 		# Add 2 and mask out low bit to get actual length of string
 		# EVEN: 2 => 4 => 4, which is right because we pad evens with 2 nulls
@@ -91,10 +117,10 @@ class DictAccessor:
 		while	prev != current:
 			entry = self.entry(current)
 			cwa = entry["cwa"]
-			exec_token = read_i16(VM, cwa)
+			exec_token = self.VM.memory.read_b16(cwa, signed=True)
 		
 			strs = []
-			for i in range(entry["codelen"]): strs.append((4*"0" + hex(read_u16(VM, cwa+2*i))[2:])[-4:])
+			for i in range(entry["codelen"]): strs.append((4*"0" + hex(self.VM.memory.read_b16(cwa+2*i,signed=False))[2:])[-4:])
 			#print(' '.join(a+b for a,b in zip(s[::2], s[1::2])))
 			print(f"{hex(entry['link']):4} <= {hex(entry['str']-4):4} {entry['strlen']:2}{readStr(VM,entry['str']):10} *[{hex(cwa):4}]={' '.join(strs)}")
 			# Dump the dict entry in binary
@@ -108,10 +134,10 @@ as_hex = lambda as_hex : f"{(4*'0' + hex(as_hex)[2:])[-4:]}"
 class vm (object):
 	def __init__(self):
 		self.dict = DictAccessor(self)
-		self.memory = bytearray(256)
+		self.memory = Memory(256)
 		#0..128 is for dict and return stack, 128...224 is param stack, with lower addresses being PAD.
-		self.rStack = Stack(self, 200, lambda: self.here)
-		self.pStack = Stack(self, 240, lambda: self.rStack.sp)
+		self.rStack = Stack(self.memory, 200, lambda: self.here)
+		self.pStack = Stack(self.memory, 240, lambda: self.rStack.sp)
 		self.words = []
 		# Address of "previous"  dictionary entry
 		self.latest = 0
@@ -136,17 +162,14 @@ class vm (object):
 		return DictAccessor.defcode(self, name, tokens)
 		
 	def step(self):
-		cwa_exec = read_u16(self, self.currentWord)
-		token_exec = read_i16(self, cwa_exec)
+		cwa_exec = self.memory.read_b16(self.currentWord, signed=False)
+		token_exec = self.memory.read_b16(cwa_exec, signed = True)
 		#print(f"CWA is 0x{as_hex(self.currentWord)}, word to execute is [{as_hex(cwa_exec)}]={token_exec}")
 		word = self.words[-token_exec-1]
 		word(self)
 		
 	def run(self):
 		while self.alive: self.step()
-		
-	def dump(self, lo, hi):
-		print(str(binascii.hexlify(self.memory[lo:hi])))
 		
 	def addr_from_name(self, name):
 		current = self.latest
@@ -162,38 +185,36 @@ def next(VM):
 	VM.nextWord += 2
 			
 def docol(VM):
-	VM.rStack.push((VM.currentWord + 2).to_bytes(2, "big"))
-	VM.nextWord = read_u16(VM, VM.currentWord) + 2
+	VM.rStack.push_b16(VM.currentWord+2, signed=False)
+	VM.nextWord = VM.memory.read_b16(VM.currentWord, signed=False) + 2
 	next(VM)
 
 # ( n1 -- n1 n1 ) # Duplicate top entry of stack
 def dup(VM):
-	top_2 = VM.pStack.pop(2)
-	VM.pStack.push(top_2)
-	VM.pStack.push(top_2)
+	top_2 = VM.pStack.pop_b16(2, signed=False)
+	VM.pStack.push_b16(top_2, signed=False)
+	VM.pStack.push_b16(top_2, signed=False)
 	next(VM)
 
 def plus_i16(VM):
-	lhs = int.from_bytes(VM.pStack.pop(2), "big", signed=True)
-	rhs = int.from_bytes(VM.pStack.pop(2), "big", signed=True)
-	VM.pStack.push((rhs+lhs).to_bytes(2, "big"))
+	lhs, rhs = VM.pStack.pop_b16(signed=True), VM.pStack.pop_b16(signed=True)
+	VM.pStack.push_b16(lhs+rhs, signed=True)
 	next(VM)
 	
 def wd_tail(VM):
-	VM.pStack.push(VM.latest.to_bytes(2, "big"))
+	VM.pStack.push_b16(VM.latest, 2, signed=False)
 	next(VM)
 	
 # ( n1 -- ) # Print the top value on the stack to stdout
 def dot(VM):
-	v = VM.pStack.pop(2)
-	print(hex(int.from_bytes(v, "big")), end="")
+	v = VM.pStack.pop_b16(signed=False)
+	print(hex(v), end="")
 	next(VM)
 	
 # ( addr -- value) # Dereference a pointer
 def _q(VM):
-	addr  = int.from_bytes(VM.pStack.pop(2), "big")
-	value = read_u16(VM, addr)
-	VM.pStack.push(value.to_bytes(2, "big"))
+	addr  = VM.pStack.pop_b16(signed=False)
+	VM.pStack.push_b16(VM.memory.read_u16(addr), signed=True)
 	next(VM)
 	
 def halt(VM):
@@ -203,25 +224,24 @@ def halt(VM):
 
 def readStr(VM, addr):
 	outStr = ""
-	while (ch:=read_u8(VM, addr))  != 0: 
+	while (ch:=VM.memory.read_b8(addr, signed=False))  != 0: 
 		outStr += chr(ch)
 		addr += 1
 	return outStr
 	
 # ( addr -- ) # Prints a null terminated string starting at address
 def printstr(VM):
-	addr = VM.pStack.pop(2)
-	addr = int.from_bytes(addr, "big")
+	addr = VM.pStack.pop_b16(signed=False)
 	print(readStr(VM, addr), end="")
 	next(VM)
 	
 def exit(VM):
-	VM.nextWord = int.from_bytes(VM.rStack.pop(2), "big")
+	VM.nextWord = VM.rStack.pop_b16(signed=False)
 	#print(f"Current word is being popped. Pointer to {VM.nextWord}")
 	next(VM)
+	
 def plus3(VM):
-	opr = int.from_bytes(VM.pStack.pop(2), "big", signed=True)
-	VM.pStack.push((opr+3).to_bytes(2, "big"))
+	VM.pStack.push_b16(VM.pStack.pop_b16(signed=True)+3, signed=True)
 	next(VM)
 	
 def cr(VM):
@@ -229,14 +249,13 @@ def cr(VM):
 	next(VM)
 	
 def literal(VM):
-	print(VM.currentWord, VM.nextWord)
-	number = read_i16(VM, VM.nextWord)
-	VM.pStack.push(number.to_bytes(2, "big", signed=True))
+	number = VM.memory.read_b16(VM.nextWord, signed=False)
+	VM.pStack.push_b16(number, signed=False)
 	VM.nextWord += 2
 	next(VM)
 			
 def bootstrap(VM):
-	VM.pStack.push([6, 7])
+	VM.pStack.push_bytes([6, 7])
 	(cwa_cr, _) = VM.nativeWord("CR", cr)
 	(cwa_docol, token_docol) = VM.nativeWord("docol", docol)
 	(cwa_plus_i16, _) = VM.nativeWord("+", plus_i16)
@@ -255,13 +274,12 @@ def bootstrap(VM):
 	# Need to know code len first.
 	#VM.intWord("wde.code", [""])
 	#VM.intWord("wde.dump", ["DUP", "wde.link", "DUP", "wde.name"])
-	VM.pStack.push([0x04, 0x00])
+	VM.pStack.push_bytes([0x04, 0x00])
 	#tokens = [cwa_latest, cwa_dup, cwa_wdelink, cwa_dup, cwa_wdename, cwa_halt]
 	tokens = [cwa_literal, 0xFEED, cwa_dot, cwa_halt]
 	token_exc = VM.intWord("doAll", tokens)#token_q, token_dot, token_printstr, token_halt])
 	ac = DictAccessor(VM)
 	ac.dump()
-	#dumpDict(VM)
 	
 	VM.nextWord = VM.addr_from_name("doAll")["cwa"]; next(VM)
 	VM.run()
