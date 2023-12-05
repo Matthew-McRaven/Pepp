@@ -119,7 +119,7 @@ class DictAccessor:
 		
 	def dump(self): 	
 		current, prev = self.VM.tcb.latest, 0
-		while	prev != current:
+		while	current != 0:
 			entry = self.entry(current)
 			cwa = entry["cwa"]
 			exec_token = self.VM.memory.read_b16(cwa, signed=True)
@@ -139,7 +139,11 @@ as_hex = lambda as_hex : f"{(4*'0' + hex(as_hex)[2:])[-4:]}"
 class TaskControlBlock:	
 	def __init__(self):
 		# Dictionary entries
-		self.here = self.latest = 0
+		# Start entries at non=0, so that a dereferenced nullpointer can't clober a fundamental data structure
+		self.here = 2
+		# But we want that null to be the link pointer in our first entry
+		# All we have to do is an 0= to check if we've arrived at dict head.
+		self.latest = 0
 		# Instruction pointers
 		self.currentWord = self.nextWord = 0
 		# Parameter stack pointers
