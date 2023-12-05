@@ -147,7 +147,9 @@ class vm (object):
 		self.currentWord, self.nextWord = 0, 0
 		# Should execute continue?
 		self.alive = True
-		
+	def next(self):
+		self.currentWord = self.nextWord
+		self.nextWord += 2	
 	def herePP(self, incr):
 		here, VM.here = VM.here, VM.here+incr
 		return here
@@ -179,48 +181,48 @@ class vm (object):
 			entryName = readStr(self, entry["str"])
 			if name == entryName: return entry
 		return None
-			
-def next(VM):
-	VM.currentWord = VM.nextWord
-	VM.nextWord += 2
-			
+				
+def NEXT(function):
+	return lambda VM: (function(VM), VM.next())
+
+@NEXT
 def docol(VM):
 	VM.rStack.push_b16(VM.currentWord+2, signed=False)
 	VM.nextWord = VM.memory.read_b16(VM.currentWord, signed=False) + 2
-	next(VM)
 
 # ( n1 -- n1 n1 ) # Duplicate top entry of stack
+@NEXT
 def dup(VM):
 	top_2 = VM.pStack.pop_b16(2, signed=False)
 	VM.pStack.push_b16(top_2, signed=False)
 	VM.pStack.push_b16(top_2, signed=False)
-	next(VM)
 
+@NEXT
 def plus_i16(VM):
 	lhs, rhs = VM.pStack.pop_b16(signed=True), VM.pStack.pop_b16(signed=True)
 	VM.pStack.push_b16(lhs+rhs, signed=True)
-	next(VM)
-	
+
+@NEXT	
 def wd_tail(VM):
 	VM.pStack.push_b16(VM.latest, 2, signed=False)
-	next(VM)
+
 	
 # ( n1 -- ) # Print the top value on the stack to stdout
+@NEXT
 def dot(VM):
 	v = VM.pStack.pop_b16(signed=False)
 	print(hex(v), end="")
-	next(VM)
 	
 # ( addr -- value) # Dereference a pointer
+@NEXT
 def _q(VM):
 	addr  = VM.pStack.pop_b16(signed=False)
 	VM.pStack.push_b16(VM.memory.read_u16(addr), signed=True)
-	next(VM)
-	
+
+@NEXT
 def halt(VM):
 	VM.alive = False
 	print("\nHALTING")		
-	next(VM)
 
 def readStr(VM, addr):
 	outStr = ""
@@ -230,29 +232,28 @@ def readStr(VM, addr):
 	return outStr
 	
 # ( addr -- ) # Prints a null terminated string starting at address
+@NEXT
 def printstr(VM):
 	addr = VM.pStack.pop_b16(signed=False)
 	print(readStr(VM, addr), end="")
-	next(VM)
-	
+
+@NEXT
 def exit(VM):
 	VM.nextWord = VM.rStack.pop_b16(signed=False)
-	#print(f"Current word is being popped. Pointer to {VM.nextWord}")
-	next(VM)
-	
+
+@NEXT	
 def plus3(VM):
 	VM.pStack.push_b16(VM.pStack.pop_b16(signed=True)+3, signed=True)
-	next(VM)
-	
+
+@NEXT
 def cr(VM):
 	print()
-	next(VM)
-	
+
+@NEXT
 def literal(VM):
 	number = VM.memory.read_b16(VM.nextWord, signed=False)
 	VM.pStack.push_b16(number, signed=False)
 	VM.nextWord += 2
-	next(VM)
 			
 def bootstrap(VM):
 	VM.pStack.push_bytes([6, 7])
@@ -281,7 +282,7 @@ def bootstrap(VM):
 	ac = DictAccessor(VM)
 	ac.dump()
 	
-	VM.nextWord = VM.addr_from_name("doAll")["cwa"]; next(VM)
+	VM.nextWord = VM.addr_from_name("doAll")["cwa"]; VM.next()
 	VM.run()
 	
 VM = vm()
