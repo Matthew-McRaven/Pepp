@@ -23,35 +23,40 @@ def bytes(intVal):
 	return (intVal.bitLength() + 7) // 8
 	
 class Stack:
-	def __init__(self, memory, bsp, limit=lambda: 0):
+	# SP is a function that does one of two things.
+	# If called with no args, returns the current stack pointer.
+	# Otherwise, the value will be added to the SP, and the new SP will be returned.
+	def __init__(self, memory, sp, limit=lambda: 0):
 		self.memory = memory
-		self.bsp = self.sp = bsp
+		self.sp=sp
 		self.limit = limit
 	def push_b8(self, number, signed=False): self.push_int(number, 1, signed=signed)
 	def push_b16(self, number, signed=False): self.push_int(number, 2, signed=signed)
 	def push_int(self, number, length, signed=False): 
-		if self.limit()>self.sp+length: raise Exception("Stack Overflow")
+		if self.limit()>self.sp()+length: raise Exception("Stack Overflow")
 		# Swap byte order since stack is backwards
-		self.sp -= length
-		self.memory[self.sp:self.sp+length] = number.to_bytes(length, "big")
+		self.sp(-length)
+		self.memory[self.sp():self.sp()+length] = number.to_bytes(length, "big")
 
 	def pop_b8(self, signed=False): return self.pop_int(1, signed=signed)
 	def pop_b16(self, signed=False): return self.pop_int(2, signed=signed)
 	def pop_int(self, length, signed=False):
-		ret = int.from_bytes(self.memory[self.sp:self.sp + length], "big", signed=signed)
-		self.sp += length
+		ret = int.from_bytes(self.memory[self.sp():self.sp() + length], "big", signed=signed)
+		self.sp(length)
 		return ret
 		
 	def push_bytes(self, bytes):
-			if self.limit()>self.sp+len(bytes): raise Exception("Stack Overflow")
-			for byte in bytes[::-1]:
-				self.sp -= 1
-				self.memory[self.sp] = byte		
+		# print(self.limit(), self.sp(), len(bytes))
+		if self.limit()>self.sp()-len(bytes): raise Exception("Stack Overflow")
+		for byte in bytes[::-1]:
+			self.sp(-1)
+			self.memory[self.sp()] = byte		
 	def pop_bytes(self, count):
-		if self.bsp<self.sp+count: raise Exception("Stack Underflow") 
-		ret = self.memory[self.sp:self.sp+count]
-		self.memory[self.sp:self.sp+count]=[0]*count
-		self.sp += count
+		sp = self.sp()
+		if self.bsp<sp+count: raise Exception("Stack Underflow") 
+		ret = self.memory[sp:sp+count]
+		self.memory[sp:sp+count]=[0]*count
+		self.sp_accessor(count)
 		return ret
 		
 	def dump(self):
@@ -68,8 +73,8 @@ class DictAccessor:
 	@staticmethod
 	def header(VM, name, immediate=False, hidden=False):
 		# u16 (link)
-		VM.memory.write_b16(VM.herePP(2), VM.latest, signed=False);
-		VM.latest = VM.here - 2
+		VM.memory.write_b16(VM.herePP(2), VM.tcb.latest, signed=False);
+		VM.tcb.latest = VM.tcb.here - 2
 		# u8 (number of token bytes)
 		VM.memory.write_b8(VM.herePP(1), 0, signed=False)
 		# u8 (flags | string length)
@@ -81,7 +86,7 @@ class DictAccessor:
 		for letter in bytearray(name, "utf-8"): VM.memory.write_b8(VM.herePP(1), letter, signed=False)
 		# Always null terminate strings, and place next words on a 16b boundary
 		# So, pad evens with 2*null, odds with 1.
-		if VM.here % 2 == 0: VM.memory.write_b8(VM.herePP(1), 0, signed=False)
+		if VM.tcb.here % 2 == 0: VM.memory.write_b8(VM.herePP(1), 0, signed=False)
 		VM.memory.write_b8(VM.herePP(1), 0, signed=False)
 		# Helper to dump the bytes of the entry
 		#print(binascii.hexlify(VM.memory[VM.latest:VM.here]).decode("utf-8"))
@@ -90,11 +95,11 @@ class DictAccessor:
 	def defcode(VM, name, tokens, immediate=False):
 		DictAccessor.header(VM, name, immediate=immediate)
 		# Needed to return head of code field
-		cwa = VM.here
+		cwa = VM.tcb.here
 		# n*u16code list
 		for token in tokens: VM.memory.write_b16(VM.herePP(2), token, signed=True if token<0 else False);
 		# Update code length field
-		VM.memory.write_b8(VM.latest+2, 2*len(tokens), signed=False)
+		VM.memory.write_b8(VM.tcb.latest+2, 2*len(tokens), signed=False)
 		#print(f"Defined {(10*' '+name)[-10:]}, from {(2*'0'+hex(old)[2:])[-2:]:2}..{(2*'0'+hex(VM.here)[2:])[-2:]:2}; strlen {len(name):2}, memlen is {VM.here-old:2}")
 		return cwa
 		
@@ -113,7 +118,7 @@ class DictAccessor:
 		return ret
 		
 	def dump(self): 	
-		current, prev = self.VM.latest, 0
+		current, prev = self.VM.tcb.latest, 0
 		while	prev != current:
 			entry = self.entry(current)
 			cwa = entry["cwa"]
@@ -130,28 +135,44 @@ class DictAccessor:
 		
 # Helper for formatting a 2 byte hex value from int		
 as_hex = lambda as_hex : f"{(4*'0' + hex(as_hex)[2:])[-4:]}"
-					
+
+class TaskControlBlock:	
+	def __init__(self):
+		# Dictionary entries
+		self.here = self.latest = 0
+		# Instruction pointers
+		self.currentWord = self.nextWord = 0
+		# Parameter stack pointers
+		self.psp = self.s0 = 0
+		# Return stack pointers
+		self.rsp = 0
+	
+	def psp_helper(self, arg=None):
+		if arg is not None: self.psp += arg
+		return self.psp
+			
+	def rsp_helper(self, arg=None):
+		if arg is not None: self.rsp += arg
+		return self.rsp
+							
 class vm (object):
 	def __init__(self):
 		self.dict = DictAccessor(self)
+		self.tcb = TaskControlBlock()
+		self.tcb.psp = self.tcb.s0 = 240
+		self.tcb.rsp = 200
 		self.memory = Memory(256)
-		#0..128 is for dict and return stack, 128...224 is param stack, with lower addresses being PAD.
-		self.rStack = Stack(self.memory, 200, lambda: self.here)
-		self.pStack = Stack(self.memory, 240, lambda: self.rStack.sp)
+		self.rStack = Stack(self.memory, self.tcb.rsp_helper, lambda: self.tcb.here)
+		self.pStack = Stack(self.memory, self.tcb.psp_helper, lambda: self.tcb.rsp)
 		self.words = []
-		# Address of "previous"  dictionary entry
-		self.latest = 0
-		# Address of next available byte in dictionary memory.
-		self.here = 0
-		# Pointer to "next" word to execute, pointer to interpreter.
-		self.currentWord, self.nextWord = 0, 0
-		# Should execute continue?
 		self.alive = True
+		
 	def next(self):
-		self.currentWord = self.nextWord
-		self.nextWord += 2	
+		self.tcb.currentWord = self.tcb.nextWord
+		self.tcb.nextWord += 2	
+	
 	def herePP(self, incr):
-		here, VM.here = VM.here, VM.here+incr
+		here, self.tcb.here = self.tcb.here, self.tcb.here+incr
 		return here
 		
 	# Negative token numbers are native, positive token numbers are FORTH
@@ -164,7 +185,7 @@ class vm (object):
 		return DictAccessor.defcode(self, name, tokens)
 		
 	def step(self):
-		cwa_exec = self.memory.read_b16(self.currentWord, signed=False)
+		cwa_exec = self.memory.read_b16(self.tcb.currentWord, signed=False)
 		token_exec = self.memory.read_b16(cwa_exec, signed = True)
 		#print(f"CWA is 0x{as_hex(self.currentWord)}, word to execute is [{as_hex(cwa_exec)}]={token_exec}")
 		word = self.words[-token_exec-1]
@@ -174,7 +195,7 @@ class vm (object):
 		while self.alive: self.step()
 		
 	def addr_from_name(self, name):
-		current = self.latest
+		current = self.tcb.latest
 		while	current != 0:
 			entry = self.dict.entry(current)
 			current = entry["link"]
@@ -187,8 +208,8 @@ def NEXT(function):
 
 @NEXT
 def docol(VM):
-	VM.rStack.push_b16(VM.currentWord+2, signed=False)
-	VM.nextWord = VM.memory.read_b16(VM.currentWord, signed=False) + 2
+	VM.rStack.push_b16(VM.tcb.currentWord+2, signed=False)
+	VM.nextWord = VM.memory.read_b16(VM.tcb.currentWord, signed=False) + 2
 
 # ( n1 -- n1 n1 ) # Duplicate top entry of stack
 @NEXT
@@ -251,9 +272,9 @@ def cr(VM):
 
 @NEXT
 def literal(VM):
-	number = VM.memory.read_b16(VM.nextWord, signed=False)
+	number = VM.memory.read_b16(VM.tcb.nextWord, signed=False)
 	VM.pStack.push_b16(number, signed=False)
-	VM.nextWord += 2
+	VM.tcb.nextWord += 2
 			
 def bootstrap(VM):
 	VM.pStack.push_bytes([6, 7])
@@ -282,7 +303,7 @@ def bootstrap(VM):
 	ac = DictAccessor(VM)
 	ac.dump()
 	
-	VM.nextWord = VM.addr_from_name("doAll")["cwa"]; VM.next()
+	VM.tcb.nextWord = VM.addr_from_name("doAll")["cwa"]; VM.next()
 	VM.run()
 	
 VM = vm()
