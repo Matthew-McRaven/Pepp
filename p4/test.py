@@ -13,5 +13,5 @@ f = lambda s: e(s)["cwa"]
 #tokens = [f("LIT"), e(".")["head"], f("NAME"), f("FIND"), f("."), f("HALT")]
 tokens = [f("WORD"), f("NUMBER"), f("."), f("HALT")]
 VM.intWord("doAll", tokens)
-VM.tcb.nextWord = f("doAll"); VM.next()
+VM.tcb.nextWord(f("doAll")); VM.next()
 VM.run()

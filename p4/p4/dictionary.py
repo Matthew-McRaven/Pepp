@@ -23,7 +23,7 @@ class Flags(enum.IntEnum):
 # of the first matching entry.
 def find(VM, nameLen, name, matchHidden=False):
 	# Keep track of the previous visited dict entry in "last"
-	current, last = VM.tcb.latest, 0
+	current, last = VM.tcb.latest(), 0
 	# Prevent infinite loop if we have an entry point to itself by checking that we aren't revisiting self 
 	while	current != 0 and current != last:
 		# Use cascading conditionals to avoid nested ones.
@@ -64,7 +64,7 @@ def entry(VM, address):
 	
 # Pretty print the entire contents of the FORTH dictionary.
 def dump(VM): 	
-	current, prev = VM.tcb.latest, 0
+	current, prev = VM.tcb.latest(), 0
 	while	current != 0:
 		header = entry(VM, current)
 		cwa = header["cwa"]
@@ -81,7 +81,7 @@ def dump(VM):
 # Walks the dictionary, finding the first entry which matches the name.
 # Returns None if no matches.
 def addr_from_name(VM, name):
-	current = VM.tcb.latest
+	current = VM.tcb.latest()
 	while	current != 0:
 		header = entry(VM, current)
 		current = header["link"]
@@ -92,8 +92,8 @@ def addr_from_name(VM, name):
 # Helpers to create the initial native forth definitions
 def header(VM, name, immediate=False, hidden=False):
 	# u16 (link)
-	VM.memory.write_b16(VM.herePP(2), VM.tcb.latest, signed=False);
-	VM.tcb.latest = VM.tcb.here - 2
+	VM.memory.write_b16(VM.herePP(2), VM.tcb.latest(), signed=False);
+	VM.tcb.latest(VM.tcb.here() - 2)
 	# u8 (number of token bytes)
 	VM.memory.write_b8(VM.herePP(1), 0, signed=False)
 	# u8 (flags | string length)
@@ -105,7 +105,7 @@ def header(VM, name, immediate=False, hidden=False):
 	for letter in bytearray(name, "utf-8"): VM.memory.write_b8(VM.herePP(1), letter, signed=False)
 	# Always null terminate strings, and place next words on a 16b boundary
 	# So, pad evens with 2*null, odds with 1.
-	if VM.tcb.here % 2 == 0: VM.memory.write_b8(VM.herePP(1), 0, signed=False)
+	if VM.tcb.here() % 2 == 0: VM.memory.write_b8(VM.herePP(1), 0, signed=False)
 	VM.memory.write_b8(VM.herePP(1), 0, signed=False)
 	# Helper to dump the bytes of the entry
 	#print(binascii.hexlify(VM.memory[VM.latest:VM.here]).decode("utf-8"))
@@ -113,10 +113,10 @@ def header(VM, name, immediate=False, hidden=False):
 def defcode(VM, name, tokens, immediate=False):
 	header(VM, name, immediate=immediate)
 	# Needed to return head of code field
-	cwa = VM.tcb.here
+	cwa = VM.tcb.here()
 	# n*u16code list
 	for token in tokens: VM.memory.write_b16(VM.herePP(2), token, signed=True if token<0 else False);
 	# Update code length field
-	VM.memory.write_b8(VM.tcb.latest+2, 2*len(tokens), signed=False)
+	VM.memory.write_b8(VM.tcb.latest()+2, 2*len(tokens), signed=False)
 	#print(f"Defined {(10*' '+name)[-10:]}, from {(2*'0'+hex(old)[2:])[-2:]:2}..{(2*'0'+hex(VM.here)[2:])[-2:]:2}; strlen {len(name):2}, memlen is {VM.here-old:2}")
 	return cwa

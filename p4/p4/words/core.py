@@ -3,14 +3,14 @@ from ..utils import NAMED, NEXT
 @NAMED("docol")
 @NEXT
 def docol(VM):
-	VM.rStack.push_b16(VM.tcb.currentWord+2, signed=False)
-	VM.nextWord = VM.memory.read_b16(VM.tcb.currentWord, signed=False) + 2
+	VM.rStack.push_b16(VM.tcb.currentWord()+2, signed=False)
+	VM.tcb.nextWord(VM.memory.read_b16(VM.tcb.currentWord(), signed=False) + 2)
 
 # ( addr -- value) # Dereference a pointer
 @NAMED("?")
 @NEXT
 def question(VM):
-	addr  = VM.pStack.pop_b16(signed=False)
+	addr = VM.pStack.pop_b16(signed=False)
 	VM.pStack.push_b16(VM.memory.read_u16(addr), signed=True)
 	
 # Stops further instructions from executing in VM
@@ -24,16 +24,16 @@ def halt(VM):
 @NAMED("EXIT")
 @NEXT
 def exit(VM):
-	VM.nextWord = VM.rStack.pop_b16(signed=False)
+	VM.tcb.nextWord(VM.rStack.pop_b16(signed=False))
 	
 # Enter compilation mode
 @NAMED("[")
 @NEXT
 def lbrac(VM):
-	VM.tcb.state = 1
+	VM.tcb.state(1)
 	
 # Exit compilation mode
 @NAMED("]")
 @NEXT
 def rbrac(VM):
-	VM.tcb.state = 1
+	VM.tcb.state(0)
