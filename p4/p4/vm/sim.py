@@ -14,6 +14,8 @@ class TaskControlBlock:
 		self.psp = self.s0 = 0
 		# Return stack pointers
 		self.rsp = 0
+		# 0 if executing, >0 if compiling
+		self.state = 0
 	
 	def psp_helper(self, arg=None):
 		if arg is not None: self.psp += arg

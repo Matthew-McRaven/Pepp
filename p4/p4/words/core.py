@@ -9,7 +9,7 @@ def docol(VM):
 # ( addr -- value) # Dereference a pointer
 @NAMED("?")
 @NEXT
-def _q(VM):
+def question(VM):
 	addr  = VM.pStack.pop_b16(signed=False)
 	VM.pStack.push_b16(VM.memory.read_u16(addr), signed=True)
 	
@@ -25,3 +25,15 @@ def halt(VM):
 @NEXT
 def exit(VM):
 	VM.nextWord = VM.rStack.pop_b16(signed=False)
+	
+# Enter compilation mode
+@NAMED("[")
+@NEXT
+def lbrac(VM):
+	VM.tcb.state = 1
+	
+# Exit compilation mode
+@NAMED("]")
+@NEXT
+def rbrac(VM):
+	VM.tcb.state = 1
