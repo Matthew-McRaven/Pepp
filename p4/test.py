@@ -1,8 +1,8 @@
 import p4.utils
-from p4.words import extract, core, io, math, stack, var, dict
+from p4.words import extract, core, io, math, stack, var, dict as _dict
 import p4.bootstrap, p4.vm, p4.dictionary
 
-words = [fn for item in [core, stack, io, var, math, dict] for fn in extract(item)]
+words = [fn for item in [core, stack, io, var, math, _dict] for fn in extract(item)]
 VM = p4.vm.vm()
 p4.bootstrap.bootstrap(VM, words)
 p4.dictionary.dump(VM)
@@ -11,7 +11,7 @@ p4.dictionary.dump(VM)
 e = lambda s: p4.dictionary.addr_from_name(VM, s)
 f = lambda s: e(s)["cwa"]
 #tokens = [f("LIT"), e(".")["head"], f("NAME"), f("FIND"), f("."), f("HALT")]
-tokens = [f("KEY"), f("KEY"), f("EMIT"), f("EMIT"), f("."), f("HALT")]
+tokens = [f("WORD"), f("PRINT"), f("HALT")]
 VM.intWord("doAll", tokens)
 VM.tcb.nextWord = f("doAll"); VM.next()
 VM.run()
