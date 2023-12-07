@@ -10,8 +10,8 @@ p4.dictionary.dump(VM)
 # Helper to look up a WORD and get its CWA, used to implement interpretted words for now.
 e = lambda s: p4.dictionary.addr_from_name(VM, s)
 f = lambda s: e(s)["cwa"]
-#tokens = [f("LIT"), 0xFEED, f("."), f("HALT")]
-tokens = [f("LIT"), e(".")["head"], f("NAME"), f("FIND"), f("."), f("HALT")]
+#tokens = [f("LIT"), e(".")["head"], f("NAME"), f("FIND"), f("."), f("HALT")]
+tokens = [f("KEY"), f("KEY"), f("EMIT"), f("EMIT"), f("."), f("HALT")]
 VM.intWord("doAll", tokens)
 VM.tcb.nextWord = f("doAll"); VM.next()
 VM.run()

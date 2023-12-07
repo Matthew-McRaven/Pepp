@@ -3,6 +3,6 @@ from ..utils import NAMED, NEXT
 @NAMED("DUP")
 @NEXT
 def dup(VM):
-	top_2 = VM.pStack.pop_b16(2, signed=False)
+	top_2 = VM.pStack.pop_b16(signed=False)
 	VM.pStack.push_b16(top_2, signed=False)
 	VM.pStack.push_b16(top_2, signed=False)
