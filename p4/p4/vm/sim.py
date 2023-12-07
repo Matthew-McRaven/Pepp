@@ -1,6 +1,5 @@
-from .dictionary import DictAccessor
 from .memory import *
-from ..strings import readStr
+from ..dictionary import defcode as _defcode
 class TaskControlBlock:	
 	def __init__(self):
 		# Dictionary entries
@@ -26,7 +25,6 @@ class TaskControlBlock:
 							
 class vm (object):
 	def __init__(self):
-		self.dict = DictAccessor(self)
 		self.tcb = TaskControlBlock()
 		self.tcb.psp = self.tcb.s0 = 240
 		self.tcb.rsp = 200
@@ -48,10 +46,10 @@ class vm (object):
 	def nativeWord(self, name, call):
 		token = -len(self.words)-1
 		self.words.append(call)
-		return DictAccessor.defcode(self, name, [token]), token
+		return _defcode(self, name, [token]), token
 		
 	def intWord(self, name, tokens):
-		return DictAccessor.defcode(self, name, tokens)
+		return _defcode(self, name, tokens)
 		
 	def step(self):
 		cwa_exec = self.memory.read_b16(self.tcb.currentWord, signed=False)
@@ -62,12 +60,3 @@ class vm (object):
 		
 	def run(self):
 		while self.alive: self.step()
-		
-	def addr_from_name(self, name):
-		current = self.tcb.latest
-		while	current != 0:
-			entry = self.dict.entry(current)
-			current = entry["link"]
-			entryName = readStr(self, entry["str"])
-			if name == entryName: return entry
-		return None
