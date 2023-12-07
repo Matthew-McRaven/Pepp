@@ -1,0 +1,8 @@
+from ..utils import NAMED, NEXT
+# ( n1 -- n1 n1 ) # Duplicate top entry of stack
+@NAMED("DUP")
+@NEXT
+def dup(VM):
+	top_2 = VM.pStack.pop_b16(2, signed=False)
+	VM.pStack.push_b16(top_2, signed=False)
+	VM.pStack.push_b16(top_2, signed=False)
