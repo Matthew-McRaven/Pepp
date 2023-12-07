@@ -21,15 +21,21 @@ class Flags(enum.IntEnum):
 
 # Helper to walk FORTH dictionary, returning a pointer to the head
 # of the first matching entry.
-def find(VM, name, matchHidden=False):
-	while	(current:=VM.tcb.latest) != 0:
+def find(VM, nameLen, name, matchHidden=False):
+	# Keep track of the previous visited dict entry in "last"
+	current, last = VM.tcb.latest, 0
+	# Prevent infinite loop if we have an entry point to itself by checking that we aren't revisiting self 
+	while	current != 0 and current != last:
 		# Use cascading conditionals to avoid nested ones.
 		# Each non-default conditional will prevent
 		# Do not match against a hidden entry if we respect the flag
-		if not matchHidden and (current+Offsets.STRLEN & Flags.Hidden): pass 
+		# Mask out non-length bits of the strlen field.
+		entryLen = VM.memory.read_b8(current + Offsets.STRLEN, signed=False)
+		if not matchHidden and (entryLen & Flags.HIDDEN): pass 
+		elif nameLen != entryLen & Flags.LEN: pass
 		elif name != _readStr(VM, current+Offsets.STR): pass
 		else: return current
-		current = VM.memory.read_b16(current, signed=False)
+		current, last = VM.memory.read_b16(current, signed=False), current
 	return 0
 		
 # Assuming address points to the link field of a dictionary entry, return the address of the first code word.
@@ -49,6 +55,7 @@ def cwa(VM, address):
 def entry(VM, address):
 	ret = {}
 	ret["link"] = VM.memory.read_b16(address + Offsets.LINK, signed=False)
+	ret["head"] = address
 	ret["codelen"] = VM.memory.read_b8(address + Offsets.CODELEN, signed=False)
 	ret["strlen"] = VM.memory.read_b8(address + Offsets.STRLEN, signed=False) & Flags.LEN
 	ret["str"] = address + Offsets.STR
