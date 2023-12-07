@@ -72,3 +72,22 @@ def word(VM):
 	VM.memory.write_b8(word.pad + iter + 1, 0, signed=False)
 	VM.pStack.push_b16(word.pad, signed=False)
 	VM.pStack.push_b8(iter, signed=False)
+
+# TODO: Allow base to vary
+# ( addr len -- n 1u16 | 0u16 0u16) Parse the pointed number in the current base
+# If success, push the number onto the stack, and a true flag. Otherwise both are 0.
+@NAMED("NUMBER")
+@NEXT
+def NUMBER(VM):
+	len = VM.pStack.pop_b8(signed=False)
+	addr = VM.pStack.pop_b16(signed=False)
+	text = p4.strings.readLenStr(VM, addr, len)
+	number, flag = 0, 1
+	try:
+		number = int(text, 10)
+	except:
+		flag = 0
+	VM.pStack.push_b16(number, signed=False)
+	VM.pStack.push_b16(flag, signed=False)
+
+	
