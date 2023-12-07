@@ -1,3 +1,4 @@
+import binascii
 class Memory:
 	def __init__(self, count):
 		self.memory = bytearray(count)
@@ -25,7 +26,8 @@ class Stack:
 	# Otherwise, the value will be added to the SP, and the new SP will be returned.
 	def __init__(self, memory, sp, limit=lambda: 0):
 		self.memory = memory
-		self.sp=sp
+		self.sp = sp
+		self.bsp = sp()
 		self.limit = limit
 		
 	def push_b8(self, number, signed=False): self.push_int(number, 1, signed=signed)
@@ -59,4 +61,4 @@ class Stack:
 		return ret
 		
 	def dump(self):
-		self.memory.dump(self.sp, self.bsp)
+		self.memory.dump(self.sp(), self.bsp)
