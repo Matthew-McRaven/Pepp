@@ -109,9 +109,7 @@ def header(VM, name, immediate=False, hidden=False):
 	VM.memory.write_b8(VM.herePP(1), 0, signed=False)
 	# Helper to dump the bytes of the entry
 	#print(binascii.hexlify(VM.memory[VM.latest:VM.here]).decode("utf-8"))
-		
-def defcode(VM, name, tokens, immediate=False):
-	header(VM, name, immediate=immediate)
+def writeTokens(VM, tokens):
 	# Needed to return head of code field
 	cwa = VM.tcb.here()
 	# n*u16code list
@@ -120,3 +118,6 @@ def defcode(VM, name, tokens, immediate=False):
 	VM.memory.write_b8(VM.tcb.latest()+2, 2*len(tokens), signed=False)
 	#print(f"Defined {(10*' '+name)[-10:]}, from {(2*'0'+hex(old)[2:])[-2:]:2}..{(2*'0'+hex(VM.here)[2:])[-2:]:2}; strlen {len(name):2}, memlen is {VM.here-old:2}")
 	return cwa
+def defcode(VM, name, tokens, immediate=False):
+	header(VM, name, immediate=immediate)
+	return writeTokens(VM, tokens)
