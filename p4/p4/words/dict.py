@@ -41,10 +41,24 @@ def create(VM):
 	text = p4.strings.readLenStr(VM, addr, len)
 	p4.dictionary.header(VM, text)
 	
-# ( n -- ) Pops ToS and writes it to LATEST
-@NAMED("CREATE")
+# ( n -- ) Pops ToS and writes it to here
+@NAMED(",")
 @NEXT
-def create(VM):
+def comma(VM):
 	number = VM.pStack.pop_b16(signed=False)
 	VM.memory.write_u16(VM.tcb.here(), number)
 	VM.tcb.here(VM.tcb.here() + 2)
+	
+# (  -- n ) Pushes latest onto stack
+@NAMED("LATEST")
+@NEXT
+def latest(VM):
+	number = VM.pStack.push_b16(VM.tcb.latest())
+
+# ( addr -- ) Toggles the hidden bit for a pointer to an entry
+@NAMED("HIDDEN")
+@NEXT
+def hidden(VM):
+	addr = VM.pStack.pop_b16(signed=False)
+	curFlags = VM.memory.read_b8(addr + _Offsets.STRLEN)
+	VM.memory.write_b8(addr + _Offsets.STRLEN, curFlags ^ _Flags.HIDDEN)
