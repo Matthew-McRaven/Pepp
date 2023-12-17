@@ -15,7 +15,7 @@ def bootstrap(VM, nativeWords):
 		# Not using JonesForth "cheat", since I did not understand the implementation.
 		("'", _Flags.IMMEDIATE, ["WORD", "FIND", ">CWA", "?", "EXIT"]),
 		# Used to restart interpreter
-		#("QUIT", 0, "R0 RSP! INTERPRET BRANCH -6".split())
+		#("QUIT", 0, "P0 PSP! R0 RSP! INTERPRET BRANCH -6".split())
 	]
 	for word in interpretWords: _def(VM, word)
 	
