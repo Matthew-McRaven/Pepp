@@ -73,8 +73,9 @@ class TaskControlBlock:
 		NEXT_WORD = 6
 		PSP = 8
 		RSP = 10
-		S0 = 12	
-		STATE = 14
+		P0 = 12
+		R0 = 14	
+		STATE = 16
 	def maxAddress(self): return self.baseAddress + max(TaskControlBlock.Offsets) + 1
 	def __init__(self, baseAddress, memory):
 		self.baseAddress = baseAddress
@@ -91,9 +92,10 @@ class TaskControlBlock:
 		self.nextWord(0)
 		# Parameter stack pointers
 		self.psp(0)
-		self.s0(0)
+		self.p0(0)
 		# Return stack pointers
 		self.rsp(0)
+		self.r0(0)
 		# 0 if executing, >0 if compiling
 		self.state(0)
 	def here(self, value=None): return self.access(TaskControlBlock.Offsets.HERE, value)
@@ -102,7 +104,8 @@ class TaskControlBlock:
 	def nextWord(self, value=None): return self.access(TaskControlBlock.Offsets.NEXT_WORD, value)
 	def psp(self, value=None): return self.access(TaskControlBlock.Offsets.PSP, value)
 	def rsp(self, value=None): return self.access(TaskControlBlock.Offsets.RSP, value)
-	def s0(self, value=None): return self.access(TaskControlBlock.Offsets.S0, value)
+	def p0(self, value=None): return self.access(TaskControlBlock.Offsets.P0, value)
+	def r0(self, value=None): return self.access(TaskControlBlock.Offsets.R0, value)
 	def state(self, value=None): return self.access(TaskControlBlock.Offsets.STATE, value)
 	
 	def access(self, offset, value=None):
