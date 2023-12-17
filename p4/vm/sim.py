@@ -7,9 +7,10 @@ class vm (object):
 		self.memory = Memory(1024)
 		self.tcb = TaskControlBlock(8, self.memory)
 		self.tcb.here(self.tcb.maxAddress() + 1)
-		self.tcb.psp(990)
-		self.tcb.s0(990)
-		self.tcb.rsp(950)
+		self.tcb.p0(990)
+		self.tcb.psp(self.tcb.p0())
+		self.tcb.r0(950)
+		self.tcb.rsp(self.tcb.r0())
 		self.rStack = Stack(self.memory, self.tcb.rsp_helper, lambda: self.tcb.here())
 		self.pStack = Stack(self.memory, self.tcb.psp_helper, lambda: self.tcb.rsp())
 		self.words = []
