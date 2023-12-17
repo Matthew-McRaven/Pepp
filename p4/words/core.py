@@ -11,7 +11,7 @@ def docol(VM):
 @NEXT
 def question(VM):
 	addr = VM.pStack.pop_b16(signed=False)
-	VM.pStack.push_b16(VM.memory.read_u16(addr), signed=True)
+	VM.pStack.push_b16(VM.memory.read_b16(addr, False), signed=False)
 	
 # Stops further instructions from executing in VM
 @NAMED("HALT")
