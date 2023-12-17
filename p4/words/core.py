@@ -1,4 +1,4 @@
-from ..utils import NAMED, NEXT
+from ..utils import IMMEDIATE, NAMED, NEXT
 
 @NAMED("DOCOL")
 @NEXT
@@ -34,6 +34,22 @@ def lbrac(VM):
 	
 # Exit compilation mode
 @NAMED("]")
+@IMMEDIATE
 @NEXT
 def rbrac(VM):
 	VM.tcb.state(0)
+	
+# ( -- ) Unconditional Branch, consumes following cell for jump address
+@NAMED("BRANCH")
+@IMMEDIATE
+@NEXT
+def branch(VM):
+	VM.tcb.nextWord(VM.memory.read_b16(VM.tcb.nextWord(), False))
+	
+# ( n -- ) Conditional Branch, consumes following cell for jump address
+@NAMED("0BRANCH")
+@IMMEDIATE
+@NEXT
+def branch0(VM):
+	if VM.rStack.pop_b16(signed=False) == 0: branch(VM)
+	else: VM.tcb.nextWord(VM.tcb.nextWord() + 2)

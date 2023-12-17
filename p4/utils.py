@@ -6,6 +6,13 @@ def as_hex(value): return f"{(4*'0' + hex(value)[2:])[-4:]}"
 def bytes(intVal):
 	return (intVal.bitLength() + 7) // 8
 
+def IMMEDIATE(function):
+	def wrapper(function):
+		if not hasattr(function, "FORTH"): function.FORTH={}
+		function.FORTH["immediate"] = True
+		return function	
+	return wrapper
+	
 # Use as a decorator
 # Equivalent of "NEXT" macro in JonesForth which auto-advances instruction pointer after
 # executing function body.	

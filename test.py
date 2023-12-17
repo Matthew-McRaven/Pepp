@@ -11,8 +11,7 @@ f = lambda s: e(s)["cwa"]
 
 docol_token = VM.memory.read_b16(f("DOCOL"), False)
 
-tokens = [docol_token, f("'"), f("."), f("HALT")]
-VM.intWord("doAll", tokens)
+p4.dictionary.defforth(VM, ("doAll", 0, ["'", ".", "HALT"]))
 VM.tcb.nextWord(f("doAll")); VM.next()
 p4.dictionary.dump(VM)
 VM.run()

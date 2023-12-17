@@ -25,13 +25,10 @@ class vm (object):
 		return here
 		
 	# Negative token numbers are native, positive token numbers are FORTH
-	def nativeWord(self, name, call):
+	def nativeWord(self, name, call, immediate=False):
 		token = -len(self.words)-1
 		self.words.append(call)
-		return _defcode(self, name, [token]), token
-		
-	def intWord(self, name, tokens):
-		return _defcode(self, name, tokens)
+		return _defcode(self, name, [token], immediate=immediate), token
 		
 	def step(self):
 		cwa_exec = self.memory.read_b16(self.tcb.currentWord(), signed=False)
