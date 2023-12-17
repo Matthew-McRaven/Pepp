@@ -1,2 +1,13 @@
-"Find" (addr -- dict head or -1)
-Add ability to push single characters, write single characters (e.g. I want to output space)
+Add tick, which FIND's next word and returns CWA
+
+Add a virtual table pointer, which points to an array of methods.
+	These methods will be used in place of things like "CWA", allowing for NT and XT magic to work
+	See GForth manual about these words
+
+Change header organization
+	Put string name at the start, followed by flag/len column.
+	Then, put link pointer, followed by all other fixed length fields.
+	Lastly, follow with data/code body.
+	The link pointer will still point to the link pointer of the previous entry, except now name will be at a "negative" offset from the link pointer
+	This organization allows you to get to the body of the code from the link pointer with no additional memory accesses.
+	(Idea taken from GForth implementation)
