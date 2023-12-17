@@ -1,5 +1,3 @@
-Add tick, which FIND's next word and returns CWA
-
 Add a virtual table pointer, which points to an array of methods.
 	These methods will be used in place of things like "CWA", allowing for NT and XT magic to work
 	See GForth manual about these words

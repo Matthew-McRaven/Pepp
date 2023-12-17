@@ -2,6 +2,7 @@ import enum
 
 from .strings import readStr as _readStr
 
+# The first data cell of each executable word MUST be "native" code
 class Offsets(enum.IntEnum):
 	LINK = 0
 	CODELEN = 2

@@ -4,13 +4,15 @@ import p4.bootstrap, p4.vm, p4.dictionary
 words = [fn for item in [core, stack, io, var, math, _dict] for fn in extract(item)]
 VM = p4.vm.vm()
 p4.bootstrap.bootstrap(VM, words)
-p4.dictionary.dump(VM)
 
 # Helper to look up a WORD and get its CWA, used to implement interpretted words for now.
 e = lambda s: p4.dictionary.addr_from_name(VM, s)
 f = lambda s: e(s)["cwa"]
-#tokens = [f("LIT"), e(".")["head"], f("NAME"), f("FIND"), f("."), f("HALT")]
-tokens = [f("WORD"), f("NUMBER"), f("."), f("HALT")]
+
+docol_token = VM.memory.read_b16(f("DOCOL"), False)
+
+tokens = [docol_token, f("'"), f("."), f("HALT")]
 VM.intWord("doAll", tokens)
 VM.tcb.nextWord(f("doAll")); VM.next()
+p4.dictionary.dump(VM)
 VM.run()
