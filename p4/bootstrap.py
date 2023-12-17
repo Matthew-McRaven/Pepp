@@ -9,6 +9,8 @@ def bootstrap(VM, nativeWords):
 	interpretWords = [
 		(":", 0, ["DOCOL", "WORD", "CREATE", "LIT", "DOCOL", ",", "LATEST", "HIDDEN", "[", "EXIT"]),
 		(";", _Flags.IMMEDIATE, ["DOCOL", "LIT", "EXIT", "COMMA", "LATEST", "FETCH", "HIDDEN", "LBRAC"])
+		# Consumes the NEXT word in the input stream and marks it as hidden
+		("HIDE", _Flags.IMMEDIATE ["DOCOL", "WORD", "FIND", "HIDDEN", "EXIT"])
 	]
 	for word in interpretWords:
 		name, flags, tokenStrs = word

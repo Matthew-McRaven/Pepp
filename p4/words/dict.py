@@ -62,3 +62,11 @@ def hidden(VM):
 	addr = VM.pStack.pop_b16(signed=False)
 	curFlags = VM.memory.read_b8(addr + _Offsets.STRLEN)
 	VM.memory.write_b8(addr + _Offsets.STRLEN, curFlags ^ _Flags.HIDDEN)
+	
+# ( addr -- ) Toggles the immediate bit for a pointer to an entry
+@NAMED("IMMEDIATE")
+@NEXT
+def IMMEDIATE(VM):
+	addr = VM.pStack.pop_b16(signed=False)
+	curFlags = VM.memory.read_b8(addr + _Offsets.STRLEN)
+	VM.memory.write_b8(addr + _Offsets.STRLEN, curFlags ^ _Flags.IMMEDIATE)
