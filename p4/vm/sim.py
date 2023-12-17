@@ -1,14 +1,15 @@
 from .memory import *
 from ..dictionary import defcode as _defcode
+from ..utils import as_hex as _as_hex
 
 class vm (object):
 	def __init__(self):
-		self.memory = Memory(256)
+		self.memory = Memory(1024)
 		self.tcb = TaskControlBlock(8, self.memory)
 		self.tcb.here(self.tcb.maxAddress() + 1)
-		self.tcb.psp(240)
-		self.tcb.s0(240)
-		self.tcb.rsp(200)
+		self.tcb.psp(990)
+		self.tcb.s0(990)
+		self.tcb.rsp(950)
 		self.rStack = Stack(self.memory, self.tcb.rsp_helper, lambda: self.tcb.here())
 		self.pStack = Stack(self.memory, self.tcb.psp_helper, lambda: self.tcb.rsp())
 		self.words = []
@@ -35,7 +36,7 @@ class vm (object):
 	def step(self):
 		cwa_exec = self.memory.read_b16(self.tcb.currentWord(), signed=False)
 		token_exec = self.memory.read_b16(cwa_exec, signed = True)
-		#print(f"CWA is 0x{as_hex(self.currentWord)}, word to execute is [{as_hex(cwa_exec)}]={token_exec}")
+		#print(f"CWA is 0x{_as_hex(self.tcb.currentWord())}, word to execute is [{_as_hex(cwa_exec)}]={_as_hex(token_exec & 0xFFFF)}")
 		word = self.words[-token_exec-1]
 		word(self)
 		
