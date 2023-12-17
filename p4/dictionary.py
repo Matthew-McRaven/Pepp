@@ -122,3 +122,18 @@ def writeTokens(VM, tokens):
 def defcode(VM, name, tokens, immediate=False):
 	header(VM, name, immediate=immediate)
 	return writeTokens(VM, tokens)
+
+# Word is a sequence. [0] = name as str, [1] = flags, [2] = sequence of word names that are already in the dictionary.
+def defforth(VM, word):
+		# Find the interpreter for FORTH words, and grab the "machine code" which implements it. 
+	docol_cwa = cwa(VM, find(VM, len("DOCOL"), "DOCOL"))
+	docol = [VM.memory.read_b16(docol_cwa, False)]
+	
+	name, flags, tokenStrs = word
+	entries = [find(VM, len(token), token) for token in tokenStrs]
+	#print(*zip(tokenStrs, entries)) # Debug helper when entries contains 0.
+	if 0 in entries: raise Exception("That didn't work")
+	header(VM, name, True if (flags & Flags.IMMEDIATE) else False) 
+	# Prepend the implementation of DOCOL, so that the first cell at CWA for each word is executable. 
+	tokens = docol + [cwa(VM, entry) for entry in entries]
+	writeTokens(VM, tokens)

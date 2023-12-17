@@ -1,8 +1,8 @@
 from .dictionary import Flags as _Flags, find as _find, cwa as _cwa, header as _header, writeTokens as _writeTokens
-from .dictionary import dump as _dump
+from .dictionary import dump as _dump, defforth as _def
 def bootstrap(VM, nativeWords):
 	for word in nativeWords: 
-		VM.nativeWord(word.FORTH["name"], word)
+		VM.nativeWord(word.FORTH["name"], word, immediate=("immediate" in word.FORTH))
 		if "pad" in word.FORTH: 
 			word.pad = VM.tcb.here()
 			VM.tcb.here(VM.tcb.here() + int(word.FORTH["pad"]))
@@ -15,18 +15,5 @@ def bootstrap(VM, nativeWords):
 		# Not using JonesForth "cheat", since I did not understand the implementation.
 		("'", _Flags.IMMEDIATE, ["WORD", "FIND", ">CWA", "?", "EXIT"]),
 	]
-	
-	# Find the interpreter for FORTH words, and grab the "machine code" which implements it. 
-	docol_cwa = _cwa(VM, _find(VM, len("DOCOL"), "DOCOL"))
-	docol = [VM.memory.read_b16(docol_cwa, False)]
-	
-	for word in interpretWords:
-		name, flags, tokenStrs = word
-		entries = [_find(VM, len(token), token) for token in tokenStrs]
-		#print(*zip(tokenStrs, entries)) # Debug helper when entries contains 0.
-		if 0 in entries: raise Exception("That didn't work")
-		_header(VM, name, True if (flags & _Flags.IMMEDIATE) else False) 
-		# Prepend the implementation of DOCOL, so that the first cell at CWA for each word is executable. 
-		tokens = docol + [_cwa(VM, entry) for entry in entries]
-		_writeTokens(VM, tokens)
+	for word in interpretWords: _def(VM, word)
 	
