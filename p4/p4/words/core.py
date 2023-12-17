@@ -1,6 +1,6 @@
 from ..utils import NAMED, NEXT
 
-@NAMED("docol")
+@NAMED("DOCOL")
 @NEXT
 def docol(VM):
 	VM.rStack.push_b16(VM.tcb.currentWord()+2, signed=False)
