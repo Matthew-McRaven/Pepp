@@ -9,8 +9,6 @@ p4.bootstrap.bootstrap(VM, words)
 e = lambda s: p4.dictionary.addr_from_name(VM, s)
 f = lambda s: e(s)["cwa"]
 
-docol_token = VM.memory.read_b16(f("DOCOL"), False)
-
 p4.dictionary.defforth(VM, ("doAll", 0, ["'", ".", "HALT"]))
 VM.tcb.nextWord(f("doAll")); VM.next()
 p4.dictionary.dump(VM)

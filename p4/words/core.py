@@ -39,14 +39,15 @@ def lbrac(VM):
 def rbrac(VM):
 	VM.tcb.state(0)
 	
-# ( -- ) Unconditional Branch, consumes following cell for jump address
+# ( -- ) Relative unconditional branch, consumes following cell for jump address
 @NAMED("BRANCH")
 @IMMEDIATE
 @NEXT
 def branch(VM):
-	VM.tcb.nextWord(VM.memory.read_b16(VM.tcb.nextWord(), False))
+	offset = VM.memory.read_b16(VM.tcb.nextWord(), False)
+	VM.tcb.nextWord(VM.tcb.nextWord() + offset)
 	
-# ( n -- ) Conditional Branch, consumes following cell for jump address
+# ( n -- ) Relative conditional branch, consumes following cell for jump address
 @NAMED("0BRANCH")
 @IMMEDIATE
 @NEXT
