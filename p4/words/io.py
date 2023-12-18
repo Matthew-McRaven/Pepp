@@ -57,24 +57,26 @@ def key(VM):
 @NEXT
 def emit(VM):
 	print(chr(VM.pStack.pop_b8(signed=False)), end="")
-	
+
+def word_impl():
+	ret = ""
+	while (ch := __stdin.key()) not in ' \r\n\t': ret += ch
+	return ret
+
 #( -- addr len) Reads the next word from STDIN into a temp buffer, then pushes the string
 @PADDED("33")
 @NAMED("WORD")
 @NEXT
 def word(VM):
-	ch, iter = __stdin.key(), 0
-
-	while ch not in ' \r\n\t':
-		VM.memory.write_b8(word.pad + 1 + iter, ord(ch), signed=False)
-		ch = __stdin.key()
-		iter += 1
+	string = word_impl()
+	for idx, ch in enumerate(string):
+		VM.memory.write_b8(word.pad+idx+1, ord(ch), signed=False)
 	# Write the length to the first byte of the pad
-	VM.memory.write_b8(word.pad, iter, signed=False)
+	VM.memory.write_b8(word.pad, len(string), signed=False)
 	# Null terminate the string for our C friends.
-	VM.memory.write_b8(word.pad + iter + 1 + 1, 0, signed=False)
+	VM.memory.write_b8(word.pad + len(string) + 1, 0, signed=False)
 	VM.pStack.push_b16(word.pad + 1, signed=False)
-	VM.pStack.push_b8(iter, signed=False)
+	VM.pStack.push_b8(len(string), signed=False)
 
 #( -- addr len) Return the length and address of WORD's currently buffered string
 @NAMED("PREVWORD")
