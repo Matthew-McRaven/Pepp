@@ -10,10 +10,18 @@ def docol(VM):
 # ( addr -- value) # Dereference a pointer
 @NAMED("?")
 @NEXT
-def question(VM):
+def fetch(VM):
 	addr = VM.pStack.pop_b16(signed=False)
 	VM.pStack.push_b16(VM.memory.read_b16(addr, False), signed=False)
-	
+
+# ( addr value --) # Write to a pointer
+@NAMED("@")
+@NEXT
+def question(VM):
+	addr = VM.pStack.pop_b16(signed=False)
+	value = VM.pStack.pop_b16(signed=False)
+	VM.memory.write_b16(addr, value, False)
+
 # Stops further instructions from executing in VM
 @NAMED("HALT")
 @NEXT
