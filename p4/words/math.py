@@ -1,36 +1,36 @@
-from ..utils import NAMED, NEXT
+from ..utils import NATIVE
 
 # (n1 n2 -- n1+n2)
-@NAMED("+")
-@NEXT
+@NATIVE("+")
 def plus_i16(VM):
 	lhs, rhs = VM.pStack.pop_b16(signed=True), VM.pStack.pop_b16(signed=True)
 	VM.pStack.push_b16(lhs+rhs, signed=True)
+	VM.next()
 
 # (n1 n2 -- n1+n2)
-@NAMED("OR")
-@NEXT
+@NATIVE("OR")
 def or_i16(VM):
 	lhs, rhs = VM.pStack.pop_b16(signed=True), VM.pStack.pop_b16(signed=True)
 	VM.pStack.push_b16(lhs | rhs, signed=True)
+	VM.next()
 
 # (n1 n2 -- n1 && n2)
-@NAMED("AND")
-@NEXT
+@NATIVE("AND")
 def and_i16(VM):
 	lhs, rhs = VM.pStack.pop_b16(signed=True), VM.pStack.pop_b16(signed=True)
 	VM.pStack.push_b16(lhs & rhs, signed=True)
+	VM.next()
 
 # (n1 n2 -- n1 == n2)
-@NAMED("=")
-@NEXT
+@NATIVE("=")
 def equals_i16(VM):
 	lhs, rhs = VM.pStack.pop_b16(signed=True), VM.pStack.pop_b16(signed=True)
 	VM.pStack.push_b16(lhs == rhs, signed=True)
+	VM.next()
 
 # (n1 -- n1 > 0)
-@NAMED(">0")
-@NEXT
+@NATIVE(">0")
 def gt0_i16(VM):
 	lhs, = VM.pStack.pop_b16(signed=True)
 	VM.pStack.push_b16(lhs > 0, signed=True)
+	VM.next()

@@ -15,46 +15,14 @@ def number_impl(text, base=10):
 		flag = 0
 	return number, flag
 
-def IMMEDIATE(function):
-	def wrapper(function):
-		if not hasattr(function, "FORTH"): function.FORTH={}
-		function.FORTH["immediate"] = True
-		return function	
-	return wrapper
-	
 # Use as a decorator
-# Equivalent of "NEXT" macro in JonesForth which auto-advances instruction pointer after
-# executing function body.	
-def NEXT(function):
-	return lambda VM: (function(VM), VM.next())
-
-# Use as a decorator
-# Used to assign a FORTH name and flags to a word
 # Acts like "defcode" macro from JoneForth
-def NAMED(name):
+# Current useful args:
+#   immediate:      Should the VM set the IMMEDIATE flag when defining the word?
+#   pad:            Number of padding bytes that should follow the entry? Default: 0
+#   refs:           Which words should be inserted into the <NAME>.FORTH.refs dict? Pass in a list, receive a dict in the function.
+def	NATIVE(name, **kwargs):
 	def wrapper(function):
-		if not hasattr(function, "FORTH"): function.FORTH={}
-		function.FORTH["name"] = name
-		return function	
-	return wrapper
-
-# Use as a decorator
-# Used to ask the bootstrap function to inject the dict ptr of another word into this word.
-# Needed since function implementations do not "live" inside FORTH virtual memory.
-def REFERS(name):
-	def wrapper(function):
-		if not hasattr(function, "FORTH"): function.FORTH={}
-		if "refs" not in function.FORTH: function.FORTH["refs"] = {}
-		function.FORTH["refs"][name] = None
+		function.FORTH = {**kwargs, "name": name}
 		return function
-	return wrapper
-
-# Use as a decorator
-# Insert a number of bytes (of 0's) after defining this dictionary entry
-# The dictionary MUST assign the attribute "pad" to the function, with pad's value being the address of the first pad byte
-def PADDED(count):
-	def wrapper(function):
-		if not hasattr(function, "FORTH"): function.FORTH={}
-		function.FORTH["pad"] = count
-		return function	
 	return wrapper

@@ -17,13 +17,12 @@ def bootstrap(VM, nativeWords):
 		("HIDE", _Flags.IMMEDIATE, ["WORD", "FIND", "HIDDEN", "EXIT"]),
 		# Not using JonesForth "cheat", since I did not understand the implementation.
 		("'", _Flags.IMMEDIATE, ["WORD", "FIND", ">CWA", "?", "EXIT"]),
+		#("IF", _Flags.IMMEDIATE, "' 0BRANCH , HERE @ 0 ,".split())
 		# Used to restart interpreter
 		#("QUIT", 0, "P0 PSP! R0 RSP! INTERPRET BRANCH -6".split())
 	]
 	for word in interpretWords: _def(VM, word)
 
 	for word in referers:
-		for referent in word.FORTH["refs"]:
-			word.FORTH["refs"][referent] = words[referent]
-
-	
+		# Change list to dict
+		word.FORTH["refs"] = {referent:words[referent] for referent in word.FORTH["refs"]}
