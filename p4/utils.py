@@ -28,7 +28,18 @@ def NAMED(name):
 		function.FORTH["name"] = name
 		return function	
 	return wrapper
-	
+
+# Use as a decorator
+# Used to ask the bootstrap function to inject the dict ptr of another word into this word.
+# Needed since function implementations do not "live" inside FORTH virtual memory.
+def REFERS(name):
+	def wrapper(function):
+		if not hasattr(function, "FORTH"): function.FORTH={}
+		if "refs" not in function.FORTH: function.FORTH["refs"] = {}
+		function.FORTH["refs"][name] = None
+		return function
+	return wrapper
+
 # Use as a decorator
 # Insert a number of bytes (of 0's) after defining this dictionary entry
 # The dictionary MUST assign the attribute "pad" to the function, with pad's value being the address of the first pad byte
