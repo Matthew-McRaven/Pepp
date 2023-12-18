@@ -1,4 +1,4 @@
-from ..utils import NAMED, NEXT, PADDED, REFERS
+from ..utils import NAMED, NEXT, PADDED, REFERS, number_impl
 import p4.strings
 # ( n1 -- ) # Print the top value on the stack to stdout
 @NAMED(".")
@@ -84,20 +84,17 @@ def prevword(VM):
 	word_ref = prevword.FORTH["refs"]["WORD"]
 	VM.pStack.push_b16(word_ref.pad + 1, signed=False)
 	VM.pStack.push_b8(VM.memory.read_b8(word_ref.pad, signed=False), signed=False)
+
 # TODO: Allow base to vary
 # ( addr len -- n 1u16 | 0u16 0u16) Parse the pointed number in the current base
 # If success, push the number onto the stack, and a true flag. Otherwise both are 0.
 @NAMED("NUMBER")
 @NEXT
-def NUMBER(VM):
-	len = VM.pStack.pop_b8(signed=False)
+def _number(VM):
+	strlen = VM.pStack.pop_b8(signed=False)
 	addr = VM.pStack.pop_b16(signed=False)
-	text = p4.strings.readLenStr(VM, addr, len)
-	number, flag = 0, 1
-	try:
-		number = int(text, 10)
-	except:
-		flag = 0
+	text = p4.strings.readLenStr(VM, addr, strlen)
+	number, flag = number_impl(text, 10)
 	VM.pStack.push_b16(number, signed=False)
 	VM.pStack.push_b16(flag, signed=False)
 

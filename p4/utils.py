@@ -6,6 +6,15 @@ def as_hex(value): return f"{(4*'0' + hex(value)[2:])[-4:]}"
 def bytes(intVal):
 	return (intVal.bitLength() + 7) // 8
 
+
+def number_impl(text, base=10):
+	number, flag = 0, 1
+	try:
+		number = int(text, base)
+	except:
+		flag = 0
+	return number, flag
+
 def IMMEDIATE(function):
 	def wrapper(function):
 		if not hasattr(function, "FORTH"): function.FORTH={}
