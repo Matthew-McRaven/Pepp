@@ -63,3 +63,18 @@ def branch(VM):
 def branch0(VM):
 	if VM.rStack.pop_b16(signed=False) == 0: branch(VM)
 	else: VM.tcb.nextWord(VM.tcb.nextWord() + 2)
+
+# ( -- n ) Push the current state of the VM onto the stack
+@NAMED("STATE")
+@IMMEDIATE
+@NEXT
+def state(VM):
+	VM.pStack.push_b16(VM.tcb.state())
+
+# ( -- n ) Push value for state "IMMEDIATE" onto the Stack
+@NAMED("STATE_IMM")
+@IMMEDIATE
+@NEXT
+def state(VM):
+	VM.pStack.push_b16(_State.IMMEDIATE)
+
