@@ -1,7 +1,12 @@
+import enum
+
 from .memory import *
 from ..dictionary import defcode as _defcode
 from ..utils import as_hex as _as_hex
 
+class State(enum.IntEnum):
+	COMPILING = 0
+	IMMEDIATE = 1
 class vm (object):
 	def __init__(self):
 		self.memory = Memory(1024)

@@ -1,4 +1,5 @@
 from ..utils import IMMEDIATE, NAMED, NEXT
+from ..vm.sim import State as _State
 
 @NAMED("DOCOL")
 @NEXT
@@ -30,14 +31,14 @@ def exit(VM):
 @NAMED("[")
 @NEXT
 def lbrac(VM):
-	VM.tcb.state(1)
+	VM.tcb.state(_State.COMPILING)
 	
 # Exit compilation mode
 @NAMED("]")
 @IMMEDIATE
 @NEXT
 def rbrac(VM):
-	VM.tcb.state(0)
+	VM.tcb.state(_State.IMMEDIATE)
 	
 # ( -- ) Relative unconditional branch, consumes following cell for jump address
 @NAMED("BRANCH")
