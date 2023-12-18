@@ -19,11 +19,15 @@ class vm (object):
 		self.rStack = Stack(self.memory, self.tcb.rsp_helper, lambda: self.tcb.p0())
 		self.pStack = Stack(self.memory, self.tcb.psp_helper, lambda: self.tcb.here())
 		self.words = []
+		# Address to which we will be jumping next. Usually set via next(),
+		# but native words like interpret may modify this to change jump target without modifying instruction pointer.
+		self.jumpTo = 0
 		self.alive = True
 		
 	def next(self):
 		self.tcb.currentWord(self.tcb.nextWord())
-		self.tcb.nextWord(self.tcb.nextWord() + 2)	
+		self.tcb.nextWord(self.tcb.nextWord() + 2)
+		self.jumpTo = self.tcb.currentWord()
 	
 	def herePP(self, incr):
 		here = self.tcb.here()
@@ -37,11 +41,19 @@ class vm (object):
 		return _defcode(self, name, [token], immediate=immediate), token
 		
 	def step(self):
-		cwa_exec = self.memory.read_b16(self.tcb.currentWord(), signed=False)
-		token_exec = self.memory.read_b16(cwa_exec, signed = True)
-		#print(f"CWA is 0x{_as_hex(self.tcb.currentWord())}, word to execute is [{_as_hex(cwa_exec)}]={_as_hex(token_exec & 0xFFFF)}")
-		word = self.words[-token_exec-1]
+		lookup = lambda addr: self.memory.read_b16(addr, signed=True)
+		addr = self.jumpTo
+		opcode = lookup(addr)
+		while opcode > 0:
+			# Push current address onto stack to imitate DOCOL
+			self.rStack.push_b16(addr)
+			addr, opcode = opcode, lookup(opcode)
+		token = -opcode - 1
+		word = self.words[token]
+		#print(f"CWA is 0x{_as_hex(self.jumpTo)},  executing opcode at [{_as_hex(addr)}]={_as_hex(opcode & 0xFFFF)}")
 		word(self)
+
+
 		
 	def run(self):
 		while self.alive: self.step()

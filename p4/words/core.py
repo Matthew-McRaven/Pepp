@@ -1,11 +1,19 @@
 from ..utils import IMMEDIATE, NAMED, NEXT
 from ..vm.sim import State as _State
 
+# This is now a NO-OP, because VM.step() chases pointers for us.
+# Pointer chasing is valid behavior since my Pep/10 implementation will be subroutine threaded,
+# which means nested calls in machine language.
 @NAMED("DOCOL")
 @NEXT
-def docol(VM):
-	VM.rStack.push_b16(VM.tcb.currentWord()+2, signed=False)
-	VM.tcb.nextWord(VM.memory.read_b16(VM.tcb.currentWord(), signed=False) + 2)
+def docol(VM): pass
+
+
+# Pop top entry of return stack and jump to it
+@NAMED("EXIT")
+@NEXT
+def exit(VM):
+	VM.tcb.nextWord(VM.rStack.pop_b16(signed=False))
 
 # ( addr -- value) # Dereference a pointer
 @NAMED("?")
@@ -28,12 +36,6 @@ def question(VM):
 def halt(VM):
 	VM.alive = False
 	print("\nHALTING")
-	
-# Pop top entry of return stack and jump to it
-@NAMED("EXIT")
-@NEXT
-def exit(VM):
-	VM.tcb.nextWord(VM.rStack.pop_b16(signed=False))
 	
 # Enter compilation mode
 @NAMED("[")
