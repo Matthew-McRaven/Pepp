@@ -1,4 +1,4 @@
-from ..utils import NAMED, NEXT, PADDED
+from ..utils import NAMED, NEXT, PADDED, REFERS
 import p4.strings
 # ( n1 -- ) # Print the top value on the stack to stdout
 @NAMED(".")
@@ -59,20 +59,31 @@ def emit(VM):
 	print(chr(VM.pStack.pop_b8(signed=False)), end="")
 	
 #( -- addr len) Reads the next word from STDIN into a temp buffer, then pushes the string
-@PADDED("32")
+@PADDED("33")
 @NAMED("WORD")
 @NEXT
 def word(VM):
 	ch, iter = __stdin.key(), 0
+
 	while ch not in ' \r\n\t':
-		VM.memory.write_b8(word.pad + iter, ord(ch), signed=False)
+		VM.memory.write_b8(word.pad + 1 + iter, ord(ch), signed=False)
 		ch = __stdin.key()
 		iter += 1
+	# Write the length to the first byte of the pad
+	VM.memory.write_b8(word.pad, iter, signed=False)
 	# Null terminate the string for our C friends.
-	VM.memory.write_b8(word.pad + iter + 1, 0, signed=False)
-	VM.pStack.push_b16(word.pad, signed=False)
+	VM.memory.write_b8(word.pad + iter + 1 + 1, 0, signed=False)
+	VM.pStack.push_b16(word.pad + 1, signed=False)
 	VM.pStack.push_b8(iter, signed=False)
 
+#( -- addr len) Return the length and address of WORD's currently buffered string
+@NAMED("PREVWORD")
+@REFERS("WORD")
+@NEXT
+def prevword(VM):
+	word_ref = prevword.FORTH["refs"]["WORD"]
+	VM.pStack.push_b16(word_ref.pad + 1, signed=False)
+	VM.pStack.push_b8(VM.memory.read_b8(word_ref.pad, signed=False), signed=False)
 # TODO: Allow base to vary
 # ( addr len -- n 1u16 | 0u16 0u16) Parse the pointed number in the current base
 # If success, push the number onto the stack, and a true flag. Otherwise both are 0.
