@@ -1,6 +1,8 @@
 import enum
 
 from .strings import readStr as _readStr
+from .utils import number_impl
+
 
 # The first data cell of each executable word MUST be "native" code
 class Offsets(enum.IntEnum):
@@ -125,15 +127,13 @@ def defcode(VM, name, tokens, immediate=False):
 
 # Word is a sequence. [0] = name as str, [1] = flags, [2] = sequence of word names that are already in the dictionary.
 def defforth(VM, word):
-		# Find the interpreter for FORTH words, and grab the "machine code" which implements it. 
-	docol_cwa = cwa(VM, find(VM, len("DOCOL"), "DOCOL"))
-	docol = [VM.memory.read_b16(docol_cwa, False)]
-	
 	name, flags, tokenStrs = word
-	entries = [find(VM, len(token), token) for token in tokenStrs]
-	#print(*zip(tokenStrs, entries)) # Debug helper when entries contains 0.
-	if 0 in entries: raise Exception("That didn't work")
-	header(VM, name, True if (flags & Flags.IMMEDIATE) else False) 
-	# Prepend the implementation of DOCOL, so that the first cell at CWA for each word is executable. 
-	tokens = docol + [cwa(VM, entry) for entry in entries]
-	writeTokens(VM, tokens)
+	entries = []
+	for token in tokenStrs:
+		num, isNum = number_impl(token, 10)
+		if ( addr := find(VM, len(token), token)) > 0: entries.append(cwa(VM, addr))
+		elif isNum: entries.append(num)
+		else: raise Exception("That didn't work")
+	print(*zip(tokenStrs, [hex(x) for x in entries])) # Debug helper when entries contains 0.
+	header(VM, name, True if (flags & Flags.IMMEDIATE) else False)
+	writeTokens(VM, entries)
