@@ -70,3 +70,12 @@ def IMMEDIATE(VM):
 	addr = VM.pStack.pop_b16(signed=False)
 	curFlags = VM.memory.read_b8(addr + _Offsets.STRLEN)
 	VM.memory.write_b8(addr + _Offsets.STRLEN, curFlags ^ _Flags.IMMEDIATE)
+
+# ( addr -- ) Returns true if the dict pointer is IMMEDIATE
+@NAMED("?IMMEDIATE")
+@NEXT
+def is_immediate(VM):
+	addr = VM.pStack.pop_b16(signed=False)
+	curFlags = VM.memory.read_b8(addr + _Offsets.STRLEN)
+	VM.pStack.push_b16(curFlags & _Flags.IMMEDIATE)
+	VM.memory.write_b8(addr + _Offsets.STRLEN, curFlags ^ _Flags.HIDDEN)
