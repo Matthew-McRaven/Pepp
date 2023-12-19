@@ -11,7 +11,7 @@ def bootstrap(VM, nativeWords):
 
 	# Don't insert CWA of DOCOL. The CWA isn't actually executable. We must indirect the CWA to get an executable token.
 	interpretWords = [
-		(":", 0, ["WORD", "CREATE", "LIT", "DOCOL", ",", "LATEST", "HIDDEN", "[", "EXIT"]),
+		(":", 0, ["WORD", "CREATE", "LIT", "ENTER", ",", "LATEST", "HIDDEN", "[", "EXIT"]),
 		(";", _Flags.IMMEDIATE, ["LIT", "EXIT", ",", "LATEST", "HIDDEN", "]", "EXIT"]),
 		# Consumes the NEXT word in the input stream and marks it as hidden
 		("HIDE", _Flags.IMMEDIATE, ["WORD", "FIND", "HIDDEN", "EXIT"]),

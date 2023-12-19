@@ -2,8 +2,8 @@ from ..utils import NATIVE
 from ..vm.sim import State as _State
 
 # The VM's step chases pointers, and updates IP to point to the actuall address being executed.
-@NATIVE("DOCOL")
-def docol(VM):
+@NATIVE("ENTER")
+def enter(VM):
 	# Preserve the next logical word to be executed.
 	VM.rStack.push_b16(VM.tcb.nextWord(), signed=False)
 	# However, our IP may be anywhere in memory, so we should execute the word immediately following this one

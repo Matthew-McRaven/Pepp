@@ -157,7 +157,7 @@ def defcode(VM, name, tokens, immediate=False):
 
 # Word is a sequence. [0] = name as str, [1] = flags, [2] = sequence of word names that are already in the dictionary.
 def defforth(VM, word):
-	docol = [VM.memory.read_b16(cwa(VM, find(VM, len("DOCOL"), "DOCOL")), False)]
+	enter = [VM.memory.read_b16(cwa(VM, find(VM, len("ENTER"), "ENTER")), False)]
 	name, flags, tokenStrs = word
 	entries = []
 	for token in tokenStrs:
@@ -167,4 +167,4 @@ def defforth(VM, word):
 		else: raise Exception("That didn't work")
 	#print(*zip(tokenStrs, [hex(x) for x in entries])) # Debug helper when entries contains 0.
 	header(VM, name, True if (flags & Flags.IMMEDIATE) else False)
-	writeTokens(VM, docol+entries)
+	writeTokens(VM, enter+entries)
