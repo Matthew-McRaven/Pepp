@@ -45,6 +45,7 @@ class Stack:
 	def pop_int(self, length, signed=False):
 		ret = int.from_bytes(self.memory[self.sp():self.sp() + length], "big", signed=signed)
 		self.sp(length)
+		if self.bsp < self.sp(): raise Exception("Stack Underflow")
 		return ret
 		
 	def push_bytes(self, bytes):
@@ -53,14 +54,6 @@ class Stack:
 		for byte in bytes[::-1]:
 			self.sp(-1)
 			self.memory[self.sp()] = byte
-					
-	def pop_bytes(self, count):
-		sp = self.sp()
-		if self.bsp<sp+count: raise Exception("Stack Underflow") 
-		ret = self.memory[sp:sp+count]
-		self.memory[sp:sp+count]=[0]*count
-		self.sp_accessor(count)
-		return ret
 		
 	def dump(self):
 		self.memory.dump(self.sp(), self.bsp)
