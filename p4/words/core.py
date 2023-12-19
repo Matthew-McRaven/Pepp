@@ -83,3 +83,9 @@ def state(VM):
 	VM.pStack.push_b16(_State.IMMEDIATE)
 	VM.next()
 
+# ( -- n ) Get number of bytes on parameter stack. Will likely crash on underflow.
+@NATIVE("DEPTH")
+def depth(VM):
+	VM.pStack.push_b16(VM.tcb.p0() - VM.tcb.psp())
+	VM.next()
+
