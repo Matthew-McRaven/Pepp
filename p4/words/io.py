@@ -94,7 +94,7 @@ def _number(VM):
 	addr = VM.pStack.pop_b16(signed=False)
 	text = p4.strings.readLenStr(VM, addr, strlen)
 	number, flag = number_impl(text, 10)
-	VM.pStack.push_b16(number, signed=False)
+	VM.pStack.push_b16(number, signed=False if number > 0 else True)
 	VM.pStack.push_b16(flag, signed=False)
 	VM.next()
 

@@ -38,7 +38,7 @@ class Stack:
 		if self.limit()>self.sp()+length: raise Exception("Stack Overflow")
 		# Swap byte order since stack is backwards
 		self.sp(-length)
-		self.memory[self.sp():self.sp()+length] = number.to_bytes(length, "big")
+		self.memory[self.sp():self.sp()+length] = number.to_bytes(length, "big", signed=signed)
 
 	def pop_b8(self, signed=False): return self.pop_int(1, signed=signed)
 	def pop_b16(self, signed=False): return self.pop_int(2, signed=signed)
