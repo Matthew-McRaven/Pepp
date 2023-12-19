@@ -16,7 +16,7 @@ def bootstrap(VM, nativeWords):
 		# Consumes the NEXT word in the input stream and marks it as hidden
 		("HIDE", _Flags.IMMEDIATE, ["WORD", "FIND", "HIDDEN", "EXIT"]),
 		# Not using JonesForth "cheat", since I did not understand the implementation.
-		("'", _Flags.IMMEDIATE, ["WORD", "FIND", ">CWA", "?", "EXIT"]),
+		("'", _Flags.IMMEDIATE, ["WORD", "FIND", ">CWA", "@", "EXIT"]),
 		#("IF", _Flags.IMMEDIATE, "' 0BRANCH , HERE @ 0 ,".split())
 		# Used to restart interpreter
 		#("QUIT", 0, "P0 PSP! R0 RSP! INTERPRET BRANCH -6".split())

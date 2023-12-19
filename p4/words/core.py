@@ -18,17 +18,17 @@ def exit(VM):
 	VM.next()
 
 # ( addr -- value) # Dereference a pointer
-@NATIVE("?")
+@NATIVE("@")
 def fetch(VM):
 	addr = VM.pStack.pop_b16(signed=False)
 	VM.pStack.push_b16(VM.memory.read_b16(addr, False), signed=False)
 	VM.next()
 
 # ( addr value --) # Write to a pointer
-@NATIVE("@")
-def question(VM):
-	addr = VM.pStack.pop_b16(signed=False)
+@NATIVE("!")
+def store(VM):
 	value = VM.pStack.pop_b16(signed=False)
+	addr = VM.pStack.pop_b16(signed=False)
 	VM.memory.write_b16(addr, value, False)
 	VM.next()
 
