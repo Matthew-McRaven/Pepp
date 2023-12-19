@@ -19,15 +19,17 @@ class vm (object):
 		self.rStack = Stack(self.memory, self.tcb.rsp_helper, lambda: self.tcb.p0())
 		self.pStack = Stack(self.memory, self.tcb.psp_helper, lambda: self.tcb.here())
 		self.words = []
-		# Address to which we will be jumping next. Usually set via next(),
-		# but native words like interpret may modify this to change jump target without modifying instruction pointer.
-		self.jumpTo = 0
+		# The actual instruction pointer of the VM
+		# Usually, this value will be updated by next() from currentWord and nextWord
+		# However, when you need to (temporarily) transfer control without changing control flow (i.e., DOCOL),
+		# you can update this value directly.
+		self.ip = 0
 		self.alive = True
 		
 	def next(self):
 		self.tcb.currentWord(self.tcb.nextWord())
 		self.tcb.nextWord(self.tcb.nextWord() + 2)
-		self.jumpTo = self.tcb.currentWord()
+		self.ip = self.tcb.currentWord()
 	
 	def herePP(self, incr):
 		here = self.tcb.here()

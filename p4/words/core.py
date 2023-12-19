@@ -1,12 +1,15 @@
 from ..utils import NATIVE
 from ..vm.sim import State as _State
 
-# This is now a NO-OP, because VM.step() chases pointers for us.
-# Pointer chasing is valid behavior since my Pep/10 implementation will be subroutine threaded,
-# which means nested calls in machine language.
+# The VM's step chases pointers, and updates IP to point to the actuall address being executed.
 @NATIVE("DOCOL")
-def docol(VM): pass
-
+def docol(VM):
+	# Preserve the next logical word to be executed.
+	VM.rStack.push_b16(VM.tcb.nextWord(), signed=False)
+	# However, our IP may be anywhere in memory, so we should execute the word immediately following this one
+	# nextWord may not point to IP+2, especially when we are near an INTERPRET word.
+	VM.tcb.nextWord(VM.ip+2)
+	VM.next()
 
 # Pop top entry of return stack and jump to it
 @NATIVE("EXIT")
