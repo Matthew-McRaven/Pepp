@@ -96,6 +96,15 @@ def dump(VM):
 	visit(VM, functor)
 	current, prev = VM.tcb.latest(), 0
 
+# Find the most likely dictionary entry from a given address that is in the middle of an entry
+def nearest_header(VM, target):
+	def functor(addr):
+		if  addr < target: functor.found, functor.ret = True, addr
+
+	functor.found = False
+	functor.ret = VM.tcb.latest()
+	visit(VM, functor, lambda addr: functor.found == False)
+	return functor.ret
 
 # Walks the dictionary, finding the first entry which matches the name.
 # Returns None if no matches.
@@ -156,6 +165,6 @@ def defforth(VM, word):
 		if ( addr := find(VM, len(token), token)) > 0: entries.append(cwa(VM, addr))
 		elif isNum: entries.append(num)
 		else: raise Exception("That didn't work")
-	print(*zip(tokenStrs, [hex(x) for x in entries])) # Debug helper when entries contains 0.
+	#print(*zip(tokenStrs, [hex(x) for x in entries])) # Debug helper when entries contains 0.
 	header(VM, name, True if (flags & Flags.IMMEDIATE) else False)
 	writeTokens(VM, docol+entries)
