@@ -1,7 +1,7 @@
 import enum
 
 from .strings import readStr as _readStr
-from .utils import number_impl
+from .utils import number_impl, as_hex as _as_hex
 
 
 # The first data cell of each executable word MUST be "native" code
@@ -20,27 +20,43 @@ class Flags(enum.IntEnum):
 	# the reported length of the hidden word is longer than the max word size (31).
 	# Trick borrowed from JoensForth.
 	LEN = 0x3f 
-	MAX_LEN = 0x1f# Actual max len is 0x1f
+	MAX_LEN = 0x1f # Actual max len is 0x1f
+	FLAG_MASK = 0xE0
+
+def visit(VM, functor, condition=lambda addr: True):
+	current = VM.tcb.latest()
+	while current != 0 and condition(current):
+		functor(current)
+		current = link(VM, current)
 
 # Helper to walk FORTH dictionary, returning a pointer to the head
 # of the first matching entry.
 def find(VM, nameLen, name, matchHidden=False):
-	# Keep track of the previous visited dict entry in "last"
-	current, last = VM.tcb.latest(), 0
-	# Prevent infinite loop if we have an entry point to itself by checking that we aren't revisiting self 
-	while	current != 0 and current != last:
+	def functor(addr):
 		# Use cascading conditionals to avoid nested ones.
 		# Each non-default conditional will prevent
 		# Do not match against a hidden entry if we respect the flag
 		# Mask out non-length bits of the strlen field.
-		entryLen = VM.memory.read_b8(current + Offsets.STRLEN, signed=False)
-		if not matchHidden and (entryLen & Flags.HIDDEN): pass 
+		entryLen = VM.memory.read_b8(addr + Offsets.STRLEN, signed=False)
+		if not matchHidden and (entryLen & Flags.HIDDEN): pass
 		elif nameLen != entryLen & Flags.LEN: pass
-		elif name != _readStr(VM, current+Offsets.STR): pass
-		else: return current
-		current, last = VM.memory.read_b16(current, signed=False), current
-	return 0
-		
+		elif name != _readStr(VM, addr + Offsets.STR): pass
+		else:
+			functor.found = True
+			functor.ret = addr
+
+	functor.found, functor.ret = False, 0
+	visit(VM, functor, lambda addr: functor.found == False)
+	return functor.ret
+
+# Native accessors for FORTH dictionary
+
+def link(VM, address): return VM.memory.read_b16(address + Offsets.LINK, signed=False)
+def name(VM, address): return _readStr(VM, address + Offsets.STR)
+def namelen(VM, address): return VM.memory.read_b8(address + Offsets.STRLEN, signed=False) & Flags.LEN
+def codelen(VM, address): return VM.memory.read_b8(address + Offsets.CODELEN, signed=False)
+def flags(VM, address): return VM.memory.read_b8(address + Offsets.STRLEN, signed=False) & Flags.FLAG_MASK
+
 # Assuming address points to the link field of a dictionary entry, return the address of the first code word.
 def cwa(VM, address):
 	# Mask out non-length bits of the strlen field.
@@ -51,46 +67,51 @@ def cwa(VM, address):
 	# ODD: 1 =>3 => 2, which is right because we pad odds with 1 null
 	offset = ((strlen + 2) & 0xFE)
 	return address + Offsets.STR + offset
-	
-# Native accessors for FORTH dictionary
 
 # Given an address, attempt to parse it as a dictionary header.
 def entry(VM, address):
 	ret = {}
-	ret["link"] = VM.memory.read_b16(address + Offsets.LINK, signed=False)
+	ret["link"] = link(VM, address)
 	ret["head"] = address
-	ret["codelen"] = VM.memory.read_b8(address + Offsets.CODELEN, signed=False)
-	ret["strlen"] = VM.memory.read_b8(address + Offsets.STRLEN, signed=False) & Flags.LEN
+	ret["codelen"] = codelen(VM, address)
+	ret["strlen"] = namelen(VM, address)
 	ret["str"] = address + Offsets.STR
 	ret["cwa"] = cwa(VM, address)
 	return ret
 	
 # Pretty print the entire contents of the FORTH dictionary.
-def dump(VM): 	
-	current, prev = VM.tcb.latest(), 0
-	while	current != 0:
-		header = entry(VM, current)
-		cwa = header["cwa"]
-		exec_token = VM.memory.read_b16(cwa, signed=True)	
+def dump(VM):
+
+	def functor(addr):
+		_link, _cwa = link(VM, addr), cwa(VM, addr)
+		_strlen, _str = namelen(VM, addr), name(VM, addr)
+		_flagBits = (flags(VM, addr) & Flags.FLAG_MASK)
+		keys = ["I" if _flagBits & Flags.IMMEDIATE else ""] + ["H" if _flagBits & Flags.HIDDEN else ""]
+		_flags = (3*" "+"".join(keys))[-3:]
 		strs = []
-		for i in range(header["codelen"]//2): strs.append((4*"0" + hex(VM.memory.read_b16(cwa+2*i,signed=False))[2:])[-4:])
+		for i in range(codelen(VM, addr)//2): strs.append((4*"0" + hex(VM.memory.read_b16(_cwa+2*i,signed=False))[2:])[-4:])
 		#print(' '.join(a+b for a,b in zip(s[::2], s[1::2])))
-		print(f"{hex(header['link']):4} <= {hex(header['str']-4):4} {header['strlen']:2}{_readStr(VM,header['str']):10} *[{hex(cwa):4}]={' '.join(strs)}")
-		# Dump the dict entry in binary
-		#s=binascii.hexlify(VM.memory[entry['str']-4:cwa + 2*entry["flag"]]).decode("utf-8")
-		#print(' '.join(a+b for a,b in zip(s[::2], s[1::2])))
-		prev, current = current, header["link"]
-				
+		print(f"{_as_hex(_link)} <= {_as_hex(addr):4} {_flags:3} {_strlen:2}{_str:10} *[{hex(_cwa):4}]={' '.join(strs)}")
+
+	visit(VM, functor)
+	current, prev = VM.tcb.latest(), 0
+
+
 # Walks the dictionary, finding the first entry which matches the name.
 # Returns None if no matches.
-def addr_from_name(VM, name):
-	current = VM.tcb.latest()
-	while	current != 0:
-		header = entry(VM, current)
-		current = header["link"]
-		entryName = _readStr(VM, header["str"])
-		if name == entryName: return header
-	return None
+def addr_from_name(VM, targetname):
+	nuHeader = None
+
+	def functor(addr):
+		nonlocal nuHeader
+		if targetname == name(VM, addr):
+			nuHeader = entry(VM, addr)
+			functor.found = True
+
+	functor.found = False
+	visit(VM, functor, lambda addr: functor.found == False)
+	return nuHeader
+
 		
 # Helpers to create the initial native forth definitions
 def header(VM, name, immediate=False, hidden=False):
