@@ -1,7 +1,7 @@
 import enum
 
 from .memory import *
-from ..dictionary import defcode as _defcode
+from ..dictionary import defcode as _defcode, nearest_header, name
 from ..utils import as_hex as _as_hex
 
 class State(enum.IntEnum):
@@ -43,19 +43,31 @@ class vm (object):
 		return _defcode(self, name, [token], immediate=immediate), token
 		
 	def step(self):
-		lookup = lambda addr: self.memory.read_b16(addr, signed=True)
-		addr = self.jumpTo
-		opcode = lookup(addr)
+		opcode = self.chase_opcode(self.ip)
+		self.decode_opcode(opcode)(self)
+
+
+	def decode_opcode(self, opcode):
+		token = -opcode - 1
+		return self.words[token]
+
+
+	def chase_opcode(self, addr, debug=False):
+		debug = False
+		addr_chain = [addr] if debug else None
+		opcode = self.memory.read_b16(addr, signed=True)
 		while opcode > 0:
 			# Push current address onto stack to imitate DOCOL
-			self.rStack.push_b16(addr)
-			addr, opcode = opcode, lookup(opcode)
-		token = -opcode - 1
-		word = self.words[token]
-		#print(f"CWA is 0x{_as_hex(self.jumpTo)},  executing opcode at [{_as_hex(addr)}]={_as_hex(opcode & 0xFFFF)}")
-		word(self)
+			addr, opcode = opcode, self.memory.read_b16(opcode, signed=True)
+			if debug: addr_chain.append(addr)
+		self.ip = addr
+		if debug:
+			addr_chain_str = " = ".join([f"(*[{_as_hex(it)}])" for it in addr_chain[::-1]])
+			name_chain = " ".join(f"{name(self, nearest_header(self, it))}" for it in addr_chain)
+			print(f"Executing CWA {_as_hex(self.ip):4} opcode {self.decode_opcode(opcode).FORTH['name']:10} = {addr_chain_str}")
+			#print("The name chain is: ", name_chain)
+			print(f"The return stack is {name_chain} {{{self.decode_opcode(opcode).FORTH['name']}}}")
+		return opcode
 
-
-		
 	def run(self):
 		while self.alive: self.step()
