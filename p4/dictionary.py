@@ -7,9 +7,9 @@ from .utils import number_impl, as_hex as _as_hex
 # The first data cell of each executable word MUST be "native" code
 class Offsets(enum.IntEnum):
 	LINK = 0
-	CODELEN = 2
-	STRLEN = 3
-	STR = 4
+	STRLEN = 2
+	CODELEN = 3
+	CODE = 4
 	
 # Bit masks for possible dictionary entry flags.
 class Flags(enum.IntEnum):
@@ -31,7 +31,7 @@ def visit(VM, functor, condition=lambda addr: True):
 
 # Helper to walk FORTH dictionary, returning a pointer to the head
 # of the first matching entry.
-def find(VM, nameLen, name, matchHidden=False):
+def find(VM, nameLen, _name, matchHidden=False):
 	def functor(addr):
 		# Use cascading conditionals to avoid nested ones.
 		# Each non-default conditional will prevent
@@ -40,7 +40,7 @@ def find(VM, nameLen, name, matchHidden=False):
 		entryLen = VM.memory.read_b8(addr + Offsets.STRLEN, signed=False)
 		if not matchHidden and (entryLen & Flags.HIDDEN): pass
 		elif nameLen != entryLen & Flags.LEN: pass
-		elif name != _readStr(VM, addr + Offsets.STR): pass
+		elif _name != name(VM, addr): pass
 		else:
 			functor.found = True
 			functor.ret = addr
@@ -52,21 +52,19 @@ def find(VM, nameLen, name, matchHidden=False):
 # Native accessors for FORTH dictionary
 
 def link(VM, address): return VM.memory.read_b16(address + Offsets.LINK, signed=False)
-def name(VM, address): return _readStr(VM, address + Offsets.STR)
+
+def nameAddress(VM, address):
+	# Start of string is offset by 1 byte for null terminator
+	offset = 1 + (VM.memory.read_b8(address + Offsets.STRLEN, signed=False) & Flags.MAX_LEN)
+	return address - offset
+def name(VM, address): return _readStr(VM, nameAddress(VM, address))
 def namelen(VM, address): return VM.memory.read_b8(address + Offsets.STRLEN, signed=False) & Flags.LEN
 def codelen(VM, address): return VM.memory.read_b8(address + Offsets.CODELEN, signed=False)
 def flags(VM, address): return VM.memory.read_b8(address + Offsets.STRLEN, signed=False) & Flags.FLAG_MASK
 
 # Assuming address points to the link field of a dictionary entry, return the address of the first code word.
 def cwa(VM, address):
-	# Mask out non-length bits of the strlen field.
-	strlen = VM.memory.read_b8(address + Offsets.STRLEN, signed=False) & Flags.MAX_LEN
-	# Add 1 and mask out low bit to get actual length of string
-	# Mask out other flags
-	# EVEN: 2 => 4 => 4, which is right because we pad evens with 2 nulls
-	# ODD: 1 =>3 => 2, which is right because we pad odds with 1 null
-	offset = ((strlen + 2) & 0xFE)
-	return address + Offsets.STR + offset
+	return address + Offsets.CODE
 
 # Given an address, attempt to parse it as a dictionary header.
 def entry(VM, address):
@@ -76,7 +74,7 @@ def entry(VM, address):
 	ret["codelen"] = codelen(VM, address)
 	ret["strlen"] = namelen(VM, address)
 	ret["flags"] = flags(VM, address)
-	ret["str"] = address + Offsets.STR
+	ret["str"] = nameAddress(VM, address)
 	ret["cwa"] = cwa(VM, address)
 	return ret
 	
@@ -124,34 +122,57 @@ def addr_from_name(VM, targetname):
 
 		
 # Helpers to create the initial native forth definitions
-def header(VM, name, immediate=False, hidden=False):
+def header(VM, name, immediate=False, hidden=False, alignment=2):
+
+	name_bytes = bytearray(name, "utf-8")
+
+	# The start of the code is the length of the entry (name bytes + null + offset to code field) plus the current address
+	codeAddress = VM.tcb.here() + len(name_bytes) + 1 + Offsets.CODE
+	# If our code address is already aligned, don't pad further
+	if codeAddress % alignment == 0: offset = 0
+	# Find the largest aligned address that is less than or equal to than the current address.
+	# We can then compute the nex aligned address for the code, and the delta between our current address and
+	# the next aligned address is the number of padding bytes we need.
+	# The distance
+	else:
+		nextAligned = alignment + (codeAddress - (codeAddress % alignment))
+		offset = nextAligned - codeAddress
+
+	# 0-padding so that our (future) code will be properly aligned.
+	for i in range(offset):  VM.memory.write_b8(VM.herePP(1), 0, signed=False)
+
+	for letter in name_bytes: VM.memory.write_b8(VM.herePP(1), letter, signed=False)
+
+	# Always append null, even if present. Otherwise, it's hard for me to math out the length of a word without knowing
+	# the starting address.
+	VM.memory.write_b8(VM.herePP(1), 0, signed=False)
+
 	# u16 (link)
 	VM.memory.write_b16(VM.herePP(2), VM.tcb.latest(), signed=False);
 	VM.tcb.latest(VM.tcb.here() - 2)
-	# u8 (number of token bytes)
-	VM.memory.write_b8(VM.herePP(1), 0, signed=False)
+
 	# u8 (flags | string length)
-	VM.memory.write_b8(VM.herePP(1), 
+	VM.memory.write_b8(VM.herePP(1),
 		(Flags.IMMEDIATE if immediate else 0)
 		| (Flags.HIDDEN if hidden else 0)
-		| (len(name) & Flags.LEN), signed=False)
-	# n * u8 name string; plus 1 or 2 u8 of null
-	for letter in bytearray(name, "utf-8"): VM.memory.write_b8(VM.herePP(1), letter, signed=False)
-	# Always null terminate strings, and place next words on a 16b boundary
-	# So, pad evens with 2*null, odds with 1.
-	if VM.tcb.here() % 2 == 0: VM.memory.write_b8(VM.herePP(1), 0, signed=False)
+		| (len(name_bytes) & Flags.LEN), signed=False)
+
+	# u8 number of bytes in code
 	VM.memory.write_b8(VM.herePP(1), 0, signed=False)
-	# Helper to dump the bytes of the entry
-	#print(binascii.hexlify(VM.memory[VM.latest:VM.here]).decode("utf-8"))
+
+	assert VM.tcb.here() % alignment == 0
+
+
 def writeTokens(VM, tokens):
 	# Needed to return head of code field
 	cwa = VM.tcb.here()
 	# n*u16code list
 	for token in tokens: VM.memory.write_b16(VM.herePP(2), token, signed=True if token<0 else False);
 	# Update code length field
-	VM.memory.write_b8(VM.tcb.latest()+2, 2*len(tokens), signed=False)
+	VM.memory.write_b8(VM.tcb.latest()+Offsets.CODELEN, 2*len(tokens), signed=False)
 	#print(f"Defined {(10*' '+name)[-10:]}, from {(2*'0'+hex(old)[2:])[-2:]:2}..{(2*'0'+hex(VM.here)[2:])[-2:]:2}; strlen {len(name):2}, memlen is {VM.here-old:2}")
 	return cwa
+
 def defcode(VM, name, tokens, immediate=False):
 	header(VM, name, immediate=immediate)
 	return writeTokens(VM, tokens)
@@ -172,4 +193,3 @@ def defforth(VM, word, insertEnter=True):
 	header(VM, name, True if (flags & Flags.IMMEDIATE) else False)
 	entries = entries if not insertEnter else enter+entries+exit
 	writeTokens(VM, entries)
-	
