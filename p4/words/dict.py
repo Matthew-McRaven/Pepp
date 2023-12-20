@@ -22,6 +22,12 @@ def cwa(VM):
 	VM.pStack.push_b16(_cwa(VM, dictPtr))
 	VM.next()
 
+# (dict-addr {*u16} -- ptr-to- {*u16})
+@NATIVE(">CODELEN")
+def codelen(VM):
+	dictPtr = VM.pStack.pop_b16(signed=False)
+	VM.pStack.push_b16(dictPtr + _Offsets.CODELEN)
+	VM.next()
 # This is a DUMMY word which should probably be removed, it doesn't offer much helo
 # (dict-addr {*u16} -- str-addr (*u8) str-len (u8))	
 @NATIVE("NAME")
