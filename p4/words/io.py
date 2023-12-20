@@ -29,7 +29,7 @@ def printstr(VM):
 	VM.next()
 
 # Helper class to buffer values returned from input()
-class __STDIN:
+class STDIN:
 	def __init__(self):
 		self.buffer = ""
 	def key(self):
@@ -44,7 +44,35 @@ class __STDIN:
 		if self.buffer: return self.buffer[0]
 		else: return None
 
-__stdin = __STDIN()
+class File:
+	def __init__(self, text):
+		self.buffer = text
+	def key(self):
+		if self.buffer:
+			ret = self.buffer[0]
+			self.buffer=self.buffer[1:]
+			return ret
+		else: raise StopIteration()
+	def peek(self):
+		if self.buffer: return self.buffer[0]
+		else: return None
+
+
+class SwitchBuffer:
+	def __init__(self):
+		self.__stdin = STDIN()
+		self.which = self.__stdin
+	def file(self, text):
+		self.which = File(text)
+	def key(self):
+		try:
+			return self.which.key()
+		except StopIteration:
+			self.which = self.__stdin
+			return self.key()
+	def peek(self): self.which.peek()
+
+__stdin = SwitchBuffer()
 
 # ( -- chr ) Pushes the latest character from stdin.	
 @NATIVE("KEY")
@@ -52,6 +80,7 @@ def key(VM):
 	VM.pStack.push_b8(ord(__stdin.key()), signed=False)
 	VM.next()
 
+def open_file(text): __stdin.file(text)
 # ( chr -- ) Pops the top of the stack as a character and write it to stdout.
 @NATIVE("EMIT")
 def emit(VM):
