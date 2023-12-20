@@ -45,7 +45,7 @@ def create(VM):
 @NATIVE(",")
 def comma(VM):
 	number = VM.pStack.pop_b16(signed=False)
-	VM.memory.write_u16(VM.tcb.here(), number)
+	VM.memory.write_b16(VM.tcb.here(), number)
 	VM.tcb.here(VM.tcb.here() + 2)
 	VM.next()
 	
