@@ -91,3 +91,9 @@ def is_immediate(VM):
 	VM.pStack.push_b16(curFlags & _Flags.IMMEDIATE)
 	VM.memory.write_b8(addr + _Offsets.STRLEN, curFlags ^ _Flags.HIDDEN)
 	VM.next()
+
+# ( -- ) Debug word to dump dict to STDOUT
+@NATIVE("^DD")
+def debug_dump_dict(VM):
+	p4.dictionary.dump(VM)
+	VM.next()
