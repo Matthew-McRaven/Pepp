@@ -25,7 +25,7 @@ def _print(VM):
 @NATIVE("PRINTSTR")
 def printstr(VM):
 	addr = VM.pStack.pop_b16(signed=False)
-	print(readStr(VM, addr), end="")
+	print(p4.strings.readStr(VM, addr), end="")
 	VM.next()
 
 # Helper class to buffer values returned from input()
