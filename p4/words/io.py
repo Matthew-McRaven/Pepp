@@ -1,3 +1,4 @@
+from ..io import stdin
 from ..utils import NATIVE, number_impl
 import p4.strings
 # ( n1 -- ) # Print the top value on the stack to stdout
@@ -28,69 +29,17 @@ def printstr(VM):
 	print(p4.strings.readStr(VM, addr), end="")
 	VM.next()
 
-# Helper class to buffer values returned from input()
-class STDIN:
-	def __init__(self):
-		self.buffer = ""
-	def key(self):
-		if self.buffer:
-			ret = self.buffer[0]
-			self.buffer=self.buffer[1:]
-			return ret
-		else:
-			self.buffer = input("$").rstrip()+"\n"
-			return self.key()
-	def peek(self):
-		if self.buffer: return self.buffer[0]
-		else: return None
-
-class File:
-	def __init__(self, text):
-		self.buffer = text
-	def key(self):
-		if self.buffer:
-			ret = self.buffer[0]
-			self.buffer=self.buffer[1:]
-			return ret
-		else: raise StopIteration()
-	def peek(self):
-		if self.buffer: return self.buffer[0]
-		else: return None
-
-
-class SwitchBuffer:
-	def __init__(self):
-		self.__stdin = STDIN()
-		self.which = self.__stdin
-	def file(self, text):
-		self.which = File(text)
-	def key(self):
-		try:
-			return self.which.key()
-		except StopIteration:
-			self.which = self.__stdin
-			return self.key()
-	def peek(self): self.which.peek()
-
-__stdin = SwitchBuffer()
-
 # ( -- chr ) Pushes the latest character from stdin.	
 @NATIVE("KEY")
 def key(VM):
-	VM.pStack.push_b8(ord(__stdin.key()), signed=False)
+	VM.pStack.push_b8(ord(stdin().key()), signed=False)
 	VM.next()
 
-def open_file(text): __stdin.file(text)
 # ( chr -- ) Pops the top of the stack as a character and write it to stdout.
 @NATIVE("EMIT")
 def emit(VM):
 	print(chr(VM.pStack.pop_b8(signed=False)), end="")
 	VM.next()
-
-def word_impl():
-	ret = ""
-	while (ch := __stdin.key()) not in ' \r\n\t': ret += ch
-	return ret
 
 #( -- addr len) Reads the next word from STDIN into a temp buffer, then pushes the string
 @NATIVE("WORD", pad=33)
