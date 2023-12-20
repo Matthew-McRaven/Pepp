@@ -6,6 +6,12 @@ def plus_i16(VM):
 	rhs, lhs = VM.pStack.pop_b16(signed=True), VM.pStack.pop_b16(signed=True)
 	VM.pStack.push_b16(lhs+rhs, signed=True)
 	VM.next()
+# (n1 n2 -- n1-n2)
+@NATIVE("-")
+def sub_i16(VM):
+	rhs, lhs = VM.pStack.pop_b16(signed=True), VM.pStack.pop_b16(signed=True)
+	VM.pStack.push_b16(lhs-rhs, signed=True)
+	VM.next()
 
 # (n1 n2 -- n1|n2)
 @NATIVE("OR")
