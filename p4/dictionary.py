@@ -157,8 +157,10 @@ def defcode(VM, name, tokens, immediate=False):
 	return writeTokens(VM, tokens)
 
 # Word is a sequence. [0] = name as str, [1] = flags, [2] = sequence of word names that are already in the dictionary.
-def defforth(VM, word):
+# By default, wrap in ENTER and EXIT, but allow for these to be elided in some user-controlled cases.
+def defforth(VM, word, insertEnter=True):
 	enter = [VM.memory.read_b16(cwa(VM, find(VM, len("ENTER"), "ENTER")), False)]
+	exit = [VM.memory.read_b16(cwa(VM, find(VM, len("EXIT"), "EXIT")), False)]
 	name, flags, tokenStrs = word
 	entries = []
 	for token in tokenStrs:
@@ -168,4 +170,6 @@ def defforth(VM, word):
 		else: raise Exception("That didn't work "+token)
 	#print(*zip(tokenStrs, [hex(x) for x in entries])) # Debug helper when entries contains 0.
 	header(VM, name, True if (flags & Flags.IMMEDIATE) else False)
-	writeTokens(VM, enter+entries)
+	entries = entries if not insertEnter else enter+entries+exit
+	writeTokens(VM, entries)
+	
