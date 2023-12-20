@@ -53,7 +53,6 @@ class vm (object):
 
 
 	def chase_opcode(self, addr, debug=False):
-		debug = False
 		addr_chain = [addr] if debug else None
 		opcode = self.memory.read_b16(addr, signed=True)
 		while opcode > 0:
@@ -65,7 +64,8 @@ class vm (object):
 			addr_chain_str = " = ".join([f"(*[{_as_hex(it)}])" for it in addr_chain[::-1]])
 			name_chain = " ".join(f"{name(self, nearest_header(self, it))}" for it in addr_chain)
 			print(f"Executing CWA {_as_hex(self.ip):4} opcode {self.decode_opcode(opcode).FORTH['name']:10} = {addr_chain_str}")
-			print(f"The return stack is {name_chain} {{{self.decode_opcode(opcode).FORTH['name']}}}")
+			#self.rStack.dump()
+			# print(f"The return stack is {name_chain} {{{self.decode_opcode(opcode).FORTH['name']}}}")
 		return opcode
 
 	def run(self):
