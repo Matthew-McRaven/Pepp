@@ -55,6 +55,12 @@ def latest(VM):
 	VM.pStack.push_b16(VM.tcb.latest())
 	VM.next()
 
+# (  -- n ) Pushes here onto stack
+@NATIVE("HERE")
+def here(VM):
+	VM.pStack.push_b16(VM.tcb.here())
+	VM.next()
+
 # ( addr -- ) Toggles the hidden bit for a pointer to an entry
 @NATIVE("HIDDEN")
 def hidden(VM):
