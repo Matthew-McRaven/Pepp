@@ -11,8 +11,12 @@ def bootstrap(VM, nativeWords):
 
 	# Don't insert CWA of DOCOL. The CWA isn't actually executable. We must indirect the CWA to get an executable token.
 	interpretWords = [
-		(":", 0, ["WORD", "CREATE", "LIT", "ENTER", ",", "LATEST", "HIDDEN", "[", "EXIT"]),
-		(";", _Flags.IMMEDIATE, ["LIT", "EXIT", ",", "LATEST", "HIDDEN", "]", "EXIT"]),
+		# Fetch opcode for ENTER to avoid needless pointer chase at runtime.
+		(":", 0, ["WORD", "CREATE", "LIT", "ENTER", "@", ",", "LATEST", "HIDDEN", "[", "EXIT"]),
+		# Fixup Code Len
+		("FCL", 0, "LATEST >CODELEN LATEST >CWA HERE - TRUNC !c".split()),
+		# Fetch opcode for EXIT to avoid needless pointer chase at runtime.
+		(";", _Flags.IMMEDIATE, ["LIT", "EXIT", "@", ",", "LATEST", "HIDDEN", "]", "FCL", "EXIT"]),
 		# Consumes the NEXT word in the input stream and marks it as hidden
 		("HIDE", _Flags.IMMEDIATE, ["WORD", "FIND", "HIDDEN", "EXIT"]),
 		# Not using JonesForth "cheat", since I did not understand the implementation.
