@@ -75,6 +75,7 @@ def entry(VM, address):
 	ret["head"] = address
 	ret["codelen"] = codelen(VM, address)
 	ret["strlen"] = namelen(VM, address)
+	ret["flags"] = flags(VM, address)
 	ret["str"] = address + Offsets.STR
 	ret["cwa"] = cwa(VM, address)
 	return ret

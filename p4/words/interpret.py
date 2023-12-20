@@ -13,7 +13,7 @@ def core_interpret(VM):
     if (match := _find(VM, len(word), word)) != 0:
         entry = _entry(VM, match)
         # Leave nextWord alone. Execution will resume with the following WORD then.
-        if VM.tcb.state() == _State.IMMEDIATE or (entry["strlen"] & _Flags.IMMEDIATE):
+        if VM.tcb.state() == _State.IMMEDIATE or (entry["flags"] & _Flags.IMMEDIATE):
             VM.ip = entry["cwa"]
         else:
             VM.memory.write_b16(VM.herePP(2), entry["cwa"])
