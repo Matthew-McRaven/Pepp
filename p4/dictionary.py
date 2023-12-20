@@ -60,8 +60,10 @@ def nameAddress(VM, address):
 def name(VM, address): return _readStr(VM, nameAddress(VM, address))
 def namelen(VM, address): return VM.memory.read_b8(address + Offsets.STRLEN, signed=False) & Flags.LEN
 def codelen(VM, address): return VM.memory.read_b8(address + Offsets.CODELEN, signed=False)
+def codeend(VM, address): return address + Offsets.CODE + codelen(VM, address)
 def flags(VM, address): return VM.memory.read_b8(address + Offsets.STRLEN, signed=False) & Flags.FLAG_MASK
 
+def entrybytes(VM, address): return VM.memory[nameAddress(VM, address):codeend(VM, address)]
 # Assuming address points to the link field of a dictionary entry, return the address of the first code word.
 def cwa(VM, address):
 	return address + Offsets.CODE
@@ -91,7 +93,7 @@ def dump(VM):
 		for i in range(codelen(VM, addr)//2): strs.append((4*"0" + hex(VM.memory.read_b16(_cwa+2*i,signed=False))[2:])[-4:])
 		#print(' '.join(a+b for a,b in zip(s[::2], s[1::2])))
 		print(f"{_as_hex(_link)} <= {_as_hex(addr):4} {_flags:3} {_strlen:2}|{_str:10} ({codelen(VM, addr):4})*[{hex(_cwa):4}]={' '.join(strs)}")
-
+		# print(" ".join([_as_hex(byte)[2:] for byte in entrybytes(VM, addr)]))
 	visit(VM, functor)
 	current, prev = VM.tcb.latest(), 0
 
