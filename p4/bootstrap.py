@@ -14,7 +14,7 @@ def bootstrap(VM, nativeWords):
 		# Fetch opcode for ENTER to avoid needless pointer chase at runtime.
 		(":", 0, ["WORD", "CREATE", "LIT", "ENTER", "@", ",", "LATEST", "HIDDEN", "[",]),
 		# Fixup Code Len
-		("FCL", 0, "LATEST >CODELEN HERE LATEST >CWA - TRUNC !c".split()),
+		("FCL", 0, "LATEST >CODELEN HERE@ LATEST >CWA - TRUNC !c".split()),
 		# Fetch opcode for EXIT to avoid needless pointer chase at runtime.
 		(";", _Flags.IMMEDIATE, ["LIT", "EXIT", "@", ",", "LATEST", "HIDDEN", "]", "FCL"]),
 		# Consumes the NEXT word in the input stream and marks it as hidden

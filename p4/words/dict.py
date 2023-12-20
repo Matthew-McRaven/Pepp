@@ -64,6 +64,12 @@ def latest(VM):
 # (  -- n ) Pushes here onto stack
 @NATIVE("HERE")
 def here(VM):
+	VM.pStack.push_b16(VM.tcb.baseAddress + VM.tcb.Offsets.HERE)
+	VM.next()
+
+# (  -- n ) Pushes *here onto stack
+@NATIVE("HERE@")
+def here_fetch(VM):
 	VM.pStack.push_b16(VM.tcb.here())
 	VM.next()
 
