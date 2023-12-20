@@ -165,7 +165,7 @@ def defforth(VM, word):
 		num, isNum = number_impl(token, 10)
 		if ( addr := find(VM, len(token), token)) > 0: entries.append(cwa(VM, addr))
 		elif isNum: entries.append(num)
-		else: raise Exception("That didn't work")
+		else: raise Exception("That didn't work "+token)
 	#print(*zip(tokenStrs, [hex(x) for x in entries])) # Debug helper when entries contains 0.
 	header(VM, name, True if (flags & Flags.IMMEDIATE) else False)
 	writeTokens(VM, enter+entries)

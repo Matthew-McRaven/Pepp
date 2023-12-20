@@ -11,7 +11,7 @@ def find(VM):
 	strLen = VM.pStack.pop_b8(signed=False)
 	strAddr = VM.pStack.pop_b16(signed=False)
 	strText = _readStr(VM, strAddr)
-	print(strLen, p4.utils.as_hex(strAddr), strText)
+	#print(strLen, p4.utils.as_hex(strAddr), strText)
 	VM.pStack.push_b16(_find(VM, strLen, strText, matchHidden=False))
 	VM.next()
 
