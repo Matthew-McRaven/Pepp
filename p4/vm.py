@@ -1,8 +1,7 @@
 import enum
 
-from .memory import *
-from ..dictionary import defcode as _defcode, nearest_header, name
-from ..utils import as_hex as _as_hex
+from p4.dictionary import defcode as _defcode, nearest_header, name
+from p4.utils import as_hex as _as_hex
 import binascii
 import enum
 

@@ -1,12 +1,9 @@
 import itertools
-
 import p4.bootstrap, p4.vm, p4.dictionary
 from p4.io import open_file
 import p4.vocabs.boot, p4.vocabs.debug
 
 words = [x for x in itertools.chain.from_iterable([p4.vocabs.boot.ALL, p4.vocabs.debug.ALL])]
-
-print(" ".join([word.FORTH["name"] for word in words]))
 
 VM = p4.vm.vm()
 p4.bootstrap.bootstrap(VM, words)
