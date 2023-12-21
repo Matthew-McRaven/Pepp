@@ -54,7 +54,7 @@ class SwitchBuffer:
             return self.key()
 
     def peek(self):
-        self.which.peek()
+        return self.which.peek()
 
 
 __stdin = SwitchBuffer()
@@ -68,5 +68,15 @@ def open_file(text): __stdin.file(text)
 
 def word_impl():
     ret = ""
-    while (ch := stdin().key()) not in ' \r\n\t': ret += ch
+    blank = ' \r\n\t'
+
+    # Keep reading until we get at least one non-blank character.
+    while True:
+        ch = stdin().key()
+        # "eat" all whitespace between words, but stop at a word boundary
+        if ch in blank:
+            if len(ret) > 0: break
+            else: continue
+        else: ret += ch
+
     return ret
