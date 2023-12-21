@@ -2,12 +2,8 @@
 Native words to insert / modify entries in the dictionary
 """
 
-from p4.utils import NATIVE
-
-from p4.dictionary import find as _find
-from p4.dictionary import Offsets as _Offsets, Flags as _Flags
-from p4.dictionary import cwa as _cwa
-from p4.utils import NATIVE
+from p4.dictionary import Offsets as _Offsets, Flags as _Flags, find as _find, cwa as _cwa
+from p4.utils import NATIVE, INTERPRET
 from p4.strings import readStr as _readStr
 import p4.utils, p4.dictionary
 
@@ -68,6 +64,7 @@ def hidden(VM):
     VM.memory.write_b8(addr + _Offsets.STRLEN, curFlags ^ _Flags.HIDDEN)
     VM.next()
 
+hide = INTERPRET("HIDE", "WORD FIND HIDDEN", immediate=True)
 
 # ( addr -- ) Toggles the immediate bit for a pointer to an entry
 @NATIVE("IMMEDIATE")

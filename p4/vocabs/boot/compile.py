@@ -2,7 +2,7 @@
 Native words in the compilation of other words
 """
 
-from p4.utils import NATIVE
+from p4.utils import NATIVE, INTERPRET
 from p4.vm import State as _State
 
 # The VM's step chases pointers, and updates IP to point to the actual address being executed.
@@ -53,3 +53,10 @@ def lbrac(VM):
 def rbrac(VM):
 	VM.tcb.state(_State.IMMEDIATE)
 	VM.next()
+
+# Fetch opcode for ENTER to avoid needless pointer chase at runtime.
+colon = INTERPRET(":", "WORD CREATE LIT ENTER @ , LATEST HIDDEN [")
+# Fixup Code Len for latest word
+fcl = INTERPRET("FCL", "LATEST >CODELEN HERE@ LATEST >CWA - TRUNC !c")
+semicolon = INTERPRET(";", "LIT EXIT @ , LATEST HIDDEN ] FCL", immediate=True)
+tick = INTERPRET("'", "WORD FIND >CWA @", immediate=True)

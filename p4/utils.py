@@ -1,5 +1,8 @@
+from types import SimpleNamespace
+
 # Given an object/module, return the names that look like FORTH implementation functions
-def extract(object): return [item:=getattr(object, key) for key in dir(object) if "FORTH" in dir(getattr(object, key))]
+def extract(object):
+	return [item:=getattr(object, key) for key in dir(object) if "FORTH" in dir(getattr(object, key))]
 
 # Helper for formatting a 2 byte hex value from int
 def as_hex(value): return f"{(4*'0' + hex(value)[2:])[-4:]}"
@@ -27,6 +30,16 @@ def number_impl(text, base=10):
 #   priority:       Relative ordering  of words. Defaults to 100.
 def	NATIVE(name, **kwargs):
 	def wrapper(function):
-		function.FORTH = {"priority": 100, **kwargs, "name": name}
+		function.FORTH = {"priority": 100, "native":True, "refs":[], **kwargs, "name": name}
 		return function
 	return wrapper
+
+def INTERPRET(name, definition, **kwargs):
+	return SimpleNamespace(FORTH={
+		"priority": 100,
+		"native": False,
+		**kwargs,
+		"refs": definition.split(),
+		"definition": definition,
+		"name": name,
+	})
