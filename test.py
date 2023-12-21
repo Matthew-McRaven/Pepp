@@ -1,8 +1,13 @@
-from p4.words import extract, core, io, math, stack, var, dict as _dict, interpret
-import p4.bootstrap, p4.vm, p4.dictionary
-from p4.words.io import open_file
+import itertools
 
-words = [fn for item in [core, stack, io, var, math, _dict, interpret] for fn in extract(item)]
+import p4.bootstrap, p4.vm, p4.dictionary
+from p4.io import open_file
+import p4.vocabs.boot, p4.vocabs.debug
+
+words = [x for x in itertools.chain.from_iterable([p4.vocabs.boot.ALL, p4.vocabs.debug.ALL])]
+
+print(" ".join([word.FORTH["name"] for word in words]))
+
 VM = p4.vm.vm()
 p4.bootstrap.bootstrap(VM, words)
 

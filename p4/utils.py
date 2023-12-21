@@ -1,4 +1,7 @@
-# Helper for formatting a 2 byte hex value from int		
+# Given an object/module, return the names that look like FORTH implementation functions
+def extract(object): return [item:=getattr(object, key) for key in dir(object) if "FORTH" in dir(getattr(object, key))]
+
+# Helper for formatting a 2 byte hex value from int
 def as_hex(value): return f"{(4*'0' + hex(value)[2:])[-4:]}"
 
 # Get the number of bytes needed to hold an int.
@@ -21,8 +24,9 @@ def number_impl(text, base=10):
 #   immediate:      Should the VM set the IMMEDIATE flag when defining the word?
 #   pad:            Number of padding bytes that should follow the entry? Default: 0
 #   refs:           Which words should be inserted into the <NAME>.FORTH.refs dict? Pass in a list, receive a dict in the function.
+#   priority:       Relative ordering  of words. Defaults to 100.
 def	NATIVE(name, **kwargs):
 	def wrapper(function):
-		function.FORTH = {**kwargs, "name": name}
+		function.FORTH = {"priority": 100, **kwargs, "name": name}
 		return function
 	return wrapper

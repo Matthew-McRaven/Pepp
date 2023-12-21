@@ -1,7 +1,7 @@
-from ..utils import NATIVE
-from ..vm.sim import State as _State
-from ..dictionary import find as _find, entry as _entry, Flags as _Flags
-from .io import word_impl as _word_impl, number_impl as _number_impl
+from p4.utils import NATIVE, number_impl as _number_impl
+from p4.vm import State as _State
+from p4.dictionary import find as _find, entry as _entry, Flags as _Flags
+from p4.io import word_impl as _word_impl
 
 
 # ( -- ) Core REPL for my FORTH.
