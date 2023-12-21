@@ -196,7 +196,11 @@ class vm (object):
 		token = -len(self.words)-1
 		self.words.append(call)
 		return _defcode(self, name, [token], immediate=immediate), token
-		
+	# Return the function object for a given name
+	def word_from_name(self, name):
+		for word in self.words:
+			if word.FORTH["name"] == name: return word
+		return None
 	def step(self):
 		opcode = self.chase_opcode(self.ip)
 		self.decode_opcode(opcode)(self)
