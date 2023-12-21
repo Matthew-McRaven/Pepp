@@ -1,4 +1,4 @@
-from p4.io import stdin, word_impl as _word_impl
+from p4.io import io, word_impl as _word_impl
 from p4.utils import NATIVE, number_impl
 import p4.strings
 
@@ -7,14 +7,14 @@ import p4.strings
 @NATIVE(".")
 def dot(VM):
     v = VM.pStack.pop_b16(signed=False)
-    print(hex(v), end="")
+    io().write(hex(v))
     VM.next()
 
 
 # Emit a CR to stdout
 @NATIVE("CR")
 def cr(VM):
-    print()
+    io().write("\n")
     VM.next()
 
 
@@ -23,7 +23,7 @@ def cr(VM):
 def _print(VM):
     len = VM.pStack.pop_b8(signed=False)
     addr = VM.pStack.pop_b16(signed=False)
-    print(p4.strings.readLenStr(VM, addr, len))
+    io().write(p4.strings.readLenStr(VM, addr, len))
     VM.next()
 
 
@@ -31,21 +31,21 @@ def _print(VM):
 @NATIVE("PRINTSTR")
 def printstr(VM):
     addr = VM.pStack.pop_b16(signed=False)
-    print(p4.strings.readStr(VM, addr), end="")
+    io().write(p4.strings.readStr(VM, addr))
     VM.next()
 
 
 # ( -- chr ) Pushes the latest character from stdin.
 @NATIVE("KEY")
 def key(VM):
-    VM.pStack.push_b8(ord(stdin().key()), signed=False)
+    VM.pStack.push_b8(ord(io().key()), signed=False)
     VM.next()
 
 
 # ( chr -- ) Pops the top of the stack as a character and write it to stdout.
 @NATIVE("EMIT")
 def emit(VM):
-    print(chr(VM.pStack.pop_b8(signed=False)), end="")
+    io().write(chr(VM.pStack.pop_b8(signed=False)))
     VM.next()
 
 

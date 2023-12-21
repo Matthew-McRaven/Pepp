@@ -19,7 +19,7 @@ class STDIN:
             return None
 
 
-class File:
+class InFile:
     def __init__(self, text):
         self.buffer = text
 
@@ -37,34 +37,51 @@ class File:
         else:
             return None
 
+class STDOUT:
+    def write(self, char):
+        print(char, end="")
+class OutBuffer:
+    def __init__(self):
+        self.buffer = ""
+    def write(self, string):
+        self.buffer += string
 
 class SwitchBuffer:
     def __init__(self):
         self.__stdin = STDIN()
-        self.which = self.__stdin
+        self.__in_buf = self.__stdin
+        self.__stdout = STDOUT()
+        self.__out_buf = self.__stdout
 
-    def file(self, text):
-        self.which = File(text)
+    def in_buf(self, text):
+        self.__in_buf = InFile(text)
 
     def key(self):
         try:
-            return self.which.key()
+            return self.__in_buf.key()
         except StopIteration:
-            self.which = self.__stdin
+            self.__in_buf = self.__stdin
             return self.key()
 
     def peek(self):
-        return self.which.peek()
+        return self.__in_buf.peek()
+
+    def write(self, string):
+        self.__out_buf.write(string)
+    def out_buf(self, out_buf):
+        if out_buf is None: self.__out_buf = self.__stdout
+        else: self.__out_buf = out_buf
 
 
-__stdin = SwitchBuffer()
+__io = SwitchBuffer()
 
 
-def stdin(): return __stdin
+def io(): return __io
 
 
-def open_file(text): __stdin.file(text)
+def open_file(text): __io.in_buf(text)
 
+def buffer_output(): __io.out_buf(OutBuffer())
 
 def word_impl():
     ret = ""
@@ -72,7 +89,7 @@ def word_impl():
 
     # Keep reading until we get at least one non-blank character.
     while True:
-        ch = stdin().key()
+        ch = io().key()
         # "eat" all whitespace between words, but stop at a word boundary
         if ch in blank:
             if len(ret) > 0: break
