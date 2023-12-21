@@ -1,5 +1,6 @@
-import graphlib
 from collections import OrderedDict
+import copy
+import graphlib
 
 from .dictionary import defforth as _defforth, Flags as _Flags
 
@@ -15,7 +16,26 @@ def word_graph(words):
 	return ret
 # Traverse the graph, marking all nodes reachable FROM the set of nodes to_keep.
 # Any unmarked node will be pruned, and links to pruned nodes removed.
-def prune_graph(graph, to_keep): return graph
+def prune_graph(graph, keep):
+	graph = copy.deepcopy(graph)
+	keys = set(graph.keys())
+
+	# Any marked key has been visited. Keys in process have been marked, but their referents have not been explored.
+	# Worst case will run in O(N) time, assuming a linked-list of referring words.
+	marked, process = set(keep), set(keep)
+	while len(process) > 0:
+		current = process.pop()
+		for ref in graph[current]:
+			# If the word is marked, it was already added to process. Don't re-visit already processed nodes.
+			if ref in marked: continue
+			else:
+				marked.add(ref)
+				process.add(ref)
+	# Use set difference to pick only unmarked keys
+	remove = keys - marked
+	for key in remove: del graph[key]
+	return graph
+
 
 # Order the words in a list according to the topological sort of the graph.
 def order(words, graph):
