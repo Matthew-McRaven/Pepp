@@ -73,3 +73,16 @@ def rsp_store(VM):
 def psp_store(VM):
     VM.tcb.psp(VM.pStack.pop_16(signed=False))
     VM.next()
+
+# ( n -- ) Transfer the top word from the param stack to the return stack
+@NATIVE(">R")
+def from_ps_to_rs(VM):
+    VM.rStack.push_b16(VM.pStack.pop_b16())
+    VM.next()
+
+# ( -- n ) Transfer the top word of return stack to param stack
+#: test 2 ;
+@NATIVE("R>")
+def from_rs_to_ps(VM):
+    VM.pStack.push_b16(VM.rStack.pop_b16())
+    VM.next()
