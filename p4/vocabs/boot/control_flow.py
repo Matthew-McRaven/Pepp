@@ -30,7 +30,7 @@ def branch(VM):
 # ( n -- ) Relative conditional branch, consumes following cell for jump address
 @NATIVE("0BRANCH")
 def branch0(VM):
-    if VM.rStack.pop_b16(signed=False) == 0:
+    if VM.pStack.pop_b16(signed=False) == 0:
         branch_helper(VM)
     else:
         VM.tcb.nextWord(VM.tcb.nextWord() + 2)
