@@ -2,10 +2,18 @@ Add a virtual table pointer, which points to an array of methods.
 	These methods will be used in place of things like "CWA", allowing for NT and XT magic to work
 	See GForth manual about these words
 
-Change header organization
-	Put string name at the start, followed by flag/len column.
-	Then, put link pointer, followed by all other fixed length fields.
-	Lastly, follow with data/code body.
-	The link pointer will still point to the link pointer of the previous entry, except now name will be at a "negative" offset from the link pointer
-	This organization allows you to get to the body of the code from the link pointer with no additional memory accesses.
-	(Idea taken from GForth implementation)
+Add nested dictionaries
+    More than one dictionary may be in main memory at any given time
+    A single task should be able to use more than one of these dictionaries
+    This would give the ability for having multiple non-interfering tasks
+    The dictionaries will probably be interleaved in main memory since I do not have a virtual memory mechanism
+
+Add recovery task
+    If the user program panics, we should be able to halt VM execution, and step into an interactive debug task
+    This task would have a "debugger" vocabulary loaded
+    The debug vocab should have the ability to execute statements inside of the problematic task
+
+Add an interactive terminal program
+    This would make it easier to play with a demo
+
+Add ability to remove dictionary entries

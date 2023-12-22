@@ -51,3 +51,18 @@
 ;
 : '(' ] CHAR ( [ LITERAL.u8 ;
 : ')' ] CHAR ) [ LITERAL.u8 ;
+
+: ( [LATEST] IMMEDIATE
+    1
+    BEGIN
+    KEY SE DUP '(' SE =
+    IF
+         DROP 1 +
+    ELSE
+        ')' SE = IF
+            1 -
+        THEN
+    THEN
+    DUP 0= UNTIL
+    DROP
+;
