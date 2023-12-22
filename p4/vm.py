@@ -1,3 +1,4 @@
+import binascii
 import enum
 
 import p4.sim
@@ -10,6 +11,7 @@ class State(enum.IntEnum):
 
 class vm (object):
 	def __init__(self, io=None):
+		self.debug = False
 		self.io = io if io is not None else p4.sim.stdio()
 		self.memory = p4.sim.Memory(1024)
 		self.tcb = p4.sim.TaskControlBlock(8, self.memory)
@@ -53,6 +55,7 @@ class vm (object):
 	def step(self):
 		opcode = self.chase_opcode(self.ip)
 		self.decode_opcode(opcode)(self)
+		if self.debug: print(_as_hex(opcode), binascii.hexlify(self.rStack.bytes()))
 
 
 	def decode_opcode(self, opcode):
@@ -60,19 +63,19 @@ class vm (object):
 		return self.words[token]
 
 
-	def chase_opcode(self, addr, debug=False):
-		addr_chain = [addr] if debug else None
+	def chase_opcode(self, addr):
+		addr_chain = [addr] if self.debug else None
 		opcode = self.memory.read_b16(addr, signed=True)
 		while opcode > 0:
 			# Push current address onto stack to imitate DOCOL
 			addr, opcode = opcode, self.memory.read_b16(opcode, signed=True)
-			if debug: addr_chain.append(addr)
+			if self.debug: addr_chain.append(addr)
 		self.ip = addr
-		if debug:
+		if self.debug:
 			addr_chain_str = " = ".join([f"(*[{_as_hex(it)}])" for it in addr_chain[::-1]])
 			name_chain = " ".join(f"{name(self, nearest_header(self, it))}" for it in addr_chain)
 			print(f"Executing CWA {_as_hex(self.ip):4} opcode {self.decode_opcode(opcode).FORTH['name']:10} = {addr_chain_str}")
-			#self.rStack.dump()
+			#print(f"{self.decode_opcode(opcode).FORTH['name']:10}")
 			# print(f"The return stack is {name_chain} {{{self.decode_opcode(opcode).FORTH['name']}}}")
 		return opcode
 

@@ -10,6 +10,8 @@ def core_interpret(VM):
     word = VM.io.word_impl()
     num, isNum = _number_impl(word, 10)
     is_signed = True if num<0 else False
+    if VM.debug:
+        print(f"Scanned word: {word}")
     if (match := _find(VM, len(word), word)) != 0:
         entry = _entry(VM, match)
         # Leave nextWord alone. Execution will resume with the following WORD then.
