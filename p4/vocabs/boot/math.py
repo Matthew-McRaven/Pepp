@@ -42,3 +42,10 @@ def gt0_i16(VM):
 	lhs = VM.pStack.pop_b16(signed=True)
 	VM.pStack.push_b16(1 if lhs > 0 else 0, signed=True)
 	VM.next()
+
+# (n1 -- n1 == 0)
+@NATIVE("0=")
+def eq0_i16(VM):
+	lhs = VM.pStack.pop_b16(signed=True)
+	VM.pStack.push_b16(1 if lhs == 0 else 0, signed=True)
+	VM.next()
