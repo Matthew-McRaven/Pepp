@@ -5,6 +5,25 @@ Low-level native words to manipulate data/order on the stack
 from p4.utils import NATIVE
 
 
+# ( n1 n2 -- n1 n2 n1 ) #
+@NATIVE("OVER")
+def over(VM):
+    top, bottom = VM.pStack.pop_b16(), VM.pStack.pop_b16()
+    VM.pStack.push_b16(bottom)
+    VM.pStack.push_b16(top)
+    VM.pStack.push_b16(bottom)
+    VM.next()
+
+# ( n1 n2 -- n2 n1 n2 ) #
+@NATIVE("TUCK")
+def tuck(VM):
+    top, bottom = VM.pStack.pop_b16(), VM.pStack.pop_b16()
+    VM.pStack.push_b16(top)
+    VM.pStack.push_b16(bottom)
+    VM.pStack.push_b16(top)
+    VM.next()
+
+    
 # Push the value stored at the next instruction pointer, and
 # advance the instruction pointer by 2 words total.
 @NATIVE("LIT")
