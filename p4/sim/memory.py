@@ -73,3 +73,5 @@ class Stack:
 
     def dump(self):
         self.memory.dump(self.sp(), self.bsp)
+    def bytes(self):
+        return self.memory[self.sp():self.bsp]
