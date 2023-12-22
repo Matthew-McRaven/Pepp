@@ -54,9 +54,18 @@ def rbrac(VM):
 	VM.tcb.state(_State.IMMEDIATE)
 	VM.next()
 
+
+# Exit compilation mode
+@NATIVE("'")
+def tick(VM):
+	next_addr = VM.tcb.nextWord()
+	VM.pStack.push_b16(next_addr)
+	VM.tcb.nextWord(next_addr + 2)
+	VM.next()
+
+
 # Fetch opcode for ENTER to avoid needless pointer chase at runtime.
 colon = INTERPRET(":", "WORD CREATE LIT ENTER @ , LATEST HIDDEN [")
 # Fixup Code Len for latest word
 fcl = INTERPRET("FCL", "HERE@ LATEST >CWA - TRUNC LATEST >CODELEN !c")
 semicolon = INTERPRET(";", "LIT EXIT @ , LATEST HIDDEN ] FCL", immediate=True)
-tick = INTERPRET("'", "WORD FIND >CWA @", immediate=True)
