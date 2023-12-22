@@ -13,12 +13,13 @@ class vm (object):
 	def __init__(self, io=None):
 		self.debug = False
 		self.io = io if io is not None else p4.sim.stdio()
-		self.memory = p4.sim.Memory(1024)
+		size = 4192
+		self.memory = p4.sim.Memory(size)
 		self.tcb = p4.sim.TaskControlBlock(8, self.memory)
 		self.tcb.here(self.tcb.maxAddress() + 1)
-		self.tcb.p0(950)
+		self.tcb.p0(size-100)
 		self.tcb.psp(self.tcb.p0())
-		self.tcb.r0(990)
+		self.tcb.r0(size-40)
 		self.tcb.rsp(self.tcb.r0())
 		self.rStack = p4.sim.Stack(self.memory, self.tcb.rsp_helper, lambda: self.tcb.p0())
 		self.pStack = p4.sim.Stack(self.memory, self.tcb.psp_helper, lambda: self.tcb.here())
