@@ -1,13 +1,13 @@
 from p4.utils import NATIVE, number_impl as _number_impl
 from p4.vm import State as _State
 from p4.dictionary import find as _find, entry as _entry, Flags as _Flags
-from p4.io import word_impl as _word_impl
+import p4.sim.io
 
 
 # ( -- ) Core REPL for my FORTH.
 @NATIVE("COREINT")
 def core_interpret(VM):
-    word = _word_impl()
+    word = VM.io.word_impl()
     num, isNum = _number_impl(word, 10)
     is_signed = True if num<0 else False
     if (match := _find(VM, len(word), word)) != 0:
