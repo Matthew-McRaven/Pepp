@@ -8,7 +8,7 @@ from p4.utils import NATIVE
 @NATIVE("HALT")
 def halt(VM):
     VM.alive = False
-    print("\nHALTING")
+    VM.io.log.critical("\nHALTING")
     VM.next()
 
 

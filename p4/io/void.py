@@ -9,7 +9,7 @@ class Input:
 class Output:
     def write(self, string): pass
 
-__Log = logging.getLogger()
+__Log = logging.getLogger("voidall")
 __Log.addFilter(lambda x: False)
 
 def Log(): return __Log
