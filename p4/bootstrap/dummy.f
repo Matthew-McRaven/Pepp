@@ -49,3 +49,5 @@
     DUP HERE@ SWAP -
     SWAP !
 ;
+: '(' ] CHAR ( [ LITERAL.u8 ;
+: ')' ] CHAR ) [ LITERAL.u8 ;
