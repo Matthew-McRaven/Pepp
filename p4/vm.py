@@ -56,7 +56,7 @@ class vm (object):
 	def step(self):
 		opcode = self.chase_opcode(self.ip)
 		self.decode_opcode(opcode)(self)
-		if self.debug: print(_as_hex(opcode), binascii.hexlify(self.rStack.bytes()))
+		if self.debug: print(_as_hex(opcode), binascii.hexlify(self.rStack.bytes()), self.tcb.p0() - self.tcb.psp())
 
 
 	def decode_opcode(self, opcode):
