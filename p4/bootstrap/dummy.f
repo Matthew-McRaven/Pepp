@@ -16,3 +16,28 @@
 	SWAP
 	[COMPILE] THEN
 ;
+
+: BEGIN [LATEST] IMMEDIATE
+    HERE@
+;
+
+: UNTIL [LATEST] IMMEDIATE
+    ' 0BRANCH ,
+    HERE@ - ,
+;
+
+: AGAIN [LATEST] IMMEDIATE
+    ' BRANCH ,
+    HERE@ - ,
+;
+
+: WHILE [LATEST] IMMEDIATE
+    [COMPILE] IF
+;
+
+: REPEAT [LATEST] IMMEDIATE
+    ' BRANCH ,
+    SWAP HERE@ - ,
+    DUP HERE@ SWAP -
+    SWAP !
+;
