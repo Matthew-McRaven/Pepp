@@ -33,6 +33,14 @@ def literal(VM):
     VM.tcb.nextWord(VM.tcb.nextWord() + 2)
     VM.next()
 
+# Push the value stored at the next instruction pointer, and
+# advance the instruction pointer by 4 bytes total.
+@NATIVE("LIT.u8")
+def literal_u8(VM):
+    number = VM.memory.read_b16(VM.tcb.nextWord(), signed=False)
+    VM.pStack.push_b8(number & 0xff, signed=False)
+    VM.tcb.nextWord(VM.tcb.nextWord() + 2)
+    VM.next()
 
 # ( n1 -- n1 n1 ) # Duplicate top entry of stack
 @NATIVE("DUP")
