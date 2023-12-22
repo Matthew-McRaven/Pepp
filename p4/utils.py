@@ -35,11 +35,16 @@ def	NATIVE(name, **kwargs):
 	return wrapper
 
 def INTERPRET(name, definition, **kwargs):
+	refs = set()
+	for word in set(definition.split()):
+		try: int(word)
+		except: refs.add(word)
+
 	return SimpleNamespace(FORTH={
 		"priority": 100,
 		"native": False,
 		**kwargs,
-		"refs": definition.split(),
+		"refs": refs,
 		"definition": definition,
 		"name": name,
 	})
