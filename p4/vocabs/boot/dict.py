@@ -67,7 +67,7 @@ def hidden(VM):
 hide = INTERPRET("HIDE", "WORD FIND HIDDEN", immediate=True)
 
 # ( addr -- ) Toggles the immediate bit for a pointer to an entry
-@NATIVE("IMMEDIATE")
+@NATIVE("IMMEDIATE", immediate=True)
 def IMMEDIATE(VM):
     addr = VM.pStack.pop_b16(signed=False)
     curFlags = VM.memory.read_b8(addr + _Offsets.STRLEN)
