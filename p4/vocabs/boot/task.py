@@ -10,6 +10,11 @@ def latest(VM):
     VM.pStack.push_b16(VM.tcb.latest())
     VM.next()
 
+# (  -- n ) Pushes latest onto stack
+@NATIVE("[LATEST]", immediate=True)
+def latest_imm(VM):
+    VM.pStack.push_b16(VM.tcb.latest())
+    VM.next()
 
 # (  -- n ) Pushes here onto stack
 @NATIVE("HERE")
