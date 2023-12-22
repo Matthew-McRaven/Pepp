@@ -21,14 +21,14 @@ def branch_helper(VM):
 
 
 # ( -- ) Relative unconditional branch, consumes following cell for jump address
-@NATIVE("BRANCH", immediate=True)
+@NATIVE("BRANCH")
 def branch(VM):
     branch_helper(VM)
     VM.next()
 
 
 # ( n -- ) Relative conditional branch, consumes following cell for jump address
-@NATIVE("0BRANCH", immediate=True)
+@NATIVE("0BRANCH")
 def branch0(VM):
     if VM.rStack.pop_b16(signed=False) == 0:
         branch_helper(VM)
