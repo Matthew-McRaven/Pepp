@@ -57,6 +57,6 @@ def rbrac(VM):
 # Fetch opcode for ENTER to avoid needless pointer chase at runtime.
 colon = INTERPRET(":", "WORD CREATE LIT ENTER @ , LATEST HIDDEN [")
 # Fixup Code Len for latest word
-fcl = INTERPRET("FCL", "LATEST >CODELEN HERE@ LATEST >CWA - TRUNC !c")
+fcl = INTERPRET("FCL", "HERE@ LATEST >CWA - TRUNC LATEST >CODELEN !c")
 semicolon = INTERPRET(";", "LIT EXIT @ , LATEST HIDDEN ] FCL", immediate=True)
 tick = INTERPRET("'", "WORD FIND >CWA @", immediate=True)
