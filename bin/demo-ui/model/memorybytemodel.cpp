@@ -170,7 +170,7 @@ QVariant MemoryByteModel::data(const QModelIndex &index, int role) const
     case TextColor:
         //  Set editing color if in edit mode
         if( editing_ > -1 && i == editing_ )
-            return QVariant("white");
+            return QVariant("#FF9800");
 
         //  Set selected color
         /*if(selected_.contains(i))
@@ -196,7 +196,7 @@ QVariant MemoryByteModel::data(const QModelIndex &index, int role) const
 
         //  Set editing color if in edit mode
         if( editing_ > -1 && i == editing_ )
-            return QVariant("#006400");
+            return QVariant("#000064");
 
         //  Set selected color
         /*if(selected_.contains(i))

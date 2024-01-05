@@ -12,12 +12,12 @@ Rectangle {
   //width: 1000
   //height: 800
 
-  Material.theme: Material.Light
+  /*Material.theme: Material.Light
   Material.accent: "#888888" //Material.Indigo  //  Cursor
   Material.foreground: Material.theme === Material.Light ?
                          "black" : "#f8f8f8"//  Text color #383838
   Material.background: Material.theme === Material.Light ?
-                         "#f8f8f8" : "#383838"//  Background
+                         "#f8f8f8" : "#383838"//  Background*/
   property font asciiFont:
       Qt.font({family: 'Courier',
                 weight: Font.Normal,
@@ -51,7 +51,7 @@ Rectangle {
     clip: true
 
     //  Selection information
-    selectionBehavior: TableView.SelectionDisabled//TableView.SelectCells
+    selectionBehavior: TableView.SelectCells //TableView.SelectionDisabled//TableView.SelectCells
     selectionMode: TableView.SingleSelection
     editTriggers: TableView.EditKeyPressed |
                   TableView.SelectedTapped |
@@ -62,6 +62,7 @@ Rectangle {
     property int asciiWidth: MemoryByteModel.BytesPerColumn ?
                              (10 * MemoryByteModel.BytesPerColumn) : 100
 
+    //  For grid column sizes. Currently, columns are not resizeable
     columnWidthProvider: function (column) {
       //console.log(column)
       if(column === MemoryByteModel.Column.LineNo) return colWidth * 2
@@ -78,6 +79,7 @@ Rectangle {
 
     //  Enable vertical scroll bar-always on
     ScrollBar.vertical: ScrollBar {
+      id: vsc
       visible: true
     }
 
@@ -90,16 +92,18 @@ Rectangle {
 
       //  Colors are managed by model
       color: model.backgroundColorRole
-      border.width: 1
-      border.color: cell.isEditMode ? "red" : "transparent"
 
-      //  Magic fields required by selection model - Didn't work
-      //required property bool selected
-      //required property bool current
+      //  Magic fields required by selection model
       required property bool editing
+      required property bool selected
+      required property bool current
 
-      //  Selection criteria tied to model
-      property bool isSelected: false
+      Keys.onDownPressed: {
+        console.log("onDownPressed: row=" + row)
+        vsc.position = tableView.bottomRow +
+          (tableView.bottomRow - tableView.topRow - 1)
+        console.log("onDownPressed: row=" + row)
+      }
 
       Text {
         id: display
@@ -119,11 +123,6 @@ Rectangle {
           delay: 1000
           text: model.toolTipRole
         }
-
-        /*onActiveFocusChanged: {
-        //onEditingFinished: {
-          console.log( index + (display.activeFocus ? " Cell Getting" : " Cell Losing") + " focus.")
-        }*/
 
         MouseArea {
           id: ma
@@ -162,14 +161,13 @@ Rectangle {
         anchors.fill: display
         padding: 0
 
-        color: model.textColorRole // Text color
-        selectedTextColor: model.backgroundColorRole //"white"//color  //model.textColorRole
-        selectionColor: model.textColorRole //Qt.lighter(model.backgroundColorRole,1.5) // Current editing field
+        //  Colors are managed in a separate C++ model to allow greater selections
+        color: model.textColorRole                    // Text color
+        selectedTextColor: model.backgroundColorRole  // Text to be edited
+        selectionColor: model.textColorRole           // Current editing field background
 
         maximumLength: 2
         font: display.font
-
-        Keys.onEscapePressed: tableView.closeEditor()
 
         horizontalAlignment: display.horizontalAlignment
         verticalAlignment: display.verticalAlignment
@@ -179,12 +177,41 @@ Rectangle {
 
         validator: RegularExpressionValidator { regularExpression: /[0-9,A-F,a-f]{2}/}
 
-        //  Background color when editing
-        /*Rectangle {
-          anchors.fill: editor
-          color: model.backgroundColorRole
-          z:-1
-        }*/
+        Keys.onEscapePressed: tableView.closeEditor()
+        Keys.onLeftPressed: (event) => {
+          console.log("editor.onLeftPressed: pos,start,end=" + editor.cursorPosition + "," +
+                      editor.selectionStart + "," + editor.selectionEnd)
+          if( editor.selectionStart === 0) {
+            editor.saveEdits()
+            openEditor(0,-1)
+          }
+          else {
+            //  Move left 1 character
+            editor.select(editor.selectionStart-1, editor.selectionStart)
+            console.log("left: pos,start,end=" + editor.cursorPosition + "," +
+              editor.selectionStart + "," + editor.selectionEnd)
+
+            //  Stop event from bubbling up to parent
+            event.accept = true
+          }
+        }
+        Keys.onRightPressed: (event) => {
+          console.log("editor.onLeftPressed: pos,start,end=" + editor.cursorPosition + "," +
+                      editor.selectionStart + "," + editor.selectionEnd)
+          if( editor.cursorPosition === 2) {
+            editor.saveEdits()
+            openEditor(0,1)
+          }
+          else {
+            //  Move right 1 character
+            editor.select(editor.selectionStart+1, editor.selectionStart+2)
+            console.log("left: pos,start,end=" + editor.cursorPosition + "," +
+              editor.selectionStart + "," + editor.selectionEnd)
+
+            //  Stop event from bubbling up to parent
+            event.accept = true
+          }
+        }
 
         //  Cursor background is white by default. Use TextInput background color
         cursorDelegate: Rectangle {
@@ -209,55 +236,32 @@ Rectangle {
           console.log("onCompleted-Before: pos,start,end=" + editor.cursorPosition + "," +
                       editor.selectionStart + "," + editor.selectionEnd)
 
-          //  Flag that cursor change is programatic so that change cursor does not
-          //  Update cursor status
-          //cursorPosition = 0
+          //  Highlight first character
           editor.select(0, 1)
 
           console.log("onCompleted-After: pos,start,end=" + editor.cursorPosition + "," +
                       editor.selectionStart + "," + editor.selectionEnd)
-
-          //cursorVisible: false
-        }
-
-        Keys.onPressed: (event)=> {
-          console.log("onTextChanged: pos,start,end=" + editor.cursorPosition + "," +
-                      editor.selectionStart + "," + editor.selectionEnd)
-          switch(event.key) {
-          case Qt.Key_Left:
-            console.log("left key");
-
-            // Go to next control
-            if(editor.cursorPosition===1) {
-              clearEditor()
-
-              //  Move edit focus to left
-              tableView.openEditor()
-              event.accepted = true
-            } else {
-              // Move back a character
-              editor.select(editor.cursorPosition-1, editor.cursorPosition)
-              console.log("left: pos,start,end=" + editor.cursorPosition + "," +
-                          editor.selectionStart + "," + editor.selectionEnd)
-            }
-
-            break;
-          case Qt.Key_Right:
-            console.log("right key"); break;
-          default:
-            console.log("other key"); break;
-          }
         }
 
         onTextEdited: {
-          console.log("onTextChanged: pos,start,end=" + editor.cursorPosition + "," +
-                      editor.selectionStart + "," + editor.selectionEnd)
+          //  This function is only activated if valid number or character
+          //  is clicked. Arrow keys and other characters are ignored.
+          //console.log("onTextChanged: pos,start,end=" + editor.cursorPosition + "," +
+          //            editor.selectionStart + "," + editor.selectionEnd)
 
           //  Highlight next character
-          if(editor.cursorPosition === 1 || editor.cursorPosition === 2)
+          if(editor.cursorPosition === 1 ) {
             editor.select(editor.cursorPosition, editor.cursorPosition + 1)
-        }
+          }
 
+          //  If on second position after edit, time to go to next filed
+          else if(editor.cursorPosition === 2) {
+            editor.select(editor.cursorPosition, editor.cursorPosition + 1)
+            //  On last character, save and go to next TextField
+            editor.saveEdits()
+            openEditor(0,1)
+          }
+        }
 
         //  Performed when enter is pressed
         TableView.onCommit: {
@@ -268,48 +272,9 @@ Rectangle {
         }
 
         Component.onDestruction: {
+          console.log("OnCommit: row="+row+" col="+ column)
           MemoryByteModel.clearSelected(MemoryByteModel.index(row, column),
                                         MemByteRoles.Editing)
-        }
-
-        function updateCursor() {
-          return
-          /*console.log("updateCursor: pos,start,end=" + editor.cursorPosition + "," +
-                      editor.selectionStart + "," + editor.selectionEnd)
-          //  We move the cursor to always highlight a full character.
-          //  We want to track when a cursor moves so we can highlight the
-          //  next character. However, this triggers this function recursively.
-          //  Flag when cursor move was manual.
-          if(moving) {
-            console.log("In edit")
-            return
-          }
-
-          //  Did user hit backward at start of field, if so, go to previous field
-          if( editor.cursorPosition === 0 && !forward) {
-            console.log("goto previous field")
-            saveEdits()
-            clearEditor()
-
-            //  Move edit focus
-            tableView.edit(MemoryByteModel.index(row, column-1))
-          }
-          else if( editor.cursorPosition === 2 && forward) {
-            console.log("goto next field")
-            tableView.edit(MemoryByteModel.index(row, column+1))
-          }
-          else { //if( editor.cursorPosition >= 0 && editor.cursorPosition < 2) {
-
-            console.log("Editing")
-
-            moving = true
-            editor.select(editor.cursorPosition,editor.cursorPosition +1)
-            moving =false
-
-            //editor.cursorVisible = true
-            //  Make sure first character is visible
-            //cursorVisible: false
-          }*/
         }
 
         function saveEdits() {
@@ -319,35 +284,75 @@ Rectangle {
           model.byteRole = text
           display.text = text
         }
-
       }
 
-      function openEditor() {
-        console.log("openEditor")
+      function openEditor(rowOffset, colOffset) {
+        console.log("openEditor start: rowOffset="+rowOffset+" columnOffset="+ colOffset)
+        console.log("current cell: row="+row+" col="+ column)
 
-        //  Open editor. Free function since Qml will only allow nesting up to
-        //  3 levels. After 3 levels of nesting, calls in nested functions/objects
-        //  cannot see top level TableView
-        let rowOffset = 0
-        let colOffset = 0
+        //  If edited field did not move, just return
+        if(rowOffset === 0 && colOffset === 0)
+          return
+
         let newRow = row
         let newCol = column
 
+        //  Total rows is 1-based, but row number is zero based
+        //  Convert Qml field to last row index
+        let lastRowIndex = 8100//tableView.rows - 1
+
         if( rowOffset < 0 && row === 0) {
-          //  Capture moving backwards at beginning
+          //  Capture moving backwards at beginning of document
+          //  Set to last row
+          newRow = lastRowIndex
+        }
+        else if( rowOffset > 0 && lastRowIndex === row) {
+          //  Capture moving forward at end of document
+          //  Set to first row
+          newRow = 0
         }
         else {
+          //  By default, just move based on offset
           newRow = newRow + rowOffset
         }
 
-        if( colOffset < 0 && column === 0) {
-          //  Capture moving backwards at beginning
+        if( colOffset < 0 &&
+            MemoryByteModel.Column.CellStart === column) {
+          //  Capture moving backwards at beginning of row
+          //  Set to last column
+          newCol = MemoryByteModel.Column.CellEnd
+
+          //  If in first row, move to last row.
+          newRow = row === 0 ? lastRowIndex : newRow - 1
+        }
+        else if( colOffset > 0 &&
+                MemoryByteModel.Column.CellEnd === column) {
+          //  Capture moving forward at end of column
+          //  Set to first column in next row
+          newCol = MemoryByteModel.Column.CellStart
+
+          //  If in last row, move to first row.
+          newRow = row === lastRowIndex ? 0 : newRow + 1
         }
         else {
+          //  By default, just move based on offset
           newCol = newCol + colOffset
         }
 
-        //tableView.edit(MemoryByteModel.index(newRow, newCol))
+        //  Check that new cell is visible, if not, change viewport
+
+        /*console.log("bottomRow="+tableView.bottomRow)
+        var viewLocation = Math.min(newRow / tableView.rows, 1 - tableView.visibleArea.heightRatio)
+        console.log("viewRow, position="+tableView.contentY + "," + viewLocation)
+        tableView.contentY = viewLocation
+        console.log("viewRow="+tableView.contentY)*/
+
+        var newIndex = MemoryByteModel.index(newRow, newCol)
+        //console.log("bottomIndex="+newIndex)
+        //tableView.positionViewAtCell(newIndex,TableView.AlignTop, Qt.point(-5, -5))
+
+        tableView.edit(newIndex)
+        console.log("openEditor complete: newRow="+newRow+" newCol="+ newCol)
       }
 
       function clearEditor() {
@@ -364,7 +369,6 @@ Rectangle {
       //  Represents a selected field
       function singleClick(){
         /*console.log("Single")
-        //console.log(index)
 
         //  Close editor if changing to new location
         clearEditor()
@@ -372,12 +376,7 @@ Rectangle {
         //  Always save when leaving previous edited cell.
         let modelIndex = MemoryByteModel.modelCellIndex(index)
         tableView.edit(MemoryByteModel.index(modelIndex.row, modelIndex.column))
-        //tableView.edit(MemoryByteModel.index(row,col))
-        console.log("Single: Index="+ index +": Row=" +modelIndex.row + ", Column:" + modelIndex.column)
-
-        cell.isSelected = MemoryByteModel.setSelected(MemoryByteModel.index(row, column))
-        console.log(cell.isSelected)*/
-      }
+      */}
 
       //  Represent field to be edited
       function dblClick(){
@@ -392,4 +391,7 @@ Rectangle {
       }
     }
   }
+  SelectionRectangle {
+          target: tableView
+      }
 }
