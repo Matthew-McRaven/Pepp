@@ -69,6 +69,7 @@ void MemoryByteModel::setNumBytesPerLine(const quint8 bytesPerLine)
     if( bytesPerLine == 0 ) {
         width_ = 8;
     } else {
+        //  Limit size to 32 since screen refresh will be slow
         width_ = bytesPerLine > 32 ? 32 : bytesPerLine;
     }
 
@@ -170,11 +171,7 @@ QVariant MemoryByteModel::data(const QModelIndex &index, int role) const
     case TextColor:
         //  Set editing color if in edit mode
         if( editing_ > -1 && i == editing_ )
-            return QVariant("#FF9800");
-
-        //  Set selected color
-        /*if(selected_.contains(i))
-            return QVariant("red");*/
+            return QVariant("#FF9800"); //  Pepperdine Orange
 
         //  For alternating columns, set color
         if( (col % 2) == 1 && col < column_->Border2())
@@ -191,16 +188,8 @@ QVariant MemoryByteModel::data(const QModelIndex &index, int role) const
             return QVariant("white");
 
         //  Set editing color if in edit mode
-        //if( i == editing_ )
-        //    return QVariant("#006400");
-
-        //  Set editing color if in edit mode
         if( editing_ > -1 && i == editing_ )
-            return QVariant("#000064");
-
-        //  Set selected color
-        /*if(selected_.contains(i))
-            return QVariant("blue");*/
+            return QVariant("#3F51B5"); //  Pepperdine Blue
 
         //  For alternating columns, set color
         //  for last line when memory model is smaller than displayed items
@@ -494,48 +483,3 @@ void MemoryByteModel::clearSelected(const QModelIndex& index, const RoleNames ro
         setData(old, -1, role);
     }
 }
-
-//  New functions based on index
-//  Convert to location in model from memory location
-//  Qml index is row, col precedence. QTable is col, row precedence
-/*QModelIndex MemoryByteModel::modelCellIndex(const int index) const
-{
-    //  Check for memory overflow
-    if( index >= height_ * column_->Total() )
-        return QModelIndex();
-
-    const int col = std::floor(index / height_);
-    const int row = index % height_;
-
-    //  Test if index is inside data model
-    if( row < 0 && row >= height_) return QModelIndex();
-
-    //  First column is line number. Skip
-    if( col <= 0 && col > column_->Total() ) return QModelIndex();
-
-    //  First column is line number. Ignore
-    return QAbstractItemModel::createIndex(row, col);
-}
-
-QVariant MemoryByteModel::selectedCell(const int offset, const RoleNames role) const
-{
-    //  Convert qml model location to memory model index
-    const auto index = modelCellIndex(offset);
-
-    return selected(index, role);
-}
-
-QVariant MemoryByteModel::setSelectedCell(const int offset, const RoleNames role)
-{
-    //  Convert qml model location to memory model index
-    const auto index = modelCellIndex(offset);
-
-    return setSelected(index, role);
-}
-
-void MemoryByteModel::clearSelectedCell(const int offset, const RoleNames role)
-{
-    const auto index = modelCellIndex(offset);
-
-    clearSelected(index);
-}*/

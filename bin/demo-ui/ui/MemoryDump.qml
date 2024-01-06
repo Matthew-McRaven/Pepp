@@ -9,15 +9,7 @@ import edu.pepperdine 1.0
 Rectangle {
   id: root
   anchors.fill: parent
-  //width: 1000
-  //height: 800
 
-  /*Material.theme: Material.Light
-  Material.accent: "#888888" //Material.Indigo  //  Cursor
-  Material.foreground: Material.theme === Material.Light ?
-                         "black" : "#f8f8f8"//  Text color #383838
-  Material.background: Material.theme === Material.Light ?
-                         "#f8f8f8" : "#383838"//  Background*/
   property font asciiFont:
       Qt.font({family: 'Courier',
                 weight: Font.Normal,
@@ -31,11 +23,8 @@ Rectangle {
                 bold: false,
                 capitalization: Font.AllUppercase,
                 pointSize: 10})
-  property color highlight: Material.theme === Material.Light ?
-                              Material.background.darker(1.5) :
-                              Material.background.lighter(1.5) //"#888888"
 
-  property int colWidth: 20
+  property int colWidth: 25
   property int rowHeight: 20
 
   TableView {
@@ -59,6 +48,7 @@ Rectangle {
 
     model: MemoryByteModel
 
+    //  Ascii column must be calculated since byte width per line is configurable
     property int asciiWidth: MemoryByteModel.BytesPerColumn ?
                              (10 * MemoryByteModel.BytesPerColumn) : 100
 
@@ -83,6 +73,17 @@ Rectangle {
       visible: true
     }
 
+    /*Keys.onUpPressed: {
+        print("(Up - Table) index: (" + tableView.currentRow + "," + tableView.currentColumn+ ")")
+        if (tableView.currentRow > 0)
+            tableView.currentRow--
+    }
+
+    Keys.onDownPressed: {
+        print("(Down - Table) index: (" + tableView.currentRow + "," + tableView.currentColumn+ ")")
+        if (tableView.currentRow < tableView.rowCount - 1)
+            tableView.currentRow++
+    }*/
     //  Used for drawing grid
     delegate: Rectangle {
       id: cell
@@ -98,13 +99,6 @@ Rectangle {
       required property bool selected
       required property bool current
 
-      Keys.onDownPressed: {
-        console.log("onDownPressed: row=" + row)
-        vsc.position = tableView.bottomRow +
-          (tableView.bottomRow - tableView.topRow - 1)
-        console.log("onDownPressed: row=" + row)
-      }
-
       Text {
         id: display
         anchors.fill: cell
@@ -119,18 +113,24 @@ Rectangle {
 
         ToolTip {
           //  Suppress tool tip if no message or if cell is being edited
-          visible: (model.toolTipRole && !editing) ? ma.containsMouse : false
+          //visible: (model.toolTipRole && !editing) ? ma.containsMouse : false
+          visible: (!editing && ma.hovered)
           delay: 1000
           text: model.toolTipRole
         }
 
-        MouseArea {
+        HoverHandler {
+          id: ma
+          enabled: true
+        }
+
+        /*MouseArea {
           id: ma
           anchors.fill: display
           cursorShape: Qt.IBeamCursor
           hoverEnabled: true
 
-          Timer{
+          /*Timer{
             id:timer
             interval: 200
             onTriggered: singleClick()
@@ -141,7 +141,7 @@ Rectangle {
             dblClick()
             mouse.accepted = false
           }*/
-          onClicked: (mouse) => {
+          /*onClicked: (mouse) => {
             console.log("Double click" + mouse)
             if(mouse.button === Qt.LeftButton) {
               if(timer.running) {
@@ -153,6 +153,7 @@ Rectangle {
             }
           }
         }
+          */
       }
 
       //  Used to edit a single cell in grid
@@ -171,45 +172,51 @@ Rectangle {
 
         horizontalAlignment: display.horizontalAlignment
         verticalAlignment: display.verticalAlignment
-        overwriteMode: true
+        overwriteMode: false
         echoMode: TextInput.Normal
         focus: true
 
+        //  Limit input to valid hexidecimal values
         validator: RegularExpressionValidator { regularExpression: /[0-9,A-F,a-f]{2}/}
 
         Keys.onEscapePressed: tableView.closeEditor()
-        Keys.onLeftPressed: (event) => {
-          console.log("editor.onLeftPressed: pos,start,end=" + editor.cursorPosition + "," +
-                      editor.selectionStart + "," + editor.selectionEnd)
-          if( editor.selectionStart === 0) {
-            editor.saveEdits()
-            openEditor(0,-1)
-          }
-          else {
-            //  Move left 1 character
-            editor.select(editor.selectionStart-1, editor.selectionStart)
-            console.log("left: pos,start,end=" + editor.cursorPosition + "," +
-              editor.selectionStart + "," + editor.selectionEnd)
 
-            //  Stop event from bubbling up to parent
-            event.accept = true
-          }
-        }
-        Keys.onRightPressed: (event) => {
-          console.log("editor.onLeftPressed: pos,start,end=" + editor.cursorPosition + "," +
-                      editor.selectionStart + "," + editor.selectionEnd)
-          if( editor.cursorPosition === 2) {
-            editor.saveEdits()
-            openEditor(0,1)
-          }
-          else {
-            //  Move right 1 character
-            editor.select(editor.selectionStart+1, editor.selectionStart+2)
-            console.log("left: pos,start,end=" + editor.cursorPosition + "," +
-              editor.selectionStart + "," + editor.selectionEnd)
+        Keys.onPressed: (event) => {
+          //console.log("Key: "+ event.key)
+          var found = false
+          var row = 0
+          var col = 0
 
-            //  Stop event from bubbling up to parent
-            event.accept = true
+          //  Key events that we track at TableView
+          switch(event.key) {
+          case Qt.Key_Up:
+            console.log("Up key")
+            row = -1
+            found = true
+            break;
+          case Qt.Key_Down:
+            console.log("Down key")
+            row = 1
+            found = true
+            break;
+          case Qt.Key_Left:
+            console.log("Left key")
+            col = -1
+            found = true
+            break;
+          case Qt.Key_Right:
+            console.log("Right key")
+            col = 1
+            found = true
+            break;
+          }
+
+          //  If found, do not buble event up to parent
+          event.accept = found
+          if(found) {
+            //  Save results before moving
+            editor.saveEdits()
+            openEditor(row,col)
           }
         }
 
@@ -229,35 +236,28 @@ Rectangle {
           MemoryByteModel.setSelected(MemoryByteModel.index(row, column),MemByteRoles.Editing)
 
           //  Get all text for editing
-          selectAll()
+          editor.selectAll()
           text = display.text
 
-          //  Make sure first character is visible
-          console.log("onCompleted-Before: pos,start,end=" + editor.cursorPosition + "," +
-                      editor.selectionStart + "," + editor.selectionEnd)
-
-          //  Highlight first character
-          editor.select(0, 1)
-
-          console.log("onCompleted-After: pos,start,end=" + editor.cursorPosition + "," +
-                      editor.selectionStart + "," + editor.selectionEnd)
+          //  Highlight first character for editing
+          editor.select(0,1)
         }
 
+        //  This function is only activated if valid number or character
+        //  is clicked based on validator. Arrow keys and other
+        //  characters are ignored.
         onTextEdited: {
-          //  This function is only activated if valid number or character
-          //  is clicked. Arrow keys and other characters are ignored.
-          //console.log("onTextChanged: pos,start,end=" + editor.cursorPosition + "," +
-          //            editor.selectionStart + "," + editor.selectionEnd)
+          console.log("onTextChanged: pos,start,end=" + editor.cursorPosition + "," +
+                      editor.selectionStart + "," + editor.selectionEnd)
 
-          //  Highlight next character
-          if(editor.cursorPosition === 1 ) {
-            editor.select(editor.cursorPosition, editor.cursorPosition + 1)
+          //  We just edited first character, highlight second character
+          if( editor.selectionStart === 0) {
+            editor.select(1, 2)
+            console.log("start 0: pos,start,end=" + editor.cursorPosition + "," +
+                        editor.selectionStart + "," + editor.selectionEnd)
           }
-
-          //  If on second position after edit, time to go to next filed
-          else if(editor.cursorPosition === 2) {
-            editor.select(editor.cursorPosition, editor.cursorPosition + 1)
-            //  On last character, save and go to next TextField
+          else if(editor.selectionStart === 1) {
+            //  After update, save results and move to next cell
             editor.saveEdits()
             openEditor(0,1)
           }
@@ -278,11 +278,15 @@ Rectangle {
         }
 
         function saveEdits() {
-          console.log("saveEdits")
-
           editor.selectAll()
-          model.byteRole = text
-          display.text = text
+
+          //  Check if data changed, if so, update model
+          if( model.byteRole !== text) {
+
+            console.log("saveEdits")
+            model.byteRole = text
+            display.text = text
+          }
         }
       }
 
@@ -299,17 +303,17 @@ Rectangle {
 
         //  Total rows is 1-based, but row number is zero based
         //  Convert Qml field to last row index
-        let lastRowIndex = 8100//tableView.rows - 1
+        let lastRowIndex = tableView.rows - 1
 
         if( rowOffset < 0 && row === 0) {
-          //  Capture moving backwards at beginning of document
-          //  Set to last row
-          newRow = lastRowIndex
+          //  Capture moving up at beginning of document
+          //  Set to first column
+          newCol = MemoryByteModel.Column.CellStart
         }
         else if( rowOffset > 0 && lastRowIndex === row) {
-          //  Capture moving forward at end of document
-          //  Set to first row
-          newRow = 0
+          //  Capture moving down at end of document
+          //  Move to last column
+          newCol = MemoryByteModel.Column.CellEnd
         }
         else {
           //  By default, just move based on offset
@@ -367,8 +371,8 @@ Rectangle {
       }
 
       //  Represents a selected field
-      function singleClick(){
-        /*console.log("Single")
+      /*function singleClick(){
+        console.log("Single")
 
         //  Close editor if changing to new location
         clearEditor()
@@ -376,7 +380,7 @@ Rectangle {
         //  Always save when leaving previous edited cell.
         let modelIndex = MemoryByteModel.modelCellIndex(index)
         tableView.edit(MemoryByteModel.index(modelIndex.row, modelIndex.column))
-      */}
+      }
 
       //  Represent field to be edited
       function dblClick(){
@@ -388,10 +392,7 @@ Rectangle {
         console.log("dblClick: Row=" +row + ", Column:" + column)
         //  Row, Column, and Index are hidden variables in edit delegate.
         tableView.edit(MemoryByteModel.index(row, column))
-      }
+      }*/
     }
   }
-  SelectionRectangle {
-          target: tableView
-      }
 }
