@@ -29,8 +29,8 @@
 #include <iostream>
 
 #include "antlr4-runtime.h"
-#include "ExprLexer.h"
-#include "ExprParser.h"
+#include "PeppLexer.h"
+#include "PeppParser.h"
 
 
 using namespace antlr4;
@@ -38,10 +38,10 @@ using namespace antlr4;
 int main(int argc, const char * argv[]) {
 
     ANTLRInputStream input("10 + 20 * 40 /30 + 20 - 10");
-    ExprLexer lexer(&input);
+    PeppLexer lexer(&input);
     CommonTokenStream tokens(&lexer);
 
-    ExprParser parser(&tokens);
+    PeppParser parser(&tokens);
     auto *tree = parser.prog();
 
     auto s = tree->toStringTree(&parser);

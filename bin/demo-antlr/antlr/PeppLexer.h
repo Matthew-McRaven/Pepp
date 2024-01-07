@@ -1,5 +1,5 @@
 
-// Generated from Expr.g4 by ANTLR 4.13.1
+// Generated from PeppLexer.g4 by ANTLR 4.13.1
 
 #pragma once
 
@@ -9,16 +9,19 @@
 
 
 
-class  ExprLexer : public antlr4::Lexer {
+class  PeppLexer : public antlr4::Lexer {
 public:
   enum {
-    T__0 = 1, T__1 = 2, T__2 = 3, T__3 = 4, T__4 = 5, T__5 = 6, VAR = 7, 
-    NEWLINE = 8, INT = 9
+    SPACING = 1, NEWLINE = 2, STRING = 3, CHARACTER = 4, IDENTIFIER = 5, 
+    DOLLAR = 6, PLACEHOLDER_MACRO = 7, DOT_IDENTIFIER = 8, AT_IDENTIFIER = 9, 
+    COLON = 10, SYMBOL = 11, PLACEHOLDER_SYMBOL = 12, UNSIGNED_DECIMAL = 13, 
+    SIGNED_DECIMAL = 14, HEXADECIMAL = 15, SEMICOLON = 16, COMMENT = 17, 
+    COMMA = 18
   };
 
-  explicit ExprLexer(antlr4::CharStream *input);
+  explicit PeppLexer(antlr4::CharStream *input);
 
-  ~ExprLexer() override;
+  ~PeppLexer() override;
 
 
   std::string getGrammarFileName() const override;
