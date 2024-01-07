@@ -10,12 +10,7 @@ set(CMAKE_AUTOMOC ON)
 set(CMAKE_AUTORCC ON)
 set(CMAKE_AUTOUIC ON)
 
-find_package(Qt6 6.6 COMPONENTS Core REQUIRED)
-find_package(Qt6 6.6 COMPONENTS Gui REQUIRED)
-find_package(Qt6 6.6 COMPONENTS Qml REQUIRED)
-find_package(Qt6 6.6 COMPONENTS Quick REQUIRED)
-find_package(Qt6 6.6 COMPONENTS QuickControls2 REQUIRED)
-find_package(Qt6 6.6 COMPONENTS Widgets REQUIRED)
+find_package(Qt6 6.6 COMPONENTS Core Gui Qml Quick QuickControls2  Widgets REQUIRED)
 
 if (WIN32)
 #! [appicon_windows]
@@ -78,10 +73,4 @@ qt6_add_resources(pep10 "pep10"
         "/"
     FILES
         ${pep10_resource_files}
-)
-
-install(TARGETS pep10
-    RUNTIME DESTINATION "${INSTALL_EXAMPLEDIR}"
-    BUNDLE DESTINATION "${INSTALL_EXAMPLEDIR}"
-    LIBRARY DESTINATION "${CMAKE_INSTALL_LIBDIR}"
 )
