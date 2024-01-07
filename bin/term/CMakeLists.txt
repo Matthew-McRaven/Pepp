@@ -44,7 +44,19 @@ set(Python3_FIND_REGISTRY LAST)
 
 find_package(Python 3.12 OPTIONAL_COMPONENTS Development Interpreter)
 
-if (Python_Development_FOUND AND Python_Interpreter_FOUND AND (NOT DEFINED SKIP_TERM_TESTS))
+# Windows may report python found without debug libs present.
+# Try actually compiling a program with python to see if we get link errors.
+if(Python_Development_FOUND)
+try_compile(PYTHON_LINK_SUCCESS
+        ${CMAKE_CURRENT_BINARY_DIR}/python_link_test
+        ${CMAKE_CURRENT_LIST_DIR}/py_link_test.cpp
+        LINK_LIBRARIES ${Python_LIBRARIES}
+        OUTPUT_VARIABLE PYTHON_LINK_OUTPUT)
+else()
+  set(PYTHON_LINK_SUCCESS FALSE)
+endif()
+
+if (Python_Development_FOUND AND Python_Interpreter_FOUND AND PYTHON_LINK_SUCCESS AND (NOT DEFINED SKIP_TERM_TESTS))
     # Create file which contains PYTHONHOME followed by PYTHONPATH values seperated by newlines.
     add_custom_command(
         COMMAND ${Python_EXECUTABLE}

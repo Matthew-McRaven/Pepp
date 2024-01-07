@@ -103,7 +103,6 @@ jobs:
           ${{ inputs.compiler_cpp && format('-D CMAKE_CXX_COMPILER={0}', inputs.compiler_cpp) || '' }}
           ${{ inputs.triplet && format('-D VCPKG_TARGET_TRIPLET={0}', inputs.triplet) || '' }}
           ${{ inputs.image && '-D USE_SYSTEM_BOOST=on' || '' }}
-          ${{ (inputs.runs-on == 'windows-latest' && '-D SKIP_TERM_TESTS=on') || '' }}
           -D CMAKE_TOOLCHAIN_FILE=${{ inputs.cmake_toolchain }}
           ${{ inputs.cmake_generator && format('-G {0}', inputs.cmake_generator) || '' }}
           ${{ inputs.cmake_xargs }}
