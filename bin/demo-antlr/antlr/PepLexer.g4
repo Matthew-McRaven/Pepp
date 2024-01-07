@@ -40,11 +40,6 @@ NameStartChar
 
 IDENTIFIER: NameStartChar NameChar* ;
 
-// Allow these dot commands to be named explicitly, which is needed
-// to implement "skipping" the body of inline macros.
-DOT_MACRO: '.MACRO' ;
-DOT_ENDM: '.ENDM' ;
-
 DOLLAR: '$';
 PLACEHOLDER_MACRO: DOLLAR DEC_DIGIT+ ;
 
