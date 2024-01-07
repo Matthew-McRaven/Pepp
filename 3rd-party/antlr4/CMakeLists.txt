@@ -42,7 +42,8 @@ if(APPLE)
   find_library(COREFOUNDATION_LIBRARY CoreFoundation)
 endif()
 
-file(STRINGS "VERSION" ANTLR_VERSION)
+# Hardcoded version. Depenency expected a VERSION file which did not ship with present runtime.
+set(ANTLR_VERSION "4.13.1")
 
 if(WITH_DEMO)
   # Java is not necessary if building without demos.
