@@ -1,4 +1,4 @@
-parser grammar PepParser;
+parser grammar PeppParser;
 options {
     tokenVocab = PepLexer;
 }
@@ -7,7 +7,7 @@ options {
 bool allow_macros = 1;
 }
 
-// main entry point
+
 prog: (NEWLINE | stat NEWLINE | stat {EOF}?)* EOF;
 
 // A visitor will need to validate that the mnemonic/IDENTIFIER matches with the argument+type.

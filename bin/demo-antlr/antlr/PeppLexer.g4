@@ -1,4 +1,4 @@
-lexer grammar PepLexer;
+lexer grammar PeppLexer;
 options { caseInsensitive=true; }
 
 SPACING : [\t ]+ -> skip ; // Spacing is not significant; discard
