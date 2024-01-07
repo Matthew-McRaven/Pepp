@@ -56,7 +56,7 @@ else()
   set(PYTHON_LINK_SUCCESS FALSE)
 endif()
 
-if (Python_Development_FOUND AND Python_Interpreter_FOUND AND PYTHON_LINK_SUCCESS AND (NOT DEFINED SKIP_TERM_TESTS))
+if (Python_Development_FOUND AND Python_Interpreter_FOUND AND PYTHON_LINK_SUCCESS AND (DEFINED ENABLE_TERM_TESTS))
     # Create file which contains PYTHONHOME followed by PYTHONPATH values seperated by newlines.
     add_custom_command(
         COMMAND ${Python_EXECUTABLE}
