@@ -16,9 +16,9 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-#include "symbol/table.hpp"
-#include "symbol/types.hpp"
-#include "symbol/visit.hpp"
+#include "asm/symbol/table.hpp"
+#include "asm/symbol/types.hpp"
+#include "asm/symbol/visit.hpp"
 #include <QObject>
 #include <QTest>
 

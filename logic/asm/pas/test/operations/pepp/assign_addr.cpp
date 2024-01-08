@@ -15,18 +15,18 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-#include "pas/operations/pepp/assign_addr.hpp"
+#include "asm/pas/operations/pepp/assign_addr.hpp"
 #include "bits/strings.hpp"
 #include "isa/pep10.hpp"
 #include "macro/macro.hpp"
 #include "macro/registry.hpp"
-#include "pas/ast/generic/attr_address.hpp"
-#include "pas/driver/pep10.hpp"
-#include "pas/driver/pepp.hpp"
-#include "pas/operations/generic/group.hpp"
-#include "pas/operations/pepp/addressable.hpp"
-#include "pas/operations/pepp/size.hpp"
-#include "pas/operations/pepp/string.hpp"
+#include "asm/pas/ast/generic/attr_address.hpp"
+#include "asm/pas/driver/pep10.hpp"
+#include "asm/pas/driver/pepp.hpp"
+#include "asm/pas/operations/generic/group.hpp"
+#include "asm/pas/operations/pepp/addressable.hpp"
+#include "asm/pas/operations/pepp/size.hpp"
+#include "asm/pas/operations/pepp/string.hpp"
 #include <QObject>
 #include <QTest>
 

@@ -1,4 +1,11 @@
-make_exec(demo-macro-parse "./")
+file(GLOB_RECURSE sources CONFIGURE_DEPENDS "${CMAKE_CURRENT_LIST_DIR}/src/*.cpp" "${CMAKE_CURRENT_LIST_DIR}/src/*.hpp")
+
+make_target(
+  TARGET demo-macro-parse
+  TYPE "EXEC"
+  SOURCES ${sources}
+  DEPENDS Qt6::Core Qt6::Quick builtins highlight Qt6::Quick macro
+)
 
 # GLOB_RECURSE ueses abs paths, QML_FILES expects relative paths. This blob converts from abs to rel.
 file(GLOB_RECURSE abs_qml_sources CONFIGURE_DEPENDS "src/**/*.qml" "src/*.qml")
@@ -27,8 +34,4 @@ set_target_properties(demo-macro-parse PROPERTIES FOLDER "qtc_runnable")
 set_target_properties(demo-macro-parse PROPERTIES EMBED_GH_PAGES ON)
 
 target_link_libraries(demo-macro-parse
-        PRIVATE Qt6::Quick macro)
-
-install(TARGETS demo-macro-parse
-        BUNDLE DESTINATION .
-        LIBRARY DESTINATION ${CMAKE_INSTALL_LIBDIR})
+        PRIVATE )

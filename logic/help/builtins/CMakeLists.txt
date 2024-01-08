@@ -19,11 +19,19 @@ foreach (f-abs IN LISTS cs6e-res-abs)
     list(APPEND cs6e-res "${f-rel}")
 endforeach ()
 
-make_library(builtins builtins)
-target_link_libraries(builtins PUBLIC "Qt6::Core;macro")
-target_compile_definitions(builtins PRIVATE BUILTINS_LIBRARY)
-qt_add_resources(builtins "builtins" PREFIX "/" FILES ${cs4e-res} ${cs5e-res} ${cs6e-res})
+file(GLOB_RECURSE sources_and_tests CONFIGURE_DEPENDS "${CMAKE_CURRENT_LIST_DIR}/*.cpp" "${CMAKE_CURRENT_LIST_DIR}/*.hpp")
+file(GLOB_RECURSE tests CONFIGURE_DEPENDS "${CMAKE_CURRENT_LIST_DIR}/test/*.cpp" "${CMAKE_CURRENT_LIST_DIR}/test/*.hpp")
+file(GLOB_RECURSE help_items CONFIGURE_DEPENDS "${CMAKE_CURRENT_LIST_DIR}/books/*.cpp")
+list(APPEND sources ${sources_and_tests})
+list(REMOVE_ITEM sources ${tests})
+list(REMOVE_ITEM sources ${help_items})
 
-if (NOT IOS)
-    make_qtest(test-builtins test/dummy.cpp "builtins;Qt6::Core;Qt6::Gui;Qt6::Qml;Qt6::Quick;Qt::Test")
-endif ()
+make_library(
+  TARGET builtins
+  SOURCES ${sources}
+  DEPENDS Qt6::Core macro
+  TESTS ${tests}
+  TEST_DEPENDS Qt6::Gui Qt6::Qml Qt6::Quick
+)
+
+qt_add_resources(builtins "builtins" PREFIX "/" FILES ${cs4e-res} ${cs5e-res} ${cs6e-res})

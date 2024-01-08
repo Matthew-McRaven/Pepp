@@ -15,10 +15,10 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-#include "pas/operations/pepp/addressable.hpp"
+#include "asm/pas/operations/pepp/addressable.hpp"
 #include "isa/pep10.hpp"
-#include "pas/ast/node.hpp"
-#include "pas/driver/pep10.hpp"
+#include "asm/pas/ast/node.hpp"
+#include "asm/pas/driver/pep10.hpp"
 #include <QObject>
 #include <QTest>
 

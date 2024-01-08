@@ -1,4 +1,4 @@
-#include "about/dependencies.hpp"
+#include "help/about/dependencies.hpp"
 #include <QTest>
 #include <QtCore>
 

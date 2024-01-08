@@ -17,7 +17,7 @@
 
 #include "ls.hpp"
 #include "./shared.hpp"
-#include "builtins/figure.hpp"
+#include "help/builtins/figure.hpp"
 #include <iostream>
 
 ListTask::ListTask(int ed, QObject *parent) : Task(parent), ed(ed) {}

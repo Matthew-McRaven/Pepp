@@ -15,11 +15,11 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-#include "pas/operations/generic/link_globals.hpp"
+#include "asm/pas/operations/generic/link_globals.hpp"
 #include "isa/pep10.hpp"
-#include "pas/driver/common.hpp"
-#include "pas/driver/pepp.hpp"
-#include "symbol/value.hpp"
+#include "asm/pas/driver/common.hpp"
+#include "asm/pas/driver/pepp.hpp"
+#include "asm/symbol/value.hpp"
 #include <QObject>
 #include <QTest>
 

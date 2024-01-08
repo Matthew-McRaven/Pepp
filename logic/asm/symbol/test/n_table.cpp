@@ -16,8 +16,8 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-#include "symbol/table.hpp"
-#include "symbol/visit.hpp"
+#include "asm/symbol/table.hpp"
+#include "asm/symbol/visit.hpp"
 #include <QTest>
 
 class SymbolNTable : public QObject {

@@ -19,12 +19,12 @@
 #include <QTest>
 
 #include "isa/pep10.hpp"
-#include "pas/driver/pep10.hpp"
-#include "pas/operations/generic/errors.hpp"
-#include "pas/operations/generic/is.hpp"
-#include "pas/operations/pepp/is.hpp"
-#include "pas/parse/pepp/node_from_parse_tree.hpp"
-#include "pas/parse/pepp/rules_lines.hpp"
+#include "asm/pas/driver/pep10.hpp"
+#include "asm/pas/operations/generic/errors.hpp"
+#include "asm/pas/operations/generic/is.hpp"
+#include "asm/pas/operations/pepp/is.hpp"
+#include "asm/pas/parse/pepp/node_from_parse_tree.hpp"
+#include "asm/pas/parse/pepp/rules_lines.hpp"
 
 // Declare all matchers as globals, so they don't fall out of scope in data fn.
 // Must manually type erase, since QTest can;'t figure this out on its own.

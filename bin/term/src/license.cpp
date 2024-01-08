@@ -1,5 +1,5 @@
 #include "./license.hpp"
-#include "about/dependencies.hpp"
+#include "help/about/dependencies.hpp"
 #include <TextFlow.hpp>
 #include <iostream>
 

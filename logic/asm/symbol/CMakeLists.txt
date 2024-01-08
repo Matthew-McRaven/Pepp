@@ -1,11 +1,11 @@
-make_library(symbol symbol)
-target_link_libraries(symbol PRIVATE "Qt6::Core")
-target_compile_definitions(symbol PRIVATE SYMBOL_LIBRARY)
+file(GLOB_RECURSE sources_and_tests CONFIGURE_DEPENDS "${CMAKE_CURRENT_LIST_DIR}/*.cpp" "${CMAKE_CURRENT_LIST_DIR}/*.hpp")
+file(GLOB_RECURSE tests CONFIGURE_DEPENDS "${CMAKE_CURRENT_LIST_DIR}/test/*.cpp" "${CMAKE_CURRENT_LIST_DIR}/test/*.hpp")
+list(APPEND sources ${sources_and_tests})
+list(REMOVE_ITEM sources ${tests})
 
-if (NOT IOS)
-    make_qtest(test-symbol-ntable test/n_table.cpp "symbol;Qt6::Core;Qt6::Test")
-    make_qtest(test-symbol-1table test/one_table.cpp "symbol;Qt6::Core;Qt6::Test")
-    make_qtest(test-symbol-2table test/two_table.cpp "symbol;Qt6::Core;Qt6::Test")
-    make_qtest(test-symbol-multitree test/multitree.cpp "symbol;Qt6::Core;Qt6::Test")
-    make_qtest(test-symbol-values test/values.cpp "symbol;Qt6::Core;Qt6::Test")
-endif ()
+make_library(
+  TARGET symbol
+  SOURCES ${sources}
+  DEPENDS Qt6::Core
+  TESTS ${tests}
+)

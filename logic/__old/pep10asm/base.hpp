@@ -1,6 +1,6 @@
 #pragma once
 
-#include "symbol/entry.hpp"
+#include "asm/symbol/entry.hpp"
 #include <memory>
 #include <variant>
 #include <vector>

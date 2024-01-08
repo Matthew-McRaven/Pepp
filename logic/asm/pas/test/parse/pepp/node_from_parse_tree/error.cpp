@@ -16,15 +16,15 @@
  */
 
 #include "isa/pep10.hpp"
-#include "pas/ast/generic/attr_error.hpp"
-#include "pas/ast/generic/attr_location.hpp"
-#include "pas/driver/pep10.hpp"
-#include "pas/errors.hpp"
-#include "pas/parse/pepp/node_from_parse_tree.hpp"
+#include "asm/pas/ast/generic/attr_error.hpp"
+#include "asm/pas/ast/generic/attr_location.hpp"
+#include "asm/pas/driver/pep10.hpp"
+#include "asm/pas/errors.hpp"
+#include "asm/pas/parse/pepp/node_from_parse_tree.hpp"
 #include <QObject>
 #include <QTest>
-#include <pas/operations/generic/errors.hpp>
-#include "pas/parse/pepp/rules_lines.hpp"
+#include <asm/pas/operations/generic/errors.hpp>
+#include "asm/pas/parse/pepp/rules_lines.hpp"
 
 using SourceLocation = pas::ast::generic::SourceLocation;
 using Message = pas::ast::generic::Message;

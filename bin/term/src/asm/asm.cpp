@@ -16,10 +16,10 @@
  */
 #include "asm.hpp"
 #include "../shared.hpp"
-#include "builtins/figure.hpp"
+#include "help/builtins/figure.hpp"
 #include "isa/pep10.hpp"
 #include "macro/registry.hpp"
-#include "pas/operations/pepp/bytes.hpp"
+#include "asm/pas/operations/pepp/bytes.hpp"
 #include <iostream>
 
 AsmTask::AsmTask(int ed, std::string userFname, QObject *parent)

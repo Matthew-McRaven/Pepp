@@ -16,12 +16,12 @@
  */
 
 #include "./assembly.hpp"
-#include "builtins/book.hpp"
-#include "builtins/registry.hpp"
+#include "help/builtins/book.hpp"
+#include "help/builtins/registry.hpp"
 #include "isa/pep10.hpp"
 #include "macro/registry.hpp"
-#include "pas/driver/pep10.hpp"
-#include "pas/operations/pepp/string.hpp"
+#include "asm/pas/driver/pep10.hpp"
+#include "asm/pas/operations/pepp/string.hpp"
 
 void AssemblyManger::onSelectionChanged(builtins::Figure *figure) {
   qDebug() << "Selection changed";

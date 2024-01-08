@@ -18,7 +18,7 @@
 #include <QObject>
 #include <QTest>
 
-#include "pas/parse/pepp/rules_values.hpp"
+#include "asm/pas/parse/pepp/rules_values.hpp"
 using namespace pas::parse::pepp;
 using namespace std::literals::string_literals;
 class PasParserPeppValues : public QObject {

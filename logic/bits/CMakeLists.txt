@@ -6,13 +6,16 @@ else ()
     message("Using Qt helpers for byteswap")
 endif ()
 
-make_library(bits bits)
-target_link_libraries(bits PUBLIC "Qt6::Core")
-target_include_directories(bits PUBLIC ${Boost_INCLUDE_DIR})
+file(GLOB_RECURSE sources_and_tests CONFIGURE_DEPENDS "${CMAKE_CURRENT_LIST_DIR}/*.cpp" "${CMAKE_CURRENT_LIST_DIR}/*.hpp")
+file(GLOB_RECURSE tests CONFIGURE_DEPENDS "${CMAKE_CURRENT_LIST_DIR}/test/*.cpp" "${CMAKE_CURRENT_LIST_DIR}/test/*.hpp")
+file(GLOB_RECURSE compile_tests CONFIGURE_DEPENDS "${CMAKE_CURRENT_LIST_DIR}/compile-test/*.cpp")
+list(APPEND sources ${sources_and_tests})
+list(REMOVE_ITEM sources ${tests})
+list(REMOVE_ITEM sources ${compile_tests})
 
-if (NOT IOS)
-    make_qtest(test-bits-copy test/copy.cpp "bits;Qt6::Core;Qt6::Test")
-    make_qtest(test-bits-log2 test/log2.cpp "bits;Qt6::Core;Qt6::Test")
-    make_qtest(test-bits-strings-ascii-hex test/strings_ascii_hex.cpp "bits;Qt6::Core;Qt6::Test")
-    set_target_properties(test-bits-strings-ascii-hex PROPERTIES FOLDER "qtc_runnable")
-endif ()
+make_library(
+  TARGET bits
+  SOURCES ${sources}
+  DEPENDS Qt6::Core
+  TESTS ${tests}
+)

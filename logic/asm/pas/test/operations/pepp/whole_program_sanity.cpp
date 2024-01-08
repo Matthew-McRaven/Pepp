@@ -15,15 +15,15 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-#include "pas/operations/pepp/whole_program_sanity.hpp"
+#include "asm/pas/operations/pepp/whole_program_sanity.hpp"
 #include "isa/pep10.hpp"
 #include "macro/registry.hpp"
-#include "pas/driver/pep10.hpp"
-#include "pas/driver/pepp.hpp"
-#include "pas/errors.hpp"
-#include "pas/operations/generic/group.hpp"
-#include "pas/operations/pepp/addressable.hpp"
-#include "pas/operations/pepp/assign_addr.hpp"
+#include "asm/pas/driver/pep10.hpp"
+#include "asm/pas/driver/pepp.hpp"
+#include "asm/pas/errors.hpp"
+#include "asm/pas/operations/generic/group.hpp"
+#include "asm/pas/operations/pepp/addressable.hpp"
+#include "asm/pas/operations/pepp/assign_addr.hpp"
 #include <QObject>
 #include <QTest>
 

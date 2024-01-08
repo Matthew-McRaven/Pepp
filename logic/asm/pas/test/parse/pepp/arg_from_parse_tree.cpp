@@ -18,14 +18,14 @@
 #include <QObject>
 #include <QTest>
 
-#include "pas/ast/value/character.hpp"
-#include "pas/ast/value/decimal.hpp"
-#include "pas/ast/value/hexadecimal.hpp"
-#include "pas/ast/value/identifier.hpp"
-#include "pas/ast/value/string.hpp"
-#include "pas/ast/value/symbolic.hpp"
-#include "pas/parse/pepp/arg_from_parse_tree.hpp"
-#include "pas/parse/pepp/rules_values.hpp"
+#include "asm/pas/ast/value/character.hpp"
+#include "asm/pas/ast/value/decimal.hpp"
+#include "asm/pas/ast/value/hexadecimal.hpp"
+#include "asm/pas/ast/value/identifier.hpp"
+#include "asm/pas/ast/value/string.hpp"
+#include "asm/pas/ast/value/symbolic.hpp"
+#include "asm/pas/parse/pepp/arg_from_parse_tree.hpp"
+#include "asm/pas/parse/pepp/rules_values.hpp"
 using namespace pas::parse::pepp;
 using namespace pas::ast::value;
 class PasParsePepp_ArgFromParseTree : public QObject {

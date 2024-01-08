@@ -1,17 +1,23 @@
 cmake_minimum_required(VERSION 3.10)
 
-make_library(about about)
+file(GLOB_RECURSE sources_and_tests CONFIGURE_DEPENDS "${CMAKE_CURRENT_LIST_DIR}/*.cpp" "${CMAKE_CURRENT_LIST_DIR}/*.hpp")
+file(GLOB_RECURSE tests CONFIGURE_DEPENDS "${CMAKE_CURRENT_LIST_DIR}/test/*.cpp")
+list(APPEND sources ${sources_and_tests})
+list(REMOVE_ITEM sources ${tests})
+
+make_library(
+  TARGET about
+  SOURCES ${sources}
+  DEPENDS Qt6::Core
+  TESTS ${tests}
+)
+
 set_target_properties(about PROPERTIES NEEDS_HTML_HELP ON)
-target_include_directories(about PUBLIC ${Boost_INCLUDE_DIR})
-target_link_libraries(about PUBLIC "Qt6::Core" )
-#target_compile_definitions(about PRIVATE ABOUT_LIBRARY)
 
 include(git.cmake)
 get_git_head_revision(GIT_REFSPEC GIT_SHA1)
 
 git_get_exact_tag(GIT_TAG)
-
-
 
 if(GIT_TAG MATCHES ".*NOTFOUND")
     set(GIT_TAG "unknown")
@@ -27,7 +33,9 @@ else()
 endif()
 
 #add_definitions("-DGIT_SHA1=${GIT_SHA1}")
-configure_file("${CMAKE_CURRENT_SOURCE_DIR}/src/about/version.cpp.in" "${CMAKE_CURRENT_BINARY_DIR}/version.cpp" @ONLY)
+
+
+configure_file("${CMAKE_CURRENT_SOURCE_DIR}/version.cpp.in" "${CMAKE_CURRENT_BINARY_DIR}/version.cpp" @ONLY)
 
 # Include dependency licenses without having to hard-code.
 file(GLOB_RECURSE dependency_licenses CONFIGURE_DEPENDS "data/dep/*")
@@ -42,13 +50,8 @@ qt_add_resources(about "about"
         data/dependencies.csv
         ${dependency_licenses}
         )
+
 set_source_files_properties("data/LICENSE_FULL" PROPERTIES QT_RESOURCE_ALIAS "LICENSE")
 set_source_files_properties("data/LICENSE_NOTICE" PROPERTIES QT_RESOURCE_ALIAS "NOTICE")
-
 target_sources(about PRIVATE "${CMAKE_CURRENT_BINARY_DIR}/version.cpp")
 
-if (NOT IOS)
-    make_qtest(test-about-dependencies test/dependencies.cpp "about;Qt6::Core;Qt::Test")
-    make_qtest(test-about-pepp test/pepp.cpp "about;Qt6::Core;Qt::Test")
-    set_target_properties(test-about-pepp PROPERTIES FOLDER "qtc_runnable")
-endif ()

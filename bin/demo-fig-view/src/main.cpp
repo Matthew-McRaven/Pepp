@@ -29,7 +29,7 @@
 
 #include "book_item_model.hpp"
 #include "linenumbers.h"
-#include "builtins/registry.hpp"
+#include "help/builtins/registry.hpp"
 #include "highlight/qml_highlighter.hpp"
 #include "highlight/style.hpp"
 #include "highlight/style/map.hpp"

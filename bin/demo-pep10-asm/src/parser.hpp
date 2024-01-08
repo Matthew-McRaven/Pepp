@@ -17,7 +17,7 @@
 
 #pragma once
 
-#include "pas/ast/node.hpp"
+#include "asm/pas/ast/node.hpp"
 #include <QObject>
 
 /*struct ParseResult : public QObject {

@@ -16,7 +16,7 @@
  */
 
 #pragma once
-#include "builtins/figure.hpp"
+#include "help/builtins/figure.hpp"
 #include <QObject>
 class AssemblyManger : public QObject {
   Q_OBJECT
