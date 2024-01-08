@@ -206,7 +206,6 @@ if(ONLY STREQUAL "BUILD")
   # Some corner cases still require we export symbols manually.
   set(CMAKE_WINDOWS_EXPORT_ALL_SYMBOLS ON)
   include(config/cmake/create_targets.cmake)
-  include(config/cmake/create_targets2.cmake)
   add_subdirectory(logic)
   add_subdirectory(ui)
   add_subdirectory(bin)
