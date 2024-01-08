@@ -16,9 +16,9 @@
  */
 
 #pragma once
-#include "builtins/book.hpp"
+#include "help/builtins/book.hpp"
 #include "macro/registry.hpp"
-#include "pas/ast/node.hpp"
+#include "asm/pas/ast/node.hpp"
 #include <elfio/elfio.hpp>
 
 namespace detail {

@@ -17,7 +17,7 @@
 
 #include "fig.hpp"
 #include "../shared.hpp"
-#include "builtins/figure.hpp"
+#include "help/builtins/figure.hpp"
 #include <iostream>
 
 GetFigTask::GetFigTask(int ed, std::string ch, std::string fig,

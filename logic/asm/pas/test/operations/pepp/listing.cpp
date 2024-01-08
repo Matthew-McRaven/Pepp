@@ -16,11 +16,11 @@
  */
 
 #include "isa/pep10.hpp"
-#include "pas/driver/pepp.hpp"
-#include "pas/operations/generic/group.hpp"
-#include "pas/operations/pepp/addressable.hpp"
-#include "pas/operations/pepp/assign_addr.hpp"
-#include "pas/operations/pepp/string.hpp"
+#include "asm/pas/driver/pepp.hpp"
+#include "asm/pas/operations/generic/group.hpp"
+#include "asm/pas/operations/pepp/addressable.hpp"
+#include "asm/pas/operations/pepp/assign_addr.hpp"
+#include "asm/pas/operations/pepp/string.hpp"
 #include <QObject>
 #include <QTest>
 

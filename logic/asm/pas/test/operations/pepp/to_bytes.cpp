@@ -19,9 +19,9 @@
 #include <QTest>
 
 #include "isa/pep10.hpp"
-#include "pas/driver/pepp.hpp"
-#include "pas/operations/pepp/assign_addr.hpp"
-#include "pas/operations/pepp/bytes.hpp"
+#include "asm/pas/driver/pepp.hpp"
+#include "asm/pas/operations/pepp/assign_addr.hpp"
+#include "asm/pas/operations/pepp/bytes.hpp"
 
 class PasOpsPepp_ToBytes : public QObject {
   Q_OBJECT

@@ -19,6 +19,9 @@ set(Boost_USE_STATIC_LIBS   ON)
 # Allow overriding boost root if you want to point to your own boost. Must also define Boost_ROOT.
 set(Boost_ROOT ${_VCPKG_INSTALLED_DIR} CACHE PATH "Override boost root")
 
+# Allow normalized paths (e.g., "asm/pas" ) without nesting that directory folder
+# inside a nested "src" hierarchy. May cause linking issues if you do not pay attention.
+include_directories(${CMAKE_CURRENT_LIST_DIR}/logic ${CMAKE_CURRENT_LIST_DIR}/ui)
 
 # Derived from: https://vicrucann.github.io/tutorials/quick-cmake-doxygen/
 # Can be BUILD, DOC, VERSION.

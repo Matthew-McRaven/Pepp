@@ -16,9 +16,9 @@
  */
 
 #include "book_item_model.hpp"
-#include "builtins/book.hpp"
-#include "builtins/figure.hpp"
-#include "builtins/registry.hpp"
+#include "help/builtins/book.hpp"
+#include "help/builtins/figure.hpp"
+#include "help/builtins/registry.hpp"
 void addBookItems(QStandardItem *parent,
                   QSharedPointer<const builtins::Book> book) {
     auto figures = book->figures();

@@ -15,17 +15,17 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-#include "pas/driver/pep10.hpp"
-#include "builtins/book.hpp"
-#include "builtins/figure.hpp"
-#include "builtins/registry.hpp"
+#include "asm/pas/driver/pep10.hpp"
+#include "help/builtins/book.hpp"
+#include "help/builtins/figure.hpp"
+#include "help/builtins/registry.hpp"
 #include "isa/pep10.hpp"
 #include "macro/registry.hpp"
 #include "obj/memmap.hpp"
 #include "obj/mmio.hpp"
-#include "pas/obj/pep10.hpp"
-#include "pas/operations/generic/errors.hpp"
-#include "pas/operations/pepp/string.hpp"
+#include "asm/pas/obj/pep10.hpp"
+#include "asm/pas/operations/generic/errors.hpp"
+#include "asm/pas/operations/pepp/string.hpp"
 #include "sim/device/simple_bus.hpp"
 #include "targets/pep10/isa3/system.hpp"
 #include <QObject>

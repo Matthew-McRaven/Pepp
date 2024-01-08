@@ -16,8 +16,8 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-#include "symbol/types.hpp"
-#include "symbol/value.hpp"
+#include "asm/symbol/types.hpp"
+#include "asm/symbol/value.hpp"
 #include <QObject>
 #include <QTest>
 

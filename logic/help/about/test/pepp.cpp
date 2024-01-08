@@ -1,4 +1,4 @@
-#include "about/pepp.hpp"
+#include "help/about/pepp.hpp"
 #include <QTest>
 #include <QtCore>
 

@@ -15,13 +15,13 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-#include "pas/operations/pepp/size.hpp"
+#include "asm/pas/operations/pepp/size.hpp"
 #include "bits/strings.hpp"
 #include "isa/pep10.hpp"
 #include "macro/macro.hpp"
 #include "macro/registry.hpp"
-#include "pas/driver/pepp.hpp"
-#include "pas/operations/generic/include_macros.hpp"
+#include "asm/pas/driver/pepp.hpp"
+#include "asm/pas/operations/generic/include_macros.hpp"
 #include <QObject>
 #include <QTest>
 

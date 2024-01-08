@@ -16,13 +16,13 @@
  */
 
 #include "./shared.hpp"
-#include "builtins/registry.hpp"
+#include "help/builtins/registry.hpp"
 #include "isa/pep10.hpp"
-#include "pas/driver/pep10.hpp"
-#include "pas/obj/pep10.hpp"
-#include "pas/operations/generic/errors.hpp"
-#include "pas/operations/pepp/bytes.hpp"
-#include "pas/operations/pepp/string.hpp"
+#include "asm/pas/driver/pep10.hpp"
+#include "asm/pas/obj/pep10.hpp"
+#include "asm/pas/operations/generic/errors.hpp"
+#include "asm/pas/operations/pepp/bytes.hpp"
+#include "asm/pas/operations/pepp/string.hpp"
 #include <iostream>
 #include "macro/parse.cpp"
 

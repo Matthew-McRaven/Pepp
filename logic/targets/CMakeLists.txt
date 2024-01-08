@@ -1,11 +1,12 @@
-make_library(targets .)
-target_include_directories(targets PUBLIC ${Boost_INCLUDE_DIR})
-target_link_libraries(targets PUBLIC "Qt6::Core;bits;sim;isa;elfio;obj")
-target_compile_definitions(targets PRIVATE TARGETS_LIBRARY)
+file(GLOB_RECURSE sources_and_tests CONFIGURE_DEPENDS "${CMAKE_CURRENT_LIST_DIR}/*.cpp" "${CMAKE_CURRENT_LIST_DIR}/*.hpp")
+file(GLOB_RECURSE tests CONFIGURE_DEPENDS "${CMAKE_CURRENT_LIST_DIR}/test/*.cpp")
+list(APPEND sources ${sources_and_tests})
+list(REMOVE_ITEM sources ${tests})
 
-if (NOT IOS)
-    make_qtest(test-targets-isa3-pep10-bootstrap1 test/isa3-pep10/bootstrap1.cpp "targets;Qt6::Core;;Qt6::Test")
-    make_qtest(test-targets-isa3-pep10-run-figs test/isa3-pep10/figs.cpp "builtins;targets;Qt6::Core;;Qt6::Test;pas")
-    set_target_properties(test-targets-isa3-pep10-run-figs PROPERTIES FOLDER "qtc_runnable")
-    add_subdirectory(test/isa3-pep10)
-endif ()
+make_library2(
+  TARGET targets
+  SOURCES ${sources}
+  DEPENDS Qt6::Core bits sim isa elfio obj
+  TESTS ${tests}
+  TEST_DEPENDS builtins pas
+)

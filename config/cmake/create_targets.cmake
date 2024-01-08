@@ -78,6 +78,8 @@ endMacro()
 macro(make_library target_name root)
     file(GLOB_RECURSE sources CONFIGURE_DEPENDS "src/${root}/**/*.cpp" "src/${root}/*.cpp"
         "src/${root}/**/*.hpp" "src/${root}/*.hpp")
+    file(GLOB addtl_src CONFIGURE_DEPENDS "${root}/*.cpp")
+    list(APPEND sources ${addtl_src})
     make_target(${target_name} PUBLIC)
 endMacro()
 

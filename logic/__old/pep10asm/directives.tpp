@@ -3,7 +3,7 @@
 #include <fmt/core.h>
 
 #include "masm/conversion.hpp"
-#include "symbol/table.hpp"
+#include "asm/symbol/table.hpp"
 
 /*
  * .ADDRSS

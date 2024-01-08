@@ -3,8 +3,8 @@
 #include "masm/ir/directives.hpp"
 #include "masm/ir/macro.hpp"
 
-#include "symbol/entry.hpp"
-#include "symbol/value.hpp"
+#include "asm/symbol/entry.hpp"
+#include "asm/symbol/value.hpp"
 
 
 #include <boost/range/adaptor/reversed.hpp>

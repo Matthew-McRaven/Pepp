@@ -1,8 +1,7 @@
-make_library(obj obj)
-target_link_libraries(obj PUBLIC "Qt6::Core;bits;elfio;isa")
-target_include_directories(obj PUBLIC ${Boost_INCLUDE_DIR})
+file(GLOB_RECURSE sources CONFIGURE_DEPENDS "${CMAKE_CURRENT_LIST_DIR}/*.cpp" "${CMAKE_CURRENT_LIST_DIR}/*.hpp")
 
-if (NOT IOS)
-    #make_qtest(test-obj-roundtrip test/roundtrip.test.cpp "pas;obj;Qt6::Core;Qt6::Test;builtins")
-    #set_target_properties(test-obj-roundtrip  PROPERTIES FOLDER "qtc_runnable")
-endif ()
+make_library2(
+  TARGET obj
+  SOURCES ${sources}
+  DEPENDS Qt6::Core elfio bits isa
+)

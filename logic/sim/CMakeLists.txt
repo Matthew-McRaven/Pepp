@@ -1,13 +1,12 @@
-make_library(sim .)
-target_include_directories(sim PUBLIC ${Boost_INCLUDE_DIR})
-target_link_libraries(sim PUBLIC "Qt6::Core;bits" )
-target_compile_definitions(sim PRIVATE SIM_LIBRARY)
+file(GLOB_RECURSE sources_and_tests CONFIGURE_DEPENDS "${CMAKE_CURRENT_LIST_DIR}/*.cpp" "${CMAKE_CURRENT_LIST_DIR}/*.hpp")
+file(GLOB_RECURSE tests CONFIGURE_DEPENDS "${CMAKE_CURRENT_LIST_DIR}/test/*.cpp")
+list(APPEND sources ${sources_and_tests})
+list(REMOVE_ITEM sources ${tests})
 
-if (NOT IOS)
-    make_qtest(test-sim-device-dense test/device/dense.cpp "sim;Qt6::Core;Qt6::Test")
-    make_qtest(test-sim-device-pubsub test/device/pubsub.cpp "sim;Qt6::Core;Qt6::Test")
-    make_qtest(test-sim-device-mmi test/device/mmi.cpp "sim;Qt6::Core;Qt6::Test")
-    make_qtest(test-sim-device-mmo test/device/mmo.cpp "sim;Qt6::Core;Qt6::Test")
-    make_qtest(test-sim-device-simple-bus test/device/simple_bus.cpp "sim;Qt6::Core;Qt6::Test")
-    set_target_properties(test-sim-device-simple-bus PROPERTIES FOLDER "qtc_runnable")
-endif ()
+make_library2(
+  TARGET sim
+  SOURCES ${sources}
+  DEPENDS Qt6::Core bits
+  TESTS ${tests}
+  TEST_DEPENDS builtins pas
+)
