@@ -7,6 +7,7 @@
 #include "antlr4-runtime.h"
 
 
+namespace parse {
 
 
 class  PeppParser : public antlr4::Parser {
@@ -282,3 +283,4 @@ public:
 private:
 };
 
+}  // namespace parse

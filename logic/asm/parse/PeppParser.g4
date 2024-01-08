@@ -1,6 +1,6 @@
 parser grammar PeppParser;
 options {
-    tokenVocab = PepLexer;
+    tokenVocab = PeppLexer;
 }
 
 @parser::members {

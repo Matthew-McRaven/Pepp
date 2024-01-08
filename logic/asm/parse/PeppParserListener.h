@@ -8,6 +8,8 @@
 #include "PeppParser.h"
 
 
+namespace parse {
+
 /**
  * This interface defines an abstract listener for a parse tree produced by PeppParser.
  */
@@ -53,3 +55,4 @@ public:
 
 };
 
+}  // namespace parse

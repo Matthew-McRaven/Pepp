@@ -29,12 +29,12 @@
 #include <iostream>
 
 #include "antlr4-runtime.h"
-#include "asm/parse/pepp/PeppLexer.h"
-#include "asm/parse/pepp/PeppParser.h"
+#include "asm/parse/PeppLexer.h"
+#include "asm/parse/PeppParser.h"
 
 
 using namespace antlr4;
-
+using namespace parse;
 int main(int argc, const char * argv[]) {
 
     ANTLRInputStream input("10 + 20 * 40 /30 + 20 - 10");
