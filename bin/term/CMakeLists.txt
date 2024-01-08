@@ -13,7 +13,7 @@ list(APPEND sources ${sources_and_tests})
 list(REMOVE_ITEM sources ${tests})
 list(REMOVE_ITEM sources ${compile_tests})
 
-make_target2(
+make_target(
   TARGET pepp-term
   TYPE "EXEC"
   SOURCES ${sources}
@@ -90,7 +90,7 @@ if (Python_Development_FOUND AND Python_Interpreter_FOUND AND PYTHON_LINK_SUCCES
         string(REGEX REPLACE "^.(.*)" "${FIRST_LETTER}\\1" NAME "${FILENAME}")
         set(OUT_NAME_WE "${CMAKE_CURRENT_SOURCE_DIR}/test/generated/${FILENAME}")
         configure_file(test/impl.cpp.in ${OUT_NAME_WE}.cpp)
-        make_target2(
+        make_target(
             TARGET ${target}
             TYPE "EXEC"
             SOURCES "${OUT_NAME_WE}.cpp"
@@ -135,7 +135,7 @@ if (Python_Development_FOUND AND Python_Interpreter_FOUND AND PYTHON_LINK_SUCCES
         configure_file(test/sample_run.py.in ${CMAKE_CURRENT_BINARY_DIR}/gen_${target}/sample_run.py)
         set_property(SOURCE "${CMAKE_CURRENT_BINARY_DIR}/gen_${target}/sample_run.py" PROPERTY QT_RESOURCE_ALIAS "test/${FILENAME}.py")
 
-        make_target2(
+        make_target(
             TARGET ${target}
             TYPE "EXEC"
             SOURCES "${OUT_NAME_WE}.cpp"

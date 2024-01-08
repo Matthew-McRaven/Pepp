@@ -5,7 +5,7 @@ list(APPEND sources ${sources_and_tests})
 list(REMOVE_ITEM sources ${tests})
 list(REMOVE_ITEM sources ${old_sources})
 
-make_library2(
+make_library(
   TARGET highlight
   SOURCES ${sources}
   DEPENDS Qt6::Core Qt6::Gui Qt6::Quick isa

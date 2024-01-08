@@ -27,7 +27,7 @@ macro(inject_code_coverage)
 endmacro()
 
 
-function(make_target2)
+function(make_target)
   inject_cxx_standard()
   inject_clang_tidy()
   inject_code_coverage()
@@ -79,13 +79,13 @@ function(make_target2)
 endfunction()
 
 # Helper to make a PUBLIC library with cpp sources.
-function(make_library2)
+function(make_library)
     set(options )
     set(oneValueArgs TARGET)
     set(multiValueArgs SOURCES DEPENDS TESTS TEST_DEPENDS)
     cmake_parse_arguments(ML "${options}" "${oneValueArgs}" "${multiValueArgs}" ${ARGN} )
     string(TOUPPER ${ML_TARGET} ML_TARGET_UPPER)
-    make_target2(
+    make_target(
         TARGET "${ML_TARGET}"
         TYPE "PUBLIC"
         SOURCES ${ML_SOURCES}
@@ -95,7 +95,7 @@ function(make_library2)
     # Make target for each test file
     foreach(TEST_FILE ${ML_TESTS})
         get_filename_component(STEM ${TEST_FILE} NAME_WE)
-        make_target2(
+        make_target(
             TARGET "test-${ML_TARGET}-${STEM}"
             TYPE "TEST"
             SOURCES ${TEST_FILE}

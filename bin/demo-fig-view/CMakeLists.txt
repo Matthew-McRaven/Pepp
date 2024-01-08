@@ -1,6 +1,6 @@
 file(GLOB_RECURSE sources CONFIGURE_DEPENDS "${CMAKE_CURRENT_LIST_DIR}/src/*.cpp" "${CMAKE_CURRENT_LIST_DIR}/src/*.hpp")
 
-make_target2(
+make_target(
   TARGET demo-fig-view
   TYPE "EXEC"
   SOURCES ${sources}

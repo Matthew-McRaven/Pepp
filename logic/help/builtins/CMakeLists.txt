@@ -26,7 +26,7 @@ list(APPEND sources ${sources_and_tests})
 list(REMOVE_ITEM sources ${tests})
 list(REMOVE_ITEM sources ${help_items})
 
-make_library2(
+make_library(
   TARGET builtins
   SOURCES ${sources}
   DEPENDS Qt6::Core macro
