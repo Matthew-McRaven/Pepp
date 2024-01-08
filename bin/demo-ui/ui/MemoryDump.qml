@@ -38,9 +38,10 @@ Rectangle {
     columnSpacing: 0
     boundsBehavior: Flickable.StopAtBounds
     clip: true
+    focus: true
 
     //  Selection information
-    selectionBehavior: TableView.SelectCells //TableView.SelectionDisabled//TableView.SelectCells
+    selectionBehavior: TableView.SelectCells //TableView.SelectionDisabled
     selectionMode: TableView.SingleSelection
     editTriggers: TableView.EditKeyPressed |
                   TableView.SelectedTapped |
@@ -52,10 +53,13 @@ Rectangle {
     property int asciiWidth: MemoryByteModel.BytesPerColumn ?
                              (10 * MemoryByteModel.BytesPerColumn) : 100
 
+    //  Used for paging
+    property real stepSize: 20
+
     //  For grid column sizes. Currently, columns are not resizeable
     columnWidthProvider: function (column) {
       //console.log(column)
-      if(column === MemoryByteModel.Column.LineNo) return colWidth * 2
+      if(column === MemoryByteModel.Column.LineNo) return 40 //colWidth * 2
       else if(column === MemoryByteModel.Column.Border1) return 1
       else if(column === MemoryByteModel.Column.Border2) return 1
       else if(column === MemoryByteModel.Column.Ascii) return asciiWidth
@@ -64,26 +68,69 @@ Rectangle {
 
     //  Disable horizontal scroll bar
     ScrollBar.horizontal: ScrollBar {
-      visible: false
+      policy: ScrollBar.AlwaysOff
     }
 
     //  Enable vertical scroll bar-always on
     ScrollBar.vertical: ScrollBar {
       id: vsc
-      visible: true
+      policy: ScrollBar.AlwaysOn
     }
 
-    /*Keys.onUpPressed: {
-        print("(Up - Table) index: (" + tableView.currentRow + "," + tableView.currentColumn+ ")")
-        if (tableView.currentRow > 0)
-            tableView.currentRow--
+    Component.onCompleted: {
+      //  Calculate screen size for page up/page down
+      stepSize = (tableView.bottomRow - tableView.topRow - 1) / tableView.rows
+      console.log("stepSize="+stepSize)
     }
 
-    Keys.onDownPressed: {
-        print("(Down - Table) index: (" + tableView.currentRow + "," + tableView.currentColumn+ ")")
-        if (tableView.currentRow < tableView.rowCount - 1)
-            tableView.currentRow++
-    }*/
+    //  Recalculate dimensions when screen is resized
+    onLayoutChanged: {
+      //  Calculate screen size for page up/page down
+      stepSize = (tableView.bottomRow - tableView.topRow) / tableView.rows
+    }
+
+    Keys.onPressed: (event) => {
+      console.log("TableView position=" + vsc.position + " stepSize="+stepSize)
+
+      switch(event.key) {
+      case Qt.Key_PageUp:
+        if (vsc.position !== 0.0) {
+            let view = Math.max(0, vsc.position - stepSize)
+            vsc.setPosition(view)
+          }
+          console.log("TableView new position: " + vsc.position)
+          event.accept = true
+          break
+      case Qt.Key_PageDown:
+        if (vsc.position !== 1-stepSize) {
+            //  Prevent scrolling off of end of table
+            let view = Math.min(1-stepSize, vsc.position + stepSize)
+            vsc.setPosition(view)
+          }
+          console.log("TableView new position: " + vsc.position)
+          event.accept = true
+          break
+      case Qt.Key_Home:
+        if (vsc.position !== 0.0) {
+            //  Scrolling to top of table
+            vsc.setPosition(0)
+          }
+          console.log("TableView new position: " + vsc.position)
+          event.accept = true
+          break
+      case Qt.Key_End:
+        if (vsc.position !== 1-stepSize) {
+            //  Scrolling to end of table
+            let view = Math.min(1-stepSize, vsc.position + stepSize)
+            vsc.setPosition(1-stepSize)
+          }
+          console.log("TableView new position: " + vsc.position)
+          event.accept = true
+          break
+      }
+
+    }
+
     //  Used for drawing grid
     delegate: Rectangle {
       id: cell
@@ -343,17 +390,7 @@ Rectangle {
           newCol = newCol + colOffset
         }
 
-        //  Check that new cell is visible, if not, change viewport
-
-        /*console.log("bottomRow="+tableView.bottomRow)
-        var viewLocation = Math.min(newRow / tableView.rows, 1 - tableView.visibleArea.heightRatio)
-        console.log("viewRow, position="+tableView.contentY + "," + viewLocation)
-        tableView.contentY = viewLocation
-        console.log("viewRow="+tableView.contentY)*/
-
         var newIndex = MemoryByteModel.index(newRow, newCol)
-        //console.log("bottomIndex="+newIndex)
-        //tableView.positionViewAtCell(newIndex,TableView.AlignTop, Qt.point(-5, -5))
 
         tableView.edit(newIndex)
         console.log("openEditor complete: newRow="+newRow+" newCol="+ newCol)

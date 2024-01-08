@@ -57,7 +57,7 @@ class MemoryByteModel : public QAbstractTableModel
     std::unique_ptr<quint8[]>       newData_;
     std::unique_ptr<quint8[]>       oldData_;
     QSet<quint8>                    selected_;
-    qint16                          editing_ = -1;
+    qint32                          editing_ = -1;
     std::unique_ptr<MemoryColumns>  column_;
 
     Q_PROPERTY(MemoryColumns* Column READ column CONSTANT)
