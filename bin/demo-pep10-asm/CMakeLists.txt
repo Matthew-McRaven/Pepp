@@ -1,4 +1,11 @@
-make_exec(demo-pep10-asm "./")
+file(GLOB_RECURSE sources CONFIGURE_DEPENDS "${CMAKE_CURRENT_LIST_DIR}/src/*.cpp" "${CMAKE_CURRENT_LIST_DIR}/src/*.hpp")
+
+make_target2(
+  TARGET demo-pep10-asm
+  TYPE "EXEC"
+  SOURCES ${sources}
+  DEPENDS Qt6::Core Qt6::Quick macro pas builtins Qt6::Widgets
+)
 
 # GLOB_RECURSE ueses abs paths, QML_FILES expects relative paths. This blob converts from abs to rel.
 file(GLOB_RECURSE abs_qml_sources CONFIGURE_DEPENDS "src/**/*.qml" "src/*.qml")
@@ -25,10 +32,3 @@ set_target_properties(demo-pep10-asm PROPERTIES
         )
 set_target_properties(demo-pep10-asm PROPERTIES FOLDER "qtc_runnable")
 set_target_properties(demo-pep10-asm PROPERTIES EMBED_GH_PAGES ON)
-
-target_link_libraries(demo-pep10-asm
-        PRIVATE Qt6::Quick macro pas builtins Qt6::Widgets)
-
-install(TARGETS demo-pep10-asm
-        BUNDLE DESTINATION .
-        LIBRARY DESTINATION ${CMAKE_INSTALL_LIBDIR})

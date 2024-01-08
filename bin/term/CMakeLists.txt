@@ -6,10 +6,20 @@ if (MSVC OR MINGW)
     list(APPEND SOCK_LIB mswsock)
 endif ()
 
-make_exec(pepp-term "./")
+file(GLOB_RECURSE sources_and_tests CONFIGURE_DEPENDS "${CMAKE_CURRENT_LIST_DIR}/*.cpp" "${CMAKE_CURRENT_LIST_DIR}/*.hpp")
+file(GLOB_RECURSE tests CONFIGURE_DEPENDS "${CMAKE_CURRENT_LIST_DIR}/test/*.cpp" "${CMAKE_CURRENT_LIST_DIR}/test/*.hpp")
+file(GLOB_RECURSE compile_tests CONFIGURE_DEPENDS "${CMAKE_CURRENT_LIST_DIR}/compile-test/*.cpp")
+list(APPEND sources ${sources_and_tests})
+list(REMOVE_ITEM sources ${tests})
+list(REMOVE_ITEM sources ${compile_tests})
 
-target_link_libraries(pepp-term
-        PUBLIC TextFlow cli about macro pas builtins isa targets sim Qt6::Core ${SOCK_LIB})
+make_target2(
+  TARGET pepp-term
+  TYPE "EXEC"
+  SOURCES ${sources}
+  DEPENDS TextFlow cli about macro pas builtins isa targets sim Qt6::Core ${SOCK_LIB}
+)
+
 
 # GLOB_RECURSE ueses abs paths, QML_FILES expects relative paths. This blob converts from abs to rel.
 set_target_properties(pepp-term PROPERTIES
@@ -49,14 +59,14 @@ find_package(Python 3.12 OPTIONAL_COMPONENTS Development Interpreter)
 if(Python_Development_FOUND)
 try_compile(PYTHON_LINK_SUCCESS
         ${CMAKE_CURRENT_BINARY_DIR}/python_link_test
-        ${CMAKE_CURRENT_LIST_DIR}/py_link_test.cpp
+        ${CMAKE_CURRENT_LIST_DIR}/compile-test/py_link_test.cpp
         LINK_LIBRARIES ${Python_LIBRARIES}
         OUTPUT_VARIABLE PYTHON_LINK_OUTPUT)
 else()
   set(PYTHON_LINK_SUCCESS FALSE)
 endif()
 
-if (Python_Development_FOUND AND Python_Interpreter_FOUND AND PYTHON_LINK_SUCCESS AND (DEFINED ENABLE_TERM_TESTS))
+if (Python_Development_FOUND AND Python_Interpreter_FOUND AND PYTHON_LINK_SUCCESS AND ENABLE_TERM_TESTS)
     # Create file which contains PYTHONHOME followed by PYTHONPATH values seperated by newlines.
     add_custom_command(
         COMMAND ${Python_EXECUTABLE}
@@ -80,7 +90,11 @@ if (Python_Development_FOUND AND Python_Interpreter_FOUND AND PYTHON_LINK_SUCCES
         string(REGEX REPLACE "^.(.*)" "${FIRST_LETTER}\\1" NAME "${FILENAME}")
         set(OUT_NAME_WE "${CMAKE_CURRENT_SOURCE_DIR}/test/generated/${FILENAME}")
         configure_file(test/impl.cpp.in ${OUT_NAME_WE}.cpp)
-        make_qtest(${target} "${OUT_NAME_WE}.cpp" "Qt6::Core;Qt6::Test;Python::Python")
+        make_target2(
+            TARGET ${target}
+            TYPE "EXEC"
+            SOURCES "${OUT_NAME_WE}.cpp"
+            DEPENDS Qt6::Core Qt6::Test Python::Python)
 
         # Update working directory for scripts where it matters.
         get_filename_component(PY_WORKDIR ${PY_SCRIPT} DIRECTORY)
@@ -121,8 +135,11 @@ if (Python_Development_FOUND AND Python_Interpreter_FOUND AND PYTHON_LINK_SUCCES
         configure_file(test/sample_run.py.in ${CMAKE_CURRENT_BINARY_DIR}/gen_${target}/sample_run.py)
         set_property(SOURCE "${CMAKE_CURRENT_BINARY_DIR}/gen_${target}/sample_run.py" PROPERTY QT_RESOURCE_ALIAS "test/${FILENAME}.py")
 
-        make_qtest(${target} "${OUT_NAME_WE}.cpp" "Qt6::Core;Qt6::Test;Python::Python")
-
+        make_target2(
+            TARGET ${target}
+            TYPE "EXEC"
+            SOURCES "${OUT_NAME_WE}.cpp"
+            DEPENDS Qt6::Core Qt6::Test Python::Python)
         # Update working directory for scripts where it matters.
         set_target_properties(${target} PROPERTIES WORKING_DIRECTORY ${sampledir})
 
