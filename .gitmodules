@@ -7,3 +7,6 @@
 [submodule "3rd-party/vcpkg"]
 	path = 3rd-party/vcpkg
 	url = https://github.com/microsoft/vcpkg.git
+[submodule "3rd-party/catch"]
+	path = 3rd-party/catch
+	url = https://github.com/catchorg/Catch2
