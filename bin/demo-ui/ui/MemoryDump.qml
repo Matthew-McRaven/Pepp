@@ -42,10 +42,10 @@ Rectangle {
 
     //  Selection information
     selectionBehavior: TableView.SelectCells //TableView.SelectionDisabled
-    selectionMode: TableView.SingleSelection
+    selectionMode: TableView.ContiguousSelection //TableView.SingleSelection
     editTriggers: TableView.EditKeyPressed |
                   TableView.SelectedTapped |
-                  TableView.DoubleTapped
+                  TableView.SingleTapped//TableView.DoubleTapped
 
     model: MemoryByteModel
 
@@ -54,11 +54,13 @@ Rectangle {
                              (10 * MemoryByteModel.BytesPerColumn) : 100
 
     //  Used for paging
-    property real stepSize: 20
+    property real pageSize: 20        //  Default value, replace on screen resize
+    property bool viewResizing: false //  Flag to identify resizing event
+    property int  partialLine: 0      //  If line is partially blocked, this value will be -1
+    property real activeRow: 0        //  Row currently under edit. -1 if no editing.
 
     //  For grid column sizes. Currently, columns are not resizeable
     columnWidthProvider: function (column) {
-      //console.log(column)
       if(column === MemoryByteModel.Column.LineNo) return 40 //colWidth * 2
       else if(column === MemoryByteModel.Column.Border1) return 1
       else if(column === MemoryByteModel.Column.Border2) return 1
@@ -77,58 +79,72 @@ Rectangle {
       policy: ScrollBar.AlwaysOn
     }
 
-    Component.onCompleted: {
-      //  Calculate screen size for page up/page down
-      stepSize = (tableView.bottomRow - tableView.topRow - 1) / tableView.rows
-      console.log("stepSize="+stepSize)
+    //  This event captures viewport resizing, but new
+    //  dimensions are not available yet. Flag for
+    visibleArea.onHeightRatioChanged: {
+      //  Flag onLayoutChanged to recalculate number of visible rows
+      viewResizing = true
     }
 
     //  Recalculate dimensions when screen is resized
+    //  Note, this function treats scrolling as a layout change
+    //  Limit updates to just viewport resizing
     onLayoutChanged: {
       //  Calculate screen size for page up/page down
-      stepSize = (tableView.bottomRow - tableView.topRow) / tableView.rows
+      if(viewResizing) {
+        //  Disable resizing after handling event
+        viewResizing = false
+        pageSize = (tableView.bottomRow - tableView.topRow)
+        //console.log("onLayoutChanged: pageSize="+pageSize)
+
+        //  If last column is partially obsured, do not include in page size
+        if (tableView.visibleArea.heightRatio * tableView.rows > pageSize) {
+          //  Save partial line indicator for page movements
+          partialLine = -1
+          pageSize = pageSize - 1
+        }
+        //console.log("onLayoutChanged: pageSize,top,bottom,height="+pageSize + ","+ tableView.topRow +
+        //            ","+ tableView.bottomRow + ","+ tableView.visibleArea.heightRatio * tableView.rows)
+      }
     }
 
+    //  Capture movement keys in table view
     Keys.onPressed: (event) => {
-      console.log("TableView position=" + vsc.position + " stepSize="+stepSize)
+      console.log("TableView position=" + vsc.position + " pageSize="+pageSize)
 
+      //  Ignore keystrokes in edit mode. Editor handles key strokes
+      if(MemoryByteModel.isEditMode())
+        return
+
+      //  Review remaining key strokes
       switch(event.key) {
       case Qt.Key_PageUp:
-        if (vsc.position !== 0.0) {
-            let view = Math.max(0, vsc.position - stepSize)
-            vsc.setPosition(view)
-          }
-          console.log("TableView new position: " + vsc.position)
-          event.accept = true
-          break
+        //console.log("Tableview: Page Up key "+(-pageSize))
+        moveViewPort(-pageSize)
+        event.accept = true
+        break
       case Qt.Key_PageDown:
-        if (vsc.position !== 1-stepSize) {
-            //  Prevent scrolling off of end of table
-            let view = Math.min(1-stepSize, vsc.position + stepSize)
-            vsc.setPosition(view)
-          }
-          console.log("TableView new position: " + vsc.position)
-          event.accept = true
-          break
+        //console.log("Tableview: Page Down key "+(pageSize))
+        moveViewPort(pageSize)
+        event.accept = true
+        break
+      case Qt.Key_Up:
+        moveViewPort(-1)
+        event.accept = true
+        break
+      case Qt.Key_Down:
+        moveViewPort(1)
+        event.accept = true
+        break
       case Qt.Key_Home:
-        if (vsc.position !== 0.0) {
-            //  Scrolling to top of table
-            vsc.setPosition(0)
-          }
-          console.log("TableView new position: " + vsc.position)
-          event.accept = true
-          break
+        moveViewPort(-rows)
+        event.accept = true
+        break
       case Qt.Key_End:
-        if (vsc.position !== 1-stepSize) {
-            //  Scrolling to end of table
-            let view = Math.min(1-stepSize, vsc.position + stepSize)
-            vsc.setPosition(1-stepSize)
-          }
-          console.log("TableView new position: " + vsc.position)
-          event.accept = true
-          break
+        moveViewPort(rows)
+        event.accept = true
+        break
       }
-
     }
 
     //  Used for drawing grid
@@ -166,41 +182,11 @@ Rectangle {
           text: model.toolTipRole
         }
 
+        //  Used to trigger tool tip
         HoverHandler {
           id: ma
           enabled: true
         }
-
-        /*MouseArea {
-          id: ma
-          anchors.fill: display
-          cursorShape: Qt.IBeamCursor
-          hoverEnabled: true
-
-          /*Timer{
-            id:timer
-            interval: 200
-            onTriggered: singleClick()
-          }
-          //  Ignore double clicks
-          /*onDoubleClicked: (mouse) => {
-            console.log("Double click")
-            dblClick()
-            mouse.accepted = false
-          }*/
-          /*onClicked: (mouse) => {
-            console.log("Double click" + mouse)
-            if(mouse.button === Qt.LeftButton) {
-              if(timer.running) {
-                dblClick()
-                mouse.accepted = false
-                timer.stop()
-              } else
-                timer.restart()
-            }
-          }
-        }
-          */
       }
 
       //  Used to edit a single cell in grid
@@ -226,44 +212,68 @@ Rectangle {
         //  Limit input to valid hexidecimal values
         validator: RegularExpressionValidator { regularExpression: /[0-9,A-F,a-f]{2}/}
 
+        //  Leave edit mode without saving
         Keys.onEscapePressed: tableView.closeEditor()
 
+        //  Handle key movement inside edit control
         Keys.onPressed: (event) => {
           //console.log("Key: "+ event.key)
           var found = false
-          var row = 0
-          var col = 0
+          var rowOffset = 0
+          var colOffset = 0
 
           //  Key events that we track at TableView
           switch(event.key) {
           case Qt.Key_Up:
-            console.log("Up key")
-            row = -1
+            rowOffset = -1
             found = true
             break;
           case Qt.Key_Down:
-            console.log("Down key")
-            row = 1
+            rowOffset = 1
+            found = true
+            break;
+          case Qt.Key_PageUp:
+            //console.log("Page Up key "+(-tableView.pageSize))
+            rowOffset = -tableView.pageSize
+            found = true
+            break;
+          case Qt.Key_PageDown:
+            //console.log("Page Down key "+(tableView.pageSize))
+            rowOffset = tableView.pageSize
             found = true
             break;
           case Qt.Key_Left:
-            console.log("Left key")
-            col = -1
+            colOffset = -1
             found = true
             break;
           case Qt.Key_Right:
-            console.log("Right key")
-            col = 1
+            colOffset = 1
             found = true
             break;
+          case Qt.Key_Home:
+            console.log("Home key (row,col) " + row +","+column)
+            //  Movements are relative to current position
+            //colOffset = -column
+            rowOffset = -row
+            found = true
+            break
+          case Qt.Key_End:
+            console.log("End key (row,col)" + row +","+column)
+            //  Movements are relative to current position
+            //colOffset = MemoryByteModel.columnCount() - column
+            rowOffset = MemoryByteModel.rowCount() - row -1
+            found = true
           }
 
           //  If found, do not buble event up to parent
           event.accept = found
           if(found) {
-            //  Save results before moving
+            //  Save results before moving. If cell leaves viewport,
+            //  data in control is lost.
             editor.saveEdits()
-            openEditor(row,col)
+
+            //  This function may move the viewport
+            openEditor(rowOffset,colOffset)
           }
         }
 
@@ -279,7 +289,8 @@ Rectangle {
 
         //  Performed when control is finished being created
         Component.onCompleted: {
-          //console.log("Component.onCompleted: row,column=" + row + "," + column)
+          //  Store current row
+          tableView.activeRow = row
           MemoryByteModel.setSelected(MemoryByteModel.index(row, column),MemByteRoles.Editing)
 
           //  Get all text for editing
@@ -313,6 +324,7 @@ Rectangle {
         //  Performed when enter is pressed
         TableView.onCommit: {
           console.log("OnCommit: index=" + index + " Text=" + text)
+          tableView.activeRow = -1
 
           saveEdits()
           clearEditor()
@@ -320,6 +332,7 @@ Rectangle {
 
         Component.onDestruction: {
           console.log("OnCommit: row="+row+" col="+ column)
+          //  Remove edit coloring of text and background
           MemoryByteModel.clearSelected(MemoryByteModel.index(row, column),
                                         MemByteRoles.Editing)
         }
@@ -327,7 +340,7 @@ Rectangle {
         function saveEdits() {
           editor.selectAll()
 
-          //  Check if data changed, if so, update model
+          //  Check if data changed. If so, update model
           if( model.byteRole !== text) {
 
             console.log("saveEdits")
@@ -350,7 +363,7 @@ Rectangle {
 
         //  Total rows is 1-based, but row number is zero based
         //  Convert Qml field to last row index
-        let lastRowIndex = tableView.rows - 1
+        const lastRowIndex = tableView.rows - 1
 
         if( rowOffset < 0 && row === 0) {
           //  Capture moving up at beginning of document
@@ -364,7 +377,9 @@ Rectangle {
         }
         else {
           //  By default, just move based on offset
-          newRow = newRow + rowOffset
+          //  Make sure new row is in table
+          newRow = Math.max(0,Math.min(lastRowIndex, newRow + rowOffset))
+          console.log("openEditor-general newRow,row,rowOffset="+newRow+","+ row+","+rowOffset)
         }
 
         if( colOffset < 0 &&
@@ -379,17 +394,24 @@ Rectangle {
         else if( colOffset > 0 &&
                 MemoryByteModel.Column.CellEnd === column) {
           //  Capture moving forward at end of column
-          //  Set to first column in next row
-          newCol = MemoryByteModel.Column.CellStart
+          //  Do nothing if last row.
+          if(row !== lastRowIndex) {
 
-          //  If in last row, move to first row.
-          newRow = row === lastRowIndex ? 0 : newRow + 1
+            //  Set to first column in next row
+            newCol = MemoryByteModel.Column.CellStart
+
+            //  Jump to next row.
+            newRow = newRow + 1
+          }
         }
         else {
           //  By default, just move based on offset
           newCol = newCol + colOffset
         }
 
+        //  Move viewport if row moves outside tableView
+        console.log("openEditor-before viewPort newRow,row,rowOffset="+newRow+","+ row+","+rowOffset)
+        tableView.moveViewPort(newRow - row)
         var newIndex = MemoryByteModel.index(newRow, newCol)
 
         tableView.edit(newIndex)
@@ -406,30 +428,62 @@ Rectangle {
         //  Close editor (if open)
         tableView.closeEditor()
       }
+    }
 
-      //  Represents a selected field
-      /*function singleClick(){
-        console.log("Single")
+    function moveViewPort(rowOffset)
+    {
+      //  View port is called from many places
+      //  If offset is zero, just return since
+      //  view port is not moving
+      if(rowOffset === 0) {
+        console.log("rowOffset=" + rowOffset)
+        return
+      }
+      //  Cursor moves differently in edit mode
+      //  In unedit mode, up and down will always move viewport
+      //  In edit mode, up and down only work when scrolling out of viewport
 
-        //  Close editor if changing to new location
-        clearEditor()
+      const isEditMode = MemoryByteModel.isEditMode()
+      //console.log("inEdit? " + isEditMode)
 
-        //  Always save when leaving previous edited cell.
-        let modelIndex = MemoryByteModel.modelCellIndex(index)
-        tableView.edit(MemoryByteModel.index(modelIndex.row, modelIndex.column))
+      //  Compute new row location to see if in viewport
+      const newRow = activeRow + rowOffset
+      const rowDelta = rowOffset / tableView.rows
+
+      //console.log("moveViewPort (rowOffset,active,new,top,bottom)=" +
+      //            rowOffset + "," + activeRow + "," + newRow + "," +
+      //            topRow + "," + bottomRow)
+
+      //  Handle up. Only move if new position is not visible
+      //  If no focus, anyways move
+      if (rowOffset < 0 &&
+          (isEditMode === false || newRow < topRow)) {
+
+        //  Prevent scrolling above beginning table
+        if(vsc.position !== 0.0) {
+          let view = Math.max(0, vsc.position + rowDelta)
+          console.log("Up=" + view)
+          vsc.setPosition(view)
+        }
       }
 
-      //  Represent field to be edited
-      function dblClick(){
-        //  Double click and single click both trigger on doubleclick
-        //  Use timing loop to tell these apart. Manually trigger
-        //  cell edit if doubleclick
-        //console.log("Double")
+      //  Handle down. Only move if new position is not visible
+      else if (rowOffset > 0 &&
+               (isEditMode === false || newRow > bottomRow + partialLine)) {
 
-        console.log("dblClick: Row=" +row + ", Column:" + column)
-        //  Row, Column, and Index are hidden variables in edit delegate.
-        tableView.edit(MemoryByteModel.index(row, column))
-      }*/
+        const lastPage = 1 - tableView.visibleArea.heightRatio // tableView.rows
+        //console.log( "Page, Rows, ratio=" + pageSize + ","+ tableView.rows +
+        //            ","+ lastPage)
+
+        //  Prevent scrolling off of end of table
+        //  Leave 1 page of data
+        if(vsc.position !== lastPage) {
+          let view = Math.min(lastPage,
+                              vsc.position + rowDelta)
+          console.log("min,calc=" + lastPage + ","+ vsc.position + rowDelta)
+          vsc.setPosition(view)
+        }
+      }
     }
   }
 }
