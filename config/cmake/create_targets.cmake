@@ -84,12 +84,13 @@ endfunction()
 
 # Helper to make a PUBLIC library with cpp sources.
 function(make_library)
+    set(options TEST_IN_QTC)
     set(oneValueArgs TARGET)
     # SOURCES and DEPENDS work as above.
     # TESTS should be a list of standalone CPP files that can be compiled into a test executable
     # These tests will be linked against the target library,  QTest, and and additional TEST_DEPENDS libraries.
     set(multiValueArgs SOURCES DEPENDS TESTS TEST_DEPENDS)
-    cmake_parse_arguments(ML "" "${oneValueArgs}" "${multiValueArgs}" ${ARGN} )
+    cmake_parse_arguments(ML "${options}" "${oneValueArgs}" "${multiValueArgs}" ${ARGN} )
     make_target(
         TARGET "${ML_TARGET}"
         TYPE "PUBLIC"
@@ -108,5 +109,8 @@ function(make_library)
             SOURCES ${TEST_FILE}
             DEPENDS Qt6::Test ${ML_DEPENDS} ${ML_TARGET} ${ML_TEST_DEPENDS}
           )
+      if(ML_TEST_IN_QTC)
+        set_target_properties("test-${ML_TARGET}-${STEM}" PROPERTIES FOLDER "qtc_runnable")
+      endif()
     endforeach()
 endfunction()
