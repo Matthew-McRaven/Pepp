@@ -6,9 +6,9 @@ NEWLINE : [\r]?[\n]; // Newlines are significant to formatting; keep
 
 // Greedily match not \ or quote
 // If matching \, immediately consume the next character
-STRING : '"' (~[\\"] | '\\' ~[\r\n])* '"';
+STRING : '"' (~[\\"] | '\\' ~[\r\n] | '\\x' HEX_DIGIT HEX_DIGIT)* '"';
 // Ibid with apostrophe
-CHARACTER: '\u0027' (~[\\\u0027] | '\\' .) '\u0027';
+CHARACTER: '\u0027' (~[\\\u0027] | '\\' . | '\\x' HEX_DIGIT HEX_DIGIT) '\u0027';
 
 fragment
 NameChar
@@ -57,7 +57,7 @@ UNSIGNED_DECIMAL: DEC_DIGIT+ ;
 SIGNED_DECIMAL: ('+'|'-') DEC_DIGIT+ ;
 HEXADECIMAL: '0x' HEX_DIGIT+ ;
 
-SEMICOLON: ';';
+fragment SEMICOLON: ';';
 COMMENT: SEMICOLON COMMENT_BODY;
 fragment COMMENT_BODY: ~[\r\n]*;
 
