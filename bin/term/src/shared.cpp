@@ -24,7 +24,7 @@
 #include "asm/pas/operations/pepp/bytes.hpp"
 #include "asm/pas/operations/pepp/string.hpp"
 #include <iostream>
-#include "macro/parse.cpp"
+#include "macro/parse.hpp"
 
 QSharedPointer<const builtins::Book> detail::book(int ed) {
   QString bookName;
