@@ -15,8 +15,7 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-#include <QObject>
-#include <QTest>
+#include <catch.hpp>
 
 #include "isa/pep10.hpp"
 #include "asm/pas/driver/pep10.hpp"
@@ -25,6 +24,7 @@
 #include "asm/pas/operations/pepp/is.hpp"
 #include "asm/pas/parse/pepp/node_from_parse_tree.hpp"
 #include "asm/pas/parse/pepp/rules_lines.hpp"
+
 
 // Declare all matchers as globals, so they don't fall out of scope in data fn.
 // Must manually type erase, since QTest can;'t figure this out on its own.
@@ -101,228 +101,192 @@ QSharedPointer<pas::ops::ConstOp<bool>> isWord = []() {
 }();
 
 using pas::ast::Node;
-class PasParsePepp_NodeFromParseTree_Pass : public QObject {
-  Q_OBJECT
-  void add_data() {
-    QTest::addColumn<QString>("input");
-    QTest::addColumn<QSharedPointer<pas::ops::ConstOp<bool>>>("fn");
-    QTest::addColumn<bool>("symbol");
 
-    // Blank lines
-    QTest::newRow("Blank: no spaces") << "" << isBlank << false;
-    QTest::newRow("Blank: spaces") << " \t" << isBlank << false;
+TEST_CASE("Pepp AST conversion, passing", "[parse]") {
 
-    // Comment lines
-    QTest::newRow("Comment: no spaces") << ";magic" << isComment << false;
-    QTest::newRow("Comment: spaces") << " \t;magic" << isComment << false;
+    auto [name, input, fn, symbol] = GENERATE(table<std::string, std::string, QSharedPointer<pas::ops::ConstOp<bool>>, bool>({
+        // Blank lines
+        {"Blank: no spaces", "", isBlank, false},
+        {"Blank: spaces", " \t", isBlank, false},
 
-    /*
-     * Unary instructions
-     */
-    // U type
-    QTest::newRow("Unary-U: no spaces") << "ret" << isUType << false;
-    QTest::newRow("Unary-U: spaces") << " \tret" << isUType << false;
-    QTest::newRow("Unary-U: symbol, no spaces") << "s:ret" << isUType << true;
-    QTest::newRow("Unary-U: symbol, spaces") << "s:\t ret" << isUType << true;
-    QTest::newRow("Unary-U: comment, no spaces")
-        << "ret;hi" << isUType << false;
-    QTest::newRow("Unary-U: comment, spaces")
-        << "ret \t;hi" << isUType << false;
+        // Comment lines
+        {"Comment: no spaces", ";magic", isComment, false},
+        {"Comment: spaces", " \t;magic", isComment, false},
 
-    // R type
-    QTest::newRow("Unary-R: no spaces") << "asla" << isRType << false;
-    QTest::newRow("Unary-R: spaces") << " \taslx" << isRType << false;
-    QTest::newRow("Unary-R: symbol, no spaces") << "s:rora" << isRType << true;
-    QTest::newRow("Unary-R: symbol, spaces") << "s:\t rorx" << isRType << true;
-    QTest::newRow("Unary-R: comment, no spaces")
-        << "rola;rola" << isRType << false;
-    QTest::newRow("Unary-R: comment, spaces")
-        << "rolx \t;rolx" << isRType << false;
+        /*
+         * Unary instructions
+         */
+        // U type
+        {"Unary-U: no spaces", "ret", isUType, false},
+        {"Unary-U: spaces", " \tret", isUType, false},
+        {"Unary-U: symbol, no spaces", "s:ret", isUType, true},
+        {"Unary-U: symbol, spaces", "s:\t ret", isUType, true},
+        {"Unary-U: comment, no spaces", "ret;hi", isUType, false},
+        {"Unary-U: comment, spaces", "ret \t;hi", isUType, false},
 
-    /*
-     * NonUnary instructions
-     */
-    // A type
-    QTest::newRow("NonUnary-A: no addr") << "br x" << isAType << false;
-    QTest::newRow("NonUnary-A: addr") << "br x,x" << isAType << false;
-    QTest::newRow("NonUnary-A: symbol, no spaces")
-        << "s:br x,x" << isAType << true;
-    QTest::newRow("NonUnary-A: symbol, spaces")
-        << "s: \tbr x,x" << isAType << true;
-    QTest::newRow("NonUnary-A: comment, no spaces")
-        << "br x,x;x" << isAType << false;
-    QTest::newRow("NonUnary-A: comment, spaces")
-        << "br x,x\t;x" << isAType << false;
+        // R type
+        {"Unary-R: no spaces", "asla", isRType, false},
+        {"Unary-R: spaces", " \taslx", isRType, false},
+        {"Unary-R: symbol, no spaces", "s:rora", isRType, true},
+        {"Unary-R: symbol, spaces", "s:\t rorx", isRType, true},
+        {"Unary-R: comment, no spaces", "rola;rola", isRType, false},
+        {"Unary-R: comment, spaces", "rolx \t;rolx", isRType, false},
 
-    // AAA type
-    QTest::newRow("NonUnary-AAA: addr") << "ADDSP x,i" << isAAAType << false;
-    QTest::newRow("NonUnary-AAA: symbol, no spaces")
-        << "s:ADDSP x,x" << isAAAType << true;
-    QTest::newRow("NonUnary-AAA: symbol, spaces")
-        << "s: \tSUBSP n,x" << isAAAType << true;
-    QTest::newRow("NonUnary-AAA: comment, no spaces")
-        << "scall s,x;x" << isAAAType << false;
-    QTest::newRow("NonUnary-AAA: comment, spaces")
-        << "scall x,sf\t;x" << isAAAType << false;
+        /*
+         * NonUnary instructions
+         */
+        // A type
+        {"NonUnary-A: no addr", "br x", isAType, false},
+        {"NonUnary-A: addr", "br x,x", isAType, false},
+        {"NonUnary-A: symbol, no spaces", "s:br x,x", isAType, true},
+        {"NonUnary-A: symbol, spaces", "s: \tbr x,x", isAType, true},
+        {"NonUnary-A: comment, no spaces", "br x,x;x", isAType, false},
+        {"NonUnary-A: comment, spaces", "br x,x\t;x", isAType, false},
 
-    // RAAA type
-    QTest::newRow("NonUnary-RAAA: addr") << "adda x,i" << isRAAAType << false;
-    QTest::newRow("NonUnary-RAAA: symbol, no spaces")
-        << "s:addx x,x" << isRAAAType << true;
-    QTest::newRow("NonUnary-RAAA: symbol, spaces")
-        << "s: \tsuba n,x" << isRAAAType << true;
-    QTest::newRow("NonUnary-RAAA: comment, no spaces")
-        << "subx s,x;x" << isRAAAType << false;
-    QTest::newRow("NonUnary-RAAA: comment, spaces")
-        << "ora x,sf\t;x" << isRAAAType << false;
+        // AAA type
+        {"NonUnary-AAA: addr", "ADDSP x,i", isAAAType, false},
+        {"NonUnary-AAA: symbol, no spaces", "s:ADDSP x,x", isAAAType, true},
+        {"NonUnary-AAA: symbol, spaces", "s: \tSUBSP n,x", isAAAType, true},
+        {"NonUnary-AAA: comment, no spaces", "scall s,x;x", isAAAType, false},
+        {"NonUnary-AAA: comment, spaces", "scall x,sf\t;x", isAAAType, false},
 
-    /*
-     * Directives
-     */
-    // ALIGN
-    QTest::newRow(".ALIGN: mixed case") << ".AlIgN 8" << isAlign << false;
-    QTest::newRow(".ALIGN: symbol") << "s:.align 8" << isAlign << true;
-    QTest::newRow(".ALIGN: comment") << ".ALIGN 8;s" << isAlign << false;
-    // ASCII
-    QTest::newRow(".ASCII: mixed case") << ".AsCiI \"h\"" << isASCII << false;
-    QTest::newRow(".ASCII: symbol") << "s:.ASCII \"s\"" << isASCII << true;
-    QTest::newRow(".ASCII: comment") << ".ASCII \"s\";s" << isASCII << false;
-    // QTest::newRow(".ASCII: character") << ".ascii 'a'" << isASCII ;
-    QTest::newRow(".ASCII: short string")
-        << ".ASCII \"hi\"" << isASCII << false;
-    QTest::newRow(".ASCII: long string")
-        << ".ASCII \"hello\"" << isASCII << false;
-    // BLOCK
-    QTest::newRow(".BLOCK: mixed case") << ".BlOcK 10" << isBlock << false;
-    QTest::newRow(".BLOCK: symbol") << "s:.BLOCK 10" << isBlock << true;
-    QTest::newRow(".BLOCK: comment") << ".BLOCK 10;10" << isBlock << false;
-    QTest::newRow(".BLOCK: hex") << ".BLOCK 0x10" << isBlock << false;
-    QTest::newRow(".BLOCK: symbolic") << ".BLOCK hi" << isBlock << false;
-    // TODO: No signed.
-    // BURN
-    QTest::newRow(".BYTE: mixed case") << ".BuRn 0x10" << isBurn << false;
-    QTest::newRow(".BYTE: comment") << ".BURN 0x10;10" << isBurn << false;
-    // BYTE
-    QTest::newRow(".BYTE: mixed case") << ".ByTe 10" << isByte << false;
-    QTest::newRow(".BYTE: symbol") << "s:.BYTE 10" << isByte << true;
-    QTest::newRow(".BYTE: comment") << ".BYTE 10;10" << isByte << false;
-    QTest::newRow(".BYTE: hex") << ".BYTE 0x10" << isByte << false;
-    QTest::newRow(".BYTE: symbolic") << ".BYTE hi" << isByte << false;
-    QTest::newRow(".BYTE: char") << ".BYTE 'i'" << isByte << false;
-    QTest::newRow(".BYTE: string") << ".BYTE \"i\"" << isByte << false;
-    // END
-    QTest::newRow(".END: mixed case") << ".EnD" << isEnd << false;
-    QTest::newRow(".END: comment") << ".END ;hi" << isEnd << false;
-    // EQUATE
-    QTest::newRow(".EQUATE: mixed case") << "s:.EQUATE 10" << isEquate << true;
-    QTest::newRow(".EQUATE: comment") << "s:.EQUATE 10;10" << isEquate << true;
-    QTest::newRow(".EQUATE: hex") << "s:.EQUATE 0x10" << isEquate << true;
-    QTest::newRow(".EQUATE: symbolic") << "s:.EQUATE hi" << isEquate << true;
-    // EXPORT
-    QTest::newRow(".EXPORT: mixed case") << ".ExPoRt hi" << isExport << false;
-    QTest::newRow(".EXPORT: comment") << ".EXPORT hi ;hi" << isExport << false;
-    // IMPORT
-    QTest::newRow(".IMPORT: mixed case") << ".ImPoRt hi" << isImport << false;
-    QTest::newRow(".IMPORT: comment") << ".IMPORT hi;hi" << isImport << false;
-    // INPUT
-    QTest::newRow(".INPUT: mixed case") << ".InPuT hi" << isInput << false;
-    QTest::newRow(".INPUT: comment") << ".INPUT hi;hi" << isInput << false;
-    // OUTPUT
-    QTest::newRow(".OUTPUT: mixed case") << ".OuTpUt hi" << isOutput << false;
-    QTest::newRow(".OUTPUT: comment") << ".OUTPUT hi;hi" << isOutput << false;
-    // ORG
-    QTest::newRow(".ORG: mixed case") << ".OrG 0xBAAD" << isOrg << false;
-    QTest::newRow(".ORG: comment") << ".ORG 0xBEEF;10" << isOrg << false;
-    QTest::newRow(".ORG: symbol") << "s:.ORG 0xFFAD;10" << isOrg << true;
-    // SCALL
-    QTest::newRow(".SCALL: mixed case") << ".sCaLl hi" << isSCall << false;
-    QTest::newRow(".SCALL: comment") << ".SCALL hi;10" << isSCall << false;
-    // SECTION
-    QTest::newRow(".SECTION: mixed case")
-        << ".SeCtIoN \"data\"" << isSection << false;
-    QTest::newRow(".SECTION: comment")
-        << ".SECTION \"hi\";10" << isSection << false;
-    // TODO: Implement
-    // USCALL
-    QTest::newRow(".USCALL: mixed case") << ".UsCaLl hi" << isUSCall << false;
-    QTest::newRow(".USCALL: comment") << ".USCALL hi;10" << isUSCall << false;
-    // WORD
-    QTest::newRow(".WORD: mixed case") << ".WoRd 10" << isWord << false;
-    QTest::newRow(".WORD: symbol") << "s:.WORD 10" << isWord << true;
-    QTest::newRow(".WORD: comment") << ".WORD 10;10" << isWord << false;
-    QTest::newRow(".WORD: hex") << ".WORD 0x10" << isWord << false;
-    QTest::newRow(".WORD: symbolic") << ".WORD hi" << isWord << false;
-    QTest::newRow(".WORD: char") << ".WORD 'h'" << isWord << false;
-    QTest::newRow(".WORD: string") << ".WORD \"hi\"" << isWord << false;
-    // Macro
-    QTest::newRow("@macro: mixed case") << "@oP 10" << isMacro << false;
-    QTest::newRow("@macro: symbol") << "s:@op 10" << isMacro << true;
-    QTest::newRow("@macro: comment") << "@op 10;10" << isMacro << false;
-    QTest::newRow("@macro: hex") << "@op 0x10" << isMacro << false;
-    QTest::newRow("@macro: symbolic") << "@op hi" << isMacro << false;
-    QTest::newRow("@macro: multi-arg") << "@op hi, 10" << isMacro << false;
-  }
-private slots:
-  void testVisitor() {
-    // Direct approach
-    QFETCH(QString, input);
-    QFETCH(QSharedPointer<pas::ops::ConstOp<bool>>, fn);
-    QFETCH(bool, symbol);
-    auto asStd = input.toStdString();
-    using namespace pas::parse::pepp;
-    std::vector<pas::parse::pepp::LineType> result;
-    bool success = true;
-    QVERIFY_THROWS_NO_EXCEPTION([&]() {
-      success =
-          parse(asStd.begin(), asStd.end(), pas::parse::pepp::line, result);
-    }());
-    QVERIFY(success);
-    QCOMPARE(result.size(), 1);
-    auto visit = pas::parse::pepp::FromParseTree<isa::Pep10>();
-    visit.symTab = QSharedPointer<symbol::Table>::create(2);
-    QSharedPointer<Node> node;
-    QVERIFY_THROWS_NO_EXCEPTION(
-        [&]() { node = result[0].apply_visitor(visit); }());
-    QCOMPARE_NE(node.data(), nullptr);
-    bool ret = node->apply_self(*fn);
-    QCOMPARE(ret, true);
-    QVERIFY2(!node->has<pas::ast::generic::Error>(),
-             "Passing tests must not generate errors");
-    QCOMPARE(symbol, node->has<pas::ast::generic::SymbolDeclaration>());
-  };
-  void testVisitor_data() { add_data(); }
+        // RAAA type
+        {"NonUnary-RAAA: addr", "adda x,i", isRAAAType, false},
+        {"NonUnary-RAAA: symbol, no spaces", "s:addx x,x", isRAAAType, true},
+        {"NonUnary-RAAA: symbol, spaces", "s: \tsuba n,x", isRAAAType, true},
+        {"NonUnary-RAAA: comment, no spaces", "subx s,x;x", isRAAAType, false},
+        {"NonUnary-RAAA: comment, spaces", "ora x,sf\t;x", isRAAAType, false},
 
-  void testDriver() {
-    // Direct approach
-    QFETCH(QString, input);
-    QFETCH(QSharedPointer<pas::ops::ConstOp<bool>>, fn);
-    QFETCH(bool, symbol);
-    auto asStd = input.toStdString();
-    auto pipeline = pas::driver::pep10::stages(input, {.isOS = false});
-    auto pipelines = pas::driver::Pipeline<pas::driver::pep10::Stage>{};
-    pipelines.pipelines.push_back(pipeline);
-    QVERIFY(pipelines.assemble(pas::driver::pep10::Stage::Parse));
-    QCOMPARE(pipelines.pipelines[0].first->stage,
-             pas::driver::pep10::Stage::IncludeMacros);
-    QVERIFY(pipelines.pipelines[0].first->bodies.contains(
-        pas::driver::repr::Nodes::name));
-    QSharedPointer<Node> node =
-        pipelines.pipelines[0]
-            .first->bodies[pas::driver::repr::Nodes::name]
-            .value<pas::driver::repr::Nodes>()
-            .value;
-    QCOMPARE_NE(node.data(), nullptr);
-    QCOMPARE(pas::ast::children(*node).size(), 1);
-    node = pas::ast::children(*node).at(0);
-    bool ret = node->apply_self(*fn);
-    QCOMPARE(ret, true);
-    QVERIFY2(pas::ops::generic::collectErrors(*node).size() == 0,
-             "Passing tests must not generate errors");
-    QCOMPARE(symbol, node->has<pas::ast::generic::SymbolDeclaration>());
-  };
-  void testDriver_data() { add_data(); }
-};
+        /*
+         * Directives
+         */
+        // ALIGN
+        {".ALIGN: mixed case", ".AlIgN 8", isAlign, false},
+        {".ALIGN: symbol", "s:.align 8", isAlign, true},
+        {".ALIGN: comment", ".ALIGN 8;s", isAlign, false},
+        // ASCII
+        {".ASCII: mixed case", ".AsCiI \"h\"", isASCII, false},
+        {".ASCII: symbol", "s:.ASCII \"s\"", isASCII, true},
+        {".ASCII: comment", ".ASCII \"s\";s", isASCII, false},
+        // {".ASCII: character", ".ascii 'a'", isASCII },
+        {".ASCII: short string"
+         , ".ASCII \"hi\"", isASCII, false},
+        {".ASCII: long string"
+         , ".ASCII \"hello\"", isASCII, false},
+        // BLOCK
+        {".BLOCK: mixed case", ".BlOcK 10", isBlock, false},
+        {".BLOCK: symbol", "s:.BLOCK 10", isBlock, true},
+        {".BLOCK: comment", ".BLOCK 10;10", isBlock, false},
+        {".BLOCK: hex", ".BLOCK 0x10", isBlock, false},
+        {".BLOCK: symbolic", ".BLOCK hi", isBlock, false},
+        // TODO: No signed.
+        // BURN
+        {".BYTE: mixed case", ".BuRn 0x10", isBurn, false},
+        {".BYTE: comment", ".BURN 0x10;10", isBurn, false},
+        // BYTE
+        {".BYTE: mixed case", ".ByTe 10", isByte, false},
+        {".BYTE: symbol", "s:.BYTE 10", isByte, true},
+        {".BYTE: comment", ".BYTE 10;10", isByte, false},
+        {".BYTE: hex", ".BYTE 0x10", isByte, false},
+        {".BYTE: symbolic", ".BYTE hi", isByte, false},
+        {".BYTE: char", ".BYTE 'i'", isByte, false},
+        {".BYTE: string", ".BYTE \"i\"", isByte, false},
+        // END
+        {".END: mixed case", ".EnD", isEnd, false},
+        {".END: comment", ".END ;hi", isEnd, false},
+        // EQUATE
+        {".EQUATE: mixed case", "s:.EQUATE 10", isEquate, true},
+        {".EQUATE: comment", "s:.EQUATE 10;10", isEquate, true},
+        {".EQUATE: hex", "s:.EQUATE 0x10", isEquate, true},
+        {".EQUATE: symbolic", "s:.EQUATE hi", isEquate, true},
+        // EXPORT
+        {".EXPORT: mixed case", ".ExPoRt hi", isExport, false},
+        {".EXPORT: comment", ".EXPORT hi ;hi", isExport, false},
+        // IMPORT
+        {".IMPORT: mixed case", ".ImPoRt hi", isImport, false},
+        {".IMPORT: comment", ".IMPORT hi;hi", isImport, false},
+        // INPUT
+        {".INPUT: mixed case", ".InPuT hi", isInput, false},
+        {".INPUT: comment", ".INPUT hi;hi", isInput, false},
+        // OUTPUT
+        {".OUTPUT: mixed case", ".OuTpUt hi", isOutput, false},
+        {".OUTPUT: comment", ".OUTPUT hi;hi", isOutput, false},
+        // ORG
+        {".ORG: mixed case", ".OrG 0xBAAD", isOrg, false},
+        {".ORG: comment", ".ORG 0xBEEF;10", isOrg, false},
+        {".ORG: symbol", "s:.ORG 0xFFAD;10", isOrg, true},
+        // SCALL
+        {".SCALL: mixed case", ".sCaLl hi", isSCall, false},
+        {".SCALL: comment", ".SCALL hi;10", isSCall, false},
+        // SECTION
+        {".SECTION: mixed case", ".SeCtIoN \"data\"", isSection, false},
+        {".SECTION: comment", ".SECTION \"hi\";10", isSection, false},
+        // TODO: Implement
+        // USCALL
+        {".USCALL: mixed case", ".UsCaLl hi", isUSCall, false},
+        {".USCALL: comment", ".USCALL hi;10", isUSCall, false},
+        // WORD
+        {".WORD: mixed case", ".WoRd 10", isWord, false},
+        {".WORD: symbol", "s:.WORD 10", isWord, true},
+        {".WORD: comment", ".WORD 10;10", isWord, false},
+        {".WORD: hex", ".WORD 0x10", isWord, false},
+        {".WORD: symbolic", ".WORD hi", isWord, false},
+        {".WORD: char", ".WORD 'h'", isWord, false},
+        {".WORD: string", ".WORD \"hi\"", isWord, false},
+        // Macro
+        {"@macro: multi-arg", "@op hi, 10", isMacro, false},
+        {"@macro: symbolic", "@op hi", isMacro, false},
+        {"@macro: mixed case", "@oP 10", isMacro, false},
+        {"@macro: symbol", "s:@op 10", isMacro, true},
+        {"@macro: comment", "@op 10;10", isMacro, false},
+        {"@macro: hex", "@op 0x10", isMacro, false},
+    }));
+    DYNAMIC_SECTION("visitor parsing for " << name) {
+        using namespace pas::parse::pepp;
+        std::vector<pas::parse::pepp::LineType> result;
+        bool success = true;
+        REQUIRE_NOTHROW([&]() {
+            success =
+                parse(input.begin(), input.end(), pas::parse::pepp::line, result);
+        }());
+        CHECK(success);
+        REQUIRE(result.size() == 1);
+        auto visit = pas::parse::pepp::FromParseTree<isa::Pep10>();
+        visit.symTab = QSharedPointer<symbol::Table>::create(2);
+        QSharedPointer<Node> node;
+        REQUIRE_NOTHROW(
+            [&]() { node = result[0].apply_visitor(visit); }());
+        REQUIRE(node.data() != nullptr);
+        bool ret = node->apply_self(*fn);
+        REQUIRE(ret);
+        // Passing tests must not generate errors
+        REQUIRE(!node->has<pas::ast::generic::Error>());
+        REQUIRE(symbol == node->has<pas::ast::generic::SymbolDeclaration>());
+    }
+    DYNAMIC_SECTION("driver parsing for " << name) {
+        auto pipeline = pas::driver::pep10::stages(QString::fromStdString(input), {.isOS = false});
+        auto pipelines = pas::driver::Pipeline<pas::driver::pep10::Stage>{};
+        pipelines.pipelines.push_back(pipeline);
+        CHECK(pipelines.assemble(pas::driver::pep10::Stage::Parse));
+        REQUIRE(pipelines.pipelines[0].first->stage
+                == pas::driver::pep10::Stage::IncludeMacros);
+        REQUIRE(pipelines.pipelines[0].first->bodies.contains(pas::driver::repr::Nodes::name));
+        QSharedPointer<Node> node =
+            pipelines.pipelines[0]
+                .first->bodies[pas::driver::repr::Nodes::name]
+                .value<pas::driver::repr::Nodes>()
+                .value;
+        REQUIRE(node.data() != nullptr);
+        REQUIRE(pas::ast::children(*node).size() == 1);
+        node = pas::ast::children(*node).at(0);
+        bool ret = node->apply_self(*fn);
+        REQUIRE(ret);
+        // Passing tests must not generate errors
+        REQUIRE(pas::ops::generic::collectErrors(*node).size() == 0);
+        REQUIRE(symbol == node->has<pas::ast::generic::SymbolDeclaration>());
+    }
+}
 
-#include "pass.moc"
-
-QTEST_MAIN(PasParsePepp_NodeFromParseTree_Pass);
+int main(int argc, char* argv[]) {
+    return Catch::Session().run( argc, argv );
+}

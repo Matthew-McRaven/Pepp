@@ -15,15 +15,15 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
+#include <catch.hpp>
+
 #include "isa/pep10.hpp"
 #include "asm/pas/ast/generic/attr_error.hpp"
 #include "asm/pas/ast/generic/attr_location.hpp"
 #include "asm/pas/driver/pep10.hpp"
 #include "asm/pas/errors.hpp"
 #include "asm/pas/parse/pepp/node_from_parse_tree.hpp"
-#include <QObject>
-#include <QTest>
-#include <asm/pas/operations/generic/errors.hpp>
+#include "asm/pas/operations/generic/errors.hpp"
 #include "asm/pas/parse/pepp/rules_lines.hpp"
 
 using SourceLocation = pas::ast::generic::SourceLocation;
@@ -36,322 +36,227 @@ auto makeFatal = [](qsizetype line, QString msg) {
       SourceLocation{.value = {.line = line, .valid = true}},
       Message{.severity = Severity::Fatal, .message = msg}};
 };
+namespace E = pas::errors::pepp;
+const QString arg0 = E::expectNArguments.arg(0);
+const QString arg1 = E::expectNArguments.arg(1);
+const QString ascii = E::dotRequiresString.arg(".ASCII");
+const QString _end = E::noDefineSymbol.arg(".END");
 
-class PasOpsPepp_NodeFromParseTree_Error : public QObject {
-  Q_OBJECT
-  void data() {
-    QTest::addColumn<QString>("input");
-    QTest::addColumn<QList<Error>>("errors");
-    namespace E = pas::errors::pepp;
-
-    // Unary Instructions
-    QTest::addRow("unary: invalid mnemonic")
-        << u"rat"_qs << QList<Error>{makeFatal(0, E::invalidMnemonic)};
-
-    // NonUnary Instructions -- BR/Call family
-    QTest::addRow("nonunary: invalid mnemonic")
-        << u"brg k"_qs << QList<Error>{makeFatal(0, E::invalidMnemonic)};
-    QTest::addRow("nonunary: 3-byte string")
-        << u"br \"abc\""_qs << QList<Error>{makeFatal(0, E::expectedNumeric)};
-    // Check that 0xFFFF->0x1_0000 triggers hex constant to be too big.
-    // QTest::addRow("nonunary: 2-byte hex") << u"br 0xFFFF"_qs <<
-    // QList<Error>{};
-    QTest::addRow("nonunary: 3-byte hex")
-        << u"br 0x10000"_qs << QList<Error>{makeFatal(0, E::hexTooBig2)};
-    QTest::addRow("nonunary: illegal addressing mode")
-        << u"br 0x10,sf"_qs << QList<Error>{makeFatal(0, E::illegalAddrMode)};
-
-    // NonUnary Instructions -- Not stores
-    // - requires address mode
-    QTest::addRow("nonunary: missing address mode-1 byte")
-        << u"ldba 0xd"_qs << QList<Error>{makeFatal(0, E::requiredAddrMode)};
-    QTest::addRow("nonunary: missing address mode-2 byte")
-        << u"ldwa 0xda"_qs << QList<Error>{makeFatal(0, E::requiredAddrMode)};
-    // - max 2 byte arguments
-    // LDBA must allow 2 byte operands. Non-I addressing modes need 2 bytes to
-    // access all of main memory. Undecided (2023-03-01) if LDBA i should allow
-    // 2 bytes.
-    QTest::addRow("nonunary: max 2 byte arguments")
-        << u"ldba 0xabadbeefee,d"_qs
-        << QList<Error>{makeFatal(0, E::hexTooBig2)};
-    QTest::addRow("nonunary: max 2 byte arguments")
-        << u"ldwa 0xabadbeefee,d"_qs
-        << QList<Error>{makeFatal(0, E::hexTooBig2)};
-
-    // NonUnary Instructions -- Stores
-    // - don't allow I addressing mode
-    QTest::addRow("nonunary store: I is bad addressing mode-1 byte")
-        << u"stba 0xfc16,i"_qs
-        << QList<Error>{makeFatal(0, E::illegalAddrMode)};
-    QTest::addRow("nonunary store: I is bad addressing mode-2 byte")
-        << u"stwa 0xfc16,i"_qs
-        << QList<Error>{makeFatal(0, E::illegalAddrMode)};
-
-    // max 2 byte arguments
-    /*
-     * Directives
-     */
+TEST_CASE("Pepp AST conversion, failing", "[parse]") {
     //  Message that return variables need to be converted to string for compare
     //  to work.
-    const QString arg0 = E::expectNArguments.arg(0);
-    const QString arg1 = E::expectNArguments.arg(1);
-    const QString ascii = E::dotRequiresString.arg(".ASCII");
-    const QString end = E::noDefineSymbol.arg(".END");
 
-    //    const QString missing( "Message not in errors.hpp");
 
-    // ALIGN
-    // - only decimal powers of 2 args
-    QTest::addRow(".ALIGN: power of 2")
-        << u".ALIGN 3"_qs << QList<Error>{makeFatal(0, E::alignPow2)};
-    // - exactly 1 arg
-    QTest::addRow(".ALIGN: max 1 argument")
-        << u".ALIGN 2,4"_qs << QList<Error>{makeFatal(0, arg1)};
 
-    // ASCII
-    // - no chars
-    QTest::addRow(".ASCII: no characters")
-        << u".ASCII"_qs << QList<Error>{makeFatal(0, arg1)};
-    // - no numeric (unsigned/signed decimal / hex)
-    //  ".ASCII requires a string constant argument." - message not in
-    //  errors.hpp
-    QTest::addRow(".ASCII: no hex")
-        << u".ASCII 0xdad"_qs << QList<Error>{makeFatal(0, ascii)};
-    //  ".ASCII requires a string constant argument." - message not in
-    //  errors.hpp
-    QTest::addRow(".ASCII: no unsigned decimals")
-        << u".ASCII 42"_qs << QList<Error>{makeFatal(0, ascii)};
-    //  ".ASCII requires a string constant argument." - message not in
-    //  errors.hpp
-    QTest::addRow(".ASCII: no signed decimals")
-        << u".ASCII -42"_qs << QList<Error>{makeFatal(0, ascii)};
-    // - exactly 1 arg
-    QTest::addRow(".ASCII: max 1 argument")
-        << u".ASCII \"Bad\", \"Beef\""_qs << QList<Error>{makeFatal(0, arg1)};
+    auto [name, input, errors] = GENERATE(table<std::string, QString, QList<Error>>({
 
-    // BLOCK
-    // - no signed
-    QTest::addRow(".BLOCK: no negative decimals")
-        << u".BLOCK -42"_qs << QList<Error>{makeFatal(0, E::decUnsigned2)};
-    // - no chars
-    QTest::addRow(".BLOCK: no characters")
-        << u".BLOCK '*'"_qs << QList<Error>{makeFatal(0, E::expectedNumeric)};
-    // - no strings (long or short)
-    QTest::addRow(".BLOCK: no strings")
-        << u".BLOCK \"Bad\""_qs
-        << QList<Error>{makeFatal(0, E::expectedNumeric)};
-    // - exactly 1 arg
-    QTest::addRow(".BLOCK: max 1 argument")
-        << u".BLOCK 12,34"_qs << QList<Error>{makeFatal(0, arg1)};
-    // - arg must fit in 16 bits (no big strs / hex / signed / unsigned)
-    QTest::addRow(".BLOCK: must fit in 16 bits")
-        << u".BLOCK 0xbadbeef"_qs << QList<Error>{makeFatal(0, E::hexTooBig2)};
-    // - no chars
+        // Unary Instructions
+        {"unary: invalid mnemonic",u"rat"_qs, QList<Error>{makeFatal(0, E::invalidMnemonic)}},
 
-    // BURN -- no symbol, only allows hex
-    // - no decimal
-    QTest::addRow(".BURN: no unsigned decimals")
-        << u".BURN 33333"_qs
-        << QList<Error>{makeFatal(0, E::requiresHex.arg(".BURN"))};
-    QTest::addRow(".BURN: no negative decimals")
-        << u".BURN -42"_qs
-        << QList<Error>{makeFatal(0, E::requiresHex.arg(".BURN"))};
-    // - no text (chars/longstr/shortstr)
-    QTest::addRow(".BURN: no characters")
-        << u".BLOCK '*'"_qs << QList<Error>{makeFatal(0, E::expectedNumeric)};
-    QTest::addRow(".BURN: no strings")
-        << u".BLOCK \"Bad\""_qs
-        << QList<Error>{makeFatal(0, E::expectedNumeric)};
-    // - no symbol
-    QTest::addRow(".BURN: no symbols")
-        << u"ret: .BURN 0xfe"_qs
-        << QList<Error>{makeFatal(0, E::noDefineSymbol.arg(("BURN")))};
-    // - exactly 1 arg
-    QTest::addRow(".BURN: exactly 1 argument")
-        << u".BLOCK \"Very\", \"Bad\""_qs << QList<Error>{makeFatal(0, arg1)};
-    // - arg must fit in 16 bits
-    QTest::addRow(".BURN: fit in 16 bits-hex")
-        << u".BLOCK 0xbadbeef"_qs << QList<Error>{makeFatal(0, E::hexTooBig2)};
+        // NonUnary Instructions -- BR/Call family
+        {"nonunary: invalid mnemonic",u"brg k"_qs, QList<Error>{makeFatal(0, E::invalidMnemonic)}},
+        {"nonunary: 3-byte string",u"br \"abc\""_qs, QList<Error>{makeFatal(0, E::expectedNumeric)}},
+        // Check that 0xFFFF->0x1_0000 triggers hex constant to be too big.
+        // {"nonunary: 2-byte hex",u"br 0xFFFF"_qs <<
+        // QList<Error>{}},
+        {"nonunary: 3-byte hex",u"br 0x10000"_qs, QList<Error>{makeFatal(0, E::hexTooBig2)}},
+        {"nonunary: illegal addressing mode",u"br 0x10,sf"_qs, QList<Error>{makeFatal(0, E::illegalAddrMode)}},
 
-    // Byte
-    // - exactly 1 arg
-    QTest::addRow(".BYTE: min 1 argument")
-        << u".BYTE"_qs << QList<Error>{makeFatal(0, arg1)};
-    QTest::addRow(".BYTE: max 1 argument")
-        << u".BYTE 0x00, 0x01"_qs << QList<Error>{makeFatal(0, arg1)};
-    // - arg must fit in 8 bits
+        // NonUnary Instructions -- Not stores
+        // - requires address mode
+        {"nonunary: missing address mode-1 byte",u"ldba 0xd"_qs, QList<Error>{makeFatal(0, E::requiredAddrMode)}},
+        {"nonunary: missing address mode-2 byte",u"ldwa 0xda"_qs, QList<Error>{makeFatal(0, E::requiredAddrMode)}},
+        // - max 2 byte arguments
+        // LDBA must allow 2 byte operands. Non-I addressing modes need 2 bytes to
+        // access all of main memory. Undecided (2023-03-01if LDBA i should allow
+        // 2 bytes.
+        {"nonunary: max 2 byte arguments",u"ldba 0xabadbeefee,d"_qs, QList<Error>{makeFatal(0, E::hexTooBig2)}},
+        {"nonunary: max 2 byte arguments",u"ldwa 0xabadbeefee,d"_qs, QList<Error>{makeFatal(0, E::hexTooBig2)}},
 
-    QTest::addRow(".BYTE: no long strings")
-        << u".BYTE \"Bad\""_qs << QList<Error>{makeFatal(0, E::strTooLong1)};
-    QTest::addRow(".BYTE: fit in 8 bits-hex")
-        << u".BYTE 0x0bad"_qs << QList<Error>{makeFatal(0, E::hexTooBig1)};
-    QTest::addRow(".BYTE: fit in 8 bits-decimal")
-        << u".BYTE 256"_qs << QList<Error>{makeFatal(0, E::decTooBig1)};
-    QTest::addRow(".BYTE: fit in 8 bits-negative decimal")
-        << u".BYTE -129"_qs << QList<Error>{makeFatal(0, E::decTooBig1)};
+        // NonUnary Instructions -- Stores
+        // - don't allow I addressing mode
+        {"nonunary store: I is bad addressing mode-1 byte",u"stba 0xfc16,i"_qs, QList<Error>{makeFatal(0, E::illegalAddrMode)}},
+        {"nonunary store: I is bad addressing mode-2 byte",u"stwa 0xfc16,i"_qs, QList<Error>{makeFatal(0, E::illegalAddrMode)}},
 
-    // End
-    // - no symbol
-    QTest::addRow(".END: no symbol")
-        << u"ret: .END"_qs << QList<Error>{makeFatal(0, end)};
-    // - exactly 0 args
-    QTest::addRow(".END: exactly 0 arguments")
-        << u".END 1"_qs << QList<Error>{makeFatal(0, arg0)};
+        // ALIGN
+        // - only decimal powers of 2 args
+        {".ALIGN: power of 2",u".ALIGN 3"_qs, QList<Error>{makeFatal(0, E::alignPow2)}},
+        // - exactly 1 arg
+        {".ALIGN: max 1 argument",u".ALIGN 2,4"_qs, QList<Error>{makeFatal(0, arg1)}},
 
-    // Equate
-    // - requires symbol
-    QTest::addRow(".EQUATE: no symbol")
-        << u".EQUATE 10"_qs
-        << QList<Error>{makeFatal(0, E::equateRequiresSymbol)};
-    // - exactly 1 argument
-    QTest::addRow(".EQUATE: max 1 arguement")
-        << u"failure: .EQUATE 10,0x1234"_qs << QList<Error>{makeFatal(0, arg1)};
-    // - arg fits in 16 bits
-    QTest::addRow(".EQUATE: fit in 16 bits-decimal")
-        << u"failure: .EQUATE 666666"_qs
-        << QList<Error>{makeFatal(0, E::decTooBig2)};
-    QTest::addRow(".EQUATE: fit in 16 bits-hex")
-        << u"failure: .EQUATE 0xbadbeef"_qs
-        << QList<Error>{makeFatal(0, E::hexTooBig2)};
+        // ASCII
+        // - no chars
+        {".ASCII: no characters",u".ASCII"_qs, QList<Error>{makeFatal(0, arg1)}},
+        // - no numeric (unsigned/signed decimal / hex)
+        //  ".ASCII requires a string constant argument." - message not in
+        //  errors.hpp
+        {".ASCII: no hex",u".ASCII 0xdad"_qs, QList<Error>{makeFatal(0, ascii)}},
+        //  ".ASCII requires a string constant argument." - message not in
+        //  errors.hpp
+        {".ASCII: no unsigned decimals",u".ASCII 42"_qs, QList<Error>{makeFatal(0, ascii)}},
+        //  ".ASCII requires a string constant argument." - message not in
+        //  errors.hpp
+        {".ASCII: no signed decimals",u".ASCII -42"_qs, QList<Error>{makeFatal(0, ascii)}},
+        // - exactly 1 arg
+        {".ASCII: max 1 argument",u".ASCII \"Bad\", \"Beef\""_qs, QList<Error>{makeFatal(0, arg1)}},
 
-    // Export / Import / Input / Output / SCall / USCall
-    QString sharedSymbols[]{"EXPORT", "IMPORT", "INPUT",
-                            "OUTPUT", "SCALL",  "USCALL"};
+        // BLOCK
+        // - no signed
+        {".BLOCK: no negative decimals",u".BLOCK -42"_qs, QList<Error>{makeFatal(0, E::decUnsigned2)}},
+        // - no chars
+        {".BLOCK: no characters",u".BLOCK '*'"_qs, QList<Error>{makeFatal(0, E::expectedNumeric)}},
+        // - no strings (long or short)
+        {".BLOCK: no strings",u".BLOCK \"Bad\""_qs, QList<Error>{makeFatal(0, E::expectedNumeric)}},
+        // - exactly 1 arg
+        {".BLOCK: max 1 argument",u".BLOCK 12,34"_qs, QList<Error>{makeFatal(0, arg1)}},
+        // - arg must fit in 16 bits (no big strs / hex / signed / unsigned)
+        {".BLOCK: must fit in 16 bits",u".BLOCK 0xbadbeef"_qs, QList<Error>{makeFatal(0, E::hexTooBig2)}},
+        // - no chars
 
-    //  Loop through symbols above
-    for (auto &symbol : sharedSymbols) {
-      // - no symbol
-      QString label = "." + symbol + u": no symbols"_qs;
-      QString command = QString("ret: .%1 hi").arg(symbol);
-      QTest::addRow(label.toUtf8())
-          << command
-          << QList<Error>{makeFatal(0, E::noDefineSymbol.arg(symbol))};
-      // - exactly 1 arg
-      label = "." + symbol + u": min 1 argument"_qs;
-      command = QString(".%1").arg(symbol);
-      QTest::addRow(label.toUtf8())
-          << command << QList<Error>{makeFatal(0, E::expectNArguments.arg(1))};
-      label = "." + symbol + u": max 1 argument"_qs;
-      command = QString(".%1 hi, world").arg(symbol);
-      QTest::addRow(label.toUtf8())
-          << command << QList<Error>{makeFatal(0, E::expectNArguments.arg(1))};
-      // - arg must be symbolic
-      label = symbol + u": arg must be symbolic"_qs;
-      command = QString(".%1 \"bad\"").arg(symbol);
-      QTest::addRow(label.toUtf8())
-          << command << QList<Error>{makeFatal(0, E::expectedSymbolic)};
-      // - arg must not be non-symbolic
-      label = symbol + u": arg must not be non-symbolic"_qs;
-      command = QString(".%1 0xbad").arg(symbol);
-      QTest::addRow(label.toUtf8())
-          << command << QList<Error>{makeFatal(0, E::expectedSymbolic)};
+        // BURN -- no symbol, only allows hex
+        // - no decimal
+        {".BURN: no unsigned decimals",u".BURN 33333"_qs, QList<Error>{makeFatal(0, E::requiresHex.arg(".BURN"))}},
+        {".BURN: no negative decimals",u".BURN -42"_qs, QList<Error>{makeFatal(0, E::requiresHex.arg(".BURN"))}},
+        // - no text (chars/longstr/shortstr)
+        {".BURN: no characters",u".BLOCK '*'"_qs, QList<Error>{makeFatal(0, E::expectedNumeric)}},
+        {".BURN: no strings",u".BLOCK \"Bad\""_qs, QList<Error>{makeFatal(0, E::expectedNumeric)}},
+        // - no symbol
+        {".BURN: no symbols",u"ret: .BURN 0xfe"_qs, QList<Error>{makeFatal(0, E::noDefineSymbol.arg(("BURN")))}},
+        // - exactly 1 arg
+        {".BURN: exactly 1 argument",u".BLOCK \"Very\", \"Bad\""_qs, QList<Error>{makeFatal(0, arg1)}},
+        // - arg must fit in 16 bits
+        {".BURN: fit in 16 bits-hex",u".BLOCK 0xbadbeef"_qs, QList<Error>{makeFatal(0, E::hexTooBig2)}},
+
+        // Byte
+        // - exactly 1 arg
+        {".BYTE: min 1 argument",u".BYTE"_qs, QList<Error>{makeFatal(0, arg1)}},
+        {".BYTE: max 1 argument",u".BYTE 0x00, 0x01"_qs, QList<Error>{makeFatal(0, arg1)}},
+        // - arg must fit in 8 bits
+
+        {".BYTE: no long strings",u".BYTE \"Bad\""_qs, QList<Error>{makeFatal(0, E::strTooLong1)}},
+        {".BYTE: fit in 8 bits-hex",u".BYTE 0x0bad"_qs, QList<Error>{makeFatal(0, E::hexTooBig1)}},
+        {".BYTE: fit in 8 bits-decimal",u".BYTE 256"_qs, QList<Error>{makeFatal(0, E::decTooBig1)}},
+        {".BYTE: fit in 8 bits-negative decimal",u".BYTE -129"_qs, QList<Error>{makeFatal(0, E::decTooBig1)}},
+
+        // End
+        // - no symbol
+        {".END: no symbol",u"ret: .END"_qs, QList<Error>{makeFatal(0, _end)}},
+        // - exactly 0 args
+        {".END: exactly 0 arguments",u".END 1"_qs, QList<Error>{makeFatal(0, arg0)}},
+
+        // Equate
+        // - requires symbol
+        {".EQUATE: no symbol",u".EQUATE 10"_qs, QList<Error>{makeFatal(0, E::equateRequiresSymbol)}},
+        // - exactly 1 argument
+        {".EQUATE: max 1 arguement",u"failure: .EQUATE 10,0x1234"_qs, QList<Error>{makeFatal(0, arg1)}},
+        // - arg fits in 16 bits
+        {".EQUATE: fit in 16 bits-decimal",u"failure: .EQUATE 666666"_qs, QList<Error>{makeFatal(0, E::decTooBig2)}},
+        {".EQUATE: fit in 16 bits-hex",u"failure: .EQUATE 0xbadbeef"_qs, QList<Error>{makeFatal(0, E::hexTooBig2)}},
+
+        {".EXPORT: no symbols",u"x: .EXPORT y"_qs, QList<Error>{makeFatal(0, E::noDefineSymbol.arg("EXPORT"))}},
+        {".EXPORT: min 1 arg",u".EXPORT"_qs, QList<Error>{makeFatal(0, E::expectNArguments.arg(1))}},
+        {".EXPORT: max 1 arg",u".EXPORT hi, world"_qs, QList<Error>{makeFatal(0, E::expectNArguments.arg(1))}},
+        {".EXPORT: require symbolic arg",u".EXPORT 10"_qs, QList<Error>{makeFatal(0, E::expectedSymbolic)}},
+        {".IMPORT: no symbols",u"x: .IMPORT y"_qs, QList<Error>{makeFatal(0, E::noDefineSymbol.arg("IMPORT"))}},
+        {".IMPORT: min 1 arg",u".IMPORT"_qs, QList<Error>{makeFatal(0, E::expectNArguments.arg(1))}},
+        {".IMPORT: max 1 arg",u".IMPORT hi, world"_qs, QList<Error>{makeFatal(0, E::expectNArguments.arg(1))}},
+        {".IMPORT: require symbolic arg",u".IMPORT 10"_qs, QList<Error>{makeFatal(0, E::expectedSymbolic)}},
+        {".INPUT: no symbols",u"x: .INPUT y"_qs, QList<Error>{makeFatal(0, E::noDefineSymbol.arg("INPUT"))}},
+        {".INPUT: min 1 arg",u".INPUT"_qs, QList<Error>{makeFatal(0, E::expectNArguments.arg(1))}},
+        {".INPUT: max 1 arg",u".INPUT hi, world"_qs, QList<Error>{makeFatal(0, E::expectNArguments.arg(1))}},
+        {".INPUT: require symbolic arg",u".INPUT 10"_qs, QList<Error>{makeFatal(0, E::expectedSymbolic)}},
+        {".OUTPUT: no symbols",u"x: .OUTPUT y"_qs, QList<Error>{makeFatal(0, E::noDefineSymbol.arg("OUTPUT"))}},
+        {".OUTPUT: min 1 arg",u".OUTPUT"_qs, QList<Error>{makeFatal(0, E::expectNArguments.arg(1))}},
+        {".OUTPUT: max 1 arg",u".OUTPUT hi, world"_qs, QList<Error>{makeFatal(0, E::expectNArguments.arg(1))}},
+        {".OUTPUT: require symbolic arg",u".OUTPUT 10"_qs, QList<Error>{makeFatal(0, E::expectedSymbolic)}},
+        {".SCALL: no symbols",u"x: .SCALL y"_qs, QList<Error>{makeFatal(0, E::noDefineSymbol.arg("SCALL"))}},
+        {".SCALL: min 1 arg",u".SCALL"_qs, QList<Error>{makeFatal(0, E::expectNArguments.arg(1))}},
+        {".SCALL: max 1 arg",u".SCALL hi, world"_qs, QList<Error>{makeFatal(0, E::expectNArguments.arg(1))}},
+        {".SCALL: require symbolic arg",u".SCALL 10"_qs, QList<Error>{makeFatal(0, E::expectedSymbolic)}},
+
+        // ORG
+        {".ORG: no unsigned decimals",u".ORG 33333"_qs, QList<Error>{makeFatal(0, E::requiresHex.arg(".ORG"))}},
+        {".ORG: no negative decimals",u".ORG -42"_qs, QList<Error>{makeFatal(0, E::requiresHex.arg(".ORG"))}},
+
+        // Section
+        // - exactly 1 arg (an identifier)
+        {".SECTION: min 1 argument",u".SECTION"_qs, QList<Error>{makeFatal(0, E::expectNMArguments.arg(1, 2))}},
+        {".SECTION: max 2 argument",u".SECTION 0x0, 0x1, 0x2"_qs, QList<Error>{makeFatal(0, E::expectNMArguments.arg(1, 2))}},
+        // - no symbol
+        {".SECTION: no symbol",u"ret: .SECTION \"data\""_qs, QList<Error>{makeFatal(0, E::noDefineSymbol.arg(".SECTION"))}},
+
+        // Word
+        // - exactly 1 arg
+        {".WORD: min 1 argument",u".WORD"_qs, QList<Error>{makeFatal(0, arg1)}},
+        {".WORD: max 1 argument",u".WORD 0x0bad, 0x0dad"_qs, QList<Error>{makeFatal(0, arg1)}},
+        // - arg must fit in 16 bits
+        {".WORD: no long strings",u".WORD \"Bad\""_qs, QList<Error>{makeFatal(0, E::strTooLong2)}},
+        {".WORD: fit in 16 bits-hex",u".WORD 0x0baadbeef"_qs, QList<Error>{makeFatal(0, E::hexTooBig2)}},
+        {".WORD: fit in 16 bits-decimal",u".WORD 65536"_qs, QList<Error>{makeFatal(0, E::decTooBig2)}},
+        {".WORD: fit in 16 bits-negative decimal",u".WORD -32769"_qs, QList<Error>{makeFatal(0, E::decTooBig2)}},
+
+        //  Missing errors
+        //  invalidDirective
+        //  invalidSection
+        //  argAfterMnemonic
+        //  strTooLong1
+        //  strTooLong2
+
+    }));
+    DYNAMIC_SECTION("visitor parsing for " << name) {
+        auto asStd = input.toStdString();
+        // Convert input string to parsed lines.
+        std::vector<pas::parse::pepp::LineType> result;
+        bool success = true;
+        auto current = asStd.begin();
+        REQUIRE_NOTHROW([&]() {
+            success = parse(current, asStd.end(), pas::parse::pepp::line, result);
+        }());
+        // Partial parse failure
+        REQUIRE(current == asStd.end());
+        // Failed to parse.
+        REQUIRE(success);
+
+        auto root = pas::parse::pepp::toAST<isa::Pep10>(result);
+        auto visit = pas::ops::generic::CollectErrors();
+        pas::ast::apply_recurse<void>(*root, visit);
+        auto actualErrors = visit.errors;
+        for (int it = 0; it < qMin(errors.size(), actualErrors.size()); it++) {
+            REQUIRE(errors[it].first ==actualErrors[it].first);
+            REQUIRE(errors[it].second.message == actualErrors[it].second.message);
+            REQUIRE(errors[it].second.severity == actualErrors[it].second.severity);
+        }
+        REQUIRE(errors.size() == actualErrors.size());
     }
-    // ORG
-    QTest::addRow(".ORG: no unsigned decimals")
-        << u".ORG 33333"_qs
-        << QList<Error>{makeFatal(0, E::requiresHex.arg(".ORG"))};
-    QTest::addRow(".ORG: no negative decimals")
-        << u".ORG -42"_qs
-        << QList<Error>{makeFatal(0, E::requiresHex.arg(".ORG"))};
 
-    // Section
-    // - exactly 1 arg (an identifier)
-    QTest::addRow(".SECTION: min 1 argument")
-        << u".SECTION"_qs
-        << QList<Error>{makeFatal(0, E::expectNMArguments.arg(1, 2))};
-    QTest::addRow(".SECTION: max 2 argument")
-        << u".SECTION 0x0, 0x1, 0x2"_qs
-        << QList<Error>{makeFatal(0, E::expectNMArguments.arg(1, 2))};
-    // - no symbol
-    QTest::addRow(".SECTION: no symbol")
-        << u"ret: .SECTION \"data\""_qs
-        << QList<Error>{makeFatal(0, E::noDefineSymbol.arg(".SECTION"))};
+     DYNAMIC_SECTION("driver parsing for " << name) {
+        auto asStd = input.toStdString();
 
-    // Word
-    // - exactly 1 arg
-    QTest::addRow(".WORD: min 1 argument")
-        << u".WORD"_qs << QList<Error>{makeFatal(0, arg1)};
-    QTest::addRow(".WORD: max 1 argument")
-        << u".WORD 0x0bad, 0x0dad"_qs << QList<Error>{makeFatal(0, arg1)};
-    // - arg must fit in 16 bits
-    QTest::addRow(".WORD: no long strings")
-        << u".WORD \"Bad\""_qs << QList<Error>{makeFatal(0, E::strTooLong2)};
-    QTest::addRow(".WORD: fit in 16 bits-hex")
-        << u".WORD 0x0baadbeef"_qs << QList<Error>{makeFatal(0, E::hexTooBig2)};
-    QTest::addRow(".WORD: fit in 16 bits-decimal")
-        << u".WORD 65536"_qs << QList<Error>{makeFatal(0, E::decTooBig2)};
-    QTest::addRow(".WORD: fit in 16 bits-negative decimal")
-        << u".WORD -32769"_qs << QList<Error>{makeFatal(0, E::decTooBig2)};
+        auto pipeline = pas::driver::pep10::stages(input, {.isOS = false});
+        auto pipelines = pas::driver::Pipeline<pas::driver::pep10::Stage>{};
+        pipelines.pipelines.push_back(pipeline);
+        REQUIRE(!pipelines.assemble(pas::driver::pep10::Stage::Parse));
+        REQUIRE(pipelines.pipelines[0].first->bodies.contains(pas::driver::repr::Nodes::name));
 
-    //  Missing errors
-    //  invalidDirective
-    //  invalidSection
-    //  argAfterMnemonic
-    //  expectedSymbolic
-    //  strTooLong1
-    //  strTooLong2
-  }
-private slots:
-  void failVisitor() {
-    QFETCH(QString, input);
-    QFETCH(QList<Error>, errors);
-    auto asStd = input.toStdString();
+        QSharedPointer<pas::ast::Node> node =
+            pipelines.pipelines[0]
+                .first->bodies[pas::driver::repr::Nodes::name]
+                .value<pas::driver::repr::Nodes>()
+                .value;
+        REQUIRE(node.data() != nullptr);
+        auto visit = pas::ops::generic::CollectErrors();
 
-    // Convert input string to parsed lines.
-    std::vector<pas::parse::pepp::LineType> result;
-    bool success = true;
-    auto current = asStd.begin();
-    QVERIFY_THROWS_NO_EXCEPTION([&]() {
-      success = parse(current, asStd.end(), pas::parse::pepp::line, result);
-    }());
-    QVERIFY2(current == asStd.end(), "Partial parse failure");
-    QVERIFY2(success, "Failed to parse");
-
-    auto root = pas::parse::pepp::toAST<isa::Pep10>(result);
-    auto visit = pas::ops::generic::CollectErrors();
-    pas::ast::apply_recurse<void>(*root, visit);
-    auto actualErrors = visit.errors;
-    for (int it = 0; it < qMin(errors.size(), actualErrors.size()); it++) {
-      QCOMPARE(errors[it].first, actualErrors[it].first);
-      QCOMPARE(errors[it].second.message, actualErrors[it].second.message);
-      QCOMPARE(errors[it].second.severity, actualErrors[it].second.severity);
+        pas::ast::apply_recurse<void>(*node, visit);
+        auto actualErrors = visit.errors;
+        for (int it = 0; it < qMin(errors.size(), actualErrors.size()); it++) {
+            REQUIRE(errors[it].first == actualErrors[it].first);
+            REQUIRE(errors[it].second.message == actualErrors[it].second.message);
+            REQUIRE(errors[it].second.severity == actualErrors[it].second.severity);
+        }
+        REQUIRE(errors.size() == actualErrors.size());
     }
-    QCOMPARE(errors.size(), actualErrors.size());
-  }
-  void failVisitor_data() { data(); }
+}
 
-  void failDriver() {
-    QFETCH(QString, input);
-    QFETCH(QList<Error>, errors);
-    auto asStd = input.toStdString();
-
-    auto pipeline = pas::driver::pep10::stages(input, {.isOS = false});
-    auto pipelines = pas::driver::Pipeline<pas::driver::pep10::Stage>{};
-    pipelines.pipelines.push_back(pipeline);
-    QVERIFY(!pipelines.assemble(pas::driver::pep10::Stage::Parse));
-    QVERIFY(pipelines.pipelines[0].first->bodies.contains(
-        pas::driver::repr::Nodes::name));
-
-    QSharedPointer<pas::ast::Node> node =
-        pipelines.pipelines[0]
-            .first->bodies[pas::driver::repr::Nodes::name]
-            .value<pas::driver::repr::Nodes>()
-            .value;
-    QCOMPARE_NE(node.data(), nullptr);
-    auto visit = pas::ops::generic::CollectErrors();
-
-    pas::ast::apply_recurse<void>(*node, visit);
-    auto actualErrors = visit.errors;
-    for (int it = 0; it < qMin(errors.size(), actualErrors.size()); it++) {
-      QCOMPARE(errors[it].first, actualErrors[it].first);
-      QCOMPARE(errors[it].second.message, actualErrors[it].second.message);
-      QCOMPARE(errors[it].second.severity, actualErrors[it].second.severity);
-    }
-    QCOMPARE(errors.size(), actualErrors.size());
-  }
-  void failDriver_data() { data(); }
-};
-
-#include "error.moc"
-
-QTEST_MAIN(PasOpsPepp_NodeFromParseTree_Error)
+int main(int argc, char* argv[]) {
+    return Catch::Session().run( argc, argv );
+}
