@@ -7,3 +7,4 @@ TextFlow,https://github.com/Matthew-McRaven/textflowcpp,Boost Software License 1
 Python,https://www.python.org/,Python Software Foundation License Version 2,PSF-2.0,:/about/dep/psf-2.0.txt, 1
 vcpkg,https://www.github.com/microsoft/vcpkg,MIT License,MIT,:/about/dep/vcpkg.txt, 1
 Catch2,https://github.com/catchorg/Catch2,Boost Software License 1.0,BSL-1.0,:/about/dep/bsl-1.0.txt, 1
+ANTLR4,https://github.com/antlr/antlr4,BSD 3-Clause "New" or "Revised" License,BSD-3-Clause,:/about/dep/antlr4.txt, 0
