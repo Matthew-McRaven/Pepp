@@ -47,10 +47,9 @@ static const auto gs = sim::api::memory::Operation{
     .kind = sim::api::memory::Operation::Kind::data,
     .effectful = false,
 };
-QSharedPointer<const builtins::Book> book() {
+QSharedPointer<const builtins::Book> book(builtins::Registry& reg) {
   QString bookName = "Computer Systems, 6th Edition";
 
-  auto reg = builtins::Registry(nullptr);
   auto book = reg.findBook(bookName);
   return book;
 }
@@ -111,9 +110,9 @@ private slots:
     QFETCH(QString, input);
     QFETCH(QByteArray, output);
     QFETCH(bool, isBM);
-
+    auto bookReg = builtins::Registry(nullptr);
     // Load book contents, macros.
-    auto bookPtr = book();
+    auto bookPtr = book(bookReg);
     auto reg = registry(bookPtr, {});
     auto elf = pas::obj::pep10::createElf();
     assemble(*elf, os, {.pep = userPep, .pepo = userPepo}, reg);
@@ -171,8 +170,8 @@ private slots:
     QTest::addColumn<QString>("input");
     QTest::addColumn<QByteArray>("output");
     QTest::addColumn<bool>("isBM");
-
-    auto bookPtr = book();
+    auto bookReg = builtins::Registry(nullptr);
+    auto bookPtr = book(bookReg);
     auto figures = bookPtr->figures();
     for (auto &figure : figures) {
       if (!figure->typesafeElements().contains("pep") &&

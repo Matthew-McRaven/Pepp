@@ -18,34 +18,18 @@
 #include "./parse.hpp"
 #include <tuple>
 
-#include <boost/fusion/include/adapt_struct.hpp>
-#include <boost/fusion/include/io.hpp>
-#include <boost/phoenix/core.hpp>
-#include <boost/phoenix/object.hpp>
-#include <boost/phoenix/operator.hpp>
-#include <boost/spirit/include/qi.hpp>
+// This is a hack to get around QT using keywords such as emit.
+#undef emit
 
-#include <iostream>
+#include "antlr4-runtime.h"
 
-namespace detail {
-namespace qi = boost::spirit::qi;
-namespace ascii = boost::spirit::ascii;
+#include "detail/MacroLexer.h"
+#include "detail/MacroLexerErrorListener.h"
+#include "detail/MacroParser.h"
 
-struct macro {
-  std::string name = {};
-  int arg_count = {0};
-};
-template <typename Iterator>
-struct macro_parser : qi::grammar<Iterator, macro(), ascii::space_type> {
-  macro_parser() : macro_parser::base_type(start) {
-    start %=
-        qi::no_skip["@"] >> qi::no_skip[+(qi::char_ - qi::space)] >> qi::int_;
-  }
-  qi::rule<Iterator, macro(), ascii::space_type> start;
-};
-}; // namespace detail
-
-BOOST_FUSION_ADAPT_STRUCT(::detail::macro, (std::string, name)(int, arg_count))
+using namespace antlr4;
+using namespace macro;
+using namespace macro::detail;
 
 std::tuple<bool, QString, quint8>
 macro::analyze_macro_definition(QString macro_text) {
@@ -71,19 +55,25 @@ macro::analyze_macro_definition(QString macro_text) {
    * @deci 2 ;My comment
    *
    */
-  auto as_std = macro_text.toUtf8().toStdString();
-  std::string first_line = as_std.substr(0, as_std.find("\n"));
-  detail::macro macro;
-  using boost::spirit::ascii::space;
-  using iterator_type = std::string::const_iterator;
-  using macro_parser = detail::macro_parser<iterator_type>;
-  macro_parser g;
-  auto cbegin = first_line.cbegin();
-  bool r = boost::spirit::qi::phrase_parse(cbegin, first_line.cend(), g,
-                                           boost::spirit::ascii::space, macro);
-  // If we failed, or if we did not consume the entire input, fail.
-  if (!r || cbegin != first_line.cend()) {
-    return {false, "", 0};
-  }
-  return {true, QString::fromStdString(macro.name), macro.arg_count};
+  // Append a newline to ensure that our find operation always succeds.
+  auto as_std = macro_text.toUtf8().toStdString()+"\n";
+  // Include the newline in the text we pass to the lexer to make our grammar simpler.
+  std::string text = as_std.substr(0, as_std.find("\n")+1);
+  ANTLRInputStream input(text);
+  MacroLexer lexer(&input);
+  // Remove listener that writes to stderr.
+  lexer.removeErrorListeners();
+  MacroLexerErrorListener listener{};
+  lexer.addErrorListener(&listener);
+
+  CommonTokenStream tokens(&lexer);
+  MacroParser parser(&tokens);
+  auto *tree = parser.decl();
+  if(listener.hadError()) return {false, QString(), 0};
+  // Strip ampersand to be left with macro name as identifier.
+  auto name = QString::fromStdString(tree->AT_IDENTIFIER()->getText()).replace("@", "");
+  bool arg_convert = true;
+  auto arg_count = QString ::fromStdString(tree->UNSIGNED_DECIMAL()->getText()).toInt(&arg_convert, 10);
+
+  return {arg_convert, name, arg_count};
 }
