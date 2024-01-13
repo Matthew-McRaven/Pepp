@@ -40,19 +40,21 @@ We would like you to use clang-format with the LLVM style.
 
 # Commit Message Guidelines
 
-We follow the angular projects [commit conventions](https://gitlab.com/pep10/pepsuite/-/snippets/2238987).
+We follow the angular projects [commit conventions](https://gist.github.com/Matthew-McRaven/8f7d042c99786083ad7653dbc925f45f).
 
 However, we have our own custom scopes:
-* **bin** if modifying bin
+* **bin** if modifying bin/
 * **asm.pas** if modifying logic/asm/pas
 * **asm.sym** if modifying logic/asm/symbol
 * **bits** if modifying logic/bits
+* **help.about** if modifying logic/help/about
 * **help.bi** if modifying logic/help/builtins
-* **help.macro** if modifying logic/help/macro
+* **macro** if modifying logic/macro
 * **isa** if modifying logic/isa
 * **obj** if modifying logic/obj
 * **sim** if modifying logic/sim
 * **targets** if modifying logic/targets
 * **ui** if modifying ui
+* **3rd-party** if modifying 3rd-party modules
 
 Please note that older commits may have different scopes, due to re-organization of the project.
