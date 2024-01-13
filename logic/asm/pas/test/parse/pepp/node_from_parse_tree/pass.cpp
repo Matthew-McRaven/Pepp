@@ -245,10 +245,10 @@ TEST_CASE("Pepp AST conversion, passing", "[parse]") {
         using namespace pas::parse::pepp;
         std::vector<pas::parse::pepp::LineType> result;
         bool success = true;
-        REQUIRE_NOTHROW([&]() {
+        REQUIRE_NOTHROW([&](auto input) {
             success =
                 parse(input.begin(), input.end(), pas::parse::pepp::line, result);
-        }());
+        }(input));
         CHECK(success);
         REQUIRE(result.size() == 1);
         auto visit = pas::parse::pepp::FromParseTree<isa::Pep10>();
