@@ -9,7 +9,7 @@ namespace parse {
 
 class  PeppLexerErrorListener : public antlr4::ANTLRErrorListener {
 
-    bool _hadError;
+    bool _hadError = false;
 public:
     bool hadError();
     void syntaxError(antlr4::Recognizer *recognizer, antlr4::Token *offendingSymbol, size_t line, size_t charPositionInLine, const std::string &msg, std::exception_ptr e);
