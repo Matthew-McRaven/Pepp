@@ -458,7 +458,7 @@ void parse::PeppASTConverter::burn(QSharedPointer<pas::ast::Node> node, PeppPars
     else if (arg->requiredBytes() > 2)
         addError(node, {.severity = S::Fatal, .message = errorFromWordString(arg)});
     else if (node->has<generic::SymbolDeclaration>())
-        addError(node, {.severity = S::Fatal, .message = EP::noDefineSymbol.arg("BURN")});
+        addError(node, {.severity = S::Fatal, .message = EP::noDefineSymbol.arg(".BURN")});
     else
         node->set(generic::Argument{.value = arg});
 
@@ -489,7 +489,7 @@ void parse::PeppASTConverter::end(QSharedPointer<pas::ast::Node> node, PeppParse
     if(_lineInfo.arguments.size() != 0)
         addError(node, {.severity = S::Fatal, .message = EP::expectNArguments.arg(0)});
     else if (node->has<generic::SymbolDeclaration>())
-        addError(node, {.severity = S::Fatal, .message = EP::noDefineSymbol.arg("END")});
+        addError(node, {.severity = S::Fatal, .message = EP::noDefineSymbol.arg(".END")});
 }
 
 void parse::PeppASTConverter::equate(QSharedPointer<pas::ast::Node> node, PeppParser::DirectiveLineContext *context)
@@ -531,7 +531,7 @@ void parse::PeppASTConverter::input(QSharedPointer<pas::ast::Node> node, PeppPar
 
 void parse::PeppASTConverter::output(QSharedPointer<pas::ast::Node> node, PeppParser::DirectiveLineContext *context)
 {
-    io_scall_helper(node, context, "EXPORT");
+    io_scall_helper(node, context, "OUTPUT");
 }
 
 void parse::PeppASTConverter::org(QSharedPointer<pas::ast::Node> node, PeppParser::DirectiveLineContext *context)
@@ -569,7 +569,7 @@ void parse::PeppASTConverter::section(QSharedPointer<pas::ast::Node> node, PeppP
     if (!arg->isText())
         addError(node, {.severity = S::Fatal,.message = EP::dotRequiresString.arg(u".SECTION"_qs)});
     else if (node->has<generic::SymbolDeclaration>())
-        addError(node, {.severity = S::Fatal, .message = EP::noDefineSymbol.arg("SECTION")});
+        addError(node, {.severity = S::Fatal, .message = EP::noDefineSymbol.arg(".SECTION")});
     else if (_lineInfo.arguments.size() == 2) {
         auto flagArg = _lineInfo.arguments[1];
         if (!flagArg->isText())
@@ -616,7 +616,7 @@ void parse::PeppASTConverter::io_scall_helper(QSharedPointer<pas::ast::Node> nod
     if (auto as_sym = dynamic_cast<value::Symbolic *>(arg.data()); as_sym == nullptr)
         addError(node, {.severity = S::Fatal, .message = EP::expectedSymbolic});
     else if (node->has<generic::SymbolDeclaration>())
-        addError(node, {.severity = S::Fatal, .message = EP::noDefineSymbol.arg(name)});
+        addError(node, {.severity = S::Fatal, .message = EP::noDefineSymbol.arg("."+name)});
     else
         node->set(generic::Argument{.value = arg});
 }

@@ -58,7 +58,7 @@ pas::parse::pepp::detail::gen_io_scall_extern(const DirectiveType &line,
   // Triggers when you put a symbol on the line.
   if (!line.symbol.empty())
     return addError(ret, {.severity = S::Fatal,
-                          .message = EP::noDefineSymbol.arg(directive)});
+                          .message = EP::noDefineSymbol.arg("."+directive)});
 
   if (line.hasComment)
     ret->set(generic::Comment{.value = QString::fromStdString(line.comment)});
@@ -178,7 +178,7 @@ pas::parse::pepp::detail::burn(const DirectiveType &line, ST symTab) {
   // Triggers when you define a symbol.
   if (!line.symbol.empty())
     return addError(
-        ret, {.severity = S::Fatal, .message = EP::noDefineSymbol.arg("BURN")});
+        ret, {.severity = S::Fatal, .message = EP::noDefineSymbol.arg(".BURN")});
   if (line.hasComment)
     ret->set(generic::Comment{.value = QString::fromStdString(line.comment)});
   return ret;
