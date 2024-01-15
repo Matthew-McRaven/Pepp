@@ -81,7 +81,7 @@ bool detail::AsmHelper::assemble() {
       {{_os, {.isOS = true}}}};
   if (_user)
     targets.push_back({*_user, {.isOS = false}});
-  auto pipeline = pas::driver::pep10::pipeline(targets, _reg);
+  auto pipeline = pas::driver::pep10::pipeline<pas::driver::BoostParserTag>(targets, _reg);
   auto result = pipeline->assemble(pas::driver::pep10::Stage::End);
 
   auto osTarget = pipeline->pipelines[0].first;

@@ -19,6 +19,11 @@
 #include "./common.hpp"
 #include "asm/pas/pas_globals.hpp"
 
+#include "asm/pas/driver/pepp.hpp"
+#include "isa/pep10.hpp"
+#include "macro/registry.hpp"
+#include "asm/pas/operations/generic/include_macros.hpp"
+
 namespace pas::driver::pep10 {
 Q_NAMESPACE_EXPORT(PAS_EXPORT)
 enum class Stage {
@@ -35,18 +40,38 @@ enum class Stage {
 };
 Q_ENUM_NS(Stage);
 
-class PAS_EXPORT TransformParse : public driver::Transform<Stage> {
+
+template <typename ParserTag>
+class TransformParse : public driver::Transform<Stage> {
 public:
   bool operator()(QSharedPointer<Globals>,
-                  QSharedPointer<pas::driver::Target<Stage>> target) override;
-  Stage toStage() override;
+                  QSharedPointer<pas::driver::Target<Stage>> target) override {
+      auto source = target->bodies[repr::Source::name];
+      auto body = source.value<repr::Source>().value;
+      auto parser = pas::driver::pepp::createParser<isa::Pep10, pas::driver::BoostParserTag>(false);
+      auto parsed = parser(body, nullptr);
+      target->bodies[repr::Nodes::name] =
+          QVariant::fromValue(repr::Nodes{.value = parsed.root});
+      // FIX: Remove when CI bug is fixed.
+      if (parsed.hadError) {
+          qWarning() << parsed.errors;
+      }
+      return !parsed.hadError;
+  }
+  Stage toStage() override {return Stage::IncludeMacros;}
 };
 
-class PAS_EXPORT TransformIncludeMacros : public driver::Transform<Stage> {
+template <typename ParserTag>
+class TransformIncludeMacros : public driver::Transform<Stage> {
 public:
-  bool operator()(QSharedPointer<Globals>,
-                  QSharedPointer<pas::driver::Target<Stage>> target) override;
-  Stage toStage() override;
+  bool operator()(QSharedPointer<Globals> globals,
+                  QSharedPointer<pas::driver::Target<Stage>> target) override {
+      auto root = target->bodies[repr::Nodes::name].value<repr::Nodes>().value;
+      return pas::ops::generic::includeMacros(
+          *root, pas::driver::pepp::createParser<isa::Pep10, pas::driver::BoostParserTag>(true),
+          globals->macroRegistry);
+  }
+  Stage toStage() override {return Stage::FlattenMacros;}
 };
 
 class PAS_EXPORT TransformFlattenMacros : public driver::Transform<Stage> {
@@ -103,11 +128,48 @@ struct PAS_EXPORT TargetDefinition {
   QString body;
   Stage to = Stage::Start;
 };
-// Returns a single target's stages
-QPair<QSharedPointer<Target<Stage>>, QList<QSharedPointer<Transform<Stage>>>>
-PAS_EXPORT stages(QString body, Features feats);
 
+// Returns a single target's stages
+template <typename ParserTag>
+QPair<QSharedPointer<Target<Stage>>, QList<QSharedPointer<Transform<Stage>>>>
+stages(QString body, Features feats){
+    auto target = QSharedPointer<Target<Stage>>::create();
+    target->stage = Stage::Start;
+    target->kind =
+        feats.isOS ? Target<Stage>::Kind::OS : Target<Stage>::Kind::User;
+    target->symbolTable = QSharedPointer<symbol::Table>::create(2);
+    target->bodies[repr::Source::name] =
+        QVariant::fromValue(repr::Source{.value = body});
+
+    QList<QSharedPointer<Transform<Stage>>> pipe;
+    pipe.push_back(QSharedPointer<TransformParse<ParserTag>>::create());
+    pipe.push_back(QSharedPointer<TransformIncludeMacros<ParserTag>>::create());
+    pipe.push_back(QSharedPointer<TransformFlattenMacros>::create());
+    pipe.push_back(QSharedPointer<TransformGroup>::create());
+    pipe.push_back(QSharedPointer<TransformRegisterExports>::create());
+    pipe.push_back(QSharedPointer<TransformAssignAddresses>::create());
+
+    auto wps = QSharedPointer<TransformWholeProgramSanity>::create();
+    wps->isOS = feats.isOS;
+    wps->ignoreUndefinedSymbols = feats.ignoreUndefinedSymbols;
+    pipe.push_back(wps);
+
+    return {target, pipe};
+}
+
+template <typename ParserTag>
 QSharedPointer<driver::Pipeline<Stage>>
-PAS_EXPORT pipeline(QList<QPair<QString, Features>> targets,
-         QSharedPointer<macro::Registry> registry = nullptr);
+pipeline(QList<QPair<QString, Features>> targets,
+                    QSharedPointer<macro::Registry> registry = nullptr) {
+
+    auto ret = QSharedPointer<Pipeline<Stage>>::create();
+    ret->globals = QSharedPointer<Globals>::create();
+    if (registry)
+        ret->globals->macroRegistry = registry;
+    else
+        ret->globals->macroRegistry = QSharedPointer<macro::Registry>::create();
+    for (auto &[body, feats] : targets)
+        ret->pipelines.push_back(stages<ParserTag>(body, feats));
+    return ret;
+}
 } // namespace pas::driver::pep10

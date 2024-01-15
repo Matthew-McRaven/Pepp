@@ -34,6 +34,10 @@ class Node;
 }
 
 namespace pas::driver {
+
+struct PAS_EXPORT BoostParserTag{};
+struct PAS_EXPORT ANTLRParserTag{};
+
 struct PAS_EXPORT ParseResult {
   bool hadError;
   QSharedPointer<pas::ast::Node> root;

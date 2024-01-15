@@ -31,7 +31,7 @@ private slots:
     QFETCH(QString, source);
     QFETCH(QStringList, listing);
     auto parsed =
-        pas::driver::pepp::createParser<isa::Pep10>(false)(source, nullptr);
+        pas::driver::pepp::createParser<isa::Pep10, pas::driver::BoostParserTag>(false)(source, nullptr);
     auto str = parsed.errors.join("\n").toStdString();
     QVERIFY2(!parsed.hadError, str.data());
     pas::ops::generic::groupSections(*parsed.root,

@@ -43,7 +43,7 @@ void AssemblyManger::onAssemble() {
   auto os = _active->defaultOS();
   auto osBody = os->typesafeElements()["pep"]->contents;
 
-  auto pipe = pas::driver::pep10::pipeline(
+  auto pipe = pas::driver::pep10::pipeline<pas::driver::BoostParserTag>(
       {{osBody, {.isOS = true}}, {userBody, {.isOS = false}}}, registry);
 
   Q_ASSERT(pipe->assemble(pas::driver::pep10::Stage::End));

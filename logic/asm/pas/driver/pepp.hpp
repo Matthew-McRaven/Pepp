@@ -28,7 +28,7 @@
 
 namespace pas::driver::pepp {
 
-template <typename ISA>
+template <typename ISA, typename ParserTag>
 std::function<ParseResult(QString, QSharedPointer<ast::Node>)>
 createParser(bool hideEnd) {
   return [hideEnd](QString text, QSharedPointer<ast::Node> parent) {
