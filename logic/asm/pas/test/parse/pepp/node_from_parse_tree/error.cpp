@@ -42,6 +42,23 @@ const QString arg1 = E::expectNArguments.arg(1);
 const QString ascii = E::dotRequiresString.arg(".ASCII");
 const QString _end = E::noDefineSymbol.arg(".END");
 
+auto boost_parse = [](const auto input){
+    auto asStd = input.toStdString();
+    // Convert input string to parsed lines.
+    std::vector<pas::parse::pepp::LineType> result;
+    bool success = true;
+    auto current = asStd.begin();
+    REQUIRE_NOTHROW([&]() {
+        success = parse(current, asStd.end(), pas::parse::pepp::line, result);
+    }());
+    // Partial parse failure
+    REQUIRE(current == asStd.end());
+    // Failed to parse.
+    REQUIRE(success);
+
+    return pas::parse::pepp::toAST<isa::Pep10>(result);
+};
+
 TEST_CASE("Pepp AST conversion, failing", "[parse]") {
     //  Message that return variables need to be converted to string for compare
     //  to work.
@@ -204,20 +221,7 @@ TEST_CASE("Pepp AST conversion, failing", "[parse]") {
 
     }));
     DYNAMIC_SECTION("visitor parsing for " << name) {
-        auto asStd = input.toStdString();
-        // Convert input string to parsed lines.
-        std::vector<pas::parse::pepp::LineType> result;
-        bool success = true;
-        auto current = asStd.begin();
-        REQUIRE_NOTHROW([&]() {
-            success = parse(current, asStd.end(), pas::parse::pepp::line, result);
-        }());
-        // Partial parse failure
-        REQUIRE(current == asStd.end());
-        // Failed to parse.
-        REQUIRE(success);
-
-        auto root = pas::parse::pepp::toAST<isa::Pep10>(result);
+        auto root = boost_parse(input);
         auto visit = pas::ops::generic::CollectErrors();
         pas::ast::apply_recurse<void>(*root, visit);
         auto actualErrors = visit.errors;
@@ -232,7 +236,7 @@ TEST_CASE("Pepp AST conversion, failing", "[parse]") {
      DYNAMIC_SECTION("driver parsing for " << name) {
         auto asStd = input.toStdString();
 
-        auto pipeline = pas::driver::pep10::stages(input, {.isOS = false});
+        auto pipeline = pas::driver::pep10::stages<pas::driver::BoostParserTag>(input, {.isOS = false});
         auto pipelines = pas::driver::Pipeline<pas::driver::pep10::Stage>{};
         pipelines.pipelines.push_back(pipeline);
         REQUIRE(!pipelines.assemble(pas::driver::pep10::Stage::Parse));
