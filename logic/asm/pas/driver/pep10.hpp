@@ -52,10 +52,6 @@ public:
       auto parsed = parser(body, nullptr);
       target->bodies[repr::Nodes::name] =
           QVariant::fromValue(repr::Nodes{.value = parsed.root});
-      // FIX: Remove when CI bug is fixed.
-      if (parsed.hadError) {
-          qWarning() << parsed.errors;
-      }
       return !parsed.hadError;
   }
   Stage toStage() override {return Stage::IncludeMacros;}
