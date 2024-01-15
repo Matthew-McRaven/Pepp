@@ -173,15 +173,12 @@ std::any parse::PeppASTConverter::visitInstructionLine(PeppParser::InstructionLi
 
     // BUG: instr will remain uninitialized if mnemonic is PLACEHOLDER_MACRO and the invalid
     // mnemonic path is removed.
-    ISA::Mnemonic instr;
-    if(_lineInfo.identifier.has_value()) {
-        instr = ISA::parseMnemonic(QString::fromStdString(*_lineInfo.identifier));
+    ISA::Mnemonic instr = ISA::parseMnemonic(QString::fromStdString(*_lineInfo.identifier));
+    if(instr != ISA::Mnemonic::INVALID)
         ret->set(pepp::Instruction<isa::Pep10>{.value = instr});
-    } else {
-        return addError(ret,
-                        {.severity = S::Fatal,
-                         .message = EP::invalidMnemonic});
-    }
+    else
+        return addError(ret,{.severity = S::Fatal, .message = EP::invalidMnemonic});
+
 
     // If there are arguments, insert them into AST after check that args are <= 2 bytes.
     if(_lineInfo.arguments.size() == 1) {
