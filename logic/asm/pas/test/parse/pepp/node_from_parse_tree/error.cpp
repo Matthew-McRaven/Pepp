@@ -26,6 +26,15 @@
 #include "asm/pas/operations/generic/errors.hpp"
 #include "asm/pas/parse/pepp/rules_lines.hpp"
 
+#undef emit
+#include "asm/parse/PeppLexer.h"
+#include "asm/parse/PeppParser.h"
+#include "asm/parse/PeppLexerErrorListener.h"
+#include "asm/pas/parse/pepp/PeppASTConverter.h"
+
+using namespace antlr4;
+using namespace parse;
+
 using SourceLocation = pas::ast::generic::SourceLocation;
 using Message = pas::ast::generic::Message;
 using Severity = pas::ast::generic::Message::Severity;
@@ -42,24 +51,54 @@ const QString arg1 = E::expectNArguments.arg(1);
 const QString ascii = E::dotRequiresString.arg(".ASCII");
 const QString _end = E::noDefineSymbol.arg(".END");
 
-auto boost_parse = [](const auto input){
-    auto asStd = input.toStdString();
-    // Convert input string to parsed lines.
-    std::vector<pas::parse::pepp::LineType> result;
-    bool success = true;
-    auto current = asStd.begin();
-    REQUIRE_NOTHROW([&]() {
-        success = parse(current, asStd.end(), pas::parse::pepp::line, result);
-    }());
-    // Partial parse failure
-    REQUIRE(current == asStd.end());
-    // Failed to parse.
-    REQUIRE(success);
-
-    return pas::parse::pepp::toAST<isa::Pep10>(result);
+template <typename ParserTag>
+struct MyHelper {
+    QSharedPointer<pas::ast::Node> operator()(const QString& asQString){return nullptr;};
+    static std::string name() {return "";};
 };
 
-TEST_CASE("Pepp AST conversion, failing", "[parse]") {
+template <>
+struct MyHelper<pas::driver::BoostParserTag> {
+    QSharedPointer<pas::ast::Node> operator()(const QString& asQString){
+        auto input = asQString.toStdString();
+        // Convert input string to parsed lines.
+        std::vector<pas::parse::pepp::LineType> result;
+        bool success = true;
+        auto current = input.begin();
+        REQUIRE_NOTHROW([&]() {
+            success = boost::spirit::x3::parse(current, input.end(), pas::parse::pepp::line, result);
+        }());
+        // Partial parse failure
+        REQUIRE(current == input.end());
+        // Failed to parse.
+        REQUIRE(success);
+
+        return pas::parse::pepp::toAST<isa::Pep10>(result);
+    };
+    static std::string name() {return "Boost";};
+};
+
+template <>
+struct MyHelper<pas::driver::ANTLRParserTag> {
+    QSharedPointer<pas::ast::Node> operator()(const QString& asQString){
+        auto input = asQString.toStdString();
+        ANTLRInputStream input_stream(input);
+        PeppLexer lexer(&input_stream);
+        CommonTokenStream tokens(&lexer);
+        PeppLexerErrorListener listener{};
+        lexer.addErrorListener(&listener);
+        PeppParser parser(&tokens);
+        auto *tree = parser.prog();
+        REQUIRE(!listener.hadError());
+        PeppASTConverter converter;
+        auto ret = converter.visit(tree);
+        return std::any_cast<QSharedPointer<pas::ast::Node>>(ret);
+    };
+    static std::string name() {return "ANTLR4";};
+};
+
+
+TEMPLATE_TEST_CASE("Pepp AST conversion, failing", "[parse]", pas::driver::ANTLRParserTag, pas::driver::BoostParserTag) {
     //  Message that return variables need to be converted to string for compare
     //  to work.
 
@@ -220,23 +259,26 @@ TEST_CASE("Pepp AST conversion, failing", "[parse]") {
         //  strTooLong2
 
     }));
-    DYNAMIC_SECTION("visitor parsing for " << name) {
-        auto root = boost_parse(input);
+    DYNAMIC_SECTION("visitor parsing for " << name << " using " << MyHelper<TestType>::name()) {
+        auto root = MyHelper<TestType>()(input);
         auto visit = pas::ops::generic::CollectErrors();
         pas::ast::apply_recurse<void>(*root, visit);
         auto actualErrors = visit.errors;
         for (int it = 0; it < qMin(errors.size(), actualErrors.size()); it++) {
-            REQUIRE(errors[it].first ==actualErrors[it].first);
+            REQUIRE(errors[it].first == actualErrors[it].first);
+            if (errors[it].second.message != actualErrors[it].second.message) {
+                std::cerr << errors[it].second.message.toStdString() << " != " << actualErrors[it].second.message.toStdString() << std::endl;
+            }
             REQUIRE(errors[it].second.message == actualErrors[it].second.message);
             REQUIRE(errors[it].second.severity == actualErrors[it].second.severity);
         }
         REQUIRE(errors.size() == actualErrors.size());
     }
 
-     DYNAMIC_SECTION("driver parsing for " << name) {
+    DYNAMIC_SECTION("driver parsing for " << name << " using " << MyHelper<TestType>::name()) {
         auto asStd = input.toStdString();
 
-        auto pipeline = pas::driver::pep10::stages<pas::driver::BoostParserTag>(input, {.isOS = false});
+        auto pipeline = pas::driver::pep10::stages<TestType>(input, {.isOS = false});
         auto pipelines = pas::driver::Pipeline<pas::driver::pep10::Stage>{};
         pipelines.pipelines.push_back(pipeline);
         REQUIRE(!pipelines.assemble(pas::driver::pep10::Stage::Parse));
