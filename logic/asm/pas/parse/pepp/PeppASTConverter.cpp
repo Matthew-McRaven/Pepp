@@ -1,6 +1,7 @@
 #include "PeppASTConverter.h"
 
 #include "asm/pas/ast/generic/attr_argument.hpp"
+#include "asm/pas/ast/generic/attr_location.hpp"
 #include "asm/pas/ast/generic/attr_macro.hpp"
 #include "asm/pas/ast/node.hpp"
 #include "asm/pas/ast/generic/attr_comment.hpp"
@@ -79,8 +80,11 @@ std::any parse::PeppASTConverter::visitProg(PeppParser::ProgContext *context)
             lineHadContents = false;
         } else {
             lineHadContents = true;
-            auto ret = this->visit(child);
-            addChild(*parent, std::any_cast<QSharedPointer<Node>>(ret));
+            auto node = std::any_cast<QSharedPointer<Node>>(this->visit(child));
+            // Our internal line number is 0-indexed, and ANTLR4 is 1-indexed.
+            auto line = (qsizetype) context->start->getLine() - 1;
+            node->set(generic::SourceLocation{.value = {.line = line, .valid = true}});
+            addChild(*parent, node);
         }
     }
     if(lineHadContents) addBlank(parent);
