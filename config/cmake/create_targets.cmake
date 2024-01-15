@@ -51,7 +51,7 @@ function(make_target)
   # Ensure target type is set, default to public
   if(("TYPE" IN_LIST MK_KEYWORDS_MISSING_VALUES) OR (NOT DEFINED MK_TYPE))
       message(WARNING "TYPE not defined for target ${MK_TARGET}")
-      set(TYPE "PUBLIC")
+      set(MK_TYPE "PUBLIC")
   endif()
 
   # PUBLIC is not a valid visibility for libraries, so must exclude that TYPE.
@@ -85,15 +85,21 @@ endfunction()
 # Helper to make a PUBLIC library with cpp sources.
 function(make_library)
     set(options TEST_IN_QTC)
-    set(oneValueArgs TARGET)
+    set(oneValueArgs TARGET TYPE)
     # SOURCES and DEPENDS work as above.
     # TESTS should be a list of standalone CPP files that can be compiled into a test executable
     # These tests will be linked against the target library,  QTest, and and additional TEST_DEPENDS libraries.
     set(multiValueArgs SOURCES DEPENDS TESTS TEST_DEPENDS)
     cmake_parse_arguments(ML "${options}" "${oneValueArgs}" "${multiValueArgs}" ${ARGN} )
+
+    # Ensure target type is set, default to public
+    if(("TYPE" IN_LIST ML_KEYWORDS_MISSING_VALUES) OR (NOT DEFINED ML_TYPE))
+        set(ML_TYPE "PUBLIC")
+    endif()
+
     make_target(
         TARGET "${ML_TARGET}"
-        TYPE "PUBLIC"
+        TYPE ${ML_TYPE}
         SOURCES ${ML_SOURCES}
         DEPENDS ${ML_DEPENDS}
     )
