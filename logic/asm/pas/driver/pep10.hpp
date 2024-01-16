@@ -64,7 +64,7 @@ public:
                   QSharedPointer<pas::driver::Target<Stage>> target) override {
       auto root = target->bodies[repr::Nodes::name].value<repr::Nodes>().value;
       return pas::ops::generic::includeMacros(
-          *root, pas::driver::pepp::createParser<isa::Pep10, pas::driver::BoostParserTag>(true),
+          *root, pas::driver::pepp::createParser<isa::Pep10, ParserTag>(true),
           globals->macroRegistry);
   }
   Stage toStage() override {return Stage::FlattenMacros;}
