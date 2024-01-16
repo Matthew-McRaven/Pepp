@@ -11,4 +11,3 @@ make_library(
   TEST_DEPENDS builtins targets catch
   TEST_IN_QTC
 )
-target_include_directories(pas PUBLIC ${Boost_INCLUDE_DIR})
