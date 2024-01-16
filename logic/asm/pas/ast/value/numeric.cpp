@@ -37,6 +37,12 @@ void pas::ast::value::Numeric::value(bits::span<quint8> dest,
 
 quint64 pas::ast::value::Numeric::size() const { return _size; }
 
+bool pas::ast::value::Numeric::resize(quint64 size)
+{
+    _size = size;
+    return true;
+}
+
 quint64 pas::ast::value::Numeric::requiredBytes() const {
   return ceil(log2(_value + 1) / 8);
 }
