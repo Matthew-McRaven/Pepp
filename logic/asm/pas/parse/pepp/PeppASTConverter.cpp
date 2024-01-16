@@ -79,7 +79,9 @@ std::any parse::PeppASTConverter::visitProg(PeppParser::ProgContext *context)
             else if(!lineHadContents && token->getType() == PeppParser::NEWLINE) addBlank(parent);
             lineHadContents = false;
         } else {
-            lineHadContents = true;
+            // Disable until we remove old Boost parser. Leave if() below, so that we insert a blank line
+            // when there are only blanks in the file.
+            lineHadContents = false; //true;
             auto node = std::any_cast<QSharedPointer<Node>>(this->visit(child));
             // Our internal line number is 0-indexed, and ANTLR4 is 1-indexed.
             auto line = (qsizetype) context->start->getLine() - 1;
