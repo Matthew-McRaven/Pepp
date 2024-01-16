@@ -9,7 +9,7 @@ make_library(
   TARGET parse
   TYPE "OBJECT"
   SOURCES ${sources}
-  DEPENDS Qt6::Core antlr4_shared
+  DEPENDS Qt6::Core antlr4_static
   TESTS ${tests}
   TEST_IN_QTC
   TEST_DEPENDS catch
@@ -17,5 +17,5 @@ make_library(
 
 
 # Will fail to find hpp files without this, see https://bugreports.qt.io/browse/QTBUG-101146.
-get_target_property(ANTLR4_INCLUDE_DIR antlr4_shared INCLUDE_DIRECTORIES)
+get_target_property(ANTLR4_INCLUDE_DIR antlr4_static INCLUDE_DIRECTORIES)
 target_include_directories(parse PUBLIC ${CMAKE_CURRENT_BINARY_DIR} ${ANTLR4_INCLUDE_DIR})

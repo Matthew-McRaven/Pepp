@@ -1,6 +1,6 @@
 option(ANTLR_BUILD_CPP_TESTS "Build C++ tests." ON)
 option(TRACE_ATN "Trace ATN simulation" OFF)
-option(ANTLR_BUILD_SHARED "Build the shared library of the ANTLR runtime" ON)
+option(ANTLR_BUILD_SHARED "Build the shared library of the ANTLR runtime" OFF)
 option(ANTLR_BUILD_STATIC "Build the static library of the ANTLR runtime" ON)
 
 if (NOT ANTLR_BUILD_SHARED AND NOT ANTLR_BUILD_STATIC)
