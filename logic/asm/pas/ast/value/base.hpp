@@ -42,13 +42,11 @@ public:
                      bits::Order destEndian = bits::Order::BigEndian) const = 0;
   // Size and requiredBytes may mismatch if size<8 and arg is bigger than
   // 2**(8*size). e.g. size=2, arg=0x1_0000
-  virtual quint64
-  size() const = 0; // Number of bytes to be allocated in the bitstream.
-  virtual quint64
-  requiredBytes() const = 0; // Minimum number of bytes to represent value
+  virtual quint64 size() const = 0; // Number of bytes to be allocated in the bitstream.
+  virtual bool resize(quint64 size) = 0; // Change the number of bytes allocated in the bitstream.
+  virtual quint64 requiredBytes() const = 0; // Minimum number of bytes to represent value
   virtual QString string() const = 0;
-  virtual QString
-  rawString() const = 0; // like string(), except without quotation marks.
+  virtual QString rawString() const = 0; // like string(), except without quotation marks.
 
 protected:
   Base(const Base &other) = delete;

@@ -65,7 +65,7 @@ private slots:
     auto registry = QSharedPointer<macro::Registry>::create();
     QSharedPointer<pas::ast::Node> root;
     if (useDriver) {
-      auto pipeline = pas::driver::pep10::stages(input, {.isOS = false});
+      auto pipeline = pas::driver::pep10::stages<pas::driver::ANTLRParserTag>(input, {.isOS = false});
       auto pipelines = pas::driver::Pipeline<pas::driver::pep10::Stage>{};
       pipelines.pipelines.push_back(pipeline);
       pipelines.globals = QSharedPointer<pas::driver::Globals>::create();
@@ -85,7 +85,7 @@ private slots:
                  .value<pas::driver::repr::Nodes>()
                  .value;
     } else {
-      auto parseRoot = pas::driver::pepp::createParser<isa::Pep10>(false);
+      auto parseRoot = pas::driver::pepp::createParser<isa::Pep10, pas::driver::ANTLRParserTag>(false);
       auto res = parseRoot(input, nullptr);
       QVERIFY(!res.hadError);
       QCOMPARE(pas::ops::pepp::registerSystemCalls(*res.root, registry),

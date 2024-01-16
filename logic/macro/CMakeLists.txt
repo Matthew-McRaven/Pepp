@@ -6,7 +6,10 @@ list(REMOVE_ITEM sources ${tests})
 make_library(
   TARGET macro
   SOURCES ${sources}
-  DEPENDS Qt6::Core
+  DEPENDS Qt6::Core antlr4_shared
   TESTS ${tests}
 )
-target_include_directories(macro PUBLIC ${Boost_INCLUDE_DIR})
+
+# Will fail to find hpp files without this, see https://bugreports.qt.io/browse/QTBUG-101146.
+get_target_property(ANTLR4_INCLUDE_DIR antlr4_shared INCLUDE_DIRECTORIES)
+target_include_directories(macro PUBLIC ${CMAKE_CURRENT_BINARY_DIR} ${ANTLR4_INCLUDE_DIR})

@@ -44,6 +44,11 @@ void pas::ast::value::Identifier::value(bits::span<quint8> dest,
 
 quint64 pas::ast::value::Identifier::size() const { return 0; }
 
+bool pas::ast::value::Identifier::resize(quint64 size)
+{
+    return false;
+}
+
 quint64 pas::ast::value::Identifier::requiredBytes() const { return 0; }
 
 QString pas::ast::value::Identifier::string() const { return _value; }

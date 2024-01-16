@@ -59,7 +59,13 @@ void pas::ast::value::Character::value(bits::span<quint8> dest,
 }
 
 quint64 pas::ast::value::Character::size() const {
-  return _valueAsBytes.size();
+    return _valueAsBytes.size();
+}
+
+bool pas::ast::value::Character::resize(quint64 size)
+{
+    _valueAsBytes.resize(size, 0);
+    return true;
 }
 
 quint64 pas::ast::value::Character::requiredBytes() const {

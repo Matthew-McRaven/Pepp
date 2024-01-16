@@ -60,7 +60,12 @@ void pas::ast::value::Symbolic::value(bits::span<quint8> dest,
 }
 
 quint64 pas::ast::value::Symbolic::size() const {
-  return _value->value->value().byteCount;
+    return _value->value->value().byteCount;
+}
+
+bool pas::ast::value::Symbolic::resize(quint64 size)
+{
+    return false;
 }
 
 quint64 pas::ast::value::Symbolic::requiredBytes() const {

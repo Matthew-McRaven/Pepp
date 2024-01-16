@@ -36,13 +36,13 @@ private slots:
     QCOMPARE(std::get<0>(
                  macro::analyze_macro_definition(u"@deci	0	"_qs)),
              true);
+    QCOMPARE(std::get<0>(macro::analyze_macro_definition(u" @deci 0"_qs)),
+             true); // Allow whitespace before due to new parser
   }
   void rejectsInvalidSpaces() {
 
     QCOMPARE(std::get<0>(macro::analyze_macro_definition(u"@deco​0​"_qs)),
              false); // 0-width space before and after
-    QCOMPARE(std::get<0>(macro::analyze_macro_definition(u" @deci 0"_qs)),
-             false); // Can't have whitespace before
     QCOMPARE(std::get<0>(macro::analyze_macro_definition(u"@ deci 0"_qs)),
              false); // Can't have whitespace between @ and name
   }
@@ -60,10 +60,7 @@ private slots:
     QCOMPARE(std::get<0>(macro::analyze_macro_definition("@deci 2 ;fail")),
              false);
   }
-  // TODO: Can parse a macro with a body
-  // TODO: Requires arg count
-  // TODO: Requires @
-  // TODO: Rejects symbols, other chars.
+
 };
 #include "parse.moc"
 

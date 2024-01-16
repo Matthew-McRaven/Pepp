@@ -24,7 +24,7 @@
 #include "asm/pas/operations/pepp/bytes.hpp"
 #include "asm/pas/operations/pepp/string.hpp"
 #include <iostream>
-#include "macro/parse.cpp"
+#include "macro/parse.hpp"
 
 QSharedPointer<const builtins::Book> detail::book(int ed) {
   QString bookName;
@@ -81,7 +81,7 @@ bool detail::AsmHelper::assemble() {
       {{_os, {.isOS = true}}}};
   if (_user)
     targets.push_back({*_user, {.isOS = false}});
-  auto pipeline = pas::driver::pep10::pipeline(targets, _reg);
+  auto pipeline = pas::driver::pep10::pipeline<pas::driver::ANTLRParserTag>(targets, _reg);
   auto result = pipeline->assemble(pas::driver::pep10::Stage::End);
 
   auto osTarget = pipeline->pipelines[0].first;

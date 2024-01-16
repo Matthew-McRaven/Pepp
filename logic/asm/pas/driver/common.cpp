@@ -17,6 +17,8 @@
 
 #include "./common.hpp"
 #include "asm/symbol/entry.hpp"
+#include "asm/symbol/table.hpp"
+
 bool pas::driver::Globals::contains(QString symbol) const {
   return table.contains(symbol);
 }

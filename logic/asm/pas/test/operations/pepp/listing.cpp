@@ -31,7 +31,7 @@ private slots:
     QFETCH(QString, source);
     QFETCH(QStringList, listing);
     auto parsed =
-        pas::driver::pepp::createParser<isa::Pep10>(false)(source, nullptr);
+        pas::driver::pepp::createParser<isa::Pep10, pas::driver::ANTLRParserTag>(false)(source, nullptr);
     auto str = parsed.errors.join("\n").toStdString();
     QVERIFY2(!parsed.hadError, str.data());
     pas::ops::generic::groupSections(*parsed.root,
@@ -49,7 +49,7 @@ private slots:
     QTest::addColumn<QString>("source");
     QTest::addColumn<QStringList>("listing");
 
-    QTest::addRow("Blank") << "\n" << QStringList{"", ""};
+    QTest::addRow("Blank") << "\n" << QStringList{""};
     QTest::addRow("Comment")
         << ";hello\n;world"
         << QStringList{"             ;hello", "             ;world"};

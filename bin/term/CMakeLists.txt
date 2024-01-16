@@ -1,11 +1,3 @@
-# See: https://github.com/BoostGSoC14/boost.http/pull/47/commits/21db2a954ee5e6b6e3fbc98b487047158073c33a
-# Must link against extra libs on windows for boost asio to work.
-list(APPEND SOCK_LIB "")
-if (MSVC OR MINGW)
-    list(APPEND SOCK_LIB ws2_32)
-    list(APPEND SOCK_LIB mswsock)
-endif ()
-
 file(GLOB_RECURSE sources_and_tests CONFIGURE_DEPENDS "${CMAKE_CURRENT_LIST_DIR}/*.cpp" "${CMAKE_CURRENT_LIST_DIR}/*.hpp")
 file(GLOB_RECURSE tests CONFIGURE_DEPENDS "${CMAKE_CURRENT_LIST_DIR}/test/*.cpp" "${CMAKE_CURRENT_LIST_DIR}/test/*.hpp")
 file(GLOB_RECURSE compile_tests CONFIGURE_DEPENDS "${CMAKE_CURRENT_LIST_DIR}/compile-test/*.cpp")
@@ -17,7 +9,7 @@ make_target(
   TARGET pepp-term
   TYPE "EXEC"
   SOURCES ${sources}
-  DEPENDS TextFlow cli about macro pas builtins isa targets sim Qt6::Core ${SOCK_LIB}
+  DEPENDS TextFlow cli about macro pas builtins isa targets sim Qt6::Core
 )
 
 
