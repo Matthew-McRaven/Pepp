@@ -68,6 +68,9 @@ std::any parse::PeppASTConverter::visitProg(PeppParser::ProgContext *context)
     // Initialize to true so that if the first line is an EOF that we emit one blank.
     bool lineHadContents = true;
     for(auto child : context->children) {
+    bool firstLine = true;
+    for(auto it =0; it < context->children.size(); it++) {
+        auto child = context->children[it];
         // Clear line-specific meta-info
         _lineInfo = {};
         // ret will only be empty if we immediately visited a terminal.
@@ -76,20 +79,19 @@ std::any parse::PeppASTConverter::visitProg(PeppParser::ProgContext *context)
             auto typedChild = antlrcpp::downCast<antlr4::tree::TerminalNode*>(child);
             auto token = typedChild->getSymbol();
             if(token->getType() == PeppParser::EOF) break;
-            else if(!lineHadContents && token->getType() == PeppParser::NEWLINE) addBlank(parent);
-            lineHadContents = false;
+            else if(token->getType() == PeppParser::NEWLINE) addBlank(parent);
         } else {
-            // Disable until we remove old Boost parser. Leave if() below, so that we insert a blank line
-            // when there are only blanks in the file.
-            lineHadContents = false; //true;
             auto node = std::any_cast<QSharedPointer<Node>>(this->visit(child));
             // Our internal line number is 0-indexed, and ANTLR4 is 1-indexed.
             auto line = (qsizetype) context->start->getLine() - 1;
             node->set(generic::SourceLocation{.value = {.line = line, .valid = true}});
             addChild(*parent, node);
+            // Eat the newline or EOF that always follows an expression.
+            it++;
         }
+        firstLine = false;
     }
-    if(lineHadContents) addBlank(parent);
+    if(firstLine) addBlank(parent);
     return parent;
 }
 
