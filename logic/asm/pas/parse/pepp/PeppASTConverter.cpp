@@ -479,8 +479,10 @@ void parse::PeppASTConverter::byte(QSharedPointer<pas::ast::Node> node, PeppPars
         addError(node,{.severity = S::Fatal, .message = EP::expectedNumeric});
     else if (arg->requiredBytes() > 1)
         addError(node, {.severity = S::Fatal, .message = errorFromByteString(arg)});
-    else
+    else {
+        arg->resize(1);
         node->set(generic::Argument{.value = arg});
+    }
 }
 
 void parse::PeppASTConverter::end(QSharedPointer<pas::ast::Node> node, PeppParser::DirectiveLineContext *context)
