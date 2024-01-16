@@ -18,7 +18,7 @@
 #pragma once
 #include "./common.hpp"
 #include "asm/pas/pas_globals.hpp"
-
+#include "asm/symbol/table.hpp"
 #include "asm/pas/driver/pepp.hpp"
 #include "isa/pep10.hpp"
 #include "macro/registry.hpp"

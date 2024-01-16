@@ -16,10 +16,13 @@
  */
 
 #include "asm/pas/operations/generic/link_globals.hpp"
+#include "asm/pas/ast/generic/attr_symbol.hpp"
 #include "isa/pep10.hpp"
 #include "asm/pas/driver/common.hpp"
 #include "asm/pas/driver/pepp.hpp"
 #include "asm/symbol/value.hpp"
+#include "asm/symbol/entry.hpp"
+#include "asm/symbol/table.hpp"
 #include <QObject>
 #include <QTest>
 

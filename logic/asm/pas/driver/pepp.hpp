@@ -20,8 +20,6 @@
 #include "asm/pas/ast/node.hpp"
 #include "asm/pas/driver/common.hpp"
 #include "asm/pas/operations/generic/errors.hpp"
-#include "asm/pas/parse/pepp/node_from_parse_tree.hpp"
-#include "asm/pas/parse/pepp/rules_lines.hpp"
 
 #include <QObject>
 #include <QtCore>
@@ -36,35 +34,6 @@ namespace detail {
 template <typename ParserTag, typename ISA>
 struct Helper {
     driver::ParseResult operator()(const std::string& input, QSharedPointer<ast::Node> parent, bool hideEnd){return {};};
-};
-
-template <typename ISA>
-struct Helper<ISA, pas::driver::BoostParserTag> {
-    driver::ParseResult operator()(const std::string& input, QSharedPointer<ast::Node> parent, bool hideEnd){
-        driver::ParseResult ret = {.hadError = false};
-        using namespace pas::parse::pepp;
-        std::vector<LineType> result;
-        auto current = input.begin();
-        auto previous = current;
-        bool success = true;
-        do {
-            previous = current;
-            success &= boost::spirit::x3::parse(current, input.end(),
-                                                pas::parse::pepp::line, result);
-        } while (previous != current && current != input.end());
-        if (current != input.end()) {
-            ret.hadError = true;
-            ret.errors.push_back(u"Partial parse failure"_qs);
-            return ret;
-        }
-        if (!success) {
-            ret.hadError = true;
-            ret.errors.push_back(u"Unspecified parse error."_qs);
-            return ret;
-        }
-        ret.root = pas::parse::pepp::toAST<ISA>(result, parent, hideEnd);
-        return ret;
-    };
 };
 
 driver::ParseResult antlr4_pep10(const std::string& input, QSharedPointer<ast::Node> parent, bool hideEnd);

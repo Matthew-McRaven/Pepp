@@ -91,12 +91,8 @@ private slots:
     // print out error messages before failing -- enables debugging broken
     // tests.
     if (!result) {
-      QStringList body = pas::ops::pepp::formatSource<isa::Pep10>(*root);
-      for (auto &line : body)
-        qCritical() << line;
-      qCritical() << "";
-
-      for (auto &error : pas::ops::generic::collectErrors(*root))
+      auto errors = pas::ops::generic::collectErrors(*root);
+      for (auto &error : errors)
         qCritical() << error.first.value.line << error.second.message;
     }
 
@@ -152,9 +148,6 @@ private slots:
                       .value<pas::driver::repr::Nodes>()
                       .value;
     if (pipeline->pipelines[0].first->stage != pas::driver::pep10::Stage::End) {
-      auto lines = pas::ops::pepp::formatListing<isa::Pep10>(*osRoot);
-      for (auto &line : lines)
-        qCritical() << line;
       for (auto &error : pas::ops::generic::collectErrors(*osRoot))
         qCritical() << "OS:   " << error.second.message;
       QVERIFY(false);

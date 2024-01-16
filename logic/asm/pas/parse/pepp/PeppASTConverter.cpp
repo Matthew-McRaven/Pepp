@@ -50,7 +50,6 @@ QString errorFromByteString(QSharedPointer<value::Base> arg) {
         return pas::errors::pepp::decTooBig1;
 }
 
-parse::PeppASTConverter::PeppASTConverter() {}
 
 void addBlank(QSharedPointer<Node> parent) {
     auto bl = QSharedPointer<Node>::create(generic::Type{.value = generic::Type::Blank});

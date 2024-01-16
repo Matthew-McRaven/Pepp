@@ -21,7 +21,7 @@ pas::driver::ParseResult pas::driver::pepp::detail::antlr4_pep10(const std::stri
     lexer.addErrorListener(&listener);
     ::parse::PeppParser parser(&tokens);
     auto *tree = parser.prog();
-    ::parse::PeppASTConverter converter;
+    ::parse::PeppASTConverter converter(parent);
     auto ast = converter.visit(tree);
     ret.root = std::any_cast<QSharedPointer<pas::ast::Node>>(ast);
     if(listener.hadError()) {

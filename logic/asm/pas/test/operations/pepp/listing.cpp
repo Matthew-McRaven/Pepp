@@ -49,7 +49,7 @@ private slots:
     QTest::addColumn<QString>("source");
     QTest::addColumn<QStringList>("listing");
 
-    QTest::addRow("Blank") << "\n" << QStringList{"", ""};
+    QTest::addRow("Blank") << "\n" << QStringList{""};
     QTest::addRow("Comment")
         << ";hello\n;world"
         << QStringList{"             ;hello", "             ;world"};

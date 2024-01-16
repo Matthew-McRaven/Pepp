@@ -218,7 +218,7 @@ private slots:
                                                                   nullptr);
     QVERIFY(!ret.hadError);
     auto children = ret.root->get<pas::ast::generic::Children>().value;
-    QCOMPARE(children.size(), 4);
+    QCOMPARE(children.size(), 3);
     for (auto &base : {0, 200, 0xfffe}) {
       QCOMPARE(explicitSize<isa::Pep10>(*ret.root, base, Direction::Forward),
                0);

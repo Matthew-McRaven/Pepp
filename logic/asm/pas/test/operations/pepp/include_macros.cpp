@@ -23,6 +23,7 @@
 #include "asm/pas/driver/pep10.hpp"
 #include "asm/pas/driver/pepp.hpp"
 #include "asm/pas/operations/generic/errors.hpp"
+#include "asm/pas/errors.hpp"
 #include <QObject>
 #include <QTest>
 

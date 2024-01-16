@@ -22,9 +22,7 @@
 #include "asm/pas/ast/generic/attr_location.hpp"
 #include "asm/pas/driver/pep10.hpp"
 #include "asm/pas/errors.hpp"
-#include "asm/pas/parse/pepp/node_from_parse_tree.hpp"
 #include "asm/pas/operations/generic/errors.hpp"
-#include "asm/pas/parse/pepp/rules_lines.hpp"
 
 #undef emit
 #include "asm/parse/PeppLexer.h"
@@ -58,27 +56,6 @@ struct MyHelper {
 };
 
 template <>
-struct MyHelper<pas::driver::BoostParserTag> {
-    QSharedPointer<pas::ast::Node> operator()(const QString& asQString){
-        auto input = asQString.toStdString();
-        // Convert input string to parsed lines.
-        std::vector<pas::parse::pepp::LineType> result;
-        bool success = true;
-        auto current = input.begin();
-        REQUIRE_NOTHROW([&]() {
-            success = boost::spirit::x3::parse(current, input.end(), pas::parse::pepp::line, result);
-        }());
-        // Partial parse failure
-        REQUIRE(current == input.end());
-        // Failed to parse.
-        REQUIRE(success);
-
-        return pas::parse::pepp::toAST<isa::Pep10>(result);
-    };
-    static std::string name() {return "Boost";};
-};
-
-template <>
 struct MyHelper<pas::driver::ANTLRParserTag> {
     QSharedPointer<pas::ast::Node> operator()(const QString& asQString){
         auto input = asQString.toStdString();
@@ -97,8 +74,7 @@ struct MyHelper<pas::driver::ANTLRParserTag> {
     static std::string name() {return "ANTLR4";};
 };
 
-
-TEMPLATE_TEST_CASE("Pepp AST conversion, failing", "[parse]", pas::driver::ANTLRParserTag, pas::driver::BoostParserTag) {
+TEST_CASE("Pepp AST conversion, failing", "[parse]") {
     //  Message that return variables need to be converted to string for compare
     //  to work.
 
@@ -259,8 +235,8 @@ TEMPLATE_TEST_CASE("Pepp AST conversion, failing", "[parse]", pas::driver::ANTLR
         //  strTooLong2
 
     }));
-    DYNAMIC_SECTION("visitor parsing for " << name << " using " << MyHelper<TestType>::name()) {
-        auto root = MyHelper<TestType>()(input);
+    DYNAMIC_SECTION("visitor parsing for " << name) {
+        auto root = MyHelper<pas::driver::ANTLRParserTag>()(input);
         auto visit = pas::ops::generic::CollectErrors();
         pas::ast::apply_recurse<void>(*root, visit);
         auto actualErrors = visit.errors;
@@ -275,10 +251,10 @@ TEMPLATE_TEST_CASE("Pepp AST conversion, failing", "[parse]", pas::driver::ANTLR
         REQUIRE(errors.size() == actualErrors.size());
     }
 
-    DYNAMIC_SECTION("driver parsing for " << name << " using " << MyHelper<TestType>::name()) {
+    DYNAMIC_SECTION("driver parsing for " << name) {
         auto asStd = input.toStdString();
 
-        auto pipeline = pas::driver::pep10::stages<TestType>(input, {.isOS = false});
+        auto pipeline = pas::driver::pep10::stages<pas::driver::ANTLRParserTag>(input, {.isOS = false});
         auto pipelines = pas::driver::Pipeline<pas::driver::pep10::Stage>{};
         pipelines.pipelines.push_back(pipeline);
         REQUIRE(!pipelines.assemble(pas::driver::pep10::Stage::Parse));

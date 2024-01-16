@@ -9,5 +9,6 @@ make_library(
   DEPENDS Qt6::Core bits elfio symbol macro isa obj parse
   TESTS ${tests}
   TEST_DEPENDS builtins targets catch
+  TEST_IN_QTC
 )
 target_include_directories(pas PUBLIC ${Boost_INCLUDE_DIR})

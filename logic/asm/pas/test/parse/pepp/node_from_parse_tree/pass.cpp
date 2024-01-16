@@ -18,14 +18,13 @@
 #include <catch.hpp>
 #include "antlr4-runtime.h"
 
+#include "asm/pas/ast/generic/attr_symbol.hpp"
 #include "asm/pas/parse/pepp/PeppASTConverter.h"
 #include "isa/pep10.hpp"
 #include "asm/pas/driver/pep10.hpp"
 #include "asm/pas/operations/generic/errors.hpp"
 #include "asm/pas/operations/generic/is.hpp"
 #include "asm/pas/operations/pepp/is.hpp"
-#include "asm/pas/parse/pepp/node_from_parse_tree.hpp"
-#include "asm/pas/parse/pepp/rules_lines.hpp"
 
 
 #include "asm/parse/PeppLexer.h"
@@ -115,25 +114,6 @@ struct MyHelper {
 };
 
 template <>
-struct MyHelper<pas::driver::BoostParserTag> {
-    QSharedPointer<pas::ast::Node> operator()(const std::string& input){
-        // Convert input string to parsed lines.
-        std::vector<pas::parse::pepp::LineType> result;
-        bool success = true;
-        auto current = input.begin();
-        REQUIRE_NOTHROW([&]() {
-            success = boost::spirit::x3::parse(current, input.end(), pas::parse::pepp::line, result);
-        }());
-        // Partial parse failure
-        REQUIRE(current == input.end());
-        // Failed to parse.
-        REQUIRE(success);
-
-        return pas::parse::pepp::toAST<isa::Pep10>(result);
-    };
-};
-
-template <>
 struct MyHelper<pas::driver::ANTLRParserTag> {
     QSharedPointer<pas::ast::Node> operator()(const std::string& input){
         ANTLRInputStream input_stream(input);
@@ -152,7 +132,7 @@ struct MyHelper<pas::driver::ANTLRParserTag> {
 
 using pas::ast::Node;
 
-TEMPLATE_TEST_CASE("Pepp AST conversion, passing", "[parse]", pas::driver::ANTLRParserTag, pas::driver::BoostParserTag) {
+TEST_CASE("Pepp AST conversion, passing", "[parse]") {
 
     auto [name, input, fn, symbol] = GENERATE(table<std::string, std::string, QSharedPointer<pas::ops::ConstOp<bool>>, bool>({
 
@@ -290,7 +270,7 @@ TEMPLATE_TEST_CASE("Pepp AST conversion, passing", "[parse]", pas::driver::ANTLR
         {"@macro: hex", "@op 0x10", isMacro, false},
     }));
     DYNAMIC_SECTION("visitor parsing for " << name) {
-        auto root = MyHelper<TestType>()(input);
+        auto root = MyHelper<pas::driver::ANTLRParserTag>()(input);
 
         REQUIRE(root);
         auto firstChild = pas::ast::children(*root).at(0);
@@ -304,7 +284,7 @@ TEMPLATE_TEST_CASE("Pepp AST conversion, passing", "[parse]", pas::driver::ANTLR
         REQUIRE(symbol == firstChild->template has<pas::ast::generic::SymbolDeclaration>());
     }
     DYNAMIC_SECTION("driver parsing for " << name) {
-        auto pipeline = pas::driver::pep10::stages<TestType>(QString::fromStdString(input), {.isOS = false});
+        auto pipeline = pas::driver::pep10::stages<pas::driver::ANTLRParserTag>(QString::fromStdString(input), {.isOS = false});
         auto pipelines = pas::driver::Pipeline<pas::driver::pep10::Stage>{};
         pipelines.pipelines.push_back(pipeline);
         CHECK(pipelines.assemble(pas::driver::pep10::Stage::Parse));
