@@ -42,11 +42,14 @@ public:
   virtual void enterDirectiveLine(PeppParser::DirectiveLineContext * /*ctx*/) override { }
   virtual void exitDirectiveLine(PeppParser::DirectiveLineContext * /*ctx*/) override { }
 
-  virtual void enterMacroLine(PeppParser::MacroLineContext * /*ctx*/) override { }
-  virtual void exitMacroLine(PeppParser::MacroLineContext * /*ctx*/) override { }
+  virtual void enterMacroInvokeLine(PeppParser::MacroInvokeLineContext * /*ctx*/) override { }
+  virtual void exitMacroInvokeLine(PeppParser::MacroInvokeLineContext * /*ctx*/) override { }
 
   virtual void enterCommentLine(PeppParser::CommentLineContext * /*ctx*/) override { }
   virtual void exitCommentLine(PeppParser::CommentLineContext * /*ctx*/) override { }
+
+  virtual void enterDeferredLine(PeppParser::DeferredLineContext * /*ctx*/) override { }
+  virtual void exitDeferredLine(PeppParser::DeferredLineContext * /*ctx*/) override { }
 
   virtual void enterArgument(PeppParser::ArgumentContext * /*ctx*/) override { }
   virtual void exitArgument(PeppParser::ArgumentContext * /*ctx*/) override { }

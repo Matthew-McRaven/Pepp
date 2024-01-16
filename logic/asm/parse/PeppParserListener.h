@@ -40,11 +40,14 @@ public:
   virtual void enterDirectiveLine(PeppParser::DirectiveLineContext *ctx) = 0;
   virtual void exitDirectiveLine(PeppParser::DirectiveLineContext *ctx) = 0;
 
-  virtual void enterMacroLine(PeppParser::MacroLineContext *ctx) = 0;
-  virtual void exitMacroLine(PeppParser::MacroLineContext *ctx) = 0;
+  virtual void enterMacroInvokeLine(PeppParser::MacroInvokeLineContext *ctx) = 0;
+  virtual void exitMacroInvokeLine(PeppParser::MacroInvokeLineContext *ctx) = 0;
 
   virtual void enterCommentLine(PeppParser::CommentLineContext *ctx) = 0;
   virtual void exitCommentLine(PeppParser::CommentLineContext *ctx) = 0;
+
+  virtual void enterDeferredLine(PeppParser::DeferredLineContext *ctx) = 0;
+  virtual void exitDeferredLine(PeppParser::DeferredLineContext *ctx) = 0;
 
   virtual void enterArgument(PeppParser::ArgumentContext *ctx) = 0;
   virtual void exitArgument(PeppParser::ArgumentContext *ctx) = 0;

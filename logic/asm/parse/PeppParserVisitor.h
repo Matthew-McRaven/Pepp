@@ -36,9 +36,11 @@ public:
 
     virtual std::any visitDirectiveLine(PeppParser::DirectiveLineContext *context) = 0;
 
-    virtual std::any visitMacroLine(PeppParser::MacroLineContext *context) = 0;
+    virtual std::any visitMacroInvokeLine(PeppParser::MacroInvokeLineContext *context) = 0;
 
     virtual std::any visitCommentLine(PeppParser::CommentLineContext *context) = 0;
+
+    virtual std::any visitDeferredLine(PeppParser::DeferredLineContext *context) = 0;
 
     virtual std::any visitArgument(PeppParser::ArgumentContext *context) = 0;
 

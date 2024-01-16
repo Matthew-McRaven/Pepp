@@ -36,6 +36,8 @@ void single_line(std::string text, std::string output) {
     PeppLexerErrorListener listener{};
     lexer.addErrorListener(&listener);
     PeppParser parser(&tokens);
+    // Test cases includ macro symbols, macro identifiers. Macro expansion must be deferred.
+    parser.allow_deferred_macros = true;
     auto *tree = parser.prog();
     REQUIRE(!listener.hadError());
     REQUIRE(output == tree->toStringTree(&parser));

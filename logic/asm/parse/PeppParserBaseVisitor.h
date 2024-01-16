@@ -49,11 +49,15 @@ public:
     return visitChildren(ctx);
   }
 
-  virtual std::any visitMacroLine(PeppParser::MacroLineContext *ctx) override {
+  virtual std::any visitMacroInvokeLine(PeppParser::MacroInvokeLineContext *ctx) override {
     return visitChildren(ctx);
   }
 
   virtual std::any visitCommentLine(PeppParser::CommentLineContext *ctx) override {
+    return visitChildren(ctx);
+  }
+
+  virtual std::any visitDeferredLine(PeppParser::DeferredLineContext *ctx) override {
     return visitChildren(ctx);
   }
 

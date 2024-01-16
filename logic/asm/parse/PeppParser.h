@@ -41,7 +41,10 @@ public:
   antlr4::atn::SerializedATNView getSerializedATN() const override;
 
 
-  bool allow_macros = 1;
+  bool allow_macro_invocations = 1;
+  // If true, the AST is expected to perform macro substitutions, which may require re-parsing some lines.
+  // If false, macros require a pre-processor to perform macro substitution.
+  bool allow_deferred_macros = 0;
 
 
   class ProgContext;
@@ -89,12 +92,11 @@ public:
   public:
     NonUnaryInstructionContext(InstructionContext *ctx);
 
-    ArgumentContext *argument();
     std::vector<antlr4::tree::TerminalNode *> IDENTIFIER();
     antlr4::tree::TerminalNode* IDENTIFIER(size_t i);
-    std::vector<antlr4::tree::TerminalNode *> PLACEHOLDER_MACRO();
-    antlr4::tree::TerminalNode* PLACEHOLDER_MACRO(size_t i);
+    ArgumentContext *argument();
     antlr4::tree::TerminalNode *COMMA();
+    antlr4::tree::TerminalNode *PLACEHOLDER_MACRO();
     virtual void enterRule(antlr4::tree::ParseTreeListener *listener) override;
     virtual void exitRule(antlr4::tree::ParseTreeListener *listener) override;
 
@@ -106,7 +108,6 @@ public:
     UnaryInstructionContext(InstructionContext *ctx);
 
     antlr4::tree::TerminalNode *IDENTIFIER();
-    antlr4::tree::TerminalNode *PLACEHOLDER_MACRO();
     virtual void enterRule(antlr4::tree::ParseTreeListener *listener) override;
     virtual void exitRule(antlr4::tree::ParseTreeListener *listener) override;
 
@@ -176,6 +177,19 @@ public:
    
   };
 
+  class  MacroInvokeLineContext : public StatContext {
+  public:
+    MacroInvokeLineContext(StatContext *ctx);
+
+    Invoke_macroContext *invoke_macro();
+    SymbolContext *symbol();
+    antlr4::tree::TerminalNode *COMMENT();
+    virtual void enterRule(antlr4::tree::ParseTreeListener *listener) override;
+    virtual void exitRule(antlr4::tree::ParseTreeListener *listener) override;
+
+    virtual std::any accept(antlr4::tree::ParseTreeVisitor *visitor) override;
+  };
+
   class  CommentLineContext : public StatContext {
   public:
     CommentLineContext(StatContext *ctx);
@@ -201,11 +215,11 @@ public:
     virtual std::any accept(antlr4::tree::ParseTreeVisitor *visitor) override;
   };
 
-  class  MacroLineContext : public StatContext {
+  class  DirectiveLineContext : public StatContext {
   public:
-    MacroLineContext(StatContext *ctx);
+    DirectiveLineContext(StatContext *ctx);
 
-    Invoke_macroContext *invoke_macro();
+    DirectiveContext *directive();
     SymbolContext *symbol();
     antlr4::tree::TerminalNode *COMMENT();
     virtual void enterRule(antlr4::tree::ParseTreeListener *listener) override;
@@ -214,12 +228,13 @@ public:
     virtual std::any accept(antlr4::tree::ParseTreeVisitor *visitor) override;
   };
 
-  class  DirectiveLineContext : public StatContext {
+  class  DeferredLineContext : public StatContext {
   public:
-    DirectiveLineContext(StatContext *ctx);
+    DeferredLineContext(StatContext *ctx);
 
-    DirectiveContext *directive();
+    antlr4::tree::TerminalNode *PLACEHOLDER_MACRO();
     SymbolContext *symbol();
+    Argument_listContext *argument_list();
     antlr4::tree::TerminalNode *COMMENT();
     virtual void enterRule(antlr4::tree::ParseTreeListener *listener) override;
     virtual void exitRule(antlr4::tree::ParseTreeListener *listener) override;
@@ -272,7 +287,9 @@ public:
   bool sempred(antlr4::RuleContext *_localctx, size_t ruleIndex, size_t predicateIndex) override;
 
   bool progSempred(ProgContext *_localctx, size_t predicateIndex);
+  bool symbolSempred(SymbolContext *_localctx, size_t predicateIndex);
   bool statSempred(StatContext *_localctx, size_t predicateIndex);
+  bool argumentSempred(ArgumentContext *_localctx, size_t predicateIndex);
 
   // By default the static state used to implement the parser is lazily initialized during the first
   // call to the constructor. You can call this function if you wish to initialize the static state

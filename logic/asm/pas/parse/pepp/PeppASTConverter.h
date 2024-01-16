@@ -35,7 +35,7 @@ public:
     std::any visitSymbol(PeppParser::SymbolContext *context) override;
     std::any visitInstructionLine(PeppParser::InstructionLineContext *context) override;
     std::any visitDirectiveLine(PeppParser::DirectiveLineContext *context) override;
-    std::any visitMacroLine(PeppParser::MacroLineContext *context) override;
+    std::any visitMacroInvokeLine(PeppParser::MacroInvokeLineContext *context) override;
     std::any visitCommentLine(PeppParser::CommentLineContext *context) override;
     std::any visitArgument(PeppParser::ArgumentContext *context) override;
     std::any visitArgument_list(PeppParser::Argument_listContext *context) override;

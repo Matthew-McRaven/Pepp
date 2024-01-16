@@ -293,7 +293,7 @@ std::any parse::PeppASTConverter::visitDirectiveLine(PeppParser::DirectiveLineCo
     return ret;
 }
 
-std::any parse::PeppASTConverter::visitMacroLine(PeppParser::MacroLineContext *context)
+std::any parse::PeppASTConverter::visitMacroInvokeLine(PeppParser::MacroInvokeLineContext *context)
 {
     using S = pas::ast::generic::Message::Severity;
     namespace EP = pas::errors::pepp;
