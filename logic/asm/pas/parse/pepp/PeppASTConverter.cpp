@@ -294,7 +294,7 @@ std::any parse::PeppASTConverter::visitMacroLine(PeppParser::MacroLineContext *c
 
     auto ret = QSharedPointer<Node>::create(Type{.value = Type::MacroInvoke});
     auto identifier = *_lineInfo.identifier;
-    auto asQString = QString::fromStdString(identifier).toUpper();
+    auto asQString = QString::fromStdString(identifier);
     generic::Macro macro = {.value = asQString};
     ret->set(macro);
 
