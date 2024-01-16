@@ -72,7 +72,7 @@ void assemble(ELFIO::elfio &elf, QString os, User user,
       {os, {.isOS = true}}};
   if (!user.pep.isEmpty())
     targets.push_back({user.pep, {.isOS = false}});
-  auto pipeline = pas::driver::pep10::pipeline(targets, reg);
+  auto pipeline = pas::driver::pep10::pipeline<pas::driver::ANTLRParserTag>(targets, reg);
   auto result = pipeline->assemble(pas::driver::pep10::Stage::End);
   QVERIFY(result);
 

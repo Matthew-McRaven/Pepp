@@ -7,6 +7,7 @@ list(REMOVE_ITEM sources ${tests})
 
 make_library(
   TARGET parse
+  TYPE "OBJECT"
   SOURCES ${sources}
   DEPENDS Qt6::Core antlr4_shared
   TESTS ${tests}

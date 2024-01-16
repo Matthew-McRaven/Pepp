@@ -16,15 +16,23 @@
  */
 
 #include <catch.hpp>
+#include "antlr4-runtime.h"
 
+#include "asm/pas/ast/generic/attr_symbol.hpp"
+#include "asm/pas/parse/pepp/PeppASTConverter.h"
 #include "isa/pep10.hpp"
 #include "asm/pas/driver/pep10.hpp"
 #include "asm/pas/operations/generic/errors.hpp"
 #include "asm/pas/operations/generic/is.hpp"
 #include "asm/pas/operations/pepp/is.hpp"
-#include "asm/pas/parse/pepp/node_from_parse_tree.hpp"
-#include "asm/pas/parse/pepp/rules_lines.hpp"
 
+
+#include "asm/parse/PeppLexer.h"
+#include "asm/parse/PeppParser.h"
+#include "asm/parse/PeppLexerErrorListener.h"
+
+using namespace antlr4;
+using namespace parse;
 
 // Declare all matchers as globals, so they don't fall out of scope in data fn.
 // Must manually type erase, since QTest can;'t figure this out on its own.
@@ -100,11 +108,34 @@ QSharedPointer<pas::ops::ConstOp<bool>> isWord = []() {
   return ret;
 }();
 
+template <typename ParserTag>
+struct MyHelper {
+    QSharedPointer<pas::ast::Node> operator()(const std::string& input){return nullptr;};
+};
+
+template <>
+struct MyHelper<pas::driver::ANTLRParserTag> {
+    QSharedPointer<pas::ast::Node> operator()(const std::string& input){
+        ANTLRInputStream input_stream(input);
+        PeppLexer lexer(&input_stream);
+        CommonTokenStream tokens(&lexer);
+        PeppLexerErrorListener listener{};
+        lexer.addErrorListener(&listener);
+        PeppParser parser(&tokens);
+        auto *tree = parser.prog();
+        REQUIRE(!listener.hadError());
+        PeppASTConverter converter;
+        auto ret = converter.visit(tree);
+        return std::any_cast<QSharedPointer<pas::ast::Node>>(ret);
+    };
+};
+
 using pas::ast::Node;
 
 TEST_CASE("Pepp AST conversion, passing", "[parse]") {
 
     auto [name, input, fn, symbol] = GENERATE(table<std::string, std::string, QSharedPointer<pas::ops::ConstOp<bool>>, bool>({
+
         // Blank lines
         {"Blank: no spaces", "", isBlank, false},
         {"Blank: spaces", " \t", isBlank, false},
@@ -112,7 +143,6 @@ TEST_CASE("Pepp AST conversion, passing", "[parse]") {
         // Comment lines
         {"Comment: no spaces", ";magic", isComment, false},
         {"Comment: spaces", " \t;magic", isComment, false},
-
         /*
          * Unary instructions
          */
@@ -168,11 +198,9 @@ TEST_CASE("Pepp AST conversion, passing", "[parse]") {
         {".ASCII: mixed case", ".AsCiI \"h\"", isASCII, false},
         {".ASCII: symbol", "s:.ASCII \"s\"", isASCII, true},
         {".ASCII: comment", ".ASCII \"s\";s", isASCII, false},
-        // {".ASCII: character", ".ascii 'a'", isASCII },
-        {".ASCII: short string"
-         , ".ASCII \"hi\"", isASCII, false},
-        {".ASCII: long string"
-         , ".ASCII \"hello\"", isASCII, false},
+        {".ASCII: character", ".ascii 'a'", isASCII, false },
+        {".ASCII: short string", ".ASCII \"hi\"", isASCII, false},
+        {".ASCII: long string", ".ASCII \"hello\"", isASCII, false},
         // BLOCK
         {".BLOCK: mixed case", ".BlOcK 10", isBlock, false},
         {".BLOCK: symbol", "s:.BLOCK 10", isBlock, true},
@@ -181,8 +209,8 @@ TEST_CASE("Pepp AST conversion, passing", "[parse]") {
         {".BLOCK: symbolic", ".BLOCK hi", isBlock, false},
         // TODO: No signed.
         // BURN
-        {".BYTE: mixed case", ".BuRn 0x10", isBurn, false},
-        {".BYTE: comment", ".BURN 0x10;10", isBurn, false},
+        {".BURN: mixed case", ".BuRn 0x10", isBurn, false},
+        {".BURN: comment", ".BURN 0x10;10", isBurn, false},
         // BYTE
         {".BYTE: mixed case", ".ByTe 10", isByte, false},
         {".BYTE: symbol", "s:.BYTE 10", isByte, true},
@@ -195,7 +223,7 @@ TEST_CASE("Pepp AST conversion, passing", "[parse]") {
         {".END: mixed case", ".EnD", isEnd, false},
         {".END: comment", ".END ;hi", isEnd, false},
         // EQUATE
-        {".EQUATE: mixed case", "s:.EQUATE 10", isEquate, true},
+        {".EQUATE: mixed case", "s:.EqUATE 10", isEquate, true},
         {".EQUATE: comment", "s:.EQUATE 10;10", isEquate, true},
         {".EQUATE: hex", "s:.EQUATE 0x10", isEquate, true},
         {".EQUATE: symbolic", "s:.EQUATE hi", isEquate, true},
@@ -242,29 +270,21 @@ TEST_CASE("Pepp AST conversion, passing", "[parse]") {
         {"@macro: hex", "@op 0x10", isMacro, false},
     }));
     DYNAMIC_SECTION("visitor parsing for " << name) {
-        using namespace pas::parse::pepp;
-        std::vector<pas::parse::pepp::LineType> result;
-        bool success = true;
-        REQUIRE_NOTHROW([&](auto input) {
-            success =
-                parse(input.begin(), input.end(), pas::parse::pepp::line, result);
-        }(input));
-        CHECK(success);
-        REQUIRE(result.size() == 1);
-        auto visit = pas::parse::pepp::FromParseTree<isa::Pep10>();
-        visit.symTab = QSharedPointer<symbol::Table>::create(2);
-        QSharedPointer<Node> node;
-        REQUIRE_NOTHROW(
-            [&]() { node = result[0].apply_visitor(visit); }());
-        REQUIRE(node.data() != nullptr);
-        bool ret = node->apply_self(*fn);
-        REQUIRE(ret);
+        auto root = MyHelper<pas::driver::ANTLRParserTag>()(input);
+
+        REQUIRE(root);
+        auto firstChild = pas::ast::children(*root).at(0);
         // Passing tests must not generate errors
-        REQUIRE(!node->has<pas::ast::generic::Error>());
-        REQUIRE(symbol == node->has<pas::ast::generic::SymbolDeclaration>());
+        if(firstChild->template has<pas::ast::generic::Error>()) {
+            auto visit = pas::ops::generic::CollectErrors();
+            pas::ast::apply_recurse<void>(*root, visit);
+            for(const auto& err: visit.errors) std::cerr << err.second.message.toStdString() << std::endl;
+        }
+        REQUIRE(!firstChild->template has<pas::ast::generic::Error>());
+        REQUIRE(symbol == firstChild->template has<pas::ast::generic::SymbolDeclaration>());
     }
     DYNAMIC_SECTION("driver parsing for " << name) {
-        auto pipeline = pas::driver::pep10::stages(QString::fromStdString(input), {.isOS = false});
+        auto pipeline = pas::driver::pep10::stages<pas::driver::ANTLRParserTag>(QString::fromStdString(input), {.isOS = false});
         auto pipelines = pas::driver::Pipeline<pas::driver::pep10::Stage>{};
         pipelines.pipelines.push_back(pipeline);
         CHECK(pipelines.assemble(pas::driver::pep10::Stage::Parse));

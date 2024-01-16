@@ -62,6 +62,11 @@ void pas::ast::value::ShortString::value(bits::span<quint8> dest,
 
 quint64 pas::ast::value::ShortString::size() const { return _size; }
 
+bool pas::ast::value::ShortString::resize(quint64 size)
+{
+    return false;
+}
+
 quint64 pas::ast::value::ShortString::requiredBytes() const { return _size; }
 
 QString pas::ast::value::ShortString::string() const {
@@ -109,7 +114,12 @@ void pas::ast::value::LongString::value(bits::span<quint8> dest,
 }
 
 quint64 pas::ast::value::LongString::size() const {
-  return _valueAsBytes.size();
+    return _valueAsBytes.size();
+}
+
+bool pas::ast::value::LongString::resize(quint64 size)
+{
+    return false;
 }
 
 quint64 pas::ast::value::LongString::requiredBytes() const {

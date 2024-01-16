@@ -41,6 +41,7 @@ public:
   void value(bits::span<quint8> dest,
              bits::Order targetEndian = bits::hostOrder()) const override;
   quint64 size() const override;
+  bool resize(quint64 size) override;
   quint64 requiredBytes() const override;
   virtual QString string() const override = 0;
 

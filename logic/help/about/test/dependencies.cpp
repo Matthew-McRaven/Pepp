@@ -7,7 +7,7 @@ class About_Dependencies : public QObject {
 private slots:
   void smoke() {
     auto deps = about::dependencies();
-    QCOMPARE(deps.length(), 9);
+    QCOMPARE(deps.length(), 8);
     for (const auto &dep : deps)
       QCOMPARE_NE(dep.licenseText.size(), 0);
   }

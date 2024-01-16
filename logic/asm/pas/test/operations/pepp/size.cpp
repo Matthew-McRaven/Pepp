@@ -33,7 +33,7 @@ private slots:
   void unary() {
     QString body = "rola\nrolx";
     auto ret =
-        pas::driver::pepp::createParser<isa::Pep10>(false)(body, nullptr);
+        pas::driver::pepp::createParser<isa::Pep10, pas::driver::ANTLRParserTag>(false)(body, nullptr);
     QVERIFY(!ret.hadError);
     auto children = ret.root->get<pas::ast::generic::Children>().value;
     QCOMPARE(children.size(), 2);
@@ -47,7 +47,7 @@ private slots:
   void nonUnary() {
     QString body = "ldwa n,x\nstwa n,x";
     auto ret =
-        pas::driver::pepp::createParser<isa::Pep10>(false)(body, nullptr);
+        pas::driver::pepp::createParser<isa::Pep10, pas::driver::ANTLRParserTag>(false)(body, nullptr);
     QVERIFY(!ret.hadError);
     auto children = ret.root->get<pas::ast::generic::Children>().value;
     QCOMPARE(children.size(), 2);
@@ -60,7 +60,7 @@ private slots:
   }
   void size0Directives() {
     QFETCH(QString, body);
-    auto ret = pas::driver::pepp::createParser<isa::Pep10>(false)(
+    auto ret = pas::driver::pepp::createParser<isa::Pep10, pas::driver::ANTLRParserTag>(false)(
         u"%1 s"_qs.arg(body), nullptr);
     QVERIFY(!ret.hadError);
     auto children = ret.root->get<pas::ast::generic::Children>().value;
@@ -81,7 +81,7 @@ private slots:
   }
   void ascii() {
     QFETCH(QString, arg);
-    auto ret = pas::driver::pepp::createParser<isa::Pep10>(false)(
+    auto ret = pas::driver::pepp::createParser<isa::Pep10, pas::driver::ANTLRParserTag>(false)(
         u".ASCII \"%1\""_qs.arg(arg), nullptr);
     QVERIFY(!ret.hadError);
     auto children = ret.root->get<pas::ast::generic::Children>().value;
@@ -110,7 +110,7 @@ private slots:
   void align() {
     QFETCH(qsizetype, align);
     QFETCH(qsizetype, base);
-    auto ret = pas::driver::pepp::createParser<isa::Pep10>(false)(
+    auto ret = pas::driver::pepp::createParser<isa::Pep10, pas::driver::ANTLRParserTag>(false)(
         u".ALIGN %1"_qs.arg(align), nullptr);
     QVERIFY(!ret.hadError);
     auto children = ret.root->get<pas::ast::generic::Children>().value;
@@ -149,7 +149,7 @@ private slots:
 
   void block() {
     QFETCH(qsizetype, count);
-    auto ret = pas::driver::pepp::createParser<isa::Pep10>(false)(
+    auto ret = pas::driver::pepp::createParser<isa::Pep10, pas::driver::ANTLRParserTag>(false)(
         u".BLOCK %1"_qs.arg(count), nullptr);
     QVERIFY(!ret.hadError);
     auto children = ret.root->get<pas::ast::generic::Children>().value;
@@ -171,7 +171,7 @@ private slots:
   }
 
   void wordSize() {
-    auto ret = pas::driver::pepp::createParser<isa::Pep10>(false)(
+    auto ret = pas::driver::pepp::createParser<isa::Pep10, pas::driver::ANTLRParserTag>(false)(
         u".WORD 0\n .WORD 1\n.WORD 0xFFFF"_qs, nullptr);
     QVERIFY(!ret.hadError);
     auto children = ret.root->get<pas::ast::generic::Children>().value;
@@ -185,7 +185,7 @@ private slots:
   }
 
   void byteSize() {
-    auto ret = pas::driver::pepp::createParser<isa::Pep10>(false)(
+    auto ret = pas::driver::pepp::createParser<isa::Pep10, pas::driver::ANTLRParserTag>(false)(
         u".BYTE 0\n .BYTE 1\n.BYTE 0xFF"_qs, nullptr);
     QVERIFY(!ret.hadError);
     auto children = ret.root->get<pas::ast::generic::Children>().value;
@@ -203,22 +203,22 @@ private slots:
     auto macro = QSharedPointer<macro::Parsed>::create(
         u"alpha"_qs, 0, u".BYTE 1\n.WORD 2"_qs, u"pep/10"_qs);
     registry->registerMacro(macro::types::Core, macro);
-    auto parseRoot = pas::driver::pepp::createParser<isa::Pep10>(false);
+    auto parseRoot = pas::driver::pepp::createParser<isa::Pep10, pas::driver::ANTLRParserTag>(false);
     auto res = parseRoot(u"@alpha\n.END"_qs, nullptr);
     QVERIFY(!res.hadError);
     auto ret = pas::ops::generic::includeMacros(
-        *res.root, pas::driver::pepp::createParser<isa::Pep10>(true), registry);
+        *res.root, pas::driver::pepp::createParser<isa::Pep10, pas::driver::ANTLRParserTag>(true), registry);
     QVERIFY(ret);
     QCOMPARE(explicitSize<isa::Pep10>(*res.root, 0, Direction::Forward), 3);
     QCOMPARE(explicitSize<isa::Pep10>(*res.root, 0, Direction::Backward), 3);
   }
 
   void empty() {
-    auto ret = pas::driver::pepp::createParser<isa::Pep10>(false)(u"\n\n\n"_qs,
+    auto ret = pas::driver::pepp::createParser<isa::Pep10, pas::driver::ANTLRParserTag>(false)(u"\n\n\n"_qs,
                                                                   nullptr);
     QVERIFY(!ret.hadError);
     auto children = ret.root->get<pas::ast::generic::Children>().value;
-    QCOMPARE(children.size(), 4);
+    QCOMPARE(children.size(), 3);
     for (auto &base : {0, 200, 0xfffe}) {
       QCOMPARE(explicitSize<isa::Pep10>(*ret.root, base, Direction::Forward),
                0);

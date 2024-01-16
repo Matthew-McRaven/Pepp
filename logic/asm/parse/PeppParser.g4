@@ -1,4 +1,5 @@
 parser grammar PeppParser;
+// Execute: antlr4 -Dlanguage=Cpp -visitor PeppLexer.g4 PeppParser.g4 -package parse
 options {
     tokenVocab = PeppLexer;
 }

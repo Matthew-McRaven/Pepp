@@ -27,18 +27,6 @@
 #include "targets/pep10/isa3/helpers.hpp"
 #include "targets/pep10/isa3/system.hpp"
 
-// Taken from asio signal blocker.
-#if !defined(BOOST_ASIO_HAS_THREADS) || defined(BOOST_ASIO_WINDOWS) \
-|| defined(BOOST_ASIO_WINDOWS_RUNTIME) \
-|| defined(__CYGWIN__) || defined(__SYMBIAN32__) \
-||defined(BOOST_ASIO_HAS_PTHREADS)
-const bool USE_ASIO=0;
-#else
-const bool USE_ASIO=1;
-#include <boost/asio.hpp>
-#endif
-
-
 static const auto gs = sim::api::memory::Operation{
     .speculative = false,
     .kind = sim::api::memory::Operation::Kind::data,
@@ -139,54 +127,8 @@ void RunTask::run() {
     QString buffer;
 
     if (_charIn == "-") {
-#if USE_ASIO
-      boost::asio::io_service ioService;
-      // ASIO will need platform-dependent implementations.
-#if defined(__unix__) || defined(TARGET_OS_MAC)
-      boost::asio::posix::stream_descriptor in(ioService, STDIN_FILENO);
-#elif defined(_WIN32) || defined(WIN32)
-      boost::asio::windows::stream_handle in(ioService, stdin);
-#endif
-      boost::asio::steady_timer timer(ioService);
-
-      char buf[10];
-      // Used to communicate between read and timeout.
-      std::atomic<bool> hadSome = true;
-
-      // Read in some characters and push them into charIn.
-      // If we recevied an error, stop polling stdin.
-      std::function<void(boost::system::error_code, size_t)> readHandle =
-          [&](boost::system::error_code ec, size_t len) {
-            if (!ec) {
-              hadSome = true;
-              for (int it = 0; it < len; it++)
-                charInEndpoint->append_value(buf[it]);
-              in.async_read_some(boost::asio::buffer(buf), readHandle);
-            } else {
-              ioService.stop();
-            }
-          };
-
-      // If some data was read last time slice, then more data may be present.
-      // We should give the reader the opporunity to read more.
-      std::function<void(boost::system::error_code)> timeout = [&](auto errC) {
-        if (hadSome) {
-          hadSome = false;
-          timer.expires_from_now(boost::asio::chrono::milliseconds(200));
-          timer.async_wait(timeout);
-        } else // Otherwise we (probably) read all there was to read.
-          ioService.stop();
-      };
-      in.async_read_some(boost::asio::buffer(buf), readHandle);
-      // Must use timer to kill event loop, otherwise may poll FD 0 forever if
-      // empty.
-      timer.expires_from_now(boost::asio::chrono::milliseconds(200));
-      timer.async_wait(timeout);
-      ioService.run();
-#else
         QTextStream in(stdin, QIODevice::ReadOnly | QIODevice::Text);
         while (!in.atEnd()) charInEndpoint->append_value(in.read(1).toUtf8()[0]);
-#endif
     } else {
     QFile f(QString::fromStdString(_charIn));
     f.open(QIODevice::ReadOnly | QIODevice::Text);

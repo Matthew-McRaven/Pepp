@@ -14,7 +14,6 @@ fragment
 NameChar
     : NameStartChar
     | '0'..'9'
-    | '_'
     /*| '\u00B7'
     | '\u0300'..'\u036F'
     | '\u203F'..'\u2040'*/
@@ -24,6 +23,7 @@ NameChar
 fragment
 NameStartChar
     : 'a'..'z'
+    | '_'
     /*| '\u00C0'..'\u00D6'
     | '\u00D8'..'\u00F6'
     | '\u00F8'..'\u02FF'

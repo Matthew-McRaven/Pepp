@@ -39,7 +39,7 @@ private slots:
 
     QSharedPointer<pas::ast::Node> root;
     if (useDriver) {
-      auto pipeline = pas::driver::pep10::stages(source, {.isOS = useOSFeats});
+      auto pipeline = pas::driver::pep10::stages<pas::driver::ANTLRParserTag>(source, {.isOS = useOSFeats});
       auto pipelines = pas::driver::Pipeline<pas::driver::pep10::Stage>{};
       pipelines.pipelines.push_back(pipeline);
       pipelines.globals = QSharedPointer<pas::driver::Globals>::create();
@@ -59,7 +59,7 @@ private slots:
                  .value<pas::driver::repr::Nodes>()
                  .value;
     } else {
-      auto parseRoot = pas::driver::pepp::createParser<isa::Pep10>(false);
+      auto parseRoot = pas::driver::pepp::createParser<isa::Pep10, pas::driver::ANTLRParserTag>(false);
       auto res = parseRoot(source, nullptr);
       QVERIFY(!res.hadError);
       pas::ops::generic::groupSections(
@@ -142,7 +142,7 @@ private slots:
 
   /*void requireEnd() {
     QString source = ".BLOCK 2";
-    auto parsed = pas::driver::pepp::createParser<isa::Pep10>(false)(
+    auto parsed = pas::driver::pepp::createParser<isa::Pep10, pas::driver::ANTLRParserTag>(false)(
         source, nullptr);
     pas::ops::pepp::assignAddresses<isa::Pep10>(*parsed.root);
     QVERIFY(!pas::ops::pepp::checkWholeProgramSanity<isa::Pep10>(

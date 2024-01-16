@@ -20,46 +20,47 @@
 #include "asm/pas/ast/node.hpp"
 #include "asm/pas/driver/common.hpp"
 #include "asm/pas/operations/generic/errors.hpp"
-#include "asm/pas/parse/pepp/node_from_parse_tree.hpp"
-#include "asm/pas/parse/pepp/rules_lines.hpp"
+
 #include <QObject>
 #include <QtCore>
 #include <functional>
 
+
+namespace isa { class Pep10; }
 namespace pas::driver::pepp {
 
-template <typename ISA>
+
+namespace detail {
+template <typename ParserTag, typename ISA>
+struct Helper {
+    driver::ParseResult operator()(const std::string& input, QSharedPointer<ast::Node> parent, bool hideEnd){return {};};
+};
+
+driver::ParseResult antlr4_pep10(const std::string& input, QSharedPointer<ast::Node> parent, bool hideEnd);
+template <>
+struct Helper<isa::Pep10, pas::driver::ANTLRParserTag> {
+    driver::ParseResult operator()(const std::string& input, QSharedPointer<ast::Node> parent, bool hideEnd){
+        // Convert input string to parsed lines.
+        return detail::antlr4_pep10(input, parent, hideEnd);
+    };
+};
+}
+
+
+template <typename ISA, typename ParserTag>
 std::function<ParseResult(QString, QSharedPointer<ast::Node>)>
 createParser(bool hideEnd) {
   return [hideEnd](QString text, QSharedPointer<ast::Node> parent) {
-    driver::ParseResult ret;
+    detail::Helper<ISA, ParserTag> helper;
     auto asStd = text.toStdString();
-    using namespace pas::parse::pepp;
-    std::vector<LineType> result;
-    auto current = asStd.begin();
-    auto previous = current;
-    bool success = true;
-    do {
-      previous = current;
-      success &= boost::spirit::x3::parse(current, asStd.end(),
-                                          pas::parse::pepp::line, result);
-    } while (previous != current && current != asStd.end());
-    if (current != asStd.end()) {
-      ret.hadError = true;
-      ret.errors.push_back(u"Partial parse failure"_qs);
-      return ret;
-    }
-    if (!success) {
-      ret.hadError = true;
-      ret.errors.push_back(u"Unspecified parse error."_qs);
-      return ret;
-    }
-    ret.root = pas::parse::pepp::toAST<ISA>(result, parent, hideEnd);
+    auto ret = helper(asStd, parent, hideEnd);
+    if(ret.hadError) return ret;
+
     auto errors = ops::generic::CollectErrors();
     ast::apply_recurse(*ret.root, errors);
-    ret.hadError = errors.errors.size() != 0;
+    ret.hadError |= errors.errors.size() != 0;
     for (auto &error : errors.errors)
-      ret.errors.push_back(error.second.message);
+        ret.errors.push_back(error.second.message);
     return ret;
   };
 }

@@ -22,9 +22,16 @@
 #include "asm/pas/ast/generic/attr_location.hpp"
 #include "asm/pas/driver/pep10.hpp"
 #include "asm/pas/errors.hpp"
-#include "asm/pas/parse/pepp/node_from_parse_tree.hpp"
 #include "asm/pas/operations/generic/errors.hpp"
-#include "asm/pas/parse/pepp/rules_lines.hpp"
+
+#undef emit
+#include "asm/parse/PeppLexer.h"
+#include "asm/parse/PeppParser.h"
+#include "asm/parse/PeppLexerErrorListener.h"
+#include "asm/pas/parse/pepp/PeppASTConverter.h"
+
+using namespace antlr4;
+using namespace parse;
 
 using SourceLocation = pas::ast::generic::SourceLocation;
 using Message = pas::ast::generic::Message;
@@ -41,6 +48,31 @@ const QString arg0 = E::expectNArguments.arg(0);
 const QString arg1 = E::expectNArguments.arg(1);
 const QString ascii = E::dotRequiresString.arg(".ASCII");
 const QString _end = E::noDefineSymbol.arg(".END");
+
+template <typename ParserTag>
+struct MyHelper {
+    QSharedPointer<pas::ast::Node> operator()(const QString& asQString){return nullptr;};
+    static std::string name() {return "";};
+};
+
+template <>
+struct MyHelper<pas::driver::ANTLRParserTag> {
+    QSharedPointer<pas::ast::Node> operator()(const QString& asQString){
+        auto input = asQString.toStdString();
+        ANTLRInputStream input_stream(input);
+        PeppLexer lexer(&input_stream);
+        CommonTokenStream tokens(&lexer);
+        PeppLexerErrorListener listener{};
+        lexer.addErrorListener(&listener);
+        PeppParser parser(&tokens);
+        auto *tree = parser.prog();
+        REQUIRE(!listener.hadError());
+        PeppASTConverter converter;
+        auto ret = converter.visit(tree);
+        return std::any_cast<QSharedPointer<pas::ast::Node>>(ret);
+    };
+    static std::string name() {return "ANTLR4";};
+};
 
 TEST_CASE("Pepp AST conversion, failing", "[parse]") {
     //  Message that return variables need to be converted to string for compare
@@ -121,7 +153,7 @@ TEST_CASE("Pepp AST conversion, failing", "[parse]") {
         {".BURN: no characters",u".BLOCK '*'"_qs, QList<Error>{makeFatal(0, E::expectedNumeric)}},
         {".BURN: no strings",u".BLOCK \"Bad\""_qs, QList<Error>{makeFatal(0, E::expectedNumeric)}},
         // - no symbol
-        {".BURN: no symbols",u"ret: .BURN 0xfe"_qs, QList<Error>{makeFatal(0, E::noDefineSymbol.arg(("BURN")))}},
+        {".BURN: no symbols",u"ret: .BURN 0xfe"_qs, QList<Error>{makeFatal(0, E::noDefineSymbol.arg((".BURN")))}},
         // - exactly 1 arg
         {".BURN: exactly 1 argument",u".BLOCK \"Very\", \"Bad\""_qs, QList<Error>{makeFatal(0, arg1)}},
         // - arg must fit in 16 bits
@@ -153,23 +185,23 @@ TEST_CASE("Pepp AST conversion, failing", "[parse]") {
         {".EQUATE: fit in 16 bits-decimal",u"failure: .EQUATE 666666"_qs, QList<Error>{makeFatal(0, E::decTooBig2)}},
         {".EQUATE: fit in 16 bits-hex",u"failure: .EQUATE 0xbadbeef"_qs, QList<Error>{makeFatal(0, E::hexTooBig2)}},
 
-        {".EXPORT: no symbols",u"x: .EXPORT y"_qs, QList<Error>{makeFatal(0, E::noDefineSymbol.arg("EXPORT"))}},
+        {".EXPORT: no symbols",u"x: .EXPORT y"_qs, QList<Error>{makeFatal(0, E::noDefineSymbol.arg(".EXPORT"))}},
         {".EXPORT: min 1 arg",u".EXPORT"_qs, QList<Error>{makeFatal(0, E::expectNArguments.arg(1))}},
         {".EXPORT: max 1 arg",u".EXPORT hi, world"_qs, QList<Error>{makeFatal(0, E::expectNArguments.arg(1))}},
         {".EXPORT: require symbolic arg",u".EXPORT 10"_qs, QList<Error>{makeFatal(0, E::expectedSymbolic)}},
-        {".IMPORT: no symbols",u"x: .IMPORT y"_qs, QList<Error>{makeFatal(0, E::noDefineSymbol.arg("IMPORT"))}},
+        {".IMPORT: no symbols",u"x: .IMPORT y"_qs, QList<Error>{makeFatal(0, E::noDefineSymbol.arg(".IMPORT"))}},
         {".IMPORT: min 1 arg",u".IMPORT"_qs, QList<Error>{makeFatal(0, E::expectNArguments.arg(1))}},
         {".IMPORT: max 1 arg",u".IMPORT hi, world"_qs, QList<Error>{makeFatal(0, E::expectNArguments.arg(1))}},
         {".IMPORT: require symbolic arg",u".IMPORT 10"_qs, QList<Error>{makeFatal(0, E::expectedSymbolic)}},
-        {".INPUT: no symbols",u"x: .INPUT y"_qs, QList<Error>{makeFatal(0, E::noDefineSymbol.arg("INPUT"))}},
+        {".INPUT: no symbols",u"x: .INPUT y"_qs, QList<Error>{makeFatal(0, E::noDefineSymbol.arg(".INPUT"))}},
         {".INPUT: min 1 arg",u".INPUT"_qs, QList<Error>{makeFatal(0, E::expectNArguments.arg(1))}},
         {".INPUT: max 1 arg",u".INPUT hi, world"_qs, QList<Error>{makeFatal(0, E::expectNArguments.arg(1))}},
         {".INPUT: require symbolic arg",u".INPUT 10"_qs, QList<Error>{makeFatal(0, E::expectedSymbolic)}},
-        {".OUTPUT: no symbols",u"x: .OUTPUT y"_qs, QList<Error>{makeFatal(0, E::noDefineSymbol.arg("OUTPUT"))}},
+        {".OUTPUT: no symbols",u"x: .OUTPUT y"_qs, QList<Error>{makeFatal(0, E::noDefineSymbol.arg(".OUTPUT"))}},
         {".OUTPUT: min 1 arg",u".OUTPUT"_qs, QList<Error>{makeFatal(0, E::expectNArguments.arg(1))}},
         {".OUTPUT: max 1 arg",u".OUTPUT hi, world"_qs, QList<Error>{makeFatal(0, E::expectNArguments.arg(1))}},
         {".OUTPUT: require symbolic arg",u".OUTPUT 10"_qs, QList<Error>{makeFatal(0, E::expectedSymbolic)}},
-        {".SCALL: no symbols",u"x: .SCALL y"_qs, QList<Error>{makeFatal(0, E::noDefineSymbol.arg("SCALL"))}},
+        {".SCALL: no symbols",u"x: .SCALL y"_qs, QList<Error>{makeFatal(0, E::noDefineSymbol.arg(".SCALL"))}},
         {".SCALL: min 1 arg",u".SCALL"_qs, QList<Error>{makeFatal(0, E::expectNArguments.arg(1))}},
         {".SCALL: max 1 arg",u".SCALL hi, world"_qs, QList<Error>{makeFatal(0, E::expectNArguments.arg(1))}},
         {".SCALL: require symbolic arg",u".SCALL 10"_qs, QList<Error>{makeFatal(0, E::expectedSymbolic)}},
@@ -204,35 +236,25 @@ TEST_CASE("Pepp AST conversion, failing", "[parse]") {
 
     }));
     DYNAMIC_SECTION("visitor parsing for " << name) {
-        auto asStd = input.toStdString();
-        // Convert input string to parsed lines.
-        std::vector<pas::parse::pepp::LineType> result;
-        bool success = true;
-        auto current = asStd.begin();
-        REQUIRE_NOTHROW([&]() {
-            success = parse(current, asStd.end(), pas::parse::pepp::line, result);
-        }());
-        // Partial parse failure
-        REQUIRE(current == asStd.end());
-        // Failed to parse.
-        REQUIRE(success);
-
-        auto root = pas::parse::pepp::toAST<isa::Pep10>(result);
+        auto root = MyHelper<pas::driver::ANTLRParserTag>()(input);
         auto visit = pas::ops::generic::CollectErrors();
         pas::ast::apply_recurse<void>(*root, visit);
         auto actualErrors = visit.errors;
         for (int it = 0; it < qMin(errors.size(), actualErrors.size()); it++) {
-            REQUIRE(errors[it].first ==actualErrors[it].first);
+            REQUIRE(errors[it].first == actualErrors[it].first);
+            if (errors[it].second.message != actualErrors[it].second.message) {
+                std::cerr << errors[it].second.message.toStdString() << " != " << actualErrors[it].second.message.toStdString() << std::endl;
+            }
             REQUIRE(errors[it].second.message == actualErrors[it].second.message);
             REQUIRE(errors[it].second.severity == actualErrors[it].second.severity);
         }
         REQUIRE(errors.size() == actualErrors.size());
     }
 
-     DYNAMIC_SECTION("driver parsing for " << name) {
+    DYNAMIC_SECTION("driver parsing for " << name) {
         auto asStd = input.toStdString();
 
-        auto pipeline = pas::driver::pep10::stages(input, {.isOS = false});
+        auto pipeline = pas::driver::pep10::stages<pas::driver::ANTLRParserTag>(input, {.isOS = false});
         auto pipelines = pas::driver::Pipeline<pas::driver::pep10::Stage>{};
         pipelines.pipelines.push_back(pipeline);
         REQUIRE(!pipelines.assemble(pas::driver::pep10::Stage::Parse));

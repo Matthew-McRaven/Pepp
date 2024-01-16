@@ -6,19 +6,6 @@ cmake_minimum_required(VERSION 3.23)
 # Needs CMake 3.20, hence line 1.
 cmake_policy(SET CMP0118 NEW)
 
-# My boost-version selection breaks when inside the if(BUILD) block
-# Require explicit opt-out of vcpkg's boost.
-if( (DEFINED USE_SYSTEM_BOOST) OR (DEFINED ENV{USE_SYSTEM_BOOST}) )
-    message("Using system boost")
-else()
-    list(APPEND VCPKG_MANIFEST_FEATURES "boost")
-    message("Using vcpkg boost")
-endif()
-# Emscripten build forget to set boost_INCLUDE_DIR correctly
-set(Boost_USE_STATIC_LIBS   ON)
-# Allow overriding boost root if you want to point to your own boost. Must also define Boost_ROOT.
-set(Boost_ROOT ${_VCPKG_INSTALLED_DIR} CACHE PATH "Override boost root")
-
 # Allow normalized paths (e.g., "asm/pas" ) without nesting that directory folder
 # inside a nested "src" hierarchy. May cause linking issues if you do not pay attention.
 include_directories(${CMAKE_CURRENT_LIST_DIR}/logic ${CMAKE_CURRENT_LIST_DIR}/ui)
@@ -196,7 +183,6 @@ if(ONLY STREQUAL "BUILD")
   # We always want universal builds, so do not set on a per-target basis
   SET(CMAKE_OSX_ARCHITECTURES "x86_64;arm64" CACHE INTERNAL "" FORCE)
 
-  find_package(Boost 1.76.0 REQUIRED)
   find_package(Qt6 6.4 COMPONENTS Quick Core Gui Qml Test Widgets REQUIRED)
   add_subdirectory(3rd-party)
   set(CMAKE_AUTOMOC ON)
