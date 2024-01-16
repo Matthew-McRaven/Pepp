@@ -48,7 +48,7 @@ public:
                   QSharedPointer<pas::driver::Target<Stage>> target) override {
       auto source = target->bodies[repr::Source::name];
       auto body = source.value<repr::Source>().value;
-      auto parser = pas::driver::pepp::createParser<isa::Pep10, pas::driver::BoostParserTag>(false);
+      auto parser = pas::driver::pepp::createParser<isa::Pep10, ParserTag>(false);
       auto parsed = parser(body, nullptr);
       target->bodies[repr::Nodes::name] =
           QVariant::fromValue(repr::Nodes{.value = parsed.root});
