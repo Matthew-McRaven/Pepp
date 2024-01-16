@@ -57,17 +57,25 @@ void addBlank(QSharedPointer<Node> parent) {
     addChild(*parent, bl);
 }
 
+parse::PeppASTConverter::PeppASTConverter(QSharedPointer<pas::ast::Node> parent):
+    _blockInfo{.symTab = nullptr, .parent=parent}
+{
+
+}
+
 std::any parse::PeppASTConverter::visitProg(PeppParser::ProgContext *context)
 {
-    static const generic::Type structuralType = {.value = generic::Type::Structural};
-    auto parent = QSharedPointer<Node>::create(structuralType);
-    _blockInfo.symTab =  QSharedPointer<symbol::Table>::create(2);
-    generic::SymbolTable symtab = {.value = _blockInfo.symTab};
-    parent->set(symtab);
-    // Used to prevent a NEWLINE on the same line as actual code from generating a blank line.
-    // Initialize to true so that if the first line is an EOF that we emit one blank.
-    bool lineHadContents = true;
-    for(auto child : context->children) {
+    if(_blockInfo.parent == nullptr) {
+        static const generic::Type structuralType = {.value = generic::Type::Structural};
+        _blockInfo.parent = QSharedPointer<Node>::create(structuralType);
+        auto st = QSharedPointer<symbol::Table>::create(2);
+        generic::SymbolTable symtab = {.value = st};
+        _blockInfo.parent->set(symtab);
+    }
+    QSharedPointer<Node> parent = _blockInfo.parent;
+    _blockInfo.symTab = parent->get<generic::SymbolTable>().value;
+
+
     bool firstLine = true;
     for(auto it =0; it < context->children.size(); it++) {
         auto child = context->children[it];

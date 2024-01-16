@@ -18,13 +18,13 @@ class PeppASTConverter : public PeppParserBaseVisitor
         std::optional<std::string> addr_mode = std::nullopt;
     };
     struct BlockInfo {
-        QSharedPointer<symbol::Table> symTab;
+        QSharedPointer<symbol::Table> symTab = nullptr;
+        QSharedPointer<pas::ast::Node> parent = nullptr;
     } _blockInfo;
 
     LineInfo _lineInfo = {};
-
 public:
-    PeppASTConverter();
+    PeppASTConverter(QSharedPointer<pas::ast::Node> parent=nullptr);
 
     // PeppParserVisitor interface
     std::any visitProg(PeppParser::ProgContext *context) override;
