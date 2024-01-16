@@ -31,7 +31,7 @@ private slots:
     QString body = "s:.block 10\n.EXPORT s\nLDWA s,i\n.END\n.END";
     auto globals = QSharedPointer<pas::driver::Globals>::create();
     auto ret =
-        pas::driver::pepp::createParser<isa::Pep10, pas::driver::BoostParserTag>(false)(body, nullptr);
+        pas::driver::pepp::createParser<isa::Pep10, pas::driver::ANTLRParserTag>(false)(body, nullptr);
     QVERIFY(!ret.hadError);
     pas::ops::generic::linkGlobals(*ret.root, globals, {u"EXPORT"_qs});
     QVERIFY(globals->contains("s"));
@@ -52,7 +52,7 @@ private slots:
     QCOMPARE(globals->get("s")->binding, symbol::Binding::kGlobal);
 
     auto ret =
-        pas::driver::pepp::createParser<isa::Pep10, pas::driver::BoostParserTag>(false)(body, nullptr);
+        pas::driver::pepp::createParser<isa::Pep10, pas::driver::ANTLRParserTag>(false)(body, nullptr);
     QVERIFY(!ret.hadError);
     pas::ops::generic::linkGlobals(*ret.root, globals, {u"EXPORT"_qs});
 
@@ -82,7 +82,7 @@ private slots:
     QCOMPARE(globals->get("s")->binding, symbol::Binding::kGlobal);
 
     auto ret =
-        pas::driver::pepp::createParser<isa::Pep10, pas::driver::BoostParserTag>(false)(body, nullptr);
+        pas::driver::pepp::createParser<isa::Pep10, pas::driver::ANTLRParserTag>(false)(body, nullptr);
     QVERIFY(!ret.hadError);
     pas::ops::generic::linkGlobals(*ret.root, globals, {u"EXPORT"_qs});
 

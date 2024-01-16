@@ -28,7 +28,7 @@ private slots:
   void smoke() {
     QFETCH(QString, body);
     QFETCH(bool, addressable);
-    auto pipeline = pas::driver::pep10::pipeline<pas::driver::BoostParserTag>({{body, {.isOS = true}}});
+    auto pipeline = pas::driver::pep10::pipeline<pas::driver::ANTLRParserTag>({{body, {.isOS = true}}});
     QVERIFY(pipeline->assemble(pas::driver::pep10::Stage::Parse));
     auto target = pipeline->pipelines[0].first;
     QVERIFY(!target.isNull());

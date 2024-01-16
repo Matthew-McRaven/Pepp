@@ -80,7 +80,7 @@ private slots:
     if (!isOS)
       injectFakeSCallMacros(registry);
 
-    auto pipeline = pas::driver::pep10::pipeline<pas::driver::BoostParserTag>(
+    auto pipeline = pas::driver::pep10::pipeline<pas::driver::ANTLRParserTag>(
         {{body, {.isOS = isOS, .ignoreUndefinedSymbols = !isOS}}}, registry);
     auto result = pipeline->assemble(pas::driver::pep10::Stage::End);
     auto target = pipeline->pipelines[0].first;
@@ -136,7 +136,7 @@ private slots:
     auto registry = QSharedPointer<macro::Registry>::create();
     loadBookMacros(registry);
 
-    auto pipeline = pas::driver::pep10::pipeline<pas::driver::BoostParserTag>(
+    auto pipeline = pas::driver::pep10::pipeline<pas::driver::ANTLRParserTag>(
         {{osBody, {.isOS = true, .ignoreUndefinedSymbols = false}},
          {userBody, {.isOS = false, .ignoreUndefinedSymbols = false}}},
         registry);

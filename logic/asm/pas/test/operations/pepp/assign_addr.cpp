@@ -117,7 +117,7 @@ private slots:
     QFETCH(testFn, validate);
     QSharedPointer<pas::ast::Node> root;
     if (useDriver) {
-      auto pipeline = pas::driver::pep10::stages<pas::driver::BoostParserTag>(body, {.isOS = false});
+      auto pipeline = pas::driver::pep10::stages<pas::driver::ANTLRParserTag>(body, {.isOS = false});
       auto pipelines = pas::driver::Pipeline<pas::driver::pep10::Stage>{};
       pipelines.pipelines.push_back(pipeline);
       pipelines.globals = QSharedPointer<pas::driver::Globals>::create();
@@ -134,7 +134,7 @@ private slots:
                  .value;
 
     } else {
-      auto parseRoot = pas::driver::pepp::createParser<isa::Pep10, pas::driver::BoostParserTag>(false);
+      auto parseRoot = pas::driver::pepp::createParser<isa::Pep10, pas::driver::ANTLRParserTag>(false);
       auto res = parseRoot(body, nullptr);
       QVERIFY(!res.hadError);
       pas::ops::generic::groupSections(*res.root,
@@ -221,7 +221,7 @@ private slots:
     QString body = u".block 1\n.ALIGN %1\n.block 0"_qs.arg(align);
     QSharedPointer<pas::ast::Node> root;
     if (useDriver) {
-      auto pipeline = pas::driver::pep10::stages<pas::driver::BoostParserTag>(body, {.isOS = false});
+      auto pipeline = pas::driver::pep10::stages<pas::driver::ANTLRParserTag>(body, {.isOS = false});
       auto pipelines = pas::driver::Pipeline<pas::driver::pep10::Stage>{};
       pipelines.pipelines.push_back(pipeline);
       pipelines.globals = QSharedPointer<pas::driver::Globals>::create();
@@ -237,7 +237,7 @@ private slots:
                  .value<pas::driver::repr::Nodes>()
                  .value;
     } else {
-      auto parseRoot = pas::driver::pepp::createParser<isa::Pep10, pas::driver::BoostParserTag>(false);
+      auto parseRoot = pas::driver::pepp::createParser<isa::Pep10, pas::driver::ANTLRParserTag>(false);
       auto res = parseRoot(body, nullptr);
       QVERIFY(!res.hadError);
       pas::ops::generic::groupSections(*res.root,
@@ -278,7 +278,7 @@ private slots:
   }
   void sequential_sections() {
     QString body = u"ldwa 0,i\n.SECTION \"l\"\nldwa 0,i"_qs;
-    auto pipeline = pas::driver::pep10::stages<pas::driver::BoostParserTag>(body, {.isOS = false});
+    auto pipeline = pas::driver::pep10::stages<pas::driver::ANTLRParserTag>(body, {.isOS = false});
     auto pipelines = pas::driver::Pipeline<pas::driver::pep10::Stage>{};
     pipelines.pipelines.push_back(pipeline);
     pipelines.globals = QSharedPointer<pas::driver::Globals>::create();
@@ -314,7 +314,7 @@ private slots:
                    "LDWA 0,i\n"
                    ".SECTION \"s3\"\n"
                    "LDWA 0,i";
-    auto pipeline = pas::driver::pep10::stages<pas::driver::BoostParserTag>(body, {.isOS = false});
+    auto pipeline = pas::driver::pep10::stages<pas::driver::ANTLRParserTag>(body, {.isOS = false});
     auto pipelines = pas::driver::Pipeline<pas::driver::pep10::Stage>{};
     pipelines.pipelines.push_back(pipeline);
     pipelines.globals = QSharedPointer<pas::driver::Globals>::create();
