@@ -1,4 +1,3 @@
-option(ANTLR_BUILD_CPP_TESTS "Build C++ tests." ON)
 option(TRACE_ATN "Trace ATN simulation" OFF)
 option(ANTLR_BUILD_SHARED "Build the shared library of the ANTLR runtime" ON)
 option(ANTLR_BUILD_STATIC "Build the static library of the ANTLR runtime" ON)
@@ -57,40 +56,6 @@ IF(TRACE_ATN)
     ADD_DEFINITIONS(-DTRACE_ATN_SIM=1)
 ENDIF(TRACE_ATN)
 
-if (ANTLR_BUILD_CPP_TESTS)
-  include(FetchContent)
-
-  FetchContent_Declare(
-    googletest
-    URL https://github.com/google/googletest/archive/e2239ee6043f73722e7aa812a459f54a28552929.zip
-  )
-
-  if(WITH_STATIC_CRT)
-    set(gtest_force_shared_crt ON CACHE BOOL "" FORCE)
-  endif()
-
-  FetchContent_MakeAvailable(googletest)
-
-  file(GLOB libantlrcpp_TESTS
-    "${PROJECT_SOURCE_DIR}/runtime/tests/*.cpp"
-  )
-
-  add_executable(
-    antlr4_tests
-    ${libantlrcpp_TESTS}
-  )
-
-  target_link_libraries(
-    antlr4_tests
-	$<IF:$<TARGET_EXISTS:antlr4_static>,antlr4_static,antlr4_shared>
-    gtest_main
-  )
-
-  include(GoogleTest)
-
-  gtest_discover_tests(antlr4_tests)
-endif()
-
 if(APPLE)
   if (TARGET antlr4_shared)
     target_link_libraries(antlr4_shared ${COREFOUNDATION_LIBRARY})
@@ -147,45 +112,3 @@ if (TARGET antlr4_static)
                                    COMPILE_PDB_NAME "antlr4-runtime${static_lib_suffix}"
                                    COMPILE_FLAGS "${disabled_compile_warnings} ${extra_static_compile_flags}")
 endif()
-
-if (ANTLR_BUILD_CPP_TESTS)
-  # Copy the generated binaries to dist folder (required by test suite)
-  if (TARGET antlr4_shared)
-  add_custom_command(
-      TARGET antlr4_shared
-      POST_BUILD
-      COMMAND ${CMAKE_COMMAND} -E make_directory ${CMAKE_HOME_DIRECTORY}/dist
-      COMMAND ${CMAKE_COMMAND} -E copy_if_different $<TARGET_FILE:antlr4_shared> ${CMAKE_HOME_DIRECTORY}/dist
-      COMMAND ${CMAKE_COMMAND} -E copy_if_different $<TARGET_LINKER_FILE:antlr4_shared> ${CMAKE_HOME_DIRECTORY}/dist)
-  endif()
-  
-  if (TARGET antlr4_static)
-    add_custom_command(
-      TARGET antlr4_static
-      POST_BUILD
-      COMMAND ${CMAKE_COMMAND} -E make_directory ${CMAKE_HOME_DIRECTORY}/dist
-      COMMAND ${CMAKE_COMMAND} -E copy_if_different $<TARGET_FILE:antlr4_static> ${CMAKE_HOME_DIRECTORY}/dist)
-  endif()
-endif()
-
-if (TARGET antlr4_shared)
-  install(TARGETS antlr4_shared
-          EXPORT antlr4-targets
-          ARCHIVE DESTINATION ${CMAKE_INSTALL_LIBDIR}
-          LIBRARY DESTINATION ${CMAKE_INSTALL_LIBDIR}
-          RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR})
-endif()
-
-if (TARGET antlr4_static)
-  install(TARGETS antlr4_static
-          EXPORT antlr4-targets
-          ARCHIVE DESTINATION ${CMAKE_INSTALL_LIBDIR}
-          LIBRARY DESTINATION ${CMAKE_INSTALL_LIBDIR}
-          RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR})
-endif()
-
-install(DIRECTORY "${PROJECT_SOURCE_DIR}/runtime/src/"
-        DESTINATION "include/antlr4-runtime"
-        COMPONENT dev
-        FILES_MATCHING PATTERN "*.h"
-        )
