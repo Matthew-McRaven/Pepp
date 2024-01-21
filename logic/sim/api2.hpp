@@ -9,7 +9,7 @@ namespace sim::api2 {
 
 static const int VERSION = 2;
 
-namespace device {
+/*namespace device {
 using ID = quint16; // Only use 9 bits (max of 512)!
 struct Descriptor {
     device::ID id; // Must uniquely identify a device within a system.
@@ -18,6 +18,10 @@ struct Descriptor {
 };
 using IDGenerator = std::function<ID()>;
 } // namespace sim::api2::device
+*/
+
+// Re-use device API for now.
+namespace device = ::sim::api::device;
 
 // A fragment is one of the data classes in packet::header, packet::payload, or frame::header.
 // A packet is a one packet::header fragment followed by 0 or more packet::payload fragments
