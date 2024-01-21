@@ -18,7 +18,9 @@ struct Descriptor {
 using IDGenerator = std::function<ID()>;
 } // namespace sim::api2::device
 
-
+// A fragment is one of the data classes in packet::header, packet::payload, or frame::header.
+// A packet is a one packet::header fragment followed by 0 or more packet::payload fragments
+// A frame is a frame::header fragment followed by 0 or more packets.
 namespace packet {
 // Stack-allocated variable length array of bytes. When serialized, it will only occupy
 // the number of bytes specified in data_len, not the size as specified by N.
@@ -65,17 +67,6 @@ enum class DeltaEncoding : quint8 {
 };
 
 namespace header {
-struct Frame {
-    // Number of bytes to the start of the next FrameHeader.
-    // The code responsible for starting a new frame needs to
-    // go back and update this field.
-    // If 0, then this is the last frame in the trace.
-    quint16 length = 0;
-    // Number of bytes to the start of the previous FrameHeader.
-    // If 0, then this is the first frame in the trace.
-    zpp::bits::varint<quint16> back_offset = 0;
-};
-
 struct Clear {
     device_id_t device = 0;
     VariableBytes<8> value = {0,0};
@@ -99,7 +90,7 @@ struct Write {
     VariableBytes<8> address = {0,0};
 };
 } // sim::api2::packet::header
-using Header = std::variant<header::Frame, header::PureRead, header::ImpureRead, header::Write>;
+using Header = std::variant<header::Clear, header::PureRead, header::ImpureRead, header::Write>;
 
 namespace payload {
 // Successive payloads belong to the same packet.
@@ -117,24 +108,47 @@ struct Iterator {
 } //sim::api2::packet
 
 struct Packet {
-    const packet::Header* header;
-    std::span<const packet::Payload> payload;
+    virtual const packet::Header header() const = 0;
+    virtual int payloadCount() const = 0;
+    virtual const packet::Payload payload(int index) const = 0;
 };
-
-struct Frame {
-    virtual packet::header::Frame frameHeader() = 0;
-    virtual packet::Iterator begin() = 0;
-    virtual packet::Iterator end() = 0;
-};
-
 
 namespace frame {
+// There may be different kinds of frames.
+// The most common kind is a Trace frame, which records modifications to the simulation.
+// Other headers may be used to convey configuration information, etc.
+namespace header {
+struct Trace {
+    // Offset (in bytes) to the start of the next header.
+    // The code responsible for starting a new frame needs to
+    // go back and update this field.
+    // If 0, then this is the last frame in the trace.
+    quint16 length = 0;
+    // Number of bytes to the start of the previous FrameHeader.
+    // If 0, then this is the first frame in the trace.
+    zpp::bits::varint<quint16> back_offset = 0;
+};
+// If a single frame grows too large, its length will overflow a 16b int.
+// To avoid this, the trace buffer can automatically insert an Extender header.
+// Physically, it starts a new frame. Logically, the packets in each should be considered
+// to belong to the same frame.
+struct Extender {
+    quint16 length = 0, back_offset = 0xFFFF;
+};
+} // sim::api2::frame::header
+using Header = std::variant<header::Trace, header::Extender>;
 // Elements are "Frame"'s. Each frame can be iterated over to get its packets.
 struct Iterator {
     // Move to next frame.
     virtual void next() = 0;
 };
-} // namespace sim::api2::frame
+} // sim::api2::frame
+
+struct Frame {
+    virtual frame::Header header() = 0;
+    virtual packet::Iterator begin() = 0;
+    virtual packet::Iterator end() = 0;
+};
 
 namespace trace {
 
@@ -170,14 +184,12 @@ public:
     virtual bool registerSink(Sink*, Mode) = 0;
     virtual void unregisterSink(Sink*) = 0;
 
+    // Must implicitly call updateFrameHeader to fix back links / lengths.
+    virtual bool writeFragment(const frame::Header&) = 0;
     virtual bool writeFragment(const packet::Header&) = 0;
     virtual bool writeFragment(const packet::Payload&) = 0;
 
-    // Start a new frame by inserting a frame header packet.
-    virtual bool startFrame() = 0;
-
-    // Update frame header back pointer and size. Probably called from the clock source?
-    virtual bool updateFrame() = 0;
+    virtual bool updateFramHeader() = 0;
 
     // Remove the last frame from the buffer.
     // TODO: replace with integration for iterators / std::erase.
