@@ -165,14 +165,14 @@ enum class Mode {
 class Buffer;
 class Source {
 public:
-    virtual ~Source() = 0;
+    virtual ~Source() = default;
     virtual void setBuffer(Buffer* tb) = 0;
     virtual void trace(bool enabled) = 0;
 };
 
 class Sink {
 public:
-    virtual ~Sink() = 0;
+    virtual ~Sink() = default;
     enum class Direction {
         Forward,    // Apply the action specified by the packet.
         Backward,   // Undo the effects of the action specified by the packet.
@@ -181,9 +181,14 @@ public:
     virtual bool analyze(const packet::Header&, const std::span<packet::Payload>&, Direction) = 0;
 };
 
+// TODO: Add additional channel for command / simulation packets.
+// Simulation packets are notifications such as "there's no MMIO".
+// Command packets may set memory values, step forward some number of ticks.
+// With these changes, the trace buffer can become single point of communication\
+// between the UI and the simulation.
 class Buffer {
 public:
-    virtual ~Buffer() = 0;
+    virtual ~Buffer() = default;
     virtual bool trace(quint16 deviceID, bool enabled = true) = 0;
 
     virtual bool registerSink(Sink*, Mode) = 0;
@@ -223,14 +228,14 @@ struct Result {
 
 class Source {
 public:
-    virtual ~Source() = 0;
+    virtual ~Source() = default;
     // Number of ticks between clock cycles.
     virtual Type interval() const = 0;
 };
 
 class Recipient{
 public:
-    virtual ~Recipient() = 0;
+    virtual ~Recipient() = default;
     virtual const Source* getSource() = 0;
     virtual void setSource(Source*) = 0;
     virtual Result clock(tick::Type currentTick);
