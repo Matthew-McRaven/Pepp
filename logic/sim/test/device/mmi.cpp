@@ -32,8 +32,8 @@ auto gs =
                                 .kind = sim::api::memory::Operation::Kind::data,
                                 .effectful = false};
 
-auto span = sim::api::memory::Target<quint16>::AddressSpan{.minOffset = 0,
-                                                           .maxOffset = 0};
+auto span = sim::api::memory::AddressSpan<quint16>{.minOffset = 0,
+                                                   .maxOffset = 0};
 
 class SimDevice_MMI : public QObject {
   Q_OBJECT

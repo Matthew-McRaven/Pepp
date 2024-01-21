@@ -35,7 +35,7 @@ auto desc_cpu = sim::api::device::Descriptor{
     .fullName = "/cpu",
 };
 
-auto span = sim::api::memory::Target<quint16>::AddressSpan{
+auto span = sim::api::memory::AddressSpan<quint16>{
     .minOffset = 0,
     .maxOffset = 0xFFFF,
 };

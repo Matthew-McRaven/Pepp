@@ -307,6 +307,11 @@ struct Listener {
 
 namespace memory {
 
+template <typename Address>
+struct AddressSpan {
+  Address minOffset, maxOffset;
+};
+
 // If select memory operations fail (e.g., lack of MMI, unmapped address in
 // bus), specify the behavior of the target.
 enum class FailPolicy {
@@ -339,11 +344,8 @@ struct Result {
 };
 
 template <typename Address> struct Target {
-  struct AddressSpan {
-    Address minOffset, maxOffset;
-  };
   virtual ~Target() = default;
-  virtual AddressSpan span() const = 0;
+  virtual AddressSpan<Address> span() const = 0;
   virtual Result read(Address address, bits::span<quint8> dest,
                       Operation op) const = 0;
   virtual Result write(Address address, bits::span<const quint8> src,

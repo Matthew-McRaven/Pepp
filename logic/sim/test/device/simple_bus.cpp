@@ -33,7 +33,7 @@ auto d3 = sim::api::device::Descriptor{
     .id = 3, .baseName = "d3", .fullName = "/bus0/d3"};
 auto b1 = sim::api::device::Descriptor{
     .id = 4, .baseName = "bus0", .fullName = "/bus0"};
-using Span = sim::api::memory::Target<quint16>::AddressSpan;
+using Span = sim::api::memory::AddressSpan<quint16>;
 auto make = []() {
   auto m1 = QSharedPointer<sim::memory::Dense<quint16>>::create(
       d1, Span{.minOffset = 0, .maxOffset = 0x1});

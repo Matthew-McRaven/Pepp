@@ -37,7 +37,7 @@ private slots:
         .compatible = nullptr,
         .baseName = "dev",
         .fullName = "/dev"};
-    auto span = sim::api::memory::Target<quint16>::AddressSpan{
+    auto span = sim::api::memory::AddressSpan<quint16>{
         .minOffset = 0, .maxOffset = 0xFFFF};
     sim::memory::Dense<quint16> mem(desc_mem, span, (int) isa::Pep10::Mnemonic::NOP);
     auto desc_cpu = sim::api::device::Descriptor{.id = nextID(),

@@ -37,7 +37,7 @@ private slots:
 
     auto desc = sim::api::device::Descriptor{
         .id = 0, .compatible = nullptr, .baseName = "dev", .fullName = "/dev"};
-    auto span = sim::api::memory::Target<quint8>::AddressSpan{
+    auto span = sim::api::memory::AddressSpan<quint8>{
         .minOffset = minOffset, .maxOffset = 255};
     sim::memory::Dense<quint8> dev(desc, span, 0xFE);
 
@@ -88,7 +88,7 @@ private slots:
   void oob() {
     auto desc = sim::api::device::Descriptor{
         .id = 0, .compatible = nullptr, .baseName = "dev", .fullName = "/dev"};
-    auto span = sim::api::memory::Target<quint8>::AddressSpan{
+      auto span = sim::api::memory::AddressSpan<quint8>{
         .minOffset = 0x10, .maxOffset = 0x10};
     sim::memory::Dense<quint8> dev(desc, span, 0xFE);
 

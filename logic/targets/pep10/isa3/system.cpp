@@ -26,7 +26,7 @@
 #include "targets/pep10/isa3/cpu.hpp"
 #include "targets/pep10/isa3/helpers.hpp"
 
-using AddressSpan = sim::api::memory::Target<quint16>::AddressSpan;
+using AddressSpan = sim::api::memory::AddressSpan<quint16>;
 sim::api::device::Descriptor desc_cpu(sim::api::device::ID id) {
   return {.id = id, .baseName = "cpu", .fullName = "/cpu"};
 }

@@ -2,6 +2,7 @@
 #include <QtCore>
 #include <zpp_bits.h>
 
+#include "api.hpp"
 #include "bits/span.hpp"
 
 namespace sim::api2 {
@@ -235,6 +236,8 @@ public:
 // In API v1, errors are communicated via an Error field.
 // In API v2 (this version), errors are communicated via exceptions.
 namespace memory {
+template <typename Address>
+using AddressSpan = sim::api::memory::AddressSpan<Address>;
 struct Result {
     // Number of simulation ticks required to complete the memory op.
     // 0 indicates the operation completed immediately.
@@ -265,11 +268,8 @@ struct Operation {
 };
 
 template <typename Address> struct Target {
-    struct AddressSpan {
-        Address minOffset, maxOffset;
-    };
     virtual ~Target() = default;
-    virtual AddressSpan span() const = 0;
+    virtual AddressSpan<Address> span() const = 0;
     virtual Result read(Address address, bits::span<quint8> dest,
                         Operation op) const = 0;
     virtual Result write(Address address, bits::span<const quint8> src,

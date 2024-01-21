@@ -24,7 +24,7 @@ namespace sim::memory {
 template <typename Address>
 class Dense : public api::memory::Target<Address>, api::trace::Producer {
 public:
-  using AddressSpan = typename api::memory::Target<Address>::AddressSpan;
+  using AddressSpan = typename api::memory::AddressSpan<Address>;
   Dense(api::device::Descriptor device, AddressSpan span,
         quint8 defaultValue = 0);
   ~Dense() = default;

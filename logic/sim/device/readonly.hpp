@@ -23,7 +23,7 @@ template <typename Address>
 class ReadOnly : public api::memory::Target<Address>,
                  api::memory::Initiator<Address> {
 public:
-  using AddressSpan = typename api::memory::Target<Address>::AddressSpan;
+  using AddressSpan = typename api::memory::AddressSpan<Address>;
   ReadOnly(bool hardFail);
   ~ReadOnly() = default;
   ReadOnly(ReadOnly &&other) noexcept = default;

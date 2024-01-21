@@ -25,7 +25,7 @@ namespace sim::memory {
 template <typename Address>
 class SimpleBus : public api::memory::Target<Address>, api::trace::Producer {
 public:
-  using AddressSpan = typename api::memory::Target<Address>::AddressSpan;
+  using AddressSpan = typename api::memory::AddressSpan<Address>;
   SimpleBus(api::device::Descriptor device, AddressSpan span);
   ~SimpleBus() = default;
   SimpleBus(SimpleBus &&other) noexcept = default;
