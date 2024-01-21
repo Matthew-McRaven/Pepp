@@ -17,4 +17,14 @@ public:
 private:
     sim::api2::device::ID _device;
 };
+template <typename Address>
+void emitWrite(sim::api2::trace::Buffer* tb, sim::api2::device::ID id,
+           Address address, bits::span<const quint8> src, bits::span<quint8> dest) {
+  // TODO: Emit a write packet header followed by payload fragments
+}
+template <typename Address>
+void emitPureRead(sim::api2::trace::Buffer* tb, sim::api2::device::ID id,
+           Address address, Address len) {
+  // TODO: Emit a pure read header.
+}
 }
