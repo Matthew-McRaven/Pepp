@@ -45,14 +45,14 @@ auto make = []() {
   auto storage =
       QSharedPointer<sim::memory::Dense<quint16>>::create(desc_mem, span);
   auto cpu = QSharedPointer<targets::pep10::isa::CPU>::create(desc_cpu, gen);
-  cpu->setTarget(storage.data());
+  cpu->setTarget(storage.data(), nullptr);
   return std::pair{storage, cpu};
 };
 
-sim::api::memory::Operation rw = {.speculative = false,
-                                  .kind =
-                                      sim::api::memory::Operation::Kind::data,
-                                  .effectful = false};
+sim::api2::memory::Operation rw = {
+    .type = sim::api2::memory::Operation::Type::Standard,
+    .kind = sim::api2::memory::Operation::Kind::data,
+};
 
 class ISA3Pep10_SCALL : public QObject {
   Q_OBJECT
@@ -78,25 +78,24 @@ private slots:
 
     cpu->regs()->clear(0);
     cpu->csrs()->clear(0);
-    QVERIFY(targets::pep10::isa::writePackedCSR(cpu->csrs(), truth[0], rw).completed);
+    QVERIFY_THROWS_NO_EXCEPTION(targets::pep10::isa::writePackedCSR(cpu->csrs(), truth[0], rw));
     tmp = bits::hostOrder() != bits::Order::BigEndian ? bits::byteswap(*(quint16*)(truth + 1))
                                                       : *(quint16*)(truth + 1);
-    QVERIFY(targets::pep10::isa::writeRegister(cpu->regs(), isa::Pep10::Register::A, tmp, rw).completed);
+    QVERIFY_THROWS_NO_EXCEPTION(targets::pep10::isa::writeRegister(cpu->regs(), isa::Pep10::Register::A, tmp, rw));
     tmp = bits::hostOrder() != bits::Order::BigEndian ? bits::byteswap(*(quint16*)(truth + 3))
                                                       : *(quint16*)(truth + 3);
-    QVERIFY(targets::pep10::isa::writeRegister(cpu->regs(), isa::Pep10::Register::X, tmp, rw).completed);
+    QVERIFY_THROWS_NO_EXCEPTION(targets::pep10::isa::writeRegister(cpu->regs(), isa::Pep10::Register::X, tmp, rw));
     tmp = bits::hostOrder() != bits::Order::BigEndian ? bits::byteswap(*(quint16*)(truth + 7))
                                                       : *(quint16*)(truth + 7);
-    QVERIFY(targets::pep10::isa::writeRegister(cpu->regs(), isa::Pep10::Register::SP, tmp, rw).completed);
-    QVERIFY(mem->write(0x0000, {program.data(), program.size()}, rw).completed);
-    QVERIFY(mem->write((quint16)isa::Pep10::MemoryVectors::SystemStackPtr, {osSP.data(), osSP.size()}, rw).completed);
+    QVERIFY_THROWS_NO_EXCEPTION(targets::pep10::isa::writeRegister(cpu->regs(), isa::Pep10::Register::SP, tmp, rw));
+    QVERIFY_THROWS_NO_EXCEPTION(mem->write(0x0000, {program.data(), program.size()}, rw));
+    QVERIFY_THROWS_NO_EXCEPTION(mem->write((quint16)isa::Pep10::MemoryVectors::SystemStackPtr, {osSP.data(), osSP.size()}, rw));
 
-    auto tick = cpu->tick(0);
-    QCOMPARE(tick.error, sim::api::tick::Error::Success);
+    QVERIFY_THROWS_NO_EXCEPTION(cpu->clock(0));
 
-    QVERIFY(targets::pep10::isa::readRegister(cpu->regs(), isa::Pep10::Register::SP, tmp, rw).completed);
+    QVERIFY_THROWS_NO_EXCEPTION(targets::pep10::isa::readRegister(cpu->regs(), isa::Pep10::Register::SP, tmp, rw));
     QCOMPARE(tmp+10, 0x8086);
-    QVERIFY(mem->read(tmp, {buf, sizeof(buf)}, rw).completed);
+    QVERIFY_THROWS_NO_EXCEPTION(mem->read(tmp, {buf, sizeof(buf)}, rw));
 
     for(int it=0; it<sizeof(truth); it++)
         QVERIFY2(buf[it] == truth[it], u"Mismatch at %1 with buf[%1]==%2 and truth[%1]==%3"_qs.arg(it).arg(buf[it],2,16).arg(truth[it],2,16).toStdString().data());

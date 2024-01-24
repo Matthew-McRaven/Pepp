@@ -22,15 +22,14 @@
 #include "obj/mmio.hpp"
 #include "sim/device/broadcast/mmi.hpp"
 #include "sim/device/broadcast/mmo.hpp"
-#include "sim/device/simple_bus.hpp"
+#include "sim/device/simple_bus_v2.hpp"
 #include "targets/pep10/isa3/cpu.hpp"
 #include "targets/pep10/isa3/helpers.hpp"
 #include "targets/pep10/isa3/system.hpp"
 
-static const auto gs = sim::api::memory::Operation{
-    .speculative = false,
-    .kind = sim::api::memory::Operation::Kind::data,
-    .effectful = false,
+auto gs = sim::api2::memory::Operation {
+    .type = sim::api2::memory::Operation::Type::Application,
+    .kind = sim::api2::memory::Operation::Kind::data,
 };
 
 RunTask::RunTask(int ed, std::string fname, QObject *parent)
@@ -150,11 +149,7 @@ void RunTask::run() {
   bool noMMI = false;
   while (system->currentTick() < _maxSteps &&
          !endpoint->next_value().has_value()) {
-    auto ret = system->tick(sim::api::Scheduler::Mode::Jump);
-    noMMI = ret.second.error == sim::api::tick::Error::NoMMInput;
-    fail |= ret.second.error != sim::api::tick::Error::Success;
-    if (fail)
-      break;
+    system->tick(sim::api2::Scheduler::Mode::Jump);
   }
   if (noMMI) {
     std::cout << "Program request data from charIn, but no data is present. "

@@ -37,16 +37,16 @@
 
 static const auto lf = QRegularExpression("\r");
 
-static const auto rw =
-    sim::api::memory::Operation{.speculative = false,
-        .kind = sim::api::memory::Operation::Kind::data,
-        .effectful = false};
-
-static const auto gs = sim::api::memory::Operation{
-    .speculative = false,
-    .kind = sim::api::memory::Operation::Kind::data,
-    .effectful = false,
+static const auto rw = sim::api2::memory::Operation {
+    .type = sim::api2::memory::Operation::Type::Standard,
+    .kind = sim::api2::memory::Operation::Kind::data,
 };
+
+static const auto gs = sim::api2::memory::Operation {
+    .type = sim::api2::memory::Operation::Type::Application,
+    .kind = sim::api2::memory::Operation::Kind::data,
+};
+
 QSharedPointer<const builtins::Book> book(builtins::Registry& reg) {
   QString bookName = "Computer Systems, 6th Edition";
 
@@ -144,9 +144,7 @@ private slots:
     bool fail = false;
     auto max = 200'000;
     while (system->currentTick() < max && !endpoint->next_value().has_value()) {
-      auto ret = system->tick(sim::api::Scheduler::Mode::Jump);
-      fail |= ret.second.error != sim::api::tick::Error::Success;
-      QVERIFY(!fail);
+      system->tick(sim::api2::Scheduler::Mode::Jump);
     }
     QCOMPARE_NE(system->currentTick(), max);
     // TODO: Ensure that pwrOff was written to.

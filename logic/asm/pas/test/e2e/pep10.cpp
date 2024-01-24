@@ -26,7 +26,7 @@
 #include "asm/pas/obj/pep10.hpp"
 #include "asm/pas/operations/generic/errors.hpp"
 #include "asm/pas/operations/pepp/string.hpp"
-#include "sim/device/simple_bus.hpp"
+#include "sim/device/simple_bus_v2.hpp"
 #include "targets/pep10/isa3/system.hpp"
 #include <QObject>
 #include <QTest>

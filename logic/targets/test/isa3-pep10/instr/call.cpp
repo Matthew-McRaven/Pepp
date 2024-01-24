@@ -45,14 +45,14 @@ auto make = []() {
   auto storage =
       QSharedPointer<sim::memory::Dense<quint16>>::create(desc_mem, span);
   auto cpu = QSharedPointer<targets::pep10::isa::CPU>::create(desc_cpu, gen);
-  cpu->setTarget(storage.data());
+  cpu->setTarget(storage.data(), nullptr);
   return std::pair{storage, cpu};
 };
 
-sim::api::memory::Operation rw = {.speculative = false,
-                                  .kind =
-                                      sim::api::memory::Operation::Kind::data,
-                                  .effectful = false};
+sim::api2::memory::Operation rw = {
+    .type = sim::api2::memory::Operation::Type::Standard,
+    .kind = sim::api2::memory::Operation::Kind::data,
+};
 
 class ISA3Pep10_CALL : public QObject {
   Q_OBJECT
@@ -91,18 +91,15 @@ private slots:
       // Make pushed return addres non-zero.
       targets::pep10::isa::writeRegister(cpu->regs(), isa::Pep10::Register::PC,
                                          0x1122, rw);
-      QVERIFY(
-          mem->write(0x1122, {program.data(), program.size()}, rw).completed);
-
-      auto tick = cpu->tick(0);
-      QCOMPARE(tick.error, sim::api::tick::Error::Success);
+      QVERIFY_THROWS_NO_EXCEPTION(mem->write(0x1122, {program.data(), program.size()}, rw));
+      QVERIFY_THROWS_NO_EXCEPTION(cpu->clock(0));
 
       QCOMPARE(rreg(isa::Pep10::Register::SP), 0xFFFD);
       QCOMPARE(rreg(isa::Pep10::Register::A), 0);
       QCOMPARE(rreg(isa::Pep10::Register::X), 0);
       QCOMPARE(rreg(isa::Pep10::Register::IS),
                (quint8)isa::Pep10::Mnemonic::CALL);
-      QVERIFY(mem->read(0xFFFD, bufSpan, rw).completed);
+      QVERIFY_THROWS_NO_EXCEPTION(mem->read(0xFFFD, bufSpan, rw));
       for (int it = 0; it < 2; it++)
         QCOMPARE(bufSpan[it], truth[it]);
       // OS loaded the Mem[0x0001-0x0002].

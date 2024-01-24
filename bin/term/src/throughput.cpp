@@ -43,7 +43,7 @@ auto make = []() {
   auto storage =
       QSharedPointer<sim::memory::Dense<quint16>>::create(desc_mem, span);
   auto cpu = QSharedPointer<targets::pep10::isa::CPU>::create(desc_cpu, gen);
-  cpu->setTarget(storage.data());
+  cpu->setTarget(storage.data(), nullptr);
   return std::pair{storage, cpu};
 };
 
@@ -64,7 +64,7 @@ void ThroughputTask::run() {
   auto start = std::chrono::high_resolution_clock::now();
   auto maxInstr = 1'000'000;
   for (int it = 0; it < maxInstr; it++) {
-    cpu->tick(it);
+    cpu->clock(it);
   }
   auto end = std::chrono::high_resolution_clock::now();
   auto ms = std::chrono::duration_cast<std::chrono::milliseconds>(end - start);

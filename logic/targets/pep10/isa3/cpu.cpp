@@ -20,20 +20,18 @@
 #include "targets/pep10/isa3/helpers.hpp"
 #include <bit>
 
-sim::api::memory::Operation rw_d = {
-    .speculative = false,
-    .kind = sim::api::memory::Operation::Kind::data,
-    .effectful = true,
+sim::api2::memory::Operation rw_d = {
+    .type = sim::api2::memory::Operation::Type::Standard,
+    .kind = sim::api2::memory::Operation::Kind::data,
 };
 
-sim::api::memory::Operation rw_i = {
-    .speculative = false,
-    .kind = sim::api::memory::Operation::Kind::instruction,
-    .effectful = true,
+sim::api2::memory::Operation rw_i = {
+    .type = sim::api2::memory::Operation::Type::Standard,
+    .kind = sim::api2::memory::Operation::Kind::instruction,
 };
 
-targets::pep10::isa::CPU::CPU(sim::api::device::Descriptor device,
-                              sim::api::device::IDGenerator gen)
+targets::pep10::isa::CPU::CPU(sim::api2::device::Descriptor device,
+                              sim::api2::device::IDGenerator gen)
     : _device(device),
       _regs({.id = gen(),
              .baseName = "regs",
@@ -46,11 +44,11 @@ targets::pep10::isa::CPU::CPU(sim::api::device::Descriptor device,
             {.minOffset = 0, .maxOffset = quint8(::isa::Pep10::CSRCount - 1)}) {
 }
 
-sim::api::memory::Target<quint8> *targets::pep10::isa::CPU::regs() {
+sim::api2::memory::Target<quint8> *targets::pep10::isa::CPU::regs() {
   return &_regs;
 }
 
-sim::api::memory::Target<quint8> *targets::pep10::isa::CPU::csrs() {
+sim::api2::memory::Target<quint8> *targets::pep10::isa::CPU::csrs() {
   return &_csrs;
 }
 
@@ -58,36 +56,26 @@ targets::pep10::isa::CPU::Status targets::pep10::isa::CPU::status() const {
   return _status;
 }
 
-const sim::api::tick::Source *targets::pep10::isa::CPU::getSource() {
+const sim::api2::tick::Source *targets::pep10::isa::CPU::getSource() {
   return _clock;
 }
 
-void targets::pep10::isa::CPU::setSource(sim::api::tick::Source *clock) {
-  _clock = clock;
+void targets::pep10::isa::CPU::setSource(sim::api2::tick::Source *clock) {
+    _clock = clock;
 }
 
-sim::api::tick::Result
-targets::pep10::isa::CPU::tick(sim::api::tick::Type currentTick) {
+sim::api2::tick::Result targets::pep10::isa::CPU::clock(sim::api2::tick::Type currentTick)
+{
   using Register = ::isa::Pep10::Register;
   quint16 pc = readReg(Register::PC);
-  static const auto retMemErr = [](const sim::api::memory::Result &res) {
-    return sim::api::tick::Result{
-        .pause = false,
-        .tick_delay = 0,
-        .error = res.error == sim::api::memory::Error::NeedsMMI
-                     ? sim::api::tick::Error::NoMMInput
-                     : sim::api::tick::Error::Terminate,
-        .delay = 0};
-  };
+
   // Instruction specifier fetch + writeback.
   quint8 is = 0;
-  auto isResult = _memory->read(pc, {&is, 1}, rw_i);
-  if (!isResult.completed)
-    return retMemErr(isResult);
+  _memory->read(pc, {&is, 1}, rw_i);
   writeReg(Register::IS, is);
   pc += 1;
 
-  sim::api::tick::Result ret;
+  sim::api2::tick::Result ret;
   if (::isa::Pep10::isOpcodeUnary(is)) {
     // Increment PC and writeback
     writeReg(Register::PC, pc);
@@ -96,11 +84,8 @@ targets::pep10::isa::CPU::tick(sim::api::tick::Type currentTick) {
   } else {
     // Instruction specifier fetch + writeback.
     quint16 os = 0;
-    auto osResult =
-        _memory->read(pc, {reinterpret_cast<quint8 *>(&os), 2}, rw_i);
+    _memory->read(pc, {reinterpret_cast<quint8 *>(&os), 2}, rw_i);
     os = bits::hostOrder() != bits::Order::BigEndian ? bits::byteswap(os) : os;
-    if (!osResult.completed)
-      return retMemErr(osResult);
     writeReg(Register::OS, os);
     // Execute nonunary dispatch, which is responsible for writing back PC.
     ret = nonunaryDispatch(is, os, pc += 2);
@@ -110,10 +95,20 @@ targets::pep10::isa::CPU::tick(sim::api::tick::Type currentTick) {
   return ret;
 }
 
-void targets::pep10::isa::CPU::setTraceBuffer(sim::api::trace::Buffer *tb) {
+bool targets::pep10::isa::CPU::filter(const sim::api2::packet::Header &)
+{
+  throw std::logic_error("unimplemented");
+}
+
+bool targets::pep10::isa::CPU::analyze(const sim::api2::packet::Header &, const std::span<sim::api2::packet::Payload> &, Direction)
+{
+  throw std::logic_error("unimplemented");
+}
+
+void targets::pep10::isa::CPU::setBuffer(sim::api2::trace::Buffer *tb) {
   _tb = tb;
-  _regs.setTraceBuffer(tb);
-  _csrs.setTraceBuffer(tb);
+  _regs.setBuffer(tb);
+  _csrs.setBuffer(tb);
 }
 
 void targets::pep10::isa::CPU::trace(bool enabled) {
@@ -123,69 +118,43 @@ void targets::pep10::isa::CPU::trace(bool enabled) {
   _csrs.trace(enabled);
 }
 
-quint8
-targets::pep10::isa::CPU::packetSize(sim::api::packet::Flags flags) const {
-  throw std::logic_error("unimplemented");
-}
-
-bool targets::pep10::isa::CPU::applyTrace(bits::span<const quint8> payload,
-                                          sim::api::packet::Flags flags) {
-  throw std::logic_error("unimplemented");
-}
-
-bool targets::pep10::isa::CPU::unapplyTrace(bits::span<const quint8> payload,
-                                            sim::api::packet::Flags flags) {
-  throw std::logic_error("unimplemented");
-}
-
 void targets::pep10::isa::CPU::setTarget(
-    sim::api::memory::Target<quint16> *target) {
+    sim::api2::memory::Target<quint16> *target, void* port) {
   _memory = target;
-}
-
-void targets::pep10::isa::CPU::setTarget(
-    void *port, sim::api::memory::Target<quint16> *target) {
-  throw std::logic_error("unimplemented");
 }
 
 quint16 targets::pep10::isa::CPU::readReg(::isa::Pep10::Register reg) {
   quint16 ret = 0;
-  if (!isa::readRegister<quint8>(&_regs, reg, ret, rw_d).completed)
-    throw std::logic_error("failed to read register");
+  isa::readRegister<quint8>(&_regs, reg, ret, rw_d);
   return ret;
 }
 
 void targets::pep10::isa::CPU::writeReg(::isa::Pep10::Register reg,
                                         quint16 val) {
-  if (!isa::writeRegister<quint8>(&_regs, reg, val, rw_d).completed)
-    throw std::logic_error("failed to write register");
+  isa::writeRegister<quint8>(&_regs, reg, val, rw_d);
 }
 
 bool targets::pep10::isa::CPU::readCSR(::isa::Pep10::CSR csr) {
   bool ret = 0;
-  if (!isa::readCSR(&_csrs, csr, ret, rw_d).completed)
-    throw std::logic_error("failed to read csr");
+  isa::readCSR(&_csrs, csr, ret, rw_d);
   return ret;
 }
 
 void targets::pep10::isa::CPU::writeCSR(::isa::Pep10::CSR csr, bool val) {
-  if (!isa::writeCSR<quint8>(&_csrs, csr, val, rw_d).completed)
-    throw std::logic_error("failed to write csr");
+  isa::writeCSR<quint8>(&_csrs, csr, val, rw_d);
 }
 
 quint8 targets::pep10::isa::CPU::readPackedCSR() {
   quint8 ret = 0;
-  if (!isa::readPackedCSR(&_csrs, ret, rw_d).completed)
-    throw std::logic_error("failed to read multiple csr");
+  isa::readPackedCSR(&_csrs, ret, rw_d);
   return ret;
 }
 
 void targets::pep10::isa::CPU::writePackedCSR(quint8 val) {
-  if (!isa::writePackedCSR(&_csrs, val, rw_d).completed)
-    throw std::logic_error("Failed to write CSR");
+  isa::writePackedCSR(&_csrs, val, rw_d);
 }
 
-sim::api::tick::Result targets::pep10::isa::CPU::unaryDispatch(quint8 is) {
+sim::api2::tick::Result targets::pep10::isa::CPU::unaryDispatch(quint8 is) {
   using mn = ::isa::Pep10::Mnemonic;
   using Register = ::isa::Pep10::Register;
 
@@ -193,7 +162,6 @@ sim::api::tick::Result targets::pep10::isa::CPU::unaryDispatch(quint8 is) {
   auto mnemonic = ::isa::Pep10::opcodeLUT[is];
   quint16 a = readReg(Register::A), sp = readReg(Register::SP),
           x = readReg(Register::X);
-  sim::api::memory::Result mem_res;
   quint16 tmp = 0;
   bits::span<const quint8> tmpSpan = {reinterpret_cast<const quint8 *>(&tmp),
                                       sizeof(tmp)};
@@ -204,21 +172,13 @@ sim::api::tick::Result targets::pep10::isa::CPU::unaryDispatch(quint8 is) {
   auto ctxSpan = bits::span<quint8>{ctx, sizeof(ctx)};
   auto [n, z, v, c] = unpackCSR(readPackedCSR());
 
-  auto retErr = sim::api::tick::Error::Success;
   switch (mnemonic.instr.mnemon) {
   case mn::RET:
-    mem_res = _memory->read(sp, {reinterpret_cast<quint8 *>(&tmp), 2}, rw_d);
+    _memory->read(sp, {reinterpret_cast<quint8 *>(&tmp), 2}, rw_d);
     // Must byteswap tmp if on big endian host, as _memory stores in little
     // endian
     if (swap)
       tmp = bits::byteswap(tmp);
-    if (mem_res.error == sim::api::memory::Error::NeedsMMI) {
-      retErr = sim::api::tick::Error::NoMMInput;
-      break;
-    } else if (!mem_res.completed) {
-      tmp = 0;
-      qCritical() << "Failed to access memory";
-    }
     writeReg(Register::PC, tmp);
     writeReg(Register::SP, sp + 2);
     break;
@@ -375,75 +335,40 @@ sim::api::tick::Result targets::pep10::isa::CPU::unaryDispatch(quint8 is) {
     // Then we can do a single write back to _regs and only generate 1 trace
     // packet.
     tmp = (_regs.span().maxOffset - _regs.span().minOffset + 1);
-    mem_res = _regs.read(0, {ctx, tmp}, rw_d);
-    if (mem_res.error == sim::api::memory::Error::NeedsMMI) {
-      retErr = sim::api::tick::Error::NoMMInput;
-      break;
-    } else if (!mem_res.completed)
-      qCritical() << "Failed to access memory";
+    _regs.read(0, {ctx, tmp}, rw_d);
 
     // Reload NZVC
-    mem_res = _memory->read(sp, {reinterpret_cast<quint8 *>(&tmp8), 1}, rw_d);
-    if (mem_res.error == sim::api::memory::Error::NeedsMMI) {
-      retErr = sim::api::tick::Error::NoMMInput;
-      break;
-    } else if (!mem_res.completed) {
-      tmp = 0;
-      qCritical() << "Failed to access memory";
-    }
+    _memory->read(sp, {reinterpret_cast<quint8 *>(&tmp8), 1}, rw_d);
     writePackedCSR(tmp8);
 
     // Load A into ctx. No need for byteswap, _memory is little endian as are
     // regs.
-    mem_res = _memory->read(
+    _memory->read(
         sp + 1, {ctx + 2 * static_cast<quint8>(Register::A), 2}, rw_d);
     swap ? bits::byteswap(tmp) : tmp;
-    if (mem_res.error == sim::api::memory::Error::NeedsMMI) {
-      retErr = sim::api::tick::Error::NoMMInput;
-      break;
-    } else if (!mem_res.completed)
-      qCritical() << "Failed to access memory";
 
     // Load X into ctx
-    mem_res = _memory->read(
+    _memory->read(
         sp + 3, {ctx + 2 * static_cast<quint8>(Register::X), 2}, rw_d);
-    if (mem_res.error == sim::api::memory::Error::NeedsMMI) {
-      retErr = sim::api::tick::Error::NoMMInput;
-      break;
-    } else if (!mem_res.completed)
-      qCritical() << "Failed to access memory";
 
     // Load PC into ctx
-    mem_res = _memory->read(
+    _memory->read(
         sp + 5, {ctx + 2 * static_cast<quint8>(Register::PC), 2}, rw_d);
-    if (mem_res.error == sim::api::memory::Error::NeedsMMI) {
-      retErr = sim::api::tick::Error::NoMMInput;
-      break;
-    } else if (!mem_res.completed)
-      qCritical() << "Failed to access memory";
 
     // Load SP into ctx
-    mem_res = _memory->read(
+    _memory->read(
         sp + 7, {ctx + 2 * static_cast<quint8>(Register::SP), 2}, rw_d);
-    if (mem_res.error == sim::api::memory::Error::NeedsMMI) {
-      retErr = sim::api::tick::Error::NoMMInput;
-      break;
-    } else if (!mem_res.completed)
-      qCritical() << "Failed to access memory";
 
     // Bulk write-back regs, saving a number of bits on trace metadata.
-    if (!_regs.write(0, {ctx, registersBytes}, rw_d).completed)
-      throw std::logic_error("Failed to write registers");
+    _regs.write(0, {ctx, registersBytes}, rw_d);
 
     tmp = sp + 10;
     // Using "host"'s variables, so byte swap if necessary.
     if (swap)
       tmp = bits::byteswap(tmp);
-    mem_res = _memory->write(
+    _memory->write(
         static_cast<quint16>(::isa::Pep10::MemoryVectors::SystemStackPtr),
         {reinterpret_cast<quint8 *>(&tmp), 2}, rw_d);
-    if (!mem_res.completed)
-      qCritical() << "Failed to access memory";
     break;
 
   case mn::SCALL:
@@ -461,50 +386,33 @@ sim::api::tick::Result targets::pep10::isa::CPU::unaryDispatch(quint8 is) {
     ctx[9] = is;
 
     // Read system stack address.
-    mem_res = _memory->read(
+    _memory->read(
         static_cast<quint16>(::isa::Pep10::MemoryVectors::SystemStackPtr),
         {reinterpret_cast<quint8 *>(&tmp), 2}, rw_d);
-    if (mem_res.error == sim::api::memory::Error::NeedsMMI) {
-      retErr = sim::api::tick::Error::NoMMInput;
-      break;
-    } else if (!mem_res.completed) {
-      tmp = 0;
-      qCritical() << "Failed to access memory";
-    }
     if (swap)
       tmp = bits::byteswap(tmp);
 
     // Allocate ctx frame with -=.
-    mem_res = _memory->write(tmp -= 10, {ctx, 10}, rw_d);
-    if (!mem_res.completed)
-      qCritical() << "Failed to access memory";
+    _memory->write(tmp -= 10, {ctx, 10}, rw_d);
     // And update SP with OS's SP.
     writeReg(Register::SP, tmp);
 
     // Read trap handler pc.
-    mem_res = _memory->read(
+    _memory->read(
         static_cast<quint16>(::isa::Pep10::MemoryVectors::TrapHandler),
         {reinterpret_cast<quint8 *>(&tmp), 2}, rw_d);
-    if (mem_res.error == sim::api::memory::Error::NeedsMMI)
-      retErr = sim::api::tick::Error::NoMMInput;
-    else if (!mem_res.completed)
-      qCritical() << "Failed to access memory";
     if (swap)
       tmp = bits::byteswap(tmp);
     writeReg(Register::PC, tmp);
     break;
   default:
-    _status = Status::IllegalOpcode;
-    retErr = sim::api::tick::Error::Terminate;
+      _status = Status::IllegalOpcode;
+      throw std::logic_error("Unimplemented opcode");
   }
-  return {.pause = false,
-          .tick_delay = 0,
-          .error = retErr,
-          .delay = sim::api::tick::Type(
-              retErr != sim::api::tick::Error::Success ? 1 : 0)};
+  return {.pause=0, .delay=1};
 }
 
-sim::api::tick::Result
+sim::api2::tick::Result
 targets::pep10::isa::CPU::nonunaryDispatch(quint8 is, quint16 os, quint16 pc) {
   using mn = ::isa::Pep10::Mnemonic;
   using Register = ::isa::Pep10::Register;
@@ -513,7 +421,6 @@ targets::pep10::isa::CPU::nonunaryDispatch(quint8 is, quint16 os, quint16 pc) {
   auto mnemonic = ::isa::Pep10::opcodeLUT[is];
   quint16 a = readReg(Register::A), sp = readReg(Register::SP),
           x = readReg(Register::X);
-  sim::api::memory::Result mem_res;
 
   quint16 operand = 0;
 
@@ -521,24 +428,13 @@ targets::pep10::isa::CPU::nonunaryDispatch(quint8 is, quint16 os, quint16 pc) {
   auto [n, z, v, c] = unpackCSR(readPackedCSR());
 
   auto instrDef = ::isa::Pep10::opcodeLUT[is];
-  auto retErr = sim::api::tick::Error::Success;
   if (::isa::Pep10::isValidAddressingMode(instrDef.instr.mnemon,
-                                          instrDef.mode)) {
-    mem_res = ::isa::Pep10::isStore(is) ? decodeStoreOperand(is, os, operand)
-                                        : decodeLoadOperand(is, os, operand);
-    if (mem_res.error == sim::api::memory::Error::NeedsMMI)
-      retErr = sim::api::tick::Error::NoMMInput;
-    else if (!mem_res.completed)
-      qCritical() << "Failed to access memory";
-  } else
-    retErr = sim::api::tick::Error::Terminate;
+                                          instrDef.mode))
+    ::isa::Pep10::isStore(is) ? decodeStoreOperand(is, os, operand)
+                              : decodeLoadOperand(is, os, operand);
+  else
+      throw std::logic_error("Invalid addressing mode");
 
-  if (retErr != sim::api::tick::Error::Success)
-    return {
-        .tick_delay = 0,
-        .error = retErr,
-        .delay = 0,
-    };
 
   switch (mnemonic.instr.mnemon) {
   case mn::BR:
@@ -571,13 +467,7 @@ targets::pep10::isa::CPU::nonunaryDispatch(quint8 is, quint16 os, quint16 pc) {
   case mn::CALL:
     // Write PC to stack
     tmp = swap ? bits::byteswap(pc) : pc;
-    mem_res =
-        _memory->write(sp -= 2, {reinterpret_cast<quint8 *>(&tmp), 2}, rw_d);
-    if (mem_res.error == sim::api::memory::Error::NeedsMMI) {
-      retErr = sim::api::tick::Error::NoMMInput;
-      break;
-    } else if (!mem_res.completed)
-      qCritical() << "Failed to access memory";
+    _memory->write(sp -= 2, {reinterpret_cast<quint8 *>(&tmp), 2}, rw_d);
     pc = operand;
     writeReg(Register::SP, sp);
     break;
@@ -613,32 +503,20 @@ targets::pep10::isa::CPU::nonunaryDispatch(quint8 is, quint16 os, quint16 pc) {
 
   case mn::STWA:
     tmp = swap ? bits::byteswap(a) : a;
-    mem_res =
-        _memory->write(operand, {reinterpret_cast<quint8 *>(&tmp), 2}, rw_d);
-    if (!mem_res.completed)
-      qCritical() << "Failed to access memory";
+    _memory->write(operand, {reinterpret_cast<quint8 *>(&tmp), 2}, rw_d);
     break;
   case mn::STWX:
     tmp = swap ? bits::byteswap(x) : x;
-    mem_res =
-        _memory->write(operand, {reinterpret_cast<quint8 *>(&tmp), 2}, rw_d);
-    if (!mem_res.completed)
-      qCritical() << "Failed to access memory";
+    _memory->write(operand, {reinterpret_cast<quint8 *>(&tmp), 2}, rw_d);
     break;
 
   case mn::STBA:
     tmp = swap ? bits::byteswap(a) : a;
-    mem_res = _memory->write(operand, {reinterpret_cast<quint8 *>(&tmp) + 1, 1},
-                             rw_d);
-    if (!mem_res.completed)
-      qCritical() << "Failed to access memory";
+    _memory->write(operand, {reinterpret_cast<quint8 *>(&tmp) + 1, 1}, rw_d);
     break;
   case mn::STBX:
     tmp = swap ? bits::byteswap(x) : x;
-    mem_res = _memory->write(operand, {reinterpret_cast<quint8 *>(&tmp) + 1, 1},
-                             rw_d);
-    if (!mem_res.completed)
-      qCritical() << "Failed to access memory";
+    _memory->write(operand, {reinterpret_cast<quint8 *>(&tmp) + 1, 1}, rw_d);
     break;
 
   case mn::CPWA:
@@ -833,20 +711,16 @@ targets::pep10::isa::CPU::nonunaryDispatch(quint8 is, quint16 os, quint16 pc) {
     writeReg(Register::SP, sp - operand);
     break;
   default:
-    _status = Status::IllegalOpcode;
-    retErr = sim::api::tick::Error::Terminate;
+      _status = Status::IllegalOpcode;
+      throw std::exception("Illegal Opcode");
   }
 
   // Increment PC and writeback
   writeReg(Register::PC, pc);
-  return {.pause = false,
-          .tick_delay = 0,
-          .error = retErr,
-          .delay = sim::api::tick::Type(
-              (retErr == sim::api::tick::Error::Success) ? 1 : 0)};
+  return {.pause=0, .delay=1};
 }
 
-sim::api::memory::Result
+void
 targets::pep10::isa::CPU::decodeStoreOperand(quint8 is, quint16 os,
                                              quint16 &decoded) {
   using Register = ::isa::Pep10::Register;
@@ -854,11 +728,6 @@ targets::pep10::isa::CPU::decodeStoreOperand(quint8 is, quint16 os,
 
   static const bool swap = bits::hostOrder() != bits::Order::BigEndian;
   auto instruction = ::isa::Pep10::opcodeLUT[is];
-  sim::api::memory::Result mem_res = {
-      .completed = true,
-      .pause = false,
-      .error = sim::api::memory::Error::Success,
-  };
 
   switch (instruction.mode) {
   // case am::I:
@@ -866,8 +735,7 @@ targets::pep10::isa::CPU::decodeStoreOperand(quint8 is, quint16 os,
     decoded = os;
     break;
   case am::N:
-    mem_res =
-        _memory->read(os, {reinterpret_cast<quint8 *>(&decoded), 2}, rw_i);
+    _memory->read(os, {reinterpret_cast<quint8 *>(&decoded), 2}, rw_i);
     if (swap)
       decoded = bits::byteswap(decoded);
     break;
@@ -881,23 +749,22 @@ targets::pep10::isa::CPU::decodeStoreOperand(quint8 is, quint16 os,
     decoded = os + readReg(Register::SP) + readReg(Register::X);
     break;
   case am::SF:
-    mem_res = _memory->read(os + readReg(Register::SP),
-                            {reinterpret_cast<quint8 *>(&decoded), 2}, rw_i);
+    _memory->read(os + readReg(Register::SP),
+                  {reinterpret_cast<quint8 *>(&decoded), 2}, rw_i);
     if (swap)
       decoded = bits::byteswap(decoded);
     break;
   case am::SFX:
-    mem_res = _memory->read(os + readReg(Register::SP),
-                            {reinterpret_cast<quint8 *>(&decoded), 2}, rw_i);
+    _memory->read(os + readReg(Register::SP),
+                  {reinterpret_cast<quint8 *>(&decoded), 2}, rw_i);
     if (swap)
       decoded = bits::byteswap(decoded);
     decoded += readReg(Register::X);
     break;
   }
-  return mem_res;
 }
 
-sim::api::memory::Result
+void
 targets::pep10::isa::CPU::decodeLoadOperand(quint8 is, quint16 os,
                                             quint16 &decoded) {
   using Register = ::isa::Pep10::Register;
@@ -906,11 +773,6 @@ targets::pep10::isa::CPU::decodeLoadOperand(quint8 is, quint16 os,
 
   static const bool swap = bits::hostOrder() != bits::Order::BigEndian;
   auto instruction = ::isa::Pep10::opcodeLUT[is];
-  sim::api::memory::Result mem_res = {
-      .completed = true,
-      .pause = false,
-      .error = sim::api::memory::Error::Success,
-  };
   auto mnemon = instruction.instr.mnemon;
   bool isByte = mnemon == mn::LDBA || mnemon == mn::LDBX ||
                 mnemon == mn::CPBA || mnemon == mn::CPBX;
@@ -920,90 +782,68 @@ targets::pep10::isa::CPU::decodeLoadOperand(quint8 is, quint16 os,
     decoded = os;
     break;
   case am::D:
-    mem_res = _memory->read(
-        os,
+    _memory->read(os,
         {reinterpret_cast<quint8 *>(&decoded) + int(isByte && swap ? 1 : 0),
-         std::size_t(isByte ? 1 : 2)},
-        rw_i);
+         std::size_t(isByte ? 1 : 2)}, rw_i);
     if (swap)
       decoded = bits::byteswap(decoded);
     break;
   case am::N:
-    mem_res =
-        _memory->read(os, {reinterpret_cast<quint8 *>(&decoded), 2}, rw_i);
-    if (!mem_res.completed)
-      return mem_res;
+    _memory->read(os, {reinterpret_cast<quint8 *>(&decoded), 2}, rw_i);
 
     if (swap)
       decoded = bits::byteswap(decoded);
-    mem_res = _memory->read(
-        decoded,
+    _memory->read(decoded,
         {reinterpret_cast<quint8 *>(&decoded) + int(isByte && swap ? 1 : 0),
-         std::size_t(isByte ? 1 : 2)},
-        rw_i);
+         std::size_t(isByte ? 1 : 2)}, rw_i);
     if (swap)
       decoded = bits::byteswap(decoded);
     break;
   case am::S:
-    mem_res = _memory->read(
-        os + readReg(Register::SP),
+    _memory->read(os + readReg(Register::SP),
         {reinterpret_cast<quint8 *>(&decoded) + int(isByte && swap ? 1 : 0),
-         std::size_t(isByte ? 1 : 2)},
-        rw_i);
+         std::size_t(isByte ? 1 : 2)}, rw_i);
     if (swap)
       decoded = bits::byteswap(decoded);
     break;
   case am::X:
-    mem_res = _memory->read(
-        os + readReg(Register::X),
+    _memory->read(os + readReg(Register::X),
         {reinterpret_cast<quint8 *>(&decoded) + int(isByte && swap ? 1 : 0),
-         std::size_t(isByte ? 1 : 2)},
-        rw_i);
+         std::size_t(isByte ? 1 : 2)}, rw_i);
     if (swap)
       decoded = bits::byteswap(decoded);
     break;
   case am::SX:
-    mem_res = _memory->read(
-        os + readReg(Register::SP) + readReg(Register::X),
+    _memory->read(os + readReg(Register::SP) + readReg(Register::X),
         {reinterpret_cast<quint8 *>(&decoded) + int(isByte && swap ? 1 : 0),
-         std::size_t(isByte ? 1 : 2)},
-        rw_i);
+         std::size_t(isByte ? 1 : 2)}, rw_i);
     if (swap)
       decoded = bits::byteswap(decoded);
     break;
   case am::SF:
-    mem_res = _memory->read(os + readReg(Register::SP),
-                            {reinterpret_cast<quint8 *>(&decoded), 2}, rw_i);
-    if (!mem_res.completed)
-      return mem_res;
+    _memory->read(os + readReg(Register::SP),
+        {reinterpret_cast<quint8 *>(&decoded), 2}, rw_i);
 
     if (swap)
       decoded = bits::byteswap(decoded);
-    mem_res = _memory->read(
-        decoded,
+    _memory->read(decoded,
         {reinterpret_cast<quint8 *>(&decoded) + int(isByte && swap ? 1 : 0),
-         std::size_t(isByte ? 1 : 2)},
-        rw_i);
+         std::size_t(isByte ? 1 : 2)}, rw_i);
     if (swap)
       decoded = bits::byteswap(decoded);
     break;
   case am::SFX:
-    mem_res = _memory->read(os + readReg(Register::SP),
-                            {reinterpret_cast<quint8 *>(&decoded), 2}, rw_i);
-    if (!mem_res.completed)
-      return mem_res;
+    _memory->read(os + readReg(Register::SP),
+        {reinterpret_cast<quint8 *>(&decoded), 2}, rw_i);
 
     if (swap)
       decoded = bits::byteswap(decoded);
-    mem_res = _memory->read(
-        decoded + readReg(Register::X),
+    _memory->read(decoded + readReg(Register::X),
         {reinterpret_cast<quint8 *>(&decoded) + int(isByte && swap ? 1 : 0),
-         std::size_t(isByte ? 1 : 2)},
-        rw_i);
+         std::size_t(isByte ? 1 : 2)}, rw_i);
     if (swap)
       decoded = bits::byteswap(decoded);
     break;
   }
   decoded &= mask;
-  return mem_res;
 }

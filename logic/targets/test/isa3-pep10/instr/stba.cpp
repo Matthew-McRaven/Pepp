@@ -45,14 +45,14 @@ auto make = []() {
   auto storage =
       QSharedPointer<sim::memory::Dense<quint16>>::create(desc_mem, span);
   auto cpu = QSharedPointer<targets::pep10::isa::CPU>::create(desc_cpu, gen);
-  cpu->setTarget(storage.data());
+  cpu->setTarget(storage.data(), nullptr);
   return std::pair{storage, cpu};
 };
 
-sim::api::memory::Operation rw = {.speculative = false,
-                                  .kind =
-                                      sim::api::memory::Operation::Kind::data,
-                                  .effectful = false};
+sim::api2::memory::Operation rw = {
+    .type = sim::api2::memory::Operation::Type::Standard,
+    .kind = sim::api2::memory::Operation::Kind::data,
+};
 
 class ISA3Pep10_STBA : public QObject {
   Q_OBJECT
@@ -88,10 +88,8 @@ private slots:
     cpu->regs()->write(static_cast<quint16>(target_reg) * 2,
                        {reinterpret_cast<quint8 *>(&tmp), 2}, rw);
 
-    QVERIFY(mem->write(0, {program.data(), program.size()}, rw).completed);
-
-    auto tick = cpu->tick(0);
-    QCOMPARE(tick.error, sim::api::tick::Error::Success);
+    QVERIFY_THROWS_NO_EXCEPTION(mem->write(0, {program.data(), program.size()}, rw));
+    QVERIFY_THROWS_NO_EXCEPTION(cpu->clock(0));
 
     QCOMPARE(rreg(isa::Pep10::Register::SP), 0);
     QCOMPARE(rreg(isa::Pep10::Register::X), 0);
@@ -104,11 +102,11 @@ private slots:
 
     quint8 tmp8=0;
     // Check that byte store doesn't spill into adjacent word.
-    QVERIFY(mem->read(opspec-1,{&tmp8, 1}, rw).completed);
+    QVERIFY_THROWS_NO_EXCEPTION(mem->read(opspec-1,{&tmp8, 1}, rw));
     QCOMPARE(tmp8, 0);
-    QVERIFY(mem->read(opspec,{&tmp8, 1}, rw).completed);
+    QVERIFY_THROWS_NO_EXCEPTION(mem->read(opspec,{&tmp8, 1}, rw));
     QCOMPARE(tmp8, target & 0xff);
-    QVERIFY(mem->read(opspec+1,{&tmp8, 1}, rw).completed);
+    QVERIFY_THROWS_NO_EXCEPTION(mem->read(opspec+1,{&tmp8, 1}, rw));
     QCOMPARE(tmp8, 0);
   }
 };

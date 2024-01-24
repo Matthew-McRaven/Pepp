@@ -344,7 +344,7 @@ template <typename Address> struct System {
     virtual device::ID nextID() = 0;
     virtual device::IDGenerator nextIDGenerator() = 0;
 
-    virtual void setTraceBuffer(trace::Buffer *buffer) = 0;
+    virtual void setBuffer(trace::Buffer *buffer) = 0;
 };
 
 } // namespace sim::api2
