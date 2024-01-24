@@ -252,7 +252,7 @@ public:
         Unmapped,   // Attempted to read a physical address with no device present.
         OOBAccess,  // Attempted out-of-bound access on a storage device.
         NeedsMMI,   // Attempted to read MMI that had no buffered input.
-        writeToRO,  // Attempt to write to read-only memory.
+        WriteToRO,  // Attempt to write to read-only memory.
     };
     static const std::string format(Address address) {
         auto addrString = QString::number(address, 16);
