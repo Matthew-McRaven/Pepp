@@ -246,6 +246,29 @@ public:
 // In API v2 (this version), errors are communicated via exceptions.
 namespace memory {
 template <typename Address>
+class Error : public std::runtime_error {
+public:
+    enum class Type {
+        Unmapped,   // Attempted to read a physical address with no device present.
+        OOBAccess,  // Attempted out-of-bound access on a storage device.
+        NeedsMMI,   // Attempted to read MMI that had no buffered input.
+        writeToRO,  // Attempt to write to read-only memory.
+    };
+    static const std::string format(Address address) {
+        auto addrString = QString::number(address, 16);
+        return QString("Memory access error at 0x%1")
+            .arg(addrString, sizeof(Address)*2, '0')
+            .toStdString();
+    }
+    Error(Type type, Address address): std::runtime_error(format(address)), _type(type), _address(address)  { };
+    Address address() const {return _address;}
+    Type type() const {return _type;}
+private:
+    Type _type;
+    Address _address;
+};
+
+template <typename Address>
 using AddressSpan = sim::api::memory::AddressSpan<Address>;
 struct Result {
     // Number of simulation ticks required to complete the memory op.
