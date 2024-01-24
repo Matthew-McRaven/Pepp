@@ -238,7 +238,7 @@ public:
     virtual ~Recipient() = default;
     virtual const Source* getSource() = 0;
     virtual void setSource(Source*) = 0;
-    virtual Result clock(tick::Type currentTick);
+    virtual Result clock(tick::Type currentTick) = 0;
 };
 } // namespace sim::api2::tick
 
