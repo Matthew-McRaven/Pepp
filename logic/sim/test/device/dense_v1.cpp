@@ -121,6 +121,6 @@ private slots:
   }
 };
 
-#include "dense.moc"
+#include "dense_v1.moc"
 
 QTEST_MAIN(SimDevice_Dense)

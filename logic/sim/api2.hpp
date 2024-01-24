@@ -245,6 +245,7 @@ public:
 // In API v1, errors are communicated via an Error field.
 // In API v2 (this version), errors are communicated via exceptions.
 namespace memory {
+using FailPolicy = sim::api::memory::FailPolicy;
 template <typename Address>
 class Error : public std::runtime_error {
 public:

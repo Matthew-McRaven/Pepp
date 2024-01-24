@@ -19,10 +19,16 @@
 #include "./pubsub.hpp"
 #include "bits/operations/copy.hpp"
 #include "sim/api.hpp"
+#include "sim/api2.hpp"
+#include "sim/trace2/packet_utils.hpp"
 
 namespace sim::memory {
 template <typename Address>
-class Output : public sim::api::memory::Target<Address>, api::trace::Producer {
+class Output : virtual public api::memory::Target<Address>,
+               public api::trace::Producer,
+               public api2::memory::Target<Address>,
+               public api2::trace::Source,
+               public api2::trace::Sink {
 public:
   using AddressSpan = typename api::memory::AddressSpan<Address>;
   Output(api::device::Descriptor device, AddressSpan span,
@@ -57,6 +63,16 @@ public:
   QSharedPointer<typename detail::Channel<Address, quint8>::Endpoint>
   endpoint();
 
+  // API v2
+  // Sink interface
+  bool filter(const api2::packet::Header& header) override;
+  bool analyze(const api2::packet::Header& header, const std::span<api2::packet::Payload> &, Direction) override;
+  // Source interface
+  void setBuffer(api2::trace::Buffer *tb) override;
+  // Target interface
+  api2::memory::Result read(Address address, bits::span<quint8> dest, api2::memory::Operation op) const override;
+  api2::memory::Result write(Address address, bits::span<const quint8> src, api2::memory::Operation op) override;
+
 private:
   quint8 _fill;
   AddressSpan _span;
@@ -65,6 +81,7 @@ private:
   QSharedPointer<typename detail::Channel<Address, quint8>::Endpoint> _endpoint;
 
   api::trace::Buffer *_tb = nullptr;
+  api2::trace::Buffer *_tb2 = nullptr;
 };
 
 template <typename Address>
@@ -170,6 +187,61 @@ template <typename Address>
 QSharedPointer<typename detail::Channel<Address, quint8>::Endpoint>
 Output<Address>::endpoint() {
   return _channel->new_endpoint();
+}
+
+template<typename Address>
+bool Output<Address>::filter(const api2::packet::Header &header)
+{
+  return std::visit(sim::trace2::IsSameDevice{_device.id}, header);
+}
+
+template<typename Address>
+bool Output<Address>::analyze(const api2::packet::Header &header, const std::span<api2::packet::Payload> &, Direction)
+{
+  throw std::logic_error("unimplemented");
+  return true;
+}
+
+template<typename Address>
+void Output<Address>::setBuffer(api2::trace::Buffer *tb)
+{
+    _tb2 = tb;
+}
+
+template<typename Address>
+api2::memory::Result Output<Address>::read(Address address, bits::span<quint8> dest, api2::memory::Operation op) const
+{
+  using E = api2::memory::Error<Address>;
+  using Operation = sim::api2::memory::Operation;
+  // Length is 1-indexed, address are 0, so must offset by -1.
+  auto maxDestAddr = (address + std::max<Address>(0, dest.size() - 1));
+  if (address < _span.minOffset || maxDestAddr > _span.maxOffset)
+      throw E(E::Type::OOBAccess, address);
+  else if (auto end = _endpoint->current_value(); end) {
+    if (op.type != Operation::Type::Application && _tb2)
+      sim::trace2::emitPureRead<Address>(_tb2, _device.id, 0, dest.size());
+    quint8 tmp = *end;
+    bits::memcpy(dest, bits::span<const quint8>{&tmp, 1});
+  }
+  return {};
+}
+
+template<typename Address>
+api2::memory::Result Output<Address>::write(Address address, bits::span<const quint8> src, api2::memory::Operation op)
+{
+  using E = api2::memory::Error<Address>;
+  using Operation = sim::api2::memory::Operation;
+  // Length is 1-indexed, address are 0, so must offset by -1.
+  auto maxDestAddr = (address + std::max<Address>(0, src.size() - 1));
+  if (address < _span.minOffset || maxDestAddr > _span.maxOffset)
+    throw E(E::Type::OOBAccess, address);
+  else if (op.type != Operation::Type::Application) {
+    if(_tb2) sim::trace2::emitMMWrite<Address>(_tb2, _device.id, 0, src);
+    quint8 tmp;
+    bits::memcpy(bits::span<quint8>{&tmp, 1}, src);
+    _endpoint->append_value(tmp);
+  }
+  return {};
 }
 
 } // namespace sim::memory

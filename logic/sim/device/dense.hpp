@@ -18,11 +18,14 @@
 #pragma once
 #include "bits/operations/copy.hpp"
 #include "sim/api.hpp"
+#include "sim/api2.hpp"
 #include "sim/trace/common.hpp"
+#include "sim/trace2/packet_utils.hpp"
 
 namespace sim::memory {
 template <typename Address>
-class Dense : public api::memory::Target<Address>, api::trace::Producer {
+class Dense : virtual public api::memory::Target<Address>, public api::trace::Producer,
+              public api2::memory::Target<Address>, public api2::trace::Source, public api2::trace::Sink {
 public:
   using AddressSpan = typename api::memory::AddressSpan<Address>;
   Dense(api::device::Descriptor device, AddressSpan span,
@@ -63,6 +66,18 @@ private:
   QVector<quint8> _data;
 
   api::trace::Buffer *_tb = nullptr;
+  api2::trace::Buffer *_tb2 = nullptr;
+
+  // API v2
+public:
+  // Sink interface
+  bool filter(const api2::packet::Header& header) override;
+  bool analyze(const api2::packet::Header& header, const std::span<api2::packet::Payload> &, Direction) override;
+  // Source interface
+  void setBuffer(api2::trace::Buffer *tb) override;
+  // Target interface
+  api2::memory::Result read(Address address, bits::span<quint8> dest, api2::memory::Operation op) const override;
+  api2::memory::Result write(Address address, bits::span<const quint8> src, api2::memory::Operation op) override;
 };
 
 template <typename Address>
@@ -107,6 +122,7 @@ sim::memory::Dense<Address>::read(Address address, std::span<quint8> dest,
                          .subspan(address - _span.minOffset));
   return {.completed = true, .pause = pause, .error = error};
 }
+
 
 namespace detail {
 template <typename Address, typename T>
@@ -247,6 +263,8 @@ void sim::memory::Dense<Address>::setTraceBuffer(api::trace::Buffer *tb) {
 template <typename Address> void Dense<Address>::trace(bool enabled) {
   if (this->_tb)
     _tb->trace(_device.id, enabled);
+  if (this->_tb2)
+    _tb2->trace(_device.id, enabled);
 }
 
 template <typename Address>
@@ -272,4 +290,58 @@ template <typename Address>
 const quint8 *sim::memory::Dense<Address>::constData() const {
   return _data.constData();
 }
+
+template<typename Address>
+bool Dense<Address>::filter(const api2::packet::Header &header)
+{
+  return std::visit(sim::trace2::IsSameDevice{_device.id}, header);
+}
+
+template<typename Address>
+bool Dense<Address>::analyze(const api2::packet::Header &header, const std::span<api2::packet::Payload> &, Direction)
+{
+  throw std::logic_error("unimplemented");
+  return true;
+}
+
+template<typename Address>
+void Dense<Address>::setBuffer(api2::trace::Buffer *tb)
+{
+  _tb2 = tb;
+}
+
+template<typename Address>
+api2::memory::Result Dense<Address>::read(Address address, bits::span<quint8> dest, api2::memory::Operation op) const
+{
+  using E = api2::memory::Error<Address>;
+  using Operation = sim::api2::memory::Operation;
+  // Length is 1-indexed, address are 0, so must offset by -1.
+  auto maxDestAddr = (address + std::max<Address>(0, dest.size() - 1));
+  if (address < _span.minOffset || maxDestAddr > _span.maxOffset)
+    throw E(E::Type::OOBAccess, address);
+  auto offset = address - _span.minOffset;
+  auto src = bits::span<const quint8>{_data.data(), std::size_t(_data.size())}.subspan(offset);
+  // Don't need to record reads from UI, since they can cause no side-effects.
+  if (op.type != Operation::Type::Application && _tb2) sim::trace2::emitPureRead<Address>(_tb2, _device.id, offset, src.size());
+  bits::memcpy(dest, src);
+  return {};
+}
+
+template<typename Address>
+api2::memory::Result Dense<Address>::write(Address address, bits::span<const quint8> src, api2::memory::Operation op)
+{
+  using E = api2::memory::Error<Address>;
+  // Length is 1-indexed, address are 0, so must offset by -1.
+  auto maxDestAddr = (address + std::max<Address>(0, src.size() - 1));
+  if (address < _span.minOffset || maxDestAddr > _span.maxOffset)
+    throw E(E::Type::OOBAccess, address);
+  auto offset = address - _span.minOffset;
+  auto dest = bits::span<quint8>{_data.data(), std::size_t(_data.size())}.subspan(offset);
+  // Always record changes, even if the come from UI. Otherwise, step back fails.
+  if (_tb2) sim::trace2::emitWrite<Address>(_tb2, _device.id, offset, src, dest);
+  bits::memcpy(dest, src);
+  return {};
+}
+
+
 } // namespace sim::memory

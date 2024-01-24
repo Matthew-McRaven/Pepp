@@ -19,10 +19,16 @@
 #include "./pubsub.hpp"
 #include "bits/operations/copy.hpp"
 #include "sim/api.hpp"
+#include "sim/api2.hpp"
+#include "sim/trace2/packet_utils.hpp"
 
 namespace sim::memory {
 template <typename Address>
-class Input : public sim::api::memory::Target<Address>, api::trace::Producer {
+class Input : virtual public api::memory::Target<Address>,
+              public api::trace::Producer,
+              public api2::memory::Target<Address>,
+              public api2::trace::Source,
+              public api2::trace::Sink {
 public:
   using AddressSpan = typename api::memory::AddressSpan<Address>;
   Input(api::device::Descriptor device, AddressSpan span,
@@ -58,6 +64,17 @@ public:
   endpoint();
   void setFailPolicy(api::memory::FailPolicy policy);
 
+  // API v2
+  // Sink interface
+  bool filter(const api2::packet::Header& header) override;
+  bool analyze(const api2::packet::Header& header, const std::span<api2::packet::Payload> &, Direction) override;
+  // Source interface
+  void setBuffer(api2::trace::Buffer *tb) override;
+  // Target interface
+  api2::memory::Result read(Address address, bits::span<quint8> dest, api2::memory::Operation op) const override;
+  api2::memory::Result write(Address address, bits::span<const quint8> src, api2::memory::Operation op) override;
+
+
 private:
   quint8 _fill;
   AddressSpan _span;
@@ -67,6 +84,7 @@ private:
   api::memory::FailPolicy _policy = api::memory::FailPolicy::RaiseError;
 
   api::trace::Buffer *_tb = nullptr;
+  api2::trace::Buffer *_tb2 = nullptr;
 };
 
 template <typename Address>
@@ -181,7 +199,68 @@ Input<Address>::endpoint() {
 
 template <typename Address>
 void Input<Address>::setFailPolicy(api::memory::FailPolicy policy) {
-  _policy = policy;
+    _policy = policy;
+}
+
+template<typename Address>
+bool Input<Address>::filter(const api2::packet::Header &header)
+{
+  return std::visit(sim::trace2::IsSameDevice{_device.id}, header);
+}
+
+template<typename Address>
+bool Input<Address>::analyze(const api2::packet::Header &header, const std::span<api2::packet::Payload> &, Direction)
+{
+  throw std::logic_error("unimplemented");
+  return true;
+}
+
+template<typename Address>
+void Input<Address>::setBuffer(api2::trace::Buffer *tb)
+{
+    _tb2 = tb;
+}
+
+template<typename Address>
+api2::memory::Result Input<Address>::read(Address address, bits::span<quint8> dest, api2::memory::Operation op) const
+{
+  using E = api2::memory::Error<Address>;
+  using Operation = sim::api2::memory::Operation;
+  // Length is 1-indexed, address are 0, so must offset by -1.
+  auto maxDestAddr = (address + std::max<Address>(0, dest.size() - 1));
+
+  if (address < _span.minOffset || maxDestAddr > _span.maxOffset)
+    throw E(E::Type::OOBAccess, address);
+  else if(op.type == Operation::Type::Application) {
+    quint8 tmp = *_endpoint->current_value();
+    bits::memcpy(dest, bits::span<const quint8>{&tmp, 1});
+    // Return early to avoid guard extra guard condition in trace code.
+    return {};
+  } else if(auto next = _endpoint->next_value();
+            _policy == api::memory::FailPolicy::RaiseError && !next){
+    throw E(E::Type::NeedsMMI, address);
+  }else if(_policy == api2::memory::FailPolicy::YieldDefaultValue && !next) {
+    bits::memcpy(dest, bits::span<const quint8>{&_fill, 1});
+  } else {
+    quint8 tmp = *next;
+    bits::memcpy(dest, bits::span<const quint8>{&tmp, 1});
+  }
+
+  // All paths to here are non-application code, and should emit a trace
+  if(_tb2) sim::trace2::emitMMRead<Address>(_tb2, _device.id, 0, dest);
+
+  return{};
+}
+
+template<typename Address>
+api2::memory::Result Input<Address>::write(Address address, bits::span<const quint8> src, api2::memory::Operation op)
+{
+  using E = api2::memory::Error<Address>;
+  // Length is 1-indexed, address are 0, so must offset by -1.
+  auto maxDestAddr = (address + std::max<Address>(0, src.size() - 1));
+  if (address < _span.minOffset || maxDestAddr > _span.maxOffset)
+    throw E(E::Type::OOBAccess, address);
+  return {};
 }
 
 } // namespace sim::memory

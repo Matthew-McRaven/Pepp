@@ -18,7 +18,7 @@
 #include <QTest>
 #include <QtCore>
 
-#include "sim/device/broadcast/mmi.hpp"
+#include "sim/device/broadcast/mmo.hpp"
 
 auto desc = sim::api::device::Descriptor{
     .id = 1, .baseName = "cin", .fullName = "/cin"};
@@ -35,41 +35,34 @@ auto gs =
 auto span = sim::api::memory::AddressSpan<quint16>{.minOffset = 0,
                                                    .maxOffset = 0};
 
-class SimDevice_MMI : public QObject {
+class SimDevice_MMO : public QObject {
   Q_OBJECT
 private slots:
   void smoke() {
+    auto test= [](){auto x=QSharedPointer<sim::memory::Output<quint16>>::create(desc, span, 0);};
     QVERIFY_THROWS_NO_EXCEPTION(
-          [](){auto x=QSharedPointer<sim::memory::Input<quint16>>::create(desc, span, 0);}());
+         test();
+    );
   }
 
-  void read() {
-    auto in =
-        QSharedPointer<sim::memory::Input<quint16>>::create(desc, span, 0);
-    auto endpoint = in->endpoint();
-    endpoint->append_value(10);
-    endpoint->append_value(20);
-    quint8 tmp;
-    // Read advances state
-    QVERIFY(in->read(0, {&tmp, 1}, rw).completed);
-    QCOMPARE(tmp, 10);
-    // Get does not modify current value.
-    QVERIFY(in->read(0, {&tmp, 1}, gs).completed);
-    QCOMPARE(tmp, 10);
-    // Read advances state
-    QVERIFY(in->read(0, {&tmp, 1}, rw).completed);
-    QCOMPARE(tmp, 20);
-    // Out of MMI
-    QCOMPARE(in->read(0, {&tmp, 1}, rw).error,
-             sim::api::memory::Error::NeedsMMI);
-    // Soft-fail MMI, should yield default value
-    in->setFailPolicy(sim::api::memory::FailPolicy::YieldDefaultValue);
-    QVERIFY(in->read(0, {&tmp, 1}, rw).completed);
-    QCOMPARE(tmp, 0);
+  void write() {
+    auto out =
+        QSharedPointer<sim::memory::Output<quint16>>::create(desc, span, 0);
+    auto endpoint = out->endpoint();
+    quint8 tmp = 10;
+    QVERIFY(out->write(0, {&tmp, 1}, rw).completed);
+    tmp = 20;
+    QVERIFY(out->write(0, {&tmp, 1}, rw).completed);
+    auto _1 = endpoint->next_value();
+    QVERIFY(_1.has_value());
+    QCOMPARE(*_1, 10);
+    auto _2 = endpoint->next_value();
+    QVERIFY(_2.has_value());
+    QCOMPARE(*_2, 20);
   }
-  // TODO: Unread
+  // TODO: Unwrite
 };
 
-#include "mmi.moc"
+#include "mmo_v1.moc"
 
-QTEST_MAIN(SimDevice_MMI)
+QTEST_MAIN(SimDevice_MMO)

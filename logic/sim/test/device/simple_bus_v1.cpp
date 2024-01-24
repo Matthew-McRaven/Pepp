@@ -140,6 +140,6 @@ private slots:
   }
 };
 
-#include "simple_bus.moc"
+#include "simple_bus_v1.moc"
 
 QTEST_MAIN(SimDevice_SimpleBus);
