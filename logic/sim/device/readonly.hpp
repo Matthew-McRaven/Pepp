@@ -16,7 +16,6 @@
  */
 
 #pragma once
-#include "sim/api.hpp"
 #include "sim/api2.hpp"
 
 namespace sim::memory {
@@ -24,7 +23,7 @@ template <typename Address>
 class ReadOnly : public api2::memory::Target<Address>,
                  public api2::memory::Initiator<Address> {
 public:
-  using AddressSpan = typename api::memory::AddressSpan<Address>;
+  using AddressSpan = typename api2::memory::AddressSpan<Address>;
   ReadOnly(bool hardFail);
   ~ReadOnly() = default;
   ReadOnly(ReadOnly &&other) noexcept = default;

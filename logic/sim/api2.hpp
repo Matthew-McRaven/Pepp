@@ -2,14 +2,13 @@
 #include <QtCore>
 #include <zpp_bits.h>
 
-#include "api.hpp"
 #include "bits/span.hpp"
 
 namespace sim::api2 {
 
 static const int VERSION = 2;
 
-/*namespace device {
+namespace device {
 using ID = quint16; // Only use 9 bits (max of 512)!
 struct Descriptor {
     device::ID id; // Must uniquely identify a device within a system.
@@ -18,10 +17,6 @@ struct Descriptor {
 };
 using IDGenerator = std::function<ID()>;
 } // namespace sim::api2::device
-*/
-
-// Re-use device API for now.
-namespace device = ::sim::api::device;
 
 // A fragment is one of the data classes in packet::header, packet::payload, or frame::header.
 // A packet is a one packet::header fragment followed by 0 or more packet::payload fragments
@@ -245,7 +240,15 @@ public:
 // In API v1, errors are communicated via an Error field.
 // In API v2 (this version), errors are communicated via exceptions.
 namespace memory {
-using FailPolicy = sim::api::memory::FailPolicy;
+
+// If select memory operations fail (e.g., lack of MMI, unmapped address in
+// bus), specify the behavior of the target.
+enum class FailPolicy {
+  YieldDefaultValue, // The target picks some arbitrary default value, and
+                     // returns it successfully.
+  RaiseError         // The target returns an appropriate error message.
+};
+
 template <typename Address>
 class Error : public std::runtime_error {
 public:
@@ -270,7 +273,10 @@ private:
 };
 
 template <typename Address>
-using AddressSpan = sim::api::memory::AddressSpan<Address>;
+struct AddressSpan {
+    Address minOffset, maxOffset;
+};
+
 struct Result {
     // Number of simulation ticks required to complete the memory op.
     // 0 indicates the operation completed immediately.

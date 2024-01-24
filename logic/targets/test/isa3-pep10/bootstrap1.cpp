@@ -31,7 +31,7 @@ class Targets_ISA3Pep10_Bootstrap1 : public QObject {
 Q_OBJECT
 private slots:
   void smoke() {
-    sim::api::device::ID id = 0;
+    sim::api2::device::ID id = 0;
     auto nextID = [&id]() { return id++; };
     auto desc_mem = sim::api2::device::Descriptor{.id = nextID(),
         .compatible = nullptr,

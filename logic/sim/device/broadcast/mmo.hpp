@@ -18,7 +18,6 @@
 #pragma once
 #include "./pubsub.hpp"
 #include "bits/operations/copy.hpp"
-#include "sim/api.hpp"
 #include "sim/api2.hpp"
 #include "sim/trace2/packet_utils.hpp"
 
@@ -28,8 +27,8 @@ class Output : public api2::memory::Target<Address>,
                public api2::trace::Source,
                public api2::trace::Sink {
 public:
-  using AddressSpan = typename api::memory::AddressSpan<Address>;
-  Output(api::device::Descriptor device, AddressSpan span,
+  using AddressSpan = typename api2::memory::AddressSpan<Address>;
+  Output(api2::device::Descriptor device, AddressSpan span,
          quint8 defaultValue = 0);
   ~Output() = default;
   Output(Output &&other) noexcept = default;
@@ -60,7 +59,7 @@ public:
 private:
   quint8 _fill;
   AddressSpan _span;
-  api::device::Descriptor _device;
+  api2::device::Descriptor _device;
   QSharedPointer<typename detail::Channel<Address, quint8>> _channel;
   QSharedPointer<typename detail::Channel<Address, quint8>::Endpoint> _endpoint;
 
@@ -68,7 +67,7 @@ private:
 };
 
 template <typename Address>
-Output<Address>::Output(api::device::Descriptor device, AddressSpan span,
+Output<Address>::Output(api2::device::Descriptor device, AddressSpan span,
                         quint8 defaultValue)
     : _fill(defaultValue), _span(span), _device(device),
       _channel(QSharedPointer<detail::Channel<Address, quint8>>::create(_fill)),

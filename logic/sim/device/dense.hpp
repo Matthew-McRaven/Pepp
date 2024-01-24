@@ -18,7 +18,6 @@
 #pragma once
 #include "bits/operations/copy.hpp"
 #include "sim/api2.hpp"
-#include "sim/trace/common.hpp"
 #include "sim/trace2/packet_utils.hpp"
 
 namespace sim::memory {

@@ -105,10 +105,10 @@ targets::pep10::isa::System::System(QList<obj::MemoryRegion> regions,
       _mmi[mmio.name] = mem;
       // By default, charIn should raise an error when it runs out of input.
       if (mmio.name == "charIn")
-        mem->setFailPolicy(sim::api::memory::FailPolicy::RaiseError);
+        mem->setFailPolicy(sim::api2::memory::FailPolicy::RaiseError);
       // Disk in must not raise an error, otherwise loader will not work.
       else if (mmio.name == "diskIn") {
-        mem->setFailPolicy(sim::api::memory::FailPolicy::YieldDefaultValue);
+        mem->setFailPolicy(sim::api2::memory::FailPolicy::YieldDefaultValue);
         mem->clear('z' /*Loader sentinel character*/);
       }
     } else {
@@ -129,13 +129,13 @@ targets::pep10::isa::System::tick(sim::api2::Scheduler::Mode mode) {
   return {++_tick , res};
 }
 
-sim::api::tick::Type targets::pep10::isa::System::currentTick() const {
+sim::api2::tick::Type targets::pep10::isa::System::currentTick() const {
   return _tick;
 }
 
-sim::api::device::ID targets::pep10::isa::System::nextID() { return _nextID++; }
+sim::api2::device::ID targets::pep10::isa::System::nextID() { return _nextID++; }
 
-sim::api::device::IDGenerator targets::pep10::isa::System::nextIDGenerator() {
+sim::api2::device::IDGenerator targets::pep10::isa::System::nextIDGenerator() {
   return _nextIDGenerator;
 }
 

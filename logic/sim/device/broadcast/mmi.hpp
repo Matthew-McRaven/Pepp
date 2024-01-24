@@ -18,7 +18,6 @@
 #pragma once
 #include "./pubsub.hpp"
 #include "bits/operations/copy.hpp"
-#include "sim/api.hpp"
 #include "sim/api2.hpp"
 #include "sim/trace2/packet_utils.hpp"
 
@@ -28,8 +27,8 @@ class Input : public api2::memory::Target<Address>,
               public api2::trace::Source,
               public api2::trace::Sink {
 public:
-  using AddressSpan = typename api::memory::AddressSpan<Address>;
-  Input(api::device::Descriptor device, AddressSpan span,
+  using AddressSpan = typename api2::memory::AddressSpan<Address>;
+  Input(api2::device::Descriptor device, AddressSpan span,
         quint8 defaultValue = 0);
   ~Input() = default;
   Input(Input &&other) noexcept = default;
@@ -58,21 +57,21 @@ public:
   // Helpers
   QSharedPointer<typename detail::Channel<Address, quint8>::Endpoint>
   endpoint();
-  void setFailPolicy(api::memory::FailPolicy policy);
+  void setFailPolicy(api2::memory::FailPolicy policy);
 
 private:
   quint8 _fill;
   AddressSpan _span;
-  api::device::Descriptor _device;
+  api2::device::Descriptor _device;
   QSharedPointer<detail::Channel<Address, quint8>> _channel;
   QSharedPointer<typename detail::Channel<Address, quint8>::Endpoint> _endpoint;
-  api::memory::FailPolicy _policy = api::memory::FailPolicy::RaiseError;
+  api2::memory::FailPolicy _policy = api2::memory::FailPolicy::RaiseError;
 
   api2::trace::Buffer *_tb = nullptr;
 };
 
 template <typename Address>
-Input<Address>::Input(api::device::Descriptor device, AddressSpan span,
+Input<Address>::Input(api2::device::Descriptor device, AddressSpan span,
                       quint8 defaultValue)
     : _fill(defaultValue), _span(span),
       _channel(QSharedPointer<detail::Channel<Address, quint8>>::create(_fill)),
@@ -111,7 +110,7 @@ Input<Address>::endpoint() {
 }
 
 template <typename Address>
-void Input<Address>::setFailPolicy(api::memory::FailPolicy policy) {
+void Input<Address>::setFailPolicy(api2::memory::FailPolicy policy) {
     _policy = policy;
 }
 
@@ -150,7 +149,7 @@ api2::memory::Result Input<Address>::read(Address address, bits::span<quint8> de
     // Return early to avoid guard extra guard condition in trace code.
     return {};
   } else if(auto next = _endpoint->next_value();
-            _policy == api::memory::FailPolicy::RaiseError && !next){
+            _policy == api2::memory::FailPolicy::RaiseError && !next){
     throw E(E::Type::NeedsMMI, address);
   }else if(_policy == api2::memory::FailPolicy::YieldDefaultValue && !next) {
     bits::memcpy(dest, bits::span<const quint8>{&_fill, 1});

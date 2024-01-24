@@ -14,7 +14,7 @@ auto app = sim::api2::memory::Operation{
   .type = sim::api2::memory::Operation::Type::Application,
   .kind = sim::api2::memory::Operation::Kind::data,
 };
-auto span = sim::api::memory::AddressSpan<quint16>{
+auto span = sim::api2::memory::AddressSpan<quint16>{
   .minOffset = 0, .maxOffset = 0
 };
 

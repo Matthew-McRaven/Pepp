@@ -14,7 +14,7 @@ auto app = sim::api2::memory::Operation{
     .type = sim::api2::memory::Operation::Type::Application,
     .kind = sim::api2::memory::Operation::Kind::data,
 };
-auto span = sim::api::memory::AddressSpan<quint16>{
+auto span = sim::api2::memory::AddressSpan<quint16>{
     .minOffset = 0, .maxOffset = 0
 };
 
@@ -36,11 +36,11 @@ TEST_CASE("Memory-mapped input read, v2", "[sim][memory]") {
     CHECK(tmp == 20);
 
     // Soft-fail MMI, should yield default value
-    in->setFailPolicy(sim::api::memory::FailPolicy::YieldDefaultValue);
+    in->setFailPolicy(sim::api2::memory::FailPolicy::YieldDefaultValue);
     REQUIRE_NOTHROW(in->read(0, {&tmp, 1}, rw));
     CHECK(tmp == 0);
     // Hard-fail MMI should throw
-    in->setFailPolicy(sim::api::memory::FailPolicy::RaiseError);
+    in->setFailPolicy(sim::api2::memory::FailPolicy::RaiseError);
     REQUIRE_THROWS_AS(in->read(0, {&tmp, 1}, rw), sim::api2::memory::Error<quint16>);
 }
 

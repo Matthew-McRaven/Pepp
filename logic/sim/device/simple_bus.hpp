@@ -22,8 +22,8 @@ namespace sim::memory {
 template <typename Address>
 class SimpleBus : public api2::memory::Target<Address> {
 public:
-    using AddressSpan = typename api::memory::AddressSpan<Address>;
-    SimpleBus(api::device::Descriptor device, AddressSpan span);
+    using AddressSpan = typename api2::memory::AddressSpan<Address>;
+    SimpleBus(api2::device::Descriptor device, AddressSpan span);
     ~SimpleBus() = default;
     SimpleBus(SimpleBus &&other) noexcept = default;
     SimpleBus &operator=(SimpleBus &&other) = default;
@@ -45,7 +45,7 @@ public:
 
 private:
     AddressSpan _span;
-    api::device::Descriptor _device;
+    api2::device::Descriptor _device;
 
     struct Region {
         AddressSpan span;
@@ -103,7 +103,7 @@ private:
 };
 
 template <typename Address>
-SimpleBus<Address>::SimpleBus(api::device::Descriptor device, AddressSpan span)
+SimpleBus<Address>::SimpleBus(api2::device::Descriptor device, AddressSpan span)
     : _span(span), _device(device) {}
 
 template <typename Address>

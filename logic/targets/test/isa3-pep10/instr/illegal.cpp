@@ -21,26 +21,26 @@
 #include "sim/device/dense.hpp"
 #include "targets/pep10/isa3/cpu.hpp"
 #include "targets/pep10/isa3/helpers.hpp"
-auto desc_mem = sim::api::device::Descriptor{
+auto desc_mem = sim::api2::device::Descriptor{
     .id = 1,
     .baseName = "ram",
     .fullName = "/ram",
 };
 
-auto desc_cpu = sim::api::device::Descriptor{
+auto desc_cpu = sim::api2::device::Descriptor{
     .id = 2,
     .baseName = "cpu",
     .fullName = "/cpu",
 };
 
-auto span = sim::api::memory::AddressSpan<quint16>{
+auto span = sim::api2::memory::AddressSpan<quint16>{
     .minOffset = 0,
     .maxOffset = 0xFFFF,
 };
 
 auto make = []() {
   int i = 3;
-  sim::api::device::IDGenerator gen = [&i]() { return i++; };
+  sim::api2::device::IDGenerator gen = [&i]() { return i++; };
   auto storage =
       QSharedPointer<sim::memory::Dense<quint16>>::create(desc_mem, span);
   auto cpu = QSharedPointer<targets::pep10::isa::CPU>::create(desc_cpu, gen);
