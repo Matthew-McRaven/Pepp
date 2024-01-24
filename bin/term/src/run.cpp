@@ -22,7 +22,7 @@
 #include "obj/mmio.hpp"
 #include "sim/device/broadcast/mmi.hpp"
 #include "sim/device/broadcast/mmo.hpp"
-#include "sim/device/simple_bus_v2.hpp"
+#include "sim/device/simple_bus.hpp"
 #include "targets/pep10/isa3/cpu.hpp"
 #include "targets/pep10/isa3/helpers.hpp"
 #include "targets/pep10/isa3/system.hpp"

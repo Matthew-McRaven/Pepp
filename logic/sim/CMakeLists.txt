@@ -8,6 +8,5 @@ make_library(
   SOURCES ${sources}
   DEPENDS Qt6::Core bits zpp_bits
   TESTS ${tests}
-  TEST_IN_QTC
   TEST_DEPENDS builtins pas catch
 )

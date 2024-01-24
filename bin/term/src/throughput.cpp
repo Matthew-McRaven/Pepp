@@ -47,10 +47,10 @@ auto make = []() {
   return std::pair{storage, cpu};
 };
 
-const sim::api::memory::Operation rw = {
-    .speculative = false,
-    .kind = sim::api::memory::Operation::Kind::data,
-    .effectful = false};
+sim::api2::memory::Operation rw = {
+    .type = sim::api2::memory::Operation::Type::Standard,
+    .kind = sim::api2::memory::Operation::Kind::data,
+};
 
 ThroughputTask::ThroughputTask(QObject *parent) : Task(parent) {}
 
@@ -60,7 +60,7 @@ void ThroughputTask::run() {
   cpu->csrs()->clear(0);
   // Infinite looping branch to 0.
   auto program = std::array<quint8, 3>{0b0001'1100, 0x00, 0x00};
-  Q_ASSERT(mem->write(0, {program.data(), program.size()}, rw).completed);
+  mem->write(0, {program.data(), program.size()}, rw);
   auto start = std::chrono::high_resolution_clock::now();
   auto maxInstr = 1'000'000;
   for (int it = 0; it < maxInstr; it++) {

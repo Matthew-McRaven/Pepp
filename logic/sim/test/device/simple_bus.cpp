@@ -2,7 +2,7 @@
 
 #include "sim/api2.hpp"
 #include "sim/device/dense.hpp"
-#include "sim/device/simple_bus_v2.hpp"
+#include "sim/device/simple_bus.hpp"
 
 auto rw = sim::api2::memory::Operation {
     .type = sim::api2::memory::Operation::Type::Standard,
@@ -25,7 +25,7 @@ auto make = []() {
         d2, Span{.minOffset = 0, .maxOffset = 0x1});
     auto m3 = QSharedPointer<sim::memory::Dense<quint16>>::create(
         d3, Span{.minOffset = 0, .maxOffset = 0x1});
-    auto bus = QSharedPointer<sim::memory::SimpleBus2<quint16>>::create(
+    auto bus = QSharedPointer<sim::memory::SimpleBus<quint16>>::create(
         b1, Span{.minOffset = 0, .maxOffset = 5});
     bus->pushFrontTarget(Span{.minOffset = 0, .maxOffset = 1}, &*m1);
     bus->pushFrontTarget(Span{.minOffset = 2, .maxOffset = 3}, &*m2);
@@ -94,7 +94,7 @@ TEST_CASE("Simple bus dump, v2", "[sim][memory]") {
             d2, Span{.minOffset = 0, .maxOffset = 0x1});
         auto m3 = QSharedPointer<sim::memory::Dense<quint16>>::create(
             d3, Span{.minOffset = 0, .maxOffset = 0x1});
-        auto bus = QSharedPointer<sim::memory::SimpleBus2<quint16>>::create(
+        auto bus = QSharedPointer<sim::memory::SimpleBus<quint16>>::create(
             b1, Span{.minOffset = 0, .maxOffset = 9});
         bus->pushFrontTarget(Span{.minOffset = 0, .maxOffset = 1}, &*m1);
         bus->pushFrontTarget(Span{.minOffset = 4, .maxOffset = 5}, &*m2);

@@ -22,7 +22,7 @@
 #include "sim/device/broadcast/mmi.hpp"
 #include "sim/device/broadcast/mmo.hpp"
 #include "sim/device/readonly.hpp"
-#include "sim/device/simple_bus_v2.hpp"
+#include "sim/device/simple_bus.hpp"
 #include "targets/pep10/isa3/cpu.hpp"
 #include "targets/pep10/isa3/helpers.hpp"
 
@@ -57,7 +57,7 @@ const auto gs = sim::api2::memory::Operation {
 targets::pep10::isa::System::System(QList<obj::MemoryRegion> regions,
                                     QList<obj::AddressedIO> mmios)
     : _cpu(QSharedPointer<CPU>::create(desc_cpu(nextID()), _nextIDGenerator)),
-      _bus(QSharedPointer<sim::memory::SimpleBus2<quint16>>::create(
+      _bus(QSharedPointer<sim::memory::SimpleBus<quint16>>::create(
           desc_bus(nextID()),
           AddressSpan{.minOffset = 0, .maxOffset = 0xFFFF})) {
   // Construct Dense memory and ignore W bit, since we have no mechanism for it.
@@ -191,7 +191,7 @@ void targets::pep10::isa::System::init() {
 
 targets::pep10::isa::CPU *targets::pep10::isa::System::cpu() { return &*_cpu; }
 
-sim::memory::SimpleBus2<quint16> *targets::pep10::isa::System::bus() {
+sim::memory::SimpleBus<quint16> *targets::pep10::isa::System::bus() {
   return &*_bus;
 }
 

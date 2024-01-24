@@ -26,7 +26,7 @@ struct AddressedIO;
 namespace sim {
 namespace memory {
 template <typename Address> class Dense;
-template <typename Address> class SimpleBus2;
+template <typename Address> class SimpleBus;
 template <typename Address> class Input;
 template <typename Address> class Output;
 template <typename Address> class ReadOnly;
@@ -52,7 +52,7 @@ public:
   quint16 getBootFlags() const;
   void init();
   CPU *cpu();
-  sim::memory::SimpleBus2<quint16> *bus();
+  sim::memory::SimpleBus<quint16> *bus();
   QStringList inputs() const;
   sim::memory::Input<quint16> *input(QString name);
   QStringList outputs() const;
@@ -67,7 +67,7 @@ private:
   std::optional<quint16> _bootFlg = std::nullopt;
 
   QSharedPointer<CPU> _cpu = nullptr;
-  QSharedPointer<sim::memory::SimpleBus2<quint16>> _bus = nullptr;
+  QSharedPointer<sim::memory::SimpleBus<quint16>> _bus = nullptr;
   QVector<QSharedPointer<sim::memory::Dense<quint16>>> _rawMemory = {};
   QVector<QSharedPointer<sim::memory::ReadOnly<quint16>>> _readonly = {};
 
