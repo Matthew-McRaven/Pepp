@@ -7,3 +7,6 @@
 [submodule "3rd-party/vcpkg"]
 	path = 3rd-party/vcpkg
 	url = https://github.com/microsoft/vcpkg.git
+[submodule "3rd-party/zpp_bits"]
+	path = 3rd-party/zpp_bits
+	url = https://github.com/eyalz800/zpp_bits.git

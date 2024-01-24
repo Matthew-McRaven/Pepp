@@ -118,6 +118,7 @@ public:
     // Step backwards through the state graph until the node before this
     // endpoint's last write.
     std::optional<val_size_t> unwrite();
+    bool at_end() const;
 
   private:
     // Pointer to current node must be mutable, so that next_value can be const.
@@ -390,6 +391,12 @@ std::optional<val_size_t> Channel<offset_t, val_size_t>::Endpoint::unwrite() {
     return std::nullopt;
   this->event = old_event;
   return event->value;
+}
+
+template<typename offset_t, typename val_size_t>
+bool Channel<offset_t, val_size_t>::Endpoint::at_end() const
+{
+    return this->event == channel->latest_event();
 }
 
 template <typename offset_t, typename val_size_t>

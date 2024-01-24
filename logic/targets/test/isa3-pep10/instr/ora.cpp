@@ -22,37 +22,37 @@
 #include "sim/device/dense.hpp"
 #include "targets/pep10/isa3/cpu.hpp"
 #include "targets/pep10/isa3/helpers.hpp"
-auto desc_mem = sim::api::device::Descriptor{
+auto desc_mem = sim::api2::device::Descriptor{
     .id = 1,
     .baseName = "ram",
     .fullName = "/ram",
 };
 
-auto desc_cpu = sim::api::device::Descriptor{
+auto desc_cpu = sim::api2::device::Descriptor{
     .id = 2,
     .baseName = "cpu",
     .fullName = "/cpu",
 };
 
-auto span = sim::api::memory::Target<quint16>::AddressSpan{
+auto span = sim::api2::memory::AddressSpan<quint16>{
     .minOffset = 0,
     .maxOffset = 0xFFFF,
 };
 
 auto make = []() {
   int i = 3;
-  sim::api::device::IDGenerator gen = [&i]() { return i++; };
+  sim::api2::device::IDGenerator gen = [&i]() { return i++; };
   auto storage =
       QSharedPointer<sim::memory::Dense<quint16>>::create(desc_mem, span);
   auto cpu = QSharedPointer<targets::pep10::isa::CPU>::create(desc_cpu, gen);
-  cpu->setTarget(storage.data());
+  cpu->setTarget(storage.data(), nullptr);
   return std::pair{storage, cpu};
 };
 
-sim::api::memory::Operation rw = {.speculative = false,
-                                  .kind =
-                                      sim::api::memory::Operation::Kind::data,
-                                  .effectful = false};
+sim::api2::memory::Operation rw = {
+    .type = sim::api2::memory::Operation::Type::Standard,
+    .kind = sim::api2::memory::Operation::Kind::data,
+};
 
 class ISA3Pep10_ORA : public QObject {
   Q_OBJECT
@@ -93,10 +93,8 @@ private slots:
       cpu->regs()->write(static_cast<quint16>(target_reg) * 2,
                          {reinterpret_cast<quint8 *>(&tmp), 2}, rw);
 
-      QVERIFY(mem->write(0, {program.data(), program.size()}, rw).completed);
-
-      auto tick = cpu->tick(0);
-      QCOMPARE(tick.error, sim::api::tick::Error::Success);
+      QVERIFY_THROWS_NO_EXCEPTION(mem->write(0, {program.data(), program.size()}, rw));
+      QVERIFY_THROWS_NO_EXCEPTION(cpu->clock(0));
 
       tmp = bits::hostOrder() != bits::Order::BigEndian ? bits::byteswap(tmp)
                                                         : tmp;

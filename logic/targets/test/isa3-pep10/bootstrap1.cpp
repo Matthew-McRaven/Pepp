@@ -22,56 +22,52 @@
 #include "sim/device/dense.hpp"
 #include "targets/pep10/isa3/cpu.hpp"
 #include "targets/pep10/isa3/helpers.hpp"
-sim::api::memory::Operation rw = {.speculative = false,
-    .kind =
-    sim::api::memory::Operation::Kind::data,
-    .effectful = false};
+sim::api2::memory::Operation rw = {
+    .type = sim::api2::memory::Operation::Type::Standard,
+    .kind = sim::api2::memory::Operation::Kind::data,
+};
 
 class Targets_ISA3Pep10_Bootstrap1 : public QObject {
 Q_OBJECT
 private slots:
   void smoke() {
-    sim::api::device::ID id = 0;
+    sim::api2::device::ID id = 0;
     auto nextID = [&id]() { return id++; };
-    auto desc_mem = sim::api::device::Descriptor{.id = nextID(),
+    auto desc_mem = sim::api2::device::Descriptor{.id = nextID(),
         .compatible = nullptr,
         .baseName = "dev",
         .fullName = "/dev"};
-    auto span = sim::api::memory::Target<quint16>::AddressSpan{
+    auto span = sim::api2::memory::AddressSpan<quint16>{
         .minOffset = 0, .maxOffset = 0xFFFF};
     sim::memory::Dense<quint16> mem(desc_mem, span, (int) isa::Pep10::Mnemonic::NOP);
-    auto desc_cpu = sim::api::device::Descriptor{.id = nextID(),
+    auto desc_cpu = sim::api2::device::Descriptor{.id = nextID(),
         .compatible = nullptr,
         .baseName = "cpu",
         .fullName = "/cpu"};
     targets::pep10::isa::CPU cpu(desc_cpu, nextID);
-    cpu.setTarget(&mem);
+    cpu.setTarget(&mem, nullptr);
     auto regs = cpu.regs();
     quint16 tmp = 0;
 
     using Register = isa::Pep10::Register;
     // Check that PC is incremented when executing NOP.
-    QVERIFY(targets::pep10::isa::readRegister(regs, Register::PC, tmp, rw)
-                .completed);
+    QVERIFY_THROWS_NO_EXCEPTION(targets::pep10::isa::readRegister(regs, Register::PC, tmp, rw));
     QCOMPARE(tmp, 0);
 
-    auto tick = cpu.tick(0);
+    auto tick = cpu.clock(0);
 
-    QVERIFY(targets::pep10::isa::readRegister(regs, Register::PC, tmp, rw)
-                .completed);
+    QVERIFY_THROWS_NO_EXCEPTION(targets::pep10::isa::readRegister(regs, Register::PC, tmp, rw));
     QCOMPARE(tmp, 1);
 
     // Check that A can be modified.
     quint8 v = (quint8) isa::Pep10::Mnemonic::NOTA;
-    QVERIFY(mem.write(0x01, {&v, 1}, rw).completed);
-    QVERIFY(targets::pep10::isa::readRegister(regs, Register::A, tmp, rw)
-                .completed);
+    QVERIFY_THROWS_NO_EXCEPTION(mem.write(0x01, {&v, 1}, rw));
+    QVERIFY_THROWS_NO_EXCEPTION(targets::pep10::isa::readRegister(regs, Register::A, tmp, rw));
     QCOMPARE(tmp, 0);
 
-    tick = cpu.tick(1);
+    tick = cpu.clock(1);
 
-    QVERIFY(targets::pep10::isa::readRegister(regs, Register::A, tmp, rw)
-                .completed);
+    QVERIFY_THROWS_NO_EXCEPTION(targets::pep10::isa::readRegister(regs, Register::A, tmp, rw));
     QCOMPARE(tmp, 0xFFFF);
   }
 };

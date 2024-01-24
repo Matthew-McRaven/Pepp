@@ -16,7 +16,7 @@
  */
 
 #pragma once
-#include "sim/api.hpp"
+#include "sim/api2.hpp"
 #include <elfio/elfio.hpp>
 
 namespace obj {
@@ -34,16 +34,16 @@ template <typename Address> class ReadOnly;
 } // namespace sim
 namespace targets::pep10::isa {
 class CPU;
-class System : public sim::api::System<quint16> {
+class System : public sim::api2::System<quint16> {
 public:
   System(QList<obj::MemoryRegion> regions, QList<obj::AddressedIO> mmios);
   // System interface
-  std::pair<sim::api::tick::Type, sim::api::tick::Result>
-  tick(sim::api::Scheduler::Mode mode) override;
-  sim::api::tick::Type currentTick() const override;
-  sim::api::device::ID nextID() override;
-  sim::api::device::IDGenerator nextIDGenerator() override;
-  void setTraceBuffer(sim::api::trace::Buffer *buffer) override;
+  std::pair<sim::api2::tick::Type, sim::api2::tick::Result>
+  tick(sim::api2::Scheduler::Mode mode) override;
+  sim::api2::tick::Type currentTick() const override;
+  sim::api2::device::ID nextID() override;
+  sim::api2::device::IDGenerator nextIDGenerator() override;
+  void setBuffer(sim::api2::trace::Buffer *buffer) override;
 
   // Set default register values, modify dispatcher / loader behavior.
   void setBootFlagAddress(quint16 addr);
@@ -59,11 +59,11 @@ public:
   sim::memory::Output<quint16> *output(QString name);
 
 private:
-  sim::api::device::ID _nextID = 0;
-  sim::api::device::IDGenerator _nextIDGenerator = [this]() {
+  sim::api2::device::ID _nextID = 0;
+  sim::api2::device::IDGenerator _nextIDGenerator = [this]() {
     return _nextID++;
   };
-  sim::api::tick::Type _tick = 0;
+  sim::api2::tick::Type _tick = 0;
   std::optional<quint16> _bootFlg = std::nullopt;
 
   QSharedPointer<CPU> _cpu = nullptr;

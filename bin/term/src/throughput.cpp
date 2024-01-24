@@ -20,37 +20,37 @@
 #include "targets/pep10/isa3/cpu.hpp"
 #include <chrono>
 #include <iostream>
-const auto desc_mem = sim::api::device::Descriptor{
+const auto desc_mem = sim::api2::device::Descriptor{
     .id = 1,
     .baseName = "ram",
     .fullName = "/ram",
 };
 
-const auto desc_cpu = sim::api::device::Descriptor{
+const auto desc_cpu = sim::api2::device::Descriptor{
     .id = 2,
     .baseName = "cpu",
     .fullName = "/cpu",
 };
 
-const auto span = sim::api::memory::Target<quint16>::AddressSpan{
+const auto span = sim::api2::memory::AddressSpan<quint16>{
     .minOffset = 0,
     .maxOffset = 0xFFFF,
 };
 
 auto make = []() {
   int i = 3;
-  sim::api::device::IDGenerator gen = [&i]() { return i++; };
+  sim::api2::device::IDGenerator gen = [&i]() { return i++; };
   auto storage =
       QSharedPointer<sim::memory::Dense<quint16>>::create(desc_mem, span);
   auto cpu = QSharedPointer<targets::pep10::isa::CPU>::create(desc_cpu, gen);
-  cpu->setTarget(storage.data());
+  cpu->setTarget(storage.data(), nullptr);
   return std::pair{storage, cpu};
 };
 
-const sim::api::memory::Operation rw = {
-    .speculative = false,
-    .kind = sim::api::memory::Operation::Kind::data,
-    .effectful = false};
+sim::api2::memory::Operation rw = {
+    .type = sim::api2::memory::Operation::Type::Standard,
+    .kind = sim::api2::memory::Operation::Kind::data,
+};
 
 ThroughputTask::ThroughputTask(QObject *parent) : Task(parent) {}
 
@@ -60,11 +60,11 @@ void ThroughputTask::run() {
   cpu->csrs()->clear(0);
   // Infinite looping branch to 0.
   auto program = std::array<quint8, 3>{0b0001'1100, 0x00, 0x00};
-  Q_ASSERT(mem->write(0, {program.data(), program.size()}, rw).completed);
+  mem->write(0, {program.data(), program.size()}, rw);
   auto start = std::chrono::high_resolution_clock::now();
   auto maxInstr = 1'000'000;
   for (int it = 0; it < maxInstr; it++) {
-    cpu->tick(it);
+    cpu->clock(it);
   }
   auto end = std::chrono::high_resolution_clock::now();
   auto ms = std::chrono::duration_cast<std::chrono::milliseconds>(end - start);

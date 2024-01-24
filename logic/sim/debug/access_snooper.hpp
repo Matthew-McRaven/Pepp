@@ -31,7 +31,7 @@ struct Decoded {
 
 template <typename Addr>
 Decoded decodeRead(bits::span<const quint8> payload,
-                   sim::api::packet::Flags flags) {
+                   sim::api2::packet::Flags flags) {
   Q_ASSERT(sizeof(sim::trace::ReadPayload<Addr>) <= payload.size());
   auto casted =
       reinterpret_cast<const sim::trace::ReadPayload<Addr> *>(payload.data());
@@ -43,7 +43,7 @@ Decoded decodeRead(bits::span<const quint8> payload,
 }
 template <typename Addr>
 Decoded decodeWriteThrough(bits::span<const quint8> payload,
-                           sim::api::packet::Flags flags) {
+                           sim::api2::packet::Flags flags) {
   Q_ASSERT(sizeof(sim::trace::WriteThroughPayload<Addr>) <= payload.size());
   auto casted = reinterpret_cast<const sim::trace::WriteThroughPayload<Addr> *>(
       payload.data());
@@ -55,7 +55,7 @@ Decoded decodeWriteThrough(bits::span<const quint8> payload,
 }
 template <typename Addr, typename Data>
 Decoded decodeAddressedWrite(bits::span<const quint8> payload,
-                             sim::api::packet::Flags flags) {
+                             sim::api2::packet::Flags flags) {
   Q_ASSERT(sizeof(sim::trace::AddressedPayload<Addr, Data>) <= payload.size());
   auto casted =
       reinterpret_cast<const sim::trace::AddressedPayload<Addr, Data> *>(
@@ -68,7 +68,7 @@ Decoded decodeAddressedWrite(bits::span<const quint8> payload,
 }
 
 Decoded decode(bits::span<const quint8> payload,
-               sim::api::packet::Flags flags) {
+               sim::api2::packet::Flags flags) {
   switch ((quint16)flags) {
   case 0b0000'0000: // Empty Packet
     return {.success = true, .address = 0, .length = 0};
@@ -147,31 +147,31 @@ Decoded decode(bits::span<const quint8> payload,
   }
   return {.success = false};
 };
-const auto gs = sim::api::memory::Operation{
+const auto gs = sim::api2::memory::Operation{
     .speculative = true,
-    .kind = sim::api::memory::Operation::Kind::data,
+    .kind = sim::api2::memory::Operation::Kind::data,
     .effectful = false,
 };
 } // namespace detail
 template <typename Address>
-class AccessSnooper : public sim::api::trace::Analyzer {
+class AccessSnooper : public sim::api2::trace::Analyzer {
 public:
-  explicit AccessSnooper(sim::api::memory::Target<Address> *target);
+  explicit AccessSnooper(sim::api2::memory::Target<Address> *target);
   // Analyzer interface
   bool analyze(bits::span<const quint8> payload,
-               api::packet::Flags flags) override;
+               api2::packet::Flags flags) override;
   bool unanalyze(bits::span<const quint8> payload,
-                 api::packet::Flags flags) override;
+                 api2::packet::Flags flags) override;
   FilterArgs filter() const override;
 
 private:
   void printData(detail::Decoded decoded, bool dir);
-  sim::api::memory::Target<Address> *target;
+  sim::api2::memory::Target<Address> *target;
 };
 
 template <typename Address>
 bool sim::debug::AccessSnooper<Address>::analyze(
-    bits::span<const quint8> payload, api::packet::Flags flags) {
+    bits::span<const quint8> payload, api2::packet::Flags flags) {
   auto decoded = detail::decode(payload, flags);
   printData(decoded, false);
   return decoded.success;
@@ -180,14 +180,14 @@ bool sim::debug::AccessSnooper<Address>::analyze(
 template <typename Address>
 // We already printed access to console... can't really "undo" that.
 bool sim::debug::AccessSnooper<Address>::unanalyze(
-    bits::span<const quint8> payload, api::packet::Flags flags) {
+    bits::span<const quint8> payload, api2::packet::Flags flags) {
   auto decoded = detail::decode(payload, flags);
   printData(decoded, true);
   return decoded.success;
 }
 
 template <typename Address>
-sim::api::trace::Analyzer::FilterArgs
+sim::api2::trace::Analyzer::FilterArgs
 sim::debug::AccessSnooper<Address>::filter() const {
   return {};
 }

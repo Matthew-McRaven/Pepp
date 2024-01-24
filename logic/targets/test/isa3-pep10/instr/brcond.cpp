@@ -22,37 +22,38 @@
 #include "sim/device/dense.hpp"
 #include "targets/pep10/isa3/cpu.hpp"
 #include "targets/pep10/isa3/helpers.hpp"
-auto desc_mem = sim::api::device::Descriptor{
+auto desc_mem = sim::api2::device::Descriptor{
     .id = 1,
     .baseName = "ram",
     .fullName = "/ram",
 };
 
-auto desc_cpu = sim::api::device::Descriptor{
+auto desc_cpu = sim::api2::device::Descriptor{
     .id = 2,
     .baseName = "cpu",
     .fullName = "/cpu",
 };
 
-auto span = sim::api::memory::Target<quint16>::AddressSpan{
+auto span = sim::api2::memory::AddressSpan<quint16>{
     .minOffset = 0,
     .maxOffset = 0xFFFF,
 };
 
 auto make = []() {
   int i = 3;
-  sim::api::device::IDGenerator gen = [&i]() { return i++; };
+  sim::api2::device::IDGenerator gen = [&i]() { return i++; };
   auto storage =
       QSharedPointer<sim::memory::Dense<quint16>>::create(desc_mem, span);
   auto cpu = QSharedPointer<targets::pep10::isa::CPU>::create(desc_cpu, gen);
-  cpu->setTarget(storage.data());
+  cpu->setTarget(storage.data(), nullptr);
   return std::pair{storage, cpu};
 };
 
-sim::api::memory::Operation rw = {.speculative = false,
-                                  .kind =
-                                      sim::api::memory::Operation::Kind::data,
-                                  .effectful = false};
+sim::api2::memory::Operation rw = {
+    .type = sim::api2::memory::Operation::Type::Standard,
+    .kind = sim::api2::memory::Operation::Kind::data,
+};
+
 bool taken(quint8 opcode, quint8 nzvc) {
   auto [n, z, v, c] = targets::pep10::isa::unpackCSR(nzvc);
   switch (opcode) {
@@ -113,10 +114,8 @@ private slots:
       cpu->csrs()->clear(0);
       targets::pep10::isa::writePackedCSR(cpu->csrs(), nzvc, rw);
 
-      QVERIFY(mem->write(0, {program.data(), program.size()}, rw).completed);
-
-      auto tick = cpu->tick(0);
-      QCOMPARE(tick.error, sim::api::tick::Error::Success);
+      QVERIFY_THROWS_NO_EXCEPTION(mem->write(0, {program.data(), program.size()}, rw));
+      QVERIFY_THROWS_NO_EXCEPTION(cpu->clock(0));
 
       QCOMPARE(rreg(isa::Pep10::Register::SP), 0);
       QCOMPARE(rreg(isa::Pep10::Register::A), 0);

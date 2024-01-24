@@ -6,7 +6,7 @@ list(REMOVE_ITEM sources ${tests})
 make_library(
   TARGET sim
   SOURCES ${sources}
-  DEPENDS Qt6::Core bits
+  DEPENDS Qt6::Core bits zpp_bits
   TESTS ${tests}
-  TEST_DEPENDS builtins pas
+  TEST_DEPENDS builtins pas catch
 )

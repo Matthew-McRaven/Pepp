@@ -26,33 +26,33 @@
 #include "targets/pep10/isa3/cpu.hpp"
 #include "targets/pep10/isa3/helpers.hpp"
 
-using AddressSpan = sim::api::memory::Target<quint16>::AddressSpan;
-sim::api::device::Descriptor desc_cpu(sim::api::device::ID id) {
+using AddressSpan = sim::api2::memory::AddressSpan<quint16>;
+sim::api2::device::Descriptor desc_cpu(sim::api2::device::ID id) {
   return {.id = id, .baseName = "cpu", .fullName = "/cpu"};
 }
-sim::api::device::Descriptor desc_bus(sim::api::device::ID id) {
+sim::api2::device::Descriptor desc_bus(sim::api2::device::ID id) {
   return {.id = id, .baseName = "bus", .fullName = "/bus"};
 }
-sim::api::device::Descriptor desc_dense(sim::api::device::ID id) {
+sim::api2::device::Descriptor desc_dense(sim::api2::device::ID id) {
   return {.id = id,
           .baseName = u"dense%1"_qs.arg(id),
           .fullName = u"/bus/dense%1"_qs.arg(id)};
 }
-sim::api::device::Descriptor desc_mmi(sim::api::device::ID id, QString name) {
+sim::api2::device::Descriptor desc_mmi(sim::api2::device::ID id, QString name) {
   return {.id = id,
           .baseName = u"mmi-%1"_qs.arg(name),
           .fullName = u"/bus/mmi-%1"_qs.arg(name)};
 }
-sim::api::device::Descriptor desc_mmo(sim::api::device::ID id, QString name) {
+sim::api2::device::Descriptor desc_mmo(sim::api2::device::ID id, QString name) {
   return {.id = id,
           .baseName = u"mmo-%1"_qs.arg(name),
           .fullName = u"/bus/mmo-%1"_qs.arg(name)};
 }
 
-const sim::api::memory::Operation gs = {
-    .speculative = false,
-    .kind = sim::api::memory::Operation::Kind::data,
-    .effectful = false};
+const auto gs = sim::api2::memory::Operation {
+    .type = sim::api2::memory::Operation::Type::Application,
+    .kind = sim::api2::memory::Operation::Kind::data,
+};
 
 targets::pep10::isa::System::System(QList<obj::MemoryRegion> regions,
                                     QList<obj::AddressedIO> mmios)
@@ -68,11 +68,11 @@ targets::pep10::isa::System::System(QList<obj::MemoryRegion> regions,
     auto mem = QSharedPointer<sim::memory::Dense<quint16>>::create(
         desc_dense(nextID()), span);
     _rawMemory.push_back(mem);
-    sim::api::memory::Target<quint16> *target = &*mem;
+    sim::api2::memory::Target<quint16> *target = &*mem;
     if (!reg.w) {
       auto ro = QSharedPointer<sim::memory::ReadOnly<quint16>>::create(false);
       _readonly.push_back(ro);
-      ro->setTarget(target);
+      ro->setTarget(target, nullptr);
       target = &*ro;
     }
     _bus->pushFrontTarget(
@@ -105,10 +105,10 @@ targets::pep10::isa::System::System(QList<obj::MemoryRegion> regions,
       _mmi[mmio.name] = mem;
       // By default, charIn should raise an error when it runs out of input.
       if (mmio.name == "charIn")
-        mem->setFailPolicy(sim::api::memory::FailPolicy::RaiseError);
+        mem->setFailPolicy(sim::api2::memory::FailPolicy::RaiseError);
       // Disk in must not raise an error, otherwise loader will not work.
       else if (mmio.name == "diskIn") {
-        mem->setFailPolicy(sim::api::memory::FailPolicy::YieldDefaultValue);
+        mem->setFailPolicy(sim::api2::memory::FailPolicy::YieldDefaultValue);
         mem->clear('z' /*Loader sentinel character*/);
       }
     } else {
@@ -120,27 +120,27 @@ targets::pep10::isa::System::System(QList<obj::MemoryRegion> regions,
       _mmo[mmio.name] = mem;
     }
   }
-  _cpu->setTarget(&*_bus);
+  _cpu->setTarget(&*_bus, nullptr);
 }
 
-std::pair<sim::api::tick::Type, sim::api::tick::Result>
-targets::pep10::isa::System::tick(sim::api::Scheduler::Mode mode) {
-  auto res = _cpu->tick(_tick);
-  return {res.error == sim::api::tick::Error::Success ? ++_tick : _tick, res};
+std::pair<sim::api2::tick::Type, sim::api2::tick::Result>
+targets::pep10::isa::System::tick(sim::api2::Scheduler::Mode mode) {
+  auto res = _cpu->clock(_tick);
+  return {++_tick , res};
 }
 
-sim::api::tick::Type targets::pep10::isa::System::currentTick() const {
+sim::api2::tick::Type targets::pep10::isa::System::currentTick() const {
   return _tick;
 }
 
-sim::api::device::ID targets::pep10::isa::System::nextID() { return _nextID++; }
+sim::api2::device::ID targets::pep10::isa::System::nextID() { return _nextID++; }
 
-sim::api::device::IDGenerator targets::pep10::isa::System::nextIDGenerator() {
+sim::api2::device::IDGenerator targets::pep10::isa::System::nextIDGenerator() {
   return _nextIDGenerator;
 }
 
-void targets::pep10::isa::System::setTraceBuffer(
-    sim::api::trace::Buffer *buffer) {
+void targets::pep10::isa::System::setBuffer(
+    sim::api2::trace::Buffer *buffer) {
   throw std::logic_error("Unimplemented");
 }
 
@@ -154,9 +154,7 @@ void targets::pep10::isa::System::setBootFlags(bool enableLoader,
   if (bits::hostOrder() != bits::Order::BigEndian)
     value = bits::byteswap(value);
   if (_bootFlg) {
-    auto ret =
-        _bus->write(*_bootFlg, {reinterpret_cast<quint8 *>(&value), 2}, gs);
-    Q_ASSERT(ret.completed);
+    _bus->write(*_bootFlg, {reinterpret_cast<quint8 *>(&value), 2}, gs);
   }
 }
 
@@ -169,8 +167,7 @@ quint16 targets::pep10::isa::System::getBootFlags() const {
   bits::span<quint8> bufSpan = {buf};
   bits::memclr(bufSpan);
   if (_bootFlg) {
-    auto ret = _bus->read(*_bootFlg, bufSpan, gs);
-    Q_ASSERT(ret.completed);
+    _bus->read(*_bootFlg, bufSpan, gs);
   }
   return bits::memcpy_endian<quint16>(bufSpan, bits::Order::BigEndian);
 }
@@ -237,8 +234,6 @@ targets::pep10::isa::systemFromElf(const ELFIO::elfio &elf,
         continue;
       const auto ret =
           bus->write(address, {ptr, static_cast<size_type>(buffer.seg->get_memory_size())}, gs);
-      Q_ASSERT(ret.completed);
-      Q_ASSERT(ret.error == sim::api::memory::Error::Success);
       address += buffer.seg->get_memory_size();
     }
   } else {
