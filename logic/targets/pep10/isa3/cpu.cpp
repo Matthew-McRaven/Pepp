@@ -407,7 +407,7 @@ sim::api2::tick::Result targets::pep10::isa::CPU::unaryDispatch(quint8 is) {
     break;
   default:
       _status = Status::IllegalOpcode;
-      throw std::logic_error("Unimplemented opcode");
+      throw std::logic_error("Illegal opcode");
   }
   return {.pause=0, .delay=1};
 }
@@ -712,7 +712,7 @@ targets::pep10::isa::CPU::nonunaryDispatch(quint8 is, quint16 os, quint16 pc) {
     break;
   default:
       _status = Status::IllegalOpcode;
-      throw std::exception("Illegal Opcode");
+      throw std::runtime_error("Illegal Opcode");
   }
 
   // Increment PC and writeback
