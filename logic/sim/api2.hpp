@@ -32,7 +32,28 @@ namespace packet {
 template <size_t N>
 struct VariableBytes {
     // TODO: add helper methods to convert to/from  un/signed int8/16/32/64 in either endianness.
+    // Self is always const on output and non-const on input
     constexpr static zpp::bits::errc serialize(auto& archive, auto& self) {
+    constexpr static zpp::bits::errc serialize(auto& archive, VariableBytes& self) {
+        // Serialize array manually to avoid allocating extra 0's in the bit stream.
+        // Must also de-serialize manually, otherwise archive will advance the position
+        // by the allocated size of the array, not the "used" size.
+        if(archive.kind() == zpp::bits::kind::out) {
+            return serialize(archive, (const VariableBytes&) self);
+        } else {
+            zpp::bits::errc errc = archive(self.len);
+            if(errc.code != std::errc()) return errc;
+            else if(self.len > N) return zpp::bits::errc(std::errc::value_too_large);
+            else if(self.len == 0) return errc;
+
+            // We serialized the length ourselves. If we pass array_view directly, size will be serialzed again.
+            auto array_view = bits::span<quint8>(self.bytes.data(), self.len);
+            return archive(zpp::bits::bytes(array_view, array_view.size_bytes()));
+        }
+    }
+
+    // If self is const, forbid writing to it.
+    constexpr static zpp::bits::errc serialize(auto& archive, const VariableBytes& self) {
         // Serialize array manually to avoid allocating extra 0's in the bit stream.
         // Must also de-serialize manually, otherwise archive will advance the position
         // by the allocated size of the array, not the "used" size.
@@ -43,20 +64,13 @@ struct VariableBytes {
             if(errc.code != std::errc()) return errc;
             else if(self.len == 0) return errc;
 
-            // We serialized the length ourselves. If we pass array_view directly, size will be serialzed again.
-            auto array_view = std::span<quint8>(self.bytes.data(), self.len);
-            return archive(zpp::bits::bytes(array_view, array_view.size_bytes()));
-        } else {
-            zpp::bits::errc errc = archive(self.len);
-            if(errc.code != std::errc()) return errc;
-            else if(self.len > N) return zpp::bits::errc(std::errc::value_too_large);
-            else if(self.len == 0) return errc;
-
-            auto array_view = std::span<quint8>(self.bytes.data(), self.len);
             // See above.
+            auto array_view = bits::span<const quint8>(self.bytes.data(), self.len);
             return archive(zpp::bits::bytes(array_view, array_view.size_bytes()));
         }
+        throw std::logic_error("Can't write to const object.");
     }
+
     quint8 len = 0;
     std::array<quint8, N> bytes = {0};
 };
