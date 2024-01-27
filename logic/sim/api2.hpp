@@ -3,6 +3,7 @@
 #include <zpp_bits.h>
 
 #include "bits/span.hpp"
+#include "bits/operations/copy.hpp"
 
 namespace sim::api2 {
 
@@ -31,9 +32,25 @@ namespace packet {
 // The variable-length byte-array allows this to be expressed in a single packet type.
 template <size_t N>
 struct VariableBytes {
-    // TODO: add helper methods to convert to/from  un/signed int8/16/32/64 in either endianness.
-    // Self is always const on output and non-const on input
-    constexpr static zpp::bits::errc serialize(auto& archive, auto& self) {
+    // Can't be a CTOR, or designated initializers won't work.
+    template <std::unsigned_integral Address>
+    static VariableBytes from_address(Address address) {
+        auto ret = VariableBytes();
+        ret.len = sizeof(Address);
+        // Copy address bytes into bytes array.
+        auto addr_span = bits::span<const quint8>((quint8*) &address, ret.len);
+        bits::memcpy(bits::span<quint8>{ret.bytes}, addr_span);
+        return ret;
+    }
+    template <std::unsigned_integral Address>
+    Address to_address() const {
+        Address address = 0;
+        auto addr_span = bits::span<quint8>((quint8*) &address, sizeof(address));
+        // Rely on memcpy to perform bounds checking between len and sizeof(address).
+        bits::memcpy(addr_span, bits::span<const quint8>{bytes, len});
+        return address;
+    }
+
     constexpr static zpp::bits::errc serialize(auto& archive, VariableBytes& self) {
         // Serialize array manually to avoid allocating extra 0's in the bit stream.
         // Must also de-serialize manually, otherwise archive will advance the position
@@ -83,25 +100,25 @@ enum class DeltaEncoding : quint8 {
 namespace header {
 struct Clear {
     device_id_t device = 0;
-    VariableBytes<8> value = {0,0};
+    VariableBytes<8> value = {0,{}};
 };
 
 struct PureRead {
     device_id_t device = 0;
     zpp::bits::varint<quint64> payload_len = 0;
-    VariableBytes<8> address = {0,0};
+    VariableBytes<8> address = {0,{}};
 };
 
 // MUST be followed by 1+ payloads.
 struct ImpureRead {
     device_id_t device = 0;
-    VariableBytes<8> address = {0,0};
+    VariableBytes<8> address = {0,{}};
 };
 
 // MUST be followed by 1+ payload.
 struct Write {
     device_id_t device = 0;
-    VariableBytes<8> address = {0,0};
+    VariableBytes<8> address = {0,{}};
 };
 } // sim::api2::packet::header
 using Header = std::variant<header::Clear, header::PureRead, header::ImpureRead, header::Write>;
@@ -109,7 +126,7 @@ using Header = std::variant<header::Clear, header::PureRead, header::ImpureRead,
 namespace payload {
 // Successive payloads belong to the same packet.
 struct Variable {
-    VariableBytes<32> payload = {0, 0};
+    VariableBytes<32> payload = {0, {}};
 };
 } // sim::api2::packet::payload
 using Payload = std::variant<payload::Variable>;
