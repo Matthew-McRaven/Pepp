@@ -215,7 +215,7 @@ public:
 class Buffer {
 public:
     virtual ~Buffer() = default;
-    virtual bool trace(quint16 deviceID, bool enabled = true) = 0;
+    virtual bool trace(device::ID deviceID, bool enabled = true) = 0;
 
     virtual bool registerSink(Sink*, Mode) = 0;
     virtual void unregisterSink(Sink*) = 0;
@@ -225,7 +225,7 @@ public:
     virtual bool writeFragment(const packet::Header&) = 0;
     virtual bool writeFragment(const packet::Payload&) = 0;
 
-    virtual bool updateFramHeader() = 0;
+    virtual bool updateFrameHeader() = 0;
 
     // Remove the last frame from the buffer.
     // TODO: replace with integration for iterators / std::erase.
