@@ -11,14 +11,16 @@ void sim::trace2::detail::emit_payloads(sim::api2::trace::Buffer *tb,
     // Split the data into chunks that are `payload_max_size` bytes long.
     for(int it = 0; it < data_len;) {
         auto payload_len = std::min(data_len - it, payload_max_size);
+        bool continues = data_len - it > payload_max_size;
         // Additional payloads needed if it is more than N elements away from data_len.
-        auto bytes = api2::packet::VariableBytes<payload_max_size>(payload_len, data_len - it <= payload_max_size);
-        api2::packet::payload::Variable payload {bytes};
+        auto bytes = api2::packet::VariableBytes<payload_max_size>(payload_len, continues);
 
         // XOR-encode data to reduce storage by 2x.
-        bits::memcpy_xor(bytes.bytes,
+        bits::memcpy_xor(bits::span<quint8>{bytes.bytes},
                          buf1.subspan(it, payload_len),
                          buf2.subspan(it, payload_len));
+
+        api2::packet::payload::Variable payload {std::move(bytes)};
         tb->writeFragment({payload});
         it += payload_len;
     }
@@ -31,9 +33,12 @@ void sim::trace2::detail::emit_payloads(sim::api2::trace::Buffer *tb,
     // Split the data into chunks that are `payload_max_size` bytes long.
     for(int it = 0; it < data_len;) {
         auto payload_len = std::min(data_len - it, payload_max_size);
-        api2::packet::payload::Variable payload = {};
-        payload.payload.len = payload_len;
-        bits::memcpy(bits::span<quint8>{payload.payload.bytes}, buf.subspan(it, payload_len));
+        bool continues = data_len - it > payload_max_size;
+        // Additional payloads needed if it is more than N elements away from data_len.
+        auto bytes = api2::packet::VariableBytes<payload_max_size>(payload_len, continues);
+
+        bits::memcpy(bits::span<quint8>{bytes.bytes}, buf.subspan(it, payload_len));
+        api2::packet::payload::Variable payload {std::move(bytes)};
         tb->writeFragment({payload});
         it += payload_len;
     }
