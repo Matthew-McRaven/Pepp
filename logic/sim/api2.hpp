@@ -58,33 +58,11 @@ struct VariableBytes {
         Address address = 0;
         auto addr_span = bits::span<quint8>((quint8*) &address, sizeof(address));
         // Rely on memcpy to perform bounds checking between len and sizeof(address).
-        bits::memcpy(addr_span, bits::span<const quint8>{bytes, len});
+        bits::memcpy(addr_span, bits::span<const quint8>{bytes.data(), len});
         return address;
     }
 
-    constexpr static zpp::bits::errc serialize(auto& archive, VariableBytes& self)
-    {
-        // Serialize array manually to avoid allocating extra 0's in the bit stream.
-        // Must also de-serialize manually, otherwise archive will advance the position
-        // by the allocated size of the array, not the "used" size.
-        if(archive.kind() == zpp::bits::kind::out) {
-            return serialize(archive, (const VariableBytes&) self);
-        } else {
-            zpp::bits::errc errc = archive(self.len);
-            auto len = self.len & len_mask();
-            if(errc.code != std::errc()) return errc;
-            // Ignore flag bits in bounds check
-            else if(len > N) return zpp::bits::errc(std::errc::value_too_large);
-            else if(len == 0) return errc;
-
-            // We serialized the length ourselves. If we pass array_view directly, size will be serialzed again.
-            auto array_view = bits::span<quint8>(self.bytes.data(), len);
-            return archive(zpp::bits::bytes(array_view, array_view.size_bytes()));
-        }
-    }
-
-    // If self is const, forbid writing to it.
-    constexpr static zpp::bits::errc serialize(auto& archive, const VariableBytes& self)
+    constexpr static zpp::bits::errc serialize(auto& archive, auto& self)
     {
         // Serialize array manually to avoid allocating extra 0's in the bit stream.
         // Must also de-serialize manually, otherwise archive will advance the position
@@ -98,22 +76,37 @@ struct VariableBytes {
             if(errc.code != std::errc()) return errc;
             else if(self.len == 0) return errc;
 
-            // See above.
-            auto array_view = bits::span<const quint8>(self.bytes.data(), len);
-            return archive(zpp::bits::bytes(array_view, array_view.size_bytes()));
+            // Let compiler deduce [const quint8] vs [quint8].
+            auto span = std::span(self.bytes.data(), len);
+            return archive(zpp::bits::bytes(span, len));
         }
-        throw std::logic_error("Can't write to const object.");
+        // Only allow reading into nonconst objects
+        else if (archive.kind() == zpp::bits::kind::in && !std::is_const<decltype(self)>()) {
+            zpp::bits::errc errc = archive(self.len);
+            auto len = self.len & len_mask();
+            if(errc.code != std::errc()) return errc;
+            // Ignore flag bits in bounds check
+            else if(len > N) return zpp::bits::errc(std::errc::value_too_large);
+            else if(len == 0) return errc;
+
+            // We serialized the length ourselves. If we pass array_view directly, size will be serialzed again.
+            auto array_view = bits::span<quint8>(self.bytes.data(), len);
+            return archive(zpp::bits::bytes(array_view, array_view.size_bytes()));
+        } else if(archive.kind() == zpp::bits::kind::in)
+            throw std::logic_error("Can't read into const");
+
     }
 
     bool continues() const
     {
-        return len & 0x80;
+        return len &  ~len_mask();
     }
 
     static constexpr quint8 len_mask()
     {
         return 0x7f;
     }
+
     // Ensure that we don't clobber flags with a too-large array.
     static_assert(N < len_mask()+1);
 
