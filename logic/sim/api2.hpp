@@ -214,25 +214,20 @@ public:
     virtual bool analyze(const packet::Header&, const std::span<packet::Payload>&, Direction) = 0;
 };
 
-class IteratorImpl {
-public:
-    virtual std::size_t sizeof_payload(std::size_t) const = 0;
-    virtual packet::Payload at_payload(std::size_t) const = 0;
-    virtual std::size_t next_payload(std::size_t) const = 0;
-    virtual std::size_t sizeof_packet(std::size_t) const = 0;
-    virtual packet::Header at_packet(std::size_t) const = 0;
-    virtual std::size_t next_packet(std::size_t) const = 0;
-    virtual std::size_t prev_packet(std::size_t) const = 0;
-    virtual std::size_t sizeof_frame(std::size_t) const = 0;
-    virtual frame::Header at_frame(std::size_t) const = 0;
-    virtual std::size_t next_frame(std::size_t) const = 0;
-    virtual std::size_t prev_frame(std::size_t) const = 0;
-};
-
 enum class Level {
     Frame,
     Packet,
     Payload,
+};
+
+struct IteratorImpl {
+    virtual std::size_t size_at(std::size_t loc, Level level) const = 0;
+    virtual frame::Header frame(std::size_t loc) const = 0;
+    virtual packet::Header packet(std::size_t loc) const = 0;
+    virtual packet::Payload payload(std::size_t loc) const = 0;
+    virtual std::size_t next(std::size_t loc, Level level) const = 0;
+    virtual std::size_t prev(std::size_t loc, Level level) const = 0;
+
 };
 
 template <Level Current, Level... Descendant>
@@ -245,10 +240,7 @@ struct Iterator {
 
     Iterator(const IteratorImpl* impl, std::size_t location): _impl(impl), _location(location) {}
     Iterator& operator++() {
-        if constexpr(Current == Level::Frame) _location += _impl->next_frame(_location);
-        else if constexpr (Current == Level::Packet) _location += _impl->next_packet(_location);
-        else if constexpr (Current == Level::Payload) _location += _impl->next_payload(_location);
-        else throw std::logic_error("err");
+        _location += _impl->next(_location, Current);
         return *this;
     }
 
@@ -276,40 +268,38 @@ struct Iterator {
 
     std::size_t fragment_size() const
     {
-        if constexpr(Current == Level::Frame) return _impl->sizeof_frame(_location);
-        else if constexpr (Current == Level::Packet) return _impl->sizeof_packet(_location);
-        else if constexpr (Current == Level::Payload) return _impl->sizeof_payload(_location);
+        return _impl->size_at(_location, Current);
     }
 
-    template<typename = std::enable_if_t<Current == Level::Packet || Current == Level::Payload>>
+    template<typename = std::enable_if<Current == Level::Packet || Current == Level::Payload>>
     Iterator<Descendant...> cbegin() const
     {
         return {};
         //return iterator<Descendant...>(_impl, _location);
     }
 
-    template<typename = std::enable_if_t<Current == Level::Packet || Current == Level::Payload>>
+    template<typename = std::enable_if<Current == Level::Packet || Current == Level::Payload>>
     Iterator<Descendant...> cend() const
     {
         return {};
     }
 
-    template<typename = std::enable_if_t<Current == Level::Frame>>
+    template<typename = std::enable_if<Current == Level::Frame>>
     frame::Header header() const
     {
-        return _impl->at_frame(_location);
+        return _impl->frame(_location);
     }
 
-    template<typename = std::enable_if_t<Current == Level::Packet>>
+    template<typename = std::enable_if<Current == Level::Packet>>
     packet::Header header()
     {
-        return _impl->at_packet(_location);
+        return _impl->packet(_location);
     }
 
-    template<typename = std::enable_if_t<Current == Level::Payload>>
+    template<typename = std::enable_if<Current == Level::Payload>>
     packet::Payload payload() const
     {
-        return _impl->at_payload(_location);
+        return _impl->payload(_location);
     }
 
 private:
@@ -329,7 +319,7 @@ private:
 // between the UI and the simulation.
 class Buffer {
 public:
-    using Iterator = Iterator<Level::Frame, Level::Packet, Level::Payload>;
+    using TraceIterator = Iterator<Level::Frame, Level::Packet, Level::Payload>;
     virtual ~Buffer() = default;
     virtual bool trace(device::ID deviceID, bool enabled = true) = 0;
 
@@ -346,8 +336,9 @@ public:
     // Remove the last frame from the buffer.
     // TODO: replace with integration for iterators / std::erase.
     virtual void dropLast() = 0;
-    virtual Iterator cbegin() const = 0;
-    virtual Iterator cend() const = 0;
+
+    virtual TraceIterator cbegin() const = 0;
+    virtual TraceIterator cend() const = 0;
 };
 } // namespace sim::api2::trace
 
