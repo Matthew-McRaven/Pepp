@@ -111,9 +111,25 @@ bool Output<Address>::filter(const api2::packet::Header &header)
 }
 
 template<typename Address>
-bool Output<Address>::analyze(const api2::packet::Header &header, const std::span<api2::packet::Payload> &, Direction)
+bool Output<Address>::analyze(const api2::packet::Header& header,
+                              const std::span<api2::packet::Payload>& payloads,
+                              Direction direction)
 {
-  throw std::logic_error("unimplemented");
+  if(std::holds_alternative<api2::packet::header::Write>(header)) {
+    // Address is always implicitly 0 since this is a 1-byte port.
+    auto hdr = std::get<api2::packet::header::Write>(header);
+    if(direction == Direction::Backward) _endpoint->unwrite();
+    // Forward direction
+    // We don't emit multiple payloads, so receiving multiple (or 0) doesn't make sense.
+    else if(payloads.size() != 1) return false;
+    // Otherwise we are seeing this byte for the first time via the trace.
+    // We need to mimic the effects of write().
+    else if(std::holds_alternative<api2::packet::payload::Variable>(payloads[0])) {
+      auto payload = std::get<api2::packet::payload::Variable>(payloads[0]);
+      // Only use the first byte, since this port only has 1 address.
+      _endpoint->append_value(payload.payload.bytes[0]);
+    }
+  } else return false;
   return true;
 }
 

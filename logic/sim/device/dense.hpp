@@ -107,10 +107,57 @@ bool Dense<Address>::filter(const api2::packet::Header &header)
   return std::visit(sim::trace2::IsSameDevice{_device.id}, header);
 }
 
+namespace detail {
+template <typename Address>
+struct PayloadHelper {
+  PayloadHelper(Address address, Dense<Address> *dense) : address(address), dense(dense) {}
+
+  static constexpr auto op = api2::memory::Operation {
+      .type = api2::memory::Operation::Type::BufferInternal,
+      .kind = api2::memory::Operation::Kind::data,
+  };
+
+  Address operator()(const api2::packet::payload::Variable& frag){
+    std::array<quint8, api2::packet::payload::Variable::N> tmp;
+    tmp.fill(0);
+
+    Address len = std::min<Address>(tmp.size(), frag.payload.len);
+    auto span = bits::span<quint8>{tmp.data(), len};
+
+    // Get current value and XOR with XOR-encoded bytes, which we write back.
+    dense->read(address, span, op);
+    bits::memcpy_xor(span, span,
+                     bits::span<const quint8>{frag.payload.bytes.data(), frag.payload.len});
+    dense->write(address, span, op);
+    return len;
+  }
+
+  // Will need to implement if we create other payload fragments.
+  Address operator()(const auto& frag) const {
+    throw std::logic_error("unimplemented");
+  }
+
+  Address address;
+  Dense<Address>* dense;
+};
+}
+
 template<typename Address>
-bool Dense<Address>::analyze(const api2::packet::Header &header, const std::span<api2::packet::Payload> &, Direction)
+bool Dense<Address>::analyze(const api2::packet::Header& header,
+                             const std::span<api2::packet::Payload>& payloads,
+                             Direction direction)
 {
-  throw std::logic_error("unimplemented");
+  // Read has no side effects, dense only issues pure reads.
+  // Therefore we only need to handle out write packets.
+  if(std::holds_alternative<api2::packet::header::Write>(header)) {
+    auto hdr = std::get<api2::packet::header::Write>(header);
+    Address address = hdr.address.to_address<Address>();
+    // forward vs backwards does not matter for dense memory,
+    // since payloads are XOR encoded. We can compute (current XOR payload)
+    // to determine the updated memory values.
+    for(auto payload: payloads)
+      address += std::visit(detail::PayloadHelper<Address>(address, this), payload);
+  }
   return true;
 }
 
