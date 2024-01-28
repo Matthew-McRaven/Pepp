@@ -32,18 +32,29 @@ namespace packet {
 // The variable-length byte-array allows this to be expressed in a single packet type.
 template <size_t N>
 struct VariableBytes {
-    // Can't be a CTOR, or designated initializers won't work.
-    template <std::unsigned_integral Address>
-    static VariableBytes from_address(Address address) {
-        auto ret = VariableBytes();
-        ret.len = sizeof(Address);
-        // Copy address bytes into bytes array.
-        auto addr_span = bits::span<const quint8>((quint8*) &address, ret.len);
-        bits::memcpy(bits::span<quint8>{ret.bytes}, addr_span);
-        return ret;
+    VariableBytes(quint8 len, bool continues=false)
+    {
+        this->len = (len & len_mask()) | (continues ? 0x80 : 0x00);
+        bytes.fill(0);
     }
+
+    VariableBytes(quint8 len, bits::span<const quint8> src, bool continues=false)
+    {
+        this->len = (len & len_mask()) | (continues ? 0x80 : 0x00);
+        bits::memcpy(bits::span<quint8>{bytes.data(), len}, src);
+    }
+
     template <std::unsigned_integral Address>
-    Address to_address() const {
+    static VariableBytes from_address(Address address)
+    {
+        auto len = sizeof(address);
+        // Copy address bytes into bytes array.
+        return VariableBytes(len, bits::span<const quint8>((quint8*) &address, len));
+    }
+
+    template <std::unsigned_integral Address>
+    Address to_address() const
+    {
         Address address = 0;
         auto addr_span = bits::span<quint8>((quint8*) &address, sizeof(address));
         // Rely on memcpy to perform bounds checking between len and sizeof(address).
@@ -51,7 +62,8 @@ struct VariableBytes {
         return address;
     }
 
-    constexpr static zpp::bits::errc serialize(auto& archive, VariableBytes& self) {
+    constexpr static zpp::bits::errc serialize(auto& archive, VariableBytes& self)
+    {
         // Serialize array manually to avoid allocating extra 0's in the bit stream.
         // Must also de-serialize manually, otherwise archive will advance the position
         // by the allocated size of the array, not the "used" size.
@@ -59,35 +71,53 @@ struct VariableBytes {
             return serialize(archive, (const VariableBytes&) self);
         } else {
             zpp::bits::errc errc = archive(self.len);
+            auto len = self.len & len_mask();
             if(errc.code != std::errc()) return errc;
-            else if(self.len > N) return zpp::bits::errc(std::errc::value_too_large);
-            else if(self.len == 0) return errc;
+            // Ignore flag bits in bounds check
+            else if(len > N) return zpp::bits::errc(std::errc::value_too_large);
+            else if(len == 0) return errc;
 
             // We serialized the length ourselves. If we pass array_view directly, size will be serialzed again.
-            auto array_view = bits::span<quint8>(self.bytes.data(), self.len);
+            auto array_view = bits::span<quint8>(self.bytes.data(), len);
             return archive(zpp::bits::bytes(array_view, array_view.size_bytes()));
         }
     }
 
     // If self is const, forbid writing to it.
-    constexpr static zpp::bits::errc serialize(auto& archive, const VariableBytes& self) {
+    constexpr static zpp::bits::errc serialize(auto& archive, const VariableBytes& self)
+    {
         // Serialize array manually to avoid allocating extra 0's in the bit stream.
         // Must also de-serialize manually, otherwise archive will advance the position
         // by the allocated size of the array, not the "used" size.
         if(archive.kind() == zpp::bits::kind::out) {
-
-            if(self.len > N) return zpp::bits::errc(std::errc::value_too_large);
+            // Mask out flag bits before checking max size.
+            auto len = self.len & len_mask();
+            if(len > N) return zpp::bits::errc(std::errc::value_too_large);
+            // Write out length + flags.
             zpp::bits::errc errc = archive(self.len);
             if(errc.code != std::errc()) return errc;
             else if(self.len == 0) return errc;
 
             // See above.
-            auto array_view = bits::span<const quint8>(self.bytes.data(), self.len);
+            auto array_view = bits::span<const quint8>(self.bytes.data(), len);
             return archive(zpp::bits::bytes(array_view, array_view.size_bytes()));
         }
         throw std::logic_error("Can't write to const object.");
     }
 
+    bool continues() const
+    {
+        return len & 0x80;
+    }
+
+    static constexpr quint8 len_mask()
+    {
+        return 0x7f;
+    }
+    // Ensure that we don't clobber flags with a too-large array.
+    static_assert(N < len_mask()+1);
+
+    // High order bit is used for "continues" flag.
     quint8 len = 0;
     std::array<quint8, N> bytes = {0};
 };
@@ -100,25 +130,29 @@ enum class DeltaEncoding : quint8 {
 namespace header {
 struct Clear {
     device_id_t device = 0;
-    VariableBytes<8> value = {0,{}};
+    static constexpr std::size_t N = 8;
+    VariableBytes<N> value = {0};
 };
 
 struct PureRead {
     device_id_t device = 0;
     zpp::bits::varint<quint64> payload_len = 0;
-    VariableBytes<8> address = {0,{}};
+    static constexpr std::size_t N = 8;
+    VariableBytes<N> address = {0};
 };
 
 // MUST be followed by 1+ payloads.
 struct ImpureRead {
     device_id_t device = 0;
-    VariableBytes<8> address = {0,{}};
+    static constexpr std::size_t N = 8;
+    VariableBytes<N> address = {0};
 };
 
 // MUST be followed by 1+ payload.
 struct Write {
     device_id_t device = 0;
-    VariableBytes<8> address = {0,{}};
+    static constexpr std::size_t N = 8;
+    VariableBytes<N> address = {0};
 };
 } // sim::api2::packet::header
 using Header = std::variant<header::Clear, header::PureRead, header::ImpureRead, header::Write>;
@@ -126,7 +160,8 @@ using Header = std::variant<header::Clear, header::PureRead, header::ImpureRead,
 namespace payload {
 // Successive payloads belong to the same packet.
 struct Variable {
-    VariableBytes<32> payload = {0, {}};
+    static constexpr std::size_t N = 32;
+    VariableBytes<N> payload = {0};
 };
 } // sim::api2::packet::payload
 using Payload = std::variant<payload::Variable>;
