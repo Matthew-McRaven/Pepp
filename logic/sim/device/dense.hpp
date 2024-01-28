@@ -131,8 +131,11 @@ api2::memory::Result Dense<Address>::read(Address address, bits::span<quint8> de
     throw E(E::Type::OOBAccess, address);
   auto offset = address - _span.minOffset;
   auto src = bits::span<const quint8>{_data.data(), std::size_t(_data.size())}.subspan(offset);
-  // Don't need to record reads from UI, since they can cause no side-effects.
-  if (op.type != Operation::Type::Application && _tb) sim::trace2::emitPureRead<Address>(_tb, _device.id, offset, src.size());
+  // Ignore reads from UI, since this device only issues pure reads.
+  // Ignore reads from buffer internal operations.
+  if (!(op.type == Operation::Type::Application
+        || op.type == Operation::Type::BufferInternal) && _tb)
+    sim::trace2::emitPureRead<Address>(_tb, _device.id, offset, src.size());
   bits::memcpy(dest, src);
   return {};
 }
@@ -141,14 +144,16 @@ template<typename Address>
 api2::memory::Result Dense<Address>::write(Address address, bits::span<const quint8> src, api2::memory::Operation op)
 {
   using E = api2::memory::Error<Address>;
+  using Operation = sim::api2::memory::Operation;
   // Length is 1-indexed, address are 0, so must offset by -1.
   auto maxDestAddr = (address + std::max<Address>(0, src.size() - 1));
   if (address < _span.minOffset || maxDestAddr > _span.maxOffset)
     throw E(E::Type::OOBAccess, address);
   auto offset = address - _span.minOffset;
   auto dest = bits::span<quint8>{_data.data(), std::size_t(_data.size())}.subspan(offset);
-  // Always record changes, even if the come from UI. Otherwise, step back fails.
-  if (_tb) sim::trace2::emitWrite<Address>(_tb, _device.id, offset, src, dest);
+  // Record changes, even if the come from UI. Otherwise, step back fails.
+  if (op.type != Operation::Type::BufferInternal && _tb)
+    sim::trace2::emitWrite<Address>(_tb, _device.id, offset, src, dest);
   bits::memcpy(dest, src);
   return {};
 }

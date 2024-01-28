@@ -143,7 +143,8 @@ api2::memory::Result Input<Address>::read(Address address, bits::span<quint8> de
 
   if (address < _span.minOffset || maxDestAddr > _span.maxOffset)
     throw E(E::Type::OOBAccess, address);
-  else if(op.type == Operation::Type::Application) {
+  else if(op.type == Operation::Type::Application
+           || op.type == Operation::Type::BufferInternal) {
     quint8 tmp = *_endpoint->current_value();
     bits::memcpy(dest, bits::span<const quint8>{&tmp, 1});
     // Return early to avoid guard extra guard condition in trace code.

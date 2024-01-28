@@ -433,7 +433,10 @@ struct Operation {
         // Speculative access triggered within the simulation. Probably shouldn't trigger
         // MMIO, but this is hardware dependent.
         Speculative = 2,
-        // Non-speculative access triggered within  the simulation. Should trigger memory mapped IO,
+        // Access triggered by the simulator while performing some analysis operation.
+        // It must never trigger memory-mapped IO nor is it allowed to emit trace events.
+        BufferInternal = 3,
+        // Non-speculative access triggered within the simulation. Should trigger memory mapped IO,
         // cache updates, etc.
         Standard = 0,
     } type = Type::Standard;
