@@ -131,20 +131,11 @@ struct Variable {
 } // sim::api2::packet::payload
 using Payload = std::variant<payload::Variable>;
 using Fragment = std::variant<Header, Payload>;
-
-// Elements are "Packet"'s.
-struct Iterator {
-    virtual void next() = 0;
-};
 } //sim::api2::packet
 
-struct Packet {
-    virtual const packet::Header header() const = 0;
-    virtual int payloadCount() const = 0;
-    virtual const packet::Payload payload(int index) const = 0;
-};
-
 namespace frame {
+// DO NOT SET "length" OR "back_offset"! The trace buffer will fill in these
+// fields in with the correct offsets.
 // There may be different kinds of frames.
 // The most common kind is a Trace frame, which records modifications to the simulation.
 // Other headers may be used to convey configuration information, etc.
@@ -168,21 +159,9 @@ struct Extender {
 };
 } // sim::api2::frame::header
 using Header = std::variant<header::Trace, header::Extender>;
-// Elements are "Frame"'s. Each frame can be iterated over to get its packets.
-struct Iterator {
-    // Move to next frame.
-    virtual void next() = 0;
-};
 } // sim::api2::frame
 
-struct Frame {
-    virtual frame::Header header() = 0;
-    virtual packet::Iterator begin() = 0;
-    virtual packet::Iterator end() = 0;
-};
-
 namespace trace {
-
 enum class Mode {
     Realtime, // Trace frames are parsed as they are received
     Deferred, // Trace frames will be parsed at some later point.
@@ -207,6 +186,114 @@ public:
     virtual bool analyze(const packet::Header&, const std::span<packet::Payload>&, Direction) = 0;
 };
 
+class IteratorImpl {
+public:
+    virtual std::size_t sizeof_payload(std::size_t) const = 0;
+    virtual packet::Payload at_payload(std::size_t) const = 0;
+    virtual std::size_t next_payload(std::size_t) const = 0;
+    virtual std::size_t sizeof_packet(std::size_t) const = 0;
+    virtual packet::Header at_packet(std::size_t) const = 0;
+    virtual std::size_t next_packet(std::size_t) const = 0;
+    virtual std::size_t prev_packet(std::size_t) const = 0;
+    virtual std::size_t sizeof_frame(std::size_t) const = 0;
+    virtual frame::Header at_frame(std::size_t) const = 0;
+    virtual std::size_t next_frame(std::size_t) const = 0;
+    virtual std::size_t prev_frame(std::size_t) const = 0;
+};
+
+enum class Level {
+    Frame,
+    Packet,
+    Payload,
+};
+
+template <Level Current, Level... Descendant>
+struct Iterator {
+    typedef std::forward_iterator_tag iterator_category;
+    typedef const Iterator<Descendant...> value_type;
+    typedef quint64 difference_type;
+    typedef const Iterator<Descendant...>* pointer;
+    typedef const Iterator<Descendant...>& reference;
+
+    Iterator(const IteratorImpl* impl, std::size_t location): _impl(impl), _location(location) {}
+    Iterator& operator++() {
+        if constexpr(Current == Level::Frame) _location += _impl->next_frame(_location);
+        else if constexpr (Current == Level::Packet) _location += _impl->next_packet(_location);
+        else if constexpr (Current == Level::Payload) _location += _impl->next_payload(_location);
+        else throw std::logic_error("err");
+        return *this;
+    }
+
+    Iterator& operator++(int) {
+        auto ret = *this;
+        ++(*this);
+        return ret;
+    }
+
+    bool operator==(Iterator other) const
+    {
+        return _impl == other._impl && _location == other._location;
+    }
+
+    bool operator!=(Iterator other) const
+    {
+        return !(other == *this);
+    }
+
+    value_type operator*() const
+    {
+        // TODO: handle forward vs backward.
+        return value_type(_impl, _location + fragment_size());
+    }
+
+    std::size_t fragment_size() const
+    {
+        if constexpr(Current == Level::Frame) return _impl->sizeof_frame(_location);
+        else if constexpr (Current == Level::Packet) return _impl->sizeof_packet(_location);
+        else if constexpr (Current == Level::Payload) return _impl->sizeof_payload(_location);
+    }
+
+    template<typename = std::enable_if_t<Current == Level::Packet || Current == Level::Payload>>
+    Iterator<Descendant...> cbegin() const
+    {
+        return {};
+        //return iterator<Descendant...>(_impl, _location);
+    }
+
+    template<typename = std::enable_if_t<Current == Level::Packet || Current == Level::Payload>>
+    Iterator<Descendant...> cend() const
+    {
+        return {};
+    }
+
+    template<typename = std::enable_if_t<Current == Level::Frame>>
+    frame::Header header() const
+    {
+        return _impl->at_frame(_location);
+    }
+
+    template<typename = std::enable_if_t<Current == Level::Packet>>
+    packet::Header header()
+    {
+        return _impl->at_packet(_location);
+    }
+
+    template<typename = std::enable_if_t<Current == Level::Payload>>
+    packet::Payload payload() const
+    {
+        return _impl->at_payload(_location);
+    }
+
+private:
+    const IteratorImpl* _impl;
+    std::size_t _location = 0;
+};
+
+
+
+// If you inherit from this, you will likely want to inherit IteratorImpl as well.
+// IteratorImpl allows polymorphic implementation of this class while mantaining a stable
+// ABI for teh iterator class.
 // TODO: Add additional channel for command / simulation packets.
 // Simulation packets are notifications such as "there's no MMIO".
 // Command packets may set memory values, step forward some number of ticks.
@@ -214,6 +301,7 @@ public:
 // between the UI and the simulation.
 class Buffer {
 public:
+    using Iterator = Iterator<Level::Frame, Level::Packet, Level::Payload>;
     virtual ~Buffer() = default;
     virtual bool trace(device::ID deviceID, bool enabled = true) = 0;
 
@@ -230,12 +318,8 @@ public:
     // Remove the last frame from the buffer.
     // TODO: replace with integration for iterators / std::erase.
     virtual void dropLast() = 0;
-
-
-    virtual frame::Iterator rbegin() const = 0;
-    virtual frame::Iterator rend() const = 0;
-    virtual frame::Iterator begin() const = 0;
-    virtual frame::Iterator end() const = 0;
+    virtual Iterator cbegin() const = 0;
+    virtual Iterator cend() const = 0;
 };
 } // namespace sim::api2::trace
 
