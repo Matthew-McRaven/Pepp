@@ -6,7 +6,7 @@ namespace sim::trace2 {
 template <typename T>
 concept HasDevice =
     requires(T t) {
-    { t.device } -> std::same_as<sim::api2::device::ID>;
+    { t.device } -> std::convertible_to<decltype(t.device)>;
 };
 class IsSameDevice {
 public:
