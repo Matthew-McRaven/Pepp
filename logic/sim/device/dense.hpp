@@ -46,8 +46,8 @@ public:
   void dump(bits::span<quint8> dest) const override;
 
   // Sink interface
-  bool filter(const api2::packet::Header& header) override;
   bool analyze(const api2::packet::Header& header, const std::span<api2::packet::Payload> &, Direction) override;
+
   // Source interface
   void setBuffer(api2::trace::Buffer *tb) override;
   void trace(bool enabled) override;
@@ -101,12 +101,6 @@ const quint8 *sim::memory::Dense<Address>::constData() const {
   return _data.constData();
 }
 
-template<typename Address>
-bool Dense<Address>::filter(const api2::packet::Header &header)
-{
-  return std::visit(sim::trace2::IsSameDevice{_device.id}, header);
-}
-
 namespace detail {
 template <typename Address>
 struct PayloadHelper {
@@ -147,9 +141,10 @@ bool Dense<Address>::analyze(const api2::packet::Header& header,
                              const std::span<api2::packet::Payload>& payloads,
                              Direction direction)
 {
+  if(!std::visit(sim::trace2::IsSameDevice{_device.id}, header)) return false;
   // Read has no side effects, dense only issues pure reads.
   // Therefore we only need to handle out write packets.
-  if(std::holds_alternative<api2::packet::header::Write>(header)) {
+  else if(std::holds_alternative<api2::packet::header::Write>(header)) {
     auto hdr = std::get<api2::packet::header::Write>(header);
     Address address = hdr.address.to_address<Address>();
     // forward vs backwards does not matter for dense memory,

@@ -48,7 +48,6 @@ public:
   sim::api2::tick::Result clock(sim::api2::tick::Type currentTick) override;
 
   // Sink interfae
-  bool filter(const sim::api2::packet::Header &) override;
   bool analyze(const sim::api2::packet::Header &, const std::span<sim::api2::packet::Payload> &, Direction) override;
 
   // Source interface

@@ -51,7 +51,6 @@ public:
   void trace(bool enabled) override;
 
   // Sink interface
-  bool filter(const api2::packet::Header& header) override;
   bool analyze(const api2::packet::Header& header, const std::span<api2::packet::Payload> &, Direction) override;
 
   // Helpers
@@ -115,17 +114,12 @@ void Input<Address>::setFailPolicy(api2::memory::FailPolicy policy) {
 }
 
 template<typename Address>
-bool Input<Address>::filter(const api2::packet::Header &header)
-{
-  return std::visit(sim::trace2::IsSameDevice{_device.id}, header);
-}
-
-template<typename Address>
 bool Input<Address>::analyze(const api2::packet::Header& header,
                              const std::span<api2::packet::Payload>& payloads,
                              Direction direction)
 {
-  if(std::holds_alternative<api2::packet::header::ImpureRead>(header)) {
+  if(!std::visit(sim::trace2::IsSameDevice{_device.id}, header)) return false;
+  else if(std::holds_alternative<api2::packet::header::ImpureRead>(header)) {
     // Address is always implicitly 0 since this is a 1-byte port.
     auto hdr = std::get<api2::packet::header::ImpureRead>(header);
     // read() consumes a value via next_value(), which unread will undo.

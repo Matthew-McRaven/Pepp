@@ -47,8 +47,8 @@ public:
   void dump(bits::span<quint8> dest) const override;
 
   // Sink interface
-  bool filter(const api2::packet::Header& header) override;
   bool analyze(const api2::packet::Header& header, const std::span<api2::packet::Payload> &, Direction) override;
+
   // Source interface
   void trace(bool enabled) override;
   void setBuffer(api2::trace::Buffer *tb) override;
@@ -105,17 +105,12 @@ Output<Address>::endpoint() {
 }
 
 template<typename Address>
-bool Output<Address>::filter(const api2::packet::Header &header)
-{
-  return std::visit(sim::trace2::IsSameDevice{_device.id}, header);
-}
-
-template<typename Address>
 bool Output<Address>::analyze(const api2::packet::Header& header,
                               const std::span<api2::packet::Payload>& payloads,
                               Direction direction)
 {
-  if(std::holds_alternative<api2::packet::header::Write>(header)) {
+  if(!std::visit(sim::trace2::IsSameDevice{_device.id}, header)) return false;
+  else if(std::holds_alternative<api2::packet::header::Write>(header)) {
     // Address is always implicitly 0 since this is a 1-byte port.
     auto hdr = std::get<api2::packet::header::Write>(header);
     if(direction == Direction::Backward) _endpoint->unwrite();

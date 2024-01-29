@@ -210,7 +210,7 @@ public:
         Forward,    // Apply the action specified by the packet.
         Backward,   // Undo the effects of the action specified by the packet.
     };
-    virtual bool filter(const packet::Header&) = 0;
+    // Return true if the packet was processed by this sink, otherwise return false.
     virtual bool analyze(const packet::Header&, const std::span<packet::Payload>&, Direction) = 0;
 };
 
