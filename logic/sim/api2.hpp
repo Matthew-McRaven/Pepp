@@ -244,8 +244,8 @@ struct Iterator<Current>{
 public:
     using iterator_category = std::forward_iterator_tag;
     using difference_type = quint64;
-    using _helper = std::conditional<Current == Level::Packet, packet::Header, packet::Payload>::type;
-    using value_type = std::conditional<Current == Level::Frame, frame::Header, _helper>::type;
+    using _helper = typename std::conditional<Current == Level::Packet, packet::Header, packet::Payload>::type;
+    using value_type = typename std::conditional<Current == Level::Frame, frame::Header, _helper>::type;
     using pointer = const value_type*;
     using reference = value_type&;
 

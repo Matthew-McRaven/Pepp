@@ -7,7 +7,10 @@ class IsTraced {
 public:
     IsTraced(QSet<sim::api2::device::ID> devices): _devices(devices) {};
     template <HasDevice Header>
-    bool operator()(const Header& header) const {return _devices.contains(header.device);};
+    bool operator()(const Header& header) const {
+        quint16 val = header.device;
+        return _devices.contains(val);
+    };
     bool operator()(const auto& header) const {return false;}
 private:
     QSet<sim::api2::device::ID> _devices;
