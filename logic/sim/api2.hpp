@@ -94,6 +94,7 @@ struct VariableBytes {
             return archive(zpp::bits::bytes(array_view, array_view.size_bytes()));
         } else if(archive.kind() == zpp::bits::kind::in)
             throw std::logic_error("Can't read into const");
+        throw std::logic_error("Unimplemented");
 
     }
 
@@ -215,13 +216,14 @@ public:
 };
 
 enum class Level {
-    Frame,
-    Packet,
-    Payload,
+    Frame = 1,
+    Packet = 2,
+    Payload = 3,
 };
 
 struct IteratorImpl {
     virtual std::size_t size_at(std::size_t loc, Level level) const = 0;
+    virtual Level at(std::size_t loc) const = 0;
     virtual frame::Header frame(std::size_t loc) const = 0;
     virtual packet::Header packet(std::size_t loc) const = 0;
     virtual packet::Payload payload(std::size_t loc) const = 0;
@@ -230,17 +232,24 @@ struct IteratorImpl {
 
 };
 
-template <Level Current, Level... Descendant>
-struct Iterator {
-    typedef std::forward_iterator_tag iterator_category;
-    typedef const Iterator<Descendant...> value_type;
-    typedef quint64 difference_type;
-    typedef const Iterator<Descendant...>* pointer;
-    typedef const Iterator<Descendant...>& reference;
+// "base class" for iterators.
+// Specialization of this class with <Arg> and <Arg, ...args>
+// will enable my heirarchical iterators.
+template<Level... Args>
+struct Iterator;
+
+// Prevent instantiation of iterator for Iterator<Level::Payload>
+template<Level Current>
+struct Iterator<Current>{
+public:
+    using iterator_category = std::forward_iterator_tag;
+    using difference_type = quint64;
+    using value_type = quint64;
+
 
     Iterator(const IteratorImpl* impl, std::size_t location): _impl(impl), _location(location) {}
     Iterator& operator++() {
-        _location += _impl->next(_location, Current);
+        _location = _impl->next(_location, Current);
         return *this;
     }
 
@@ -263,25 +272,12 @@ struct Iterator {
     value_type operator*() const
     {
         // TODO: handle forward vs backward.
-        return value_type(_impl, _location + fragment_size());
+        return 0;
     }
 
     std::size_t fragment_size() const
     {
         return _impl->size_at(_location, Current);
-    }
-
-    template<typename = std::enable_if<Current == Level::Packet || Current == Level::Payload>>
-    Iterator<Descendant...> cbegin() const
-    {
-        return {};
-        //return iterator<Descendant...>(_impl, _location);
-    }
-
-    template<typename = std::enable_if<Current == Level::Packet || Current == Level::Payload>>
-    Iterator<Descendant...> cend() const
-    {
-        return {};
     }
 
     template<typename = std::enable_if<Current == Level::Frame>>
@@ -302,16 +298,53 @@ struct Iterator {
         return _impl->payload(_location);
     }
 
-private:
+protected:
     const IteratorImpl* _impl;
     std::size_t _location = 0;
 };
 
+// Defer to above implementation in all cases except those handling iteration.
+template<Level Current, Level... Descendants>
+struct Iterator<Current, Descendants...>: public Iterator<Current> {
+public:
+    using pointer = const Iterator<Descendants...>*;
+    using reference =  Iterator<Descendants...>&;
+    using value_type = const Iterator<Descendants...>;
 
+    Iterator(const IteratorImpl* impl, std::size_t location): Iterator<Current>(impl, location) {}
+
+    value_type operator*() const
+    {
+        // TODO: handle forward vs backward.
+        return value_type(this->_impl, this->_location + this->fragment_size());
+    }
+
+    template<typename = std::enable_if<Current == Level::Packet || Current ==  Level::Payload>>
+    Iterator<Descendants...> cbegin() const
+    {
+        // Skip current element, because this returns a iterator for children.
+        auto to_next = this->_impl->size_at(this->_location, Current);
+        return Iterator<Descendants...>(this->_impl, this->_location + to_next);
+    }
+
+    template<typename = std::enable_if<Current == Level::Packet || Current ==  Level::Payload>>
+    Iterator<Descendants...> cend() const
+    {
+        // Skip current element, because this returns a iterator for children.
+        auto to_next = this->_impl->size_at(this->_location, Current);
+        std::size_t next = this->_location + to_next;
+        auto next_type = this->_impl->at(next);
+        // If the next item is below our level of abstraction,
+        // then we need to search for the next item that is at our level of abstraction.
+        if((int) Current < (int) next_type)
+          next = this->_impl->next(next, Current);
+        return Iterator<Descendants...>(this->_impl, next);
+    }
+};
 
 // If you inherit from this, you will likely want to inherit IteratorImpl as well.
 // IteratorImpl allows polymorphic implementation of this class while mantaining a stable
-// ABI for teh iterator class.
+// ABI for the iterator class.
 // TODO: Add additional channel for command / simulation packets.
 // Simulation packets are notifications such as "there's no MMIO".
 // Command packets may set memory values, step forward some number of ticks.

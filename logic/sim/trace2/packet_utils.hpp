@@ -25,12 +25,14 @@ void emit_payloads(sim::api2::trace::Buffer* tb,
                    bits::span<const quint8> buf1);
 } // sim::trace2::detail
 
+void emitFrameStart(sim::api2::trace::Buffer* tb);
+
 template <typename Address>
 void emitWrite(sim::api2::trace::Buffer* tb, sim::api2::device::ID id,
            Address address, bits::span<const quint8> src, bits::span<quint8> dest) {
     using vb = decltype(api2::packet::header::Write::address);
-    auto header = api2::packet::header::Write{.device = id,
-                                              .address = vb::from_address(address)};
+    auto address_bytes = vb::from_address<Address>(address);
+    auto header = api2::packet::header::Write{.device = id, .address = address_bytes};
     // Don't write payloads if the buffer rejected the packet header.
     if(tb->writeFragment({header})) detail::emit_payloads(tb, src, dest);
 }
@@ -69,4 +71,4 @@ void emitMMRead(sim::api2::trace::Buffer* tb, sim::api2::device::ID id,
     if(tb->writeFragment({header})) detail::emit_payloads(tb, src);
 }
 
-}
+} // sim::trace2

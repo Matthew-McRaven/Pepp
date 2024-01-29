@@ -47,6 +47,7 @@ private:
     // IteratorImpl interface
 public:
     std::size_t size_at(std::size_t loc, api2::trace::Level level) const override;
+    api2::trace::Level at(std::size_t loc) const override;
     api2::frame::Header frame(std::size_t loc) const override;
     api2::packet::Header packet(std::size_t loc) const override;
     api2::packet::Payload payload(std::size_t loc) const override;

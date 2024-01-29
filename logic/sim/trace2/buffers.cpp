@@ -70,12 +70,15 @@ bool sim::trace2::InfiniteBuffer::updateFrameHeader()
     using Header = api2::frame::Header;
     auto curOutPos = _out.position();
     auto curInPos = _in.position();
-    Header hdr;
 
     // Read in previous frame header and update its length flag
+    wrapped w;
     _in.reset(_lastFrameStart);
-    _in(hdr).or_throw();
+    _in(w).or_throw();
     _in.reset(curInPos);
+
+    if(!std::holds_alternative<Header>(w)) return false;
+    Header hdr = std::get<Header>(w);
 
     // TODO: Ensure that length fits in 16 bits.
     quint32 length = curOutPos - _lastFrameStart;
@@ -115,6 +118,22 @@ std::size_t sim::trace2::InfiniteBuffer::size_at(std::size_t loc, api2::trace::L
     return in.position() - loc;
 }
 
+sim::api2::trace::Level sim::trace2::InfiniteBuffer::at(std::size_t loc) const
+{
+    typename std::remove_const<decltype(_in)>::type in(_data);
+    in.reset(loc);
+
+    wrapped w;
+    in(w).or_throw();
+
+    if(std::holds_alternative<api2::frame::Header>(w))
+      return api2::trace::Level::Frame;
+    if(std::holds_alternative<api2::packet::Header>(w))
+      return api2::trace::Level::Packet;
+    else
+      return api2::trace::Level::Payload;
+}
+
 sim::api2::frame::Header sim::trace2::InfiniteBuffer::frame(std::size_t loc) const
 {
     typename std::remove_const<decltype(_in)>::type in(_data);
@@ -148,25 +167,29 @@ sim::api2::packet::Payload sim::trace2::InfiniteBuffer::payload(std::size_t loc)
 std::size_t sim::trace2::InfiniteBuffer::next(std::size_t loc, api2::trace::Level level) const
 {
     typename std::remove_const<decltype(_in)>::type in(_data);
+    loc += size_at(loc, level);
     in.reset(loc);
+
     wrapped w;
     do {
+        if(loc == _out.position()) return loc;
+        loc = in.position();
         auto ret = in(w);
         if(ret.code == std::errc::result_out_of_range) return 0;
         else if(ret.code != std::errc{}) throw std::logic_error("Unhandled");
         // Prevent "going up" to the next level of trace by returning 0.
         switch(level) {
         case api2::trace::Level::Frame:
-            if(std::visit(IsType<sim::api2::frame::Header>{}, w)) return in.position();
+            if(std::holds_alternative<sim::api2::frame::Header>(w)) return loc;
             break;
         case api2::trace::Level::Packet:
-            if(std::visit(IsType<sim::api2::frame::Header>{}, w)) return 0;
-            else if(std::visit(IsType<sim::api2::packet::Header>{}, w)) return in.position();
+            if(std::holds_alternative<sim::api2::frame::Header>(w)
+                || std::holds_alternative<sim::api2::packet::Header>(w)) return loc;
             break;
         case api2::trace::Level::Payload:
-            if(std::visit(IsType<sim::api2::frame::Header>{}, w)) return 0;
-            else if(std::visit(IsType<sim::api2::packet::Header>{}, w)) return 0;
-            else if(std::visit(IsType<sim::api2::packet::Payload>{}, w)) return in.position();
+            if(std::holds_alternative<sim::api2::frame::Header>(w)
+                || std::holds_alternative<sim::api2::packet::Header>(w)
+                || std::holds_alternative<sim::api2::packet::Payload>(w)) return loc;
             break;
         }
         loc = in.position();

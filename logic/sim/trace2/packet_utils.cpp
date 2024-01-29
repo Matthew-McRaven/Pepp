@@ -1,5 +1,10 @@
 #include "packet_utils.hpp"
 
+void sim::trace2::emitFrameStart(sim::api2::trace::Buffer *tb)
+{
+    tb->writeFragment({sim::api2::frame::header::Trace{}});
+}
+
 // Max payload size is a compile time constant, so compute at compile time.
 using vb = sim::api2::packet::payload::Variable;
 static constexpr auto payload_max_size = vb::N;
