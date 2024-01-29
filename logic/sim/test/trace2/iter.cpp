@@ -16,13 +16,9 @@ TEST_CASE("Trace buffer iterators" "[sim][trace]") {
     sim::trace2::emitFrameStart(&buf);
     sim::trace2::emitWrite<quint16>(&buf, 1, 0, src, dest);
     sim::trace2::emitWrite<quint16>(&buf, 1, 32, src, dest);
-    sim::trace2::emitWrite<quint16>(&buf, 1, 128, src, dest);
+    sim::trace2::emitWrite<quint16>(&buf, 1, 64, src, dest);
     sim::trace2::emitPureRead<quint16>(&buf, 1, 0, 16);
     sim::trace2::emitFrameStart(&buf);
-    sim::trace2::emitWrite<quint16>(&buf, 2, 0, src, dest);
-    sim::trace2::emitWrite<quint16>(&buf, 2, 32, src, dest);
-    sim::trace2::emitWrite<quint16>(&buf, 2, 128, src, dest);
-    sim::trace2::emitPureRead<quint16>(&buf, 2, 0, 16);
     buf.updateFrameHeader();
 
     // Two frames.
@@ -37,6 +33,10 @@ TEST_CASE("Trace buffer iterators" "[sim][trace]") {
     auto packet = frame.cbegin();
     for(int it=0; it<3; it++) {
       // One payload.
+      sim::api2::packet::Header header = *packet;
+      CHECK(std::holds_alternative<sim::api2::packet::header::Write>(header));
+      auto wr = std::get<sim::api2::packet::header::Write>(header);
+      CHECK(wr.address.to_address<quint16>() == 32*it);
       CHECK(std::distance(packet.cbegin(), packet.cbegin()) == 0);
       CHECK(std::distance(packet.cend(), packet.cend()) == 0);
       CHECK(std::distance(packet.cbegin(), packet.cend()) == 1);

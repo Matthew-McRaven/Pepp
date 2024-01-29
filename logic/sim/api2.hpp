@@ -244,10 +244,14 @@ struct Iterator<Current>{
 public:
     using iterator_category = std::forward_iterator_tag;
     using difference_type = quint64;
-    using value_type = quint64;
+    using _helper = std::conditional<Current == Level::Packet, packet::Header, packet::Payload>::type;
+    using value_type = std::conditional<Current == Level::Frame, frame::Header, _helper>::type;
+    using pointer = const value_type*;
+    using reference = value_type&;
 
 
     Iterator(const IteratorImpl* impl, std::size_t location): _impl(impl), _location(location) {}
+
     Iterator& operator++() {
         _location = _impl->next(_location, Current);
         return *this;
@@ -269,33 +273,16 @@ public:
         return !(other == *this);
     }
 
-    value_type operator*() const
-    {
-        // TODO: handle forward vs backward.
-        return 0;
-    }
-
     std::size_t fragment_size() const
     {
         return _impl->size_at(_location, Current);
     }
 
-    template<typename = std::enable_if<Current == Level::Frame>>
-    frame::Header header() const
+    value_type operator*() const
     {
-        return _impl->frame(_location);
-    }
-
-    template<typename = std::enable_if<Current == Level::Packet>>
-    packet::Header header()
-    {
-        return _impl->packet(_location);
-    }
-
-    template<typename = std::enable_if<Current == Level::Payload>>
-    packet::Payload payload() const
-    {
-        return _impl->payload(_location);
+        if constexpr(Current == Level::Frame)  return _impl->frame(_location);
+        else if constexpr(Current == Level::Packet) return _impl->packet(_location);
+        else return _impl->payload(_location);
     }
 
 protected:
@@ -307,17 +294,8 @@ protected:
 template<Level Current, Level... Descendants>
 struct Iterator<Current, Descendants...>: public Iterator<Current> {
 public:
-    using pointer = const Iterator<Descendants...>*;
-    using reference =  Iterator<Descendants...>&;
-    using value_type = const Iterator<Descendants...>;
 
     Iterator(const IteratorImpl* impl, std::size_t location): Iterator<Current>(impl, location) {}
-
-    value_type operator*() const
-    {
-        // TODO: handle forward vs backward.
-        return value_type(this->_impl, this->_location + this->fragment_size());
-    }
 
     template<typename = std::enable_if<Current == Level::Packet || Current ==  Level::Payload>>
     Iterator<Descendants...> cbegin() const
