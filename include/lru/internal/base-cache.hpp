@@ -107,13 +107,12 @@ namespace Internal {
 /// \tparam InformationType The internal information class to be used.
 /// \tparam HashFunction The hash function type for the internal map.
 /// \tparam KeyEqual The type of the key equality function for the internal map.
-/// \tparam TagType The cache tag type of the concrete derived class.
 template <typename Key,
           typename Value,
-          template <typename, typename> class InformationType,
+          template <typename, typename>
+          class InformationType,
           typename HashFunction,
-          typename KeyEqual,
-          typename TagType>
+          typename KeyEqual>
 class BaseCache {
  protected:
   using Information = InformationType<Key, Value>;
@@ -136,14 +135,9 @@ class BaseCache {
       typename CallbackManagerType::AccessCallbackContainer;
 
  public:
-  using Tag = TagType;
   using InitializerList = std::initializer_list<std::pair<Key, Value>>;
   using StatisticsPointer = std::shared_ptr<Statistics<Key>>;
   using size_t = std::size_t;
-
-  static constexpr Tag tag() noexcept {
-    return {};
-  }
 
   /////////////////////////////////////////////////////////////////////////////
   // ITERATORS CLASSES

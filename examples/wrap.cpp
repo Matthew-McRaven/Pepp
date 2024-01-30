@@ -35,7 +35,7 @@ int f(int x) {
 auto main() -> int {
   // Use a time-to-live of 2 minutes and a
   // capacity of 128 for an LRU::TimedCache
-  auto wrapped = LRU::timed_wrap(f, 2min, 128);
+  auto wrapped = LRU::wrap(f, 128);
 
   std::cout << "Slow the first time ..." << '\n';
   wrapped(42);

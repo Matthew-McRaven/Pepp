@@ -22,7 +22,6 @@
 #ifndef LRU_INTERNAL_DEFINITIONS_HPP
 #define LRU_INTERNAL_DEFINITIONS_HPP
 
-#include <chrono>
 #include <cstddef>
 #include <functional>
 #include <list>
@@ -76,11 +75,6 @@ template <typename Key,
           typename KeyEqual>
 using Map = std::unordered_map<Key, Information, HashFunction, KeyEqual>;
 
-/// The default clock used internally.
-using Clock = std::chrono::steady_clock;
-
-/// The default timestamp (time point) used internally.
-using Timestamp = Clock::time_point;
 }  // namespace Internal
 }  // namespace LRU
 

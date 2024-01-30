@@ -78,22 +78,6 @@ auto wrap(Function original_function, Args&&... args) {
   };
 }
 
-/// Wraps a function with a "shallow" LRU timed cache.
-///
-/// Given a function, this function will return a new function, where
-/// "top-level" calls are cached. With "top-level" or "shallow", we mean
-/// that recursive calls to the same function are not cached, since those
-/// will call the original function symbol, not the wrapped one.
-///
-/// \param original_function The function to wrap.
-/// \param args Any arguments to forward to the cache.
-/// \returns A new function with a shallow LRU cache.
-template <typename Function, typename Duration, typename... Args>
-auto timed_wrap(Function original_function, Duration duration, Args&&... args) {
-  return wrap<Function, TimedCache>(
-      original_function, duration, std::forward<Args>(args)...);
-}
-
 }  //  namespace LRU
 
 #endif  // LRU_WRAP_HPP

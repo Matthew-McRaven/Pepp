@@ -35,10 +35,6 @@
 
 namespace LRU {
 
-// Forward declaration.
-template <typename, typename, typename, typename, typename>
-class TimedCache;
-
 namespace Internal {
 template <typename Cache, typename UnderlyingIterator>
 using BaseForBaseUnorderedIterator =
@@ -206,9 +202,6 @@ class BaseUnorderedIterator
  protected:
   template <typename, typename, typename>
   friend class BaseOrderedIterator;
-
-  template <typename, typename, typename, typename, typename>
-  friend class LRU::TimedCache;
 };
 }  // namespace Internal
 }  // namespace LRU

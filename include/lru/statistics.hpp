@@ -246,11 +246,6 @@ class Statistics {
   HitMap _key_map;
 };
 
-namespace Lowercase {
-template <typename... Ts>
-using statistics = Statistics<Ts...>;
-}  // namespace Lowercase
-
 }  // namespace LRU
 
 #endif  // LRU_STATISTICS_HPP

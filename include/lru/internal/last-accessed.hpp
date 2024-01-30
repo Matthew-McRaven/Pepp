@@ -23,9 +23,9 @@
 #define LRU_INTERNAL_LAST_ACCESSED_HPP
 
 #include <algorithm>
+#include <cassert>
 #include <functional>
 #include <iterator>
-
 #include <lru/internal/utility.hpp>
 
 namespace LRU {

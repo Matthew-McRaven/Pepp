@@ -31,7 +31,6 @@
 #include <stdexcept>
 #include <unordered_map>
 
-#include <lru/cache-tags.hpp>
 #include <lru/error.hpp>
 #include <lru/internal/base-cache.hpp>
 #include <lru/internal/information.hpp>
@@ -43,12 +42,8 @@ template <typename Key,
           typename Value,
           typename HashFunction,
           typename KeyEqual>
-using UntimedCacheBase = Internal::BaseCache<Key,
-                                             Value,
-                                             Internal::Information,
-                                             HashFunction,
-                                             KeyEqual,
-                                             Tag::BasicCache>;
+using UntimedCacheBase = Internal::
+    BaseCache<Key, Value, Internal::Information, HashFunction, KeyEqual>;
 }  // namespace Internal
 
 /// A basic LRU cache implementation.
@@ -196,11 +191,6 @@ class Cache
     }
   }
 };
-
-namespace Lowercase {
-template <typename... Ts>
-using cache = Cache<Ts...>;
-}  // namespace Lowercase
 
 }  // namespace LRU
 

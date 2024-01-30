@@ -40,18 +40,6 @@ struct KeyNotFound : public std::runtime_error {
   }
 };
 
-/// Exception thrown when the value of an expired key was requested.
-struct KeyExpired : public std::runtime_error {
-  using super = std::runtime_error;
-
-  explicit KeyExpired(const std::string& key)
-  : super("Key found, but expired: " + key) {
-  }
-
-  KeyExpired() : super("Key found, but expired") {
-  }
-};
-
 /// Exception thrown when requesting the front or end key of an empty cache.
 struct EmptyCache : public std::runtime_error {
   using super = std::runtime_error;
@@ -90,16 +78,6 @@ struct NotMonitoring : public std::runtime_error {
   NotMonitoring() : super("Statistics monitoring not enabled for this cache") {
   }
 };
-
-namespace Lowercase {
-using key_not_found = KeyNotFound;
-using key_expired = KeyExpired;
-using empty_cache = EmptyCache;
-using invalid_iterator_conversion = InvalidIteratorConversion;
-using invalid_iterator = InvalidIterator;
-using unmonitored_key = UnmonitoredKey;
-using not_monitoring = NotMonitoring;
-}  // namespace Lowercase
 
 }  // namespace Error
 }  // namespace LRU
