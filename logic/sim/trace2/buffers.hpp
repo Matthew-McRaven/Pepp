@@ -37,6 +37,8 @@ public:
     void dropLast() override;
     TraceIterator cbegin() const override;
     TraceIterator cend() const override;
+    TraceIterator crbegin() const override;
+    TraceIterator crend() const override;
 
 private:
     QSet<api2::device::ID> _traced = {};

@@ -19,6 +19,8 @@ struct SimpleBuffer : public sim::api2::trace::Buffer {
     void dropLast() override {throw std::logic_error("Unimplemented");}
     TraceIterator cbegin() const override {throw std::logic_error("Unimplemented");}
     TraceIterator cend() const override {throw std::logic_error("Unimplemented");}
+    TraceIterator crbegin() const override {throw std::logic_error("Unimplemented");}
+    TraceIterator crend() const override {throw std::logic_error("Unimplemented");}
 
     mutable std::vector<std::byte> _data = {};
     zpp::bits::in<decltype(_data)> _in;

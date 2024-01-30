@@ -107,6 +107,16 @@ sim::trace2::InfiniteBuffer::TraceIterator sim::trace2::InfiniteBuffer::cend() c
     return TraceIterator(this, _out.position());
 }
 
+sim::api2::trace::Buffer::TraceIterator sim::trace2::InfiniteBuffer::crbegin() const
+{
+    return TraceIterator(this, _out.position(), TraceIterator::Reverse);
+}
+
+sim::trace2::InfiniteBuffer::TraceIterator sim::trace2::InfiniteBuffer::crend() const
+{
+    return TraceIterator(this, 0, TraceIterator::Reverse);
+}
+
 std::size_t sim::trace2::InfiniteBuffer::size_at(std::size_t loc, api2::trace::Level level) const
 {
     typename std::remove_const<decltype(_in)>::type in(_data);
@@ -198,5 +208,14 @@ std::size_t sim::trace2::InfiniteBuffer::next(std::size_t loc, api2::trace::Leve
 
 std::size_t sim::trace2::InfiniteBuffer::prev(std::size_t loc, api2::trace::Level level) const
 {
+    // Frame: loc should always point to a header, so we follow the back_offset
+    //   Create a cached LUT to map index <=> packet locations for this frame.
+    //   Track which range where the LUT applies.
+    // Packet: if LUT applies, use it to find the previous packet.
+    //   Othewise, scan forwards until we hit a frame header.
+    //   If we hit end without hitting a header, search from _lastFrameStart.
+    //   Construct a cacheable LUT entry for the payloads.
+    // Payload: if LUT applies, find previous payload.
+    //   Otherwise, perform packet scan, and try again.
     throw std::logic_error("Unimplemented");
 }

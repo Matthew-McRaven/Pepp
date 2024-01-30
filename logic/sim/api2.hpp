@@ -242,6 +242,11 @@ struct Iterator;
 template<Level Current>
 struct Iterator<Current>{
 public:
+    enum Direction {
+        Forward,
+        Reverse,
+    };
+
     using iterator_category = std::forward_iterator_tag;
     using difference_type = quint64;
     using _helper = typename std::conditional<Current == Level::Packet, packet::Header, packet::Payload>::type;
@@ -249,11 +254,18 @@ public:
     using pointer = const value_type*;
     using reference = value_type&;
 
-
-    Iterator(const IteratorImpl* impl, std::size_t location): _impl(impl), _location(location) {}
+    Iterator(const IteratorImpl* impl, std::size_t location,
+             Direction dir=Forward): _impl(impl), _location(location), _dir(dir) {}
 
     Iterator& operator++() {
-        _location = _impl->next(_location, Current);
+        if(_dir == Forward) _location = _impl->next(_location, Current);
+        else _location = _impl->prev(_location, Current);
+        return *this;
+    }
+
+    Iterator& operator--() {
+        if(_dir == Forward) _location = _impl->prev(_location, Current);
+        else _location = _impl->next(_location, Current);
         return *this;
     }
 
@@ -263,9 +275,16 @@ public:
         return ret;
     }
 
+    Iterator& operator--(int) {
+        auto ret = *this;
+        --(*this);
+        return ret;
+    }
+
     bool operator==(Iterator other) const
     {
-        return _impl == other._impl && _location == other._location;
+        return _impl == other._impl && _location == other._location
+            && _dir == other._dir;
     }
 
     bool operator!=(Iterator other) const
@@ -288,14 +307,17 @@ public:
 protected:
     const IteratorImpl* _impl;
     std::size_t _location = 0;
+    Direction _dir;
 };
 
 // Defer to above implementation in all cases except those handling iteration.
 template<Level Current, Level... Descendants>
 struct Iterator<Current, Descendants...>: public Iterator<Current> {
 public:
-
-    Iterator(const IteratorImpl* impl, std::size_t location): Iterator<Current>(impl, location) {}
+    using Direction = typename Iterator<Current>::Direction;
+    Iterator(const IteratorImpl *impl, std::size_t location, Direction dir = Direction::Forward)
+        : Iterator<Current>(impl, location, dir)
+    {}
 
     template<typename = std::enable_if<Current == Level::Packet || Current ==  Level::Payload>>
     Iterator<Descendants...> cbegin() const
@@ -317,6 +339,18 @@ public:
         if((int) Current < (int) next_type)
           next = this->_impl->next(next, Current);
         return Iterator<Descendants...>(this->_impl, next);
+    }
+
+    template<typename = std::enable_if<Current == Level::Packet || Current ==  Level::Payload>>
+    Iterator<Descendants...> crbegin() const
+    {
+        throw std::logic_error("unimplemented");
+    }
+
+    template<typename = std::enable_if<Current == Level::Packet || Current ==  Level::Payload>>
+    Iterator<Descendants...> crend() const
+    {
+        throw std::logic_error("unimplemented");
     }
 };
 
@@ -350,6 +384,8 @@ public:
 
     virtual TraceIterator cbegin() const = 0;
     virtual TraceIterator cend() const = 0;
+    virtual TraceIterator crbegin() const = 0;
+    virtual TraceIterator crend() const = 0;
 };
 } // namespace sim::api2::trace
 
