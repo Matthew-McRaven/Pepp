@@ -20,136 +20,134 @@
 /// IN THE SOFTWARE.
 
 #include <array>
-
-#include "gtest/gtest.h"
+#include <catch.hpp>
 
 #include "lru/lru.hpp"
 
 using namespace LRU;
 
-struct CallbackTest : public ::testing::Test {
-  Cache<int, int> cache;
-};
+TEST_CASE("Callback tests") {
+  SECTION("HitCallbacksGetCalled") {
+    Cache<int, int> cache;
+    std::array<int, 3> counts = {0, 0, 0};
 
-TEST_F(CallbackTest, HitCallbacksGetCalled) {
-  std::array<int, 3> counts = {0, 0, 0};
+    cache.hit_callback([&counts](auto& key, auto& value) { counts[key] += 1; });
 
-  cache.hit_callback([&counts](auto& key, auto& value) { counts[key] += 1; });
+    cache.emplace(0, 0);
+    cache.emplace(1, 1);
+    cache.emplace(2, 2);
 
-  cache.emplace(0, 0);
-  cache.emplace(1, 1);
-  cache.emplace(2, 2);
+    REQUIRE(cache.contains(0));
+    CHECK(counts[0] == 1);
+    CHECK(counts[1] == 0);
+    CHECK(counts[2] == 0);
 
-  ASSERT_TRUE(cache.contains(0));
-  EXPECT_EQ(counts[0], 1);
-  EXPECT_EQ(counts[1], 0);
-  EXPECT_EQ(counts[2], 0);
+    cache.find(2);
+    CHECK(counts[0] == 1);
+    CHECK(counts[1] == 0);
+    CHECK(counts[2] == 1);
 
-  cache.find(2);
-  EXPECT_EQ(counts[0], 1);
-  EXPECT_EQ(counts[1], 0);
-  EXPECT_EQ(counts[2], 1);
+    cache.lookup(1);
+    CHECK(counts[0] == 1);
+    CHECK(counts[1] == 1);
+    CHECK(counts[2] == 1);
 
-  cache.lookup(1);
-  EXPECT_EQ(counts[0], 1);
-  EXPECT_EQ(counts[1], 1);
-  EXPECT_EQ(counts[2], 1);
+    cache.lookup(0);
+    CHECK(counts[0] == 2);
+    CHECK(counts[1] == 1);
+    CHECK(counts[2] == 1);
 
-  cache.lookup(0);
-  EXPECT_EQ(counts[0], 2);
-  EXPECT_EQ(counts[1], 1);
-  EXPECT_EQ(counts[2], 1);
+    cache.contains(5);
+    CHECK(counts[0] == 2);
+    CHECK(counts[1] == 1);
+    CHECK(counts[2] == 1);
+  }
+  SECTION("MissCallbacksGetCalled") {
+    Cache<int, int> cache;
+    std::array<int, 3> counts = {0, 0, 0};
 
-  cache.contains(5);
-  EXPECT_EQ(counts[0], 2);
-  EXPECT_EQ(counts[1], 1);
-  EXPECT_EQ(counts[2], 1);
-}
+    cache.miss_callback([&counts](auto& key) { counts[key] += 1; });
 
-TEST_F(CallbackTest, MissCallbacksGetCalled) {
-  std::array<int, 3> counts = {0, 0, 0};
+    cache.emplace(0, 0);
 
-  cache.miss_callback([&counts](auto& key) { counts[key] += 1; });
+    REQUIRE(cache.contains(0));
+    CHECK(counts[0] == 0);
+    CHECK(counts[1] == 0);
+    CHECK(counts[2] == 0);
 
-  cache.emplace(0, 0);
+    cache.find(2);
+    CHECK(counts[0] == 0);
+    CHECK(counts[1] == 0);
+    CHECK(counts[2] == 1);
 
-  ASSERT_TRUE(cache.contains(0));
-  EXPECT_EQ(counts[0], 0);
-  EXPECT_EQ(counts[1], 0);
-  EXPECT_EQ(counts[2], 0);
+    cache.find(1);
+    CHECK(counts[0] == 0);
+    CHECK(counts[1] == 1);
+    CHECK(counts[2] == 1);
 
-  cache.find(2);
-  EXPECT_EQ(counts[0], 0);
-  EXPECT_EQ(counts[1], 0);
-  EXPECT_EQ(counts[2], 1);
+    cache.contains(1);
+    CHECK(counts[0] == 0);
+    CHECK(counts[1] == 2);
+    CHECK(counts[2] == 1);
+  }
+  SECTION("AccessCallbacksGetCalled") {
+    Cache<int, int> cache;
+    std::array<int, 3> counts = {0, 0, 0};
 
-  cache.find(1);
-  EXPECT_EQ(counts[0], 0);
-  EXPECT_EQ(counts[1], 1);
-  EXPECT_EQ(counts[2], 1);
+    cache.access_callback(
+        [&counts](auto& key, bool found) { counts[key] += found ? 1 : -1; });
 
-  cache.contains(1);
-  EXPECT_EQ(counts[0], 0);
-  EXPECT_EQ(counts[1], 2);
-  EXPECT_EQ(counts[2], 1);
-}
+    cache.emplace(0, 0);
 
-TEST_F(CallbackTest, AccessCallbacksGetCalled) {
-  std::array<int, 3> counts = {0, 0, 0};
+    REQUIRE(cache.contains(0));
+    CHECK(counts[0] == 1);
+    CHECK(counts[1] == 0);
+    CHECK(counts[2] == 0);
 
-  cache.access_callback(
-      [&counts](auto& key, bool found) { counts[key] += found ? 1 : -1; });
+    cache.find(2);
+    CHECK(counts[0] == 1);
+    CHECK(counts[1] == 0);
+    CHECK(counts[2] == -1);
 
-  cache.emplace(0, 0);
+    cache.find(1);
+    CHECK(counts[0] == 1);
+    CHECK(counts[1] == -1);
+    CHECK(counts[2] == -1);
 
-  ASSERT_TRUE(cache.contains(0));
-  EXPECT_EQ(counts[0], 1);
-  EXPECT_EQ(counts[1], 0);
-  EXPECT_EQ(counts[2], 0);
+    cache.contains(1);
+    CHECK(counts[0] == 1);
+    CHECK(counts[1] == -2);
+    CHECK(counts[2] == -1);
 
-  cache.find(2);
-  EXPECT_EQ(counts[0], 1);
-  EXPECT_EQ(counts[1], 0);
-  EXPECT_EQ(counts[2], -1);
+    cache.find(0);
+    CHECK(counts[0] == 2);
+    CHECK(counts[1] == -2);
+    CHECK(counts[2] == -1);
+  }
+  SECTION("CallbacksAreNotCalledAfterBeingCleared") {
+    Cache<int, int> cache;
+    int hit = 0, miss = 0, access = 0;
+    cache.hit_callback([&hit](auto&, auto&) { hit += 1; });
+    cache.miss_callback([&miss](auto&) { miss += 1; });
+    cache.access_callback([&access](auto&, bool) { access += 1; });
 
-  cache.find(1);
-  EXPECT_EQ(counts[0], 1);
-  EXPECT_EQ(counts[1], -1);
-  EXPECT_EQ(counts[2], -1);
+    cache.emplace(0, 0);
 
-  cache.contains(1);
-  EXPECT_EQ(counts[0], 1);
-  EXPECT_EQ(counts[1], -2);
-  EXPECT_EQ(counts[2], -1);
+    cache.contains(0);
+    cache.find(1);
 
-  cache.find(0);
-  EXPECT_EQ(counts[0], 2);
-  EXPECT_EQ(counts[1], -2);
-  EXPECT_EQ(counts[2], -1);
-}
+    REQUIRE(hit == 1);
+    REQUIRE(miss == 1);
+    REQUIRE(access == 2);
 
-TEST_F(CallbackTest, CallbacksAreNotCalledAfterBeingCleared) {
-  int hit = 0, miss = 0, access = 0;
-  cache.hit_callback([&hit](auto&, auto&) { hit += 1; });
-  cache.miss_callback([&miss](auto&) { miss += 1; });
-  cache.access_callback([&access](auto&, bool) { access += 1; });
+    cache.clear_all_callbacks();
 
-  cache.emplace(0, 0);
+    cache.contains(0);
+    cache.find(1);
+    cache.find(2);
 
-  cache.contains(0);
-  cache.find(1);
-
-  ASSERT_EQ(hit, 1);
-  ASSERT_EQ(miss, 1);
-  ASSERT_EQ(access, 2);
-
-  cache.clear_all_callbacks();
-
-  cache.contains(0);
-  cache.find(1);
-  cache.find(2);
-
-  ASSERT_EQ(hit, 1);
-  ASSERT_EQ(miss, 1);
-  ASSERT_EQ(access, 2);
+    REQUIRE(hit == 1);
+    REQUIRE(miss == 1);
+    REQUIRE(access == 2);
+  }
 }

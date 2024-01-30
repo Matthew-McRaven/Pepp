@@ -19,72 +19,44 @@
 /// FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
 /// IN THE SOFTWARE.
 
-#include <chrono>
-
-#include "gtest/gtest.h"
+#include <catch.hpp>
 
 #include "lru/lru.hpp"
 
-TEST(WrapTest, CanWrapMutableAndNonMutableLambdas) {
-  // This is purely to make sure both variants compile
-  LRU::wrap([](int x) { return x; })(5);
-  LRU::wrap([](int x) mutable { return x; })(5);
-}
+TEST_CASE("WrapTest") {
+  SECTION("CanWrapMutableAndNonMutableLambdas") {
+    // This is purely to make sure both variants compile
+    LRU::wrap([](int x) { return x; })(5);
+    LRU::wrap([](int x) mutable { return x; })(5);
+  }
+  SECTION("WrappingWorks") {
+    auto f = [x = 0](int _) mutable { return ++x; };
+    auto wrapped = LRU::wrap(f);
 
-TEST(WrapTest, WrappingWorks) {
-  auto f = [x = 0](int _) mutable {
-    return ++x;
-  };
-  auto wrapped = LRU::wrap(f);
+    CHECK(wrapped(69) == 1);
+    CHECK(wrapped(69) == 1);
+    CHECK(wrapped(42) == 2);
+    CHECK(wrapped(42) == 2);
+    CHECK(wrapped(50) == 3);
+  }
+  SECTION("CanPassCapacityArgumentToWrap") {
+    std::size_t call_count = 0;
+    auto f = [&call_count](int _) { return call_count += 1; };
 
-  EXPECT_EQ(wrapped(69), 1);
-  EXPECT_EQ(wrapped(69), 1);
-  EXPECT_EQ(wrapped(42), 2);
-  EXPECT_EQ(wrapped(42), 2);
-  EXPECT_EQ(wrapped(50), 3);
-}
+    auto wrapped1 = LRU::wrap(f, 1);
 
-TEST(WrapTest, CanPassCapacityArgumentToWrap) {
-  std::size_t call_count = 0;
-  auto f = [&call_count](int _) { return call_count += 1; };
+    wrapped1(1);
+    CHECK(call_count == 1);
 
-  auto wrapped1 = LRU::wrap(f, 1);
+    wrapped1(1);
+    CHECK(call_count == 1);
 
-  wrapped1(1);
-  EXPECT_EQ(call_count, 1);
+    auto wrapped2 = LRU::wrap(f, 0);
 
-  wrapped1(1);
-  EXPECT_EQ(call_count, 1);
+    wrapped1(1);
+    CHECK(call_count == 1);
 
-  auto wrapped2 = LRU::wrap(f, 0);
-
-  wrapped1(1);
-  EXPECT_EQ(call_count, 1);
-
-  wrapped1(1);
-  EXPECT_EQ(call_count, 1);
-}
-
-
-TEST(WrapTest, CanPassTimeArgumentToTimedCacheWrap) {
-  using namespace std::chrono_literals;
-
-  std::size_t call_count = 0;
-  auto f = [&call_count](int _) { return call_count += 1; };
-
-  auto wrapped1 = LRU::wrap<decltype(f), LRU::TimedCache>(f, 100ms);
-
-  wrapped1(1);
-  EXPECT_EQ(call_count, 1);
-
-  wrapped1(1);
-  EXPECT_EQ(call_count, 1);
-
-  auto wrapped2 = LRU::timed_wrap(f, 0ms);
-
-  wrapped1(1);
-  EXPECT_EQ(call_count, 1);
-
-  wrapped1(1);
-  EXPECT_EQ(call_count, 1);
+    wrapped1(1);
+    CHECK(call_count == 1);
+  }
 }

@@ -20,90 +20,86 @@
 /// IN THE SOFTWARE.
 
 
+#include "lru/internal/last-accessed.hpp"
+
+#include <catch.hpp>
 #include <iterator>
 #include <string>
 #include <unordered_map>
 
-#include "gtest/gtest.h"
-#include "lru/internal/last-accessed.hpp"
-
 using namespace LRU::Internal;
 
-struct LastAccessedTest : public ::testing::Test {
-  using Map = std::unordered_map<std::string, int>;
-  static Map map;
-};
-
 // clang-format off
-LastAccessedTest::Map LastAccessedTest::map = {
+using Map = std::unordered_map<std::string, int>;
+Map map = {
   {"one", 1},
   {"two", 2},
   {"three", 3}
 };
 // clang-format on
 
-TEST_F(LastAccessedTest, IsAssignableFromConstAndNonConst) {
-  auto front = map.find("one");
+TEST_CASE("LastAccessedTest") {
+  SECTION("IsAssignableFromConstAndNonConst") {
+    auto front = map.find("one");
 
-  LastAccessed<std::string, int> last_accessed(front->first, front->second);
+    LastAccessed<std::string, int> last_accessed(front->first, front->second);
 
-  ASSERT_EQ(last_accessed.key(), "one");
-  ASSERT_EQ(last_accessed.information(), 1);
+    REQUIRE(last_accessed.key() == "one");
+    REQUIRE(last_accessed.information() == 1);
 
-  last_accessed = map.find("two");
+    last_accessed = map.find("two");
 
-  EXPECT_EQ(last_accessed.key(), "two");
-  EXPECT_EQ(last_accessed.information(), 2);
+    CHECK(last_accessed.key() == "two");
+    CHECK(last_accessed.information() == 2);
 
-  last_accessed = map.find("three");
+    last_accessed = map.find("three");
 
-  EXPECT_EQ(last_accessed.key(), "three");
-  EXPECT_EQ(last_accessed.information(), 3);
-}
+    CHECK(last_accessed.key() == "three");
+    CHECK(last_accessed.information() == 3);
+  }
+  SECTION("IsComparableWithConstAndNonConstIterators") {
+    auto front = map.find("one");
+    LastAccessed<std::string, int> last_accessed(front->first, front->second);
 
-TEST_F(LastAccessedTest, IsComparableWithConstAndNonConstIterators) {
-  auto front = map.find("one");
-  LastAccessed<std::string, int> last_accessed(front->first, front->second);
+    // non-const
+    CHECK(last_accessed == front);
+    CHECK(front == last_accessed);
 
-  // non-const
-  EXPECT_EQ(last_accessed, front);
-  EXPECT_EQ(front, last_accessed);
+    CHECK(map.find("two") != last_accessed);
+    CHECK(last_accessed != map.find("three"));
 
-  EXPECT_NE(map.find("two"), last_accessed);
-  EXPECT_NE(last_accessed, map.find("three"));
+    // const
+    Map::const_iterator const_front = map.find("one");
+    CHECK(last_accessed == const_front);
+    CHECK(const_front == last_accessed);
 
-  // const
-  Map::const_iterator const_front = map.find("one");
-  EXPECT_EQ(last_accessed, const_front);
-  EXPECT_EQ(const_front, last_accessed);
+    Map::const_iterator iterator = map.find("two");
+    CHECK(iterator != last_accessed);
 
-  Map::const_iterator iterator = map.find("two");
-  EXPECT_NE(iterator, last_accessed);
+    iterator = map.find("three");
+    CHECK(last_accessed != iterator);
+  }
+  SECTION("IsComparableToConstAndNonConstKeys") {
+    using namespace std::string_literals;
 
-  iterator = map.find("three");
-  EXPECT_NE(last_accessed, iterator);
-}
+    std::string key = "forty-two";
+    int information = 42;
 
-TEST_F(LastAccessedTest, IsComparableToConstAndNonConstKeys) {
-  using namespace std::string_literals;
+    LastAccessed<std::string, int> last_accessed(key, information);
 
-  std::string key = "forty-two";
-  int information = 42;
+    CHECK(last_accessed == key);
+    CHECK(key == last_accessed);
 
-  LastAccessed<std::string, int> last_accessed(key, information);
+    CHECK(last_accessed == "forty-two"s);
+    CHECK("forty-two"s == last_accessed);
 
-  EXPECT_EQ(last_accessed, key);
-  EXPECT_EQ(key, last_accessed);
+    const std::string& key_const_reference = key;
 
-  EXPECT_EQ(last_accessed, "forty-two"s);
-  EXPECT_EQ("forty-two"s, last_accessed);
+    CHECK(key_const_reference == last_accessed);
+    CHECK(last_accessed == key_const_reference);
 
-  const std::string& key_const_reference = key;
-
-  EXPECT_EQ(key_const_reference, last_accessed);
-  EXPECT_EQ(last_accessed, key_const_reference);
-
-  EXPECT_NE(last_accessed, "asdf"s);
-  EXPECT_NE(last_accessed, "foo"s);
-  EXPECT_NE(last_accessed, "forty-three"s);
+    CHECK(last_accessed != "asdf"s);
+    CHECK(last_accessed != "foo"s);
+    CHECK(last_accessed != "forty-three"s);
+  }
 }

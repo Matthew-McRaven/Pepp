@@ -19,15 +19,15 @@
 /// FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
 /// IN THE SOFTWARE.
 
+#include <catch.hpp>
 #include <string>
 #include <utility>
 #include <vector>
 
-#include "gtest/gtest.h"
 #include "lru/lru.hpp"
 #include "tests/move-aware-dummies.hpp"
 
-struct MoveAwarenessTest : public ::testing::Test {
+struct MoveAwarenessTest {
   MoveAwarenessTest() {
     MoveAwareKey::reset();
     MoveAwareValue::reset();
@@ -36,119 +36,122 @@ struct MoveAwarenessTest : public ::testing::Test {
   LRU::Cache<MoveAwareKey, MoveAwareValue> cache;
 };
 
-TEST_F(MoveAwarenessTest, DoesNotMoveForInsert) {
-  cache.insert("x", "y");
+TEST_CASE("MoveAwarenessTest") {
+  SECTION("DoesNotMoveForInsert") {
+    MoveAwarenessTest t;
+    t.cache.insert("x", "y");
 
-  // One construction (right there)
-  ASSERT_EQ(MoveAwareKey::forwarding_count, 1);
-  ASSERT_EQ(MoveAwareValue::forwarding_count, 1);
+    // One construction (right there)
+    REQUIRE(MoveAwareKey::forwarding_count == 1);
+    REQUIRE(MoveAwareValue::forwarding_count == 1);
 
-  ASSERT_EQ(MoveAwareKey::copy_count, 1);
+    REQUIRE(MoveAwareKey::copy_count == 1);
 
-  // Values only go into the map
-  ASSERT_EQ(MoveAwareValue::copy_count, 1);
+    // Values only go into the map
+    REQUIRE(MoveAwareValue::copy_count == 1);
 
-  // Do this at the end to avoid incrementing the counts
-  ASSERT_EQ(cache["x"], "y");
-}
+    // Do this at the end to avoid incrementing the counts
+    REQUIRE(t.cache["x"] == "y");
+  }
+  SECTION("ForwardsValuesWell") {
+    MoveAwarenessTest t;
+    t.cache.emplace("x", "y");
 
-TEST_F(MoveAwarenessTest, ForwardsValuesWell) {
-  cache.emplace("x", "y");
+    // One construction to make the key first
+    CHECK(MoveAwareKey::forwarding_count == 1);
+    CHECK(MoveAwareValue::forwarding_count == 1);
 
-  // One construction to make the key first
-  EXPECT_GE(MoveAwareKey::forwarding_count, 1);
-  EXPECT_GE(MoveAwareValue::forwarding_count, 1);
+    CHECK(MoveAwareKey::copy_count == 0);
+    CHECK(MoveAwareValue::copy_count == 0);
 
-  EXPECT_EQ(MoveAwareKey::copy_count, 0);
-  EXPECT_EQ(MoveAwareValue::copy_count, 0);
+    REQUIRE(t.cache["x"] == "y");
+  }
+  SECTION("MovesSingleRValueds") {
+    MoveAwarenessTest t;
+    t.cache.emplace(std::string("x"), std::string("y"));
 
-  ASSERT_EQ(cache["x"], "y");
-}
+    // Move constructions from the string
+    CHECK(MoveAwareKey::move_count == 1);
+    CHECK(MoveAwareValue::move_count == 1);
 
-TEST_F(MoveAwarenessTest, MovesSingleRValues) {
-  cache.emplace(std::string("x"), std::string("y"));
+    CHECK(MoveAwareKey::non_move_count == 0);
+    CHECK(MoveAwareValue::non_move_count == 0);
 
-  // Move constructions from the string
-  EXPECT_EQ(MoveAwareKey::move_count, 1);
-  EXPECT_EQ(MoveAwareValue::move_count, 1);
+    CHECK(MoveAwareKey::copy_count == 0);
+    CHECK(MoveAwareValue::copy_count == 0);
 
-  EXPECT_EQ(MoveAwareKey::non_move_count, 0);
-  EXPECT_EQ(MoveAwareValue::non_move_count, 0);
+    REQUIRE(t.cache["x"] == "y");
+  }
+  SECTION("CopiesSingleLValues") {
+    MoveAwarenessTest t;
+    std::string x("x");
+    std::string y("y");
+    t.cache.emplace(x, y);
 
-  EXPECT_EQ(MoveAwareKey::copy_count, 0);
-  EXPECT_EQ(MoveAwareValue::copy_count, 0);
+    // Move constructions from the string
+    CHECK(MoveAwareKey::non_move_count == 1);
+    CHECK(MoveAwareValue::non_move_count == 1);
 
-  ASSERT_EQ(cache["x"], "y");
-}
+    CHECK(MoveAwareKey::move_count == 0);
+    CHECK(MoveAwareValue::move_count == 0);
 
-TEST_F(MoveAwarenessTest, CopiesSingleLValues) {
-  std::string x("x");
-  std::string y("y");
-  cache.emplace(x, y);
+    CHECK(MoveAwareKey::copy_count == 0);
+    CHECK(MoveAwareValue::copy_count == 0);
 
-  // Move constructions from the string
-  EXPECT_EQ(MoveAwareKey::non_move_count, 1);
-  EXPECT_EQ(MoveAwareValue::non_move_count, 1);
+    REQUIRE(t.cache["x"] == "y");
+  }
+  SECTION("MovesRValueTuples") {
+    MoveAwarenessTest t;
+    t.cache.emplace(std::piecewise_construct,
+                    std::forward_as_tuple(1, 3.14),
+                    std::forward_as_tuple(2, 2.718));
 
-  EXPECT_EQ(MoveAwareKey::move_count, 0);
-  EXPECT_EQ(MoveAwareValue::move_count, 0);
+    // construct_from_tuple performs one move construction
+    // (i.e. construction from rvalues)
+    CHECK(MoveAwareKey::move_count == 1);
+    CHECK(MoveAwareValue::move_count == 1);
 
-  EXPECT_EQ(MoveAwareKey::copy_count, 0);
-  EXPECT_EQ(MoveAwareValue::copy_count, 0);
+    CHECK(MoveAwareKey::non_move_count == 0);
+    CHECK(MoveAwareValue::non_move_count == 0);
 
-  ASSERT_EQ(cache["x"], "y");
-}
+    CHECK(MoveAwareKey::copy_count == 0);
+    CHECK(MoveAwareValue::copy_count == 0);
+  }
+  SECTION("MovesLValueTuples") {
+    MoveAwarenessTest t;
+    int x = 1, z = 2;
+    double y = 3.14, w = 2.718;
 
-TEST_F(MoveAwarenessTest, MovesRValueTuples) {
-  cache.emplace(std::piecewise_construct,
-                std::forward_as_tuple(1, 3.14),
-                std::forward_as_tuple(2, 2.718));
+    t.cache.emplace(std::piecewise_construct,
+                    std::forward_as_tuple(x, y),
+                    std::forward_as_tuple(z, w));
 
-  // construct_from_tuple performs one move construction
-  // (i.e. construction from rvalues)
-  EXPECT_EQ(MoveAwareKey::move_count, 1);
-  EXPECT_EQ(MoveAwareValue::move_count, 1);
+    // construct_from_tuple will perfom one copy construction
+    // (i.e. construction from lvalues)
+    CHECK(MoveAwareKey::non_move_count == 1);
+    CHECK(MoveAwareValue::non_move_count == 1);
 
-  EXPECT_EQ(MoveAwareKey::non_move_count, 0);
-  EXPECT_EQ(MoveAwareValue::non_move_count, 0);
+    CHECK(MoveAwareKey::move_count == 0);
+    CHECK(MoveAwareValue::move_count == 0);
 
-  EXPECT_EQ(MoveAwareKey::copy_count, 0);
-  EXPECT_EQ(MoveAwareValue::copy_count, 0);
-}
+    CHECK(MoveAwareKey::copy_count == 0);
+    CHECK(MoveAwareValue::copy_count == 0);
+  }
+  SECTION("MovesElementsOutOfRValueRanges") {
+    MoveAwarenessTest t;
+    std::vector<std::pair<std::string, std::string>> range = {{"x", "y"}};
+    t.cache.insert(std::move(range));
 
-TEST_F(MoveAwarenessTest, MovesLValueTuples) {
-  int x = 1, z = 2;
-  double y = 3.14, w = 2.718;
+    // Move constructions from the string
+    CHECK(MoveAwareKey::move_count == 1);
+    CHECK(MoveAwareValue::move_count == 1);
 
-  cache.emplace(std::piecewise_construct,
-                std::forward_as_tuple(x, y),
-                std::forward_as_tuple(z, w));
+    CHECK(MoveAwareKey::non_move_count == 0);
+    CHECK(MoveAwareValue::non_move_count == 0);
 
-  // construct_from_tuple will perfom one copy construction
-  // (i.e. construction from lvalues)
-  EXPECT_EQ(MoveAwareKey::non_move_count, 1);
-  EXPECT_EQ(MoveAwareValue::non_move_count, 1);
+    CHECK(MoveAwareKey::copy_count == 0);
+    CHECK(MoveAwareValue::copy_count == 0);
 
-  EXPECT_EQ(MoveAwareKey::move_count, 0);
-  EXPECT_EQ(MoveAwareValue::move_count, 0);
-
-  EXPECT_EQ(MoveAwareKey::copy_count, 0);
-  EXPECT_EQ(MoveAwareValue::copy_count, 0);
-}
-
-TEST_F(MoveAwarenessTest, MovesElementsOutOfRValueRanges) {
-  std::vector<std::pair<std::string, std::string>> range = {{"x", "y"}};
-  cache.insert(std::move(range));
-
-  // Move constructions from the string
-  EXPECT_EQ(MoveAwareKey::move_count, 1);
-  EXPECT_EQ(MoveAwareValue::move_count, 1);
-
-  EXPECT_EQ(MoveAwareKey::non_move_count, 0);
-  EXPECT_EQ(MoveAwareValue::non_move_count, 0);
-
-  EXPECT_EQ(MoveAwareKey::copy_count, 0);
-  EXPECT_EQ(MoveAwareValue::copy_count, 0);
-
-  ASSERT_EQ(cache["x"], "y");
+    REQUIRE(t.cache["x"] == "y");
+  }
 }

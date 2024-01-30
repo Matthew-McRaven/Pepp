@@ -5,27 +5,12 @@
 cmake_minimum_required(VERSION 3.2)
 project(lru-cache)
 
-add_compile_options(-g)
-
 ########################################
 # C++ VERSIONING
 ########################################
 
-include(CheckCXXCompilerFlag)
-
-check_cxx_compiler_flag("-std=c++14" COMPILER_SUPPORTS_CXX_14)
-check_cxx_compiler_flag("-std=c++1z" COMPILER_SUPPORTS_CXX_1z)
-check_cxx_compiler_flag("-std=c++17" COMPILER_SUPPORTS_CXX_17)
-
-if (COMPILER_SUPPORTS_CXX_1z)
-  message(STATUS "Compiling with C++1z")
-    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++1z")
-elseif (COMPILER_SUPPORTS_CXX_14)
-  message(STATUS "Compiling with C++14")
-    set(CMAKE_CXX_STANDARD 14)
-else()
-    message(FATAL_ERROR "Please install a modern C++ compiler, they are not expensive.")
-endif()
+set(CMAKE_CXX_STANDARD 20)
+set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
 ###########################################################
 ## DEPENDENCIES
@@ -54,12 +39,4 @@ add_subdirectory(examples)
 # TESTS
 ########################################
 
-option(BUILD_LRU_CACHE_TESTS "Enable tests" ON)
-
-if(BUILD_LRU_CACHE_TESTS)
-  message(STATUS "Enabling tests ...")
-  enable_testing()
-  add_subdirectory(tests)
-else()
-  message(STATUS "Disabling tests ...")
-endif()
+add_subdirectory(tests)

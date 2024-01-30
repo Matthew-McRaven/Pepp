@@ -20,18 +20,17 @@
 /// IN THE SOFTWARE.
 
 #include <algorithm>
+#include <catch.hpp>
 #include <functional>
 #include <string>
 #include <utility>
 #include <vector>
 
-#include "gtest/gtest.h"
-
 #include "lru/lru.hpp"
 
 using namespace LRU;
 
-struct CacheTest : public ::testing::Test {
+struct CacheTest {
   using CacheType = Cache<std::string, int>;
 
   template <typename Cache, typename Range>
@@ -43,503 +42,500 @@ struct CacheTest : public ::testing::Test {
   CacheType cache;
 };
 
-TEST(CacheConstructionTest, IsConstructibleFromInitializerList) {
-  Cache<std::string, int> cache = {
-      {"one", 1}, {"two", 2}, {"three", 3},
-  };
+TEST_CASE("CacheConstructionTest") {
+  SECTION("IsConstructibleFromInitializerList") {
+    Cache<std::string, int> cache = {
+        {"one", 1},
+        {"two", 2},
+        {"three", 3},
+    };
+    CHECK(!cache.is_empty());
+    CHECK(cache.size() == 3);
+    CHECK(cache["one"] == 1);
+    CHECK(cache["two"] == 2);
+    CHECK(cache["three"] == 3);
+  }
+  SECTION("IsConstructibleFromInitializerListWithCapacity") {
+    // clang-format off
+    Cache<std::string, int> cache(2, {
+                                      {"one", 1}, {"two", 2}, {"three", 3},
+                                      });
+    // clang-format on
 
-  EXPECT_FALSE(cache.is_empty());
-  EXPECT_EQ(cache.size(), 3);
-  EXPECT_EQ(cache["one"], 1);
-  EXPECT_EQ(cache["two"], 2);
-  EXPECT_EQ(cache["three"], 3);
-}
+    CHECK(!cache.is_empty());
+    CHECK(cache.size() == 2);
+    CHECK(!cache.contains("one"));
+    CHECK(cache["two"] == 2);
+    CHECK(cache["three"] == 3);
+  }
+  SECTION("IsConstructibleFromRange") {
+    const std::vector<std::pair<std::string, int>> range = {
+        {"one", 1}, {"two", 2}, {"three", 3}};
+    Cache<std::string, int> cache(range);
+    CHECK(!cache.is_empty());
+    CHECK(cache.size() == 3);
+    CHECK(cache["one"] == 1);
+    CHECK(cache["two"] == 2);
+    CHECK(cache["three"] == 3);
+  }
+  SECTION("IsConstructibleFromIterators") {
+    std::vector<std::pair<std::string, int>> range = {
+        {"one", 1}, {"two", 2}, {"three", 3}};
 
-TEST(CacheConstructionTest, IsConstructibleFromInitializerListWithCapacity) {
-  // clang-format off
-  Cache<std::string, int> cache(2, {
-    {"one", 1}, {"two", 2}, {"three", 3},
-  });
-  // clang-format on
+    Cache<std::string, int> cache(range.begin(), range.end());
 
-  EXPECT_FALSE(cache.is_empty());
-  EXPECT_EQ(cache.size(), 2);
-  EXPECT_FALSE(cache.contains("one"));
-  EXPECT_EQ(cache["two"], 2);
-  EXPECT_EQ(cache["three"], 3);
-}
+    CHECK(!cache.is_empty());
+    CHECK(cache.size() == 3);
+    CHECK(cache["one"] == 1);
+    CHECK(cache["two"] == 2);
+    CHECK(cache["three"] == 3);
+  }
+  SECTION("CapacityIsMaxOfInternalDefaultAndIteratorDistance") {
+    std::vector<std::pair<std::string, int>> range = {
+        {"one", 1}, {"two", 2}, {"three", 3}};
 
-TEST(CacheConstructionTest, IsConstructibleFromRange) {
-  const std::vector<std::pair<std::string, int>> range = {
-      {"one", 1}, {"two", 2}, {"three", 3}};
+    Cache<std::string, int> cache(range.begin(), range.end());
 
-  Cache<std::string, int> cache(range);
+    CHECK(cache.capacity() == Internal::DEFAULT_CAPACITY);
 
-  EXPECT_FALSE(cache.is_empty());
-  EXPECT_EQ(cache.size(), 3);
-  EXPECT_EQ(cache["one"], 1);
-  EXPECT_EQ(cache["two"], 2);
-  EXPECT_EQ(cache["three"], 3);
-}
+    for (int i = 0; i < Internal::DEFAULT_CAPACITY; ++i) {
+      range.emplace_back(std::to_string(i), i);
+    }
 
-TEST(CacheConstructionTest, IsConstructibleFromIterators) {
-  std::vector<std::pair<std::string, int>> range = {
-      {"one", 1}, {"two", 2}, {"three", 3}};
+    cache = std::move(range);
+    CHECK(cache.capacity() == range.size());
 
-  Cache<std::string, int> cache(range.begin(), range.end());
+    Cache<std::string, int> cache2(range.begin(), range.end());
+    CHECK(cache2.capacity() == range.size());
+  }
+  SECTION("UsesCustomHashFunction") {
+    using MockHash = std::function<int(int)>;
 
-  EXPECT_FALSE(cache.is_empty());
-  EXPECT_EQ(cache.size(), 3);
-  EXPECT_EQ(cache["one"], 1);
-  EXPECT_EQ(cache["two"], 2);
-  EXPECT_EQ(cache["three"], 3);
-}
+    std::size_t mock_hash_call_count = 0;
+    MockHash mock_hash = [&mock_hash_call_count](int value) {
+      mock_hash_call_count += 1;
+      return value;
+    };
 
-TEST(CacheConstructionTest, CapacityIsMaxOfInternalDefaultAndIteratorDistance) {
-  std::vector<std::pair<std::string, int>> range = {
-      {"one", 1}, {"two", 2}, {"three", 3}};
+    Cache<int, int, decltype(mock_hash)> cache(128, mock_hash);
 
-  Cache<std::string, int> cache(range.begin(), range.end());
+    CHECK(mock_hash_call_count == 0);
 
-  EXPECT_EQ(cache.capacity(), Internal::DEFAULT_CAPACITY);
+    cache.contains(5);
+    CHECK(mock_hash_call_count == 1);
+  }
+  SECTION("UsesCustomKeyEqual") {
+    using MockCompare = std::function<bool(int, int)>;
 
-  for (int i = 0; i < Internal::DEFAULT_CAPACITY; ++i) {
-    range.emplace_back(std::to_string(i), i);
+    std::size_t mock_equal_call_count = 0;
+    MockCompare mock_equal = [&mock_equal_call_count](int a, int b) {
+      mock_equal_call_count += 1;
+      return a == b;
+    };
+
+    Cache<int, int, std::hash<int>, decltype(mock_equal)> cache(
+        128, std::hash<int>(), mock_equal);
+
+    CHECK(mock_equal_call_count == 0);
+
+    cache.insert(5, 1);
+    REQUIRE(cache.contains(5));
+    CHECK(mock_equal_call_count == 1);
+  }
+  SECTION("ContainsAfterInsertion") {
+    CacheTest t;
+    REQUIRE(t.cache.is_empty());
+
+    for (std::size_t i = 1; i <= 100; ++i) {
+      const auto key = std::to_string(i);
+      t.cache.insert(key, i);
+      CHECK(t.cache.size() == i);
+      CHECK(t.cache.contains(key));
+    }
+
+    CHECK_FALSE(t.cache.is_empty());
   }
 
-  cache = std::move(range);
-  EXPECT_EQ(cache.capacity(), range.size());
+  SECTION("ContainsAfteEmplacement") {
+    CacheTest t;
+    REQUIRE(t.cache.is_empty());
 
-  Cache<std::string, int> cache2(range.begin(), range.end());
-  EXPECT_EQ(cache2.capacity(), range.size());
-}
+    for (std::size_t i = 1; i <= 100; ++i) {
+      const auto key = std::to_string(i);
+      t.cache.emplace(key, i);
+      CHECK(t.cache.size() == i);
+      CHECK(t.cache.contains(key));
+    }
 
-TEST(CacheConstructionTest, UsesCustomHashFunction) {
-  using MockHash = std::function<int(int)>;
-
-  std::size_t mock_hash_call_count = 0;
-  MockHash mock_hash = [&mock_hash_call_count](int value) {
-    mock_hash_call_count += 1;
-    return value;
-  };
-
-  Cache<int, int, decltype(mock_hash)> cache(128, mock_hash);
-
-  EXPECT_EQ(mock_hash_call_count, 0);
-
-  cache.contains(5);
-  EXPECT_EQ(mock_hash_call_count, 1);
-}
-
-TEST(CacheConstructionTest, UsesCustomKeyEqual) {
-  using MockCompare = std::function<bool(int, int)>;
-
-  std::size_t mock_equal_call_count = 0;
-  MockCompare mock_equal = [&mock_equal_call_count](int a, int b) {
-    mock_equal_call_count += 1;
-    return a == b;
-  };
-
-  Cache<int, int, std::hash<int>, decltype(mock_equal)> cache(
-      128, std::hash<int>(), mock_equal);
-
-  EXPECT_EQ(mock_equal_call_count, 0);
-
-  cache.insert(5, 1);
-  ASSERT_TRUE(cache.contains(5));
-  EXPECT_EQ(mock_equal_call_count, 1);
-}
-
-TEST_F(CacheTest, ContainsAfterInsertion) {
-  ASSERT_TRUE(cache.is_empty());
-
-  for (std::size_t i = 1; i <= 100; ++i) {
-    const auto key = std::to_string(i);
-    cache.insert(key, i);
-    EXPECT_EQ(cache.size(), i);
-    EXPECT_TRUE(cache.contains(key));
+    CHECK_FALSE(t.cache.is_empty());
   }
 
-  EXPECT_FALSE(cache.is_empty());
-}
+  SECTION("RemovesLRUElementWhenFull") {
+    CacheTest t;
+    t.cache.capacity(2);
+    REQUIRE(t.cache.capacity() == 2);
 
-TEST_F(CacheTest, ContainsAfteEmplacement) {
-  ASSERT_TRUE(cache.is_empty());
+    t.cache.emplace("one", 1);
+    t.cache.emplace("two", 2);
+    REQUIRE(t.cache.size() == 2);
+    REQUIRE(t.cache.contains("one"));
+    REQUIRE(t.cache.contains("two"));
 
-  for (std::size_t i = 1; i <= 100; ++i) {
-    const auto key = std::to_string(i);
-    cache.emplace(key, i);
-    EXPECT_EQ(cache.size(), i);
-    EXPECT_TRUE(cache.contains(key));
+
+    t.cache.emplace("three", 3);
+    CHECK(t.cache.size() == 2);
+    CHECK(t.cache.contains("two"));
+    CHECK(t.cache.contains("three"));
+    CHECK_FALSE(t.cache.contains("one"));
   }
-
-  EXPECT_FALSE(cache.is_empty());
-}
-
-TEST_F(CacheTest, RemovesLRUElementWhenFull) {
-  cache.capacity(2);
-  ASSERT_EQ(cache.capacity(), 2);
-
-  cache.emplace("one", 1);
-  cache.emplace("two", 2);
-  ASSERT_EQ(cache.size(), 2);
-  ASSERT_TRUE(cache.contains("one"));
-  ASSERT_TRUE(cache.contains("two"));
-
-
-  cache.emplace("three", 3);
-  EXPECT_EQ(cache.size(), 2);
-  EXPECT_TRUE(cache.contains("two"));
-  EXPECT_TRUE(cache.contains("three"));
-  EXPECT_FALSE(cache.contains("one"));
-}
-
-TEST_F(CacheTest, LookupReturnsTheRightValue) {
-  for (std::size_t i = 1; i <= 10; ++i) {
-    const auto key = std::to_string(i);
-    cache.emplace(key, i);
-    ASSERT_EQ(cache.size(), i);
-    EXPECT_EQ(cache.lookup(key), i);
-    EXPECT_EQ(cache[key], i);
+  SECTION("LookupReturnsTheRightValue") {
+    CacheTest t;
+    for (std::size_t i = 1; i <= 10; ++i) {
+      const auto key = std::to_string(i);
+      t.cache.emplace(key, i);
+      REQUIRE(t.cache.size() == i);
+      CHECK(t.cache.lookup(key) == i);
+      CHECK(t.cache[key] == i);
+    }
   }
-}
+  SECTION("LookupOnlyThrowsWhenKeyNotFound") {
+    CacheTest t;
+    t.cache.emplace("one", 1);
 
-TEST_F(CacheTest, LookupOnlyThrowsWhenKeyNotFound) {
-  cache.emplace("one", 1);
+    REQUIRE(t.cache.size() == 1);
+    CHECK(t.cache.lookup("one") == 1);
 
-  ASSERT_EQ(cache.size(), 1);
-  EXPECT_EQ(cache.lookup("one"), 1);
+    CHECK_THROWS_AS(t.cache.lookup("two"), LRU::Error::KeyNotFound);
+    CHECK_THROWS_AS(t.cache.lookup("three"), LRU::Error::KeyNotFound);
 
-  EXPECT_THROW(cache.lookup("two"), LRU::Error::KeyNotFound);
-  EXPECT_THROW(cache.lookup("three"), LRU::Error::KeyNotFound);
-
-  cache.emplace("two", 2);
-  EXPECT_EQ(cache.lookup("two"), 2);
-}
-
-TEST_F(CacheTest, SizeIsUpdatedProperly) {
-  ASSERT_EQ(cache.size(), 0);
-
-  for (std::size_t i = 1; i <= 10; ++i) {
-    cache.emplace(std::to_string(i), i);
-    // Use ASSERT and not EXPECT to terminate the loop early
-    ASSERT_EQ(cache.size(), i);
+    t.cache.emplace("two", 2);
+    CHECK(t.cache.lookup("two") == 2);
   }
+  SECTION("SizeIsUpdatedProperly") {
+    CacheTest t;
+    REQUIRE(t.cache.size() == 0);
 
-  for (std::size_t i = 10; i >= 1; --i) {
-    ASSERT_EQ(cache.size(), i);
-    cache.erase(std::to_string(i));
-    // Use ASSERT and not EXPECT to terminate the loop early
+    for (std::size_t i = 1; i <= 10; ++i) {
+      t.cache.emplace(std::to_string(i), i);
+      // Use REQUIRE and not CHECK to terminate the loop early
+      REQUIRE(t.cache.size() == i);
+    }
+
+    for (std::size_t i = 10; i >= 1; --i) {
+      REQUIRE(t.cache.size() == i);
+      t.cache.erase(std::to_string(i));
+      // Use REQUIRE and not CHECK to terminate the loop early
+    }
+
+    CHECK(t.cache.size() == 0);
   }
+  SECTION("SpaceLeftWorks") {
+    CacheTest t;
+    t.cache.capacity(10);
+    REQUIRE(t.cache.size() == 0);
 
-  EXPECT_EQ(cache.size(), 0);
-}
+    for (std::size_t i = 10; i >= 1; --i) {
+      CHECK(t.cache.space_left() == i);
+      t.cache.emplace(std::to_string(i), i);
+    }
 
-TEST_F(CacheTest, SpaceLeftWorks) {
-  cache.capacity(10);
-  ASSERT_EQ(cache.size(), 0);
-
-  for (std::size_t i = 10; i >= 1; --i) {
-    EXPECT_EQ(cache.space_left(), i);
-    cache.emplace(std::to_string(i), i);
+    CHECK(t.cache.space_left() == 0);
   }
-
-  EXPECT_EQ(cache.space_left(), 0);
-}
-
-TEST_F(CacheTest, IsEmptyWorks) {
-  ASSERT_TRUE(cache.is_empty());
-  cache.emplace("one", 1);
-  EXPECT_FALSE(cache.is_empty());
-  cache.clear();
-  EXPECT_TRUE(cache.is_empty());
-}
-
-TEST_F(CacheTest, IsFullWorks) {
-  ASSERT_FALSE(cache.is_full());
-  cache.capacity(0);
-  ASSERT_TRUE(cache.is_full());
-
-  cache.capacity(2);
-  cache.emplace("one", 1);
-  EXPECT_FALSE(cache.is_full());
-  cache.emplace("two", 1);
-  EXPECT_TRUE(cache.is_full());
-
-  cache.clear();
-  EXPECT_FALSE(cache.is_full());
-}
-
-TEST_F(CacheTest, CapacityCanBeAdjusted) {
-  cache.capacity(10);
-
-  ASSERT_EQ(cache.capacity(), 10);
-
-  for (std::size_t i = 0; i < 10; ++i) {
-    cache.emplace(std::to_string(i), i);
+  SECTION("IsEmptyWorks") {
+    CacheTest t;
+    REQUIRE(t.cache.is_empty());
+    t.cache.emplace("one", 1);
+    CHECK_FALSE(t.cache.is_empty());
+    t.cache.clear();
+    CHECK(t.cache.is_empty());
   }
+  SECTION("IsFullWorks") {
+    CacheTest t;
+    REQUIRE_FALSE(t.cache.is_full());
+    t.cache.capacity(0);
+    REQUIRE(t.cache.is_full());
+
+    t.cache.capacity(2);
+    t.cache.emplace("one", 1);
+    CHECK_FALSE(t.cache.is_full());
+    t.cache.emplace("two", 1);
+    CHECK(t.cache.is_full());
+
+    t.cache.clear();
+    CHECK_FALSE(t.cache.is_full());
+  }
+  SECTION("CapacityCanBeAdjusted") {
+    CacheTest t;
+    t.cache.capacity(10);
+
+    REQUIRE(t.cache.capacity() == 10);
+
+    for (std::size_t i = 0; i < 10; ++i) {
+      t.cache.emplace(std::to_string(i), i);
+    }
 
-  ASSERT_EQ(cache.size(), 10);
-
-  cache.emplace("foo", 0xdeadbeef);
-  EXPECT_EQ(cache.size(), 10);
-
-  cache.capacity(11);
-  ASSERT_EQ(cache.capacity(), 11);
-
-  cache.emplace("bar", 0xdeadbeef);
-  EXPECT_EQ(cache.size(), 11);
-
-  cache.capacity(5);
-  EXPECT_EQ(cache.capacity(), 5);
-  EXPECT_EQ(cache.size(), 5);
-
-  cache.capacity(0);
-  EXPECT_EQ(cache.capacity(), 0);
-  EXPECT_EQ(cache.size(), 0);
-
-  cache.capacity(128);
-  EXPECT_EQ(cache.capacity(), 128);
-  EXPECT_EQ(cache.size(), 0);
-}
-
-TEST_F(CacheTest, EraseErasesAndReturnsTrueWhenElementContained) {
-  cache.emplace("one", 1);
-  ASSERT_TRUE(cache.contains("one"));
-
-  EXPECT_TRUE(cache.erase("one"));
-  EXPECT_FALSE(cache.contains("one"));
-}
-
-TEST_F(CacheTest, EraseReturnsFalseWhenElementNotContained) {
-  ASSERT_FALSE(cache.contains("one"));
-  EXPECT_FALSE(cache.erase("one"));
-}
-
-TEST_F(CacheTest, ClearRemovesAllElements) {
-  ASSERT_TRUE(cache.is_empty());
-
-  cache.emplace("one", 1);
-  EXPECT_FALSE(cache.is_empty());
-
-  cache.clear();
-  EXPECT_TRUE(cache.is_empty());
-}
-
-TEST_F(CacheTest, ShrinkAdjustsSizeWell) {
-  cache.emplace("one", 1);
-  cache.emplace("two", 2);
-
-  ASSERT_EQ(cache.size(), 2);
-
-  cache.shrink(1);
-
-  EXPECT_EQ(cache.size(), 1);
-
-  cache.emplace("three", 2);
-  cache.emplace("four", 3);
-
-  ASSERT_EQ(cache.size(), 3);
-
-  cache.shrink(1);
-
-  EXPECT_EQ(cache.size(), 1);
-
-  cache.shrink(0);
-
-  EXPECT_TRUE(cache.is_empty());
-}
-
-TEST_F(CacheTest, ShrinkDoesNothingWhenRequestedSizeIsGreaterThanCurrent) {
-  cache.emplace("one", 1);
-  cache.emplace("two", 2);
-
-  ASSERT_EQ(cache.size(), 2);
-
-  cache.shrink(50);
-
-  EXPECT_EQ(cache.size(), 2);
-}
-
-TEST_F(CacheTest, ShrinkRemovesLRUElements) {
-  cache.emplace("one", 1);
-  cache.emplace("two", 2);
-  cache.emplace("three", 3);
-
-  ASSERT_EQ(cache.size(), 3);
-
-  cache.shrink(2);
-
-  EXPECT_EQ(cache.size(), 2);
-  EXPECT_FALSE(cache.contains("one"));
-  EXPECT_TRUE(cache.contains("two"));
-  EXPECT_TRUE(cache.contains("three"));
-
-  cache.shrink(1);
-
-  EXPECT_EQ(cache.size(), 1);
-  EXPECT_FALSE(cache.contains("one"));
-  EXPECT_FALSE(cache.contains("two"));
-  EXPECT_TRUE(cache.contains("three"));
-}
-
-TEST_F(CacheTest, CanInsertIterators) {
-  using Range = std::vector<std::pair<std::string, int>>;
-  Range range = {{"one", 1}, {"two", 2}, {"three", 3}};
-
-  EXPECT_EQ(cache.insert(range.begin(), range.end()), 3);
-  EXPECT_TRUE(is_equal_to_range(cache, range));
-
-  Range range2 = {{"one", 1}, {"four", 4}};
-
-  EXPECT_EQ(cache.insert(range2.begin(), range2.end()), 1);
-  // clang-format off
-  EXPECT_TRUE(is_equal_to_range(cache, Range({
-    {"two", 2}, {"three", 3}, {"one", 1}, {"four", 4}
-  })));
-  // clang-format on
-}
-
-TEST_F(CacheTest, CanInsertRange) {
-  std::vector<std::pair<std::string, int>> range = {
-      {"one", 1}, {"two", 2}, {"three", 3}};
-
-  cache.insert(range);
-  EXPECT_TRUE(is_equal_to_range(cache, range));
-}
-
-TEST_F(CacheTest, CanInsertList) {
-  std::initializer_list<std::pair<std::string, int>> list = {
-      {"one", 1}, {"two", 2}, {"three", 3}};
-
-  // Do it like this, just to verify that template deduction fails if only
-  // the range function exists and no explicit overload for the initializer list
-  cache.insert({{"one", 1}, {"two", 2}, {"three", 3}});
-  EXPECT_TRUE(is_equal_to_range(cache, list));
-}
-
-TEST_F(CacheTest, ResultIsCorrectForInsert) {
-  auto result = cache.insert("one", 1);
-
-  EXPECT_TRUE(result.was_inserted());
-  EXPECT_TRUE(result);
-
-  EXPECT_EQ(result.iterator(), cache.begin());
-
-  result = cache.insert("one", 1);
-
-  EXPECT_FALSE(result.was_inserted());
-  EXPECT_FALSE(result);
-
-  EXPECT_EQ(result.iterator(), cache.begin());
-}
-
-TEST_F(CacheTest, ResultIsCorrectForEmplace) {
-  auto result = cache.emplace("one", 1);
-
-  EXPECT_TRUE(result.was_inserted());
-  EXPECT_TRUE(result);
-
-  EXPECT_EQ(result.iterator(), cache.begin());
-
-  result = cache.emplace("one", 1);
-
-  EXPECT_FALSE(result.was_inserted());
-  EXPECT_FALSE(result);
-
-  EXPECT_EQ(result.iterator(), cache.begin());
-}
-
-TEST_F(CacheTest, CapacityIsSameAfterCopy) {
-  cache.capacity(100);
-  auto cache2 = cache;
-
-  EXPECT_EQ(cache.capacity(), cache2.capacity());
-}
-
-TEST_F(CacheTest, CapacityIsSameAfterMove) {
-  cache.capacity(100);
-  auto cache2 = std::move(cache);
-
-  EXPECT_EQ(cache2.capacity(), 100);
-}
-
-TEST_F(CacheTest, ComparisonOperatorWorks) {
-  ASSERT_EQ(cache, cache);
-
-  auto cache2 = cache;
-  EXPECT_EQ(cache, cache2);
-
-  cache.emplace("one", 1);
-  cache2.emplace("one", 1);
-  EXPECT_EQ(cache, cache2);
-
-  cache.emplace("two", 2);
-  cache2.emplace("two", 2);
-  EXPECT_EQ(cache, cache2);
-
-  cache.erase("two");
-  EXPECT_NE(cache, cache2);
-}
-
-TEST_F(CacheTest, SwapWorks) {
-  auto cache2 = cache;
-
-  cache.emplace("one", 1);
-  cache2.emplace("two", 2);
-
-  ASSERT_TRUE(cache.contains("one"));
-  ASSERT_TRUE(cache2.contains("two"));
-
-  cache.swap(cache2);
-
-  EXPECT_FALSE(cache.contains("one"));
-  EXPECT_TRUE(cache.contains("two"));
-  EXPECT_FALSE(cache2.contains("two"));
-  EXPECT_TRUE(cache2.contains("one"));
-}
-
-TEST_F(CacheTest, SizeStaysZeroWhenCapacityZero) {
-  cache.capacity(0);
-
-  ASSERT_EQ(cache.capacity(), 0);
-  ASSERT_EQ(cache.size(), 0);
-
-  auto result = cache.insert("one", 1);
-
-  EXPECT_EQ(cache.capacity(), 0);
-  EXPECT_EQ(cache.size(), 0);
-  EXPECT_FALSE(result.was_inserted());
-  EXPECT_EQ(result.iterator(), cache.end());
-
-  result = cache.emplace("two", 2);
-
-  EXPECT_EQ(cache.capacity(), 0);
-  EXPECT_EQ(cache.size(), 0);
-  EXPECT_FALSE(result.was_inserted());
-  EXPECT_EQ(result.iterator(), cache.end());
-}
-
-TEST_F(CacheTest, LookupsMoveElementsToFront) {
-  cache.capacity(2);
-  cache.insert({{"one", 1}, {"two", 2}});
-
-  // The LRU principle mandates that lookups place
-  // accessed elements to the front.
-
-  typename CacheType::OrderedIterator iterator(cache.find("one"));
-  cache.emplace("three", 3);
-
-  EXPECT_TRUE(cache.contains("one"));
-  EXPECT_FALSE(cache.contains("two"));
-  EXPECT_TRUE(cache.contains("three"));
-  EXPECT_EQ(std::prev(cache.ordered_end()).key(), "three");
-  EXPECT_EQ(cache.front(), "three");
-  EXPECT_EQ(cache.back(), "one");
-
-  ASSERT_EQ(cache.lookup("one"), 1);
-  EXPECT_EQ(std::prev(cache.ordered_end()).key(), "one");
-  EXPECT_EQ(cache.ordered_begin().key(), "three");
-  EXPECT_EQ(cache.front(), "one");
-  EXPECT_EQ(cache.back(), "three");
+    REQUIRE(t.cache.size() == 10);
+
+    t.cache.emplace("foo", 0xdeadbeef);
+    CHECK(t.cache.size() == 10);
+
+    t.cache.capacity(11);
+    REQUIRE(t.cache.capacity() == 11);
+
+    t.cache.emplace("bar", 0xdeadbeef);
+    CHECK(t.cache.size() == 11);
+
+    t.cache.capacity(5);
+    CHECK(t.cache.capacity() == 5);
+    CHECK(t.cache.size() == 5);
+
+    t.cache.capacity(0);
+    CHECK(t.cache.capacity() == 0);
+    CHECK(t.cache.size() == 0);
+
+    t.cache.capacity(128);
+    CHECK(t.cache.capacity() == 128);
+    CHECK(t.cache.size() == 0);
+  }
+  SECTION("EraseErasesAndReturnsTrueWhenElementContained") {
+    CacheTest t;
+    t.cache.emplace("one", 1);
+    REQUIRE(t.cache.contains("one"));
+
+    CHECK(t.cache.erase("one"));
+    CHECK_FALSE(t.cache.contains("one"));
+  }
+  SECTION("EraseReturnsFalseWhenElementNotContained") {
+    CacheTest t;
+    REQUIRE_FALSE(t.cache.contains("one"));
+    CHECK_FALSE(t.cache.erase("one"));
+  }
+  SECTION("ClearRemovesAllElements") {
+    CacheTest t;
+    REQUIRE(t.cache.is_empty());
+
+    t.cache.emplace("one", 1);
+    CHECK_FALSE(t.cache.is_empty());
+
+    t.cache.clear();
+    CHECK(t.cache.is_empty());
+  }
+  SECTION("ShrinkAdjustsSizeWell") {
+    CacheTest t;
+    t.cache.emplace("one", 1);
+    t.cache.emplace("two", 2);
+
+    REQUIRE(t.cache.size() == 2);
+
+    t.cache.shrink(1);
+
+    CHECK(t.cache.size() == 1);
+
+    t.cache.emplace("three", 2);
+    t.cache.emplace("four", 3);
+
+    REQUIRE(t.cache.size() == 3);
+
+    t.cache.shrink(1);
+
+    CHECK(t.cache.size() == 1);
+
+    t.cache.shrink(0);
+
+    CHECK(t.cache.is_empty());
+  }
+  SECTION("ShrinkDoesNothingWhenRequestedSizeIsGreaterThanCurrent") {
+    CacheTest t;
+    t.cache.emplace("one", 1);
+    t.cache.emplace("two", 2);
+
+    REQUIRE(t.cache.size() == 2);
+
+    t.cache.shrink(50);
+
+    CHECK(t.cache.size() == 2);
+  }
+  SECTION("ShrinkRemovesLRUElements") {
+    CacheTest t;
+    t.cache.emplace("one", 1);
+    t.cache.emplace("two", 2);
+    t.cache.emplace("three", 3);
+
+    REQUIRE(t.cache.size() == 3);
+
+    t.cache.shrink(2);
+
+    CHECK(t.cache.size() == 2);
+    CHECK_FALSE(t.cache.contains("one"));
+    CHECK(t.cache.contains("two"));
+    CHECK(t.cache.contains("three"));
+
+    t.cache.shrink(1);
+
+    CHECK(t.cache.size() == 1);
+    CHECK_FALSE(t.cache.contains("one"));
+    CHECK_FALSE(t.cache.contains("two"));
+    CHECK(t.cache.contains("three"));
+  }
+  SECTION("CanInsertIterators") {
+    CacheTest t;
+    using Range = std::vector<std::pair<std::string, int>>;
+    Range range = {{"one", 1}, {"two", 2}, {"three", 3}};
+
+    CHECK(t.cache.insert(range.begin(), range.end()) == 3);
+    CHECK(t.is_equal_to_range(t.cache, range));
+
+    Range range2 = {{"one", 1}, {"four", 4}};
+
+    CHECK(t.cache.insert(range2.begin(), range2.end()) == 1);
+    // clang-format off
+  	CHECK(t.is_equal_to_range(t.cache, Range({
+      {"two", 2}, {"three", 3}, {"one", 1}, {"four", 4}
+ 		})));
+    // clang-format on
+  }
+  SECTION("CanInsertRange") {
+    CacheTest t;
+    std::vector<std::pair<std::string, int>> range = {
+        {"one", 1}, {"two", 2}, {"three", 3}};
+
+    t.cache.insert(range);
+    CHECK(t.is_equal_to_range(t.cache, range));
+  }
+  SECTION("CanInsertList") {
+    CacheTest t;
+    std::initializer_list<std::pair<std::string, int>> list = {
+        {"one", 1}, {"two", 2}, {"three", 3}};
+
+    // Do it like this, just to verify that template deduction fails if only
+    // the range function exists and no explicit overload for the initializer
+    // list
+    t.cache.insert({{"one", 1}, {"two", 2}, {"three", 3}});
+    CHECK(t.is_equal_to_range(t.cache, list));
+  }
+  SECTION("ResultIsCorrectForInsert") {
+    CacheTest t;
+    auto result = t.cache.insert("one", 1);
+
+    CHECK(result.was_inserted());
+    CHECK(result);
+
+    CHECK(result.iterator() == t.cache.begin());
+
+    result = t.cache.insert("one", 1);
+
+    CHECK_FALSE(result.was_inserted());
+    CHECK_FALSE(result);
+
+    CHECK(result.iterator() == t.cache.begin());
+  }
+  SECTION("ResultIsCorrectForEmplace") {
+    CacheTest t;
+    auto result = t.cache.emplace("one", 1);
+
+    CHECK(result.was_inserted());
+    CHECK(result);
+
+    CHECK(result.iterator() == t.cache.begin());
+
+    result = t.cache.emplace("one", 1);
+
+    CHECK_FALSE(result.was_inserted());
+    CHECK_FALSE(result);
+
+    CHECK(result.iterator() == t.cache.begin());
+  }
+  SECTION("CapacityIsSameAfterCopy") {
+    CacheTest t;
+    t.cache.capacity(100);
+    auto cache2 = t.cache;
+
+    CHECK(t.cache.capacity() == cache2.capacity());
+  }
+  SECTION("CapacityIsSameAfterMove") {
+    CacheTest t;
+    t.cache.capacity(100);
+    auto cache2 = std::move(t.cache);
+
+    CHECK(cache2.capacity() == 100);
+  }
+  SECTION("ComparisonOperatorWorks") {
+    CacheTest t;
+    REQUIRE(t.cache == t.cache);
+
+    auto cache2 = t.cache;
+    CHECK(t.cache == cache2);
+
+    t.cache.emplace("one", 1);
+    cache2.emplace("one", 1);
+    CHECK(t.cache == cache2);
+
+    t.cache.emplace("two", 2);
+    cache2.emplace("two", 2);
+    CHECK(t.cache == cache2);
+
+    t.cache.erase("two");
+    CHECK(t.cache != cache2);
+  }
+  SECTION("SwapWorks") {
+    CacheTest t;
+    auto cache2 = t.cache;
+
+    t.cache.emplace("one", 1);
+    cache2.emplace("two", 2);
+
+    REQUIRE(t.cache.contains("one"));
+    REQUIRE(cache2.contains("two"));
+
+    t.cache.swap(cache2);
+
+    CHECK_FALSE(t.cache.contains("one"));
+    CHECK(t.cache.contains("two"));
+    CHECK_FALSE(cache2.contains("two"));
+    CHECK(cache2.contains("one"));
+  }
+  SECTION("SizeStaysZeroWhenCapacityZero") {
+    CacheTest t;
+    t.cache.capacity(0);
+
+    REQUIRE(t.cache.capacity() == 0);
+    REQUIRE(t.cache.size() == 0);
+
+    auto result = t.cache.insert("one", 1);
+
+    CHECK(t.cache.capacity() == 0);
+    CHECK(t.cache.size() == 0);
+    CHECK_FALSE(result.was_inserted());
+    CHECK(result.iterator() == t.cache.end());
+
+    result = t.cache.emplace("two", 2);
+
+    CHECK(t.cache.capacity() == 0);
+    CHECK(t.cache.size() == 0);
+    CHECK_FALSE(result.was_inserted());
+    CHECK(result.iterator() == t.cache.end());
+  }
+  SECTION("LookupsMoveElementsToFront") {
+    CacheTest t;
+    t.cache.capacity(2);
+    t.cache.insert({{"one", 1}, {"two", 2}});
+
+    // The LRU principle mandates that lookups place
+    // accessed elements to the front.
+    auto value = t.cache.find("one");
+    t.cache.emplace("three", 3);
+
+    CHECK(t.cache.contains("one"));
+    CHECK_FALSE(t.cache.contains("two"));
+    CHECK(t.cache.contains("three"));
+    CHECK(std::prev(t.cache.ordered_end()).key() == "three");
+    CHECK(t.cache.front() == "three");
+    CHECK(t.cache.back() == "one");
+
+    REQUIRE(t.cache.lookup("one") == 1);
+    CHECK(std::prev(t.cache.ordered_end()).key() == "one");
+    CHECK(t.cache.ordered_begin().key() == "three");
+    CHECK(t.cache.front() == "one");
+    CHECK(t.cache.back() == "three");
+  }
 }

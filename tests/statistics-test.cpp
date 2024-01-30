@@ -19,357 +19,345 @@
 /// FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
 /// IN THE SOFTWARE.
 
+#include <catch.hpp>
 #include <memory>
 #include <vector>
-
-#include "gtest/gtest.h"
 
 #include "lru/internal/statistics-mutator.hpp"
 #include "lru/lru.hpp"
 
 using namespace LRU;
 using namespace LRU::Internal;
-
-TEST(StatisticsTest, ConstructsWellFromRange) {
-  std::vector<int> range = {1, 2, 3};
-  Statistics<int> stats(range);
-
-  for (const auto& i : range) {
-    ASSERT_TRUE(stats.is_monitoring(i));
-  }
-}
-
-TEST(StatisticsTest, ConstructsWellFromIterator) {
-  std::vector<int> range = {1, 2, 3};
-  Statistics<int> stats(range.begin(), range.end());
-
-  for (const auto& i : range) {
-    ASSERT_TRUE(stats.is_monitoring(i));
-  }
-}
-
-TEST(StatisticsTest, ConstructsWellFromInitializerList) {
-  Statistics<int> stats({1, 2, 3});
-
-  std::vector<int> range = {1, 2, 3};
-  for (const auto& i : range) {
-    ASSERT_TRUE(stats.is_monitoring(i));
-  }
-}
-
-TEST(StatisticsTest, ConstructsWellFromVariadicArguments) {
-  Statistics<int> stats(1, 2, 3);
-
-  std::vector<int> range = {1, 2, 3};
-  for (const auto& i : range) {
-    ASSERT_TRUE(stats.is_monitoring(i));
-  }
-}
-
-TEST(StatisticsTest, EmptyPreconditions) {
-  Statistics<int> stats;
-
-  EXPECT_FALSE(stats.is_monitoring_keys());
-  EXPECT_EQ(stats.number_of_monitored_keys(), 0);
-  EXPECT_FALSE(stats.is_monitoring(1));
-  EXPECT_FALSE(stats.is_monitoring(2));
-  EXPECT_EQ(stats.total_accesses(), 0);
-  EXPECT_EQ(stats.total_hits(), 0);
-  EXPECT_EQ(stats.total_misses(), 0);
-}
-
-TEST(StatisticsTest, StatisticsMutatorCanRegisterHits) {
-  auto stats = std::make_shared<Statistics<int>>(1, 2, 3);
-  StatisticsMutator<int> mutator(stats);
-
-  mutator.register_hit(1);
-  EXPECT_EQ(stats->hits_for(1), 1);
-  EXPECT_EQ(stats->total_accesses(), 1);
-  EXPECT_EQ(stats->total_hits(), 1);
-  EXPECT_EQ(stats->total_misses(), 0);
-  EXPECT_EQ(stats->hit_rate(), 1);
-  EXPECT_EQ(stats->miss_rate(), 0);
-
-  mutator.register_hit(1);
-  EXPECT_EQ(stats->hits_for(1), 2);
-  EXPECT_EQ(stats->total_accesses(), 2);
-  EXPECT_EQ(stats->total_hits(), 2);
-  EXPECT_EQ(stats->total_misses(), 0);
-  EXPECT_EQ(stats->hit_rate(), 1);
-  EXPECT_EQ(stats->miss_rate(), 0);
-
-  mutator.register_hit(2);
-  EXPECT_EQ(stats->hits_for(1), 2);
-  EXPECT_EQ(stats->hits_for(2), 1);
-  EXPECT_EQ(stats->total_accesses(), 3);
-  EXPECT_EQ(stats->total_hits(), 3);
-  EXPECT_EQ(stats->total_misses(), 0);
-  EXPECT_EQ(stats->hit_rate(), 1);
-  EXPECT_EQ(stats->miss_rate(), 0);
-}
-
-TEST(StatisticsTest, StatisticsMutatorCanRegisterMisses) {
-  auto stats = std::make_shared<Statistics<int>>(1, 2, 3);
-  StatisticsMutator<int> mutator(stats);
-
-  mutator.register_miss(1);
-  EXPECT_EQ(stats->misses_for(1), 1);
-  EXPECT_EQ(stats->total_accesses(), 1);
-  EXPECT_EQ(stats->total_hits(), 0);
-  EXPECT_EQ(stats->total_misses(), 1);
-  EXPECT_EQ(stats->hit_rate(), 0);
-  EXPECT_EQ(stats->miss_rate(), 1);
-
-  mutator.register_miss(1);
-  EXPECT_EQ(stats->misses_for(1), 2);
-  EXPECT_EQ(stats->total_accesses(), 2);
-  EXPECT_EQ(stats->total_hits(), 0);
-  EXPECT_EQ(stats->total_misses(), 2);
-  EXPECT_EQ(stats->hit_rate(), 0);
-  EXPECT_EQ(stats->miss_rate(), 1);
-
-  mutator.register_miss(2);
-  EXPECT_EQ(stats->misses_for(1), 2);
-  EXPECT_EQ(stats->misses_for(2), 1);
-  EXPECT_EQ(stats->total_accesses(), 3);
-  EXPECT_EQ(stats->total_hits(), 0);
-  EXPECT_EQ(stats->total_misses(), 3);
-  EXPECT_EQ(stats->hit_rate(), 0);
-  EXPECT_EQ(stats->miss_rate(), 1);
-}
-
-TEST(StatisticsTest, CanDynamicallyMonitorAndUnmonitorKeys) {
-  Statistics<int> stats;
-
-  ASSERT_EQ(stats.number_of_monitored_keys(), 0);
-
-  stats.monitor(1);
-
-  EXPECT_EQ(stats.number_of_monitored_keys(), 1);
-  EXPECT_TRUE(stats.is_monitoring(1));
-  EXPECT_FALSE(stats.is_monitoring(2));
-
-  stats.monitor(2);
-
-  EXPECT_EQ(stats.number_of_monitored_keys(), 2);
-  EXPECT_TRUE(stats.is_monitoring(1));
-  EXPECT_TRUE(stats.is_monitoring(2));
-
-  stats.unmonitor(1);
-
-  EXPECT_EQ(stats.number_of_monitored_keys(), 1);
-  EXPECT_FALSE(stats.is_monitoring(1));
-  EXPECT_TRUE(stats.is_monitoring(2));
-
-  stats.unmonitor_all();
-
-  EXPECT_FALSE(stats.is_monitoring_keys());
-  EXPECT_FALSE(stats.is_monitoring(1));
-  EXPECT_FALSE(stats.is_monitoring(2));
-}
-
-TEST(StatisticsTest, ThrowsForUnmonitoredKey) {
-  Statistics<int> stats;
-
-  EXPECT_THROW(stats.stats_for(1), LRU::Error::UnmonitoredKey);
-  EXPECT_THROW(stats.hits_for(2), LRU::Error::UnmonitoredKey);
-  EXPECT_THROW(stats.misses_for(3), LRU::Error::UnmonitoredKey);
-  EXPECT_THROW(stats[4], LRU::Error::UnmonitoredKey);
-}
-
-TEST(StatisticsTest, RatesAreCalculatedCorrectly) {
-  auto stats = std::make_shared<Statistics<int>>(1, 2, 3);
-  StatisticsMutator<int> mutator(stats);
-
-  for (std::size_t i = 0; i < 20; ++i) {
-    mutator.register_hit(1);
-  }
-
-  for (std::size_t i = 0; i < 80; ++i) {
-    mutator.register_miss(1);
-  }
-
-  EXPECT_EQ(stats->hit_rate(), 0.2);
-  EXPECT_EQ(stats->miss_rate(), 0.8);
-}
-
-TEST(StatisticsTest, CanShareStatistics) {
-  auto stats = std::make_shared<Statistics<int>>(1, 2, 3);
-  StatisticsMutator<int> mutator1(stats);
-  StatisticsMutator<int> mutator2(stats);
-  StatisticsMutator<int> mutator3(stats);
-
-  ASSERT_EQ(mutator1.shared(), mutator2.shared());
-  ASSERT_EQ(mutator2.shared(), mutator3.shared());
-  ASSERT_EQ(&mutator2.get(), &mutator3.get());
-
-  mutator1.register_hit(1);
-  EXPECT_EQ(stats->total_accesses(), 1);
-  EXPECT_EQ(stats->total_hits(), 1);
-  EXPECT_EQ(stats->total_misses(), 0);
-  EXPECT_EQ(stats->hits_for(1), 1);
-
-  mutator2.register_hit(1);
-  EXPECT_EQ(stats->total_accesses(), 2);
-  EXPECT_EQ(stats->total_hits(), 2);
-  EXPECT_EQ(stats->total_misses(), 0);
-  EXPECT_EQ(stats->hits_for(1), 2);
-
-  mutator3.register_miss(2);
-  EXPECT_EQ(stats->total_accesses(), 3);
-  EXPECT_EQ(stats->total_hits(), 2);
-  EXPECT_EQ(stats->total_misses(), 1);
-  EXPECT_EQ(stats->hits_for(1), 2);
-  EXPECT_EQ(stats->misses_for(1), 0);
-  EXPECT_EQ(stats->hits_for(2), 0);
-  EXPECT_EQ(stats->misses_for(2), 1);
-}
-
-struct CacheWithStatisticsTest : public ::testing::Test {
+struct CacheWithStatisticsTest {
   void assert_total_stats(int accesses, int hits, int misses) {
-    ASSERT_EQ(cache.stats().total_accesses(), accesses);
-    ASSERT_EQ(cache.stats().total_hits(), hits);
-    ASSERT_EQ(cache.stats().total_misses(), misses);
+    REQUIRE(cache.stats().total_accesses() == accesses);
+    REQUIRE(cache.stats().total_hits() == hits);
+    REQUIRE(cache.stats().total_misses() == misses);
   }
 
   void expect_total_stats(int accesses, int hits, int misses) {
-    EXPECT_EQ(cache.stats().total_accesses(), accesses);
-    EXPECT_EQ(cache.stats().total_hits(), hits);
-    EXPECT_EQ(cache.stats().total_misses(), misses);
+    CHECK(cache.stats().total_accesses() == accesses);
+    CHECK(cache.stats().total_hits() == hits);
+    CHECK(cache.stats().total_misses() == misses);
   }
 
   Cache<int, int> cache;
 };
+TEST_CASE("StatisticsTest") {
+  SECTION("ConstructsWellFromRange") {
+    std::vector<int> range = {1, 2, 3};
+    Statistics<int> stats(range);
 
-TEST_F(CacheWithStatisticsTest,
-       RequestForCacheStatisticsThrowsWhenNoneRegistered) {
-  EXPECT_THROW(cache.stats(), LRU::Error::NotMonitoring);
-}
+    for (const auto& i : range) {
+      REQUIRE(stats.is_monitoring(i));
+    }
+  };
+  SECTION("ConstructsWellFromIterator") {
+    std::vector<int> range = {1, 2, 3};
+    Statistics<int> stats(range.begin(), range.end());
 
-TEST_F(CacheWithStatisticsTest, CanRegisterLValueStatistics) {
-  auto stats = std::make_shared<Statistics<int>>();
-  cache.monitor(stats);
+    for (const auto& i : range) {
+      REQUIRE(stats.is_monitoring(i));
+    }
+  };
+  SECTION("ConstructsWellFromInitializerList") {
+    Statistics<int> stats({1, 2, 3});
 
-  EXPECT_TRUE(cache.is_monitoring());
+    std::vector<int> range = {1, 2, 3};
+    for (const auto& i : range) {
+      REQUIRE(stats.is_monitoring(i));
+    }
+  };
+  SECTION("ConstructsWellFromVariadicArguments") {
+    Statistics<int> stats(1, 2, 3);
 
-  // This is a strong constraint, but must hold for lvalue stats object
-  EXPECT_EQ(&cache.stats(), &*stats);
+    std::vector<int> range = {1, 2, 3};
+    for (const auto& i : range) {
+      REQUIRE(stats.is_monitoring(i));
+    }
+  };
+  SECTION("EmptyPreconditions") {
+    Statistics<int> stats;
 
-  cache.contains(1);
-  EXPECT_EQ(cache.shared_stats()->total_accesses(), 1);
-  EXPECT_EQ(cache.stats().total_misses(), 1);
+    CHECK_FALSE(stats.is_monitoring_keys());
+    CHECK(stats.number_of_monitored_keys() == 0);
+    CHECK_FALSE(stats.is_monitoring(1));
+    CHECK_FALSE(stats.is_monitoring(2));
+    CHECK(stats.total_accesses() == 0);
+    CHECK(stats.total_hits() == 0);
+    CHECK(stats.total_misses() == 0);
+  };
+  SECTION("StatisticsMutatorCanRegisterHits") {
+    auto stats = std::make_shared<Statistics<int>>(1, 2, 3);
+    StatisticsMutator<int> mutator(stats);
 
-  cache.emplace(1, 2);
+    mutator.register_hit(1);
+    CHECK(stats->hits_for(1) == 1);
+    CHECK(stats->total_accesses() == 1);
+    CHECK(stats->total_hits() == 1);
+    CHECK(stats->total_misses() == 0);
+    CHECK(stats->hit_rate() == 1);
+    CHECK(stats->miss_rate() == 0);
 
-  cache.contains(1);
-  EXPECT_EQ(cache.stats().total_accesses(), 2);
-  EXPECT_EQ(cache.stats().total_misses(), 1);
-  EXPECT_EQ(cache.stats().total_hits(), 1);
-}
+    mutator.register_hit(1);
+    CHECK(stats->hits_for(1) == 2);
+    CHECK(stats->total_accesses() == 2);
+    CHECK(stats->total_hits() == 2);
+    CHECK(stats->total_misses() == 0);
+    CHECK(stats->hit_rate() == 1);
+    CHECK(stats->miss_rate() == 0);
 
-TEST_F(CacheWithStatisticsTest, CanRegisterRValueStatistics) {
-  auto s = std::make_unique<Statistics<int>>(1);
-  cache.monitor(std::move(s));
+    mutator.register_hit(2);
+    CHECK(stats->hits_for(1) == 2);
+    CHECK(stats->hits_for(2) == 1);
+    CHECK(stats->total_accesses() == 3);
+    CHECK(stats->total_hits() == 3);
+    CHECK(stats->total_misses() == 0);
+    CHECK(stats->hit_rate() == 1);
+    CHECK(stats->miss_rate() == 0);
+  };
+  SECTION("StatisticsMutatorCanRegisterMisses") {
+    auto stats = std::make_shared<Statistics<int>>(1, 2, 3);
+    StatisticsMutator<int> mutator(stats);
 
-  EXPECT_TRUE(cache.is_monitoring());
+    mutator.register_miss(1);
+    CHECK(stats->misses_for(1) == 1);
+    CHECK(stats->total_accesses() == 1);
+    CHECK(stats->total_hits() == 0);
+    CHECK(stats->total_misses() == 1);
+    CHECK(stats->hit_rate() == 0);
+    CHECK(stats->miss_rate() == 1);
 
-  cache.contains(1);
-  EXPECT_EQ(cache.stats().total_accesses(), 1);
-  EXPECT_EQ(cache.stats().total_misses(), 1);
+    mutator.register_miss(1);
+    CHECK(stats->misses_for(1) == 2);
+    CHECK(stats->total_accesses() == 2);
+    CHECK(stats->total_hits() == 0);
+    CHECK(stats->total_misses() == 2);
+    CHECK(stats->hit_rate() == 0);
+    CHECK(stats->miss_rate() == 1);
 
-  cache.emplace(1, 2);
+    mutator.register_miss(2);
+    CHECK(stats->misses_for(1) == 2);
+    CHECK(stats->misses_for(2) == 1);
+    CHECK(stats->total_accesses() == 3);
+    CHECK(stats->total_hits() == 0);
+    CHECK(stats->total_misses() == 3);
+    CHECK(stats->hit_rate() == 0);
+    CHECK(stats->miss_rate() == 1);
+  };
+  SECTION("CanDynamicallyMonitorAndUnmonitorKeys") {
+    Statistics<int> stats;
 
-  cache.contains(1);
-  EXPECT_EQ(cache.stats().total_accesses(), 2);
-  EXPECT_EQ(cache.stats().total_misses(), 1);
-  EXPECT_EQ(cache.stats().total_hits(), 1);
-}
+    REQUIRE(stats.number_of_monitored_keys() == 0);
 
-TEST_F(CacheWithStatisticsTest, CanConstructItsOwnStatistics) {
-  cache.monitor(1, 2, 3);
+    stats.monitor(1);
 
-  EXPECT_TRUE(cache.is_monitoring());
-  EXPECT_TRUE(cache.stats().is_monitoring(1));
-  EXPECT_TRUE(cache.stats().is_monitoring(2));
-  EXPECT_TRUE(cache.stats().is_monitoring(3));
+    CHECK(stats.number_of_monitored_keys() == 1);
+    CHECK(stats.is_monitoring(1));
+    CHECK_FALSE(stats.is_monitoring(2));
 
-  cache.contains(1);
-  EXPECT_EQ(cache.stats().total_accesses(), 1);
-  EXPECT_EQ(cache.stats().total_misses(), 1);
+    stats.monitor(2);
 
-  cache.emplace(1, 2);
+    CHECK(stats.number_of_monitored_keys() == 2);
+    CHECK(stats.is_monitoring(1));
+    CHECK(stats.is_monitoring(2));
 
-  cache.contains(1);
-  EXPECT_EQ(cache.stats().total_accesses(), 2);
-  EXPECT_EQ(cache.stats().total_misses(), 1);
-  EXPECT_EQ(cache.stats().total_hits(), 1);
-}
+    stats.unmonitor(1);
 
-TEST_F(CacheWithStatisticsTest, KnowsWhenItIsMonitoring) {
-  EXPECT_FALSE(cache.is_monitoring());
+    CHECK(stats.number_of_monitored_keys() == 1);
+    CHECK_FALSE(stats.is_monitoring(1));
+    CHECK(stats.is_monitoring(2));
 
-  cache.monitor();
+    stats.unmonitor_all();
 
-  EXPECT_TRUE(cache.is_monitoring());
+    CHECK_FALSE(stats.is_monitoring_keys());
+    CHECK_FALSE(stats.is_monitoring(1));
+    CHECK_FALSE(stats.is_monitoring(2));
+  };
+  SECTION("ThrowsForUnmonitoredKey") {
+    Statistics<int> stats;
 
-  cache.stop_monitoring();
+    CHECK_THROWS_AS(stats.stats_for(1), LRU::Error::UnmonitoredKey);
+    CHECK_THROWS_AS(stats.hits_for(2), LRU::Error::UnmonitoredKey);
+    CHECK_THROWS_AS(stats.misses_for(3), LRU::Error::UnmonitoredKey);
+    CHECK_THROWS_AS(stats[4], LRU::Error::UnmonitoredKey);
+  };
+  SECTION("RatesAreCalculatedCorrectly") {
+    auto stats = std::make_shared<Statistics<int>>(1, 2, 3);
+    StatisticsMutator<int> mutator(stats);
 
-  EXPECT_FALSE(cache.is_monitoring());
-}
+    for (std::size_t i = 0; i < 20; ++i) {
+      mutator.register_hit(1);
+    }
 
-TEST_F(CacheWithStatisticsTest, StatisticsWorkWithCache) {
-  cache.monitor(1);
-  ASSERT_TRUE(cache.is_monitoring());
-  assert_total_stats(0, 0, 0);
+    for (std::size_t i = 0; i < 80; ++i) {
+      mutator.register_miss(1);
+    }
 
-  // contains
-  cache.contains(1);
-  expect_total_stats(1, 0, 1);
+    CHECK(stats->hit_rate() == 0.2);
+    CHECK(stats->miss_rate() == 0.8);
+  };
+  SECTION("CanShareStatistics") {
+    auto stats = std::make_shared<Statistics<int>>(1, 2, 3);
+    StatisticsMutator<int> mutator1(stats);
+    StatisticsMutator<int> mutator2(stats);
+    StatisticsMutator<int> mutator3(stats);
 
-  // An access should only occur for lookup(),
-  // find(), contains() and operator[]
-  cache.emplace(1, 1);
-  expect_total_stats(1, 0, 1);
+    REQUIRE(mutator1.shared() == mutator2.shared());
+    REQUIRE(mutator2.shared() == mutator3.shared());
+    REQUIRE(&mutator2.get() == &mutator3.get());
 
-  cache.contains(1);
-  expect_total_stats(2, 1, 1);
+    mutator1.register_hit(1);
+    CHECK(stats->total_accesses() == 1);
+    CHECK(stats->total_hits() == 1);
+    CHECK(stats->total_misses() == 0);
+    CHECK(stats->hits_for(1) == 1);
 
-  // find
-  cache.find(2);
-  expect_total_stats(3, 1, 2);
+    mutator2.register_hit(1);
+    CHECK(stats->total_accesses() == 2);
+    CHECK(stats->total_hits() == 2);
+    CHECK(stats->total_misses() == 0);
+    CHECK(stats->hits_for(1) == 2);
 
-  cache.emplace(2, 2);
+    mutator3.register_miss(2);
+    CHECK(stats->total_accesses() == 3);
+    CHECK(stats->total_hits() == 2);
+    CHECK(stats->total_misses() == 1);
+    CHECK(stats->hits_for(1) == 2);
+    CHECK(stats->misses_for(1) == 0);
+    CHECK(stats->hits_for(2) == 0);
+    CHECK(stats->misses_for(2) == 1);
+  };
+  SECTION("RequestForCacheStatisticsThrowsWhenNoneRegistered") {
+    CacheWithStatisticsTest t;
+    CHECK_THROWS_AS(t.cache.stats(), LRU::Error::NotMonitoring);
+  };
+  SECTION("CanRegisterLValueStatistics") {
+    CacheWithStatisticsTest t;
+    auto stats = std::make_shared<Statistics<int>>();
+    t.cache.monitor(stats);
 
-  cache.find(2);
-  expect_total_stats(4, 2, 2);
+    CHECK(t.cache.is_monitoring());
 
-  EXPECT_THROW(cache.lookup(3), LRU::Error::KeyNotFound);
-  expect_total_stats(5, 2, 3);
+    // This is a strong constraint, but must hold for lvalue stats object
+    CHECK(&t.cache.stats() == &*stats);
 
-  cache.emplace(3, 3);
+    t.cache.contains(1);
+    CHECK(t.cache.shared_stats()->total_accesses() == 1);
+    CHECK(t.cache.stats().total_misses() == 1);
 
-  ASSERT_EQ(cache.lookup(3), 3);
-  expect_total_stats(6, 3, 3);
+    t.cache.emplace(1, 2);
 
-  EXPECT_THROW(cache[4], LRU::Error::KeyNotFound);
-  expect_total_stats(7, 3, 4);
+    t.cache.contains(1);
+    CHECK(t.cache.stats().total_accesses() == 2);
+    CHECK(t.cache.stats().total_misses() == 1);
+    CHECK(t.cache.stats().total_hits() == 1);
+  };
+  SECTION("CanRegisterRValueStatistics") {
+    CacheWithStatisticsTest t;
+    auto s = std::make_unique<Statistics<int>>(1);
+    t.cache.monitor(std::move(s));
 
-  cache.emplace(4, 4);
+    CHECK(t.cache.is_monitoring());
 
-  ASSERT_EQ(cache[4], 4);
-  expect_total_stats(8, 4, 4);
-}
+    t.cache.contains(1);
+    CHECK(t.cache.stats().total_accesses() == 1);
+    CHECK(t.cache.stats().total_misses() == 1);
 
-TEST_F(CacheWithStatisticsTest, StopsMonitoringWhenAsked) {
-  auto stats = std::make_shared<Statistics<int>>(1);
-  cache.monitor(stats);
-  cache.emplace(1, 1);
+    t.cache.emplace(1, 2);
 
-  ASSERT_TRUE(cache.contains(1));
-  ASSERT_EQ(cache.stats().hits_for(1), 1);
+    t.cache.contains(1);
+    CHECK(t.cache.stats().total_accesses() == 2);
+    CHECK(t.cache.stats().total_misses() == 1);
+    CHECK(t.cache.stats().total_hits() == 1);
+  };
+  SECTION("CanConstructItsOwnStatistics") {
+    CacheWithStatisticsTest t;
+    t.cache.monitor(1, 2, 3);
 
-  cache.stop_monitoring();
+    CHECK(t.cache.is_monitoring());
+    CHECK(t.cache.stats().is_monitoring(1));
+    CHECK(t.cache.stats().is_monitoring(2));
+    CHECK(t.cache.stats().is_monitoring(3));
 
-  ASSERT_TRUE(cache.contains(1));
-  EXPECT_EQ(stats->hits_for(1), 1);
+    t.cache.contains(1);
+    CHECK(t.cache.stats().total_accesses() == 1);
+    CHECK(t.cache.stats().total_misses() == 1);
+
+    t.cache.emplace(1, 2);
+
+    t.cache.contains(1);
+    CHECK(t.cache.stats().total_accesses() == 2);
+    CHECK(t.cache.stats().total_misses() == 1);
+    CHECK(t.cache.stats().total_hits() == 1);
+  };
+  SECTION("KnowsWhenItIsMonitoring") {
+    CacheWithStatisticsTest t;
+    CHECK_FALSE(t.cache.is_monitoring());
+
+    t.cache.monitor();
+
+    CHECK(t.cache.is_monitoring());
+
+    t.cache.stop_monitoring();
+
+    CHECK_FALSE(t.cache.is_monitoring());
+  };
+  SECTION("StatisticsWorkWithCache") {
+    CacheWithStatisticsTest t;
+    t.cache.monitor(1);
+    REQUIRE(t.cache.is_monitoring());
+    t.assert_total_stats(0, 0, 0);
+
+    // contains
+    t.cache.contains(1);
+    t.expect_total_stats(1, 0, 1);
+
+    // An access should only occur for lookup(),
+    // find(), contains() and operator[]
+    t.cache.emplace(1, 1);
+    t.expect_total_stats(1, 0, 1);
+
+    t.cache.contains(1);
+    t.expect_total_stats(2, 1, 1);
+
+    // find
+    t.cache.find(2);
+    t.expect_total_stats(3, 1, 2);
+
+    t.cache.emplace(2, 2);
+
+    t.cache.find(2);
+    t.expect_total_stats(4, 2, 2);
+
+    CHECK_THROWS_AS(t.cache.lookup(3), LRU::Error::KeyNotFound);
+    t.expect_total_stats(5, 2, 3);
+
+    t.cache.emplace(3, 3);
+
+    REQUIRE(t.cache.lookup(3) == 3);
+    t.expect_total_stats(6, 3, 3);
+
+    CHECK_THROWS_AS(t.cache[4], LRU::Error::KeyNotFound);
+    t.expect_total_stats(7, 3, 4);
+
+    t.cache.emplace(4, 4);
+
+    REQUIRE(t.cache[4] == 4);
+    t.expect_total_stats(8, 4, 4);
+  };
+  SECTION("StopsMonitoringWhenAsked") {
+    CacheWithStatisticsTest t;
+    auto stats = std::make_shared<Statistics<int>>(1);
+    t.cache.monitor(stats);
+    t.cache.emplace(1, 1);
+
+    REQUIRE(t.cache.contains(1));
+    REQUIRE(t.cache.stats().hits_for(1) == 1);
+
+    t.cache.stop_monitoring();
+
+    REQUIRE(t.cache.contains(1));
+    CHECK(stats->hits_for(1) == 1);
+  };
 }
