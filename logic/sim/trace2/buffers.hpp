@@ -1,4 +1,5 @@
 #pragma once
+#include "lru/cache.hpp"
 #include "sim/api2.hpp"
 #include "sim/trace2/packet_utils.hpp"
 
@@ -46,11 +47,19 @@ private:
     std::size_t _lastFrameStart = 0;
     // Need to be mutable so that IteratorImpl can read from them.
     mutable std::vector<std::byte> _data = {};
+
+    mutable LRU::Cache<std::size_t, std::size_t> _backlinks;
     zpp::bits::in<decltype(_data)> _in;
     zpp::bits::out<decltype(_data)> _out;
+    // Like normal next, except you can control if the iterator jumps between frames
+    // or walks cell-by-cell. user-facing next calls can take advantage of the speed,
+    // while internal next calls can use next to fill backlink cache.
+    std::size_t next(std::size_t loc, api2::trace::Level level, bool allow_jumps) const;
+    std::size_t last_before(std::size_t start, std::size_t end, api2::trace::Level payload) const;
 
     // IteratorImpl interface
 public:
+    std::size_t end() const override;
     std::size_t size_at(std::size_t loc, api2::trace::Level level) const override;
     api2::trace::Level at(std::size_t loc) const override;
     api2::frame::Header frame(std::size_t loc) const override;

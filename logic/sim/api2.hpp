@@ -220,8 +220,13 @@ enum class Level {
     Packet = 2,
     Payload = 3,
 };
+inline auto operator<=>(Level lhs, Level rhs)
+{
+    return ((int) lhs) <=> ((int) rhs);
+}
 
 struct IteratorImpl {
+    virtual std::size_t end() const = 0;
     virtual std::size_t size_at(std::size_t loc, Level level) const = 0;
     virtual Level at(std::size_t loc) const = 0;
     virtual frame::Header frame(std::size_t loc) const = 0;
@@ -229,9 +234,12 @@ struct IteratorImpl {
     virtual packet::Payload payload(std::size_t loc) const = 0;
     virtual std::size_t next(std::size_t loc, Level level) const = 0;
     virtual std::size_t prev(std::size_t loc, Level level) const = 0;
-
 };
 
+enum class Direction {
+    Forward,
+    Reverse,
+};
 // "base class" for iterators.
 // Specialization of this class with <Arg> and <Arg, ...args>
 // will enable my heirarchical iterators.
@@ -242,11 +250,6 @@ struct Iterator;
 template<Level Current>
 struct Iterator<Current>{
 public:
-    enum Direction {
-        Forward,
-        Reverse,
-    };
-
     using iterator_category = std::forward_iterator_tag;
     using difference_type = quint64;
     using _helper = typename std::conditional<Current == Level::Packet, packet::Header, packet::Payload>::type;
@@ -254,17 +257,23 @@ public:
     using pointer = const value_type*;
     using reference = value_type&;
 
-    Iterator(const IteratorImpl* impl, std::size_t location,
-             Direction dir=Forward): _impl(impl), _location(location), _dir(dir) {}
+    Iterator(const IteratorImpl *impl, std::size_t location, Direction dir = Direction::Forward)
+        : _impl(impl)
+        , _location(location)
+        , _dir(dir)
+    {}
 
     Iterator& operator++() {
-        if(_dir == Forward) _location = _impl->next(_location, Current);
+        if (_dir == Direction::Forward)
+            _location = _impl->next(_location, Current);
         else _location = _impl->prev(_location, Current);
         return *this;
     }
 
-    Iterator& operator--() {
-        if(_dir == Forward) _location = _impl->prev(_location, Current);
+    Iterator &operator--()
+    {
+        if (_dir == Direction::Forward)
+            _location = _impl->prev(_location, Current);
         else _location = _impl->next(_location, Current);
         return *this;
     }
@@ -314,12 +323,10 @@ protected:
 template<Level Current, Level... Descendants>
 struct Iterator<Current, Descendants...>: public Iterator<Current> {
 public:
-    using Direction = typename Iterator<Current>::Direction;
     Iterator(const IteratorImpl *impl, std::size_t location, Direction dir = Direction::Forward)
         : Iterator<Current>(impl, location, dir)
     {}
 
-    template<typename = std::enable_if<Current == Level::Packet || Current ==  Level::Payload>>
     Iterator<Descendants...> cbegin() const
     {
         // Skip current element, because this returns a iterator for children.
@@ -327,30 +334,53 @@ public:
         return Iterator<Descendants...>(this->_impl, this->_location + to_next);
     }
 
-    template<typename = std::enable_if<Current == Level::Packet || Current ==  Level::Payload>>
     Iterator<Descendants...> cend() const
     {
         // Skip current element, because this returns a iterator for children.
         auto to_next = this->_impl->size_at(this->_location, Current);
         std::size_t next = this->_location + to_next;
-        auto next_type = this->_impl->at(next);
-        // If the next item is below our level of abstraction,
-        // then we need to search for the next item that is at our level of abstraction.
-        if((int) Current < (int) next_type)
-          next = this->_impl->next(next, Current);
+        if (next != this->_impl->end()) {
+            auto next_type = this->_impl->at(next);
+            // If the next item is below our level of abstraction,
+            // then we need to search for the next item that is at our level of abstraction.
+            if ((int) Current < (int) next_type)
+                next = this->_impl->next(next, Current);
+        }
         return Iterator<Descendants...>(this->_impl, next);
     }
 
-    template<typename = std::enable_if<Current == Level::Packet || Current ==  Level::Payload>>
     Iterator<Descendants...> crbegin() const
     {
-        throw std::logic_error("unimplemented");
+        // Figure out what next level is.
+        Level below;
+        switch (Current) {
+        case Level::Frame:
+            below = Level::Packet;
+            break;
+        case Level::Packet:
+            below = Level::Payload;
+            break;
+        default:
+            throw std::logic_error("Supposedly unreachable");
+        }
+
+        // Find the first successor element at the current level of abstraction,
+        // and from the successor, find the previous element at
+        // the next lower level of asbtraction.
+        std::size_t loc = this->_location;
+        auto next_above = this->_impl->next(this->_location, Current);
+
+        // If next(...) hits end, prev will "do the right thing".
+        // Our only risk is that prev hits the end sentinel.
+        loc = this->_impl->prev(next_above, below);
+        return Iterator<Descendants...>(this->_impl, loc, Direction::Reverse);
     }
 
-    template<typename = std::enable_if<Current == Level::Packet || Current ==  Level::Payload>>
     Iterator<Descendants...> crend() const
     {
-        throw std::logic_error("unimplemented");
+        // Current fragment must be at higher level of abstraction than descendant fragments.
+        // Therefore, the location of this fragment makes for a good "past the end" iterator value.
+        return Iterator<Descendants...>(this->_impl, this->_location, Direction::Reverse);
     }
 };
 
