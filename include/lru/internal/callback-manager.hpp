@@ -26,7 +26,6 @@
 #include <vector>
 
 #include <lru/entry.hpp>
-#include <lru/internal/optional.hpp>
 
 namespace LRU {
 namespace Internal {

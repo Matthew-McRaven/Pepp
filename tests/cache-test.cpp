@@ -35,8 +35,14 @@ struct CacheTest {
 
   template <typename Cache, typename Range>
   bool is_equal_to_range(const Cache& cache, const Range& range) {
-    using std::begin;
-    return std::equal(cache.ordered_begin(), cache.ordered_end(), begin(range));
+    if (cache.size() != range.size()) return false;
+    for (auto item : range) {
+      if (auto i = cache.const_find(item.first); i == cache.cend()) {
+        return false;
+      } else if (i->second.value != item.second)
+        return false;
+    }
+    return true;
   }
 
   CacheType cache;
@@ -528,13 +534,13 @@ TEST_CASE("CacheConstructionTest") {
     CHECK(t.cache.contains("one"));
     CHECK_FALSE(t.cache.contains("two"));
     CHECK(t.cache.contains("three"));
-    CHECK(std::prev(t.cache.ordered_end()).key() == "three");
+    CHECK(std::prev(t.cache.ordered_cend())->get() == "three");
     CHECK(t.cache.front() == "three");
     CHECK(t.cache.back() == "one");
 
     REQUIRE(t.cache.lookup("one") == 1);
-    CHECK(std::prev(t.cache.ordered_end()).key() == "one");
-    CHECK(t.cache.ordered_begin().key() == "three");
+    CHECK(std::prev(t.cache.ordered_cend())->get() == "one");
+    CHECK(t.cache.ordered_cbegin()->get() == "three");
     CHECK(t.cache.front() == "one");
     CHECK(t.cache.back() == "three");
   }

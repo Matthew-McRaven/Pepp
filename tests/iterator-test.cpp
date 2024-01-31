@@ -29,10 +29,6 @@
 using namespace LRU;
 using namespace std::chrono_literals;
 using CacheType = Cache<std::string, int>;
-using UnorderedIterator = typename CacheType::UnorderedIterator;
-using UnorderedConstIterator = typename CacheType::UnorderedConstIterator;
-using OrderedIterator = typename CacheType::OrderedIterator;
-using OrderedConstIterator = typename CacheType::OrderedConstIterator;
 CacheType cache;
 
 TEST_CASE("IteratorTest") {
@@ -41,160 +37,36 @@ TEST_CASE("IteratorTest") {
     cache.emplace("one", 1);
 
     // Move construction
-    UnorderedIterator first(cache.unordered_begin());
+    CacheType::iterator first(cache.begin());
 
     // Copy construction
-    UnorderedIterator second(first);
+    CacheType::iterator second(first);
 
     // Copy assignment
-    UnorderedIterator third;
+    CacheType::iterator third;
     third = second;
 
     // Move construction from non-const to const
-    UnorderedConstIterator first_const(std::move(first));
+    CacheType::const_iterator first_const(std::move(first));
 
     // Copy construction from non-const to const
-    UnorderedConstIterator second_const(second);
+    CacheType::const_iterator second_const(second);
 
     // Copy assignment
-    UnorderedConstIterator third_const;
+    CacheType::const_iterator third_const;
     third_const = third;
   }
-  SECTION("OrderedIteratorsAreCompatibleAsExpected") {
-    CacheType cache;
-    cache.emplace("one", 1);
 
-    // Move construction
-    OrderedIterator first(cache.ordered_begin());
-
-    // TODO: Copy CTOR is broken on const-ness
-    // Copy construction
-    // OrderedIterator second(first);
-
-    // Copy assignment
-    OrderedIterator third;
-    third = first;
-
-    // Move construction from non-const to const
-    OrderedConstIterator first_const(std::move(first));
-
-    // Copy construction from non-const to const
-    // OrderedConstIterator second_const(third);
-
-    // TODO: Copy assigment is broken on const-ness
-    // Copy assignment
-    // OrderedConstIterator third_const;
-    // third_const = first_const;
-  }
-  SECTION("OrderedAndUnorderedAreComparable") {
-    CacheType cache;
-    cache.emplace("one", 1);
-
-    // Basic assumptions
-    REQUIRE(cache.unordered_begin() == cache.unordered_begin());
-    REQUIRE(cache.ordered_begin() == cache.ordered_begin());
-    REQUIRE(cache.unordered_end() == cache.unordered_end());
-    REQUIRE(cache.ordered_end() == cache.ordered_end());
-
-    CHECK(cache.unordered_begin() == cache.ordered_begin());
-
-    // We need to ensure symmetry!
-    CHECK(cache.ordered_begin() == cache.unordered_begin());
-
-    // This is an exceptional property we expect
-    CHECK(cache.unordered_end() == cache.ordered_end());
-    CHECK(cache.ordered_end() == cache.unordered_end());
-
-    // These assumptions should hold because there is only one element
-    // so the unordered iterator will convert to an ordered iterator, then
-    // compare equal because both point to the same single element.
-    CHECK(cache.ordered_begin() == cache.unordered_begin());
-    CHECK(cache.unordered_begin() == cache.ordered_begin());
-
-    cache.emplace("two", 1);
-
-    // But then the usual assumptions should hold
-    CHECK(cache.ordered_begin() != cache.find("two"));
-    CHECK(cache.find("two") != cache.ordered_begin());
-  }
-  SECTION("TestConversionFromUnorderedToOrdered") {
-    CacheType cache;
-    cache.emplace("one", 1);
-    cache.emplace("two", 2);
-    cache.emplace("three", 3);
-
-    // Note: find() will always return end() - 1
-    UnorderedIterator unordered = cache.find("one");
-
-    REQUIRE(unordered.key() == "one");
-    REQUIRE(unordered.value() == 1);
-
-    // TODO: Broken const-conversion
-    // OrderedIterator ordered(unordered);
-    /*OrderedIterator ordered(unordered);
-
-    CHECK(ordered.key() == "one");
-    CHECK(ordered.value() == 1);
-
-    // Once it's ordered, the ordering shold be maintained
-    --ordered;
-    CHECK(ordered.key() == "three");
-    CHECK(ordered.value() == 3);
-
-    UnorderedConstIterator const_unordered = unordered;
-    const_unordered = unordered;
-
-    OrderedConstIterator const_ordered(std::move(const_unordered));
-    const_ordered = OrderedConstIterator(std::move(const_unordered));
-
-    // Just making sure this compiles
-    const_ordered = --ordered;
-    const_ordered = OrderedConstIterator(unordered);
-
-    CHECK(ordered.key() == "two");
-    CHECK(ordered.value() == 2);*/
-  }
-  SECTION("OrdereredIteratorsAreOrdered") {
-    CacheType cache;
-    for (std::size_t i = 0; i < 100; ++i) {
-      cache.emplace(std::to_string(i), i);
-    }
-
-    auto iterator = cache.ordered_begin();
-    for (std::size_t i = 0; i < 100; ++i, ++iterator) {
-      REQUIRE(iterator.value() == i);
-    }
-  }
-  SECTION("OrderedIteratorsDoNotChangeTheOrderOfElements") {
-    CacheType cache;
-    cache.capacity(2);
-    cache.insert({{"one", 1}});
-
-    auto begin = cache.ordered_begin();
-
-    cache.emplace("two", 2);
-
-    // This here will cause a lookup, but it should not
-    // change the order of elements
-    REQUIRE(begin->key() == "one");
-    REQUIRE((++begin)->key() == "two");
-    REQUIRE((--begin)->key() == "one");
-    cache.emplace("three", 3);
-
-    CHECK_FALSE(cache.contains("one"));
-    CHECK(cache.contains("two"));
-    CHECK(cache.contains("three"));
-  }
   SECTION("UnorderedIteratorsDoNotChangeTheOrderOfElements") {
     CacheType cache;
     cache.capacity(2);
     cache.insert({{"one", 1}});
 
-    auto begin = cache.unordered_begin();
+    auto begin = cache.begin();
 
     cache.emplace("two", 2);
 
-    REQUIRE(begin->key() == "one");
+    REQUIRE(begin->first == "one");
     cache.emplace("three", 3);
 
     CHECK_FALSE(cache.contains("one"));
@@ -210,43 +82,33 @@ TEST_CASE("IteratorTest") {
     cache.emplace("two", 1);
 
     // TODO: const conversion is broken
-    /*
-    auto ordered_iterator = cache.ordered_begin();
-    CHECK(cache.is_valid(ordered_iterator));
-    CHECK(cache.is_valid(++ordered_iterator));
-    */
+    auto iterator = cache.cbegin();
+    CHECK(cache.is_valid(iterator));
+    CHECK(cache.is_valid(++iterator));
 
-    auto unordered_iterator = cache.unordered_begin();
+    auto unordered_iterator = cache.begin();
     CHECK(cache.is_valid(unordered_iterator));
     CHECK(cache.is_valid(++unordered_iterator));
   }
   SECTION("ThrowIfInvalidThrowsAsExpected") {
     CacheType cache;
-    CHECK_THROWS_AS(cache.throw_if_invalid(cache.ordered_begin()),
+    CHECK_THROWS_AS(cache.throw_if_invalid(cache.begin()),
                     LRU::Error::InvalidIterator);
-    CHECK_THROWS_AS(cache.throw_if_invalid(cache.ordered_end()),
-                    LRU::Error::InvalidIterator);
-    CHECK_THROWS_AS(cache.throw_if_invalid(cache.unordered_begin()),
-                    LRU::Error::InvalidIterator);
-    CHECK_THROWS_AS(cache.throw_if_invalid(cache.unordered_end()),
+    CHECK_THROWS_AS(cache.throw_if_invalid(cache.end()),
                     LRU::Error::InvalidIterator);
   }
   SECTION("ThrowIfInvalidThrowsAsExpected") {
     CacheType cache;
-    CHECK_THROWS_AS(cache.throw_if_invalid(cache.ordered_begin()),
+
+    CHECK_THROWS_AS(cache.throw_if_invalid(cache.begin()),
                     LRU::Error::InvalidIterator);
-    CHECK_THROWS_AS(cache.throw_if_invalid(cache.ordered_end()),
-                    LRU::Error::InvalidIterator);
-    CHECK_THROWS_AS(cache.throw_if_invalid(cache.unordered_begin()),
-                    LRU::Error::InvalidIterator);
-    CHECK_THROWS_AS(cache.throw_if_invalid(cache.unordered_end()),
+    CHECK_THROWS_AS(cache.throw_if_invalid(cache.end()),
                     LRU::Error::InvalidIterator);
   }
   SECTION("IsValidReturnsFalseForInvalidIterators") {
     CacheType cache;
-    CHECK_FALSE(cache.is_valid(cache.ordered_begin()));
-    CHECK_FALSE(cache.is_valid(cache.ordered_end()));
-    CHECK_FALSE(cache.is_valid(cache.unordered_begin()));
-    CHECK_FALSE(cache.is_valid(cache.unordered_end()));
+
+    CHECK_FALSE(cache.is_valid(cache.begin()));
+    CHECK_FALSE(cache.is_valid(cache.end()));
   }
 }

@@ -67,7 +67,7 @@ auto wrap(Function original_function, Args&&... args) {
     auto iterator = cache.find(key);
 
     if (iterator != cache.end()) {
-      return iterator->second;
+      return iterator->second.value;
     }
 
     auto value =
