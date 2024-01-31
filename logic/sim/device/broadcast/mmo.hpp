@@ -47,7 +47,7 @@ public:
   void dump(bits::span<quint8> dest) const override;
 
   // Sink interface
-  bool analyze(const api2::packet::Header& header, const std::span<api2::packet::Payload> &, Direction) override;
+  bool analyze(api2::trace::PacketIterator iter, Direction) override;
 
   // Source interface
   void trace(bool enabled) override;
@@ -105,27 +105,30 @@ Output<Address>::endpoint() {
 }
 
 template<typename Address>
-bool Output<Address>::analyze(const api2::packet::Header& header,
-                              const std::span<api2::packet::Payload>& payloads,
-                              Direction direction)
+bool Output<Address>::analyze(api2::trace::PacketIterator iter, Direction direction)
 {
-  if(!std::visit(sim::trace2::IsSameDevice{_device.id}, header)) return false;
-  else if(std::holds_alternative<api2::packet::header::Write>(header)) {
-    // Address is always implicitly 0 since this is a 1-byte port.
-    auto hdr = std::get<api2::packet::header::Write>(header);
-    if(direction == Direction::Backward) _endpoint->unwrite();
-    // Forward direction
-    // We don't emit multiple payloads, so receiving multiple (or 0) doesn't make sense.
-    else if(payloads.size() != 1) return false;
-    // Otherwise we are seeing this byte for the first time via the trace.
-    // We need to mimic the effects of write().
-    else if(std::holds_alternative<api2::packet::payload::Variable>(payloads[0])) {
-      auto payload = std::get<api2::packet::payload::Variable>(payloads[0]);
-      // Only use the first byte, since this port only has 1 address.
-      _endpoint->append_value(payload.payload.bytes[0]);
-    }
-  } else return false;
-  return true;
+    auto header = *iter;
+    if (!std::visit(sim::trace2::IsSameDevice{_device.id}, header))
+        return false;
+    else if (std::holds_alternative<api2::packet::header::Write>(header)) {
+        // Address is always implicitly 0 since this is a 1-byte port.
+        auto hdr = std::get<api2::packet::header::Write>(header);
+        if (direction == Direction::Backward)
+            _endpoint->unwrite();
+        // Forward direction
+        // We don't emit multiple payloads, so receiving multiple (or 0) doesn't make sense.
+        else if (std::distance(iter.cbegin(), iter.cend()) != 1)
+            return false;
+        // Otherwise we are seeing this byte for the first time via the trace.
+        // We need to mimic the effects of write().
+        else if (std::holds_alternative<api2::packet::payload::Variable>(*iter.cbegin())) {
+            auto payload = std::get<api2::packet::payload::Variable>(*iter.cbegin());
+            // Only use the first byte, since this port only has 1 address.
+            _endpoint->append_value(payload.payload.bytes[0]);
+        }
+    } else
+        return false;
+    return true;
 }
 
 template<typename Address>

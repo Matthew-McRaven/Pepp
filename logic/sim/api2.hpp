@@ -196,25 +196,6 @@ enum class Mode {
     Deferred, // Trace frames will be parsed at some later point.
 };
 
-class Buffer;
-class Source {
-public:
-    virtual ~Source() = default;
-    virtual void setBuffer(Buffer* tb) = 0;
-    virtual void trace(bool enabled) = 0;
-};
-
-class Sink {
-public:
-    virtual ~Sink() = default;
-    enum class Direction {
-        Forward,    // Apply the action specified by the packet.
-        Backward,   // Undo the effects of the action specified by the packet.
-    };
-    // Return true if the packet was processed by this sink, otherwise return false.
-    virtual bool analyze(const packet::Header&, const std::span<packet::Payload>&, Direction) = 0;
-};
-
 enum class Level {
     Frame = 1,
     Packet = 2,
@@ -430,6 +411,28 @@ public:
     virtual TraceIterator crbegin() const = 0;
     virtual TraceIterator crend() const = 0;
 };
+
+class Source
+{
+public:
+    virtual ~Source() = default;
+    virtual void setBuffer(Buffer *tb) = 0;
+    virtual void trace(bool enabled) = 0;
+};
+
+using PacketIterator = Iterator<Level::Packet, Level::Payload>;
+class Sink
+{
+public:
+    virtual ~Sink() = default;
+    enum class Direction {
+        Forward,  // Apply the action specified by the packet.
+        Backward, // Undo the effects of the action specified by the packet.
+    };
+    // Return true if the packet was processed by this sink, otherwise return false.
+    virtual bool analyze(PacketIterator iter, Direction) = 0;
+};
+
 } // namespace sim::api2::trace
 
 // In API v1, errors are communicated via an Error field.

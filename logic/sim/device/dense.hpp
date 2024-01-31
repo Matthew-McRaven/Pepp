@@ -46,7 +46,7 @@ public:
   void dump(bits::span<quint8> dest) const override;
 
   // Sink interface
-  bool analyze(const api2::packet::Header& header, const std::span<api2::packet::Payload> &, Direction) override;
+  bool analyze(const api2::trace::PacketIterator iter, Direction) override;
 
   // Source interface
   void setBuffer(api2::trace::Buffer *tb) override;
@@ -137,22 +137,22 @@ struct PayloadHelper {
 }
 
 template<typename Address>
-bool Dense<Address>::analyze(const api2::packet::Header& header,
-                             const std::span<api2::packet::Payload>& payloads,
-                             Direction direction)
+bool Dense<Address>::analyze(api2::trace::PacketIterator iter, Direction direction)
 {
-  if(!std::visit(sim::trace2::IsSameDevice{_device.id}, header)) return false;
-  // Read has no side effects, dense only issues pure reads.
-  // Therefore we only need to handle out write packets.
-  else if(std::holds_alternative<api2::packet::header::Write>(header)) {
-    auto hdr = std::get<api2::packet::header::Write>(header);
-    Address address = hdr.address.to_address<Address>();
-    // forward vs backwards does not matter for dense memory,
-    // since payloads are XOR encoded. We can compute (current XOR payload)
-    // to determine the updated memory values.
-    for(auto payload: payloads)
-      address += std::visit(detail::PayloadHelper<Address>(address, this), payload);
-  }
+    auto header = *iter;
+    if (!std::visit(sim::trace2::IsSameDevice{_device.id}, header))
+        return false;
+    // Read has no side effects, dense only issues pure reads.
+    // Therefore we only need to handle out write packets.
+    else if (std::holds_alternative<api2::packet::header::Write>(header)) {
+        auto hdr = std::get<api2::packet::header::Write>(header);
+        Address address = hdr.address.to_address<Address>();
+        // forward vs backwards does not matter for dense memory,
+        // since payloads are XOR encoded. We can compute (current XOR payload)
+        // to determine the updated memory values.
+        for (auto payload : iter)
+            address += std::visit(detail::PayloadHelper<Address>(address, this), payload);
+    }
   return true;
 }
 
