@@ -25,7 +25,7 @@
 #include <vector>
 
 #include "lru/lru.hpp"
-#include "tests/move-aware-dummies.hpp"
+#include "move-aware-dummies.hpp"
 
 struct MoveAwarenessTest {
   MoveAwarenessTest() {

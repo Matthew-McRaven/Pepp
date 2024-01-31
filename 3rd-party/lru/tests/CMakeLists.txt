@@ -20,7 +20,7 @@ set(TEST_LRU_CACHE_SOURCES
 add_executable(lru-cache-test ${TEST_LRU_CACHE_SOURCES})
 
 set_target_properties(lru-cache-test PROPERTIES FOLDER "qtc_runnable")
-target_link_libraries(lru-cache-test catch)
+target_link_libraries(lru-cache-test catch lru-cache)
 
 add_test(
   NAME lru-cache-test
