@@ -86,7 +86,7 @@ bool sim::trace2::InfiniteBuffer::updateFrameHeader()
 
     // Overwrite existing frame header to update "length" field.
     _out.reset(_lastFrameStart);
-    _out(hdr).or_throw();
+    _out(wrapped{hdr}).or_throw();
     _out.reset(curOutPos);
 
     return true;
