@@ -94,6 +94,7 @@ struct VariableBytes {
             return archive(zpp::bits::bytes(array_view, array_view.size_bytes()));
         } else if(archive.kind() == zpp::bits::kind::in)
             throw std::logic_error("Can't read into const");
+        throw std::logic_error("Unimplemented");
 
     }
 
@@ -215,32 +216,65 @@ public:
 };
 
 enum class Level {
-    Frame,
-    Packet,
-    Payload,
+    Frame = 1,
+    Packet = 2,
+    Payload = 3,
 };
+inline auto operator<=>(Level lhs, Level rhs)
+{
+    return ((int) lhs) <=> ((int) rhs);
+}
 
 struct IteratorImpl {
+    virtual std::size_t end() const = 0;
     virtual std::size_t size_at(std::size_t loc, Level level) const = 0;
+    virtual Level at(std::size_t loc) const = 0;
     virtual frame::Header frame(std::size_t loc) const = 0;
     virtual packet::Header packet(std::size_t loc) const = 0;
     virtual packet::Payload payload(std::size_t loc) const = 0;
     virtual std::size_t next(std::size_t loc, Level level) const = 0;
     virtual std::size_t prev(std::size_t loc, Level level) const = 0;
-
 };
 
-template <Level Current, Level... Descendant>
-struct Iterator {
-    typedef std::forward_iterator_tag iterator_category;
-    typedef const Iterator<Descendant...> value_type;
-    typedef quint64 difference_type;
-    typedef const Iterator<Descendant...>* pointer;
-    typedef const Iterator<Descendant...>& reference;
+enum class Direction {
+    Forward,
+    Reverse,
+};
+// "base class" for iterators.
+// Specialization of this class with <Arg> and <Arg, ...args>
+// will enable my heirarchical iterators.
+template<Level... Args>
+struct Iterator;
 
-    Iterator(const IteratorImpl* impl, std::size_t location): _impl(impl), _location(location) {}
+// Prevent instantiation of iterator for Iterator<Level::Payload>
+template<Level Current>
+struct Iterator<Current>{
+public:
+    using iterator_category = std::forward_iterator_tag;
+    using difference_type = quint64;
+    using _helper = typename std::conditional<Current == Level::Packet, packet::Header, packet::Payload>::type;
+    using value_type = typename std::conditional<Current == Level::Frame, frame::Header, _helper>::type;
+    using pointer = const value_type*;
+    using reference = value_type&;
+
+    Iterator(const IteratorImpl *impl, std::size_t location, Direction dir = Direction::Forward)
+        : _impl(impl)
+        , _location(location)
+        , _dir(dir)
+    {}
+
     Iterator& operator++() {
-        _location += _impl->next(_location, Current);
+        if (_dir == Direction::Forward)
+            _location = _impl->next(_location, Current);
+        else _location = _impl->prev(_location, Current);
+        return *this;
+    }
+
+    Iterator &operator--()
+    {
+        if (_dir == Direction::Forward)
+            _location = _impl->prev(_location, Current);
+        else _location = _impl->next(_location, Current);
         return *this;
     }
 
@@ -250,9 +284,16 @@ struct Iterator {
         return ret;
     }
 
+    Iterator& operator--(int) {
+        auto ret = *this;
+        --(*this);
+        return ret;
+    }
+
     bool operator==(Iterator other) const
     {
-        return _impl == other._impl && _location == other._location;
+        return _impl == other._impl && _location == other._location
+            && _dir == other._dir;
     }
 
     bool operator!=(Iterator other) const
@@ -260,58 +301,92 @@ struct Iterator {
         return !(other == *this);
     }
 
-    value_type operator*() const
-    {
-        // TODO: handle forward vs backward.
-        return value_type(_impl, _location + fragment_size());
-    }
-
     std::size_t fragment_size() const
     {
         return _impl->size_at(_location, Current);
     }
 
-    template<typename = std::enable_if<Current == Level::Packet || Current == Level::Payload>>
-    Iterator<Descendant...> cbegin() const
+    value_type operator*() const
     {
-        return {};
-        //return iterator<Descendant...>(_impl, _location);
+        if constexpr(Current == Level::Frame)  return _impl->frame(_location);
+        else if constexpr(Current == Level::Packet) return _impl->packet(_location);
+        else return _impl->payload(_location);
     }
 
-    template<typename = std::enable_if<Current == Level::Packet || Current == Level::Payload>>
-    Iterator<Descendant...> cend() const
-    {
-        return {};
-    }
-
-    template<typename = std::enable_if<Current == Level::Frame>>
-    frame::Header header() const
-    {
-        return _impl->frame(_location);
-    }
-
-    template<typename = std::enable_if<Current == Level::Packet>>
-    packet::Header header()
-    {
-        return _impl->packet(_location);
-    }
-
-    template<typename = std::enable_if<Current == Level::Payload>>
-    packet::Payload payload() const
-    {
-        return _impl->payload(_location);
-    }
-
-private:
+protected:
     const IteratorImpl* _impl;
     std::size_t _location = 0;
+    Direction _dir;
 };
 
+// Defer to above implementation in all cases except those handling iteration.
+template<Level Current, Level... Descendants>
+struct Iterator<Current, Descendants...>: public Iterator<Current> {
+public:
+    Iterator(const IteratorImpl *impl, std::size_t location, Direction dir = Direction::Forward)
+        : Iterator<Current>(impl, location, dir)
+    {}
 
+    Iterator<Descendants...> cbegin() const
+    {
+        // Skip current element, because this returns a iterator for children.
+        auto to_next = this->_impl->size_at(this->_location, Current);
+        return Iterator<Descendants...>(this->_impl, this->_location + to_next);
+    }
+
+    Iterator<Descendants...> cend() const
+    {
+        // Skip current element, because this returns a iterator for children.
+        auto to_next = this->_impl->size_at(this->_location, Current);
+        std::size_t next = this->_location + to_next;
+        if (next != this->_impl->end()) {
+            auto next_type = this->_impl->at(next);
+            // If the next item is below our level of abstraction,
+            // then we need to search for the next item that is at our level of abstraction.
+            if ((int) Current < (int) next_type)
+                next = this->_impl->next(next, Current);
+        }
+        return Iterator<Descendants...>(this->_impl, next);
+    }
+
+    Iterator<Descendants...> crbegin() const
+    {
+        // Figure out what next level is.
+        Level below;
+        switch (Current) {
+        case Level::Frame:
+            below = Level::Packet;
+            break;
+        case Level::Packet:
+            below = Level::Payload;
+            break;
+        default:
+            throw std::logic_error("Supposedly unreachable");
+        }
+
+        // Find the first successor element at the current level of abstraction,
+        // and from the successor, find the previous element at
+        // the next lower level of asbtraction.
+        std::size_t loc = this->_location;
+        auto next_above = this->_impl->next(this->_location, Current);
+
+        // If next(...) hits end, prev will "do the right thing".
+        // Our only risk is that prev hits the end sentinel.
+        loc = this->_impl->prev(next_above, below);
+        return Iterator<Descendants...>(this->_impl, loc, Direction::Reverse);
+    }
+
+    Iterator<Descendants...> crend() const
+    {
+        // Current fragment must be at higher level of abstraction than descendant fragments.
+        // Therefore, the location of this fragment makes for a good "past the end" iterator value.
+        return Iterator<Descendants...>(this->_impl, this->_location, Direction::Reverse);
+    }
+};
 
 // If you inherit from this, you will likely want to inherit IteratorImpl as well.
 // IteratorImpl allows polymorphic implementation of this class while mantaining a stable
-// ABI for teh iterator class.
+// ABI for the iterator class.
 // TODO: Add additional channel for command / simulation packets.
 // Simulation packets are notifications such as "there's no MMIO".
 // Command packets may set memory values, step forward some number of ticks.
@@ -339,6 +414,8 @@ public:
 
     virtual TraceIterator cbegin() const = 0;
     virtual TraceIterator cend() const = 0;
+    virtual TraceIterator crbegin() const = 0;
+    virtual TraceIterator crend() const = 0;
 };
 } // namespace sim::api2::trace
 
