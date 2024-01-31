@@ -95,14 +95,10 @@ sim::api2::tick::Result targets::pep10::isa::CPU::clock(sim::api2::tick::Type cu
   return ret;
 }
 
-bool targets::pep10::isa::CPU::filter(const sim::api2::packet::Header &)
+bool targets::pep10::isa::CPU::analyze(sim::api2::trace::PacketIterator iter, Direction)
 {
-  throw std::logic_error("unimplemented");
-}
-
-bool targets::pep10::isa::CPU::analyze(const sim::api2::packet::Header &, const std::span<sim::api2::packet::Payload> &, Direction)
-{
-  throw std::logic_error("unimplemented");
+  // At the moment, this class does not emit any trace events directly.
+  return false;
 }
 
 void targets::pep10::isa::CPU::setBuffer(sim::api2::trace::Buffer *tb) {

@@ -47,8 +47,8 @@ public:
   void dump(bits::span<quint8> dest) const override;
 
   // Sink interface
-  bool filter(const api2::packet::Header& header) override;
-  bool analyze(const api2::packet::Header& header, const std::span<api2::packet::Payload> &, Direction) override;
+  bool analyze(api2::trace::PacketIterator iter, Direction) override;
+
   // Source interface
   void trace(bool enabled) override;
   void setBuffer(api2::trace::Buffer *tb) override;
@@ -105,16 +105,30 @@ Output<Address>::endpoint() {
 }
 
 template<typename Address>
-bool Output<Address>::filter(const api2::packet::Header &header)
+bool Output<Address>::analyze(api2::trace::PacketIterator iter, Direction direction)
 {
-  return std::visit(sim::trace2::IsSameDevice{_device.id}, header);
-}
-
-template<typename Address>
-bool Output<Address>::analyze(const api2::packet::Header &header, const std::span<api2::packet::Payload> &, Direction)
-{
-  throw std::logic_error("unimplemented");
-  return true;
+    auto header = *iter;
+    if (!std::visit(sim::trace2::IsSameDevice{_device.id}, header))
+        return false;
+    else if (std::holds_alternative<api2::packet::header::Write>(header)) {
+        // Address is always implicitly 0 since this is a 1-byte port.
+        auto hdr = std::get<api2::packet::header::Write>(header);
+        if (direction == Direction::Backward)
+            _endpoint->unwrite();
+        // Forward direction
+        // We don't emit multiple payloads, so receiving multiple (or 0) doesn't make sense.
+        else if (std::distance(iter.cbegin(), iter.cend()) != 1)
+            return false;
+        // Otherwise we are seeing this byte for the first time via the trace.
+        // We need to mimic the effects of write().
+        else if (std::holds_alternative<api2::packet::payload::Variable>(*iter.cbegin())) {
+            auto payload = std::get<api2::packet::payload::Variable>(*iter.cbegin());
+            // Only use the first byte, since this port only has 1 address.
+            _endpoint->append_value(payload.payload.bytes[0]);
+        }
+    } else
+        return false;
+    return true;
 }
 
 template<typename Address>
@@ -132,8 +146,10 @@ api2::memory::Result Output<Address>::read(Address address, bits::span<quint8> d
   auto maxDestAddr = (address + std::max<Address>(0, dest.size() - 1));
   if (address < _span.minOffset || maxDestAddr > _span.maxOffset)
       throw E(E::Type::OOBAccess, address);
+  // Only emit a trace if the operation isn't related to app-internal state.
   else if (auto end = _endpoint->current_value(); end) {
-    if (op.type != Operation::Type::Application && _tb)
+      if (!(op.type == Operation::Type::Application
+            || op.type == Operation::Type::BufferInternal) && _tb)
       sim::trace2::emitPureRead<Address>(_tb, _device.id, 0, dest.size());
     quint8 tmp = *end;
     bits::memcpy(dest, bits::span<const quint8>{&tmp, 1});
@@ -150,7 +166,9 @@ api2::memory::Result Output<Address>::write(Address address, bits::span<const qu
   auto maxDestAddr = (address + std::max<Address>(0, src.size() - 1));
   if (address < _span.minOffset || maxDestAddr > _span.maxOffset)
     throw E(E::Type::OOBAccess, address);
-  else if (op.type != Operation::Type::Application) {
+  // Only emit a trace if the operation isn't related to app-internal state.
+  else if (!(op.type == Operation::Type::Application
+             || op.type == Operation::Type::BufferInternal)) {
     if(_tb) sim::trace2::emitMMWrite<Address>(_tb, _device.id, 0, src);
     quint8 tmp;
     bits::memcpy(bits::span<quint8>{&tmp, 1}, src);

@@ -3,6 +3,7 @@
 #include <zpp_bits.h>
 
 #include "bits/span.hpp"
+#include "bits/operations/copy.hpp"
 
 namespace sim::api2 {
 
@@ -31,32 +32,86 @@ namespace packet {
 // The variable-length byte-array allows this to be expressed in a single packet type.
 template <size_t N>
 struct VariableBytes {
-    // TODO: add helper methods to convert to/from  un/signed int8/16/32/64 in either endianness.
-    constexpr static zpp::bits::errc serialize(auto& archive, auto& self) {
+    VariableBytes(quint8 len, bool continues=false)
+    {
+        this->len = (len & len_mask()) | (continues ? 0x80 : 0x00);
+        bytes.fill(0);
+    }
+
+    VariableBytes(quint8 len, bits::span<const quint8> src, bool continues=false)
+    {
+        this->len = (len & len_mask()) | (continues ? 0x80 : 0x00);
+        bits::memcpy(bits::span<quint8>{bytes.data(), len}, src);
+    }
+
+    template <std::unsigned_integral Address>
+    static VariableBytes from_address(Address address)
+    {
+        auto len = sizeof(address);
+        // Copy address bytes into bytes array.
+        return VariableBytes(len, bits::span<const quint8>((quint8*) &address, len));
+    }
+
+    template <std::unsigned_integral Address>
+    Address to_address() const
+    {
+        Address address = 0;
+        auto addr_span = bits::span<quint8>((quint8*) &address, sizeof(address));
+        // Rely on memcpy to perform bounds checking between len and sizeof(address).
+        bits::memcpy(addr_span, bits::span<const quint8>{bytes.data(), len});
+        return address;
+    }
+
+    constexpr static zpp::bits::errc serialize(auto& archive, auto& self)
+    {
         // Serialize array manually to avoid allocating extra 0's in the bit stream.
         // Must also de-serialize manually, otherwise archive will advance the position
         // by the allocated size of the array, not the "used" size.
         if(archive.kind() == zpp::bits::kind::out) {
-
-            if(self.len > N) return zpp::bits::errc(std::errc::value_too_large);
+            // Mask out flag bits before checking max size.
+            auto len = self.len & len_mask();
+            if(len > N) return zpp::bits::errc(std::errc::value_too_large);
+            // Write out length + flags.
             zpp::bits::errc errc = archive(self.len);
             if(errc.code != std::errc()) return errc;
             else if(self.len == 0) return errc;
+
+            // Let compiler deduce [const quint8] vs [quint8].
+            auto span = std::span(self.bytes.data(), len);
+            return archive(zpp::bits::bytes(span, len));
+        }
+        // Only allow reading into nonconst objects
+        else if (archive.kind() == zpp::bits::kind::in && !std::is_const<decltype(self)>()) {
+            zpp::bits::errc errc = archive(self.len);
+            auto len = self.len & len_mask();
+            if(errc.code != std::errc()) return errc;
+            // Ignore flag bits in bounds check
+            else if(len > N) return zpp::bits::errc(std::errc::value_too_large);
+            else if(len == 0) return errc;
 
             // We serialized the length ourselves. If we pass array_view directly, size will be serialzed again.
-            auto array_view = std::span<quint8>(self.bytes.data(), self.len);
+            auto array_view = bits::span<quint8>(self.bytes.data(), len);
             return archive(zpp::bits::bytes(array_view, array_view.size_bytes()));
-        } else {
-            zpp::bits::errc errc = archive(self.len);
-            if(errc.code != std::errc()) return errc;
-            else if(self.len > N) return zpp::bits::errc(std::errc::value_too_large);
-            else if(self.len == 0) return errc;
+        } else if(archive.kind() == zpp::bits::kind::in)
+            throw std::logic_error("Can't read into const");
+        throw std::logic_error("Unimplemented");
 
-            auto array_view = std::span<quint8>(self.bytes.data(), self.len);
-            // See above.
-            return archive(zpp::bits::bytes(array_view, array_view.size_bytes()));
-        }
     }
+
+    bool continues() const
+    {
+        return len &  ~len_mask();
+    }
+
+    static constexpr quint8 len_mask()
+    {
+        return 0x7f;
+    }
+
+    // Ensure that we don't clobber flags with a too-large array.
+    static_assert(N < len_mask()+1);
+
+    // High order bit is used for "continues" flag.
     quint8 len = 0;
     std::array<quint8, N> bytes = {0};
 };
@@ -69,25 +124,29 @@ enum class DeltaEncoding : quint8 {
 namespace header {
 struct Clear {
     device_id_t device = 0;
-    VariableBytes<8> value = {0,0};
+    static constexpr std::size_t N = 8;
+    VariableBytes<N> value = {0};
 };
 
 struct PureRead {
     device_id_t device = 0;
     zpp::bits::varint<quint64> payload_len = 0;
-    VariableBytes<8> address = {0,0};
+    static constexpr std::size_t N = 8;
+    VariableBytes<N> address = {0};
 };
 
 // MUST be followed by 1+ payloads.
 struct ImpureRead {
     device_id_t device = 0;
-    VariableBytes<8> address = {0,0};
+    static constexpr std::size_t N = 8;
+    VariableBytes<N> address = {0};
 };
 
 // MUST be followed by 1+ payload.
 struct Write {
     device_id_t device = 0;
-    VariableBytes<8> address = {0,0};
+    static constexpr std::size_t N = 8;
+    VariableBytes<N> address = {0};
 };
 } // sim::api2::packet::header
 using Header = std::variant<header::Clear, header::PureRead, header::ImpureRead, header::Write>;
@@ -95,25 +154,17 @@ using Header = std::variant<header::Clear, header::PureRead, header::ImpureRead,
 namespace payload {
 // Successive payloads belong to the same packet.
 struct Variable {
-    VariableBytes<32> payload = {0, 0};
+    static constexpr std::size_t N = 32;
+    VariableBytes<N> payload = {0};
 };
 } // sim::api2::packet::payload
 using Payload = std::variant<payload::Variable>;
 using Fragment = std::variant<Header, Payload>;
-
-// Elements are "Packet"'s.
-struct Iterator {
-    virtual void next() = 0;
-};
 } //sim::api2::packet
 
-struct Packet {
-    virtual const packet::Header header() const = 0;
-    virtual int payloadCount() const = 0;
-    virtual const packet::Payload payload(int index) const = 0;
-};
-
 namespace frame {
+// DO NOT SET "length" OR "back_offset"! The trace buffer will fill in these
+// fields in with the correct offsets.
 // There may be different kinds of frames.
 // The most common kind is a Trace frame, which records modifications to the simulation.
 // Other headers may be used to convey configuration information, etc.
@@ -137,45 +188,225 @@ struct Extender {
 };
 } // sim::api2::frame::header
 using Header = std::variant<header::Trace, header::Extender>;
-// Elements are "Frame"'s. Each frame can be iterated over to get its packets.
-struct Iterator {
-    // Move to next frame.
-    virtual void next() = 0;
-};
 } // sim::api2::frame
 
-struct Frame {
-    virtual frame::Header header() = 0;
-    virtual packet::Iterator begin() = 0;
-    virtual packet::Iterator end() = 0;
-};
-
 namespace trace {
-
 enum class Mode {
     Realtime, // Trace frames are parsed as they are received
     Deferred, // Trace frames will be parsed at some later point.
 };
 
-class Buffer;
-class Source {
-public:
-    virtual ~Source() = default;
-    virtual void setBuffer(Buffer* tb) = 0;
-    virtual void trace(bool enabled) = 0;
+enum class Level {
+    Frame = 1,
+    Packet = 2,
+    Payload = 3,
+};
+inline auto operator<=>(Level lhs, Level rhs)
+{
+    return ((int) lhs) <=> ((int) rhs);
+}
+
+struct IteratorImpl {
+    virtual std::size_t end() const = 0;
+    virtual std::size_t size_at(std::size_t loc, Level level) const = 0;
+    virtual Level at(std::size_t loc) const = 0;
+    virtual frame::Header frame(std::size_t loc) const = 0;
+    virtual packet::Header packet(std::size_t loc) const = 0;
+    virtual packet::Payload payload(std::size_t loc) const = 0;
+    virtual std::size_t next(std::size_t loc, Level level) const = 0;
+    virtual std::size_t prev(std::size_t loc, Level level) const = 0;
 };
 
-class Sink {
+enum class Direction {
+    Forward,
+    Reverse,
+};
+// "base class" for iterators.
+// Specialization of this class with <Arg> and <Arg, ...args>
+// will enable my heirarchical iterators.
+template<Level... Args>
+struct Iterator;
+
+// Prevent instantiation of iterator for Iterator<Level::Payload>
+template<Level Current>
+struct Iterator<Current>{
 public:
-    virtual ~Sink() = default;
-    enum class Direction {
-        Forward,    // Apply the action specified by the packet.
-        Backward,   // Undo the effects of the action specified by the packet.
-    };
-    virtual bool filter(const packet::Header&) = 0;
-    virtual bool analyze(const packet::Header&, const std::span<packet::Payload>&, Direction) = 0;
+    using iterator_category = std::forward_iterator_tag;
+    using difference_type = quint64;
+    using _helper = typename std::conditional<Current == Level::Packet, packet::Header, packet::Payload>::type;
+    using value_type = typename std::conditional<Current == Level::Frame, frame::Header, _helper>::type;
+    using pointer = const value_type*;
+    using reference = value_type&;
+
+    Iterator(const IteratorImpl *impl, std::size_t location, Direction dir = Direction::Forward)
+        : _impl(impl)
+        , _location(location)
+        , _dir(dir)
+    {}
+
+    Iterator& operator++() {
+        if (_dir == Direction::Forward)
+            _location = _impl->next(_location, Current);
+        else _location = _impl->prev(_location, Current);
+        return *this;
+    }
+
+    Iterator &operator--()
+    {
+        if (_dir == Direction::Forward)
+            _location = _impl->prev(_location, Current);
+        else _location = _impl->next(_location, Current);
+        return *this;
+    }
+
+    Iterator& operator++(int) {
+        auto ret = *this;
+        ++(*this);
+        return ret;
+    }
+
+    Iterator& operator--(int) {
+        auto ret = *this;
+        --(*this);
+        return ret;
+    }
+
+    bool operator==(Iterator other) const
+    {
+        return _impl == other._impl && _location == other._location
+            && _dir == other._dir;
+    }
+
+    bool operator!=(Iterator other) const
+    {
+        return !(other == *this);
+    }
+
+    std::size_t fragment_size() const
+    {
+        return _impl->size_at(_location, Current);
+    }
+
+    value_type operator*() const
+    {
+        if constexpr(Current == Level::Frame)  return _impl->frame(_location);
+        else if constexpr(Current == Level::Packet) return _impl->packet(_location);
+        else return _impl->payload(_location);
+    }
+
+protected:
+    const IteratorImpl* _impl;
+    std::size_t _location = 0;
+    Direction _dir;
 };
 
+// Defer to above implementation in all cases except those handling iteration.
+// If created as a forward iterator, cbegin/cend will create forward iterators.
+// If created as a reverse iterator, cbegin/cend will create reverse iterators.
+// This should allow analyzers to be agnostic to the direction of iteration.
+template<Level Current, Level... Descendants>
+struct Iterator<Current, Descendants...>: public Iterator<Current> {
+public:
+    Iterator(const IteratorImpl *impl, std::size_t location, Direction dir = Direction::Forward)
+        : Iterator<Current>(impl, location, dir)
+    {}
+
+    // Defer to internal implementations to avoid duplication of complex iteration code.
+
+    Iterator<Descendants...> cbegin() const
+    {
+        return this->_dir == Direction::Forward ? this->_cbegin() : this->_crbegin();
+    }
+
+    Iterator<Descendants...> cend() const
+    {
+        return this->_dir == Direction::Forward ? this->_cend() : this->_crend();
+    }
+
+    Iterator<Descendants...> crbegin() const
+    {
+        return this->_dir == Direction::Forward ? this->_crbegin() : this->_cbegin();
+    }
+
+    Iterator<Descendants...> crend() const
+    {
+        return this->_dir == Direction::Forward ? this->_crend() : this->_cend();
+    }
+
+protected:
+    Iterator<Descendants...> _cbegin() const
+    {
+        // Skip current element, because this returns a iterator for children.
+        auto to_next = this->_impl->size_at(this->_location, Current);
+        return Iterator<Descendants...>(this->_impl, this->_location + to_next);
+    }
+
+    Iterator<Descendants...> _cend() const
+    {
+        // Skip current element, because this returns a iterator for children.
+        auto to_next = this->_impl->size_at(this->_location, Current);
+        std::size_t next = this->_location + to_next;
+        if (next != this->_impl->end()) {
+            auto next_type = this->_impl->at(next);
+            // If the next item is below our level of abstraction,
+            // then we need to search for the next item that is at our level of abstraction.
+            if ((int) Current < (int) next_type)
+                next = this->_impl->next(next, Current);
+        }
+        return Iterator<Descendants...>(this->_impl, next);
+    }
+
+    Iterator<Descendants...> _crbegin() const
+    {
+        // Figure out what next level is.
+        Level below;
+        switch (Current) {
+        case Level::Frame:
+            below = Level::Packet;
+            break;
+        case Level::Packet:
+            below = Level::Payload;
+            break;
+        default:
+            throw std::logic_error("Supposedly unreachable");
+        }
+
+        // Find the first successor element at the current level of abstraction,
+        // and from the successor, find the previous element at
+        // the next lower level of asbtraction.
+        std::size_t loc = this->_location;
+        auto next_above = this->_impl->next(this->_location, Current);
+
+        // If next(...) hits end, prev will "do the right thing".
+        // Our only risk is that prev hits the end sentinel.
+        loc = this->_impl->prev(next_above, below);
+        return Iterator<Descendants...>(this->_impl, loc, Direction::Reverse);
+    }
+
+    Iterator<Descendants...> _crend() const
+    {
+        // Current fragment must be at higher level of abstraction than descendant fragments.
+        // Therefore, the location of this fragment makes for a good "past the end" iterator value.
+        return Iterator<Descendants...>(this->_impl, this->_location, Direction::Reverse);
+    }
+};
+
+// Needed to enable range-based for loops
+template<Level... args>
+auto begin(Iterator<args...> &iter)
+{
+    return iter.cbegin();
+}
+template<Level... args>
+auto end(Iterator<args...> &iter)
+{
+    return iter.cend();
+}
+
+class Sink;
+// If you inherit from this, you will likely want to inherit IteratorImpl as well.
+// IteratorImpl allows polymorphic implementation of this class while mantaining a stable
+// ABI for the iterator class.
 // TODO: Add additional channel for command / simulation packets.
 // Simulation packets are notifications such as "there's no MMIO".
 // Command packets may set memory values, step forward some number of ticks.
@@ -183,8 +414,9 @@ public:
 // between the UI and the simulation.
 class Buffer {
 public:
+    using TraceIterator = Iterator<Level::Frame, Level::Packet, Level::Payload>;
     virtual ~Buffer() = default;
-    virtual bool trace(quint16 deviceID, bool enabled = true) = 0;
+    virtual bool trace(device::ID deviceID, bool enabled = true) = 0;
 
     virtual bool registerSink(Sink*, Mode) = 0;
     virtual void unregisterSink(Sink*) = 0;
@@ -194,18 +426,39 @@ public:
     virtual bool writeFragment(const packet::Header&) = 0;
     virtual bool writeFragment(const packet::Payload&) = 0;
 
-    virtual bool updateFramHeader() = 0;
+    virtual bool updateFrameHeader() = 0;
 
     // Remove the last frame from the buffer.
     // TODO: replace with integration for iterators / std::erase.
     virtual void dropLast() = 0;
 
-
-    virtual frame::Iterator rbegin() const = 0;
-    virtual frame::Iterator rend() const = 0;
-    virtual frame::Iterator begin() const = 0;
-    virtual frame::Iterator end() const = 0;
+    virtual TraceIterator cbegin() const = 0;
+    virtual TraceIterator cend() const = 0;
+    virtual TraceIterator crbegin() const = 0;
+    virtual TraceIterator crend() const = 0;
 };
+
+class Source
+{
+public:
+    virtual ~Source() = default;
+    virtual void setBuffer(Buffer *tb) = 0;
+    virtual void trace(bool enabled) = 0;
+};
+
+using PacketIterator = Iterator<Level::Packet, Level::Payload>;
+class Sink
+{
+public:
+    virtual ~Sink() = default;
+    enum class Direction {
+        Forward,  // Apply the action specified by the packet.
+        Backward, // Undo the effects of the action specified by the packet.
+    };
+    // Return true if the packet was processed by this sink, otherwise return false.
+    virtual bool analyze(PacketIterator iter, Direction) = 0;
+};
+
 } // namespace sim::api2::trace
 
 // In API v1, errors are communicated via an Error field.
@@ -299,7 +552,10 @@ struct Operation {
         // Speculative access triggered within the simulation. Probably shouldn't trigger
         // MMIO, but this is hardware dependent.
         Speculative = 2,
-        // Non-speculative access triggered within  the simulation. Should trigger memory mapped IO,
+        // Access triggered by the simulator while performing some analysis operation.
+        // It must never trigger memory-mapped IO nor is it allowed to emit trace events.
+        BufferInternal = 3,
+        // Non-speculative access triggered within the simulation. Should trigger memory mapped IO,
         // cache updates, etc.
         Standard = 0,
     } type = Type::Standard;

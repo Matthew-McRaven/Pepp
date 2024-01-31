@@ -51,8 +51,7 @@ public:
   void trace(bool enabled) override;
 
   // Sink interface
-  bool filter(const api2::packet::Header& header) override;
-  bool analyze(const api2::packet::Header& header, const std::span<api2::packet::Payload> &, Direction) override;
+  bool analyze(api2::trace::PacketIterator iter, Direction) override;
 
   // Helpers
   QSharedPointer<typename detail::Channel<Address, quint8>::Endpoint>
@@ -115,16 +114,32 @@ void Input<Address>::setFailPolicy(api2::memory::FailPolicy policy) {
 }
 
 template<typename Address>
-bool Input<Address>::filter(const api2::packet::Header &header)
+bool Input<Address>::analyze(api2::trace::PacketIterator iter, Direction direction)
 {
-  return std::visit(sim::trace2::IsSameDevice{_device.id}, header);
-}
-
-template<typename Address>
-bool Input<Address>::analyze(const api2::packet::Header &header, const std::span<api2::packet::Payload> &, Direction)
-{
-  throw std::logic_error("unimplemented");
-  return true;
+    auto header = *iter;
+    if (!std::visit(sim::trace2::IsSameDevice{_device.id}, header))
+        return false;
+    else if (std::holds_alternative<api2::packet::header::ImpureRead>(header)) {
+        // Address is always implicitly 0 since this is a 1-byte port.
+        auto hdr = std::get<api2::packet::header::ImpureRead>(header);
+        // read() consumes a value via next_value(), which unread will undo.
+        if (direction == Direction::Backward)
+            _endpoint->unread();
+        // Forward direction
+        // We don't emit multiple payloads, so receiving multiple (or 0) doesn't make sense.
+        else if (std::distance(iter.cbegin(), iter.cend()) != 1)
+            return false;
+        // Otherwise we are seeing this byte for the first time via the trace.
+        // We need to mimic the effect of read() by appending and setting to tail.
+        else if (std::holds_alternative<api2::packet::payload::Variable>(*iter.cbegin())) {
+            auto payload = std::get<api2::packet::payload::Variable>(*iter.cbegin());
+            // Only use the first byte, since this port only has 1 address.
+            _endpoint->append_value(payload.payload.bytes[0]);
+            _endpoint->set_to_tail();
+        }
+    } else
+        return false;
+    return true;
 }
 
 template<typename Address>
@@ -143,7 +158,8 @@ api2::memory::Result Input<Address>::read(Address address, bits::span<quint8> de
 
   if (address < _span.minOffset || maxDestAddr > _span.maxOffset)
     throw E(E::Type::OOBAccess, address);
-  else if(op.type == Operation::Type::Application) {
+  else if(op.type == Operation::Type::Application
+           || op.type == Operation::Type::BufferInternal) {
     quint8 tmp = *_endpoint->current_value();
     bits::memcpy(dest, bits::span<const quint8>{&tmp, 1});
     // Return early to avoid guard extra guard condition in trace code.

@@ -46,8 +46,8 @@ public:
   void dump(bits::span<quint8> dest) const override;
 
   // Sink interface
-  bool filter(const api2::packet::Header& header) override;
-  bool analyze(const api2::packet::Header& header, const std::span<api2::packet::Payload> &, Direction) override;
+  bool analyze(const api2::trace::PacketIterator iter, Direction) override;
+
   // Source interface
   void setBuffer(api2::trace::Buffer *tb) override;
   void trace(bool enabled) override;
@@ -101,16 +101,58 @@ const quint8 *sim::memory::Dense<Address>::constData() const {
   return _data.constData();
 }
 
-template<typename Address>
-bool Dense<Address>::filter(const api2::packet::Header &header)
-{
-  return std::visit(sim::trace2::IsSameDevice{_device.id}, header);
+namespace detail {
+template <typename Address>
+struct PayloadHelper {
+  PayloadHelper(Address address, Dense<Address> *dense) : address(address), dense(dense) {}
+
+  static constexpr auto op = api2::memory::Operation {
+      .type = api2::memory::Operation::Type::BufferInternal,
+      .kind = api2::memory::Operation::Kind::data,
+  };
+
+  Address operator()(const api2::packet::payload::Variable& frag){
+    std::array<quint8, api2::packet::payload::Variable::N> tmp;
+    tmp.fill(0);
+
+    Address len = std::min<Address>(tmp.size(), frag.payload.len);
+    auto span = bits::span<quint8>{tmp.data(), len};
+
+    // Get current value and XOR with XOR-encoded bytes, which we write back.
+    dense->read(address, span, op);
+    bits::memcpy_xor(span, span,
+                     bits::span<const quint8>{frag.payload.bytes.data(), frag.payload.len});
+    dense->write(address, span, op);
+    return len;
+  }
+
+  // Will need to implement if we create other payload fragments.
+  Address operator()(const auto& frag) const {
+    throw std::logic_error("unimplemented");
+  }
+
+  Address address;
+  Dense<Address>* dense;
+};
 }
 
 template<typename Address>
-bool Dense<Address>::analyze(const api2::packet::Header &header, const std::span<api2::packet::Payload> &, Direction)
+bool Dense<Address>::analyze(api2::trace::PacketIterator iter, Direction direction)
 {
-  throw std::logic_error("unimplemented");
+    auto header = *iter;
+    if (!std::visit(sim::trace2::IsSameDevice{_device.id}, header))
+        return false;
+    // Read has no side effects, dense only issues pure reads.
+    // Therefore we only need to handle out write packets.
+    else if (std::holds_alternative<api2::packet::header::Write>(header)) {
+        auto hdr = std::get<api2::packet::header::Write>(header);
+        Address address = hdr.address.to_address<Address>();
+        // forward vs backwards does not matter for dense memory,
+        // since payloads are XOR encoded. We can compute (current XOR payload)
+        // to determine the updated memory values.
+        for (auto payload : iter)
+            address += std::visit(detail::PayloadHelper<Address>(address, this), payload);
+    }
   return true;
 }
 
@@ -131,8 +173,11 @@ api2::memory::Result Dense<Address>::read(Address address, bits::span<quint8> de
     throw E(E::Type::OOBAccess, address);
   auto offset = address - _span.minOffset;
   auto src = bits::span<const quint8>{_data.data(), std::size_t(_data.size())}.subspan(offset);
-  // Don't need to record reads from UI, since they can cause no side-effects.
-  if (op.type != Operation::Type::Application && _tb) sim::trace2::emitPureRead<Address>(_tb, _device.id, offset, src.size());
+  // Ignore reads from UI, since this device only issues pure reads.
+  // Ignore reads from buffer internal operations.
+  if (!(op.type == Operation::Type::Application
+        || op.type == Operation::Type::BufferInternal) && _tb)
+    sim::trace2::emitPureRead<Address>(_tb, _device.id, offset, src.size());
   bits::memcpy(dest, src);
   return {};
 }
@@ -141,14 +186,16 @@ template<typename Address>
 api2::memory::Result Dense<Address>::write(Address address, bits::span<const quint8> src, api2::memory::Operation op)
 {
   using E = api2::memory::Error<Address>;
+  using Operation = sim::api2::memory::Operation;
   // Length is 1-indexed, address are 0, so must offset by -1.
   auto maxDestAddr = (address + std::max<Address>(0, src.size() - 1));
   if (address < _span.minOffset || maxDestAddr > _span.maxOffset)
     throw E(E::Type::OOBAccess, address);
   auto offset = address - _span.minOffset;
   auto dest = bits::span<quint8>{_data.data(), std::size_t(_data.size())}.subspan(offset);
-  // Always record changes, even if the come from UI. Otherwise, step back fails.
-  if (_tb) sim::trace2::emitWrite<Address>(_tb, _device.id, offset, src, dest);
+  // Record changes, even if the come from UI. Otherwise, step back fails.
+  if (op.type != Operation::Type::BufferInternal && _tb)
+    sim::trace2::emitWrite<Address>(_tb, _device.id, offset, src, dest);
   bits::memcpy(dest, src);
   return {};
 }
