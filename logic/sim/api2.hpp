@@ -384,6 +384,19 @@ public:
     }
 };
 
+// Needed to enable range-based for loops
+template<Level... args>
+auto begin(Iterator<args...> &iter)
+{
+    return iter.cbegin();
+}
+template<Level... args>
+auto end(Iterator<args...> &iter)
+{
+    return iter.cend();
+}
+
+class Sink;
 // If you inherit from this, you will likely want to inherit IteratorImpl as well.
 // IteratorImpl allows polymorphic implementation of this class while mantaining a stable
 // ABI for the iterator class.
