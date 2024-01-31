@@ -80,7 +80,7 @@ TEST_CASE("Trace buffer iterators" "[sim][trace]") {
         CHECK(std::distance(frame.crbegin(), frame.crend()) == 4);
         // Forward iteration within a frame
         {
-            auto packet = frame.cbegin();
+            auto packet = frame.crbegin();
             for (int it = 0; it < 3; it++) {
                 // One payload.
                 sim::api2::packet::Header header = *packet;
@@ -105,11 +105,11 @@ TEST_CASE("Trace buffer iterators" "[sim][trace]") {
             CHECK(std::distance(packet.crbegin(), packet.crend()) == 0);
             ++packet;
 
-            CHECK(packet == frame.cend());
+            CHECK(packet == frame.crend());
         }
         // Reverse iteration within a frame
         {
-            auto packet = frame.crbegin();
+            auto packet = frame.cbegin();
             // Pure read, no payloads
             CHECK(std::distance(packet.cbegin(), packet.cbegin()) == 0);
             CHECK(std::distance(packet.cend(), packet.cend()) == 0);
@@ -134,7 +134,7 @@ TEST_CASE("Trace buffer iterators" "[sim][trace]") {
                 ++packet;
             }
 
-            CHECK(packet == frame.crend());
+            CHECK(packet == frame.cend());
         }
     }
 }

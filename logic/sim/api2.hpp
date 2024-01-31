@@ -301,6 +301,9 @@ protected:
 };
 
 // Defer to above implementation in all cases except those handling iteration.
+// If created as a forward iterator, cbegin/cend will create forward iterators.
+// If created as a reverse iterator, cbegin/cend will create reverse iterators.
+// This should allow analyzers to be agnostic to the direction of iteration.
 template<Level Current, Level... Descendants>
 struct Iterator<Current, Descendants...>: public Iterator<Current> {
 public:
@@ -308,14 +311,37 @@ public:
         : Iterator<Current>(impl, location, dir)
     {}
 
+    // Defer to internal implementations to avoid duplication of complex iteration code.
+
     Iterator<Descendants...> cbegin() const
+    {
+        return this->_dir == Direction::Forward ? this->_cbegin() : this->_crbegin();
+    }
+
+    Iterator<Descendants...> cend() const
+    {
+        return this->_dir == Direction::Forward ? this->_cend() : this->_crend();
+    }
+
+    Iterator<Descendants...> crbegin() const
+    {
+        return this->_dir == Direction::Forward ? this->_crbegin() : this->_cbegin();
+    }
+
+    Iterator<Descendants...> crend() const
+    {
+        return this->_dir == Direction::Forward ? this->_crend() : this->_cend();
+    }
+
+protected:
+    Iterator<Descendants...> _cbegin() const
     {
         // Skip current element, because this returns a iterator for children.
         auto to_next = this->_impl->size_at(this->_location, Current);
         return Iterator<Descendants...>(this->_impl, this->_location + to_next);
     }
 
-    Iterator<Descendants...> cend() const
+    Iterator<Descendants...> _cend() const
     {
         // Skip current element, because this returns a iterator for children.
         auto to_next = this->_impl->size_at(this->_location, Current);
@@ -330,7 +356,7 @@ public:
         return Iterator<Descendants...>(this->_impl, next);
     }
 
-    Iterator<Descendants...> crbegin() const
+    Iterator<Descendants...> _crbegin() const
     {
         // Figure out what next level is.
         Level below;
@@ -357,7 +383,7 @@ public:
         return Iterator<Descendants...>(this->_impl, loc, Direction::Reverse);
     }
 
-    Iterator<Descendants...> crend() const
+    Iterator<Descendants...> _crend() const
     {
         // Current fragment must be at higher level of abstraction than descendant fragments.
         // Therefore, the location of this fragment makes for a good "past the end" iterator value.
