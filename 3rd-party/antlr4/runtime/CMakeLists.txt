@@ -96,11 +96,12 @@ if (WIN32)
   endif()
 endif()
 
+set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${PROJECT_BINARY_DIR}/bin)
+
 if (TARGET antlr4_shared)
   set_target_properties(antlr4_shared
                         PROPERTIES VERSION   ${ANTLR_VERSION}
                                    SOVERSION ${ANTLR_VERSION}
-                                   OUTPUT_NAME antlr4-runtime
                                    COMPILE_FLAGS "${disabled_compile_warnings} ${extra_share_compile_flags}")
 endif()
 
@@ -108,7 +109,5 @@ if (TARGET antlr4_static)
   set_target_properties(antlr4_static
                         PROPERTIES VERSION   ${ANTLR_VERSION}
                                    SOVERSION ${ANTLR_VERSION}
-                                   OUTPUT_NAME "antlr4-runtime${static_lib_suffix}"
-                                   COMPILE_PDB_NAME "antlr4-runtime${static_lib_suffix}"
                                    COMPILE_FLAGS "${disabled_compile_warnings} ${extra_static_compile_flags}")
 endif()
