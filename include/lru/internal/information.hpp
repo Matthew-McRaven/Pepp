@@ -58,16 +58,6 @@ struct Information {
   /// Constructor.
   ///
   /// \param order_ The order iterator for the information.
-  /// \param value_arguments Any number of arguments to perfectly forward to the
-  ///                        value type's constructor.
-  // template <typename... ValueArguments>
-  // Information(QueueIterator order_, ValueArguments&&... value_arguments)
-  // : value(std::forward<ValueArguments>(value_arguments)...), order(order_) {
-  // }
-
-  /// Constructor.
-  ///
-  /// \param order_ The order iterator for the information.
   /// \param value_arguments A tuple of arguments to perfectly forward to the
   ///                        value type's constructor.
   ///
@@ -90,22 +80,22 @@ struct Information {
   /// Move assignment operator.
   Information& operator=(Information&& other) = default;
 
-  /// Destructor.
-  virtual ~Information() = default;
-
   /// Compares the information for equality with another information object.
   ///
   /// \param other The other information object to compare to.
   /// \returns True if key and value (not the iterator itself) of the two
   /// information objects are equal, else false.
-  virtual bool operator==(const Information& other) const noexcept {
-    if (this == &other) return true;
-    if (this->value != other.value) return false;
-    // We do not compare the iterator (because otherwise two containers
-    // holding information would never be equal). We also do not compare
-    // the key stored in the iterator, because keys will always have been
-    // compared before this operator is called.
-    return true;
+  bool operator==(const Information &other) const noexcept
+  {
+      if (this == &other)
+          return true;
+      if (this->value != other.value)
+          return false;
+      // We do not compare the iterator (because otherwise two containers
+      // holding information would never be equal). We also do not compare
+      // the key stored in the iterator, because keys will always have been
+      // compared before this operator is called.
+      return true;
   }
 
   /// Compares the information for inequality with another information object.
@@ -113,9 +103,7 @@ struct Information {
   /// \param other The other information object to compare for.
   /// \returns True if key and value (not the iterator itself) of the two
   /// information objects are unequal, else false.
-  virtual bool operator!=(const Information& other) const noexcept {
-    return !(*this == other);
-  }
+  bool operator!=(const Information &other) const noexcept { return !(*this == other); }
 
   /// The value of the information.
   Value value;
