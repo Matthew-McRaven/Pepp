@@ -15,18 +15,15 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-#include <QTest>
-#include <QtCore>
-
 #include "bits/operations/copy.hpp"
 #include "bits/strings.hpp"
+#include <catch.hpp>
+#include <qtypes.h>
 static const QList<bits::SeparatorRule> rules = {
     {.skipFirst = false, .separator = ' ', .modulus = 1}};
 
-class BitsStrings_AsciiHex : public QObject {
-  Q_OBJECT
-private slots:
-  void smoke() {
+TEST_CASE("Bit Ops, Strings")
+{
     quint8 src[] = {0x00, 0xFE, 0xED, 0xBE, 0xEF};
     char dst[sizeof(src) * 3];
     auto dstSpan = std::span{dst};
@@ -35,15 +32,12 @@ private slots:
                                   0x20, 0x45, 0x44, 0x20, 0x42,
                                   0x45, 0x20, 0x45, 0x46, 0x20};*/
     bits::memclr(dstSpan);
-    QCOMPARE(
-        bits::bytesToAsciiHex({dst, sizeof(dst)}, {src, sizeof(src)}, rules),
-        sizeof(dst));
-    QString dstStr = QString::fromLocal8Bit(reinterpret_cast<const char *>(dst),
-                                            sizeof(dst));
-    QCOMPARE(dstStr, golden);
-  }
-};
+    CHECK(bits::bytesToAsciiHex({dst, sizeof(dst)}, {src, sizeof(src)}, rules) == sizeof(dst));
+    QString dstStr = QString::fromLocal8Bit(reinterpret_cast<const char *>(dst), sizeof(dst));
+    CHECK(dstStr == golden);
+}
 
-#include "strings_ascii_hex.moc"
-
-QTEST_MAIN(BitsStrings_AsciiHex);
+int main(int argc, char *argv[])
+{
+    return Catch::Session().run(argc, argv);
+}
