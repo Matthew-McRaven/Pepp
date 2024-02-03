@@ -22,14 +22,21 @@ MemoryByteModel::MemoryByteModel(QObject *parent,
     //  Changing width also changes height
     setNumBytesPerLine( bytesPerRow);
 
-    roleNames_[Byte]            =  "byteRole";
+    //  Presentation roles
     roleNames_[Selected]        =  "selectedRole";
     roleNames_[Editing]         =  "editRole";
     roleNames_[TextColor]       =  "textColorRole";
     roleNames_[BackgroundColor] =  "backgroundColorRole";
-    roleNames_[Qt::ToolTip]     =  "toolTipRole";
     roleNames_[Qt::TextAlignmentRole] =  "textAlignRole";
-    roleNames_[Border]          =  "borderRole";
+
+    //  Data roles
+    roleNames_[Byte]            =  "byteRole";
+    roleNames_[Type]            =  "typeRole";
+    roleNames_[LineNo]          =  "lineNoRole";
+    roleNames_[Ascii]           =  "asciiRole";
+
+    //  Tooltip
+    roleNames_[Qt::ToolTip]     =  "toolTipRole";
 
     clear();
 
@@ -46,7 +53,7 @@ quint8 MemoryByteModel::readByte(const quint32 address) const
 
 void MemoryByteModel::writeByte(const quint32 address, const quint8 value)
 {
-    //  Check for memmory overflow
+    //  Check for memory overflow
     if( address >= size_ )
         return;
 
@@ -139,38 +146,48 @@ QVariant MemoryByteModel::data(const QModelIndex &index, int role) const
     const int row = index.row();
     const int col = index.column();
     const int i   = memoryOffset(index);
+    const bool editField = (flags(index) != Qt::NoItemFlags);
 
     switch(role) {
 
-    case Byte:
+    //  Determines which delegate to assign in grid
+    case Type:
         //  First column is formatted row number
         if(col == column_->LineNo())
-            return QStringLiteral("%1").arg(row * width_, 4, 16, QLatin1Char('0')).toUpper();
+            return QString("lineNoCol");
 
-        //  Last columnis ascii representation of data
+        //  Last column is ascii representation of data
         if(col == column_->Ascii())
-            return ascii(row);
+            return QVariant("asciiCol");
 
         if(col == column_->Border1()  || col == column_->Border2())
-            return QVariant("");
+            return QVariant("borderCol");
 
+        return QVariant("cellCol");
+    case LineNo:
+        return QStringLiteral("%1").arg(row * width_, 4, 16, QLatin1Char('0')).toUpper();
+    case Ascii:
+        return ascii(row);
+
+    case Byte:
         if(i < 0)
             return QVariant("");
 
         //  Show data in hex format
         return QStringLiteral("%1").arg(newData_[i], 2, 16, QLatin1Char('0')).toUpper();
-    case Selected:
-        return false; //selected(index);
     case Editing:
         //  for last line when memory model is smaller than displayed items
         if(i < 0)
             return QVariant();
 
         //  Only one cell can be edited at a time
-        return editing_;
+        //return editing_;
+        return i == editing_;
     case TextColor:
         //  Set editing color if in edit mode
-        if( editing_ > -1 && i == editing_ )
+        if( editField &&        //  column is editable
+            editing_ > -1 &&    //  field is being edited
+            i == editing_ )     //  This cell is the current edited field
             return QVariant("#FF9800"); //  Pepperdine Orange
 
         //  For alternating columns, set color
@@ -180,20 +197,20 @@ QVariant MemoryByteModel::data(const QModelIndex &index, int role) const
         //  Default color
         return QVariant("black");
     case BackgroundColor:
-        if(col == column_->Border1()  || col == column_->Border2())
-            return QVariant("black");
-
         //  Handle invalid index
-        if(i < 0 && row != 0)
-            return QVariant("white");
+        //if(i < 0 && row != 0)
+        //    return QVariant("white");
 
         //  Set editing color if in edit mode
-        if( editing_ > -1 && i == editing_ )
+        if( editField &&        //  column is editable
+            editing_ > -1 &&    //  field is being edited
+            i == editing_ )     //  This cell is the current edited field
             return QVariant("#3F51B5"); //  Pepperdine Blue
 
         //  For alternating columns, set color
         //  for last line when memory model is smaller than displayed items
-        if( (col % 2) == 1 && col < column_->Border2() && i < size_)
+        if( (col % 2) == 1 && col < column_->Border2() &&
+            col > column_->Border1() && i < size_)
             return QVariant("#f0f0f0");
 
         //  Default color
@@ -248,32 +265,8 @@ bool MemoryByteModel::setData(const QModelIndex &index, const QVariant &value, i
 {
     //  See if value is different from passed in value
     switch (role) {
-    case Selected: {
-        const auto current = data(index, role);
-        if( current != value) {
-            const int i   = memoryOffset(index);
-            if( i < 0)
-                return false;
 
-            //  Initial state before change
-            const bool flag = selected_.contains(i);
-
-            //  Add or remove based on existing value
-            if(flag) {
-                selected_.remove(i);
-            } else {
-                selected_.insert(i);
-            }
-
-            emit dataChanged(index, index);
-
-            //  Flag value has been flipped
-            return !flag;
-        }
-        break;
-    }
     case Editing: {
-        //const auto current = data(index, role);
         //if( current != value) {
             const int i   = memoryOffset(index);
 
@@ -284,16 +277,14 @@ bool MemoryByteModel::setData(const QModelIndex &index, const QVariant &value, i
             QModelIndex ascii = QAbstractItemModel::createIndex(index.row(), column_->Ascii());
 
             //  Save index for editing
+            lastEdit_ = editing_;
             editing_ = value.toInt();
 
-            //  Repaint changed value
+            //  Repaint changed row
             emit dataChanged(index, ascii);
 
-            //  Whenever a hex value is updated, also update ascii column
-            //emit dataChanged(ascii, ascii);
-
             //  Return true if cleared
-            return true;    //editing_ < 0;
+            return true;
         //}
         //break;
     }
@@ -426,9 +417,9 @@ QVariant MemoryByteModel::selected(const QModelIndex& index, const RoleNames rol
     //  Check for edit mode
     if( role == RoleNames::Editing)
         return editing_;
-    else if( role == RoleNames::Selected)
+    //else if( role == RoleNames::Selected)
         //  Return indicator for selected
-        return selected_.contains(i);
+    //    return selected_.contains(i);
     return QVariant();
 }
 
@@ -441,31 +432,21 @@ QVariant MemoryByteModel::setSelected(const QModelIndex& index, const RoleNames 
     //  Check for edit mode
     if( role == RoleNames::Editing) {
         //  New location
-        const int i = memoryOffset(index);
-        QModelIndex old;
+        const QModelIndex oldIndex = memoryIndex(editing_);
 
         //  Clear old value, if any
-        if( editing_ > -1 && i != editing_) {
-            //  Save old index
-            old = memoryIndex(editing_);
+        if( oldIndex != index) {
+            //  clear old index
+            clearSelected(oldIndex,role);
         }
+
+        //  Convert QModelIndex into memory location
+        const auto i = memoryOffset(index);
+
         //  Set new value - changes formatting
-        //  Remove selecte indicator if present
-        selected_.remove(i);
         setData(index, i, role);
 
-        //  remove formatting from old location
-        if( old.isValid()) {
-            emit dataChanged(old, old);
-        }
-        return editing_ < 0;
-    }
-    else if( role == RoleNames::Selected) {
-        //  Return indicator for selected
-        const auto flag = selected(index).toBool();
-
-        //  Flip bit
-        return setData(index, !flag, role);
+        return editing_ > -1;
     }
 
     //  Other roles are read only
@@ -474,12 +455,36 @@ QVariant MemoryByteModel::setSelected(const QModelIndex& index, const RoleNames 
 
 void MemoryByteModel::clearSelected(const QModelIndex& index, const RoleNames role)
 {
-    //  Check for edit mode
-    if( role == RoleNames::Editing && editing_ > -1) {
-        //  Only 1 cell can be edited. Find cell from currently selected item
-        auto old = memoryIndex(editing_);
+    //  Return if index is invalid
+    if( !index.isValid())
+        return;
 
-        //  Fix colors on old cell
-        setData(old, -1, role);
+    //  Check for edit mode
+    if( role == RoleNames::Editing ) {
+        if(editing_ == -1) {
+            return;
+        }
+
+        //  Only 1 cell can be edited. Find cell from currently selected item
+        lastEdit_ = editing_;
+        const QModelIndex oldIndex = memoryIndex(editing_);
+
+        //  Check that old index matches currently edited field
+        //  before clearing.
+        if(oldIndex.isValid() && index == oldIndex) {
+            //  Fix colors on old cell
+            setData(oldIndex, -1, role);
+        }
     }
+}
+
+QModelIndex MemoryByteModel::currentCell()
+{
+     //  Only 1 cell can be edited. Find cell from currently selected item
+     return memoryIndex(editing_);
+}
+
+QModelIndex MemoryByteModel::lastCell()
+{
+    return memoryIndex(lastEdit_);
 }

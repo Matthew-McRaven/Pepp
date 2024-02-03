@@ -58,6 +58,7 @@ class MemoryByteModel : public QAbstractTableModel
     std::unique_ptr<quint8[]>       oldData_;
     QSet<quint8>                    selected_;
     qint32                          editing_ = -1;
+    qint32                          lastEdit_ = -1;
     std::unique_ptr<MemoryColumns>  column_;
 
     Q_PROPERTY(MemoryColumns* Column READ column CONSTANT)
@@ -73,7 +74,9 @@ public:
         Editing,
         TextColor,
         BackgroundColor,
-        Border,
+        Type,
+        LineNo,
+        Ascii,
     };
     Q_ENUM(RoleNames)
 
@@ -125,10 +128,8 @@ public:
     Q_INVOKABLE void clearSelected(const QModelIndex& index, const RoleNames type = Selected);
     Q_INVOKABLE QVariant setSelected(const QModelIndex& index,const RoleNames type = Selected);
 
-    //Q_INVOKABLE QModelIndex modelCellIndex(const int offset) const;
-    //Q_INVOKABLE QVariant selectedCell(const int offset, const RoleNames type = Selected) const;
-    //Q_INVOKABLE QVariant setSelectedCell(const int offset,const RoleNames type = Selected);
-    //Q_INVOKABLE void clearSelectedCell(const int offset, const RoleNames type = Selected);
+    Q_INVOKABLE QModelIndex currentCell();
+    Q_INVOKABLE QModelIndex lastCell();
 
 signals:
     void dimensionsChanged();

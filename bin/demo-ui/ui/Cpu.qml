@@ -110,7 +110,7 @@ Rectangle {
 
       //  Default control - always last
       DelegateChoice {
-        roleValue: model.nameRole // This is always equal
+        //roleValue: model.nameRole // This is always equal
         Ui.RegisterHexEdit {
           width: controlWidth
 
