@@ -18,7 +18,7 @@ runs:
       && ClangBuildAnalyzer/ClangBuildAnalyzer --analyze /trace.json
       && find build -name "*json" -print
   - name: Upload clang build trace
-    uses: actions/upload-artifact@v3
+    uses: actions/upload-artifact@v4
     with:
       name: clang-time-trace
       path: /trace.json

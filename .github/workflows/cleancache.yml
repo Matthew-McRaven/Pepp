@@ -14,7 +14,7 @@ jobs:
       GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
     steps:
     - name: Checkout source code (shallow)
-      uses: actions/checkout@v3
+      uses: actions/checkout@v4
     - name: Show caches (debug)
       run: gh cache list
     - name: Get caches
