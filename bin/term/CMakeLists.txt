@@ -39,7 +39,6 @@ set_target_properties(pepp-term PROPERTIES FOLDER "qtc_runnable")
 
 if(NOT DISABLE_TERM_TESTS)
   set(CONFIG_DIR ${CMAKE_CURRENT_SOURCE_DIR})
-  file(GENERATE OUTPUT ${CONFIG_DIR}/test_config.txt CONTENT "$<TARGET_FILE:pepp-term>\n" TARGET pepp-term)
   configure_file(test/config.hpp.in "${CMAKE_CURRENT_BINARY_DIR}/config.hpp")
 
   make_target(
@@ -52,6 +51,7 @@ if(NOT DISABLE_TERM_TESTS)
     DEPENDS Qt6::Core catch
   )
   # Needed to find config file.
+  file(GENERATE OUTPUT $<TARGET_FILE_DIR:test-term>/test_config.txt CONTENT "$<TARGET_FILE:pepp-term>\n" TARGET test-term)
   target_include_directories(test-term PRIVATE ${CMAKE_CURRENT_BINARY_DIR})
   add_dependencies(pepp-term test-term)
   set_target_properties(test-term PROPERTIES FOLDER "qtc_runnable")
