@@ -9,4 +9,11 @@ set(CMAKE_CXX_STANDARD_REQUIRED True)
 add_library(catch INTERFACE catch.hpp)
 target_sources(catch INTERFACE ${CMAKE_CURRENT_LIST_DIR}/catch.cpp)
 target_compile_definitions(catch INTERFACE CATCH_AMALGAMATED_CUSTOM_MAIN)
+if (MSVC)
+  # See: https://github.com/catchorg/Catch2/issues/2174
+  target_compile_options(
+    catch
+    INTERFACE /Zc:hiddenFriend-
+  )
+endif ()
 target_include_directories(catch INTERFACE .)
