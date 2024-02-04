@@ -444,7 +444,7 @@ QVariant MemoryByteModel::setSelected(const QModelIndex& index, const RoleNames 
         const auto i = memoryOffset(index);
 
         //  Set new value - changes formatting
-        setData(index, i, role);
+        setData(index, QVariant::fromValue(i), role);
 
         return editing_ > -1;
     }
