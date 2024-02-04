@@ -60,9 +60,9 @@ jobs:
         tag=$(echo "${{ needs.branch_info.tag_name }}" | grep -Eo "v[0-9]+(\.[0-9]+)*$")
         echo "VERSION_GIT=$(echo "${tag}" | cut -c3- | xargs)" >> $GITHUB_ENV
     - name: Clone sources to extract project version
-      uses: actions/checkout@v3
+      uses: actions/checkout@v4
       if: needs.branch_info.outputs.build_release == true
-    - uses: lukka/get-cmake@v3.27.7
+    - uses: lukka/get-cmake@v3.27.9
       if: needs.branch_info.outputs.build_release == true
     - name: Extract the CMake version
       if: needs.branch_info.outputs.build_release == true
@@ -83,7 +83,7 @@ jobs:
       image: "ghcr.io/matthew-mcraven/pepp/dev:v0.9.0-docs"
     steps:
     # Must exectute before any repo-local actions
-    - uses: actions/checkout@v3
+    - uses: actions/checkout@v4
     # Install dependencies based on enabled features
     - if: env.ACT
       uses: ./.github/actions/install-node
@@ -91,7 +91,7 @@ jobs:
     - name: Configure cmake for docs
       run: cmake -B build -S . -DONLY=DOC -DDOC_AUDIENCE=APP
     - run: cmake --build build && ls build/docs
-    - uses: actions/upload-artifact@v3
+    - uses: actions/upload-artifact@v4
       with:
         name: app-docs
         path: build/docs

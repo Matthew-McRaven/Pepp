@@ -35,7 +35,7 @@ jobs:
     # Perform shallow clone, which may break some other operations
     # Must exectute before any repo-local actions
     - name: Checkout source code (shallow)
-      uses: actions/checkout@v3
+      uses: actions/checkout@v4
       with:
         submodules: 'true'
     # Local github runner doesn't have node installed.
@@ -58,7 +58,7 @@ jobs:
     - name: Enable caching object files between builds
       # Disable ccache when running locally
       if: inputs.compiler_launcher == 'ccache' && !env.ACT
-      uses: hendrikmuhs/ccache-action@v1.2.10
+      uses: hendrikmuhs/ccache-action@v1.2.12
       with:
         verbose: 2
         key: ${{ inputs.cache_name || inputs.name }}
@@ -74,7 +74,7 @@ jobs:
 
     # CMake configure & build
     - name: Download prebuilt help documentation
-      uses: actions/download-artifact@v3
+      uses: actions/download-artifact@v4
       if: inputs.docs_artifact
       with:
         name: ${{ inputs.docs_artifact }}
