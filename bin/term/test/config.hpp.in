@@ -1,0 +1,11 @@
+#include <QtCore>
+#include <catch.hpp>
+inline QString term_path()
+{
+    // File written out by cmake. First line is the path of pepp terminal executable.
+    QFile config_file("@CONFIG_DIR@/test_config.txt");
+    REQUIRE(config_file.open(QIODevice::ReadOnly | QIODevice::Text));
+
+    // Must clear newlines, or exec will not find correct file.
+    return QString(config_file.readLine()).trimmed();
+}
