@@ -37,29 +37,22 @@ install(TARGETS pepp-term
 
 set_target_properties(pepp-term PROPERTIES FOLDER "qtc_runnable")
 
-set_property(SOURCE "test/impl.cpp.in" PROPERTY SKIP_AUTOMOC ON)
+if(NOT DISABLE_TERM_TESTS)
+  set(CONFIG_DIR ${CMAKE_CURRENT_SOURCE_DIR})
+  file(GENERATE OUTPUT ${CONFIG_DIR}/test_config.txt CONTENT "$<TARGET_FILE:pepp-term>\n" TARGET pepp-term)
+  configure_file(test/config.hpp.in "${CMAKE_CURRENT_BINARY_DIR}/config.hpp")
 
-# Stop searching for python on first match.
-cmake_policy(SET CMP0094 NEW)
-# Prevent registry from pre-empting our python installation, needed in CI to find debug libs.
-set(Python3_FIND_REGISTRY LAST)
-
-find_package(Python 3.12 OPTIONAL_COMPONENTS Development Interpreter)
-
-set(CONFIG_DIR ${CMAKE_CURRENT_SOURCE_DIR})
-file(GENERATE OUTPUT ${CONFIG_DIR}/test_config.txt CONTENT "$<TARGET_FILE:pepp-term>\n" TARGET pepp-term)
-configure_file(test/config.hpp.in "${CMAKE_CURRENT_BINARY_DIR}/config.hpp")
-
-make_target(
-  TARGET test-term
-  TYPE "TEST"
-  SOURCES
-        ${CMAKE_CURRENT_SOURCE_DIR}/test/ls.cpp
-        ${CMAKE_CURRENT_SOURCE_DIR}/test/get.cpp
-        ${CMAKE_CURRENT_SOURCE_DIR}/test/test_main.cpp
-  DEPENDS Qt6::Core catch
-)
-# Needed to find config file.
-target_include_directories(test-term PRIVATE ${CMAKE_CURRENT_BINARY_DIR})
-add_dependencies(pepp-term test-term)
-set_target_properties(test-term PROPERTIES FOLDER "qtc_runnable")
+  make_target(
+    TARGET test-term
+    TYPE "TEST"
+    SOURCES
+      ${CMAKE_CURRENT_SOURCE_DIR}/test/ls.cpp
+      ${CMAKE_CURRENT_SOURCE_DIR}/test/get.cpp
+      ${CMAKE_CURRENT_SOURCE_DIR}/test/test_main.cpp
+    DEPENDS Qt6::Core catch
+  )
+  # Needed to find config file.
+  target_include_directories(test-term PRIVATE ${CMAKE_CURRENT_BINARY_DIR})
+  add_dependencies(pepp-term test-term)
+  set_target_properties(test-term PROPERTIES FOLDER "qtc_runnable")
+endif()

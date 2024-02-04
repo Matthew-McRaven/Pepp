@@ -61,4 +61,5 @@ jobs:
       compiler_launcher: ccache
       codeql: True
       variant: "debug"
+      cmake_xargs: "-D DISABLE_TERM_TESTS=ON"
       not_default: ${{ !!needs.branch_info.outputs.not_default }}
