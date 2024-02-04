@@ -41,9 +41,8 @@ install(TARGETS pepp-term
 
 set_target_properties(pepp-term PROPERTIES FOLDER "qtc_runnable")
 
-if(NOT DISABLE_TERM_TESTS)
+if(NOT EMSCRIPTEN)
   configure_file(test/config.hpp.in "${CMAKE_CURRENT_BINARY_DIR}/config.hpp")
-
   make_target(
     TARGET test-term
     TYPE "EXEC"
@@ -58,9 +57,14 @@ if(NOT DISABLE_TERM_TESTS)
     DEPENDS Qt6::Core catch
   )
 
-add_test(NAME test-term COMMAND test-term)
+
   # Needed to find config file.
   target_include_directories(test-term PRIVATE ${CMAKE_CURRENT_BINARY_DIR})
   add_dependencies(pepp-term test-term)
-  set_target_properties(test-term PROPERTIES FOLDER "qtc_runnable")
+  option(ENABLE_TERM_TESTS "Enable shell tests of pepp-term" OFF)
+  if(ENABLE_TERM_TESTS)
+    add_test(NAME test-term COMMAND test-term)
+    set_target_properties(test-term PROPERTIES FOLDER "qtc_runnable")
+  endif()
+
 endif()
