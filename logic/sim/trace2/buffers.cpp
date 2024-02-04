@@ -1,5 +1,5 @@
 #include "buffers.hpp"
-#include "frame_utils.h"
+#include "frame_utils.hpp"
 
 // Wrap each fragment is a top-level variant.
 // This makes "switching" on the underlying fragment type
