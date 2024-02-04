@@ -2,14 +2,16 @@
 #include <QQmlApplicationEngine>
 #include <QQmlContext>
 #include <QQuickStyle>
+#include <QtQml/QQmlExtensionPlugin>
 
 //  Testing only
+#include <QDirIterator>
 #include <QTimer>
 
 #include "model/statusbitmodel.h"
 #include "model/registermodel.h"
 //#include "model/memorymodel.h"
-#include "model/memorybytemodel.h"
+#include "memory/hexdump/memorybytemodel.h"
 
 int main(int argc, char *argv[])
 {
@@ -60,6 +62,13 @@ int main(int argc, char *argv[])
         if (!obj && url == objUrl)
             QCoreApplication::exit(-1);
     }, Qt::QueuedConnection);
+    /*QDirIterator i(":", QDirIterator::Subdirectories);
+    while (i.hasNext()) {
+        auto f = QFileInfo(i.next());
+        if (!f.isFile())
+            continue;
+        qDebug() << f.filePath();
+    }*/
     engine.load(url);
 
     //  Simulate changes in Pepp10

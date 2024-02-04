@@ -6,6 +6,7 @@ import QtQuick.Window
 import Qt.labs.platform as Platform
 
 import "ui" as Ui
+import "qrc:/ui/memory/hexdump" as Memory
 
 ApplicationWindow {
   id: window
@@ -59,7 +60,7 @@ ApplicationWindow {
       anchors.top: tab.bottom
       anchors.bottom: wrapper.bottom
 
-      Ui.MemoryDump {
+      Memory.MemoryDump {
         //anchors.fill: parent
       }
       Ui.Cpu {

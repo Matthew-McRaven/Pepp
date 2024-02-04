@@ -50,9 +50,9 @@ qt_add_qml_module(pep10
     SOURCES model/memorymodel.h model/memorymodel.cpp
     SOURCES model/statusbitmodel.h model/statusbitmodel.cpp
     SOURCES model/registermodel.h model/registermodel.cpp
-    SOURCES model/memorybytemodel.h model/memorybytemodel.cpp
     QML_FILES
 )
+
 set_target_properties(pep10 PROPERTIES FOLDER "qtc_runnable")
 target_link_libraries(pep10 PUBLIC
     Qt::Core
@@ -61,6 +61,7 @@ target_link_libraries(pep10 PUBLIC
     Qt::Quick
     Qt::QuickControls2
     Qt::Widgets
+    memoryplugin
 )
 
 # Resources:

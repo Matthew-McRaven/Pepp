@@ -4,7 +4,7 @@ import QtQuick.Layouts
 //import QtQuick.Controls.Material  //  For colors
 import Qt.labs.qmlmodels          //  For DelegateChooser
 
-import "./Components" as Ui
+import "." as Ui
 import edu.pepperdine 1.0
 
 Rectangle {
