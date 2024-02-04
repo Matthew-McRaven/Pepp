@@ -49,6 +49,7 @@ if(NOT DISABLE_TERM_TESTS)
     TYPE "EXEC"
     SOURCES
       ${CMAKE_CURRENT_SOURCE_DIR}/test/about.cpp
+      ${CMAKE_CURRENT_SOURCE_DIR}/test/asmrun.cpp
       ${CMAKE_CURRENT_SOURCE_DIR}/test/ls.cpp
       ${CMAKE_CURRENT_SOURCE_DIR}/test/get.cpp
       ${CMAKE_CURRENT_SOURCE_DIR}/test/test_main.cpp
