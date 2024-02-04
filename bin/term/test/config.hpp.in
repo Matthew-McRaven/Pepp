@@ -3,11 +3,14 @@
 inline QString term_path()
 {
     // File written out by cmake. First line is the path of pepp terminal executable.
-    QFile config_file("@CONFIG_DIR@/test_config.txt");
-    REQUIRE(config_file.open(QIODevice::ReadOnly | QIODevice::Text));
-
-    // Must clear newlines, or exec will not find correct file.
-    return QString(config_file.readLine()).trimmed();
+    auto dir = QDir::currentPath();
+    QDir d(dir);
+    for (auto filename : d.entryList()) {
+        auto file = QFile(filename);
+        if (filename.contains("pepp-term") && QFileInfo(file).isExecutable())
+            return filename;
+    }
+    throw std::logic_error("Couldn't find terminal app");
 }
 
 inline void wait_return(QProcess &proc, auto exitCode = 0)
@@ -15,4 +18,12 @@ inline void wait_return(QProcess &proc, auto exitCode = 0)
     REQUIRE(proc.waitForStarted());
     REQUIRE(proc.waitForFinished());
     CHECK(proc.exitCode() == exitCode);
+}
+
+// Replace platform-newlines with \n
+inline QString out(QProcess &proc)
+{
+    auto out = proc.readAllStandardOutput();
+    out.replace("\r", "");
+    return out;
 }
