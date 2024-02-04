@@ -6,9 +6,8 @@ on:
       cache_name: {type: string}
       runs-on: {required: True, type: string}
       image: {type: string, default: ''}
-      triplet: {type: string}
       cmake_generator: {type: string, default: ""}
-      cmake_toolchain: {type: string, required: True}
+      cmake_toolchain: {type: string, required: False}
       cmake_xargs: {type: string}
       ctest_launcher: {type: string, default: "ctest"}
       compiler_launcher: {type: string, default: ""}
@@ -74,16 +73,6 @@ jobs:
         languages: "c-cpp"
 
     # CMake configure & build
-    - name: Copy custom target triplets to vcpkg
-      # Only execute when using a non-stan
-      if: inputs.runs-on=='ubuntu-latest'
-      shell: bash
-      run: cp $GITHUB_WORKSPACE/config/cmake-triplets/* $GITHUB_WORKSPACE/3rd-party/vcpkg/triplets
-    - name: Configure vcpkg and convert shallow clone to regular
-      shell: bash
-      run: >
-          cd 3rd-party/vcpkg && (git fetch --unshallow || true)
-          && chmod +x bootstrap-vcpkg.sh && ./bootstrap-vcpkg.sh && ./vcpkg integrate install
     - name: Download prebuilt help documentation
       uses: actions/download-artifact@v3
       if: inputs.docs_artifact
@@ -101,9 +90,8 @@ jobs:
           ${{ inputs.compiler_launcher && format('-D CMAKE_CXX_COMPILER_LAUNCHER={0}', inputs.compiler_launcher) || '' }}
           ${{ inputs.compiler_c && format('-D CMAKE_C_COMPILER={0}', inputs.compiler_c) || '' }}
           ${{ inputs.compiler_cpp && format('-D CMAKE_CXX_COMPILER={0}', inputs.compiler_cpp) || '' }}
-          ${{ inputs.triplet && format('-D VCPKG_TARGET_TRIPLET={0}', inputs.triplet) || '' }}
           ${{ inputs.image && '-D USE_SYSTEM_BOOST=on' || '' }}
-          -D CMAKE_TOOLCHAIN_FILE=${{ inputs.cmake_toolchain }}
+          ${{ inputs.cmake_toolchain && format('-D CMAKE_TOOLCHAIN_FILE={0}', inputs.cmake_toolchain) || ''}}
           ${{ inputs.cmake_generator && format('-G {0}', inputs.cmake_generator) || '' }}
           ${{ inputs.cmake_xargs }}
           ${{ inputs.docs_audience && format('-D DOC_AUDIENCE={0}', inputs.docs_audience) || '' }}

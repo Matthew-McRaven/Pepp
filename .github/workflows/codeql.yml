@@ -58,7 +58,6 @@ jobs:
       runs-on: "ubuntu-latest"
       image: "ghcr.io/matthew-mcraven/pepp/dev:v0.9.0"
       cmake_generator: Ninja
-      cmake_toolchain: 3rd-party/vcpkg/scripts/buildsystems/vcpkg.cmake
       compiler_launcher: ccache
       codeql: True
       variant: "debug"
