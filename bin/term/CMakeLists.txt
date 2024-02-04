@@ -53,9 +53,12 @@ if(NOT DISABLE_TERM_TESTS)
       ${CMAKE_CURRENT_SOURCE_DIR}/test/ls.cpp
       ${CMAKE_CURRENT_SOURCE_DIR}/test/get.cpp
       ${CMAKE_CURRENT_SOURCE_DIR}/test/test_main.cpp
+      ${CMAKE_CURRENT_SOURCE_DIR}/test/samples.qrc
+      ${CMAKE_CURRENT_SOURCE_DIR}/test/samples.cpp
     DEPENDS Qt6::Core catch
   )
-  add_test(NAME test-term COMMAND test-term)
+
+add_test(NAME test-term COMMAND test-term)
   # Needed to find config file.
   target_include_directories(test-term PRIVATE ${CMAKE_CURRENT_BINARY_DIR})
   add_dependencies(pepp-term test-term)

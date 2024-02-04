@@ -1,0 +1,30 @@
+<RCC>
+    <qresource prefix="/">
+        <file>samples/long_strings_error/in.pep</file>
+        <file>samples/long_strings_error/out.pepo</file>
+        <file>samples/0648_printf/in.pep</file>
+        <file>samples/0648_printf/in.txt</file>
+        <file>samples/0648_printf/out.txt</file>
+        <file>samples/0646_printf/in.pep</file>
+        <file>samples/0646_printf/in.txt</file>
+        <file>samples/0646_printf/out.txt</file>
+        <file>samples/0644_printf/in.pep</file>
+        <file>samples/0644_printf/out.txt</file>
+        <file>samples/0642_printf/in.pep</file>
+        <file>samples/0642_printf/out.txt</file>
+        <file>samples/0638_printf/in.pep</file>
+        <file>samples/0638_printf/in.txt</file>
+        <file>samples/0638_printf/out.txt</file>
+        <file>samples/0636_printf/in.pep</file>
+        <file>samples/0636_printf/in.txt</file>
+        <file>samples/0636_printf/out.txt</file>
+        <file>samples/0629_printf/in.pep</file>
+        <file>samples/0629_printf/in.txt</file>
+        <file>samples/0629_printf/out.txt</file>
+        <file>samples/0627_printf/in.pep</file>
+        <file>samples/0627_printf/in.txt</file>
+        <file>samples/0627_printf/out.txt</file>
+        <file>samples/0625_printf/in.pep</file>
+        <file>samples/0625_printf/out.txt</file>
+    </qresource>
+</RCC>
