@@ -45,6 +45,7 @@ if(NOT DISABLE_TERM_TESTS)
     TARGET test-term
     TYPE "TEST"
     SOURCES
+      ${CMAKE_CURRENT_SOURCE_DIR}/test/about.cpp
       ${CMAKE_CURRENT_SOURCE_DIR}/test/ls.cpp
       ${CMAKE_CURRENT_SOURCE_DIR}/test/get.cpp
       ${CMAKE_CURRENT_SOURCE_DIR}/test/test_main.cpp
