@@ -13,14 +13,14 @@ foreach(f_abs IN LISTS abs_qml_sources)
     list(APPEND rel_qml_sources "${f_rel}")
 endforeach()
 
-qt_add_library(memory STATIC)
 qt_add_qml_module(memory
     URI "memory"
     VERSION 0.1
     QML_FILES
         ${rel_qml_sources}
+    RESOURCE_PREFIX /ui
     SOURCES
         ${sources}
-    RESOURCE_PREFIX /ui
 )
+target_compile_definitions(memory PRIVATE "MEMORY_LIBRARY")
 target_link_libraries(memory PUBLIC Qt6::Core Qt6::Gui Qt6::Quick)

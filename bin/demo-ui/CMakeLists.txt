@@ -61,7 +61,7 @@ target_link_libraries(pep10 PUBLIC
     Qt::Quick
     Qt::QuickControls2
     Qt::Widgets
-    memoryplugin
+    memory
 )
 
 # Resources:
