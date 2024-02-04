@@ -27,6 +27,16 @@ struct SimpleBuffer : public sim::api2::trace::Buffer {
     zpp::bits::out<decltype(_data)> _out;
 };
 
+TEST_CASE("Packet IsSameDevice", "[sim][trace]")
+{
+    using namespace sim::api2::packet;
+    auto equal = IsSameDevice{5};
+    auto nequal = IsSameDevice{6};
+    packet::Header hdr = packet::header::Write{.device = 5, .address = 0};
+    CHECK(std::visit(equal, hdr));
+    CHECK_FALSE(std::visit(nequal, hdr));
+}
+
 TEST_CASE("Packet serialization utilities", "[sim][trace]") {
     SECTION("Pure Read") {
         auto [address, device, payload_len] = GENERATE(table<quint16, device::ID, quint16>({
