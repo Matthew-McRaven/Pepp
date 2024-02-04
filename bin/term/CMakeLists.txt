@@ -5,13 +5,17 @@ list(APPEND sources ${sources_and_tests})
 list(REMOVE_ITEM sources ${tests})
 list(REMOVE_ITEM sources ${compile_tests})
 
+# Use to force terminal, test app to live in same directory.
+set(CMAKE_ARCHIVE_OUTPUT_DIRECTORY "${CMAKE_CURRENT_BINARY_DIR}/bin")
+set(CMAKE_LIBRARY_OUTPUT_DIRECTORY "${CMAKE_CURRENT_BINARY_DIR}/bin")
+set(CMAKE_RUNTIME_OUTPUT_DIRECTORY "${CMAKE_CURRENT_BINARY_DIR}/bin")
+
 make_target(
   TARGET pepp-term
   TYPE "EXEC"
   SOURCES ${sources}
   DEPENDS TextFlow cli about macro pas builtins isa targets sim Qt6::Core
 )
-
 
 # GLOB_RECURSE ueses abs paths, QML_FILES expects relative paths. This blob converts from abs to rel.
 set_target_properties(pepp-term PROPERTIES
@@ -38,12 +42,11 @@ install(TARGETS pepp-term
 set_target_properties(pepp-term PROPERTIES FOLDER "qtc_runnable")
 
 if(NOT DISABLE_TERM_TESTS)
-  set(CONFIG_DIR ${CMAKE_CURRENT_SOURCE_DIR})
   configure_file(test/config.hpp.in "${CMAKE_CURRENT_BINARY_DIR}/config.hpp")
 
   make_target(
     TARGET test-term
-    TYPE "TEST"
+    TYPE "EXEC"
     SOURCES
       ${CMAKE_CURRENT_SOURCE_DIR}/test/about.cpp
       ${CMAKE_CURRENT_SOURCE_DIR}/test/ls.cpp
@@ -51,8 +54,8 @@ if(NOT DISABLE_TERM_TESTS)
       ${CMAKE_CURRENT_SOURCE_DIR}/test/test_main.cpp
     DEPENDS Qt6::Core catch
   )
+  add_test(NAME test-term COMMAND test-term)
   # Needed to find config file.
-  file(GENERATE OUTPUT $<TARGET_FILE_DIR:test-term>/test_config.txt CONTENT "$<TARGET_FILE:pepp-term>\n" TARGET test-term)
   target_include_directories(test-term PRIVATE ${CMAKE_CURRENT_BINARY_DIR})
   add_dependencies(pepp-term test-term)
   set_target_properties(test-term PROPERTIES FOLDER "qtc_runnable")
