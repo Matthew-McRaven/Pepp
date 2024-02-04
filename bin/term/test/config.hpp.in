@@ -9,3 +9,10 @@ inline QString term_path()
     // Must clear newlines, or exec will not find correct file.
     return QString(config_file.readLine()).trimmed();
 }
+
+inline void wait_return(QProcess &proc, auto exitCode = 0)
+{
+    REQUIRE(proc.waitForStarted());
+    REQUIRE(proc.waitForFinished());
+    CHECK(proc.exitCode() == exitCode);
+}
