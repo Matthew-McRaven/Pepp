@@ -12,7 +12,7 @@ runs:
   steps:
   # Don't upload, since we need to filter the results first.
   - name: Perform CodeQL Analysis
-    uses: github/codeql-action/analyze@v2
+    uses: github/codeql-action/analyze@v3
     with:
       upload: False
       category: "/language:${{inputs.language}}"
@@ -28,7 +28,7 @@ runs:
       input: results/${{inputs.sarif-file}}.sarif
       output: results/${{inputs.sarif-file}}.sarif
   - name: Upload CodeQL Analysis
-    uses: github/codeql-action/upload-sarif@v2
+    uses: github/codeql-action/upload-sarif@v3
     with:
       category: "/language:${{inputs.language}}"
       sarif_file: results

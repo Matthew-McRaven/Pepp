@@ -68,7 +68,7 @@ jobs:
     # Initializes the CodeQL tools for scanning. Must occur before code is built.
     - name: Initialize CodeQL
       if: inputs.codeql && !env.ACT
-      uses: github/codeql-action/init@v2
+      uses: github/codeql-action/init@v3
       with:
         languages: "c-cpp"
 
