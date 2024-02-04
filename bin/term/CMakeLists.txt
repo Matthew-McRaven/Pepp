@@ -46,6 +46,21 @@ set(Python3_FIND_REGISTRY LAST)
 
 find_package(Python 3.12 OPTIONAL_COMPONENTS Development Interpreter)
 
+set(CONFIG_DIR ${CMAKE_CURRENT_SOURCE_DIR})
+file(GENERATE OUTPUT ${CONFIG_DIR}/test_config.txt CONTENT "$<TARGET_FILE:pepp-term>\n")
+configure_file(test/config.hpp.in "${CMAKE_CURRENT_BINARY_DIR}/config.hpp")
+
+make_target(
+  TARGET test-term-ls
+  TYPE "TEST"
+  SOURCES ${CMAKE_CURRENT_SOURCE_DIR}/test/ls.cpp
+  DEPENDS Qt6::Core catch
+)
+# Needed to find config file.
+target_include_directories(test-term-ls PRIVATE ${CMAKE_CURRENT_BINARY_DIR})
+add_dependencies(pepp-term test-term-ls)
+set_target_properties(test-term-ls PROPERTIES FOLDER "qtc_runnable")
+
 # Windows may report python found without debug libs present.
 # Try actually compiling a program with python to see if we get link errors.
 if(Python_Development_FOUND)
