@@ -100,25 +100,25 @@ void sim::trace2::InfiniteBuffer::dropLast()
 
 }
 
-sim::trace2::InfiniteBuffer::TraceIterator sim::trace2::InfiniteBuffer::cbegin() const
+sim::trace2::InfiniteBuffer::FrameIterator sim::trace2::InfiniteBuffer::cbegin() const
 {
-    return TraceIterator(this, 0);
+    return FrameIterator(this, 0);
 }
 
-sim::trace2::InfiniteBuffer::TraceIterator sim::trace2::InfiniteBuffer::cend() const
+sim::trace2::InfiniteBuffer::FrameIterator sim::trace2::InfiniteBuffer::cend() const
 {
-    return TraceIterator(this, _out.position());
+    return FrameIterator(this, _out.position());
 }
 
-sim::api2::trace::Buffer::TraceIterator sim::trace2::InfiniteBuffer::crbegin() const
+sim::trace2::InfiniteBuffer::FrameIterator sim::trace2::InfiniteBuffer::crbegin() const
 {
-    return TraceIterator(this, _lastFrameStart, api2::trace::Direction::Reverse);
+    return FrameIterator(this, _lastFrameStart, api2::trace::Direction::Reverse);
 }
 
-sim::trace2::InfiniteBuffer::TraceIterator sim::trace2::InfiniteBuffer::crend() const
+sim::trace2::InfiniteBuffer::FrameIterator sim::trace2::InfiniteBuffer::crend() const
 {
     // -1 has arbitrarily been chosen as end sentinel.
-    return TraceIterator(this, -1, api2::trace::Direction::Reverse);
+    return FrameIterator(this, -1, api2::trace::Direction::Reverse);
 }
 
 std::size_t sim::trace2::InfiniteBuffer::size_at(std::size_t loc, api2::trace::Level level) const

@@ -26,6 +26,7 @@ struct IsType {
 
 class InfiniteBuffer : public api2::trace::Buffer, public api2::trace::IteratorImpl {
 public:
+    using FrameIterator = api2::trace::FrameIterator;
     InfiniteBuffer();
     // Buffer interface
     bool trace(quint16 deviceID, bool enabled) override;
@@ -36,10 +37,10 @@ public:
     bool writeFragment(const api2::packet::Payload&) override;
     bool updateFrameHeader() override;
     void dropLast() override;
-    TraceIterator cbegin() const override;
-    TraceIterator cend() const override;
-    TraceIterator crbegin() const override;
-    TraceIterator crend() const override;
+    FrameIterator cbegin() const override;
+    FrameIterator cend() const override;
+    FrameIterator crbegin() const override;
+    FrameIterator crend() const override;
 
 private:
     QSet<api2::device::ID> _traced = {};
