@@ -7,6 +7,7 @@ using namespace sim::trace2;
 using wrapped  = std::variant<frame::Header, packet::Header, packet::Payload>;
 using w = wrapped;
 struct SimpleBuffer : public sim::api2::trace::Buffer {
+    using FrameIterator = sim::api2::trace::FrameIterator;
     SimpleBuffer(): _data(), _in(_data), _out(_data){}
     // Buffer interface
     bool trace(sim::api2::device::ID deviceID, bool enabled) override {return true;}
@@ -17,10 +18,10 @@ struct SimpleBuffer : public sim::api2::trace::Buffer {
     bool writeFragment(const sim::api2::packet::Payload & hdr) override {_out(w{hdr}).or_throw(); return true;}
     bool updateFrameHeader() override {return true;}
     void dropLast() override {throw std::logic_error("Unimplemented");}
-    TraceIterator cbegin() const override {throw std::logic_error("Unimplemented");}
-    TraceIterator cend() const override {throw std::logic_error("Unimplemented");}
-    TraceIterator crbegin() const override {throw std::logic_error("Unimplemented");}
-    TraceIterator crend() const override {throw std::logic_error("Unimplemented");}
+    FrameIterator cbegin() const override { throw std::logic_error("Unimplemented"); }
+    FrameIterator cend() const override { throw std::logic_error("Unimplemented"); }
+    FrameIterator crbegin() const override { throw std::logic_error("Unimplemented"); }
+    FrameIterator crend() const override { throw std::logic_error("Unimplemented"); }
 
     mutable std::vector<std::byte> _data = {};
     zpp::bits::in<decltype(_data)> _in;

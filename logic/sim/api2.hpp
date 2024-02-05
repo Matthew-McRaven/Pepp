@@ -225,11 +225,12 @@ enum class Direction {
 // Specialization of this class with <Arg> and <Arg, ...args>
 // will enable my heirarchical iterators.
 template<Level... Args>
-struct Iterator;
+struct HierarchicalIterator;
 
 // Prevent instantiation of iterator for Iterator<Level::Payload>
 template<Level Current>
-struct Iterator<Current>{
+struct HierarchicalIterator<Current>
+{
 public:
     using iterator_category = std::forward_iterator_tag;
     using difference_type = quint64;
@@ -238,20 +239,23 @@ public:
     using pointer = const value_type*;
     using reference = value_type&;
 
-    Iterator(const IteratorImpl *impl, std::size_t location, Direction dir = Direction::Forward)
+    HierarchicalIterator(const IteratorImpl *impl,
+                         std::size_t location,
+                         Direction dir = Direction::Forward)
         : _impl(impl)
         , _location(location)
         , _dir(dir)
     {}
 
-    Iterator& operator++() {
+    HierarchicalIterator &operator++()
+    {
         if (_dir == Direction::Forward)
             _location = _impl->next(_location, Current);
         else _location = _impl->prev(_location, Current);
         return *this;
     }
 
-    Iterator &operator--()
+    HierarchicalIterator &operator--()
     {
         if (_dir == Direction::Forward)
             _location = _impl->prev(_location, Current);
@@ -259,28 +263,27 @@ public:
         return *this;
     }
 
-    Iterator& operator++(int) {
+    HierarchicalIterator &operator++(int)
+    {
         auto ret = *this;
         ++(*this);
         return ret;
     }
 
-    Iterator& operator--(int) {
+    HierarchicalIterator &operator--(int)
+    {
         auto ret = *this;
         --(*this);
         return ret;
     }
 
-    bool operator==(Iterator other) const
+    bool operator==(HierarchicalIterator other) const
     {
         return _impl == other._impl && _location == other._location
             && _dir == other._dir;
     }
 
-    bool operator!=(Iterator other) const
-    {
-        return !(other == *this);
-    }
+    bool operator!=(HierarchicalIterator other) const { return !(other == *this); }
 
     std::size_t fragment_size() const
     {
@@ -305,43 +308,46 @@ protected:
 // If created as a reverse iterator, cbegin/cend will create reverse iterators.
 // This should allow analyzers to be agnostic to the direction of iteration.
 template<Level Current, Level... Descendants>
-struct Iterator<Current, Descendants...>: public Iterator<Current> {
+struct HierarchicalIterator<Current, Descendants...> : public HierarchicalIterator<Current>
+{
 public:
-    Iterator(const IteratorImpl *impl, std::size_t location, Direction dir = Direction::Forward)
-        : Iterator<Current>(impl, location, dir)
+    HierarchicalIterator(const IteratorImpl *impl,
+                         std::size_t location,
+                         Direction dir = Direction::Forward)
+        : HierarchicalIterator<Current>(impl, location, dir)
     {}
 
     // Defer to internal implementations to avoid duplication of complex iteration code.
 
-    Iterator<Descendants...> cbegin() const
+    HierarchicalIterator<Descendants...> cbegin() const
     {
         return this->_dir == Direction::Forward ? this->_cbegin() : this->_crbegin();
     }
 
-    Iterator<Descendants...> cend() const
+    HierarchicalIterator<Descendants...> cend() const
     {
         return this->_dir == Direction::Forward ? this->_cend() : this->_crend();
     }
 
-    Iterator<Descendants...> crbegin() const
+    HierarchicalIterator<Descendants...> crbegin() const
     {
         return this->_dir == Direction::Forward ? this->_crbegin() : this->_cbegin();
     }
 
-    Iterator<Descendants...> crend() const
+    HierarchicalIterator<Descendants...> crend() const
     {
         return this->_dir == Direction::Forward ? this->_crend() : this->_cend();
     }
 
 protected:
-    Iterator<Descendants...> _cbegin() const
+    HierarchicalIterator<Descendants...> _cbegin() const
     {
         // Skip current element, because this returns a iterator for children.
         auto to_next = this->_impl->size_at(this->_location, Current);
-        return Iterator<Descendants...>(this->_impl, this->_location + to_next);
+        return HierarchicalIterator<Descendants...>(this->_impl, this->_location + to_next);
     }
 
-    Iterator<Descendants...> _cend() const
+    HierarchicalIterator<Descendants...> _cend() const
     {
         // Skip current element, because this returns a iterator for children.
         auto to_next = this->_impl->size_at(this->_location, Current);
@@ -353,10 +359,10 @@ protected:
             if ((int) Current < (int) next_type)
                 next = this->_impl->next(next, Current);
         }
-        return Iterator<Descendants...>(this->_impl, next);
+        return HierarchicalIterator<Descendants...>(this->_impl, next);
     }
 
-    Iterator<Descendants...> _crbegin() const
+    HierarchicalIterator<Descendants...> _crbegin() const
     {
         // Figure out what next level is.
         Level below;
@@ -380,25 +386,28 @@ protected:
         // If next(...) hits end, prev will "do the right thing".
         // Our only risk is that prev hits the end sentinel.
         loc = this->_impl->prev(next_above, below);
-        return Iterator<Descendants...>(this->_impl, loc, Direction::Reverse);
+        return HierarchicalIterator<Descendants...>(this->_impl, loc, Direction::Reverse);
     }
 
-    Iterator<Descendants...> _crend() const
+    HierarchicalIterator<Descendants...> _crend() const
     {
         // Current fragment must be at higher level of abstraction than descendant fragments.
         // Therefore, the location of this fragment makes for a good "past the end" iterator value.
-        return Iterator<Descendants...>(this->_impl, this->_location, Direction::Reverse);
+        return HierarchicalIterator<Descendants...>(this->_impl,
+                                                    this->_location,
+                                                    Direction::Reverse);
     }
 };
-
+using FrameIterator = HierarchicalIterator<Level::Frame, Level::Packet, Level::Payload>;
+using PacketIterator = HierarchicalIterator<Level::Packet, Level::Payload>;
 // Needed to enable range-based for loops
 template<Level... args>
-auto begin(Iterator<args...> &iter)
+auto begin(HierarchicalIterator<args...> &iter)
 {
     return iter.cbegin();
 }
 template<Level... args>
-auto end(Iterator<args...> &iter)
+auto end(HierarchicalIterator<args...> &iter)
 {
     return iter.cend();
 }
@@ -414,7 +423,6 @@ class Sink;
 // between the UI and the simulation.
 class Buffer {
 public:
-    using TraceIterator = Iterator<Level::Frame, Level::Packet, Level::Payload>;
     virtual ~Buffer() = default;
     virtual bool trace(device::ID deviceID, bool enabled = true) = 0;
 
@@ -432,10 +440,10 @@ public:
     // TODO: replace with integration for iterators / std::erase.
     virtual void dropLast() = 0;
 
-    virtual TraceIterator cbegin() const = 0;
-    virtual TraceIterator cend() const = 0;
-    virtual TraceIterator crbegin() const = 0;
-    virtual TraceIterator crend() const = 0;
+    virtual FrameIterator cbegin() const = 0;
+    virtual FrameIterator cend() const = 0;
+    virtual FrameIterator crbegin() const = 0;
+    virtual FrameIterator crend() const = 0;
 };
 
 class Source
@@ -446,7 +454,6 @@ public:
     virtual void trace(bool enabled) = 0;
 };
 
-using PacketIterator = Iterator<Level::Packet, Level::Payload>;
 class Sink
 {
 public:
