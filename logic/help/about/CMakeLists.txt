@@ -10,6 +10,7 @@ make_library(
   SOURCES ${sources}
   DEPENDS Qt6::Core
   TESTS ${tests}
+  TEST_DEPENDS catch
 )
 
 set_target_properties(about PROPERTIES NEEDS_HTML_HELP ON)

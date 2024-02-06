@@ -1,17 +1,15 @@
 #include "help/about/dependencies.hpp"
-#include <QTest>
-#include <QtCore>
+#include <catch.hpp>
 
-class About_Dependencies : public QObject {
-  Q_OBJECT
-private slots:
-  void smoke() {
+TEST_CASE("About Dependencies", "[about]")
+{
     auto deps = about::dependencies();
-    QCOMPARE(deps.length(), 10);
+    CHECK(deps.length() == 10);
     for (const auto &dep : deps)
-      QCOMPARE_NE(dep.licenseText.size(), 0);
-  }
+        CHECK(dep.licenseText.size() != 0);
 };
-#include "dependencies.moc"
 
-QTEST_MAIN(About_Dependencies);
+int main(int argc, char *argv[])
+{
+    return Catch::Session().run(argc, argv);
+}

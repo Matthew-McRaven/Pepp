@@ -1,17 +1,16 @@
 #include "help/about/pepp.hpp"
-#include <QTest>
-#include <QtCore>
+#include <catch.hpp>
 
-class About_Pepp : public QObject {
-  Q_OBJECT
-private slots:
-  void repoUrl() { QCOMPARE_NE(about::projectRepoURL().size(), 0); }
-  void maintainers() { QCOMPARE_NE(about::maintainers().size(), 0); }
-  void contributors() { QCOMPARE_NE(about::contributors().size(), 0); }
-  void licenseText() { QCOMPARE_NE(about::licenseFull().size(), 0); }
-  void licenseNotice() { QCOMPARE_NE(about::licenseNotice().size(), 0); }
-  void version() { QCOMPARE_GT(about::versionString().size(), 1); }
-};
-#include "pepp.moc"
-
-QTEST_MAIN(About_Pepp);
+TEST_CASE("About Pepp", "[about]")
+{
+    CHECK_FALSE(about::projectRepoURL().size() == 0);
+    CHECK_FALSE(about::maintainers().size() == 0);
+    CHECK_FALSE(about::contributors().size() == 0);
+    CHECK_FALSE(about::licenseFull().size() == 0);
+    CHECK_FALSE(about::licenseNotice().size() == 0);
+    CHECK(about::versionString().size() > 1);
+}
+int main(int argc, char *argv[])
+{
+    return Catch::Session().run(argc, argv);
+}
