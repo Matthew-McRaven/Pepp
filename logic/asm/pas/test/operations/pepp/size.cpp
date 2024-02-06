@@ -1,6 +1,5 @@
 /*
- * Copyright (c) 2023 J. Stanley Warford, Matthew McRaven
- *
+ * Copyright (c) 2023-2024 J. Stanley Warford, Matthew McRaven
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
  * the Free Software Foundation, either version 3 of the License, or
@@ -14,220 +13,160 @@
  * You should have received a copy of the GNU General Public License
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
-
 #include "asm/pas/operations/pepp/size.hpp"
+#include <catch.hpp>
+#include "asm/pas/driver/pepp.hpp"
+#include "asm/pas/operations/generic/include_macros.hpp"
 #include "bits/strings.hpp"
 #include "isa/pep10.hpp"
 #include "macro/macro.hpp"
 #include "macro/registry.hpp"
-#include "asm/pas/driver/pepp.hpp"
-#include "asm/pas/operations/generic/include_macros.hpp"
-#include <QObject>
-#include <QTest>
 
 using pas::ops::pepp::Direction;
 using pas::ops::pepp::explicitSize;
-class PasOpsPepp_Size : public QObject {
-  Q_OBJECT
-private slots:
-  void unary() {
+TEST_CASE("Pas Ops, size") {
+  SECTION("Unary") {
     QString body = "rola\nrolx";
-    auto ret =
-        pas::driver::pepp::createParser<isa::Pep10, pas::driver::ANTLRParserTag>(false)(body, nullptr);
-    QVERIFY(!ret.hadError);
+    auto ret = pas::driver::pepp::createParser<isa::Pep10, pas::driver::ANTLRParserTag>(false)(body, nullptr);
+    REQUIRE_FALSE(ret.hadError);
     auto children = ret.root->get<pas::ast::generic::Children>().value;
-    QCOMPARE(children.size(), 2);
+    CHECK(children.size() == 2);
     for (auto &base : {0, 200, 0xfffe}) {
-      QCOMPARE(explicitSize<isa::Pep10>(*ret.root, base, Direction::Forward),
-               2);
-      QCOMPARE(explicitSize<isa::Pep10>(*ret.root, base, Direction::Backward),
-               2);
+      CHECK(explicitSize<isa::Pep10>(*ret.root, base, Direction::Forward) == 2);
+      CHECK(explicitSize<isa::Pep10>(*ret.root, base, Direction::Backward) == 2);
     }
   }
-  void nonUnary() {
+  SECTION("Nonunary") {
     QString body = "ldwa n,x\nstwa n,x";
-    auto ret =
-        pas::driver::pepp::createParser<isa::Pep10, pas::driver::ANTLRParserTag>(false)(body, nullptr);
-    QVERIFY(!ret.hadError);
+    auto ret = pas::driver::pepp::createParser<isa::Pep10, pas::driver::ANTLRParserTag>(false)(body, nullptr);
+    REQUIRE_FALSE(ret.hadError);
     auto children = ret.root->get<pas::ast::generic::Children>().value;
-    QCOMPARE(children.size(), 2);
+    CHECK(children.size() == 2);
     for (auto &base : {0, 200, 0xfffe}) {
-      QCOMPARE(explicitSize<isa::Pep10>(*ret.root, base, Direction::Forward),
-               6);
-      QCOMPARE(explicitSize<isa::Pep10>(*ret.root, base, Direction::Backward),
-               6);
+      CHECK(explicitSize<isa::Pep10>(*ret.root, base, Direction::Forward) == 6);
+      CHECK(explicitSize<isa::Pep10>(*ret.root, base, Direction::Backward) == 6);
     }
   }
-  void size0Directives() {
-    QFETCH(QString, body);
-    auto ret = pas::driver::pepp::createParser<isa::Pep10, pas::driver::ANTLRParserTag>(false)(
-        u"%1 s"_qs.arg(body), nullptr);
-    QVERIFY(!ret.hadError);
-    auto children = ret.root->get<pas::ast::generic::Children>().value;
-    QCOMPARE(children.size(), 1);
-    for (auto &base : {0, 200, 0xfffe}) {
-      QCOMPARE(explicitSize<isa::Pep10>(*ret.root, base, Direction::Forward),
-               0);
-      QCOMPARE(explicitSize<isa::Pep10>(*ret.root, base, Direction::Backward),
-               0);
+  for (auto name : {".IMPORT", ".EXPORT", ".SCALL", ".USCALL", ".INPUT", ".OUTPUT"}) {
+    DYNAMIC_SECTION(name) {
+      auto ret = pas::driver::pepp::createParser<isa::Pep10, pas::driver::ANTLRParserTag>(false)(u"%1 s"_qs.arg(name),
+                                                                                                 nullptr);
+      REQUIRE_FALSE(ret.hadError);
+      auto children = ret.root->get<pas::ast::generic::Children>().value;
+      CHECK(children.size() == 1);
+      for (auto &base : {0, 200, 0xfffe}) {
+        CHECK(explicitSize<isa::Pep10>(*ret.root, base, Direction::Forward) == 0);
+        CHECK(explicitSize<isa::Pep10>(*ret.root, base, Direction::Backward) == 0);
+      }
     }
   }
-  void size0Directives_data() {
-    QTest::addColumn<QString>("body");
-    for (auto &str :
-         {".IMPORT", ".EXPORT", ".SCALL", ".USCALL", ".INPUT", ".OUTPUT"}) {
-      QTest::addRow(str) << QString::fromStdString(str);
+  std::vector<std::tuple<std::string, QString>> ascii_cases = {
+      {"short string: no escaped", "hi"},    {"short string: 1 escaped", ".\\n"},
+      {"short string: 2 escaped", "\\r\\n"}, {"short string: 2 hex", "\\xff\\x00"},
+      {"long string: no escaped", "ahi"},    {"long string: 1 escaped", "a.\\n"},
+      {"long string: 2 escaped", "a\\r\\n"}, {"long string: 2 hex", "a\\xff\\x00"}};
+  for (auto [name, value] : ascii_cases) {
+    DYNAMIC_SECTION(name) {
+      auto ret = pas::driver::pepp::createParser<isa::Pep10, pas::driver::ANTLRParserTag>(false)(
+          u".ASCII \"%1\""_qs.arg(value), nullptr);
+
+      REQUIRE_FALSE(ret.hadError);
+      auto children = ret.root->get<pas::ast::generic::Children>().value;
+      CHECK(children.size() == 1);
+      auto len = bits::escapedStringLength(value);
+      for (auto &base : {0, 200, 0xfffe}) {
+        CHECK(explicitSize<isa::Pep10>(*ret.root, base, Direction::Forward) == len);
+        CHECK(explicitSize<isa::Pep10>(*ret.root, base, Direction::Backward) == len);
+      }
     }
   }
-  void ascii() {
-    QFETCH(QString, arg);
-    auto ret = pas::driver::pepp::createParser<isa::Pep10, pas::driver::ANTLRParserTag>(false)(
-        u".ASCII \"%1\""_qs.arg(arg), nullptr);
-    QVERIFY(!ret.hadError);
-    auto children = ret.root->get<pas::ast::generic::Children>().value;
-    QCOMPARE(children.size(), 1);
-    auto len = bits::escapedStringLength(arg);
-    for (auto &base : {0, 200, 0xfffe}) {
-      QCOMPARE(explicitSize<isa::Pep10>(*ret.root, base, Direction::Forward),
-               len);
-      QCOMPARE(explicitSize<isa::Pep10>(*ret.root, base, Direction::Backward),
-               len);
+  std::vector<std::tuple<std::string, qsizetype, qsizetype>> align_cases = {
+      {"ALIGN 1 @ 0", 1, 0}, {"ALIGN 1 @ 1", 1, 1}, {"ALIGN 1 @ 2", 1, 2}, {"ALIGN 1 @ FFFE", 1, 0xfffe},
+      {"ALIGN 2 @ 0", 2, 0}, {"ALIGN 2 @ 1", 2, 1}, {"ALIGN 2 @ 2", 2, 2}, {"ALIGN 2 @ FFFE", 2, 0xfffe},
+      {"ALIGN 4 @ 0", 4, 0}, {"ALIGN 4 @ 1", 4, 1}, {"ALIGN 4 @ 2", 4, 2}, {"ALIGN 4 @ FFFE", 4, 0xfffe},
+      {"ALIGN 8 @ 0", 8, 0}, {"ALIGN 8 @ 1", 8, 1}, {"ALIGN 8 @ 2", 8, 2}, {"ALIGN 8 @ FFFE", 8, 0xfffe}};
+
+  for (auto [name, align, base] : align_cases) {
+    DYNAMIC_SECTION(name) {
+      auto ret = pas::driver::pepp::createParser<isa::Pep10, pas::driver::ANTLRParserTag>(false)(
+          u".ALIGN %1"_qs.arg(align), nullptr);
+
+      REQUIRE_FALSE(ret.hadError);
+      auto children = ret.root->get<pas::ast::generic::Children>().value;
+      CHECK(children.size() == 1);
+      auto forwardToNextAlign = (align - (base % align)) % align;
+      auto forwardEnd = base + forwardToNextAlign;
+      auto forwardSize = forwardEnd - base;
+      CHECK(explicitSize<isa::Pep10>(*ret.root, base, Direction::Forward) == forwardSize);
+      auto backwardStart = base - (base % align);
+      auto backwardSize = base - backwardStart;
+      CHECK(explicitSize<isa::Pep10>(*ret.root, base, Direction::Backward) == backwardSize);
     }
   }
+  constexpr std::array<qsizetype, 4> block_cases = {0x0, 0x1, 0xFFFF, 0x10};
+  for (auto count : block_cases) {
+    DYNAMIC_SECTION(".BLOCK " << u"%1"_qs.arg(count, 0, 16).toStdString()) {
+      auto ret = pas::driver::pepp::createParser<isa::Pep10, pas::driver::ANTLRParserTag>(false)(
+          u".BLOCK %1"_qs.arg(count), nullptr);
 
-  void ascii_data() {
-    QTest::addColumn<QString>("arg");
-    QTest::addRow("short string: no escaped") << "hi";
-    QTest::addRow("short string: 1 escaped") << ".\\n";
-    QTest::addRow("short string: 2 escaped") << "\\r\\n";
-    QTest::addRow("short string: 2 hex") << "\\xff\\x00";
-    QTest::addRow("long string: no escaped") << "ahi";
-    QTest::addRow("long string: 1 escaped") << "a.\\n";
-    QTest::addRow("long string: 2 escaped") << "a\\r\\n";
-    QTest::addRow("long string: 2 hex") << "a\\xff\\x00";
-  }
-
-  void align() {
-    QFETCH(qsizetype, align);
-    QFETCH(qsizetype, base);
-    auto ret = pas::driver::pepp::createParser<isa::Pep10, pas::driver::ANTLRParserTag>(false)(
-        u".ALIGN %1"_qs.arg(align), nullptr);
-    QVERIFY(!ret.hadError);
-    auto children = ret.root->get<pas::ast::generic::Children>().value;
-    QCOMPARE(children.size(), 1);
-    auto forwardToNextAlign = (align - (base % align)) % align;
-    auto forwardEnd = base + forwardToNextAlign;
-    auto forwardSize = forwardEnd - base;
-    QCOMPARE(explicitSize<isa::Pep10>(*ret.root, base, Direction::Forward),
-             forwardSize);
-    auto backwardStart = base - (base % align);
-    auto backwardSize = base - backwardStart;
-    QCOMPARE(explicitSize<isa::Pep10>(*ret.root, base, Direction::Backward),
-             backwardSize);
-  }
-  void align_data() {
-    QTest::addColumn<qsizetype>("align");
-    QTest::addColumn<qsizetype>("base");
-
-    QTest::addRow("ALIGN 1 @ 0") << qsizetype(1) << qsizetype(0);
-    QTest::addRow("ALIGN 1 @ 1") << qsizetype(1) << qsizetype(1);
-    QTest::addRow("ALIGN 1 @ 2") << qsizetype(1) << qsizetype(2);
-    QTest::addRow("ALIGN 1 @ FFFE") << qsizetype(1) << qsizetype(0xfffe);
-    QTest::addRow("ALIGN 2 @ 0") << qsizetype(2) << qsizetype(0);
-    QTest::addRow("ALIGN 2 @ 1") << qsizetype(2) << qsizetype(1);
-    QTest::addRow("ALIGN 2 @ 2") << qsizetype(2) << qsizetype(2);
-    QTest::addRow("ALIGN 2 @ FFFE") << qsizetype(2) << qsizetype(0xfffe);
-    QTest::addRow("ALIGN 4 @ 0") << qsizetype(4) << qsizetype(0);
-    QTest::addRow("ALIGN 4 @ 1") << qsizetype(4) << qsizetype(1);
-    QTest::addRow("ALIGN 4 @ 2") << qsizetype(4) << qsizetype(2);
-    QTest::addRow("ALIGN 4 @ FFFE") << qsizetype(4) << qsizetype(0xfffe);
-    QTest::addRow("ALIGN 8 @ 0") << qsizetype(8) << qsizetype(0);
-    QTest::addRow("ALIGN 8 @ 1") << qsizetype(8) << qsizetype(1);
-    QTest::addRow("ALIGN 8 @ 2") << qsizetype(8) << qsizetype(2);
-    QTest::addRow("ALIGN 8 @ FFFE") << qsizetype(8) << qsizetype(0xfffe);
-  }
-
-  void block() {
-    QFETCH(qsizetype, count);
-    auto ret = pas::driver::pepp::createParser<isa::Pep10, pas::driver::ANTLRParserTag>(false)(
-        u".BLOCK %1"_qs.arg(count), nullptr);
-    QVERIFY(!ret.hadError);
-    auto children = ret.root->get<pas::ast::generic::Children>().value;
-    QCOMPARE(children.size(), 1);
-    for (auto &base : {0, 200, 0xfffe}) {
-      QCOMPARE(explicitSize<isa::Pep10>(*ret.root, base, Direction::Forward),
-               count);
-      QCOMPARE(explicitSize<isa::Pep10>(*ret.root, base, Direction::Backward),
-               count);
+      REQUIRE_FALSE(ret.hadError);
+      auto children = ret.root->get<pas::ast::generic::Children>().value;
+      CHECK(children.size() == 1);
+      for (auto &base : {0, 200, 0xfffe}) {
+        CHECK(explicitSize<isa::Pep10>(*ret.root, base, Direction::Forward) == count);
+        CHECK(explicitSize<isa::Pep10>(*ret.root, base, Direction::Backward) == count);
+      }
     }
   }
-
-  void block_data() {
-    QTest::addColumn<qsizetype>("count");
-    QTest::addRow("0") << qsizetype(0);
-    QTest::addRow("FFFF") << qsizetype(0xFFFF);
-    QTest::addRow("1") << qsizetype(1);
-    QTest::addRow("16") << qsizetype(0x10);
-  }
-
-  void wordSize() {
+  SECTION("Word") {
     auto ret = pas::driver::pepp::createParser<isa::Pep10, pas::driver::ANTLRParserTag>(false)(
         u".WORD 0\n .WORD 1\n.WORD 0xFFFF"_qs, nullptr);
-    QVERIFY(!ret.hadError);
+
+    REQUIRE_FALSE(ret.hadError);
     auto children = ret.root->get<pas::ast::generic::Children>().value;
-    QCOMPARE(children.size(), 3);
+    CHECK(children.size() == 3);
     for (auto &base : {0, 200, 0xfffe}) {
-      QCOMPARE(explicitSize<isa::Pep10>(*ret.root, base, Direction::Forward),
-               6);
-      QCOMPARE(explicitSize<isa::Pep10>(*ret.root, base, Direction::Backward),
-               6);
+      CHECK(explicitSize<isa::Pep10>(*ret.root, base, Direction::Forward) == 6);
+      CHECK(explicitSize<isa::Pep10>(*ret.root, base, Direction::Backward) == 6);
     }
   }
-
-  void byteSize() {
+  SECTION("Byte") {
     auto ret = pas::driver::pepp::createParser<isa::Pep10, pas::driver::ANTLRParserTag>(false)(
         u".BYTE 0\n .BYTE 1\n.BYTE 0xFF"_qs, nullptr);
-    QVERIFY(!ret.hadError);
+
+    REQUIRE_FALSE(ret.hadError);
     auto children = ret.root->get<pas::ast::generic::Children>().value;
-    QCOMPARE(children.size(), 3);
+    CHECK(children.size() == 3);
     for (auto &base : {0, 200, 0xfffe}) {
-      QCOMPARE(explicitSize<isa::Pep10>(*ret.root, base, Direction::Forward),
-               3);
-      QCOMPARE(explicitSize<isa::Pep10>(*ret.root, base, Direction::Backward),
-               3);
+      CHECK(explicitSize<isa::Pep10>(*ret.root, base, Direction::Forward) == 3);
+      CHECK(explicitSize<isa::Pep10>(*ret.root, base, Direction::Backward) == 3);
     }
   }
-
-  void macro() {
+  SECTION("Macro") {
     auto registry = QSharedPointer<macro::Registry>::create();
-    auto macro = QSharedPointer<macro::Parsed>::create(
-        u"alpha"_qs, 0, u".BYTE 1\n.WORD 2"_qs, u"pep/10"_qs);
+    auto macro = QSharedPointer<macro::Parsed>::create(u"alpha"_qs, 0, u".BYTE 1\n.WORD 2"_qs, u"pep/10"_qs);
     registry->registerMacro(macro::types::Core, macro);
     auto parseRoot = pas::driver::pepp::createParser<isa::Pep10, pas::driver::ANTLRParserTag>(false);
     auto res = parseRoot(u"@alpha\n.END"_qs, nullptr);
-    QVERIFY(!res.hadError);
+
+    REQUIRE_FALSE(res.hadError);
     auto ret = pas::ops::generic::includeMacros(
         *res.root, pas::driver::pepp::createParser<isa::Pep10, pas::driver::ANTLRParserTag>(true), registry);
-    QVERIFY(ret);
-    QCOMPARE(explicitSize<isa::Pep10>(*res.root, 0, Direction::Forward), 3);
-    QCOMPARE(explicitSize<isa::Pep10>(*res.root, 0, Direction::Backward), 3);
+    REQUIRE(ret);
+    CHECK(explicitSize<isa::Pep10>(*res.root, 0, Direction::Forward) == 3);
+    CHECK(explicitSize<isa::Pep10>(*res.root, 0, Direction::Backward) == 3);
   }
+  SECTION("Empty") {
+    auto ret = pas::driver::pepp::createParser<isa::Pep10, pas::driver::ANTLRParserTag>(false)(u"\n\n\n"_qs, nullptr);
 
-  void empty() {
-    auto ret = pas::driver::pepp::createParser<isa::Pep10, pas::driver::ANTLRParserTag>(false)(u"\n\n\n"_qs,
-                                                                  nullptr);
-    QVERIFY(!ret.hadError);
+    REQUIRE_FALSE(ret.hadError);
     auto children = ret.root->get<pas::ast::generic::Children>().value;
-    QCOMPARE(children.size(), 3);
+    CHECK(children.size() == 3);
     for (auto &base : {0, 200, 0xfffe}) {
-      QCOMPARE(explicitSize<isa::Pep10>(*ret.root, base, Direction::Forward),
-               0);
-      QCOMPARE(explicitSize<isa::Pep10>(*ret.root, base, Direction::Backward),
-               0);
+      CHECK(explicitSize<isa::Pep10>(*ret.root, base, Direction::Forward) == 0);
+      CHECK(explicitSize<isa::Pep10>(*ret.root, base, Direction::Backward) == 0);
     }
   }
-};
+}
 
-#include "size.moc"
-
-QTEST_MAIN(PasOpsPepp_Size);
+int main(int argc, char *argv[]) { return Catch::Session().run(argc, argv); }
