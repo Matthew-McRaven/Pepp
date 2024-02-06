@@ -16,16 +16,13 @@
  */
 
 #include "help/builtins/registry.hpp"
-#include <QTest>
-#include <QtCore>
+#include <catch.hpp>
 
-class Builtins : public QObject {
-  Q_OBJECT
-private slots:
-  void initTestCase() {}
-  void createRegistry() { auto x = builtins::Registry(nullptr); }
-};
-// Must be after class declaration.
-#include "dummy.moc"
-
-QTEST_GUILESS_MAIN(Builtins);
+TEST_CASE("Builtins")
+{
+    REQUIRE_NOTHROW([]() { auto x = builtins::Registry(nullptr); }());
+}
+int main(int argc, char *argv[])
+{
+    return Catch::Session().run(argc, argv);
+}

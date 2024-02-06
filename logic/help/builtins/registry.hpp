@@ -19,12 +19,13 @@
 
 #include <QObject>
 
+// Needed to prevent type_traits from complaining that Book has throwing dtor.
+#include "book.hpp"
 #include "builtins_globals.hpp"
 namespace macro {
 class Parsed;
 }
 namespace builtins {
-class Book;
 class BUILTINS_EXPORT Registry : public QObject {
   Q_OBJECT
   Q_PROPERTY(

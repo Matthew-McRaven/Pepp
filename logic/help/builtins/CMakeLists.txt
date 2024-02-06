@@ -31,7 +31,7 @@ make_library(
   SOURCES ${sources}
   DEPENDS Qt6::Core macro
   TESTS ${tests}
-  TEST_DEPENDS Qt6::Gui Qt6::Qml Qt6::Quick
+  TEST_DEPENDS Qt6::Gui Qt6::Qml Qt6::Quick catch
 )
 
 qt_add_resources(builtins "builtins" PREFIX "/" FILES ${cs4e-res} ${cs5e-res} ${cs6e-res})
