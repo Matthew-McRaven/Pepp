@@ -22,37 +22,50 @@
 #include "targets/pep10/isa3/cpu.hpp"
 #include "targets/pep10/isa3/helpers.hpp"
 
-void inner(isa::Pep10::Mnemonic op) {
+template <isa::Pep10::Register target_reg> void inner(isa::Pep10::Mnemonic op) {
   auto [mem, cpu] = make();
-  quint8 buf[2];
-  auto bufSpan = bits::span<quint8>{buf};
-  for (quint16 opspec = 0; static_cast<quint32>(opspec) + 1 < quint32(0x1'0000); opspec++) {
+  // Loop over a subset of possible values for the target register.
+  quint16 tmp;
+  auto [init_reg] = GENERATE(table<quint16>({0, 1, 0x7fff, 0x8000, 0x8001, 0x8FFF, 0xFFFF}));
+  for (uint16_t opspec = 0; static_cast<uint32_t>(opspec) + 1 < 0x1'00; opspec++) {
+    auto endRegVal = static_cast<quint8>(init_reg + (~opspec + 1));
+
     // Object code for instruction under test.
     auto program = std::array<quint8, 3>{(quint8)op, static_cast<uint8_t>((opspec >> 8) & 0xff),
                                          static_cast<uint8_t>(opspec & 0xff)};
 
     cpu->regs()->clear(0);
     cpu->csrs()->clear(0);
-    constexpr quint8 truth[2] = {0x11, 0x25};
-    targets::pep10::isa::writeRegister(cpu->regs(), isa::Pep10::Register::SP, 0xFFFF, rw);
-    targets::pep10::isa::writeRegister(cpu->regs(), isa::Pep10::Register::PC, 0x1122, rw);
 
-    REQUIRE_NOTHROW(mem->write(0x1122, {program.data(), program.size()}, rw));
+    tmp = bits::hostOrder() != bits::Order::BigEndian ? bits::byteswap(init_reg) : init_reg;
+    cpu->regs()->write(static_cast<quint16>(target_reg) * 2, {reinterpret_cast<quint8 *>(&tmp), 2}, rw);
+
+    REQUIRE_NOTHROW(mem->write(0, {program.data(), program.size()}, rw));
     REQUIRE_NOTHROW(cpu->clock(0));
 
-    CHECK(reg(cpu, isa::Pep10::Register::SP) == 0xFFFD);
-    CHECK(reg(cpu, isa::Pep10::Register::PC) == opspec);
+    tmp = bits::hostOrder() != bits::Order::BigEndian ? bits::byteswap(tmp) : tmp;
+    CHECK(reg(cpu, isa::Pep10::Register::SP) == 0);
+    CHECK(reg(cpu, isa::Pep10::Register::PC) == 0x3);
     CHECK(reg(cpu, isa::Pep10::Register::IS) == (quint8)op);
     // OS loaded the Mem[0x0001-0x0002].
     CHECK(reg(cpu, isa::Pep10::Register::OS) == opspec);
-    REQUIRE_NOTHROW(mem->read(0xFFFD, bufSpan, rw));
-    for (int it = 0; it < 2; it++)
-      CHECK(buf[it] == truth[it]);
+    // Check that target register did not change.
+    CHECK(reg(cpu, target_reg) == init_reg);
+    // Check that target status bits match RTL.
+    CHECK(csr(cpu, isa::Pep10::CSR::Z) == (endRegVal == 0));
+    CHECK(csr(cpu, isa::Pep10::CSR::V) == 0);
+    CHECK(csr(cpu, isa::Pep10::CSR::C) == 0);
+    CHECK(csr(cpu, isa::Pep10::CSR::N) == (endRegVal & 0x80 ? 1 : 0));
   }
 }
-TEST_CASE("call, i", "[pep10][isa]") {
+
+TEST_CASE("CPBA, i", "[pep10][isa]") {
   using Register = isa::Pep10::Register;
-  inner(isa::Pep10::Mnemonic::CALL);
+  inner<Register::A>(isa::Pep10::Mnemonic::CPBA);
+}
+TEST_CASE("CPBX, i", "[pep10][isa]") {
+  using Register = isa::Pep10::Register;
+  inner<Register::X>(isa::Pep10::Mnemonic::CPBX);
 }
 
 int main(int argc, char *argv[]) { return Catch::Session().run(argc, argv); }

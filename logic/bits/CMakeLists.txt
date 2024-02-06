@@ -19,5 +19,4 @@ make_library(
   DEPENDS Qt6::Core
   TESTS ${tests}
   TEST_DEPENDS catch
-  TEST_IN_QTC
 )

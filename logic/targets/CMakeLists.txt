@@ -8,5 +8,6 @@ make_library(
   SOURCES ${sources}
   DEPENDS Qt6::Core bits sim isa elfio obj
   TESTS ${tests}
-  TEST_DEPENDS builtins pas
+  TEST_DEPENDS builtins pas catch
+  TEST_IN_QTC
 )

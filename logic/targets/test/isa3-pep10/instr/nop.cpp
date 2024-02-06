@@ -15,82 +15,33 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-#include <QTest>
-#include <QtCore>
+#include <catch.hpp>
 
+#include "./api.hpp"
 #include "bits/operations/swap.hpp"
 #include "sim/device/dense.hpp"
 #include "targets/pep10/isa3/cpu.hpp"
 #include "targets/pep10/isa3/helpers.hpp"
-auto desc_mem = sim::api2::device::Descriptor{
-    .id = 1,
-    .baseName = "ram",
-    .fullName = "/ram",
-};
 
-auto desc_cpu = sim::api2::device::Descriptor{
-    .id = 2,
-    .baseName = "cpu",
-    .fullName = "/cpu",
-};
-
-auto span = sim::api2::memory::AddressSpan<quint16>{
-    .minOffset = 0,
-    .maxOffset = 0xFFFF,
-};
-
-auto make = []() {
-  int i = 3;
-  sim::api2::device::IDGenerator gen = [&i]() { return i++; };
-  auto storage =
-      QSharedPointer<sim::memory::Dense<quint16>>::create(desc_mem, span);
-  auto cpu = QSharedPointer<targets::pep10::isa::CPU>::create(desc_cpu, gen);
-  cpu->setTarget(storage.data(), nullptr);
-  return std::pair{storage, cpu};
-};
-
-sim::api2::memory::Operation rw = {
-    .type = sim::api2::memory::Operation::Type::Standard,
-    .kind = sim::api2::memory::Operation::Kind::data,
-};
-
-class ISA3Pep10_NOP : public QObject {
-  Q_OBJECT
-private slots:
-  void u() {
+TEST_CASE("NOP", "[pep10][isa]")
+{
+    using Register = isa::Pep10::Register;
     auto [mem, cpu] = make();
-
-    // Can't capture CPU directly b/c structured bindings.
-    auto _cpu = cpu;
-    auto rreg = [&](isa::Pep10::Register reg) -> quint16 {
-      quint16 tmp = 0;
-      targets::pep10::isa::readRegister(_cpu->regs(), reg, tmp, rw);
-      return tmp;
-    };
-    auto rcsr = [&](isa::Pep10::CSR csr) {
-      bool tmp = 0;
-      targets::pep10::isa::readCSR(_cpu->csrs(), csr, tmp, rw);
-      return tmp;
-    };
-
-    // Object code for instruction under test.
-    auto program = std::array<quint8, 1>{(quint8)isa::Pep10::Mnemonic::NOP};
-
+    quint16 tmp;
     cpu->regs()->clear(0);
     cpu->csrs()->clear(0);
 
-    QVERIFY_THROWS_NO_EXCEPTION(mem->write(0, {program.data(), program.size()}, rw));
-    QVERIFY_THROWS_NO_EXCEPTION(cpu->clock(0));
+    auto program = std::array<quint8, 1>{(quint8) isa::Pep10::Mnemonic::NOP};
+    REQUIRE_NOTHROW(mem->write(0, {program.data(), program.size()}, rw));
+    REQUIRE_NOTHROW(cpu->clock(0));
 
-    QCOMPARE(rreg(isa::Pep10::Register::SP), 0);
-    QCOMPARE(rreg(isa::Pep10::Register::A), 0);
-    QCOMPARE(rreg(isa::Pep10::Register::X), 0);
-    QCOMPARE(rreg(isa::Pep10::Register::PC), 1);
-    QCOMPARE(rreg(isa::Pep10::Register::IS), (quint8)isa::Pep10::Mnemonic::NOP);
-    QCOMPARE(rreg(isa::Pep10::Register::OS), 0);
-  }
-};
-
-#include "nop.moc"
-
-QTEST_MAIN(ISA3Pep10_NOP)
+    CHECK(reg(cpu, Register::SP) == 0);
+    CHECK(reg(cpu, Register::PC) == 0x1);
+    CHECK(reg(cpu, Register::IS) == (quint8) isa::Pep10::Mnemonic::NOP);
+    CHECK(reg(cpu, Register::A) == 0);
+    CHECK(reg(cpu, Register::X) == 0);
+}
+int main(int argc, char *argv[])
+{
+    return Catch::Session().run(argc, argv);
+}
