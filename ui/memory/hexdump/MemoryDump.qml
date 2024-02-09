@@ -107,21 +107,15 @@ Rectangle {
       }
     }
 
-    onActiveFocusChanged: {
-      //console.log("tableView.onActiveFocusChanged: " + focus)
-    }
-
     //  Capture movement keys in table view
     Keys.onPressed: (event) => {
-      console.log("TableView keys " + event.accepted)
       event.accepted = keyPress(event.key)
     }
 
     function keyPress(key) {
-      //  Current and previous cell
+      //  Current cell and edit mode. Used below.
       const pt = MemoryByteModel.currentCell()
       let isEditMode = MemoryByteModel.isEditMode()
-      //let rowOffset = 0 //  Assume no change in row
 
       /*  When editing, cell may move within view without the viewport
       //  moving. For example, arrow down at top of screen will move
@@ -134,6 +128,9 @@ Rectangle {
       //  Review remaining key strokes
       switch(key) {
       case Qt.Key_PageUp: {
+        //  Make sure first line is fully visible
+        moveViewPort(0)
+
         //  Move up a page, but stop at top
         //  Edit cell moves in synch with main view
         const rowChange = -Math.min(pageSize,tableView.topRow)
@@ -146,6 +143,9 @@ Rectangle {
         break
       }
       case Qt.Key_PageDown: {
+        //  Make sure first line is fully visible
+        moveViewPort(0)
+
         //  Move down a page, but stop at bottom
         //  Edit cell moves in synch with main view
         const rowChange = Math.min(tableView.rows - 1 - tableView.bottomRow, pageSize)
@@ -155,15 +155,18 @@ Rectangle {
 
         cellRowLocation = Math.min(cellRowLocation+rowChange,tableView.rows - 1)
         break
-
       }
       case Qt.Key_Up: {
         //  In edit mode, cursor moves differently
         if(isEditMode)
         {
+          //  Make sure first line is fully visible
+          moveViewPort(0)
+
+          //  Decrement row
+          cellRowLocation = cellRowLocation - 1
           if(tableView.topRow < pt.row) {
-            //  Cell is in view, just move up in table
-            cellRowLocation = cellRowLocation - 1
+            //  Cell is in view, just move cell up in table
             break
           }
         }
@@ -181,10 +184,15 @@ Rectangle {
         //  In edit mode, cursor moves differently
         if(isEditMode)
         {
+          //  Make sure first line is fully visible
+          moveViewPort(0)
+
+          //  Increment row
+          cellRowLocation = cellRowLocation + 1
+
           //  Ignore partially visible lines
           if((tableView.bottomRow+partialLine) > pt.row) {
-            //  Cell is in view, just move down in table
-            cellRowLocation = cellRowLocation + 1
+            //  Cell is in view, just move cell down in table
             break
           }
         }
@@ -192,9 +200,10 @@ Rectangle {
         //  When not in edit mode, always move down a line.
         //  In edit mode, we are at bottom of view, move down a line
         //  Always stop at bottom
-        if(tableView.topRow !== (tableView.rows - 1))
+        if(tableView.bottomRow < (tableView.rows - 1)) {
           //  Move viewport-MUST OCCUR BEFORE OPENING CELL
           moveViewPort(1)
+        }
 
         break
       }
@@ -203,7 +212,7 @@ Rectangle {
         if( tableView.topRow !== 0) {
           //  Move viewport to top from current location
           //  MUST OCCUR BEFORE OPENING CELL
-          moveViewPort(-tableView.topRow-1)
+          moveViewPort(-tableView.topRow)
         }
 
         //  New cell location-upper left
@@ -213,13 +222,12 @@ Rectangle {
         //  Cell will close edit mode before handing control
         //  to parent. If there is a valid last cell, control
         //  was in edit mode when key was entered
-        if(isEditMode || (MemoryByteModel.lastCell().row > -1))
+        if(MemoryByteModel.lastCell().row > -1)
         {
-          //  Set edit mode for for new cell location
-          const index = MemoryByteModel.index(cellRowLocation, cellColLocation)
-          MemoryByteModel.setSelected(index,MemByteRoles.Editing)
+          //  If move is triggered by control, then edit mode is
+          //  determined by presence of last cell
+          isEditMode = true
         }
-
         break
       }
       case Qt.Key_End: {
@@ -237,11 +245,11 @@ Rectangle {
         //  Cell will close edit mode before handing control
         //  to parent. If there is a valid last cell, control
         //  was in edit mode when key was entered
-        if(isEditMode || (MemoryByteModel.lastCell().row > -1))
+        if(MemoryByteModel.lastCell().row > -1)
         {
-          //  Move cell to top left
-          const index = MemoryByteModel.index(cellRowLocation, cellColLocation)
-          MemoryByteModel.setSelected(index,MemByteRoles.Editing)
+          //  If move is triggered by control, then edit mode is
+          //  determined by presence of last cell
+          isEditMode = true
         }
         break
       }
@@ -254,6 +262,10 @@ Rectangle {
         //  If not in edit mode, ignore keystroke
         if(oldPt.row === -1)
           return false
+
+        //  If move is triggered by control, then edit mode is
+        //  determined by presence of last cell
+        isEditMode = true
 
         //  test for general case
         if(MemoryByteModel.Column.CellStart < oldPt.column) {
@@ -285,8 +297,8 @@ Rectangle {
         }
 
         //  Set edit mode for for new cell location
-        const index = MemoryByteModel.index(cellRowLocation, cellColLocation)
-        MemoryByteModel.setSelected(index,MemByteRoles.Editing)
+        //const index = MemoryByteModel.index(cellRowLocation, cellColLocation)
+        //MemoryByteModel.setSelected(index,MemByteRoles.Editing)
 
         break
       }
@@ -299,6 +311,10 @@ Rectangle {
         //  If not in edit mode, ignore keystroke
         if(oldPt.row === -1)
           return false
+
+        //  If move is triggered by control, then edit mode is
+        //  determined by presence of last cell
+        isEditMode = true
 
         //  test for general case
         if(MemoryByteModel.Column.CellEnd > oldPt.column) {
@@ -330,8 +346,8 @@ Rectangle {
         }
 
         //  Set edit mode for for new cell location
-        const index = MemoryByteModel.index(cellRowLocation, cellColLocation)
-        MemoryByteModel.setSelected(index,MemByteRoles.Editing)
+        //const index = MemoryByteModel.index(cellRowLocation, cellColLocation)
+        //MemoryByteModel.setSelected(index,MemByteRoles.Editing)
 
         break
       }
@@ -340,14 +356,8 @@ Rectangle {
         return false
       }
 
-      //  Open editor if already in edit mode
-      if(MemoryByteModel.isEditMode()) {
-        //  moveViewPort may trigger large movement in the
-        //  visible table. Force the layout to complete before
-        //  triggering editor. Otherwise, cell editor below will fail
-        //  because cell may not be rendered yet.
-        tableView.forceLayout()
-
+      //  Open editor in new cell, if already in edit mode
+      if(isEditMode) {
         openEditor(cellRowLocation, cellColLocation)
       }
 
@@ -435,7 +445,6 @@ Rectangle {
             //  Javascript functions
             parentTable: tableView
 
-
             //  Appear in cell being edited
             anchors.fill: cell
 
@@ -447,9 +456,6 @@ Rectangle {
             }
 
             onFinishEditing: (save) => {
-              //console.log("TableView.onFinishEditing:"+row+","+column+","+
-              //            ed.text+","+model.byteRole+","+save)
-
               // Only save if flagged, and values are different
              if(save) {
                 if(model.byteRole !== ed.text) {
@@ -482,60 +488,43 @@ Rectangle {
     }
 
     function openEditor(newRow, newCol) {
-      //console.log("openEditor-newRow,newCol="+newRow+","+ newCol)
-      /*if(newRow < tableView.topRow || newRow > tableView.bottomRow) {
-        console.error( "top < current < bottom not true: " +
-                      tableView.topRow+" < "+newRow+" < "+tableView.bottomRow)
-      }
-      if(newCol < tableView.leftColumn || newCol > tableView.rightColumn) {
-        console.error( "left < current < right not true: " +
-                      tableView.leftColumn+" < "+newCol+" < "+tableView.rightColumn)
-      }*/
+      //  moveViewPort may trigger large movement in the
+      //  visible table. Force the layout to complete before
+      //  triggering editor. Otherwise, cell editor below will fail
+      //  because cell may not be rendered yet.
+      tableView.forceLayout()
 
       const index = MemoryByteModel.index(newRow, newCol)
+      //  Inform model that index is being edited.
       MemoryByteModel.setSelected(index,MemByteRoles.Editing)
+
+      //  Trigger edit delegate
       tableView.edit(index)
     }
 
     function moveViewPort(rowOffset)  {
       //  View port is called from many places
-      //  If offset is zero, just return since
-      //  view port is not moving
+      //  When there are partial lines, the top line
+      //  may be partially obsured. Set top row to be fully
+      //  visible when offset is 0
       if(rowOffset === 0) {
-        console.log("rowOffset-not moving=" + rowOffset)
-        return
+        positionViewAtRow(tableView.topRow,TableView.Contain)
       }
-
-      //  Compute new row location to see if in viewport
-      const rowDelta = rowOffset / tableView.rows
-
       //  Handle up. Do not scroll past first line
-      if (rowOffset < 0 ) {
-        const newRow = Math.max(0,tableView.topRow+rowOffset)
-        //positionViewAtRow(newRow,TableView.Contain)
+      else if (rowOffset < 0 ) {
         //  Prevent scrolling above beginning table
-        if(vsc.position !== 0.0) {
-          let view = Math.max(0, vsc.position + rowDelta)
-          //console.log("Up=" + view)
-          vsc.setPosition(view)
-          //console.log("view,new pos,delta=" + view + ","+ vsc.position + ","+ rowDelta)
-        }
+        const newRow = Math.max(0,tableView.topRow+rowOffset)
+        positionViewAtRow(newRow,TableView.Contain)
       }
       //  Handle down. Do not scroll past last line
       else {
-
         //  Leave 1 page of data on screen
-        const lastPage = 1 - tableView.visibleArea.heightRatio
+        const newRow = Math.min(tableView.rows-1,
+                                tableView.bottomRow+rowOffset)
 
-        //  Prevent scrolling off of end of table
-        if(vsc.position !== lastPage) {
-          const view = Math.min(lastPage,
-                              vsc.position + rowDelta)
-          //console.log("min,calc=" + lastPage + ","+ vsc.position + rowDelta)
-          vsc.setPosition(view)
-        }
+        positionViewAtRow(newRow,TableView.Contain)
+        console.log("newRow=" + newRow+","+ tableView.topRow)
       }
-      //console.log("moveViewPort now(offset,top,bottom)="+rowOffset+","+tableView.topRow+","+tableView.bottomRow)
     }
   }
 }
