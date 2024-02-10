@@ -1,6 +1,5 @@
 /*
- * Copyright (c) 2023 J. Stanley Warford, Matthew McRaven
- *
+ * Copyright (c) 2023-2024 J. Stanley Warford, Matthew McRaven
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
  * the Free Software Foundation, either version 3 of the License, or
@@ -15,36 +14,28 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-#include <QTest>
-#include <QtCore>
-
 #include "sim/device/broadcast/pubsub.hpp"
+#include <catch.hpp>
 
-class SimDevice_PubSub : public QObject {
-  Q_OBJECT
-private slots:
-  void prod1cons0_publish() {
-    auto channel =
-        QSharedPointer<sim::memory::detail::Channel<quint8, quint8>>::create(0);
+TEST_CASE("Publish-subscribe", "[sim][memory]") {
+  SECTION("1 producer, 0 consumers. publish") {
+    auto channel = QSharedPointer<sim::memory::detail::Channel<quint8, quint8>>::create(0);
     auto endpoint = channel->new_endpoint();
-    QVERIFY_THROWS_NO_EXCEPTION(endpoint->append_value(0x25));
+    REQUIRE_NOTHROW(endpoint->append_value(0x25));
   }
-  void prod1cons1_publish_read() {
-    auto channel =
-        QSharedPointer<sim::memory::detail::Channel<quint8, quint8>>::create(0);
+  SECTION("1 producer, 1 consumer. publish; read") {
+    auto channel = QSharedPointer<sim::memory::detail::Channel<quint8, quint8>>::create(0);
     auto publish = channel->new_endpoint();
     auto subscribe = channel->new_endpoint();
 
     // Check that we can write/read a value.
     publish->append_value(0x25);
     auto value = subscribe->next_value();
-    QVERIFY(value.has_value());
-    QCOMPARE(*value, 0x25);
+    REQUIRE(value.has_value());
+    CHECK(*value == 0x25);
   }
-
-  void prod1cons1_publish_revert() {
-    auto channel =
-        QSharedPointer<sim::memory::detail::Channel<quint8, quint8>>::create(0);
+  SECTION("1 producer, 1 consumer. publish; read; revert") {
+    auto channel = QSharedPointer<sim::memory::detail::Channel<quint8, quint8>>::create(0);
     auto publish = channel->new_endpoint();
     auto subscribe = channel->new_endpoint();
 
@@ -52,17 +43,15 @@ private slots:
     // it.
     publish->append_value(0x25);
     auto value = subscribe->next_value();
-    QVERIFY(value.has_value());
-    QCOMPARE(*value, 0x25);
+    REQUIRE(value.has_value());
+    CHECK(*value == 0x25);
     publish->unwrite();
     value = subscribe->next_value();
-    QVERIFY(value.has_value());
-    QCOMPARE(*value, 0);
+    REQUIRE(value.has_value());
+    CHECK(*value == 0);
   }
-
-  void prod2cons1_publish_revert() {
-    auto channel =
-        QSharedPointer<sim::memory::detail::Channel<quint8, quint8>>::create(0);
+  SECTION("2 producers, 1 consumer. publish; revert") {
+    auto channel = QSharedPointer<sim::memory::detail::Channel<quint8, quint8>>::create(0);
     auto publish0 = channel->new_endpoint();
     auto publish1 = channel->new_endpoint();
     auto subscribe = channel->new_endpoint();
@@ -71,22 +60,20 @@ private slots:
 
     // Read and check both values.
     auto value = subscribe->next_value();
-    QVERIFY(value.has_value());
-    QCOMPARE(*value, 0x25);
+    REQUIRE(value.has_value());
+    CHECK(*value == 0x25);
     value = subscribe->next_value();
-    QVERIFY(value.has_value());
-    QCOMPARE(*value, 0x10);
+    REQUIRE(value.has_value());
+    CHECK(*value == 0x10);
 
     // Check that we are reset to the root upon undoing publish0's write.
     publish0->unwrite();
     value = subscribe->next_value();
-    QVERIFY(value.has_value());
-    QCOMPARE(*value, 0);
+    REQUIRE(value.has_value());
+    CHECK(*value == 0);
   }
-
-  void prod2cons1_publish_unread() {
-    auto channel =
-        QSharedPointer<sim::memory::detail::Channel<quint8, quint8>>::create(0);
+  SECTION("2 producers, 1 consumer. publish; unread") {
+    auto channel = QSharedPointer<sim::memory::detail::Channel<quint8, quint8>>::create(0);
     auto publish0 = channel->new_endpoint();
     auto publish1 = channel->new_endpoint();
     auto subscribe0 = channel->new_endpoint();
@@ -95,26 +82,24 @@ private slots:
 
     // Read and check both values.
     auto value = subscribe0->next_value();
-    QVERIFY(value.has_value());
-    QCOMPARE(*value, 0x25);
+    REQUIRE(value.has_value());
+    CHECK(*value == 0x25);
     value = subscribe0->next_value();
-    QVERIFY(value.has_value());
-    QCOMPARE(*value, 0x10);
+    REQUIRE(value.has_value());
+    CHECK(*value == 0x10);
 
     // Check that we can unread a value.
     subscribe0->unread();
     value = subscribe0->next_value();
-    QVERIFY(value.has_value());
-    QCOMPARE(*value, 0x10);
+    REQUIRE(value.has_value());
+    CHECK(*value == 0x10);
 
     // Check that unwrite works after unread.
     publish0->unwrite();
     value = subscribe0->next_value();
-    QVERIFY(value.has_value());
-    QCOMPARE(*value, 0);
+    REQUIRE(value.has_value());
+    CHECK(*value == 0);
   }
-};
+}
 
-#include "pubsub.moc"
-
-QTEST_MAIN(SimDevice_PubSub)
+int main(int argc, char *argv[]) { return Catch::Session().run(argc, argv); }
