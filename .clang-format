@@ -1,0 +1,9 @@
+Language: 'Cpp'
+BasedOnStyle: 'LLVM'
+ColumnLimit: 120
+IncludeCategories:
+  - Regex: '^<.*'
+    Priority: 1
+    CaseSensitive: false
+  - Regex: '.*'
+    Priority: 2
