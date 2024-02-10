@@ -4,10 +4,11 @@ list(APPEND sources ${sources_and_tests})
 list(REMOVE_ITEM sources ${tests})
 
 make_library(
-  TARGET macro
-  SOURCES ${sources}
-  DEPENDS Qt6::Core antlr4_shared
-  TESTS ${tests}
+        TARGET macro
+        SOURCES ${sources}
+        DEPENDS Qt6::Core antlr4_shared
+        TESTS ${tests}
+        TEST_DEPENDS catch
 )
 
 # Will fail to find hpp files without this, see https://bugreports.qt.io/browse/QTBUG-101146.

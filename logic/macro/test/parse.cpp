@@ -1,7 +1,6 @@
 
 /*
- * Copyright (c) 2023 J. Stanley Warford, Matthew McRaven
- *
+ * Copyright (c) 2023-2024 J. Stanley Warford, Matthew McRaven
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
  * the Free Software Foundation, either version 3 of the License, or
@@ -17,51 +16,34 @@
  */
 
 #include "macro/parse.hpp"
-
-#include <QTest>
+#include <catch.hpp>
 #include <tuple>
-class MacroParser : public QObject {
-  Q_OBJECT
-private slots:
-  void acceptsValidSpaces() {
-    QCOMPARE(std::get<0>(macro::analyze_macro_definition(u"@deci 0"_qs)), true);
-    QCOMPARE(std::get<0>(macro::analyze_macro_definition(u"@deci 	0"_qs)),
-             true);
-    QCOMPARE(std::get<0>(macro::analyze_macro_definition(u"@deci 0	"_qs)),
-             true);
-    QCOMPARE(std::get<0>(macro::analyze_macro_definition(u"@deci  0"_qs)),
-             true);
-    QCOMPARE(std::get<0>(macro::analyze_macro_definition(u"@deci  0  "_qs)),
-             true);
-    QCOMPARE(std::get<0>(
-                 macro::analyze_macro_definition(u"@deci	0	"_qs)),
-             true);
-    QCOMPARE(std::get<0>(macro::analyze_macro_definition(u" @deci 0"_qs)),
-             true); // Allow whitespace before due to new parser
+TEST_CASE("Macro, Parser", "[macro]") {
+  SECTION("Accepts valid spaces") {
+    CHECK(std::get<0>(macro::analyze_macro_definition(u"@deci 0"_qs)));
+    CHECK(std::get<0>(macro::analyze_macro_definition(u"@deci 	0"_qs)));
+    CHECK(std::get<0>(macro::analyze_macro_definition(u"@deci 0	"_qs)));
+    CHECK(std::get<0>(macro::analyze_macro_definition(u"@deci  0"_qs)));
+    CHECK(std::get<0>(macro::analyze_macro_definition(u"@deci  0  "_qs)));
+    CHECK(std::get<0>(macro::analyze_macro_definition(u"@deci	0	"_qs)));
+    CHECK(std::get<0>(macro::analyze_macro_definition(u" @deci 0"_qs)));
   }
-  void rejectsInvalidSpaces() {
-
-    QCOMPARE(std::get<0>(macro::analyze_macro_definition(u"@deco​0​"_qs)),
-             false); // 0-width space before and after
-    QCOMPARE(std::get<0>(macro::analyze_macro_definition(u"@ deci 0"_qs)),
-             false); // Can't have whitespace between @ and name
+  SECTION("Rejects invalid spaces") {
+    CHECK_FALSE(std::get<0>(macro::analyze_macro_definition(u"@deco​0​"_qs))); // 0-width space before and after
+    CHECK_FALSE(
+        std::get<0>(macro::analyze_macro_definition(u"@ deci 0"_qs))); // Can't have whitespace between @ and name
   }
-  void handlesDifferentArity() {
+  SECTION("Handles different arity") {
     auto _0ar = macro::analyze_macro_definition(u"@deci 0"_qs);
     auto _8ar = macro::analyze_macro_definition(u"@deco 8"_qs);
-    QVERIFY(std::get<0>(_0ar));
-    QCOMPARE(std::get<1>(_0ar).toUtf8().toStdString(), "deci");
-    QCOMPARE(std::get<2>(_0ar), 0);
-    QVERIFY(std::get<0>(_8ar));
-    QCOMPARE(std::get<1>(_8ar).toUtf8().toStdString(), "deco");
-    QCOMPARE(std::get<2>(_8ar), 8);
+    REQUIRE(std::get<0>(_0ar));
+    CHECK(std::get<1>(_0ar).toUtf8().toStdString() == "deci");
+    CHECK(std::get<2>(_0ar) == 0);
+    REQUIRE(std::get<0>(_8ar));
+    CHECK(std::get<1>(_8ar).toUtf8().toStdString() == "deco");
+    CHECK(std::get<2>(_8ar) == 8);
   }
-  void rejectsComments() {
-    QCOMPARE(std::get<0>(macro::analyze_macro_definition("@deci 2 ;fail")),
-             false);
-  }
+  SECTION("Rejects comments") { CHECK_FALSE(std::get<0>(macro::analyze_macro_definition("@deci 2 ;fail"))); }
+}
 
-};
-#include "parse.moc"
-
-QTEST_MAIN(MacroParser)
+int main(int argc, char *argv[]) { return Catch::Session().run(argc, argv); }
