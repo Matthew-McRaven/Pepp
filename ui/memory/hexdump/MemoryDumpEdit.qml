@@ -12,6 +12,7 @@ Item {
   property alias textAlign: editor.horizontalAlignment
   property alias font: editor.font
   property alias editFocus: editor.focus
+
   //  Need access to tableView for cursor movement
   required property var parentTable
 
@@ -19,7 +20,7 @@ Item {
   signal startEditing()             //  Indicates start of edit mode
   signal finishEditing(save: bool)  //  Indicates end of edit mode
   signal directionKey(key: int)     //  Indicates that user overflowed control
-                                    //  Move to next control
+                                    //  Move to next control. Key contains direction
 
   implicitHeight: editor.implicitHeight
   implicitWidth: editor.implicitWidth
@@ -116,16 +117,15 @@ Item {
 
           //  Raise event to parent to handle keystroke
           root.directionKey(Qt.Key_Right)
+          console.log("onTextEdited->Key_Right")
         }
       }
 
       function highlight() {
         //  We just edited first character, highlight second character
-        //if( editor.cursorPosition < 2) {
           editor.select(editor.cursorPosition, editor.cursorPosition+1)
           console.log("highlight 0: pos,start,end=" + editor.cursorPosition + "," +
                       editor.selectionStart + "," + editor.selectionEnd)
-        //}
       }
 
       //  Handle key movement inside edit control
@@ -136,8 +136,7 @@ Item {
 
         switch(key) {
         case Qt.Key_Left:
-          console.log("Left Key-Cursor="+editor.cursorPosition)
-          if(editor.selectionStart ===0) {
+          if(editor.selectionStart === 0) {
             //  User moved past beginning of control
             //  Save result and tell tableView to move to next cell
             isMoving = true
@@ -150,9 +149,17 @@ Item {
         case Qt.Key_Right:
           //  Move cursor to right in edit control
           if(editor.cursorPosition === 2) {
-            console.log("Right Key-Accept="+editor.cursorPosition)
+            //console.log("Right Key-Accept="+editor.cursorPosition)
             isMoving = true
+            console.log("onPressed Key_Right isMoving")
           }
+          break
+        case Qt.Key_Home:
+        case Qt.Key_End:
+          //  Override child control. Home and End will move to front
+          //  and back of textinput. These should be treated as movements
+          //  within TableView. Let parent handle.
+          isMoving = true
           break
         default:
           //  Let parent handle
@@ -169,7 +176,6 @@ Item {
 
           //  Raise event to parent to handle keystroke
           root.directionKey(key)
-          event.accepted = false
         }
         else {
           //  Movement is within edit control, signal that control will handle
@@ -178,8 +184,10 @@ Item {
 
           //  Highling will highlight next item in control
           highlight()
-          event.accepted = true
         }
+
+        //  Signal parent that the event was handled
+        event.accepted = true
       }
     }
   }
