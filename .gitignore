@@ -11,3 +11,4 @@ coverage.xml
 cmake-build-*
 CMakeLists.txt.user
 version
+.idea
