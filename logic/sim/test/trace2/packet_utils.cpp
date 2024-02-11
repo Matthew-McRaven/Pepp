@@ -18,6 +18,8 @@
 #include <catch.hpp>
 #include <zpp_bits.h>
 #include "sim/api2.hpp"
+
+namespace {
 using namespace sim::api2;
 using namespace sim::trace2;
 using wrapped = std::variant<frame::Header, packet::Header, packet::Payload>;
@@ -52,6 +54,7 @@ struct SimpleBuffer : public sim::api2::trace::Buffer {
   zpp::bits::in<decltype(_data)> _in;
   zpp::bits::out<decltype(_data)> _out;
 };
+} // namespace
 
 TEST_CASE("Packet IsSameDevice", "[sim][trace]") {
   using namespace sim::api2::packet;

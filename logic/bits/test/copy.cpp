@@ -19,6 +19,7 @@
 using namespace bits;
 using vu8 = QList<quint8>;
 
+namespace {
 void verify(quint8 *arr, quint16 index, quint8 golden) { CHECK(arr[index] == golden); }
 
 using T = std::tuple<std::string, quint16, vu8, Order, quint16, Order, vu8>;
@@ -71,6 +72,7 @@ const T _16 = {"dest longer, little-big, 2-3 byte", 2, vu8{0xBB, 0xAA},
   Order::LittleEndian, 3, Order::BigEndian, vu8{0x00, 0xAA, 0xBB}};
 const T _17 = {"dest longer, big-little, 2-3 byte", 2, vu8{0xAA, 0xBB}, 
   Order::BigEndian, 3, Order::LittleEndian, vu8{0xBB, 0xAA, 0x00}};
+}
 
 // clang-format on
 

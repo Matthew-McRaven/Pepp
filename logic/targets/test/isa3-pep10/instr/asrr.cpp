@@ -22,6 +22,7 @@
 #include "targets/pep10/isa3/cpu.hpp"
 #include "targets/pep10/isa3/helpers.hpp"
 
+namespace {
 template <isa::Pep10::Register target_reg> void inner(isa::Pep10::Mnemonic op) {
   auto [mem, cpu] = make();
   quint16 tmp;
@@ -55,6 +56,8 @@ template <isa::Pep10::Register target_reg> void inner(isa::Pep10::Mnemonic op) {
     CHECK(csr(cpu, isa::Pep10::CSR::C) == (init_reg & 0x1));
   }
 }
+} // namespace
+
 TEST_CASE("ASRA", "[pep10][isa]") {
   using Register = isa::Pep10::Register;
   inner<Register::A>(isa::Pep10::Mnemonic::ASRA);

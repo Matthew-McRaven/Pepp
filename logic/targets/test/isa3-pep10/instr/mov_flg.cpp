@@ -22,6 +22,7 @@
 #include "targets/pep10/isa3/cpu.hpp"
 #include "targets/pep10/isa3/helpers.hpp"
 
+namespace {
 void inner(isa::Pep10::Mnemonic op) {
   using Register = isa::Pep10::Register;
   auto [mem, cpu] = make();
@@ -54,5 +55,7 @@ void inner(isa::Pep10::Mnemonic op) {
     CHECK(csr(cpu, isa::Pep10::CSR::C) == (flg & 0b0001 ? 1 : 0));
   }
 }
+} // namespace
+
 TEST_CASE("MOVAFLG", "[pep10][isa]") { inner(isa::Pep10::Mnemonic::MOVAFLG); }
 TEST_CASE("MOVFLGA", "[pep10][isa]") { inner(isa::Pep10::Mnemonic::MOVFLGA); }

@@ -32,6 +32,7 @@
 #include "targets/pep10/isa3/helpers.hpp"
 #include "targets/pep10/isa3/system.hpp"
 
+namespace {
 static const auto lf = QRegularExpression("\r");
 
 static const auto rw = sim::api2::memory::Operation{
@@ -139,6 +140,7 @@ void smoke(QString os, QString userPep, QString userPepo, QString input, QByteAr
   }
   CHECK(actualOut == output);
 }
+} // namespace
 
 TEST_CASE("Targets_ISA3Pep10_Figures", "[asm]") {
   auto bookReg = builtins::Registry(nullptr);

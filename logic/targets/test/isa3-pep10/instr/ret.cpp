@@ -22,6 +22,7 @@
 #include "targets/pep10/isa3/cpu.hpp"
 #include "targets/pep10/isa3/helpers.hpp"
 
+namespace {
 void inner(isa::Pep10::Mnemonic op) {
   auto [mem, cpu] = make();
   quint8 buf[2];
@@ -42,4 +43,6 @@ void inner(isa::Pep10::Mnemonic op) {
   CHECK(reg(cpu, isa::Pep10::Register::PC) == 0x1125);
   CHECK(reg(cpu, isa::Pep10::Register::IS) == (quint8)op);
 }
+} // namespace
+
 TEST_CASE("RET", "[pep10][isa]") { inner(isa::Pep10::Mnemonic::RET); }

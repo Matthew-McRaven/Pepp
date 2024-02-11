@@ -22,6 +22,7 @@
 #include "targets/pep10/isa3/cpu.hpp"
 #include "targets/pep10/isa3/helpers.hpp"
 
+namespace {
 template <isa::Pep10::Register target_reg> void inner(isa::Pep10::Mnemonic op, quint8 length) {
   auto [mem, cpu] = make();
   // Loop over a subset of possible values for the target register.
@@ -59,6 +60,7 @@ template <isa::Pep10::Register target_reg> void inner(isa::Pep10::Mnemonic op, q
       CHECK(tmp == init_reg);
   }
 }
+} // namespace
 
 TEST_CASE("STBA, d", "[pep10][isa]") {
   using Register = isa::Pep10::Register;

@@ -26,6 +26,7 @@
 #include "macro/registry.hpp"
 
 namespace E = pas::errors::pepp;
+namespace {
 void smoke(QString source, QStringList errors, bool useDriver, bool useOSFeats) {
   QSharedPointer<pas::ast::Node> root;
   if (useDriver) {
@@ -54,6 +55,8 @@ void smoke(QString source, QStringList errors, bool useDriver, bool useOSFeats) 
   for (int it = 0; it < actualErrors.size(); it++)
     CHECK(actualErrors[it].second.message.toStdString() == errors[it].toStdString());
 }
+} // namespace
+
 TEST_CASE("Pas Ops, Whole Program Sanity") {
   auto [name, source, errors, useDriver, useOSFeats] = GENERATE(table<std::string, QString, QStringList, bool, bool>({
       {"noBurn: visitor", {".BURN 0xFFFF\n.BLOCK 1"}, {".BURN is not a valid directive."}, false, false},

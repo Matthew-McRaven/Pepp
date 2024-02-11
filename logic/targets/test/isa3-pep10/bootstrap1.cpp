@@ -19,10 +19,12 @@
 #include "sim/device/dense.hpp"
 #include "targets/pep10/isa3/cpu.hpp"
 #include "targets/pep10/isa3/helpers.hpp"
+namespace {
 sim::api2::memory::Operation rw = {
     .type = sim::api2::memory::Operation::Type::Standard,
     .kind = sim::api2::memory::Operation::Kind::data,
 };
+}
 
 TEST_CASE("Targets_ISA3Pep10_Bootstrap1") {
   sim::api2::device::ID id = 0;

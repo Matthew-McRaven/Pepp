@@ -18,6 +18,8 @@
 
 #include "sim/device/dense.hpp"
 #include "sim/device/readonly.hpp"
+
+namespace {
 namespace api2 = sim::api2;
 auto desc_rw = api2::device::Descriptor{.id = 0, .compatible = nullptr, .baseName = "dev_rw", .fullName = "/dev_rw"};
 auto op_std = api2::memory::Operation{
@@ -43,6 +45,7 @@ void compare_ne(const quint8 *lhs, const quint8 *rhs, quint8 length) {
   for (int it = 0; it < length; it++)
     CHECK(lhs[it] != rhs[it]);
 };
+} // namespace
 
 TEST_CASE("ReadOnly storage in-bounds access, v2", "[sim][memory][throws]") {
 

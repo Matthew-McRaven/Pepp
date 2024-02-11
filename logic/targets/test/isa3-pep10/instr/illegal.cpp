@@ -22,6 +22,7 @@
 #include "targets/pep10/isa3/cpu.hpp"
 #include "targets/pep10/isa3/helpers.hpp"
 
+namespace {
 void inner(quint8 op) {
   auto [mem, cpu] = make();
 
@@ -43,6 +44,7 @@ void inner(quint8 op) {
   CHECK(csr(cpu, isa::Pep10::CSR::V) == 0);
   CHECK(csr(cpu, isa::Pep10::CSR::C) == 0);
 }
+} // namespace
 
 TEST_CASE("Illegal Opcodes", "[pep10][isa]") {
   SECTION("Opcode 0") { inner(0); }

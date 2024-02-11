@@ -24,8 +24,9 @@
 #include "macro/registered.hpp"
 #include "macro/registry.hpp"
 
+using testFn = void (*)(macro::Registry *);
 using isa::Pep10;
-typedef void (*testFn)(macro::Registry *);
+namespace {
 
 void nonunary_test(macro::Registry *registry) {
   REQUIRE(registry->contains("s"));
@@ -70,6 +71,7 @@ void smoke(QString input, testFn validate, bool useDriver, bool errors) {
     validate(&*registry);
   }
 }
+} // namespace
 
 TEST_CASE("Pas Ops, register system calls") {
   SECTION("non-unary") {

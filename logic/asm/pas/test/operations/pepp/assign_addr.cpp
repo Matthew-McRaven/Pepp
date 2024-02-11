@@ -30,6 +30,8 @@
 
 using isa::Pep10;
 using pas::ops::pepp::Direction;
+
+namespace {
 void childRange(QSharedPointer<pas::ast::Node> parent, qsizetype index, qsizetype start, qsizetype end) {
   REQUIRE(parent->has<pas::ast::generic::Children>());
   auto children = parent->get<pas::ast::generic::Children>().value;
@@ -97,6 +99,7 @@ void org_test(QSharedPointer<pas::ast::Node> root, qsizetype base) {
   CHECK(children.size() == 2);
   childRange(root, 1, 0x8000, 3);
 }
+} // namespace
 
 TEST_CASE("Assign Address", "[pas]") {
   SECTION("Sequential sections") {
@@ -230,8 +233,8 @@ TEST_CASE("Assign Address", "[pas]") {
   for (auto caseName : shortArgs.keys()) {
     auto input = u".block 2\n.ASCII \"%1\""_qs.arg(shortArgs[caseName]);
     auto caseStr = caseName.toStdString();
-    items.push_front({u"%s: visitor"_qs.arg(caseStr.data()), 0, false, input, &ascii2_test});
-    items.push_front({u"%s: driver"_qs.arg(caseStr.data()), 0, true, input, &ascii2_test});
+    items.push_front({u"%1: visitor"_qs.arg(caseStr.data()), 0, false, input, &ascii2_test});
+    items.push_front({u"%1: driver"_qs.arg(caseStr.data()), 0, true, input, &ascii2_test});
   }
 
   QMap<QString, QString> longArgs = {{"long string, no escaped", "ahi"},
@@ -241,8 +244,8 @@ TEST_CASE("Assign Address", "[pas]") {
   for (auto caseName : longArgs.keys()) {
     auto input = u".block 2\n.ASCII \"%1\""_qs.arg(longArgs[caseName]);
     auto caseStr = caseName.toStdString();
-    items.push_front({u"%s: visitor"_qs.arg(caseStr.data()), 0, false, input, &ascii3_test});
-    items.push_front({u"%s: driver"_qs.arg(caseStr.data()), 0, true, input, &ascii3_test});
+    items.push_front({u"%1: visitor"_qs.arg(caseStr.data()), 0, false, input, &ascii3_test});
+    items.push_front({u"%1: driver"_qs.arg(caseStr.data()), 0, true, input, &ascii3_test});
   }
   items.push_front({".EQUATE @ 0: visitor", 0, false, u".block 1\ns:.EQUATE 10\nn:.EQUATE s"_qs, &equate_test});
   items.push_front({".OUTPUT @ 0: driver", 0, true, u".block 1\ns:.EQUATE 10\nn:.EQUATE s"_qs, &equate_test});

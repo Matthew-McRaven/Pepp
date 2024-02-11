@@ -22,6 +22,7 @@
 #include "targets/pep10/isa3/cpu.hpp"
 #include "targets/pep10/isa3/helpers.hpp"
 
+namespace {
 void inner(isa::Pep10::Mnemonic op) {
   auto [mem, cpu] = make();
   // Loop over a subset of possible values for the target register.
@@ -53,5 +54,7 @@ void inner(isa::Pep10::Mnemonic op) {
     }
   }
 }
+} // namespace
+
 TEST_CASE("ADDSP, i", "[pep10][isa]") { inner(isa::Pep10::Mnemonic::ADDSP); }
 TEST_CASE("SUBSP, i", "[pep10][isa]") { inner(isa::Pep10::Mnemonic::SUBSP); }

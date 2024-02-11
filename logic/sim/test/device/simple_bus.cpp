@@ -20,6 +20,7 @@
 #include "sim/device/dense.hpp"
 #include "sim/device/simple_bus.hpp"
 
+namespace {
 auto rw = sim::api2::memory::Operation{
     .type = sim::api2::memory::Operation::Type::Standard,
     .kind = sim::api2::memory::Operation::Kind::data,
@@ -40,6 +41,7 @@ auto make = []() {
   bus->pushFrontTarget(Span{.minOffset = 4, .maxOffset = 5}, &*m3);
   return std::tuple{bus, m1, m2, m3};
 };
+} // namespace
 
 TEST_CASE("Simple bus individual in-bounds access, v2", "[sim][memory][throws]") {
   auto [bus, m1, m2, m3] = make();

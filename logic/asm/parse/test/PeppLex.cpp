@@ -24,6 +24,7 @@
 using namespace antlr4;
 using namespace parse;
 
+namespace {
 void single_token(std::string text, uint64_t type) {
   ANTLRInputStream input(text);
   PeppLexer lexer(&input);
@@ -37,6 +38,7 @@ void single_token(std::string text, uint64_t type) {
   REQUIRE(tokens[0]->getType() == type);
   REQUIRE(tokens[0]->getText() == text);
 }
+} // namespace
 
 TEST_CASE("Pepp numeric lexing", "[parse]") {
   using namespace parse;

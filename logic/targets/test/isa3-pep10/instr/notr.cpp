@@ -22,7 +22,8 @@
 #include "targets/pep10/isa3/cpu.hpp"
 #include "targets/pep10/isa3/helpers.hpp"
 
-template <isa::Pep10::Register target_reg> void inner(isa::Pep10::Mnemonic op) {
+namespace {
+template <isa::Pep10::Register target_reg> void inner_notr(isa::Pep10::Mnemonic op) {
   auto [mem, cpu] = make();
   quint16 tmp;
   auto [init_reg] = GENERATE(table<quint16>({0, 1, 0x7fff, 0x8000, 0x8FFF, 0xFFFF}));
@@ -51,11 +52,12 @@ template <isa::Pep10::Register target_reg> void inner(isa::Pep10::Mnemonic op) {
     CHECK(!!csr(cpu, isa::Pep10::CSR::Z) == (endRegVal == 0));
   }
 }
+} // namespace
 TEST_CASE("NOTA", "[pep10][isa]") {
   using Register = isa::Pep10::Register;
-  inner<Register::A>(isa::Pep10::Mnemonic::NOTA);
+  inner_notr<Register::A>(isa::Pep10::Mnemonic::NOTA);
 }
 TEST_CASE("NOTX", "[pep10][isa]") {
   using Register = isa::Pep10::Register;
-  inner<Register::X>(isa::Pep10::Mnemonic::NOTX);
+  inner_notr<Register::X>(isa::Pep10::Mnemonic::NOTX);
 }

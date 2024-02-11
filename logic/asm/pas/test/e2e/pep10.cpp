@@ -29,6 +29,7 @@
 #include "sim/device/simple_bus.hpp"
 #include "targets/pep10/isa3/system.hpp"
 
+namespace {
 static const auto is_diskIn = [](const auto &x) {
   return x.name == "diskIn" && x.direction == obj::IO::Direction::kInput && x.minOffset == 0xFFFC &&
          x.maxOffset == 0xFFFC;
@@ -57,6 +58,8 @@ void injectFakeSCallMacros(QSharedPointer<macro::Registry> registry) {
     registry->registerMacro(macro::types::Core,
                             QSharedPointer<macro::Parsed>::create(macro, 2, "LDWA 0,i\nSCALL $1, $2", "pep/10"));
 }
+} // namespace
+
 TEST_CASE("Assembler E2E, Pep10", "[pas]") {
   auto book_registry = builtins::Registry(nullptr);
   auto book = book_registry.findBook("Computer Systems, 6th Edition");
