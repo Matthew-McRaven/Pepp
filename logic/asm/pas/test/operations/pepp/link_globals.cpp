@@ -1,6 +1,5 @@
 /*
- * Copyright (c) 2023 J. Stanley Warford, Matthew McRaven
- *
+ * Copyright (c) 2023-2024 J. Stanley Warford, Matthew McRaven
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
  * the Free Software Foundation, either version 3 of the License, or
@@ -16,33 +15,27 @@
  */
 
 #include "asm/pas/operations/generic/link_globals.hpp"
+#include <catch.hpp>
 #include "asm/pas/ast/generic/attr_symbol.hpp"
-#include "isa/pep10.hpp"
 #include "asm/pas/driver/common.hpp"
 #include "asm/pas/driver/pepp.hpp"
-#include "asm/symbol/value.hpp"
 #include "asm/symbol/entry.hpp"
 #include "asm/symbol/table.hpp"
-#include <QObject>
-#include <QTest>
-
+#include "asm/symbol/value.hpp"
+#include "isa/pep10.hpp"
 using isa::Pep10;
-class PasOpsPepp_LinkGlobals : public QObject {
-  Q_OBJECT
-private slots:
-  void linkIntraTree() {
+TEST_CASE("Pas Link Globals", "[pas]") {
+  SECTION("Intra-tree link") {
     QString body = "s:.block 10\n.EXPORT s\nLDWA s,i\n.END\n.END";
     auto globals = QSharedPointer<pas::driver::Globals>::create();
-    auto ret =
-        pas::driver::pepp::createParser<isa::Pep10, pas::driver::ANTLRParserTag>(false)(body, nullptr);
-    QVERIFY(!ret.hadError);
+    auto ret = pas::driver::pepp::createParser<isa::Pep10, pas::driver::ANTLRParserTag>(false)(body, nullptr);
+    REQUIRE(!ret.hadError);
     pas::ops::generic::linkGlobals(*ret.root, globals, {u"EXPORT"_qs});
-    QVERIFY(globals->contains("s"));
+    REQUIRE(globals->contains("s"));
     auto sym = globals->get("s");
-    QCOMPARE(sym->binding, symbol::Binding::kGlobal);
+    CHECK(sym->binding == symbol::Binding::kGlobal);
   }
-
-  void linkInterTree() {
+  SECTION("Inter-tree link") {
     QString body = "LDWA s,i";
     auto globals = QSharedPointer<pas::driver::Globals>::create();
     auto otherTable = QSharedPointer<symbol::Table>::create(2);
@@ -51,28 +44,26 @@ private slots:
     globals->add(*otherTable->get("s"));
 
     // Verify that global symbol looks correct
-    QVERIFY(globals->contains("s"));
-    QCOMPARE(globals->get("s")->binding, symbol::Binding::kGlobal);
+    REQUIRE(globals->contains("s"));
+    CHECK(globals->get("s")->binding == symbol::Binding::kGlobal);
 
-    auto ret =
-        pas::driver::pepp::createParser<isa::Pep10, pas::driver::ANTLRParserTag>(false)(body, nullptr);
-    QVERIFY(!ret.hadError);
+    auto ret = pas::driver::pepp::createParser<isa::Pep10, pas::driver::ANTLRParserTag>(false)(body, nullptr);
+    REQUIRE(!ret.hadError);
     pas::ops::generic::linkGlobals(*ret.root, globals, {u"EXPORT"_qs});
 
     // Verify that local symbol is correct
-    QVERIFY(ret.root->has<pas::ast::generic::SymbolTable>());
+    REQUIRE(ret.root->has<pas::ast::generic::SymbolTable>());
     auto thisTable = ret.root->get<pas::ast::generic::SymbolTable>().value;
-    QVERIFY(thisTable->exists("s"));
+    REQUIRE(thisTable->exists("s"));
     auto thisSym = *thisTable->get("s");
-    QCOMPARE(thisSym->binding, symbol::Binding::kImported);
-    QCOMPARE(thisSym->state, symbol::DefinitionState::kSingle);
-    auto casted =
-        dynamic_cast<symbol::value::ExternalPointer *>(&*thisSym->value);
-    QCOMPARE_NE(casted, nullptr);
-    QCOMPARE(casted->symbol_pointer, *otherTable->get("s"));
-    QCOMPARE(casted->symbol_table, otherTable);
+    CHECK(thisSym->binding == symbol::Binding::kImported);
+    CHECK(thisSym->state == symbol::DefinitionState::kSingle);
+    auto casted = dynamic_cast<symbol::value::ExternalPointer *>(&*thisSym->value);
+    CHECK(casted != nullptr);
+    CHECK(casted->symbol_pointer == *otherTable->get("s"));
+    CHECK(casted->symbol_table == otherTable);
   }
-  void multiDefine() {
+  SECTION("Multi-define") {
     QString body = "s:LDWA s,i";
     auto globals = QSharedPointer<pas::driver::Globals>::create();
     auto otherTable = QSharedPointer<symbol::Table>::create(2);
@@ -81,24 +72,19 @@ private slots:
     globals->add(*otherTable->get("s"));
 
     // Verify that global symbol looks correct
-    QVERIFY(globals->contains("s"));
-    QCOMPARE(globals->get("s")->binding, symbol::Binding::kGlobal);
+    REQUIRE(globals->contains("s"));
+    CHECK(globals->get("s")->binding == symbol::Binding::kGlobal);
 
-    auto ret =
-        pas::driver::pepp::createParser<isa::Pep10, pas::driver::ANTLRParserTag>(false)(body, nullptr);
-    QVERIFY(!ret.hadError);
+    auto ret = pas::driver::pepp::createParser<isa::Pep10, pas::driver::ANTLRParserTag>(false)(body, nullptr);
+    REQUIRE(!ret.hadError);
     pas::ops::generic::linkGlobals(*ret.root, globals, {u"EXPORT"_qs});
 
     // Verify that local symbol is correct
-    QVERIFY(ret.root->has<pas::ast::generic::SymbolTable>());
+    REQUIRE(ret.root->has<pas::ast::generic::SymbolTable>());
     auto thisTable = ret.root->get<pas::ast::generic::SymbolTable>().value;
-    QVERIFY(thisTable->exists("s"));
+    REQUIRE(thisTable->exists("s"));
     auto thisSym = *thisTable->get("s");
-    QCOMPARE(thisSym->binding, symbol::Binding::kImported);
-    QCOMPARE(thisSym->state, symbol::DefinitionState::kExternalMultiple);
+    CHECK(thisSym->binding == symbol::Binding::kImported);
+    CHECK(thisSym->state == symbol::DefinitionState::kExternalMultiple);
   }
-};
-
-#include "link_globals.moc"
-
-QTEST_MAIN(PasOpsPepp_LinkGlobals)
+}

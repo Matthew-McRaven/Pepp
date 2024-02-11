@@ -1,6 +1,5 @@
 /*
- * Copyright (c) 2023 J. Stanley Warford, Matthew McRaven
- *
+ * Copyright (c) 2023-2024 J. Stanley Warford, Matthew McRaven
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
  * the Free Software Foundation, either version 3 of the License, or
@@ -15,100 +14,43 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-#include <QTest>
-#include <QtCore>
+#include <catch.hpp>
 
+#include "./api.hpp"
 #include "bits/operations/swap.hpp"
 #include "sim/device/dense.hpp"
 #include "targets/pep10/isa3/cpu.hpp"
 #include "targets/pep10/isa3/helpers.hpp"
-auto desc_mem = sim::api2::device::Descriptor{
-    .id = 1,
-    .baseName = "ram",
-    .fullName = "/ram",
-};
 
-auto desc_cpu = sim::api2::device::Descriptor{
-    .id = 2,
-    .baseName = "cpu",
-    .fullName = "/cpu",
-};
+void inner(isa::Pep10::Mnemonic op) {
+  auto [mem, cpu] = make();
+  quint8 buf[2];
+  auto bufSpan = bits::span<quint8>{buf};
+  for (quint16 opspec = 0; static_cast<quint32>(opspec) + 1 < quint32(0x1'0000); opspec++) {
+    // Object code for instruction under test.
+    auto program = std::array<quint8, 3>{(quint8)op, static_cast<uint8_t>((opspec >> 8) & 0xff),
+                                         static_cast<uint8_t>(opspec & 0xff)};
 
-auto span = sim::api2::memory::AddressSpan<quint16>{
-    .minOffset = 0,
-    .maxOffset = 0xFFFF,
-};
+    cpu->regs()->clear(0);
+    cpu->csrs()->clear(0);
+    constexpr quint8 truth[2] = {0x11, 0x25};
+    targets::pep10::isa::writeRegister(cpu->regs(), isa::Pep10::Register::SP, 0xFFFF, rw);
+    targets::pep10::isa::writeRegister(cpu->regs(), isa::Pep10::Register::PC, 0x1122, rw);
 
-auto make = []() {
-  int i = 3;
-  sim::api2::device::IDGenerator gen = [&i]() { return i++; };
-  auto storage =
-      QSharedPointer<sim::memory::Dense<quint16>>::create(desc_mem, span);
-  auto cpu = QSharedPointer<targets::pep10::isa::CPU>::create(desc_cpu, gen);
-  cpu->setTarget(storage.data(), nullptr);
-  return std::pair{storage, cpu};
-};
+    REQUIRE_NOTHROW(mem->write(0x1122, {program.data(), program.size()}, rw));
+    REQUIRE_NOTHROW(cpu->clock(0));
 
-sim::api2::memory::Operation rw = {
-    .type = sim::api2::memory::Operation::Type::Standard,
-    .kind = sim::api2::memory::Operation::Kind::data,
-};
-
-class ISA3Pep10_CALL : public QObject {
-  Q_OBJECT
-private slots:
-  void i() {
-    auto [mem, cpu] = make();
-    // Loop over a subset of possible values for the target register.
-    quint16 tmp;
-
-    // Can't capture CPU directly b/c structured bindings.
-    auto _cpu = cpu;
-    auto rreg = [&](isa::Pep10::Register reg) -> quint16 {
-      quint16 tmp = 0;
-      targets::pep10::isa::readRegister(_cpu->regs(), reg, tmp, rw);
-      return tmp;
-    };
-
-    const quint8 truth[2] = {0x11, 0x25};
-    quint8 buf[2];
-    auto bufSpan = bits::span<quint8>{buf};
-    static const auto target_reg = isa::Pep10::Register::PC;
-    for (uint16_t opspec = 0x00; static_cast<uint32_t>(opspec) + 1 < 0x01'00;
-         opspec++) {
-      auto endRegVal = static_cast<quint16>(opspec);
-
-      // Object code for instruction under test.
-      auto program =
-          std::array<quint8, 3>{(quint8)isa::Pep10::Mnemonic::CALL,
-                                static_cast<uint8_t>((opspec >> 8) & 0xff),
-                                static_cast<uint8_t>(opspec & 0xff)};
-
-      cpu->regs()->clear(0);
-      cpu->csrs()->clear(0);
-      targets::pep10::isa::writeRegister(cpu->regs(), isa::Pep10::Register::SP,
-                                         0xFFFF, rw);
-      // Make pushed return addres non-zero.
-      targets::pep10::isa::writeRegister(cpu->regs(), isa::Pep10::Register::PC,
-                                         0x1122, rw);
-      QVERIFY_THROWS_NO_EXCEPTION(mem->write(0x1122, {program.data(), program.size()}, rw));
-      QVERIFY_THROWS_NO_EXCEPTION(cpu->clock(0));
-
-      QCOMPARE(rreg(isa::Pep10::Register::SP), 0xFFFD);
-      QCOMPARE(rreg(isa::Pep10::Register::A), 0);
-      QCOMPARE(rreg(isa::Pep10::Register::X), 0);
-      QCOMPARE(rreg(isa::Pep10::Register::IS),
-               (quint8)isa::Pep10::Mnemonic::CALL);
-      QVERIFY_THROWS_NO_EXCEPTION(mem->read(0xFFFD, bufSpan, rw));
-      for (int it = 0; it < 2; it++)
-        QCOMPARE(bufSpan[it], truth[it]);
-      // OS loaded the Mem[0x0001-0x0002].
-      QCOMPARE(rreg(isa::Pep10::Register::OS), opspec);
-      QCOMPARE(rreg(isa::Pep10::Register::PC), opspec);
-    }
+    CHECK(reg(cpu, isa::Pep10::Register::SP) == 0xFFFD);
+    CHECK(reg(cpu, isa::Pep10::Register::PC) == opspec);
+    CHECK(reg(cpu, isa::Pep10::Register::IS) == (quint8)op);
+    // OS loaded the Mem[0x0001-0x0002].
+    CHECK(reg(cpu, isa::Pep10::Register::OS) == opspec);
+    REQUIRE_NOTHROW(mem->read(0xFFFD, bufSpan, rw));
+    for (int it = 0; it < 2; it++)
+      CHECK(buf[it] == truth[it]);
   }
-};
-
-#include "call.moc"
-
-QTEST_MAIN(ISA3Pep10_CALL)
+}
+TEST_CASE("CALL, i", "[pep10][isa]") {
+  using Register = isa::Pep10::Register;
+  inner(isa::Pep10::Mnemonic::CALL);
+}

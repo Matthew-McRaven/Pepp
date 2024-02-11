@@ -1,6 +1,5 @@
 /*
- * Copyright (c) 2023 J. Stanley Warford, Matthew McRaven
- *
+ * Copyright (c) 2023-2024 J. Stanley Warford, Matthew McRaven
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
  * the Free Software Foundation, either version 3 of the License, or
@@ -15,17 +14,9 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
+#include <catch.hpp>
 #include "help/builtins/registry.hpp"
-#include <QTest>
-#include <QtCore>
 
-class Builtins : public QObject {
-  Q_OBJECT
-private slots:
-  void initTestCase() {}
-  void createRegistry() { auto x = builtins::Registry(nullptr); }
-};
-// Must be after class declaration.
-#include "dummy.moc"
-
-QTEST_GUILESS_MAIN(Builtins);
+TEST_CASE("Builtins") {
+  REQUIRE_NOTHROW([]() { auto x = builtins::Registry(nullptr); }());
+}

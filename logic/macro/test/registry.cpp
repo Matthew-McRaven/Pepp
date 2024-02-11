@@ -1,6 +1,5 @@
 /*
- * Copyright (c) 2023 J. Stanley Warford, Matthew McRaven
- *
+ * Copyright (c) 2023-2024 J. Stanley Warford, Matthew McRaven
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
  * the Free Software Foundation, either version 3 of the License, or
@@ -16,51 +15,41 @@
  */
 
 #include "macro/registry.hpp"
+#include <catch.hpp>
 #include "macro/macro.hpp"
 #include "macro/registered.hpp"
-#include <QTest>
-class MacroRegistry : public QObject {
-  Q_OBJECT
-private slots:
-  void registersMacros() {
+TEST_CASE("Macro, registry", "[macro]") {
+  SECTION("Register Macros") {
     macro::Registry reg;
-    auto parsed =
-        QSharedPointer<macro::Parsed>::create("alpha", 0, "body", "none");
+    auto parsed = QSharedPointer<macro::Parsed>::create("alpha", 0, "body", "none");
     auto registered = reg.registerMacro(macro::types::Type::Core, parsed);
-    QCOMPARE_NE(registered, nullptr);
-    QCOMPARE(registered->contents(), parsed);
+    CHECK(registered != nullptr);
+    CHECK(registered->contents() == parsed);
   }
-  void findByName() {
+  SECTION("Find by name") {
     macro::Registry reg;
-    auto parsed =
-        QSharedPointer<macro::Parsed>::create("alpha", 0, "body", "none");
+    auto parsed = QSharedPointer<macro::Parsed>::create("alpha", 0, "body", "none");
     auto registered = reg.registerMacro(macro::types::Type::Core, parsed);
-    QCOMPARE_NE(registered, nullptr);
-    QCOMPARE(registered->contents(), parsed);
-    QCOMPARE(reg.findMacro("alpha"), registered);
+    CHECK(registered != nullptr);
+    CHECK(registered->contents() == parsed);
+    CHECK(reg.findMacro("alpha") == registered);
   }
-  void rejectDuplicateNames() {
+  SECTION("Reject duplicate names") {
     macro::Registry reg;
-    auto parsed =
-        QSharedPointer<macro::Parsed>::create("alpha", 0, "body", "none");
-    auto parsed2 =
-        QSharedPointer<macro::Parsed>::create("alpha", 0, "body", "none");
+    auto parsed = QSharedPointer<macro::Parsed>::create("alpha", 0, "body", "none");
+    auto parsed2 = QSharedPointer<macro::Parsed>::create("alpha", 0, "body", "none");
     auto registered = reg.registerMacro(macro::types::Type::Core, parsed);
-    QCOMPARE_NE(registered, nullptr);
-    QCOMPARE(reg.registerMacro(macro::types::Type::Core, parsed2), nullptr);
+    CHECK(registered != nullptr);
+    CHECK(reg.registerMacro(macro::types::Type::Core, parsed2) == nullptr);
   }
-  void delineatesTypes() {
+  SECTION("Delineates macro types") {
     macro::Registry reg;
-    auto parsed =
-        QSharedPointer<macro::Parsed>::create("alpha", 0, "body", "none");
-    auto parsed2 =
-        QSharedPointer<macro::Parsed>::create("beta", 0, "body", "none");
-    QVERIFY(reg.registerMacro(macro::types::Type::Core, parsed) != nullptr);
-    QVERIFY(reg.registerMacro(macro::types::Type::System, parsed2) != nullptr);
-    QVERIFY(reg.findMacrosByType(macro::types::Type::Core).size() == 1);
-    QVERIFY(reg.findMacrosByType(macro::types::Type::System).size() == 1);
-    QVERIFY(reg.findMacrosByType(macro::types::Type::User).size() == 0);
+    auto parsed = QSharedPointer<macro::Parsed>::create("alpha", 0, "body", "none");
+    auto parsed2 = QSharedPointer<macro::Parsed>::create("beta", 0, "body", "none");
+    REQUIRE(reg.registerMacro(macro::types::Type::Core, parsed) != nullptr);
+    REQUIRE(reg.registerMacro(macro::types::Type::System, parsed2) != nullptr);
+    REQUIRE(reg.findMacrosByType(macro::types::Type::Core).size() == 1);
+    REQUIRE(reg.findMacrosByType(macro::types::Type::System).size() == 1);
+    REQUIRE(reg.findMacrosByType(macro::types::Type::User).empty());
   }
-};
-#include "registry.moc"
-QTEST_MAIN(MacroRegistry);
+}

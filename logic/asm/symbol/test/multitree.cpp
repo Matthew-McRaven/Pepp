@@ -1,6 +1,5 @@
 /*
- * Copyright (c) 2023 J. Stanley Warford, Matthew McRaven
- *
+ * Copyright (c) 2023-2024 J. Stanley Warford, Matthew McRaven
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
  * the Free Software Foundation, either version 3 of the License, or
@@ -15,19 +14,19 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
+#include <catch.hpp>
 #include "asm/symbol/table.hpp"
 #include "asm/symbol/visit.hpp"
-#include <QTest>
-class SymbolMultiTree : public QObject {
-  Q_OBJECT
-private slots:
+
+TEST_CASE("Symbol Table, Multiple Trees", "[symbol]") {
   /*
    *  Test 2 Tree structures
    *          Branch1     Branch2
    *             |        |     |
    *           Leaf1    Leaf2 Leaf3
    */
-  void independentExistenceQCOMPAREs() {
+
+  SECTION("Independent Existence") {
     auto b1 = QSharedPointer<symbol::Table>::create(2);
     auto b2 = QSharedPointer<symbol::Table>::create(2);
     auto l1 = b1->addChild();
@@ -38,31 +37,31 @@ private slots:
     auto z = l3->reference("z");
 
     // Each leaf should find it's own children regardless of policy.
-    QVERIFY(symbol::exists(l1, "x"));
-    QVERIFY(symbol::exists(l2, "y", symbol::TraversalPolicy::kSiblings));
-    QVERIFY(symbol::exists(l3, "z", symbol::TraversalPolicy::kWholeTree));
+    REQUIRE(symbol::exists(l1, "x"));
+    REQUIRE(symbol::exists(l2, "y", symbol::TraversalPolicy::kSiblings));
+    REQUIRE(symbol::exists(l3, "z", symbol::TraversalPolicy::kWholeTree));
 
-    // QCOMPARE that traversal policy is respected.
+    // CHECK that traversal policy is respected.
     // Leaf 2 should not be able to see leaf 3's symbol with kChildren.
     // Leaf 1 cannot see leaf 2 or 3
-    QVERIFY(!symbol::exists(l2, "z"));
-    QVERIFY(!symbol::exists(l3, "y"));
-    QVERIFY(!symbol::exists(l1, "z"));
-    QVERIFY(!symbol::exists(l1, "y"));
+    REQUIRE(!symbol::exists(l2, "z"));
+    REQUIRE(!symbol::exists(l3, "y"));
+    REQUIRE(!symbol::exists(l1, "z"));
+    REQUIRE(!symbol::exists(l1, "y"));
 
     //  Lower leafs can see other siblings but not another tree with kSiblings
-    QVERIFY(symbol::exists(l2, "z", symbol::TraversalPolicy::kSiblings));
-    QVERIFY(symbol::exists(l3, "y", symbol::TraversalPolicy::kSiblings));
-    QVERIFY(!symbol::exists(l2, "x"));
-    QVERIFY(!symbol::exists(l3, "x"));
+    REQUIRE(symbol::exists(l2, "z", symbol::TraversalPolicy::kSiblings));
+    REQUIRE(symbol::exists(l3, "y", symbol::TraversalPolicy::kSiblings));
+    REQUIRE(!symbol::exists(l2, "x"));
+    REQUIRE(!symbol::exists(l3, "x"));
 
     //  Lower leafs cannot see other trees even with kWholeTree search
-    QVERIFY(!symbol::exists(l2, "x", symbol::TraversalPolicy::kWholeTree));
-    QVERIFY(!symbol::exists(l3, "x", symbol::TraversalPolicy::kWholeTree));
-    QVERIFY(!symbol::exists(l1, "z", symbol::TraversalPolicy::kWholeTree));
-    QVERIFY(!symbol::exists(l1, "y", symbol::TraversalPolicy::kWholeTree));
+    REQUIRE(!symbol::exists(l2, "x", symbol::TraversalPolicy::kWholeTree));
+    REQUIRE(!symbol::exists(l3, "x", symbol::TraversalPolicy::kWholeTree));
+    REQUIRE(!symbol::exists(l1, "z", symbol::TraversalPolicy::kWholeTree));
+    REQUIRE(!symbol::exists(l1, "y", symbol::TraversalPolicy::kWholeTree));
   }
-  void independentGlobals() {
+  SECTION("Independent Globals") {
     auto b1 = QSharedPointer<symbol::Table>::create(2);
     auto b2 = QSharedPointer<symbol::Table>::create(2);
     auto l1 = b1->addChild();
@@ -73,33 +72,29 @@ private slots:
 
     //  Marking branch leaf 1 as global does not impact branch 2 leaves
     l1->markGlobal("hello");
-    QCOMPARE(x->binding, symbol::Binding::kGlobal);
-    QCOMPARE(y->binding, symbol::Binding::kLocal);
-    QCOMPARE(x->state, symbol::DefinitionState::kUndefined);
-    QCOMPARE(y->state, symbol::DefinitionState::kUndefined);
+    CHECK(x->binding == symbol::Binding::kGlobal);
+    CHECK(y->binding == symbol::Binding::kLocal);
+    CHECK(x->state == symbol::DefinitionState::kUndefined);
+    CHECK(y->state == symbol::DefinitionState::kUndefined);
 
     //  Marking second branch as global does not trigger external multiple error
     //  in other branch
     l2->markGlobal("hello");
-    QCOMPARE(x->binding, symbol::Binding::kGlobal);
-    QCOMPARE(y->binding, symbol::Binding::kGlobal);
-    QCOMPARE(x->state, symbol::DefinitionState::kUndefined);
-    QCOMPARE(y->state, symbol::DefinitionState::kUndefined);
+    CHECK(x->binding == symbol::Binding::kGlobal);
+    CHECK(y->binding == symbol::Binding::kGlobal);
+    CHECK(x->state == symbol::DefinitionState::kUndefined);
+    CHECK(y->state == symbol::DefinitionState::kUndefined);
 
     //  Trigger global clash in branch 2
     auto z = l3->reference("hello");
-    QCOMPARE(z->binding, symbol::Binding::kImported);
-    QCOMPARE(z->state, symbol::DefinitionState::kUndefined);
+    CHECK(z->binding == symbol::Binding::kImported);
+    CHECK(z->state == symbol::DefinitionState::kUndefined);
 
     //  Create global error with second leaf value marked as global
     l3->markGlobal("hello");
-    QCOMPARE(z->binding, symbol::Binding::kGlobal);
-    QCOMPARE(x->state, symbol::DefinitionState::kUndefined);
-    QCOMPARE(y->state, symbol::DefinitionState::kExternalMultiple);
-    QCOMPARE(z->state, symbol::DefinitionState::kExternalMultiple);
+    CHECK(z->binding == symbol::Binding::kGlobal);
+    CHECK(x->state == symbol::DefinitionState::kUndefined);
+    CHECK(y->state == symbol::DefinitionState::kExternalMultiple);
+    CHECK(z->state == symbol::DefinitionState::kExternalMultiple);
   }
-};
-
-#include "multitree.moc"
-
-QTEST_MAIN(SymbolMultiTree)
+}

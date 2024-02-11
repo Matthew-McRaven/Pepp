@@ -1,6 +1,5 @@
 /*
- * Copyright (c) 2023 J. Stanley Warford, Matthew McRaven
- *
+ * Copyright (c) 2023-2024 J. Stanley Warford, Matthew McRaven
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
  * the Free Software Foundation, either version 3 of the License, or
@@ -15,99 +14,84 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-#include <QTest>
-#include <QtCore>
+#include <catch.hpp>
 
+#include "./api.hpp"
 #include "bits/operations/swap.hpp"
 #include "sim/device/dense.hpp"
 #include "targets/pep10/isa3/cpu.hpp"
 #include "targets/pep10/isa3/helpers.hpp"
-auto desc_mem = sim::api2::device::Descriptor{
-    .id = 1,
-    .baseName = "ram",
-    .fullName = "/ram",
-};
 
-auto desc_cpu = sim::api2::device::Descriptor{
-    .id = 2,
-    .baseName = "cpu",
-    .fullName = "/cpu",
-};
+typedef bool (*should_branch)(bool n, bool z, bool v, bool c);
 
-auto span = sim::api2::memory::AddressSpan<quint16>{
-    .minOffset = 0,
-    .maxOffset = 0xFFFF,
-};
+bool br_unconditional(bool n, bool z, bool v, bool c) { return true; };
+bool br_le(bool n, bool z, bool v, bool c) { return n || z; };
+bool br_lt(bool n, bool z, bool v, bool c) { return n; };
+bool br_eq(bool n, bool z, bool v, bool c) { return z; };
+bool br_ne(bool n, bool z, bool v, bool c) { return !z; };
+bool br_ge(bool n, bool z, bool v, bool c) { return !n; };
+bool br_gt(bool n, bool z, bool v, bool c) { return (!n) && (!z); };
+bool br_v(bool n, bool z, bool v, bool c) { return v; };
+bool br_c(bool n, bool z, bool v, bool c) { return c; };
 
-auto make = []() {
-  int i = 3;
-  sim::api2::device::IDGenerator gen = [&i]() { return i++; };
-  auto storage =
-      QSharedPointer<sim::memory::Dense<quint16>>::create(desc_mem, span);
-  auto cpu = QSharedPointer<targets::pep10::isa::CPU>::create(desc_cpu, gen);
-  cpu->setTarget(storage.data(), nullptr);
-  return std::pair{storage, cpu};
-};
+void inner(isa::Pep10::Mnemonic op, should_branch taken) {
+  auto [mem, cpu] = make();
+  quint16 opspec = 0xFEED;
+  for (quint8 nzvc = 0; nzvc < 0b1'00'00; nzvc++) {
+    // Object code for instruction under test.
+    auto program = std::array<quint8, 3>{(quint8)op, static_cast<uint8_t>((opspec >> 8) & 0xff),
+                                         static_cast<uint8_t>(opspec & 0xff)};
 
-sim::api2::memory::Operation rw = {
-    .type = sim::api2::memory::Operation::Type::Standard,
-    .kind = sim::api2::memory::Operation::Kind::data,
-};
+    cpu->regs()->clear(0);
+    cpu->csrs()->clear(0);
+    quint8 tmp = 0;
+    targets::pep10::isa::writePackedCSR(cpu->csrs(), nzvc, rw);
+    targets::pep10::isa::readPackedCSR(cpu->csrs(), tmp, rw);
+    auto [n, z, v, c] = targets::pep10::isa::unpackCSR(tmp);
 
-class ISA3Pep10_BR : public QObject {
-  Q_OBJECT
-private slots:
-  void i() {
-    auto [mem, cpu] = make();
-    // Loop over a subset of possible values for the target register.
-    quint16 tmp;
+    REQUIRE_NOTHROW(mem->write(0, {program.data(), program.size()}, rw));
+    REQUIRE_NOTHROW(cpu->clock(0));
 
-    // Can't capture CPU directly b/c structured bindings.
-    auto _cpu = cpu;
-    auto rreg = [&](isa::Pep10::Register reg) -> quint16 {
-      quint16 tmp = 0;
-      targets::pep10::isa::readRegister(_cpu->regs(), reg, tmp, rw);
-      return tmp;
-    };
-    auto rcsr = [&](isa::Pep10::CSR csr) {
-      bool tmp = 0;
-      targets::pep10::isa::readCSR(_cpu->csrs(), csr, tmp, rw);
-      return tmp;
-    };
-
-    static const auto target_reg = isa::Pep10::Register::PC;
-    for (uint16_t opspec = 0; static_cast<uint32_t>(opspec) + 1 < 0x1'0000;
-         opspec++) {
-      // Object code for instruction under test.
-      auto program =
-          std::array<quint8, 3>{(quint8)isa::Pep10::Mnemonic::BR,
-                                static_cast<uint8_t>((opspec >> 8) & 0xff),
-                                static_cast<uint8_t>(opspec & 0xff)};
-
-      cpu->regs()->clear(0);
-      cpu->csrs()->clear(0);
-
-      QVERIFY_THROWS_NO_EXCEPTION(mem->write(0, {program.data(), program.size()}, rw));
-      QVERIFY_THROWS_NO_EXCEPTION(cpu->clock(0));
-
-      QCOMPARE(rreg(isa::Pep10::Register::SP), 0);
-      QCOMPARE(rreg(isa::Pep10::Register::A), 0);
-      QCOMPARE(rreg(isa::Pep10::Register::X), 0);
-      QCOMPARE(rreg(isa::Pep10::Register::IS),
-               (quint8)isa::Pep10::Mnemonic::BR);
-      // OS loaded the Mem[0x0001-0x0002].
-      QCOMPARE(rreg(isa::Pep10::Register::OS), opspec);
-      QCOMPARE(rreg(isa::Pep10::Register::PC), opspec);
-      // Check that target register had arithmetic performed.
-      // Check that target status bits match RTL.
-      QCOMPARE(rcsr(isa::Pep10::CSR::N), 0);
-      QCOMPARE(rcsr(isa::Pep10::CSR::Z), 0);
-      QCOMPARE(rcsr(isa::Pep10::CSR::V), 0);
-      QCOMPARE(rcsr(isa::Pep10::CSR::C), 0);
-    }
+    CHECK(reg(cpu, isa::Pep10::Register::SP) == 0);
+    CHECK(reg(cpu, isa::Pep10::Register::PC) == (taken(n, z, v, c) ? opspec : 0x03));
+    CHECK(reg(cpu, isa::Pep10::Register::IS) == (quint8)op);
+    // OS loaded the Mem[0x0001-0x0002].
+    CHECK(reg(cpu, isa::Pep10::Register::OS) == opspec);
   }
-};
-
-#include "br.moc"
-
-QTEST_MAIN(ISA3Pep10_BR)
+}
+TEST_CASE("BR, i", "[pep10][isa]") {
+  using Register = isa::Pep10::Register;
+  inner(isa::Pep10::Mnemonic::BR, br_unconditional);
+}
+TEST_CASE("BRLE, i", "[pep10][isa]") {
+  using Register = isa::Pep10::Register;
+  inner(isa::Pep10::Mnemonic::BRLE, br_le);
+}
+TEST_CASE("BRLT, i", "[pep10][isa]") {
+  using Register = isa::Pep10::Register;
+  inner(isa::Pep10::Mnemonic::BRLT, br_lt);
+}
+TEST_CASE("BREQ, i", "[pep10][isa]") {
+  using Register = isa::Pep10::Register;
+  inner(isa::Pep10::Mnemonic::BREQ, br_eq);
+}
+TEST_CASE("BRNE, i", "[pep10][isa]") {
+  using Register = isa::Pep10::Register;
+  inner(isa::Pep10::Mnemonic::BRNE, br_ne);
+}
+TEST_CASE("BRGE, i", "[pep10][isa]") {
+  using Register = isa::Pep10::Register;
+  inner(isa::Pep10::Mnemonic::BRGE, br_ge);
+}
+TEST_CASE("BRGT, i", "[pep10][isa]") {
+  using Register = isa::Pep10::Register;
+  inner(isa::Pep10::Mnemonic::BRGT, br_gt);
+}
+TEST_CASE("BRV, i", "[pep10][isa]") {
+  using Register = isa::Pep10::Register;
+  inner(isa::Pep10::Mnemonic::BRV, br_v);
+}
+TEST_CASE("BRC, i", "[pep10][isa]") {
+  using Register = isa::Pep10::Register;
+  inner(isa::Pep10::Mnemonic::BRC, br_c);
+}

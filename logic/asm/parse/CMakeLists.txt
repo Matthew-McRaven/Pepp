@@ -6,13 +6,13 @@ list(APPEND sources ${sources_and_tests})
 list(REMOVE_ITEM sources ${tests})
 
 make_library(
-  TARGET parse
-  TYPE "OBJECT"
-  SOURCES ${sources}
-  DEPENDS Qt6::Core antlr4_shared
-  TESTS ${tests}
-  TEST_IN_QTC
-  TEST_DEPENDS catch
+        TARGET parse
+        TYPE "OBJECT"
+        SOURCES ${sources}
+        DEPENDS Qt6::Core antlr4_shared
+        TESTS ${tests}
+        TEST_IN_QTC
+        TEST_DEPENDS catch catch-main
 )
 
 

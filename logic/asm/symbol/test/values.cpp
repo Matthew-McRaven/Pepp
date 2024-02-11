@@ -1,7 +1,6 @@
 
 /*
- * Copyright (c) 2023 J. Stanley Warford, Matthew McRaven
- *
+ * Copyright (c) 2023-2024 J. Stanley Warford, Matthew McRaven
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
  * the Free Software Foundation, either version 3 of the License, or
@@ -16,68 +15,59 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
+#include <catch.hpp>
 #include "asm/symbol/types.hpp"
 #include "asm/symbol/value.hpp"
-#include <QObject>
-#include <QTest>
 
-class SymbolValue : public QObject {
-  Q_OBJECT
-private slots:
-  // Check that bitmasks work.
-  void bitmask() {
-    symbol::value::MaskedBits start{
-        .byteCount = 1, .bitPattern = 0xf, .mask = 0x7};
-    symbol::value::MaskedBits end{
-        .byteCount = 1, .bitPattern = 0x7, .mask = 0xf};
-    QCOMPARE(start, start);
-    QCOMPARE_NE(start, end);
-    QCOMPARE(start(), end());
-  }
-  void empty() {
-    auto value = symbol::value::Empty(0);
+TEST_CASE("Symbol Table, values", "[symbol]"){
+    // Check that bitmasks work.
+    SECTION("bitmasks"){symbol::value::MaskedBits start{.byteCount = 1, .bitPattern = 0xf, .mask = 0x7};
+symbol::value::MaskedBits end{.byteCount = 1, .bitPattern = 0x7, .mask = 0xf};
+CHECK(start == start);
+CHECK(start != end);
+CHECK(start() == end());
+}
+SECTION("Empty") {
+  auto value = symbol::value::Empty(0);
 
-    QVERIFY_THROWS_NO_EXCEPTION(value.value()());
-    QCOMPARE(value.value()(), 0);
-  }
-  void deleted() {
-    auto value = symbol::value::Deleted();
-    QVERIFY_THROWS_NO_EXCEPTION(value.value()());
-    QCOMPARE(value.value()(), 0);
-    QCOMPARE(value.type(), symbol::Type::kDeleted);
-  }
-  // Check that the values on a numeric value can be mutated.
-  void numeric() {
-    symbol::value::MaskedBits start{
-        .byteCount = 1,
-        .bitPattern = 30,
-        .mask = 0xff,
-    };
-    symbol::value::MaskedBits end{
-        .byteCount = 1,
-        .bitPattern = 20,
-        .mask = 0xff,
-    };
-    auto value = symbol::value::Constant(start);
-    QVERIFY_THROWS_NO_EXCEPTION(value.value()());
-    QCOMPARE(value.value()(), start());
-    QVERIFY_THROWS_NO_EXCEPTION(value.setValue(end));
-    QCOMPARE(value.value()(), end());
-  }
-  // Check that the values on a location value can be mutated.
-  void location() {
-    auto base = 7;
-    auto start_offset = 11, end_offset = 13;
-    auto value =
-        symbol::value::Location(2, 2, base, start_offset, symbol::Type::kCode);
-    QCOMPARE(value.value()(), base + start_offset);
-    QVERIFY_THROWS_NO_EXCEPTION(value.setOffset(end_offset));
-    QCOMPARE(value.value()(), base + end_offset);
-    QVERIFY(value.relocatable());
-  }
-  // Can't test internal or external symbol pointer value here, as it will
-  // require a symbol table.
-};
-
-#include "values.moc"
-QTEST_MAIN(SymbolValue)
+  CHECK_NOTHROW(value.value()());
+  CHECK(value.value()() == 0);
+}
+SECTION("Deleted") {
+  auto value = symbol::value::Deleted();
+  CHECK_NOTHROW(value.value()());
+  CHECK(value.value()() == 0);
+  CHECK(value.type() == symbol::Type::kDeleted);
+}
+// Check that the values on a numeric value can be mutated.
+SECTION("Numeric") {
+  symbol::value::MaskedBits start{
+      .byteCount = 1,
+      .bitPattern = 30,
+      .mask = 0xff,
+  };
+  symbol::value::MaskedBits end{
+      .byteCount = 1,
+      .bitPattern = 20,
+      .mask = 0xff,
+  };
+  auto value = symbol::value::Constant(start);
+  CHECK_NOTHROW(value.value()());
+  CHECK(value.value()() == start());
+  CHECK_NOTHROW(value.setValue(end));
+  CHECK(value.value()() == end());
+}
+// Check that the values on a location value can be mutated.
+SECTION("Location") {
+  auto base = 7;
+  auto start_offset = 11, end_offset = 13;
+  auto value = symbol::value::Location(2, 2, base, start_offset, symbol::Type::kCode);
+  CHECK(value.value()() == base + start_offset);
+  CHECK_NOTHROW(value.setOffset(end_offset));
+  CHECK(value.value()() == base + end_offset);
+  REQUIRE(value.relocatable());
+}
+// Can't test internal or external symbol pointer value here, as it will
+// require a symbol table.
+}
+;

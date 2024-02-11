@@ -4,8 +4,9 @@ list(APPEND sources ${sources_and_tests})
 list(REMOVE_ITEM sources ${tests})
 
 make_library(
-  TARGET symbol
-  SOURCES ${sources}
-  DEPENDS Qt6::Core
-  TESTS ${tests}
+        TARGET symbol
+        SOURCES ${sources}
+        DEPENDS Qt6::Core
+        TESTS ${tests}
+        TEST_DEPENDS catch catch-main
 )

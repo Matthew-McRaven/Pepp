@@ -1,6 +1,5 @@
 /*
- * Copyright (c) 2023 J. Stanley Warford, Matthew McRaven
- *
+ * Copyright (c) 2023-2024 J. Stanley Warford, Matthew McRaven
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
  * the Free Software Foundation, either version 3 of the License, or
@@ -16,25 +15,70 @@
  */
 
 #include "bits/operations/copy.hpp"
-#include <QObject>
-#include <QTest>
+#include <catch.hpp>
 using namespace bits;
 using vu8 = QList<quint8>;
 
-void verify(quint8 *arr, quint16 index, quint8 golden) {
-  QCOMPARE(arr[index], golden);
-}
+void verify(quint8 *arr, quint16 index, quint8 golden) { CHECK(arr[index] == golden); }
 
-class BitsOps_Copy : public QObject {
-  Q_OBJECT
-private slots:
-  void smoke() {
-    QFETCH(quint16, srcLen);
-    QFETCH(vu8, srcData);
-    QFETCH(Order, srcOrder);
-    QFETCH(quint16, destLen);
-    QFETCH(Order, destOrder);
-    QFETCH(vu8, destGolden);
+using T = std::tuple<std::string, quint16, vu8, Order, quint16, Order, vu8>;
+
+// Same length, same endian
+// clang-format off
+const T _0 = {"same length, big-big, 1-1 byte", 1, vu8{1}, 
+	Order::BigEndian, 1, Order::BigEndian, vu8{1}};
+const T _1 = {"same length, big-big, 2-2 byte", 2, vu8{0xBE, 0xEF},
+    Order::BigEndian, 2, Order::BigEndian, vu8{0xBE, 0xEF}};
+const T _2 = {"same length, little-little, 1-1 byte", 1, vu8{1},
+    Order::LittleEndian, 1, Order::LittleEndian, vu8{01}};
+const T _3 = {"same length, little-little, 2-2 byte", 2, vu8{0xEF, 0xBE},
+    Order::LittleEndian, 2, Order::LittleEndian, vu8{0xEF, 0xBE}};
+
+// Source longer, same endian
+const T _4 = {"source longer, big-big, 3-2 byte", 3, vu8{0xAA, 0xBB, 0xCC}, 
+  Order::BigEndian, 2, Order::BigEndian, vu8{0xBB, 0xCC}};
+const T _5 = {"source longer, little-little, 3-2 byte", 3, vu8{0xCC, 0xBB, 0xAA}, 
+  Order::LittleEndian, 2, Order::LittleEndian, vu8{0xCC, 0xBB}};
+  
+  // Dest longer, same endian
+const T _6 = {"dest longer, big-big, 2-3 byte", 2, vu8{0xAA, 0xBB}, 
+  Order::BigEndian, 3, Order::BigEndian, vu8{0x00, 0xAA, 0xBB}};
+const T _7 = {"dest longer, little-little, 2-3 byte", 2, vu8{0xBB, 0xAA}, 
+  Order::LittleEndian, 3, Order::LittleEndian, vu8{0xBB, 0xAA, 0x00}};
+const T _8 = {"dest longer, big-big, 2-3 byte", 2, vu8{0xAA, 0xBB}, 
+  Order::BigEndian, 3, Order::BigEndian, vu8{0x00, 0xAA, 0xBB}};
+const T _9 = {"dest longer, little-little, 2-3 byte", 2, vu8{0xBB, 0xAA}, 
+  Order::LittleEndian, 3, Order::LittleEndian, vu8{0xBB, 0xAA, 0x00}};
+  
+// Same length, mixed endian
+const T _10 = {"same length, little-big, 1-1 byte", 1, vu8{1}, 
+  Order::LittleEndian, 1, Order::BigEndian, vu8{01}};
+const T _11 = {"same length, little-big, 2-2 byte", 2, vu8{0xEF, 0xBE}, 
+  Order::LittleEndian, 2, Order::BigEndian, vu8{0xBE, 0xEF}};
+const T _12 = {"same length, big-little, 1-1 byte", 1, vu8{1}, 
+  Order::BigEndian, 1, Order::LittleEndian, vu8{01}};
+const T _13 = {"same length, big-little, 2-2 byte", 2, vu8{0xBE, 0xEF}, 
+  Order::BigEndian, 2, Order::LittleEndian, vu8{0xEF, 0xBE}};
+  
+// Source longer, different endian
+const T _14 = {"source longer, little-big, 3-2 byte", 3, vu8{0xCC, 0xBB, 0xAA}, 
+  Order::LittleEndian, 2, Order::BigEndian, vu8{0xBB, 0xCC}};
+const T _15 = {"source longer, big-little, 3-2 byte", 3, vu8{0xAA, 0xBB, 0xCC}, 
+  Order::BigEndian, 2, Order::LittleEndian, vu8{0xCC, 0xBB}};
+  
+// Dest longer, different endian
+const T _16 = {"dest longer, little-big, 2-3 byte", 2, vu8{0xBB, 0xAA}, 
+  Order::LittleEndian, 3, Order::BigEndian, vu8{0x00, 0xAA, 0xBB}};
+const T _17 = {"dest longer, big-little, 2-3 byte", 2, vu8{0xAA, 0xBB}, 
+  Order::BigEndian, 3, Order::LittleEndian, vu8{0xBB, 0xAA, 0x00}};
+
+// clang-format on
+
+TEST_CASE("Bit Ops, Copy", "[bits]") {
+  auto [caseName, srcLen, srcData, srcOrder, destLen, destOrder, destGolden] =
+      GENERATE(table<std::string, quint16, vu8, Order, quint16, Order, vu8>(
+          {_0, _1, _2, _3, _4, _5, _6, _7, _8, _9, _10, _11, _12, _13, _14, _15, _16, _17}));
+  DYNAMIC_SECTION(caseName) {
     auto dest_le = quint64_le{0};
     auto dest_be = quint64_be{0};
     quint8 *dest = nullptr;
@@ -47,76 +91,4 @@ private slots:
     for (int it = 0; it < destLen; it++)
       verify(dest, it, destGolden[it]);
   }
-  void smoke_data() {
-    QTest::addColumn<quint16>("srcLen");
-    QTest::addColumn<vu8>("srcData");
-    QTest::addColumn<Order>("srcOrder");
-    QTest::addColumn<quint16>("destLen");
-    QTest::addColumn<Order>("destOrder");
-    QTest::addColumn<vu8>("destGolden");
-
-    // Same length, same endian
-    QTest::addRow("same length, big-big, 1-1 byte")
-        << quint16(1) << vu8{1} << Order::BigEndian << quint16(1)
-        << Order::BigEndian << vu8{01};
-    QTest::addRow("same length, big-big, 2-2 byte")
-        << quint16(2) << vu8{0xBE, 0xEF} << Order::BigEndian << quint16(2)
-        << Order::BigEndian << vu8{0xBE, 0xEF};
-    QTest::addRow("same length, little-little, 1-1 byte")
-        << quint16(1) << vu8{1} << Order::LittleEndian << quint16(1)
-        << Order::LittleEndian << vu8{01};
-    QTest::addRow("same length, little-little, 2-2 byte")
-        << quint16(2) << vu8{0xEF, 0xBE} << Order::LittleEndian << quint16(2)
-        << Order::LittleEndian << vu8{0xEF, 0xBE};
-
-    // Source longer, same endian
-    QTest::addRow("source longer, big-big, 3-2 byte")
-        << quint16(3) << vu8{0xAA, 0xBB, 0xCC} << Order::BigEndian << quint16(2)
-        << Order::BigEndian << vu8{0xBB, 0xCC};
-    QTest::addRow("source longer, little-little, 3-2 byte")
-        << quint16(3) << vu8{0xCC, 0xBB, 0xAA} << Order::LittleEndian
-        << quint16(2) << Order::LittleEndian << vu8{0xCC, 0xBB};
-
-    // Dest longer, same endian
-    QTest::addRow("dest longer, big-big, 2-3 byte")
-        << quint16(2) << vu8{0xAA, 0xBB} << Order::BigEndian << quint16(3)
-        << Order::BigEndian << vu8{0x00, 0xAA, 0xBB};
-    QTest::addRow("dest longer, little-little, 2-3 byte")
-        << quint16(2) << vu8{0xBB, 0xAA} << Order::LittleEndian << quint16(3)
-        << Order::LittleEndian << vu8{0xBB, 0xAA, 0x00};
-
-    // Same length, different endian
-    QTest::addRow("same length, little-big, 1-1 byte")
-        << quint16(1) << vu8{1} << Order::LittleEndian << quint16(1)
-        << Order::BigEndian << vu8{01};
-    QTest::addRow("same length, little-big, 2-2 byte")
-        << quint16(2) << vu8{0xEF, 0xBE} << Order::LittleEndian << quint16(2)
-        << Order::BigEndian << vu8{0xBE, 0xEF};
-    QTest::addRow("same length, big-little, 1-1 byte")
-        << quint16(1) << vu8{1} << Order::BigEndian << quint16(1)
-        << Order::LittleEndian << vu8{01};
-    QTest::addRow("same length, big-little, 2-2 byte")
-        << quint16(2) << vu8{0xBE, 0xEF} << Order::BigEndian << quint16(2)
-        << Order::LittleEndian << vu8{0xEF, 0xBE};
-
-    // Source longer, different endian
-    QTest::addRow("source longer, little-big, 3-2 byte")
-        << quint16(3) << vu8{0xCC, 0xBB, 0xAA} << Order::LittleEndian
-        << quint16(2) << Order::BigEndian << vu8{0xBB, 0xCC};
-    QTest::addRow("source longer, big-little, 3-2 byte")
-        << quint16(3) << vu8{0xAA, 0xBB, 0xCC} << Order::BigEndian << quint16(2)
-        << Order::LittleEndian << vu8{0xCC, 0xBB};
-
-    // Dest longer, different endian
-    QTest::addRow("dest longer, little-big, 2-3 byte")
-        << quint16(2) << vu8{0xBB, 0xAA} << Order::LittleEndian << quint16(3)
-        << Order::BigEndian << vu8{0x00, 0xAA, 0xBB};
-    QTest::addRow("dest longer, big-little, 2-3 byte")
-        << quint16(2) << vu8{0xAA, 0xBB} << Order::BigEndian << quint16(3)
-        << Order::LittleEndian << vu8{0xBB, 0xAA, 0x00};
-  }
-};
-
-#include "copy.moc"
-
-QTEST_MAIN(BitsOps_Copy)
+}

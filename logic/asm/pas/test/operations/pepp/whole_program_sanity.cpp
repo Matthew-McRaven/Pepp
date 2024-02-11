@@ -1,6 +1,5 @@
 /*
- * Copyright (c) 2023 J. Stanley Warford, Matthew McRaven
- *
+ * Copyright (c) 2023-2024 J. Stanley Warford, Matthew McRaven
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
  * the Free Software Foundation, either version 3 of the License, or
@@ -16,143 +15,94 @@
  */
 
 #include "asm/pas/operations/pepp/whole_program_sanity.hpp"
-#include "isa/pep10.hpp"
-#include "macro/registry.hpp"
+#include <catch.hpp>
 #include "asm/pas/driver/pep10.hpp"
 #include "asm/pas/driver/pepp.hpp"
 #include "asm/pas/errors.hpp"
 #include "asm/pas/operations/generic/group.hpp"
 #include "asm/pas/operations/pepp/addressable.hpp"
 #include "asm/pas/operations/pepp/assign_addr.hpp"
-#include <QObject>
-#include <QTest>
+#include "isa/pep10.hpp"
+#include "macro/registry.hpp"
 
 namespace E = pas::errors::pepp;
-class PasOpsPepp_WholeProgramSanity : public QObject {
-  Q_OBJECT
-private slots:
-  void smoke() {
-    QFETCH(QString, source);
-    QFETCH(QStringList, errors);
-    QFETCH(bool, useDriver);
-    QFETCH(bool, useOSFeats);
-
-    QSharedPointer<pas::ast::Node> root;
-    if (useDriver) {
-      auto pipeline = pas::driver::pep10::stages<pas::driver::ANTLRParserTag>(source, {.isOS = useOSFeats});
-      auto pipelines = pas::driver::Pipeline<pas::driver::pep10::Stage>{};
-      pipelines.pipelines.push_back(pipeline);
-      pipelines.globals = QSharedPointer<pas::driver::Globals>::create();
-      pipelines.globals->macroRegistry =
-          QSharedPointer<macro::Registry>::create();
-      QCOMPARE(
-          pipelines.assemble(pas::driver::pep10::Stage::WholeProgramSanity),
-          errors.size() == 0);
-      QCOMPARE(pipelines.pipelines[0].first->stage,
-               errors.size() == 0
-                   ? pas::driver::pep10::Stage::End
-                   : pas::driver::pep10::Stage::WholeProgramSanity);
-      QVERIFY(pipelines.pipelines[0].first->bodies.contains(
-          pas::driver::repr::Nodes::name));
-      root = pipelines.pipelines[0]
-                 .first->bodies[pas::driver::repr::Nodes::name]
-                 .value<pas::driver::repr::Nodes>()
-                 .value;
-    } else {
-      auto parseRoot = pas::driver::pepp::createParser<isa::Pep10, pas::driver::ANTLRParserTag>(false);
-      auto res = parseRoot(source, nullptr);
-      QVERIFY(!res.hadError);
-      pas::ops::generic::groupSections(
-          *res.root, pas::ops::pepp::isAddressable<isa::Pep10>);
-      pas::ops::pepp::assignAddresses<isa::Pep10>(*res.root);
-      root = res.root;
-      QCOMPARE(pas::ops::pepp::checkWholeProgramSanity<isa::Pep10>(
-                   *root, {.allowOSFeatures = useOSFeats}),
-               errors.size() == 0);
-    }
-    auto actualErrors = pas::ops::generic::collectErrors(*root);
-    QCOMPARE(actualErrors.size(), errors.size());
-    for (int it = 0; it < actualErrors.size(); it++)
-      QCOMPARE(actualErrors[it].second.message, errors[it]);
+void smoke(QString source, QStringList errors, bool useDriver, bool useOSFeats) {
+  QSharedPointer<pas::ast::Node> root;
+  if (useDriver) {
+    auto pipeline = pas::driver::pep10::stages<pas::driver::ANTLRParserTag>(source, {.isOS = useOSFeats});
+    auto pipelines = pas::driver::Pipeline<pas::driver::pep10::Stage>{};
+    pipelines.pipelines.push_back(pipeline);
+    pipelines.globals = QSharedPointer<pas::driver::Globals>::create();
+    pipelines.globals->macroRegistry = QSharedPointer<macro::Registry>::create();
+    CHECK(pipelines.assemble(pas::driver::pep10::Stage::WholeProgramSanity) == (errors.size() == 0));
+    CHECK(pipelines.pipelines[0].first->stage ==
+          (errors.size() == 0 ? pas::driver::pep10::Stage::End : pas::driver::pep10::Stage::WholeProgramSanity));
+    REQUIRE(pipelines.pipelines[0].first->bodies.contains(pas::driver::repr::Nodes::name));
+    root = pipelines.pipelines[0].first->bodies[pas::driver::repr::Nodes::name].value<pas::driver::repr::Nodes>().value;
+  } else {
+    auto parseRoot = pas::driver::pepp::createParser<isa::Pep10, pas::driver::ANTLRParserTag>(false);
+    auto res = parseRoot(source, nullptr);
+    REQUIRE_FALSE(res.hadError);
+    pas::ops::generic::groupSections(*res.root, pas::ops::pepp::isAddressable<isa::Pep10>);
+    pas::ops::pepp::assignAddresses<isa::Pep10>(*res.root);
+    root = res.root;
+    CHECK(pas::ops::pepp::checkWholeProgramSanity<isa::Pep10>(*root, {.allowOSFeatures = useOSFeats}) ==
+          (errors.size() == 0));
   }
+  auto actualErrors = pas::ops::generic::collectErrors(*root);
+  CHECK(actualErrors.size() == errors.size());
+  for (int it = 0; it < actualErrors.size(); it++)
+    CHECK(actualErrors[it].second.message.toStdString() == errors[it].toStdString());
+}
+TEST_CASE("Pas Ops, Whole Program Sanity") {
+  auto [name, source, errors, useDriver, useOSFeats] = GENERATE(table<std::string, QString, QStringList, bool, bool>({
+      {"noBurn: visitor", {".BURN 0xFFFF\n.BLOCK 1"}, {".BURN is not a valid directive."}, false, false},
+      {"noBurn: driver", {".BURN 0xFFFF\n.BLOCK 1"}, {".BURN is not a valid directive."}, true, false},
+      {"size0xFFFF: visitor", {".BLOCK 0xFFFF"}, {}, false, false},
+      {"size0xFFFF: driver", {".BLOCK 0xFFFF"}, {}, true, false},
+      {"size0x10000: visitor", {".BLOCK 0xFFFF\n.block 2"}, {"Object code must fit within 65536 bytes."}, false, false},
+      {"size0x10000: driver", {".BLOCK 0xFFFF\n.block 2"}, {"Object code must fit within 65536 bytes."}, true, false},
 
-  void smoke_data() {
-    QTest::addColumn<QString>("source");
-    QTest::addColumn<QStringList>("errors");
-    QTest::addColumn<bool>("useDriver");
-    QTest::addColumn<bool>("useOSFeats");
+      {".IMPORT in user: visitor", ".IMPORT s\ns:.block 1\n", {E::illegalInUser.arg(".IMPORT")}, false, false},
+      {".IMPORT in user: driver", ".IMPORT s\ns:.block 1\n", {E::illegalInUser.arg(".IMPORT")}, true, false},
+      {".IMPORT in OS: visitor", ".IMPORT s\ns:.block 1\n", {}, false, true},
+      {".IMPORT in OS: driver", ".IMPORT s\ns:.block 1\n", {}, true, true},
 
-    QTest::addRow("noBurn: visitor")
-        << u".BURN 0xFFFF\n.BLOCK 1\n"_qs
-        << QStringList{E::illegalDirective.arg(".BURN")} << false << false;
-    QTest::addRow("noBurn: driver")
-        << u".BURN 0xFFFF\n.BLOCK 1\n"_qs
-        << QStringList{E::illegalDirective.arg(".BURN")} << true << false;
+      {".EXPORT in user: visitor", ".EXPORT s\ns:.block 1\n", {E::illegalInUser.arg(".EXPORT")}, false, false},
+      {".EXPORT in user: driver", ".EXPORT s\ns:.block 1\n", {E::illegalInUser.arg(".EXPORT")}, true, false},
+      {".EXPORT in OS: visitor", ".EXPORT s\ns:.block 1\n", {}, false, true},
+      {".EXPORT in OS: driver", ".EXPORT s\ns:.block 1\n", {}, true, true},
 
-    QTest::addRow("size0xFFFF: visitor")
-        << u".BLOCK 0xFFFF\n"_qs << QStringList{} << false << false;
-    QTest::addRow("size0xFFFF: driver")
-        << u".BLOCK 0xFFFF\n"_qs << QStringList{} << true << false;
+      {".SCALL in user: visitor", ".SCALL s\ns:.block 1\n", {E::illegalInUser.arg(".SCALL")}, false, false},
+      {".SCALL in user: driver", ".SCALL s\ns:.block 1\n", {E::illegalInUser.arg(".SCALL")}, true, false},
+      {".SCALL in OS: visitor", ".SCALL s\ns:.block 1\n", {}, false, true},
+      {".SCALL in OS: driver", ".SCALL s\ns:.block 1\n", {}, true, true},
 
-    QTest::addRow("size0x10000: visitor")
-        << u".BLOCK 0xFFFF\n.block 2"_qs << QStringList{E::objTooBig} << false
-        << false;
-    QTest::addRow("size0x10000: driver")
-        << u".BLOCK 0xFFFF\n.block 2"_qs << QStringList{E::objTooBig} << true
-        << false;
+      {".INPUT in user: visitor", ".INPUT s\ns:.block 1\n", {E::illegalInUser.arg(".INPUT")}, false, false},
+      {".INPUT in user: driver", ".INPUT s\ns:.block 1\n", {E::illegalInUser.arg(".INPUT")}, true, false},
+      {".INPUT in OS: visitor", ".INPUT s\ns:.block 1\n", {}, false, true},
+      {".INPUT in OS: driver", ".INPUT s\ns:.block 1\n", {}, true, true},
 
-    for (auto &str :
-         {".IMPORT", ".EXPORT", ".SCALL", ".USCALL", ".INPUT", ".OUTPUT"}) {
-      QString source = u"%1 s\ns:.block 1\n"_qs.arg(str);
-      QTest::addRow("%s in user: visitor", str)
-          << source << QStringList{E::illegalInUser.arg(str)} << false << false;
-      QTest::addRow("%s in user: driver", str)
-          << source << QStringList{E::illegalInUser.arg(str)} << true << false;
-      QTest::addRow("%s in OS: visitor", str)
-          << source << QStringList{} << false << true;
-      QTest::addRow("%s in OS: driver", str)
-          << source << QStringList{} << true << true;
-    }
+      {".OUTPUT in user: visitor", ".OUTPUT s\ns:.block 1\n", {E::illegalInUser.arg(".OUTPUT")}, false, false},
+      {".OUTPUT in user: driver", ".OUTPUT s\ns:.block 1\n", {E::illegalInUser.arg(".OUTPUT")}, true, false},
+      {".OUTPUT in OS: visitor", ".OUTPUT s\ns:.block 1\n", {}, false, true},
+      {".OUTPUT in OS: driver", ".OUTPUT s\ns:.block 1\n", {}, true, true},
 
-    QTest::addRow("no END: visitor")
-        << u".BLOCK 0xFFFF\n.END"_qs
-        << QStringList{E::illegalDirective.arg(".END")} << false << false;
-    QTest::addRow("no END: driver")
-        << u".BLOCK 0xFFFF\n.END"_qs
-        << QStringList{E::illegalDirective.arg(".END")} << true << false;
+      {"no END: visitor", ".BLOCK 0xFFFF\n .END", {".END is not a valid directive."}, false, false},
+      {"no END: driver", ".BLOCK 0xFFFF\n .END", {".END is not a valid directive."}, true, false},
+      {"no undefined args: visitor", "LDWA s,i", {"Undefined symbol s."}, false, false},
+      {"no undefined args: driver", "LDWA s,i", {"Undefined symbol s."}, true, false},
+      {"no multiply defined symbols: visitor",
+       "s:.BLOCK 2\ns:.block 2",
+       {"Multiply defined symbol s.", "Multiply defined symbol s."},
+       false,
+       false},
+      {"no multiply defined symbols: driver",
+       "s:.BLOCK 2\ns:.block 2",
+       {"Multiply defined symbol s.", "Multiply defined symbol s."},
+       true,
+       false},
 
-    QTest::addRow("no undefined args: visitor")
-        << u"LDWA s,i\n"_qs << QStringList{E::undefinedSymbol.arg("s")} << false
-        << false;
-    QTest::addRow("no undefined args: driver")
-        << u"LDWA s,i\n"_qs << QStringList{E::undefinedSymbol.arg("s")} << true
-        << false;
-
-    QTest::addRow("no multiply defined symbols: visitor")
-        << u"s:.BLOCK 2\ns:.block 2\n"_qs
-        << QStringList{E::multiplyDefinedSymbol.arg("s"),
-                       E::multiplyDefinedSymbol.arg("s")}
-        << false << false;
-    QTest::addRow("no multiply defined symbols: driver")
-        << u"s:.BLOCK 2\ns:.block 2\n"_qs
-        << QStringList{E::multiplyDefinedSymbol.arg("s"),
-                       E::multiplyDefinedSymbol.arg("s")}
-        << true << false;
-  }
-
-  /*void requireEnd() {
-    QString source = ".BLOCK 2";
-    auto parsed = pas::driver::pepp::createParser<isa::Pep10, pas::driver::ANTLRParserTag>(false)(
-        source, nullptr);
-    pas::ops::pepp::assignAddresses<isa::Pep10>(*parsed.root);
-    QVERIFY(!pas::ops::pepp::checkWholeProgramSanity<isa::Pep10>(
-        *parsed.root, {.allowOSFeatures = false}));
-    auto errors = pas::ops::generic::collectErrors(*parsed.root);
-    QCOMPARE(errors.size(), 1);
-    QCOMPARE(errors[0].second.message, E::missingEnd);
-  }*/
-};
-
-#include "whole_program_sanity.moc"
-
-QTEST_MAIN(PasOpsPepp_WholeProgramSanity)
+  }));
+  DYNAMIC_SECTION(name) { smoke(source, errors, useDriver, useOSFeats); }
+}

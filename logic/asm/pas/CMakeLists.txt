@@ -4,9 +4,9 @@ list(APPEND sources ${sources_and_tests})
 list(REMOVE_ITEM sources ${tests})
 
 make_library(
-  TARGET pas
-  SOURCES ${sources}
-  DEPENDS Qt6::Core bits elfio symbol macro isa obj parse
-  TESTS ${tests}
-  TEST_DEPENDS builtins targets catch
+        TARGET pas
+        SOURCES ${sources}
+        DEPENDS Qt6::Core bits elfio symbol macro isa obj parse
+        TESTS ${tests}
+        TEST_DEPENDS builtins targets catch catch-main
 )

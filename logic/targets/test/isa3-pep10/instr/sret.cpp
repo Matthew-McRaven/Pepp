@@ -1,6 +1,5 @@
 /*
- * Copyright (c) 2023 J. Stanley Warford, Matthew McRaven
- *
+ * Copyright (c) 2024 J. Stanley Warford, Matthew McRaven
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
  * the Free Software Foundation, either version 3 of the License, or
@@ -15,93 +14,51 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-#include <QTest>
-#include <QtCore>
-
+#include <catch.hpp>
+#include "./api.hpp"
 #include "bits/operations/swap.hpp"
 #include "sim/device/dense.hpp"
 #include "targets/pep10/isa3/cpu.hpp"
 #include "targets/pep10/isa3/helpers.hpp"
-auto desc_mem = sim::api2::device::Descriptor{
-    .id = 1,
-    .baseName = "ram",
-    .fullName = "/ram",
-};
 
-auto desc_cpu = sim::api2::device::Descriptor{
-    .id = 2,
-    .baseName = "cpu",
-    .fullName = "/cpu",
-};
+TEST_CASE("SCALL", "[pep10][isa]") {
+  auto op = isa::Pep10::Mnemonic ::SRET;
+  auto [mem, cpu] = make();
 
-auto span = sim::api2::memory::AddressSpan<quint16>{
-    .minOffset = 0,
-    .maxOffset = 0xFFFF,
-};
+  quint8 tmp8 = 0;
+  quint16 tmp = 0;
+  auto tmpSpan = bits::span<quint8>{reinterpret_cast<quint8 *>(tmp), sizeof(tmp)};
+  const quint8 truth[] = {
+      /*NZVC*/ 0b1101, /*A*/ 0x11, 0x22,        /*X*/ 0xBA, 0xAD,
+      /*PC*/ 0xCA,     0xDE,       /*sp*/ 0xFE, 0xED,       (quint8)isa::Pep10::Mnemonic::SCALL};
+  quint8 buf[sizeof(truth)];
+  auto program = std::array<quint8, 1>{(quint8)isa::Pep10::Mnemonic::SRET};
 
-auto make = []() {
-  int i = 3;
-  sim::api2::device::IDGenerator gen = [&i]() { return i++; };
-  auto storage =
-      QSharedPointer<sim::memory::Dense<quint16>>::create(desc_mem, span);
-  auto cpu = QSharedPointer<targets::pep10::isa::CPU>::create(desc_cpu, gen);
-  cpu->setTarget(storage.data(), nullptr);
-  return std::pair{storage, cpu};
-};
+  auto osSP = std::array<quint8, 2>{0x80, 0x86};
 
-sim::api2::memory::Operation rw = {
-    .type = sim::api2::memory::Operation::Type::Standard,
-    .kind = sim::api2::memory::Operation::Kind::data,
-};
+  cpu->regs()->clear(0);
+  cpu->csrs()->clear(0);
 
-class ISA3Pep10_SRET : public QObject {
-  Q_OBJECT
-private slots:
-  void i() {
-    auto [mem, cpu] = make();
+  REQUIRE_NOTHROW(targets::pep10::isa::writeRegister(cpu->regs(), isa::Pep10::Register::SP, 0x8086 - 10, rw));
+  REQUIRE_NOTHROW(mem->write(0x0000, {program.data(), program.size()}, rw));
+  REQUIRE_NOTHROW(mem->write(0x8086 - 10, {truth, sizeof(truth)}, rw));
 
-    // Can't capture CPU directly b/c structured bindings.
-    auto _cpu = cpu;
-    auto rreg = [&](isa::Pep10::Register reg) -> quint16 {
-      quint16 tmp = 0;
-      targets::pep10::isa::readRegister(_cpu->regs(), reg, tmp, rw);
-      return tmp;
-    };
+  REQUIRE_NOTHROW(cpu->clock(0));
 
-    quint8 tmp8 = 0;
-    quint16 tmp = 0;
-    auto tmpSpan = bits::span<quint8>{reinterpret_cast<quint8*>(tmp), sizeof(tmp)};
-    const quint8 truth[] = {/*NZVC*/ 0b1101, /*A*/ 0x11,0x22, /*X*/ 0xBA, 0xAD, /*PC*/ 0xCA,0xDE, /*sp*/ 0xFE, 0xED,(quint8) isa::Pep10::Mnemonic::SCALL};
-    quint8 buf[sizeof(truth)];
-    auto program = std::array<quint8, 1>{(quint8) isa::Pep10::Mnemonic::SRET};
+  REQUIRE_NOTHROW(targets::pep10::isa::readPackedCSR(cpu->csrs(), tmp8, rw));
+  CHECK(tmp8 == truth[0]);
+  REQUIRE_NOTHROW(targets::pep10::isa::readRegister(cpu->regs(), isa::Pep10::Register::A, tmp, rw));
+  CHECK(tmp == (truth[1] << 8 | truth[2]));
+  REQUIRE_NOTHROW(targets::pep10::isa::readRegister(cpu->regs(), isa::Pep10::Register::X, tmp, rw));
+  CHECK(tmp == (truth[3] << 8 | truth[4]));
+  REQUIRE_NOTHROW(targets::pep10::isa::readRegister(cpu->regs(), isa::Pep10::Register::PC, tmp, rw));
+  CHECK(tmp == (truth[5] << 8 | truth[6]));
+  REQUIRE_NOTHROW(targets::pep10::isa::readRegister(cpu->regs(), isa::Pep10::Register::SP, tmp, rw));
+  CHECK(tmp == (truth[7] << 8 | truth[8]));
 
-    cpu->regs()->clear(0);
-    cpu->csrs()->clear(0);
-    QVERIFY_THROWS_NO_EXCEPTION(targets::pep10::isa::writeRegister(cpu->regs(), isa::Pep10::Register::SP, 0x8086-10, rw));
-    QVERIFY_THROWS_NO_EXCEPTION(mem->write(0x0000, {program.data(), program.size()}, rw));
-    QVERIFY_THROWS_NO_EXCEPTION(mem->write(0x8086-10, {truth, sizeof(truth)}, rw));
+  REQUIRE_NOTHROW(mem->read((quint16)isa::Pep10::MemoryVectors::SystemStackPtr,
+                            {reinterpret_cast<quint8 *>(&tmp), sizeof(tmp)}, rw));
 
-    QVERIFY_THROWS_NO_EXCEPTION(cpu->clock(0));
-
-    QVERIFY_THROWS_NO_EXCEPTION(targets::pep10::isa::readPackedCSR(cpu->csrs(),tmp8,rw));
-    QCOMPARE(tmp8, truth[0]);
-    QVERIFY_THROWS_NO_EXCEPTION(targets::pep10::isa::readRegister(cpu->regs(), isa::Pep10::Register::A, tmp, rw));
-    QCOMPARE(tmp, truth[1]<<8|truth[2]);
-    QVERIFY_THROWS_NO_EXCEPTION(targets::pep10::isa::readRegister(cpu->regs(), isa::Pep10::Register::X, tmp, rw));
-    QCOMPARE(tmp, truth[3]<<8|truth[4]);
-    QVERIFY_THROWS_NO_EXCEPTION(targets::pep10::isa::readRegister(cpu->regs(), isa::Pep10::Register::PC, tmp, rw));
-    QCOMPARE(tmp, truth[5]<<8|truth[6]);
-    QVERIFY_THROWS_NO_EXCEPTION(targets::pep10::isa::readRegister(cpu->regs(), isa::Pep10::Register::SP, tmp, rw));
-    QCOMPARE(tmp, truth[7]<<8|truth[8]);
-
-    QVERIFY_THROWS_NO_EXCEPTION(mem->read((quint16)isa::Pep10::MemoryVectors::SystemStackPtr, {reinterpret_cast<quint8*>(&tmp), sizeof(tmp)}, rw));
-
-    tmp = bits::hostOrder() != bits::Order::BigEndian ? bits::byteswap(tmp)
-                                                      : tmp;
-    QCOMPARE(tmp, 0x8086);
-  }
-};
-
-#include "sret.moc"
-
-QTEST_MAIN(ISA3Pep10_SRET)
+  tmp = bits::hostOrder() != bits::Order::BigEndian ? bits::byteswap(tmp) : tmp;
+  CHECK(tmp == 0x8086);
+}

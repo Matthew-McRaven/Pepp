@@ -42,41 +42,40 @@ class BUILTINS_EXPORT Book : public QObject {
                  NOTIFY macrosChanged);
 
 public:
-  explicit Book(QString name);
-  //! Return the full name of the textbook
-  QString name() const;
-  //! Returns the list of all figures contained by the book.
-  const QList<QSharedPointer<builtins::Figure>> figures() const;
-  //! If the book contains a matching figure, return that figure, otherwise
-  //! return nullptr. We do not allow multiple figures with the same name.
-  QSharedPointer<const builtins::Figure> findFigure(QString chapter,
-                                                    QString figure) const;
-  //! Register an figure as part of the current book.
-  //! Returns false if a figure by this name already exists, and true otherwise.
-  //! If returning false, the figure was not added to the book.
-  bool addFigure(QSharedPointer<builtins::Figure> figure);
+    explicit Book(QString name);
+    ~Book() noexcept = default;
+    //! Return the full name of the textbook
+    QString name() const;
+    //! Returns the list of all figures contained by the book.
+    const QList<QSharedPointer<builtins::Figure>> figures() const;
+    //! If the book contains a matching figure, return that figure, otherwise
+    //! return nullptr. We do not allow multiple figures with the same name.
+    QSharedPointer<const builtins::Figure> findFigure(QString chapter, QString figure) const;
+    //! Register an figure as part of the current book.
+    //! Returns false if a figure by this name already exists, and true otherwise.
+    //! If returning false, the figure was not added to the book.
+    bool addFigure(QSharedPointer<builtins::Figure> figure);
 
-  //! Returns the list of all figures contained by the book.
-  const QList<QSharedPointer<builtins::Figure>> problems() const;
-  //! If the book contains a matching figure, return that figure, otherwise
-  //! return nullptr. We do not allow multiple figures with the same name.
-  QSharedPointer<const builtins::Figure> findProblem(QString chapter,
-                                                     QString problem) const;
-  //! Register an figure as part of the current book.
-  //! Returns false if a figure by this name already exists, and true otherwise.
-  //! If returning false, the figure was not added to the book.
-  bool addProblem(QSharedPointer<builtins::Figure> problem);
+    //! Returns the list of all figures contained by the book.
+    const QList<QSharedPointer<builtins::Figure>> problems() const;
+    //! If the book contains a matching figure, return that figure, otherwise
+    //! return nullptr. We do not allow multiple figures with the same name.
+    QSharedPointer<const builtins::Figure> findProblem(QString chapter, QString problem) const;
+    //! Register an figure as part of the current book.
+    //! Returns false if a figure by this name already exists, and true otherwise.
+    //! If returning false, the figure was not added to the book.
+    bool addProblem(QSharedPointer<builtins::Figure> problem);
 
-  //! Return the list of all macros which are contained by this book.
-  const QList<QSharedPointer<macro::Parsed>> macros() const;
-  //! If the book contains a matching macro, return that macro, otherwise
-  //! return nullptr. We do not allow multiple macros with the same name and
-  //! arity.
-  QSharedPointer<const macro::Parsed> findMacro(QString name) const;
-  //! Register a macro as part of the current book.
-  //! Returns false if a macro by this name and arity already exists, and true
-  //! otherwise. If returning false, the macro was not added to the book.
-  bool addMacro(QSharedPointer<macro::Parsed> macro);
+    //! Return the list of all macros which are contained by this book.
+    const QList<QSharedPointer<macro::Parsed>> macros() const;
+    //! If the book contains a matching macro, return that macro, otherwise
+    //! return nullptr. We do not allow multiple macros with the same name and
+    //! arity.
+    QSharedPointer<const macro::Parsed> findMacro(QString name) const;
+    //! Register a macro as part of the current book.
+    //! Returns false if a macro by this name and arity already exists, and true
+    //! otherwise. If returning false, the macro was not added to the book.
+    bool addMacro(QSharedPointer<macro::Parsed> macro);
 signals:
   //! Emitted whenever an element or test is added to a figure, or a new figure
   //! is added.

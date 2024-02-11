@@ -1,17 +1,27 @@
+/*
+ * Copyright (c) 2024 J. Stanley Warford, Matthew McRaven
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program.  If not, see <https://www.gnu.org/licenses/>.
+ */
+
 #include "help/about/pepp.hpp"
-#include <QTest>
-#include <QtCore>
+#include <catch.hpp>
 
-class About_Pepp : public QObject {
-  Q_OBJECT
-private slots:
-  void repoUrl() { QCOMPARE_NE(about::projectRepoURL().size(), 0); }
-  void maintainers() { QCOMPARE_NE(about::maintainers().size(), 0); }
-  void contributors() { QCOMPARE_NE(about::contributors().size(), 0); }
-  void licenseText() { QCOMPARE_NE(about::licenseFull().size(), 0); }
-  void licenseNotice() { QCOMPARE_NE(about::licenseNotice().size(), 0); }
-  void version() { QCOMPARE_GT(about::versionString().size(), 1); }
-};
-#include "pepp.moc"
-
-QTEST_MAIN(About_Pepp);
+TEST_CASE("About Pepp", "[about]") {
+  CHECK_FALSE(about::projectRepoURL().size() == 0);
+  CHECK_FALSE(about::maintainers().size() == 0);
+  CHECK_FALSE(about::contributors().size() == 0);
+  CHECK_FALSE(about::licenseFull().size() == 0);
+  CHECK_FALSE(about::licenseNotice().size() == 0);
+  CHECK(about::versionString().size() > 1);
+}

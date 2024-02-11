@@ -27,11 +27,11 @@ list(REMOVE_ITEM sources ${tests})
 list(REMOVE_ITEM sources ${help_items})
 
 make_library(
-  TARGET builtins
-  SOURCES ${sources}
-  DEPENDS Qt6::Core macro
-  TESTS ${tests}
-  TEST_DEPENDS Qt6::Gui Qt6::Qml Qt6::Quick
+        TARGET builtins
+        SOURCES ${sources}
+        DEPENDS Qt6::Core macro
+        TESTS ${tests}
+        TEST_DEPENDS Qt6::Gui Qt6::Qml Qt6::Quick catch catch-main
 )
 
 qt_add_resources(builtins "builtins" PREFIX "/" FILES ${cs4e-res} ${cs5e-res} ${cs6e-res})

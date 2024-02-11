@@ -11263,6 +11263,8 @@ namespace Catch {
     void XmlReporter::assertionStarting( AssertionInfo const& ) { }
 
     void XmlReporter::assertionEnded( AssertionStats const& assertionStats ) {
+        // Don't emit elements in XML for assertions, because this is very slow.
+        return;
 
         AssertionResult const& result = assertionStats.assertionResult;
 
