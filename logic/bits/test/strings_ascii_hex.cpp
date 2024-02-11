@@ -18,8 +18,9 @@
 #include <qtypes.h>
 #include "bits/operations/copy.hpp"
 #include "bits/strings.hpp"
+namespace {
 static const QList<bits::SeparatorRule> rules = {{.skipFirst = false, .separator = ' ', .modulus = 1}};
-
+}
 TEST_CASE("Bit Ops, Strings") {
   quint8 src[] = {0x00, 0xFE, 0xED, 0xBE, 0xEF};
   char dst[sizeof(src) * 3];

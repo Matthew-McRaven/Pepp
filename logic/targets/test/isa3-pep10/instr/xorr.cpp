@@ -22,6 +22,7 @@
 #include "targets/pep10/isa3/cpu.hpp"
 #include "targets/pep10/isa3/helpers.hpp"
 
+namespace {
 template <isa::Pep10::Register target_reg, isa::Pep10::Register other_reg> void inner(isa::Pep10::Mnemonic op) {
   auto [mem, cpu] = make();
   // Loop over a subset of possible values for the target register.
@@ -57,6 +58,8 @@ template <isa::Pep10::Register target_reg, isa::Pep10::Register other_reg> void 
     }
   }
 }
+} // namespace
+
 TEST_CASE("XORA, i", "[pep10][isa]") {
   using Register = isa::Pep10::Register;
   inner<Register::A, Register::X>(isa::Pep10::Mnemonic::XORA);

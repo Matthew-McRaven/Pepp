@@ -28,7 +28,8 @@
 #include "macro/registry.hpp"
 
 using isa::Pep10;
-typedef void (*testFn)(QSharedPointer<pas::ast::Node>);
+using testFn = void (*)(QSharedPointer<pas::ast::Node>);
+namespace {
 
 void single_test(QSharedPointer<pas::ast::Node> root) {
   // qWarning() << pas::ops::pepp::formatSource<isa::Pep10>(*root).join("\n");
@@ -47,6 +48,7 @@ void nesting_test(QSharedPointer<pas::ast::Node> root) {
   for (auto &child : children)
     REQUIRE_FALSE(pas::ops::generic::isMacro()(*child));
 }
+} // namespace
 
 TEST_CASE("Pas Flatten Macros", "[pas]") {
   using type = std::tuple<QString, QSharedPointer<macro::Registry>, QString, testFn, bool>;

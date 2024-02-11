@@ -18,6 +18,7 @@
 
 #include "sim/device/broadcast/mmi.hpp"
 
+namespace {
 auto desc = sim::api2::device::Descriptor{.id = 1, .baseName = "cin", .fullName = "/cin"};
 
 auto rw = sim::api2::memory::Operation{
@@ -29,6 +30,7 @@ auto app = sim::api2::memory::Operation{
     .kind = sim::api2::memory::Operation::Kind::data,
 };
 auto span = sim::api2::memory::AddressSpan<quint16>{.minOffset = 0, .maxOffset = 0};
+} // namespace
 
 TEST_CASE("Memory-mapped input read, v2", "[sim][memory]") {
   auto in = QSharedPointer<sim::memory::Input<quint16>>::create(desc, span, 0);

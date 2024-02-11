@@ -17,6 +17,7 @@
 #include <catch.hpp>
 
 #include "sim/device/dense.hpp"
+namespace {
 namespace api2 = sim::api2;
 auto desc = api2::device::Descriptor{.id = 0, .compatible = nullptr, .baseName = "dev", .fullName = "/dev"};
 auto op = api2::memory::Operation{
@@ -30,6 +31,7 @@ void compare(const quint8 *lhs, const quint8 *rhs, quint8 length) {
   for (int it = 0; it < length; it++)
     CHECK(lhs[it] == rhs[it]);
 };
+} // namespace
 
 TEST_CASE("Dense storage in-bounds access, v2", "[sim][memory]") {
   auto [length, offset] = GENERATE(table<quint8, quint8>({

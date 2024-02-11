@@ -36,7 +36,7 @@ using SourceLocation = pas::ast::generic::SourceLocation;
 using Message = pas::ast::generic::Message;
 using Severity = pas::ast::generic::Message::Severity;
 using Error = QPair<SourceLocation, Message>;
-
+namespace {
 auto makeFatal = [](qsizetype line, QString msg) {
   return QPair<SourceLocation, Message>{SourceLocation{.value = {.line = line, .valid = true}},
                                         Message{.severity = Severity::Fatal, .message = msg}};
@@ -69,6 +69,7 @@ template <> struct MyHelper<pas::driver::ANTLRParserTag> {
   };
   static std::string name() { return "ANTLR4"; };
 };
+}; // namespace
 
 TEST_CASE("Pepp AST conversion, failing", "[parse]") {
   //  Message that return variables need to be converted to string for compare

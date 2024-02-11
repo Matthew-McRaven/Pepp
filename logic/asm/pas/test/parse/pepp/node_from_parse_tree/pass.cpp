@@ -32,6 +32,7 @@
 using namespace antlr4;
 using namespace parse;
 
+namespace {
 // Declare all matchers as globals, so they don't fall out of scope in data fn.
 // Must manually type erase, since QTest can;'t figure this out on its own.
 
@@ -106,6 +107,7 @@ template <> struct MyHelper<pas::driver::ANTLRParserTag> {
     return std::any_cast<QSharedPointer<pas::ast::Node>>(ret);
   };
 };
+} // namespace
 
 using pas::ast::Node;
 

@@ -22,6 +22,7 @@
 #include "targets/pep10/isa3/cpu.hpp"
 #include "targets/pep10/isa3/helpers.hpp"
 
+namespace {
 typedef bool (*should_branch)(bool n, bool z, bool v, bool c);
 
 bool br_unconditional(bool n, bool z, bool v, bool c) { return true; };
@@ -59,6 +60,8 @@ void inner(isa::Pep10::Mnemonic op, should_branch taken) {
     CHECK(reg(cpu, isa::Pep10::Register::OS) == opspec);
   }
 }
+} // namespace
+
 TEST_CASE("BR, i", "[pep10][isa]") {
   using Register = isa::Pep10::Register;
   inner(isa::Pep10::Mnemonic::BR, br_unconditional);

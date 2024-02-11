@@ -24,8 +24,8 @@
 #include "isa/pep10.hpp"
 #include "macro/macro.hpp"
 #include "macro/registry.hpp"
-
-typedef void (*testFn)(QSharedPointer<pas::ast::Node>);
+using testFn = void (*)(QSharedPointer<pas::ast::Node>);
+namespace {
 
 void success_test(QSharedPointer<pas::ast::Node> root) {
   REQUIRE(root->has<pas::ast::generic::Children>());
@@ -98,6 +98,7 @@ void smoke(QSharedPointer<macro::Registry> registry, QString input, testFn valid
   REQUIRE(!root.isNull());
   validate(root);
 }
+} // namespace
 
 TEST_CASE("Pas Ops, Include Macros") {
   // Valid non-nesting

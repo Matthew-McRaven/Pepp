@@ -22,6 +22,7 @@
 #include "targets/pep10/isa3/cpu.hpp"
 #include "targets/pep10/isa3/helpers.hpp"
 
+namespace {
 template <isa::Pep10::Register target_reg, isa::Pep10::Register source_reg> void inner(isa::Pep10::Mnemonic op) {
   auto [mem, cpu] = make();
   quint16 tmp;
@@ -49,6 +50,8 @@ template <isa::Pep10::Register target_reg, isa::Pep10::Register source_reg> void
     CHECK(reg(cpu, target_reg) == endRegVal);
   }
 }
+} // namespace
+
 TEST_CASE("MOVASP", "[pep10][isa]") {
   using Register = isa::Pep10::Register;
   inner<Register::SP, Register::A>(isa::Pep10::Mnemonic::MOVASP);

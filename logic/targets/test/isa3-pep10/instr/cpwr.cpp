@@ -22,6 +22,7 @@
 #include "targets/pep10/isa3/cpu.hpp"
 #include "targets/pep10/isa3/helpers.hpp"
 
+namespace {
 template <isa::Pep10::Register target_reg> void inner(isa::Pep10::Mnemonic op) {
   auto [mem, cpu] = make();
   // Loop over a subset of possible values for the target register.
@@ -67,6 +68,7 @@ template <isa::Pep10::Register target_reg> void inner(isa::Pep10::Mnemonic op) {
     CHECK(csr(cpu, isa::Pep10::CSR::N) == (bool(endRegVal & 0x8000) ^ signed_overflow ? 1 : 0));
   }
 }
+} // namespace
 
 TEST_CASE("CPWA, i", "[pep10][isa]") {
   using Register = isa::Pep10::Register;

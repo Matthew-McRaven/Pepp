@@ -25,6 +25,7 @@
 using namespace antlr4;
 using namespace parse;
 
+namespace {
 void single_line(std::string text, std::string output) {
   ANTLRInputStream input(text);
   PeppLexer lexer(&input);
@@ -38,6 +39,7 @@ void single_line(std::string text, std::string output) {
   REQUIRE(!listener.hadError());
   REQUIRE(output == tree->toStringTree(&parser));
 }
+} // namespace
 
 TEST_CASE("Pepp blank parsing", "[parse]") {
   using namespace parse;
