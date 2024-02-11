@@ -53,5 +53,3 @@ TEST_CASE("Macro, registry", "[macro]") {
     REQUIRE(reg.findMacrosByType(macro::types::Type::User).empty());
   }
 }
-
-int main(int argc, char *argv[]) { return Catch::Session().run(argc, argv); }

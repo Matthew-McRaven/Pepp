@@ -1,6 +1,5 @@
 /*
- * Copyright (c) 2023 J. Stanley Warford, Matthew McRaven
- *
+ * Copyright (c) 2023-2024 J. Stanley Warford, Matthew McRaven
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
  * the Free Software Foundation, either version 3 of the License, or
@@ -16,6 +15,7 @@
  */
 
 #include "asm/pas/operations/generic/flatten.hpp"
+#include <catch.hpp>
 #include "asm/pas/ast/generic/attr_children.hpp"
 #include "asm/pas/driver/pep10.hpp"
 #include "asm/pas/driver/pepp.hpp"
@@ -26,7 +26,6 @@
 #include "isa/pep10.hpp"
 #include "macro/macro.hpp"
 #include "macro/registry.hpp"
-#include <catch.hpp>
 
 using isa::Pep10;
 typedef void (*testFn)(QSharedPointer<pas::ast::Node>);
@@ -37,7 +36,7 @@ void single_test(QSharedPointer<pas::ast::Node> root) {
   auto children = root->get<pas::ast::generic::Children>().value;
   CHECK(children.size() == 3);
   for (auto &child : children)
-      REQUIRE_FALSE(pas::ops::generic::isMacro()(*child));
+    REQUIRE_FALSE(pas::ops::generic::isMacro()(*child));
 }
 
 void nesting_test(QSharedPointer<pas::ast::Node> root) {
@@ -46,81 +45,61 @@ void nesting_test(QSharedPointer<pas::ast::Node> root) {
   auto children = root->get<pas::ast::generic::Children>().value;
   CHECK(children.size() == 5);
   for (auto &child : children)
-      REQUIRE_FALSE(pas::ops::generic::isMacro()(*child));
+    REQUIRE_FALSE(pas::ops::generic::isMacro()(*child));
 }
 
-TEST_CASE("Pas Flatten Macros", "[pas]")
-{
-    using type = std::tuple<QString, QSharedPointer<macro::Registry>, QString, testFn, bool>;
-    std::list<type> items;
-    // Valid non-nesting
-    {
-        auto registry = QSharedPointer<macro::Registry>::create();
-        auto macro = QSharedPointer<macro::Parsed>::create(u"alpa"_qs,
-                                                           0,
-                                                           u".block 1"_qs,
-                                                           u"pep/10"_qs);
-        registry->registerMacro(macro::types::Core, macro);
-        QString input = "@alpa";
-        items.push_front({"valid non-nesting: visitor", registry, input, &single_test, false});
-        items.push_front({"valid non-nesting: driver", registry, input, &single_test, true});
-    }
+TEST_CASE("Pas Flatten Macros", "[pas]") {
+  using type = std::tuple<QString, QSharedPointer<macro::Registry>, QString, testFn, bool>;
+  std::list<type> items;
+  // Valid non-nesting
+  {
+    auto registry = QSharedPointer<macro::Registry>::create();
+    auto macro = QSharedPointer<macro::Parsed>::create(u"alpa"_qs, 0, u".block 1"_qs, u"pep/10"_qs);
+    registry->registerMacro(macro::types::Core, macro);
+    QString input = "@alpa";
+    items.push_front({"valid non-nesting: visitor", registry, input, &single_test, false});
+    items.push_front({"valid non-nesting: driver", registry, input, &single_test, true});
+  }
 
-    // Valid nesting
-    {
-        auto registry = QSharedPointer<macro::Registry>::create();
-        auto macro = QSharedPointer<macro::Parsed>::create(u"alpa"_qs, 0, u"@beta"_qs, u"pep/10"_qs);
-        registry->registerMacro(macro::types::Core, macro);
-        auto macro2 = QSharedPointer<macro::Parsed>::create(u"beta"_qs,
-                                                            0,
-                                                            u".block 1"_qs,
-                                                            u"pep/10"_qs);
-        registry->registerMacro(macro::types::Core, macro2);
-        QString input = "@alpa";
-        items.push_front({"valid nesting: visitor", registry, input, &nesting_test, false});
-        items.push_front({"valid nesting: driver", registry, input, &nesting_test, true});
+  // Valid nesting
+  {
+    auto registry = QSharedPointer<macro::Registry>::create();
+    auto macro = QSharedPointer<macro::Parsed>::create(u"alpa"_qs, 0, u"@beta"_qs, u"pep/10"_qs);
+    registry->registerMacro(macro::types::Core, macro);
+    auto macro2 = QSharedPointer<macro::Parsed>::create(u"beta"_qs, 0, u".block 1"_qs, u"pep/10"_qs);
+    registry->registerMacro(macro::types::Core, macro2);
+    QString input = "@alpa";
+    items.push_front({"valid nesting: visitor", registry, input, &nesting_test, false});
+    items.push_front({"valid nesting: driver", registry, input, &nesting_test, true});
+  }
+  for (auto item : items) {
+    auto [name, registery, input, validate, useDriver] = item;
+    DYNAMIC_SECTION(name.toStdString()) {
+      QSharedPointer<pas::ast::Node> root;
+      if (useDriver) {
+        auto pipeline = pas::driver::pep10::stages<pas::driver::ANTLRParserTag>(input, {.isOS = false});
+        auto pipelines = pas::driver::Pipeline<pas::driver::pep10::Stage>{};
+        pipelines.pipelines.push_back(pipeline);
+        pipelines.globals = QSharedPointer<pas::driver::Globals>::create();
+        pipelines.globals->macroRegistry = registery;
+        REQUIRE(pipelines.assemble(pas::driver::pep10::Stage::FlattenMacros));
+        CHECK(pipelines.pipelines[0].first->stage == pas::driver::pep10::Stage::GroupNodes);
+        REQUIRE(pipelines.pipelines[0].first->bodies.contains(pas::driver::repr::Nodes::name));
+        root = pipelines.pipelines[0]
+                   .first->bodies[pas::driver::repr::Nodes::name]
+                   .value<pas::driver::repr::Nodes>()
+                   .value;
+      } else {
+        auto parseRoot = pas::driver::pepp::createParser<isa::Pep10, pas::driver::ANTLRParserTag>(false);
+        auto res = parseRoot(input, nullptr);
+        REQUIRE(!res.hadError);
+        auto ret = pas::ops::generic::includeMacros(
+            *res.root, pas::driver::pepp::createParser<isa::Pep10, pas::driver::ANTLRParserTag>(true), registery);
+        root = res.root;
+        pas::ops::generic::flattenMacros(*root);
+      }
+      REQUIRE(!root.isNull());
+      validate(root);
     }
-    for (auto item : items) {
-        auto [name, registery, input, validate, useDriver] = item;
-        DYNAMIC_SECTION(name.toStdString())
-        {
-            QSharedPointer<pas::ast::Node> root;
-            if (useDriver) {
-                auto pipeline
-                    = pas::driver::pep10::stages<pas::driver::ANTLRParserTag>(input,
-                                                                              {.isOS = false});
-                auto pipelines = pas::driver::Pipeline<pas::driver::pep10::Stage>{};
-                pipelines.pipelines.push_back(pipeline);
-                pipelines.globals = QSharedPointer<pas::driver::Globals>::create();
-                pipelines.globals->macroRegistry = registery;
-                REQUIRE(pipelines.assemble(pas::driver::pep10::Stage::FlattenMacros));
-                CHECK(pipelines.pipelines[0].first->stage == pas::driver::pep10::Stage::GroupNodes);
-                REQUIRE(
-                    pipelines.pipelines[0].first->bodies.contains(pas::driver::repr::Nodes::name));
-                root = pipelines.pipelines[0]
-                           .first->bodies[pas::driver::repr::Nodes::name]
-                           .value<pas::driver::repr::Nodes>()
-                           .value;
-            } else {
-                auto parseRoot
-                    = pas::driver::pepp::createParser<isa::Pep10, pas::driver::ANTLRParserTag>(
-                        false);
-                auto res = parseRoot(input, nullptr);
-                REQUIRE(!res.hadError);
-                auto ret = pas::ops::generic::includeMacros(
-                    *res.root,
-                    pas::driver::pepp::createParser<isa::Pep10, pas::driver::ANTLRParserTag>(true),
-                    registery);
-                root = res.root;
-                pas::ops::generic::flattenMacros(*root);
-            }
-            REQUIRE(!root.isNull());
-            validate(root);
-        }
-    }
-}
-
-int main(int argc, char *argv[])
-{
-    return Catch::Session().run(argc, argv);
+  }
 }

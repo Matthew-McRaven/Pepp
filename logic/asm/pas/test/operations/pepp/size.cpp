@@ -168,5 +168,3 @@ TEST_CASE("Pas Ops, size") {
     }
   }
 }
-
-int main(int argc, char *argv[]) { return Catch::Session().run(argc, argv); }

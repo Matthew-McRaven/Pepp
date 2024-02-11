@@ -76,5 +76,3 @@ TEST_CASE("CPWX, i", "[pep10][isa]") {
   using Register = isa::Pep10::Register;
   inner<Register::X>(isa::Pep10::Mnemonic::CPWX);
 }
-
-int main(int argc, char *argv[]) { return Catch::Session().run(argc, argv); }

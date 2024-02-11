@@ -80,4 +80,3 @@ TEST_CASE("Pas Ops, To Bytes") {
     CHECK(actualBytes == bytes);
   }
 }
-int main(int argc, char *argv[]) { return Catch::Session().run(argc, argv); }

@@ -42,6 +42,4 @@ void inner(isa::Pep10::Mnemonic op) {
   CHECK(reg(cpu, isa::Pep10::Register::PC) == 0x1125);
   CHECK(reg(cpu, isa::Pep10::Register::IS) == (quint8)op);
 }
-TEST_CASE("ret", "[pep10][isa]") { inner(isa::Pep10::Mnemonic::RET); }
-
-int main(int argc, char *argv[]) { return Catch::Session().run(argc, argv); }
+TEST_CASE("RET", "[pep10][isa]") { inner(isa::Pep10::Mnemonic::RET); }

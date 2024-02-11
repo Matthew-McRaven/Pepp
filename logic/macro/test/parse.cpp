@@ -45,5 +45,3 @@ TEST_CASE("Macro, Parser", "[macro]") {
   }
   SECTION("Rejects comments") { CHECK_FALSE(std::get<0>(macro::analyze_macro_definition("@deci 2 ;fail"))); }
 }
-
-int main(int argc, char *argv[]) { return Catch::Session().run(argc, argv); }

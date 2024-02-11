@@ -1,6 +1,5 @@
 /*
- * Copyright (c) 2023 J. Stanley Warford, Matthew McRaven
- *
+ * Copyright (c) 2023-2024 J. Stanley Warford, Matthew McRaven
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
  * the Free Software Foundation, either version 3 of the License, or
@@ -23,25 +22,20 @@
 #include "targets/pep10/isa3/cpu.hpp"
 #include "targets/pep10/isa3/helpers.hpp"
 
-TEST_CASE("NOP", "[pep10][isa]")
-{
-    using Register = isa::Pep10::Register;
-    auto [mem, cpu] = make();
-    quint16 tmp;
-    cpu->regs()->clear(0);
-    cpu->csrs()->clear(0);
+TEST_CASE("NOP", "[pep10][isa]") {
+  using Register = isa::Pep10::Register;
+  auto [mem, cpu] = make();
+  quint16 tmp;
+  cpu->regs()->clear(0);
+  cpu->csrs()->clear(0);
 
-    auto program = std::array<quint8, 1>{(quint8) isa::Pep10::Mnemonic::NOP};
-    REQUIRE_NOTHROW(mem->write(0, {program.data(), program.size()}, rw));
-    REQUIRE_NOTHROW(cpu->clock(0));
+  auto program = std::array<quint8, 1>{(quint8)isa::Pep10::Mnemonic::NOP};
+  REQUIRE_NOTHROW(mem->write(0, {program.data(), program.size()}, rw));
+  REQUIRE_NOTHROW(cpu->clock(0));
 
-    CHECK(reg(cpu, Register::SP) == 0);
-    CHECK(reg(cpu, Register::PC) == 0x1);
-    CHECK(reg(cpu, Register::IS) == (quint8) isa::Pep10::Mnemonic::NOP);
-    CHECK(reg(cpu, Register::A) == 0);
-    CHECK(reg(cpu, Register::X) == 0);
-}
-int main(int argc, char *argv[])
-{
-    return Catch::Session().run(argc, argv);
+  CHECK(reg(cpu, Register::SP) == 0);
+  CHECK(reg(cpu, Register::PC) == 0x1);
+  CHECK(reg(cpu, Register::IS) == (quint8)isa::Pep10::Mnemonic::NOP);
+  CHECK(reg(cpu, Register::A) == 0);
+  CHECK(reg(cpu, Register::X) == 0);
 }

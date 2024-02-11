@@ -50,9 +50,7 @@ void inner(isa::Pep10::Mnemonic op) {
       CHECK(buf[it] == truth[it]);
   }
 }
-TEST_CASE("call, i", "[pep10][isa]") {
+TEST_CASE("CALL, i", "[pep10][isa]") {
   using Register = isa::Pep10::Register;
   inner(isa::Pep10::Mnemonic::CALL);
 }
-
-int main(int argc, char *argv[]) { return Catch::Session().run(argc, argv); }

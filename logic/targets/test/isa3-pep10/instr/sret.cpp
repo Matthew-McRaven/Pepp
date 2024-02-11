@@ -62,5 +62,3 @@ TEST_CASE("SCALL", "[pep10][isa]") {
   tmp = bits::hostOrder() != bits::Order::BigEndian ? bits::byteswap(tmp) : tmp;
   CHECK(tmp == 0x8086);
 }
-
-int main(int argc, char *argv[]) { return Catch::Session().run(argc, argv); }

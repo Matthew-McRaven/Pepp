@@ -95,5 +95,3 @@ TEST_CASE("Pas Ops, Format Listing") {
     CHECK(actualListingText == listing.join("\n").toStdString());
   }
 }
-
-int main(int argc, char *argv[]) { return Catch::Session().run(argc, argv); }

@@ -101,5 +101,3 @@ TEST_CASE("Publish-subscribe", "[sim][memory]") {
     CHECK(*value == 0);
   }
 }
-
-int main(int argc, char *argv[]) { return Catch::Session().run(argc, argv); }

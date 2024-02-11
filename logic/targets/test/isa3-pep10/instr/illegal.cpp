@@ -50,5 +50,3 @@ TEST_CASE("Illegal Opcodes", "[pep10][isa]") {
     DYNAMIC_SECTION(u"Opcode %1"_qs.arg(opcode).toStdString()) { inner(opcode); }
   }
 }
-
-int main(int argc, char *argv[]) { return Catch::Session().run(argc, argv); }

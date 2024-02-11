@@ -150,5 +150,3 @@ TEST_CASE("Symbol Table, 2 tables", "[symbol]") {
     CHECK(x->value->value() == y->value->value());
   }
 }
-
-int main(int argc, char *argv[]) { return Catch::Session().run(argc, argv); }

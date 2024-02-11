@@ -171,5 +171,3 @@ TEST_CASE("Targets_ISA3Pep10_Figures", "[asm]") {
     }
   }
 }
-
-int main(int argc, char *argv[]) { return Catch::Session().run(argc, argv); }

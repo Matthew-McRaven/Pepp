@@ -142,5 +142,3 @@ TEST_CASE("Pas Ops, Include Macros") {
   }
   // TODO: Reject macro loops
 }
-
-int main(int argc, char *argv[]) { return Catch::Session().run(argc, argv); }

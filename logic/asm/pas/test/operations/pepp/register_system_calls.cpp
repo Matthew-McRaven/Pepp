@@ -83,5 +83,3 @@ TEST_CASE("Pas Ops, register system calls") {
     smoke(input, &duplicates_test, true, true);
   }
 }
-
-int main(int argc, char *argv[]) { return Catch::Session().run(argc, argv); }

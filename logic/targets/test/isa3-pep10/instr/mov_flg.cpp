@@ -1,6 +1,5 @@
 /*
- * Copyright (c) 2023 J. Stanley Warford, Matthew McRaven
- *
+ * Copyright (c) 2023-2024 J. Stanley Warford, Matthew McRaven
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
  * the Free Software Foundation, either version 3 of the License, or
@@ -23,48 +22,37 @@
 #include "targets/pep10/isa3/cpu.hpp"
 #include "targets/pep10/isa3/helpers.hpp"
 
-void inner(isa::Pep10::Mnemonic op)
-{
-    using Register = isa::Pep10::Register;
-    auto [mem, cpu] = make();
-    quint16 tmp;
-    for (quint16 flg = 0; flg < 0b1'00'00; flg++) {
-        // Object code for instruction under test.
-        auto program = std::array<quint8, 1>{(quint8) op};
+void inner(isa::Pep10::Mnemonic op) {
+  using Register = isa::Pep10::Register;
+  auto [mem, cpu] = make();
+  quint16 tmp;
+  for (quint16 flg = 0; flg < 0b1'00'00; flg++) {
+    // Object code for instruction under test.
+    auto program = std::array<quint8, 1>{(quint8)op};
 
-        cpu->regs()->clear(0);
-        cpu->csrs()->clear(0);
+    cpu->regs()->clear(0);
+    cpu->csrs()->clear(0);
 
-        if (op == isa::Pep10::Mnemonic::MOVAFLG) {
-            targets::pep10::isa::writeRegister(cpu->regs(), Register::A, flg, rw);
-        } else {
-            targets::pep10::isa::writePackedCSR(cpu->csrs(), flg, rw);
-        }
-
-        REQUIRE_NOTHROW(mem->write(0, {program.data(), program.size()}, rw));
-        REQUIRE_NOTHROW(cpu->clock(0));
-
-        CHECK(reg(cpu, isa::Pep10::Register::PC) == 0x1);
-        CHECK(reg(cpu, isa::Pep10::Register::IS) == (quint8) op);
-        CHECK(reg(cpu, isa::Pep10::Register::OS) == 0);
-        CHECK(reg(cpu, isa::Pep10::Register::X) == 0);
-        // Check that target register had arithmetic performed.
-        CHECK(reg(cpu, Register::A) == flg);
-        CHECK(csr(cpu, isa::Pep10::CSR::N) == (flg & 0b1000 ? 1 : 0));
-        CHECK(csr(cpu, isa::Pep10::CSR::Z) == (flg & 0b0100 ? 1 : 0));
-        CHECK(csr(cpu, isa::Pep10::CSR::V) == (flg & 0b0010 ? 1 : 0));
-        CHECK(csr(cpu, isa::Pep10::CSR::C) == (flg & 0b0001 ? 1 : 0));
+    if (op == isa::Pep10::Mnemonic::MOVAFLG) {
+      targets::pep10::isa::writeRegister(cpu->regs(), Register::A, flg, rw);
+    } else {
+      targets::pep10::isa::writePackedCSR(cpu->csrs(), flg, rw);
     }
+
+    REQUIRE_NOTHROW(mem->write(0, {program.data(), program.size()}, rw));
+    REQUIRE_NOTHROW(cpu->clock(0));
+
+    CHECK(reg(cpu, isa::Pep10::Register::PC) == 0x1);
+    CHECK(reg(cpu, isa::Pep10::Register::IS) == (quint8)op);
+    CHECK(reg(cpu, isa::Pep10::Register::OS) == 0);
+    CHECK(reg(cpu, isa::Pep10::Register::X) == 0);
+    // Check that target register had arithmetic performed.
+    CHECK(reg(cpu, Register::A) == flg);
+    CHECK(csr(cpu, isa::Pep10::CSR::N) == (flg & 0b1000 ? 1 : 0));
+    CHECK(csr(cpu, isa::Pep10::CSR::Z) == (flg & 0b0100 ? 1 : 0));
+    CHECK(csr(cpu, isa::Pep10::CSR::V) == (flg & 0b0010 ? 1 : 0));
+    CHECK(csr(cpu, isa::Pep10::CSR::C) == (flg & 0b0001 ? 1 : 0));
+  }
 }
-TEST_CASE("MOVAFLG", "[pep10][isa]")
-{
-    inner(isa::Pep10::Mnemonic::MOVAFLG);
-}
-TEST_CASE("MOVFLGA", "[pep10][isa]")
-{
-    inner(isa::Pep10::Mnemonic::MOVFLGA);
-}
-int main(int argc, char *argv[])
-{
-    return Catch::Session().run(argc, argv);
-}
+TEST_CASE("MOVAFLG", "[pep10][isa]") { inner(isa::Pep10::Mnemonic::MOVAFLG); }
+TEST_CASE("MOVFLGA", "[pep10][isa]") { inner(isa::Pep10::Mnemonic::MOVFLGA); }

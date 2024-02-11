@@ -95,5 +95,3 @@ TEST_CASE("BRC, i", "[pep10][isa]") {
   using Register = isa::Pep10::Register;
   inner(isa::Pep10::Mnemonic::BRC, br_c);
 }
-
-int main(int argc, char *argv[]) { return Catch::Session().run(argc, argv); }

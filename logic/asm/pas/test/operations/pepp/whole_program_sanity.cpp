@@ -106,6 +106,3 @@ TEST_CASE("Pas Ops, Whole Program Sanity") {
   }));
   DYNAMIC_SECTION(name) { smoke(source, errors, useDriver, useOSFeats); }
 }
-int main(int argc, char *argv[]) { return Catch::Session().run(argc, argv); }
-
-void smoke_data() {}

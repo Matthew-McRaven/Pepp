@@ -6,11 +6,11 @@ list(APPEND sources ${sources_and_tests})
 list(REMOVE_ITEM sources ${tests})
 
 make_library(
-  TARGET about
-  SOURCES ${sources}
-  DEPENDS Qt6::Core
-  TESTS ${tests}
-  TEST_DEPENDS catch
+        TARGET about
+        SOURCES ${sources}
+        DEPENDS Qt6::Core
+        TESTS ${tests}
+        TEST_DEPENDS catch catch-main
 )
 
 set_target_properties(about PROPERTIES NEEDS_HTML_HELP ON)
@@ -20,18 +20,18 @@ get_git_head_revision(GIT_REFSPEC GIT_SHA1)
 
 git_get_exact_tag(GIT_TAG)
 
-if(GIT_TAG MATCHES ".*NOTFOUND")
+if (GIT_TAG MATCHES ".*NOTFOUND")
     set(GIT_TAG "unknown")
-endif()
+endif ()
 
 # Let program know if it was built from a clean dir.
 # App can use that to render about info.
 git_local_changes(GIT_CLEAN_RAW)
-if(GIT_CLEAN_RAW MATCHES "CLEAN")
+if (GIT_CLEAN_RAW MATCHES "CLEAN")
     set(GIT_CLEAN "1")
-else()
-  set(GIT_CLEAN "0")
-endif()
+else ()
+    set(GIT_CLEAN "0")
+endif ()
 
 #add_definitions("-DGIT_SHA1=${GIT_SHA1}")
 
@@ -50,7 +50,7 @@ qt_add_resources(about "about"
         data/repo.url
         data/dependencies.csv
         ${dependency_licenses}
-        )
+)
 
 set_source_files_properties("data/LICENSE_FULL" PROPERTIES QT_RESOURCE_ALIAS "LICENSE")
 set_source_files_properties("data/LICENSE_NOTICE" PROPERTIES QT_RESOURCE_ALIAS "NOTICE")

@@ -55,5 +55,3 @@ void inner(isa::Pep10::Mnemonic op) {
 }
 TEST_CASE("ADDSP, i", "[pep10][isa]") { inner(isa::Pep10::Mnemonic::ADDSP); }
 TEST_CASE("SUBSP, i", "[pep10][isa]") { inner(isa::Pep10::Mnemonic::SUBSP); }
-
-int main(int argc, char *argv[]) { return Catch::Session().run(argc, argv); }

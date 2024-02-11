@@ -57,5 +57,3 @@ TEST_CASE("SCALL", "[pep10][isa]") {
   for (int it = 0; it < sizeof(truth); it++)
     CHECK(buf[it] == truth[it]);
 }
-
-int main(int argc, char *argv[]) { return Catch::Session().run(argc, argv); }

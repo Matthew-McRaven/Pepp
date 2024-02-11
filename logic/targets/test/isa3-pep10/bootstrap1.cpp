@@ -59,5 +59,3 @@ TEST_CASE("Targets_ISA3Pep10_Bootstrap1") {
   REQUIRE_NOTHROW(targets::pep10::isa::readRegister(regs, Register::A, tmp, rw));
   CHECK(tmp == 0xFFFF);
 }
-
-int main(int argc, char *argv[]) { return Catch::Session().run(argc, argv); }

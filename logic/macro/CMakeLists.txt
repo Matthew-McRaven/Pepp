@@ -8,7 +8,7 @@ make_library(
         SOURCES ${sources}
         DEPENDS Qt6::Core antlr4_shared
         TESTS ${tests}
-        TEST_DEPENDS catch
+        TEST_DEPENDS catch catch-main
 )
 
 # Will fail to find hpp files without this, see https://bugreports.qt.io/browse/QTBUG-101146.

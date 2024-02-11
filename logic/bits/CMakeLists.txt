@@ -14,9 +14,9 @@ list(REMOVE_ITEM sources ${tests})
 list(REMOVE_ITEM sources ${compile_tests})
 
 make_library(
-  TARGET bits
-  SOURCES ${sources}
-  DEPENDS Qt6::Core
-  TESTS ${tests}
-  TEST_DEPENDS catch
+        TARGET bits
+        SOURCES ${sources}
+        DEPENDS Qt6::Core
+        TESTS ${tests}
+        TEST_DEPENDS catch catch-main
 )

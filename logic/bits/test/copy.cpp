@@ -1,6 +1,5 @@
 /*
- * Copyright (c) 2023 J. Stanley Warford, Matthew McRaven
- *
+ * Copyright (c) 2023-2024 J. Stanley Warford, Matthew McRaven
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
  * the Free Software Foundation, either version 3 of the License, or
@@ -20,9 +19,7 @@
 using namespace bits;
 using vu8 = QList<quint8>;
 
-void verify(quint8 *arr, quint16 index, quint8 golden) {
-    CHECK(arr[index] == golden);
-}
+void verify(quint8 *arr, quint16 index, quint8 golden) { CHECK(arr[index] == golden); }
 
 using T = std::tuple<std::string, quint16, vu8, Order, quint16, Order, vu8>;
 
@@ -77,28 +74,21 @@ const T _17 = {"dest longer, big-little, 2-3 byte", 2, vu8{0xAA, 0xBB},
 
 // clang-format on
 
-TEST_CASE("Bit Ops, Copy", "[bits]")
-{
-    auto [caseName, srcLen, srcData, srcOrder, destLen, destOrder, destGolden] = GENERATE(
-        table<std::string, quint16, vu8, Order, quint16, Order, vu8>(
-            {_0, _1, _2, _3, _4, _5, _6, _7, _8, _9, _10, _11, _12, _13, _14, _15, _16, _17}));
-    DYNAMIC_SECTION(caseName)
-    {
-        auto dest_le = quint64_le{0};
-        auto dest_be = quint64_be{0};
-        quint8 *dest = nullptr;
-        if (destOrder == Order::BigEndian)
-            dest = reinterpret_cast<quint8 *>(&dest_be);
-        else if (destOrder == Order::LittleEndian)
-            dest = reinterpret_cast<quint8 *>(&dest_le);
-        auto src = srcData.constData();
-        memcpy_endian({dest, destLen}, destOrder, {src, srcLen}, srcOrder);
-        for (int it = 0; it < destLen; it++)
-            verify(dest, it, destGolden[it]);
-    }
-}
-
-int main(int argc, char *argv[])
-{
-    return Catch::Session().run(argc, argv);
+TEST_CASE("Bit Ops, Copy", "[bits]") {
+  auto [caseName, srcLen, srcData, srcOrder, destLen, destOrder, destGolden] =
+      GENERATE(table<std::string, quint16, vu8, Order, quint16, Order, vu8>(
+          {_0, _1, _2, _3, _4, _5, _6, _7, _8, _9, _10, _11, _12, _13, _14, _15, _16, _17}));
+  DYNAMIC_SECTION(caseName) {
+    auto dest_le = quint64_le{0};
+    auto dest_be = quint64_be{0};
+    quint8 *dest = nullptr;
+    if (destOrder == Order::BigEndian)
+      dest = reinterpret_cast<quint8 *>(&dest_be);
+    else if (destOrder == Order::LittleEndian)
+      dest = reinterpret_cast<quint8 *>(&dest_le);
+    auto src = srcData.constData();
+    memcpy_endian({dest, destLen}, destOrder, {src, srcLen}, srcOrder);
+    for (int it = 0; it < destLen; it++)
+      verify(dest, it, destGolden[it]);
+  }
 }
