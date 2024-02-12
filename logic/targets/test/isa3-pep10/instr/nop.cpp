@@ -22,7 +22,7 @@
 #include "targets/pep10/isa3/cpu.hpp"
 #include "targets/pep10/isa3/helpers.hpp"
 
-TEST_CASE("NOP", "[pep10][isa]") {
+TEST_CASE("NOP", "[scope:targets][kind:int][target:pep10]") {
   using Register = isa::Pep10::Register;
   auto [mem, cpu] = make();
   quint16 tmp;

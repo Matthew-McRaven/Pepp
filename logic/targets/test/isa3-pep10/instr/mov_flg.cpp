@@ -57,5 +57,5 @@ void inner(isa::Pep10::Mnemonic op) {
 }
 } // namespace
 
-TEST_CASE("MOVAFLG", "[pep10][isa]") { inner(isa::Pep10::Mnemonic::MOVAFLG); }
-TEST_CASE("MOVFLGA", "[pep10][isa]") { inner(isa::Pep10::Mnemonic::MOVFLGA); }
+TEST_CASE("MOVAFLG", "[scope:targets][kind:int][target:pep10]") { inner(isa::Pep10::Mnemonic::MOVAFLG); }
+TEST_CASE("MOVFLGA", "[scope:targets][kind:int][target:pep10]") { inner(isa::Pep10::Mnemonic::MOVFLGA); }

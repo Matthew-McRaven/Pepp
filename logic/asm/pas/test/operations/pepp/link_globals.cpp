@@ -24,7 +24,7 @@
 #include "asm/symbol/value.hpp"
 #include "isa/pep10.hpp"
 using isa::Pep10;
-TEST_CASE("Pas Link Globals", "[pas]") {
+TEST_CASE("Link Globals", "[scope:asm][kind:unit][arch:pep10]") {
   SECTION("Intra-tree link") {
     QString body = "s:.block 10\n.EXPORT s\nLDWA s,i\n.END\n.END";
     auto globals = QSharedPointer<pas::driver::Globals>::create();

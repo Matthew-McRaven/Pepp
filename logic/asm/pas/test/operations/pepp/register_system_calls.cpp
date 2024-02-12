@@ -73,7 +73,7 @@ void smoke(QString input, testFn validate, bool useDriver, bool errors) {
 }
 } // namespace
 
-TEST_CASE("Pas Ops, register system calls") {
+TEST_CASE("Register system calls", "[scope:asm][kind:unit][arch:pep10]") {
   SECTION("non-unary") {
     QString input = ".SCALL s";
     smoke(input, &nonunary_test, false, false);

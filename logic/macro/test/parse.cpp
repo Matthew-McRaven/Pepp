@@ -18,7 +18,7 @@
 #include "macro/parse.hpp"
 #include <catch.hpp>
 #include <tuple>
-TEST_CASE("Macro, Parser", "[macro]") {
+TEST_CASE("Macro parser", "[scope:macro][kind:unit][arch:*]") {
   SECTION("Accepts valid spaces") {
     CHECK(std::get<0>(macro::analyze_macro_definition(u"@deci 0"_qs)));
     CHECK(std::get<0>(macro::analyze_macro_definition(u"@deci 	0"_qs)));

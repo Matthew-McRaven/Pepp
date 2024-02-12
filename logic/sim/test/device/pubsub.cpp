@@ -17,7 +17,7 @@
 #include "sim/device/broadcast/pubsub.hpp"
 #include <catch.hpp>
 
-TEST_CASE("Publish-subscribe", "[sim][memory]") {
+TEST_CASE("Publish-subscribe", "[scope:sim][kind:unit][arch:*]") {
   SECTION("1 producer, 0 consumers. publish") {
     auto channel = QSharedPointer<sim::memory::detail::Channel<quint8, quint8>>::create(0);
     auto endpoint = channel->new_endpoint();

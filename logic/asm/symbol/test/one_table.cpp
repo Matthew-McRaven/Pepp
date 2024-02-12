@@ -20,7 +20,7 @@
 #include "asm/symbol/value.hpp"
 #include "asm/symbol/visit.hpp"
 
-TEST_CASE("Symbol Table, one table", "[symbol]") {
+TEST_CASE("Single symbol table", "[scope:asm.sym][kind:unit][arch:*]") {
   SECTION("Find by name") {
     auto st = QSharedPointer<symbol::Table>::create(2);
     auto x = st->reference("hello");

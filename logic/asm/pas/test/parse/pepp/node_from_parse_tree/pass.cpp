@@ -111,7 +111,7 @@ template <> struct MyHelper<pas::driver::ANTLRParserTag> {
 
 using pas::ast::Node;
 
-TEST_CASE("Pepp AST conversion, passing", "[parse]") {
+TEST_CASE("Passing Pepp AST conversions", "[scope:asm][kind:unit][arch:pep10]") {
 
   auto [name, input, fn, symbol] =
       GENERATE(table<std::string, std::string, QSharedPointer<pas::ops::ConstOp<bool>>, bool>({

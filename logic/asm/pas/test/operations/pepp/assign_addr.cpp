@@ -101,7 +101,7 @@ void org_test(QSharedPointer<pas::ast::Node> root, qsizetype base) {
 }
 } // namespace
 
-TEST_CASE("Assign Address", "[pas]") {
+TEST_CASE("Assign Address", "[scope:asm][kind:unit][arch:pep10]") {
   SECTION("Sequential sections") {
     QString body = u"ldwa 0,i\n.SECTION \"l\"\nldwa 0,i"_qs;
     auto pipeline = pas::driver::pep10::stages<pas::driver::ANTLRParserTag>(body, {.isOS = false});

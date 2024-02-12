@@ -52,7 +52,7 @@ void inner(isa::Pep10::Mnemonic op) {
   }
 }
 } // namespace
-TEST_CASE("CALL, i", "[pep10][isa]") {
+TEST_CASE("CALL, i", "[scope:targets][kind:int][target:pep10]") {
   using Register = isa::Pep10::Register;
   inner(isa::Pep10::Mnemonic::CALL);
 }

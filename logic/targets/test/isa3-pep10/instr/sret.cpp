@@ -21,7 +21,7 @@
 #include "targets/pep10/isa3/cpu.hpp"
 #include "targets/pep10/isa3/helpers.hpp"
 
-TEST_CASE("SRET", "[pep10][isa]") {
+TEST_CASE("SRET", "[scope:targets][kind:int][target:pep10]") {
   auto op = isa::Pep10::Mnemonic ::SRET;
   auto [mem, cpu] = make();
 

@@ -50,7 +50,7 @@ void nesting_test(QSharedPointer<pas::ast::Node> root) {
 }
 } // namespace
 
-TEST_CASE("Pas Flatten Macros", "[pas]") {
+TEST_CASE("Flatten macros", "[scope:asm][kind:unit][arch:pep10]") {
   using type = std::tuple<QString, QSharedPointer<macro::Registry>, QString, testFn, bool>;
   std::list<type> items;
   // Valid non-nesting

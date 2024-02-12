@@ -62,39 +62,39 @@ void inner(isa::Pep10::Mnemonic op, should_branch taken) {
 }
 } // namespace
 
-TEST_CASE("BR, i", "[pep10][isa]") {
+TEST_CASE("BR, i", "[scope:targets][kind:int][target:pep10]") {
   using Register = isa::Pep10::Register;
   inner(isa::Pep10::Mnemonic::BR, br_unconditional);
 }
-TEST_CASE("BRLE, i", "[pep10][isa]") {
+TEST_CASE("BRLE, i", "[scope:targets][kind:int][target:pep10]") {
   using Register = isa::Pep10::Register;
   inner(isa::Pep10::Mnemonic::BRLE, br_le);
 }
-TEST_CASE("BRLT, i", "[pep10][isa]") {
+TEST_CASE("BRLT, i", "[scope:targets][kind:int][target:pep10]") {
   using Register = isa::Pep10::Register;
   inner(isa::Pep10::Mnemonic::BRLT, br_lt);
 }
-TEST_CASE("BREQ, i", "[pep10][isa]") {
+TEST_CASE("BREQ, i", "[scope:targets][kind:int][target:pep10]") {
   using Register = isa::Pep10::Register;
   inner(isa::Pep10::Mnemonic::BREQ, br_eq);
 }
-TEST_CASE("BRNE, i", "[pep10][isa]") {
+TEST_CASE("BRNE, i", "[scope:targets][kind:int][target:pep10]") {
   using Register = isa::Pep10::Register;
   inner(isa::Pep10::Mnemonic::BRNE, br_ne);
 }
-TEST_CASE("BRGE, i", "[pep10][isa]") {
+TEST_CASE("BRGE, i", "[scope:targets][kind:int][target:pep10]") {
   using Register = isa::Pep10::Register;
   inner(isa::Pep10::Mnemonic::BRGE, br_ge);
 }
-TEST_CASE("BRGT, i", "[pep10][isa]") {
+TEST_CASE("BRGT, i", "[scope:targets][kind:int][target:pep10]") {
   using Register = isa::Pep10::Register;
   inner(isa::Pep10::Mnemonic::BRGT, br_gt);
 }
-TEST_CASE("BRV, i", "[pep10][isa]") {
+TEST_CASE("BRV, i", "[scope:targets][kind:int][target:pep10]") {
   using Register = isa::Pep10::Register;
   inner(isa::Pep10::Mnemonic::BRV, br_v);
 }
-TEST_CASE("BRC, i", "[pep10][isa]") {
+TEST_CASE("BRC, i", "[scope:targets][kind:int][target:pep10]") {
   using Register = isa::Pep10::Register;
   inner(isa::Pep10::Mnemonic::BRC, br_c);
 }

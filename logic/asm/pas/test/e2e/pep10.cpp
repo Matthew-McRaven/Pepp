@@ -60,7 +60,7 @@ void injectFakeSCallMacros(QSharedPointer<macro::Registry> registry) {
 }
 } // namespace
 
-TEST_CASE("Assembler E2E, Pep10", "[pas]") {
+TEST_CASE("CS6E figure assembly", "[scope:asm][kind:e2e][arch:pep10]") {
   auto book_registry = builtins::Registry(nullptr);
   auto book = book_registry.findBook("Computer Systems, 6th Edition");
   SECTION("Standalone") {

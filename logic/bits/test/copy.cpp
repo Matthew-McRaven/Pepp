@@ -76,7 +76,7 @@ const T _17 = {"dest longer, big-little, 2-3 byte", 2, vu8{0xAA, 0xBB},
 
 // clang-format on
 
-TEST_CASE("Bit Ops, Copy", "[bits]") {
+TEST_CASE("Copy bits", "[scope:bits][kind:unit][arch:*]") {
   auto [caseName, srcLen, srcData, srcOrder, destLen, destOrder, destGolden] =
       GENERATE(table<std::string, quint16, vu8, Order, quint16, Order, vu8>(
           {_0, _1, _2, _3, _4, _5, _6, _7, _8, _9, _10, _11, _12, _13, _14, _15, _16, _17}));

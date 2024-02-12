@@ -21,7 +21,7 @@
 #include "sim/trace2/packet_utils.hpp"
 
 TEST_CASE("Trace buffer iterators"
-          "[sim][trace]") {
+          "[scope:sim][kind:unit][arch:*]") {
   sim::trace2::InfiniteBuffer buf;
   std::array<quint8, 16> src, dest;
   for (int it = 0; it < src.size(); it++) {

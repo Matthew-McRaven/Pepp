@@ -60,11 +60,11 @@ template <isa::Pep10::Register target_reg> void inner(isa::Pep10::Mnemonic op) {
 }
 } // namespace
 
-TEST_CASE("NEGA", "[pep10][isa]") {
+TEST_CASE("NEGA", "[scope:targets][kind:int][target:pep10]") {
   using Register = isa::Pep10::Register;
   inner<Register::A>(isa::Pep10::Mnemonic::NEGA);
 }
-TEST_CASE("NEGX", "[pep10][isa]") {
+TEST_CASE("NEGX", "[scope:targets][kind:int][target:pep10]") {
   using Register = isa::Pep10::Register;
   inner<Register::X>(isa::Pep10::Mnemonic::NEGX);
 }

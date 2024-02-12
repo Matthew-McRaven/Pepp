@@ -69,9 +69,9 @@ template <> struct MyHelper<pas::driver::ANTLRParserTag> {
   };
   static std::string name() { return "ANTLR4"; };
 };
-}; // namespace
+} // namespace
 
-TEST_CASE("Pepp AST conversion, failing", "[parse]") {
+TEST_CASE("Failing Pepp AST conversions", "[scope:asm][kind:unit][arch:pep10]") {
   //  Message that return variables need to be converted to string for compare
   //  to work.
 

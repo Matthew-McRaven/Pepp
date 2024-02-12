@@ -33,7 +33,7 @@ void compare(const quint8 *lhs, const quint8 *rhs, quint8 length) {
 };
 } // namespace
 
-TEST_CASE("Dense storage in-bounds access, v2", "[sim][memory]") {
+TEST_CASE("Dense storage in-bounds access", "[scope:sim][kind:int][arch:*]") {
   auto [length, offset] = GENERATE(table<quint8, quint8>({
       {1, 0},
       {2, 0},
@@ -68,7 +68,7 @@ TEST_CASE("Dense storage in-bounds access, v2", "[sim][memory]") {
   compare(dev.constData() + 0x10 - offset, truth, length);
 }
 
-TEST_CASE("Dense storage out-of-bounds access, v2", "[sim][memory][throws]") {
+TEST_CASE("Dense storage out-of-bounds access", "[scope:sim][kind:int][arch:*][!throws]") {
   auto span = api2::memory::AddressSpan<quint8>{.minOffset = 0x10, .maxOffset = 0x10};
 
   // Initialize a memory block to a fixed value

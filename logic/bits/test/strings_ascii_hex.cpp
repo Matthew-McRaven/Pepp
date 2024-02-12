@@ -21,7 +21,7 @@
 namespace {
 static const QList<bits::SeparatorRule> rules = {{.skipFirst = false, .separator = ' ', .modulus = 1}};
 }
-TEST_CASE("Bit Ops, Strings") {
+TEST_CASE("String bit ops", "[scope:bits][kind:unit][arch:*]") {
   quint8 src[] = {0x00, 0xFE, 0xED, 0xBE, 0xEF};
   char dst[sizeof(src) * 3];
   auto dstSpan = std::span{dst};

@@ -21,7 +21,7 @@
 #include "asm/pas/operations/pepp/string.hpp"
 #include "isa/pep10.hpp"
 
-TEST_CASE("Pas Ops, Format Listing") {
+TEST_CASE("Format Pepp listing", "[scope:asm][kind:unit][arch:pep10]") {
   auto [name, source, listing] = GENERATE(table<QString, QString, QStringList>({
       {"Blank", "\n", QStringList{""}},
       {"Comment", ";hello\n;world", QStringList{"             ;hello", "             ;world"}},

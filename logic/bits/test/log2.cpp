@@ -20,7 +20,7 @@
 #include <qtypes.h>
 
 using T = std::tuple<std::string, quint16, quint16>;
-TEST_CASE("Bit Ops, Log", "[bits]") {
+TEST_CASE("Logarithm bit ops", "[scope:bits][kind:unit][arch:*]") {
   auto [_case, input, output] = GENERATE(table<std::string, quint16, quint16>({{"1", 1, 0},
                                                                                {"2", 2, 1},
                                                                                {"3", 3, 2},

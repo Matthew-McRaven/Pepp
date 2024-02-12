@@ -57,7 +57,7 @@ void smoke(QString source, QStringList errors, bool useDriver, bool useOSFeats) 
 }
 } // namespace
 
-TEST_CASE("Pas Ops, Whole Program Sanity") {
+TEST_CASE("Whole Program Sanity", "[scope:asm][kind:unit][arch:pep10]") {
   auto [name, source, errors, useDriver, useOSFeats] = GENERATE(table<std::string, QString, QStringList, bool, bool>({
       {"noBurn: visitor", {".BURN 0xFFFF\n.BLOCK 1"}, {".BURN is not a valid directive."}, false, false},
       {"noBurn: driver", {".BURN 0xFFFF\n.BLOCK 1"}, {".BURN is not a valid directive."}, true, false},

@@ -20,7 +20,7 @@
 #include "asm/pas/driver/pep10.hpp"
 #include "isa/pep10.hpp"
 
-TEST_CASE("Pas Ops, Addressable", "[pas]") {
+TEST_CASE("Addressable", "[scope:asm][kind:unit][arch:pep10]") {
   auto [name, body, addressable] = GENERATE(table<QString, QString, bool>({
       {"blank", u""_qs, false},
       {"comment", u";hi"_qs, false},

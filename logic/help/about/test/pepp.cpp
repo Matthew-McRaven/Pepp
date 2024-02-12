@@ -17,7 +17,7 @@
 #include "help/about/pepp.hpp"
 #include <catch.hpp>
 
-TEST_CASE("About Pepp", "[about]") {
+TEST_CASE("About Pepp", "[scope:help.about][kind:unit][arch:*]") {
   CHECK_FALSE(about::projectRepoURL().size() == 0);
   CHECK_FALSE(about::maintainers().size() == 0);
   CHECK_FALSE(about::contributors().size() == 0);

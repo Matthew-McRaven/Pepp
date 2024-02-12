@@ -17,6 +17,6 @@
 #include <catch.hpp>
 #include "help/builtins/registry.hpp"
 
-TEST_CASE("Builtins") {
+TEST_CASE("Builtins", "[scope:help.bi][kind:unit][arch:*]") {
   REQUIRE_NOTHROW([]() { auto x = builtins::Registry(nullptr); }());
 }
