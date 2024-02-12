@@ -1,4 +1,13 @@
+# Pepp
+
+[![CI Status](https://github.com/matthew-mcraven/pepp/actions/workflows/ci.yml/badge.svg)](https://github.com/matthew-mcraven/pepp/actions/workflows/ci.yml)
+![Codecov](https://img.shields.io/codecov/c/github/matthew-mcraven/Pepp)
+![CodeFactor Grade](https://img.shields.io/codefactor/grade/github/matthew-mcraven/Pepp)
+![GitHub file size in bytes](https://img.shields.io/github/repo-size/matthew-mcraven/Pepp)
+[![Discord Invite](https://dcbadge.vercel.app/api/server/wF7HYdvF55?style=flat)](https://discord.gg/wF7HYdvF55)
+
 # Build from Sources
+
 When cloning this project, please use `--recurse-submodules`.
 
 It is recommened to build the application from within Qt Creator.
