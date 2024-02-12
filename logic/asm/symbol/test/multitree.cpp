@@ -18,7 +18,7 @@
 #include "asm/symbol/table.hpp"
 #include "asm/symbol/visit.hpp"
 
-TEST_CASE("Symbol Table, Multiple Trees", "[symbol]") {
+TEST_CASE("Multiple symbol table trees", "[scope:asm.sym][kind:unit][arch:*]") {
   /*
    *  Test 2 Tree structures
    *          Branch1     Branch2

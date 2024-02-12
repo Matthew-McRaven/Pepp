@@ -24,7 +24,7 @@
 
 using pas::ops::pepp::Direction;
 using pas::ops::pepp::explicitSize;
-TEST_CASE("Pas Ops, size") {
+TEST_CASE("Size", "[scope:asm][kind:unit][arch:pep10]") {
   SECTION("Unary") {
     QString body = "rola\nrolx";
     auto ret = pas::driver::pepp::createParser<isa::Pep10, pas::driver::ANTLRParserTag>(false)(body, nullptr);

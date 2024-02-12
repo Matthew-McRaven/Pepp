@@ -62,19 +62,19 @@ template <isa::Pep10::Register target_reg> void inner(isa::Pep10::Mnemonic op, q
 }
 } // namespace
 
-TEST_CASE("STBA, d", "[pep10][isa]") {
+TEST_CASE("STBA, d", "[scope:targets][kind:int][target:pep10]") {
   using Register = isa::Pep10::Register;
   inner<Register::A>(isa::Pep10::Mnemonic::STBA, 1);
 }
-TEST_CASE("STBX, d", "[pep10][isa]") {
+TEST_CASE("STBX, d", "[scope:targets][kind:int][target:pep10]") {
   using Register = isa::Pep10::Register;
   inner<Register::X>(isa::Pep10::Mnemonic::STBX, 1);
 }
-TEST_CASE("STWA, d", "[pep10][isa]") {
+TEST_CASE("STWA, d", "[scope:targets][kind:int][target:pep10]") {
   using Register = isa::Pep10::Register;
   inner<Register::A>(isa::Pep10::Mnemonic::STWA, 2);
 }
-TEST_CASE("STWX, d", "[pep10][isa]") {
+TEST_CASE("STWX, d", "[scope:targets][kind:int][target:pep10]") {
   using Register = isa::Pep10::Register;
   inner<Register::X>(isa::Pep10::Mnemonic::STWX, 2);
 }

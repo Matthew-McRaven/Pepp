@@ -43,7 +43,7 @@ auto make = []() {
 };
 } // namespace
 
-TEST_CASE("Simple bus individual in-bounds access, v2", "[sim][memory][throws]") {
+TEST_CASE("Simple bus individual in-bounds access", "[scope:sim][kind:int][arch:*][!throws]") {
   auto [bus, m1, m2, m3] = make();
   sim::api2::memory::Target<quint16> *memArr[3] = {&*m1, &*m2, &*m3};
   quint8 buf[2];
@@ -62,7 +62,7 @@ TEST_CASE("Simple bus individual in-bounds access, v2", "[sim][memory][throws]")
   }
 }
 
-TEST_CASE("Simple bus group in-bounds access, v2", "[sim][memory][throws]") {
+TEST_CASE("Simple bus group in-bounds access", "[scope:sim][kind:int][arch:*][!throws]") {
   auto [bus, m1, m2, m3] = make();
   sim::api2::memory::Target<quint16> *memArr[3] = {&*m1, &*m2, &*m3};
   quint8 buf[6];
@@ -81,7 +81,7 @@ TEST_CASE("Simple bus group in-bounds access, v2", "[sim][memory][throws]") {
   }
 }
 
-TEST_CASE("Simple bus dump, v2", "[sim][memory]") {
+TEST_CASE("Simple bus dump", "[scope:sim][kind:int][arch:*]") {
   SECTION("dense memory map") {
     auto [bus, m1, m2, m3] = make();
     sim::api2::memory::Target<quint16> *memArr[3] = {&*m1, &*m2, &*m3};

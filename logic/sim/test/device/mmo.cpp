@@ -32,7 +32,7 @@ auto app = sim::api2::memory::Operation{
 auto span = sim::api2::memory::AddressSpan<quint16>{.minOffset = 0, .maxOffset = 0};
 } // namespace
 
-TEST_CASE("Memory-mapped output write, v2", "[sim][memory]") {
+TEST_CASE("Memory-mapped output write", "[scope:sim][kind:int][arch:*]") {
   auto out = QSharedPointer<sim::memory::Output<quint16>>::create(desc, span, 0);
   auto endpoint = out->endpoint();
   quint8 tmp = 10;

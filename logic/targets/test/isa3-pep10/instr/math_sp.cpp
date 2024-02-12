@@ -56,5 +56,5 @@ void inner(isa::Pep10::Mnemonic op) {
 }
 } // namespace
 
-TEST_CASE("ADDSP, i", "[pep10][isa]") { inner(isa::Pep10::Mnemonic::ADDSP); }
-TEST_CASE("SUBSP, i", "[pep10][isa]") { inner(isa::Pep10::Mnemonic::SUBSP); }
+TEST_CASE("ADDSP, i", "[scope:targets][kind:int][target:pep10]") { inner(isa::Pep10::Mnemonic::ADDSP); }
+TEST_CASE("SUBSP, i", "[scope:targets][kind:int][target:pep10]") { inner(isa::Pep10::Mnemonic::SUBSP); }

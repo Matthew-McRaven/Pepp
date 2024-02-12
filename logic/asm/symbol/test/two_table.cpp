@@ -20,7 +20,7 @@
 #include "asm/symbol/types.hpp"
 #include "asm/symbol/visit.hpp"
 
-TEST_CASE("Symbol Table, 2 tables", "[symbol]") {
+TEST_CASE("Two symbol tables", "[scope:asm.sym][kind:unit][arch:*]") {
   SECTION("Independent References") {
     auto st = QSharedPointer<symbol::Table>::create(2);
     auto st1 = st->addChild();

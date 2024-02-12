@@ -19,7 +19,7 @@
 #include "asm/symbol/table.hpp"
 #include "asm/symbol/visit.hpp"
 
-TEST_CASE("Symbol Table, N tables", "[symbol]") {
+TEST_CASE("Five (branched) symbol tables", "[scope:asm.sym][kind:unit][arch:*]") {
   /*
    *  Test Tree structure
    *          Branch (Parent)

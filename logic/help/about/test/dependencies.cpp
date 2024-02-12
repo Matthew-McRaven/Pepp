@@ -17,7 +17,7 @@
 #include "help/about/dependencies.hpp"
 #include <catch.hpp>
 
-TEST_CASE("About Dependencies", "[about]") {
+TEST_CASE("About Dependencies", "[scope:help.about][kind:unit][arch:*]") {
   auto deps = about::dependencies();
   CHECK(deps.length() == 10);
   for (const auto &dep : deps)

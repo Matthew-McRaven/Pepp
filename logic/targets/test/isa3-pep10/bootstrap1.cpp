@@ -26,7 +26,7 @@ sim::api2::memory::Operation rw = {
 };
 }
 
-TEST_CASE("Targets_ISA3Pep10_Bootstrap1") {
+TEST_CASE("Pep/10 System Creation", "[scope:sim][kind:e2e][target:pep10]") {
   sim::api2::device::ID id = 0;
   auto nextID = [&id]() { return id++; };
   auto desc_mem =

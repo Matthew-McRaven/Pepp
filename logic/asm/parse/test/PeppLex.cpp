@@ -40,7 +40,7 @@ void single_token(std::string text, uint64_t type) {
 }
 } // namespace
 
-TEST_CASE("Pepp numeric lexing", "[parse]") {
+TEST_CASE("Pepp numeric lexing", "[scope:asm][kind:unit][arch:pep10]") {
   using namespace parse;
   auto [text, type] = GENERATE(table<std::string, int>({
       // We shouldn't reject large integer values (>16b) during lexing.
@@ -57,7 +57,7 @@ TEST_CASE("Pepp numeric lexing", "[parse]") {
   single_token(text, type);
 }
 
-TEST_CASE("Pepp identifier lexing", "[parse]") {
+TEST_CASE("Pepp identifier lexing", "[scope:asm][kind:unit][arch:pep10]") {
 
   using namespace parse;
   auto [text, type] = GENERATE(table<std::string, int>({
@@ -75,7 +75,7 @@ TEST_CASE("Pepp identifier lexing", "[parse]") {
   single_token(text, type);
 }
 
-TEST_CASE("Pepp argument lexing", "[parse]") {
+TEST_CASE("Pepp argument lexing", "[scope:asm][kind:unit][arch:pep10]") {
 
   using namespace parse;
   auto [text, type] = GENERATE(table<std::string, int>({
@@ -87,7 +87,7 @@ TEST_CASE("Pepp argument lexing", "[parse]") {
   single_token(text, type);
 }
 
-TEST_CASE("Pepp character sequence lexing", "[parse]") {
+TEST_CASE("Pepp character sequence lexing", "[scope:asm][kind:unit][arch:pep10]") {
 
   using namespace parse;
   auto [text, type] = GENERATE(table<std::string, int>({
@@ -103,7 +103,7 @@ TEST_CASE("Pepp character sequence lexing", "[parse]") {
   single_token(text, type);
 }
 
-TEST_CASE("Pepp character sequence lexing edge cases", "[parse]") {
+TEST_CASE("Pepp character sequence lexing edge cases", "[scope:asm][kind:unit][arch:pep10]") {
   using namespace parse;
   auto [text, type] = GENERATE(table<std::string, int>({
       {R"('')", PeppLexer::CHARACTER},

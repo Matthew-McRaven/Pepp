@@ -41,7 +41,7 @@ void single_line(std::string text, std::string output) {
 }
 } // namespace
 
-TEST_CASE("Pepp blank parsing", "[parse]") {
+TEST_CASE("Pepp blank parsing", "[scope:asm][kind:unit][arch:pep10]") {
   using namespace parse;
   auto [text, type] = GENERATE(table<std::string, std::string>({
       {"\n", "(prog \\n <EOF>)"},
@@ -51,7 +51,7 @@ TEST_CASE("Pepp blank parsing", "[parse]") {
   single_line(text, type);
 }
 
-TEST_CASE("Pepp comment parsing", "[parse]") {
+TEST_CASE("Pepp comment parsing", "[scope:asm][kind:unit][arch:pep10]") {
   using namespace parse;
   auto [text, type] = GENERATE(table<std::string, std::string>({
       {";oneword", "(prog (stat ;oneword) <EOF>)"},
@@ -60,7 +60,7 @@ TEST_CASE("Pepp comment parsing", "[parse]") {
   }));
   single_line(text, type);
 }
-TEST_CASE("Pepp unary parsing", "[parse]") {
+TEST_CASE("Pepp unary parsing", "[scope:asm][kind:unit][arch:pep10]") {
   using namespace parse;
   auto [text, type] = GENERATE(table<std::string, std::string>({
       // Do not test for validity of instruction, a seaparate semantic analysis pass handles this.
@@ -71,7 +71,7 @@ TEST_CASE("Pepp unary parsing", "[parse]") {
   }));
   single_line(text, type);
 }
-TEST_CASE("Pepp non-unary parsing", "[parse]") {
+TEST_CASE("Pepp non-unary parsing", "[scope:asm][kind:unit][arch:pep10]") {
   using namespace parse;
   auto [text, type] = GENERATE(table<std::string, std::string>({
       // non-unary, no addressing mode
@@ -91,7 +91,7 @@ TEST_CASE("Pepp non-unary parsing", "[parse]") {
   }));
   single_line(text, type);
 }
-TEST_CASE("Pepp directive parsing", "[parse]") {
+TEST_CASE("Pepp directive parsing", "[scope:asm][kind:unit][arch:pep10]") {
   using namespace parse;
   auto [text, type] = GENERATE(table<std::string, std::string>({
       {".END", "(prog (stat (directive .END)) <EOF>)"},
@@ -105,7 +105,7 @@ TEST_CASE("Pepp directive parsing", "[parse]") {
   single_line(text, type);
 }
 
-TEST_CASE("Pepp macro parsing", "[parse]") {
+TEST_CASE("Pepp macro parsing", "[scope:asm][kind:unit][arch:pep10]") {
   using namespace parse;
   auto [text, type] = GENERATE(table<std::string, std::string>({
       {"@hi", "(prog (stat (invoke_macro @hi)) <EOF>)"},

@@ -45,4 +45,4 @@ void inner(isa::Pep10::Mnemonic op) {
 }
 } // namespace
 
-TEST_CASE("RET", "[pep10][isa]") { inner(isa::Pep10::Mnemonic::RET); }
+TEST_CASE("RET", "[scope:targets][kind:int][target:pep10]") { inner(isa::Pep10::Mnemonic::RET); }

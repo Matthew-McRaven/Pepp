@@ -142,7 +142,7 @@ void smoke(QString os, QString userPep, QString userPepo, QString input, QByteAr
 }
 } // namespace
 
-TEST_CASE("Targets_ISA3Pep10_Figures", "[asm]") {
+TEST_CASE("Pep/10 Figure Assembly", "[scope:asm][kind:e2e][arch:pep10]") {
   auto bookReg = builtins::Registry(nullptr);
   auto bookPtr = book(bookReg);
   auto figures = bookPtr->figures();

@@ -18,7 +18,7 @@
 #include <catch.hpp>
 #include "macro/macro.hpp"
 #include "macro/registered.hpp"
-TEST_CASE("Macro, registry", "[macro]") {
+TEST_CASE("Macro registry", "[scope:macro][kind:unit][arch:*]") {
   SECTION("Register Macros") {
     macro::Registry reg;
     auto parsed = QSharedPointer<macro::Parsed>::create("alpha", 0, "body", "none");

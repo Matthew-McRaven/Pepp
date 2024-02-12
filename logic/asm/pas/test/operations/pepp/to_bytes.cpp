@@ -21,7 +21,7 @@
 #include "asm/pas/operations/pepp/bytes.hpp"
 #include "isa/pep10.hpp"
 
-TEST_CASE("Pas Ops, To Bytes") {
+TEST_CASE("To bytes", "[scope:asm][kind:unit][arch:pep10]") {
   auto [name, source, bytes] = GENERATE(table<std::string, QString, QList<quint8>>(
       {{"BYTE 0xFF", ".BYTE 0xFF", {0xff}},
        {"BYTE 254", ".BYTE 254", {0xfe}},

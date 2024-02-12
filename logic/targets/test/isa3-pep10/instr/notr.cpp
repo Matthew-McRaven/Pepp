@@ -53,11 +53,11 @@ template <isa::Pep10::Register target_reg> void inner_notr(isa::Pep10::Mnemonic 
   }
 }
 } // namespace
-TEST_CASE("NOTA", "[pep10][isa]") {
+TEST_CASE("NOTA", "[scope:targets][kind:int][target:pep10]") {
   using Register = isa::Pep10::Register;
   inner_notr<Register::A>(isa::Pep10::Mnemonic::NOTA);
 }
-TEST_CASE("NOTX", "[pep10][isa]") {
+TEST_CASE("NOTX", "[scope:targets][kind:int][target:pep10]") {
   using Register = isa::Pep10::Register;
   inner_notr<Register::X>(isa::Pep10::Mnemonic::NOTX);
 }

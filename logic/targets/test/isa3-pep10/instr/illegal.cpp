@@ -46,7 +46,7 @@ void inner(quint8 op) {
 }
 } // namespace
 
-TEST_CASE("Illegal Opcodes", "[pep10][isa]") {
+TEST_CASE("Illegal Opcodes", "[scope:targets][kind:int][target:pep10]") {
   SECTION("Opcode 0") { inner(0); }
   for (quint8 opcode = 8; opcode < 0x18; opcode++) {
     DYNAMIC_SECTION(u"Opcode %1"_qs.arg(opcode).toStdString()) { inner(opcode); }

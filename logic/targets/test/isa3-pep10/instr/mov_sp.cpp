@@ -52,11 +52,11 @@ template <isa::Pep10::Register target_reg, isa::Pep10::Register source_reg> void
 }
 } // namespace
 
-TEST_CASE("MOVASP", "[pep10][isa]") {
+TEST_CASE("MOVASP", "[scope:targets][kind:int][target:pep10]") {
   using Register = isa::Pep10::Register;
   inner<Register::SP, Register::A>(isa::Pep10::Mnemonic::MOVASP);
 }
-TEST_CASE("MOVSPA", "[pep10][isa]") {
+TEST_CASE("MOVSPA", "[scope:targets][kind:int][target:pep10]") {
   using Register = isa::Pep10::Register;
   inner<Register::A, Register::SP>(isa::Pep10::Mnemonic::MOVSPA);
 }

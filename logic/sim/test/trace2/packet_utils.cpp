@@ -56,7 +56,7 @@ struct SimpleBuffer : public sim::api2::trace::Buffer {
 };
 } // namespace
 
-TEST_CASE("Packet IsSameDevice", "[sim][trace]") {
+TEST_CASE("Packet IsSameDevice", "[scope:sim][kind:unit][arch:*]") {
   using namespace sim::api2::packet;
   auto equal = IsSameDevice{5};
   auto nequal = IsSameDevice{6};
@@ -65,7 +65,7 @@ TEST_CASE("Packet IsSameDevice", "[sim][trace]") {
   CHECK_FALSE(std::visit(nequal, hdr));
 }
 
-TEST_CASE("Packet serialization utilities", "[sim][trace]") {
+TEST_CASE("Packet serialization utilities", "[scope:sim][kind:unit][arch:*]") {
   SECTION("Pure Read") {
     auto [address, device, payload_len] = GENERATE(table<quint16, device::ID, quint16>({
         {0, 1, 0},

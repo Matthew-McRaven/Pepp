@@ -70,11 +70,11 @@ template <isa::Pep10::Register target_reg> void inner(isa::Pep10::Mnemonic op) {
 }
 } // namespace
 
-TEST_CASE("CPWA, i", "[pep10][isa]") {
+TEST_CASE("CPWA, i", "[scope:targets][kind:int][target:pep10]") {
   using Register = isa::Pep10::Register;
   inner<Register::A>(isa::Pep10::Mnemonic::CPWA);
 }
-TEST_CASE("CPWX, i", "[pep10][isa]") {
+TEST_CASE("CPWX, i", "[scope:targets][kind:int][target:pep10]") {
   using Register = isa::Pep10::Register;
   inner<Register::X>(isa::Pep10::Mnemonic::CPWX);
 }

@@ -100,7 +100,7 @@ void smoke(QSharedPointer<macro::Registry> registry, QString input, testFn valid
 }
 } // namespace
 
-TEST_CASE("Pas Ops, Include Macros") {
+TEST_CASE("Include macros", "[scope:asm][kind:unit][arch:pep10]") {
   // Valid non-nesting
   SECTION("Valid non-nesting") {
     auto registry = QSharedPointer<macro::Registry>::create();
