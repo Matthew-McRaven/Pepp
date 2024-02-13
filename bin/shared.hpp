@@ -1,6 +1,5 @@
 /*
- * Copyright (c) 2023 J. Stanley Warford, Matthew McRaven
- *
+ * Copyright (c) 2023-2024 J. Stanley Warford, Matthew McRaven
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
  * the Free Software Foundation, either version 3 of the License, or
@@ -16,17 +15,16 @@
  */
 
 #pragma once
+#include "asm/pas/ast/node.hpp"
+#include "elfio/elfio.hpp"
 #include "help/builtins/book.hpp"
 #include "macro/registry.hpp"
-#include "asm/pas/ast/node.hpp"
-#include <elfio/elfio.hpp>
 
 namespace detail {
 QSharedPointer<const builtins::Book> book(int ed);
-QSharedPointer<macro::Registry>
-registry(QSharedPointer<const builtins::Book> book, QStringList directory);
-void addMacro(macro::Registry& registry, std::string directory, QString arch);
-void addMacros(macro::Registry& registry, const std::list<std::string>& dirs, QString arch);
+QSharedPointer<macro::Registry> registry(QSharedPointer<const builtins::Book> book, QStringList directory);
+void addMacro(macro::Registry &registry, std::string directory, QString arch);
+void addMacros(macro::Registry &registry, const std::list<std::string> &dirs, QString arch);
 
 class AsmHelper {
 public:
@@ -34,8 +32,7 @@ public:
   void setUserText(QString user);
   bool assemble();
   QStringList errors();
-  QSharedPointer<ELFIO::elfio>
-  elf(std::optional<QList<quint8>> userObj = std::nullopt);
+  QSharedPointer<ELFIO::elfio> elf(std::optional<QList<quint8>> userObj = std::nullopt);
   QStringList listing(bool os);
   QList<quint8> bytes(bool os);
 

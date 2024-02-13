@@ -1,5 +1,68 @@
-add_subdirectory(demo-fig-view)
-add_subdirectory(demo-macro-parse)
-add_subdirectory(demo-pep10-asm)
-add_subdirectory(term)
-add_subdirectory(demo-ui/)
+file(GLOB_RECURSE sources_and_tests CONFIGURE_DEPENDS "${CMAKE_CURRENT_LIST_DIR}/*.cpp" "${CMAKE_CURRENT_LIST_DIR}/*.hpp")
+file(GLOB_RECURSE tests CONFIGURE_DEPENDS "test/*.cpp" "test/*.hpp")
+file(GLOB_RECURSE compile_tests CONFIGURE_DEPENDS "compile-test/*.cpp")
+list(APPEND sources ${sources_and_tests})
+list(REMOVE_ITEM sources ${tests})
+list(REMOVE_ITEM sources ${compile_tests})
+
+# Use to force terminal, test app to live in same directory.
+set(CMAKE_ARCHIVE_OUTPUT_DIRECTORY "${CMAKE_CURRENT_BINARY_DIR}/bin")
+set(CMAKE_LIBRARY_OUTPUT_DIRECTORY "${CMAKE_CURRENT_BINARY_DIR}/bin")
+set(CMAKE_RUNTIME_OUTPUT_DIRECTORY "${CMAKE_CURRENT_BINARY_DIR}/bin")
+
+make_target(
+        TARGET pepp-term
+        TYPE "EXEC"
+        SOURCES ${sources}
+        DEPENDS TextFlow cli about macro pas builtins isa targets sim Qt6::Core
+)
+
+# GLOB_RECURSE ueses abs paths, QML_FILES expects relative paths. This blob converts from abs to rel.
+set_target_properties(pepp-term PROPERTIES
+        MACOSX_BUNDLE_GUI_IDENTIFIER my.example.com
+        MACOSX_BUNDLE_BUNDLE_VERSION ${PROJECT_VERSION}
+        MACOSX_BUNDLE_SHORT_VERSION_STRING ${PROJECT_VERSION_MAJOR}.${PROJECT_VERSION_MINOR}
+        MACOSX_BUNDLE TRUE
+        WIN32_EXECUTABLE TRUE
+)
+
+# Non-DLL platforms have empty generator expressin, so use more generator magic to only copy DLLs if the exist.
+add_custom_command(TARGET pepp-term POST_BUILD
+        COMMAND ${CMAKE_COMMAND}
+        ARGS
+        -E $<IF:$<BOOL:$<TARGET_RUNTIME_DLLS:pepp-term>>,copy,true> $<TARGET_RUNTIME_DLLS:pepp-term> $<TARGET_FILE_DIR:pepp-term>
+        COMMAND_EXPAND_LISTS
+)
+
+
+install(TARGETS pepp-term
+        BUNDLE DESTINATION term
+        LIBRARY DESTINATION ${CMAKE_INSTALL_LIBDIR})
+
+set_target_properties(pepp-term PROPERTIES FOLDER "qtc_runnable")
+
+if (NOT EMSCRIPTEN)
+    configure_file(test/config.hpp.in "${CMAKE_CURRENT_BINARY_DIR}/config.hpp")
+    make_target(
+            TARGET test-term
+            TYPE "EXEC"
+            SOURCES
+            test/about.cpp
+            test/asmrun.cpp
+            test/ls.cpp
+            test/get.cpp
+            test/test_main.cpp
+            test/samples.qrc
+            test/samples.cpp
+            DEPENDS Qt6::Core catch
+    )
+
+    # Needed to find config file.
+    target_include_directories(test-term PRIVATE ${CMAKE_CURRENT_BINARY_DIR})
+    add_dependencies(pepp-term test-term)
+    option(ENABLE_TERM_TESTS "Enable shell tests of pepp-term" OFF)
+    if (ENABLE_TERM_TESTS)
+        add_test(NAME test-term COMMAND test-term)
+        set_target_properties(test-term PROPERTIES FOLDER "qtc_runnable")
+    endif ()
+endif ()

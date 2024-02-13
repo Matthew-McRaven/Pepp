@@ -1,6 +1,5 @@
 /*
- * Copyright (c) 2023 J. Stanley Warford, Matthew McRaven
- *
+ * Copyright (c) 2023-2024 J. Stanley Warford, Matthew McRaven
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
  * the Free Software Foundation, either version 3 of the License, or
@@ -15,18 +14,18 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
+#include <QDebug>
+#include <QtCore>
 #include "./asm/asm.hpp"
 #include "./get/fig.hpp"
 #include "./get/macro.hpp"
 #include "./ls.hpp"
 #include "./run.hpp"
 #include "./task.hpp"
+#include "CLI11.hpp"
 #include "about.hpp"
 #include "license.hpp"
 #include "throughput.hpp"
-#include <CLI11.hpp>
-#include <QDebug>
-#include <QtCore>
 
 using task_factory_t = std::function<Task *(QObject *)>;
 #include "main.moc"
@@ -43,21 +42,14 @@ int main(int argc, char **argv) {
                 ->expected(4, 6);
   task_factory_t task;
 
-  auto about = app.add_subcommand(
-      "about", "Display information about versioning, and developers.");
-  about->callback(
-      [&]() { task = [&](QObject *parent) { return new AboutTask(parent); }; });
+  auto about = app.add_subcommand("about", "Display information about versioning, and developers.");
+  about->callback([&]() { task = [&](QObject *parent) { return new AboutTask(parent); }; });
 
-  auto license = app.add_subcommand(
-      "license", "Display information about licensing, and Qt.");
-  license->callback([&]() {
-    task = [&](QObject *parent) { return new LicenseTask(parent); };
-  });
+  auto license = app.add_subcommand("license", "Display information about licensing, and Qt.");
+  license->callback([&]() { task = [&](QObject *parent) { return new LicenseTask(parent); }; });
 
   auto list = app.add_subcommand("ls", "Produce list of figures and macros");
-  list->callback([&]() {
-    task = [&](QObject *parent) { return new ListTask(edValue, parent); };
-  });
+  list->callback([&]() { task = [&](QObject *parent) { return new ListTask(edValue, parent); }; });
 
   auto get = app.add_subcommand("get", "Fetch the body of a figure or macro");
   auto get_selector = get->add_option_group("")->required();
@@ -80,9 +72,7 @@ int main(int argc, char **argv) {
           return new GetFigTask(edValue, ch, fig, type, false, parent);
       };
     else if (macroOpt->count() > 0)
-      task = [&](QObject *parent) {
-        return new GetMacroTask(edValue, macro, parent);
-      };
+      task = [&](QObject *parent) { return new GetMacroTask(edValue, macro, parent); };
   });
 
   auto asmSC = app.add_subcommand("asm", "Assemble stuff");
@@ -93,8 +83,7 @@ int main(int argc, char **argv) {
   auto osOpt = asmSC->add_option("--os", osName);
   CLI::Option *bmAsmOpt = nullptr;
   if (edValue == 6)
-    bmAsmOpt =
-        asmSC->add_flag("--bm", bm, "Use bare metal OS.")->excludes(osOpt);
+    bmAsmOpt = asmSC->add_flag("--bm", bm, "Use bare metal OS.")->excludes(osOpt);
   auto elfOpt = asmSC->add_option("--elf", elfName);
   auto pepoOpt = asmSC->add_option("-o", pepoOut);
   auto errOpt = asmSC->add_option("-e", errOut);
@@ -124,36 +113,32 @@ int main(int argc, char **argv) {
   });
 
   // Must initialize,
-  bool skipLoad=false, skipDispatch=false /*,bm comes from asm*/;
+  bool skipLoad = false, skipDispatch = false /*,bm comes from asm*/;
   std::string objIn, charIn, charOut, memDump, osIn;
   uint64_t maxSteps;
   std::map<std::string, quint64> regOverrides;
   auto runSC = app.add_subcommand("run", "Run ISA3 programs");
-  auto charInOpt = runSC->add_option(
-      "-i,--charIn", charIn,
-      "File whose contents are to be buffered behind charIn. The value `-` "
-      "will cause charIn to be taken from stdin. When using `-`, failure to "
-      "provide stdin will cause program to freeze.");
+  auto charInOpt = runSC->add_option("-i,--charIn", charIn,
+                                     "File whose contents are to be buffered behind charIn. The value `-` "
+                                     "will cause charIn to be taken from stdin. When using `-`, failure to "
+                                     "provide stdin will cause program to freeze.");
   runSC
       ->add_option("-o,--charOut", charOut,
                    "File to which the contents of charOut will be written. "
                    "The value `-` specifies stdout")
       ->default_val("-");
-  auto memDumpOpt = runSC->add_option(
-      "--mem-dump", memDump,
-      "File to which post-simulation memory-dump will be written.");
+  auto memDumpOpt =
+      runSC->add_option("--mem-dump", memDump, "File to which post-simulation memory-dump will be written.");
   runSC->add_option("-s,obj", objIn)->required()->expected(1);
   runSC
       ->add_option("--max,-m", maxSteps,
                    "Maximum number of instructions that will be executed "
                    "before terminating simulator.")
       ->default_val(125'000);
-  auto osInOpt =
-      runSC->add_option("--os", osIn, "File from which os will be read.");
+  auto osInOpt = runSC->add_option("--os", osIn, "File from which os will be read.");
   CLI::Option *bmRunOpt = nullptr;
   if (edValue == 6)
-    bmRunOpt =
-        runSC->add_flag("--bm", bm, "Use bare metal OS.")->excludes(osInOpt);
+    bmRunOpt = runSC->add_flag("--bm", bm, "Use bare metal OS.")->excludes(osInOpt);
   if (edValue == 6) {
     runSC->add_flag("--skip-load", skipLoad)->group("");
     runSC->add_flag("--skip-dispatch", skipDispatch)->group("");
@@ -180,12 +165,9 @@ int main(int argc, char **argv) {
     };
   });
 
-  auto instrThruSC =
-      app.add_subcommand("mit", "Measure instruction throughput");
+  auto instrThruSC = app.add_subcommand("mit", "Measure instruction throughput");
   instrThruSC->group("");
-  instrThruSC->callback([&task]() {
-    task = [](QObject *parent) { return new ThroughputTask(parent); };
-  });
+  instrThruSC->callback([&task]() { task = [](QObject *parent) { return new ThroughputTask(parent); }; });
   try {
     app.parse(argc, argv);
     if (!task)
