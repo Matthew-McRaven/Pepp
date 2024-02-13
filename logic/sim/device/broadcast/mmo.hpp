@@ -1,6 +1,5 @@
 /*
- * Copyright (c) 2023 J. Stanley Warford, Matthew McRaven
- *
+ * Copyright (c) 2023-2024 J. Stanley Warford, Matthew McRaven
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
  * the Free Software Foundation, either version 3 of the License, or
@@ -23,13 +22,10 @@
 
 namespace sim::memory {
 template <typename Address>
-class Output : public api2::memory::Target<Address>,
-               public api2::trace::Source,
-               public api2::trace::Sink {
+class Output : public api2::memory::Target<Address>, public api2::trace::Source, public api2::trace::Sink {
 public:
   using AddressSpan = typename api2::memory::AddressSpan<Address>;
-  Output(api2::device::Descriptor device, AddressSpan span,
-         quint8 defaultValue = 0);
+  Output(api2::device::Descriptor device, AddressSpan span, quint8 defaultValue = 0);
   ~Output() = default;
   Output(Output &&other) noexcept = default;
   Output &operator=(Output &&other) = default;
@@ -67,26 +63,18 @@ private:
 };
 
 template <typename Address>
-Output<Address>::Output(api2::device::Descriptor device, AddressSpan span,
-                        quint8 defaultValue)
+Output<Address>::Output(api2::device::Descriptor device, AddressSpan span, quint8 defaultValue)
     : _fill(defaultValue), _span(span), _device(device),
-      _channel(QSharedPointer<detail::Channel<Address, quint8>>::create(_fill)),
-      _endpoint(_channel->new_endpoint()) {
+      _channel(QSharedPointer<detail::Channel<Address, quint8>>::create(_fill)), _endpoint(_channel->new_endpoint()) {
   if (_span.minOffset != _span.maxOffset)
     throw std::logic_error("MMO only works with single byte.");
 }
 
-template <typename Address>
-typename Output<Address>::AddressSpan Output<Address>::span() const {
-  return _span;
-}
+template <typename Address> typename Output<Address>::AddressSpan Output<Address>::span() const { return _span; }
 
-template <typename Address> void Output<Address>::clear(quint8 fill) {
-  _endpoint->set_to_head();
-}
+template <typename Address> void Output<Address>::clear(quint8 fill) { _endpoint->set_to_head(); }
 
-template <typename Address>
-void Output<Address>::dump(bits::span<quint8> dest) const {
+template <typename Address> void Output<Address>::dump(bits::span<quint8> dest) const {
   if (dest.size() <= 0)
     throw std::logic_error("dump requires non-0 size");
   auto v = *_endpoint->current_value();
@@ -99,57 +87,48 @@ template <typename Address> void Output<Address>::trace(bool enabled) {
 }
 
 template <typename Address>
-QSharedPointer<typename detail::Channel<Address, quint8>::Endpoint>
-Output<Address>::endpoint() {
+QSharedPointer<typename detail::Channel<Address, quint8>::Endpoint> Output<Address>::endpoint() {
   return _channel->new_endpoint();
 }
 
-template<typename Address>
-bool Output<Address>::analyze(api2::trace::PacketIterator iter, Direction direction)
-{
-    auto header = *iter;
-    if (!std::visit(sim::trace2::IsSameDevice{_device.id}, header))
-        return false;
-    else if (std::holds_alternative<api2::packet::header::Write>(header)) {
-        // Address is always implicitly 0 since this is a 1-byte port.
-        auto hdr = std::get<api2::packet::header::Write>(header);
-        if (direction == Direction::Backward)
-            _endpoint->unwrite();
-        // Forward direction
-        // We don't emit multiple payloads, so receiving multiple (or 0) doesn't make sense.
-        else if (std::distance(iter.cbegin(), iter.cend()) != 1)
-            return false;
-        // Otherwise we are seeing this byte for the first time via the trace.
-        // We need to mimic the effects of write().
-        else if (std::holds_alternative<api2::packet::payload::Variable>(*iter.cbegin())) {
-            auto payload = std::get<api2::packet::payload::Variable>(*iter.cbegin());
-            // Only use the first byte, since this port only has 1 address.
-            _endpoint->append_value(payload.payload.bytes[0]);
-        }
-    } else
-        return false;
-    return true;
+template <typename Address> bool Output<Address>::analyze(api2::trace::PacketIterator iter, Direction direction) {
+  auto header = *iter;
+  if (!std::visit(sim::trace2::IsSameDevice{_device.id}, header))
+    return false;
+  else if (std::holds_alternative<api2::packet::header::Write>(header)) {
+    // Address is always implicitly 0 since this is a 1-byte port.
+    auto hdr = std::get<api2::packet::header::Write>(header);
+    if (direction == Direction::Backward)
+      _endpoint->unwrite();
+    // Forward direction
+    // We don't emit multiple payloads, so receiving multiple (or 0) doesn't make sense.
+    else if (std::distance(iter.cbegin(), iter.cend()) != 1)
+      return false;
+    // Otherwise we are seeing this byte for the first time via the trace.
+    // We need to mimic the effects of write().
+    else if (std::holds_alternative<api2::packet::payload::Variable>(*iter.cbegin())) {
+      auto payload = std::get<api2::packet::payload::Variable>(*iter.cbegin());
+      // Only use the first byte, since this port only has 1 address.
+      _endpoint->append_value(payload.payload.bytes[0]);
+    }
+  } else
+    return false;
+  return true;
 }
 
-template<typename Address>
-void Output<Address>::setBuffer(api2::trace::Buffer *tb)
-{
-    _tb = tb;
-}
+template <typename Address> void Output<Address>::setBuffer(api2::trace::Buffer *tb) { _tb = tb; }
 
-template<typename Address>
-api2::memory::Result Output<Address>::read(Address address, bits::span<quint8> dest, api2::memory::Operation op) const
-{
-  using E = api2::memory::Error<Address>;
+template <typename Address>
+api2::memory::Result Output<Address>::read(Address address, bits::span<quint8> dest, api2::memory::Operation op) const {
+  using E = api2::memory::Error;
   using Operation = sim::api2::memory::Operation;
   // Length is 1-indexed, address are 0, so must offset by -1.
   auto maxDestAddr = (address + std::max<Address>(0, dest.size() - 1));
   if (address < _span.minOffset || maxDestAddr > _span.maxOffset)
-      throw E(E::Type::OOBAccess, address);
+    throw E(E::Type::OOBAccess, address);
   // Only emit a trace if the operation isn't related to app-internal state.
   else if (auto end = _endpoint->current_value(); end) {
-      if (!(op.type == Operation::Type::Application
-            || op.type == Operation::Type::BufferInternal) && _tb)
+    if (!(op.type == Operation::Type::Application || op.type == Operation::Type::BufferInternal) && _tb)
       sim::trace2::emitPureRead<Address>(_tb, _device.id, 0, dest.size());
     quint8 tmp = *end;
     bits::memcpy(dest, bits::span<const quint8>{&tmp, 1});
@@ -157,19 +136,18 @@ api2::memory::Result Output<Address>::read(Address address, bits::span<quint8> d
   return {};
 }
 
-template<typename Address>
-api2::memory::Result Output<Address>::write(Address address, bits::span<const quint8> src, api2::memory::Operation op)
-{
-  using E = api2::memory::Error<Address>;
+template <typename Address>
+api2::memory::Result Output<Address>::write(Address address, bits::span<const quint8> src, api2::memory::Operation op) {
+  using E = api2::memory::Error;
   using Operation = sim::api2::memory::Operation;
   // Length is 1-indexed, address are 0, so must offset by -1.
   auto maxDestAddr = (address + std::max<Address>(0, src.size() - 1));
   if (address < _span.minOffset || maxDestAddr > _span.maxOffset)
     throw E(E::Type::OOBAccess, address);
   // Only emit a trace if the operation isn't related to app-internal state.
-  else if (!(op.type == Operation::Type::Application
-             || op.type == Operation::Type::BufferInternal)) {
-    if(_tb) sim::trace2::emitMMWrite<Address>(_tb, _device.id, 0, src);
+  else if (!(op.type == Operation::Type::Application || op.type == Operation::Type::BufferInternal)) {
+    if (_tb)
+      sim::trace2::emitMMWrite<Address>(_tb, _device.id, 0, src);
     quint8 tmp;
     bits::memcpy(bits::span<quint8>{&tmp, 1}, src);
     _endpoint->append_value(tmp);

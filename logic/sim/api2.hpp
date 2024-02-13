@@ -485,7 +485,7 @@ enum class FailPolicy {
   RaiseError         // The target returns an appropriate error message.
 };
 
-template <typename Address> class Error : public std::runtime_error {
+class Error : public std::runtime_error {
 public:
   enum class Type {
     Unmapped,  // Attempted to read a physical address with no device present.
@@ -493,17 +493,20 @@ public:
     NeedsMMI,  // Attempted to read MMI that had no buffered input.
     WriteToRO, // Attempt to write to read-only memory.
   };
-  static const std::string format(Address address) {
+  template <typename Address> static const std::string format(Address address) {
     auto addrString = QString::number(address, 16);
     return QString("Memory access error at 0x%1").arg(addrString, sizeof(Address) * 2, '0').toStdString();
   }
-  Error(Type type, Address address) : std::runtime_error(format(address)), _type(type), _address(address){};
-  Address address() const { return _address; }
+  template <typename Address>
+  Error(Type type, Address address)
+      : std::runtime_error(format(address)), _type(type), _address(address), _width(sizeof(Address)){};
+  quint64 address() const { return _address; }
+  quint8 byte_count() const { return _width; }
   Type type() const { return _type; }
 
 private:
   Type _type;
-  Address _address;
+  quint64 _address, _width;
 };
 
 template <typename Address> struct AddressSpan {

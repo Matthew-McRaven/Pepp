@@ -87,7 +87,7 @@ TEST_CASE("ReadOnly storage in-bounds access, v2", "[sim][memory][throws]") {
   // Read after write does not observe changes,
   // but does not error when hardfail is false
   reg = 0xFEEDBEEF;
-  REQUIRE_THROWS_AS(dev_ro_throws.write(0x10, {truth, length}, op_std), api2::memory::Error<quint8>);
+  REQUIRE_THROWS_AS(dev_ro_throws.write(0x10, {truth, length}, op_std), api2::memory::Error);
   compare_ne(truth, tmp, length);
 
   // hardfail RO storage can be overriden with "application" op
@@ -110,6 +110,6 @@ TEST_CASE("RO storage out-of-bounds access, v2", "[sim][memory][throws]") {
 
   // Neither write will stick, so tmp is meaningless
   *tmp = 0xfe;
-  REQUIRE_THROWS_AS(dev_ro.write(0x9, {tmp, 1}, op_std), api2::memory::Error<quint8>);
-  REQUIRE_THROWS_AS(dev_ro.write(0x11, {tmp, 1}, op_std), api2::memory::Error<quint8>);
+  REQUIRE_THROWS_AS(dev_ro.write(0x9, {tmp, 1}, op_std), api2::memory::Error);
+  REQUIRE_THROWS_AS(dev_ro.write(0x11, {tmp, 1}, op_std), api2::memory::Error);
 }

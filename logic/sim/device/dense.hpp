@@ -1,6 +1,5 @@
 /*
- * Copyright (c) 2023 J. Stanley Warford, Matthew McRaven
- *
+ * Copyright (c) 2023-2024 J. Stanley Warford, Matthew McRaven
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
  * the Free Software Foundation, either version 3 of the License, or
@@ -22,13 +21,10 @@
 
 namespace sim::memory {
 template <typename Address>
-class Dense : public api2::memory::Target<Address>,
-              public api2::trace::Source,
-              public api2::trace::Sink {
+class Dense : public api2::memory::Target<Address>, public api2::trace::Source, public api2::trace::Sink {
 public:
   using AddressSpan = typename api2::memory::AddressSpan<Address>;
-  Dense(api2::device::Descriptor device, AddressSpan span,
-        quint8 defaultValue = 0);
+  Dense(api2::device::Descriptor device, AddressSpan span, quint8 defaultValue = 0);
   ~Dense() = default;
   Dense(Dense &&other) noexcept = default;
   Dense &operator=(Dense &&other) = default;
@@ -61,57 +57,48 @@ private:
   api2::device::Descriptor _device;
   QVector<quint8> _data;
   api2::trace::Buffer *_tb = nullptr;
-
 };
 
 template <typename Address>
-sim::memory::Dense<Address>::Dense(api2::device::Descriptor device,
-                                   AddressSpan span, quint8 fill)
+sim::memory::Dense<Address>::Dense(api2::device::Descriptor device, AddressSpan span, quint8 fill)
     : _fill(fill), _span(span), _device(device) {
   _data.fill(_fill,
              _span.maxOffset - _span.minOffset + 1); // Resizes before filling.
 }
 
 template <typename Address>
-typename sim::memory::Dense<Address>::AddressSpan
-sim::memory::Dense<Address>::span() const {
+typename sim::memory::Dense<Address>::AddressSpan sim::memory::Dense<Address>::span() const {
   return _span;
 }
 
-template <typename Address>
-void sim::memory::Dense<Address>::clear(quint8 fill) {
+template <typename Address> void sim::memory::Dense<Address>::clear(quint8 fill) {
   this->_fill = fill;
   this->_data.fill(this->_fill);
 }
 
-template <typename Address>
-void Dense<Address>::dump(bits::span<quint8> dest) const {
+template <typename Address> void Dense<Address>::dump(bits::span<quint8> dest) const {
   if (dest.size() <= 0)
     throw std::logic_error("dump requires non-0 size");
-  bits::memcpy(dest, bits::span<const quint8>{_data.constData(),
-                                              std::size_t(_data.size())});
+  bits::memcpy(dest, bits::span<const quint8>{_data.constData(), std::size_t(_data.size())});
 }
 
 template <typename Address> void Dense<Address>::trace(bool enabled) {
-  if (this->_tb) _tb->trace(_device.id, enabled);
+  if (this->_tb)
+    _tb->trace(_device.id, enabled);
 }
 
-template <typename Address>
-const quint8 *sim::memory::Dense<Address>::constData() const {
-  return _data.constData();
-}
+template <typename Address> const quint8 *sim::memory::Dense<Address>::constData() const { return _data.constData(); }
 
 namespace detail {
-template <typename Address>
-struct PayloadHelper {
+template <typename Address> struct PayloadHelper {
   PayloadHelper(Address address, Dense<Address> *dense) : address(address), dense(dense) {}
 
-  static constexpr auto op = api2::memory::Operation {
+  static constexpr auto op = api2::memory::Operation{
       .type = api2::memory::Operation::Type::BufferInternal,
       .kind = api2::memory::Operation::Kind::data,
   };
 
-  Address operator()(const api2::packet::payload::Variable& frag){
+  Address operator()(const api2::packet::payload::Variable &frag) {
     std::array<quint8, api2::packet::payload::Variable::N> tmp;
     tmp.fill(0);
 
@@ -120,52 +107,42 @@ struct PayloadHelper {
 
     // Get current value and XOR with XOR-encoded bytes, which we write back.
     dense->read(address, span, op);
-    bits::memcpy_xor(span, span,
-                     bits::span<const quint8>{frag.payload.bytes.data(), frag.payload.len});
+    bits::memcpy_xor(span, span, bits::span<const quint8>{frag.payload.bytes.data(), frag.payload.len});
     dense->write(address, span, op);
     return len;
   }
 
   // Will need to implement if we create other payload fragments.
-  Address operator()(const auto& frag) const {
-    throw std::logic_error("unimplemented");
-  }
+  Address operator()(const auto &frag) const { throw std::logic_error("unimplemented"); }
 
   Address address;
-  Dense<Address>* dense;
+  Dense<Address> *dense;
 };
-}
+} // namespace detail
 
-template<typename Address>
-bool Dense<Address>::analyze(api2::trace::PacketIterator iter, Direction direction)
-{
-    auto header = *iter;
-    if (!std::visit(sim::trace2::IsSameDevice{_device.id}, header))
-        return false;
-    // Read has no side effects, dense only issues pure reads.
-    // Therefore we only need to handle out write packets.
-    else if (std::holds_alternative<api2::packet::header::Write>(header)) {
-        auto hdr = std::get<api2::packet::header::Write>(header);
-        Address address = hdr.address.to_address<Address>();
-        // forward vs backwards does not matter for dense memory,
-        // since payloads are XOR encoded. We can compute (current XOR payload)
-        // to determine the updated memory values.
-        for (auto payload : iter)
-            address += std::visit(detail::PayloadHelper<Address>(address, this), payload);
-    }
+template <typename Address> bool Dense<Address>::analyze(api2::trace::PacketIterator iter, Direction direction) {
+  auto header = *iter;
+  if (!std::visit(sim::trace2::IsSameDevice{_device.id}, header))
+    return false;
+  // Read has no side effects, dense only issues pure reads.
+  // Therefore we only need to handle out write packets.
+  else if (std::holds_alternative<api2::packet::header::Write>(header)) {
+    auto hdr = std::get<api2::packet::header::Write>(header);
+    Address address = hdr.address.to_address<Address>();
+    // forward vs backwards does not matter for dense memory,
+    // since payloads are XOR encoded. We can compute (current XOR payload)
+    // to determine the updated memory values.
+    for (auto payload : iter)
+      address += std::visit(detail::PayloadHelper<Address>(address, this), payload);
+  }
   return true;
 }
 
-template<typename Address>
-void Dense<Address>::setBuffer(api2::trace::Buffer *tb)
-{
-  _tb = tb;
-}
+template <typename Address> void Dense<Address>::setBuffer(api2::trace::Buffer *tb) { _tb = tb; }
 
-template<typename Address>
-api2::memory::Result Dense<Address>::read(Address address, bits::span<quint8> dest, api2::memory::Operation op) const
-{
-  using E = api2::memory::Error<Address>;
+template <typename Address>
+api2::memory::Result Dense<Address>::read(Address address, bits::span<quint8> dest, api2::memory::Operation op) const {
+  using E = api2::memory::Error;
   using Operation = sim::api2::memory::Operation;
   // Length is 1-indexed, address are 0, so must offset by -1.
   auto maxDestAddr = (address + std::max<Address>(0, dest.size() - 1));
@@ -175,17 +152,15 @@ api2::memory::Result Dense<Address>::read(Address address, bits::span<quint8> de
   auto src = bits::span<const quint8>{_data.data(), std::size_t(_data.size())}.subspan(offset);
   // Ignore reads from UI, since this device only issues pure reads.
   // Ignore reads from buffer internal operations.
-  if (!(op.type == Operation::Type::Application
-        || op.type == Operation::Type::BufferInternal) && _tb)
+  if (!(op.type == Operation::Type::Application || op.type == Operation::Type::BufferInternal) && _tb)
     sim::trace2::emitPureRead<Address>(_tb, _device.id, offset, src.size());
   bits::memcpy(dest, src);
   return {};
 }
 
-template<typename Address>
-api2::memory::Result Dense<Address>::write(Address address, bits::span<const quint8> src, api2::memory::Operation op)
-{
-  using E = api2::memory::Error<Address>;
+template <typename Address>
+api2::memory::Result Dense<Address>::write(Address address, bits::span<const quint8> src, api2::memory::Operation op) {
+  using E = api2::memory::Error;
   using Operation = sim::api2::memory::Operation;
   // Length is 1-indexed, address are 0, so must offset by -1.
   auto maxDestAddr = (address + std::max<Address>(0, src.size() - 1));
@@ -199,6 +174,5 @@ api2::memory::Result Dense<Address>::write(Address address, bits::span<const qui
   bits::memcpy(dest, src);
   return {};
 }
-
 
 } // namespace sim::memory

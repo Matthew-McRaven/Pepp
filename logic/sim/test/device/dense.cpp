@@ -83,13 +83,13 @@ TEST_CASE("Dense storage out-of-bounds access, v2", "[sim][memory][throws]") {
   // Initialize tmp to be different than dev default value.
   // Neither OOB read should update temp.
   *tmp = 0xCA;
-  REQUIRE_THROWS_AS(dev.read(0x9, {tmp, 1}, op), api2::memory::Error<quint8>);
+  REQUIRE_THROWS_AS(dev.read(0x9, {tmp, 1}, op), api2::memory::Error);
   CHECK(*tmp == 0xCA);
-  REQUIRE_THROWS_AS(dev.read(0x11, {tmp, 1}, op), api2::memory::Error<quint8>);
+  REQUIRE_THROWS_AS(dev.read(0x11, {tmp, 1}, op), api2::memory::Error);
   CHECK(*tmp == 0xCA);
 
   // Neither write will stick, so tmp is meaningless
   *tmp = 0xfe;
-  REQUIRE_THROWS_AS(dev.write(0x9, {tmp, 1}, op), api2::memory::Error<quint8>);
-  REQUIRE_THROWS_AS(dev.write(0x11, {tmp, 1}, op), api2::memory::Error<quint8>);
+  REQUIRE_THROWS_AS(dev.write(0x9, {tmp, 1}, op), api2::memory::Error);
+  REQUIRE_THROWS_AS(dev.write(0x11, {tmp, 1}, op), api2::memory::Error);
 }
