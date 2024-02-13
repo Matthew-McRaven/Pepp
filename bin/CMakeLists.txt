@@ -14,7 +14,7 @@ make_target(
         TARGET pepp
         TYPE "EXEC"
         SOURCES ${sources}
-        DEPENDS TextFlow cli about macro pas builtins isa targets sim Qt6::Core
+        DEPENDS TextFlow cli about macro pas builtins isa targets sim Qt6::Core test-lib-all
 )
 
 # On Windows, applications may either be GUI or terminal, not both.
@@ -24,7 +24,7 @@ if (WIN32)
             TARGET pepp-term
             TYPE "EXEC"
             SOURCES ${sources}
-            DEPENDS TextFlow cli about macro pas builtins isa targets sim Qt6::Core catch
+            DEPENDS TextFlow cli about macro pas builtins isa targets sim Qt6::Core catch test-lib-all
     )
     set_target_properties(pepp-term PROPERTIES FOLDER "qtc_runnable")
 endif ()

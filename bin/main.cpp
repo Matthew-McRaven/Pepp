@@ -15,11 +15,8 @@
  */
 
 #include <CLI11.hpp>
-#include <QDebug>
 #include <QtCore>
-#include <chrono>
 #include <iostream>
-#include <thread>
 #include "./shared.hpp"
 #include "./task.hpp"
 #include "commands/about.hpp"
@@ -28,6 +25,8 @@
 #include "commands/license.hpp"
 #include "commands/ls.hpp"
 #include "commands/run.hpp"
+#include "commands/selftest.hpp"
+
 #include "commands/throughput.hpp"
 
 int main(int argc, char **argv) {
@@ -45,6 +44,7 @@ int main(int argc, char **argv) {
 
   registerLicense(app, task, shared_flags);
   registerAbout(app, task, shared_flags);
+  registerSelfTest(app, task, shared_flags);
 
   registerList(app, task, shared_flags);
   registerGet(app, task, shared_flags);

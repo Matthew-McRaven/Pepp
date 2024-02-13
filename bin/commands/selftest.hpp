@@ -1,0 +1,45 @@
+/*
+ * Copyright (c) 2023-2024 J. Stanley Warford, Matthew McRaven
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program.  If not, see <https://www.gnu.org/licenses/>.
+ */
+
+#pragma once
+#include <CLI11.hpp>
+#include "../shared.hpp"
+#include "../task.hpp"
+
+class SelfTestTask : public Task {
+public:
+  explicit SelfTestTask(std::vector<std::string> catchArgs, QObject *parent = nullptr);
+  void run() override;
+
+private:
+  std::vector<std::string> args;
+};
+
+void registerSelfTest(auto &app, task_factory_t &task, const detail::SharedFlags &) {
+  static auto test = app.add_subcommand("selftest", "Run all integrated tests");
+  // No help flag, defer to catch2's help.
+  test->prefix_command(true);
+  test->set_help_flag();
+  test->callback([&]() {
+    task = [&](QObject *parent) {
+      auto remainingArgs = test->remaining_for_passthrough();
+      // Must push executable name to argv[0], or catch arg parsing CTDs.
+      auto realArgs = QCoreApplication::arguments();
+      remainingArgs.insert(remainingArgs.begin(), u"%1 selftest"_qs.arg(realArgs[0]).toStdString());
+      return new SelfTestTask(remainingArgs);
+    };
+  });
+}
