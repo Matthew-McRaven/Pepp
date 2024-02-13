@@ -1,6 +1,5 @@
 /*
- * Copyright (c) 2023 J. Stanley Warford, Matthew McRaven
- *
+ * Copyright (c) 2023-2024 J. Stanley Warford, Matthew McRaven
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
  * the Free Software Foundation, either version 3 of the License, or
@@ -15,8 +14,9 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-#include "./task.hpp"
 #include <QtCore>
+#include "../shared.hpp"
+#include "../task.hpp"
 
 class ThroughputTask : public Task {
   Q_OBJECT
@@ -26,3 +26,9 @@ public:
   ~ThroughputTask() = default;
   void run();
 };
+
+void registerThroughput(auto &app, task_factory_t &task, const detail::SharedFlags &flags) {
+  static auto instrThruSC = app.add_subcommand("mit", "Measure instruction throughput");
+  instrThruSC->group("");
+  instrThruSC->callback([&task]() { task = [](QObject *parent) { return new ThroughputTask(parent); }; });
+}

@@ -1,6 +1,5 @@
 /*
- * Copyright (c) 2023 J. Stanley Warford, Matthew McRaven
- *
+ * Copyright (c) 2023-2024 J. Stanley Warford, Matthew McRaven
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
  * the Free Software Foundation, either version 3 of the License, or
@@ -15,24 +14,19 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-#include "./macro.hpp"
+#include <QtCore>
 #include "../shared.hpp"
-#include <iostream>
+#include "../task.hpp"
 
-GetMacroTask::GetMacroTask(int ed, std::string name, QObject *parent)
-    : Task(parent), ed(ed), name(name) {}
+class AboutTask : public Task {
+  Q_OBJECT
+public:
+  AboutTask(QObject *parent = nullptr);
+  ~AboutTask() = default;
+  void run();
+};
 
-void GetMacroTask::run() {
-  auto book = detail::book(ed);
-  if (book.isNull())
-    return emit finished(1);
-
-  auto macro = book->findMacro(QString::fromStdString(name));
-  if (macro.isNull())
-    return emit finished(1);
-
-  auto body = macro->body();
-  std::cout << body.toStdString() << std::endl;
-
-  return emit finished(0);
+void registerAbout(auto &app, task_factory_t &task, const detail::SharedFlags &) {
+  static auto about = app.add_subcommand("about", "Display information about versioning, and developers.");
+  about->callback([&]() { task = [&](QObject *parent) { return new AboutTask(parent); }; });
 }

@@ -1,6 +1,5 @@
 /*
- * Copyright (c) 2023 J. Stanley Warford, Matthew McRaven
- *
+ * Copyright (c) 2023-2024 J. Stanley Warford, Matthew McRaven
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
  * the Free Software Foundation, either version 3 of the License, or
@@ -15,15 +14,19 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-#pragma once
+#include <QtCore>
+#include "../shared.hpp"
 #include "../task.hpp"
 
-class GetMacroTask : public Task {
+class LicenseTask : public Task {
+  Q_OBJECT
 public:
-  GetMacroTask(int ed, std::string name, QObject *parent = nullptr);
-  void run() override;
-
-private:
-  int ed;
-  std::string name;
+  LicenseTask(QObject *parent = nullptr);
+  ~LicenseTask() = default;
+  void run();
 };
+
+void registerLicense(auto &app, task_factory_t &task, const detail::SharedFlags &) {
+  static auto license = app.add_subcommand("license", "Display information about licensing, and Qt.");
+  license->callback([&]() { task = [&](QObject *parent) { return new LicenseTask(parent); }; });
+}

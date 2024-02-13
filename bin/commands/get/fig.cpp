@@ -1,6 +1,5 @@
 /*
- * Copyright (c) 2023 J. Stanley Warford, Matthew McRaven
- *
+ * Copyright (c) 2023-2024 J. Stanley Warford, Matthew McRaven
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
  * the Free Software Foundation, either version 3 of the License, or
@@ -16,33 +15,28 @@
  */
 
 #include "fig.hpp"
-#include "../shared.hpp"
-#include "help/builtins/figure.hpp"
 #include <iostream>
+#include "../../shared.hpp"
+#include "help/builtins/figure.hpp"
 
-GetFigTask::GetFigTask(int ed, std::string ch, std::string fig,
-                       std::string type, bool isFigure, QObject *parent)
+GetFigTask::GetFigTask(int ed, std::string ch, std::string fig, std::string type, bool isFigure, QObject *parent)
     : Task(parent), ed(ed), isFigure(isFigure), ch(ch), fig(fig), type(type) {}
 
 void GetFigTask::run() {
   static const auto err_noitem = u"%1 %2.%3 does not exist.\n"_qs;
-  static const auto err_novar =
-      u"%1 %2.%3 does not contain a \"%4\" variant.\n"_qs;
+  static const auto err_novar = u"%1 %2.%3 does not contain a \"%4\" variant.\n"_qs;
 
   auto book = detail::book(ed);
   if (book.isNull())
     return emit finished(1);
   QSharedPointer<const builtins::Figure> item = nullptr;
   if (isFigure)
-    item = book->findFigure(QString::fromStdString(ch),
-                            QString::fromStdString(fig));
+    item = book->findFigure(QString::fromStdString(ch), QString::fromStdString(fig));
   else
-    item = book->findProblem(QString::fromStdString(ch),
-                             QString::fromStdString(fig));
+    item = book->findProblem(QString::fromStdString(ch), QString::fromStdString(fig));
   if (item.isNull()) {
     std::cerr << err_noitem.arg(isFigure ? "Figure" : "Problem")
-                     .arg(QString::fromStdString(ch),
-                          QString::fromStdString(fig))
+                     .arg(QString::fromStdString(ch), QString::fromStdString(fig))
                      .toStdString();
     return emit finished(1);
   }
@@ -50,8 +44,7 @@ void GetFigTask::run() {
   auto type = QString::fromStdString(this->type);
   if (!item->typesafeElements().contains(type)) {
     std::cerr << err_novar.arg(isFigure ? "Figure" : "Problem")
-                     .arg(QString::fromStdString(ch),
-                          QString::fromStdString(fig), type)
+                     .arg(QString::fromStdString(ch), QString::fromStdString(fig), type)
                      .toStdString();
     return emit finished(2);
   }

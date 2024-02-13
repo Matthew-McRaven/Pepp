@@ -1,6 +1,5 @@
 /*
- * Copyright (c) 2023 J. Stanley Warford, Matthew McRaven
- *
+ * Copyright (c) 2023-2024 J. Stanley Warford, Matthew McRaven
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
  * the Free Software Foundation, either version 3 of the License, or
@@ -15,13 +14,20 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-#include "./task.hpp"
-#include <QtCore>
+#pragma once
+#include "../shared.hpp"
+#include "../task.hpp"
 
-class AboutTask : public Task {
-  Q_OBJECT
+class ListTask : public Task {
 public:
-  AboutTask(QObject *parent = nullptr);
-  ~AboutTask() = default;
-  void run();
+  ListTask(int ed, QObject *parent = nullptr);
+  void run() override;
+
+private:
+  int ed;
 };
+
+void registerList(auto &app, task_factory_t &task, const detail::SharedFlags &flags) {
+  static auto list = app.add_subcommand("ls", "Produce list of figures and macros");
+  list->callback([&]() { task = [&](QObject *parent) { return new ListTask(flags.edValue, parent); }; });
+}

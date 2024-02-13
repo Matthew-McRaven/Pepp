@@ -44,4 +44,7 @@ private:
   QSharedPointer<pas::ast::Node> _osRoot, _userRoot;
   QSharedPointer<ELFIO::elfio> _elf;
 };
+struct SharedFlags {
+  int edValue = 6;
+};
 } // namespace detail

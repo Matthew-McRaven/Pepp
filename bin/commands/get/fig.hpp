@@ -1,6 +1,5 @@
 /*
- * Copyright (c) 2023 J. Stanley Warford, Matthew McRaven
- *
+ * Copyright (c) 2023-2024 J. Stanley Warford, Matthew McRaven
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
  * the Free Software Foundation, either version 3 of the License, or
@@ -16,24 +15,16 @@
  */
 
 #pragma once
-#include "../task.hpp"
+#include "../../task.hpp"
 
-class AsmTask : public Task {
+class GetFigTask : public Task {
 public:
-  AsmTask(int ed, std::string userFname, QObject *parent = nullptr);
-  void setBm(bool forceBm);
-  void setOsFname(std::string fname);
-  void setErrName(std::string fname);
-  void setPepoName(std::string fname);
-  void setOsListingFname(std::string fname);
-  void emitElfTo(std::string fname);
-  void setMacroDirs(std::list<std::string> dirs);
+  GetFigTask(int ed, std::string ch, std::string fig, std::string type, bool isFigure, /*1 is figure, 0 is problem*/
+             QObject *parent = nullptr);
   void run() override;
 
 private:
   int ed;
-  std::string userIn;
-  bool forceBm = false;
-  std::optional<std::string> osIn, peplOut, elfOut, osListOut, errOut, pepoOut;
-  std::list<std::string> macroDirs;
+  bool isFigure;
+  std::string ch, fig, type;
 };

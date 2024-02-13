@@ -6,19 +6,31 @@ list(REMOVE_ITEM sources ${tests})
 list(REMOVE_ITEM sources ${compile_tests})
 
 # Use to force terminal, test app to live in same directory.
-set(CMAKE_ARCHIVE_OUTPUT_DIRECTORY "${CMAKE_CURRENT_BINARY_DIR}/bin")
-set(CMAKE_LIBRARY_OUTPUT_DIRECTORY "${CMAKE_CURRENT_BINARY_DIR}/bin")
-set(CMAKE_RUNTIME_OUTPUT_DIRECTORY "${CMAKE_CURRENT_BINARY_DIR}/bin")
+set(CMAKE_ARCHIVE_OUTPUT_DIRECTORY "${PROJECT_BINARY_DIR}/output")
+set(CMAKE_LIBRARY_OUTPUT_DIRECTORY "${PROJECT_BINARY_DIR}/output")
+set(CMAKE_RUNTIME_OUTPUT_DIRECTORY "${PROJECT_BINARY_DIR}/output")
 
 make_target(
-        TARGET pepp-term
+        TARGET pepp
         TYPE "EXEC"
         SOURCES ${sources}
         DEPENDS TextFlow cli about macro pas builtins isa targets sim Qt6::Core
 )
 
-# GLOB_RECURSE ueses abs paths, QML_FILES expects relative paths. This blob converts from abs to rel.
-set_target_properties(pepp-term PROPERTIES
+# On Windows, applications may either be GUI or terminal, not both.
+# So, we (hackishly) recompile the target above, but this time we will not set WIN32_EXECUTABLE.
+if (WIN32)
+    make_target(
+            TARGET pepp-term
+            TYPE "EXEC"
+            SOURCES ${sources}
+            DEPENDS TextFlow cli about macro pas builtins isa targets sim Qt6::Core catch
+    )
+    set_target_properties(pepp-term PROPERTIES FOLDER "qtc_runnable")
+endif ()
+
+# GLOB_RECURSE uses abs paths, QML_FILES expects relative paths. This blob converts from abs to rel.
+set_target_properties(pepp PROPERTIES
         MACOSX_BUNDLE_GUI_IDENTIFIER my.example.com
         MACOSX_BUNDLE_BUNDLE_VERSION ${PROJECT_VERSION}
         MACOSX_BUNDLE_SHORT_VERSION_STRING ${PROJECT_VERSION_MAJOR}.${PROJECT_VERSION_MINOR}
@@ -27,19 +39,15 @@ set_target_properties(pepp-term PROPERTIES
 )
 
 # Non-DLL platforms have empty generator expressin, so use more generator magic to only copy DLLs if the exist.
-add_custom_command(TARGET pepp-term POST_BUILD
+add_custom_command(TARGET pepp POST_BUILD
         COMMAND ${CMAKE_COMMAND}
         ARGS
-        -E $<IF:$<BOOL:$<TARGET_RUNTIME_DLLS:pepp-term>>,copy,true> $<TARGET_RUNTIME_DLLS:pepp-term> $<TARGET_FILE_DIR:pepp-term>
+        -E $<IF:$<BOOL:$<TARGET_RUNTIME_DLLS:pepp>>,copy,true> $<TARGET_RUNTIME_DLLS:pepp> $<TARGET_FILE_DIR:pepp>
         COMMAND_EXPAND_LISTS
 )
 
 
-install(TARGETS pepp-term
-        BUNDLE DESTINATION term
-        LIBRARY DESTINATION ${CMAKE_INSTALL_LIBDIR})
-
-set_target_properties(pepp-term PROPERTIES FOLDER "qtc_runnable")
+set_target_properties(pepp PROPERTIES FOLDER "qtc_runnable")
 
 if (NOT EMSCRIPTEN)
     configure_file(test/config.hpp.in "${CMAKE_CURRENT_BINARY_DIR}/config.hpp")
@@ -59,8 +67,8 @@ if (NOT EMSCRIPTEN)
 
     # Needed to find config file.
     target_include_directories(test-term PRIVATE ${CMAKE_CURRENT_BINARY_DIR})
-    add_dependencies(pepp-term test-term)
-    option(ENABLE_TERM_TESTS "Enable shell tests of pepp-term" OFF)
+    add_dependencies(pepp test-term)
+    option(ENABLE_TERM_TESTS "Enable shell tests of pepp" OFF)
     if (ENABLE_TERM_TESTS)
         add_test(NAME test-term COMMAND test-term)
         set_target_properties(test-term PROPERTIES FOLDER "qtc_runnable")

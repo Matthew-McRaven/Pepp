@@ -1,6 +1,5 @@
 /*
- * Copyright (c) 2023 J. Stanley Warford, Matthew McRaven
- *
+ * Copyright (c) 2023-2024 J. Stanley Warford, Matthew McRaven
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
  * the Free Software Foundation, either version 3 of the License, or
@@ -15,15 +14,23 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-#pragma once
-#include "./task.hpp"
+#include "macro.hpp"
+#include <iostream>
+#include "../../shared.hpp"
 
-class ListTask : public Task {
-public:
-  ListTask(int ed, QObject *parent = nullptr);
-  void run() override;
+GetMacroTask::GetMacroTask(int ed, std::string name, QObject *parent) : Task(parent), ed(ed), name(name) {}
 
-private:
-  int ed;
-};
+void GetMacroTask::run() {
+  auto book = detail::book(ed);
+  if (book.isNull())
+    return emit finished(1);
 
+  auto macro = book->findMacro(QString::fromStdString(name));
+  if (macro.isNull())
+    return emit finished(1);
+
+  auto body = macro->body();
+  std::cout << body.toStdString() << std::endl;
+
+  return emit finished(0);
+}

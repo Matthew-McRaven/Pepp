@@ -1,6 +1,5 @@
 /*
- * Copyright (c) 2023 J. Stanley Warford, Matthew McRaven
- *
+ * Copyright (c) 2023-2024 J. Stanley Warford, Matthew McRaven
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
  * the Free Software Foundation, either version 3 of the License, or
@@ -15,8 +14,8 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-#include "./run.hpp"
-#include "./shared.hpp"
+#include "run.hpp"
+#include "../shared.hpp"
 #include "bits/strings.hpp"
 #include "help/builtins/figure.hpp"
 #include "obj/mmio.hpp"
@@ -27,13 +26,12 @@
 #include "targets/pep10/isa3/helpers.hpp"
 #include "targets/pep10/isa3/system.hpp"
 
-auto gs = sim::api2::memory::Operation {
+auto gs = sim::api2::memory::Operation{
     .type = sim::api2::memory::Operation::Type::Application,
     .kind = sim::api2::memory::Operation::Kind::data,
 };
 
-RunTask::RunTask(int ed, std::string fname, QObject *parent)
-    : Task(parent), _ed(ed), _objIn(fname) {}
+RunTask::RunTask(int ed, std::string fname, QObject *parent) : Task(parent), _ed(ed), _objIn(fname) {}
 
 bool RunTask::loadToElf() {
   auto ret = QSharedPointer<ELFIO::elfio>::create();
@@ -113,9 +111,7 @@ void RunTask::run() {
     auto regEnu = enu.keyToValue(transformed.c_str(), &ok);
     if (!ok)
       throw std::logic_error("Invalid register");
-    targets::pep10::isa::writeRegister(
-        system->cpu()->regs(), static_cast<isa::Pep10::Register>(regEnu), val,
-        gs);
+    targets::pep10::isa::writeRegister(system->cpu()->regs(), static_cast<isa::Pep10::Register>(regEnu), val, gs);
   }
 
   auto pwrOff = system->output("pwrOff");
@@ -126,33 +122,35 @@ void RunTask::run() {
     QString buffer;
 
     if (_charIn == "-") {
-        QTextStream in(stdin, QIODevice::ReadOnly | QIODevice::Text);
-        while (!in.atEnd()) charInEndpoint->append_value(in.read(1).toUtf8()[0]);
+      QTextStream in(stdin, QIODevice::ReadOnly | QIODevice::Text);
+      while (!in.atEnd())
+        charInEndpoint->append_value(in.read(1).toUtf8()[0]);
     } else {
-    QFile f(QString::fromStdString(_charIn));
-    f.open(QIODevice::ReadOnly | QIODevice::Text);
-    QByteArray buffer = f.readAll();
-    for (int it = 0; it < buffer.size(); it++) charInEndpoint->append_value(buffer[it]);
+      QFile f(QString::fromStdString(_charIn));
+      f.open(QIODevice::ReadOnly | QIODevice::Text);
+      QByteArray buffer = f.readAll();
+      for (int it = 0; it < buffer.size(); it++)
+        charInEndpoint->append_value(buffer[it]);
     }
   }
   auto printReg = [&](isa::Pep10::Register reg) {
     quint16 tmp = 0;
     targets::pep10::isa::readRegister(system->cpu()->regs(), reg, tmp, gs);
-    auto regName =
-        QMetaEnum::fromType<isa::detail::pep10::Register>().valueToKey(
-            (int)reg);
-    std::cout << u"%1=%2"_qs.arg(regName)
-                     .arg(QString::number(tmp, 16), 4, '0')
-                     .toStdString()
-              << " ";
+    auto regName = QMetaEnum::fromType<isa::detail::pep10::Register>().valueToKey((int)reg);
+    std::cout << u"%1=%2"_qs.arg(regName).arg(QString::number(tmp, 16), 4, '0').toStdString() << " ";
   };
   bool noMMI = false;
-  while (system->currentTick() < _maxSteps &&
-         !endpoint->next_value().has_value()) {
-    system->tick(sim::api2::Scheduler::Mode::Jump);
+  try {
+    while (system->currentTick() < _maxSteps && !endpoint->next_value().has_value())
+      system->tick(sim::api2::Scheduler::Mode::Jump);
+  } catch (const sim::api2::memory::Error &e) {
+    if (e.type() == sim::api2::memory::Error::Type::NeedsMMI) {
+      noMMI = true;
+    } else
+      std::cerr << "Memory error: " << e.what() << std::endl;
   }
   if (noMMI) {
-    std::cout << "Program request data from charIn, but no data is present. "
+    std::cout << "Program requested data from charIn, but no data is present. "
                  "Terminating.\n";
   }
   if (system->currentTick() >= _maxSteps) {
@@ -163,15 +161,13 @@ void RunTask::run() {
     auto charOutEndpoint = charOut->endpoint();
     charOutEndpoint->set_to_head();
     auto writeOut = [&](QTextStream &outF) {
-      for (auto next = charOutEndpoint->next_value(); next.has_value();
-           next = charOutEndpoint->next_value()) {
+      for (auto next = charOutEndpoint->next_value(); next.has_value(); next = charOutEndpoint->next_value()) {
         outF << char(*next);
       }
     };
 
     if (_charOut == "-") {
-        QTextStream out(stdout, QIODevice::WriteOnly | QIODevice::Truncate |
-                                  QIODevice::Text);
+      QTextStream out(stdout, QIODevice::WriteOnly | QIODevice::Truncate | QIODevice::Text);
       writeOut(out);
       // If writing to terminal, ensure that there exists a \n.
       out << "\n";
@@ -191,8 +187,7 @@ void RunTask::run() {
     system->bus()->dump({dump.data(), std::size_t(dump.size())});
     QFile memDump(QString::fromStdString(_memDump));
     if (memDump.open(QIODevice::WriteOnly | QIODevice::Truncate)) {
-      memDump.write(reinterpret_cast<const char *>(dump.constData()),
-                    dump.size());
+      memDump.write(reinterpret_cast<const char *>(dump.constData()), dump.size());
       memDump.close();
     }
   }
@@ -215,6 +210,4 @@ void RunTask::setSkipLoad(bool skip) { _skipLoad = skip; }
 
 void RunTask::setSkipDispatch(bool skip) { _skipDispatch = skip; }
 
-void RunTask::addRegisterOverride(std::string name, quint16 value) {
-  _regOverrides[name] = value;
-}
+void RunTask::addRegisterOverride(std::string name, quint16 value) { _regOverrides[name] = value; }

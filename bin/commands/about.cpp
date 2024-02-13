@@ -31,7 +31,7 @@ void AboutTask::run() {
   std::cout << "\t" << about::projectRepoURL().toStdString() << "\n\n";
   std::cout << "Authors:\n";
   for (const auto &maintainer : about::maintainers())
-    std::cout << "\t" << maintainer.name.toStdString() << " <" << maintainer.email.toStdString() << ">\n";
+    std::cout << "\t" << maintainer.name.toStdString() << " <" << maintainer.email.toStdString() << "> \n";
   std::cout << "\nLicensing:\n";
   auto lines = TextFlow::Column(about::licenseNotice().toStdString());
   for (const auto &line : lines) {

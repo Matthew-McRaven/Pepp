@@ -1,6 +1,5 @@
 /*
- * Copyright (C) <year>  <name of author>
- *
+ * Copyright (c) 2024 J. Stanley Warford, Matthew McRaven
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
  * the Free Software Foundation, either version 3 of the License, or
@@ -15,15 +14,14 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 #include "asm.hpp"
-#include "../shared.hpp"
+#include <iostream>
+#include "../../shared.hpp"
+#include "asm/pas/operations/pepp/bytes.hpp"
 #include "help/builtins/figure.hpp"
 #include "isa/pep10.hpp"
 #include "macro/registry.hpp"
-#include "asm/pas/operations/pepp/bytes.hpp"
-#include <iostream>
 
-AsmTask::AsmTask(int ed, std::string userFname, QObject *parent)
-    : Task(parent), ed(ed), userIn(userFname) {}
+AsmTask::AsmTask(int ed, std::string userFname, QObject *parent) : Task(parent), ed(ed), userIn(userFname) {}
 
 void AsmTask::setBm(bool forceBm) { this->forceBm = forceBm; }
 
@@ -88,14 +86,12 @@ void AsmTask::run() {
     }
     QFile errF(errFName);
 
-    if (errF.open(QIODevice::WriteOnly | QIODevice::Truncate |
-                  QIODevice::Text)) {
+    if (errF.open(QIODevice::WriteOnly | QIODevice::Truncate | QIODevice::Text)) {
       auto ts = QTextStream(&errF);
       for (auto &error : helper.errors())
         ts << error;
     } else {
-      std::cerr << "Failed to open error log for writing: "
-                << errFName.toStdString() << std::endl;
+      std::cerr << "Failed to open error log for writing: " << errFName.toStdString() << std::endl;
     }
     return emit finished(6);
   }
@@ -115,26 +111,22 @@ void AsmTask::run() {
   auto userBytes = helper.bytes(false);
   auto userBytesStr = pas::ops::pepp::bytesToObject(userBytes);
   QFile pepoF(pepoFName);
-  if (pepoF.open(QIODevice::WriteOnly | QIODevice::Truncate |
-                 QIODevice::Text)) {
+  if (pepoF.open(QIODevice::WriteOnly | QIODevice::Truncate | QIODevice::Text)) {
     QTextStream(&pepoF) << userBytesStr << "\n";
   } else
-    std::cerr << "Failed to open object code for writing: "
-              << pepoFName.toStdString() << std::endl;
+    std::cerr << "Failed to open object code for writing: " << pepoFName.toStdString() << std::endl;
 
   try {
     auto lines = helper.listing(false);
     QFileInfo pepl(pepoFName);
     QString peplFName = pepl.path() + "/" + pepl.completeBaseName() + ".pepl";
     QFile peplF(peplFName);
-    if (peplF.open(QIODevice::WriteOnly | QIODevice::Truncate |
-                   QIODevice::Text)) {
+    if (peplF.open(QIODevice::WriteOnly | QIODevice::Truncate | QIODevice::Text)) {
       auto ts = QTextStream(&peplF);
       for (auto &line : lines)
         ts << line << "\n";
     } else
-      std::cerr << "Failed to open listing for writing: "
-                << peplFName.toStdString() << std::endl;
+      std::cerr << "Failed to open listing for writing: " << peplFName.toStdString() << std::endl;
   } catch (std::exception &e) {
     std::cerr << "Failed to generate user listing due to internal bug.\n";
   }
@@ -148,8 +140,7 @@ void AsmTask::run() {
           ts << line << "\n";
         peplF.close();
       } else
-        std::cerr << "Failed to open listing for writing: " << *osListOut
-                  << std::endl;
+        std::cerr << "Failed to open listing for writing: " << *osListOut << std::endl;
     } catch (std::exception &e) {
       std::cerr << "Failed to generate listing due to internal bug.\n";
     }
