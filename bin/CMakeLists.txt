@@ -1,9 +1,11 @@
-file(GLOB_RECURSE sources_and_tests CONFIGURE_DEPENDS "${CMAKE_CURRENT_LIST_DIR}/*.cpp" "${CMAKE_CURRENT_LIST_DIR}/*.hpp")
+file(GLOB_RECURSE sources_and_tests CONFIGURE_DEPENDS "${CMAKE_CURRENT_LIST_DIR}/*.cpp")
 file(GLOB_RECURSE tests CONFIGURE_DEPENDS "test/*.cpp" "test/*.hpp")
 file(GLOB_RECURSE compile_tests CONFIGURE_DEPENDS "compile-test/*.cpp")
+file(GLOB_RECURSE demos CONFIGURE_DEPENDS "demo/*.cpp")
 list(APPEND sources ${sources_and_tests})
 list(REMOVE_ITEM sources ${tests})
 list(REMOVE_ITEM sources ${compile_tests})
+list(REMOVE_ITEM sources ${demos})
 
 # Use to force terminal, test app to live in same directory.
 set(CMAKE_ARCHIVE_OUTPUT_DIRECTORY "${PROJECT_BINARY_DIR}/output")
@@ -14,8 +16,12 @@ make_target(
         TARGET pepp
         TYPE "EXEC"
         SOURCES ${sources}
-        DEPENDS TextFlow cli about macro pas builtins isa targets sim Qt6::Core test-lib-all
+        DEPENDS
+        TextFlow cli about macro pas builtins isa targets sim
+        Qt6::Core Qt6::Gui Qt::Qml Qt::Quick Qt::QuickControls2
+        Qt::Widgets test-lib-all
 )
+target_compile_definitions(pepp PRIVATE "INCLUDE_GUI=1")
 
 # On Windows, applications may either be GUI or terminal, not both.
 # So, we (hackishly) recompile the target above, but this time we will not set WIN32_EXECUTABLE.
@@ -27,6 +33,7 @@ if (WIN32)
             DEPENDS TextFlow cli about macro pas builtins isa targets sim Qt6::Core catch test-lib-all
     )
     set_target_properties(pepp-term PROPERTIES FOLDER "qtc_runnable")
+    target_compile_definitions(pepp-term PRIVATE "INCLUDE_GUI=0")
 endif ()
 
 # GLOB_RECURSE uses abs paths, QML_FILES expects relative paths. This blob converts from abs to rel.

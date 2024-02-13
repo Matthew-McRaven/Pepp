@@ -65,10 +65,21 @@ int main(int argc, char **argv) {
     std::cerr << e.what() << std::endl;
     return 1;
   }
-  QCoreApplication a(argc, argv);
-  auto taskInstance = task(&a);
-  QObject::connect(taskInstance, &Task::finished, &a, QCoreApplication::exit, Qt::QueuedConnection);
-  QTimer::singleShot(0, taskInstance, &Task::run);
-  return a.exec();
-}
+  if (shared_flags.GUI) {
+#if INCLUDE_GUI
+    return 0;
+// return gfx_main();
+#else
+    QCoreApplication a(argc, argv);
+    std::cerr << "GUI is not supported" << std::endl;
+    return 4;
+#endif
+  } else {
 
+    QCoreApplication a(argc, argv);
+    auto taskInstance = task(&a);
+    QObject::connect(taskInstance, &Task::finished, &a, QCoreApplication::exit, Qt::QueuedConnection);
+    QTimer::singleShot(0, taskInstance, &Task::run);
+    return a.exec();
+  }
+}

@@ -46,5 +46,6 @@ private:
 };
 struct SharedFlags {
   int edValue = 6;
+  bool GUI = false;
 };
 } // namespace detail
