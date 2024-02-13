@@ -72,4 +72,3 @@ int main(int argc, char **argv) {
   return a.exec();
 }
 
-Task::Task(QObject *parent) : QObject(parent) {}
