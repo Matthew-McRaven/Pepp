@@ -91,7 +91,7 @@ endif ()
 
 # Add main GUI module, qml sources, resources, and add demo applications.
 # GLOB_RECURSE uses abs paths, QML_FILES expects relative paths. This blob converts from abs to rel.
-file(GLOB_RECURSE abs_qml_sources CONFIGURE_DEPENDS "gui/*.qml")
+file(GLOB_RECURSE abs_qml_sources CONFIGURE_DEPENDS "gui/*.qml" "demo/*.qml")
 SET(rel_qml_sources, "")
 foreach (f_abs IN LISTS abs_qml_sources)
     file(RELATIVE_PATH f_rel "${CMAKE_CURRENT_LIST_DIR}" ${f_abs})
@@ -101,7 +101,7 @@ qt_add_qml_module(pepp
         URI Pepp
         VERSION 0.2
         QML_FILES ${rel_qml_sources}
-        SOURCES ${guis}
+        SOURCES ${guis} ${demos}
         QML_FILES
 )
 qt6_add_resources(pepp "pepp"

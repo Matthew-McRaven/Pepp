@@ -1,6 +1,5 @@
 /*
- * Copyright (c) 2023 J. Stanley Warford, Matthew McRaven
- *
+ * Copyright (c) 2024 J. Stanley Warford, Matthew McRaven
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
  * the Free Software Foundation, either version 3 of the License, or
@@ -14,28 +13,10 @@
  * You should have received a copy of the GNU General Public License
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
-
 #pragma once
+#include <QQmlApplicationEngine>
+#include <QtCore>
+#include "commands/gui.hpp"
 
-#include "asm/pas/ast/node.hpp"
-#include <QObject>
-
-/*struct ParseResult : public QObject {
-  Q_OBJECT;
-  Q_PROPERTY(bool passed READ passed CONSTANT)
-  Q_PROPERTY(QStringList errors READ errors CONSTANT);
-  Q_PROPERTY(QString source READ source CONSTANT);
-  Q_PROPERTY(QString list READ list CONSTANT);
-
-  ParseResult(QObject *parent);
-  ParseResult(QObject *parent, QSharedPointer<const pas::ast::Node>);
-
-public:
-};
-
-class Parser : public QObject {
-  Q_OBJECT
-public:
-  // Ownership of parse result is transfered to caller.
-  Q_INVOKABLE QList<ParseResult> *parse(QString arg);
-};*/
+QSharedPointer<gui_globals> initializeAsm(QQmlApplicationEngine &engine);
+inline static const QUrl asmQMLMain = QUrl(u"qrc:/Pepp/demo/asm/main.qml"_qs);
