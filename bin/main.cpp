@@ -22,19 +22,18 @@
 #include "commands/about.hpp"
 #include "commands/asm.hpp"
 #include "commands/get.hpp"
+#include "commands/gui.hpp"
 #include "commands/license.hpp"
 #include "commands/ls.hpp"
 #include "commands/run.hpp"
 #include "commands/selftest.hpp"
-
 #include "commands/throughput.hpp"
 
 int main(int argc, char **argv) {
-
   CLI::App app{"Pepp", "pepp"};
   app.set_help_flag("-h,--help", "Display this help message and exit.");
 
-  auto shared_flags = detail::SharedFlags{};
+  auto shared_flags = detail::SharedFlags{.isGUI = DEFAULT_GUI};
   auto ed = app.add_flag("-e,--edition", shared_flags.edValue,
                          "Which edition of Computer Systems to target. "
                          "Possible values are 4, 5, and 6.")
@@ -51,12 +50,13 @@ int main(int argc, char **argv) {
 
   registerAsm(app, task, shared_flags);
   registerRun(app, task, shared_flags);
+  registerGUI(app, task, shared_flags);
 
   // Hidden commands
   registerThroughput(app, task, shared_flags);
   try {
     app.parse(argc, argv);
-    if (!task)
+    if (!(task || shared_flags.isGUI))
       throw CLI::CallForHelp();
   } catch (const CLI::CallForHelp &e) {
     std::cout << app.help() << std::endl;
@@ -65,12 +65,10 @@ int main(int argc, char **argv) {
     std::cerr << e.what() << std::endl;
     return 1;
   }
-  if (shared_flags.GUI) {
+  if (shared_flags.isGUI) {
 #if INCLUDE_GUI
-    return 0;
-// return gfx_main();
+    return gui_main({});
 #else
-    QCoreApplication a(argc, argv);
     std::cerr << "GUI is not supported" << std::endl;
     return 4;
 #endif
