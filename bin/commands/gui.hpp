@@ -13,15 +13,25 @@
  * You should have received a copy of the GNU General Public License
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
+#pragma once
 
 #include "../shared.hpp"
 #include "../task.hpp"
 
+#if INCLUDE_GUI
+QSharedPointer<gui_globals> default_init(QQmlApplicationEngine &engine);
+#endif
+
 struct gui_args {
   std::string app_name;
+#if INCLUDE_GUI
+  init_fn extra_init = nullptr; // If nullptr, not called.
+  QUrl QMLEntry{};              // If empty, pick "GUI" default.
+#endif
 };
-int gui_main(gui_args);
-void registerGUI(auto &app, task_factory_t &task, detail::SharedFlags &flags) {
+
+int gui_main(const gui_args &);
+void registerGUI(auto &app, task_factory_t &task, detail::SharedFlags &flags, gui_args &gui_args) {
   static auto gui = app.add_subcommand("gui", "Start Pepp GUI");
   gui->prefix_command(true);
   gui->set_help_flag();

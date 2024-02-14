@@ -50,7 +50,8 @@ int main(int argc, char **argv) {
 
   registerAsm(app, task, shared_flags);
   registerRun(app, task, shared_flags);
-  registerGUI(app, task, shared_flags);
+  gui_args args{};
+  registerGUI(app, task, shared_flags, args);
 
   // Hidden commands
   registerThroughput(app, task, shared_flags);
@@ -67,7 +68,7 @@ int main(int argc, char **argv) {
   }
   if (shared_flags.isGUI) {
 #if INCLUDE_GUI
-    return gui_main({});
+    return gui_main(args);
 #else
     std::cerr << "GUI is not supported" << std::endl;
     return 4;

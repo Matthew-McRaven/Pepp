@@ -20,6 +20,18 @@
 #include "help/builtins/book.hpp"
 #include "macro/registry.hpp"
 
+#if INCLUDE_GUI
+class QQmlApplicationEngine;
+// Base class for application-specific global handling.
+// Needed because an init_fn has a smaller lexical scope than the calling function,
+// so stack-allocated "globals" fall out of scope.
+struct gui_globals {
+  virtual ~gui_globals() = default;
+};
+// Perform any type-registration, create & bind necessary globals.
+using init_fn = QSharedPointer<gui_globals> (*)(QQmlApplicationEngine &);
+#endif
+
 namespace detail {
 QSharedPointer<const builtins::Book> book(int ed);
 QSharedPointer<macro::Registry> registry(QSharedPointer<const builtins::Book> book, QStringList directory);
