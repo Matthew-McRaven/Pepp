@@ -10,15 +10,7 @@
 
 When cloning this project, please use `--recurse-submodules`.
 
-It is recommened to build the application from within Qt Creator.
-
-We use [`vcpkg`](https://github.com/microsoft/vcpkg) to handle some complex dependencies like boost.
-After cloning this project, please open a terminal and `cd` to `3rd-party/vcpkg`.
-Execute the appropriate `bootstrap-vcpkg.sh` or `bootstrap-vcpkg.bat`, depending on your platform.
-This will generate a vcpkg executable in `3rd-party/vcpkg`.
-If you have another version of `vcpkg` installed, please use our version to avoid library version mismatches.
-
-Please see [Qt Creator's documentation](https://doc.qt.io/qtcreator/creator-vcpkg.html) on how to enable vcpkg integration, using the vcpkg executable genrated above.
+It is recommended to build the application from within Qt Creator.
 
 # Relation to [Pep9Suite](https://github.com/StanWarford/pep9suite)
 This project is a continuation of the Pep/9 computer's associated software suite, [Pep9Suite](https://github.com/StanWarford/pep9suite).
