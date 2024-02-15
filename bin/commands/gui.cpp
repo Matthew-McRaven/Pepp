@@ -27,7 +27,9 @@
 #include "../gui/cpu/statusbitmodel.h"
 #include "../gui/helpview/registration.hpp"
 #include "memory/hexdump/memorybytemodel.h"
+#include "preferences/preferences/preferencemodel.hpp"
 #include "text/plugin.hpp"
+
 struct default_data : public gui_globals {
   ~default_data() override = default;
   StatusBitModel sbm;
@@ -94,6 +96,10 @@ int gui_main(const gui_args &args) {
       continue;
     qDebug() << f.filePath();
   }*/
+
+  auto ctx = engine.rootContext();
+  PreferenceModel pm;
+  ctx->setContextProperty("PreferenceModel", &pm);
 
   static const auto default_entry = u"qrc:/qt/qml/Pepp/gui/main.qml"_qs;
   const QUrl url(args.QMLEntry.isEmpty() ? default_entry : args.QMLEntry);

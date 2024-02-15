@@ -1,7 +1,8 @@
 add_subdirectory(text)
 add_subdirectory(memory)
+add_subdirectory(preferences)
 
-set(ui_targets "memory;text")
+set(ui_targets "memory;text;preferences")
 
 
 if (APPLE)
