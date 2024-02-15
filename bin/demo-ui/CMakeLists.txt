@@ -47,7 +47,7 @@ qt_add_qml_module(pep10
     URI Pep10
     VERSION 0.2
     QML_FILES ${rel_qml_sources}
-    SOURCES model/memorymodel.h model/memorymodel.cpp
+    #SOURCES model/memorymodel.h model/memorymodel.cpp  #not used
     SOURCES model/statusbitmodel.h model/statusbitmodel.cpp
     SOURCES model/registermodel.h model/registermodel.cpp
     QML_FILES
@@ -62,6 +62,7 @@ target_link_libraries(pep10 PUBLIC
     Qt::QuickControls2
     Qt::Widgets
     memory
+    preferences
 )
 
 # Resources:

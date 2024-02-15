@@ -7,6 +7,7 @@ import Qt.labs.platform as Platform
 
 import "ui" as Ui
 import "qrc:/ui/memory/hexdump" as Memory
+import "../ui/preferences/preferences" as Pref
 
 ApplicationWindow {
   id: window
@@ -43,6 +44,10 @@ ApplicationWindow {
         width: implicitWidth
       }
       TabButton {
+        text: "Preferences"
+        width: implicitWidth
+      }
+      TabButton {
         text: "CPU"
         width: implicitWidth
       }
@@ -63,6 +68,9 @@ ApplicationWindow {
       Memory.MemoryDump {
         //anchors.fill: parent
       }
+      Pref.ColorSettings {
+      }
+
       Ui.Cpu {
         //anchors.fill: parent
       }

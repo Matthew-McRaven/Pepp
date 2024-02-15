@@ -10,8 +10,9 @@
 
 #include "model/statusbitmodel.h"
 #include "model/registermodel.h"
-//#include "model/memorymodel.h"
-#include "memory/hexdump/memorybytemodel.h"
+#include "memory/hexdump/memorybytemodel.hpp"
+#include "preferences/preferences/preferencemodel.hpp"
+
 
 int main(int argc, char *argv[])
 {
@@ -45,15 +46,15 @@ int main(int argc, char *argv[])
 
     StatusBitModel  sbm;
     RegisterModel   rm;
-    //MemoryModel     mm;
     MemoryByteModel mbm;
+    PreferenceModel pm;
 
     //  Connect models
     auto* ctx = engine.rootContext();
     ctx->setContextProperty("StatusBitModel",   &sbm);
     ctx->setContextProperty("RegisterModel",    &rm);
-    //ctx->setContextProperty("MemoryModel",      &mm);   //  May not be needed
     ctx->setContextProperty("MemoryByteModel",  &mbm);
+    ctx->setContextProperty("PreferenceModel",  &pm);
 
     const QUrl url(u"qrc:/Pep10/main.qml"_qs);
 
@@ -80,8 +81,8 @@ int main(int argc, char *argv[])
                      &rm, &RegisterModel::updateTestData);
     //QObject::connect(&interval, &QTimer::timeout,
     //                 &mm, &MemoryModel::updateTestData);
-    QObject::connect(&interval, &QTimer::timeout,
-                     &mbm, &MemoryByteModel::updateTestData);
+    //QObject::connect(&interval, &QTimer::timeout,
+    //                 &mbm, &MemoryByteModel::updateTestData);
     interval.start();
 
     return app.exec();

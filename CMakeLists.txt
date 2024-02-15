@@ -229,7 +229,12 @@ if(ONLY STREQUAL "BUILD")
     message("Using placeholder help QRC")
     add_custom_target(docs_qrc BYPRODUCTS ${WEB_HELP_QRC})
     inject_help_qrc(${PLACEHOLDER_HELP_QRC})
-  endif()
+
+target_sources(webqrc-generated
+  PRIVATE
+    #ui/preferences/preferences.qml
+)
+endif()
 elseif(ONLY STREQUAL "DOC")
     generate_docs(${SPHINX_OUT_DIR})
 elseif(ONLY STREQUAL "VERSION")
