@@ -23,6 +23,7 @@ import "qrc:/qt/qml/Pepp/gui/helpview" as Help
 import "qrc:/ui/memory/hexdump" as Memory
 import "qrc:/qt/qml/Pepp/gui/cpu" as Cpu
 import "qrc:/qt/qml/Pepp/gui/project"
+import "qrc:/ui/preferences/preferences" as Pref
 
 ApplicationWindow {
     id: window
@@ -207,7 +208,8 @@ ApplicationWindow {
                 //Layout.bottom: wrapper.bottom
                 anchors.top: tab.bottom
                 anchors.bottom: wrapper.bottom
-
+                Pref.ColorSettings {
+                }
                 Memory.MemoryDump {
                 }
                 Cpu.Cpu {
