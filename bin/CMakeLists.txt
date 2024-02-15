@@ -21,8 +21,12 @@ make_target(
         DEPENDS
         TextFlow cli about macro pas builtins isa targets sim
         Qt6::Core Qt6::Gui Qt::Qml Qt::Quick Qt::QuickControls2
-        Qt::Widgets test-lib-all memory
+        Qt::Widgets test-lib-all memory highlight
 )
+
+# Files with QML definitions must always be includeable without a prefix.
+# See: https://bugreports.qt.io/browse/QTBUG-101146.
+target_include_directories(pepp PRIVATE ${CMAKE_CURRENT_LIST_DIR}/demo/fig-view)
 
 
 target_compile_definitions(pepp PRIVATE "INCLUDE_GUI=1")
