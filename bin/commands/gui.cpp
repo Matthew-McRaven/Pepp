@@ -26,7 +26,7 @@
 #include "../gui/cpu/registermodel.h"
 #include "../gui/cpu/statusbitmodel.h"
 #include "../gui/helpview/registration.hpp"
-#include "memory/hexdump/memorybytemodel.h"
+#include "memory/hexdump/memorybytemodel.hpp"
 #include "preferences/preferences/preferencemodel.hpp"
 #include "text/plugin.hpp"
 
