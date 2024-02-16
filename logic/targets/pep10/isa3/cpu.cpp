@@ -757,6 +757,8 @@ targets::pep10::isa::CPU::decodeStoreOperand(quint8 is, quint16 os,
       decoded = bits::byteswap(decoded);
     decoded += readReg(Register::X);
     break;
+  default:
+    throw std::logic_error("Invalid addressing mode");
   }
 }
 
@@ -840,6 +842,8 @@ targets::pep10::isa::CPU::decodeLoadOperand(quint8 is, quint16 os,
     if (swap)
       decoded = bits::byteswap(decoded);
     break;
+  default:
+    throw std::logic_error("Invalid addressing mode");
   }
   decoded &= mask;
 }
