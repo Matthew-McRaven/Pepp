@@ -27,6 +27,13 @@ endif ()
 # At the end of all build steps we can copy all of the libraries exactly once.
 DEFINE_PROPERTY(GLOBAL PROPERTY ALL_LIBRARIES)
 set_property(GLOBAL PROPERTY ALL_LIBRARIES "")
+
+function(catch_test_count count_name)
+    get_target_property(FILES test-lib-all INTERFACE_SOURCES)
+    list(LENGTH FILES count)
+    set(${count_name} ${count} PARENT_SCOPE)
+endfunction()
+
 function(maybe_append_all_libraries library)
     # message("Called with ${library}")
     # Check if the custom property (LINKED_LIBRARIES) exists for the target.
@@ -118,19 +125,8 @@ function(make_target)
                 maybe_append_all_libraries(${depend})
             endif ()
         endforeach ()
-
-        add_executable(${MK_TARGET} ${MK_SOURCES})
-        # Failure to copy DLLs on Windows causes tests to fail at runtime.
-        if (WIN32)
-            file(MAKE_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}/${MK_TARGET})
-            set_target_properties(${MK_TARGET} PROPERTIES RUNTIME_OUTPUT_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}/${MK_TARGET})
-            add_custom_command(TARGET ${MK_TARGET} POST_BUILD
-                    COMMAND ${CMAKE_COMMAND}
-                    ARGS -E copy $<TARGET_RUNTIME_DLLS:${MK_TARGET}> $<TARGET_FILE_DIR:${MK_TARGET}>
-                    COMMAND_EXPAND_LISTS
-            )
-        endif ()
-        add_test(NAME ${MK_TARGET} COMMAND ${MK_TARGET})
+        # We don't actually generate a target, so must return early to avoid linking this target.
+        return()
     else ()
         qt6_add_library(${MK_TARGET} ${MK_TYPE} ${MK_SOURCES})
     endif ()
@@ -173,8 +169,5 @@ function(make_library)
                 SOURCES ${TEST_FILE}
                 DEPENDS ${ML_DEPENDS} ${ML_TARGET} ${ML_TEST_DEPENDS}
         )
-        if (ML_TEST_IN_QTC)
-            set_target_properties("test-${ML_TARGET}-${STEM}" PROPERTIES FOLDER "qtc_runnable")
-        endif ()
     endforeach ()
 endfunction()

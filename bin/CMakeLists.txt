@@ -24,12 +24,12 @@ make_target(
         Qt::Widgets test-lib-all memory highlight
 )
 
+target_compile_definitions(pepp PRIVATE "INCLUDE_GUI=1")
+set(TEST_TARGET "pepp")
 # Files with QML definitions must always be includeable without a prefix.
 # See: https://bugreports.qt.io/browse/QTBUG-101146.
 target_include_directories(pepp PRIVATE ${CMAKE_CURRENT_LIST_DIR}/demo/fig-view)
 
-
-target_compile_definitions(pepp PRIVATE "INCLUDE_GUI=1")
 # On Windows, applications may either be GUI or terminal, not both.
 # So, we (hackishly) recompile the target above, but this time we will not set WIN32_EXECUTABLE.
 if (WIN32)
@@ -43,8 +43,10 @@ if (WIN32)
     target_compile_definitions(pepp-term PRIVATE "INCLUDE_GUI=0")
     target_compile_definitions(pepp-term PRIVATE "DEFAULT_GUI=0")
     target_compile_definitions(pepp PRIVATE "DEFAULT_GUI=1")
+    set(TEST_TARGET "pepp-term")
 else ()
     target_compile_definitions(pepp PRIVATE "DEFAULT_GUI=0")
+    add_executable(pepp-term ALIAS pepp)
 endif ()
 
 # GLOB_RECURSE uses abs paths, QML_FILES expects relative paths. This blob converts from abs to rel.
@@ -56,6 +58,7 @@ set_target_properties(pepp PROPERTIES
         WIN32_EXECUTABLE TRUE
 )
 
+set_target_properties(pepp PROPERTIES FOLDER "qtc_runnable")
 # Non-DLL platforms have empty generator expressin, so use more generator magic to only copy DLLs if the exist.
 add_custom_command(TARGET pepp POST_BUILD
         COMMAND ${CMAKE_COMMAND}
@@ -65,9 +68,7 @@ add_custom_command(TARGET pepp POST_BUILD
 )
 
 
-set_target_properties(pepp PROPERTIES FOLDER "qtc_runnable")
-
-if (NOT EMSCRIPTEN)
+if (0)
     configure_file(test/config.hpp.in "${CMAKE_CURRENT_BINARY_DIR}/config.hpp")
     make_target(
             TARGET test-term
@@ -114,3 +115,11 @@ qt6_add_resources(pepp "pepp"
         FILES
         ${pep10_resource_files}
 )
+
+# Set pepp/pepp-term as a test target.
+if (NOT EMSCRIPTEN)
+    set(count 2)
+    catch_test_count(count)
+    message("Creating ${count} test shards")
+    catch_add_sharded_tests(${TEST_TARGET} "selftest" SHARD_COUNT ${count})
+endif ()
