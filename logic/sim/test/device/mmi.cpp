@@ -54,5 +54,5 @@ TEST_CASE("Memory-mapped input read", "[scope:sim][kind:int][arch:*]") {
   CHECK(tmp == 0);
   // Hard-fail MMI should throw
   in->setFailPolicy(sim::api2::memory::FailPolicy::RaiseError);
-  REQUIRE_THROWS_AS(in->read(0, {&tmp, 1}, rw), sim::api2::memory::Error<quint16>);
+  REQUIRE_THROWS_AS(in->read(0, {&tmp, 1}, rw), sim::api2::memory::Error);
 }

@@ -1,6 +1,5 @@
 /*
- * Copyright (c) 2023 J. Stanley Warford, Matthew McRaven
- *
+ * Copyright (c) 2023-2024 J. Stanley Warford, Matthew McRaven
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
  * the Free Software Foundation, either version 3 of the License, or
@@ -20,8 +19,7 @@
 
 namespace sim::memory {
 template <typename Address>
-class ReadOnly : public api2::memory::Target<Address>,
-                 public api2::memory::Initiator<Address> {
+class ReadOnly : public api2::memory::Target<Address>, public api2::memory::Initiator<Address> {
 public:
   using AddressSpan = typename api2::memory::AddressSpan<Address>;
   ReadOnly(bool hardFail);
@@ -44,57 +42,47 @@ public:
   // Initiator interface
 
   void setTarget(sim::api2::memory::Target<Address> *target, void *port) override;
+
 private:
   bool _hardFail;
   sim::api2::memory::Target<Address> *_target = nullptr;
-
 };
 
-template <typename Address>
-ReadOnly<Address>::ReadOnly(bool hardFail) : _hardFail(hardFail) {}
+template <typename Address> ReadOnly<Address>::ReadOnly(bool hardFail) : _hardFail(hardFail) {}
 
-template <typename Address>
-typename ReadOnly<Address>::AddressSpan ReadOnly<Address>::span() const {
+template <typename Address> typename ReadOnly<Address>::AddressSpan ReadOnly<Address>::span() const {
   return _target->span();
 }
 
-template <typename Address> void ReadOnly<Address>::clear(quint8 fill) {
-    _target->clear(fill);
+template <typename Address> void ReadOnly<Address>::clear(quint8 fill) { _target->clear(fill); }
+
+template <typename Address> void ReadOnly<Address>::dump(bits::span<quint8> dest) const { _target->dump(dest); }
+
+template <typename Address>
+api2::memory::Result ReadOnly<Address>::read(Address address, bits::span<quint8> dest,
+                                             api2::memory::Operation op) const {
+  return _target->read(address, dest, op);
 }
 
 template <typename Address>
-void ReadOnly<Address>::dump(bits::span<quint8> dest) const {
-    _target->dump(dest);
+api2::memory::Result ReadOnly<Address>::write(Address address, bits::span<const quint8> src,
+                                              api2::memory::Operation op) {
+  using E = api2::memory::Error;
+  // Length is 1-indexed, address are 0, so must offset by -1.
+  auto maxDestAddr = (address + std::max<Address>(0, src.size() - 1));
+  // Duplicate bounds-checking from target, because we can't check bounds
+  // in the target without doing an access.
+  if (address < _target->span().minOffset || maxDestAddr > _target->span().maxOffset)
+    throw E(E::Type::OOBAccess, address);
+  // If the write is coming from the app (e.g., memory editor) allow it.
+  else if (op.type == api2::memory::Operation::Type::Application)
+    return _target->write(address, src, op);
+  else if (_hardFail)
+    throw E(E::Type::WriteToRO, address);
+  return {};
 }
 
-template<typename Address>
-api2::memory::Result ReadOnly<Address>::read(Address address, bits::span<quint8> dest, api2::memory::Operation op) const
-{
-    return _target->read(address, dest, op);
-}
-
-template<typename Address>
-api2::memory::Result ReadOnly<Address>::write(Address address, bits::span<const quint8> src, api2::memory::Operation op)
-{
-    using E = api2::memory::Error<Address>;
-    // Length is 1-indexed, address are 0, so must offset by -1.
-    auto maxDestAddr = (address + std::max<Address>(0, src.size() - 1));
-    // Duplicate bounds-checking from target, because we can't check bounds
-    // in the target without doing an access.
-    if (address < _target->span().minOffset ||
-        maxDestAddr > _target->span().maxOffset)
-      throw E(E::Type::OOBAccess, address);
-    // If the write is coming from the app (e.g., memory editor) allow it.
-    else if(op.type == api2::memory::Operation::Type::Application)
-        return _target->write(address, src, op);
-    else if(_hardFail)
-        throw E(E::Type::WriteToRO, address);
-    return {};
-}
-
-template<typename Address>
-void ReadOnly<Address>::setTarget(sim::api2::memory::Target<Address> *target, void *port)
-{
+template <typename Address> void ReadOnly<Address>::setTarget(sim::api2::memory::Target<Address> *target, void *port) {
   _target = target;
 }
 
