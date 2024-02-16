@@ -78,7 +78,7 @@ void smoke(QSharedPointer<macro::Registry> registry, QString input, testFn valid
     pipelines.pipelines.push_back(pipeline);
     pipelines.globals = QSharedPointer<pas::driver::Globals>::create();
     pipelines.globals->macroRegistry = registry;
-    (pipelines.assemble(pas::driver::pep10::Stage::IncludeMacros), !errors);
+    pipelines.assemble(pas::driver::pep10::Stage::IncludeMacros);
     if (!errors)
       CHECK(pipelines.pipelines[0].first->stage == pas::driver::pep10::Stage::FlattenMacros);
     else

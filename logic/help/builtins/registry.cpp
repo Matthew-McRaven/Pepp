@@ -127,7 +127,7 @@ builtins::detail::loadFigure(QString manifestPath) {
   // Add tests
   auto ios = manifest["ios"];
   auto iosArray = ios.toArray();
-  for (auto ioDir : qAsConst(iosArray)) {
+  for (auto ioDir : std::as_const(iosArray)) {
     auto io = loadTest(manifestDir.absoluteFilePath(ioDir.toString()));
     if (io == nullptr) // Crash on failure for ease of initial prototyping
       qFatal("Invalid IO");
@@ -140,7 +140,7 @@ builtins::detail::loadFigure(QString manifestPath) {
   auto itemsArray =
       items.toObject(); // Get the element name:value pairs as a map
   auto itemsArrayKeys = itemsArray.keys(); // Make the name:value pairs iterable
-  for (const auto &language : qAsConst(itemsArrayKeys)) {
+  for (const auto &language : std::as_const(itemsArrayKeys)) {
     // Perform templatization on manifest values.
     QString itemTemplatePath = itemsArray[language].toString();
     auto itemPath = itemTemplatePath.replace("{ch}", chapterName)
@@ -174,7 +174,7 @@ builtins::detail::loadMacro(QString manifestPath) {
   auto itemsArray =
       items.toObject(); // Get the element name:value pairs as a map
   auto itemsArrayKeys = itemsArray.keys(); // Make the name:value pairs iterable
-  for (const auto &name : qAsConst(itemsArrayKeys)) {
+  for (const auto &name : std::as_const(itemsArrayKeys)) {
     // Perform templatization on manifest values.
     QString itemTemplatePath = itemsArray[name].toString();
     auto itemPath = itemTemplatePath.replace("{name}", name);
