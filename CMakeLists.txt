@@ -231,6 +231,22 @@ if (ONLY STREQUAL "BUILD")
         add_custom_target(docs_qrc BYPRODUCTS ${WEB_HELP_QRC})
         inject_help_qrc(${PLACEHOLDER_HELP_QRC})
     endif ()
+    # Configure CPack installer generation.
+    set(CPACK_PACKAGE_NAME "Pepp")
+    set(CPACK_PACKAGE_VENDOR "Pepperdine University")
+    set(CPACK_PACKAGE_DESCRIPTION_SUMMARY "A GUI for the Pep/10 virtual machine at various levels of abstraction")
+    set(CPACK_PACKAGE_VERSION ${PROJECT_VERSION})
+    set(CPACK_PACKAGE_INSTALL_DIRECTORY "Pepp")
+    # Assuming you're targeting multiple platforms, you might want to conditionally set the generator
+    if (WIN32)
+        set(CPACK_GENERATOR "IFW") # or "ZIP" for a simple zip archive
+    elseif (APPLE)
+        set(CPACK_GENERATOR "DragNDrop") # for a macOS .dmg
+    else ()
+        set(CPACK_GENERATOR "TGZ") # for Linux, multiple generators can be specified
+    endif ()
+
+    include(CPack)
 elseif (ONLY STREQUAL "DOC")
     generate_docs(${SPHINX_OUT_DIR})
 elseif (ONLY STREQUAL "VERSION")
