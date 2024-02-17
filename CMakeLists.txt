@@ -33,6 +33,7 @@ if (ONLY STREQUAL "BUILD")
     set(LANGUAGES "CXX")
 endif ()
 project(Pepp VERSION 0.6.0 LANGUAGES ${LANGUAGES})
+set(CMAKE_INSTALL_PREFIX "${PROJECT_BINARY_DIR}/install" CACHE PATH "Installation Directory" FORCE)
 
 set_property(GLOBAL PROPERTY USE_FOLDERS ON)
 include(config/cmake/enumerate_targets.cmake)

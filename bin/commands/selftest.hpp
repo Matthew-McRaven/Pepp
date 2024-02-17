@@ -36,6 +36,7 @@ void registerSelfTest(auto &app, task_factory_t &task, const detail::SharedFlags
   test->callback([&]() {
     task = [&](QObject *parent) {
       auto remainingArgs = test->remaining_for_passthrough();
+      std::reverse(remainingArgs.begin(), remainingArgs.end());
       // Must push executable name to argv[0], or catch arg parsing CTDs.
       auto realArgs = QCoreApplication::arguments();
       remainingArgs.insert(remainingArgs.begin(), u"%1 selftest"_qs.arg(realArgs[0]).toStdString());
