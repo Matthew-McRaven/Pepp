@@ -1,13 +1,12 @@
 name: 'Install Node'
 runs:
   using: "composite"
-  # Selectively install and configure LLVM
   steps:
-  # Don't use apt, it is very slow; instead use NVM and manipulate path
-  - name: Install Node if running locally using `nektos/act`
-    run: >
-      wget -q https://raw.githubusercontent.com/nvm-sh/nvm/v0.39.3/install.sh
-      && bash install.sh
-      && source /root/.nvm/nvm.sh && nvm install 18 && nvm alias default 18
-      && ln -s $(which node) /usr/local/bin/node
-    shell: bash
+    # Don't use apt, it is very slow; instead use NVM and manipulate path
+    - name: Install Node if running locally using `nektos/act`
+      run: >
+        wget -q https://raw.githubusercontent.com/nvm-sh/nvm/v0.39.3/install.sh
+        && bash install.sh
+        && source /root/.nvm/nvm.sh && nvm install 18 && nvm alias default 18
+        && ln -s $(which node) /usr/local/bin/node
+      shell: bash

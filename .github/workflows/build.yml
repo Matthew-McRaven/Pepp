@@ -2,23 +2,23 @@ name: Build
 on:
   workflow_call:
     inputs:
-      name: {required: True, type: string}
-      cache_name: {type: string}
-      runs-on: {required: True, type: string}
-      image: {type: string, default: ''}
-      cmake_generator: {type: string, default: ""}
-      cmake_toolchain: {type: string, required: False}
-      cmake_xargs: {type: string}
-      ctest_launcher: {type: string, default: "ctest"}
-      compiler_launcher: {type: string, default: ""}
-      compiler_c: {type: string, default: ""}
-      compiler_cpp: {type: string, default: ""}
-      codeql: {type: boolean, default: False}
-      variant: {type: string, default: "Debug"}
-      not_default: {required: True, type: boolean}
-      save_cache: {type: boolean, default: True}
-      docs_artifact: {type: string}
-      docs_audience: {type: string}
+      name: { required: True, type: string }
+      cache_name: { type: string }
+      runs-on: { required: True, type: string }
+      image: { type: string, default: '' }
+      cmake_generator: { type: string, default: "" }
+      cmake_toolchain: { type: string, required: False }
+      cmake_xargs: { type: string }
+      ctest_launcher: { type: string, default: "ctest" }
+      compiler_launcher: { type: string, default: "" }
+      compiler_c: { type: string, default: "" }
+      compiler_cpp: { type: string, default: "" }
+      codeql: { type: boolean, default: False }
+      variant: { type: string, default: "Debug" }
+      not_default: { required: True, type: boolean }
+      save_cache: { type: boolean, default: True }
+      docs_artifact: { type: string }
+      docs_audience: { type: string }
 
 jobs:
   matrix_build:
@@ -32,56 +32,52 @@ jobs:
       DEBIAN_FRONTEND: noninteractive
 
     steps:
-    # Perform shallow clone, which may break some other operations
-    # Must exectute before any repo-local actions
-    - name: Checkout source code (shallow)
-      uses: actions/checkout@v4
-      with:
-        submodules: 'true'
-    # Local github runner doesn't have node installed.
-    - if: env.ACT
-      name: Install Node if running locally using `nektos/act`
-      uses: ./.github/actions/install-node
+      # Perform shallow clone, which may break some other operations
+      # Must exectute before any repo-local actions
+      - name: Checkout source code (shallow)
+        uses: actions/checkout@v4
+        with:
+          submodules: 'true'
+      # Local github runner doesn't have node installed.
+      - if: env.ACT
+        name: Install Node if running locally using `nektos/act`
+        uses: ./.github/actions/install-node
 
-    # Install dependencies based on enabled features
-    - name: Install Qt+CMake in non-containerized builds
-      if: inputs.image  == ''
-      uses: ./.github/actions/install-qt-cmake
-      with:
-        cache-key-prefix: install-qt-${{ inputs.runs-on }}
+      # Install dependencies based on enabled features
+      - name: Install Qt+CMake in non-containerized builds
+        if: inputs.image  == ''
+        uses: ./.github/actions/install-qt-cmake
+        with:
+          cache-key-prefix: install-qt-${{ inputs.runs-on }}
 
-    - name: Install LLVM on Linux containerized builds
-      if: inputs.runs-on=='ubuntu-latest' && inputs.compiler_c == 'clang'
-      uses: ./.github/actions/install-llvm
+      # Prevent clang from using ccache, because it is profiling build times
+      - name: Enable caching object files between builds
+        # Disable ccache when running locally
+        if: inputs.compiler_launcher == 'ccache' && !env.ACT
+        uses: hendrikmuhs/ccache-action@v1.2.12
+        with:
+          verbose: 2
+          key: ${{ inputs.cache_name || inputs.name }}
+          restore: ${{ inputs.not_default }}
+          save: ${{ inputs.save_cache }}
 
-    # Prevent clang from using ccache, because it is profiling build times
-    - name: Enable caching object files between builds
-      # Disable ccache when running locally
-      if: inputs.compiler_launcher == 'ccache' && !env.ACT
-      uses: hendrikmuhs/ccache-action@v1.2.12
-      with:
-        verbose: 2
-        key: ${{ inputs.cache_name || inputs.name }}
-        restore: ${{ inputs.not_default }}
-        save: ${{ inputs.save_cache }}
+      # Initializes the CodeQL tools for scanning. Must occur before code is built.
+      - name: Initialize CodeQL
+        if: inputs.codeql && !env.ACT
+        uses: github/codeql-action/init@v3
+        with:
+          languages: "c-cpp"
 
-    # Initializes the CodeQL tools for scanning. Must occur before code is built.
-    - name: Initialize CodeQL
-      if: inputs.codeql && !env.ACT
-      uses: github/codeql-action/init@v3
-      with:
-        languages: "c-cpp"
-
-    # CMake configure & build
-    - name: Download prebuilt help documentation
-      uses: actions/download-artifact@v4
-      if: inputs.docs_artifact
-      with:
-        name: ${{ inputs.docs_artifact }}
-        path: ${{ inputs.docs_artifact }}
-    - name: Configure CMake
-      shell: bash
-      run: >
+      # CMake configure & build
+      - name: Download prebuilt help documentation
+        uses: actions/download-artifact@v4
+        if: inputs.docs_artifact
+        with:
+          name: ${{ inputs.docs_artifact }}
+          path: ${{ inputs.docs_artifact }}
+      - name: Configure CMake
+        shell: bash
+        run: >
           ${{ contains(inputs.name, 'EMSDK') && 'source /emsdk/emsdk_env.sh &&' || '' }}
           cmake
           -B build -S .
@@ -97,22 +93,22 @@ jobs:
           ${{inputs.docs_artifact && format('-D DOC_PREBUILT_DIR="{0}"', inputs.docs_artifact) || '' }}
           -D CMAKE_BUILD_TYPE=Debug
 
-    - name: Run build
-      run: cmake --build build -j6
+      - name: Run build
+        run: cmake --build build -j6
 
-    # Run tests, sign outputs, and upload artifacts
-    - name: Run tests
-      if: inputs.ctest_launcher
-      run: ${{ inputs.ctest_launcher }} --test-dir build -j6 -C Debug --output-on-failure
-      env:
-        # Must be offscreen, or tests that involve GUI libraries will fail
-        QT_QPA_PLATFORM: 'offscreen'
-        CTEST_OUTPUT_ON_FAILURE: 'TRUE'
+      # Run tests, sign outputs, and upload artifacts
+      - name: Run tests
+        if: inputs.ctest_launcher
+        run: ${{ inputs.ctest_launcher }} --test-dir build -j6 -C Debug --output-on-failure
+        env:
+          # Must be offscreen, or tests that involve GUI libraries will fail
+          QT_QPA_PLATFORM: 'offscreen'
+          CTEST_OUTPUT_ON_FAILURE: 'TRUE'
 
-    - name: Analyze buildtime for Linux-Clang
-      if: inputs.runs-on == 'ubuntu-latest' && inputs.compiler_c == 'clang'
-      uses: ./.github/actions/analyze-buildtime
+      - name: Analyze buildtime for Linux-Clang
+        if: inputs.runs-on == 'ubuntu-latest' && inputs.compiler_c == 'clang'
+        uses: ./.github/actions/analyze-buildtime
 
-    - name: Perform CodeQL analysis
-      if: inputs.codeql && !env.ACT
-      uses: ./.github/actions/run-codeql
+      - name: Perform CodeQL analysis
+        if: inputs.codeql && !env.ACT
+        uses: ./.github/actions/run-codeql
