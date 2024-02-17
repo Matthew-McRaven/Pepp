@@ -6,21 +6,22 @@ list(REMOVE_ITEM sources ${tests})
 list(REMOVE_ITEM sources ${old_sources})
 
 # GLOB_RECURSE uses abs paths, QML_FILES expects relative paths. This blob converts from abs to rel.
-file(GLOB_RECURSE abs_qml_sources CONFIGURE_DEPENDS  "main.qml" "*.qml")
+file(GLOB_RECURSE abs_qml_sources CONFIGURE_DEPENDS "main.qml" "*.qml")
 SET(rel_qml_sources, "")
-foreach(f_abs IN LISTS abs_qml_sources)
+foreach (f_abs IN LISTS abs_qml_sources)
     file(RELATIVE_PATH f_rel "${CMAKE_CURRENT_LIST_DIR}" ${f_abs})
     list(APPEND rel_qml_sources "${f_rel}")
-endforeach()
+endforeach ()
 
 qt_add_qml_module(memory
-    URI "memory"
-    VERSION 0.1
-    QML_FILES
+        URI "memory"
+        VERSION 0.1
+        QML_FILES
         ${rel_qml_sources}
-    RESOURCE_PREFIX /ui
-    SOURCES
+        RESOURCE_PREFIX /ui
+        SOURCES
         ${sources}
 )
+
 target_compile_definitions(memory PRIVATE "MEMORY_LIBRARY")
 target_link_libraries(memory PUBLIC Qt6::Core Qt6::Gui Qt6::Quick)

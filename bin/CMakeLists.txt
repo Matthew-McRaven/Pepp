@@ -23,6 +23,13 @@ make_target(
         Qt6::Core Qt6::Gui Qt::Qml Qt::Quick Qt::QuickControls2
         Qt::Widgets test-lib-all memory highlight
 )
+install(TARGETS pepp DESTINATION bin)
+qt_generate_deploy_qml_app_script(
+        TARGET pepp
+        OUTPUT_SCRIPT deploy_script
+        NO_UNSUPPORTED_PLATFORM_ERROR
+)
+install(SCRIPT ${deploy_script})
 
 target_compile_definitions(pepp PRIVATE "INCLUDE_GUI=1")
 set(TEST_TARGET "pepp")
@@ -39,6 +46,7 @@ if (WIN32)
             SOURCES ${sources}
             DEPENDS TextFlow cli about macro pas builtins isa targets sim Qt6::Core catch test-lib-all
     )
+    install(TARGETS pepp-term DESTINATION bin)
     set_target_properties(pepp-term PROPERTIES FOLDER "qtc_runnable")
     target_compile_definitions(pepp-term PRIVATE "INCLUDE_GUI=0")
     target_compile_definitions(pepp-term PRIVATE "DEFAULT_GUI=0")
@@ -59,7 +67,7 @@ set_target_properties(pepp PROPERTIES
 )
 
 set_target_properties(pepp PROPERTIES FOLDER "qtc_runnable")
-# Non-DLL platforms have empty generator expressin, so use more generator magic to only copy DLLs if the exist.
+# Non-DLL platforms have empty generator expression, so use more generator magic to only copy DLLs if the exist.
 add_custom_command(TARGET pepp POST_BUILD
         COMMAND ${CMAKE_COMMAND}
         ARGS

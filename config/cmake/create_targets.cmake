@@ -130,10 +130,16 @@ function(make_target)
     else ()
         qt6_add_library(${MK_TARGET} ${MK_TYPE} ${MK_SOURCES})
     endif ()
+
     # Only add dependencies if present
     if (MK_DEPENDS)
         target_link_libraries(${MK_TARGET} PUBLIC ${MK_DEPENDS})
     endif ()
+
+    install(TARGETS ${MK_TARGET}
+            BUNDLE DESTINATION .
+            RUNTIME DESTINATION bin
+    )
 endfunction()
 
 # Helper to make a PUBLIC library with cpp sources.

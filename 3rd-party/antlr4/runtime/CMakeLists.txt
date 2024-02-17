@@ -103,6 +103,10 @@ if (TARGET antlr4_shared)
                         PROPERTIES VERSION   ${ANTLR_VERSION}
                                    SOVERSION ${ANTLR_VERSION}
                                    COMPILE_FLAGS "${disabled_compile_warnings} ${extra_share_compile_flags}")
+  install(
+        TARGETS antlr4_shared
+        RUNTIME DESTINATION bin
+  )
 endif()
 
 if (TARGET antlr4_static)
