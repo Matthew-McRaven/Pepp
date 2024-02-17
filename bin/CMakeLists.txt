@@ -23,6 +23,15 @@ make_target(
         Qt6::Core Qt6::Gui Qt::Qml Qt::Quick Qt::QuickControls2
         Qt::Widgets test-lib-all memory highlight
 )
+# GLOB_RECURSE uses abs paths, QML_FILES expects relative paths. This blob converts from abs to rel.
+set_target_properties(pepp PROPERTIES
+        MACOSX_BUNDLE_GUI_IDENTIFIER edu.pepperdine.cslab.pepp
+        MACOSX_BUNDLE_BUNDLE_VERSION ${PROJECT_VERSION}
+        MACOSX_BUNDLE_SHORT_VERSION_STRING ${PROJECT_VERSION_MAJOR}.${PROJECT_VERSION_MINOR}
+        MACOSX_BUNDLE TRUE
+        WIN32_EXECUTABLE TRUE
+)
+
 install(TARGETS pepp DESTINATION bin)
 qt_generate_deploy_qml_app_script(
         TARGET pepp
@@ -57,14 +66,6 @@ else ()
     add_executable(pepp-term ALIAS pepp)
 endif ()
 
-# GLOB_RECURSE uses abs paths, QML_FILES expects relative paths. This blob converts from abs to rel.
-set_target_properties(pepp PROPERTIES
-        MACOSX_BUNDLE_GUI_IDENTIFIER my.example.com
-        MACOSX_BUNDLE_BUNDLE_VERSION ${PROJECT_VERSION}
-        MACOSX_BUNDLE_SHORT_VERSION_STRING ${PROJECT_VERSION_MAJOR}.${PROJECT_VERSION_MINOR}
-        MACOSX_BUNDLE TRUE
-        WIN32_EXECUTABLE TRUE
-)
 
 set_target_properties(pepp PROPERTIES FOLDER "qtc_runnable")
 # Non-DLL platforms have empty generator expression, so use more generator magic to only copy DLLs if the exist.
