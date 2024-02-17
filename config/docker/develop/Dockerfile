@@ -1,5 +1,5 @@
-# Will be the latest LTS by the time we release the book, which I assum to be ~ 2025.
-FROM ubuntu:22.04 as base-native
+# Will be the latest LTS by the time we release the book, which I assume to be ~ 2025.
+FROM ubuntu:22.04 as base-gcc
 # Prevent apt-get from pausing for input in an environment in which it can never
 ENV DEBIAN_FRONTEND=noninteractive
 # Building boost + final build image needs all of the same tools.
@@ -22,52 +22,28 @@ RUN wget -q -O ninja.zip "https://github.com/ninja-build/ninja/releases/download
     && unzip ninja.zip -d /bin && rm ninja.zip
 # Need to pick this locale otherwise Qt complains and overrides the locale anyway.
 ENV LANG="C.UTF-8"
-# Must occur after the "FROM" directive, must be a valid tag from GitHub.
-ARG BOOST_VERSION="1.83.0"
 # Must occur after the "FROM" directive, allows choice of Qt version.
-ARG QT_VERSION="6.6.0"
+ARG QT_VERSION="6.6.1"
 # Don't cache pip internal files, reduce image size.
 ENV PIP_NO_CACHE_DIR=1
 SHELL ["/bin/bash", "-c"]
-LABEL org.opencontainers.image.authors="matthew.mcraven@gmail.com"
+LABEL org.opencontainers.image.authors="Matthew McRaven <matthew.mcraven@gmail.com>"
+LABEL org.opencontainers.image.source="https://github.com/Matthew-McRaven/Pepp"
 
 
-FROM base-native as base-wasm
+FROM base-gcc as base-wasm
 # Must install documentation-building tools in WASM image.
 # Otherwise it will be very difficult to build GH pages deployments.
 RUN apt update \
-    &&  apt install -y --no-install-recommends graphviz imagemagick doxygen \
+    && apt install -y --no-install-recommends graphviz imagemagick doxygen \
     && rm -rf /var/lib/apt/lists/*
 # Insert workaround for Qt+breathe: https://github.com/breathe-doc/breathe/issues/574
 # Must install exactly 4.35.0, otherwise insert may fail.
 RUN pip install Sphinx==7.1.2 breathe==4.35.0 Pillow \
   && sed -i '253 i \        "property": (CMacroObject, "macro"),' "/usr/local/lib/python3.10/dist-packages/breathe/renderer/sphinxrenderer.py"
-
 RUN git clone https://github.com/emscripten-core/emsdk.git /emsdk
 # Must combine, otherwise a layer is the same in multi-arch builds, breaking everything
 RUN cd /emsdk && git pull && ./emsdk install 3.1.37  && ./emsdk activate 3.1.37 && echo uname -a /emsdk.arch
-
-
-# Build Boost in separate stage to limit image bloat
-# Boost will (eventually) install to /usr/local/lib
-FROM base-native as boost-native-build
-RUN git clone --jobs 10 --recursive --branch boost-${BOOST_VERSION}  https://github.com/boostorg/boost
-WORKDIR boost
-# Copy to a empty directory to make copying only the desired files easier.
-RUN ./bootstrap.sh --prefix=/bmagic
-RUN ./b2 cxxflags="-fPIC -std=c++17" address-model=64 link=static runtime-link=static -j $(nproc) threading=multi install --build-dir=./build --stagedir=./stage --prefix=/bmagic
-
-
-# Boost will (eventually) install to /usr/local/lib
-# Build Boost in separate stage to limit image bloat
-FROM base-wasm as boost-wasm-build
-RUN git clone --jobs 10 --recursive --branch boost-${BOOST_VERSION}  https://github.com/boostorg/boost
-WORKDIR boost
-# Copy to a empty directory to make copying only the desired files easier.
-RUN source /emsdk/emsdk_env.sh && ./bootstrap.sh --prefix=/bmagic
-# Must not specify threading for build to pass
-RUN source /emsdk/emsdk_env.sh && emconfigure ./b2 cxxflags="-fPIC -std=c++17" address-model=64 link=static runtime-link=static -j $(nproc) install --build-dir=./build --stagedir=./stage --prefix=/bmagic
-
 
 
 FROM base-wasm as output-wasm
@@ -80,28 +56,19 @@ ENV Qt6_DIR=/qt/${QT_VERSION}/wasm_singlethread/lib/cmake/Qt6
 ENV QT_PLUGIN_PATH=/qt/${QT_VERSION}/wasm_singlethread/plugins
 ENV QML2_IMPORT_PATH=/qt/${QT_VERSION}/wasm_singlethread/qml
 ENV PATH=/qt/${QT_VERSION}/wasm_singlethread/bin/:$PATH
-
-COPY --from=boost-wasm-build /bmagic /usr/local
-ENV Boost_ROOT=/usr/local
-LABEL description="A wasm build container using Qt $QT_VERSION, and Boost $BOOST_VERSION."
+LABEL description="A wasm build container using Qt $QT_VERSION."
 
 
-FROM base-native as output-native
+FROM base-gcc as output-gcc
 # Install Qt with aqtinstall (see https://github.com/miurahr/aqtinstall), selecting only the modules we need.
 RUN pip install aqtinstall && aqt install-qt linux desktop ${QT_VERSION} --outputdir /qt && pip uninstall aqtinstall -y && rm aqtinstall.log
-
 # Define standard Qt environment variables so that executing cmake directly will work.
 ENV LD_LIBRARY_PATH=/qt/${QT_VERSION}/gcc_64/lib:${LD_LIBRARY_PATH}
 ENV Qt6_DIR=/qt/${QT_VERSION}/gcc_64
 ENV QT_PLUGIN_PATH=/qt/${QT_VERSION}/gcc_64/plugins
 ENV QML2_IMPORT_PATH=/qt/${QT_VERSION}/gcc_64/qml
 ENV PATH=/qt/${QT_VERSION}/gcc_64/bin/:$PATH
-
-# Copy over compiled boost binaries and set environment variables.
-COPY --from=boost-native-build /bmagic /usr/local
-ENV Boost_ROOT=/usr/local
-
-# Install mold, so that we can increase link times
+# Install mold, so that we can reduce link times
 ARG MOLD_VERSION="2.3.1"
 RUN --mount=type=tmpfs,target=/mold,size=2G \
     cd mold \
@@ -109,4 +76,38 @@ RUN --mount=type=tmpfs,target=/mold,size=2G \
     && tar xf mold.tar.gz && ls && cd mold-$MOLD_VERSION-$(arch)-linux \
     && find -type d -exec mkdir -vp ""/{} \; -or -exec mv -nv {} ""/{} \;
     # No need to clean up, all temp data should be in tmpfs
-LABEL description="A native build container using Qt $QT_VERSION, Boost $BOOST_VERSION, and Mold $MOLD_VERSION."
+LABEL description="A GCC build container using Qt $QT_VERSION, and Mold $MOLD_VERSION."
+
+
+# LLVM-install script inspired by: https://github.com/teeks99/clang-ubuntu-docker
+#MIT License
+#
+#Copyright (c) 2018 Tom Kent
+#
+#Permission is hereby granted, free of charge, to any person obtaining a copy
+#of this software and associated documentation files (the "Software"), to deal
+#in the Software without restriction, including without limitation the rights
+#to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+#copies of the Software, and to permit persons to whom the Software is
+#furnished to do so, subject to the following conditions:
+#
+#The above copyright notice and this permission notice shall be included in all
+#copies or substantial portions of the Software.
+#THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+#IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+#FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+#AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+#LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+#OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+#SOFTWARE.
+FROM output-gcc as output-clang
+ARG LLVM_VERSION="17"
+ADD llvm.list /etc/apt/sources.list.d/
+ADD llvm-snapshot.gpg.key.gpg /etc/apt/trusted.gpg.d/
+RUN apt update && apt install  --no-install-recommends -y \
+    ca-certificates clang-$LLVM_VER clang-tools-$LLVM_VERSION clang-format-$LLVM_VERSION \
+    libfuzzer-${LLVM_VERSION}-dev lld-$LLVM_VERSION \
+    && ln -s /usr/bin/clang++-$LLVM_VERSION /usr/bin/clang++ \
+    && ln -s /usr/bin/clang-$LLVM_VERSION /usr/bin/clang \
+    && rm -rf /var/lib/apt/lists/*
+LABEL description="A clang $LLVM_VERSION build container using Qt $QT_VERSION."
