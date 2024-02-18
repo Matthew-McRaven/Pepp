@@ -85,6 +85,11 @@ jobs:
         with:
           cache-key-prefix: install-qt-${{ inputs.runs-on }}
 
+      - name: Add QTIFW to path
+        if: inputs.runs-on == 'windows-latest'
+        shell: bash
+        run: echo "$RUNNER_WORKSPACE/Qt/Tools/QtInstallerFramework/4.6/bin" >>$GITHUB_PATH
+
       # Prevent clang from using ccache, because it is profiling build times
       - name: Enable caching object files between builds
         # Disable ccache when running locally
@@ -135,6 +140,7 @@ jobs:
           ${{ inputs.docs_audience && format('-D DOC_AUDIENCE={0}', inputs.docs_audience) || '' }}
           ${{inputs.docs_artifact && format('-D DOC_PREBUILT_DIR="{0}"', inputs.docs_artifact) || '' }}
           -D CMAKE_BUILD_TYPE=Debug -D MAC_DEVELOPER_NAME="$MAC_DEVELOPER_NAME"
+          -D CPACK_BUILD_CONFIG=Debug
         env:
           MAC_DEVELOPER_NAME: ${{ secrets.MAC_DEVELOPER_NAME }}
 
@@ -145,7 +151,7 @@ jobs:
         shell: bash
         if: ${{ !contains(inputs.name, 'EMSDK') }}
         working-directory: build
-        run: cpack
+        run: ls -lah && cpack -c Debug
 
       # Run tests, sign outputs, and upload artifacts
       - name: Run tests

@@ -17,4 +17,5 @@ runs:
       version: ${{ inputs.qt_version }}
       cache: true
       extra: "--base https://mirrors.ocf.berkeley.edu/qt"
-      tools: "tools_ifw"
+      tools: 'tools_ifw,qt.tools.ifw.46'
+      add-tools-to-path: true
