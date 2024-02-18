@@ -46,6 +46,7 @@ jobs:
           cat $GITHUB_OUTPUT
 
   start_codeql:
+    name: Run CodeQL
     needs: branch_info
     uses: ./.github/workflows/build.yml
     permissions:

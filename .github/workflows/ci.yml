@@ -119,6 +119,7 @@ jobs:
           path: data
           retention-days: 1
   start_matrix:
+    name: Trigger build for ${{ matrix.name }}
     needs: [ branch_info, build_docs, check_tag, create_icons ]
     uses: ./.github/workflows/build.yml
     strategy:
