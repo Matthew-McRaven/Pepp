@@ -46,7 +46,8 @@ math(EXPR adjusted_shard_count "${SHARD_COUNT} - 1")
 file(WRITE "${CTEST_FILE}"
 "string(RANDOM LENGTH 8 ALPHABET \"0123456789abcdef\" rng_seed)
 foreach(shard_idx RANGE ${adjusted_shard_count})
-  add_test(\"${TARGET_NAME}-shard-$" "{shard_idx}/${adjusted_shard_count}\"
+  math(EXPR shard_idx_plusplus \"$" "{shard_idx} + 1\")
+  add_test(\"${TARGET_NAME}-shard-$" "{shard_idx_plusplus}/${SHARD_COUNT}\"
     ${TEST_BINARY} ${ADDTL_ARGS} --shard-index  $" "{shard_idx} --shard-count ${SHARD_COUNT} \
     --rng-seed  0x$" "{rng_seed} --order rand ${other_args}
   )
