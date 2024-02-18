@@ -105,6 +105,12 @@ jobs:
       - name: Run build
         run: cmake --build build -j6
 
+      - name: Run cpack
+        shell: bash
+        if: ${{ !contains(inputs.name, 'EMSDK') }}
+        working-directory: build
+        run: ls -lah && cpack
+
       # Run tests, sign outputs, and upload artifacts
       - name: Run tests
         if: inputs.ctest_launcher
