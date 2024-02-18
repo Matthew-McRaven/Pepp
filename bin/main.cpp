@@ -31,10 +31,17 @@
 #include "commands/throughput.hpp"
 
 int main(int argc, char **argv) {
+  // Get the name of the executable, and see if it end in term or gui.
+  // If so, override the DEFAULT_GUI behavior.
+  QFile execFile(argv[0]);
+  QFileInfo execInfo(execFile);
+  auto name = execInfo.baseName();
+  bool is_term = name.endsWith("term", Qt::CaseInsensitive);
+  bool is_gui = name.endsWith("gui", Qt::CaseInsensitive);
   CLI::App app{"Pepp", "pepp"};
   app.set_help_flag("-h,--help", "Display this help message and exit.");
 
-  auto shared_flags = detail::SharedFlags{.isGUI = DEFAULT_GUI};
+  auto shared_flags = detail::SharedFlags{.isGUI = is_gui || (!is_term && DEFAULT_GUI)};
   auto ed = app.add_flag("-e,--edition", shared_flags.edValue,
                          "Which edition of Computer Systems to target. "
                          "Possible values are 4, 5, and 6.")

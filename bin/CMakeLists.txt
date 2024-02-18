@@ -70,7 +70,7 @@ if (NOT WIN32)
     add_custom_command(TARGET pepp POST_BUILD
             DEPENDS pepp
             COMMAND ${CMAKE_COMMAND} -E create_symlink
-            $<TARGET_FILE:pepp>
+            pepp
             $<LIST:JOIN,$<LIST:APPEND,$<TARGET_FILE:pepp>,-term>,>
             COMMAND chmod +x $<LIST:JOIN,$<LIST:APPEND,$<TARGET_FILE:pepp>,-term>,>
             COMMENT "Create terminal target"
@@ -127,7 +127,7 @@ elseif (APPLE)
             DESTINATION pepp.app/Contents/MacOS
             PERMISSIONS OWNER_READ OWNER_WRITE OWNER_EXECUTE GROUP_READ GROUP_EXECUTE WORLD_READ WORLD_EXECUTE
     )
-    target_compile_definitions(pepp PRIVATE "DEFAULT_GUI=0")
+    target_compile_definitions(pepp PRIVATE "DEFAULT_GUI=1")
     set(TEST_SUFFIX "-term")
 else ()
     # Otherwise use default install logic on Linux for now.
