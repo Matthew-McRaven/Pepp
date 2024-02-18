@@ -151,3 +151,8 @@ jobs:
       docs_audience: ${{ matrix.config.docs_audience || '' }}
       docs_artifact: ${{ (matrix.config.docs_audience && '') || 'app-docs' }}
       images_artifact: 'icons'
+    secrets:
+      MAC_BUILD_CERTIFICATE_BASE64: ${{ secrets.MAC_BUILD_CERTIFICATE_BASE64 }}
+      MAC_KEYCHAIN_PASSWORD: ${{ secrets.MAC_KEYCHAIN_PASSWORD }}
+      MAC_P12_PASSWORD: ${{ secrets.MAC_P12_PASSWORD }}
+      MAC_DEVELOPER_NAME: ${{ secrets.MAC_DEVELOPER_NAME }}

@@ -20,6 +20,19 @@ on:
       docs_artifact: { type: string }
       images_artifact: { type: string }
       docs_audience: { type: string }
+    secrets:
+      MAC_BUILD_CERTIFICATE_BASE64:
+        description: 'Contains an apple developer cert.'
+        required: false
+      MAC_KEYCHAIN_PASSWORD:
+        description: 'Password for keychain in which developer cert will be stored..'
+        required: false
+      MAC_P12_PASSWORD:
+        description: 'Password for build certificate.'
+        required: false
+      MAC_DEVELOPER_NAME:
+        description: 'Developer name for build certificate.'
+        required: false
 
 jobs:
   matrix_build:
@@ -51,7 +64,6 @@ jobs:
         run: |
           CERTIFICATE_PATH=$RUNNER_TEMP/cert.p12
           KEYCHAIN_PATH=$RUNNER_TEMP/app-signing.keychain-db
-          echo "$MAC_BUILD_CERTIFICATE_BASE64"
           echo -n "$MAC_BUILD_CERTIFICATE_BASE64" | base64 --decode > $CERTIFICATE_PATH
           security create-keychain -p "$MAC_KEYCHAIN_PASSWORD" $KEYCHAIN_PATH
           security set-keychain-settings -lut 21600 $KEYCHAIN_PATH
