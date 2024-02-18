@@ -240,6 +240,7 @@ if (ONLY STREQUAL "BUILD")
     # Assuming you're targeting multiple platforms, you might want to conditionally set the generator
     if (WIN32)
         set(CPACK_GENERATOR "IFW") # or "ZIP" for a simple zip archive
+        set(CPACK_IFW_ROOT "${Qt6_DIR}/../../../../Tools/QtInstallerFramework/4.6")
         set(CPACK_IFW_PRODUCT_URL "https://github.com/Matthew-McRaven/Pepp/")
         if (EXISTS "${PROJECT_DATA_DIR}/icons/icon.ico")
             set(CPACK_IFW_PACKAGE_ICON "${PROJECT_DATA_DIR}/icons/icon.ico")
