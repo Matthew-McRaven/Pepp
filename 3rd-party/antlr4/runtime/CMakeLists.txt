@@ -100,8 +100,7 @@ set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${PROJECT_BINARY_DIR}/bin)
 
 if (TARGET antlr4_shared)
   set_target_properties(antlr4_shared
-                        PROPERTIES VERSION   ${ANTLR_VERSION}
-                                   COMPILE_FLAGS "${disabled_compile_warnings} ${extra_share_compile_flags}")
+                        PROPERTIES COMPILE_FLAGS "${disabled_compile_warnings} ${extra_share_compile_flags}")
 endif()
 
 if (TARGET antlr4_static)
