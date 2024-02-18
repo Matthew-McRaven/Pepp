@@ -234,14 +234,46 @@ if (ONLY STREQUAL "BUILD")
     # Configure CPack installer generation.
     set(CPACK_PACKAGE_NAME "Pepp")
     set(CPACK_PACKAGE_VENDOR "Pepperdine University")
-    set(CPACK_PACKAGE_DESCRIPTION_SUMMARY "A GUI for the Pep/10 virtual machine at various levels of abstraction")
+    set(CPACK_PACKAGE_DESCRIPTION_SUMMARY "Pepp IDE")
     set(CPACK_PACKAGE_VERSION ${PROJECT_VERSION})
     set(CPACK_PACKAGE_INSTALL_DIRECTORY "Pepp")
     # Assuming you're targeting multiple platforms, you might want to conditionally set the generator
     if (WIN32)
         set(CPACK_GENERATOR "IFW") # or "ZIP" for a simple zip archive
+        set(CPACK_IFW_ROOT "${Qt6_DIR}/../../../../Tools/QtInstallerFramework/4.6")
+        set(CPACK_IFW_PRODUCT_URL "https://github.com/Matthew-McRaven/Pepp/")
+        if (EXISTS "${PROJECT_DATA_DIR}/icons/icon.ico")
+            set(CPACK_IFW_PACKAGE_ICON "${PROJECT_DATA_DIR}/icons/icon.ico")
+        endif ()
+        if (EXISTS "${PROJECT_DATA_DIR}/icons/icon.png")
+            set(CPACK_IFW_PACKAGE_WINDOW_ICON "${PROJECT_DATA_DIR}/icons/icon.png")
+        endif ()
+        include(CPackIFW)
+        cpack_add_component(Pepp
+                DISPLAY_NAME Pepp
+                REQUIRED
+        )
+        cpack_ifw_configure_component(Pepp
+                FORCED_INSTALLATION
+                REQUIRES_ADMIN_RIGHTS
+                NAME "Pepp"
+                LICENSES "GPL-3.0" "${PROJECT_SOURCE_DIR}/LICENSE"
+        )
     elseif (APPLE)
-        set(CPACK_GENERATOR "DragNDrop") # for a macOS .dmg
+        set(CPACK_GENERATOR "Bundle") # for a macOS .dmg
+        set(CPACK_BUNDLE_NAME "Pepp")
+        set(CPACK_BUNDLE_PLIST "${PROJECT_SOURCE_DIR}/bin/Info.plist")
+        set(CPACK_BUNDLE_ICON "${PROJECT_DATA_DIR}/icons/icon.icns")
+
+        # Allow developer name to be passed via environment or -D
+        set(MAC_DEVELOPER_NAME "" CACHE STRING "A variable passed in via -D")
+        if(NOT MAC_DEVELOPER_NAME)
+            set(MAC_DEVELOPER_NAME $ENV{MAC_DEVELOPER_NAME})
+        endif()
+        set(CPACK_BUNDLE_APPLE_CERT_APP "${MAC_DEVELOPER_NAME}")
+        set(CPACK_BUNDLE_APPLE_ENTITLEMENTS "${PROJECT_SOURCE_DIR}/bin/entitlements.plist")
+        set(CPACK_BUNDLE_APPLE_CODESIGN_PARAMETERS "--deep --timestamp -f")
+        # Will still need to notarize & staple the DMG in CI.
     else ()
         set(CPACK_GENERATOR "TGZ") # for Linux, multiple generators can be specified
     endif ()

@@ -3,7 +3,7 @@ cmake_minimum_required (VERSION 3.15)
 # 3.14 needed because of FetchContent
 # 3.15 needed to avid spew of warnings related to overriding cl command line flags
 
-set(CMAKE_MACOSX_RPATH OFF)
+set(CMAKE_MACOSX_RPATH ON)
 
 # Detect build type, fallback to release and throw a warning if use didn't specify any
 if(NOT CMAKE_BUILD_TYPE)
@@ -111,7 +111,3 @@ endif()
 
 
 add_subdirectory(runtime)
-
-set(CPACK_PACKAGE_CONTACT "antlr-discussion@googlegroups.com")
-set(CPACK_PACKAGE_VERSION ${ANTLR_VERSION})
-include(CPack)

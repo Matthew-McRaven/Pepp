@@ -5,6 +5,7 @@ on:
 
 jobs:
   remove_ccache:
+    name: Remove orphan caches
     runs-on: ubuntu-latest
     permissions:
       actions: write
