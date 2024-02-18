@@ -62,6 +62,9 @@ jobs:
       - name: Clone sources to extract project version
         uses: actions/checkout@v4
         if: needs.branch_info.outputs.build_release == true
+        # LFS defaults to disabled, but accidental LFS bandwidth would be bad.
+        with:
+          lfs: 'false'
       - uses: lukka/get-cmake@v3.27.9
         if: needs.branch_info.outputs.build_release == true
       - name: Extract the CMake version
@@ -85,6 +88,9 @@ jobs:
     steps:
       # Must exectute before any repo-local actions
       - uses: actions/checkout@v4
+        # LFS defaults to disabled, but accidental LFS bandwidth would be bad.
+        with:
+          lfs: 'false'
       # Install dependencies based on enabled features
       - if: env.ACT
         uses: ./.github/actions/install-node
@@ -102,6 +108,9 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+        # LFS defaults to disabled, but accidental LFS bandwidth would be bad.
+        with:
+          lfs: 'false'
       - name: Setup ImageMagick libicns (for ICNS conversion)
         run: sudo apt update && sudo apt install imagemagick icnsutils
       - name: Convert SVG to PNG

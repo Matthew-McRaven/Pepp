@@ -2,3 +2,7 @@
 !*.svg
 !.gitignore
 !*.rc
+# No longer need to ignore icons because we will use LFS.
+!*.png
+!*.ico
+!*.icns
