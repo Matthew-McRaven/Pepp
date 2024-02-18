@@ -260,7 +260,21 @@ if (ONLY STREQUAL "BUILD")
                 LICENSES "GPL-3.0" "${PROJECT_SOURCE_DIR}/LICENSE"
         )
     elseif (APPLE)
-        set(CPACK_GENERATOR "DragNDrop") # for a macOS .dmg
+        set(CPACK_GENERATOR "Bundle") # for a macOS .dmg
+        set(CPACK_BUNDLE_NAME "Pepp")
+        set(CPACK_BUNDLE_PLIST "${PROJECT_DATA_DIR}/Info.plist")
+        set(CPACK_BUNDLE_ICON "${PROJECT_DATA_DIR}/icons/icon.icns")
+
+        # Allow developer name to be passed via environment or -D
+        set(MAC_DEVELOPER_NAME "" CACHE STRING "A variable passed in via -D")
+        if(NOT MAC_DEVELOPER_NAME)
+            set(MAC_DEVELOPER_NAME $ENV{MAC_DEVELOPER_NAME})
+        endif()
+        message("Dev Name is ${MAC_DEVELOPER_NAME}")
+        set(CPACK_BUNDLE_APPLE_CERT_APP "${MAC_DEVELOPER_NAME}")
+        set(CPACK_BUNDLE_APPLE_ENTITLEMENTS "${PROJECT_DATA_DIR}/entitlements.plist")
+        set(CPACK_BUNDLE_APPLE_CODESIGN_PARAMETERS "--deep --timestamp -f")
+        # Will still need to notarize & staple the DMG in CI.
     else ()
         set(CPACK_GENERATOR "TGZ") # for Linux, multiple generators can be specified
     endif ()

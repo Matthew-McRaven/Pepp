@@ -43,6 +43,25 @@ jobs:
       - if: env.ACT
         name: Install Node if running locally using `nektos/act`
         uses: ./.github/actions/install-node
+      # Must do a bunch of work to enable signing on MacOS.
+      # https://docs.github.com/en/actions/deployment/deploying-xcode-applications/installing-an-apple-certificate-on-macos-runners-for-xcode-development
+      # WARNING: If we switch to self-hosted runners, must clean up the certs ourselves.
+      - name: Import Apple Certificate
+        if: ${{ contains(inputs.name, 'MacOS') }}
+        run: |
+          CERTIFICATE_PATH=$RUNNER_TEMP/cert.p12
+          KEYCHAIN_PATH=$RUNNER_TEMP/app-signing.keychain-db
+          echo "$MAC_BUILD_CERTIFICATE_BASE64"
+          echo -n "$MAC_BUILD_CERTIFICATE_BASE64" | base64 --decode > $CERTIFICATE_PATH
+          ls -lah $RUNNER_TEMP
+          security create-keychain -p "$MAC_KEYCHAIN_PASSWORD" $KEYCHAIN_PATH
+          security set-keychain-settings -lut 21600 $KEYCHAIN_PATH
+          security unlock-keychain -p "$MAC_KEYCHAIN_PASSWORD" $KEYCHAIN_PATH
+          security import $CERTIFICATE_PATH -P "$MAC_P12_PASSWORD" -A -t cert -f pkcs12 -k $KEYCHAIN_PATH
+        env:
+          MAC_BUILD_CERTIFICATE_BASE64: ${{ secrets.MAC_BUILD_CERTIFICATE_BASE64 }}
+          MAC_KEYCHAIN_PASSWORD: ${{ secrets.MAC_KEYCHAIN_PASSWORD }}
+          MAC_P12_PASSWORD: ${{ secrets.MAC_P12_PASSWORD }}
 
       # Install dependencies based on enabled features
       - name: Install Qt+CMake in non-containerized builds
@@ -100,7 +119,9 @@ jobs:
           ${{ inputs.cmake_xargs }}
           ${{ inputs.docs_audience && format('-D DOC_AUDIENCE={0}', inputs.docs_audience) || '' }}
           ${{inputs.docs_artifact && format('-D DOC_PREBUILT_DIR="{0}"', inputs.docs_artifact) || '' }}
-          -D CMAKE_BUILD_TYPE=Debug
+          -D CMAKE_BUILD_TYPE=Debug -D MAC_DEVELOPER_NAME="$MAC_DEVELOPER_NAME"
+        env:
+          MAC_DEVELOPER_NAME: ${{ secrets.MAC_DEVELOPER_NAME }}
 
       - name: Run build
         run: cmake --build build -j6
