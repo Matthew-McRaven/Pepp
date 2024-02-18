@@ -65,25 +65,24 @@ target_include_directories(pepp PRIVATE ${CMAKE_CURRENT_LIST_DIR}/demo/fig-view)
 
 # On non-Windows platforms, create extra files that will explicitly start the graphical or the terminal version.
 # Meaningless on WIN32, since apps are either console or non-console, never both.
-if(NOT WIN32)
+if (NOT WIN32)
 
     add_custom_command(TARGET pepp POST_BUILD
-        DEPENDS pepp
-        COMMAND ${CMAKE_COMMAND} -E create_symlink
-           $<TARGET_FILE:pepp>
-           $<LIST:JOIN,$<LIST:APPEND,$<TARGET_FILE:pepp>,-term>,>
-        COMMAND chmod +x $<LIST:JOIN,$<LIST:APPEND,$<TARGET_FILE:pepp>,-term>,>
-        COMMENT "Create terminal target"
+            DEPENDS pepp
+            COMMAND ${CMAKE_COMMAND} -E create_symlink
+            $<TARGET_FILE:pepp>
+            $<LIST:JOIN,$<LIST:APPEND,$<TARGET_FILE:pepp>,-term>,>
+            COMMAND chmod +x $<LIST:JOIN,$<LIST:APPEND,$<TARGET_FILE:pepp>,-term>,>
+            COMMENT "Create terminal target"
 
     )
     # Create a helper script which will launch the main executable in GUI mode.
     file(GENERATE
-        OUTPUT ${CMAKE_CURRENT_BINARY_DIR}/pepp-gui
-        CONTENT
+            OUTPUT ${CMAKE_CURRENT_BINARY_DIR}/pepp-gui
+            CONTENT
             "script_name=$0\n script_full_path=$(dirname \"\$0\")\n $script_full_path/$<TARGET_FILE_NAME:pepp> gui"
     )
-endif()
-
+endif ()
 
 
 if (WIN32)
@@ -109,37 +108,37 @@ if (WIN32)
     )
     # Must specify antlr, because we can't easily install 3rd-party deps.
     install(TARGETS pepp antlr4_shared pepp-term
-        COMPONENT Pepp
-        RUNTIME DESTINATION bin
-        BUNDLE DESTINATION .
+            COMPONENT Pepp
+            RUNTIME DESTINATION bin
+            BUNDLE DESTINATION .
     )
 
-elseif(APPLE)
+elseif (APPLE)
     # Install our pepp application
     # antlr4 isn't copied by any target since it is a 3rd-party dependency.
     # we must copy it here in a platform-dependent way
     install(TARGETS pepp antlr4_shared
-        COMPONENT Pepp
-        LIBRARY DESTINATION pepp.app/Contents/Frameworks
-        BUNDLE DESTINATION .
+            COMPONENT Pepp
+            LIBRARY DESTINATION pepp.app/Contents/Frameworks
+            BUNDLE DESTINATION .
     )
     install(
-        FILES ${CMAKE_CURRENT_BINARY_DIR}/pepp-gui
-        DESTINATION pepp.app/Contents/MacOS
-        PERMISSIONS OWNER_READ OWNER_WRITE OWNER_EXECUTE GROUP_READ GROUP_EXECUTE WORLD_READ WORLD_EXECUTE
+            FILES ${CMAKE_CURRENT_BINARY_DIR}/pepp-gui
+            DESTINATION pepp.app/Contents/MacOS
+            PERMISSIONS OWNER_READ OWNER_WRITE OWNER_EXECUTE GROUP_READ GROUP_EXECUTE WORLD_READ WORLD_EXECUTE
     )
     target_compile_definitions(pepp PRIVATE "DEFAULT_GUI=0")
     set(TEST_SUFFIX "-term")
-else()
+else ()
     # Otherwise use default install logic on Linux for now.
     install(TARGETS pepp antlr4_shared
-        COMPONENT Pepp
-        RUNTIME DESTINATION bin
-        BUNDLE DESTINATION .
+            COMPONENT Pepp
+            RUNTIME DESTINATION bin
+            BUNDLE DESTINATION .
     )
     target_compile_definitions(pepp PRIVATE "DEFAULT_GUI=0")
     set(TEST_SUFFIX "-term")
-endif()
+endif ()
 
 if (0)
     configure_file(test/config.hpp.in "${CMAKE_CURRENT_BINARY_DIR}/config.hpp")
@@ -190,7 +189,7 @@ qt6_add_resources(pepp "pepp"
 if (NOT EMSCRIPTEN)
     set(count 2)
     catch_test_count(count)
-    catch_add_sharded_tests(${TEST_TARGET} ${TEST_SUFFIX} "selftest" SHARD_COUNT ${count})
+    catch_add_sharded_tests(${TEST_TARGET} SUFFIX ${TEST_SUFFIX} ADDTL_ARGS "selftest" SHARD_COUNT ${count})
 endif ()
 
 qt_generate_deploy_qml_app_script(
