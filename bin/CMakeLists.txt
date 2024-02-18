@@ -51,13 +51,13 @@ set_target_properties(pepp PROPERTIES
         FOLDER "qtc_runnable"
 )
 
-install(TARGETS pepp DESTINATION bin)
+install(TARGETS pepp DESTINATION bin COMPONENT Pepp)
 qt_generate_deploy_qml_app_script(
         TARGET pepp
         OUTPUT_SCRIPT deploy_script
         NO_UNSUPPORTED_PLATFORM_ERROR
 )
-install(SCRIPT ${deploy_script})
+install(SCRIPT ${deploy_script} COMPONENT Pepp)
 
 set(TEST_TARGET "pepp")
 # Files with QML definitions must always be includeable without a prefix.
@@ -73,7 +73,7 @@ if (WIN32)
             SOURCES ${sources}
             DEPENDS TextFlow cli about macro pas builtins isa targets sim Qt6::Core catch test-lib-all
     )
-    install(TARGETS pepp-term DESTINATION bin)
+    install(TARGETS pepp-term DESTINATION bin COMPONENT Pepp)
     set_target_properties(pepp-term PROPERTIES FOLDER "qtc_runnable")
     target_compile_definitions(pepp-term PRIVATE "INCLUDE_GUI=0")
     target_compile_definitions(pepp-term PRIVATE "DEFAULT_GUI=0")
