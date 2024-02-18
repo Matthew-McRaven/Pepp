@@ -39,6 +39,8 @@ jobs:
         uses: actions/checkout@v4
         with:
           submodules: 'true'
+          # LFS defaults to disabled, but accidental LFS bandwidth would be bad.
+          lfs: 'false'
       # Local github runner doesn't have node installed.
       - if: env.ACT
         name: Install Node if running locally using `nektos/act`

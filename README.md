@@ -9,6 +9,7 @@
 # Build from Sources
 
 When cloning this project, please use `--recurse-submodules`.
+Please install [git lfs](https://git-lfs.com), which we use to manage binary assets like images and icons.
 
 It is recommended to build the application from within Qt Creator.
 

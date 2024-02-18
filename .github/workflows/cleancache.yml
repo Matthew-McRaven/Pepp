@@ -15,6 +15,9 @@ jobs:
     steps:
     - name: Checkout source code (shallow)
       uses: actions/checkout@v4
+      # LFS defaults to disabled, but accidental LFS bandwidth would be bad.
+      with:
+        lfs: 'false'
     - name: Show caches (debug)
       run: gh cache list
     - name: Get caches
