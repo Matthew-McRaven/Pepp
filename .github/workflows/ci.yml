@@ -150,3 +150,4 @@ jobs:
       not_default: ${{ needs.branch_info.outputs.not_default == 'true' }}
       docs_audience: ${{ matrix.config.docs_audience || '' }}
       docs_artifact: ${{ (matrix.config.docs_audience && '') || 'app-docs' }}
+      images_artifact: 'icons'
