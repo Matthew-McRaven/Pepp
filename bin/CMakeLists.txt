@@ -51,7 +51,16 @@ set_target_properties(pepp PROPERTIES
         FOLDER "qtc_runnable"
 )
 
-install(TARGETS pepp DESTINATION bin COMPONENT Pepp)
+# Must specify antlr, because we can't easily install 3rd-party deps.
+install(TARGETS pepp antlr4_shared
+    COMPONENT Pepp
+    RUNTIME DESTINATION bin
+    BUNDLE DESTINATION .
+)
+if(APPLE)
+    install(TARGETS antlr4_shared LIBRARY DESTINATION pepp.app/Contents/Frameworks)
+endif()
+
 qt_generate_deploy_qml_app_script(
         TARGET pepp
         OUTPUT_SCRIPT deploy_script

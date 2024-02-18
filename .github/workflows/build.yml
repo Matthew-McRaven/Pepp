@@ -53,11 +53,14 @@ jobs:
           KEYCHAIN_PATH=$RUNNER_TEMP/app-signing.keychain-db
           echo "$MAC_BUILD_CERTIFICATE_BASE64"
           echo -n "$MAC_BUILD_CERTIFICATE_BASE64" | base64 --decode > $CERTIFICATE_PATH
-          ls -lah $RUNNER_TEMP
           security create-keychain -p "$MAC_KEYCHAIN_PASSWORD" $KEYCHAIN_PATH
           security set-keychain-settings -lut 21600 $KEYCHAIN_PATH
           security unlock-keychain -p "$MAC_KEYCHAIN_PASSWORD" $KEYCHAIN_PATH
           security import $CERTIFICATE_PATH -P "$MAC_P12_PASSWORD" -A -t cert -f pkcs12 -k $KEYCHAIN_PATH
+          security show-keychain-info $KEYCHAIN_PATH
+          security list-keychain -d user -s $KEYCHAIN_PATH
+          security find-identity -v -p codesigning $KEYCHAIN_PATH
+          security find-certificate -a -p -c $CERTIFICATE_PATH $KEYCHAIN_PATH
         env:
           MAC_BUILD_CERTIFICATE_BASE64: ${{ secrets.MAC_BUILD_CERTIFICATE_BASE64 }}
           MAC_KEYCHAIN_PASSWORD: ${{ secrets.MAC_KEYCHAIN_PASSWORD }}
@@ -130,7 +133,7 @@ jobs:
         shell: bash
         if: ${{ !contains(inputs.name, 'EMSDK') }}
         working-directory: build
-        run: ls -lah && cpack
+        run: cpack
 
       # Run tests, sign outputs, and upload artifacts
       - name: Run tests

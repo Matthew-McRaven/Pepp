@@ -140,6 +140,9 @@ function(make_target)
             BUNDLE DESTINATION .
             RUNTIME DESTINATION bin
     )
+    if(APPLE)
+        install(TARGETS ${MK_TARGET} LIBRARY DESTINATION pepp.app/Contents/Frameworks)
+    endif()
 endfunction()
 
 # Helper to make a PUBLIC library with cpp sources.

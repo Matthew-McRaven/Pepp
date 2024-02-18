@@ -263,14 +263,13 @@ if (ONLY STREQUAL "BUILD")
         set(CPACK_GENERATOR "Bundle") # for a macOS .dmg
         set(CPACK_BUNDLE_NAME "Pepp")
         set(CPACK_BUNDLE_PLIST "${PROJECT_SOURCE_DIR}/bin/Info.plist")
-        set(CPACK_BUNDLE_ICON "${PROJECT__DIR}/icons/icon.icns")
+        set(CPACK_BUNDLE_ICON "${PROJECT_DATA_DIR}/icons/icon.icns")
 
         # Allow developer name to be passed via environment or -D
         set(MAC_DEVELOPER_NAME "" CACHE STRING "A variable passed in via -D")
         if(NOT MAC_DEVELOPER_NAME)
             set(MAC_DEVELOPER_NAME $ENV{MAC_DEVELOPER_NAME})
         endif()
-        message("Dev Name is ${MAC_DEVELOPER_NAME}")
         set(CPACK_BUNDLE_APPLE_CERT_APP "${MAC_DEVELOPER_NAME}")
         set(CPACK_BUNDLE_APPLE_ENTITLEMENTS "${PROJECT_SOURCE_DIR}/bin/entitlements.plist")
         set(CPACK_BUNDLE_APPLE_CODESIGN_PARAMETERS "--deep --timestamp -f")
