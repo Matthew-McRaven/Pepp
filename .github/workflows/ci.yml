@@ -78,6 +78,7 @@ jobs:
             exit 115 # Use a sufficiently rare exit code to make this failure easy to detect
           fi
   build_docs:
+    name: Build documentation
     runs-on: ubuntu-latest
     container:
       image: "ghcr.io/matthew-mcraven/pepp/docs:v0.10.0"
@@ -96,8 +97,29 @@ jobs:
           name: app-docs
           path: build/docs
           retention-days: 1
+  create_icons:
+    name: Rasterize SVG icons
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Setup ImageMagick libicns (for ICNS conversion)
+        run: sudo apt update && sudo apt install imagemagick icnsutils
+      - name: Convert SVG to PNG
+        run: convert -verbose icon.svg -resize 256x256 icon.png
+        working-directory: ./data/icons
+      - name: Convert SVG to ICO
+        run: convert icon.png -resize 256x256 icon.ico
+        working-directory: ./data/icons
+      - name: Convert PNG to ICNS
+        run: png2icns icon.icns icon.png
+        working-directory: ./data/icons
+      - uses: actions/upload-artifact@v4
+        with:
+          name: icons
+          path: data
+          retention-days: 1
   start_matrix:
-    needs: [ branch_info, build_docs, check_tag ]
+    needs: [ branch_info, build_docs, check_tag, create_icons ]
     uses: ./.github/workflows/build.yml
     strategy:
       fail-fast: true
@@ -128,3 +150,4 @@ jobs:
       not_default: ${{ needs.branch_info.outputs.not_default == 'true' }}
       docs_audience: ${{ matrix.config.docs_audience || '' }}
       docs_artifact: ${{ (matrix.config.docs_audience && '') || 'app-docs' }}
+      images_artifact: 'icons'

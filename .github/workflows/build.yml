@@ -18,6 +18,7 @@ on:
       not_default: { required: True, type: boolean }
       save_cache: { type: boolean, default: True }
       docs_artifact: { type: string }
+      images_artifact: { type: string }
       docs_audience: { type: string }
 
 jobs:
@@ -75,6 +76,14 @@ jobs:
         with:
           name: ${{ inputs.docs_artifact }}
           path: ${{ inputs.docs_artifact }}
+
+      - name: Download converted images and icons
+        uses: actions/download-artifact@v4
+        if: inputs.images_artifact
+        with:
+          name: ${{ inputs.images_artifact }}
+          path: data
+
       - name: Configure CMake
         shell: bash
         run: >
