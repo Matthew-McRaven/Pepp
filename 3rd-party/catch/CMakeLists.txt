@@ -1,6 +1,6 @@
 # Adapted from from Catch2 Commit b817497528877b14d6102869a6df378d029b343b
 # See: https://raw.githubusercontent.com/catchorg/Catch2/b817497528877b14d6102869a6df378d029b343b/extras/CatchShardTests.cmake
-cmake_minimum_required(VERSION 3.23)
+cmake_minimum_required(VERSION 3.24)
 
 # set the project name
 project(catch VERSION 3.5.1)
@@ -45,7 +45,7 @@ function(catch_add_sharded_tests TARGET)
   cmake_parse_arguments(
     ""
     ""
-    "SHARD_COUNT;REPORTER;TEST_SPEC;SUFFIX;ADDTL_ARGS"
+    "SHARD_COUNT;REPORTER;TEST_SPEC;ADDTL_ARGS"
     ""
     ${ARGN}
   )
@@ -75,22 +75,14 @@ function(catch_add_sharded_tests TARGET)
 
   set(shard_impl_script_file "${PROJECT_SOURCE_DIR}/3rd-party/catch/ShardImpl.cmake")
 
-  # They told me you could join strings in genexprs.
-  # The line below treats strings as lists and concats them with an empty seperator.
-  # This looks an awful lot like string concatentation.
-  # If suffix is empy, we need to strip it to prevent unwanted spaces from appearing.
-  string(STRIP "${_SUFFIX}" _SUFFIX)
+
   message("CTest file: ${ctest_tests_file}")
   add_custom_command(
     TARGET ${TARGET} POST_BUILD
     BYPRODUCTS "${ctest_tests_file}"
     COMMAND "${CMAKE_COMMAND}"
             -D "TARGET_NAME=${TARGET}"
-            # Use join<append> to concatenate strings
-            # Get the directory in which the test executable is installed, add a slash so we are inside it.
-            # Get the target basename (without suffix or extensions). Append both the suffix and extension.
-            # Trailing ,> joins the list with an empty separator -- which is string concatenation.
-            -D "TEST_BINARY=$<LIST:JOIN,$<LIST:APPEND,$<TARGET_FILE_DIR:${TARGET}>/,$<TARGET_FILE_BASE_NAME:${TARGET}>,${_SUFFIX},$<PATH:GET_EXTENSION,$<TARGET_FILE:${TARGET}>>>,>"
+            -D "TEST_BINARY=$<TARGET_FILE:${TARGET}>"
             -D "CTEST_FILE=${ctest_tests_file}"
             -D "SHARD_COUNT=${_SHARD_COUNT}"
             -D "ADDTL_ARGS=${_ADDTL_ARGS}"
