@@ -36,12 +36,12 @@ int main(int argc, char **argv) {
   QFile execFile(argv[0]);
   QFileInfo execInfo(execFile);
   auto name = execInfo.baseName();
-  bool is_term = name.endsWith("term", Qt::CaseInsensitive);
-  bool is_gui = name.endsWith("gui", Qt::CaseInsensitive);
+  bool default_term = name.endsWith("term", Qt::CaseInsensitive);
+  bool default_gui = name.endsWith("gui", Qt::CaseInsensitive) || DEFAULT_GUI;
   CLI::App app{"Pepp", "pepp"};
   app.set_help_flag("-h,--help", "Display this help message and exit.");
 
-  auto shared_flags = detail::SharedFlags{.isGUI = is_gui || (!is_term && DEFAULT_GUI)};
+  auto shared_flags = detail::SharedFlags{.kind =  detail::SharedFlags::DEFAULT};
   auto ed = app.add_flag("-e,--edition", shared_flags.edValue,
                          "Which edition of Computer Systems to target. "
                          "Possible values are 4, 5, and 6.")
@@ -66,7 +66,7 @@ int main(int argc, char **argv) {
   registerThroughput(app, task, shared_flags);
   try {
     app.parse(argc, argv);
-    if (!(task || shared_flags.isGUI))
+    if (!(task || shared_flags.kind == detail::SharedFlags::GUI || default_gui))
       throw CLI::CallForHelp();
   } catch (const CLI::CallForHelp &e) {
     std::cout << app.help() << std::endl;
@@ -75,7 +75,8 @@ int main(int argc, char **argv) {
     std::cerr << e.what() << std::endl;
     return 1;
   }
-  if (shared_flags.isGUI) {
+  if(shared_flags.kind == detail::SharedFlags::GUI
+      || (shared_flags.kind == detail::SharedFlags::DEFAULT) && default_gui) {
 #if INCLUDE_GUI
     return gui_main(args);
 #else
@@ -83,7 +84,6 @@ int main(int argc, char **argv) {
     return 4;
 #endif
   } else {
-
     QCoreApplication a(argc, argv);
     auto taskInstance = task(&a);
     QObject::connect(taskInstance, &Task::finished, &a, QCoreApplication::exit, Qt::QueuedConnection);

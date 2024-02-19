@@ -27,8 +27,11 @@ public:
   void run();
 };
 
-void registerThroughput(auto &app, task_factory_t &task, const detail::SharedFlags &flags) {
+void registerThroughput(auto &app, task_factory_t &task, detail::SharedFlags &flags) {
   static auto instrThruSC = app.add_subcommand("mit", "Measure instruction throughput");
   instrThruSC->group("");
-  instrThruSC->callback([&task]() { task = [](QObject *parent) { return new ThroughputTask(parent); }; });
+  instrThruSC->callback([&]() {
+    flags.kind = detail::SharedFlags::TERM;
+    task = [](QObject *parent) { return new ThroughputTask(parent); };
+  });
 }

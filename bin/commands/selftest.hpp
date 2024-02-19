@@ -28,12 +28,13 @@ private:
   std::vector<std::string> args;
 };
 
-void registerSelfTest(auto &app, task_factory_t &task, const detail::SharedFlags &) {
+void registerSelfTest(auto &app, task_factory_t &task, detail::SharedFlags &flags) {
   static auto test = app.add_subcommand("selftest", "Run all integrated tests");
   // No help flag, defer to catch2's help.
   test->prefix_command(true);
   test->set_help_flag();
   test->callback([&]() {
+    flags.kind = detail::SharedFlags::TERM;
     task = [&](QObject *parent) {
       auto remainingArgs = test->remaining_for_passthrough();
       std::reverse(remainingArgs.begin(), remainingArgs.end());

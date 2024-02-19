@@ -27,7 +27,11 @@ private:
   int ed;
 };
 
-void registerList(auto &app, task_factory_t &task, const detail::SharedFlags &flags) {
+void registerList(auto &app, task_factory_t &task, detail::SharedFlags &flags) {
   static auto list = app.add_subcommand("ls", "Produce list of figures and macros");
-  list->callback([&]() { task = [&](QObject *parent) { return new ListTask(flags.edValue, parent); }; });
+  list->callback([&]() {
+    flags.kind = detail::SharedFlags::TERM;
+    task = [&](QObject *parent) {
+    return new ListTask(flags.edValue, parent); };
+  });
 }

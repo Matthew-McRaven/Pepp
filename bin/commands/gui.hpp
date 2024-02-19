@@ -35,8 +35,5 @@ void registerGUI(auto &app, task_factory_t &task, detail::SharedFlags &flags, gu
   static auto gui = app.add_subcommand("gui", "Start Pepp GUI");
   gui->prefix_command(true);
   gui->set_help_flag();
-  gui->callback([&]() { flags.isGUI = true; });
-#if DEFAULT_GUI
-  flags.isGUI = true;
-#endif
+  gui->callback([&]() { flags.kind = detail::SharedFlags::GUI; });
 }
