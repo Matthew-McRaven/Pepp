@@ -23,8 +23,8 @@
 #include <QDirIterator>
 #include <QTimer>
 
-#include "../gui/model/registermodel.h"
-#include "../gui/model/statusbitmodel.h"
+#include "../gui/cpu/registermodel.h"
+#include "../gui/cpu/statusbitmodel.h"
 #include "memory/hexdump/memorybytemodel.h"
 struct default_data : public gui_globals {
   ~default_data() override = default;
@@ -86,13 +86,13 @@ int gui_main(const gui_args &args) {
     globals = default_init(engine);
   (void)globals; // Unused, but keeps bound context variables from being deleted.
 
-  /*QDirIterator i(":", QDirIterator::Subdirectories);
+  QDirIterator i(":", QDirIterator::Subdirectories);
   while (i.hasNext()) {
     auto f = QFileInfo(i.next());
     if (!f.isFile())
       continue;
     qDebug() << f.filePath();
-  }*/
+  }
 
   static const auto default_entry = u"qrc:/Pepp/gui/main.qml"_qs;
   const QUrl url(args.QMLEntry.isEmpty() ? default_entry : args.QMLEntry);

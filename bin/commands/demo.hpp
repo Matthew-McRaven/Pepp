@@ -21,7 +21,6 @@
 #if INCLUDE_GUI
 #include "../demo/asm/main.hpp"
 #include "../demo/fig-view/main.hpp"
-#include "../demo/layout/main.hpp"
 #endif
 
 void registerDemo(auto &app, task_factory_t &task, detail::SharedFlags &flags, gui_args &args) {
@@ -32,8 +31,6 @@ void registerDemo(auto &app, task_factory_t &task, detail::SharedFlags &flags, g
   asmDemo->set_help_flag();
   static auto figDemo = demo->add_subcommand("fig", "Start the figure viewer demo");
   figDemo->set_help_flag();
-  static auto layoutDemo = demo->add_subcommand("layout", "Start the layout demo");
-  layoutDemo->set_help_flag();
 #if INCLUDE_GUI
   asmDemo->callback([&]() {
     args.extra_init = &initializeAsm;
@@ -42,10 +39,6 @@ void registerDemo(auto &app, task_factory_t &task, detail::SharedFlags &flags, g
   figDemo->callback([&]() {
     args.extra_init = &initializeFigView;
     args.QMLEntry = figviewQMLMain;
-  });
-  layoutDemo->callback([&]() {
-    args.extra_init = &initializeLayout;
-    args.QMLEntry = layoutQMLMain;
   });
 #endif
 }
