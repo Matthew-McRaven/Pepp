@@ -36,7 +36,6 @@ struct default_data : public gui_globals {
 };
 
 QSharedPointer<gui_globals> default_init(QQmlApplicationEngine &engine) {
-
   helpview::registerTypes(engine);
   //  Note, these models are instantiated in C++ and passed to QML. QML
   //  cannot instantiate these models directly
@@ -60,7 +59,6 @@ QSharedPointer<gui_globals> default_init(QQmlApplicationEngine &engine) {
 }
 
 int gui_main(const gui_args &args) {
-
   // Must forward args for things like QML debugger to work.
   int argc = args.argvs.size();
   std::vector<char *> argvs(argc);
