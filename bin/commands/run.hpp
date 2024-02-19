@@ -47,7 +47,7 @@ private:
   QMap<std::string, quint16> _regOverrides;
 };
 
-void registerRun(auto &app, task_factory_t &task, const detail::SharedFlags &flags) {
+void registerRun(auto &app, task_factory_t &task, detail::SharedFlags &flags) {
   // Must initialize,
   static bool skipLoad = false, skipDispatch = false, bm = false;
   static std::string objIn, charIn, charOut, memDump, osIn;
@@ -82,6 +82,7 @@ void registerRun(auto &app, task_factory_t &task, const detail::SharedFlags &fla
   }
   static auto regOverrideOpt = runSC->add_option("--reg", regOverrides)->group("");
   runSC->callback([&]() {
+    flags.kind = detail::SharedFlags::TERM;
     task = [&](QObject *parent) {
       auto ret = new RunTask(flags.edValue, objIn, parent);
       if (*charInOpt)

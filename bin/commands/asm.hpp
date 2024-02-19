@@ -21,7 +21,7 @@
 #include "../shared.hpp"
 #include "./asm/asm.hpp"
 
-void registerAsm(auto &app, task_factory_t &task, const detail::SharedFlags &flags) {
+void registerAsm(auto &app, task_factory_t &task, detail::SharedFlags &flags) {
   static auto asmSC = app.add_subcommand("asm", "Assemble stuff");
   static bool bm;
   static std::string userName, osListing, pepoOut, errOut;
@@ -39,6 +39,7 @@ void registerAsm(auto &app, task_factory_t &task, const detail::SharedFlags &fla
 
   asmSC->add_option("-s,user", userName)->required()->expected(1);
   asmSC->callback([&]() {
+    flags.kind = detail::SharedFlags::TERM;
     task = [&](QObject *parent) {
       auto ret = new AsmTask(flags.edValue, userName, parent);
       if (bmAsmOpt && *bmAsmOpt)

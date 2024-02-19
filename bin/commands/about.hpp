@@ -26,7 +26,9 @@ public:
   void run();
 };
 
-void registerAbout(auto &app, task_factory_t &task, const detail::SharedFlags &) {
+void registerAbout(auto &app, task_factory_t &task, detail::SharedFlags &flags) {
   static auto about = app.add_subcommand("about", "Display information about versioning, and developers.");
-  about->callback([&]() { task = [&](QObject *parent) { return new AboutTask(parent); }; });
+  about->callback([&]() {
+    flags.kind = detail::SharedFlags::TERM;
+    task = [&](QObject *parent) { return new AboutTask(parent); }; });
 }

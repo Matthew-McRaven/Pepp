@@ -26,7 +26,11 @@ public:
   void run();
 };
 
-void registerLicense(auto &app, task_factory_t &task, const detail::SharedFlags &) {
+void registerLicense(auto &app, task_factory_t &task, detail::SharedFlags &flags) {
   static auto license = app.add_subcommand("license", "Display information about licensing, and Qt.");
-  license->callback([&]() { task = [&](QObject *parent) { return new LicenseTask(parent); }; });
+  license->callback([&]() {
+    flags.kind = detail::SharedFlags::TERM;
+    task = [&](QObject *parent) {
+    return new LicenseTask(parent); };
+  });
 }

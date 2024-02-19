@@ -20,7 +20,7 @@
 #include "get/fig.hpp"
 #include "get/macro.hpp"
 
-void registerGet(auto &app, task_factory_t &task, const detail::SharedFlags &flags) {
+void registerGet(auto &app, task_factory_t &task, detail::SharedFlags &flags) {
   static auto get = app.add_subcommand("get", "Fetch the body of a figure or macro");
   static auto get_selector = get->add_option_group("")->required();
   static auto get_figure = get_selector->add_option_group("[--ch]");
@@ -34,6 +34,7 @@ void registerGet(auto &app, task_factory_t &task, const detail::SharedFlags &fla
   get_selector->require_option(1);
   get_item->require_option(1);
   get->callback([&]() {
+    flags.kind = detail::SharedFlags::TERM;
     if (chOpt->count() > 0)
       task = [&](QObject *parent) {
         if (*figOpt)

@@ -27,7 +27,7 @@
 void registerDemo(auto &app, task_factory_t &task, detail::SharedFlags &flags, gui_args &args) {
   static auto demo = app.add_subcommand("demo", "Start a Pepp GUI demo");
   demo->set_help_flag();
-  demo->callback([&]() { flags.isGUI = true; });
+  demo->callback([&]() { flags.kind = detail::SharedFlags::GUI; });
   static auto asmDemo = demo->add_subcommand("asm", "Start the assembler demo");
   asmDemo->set_help_flag();
   static auto figDemo = demo->add_subcommand("fig", "Start the figure viewer demo");
