@@ -65,9 +65,15 @@ QSharedPointer<gui_globals> default_init(QQmlApplicationEngine &engine) {
 }
 
 int gui_main(const gui_args &args) {
-  int argc = 0;
-  char **argv = nullptr;
-  QApplication app(argc, argv);
+
+  // Must forward args for things like QML debugger to work.
+  int argc = args.argvs.size();
+  std::vector<char *> argvs(argc);
+  // Must make copy of strings, since argvs should be editable.
+  std::vector<std::string> arg_strs = args.argvs;
+  for (int it = 0; it < argc; it++)
+    argvs[it] = arg_strs[it].data();
+  QApplication app(argc, argvs.data());
 
   QApplication::setOrganizationName("Pepperdine University");
   QApplication::setApplicationName("Pep/10");
@@ -86,13 +92,13 @@ int gui_main(const gui_args &args) {
     globals = default_init(engine);
   (void)globals; // Unused, but keeps bound context variables from being deleted.
 
-  QDirIterator i(":", QDirIterator::Subdirectories);
+  /*QDirIterator i(":", QDirIterator::Subdirectories);
   while (i.hasNext()) {
     auto f = QFileInfo(i.next());
     if (!f.isFile())
       continue;
     qDebug() << f.filePath();
-  }
+  }*/
 
   static const auto default_entry = u"qrc:/Pepp/gui/main.qml"_qs;
   const QUrl url(args.QMLEntry.isEmpty() ? default_entry : args.QMLEntry);

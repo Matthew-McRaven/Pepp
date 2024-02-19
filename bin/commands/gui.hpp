@@ -23,7 +23,7 @@ QSharedPointer<gui_globals> default_init(QQmlApplicationEngine &engine);
 #endif
 
 struct gui_args {
-  std::string app_name;
+  std::vector<std::string> argvs;
 #if INCLUDE_GUI
   init_fn extra_init = nullptr; // If nullptr, not called.
   QUrl QMLEntry{};              // If empty, pick "GUI" default.
@@ -35,5 +35,9 @@ void registerGUI(auto &app, task_factory_t &task, detail::SharedFlags &flags, gu
   static auto gui = app.add_subcommand("gui", "Start Pepp GUI");
   gui->prefix_command(true);
   gui->set_help_flag();
-  gui->callback([&]() { flags.kind = detail::SharedFlags::GUI; });
+  gui->callback([&]() {
+    flags.kind = detail::SharedFlags::GUI;
+    gui_args.argvs = gui->remaining_for_passthrough();
+    std::reverse(gui_args.argvs.begin(), gui_args.argvs.end());
+  });
 }
