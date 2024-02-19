@@ -1,4 +1,4 @@
-cmake_minimum_required(VERSION 3.23)
+cmake_minimum_required(VERSION 3.24)
 
 # Needed so GENERATED is propogated
 # See: https://cmake.org/cmake/help/latest/policy/CMP0118.html
@@ -193,6 +193,7 @@ if (ONLY STREQUAL "BUILD")
     # Some corner cases still require we export symbols manually.
     set(CMAKE_WINDOWS_EXPORT_ALL_SYMBOLS ON)
     include(config/cmake/create_targets.cmake)
+    # Must be earlier or we have issues creating installers.
     add_subdirectory(logic)
     add_subdirectory(ui)
     add_subdirectory(bin)
@@ -260,25 +261,38 @@ if (ONLY STREQUAL "BUILD")
                 LICENSES "GPL-3.0" "${PROJECT_SOURCE_DIR}/LICENSE"
         )
     elseif (APPLE)
-        set(CPACK_GENERATOR "Bundle") # for a macOS .dmg
-        set(CPACK_BUNDLE_NAME "Pepp")
-        set(CPACK_BUNDLE_PLIST "${PROJECT_SOURCE_DIR}/bin/Info.plist")
-        set(CPACK_BUNDLE_ICON "${PROJECT_DATA_DIR}/icons/icon.icns")
-
-        # Allow developer name to be passed via environment or -D
-        set(MAC_DEVELOPER_NAME "" CACHE STRING "A variable passed in via -D")
-        if(NOT MAC_DEVELOPER_NAME)
-            set(MAC_DEVELOPER_NAME $ENV{MAC_DEVELOPER_NAME})
-        endif()
-        set(CPACK_BUNDLE_APPLE_CERT_APP "${MAC_DEVELOPER_NAME}")
-        set(CPACK_BUNDLE_APPLE_ENTITLEMENTS "${PROJECT_SOURCE_DIR}/bin/entitlements.plist")
-        set(CPACK_BUNDLE_APPLE_CODESIGN_PARAMETERS "--deep --timestamp -f")
+        # Need monolithic install to keep directory structure stable.
+        set(CPACK_MONOLITHIC_INSTALL on)
+        set(CPACK_GENERATOR "DragNDrop") # for a macOS .dmg
         # Will still need to notarize & staple the DMG in CI.
     else ()
         set(CPACK_GENERATOR "TGZ") # for Linux, multiple generators can be specified
     endif ()
-
     include(CPack)
+
+    # If MAC_DEVELOPER_NAME is not set, try and pick it up from environment variable.
+    set(MAC_DEVELOPER_NAME "" CACHE STRING "A variable passed in via -D")
+    if (NOT MAC_DEVELOPER_NAME)
+        set(MAC_DEVELOPER_NAME $ENV{MAC_DEVELOPER_NAME})
+    endif ()
+
+    # Perform signing in main script (not bin script), because we require all CPACK variables to be already defined.
+    if (APPLE)
+        find_program(CODESIGN codesign)
+        if (NOT MAC_DEVELOPER_NAME)
+            message(WARNING "MAC_DEVELOPER_NAME not set, skipping code signing")
+        elseif (CODESIGN_NOTFOUND)
+            message(WARNING "codesign not found, skipping code signing")
+        endif ()
+        if (CODESIGN AND MAC_DEVELOPER_NAME)
+            string(STRIP "${MAC_DEVELOPER_NAME}" MAC_DEVELOPER_NAME)
+            set(BODY "${CODESIGN} --entitlements ${CMAKE_CURRENT_LIST_DIR}/bin/Entitlements.plist -s ${MAC_DEVELOPER_NAME} -fvvv --deep --timestamp")
+            install(CODE "
+                execute_process(COMMAND ${BODY} ${CMAKE_BINARY_DIR}/_CPack_Packages/Darwin/DragNDrop/${CPACK_PACKAGE_NAME}-${CPACK_PACKAGE_VERSION}-Darwin/pepp.app)
+            ")
+        endif ()
+    endif ()
+
 elseif (ONLY STREQUAL "DOC")
     generate_docs(${SPHINX_OUT_DIR})
 elseif (ONLY STREQUAL "VERSION")

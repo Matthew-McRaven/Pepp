@@ -135,13 +135,10 @@ function(make_target)
     if (MK_DEPENDS)
         target_link_libraries(${MK_TARGET} PUBLIC ${MK_DEPENDS})
     endif ()
-
-    install(TARGETS ${MK_TARGET}
-            BUNDLE DESTINATION .
-            RUNTIME DESTINATION bin
-    )
     if(APPLE)
         install(TARGETS ${MK_TARGET} LIBRARY DESTINATION pepp.app/Contents/Frameworks)
+    else()
+        install(TARGETS ${MK_TARGET} RUNTIME DESTINATION bin BUNDLE DESTINATION .)
     endif()
 endfunction()
 

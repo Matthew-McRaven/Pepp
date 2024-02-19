@@ -30,11 +30,14 @@ target_link_libraries(catch-main INTERFACE catch)
 
 # SPDX-License-Identifier: BSL-1.0
 
+# TARGET is a normal executable cmake target
+# SUFFIX is a value that, if appended to the TARGET's file name, gives you the correct target file.
+# This was necessary to get around issues with symlinks not being real targets.
 # Supported optional args:
 #  * SHARD_COUNT - number of shards to split target's tests into
 #  * REPORTER    - reporter spec to use for tests
 #  * TEST_SPEC   - test spec used for filtering tests
-function(catch_add_sharded_tests TARGET ADDTL_ARGS)
+function(catch_add_sharded_tests TARGET)
   if (${CMAKE_VERSION} VERSION_LESS "3.10.0")
     message(FATAL_ERROR "add_sharded_catch_tests only supports CMake versions 3.10.0 and up")
   endif()
@@ -42,7 +45,7 @@ function(catch_add_sharded_tests TARGET ADDTL_ARGS)
   cmake_parse_arguments(
     ""
     ""
-    "SHARD_COUNT;REPORTER;TEST_SPEC"
+    "SHARD_COUNT;REPORTER;TEST_SPEC;SUFFIX;ADDTL_ARGS"
     ""
     ${ARGN}
   )
@@ -71,16 +74,26 @@ function(catch_add_sharded_tests TARGET ADDTL_ARGS)
   )
 
   set(shard_impl_script_file "${PROJECT_SOURCE_DIR}/3rd-party/catch/ShardImpl.cmake")
+
+  # They told me you could join strings in genexprs.
+  # The line below treats strings as lists and concats them with an empty seperator.
+  # This looks an awful lot like string concatentation.
+  # If suffix is empy, we need to strip it to prevent unwanted spaces from appearing.
+  string(STRIP "${_SUFFIX}" _SUFFIX)
   message("CTest file: ${ctest_tests_file}")
   add_custom_command(
     TARGET ${TARGET} POST_BUILD
     BYPRODUCTS "${ctest_tests_file}"
     COMMAND "${CMAKE_COMMAND}"
             -D "TARGET_NAME=${TARGET}"
-            -D "TEST_BINARY=$<TARGET_FILE:${TARGET}>"
+            # Use join<append> to concatenate strings
+            # Get the directory in which the test executable is installed, add a slash so we are inside it.
+            # Get the target basename (without suffix or extensions). Append both the suffix and extension.
+            # Trailing ,> joins the list with an empty separator -- which is string concatenation.
+            -D "TEST_BINARY=$<LIST:JOIN,$<LIST:APPEND,$<TARGET_FILE_DIR:${TARGET}>/,$<TARGET_FILE_BASE_NAME:${TARGET}>,${_SUFFIX},$<PATH:GET_EXTENSION,$<TARGET_FILE:${TARGET}>>>,>"
             -D "CTEST_FILE=${ctest_tests_file}"
             -D "SHARD_COUNT=${_SHARD_COUNT}"
-            -D "ADDTL_ARGS=${ADDTL_ARGS}"
+            -D "ADDTL_ARGS=${_ADDTL_ARGS}"
             -P "${shard_impl_script_file}"
     VERBATIM
   )
