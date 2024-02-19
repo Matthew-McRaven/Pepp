@@ -30,5 +30,6 @@ public:
   Q_INVOKABLE void set_document(QQuickTextDocument *doc);
 };
 
-QSharedPointer<gui_globals> initializeFigView(QQmlApplicationEngine &engine);
-inline static const QUrl figviewQMLMain = QUrl(u"qrc:/Pepp/demo/fig-view/main.qml"_qs);
+namespace helpview {
+void registerTypes(QQmlApplicationEngine &engine);
+}

@@ -20,7 +20,6 @@
 // Don't include headers that include GUI components unless we're in GUI mode.
 #if INCLUDE_GUI
 #include "../demo/asm/main.hpp"
-#include "../demo/fig-view/main.hpp"
 #endif
 
 void registerDemo(auto &app, task_factory_t &task, detail::SharedFlags &flags, gui_args &args) {
@@ -29,16 +28,10 @@ void registerDemo(auto &app, task_factory_t &task, detail::SharedFlags &flags, g
   demo->callback([&]() { flags.kind = detail::SharedFlags::GUI; });
   static auto asmDemo = demo->add_subcommand("asm", "Start the assembler demo");
   asmDemo->set_help_flag();
-  static auto figDemo = demo->add_subcommand("fig", "Start the figure viewer demo");
-  figDemo->set_help_flag();
 #if INCLUDE_GUI
   asmDemo->callback([&]() {
     args.extra_init = &initializeAsm;
     args.QMLEntry = asmQMLMain;
-  });
-  figDemo->callback([&]() {
-    args.extra_init = &initializeFigView;
-    args.QMLEntry = figviewQMLMain;
   });
 #endif
 }

@@ -7,7 +7,6 @@ Item {
 
   property alias text_area:  figContent
 
-
   //required property var model
 
   ColumnLayout {
@@ -32,9 +31,9 @@ Item {
       highlighter.set_styles(styles)
       highlighter.set_document(figContent.textDocument)
 
-      copyTitle = drawer.selected.display;
-      let payload = drawer.selected.payload;
-      let edition = drawer.selected.edition;
+      copyTitle = treeView.selectedFig.display;
+      let payload = treeView.selectedFig.payload;
+      let edition = treeView.selectedFig.edition;
 
       copyToSource = ( payload.chapterName !== "04");
 

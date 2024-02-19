@@ -19,6 +19,7 @@ import QtQuick.Window
 import QtQuick.Controls
 import QtQuick.Layouts
 import "qrc:/Pepp/gui/about" as About
+import "qrc:/Pepp/gui/helpview" as Help
 import "qrc:/ui/memory/hexdump" as Memory
 import "qrc:/Pepp/gui/cpu" as Cpu
 import "qrc:/Pepp/gui/project"
@@ -111,7 +112,7 @@ ApplicationWindow {
             text: "memdemo"; checked: true; onClicked: window.mode = "MEMDEMO"
         }
         SideButton {
-            text: "welcome"; ; onClicked: window.mode = "WELCOME"
+            text: "welcome"; onClicked: window.mode = "WELCOME"
         }
         SideButton {
             text: "edit"; onClicked: window.mode = "EDIT"
@@ -176,11 +177,10 @@ ApplicationWindow {
                 }
             }
         }
-        Rectangle {
-            color: "yellow"
-            Text {
-                text: "Help"
-                anchors.centerIn: parent
+        Item {
+            width: parent.width
+            Help.HelpView {
+                anchors.fill: parent
             }
         }
         Item {
@@ -210,10 +210,8 @@ ApplicationWindow {
                 anchors.bottom: wrapper.bottom
 
                 Memory.MemoryDump {
-                    //anchors.fill: parent
                 }
                 Cpu.Cpu {
-                    //anchors.fill: parent
                 }
             }
         }
