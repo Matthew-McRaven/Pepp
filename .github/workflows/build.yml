@@ -142,7 +142,7 @@ jobs:
           ${{ inputs.docs_audience && format('-D DOC_AUDIENCE={0}', inputs.docs_audience) || '' }}
           ${{inputs.docs_artifact && format('-D DOC_PREBUILT_DIR="{0}"', inputs.docs_artifact) || '' }}
           -D CMAKE_BUILD_TYPE=Debug -D MAC_DEVELOPER_NAME="$MAC_DEVELOPER_NAME"
-          -D CPACK_BUILD_CONFIG=Debug
+          -D CPACK_BUILD_CONFIG=Debug -D CMAKE_INSTALL_PREFIX=./install
         env:
           MAC_DEVELOPER_NAME: ${{ secrets.MAC_DEVELOPER_NAME }}
 
