@@ -39,6 +39,7 @@ int main(int argc, char **argv) {
   bool default_term = name.endsWith("term", Qt::CaseInsensitive);
   bool default_gui = name.endsWith("gui", Qt::CaseInsensitive) || DEFAULT_GUI;
   CLI::App app{"Pepp", "pepp"};
+  app.prefix_command(default_gui);
   app.set_help_flag("-h,--help", "Display this help message and exit.");
 
   auto shared_flags = detail::SharedFlags{.kind =  detail::SharedFlags::DEFAULT};
@@ -58,7 +59,7 @@ int main(int argc, char **argv) {
 
   registerAsm(app, task, shared_flags);
   registerRun(app, task, shared_flags);
-  gui_args args{};
+  gui_args args{.argvs = {argv[0]}};
   registerGUI(app, task, shared_flags, args);
   registerDemo(app, task, shared_flags, args);
 
@@ -66,7 +67,10 @@ int main(int argc, char **argv) {
   registerThroughput(app, task, shared_flags);
   try {
     app.parse(argc, argv);
-    if (!(task || shared_flags.kind == detail::SharedFlags::GUI || default_gui))
+    // If kind is default, then no subcommand was called, forward all arguments.
+    if (shared_flags.kind == detail::SharedFlags::DEFAULT && default_gui)
+      std::transform(argv + 1, argv + argc, std::back_inserter(args.argvs), [](char *s) { return std::string(s); });
+    else if (!(task || shared_flags.kind == detail::SharedFlags::GUI))
       throw CLI::CallForHelp();
   } catch (const CLI::CallForHelp &e) {
     std::cout << app.help() << std::endl;
@@ -84,6 +88,7 @@ int main(int argc, char **argv) {
     return 4;
 #endif
   } else {
+    // TODO: Fix arg passing
     QCoreApplication a(argc, argv);
     auto taskInstance = task(&a);
     QObject::connect(taskInstance, &Task::finished, &a, QCoreApplication::exit, Qt::QueuedConnection);

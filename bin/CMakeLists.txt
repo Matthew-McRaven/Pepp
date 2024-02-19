@@ -49,15 +49,9 @@ set_target_properties(pepp PROPERTIES
         FOLDER "qtc_runnable"
 )
 
-# An actual target with an actual file.
-set(TEST_TARGET "pepp")
-# If you append this string to the above target's executable file,
-# you get the complete path for the test executable.
-set(TEST_SUFFIX "")
-
 # Files with QML definitions must always be includeable without a prefix.
 # See: https://bugreports.qt.io/browse/QTBUG-101146.
-target_include_directories(pepp PRIVATE ${CMAKE_CURRENT_LIST_DIR}/demo/fig-view)
+target_include_directories(pepp PRIVATE ${CMAKE_CURRENT_LIST_DIR}/gui/helpview)
 
 # On non-Windows platforms, create extra files that will explicitly start the graphical or the terminal version.
 # Meaningless on WIN32, since apps are either console or non-console, never both.
@@ -81,20 +75,20 @@ if (NOT (WIN32 OR EMSCRIPTEN))
 endif ()
 
 
+make_target(
+        TARGET pepp-term
+        TYPE "EXEC"
+        SOURCES ${sources}
+        DEPENDS TextFlow cli about macro pas builtins isa targets sim Qt6::Core catch test-lib-all
+)
+set_target_properties(pepp-term PROPERTIES FOLDER "qtc_runnable")
+target_compile_definitions(pepp-term PRIVATE "INCLUDE_GUI=0")
+target_compile_definitions(pepp-term PRIVATE "DEFAULT_GUI=0")
+
 if (WIN32)
     # On Windows, applications may either be GUI or terminal, not both.
     # So, we (hackishly) recompile the GUI target, but this time we will not set WIN32_EXECUTABLE.
-    make_target(
-            TARGET pepp-term
-            TYPE "EXEC"
-            SOURCES ${sources}
-            DEPENDS TextFlow cli about macro pas builtins isa targets sim Qt6::Core catch test-lib-all
-    )
-    set_target_properties(pepp-term PROPERTIES FOLDER "qtc_runnable")
-    target_compile_definitions(pepp-term PRIVATE "INCLUDE_GUI=0")
-    target_compile_definitions(pepp-term PRIVATE "DEFAULT_GUI=0")
     target_compile_definitions(pepp PRIVATE "DEFAULT_GUI=1")
-    set(TEST_TARGET "pepp-term")
     # Non-DLL platforms have empty generator expression, so use more generator magic to only copy DLLs if they exist.
     add_custom_command(TARGET pepp POST_BUILD
             COMMAND ${CMAKE_COMMAND}
@@ -112,7 +106,7 @@ if (WIN32)
 elseif (APPLE)
     # Install our pepp application
     # antlr4 isn't copied by any target since it is a 3rd-party dependency.
-    # we must copy it here in a platform-dependent way
+    # we must copy it here in a platform-dependent way.
     install(TARGETS pepp antlr4_shared
             COMPONENT Pepp
             LIBRARY DESTINATION pepp.app/Contents/Frameworks
@@ -124,7 +118,6 @@ elseif (APPLE)
             PERMISSIONS OWNER_READ OWNER_WRITE OWNER_EXECUTE GROUP_READ GROUP_EXECUTE WORLD_READ WORLD_EXECUTE
     )
     target_compile_definitions(pepp PRIVATE "DEFAULT_GUI=1")
-    set(TEST_SUFFIX "-term")
 else ()
     # Otherwise use default install logic on Linux for now.
     install(TARGETS pepp antlr4_shared
@@ -133,7 +126,6 @@ else ()
             BUNDLE DESTINATION .
     )
     target_compile_definitions(pepp PRIVATE "DEFAULT_GUI=0")
-    set(TEST_SUFFIX "-term")
 endif ()
 
 if (0)
@@ -185,7 +177,7 @@ qt6_add_resources(pepp "pepp"
 if (NOT EMSCRIPTEN)
     set(count 2)
     catch_test_count(count)
-    catch_add_sharded_tests(${TEST_TARGET} SUFFIX ${TEST_SUFFIX} ADDTL_ARGS "selftest" SHARD_COUNT ${count})
+    catch_add_sharded_tests(pepp-term ADDTL_ARGS "selftest" SHARD_COUNT ${count})
 endif ()
 
 qt_generate_deploy_qml_app_script(

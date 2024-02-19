@@ -1,6 +1,5 @@
 /*
- * Copyright (c) 2023 J. Stanley Warford, Matthew McRaven
- *
+ * Copyright (c) 2024 J. Stanley Warford, Matthew McRaven
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
  * the Free Software Foundation, either version 3 of the License, or
@@ -14,21 +13,23 @@
  * You should have received a copy of the GNU General Public License
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
-
-#include <QDirIterator>
-#include <QGuiApplication>
+#pragma once
 #include <QQmlApplicationEngine>
-#include "shared.hpp"
-#include <QLocale>
-#include <QQuickItem>
-#include <QTranslator>
-#include <qvariant.h>
+#include <QtCore>
+#include "commands/gui.hpp"
 
-//#include <QDirIterator>
-#include <QQmlContext>
+class QTextDocument;
+class QQuickTextDocument;
+class BlockFinder : public QObject {
+  Q_OBJECT
+  QTextDocument *_doc = nullptr;
 
+public:
+  BlockFinder(QObject *parent = nullptr);
+  Q_INVOKABLE int find_pos(int pos);
+  Q_INVOKABLE void set_document(QQuickTextDocument *doc);
+};
 
-QSharedPointer<gui_globals> initializeLayout(QQmlApplicationEngine &engine) {
-  return nullptr;
+namespace helpview {
+void registerTypes(QQmlApplicationEngine &engine);
 }
-

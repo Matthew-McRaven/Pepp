@@ -23,8 +23,9 @@
 #include <QDirIterator>
 #include <QTimer>
 
-#include "../gui/model/registermodel.h"
-#include "../gui/model/statusbitmodel.h"
+#include "../gui/cpu/registermodel.h"
+#include "../gui/cpu/statusbitmodel.h"
+#include "../gui/helpview/registration.hpp"
 #include "memory/hexdump/memorybytemodel.h"
 struct default_data : public gui_globals {
   ~default_data() override = default;
@@ -35,14 +36,7 @@ struct default_data : public gui_globals {
 };
 
 QSharedPointer<gui_globals> default_init(QQmlApplicationEngine &engine) {
-  // Register the type DataEntryModel
-  // under the url "edu.pepperdine" in version 1.0
-
-  //  This method allows the model to be instantiated from QML.
-  //  This is only good if we are not expecting events from C++
-  // qmlRegisterType<StatusBitModel>("edu.pepperdine", 1, 0, "StatusBitModel");
-
-  //  Instantiate models
+  helpview::registerTypes(engine);
   //  Note, these models are instantiated in C++ and passed to QML. QML
   //  cannot instantiate these models directly
   qmlRegisterUncreatableType<MemoryByteModel>("edu.pepperdine", 1, 0, "MemByteRoles", "Error: only enums");
@@ -65,9 +59,14 @@ QSharedPointer<gui_globals> default_init(QQmlApplicationEngine &engine) {
 }
 
 int gui_main(const gui_args &args) {
-  int argc = 0;
-  char **argv = nullptr;
-  QApplication app(argc, argv);
+  // Must forward args for things like QML debugger to work.
+  int argc = args.argvs.size();
+  std::vector<char *> argvs(argc);
+  // Must make copy of strings, since argvs should be editable.
+  std::vector<std::string> arg_strs = args.argvs;
+  for (int it = 0; it < argc; it++)
+    argvs[it] = arg_strs[it].data();
+  QApplication app(argc, argvs.data());
 
   QApplication::setOrganizationName("Pepperdine University");
   QApplication::setApplicationName("Pep/10");

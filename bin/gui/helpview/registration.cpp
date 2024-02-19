@@ -14,7 +14,7 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-#include "main.hpp"
+#include "registration.hpp"
 #include <QLocale>
 #include <QQmlApplicationEngine>
 #include <QQmlContext>
@@ -31,12 +31,8 @@
 #include "highlight/style/map.hpp"
 #include "linenumbers.h"
 
-struct figview_globals : public gui_globals {
-  ~figview_globals() override = default;
-  QSharedPointer<builtins::Registry> registry;
-  QSharedPointer<builtins::BookModel> model;
-};
-QSharedPointer<gui_globals> initializeFigView(QQmlApplicationEngine &engine) {
+namespace helpview {
+void registerTypes(QQmlApplicationEngine &engine) {
   // TODO: Missing translations
   qmlRegisterType<highlight::QMLHighlighter>("edu.pepp", 1, 0, "Highlighter");
   qmlRegisterType<highlight::Style>("edu.pepp", 1, 0, "Style");
@@ -45,12 +41,9 @@ QSharedPointer<gui_globals> initializeFigView(QQmlApplicationEngine &engine) {
   qmlRegisterType<BlockFinder>("edu.pepp", 1, 0, "BlockFinder");
   qmlRegisterSingletonInstance<highlight::style::Defaults>("edu.pepp", 1, 0, "DefaultStyles",
                                                            new highlight::style::Defaults());
-  auto data = QSharedPointer<figview_globals>::create();
-  data->registry = QSharedPointer<builtins::Registry>::create(nullptr);
-  data->model = QSharedPointer<builtins::BookModel>::create(data->registry);
-  engine.rootContext()->setContextProperty("global_model", QVariant::fromValue(&*(data->model)));
-  return data;
+  qmlRegisterType<builtins::BookModel>("edu.pepp", 1, 0, "BookModel");
 }
+} // namespace helpview
 
 BlockFinder::BlockFinder(QObject *parent) : QObject(parent) {}
 int BlockFinder::find_pos(int pos) {

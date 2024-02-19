@@ -20,30 +20,16 @@ import QtQuick.Controls
 
 import edu.pepp 1.0
 
-Window {
-    id: window
-    width: 640
-    height: 480
-    visible: true
-    title: qsTr("Pep/10 Help")
-
-    //! [orientation]
-    //  Used to make figure treeview appear and disappear based on orientation.
-    //  Primarily used in devices like an iPad which can be flipped.
-    readonly property bool inPortrait: window.width < window.height
-    //! [orientation]
-
+Item {
+    anchors.fill: parent
     Component.onCompleted: {
-        //drawer.onSelectedChanged.connect(
-        //      (arg) => {console.log (drawer.selected.display)}
-        //      )
-        drawer.onSelectedChanged.connect(
+        treeView.onSelectedFigChanged.connect(
                 (arg) => {
-                if (drawer.selected === undefined) {
-                    mainWindow.source = "Topic.qml"
+                if (treeView.selectedFig === undefined) {
+                    topicWindow.source = "Topic.qml"
                 } else {
-                    mainWindow.source = ""
-                    mainWindow.source = "Figure.qml"
+                    topicWindow.source = ""
+                    topicWindow.source = "Figure.qml"
 
                     //figCol.help( drawer.selected.display,drawer.selected.payload );
                 }
@@ -51,45 +37,33 @@ Window {
         )
     }
 
-    signal switchedToFigure(TextEdit area)
 
     Rectangle {
-        id: mainLoader
+        id: container
         anchors.fill: parent
-        //function hi(){console.log("Hi")}
-        //  Left pane with selections
-        Drawer {
-            id: drawer
 
-            y: 0
-            width: textMetrics.width
+        TreeView {
+            property var selectedFig: undefined
+            model: BookModel {
+            }
+            id: treeView
             // Make sure the drawer is always at least as wide as the text
             // There was an issue in WASM where the titles clipper the center area
             TextMetrics {
                 id: textMetrics
                 text: "Computer Systems, 200th edition"
             }
-            height: window.height
-            property var selected: undefined
+            width: textMetrics.width
+            anchors.left: parent.left
+            anchors.top: parent.top; anchors.bottom: parent.bottom
 
-            modal: inPortrait
-            interactive: inPortrait
-            position: inPortrait ? 0 : 1
-            visible: !inPortrait
-            background: Rectangle {
-                color: "#ffffff"
-            }
 
-            // Derived from: https://doc.qt.io/qt-6/qml-qtquick-treeview.html
-            TreeView {
-                id: treeView
-                anchors.fill: parent
-                model: global_model
-
-                delegate: Item {
+            delegate
+                :
+                Item {
                     id: treeDelegate
                     implicitWidth: padding + label.x + label.implicitWidth + padding
-                    implicitHeight: label.implicitHeight * 1.5
+                    implicitHeight: textMetrics.height*1.1
                     readonly property real indent: 10
                     readonly property real padding: 5
                     // Assigned to by TreeView:
@@ -106,15 +80,13 @@ Window {
                     TapHandler {
                         onTapped: {
                             if (treeDelegate.hasChildren) {
-                                drawer.selected = undefined
+                                treeView.selectedFig = undefined
                                 treeView.toggleExpanded(row)
                             } else {
-                                drawer.selected = {
+                                treeView.selectedFig = {
                                     //kind,payload
                                     display, payload, edition
                                 }
-                                //let d = drawer.selected
-                                //console.log(Object.keys(drawer.selected))
                             }
                         }
                     }
@@ -133,45 +105,25 @@ Window {
                         x: padding + (treeDelegate.isTreeNode ? (treeDelegate.depth + 1) * treeDelegate.indent : 0)
                         width: treeDelegate.width - treeDelegate.padding - x
                         clip: true
-                        text: {
-                            if (model.kind === "figure") {
-                                let x = model.payload.elements;
-                                return "Figure " + model.display
-                                //console.log(Object.keys(x));
-                            } else if (model.kind === "book") {
-                                let text = ""
-                                for (let fig of model.payload) {
-                                    //console.log(fig.isOS)
-                                }
-                            }
-                            return model.display// + " ---- " + model.kind;
-                        }
+                        text: model.display
                     }
                 }
 
-                /*background: Rectangle {
-                  anchors.fill: parent;
-                  color: "blue"
-                }*/
-
-
-                ScrollIndicator.vertical: ScrollIndicator {
-                }
-            } //  TreeView
-        } //  Drawer
-
+            ScrollIndicator.vertical: ScrollIndicator {
+            }
+        }
         Flickable {
             id: flickable
             anchors.fill: parent
             anchors.topMargin: 0
-            anchors.leftMargin: !inPortrait ? drawer.width : undefined
+            anchors.leftMargin: treeView.width
 
             topMargin: 10
             bottomMargin: 10
 
             //  Moved logic to separate qml control files
             Loader {
-                id: mainWindow
+                id: topicWindow
                 anchors.fill: parent
                 source: "Topic.qml"
             }
