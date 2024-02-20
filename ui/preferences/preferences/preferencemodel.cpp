@@ -28,7 +28,9 @@ PreferenceModel::PreferenceModel(QObject *parent)
 void PreferenceModel::load()
 {
     //  List of elements is static
-    preferences_.append(Preference(Id, "Text", General, 0,"#000000","#ffffff") );
+    preferences_.append(Preference(General, "General", Categories, 0,"#000000","#ffffff") );
+    preferences_.append(Preference(Editor, "Editor", Categories, 0,"#000000","#ffffff") );
+    preferences_.append(Preference(Alu, "Alu", Categories, 0,"#000000","#ffffff") );
 }
 
 
@@ -53,17 +55,17 @@ QVariant PreferenceModel::data(const QModelIndex &index, int role) const
     if (!index.isValid())
         return QVariant();
 
-    //  Is this a category request?
-    if( role > Qt::UserRole && role < Name ) {
-        QList<QString> preferences{};
-        for(const auto& item : preferences_)  {
-            if( role == item.type())
-                preferences.append( item.name());
-        }
-        return preferences;
-    }
-
     const auto row = index.row();
+
+    //  Is this a category request?
+    if( role == Categories ) {
+        const int lookup = Categories + row + 1;
+
+        for(const auto& item : preferences_)  {
+            if( lookup == item.id())
+                return item.name();
+        }
+    }
 
     //  Get current status bit
     const auto pref = preferences_.at(row);

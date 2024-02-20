@@ -199,6 +199,10 @@ ApplicationWindow {
                     text: "CPU"
                     width: implicitWidth
                 }
+                TabButton {
+                    text: "Preferences"
+                    width: implicitWidth
+                }
             }
 
             StackLayout {
@@ -208,11 +212,11 @@ ApplicationWindow {
                 //Layout.bottom: wrapper.bottom
                 anchors.top: tab.bottom
                 anchors.bottom: wrapper.bottom
-                Pref.ColorSettings {
-                }
                 Memory.MemoryDump {
                 }
                 Cpu.Cpu {
+                }
+                Pref.Preferences {
                 }
             }
         }
