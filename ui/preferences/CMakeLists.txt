@@ -21,7 +21,6 @@ qt_add_qml_module(preferences
     RESOURCE_PREFIX /ui
     SOURCES
         ${sources}
-        #SOURCES preferences/preference.h preferences/preference.cpp
 )
 target_compile_definitions(preferences PRIVATE "PREFERENCE_LIBRARY")
 target_link_libraries(preferences PUBLIC Qt6::Core Qt6::Gui Qt6::Quick)

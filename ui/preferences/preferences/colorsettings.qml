@@ -1,24 +1,37 @@
 import QtQuick
 import QtQuick.Controls
 import QtQuick.Layouts
+import Qt.labs.platform as Platform //  Font picker
 
-import Qt.labs.platform as Platform
+import "." as Ui
+
 Item {
-  width: 300
+  width: 350
+  height: 500
 
   ColumnLayout  {
     id: wrapper
     anchors.fill: parent
     anchors.leftMargin: 10
+    anchors.topMargin: 10
     property int colWidth: 70
 
     //  Group box for parent properties
     GroupBox  {
-      title: "Parent Data"
-        ColumnLayout {
-          anchors.fill: parent
+      id: inheritGB
+      Layout.topMargin: 20
+      Layout.leftMargin: 10
 
-          RowLayout {
+      //  Groupbox label
+      label: Ui.GroupBoxLabel {
+        backgroundColor: "#ffffff"
+        textColor: "#000000"
+        text: "Parent Data"
+      }
+      ColumnLayout {
+        anchors.fill: parent
+
+        RowLayout {
           id: parent
           spacing: 5
           height: 20
@@ -32,40 +45,40 @@ Item {
             verticalAlignment: Text.AlignVCenter
           }
           ComboBox {
-            id: parentId
-            model: ListModel {
-              ListElement { text: "None" }
-              ListElement { text: "Text" }
-              ListElement { text: "Background" }
-              ListElement { text: "Comment" }
+              id: parentId
+              model: ListModel {
+                ListElement { text: "None" }
+                ListElement { text: "Text" }
+                ListElement { text: "Background" }
+                ListElement { text: "Comment" }
+              }
             }
           }
-        }
-        RowLayout {
-          id: parentfg
-          spacing: 5
-          height: 20
-          Layout.alignment: Qt.AlignLeft
-          Layout.fillWidth: true
-          visible: parentId.currentIndex !== 0
-          Label {
-            text: "Foreground:"
-            Layout.preferredWidth: wrapper.colWidth * 1.25
-            Layout.preferredHeight: 20
-            horizontalAlignment: Text.AlignLeft
-            verticalAlignment: Text.AlignVCenter
-          }
-          Button {
-            id: pfgText
-            Layout.preferredWidth: wrapper.colWidth
-            Layout.preferredHeight: 20
-            text: "#ff8c00"
-            background: Rectangle {
-              id: pfgColor
-              color: "#ff8c00"
+          RowLayout {
+            id: parentfg
+            spacing: 5
+            height: 20
+            Layout.alignment: Qt.AlignLeft
+            Layout.fillWidth: true
+            visible: parentId.currentIndex !== 0
+            Label {
+              text: "Foreground:"
+              Layout.preferredWidth: wrapper.colWidth * 1.25
+              Layout.preferredHeight: 20
+              horizontalAlignment: Text.AlignLeft
+              verticalAlignment: Text.AlignVCenter
+            }
+            Button {
+              id: pfgText
+              Layout.preferredWidth: wrapper.colWidth
+              Layout.preferredHeight: 20
+              text: "#ff8c00"
+              background: Rectangle {
+                id: pfgColor
+                color: "#ff8c00"
+              }
             }
           }
-        }
         RowLayout {
           id: parentbg
           spacing: 5
@@ -91,39 +104,36 @@ Item {
             }
           }
         }
+        //  Font properties
         RowLayout {
           id: fontProperties
-          spacing: 2
-          height: 20
-          Layout.fillWidth: true
-          Layout.alignment: Qt.AlignLeft
           visible: parentId.currentIndex !== 0
-          CheckBox {
-            text: "Bold"
-            checked: true
-            enabled: false
-            Layout.preferredWidth: wrapper.colWidth * 1.25
-            Layout.preferredHeight: 20
+          Ui.FontProperties {
+            id: ovdFont
+            isEnabled: false
+            Layout.fillWidth: true
+            height: 40
+
+            bold: true
+            underline: true
           }
-          CheckBox {
-            Layout.preferredWidth: wrapper.colWidth * 1.25
-            Layout.preferredHeight: 20
-            enabled: false
-            text: "Italics"
-          }
-          CheckBox {
-            text: "Underline"
-            enabled: false
-            Layout.preferredWidth: wrapper.colWidth * 1.5
-            Layout.preferredHeight: 20
-          }
-        }
+        } //  RowLayout
       } //  ColumnLayout
     } //  GroupBox
     GroupBox  {
-      title: parentId.currentIndex === 0 ? "Set Data" : "Override Parent"
-        ColumnLayout {
-          anchors.fill: parent
+      Layout.topMargin: 20
+      Layout.leftMargin: 10
+      Layout.rightMargin: 10
+
+      //  Groupbox label
+      label: Ui.GroupBoxLabel {
+        backgroundColor: "#ffffff"
+        textColor: "#000000"
+        text: parentId.currentIndex === 0 ? "Set Data" : "Override Parent"
+      }
+
+      ColumnLayout {
+        anchors.fill: parent
 
         RowLayout {
           id: foreground
@@ -236,25 +246,13 @@ Item {
         }
 
         RowLayout {
-          id: parentFontProperties
-          spacing: 2
-          height: 20
-          Layout.fillWidth: true
-          Layout.alignment: Qt.AlignLeft
-          CheckBox {
-            text: "Bold"
-            Layout.preferredWidth: wrapper.colWidth * 1.25
-            Layout.preferredHeight: 20
-          }
-          CheckBox {
-            Layout.preferredWidth: wrapper.colWidth * 1.25
-            Layout.preferredHeight: 20
-            text: "Italics"
-          }
-          CheckBox {
-            text: "Underline"
-            Layout.preferredWidth: wrapper.colWidth * 1.5
-            Layout.preferredHeight: 20
+          Ui.FontProperties {
+            Layout.fillWidth: true
+            height: 40
+            Layout.alignment: Qt.AlignLeft
+
+            italics: true
+            strikethrough: true
           }
         }
 
@@ -270,6 +268,7 @@ Item {
       }
     }
   }
+
   Platform.ColorDialog {
     id: colorDialog
 
@@ -292,4 +291,3 @@ Item {
     }
   }
 }
-
