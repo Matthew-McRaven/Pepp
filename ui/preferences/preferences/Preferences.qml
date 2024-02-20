@@ -12,14 +12,6 @@ Rectangle {
   anchors.margins: 5
   color: "lightgray"
 
-
-  //  To be replaced with model
-  ListModel {
-    id: data
-    ListElement { name: "Environment"}
-    ListElement { name: "Editor"}
-  }
-
   Rectangle {
     id: categories
 
@@ -33,30 +25,39 @@ Rectangle {
 
     width: 100
     color: "white"
+    focus: true
+
+    //  Represents row in listview
+    Component {
+      id: categoryDelegate
+      Rectangle {
+        id: wrapper
+        width: listView.width;
+        height: info.height
+        color: ListView.isCurrentItem ? "darkslateblue" : "white"
+        Text {
+          id: info
+          text: categoriesRole
+          color: wrapper.ListView.isCurrentItem ? "white" : "black"
+        }
+        MouseArea
+        {
+          anchors.fill: wrapper
+          onClicked: listView.currentIndex = index
+        }
+      }
+    }
 
     ListView {
-      model: data
+      id: listView
+      model: PreferenceModel
       anchors.fill: categories
       anchors.margins: 1
 
-      delegate: Label {
-          id: label
-          text: name
-          padding: 3
-          Rectangle {
-            id: background
-            anchors.fill: label
-            z:-1
-          }
-      }
+      delegate: categoryDelegate
+
+      //  Trigger change in right pane
+      //onCurrentItemChanged:
     }
   }
-
-  /*StackLayout {
-    id: details
-    anchors.left: area.right
-    anchors.right: parent.right
-    anchors.top: parent.top
-    anchors.bottom: parent.bottom
-  }*/
 }
