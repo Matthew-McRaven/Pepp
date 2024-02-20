@@ -186,8 +186,7 @@ ApplicationWindow {
         Item {
             id: wrapper
             width: parent.width
-            anchors.top: toolbar.bottom
-            anchors.bottom: footer.top
+            Layout.fillHeight: true
 
             TabBar {
                 id: tab

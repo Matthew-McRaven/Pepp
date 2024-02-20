@@ -26,6 +26,7 @@
 #include "../gui/cpu/registermodel.h"
 #include "../gui/cpu/statusbitmodel.h"
 #include "../gui/helpview/registration.hpp"
+#include "../gui/textedit/registration.hpp"
 #include "memory/hexdump/memorybytemodel.h"
 struct default_data : public gui_globals {
   ~default_data() override = default;
@@ -36,6 +37,7 @@ struct default_data : public gui_globals {
 };
 
 QSharedPointer<gui_globals> default_init(QQmlApplicationEngine &engine) {
+  textedit::registerTypes(engine);
   helpview::registerTypes(engine);
   //  Note, these models are instantiated in C++ and passed to QML. QML
   //  cannot instantiate these models directly
@@ -93,7 +95,7 @@ int gui_main(const gui_args &args) {
     qDebug() << f.filePath();
   }*/
 
-  static const auto default_entry = u"qrc:/Pepp/gui/main.qml"_qs;
+  static const auto default_entry = u"qrc:/qt/qml/Pepp/gui/main.qml"_qs;
   const QUrl url(args.QMLEntry.isEmpty() ? default_entry : args.QMLEntry);
 
   QObject::connect(

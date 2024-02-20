@@ -15,41 +15,11 @@
  */
 
 #include "registration.hpp"
-#include <QLocale>
-#include <QQmlApplicationEngine>
-#include <QQmlContext>
-#include <QQuickItem>
-#include <QQuickTextDocument>
-#include <QTextBlock>
-#include <QTranslator>
-#include <qvariant.h>
 #include "book_item_model.hpp"
-#include "help/builtins/registry.hpp"
-#include "highlight/qml_highlighter.hpp"
-#include "highlight/style.hpp"
-#include "highlight/style/defaults.hpp"
-#include "highlight/style/map.hpp"
-#include "linenumbers.h"
 
 namespace helpview {
 void registerTypes(QQmlApplicationEngine &engine) {
   // TODO: Missing translations
-  qmlRegisterType<highlight::QMLHighlighter>("edu.pepp", 1, 0, "Highlighter");
-  qmlRegisterType<highlight::Style>("edu.pepp", 1, 0, "Style");
-  qmlRegisterType<highlight::style::Map>("edu.pepp", 1, 0, "StyleMap");
-  qmlRegisterType<LineNumbers>("edu.pepp", 1, 0, "LineNumbers");
-  qmlRegisterType<BlockFinder>("edu.pepp", 1, 0, "BlockFinder");
-  qmlRegisterSingletonInstance<highlight::style::Defaults>("edu.pepp", 1, 0, "DefaultStyles",
-                                                           new highlight::style::Defaults());
   qmlRegisterType<builtins::BookModel>("edu.pepp", 1, 0, "BookModel");
 }
 } // namespace helpview
-
-BlockFinder::BlockFinder(QObject *parent) : QObject(parent) {}
-int BlockFinder::find_pos(int pos) {
-  if (_doc == nullptr)
-    return -1;
-  return _doc->findBlock(pos).blockNumber();
-}
-
-void BlockFinder::set_document(QQuickTextDocument *doc) { this->_doc = doc->textDocument(); }
