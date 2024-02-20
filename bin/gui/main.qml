@@ -18,11 +18,11 @@ import QtQuick
 import QtQuick.Window
 import QtQuick.Controls
 import QtQuick.Layouts
-import "qrc:/Pepp/gui/about" as About
-import "qrc:/Pepp/gui/helpview" as Help
+import "qrc:/qt/qml/Pepp/gui/about" as About
+import "qrc:/qt/qml/Pepp/gui/helpview" as Help
 import "qrc:/ui/memory/hexdump" as Memory
-import "qrc:/Pepp/gui/cpu" as Cpu
-import "qrc:/Pepp/gui/project"
+import "qrc:/qt/qml/Pepp/gui/cpu" as Cpu
+import "qrc:/qt/qml/Pepp/gui/project"
 
 ApplicationWindow {
     id: window
