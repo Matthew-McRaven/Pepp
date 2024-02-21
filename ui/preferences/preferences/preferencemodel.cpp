@@ -19,6 +19,7 @@ PreferenceModel::PreferenceModel(QObject *parent)
     roleNames_[FontBold]    = "boldRole";
     roleNames_[FontItalics] = "italicsRole";
     roleNames_[FontUnderline]= "underlineRole";
+    roleNames_[FontStrikethrough]= "strikethroughRole";
 
 
     //  Load preferences
@@ -28,9 +29,16 @@ PreferenceModel::PreferenceModel(QObject *parent)
 void PreferenceModel::load()
 {
     //  List of elements is static
+
+    categories_.append("General");
+    categories_.append("Editor");
+    categories_.append("Circuit");
+
+    /*
     preferences_.append(Preference(General, "General", Categories, 0,"#000000","#ffffff") );
     preferences_.append(Preference(Editor, "Editor", Categories, 0,"#000000","#ffffff") );
-    preferences_.append(Preference(Alu, "Alu", Categories, 0,"#000000","#ffffff") );
+    preferences_.append(Preference(Alu, "Circuit", Categories, 0,"#000000","#ffffff") );
+    */
 }
 
 
@@ -47,7 +55,7 @@ void PreferenceModel::load()
 int PreferenceModel::rowCount(const QModelIndex &) const
 {
     //  Number of preferences
-    return preferences_.size();
+    return preferences_.size() + categories_.size();
 }
 
 QVariant PreferenceModel::data(const QModelIndex &index, int role) const
@@ -59,12 +67,11 @@ QVariant PreferenceModel::data(const QModelIndex &index, int role) const
 
     //  Is this a category request?
     if( role == Categories ) {
-        const int lookup = Categories + row + 1;
 
-        for(const auto& item : preferences_)  {
-            if( lookup == item.id())
-                return item.name();
-        }
+        if(row < 0 || row > categories_.count())
+            return QVariant();
+
+        return categories_.at(row);
     }
 
     //  Get current status bit
