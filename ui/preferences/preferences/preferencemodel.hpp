@@ -30,6 +30,7 @@ public:
         FontBold,
         FontItalics,
         FontUnderline,
+        FontStrikethrough,
         FieldEnd,       //  Used for iteration, not exposed to QML
     };
 
@@ -63,6 +64,7 @@ private:
     QHash<int, QByteArray>  roleNames_;
     QList<Preference>       preferences_;
     QFont                   currentFont_;
+    QStringList             categories_;
 };
 
 #endif // PREFERENCEMODEL_HPP
