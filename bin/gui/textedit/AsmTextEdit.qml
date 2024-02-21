@@ -18,6 +18,7 @@ import QtQuick
 import QtQuick.Controls
 import QtQuick.Layouts
 
+import "qrc:/qt/qml/Pepp/gui/components" as Ui
 import edu.pepp 1.0
 //  Figure contents
 ScrollView {
@@ -30,13 +31,16 @@ ScrollView {
     required property string language;
     property string text;
 
+    property int colWidth: 30
+    property int rows: 16
+
 
     //  Set page contents based on parent selected values
     Component.onCompleted: {
         DefaultStyles.pep10_asm(styles)
         DefaultStyles.c(styles)
         highlighter.set_styles(styles)
-        highlighter.set_document(figContent.textDocument)
+        highlighter.set_document(editor.textDocument)
         highlighter.set_highlighter(edition, language)
     }
 
@@ -50,44 +54,45 @@ ScrollView {
         id: highlighter
     }
 
-    LineNumbers {
-        id: lineNumbers
-        height: parent.height // Ensure that line numbering area spans entire text area.
-        width: 40
-    }
-    TextArea {
-        id: figContent
-        textFormat: TextEdit.PlainText
-        renderType: Text.NativeRendering
+    RowLayout {
+        spacing: 0
+        anchors.fill: parent
+        Layout.fillHeight: true
+        Layout.fillWidth: true
 
-        function update() {
-            lineNumbers.lineCount = lineCount
-            // font metrics lies about height, because it does not include intra-line padding.
-            // instead, math out from content height the line height.
-            // lineNumbers.lineHeight = metrics.height
-            lineNumbers.lineHeight = contentHeight / lineCount
-            // Use my C++ helper code to determine line number from cursors integer.
-            lineNumbers.cursorPosition = finder.find_pos(cursorPosition)
-            lineNumbers.selectionStart = finder.find_pos(selectionStart)
-            lineNumbers.selectionEnd = finder.find_pos(selectionEnd)
-            lineNumbers.update()  // Graphics area will never update without requesting it.
+        //  Line numbers
+        Ui.RowNumbers {
+            id: rows
+            Layout.topMargin: editor.topPadding + editor.textMargin
+            Layout.bottomMargin: editor.bottomPadding
+            Layout.fillHeight: true
+            Layout.alignment: Qt.AlignLeft
+            Layout.maximumWidth: rows.width
+            Layout.minimumWidth: rows.width
+
+            width: wrapper.colWidth
+            colWidth: wrapper.colWidth
+            rowHeight: editor.lineHeight
+
+            rows: editor.lineCount
+            rowfont: editor.font
         }
 
-        // Anchor otherwise line numbers overlap text edit.
-        anchors.left: lineNumbers.right
 
-        onLineCountChanged: update()
-        onHeightChanged: update()
-        onCursorPositionChanged: update()
+        TextArea {
+            Layout.fillHeight: true
+            Layout.alignment: Qt.AlignLeft
+            id: editor
+            textFormat: TextEdit.PlainText
+            renderType: Text.NativeRendering
+            property real lineHeight: contentHeight / lineCount
+            font.family: "Courier New"
 
-        onSelectedTextChanged: update()
+            //textFormat: TextEdit.RichText
+            //wrapMode: TextEdit.NoWordWrap
+            readOnly: wrapper.isReadOnly;
 
-        font.family: "Courier New"
-
-        //textFormat: TextEdit.RichText
-        //wrapMode: TextEdit.NoWordWrap
-        readOnly: wrapper.isReadOnly;
-
-        text: wrapper.text
+            text: wrapper.text
+        }
     }
 }
