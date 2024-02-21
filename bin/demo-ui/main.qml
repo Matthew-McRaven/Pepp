@@ -66,9 +66,11 @@ ApplicationWindow {
       anchors.bottom: wrapper.bottom
 
       Memory.MemoryDump {
-        //anchors.fill: parent
       }
-      Pref.ColorSettings {
+      Pref.Preferences {
+        //anchors.fill: parent
+        //Layout.fillHeight: true
+        //Layout.fillWidth: true
       }
 
       Ui.Cpu {

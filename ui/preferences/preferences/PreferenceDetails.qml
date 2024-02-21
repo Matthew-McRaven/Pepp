@@ -1,11 +1,10 @@
 import QtQuick
 import QtQuick.Controls
 import QtQuick.Layouts
-
 import Qt.labs.platform as Platform //  Font picker
 
 import "." as Ui
-//import edu.pepperdine 1.0
+import edu.pepperdine 1.0
 
 Item {
   width: 600
@@ -96,7 +95,7 @@ Item {
 
           delegate: Text {
             text: "Line "+ index
-            padding: 2.5
+            padding: 2
           }
 
           //  Trigger change in right pane
