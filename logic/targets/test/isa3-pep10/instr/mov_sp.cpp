@@ -22,8 +22,36 @@
 #include "targets/pep10/isa3/cpu.hpp"
 #include "targets/pep10/isa3/helpers.hpp"
 
-namespace {
-template <isa::Pep10::Register target_reg, isa::Pep10::Register source_reg> void inner(isa::Pep10::Mnemonic op) {
+TEST_CASE("SWAPSPA", "[scope:targets][kind:int][target:pep10]") {
+  using Register = isa::Pep10::Register;
+  auto [mem, cpu] = make();
+  quint16 tmp;
+  auto [init_reg] = GENERATE(table<quint16>({0, 1, 0x7fff, 0x8000, 0x8FFF, 0xFFFF}));
+  DYNAMIC_SECTION("with initial value " << init_reg) {
+    // Object code for instruction under test.
+    auto program = std::array<quint8, 1>{(quint8)isa::Pep10::Mnemonic::SWAPSPA};
+
+    cpu->regs()->clear(0);
+    cpu->csrs()->clear(0);
+    tmp = bits::hostOrder() != bits::Order::BigEndian ? bits::byteswap(init_reg) : init_reg;
+    cpu->regs()->write(static_cast<quint16>(Register::SP) * 2, {reinterpret_cast<quint8 *>(&tmp), 2}, rw);
+    tmp = ~tmp;
+    cpu->regs()->write(static_cast<quint16>(Register::A) * 2, {reinterpret_cast<quint8 *>(&tmp), 2}, rw);
+
+    REQUIRE_NOTHROW(mem->write(0, {program.data(), program.size()}, rw));
+    REQUIRE_NOTHROW(cpu->clock(0));
+
+    CHECK(reg(cpu, isa::Pep10::Register::PC) == 0x1);
+    CHECK(reg(cpu, isa::Pep10::Register::IS) == (quint8)isa::Pep10::Mnemonic::SWAPSPA);
+    CHECK(reg(cpu, isa::Pep10::Register::OS) == 0);
+    CHECK(reg(cpu, isa::Pep10::Register::X) == 0);
+    // Check that target register had arithmetic performed.
+    CHECK(reg(cpu, Register::SP) == (quint16)~init_reg);
+    CHECK(reg(cpu, Register::A) == (quint16)init_reg);
+  }
+}
+TEST_CASE("MOVSPA", "[scope:targets][kind:int][target:pep10]") {
+  using Register = isa::Pep10::Register;
   auto [mem, cpu] = make();
   quint16 tmp;
   auto [init_reg] = GENERATE(table<quint16>({0, 1, 0x7fff, 0x8000, 0x8FFF, 0xFFFF}));
@@ -31,32 +59,22 @@ template <isa::Pep10::Register target_reg, isa::Pep10::Register source_reg> void
     auto endRegVal = static_cast<quint16>(init_reg);
 
     // Object code for instruction under test.
-    auto program = std::array<quint8, 1>{(quint8)op};
+    auto program = std::array<quint8, 1>{(quint8)isa::Pep10::Mnemonic::MOVSPA};
 
     cpu->regs()->clear(0);
     cpu->csrs()->clear(0);
     tmp = bits::hostOrder() != bits::Order::BigEndian ? bits::byteswap(init_reg) : init_reg;
-    cpu->regs()->write(static_cast<quint16>(source_reg) * 2, {reinterpret_cast<quint8 *>(&tmp), 2}, rw);
+    cpu->regs()->write(static_cast<quint16>(Register::SP) * 2, {reinterpret_cast<quint8 *>(&tmp), 2}, rw);
 
     REQUIRE_NOTHROW(mem->write(0, {program.data(), program.size()}, rw));
     REQUIRE_NOTHROW(cpu->clock(0));
 
     CHECK(reg(cpu, isa::Pep10::Register::PC) == 0x1);
-    CHECK(reg(cpu, isa::Pep10::Register::IS) == (quint8)op);
+    CHECK(reg(cpu, isa::Pep10::Register::IS) == (quint8)isa::Pep10::Mnemonic::MOVSPA);
     CHECK(reg(cpu, isa::Pep10::Register::OS) == 0);
     CHECK(reg(cpu, isa::Pep10::Register::X) == 0);
     // Check that target register had arithmetic performed.
-    CHECK(reg(cpu, source_reg) == endRegVal);
-    CHECK(reg(cpu, target_reg) == endRegVal);
+    CHECK(reg(cpu, Register::SP) == endRegVal);
+    CHECK(reg(cpu, Register::A) == endRegVal);
   }
-}
-} // namespace
-
-TEST_CASE("MOVASP", "[scope:targets][kind:int][target:pep10]") {
-  using Register = isa::Pep10::Register;
-  inner<Register::SP, Register::A>(isa::Pep10::Mnemonic::MOVASP);
-}
-TEST_CASE("MOVSPA", "[scope:targets][kind:int][target:pep10]") {
-  using Register = isa::Pep10::Register;
-  inner<Register::A, Register::SP>(isa::Pep10::Mnemonic::MOVSPA);
 }

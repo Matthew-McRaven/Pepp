@@ -49,10 +49,9 @@ hang:    BR      hang
          .BLOCK  64          ;Padding for possible future modification
 ;
 retVal:  .EQUATE 0           ;Main return value #2d
-execMain:MOVSPA              ;Preserve system stack pointer
-         STWA    initSp,d
-         LDWA    osRAM,i     ;Load address of user stack
-         MOVASP              ;Switch to user stack
+execMain:LDWA    osRAM,i     ;Load address of user stack
+         SWAPSPA             ;Switch to user stack
+         STWA    initSp,d    ;Preserve system stack pointer
          SUBSP   2,i         ;Allocate @param #retVal
          LDWA    0,i         ;Initialize user main return
          STWA    0,s         ;  value to zero
@@ -62,8 +61,8 @@ execMain:MOVSPA              ;Preserve system stack pointer
 mainCln: LDWA    0,s         ;Load return value
          BRNE    mainErr     ;If retval is not zero, report error
          ADDSP   2,i         ;Deallocate @param #retVal
-         LDWA    initSp,d  ;Restore system stack pointer
-         MOVASP              ;OS Stack might be clobbered during by syscalls
+         LDWA    initSp,d    ;Restore system stack pointer
+         SWAPSPA             ;OS Stack might be clobbered during by syscalls
          BR      shutdown    ;  So branch instead of call
 ;
 mainErr: LDWA    execErr,i   ;Load the address of the loader error address.

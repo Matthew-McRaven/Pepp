@@ -1,6 +1,5 @@
 /*
- * Copyright (c) 2023 J. Stanley Warford, Matthew McRaven
- *
+ * Copyright (c) 2023-2024 J. Stanley Warford, Matthew McRaven
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
  * the Free Software Foundation, either version 3 of the License, or
@@ -24,10 +23,10 @@ Q_NAMESPACE_EXPORT(ISA_EXPORT)
 enum class Mnemonic {
   RET = 0x1,
   SRET = 0x2,
-  MOVSPA = 0x3,
-  MOVASP = 0x4,
-  MOVFLGA = 0x5,
-  MOVAFLG = 0x6,
+  MOVFLGA = 0x3,
+  MOVAFLG = 0x4,
+  MOVSPA = 0x5,
+  SWAPSPA = 0x6,
   NOP = 0x7,
 
   // FAULTS
@@ -142,94 +141,35 @@ constexpr std::array<Opcode, 256> initOpcodes() {
     ret[base + 7] = {.instr = i, .mode = AM::SFX, .valid = true};
   };
 
-  ret[0x00] = {
-      .instr = {.mnemon = M::INVALID, .type = T::U_none, .unary = true},
-      .mode = AM::NONE,
-      .valid = false};
-  ret[(quint8)M::RET] = {
-      .instr = {.mnemon = M::RET, .type = T::U_none, .unary = 1},
-      .mode = AM::NONE,
-      .valid = true};
-  ret[(quint8)M::SRET] = {
-      .instr = {.mnemon = M::SRET, .type = T::U_none, .unary = 1},
-      .mode = AM::NONE,
-      .valid = true};
-  ret[(quint8)M::MOVSPA] = {
-      .instr = {.mnemon = M::MOVSPA, .type = T::U_none, .unary = 1},
-      .mode = AM::NONE,
-      .valid = true};
-  ret[(quint8)M::MOVASP] = {
-      .instr = {.mnemon = M::MOVASP, .type = T::U_none, .unary = 1},
-      .mode = AM::NONE,
-      .valid = true};
+  ret[0x00] = {.instr = {.mnemon = M::INVALID, .type = T::U_none, .unary = true}, .mode = AM::NONE, .valid = false};
+  ret[(quint8)M::RET] = {.instr = {.mnemon = M::RET, .type = T::U_none, .unary = 1}, .mode = AM::NONE, .valid = true};
+  ret[(quint8)M::SRET] = {.instr = {.mnemon = M::SRET, .type = T::U_none, .unary = 1}, .mode = AM::NONE, .valid = true};
   ret[(quint8)M::MOVFLGA] = {
-      .instr = {.mnemon = M::MOVFLGA, .type = T::U_none, .unary = 1},
-      .mode = AM::NONE,
-      .valid = true};
+      .instr = {.mnemon = M::MOVFLGA, .type = T::U_none, .unary = 1}, .mode = AM::NONE, .valid = true};
   ret[(quint8)M::MOVAFLG] = {
-      .instr = {.mnemon = M::MOVAFLG, .type = T::U_none, .unary = 1},
-      .mode = AM::NONE,
-      .valid = true};
-  ret[(quint8)M::NOP] = {
-      .instr = {.mnemon = M::NOP, .type = T::U_none, .unary = 1},
-      .mode = AM::NONE,
-      .valid = true};
+      .instr = {.mnemon = M::MOVAFLG, .type = T::U_none, .unary = 1}, .mode = AM::NONE, .valid = true};
+  ret[(quint8)M::MOVSPA] = {
+      .instr = {.mnemon = M::MOVSPA, .type = T::U_none, .unary = 1}, .mode = AM::NONE, .valid = true};
+  ret[(quint8)M::SWAPSPA] = {
+      .instr = {.mnemon = M::SWAPSPA, .type = T::U_none, .unary = 1}, .mode = AM::NONE, .valid = true};
+  ret[(quint8)M::NOP] = {.instr = {.mnemon = M::NOP, .type = T::U_none, .unary = 1}, .mode = AM::NONE, .valid = true};
 
   // Gap
   for (int it = (int)M::NOP + 1; it < (int)M::NOTA; it++)
-    ret[it] = {
-        .instr = {.mnemon = M::INVALID, .type = T::U_none, .unary = true},
-        .mode = AM::NONE,
-        .valid = false};
+    ret[it] = {.instr = {.mnemon = M::INVALID, .type = T::U_none, .unary = true}, .mode = AM::NONE, .valid = false};
 
-  ret[(quint8)M::NOTA] = {
-      .instr = {.mnemon = M::NOTA, .type = T::R_none, .unary = 1},
-      .mode = AM::NONE,
-      .valid = true};
-  ret[(quint8)M::NOTX] = {
-      .instr = {.mnemon = M::NOTX, .type = T::R_none, .unary = 1},
-      .mode = AM::NONE,
-      .valid = true};
-  ret[(quint8)M::NEGA] = {
-      .instr = {.mnemon = M::NEGA, .type = T::R_none, .unary = 1},
-      .mode = AM::NONE,
-      .valid = true};
-  ret[(quint8)M::NEGX] = {
-      .instr = {.mnemon = M::NEGX, .type = T::R_none, .unary = 1},
-      .mode = AM::NONE,
-      .valid = true};
-  ret[(quint8)M::ASLA] = {
-      .instr = {.mnemon = M::ASLA, .type = T::R_none, .unary = 1},
-      .mode = AM::NONE,
-      .valid = true};
-  ret[(quint8)M::ASLX] = {
-      .instr = {.mnemon = M::ASLX, .type = T::R_none, .unary = 1},
-      .mode = AM::NONE,
-      .valid = true};
-  ret[(quint8)M::ASRA] = {
-      .instr = {.mnemon = M::ASRA, .type = T::R_none, .unary = 1},
-      .mode = AM::NONE,
-      .valid = true};
-  ret[(quint8)M::ASRX] = {
-      .instr = {.mnemon = M::ASRX, .type = T::R_none, .unary = 1},
-      .mode = AM::NONE,
-      .valid = true};
-  ret[(quint8)M::ROLA] = {
-      .instr = {.mnemon = M::ROLA, .type = T::R_none, .unary = 1},
-      .mode = AM::NONE,
-      .valid = true};
-  ret[(quint8)M::ROLX] = {
-      .instr = {.mnemon = M::ROLX, .type = T::R_none, .unary = 1},
-      .mode = AM::NONE,
-      .valid = true};
-  ret[(quint8)M::RORA] = {
-      .instr = {.mnemon = M::RORA, .type = T::R_none, .unary = 1},
-      .mode = AM::NONE,
-      .valid = true};
-  ret[(quint8)M::RORX] = {
-      .instr = {.mnemon = M::RORX, .type = T::R_none, .unary = 1},
-      .mode = AM::NONE,
-      .valid = true};
+  ret[(quint8)M::NOTA] = {.instr = {.mnemon = M::NOTA, .type = T::R_none, .unary = 1}, .mode = AM::NONE, .valid = true};
+  ret[(quint8)M::NOTX] = {.instr = {.mnemon = M::NOTX, .type = T::R_none, .unary = 1}, .mode = AM::NONE, .valid = true};
+  ret[(quint8)M::NEGA] = {.instr = {.mnemon = M::NEGA, .type = T::R_none, .unary = 1}, .mode = AM::NONE, .valid = true};
+  ret[(quint8)M::NEGX] = {.instr = {.mnemon = M::NEGX, .type = T::R_none, .unary = 1}, .mode = AM::NONE, .valid = true};
+  ret[(quint8)M::ASLA] = {.instr = {.mnemon = M::ASLA, .type = T::R_none, .unary = 1}, .mode = AM::NONE, .valid = true};
+  ret[(quint8)M::ASLX] = {.instr = {.mnemon = M::ASLX, .type = T::R_none, .unary = 1}, .mode = AM::NONE, .valid = true};
+  ret[(quint8)M::ASRA] = {.instr = {.mnemon = M::ASRA, .type = T::R_none, .unary = 1}, .mode = AM::NONE, .valid = true};
+  ret[(quint8)M::ASRX] = {.instr = {.mnemon = M::ASRX, .type = T::R_none, .unary = 1}, .mode = AM::NONE, .valid = true};
+  ret[(quint8)M::ROLA] = {.instr = {.mnemon = M::ROLA, .type = T::R_none, .unary = 1}, .mode = AM::NONE, .valid = true};
+  ret[(quint8)M::ROLX] = {.instr = {.mnemon = M::ROLX, .type = T::R_none, .unary = 1}, .mode = AM::NONE, .valid = true};
+  ret[(quint8)M::RORA] = {.instr = {.mnemon = M::RORA, .type = T::R_none, .unary = 1}, .mode = AM::NONE, .valid = true};
+  ret[(quint8)M::RORX] = {.instr = {.mnemon = M::RORX, .type = T::R_none, .unary = 1}, .mode = AM::NONE, .valid = true};
 
   add_ix({.mnemon = M::BR, .type = T::A_ix, .unary = 0});
   add_ix({.mnemon = M::BRLE, .type = T::A_ix, .unary = 0});
@@ -328,20 +268,16 @@ struct ISA_EXPORT Pep10 {
   static bool isUType(Mnemonic mnemonic);
   static bool isRType(Mnemonic mnemonic);
   static bool isAType(Mnemonic mnemonic);
-  static bool isValidATypeAddressingMode(Mnemonic mnemonic,
-                                         AddressingMode addr);
+  static bool isValidATypeAddressingMode(Mnemonic mnemonic, AddressingMode addr);
   static bool isAAAType(Mnemonic mnemonic);
-  static bool isValidAAATypeAddressingMode(Mnemonic mnemonic,
-                                           AddressingMode addr);
+  static bool isValidAAATypeAddressingMode(Mnemonic mnemonic, AddressingMode addr);
   static bool isRAAAType(Mnemonic mnemonic);
-  static bool isValidRAAATypeAddressingMode(Mnemonic mnemonic,
-                                            AddressingMode addr);
+  static bool isValidRAAATypeAddressingMode(Mnemonic mnemonic, AddressingMode addr);
   static bool isValidAddressingMode(Mnemonic mnemonic, AddressingMode addr);
 
   static bool requiresAddressingMode(Mnemonic mnemonic);
   static bool canElideAddressingMode(Mnemonic mnemonic, AddressingMode addr);
-  constexpr static std::array<Opcode, 256> opcodeLUT =
-      detail::pep10::initOpcodes();
+  constexpr static std::array<Opcode, 256> opcodeLUT = detail::pep10::initOpcodes();
   static QSet<QString> legalDirectives();
   static bool isLegalDirective(QString directive);
 };
