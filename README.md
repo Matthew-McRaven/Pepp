@@ -5,6 +5,7 @@
 ![CodeFactor Grade](https://img.shields.io/codefactor/grade/github/matthew-mcraven/Pepp)
 ![GitHub file size in bytes](https://img.shields.io/github/repo-size/matthew-mcraven/Pepp)
 [![Discord Invite](https://dcbadge.vercel.app/api/server/wF7HYdvF55?style=flat)](https://discord.gg/wF7HYdvF55)
+[![Lines of Code](https://sonarcloud.io/api/project_badges/measure?project=Matthew-McRaven_Pepp&metric=ncloc)](https://sonarcloud.io/summary/new_code?id=Matthew-McRaven_Pepp)
 
 # Build from Sources
 
