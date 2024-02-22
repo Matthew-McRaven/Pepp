@@ -90,7 +90,7 @@ jobs:
       - name: Add QTIFW to path
         if: inputs.runs-on == 'windows-latest'
         shell: bash
-        run: echo "$RUNNER_WORKSPACE/Qt/Tools/QtInstallerFramework/4.6/bin" >>$GITHUB_PATH
+        run: echo "$RUNNER_WORKSPACE/Qt/Tools/QtInstallerFramework/4.7/bin" >>$GITHUB_PATH
 
       # Prevent clang from using ccache, because it is profiling build times
       - name: Enable caching object files between builds

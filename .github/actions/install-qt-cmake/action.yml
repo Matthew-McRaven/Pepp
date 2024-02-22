@@ -9,13 +9,13 @@ runs:
   using: "composite"
   # Selectively install and configure LLVM
   steps:
-  - name: Install CMake and Ninja
-    uses: lukka/get-cmake@v3.27.9
-  - name: Install Qt
-    uses: jurplel/install-qt-action@v3
-    with:
-      version: ${{ inputs.qt_version }}
-      cache: true
-      extra: "--base https://mirrors.ocf.berkeley.edu/qt"
-      tools: 'tools_ifw,qt.tools.ifw.46'
-      add-tools-to-path: true
+    - name: Install CMake and Ninja
+      uses: lukka/get-cmake@v3.27.9
+    - name: Install Qt
+      uses: jurplel/install-qt-action@v3
+      with:
+        version: ${{ inputs.qt_version }}
+        cache: true
+        extra: "--base https://mirrors.ocf.berkeley.edu/qt"
+        tools: 'tools_ifw,qt.tools.ifw.47'
+        add-tools-to-path: true
