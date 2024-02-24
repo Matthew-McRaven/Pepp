@@ -192,11 +192,6 @@ TEST_CASE("CS6E figure assembly", "[scope:asm][kind:e2e][arch:pep10]") {
         REQUIRE_NOTHROW([&sys, &elf]() { sys = targets::pep10::isa::systemFromElf(*elf, true); }());
         QVector<quint8> dump(0x1'00'00);
         sys->bus()->dump({dump.data(), std::size_t(dump.size())});
-        QFile memDump(u"%1.mem.bin"_qs.arg(figName));
-        if (memDump.open(QFile::WriteOnly)) {
-          memDump.write(reinterpret_cast<const char *>(dump.constData()), dump.size());
-          memDump.close();
-        }
 
         auto bootFlg = ::obj::getBootFlagsAddress(*elf);
         auto systemBootFlg = sys->getBootFlagAddress();
