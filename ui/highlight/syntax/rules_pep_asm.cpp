@@ -15,9 +15,9 @@
  */
 #include "rules_pep_asm.h"
 #include <QRegularExpression>
+#include "../style/types.hpp"
 #include "isa/pep10.hpp"
 #include "isa/pep9.hpp"
-#include "style/types.hpp"
 
 // Selects most accented unicode characters, based on answer:
 // https://stackoverflow.com/a/26900132

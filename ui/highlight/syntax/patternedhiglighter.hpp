@@ -16,7 +16,6 @@
 
 #pragma once
 #include <QSyntaxHighlighter>
-
 #include "rules.hpp"
 
 QT_BEGIN_NAMESPACE

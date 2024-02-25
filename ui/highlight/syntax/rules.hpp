@@ -17,7 +17,7 @@
 #pragma once
 #include <QRegularExpression>
 #include <QTextCharFormat>
-#include "style/types.hpp"
+#include "../style/types.hpp"
 
 namespace highlight {
 struct Rule {

@@ -15,7 +15,7 @@
  */
 
 #include "rules_clike.h"
-#include "style/types.hpp"
+#include "../style/types.hpp"
 
 static const auto single_quote_str =
     R"(((')(?!['])(([^'|\\]){1}|((\\)(['|b|f|n|r|t|v|"|\\]))|((\\)(([x|X])([0-9|A-F|a-f]{2}))))(')))";

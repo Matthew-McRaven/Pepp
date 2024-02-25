@@ -17,11 +17,11 @@
 #include "./qml_highlighter.hpp"
 #include <QTextDocument>
 #include <QtQuick/QQuickTextDocument>
-#include "./patternedhiglighter.hpp"
-#include "./rules_pep_asm.h"
 #include "./style.hpp"
 #include "./style/map.hpp"
-#include "highlight/rules_clike.h"
+#include "./syntax/patternedhiglighter.hpp"
+#include "./syntax/rules_clike.h"
+#include "./syntax/rules_pep_asm.h"
 
 using namespace highlight;
 
