@@ -1,6 +1,5 @@
 /*
- * Copyright (c) 2023 J. Stanley Warford, Matthew McRaven
- *
+ * Copyright (c) 2023-2024 J. Stanley Warford, Matthew McRaven
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
  * the Free Software Foundation, either version 3 of the License, or
@@ -23,4 +22,4 @@ namespace highlight {
 QList<Rule> rules_pep9_asm();
 // Builds on __old/pep9highlighter.cpp; See: babb87b6df834d75cfc133a36a4c19e931064079
 QList<Rule> rules_pep10_asm();
-}
+} // namespace highlight

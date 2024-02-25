@@ -1,6 +1,5 @@
 /*
- * Copyright (c) 2023 J. Stanley Warford, Matthew McRaven
- *
+ * Copyright (c) 2023-2024 J. Stanley Warford, Matthew McRaven
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
  * the Free Software Foundation, either version 3 of the License, or
@@ -25,21 +24,22 @@ class QTextDocument;
 QT_END_NAMESPACE
 
 namespace highlight {
-class PatternedHighlighter : public QSyntaxHighlighter
-{
+class PatternedHighlighter : public QSyntaxHighlighter {
 public:
-    struct Pattern{
-        QRegularExpression pattern;
-        QTextCharFormat format;
-        int from=0, to=0;
-        bool reset=false;
-    };
-    PatternedHighlighter(QObject *parent = 0);
-    PatternedHighlighter(QTextDocument *parent = 0);
-    void setPatterns(QList<Pattern> rules);
+  struct Pattern {
+    QRegularExpression pattern;
+    QTextCharFormat format;
+    int from = 0, to = 0;
+    bool reset = false;
+  };
+  PatternedHighlighter(QObject *parent = 0);
+  PatternedHighlighter(QTextDocument *parent = 0);
+  void setPatterns(QList<Pattern> rules);
+
 protected:
-    void highlightBlock(const QString &text);
+  void highlightBlock(const QString &text);
+
 private:
-    QList<Pattern> _rules;
+  QList<Pattern> _rules;
 };
-}
+} // namespace highlight
