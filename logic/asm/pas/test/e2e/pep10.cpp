@@ -197,7 +197,7 @@ TEST_CASE("CS6E figure assembly", "[scope:asm][kind:e2e][arch:pep10]") {
         auto systemBootFlg = sys->getBootFlagAddress();
         CHECK(bootFlg.has_value() == systemBootFlg.has_value());
         if (bootFlg) {
-          CHECK(*bootFlg == 0xFA37);
+          CHECK(*bootFlg == 0xF9F2);
           CHECK(*systemBootFlg == *bootFlg);
           CHECK(sys->getBootFlags() == 3);
         }

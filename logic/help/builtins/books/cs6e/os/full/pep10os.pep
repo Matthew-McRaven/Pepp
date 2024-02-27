@@ -1,4 +1,4 @@
-;******* Pep/9 Operating System, 2019/03/03
+;******* Pep/10 Operating System, 2019/03/03
 ;
 ;
 ;******* Operating system RAM
@@ -78,48 +78,73 @@ execErr: .ASCII "Main failed with return value \x00"
          .BLOCK  64          ;Padding for possible future modification
 ;******* System Loader
 ;Data must be in the following format:
-;Each hex number representing a byte must contain exactly two
-;characters. Each character must be in 0..9, A..F, or a..f and
-;must be followed by exactly one space. There must be no
-;leading spaces at the beginning of a line and no trailing
-;spaces at the end of a line. The last two characters in the
-;file must be lowercase zz, which is used as the terminating
-;sentinel by the loader.
+;Each byte of object code should be encoded as two hex characters
+;which must be in 0..9, A..F, or a..f. Hex digits are either sequential,
+;or separated by any number and mixture of newlines or spaces.
+;Octets follow the same spacing rules as hex digits.
+;The last two characters in the file must be zz (case insensitive),
+;which is used as a terminaing sentinel by the loader.
 ;
-loader:  LDWX    0,i          ;X <- 0
-getChar: LDBA    diskIn,d    ;Get first hex character
-         CPBA    'z',i       ;If end of file sentinel 'z'
-         BREQ    endLoad     ;  then exit loader routine
-         CPBA    '9',i       ;If characer <= '9', assume decimal
-         BRLE    shift       ;  and right nybble is correct digit
-         ADDA    9,i         ;else convert nybble to correct digit
-shift:   ASLA                ;Shift left by four bits to send
+loader:  LDWX    0, i        ;X <- 0
+ldByte:  CALL    ldGetDI     ;Read the next hex value into A.
+         BRV     ldRet        ;V is set if ZZ detected; stop loading.
+         ASLA                ;Shift left by four bits to send
          ASLA                ;  the digit to the most significant
          ASLA                ;  position in the byte
          ASLA
          STBA    byteTemp,d  ;Save the most significant nybble
-         LDBA    diskIn,d    ;Get second hex character
-         CPBA    '9',i       ;If characer <= '9', assume decimal
-         BRLE    combine     ;  and right nybble is correct digit
-         ADDA    9,i         ;else convert nybble to correct digit
-combine: ANDA    0x000F,i    ;Mask out the left nybble
-         ORA     wordTemp,d  ;Combine both hex digits in binary
-         STBA    0,x         ;Store in Mem[X]
-         ADDX    1,i         ;X <- X + 1
-         LDBA    diskIn,d    ;Skip blank or <LF>
-         BR      getChar     ;
+         CALL    ldGetDI     ;Read second hex value into A.
+         BRV     errChar     ;Second character can't be a sentinel.
+         ORA     wordTemp,d  ;Combine both hex values.
+         STBA    0, x        ;Store in Mem[X]
+         ADDX    1, i        ;X <- X + 1
+         LDWA    0, i
+         BR      ldByte      ;Process next byte of disk input.
+ldRet:   RET
 ;
-endLoad: LDBA    diskIn,d    ;Consume second 'z'
-         CPBA    'z',i       ;If sentinel is not zz,
-         BRNE    loadErr     ;  then there is an error
+;Loader diskIn helper (abbrv. Loader Get diskIn)
+;If diskIn contains a hex digit, return a bldGetDiyte between 0 and 15 via A.
+;If diskIn contains ZZ, sets the V flag to 1 and return.
+;  Uses V since NZ are use in CPBA & inequality branches.
+;If diskIn contains a space or newline, loop ldGetDi.
+;Otherwise, print an error message and terminate execution.
+ldGetDI: LDBA    diskIn, d   ;Get character from diskIn.
+         ANDA    0x00DF, i   ;Convert to uppercase by masking bit 6.
+         CPBA    'Z', i      ;If end of file sentinel 'Z',
+         BREQ    ldCmpZ      ;  then exit loader routine.
+         CPBA    ' ', i
+         BREQ    ldGetDI     ;Ignore space.
+         CPBA    '\n', i
+         BREQ    ldGetDI     ;Ignore newline.
+         SUBA    '0', i      ;Wrap characters below '0' to above '9'.
+         CPBA    9, i        ;If <9, A contains a decimal digit.
+         BRLE    ldEndDI     ;Otherwise, check for A..F, a..f.
+ldShift: .EQUATE 0x11        ;Already subtracted '0', 0x11='A'-'0'.
+ldDIAF:  SUBA    ldShift, i  ;Wrap characters below 'A' to above 'F'.
+         CPBA    5, i        ;Therefore >'F'/A+5 is not a hex digit.
+         BRGT    errChar     ;Print error and exit.
+         ADDA    9, i        ;Convert ASCII A-F to decimal 10-15.
          RET
-loadErr: LDWA    ldErrMsg,i  ;Load the address of the loader error message.
-         STWA    -2,s        ;Push address of error message
-         SUBSP   2,i         ;Allocate @param #msgAddr
+ldCmpZ:  LDBA    diskIn, d   ;Consume second 'Z'.
+         ANDA    0x00DF, i   ;Convert to uppercase by masking bit 6.
+         CPBA    'Z', i      ;If sentinel is not zz,
+         BRNE    errSent     ;  then there is an error.
+         LDWA    -1, i       ;Prepare NZVC flags with V set.
+         MOVAFLG             ;Set V flag to indicate loader sentinel.
+ldEndDI: RET
+;
+;Error printing helpers for loader.
+;
+errChar: LDWA    ldNoZ, i    ;Load the address of the bad character loader error message.
+         BR      ldErr
+errSent: LDWA    ldBadSnt,i  ;Load the address of the sentinel loader error message.
+ldErr:   STWA    -2, s       ;Push address of error message
+         SUBSP   2, i        ;Allocate @param #msgAddr
          CALL    prntMsg
-         ADDSP   2,i         ;Deallocate @param #msgAddr
+         ADDSP   2, i        ;Deallocate @param #msgAddr
          BR      shutdown
-ldErrMsg:.ASCII "Sentinel value was corrupted\x00"
+ldNoZ:   .ASCII "Invalid object code character\x00"
+ldBadSnt:.ASCII "Sentinel value was corrupted\x00"
 ;
 ;******* Trap handler
 ;NZVC bits, A and X registers contain user data after SCALL.
