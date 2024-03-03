@@ -56,6 +56,7 @@ public:
 class LineInfoModel : public QAbstractListModel {
   Q_OBJECT
   Q_PROPERTY(QQuickTextDocument *document WRITE setDocument)
+
 public:
   explicit LineInfoModel(QObject *parent = nullptr);
   ~LineInfoModel() override = default;
