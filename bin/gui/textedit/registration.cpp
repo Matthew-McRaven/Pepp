@@ -23,6 +23,7 @@
 #include "highlight/style/defaults.hpp"
 #include "highlight/style/map.hpp"
 #include "lineinfomodel.hpp"
+#include "tabnanny.hpp"
 
 namespace textedit {
 void registerTypes(QQmlApplicationEngine &engine) {
@@ -34,6 +35,7 @@ void registerTypes(QQmlApplicationEngine &engine) {
   qmlRegisterSingletonInstance<highlight::style::Defaults>("edu.pepp", 1, 0, "DefaultStyles",
                                                            new highlight::style::Defaults());
   qmlRegisterType<LineInfoModel>("edu.pepp", 1, 0, "LineInfoModel");
+  qmlRegisterType<TabNanny>("edu.pepp", 1, 0, "TabNanny");
 }
 } // namespace textedit
 

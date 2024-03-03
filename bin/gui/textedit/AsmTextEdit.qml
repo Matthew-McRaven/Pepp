@@ -58,6 +58,10 @@ ScrollView {
         id: lineModel
         document: editor.textDocument
     }
+    TabNanny {
+        id: tabNanny
+        document: editor.textDocument
+    }
 
     RowLayout {
         spacing: 0
@@ -138,7 +142,7 @@ ScrollView {
                             id: warning
                             anchors.left: rowNum.right; anchors.right: parent.right
                             anchors.top: parent.top; anchors.bottom: parent.bottom
-                            color: row.errorState === 0 ? "transparent" : ( row.errorState === 1 ? "yellow" : "red")
+                            color: row.errorState === 0 ? "transparent" : (row.errorState === 1 ? "yellow" : "red")
                         }
                     }
             }
@@ -154,11 +158,25 @@ ScrollView {
             property real lineHeight: contentHeight / lineCount
             font.family: "Courier New"
 
-            //textFormat: TextEdit.RichText
-            //wrapMode: TextEdit.NoWordWrap
             readOnly: wrapper.isReadOnly;
 
             text: wrapper.text
+            Keys.onPressed: (event) => {
+                if (event.key === Qt.Key_Tab || event.key === Qt.Key_Backtab) {
+                    if (editor.readOnly) {
+                        event.accepted = true
+                        return
+                    }
+                    else if (event.key === Qt.Key_Backtab || (event.key === Qt.Key_Tab && event.modifiers & Qt.ShiftModifier)) {
+                        event.accepted = true
+                        tabNanny.backtab(editor.cursorPosition)
+                    }
+                    else if(event.key === Qt.Key_Tab && event.modifiers === Qt.NoModifier) {
+                        event.accepted = true
+                        tabNanny.tab(editor.cursorPosition)
+                    }
+}
+            }
         }
     }
 }
