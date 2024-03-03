@@ -100,6 +100,8 @@ ScrollView {
                         required property int index
                         required property bool allowsBP
                         required property bool hasBP
+                        required property bool hasNumber
+                        required property int number
 
                         Rectangle {
                             id: bullet
@@ -119,6 +121,7 @@ ScrollView {
                             }
                         }
                         Label {
+                            visible: row.hasNumber
                             id: rowNum
                             anchors.left: bullet.right; anchors.right: parent.right
                             anchors.top: parent.top; anchors.bottom: parent.bottom
@@ -126,7 +129,7 @@ ScrollView {
                             verticalAlignment: Text.AlignVCenter
                             leftPadding: 5; rightPadding: 5
                             font.bold: view.currentIndex === row.index
-                            text: row.index + 1
+                            text: row.number
                         }
                     }
             }

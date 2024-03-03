@@ -34,6 +34,10 @@ QVariant LineInfoModel::data(const QModelIndex &index, int role) const {
     return QVariant(data->allowsBP);
   case LineInfoConstants::HAS_BP:
     return QVariant(data->hasBP);
+  case LineInfoConstants::HAS_NUMBER:
+    return QVariant(data->allowsNumber);
+  case LineInfoConstants::NUMBER:
+    return QVariant(data->number);
   default:
     return QVariant();
   }
@@ -59,6 +63,8 @@ bool LineInfoModel::setData(const QModelIndex &index, const QVariant &value, int
       return false;
     data->hasBP = value.toBool();
     break;
+  default:
+    return false;
   }
 
   emit dataChanged(index, index, {role});
@@ -72,6 +78,8 @@ QHash<int, QByteArray> LineInfoModel::roleNames() const {
   QHash<int, QByteArray> roles = QAbstractListModel::roleNames();
   roles[LineInfoConstants::ALLOWS_BP] = "allowsBP";
   roles[LineInfoConstants::HAS_BP] = "hasBP";
+  roles[LineInfoConstants::HAS_NUMBER] = "hasNumber";
+  roles[LineInfoConstants::NUMBER] = "number";
   return roles;
 }
 
@@ -134,7 +142,8 @@ void LineInfoModel::onContentsChange(int position, int charsRemoved, int charsAd
   const auto startLine = startBlock.blockNumber(), endLine = endBlock.blockNumber();
 
   // Track if any data values were updated, so that we can make the UI re-paint those rows.
-  bool changed = updateAllowsBreakpoint(startLine, endLine);
+  bool changedBP = updateAllowsBreakpoint(startLine, endLine);
+  bool changedLineNum = updateLineNumbers(startLine);
 
   // Complete UI update.
   if (change == REMOVE)
@@ -145,8 +154,14 @@ void LineInfoModel::onContentsChange(int position, int charsRemoved, int charsAd
   // Re-render the UI if any row's data changed. Always trigger on insert/delete,
   // because I am not sure if the UI will pick up the changes outside of the inserted regions.
   // Trigger after end.*Rows() because of API requirements.
-  if (changed || (change != MODIFY))
-    emit dataChanged(index(startLine, 0), index(endLine, 0), {LineInfoConstants::ALLOWS_BP, LineInfoConstants::HAS_BP});
+  if (changedLineNum)
+    emit dataChanged(index(startLine, 0), index(_linecount - 1, 0),
+                     {LineInfoConstants::ALLOWS_BP, LineInfoConstants::HAS_BP, LineInfoConstants::HAS_NUMBER,
+                      LineInfoConstants::NUMBER});
+  else if (changedBP || (change != MODIFY))
+    emit dataChanged(index(startLine, 0), index(endLine, 0),
+                     {LineInfoConstants::ALLOWS_BP, LineInfoConstants::HAS_BP, LineInfoConstants::HAS_NUMBER,
+                      LineInfoConstants::NUMBER});
 }
 
 void LineInfoModel::toggleBreakpoint(int line) {
@@ -164,6 +179,7 @@ void LineInfoModel::reset() {
   if (_doc) {
     _linecount = _doc->blockCount();
     updateAllowsBreakpoint(0, _linecount);
+    updateLineNumbers(0);
   } else
     _linecount = 0;
 
@@ -212,6 +228,21 @@ bool LineInfoModel::updateAllowsBreakpoint(int start, int end) {
       deferBP = false;
     }
   }
+  return changed;
+}
+
+bool LineInfoModel::updateLineNumbers(int from) {
+  bool changed = false;
+  for (auto it = _doc->findBlockByLineNumber(from); it.isValid(); it = it.next()) {
+    auto data = userDataForBlock(it);
+    // Convert from 0-indexed to 1-indexed.
+    auto number = it.blockNumber() + 1;
+    // changed |= (data->allowsNumber != allowsNumber);
+    changed |= (data->number != number);
+    // data->allowsNumber = allowsNumber;
+    data->number = number;
+  }
+
   return changed;
 }
 

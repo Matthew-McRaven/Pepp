@@ -26,7 +26,8 @@
 // This is a workaround for the lack of linesInserted/linesRemoved signals in QTextDocument.
 struct LineInfoData : public QTextBlockUserData {
   virtual ~LineInfoData() = default;
-  bool allowsBP = false, hasBP = false;
+  bool allowsBP = false, hasBP = false, allowsNumber = true;
+  int number = -1;
 };
 
 #define SHARED_CONSTANT(type, name, value)                                                                             \
@@ -42,6 +43,10 @@ public:
   SHARED_CONSTANT(quint32, ALLOWS_BP, Qt::UserRole + 1);
   // boolean indicating if the line currently has a breakpoint.
   SHARED_CONSTANT(quint32, HAS_BP, Qt::UserRole + 2);
+  // boolean indicating if current line contribute to line numbering.
+  SHARED_CONSTANT(quint32, HAS_NUMBER, Qt::UserRole + 3);
+  // unsigned int with the logical line number of the current line.
+  SHARED_CONSTANT(quint32, NUMBER, Qt::UserRole + 4);
 };
 
 class LineInfoModel : public QAbstractListModel {
@@ -65,6 +70,7 @@ public slots:
 private:
   void reset();
   bool updateAllowsBreakpoint(int start, int end);
+  bool updateLineNumbers(int from);
   LineInfoData *userDataForBlock(QTextBlock &block) const;
   QTextDocument *_doc = nullptr;
   int _linecount = 0;
