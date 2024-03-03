@@ -23,7 +23,6 @@
 #include "highlight/style/defaults.hpp"
 #include "highlight/style/map.hpp"
 #include "lineinfomodel.hpp"
-#include "linenumbers.h"
 
 namespace textedit {
 void registerTypes(QQmlApplicationEngine &engine) {
@@ -31,7 +30,6 @@ void registerTypes(QQmlApplicationEngine &engine) {
   qmlRegisterType<highlight::QMLHighlighter>("edu.pepp", 1, 0, "Highlighter");
   qmlRegisterType<highlight::Style>("edu.pepp", 1, 0, "Style");
   qmlRegisterType<highlight::style::Map>("edu.pepp", 1, 0, "StyleMap");
-  qmlRegisterType<LineNumbers>("edu.pepp", 1, 0, "LineNumbers");
   qmlRegisterType<BlockFinder>("edu.pepp", 1, 0, "BlockFinder");
   qmlRegisterSingletonInstance<highlight::style::Defaults>("edu.pepp", 1, 0, "DefaultStyles",
                                                            new highlight::style::Defaults());
