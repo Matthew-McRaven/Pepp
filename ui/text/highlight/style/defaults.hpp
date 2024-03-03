@@ -17,27 +17,16 @@
 #pragma once
 
 #include <QObject>
-#include "../highlight_globals.hpp"
-#include "../style.hpp"
-#include "./types.hpp"
+#include "../../text_globals.hpp"
 
-// Maybe I could access as properties if I used this... https://doc.qt.io/qt-6/qqmlpropertymap.html
 namespace highlight::style {
-class HIGHLIGHT_EXPORT Map : public QObject {
+class Map;
+
+class TEXT_EXPORT Defaults : public QObject {
   Q_OBJECT
-
 public:
-  Map(QObject *parent = nullptr);
-
-  Q_INVOKABLE void clear();
-  Q_INVOKABLE ::highlight::Style *getStyle(Types type) const;
-  // returns true if style was changed
-  Q_INVOKABLE bool setStyle(Types type, ::highlight::Style *newStyle);
-
-signals:
-  void styleChanged();
-
-private:
-  QMap<Types, ::highlight::Style *> _styles = {};
+  Defaults();
+  Q_INVOKABLE void pep10_asm(highlight::style::Map *styles);
+  Q_INVOKABLE void c(highlight::style::Map *styles);
 };
-}; // namespace highlight::style
+} // namespace highlight::style

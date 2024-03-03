@@ -17,16 +17,32 @@
 #pragma once
 
 #include <QObject>
-#include "../highlight_globals.hpp"
+#include "../../text_globals.hpp"
 
 namespace highlight::style {
-class Map;
+enum Types {
+  // Shared between C/C++/Assembly
+  Comment = -1,
+  Quoted = -2,
+  Warning = -3,
+  Error = -4,
+  // Assembly-only types
+  Symbol = 0,
+  Mnemonic,
+  Dot,
+  // C/C++-only types
+  FunctionDec,
+  Typename,
+  Keyword,
+  OtherKeyword,
+  Class,
+};
 
-class HIGHLIGHT_EXPORT Defaults : public QObject {
+// used to expose our style types into a QML singleton.
+class TEXT_EXPORT QMLTypes : public QObject {
   Q_OBJECT
 public:
-  Defaults();
-  Q_INVOKABLE void pep10_asm(highlight::style::Map *styles);
-  Q_INVOKABLE void c(highlight::style::Map *styles);
+  QMLTypes();
+  using enum Types;
 };
 } // namespace highlight::style

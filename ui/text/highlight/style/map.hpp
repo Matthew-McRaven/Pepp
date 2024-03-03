@@ -17,33 +17,27 @@
 #pragma once
 
 #include <QObject>
-#include "./highlight_globals.hpp"
+#include "../../text_globals.hpp"
+#include "../style.hpp"
+#include "./types.hpp"
 
-class QQuickTextDocument;
-
-namespace highlight {
-
-namespace style {
-class Map;
-}
-class PatternedHighlighter;
-
-class HIGHLIGHT_EXPORT QMLHighlighter : public QObject {
+// Maybe I could access as properties if I used this... https://doc.qt.io/qt-6/qqmlpropertymap.html
+namespace highlight::style {
+class TEXT_EXPORT Map : public QObject {
   Q_OBJECT
+
 public:
-  explicit QMLHighlighter(QObject *parent = nullptr);
-  Q_INVOKABLE void set_styles(highlight::style::Map *styles);
-  Q_INVOKABLE void set_document(QQuickTextDocument *document);
-  Q_INVOKABLE void set_highlighter(QString edition, QString language);
-  Q_INVOKABLE void clear_highlighter();
-private slots:
-  void on_styles_changed();
+  Map(QObject *parent = nullptr);
+
+  Q_INVOKABLE void clear();
+  Q_INVOKABLE ::highlight::Style *getStyle(Types type) const;
+  // returns true if style was changed
+  Q_INVOKABLE bool setStyle(Types type, ::highlight::Style *newStyle);
+
+signals:
+  void styleChanged();
 
 private:
-  style::Map *_styles = nullptr;
-  struct {
-    QString edition = "", language = "";
-  } _active;
-  PatternedHighlighter *_highlighter = nullptr;
+  QMap<Types, ::highlight::Style *> _styles = {};
 };
-} // namespace highlight
+}; // namespace highlight::style

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2023-2024 J. Stanley Warford, Matthew McRaven
+ * Copyright (c) 2024 J. Stanley Warford, Matthew McRaven
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
  * the Free Software Foundation, either version 3 of the License, or
@@ -14,12 +14,16 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-#pragma once
+#include "plugin.hpp"
+#include "highlight/qml_highlighter.hpp"
+#include "highlight/style.hpp"
+#include "highlight/style/defaults.hpp"
+#include "highlight/style/map.hpp"
 
-#include <QtCore/QtGlobal>
-
-#if defined(HIGHLIGHT_LIBRARY)
-#define HIGHLIGHT_EXPORT Q_DECL_EXPORT
-#else
-#define HIGHLIGHT_EXPORT Q_DECL_IMPORT
-#endif
+void text::registerTypes(const char *uri) {
+  qmlRegisterType<highlight::QMLHighlighter>(uri, 1, 0, "Highlighter");
+  qmlRegisterType<highlight::Style>(uri, 1, 0, "Style");
+  qmlRegisterType<highlight::style::Map>(uri, 1, 0, "StyleMap");
+  qmlRegisterSingletonInstance<highlight::style::Defaults>(uri, 1, 0, "DefaultStyles",
+                                                           new highlight::style::Defaults());
+}

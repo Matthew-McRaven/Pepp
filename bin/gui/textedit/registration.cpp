@@ -18,22 +18,16 @@
 #include <QQuickTextDocument>
 #include <QTextBlock>
 #include "help/builtins/registry.hpp"
-#include "highlight/qml_highlighter.hpp"
-#include "highlight/style.hpp"
-#include "highlight/style/defaults.hpp"
-#include "highlight/style/map.hpp"
+
 #include "lineinfomodel.hpp"
 #include "tabnanny.hpp"
 
 namespace textedit {
 void registerTypes(QQmlApplicationEngine &engine) {
   // TODO: Missing translations
-  qmlRegisterType<highlight::QMLHighlighter>("edu.pepp", 1, 0, "Highlighter");
-  qmlRegisterType<highlight::Style>("edu.pepp", 1, 0, "Style");
-  qmlRegisterType<highlight::style::Map>("edu.pepp", 1, 0, "StyleMap");
+
   qmlRegisterType<BlockFinder>("edu.pepp", 1, 0, "BlockFinder");
-  qmlRegisterSingletonInstance<highlight::style::Defaults>("edu.pepp", 1, 0, "DefaultStyles",
-                                                           new highlight::style::Defaults());
+
   qmlRegisterType<LineInfoModel>("edu.pepp", 1, 0, "LineInfoModel");
   qmlRegisterType<TabNanny>("edu.pepp", 1, 0, "TabNanny");
 }

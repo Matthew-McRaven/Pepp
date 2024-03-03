@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2023-2024 J. Stanley Warford, Matthew McRaven
+ * Copyright (c) 2024 J. Stanley Warford, Matthew McRaven
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
  * the Free Software Foundation, either version 3 of the License, or
@@ -16,33 +16,6 @@
 
 #pragma once
 
-#include <QObject>
-#include "../highlight_globals.hpp"
-
-namespace highlight::style {
-enum Types {
-  // Shared between C/C++/Assembly
-  Comment = -1,
-  Quoted = -2,
-  Warning = -3,
-  Error = -4,
-  // Assembly-only types
-  Symbol = 0,
-  Mnemonic,
-  Dot,
-  // C/C++-only types
-  FunctionDec,
-  Typename,
-  Keyword,
-  OtherKeyword,
-  Class,
+namespace text {
+void registerTypes(const char *uri);
 };
-
-// used to expose our style types into a QML singleton.
-class HIGHLIGHT_EXPORT QMLTypes : public QObject {
-  Q_OBJECT
-public:
-  QMLTypes();
-  using enum Types;
-};
-} // namespace highlight::style
