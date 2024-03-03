@@ -17,7 +17,6 @@
 #pragma once
 #include <QQmlApplicationEngine>
 #include <QtCore>
-#include "commands/gui.hpp"
 
 class QTextDocument;
 class QQuickTextDocument;
@@ -30,7 +29,3 @@ public:
   Q_INVOKABLE int find_pos(int pos);
   Q_INVOKABLE void set_document(QQuickTextDocument *doc);
 };
-
-namespace textedit {
-void registerTypes(QQmlApplicationEngine &engine);
-}

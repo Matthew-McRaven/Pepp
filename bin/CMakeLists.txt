@@ -53,7 +53,6 @@ set_target_properties(pepp PROPERTIES
 # Files with QML definitions must always be includeable without a prefix.
 # See: https://bugreports.qt.io/browse/QTBUG-101146.
 target_include_directories(pepp PRIVATE ${CMAKE_CURRENT_LIST_DIR}/gui/helpview)
-target_include_directories(pepp PRIVATE ${CMAKE_CURRENT_LIST_DIR}/gui/textedit)
 
 # On non-Windows platforms, create extra files that will explicitly start the graphical or the terminal version.
 # Meaningless on WIN32, since apps are either console or non-console, never both.

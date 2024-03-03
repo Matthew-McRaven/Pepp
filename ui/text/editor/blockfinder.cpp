@@ -14,24 +14,10 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-#include "registration.hpp"
+#include "blockfinder.hpp"
 #include <QQuickTextDocument>
 #include <QTextBlock>
 #include "help/builtins/registry.hpp"
-
-#include "lineinfomodel.hpp"
-#include "tabnanny.hpp"
-
-namespace textedit {
-void registerTypes(QQmlApplicationEngine &engine) {
-  // TODO: Missing translations
-
-  qmlRegisterType<BlockFinder>("edu.pepp", 1, 0, "BlockFinder");
-
-  qmlRegisterType<LineInfoModel>("edu.pepp", 1, 0, "LineInfoModel");
-  qmlRegisterType<TabNanny>("edu.pepp", 1, 0, "TabNanny");
-}
-} // namespace textedit
 
 BlockFinder::BlockFinder(QObject *parent) : QObject(parent) {}
 int BlockFinder::find_pos(int pos) {

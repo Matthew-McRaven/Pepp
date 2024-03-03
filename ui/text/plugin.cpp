@@ -15,6 +15,9 @@
  */
 
 #include "plugin.hpp"
+#include "editor/blockfinder.hpp"
+#include "editor/lineinfomodel.hpp"
+#include "editor/tabnanny.hpp"
 #include "highlight/qml_highlighter.hpp"
 #include "highlight/style.hpp"
 #include "highlight/style/defaults.hpp"
@@ -26,4 +29,7 @@ void text::registerTypes(const char *uri) {
   qmlRegisterType<highlight::style::Map>(uri, 1, 0, "StyleMap");
   qmlRegisterSingletonInstance<highlight::style::Defaults>(uri, 1, 0, "DefaultStyles",
                                                            new highlight::style::Defaults());
+  qmlRegisterType<BlockFinder>(uri, 1, 0, "BlockFinder");
+  qmlRegisterType<LineInfoModel>(uri, 1, 0, "LineInfoModel");
+  qmlRegisterType<TabNanny>(uri, 1, 0, "TabNanny");
 }

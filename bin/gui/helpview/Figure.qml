@@ -18,7 +18,7 @@ import QtQuick
 import QtQuick.Controls
 import QtQuick.Layouts
 import edu.pepp 1.0
-import "qrc:/qt/qml/Pepp/gui/textedit" as TextEdit
+import "qrc:/ui/text/editor" as TextEdit
 
 Item {
 

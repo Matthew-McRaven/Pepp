@@ -26,7 +26,6 @@
 #include "../gui/cpu/registermodel.h"
 #include "../gui/cpu/statusbitmodel.h"
 #include "../gui/helpview/registration.hpp"
-#include "../gui/textedit/registration.hpp"
 #include "memory/hexdump/memorybytemodel.h"
 #include "text/plugin.hpp"
 struct default_data : public gui_globals {
@@ -39,7 +38,6 @@ struct default_data : public gui_globals {
 
 QSharedPointer<gui_globals> default_init(QQmlApplicationEngine &engine) {
   text::registerTypes("edu.pepp");
-  textedit::registerTypes(engine);
   helpview::registerTypes(engine);
   //  Note, these models are instantiated in C++ and passed to QML. QML
   //  cannot instantiate these models directly
