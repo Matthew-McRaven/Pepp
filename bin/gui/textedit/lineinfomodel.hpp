@@ -28,6 +28,8 @@ struct LineInfoData : public QTextBlockUserData {
   virtual ~LineInfoData() = default;
   bool allowsBP = false, hasBP = false, allowsNumber = true;
   int number = -1;
+  // 0 => no error, 1 => warning, 2=>error
+  int errorState = 0;
 };
 
 #define SHARED_CONSTANT(type, name, value)                                                                             \
@@ -47,6 +49,8 @@ public:
   SHARED_CONSTANT(quint32, HAS_NUMBER, Qt::UserRole + 3);
   // unsigned int with the logical line number of the current line.
   SHARED_CONSTANT(quint32, NUMBER, Qt::UserRole + 4);
+  // unsigned int indicating the error level of the line.
+  SHARED_CONSTANT(quint32, ERROR_STATE, Qt::UserRole + 5);
 };
 
 class LineInfoModel : public QAbstractListModel {
@@ -66,6 +70,11 @@ public slots:
   Q_INVOKABLE void toggleBreakpoint(int line);
   // To capture events about the document changing
   void onContentsChange(int position, int charsRemoved, int charsAdded);
+  // Remove all error inlays in the document.
+  void clearErrors();
+  // A map of lines => error levels.
+  // Clear existing errors, and set new error inlays.
+  void onSetErrors(QMap<int, int> errors);
 
 private:
   void reset();

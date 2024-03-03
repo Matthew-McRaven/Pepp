@@ -38,6 +38,8 @@ QVariant LineInfoModel::data(const QModelIndex &index, int role) const {
     return QVariant(data->allowsNumber);
   case LineInfoConstants::NUMBER:
     return QVariant(data->number);
+  case LineInfoConstants::ERROR_STATE:
+    return QVariant(data->errorState);
   default:
     return QVariant();
   }
@@ -80,6 +82,7 @@ QHash<int, QByteArray> LineInfoModel::roleNames() const {
   roles[LineInfoConstants::HAS_BP] = "hasBP";
   roles[LineInfoConstants::HAS_NUMBER] = "hasNumber";
   roles[LineInfoConstants::NUMBER] = "number";
+  roles[LineInfoConstants::ERROR_STATE] = "errorState";
   return roles;
 }
 
@@ -164,6 +167,29 @@ void LineInfoModel::onContentsChange(int position, int charsRemoved, int charsAd
                       LineInfoConstants::NUMBER});
 }
 
+// Rely onSetErrors clearing all errors first.
+void LineInfoModel::clearErrors() { onSetErrors({}); }
+
+void LineInfoModel::onSetErrors(QMap<int, int> errors) {
+  if (_doc == nullptr)
+    return;
+
+  bool changed = false;
+
+  // Iterate over all lines. Clear existing errors, and apply any
+  // new errors for that line.
+  for (auto it = _doc->begin(); it != _doc->end(); it = it.next()) {
+    auto newValue = errors.value(it.blockNumber(), 0);
+    auto data = userDataForBlock(it);
+    changed |= (data->errorState != newValue);
+    data->errorState = newValue;
+  }
+  if (changed) {
+    emit beginResetModel();
+    emit endResetModel();
+  }
+}
+
 void LineInfoModel::toggleBreakpoint(int line) {
   auto index = this->index(line, 0);
   if (!data(index, LineInfoConstants::ALLOWS_BP).toBool())
@@ -198,6 +224,7 @@ bool LineInfoModel::updateAllowsBreakpoint(int start, int end) {
 
   // Track if any value in the range was updated.
   // If a line became non-exectuable due to an added newline, attempt to move the BP to the next line.
+  // TODO: Defer error messages by one line.
   bool changed = false, deferBP = false;
   for (auto it = _doc->findBlockByLineNumber(start); it.isValid() && it.blockNumber() <= end; it = it.next()) {
     auto data = userDataForBlock(it);
@@ -241,6 +268,7 @@ bool LineInfoModel::updateLineNumbers(int from) {
     changed |= (data->number != number);
     // data->allowsNumber = allowsNumber;
     data->number = number;
+    data->errorState = number % 3;
   }
 
   return changed;

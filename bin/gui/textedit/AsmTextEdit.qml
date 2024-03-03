@@ -93,6 +93,7 @@ ScrollView {
                 delegate:
                     Rectangle {
                         id: row
+                        color: "grey"
                         //color: view.currentIndex === index ? root.highlightColor : root.backgroundColor
                         width: view ? ListView.view.width : 0
                         height: rows.rowHeight
@@ -102,6 +103,7 @@ ScrollView {
                         required property bool hasBP
                         required property bool hasNumber
                         required property int number
+                        required property int errorState
 
                         Rectangle {
                             id: bullet
@@ -123,13 +125,20 @@ ScrollView {
                         Label {
                             visible: row.hasNumber
                             id: rowNum
-                            anchors.left: bullet.right; anchors.right: parent.right
+                            anchors.left: bullet.right
                             anchors.top: parent.top; anchors.bottom: parent.bottom
                             horizontalAlignment: Text.AlignRight
                             verticalAlignment: Text.AlignVCenter
                             leftPadding: 5; rightPadding: 5
                             font.bold: view.currentIndex === row.index
                             text: row.number
+                            width: rows.bulletSize / 1.5
+                        }
+                        Rectangle {
+                            id: warning
+                            anchors.left: rowNum.right; anchors.right: parent.right
+                            anchors.top: parent.top; anchors.bottom: parent.bottom
+                            color: row.errorState === 0 ? "transparent" : ( row.errorState === 1 ? "yellow" : "red")
                         }
                     }
             }
