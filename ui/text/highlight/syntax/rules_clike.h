@@ -13,11 +13,12 @@
  * You should have received a copy of the GNU General Public License
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
-#pragma once
-#include <QQmlApplicationEngine>
-#include <QtCore>
-#include "commands/gui.hpp"
 
-namespace helpview {
-void registerTypes(QQmlApplicationEngine &engine);
-}
+#pragma once
+#include "rules.hpp"
+
+namespace highlight {
+// Subsumes __old/chighlighter.cpp; See: babb87b6df834d75cfc133a36a4c19e931064079
+QList<Rule> rules_c();
+QList<Rule> rules_cpp();
+} // namespace highlight

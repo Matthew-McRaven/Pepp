@@ -1,6 +1,5 @@
 /*
- * Copyright (c) 2023 J. Stanley Warford, Matthew McRaven
- *
+ * Copyright (c) 2023-2024 J. Stanley Warford, Matthew McRaven
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
  * the Free Software Foundation, either version 3 of the License, or
@@ -16,30 +15,30 @@
  */
 
 #pragma once
+#include <QSyntaxHighlighter>
+#include "rules.hpp"
 
-#include <QObject>
+QT_BEGIN_NAMESPACE
+class QTextDocument;
+QT_END_NAMESPACE
 
-#include "../highlight_globals.hpp"
-#include "./types.hpp"
-#include "../style.hpp"
-
-// Maybe I could access as properties if I used this... https://doc.qt.io/qt-6/qqmlpropertymap.html
-namespace highlight::style {
-class HIGHLIGHT_EXPORT Map : public QObject {
-    Q_OBJECT
-
+namespace highlight {
+class PatternedHighlighter : public QSyntaxHighlighter {
 public:
-    Map(QObject* parent=nullptr);
+  struct Pattern {
+    QRegularExpression pattern;
+    QTextCharFormat format;
+    int from = 0, to = 0;
+    bool reset = false;
+  };
+  PatternedHighlighter(QObject *parent = 0);
+  PatternedHighlighter(QTextDocument *parent = 0);
+  void setPatterns(QList<Pattern> rules);
 
-    Q_INVOKABLE void clear();
-    Q_INVOKABLE ::highlight::Style* getStyle(Types type) const;
-    // returns true if style was changed
-    Q_INVOKABLE bool setStyle(Types type, ::highlight::Style* newStyle);
-
-signals:
-    void styleChanged();
+protected:
+  void highlightBlock(const QString &text);
 
 private:
-    QMap<Types, ::highlight::Style*> _styles={};
+  QList<Pattern> _rules;
 };
-};
+} // namespace highlight

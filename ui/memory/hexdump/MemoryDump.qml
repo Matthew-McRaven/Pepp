@@ -9,7 +9,8 @@ import edu.pepperdine 1.0
 
 Rectangle {
   id: root
-  anchors.fill: parent
+  Layout.fillHeight: true
+  Layout.fillWidth: true
 
   property font asciiFont:
       Qt.font({family: 'Courier',
@@ -51,8 +52,8 @@ Rectangle {
     model: MemoryByteModel
 
     //  Ascii column must be calculated since byte width per line is configurable
-    property int asciiWidth: MemoryByteModel.BytesPerColumn ?
-                             (10 * MemoryByteModel.BytesPerColumn) : 100
+    property int asciiWidth: MemoryByteModel ? (MemoryByteModel.BytesPerColumn ?
+                             (10 * MemoryByteModel.BytesPerColumn) : 100) : 100
 
     //  Used for paging
     property real pageSize: 20        //  Default value, replace on screen resize

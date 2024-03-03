@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2024 J. Stanley Warford, Matthew McRaven
+ * Copyright (c) 2023-2024 J. Stanley Warford, Matthew McRaven
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
  * the Free Software Foundation, either version 3 of the License, or
@@ -13,11 +13,13 @@
  * You should have received a copy of the GNU General Public License
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
-#pragma once
-#include <QQmlApplicationEngine>
-#include <QtCore>
-#include "commands/gui.hpp"
 
-namespace helpview {
-void registerTypes(QQmlApplicationEngine &engine);
-}
+#pragma once
+
+#include <QtCore/QtGlobal>
+
+#if defined(TEXT_LIBRARY)
+#define TEXT_EXPORT Q_DECL_EXPORT
+#else
+#define TEXT_EXPORT Q_DECL_IMPORT
+#endif

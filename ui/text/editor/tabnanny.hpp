@@ -1,6 +1,5 @@
 /*
- * Copyright (c) 2023 J. Stanley Warford, Matthew McRaven
- *
+ * Copyright (c) 2024 J. Stanley Warford, Matthew McRaven
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
  * the Free Software Foundation, either version 3 of the License, or
@@ -16,11 +15,22 @@
  */
 
 #pragma once
+#include <QObject>
+#include <QQuickTextDocument>
+#include <QTextDocument>
 
-#include <QtCore/QtGlobal>
+// Helper class to do in/out denting of text.
+class TabNanny : public QObject {
+  Q_OBJECT
+  Q_PROPERTY(QQuickTextDocument *document WRITE setDocument)
+public:
+  explicit TabNanny(QObject *parent = nullptr);
+  ~TabNanny() override = default;
+public slots:
+  void setDocument(QQuickTextDocument *doc);
+  Q_INVOKABLE void tab(int position);
+  Q_INVOKABLE void backtab(int position);
 
-#if defined(HIGHLIGHT_LIBRARY)
-#define HIGHLIGHT_EXPORT Q_DECL_EXPORT
-#else
-#define HIGHLIGHT_EXPORT Q_DECL_IMPORT
-#endif
+private:
+  QTextDocument *_doc = nullptr;
+};

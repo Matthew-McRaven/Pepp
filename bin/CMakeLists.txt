@@ -1,3 +1,4 @@
+qt_policy(SET QTP0001 NEW)
 file(GLOB_RECURSE sources_and_tests CONFIGURE_DEPENDS "${CMAKE_CURRENT_LIST_DIR}/*.cpp")
 file(GLOB_RECURSE tests CONFIGURE_DEPENDS "test/*.cpp" "test/*.hpp")
 file(GLOB_RECURSE compile_tests CONFIGURE_DEPENDS "compile-test/*.cpp")
@@ -34,7 +35,7 @@ make_target(
         DEPENDS
         TextFlow cli about macro pas builtins isa targets sim
         Qt6::Core Qt6::Gui Qt::Qml Qt::Quick Qt::QuickControls2
-        Qt::Widgets test-lib-all memory highlight
+        Qt::Widgets test-lib-all memory text
 )
 
 target_compile_definitions(pepp PRIVATE "INCLUDE_GUI=1")

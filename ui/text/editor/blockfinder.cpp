@@ -13,11 +13,17 @@
  * You should have received a copy of the GNU General Public License
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
-#pragma once
-#include <QQmlApplicationEngine>
-#include <QtCore>
-#include "commands/gui.hpp"
 
-namespace helpview {
-void registerTypes(QQmlApplicationEngine &engine);
+#include "blockfinder.hpp"
+#include <QQuickTextDocument>
+#include <QTextBlock>
+#include "help/builtins/registry.hpp"
+
+BlockFinder::BlockFinder(QObject *parent) : QObject(parent) {}
+int BlockFinder::find_pos(int pos) {
+  if (_doc == nullptr)
+    return -1;
+  return _doc->findBlock(pos).blockNumber();
 }
+
+void BlockFinder::set_document(QQuickTextDocument *doc) { this->_doc = doc->textDocument(); }

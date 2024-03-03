@@ -14,12 +14,30 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-#include "registration.hpp"
-#include "book_item_model.hpp"
+#pragma once
 
-namespace helpview {
-void registerTypes(QQmlApplicationEngine &engine) {
-  // TODO: Missing translations
-  qmlRegisterType<builtins::BookModel>("edu.pepp", 1, 0, "BookModel");
-}
-} // namespace helpview
+#include <QObject>
+#include "../../text_globals.hpp"
+#include "../style.hpp"
+#include "./types.hpp"
+
+// Maybe I could access as properties if I used this... https://doc.qt.io/qt-6/qqmlpropertymap.html
+namespace highlight::style {
+class TEXT_EXPORT Map : public QObject {
+  Q_OBJECT
+
+public:
+  Map(QObject *parent = nullptr);
+
+  Q_INVOKABLE void clear();
+  Q_INVOKABLE ::highlight::Style *getStyle(Types type) const;
+  // returns true if style was changed
+  Q_INVOKABLE bool setStyle(Types type, ::highlight::Style *newStyle);
+
+signals:
+  void styleChanged();
+
+private:
+  QMap<Types, ::highlight::Style *> _styles = {};
+};
+}; // namespace highlight::style
