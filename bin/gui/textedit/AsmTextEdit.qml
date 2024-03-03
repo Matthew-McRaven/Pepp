@@ -53,6 +53,10 @@ ScrollView {
     Highlighter {
         id: highlighter
     }
+    LineInfoModel {
+        id: lineModel
+        document: editor.textDocument
+    }
 
     RowLayout {
         spacing: 0
@@ -61,8 +65,13 @@ ScrollView {
         Layout.fillWidth: true
 
         //  Line numbers
-        Ui.RowNumbers {
+        Rectangle {
             id: rows
+            width: wrapper.colWidth
+            property real rowHeight: editor.lineHeight
+            property real colWidth: wrapper.colWidth
+            property real bulletSize: rowHeight * 0.75
+
             Layout.topMargin: editor.topPadding + editor.textMargin
             Layout.bottomMargin: editor.bottomPadding
             Layout.fillHeight: true
@@ -70,12 +79,56 @@ ScrollView {
             Layout.maximumWidth: rows.width
             Layout.minimumWidth: rows.width
 
-            width: wrapper.colWidth
-            colWidth: wrapper.colWidth
-            rowHeight: editor.lineHeight
+            ListView {
+                id: view
+                anchors.left: parent.left; anchors.top: parent.top; anchors.bottom: parent.bottom;
+                width: colWidth;
 
-            rows: editor.lineCount
-            rowfont: editor.font
+                clip: false //true
+                focus: false
+                interactive: false
+
+                model: lineModel
+                delegate:
+                    Rectangle {
+                        id: row
+                        //color: view.currentIndex === index ? root.highlightColor : root.backgroundColor
+                        width: view ? ListView.view.width : 0
+                        height: rows.rowHeight
+
+                        required property int index
+                        required property bool allowsBP
+                        required property bool hasBP
+
+                        Rectangle {
+                            id: bullet
+                            visible: row.hasBP
+                            anchors.left: parent.left
+                            anchors.verticalCenter: parent.verticalCenter
+                            color: "red"
+                            height: rows.bulletSize
+                            width: rows.bulletSize
+                            radius: rows.bulletSize / 2
+                        }
+                        MouseArea {
+                            visible: row.allowsBP
+                            anchors.fill: parent
+                            onClicked: {
+                                view.model.toggleBreakpoint(row.index);
+                            }
+                        }
+                        Label {
+                            id: rowNum
+                            anchors.left: bullet.right; anchors.right: parent.right
+                            anchors.top: parent.top; anchors.bottom: parent.bottom
+                            horizontalAlignment: Text.AlignRight
+                            verticalAlignment: Text.AlignVCenter
+                            leftPadding: 5; rightPadding: 5
+                            font.bold: view.currentIndex === row.index
+                            text: row.index + 1
+                        }
+                    }
+            }
         }
 
 
