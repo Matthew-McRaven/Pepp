@@ -27,6 +27,7 @@ ScrollView {
     Layout.fillHeight: true;
     Layout.fillWidth: true
     required property bool isReadOnly;
+    property bool allowsBP: true;
     required property string edition;
     required property string language;
     property string text;
@@ -102,7 +103,7 @@ ScrollView {
 
                         Rectangle {
                             id: bullet
-                            visible: row.hasBP
+                            visible: row.hasBP && wrapper.allowsBP
                             anchors.left: parent.left
                             anchors.verticalCenter: parent.verticalCenter
                             color: "red"
@@ -111,7 +112,7 @@ ScrollView {
                             radius: rows.bulletSize / 2
                         }
                         MouseArea {
-                            visible: row.allowsBP
+                            visible: row.allowsBP && wrapper.allowsBP
                             anchors.fill: parent
                             onClicked: {
                                 view.model.toggleBreakpoint(row.index);

@@ -160,6 +160,7 @@ Item {
             edition: figCol.edition
             language: figCol.language
             isReadOnly: true
+            allowsBP: false
         }
         Row {
             id: copyRow
