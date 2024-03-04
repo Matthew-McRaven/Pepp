@@ -1,10 +1,9 @@
 import QtQuick
 import QtQuick.Controls
 import QtQuick.Layouts
-//import Qt.labs.qmlmodels          //  For DelegateChooser
 
 import "." as Ui
-//import edu.pepperdine 1.0
+import edu.pepperdine 1.0
 
 Rectangle {
   id: root
@@ -22,13 +21,26 @@ Rectangle {
       Layout.margins: 3
       implicitWidth: 100
       model: PreferenceModel
+
+      onUpdateLayout: {
+        console.log("Category.onUpdateLayout")
+        details.forceUpdate()
+      }
     }
 
     //  Preferences for chosen cateogory
     Ui.PreferenceDetails {
+      id: details
       Layout.fillHeight: true
       Layout.fillWidth: true
       Layout.margins: 3
+      model: PreferenceModel
+
+      function forceUpdate() {
+        console.log("details.onUpdateLayout")
+        updateLayout()
+      }
+
     }
 
     //  Overrides
@@ -37,6 +49,7 @@ Rectangle {
       Layout.fillHeight: true
       implicitWidth: 300
       Layout.margins: 3
+      Layout.topMargin: 100
     }
   }
 }

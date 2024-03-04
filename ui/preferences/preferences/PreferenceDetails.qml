@@ -7,15 +7,10 @@ import "." as Ui
 import edu.pepperdine 1.0
 
 Item {
+  id: root
   width: 600
   property int buttonWidth: 50
-
-  property font asciiFont:
-      Qt.font({family: 'Courier New',
-                weight: Font.Normal,
-                italic: false,
-                bold: false,
-                pointSize: 10})
+  required property var model
 
   ColumnLayout {
     anchors.fill: parent
@@ -39,6 +34,7 @@ Item {
     } //  RowLayout - Theme
     //  Font selection
     RowLayout {
+      id: layout
       GroupBox {
         id: fontGB
         Layout.topMargin: 20
@@ -46,14 +42,15 @@ Item {
 
         //  Groupbox label
         label: Ui.GroupBoxLabel {
-          backgroundColor: "#f0f0f0"
-          textColor: "#000000"
+          textColor: model.normalText.foreground
           text: "Font"
         }
 
         RowLayout {
           Label { text: "Current Font Family: " }
-          Text { text: asciiFont.family         }
+          Text { text: model.font.family }
+          Label { text: "Size: " }
+          Text { text: model.font.pointSize     }
           Button {
             text: "Change";
             Layout.preferredWidth: buttonWidth
@@ -63,7 +60,8 @@ Item {
               //  Open dialog and set properties.
               //  Control will trigger visible in onCompleted.
               fontDialog.open()
-              fontDialog.currentFont = asciiFont
+              console.log("Font family=" + model.font.family)
+              fontDialog.currentFont = model.font
               fontDialog.visible = true
             }
           }
@@ -80,26 +78,26 @@ Item {
 
         //  Groupbox label
         label: Ui.GroupBoxLabel {
-          backgroundColor: "#f0f0f0"
-          textColor: "#000000"
+          textColor: model.normalText.foreground //"#000000"
           text: "Color Scheme for Theme: " + themeId.currentText
         }
         ListView {
           id: propertyListView
-          //model: PreferenceModel
           anchors.fill: parent
-          //anchors.margins: 2.5
           clip: true
 
-          model: 10
+          model: root.model
 
-          delegate: Text {
-            text: "Line "+ index
+          delegate: Label {
+            text: model.currentCategory
+            color: model.currentList.foreground
+            font: model.currentList.font
+            background: Rectangle {
+              color: model.currentList.background
+            }
+
             padding: 2
           }
-
-          //  Trigger change in right pane
-          //onCurrentItemChanged:
         }
       }
     }
@@ -108,10 +106,11 @@ Item {
   //  Does not work on windows platform
   Platform.FontDialog {
     id: fontDialog
+    //options: MonospacedFonts
 
-    //Component.onCompleted:  visible = true
     onAccepted: {
-      asciiFont = font
+      console.log("Font Dialog family="+fontDialog.font.family)
+      model.font = fontDialog.font //  Works
     }
   }
 }
