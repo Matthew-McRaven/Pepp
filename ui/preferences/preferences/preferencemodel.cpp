@@ -2,25 +2,19 @@
 
 //  For testing only
 #include <QDebug>
+#include <QColor>
 
 PreferenceModel::PreferenceModel(QObject *parent)
-    : QAbstractListModel(parent)
+    : QAbstractListModel(parent), font_("Courier New", 12)
 {
     //  List column names that will appear in view
-    roleNames_[Categories]     = "categoriesRole";
-    roleNames_[General]     = "generalCategoryRole";
-    roleNames_[Editor]      = "editorCategoryRole";
-    roleNames_[Alu]         = "aluCategoryRole";
+    roleNames_[CategoriesRole]      = "categories";
+    roleNames_[CurrentCategoryRole] = "currentCategory";
+    roleNames_[CurrentListRole]     = "currentList";
 
-    //  Individual properties
-    roleNames_[Type]        = "typeRole";
-    roleNames_[Foreground]  = "foregroundRole";
-    roleNames_[Background]  = "backgroundRole";
-    roleNames_[FontBold]    = "boldRole";
-    roleNames_[FontItalics] = "italicsRole";
-    roleNames_[FontUnderline]= "underlineRole";
-    roleNames_[FontStrikethrough]= "strikethroughRole";
-
+    //  Basic text styles
+    roleNames_[NormalText]          = "normalText";
+    //  Add additional styles - TODO
 
     //  Load preferences
     load();
@@ -28,34 +22,64 @@ PreferenceModel::PreferenceModel(QObject *parent)
 
 void PreferenceModel::load()
 {
-    //  List of elements is static
+    //  Clear out list if load was called before
+    categories_.clear();
 
-    categories_.append("General");
-    categories_.append("Editor");
-    categories_.append("Circuit");
+    auto& general = categories_.emplaceBack("General");
 
-    /*
-    preferences_.append(Preference(General, "General", Categories, 0,"#000000","#ffffff") );
-    preferences_.append(Preference(Editor, "Editor", Categories, 0,"#000000","#ffffff") );
-    preferences_.append(Preference(Alu, "Circuit", Categories, 0,"#000000","#ffffff") );
-    */
+    auto it = preferences_.emplace(NormalText,NormalText,"Foreground",General);
+    it->setForeground(Qt::black);
+    it->setBackground(qRgb(0xff,0xff,0xff));    //  White
+    it->setFont(&font_);
+    general.addPreference(it->name());
+
+    it = preferences_.emplace(Background,Background,"Background",General);
+    it->setForeground(Qt::black);
+    it->setBackground(qRgb(0xb5,0xb5,0xb5));    //  Light gray
+    general.addPreference(it->name());
+
+    it = preferences_.emplace(Selection,Selection,"Selection",General);
+    it->setForeground(qRgb(0x44,0x44,0x44));
+    it->setBackground(qRgb(0x90,0xeb,0xff));    //  Light blue
+    it->setBold(true);
+    general.addPreference(it->name());
+
+    it = preferences_.emplace(Test1,Test1,"Go Pepperdine!",General);
+    it->setForeground(qRgb(0xff,0xaa,0x00));    //  Orange
+    it->setBackground(qRgb(0x3f,0x51,0xb5));    //  Blue
+    it->setBold(true);
+    it->setItalics(true);
+    general.addPreference(it->name());
+
+    auto& editor  = categories_.emplaceBack("Editor");
+    it = preferences_.emplace(RowNumber,RowNumber,"Row Number",Editor);
+    it->setForeground(qRgb(0x66,0x66,0x66));    //  Dark Gray
+    it->setBackground(qRgb(0xff,0xff,0xff));    //  White
+    it->setStrikeOut(true);
+    editor.addPreference(it->name());
+    it = preferences_.emplace(Breakpoint,Breakpoint,"Breakpoint",Editor);
+    it->setForeground(qRgb(0xff,0x0,0x0));      //  Red
+    it->setBackground(qRgb(0xff,0xff,0xff));    //  White
+    it->setUnderline(true);
+    editor.addPreference(it->name());
+
+    auto& circuit = categories_.emplaceBack("Circuit");
+    it = preferences_.emplace(SeqCircuit,SeqCircuit,"SeqCircuit",Editor);
+    it->setForeground(qRgb(0xff,0xff,0x0));     //  Yellow
+    it->setBackground(qRgb(0x04,0xab,0x0a));    //  Green
+    circuit.addPreference(it->name());
+    it = preferences_.emplace(CircuitGreen,CircuitGreen,"CircuitGreen",Editor);
+    it->setForeground(qRgb(0x0,0x0,0xff));      //  Blue
+    it->setBackground(qRgb(0xff,0xe1,0xff));    //  Violet
+    circuit.addPreference(it->name());
 }
 
-
-/*void PreferenceModel::reload()
+int PreferenceModel::rowCount(const QModelIndex &parent) const
 {
-    //  List of elements is static
-    beginInsertRows(QModelIndex(), rowCount(), rowCount());
-    registers_.clear();
-    load();
-    endInsertRows();
-}
-*/
-
-int PreferenceModel::rowCount(const QModelIndex &) const
-{
-    //  Number of preferences
-    return preferences_.size() + categories_.size();
+    //  Rows depends on current parent
+    return categories_.size() > categories_.at(category_).size()
+        ? categories_.size()
+        : categories_.at(category_).size();
 }
 
 QVariant PreferenceModel::data(const QModelIndex &index, int role) const
@@ -65,86 +89,64 @@ QVariant PreferenceModel::data(const QModelIndex &index, int role) const
 
     const auto row = index.row();
 
-    //  Is this a category request?
-    if( role == Categories ) {
+    //  If row is greater than preferences, just return
+    switch(role)
+    {
+    case RoleNames::CategoriesRole:
+        return row < categories_.size()
+               ? categories_.at(row).name()
+               : QVariant();
+    case RoleNames::CurrentCategoryRole: {
+        const auto it = categories_.at(category_).preference(row);
+        if(!it.isEmpty())
+            return it;
 
-        if(row < 0 || row > categories_.count())
-            return QVariant();
-
-        return categories_.at(row);
+        return {};
     }
 
-    //  Get current status bit
-    const auto pref = preferences_.at(row);
-    switch(role) {
-    case Id:
-        // Return id of preference
-        return pref.id();
-    case Name:
-        // Return preference name
-        return pref.name();
-    case Parent:
-        // Return parent Id
-        return pref.parentId();
-    case Type:
-        // Return type
-        return pref.type();
-    case Foreground:
-        // Return Data in foreground color
-        return pref.foreground();
-    case Background:
-        // Return Data in foreground color
-        return pref.background();
-    case FontBold:
-        // Return Data in foreground color
-        return pref.bold();
-    case FontItalics:
-        // Return Data in foreground color
-        return pref.italics();
-    case FontUnderline:
-        // Return Data in foreground color
-        return pref.underline();
+    case RoleNames::CurrentListRole: {
+        //  This role is for iterating over list in for current selection
+        //  Categories start with general and increment by 1
+        //  Items under categories start at 100x of the category id
+        const int current = (General + category_) * 100 + row;
+
+        if(preferences_.contains(current)) {
+            auto& pref = preferences_[current];
+
+            return QVariant::fromValue(pref);
+        }
+
+        //  Not found
+        return {};
+    }
+    case RoleNames::NormalText: {
+        if(preferences_.contains(role)) {
+            auto& pref = preferences_[role];
+
+            return QVariant::fromValue(pref);
+        }
+
+        //  Not found
+        return {};
+    }
     }
 
     //  Role not found
-    return QVariant();
+    return {};
 }
 
 bool PreferenceModel::setData(const QModelIndex &index, const QVariant &value, int role)
 {
+
     //  See if value is different from passed in value
-    if (data(index, role) == value) {
-        return false;
-    }
+    //if (data(index, role) == value) {
+    //    return false;
+    //}
 
-    auto reg = preferences_.at(index.row());
-
-    switch(role)
-    {
-    case RoleNames::Parent: {
-        reg.setParent(value.toUInt());
-
-        emit dataChanged(index, index, {role});
-        return true;
-    }
-    case RoleNames::Foreground: {
-        // Update data field
-        const auto color = value.value<QColor>();
-        reg.setForeground(color);
-        emit dataChanged(index, index, {role});
-
-        return true;
-    }
-    case RoleNames::Background: {
-        // Update data field
-        const auto color = value.value<QColor>();
-        reg.setBackground(color);
-        emit dataChanged(index, index, {role});
-
-        return true;
-    }
-    }
-    //  Ignore other flags
+    //  See if value is different from passed in value
+    //switch (role) {
+    //  Standard Qt roles
+    //}
     return false;
 }
 
@@ -152,8 +154,8 @@ Qt::ItemFlags PreferenceModel::flags(const QModelIndex &index) const
 {
     const auto col = index.column();
     //  If field property, it is editable
-    if(col <= RoleNames::FieldStart &&
-       col >= RoleNames::FieldEnd)
+    if(col == Qt::FontRole ||
+        col >= RoleNames::General)
         return Qt::ItemIsEditable | Qt::ItemIsEnabled | Qt::ItemIsSelectable;
 
     //  All other fields are not editable
