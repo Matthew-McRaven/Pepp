@@ -9,8 +9,6 @@ import edu.pepperdine 1.0
 
 Rectangle {
   id: root
-  Layout.fillHeight: true
-  Layout.fillWidth: true
 
   property font asciiFont:
       Qt.font({family: 'Courier',
