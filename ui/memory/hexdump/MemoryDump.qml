@@ -9,7 +9,6 @@ import edu.pepperdine 1.0
 
 Rectangle {
   id: root
-  anchors.fill: parent
 
   property font asciiFont:
       Qt.font({family: 'Courier',
