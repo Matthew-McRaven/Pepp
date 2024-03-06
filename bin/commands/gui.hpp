@@ -19,7 +19,9 @@
 #include "../task.hpp"
 
 #if INCLUDE_GUI
+
 QSharedPointer<gui_globals> default_init(QQmlApplicationEngine &engine);
+
 #endif
 
 struct gui_args {
@@ -31,6 +33,7 @@ struct gui_args {
 };
 
 int gui_main(const gui_args &);
+
 void registerGUI(auto &app, task_factory_t &task, detail::SharedFlags &flags, gui_args &gui_args) {
   static auto gui = app.add_subcommand("gui", "Start Pepp GUI");
   gui->prefix_command(true);

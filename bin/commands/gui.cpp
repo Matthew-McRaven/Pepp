@@ -14,7 +14,9 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 #include "gui.hpp"
+
 #if INCLUDE_GUI
+
 #include <QApplication>
 #include <QQmlApplicationEngine>
 #include <QQmlContext>
@@ -23,13 +25,16 @@
 #include <QDirIterator>
 #include <QTimer>
 
+#include "../gui/about/registration.hpp"
 #include "../gui/cpu/registermodel.h"
 #include "../gui/cpu/statusbitmodel.h"
 #include "../gui/helpview/registration.hpp"
 #include "memory/hexdump/memorybytemodel.h"
 #include "text/plugin.hpp"
+
 struct default_data : public gui_globals {
   ~default_data() override = default;
+
   StatusBitModel sbm;
   RegisterModel rm;
   MemoryByteModel mbm;
@@ -39,6 +44,7 @@ struct default_data : public gui_globals {
 QSharedPointer<gui_globals> default_init(QQmlApplicationEngine &engine) {
   text::registerTypes("edu.pepp");
   helpview::registerTypes(engine);
+  about::registerTypes(engine);
   //  Note, these models are instantiated in C++ and passed to QML. QML
   //  cannot instantiate these models directly
   qmlRegisterUncreatableType<MemoryByteModel>("edu.pepperdine", 1, 0, "MemByteRoles", "Error: only enums");
