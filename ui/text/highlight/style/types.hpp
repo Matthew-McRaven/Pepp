@@ -17,7 +17,7 @@
 #pragma once
 
 #include <QObject>
-#include "../../text_globals.hpp"
+#include "frontend_globals.hpp"
 
 namespace highlight::style {
 enum Types {
@@ -39,7 +39,7 @@ enum Types {
 };
 
 // used to expose our style types into a QML singleton.
-class TEXT_EXPORT QMLTypes : public QObject {
+class FRONTEND_EXPORT QMLTypes : public QObject {
   Q_OBJECT
 public:
   QMLTypes();

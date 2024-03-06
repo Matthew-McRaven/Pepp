@@ -17,12 +17,12 @@
 #pragma once
 
 #include <QObject>
-#include "../../text_globals.hpp"
+#include "frontend_globals.hpp"
 
 namespace highlight::style {
 class Map;
 
-class TEXT_EXPORT Defaults : public QObject {
+class FRONTEND_EXPORT Defaults : public QObject {
   Q_OBJECT
 public:
   Defaults();

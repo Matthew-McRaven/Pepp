@@ -18,11 +18,11 @@
 
 #include <QQuickItem>
 #include <QTextCharFormat>
-#include "../text_globals.hpp"
+#include "frontend_globals.hpp"
 #include "style/types.hpp"
 
 namespace highlight {
-class TEXT_EXPORT Style : public QObject {
+class FRONTEND_EXPORT Style : public QObject {
   Q_OBJECT
   Q_PROPERTY(QString font READ getFont WRITE setFont NOTIFY fontChanged);
   Q_PROPERTY(QColor color READ getColor WRITE setColor NOTIFY colorChanged);

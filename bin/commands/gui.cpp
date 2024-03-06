@@ -27,8 +27,8 @@
 #include "../gui/cpu/statusbitmodel.h"
 #include "../gui/helpview/registration.hpp"
 #include "memory/hexdump/memorybytemodel.hpp"
-#include "preferences/preferences/preferencemodel.hpp"
-#include "text/plugin.hpp"
+#include "preferences/preferencemodel.hpp"
+#include "text/registration.hpp"
 
 struct default_data : public gui_globals {
   ~default_data() override = default;
