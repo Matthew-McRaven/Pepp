@@ -4,7 +4,7 @@ make_target(
   TARGET demo-fig-view
   TYPE "EXEC"
   SOURCES ${sources}
-  DEPENDS Qt6::Core Qt6::Quick builtins highlight
+  DEPENDS Qt6::Core Qt6::Quick builtins frontend
 )
 
 # GLOB_RECURSE ueses abs paths, QML_FILES expects relative paths. This blob converts from abs to rel.

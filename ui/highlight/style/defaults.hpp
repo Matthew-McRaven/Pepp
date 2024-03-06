@@ -1,6 +1,5 @@
 /*
- * Copyright (c) 2023 J. Stanley Warford, Matthew McRaven
- *
+ * Copyright (c) 2023-2024 J. Stanley Warford, Matthew McRaven
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
  * the Free Software Foundation, either version 3 of the License, or
@@ -18,16 +17,16 @@
 #pragma once
 #include <QObject>
 
-#include "../highlight_globals.hpp"
+#include "../../frontend_globals.hpp"
 
 namespace highlight::style {
 class Map;
 
-class HIGHLIGHT_EXPORT Defaults : public QObject {
-    Q_OBJECT
+class FRONTEND_EXPORT Defaults : public QObject {
+  Q_OBJECT
 public:
-    Defaults();
-    Q_INVOKABLE void pep10_asm(highlight::style::Map* styles);
-    Q_INVOKABLE void c(highlight::style::Map* styles);
+  Defaults();
+  Q_INVOKABLE void pep10_asm(highlight::style::Map *styles);
+  Q_INVOKABLE void c(highlight::style::Map *styles);
 };
-}
+} // namespace highlight::style

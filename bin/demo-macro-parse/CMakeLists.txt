@@ -4,7 +4,7 @@ make_target(
   TARGET demo-macro-parse
   TYPE "EXEC"
   SOURCES ${sources}
-  DEPENDS Qt6::Core Qt6::Quick builtins highlight Qt6::Quick macro
+  DEPENDS Qt6::Core Qt6::Quick builtins frontend Qt6::Quick macro
 )
 
 # GLOB_RECURSE ueses abs paths, QML_FILES expects relative paths. This blob converts from abs to rel.
