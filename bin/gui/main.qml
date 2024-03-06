@@ -23,7 +23,7 @@ import "qrc:/qt/qml/Pepp/gui/helpview" as Help
 import "qrc:/ui/memory/hexdump" as Memory
 import "qrc:/qt/qml/Pepp/gui/cpu" as Cpu
 import "qrc:/qt/qml/Pepp/gui/project"
-import "qrc:/ui/preferences/preferences" as Pref
+import "qrc:/ui/preferences" as Pref
 
 ApplicationWindow {
     id: window

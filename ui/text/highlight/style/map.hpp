@@ -17,13 +17,13 @@
 #pragma once
 
 #include <QObject>
-#include "../../text_globals.hpp"
 #include "../style.hpp"
 #include "./types.hpp"
+#include "frontend_globals.hpp"
 
 // Maybe I could access as properties if I used this... https://doc.qt.io/qt-6/qqmlpropertymap.html
 namespace highlight::style {
-class TEXT_EXPORT Map : public QObject {
+class FRONTEND_EXPORT Map : public QObject {
   Q_OBJECT
 
 public:

@@ -17,7 +17,7 @@
 #pragma once
 
 #include <QObject>
-#include "../text_globals.hpp"
+#include "frontend_globals.hpp"
 
 class QQuickTextDocument;
 
@@ -28,7 +28,7 @@ class Map;
 }
 class PatternedHighlighter;
 
-class TEXT_EXPORT QMLHighlighter : public QObject {
+class FRONTEND_EXPORT QMLHighlighter : public QObject {
   Q_OBJECT
 public:
   explicit QMLHighlighter(QObject *parent = nullptr);
