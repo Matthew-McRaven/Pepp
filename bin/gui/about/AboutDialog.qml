@@ -47,15 +47,17 @@ Dialog {
             Text {
 
                 id: title
-                onLinkActivated: (link) => {Qt.openUrlExternally(link)}
+                onLinkActivated: (link) => {
+                    Qt.openUrlExternally(link)
+                }
                 // Too much text to assign in binding, so build it inline instead.
                 Component.onCompleted: {
                     let line0 = "<h2>Pepp version %1</h2> <a href=\"https://github.com/Matthew-McRaven/Pepp/releases\">Check for updates</a>.  ".arg(Version.version_str_full)
-                    let url = "https://github.com/Matthew-McRaven/Pepp/commit/"+Version.git_sha
+                    let url = "https://github.com/Matthew-McRaven/Pepp/commit/" + Version.git_sha
                     let line1 = "Based on <a href=\"" + url + "\">"
-                    line1 += Version.git_tag !== "unknown"? Version.git_tag : Version.git_sha.substring(0, 7)
+                    line1 += Version.git_tag !== "unknown" ? Version.git_tag : Version.git_sha.substring(0, 7)
                     line1 += "</a>."
-                    text = line0+line1
+                    text = line0 + line1
                 }
             }
             Label {
@@ -146,7 +148,9 @@ Dialog {
             Text {
                 Layout.fillWidth: true
                 id: projectUrl
-                onLinkActivated: (link) => {Qt.openUrlExternally(link)}
+                onLinkActivated: (link) => {
+                    Qt.openUrlExternally(link)
+                }
             }
             TextArea {
                 Layout.fillWidth: true
