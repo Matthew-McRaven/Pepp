@@ -47,12 +47,7 @@ Dialog {
             Text {
                 Layout.fillWidth: true
                 text: qsTr("<html><h2>Pepp version %1</h2> <a href=\"https://github.com/Matthew-McRaven/Pepp/releases\">Check for updates</a><br></html>").arg(Version.version_str_full)
-                onLinkActivated: Qt.openUrlExternally(link)
-                MouseArea {
-                    anchors.fill: parent
-                    acceptedButtons: Qt.NoButton // Don't eat the mouse clicks
-                    cursorShape: Qt.PointingHandCursor
-                }
+                onLinkActivated: (link) => {Qt.openUrlExternally(link)}
             }
             Label {
                 Layout.fillWidth: true
@@ -142,7 +137,7 @@ Dialog {
             Text {
                 Layout.fillWidth: true
                 id: projectUrl
-                onLinkActivated: Qt.openUrlExternally(link)
+                onLinkActivated: (link) => {Qt.openUrlExternally(link)}
             }
             TextArea {
                 Layout.fillWidth: true
