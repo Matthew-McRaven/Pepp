@@ -64,6 +64,14 @@ public:
 private:
   QList<Maintainer *> _list;
 };
+class Contributors : public QObject {
+  Q_OBJECT
+  Q_PROPERTY(QString text READ text CONSTANT)
+public:
+  explicit Contributors(QObject *parent = nullptr);
+  ~Contributors() override = default;
+  static QString text();
+};
 
 namespace about {
 void registerTypes(QQmlApplicationEngine &engine);

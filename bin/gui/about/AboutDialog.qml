@@ -84,7 +84,7 @@ Dialog {
             Label {
                 Layout.fillWidth: true
                 wrapMode: Text.WordWrap
-                text: qsTr("David McRaven, Emily Dimpfl, Tip Aroonvatanaporn, Deacon Bradley, Jeff Cook, Nathan Counts, Stuartt Fox, Dave Grue, Justin Haight, Paul Harvey, Hermi Heimgartner, Matt Highfield, Trent Kyono, Malcolm Lipscomb, Brady Lockhart, Adrian Lomas, Ryan Okelberry, Thomas Rampelberg, Mike Spandrio, Jack Thomason, Daniel Walton, Di Wang, Peter Warford, and Matt Wells.\n")
+                text: Contributors.text
             }
 
             Label {

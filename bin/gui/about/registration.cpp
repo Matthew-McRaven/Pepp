@@ -33,24 +33,6 @@ Maintainer::Maintainer(QString name, QString email, QObject *parent) : QObject(p
 QString Maintainer::name() { return _name; }
 QString Maintainer::email() { return _email; }
 
-namespace about {
-void registerTypes(QQmlApplicationEngine &engine) {
-  qmlRegisterSingletonType<Version>("edu.pepp", 1, 0, "Version",
-                                    [](QQmlEngine *, QJSEngine *) { return new Version(); });
-  qmlRegisterUncreatableType<Maintainer>("edu.pepp", 1, 0, "Maintainer", "Must be created from C++");
-  qmlRegisterSingletonType<QList<Maintainer *>>("edu.pepp", 1, 0, "Maintainers", [](QQmlEngine *, QJSEngine *) {
-    // Need global scope ::, or it picks up about::Maintainer
-    QList<::Maintainer *> maintainers{};
-    for (const auto &maintainer : about::maintainers()) {
-      auto *item = new ::Maintainer(maintainer.name, maintainer.email, nullptr);
-      maintainers.push_back(item);
-    }
-    // Class assumes ownership of objects via modifying parent pointer.
-    auto owning = new MaintainerList(maintainers);
-    return owning;
-  });
-}
-} // namespace about
 MaintainerList::MaintainerList(QList<Maintainer *> list, QObject *parent) : QAbstractListModel(parent), _list(list) {
   // Must re-parent to avoid memory leaks.
   for (auto *item : list)
@@ -80,3 +62,31 @@ QHash<int, QByteArray> MaintainerList::roleNames() const {
   roles[EMAIL] = "email";
   return roles;
 }
+
+Contributors::Contributors(QObject *parent) : QObject(parent) {}
+
+QString Contributors::text() {
+  static QString text = about::contributors().join(", ");
+  return text;
+}
+
+namespace about {
+void registerTypes(QQmlApplicationEngine &engine) {
+  qmlRegisterSingletonType<Version>("edu.pepp", 1, 0, "Version",
+                                    [](QQmlEngine *, QJSEngine *) { return new Version(); });
+  qmlRegisterUncreatableType<Maintainer>("edu.pepp", 1, 0, "Maintainer", "Must be created from C++");
+  qmlRegisterSingletonType<QList<Maintainer *>>("edu.pepp", 1, 0, "Maintainers", [](QQmlEngine *, QJSEngine *) {
+    // Need global scope ::, or it picks up about::Maintainer
+    QList<::Maintainer *> maintainers{};
+    for (const auto &maintainer : about::maintainers()) {
+      auto *item = new ::Maintainer(maintainer.name, maintainer.email, nullptr);
+      maintainers.push_back(item);
+    }
+    // Class assumes ownership of objects via modifying parent pointer.
+    auto owning = new MaintainerList(maintainers);
+    return owning;
+  });
+  qmlRegisterSingletonType<Contributors>("edu.pepp", 1, 0, "Contributors",
+                                         [](QQmlEngine *, QJSEngine *) { return new Contributors(); });
+}
+} // namespace about
