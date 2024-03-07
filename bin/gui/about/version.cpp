@@ -13,11 +13,17 @@
  * You should have received a copy of the GNU General Public License
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
-#pragma once
 
-#include <QQmlApplicationEngine>
-#include <QtCore>
+#include "version.hpp"
+#include "help/about/version.hpp"
 
-namespace about {
-void registerTypes(QQmlApplicationEngine &engine);
+Version::Version(QObject *parent) : QObject(parent) {}
+QString Version::git_sha() { return about::g_GIT_SHA1(); }
+QString Version::git_tag() { return about::g_GIT_TAG(); }
+bool Version::git_dirty() { return about::g_GIT_LOCAL_CHANGES(); }
+int Version::version_major() { return about::g_MAJOR_VERSION(); }
+int Version::version_minor() { return about::g_MINOR_VERSION(); }
+int Version::version_patch() { return about::g_PATCH_VERSION(); }
+QString Version::version_str_full() {
+  return u"%1.%2.%3"_qs.arg(version_major()).arg(version_minor()).arg(version_patch());
 }

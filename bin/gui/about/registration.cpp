@@ -15,106 +15,11 @@
  */
 
 #include "registration.hpp"
+#include "contributors.hpp"
 #include "help/about/pepp.hpp"
 #include "help/about/version.hpp"
-
-Version::Version(QObject *parent) : QObject(parent) {}
-QString Version::git_sha() { return about::g_GIT_SHA1(); }
-QString Version::git_tag() { return about::g_GIT_TAG(); }
-bool Version::git_dirty() { return about::g_GIT_LOCAL_CHANGES(); }
-int Version::version_major() { return about::g_MAJOR_VERSION(); }
-int Version::version_minor() { return about::g_MINOR_VERSION(); }
-int Version::version_patch() { return about::g_PATCH_VERSION(); }
-QString Version::version_str_full() {
-  return u"%1.%2.%3"_qs.arg(version_major()).arg(version_minor()).arg(version_patch());
-}
-
-Maintainer::Maintainer(QString name, QString email, QObject *parent) : QObject(parent), _name(name), _email(email) {}
-QString Maintainer::name() { return _name; }
-QString Maintainer::email() { return _email; }
-
-MaintainerList::MaintainerList(QList<Maintainer *> list, QObject *parent) : QAbstractListModel(parent), _list(list) {
-  // Must re-parent to avoid memory leaks.
-  for (auto *item : list)
-    item->setParent(this);
-}
-
-int MaintainerList::rowCount(const QModelIndex &parent) const { return _list.size(); }
-
-QVariant MaintainerList::data(const QModelIndex &index, int role) const {
-  int row = index.row();
-  if (!index.isValid() || row < 0 || row >= _list.size())
-    return QVariant();
-  auto *item = _list.at(row);
-  switch (role) {
-  case NAME:
-    return item->name();
-  case EMAIL:
-    return item->email();
-  default:
-    return QVariant();
-  }
-}
-
-QHash<int, QByteArray> MaintainerList::roleNames() const {
-  QHash<int, QByteArray> roles;
-  roles[NAME] = "name";
-  roles[EMAIL] = "email";
-  return roles;
-}
-
-Contributors::Contributors(QObject *parent) : QObject(parent) {}
-
-QString Contributors::text() {
-  static QString text = about::contributors().join(", ");
-  return text;
-}
-
-ProjectRoles *ProjectRoles::instance() {
-  static ProjectRoles *_instance = new ProjectRoles;
-  return _instance;
-}
-
-Projects::Projects(QObject *parent) : QAbstractListModel(parent), _deps(about::dependencies()) {}
-
-int Projects::rowCount(const QModelIndex &parent) const { return _deps.size(); }
-
-QVariant Projects::data(const QModelIndex &index, int role) const {
-  using enum ProjectRoles::RoleNames;
-  int row = index.row();
-  if (!index.isValid() || row < 0 || row >= _deps.size())
-    return QVariant();
-  auto &item = _deps.at(row);
-  switch (role) {
-  case Name:
-    return item.name;
-  case URL:
-    return item.url;
-  case LicenseName:
-    return item.licenseName;
-  case LicenseSPDXID:
-    return item.licenseSPDXID;
-  case LicenseText:
-    return item.licenseText;
-  case DevDependency:
-    return item.devDependency;
-  default:
-    return QVariant();
-  }
-}
-
-QHash<int, QByteArray> Projects::roleNames() const {
-  using enum ProjectRoles::RoleNames;
-  QHash<int, QByteArray> roles = {
-      {Name, "name"},
-      {URL, "url"},
-      {LicenseName, "licenseName"},
-      {LicenseSPDXID, "licenseSPDXID"},
-      {LicenseText, "licenseText"},
-      {DevDependency, "devDependency"},
-  };
-  return roles;
-}
+#include "projects.hpp"
+#include "version.hpp"
 
 namespace about {
 void registerTypes(QQmlApplicationEngine &engine) {
