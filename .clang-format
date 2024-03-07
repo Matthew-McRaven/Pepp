@@ -7,3 +7,5 @@ IncludeCategories:
     CaseSensitive: false
   - Regex: '.*'
     Priority: 2
+IndentWidth: 2
+TabWidth: 2

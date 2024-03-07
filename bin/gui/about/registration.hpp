@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2023-2024 J. Stanley Warford, Matthew McRaven
+ * Copyright (c) 2024 J. Stanley Warford, Matthew McRaven
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
  * the Free Software Foundation, either version 3 of the License, or
@@ -13,13 +13,11 @@
  * You should have received a copy of the GNU General Public License
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
-
 #pragma once
+
+#include <QQmlApplicationEngine>
+#include <QtCore>
+
 namespace about {
-const char *const g_GIT_SHA1();
-const char *const g_GIT_TAG();
-int g_MAJOR_VERSION();
-int g_MINOR_VERSION();
-int g_PATCH_VERSION();
-bool g_GIT_LOCAL_CHANGES();
-} // namespace about
+void registerTypes(QQmlApplicationEngine &engine);
+}
