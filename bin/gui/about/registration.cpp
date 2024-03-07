@@ -70,6 +70,52 @@ QString Contributors::text() {
   return text;
 }
 
+ProjectRoles *ProjectRoles::instance() {
+  static ProjectRoles *_instance = new ProjectRoles;
+  return _instance;
+}
+
+Projects::Projects(QObject *parent) : QAbstractListModel(parent), _deps(about::dependencies()) {}
+
+int Projects::rowCount(const QModelIndex &parent) const { return _deps.size(); }
+
+QVariant Projects::data(const QModelIndex &index, int role) const {
+  using enum ProjectRoles::RoleNames;
+  int row = index.row();
+  if (!index.isValid() || row < 0 || row >= _deps.size())
+    return QVariant();
+  auto &item = _deps.at(row);
+  switch (role) {
+  case Name:
+    return item.name;
+  case URL:
+    return item.url;
+  case LicenseName:
+    return item.licenseName;
+  case LicenseSPDXID:
+    return item.licenseSPDXID;
+  case LicenseText:
+    return item.licenseText;
+  case DevDependency:
+    return item.devDependency;
+  default:
+    return QVariant();
+  }
+}
+
+QHash<int, QByteArray> Projects::roleNames() const {
+  using enum ProjectRoles::RoleNames;
+  QHash<int, QByteArray> roles = {
+      {Name, "name"},
+      {URL, "url"},
+      {LicenseName, "licenseName"},
+      {LicenseSPDXID, "licenseSPDXID"},
+      {LicenseText, "licenseText"},
+      {DevDependency, "devDependency"},
+  };
+  return roles;
+}
+
 namespace about {
 void registerTypes(QQmlApplicationEngine &engine) {
   qmlRegisterSingletonType<Version>("edu.pepp", 1, 0, "Version",
@@ -88,5 +134,8 @@ void registerTypes(QQmlApplicationEngine &engine) {
   });
   qmlRegisterSingletonType<Contributors>("edu.pepp", 1, 0, "Contributors",
                                          [](QQmlEngine *, QJSEngine *) { return new Contributors(); });
+  qmlRegisterUncreatableType<ProjectRoles>("edu.pepp", 1, 0, "ProjectRoles", "Error: only enums");
+  qmlRegisterSingletonType<Projects>("edu.pepp", 1, 0, "Projects",
+                                     [](QQmlEngine *, QJSEngine *) { return new Projects(); });
 }
 } // namespace about

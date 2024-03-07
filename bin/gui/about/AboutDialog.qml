@@ -66,7 +66,7 @@ Dialog {
                 Repeater {
                     model: Maintainers
                     Text {
-                        width:parent.width
+                        width: parent.width
                         height: fontMetrics.height
                         required property string name;
                         required property string email;
@@ -89,16 +89,14 @@ Dialog {
 
             Label {
                 Layout.fillWidth: true
-                text: qsTr("License:")
+                text: qsTr("Legal:")
                 font.bold: true
                 wrapMode: Text.WordWrap
             }
-
             Label {
                 Layout.fillWidth: true
                 text: qsTr("Copyright © 2016 - 2024, J. Stanley Warford, Matthew McRaven, Pepperdine University\n")
             }
-
             Label {
                 Layout.fillWidth: true
                 width: parent.width
@@ -119,17 +117,36 @@ Dialog {
                     cursorShape: Qt.PointingHandCursor
                 }
             }
-
-            Text {
+            Label {
                 Layout.fillWidth: true
-                text: qsTr("Pep/10 is programmed using QT. Learn more at <html><a href=\"https://www.qt.io/\">Qt Group</a></html>")
+                text: qsTr("Dependencies:")
+                font.bold: true
                 wrapMode: Text.WordWrap
-                onLinkActivated: Qt.openUrlExternally(link)
-                MouseArea {
-                    anchors.fill: parent
-                    acceptedButtons: Qt.NoButton // Don't eat the mouse clicks
-                    cursorShape: Qt.PointingHandCursor
+            }
+            ComboBox {
+                Component.onCompleted: {onCurrentIndexChanged()}
+
+                Layout.fillWidth: true
+                id: projectCombo
+                model: Projects
+                currentIndex: 0
+                textRole: "name"
+
+                onCurrentIndexChanged: {
+                    let index = model.index(currentIndex, 0)
+                    projectLicense.text = model.data(index, ProjectRoles.LicenseText)
+                    let url = model.data(index, ProjectRoles.Url)
+                    projectUrl.text = "<a href=\"" + url + "\">" + url + "</a>"
                 }
+            }
+            Label {
+                Layout.fillWidth: true
+                id: projectUrl
+            }
+            TextArea {
+                Layout.fillWidth: true
+                id: projectLicense
+                readOnly: true
             }
         }
     } //  ScrollView

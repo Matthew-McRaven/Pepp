@@ -18,6 +18,7 @@
 #include <QQmlApplicationEngine>
 #include <QtCore>
 #include "commands/gui.hpp"
+#include "help/about/dependencies.hpp"
 
 class Version : public QObject {
   Q_OBJECT
@@ -64,6 +65,7 @@ public:
 private:
   QList<Maintainer *> _list;
 };
+
 class Contributors : public QObject {
   Q_OBJECT
   Q_PROPERTY(QString text READ text CONSTANT)
@@ -71,6 +73,40 @@ public:
   explicit Contributors(QObject *parent = nullptr);
   ~Contributors() override = default;
   static QString text();
+};
+
+class ProjectRoles : public QObject {
+  Q_OBJECT
+public:
+  enum RoleNames {
+    Name = Qt::UserRole,
+    URL = Qt::UserRole + 1,
+    LicenseName = Qt::UserRole + 2,
+    LicenseSPDXID = Qt::UserRole + 3,
+    LicenseText = Qt::UserRole + 4,
+    DevDependency = Qt::UserRole + 5
+  };
+  Q_ENUM(RoleNames)
+  static ProjectRoles *instance();
+  // Prevent copying and assignment
+  ProjectRoles(const ProjectRoles &) = delete;
+  ProjectRoles &operator=(const ProjectRoles &) = delete;
+
+private:
+  ProjectRoles() : QObject(nullptr) {}
+};
+
+class Projects : public QAbstractListModel {
+  Q_OBJECT
+public:
+  explicit Projects(QObject *parent = nullptr);
+  ~Projects() override = default;
+  int rowCount(const QModelIndex &parent) const override;
+  QVariant data(const QModelIndex &index, int role) const override;
+  QHash<int, QByteArray> roleNames() const override;
+
+private:
+  QList<about::Dependency> _deps;
 };
 
 namespace about {
