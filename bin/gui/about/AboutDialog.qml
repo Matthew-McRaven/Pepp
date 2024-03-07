@@ -135,13 +135,14 @@ Dialog {
                 onCurrentIndexChanged: {
                     let index = model.index(currentIndex, 0)
                     projectLicense.text = model.data(index, ProjectRoles.LicenseText)
-                    let url = model.data(index, ProjectRoles.Url)
+                    let url = model.data(index, ProjectRoles.URL)
                     projectUrl.text = "<a href=\"" + url + "\">" + url + "</a>"
                 }
             }
-            Label {
+            Text {
                 Layout.fillWidth: true
                 id: projectUrl
+                onLinkActivated: Qt.openUrlExternally(link)
             }
             TextArea {
                 Layout.fillWidth: true
