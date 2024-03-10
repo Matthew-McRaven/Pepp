@@ -20,11 +20,6 @@ Rectangle {
       Layout.margins: 3
       implicitWidth: 100
       model: PreferenceModel
-
-      onUpdateLayout: {
-        console.log("Category.onUpdateLayout")
-        details.forceUpdate()
-      }
     }
 
     //  Preferences for chosen cateogory
@@ -34,12 +29,6 @@ Rectangle {
       Layout.fillWidth: true
       Layout.margins: 3
       model: PreferenceModel
-
-      function forceUpdate() {
-        console.log("details.onUpdateLayout")
-        updateLayout()
-      }
-
     }
 
     //  Overrides
@@ -49,6 +38,9 @@ Rectangle {
       implicitWidth: 300
       Layout.margins: 3
       Layout.topMargin: 100
+
+      //  Currently selected preference
+      preference: PreferenceModel.normalText //.currentList//details.currentItem
     }
   }
 }

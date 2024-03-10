@@ -9,6 +9,8 @@ Item {
   width: 350
   height: 500
 
+  property var preference
+
   ColumnLayout  {
     id: wrapper
     anchors.fill: parent
@@ -24,7 +26,6 @@ Item {
 
       //  Groupbox label
       label: Ui.GroupBoxLabel {
-        backgroundColor: "#ffffff"
         textColor: "#000000"
         text: "Parent Data"
       }
@@ -72,10 +73,10 @@ Item {
               id: pfgText
               Layout.preferredWidth: wrapper.colWidth
               Layout.preferredHeight: 20
-              text: "#ff8c00"
+              text: preference.foreground //"#ff8c00"
               background: Rectangle {
                 id: pfgColor
-                color: "#ff8c00"
+                color: preference.background //"#ff8c00"
               }
             }
           }
@@ -97,10 +98,10 @@ Item {
             id: pbgText
             Layout.preferredWidth: wrapper.colWidth
             Layout.preferredHeight: 20
-            text: "#483d8b"
+            text: preference.foreground //"#483d8b"
             background: Rectangle {
               id: pbgColor
-              color: "#483d8b"
+              color: preference.background //"#483d8b"
             }
           }
         }
@@ -127,9 +128,8 @@ Item {
 
       //  Groupbox label
       label: Ui.GroupBoxLabel {
-        backgroundColor: "#ffffff"
         textColor: "#000000"
-        text: parentId.currentIndex === 0 ? "Set Data" : "Override Parent"
+        text: parentId.currentIndex === 0 ? ("Set Data for [fix]" /*+ preference.name*/) : "Override Parent"
       }
 
       ColumnLayout {
@@ -251,8 +251,10 @@ Item {
             height: 40
             Layout.alignment: Qt.AlignLeft
 
-            italics: true
-            strikethrough: true
+            bold:      preference.bold //false
+            italics:   preference.italics //true
+            underline: preference.underline //false
+            strikeout: preference.strikeout  //true
           }
         }
 
@@ -278,7 +280,7 @@ Item {
 
     onAccepted: {
       if(newColor === undefined) return
-      console.log("Color: "+colorDialog.color)
+      //console.log("Color: "+colorDialog.color)
 
       //  Sets background color
       newColor.color = color

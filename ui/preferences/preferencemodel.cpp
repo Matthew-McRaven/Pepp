@@ -14,6 +14,7 @@ PreferenceModel::PreferenceModel(QObject *parent)
 
     //  Basic text styles
     roleNames_[NormalText]          = "normalText";
+    //roleNames_[Selection]           = "selected";
     //  Add additional styles - TODO
 
     //  Load preferences

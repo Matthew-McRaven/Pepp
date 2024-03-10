@@ -10,7 +10,7 @@ Item {
   id: root
   width: 600
   property int buttonWidth: 50
-  required property var model
+  required property variant model
 
   ColumnLayout {
     anchors.fill: parent
@@ -81,23 +81,9 @@ Item {
           textColor: model.normalText.foreground //"#000000"
           text: "Color Scheme for Theme: " + themeId.currentText
         }
-        ListView {
-          id: propertyListView
-          anchors.fill: parent
-          clip: true
-
+        Ui.PreferenceList {
           model: root.model
-
-          delegate: Label {
-            text: model.currentCategory
-            color: model.currentList.foreground
-            font: model.currentList.font
-            background: Rectangle {
-              color: model.currentList.background
-            }
-
-            padding: 2
-          }
+          anchors.fill: parent
         }
       }
     }

@@ -13,7 +13,7 @@ Item {
   property alias bold: boldCB.checked
   property alias italics: italicsCB.checked
   property alias underline: underlineCB.checked
-  property alias strikethrough: strikethroughCB.checked
+  property alias strikeout: strikeoutCB.checked
 
   implicitWidth: 300
 
@@ -50,8 +50,8 @@ Item {
         Layout.preferredHeight: buttonHeight
       }
       CheckBox {
-        id: strikethroughCB
-        text: "Strikethrough"
+        id: strikeoutCB
+        text: "Strikeout"
         enabled: isEnabled
         Layout.preferredWidth: buttonWidth
         Layout.preferredHeight: buttonHeight
