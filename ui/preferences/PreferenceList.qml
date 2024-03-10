@@ -4,23 +4,23 @@ import QtQuick.Controls
 //  Represents row in listview
 Rectangle {
   id: root
-
   property alias model: listView.model
-  color: "white"
-  border.color: "#c0c0c0"
-  border.width: 1
 
   Component {
-    id: categoryDelegate
+    id: preferenceDelegate
     Rectangle {
       id: wrapper
       width: listView.width;
       height: info.height
-      color: ListView.isCurrentItem ? "darkslateblue" : "white"
+      color: model.currentList.background
+      border.color: wrapper.ListView.isCurrentItem ? "red" : "transparent"
+      border.width: 1
+
       Text {
         id: info
-        text: model.categories
-        color: wrapper.ListView.isCurrentItem ? "white" : "black"
+        text: model.currentCategory
+        color: model.currentList.foreground
+        font: model.currentList.font
         padding: 2
       }
       MouseArea
@@ -29,8 +29,7 @@ Rectangle {
         onClicked: {
 
           listView.currentIndex = index
-          //console.log("CatList.onClick: " & index)
-          root.model.category = index
+          //console.log("CatList.onClick: " + index)
         }
       }
     }
@@ -38,10 +37,11 @@ Rectangle {
 
   ListView {
     id: listView
-    model: PreferenceModel
     anchors.fill: root
     anchors.margins: 1
+    clip: true
+    currentIndex: 0
 
-    delegate: categoryDelegate
+    delegate: preferenceDelegate
   }
 }
