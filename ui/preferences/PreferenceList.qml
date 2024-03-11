@@ -29,7 +29,8 @@ Rectangle {
         onClicked: {
 
           listView.currentIndex = index
-          //console.log("CatList.onClick: " + index)
+          console.log("PrefList.onClick: " + info.text + ", id: " +model.currentList.name)
+          model.currentPreference = model.currentList
         }
       }
     }

@@ -6,10 +6,11 @@ import Qt.labs.platform as Platform //  Font picker
 import "." as Ui
 
 Item {
+  id: root
   width: 350
   height: 500
 
-  property var preference
+  required property var preference
 
   ColumnLayout  {
     id: wrapper
@@ -73,10 +74,10 @@ Item {
               id: pfgText
               Layout.preferredWidth: wrapper.colWidth
               Layout.preferredHeight: 20
-              text: preference.foreground //"#ff8c00"
+              text: "#ff8c00"
               background: Rectangle {
                 id: pfgColor
-                color: preference.background //"#ff8c00"
+                color: "#ff8c00"
               }
             }
           }
@@ -98,10 +99,10 @@ Item {
             id: pbgText
             Layout.preferredWidth: wrapper.colWidth
             Layout.preferredHeight: 20
-            text: preference.foreground //"#483d8b"
+            text: "#483d8b"
             background: Rectangle {
               id: pbgColor
-              color: preference.background //"#483d8b"
+              color: "#483d8b"
             }
           }
         }
@@ -129,7 +130,7 @@ Item {
       //  Groupbox label
       label: Ui.GroupBoxLabel {
         textColor: "#000000"
-        text: parentId.currentIndex === 0 ? ("Set Data for [fix]" /*+ preference.name*/) : "Override Parent"
+        text: parentId.currentIndex === 0 ? ("Set Data for " + preference.name) : "Override Parent"
       }
 
       ColumnLayout {
@@ -152,16 +153,18 @@ Item {
             id: fgText
             Layout.preferredWidth: wrapper.colWidth
             Layout.preferredHeight: 20
-            text: "#ff8c00"
+            text: preference.foreground //"#ff8c00"
             background: Rectangle {
               id: fgColor
-              color: "#ff8c00"
+              color: preference.foreground //"#ff8c00"
             }
 
             onClicked: {
               //  Set current control for callback on accepted()
               colorDialog.newColor = fgColor
+              //colorDialog.newColor = preference.foreground
               colorDialog.newText = fgText
+              colorDialog.type = 1
               colorDialog.open()
             }
           }
@@ -172,8 +175,8 @@ Item {
             Layout.preferredHeight: 20
             onClicked: {
               if(parentId.currentIndex === 0) {
-                fgColor.color = "transparent"
-                fgText.text = "transparent"
+                fgColor.color = preference.foreground
+                fgText.text = preference.foreground
               }
               else {
                 fgColor.color = pfgColor.color
@@ -199,16 +202,18 @@ Item {
             id: bgText
             Layout.preferredWidth: wrapper.colWidth
             Layout.preferredHeight: 20
-            text: "#483d8b"
+            text: preference.background //"#483d8b"
             background: Rectangle {
               id: bgColor
-              color: "#483d8b"
+              color: preference.background //"#483d8b"
             }
 
             onClicked: {
               //  Set current control for callback on accepted()
+              //colorDialog.newColor = preference.background
               colorDialog.newColor = bgColor
               colorDialog.newText = bgText
+              colorDialog.type = 2
               colorDialog.open()
             }
           }
@@ -251,10 +256,10 @@ Item {
             height: 40
             Layout.alignment: Qt.AlignLeft
 
-            bold:      preference.bold //false
-            italics:   preference.italics //true
-            underline: preference.underline //false
-            strikeout: preference.strikeout  //true
+            bold:      preference.bold
+            italics:   preference.italics
+            underline: preference.underline
+            strikeout: preference.strikeout
           }
         }
 
@@ -277,9 +282,10 @@ Item {
     //  Save callback to controls that will be updated onAccepted
     property var newColor: undefined
     property var newText: undefined
+    property int type: 0
 
     onAccepted: {
-      if(newColor === undefined) return
+      if(newColor === undefined || type === 0) return
       //console.log("Color: "+colorDialog.color)
 
       //  Sets background color
@@ -288,8 +294,18 @@ Item {
       //  Casts to hex representation
       newText.text = color
 
+      //  Clear state
       newColor = undefined
       newText = undefined
+
+      if( type === 1) {
+        //  Foreground font
+        preference.foreground = color
+      }
+      else if( type === 2) {
+        //  Foreground font
+        preference.background = color
+      }
     }
   }
 }

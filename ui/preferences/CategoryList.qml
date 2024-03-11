@@ -29,7 +29,6 @@ Rectangle {
         onClicked: {
 
           listView.currentIndex = index
-          //console.log("CatList.onClick: " & index)
           root.model.category = index
         }
       }

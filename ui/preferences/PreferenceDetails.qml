@@ -55,7 +55,6 @@ Item {
             text: "Change";
             Layout.preferredWidth: buttonWidth
 
-            //Component.onCompleted:
             onClicked: {
               //  Open dialog and set properties.
               //  Control will trigger visible in onCompleted.
@@ -78,10 +77,11 @@ Item {
 
         //  Groupbox label
         label: Ui.GroupBoxLabel {
-          textColor: model.normalText.foreground //"#000000"
+          textColor: model.normalText.foreground
           text: "Color Scheme for Theme: " + themeId.currentText
         }
         Ui.PreferenceList {
+          id: listView
           model: root.model
           anchors.fill: parent
         }
@@ -96,7 +96,9 @@ Item {
 
     onAccepted: {
       console.log("Font Dialog family="+fontDialog.font.family)
-      model.font = fontDialog.font //  Works
+
+      //  Save new font to model. Triggers refresh
+      model.font = fontDialog.font
     }
   }
 }

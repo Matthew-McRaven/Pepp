@@ -17,7 +17,7 @@
 #ifndef PREFERENCEMODEL_HPP
 #define PREFERENCEMODEL_HPP
 
-#include <QAbstractTableModel>
+#include <QAbstractListModel>
 #include <QColor>
 #include <QFont>
 #include <QHash>
@@ -36,10 +36,10 @@ public:
   Category(const QString name) : name_(name){};
   ~Category() = default;
 
-  //	No copying
+  //	Allow copying
   Category(const Category &) = default;
   Category &operator=(const Category &) = default;
-  //	No moving
+  //	Allow moving
   Category(Category &&) = default;
   Category &operator=(Category &&) = default;
 
@@ -60,17 +60,29 @@ public:
 class FRONTEND_EXPORT PreferenceModel : public QAbstractListModel {
   Q_OBJECT
 
-  Q_PROPERTY(qint32 category READ category WRITE setCategory NOTIFY categoryChanged)
   Q_PROPERTY(QFont font READ font WRITE setFont NOTIFY fontChanged)
+  Q_PROPERTY(qint32 category READ category WRITE setCategory NOTIFY categoryChanged)
+  Q_PROPERTY(Preference currentPref READ preference NOTIFY preferenceChanged)
 
   QHash<int, QByteArray> roleNames_;
   QHash<int, Preference> preferences_;
   QFont font_;
+  //Preference* currentPref_ = nullptr;
+  qint32 preference_{NormalText};
 
   QList<Category> categories_;
   qint32 category_{0};
 
 public:
+
+  const Preference preference() const {
+    if(preferences_.contains(preference_)) {
+      return preferences_.value(preference_);
+  }
+    else
+      return {};
+  }
+
   qint32 category() const { return category_; }
   void setCategory(qint32 category) {
     beginResetModel();
@@ -83,13 +95,10 @@ public:
 
   void setFont(QFont font) {
     beginResetModel();
-    qDebug() << "Before Font: " << font.family();
     font_.setFamily(font.family());
-    qDebug() << "After Font: " << font_.family();
-    const int size = font.pointSize();
-    qDebug() << "Before Font size " << size;
+
+    //  Make sure font is at least 8 points
     font_.setPointSize(std::max(font.pointSize(), 8));
-    qDebug() << "After Font size " << font_.pointSize();
 
     for (auto &it : preferences_) {
       it.setFont(&font_);
@@ -106,20 +115,24 @@ public:
     CurrentListRole,
 
     //  Used for identify only
-    General = Qt::UserRole + 10,
-    Editor,
-    Circuit,
+    GeneralRole = Qt::UserRole + 10,
+    EditorRole,
+    CircuitRole,
 
-    NormalText = General * 100, //  Used for iteration.
+    NormalText = GeneralRole * 100, //  Used for iteration.
     Background,
     Selection,
     Test1,
 
-    RowNumber = Editor * 100, //  Used for iteration.
+    RowNumber = EditorRole * 100, //  Used for iteration.
     Breakpoint,
 
-    SeqCircuit = Circuit * 100, //  Used for iteration.
+    SeqCircuit = CircuitRole * 100, //  Used for iteration.
     CircuitGreen,
+
+    //  Event model for current preference
+    CurrentPrefRole,
+
   };
 
   Q_ENUM(RoleNames)
@@ -152,6 +165,7 @@ public:
 signals:
   void categoryChanged();
   void fontChanged();
+  void preferenceChanged();
 
 public slots:
   // void updateTestData();
@@ -161,6 +175,7 @@ protected: //  Role Names must be under protected
 
 private:
   void load();
+
 };
 
 #endif // PREFERENCEMODEL_HPP
