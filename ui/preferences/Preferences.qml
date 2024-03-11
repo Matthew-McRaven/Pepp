@@ -40,7 +40,8 @@ Rectangle {
       Layout.topMargin: 100
 
       //  Currently selected preference
-      preference: PreferenceModel.normalText //.currentList//details.currentItem
+      preference: details.model.currentPref
+
     }
   }
 }

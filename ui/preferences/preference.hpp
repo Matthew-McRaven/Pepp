@@ -32,12 +32,11 @@ class FRONTEND_EXPORT Preference {
   Q_PROPERTY(bool bold      READ bold      WRITE setBold);
   Q_PROPERTY(bool italics   READ italics   WRITE setItalics);
   Q_PROPERTY(bool underline READ underline WRITE setUnderline);
-  Q_PROPERTY(bool strikeOut READ strikeOut WRITE setStrikeOut);
+  Q_PROPERTY(bool strikeout READ strikeOut WRITE setStrikeOut);
 
   quint32 id_ = 0;
   quint32 parentId_ = 0;
   QString name_{};
-  quint32 type_ = 0;
   QColor foreground_{Qt::black};
   QColor background_{Qt::white};
   QFont font_;
@@ -46,9 +45,9 @@ public:
   Preference() = default;
   ~Preference() = default;
 
-  Preference(const quint32 id, const QString name, const quint32 type);
+  Preference(const quint32 id, const QString name);
 
-  Preference(const quint32 id, const QString name, const quint32 type, const quint32 parentId, const QRgb foreground,
+  Preference(const quint32 id, const QString name, const quint32 parentId, const QRgb foreground,
              const QRgb background, const bool bold = false, const bool italics = false, const bool underline = false,
              const bool strikeOut = false);
 
@@ -66,7 +65,6 @@ public:
   QString name() const { return name_; }
 
   quint32 parentId() const { return parentId_; }
-  quint32 type() const { return type_; }
   QColor foreground() const { return foreground_; }
   QColor background() const { return background_; }
   QFont font() const { return font_; }
@@ -80,10 +78,12 @@ public:
   void setForeground(const QColor foreground) { foreground_ = foreground; }
   void setBackground(const QColor background) { background_ = background; }
   void setFont(QFont *font) {
+    //  Only using font family and pointsize. If same, font has not changed
     if (font_.family() == font->family() && font_.pointSize() == font->pointSize())
       return;
 
     font_.setFamily(font->family());
+    //  Font must always be 8 points or larger
     font_.setPointSize(std::max(font->pointSize(), 8));
   }
   void setBold(     const bool bold     ) { font_.setBold(bold); }
