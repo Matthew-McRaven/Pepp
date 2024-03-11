@@ -149,7 +149,15 @@ Item {
             horizontalAlignment: Text.AlignLeft
             verticalAlignment: Text.AlignVCenter
           }
-          Button {
+
+          Ui.ColorButton {
+            id: fgText
+            Layout.preferredWidth: wrapper.colWidth
+            Layout.preferredHeight: 20
+            color: preference.foreground
+          }
+
+          /*Button {
             id: fgText
             Layout.preferredWidth: wrapper.colWidth
             Layout.preferredHeight: 20
@@ -167,7 +175,7 @@ Item {
               colorDialog.type = 1
               colorDialog.open()
             }
-          }
+          }*/
           Button {
             text: "Clear"
             enabled: parentId.currentIndex === 0 || fgColor.color !== pfgColor.color
@@ -198,25 +206,14 @@ Item {
             horizontalAlignment: Text.AlignLeft
             verticalAlignment: Text.AlignVCenter
           }
-          Button {
+
+          Ui.ColorButton {
             id: bgText
             Layout.preferredWidth: wrapper.colWidth
             Layout.preferredHeight: 20
-            text: preference.background //"#483d8b"
-            background: Rectangle {
-              id: bgColor
-              color: preference.background //"#483d8b"
-            }
-
-            onClicked: {
-              //  Set current control for callback on accepted()
-              //colorDialog.newColor = preference.background
-              colorDialog.newColor = bgColor
-              colorDialog.newText = bgText
-              colorDialog.type = 2
-              colorDialog.open()
-            }
+            color: preference.background
           }
+
           Button {
             text: "Clear"
             enabled: parentId.currentIndex === 0 || bgColor.color !== pbgColor.color
@@ -276,7 +273,7 @@ Item {
     }
   }
 
-  Platform.ColorDialog {
+  /*Platform.ColorDialog {
     id: colorDialog
 
     //  Save callback to controls that will be updated onAccepted
@@ -307,5 +304,5 @@ Item {
         preference.background = color
       }
     }
-  }
+  }*/
 }
