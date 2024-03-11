@@ -67,7 +67,6 @@ class FRONTEND_EXPORT PreferenceModel : public QAbstractListModel {
   QHash<int, QByteArray> roleNames_;
   QHash<int, Preference> preferences_;
   QFont font_;
-  //Preference* currentPref_ = nullptr;
   qint32 preference_{NormalText};
 
   QList<Category> categories_;
