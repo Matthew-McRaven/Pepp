@@ -35,6 +35,7 @@ struct default_data : public gui_globals {
   StatusBitModel sbm;
   RegisterModel rm;
   MemoryByteModel mbm;
+  PreferenceModel pm;
   QTimer interval;
 };
 
@@ -52,6 +53,7 @@ QSharedPointer<gui_globals> default_init(QQmlApplicationEngine &engine) {
   ctx->setContextProperty("StatusBitModel", &data->sbm);
   ctx->setContextProperty("RegisterModel", &data->rm);
   ctx->setContextProperty("MemoryByteModel", &data->mbm);
+  ctx->setContextProperty("PreferenceModel", &data->pm);
 
   //  Simulate changes in Pepp10
   data->interval.setInterval(1000);

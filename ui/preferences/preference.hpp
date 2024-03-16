@@ -20,8 +20,28 @@
 #include <QColor>
 #include <QFont>
 #include <QObject>
+#include <QSharedData>
+#include <QExplicitlySharedDataPointer>
 #include "frontend_globals.hpp"
 
+class PreferencePrivate : public QSharedData {
+public:
+  PreferencePrivate() = default;
+  virtual ~PreferencePrivate() = default;
+
+  quint32 id_ = 0;
+  quint32 parentId_ = 0;
+  QString name_{};
+  QColor foreground_{Qt::black};
+  QColor background_{Qt::white};
+  QFont font_;
+};
+
+
+//  Class is implemented as a PIMPL pattern because the structure is passed
+//  to QML as a copy. When QML is updated, the copy sees the changes but not
+//  the original object. Using PIMPL pattern forces all copies to reference
+//  same data structure.
 class FRONTEND_EXPORT Preference {
   Q_GADGET
   Q_PROPERTY(int id         READ id)
@@ -34,24 +54,49 @@ class FRONTEND_EXPORT Preference {
   Q_PROPERTY(bool underline READ underline WRITE setUnderline);
   Q_PROPERTY(bool strikeout READ strikeOut WRITE setStrikeOut);
 
-  quint32 id_ = 0;
-  quint32 parentId_ = 0;
-  QString name_{};
-  QColor foreground_{Qt::black};
-  QColor background_{Qt::white};
-  QFont font_;
+  //Preference(PreferencePrivate* p) : d(p){};
+  QExplicitlySharedDataPointer<PreferencePrivate> d;
 
 public:
-  Preference() = default;
+  enum PrefProperty : quint8 {
+    Parent = 0,
+    Foreground,
+    Background,
+    Bold,
+    Italic,
+    Underline,
+    Strikeout
+  };
+  Q_ENUM(PrefProperty)
+
+  Preference() : d(new PreferencePrivate){}
   ~Preference() = default;
 
-  Preference(const quint32 id, const QString name);
 
-  Preference(const quint32 id, const QString name, const quint32 parentId, const QRgb foreground,
-             const QRgb background, const bool bold = false, const bool italics = false, const bool underline = false,
-             const bool strikeOut = false);
+  Preference(const quint32 id, const QString name) :
+    d(new PreferencePrivate)
+  {
+    d->id_ = id;
+    d->name_ = name;
+  }
 
-  //	Copying Ok
+  Preference(const quint32 id, const QString name, const QRgb foreground,const QRgb background,
+             const quint32 parentId = 0, const bool bold = false, const bool italics = false, const bool underline = false,
+             const bool strikeout = false) :
+  d(new PreferencePrivate)
+  {
+    d->id_ = id;
+    d->name_ = name;
+    d->foreground_ = foreground;
+    d->background_ = background;
+    d->parentId_ = parentId;
+
+    d->font_.setBold(bold);
+    d->font_.setItalic(italics);
+    d->font_.setUnderline(underline);
+    d->font_.setStrikeOut(strikeout);
+  }
+
   Preference(const Preference &) = default;
   Preference &operator=(const Preference &) = default;
   //	Moving OK
@@ -61,36 +106,37 @@ public:
   size_t size() const { return 11; }
 
   //  Getter & Setter
-  quint32 id() const { return id_; }
-  QString name() const { return name_; }
+  quint32 id() const { return d->id_; }
+  QString name() const { return d->name_; }
 
-  quint32 parentId() const { return parentId_; }
-  QColor foreground() const { return foreground_; }
-  QColor background() const { return background_; }
-  QFont font() const { return font_; }
+  quint32 parentId() const { return d->parentId_; }
+  QColor foreground() const { return d->foreground_; }
+  QColor background() const { return d->background_; }
+  QFont font() const { return d->font_; }
 
-  bool bold()      const { return font_.bold(); }
-  bool italics()   const { return font_.italic(); }
-  bool underline() const { return font_.underline(); }
-  bool strikeOut() const { return font_.strikeOut(); }
+  bool bold()      const { return d->font_.bold(); }
+  bool italics()   const { return d->font_.italic(); }
+  bool underline() const { return d->font_.underline(); }
+  bool strikeOut() const { return d->font_.strikeOut(); }
 
-  void setParent(const quint32 parent) { parentId_ = parent; }
-  void setForeground(const QColor foreground) { foreground_ = foreground; }
-  void setBackground(const QColor background) { background_ = background; }
+  void setParent(const quint32 parent) { d->parentId_ = parent; }
+  void setForeground(const QColor foreground) { d->foreground_ = foreground; }
+  void setBackground(const QColor background) { d->background_ = background; }
   void setFont(QFont *font) {
     //  Only using font family and pointsize. If same, font has not changed
-    if (font_.family() == font->family() && font_.pointSize() == font->pointSize())
+    if (d->font_.family() == font->family() &&
+        d->font_.pointSize() == font->pointSize())
       return;
 
-    font_.setFamily(font->family());
+    d->font_.setFamily(font->family());
     //  Font must always be 8 points or larger
-    font_.setPointSize(std::max(font->pointSize(), 8));
+    d->font_.setPointSize(std::max(font->pointSize(), 8));
   }
-  void setBold(     const bool bold     ) { font_.setBold(bold); }
-  void setItalics(  const bool italics  ) { font_.setItalic(italics); }
-  void setUnderline(const bool underline) { font_.setUnderline(underline); }
-  void setStrikeOut(const bool strikeOut) { font_.setStrikeOut(strikeOut); }
+  void setBold(     const bool bold     ) { d->font_.setBold(bold); }
+  void setItalics(  const bool italics  ) { d->font_.setItalic(italics); }
+  void setUnderline(const bool underline) { d->font_.setUnderline(underline); }
+  void setStrikeOut(const bool strikeOut) { d->font_.setStrikeOut(strikeOut); }
 };
-Q_DECLARE_METATYPE(Preference *)
+Q_DECLARE_METATYPE(Preference)
 
 #endif // PREFERENCE_HPP

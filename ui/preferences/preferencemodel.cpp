@@ -129,8 +129,11 @@ QVariant PreferenceModel::data(const QModelIndex &index, int role) const
 
       //  Specific preference based on role
       case RoleNames::NormalText:
+      case RoleNames::Background:
       case RoleNames::Selection:
+      case RoleNames::Test1:
       {
+        qDebug() << "Called text selection" << role;
         if(preferences_.contains(role)) {
             auto& pref = preferences_[role];
 
@@ -189,4 +192,46 @@ Qt::ItemFlags PreferenceModel::flags(const QModelIndex &index) const
 QHash<int, QByteArray> PreferenceModel::roleNames() const
 {
     return roleNames_;
+}
+
+void PreferenceModel::updatePreference(const quint32 key,
+                      const Preference::PrefProperty field,
+                      const QVariant& value)
+{
+  //  Get original
+  if(preferences_.contains(key)) {
+    auto original = preferences_.value(key);
+    beginResetModel();
+    switch(field) {
+      case Preference::PrefProperty::Parent:
+        original.setParent(value.toInt());
+        break;
+      case Preference::PrefProperty::Foreground: {
+        QColor color = value.value<QColor>();
+        original.setForeground(color);
+      }
+      break;
+      case Preference::PrefProperty::Background: {
+        QColor color = value.value<QColor>();
+        original.setBackground(color);
+      }
+      break;
+      case Preference::PrefProperty::Bold:
+        original.setBold(value.toBool());
+        break;
+      case Preference::PrefProperty::Italic:
+        original.setItalics(value.toBool());
+        break;
+      case Preference::PrefProperty::Underline:
+        original.setUnderline(value.toBool());
+        break;
+      case Preference::PrefProperty::Strikeout:
+        original.setStrikeOut(value.toBool());
+        break;
+    }
+
+    endResetModel();
+    emit preferenceChanged();
+  }
+
 }
