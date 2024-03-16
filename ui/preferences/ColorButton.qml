@@ -5,6 +5,7 @@ import Qt.labs.platform as Platform //  Color picker
 Item {
   id: root
   required property color color//: color.color
+  signal updatedColor(newColor: color) //  Indicates user changed colors
 
   Button {
     id: text
@@ -28,9 +29,9 @@ Item {
     id: colorDialog
     currentColor: root.color
 
-    //Binding { root.color: colorDialog.color }
-    /*onAccepted: {
-      root.color = colorDialog.color
-    }*/
+    //  Signal parent control that color has changed
+    onAccepted: {
+      root.updatedColor(colorDialog.color)
+    }
   }
 }

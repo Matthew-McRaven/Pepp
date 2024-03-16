@@ -10,7 +10,11 @@ Item {
   width: 350
   height: 500
 
+  //  Used to paint screen
   required property var preference
+
+  //  Used for updates
+  required property var model
 
   ColumnLayout  {
     id: wrapper
@@ -155,27 +159,16 @@ Item {
             Layout.preferredWidth: wrapper.colWidth
             Layout.preferredHeight: 20
             color: preference.foreground
+
+            onUpdatedColor: (newColor) => {
+              if(newColor !== preference.foreground) {
+
+                //  Update model. Model will trigger screen repaint
+                model.updatePreference(preference.id,1,newColor)
+                console.log("After pref.foreground: " + model.currentPref.foreground)
+              }
+            }
           }
-
-          /*Button {
-            id: fgText
-            Layout.preferredWidth: wrapper.colWidth
-            Layout.preferredHeight: 20
-            text: preference.foreground //"#ff8c00"
-            background: Rectangle {
-              id: fgColor
-              color: preference.foreground //"#ff8c00"
-            }
-
-            onClicked: {
-              //  Set current control for callback on accepted()
-              colorDialog.newColor = fgColor
-              //colorDialog.newColor = preference.foreground
-              colorDialog.newText = fgText
-              colorDialog.type = 1
-              colorDialog.open()
-            }
-          }*/
           Button {
             text: "Clear"
             enabled: parentId.currentIndex === 0 || fgColor.color !== pfgColor.color
@@ -212,6 +205,15 @@ Item {
             Layout.preferredWidth: wrapper.colWidth
             Layout.preferredHeight: 20
             color: preference.background
+
+            onUpdatedColor: (newColor) => {
+              if(newColor !== preference.foreground) {
+
+                //  Update model. Model will trigger screen repaint
+                model.updatePreference(preference.id,2,newColor)
+                console.log("After pref.foreground: " + model.currentPref.background)
+              }
+            }
           }
 
           Button {

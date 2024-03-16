@@ -41,6 +41,7 @@ Rectangle {
 
       //  Currently selected preference
       preference: details.model.currentPref
+      model: PreferenceModel
 
     }
   }

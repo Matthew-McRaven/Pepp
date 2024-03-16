@@ -74,6 +74,13 @@ class FRONTEND_EXPORT PreferenceModel : public QAbstractListModel {
 
 public:
 
+  //  Required for access in Qml
+  //Preference *preference() { return column_.get(); }
+
+  Q_INVOKABLE void updatePreference(const quint32 key,
+                                 const Preference::PrefProperty field,
+                                    const QVariant& value);
+
   const Preference preference() const {
     if(preferences_.contains(preference_)) {
       return preferences_.value(preference_);
@@ -108,7 +115,7 @@ public:
   }
 
   // Define the role names to be used
-  enum RoleNames {
+  enum RoleNames : quint32 {
     CategoriesRole = Qt::UserRole,
     CurrentCategoryRole,
     CurrentListRole,
