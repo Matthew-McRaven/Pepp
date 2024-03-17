@@ -165,7 +165,7 @@ Item {
 
                 //  Update model. Model will trigger screen repaint
                 model.updatePreference(preference.id,1,newColor)
-                console.log("After pref.foreground: " + model.currentPref.foreground)
+                //console.log("After pref.foreground: " + model.currentPref.foreground)
               }
             }
           }
@@ -211,7 +211,7 @@ Item {
 
                 //  Update model. Model will trigger screen repaint
                 model.updatePreference(preference.id,2,newColor)
-                console.log("After pref.foreground: " + model.currentPref.background)
+                //console.log("After pref.foreground: " + model.currentPref.background)
               }
             }
           }
@@ -259,6 +259,13 @@ Item {
             italics:   preference.italics
             underline: preference.underline
             strikeout: preference.strikeout
+
+            onUpdatedFont: (prop,flag) => {
+
+              //  Update model. Model will trigger screen repaint
+              model.updatePreference(preference.id,prop,flag)
+              //console.log("After pref.foreground: " + prop +"="+flag)
+            }
           }
         }
 
@@ -274,37 +281,4 @@ Item {
       }
     }
   }
-
-  /*Platform.ColorDialog {
-    id: colorDialog
-
-    //  Save callback to controls that will be updated onAccepted
-    property var newColor: undefined
-    property var newText: undefined
-    property int type: 0
-
-    onAccepted: {
-      if(newColor === undefined || type === 0) return
-      //console.log("Color: "+colorDialog.color)
-
-      //  Sets background color
-      newColor.color = color
-
-      //  Casts to hex representation
-      newText.text = color
-
-      //  Clear state
-      newColor = undefined
-      newText = undefined
-
-      if( type === 1) {
-        //  Foreground font
-        preference.foreground = color
-      }
-      else if( type === 2) {
-        //  Foreground font
-        preference.background = color
-      }
-    }
-  }*/
 }

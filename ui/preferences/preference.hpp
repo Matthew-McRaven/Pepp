@@ -58,16 +58,6 @@ class FRONTEND_EXPORT Preference {
   QExplicitlySharedDataPointer<PreferencePrivate> d;
 
 public:
-  enum PrefProperty : quint8 {
-    Parent = 0,
-    Foreground,
-    Background,
-    Bold,
-    Italic,
-    Underline,
-    Strikeout
-  };
-  Q_ENUM(PrefProperty)
 
   Preference() : d(new PreferencePrivate){}
   ~Preference() = default;

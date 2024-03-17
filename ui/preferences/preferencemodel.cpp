@@ -14,8 +14,10 @@ PreferenceModel::PreferenceModel(QObject *parent)
     roleNames_[CurrentPrefRole]     = "currentPreference";
 
     //  Basic text styles
-    roleNames_[NormalText]          = "normalText";
-    roleNames_[Selection]           = "selectedText";
+    roleNames_[NormalTextRole]          = "normalText";
+    roleNames_[BackgroundRole]          = "backgroundText";
+    roleNames_[SelectionRole]           = "selectedText";
+    roleNames_[Test1Role]               = "pepperdineText";
     //  Add additional styles - TODO
 
     //  Load preferences
@@ -29,24 +31,24 @@ void PreferenceModel::load()
 
     auto& general = categories_.emplaceBack("General");
 
-    auto it = preferences_.emplace(NormalText,NormalText,"Foreground");
+    auto it = preferences_.emplace(NormalTextRole,NormalTextRole,"Foreground");
     it->setForeground(Qt::black);
     it->setBackground(qRgb(0xff,0xff,0xff));    //  White
     it->setFont(&font_);
     general.addPreference(it->name());
 
-    it = preferences_.emplace(Background,Background,"Background");
+    it = preferences_.emplace(BackgroundRole,BackgroundRole,"Background");
     it->setForeground(Qt::black);
     it->setBackground(qRgb(0xb5,0xb5,0xb5));    //  Light gray
     general.addPreference(it->name());
 
-    it = preferences_.emplace(Selection,Selection,"Selection");
+    it = preferences_.emplace(SelectionRole,SelectionRole,"Selection");
     it->setForeground(qRgb(0x44,0x44,0x44));
     it->setBackground(qRgb(0x90,0xeb,0xff));    //  Light blue
     it->setBold(true);
     general.addPreference(it->name());
 
-    it = preferences_.emplace(Test1,Test1,"Go Pepperdine!");
+    it = preferences_.emplace(Test1Role,Test1Role,"Go Pepperdine!");
     it->setForeground(qRgb(0xff,0xaa,0x00));    //  Orange
     it->setBackground(qRgb(0x3f,0x51,0xb5));    //  Blue
     it->setBold(true);
@@ -54,23 +56,23 @@ void PreferenceModel::load()
     general.addPreference(it->name());
 
     auto& editor  = categories_.emplaceBack("Editor");
-    it = preferences_.emplace(RowNumber,RowNumber,"Row Number");
+    it = preferences_.emplace(RowNumberRole,RowNumberRole,"Row Number");
     it->setForeground(qRgb(0x66,0x66,0x66));    //  Dark Gray
     it->setBackground(qRgb(0xff,0xff,0xff));    //  White
     it->setStrikeOut(true);
     editor.addPreference(it->name());
-    it = preferences_.emplace(Breakpoint,Breakpoint,"Breakpoint");
+    it = preferences_.emplace(BreakpointRole,BreakpointRole,"Breakpoint");
     it->setForeground(qRgb(0xff,0x0,0x0));      //  Red
     it->setBackground(qRgb(0xff,0xff,0xff));    //  White
     it->setUnderline(true);
     editor.addPreference(it->name());
 
     auto& circuit = categories_.emplaceBack("Circuit");
-    it = preferences_.emplace(SeqCircuit,SeqCircuit,"SeqCircuit");
+    it = preferences_.emplace(SeqCircuitRole,SeqCircuitRole,"SeqCircuit");
     it->setForeground(qRgb(0xff,0xff,0x0));     //  Yellow
     it->setBackground(qRgb(0x04,0xab,0x0a));    //  Green
     circuit.addPreference(it->name());
-    it = preferences_.emplace(CircuitGreen,CircuitGreen,"CircuitGreen");
+    it = preferences_.emplace(CircuitGreenRole,CircuitGreenRole,"CircuitGreen");
     it->setForeground(qRgb(0x0,0x0,0xff));      //  Blue
     it->setBackground(qRgb(0xff,0xe1,0xff));    //  Violet
     circuit.addPreference(it->name());
@@ -95,11 +97,11 @@ QVariant PreferenceModel::data(const QModelIndex &index, int role) const
     switch(role)
     {
       //  Return list of categories. Each row is a different category
-      case RoleNames::CategoriesRole:
+    case RoleNames::CategoriesRole: {
           return row < categories_.size()
                  ? categories_.at(row).name()
                  : QVariant();
-
+      }
       //  Name of curent category
       case RoleNames::CurrentCategoryRole: {
         const auto it = categories_.at(category_).preference(row);
@@ -125,13 +127,12 @@ QVariant PreferenceModel::data(const QModelIndex &index, int role) const
       //  Used for in preferences screen for overrides
       case RoleNames::CurrentPrefRole:
         return QVariant::fromValue(preference());
-        //return QVariant::fromValue(currentPref_);
 
       //  Specific preference based on role
-      case RoleNames::NormalText:
-      case RoleNames::Background:
-      case RoleNames::Selection:
-      case RoleNames::Test1:
+      case RoleNames::NormalTextRole:
+      case RoleNames::BackgroundRole:
+      case RoleNames::SelectionRole:
+      case RoleNames::Test1Role:
       {
         qDebug() << "Called text selection" << role;
         if(preferences_.contains(role)) {
@@ -195,41 +196,79 @@ QHash<int, QByteArray> PreferenceModel::roleNames() const
 }
 
 void PreferenceModel::updatePreference(const quint32 key,
-                      const Preference::PrefProperty field,
+                      const PrefProperty field,
                       const QVariant& value)
 {
   //  Get original
   if(preferences_.contains(key)) {
     auto original = preferences_.value(key);
-    beginResetModel();
     switch(field) {
-      case Preference::PrefProperty::Parent:
+      case PrefProperty::Parent:
+        //  No change, return
+        if(original.parentId() == value.toInt()) return;
+
+        //  Signal model change
+        beginResetModel();
         original.setParent(value.toInt());
         break;
-      case Preference::PrefProperty::Foreground: {
+      case PrefProperty::Foreground: {
         QColor color = value.value<QColor>();
+        //  No change, return
+        if(original.foreground() == color) return;
+
+        //  Signal model change
+        beginResetModel();
         original.setForeground(color);
       }
       break;
-      case Preference::PrefProperty::Background: {
+      case PrefProperty::Background: {
         QColor color = value.value<QColor>();
+        //  No change, return
+        if(original.background() == color) return;
+
+        //  Signal model change
+        beginResetModel();
         original.setBackground(color);
       }
       break;
-      case Preference::PrefProperty::Bold:
+      case PrefProperty::Bold:
+        //  No change, return
+        if(original.bold() == value.toBool()) return;
+
+        //  Signal model change
+        beginResetModel();
         original.setBold(value.toBool());
         break;
-      case Preference::PrefProperty::Italic:
+      case PrefProperty::Italic:
+        //  No change, return
+        if(original.italics() == value.toBool()) return;
+
+        //  Signal model change
+        beginResetModel();
         original.setItalics(value.toBool());
         break;
-      case Preference::PrefProperty::Underline:
+      case PrefProperty::Underline:
+        //  No change, return
+        if(original.underline() == value.toBool()) return;
+
+        //  Signal model change
+        beginResetModel();
         original.setUnderline(value.toBool());
         break;
-      case Preference::PrefProperty::Strikeout:
+      case PrefProperty::Strikeout:
+        //  No change, return
+        if(original.strikeOut() == value.toBool()) return;
+
+        //  Signal model change
+        beginResetModel();
         original.setStrikeOut(value.toBool());
         break;
+
+      default:
+        return;
     }
 
+    //  If we get here, model was updated. End reset.
     endResetModel();
     emit preferenceChanged();
   }
