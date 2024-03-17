@@ -17,6 +17,9 @@ Item {
 
   implicitWidth: 300
 
+  //  Indicates user changed font properties
+  signal updatedFont(fontProperty: int, value: bool)
+
   ColumnLayout {
 
     RowLayout {
@@ -29,6 +32,10 @@ Item {
         enabled: isEnabled
         Layout.preferredWidth: buttonWidth
         Layout.preferredHeight: buttonHeight
+
+        onClicked: {
+          wrapper.updatedFont(3 /*PreferenceModel.PrefProperty.Bold*/, boldCB.checked)
+        }
       }
       CheckBox {
         id: italicsCB
@@ -36,6 +43,10 @@ Item {
         Layout.preferredHeight: buttonHeight
         enabled: isEnabled
         text: "Italics"
+
+        onClicked: {
+          wrapper.updatedFont(4/*PreferenceModel.PrefProperty.Italic*/, italicsCB.checked)
+        }
       }
     }
     RowLayout {
@@ -48,6 +59,10 @@ Item {
         enabled: isEnabled
         Layout.preferredWidth: buttonWidth
         Layout.preferredHeight: buttonHeight
+
+        onClicked: {
+          wrapper.updatedFont(5 /*PreferenceModel.PrefProperty.Underline*/, underlineCB.checked)
+        }
       }
       CheckBox {
         id: strikeoutCB
@@ -55,7 +70,10 @@ Item {
         enabled: isEnabled
         Layout.preferredWidth: buttonWidth
         Layout.preferredHeight: buttonHeight
-      }
+
+        onClicked: {
+          wrapper.updatedFont(6 /*PreferenceModel.PrefProperty.Strikeout*/, strikeoutCB.checked)
+        }      }
     } //  RowLayout
     RowLayout {
       Layout.fillHeight: true

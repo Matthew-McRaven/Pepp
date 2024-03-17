@@ -67,18 +67,29 @@ class FRONTEND_EXPORT PreferenceModel : public QAbstractListModel {
   QHash<int, QByteArray> roleNames_;
   QHash<int, Preference> preferences_;
   QFont font_;
-  qint32 preference_{NormalText};
+  qint32 preference_{NormalTextRole};
 
   QList<Category> categories_;
   qint32 category_{0};
 
 public:
 
+  enum PrefProperty : quint8 {
+    Parent = 0,
+    Foreground,
+    Background,
+    Bold,
+    Italic,
+    Underline,
+    Strikeout
+  };
+  Q_ENUM(PrefProperty)
+
   //  Required for access in Qml
-  //Preference *preference() { return column_.get(); }
+  //Preference preference() { return column_.get(); }
 
   Q_INVOKABLE void updatePreference(const quint32 key,
-                                 const Preference::PrefProperty field,
+                                    const PrefProperty field,
                                     const QVariant& value);
 
   const Preference preference() const {
@@ -125,16 +136,16 @@ public:
     EditorRole,
     CircuitRole,
 
-    NormalText = GeneralRole * 100, //  Used for iteration.
-    Background,
-    Selection,
-    Test1,
+    NormalTextRole = GeneralRole * 100, //  Used for iteration.
+    BackgroundRole,
+    SelectionRole,
+    Test1Role,
 
-    RowNumber = EditorRole * 100, //  Used for iteration.
-    Breakpoint,
+    RowNumberRole = EditorRole * 100, //  Used for iteration.
+    BreakpointRole,
 
-    SeqCircuit = CircuitRole * 100, //  Used for iteration.
-    CircuitGreen,
+    SeqCircuitRole = CircuitRole * 100, //  Used for iteration.
+    CircuitGreenRole,
 
     //  Event model for current preference
     CurrentPrefRole,
