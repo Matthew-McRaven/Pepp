@@ -17,6 +17,9 @@
 #pragma once
 #include <QAbstractTableModel>
 
+// Forward-declare visitors so they can be friended
+struct DisplayVisitor;
+
 class ObjectCodeModel : public QAbstractTableModel {
   Q_OBJECT
 public:
@@ -28,14 +31,25 @@ public:
   QVariant data(const QModelIndex &index, int role = Qt::DisplayRole) const override;
   bool setData(const QModelIndex &index, const QVariant &value, int role = Qt::EditRole) override;
   Qt::ItemFlags flags(const QModelIndex &index) const override;
-
   bool insertRows(int row, int count, const QModelIndex &parent = QModelIndex()) override;
   bool removeRows(int row, int count, const QModelIndex &parent = QModelIndex()) override;
+  QModelIndex index(int row, int column, const QModelIndex &parent = QModelIndex()) const override;
+
+  Q_INVOKABLE const QList<quint8> bytes() const;
+public slots:
+  Q_INVOKABLE bool fromBytes(QList<quint8> bytes);
+  Q_INVOKABLE void clear();
 
 private:
+  friend DisplayVisitor;
   struct Empty {};
   struct ZZ {};
   using T = std::variant<Empty, ZZ, quint8>;
+  struct Row {
+    std::optional<quint16> lastSet = 0;
+    QList<T> data;
+  };
   static_assert(sizeof(T) <= 8, "T is too big");
-  QList<T> _data;
+  QList<Row> _rows;
+  QPersistentModelIndex _terminalIndex = {};
 };
