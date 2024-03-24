@@ -71,6 +71,11 @@ TableView {
             horizontalAlignment: TextInput.AlignHCenter
             verticalAlignment: TextInput.AlignVCenter
             Component.onCompleted: selectAll()
+            validator: RegularExpressionValidator {
+                //Either 2 hex chars, loader sentinel ZZ, or up to 2 spaces
+                regularExpression: /^([0-9a-fA-F]){1,2}|([zZ]{2})|([ \n]{0,2})$/
+            }
+
             TableView.onCommit: {
                 display = text
                 // 'display = text' is short-hand for:
