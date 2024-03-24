@@ -20,7 +20,7 @@ ObjectCodeModel::ObjectCodeModel(QObject *parent) : QAbstractTableModel(parent) 
 
 int ObjectCodeModel::rowCount(const QModelIndex &parent) const { return _rows.size(); }
 
-int ObjectCodeModel::columnCount(const QModelIndex &parent) const { return 4; }
+int ObjectCodeModel::columnCount(const QModelIndex &parent) const { return 2; }
 
 struct DisplayVisitor {
   QVariant operator()(const quint8 val) const { return QString::number(val, 16); }
@@ -51,19 +51,25 @@ bool ObjectCodeModel::setData(const QModelIndex &index, const QVariant &value, i
   auto &item = _rows[index.row()].data[index.column()];
 
   switch (role) {
-  case Qt::DisplayRole:
+
+  case Qt::EditRole: // use the display role as the default "editing" text
     [[fallthrough]];
-  case Qt::EditRole:
+  case Qt::DisplayRole:
     if (!value.canConvert<QString>())
       return false;
     else if (auto v = value.toString().toUShort(&ok, 16); ok) {
+      // Discard values that don't pack into a byte.
       if (255 < v)
         return false;
       changed = !(std::holds_alternative<quint8>(item) && std::get<quint8>(item) == v);
       row.lastSet = index.column();
       item = static_cast<quint8>(v);
     } else if (value.toString().trimmed().isEmpty()) {
+      // Disallow clearing a byte in the middle of a line.
       if (row.lastSet && *row.lastSet != index.column())
+        return false;
+      // Disallow clearing a byte in a line if the next line is non-empty.
+      else if (index.row() < rowCount() - 1 && !isEmpty(index.row() + 1))
         return false;
       changed = !std::holds_alternative<Empty>(item);
       row.lastSet = (index.column() == 0) ? std::nullopt : std::optional{index.column() - 1};
@@ -80,7 +86,7 @@ bool ObjectCodeModel::setData(const QModelIndex &index, const QVariant &value, i
       if (row.lastSet.value_or(0) == index.column() && _rows.size() - 1 == index.row())
         insertRow(_rows.size());
       // Row needs to be removed if EoL is a space, we are on the second to last line, and last line is empty.
-      else if (row.lastSet.value_or(0) != index.column() && _rows.size() - 2 == index.row() && !_rows.last().lastSet)
+      else if (row.lastSet.value_or(0) != index.column() && _rows.size() - 2 == index.row() && isEmpty(rowCount() - 1))
         removeRow(_rows.size() - 1);
     }
     return true;
@@ -146,3 +152,9 @@ void ObjectCodeModel::clear() {
 }
 
 void ObjectCodeModel::ensureNotEmpty() { _rows.prepend(Row{.lastSet = std::nullopt, .data = QList<T>(columnCount())}); }
+
+bool ObjectCodeModel::isEmpty(int row) const {
+  if (row >= _rows.size())
+    return true;
+  return !_rows[row].lastSet;
+}
