@@ -52,4 +52,5 @@ private:
   static_assert(sizeof(T) <= 8, "T is too big");
   QList<Row> _rows;
   QPersistentModelIndex _terminalIndex = {};
+  void ensureNotEmpty();
 };

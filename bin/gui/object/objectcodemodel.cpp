@@ -16,19 +16,9 @@
 
 #include "objectcodemodel.hpp"
 
-ObjectCodeModel::ObjectCodeModel(QObject *parent) : QAbstractTableModel(parent) {}
+ObjectCodeModel::ObjectCodeModel(QObject *parent) : QAbstractTableModel(parent) { ensureNotEmpty(); }
 
-int ObjectCodeModel::rowCount(const QModelIndex &parent) const {
-  const auto cols = columnCount();
-  if (_rows.size() == 0)
-    return 1;
-  // If a row is complete, will round up to the next row
-  const auto &lastRow = _rows.last();
-  if (std::holds_alternative<Empty>(lastRow.data.last()))
-    return _rows.size();
-  else
-    return _rows.size() + 1;
-}
+int ObjectCodeModel::rowCount(const QModelIndex &parent) const { return _rows.size(); }
 
 int ObjectCodeModel::columnCount(const QModelIndex &parent) const { return 4; }
 
@@ -40,12 +30,7 @@ struct DisplayVisitor {
 
 QVariant ObjectCodeModel::data(const QModelIndex &index, int role) const {
   qDebug() << "Data requested for:" << index.row() << index.column() << "Role:" << role;
-  // FIXME: Remove placeholder in first column past the end of the data.
-  if (_rows.size() == index.row()) {
-    if (index.column() == 0)
-      return "..";
-    return {};
-  } else if (_rows.size() < index.row())
+  if (_rows.size() < index.row())
     return {};
 
   switch (role) {
@@ -58,19 +43,10 @@ QVariant ObjectCodeModel::data(const QModelIndex &index, int role) const {
 
 bool ObjectCodeModel::setData(const QModelIndex &index, const QVariant &value, int role) {
   qDebug() << "Data set on:" << index.row() << index.column() << "Role:" << role;
-  // Append a row if the first column past the end of the data is being edited.
-  // Otherwise, reject edits beyond the size of the data.
-  if (_rows.size() == index.row()) {
-    // Replace fake row with a real one. Can't insertRows because rowCount remains the same.
-    // Don't need to emit a dataChanged(...), since only the leading (i.e., current) cell is changed.
-    if (index.column() == 0)
-      _rows.append(Row{.lastSet = std::nullopt, .data = QList<T>(columnCount())});
-    else
-      return false;
-  } else if (_rows.size() < index.row())
+  if (_rows.size() < index.row())
     return false;
 
-  bool ok = false;
+  bool ok = false, changed = false;
   auto &row = _rows[index.row()];
   auto &item = _rows[index.row()].data[index.column()];
 
@@ -78,31 +54,35 @@ bool ObjectCodeModel::setData(const QModelIndex &index, const QVariant &value, i
   case Qt::DisplayRole:
     [[fallthrough]];
   case Qt::EditRole:
-    if (value.canConvert<QString>()) {
-      if (auto v = value.toString().toUShort(&ok, 16); ok) {
-        if (std::holds_alternative<quint8>(item) && std::get<quint8>(item) == v)
-          return true;
-        else if (255 < v)
-          return false;
-        row.lastSet = index.column();
-        item = static_cast<quint8>(v);
-        // Must insert additional row if the last column is edited. Convert from 0- to 1-indexed.
-        if (index.column() == (columnCount() - 1)) {
-          beginInsertRows(QModelIndex(), index.row() + 1, index.row() + 1);
-          endInsertRows();
-        }
-      } else if (value.toString().trimmed().isEmpty()) {
-        if (std::holds_alternative<Empty>(item))
-          return true;
-        else if (row.lastSet && *row.lastSet != index.column())
-          return false;
-        row.lastSet = (index.column() == 0) ? std::nullopt : std::optional{index.column() - 1};
-        item = Empty{};
-      } else
+    if (!value.canConvert<QString>())
+      return false;
+    else if (auto v = value.toString().toUShort(&ok, 16); ok) {
+      if (255 < v)
         return false;
+      changed = !(std::holds_alternative<quint8>(item) && std::get<quint8>(item) == v);
+      row.lastSet = index.column();
+      item = static_cast<quint8>(v);
+    } else if (value.toString().trimmed().isEmpty()) {
+      if (row.lastSet && *row.lastSet != index.column())
+        return false;
+      changed = !std::holds_alternative<Empty>(item);
+      row.lastSet = (index.column() == 0) ? std::nullopt : std::optional{index.column() - 1};
+      item = Empty{};
     } else
       return false;
-    emit dataChanged(index, index);
+
+    if (changed)
+      emit dataChanged(index, index);
+    // Must insert additional row if the last column is edited. Convert from 0- to 1-indexed.
+    // Can only insert/delete rows if at EoL
+    if (index.column() == columnCount() - 1) {
+      // Row needs to be inserted if EoL is a non-space and we are on last line.
+      if (row.lastSet.value_or(0) == index.column() && _rows.size() - 1 == index.row())
+        insertRow(_rows.size());
+      // Row needs to be removed if EoL is a space, we are on the second to last line, and last line is empty.
+      else if (row.lastSet.value_or(0) != index.column() && _rows.size() - 2 == index.row() && !_rows.last().lastSet)
+        removeRow(_rows.size() - 1);
+    }
     return true;
   default:
     return false;
@@ -110,12 +90,7 @@ bool ObjectCodeModel::setData(const QModelIndex &index, const QVariant &value, i
 }
 
 Qt::ItemFlags ObjectCodeModel::flags(const QModelIndex &index) const {
-  if (_rows.size() == index.row()) {
-    if (index.column() == 0)
-      return Qt::ItemIsEditable | Qt::ItemIsEnabled;
-    else
-      return Qt::NoItemFlags;
-  } else if (_rows.size() < index.row())
+  if (_rows.size() < index.row())
     return Qt::NoItemFlags;
 
   const auto &row = _rows[index.row()];
@@ -132,7 +107,7 @@ bool ObjectCodeModel::insertRows(int row, int count, const QModelIndex &parent) 
       _rows.prepend(Row{.lastSet = std::nullopt, .data = QList<T>(columnCount())});
     endInsertRows();
     return true;
-  } else if (rowCount() <= row) {
+  } else if (_rows.size() <= row) {
     beginInsertRows(parent, row, row + count - 1);
     for (int i = 0; i < count; ++i)
       _rows.append(Row{.lastSet = std::nullopt, .data = QList<T>(columnCount())});
@@ -142,7 +117,16 @@ bool ObjectCodeModel::insertRows(int row, int count, const QModelIndex &parent) 
     return false;
 }
 
-bool ObjectCodeModel::removeRows(int row, int count, const QModelIndex &parent) { return false; }
+bool ObjectCodeModel::removeRows(int row, int count, const QModelIndex &parent) {
+  // Reject changes with OOB first row, or that delete more elements than in the table.
+  if (row > 0 && (row + count - 1) < _rows.size() && count > 0) {
+    beginRemoveRows(parent, row, row + count - 1);
+    _rows.erase(_rows.begin() + row, _rows.begin() + row + count);
+    endRemoveRows();
+    return true;
+  }
+  return false;
+}
 
 QModelIndex ObjectCodeModel::index(int row, int column, const QModelIndex &parent) const {
   if (row < 0 || column < 0 || row >= rowCount() || column >= columnCount())
@@ -157,6 +141,8 @@ bool ObjectCodeModel::fromBytes(QList<quint8> bytes) { return true; }
 void ObjectCodeModel::clear() {
   beginResetModel();
   _rows.clear();
-  _terminalIndex = this->index(0, 0);
+  ensureNotEmpty();
   endResetModel();
 }
+
+void ObjectCodeModel::ensureNotEmpty() { _rows.prepend(Row{.lastSet = std::nullopt, .data = QList<T>(columnCount())}); }
