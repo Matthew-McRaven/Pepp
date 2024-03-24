@@ -17,32 +17,65 @@
 import QtQuick
 import QtQuick.Controls
 import QtQuick.Layouts
+import edu.pepp 1.0
 
-ScrollView {
+TableView {
+    required property bool isReadOnly
     id: wrapper
-    required property bool isReadOnly;
-    property string text: "Hello cruel world";
     anchors.fill: parent
-    Rectangle {
-        anchors.fill: parent
-        color: "white"
+    rowSpacing: 0
+    columnSpacing: 0
+    boundsBehavior: Flickable.StopAtBounds
+    clip: true
+    focus: true
+    selectionBehavior: TableView.SelectCells
+    selectionMode: TableView.ContiguousSelection
+    //editTriggers: TableView.SingleTapped | TableView.EditKeyPressed
+
+    ScrollBar.horizontal: ScrollBar {
+        policy: ScrollBar.AlwaysOff
     }
-    // If I put TextArea directly in parent, parent shrinks to the size of the TextArea
-    // This happens even when I try to force fillHeight / fillWidth in the containing Layout.
-    // Nesting the editor defeats this behavior.
-    Item {
-        anchors.fill: parent
-        TextArea {
-            id: editor
-            anchors.left: parent.left; anchors.right: parent.right
-            anchors.top: parent.top
-            textFormat: TextEdit.PlainText
-            renderType: Text.NativeRendering
-            font.family: "Courier New"
-            readOnly: wrapper.isReadOnly;
-            text: wrapper.text
-            Keys.onPressed: {
-                return
+    ScrollBar.vertical: ScrollBar {
+        id: vsc
+        policy: ScrollBar.AlwaysOn
+    }
+    visibleArea.onHeightRatioChanged: {
+
+    }
+
+    model: ObjectCodeModel {
+        id: model
+    }
+    TextMetrics {
+        id: fm
+        font.family: "Courier New"
+        text: "ZZ"
+    }
+
+    delegate: Rectangle {
+        id: delegate
+        required property var display;
+        implicitHeight: fm.height * 2
+        implicitWidth: fm.width * 2
+        Text {
+            id: text
+            anchors.fill: parent
+            font: fm.font
+            text: delegate.display ?? ""
+            verticalAlignment: Text.AlignVCenter
+            horizontalAlignment: Text.AlignHCenter
+        }
+        TableView.editDelegate: TextField {
+            anchors.fill: parent
+            text: display
+            horizontalAlignment: TextInput.AlignHCenter
+            verticalAlignment: TextInput.AlignVCenter
+            Component.onCompleted: selectAll()
+            TableView.onCommit: {
+                display = text
+                // 'display = text' is short-hand for:
+                // let index = TableView.view.index(row, column)
+                // TableView.view.model.setData(index, text, Qt.DisplayRole)
             }
         }
     }
