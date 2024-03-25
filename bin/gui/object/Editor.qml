@@ -30,6 +30,9 @@ TableView {
     focus: true
     selectionBehavior: TableView.SelectCells
     selectionMode: TableView.ContiguousSelection
+    property int editRow: -1
+    property int editColumn: -1
+    reuseItems: false
     //editTriggers: TableView.SingleTapped | TableView.EditKeyPressed
 
     ScrollBar.horizontal: ScrollBar {
@@ -40,12 +43,11 @@ TableView {
         policy: ScrollBar.AlwaysOn
     }
     visibleArea.onHeightRatioChanged: {
-
     }
 
     model: ObjectCodeModel {
-        id: model
     }
+
     TextMetrics {
         id: fm
         font.family: "Courier New"
@@ -54,34 +56,108 @@ TableView {
 
     delegate: Rectangle {
         id: delegate
-        required property var display;
+        required property string display;
         implicitHeight: fm.height * 2
         implicitWidth: fm.width * 2
         Text {
             id: text
             anchors.fill: parent
             font: fm.font
-            text: delegate.display ?? ""
+            text: display
             verticalAlignment: Text.AlignVCenter
             horizontalAlignment: Text.AlignHCenter
         }
         TableView.editDelegate: TextField {
+            id: editor
+            selectionColor: "red"
             anchors.fill: parent
+            font: fm.font
             text: display
+            maximumLength: 2
             horizontalAlignment: TextInput.AlignHCenter
             verticalAlignment: TextInput.AlignVCenter
-            Component.onCompleted: selectAll()
+            overwriteMode: true
             validator: RegularExpressionValidator {
                 //Either 2 hex chars, loader sentinel ZZ, or up to 2 spaces
                 regularExpression: /^([0-9a-fA-F]){1,2}|([zZ]{2})|([ \n]{0,2})$/
             }
-
+            Component.onCompleted: {
+                wrapper.editRow = row
+                wrapper.editColumn = column
+                focus = true
+                editor.cursorPosition = 0
+            }
+            Component.onDestruction: {
+                wrapper.editRow = wrapper.editColumn = -1
+            }
             TableView.onCommit: {
-                display = text
-                // 'display = text' is short-hand for:
-                // let index = TableView.view.index(row, column)
-                // TableView.view.model.setData(index, text, Qt.DisplayRole)
+                onEditingFinished()
+            }
+            onTextEdited: {
+                if (editor.cursorPosition >= 2) {
+                    onEditingFinished()
+                }
+            }
+            onEditingFinished: {
+                model.display = editor.text
+                //const index = wrapper.model.index(wrapper.editRow, wrapper.editColumn)
+                // wrapper.model.setData(index, editor.text, Qt.DisplayRole)
+                let w = wrapper
+                Qt.callLater(()=>w.keyPressed(Qt.Key_Right))
+            }
+
+            Keys.onPressed: (event) => {
+                //  Key events that we track at TableView
+                const key = event.key
+                let isMoving = false
+                switch (key) {
+                    case Qt.Key_Left:
+                        isMoving = editor.cursorPosition === 0
+                        break
+                    case Qt.Key_Right:
+                        isMoving = editor.cursorPosition + 1 >= 2
+                        break
+                    case Qt.Key_Up:
+                    // @disable-check M20
+                    case Qt.Key_Down:
+                        isMoving = true
+                        break
+                    default:
+                        break
+                }
+                if (isMoving) {
+                    Qt.callLater(onEditingFinished)
+                } else {
+                    event.accepted = false
+                }
             }
         }
+    }
+    //  Capture movement keys in table view
+    Keys.onPressed: (event) => {
+        event.accepted = keyPressed(event.key)
+    }
+
+    function keyPressed(key) {
+        let next = null
+        switch (key) {
+            case Qt.Key_Left:
+                next = model.left(editRow, editColumn)
+                break
+            case Qt.Key_Right:
+                next = model.right(editRow, editColumn)
+                break
+            case Qt.Key_Up:
+                next = model.up(editRow, editColumn)
+                break
+            case Qt.Key_Down:
+                next = model.down(editRow, editColumn)
+                break
+            default:
+                return false
+        }
+        edit(next)
+        // Transfer focus to sibling of editor to eliminate "sticky" focus
+        return true
     }
 }
