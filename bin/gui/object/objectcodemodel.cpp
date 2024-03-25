@@ -20,7 +20,7 @@ ObjectCodeModel::ObjectCodeModel(QObject *parent) : QAbstractTableModel(parent) 
 
 int ObjectCodeModel::rowCount(const QModelIndex &parent) const { return _rows.size(); }
 
-int ObjectCodeModel::columnCount(const QModelIndex &parent) const { return 2; }
+int ObjectCodeModel::columnCount(const QModelIndex &parent) const { return 4; }
 
 struct DisplayVisitor {
   QVariant operator()(const quint8 val) const { return QString::number(val, 16); }
@@ -42,7 +42,6 @@ QVariant ObjectCodeModel::data(const QModelIndex &index, int role) const {
 }
 
 bool ObjectCodeModel::setData(const QModelIndex &index, const QVariant &value, int role) {
-  qDebug() << "Data set on:" << index.row() << index.column() << "Role:" << role;
   if (_rows.size() < index.row())
     return false;
 
@@ -51,7 +50,6 @@ bool ObjectCodeModel::setData(const QModelIndex &index, const QVariant &value, i
   auto &item = _rows[index.row()].data[index.column()];
 
   switch (role) {
-
   case Qt::EditRole: // use the display role as the default "editing" text
     [[fallthrough]];
   case Qt::DisplayRole:
@@ -79,6 +77,7 @@ bool ObjectCodeModel::setData(const QModelIndex &index, const QVariant &value, i
 
     if (changed)
       emit dataChanged(index, index);
+
     // Must insert additional row if the last column is edited. Convert from 0- to 1-indexed.
     // Can only insert/delete rows if at EoL
     if (index.column() == columnCount() - 1) {
@@ -112,15 +111,14 @@ bool ObjectCodeModel::insertRows(int row, int count, const QModelIndex &parent) 
     for (int i = 0; i < count; ++i)
       _rows.prepend(Row{.lastSet = std::nullopt, .data = QList<T>(columnCount())});
     endInsertRows();
-    return true;
   } else if (_rows.size() <= row) {
     beginInsertRows(parent, row, row + count - 1);
     for (int i = 0; i < count; ++i)
       _rows.append(Row{.lastSet = std::nullopt, .data = QList<T>(columnCount())});
     endInsertRows();
-    return true;
   } else
     return false;
+  return true;
 }
 
 bool ObjectCodeModel::removeRows(int row, int count, const QModelIndex &parent) {
@@ -134,13 +132,34 @@ bool ObjectCodeModel::removeRows(int row, int count, const QModelIndex &parent) 
   return false;
 }
 
-QModelIndex ObjectCodeModel::index(int row, int column, const QModelIndex &parent) const {
-  if (row < 0 || column < 0 || row >= rowCount() || column >= columnCount())
-    return {};
-  return createIndex(row, column);
-}
-
 const QList<quint8> ObjectCodeModel::bytes() const { return {}; }
+
+QModelIndex ObjectCodeModel::left(int row, int column, const QModelIndex &parent) const {
+  // If we are at the start of the line, wrap to end of previous.
+  if (column == 0 && row != 0)
+    return up(row - 1, columnCount() - 1, parent);
+  else if (auto index = this->index(row, column - 1, parent); index.isValid())
+    return index;
+  return index(row, column, parent);
+}
+QModelIndex ObjectCodeModel::right(int row, int column, const QModelIndex &parent) const {
+  // If we are at the end of the line, wrap to start of next.
+  if (column == columnCount() - 1 && row != rowCount() - 1)
+    return down(row, 0, parent);
+  else if (auto index = this->index(row, column + 1, parent); index.isValid())
+    return index;
+  return index(row, column, parent);
+}
+QModelIndex ObjectCodeModel::up(int row, int column, const QModelIndex &parent) const {
+  if (row == 0)
+    return this->index(0, 0, parent);
+  return this->index(row - 1, column, parent);
+}
+QModelIndex ObjectCodeModel::down(int row, int column, const QModelIndex &parent) const {
+  if (row == rowCount() - 1)
+    return this->index(row, columnCount(), parent);
+  return this->index(row + 1, column, parent);
+}
 
 bool ObjectCodeModel::fromBytes(QList<quint8> bytes) { return true; }
 

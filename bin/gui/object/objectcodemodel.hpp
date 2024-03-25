@@ -19,7 +19,6 @@
 
 // Forward-declare visitors so they can be friended
 struct DisplayVisitor;
-
 class ObjectCodeModel : public QAbstractTableModel {
   Q_OBJECT
 public:
@@ -33,9 +32,13 @@ public:
   Qt::ItemFlags flags(const QModelIndex &index) const override;
   bool insertRows(int row, int count, const QModelIndex &parent = QModelIndex()) override;
   bool removeRows(int row, int count, const QModelIndex &parent = QModelIndex()) override;
-  QModelIndex index(int row, int column, const QModelIndex &parent = QModelIndex()) const override;
 
   Q_INVOKABLE const QList<quint8> bytes() const;
+
+  Q_INVOKABLE QModelIndex left(int row, int column, const QModelIndex &parent = QModelIndex()) const;
+  Q_INVOKABLE QModelIndex right(int row, int column, const QModelIndex &parent = QModelIndex()) const;
+  Q_INVOKABLE QModelIndex up(int row, int column, const QModelIndex &parent = QModelIndex()) const;
+  Q_INVOKABLE QModelIndex down(int row, int column, const QModelIndex &parent = QModelIndex()) const;
 public slots:
   Q_INVOKABLE bool fromBytes(QList<quint8> bytes);
   Q_INVOKABLE void clear();
