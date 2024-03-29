@@ -17,6 +17,8 @@
 #ifndef PREFERENCEMODEL_HPP
 #define PREFERENCEMODEL_HPP
 
+#include <vector>
+
 #include <QAbstractListModel>
 #include <QColor>
 #include <QFont>
@@ -60,17 +62,26 @@ public:
 class FRONTEND_EXPORT PreferenceModel : public QAbstractListModel {
   Q_OBJECT
 
-  Q_PROPERTY(QFont font READ font WRITE setFont NOTIFY fontChanged)
-  Q_PROPERTY(qint32 category READ category WRITE setCategory NOTIFY categoryChanged)
+  Q_PROPERTY(QFont font READ font   WRITE setFont   NOTIFY fontChanged)
+  Q_PROPERTY(qint32 category        READ category   WRITE setCategory NOTIFY categoryChanged)
   Q_PROPERTY(Preference currentPref READ preference NOTIFY preferenceChanged)
+  Q_PROPERTY(Preference surface     READ surface    NOTIFY preferenceChanged)
+  Q_PROPERTY(Preference container   READ container  NOTIFY preferenceChanged)
+  Q_PROPERTY(Preference primary     READ primary    NOTIFY preferenceChanged)
+  Q_PROPERTY(Preference secondary   READ secondary  NOTIFY preferenceChanged)
+  Q_PROPERTY(Preference tertiary    READ tertiary   NOTIFY preferenceChanged)
+  Q_PROPERTY(Preference error       READ error      NOTIFY preferenceChanged)
+  Q_PROPERTY(Preference warning     READ warning    NOTIFY preferenceChanged)
 
   QHash<int, QByteArray> roleNames_;
-  QHash<int, Preference> preferences_;
   QFont font_;
-  qint32 preference_{NormalTextRole};
+  Preference* current_{};
+
 
   QList<Category> categories_;
   qint32 category_{0};
+
+  std::vector<Preference> prefs_;
 
 public:
 
@@ -85,19 +96,12 @@ public:
   };
   Q_ENUM(PrefProperty)
 
-  //  Required for access in Qml
-  //Preference preference() { return column_.get(); }
-
   Q_INVOKABLE void updatePreference(const quint32 key,
                                     const PrefProperty field,
                                     const QVariant& value);
 
   const Preference preference() const {
-    if(preferences_.contains(preference_)) {
-      return preferences_.value(preference_);
-  }
-    else
-      return {};
+      return *current_;
   }
 
   qint32 category() const { return category_; }
@@ -117,7 +121,7 @@ public:
     //  Make sure font is at least 8 points
     font_.setPointSize(std::max(font.pointSize(), 8));
 
-    for (auto &it : preferences_) {
+    for (auto &it : prefs_) {
       it.setFont(&font_);
     }
 
@@ -136,19 +140,23 @@ public:
     EditorRole,
     CircuitRole,
 
-    NormalTextRole = GeneralRole * 100, //  Used for iteration.
-    BackgroundRole,
-    SelectionRole,
-    Test1Role,
-
-    RowNumberRole = EditorRole * 100, //  Used for iteration.
-    BreakpointRole,
-
-    SeqCircuitRole = CircuitRole * 100, //  Used for iteration.
-    CircuitGreenRole,
-
     //  Event model for current preference
     CurrentPrefRole,
+
+    SurfaceRole = GeneralRole * 100, //  Used for iteration.
+    ContainerRole,
+    PrimaryRole,
+    SecondaryRole,
+    TertiaryRole,
+    ErrorRole,
+    WarningRole,
+
+    RowNumberRole,  // = EditorRole * 100, //  Used for iteration.
+    BreakpointRole,
+
+    SeqCircuitRole, // = CircuitRole * 100, //  Used for iteration.
+    CircuitGreenRole,
+
 
   };
 
@@ -169,7 +177,6 @@ public:
 
   // Basic functionality:
   int rowCount(const QModelIndex &parent = {}) const override;
-  // int columnCount(const QModelIndex &parent = {}) const override;
 
   // Fetch data dynamically:
   QVariant data(const QModelIndex &index, int role = CategoriesRole) const override;
@@ -192,6 +199,23 @@ protected: //  Role Names must be under protected
 
 private:
   void load();
+
+  //  Accessor when outside delegate
+  const Preference surface() const {
+    return prefs_[SurfaceRole-SurfaceRole]; }
+  const Preference container() const {
+    return prefs_[ContainerRole-SurfaceRole];  }
+  const Preference primary() const {
+    return prefs_[PrimaryRole-SurfaceRole];  }
+  const Preference secondary() const {
+    return prefs_[SecondaryRole-SurfaceRole];  }
+  const Preference tertiary() const {
+    return prefs_[TertiaryRole-SurfaceRole];  }
+  const Preference error() const {
+    return prefs_[ErrorRole-SurfaceRole];  }
+  const Preference warning() const {
+    return prefs_[WarningRole-SurfaceRole];
+  }
 
 };
 

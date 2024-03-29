@@ -42,15 +42,21 @@ Item {
 
         //  Groupbox label
         label: Ui.GroupBoxLabel {
-          textColor: model.normalText.foreground
+          textColor: root.model.primary.foreground
           text: "Font"
+        }
+
+        background: Rectangle {
+          color: root.model.container.background
+          border.color: root.model.container.foreground
+          border.width: 1
         }
 
         RowLayout {
           Label { text: "Current Font Family: " }
-          Text { text: model.font.family }
+          Text { text: root.model.font.family }
           Label { text: "Size: " }
-          Text { text: model.font.pointSize     }
+          Text { text: root.model.font.pointSize     }
           Button {
             text: "Change";
             Layout.preferredWidth: buttonWidth
@@ -75,11 +81,18 @@ Item {
         Layout.fillWidth: true
         z: -1
 
+        background: Rectangle {
+          color: root.model.container.background
+          border.color: root.model.container.foreground
+          border.width: 1
+        }
+
         //  Groupbox label
         label: Ui.GroupBoxLabel {
-          textColor: model.normalText.foreground
+          textColor: root.model.primary.foreground
           text: "Color Scheme for Theme: " + themeId.currentText
         }
+
         Ui.PreferenceList {
           id: listView
           model: root.model

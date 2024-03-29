@@ -4,19 +4,30 @@ import Qt.labs.platform as Platform //  Color picker
 
 Item {
   id: root
-  required property color color//: color.color
-  signal updatedColor(newColor: color) //  Indicates user changed colors
+  required property color color
+
+  //  Indicates user changed colors
+  signal updatedColor(newColor: color)
 
   Button {
-    id: text
+    id: wrapper
     anchors.fill: parent
     highlighted: true
 
-    //  Color gets cast to hex value of number
-    text: root.color
+    contentItem: Text {
+      id: textItem
+      //  Color gets cast to hex value of number
+      text: root.color
+      horizontalAlignment: Text.AlignHCenter
+      verticalAlignment: Text.AlignVCenter
+
+      //  Use Hsv Value to pick highest contrast text
+      color: root.color.hsvValue > .5 ? "black" : "white"
+    }
 
     background: Rectangle {
       id: color
+      //  Shows current color
       color: root.color
     }
 

@@ -18,9 +18,9 @@ Item {
 
   ColumnLayout  {
     id: wrapper
-    anchors.fill: parent
-    anchors.leftMargin: 10
-    anchors.topMargin: 10
+    Layout.fillHeight: true
+    Layout.fillWidth: true
+    Layout.margins: 5
     property int colWidth: 70
 
     //  Group box for parent properties
@@ -28,14 +28,20 @@ Item {
       id: inheritGB
       Layout.topMargin: 20
       Layout.leftMargin: 10
+      background: Rectangle {
+        color: root.model.container.background
+        border.color: root.model.container.foreground
+        border.width: 1
+      }
 
       //  Groupbox label
       label: Ui.GroupBoxLabel {
-        textColor: "#000000"
+        textColor: root.model.primary.foreground
         text: "Parent Data"
       }
       ColumnLayout {
-        anchors.fill: parent
+        Layout.fillHeight: true
+        Layout.fillWidth: true
 
         RowLayout {
           id: parent
@@ -60,31 +66,31 @@ Item {
               }
             }
           }
-          RowLayout {
-            id: parentfg
-            spacing: 5
-            height: 20
-            Layout.alignment: Qt.AlignLeft
-            Layout.fillWidth: true
-            visible: parentId.currentIndex !== 0
-            Label {
-              text: "Foreground:"
-              Layout.preferredWidth: wrapper.colWidth * 1.25
-              Layout.preferredHeight: 20
-              horizontalAlignment: Text.AlignLeft
-              verticalAlignment: Text.AlignVCenter
-            }
-            Button {
-              id: pfgText
-              Layout.preferredWidth: wrapper.colWidth
-              Layout.preferredHeight: 20
-              text: "#ff8c00"
-              background: Rectangle {
-                id: pfgColor
-                color: "#ff8c00"
-              }
+        RowLayout {
+          id: parentfg
+          spacing: 5
+          height: 20
+          Layout.alignment: Qt.AlignLeft
+          Layout.fillWidth: true
+          visible: parentId.currentIndex !== 0
+          Label {
+            text: "Foreground:"
+            Layout.preferredWidth: wrapper.colWidth * 1.25
+            Layout.preferredHeight: 20
+            horizontalAlignment: Text.AlignLeft
+            verticalAlignment: Text.AlignVCenter
+          }
+          Button {
+            id: pfgText
+            Layout.preferredWidth: wrapper.colWidth
+            Layout.preferredHeight: 20
+            text: "#ff8c00"
+            background: Rectangle {
+              id: pfgColor
+              color: "#ff8c00"
             }
           }
+        }
         RowLayout {
           id: parentbg
           spacing: 5
@@ -131,14 +137,21 @@ Item {
       Layout.leftMargin: 10
       Layout.rightMargin: 10
 
+      background: Rectangle {
+        color: root.model.container.background
+        border.color: root.model.container.foreground
+        border.width: 1
+      }
+
       //  Groupbox label
       label: Ui.GroupBoxLabel {
-        textColor: "#000000"
+        textColor: root.model.primary.foreground
         text: parentId.currentIndex === 0 ? ("Set Data for " + preference.name) : "Override Parent"
       }
 
       ColumnLayout {
-        anchors.fill: parent
+        Layout.fillHeight: true
+        Layout.fillWidth: true
 
         RowLayout {
           id: foreground
@@ -207,7 +220,7 @@ Item {
             color: preference.background
 
             onUpdatedColor: (newColor) => {
-              if(newColor !== preference.foreground) {
+              if(newColor !== preference.background) {
 
                 //  Update model. Model will trigger screen repaint
                 model.updatePreference(preference.id,2,newColor)

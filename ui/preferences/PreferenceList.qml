@@ -6,6 +6,8 @@ Rectangle {
   id: root
   property alias model: listView.model
 
+  color: root.model.container.background
+
   Component {
     id: preferenceDelegate
     Rectangle {
@@ -13,7 +15,8 @@ Rectangle {
       width: listView.width;
       height: info.height
       color: model.currentList.background
-      border.color: wrapper.ListView.isCurrentItem ? "red" : "transparent"
+      border.color: wrapper.ListView.isCurrentItem ?
+                    root.model.error.background : "transparent"
       border.width: 1
 
       Text {

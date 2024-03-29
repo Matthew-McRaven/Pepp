@@ -6,8 +6,8 @@ Rectangle {
   id: root
 
   property alias model: listView.model
-  color: "white"
-  border.color: "#c0c0c0"
+  color: model.container.background //"white"
+  border.color: model.container.foreground //"#c0c0c0"
   border.width: 1
 
   Component {
@@ -16,11 +16,17 @@ Rectangle {
       id: wrapper
       width: listView.width;
       height: info.height
-      color: ListView.isCurrentItem ? "darkslateblue" : "white"
+      color: ListView.isCurrentItem ?
+              root.model.secondary.background :
+              root.model.container.background
+               //  "darkslateblue" : "white"
       Text {
         id: info
         text: model.categories
-        color: wrapper.ListView.isCurrentItem ? "white" : "black"
+        color: wrapper.ListView.isCurrentItem ?
+                root.model.secondary.foreground :
+                root.model.primary.foreground
+                 //  "white" : "black"
         padding: 2
       }
       MouseArea

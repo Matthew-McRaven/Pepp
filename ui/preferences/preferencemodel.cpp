@@ -13,11 +13,6 @@ PreferenceModel::PreferenceModel(QObject *parent)
     roleNames_[CurrentListRole]     = "currentList";
     roleNames_[CurrentPrefRole]     = "currentPreference";
 
-    //  Basic text styles
-    roleNames_[NormalTextRole]          = "normalText";
-    roleNames_[BackgroundRole]          = "backgroundText";
-    roleNames_[SelectionRole]           = "selectedText";
-    roleNames_[Test1Role]               = "pepperdineText";
     //  Add additional styles - TODO
 
     //  Load preferences
@@ -28,54 +23,81 @@ void PreferenceModel::load()
 {
     //  Clear out list if load was called before
     categories_.clear();
+    prefs_.clear();
+
+    //  Set size to avoid reallocation
+    prefs_.reserve(128);
 
     auto& general = categories_.emplaceBack("General");
 
-    auto it = preferences_.emplace(NormalTextRole,NormalTextRole,"Foreground");
-    it->setForeground(Qt::black);
-    it->setBackground(qRgb(0xff,0xff,0xff));    //  White
-    it->setFont(&font_);
-    general.addPreference(it->name());
+    auto* pref = &prefs_.emplace_back(SurfaceRole,"Surface",
+        Qt::black,qRgb(0xff,0xff,0xff));  //  Black/White
+    pref->setFont(&font_);
+    general.addPreference(pref->name());
 
-    it = preferences_.emplace(BackgroundRole,BackgroundRole,"Background");
-    it->setForeground(Qt::black);
-    it->setBackground(qRgb(0xb5,0xb5,0xb5));    //  Light gray
-    general.addPreference(it->name());
+           //  Save as current preference
+    current_ = pref;
 
-    it = preferences_.emplace(SelectionRole,SelectionRole,"Selection");
-    it->setForeground(qRgb(0x44,0x44,0x44));
-    it->setBackground(qRgb(0x90,0xeb,0xff));    //  Light blue
-    it->setBold(true);
-    general.addPreference(it->name());
+    pref = &prefs_.emplace_back(ContainerRole,"Container",
+        qRgb(0x7f,0x7f,0x7f),qRgb(0xee,0xee,0xee));  //  Black/gray
+    pref->setFont(&font_);
+    general.addPreference(pref->name());
 
-    it = preferences_.emplace(Test1Role,Test1Role,"Go Pepperdine!");
-    it->setForeground(qRgb(0xff,0xaa,0x00));    //  Orange
-    it->setBackground(qRgb(0x3f,0x51,0xb5));    //  Blue
-    it->setBold(true);
-    it->setItalics(true);
-    general.addPreference(it->name());
+    pref = &prefs_.emplace_back(PrimaryRole,"Primary",
+        qRgb(0x44,0x44,0x44),qRgb(0x90,0xeb,0xff), //  Black/Light Blue
+        0, true);  // Bold
+    pref->setFont(&font_);
+    general.addPreference(pref->name());
+
+    pref = &prefs_.emplace_back(SecondaryRole,"Secondary",
+        qRgb(0xf0,0xf0,0xf0),qRgb(0x2e,0x3e,0x84), //  White/Dark Blue
+        0, true, true); //  Bold, italics
+    pref->setFont(&font_);
+    general.addPreference(pref->name());
+
+    pref = &prefs_.emplace_back(TertiaryRole,"Tertiary",
+        qRgb(0xff,0xff,0xff),qRgb(0x35,0xb5,0x48), //  White/Green
+        0, false, true, true);  //  Italics, underline
+    pref->setFont(&font_);
+    general.addPreference(pref->name());
+
+    pref = &prefs_.emplace_back(ErrorRole,"Error",
+        qRgb(0x00,0x00,0x00),qRgb(0xff,0x00,0x00), //  Black/Red
+        0, true); //  Bold
+    pref->setFont(&font_);
+    general.addPreference(pref->name());
+
+    pref = &prefs_.emplace_back(WarningRole,"Warning",
+        qRgb(0x00,0x00,0x00),qRgb(0xff,0xaa,0x00), //  Black/Red
+        0, false, false, false, true); // Strikeout
+    pref->setFont(&font_);
+    general.addPreference(pref->name());
 
     auto& editor  = categories_.emplaceBack("Editor");
-    it = preferences_.emplace(RowNumberRole,RowNumberRole,"Row Number");
-    it->setForeground(qRgb(0x66,0x66,0x66));    //  Dark Gray
-    it->setBackground(qRgb(0xff,0xff,0xff));    //  White
-    it->setStrikeOut(true);
-    editor.addPreference(it->name());
-    it = preferences_.emplace(BreakpointRole,BreakpointRole,"Breakpoint");
-    it->setForeground(qRgb(0xff,0x0,0x0));      //  Red
-    it->setBackground(qRgb(0xff,0xff,0xff));    //  White
-    it->setUnderline(true);
-    editor.addPreference(it->name());
+    pref = &prefs_.emplace_back(RowNumberRole,"Row Number",
+        qRgb(0x66,0x66,0x66),qRgb(0xff,0xff,0xff), //  Black/Red
+        0, false, false, false, true); // Strikeout
+    pref->setFont(&font_);
+    editor.addPreference(pref->name());
+
+    pref = &prefs_.emplace_back(BreakpointRole,"Breakpoint",
+        qRgb(0x00,0x00,0x00),qRgb(0xff,0xaa,0x00), //  Black/Red
+        0, false, false, false, true); // Strikeout
+    pref->setFont(&font_);
+    editor.addPreference(pref->name());
 
     auto& circuit = categories_.emplaceBack("Circuit");
-    it = preferences_.emplace(SeqCircuitRole,SeqCircuitRole,"SeqCircuit");
-    it->setForeground(qRgb(0xff,0xff,0x0));     //  Yellow
-    it->setBackground(qRgb(0x04,0xab,0x0a));    //  Green
-    circuit.addPreference(it->name());
-    it = preferences_.emplace(CircuitGreenRole,CircuitGreenRole,"CircuitGreen");
-    it->setForeground(qRgb(0x0,0x0,0xff));      //  Blue
-    it->setBackground(qRgb(0xff,0xe1,0xff));    //  Violet
-    circuit.addPreference(it->name());
+    pref = &prefs_.emplace_back(SeqCircuitRole,"Breakpoint",
+        qRgb(0xff,0xff,0x00),qRgb(0x04,0xab,0x0a), //  Yellow/Green
+        0); // None
+    pref->setFont(&font_);
+    circuit.addPreference(pref->name());
+
+    pref = &prefs_.emplace_back(CircuitGreenRole,"SeqCircuit",
+        qRgb(0x0,0x0,0xff),qRgb(0xff,0xe1,0xff), //  Blue/Violet
+        0); // None
+    pref->setFont(&font_);
+    circuit.addPreference(pref->name());
 }
 
 int PreferenceModel::rowCount(const QModelIndex &parent) const
@@ -97,7 +119,7 @@ QVariant PreferenceModel::data(const QModelIndex &index, int role) const
     switch(role)
     {
       //  Return list of categories. Each row is a different category
-    case RoleNames::CategoriesRole: {
+      case RoleNames::CategoriesRole: {
           return row < categories_.size()
                  ? categories_.at(row).name()
                  : QVariant();
@@ -114,32 +136,25 @@ QVariant PreferenceModel::data(const QModelIndex &index, int role) const
         //  This role is for iterating over list in for current selection
         //  Categories start with general and increment by 1
         //  Items under categories start at 100x of the category id
-        const int current = (GeneralRole + category_) * 100 + row;
 
-        if(preferences_.contains(current)) {
-            auto& pref = preferences_[current];
+        int offset{};
+        if(category_ == 1)
+          offset = RowNumberRole - SurfaceRole;
+        else if(category_ == 2)
+          offset = SeqCircuitRole - SurfaceRole;
 
-            return QVariant::fromValue(pref);
-        }
+        if( offset + row >= prefs_.size())
+          return {};
+
+        auto& pref = prefs_[row + offset];
+        return QVariant::fromValue(pref);
       }
 
       //  Return currently selected preference
       //  Used for in preferences screen for overrides
-      case RoleNames::CurrentPrefRole:
-        return QVariant::fromValue(preference());
-
-      //  Specific preference based on role
-      case RoleNames::NormalTextRole:
-      case RoleNames::BackgroundRole:
-      case RoleNames::SelectionRole:
-      case RoleNames::Test1Role:
-      {
-        qDebug() << "Called text selection" << role;
-        if(preferences_.contains(role)) {
-            auto& pref = preferences_[role];
-
-            return QVariant::fromValue(pref);
-        }
+      case RoleNames::CurrentPrefRole: {
+        Q_ASSERT(current_);
+        return QVariant::fromValue(current_);
       }
     }
 
@@ -163,17 +178,26 @@ bool PreferenceModel::setData(const QModelIndex &index, const QVariant &value, i
         Preference temp = value.value<Preference>();
 
         //  If preference hasn't changed, just exit
-        if( temp.id() == preference_)
+        if( temp.id() == current_->id())
           return false;
 
-        if(preferences_.contains(temp.id())) {
+        if(category_ == 0) {
+          //  Update current preference
+          current_ = &prefs_[temp.id()- RoleNames::SurfaceRole];
+          //preference_ = temp.id();
+          emit preferenceChanged();
+
+          return true;
+        }
+
+        /*if(preferences_.contains(temp.id())) {
 
           //  Update current preference
           preference_ = temp.id();
           emit preferenceChanged();
 
           return true;
-        }
+        }*/
     }
     return false;
 }
@@ -199,9 +223,16 @@ void PreferenceModel::updatePreference(const quint32 key,
                       const PrefProperty field,
                       const QVariant& value)
 {
+  if( key >= RoleNames::RowNumberRole)
+    return;
+
+  //  Roles are maintained in a vector. Lookup
+  //  is relative to first role
+  auto lookup = key - RoleNames::SurfaceRole;
   //  Get original
-  if(preferences_.contains(key)) {
-    auto original = preferences_.value(key);
+  //if(preferences_.contains(key)) {
+    //auto original = preferences_.value(key);
+    auto original = prefs_[lookup];
     switch(field) {
       case PrefProperty::Parent:
         //  No change, return
@@ -271,6 +302,5 @@ void PreferenceModel::updatePreference(const quint32 key,
     //  If we get here, model was updated. End reset.
     endResetModel();
     emit preferenceChanged();
-  }
-
+  //}
 }

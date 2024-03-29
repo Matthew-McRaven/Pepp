@@ -8,7 +8,9 @@ import edu.pepperdine 1.0
 Rectangle {
   id: root
 
-  color: "white"
+  color: model.surface.background
+
+  property variant model: PreferenceModel
 
   RowLayout {
     spacing: 2
@@ -19,7 +21,7 @@ Rectangle {
       Layout.fillHeight: true
       Layout.margins: 3
       implicitWidth: 100
-      model: PreferenceModel
+      model: root.model
     }
 
     //  Preferences for chosen cateogory
@@ -28,7 +30,7 @@ Rectangle {
       Layout.fillHeight: true
       Layout.fillWidth: true
       Layout.margins: 3
-      model: PreferenceModel
+      model: root.model
     }
 
     //  Overrides
@@ -40,8 +42,8 @@ Rectangle {
       Layout.topMargin: 100
 
       //  Currently selected preference
-      preference: details.model.currentPref
-      model: PreferenceModel
+      preference: root.model.currentPref
+      model: root.model
 
     }
   }

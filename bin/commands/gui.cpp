@@ -45,6 +45,7 @@ QSharedPointer<gui_globals> default_init(QQmlApplicationEngine &engine) {
   //  Note, these models are instantiated in C++ and passed to QML. QML
   //  cannot instantiate these models directly
   qmlRegisterUncreatableType<MemoryByteModel>("edu.pepperdine", 1, 0, "MemByteRoles", "Error: only enums");
+  qmlRegisterUncreatableType<PreferenceModel>("edu.pepperdine", 1, 0, "PrefProperty", "Error: only enums");
   // qRegisterMetaType<MemoryColumns>();
   auto data = QSharedPointer<default_data>::create();
 
@@ -100,8 +101,6 @@ int gui_main(const gui_args &args) {
   }*/
 
   auto ctx = engine.rootContext();
-  PreferenceModel pm;
-  ctx->setContextProperty("PreferenceModel", &pm);
 
   static const auto default_entry = u"qrc:/qt/qml/Pepp/gui/main.qml"_qs;
   const QUrl url(args.QMLEntry.isEmpty() ? default_entry : args.QMLEntry);
