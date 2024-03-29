@@ -29,7 +29,7 @@ struct DisplayVisitor {
 };
 
 QVariant ObjectCodeModel::data(const QModelIndex &index, int role) const {
-  qDebug() << "Data requested for:" << index.row() << index.column() << "Role:" << role;
+  qDebug() << "Data req for:" << index.row() << index.column() << "Role:" << role;
   if (_rows.size() < index.row())
     return {};
 
@@ -42,6 +42,7 @@ QVariant ObjectCodeModel::data(const QModelIndex &index, int role) const {
 }
 
 bool ObjectCodeModel::setData(const QModelIndex &index, const QVariant &value, int role) {
+  qDebug() << "Data set for:" << index.row() << index.column() << "Role:" << role;
   if (_rows.size() < index.row())
     return false;
 
@@ -95,6 +96,7 @@ bool ObjectCodeModel::setData(const QModelIndex &index, const QVariant &value, i
 }
 
 Qt::ItemFlags ObjectCodeModel::flags(const QModelIndex &index) const {
+  return Qt::ItemIsEditable | Qt::ItemIsEnabled | Qt::ItemIsSelectable;
   if (_rows.size() < index.row())
     return Qt::NoItemFlags;
 

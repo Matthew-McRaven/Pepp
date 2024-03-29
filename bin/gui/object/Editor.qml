@@ -21,6 +21,8 @@ import edu.pepp 1.0
 
 TableView {
     required property bool isReadOnly
+    property int editRow: -1
+    property int editColumn: -1
     id: wrapper
     anchors.fill: parent
     rowSpacing: 0
@@ -30,10 +32,7 @@ TableView {
     focus: true
     selectionBehavior: TableView.SelectCells
     selectionMode: TableView.ContiguousSelection
-    property int editRow: -1
-    property int editColumn: -1
-    reuseItems: false
-    //editTriggers: TableView.SingleTapped | TableView.EditKeyPressed
+    editTriggers: TableView.SingleTapped | TableView.EditKeyPressed | TableView.DoubleTapped
 
     ScrollBar.horizontal: ScrollBar {
         policy: ScrollBar.AlwaysOff
@@ -55,20 +54,82 @@ TableView {
     }
 
     delegate: Rectangle {
-        width: 100
-        height: 35
-        TextField {
-            text: display
+        id: delegate
+        required property string display
+        // editDelegate onCommit can't access model.row/column, so store them here.
+        required property int row
+        required property int column
+        implicitWidth: fm.width * 2
+        implicitHeight: fm.height * 2
+        KeyEmitter{
+            id: keys
+        }
+
+        Text {
+            id: display
+            font: fm.font
             anchors.fill: parent
-            onEditingFinished: model.display = text
+            horizontalAlignment: TextInput.AlignHCenter
+            verticalAlignment: TextInput.AlignVCenter
+            text: delegate.display
+
+        }
+        TableView.editDelegate:
+            TextField {
+            id: editor
+            anchors.fill: parent
+            horizontalAlignment: TextInput.AlignHCenter
+            verticalAlignment: TextInput.AlignVCenter
+
+            font: fm.font
+            maximumLength: 2
+            text: delegate.display
+            overwriteMode: true
+            Component.onCompleted: {
+                console.log("i,r,c"+index+","+row+","+column)
+                editor.cursorPosition = 0
+            }
+
+            onTextEdited: {
+                if (editor.cursorPosition >= 2) {
+                    Qt.callLater(keys.emitEnter)
+                }
+            }
+            Component.onDestruction: {
+                // Must emit right after enter has been processed, otherwise editor is deleted before commit.
+                // Can't directly call Keys.onPressed, or editDelegate keeps old value on row insert.
+                Qt.callLater(keys.emitRight)
+                wrapper.forceActiveFocus()
+            }
+
+            TableView.onCommit: {
+                display = text
+                wrapper.editRow = delegate.row
+                wrapper.editColumn = delegate.column
+            }
+            validator: RegularExpressionValidator {
+                //Either 2 hex chars, loader sentinel ZZ, or up to 2 spaces
+                regularExpression: /^([0-9a-fA-F]){1,2}|([zZ]{2})|([ \n]{0,2})$/
+            }
+            Keys.onPressed:(event)=>{
+                const key = event.key
+                let moving=false
+                switch(key){
+                    case Qt.Key_Up: // Fallthrough
+                    case Qt.Key_Down: moving=true; break
+                    case Qt.Key_Left: moving=(editor.cursorPosition===0);break
+                    case Qt.Key_Right: moving=(editor.cursorPosition+1 >=2);break
+                    default: break
+                }
+                if(moving) Qt.callLater(keys.emitEnter)
+                else event.accepted=false
+            }
         }
     }
-    //  Capture movement keys in table view
-    Keys.onPressed: (event) => {
-        event.accepted = keyPressed(event.key)
-    }
-
-    function keyPressed(key) {
+    Keys.onPressed:(event)=> {
+        const key = event.key
+        console.log("Wrapper key press")
+        if(wrapper.editRow === -1 || wrapper.editColumn === -1) return
         let next = null
         switch (key) {
             case Qt.Key_Left:
@@ -83,10 +144,11 @@ TableView {
             case Qt.Key_Down:
                 next = model.down(editRow, editColumn)
                 break
-            default:
-                return false
         }
-        // Transfer focus to sibling of editor to eliminate "sticky" focus
-        return true
+        if(next) {
+            closeEditor()
+            edit(next)
+            editRow = editColumn = -1
+        }
     }
 }

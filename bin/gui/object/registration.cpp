@@ -19,4 +19,5 @@
 
 void object::registerTypes(QQmlApplicationEngine &engine) {
   qmlRegisterType<ObjectCodeModel>("edu.pepp", 1, 0, "ObjectCodeModel");
+  qmlRegisterType<KeyEmitter>("edu.pepp", 1, 0, "KeyEmitter");
 }
