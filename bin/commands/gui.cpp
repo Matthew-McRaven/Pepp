@@ -21,14 +21,16 @@
 #include <QQmlApplicationEngine>
 #include <QQmlContext>
 #include <QQuickStyle>
+#include <QTimer>
 //  Testing only
 #include <QDirIterator>
-#include <QTimer>
 
 #include "../gui/about/registration.hpp"
 #include "../gui/cpu/registermodel.h"
 #include "../gui/cpu/statusbitmodel.h"
 #include "../gui/helpview/registration.hpp"
+#include "../gui/object/registration.hpp"
+#include "help/about/version.hpp"
 #include "memory/hexdump/memorybytemodel.h"
 #include "text/plugin.hpp"
 
@@ -44,6 +46,7 @@ struct default_data : public gui_globals {
 QSharedPointer<gui_globals> default_init(QQmlApplicationEngine &engine) {
   text::registerTypes("edu.pepp");
   helpview::registerTypes(engine);
+  object::registerTypes(engine);
   about::registerTypes(engine);
   //  Note, these models are instantiated in C++ and passed to QML. QML
   //  cannot instantiate these models directly
@@ -80,7 +83,9 @@ int gui_main(const gui_args &args) {
   QApplication::setApplicationName("Pep/10");
   QApplication::setOrganizationDomain("pep.pepperdine.edu");
   QApplication::setApplicationDisplayName("Pep/10 IDE");
-  QApplication::setApplicationVersion("0.0.0.3");
+  static auto version =
+      u"%1.%2.%3"_qs.arg(about::g_MAJOR_VERSION()).arg(about::g_MINOR_VERSION()).arg(about::g_PATCH_VERSION());
+  QApplication::setApplicationVersion(version);
 
   QQuickStyle::setStyle("Fusion");
 

@@ -23,6 +23,7 @@ import "qrc:/qt/qml/Pepp/gui/helpview" as Help
 import "qrc:/ui/memory/hexdump" as Memory
 import "qrc:/qt/qml/Pepp/gui/cpu" as Cpu
 import "qrc:/qt/qml/Pepp/gui/project"
+import "qrc:/qt/qml/Pepp/gui/object" as Object
 
 ApplicationWindow {
     id: window
@@ -35,6 +36,11 @@ ApplicationWindow {
     }
 
     property string mode: "MEMDEMO"
+
+    onModeChanged: {
+        stack.updateCurrentIndex()
+    }
+
     menuBar: MenuBar {
         Menu {
             title: qsTr("&File")
@@ -123,14 +129,31 @@ ApplicationWindow {
         SideButton {
             text: "help"; onClicked: window.mode = "HELP"
         }
+        SideButton {
+            text: "object"; onClicked: window.mode = "OBJECT"
+        }
     }
     StackLayout {
+        id: stack
         anchors.top: parent.top
         anchors.bottom: parent.bottom
         anchors.right: parent.right
         anchors.left: sidebar.right
-        width: parent.width
-        currentIndex: window.mode === "HELP" ? 2 : (window.mode === "WELCOME" ? 0 : (window.mode === "MEMDEMO" ? 3 : 1))
+        width: 400
+
+        function updateCurrentIndex() {
+            var modes = {
+                "MEMDEMO": 3,
+                "WELCOME": 0,
+                "EDIT": 1,
+                "DEBUG": 1,
+                "HELP": 2,
+                "OBJECT": 4
+            }
+            currentIndex = Qt.binding(() => modes[window.mode])
+        }
+
+        Component.onCompleted: updateCurrentIndex()
 
         Rectangle {
             color: "Orange"
@@ -212,6 +235,15 @@ ApplicationWindow {
                 }
                 Cpu.Cpu {
                 }
+            }
+        }
+        Item {
+            Layout.fillWidth: true
+            Layout.fillHeight: true
+            Layout.preferredWidth: 400
+            Object.Editor {
+                readOnly: false
+                anchors.fill: parent
             }
         }
     }
