@@ -242,7 +242,7 @@ ApplicationWindow {
             Layout.fillHeight: true
             Layout.preferredWidth: 400
             Object.Editor {
-                isReadOnly: false
+                readOnly: false
                 anchors.fill: parent
             }
         }

@@ -15,9 +15,14 @@
  */
 
 #include "registration.hpp"
-#include "./objectcodemodel.hpp"
 
-void object::registerTypes(QQmlApplicationEngine &engine) {
-  qmlRegisterType<ObjectCodeModel>("edu.pepp", 1, 0, "ObjectCodeModel");
-  qmlRegisterType<KeyEmitter>("edu.pepp", 1, 0, "KeyEmitter");
+void object::registerTypes(QQmlApplicationEngine &engine) { qmlRegisterType<Validator>("edu.pepp", 1, 0, "Validator"); }
+
+bool Validator::valid(int key) {
+  static const QSet<int> valids = {
+      Qt::Key_0,    Qt::Key_1, Qt::Key_2,         Qt::Key_3,      Qt::Key_4,    Qt::Key_5,     Qt::Key_6,
+      Qt::Key_7,    Qt::Key_8, Qt::Key_9,         Qt::Key_A,      Qt::Key_B,    Qt::Key_C,     Qt::Key_D,
+      Qt::Key_E,    Qt::Key_F, Qt::Key_Backspace, Qt::Key_Delete, Qt::Key_Left, Qt::Key_Right, Qt::Key_Up,
+      Qt::Key_Down, Qt::Key_Z, Qt::Key_Space,     Qt::Key_Return, Qt::Key_Enter};
+  return valids.contains(key);
 }
