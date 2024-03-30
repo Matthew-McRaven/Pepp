@@ -38,9 +38,11 @@ import edu.pepp 1.0
 import QtQuick
 import QtQuick.Controls
 import QtQuick.Layouts
+import edu.pepp.object 1.0 as Object
 
 ScrollView {
     id: wrapper
+    property int bytesPerRow: 16
     property alias readOnly: editor.readOnly;
     property alias text: editor.text
     anchors.fill: parent
@@ -48,8 +50,9 @@ ScrollView {
         anchors.fill: parent
         color: "white"
     }
-    Validator {
-        id: validator
+    Object.Utilities {
+        id: utils
+        bytesPerRow: wrapper.bytesPerRow
     }
     // If I put TextArea directly in parent, parent shrinks to the size of the TextArea
     // This happens even when I try to force fillHeight / fillWidth in the containing Layout.
@@ -82,7 +85,7 @@ ScrollView {
                 Layout.minimumHeight: 40; Layout.maximumHeight: 100
                 implicitHeight: wrapper.height * .1
                 text: "Format"
-                onClicked: console.log("Format Pressed")
+                onClicked: if (!editor.readOnly) editor.text = utils.format(editor.text)
             }
             Button {
                 Layout.fillHeight: true; Layout.fillWidth: true
