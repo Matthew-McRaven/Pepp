@@ -1,8 +1,8 @@
-add_subdirectory(constants)
+add_subdirectory(utils)
 add_subdirectory(text)
 add_subdirectory(memory)
 
-set(ui_targets "constants;memory;text")
+set(ui_targets "ui_utils;memory;text")
 
 
 if (APPLE)

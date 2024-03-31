@@ -33,9 +33,9 @@
 
 #include "../gui/helpview/registration.hpp"
 #include "../gui/object/registration.hpp"
-#include "constants/registration.hpp"
 #include "memory/registration.hpp"
 #include "text/registration.hpp"
+#include "utils/registration.hpp"
 
 struct default_data : public gui_globals {
   ~default_data() override = default;
@@ -45,7 +45,7 @@ struct default_data : public gui_globals {
 };
 
 QSharedPointer<gui_globals> default_init(QQmlApplicationEngine &engine) {
-  constants::registerTypes("edu.pepp");
+  utils::registerTypes("edu.pepp");
   text::registerTypes("edu.pepp");
   memory::registerTypes("edu.pepp");
   helpview::registerTypes(engine);

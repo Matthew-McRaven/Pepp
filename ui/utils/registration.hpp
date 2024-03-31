@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2023-2024 J. Stanley Warford, Matthew McRaven
+ * Copyright (c) 2024 J. Stanley Warford, Matthew McRaven
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
  * the Free Software Foundation, either version 3 of the License, or
@@ -15,11 +15,9 @@
  */
 
 #pragma once
-
-#include <QtCore/QtGlobal>
-
-#if defined(CONSTANTS_LIBRARY)
-#define CONSTANTS_EXPORT Q_DECL_EXPORT
-#else
-#define CONSTANTS_EXPORT Q_DECL_IMPORT
-#endif
+#include <QObject>
+#include "registry.hpp"
+namespace utils {
+void registerTypes(const char *uri);
+static utils::RegistrationHelper registrationHelper(utils::registerTypes);
+}; // namespace utils
