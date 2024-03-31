@@ -14,19 +14,19 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-#include "projects.hpp"
+#include "dependencies.hpp"
 
-ProjectRoles *ProjectRoles::instance() {
-  static ProjectRoles *_instance = new ProjectRoles;
+DependencyRoles *DependencyRoles::instance() {
+  static DependencyRoles *_instance = new DependencyRoles;
   return _instance;
 }
 
-Projects::Projects(QObject *parent) : QAbstractListModel(parent), _deps(about::dependencies()) {}
+Dependencies::Dependencies(QObject *parent) : QAbstractListModel(parent), _deps(about::dependencies()) {}
 
-int Projects::rowCount(const QModelIndex &parent) const { return _deps.size(); }
+int Dependencies::rowCount(const QModelIndex &parent) const { return _deps.size(); }
 
-QVariant Projects::data(const QModelIndex &index, int role) const {
-  using enum ProjectRoles::RoleNames;
+QVariant Dependencies::data(const QModelIndex &index, int role) const {
+  using enum DependencyRoles::RoleNames;
   int row = index.row();
   if (!index.isValid() || row < 0 || row >= _deps.size())
     return QVariant();
@@ -49,8 +49,8 @@ QVariant Projects::data(const QModelIndex &index, int role) const {
   }
 }
 
-QHash<int, QByteArray> Projects::roleNames() const {
-  using enum ProjectRoles::RoleNames;
+QHash<int, QByteArray> Dependencies::roleNames() const {
+  using enum DependencyRoles::RoleNames;
   QHash<int, QByteArray> roles = {
       {Name, "name"},
       {URL, "url"},

@@ -16,9 +16,9 @@
 
 #include "registration.hpp"
 #include "contributors.hpp"
+#include "dependencies.hpp"
 #include "help/about/pepp.hpp"
 #include "help/about/version.hpp"
-#include "projects.hpp"
 #include "version.hpp"
 
 namespace about {
@@ -39,8 +39,8 @@ void registerTypes(QQmlApplicationEngine &engine) {
   });
   qmlRegisterSingletonType<Contributors>("edu.pepp", 1, 0, "Contributors",
                                          [](QQmlEngine *, QJSEngine *) { return new Contributors(); });
-  qmlRegisterUncreatableType<ProjectRoles>("edu.pepp", 1, 0, "ProjectRoles", "Error: only enums");
-  qmlRegisterSingletonType<Projects>("edu.pepp", 1, 0, "Projects",
-                                     [](QQmlEngine *, QJSEngine *) { return new Projects(); });
+  qmlRegisterUncreatableType<DependencyRoles>("edu.pepp", 1, 0, "DependencyRoles", "Error: only enums");
+  qmlRegisterSingletonType<Dependencies>("edu.pepp", 1, 0, "Dependencies",
+                                     [](QQmlEngine *, QJSEngine *) { return new Dependencies(); });
 }
 } // namespace about

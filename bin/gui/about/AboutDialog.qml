@@ -134,14 +134,14 @@ Dialog {
 
                 Layout.fillWidth: true
                 id: projectCombo
-                model: Projects
+                model: Dependencies
                 currentIndex: 0
                 textRole: "name"
 
                 onCurrentIndexChanged: {
                     let index = model.index(currentIndex, 0)
-                    projectLicense.text = model.data(index, ProjectRoles.LicenseText)
-                    let url = model.data(index, ProjectRoles.URL)
+                    projectLicense.text = model.data(index, DependencyRoles.LicenseText)
+                    let url = model.data(index, DependencyRoles.URL)
                     projectUrl.text = "<a href=\"" + url + "\">" + url + "</a>"
                 }
             }
