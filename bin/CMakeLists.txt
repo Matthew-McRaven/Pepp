@@ -23,11 +23,6 @@ else ()
     # Future platform-specific logic for icons.
 endif ()
 
-# Use to force terminal, test app to live in same directory.
-set(CMAKE_ARCHIVE_OUTPUT_DIRECTORY "${PROJECT_BINARY_DIR}/output")
-set(CMAKE_LIBRARY_OUTPUT_DIRECTORY "${PROJECT_BINARY_DIR}/output")
-set(CMAKE_RUNTIME_OUTPUT_DIRECTORY "${PROJECT_BINARY_DIR}/output")
-
 make_target(
         TARGET pepp
         TYPE "EXEC"
