@@ -28,45 +28,41 @@
 #include "../gui/about/registration.hpp"
 #include "../gui/cpu/registermodel.h"
 #include "../gui/cpu/statusbitmodel.h"
+#include "help/about/version.hpp"
+#include "memory/hexdump/memorybytemodel.h"
+
 #include "../gui/helpview/registration.hpp"
 #include "../gui/object/registration.hpp"
 #include "constants/registration.hpp"
-#include "help/about/version.hpp"
-#include "memory/hexdump/memorybytemodel.h"
-#include "text/plugin.hpp"
+#include "memory/registration.hpp"
+#include "text/registration.hpp"
 
 struct default_data : public gui_globals {
   ~default_data() override = default;
-
   StatusBitModel sbm;
   RegisterModel rm;
-  MemoryByteModel mbm;
   QTimer interval;
 };
 
 QSharedPointer<gui_globals> default_init(QQmlApplicationEngine &engine) {
   constants::registerTypes("edu.pepp");
   text::registerTypes("edu.pepp");
+  memory::registerTypes("edu.pepp");
   helpview::registerTypes(engine);
   object::registerTypes(engine);
   about::registerTypes(engine);
-  //  Note, these models are instantiated in C++ and passed to QML. QML
-  //  cannot instantiate these models directly
-  qmlRegisterUncreatableType<MemoryByteModel>("edu.pepperdine", 1, 0, "MemByteRoles", "Error: only enums");
-  // qRegisterMetaType<MemoryColumns>();
+
   auto data = QSharedPointer<default_data>::create();
 
   //  Connect models
   auto *ctx = engine.rootContext();
   ctx->setContextProperty("StatusBitModel", &data->sbm);
   ctx->setContextProperty("RegisterModel", &data->rm);
-  ctx->setContextProperty("MemoryByteModel", &data->mbm);
 
   //  Simulate changes in Pepp10
   data->interval.setInterval(1000);
   QObject::connect(&data->interval, &QTimer::timeout, &data->sbm, &StatusBitModel::updateTestData);
   QObject::connect(&data->interval, &QTimer::timeout, &data->rm, &RegisterModel::updateTestData);
-  QObject::connect(&data->interval, &QTimer::timeout, &data->mbm, &MemoryByteModel::updateTestData);
   data->interval.start();
   return data;
 }

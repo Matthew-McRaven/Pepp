@@ -14,7 +14,7 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-#include "plugin.hpp"
+#include "registration.hpp"
 #include "editor/blockfinder.hpp"
 #include "editor/lineinfomodel.hpp"
 #include "editor/tabnanny.hpp"
