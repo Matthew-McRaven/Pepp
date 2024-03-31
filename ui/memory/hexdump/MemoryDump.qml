@@ -5,7 +5,7 @@ import QtQuick.Layouts
 import Qt.labs.qmlmodels          //  For DelegateChooser
 
 import "." as Ui
-import edu.pepperdine 1.0
+import edu.pepp 1.0
 
 Rectangle {
   id: root
