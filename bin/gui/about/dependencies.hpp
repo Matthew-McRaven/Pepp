@@ -19,7 +19,7 @@
 #include <QtCore>
 #include "help/about/dependencies.hpp"
 
-class ProjectRoles : public QObject {
+class DependencyRoles : public QObject {
   Q_OBJECT
 public:
   enum RoleNames {
@@ -31,20 +31,20 @@ public:
     DevDependency = Qt::UserRole + 5
   };
   Q_ENUM(RoleNames)
-  static ProjectRoles *instance();
+  static DependencyRoles *instance();
   // Prevent copying and assignment
-  ProjectRoles(const ProjectRoles &) = delete;
-  ProjectRoles &operator=(const ProjectRoles &) = delete;
+  DependencyRoles(const DependencyRoles &) = delete;
+  DependencyRoles &operator=(const DependencyRoles &) = delete;
 
 private:
-  ProjectRoles() : QObject(nullptr) {}
+  DependencyRoles() : QObject(nullptr) {}
 };
 
-class Projects : public QAbstractListModel {
+class Dependencies : public QAbstractListModel {
   Q_OBJECT
 public:
-  explicit Projects(QObject *parent = nullptr);
-  ~Projects() override = default;
+  explicit Dependencies(QObject *parent = nullptr);
+  ~Dependencies() override = default;
   int rowCount(const QModelIndex &parent) const override;
   QVariant data(const QModelIndex &index, int role) const override;
   QHash<int, QByteArray> roleNames() const override;
