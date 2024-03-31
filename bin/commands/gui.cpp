@@ -30,6 +30,7 @@
 #include "../gui/cpu/statusbitmodel.h"
 #include "../gui/helpview/registration.hpp"
 #include "../gui/object/registration.hpp"
+#include "constants/registration.hpp"
 #include "help/about/version.hpp"
 #include "memory/hexdump/memorybytemodel.h"
 #include "text/plugin.hpp"
@@ -44,6 +45,7 @@ struct default_data : public gui_globals {
 };
 
 QSharedPointer<gui_globals> default_init(QQmlApplicationEngine &engine) {
+  constants::registerTypes("edu.pepp");
   text::registerTypes("edu.pepp");
   helpview::registerTypes(engine);
   object::registerTypes(engine);
