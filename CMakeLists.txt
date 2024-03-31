@@ -40,6 +40,12 @@ endif ()
 set_property(GLOBAL PROPERTY USE_FOLDERS ON)
 include(config/cmake/enumerate_targets.cmake)
 
+# Use to all output object files (applications, libraries, etc) in a single directory.
+# Without this, Windows does a bad job of copying DLLs on change for the terminal application.
+set(CMAKE_ARCHIVE_OUTPUT_DIRECTORY "${PROJECT_BINARY_DIR}/output")
+set(CMAKE_LIBRARY_OUTPUT_DIRECTORY "${PROJECT_BINARY_DIR}/output")
+set(CMAKE_RUNTIME_OUTPUT_DIRECTORY "${PROJECT_BINARY_DIR}/output")
+
 # Directory in which to store generated documentation.
 set(SPHINX_OUT_DIR "${CMAKE_CURRENT_BINARY_DIR}/docs")
 # If the documentation fails to build, use this QRC instead to remove a corner case form
