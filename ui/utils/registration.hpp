@@ -16,8 +16,7 @@
 
 #pragma once
 #include <QObject>
-#include "registry.hpp"
+
 namespace utils {
 void registerTypes(const char *uri);
-static utils::RegistrationHelper registrationHelper(utils::registerTypes);
 }; // namespace utils
