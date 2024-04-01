@@ -14,17 +14,12 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-#include "registration.hpp"
-
+#include "./object.hpp"
 #include <QRegularExpression>
 
-void object::registerTypes(QQmlApplicationEngine &engine) {
-  qmlRegisterType<object::Utilities>("edu.pepp.object", 1, 0, "Utilities");
-}
+ObjectUtilities::ObjectUtilities(QObject *parent) : QObject(parent) {}
 
-object::Utilities::Utilities(QObject *parent) : QObject(parent) {}
-
-bool object::Utilities::valid(int key) {
+bool ObjectUtilities::valid(int key) {
   static const QSet<int> valids = {
       Qt::Key_0,    Qt::Key_1, Qt::Key_2,         Qt::Key_3,      Qt::Key_4,    Qt::Key_5,     Qt::Key_6,
       Qt::Key_7,    Qt::Key_8, Qt::Key_9,         Qt::Key_A,      Qt::Key_B,    Qt::Key_C,     Qt::Key_D,
@@ -33,7 +28,7 @@ bool object::Utilities::valid(int key) {
   return valids.contains(key);
 }
 
-QString object::Utilities::format(QString input) const {
+QString ObjectUtilities::format(QString input) const {
   static const auto re = QRegularExpression(R"(\s+|[zZ]+)");
   static const auto space = [](int offset, int bytes) { return (offset % bytes == 0) ? '\n' : ' '; };
   input = input.replace(re, "");
@@ -70,11 +65,11 @@ QString object::Utilities::format(QString input) const {
   return result;
 }
 
-void object::Utilities::setBytesPerRow(int bytes) {
+void ObjectUtilities::setBytesPerRow(int bytes) {
   if (bytes == _bytesPerRow)
     return;
   _bytesPerRow = bytes;
   emit bytesPerRowChanged();
 }
 
-int object::Utilities::bytesPerRow() const { return _bytesPerRow; }
+int ObjectUtilities::bytesPerRow() const { return _bytesPerRow; }
