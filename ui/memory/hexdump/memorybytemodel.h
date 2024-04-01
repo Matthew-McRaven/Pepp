@@ -4,7 +4,7 @@
 #include <QAbstractTableModel>
 #include <QHash>
 #include <QSet>
-#include "../memory_global.hpp"
+#include "../memory_globals.hpp"
 #include "memorycolumns.hpp"
 
 class MEMORY_EXPORT MemoryByteModel : public QAbstractTableModel

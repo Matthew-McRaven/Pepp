@@ -19,10 +19,7 @@ import QtQuick.Controls
 import QtQuick.Layouts
 import QtQuick.Controls.Material  //  For colors
 import Qt.labs.qmlmodels          //  For DelegateChooser
-
-import "../components" as Ui
-//import edu.pepperdine 1.0 //  Only for Qml instantiation
-
+import "../cpu" as Ui
 Rectangle {
     id: root
     anchors.margins: 5

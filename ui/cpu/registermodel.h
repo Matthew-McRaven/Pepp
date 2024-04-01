@@ -1,20 +1,20 @@
-#ifndef REGISTERMODEL_H
-#define REGISTERMODEL_H
+#pragma once
 
 #include <QAbstractListModel>
 #include <QQmlEngine>
 #include <QVector>
+#include "./cpu_globals.hpp"
 
 //  Register is a reserved name. Prepended Pep to avoid naming conflicts
-class PepRegister {
-    Q_GADGET
-    Q_PROPERTY(QString name READ name WRITE setName)
-    Q_PROPERTY(quint32 address READ address WRITE setAddress)
-    Q_PROPERTY(QString data READ data WRITE setData)
+class CPU_EXPORT PepRegister {
+  Q_GADGET
+  Q_PROPERTY(QString name READ name WRITE setName)
+  Q_PROPERTY(quint32 address READ address WRITE setAddress)
+  Q_PROPERTY(QString data READ data WRITE setData)
 
-    QString name_{};
-    quint32 address_ = 0;
-    QString data_{};
+  QString name_{};
+  quint32 address_ = 0;
+  QString data_{};
 
 public:
     PepRegister() = default;
@@ -39,9 +39,8 @@ public:
 };
 
 //  Read only class for change in Register values
-class RegisterModel : public QAbstractListModel
-{
-    Q_OBJECT
+class CPU_EXPORT RegisterModel : public QAbstractListModel {
+  Q_OBJECT
 
 public:
     // Define the role names to be used
@@ -82,5 +81,3 @@ private:
     QHash<int, QByteArray>  roleNames_;
     QList<PepRegister>      registers_;
 };
-
-#endif // REGISTERMODEL_H

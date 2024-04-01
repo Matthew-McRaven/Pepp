@@ -15,39 +15,41 @@
  */
 
 #pragma once
-#include <QtCore>
 
-class Maintainer : public QObject {
+#include <QtCore>
+#include "about_globals.hpp"
+#include "help/about/dependencies.hpp"
+
+class UI_ABOUT_EXPORT DependencyRoles : public QObject {
   Q_OBJECT
-  Q_PROPERTY(QString name READ name CONSTANT)
-  Q_PROPERTY(QString email READ email CONSTANT)
 public:
-  Maintainer(QString name, QString email, QObject *parent = nullptr);
-  ~Maintainer() override = default;
-  QString name();
-  QString email();
+  enum RoleNames {
+    Name = Qt::UserRole,
+    URL = Qt::UserRole + 1,
+    LicenseName = Qt::UserRole + 2,
+    LicenseSPDXID = Qt::UserRole + 3,
+    LicenseText = Qt::UserRole + 4,
+    DevDependency = Qt::UserRole + 5
+  };
+  Q_ENUM(RoleNames)
+  static DependencyRoles *instance();
+  // Prevent copying and assignment
+  DependencyRoles(const DependencyRoles &) = delete;
+  DependencyRoles &operator=(const DependencyRoles &) = delete;
 
 private:
-  QString _name = {}, _email = {};
+  DependencyRoles() : QObject(nullptr) {}
 };
-class MaintainerList : public QAbstractListModel {
+
+class UI_ABOUT_EXPORT Dependencies : public QAbstractListModel {
+  Q_OBJECT
 public:
-  enum { NAME = Qt::UserRole, EMAIL = Qt::UserRole + 1 };
-  explicit MaintainerList(QList<Maintainer *> list, QObject *parent = nullptr);
-  ~MaintainerList() override = default;
+  explicit Dependencies(QObject *parent = nullptr);
+  ~Dependencies() override = default;
   int rowCount(const QModelIndex &parent) const override;
   QVariant data(const QModelIndex &index, int role) const override;
   QHash<int, QByteArray> roleNames() const override;
 
 private:
-  QList<Maintainer *> _list;
-};
-
-class Contributors : public QObject {
-  Q_OBJECT
-  Q_PROPERTY(QString text READ text CONSTANT)
-public:
-  explicit Contributors(QObject *parent = nullptr);
-  ~Contributors() override = default;
-  static QString text();
+  QList<about::Dependency> _deps;
 };

@@ -13,8 +13,8 @@ foreach (f_abs IN LISTS abs_qml_sources)
     list(APPEND rel_qml_sources "${f_rel}")
 endforeach ()
 
-qt_add_qml_module(constants
-        URI "constants"
+qt_add_qml_module(ui_about
+        URI "about"
         VERSION 0.1
         QML_FILES
         ${rel_qml_sources}
@@ -23,5 +23,5 @@ qt_add_qml_module(constants
         ${sources}
 )
 
-target_compile_definitions(constants PRIVATE "CONSTANTS_LIBRARY")
-target_link_libraries(constants PUBLIC Qt6::Core Qt6::Gui Qt6::Quick)
+target_compile_definitions(ui_about PRIVATE "UI_ABOUT_LIBRARY")
+target_link_libraries(ui_about PUBLIC Qt6::Core Qt6::Gui Qt6::Quick ui_utils about)

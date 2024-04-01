@@ -14,25 +14,8 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 #pragma once
-#include <QObject>
-#include <QQmlApplicationEngine>
 
-namespace object {
-class Utilities : public QObject {
-  Q_OBJECT
-  Q_PROPERTY(int bytesPerRow READ bytesPerRow WRITE setBytesPerRow NOTIFY bytesPerRowChanged)
-public:
-  explicit Utilities(QObject *parent = nullptr);
-  Q_INVOKABLE static bool valid(int key);
-  Q_INVOKABLE QString format(QString input) const;
-public slots:
-  void setBytesPerRow(int bytes);
-  int bytesPerRow() const;
-signals:
-  void bytesPerRowChanged();
-
-private:
-  int _bytesPerRow = 16;
-};
-void registerTypes(QQmlApplicationEngine &engine);
-} // namespace object
+// NOTE: Must include this file in final application to prevent static helpers being optimized out.
+namespace about {
+void registerTypes(const char *uri);
+} // namespace about

@@ -16,8 +16,9 @@
 
 #pragma once
 #include <QtCore>
+#include "about_globals.hpp"
 
-class Version : public QObject {
+class UI_ABOUT_EXPORT Version : public QObject {
   Q_OBJECT
   Q_PROPERTY(QString git_sha READ git_sha CONSTANT)
   Q_PROPERTY(QString git_tag READ git_tag CONSTANT)

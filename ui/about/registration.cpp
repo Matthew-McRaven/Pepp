@@ -14,7 +14,9 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-#include "registration.hpp"
+#include "./registration.hpp"
+#include <QQmlEngine>
+#include <iostream>
 #include "contributors.hpp"
 #include "dependencies.hpp"
 #include "help/about/pepp.hpp"
@@ -22,10 +24,9 @@
 #include "version.hpp"
 
 namespace about {
-void registerTypes(QQmlApplicationEngine &engine) {
-  qmlRegisterSingletonType<Version>("edu.pepp", 1, 0, "Version",
-                                    [](QQmlEngine *, QJSEngine *) { return new Version(); });
-  qmlRegisterUncreatableType<Maintainer>("edu.pepp", 1, 0, "Maintainer", "Must be created from C++");
+void registerTypes(const char *uri) {
+  qmlRegisterSingletonType<Version>(uri, 1, 0, "Version", [](QQmlEngine *, QJSEngine *) { return new Version(); });
+  qmlRegisterUncreatableType<Maintainer>(uri, 1, 0, "Maintainer", "Must be created from C++");
   qmlRegisterSingletonType<QList<Maintainer *>>("edu.pepp", 1, 0, "Maintainers", [](QQmlEngine *, QJSEngine *) {
     // Need global scope ::, or it picks up about::Maintainer
     QList<::Maintainer *> maintainers{};
@@ -37,10 +38,12 @@ void registerTypes(QQmlApplicationEngine &engine) {
     auto owning = new MaintainerList(maintainers);
     return owning;
   });
-  qmlRegisterSingletonType<Contributors>("edu.pepp", 1, 0, "Contributors",
+  qmlRegisterSingletonType<Contributors>(uri, 1, 0, "Contributors",
                                          [](QQmlEngine *, QJSEngine *) { return new Contributors(); });
   qmlRegisterUncreatableType<DependencyRoles>("edu.pepp", 1, 0, "DependencyRoles", "Error: only enums");
-  qmlRegisterSingletonType<Dependencies>("edu.pepp", 1, 0, "Dependencies",
-                                     [](QQmlEngine *, QJSEngine *) { return new Dependencies(); });
+  qmlRegisterSingletonType<Dependencies>(uri, 1, 0, "Dependencies",
+                                         [](QQmlEngine *, QJSEngine *) { return new Dependencies(); });
 }
+
 } // namespace about
+

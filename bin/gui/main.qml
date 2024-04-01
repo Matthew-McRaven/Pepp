@@ -18,12 +18,12 @@ import QtQuick
 import QtQuick.Window
 import QtQuick.Controls
 import QtQuick.Layouts
-import "qrc:/qt/qml/Pepp/gui/about" as About
+import "qrc:/ui/about" as About
 import "qrc:/qt/qml/Pepp/gui/helpview" as Help
 import "qrc:/ui/memory/hexdump" as Memory
-import "qrc:/qt/qml/Pepp/gui/cpu" as Cpu
+import "qrc:/ui/cpu" as Cpu
 import "qrc:/qt/qml/Pepp/gui/project"
-import "qrc:/qt/qml/Pepp/gui/object" as Object
+import "qrc:/ui/text/editor" as Editor
 
 ApplicationWindow {
     id: window
@@ -241,7 +241,7 @@ ApplicationWindow {
             Layout.fillWidth: true
             Layout.fillHeight: true
             Layout.preferredWidth: 400
-            Object.Editor {
+            Editor.ObjTextEditor {
                 readOnly: false
                 anchors.fill: parent
             }

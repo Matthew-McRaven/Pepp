@@ -25,32 +25,33 @@
 //  Testing only
 #include <QDirIterator>
 
-#include "../gui/about/registration.hpp"
-#include "../gui/cpu/registermodel.h"
-#include "../gui/cpu/statusbitmodel.h"
+#include "cpu/registermodel.h"
+#include "cpu/statusbitmodel.h"
 #include "help/about/version.hpp"
 #include "memory/hexdump/memorybytemodel.h"
 
 #include "../gui/helpview/registration.hpp"
-#include "../gui/object/registration.hpp"
-#include "constants/registration.hpp"
+#include "about/registration.hpp"
+#include "cpu/registration.hpp"
 #include "memory/registration.hpp"
 #include "text/registration.hpp"
+#include "utils/registration.hpp"
 
 struct default_data : public gui_globals {
   ~default_data() override = default;
   StatusBitModel sbm;
   RegisterModel rm;
+  MemoryByteModel mbm;
   QTimer interval;
 };
 
 QSharedPointer<gui_globals> default_init(QQmlApplicationEngine &engine) {
-  constants::registerTypes("edu.pepp");
-  text::registerTypes("edu.pepp");
+  utils::registerTypes("edu.pepp");
+  about::registerTypes("edu.pepp");
   memory::registerTypes("edu.pepp");
+  text::registerTypes("edu.pepp");
+  cpu::registerTypes("edu.pepp");
   helpview::registerTypes(engine);
-  object::registerTypes(engine);
-  about::registerTypes(engine);
 
   auto data = QSharedPointer<default_data>::create();
 
@@ -58,6 +59,7 @@ QSharedPointer<gui_globals> default_init(QQmlApplicationEngine &engine) {
   auto *ctx = engine.rootContext();
   ctx->setContextProperty("StatusBitModel", &data->sbm);
   ctx->setContextProperty("RegisterModel", &data->rm);
+  ctx->setContextProperty("MemoryByteModel", &data->mbm);
 
   //  Simulate changes in Pepp10
   data->interval.setInterval(1000);

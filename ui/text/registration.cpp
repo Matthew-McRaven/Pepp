@@ -17,6 +17,7 @@
 #include "registration.hpp"
 #include "editor/blockfinder.hpp"
 #include "editor/lineinfomodel.hpp"
+#include "editor/object.hpp"
 #include "editor/tabnanny.hpp"
 #include "highlight/qml_highlighter.hpp"
 #include "highlight/style.hpp"
@@ -32,4 +33,5 @@ void text::registerTypes(const char *uri) {
   qmlRegisterType<BlockFinder>(uri, 1, 0, "BlockFinder");
   qmlRegisterType<LineInfoModel>(uri, 1, 0, "LineInfoModel");
   qmlRegisterType<TabNanny>(uri, 1, 0, "TabNanny");
+  qmlRegisterType<ObjectUtilities>("edu.pepp.text", 1, 0, "ObjectUtilities");
 }
