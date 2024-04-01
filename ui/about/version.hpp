@@ -16,7 +16,7 @@
 
 #pragma once
 #include <QtCore>
-#include "about_global.hpp"
+#include "about_globals.hpp"
 
 class UI_ABOUT_EXPORT Version : public QObject {
   Q_OBJECT

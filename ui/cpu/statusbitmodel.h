@@ -3,7 +3,7 @@
 #include <QAbstractListModel>
 #include <QQmlEngine>
 #include <QVector>
-#include "./cpu_global.hpp"
+#include "./cpu_globals.hpp"
 
 //  For testing only
 #include <QRandomGenerator>

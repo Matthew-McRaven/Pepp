@@ -17,7 +17,7 @@
 #pragma once
 
 #include <QtCore>
-#include "about_global.hpp"
+#include "about_globals.hpp"
 #include "help/about/dependencies.hpp"
 
 class UI_ABOUT_EXPORT DependencyRoles : public QObject {

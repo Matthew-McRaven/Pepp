@@ -3,7 +3,7 @@
 #include <QAbstractTableModel>
 #include <QHash>
 #include <QSet>
-#include "../memory_global.hpp"
+#include "../memory_globals.hpp"
 
 class MEMORY_EXPORT MemoryColumns : public QObject
 {

@@ -3,7 +3,7 @@
 #include <QAbstractListModel>
 #include <QQmlEngine>
 #include <QVector>
-#include "./cpu_global.hpp"
+#include "./cpu_globals.hpp"
 
 //  Register is a reserved name. Prepended Pep to avoid naming conflicts
 class CPU_EXPORT PepRegister {
