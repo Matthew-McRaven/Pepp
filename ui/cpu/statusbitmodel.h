@@ -1,20 +1,20 @@
-#ifndef STATUSBITMODEL_H
-#define STATUSBITMODEL_H
+#pragma once
 
 #include <QAbstractListModel>
 #include <QQmlEngine>
 #include <QVector>
+#include "./cpu_global.hpp"
 
 //  For testing only
 #include <QRandomGenerator>
 
-class StatusBit {
-    Q_GADGET
-    Q_PROPERTY(QString statusBit READ statusBit WRITE setStatusBit)
-    Q_PROPERTY(bool flag READ flag WRITE setFlag)
+class CPU_EXPORT StatusBit {
+  Q_GADGET
+  Q_PROPERTY(QString statusBit READ statusBit WRITE setStatusBit)
+  Q_PROPERTY(bool flag READ flag WRITE setFlag)
 
-    QString statusBit_;
-    bool    flag_       = false;
+  QString statusBit_;
+  bool flag_ = false;
 
 public:
     StatusBit() = default;
@@ -37,9 +37,8 @@ public:
 };
 
 //  Read only class for change in status bits
-class StatusBitModel : public QAbstractListModel
-{
-    Q_OBJECT
+class CPU_EXPORT StatusBitModel : public QAbstractListModel {
+  Q_OBJECT
 
 public:
     // Define the role names to be used
@@ -79,5 +78,3 @@ private:
     QHash<int, QByteArray>  roleNames_;
     QList<StatusBit>        statusBits_;
 };
-
-#endif // STATUSBITMODEL_H

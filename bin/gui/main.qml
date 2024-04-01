@@ -21,7 +21,7 @@ import QtQuick.Layouts
 import "qrc:/ui/about" as About
 import "qrc:/qt/qml/Pepp/gui/helpview" as Help
 import "qrc:/ui/memory/hexdump" as Memory
-import "qrc:/qt/qml/Pepp/gui/cpu" as Cpu
+import "qrc:/ui/cpu" as Cpu
 import "qrc:/qt/qml/Pepp/gui/project"
 import "qrc:/qt/qml/Pepp/gui/object" as Object
 

@@ -25,14 +25,15 @@
 //  Testing only
 #include <QDirIterator>
 
-#include "../gui/cpu/registermodel.h"
-#include "../gui/cpu/statusbitmodel.h"
+#include "cpu/registermodel.h"
+#include "cpu/statusbitmodel.h"
 #include "help/about/version.hpp"
 #include "memory/hexdump/memorybytemodel.h"
 
 #include "../gui/helpview/registration.hpp"
 #include "../gui/object/registration.hpp"
 #include "about/registration.hpp"
+#include "cpu/registration.hpp"
 #include "memory/registration.hpp"
 #include "text/registration.hpp"
 #include "utils/registration.hpp"
@@ -50,6 +51,7 @@ QSharedPointer<gui_globals> default_init(QQmlApplicationEngine &engine) {
   about::registerTypes("edu.pepp");
   memory::registerTypes("edu.pepp");
   text::registerTypes("edu.pepp");
+  cpu::registerTypes("edu.pepp");
   helpview::registerTypes(engine);
   object::registerTypes(engine);
 
