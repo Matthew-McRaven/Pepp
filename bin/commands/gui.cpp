@@ -25,7 +25,6 @@
 //  Testing only
 #include <QDirIterator>
 
-#include "../gui/about/registration.hpp"
 #include "../gui/cpu/registermodel.h"
 #include "../gui/cpu/statusbitmodel.h"
 #include "help/about/version.hpp"
@@ -33,6 +32,7 @@
 
 #include "../gui/helpview/registration.hpp"
 #include "../gui/object/registration.hpp"
+#include "about/registration.hpp"
 #include "memory/registration.hpp"
 #include "text/registration.hpp"
 #include "utils/registration.hpp"
@@ -47,11 +47,11 @@ struct default_data : public gui_globals {
 
 QSharedPointer<gui_globals> default_init(QQmlApplicationEngine &engine) {
   utils::registerTypes("edu.pepp");
-  text::registerTypes("edu.pepp");
+  about::registerTypes("edu.pepp");
   memory::registerTypes("edu.pepp");
+  text::registerTypes("edu.pepp");
   helpview::registerTypes(engine);
   object::registerTypes(engine);
-  about::registerTypes(engine);
 
   auto data = QSharedPointer<default_data>::create();
 

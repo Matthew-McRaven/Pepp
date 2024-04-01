@@ -1,8 +1,9 @@
 add_subdirectory(utils)
+add_subdirectory(about)
 add_subdirectory(text)
 add_subdirectory(memory)
 
-set(ui_targets "ui_utils;memory;text")
+set(ui_targets "ui_utils;ui_about;memory;text")
 
 
 if (APPLE)

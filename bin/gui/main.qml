@@ -18,7 +18,7 @@ import QtQuick
 import QtQuick.Window
 import QtQuick.Controls
 import QtQuick.Layouts
-import "qrc:/qt/qml/Pepp/gui/about" as About
+import "qrc:/ui/about" as About
 import "qrc:/qt/qml/Pepp/gui/helpview" as Help
 import "qrc:/ui/memory/hexdump" as Memory
 import "qrc:/qt/qml/Pepp/gui/cpu" as Cpu

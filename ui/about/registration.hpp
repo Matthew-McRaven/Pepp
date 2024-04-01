@@ -15,9 +15,7 @@
  */
 #pragma once
 
-#include <QQmlApplicationEngine>
-#include <QtCore>
-
+// NOTE: Must include this file in final application to prevent static helpers being optimized out.
 namespace about {
-void registerTypes(QQmlApplicationEngine &engine);
-}
+void registerTypes(const char *uri);
+} // namespace about
