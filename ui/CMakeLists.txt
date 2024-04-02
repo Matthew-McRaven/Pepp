@@ -4,9 +4,11 @@ add_subdirectory(text)
 add_subdirectory(memory)
 add_subdirectory(cpu)
 add_subdirectory(preferences)
+add_subdirectory(project)
 add_subdirectory(mode)
 
-set(ui_targets "ui_utils;ui_about;text;memory;cpu;prefs;mode")
+
+set(ui_targets "ui_utils;ui_about;text;memory;cpu;prefs;project;mode")
 
 
 if (APPLE)
