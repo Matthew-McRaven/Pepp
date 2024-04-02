@@ -102,6 +102,7 @@ Dialog {
             Label {
                 Layout.fillWidth: true
                 text: qsTr("Copyright © 2016 - 2024, J. Stanley Warford, Matthew McRaven, Pepperdine University\n")
+                wrapMode: Text.WordWrap
             }
             Label {
                 Layout.fillWidth: true
@@ -156,6 +157,7 @@ Dialog {
                 Layout.fillWidth: true
                 id: projectLicense
                 readOnly: true
+                wrapMode: Text.WordWrap
             }
         }
     } //  ScrollView
