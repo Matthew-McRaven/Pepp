@@ -10,9 +10,9 @@ enum class Features : int {
   NoOS,
 };
 
-struct Environemnt {
-  utils::Architecture arch;
-  utils::Abstraction level;
+struct Environment {
+  utils::Architecture::Value arch;
+  utils::Abstraction::Value level;
   Features features;
 };
 } // namespace project
