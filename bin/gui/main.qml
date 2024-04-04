@@ -25,6 +25,7 @@ import "qrc:/ui/cpu" as Cpu
 import "qrc:/qt/qml/Pepp/gui/project"
 import "qrc:/ui/text/editor" as Editor
 import "qrc:/ui/preferences" as Pref
+import edu.pepp 1.0
 
 ApplicationWindow {
     id: window
@@ -32,6 +33,7 @@ ApplicationWindow {
     height: 480
     visible: true
     title: qsTr("Pep/10 Help")
+    property ISAProject test: Projects.isa(Architecture.Pep10, 0)
     ButtonGroup {
         buttons: sidebar.children
     }
@@ -40,6 +42,7 @@ ApplicationWindow {
 
     onModeChanged: {
         stack.updateCurrentIndex()
+        console.log(test.objectCodeText)
     }
 
     menuBar: MenuBar {

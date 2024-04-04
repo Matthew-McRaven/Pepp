@@ -36,6 +36,7 @@
 #include "memory/registration.hpp"
 #include "preferences/preferencemodel.hpp"
 #include "preferences/registration.hpp"
+#include "project/registration.hpp"
 #include "text/registration.hpp"
 #include "utils/registration.hpp"
 
@@ -57,7 +58,9 @@ QSharedPointer<gui_globals> default_init(QQmlApplicationEngine &engine) {
   memory::registerTypes("edu.pepp");
   text::registerTypes("edu.pepp");
   cpu::registerTypes("edu.pepp");
+  project::registerTypes("edu.pepp");
   helpview::registerTypes(engine);
+
   auto data = QSharedPointer<default_data>::create();
 
   //  Connect models
