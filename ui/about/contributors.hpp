@@ -31,9 +31,10 @@ public:
 private:
   QString _name = {}, _email = {};
 };
+
 class UI_ABOUT_EXPORT MaintainerList : public QAbstractListModel {
 public:
-  enum { NAME = Qt::UserRole, EMAIL = Qt::UserRole + 1 };
+  enum { NAME = Qt::UserRole, EMAIL = Qt::UserRole + 1, ITEM };
   explicit MaintainerList(QList<Maintainer *> list, QObject *parent = nullptr);
   ~MaintainerList() override = default;
   int rowCount(const QModelIndex &parent) const override;

@@ -39,6 +39,8 @@ QVariant MaintainerList::data(const QModelIndex &index, int role) const {
     return item->name();
   case EMAIL:
     return item->email();
+  case ITEM:
+    return QVariant::fromValue(item);
   default:
     return QVariant();
   }
@@ -48,6 +50,7 @@ QHash<int, QByteArray> MaintainerList::roleNames() const {
   QHash<int, QByteArray> roles;
   roles[NAME] = "name";
   roles[EMAIL] = "email";
+  roles[ITEM] = "item";
   return roles;
 }
 

@@ -74,9 +74,8 @@ Dialog {
                     Text {
                         width: parent.width
                         height: fontMetrics.height
-                        required property string name;
-                        required property string email;
-                        text: name + "  <" + email + ">";
+                        required property var item;
+                        text: item.name + "  <" + item.email + ">";
                     }
                     height: Maintainers.rowCount * fontMetrics.height
                 }
