@@ -33,7 +33,9 @@ ApplicationWindow {
     height: 480
     visible: true
     title: qsTr("Pep/10 Help")
-    property ISAProject test: Projects.isa(Architecture.Pep10, 0)
+    ProjectModel {
+        id: pm
+    }
     ButtonGroup {
         buttons: sidebar.children
     }
@@ -42,7 +44,8 @@ ApplicationWindow {
 
     onModeChanged: {
         stack.updateCurrentIndex()
-        console.log(test.objectCodeText)
+        pm.pep10ISA()
+        // console.log(test.objectCodeText)
     }
 
     menuBar: MenuBar {
@@ -179,17 +182,12 @@ ApplicationWindow {
                 anchors.left: parent.left
                 anchors.top: parent.top
                 height: 30
-                TabButton {
-                    text: qsTr("Fig 1")
-                    height: parent.height - 4
-                }
-                TabButton {
-                    text: qsTr("Fig 2")
-                    height: parent.height - 4
-                }
-                TabButton {
-                    text: qsTr("Fig 3")
-                    height: parent.height - 4
+                Repeater {
+                    model: pm
+                    delegate: TabButton {
+                        text: "Tab N"
+                        height: parent.height - 4
+                    }
                 }
             }
             StackLayout {

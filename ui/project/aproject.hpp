@@ -1,5 +1,8 @@
 #pragma once
+#include <deque>
+#include <qabstractitemmodel.h>
 #include "utils/constants.hpp"
+
 namespace project {
 // Additional options requested for a project.
 // A particular (arch, level) tuple may only support a subset of features.
@@ -34,14 +37,14 @@ private:
   const project::Environment _env;
 };
 
-// Test class to handle ISA level of abstraction across all architectures.
-class ISAProject final : public AProject {
+class Pep10_ISA final : public QObject {
   Q_OBJECT
+  Q_PROPERTY(project::Environment env READ env CONSTANT)
   Q_PROPERTY(QString objectCodeText READ objectCodeText WRITE setObjectCodeText NOTIFY objectCodeTextChanged);
 
 public:
-  ISAProject(void *arch_info, project::Features features) : AProject({}) {}
-  ~ISAProject() override = default;
+  Pep10_ISA(QObject *parent = nullptr);
+  project::Environment env() const;
   QString objectCodeText() const;
   void setObjectCodeText(const QString &objectCodeText);
 signals:
@@ -54,9 +57,21 @@ private:
 // Factory to ensure class invariants of project are maintained.
 // Must be a singleton to call methods on it.
 // Can't seem to call Q_INVOKABLE on an uncreatable type.
-class Projects : public QObject {
+class ProjectModel : public QAbstractListModel {
   Q_OBJECT
 public:
-  Q_INVOKABLE ISAProject *isa(utils::Architecture::Value arch, project::Features features);
-  Projects(QObject *parent = nullptr) : QObject(parent){};
+  // Q_INVOKABLE ISAProject *isa(utils::Architecture::Value arch, project::Features features);
+  ProjectModel(QObject *parent = nullptr) : QAbstractListModel(parent){};
+
+  // QAbstractItemModel interface
+public:
+  int rowCount(const QModelIndex &parent) const override;
+  QVariant data(const QModelIndex &index, int role) const override;
+  Q_INVOKABLE Pep10_ISA *pep10ISA();
+  bool removeRows(int row, int count, const QModelIndex &parent) override;
+  bool moveRows(const QModelIndex &sourceParent, int sourceRow, int count, const QModelIndex &destinationParent,
+                int destinationChild) override;
+
+private:
+  std::deque<Pep10_ISA *> _projects = {};
 };

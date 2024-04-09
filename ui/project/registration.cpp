@@ -5,7 +5,6 @@
 
 static const char *error_only_project = "Can only be created through Project::";
 void project::registerTypes(const char *uri) {
-  qmlRegisterUncreatableType<ISAProject>(uri, 1, 0, "ISAProject", error_only_project);
-  qmlRegisterSingletonType<Projects>(uri, 1, 0, "Projects",
-                                     [](QQmlEngine *, QJSEngine *) -> QObject * { return new Projects(); });
+  qmlRegisterUncreatableType<Pep10_ISA>(uri, 1, 0, "Pep10ISA", error_only_project);
+  qmlRegisterType<ProjectModel>(uri, 1, 0, "ProjectModel");
 }
