@@ -21,7 +21,6 @@ import QtQuick.Controls
 import edu.pepp 1.0
 
 Item {
-    anchors.fill: parent
     Component.onCompleted: {
         treeView.onSelectedFigChanged.connect(
                 (arg) => {
