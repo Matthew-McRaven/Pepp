@@ -1,4 +1,5 @@
 
+
 /*
  * Copyright (c) 2023-2024 J. Stanley Warford, Matthew McRaven
  * This program is free software: you can redistribute it and/or modify
@@ -39,7 +40,10 @@ ApplicationWindow {
     ButtonGroup {
         buttons: sidebar.children
     }
-
+    // Provide a default font for menu items.
+    FontMetrics {
+        id: menuFont
+    }
     property string mode: "MEMDEMO"
 
     onModeChanged: {
@@ -94,29 +98,72 @@ ApplicationWindow {
         }
     }
 
-    header: ToolBar {
-        RowLayout {
-            anchors.fill: parent
-            ToolButton {
-                text: qsTr("‹")
+    Item {
+        // Intersection of header and mode select.
+        // Make transparent, influenced by Qt Creator Style.
+        id: headerSpacer
+        anchors.top: parent.top
+        anchors.left: parent.left
+        width: sidebar.width
+        height: header.height
+    }
+
+    Item {
+        id: header
+        anchors.top: parent.top
+        anchors.left: headerSpacer.right
+        anchors.right: parent.right
+        height: toolbar.height + projectSelect.height
+
+        ToolBar {
+            id: toolbar
+            anchors.top: parent.top
+            anchors.left: parent.left
+            anchors.right: parent.right
+            RowLayout {
+                anchors.fill: parent
+                ToolButton {
+                    text: qsTr("‹")
+                    font: menuFont.font
+                }
+                Label {
+                    text: "Title"
+                    font: menuFont.font
+                    elide: Label.ElideRight
+                    horizontalAlignment: Qt.AlignHCenter
+                    verticalAlignment: Qt.AlignVCenter
+                }
+                ToolButton {
+                    text: qsTr("⋮")
+                    font: menuFont.font
+                    onClicked: menu.open()
+                }
+                Rectangle {
+                    color: "transparent"
+                    Layout.fillWidth: true
+                }
             }
-            Label {
-                text: "Title"
-                elide: Label.ElideRight
-                horizontalAlignment: Qt.AlignHCenter
-                verticalAlignment: Qt.AlignVCenter
-                Layout.fillWidth: true
-            }
-            ToolButton {
-                text: qsTr("⋮")
-                onClicked: menu.open()
+        }
+        TabBar {
+            id: projectSelect
+            anchors.right: parent.right
+            anchors.left: parent.left
+            anchors.top: toolbar.bottom
+            Repeater {
+                model: pm
+                anchors.fill: parent
+                delegate: TabButton {
+                    text: "Tab N"
+                    font: menuFont.font
+                    // Force the tab bar to become flickable if it is too crowded.
+                    width: Math.max(100, projectSelect.width / 6)
+                }
             }
         }
     }
-
     Column {
         id: sidebar
-        anchors.top: parent.top
+        anchors.top: headerSpacer.bottom
         anchors.bottom: parent.bottom
         anchors.left: parent.left
         width: 100
@@ -146,9 +193,10 @@ ApplicationWindow {
             onClicked: window.mode = "OBJECT"
         }
     }
+
     StackLayout {
         id: stack
-        anchors.top: parent.top
+        anchors.top: header.bottom
         anchors.bottom: parent.bottom
         anchors.right: parent.right
         anchors.left: sidebar.right
@@ -176,25 +224,8 @@ ApplicationWindow {
             }
         }
         Item {
-            TabBar {
-                id: projectSelect
-                anchors.right: parent.right
-                anchors.left: parent.left
-                anchors.top: parent.top
-                height: 30
-                Repeater {
-                    model: pm
-                    delegate: TabButton {
-                        text: "Tab N"
-                        height: parent.height - 4
-                    }
-                }
-            }
             StackLayout {
-                anchors.top: projectSelect.bottom
-                anchors.bottom: parent.bottom
-                anchors.left: parent.left
-                anchors.right: parent.right
+                anchors.fill: parent
                 currentIndex: projectSelect.currentIndex
                 Project {
                     mode: window.mode
@@ -244,6 +275,7 @@ ApplicationWindow {
                 //Layout.bottom: wrapper.bottom
                 anchors.top: tab.bottom
                 anchors.bottom: wrapper.bottom
+
                 Memory.MemoryDump {}
                 Cpu.Cpu {}
                 Pref.Preferences {}
