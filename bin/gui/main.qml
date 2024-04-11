@@ -25,6 +25,7 @@ import "qrc:/ui/memory/hexdump" as Memory
 import "qrc:/ui/cpu" as Cpu
 import "qrc:/qt/qml/Pepp/gui/project"
 import "qrc:/ui/text/editor" as Editor
+import "qrc:/ui/project" as Project
 import "qrc:/ui/preferences" as Pref
 import edu.pepp 1.0
 
@@ -33,23 +34,24 @@ ApplicationWindow {
     width: 640
     height: 480
     visible: true
-    title: qsTr("Pep/10 Help")
+    title: qsTr("Pepp IDE")
+
+    property variant currentProject
     ProjectModel {
         id: pm
-    }
-    ButtonGroup {
-        buttons: sidebar.children
+        function onAddProject(arch, level, feats) {}
     }
     // Provide a default font for menu items.
     FontMetrics {
         id: menuFont
     }
-    property string mode: "MEMDEMO"
-
-    onModeChanged: {
-        stack.updateCurrentIndex()
-        pm.pep10ISA()
-        // console.log(test.objectCodeText)
+    // Helpers to render central component via Loader.
+    Component {
+        id: pep10isaComponent
+        Project.Pep10ISA {
+            required property string mode
+            mode: pep10isaComponent.mode
+        }
     }
 
     menuBar: MenuBar {
@@ -97,7 +99,6 @@ ApplicationWindow {
             }
         }
     }
-
     Item {
         // Intersection of header and mode select.
         // Make transparent, influenced by Qt Creator Style.
@@ -107,14 +108,12 @@ ApplicationWindow {
         width: sidebar.width
         height: header.height
     }
-
     Item {
         id: header
         anchors.top: parent.top
         anchors.left: headerSpacer.right
         anchors.right: parent.right
         height: toolbar.height + projectSelect.height
-
         ToolBar {
             id: toolbar
             anchors.top: parent.top
@@ -149,6 +148,11 @@ ApplicationWindow {
             anchors.right: parent.right
             anchors.left: parent.left
             anchors.top: toolbar.bottom
+            onCurrentIndexChanged: {
+                // TODO: handle OOB index, empty model.
+                window.currentProject = Qt.binding(() => pm.get(currentIndex))
+            }
+
             Repeater {
                 model: pm
                 anchors.fill: parent
@@ -161,134 +165,55 @@ ApplicationWindow {
             }
         }
     }
+
     Column {
         id: sidebar
         anchors.top: headerSpacer.bottom
         anchors.bottom: parent.bottom
         anchors.left: parent.left
         width: 100
-        SideButton {
-            text: "memdemo"
-            checked: true
-            onClicked: window.mode = "MEMDEMO"
+        signal modeChanged(string mode)
+        Repeater {
+            model: window.currentProject || ["welcome"]
+            delegate: SideButton {
+                text: model.text ?? "ERROR"
+                Component.onCompleted: {
+                    onClicked.connect(() => sidebar.modeChanged(text))
+                }
+            }
         }
-        SideButton {
-            text: "welcome"
-            onClicked: window.mode = "WELCOME"
-        }
-        SideButton {
-            text: "edit"
-            onClicked: window.mode = "EDIT"
-        }
-        SideButton {
-            text: "debug"
-            onClicked: window.mode = "DEBUG"
-        }
-        SideButton {
-            text: "help"
-            onClicked: window.mode = "HELP"
-        }
-        SideButton {
-            text: "object"
-            onClicked: window.mode = "OBJECT"
-        }
+    }
+    // Make sidebar buttons mutually-exclusive.
+    ButtonGroup {
+        buttons: sidebar.children
     }
 
     StackLayout {
-        id: stack
+        id: mainArea
         anchors.top: header.bottom
         anchors.bottom: parent.bottom
         anchors.right: parent.right
         anchors.left: sidebar.right
-        width: 400
-
-        function updateCurrentIndex() {
-            var modes = {
-                "MEMDEMO": 3,
-                "WELCOME": 0,
-                "EDIT": 1,
-                "DEBUG": 1,
-                "HELP": 2,
-                "OBJECT": 4
-            }
-            currentIndex = Qt.binding(() => modes[window.mode])
-        }
-
-        Component.onCompleted: updateCurrentIndex()
-
-        Rectangle {
-            color: "Orange"
-            Text {
-                text: "Welcome"
-                anchors.centerIn: parent
-            }
-        }
-        Item {
-            StackLayout {
-                anchors.fill: parent
-                currentIndex: projectSelect.currentIndex
-                Project {
-                    mode: window.mode
-                    color: "red"
-                }
-                Project {
-                    mode: window.mode
-                    color: "green"
-                }
-                Project {
-                    mode: window.mode
-                    color: "blue"
-                }
-            }
-        }
-        Item {
-            width: parent.width
-            Help.HelpView {
-                anchors.fill: parent
-            }
-        }
-        Item {
-            id: wrapper
-            width: parent.width
+        Project.Welcome {
             Layout.fillHeight: true
-
-            TabBar {
-                id: tab
-                TabButton {
-                    text: "Memory Dump"
-                    width: implicitWidth
-                }
-                TabButton {
-                    text: "CPU"
-                    width: implicitWidth
-                }
-                TabButton {
-                    text: "Preferences"
-                    width: implicitWidth
-                }
-            }
-
-            StackLayout {
-                currentIndex: tab.currentIndex
-                width: wrapper.width
-                //Layout.top: tab.bottom
-                //Layout.bottom: wrapper.bottom
-                anchors.top: tab.bottom
-                anchors.bottom: wrapper.bottom
-
-                Memory.MemoryDump {}
-                Cpu.Cpu {}
-                Pref.Preferences {}
-            }
-        }
-        Item {
             Layout.fillWidth: true
-            Layout.fillHeight: true
-            Layout.preferredWidth: 400
-            Editor.ObjTextEditor {
-                readOnly: false
-                anchors.fill: parent
+            Component.onCompleted: {
+                newProject.connect(pm.onAddProject)
             }
+        }
+        Help.HelpView {
+            Layout.fillHeight: true
+            Layout.fillWidth: true
+            property alias model: window.currentProject
+        }
+        Loader {
+            id: projectLoader
+            Layout.fillHeight: true
+            Layout.fillWidth: true
+            // TODO: Will need to switch to "source" with magic for passing mode & model.
+            sourceComponent: window.projectComponent
+            property string mode: 'welcome'
+            property alias model: window.currentProject
         }
     }
 

@@ -22,8 +22,12 @@ int ProjectModel::rowCount(const QModelIndex &parent) const { return _projects.s
 QVariant ProjectModel::data(const QModelIndex &index, int role) const {
   if (!index.isValid() || index.row() >= _projects.size() || index.column() != 0)
     return {};
-  if (role == Qt::DisplayRole)
+  switch (role) {
+  case Qt::DisplayRole:
     return QVariant::fromValue(_projects[index.row()]);
+  case (int)Roles::MODES:
+    return QVariant::fromValue(_projects[index.row()]->modes());
+  }
   return {};
 }
 
@@ -48,4 +52,10 @@ bool ProjectModel::removeRows(int row, int count, const QModelIndex &parent) {
 bool ProjectModel::moveRows(const QModelIndex &sourceParent, int sourceRow, int count,
                             const QModelIndex &destinationParent, int destinationChild) {
   return false;
+}
+
+QHash<int, QByteArray> ProjectModel::roleNames() const {
+  auto ret = QAbstractListModel::roleNames();
+  ret[(int)Roles::MODES] = "modes";
+  return ret;
 }

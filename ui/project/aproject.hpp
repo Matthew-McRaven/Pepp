@@ -47,6 +47,7 @@ public:
   project::Environment env() const;
   QString objectCodeText() const;
   void setObjectCodeText(const QString &objectCodeText);
+  static QStringList modes() { return {"Welcome", "Edit", "Debug", "Help"}; }
 signals:
   void objectCodeTextChanged();
 
@@ -60,17 +61,18 @@ private:
 class ProjectModel : public QAbstractListModel {
   Q_OBJECT
 public:
+  enum class Roles {
+    MODES = Qt::UserRole + 1,
+  };
   // Q_INVOKABLE ISAProject *isa(utils::Architecture::Value arch, project::Features features);
   ProjectModel(QObject *parent = nullptr) : QAbstractListModel(parent){};
-
-  // QAbstractItemModel interface
-public:
   int rowCount(const QModelIndex &parent) const override;
   QVariant data(const QModelIndex &index, int role) const override;
   Q_INVOKABLE Pep10_ISA *pep10ISA();
   bool removeRows(int row, int count, const QModelIndex &parent) override;
   bool moveRows(const QModelIndex &sourceParent, int sourceRow, int count, const QModelIndex &destinationParent,
                 int destinationChild) override;
+  QHash<int, QByteArray> roleNames() const override;
 
 private:
   std::deque<Pep10_ISA *> _projects = {};
