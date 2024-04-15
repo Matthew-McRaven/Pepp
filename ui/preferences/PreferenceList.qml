@@ -6,7 +6,7 @@ Rectangle {
   id: root
   property alias model: listView.model
 
-  color: root.model.container.background
+  color: Theme.container.background
 
   Component {
     id: preferenceDelegate
@@ -16,7 +16,7 @@ Rectangle {
       height: info.height
       color: model.currentList.background
       border.color: wrapper.ListView.isCurrentItem ?
-                    root.model.error.background : "transparent"
+                    Theme.error.background : "transparent"
       border.width: 1
 
       Text {
@@ -32,7 +32,7 @@ Rectangle {
         onClicked: {
 
           listView.currentIndex = index
-          console.log("PrefList.onClick: " + info.text + ", id: " +model.currentList.name)
+          //console.log("PrefList.onClick: " + info.text + ", id: " +model.currentList.name)
           model.currentPreference = model.currentList
         }
       }

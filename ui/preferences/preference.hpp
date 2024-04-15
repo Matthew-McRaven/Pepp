@@ -20,113 +20,82 @@
 #include <QColor>
 #include <QFont>
 #include <QObject>
-#include <QSharedData>
 #include <QExplicitlySharedDataPointer>
+
 #include "frontend_globals.hpp"
-
-class PreferencePrivate : public QSharedData {
-public:
-  PreferencePrivate() = default;
-  virtual ~PreferencePrivate() = default;
-
-  quint32 id_ = 0;
-  quint32 parentId_ = 0;
-  QString name_{};
-  QColor foreground_{Qt::black};
-  QColor background_{Qt::white};
-  QFont font_;
-};
-
+#include "preference_p.hpp"
 
 //  Class is implemented as a PIMPL pattern because the structure is passed
 //  to QML as a copy. When QML is updated, the copy sees the changes but not
 //  the original object. Using PIMPL pattern forces all copies to reference
 //  same data structure.
-class FRONTEND_EXPORT Preference {
-  Q_GADGET
-  Q_PROPERTY(int id         READ id)
-  Q_PROPERTY(QString name   READ name)
-  Q_PROPERTY(QColor foreground READ foreground WRITE setForeground)
-  Q_PROPERTY(QColor background READ background WRITE setBackground)
-  Q_PROPERTY(QFont font     READ font)
-  Q_PROPERTY(bool bold      READ bold      WRITE setBold);
-  Q_PROPERTY(bool italics   READ italics   WRITE setItalics);
-  Q_PROPERTY(bool underline READ underline WRITE setUnderline);
-  Q_PROPERTY(bool strikeout READ strikeOut WRITE setStrikeOut);
+class FRONTEND_EXPORT Preference : public QObject {
+  Q_OBJECT
+  Q_PROPERTY(int id         READ id   CONSTANT)
+  Q_PROPERTY(QString name   READ name CONSTANT)
+  Q_PROPERTY(QColor foreground READ foreground WRITE setForeground NOTIFY preferenceChanged)
+  Q_PROPERTY(QColor background READ background WRITE setBackground NOTIFY preferenceChanged)
+  Q_PROPERTY(QFont font     READ font CONSTANT)
+  Q_PROPERTY(bool bold      READ bold      WRITE setBold NOTIFY preferenceChanged);
+  Q_PROPERTY(bool italics   READ italics   WRITE setItalics NOTIFY preferenceChanged);
+  Q_PROPERTY(bool underline READ underline WRITE setUnderline NOTIFY preferenceChanged);
+  Q_PROPERTY(bool strikeout READ strikeOut WRITE setStrikeOut NOTIFY preferenceChanged);
 
   //Preference(PreferencePrivate* p) : d(p){};
   QExplicitlySharedDataPointer<PreferencePrivate> d;
 
 public:
 
-  Preference() : d(new PreferencePrivate){}
-  ~Preference() = default;
+  explicit Preference(QObject *parent = nullptr);
+  virtual ~Preference() = default;
 
+  Preference(QObject* parent, const quint32 id, const QString name);
+  Preference(QObject* parent, const quint32 id, const QString name,
+             const QRgb foreground, const QRgb background,
+             const quint32 parentId = 0, const bool bold = false,
+             const bool italics = false, const bool underline = false,
+             const bool strikeout = false);
 
-  Preference(const quint32 id, const QString name) :
-    d(new PreferencePrivate)
-  {
-    d->id_ = id;
-    d->name_ = name;
-  }
+  //  Cannot move or copy QObject
+  Preference(const Preference &) = delete;
+  Preference &operator=(const Preference &) = delete;
+  Preference(Preference &&) noexcept = delete;
+  Preference &operator=(Preference &&) = delete;
 
-  Preference(const quint32 id, const QString name, const QRgb foreground,const QRgb background,
-             const quint32 parentId = 0, const bool bold = false, const bool italics = false, const bool underline = false,
-             const bool strikeout = false) :
-  d(new PreferencePrivate)
-  {
-    d->id_ = id;
-    d->name_ = name;
-    d->foreground_ = foreground;
-    d->background_ = background;
-    d->parentId_ = parentId;
-
-    d->font_.setBold(bold);
-    d->font_.setItalic(italics);
-    d->font_.setUnderline(underline);
-    d->font_.setStrikeOut(strikeout);
-  }
-
-  Preference(const Preference &) = default;
-  Preference &operator=(const Preference &) = default;
-  //	Moving OK
-  Preference(Preference &&) noexcept = default;
-  Preference &operator=(Preference &&) = default;
-
-  size_t size() const { return 11; }
+  size_t size() const;
 
   //  Getter & Setter
-  quint32 id() const { return d->id_; }
-  QString name() const { return d->name_; }
+  int id() const;
+  QString name() const;
 
-  quint32 parentId() const { return d->parentId_; }
-  QColor foreground() const { return d->foreground_; }
-  QColor background() const { return d->background_; }
-  QFont font() const { return d->font_; }
+  int parentId() const;
+  QColor foreground() const;
+  QColor background() const;
+  QFont font() const;
 
-  bool bold()      const { return d->font_.bold(); }
-  bool italics()   const { return d->font_.italic(); }
-  bool underline() const { return d->font_.underline(); }
-  bool strikeOut() const { return d->font_.strikeOut(); }
+  bool bold()      const;
+  bool italics()   const;
+  bool underline() const;
+  bool strikeOut() const;
 
-  void setParent(const quint32 parent) { d->parentId_ = parent; }
-  void setForeground(const QColor foreground) { d->foreground_ = foreground; }
-  void setBackground(const QColor background) { d->background_ = background; }
-  void setFont(QFont *font) {
-    //  Only using font family and pointsize. If same, font has not changed
-    if (d->font_.family() == font->family() &&
-        d->font_.pointSize() == font->pointSize())
-      return;
+  void setParent(const quint32 parent);
+  void setForeground(const QColor foreground);
+  void setBackground(const QColor background);
+  void setFont(QFont *font);
+  void setBold(     const bool bold     );
+  void setItalics(  const bool italics  );
+  void setUnderline(const bool underline);
+  void setStrikeOut(const bool strikeOut);
 
-    d->font_.setFamily(font->family());
-    //  Font must always be 8 points or larger
-    d->font_.setPointSize(std::max(font->pointSize(), 8));
-  }
-  void setBold(     const bool bold     ) { d->font_.setBold(bold); }
-  void setItalics(  const bool italics  ) { d->font_.setItalic(italics); }
-  void setUnderline(const bool underline) { d->font_.setUnderline(underline); }
-  void setStrikeOut(const bool strikeOut) { d->font_.setStrikeOut(strikeOut); }
+  QJsonObject toJson() const;
+  static void fromJson(const QJsonObject &json, Preference& pref);
+
+signals:
+  void preferenceChanged();
+
+private:
+  void setId(const quint32 id);
+  void setName(const QString name);
 };
-Q_DECLARE_METATYPE(Preference)
 
 #endif // PREFERENCE_HPP

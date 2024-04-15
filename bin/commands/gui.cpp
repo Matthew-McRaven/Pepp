@@ -29,13 +29,16 @@
 #include "memory/hexdump/memorybytemodel.hpp"
 #include "preferences/preferencemodel.hpp"
 #include "text/registration.hpp"
+#include "preferences/theme.hpp"
 
 struct default_data : public gui_globals {
+  default_data() : pm(&theme) {}
   ~default_data() override = default;
-  StatusBitModel sbm;
-  RegisterModel rm;
-  MemoryByteModel mbm;
-  PreferenceModel pm;
+  StatusBitModel 	sbm;
+  RegisterModel 	rm;
+  MemoryByteModel 	mbm;
+  Theme                 theme;
+  PreferenceModel 	pm;
   QTimer interval;
 };
 
@@ -51,10 +54,11 @@ QSharedPointer<gui_globals> default_init(QQmlApplicationEngine &engine) {
 
   //  Connect models
   auto *ctx = engine.rootContext();
-  ctx->setContextProperty("StatusBitModel", &data->sbm);
-  ctx->setContextProperty("RegisterModel", &data->rm);
-  ctx->setContextProperty("MemoryByteModel", &data->mbm);
-  ctx->setContextProperty("PreferenceModel", &data->pm);
+  ctx->setContextProperty("StatusBitModel", 	&data->sbm);
+  ctx->setContextProperty("RegisterModel", 	&data->rm);
+  ctx->setContextProperty("MemoryByteModel", 	&data->mbm);
+  ctx->setContextProperty("PreferenceModel", 	&data->pm);
+  ctx->setContextProperty("Theme",              &data->theme);
 
   //  Simulate changes in Pepp10
   data->interval.setInterval(1000);

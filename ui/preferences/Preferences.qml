@@ -8,7 +8,7 @@ import edu.pepperdine 1.0
 Rectangle {
   id: root
 
-  color: model.surface.background
+  color: Theme.surface.background
 
   property variant model: PreferenceModel
 
@@ -35,16 +35,31 @@ Rectangle {
 
     //  Overrides
     Ui.ColorSettings {
-      visible: true
+      visible: !Theme.systemTheme
       Layout.fillHeight: true
-      implicitWidth: 300
+      implicitWidth: 250
       Layout.margins: 3
       Layout.topMargin: 100
 
       //  Currently selected preference
       preference: root.model.currentPref
       model: root.model
+    }
+    Rectangle {
+      visible: Theme.systemTheme
+      Layout.fillHeight: true
+      implicitWidth: 100
+      Layout.margins: 3
 
+      color: Theme.surface.background
+      Text {
+        anchors.fill: parent
+        verticalAlignment: Text.AlignVCenter
+        wrapMode: Text.WordWrap
+        color: Theme.surface.foreground
+
+        text: "<b>Builtin color schemes must be copied before they can be changed.<b>"
+      }
     }
   }
 }

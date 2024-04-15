@@ -5,48 +5,47 @@ import QtQuick.Controls
 Rectangle {
   id: root
 
-  property alias model: listView.model
-  color: model.container.background //"white"
-  border.color: model.container.foreground //"#c0c0c0"
+  required property var model
+  color: Theme.container.background
+  border.color: Theme.container.foreground
   border.width: 1
 
-  Component {
-    id: categoryDelegate
-    Rectangle {
+   ListView {
+    id: listView
+    model: root.model.categoryList
+    anchors.fill: root
+    anchors.margins: 1
+
+    delegate: Rectangle {
       id: wrapper
-      width: listView.width;
+
+      //  Assigned by model. Must be declared.
+      required property string modelData;
+      required property int index;
+
+      width: listView.width
       height: info.height
       color: ListView.isCurrentItem ?
-              root.model.secondary.background :
-              root.model.container.background
+              Theme.secondary.background :
+              Theme.container.background
                //  "darkslateblue" : "white"
       Text {
         id: info
-        text: model.categories
+        text: modelData //listView.model.name
         color: wrapper.ListView.isCurrentItem ?
-                root.model.secondary.foreground :
-                root.model.primary.foreground
+                Theme.secondary.foreground :
+                Theme.container.foreground
                  //  "white" : "black"
-        padding: 2
       }
       MouseArea
       {
-        anchors.fill: wrapper
+        anchors.fill: parent
         onClicked: {
-
+          console.log(index)
           listView.currentIndex = index
           root.model.category = index
         }
       }
     }
-  }
-
-  ListView {
-    id: listView
-    model: PreferenceModel
-    anchors.fill: root
-    anchors.margins: 1
-
-    delegate: categoryDelegate
   }
 }

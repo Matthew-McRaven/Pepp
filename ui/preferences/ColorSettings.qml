@@ -29,14 +29,14 @@ Item {
       Layout.topMargin: 20
       Layout.leftMargin: 10
       background: Rectangle {
-        color: root.model.container.background
-        border.color: root.model.container.foreground
+        color: Theme.container.background
+        border.color: Theme.container.foreground
         border.width: 1
       }
 
       //  Groupbox label
       label: Ui.GroupBoxLabel {
-        textColor: root.model.primary.foreground
+        textColor: Theme.primary.foreground
         text: "Parent Data"
       }
       ColumnLayout {
@@ -138,14 +138,14 @@ Item {
       Layout.rightMargin: 10
 
       background: Rectangle {
-        color: root.model.container.background
-        border.color: root.model.container.foreground
+        color: Theme.container.background
+        border.color: Theme.container.foreground
         border.width: 1
       }
 
       //  Groupbox label
       label: Ui.GroupBoxLabel {
-        textColor: root.model.primary.foreground
+        textColor: Theme.primary.foreground
         text: parentId.currentIndex === 0 ? ("Set Data for " + preference.name) : "Override Parent"
       }
 

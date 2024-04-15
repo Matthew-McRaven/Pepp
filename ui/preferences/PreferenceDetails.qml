@@ -10,53 +10,42 @@ Item {
   id: root
   width: 600
   property int buttonWidth: 50
-  required property variant model
+  required property var model
 
   ColumnLayout {
     anchors.fill: parent
     Layout.margins: 10
+    spacing: 20
 
-    //  Theme selection
-    RowLayout {
-      Text { id: text; text: "Current Theme" }
-      ComboBox {
+    ThemeManagement {
       id: themeId
-        model: ListModel {  //  Temporary-to be part of model
-          ListElement { text: "Default" }
-          ListElement { text: "Dark" }
-        }
-      }
-      Button { text: "Copy";   Layout.preferredWidth: buttonWidth}
-      Button { text: "Delete"; Layout.preferredWidth: buttonWidth}
-      Button { text: "Import"; Layout.preferredWidth: buttonWidth}
-      Button { text: "Export"; Layout.preferredWidth: buttonWidth}
+      buttonWidth: root.buttonWidth
+      model: root.model
+    }
 
-    } //  RowLayout - Theme
     //  Font selection
     RowLayout {
       id: layout
       GroupBox {
         id: fontGB
-        Layout.topMargin: 20
-        Layout.leftMargin: 10
 
         //  Groupbox label
         label: Ui.GroupBoxLabel {
-          textColor: root.model.primary.foreground
+          textColor: Theme.primary.foreground
           text: "Font"
         }
 
         background: Rectangle {
-          color: root.model.container.background
-          border.color: root.model.container.foreground
+          color: Theme.container.background
+          border.color: Theme.container.foreground
           border.width: 1
         }
 
         RowLayout {
           Label { text: "Current Font Family: " }
-          Text { text: root.model.font.family }
-          Label { text: "Size: " }
-          Text { text: root.model.font.pointSize     }
+          Text { id: family; text: root.model.font.family   }
+          Label { text: "Size: "                }
+          Text { id: fontsize; text: root.model.font.pointSize}
           Button {
             text: "Change";
             Layout.preferredWidth: buttonWidth
@@ -65,8 +54,8 @@ Item {
               //  Open dialog and set properties.
               //  Control will trigger visible in onCompleted.
               fontDialog.open()
-              console.log("Font family=" + model.font.family)
-              fontDialog.currentFont = model.font
+              //console.log("Font family=" + family)//model.font.family)
+              fontDialog.currentFont = root.model.font
               fontDialog.visible = true
             }
           }
@@ -74,7 +63,7 @@ Item {
       }
     } //  RowLayout - Font
     RowLayout {
-      Layout.topMargin: 10
+      //Layout.topMargin: 10
       GroupBox {
         id: propertiesGB
         Layout.fillHeight: true
@@ -82,15 +71,15 @@ Item {
         z: -1
 
         background: Rectangle {
-          color: root.model.container.background
-          border.color: root.model.container.foreground
+          color: Theme.container.background
+          border.color: Theme.container.foreground
           border.width: 1
         }
 
         //  Groupbox label
         label: Ui.GroupBoxLabel {
-          textColor: root.model.primary.foreground
-          text: "Color Scheme for Theme: " + themeId.currentText
+          textColor: Theme.primary.foreground
+          text: "Color Scheme for Theme: " + Theme.name
         }
 
         Ui.PreferenceList {
@@ -108,10 +97,13 @@ Item {
     //options: MonospacedFonts
 
     onAccepted: {
-      console.log("Font Dialog family="+fontDialog.font.family)
+      //console.log("Font Dialog family="+fontDialog.font.family)
 
       //  Save new font to model. Triggers refresh
       model.font = fontDialog.font
+
+      fontsize.text = fontDialog.font.pointSize
+      family.text = fontDialog.font.family
     }
   }
 }

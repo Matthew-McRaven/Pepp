@@ -8,7 +8,6 @@ Item {
   property bool isEnabled: true
   property int buttonWidth: 100
   property int buttonHeight: 20
-  property color textColor: "#ffffff"
 
   property alias bold: boldCB.checked
   property alias italics: italicsCB.checked
