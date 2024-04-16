@@ -1,6 +1,6 @@
 #include "registration.hpp"
 #include <qqml.h>
-#include "./hexdump/memorybytemodel.h"
+#include "./hexdump/memorybytemodel.hpp"
 
 void memory::registerTypes(const char *uri) {
   //  Note, these models are instantiated in C++ and passed to QML. QML

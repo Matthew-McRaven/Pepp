@@ -1,3 +1,4 @@
+
 /*
  * Copyright (c) 2023-2024 J. Stanley Warford, Matthew McRaven
  * This program is free software: you can redistribute it and/or modify
@@ -13,7 +14,6 @@
  * You should have received a copy of the GNU General Public License
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
-
 import QtQuick
 import QtQuick.Window
 import QtQuick.Controls
@@ -24,6 +24,7 @@ import "qrc:/ui/memory/hexdump" as Memory
 import "qrc:/ui/cpu" as Cpu
 import "qrc:/qt/qml/Pepp/gui/project"
 import "qrc:/ui/text/editor" as Editor
+import "qrc:/ui/preferences" as Pref
 
 ApplicationWindow {
     id: window
@@ -61,8 +62,7 @@ ApplicationWindow {
                 text: qsTr("&Open...")
             }
 
-            MenuSeparator {
-            }
+            MenuSeparator {}
             Action {
                 text: qsTr("&Quit")
             }
@@ -115,22 +115,29 @@ ApplicationWindow {
         anchors.left: parent.left
         width: 100
         SideButton {
-            text: "memdemo"; checked: true; onClicked: window.mode = "MEMDEMO"
+            text: "memdemo"
+            checked: true
+            onClicked: window.mode = "MEMDEMO"
         }
         SideButton {
-            text: "welcome"; onClicked: window.mode = "WELCOME"
+            text: "welcome"
+            onClicked: window.mode = "WELCOME"
         }
         SideButton {
-            text: "edit"; onClicked: window.mode = "EDIT"
+            text: "edit"
+            onClicked: window.mode = "EDIT"
         }
         SideButton {
-            text: "debug"; onClicked: window.mode = "DEBUG"
+            text: "debug"
+            onClicked: window.mode = "DEBUG"
         }
         SideButton {
-            text: "help"; onClicked: window.mode = "HELP"
+            text: "help"
+            onClicked: window.mode = "HELP"
         }
         SideButton {
-            text: "object"; onClicked: window.mode = "OBJECT"
+            text: "object"
+            onClicked: window.mode = "OBJECT"
         }
     }
     StackLayout {
@@ -183,8 +190,10 @@ ApplicationWindow {
                 }
             }
             StackLayout {
-                anchors.top: projectSelect.bottom; anchors.bottom: parent.bottom
-                anchors.left: parent.left; anchors.right: parent.right
+                anchors.top: projectSelect.bottom
+                anchors.bottom: parent.bottom
+                anchors.left: parent.left
+                anchors.right: parent.right
                 currentIndex: projectSelect.currentIndex
                 Project {
                     mode: window.mode
@@ -221,6 +230,10 @@ ApplicationWindow {
                     text: "CPU"
                     width: implicitWidth
                 }
+                TabButton {
+                    text: "Preferences"
+                    width: implicitWidth
+                }
             }
 
             StackLayout {
@@ -230,11 +243,9 @@ ApplicationWindow {
                 //Layout.bottom: wrapper.bottom
                 anchors.top: tab.bottom
                 anchors.bottom: wrapper.bottom
-
-                Memory.MemoryDump {
-                }
-                Cpu.Cpu {
-                }
+                Memory.MemoryDump {}
+                Cpu.Cpu {}
+                Pref.Preferences {}
             }
         }
         Item {
@@ -247,6 +258,7 @@ ApplicationWindow {
             }
         }
     }
+
 
     /*
      * Top-level dialogs

@@ -1,0 +1,132 @@
+{
+    "font": {
+        "name": "Courier New",
+        "points": 12
+    },
+    "name": "Dark",
+    "preferences": [
+        {
+            "background": 4278190080,
+            "bold": false,
+            "foreground": 4294967295,
+            "id": 0,
+            "italics": false,
+            "name": "Surface",
+            "parent": 0,
+            "strikeOut": false,
+            "underline": false
+        },
+        {
+            "background": 4286545791,
+            "bold": false,
+            "foreground": 4293848814,
+            "id": 1,
+            "italics": false,
+            "name": "Container",
+            "parent": 0,
+            "strikeOut": false,
+            "underline": false
+        },
+        {
+            "background": 4282664004,
+            "bold": true,
+            "foreground": 4287687679,
+            "id": 2,
+            "italics": false,
+            "name": "Primary",
+            "parent": 0,
+            "strikeOut": false,
+            "underline": false
+        },
+        {
+            "background": 4281220740,
+            "bold": true,
+            "foreground": 4293980400,
+            "id": 3,
+            "italics": true,
+            "name": "Secondary",
+            "parent": 0,
+            "strikeOut": false,
+            "underline": false
+        },
+        {
+            "background": 4281709896,
+            "bold": false,
+            "foreground": 4294967295,
+            "id": 4,
+            "italics": true,
+            "name": "Tertiary",
+            "parent": 0,
+            "strikeOut": false,
+            "underline": true
+        },
+        {
+            "background": 4294901760,
+            "bold": true,
+            "foreground": 4278190080,
+            "id": 5,
+            "italics": false,
+            "name": "Error",
+            "parent": 0,
+            "strikeOut": false,
+            "underline": false
+        },
+        {
+            "background": 4294945280,
+            "bold": true,
+            "foreground": 4278190080,
+            "id": 6,
+            "italics": false,
+            "name": "Warning",
+            "parent": 0,
+            "strikeOut": false,
+            "underline": false
+        },
+        {
+            "background": 4294967295,
+            "bold": false,
+            "foreground": 4284900966,
+            "id": 7,
+            "italics": false,
+            "name": "Row Number",
+            "parent": 0,
+            "strikeOut": true,
+            "underline": false
+        },
+        {
+            "background": 4294945280,
+            "bold": false,
+            "foreground": 4278190080,
+            "id": 8,
+            "italics": false,
+            "name": "Breakpoint",
+            "parent": 0,
+            "strikeOut": true,
+            "underline": false
+        },
+        {
+            "background": 4278496010,
+            "bold": false,
+            "foreground": 4294967040,
+            "id": 9,
+            "italics": false,
+            "name": "Breakpoint",
+            "parent": 0,
+            "strikeOut": false,
+            "underline": false
+        },
+        {
+            "background": 4294959615,
+            "bold": false,
+            "foreground": 4278190335,
+            "id": 10,
+            "italics": false,
+            "name": "SeqCircuit",
+            "parent": 0,
+            "strikeOut": false,
+            "underline": false
+        }
+    ],
+    "system": true,
+    "version": "0.2"
+}

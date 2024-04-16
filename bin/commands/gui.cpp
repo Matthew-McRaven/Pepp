@@ -28,38 +28,45 @@
 #include "cpu/registermodel.h"
 #include "cpu/statusbitmodel.h"
 #include "help/about/version.hpp"
-#include "memory/hexdump/memorybytemodel.h"
+#include "memory/hexdump/memorybytemodel.hpp"
 
 #include "../gui/helpview/registration.hpp"
 #include "about/registration.hpp"
 #include "cpu/registration.hpp"
 #include "memory/registration.hpp"
+#include "preferences/preferencemodel.hpp"
+#include "preferences/registration.hpp"
 #include "text/registration.hpp"
 #include "utils/registration.hpp"
 
 struct default_data : public gui_globals {
+  default_data() : pm(&theme) {}
   ~default_data() override = default;
-  StatusBitModel sbm;
-  RegisterModel rm;
-  MemoryByteModel mbm;
+  StatusBitModel 	sbm;
+  RegisterModel 	rm;
+  MemoryByteModel 	mbm;
+  Theme                 theme;
+  PreferenceModel 	pm;
   QTimer interval;
 };
 
 QSharedPointer<gui_globals> default_init(QQmlApplicationEngine &engine) {
   utils::registerTypes("edu.pepp");
+  prefs::registerTypes("edu.pepp");
   about::registerTypes("edu.pepp");
   memory::registerTypes("edu.pepp");
   text::registerTypes("edu.pepp");
   cpu::registerTypes("edu.pepp");
   helpview::registerTypes(engine);
-
   auto data = QSharedPointer<default_data>::create();
 
   //  Connect models
   auto *ctx = engine.rootContext();
-  ctx->setContextProperty("StatusBitModel", &data->sbm);
-  ctx->setContextProperty("RegisterModel", &data->rm);
-  ctx->setContextProperty("MemoryByteModel", &data->mbm);
+  ctx->setContextProperty("StatusBitModel", 	&data->sbm);
+  ctx->setContextProperty("RegisterModel", 	&data->rm);
+  ctx->setContextProperty("MemoryByteModel", 	&data->mbm);
+  ctx->setContextProperty("PreferenceModel", 	&data->pm);
+  ctx->setContextProperty("Theme",              &data->theme);
 
   //  Simulate changes in Pepp10
   data->interval.setInterval(1000);
@@ -105,6 +112,8 @@ int gui_main(const gui_args &args) {
       continue;
     qDebug() << f.filePath();
   }*/
+
+  auto ctx = engine.rootContext();
 
   static const auto default_entry = u"qrc:/qt/qml/Pepp/gui/main.qml"_qs;
   const QUrl url(args.QMLEntry.isEmpty() ? default_entry : args.QMLEntry);
