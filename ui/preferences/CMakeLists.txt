@@ -21,6 +21,7 @@ qt_add_qml_module(prefs
         RESOURCE_PREFIX /ui
         SOURCES
         ${sources}
+        RESOURCES themes/themes.qrc
 )
 
 target_compile_definitions(prefs PRIVATE "PREFS_LIBRARY")

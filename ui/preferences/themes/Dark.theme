@@ -39,9 +39,9 @@
             "underline": false
         },
         {
-            "background": 4281220740,
+            "background": 4293980400,
             "bold": true,
-            "foreground": 4293980400,
+            "foreground": 4281220740,
             "id": 3,
             "italics": true,
             "name": "Secondary",
@@ -50,9 +50,9 @@
             "underline": false
         },
         {
-            "background": 4281709896,
+            "background": 4294967295,
             "bold": false,
-            "foreground": 4294967295,
+            "foreground": 4281709896,
             "id": 4,
             "italics": true,
             "name": "Tertiary",
@@ -61,9 +61,9 @@
             "underline": true
         },
         {
-            "background": 4294901760,
+            "background": 4278190080,
             "bold": true,
-            "foreground": 4278190080,
+            "foreground": 4294901760,
             "id": 5,
             "italics": false,
             "name": "Error",
@@ -72,9 +72,9 @@
             "underline": false
         },
         {
-            "background": 4294945280,
+            "background": 4278190080,
             "bold": true,
-            "foreground": 4278190080,
+            "foreground": 4294945280,
             "id": 6,
             "italics": false,
             "name": "Warning",
@@ -83,9 +83,9 @@
             "underline": false
         },
         {
-            "background": 4294967295,
+            "background": 4284900966,
             "bold": false,
-            "foreground": 4284900966,
+            "foreground": 4294967295,
             "id": 7,
             "italics": false,
             "name": "Row Number",
@@ -94,9 +94,9 @@
             "underline": false
         },
         {
-            "background": 4294945280,
+            "background": 4278190080,
             "bold": false,
-            "foreground": 4278190080,
+            "foreground": 4294945280,
             "id": 8,
             "italics": false,
             "name": "Breakpoint",
@@ -105,9 +105,9 @@
             "underline": false
         },
         {
-            "background": 4278496010,
+            "background": 4294967040,
             "bold": false,
-            "foreground": 4294967040,
+            "foreground": 4278496010,
             "id": 9,
             "italics": false,
             "name": "Breakpoint",
@@ -116,9 +116,9 @@
             "underline": false
         },
         {
-            "background": 4294959615,
+            "background": 4278190335,
             "bold": false,
-            "foreground": 4278190335,
+            "foreground": 4294959615,
             "id": 10,
             "italics": false,
             "name": "SeqCircuit",

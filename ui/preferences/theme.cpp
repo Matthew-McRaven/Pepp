@@ -17,8 +17,8 @@ Theme::Theme(QObject *parent)
 {
   prefs_.reserve(Roles::Total);
 
-  //  Read only location for system themes
-  systemPath_ = QCoreApplication::applicationDirPath() + "/themes/";
+  //  Read system themes from QRC file
+  systemPath_ =  ":/themes/";
 
   //  Location for user themes
   userPath_ = QStandardPaths::writableLocation(QStandardPaths::AppConfigLocation)+ "/";

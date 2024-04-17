@@ -56,6 +56,12 @@ QStringList PreferenceModel::categoryList() {
 Preference* PreferenceModel::preference() const
 { return current_; }
 
+void PreferenceModel::resetModel() {
+  auto top = createIndex(0,0);
+  auto bottom = createIndex(rowCount(),0);
+  emit dataChanged(top,bottom);
+}
+
 void PreferenceModel::load()
 {
     //  Clear out list if load was called before
@@ -145,7 +151,7 @@ bool PreferenceModel::setData(const QModelIndex &index, const QVariant &value, i
   //  See if value is different from passed in value
   switch (role) {
     //  Update currently selected preference
-    case RoleNames::CurrentPrefRole:
+  case RoleNames::CurrentPrefRole: {
       //  This is a copy. Use ID to find original
       Preference* temp = value.value<Preference*>();
 
@@ -159,7 +165,8 @@ bool PreferenceModel::setData(const QModelIndex &index, const QVariant &value, i
 
         return true;
       }
-      break;
+    }
+    break;
   }
   return false;
 }
