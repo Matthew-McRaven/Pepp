@@ -20,6 +20,10 @@ RowLayout {
 
     onActivated: {
       Theme.selectTheme(themeId.currentText)
+
+      //  When theme is changed, reset model to
+      //  refresh screen.
+      root.model.resetModel()
     }
   }
   Button {
@@ -56,6 +60,10 @@ RowLayout {
     defaultSuffix: "theme"
     selectedFile: Theme.name
 
+    //  Set dialog colors
+    //Control.palette.windowText: Theme.container.foreground
+    //Control.palette.base: Theme.container.background
+
     onAccepted: {
       Theme.exportTheme(decodeURIComponent(selectedFile))
     }
@@ -71,8 +79,17 @@ RowLayout {
     selectedNameFilter.index: 0
     defaultSuffix: "theme"
 
+    //  Set dialog colors
+    //palette.text: Theme.container.foreground
+    //palette.button: Theme.container.background
+    //palette.window: Theme.container.background
+
     onAccepted: {
       Theme.importTheme(decodeURIComponent(selectedFile))
+
+      //  Once new theme is imported, reset model to
+      //  refresh screen.
+      root.model.resetModel()
     }
   }
 
@@ -81,10 +98,17 @@ RowLayout {
     title: "Delete Theme"
     text: qsTr("Are you sure you want to delete this theme permanently?")
     buttons: MessageDialog.Ok | MessageDialog.Cancel
+
     onButtonClicked: function (button, role) {
       switch (button) {
       case MessageDialog.Ok:
           Theme.deleteTheme(themeId.currentText)
+
+          //  Once current theme is deleted, default
+          //  theme will be reloaded. Reset model to
+          //  refresh screen.
+          root.model.resetModel()
+
           break;
       }
       themeId.currentIndex = themeId.find(Theme.name)
@@ -98,7 +122,9 @@ RowLayout {
     standardButtons: Dialog.Ok | Dialog.Cancel
     spacing: 5
 
+    //  Set dialog colors
     palette.text: Theme.container.foreground
+    palette.button: Theme.container.background
     palette.window: Theme.container.background
 
     ColumnLayout {
@@ -117,8 +143,8 @@ RowLayout {
     }
 
     onAccepted: {
-     Theme.copyTheme(fileName.text)
-     themeId.currentIndex = themeId.find(Theme.name)
+      Theme.copyTheme(fileName.text)
+      themeId.currentIndex = themeId.find(Theme.name)
     }
   }
 }

@@ -110,6 +110,10 @@ public:
                                     const PrefProperty field,
                                     const QVariant& value);
 
+  //  Theme may be updated outside model. Trigger model update
+  //  when theme data has changed externally.
+  Q_INVOKABLE void resetModel();
+
   //	No copying
   PreferenceModel(const PreferenceModel &) = delete;
   PreferenceModel &operator=(const PreferenceModel &) = delete;

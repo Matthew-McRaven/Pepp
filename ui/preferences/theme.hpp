@@ -28,7 +28,7 @@ class Theme : public QObject {
 
   QString name_ = "Default";
   QString version_ = "0.2";
-  bool system_{false};
+  bool system_{true};
   QFont font_;
   std::vector<Preference*> prefs_;
 
