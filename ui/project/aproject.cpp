@@ -56,15 +56,20 @@ Pep10_ISA *ProjectModel::pep10ISA() {
   beginInsertRows(QModelIndex(), _projects.size(), _projects.size() + offset);
   _projects.push_back(ret);
   endInsertRows();
+  emit rowCountChanged(_projects.size());
   return ret;
 }
 
 bool ProjectModel::removeRows(int row, int count, const QModelIndex &parent) {
-  if (row < 0 || row + count >= _projects.size())
+  if (row < 0 || row + count > _projects.size() || count <= 0)
     return false;
-  beginRemoveRows(QModelIndex(), row, row + count);
+  // If we are removing last item, we need to remove the "+".
+  int offset = (_projects.size() == 1 ? 1 : 0);
+  // row+count is one past the last element to be removed.
+  beginRemoveRows(QModelIndex(), row, row + count + offset - 1);
   _projects.erase(_projects.begin() + row, _projects.begin() + row + count);
   endRemoveRows();
+  emit rowCountChanged(_projects.size());
   return true;
 }
 

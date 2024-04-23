@@ -66,11 +66,14 @@ private:
 // Can't seem to call Q_INVOKABLE on an uncreatable type.
 class ProjectModel : public QAbstractListModel {
   Q_OBJECT
+  Q_PROPERTY(int count READ _rowCount NOTIFY rowCountChanged)
 public:
   enum class Roles { ProjectRole = Qt::UserRole + 1, Type };
   Q_ENUM(Roles);
   // Q_INVOKABLE ISAProject *isa(utils::Architecture::Value arch, project::Features features);
   ProjectModel(QObject *parent = nullptr) : QAbstractListModel(parent){};
+  // Helper to expose rowCount as a property to QML.
+  int _rowCount() const { return rowCount({}); }
   int rowCount(const QModelIndex &parent) const override;
   QVariant data(const QModelIndex &index, int role) const override;
   Q_INVOKABLE Pep10_ISA *pep10ISA();
@@ -78,6 +81,8 @@ public:
   bool moveRows(const QModelIndex &sourceParent, int sourceRow, int count, const QModelIndex &destinationParent,
                 int destinationChild) override;
   QHash<int, QByteArray> roleNames() const override;
+signals:
+  void rowCountChanged(int);
 
 private:
   std::deque<Pep10_ISA *> _projects = {};
