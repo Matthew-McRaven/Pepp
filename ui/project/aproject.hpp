@@ -68,7 +68,9 @@ class ProjectModel : public QAbstractListModel {
   Q_OBJECT
   Q_PROPERTY(int count READ _rowCount NOTIFY rowCountChanged)
 public:
-  enum class Roles { ProjectRole = Qt::UserRole + 1, Type };
+  enum class Roles {
+    ProjectRole = Qt::UserRole + 1,
+  };
   Q_ENUM(Roles);
   // Q_INVOKABLE ISAProject *isa(utils::Architecture::Value arch, project::Features features);
   ProjectModel(QObject *parent = nullptr) : QAbstractListModel(parent){};

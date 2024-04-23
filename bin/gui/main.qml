@@ -41,7 +41,7 @@ ApplicationWindow {
     property string mode: "welcome"
     function switchToProject(index) {
         console.log(`project: switching to ${index}`)
-        projectSelect.currentIndex = index
+        projectBar.currentIndex = index
     }
     function closeProject(index) {
         console.log(`project: closed ${index}`)
@@ -52,12 +52,13 @@ ApplicationWindow {
     Component.onCompleted: {
         // Allow welcome mode to create a new project, and switch to it on creation.
         welcome.addProject.connect(pm.onAddProject)
-        welcome.addProject.connect(() => switchToProject(pm.count - 2))
+        welcome.addProject.connect(() => switchToProject(pm.count - 1))
     }
 
     ProjectModel {
         id: pm
         function onAddProject(arch, level, feats) {
+            console.log("adding project")
             pm.pep10ISA()
         }
     }
@@ -166,64 +167,75 @@ ApplicationWindow {
                 }
             }
         }
-        TabBar {
+
+        Flickable {
             id: projectSelect
+            clip: true
             visible: pm.count > 0
             anchors.right: parent.right
             anchors.left: parent.left
             anchors.top: toolbar.bottom
-            clip: true // Prevent tabs from overpainting spacer.
-            onCurrentIndexChanged: {
-                // I don't want the + be current. Removing a selected item from the model seems to
-                // select the previous index rather than the next.
-                window.currentProject = pm.data(pm.index(currentIndex, 0),
-                                                ProjectModel.ProjectRole)
-            }
-            DelegateChooser {
-                id: tabDelegateChooser
-                role: "Type"
-                DelegateChoice {
-                    roleValue: "project"
-                    TabButton {
-                        // required property bool isPlus
-                        text: index
-                        font: menuFont.font
-                        // Force the tab bar to become flickable if it is too crowded.
-                        width: Math.max(100, projectSelect.width / 6)
-                        Button {
-                            text: "X"
-                            anchors.right: parent.right
-                            anchors.verticalCenter: parent.verticalCenter
-                            height: Math.max(20, parent.height - 2)
-                            width: height
-                            onClicked: window.closeProject(index)
-                        }
+            contentWidth: projectBar.width + addProjectButton.width
+            contentHeight: projectBar.height
+            height: contentHeight
+            // Use a row layout to handle proper sizing of tab bar and buttons.
+            Row {
+                TabBar {
+                    id: projectBar
+                    Layout.fillWidth: true
+                    Layout.fillHeight: true
+                    onCurrentIndexChanged: {
+                        // I don't want the + be current. Removing a selected item from the model seems to
+                        // select the previous index rather than the next.
+                        window.currentProject = pm.data(
+                                    pm.index(currentIndex, 0),
+                                    ProjectModel.ProjectRole)
                     }
-                }
-                DelegateChoice {
-                    roleValue: "add"
-                    TabButton {
-                        text: "+"
-                        font: menuFont.font
-                        // Force the tab bar to become flickable if it is too crowded.
-                        width: Math.max(100, projectSelect.width / 6)
-                        // current index is updated before TabButton.onClicked(). Since I want access to the current project,
-                        // I am using a mouse area to intercept the click before the tab bar changes.
-                        MouseArea {
-                            anchors.fill: parent
-                            onClicked: {
-                                // TODO: Use window.currentProject.env to create a new project with same features.
-                                pm.onAddProject("pep/10", "isa3", "")
-                                window.switchToProject(pm.count - 2)
+                    Repeater {
+                        model: pm
+                        anchors.fill: parent
+                        delegate: TabButton {
+                            // required property bool isPlus
+                            text: index
+                            font: menuFont.font
+                            // TODO: Set to equal the width of the text + 2 spaces.
+                            width: Math.max(100, projectSelect.width / 6)
+                            Button {
+                                text: "X"
+                                anchors.right: parent.right
+                                anchors.verticalCenter: parent.verticalCenter
+                                height: Math.max(20, parent.height - 2)
+                                width: height
+                                onClicked: window.closeProject(index)
                             }
                         }
                     }
                 }
-            }
-            Repeater {
-                model: pm
-                anchors.fill: parent
-                delegate: tabDelegateChooser
+                Button {
+                    id: addProjectButton
+                    text: "+"
+                    Layout.fillHeight: true
+                    width: plusTM.width
+                    font: menuFont.font
+                    height: projectBar.height // Border may clip into main area if unset.
+                    TextMetrics {
+                        id: plusTM
+                        font: addProjectButton.font
+                        text: `+${' '.repeat(10)}`
+                    }
+                    background: Rectangle {
+                        color: "transparent"
+                        // TODO: use "theme"'s hover color.
+                        border.color: addProjectButton.hovered ? "blue" : "transparent"
+                        border.width: 2
+                        radius: 4
+                    }
+                    onClicked: {
+                        // TODO: Use window.currentProject.env to create a new project with same features.
+                        pm.onAddProject("pep/10", "isa3", "")
+                        window.switchToProject(pm.count - 1)
+                    }
+                }
             }
         }
     }
