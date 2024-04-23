@@ -338,15 +338,13 @@ ApplicationWindow {
         anchors.centerIn: parent
         modal: true
         width: 700 // TODO: prevent binding loop on preferences size.
-
-
-        /*contentItem: Pref.Preferences {
+        contentItem: Pref.Preferences {
             id: prefs
             anchors.left: parent.left
             anchors.right: parent.right
             anchors.top: parent.header.bottom
             anchors.bottom: parent.footer.top
-        }*/
+        }
         standardButtons: Dialog.Close
     }
 }
