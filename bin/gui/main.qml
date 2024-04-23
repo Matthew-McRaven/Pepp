@@ -149,9 +149,11 @@ ApplicationWindow {
         }
         TabBar {
             id: projectSelect
+            visible: Qt.binding(() => pm.rowCount() > 0)
             anchors.right: parent.right
             anchors.left: parent.left
             anchors.top: toolbar.bottom
+            clip: true // Prevent tabs from overpainting spacer.
             onCurrentIndexChanged: {
                 // TODO: handle OOB index, empty model.
                 window.currentProject = Qt.binding(() => pm.get(currentIndex))
