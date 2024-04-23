@@ -19,6 +19,7 @@ import QtQuick
 import QtQuick.Window
 import QtQuick.Controls
 import QtQuick.Layouts
+import Qt.labs.qmlmodels
 import "qrc:/ui/about" as About
 import "qrc:/qt/qml/Pepp/gui/helpview" as Help
 import "qrc:/ui/memory/hexdump" as Memory
@@ -45,7 +46,7 @@ ApplicationWindow {
     Component.onCompleted: {
         // Allow welcome mode to create a new project, and switch to it on creation.
         welcome.addProject.connect(pm.onAddProject)
-        welcome.addProject.connect(() => switchToProject(pm.rowCount() - 1))
+        welcome.addProject.connect(() => switchToProject(pm.rowCount() - 2))
     }
 
     ProjectModel {
@@ -170,15 +171,46 @@ ApplicationWindow {
                 window.currentProject = pm.data(pm.index(currentIndex, 0),
                                                 ProjectModel.ProjectRole)
             }
+            DelegateChooser {
+                id: tabDelegateChooser
+                role: "Type"
+                DelegateChoice {
+                    roleValue: "project"
+                    TabButton {
+                        // required property bool isPlus
+                        text: display
+                        font: menuFont.font
+                        // Force the tab bar to become flickable if it is too crowded.
+                        width: Math.max(100, projectSelect.width / 6)
+                    }
+                }
+                DelegateChoice {
+                    roleValue: "add"
+                    TabButton {
+                        text: "+"
+                        font: menuFont.font
+                        // Force the tab bar to become flickable if it is too crowded.
+                        width: Math.max(100, projectSelect.width / 6)
+                        // current index is updated before TabButton.onClicked(). Since I want access to the current project,
+                        // I am using a mouse area to intercept the click before the tab bar changes.
+                        MouseArea {
+                            anchors.fill: parent
+                            Component.onCompleted: {
+                                // TODO: Use window.currentProject.env to create a new project with same features.
+                                clicked.connect(() => pm.onAddProject("pep/10",
+                                                                      "isa3",
+                                                                      ""))
+                                clicked.connect(() => switchToProject(
+                                                    pm.rowCount() - 2))
+                            }
+                        }
+                    }
+                }
+            }
             Repeater {
                 model: pm
                 anchors.fill: parent
-                delegate: TabButton {
-                    text: display
-                    font: menuFont.font
-                    // Force the tab bar to become flickable if it is too crowded.
-                    width: Math.max(100, projectSelect.width / 6)
-                }
+                delegate: tabDelegateChooser
             }
         }
     }
@@ -190,11 +222,13 @@ ApplicationWindow {
         anchors.left: parent.left
         width: 100
         Repeater {
+            // If there is no current project, display a Welcome mode.
             model: window.currentProject ? window.currentProject.modes(
                                                ) : defaultModel
             delegate: SideButton {
                 text: model.display ?? "ERROR"
                 Component.onCompleted: {
+                    // Triggers window.modeChanged, which will propogate to all relevant components.
                     onClicked.connect(() => {
                                           window.mode = text.toLowerCase()
                                       })

@@ -67,7 +67,7 @@ private:
 class ProjectModel : public QAbstractListModel {
   Q_OBJECT
 public:
-  enum class Roles { ProjectRole = Qt::UserRole + 1 };
+  enum class Roles { ProjectRole = Qt::UserRole + 1, Type };
   Q_ENUM(Roles);
   // Q_INVOKABLE ISAProject *isa(utils::Architecture::Value arch, project::Features features);
   ProjectModel(QObject *parent = nullptr) : QAbstractListModel(parent){};
