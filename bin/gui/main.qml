@@ -97,6 +97,10 @@ ApplicationWindow {
                 text: qsTr("&About")
                 onTriggered: aboutDialog.open()
             }
+            Action {
+                text: qsTr("Preferences")
+                onTriggered: preferencesDialog.open()
+            }
         }
     }
     Item {
@@ -225,5 +229,21 @@ ApplicationWindow {
         id: aboutDialog
         parent: Overlay.overlay
         anchors.centerIn: parent
+    }
+    Dialog {
+        id: preferencesDialog
+        title: qsTr("Preferences")
+        parent: Overlay.overlay
+        anchors.centerIn: parent
+        modal: true
+        width: 700 // TODO: prevent binding loop on preferences size.
+        contentItem: Pref.Preferences {
+            id: prefs
+            anchors.left: parent.left
+            anchors.right: parent.right
+            anchors.top: parent.header.bottom
+            anchors.bottom: parent.footer.top
+        }
+        standardButtons: Dialog.Close
     }
 }
