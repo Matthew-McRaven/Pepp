@@ -36,22 +36,34 @@ ApplicationWindow {
     visible: true
     title: qsTr("Pepp IDE")
 
-    property variant currentProject
+    property variant currentProject: null
+    property string mode: "welcome"
+    function switchToProject(index) {
+        console.log(`Switching to ${index}`)
+        projectSelect.currentIndex = index
+    }
+    Component.onCompleted: {
+        // Allow welcome mode to create a new project, and switch to it on creation.
+        welcome.addProject.connect(pm.onAddProject)
+        welcome.addProject.connect(() => switchToProject(pm.rowCount() - 1))
+    }
+
     ProjectModel {
         id: pm
-        function onAddProject(arch, level, feats) {}
+        function onAddProject(arch, level, feats) {
+            pm.pep10ISA()
+        }
     }
+    ListModel {
+        id: defaultModel
+        ListElement {
+            display: "Welcome"
+        }
+    }
+
     // Provide a default font for menu items.
     FontMetrics {
         id: menuFont
-    }
-    // Helpers to render central component via Loader.
-    Component {
-        id: pep10isaComponent
-        Project.Pep10ISA {
-            required property string mode
-            mode: pep10isaComponent.mode
-        }
     }
 
     menuBar: MenuBar {
@@ -117,7 +129,8 @@ ApplicationWindow {
         anchors.top: parent.top
         anchors.left: headerSpacer.right
         anchors.right: parent.right
-        height: toolbar.height + projectSelect.height
+        // Must explicitly set height to avoid binding loop; only account for tab bar if visibile.
+        height: toolbar.height + (projectSelect.visible ? projectSelect.height : 0)
         ToolBar {
             id: toolbar
             anchors.top: parent.top
@@ -139,7 +152,6 @@ ApplicationWindow {
                 ToolButton {
                     text: qsTr("⋮")
                     font: menuFont.font
-                    onClicked: menu.open()
                 }
                 Rectangle {
                     color: "transparent"
@@ -155,15 +167,14 @@ ApplicationWindow {
             anchors.top: toolbar.bottom
             clip: true // Prevent tabs from overpainting spacer.
             onCurrentIndexChanged: {
-                // TODO: handle OOB index, empty model.
-                window.currentProject = Qt.binding(() => pm.get(currentIndex))
+                window.currentProject = pm.data(pm.index(currentIndex, 0),
+                                                ProjectModel.ProjectRole)
             }
-
             Repeater {
                 model: pm
                 anchors.fill: parent
                 delegate: TabButton {
-                    text: "Tab N"
+                    text: display
                     font: menuFont.font
                     // Force the tab bar to become flickable if it is too crowded.
                     width: Math.max(100, projectSelect.width / 6)
@@ -178,13 +189,15 @@ ApplicationWindow {
         anchors.bottom: parent.bottom
         anchors.left: parent.left
         width: 100
-        signal modeChanged(string mode)
         Repeater {
-            model: window.currentProject || ["welcome"]
+            model: window.currentProject ? window.currentProject.modes(
+                                               ) : defaultModel
             delegate: SideButton {
-                text: model.text ?? "ERROR"
+                text: model.display ?? "ERROR"
                 Component.onCompleted: {
-                    onClicked.connect(() => sidebar.modeChanged(text))
+                    onClicked.connect(() => {
+                                          window.mode = text.toLowerCase()
+                                      })
                 }
             }
         }
@@ -201,13 +214,12 @@ ApplicationWindow {
         anchors.right: parent.right
         anchors.left: sidebar.right
         Project.Welcome {
+            id: welcome
             Layout.fillHeight: true
             Layout.fillWidth: true
-            Component.onCompleted: {
-                newProject.connect(pm.onAddProject)
-            }
         }
         Help.HelpView {
+            id: help
             Layout.fillHeight: true
             Layout.fillWidth: true
             property alias model: window.currentProject
@@ -218,8 +230,36 @@ ApplicationWindow {
             Layout.fillWidth: true
             // TODO: Will need to switch to "source" with magic for passing mode & model.
             sourceComponent: window.projectComponent
-            property string mode: 'welcome'
+            property string mode: window.mode
             property alias model: window.currentProject
+        }
+        Component.onCompleted: {
+            window.modeChanged.connect(onModeChanged)
+            onModeChanged()
+        }
+        function onModeChanged() {
+            console.log(`Changed to ${window.mode}`)
+            switch (window.mode.toLowerCase()) {
+            case "welcome":
+                mainArea.currentIndex = 0
+                break
+            case "help":
+                mainArea.currentIndex = 1
+                break
+            default:
+                mainArea.currentIndex = 2
+                // TODO: update loader delegate for selected mode.
+                break
+            }
+        }
+    }
+
+    // Helpers to render central component via Loader.
+    Component {
+        id: pep10isaComponent
+        Project.Pep10ISA {
+            required property string mode
+            mode: pep10isaComponent.mode
         }
     }
 
@@ -239,13 +279,15 @@ ApplicationWindow {
         anchors.centerIn: parent
         modal: true
         width: 700 // TODO: prevent binding loop on preferences size.
-        contentItem: Pref.Preferences {
+
+
+        /*contentItem: Pref.Preferences {
             id: prefs
             anchors.left: parent.left
             anchors.right: parent.right
             anchors.top: parent.header.bottom
             anchors.bottom: parent.footer.top
-        }
+        }*/
         standardButtons: Dialog.Close
     }
 }

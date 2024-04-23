@@ -1,4 +1,6 @@
 #pragma once
+#include <QQmlEngine>
+#include <QStringListModel>
 #include <deque>
 #include <qabstractitemmodel.h>
 #include "utils/constants.hpp"
@@ -47,7 +49,11 @@ public:
   project::Environment env() const;
   QString objectCodeText() const;
   void setObjectCodeText(const QString &objectCodeText);
-  static QStringList modes() { return {"Welcome", "Edit", "Debug", "Help"}; }
+  Q_INVOKABLE static QStringListModel *modes() {
+    static QStringListModel ret({"Welcome", "Edit", "Debug", "Help"});
+    QQmlEngine::setObjectOwnership(&ret, QQmlEngine::CppOwnership);
+    return &ret;
+  }
 signals:
   void objectCodeTextChanged();
 
@@ -61,9 +67,8 @@ private:
 class ProjectModel : public QAbstractListModel {
   Q_OBJECT
 public:
-  enum class Roles {
-    MODES = Qt::UserRole + 1,
-  };
+  enum class Roles { ProjectRole = Qt::UserRole + 1 };
+  Q_ENUM(Roles);
   // Q_INVOKABLE ISAProject *isa(utils::Architecture::Value arch, project::Features features);
   ProjectModel(QObject *parent = nullptr) : QAbstractListModel(parent){};
   int rowCount(const QModelIndex &parent) const override;

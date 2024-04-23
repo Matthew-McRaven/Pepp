@@ -23,10 +23,8 @@ QVariant ProjectModel::data(const QModelIndex &index, int role) const {
   if (!index.isValid() || index.row() >= _projects.size() || index.column() != 0)
     return {};
   switch (role) {
-  case Qt::DisplayRole:
+  case static_cast<int>(Roles::ProjectRole):
     return QVariant::fromValue(_projects[index.row()]);
-  case (int)Roles::MODES:
-    return QVariant::fromValue(_projects[index.row()]->modes());
   }
   return {};
 }
@@ -56,6 +54,6 @@ bool ProjectModel::moveRows(const QModelIndex &sourceParent, int sourceRow, int 
 
 QHash<int, QByteArray> ProjectModel::roleNames() const {
   auto ret = QAbstractListModel::roleNames();
-  ret[(int)Roles::MODES] = "modes";
+  ret[static_cast<int>(Roles::ProjectRole)] = "ProjectRole";
   return ret;
 }
