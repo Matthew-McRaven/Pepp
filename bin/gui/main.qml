@@ -24,7 +24,6 @@ import "qrc:/ui/about" as About
 import "qrc:/ui/help" as Help
 import "qrc:/ui/memory/hexdump" as Memory
 import "qrc:/ui/cpu" as Cpu
-import "qrc:/qt/qml/Pepp/gui/project"
 import "qrc:/ui/text/editor" as Editor
 import "qrc:/ui/project" as Project
 import "qrc:/ui/preferences" as Pref
@@ -250,7 +249,7 @@ ApplicationWindow {
             // If there is no current project, display a Welcome mode.
             model: window.currentProject ? window.currentProject.modes(
                                                ) : defaultModel
-            delegate: SideButton {
+            delegate: Project.SideButton {
                 text: model.display ?? "ERROR"
                 Component.onCompleted: {
                     // Triggers window.modeChanged, which will propogate to all relevant components.
