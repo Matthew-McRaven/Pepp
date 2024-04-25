@@ -2,6 +2,7 @@
   "type": "figure",
   "name": "04:36",
   "arch": "pep9",
+  "abstraction": "ISA3",
   "default_os": "os:pep9os",
   "items": {
     "pepb": "{ch}{fig}.pepb",

@@ -2,6 +2,7 @@
   "type": "figure",
   "name": "06:23",
   "arch": "pep10",
+  "abstraction": "ASMB5",
   "default_os": "os:pep10os",
   "ios": [
     "io0"

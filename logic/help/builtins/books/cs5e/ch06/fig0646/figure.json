@@ -2,6 +2,7 @@
   "type": "figure",
   "name": "06:46",
   "arch": "pep9",
+  "abstraction": "ASMB5",
   "default_os": "os:pep9os",
   "items": {
     "pep": "{ch}{fig}.pep",
