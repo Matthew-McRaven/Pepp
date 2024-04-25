@@ -17,6 +17,7 @@
 #pragma once
 #include <QObject>
 #include "help/builtins/utils.hpp"
+#include "qqmlintegration.h"
 #include "utils_global.hpp"
 
 namespace utils {
@@ -24,15 +25,17 @@ using Architecture = builtins::Architecture;
 using Abstraction = builtins::Abstraction;
 class UTILS_EXPORT AbstractionHelper : public QObject {
   Q_GADGET
+  QML_NAMED_ELEMENT(Abstraction)
 public:
   AbstractionHelper(QObject *parent = nullptr);
-  Q_ENUM(Architecture);
+  Q_ENUM(builtins::Abstraction);
 };
 
 class UTILS_EXPORT ArchitectureHelper : public QObject {
   Q_GADGET
+  QML_NAMED_ELEMENT(Architecture)
 public:
   ArchitectureHelper(QObject *parent = nullptr);
-  Q_ENUM(Abstraction);
+  Q_ENUM(builtins::Architecture);
 };
 } // namespace utils
