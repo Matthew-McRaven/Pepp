@@ -39,20 +39,18 @@ endif ()
 configure_file("${CMAKE_CURRENT_SOURCE_DIR}/version.cpp.in" "${CMAKE_CURRENT_BINARY_DIR}/version.cpp" @ONLY)
 
 # Include dependency licenses without having to hard-code.
-file(GLOB_RECURSE dependency_licenses CONFIGURE_DEPENDS "data/dep/*")
+file(GLOB_RECURSE dependency_licenses CONFIGURE_DEPENDS "${PROJECT_DATA_DIR}/about/dep/*")
 
 qt_add_resources(about "about"
         PREFIX "/about"
-        BASE "data"
+        BASE "${PROJECT_DATA_DIR}/about"
         FILES
-        data/LICENSE_FULL data/LICENSE_NOTICE
-        data/contributors.csv data/maintainers.csv
-        data/repo.url
-        data/dependencies.csv
+        ${PROJECT_DATA_DIR}/about/contributors.csv ${PROJECT_DATA_DIR}/about/maintainers.csv
+        ${PROJECT_DATA_DIR}/about/repo.url
+        ${PROJECT_DATA_DIR}/about/dependencies.csv
         ${dependency_licenses}
 )
 
-set_source_files_properties("data/LICENSE_FULL" PROPERTIES QT_RESOURCE_ALIAS "LICENSE")
-set_source_files_properties("data/LICENSE_NOTICE" PROPERTIES QT_RESOURCE_ALIAS "NOTICE")
 target_sources(about PRIVATE "${CMAKE_CURRENT_BINARY_DIR}/version.cpp")
+target_sources(about PRIVATE "${CMAKE_SOURCE_DIR}/license.qrc")
 
