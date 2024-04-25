@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2024 J. Stanley Warford, Matthew McRaven
+ * Copyright (c) 2023-2024 J. Stanley Warford, Matthew McRaven
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
  * the Free Software Foundation, either version 3 of the License, or
@@ -13,11 +13,13 @@
  * You should have received a copy of the GNU General Public License
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
-#pragma once
-#include <QQmlApplicationEngine>
-#include <QtCore>
-#include "commands/gui.hpp"
 
-namespace helpview {
-void registerTypes(QQmlApplicationEngine &engine);
+#include "registration.hpp"
+#include "book_item_model.hpp"
+
+namespace help {
+void registerTypes(const char *uri) {
+  // TODO: Missing translations
+  qmlRegisterType<builtins::BookModel>(uri, 1, 0, "BookModel");
 }
+} // namespace help

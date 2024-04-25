@@ -30,9 +30,9 @@
 #include "help/about/version.hpp"
 #include "memory/hexdump/memorybytemodel.hpp"
 
-#include "../gui/helpview/registration.hpp"
 #include "about/registration.hpp"
 #include "cpu/registration.hpp"
+#include "help/registration.hpp"
 #include "memory/registration.hpp"
 #include "preferences/preferencemodel.hpp"
 #include "preferences/registration.hpp"
@@ -59,7 +59,7 @@ QSharedPointer<gui_globals> default_init(QQmlApplicationEngine &engine) {
   text::registerTypes("edu.pepp");
   cpu::registerTypes("edu.pepp");
   project::registerTypes("edu.pepp");
-  helpview::registerTypes(engine);
+  help::registerTypes("edu.pepp");
 
   auto data = QSharedPointer<default_data>::create();
 

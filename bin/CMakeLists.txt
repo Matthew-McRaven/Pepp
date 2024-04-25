@@ -30,7 +30,7 @@ make_target(
         DEPENDS
         TextFlow cli about macro pas builtins isa targets sim
         Qt6::Core Qt6::Gui Qt::Qml Qt::Quick Qt::QuickControls2
-        Qt::Widgets test-lib-all ui_utils memory text cpu ui_about prefs mode project
+        Qt::Widgets test-lib-all ui_utils memory text cpu ui_about prefs mode project ui_help
 )
 
 target_compile_definitions(pepp PRIVATE "INCLUDE_GUI=1")
@@ -44,10 +44,6 @@ set_target_properties(pepp PROPERTIES
         WIN32_EXECUTABLE TRUE
         FOLDER "qtc_runnable"
 )
-
-# Files with QML definitions must always be includeable without a prefix.
-# See: https://bugreports.qt.io/browse/QTBUG-101146.
-target_include_directories(pepp PRIVATE ${CMAKE_CURRENT_LIST_DIR}/gui/helpview)
 
 # On non-Windows platforms, create extra files that will explicitly start the graphical or the terminal version.
 # Meaningless on WIN32, since apps are either console or non-console, never both.
