@@ -5,7 +5,7 @@
 Pep10_ISA::Pep10_ISA(QObject *parent) : QObject(parent) {}
 
 project::Environment Pep10_ISA::env() const {
-  return {.arch = utils::Architecture::Pep10, .level = utils::Abstraction::ISA3, .features = project::Features::None};
+  return {.arch = utils::Architecture::PEP10, .level = utils::Abstraction::ISA3, .features = project::Features::None};
 }
 
 QString Pep10_ISA::objectCodeText() const { return _objectCodeText; }

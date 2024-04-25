@@ -18,8 +18,8 @@ enum class Features : int {
 
 // TODO: Expose values on AProject directly
 struct Environment {
-  utils::Architecture::Value arch;
-  utils::Abstraction::Value level;
+  utils::Architecture arch;
+  utils::Abstraction level;
   Features features;
 };
 } // namespace project

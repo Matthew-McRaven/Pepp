@@ -24,4 +24,4 @@ qt_add_qml_module(ui_utils
 )
 
 target_compile_definitions(ui_utils PRIVATE "UTILS_LIBRARY")
-target_link_libraries(ui_utils PUBLIC Qt6::Core Qt6::Gui Qt6::Quick)
+target_link_libraries(ui_utils PUBLIC Qt6::Core Qt6::Gui Qt6::Quick builtins)

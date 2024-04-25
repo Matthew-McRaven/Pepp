@@ -22,7 +22,7 @@
 #include <QtCore>
 #include <optional>
 #include "builtins_globals.hpp"
-#include "arch.hpp"
+#include "utils.hpp"
 namespace builtins {
 
 class Figure;

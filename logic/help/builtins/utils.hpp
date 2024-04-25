@@ -25,11 +25,22 @@ namespace builtins {
 Q_NAMESPACE_EXPORT(BUILTINS_EXPORT)
 //! Describe which architecture a help item is to be used with.
 enum class Architecture {
-    PEP8 = 80,    //! The figure must be used with the Pep/8 toolchain.
-    PEP9 = 90,    //! The figure must be used with the Pep/9 toolchain.
-    PEP10 = 100,  //! The figure must be use with the Pep/10 toolchain
-    RISCV = 1000, //! The figure must be used with the RISC-V toolchain, which is
-    //! undefined as of 2023-02-14.
+  PEP8 = 80,    //! The figure must be used with the Pep/8 toolchain.
+  PEP9 = 90,    //! The figure must be used with the Pep/9 toolchain.
+  PEP10 = 100,  //! The figure must be use with the Pep/10 toolchain
+  RISCV = 1000, //! The figure must be used with the RISC-V toolchain, which is
+                //! undefined as of 2023-02-14.
 };
 Q_ENUM_NS(Architecture);
+enum class Abstraction {
+  NONE = -1,
+  // LG1 = 1,
+  MC2 = 2,
+  ISA3 = 3,
+  OS4 = 4,
+  ASMB5 = 5,
+  // HOL6 = 6,
+  // APP7 = 7,
+};
+Q_ENUM_NS(Abstraction);
 } // end namespace builtins
