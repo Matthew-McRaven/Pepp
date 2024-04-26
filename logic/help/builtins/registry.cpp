@@ -121,8 +121,8 @@ builtins::detail::loadFigure(QString manifestPath) {
     qFatal("Invalid architecture");
 
   builtins::Abstraction level = builtins::Abstraction::NONE;
-  if (manifest.object().contains("level")) {
-    auto levelStr = manifest["level"].toString();
+  if (manifest.object().contains("abstraction")) {
+    auto levelStr = manifest["abstraction"].toString();
     auto levelInt =
         QMetaEnum::fromType<builtins::Abstraction>().keyToValue(levelStr.toUpper().toStdString().data(), &okay);
     level = static_cast<builtins::Abstraction>(levelInt);
