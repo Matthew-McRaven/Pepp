@@ -280,7 +280,8 @@ ApplicationWindow {
             id: help
             Layout.fillHeight: true
             Layout.fillWidth: true
-            property alias model: window.currentProject
+            abstraction: currentProject?.abstraction ?? Abstraction.NONE
+            architecture: currentProject?.architecture ?? Architecture.NONE
         }
         Loader {
             id: projectLoader

@@ -27,6 +27,8 @@ void addBookItems(QStandardItem *parent, QSharedPointer<const builtins::Book> bo
     // the model. Therefore, we can use the data() safely.
     figureItem->setData(QVariant::fromValue(figure.data()), builtins::FigureConstants::FIG_ROLE_PAYLOAD);
     figureItem->setData(book->name(), builtins::FigureConstants::FIG_ROLE_EDITION);
+    figureItem->setData(QVariant::fromValue(figure->arch()), builtins::FigureConstants::FIG_ROLE_ARCHITECTURE);
+    figureItem->setData(QVariant::fromValue(figure->level()), builtins::FigureConstants::FIG_ROLE_ABSTRACTION);
     parent->appendRow(figureItem);
   }
 }
@@ -59,5 +61,7 @@ QHash<int, QByteArray> builtins::BookModel::roleNames() const {
   roles[builtins::FigureConstants::FIG_ROLE_KIND] = "kind";
   roles[builtins::FigureConstants::FIG_ROLE_PAYLOAD] = "payload";
   roles[builtins::FigureConstants::FIG_ROLE_EDITION] = "edition";
+  roles[builtins::FigureConstants::FIG_ROLE_ARCHITECTURE] = "architecture";
+  roles[builtins::FigureConstants::FIG_ROLE_ABSTRACTION] = "abstraction";
   return roles;
 }

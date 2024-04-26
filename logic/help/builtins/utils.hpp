@@ -25,6 +25,7 @@ namespace builtins {
 Q_NAMESPACE_EXPORT(BUILTINS_EXPORT)
 //! Describe which architecture a help item is to be used with.
 enum class Architecture {
+  NONE = -1,    //! Architecture is unspecified.
   PEP8 = 80,    //! The figure must be used with the Pep/8 toolchain.
   PEP9 = 90,    //! The figure must be used with the Pep/9 toolchain.
   PEP10 = 100,  //! The figure must be use with the Pep/10 toolchain

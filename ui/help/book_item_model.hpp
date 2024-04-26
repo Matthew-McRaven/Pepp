@@ -53,6 +53,8 @@ public:
   SHARED_CONSTANT(quint32, FIG_ROLE_PAYLOAD, Qt::UserRole + 2);
 
   SHARED_CONSTANT(quint32, FIG_ROLE_EDITION, Qt::UserRole + 3);
+  SHARED_CONSTANT(quint32, FIG_ROLE_ABSTRACTION, Qt::UserRole + 4);
+  SHARED_CONSTANT(quint32, FIG_ROLE_ARCHITECTURE, Qt::UserRole + 5);
 };
 
 class Registry;

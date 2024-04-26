@@ -1,3 +1,5 @@
+
+
 /*
  * Copyright (c) 2023-2024 J. Stanley Warford, Matthew McRaven
  * This program is free software: you can redistribute it and/or modify
@@ -13,7 +15,6 @@
  * You should have received a copy of the GNU General Public License
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
-
 import QtQuick
 import QtQuick.Window
 import QtQuick.Controls
@@ -21,21 +22,25 @@ import QtQuick.Controls
 import edu.pepp 1.0
 
 Item {
+    id: root
+    property alias architecture: filterModel.architecture
+    property alias abstraction: filterModel.abstraction
+
     Component.onCompleted: {
-        treeView.onSelectedFigChanged.connect(
-                (arg) => {
-                if (treeView.selectedFig === undefined) {
-                    topicWindow.source = "Topic.qml"
-                } else {
-                    topicWindow.source = ""
-                    topicWindow.source = "Figure.qml"
+        treeView.onSelectedFigChanged.connect(arg => {
+                                                  if (treeView.selectedFig === undefined) {
+                                                      topicWindow.source = "Topic.qml"
+                                                  } else {
+                                                      topicWindow.source = ""
+                                                      topicWindow.source = "Figure.qml"
 
-                    //figCol.help( drawer.selected.display,drawer.selected.payload );
-                }
-            }
-        )
+                                                      //figCol.help( drawer.selected.display,drawer.selected.payload );
+                                                  }
+                                              })
     }
-
+    BookModel {
+        id: model
+    }
 
     Rectangle {
         id: container
@@ -43,7 +48,11 @@ Item {
 
         TreeView {
             property var selectedFig: undefined
-            model: BookModel {
+            model: BookFilterModel {
+                id: filterModel
+                model: model
+                architecture: root.architecture
+                abstraction: root.abstraction
             }
             id: treeView
             // Make sure the drawer is always at least as wide as the text
@@ -54,62 +63,62 @@ Item {
             }
             width: textMetrics.width
             anchors.left: parent.left
-            anchors.top: parent.top; anchors.bottom: parent.bottom
+            anchors.top: parent.top
+            anchors.bottom: parent.bottom
 
+            delegate: Item {
+                id: treeDelegate
+                implicitWidth: padding + label.x + label.implicitWidth + padding
+                implicitHeight: textMetrics.height * 1.1
+                readonly property real indent: 10
+                readonly property real padding: 5
+                // Assigned to by TreeView:
+                required property TreeView treeView
+                required property bool isTreeNode
+                required property bool expanded
+                required property int hasChildren
+                required property int depth
+                required property var payload
+                required property var kind
+                required property var display
+                required property var edition
 
-            delegate
-                :
-                Item {
-                    id: treeDelegate
-                    implicitWidth: padding + label.x + label.implicitWidth + padding
-                    implicitHeight: textMetrics.height*1.1
-                    readonly property real indent: 10
-                    readonly property real padding: 5
-                    // Assigned to by TreeView:
-                    required property TreeView treeView
-                    required property bool isTreeNode
-                    required property bool expanded
-                    required property int hasChildren
-                    required property int depth
-                    required property var payload
-                    required property var kind
-                    required property var display
-                    required property var edition
-
-                    TapHandler {
-                        onTapped: {
-                            if (treeDelegate.hasChildren) {
-                                treeView.selectedFig = undefined
-                                treeView.toggleExpanded(row)
-                            } else {
-                                treeView.selectedFig = {
-                                    //kind,payload
-                                    display, payload, edition
-                                }
+                TapHandler {
+                    onTapped: {
+                        if (treeDelegate.hasChildren) {
+                            treeView.selectedFig = undefined
+                            treeView.toggleExpanded(row)
+                        } else {
+                            treeView.selectedFig = {
+                                "display": //kind,payload
+                                display,
+                                "payload": payload,
+                                "edition": edition
                             }
                         }
                     }
-
-                    Text {
-                        id: indicator
-                        visible: treeDelegate.isTreeNode && treeDelegate.hasChildren
-                        x: padding + (treeDelegate.depth * treeDelegate.indent)
-                        anchors.verticalCenter: label.verticalCenter
-                        text: "▸"
-                        rotation: treeDelegate.expanded ? 90 : 0
-                    }
-
-                    Text {
-                        id: label
-                        x: padding + (treeDelegate.isTreeNode ? (treeDelegate.depth + 1) * treeDelegate.indent : 0)
-                        width: treeDelegate.width - treeDelegate.padding - x
-                        clip: true
-                        text: model.display
-                    }
                 }
 
-            ScrollIndicator.vertical: ScrollIndicator {
+                Text {
+                    id: indicator
+                    visible: treeDelegate.isTreeNode && treeDelegate.hasChildren
+                    x: padding + (treeDelegate.depth * treeDelegate.indent)
+                    anchors.verticalCenter: label.verticalCenter
+                    text: "▸"
+                    rotation: treeDelegate.expanded ? 90 : 0
+                }
+
+                Text {
+                    id: label
+                    x: padding + (treeDelegate.isTreeNode ? (treeDelegate.depth + 1)
+                                                            * treeDelegate.indent : 0)
+                    width: treeDelegate.width - treeDelegate.padding - x
+                    clip: true
+                    text: model.display
+                }
             }
+
+            ScrollIndicator.vertical: ScrollIndicator {}
         }
         Flickable {
             id: flickable
@@ -127,8 +136,7 @@ Item {
                 source: "Topic.qml"
             }
 
-            ScrollIndicator.vertical: ScrollIndicator {
-            }
+            ScrollIndicator.vertical: ScrollIndicator {}
         } //  Flickable
     } //Loader
 }
