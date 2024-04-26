@@ -224,7 +224,7 @@ QVariant MemoryByteModel::data(const QModelIndex &index, int role) const
     case Qt::ToolTip:
         //  Handle invalid index
         if(i < 0)
-            return QVariant("");
+          return {};
 
         //return QVariant("tool tip");
         //  Only show for memory
@@ -255,7 +255,7 @@ QVariant MemoryByteModel::data(const QModelIndex &index, int role) const
                 .arg(oldData_[i], 8, 2, QLatin1Char('0'));  // Binary
         }
         else
-            return QVariant("");
+          return {};
     }
 
     return QVariant();
