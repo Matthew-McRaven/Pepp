@@ -8,6 +8,10 @@ project::Environment Pep10_ISA::env() const {
   return {.arch = utils::Architecture::PEP10, .level = utils::Abstraction::ISA3, .features = project::Features::None};
 }
 
+utils::Architecture Pep10_ISA::architecture() const { return utils::Architecture::PEP10; }
+
+utils::Abstraction Pep10_ISA::abstraction() const { return utils::Abstraction::ISA3; }
+
 QString Pep10_ISA::objectCodeText() const { return _objectCodeText; }
 
 void Pep10_ISA::setObjectCodeText(const QString &objectCodeText) {
