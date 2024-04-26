@@ -1,0 +1,6 @@
+<RCC>
+    <qresource prefix="/about">
+        <file alias="LICENSE_FULL">LICENSE</file>
+        <file alias="LICENSE_NOTICE">NOTICE</file>
+    </qresource>
+</RCC>

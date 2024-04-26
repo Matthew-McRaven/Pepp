@@ -18,8 +18,8 @@ enum class Features : int {
 
 // TODO: Expose values on AProject directly
 struct Environment {
-  utils::Architecture::Value arch;
-  utils::Abstraction::Value level;
+  utils::Architecture arch;
+  utils::Abstraction level;
   Features features;
 };
 } // namespace project
@@ -42,11 +42,15 @@ private:
 class Pep10_ISA final : public QObject {
   Q_OBJECT
   Q_PROPERTY(project::Environment env READ env CONSTANT)
+  Q_PROPERTY(utils::Architecture architecture READ architecture CONSTANT)
+  Q_PROPERTY(utils::Abstraction abstraction READ abstraction CONSTANT)
   Q_PROPERTY(QString objectCodeText READ objectCodeText WRITE setObjectCodeText NOTIFY objectCodeTextChanged);
 
 public:
   Pep10_ISA(QObject *parent = nullptr);
   project::Environment env() const;
+  utils::Architecture architecture() const;
+  utils::Abstraction abstraction() const;
   QString objectCodeText() const;
   void setObjectCodeText(const QString &objectCodeText);
   Q_INVOKABLE static QStringListModel *modes() {

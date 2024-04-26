@@ -120,8 +120,17 @@ builtins::detail::loadFigure(QString manifestPath) {
   if (!okay) // Crash on failure for ease of initial prototyping
     qFatal("Invalid architecture");
 
-  auto figure =
-      QSharedPointer<builtins::Figure>::create(arch, chapterName, figureName);
+  builtins::Abstraction level = builtins::Abstraction::NONE;
+  if (manifest.object().contains("abstraction")) {
+    auto levelStr = manifest["abstraction"].toString();
+    auto levelInt =
+        QMetaEnum::fromType<builtins::Abstraction>().keyToValue(levelStr.toUpper().toStdString().data(), &okay);
+    level = static_cast<builtins::Abstraction>(levelInt);
+    if (!okay) // Crash on failure for ease of initial prototyping
+      qFatal("Invalid abstraction level");
+  }
+
+  auto figure = QSharedPointer<builtins::Figure>::create(arch, level, chapterName, figureName);
   figure->setIsOS(manifest["is_os"].toBool(false));
 
   // Add tests

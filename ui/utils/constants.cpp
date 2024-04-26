@@ -16,6 +16,6 @@
 
 #include "constants.hpp"
 
-utils::Abstraction::Abstraction(QObject *parent) : QObject(parent) {}
+utils::AbstractionHelper::AbstractionHelper(QObject *parent) : QObject(parent) {}
 
-utils::Architecture::Architecture(QObject *parent) : QObject(parent) {}
+utils::ArchitectureHelper::ArchitectureHelper(QObject *parent) : QObject(parent) {}

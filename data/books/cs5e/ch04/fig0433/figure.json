@@ -1,0 +1,12 @@
+{
+  "type": "figure",
+  "name": "04:33",
+  "arch": "pep9",
+  "abstraction": "ISA3",
+  "default_os": "os:pep9os",
+  "items": {
+    "pepb": "{ch}{fig}.pepb",
+    "peph": "{ch}{fig}.peph",
+    "pepo": "{ch}{fig}.pepo"
+  }
+}

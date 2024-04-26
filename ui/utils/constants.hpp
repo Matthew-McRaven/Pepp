@@ -16,35 +16,26 @@
 
 #pragma once
 #include <QObject>
+#include "help/builtins/utils.hpp"
+#include "qqmlintegration.h"
 #include "utils_global.hpp"
 
 namespace utils {
-class UTILS_EXPORT Abstraction : public QObject {
+using Architecture = builtins::Architecture;
+using Abstraction = builtins::Abstraction;
+class UTILS_EXPORT AbstractionHelper : public QObject {
   Q_GADGET
+  QML_NAMED_ELEMENT(Abstraction)
 public:
-  Abstraction(QObject *parent = nullptr);
-  enum Value {
-    // LG1 = 1,
-    MC2 = 2,
-    ISA3 = 3,
-    OS4 = 4,
-    ASMB5 = 5,
-    // HOL6 = 6,
-    // APP7 = 7,
-  };
-  Q_ENUM(Value);
+  AbstractionHelper(QObject *parent = nullptr);
+  Q_ENUM(builtins::Abstraction);
 };
 
-class UTILS_EXPORT Architecture : public QObject {
+class UTILS_EXPORT ArchitectureHelper : public QObject {
   Q_GADGET
+  QML_NAMED_ELEMENT(Architecture)
 public:
-  Architecture(QObject *parent = nullptr);
-  enum Value {
-    // Pep8 = 8,
-    // Pep9 = 9,
-    Pep10 = 10,
-    RISCV32I = 128,
-  };
-  Q_ENUM(Value);
+  ArchitectureHelper(QObject *parent = nullptr);
+  Q_ENUM(builtins::Architecture);
 };
 } // namespace utils

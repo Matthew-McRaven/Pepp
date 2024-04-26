@@ -1,0 +1,10 @@
+{
+  "type": "figure",
+  "name": "05:12",
+  "arch": "pep9",
+  "abstraction": "ASMB5",
+  "default_os": "os:pep9os",
+  "items": {
+    "pep": "{ch}{fig}.pep"
+  }
+}
