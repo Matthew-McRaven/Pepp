@@ -338,6 +338,7 @@ ApplicationWindow {
         anchors.centerIn: parent
         modal: true
         width: 700 // TODO: prevent binding loop on preferences size.
+        height: 700
         contentItem: Pref.Preferences {
             id: prefs
             anchors.left: parent.left
