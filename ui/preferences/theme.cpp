@@ -8,9 +8,6 @@
 #include <QJsonDocument>
 #include <QJsonObject>
 
-#include <filesystem>
-namespace fs = std::filesystem;
-
 Theme::Theme(QObject *parent)
     : QObject{parent}
     , font_("Courier New", 12)

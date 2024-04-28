@@ -22,6 +22,7 @@
 #include <QFont>
 #include <QHash>
 #include <QList>
+#include <QtQml>
 #include "preference_globals.hpp"
 
 #include "theme.hpp"
@@ -65,6 +66,11 @@ class PREFS_EXPORT PreferenceModel : public QAbstractListModel {
   Q_PROPERTY(Preference* currentPref  READ preference NOTIFY preferenceChanged)
   Q_PROPERTY(qint32 category          READ category   WRITE setCategory NOTIFY categoryChanged)
   Q_PROPERTY(QStringList categoryList MEMBER categoryList_ NOTIFY categoryChanged)
+
+  //  Treat object as a QML singleton. Used to manage
+  //  lifetime issues
+  QML_ELEMENT
+  QML_SINGLETON
 
   QHash<int, QByteArray> roleNames_;
   QFont font_;

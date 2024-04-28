@@ -377,12 +377,14 @@ ApplicationWindow {
         modal: true
         width: 700 // TODO: prevent binding loop on preferences size.
         height: 700
+
         contentItem: Pref.Preferences {
             id: prefs
             anchors.left: parent.left
             anchors.right: parent.right
             anchors.top: parent.header.bottom
             anchors.bottom: parent.footer.top
+            model: PreferenceModel
         }
         standardButtons: Dialog.Close
     }

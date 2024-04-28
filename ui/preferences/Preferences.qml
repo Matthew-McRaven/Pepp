@@ -10,7 +10,7 @@ Rectangle {
 
   color: Theme.surface.background
 
-  property variant model: PreferenceModel
+  required property variant model //: PreferenceModel
 
   RowLayout {
     spacing: 2

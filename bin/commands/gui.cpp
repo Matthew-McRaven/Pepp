@@ -45,13 +45,13 @@ struct default_data : public gui_globals {
   ~default_data() override = default;
   StatusBitModel 	sbm;
   RegisterModel 	rm;
-  MemoryByteModel 	mbm;
-  Theme                 theme;
-  PreferenceModel 	pm;
-  QTimer interval;
+  MemoryByteModel mbm;
+  Theme           theme;
+  PreferenceModel pm;
+  QTimer          interval;
 };
 
-QSharedPointer<gui_globals> default_init(QQmlApplicationEngine &engine) {
+QSharedPointer<gui_globals> default_init(QQmlApplicationEngine &engine, QSharedPointer<default_data> data) {
   utils::registerTypes("edu.pepp");
   prefs::registerTypes("edu.pepp");
   about::registerTypes("edu.pepp");
@@ -61,20 +61,18 @@ QSharedPointer<gui_globals> default_init(QQmlApplicationEngine &engine) {
   project::registerTypes("edu.pepp");
   help::registerTypes("edu.pepp");
 
-  auto data = QSharedPointer<default_data>::create();
-
   //  Connect models
   auto *ctx = engine.rootContext();
   ctx->setContextProperty("StatusBitModel", 	&data->sbm);
-  ctx->setContextProperty("RegisterModel", 	&data->rm);
-  ctx->setContextProperty("MemoryByteModel", 	&data->mbm);
+  ctx->setContextProperty("RegisterModel",    &data->rm);
+  ctx->setContextProperty("MemoryByteModel",  &data->mbm);
   ctx->setContextProperty("PreferenceModel", 	&data->pm);
-  ctx->setContextProperty("Theme",              &data->theme);
+  ctx->setContextProperty("Theme",            &data->theme);
 
   //  Simulate changes in Pepp10
   data->interval.setInterval(1000);
   QObject::connect(&data->interval, &QTimer::timeout, &data->sbm, &StatusBitModel::updateTestData);
-  QObject::connect(&data->interval, &QTimer::timeout, &data->rm, &RegisterModel::updateTestData);
+  QObject::connect(&data->interval, &QTimer::timeout, &data->rm,  &RegisterModel::updateTestData);
   data->interval.start();
   return data;
 }
@@ -96,41 +94,48 @@ int gui_main(const gui_args &args) {
   static auto version =
       u"%1.%2.%3"_qs.arg(about::g_MAJOR_VERSION()).arg(about::g_MINOR_VERSION()).arg(about::g_PATCH_VERSION());
   QApplication::setApplicationVersion(version);
-
   QQuickStyle::setStyle("Fusion");
 
-  //  Instantiate QML engine before models
-  QQmlApplicationEngine engine;
-  QSharedPointer<gui_globals> globals;
-  if (args.extra_init)
-    globals = args.extra_init(engine);
-  else
-    globals = default_init(engine);
-  (void)globals; // Unused, but keeps bound context variables from being deleted.
+  //  Data must outlive QML engine, or you will get TypeErrors on close. See
+  //  https://tobiasmarciszko.github.io/qml-binding-errors/ for discussion.
+  auto data = QSharedPointer<default_data>::create();
+  int flag{};
+  { //  This scope forces engine to be deleted before model
+    //  Instantiate QML engine before models
+    QQmlApplicationEngine engine;
+    QSharedPointer<gui_globals> globals;
+    if (args.extra_init)
+      globals = args.extra_init(engine);
+    else
+      globals = default_init(engine, data);
+    (void)globals; // Unused, but keeps bound context variables from being deleted.
 
-  /*QDirIterator i(":", QDirIterator::Subdirectories);
-  while (i.hasNext()) {
-    auto f = QFileInfo(i.next());
-    if (!f.isFile())
-      continue;
-    qDebug() << f.filePath();
-  }*/
+    /*QDirIterator i(":", QDirIterator::Subdirectories);
+    while (i.hasNext()) {
+      auto f = QFileInfo(i.next());
+      if (!f.isFile())
+        continue;
+      qDebug() << f.filePath();
+    }*/
 
-  auto ctx = engine.rootContext();
+    static const auto default_entry = u"qrc:/qt/qml/Pepp/gui/main.qml"_qs;
+    const QUrl url(args.QMLEntry.isEmpty() ? default_entry : args.QMLEntry);
 
-  static const auto default_entry = u"qrc:/qt/qml/Pepp/gui/main.qml"_qs;
-  const QUrl url(args.QMLEntry.isEmpty() ? default_entry : args.QMLEntry);
+    QObject::connect(
+        &engine, &QQmlApplicationEngine::objectCreated, &app,
+        [url](QObject *obj, const QUrl &objUrl) {
+          if (!obj && url == objUrl)
+            QCoreApplication::exit(-1);
+        },
+        Qt::QueuedConnection);
+    engine.load(url);
+    flag = app.exec();
 
-  QObject::connect(
-      &engine, &QQmlApplicationEngine::objectCreated, &app,
-      [url](QObject *obj, const QUrl &objUrl) {
-        if (!obj && url == objUrl)
-          QCoreApplication::exit(-1);
-      },
-      Qt::QueuedConnection);
-  engine.load(url);
+    //  Engine deleted here
+  }
 
-  return app.exec();
+  //  Model deleted here
+  return flag;
 }
 
 #else
