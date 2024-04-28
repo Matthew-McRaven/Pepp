@@ -12,9 +12,8 @@ Item {
     StackLayout {
         id: stack
         anchors.fill: parent
-        currentIndex: Qt.binding(function () {
-            return modes[mode] || 0
-        })
+        currentIndex: modes[mode] ?? error.StackLayout.index
+
         Rectangle {
             id: edit
             Layout.fillWidth: true
@@ -26,6 +25,12 @@ Item {
             Layout.fillWidth: true
             Layout.fillHeight: true
             color: 'green'
+        }
+        Rectangle {
+            id: error
+            Layout.fillWidth: true
+            Layout.fillHeight: true
+            color: 'purple'
         }
     }
 }
