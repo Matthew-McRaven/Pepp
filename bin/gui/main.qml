@@ -57,11 +57,9 @@ ApplicationWindow {
     ProjectModel {
         id: pm
         function onAddProject(arch, level, feats) {
-            console.log("adding project")
-            var isa = pm.pep10ISA() // C++
             // Attach a delegate to the project which can render its edit/debug modes. Since it is a C++ property,
             // binding changes propogate automatically.
-            isa.delegate = pep10isaComponent
+            pm.pep10ISA(pep10isaComponent) // C++
         }
     }
     ListModel {

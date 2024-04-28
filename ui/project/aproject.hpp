@@ -48,7 +48,7 @@ class Pep10_ISA final : public QObject {
   Q_PROPERTY(QString objectCodeText READ objectCodeText WRITE setObjectCodeText NOTIFY objectCodeTextChanged);
 
 public:
-  explicit Pep10_ISA(QObject *parent = nullptr);
+  explicit Pep10_ISA(QVariant delegate, QObject *parent = nullptr);
   project::Environment env() const;
   utils::Architecture architecture() const;
   utils::Abstraction abstraction() const;
@@ -86,7 +86,7 @@ public:
   int _rowCount() const { return rowCount({}); }
   int rowCount(const QModelIndex &parent) const override;
   QVariant data(const QModelIndex &index, int role) const override;
-  Q_INVOKABLE Pep10_ISA *pep10ISA();
+  Q_INVOKABLE Pep10_ISA *pep10ISA(QVariant delegate);
   bool removeRows(int row, int count, const QModelIndex &parent) override;
   bool moveRows(const QModelIndex &sourceParent, int sourceRow, int count, const QModelIndex &destinationParent,
                 int destinationChild) override;

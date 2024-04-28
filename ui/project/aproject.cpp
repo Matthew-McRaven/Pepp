@@ -2,7 +2,7 @@
 
 #include <QQmlEngine>
 
-Pep10_ISA::Pep10_ISA(QObject *parent) : QObject(parent) {}
+Pep10_ISA::Pep10_ISA(QVariant delegate, QObject *parent) : QObject(parent), _delegate(delegate) {}
 
 project::Environment Pep10_ISA::env() const {
   return {.arch = utils::Architecture::PEP10, .level = utils::Abstraction::ISA3, .features = project::Features::None};
@@ -36,8 +36,8 @@ QVariant ProjectModel::data(const QModelIndex &index, int role) const {
   return {};
 }
 
-Pep10_ISA *ProjectModel::pep10ISA() {
-  auto ret = new Pep10_ISA();
+Pep10_ISA *ProjectModel::pep10ISA(QVariant delegate) {
+  auto ret = new Pep10_ISA(delegate);
   QQmlEngine::setObjectOwnership(ret, QQmlEngine::CppOwnership);
   beginInsertRows(QModelIndex(), _projects.size(), _projects.size());
   _projects.push_back(ret);
