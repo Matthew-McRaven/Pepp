@@ -29,7 +29,7 @@ class AProject : public QObject {
   Q_OBJECT
   Q_PROPERTY(project::Environment env READ env)
 public:
-  AProject(project::Environment env) : _env(env) {}
+  explicit AProject(project::Environment env) : _env(env) {}
   project::Environment env() const { return _env; }
   virtual ~AProject() = default;
   // virtual void *memoryModel() = 0;
@@ -47,7 +47,7 @@ class Pep10_ISA final : public QObject {
   Q_PROPERTY(QString objectCodeText READ objectCodeText WRITE setObjectCodeText NOTIFY objectCodeTextChanged);
 
 public:
-  Pep10_ISA(QObject *parent = nullptr);
+  explicit Pep10_ISA(QObject *parent = nullptr);
   project::Environment env() const;
   utils::Architecture architecture() const;
   utils::Abstraction abstraction() const;
@@ -77,7 +77,7 @@ public:
   };
   Q_ENUM(Roles);
   // Q_INVOKABLE ISAProject *isa(utils::Architecture::Value arch, project::Features features);
-  ProjectModel(QObject *parent = nullptr) : QAbstractListModel(parent){};
+  explicit ProjectModel(QObject *parent = nullptr) : QAbstractListModel(parent){};
   // Helper to expose rowCount as a property to QML.
   int _rowCount() const { return rowCount({}); }
   int rowCount(const QModelIndex &parent) const override;
