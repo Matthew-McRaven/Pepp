@@ -42,13 +42,17 @@ Item {
         }
 
         RowLayout {
-          Label { text: "Current Font Family: " }
-          Text { id: family; text: root.model.font.family   }
-          Label { text: "Size: "                }
-          Text { id: fontsize; text: root.model.font.pointSize}
+          Label { text: "Current Font Family: "; color: Theme.container.foreground}
+          Text { id: family; text: root.model.font.family; color: Theme.container.foreground}
+          Label { text: "Size: "; color: Theme.container.foreground}
+          Text { id: fontsize; text: root.model.font.pointSize; color: Theme.container.foreground}
           Button {
             text: "Change";
             Layout.preferredWidth: buttonWidth
+            palette {
+              button: Theme.container.background
+              buttonText: Theme.surface.foreground
+            }
 
             onClicked: {
               //  Open dialog and set properties.
