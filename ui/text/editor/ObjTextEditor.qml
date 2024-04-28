@@ -13,7 +13,6 @@
  * You should have received a copy of the GNU General Public License
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
-
 import QtQuick
 import QtQuick.Controls
 import QtQuick.Layouts
@@ -22,7 +21,7 @@ import edu.pepp.text 1.0 as Editor
 ScrollView {
     id: wrapper
     property int bytesPerRow: 16
-    property alias readOnly: editor.readOnly;
+    property alias readOnly: editor.readOnly
     property alias text: editor.text
     anchors.fill: parent
     Rectangle {
@@ -40,35 +39,45 @@ ScrollView {
         anchors.fill: parent
         TextArea {
             id: editor
-            anchors.left: parent.left; anchors.right: parent.right
-            anchors.top: parent.top; anchors.bottom: buttons.top
+            anchors.left: parent.left
+            anchors.right: parent.right
+            anchors.top: parent.top
+            anchors.bottom: buttons.top
             textFormat: TextEdit.PlainText
             renderType: Text.NativeRendering
             font.family: "Courier New"
-            readOnly: wrapper.isReadOnly;
-            Keys.onPressed: (event) => {
-                if (event.key === Qt.Key_Insert && event.modifiers === Qt.NoModifier) editor.overwriteMode = !editor.overwriteMode
-                else
-                    // If event is accepted, it won't reach the actual TextArea
-                    // Use that behavior to filter out "wrong" keys.
-                    event.accepted = !utils.valid(event.key)
-            }
+            readOnly: wrapper.isReadOnly
+            Keys.onPressed: event => {
+                                if (event.key === Qt.Key_Insert
+                                    && event.modifiers === Qt.NoModifier)
+                                editor.overwriteMode = !editor.overwriteMode
+                                else
+                                // If event is accepted, it won't reach the actual TextArea
+                                // Use that behavior to filter out "wrong" keys.
+                                event.accepted = !utils.valid(event.key)
+                            }
         }
         RowLayout {
             id: buttons
             visible: !editor.readOnly
-            anchors.left: parent.left; anchors.right: parent.right
+            anchors.left: parent.left
+            anchors.right: parent.right
             anchors.bottom: parent.bottom
             Button {
-                Layout.fillHeight: true; Layout.fillWidth: true
-                Layout.minimumHeight: 40; Layout.maximumHeight: 100
+                Layout.fillHeight: true
+                Layout.fillWidth: true
+                Layout.minimumHeight: 40
+                Layout.maximumHeight: 100
                 implicitHeight: wrapper.height * .1
                 text: "Format"
-                onClicked: if (!editor.readOnly) editor.text = utils.format(editor.text)
+                onClicked: if (!editor.readOnly)
+                               editor.text = utils.format(editor.text)
             }
             Button {
-                Layout.fillHeight: true; Layout.fillWidth: true
-                Layout.minimumHeight: 40; Layout.maximumHeight: 100
+                Layout.fillHeight: true
+                Layout.fillWidth: true
+                Layout.minimumHeight: 40
+                Layout.maximumHeight: 100
                 implicitHeight: wrapper.height * .1
                 text: editor.overwriteMode ? "Replace" : "Insert"
                 onClicked: editor.overwriteMode = !editor.overwriteMode
