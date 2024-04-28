@@ -23,6 +23,11 @@ ScrollView {
     property int bytesPerRow: 16
     property alias readOnly: editor.readOnly
     property alias text: editor.text
+    signal editingFinished(string text)
+    Component.onCompleted: {
+        // Propogate editingFinished to containing component
+        editor.editingFinished.connect(text => wrapper.editingFinished(text))
+    }
     Rectangle {
         anchors.fill: parent
         color: "white"
