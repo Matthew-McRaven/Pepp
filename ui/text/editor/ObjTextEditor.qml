@@ -63,16 +63,23 @@ ScrollView {
             anchors.right: parent.right
             anchors.bottom: parent.bottom
             Button {
+                // Buttons must not take focus, or spurious editor.editingFinished will be emitted.
+                focusPolicy: Qt.NoFocus
                 Layout.fillHeight: true
                 Layout.fillWidth: true
                 Layout.minimumHeight: 40
                 Layout.maximumHeight: 100
                 implicitHeight: wrapper.height * .1
                 text: "Format"
-                onClicked: if (!editor.readOnly)
-                               editor.text = utils.format(editor.text)
+                onClicked: {
+                    if (!editor.readOnly)
+                        editor.text = utils.format(editor.text)
+                    editor.editingFinished()
+                }
             }
             Button {
+                // Buttons must not take focus, or spurious editor.editingFinished will be emitted.
+                focusPolicy: Qt.NoFocus // Prevent the button from taking focus
                 Layout.fillHeight: true
                 Layout.fillWidth: true
                 Layout.minimumHeight: 40
