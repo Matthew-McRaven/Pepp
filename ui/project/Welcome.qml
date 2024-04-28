@@ -1,5 +1,6 @@
 import QtQuick
 import QtQuick.Controls
+import edu.pepp 1.0
 
 Rectangle {
     color: 'purple'
@@ -7,6 +8,6 @@ Rectangle {
     Button {
         text: "Create new project"
         anchors.centerIn: parent
-        onClicked: addProject("pep/10", "isa", "")
+        onClicked: addProject(Architecture.PEP10, Abstraction.ISA3, "")
     }
 }

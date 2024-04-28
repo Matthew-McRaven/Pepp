@@ -1,31 +1,59 @@
 import QtQuick 2.15
 import QtQuick.Controls
-
 import QtQuick.Layouts
+import "qrc:/ui/text/editor" as Text
+import edu.pepp
 
 Item {
+    id: wrapper
+    required property var project
     required property string mode
-    readonly property variant modes: {
-        "edit": edit.StackLayout.index,
-        "debug": debug.StackLayout.index
+    Component.onCompleted: {
+        //console.log("open", project, "with oc:" + project.objectCodeText)
+        // Must connect and disconnect manually, otherwise project may be changed underneath us, and "save" targets wrong project.
+        // Do not need to update on mode change, since mode change implies loss of focus of objEdit.
+        objEdit.editingFinished.connect(save)
     }
-    StackLayout {
-        id: stack
+    // Will be called before project is changed on unload, so we can disconnect save-triggering signals.
+    Component.onDestruction: {
+        objEdit.editingFinished.disconnect(save)
+        // console.log("close", project, "with oc:" + project.objectCodeText)
+    }
+
+    function save() {
+        // Supress saving messages when there is no project.
+        if (project === null)
+            return
+        else if (!objEdit.readOnly)
+            project.objectCodeText = objEdit.text
+        //console.log("triggering save with object code:" + project.objectCodeText)
+    }
+
+    SplitView {
         anchors.fill: parent
-        currentIndex: Qt.binding(function () {
-            return modes[mode] || 0
-        })
-        Rectangle {
-            id: edit
-            Layout.fillWidth: true
-            Layout.fillHeight: true
-            color: 'blue'
+        orientation: Qt.Horizontal
+        handle: Item {
+            implicitWidth: 4
+            Rectangle {
+                implicitWidth: 4
+                anchors.horizontalCenter: parent.horizontalCenter
+                height: parent.height
+                // TODO: add color for handle
+                color: 'grey'
+            }
+        }
+        Text.ObjTextEditor {
+            id: objEdit
+            readOnly: mode !== "edit"
+            // text is only an initial binding, the value diverges from there.
+            text: project.objectCodeText
+            SplitView.minimumWidth: 100
         }
         Rectangle {
             id: debug
-            Layout.fillWidth: true
-            Layout.fillHeight: true
+            visible: mode === "debug"
             color: 'green'
+            SplitView.minimumWidth: 100
         }
     }
 }

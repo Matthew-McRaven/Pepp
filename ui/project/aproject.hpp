@@ -29,7 +29,7 @@ class AProject : public QObject {
   Q_OBJECT
   Q_PROPERTY(project::Environment env READ env)
 public:
-  AProject(project::Environment env) : _env(env) {}
+  explicit AProject(project::Environment env) : _env(env) {}
   project::Environment env() const { return _env; }
   virtual ~AProject() = default;
   // virtual void *memoryModel() = 0;
@@ -44,10 +44,11 @@ class Pep10_ISA final : public QObject {
   Q_PROPERTY(project::Environment env READ env CONSTANT)
   Q_PROPERTY(utils::Architecture architecture READ architecture CONSTANT)
   Q_PROPERTY(utils::Abstraction abstraction READ abstraction CONSTANT)
+  Q_PROPERTY(QVariant delegate MEMBER _delegate NOTIFY delegateChanged)
   Q_PROPERTY(QString objectCodeText READ objectCodeText WRITE setObjectCodeText NOTIFY objectCodeTextChanged);
 
 public:
-  Pep10_ISA(QObject *parent = nullptr);
+  explicit Pep10_ISA(QVariant delegate, QObject *parent = nullptr);
   project::Environment env() const;
   utils::Architecture architecture() const;
   utils::Abstraction abstraction() const;
@@ -58,11 +59,16 @@ public:
     QQmlEngine::setObjectOwnership(&ret, QQmlEngine::CppOwnership);
     return &ret;
   }
+  // Actually utils::Abstraction, but QM passes it as an int.
+  Q_INVOKABLE void set(int abstraction, QString value);
+
 signals:
   void objectCodeTextChanged();
+  void delegateChanged();
 
 private:
   QString _objectCodeText = {};
+  QVariant _delegate = {};
 };
 
 // Factory to ensure class invariants of project are maintained.
@@ -77,12 +83,12 @@ public:
   };
   Q_ENUM(Roles);
   // Q_INVOKABLE ISAProject *isa(utils::Architecture::Value arch, project::Features features);
-  ProjectModel(QObject *parent = nullptr) : QAbstractListModel(parent){};
+  explicit ProjectModel(QObject *parent = nullptr) : QAbstractListModel(parent){};
   // Helper to expose rowCount as a property to QML.
   int _rowCount() const { return rowCount({}); }
   int rowCount(const QModelIndex &parent) const override;
   QVariant data(const QModelIndex &index, int role) const override;
-  Q_INVOKABLE Pep10_ISA *pep10ISA();
+  Q_INVOKABLE Pep10_ISA *pep10ISA(QVariant delegate);
   bool removeRows(int row, int count, const QModelIndex &parent) override;
   bool moveRows(const QModelIndex &sourceParent, int sourceRow, int count, const QModelIndex &destinationParent,
                 int destinationChild) override;

@@ -36,29 +36,54 @@ ApplicationWindow {
     visible: true
     title: qsTr("Pepp IDE")
 
-    property variant currentProject: null
+    property var currentProject: null
+
     property string mode: "welcome"
-    function switchToProject(index) {
-        console.log(`project: switching to ${index}`)
-        projectBar.currentIndex = index
+    function setCurrentProject(index) {
+        window.currentProject = pm.data(pm.index(index, 0),
+                                        ProjectModel.ProjectRole)
     }
+
+    function switchToProject(index, force) {
+        // console.log(`project: switching to ${index}`)
+        var needsManualUpdate = (force ?? false)
+                && projectBar.currentIndex === index
+        if (needsManualUpdate)
+            setCurrentProject(index)
+        else
+            projectBar.currentIndex = index
+    }
+
     function closeProject(index) {
         console.log(`project: closed ${index}`)
         // TODO: add logic to save project before closing or reject change entirely.
         pm.removeRows(index, 1)
+        if (pm.rowCount() === 0)
+            return
+        else if (index < pm.rowCount())
+            switchToProject(index, true)
+        else
+            switchToProject(pm.rowCount() - 1)
     }
 
     Component.onCompleted: {
         // Allow welcome mode to create a new project, and switch to it on creation.
         welcome.addProject.connect(pm.onAddProject)
         welcome.addProject.connect(() => switchToProject(pm.count - 1))
+        help.addProject.connect(pm.onAddProject)
+        help.addProject.connect(() => switchToProject(pm.count - 1))
+        help.switchToMode.connect(sidebar.switchToMode)
+        currentProjectChanged.connect(projectLoader.onCurrentProjectChanged)
     }
 
     ProjectModel {
         id: pm
-        function onAddProject(arch, level, feats) {
-            console.log("adding project")
-            pm.pep10ISA()
+        function onAddProject(arch, level, feats, optText) {
+            // Attach a delegate to the project which can render its edit/debug modes. Since it is a C++ property,
+            // binding changes propogate automatically.
+            var proj = pm.pep10ISA(pep10isaComponent) // C++
+            if (optText)
+                proj.set(level, optText)
         }
     }
     ListModel {
@@ -183,13 +208,8 @@ ApplicationWindow {
                     id: projectBar
                     Layout.fillWidth: true
                     Layout.fillHeight: true
-                    onCurrentIndexChanged: {
-                        // I don't want the + be current. Removing a selected item from the model seems to
-                        // select the previous index rather than the next.
-                        window.currentProject = pm.data(
-                                    pm.index(currentIndex, 0),
-                                    ProjectModel.ProjectRole)
-                    }
+                    onCurrentIndexChanged: window.setCurrentProject(
+                                               currentIndex)
                     Repeater {
                         model: pm
                         anchors.fill: parent
@@ -245,6 +265,21 @@ ApplicationWindow {
         anchors.bottom: parent.bottom
         anchors.left: parent.left
         width: 100
+        function switchToMode(mode) {
+            // Match the button, case insensitive.
+            const re = new RegExp(mode, "i")
+            // Children of sidebar are the repeater's delegates
+            for (var button of sidebar.children) {
+                if (re.test(button.text)) {
+                    button.clicked()
+                    // Must set checked in order for ButtonGroup to match current mode.
+                    button.checked = true
+                    return
+                }
+            }
+            console.error(`Did not find mode ${mode}`)
+        }
+
         Repeater {
             // If there is no current project, display a Welcome mode.
             model: window.currentProject ? window.currentProject.modes(
@@ -253,9 +288,9 @@ ApplicationWindow {
                 text: model.display ?? "ERROR"
                 Component.onCompleted: {
                     // Triggers window.modeChanged, which will propogate to all relevant components.
-                    onClicked.connect(() => {
-                                          window.mode = text.toLowerCase()
-                                      })
+                    onClicked.connect(function () {
+                        window.mode = text.toLowerCase()
+                    })
                 }
             }
         }
@@ -287,10 +322,12 @@ ApplicationWindow {
             id: projectLoader
             Layout.fillHeight: true
             Layout.fillWidth: true
-            // TODO: Will need to switch to "source" with magic for passing mode & model.
-            sourceComponent: window.projectComponent
-            property string mode: window.mode
-            property alias model: window.currentProject
+            sourceComponent: null
+            // Must unload the previous component to properly trigger save.
+            function onCurrentProjectChanged() {
+                sourceComponent = null
+                sourceComponent = window.currentProject?.delegate
+            }
         }
         Component.onCompleted: {
             window.modeChanged.connect(onModeChanged)
@@ -317,8 +354,9 @@ ApplicationWindow {
     Component {
         id: pep10isaComponent
         Project.Pep10ISA {
-            required property string mode
-            mode: pep10isaComponent.mode
+            project: window.currentProject
+            anchors.fill: parent
+            mode: window.mode
         }
     }
 

@@ -25,6 +25,12 @@ Item {
     id: root
     property alias architecture: filterModel.architecture
     property alias abstraction: filterModel.abstraction
+    signal addProject(int level, int abstraction, string feats, string text)
+    signal switchToMode(string mode)
+    function addProjectWrapper(feats, text, mode) {
+        root.addProject(root.architecture, root.abstraction, feats, text)
+        root.switchToMode(mode ?? "Edit")
+    }
 
     Component.onCompleted: {
         treeView.onSelectedFigChanged.connect(arg => {
@@ -130,6 +136,13 @@ Item {
             bottomMargin: 10
 
             //  Moved logic to separate qml control files
+            Connections {
+                ignoreUnknownSignals: topicWindow.source !== "Figure.qml"
+                target: topicWindow.item
+                function onAddProject(feats, text, switchToMode) {
+                    root.addProjectWrapper(feats, text, switchToMode)
+                }
+            }
             Loader {
                 id: topicWindow
                 anchors.fill: parent
