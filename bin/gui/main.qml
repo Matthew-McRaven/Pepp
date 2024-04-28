@@ -36,12 +36,13 @@ ApplicationWindow {
     visible: true
     title: qsTr("Pepp IDE")
 
-    property variant currentProject: null
+    property var currentProject: null
     property string mode: "welcome"
     function switchToProject(index) {
-        console.log(`project: switching to ${index}`)
+        // console.log(`project: switching to ${index}`)
         projectBar.currentIndex = index
     }
+
     function closeProject(index) {
         console.log(`project: closed ${index}`)
         // TODO: add logic to save project before closing or reject change entirely.
@@ -52,6 +53,7 @@ ApplicationWindow {
         // Allow welcome mode to create a new project, and switch to it on creation.
         welcome.addProject.connect(pm.onAddProject)
         welcome.addProject.connect(() => switchToProject(pm.count - 1))
+        currentProjectChanged.connect(projectLoader.onCurrentProjectChanged)
     }
 
     ProjectModel {
@@ -288,9 +290,12 @@ ApplicationWindow {
             id: projectLoader
             Layout.fillHeight: true
             Layout.fillWidth: true
-            // TODO: Will need to switch to "source" with magic for passing mode & model.
-            sourceComponent: currentProject?.delegate ?? null
-            property alias model: window.currentProject
+            sourceComponent: null
+            // Must unload the previous component to properly trigger save.
+            function onCurrentProjectChanged() {
+                sourceComponent = null
+                sourceComponent = window.currentProject?.delegate
+            }
         }
         Component.onCompleted: {
             window.modeChanged.connect(onModeChanged)
@@ -317,6 +322,7 @@ ApplicationWindow {
     Component {
         id: pep10isaComponent
         Project.Pep10ISA {
+            project: window.currentProject
             anchors.fill: parent
             mode: window.mode
         }
