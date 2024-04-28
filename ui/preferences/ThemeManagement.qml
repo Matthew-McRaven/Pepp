@@ -10,7 +10,11 @@ RowLayout {
   required property int buttonWidth
   required property var model
 
-  Text { id: text; text: "Current Theme" }
+  Text {
+    id: text;
+    text: "Current Theme"
+    color: Theme.surface.foreground
+  }
   ComboBox {
     id: themeId
     model: Theme.themes
@@ -28,26 +32,46 @@ RowLayout {
   }
   Button {
     text: "Copy";
+    palette {
+      button: Theme.container.background
+      buttonText: Theme.surface.foreground
+    }
+
     Layout.preferredWidth: buttonWidth
     onClicked: {
       copyDialog.open()
     }
   }
   Button {
+    id: del
     text: "Delete";
     Layout.preferredWidth: buttonWidth
     enabled: !Theme.systemTheme
     onClicked: deleteDialog.open()
+    palette {
+      button: Theme.container.background
+      buttonText: del.enabled
+                  ? Theme.surface.foreground
+                  : Theme.container.foreground
+    }
   }
   Button {
     text: "Import";
     Layout.preferredWidth: buttonWidth
     onClicked: importDialog.open()
+    palette {
+      button: Theme.container.background
+      buttonText: Theme.surface.foreground
+    }
   }
   Button {
     text: "Export"
     Layout.preferredWidth: buttonWidth
     onClicked: exportDialog.open()
+    palette {
+      button: Theme.container.background
+      buttonText: Theme.surface.foreground
+    }
   }
 
   FileDialog {
