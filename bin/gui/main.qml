@@ -37,16 +37,33 @@ ApplicationWindow {
     title: qsTr("Pepp IDE")
 
     property var currentProject: null
+
     property string mode: "welcome"
-    function switchToProject(index) {
+    function setCurrentProject(index) {
+        window.currentProject = pm.data(pm.index(index, 0),
+                                        ProjectModel.ProjectRole)
+    }
+
+    function switchToProject(index, force) {
         // console.log(`project: switching to ${index}`)
-        projectBar.currentIndex = index
+        var needsManualUpdate = (force ?? false)
+                && projectBar.currentIndex === index
+        if (needsManualUpdate)
+            setCurrentProject(index)
+        else
+            projectBar.currentIndex = index
     }
 
     function closeProject(index) {
         console.log(`project: closed ${index}`)
         // TODO: add logic to save project before closing or reject change entirely.
         pm.removeRows(index, 1)
+        if (pm.rowCount() === 0)
+            return
+        else if (index < pm.rowCount())
+            switchToProject(index, true)
+        else
+            switchToProject(pm.rowCount() - 1)
     }
 
     Component.onCompleted: {
@@ -186,13 +203,8 @@ ApplicationWindow {
                     id: projectBar
                     Layout.fillWidth: true
                     Layout.fillHeight: true
-                    onCurrentIndexChanged: {
-                        // I don't want the + be current. Removing a selected item from the model seems to
-                        // select the previous index rather than the next.
-                        window.currentProject = pm.data(
-                                    pm.index(currentIndex, 0),
-                                    ProjectModel.ProjectRole)
-                    }
+                    onCurrentIndexChanged: window.setCurrentProject(
+                                               currentIndex)
                     Repeater {
                         model: pm
                         anchors.fill: parent
