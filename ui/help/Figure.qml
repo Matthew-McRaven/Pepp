@@ -13,7 +13,6 @@
  * You should have received a copy of the GNU General Public License
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
-
 import QtQuick
 import QtQuick.Controls
 import QtQuick.Layouts
@@ -21,12 +20,11 @@ import edu.pepp 1.0
 import "qrc:/ui/text/editor" as TextEdit
 
 Item {
-
-
+    id: wrapper
     property alias text_area: figContent
+    signal addProject(string feats, string text, string switchToMode)
 
     //required property var model
-
     ColumnLayout {
         id: figCol
         property string copyTitle: "5.7"
@@ -34,33 +32,32 @@ Item {
         property var payload
         property string listing: "Pep/10 is a virtual machine for writing machine language and assemply language programs"
         property bool copyToSource: true
-        property string edition;
-        property string language;
+        property string edition
+        property string language
 
         signal typeChange(string type)
 
         //  Set page contents based on parent selected values
         Component.onCompleted: {
-            copyTitle = treeView.selectedFig.display;
-            let payload = treeView.selectedFig.payload;
-            let edition = treeView.selectedFig.edition;
+            copyTitle = treeView.selectedFig.display
+            let payload = treeView.selectedFig.payload
+            let edition = treeView.selectedFig.edition
 
-            copyToSource = Qt.binding(() => (payload.chapterName !== "04"));
+            copyToSource = Qt.binding(() => (payload.chapterName !== "04"))
 
-            Object.keys(payload.elements).map((lang) => {
-                languageModel.append({
-                    key: lang,
-                    value: payload.elements[lang].content
-                })
-            })
+            Object.keys(payload.elements).map(lang => {
+                                                  languageModel.append({
+                                                                           "key": lang,
+                                                                           "value": payload.elements[lang].content
+                                                                       })
+                                              })
 
             //  Show first item in list box.
             let lang = Object.keys(payload.elements)[0]
             figCol.listing = payload.elements[lang].content
-            figType.currentIndex = Qt.binding(() => 0);
+            figType.currentIndex = Qt.binding(() => 0)
             figCol.edition = Qt.binding(() => edition)
             figCol.language = Qt.binding(() => lang)
-
         }
 
         spacing: 10
@@ -96,11 +93,10 @@ Item {
             delegate: ItemDelegate {
                 width: figType.width
                 contentItem: Text {
-                    text: figType.textRole
-                        ? (Array.isArray(figType.model) ? modelData[figType.textRole] : model[figType.textRole])
-                        : modelData
+                    text: figType.textRole ? (Array.isArray(
+                                                  figType.model) ? modelData[figType.textRole] : model[figType.textRole]) : modelData
                     //  Text color in dropdown
-                    color: figType.highlightedIndex === index ? "#ffffff" : "#333333"// "#ff7d33"
+                    color: figType.highlightedIndex === index ? "#ffffff" : "#333333" // "#ff7d33"
                     font.pointSize: 12
                     elide: Text.ElideRight
                     verticalAlignment: Text.AlignVCenter
@@ -120,18 +116,18 @@ Item {
                     target: figType
 
                     function onPressedChanged() {
-                        canvas.requestPaint();
+                        canvas.requestPaint()
                     }
                 }
 
                 onPaint: {
-                    context.reset();
-                    context.moveTo(0, 0);
-                    context.lineTo(width, 0);
-                    context.lineTo(width / 2, height);
-                    context.closePath();
-                    context.fillStyle = figType.pressed ? Qt.black : "#ff7d33";
-                    context.fill();
+                    context.reset()
+                    context.moveTo(0, 0)
+                    context.lineTo(width, 0)
+                    context.lineTo(width / 2, height)
+                    context.closePath()
+                    context.fillStyle = figType.pressed ? Qt.black : "#ff7d33"
+                    context.fill()
                 }
             }
             contentItem: Text {
@@ -147,14 +143,14 @@ Item {
 
             //  Background in control (not dropped down)
             background: Rectangle {
-                color: "#ff7d33";
+                color: "#ff7d33"
                 radius: 5
             }
         }
         TextEdit.AsmTextEdit {
             id: figContent
             Layout.alignment: Qt.AlignCenter
-            Layout.fillHeight: true;
+            Layout.fillHeight: true
             Layout.fillWidth: true
             text: figCol.listing
             edition: figCol.edition
@@ -175,17 +171,20 @@ Item {
             //  Copy button logic
             Button {
                 id: button
-                text: figCol.copyToSource ? "Copy to Source" : "Copy to Object"
+                text: "Copy to New Project"
                 anchors {
                     horizontalCenter: copyRow.center
                 }
+                onClicked: wrapper.addProject("", figCol.listing, "Edit")
             }
 
             //  Figure title
-            Text { // figCol.copyTitle & figCol.copyContent
+            Text {
+                // figCol.copyTitle & figCol.copyContent
                 width: copyRow.width - button.width - copyRow.spacing
                 textFormat: Text.RichText
-                text: "<div><b>Figure " + figCol.copyTitle + ":</b> " + figCol.copyContent + "</div>"
+                text: "<div><b>Figure " + figCol.copyTitle + ":</b> "
+                      + figCol.copyContent + "</div>"
                 wrapMode: Text.WordWrap
             }
         } //  Row

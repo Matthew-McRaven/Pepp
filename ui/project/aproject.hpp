@@ -59,6 +59,8 @@ public:
     QQmlEngine::setObjectOwnership(&ret, QQmlEngine::CppOwnership);
     return &ret;
   }
+  // Actually utils::Abstraction, but QM passes it as an int.
+  Q_INVOKABLE void set(int abstraction, QString value);
 
 signals:
   void objectCodeTextChanged();

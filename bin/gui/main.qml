@@ -70,15 +70,20 @@ ApplicationWindow {
         // Allow welcome mode to create a new project, and switch to it on creation.
         welcome.addProject.connect(pm.onAddProject)
         welcome.addProject.connect(() => switchToProject(pm.count - 1))
+        help.addProject.connect(pm.onAddProject)
+        help.addProject.connect(() => switchToProject(pm.count - 1))
+        help.switchToMode.connect(sidebar.switchToMode)
         currentProjectChanged.connect(projectLoader.onCurrentProjectChanged)
     }
 
     ProjectModel {
         id: pm
-        function onAddProject(arch, level, feats) {
+        function onAddProject(arch, level, feats, optText) {
             // Attach a delegate to the project which can render its edit/debug modes. Since it is a C++ property,
             // binding changes propogate automatically.
-            pm.pep10ISA(pep10isaComponent) // C++
+            var proj = pm.pep10ISA(pep10isaComponent) // C++
+            if (optText)
+                proj.set(level, optText)
         }
     }
     ListModel {
@@ -260,6 +265,21 @@ ApplicationWindow {
         anchors.bottom: parent.bottom
         anchors.left: parent.left
         width: 100
+        function switchToMode(mode) {
+            // Match the button, case insensitive.
+            const re = new RegExp(mode, "i")
+            // Children of sidebar are the repeater's delegates
+            for (var button of sidebar.children) {
+                if (re.test(button.text)) {
+                    button.clicked()
+                    // Must set checked in order for ButtonGroup to match current mode.
+                    button.checked = true
+                    return
+                }
+            }
+            console.error(`Did not find mode ${mode}`)
+        }
+
         Repeater {
             // If there is no current project, display a Welcome mode.
             model: window.currentProject ? window.currentProject.modes(
@@ -268,9 +288,9 @@ ApplicationWindow {
                 text: model.display ?? "ERROR"
                 Component.onCompleted: {
                     // Triggers window.modeChanged, which will propogate to all relevant components.
-                    onClicked.connect(() => {
-                                          window.mode = text.toLowerCase()
-                                      })
+                    onClicked.connect(function () {
+                        window.mode = text.toLowerCase()
+                    })
                 }
             }
         }

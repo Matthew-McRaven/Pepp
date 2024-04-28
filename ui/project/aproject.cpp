@@ -21,6 +21,12 @@ void Pep10_ISA::setObjectCodeText(const QString &objectCodeText) {
   emit objectCodeTextChanged();
 }
 
+void Pep10_ISA::set(int abstraction, QString value) {
+  if (abstraction == static_cast<int>(utils::Abstraction::ISA3)) {
+    setObjectCodeText(value);
+  }
+}
+
 int ProjectModel::rowCount(const QModelIndex &parent) const { return _projects.size(); }
 
 QVariant ProjectModel::data(const QModelIndex &index, int role) const {
