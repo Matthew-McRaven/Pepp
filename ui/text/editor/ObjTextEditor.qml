@@ -23,7 +23,6 @@ ScrollView {
     property int bytesPerRow: 16
     property alias readOnly: editor.readOnly
     property alias text: editor.text
-    anchors.fill: parent
     Rectangle {
         anchors.fill: parent
         color: "white"
