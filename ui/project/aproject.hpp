@@ -44,6 +44,7 @@ class Pep10_ISA final : public QObject {
   Q_PROPERTY(project::Environment env READ env CONSTANT)
   Q_PROPERTY(utils::Architecture architecture READ architecture CONSTANT)
   Q_PROPERTY(utils::Abstraction abstraction READ abstraction CONSTANT)
+  Q_PROPERTY(QVariant delegate MEMBER _delegate NOTIFY delegateChanged)
   Q_PROPERTY(QString objectCodeText READ objectCodeText WRITE setObjectCodeText NOTIFY objectCodeTextChanged);
 
 public:
@@ -58,11 +59,14 @@ public:
     QQmlEngine::setObjectOwnership(&ret, QQmlEngine::CppOwnership);
     return &ret;
   }
+
 signals:
   void objectCodeTextChanged();
+  void delegateChanged();
 
 private:
   QString _objectCodeText = {};
+  QVariant _delegate = {};
 };
 
 // Factory to ensure class invariants of project are maintained.

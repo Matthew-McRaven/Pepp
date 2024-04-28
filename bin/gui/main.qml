@@ -58,7 +58,10 @@ ApplicationWindow {
         id: pm
         function onAddProject(arch, level, feats) {
             console.log("adding project")
-            pm.pep10ISA()
+            var isa = pm.pep10ISA() // C++
+            // Attach a delegate to the project which can render its edit/debug modes. Since it is a C++ property,
+            // binding changes propogate automatically.
+            isa.delegate = pep10isaComponent
         }
     }
     ListModel {
@@ -288,8 +291,7 @@ ApplicationWindow {
             Layout.fillHeight: true
             Layout.fillWidth: true
             // TODO: Will need to switch to "source" with magic for passing mode & model.
-            sourceComponent: window.projectComponent
-            property string mode: window.mode
+            sourceComponent: currentProject?.delegate ?? null
             property alias model: window.currentProject
         }
         Component.onCompleted: {
@@ -317,8 +319,8 @@ ApplicationWindow {
     Component {
         id: pep10isaComponent
         Project.Pep10ISA {
-            required property string mode
-            mode: pep10isaComponent.mode
+            anchors.fill: parent
+            mode: window.mode
         }
     }
 
