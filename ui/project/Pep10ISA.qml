@@ -1,36 +1,34 @@
 import QtQuick 2.15
 import QtQuick.Controls
-
 import QtQuick.Layouts
+import "qrc:/ui/text/editor" as Text
 
 Item {
     required property string mode
-    readonly property variant modes: {
-        "edit": edit.StackLayout.index,
-        "debug": debug.StackLayout.index
-    }
-    StackLayout {
-        id: stack
+    SplitView {
         anchors.fill: parent
-        currentIndex: modes[mode] ?? error.StackLayout.index
-
-        Rectangle {
-            id: edit
-            Layout.fillWidth: true
-            Layout.fillHeight: true
-            color: 'blue'
+        orientation: Qt.Horizontal
+        handle: Item {
+            implicitWidth: 4
+            Rectangle {
+                implicitWidth: 4
+                anchors.horizontalCenter: parent.horizontalCenter
+                height: parent.height
+                // TODO: add color for handle
+                color: 'grey'
+            }
+        }
+        Text.ObjTextEditor {
+            id: objEdit
+            readOnly: mode === "debug"
+            text: ""
+            SplitView.minimumWidth: 100
         }
         Rectangle {
             id: debug
-            Layout.fillWidth: true
-            Layout.fillHeight: true
+            visible: mode === "debug"
             color: 'green'
-        }
-        Rectangle {
-            id: error
-            Layout.fillWidth: true
-            Layout.fillHeight: true
-            color: 'purple'
+            SplitView.minimumWidth: 100
         }
     }
 }
