@@ -16,25 +16,7 @@ MemoryByteModel::MemoryByteModel(QObject *parent, const quint32 totalBytes, cons
       column_(new MemoryColumns) {
   //  Changing width also changes height
   setNumBytesPerLine(bytesPerRow);
-  using M = MemoryRoles::Roles;
-  //  Presentation roles
-  roleNames_[M::Selected] = "selectedRole";
-  roleNames_[M::Editing] = "editRole";
-  roleNames_[M::TextColor] = "textColorRole";
-  roleNames_[M::BackgroundColor] = "backgroundColorRole";
-  roleNames_[Qt::TextAlignmentRole] = "textAlignRole";
-
-  //  Data roles
-  roleNames_[M::Byte] = "byteRole";
-  roleNames_[M::Type] = "typeRole";
-  roleNames_[M::LineNo] = "lineNoRole";
-  roleNames_[M::Ascii] = "asciiRole";
-
-  //  Tooltip
-  roleNames_[Qt::ToolTip] = "toolTipRole";
-
   clear();
-
   //  Test last cell
   // writeByte(size_ -1, 88);
 }
@@ -59,7 +41,7 @@ void MemoryByteModel::writeByte(const quint32 address, const quint8 value) {
   const auto index = memoryIndex(address);
 
   //  Write byte to model
-  setData(index, value, MemoryRoles::Roles::Byte);
+  setData(index, value, Qt::DisplayRole);
 }
 
 void MemoryByteModel::setNumBytesPerLine(const quint8 bytesPerLine) {
@@ -90,7 +72,21 @@ void MemoryByteModel::setNumBytesPerLine(const quint8 bytesPerLine) {
   emit dimensionsChanged();
 }
 
-QHash<int, QByteArray> MemoryByteModel::roleNames() const { return roleNames_; }
+QHash<int, QByteArray> MemoryByteModel::roleNames() const {
+  using M = MemoryRoles::Roles;
+  // Use a type alias so that auto-formatting is less ugly.
+  using T = QHash<int, QByteArray>;
+  static T ret = {{Qt::DisplayRole, "display"},
+                  {Qt::ToolTipRole, "toolTip"},
+                  {Qt::TextAlignmentRole, "textAlign"},
+                  {M::Selected, "selected"},
+                  {M::Editing, "editing"},
+                  {M::TextColor, "textColor"},
+                  {M::BackgroundColor, "backgroundColor"},
+                  {M::Type, "type"}};
+  qDebug() << ret;
+  return ret;
+}
 
 QVariant MemoryByteModel::headerData(int section, Qt::Orientation orientation, int role) const { return QVariant(); }
 
@@ -123,27 +119,34 @@ QVariant MemoryByteModel::data(const QModelIndex &index, int role) const {
   case M::Type:
     //  First column is formatted row number
     if (col == column_->LineNo())
-      return QString("lineNoCol");
+      return QString("lineNo");
 
     //  Last column is ascii representation of data
     if (col == column_->Ascii())
-      return QVariant("asciiCol");
+      return QVariant("ascii");
 
     if (col == column_->Border1() || col == column_->Border2())
-      return QVariant("borderCol");
+      return QVariant("border");
 
-    return QVariant("cellCol");
-  case M::LineNo:
-    return QStringLiteral("%1").arg(row * width_, 4, 16, QLatin1Char('0')).toUpper();
-  case M::Ascii:
-    return ascii(row);
+    return QVariant("cell");
+  case Qt::DisplayRole:
+    //  First column is formatted row number
+    if (col == column_->LineNo())
+      return QStringLiteral("%1").arg(row * width_, 4, 16, QLatin1Char('0')).toUpper();
 
-  case M::Byte:
-    if (i < 0)
+    //  Last column is ascii representation of data
+    else if (col == column_->Ascii())
+      return ascii(row);
+
+    else if (col == column_->Border1() || col == column_->Border2())
+      return {};
+
+    else if (i < 0)
       return QVariant("");
 
     //  Show data in hex format
     return QStringLiteral("%1").arg(memory_->read(i), 2, 16, QLatin1Char('0')).toUpper();
+
   case M::Editing:
     //  for last line when memory model is smaller than displayed items
     if (i < 0)
@@ -189,7 +192,7 @@ QVariant MemoryByteModel::data(const QModelIndex &index, int role) const {
 
     //  Default for all other cells
     return QVariant(Qt::AlignHCenter);
-  case Qt::ToolTip:
+  case Qt::ToolTipRole:
     //  Handle invalid index
     if (i < 0)
       return {};
@@ -252,7 +255,7 @@ bool MemoryByteModel::setData(const QModelIndex &index, const QVariant &value, i
     //}
     // break;
   }
-  case M::Byte: {
+  case Qt::DisplayRole: {
 
     int hex = (int)std::strtol(value.toString().toStdString().c_str(), NULL, 16);
     const auto current = data(index, role);

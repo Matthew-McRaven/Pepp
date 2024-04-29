@@ -373,49 +373,48 @@ Rectangle {
 
         DelegateChooser {
             id: memoryDelegateChooser
-            role: "typeRole"
+            role: "type"
 
             //  List exceptions first
             //  Line between line number, cells, and ascii columns
             DelegateChoice {
                 id: border
-                roleValue: "borderCol"
-
+                roleValue: "border"
                 Ui.MemoryDumpBorder {
                     rowHeight: rowHeight
                     colWidth: colWidth
 
-                    backgroundColor: model.backgroundColorRole
-                    foregroundColor: model.textColorRole
+                    backgroundColor: model.backgroundColor
+                    foregroundColor: model.textColor
                 }
             }
             //  Control for presenting line number in first column
             DelegateChoice {
-                roleValue: "lineNoCol"
+                roleValue: "lineNo"
 
                 Ui.MemoryDumpReadOnly {
                     rowHeight: rowHeight
                     colWidth: colWidth
 
-                    backgroundColor: model.backgroundColorRole
-                    textColor: model.textColorRole
-                    text: model.lineNoRole
-                    textAlign: model.textAlignRole
+                    backgroundColor: model.backgroundColor
+                    textColor: model.textColor
+                    text: model.display
+                    textAlign: model.textAlign
                     font: asciiFont
                 }
             }
             //  Column representing ascii representation of hex values
             DelegateChoice {
-                roleValue: "asciiCol"
+                roleValue: "ascii"
 
                 Ui.MemoryDumpReadOnly {
                     rowHeight: rowHeight
                     colWidth: colWidth
 
-                    backgroundColor: model.backgroundColorRole
-                    textColor: model.textColorRole
-                    text: model.asciiRole
-                    textAlign: model.textAlignRole
+                    backgroundColor: model.backgroundColor
+                    textColor: model.textColor
+                    text: model.display
+                    textAlign: model.textAlign
                     font: asciiFont
                 }
             }
@@ -427,21 +426,22 @@ Rectangle {
                     rowHeight: rowHeight
                     colWidth: colWidth
 
-                    backgroundColor: model.backgroundColorRole
-                    textColor: model.textColorRole
-                    text: model.byteRole
-                    textAlign: model.textAlignRole
+                    backgroundColor: model.backgroundColor
+                    textColor: model.textColor
+                    text: model.display
+                    textAlign: model.textAlign
                     font: hexFont
+                    tooltip: model.toolTip ?? null
 
                     //  Initialize edit delegate here
                     TableView.editDelegate: Ui.MemoryDumpEdit {
                         id: ed
                         rowHeight: rowHeight
                         colWidth: colWidth
-                        backgroundColor: model.backgroundColorRole
-                        textColor: model.textColorRole
-                        text: model.byteRole
-                        textAlign: model.textAlignRole
+                        backgroundColor: model.backgroundColor
+                        textColor: model.textColor
+                        text: model.display
+                        textAlign: model.textAlign
                         font: hexFont
                         editFocus: ed.visible
 

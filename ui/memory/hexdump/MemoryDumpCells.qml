@@ -10,6 +10,7 @@ Item {
     property alias text: display.text
     property alias textAlign: display.horizontalAlignment
     property alias font: display.font
+    property var tooltip: null
 
     //  Magic fields required by selection model
     required property bool editing
@@ -43,9 +44,11 @@ Item {
 
             ToolTip {
                 id: tip
-                visible: (!editing && ma.hovered)
+                // If null or empty string, don't display tooltip.
+                visible: ((wrapper.tooltip ?? "") !== "") && !editing
+                         && ma.hovered
+                text: wrapper.tooltip
                 delay: 1000
-                text: model.toolTipRole
             }
 
             //  Used to trigger tool tip

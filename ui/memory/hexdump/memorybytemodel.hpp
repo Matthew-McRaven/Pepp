@@ -12,14 +12,11 @@ class MEMORY_EXPORT MemoryRoles : public QObject {
   Q_OBJECT
 public:
   enum Roles {
-    Byte = Qt::UserRole + 1,
-    Selected,
+    Selected = Qt::UserRole + 1,
     Editing,
     TextColor,
     BackgroundColor,
     Type,
-    LineNo,
-    Ascii,
   };
   Q_ENUM(Roles)
 };
@@ -30,7 +27,6 @@ class MEMORY_EXPORT MemoryByteModel : public QAbstractTableModel {
   quint8 width_ = 8;  //  Default to 8 columns
   qint32 height_ = 0; //  Calculated at startup
 
-  QHash<int, QByteArray> roleNames_;
   EmptyRawMemory *empty_ = nullptr;
   ARawMemory *memory_ = nullptr;
   QSet<quint8> selected_;
