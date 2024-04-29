@@ -2,6 +2,7 @@ import QtQuick 2.15
 import QtQuick.Controls
 import QtQuick.Layouts
 import "qrc:/ui/text/editor" as Text
+import "qrc:/ui/memory/hexdump" as Memory
 import edu.pepp
 
 Item {
@@ -53,6 +54,12 @@ Item {
             id: debug
             visible: mode === "debug"
             color: 'green'
+            SplitView.minimumWidth: 100
+        }
+        Loader {
+            source: "qrc:/ui/memory/hexdump/MemoryDump.qml"
+            visible: mode === "debug"
+            asynchronous: true
             SplitView.minimumWidth: 100
         }
     }
