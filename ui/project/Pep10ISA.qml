@@ -47,7 +47,7 @@ Item {
             id: objEdit
             readOnly: mode !== "edit"
             // text is only an initial binding, the value diverges from there.
-            text: project.objectCodeText
+            text: project?.objectCodeText ?? ""
             SplitView.minimumWidth: 100
         }
         Rectangle {
