@@ -4,7 +4,7 @@
 
 Pep10_ISA::Pep10_ISA(QVariant delegate, QObject *parent)
     : QObject(parent), _delegate(delegate), _memory(new ArrayRawMemory(0x10000, this)),
-      _registers(new RegisterModel(this)) {
+      _registers(new RegisterModel(this)), _flags(new FlagModel(this)) {
   QQmlEngine::setObjectOwnership(_memory, QQmlEngine::CppOwnership);
   QQmlEngine::setObjectOwnership(_registers, QQmlEngine::CppOwnership);
   using RF = QSharedPointer<RegisterFormatter>;
@@ -26,6 +26,16 @@ Pep10_ISA::Pep10_ISA(QVariant delegate, QObject *parent)
   _registers->appendFormatters({TF::create("Instruction Specifier"), BF::create(IS, 1), TF::create("??")});
   _registers->appendFormatters({TF::create("Operand Specifier"), HF::create(OS, 2), SF::create(OS, 2)});
   _registers->appendFormatters({TF::create("(Operand)"), TF::create("??"), TF::create("??")});
+
+  using F = QSharedPointer<Flag>;
+  auto N = []() { return false; };
+  auto Z = []() { return false; };
+  auto V = []() { return false; };
+  auto C = []() { return false; };
+  _flags->appendFlag({F::create("N", N)});
+  _flags->appendFlag({F::create("Z", Z)});
+  _flags->appendFlag({F::create("V", V)});
+  _flags->appendFlag({F::create("C", C)});
 }
 
 project::Environment Pep10_ISA::env() const {

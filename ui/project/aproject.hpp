@@ -4,6 +4,7 @@
 #include <deque>
 #include <qabstractitemmodel.h>
 #include "cpu/registermodel.hpp"
+#include "cpu/statusbitmodel.hpp"
 #include "memory/hexdump/rawmemory.hpp"
 #include "utils/constants.hpp"
 
@@ -113,6 +114,7 @@ class Pep10_ISA final : public QObject {
   Q_PROPERTY(QString objectCodeText READ objectCodeText WRITE setObjectCodeText NOTIFY objectCodeTextChanged);
   Q_PROPERTY(ARawMemory *memory READ memory CONSTANT)
   Q_PROPERTY(RegisterModel *registers MEMBER _registers CONSTANT)
+  Q_PROPERTY(FlagModel *flags MEMBER _flags CONSTANT)
 public:
   explicit Pep10_ISA(QVariant delegate, QObject *parent = nullptr);
   project::Environment env() const;
@@ -136,8 +138,10 @@ signals:
 private:
   QString _objectCodeText = {};
   QVariant _delegate = {};
+  // Use raw pointer to avoid double-free with parent'ed QObjects.
   ArrayRawMemory *_memory = nullptr;
   RegisterModel *_registers = nullptr;
+  FlagModel *_flags = nullptr;
 };
 
 // Factory to ensure class invariants of project are maintained.

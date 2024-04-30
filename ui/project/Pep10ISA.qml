@@ -57,6 +57,7 @@ Item {
                 id: registers
                 SplitView.minimumHeight: 200
                 registers: project.registers
+                flags: project.flags
             }
             TextArea {
                 SplitView.fillHeight: true

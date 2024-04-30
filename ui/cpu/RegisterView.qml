@@ -24,13 +24,45 @@ import "../cpu" as Ui
 Rectangle {
     id: wrapper
     property alias registers: registers.model
+    property alias flags: flags.model
     FontMetrics {
         id: metrics
     }
+    RowLayout {
+        id: flagsContainer
+        anchors.top: parent.top
+        anchors.left: parent.left
+        anchors.right: parent.right
+        height: childrenRect.height
+        Repeater {
+            id: flags
+            delegate: Column {
+                required property string display
+                required property bool value
+                Layout.fillWidth: true
+                Layout.fillHeight: true
+                Text {
+                    anchors.horizontalCenter: parent.horizontalCenter
+                    text: display
+                }
+                CheckBox {
+                    anchors.horizontalCenter: parent.horizontalCenter
+                    enabled: false
+                    checked: value
+                }
+            }
+        }
+    }
 
+    // TODO: switch to Row+Repeater
     TableView {
         id: registers
-        anchors.fill: parent
+        anchors.top: flagsContainer.bottom
+        anchors.bottom: parent.bottom
+        anchors.left: parent.left
+        anchors.right: parent.right
+        height: contentHeight
+
         columnWidthProvider: function (column) {
             return (registers.model.columnCharWidth(
                         column) + 2) * metrics.averageCharacterWidth
