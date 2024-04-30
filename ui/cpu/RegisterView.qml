@@ -32,8 +32,8 @@ Rectangle {
         id: registers
         anchors.fill: parent
         columnWidthProvider: function (column) {
-            return registers.model.columnCharWidth(
-                        column) * metrics.averageCharacterWidth
+            return (registers.model.columnCharWidth(
+                        column) + 2) * metrics.averageCharacterWidth
         }
         delegate: Component {
             Text {
