@@ -436,9 +436,9 @@ Rectangle {
                         onFinishEditing: function (save) {
                             // Only save if flagged, and values are different
                             if (save) {
-                                if (model.byteRole !== ed.text) {
+                                if (model.display !== ed.text) {
                                     console.log("Model updated")
-                                    model.byteRole = ed.text
+                                    model.display = ed.text
                                     cell.text = ed.text
                                 }
                             }
