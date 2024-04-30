@@ -30,6 +30,7 @@ Rectangle {
     property int colWidth: 25
     property int rowHeight: 20
     property alias model: tableView.model
+    property alias memory: memory.memory
 
     TableView {
         id: tableView
@@ -49,11 +50,8 @@ Rectangle {
         selectionMode: TableView.ContiguousSelection
         editTriggers: TableView.SingleTapped //  Manage editor manually
 
-
-        /*TableView.EditKeyPressed |
-                  TableView.SelectedTapped */
         model: MemoryModel {
-            memory: ArrayRawMemoryFactory.create(0x1000)
+            id: memory
         }
 
         //  Ascii column must be calculated since byte width per line is configurable

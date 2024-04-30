@@ -3,6 +3,7 @@
 #include <QStringListModel>
 #include <deque>
 #include <qabstractitemmodel.h>
+#include "memory/hexdump/rawmemory.hpp"
 #include "utils/constants.hpp"
 
 namespace project {
@@ -46,12 +47,13 @@ class Pep10_ISA final : public QObject {
   Q_PROPERTY(utils::Abstraction abstraction READ abstraction CONSTANT)
   Q_PROPERTY(QVariant delegate MEMBER _delegate NOTIFY delegateChanged)
   Q_PROPERTY(QString objectCodeText READ objectCodeText WRITE setObjectCodeText NOTIFY objectCodeTextChanged);
-
+  Q_PROPERTY(ARawMemory *memory READ memory CONSTANT)
 public:
   explicit Pep10_ISA(QVariant delegate, QObject *parent = nullptr);
   project::Environment env() const;
   utils::Architecture architecture() const;
   utils::Abstraction abstraction() const;
+  ARawMemory *memory() const;
   QString objectCodeText() const;
   void setObjectCodeText(const QString &objectCodeText);
   Q_INVOKABLE static QStringListModel *modes() {
@@ -69,6 +71,7 @@ signals:
 private:
   QString _objectCodeText = {};
   QVariant _delegate = {};
+  ArrayRawMemory *_memory = nullptr;
 };
 
 // Factory to ensure class invariants of project are maintained.

@@ -57,10 +57,15 @@ Item {
             SplitView.minimumWidth: 100
         }
         Loader {
+            id: loader
             source: "qrc:/ui/memory/hexdump/MemoryDump.qml"
             visible: mode === "debug"
             asynchronous: true
             SplitView.minimumWidth: 100
+            onLoaded: {
+                if (item !== null)
+                    item.memory = project.memory
+            }
         }
     }
 }
