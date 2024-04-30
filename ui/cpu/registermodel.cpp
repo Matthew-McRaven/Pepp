@@ -32,8 +32,6 @@ QVariant RegisterModel::data(const QModelIndex &index, int role) const
     return {};
 }
 
-bool RegisterModel::setData(const QModelIndex &index, const QVariant &value, int role) { return false; }
-
 void RegisterModel::appendFormatters(QVector<QSharedPointer<RegisterFormatter>> formatters) {
   beginResetModel();
   _cols = std::max(_cols, static_cast<quint32>(formatters.length()));
