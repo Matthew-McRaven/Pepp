@@ -52,7 +52,9 @@ Rectangle {
 
         /*TableView.EditKeyPressed |
                   TableView.SelectedTapped */
-        model: MemoryModel {}
+        model: MemoryModel {
+            memory: ArrayRawMemoryFactory.create(0x1000)
+        }
 
         //  Ascii column must be calculated since byte width per line is configurable
         property int asciiWidth: 10 * (root.model?.BytesPerColumn ?? 10)

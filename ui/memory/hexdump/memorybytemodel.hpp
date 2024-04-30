@@ -23,8 +23,7 @@ class MEMORY_EXPORT MemoryByteModel : public QAbstractTableModel {
 
   //  Statistics on memory size and layout
   quint8 width_ = 8;  //  Default to 8 columns
-  qint32 height_ = 0; //  Calculated at startup
-
+  quint32 height() const;
   EmptyRawMemory *empty_ = nullptr;
   ARawMemory *memory_ = nullptr;
   QSet<quint8> selected_;
@@ -33,15 +32,14 @@ class MEMORY_EXPORT MemoryByteModel : public QAbstractTableModel {
   std::unique_ptr<MemoryColumns> column_;
 
   Q_PROPERTY(MemoryColumns *Column READ column CONSTANT)
-  Q_PROPERTY(ARawMemory *Memory READ memory WRITE setMemory NOTIFY memoryChanged)
+  Q_PROPERTY(ARawMemory *memory READ memory WRITE setMemory NOTIFY memoryChanged)
   Q_PROPERTY(int BytesPerRow READ rowCount NOTIFY dimensionsChanged)
   Q_PROPERTY(int BytesPerColumn READ columnCount NOTIFY dimensionsChanged)
 
 public:
   // Define the role names to be used
 
-  explicit MemoryByteModel(QObject *parent = nullptr, const quint32 totalBytes = (1 << 16),
-                           const quint8 bytesPerRow = 8);
+  explicit MemoryByteModel(QObject *parent = nullptr, const quint8 bytesPerRow = 8);
   ~MemoryByteModel() = default;
 
   //  Required for access in Qml

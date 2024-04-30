@@ -1,5 +1,7 @@
 #include "rawmemory.hpp"
 
+#include <QQmlEngine>
+
 ARawMemory::ARawMemory(QObject *parent) : QObject(parent) {}
 
 ARawMemory::~ARawMemory() = default;
@@ -14,12 +16,38 @@ void EmptyRawMemory::write(quint32 address, quint8 value) {}
 
 void EmptyRawMemory::clear() {}
 
-TableRawMemory::TableRawMemory(quint32 size, QObject *parent) : ARawMemory(parent), _data(size, 0) {}
+EmptyRawMemory *EmptyRawMemoryFactory::create(quint32 size) {
+  auto ret = new EmptyRawMemory(size);
+  // Should be implicitly set due to returning a raw pointer, but be explicit for documentation purposes.
+  QQmlEngine::setObjectOwnership(ret, QQmlEngine::JavaScriptOwnership);
+  return ret;
+}
 
-quint32 TableRawMemory::byteCount() const { return _data.size(); }
+QObject *EmptyRawMemoryFactory::singletonProvider(QQmlEngine *engine, QJSEngine *scriptEngine) {
+  Q_UNUSED(engine)
+  Q_UNUSED(scriptEngine)
+  return new EmptyRawMemoryFactory();
+}
 
-quint8 TableRawMemory::read(quint32 address) const { return _data[address]; }
+ArrayRawMemory::ArrayRawMemory(quint32 size, QObject *parent) : ARawMemory(parent), _data(size, 0) {}
 
-void TableRawMemory::write(quint32 address, quint8 value) { _data[address] = value; }
+quint32 ArrayRawMemory::byteCount() const { return _data.size(); }
 
-void TableRawMemory::clear() { std::fill(_data.begin(), _data.end(), 0); }
+quint8 ArrayRawMemory::read(quint32 address) const { return _data[address]; }
+
+void ArrayRawMemory::write(quint32 address, quint8 value) { _data[address] = value; }
+
+void ArrayRawMemory::clear() { std::fill(_data.begin(), _data.end(), 0); }
+
+ArrayRawMemory *ArrayRawMemoryFactory::create(quint32 size) {
+  auto ret = new ArrayRawMemory(size);
+  // Should be implicitly set due to returning a raw pointer, but be explicit for documentation purposes.
+  QQmlEngine::setObjectOwnership(ret, QQmlEngine::JavaScriptOwnership);
+  return ret;
+}
+
+QObject *ArrayRawMemoryFactory::singletonProvider(QQmlEngine *engine, QJSEngine *scriptEngine) {
+  Q_UNUSED(engine)
+  Q_UNUSED(scriptEngine)
+  return new ArrayRawMemoryFactory();
+}

@@ -4,6 +4,8 @@
 #include <QObject>
 #include <vector>
 
+class QJSEngine;
+class QQmlEngine;
 class ARawMemory : public QObject {
   Q_OBJECT
 public:
@@ -28,10 +30,18 @@ private:
   quint32 _size;
 };
 
-class TableRawMemory : public ARawMemory {
+class EmptyRawMemoryFactory : public QObject {
+  Q_OBJECT
+
+public:
+  Q_INVOKABLE EmptyRawMemory *create(quint32 size);
+  static QObject *singletonProvider(QQmlEngine *engine, QJSEngine *scriptEngine);
+};
+
+class ArrayRawMemory : public ARawMemory {
   Q_OBJECT
 public:
-  explicit TableRawMemory(quint32 size, QObject *parent = nullptr);
+  explicit ArrayRawMemory(quint32 size, QObject *parent = nullptr);
   quint32 byteCount() const override;
   quint8 read(quint32 address) const override;
   void write(quint32 address, quint8 value) override;
@@ -39,4 +49,12 @@ public:
 
 private:
   std::vector<quint8> _data;
+};
+
+class ArrayRawMemoryFactory : public QObject {
+  Q_OBJECT
+
+public:
+  Q_INVOKABLE ArrayRawMemory *create(quint32 size);
+  static QObject *singletonProvider(QQmlEngine *engine, QJSEngine *scriptEngine);
 };

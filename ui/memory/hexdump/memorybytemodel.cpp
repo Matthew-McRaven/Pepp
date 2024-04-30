@@ -11,9 +11,19 @@
 //  For testing only
 #include <QRandomGenerator>
 
-MemoryByteModel::MemoryByteModel(QObject *parent, const quint32 totalBytes, const quint8 bytesPerRow)
-    : QAbstractTableModel(parent), empty_(new EmptyRawMemory(totalBytes, this)), memory_(empty_),
-      column_(new MemoryColumns) {
+quint32 MemoryByteModel::height() const {
+  //  Compute memory height.
+  const auto size = memory_->byteCount();
+  auto height = size / width_;
+
+  //  Pad last row if not exactly divisible
+  if ((size % width_) != 0)
+    ++height;
+  return height;
+}
+
+MemoryByteModel::MemoryByteModel(QObject *parent, const quint8 bytesPerRow)
+    : QAbstractTableModel(parent), empty_(new EmptyRawMemory(0, this)), memory_(empty_), column_(new MemoryColumns) {
   //  Changing width also changes height
   setNumBytesPerLine(bytesPerRow);
   clear();
@@ -29,8 +39,20 @@ ARawMemory *MemoryByteModel::memory() const {
 void MemoryByteModel::setMemory(ARawMemory *memory) {
   if (memory_ == memory)
     return;
-  memory_ = memory;
+
+  beginResetModel();
+  if (memory_ != empty_)
+    delete memory_;
+
+  if (memory == nullptr)
+    memory_ = empty_;
+  else
+    memory_ = memory;
+  // Must take ownership of data or crashes may occur.
+  // Because of ownership changes, we must delete memory_ when we replace it.
+  QQmlEngine::setObjectOwnership(memory_, QQmlEngine::CppOwnership);
   emit memoryChanged();
+  endResetModel();
 }
 
 quint8 MemoryByteModel::readByte(const quint32 address) const { return memory_->read(address); }
@@ -57,14 +79,6 @@ void MemoryByteModel::setNumBytesPerLine(const quint8 bytesPerLine) {
     width_ = bytesPerLine > 32 ? 32 : bytesPerLine;
   }
 
-  //  Compute memory height.
-  const auto size = memory_->byteCount();
-  height_ = size / width_;
-
-  //  Pad last row if not exactly divisible
-  if ((size % width_) != 0)
-    ++height_;
-
   //  Updated column identifiers for width change
   column_->setNumBytesPerLine(width_);
 
@@ -88,10 +102,7 @@ QHash<int, QByteArray> MemoryByteModel::roleNames() const {
 
 QVariant MemoryByteModel::headerData(int section, Qt::Orientation orientation, int role) const { return QVariant(); }
 
-int MemoryByteModel::rowCount(const QModelIndex &parent) const {
-  //  Number of rows of binary numbers
-  return height_;
-}
+int MemoryByteModel::rowCount(const QModelIndex &parent) const { return height(); }
 
 int MemoryByteModel::columnCount(const QModelIndex &parent) const {
   //  Number of binary numbers in row plus row number and ascii representation
@@ -160,6 +171,7 @@ QVariant MemoryByteModel::data(const QModelIndex &index, int role) const {
     //  Default for all other cells
     return QVariant(Qt::AlignHCenter);
   case Qt::ToolTipRole:
+    return "";
     //  Handle invalid index
     if (i < 0)
       return {};
@@ -255,7 +267,7 @@ Qt::ItemFlags MemoryByteModel::flags(const QModelIndex &index) const {
 
 void MemoryByteModel::clear() {
   memory_->clear();
-  emit dataChanged(index(0, 0), index(height_ - 1, column_->Ascii()));
+  emit dataChanged(index(0, 0), index(height() - 1, column_->Ascii()));
 }
 
 //  Convert from cellIndex to memory location
@@ -267,7 +279,7 @@ std::size_t MemoryByteModel::memoryOffset(const QModelIndex &index) const {
     return -1;
 
   //  Test if index is inside data model
-  if (index.row() < 0 && index.row() >= height_)
+  if (index.row() < 0 && index.row() >= height())
     return -1;
 
   //  First column is line number. Skip
@@ -289,7 +301,7 @@ QModelIndex MemoryByteModel::memoryIndex(std::size_t index) {
   const int col = index % width_;
 
   //  Test if index is inside data model
-  if (row < 0 && row >= height_)
+  if (row < 0 && row >= height())
     return QModelIndex();
 
   //  First column is line number. Skip
