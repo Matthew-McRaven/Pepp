@@ -19,12 +19,12 @@ Pep10_ISA::Pep10_ISA(QVariant delegate, QObject *parent)
   auto PC = []() { return 0; };
   auto IS = []() { return 0; };
   auto OS = []() { return 0; };
-  _registers->appendFormatters({TF::create("Accumulator"), HF::create(A), SF::create(A)});
-  _registers->appendFormatters({TF::create("Index Register"), HF::create(X), SF::create(X)});
-  _registers->appendFormatters({TF::create("Stack Pointer"), HF::create(SP), UF::create(SP)});
-  _registers->appendFormatters({TF::create("Program Counter"), HF::create(SP), UF::create(SP)});
-  _registers->appendFormatters({TF::create("Instruction Specifier"), BF::create(IS), TF::create("??")});
-  _registers->appendFormatters({TF::create("Operand Specifier"), HF::create(OS), SF::create(OS)});
+  _registers->appendFormatters({TF::create("Accumulator"), HF::create(A, 2), SF::create(A, 2)});
+  _registers->appendFormatters({TF::create("Index Register"), HF::create(X, 2), SF::create(X, 2)});
+  _registers->appendFormatters({TF::create("Stack Pointer"), HF::create(SP, 2), UF::create(SP, 2)});
+  _registers->appendFormatters({TF::create("Program Counter"), HF::create(PC, 2), UF::create(PC, 2)});
+  _registers->appendFormatters({TF::create("Instruction Specifier"), BF::create(IS, 1), TF::create("??")});
+  _registers->appendFormatters({TF::create("Operand Specifier"), HF::create(OS, 2), SF::create(OS, 2)});
   _registers->appendFormatters({TF::create("(Operand)"), TF::create("??"), TF::create("??")});
 }
 
@@ -98,4 +98,10 @@ QHash<int, QByteArray> ProjectModel::roleNames() const {
   auto ret = QAbstractListModel::roleNames();
   ret[static_cast<int>(Roles::ProjectRole)] = "ProjectRole";
   return ret;
+}
+
+uint64_t mask(uint8_t byteCount) {
+  if (byteCount >= 8)
+    return -1;
+  return (1ULL << (byteCount * 8ULL)) - 1ULL;
 }

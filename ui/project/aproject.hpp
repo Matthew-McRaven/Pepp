@@ -41,47 +41,66 @@ private:
   const project::Environment _env;
 };
 
+// TODO: move to bits
+uint64_t mask(uint8_t byteCount);
+
 struct HexFormatter : public RegisterFormatter {
-  explicit HexFormatter(std::function<uint64_t()> fn) : _fn(fn) {}
+  explicit HexFormatter(std::function<uint64_t()> fn, uint16_t byteCount = 2)
+      : _fn(fn), _bytes(byteCount), _mask(byteCount) {}
   ~HexFormatter() override = default;
-  QString format() const override { return QString::number(_fn(), 16); }
+  QString format() const override { return u"0x%1"_qs.arg(_mask & _fn(), _bytes * 2, 16, QChar('0')); }
   bool readOnly() const override { return false; }
-  qsizetype length() const override { return 4 + 2; }
+  qsizetype length() const override { return 2 * _bytes + 2; }
 
 private:
+  uint16_t _bytes = 0;
+  uint64_t _mask = 0;
   std::function<uint64_t()> _fn;
 };
 
 struct UnsignedDecFormatter : public RegisterFormatter {
-  explicit UnsignedDecFormatter(std::function<uint64_t()> fn) : _fn(fn) {}
+  explicit UnsignedDecFormatter(std::function<uint64_t()> fn, uint16_t byteCount = 2)
+      : _fn(fn), _bytes(byteCount), _len(std::floor(std::log10(byteCount))), _mask(byteCount) {}
   ~UnsignedDecFormatter() override = default;
-  QString format() const override { return QString::number(_fn()); }
+  QString format() const override { return QString::number(_mask & _fn()); }
   bool readOnly() const override { return false; }
-  qsizetype length() const override { return 5; }
+  qsizetype length() const override { return _len; }
 
 private:
+  uint16_t _bytes = 0, _len = 0;
+  uint64_t _mask = 0;
   std::function<uint64_t()> _fn;
 };
 
 struct SignedDecFormatter : public RegisterFormatter {
-  explicit SignedDecFormatter(std::function<int64_t()> fn) : _fn(fn) {}
+  explicit SignedDecFormatter(std::function<int64_t()> fn, uint16_t byteCount = 2)
+      : _fn(fn), _bytes(byteCount), _len(std::floor(std::log10(byteCount))), _mask(mask(byteCount)) {}
   ~SignedDecFormatter() override = default;
-  QString format() const override { return QString::number(_fn()); }
+  QString format() const override {
+    if (auto v = _fn(); v < 0)
+      // Limit V to the range expressable with an N-bit unsigned int before restoring the sign.
+      return QString::number(~(_mask & ~v));
+    return QString::number(_mask & _fn());
+  }
   bool readOnly() const override { return false; }
-  qsizetype length() const override { return 6; }
+  qsizetype length() const override { return 1 + _len; }
 
 private:
+  uint16_t _bytes = 0, _len = 0;
+  uint64_t _mask = 0;
   std::function<int64_t()> _fn;
 };
 
 struct BinaryFormatter : public RegisterFormatter {
-  explicit BinaryFormatter(std::function<uint64_t()> fn) : _fn(fn) {}
+  explicit BinaryFormatter(std::function<uint64_t()> fn, uint16_t byteCount = 1) : _fn(fn), _len(byteCount) {}
   ~BinaryFormatter() override = default;
-  QString format() const override { return QString::number(static_cast<int16_t>(_fn())); }
+  QString format() const override { return u"%1"_qs.arg(_mask & _fn(), length(), 2, QChar('0')); }
   bool readOnly() const override { return false; }
-  qsizetype length() const override { return 8; }
+  qsizetype length() const override { return 8 * _len; }
 
 private:
+  uint16_t _len = 0;
+  uint64_t _mask = 0;
   std::function<uint64_t()> _fn;
 };
 
