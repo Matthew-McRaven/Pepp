@@ -1,122 +1,37 @@
-#include "statusbitmodel.h"
+#include "statusbitmodel.hpp"
 
-StatusBit::StatusBit(const QString statusBit, const bool flag ) :
-    statusBit_(statusBit),
-    flag_(flag) {}
+Flag::Flag(QString name, std::function<bool()> value) : _name(name), _fn(value) {}
 
-StatusBitModel::StatusBitModel(QObject *parent)
-    : QAbstractListModel(parent)
-{
-    //  List column names that will appear in view
-    roleNames_[Status]   = "statusBitRole";
-    roleNames_[Flag]     = "flagRole";
+QString Flag::name() const { return _name; }
 
-    load();
+bool Flag::value() const { return _fn(); }
+
+FlagModel::FlagModel(QObject *parent) : QAbstractListModel(parent) {}
+
+int FlagModel::rowCount(const QModelIndex &) const { return _flags.size(); }
+
+QVariant FlagModel::data(const QModelIndex &index, int role) const {
+  const auto row = index.row();
+  if (!index.isValid() || row < 0 || row >= _flags.size())
+    return {};
+  auto flag = _flags[row];
+
+  switch (role) {
+  case Qt::DisplayRole:
+    return flag->name();
+  case static_cast<int>(Roles::Value):
+    return flag->value();
+  }
+  return {};
 }
 
-void StatusBitModel::load()
-{
-    //  List of elements is static
-    statusBits_.append(StatusBit("N", false) );
-    statusBits_.append(StatusBit("Z", false) );
-    statusBits_.append(StatusBit("V", false) );
-    statusBits_.append(StatusBit("C", false) );
+void FlagModel::appendFlag(QSharedPointer<Flag> flag) {
+  beginResetModel();
+  _flags.append(flag);
+  endResetModel();
 }
 
-void StatusBitModel::updateTestData()
-{
-    //  This function just creates random data to test that QML is updated when model is updated
-    beginResetModel();
-    for( auto& bit : statusBits_ )
-    {
-        bit.setFlag( (QRandomGenerator::global()->generate() % 2 ) == 0);
-    }
-    endResetModel();
-}
-
-void StatusBitModel::reload()
-{
-    //  List of elements is static
-    beginInsertRows(QModelIndex(), rowCount(), rowCount());
-    statusBits_.clear();
-    load();
-    endInsertRows();
-}
-
-QVariant StatusBitModel::headerData(int section, Qt::Orientation orientation, int role) const
-{
-    if( !roleNames_.contains(role))
-        return QVariant();
-
-    return roleNames_.value(role);
-}
-
-int StatusBitModel::rowCount(const QModelIndex &) const
-{
-    //  Number of status bits for this CPU
-    return statusBits_.size();
-}
-
-QVariant StatusBitModel::data(const QModelIndex &index, int role) const
-{
-    if (!index.isValid())
-        return QVariant();
-
-    const auto row = index.row();
-
-    // Boundary check for the row
-    if(row < 0 || row >= statusBits_.size()) {
-        return QVariant();
-    }
-
-    //  Get current status bit
-    const auto statusBit = statusBits_.at(row);
-    switch(role) {
-    case Status:
-        // Status bit indicator
-        return statusBit.statusBit();
-    case Flag:
-        // Return current state for status bit
-        return statusBit.flag();
-    }
-
-    //  Role not found
-    return QVariant();
-}
-
-bool StatusBitModel::setData(const QModelIndex &index, const QVariant &value, int role)
-{
-    //  See if value is different from passed in value
-    if (data(index, role) == value) {
-        return false;
-    }
-
-    const auto row = index.row();
-
-    switch(role) {
-    case Status:
-        // Status indicators are not changing during execution
-        break;
-    case Flag:
-        // Set flag status
-        const bool flag = value.toBool();
-        statusBits_[row].setFlag(flag);
-        emit dataChanged(index, index, {role});
-
-        return true;
-    }
-    return false;
-}
-/*
-Qt::ItemFlags StatusBitModel::flags(const QModelIndex &index) const
-{
-    if (!index.isValid())
-        return Qt::NoItemFlags;
-
-    return QAbstractItemModel::flags(index) | Qt::ItemIsEditable; // FIXME: Implement me!
-}
-*/
-QHash<int, QByteArray> StatusBitModel::roleNames() const
-{
-    return roleNames_;
+QHash<int, QByteArray> FlagModel::roleNames() const {
+  static QHash<int, QByteArray> ret{{Qt::DisplayRole, "display"}, {(int)Roles::Value, "value"}};
+  return ret;
 }

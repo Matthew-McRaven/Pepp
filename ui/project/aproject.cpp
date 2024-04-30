@@ -3,8 +3,39 @@
 #include <QQmlEngine>
 
 Pep10_ISA::Pep10_ISA(QVariant delegate, QObject *parent)
-    : QObject(parent), _delegate(delegate), _memory(new ArrayRawMemory(0x10000, this)) {
+    : QObject(parent), _delegate(delegate), _memory(new ArrayRawMemory(0x10000, this)),
+      _registers(new RegisterModel(this)), _flags(new FlagModel(this)) {
   QQmlEngine::setObjectOwnership(_memory, QQmlEngine::CppOwnership);
+  QQmlEngine::setObjectOwnership(_registers, QQmlEngine::CppOwnership);
+  using RF = QSharedPointer<RegisterFormatter>;
+  using TF = QSharedPointer<TextFormatter>;
+  using HF = QSharedPointer<HexFormatter>;
+  using SF = QSharedPointer<SignedDecFormatter>;
+  using UF = QSharedPointer<UnsignedDecFormatter>;
+  using BF = QSharedPointer<BinaryFormatter>;
+  auto A = []() { return 0; };
+  auto X = []() { return 0; };
+  auto SP = []() { return 0; };
+  auto PC = []() { return 0; };
+  auto IS = []() { return 0; };
+  auto OS = []() { return 0; };
+  _registers->appendFormatters({TF::create("Accumulator"), HF::create(A, 2), SF::create(A, 2)});
+  _registers->appendFormatters({TF::create("Index Register"), HF::create(X, 2), SF::create(X, 2)});
+  _registers->appendFormatters({TF::create("Stack Pointer"), HF::create(SP, 2), UF::create(SP, 2)});
+  _registers->appendFormatters({TF::create("Program Counter"), HF::create(PC, 2), UF::create(PC, 2)});
+  _registers->appendFormatters({TF::create("Instruction Specifier"), BF::create(IS, 1), TF::create("??")});
+  _registers->appendFormatters({TF::create("Operand Specifier"), HF::create(OS, 2), SF::create(OS, 2)});
+  _registers->appendFormatters({TF::create("(Operand)"), TF::create("??"), TF::create("??")});
+
+  using F = QSharedPointer<Flag>;
+  auto N = []() { return false; };
+  auto Z = []() { return false; };
+  auto V = []() { return false; };
+  auto C = []() { return false; };
+  _flags->appendFlag({F::create("N", N)});
+  _flags->appendFlag({F::create("Z", Z)});
+  _flags->appendFlag({F::create("V", V)});
+  _flags->appendFlag({F::create("C", C)});
 }
 
 project::Environment Pep10_ISA::env() const {
@@ -77,4 +108,10 @@ QHash<int, QByteArray> ProjectModel::roleNames() const {
   auto ret = QAbstractListModel::roleNames();
   ret[static_cast<int>(Roles::ProjectRole)] = "ProjectRole";
   return ret;
+}
+
+uint64_t mask(uint8_t byteCount) {
+  if (byteCount >= 8)
+    return -1;
+  return (1ULL << (byteCount * 8ULL)) - 1ULL;
 }

@@ -103,7 +103,6 @@ QHash<int, QByteArray> MemoryByteModel::roleNames() const {
                   {M::Selected, "selected"},
                   {M::Editing, "editing"},
                   {M::Type, "type"}};
-  qDebug() << ret;
   return ret;
 }
 
