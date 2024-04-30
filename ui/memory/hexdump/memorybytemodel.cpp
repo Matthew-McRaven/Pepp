@@ -25,6 +25,9 @@ quint32 MemoryByteModel::height() const {
 MemoryByteModel::MemoryByteModel(QObject *parent, const quint8 bytesPerRow)
     : QAbstractTableModel(parent), empty_(new EmptyRawMemory(0, this)), memory_(empty_), column_(new MemoryColumns) {
   //  Changing width also changes height
+  reclaimMemory_ = false;
+  QQmlEngine::setObjectOwnership(empty_, QQmlEngine::CppOwnership);
+  QQmlEngine::setObjectOwnership(memory_, QQmlEngine::CppOwnership);
   setNumBytesPerLine(bytesPerRow);
   clear();
   //  Test last cell
@@ -41,13 +44,17 @@ void MemoryByteModel::setMemory(ARawMemory *memory) {
     return;
 
   beginResetModel();
-  if (memory_ != empty_)
+  if (reclaimMemory_)
     delete memory_;
 
   if (memory == nullptr)
     memory_ = empty_;
   else
     memory_ = memory;
+  // We only need to reclaim the "memory" pointer if it is currently owned by JS.
+  // If it is alreay owned by CPP, then it is either empty_ or came from an project.
+  // In either case, we should not delete it.
+  reclaimMemory_ = QQmlEngine::objectOwnership(memory_) == QQmlEngine::JavaScriptOwnership;
   // Must take ownership of data or crashes may occur.
   // Because of ownership changes, we must delete memory_ when we replace it.
   QQmlEngine::setObjectOwnership(memory_, QQmlEngine::CppOwnership);

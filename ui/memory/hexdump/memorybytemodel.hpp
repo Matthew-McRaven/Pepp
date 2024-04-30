@@ -25,6 +25,7 @@ class MEMORY_EXPORT MemoryByteModel : public QAbstractTableModel {
   quint8 width_ = 8;  //  Default to 8 columns
   quint32 height() const;
   EmptyRawMemory *empty_ = nullptr;
+  bool reclaimMemory_ = false;
   ARawMemory *memory_ = nullptr;
   QSet<quint8> selected_;
   qint32 editing_ = -1;
