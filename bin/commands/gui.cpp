@@ -45,7 +45,6 @@ struct default_data : public gui_globals {
   ~default_data() override = default;
   StatusBitModel 	sbm;
   RegisterModel 	rm;
-  MemoryByteModel mbm;
   Theme           theme;
   PreferenceModel pm;
   QTimer          interval;
@@ -65,7 +64,6 @@ QSharedPointer<gui_globals> default_init(QQmlApplicationEngine &engine, QSharedP
   auto *ctx = engine.rootContext();
   ctx->setContextProperty("StatusBitModel", 	&data->sbm);
   ctx->setContextProperty("RegisterModel",    &data->rm);
-  ctx->setContextProperty("MemoryByteModel",  &data->mbm);
   ctx->setContextProperty("PreferenceModel", 	&data->pm);
   ctx->setContextProperty("Theme",            &data->theme);
 

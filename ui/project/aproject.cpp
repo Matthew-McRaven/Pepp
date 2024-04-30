@@ -2,7 +2,10 @@
 
 #include <QQmlEngine>
 
-Pep10_ISA::Pep10_ISA(QVariant delegate, QObject *parent) : QObject(parent), _delegate(delegate) {}
+Pep10_ISA::Pep10_ISA(QVariant delegate, QObject *parent)
+    : QObject(parent), _delegate(delegate), _memory(new ArrayRawMemory(0x10000, this)) {
+  QQmlEngine::setObjectOwnership(_memory, QQmlEngine::CppOwnership);
+}
 
 project::Environment Pep10_ISA::env() const {
   return {.arch = utils::Architecture::PEP10, .level = utils::Abstraction::ISA3, .features = project::Features::None};
@@ -11,6 +14,8 @@ project::Environment Pep10_ISA::env() const {
 utils::Architecture Pep10_ISA::architecture() const { return utils::Architecture::PEP10; }
 
 utils::Abstraction Pep10_ISA::abstraction() const { return utils::Abstraction::ISA3; }
+
+ARawMemory *Pep10_ISA::memory() const { return _memory; }
 
 QString Pep10_ISA::objectCodeText() const { return _objectCodeText; }
 
