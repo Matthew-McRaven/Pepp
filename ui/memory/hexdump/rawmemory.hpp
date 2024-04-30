@@ -1,12 +1,12 @@
 #pragma once
-#include "QtTypes"
-
 #include <QObject>
+#include <QtTypes>
 #include <vector>
+#include "../memory_globals.hpp"
 
 class QJSEngine;
 class QQmlEngine;
-class ARawMemory : public QObject {
+class MEMORY_EXPORT ARawMemory : public QObject {
   Q_OBJECT
 public:
   ARawMemory(QObject *parent = nullptr);
@@ -17,7 +17,7 @@ public:
   virtual void clear() = 0;
 };
 
-class EmptyRawMemory : public ARawMemory {
+class MEMORY_EXPORT EmptyRawMemory : public ARawMemory {
   Q_OBJECT
 public:
   explicit EmptyRawMemory(quint32 size, QObject *parent = nullptr);
@@ -30,7 +30,7 @@ private:
   quint32 _size;
 };
 
-class EmptyRawMemoryFactory : public QObject {
+class MEMORY_EXPORT EmptyRawMemoryFactory : public QObject {
   Q_OBJECT
 
 public:
@@ -38,7 +38,7 @@ public:
   static QObject *singletonProvider(QQmlEngine *engine, QJSEngine *scriptEngine);
 };
 
-class ArrayRawMemory : public ARawMemory {
+class MEMORY_EXPORT ArrayRawMemory : public ARawMemory {
   Q_OBJECT
 public:
   explicit ArrayRawMemory(quint32 size, QObject *parent = nullptr);
@@ -51,7 +51,7 @@ private:
   std::vector<quint8> _data;
 };
 
-class ArrayRawMemoryFactory : public QObject {
+class MEMORY_EXPORT ArrayRawMemoryFactory : public QObject {
   Q_OBJECT
 
 public:
