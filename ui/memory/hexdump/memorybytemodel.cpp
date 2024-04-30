@@ -81,8 +81,6 @@ QHash<int, QByteArray> MemoryByteModel::roleNames() const {
                   {Qt::TextAlignmentRole, "textAlign"},
                   {M::Selected, "selected"},
                   {M::Editing, "editing"},
-                  {M::TextColor, "textColor"},
-                  {M::BackgroundColor, "backgroundColor"},
                   {M::Type, "type"}};
   qDebug() << ret;
   return ret;
@@ -155,37 +153,6 @@ QVariant MemoryByteModel::data(const QModelIndex &index, int role) const {
     //  Only one cell can be edited at a time
     // return editing_;
     return i == editing_;
-  case M::TextColor:
-    //  Set editing color if in edit mode
-    if (editField &&              //  column is editable
-        editing_ > -1 &&          //  field is being edited
-        i == editing_)            //  This cell is the current edited field
-      return QVariant("#FF9800"); //  Pepperdine Orange
-
-    //  For alternating columns, set color
-    if ((col % 2) == 1 && col < column_->Border2())
-      return QVariant("black");
-
-    //  Default color
-    return QVariant("black");
-  case M::BackgroundColor:
-    //  Handle invalid index
-    // if(i < 0 && row != 0)
-    //    return QVariant("white");
-
-    //  Set editing color if in edit mode
-    if (editField &&              //  column is editable
-        editing_ > -1 &&          //  field is being edited
-        i == editing_)            //  This cell is the current edited field
-      return QVariant("#3F51B5"); //  Pepperdine Blue
-
-    //  For alternating columns, set color
-    //  for last line when memory model is smaller than displayed items
-    if ((col % 2) == 1 && col < column_->Border2() && col > column_->Border1() && i < memory_->byteCount())
-      return QVariant("#f0f0f0");
-
-    //  Default color
-    return QVariant("white");
   case Qt::TextAlignmentRole:
     if (col == column_->Ascii())
       return QVariant(Qt::AlignLeft);

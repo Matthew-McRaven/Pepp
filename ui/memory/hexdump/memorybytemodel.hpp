@@ -14,8 +14,6 @@ public:
   enum Roles {
     Selected = Qt::UserRole + 1,
     Editing,
-    TextColor,
-    BackgroundColor,
     Type,
   };
   Q_ENUM(Roles)

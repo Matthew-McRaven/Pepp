@@ -384,8 +384,8 @@ Rectangle {
                     rowHeight: rowHeight
                     colWidth: colWidth
 
-                    backgroundColor: model.backgroundColor
-                    foregroundColor: model.textColor
+                    backgroundColor: "#f5f5f5"
+                    foregroundColor: "#000000"
                 }
             }
             //  Control for presenting line number in first column
@@ -396,8 +396,8 @@ Rectangle {
                     rowHeight: rowHeight
                     colWidth: colWidth
 
-                    backgroundColor: model.backgroundColor
-                    textColor: model.textColor
+                    backgroundColor: "#f5f5f5"
+                    textColor: "#000000"
                     text: model.display
                     textAlign: model.textAlign
                     font: asciiFont
@@ -411,8 +411,8 @@ Rectangle {
                     rowHeight: rowHeight
                     colWidth: colWidth
 
-                    backgroundColor: model.backgroundColor
-                    textColor: model.textColor
+                    backgroundColor: "#f5f5f5"
+                    textColor: "#000000"
                     text: model.display
                     textAlign: model.textAlign
                     font: asciiFont
@@ -426,8 +426,8 @@ Rectangle {
                     rowHeight: rowHeight
                     colWidth: colWidth
 
-                    backgroundColor: model.backgroundColor
-                    textColor: model.textColor
+                    backgroundColor: (column % 2 == 0) ? "#f5f5f5" : "#e0e0e0"
+                    textColor: "#000000"
                     text: model.display
                     textAlign: model.textAlign
                     font: hexFont
@@ -438,8 +438,8 @@ Rectangle {
                         id: ed
                         rowHeight: rowHeight
                         colWidth: colWidth
-                        backgroundColor: model.backgroundColor
-                        textColor: model.textColor
+                        backgroundColor: "#3f51b5"
+                        textColor: "#FF9800"
                         text: model.display
                         textAlign: model.textAlign
                         font: hexFont
