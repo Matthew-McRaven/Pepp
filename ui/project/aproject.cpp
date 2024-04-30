@@ -3,8 +3,29 @@
 #include <QQmlEngine>
 
 Pep10_ISA::Pep10_ISA(QVariant delegate, QObject *parent)
-    : QObject(parent), _delegate(delegate), _memory(new ArrayRawMemory(0x10000, this)) {
+    : QObject(parent), _delegate(delegate), _memory(new ArrayRawMemory(0x10000, this)),
+      _registers(new RegisterModel(this)) {
   QQmlEngine::setObjectOwnership(_memory, QQmlEngine::CppOwnership);
+  QQmlEngine::setObjectOwnership(_registers, QQmlEngine::CppOwnership);
+  using RF = QSharedPointer<RegisterFormatter>;
+  using TF = QSharedPointer<TextFormatter>;
+  using HF = QSharedPointer<HexFormatter>;
+  using SF = QSharedPointer<SignedDecFormatter>;
+  using UF = QSharedPointer<UnsignedDecFormatter>;
+  using BF = QSharedPointer<BinaryFormatter>;
+  auto A = []() { return 0; };
+  auto X = []() { return 0; };
+  auto SP = []() { return 0; };
+  auto PC = []() { return 0; };
+  auto IS = []() { return 0; };
+  auto OS = []() { return 0; };
+  _registers->appendFormatters({TF::create("Accumulator"), HF::create(A), SF::create(A)});
+  _registers->appendFormatters({TF::create("Index Register"), HF::create(X), SF::create(X)});
+  _registers->appendFormatters({TF::create("Stack Pointer"), HF::create(SP), UF::create(SP)});
+  _registers->appendFormatters({TF::create("Program Counter"), HF::create(SP), UF::create(SP)});
+  _registers->appendFormatters({TF::create("Instruction Specifier"), BF::create(IS), TF::create("??")});
+  _registers->appendFormatters({TF::create("Operand Specifier"), HF::create(OS), SF::create(OS)});
+  _registers->appendFormatters({TF::create("(Operand)"), TF::create("??"), TF::create("??")});
 }
 
 project::Environment Pep10_ISA::env() const {

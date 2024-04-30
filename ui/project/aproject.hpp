@@ -3,6 +3,7 @@
 #include <QStringListModel>
 #include <deque>
 #include <qabstractitemmodel.h>
+#include "cpu/registermodel.hpp"
 #include "memory/hexdump/rawmemory.hpp"
 #include "utils/constants.hpp"
 
@@ -40,6 +41,50 @@ private:
   const project::Environment _env;
 };
 
+struct HexFormatter : public RegisterFormatter {
+  explicit HexFormatter(std::function<uint64_t()> fn) : _fn(fn) {}
+  ~HexFormatter() override = default;
+  QString format() const override { return QString::number(_fn(), 16); }
+  bool readOnly() const override { return false; }
+  qsizetype length() const override { return 4 + 2; }
+
+private:
+  std::function<uint64_t()> _fn;
+};
+
+struct UnsignedDecFormatter : public RegisterFormatter {
+  explicit UnsignedDecFormatter(std::function<uint64_t()> fn) : _fn(fn) {}
+  ~UnsignedDecFormatter() override = default;
+  QString format() const override { return QString::number(_fn()); }
+  bool readOnly() const override { return false; }
+  qsizetype length() const override { return 5; }
+
+private:
+  std::function<uint64_t()> _fn;
+};
+
+struct SignedDecFormatter : public RegisterFormatter {
+  explicit SignedDecFormatter(std::function<int64_t()> fn) : _fn(fn) {}
+  ~SignedDecFormatter() override = default;
+  QString format() const override { return QString::number(_fn()); }
+  bool readOnly() const override { return false; }
+  qsizetype length() const override { return 6; }
+
+private:
+  std::function<int64_t()> _fn;
+};
+
+struct BinaryFormatter : public RegisterFormatter {
+  explicit BinaryFormatter(std::function<uint64_t()> fn) : _fn(fn) {}
+  ~BinaryFormatter() override = default;
+  QString format() const override { return QString::number(static_cast<int16_t>(_fn())); }
+  bool readOnly() const override { return false; }
+  qsizetype length() const override { return 8; }
+
+private:
+  std::function<uint64_t()> _fn;
+};
+
 class Pep10_ISA final : public QObject {
   Q_OBJECT
   Q_PROPERTY(project::Environment env READ env CONSTANT)
@@ -48,6 +93,7 @@ class Pep10_ISA final : public QObject {
   Q_PROPERTY(QVariant delegate MEMBER _delegate NOTIFY delegateChanged)
   Q_PROPERTY(QString objectCodeText READ objectCodeText WRITE setObjectCodeText NOTIFY objectCodeTextChanged);
   Q_PROPERTY(ARawMemory *memory READ memory CONSTANT)
+  Q_PROPERTY(RegisterModel *registers MEMBER _registers CONSTANT)
 public:
   explicit Pep10_ISA(QVariant delegate, QObject *parent = nullptr);
   project::Environment env() const;
@@ -72,6 +118,7 @@ private:
   QString _objectCodeText = {};
   QVariant _delegate = {};
   ArrayRawMemory *_memory = nullptr;
+  RegisterModel *_registers = nullptr;
 };
 
 // Factory to ensure class invariants of project are maintained.

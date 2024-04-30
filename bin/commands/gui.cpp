@@ -25,7 +25,6 @@
 //  Testing only
 #include <QDirIterator>
 
-#include "cpu/registermodel.h"
 #include "cpu/statusbitmodel.h"
 #include "help/about/version.hpp"
 #include "memory/hexdump/memorybytemodel.hpp"
@@ -44,7 +43,6 @@ struct default_data : public gui_globals {
   default_data() : pm(&theme) {}
   ~default_data() override = default;
   StatusBitModel 	sbm;
-  RegisterModel 	rm;
   Theme           theme;
   PreferenceModel pm;
   QTimer          interval;
@@ -63,14 +61,12 @@ QSharedPointer<gui_globals> default_init(QQmlApplicationEngine &engine, QSharedP
   //  Connect models
   auto *ctx = engine.rootContext();
   ctx->setContextProperty("StatusBitModel", 	&data->sbm);
-  ctx->setContextProperty("RegisterModel",    &data->rm);
   ctx->setContextProperty("PreferenceModel", 	&data->pm);
   ctx->setContextProperty("Theme",            &data->theme);
 
   //  Simulate changes in Pepp10
   data->interval.setInterval(1000);
   QObject::connect(&data->interval, &QTimer::timeout, &data->sbm, &StatusBitModel::updateTestData);
-  QObject::connect(&data->interval, &QTimer::timeout, &data->rm,  &RegisterModel::updateTestData);
   data->interval.start();
   return data;
 }

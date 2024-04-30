@@ -1,142 +1,56 @@
-#include "registermodel.h"
+#include "registermodel.hpp"
 
 //  For testing only
 #include <QRandomGenerator>
 
-PepRegister::PepRegister(const QString name, const quint32 address, const QString data) :
-    name_(name),
-    address_(address),
-    data_(data) {}
+RegisterModel::RegisterModel(QObject *parent) : QAbstractTableModel(parent) {}
 
-RegisterModel::RegisterModel(QObject *parent)
-    : QAbstractListModel(parent)
-{
-    //  List column names that will appear in view
-    roleNames_[Name]   = "nameRole";
-    roleNames_[Address]= "addressRole";
-    roleNames_[Data]   = "dataRole";
-
-    //  Load registers
-    load();
+int RegisterModel::rowCount(const QModelIndex &) const {
+  return _data.length();
 }
 
-void RegisterModel::load()
-{
-    //  List of elements is static
-    registers_.append(PepRegister("Accumulator",           0, "0") );
-    registers_.append(PepRegister("Index Register",        0, "0") );
-    registers_.append(PepRegister("Stack Pointer",         0, "0") );
-    registers_.append(PepRegister("Program Counter",       0, "0") );
-    registers_.append(PepRegister("Instruction Specifier", 0, "0") );
-    registers_.append(PepRegister("Operand Specifier",     0, "") );
-    registers_.append(PepRegister("Operand",               0, "") );
-}
-
-void RegisterModel::updateTestData()
-{
-    //  This function just creates random data to test that QML is updated when model is updated
-    beginResetModel();
-    for( auto& reg : registers_ )
-    {
-        const quint16 address = static_cast<quint16>( QRandomGenerator::global()->generate() );
-        const QString data = QString( "%1").arg( QRandomGenerator::global()->generate() % 0xffff);
-        reg.setAddress( address );
-        reg.setData( data );
-    }
-    endResetModel();
-}
-
-void RegisterModel::reload()
-{
-    //  List of elements is static
-    beginInsertRows(QModelIndex(), rowCount(), rowCount());
-    registers_.clear();
-    load();
-    endInsertRows();
-}
-
-QVariant RegisterModel::headerData(int section, Qt::Orientation orientation, int role) const
-{
-    if( !roleNames_.contains(role))
-        return QVariant();
-
-    return roleNames_.value(role);
-}
-
-int RegisterModel::rowCount(const QModelIndex &) const
-{
-    //  Number of status bits for this CPU
-    return registers_.size();
+int RegisterModel::columnCount(const QModelIndex &parent) const {
+  return _cols;
 }
 
 QVariant RegisterModel::data(const QModelIndex &index, int role) const
 {
     if (!index.isValid())
-        return QVariant();
+      return {};
 
     const auto row = index.row();
-
-    // Boundary check for the row
-    if(row < 0 || row >= registers_.size()) {
-        return QVariant();
+    const auto col = index.column();
+    auto item = _data[row][col];
+    switch (role) {
+    case static_cast<int>(Roles::ReadOnly):
+      return item->readOnly();
+      break;
+    case Qt::DisplayRole:
+      return item->format();
+      break;
     }
-
-    //  Get current status bit
-    const auto reg = registers_.at(row);
-    switch(role) {
-    case Name:
-        // Return register name
-        return reg.name();
-    case Address:
-        // Return value in register
-        return reg.address();
-    case Data:
-        // Return Data in current register
-        return reg.data();
-    }
-
-    //  Role not found
-    return QVariant();
+    return {};
 }
 
-bool RegisterModel::setData(const QModelIndex &index, const QVariant &value, int role)
-{
-    //  See if value is different from passed in value
-    if (data(index, role) == value) {
-        return false;
-    }
+bool RegisterModel::setData(const QModelIndex &index, const QVariant &value, int role) { return false; }
 
-    auto reg = registers_.at(index.row());
-
-    if(RoleNames::Address == role) {
-        const quint16 addr = value.toUInt();
-        reg.setAddress(addr);
-
-        emit dataChanged(index, index, {role});
-        return true;
-    }
-    else if( RoleNames::Data == role) {
-        // Update data field
-        const QString data = value.toString();
-        reg.setData(data);
-        emit dataChanged(index, index, {role});
-
-        return true;
-    }
-
-    //  Ignore other flags
-    return false;
+void RegisterModel::appendFormatters(QVector<QSharedPointer<RegisterFormatter>> formatters) {
+  beginResetModel();
+  _cols = std::max(_cols, static_cast<quint32>(formatters.length()));
+  _data.append(formatters);
+  endResetModel();
 }
-/*
-Qt::ItemFlags StatusBitModel::flags(const QModelIndex &index) const
-{
-    if (!index.isValid())
-        return Qt::NoItemFlags;
 
-    return QAbstractItemModel::flags(index) | Qt::ItemIsEditable; // FIXME: Implement me!
+qsizetype RegisterModel::columnCharWidth(int column) const {
+  qsizetype ret = 0;
+  for (const auto &row : _data) {
+    ret = std::max(ret, row[column]->length());
+  }
+  return ret;
 }
-*/
-QHash<int, QByteArray> RegisterModel::roleNames() const
-{
-    return roleNames_;
+
+QHash<int, QByteArray> RegisterModel::roleNames() const {
+  static const QHash<int, QByteArray> ret{{Qt::DisplayRole, "display"},
+                                          {static_cast<int>(Roles::ReadOnly), "readOnly"}};
+  return ret;
 }

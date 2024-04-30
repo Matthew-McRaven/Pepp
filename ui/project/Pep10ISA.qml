@@ -3,6 +3,7 @@ import QtQuick.Controls
 import QtQuick.Layouts
 import "qrc:/ui/text/editor" as Text
 import "qrc:/ui/memory/hexdump" as Memory
+import "qrc:/ui/cpu" as Cpu
 import edu.pepp
 
 Item {
@@ -10,7 +11,6 @@ Item {
     required property var project
     required property string mode
     Component.onCompleted: {
-        //console.log("open", project, "with oc:" + project.objectCodeText)
         // Must connect and disconnect manually, otherwise project may be changed underneath us, and "save" targets wrong project.
         // Do not need to update on mode change, since mode change implies loss of focus of objEdit.
         objEdit.editingFinished.connect(save)
@@ -18,7 +18,6 @@ Item {
     // Will be called before project is changed on unload, so we can disconnect save-triggering signals.
     Component.onDestruction: {
         objEdit.editingFinished.disconnect(save)
-        // console.log("close", project, "with oc:" + project.objectCodeText)
     }
 
     function save() {
@@ -27,7 +26,6 @@ Item {
             return
         else if (!objEdit.readOnly)
             project.objectCodeText = objEdit.text
-        //console.log("triggering save with object code:" + project.objectCodeText)
     }
 
     SplitView {
@@ -49,19 +47,27 @@ Item {
             // text is only an initial binding, the value diverges from there.
             text: project?.objectCodeText ?? ""
             SplitView.minimumWidth: 100
+            SplitView.fillWidth: true
         }
-        Rectangle {
-            id: debug
+        SplitView {
             visible: mode === "debug"
-            color: 'green'
-            SplitView.minimumWidth: 100
+            SplitView.minimumWidth: 200
+            orientation: Qt.Vertical
+            Cpu.RegisterView {
+                id: registers
+                SplitView.minimumHeight: 200
+                registers: project.registers
+            }
+            TextArea {
+                SplitView.fillHeight: true
+            }
         }
         Loader {
             id: loader
             source: "qrc:/ui/memory/hexdump/MemoryDump.qml"
             visible: mode === "debug"
             asynchronous: true
-            SplitView.minimumWidth: 100
+            SplitView.minimumWidth: 340
             onLoaded: {
                 if (item !== null)
                     item.memory = project.memory
