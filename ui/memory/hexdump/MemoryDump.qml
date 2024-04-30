@@ -388,39 +388,10 @@ Rectangle {
                     foregroundColor: "#000000"
                 }
             }
-            //  Control for presenting line number in first column
+
+            //  Show cell values. Control is editable
             DelegateChoice {
-                roleValue: "lineNo"
-
-                Ui.MemoryDumpReadOnly {
-                    rowHeight: rowHeight
-                    colWidth: colWidth
-
-                    backgroundColor: "#f5f5f5"
-                    textColor: "#000000"
-                    text: model.display
-                    textAlign: model.textAlign
-                    font: asciiFont
-                }
-            }
-            //  Column representing ascii representation of hex values
-            DelegateChoice {
-                roleValue: "ascii"
-
-                Ui.MemoryDumpReadOnly {
-                    rowHeight: rowHeight
-                    colWidth: colWidth
-
-                    backgroundColor: "#f5f5f5"
-                    textColor: "#000000"
-                    text: model.display
-                    textAlign: model.textAlign
-                    font: asciiFont
-                }
-            }
-
-            //  Default role - Show cell values. Control is editable
-            DelegateChoice {
+                roleValue: "cell"
                 Ui.MemoryDumpCells {
                     id: cell
                     rowHeight: rowHeight
@@ -489,6 +460,20 @@ Rectangle {
                             parentTable.keyPress(key)
                         }
                     }
+                }
+            }
+            //  Default -- line numbers and ASCII
+            DelegateChoice {
+
+                Ui.MemoryDumpReadOnly {
+                    rowHeight: rowHeight
+                    colWidth: colWidth
+
+                    backgroundColor: "#f5f5f5"
+                    textColor: "#000000"
+                    text: model.display
+                    textAlign: model.textAlign
+                    font: asciiFont
                 }
             }
         }
