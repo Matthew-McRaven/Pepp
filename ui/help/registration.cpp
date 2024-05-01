@@ -17,11 +17,13 @@
 #include "registration.hpp"
 #include "book_item_model.hpp"
 #include "bookfiltermodel.hpp"
+#include "charcheck.hpp"
 
 namespace help {
 void registerTypes(const char *uri) {
   // TODO: Missing translations
   qmlRegisterType<builtins::BookModel>(uri, 1, 0, "BookModel");
   qmlRegisterType<builtins::BookFilterModel>(uri, 1, 0, "BookFilterModel");
+  qmlRegisterType<CharCheck>(uri, 1, 0, "CharCheck");
 }
 } // namespace help

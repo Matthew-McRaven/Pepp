@@ -185,8 +185,13 @@ ApplicationWindow {
                     text: qsTr("⋮")
                     font: menuFont.font
                 }
-                Rectangle {
-                    color: "transparent"
+                ToolSeparator {}
+                Help.Converters {
+                    initialValue: 'a'.charCodeAt(0)
+                    mnemonics: currentProject?.mnemonics ?? null
+                }
+
+                Item {
                     Layout.fillWidth: true
                 }
             }
