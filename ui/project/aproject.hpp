@@ -6,6 +6,7 @@
 #include "cpu/registermodel.hpp"
 #include "cpu/statusbitmodel.hpp"
 #include "memory/hexdump/rawmemory.hpp"
+#include "opcodemodel.hpp"
 #include "utils/constants.hpp"
 
 namespace project {
@@ -114,6 +115,7 @@ class Pep10_ISA final : public QObject {
   Q_PROPERTY(QString objectCodeText READ objectCodeText WRITE setObjectCodeText NOTIFY objectCodeTextChanged);
   Q_PROPERTY(ARawMemory *memory READ memory CONSTANT)
   Q_PROPERTY(RegisterModel *registers MEMBER _registers CONSTANT)
+  Q_PROPERTY(Pep10OpcodeModel *mnemonics MEMBER _mnemonics CONSTANT)
   Q_PROPERTY(FlagModel *flags MEMBER _flags CONSTANT)
 public:
   explicit Pep10_ISA(QVariant delegate, QObject *parent = nullptr);
@@ -142,6 +144,7 @@ private:
   ArrayRawMemory *_memory = nullptr;
   RegisterModel *_registers = nullptr;
   FlagModel *_flags = nullptr;
+  Pep10OpcodeModel *_mnemonics = nullptr;
 };
 
 // Factory to ensure class invariants of project are maintained.

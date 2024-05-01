@@ -4,7 +4,7 @@
 
 Pep10_ISA::Pep10_ISA(QVariant delegate, QObject *parent)
     : QObject(parent), _delegate(delegate), _memory(new ArrayRawMemory(0x10000, this)),
-      _registers(new RegisterModel(this)), _flags(new FlagModel(this)) {
+      _registers(new RegisterModel(this)), _flags(new FlagModel(this)), _mnemonics(new Pep10OpcodeModel(this)) {
   QQmlEngine::setObjectOwnership(_memory, QQmlEngine::CppOwnership);
   QQmlEngine::setObjectOwnership(_registers, QQmlEngine::CppOwnership);
   using RF = QSharedPointer<RegisterFormatter>;
