@@ -106,6 +106,17 @@ private:
   std::function<uint64_t()> _fn;
 };
 
+struct MnemonicFormatter : public RegisterFormatter {
+  explicit MnemonicFormatter(std::function<QString()> fn) : _fn(fn) {}
+  ~MnemonicFormatter() override = default;
+  QString format() const override { return _fn(); }
+  bool readOnly() const override { return false; }
+  qsizetype length() const override { return 7 + 2 + 3; }
+
+private:
+  std::function<QString()> _fn;
+};
+
 class Pep10_ISA final : public QObject {
   Q_OBJECT
   Q_PROPERTY(project::Environment env READ env CONSTANT)
