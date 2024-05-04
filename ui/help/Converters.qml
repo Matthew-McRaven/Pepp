@@ -83,9 +83,22 @@ Item {
             // 7=>max mnemonic length, 2=>", ", 3=>max addr mode length
             width: metrics.averageCharacterWidth * (7 + 2 + 3) * 1.5
             font: metrics.font
+            flat: true
             currentIndex: model?.indexFromOpcode(wrapper.value) ?? -1
             // Force mnemonic to re-compute current index by re-setting value.
-            onModelChanged: wrapper.setValue(wrapper.value)
+            onModelChanged: {
+                popup.contentItem.implicitHeight = Qt.binding(function () {
+                    // According to <QtRoot>/qml/QtQuick/Controls/Basic/ComboBox.qml:
+                    // This computation gets the height of the nested list view.
+                    const actualContentHeight = popup.contentItem.contentHeight
+                                              - popup.topMargin - popup.bottomMargin
+                    // Prevent divide-by-0, since it would prevent execution of the rest of this fn.
+                    const numRows = model?.rowCount() ?? 1
+                    const actualRowHeight = actualContentHeight / numRows
+                    return actualRowHeight * 10
+                })
+                wrapper.setValue(wrapper.value)
+            }
             // Use on-activated to avoid binding loop from onCurrentIndexChanged.
             // activated only triggers on user interaction, wherease currentIndexChanged
             // triggers on any (programatic) update to currentIndex.
