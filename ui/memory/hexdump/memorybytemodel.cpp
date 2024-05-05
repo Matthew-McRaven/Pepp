@@ -180,7 +180,6 @@ QVariant MemoryByteModel::data(const QModelIndex &index, int role) const {
     //  Default for all other cells
     return QVariant(Qt::AlignHCenter);
   case Qt::ToolTipRole:
-    return "";
     //  Handle invalid index
     if (i < 0)
       return {};
@@ -195,15 +194,29 @@ QVariant MemoryByteModel::data(const QModelIndex &index, int role) const {
       auto v = memory_->read(i);
       const auto newH = QStringLiteral("%1").arg(v, 2, 16, QLatin1Char('0')).toUpper();
       const auto oldH = QStringLiteral("%1").arg(v, 2, 16, QLatin1Char('0')).toUpper();
+      static const auto convert = [](const OpcodeModel *opcodes, const quint8 v, bool prev = false) {
+        if (!opcodes)
+          return QStringLiteral("");
+        else if (auto index = opcodes->indexFromOpcode(v); index == -1)
+          return QStringLiteral("");
+        else if (const auto mnemonic = opcodes->data(opcodes->index(index)); prev)
+          return QStringLiteral("<br>Previous Opcode: %1").arg(mnemonic.toString());
+        else
+          return QStringLiteral("Opcode: %1<br>").arg(mnemonic.toString());
+      };
+      const auto newOpcode = convert(mnemonics_, v, false);
+      const auto oldOpcode = convert(mnemonics_, v, true);
 
       return QStringLiteral("<b>Memory Location: 0x%1</b><br>"
                             "Hex: 0x%2<br>"
                             "Unsigned Decimal: %3<br>"
                             "Binary: 0b%4<br>"
-                            "Previous Hex: 0x%5<br>"
-                            "Previous Unsigned Decimal: %6<br>"
-                            "Previous Binary: 0b%7")
-          .arg(mem, newH, QString::number(v), u"%1"_qs.arg(v, 8, 2, QChar('0')), oldH, "0", "0");
+                            "%5"
+                            "Previous Hex: 0x%6<br>"
+                            "Previous Unsigned Decimal: %7<br>"
+                            "Previous Binary: 0b%8"
+                            "%9")
+          .arg(mem, newH, QString::number(v), u"%1"_qs.arg(v, 8, 2, QChar('0')), newOpcode, oldH, "0", "0", oldOpcode);
     } else
       return {};
   }

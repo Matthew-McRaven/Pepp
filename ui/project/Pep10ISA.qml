@@ -70,8 +70,10 @@ Item {
             asynchronous: true
             SplitView.minimumWidth: 340
             onLoaded: {
-                if (item !== null)
+                if (item !== null) {
                     item.memory = project.memory
+                    item.mnemonics = project.mnemonics
+                }
             }
         }
     }
