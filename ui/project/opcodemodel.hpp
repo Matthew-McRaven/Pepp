@@ -2,11 +2,11 @@
 
 #include <QAbstractListModel>
 
-class Pep10OpcodeModel : public QAbstractListModel {
+class OpcodeModel : public QAbstractListModel {
   Q_OBJECT
 
 public:
-  explicit Pep10OpcodeModel(QObject *parent = nullptr);
+  explicit OpcodeModel(QObject *parent = nullptr);
 
   // Basic functionality:
   int rowCount(const QModelIndex &parent = QModelIndex()) const override;
@@ -16,6 +16,8 @@ public:
   // Returns a row in the model if it maps to an opcode, or -1 if not.
   Q_INVOKABLE qsizetype indexFromOpcode(quint8 opcode) const;
   Q_INVOKABLE quint8 opcodeFromIndex(qsizetype index) const;
+
+  void appendRow(QString mnemonic, quint8 opcode);
 
 private:
   // Store the opcode's mnemonic string and intege value.
