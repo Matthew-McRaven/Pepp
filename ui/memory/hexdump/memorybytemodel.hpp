@@ -13,11 +13,13 @@ class MEMORY_EXPORT MemoryRoles : public QObject {
 public:
   enum Roles {
     Selected = Qt::UserRole + 1,
+    Highlight,
     Editing,
     Type,
   };
   Q_ENUM(Roles)
 };
+
 class MEMORY_EXPORT MemoryByteModel : public QAbstractTableModel {
   Q_OBJECT
 

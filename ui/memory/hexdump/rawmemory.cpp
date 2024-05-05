@@ -4,6 +4,8 @@
 
 ARawMemory::ARawMemory(QObject *parent) : QObject(parent) {}
 
+MemoryHighlight::V ARawMemory::status(quint32 address) const { return MemoryHighlight::None; }
+
 ARawMemory::~ARawMemory() = default;
 
 EmptyRawMemory::EmptyRawMemory(quint32 size, QObject *parent) : ARawMemory(parent), _size(size) {}
@@ -34,6 +36,18 @@ ArrayRawMemory::ArrayRawMemory(quint32 size, QObject *parent) : ARawMemory(paren
 quint32 ArrayRawMemory::byteCount() const { return _data.size(); }
 
 quint8 ArrayRawMemory::read(quint32 address) const { return _data[address]; }
+
+MemoryHighlight::V ArrayRawMemory::status(quint32 address) const {
+  using V = MemoryHighlight::V;
+  if (address % 32 == 0)
+    return V::PC;
+  else if (address % 16 == 0)
+    return V::SP;
+  else if (address % 8 == 0)
+    return V::Modified;
+  else
+    return V::None;
+}
 
 void ArrayRawMemory::write(quint32 address, quint8 value) { _data[address] = value; }
 

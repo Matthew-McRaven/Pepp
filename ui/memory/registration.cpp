@@ -7,6 +7,7 @@ void memory::registerTypes(const char *uri) {
   //  cannot instantiate these models directly
   qmlRegisterType<MemoryByteModel>("edu.pepp", 1, 0, "MemoryModel");
   qmlRegisterUncreatableType<MemoryRoles>("edu.pepp", 1, 0, "MemoryRoles", "Error: only enums");
+  qmlRegisterUncreatableType<MemoryHighlight>("edu.pepp", 1, 0, "MemoryHighlight", "Error: only enums");
   qmlRegisterUncreatableType<EmptyRawMemory>("edu.pepp", 1, 0, "EmptyRawMemory", "Must use create(int)");
   qmlRegisterSingletonType<EmptyRawMemoryFactory>("edu.pepp", 1, 0, "EmptyRawMemoryFactory",
                                                   EmptyRawMemoryFactory::singletonProvider);

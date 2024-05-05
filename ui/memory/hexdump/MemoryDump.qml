@@ -396,11 +396,29 @@ Rectangle {
                     id: cell
                     rowHeight: rowHeight
                     colWidth: colWidth
+                    Component.onCompleted: updateBackground()
 
-                    backgroundColor: (column % 2 == 0) ? "#f5f5f5" : "#e0e0e0"
+                    function updateBackground() {
+                        switch (model.highlight) {
+                        case MemoryHighlight.Modified:
+                            backgroundColor = Qt.binding(() => "#FF0000")
+                            break
+                        case MemoryHighlight.PC:
+                            backgroundColor = Qt.binding(() => "#3f51b5")
+                            break
+                        case MemoryHighlight.SP:
+                            backgroundColor = Qt.binding(() => "#FF9800")
+                            break
+                        default:
+                            // Alternating colors, using array to avoid conditional logic.
+                            backgroundColor = Qt.binding(
+                                        () => ["#f5f5f5", "#e0e0e0"][column % 2])
+                        }
+                    }
+
                     textColor: "#000000"
                     text: model.display
-                    textAlign: model.textAlign
+                    textAlign: Text.AlignHCenter
                     font: hexFont
                     tooltip: model.toolTip ?? null
 
@@ -412,7 +430,7 @@ Rectangle {
                         backgroundColor: "#3f51b5"
                         textColor: "#FF9800"
                         text: model.display
-                        textAlign: model.textAlign
+                        textAlign: Text.AlignHCenter
                         font: hexFont
                         editFocus: ed.visible
 

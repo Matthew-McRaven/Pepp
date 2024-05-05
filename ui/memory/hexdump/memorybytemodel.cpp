@@ -102,7 +102,8 @@ QHash<int, QByteArray> MemoryByteModel::roleNames() const {
                   {Qt::TextAlignmentRole, "textAlign"},
                   {M::Selected, "selected"},
                   {M::Editing, "editing"},
-                  {M::Type, "type"}};
+                  {M::Type, "type"},
+                  {M::Highlight, "highlight"}};
   return ret;
 }
 
@@ -170,6 +171,8 @@ QVariant MemoryByteModel::data(const QModelIndex &index, int role) const {
     //  Only one cell can be edited at a time
     // return editing_;
     return i == editing_;
+  case M::Highlight:
+    return QVariant::fromValue(memory_->status(i));
   case Qt::TextAlignmentRole:
     if (col == column_->Ascii())
       return QVariant(Qt::AlignLeft);
