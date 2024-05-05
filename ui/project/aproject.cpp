@@ -1,10 +1,30 @@
 #include "aproject.hpp"
-
 #include <QQmlEngine>
+#include "isa/pep10.hpp"
+
+struct Pep10OpcodeInit {
+  explicit Pep10OpcodeInit(OpcodeModel *model) {
+    static const auto mnemonicEnum = QMetaEnum::fromType<isa::Pep10::Mnemonic>();
+    static const auto addressEnum = QMetaEnum::fromType<isa::Pep10::AddressingMode>();
+    for (int it = 0; it < 256; it++) {
+      auto op = isa::Pep10::opcodeLUT[it];
+      if (!op.valid)
+        continue;
+      QString formatted;
+      if (op.instr.unary) {
+        formatted = QString(mnemonicEnum.valueToKey((int)op.instr.mnemon)).toUpper();
+      } else {
+        formatted = u"%1, %2"_qs.arg(QString(mnemonicEnum.valueToKey((int)op.instr.mnemon)).toUpper(),
+                                     QString(addressEnum.valueToKey((int)op.mode)).toLower());
+      }
+      model->appendRow(formatted, it);
+    }
+  }
+};
 
 Pep10_ISA::Pep10_ISA(QVariant delegate, QObject *parent)
     : QObject(parent), _delegate(delegate), _memory(new ArrayRawMemory(0x10000, this)),
-      _registers(new RegisterModel(this)), _flags(new FlagModel(this)), _mnemonics(new Pep10OpcodeModel(this)) {
+      _registers(new RegisterModel(this)), _flags(new FlagModel(this)) {
   QQmlEngine::setObjectOwnership(_memory, QQmlEngine::CppOwnership);
   QQmlEngine::setObjectOwnership(_registers, QQmlEngine::CppOwnership);
   using RF = QSharedPointer<RegisterFormatter>;
@@ -21,8 +41,8 @@ Pep10_ISA::Pep10_ISA(QVariant delegate, QObject *parent)
   auto IS = []() { return 1; };
   auto IS_TEXT = [&]() {
     int opcode = IS();
-    auto row = _mnemonics->indexFromOpcode(opcode);
-    return _mnemonics->data(_mnemonics->index(row), Qt::DisplayRole).toString();
+    auto row = mnemonics()->indexFromOpcode(opcode);
+    return mnemonics()->data(mnemonics()->index(row), Qt::DisplayRole).toString();
   };
   auto OS = []() { return 0; };
   _registers->appendFormatters({TF::create("Accumulator"), HF::create(A, 2), SF::create(A, 2)});
@@ -53,6 +73,12 @@ utils::Architecture Pep10_ISA::architecture() const { return utils::Architecture
 utils::Abstraction Pep10_ISA::abstraction() const { return utils::Abstraction::ISA3; }
 
 ARawMemory *Pep10_ISA::memory() const { return _memory; }
+
+OpcodeModel *Pep10_ISA::mnemonics() const {
+  static OpcodeModel *model = new OpcodeModel();
+  static Pep10OpcodeInit ret(model);
+  return model;
+}
 
 QString Pep10_ISA::objectCodeText() const { return _objectCodeText; }
 

@@ -8,5 +8,5 @@ static const char *error_only_project = "Can only be created through Project::";
 void project::registerTypes(const char *uri) {
   qmlRegisterUncreatableType<Pep10_ISA>(uri, 1, 0, "Pep10ISA", error_only_project);
   qmlRegisterType<ProjectModel>(uri, 1, 0, "ProjectModel");
-  qmlRegisterType<Pep10OpcodeModel>(uri, 1, 0, "Pep10OpcodeModel");
+  qmlRegisterType<OpcodeModel>(uri, 1, 0, "OpcodeModel");
 }

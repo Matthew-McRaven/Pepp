@@ -126,7 +126,7 @@ class Pep10_ISA final : public QObject {
   Q_PROPERTY(QString objectCodeText READ objectCodeText WRITE setObjectCodeText NOTIFY objectCodeTextChanged);
   Q_PROPERTY(ARawMemory *memory READ memory CONSTANT)
   Q_PROPERTY(RegisterModel *registers MEMBER _registers CONSTANT)
-  Q_PROPERTY(Pep10OpcodeModel *mnemonics MEMBER _mnemonics CONSTANT)
+  Q_PROPERTY(OpcodeModel *mnemonics READ mnemonics CONSTANT)
   Q_PROPERTY(FlagModel *flags MEMBER _flags CONSTANT)
 public:
   explicit Pep10_ISA(QVariant delegate, QObject *parent = nullptr);
@@ -134,6 +134,7 @@ public:
   utils::Architecture architecture() const;
   utils::Abstraction abstraction() const;
   ARawMemory *memory() const;
+  OpcodeModel *mnemonics() const;
   QString objectCodeText() const;
   void setObjectCodeText(const QString &objectCodeText);
   Q_INVOKABLE static QStringListModel *modes() {
@@ -155,7 +156,6 @@ private:
   ArrayRawMemory *_memory = nullptr;
   RegisterModel *_registers = nullptr;
   FlagModel *_flags = nullptr;
-  Pep10OpcodeModel *_mnemonics = nullptr;
 };
 
 // Factory to ensure class invariants of project are maintained.
