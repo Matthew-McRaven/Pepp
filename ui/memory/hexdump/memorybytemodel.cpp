@@ -117,6 +117,8 @@ int MemoryByteModel::columnCount(const QModelIndex &parent) const {
   return column_->Total();
 }
 
+int MemoryByteModel::bytesPerRow() const { return column_->bytesPerLine(); }
+
 QVariant MemoryByteModel::data(const QModelIndex &index, int role) const {
   if (!index.isValid())
     return QVariant();

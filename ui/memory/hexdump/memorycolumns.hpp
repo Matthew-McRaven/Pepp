@@ -33,6 +33,7 @@ public: //  Required by QML
     quint8 CellEnd() const { return cellEnd_; };
     quint8 Ascii() const { return ascii_; };
     quint8 Total() const { return total_; };
+    quint8 bytesPerLine() const { return cellEnd_ - cellStart_ + 1; }
 
     //  If model changes width, adjust column numbers
     void setNumBytesPerLine(const quint8 bytesPerLine)

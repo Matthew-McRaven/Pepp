@@ -38,9 +38,10 @@ class MEMORY_EXPORT MemoryByteModel : public QAbstractTableModel {
 
   Q_PROPERTY(MemoryColumns *Column READ column CONSTANT)
   Q_PROPERTY(ARawMemory *memory READ memory WRITE setMemory NOTIFY memoryChanged)
-  Q_PROPERTY(int BytesPerRow READ rowCount NOTIFY dimensionsChanged)
-  Q_PROPERTY(int BytesPerColumn READ columnCount NOTIFY dimensionsChanged)
   Q_PROPERTY(OpcodeModel *mnemonics MEMBER mnemonics_ NOTIFY mnemonicsChanged)
+  Q_PROPERTY(int bytesPerRow READ bytesPerRow NOTIFY dimensionsChanged)
+  // Q_PROPERTY(int columns READ columnCount NOTIFY dimensionsChanged)
+  // Q_PROPERTY(int rows READ rowCount NOTIFY dimensionsChanged)
 
 public:
   // Define the role names to be used
@@ -72,15 +73,10 @@ public:
   //  Basic functionality: dimentions of table in QML view
   int rowCount(const QModelIndex &parent = QModelIndex()) const override;
   int columnCount(const QModelIndex &parent = QModelIndex()) const override;
+  int bytesPerRow() const;
 
-  //  Read table data
   QVariant data(const QModelIndex &index, int role = Qt::DisplayRole) const override;
-
-  //  Editable:
-  //  Set data through model
   bool setData(const QModelIndex &index, const QVariant &value, int role = Qt::EditRole) override;
-
-  //  Indicate what operations can occur on a given column or cell
   Qt::ItemFlags flags(const QModelIndex &index) const override;
 
   //  Custom functions available to Qml
