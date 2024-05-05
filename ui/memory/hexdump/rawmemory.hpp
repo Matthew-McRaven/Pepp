@@ -6,6 +6,17 @@
 
 class QJSEngine;
 class QQmlEngine;
+class MEMORY_EXPORT MemoryHighlight : public QObject {
+  Q_OBJECT
+public:
+  enum V {
+    None,
+    Modified,
+    SP,
+    PC,
+  };
+  Q_ENUM(V)
+};
 class MEMORY_EXPORT ARawMemory : public QObject {
   Q_OBJECT
 public:
@@ -13,6 +24,7 @@ public:
   virtual ~ARawMemory() = 0;
   virtual quint32 byteCount() const = 0;
   virtual quint8 read(quint32 address) const = 0;
+  virtual MemoryHighlight::V status(quint32 address) const;
   virtual void write(quint32 address, quint8 value) = 0;
   virtual void clear() = 0;
 };
@@ -44,6 +56,7 @@ public:
   explicit ArrayRawMemory(quint32 size, QObject *parent = nullptr);
   quint32 byteCount() const override;
   quint8 read(quint32 address) const override;
+  MemoryHighlight::V status(quint32 address) const override;
   void write(quint32 address, quint8 value) override;
   void clear() override;
 
