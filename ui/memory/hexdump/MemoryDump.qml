@@ -1,23 +1,16 @@
 import QtQuick
 import QtQuick.Controls
 import QtQuick.Layouts
-//import QtQuick.Controls.Material  //  For colors
 import Qt.labs.qmlmodels
 
 //  For DelegateChooser
 import "." as Ui
 import edu.pepp 1.0
 
-Rectangle {
+Item {
     id: root
+    property alias asciiFont: asciiFM.font
 
-    property font asciiFont: Qt.font({
-                                         "family": 'Courier',
-                                         "weight": Font.Normal,
-                                         "italic": false,
-                                         "bold": false,
-                                         "pointSize": 10
-                                     })
     property font hexFont: Qt.font({
                                        "family": 'Courier',
                                        "weight": Font.Normal,
@@ -26,19 +19,33 @@ Rectangle {
                                        "capitalization": Font.AllUppercase,
                                        "pointSize": 10
                                    })
-
+    FontMetrics {
+        id: asciiFM
+        font: Qt.font({
+                          "family": 'Courier',
+                          "weight": Font.Normal,
+                          "italic": false,
+                          "bold": false,
+                          "pointSize": 10
+                      })
+    }
     property int colWidth: 25
     property int rowHeight: 20
     property alias model: tableView.model
     property alias memory: memory.memory
     property alias mnemonics: memory.mnemonics
+    property int currentAddress: tableView.currentAddress
+    function scrollToAddress(addr) {
+        const row = Math.floor(addr / root.model?.bytesPerRow)
+        tableView.positionViewAtRow(row, TableView.Contain)
+    }
 
     TableView {
         id: tableView
-        anchors.left: root.left
-        anchors.top: root.top
-        anchors.right: root.right
-        anchors.bottom: root.bottom
+        anchors.left: parent.left
+        anchors.top: parent.top
+        anchors.right: parent.right
+        anchors.bottom: buttonLayout.top
 
         rowSpacing: 0
         columnSpacing: 0
@@ -56,12 +63,14 @@ Rectangle {
         }
 
         //  Ascii column must be calculated since byte width per line is configurable
-        property int asciiWidth: 10 * (root.model?.BytesPerColumn ?? 10)
+        property int asciiWidth: 10 * (root.model?.bytesPerRow ?? 10)
 
         //  Used for paging
         property real pageSize: 20 //  Default value, replace on screen resize
         property bool viewResizing: false //  Flag to identify resizing event
         property int partialLine: 0 //  If line is partially blocked, this value will be -1
+        property int currentAddress: (topRow > 0 ? topRow : 0) * (root.model?.bytesPerRow
+                                                                  ?? 0)
 
         //  For grid column sizes. Currently, columns are not resizeable
         columnWidthProvider: function (column) {
@@ -533,6 +542,43 @@ Rectangle {
                 positionViewAtRow(newRow, TableView.Contain)
                 console.log("newRow=" + newRow + "," + tableView.topRow)
             }
+        }
+    }
+    RowLayout {
+        id: buttonLayout
+        anchors.left: parent.left
+        anchors.bottom: parent.bottom
+        anchors.right: parent.right
+        Label {
+            text: "Scroll to:"
+        }
+        TextField {
+            id: addrField
+            maximumLength: 6
+            width: asciiFM.averageCharacterWidth * maximumLength
+            font: asciiFM.font
+            text: `0x${root.currentAddress.toString(16).padStart(
+                      4, '0').toUpperCase()}`
+            validator: RegularExpressionValidator {
+                regularExpression: /0x[0-9a-fA-F]{1,4}/
+            }
+            onEditingFinished: {
+                const v = parseInt(text, 16)
+                if (v < 0 || v > 0xFFFF)
+                    text = "0x0000"
+                else
+                    root.scrollToAddress(v)
+            }
+        }
+        Button {
+            id: spButton
+            text: "SP"
+            onClicked: root.scrollToAddress(0xFEED)
+        }
+        Button {
+            id: pcButton
+            text: "PC"
+            onClicked: root.scrollToAddress(0xBEEF)
         }
     }
 }
