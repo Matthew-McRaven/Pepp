@@ -200,13 +200,7 @@ QVariant MemoryByteModel::data(const QModelIndex &index, int role) const {
                             "Previous Hex: 0x%5<br>"
                             "Previous Unsigned Decimal: %6<br>"
                             "Previous Binary: 0b%7")
-          .arg(mem)                       // Hex Address
-          .arg(newH)                      // Hex
-          .arg(v)                         // Decimal
-          .arg(v, 8, 2, QLatin1Char('0')) // Binary
-          .arg(oldH)                      // Hex
-          .arg(0)                         // Decimal
-          .arg(0);                        // Binary
+          .arg(mem, newH, QString::number(v), u"%1"_qs.arg(v, 8, 2, QChar('0')), oldH, "0", "0");
     } else
       return {};
   }
