@@ -115,13 +115,13 @@ jobs:
         run: sudo apt update && sudo apt install imagemagick icnsutils
       - name: Convert SVG to PNG
         run: convert -verbose icon.svg -resize 256x256 icon.png
-        working-directory: ./data/icons
+        working-directory: ./data/app_icon
       - name: Convert SVG to ICO
         run: convert icon.png -resize 256x256 icon.ico
-        working-directory: ./data/icons
+        working-directory: ./data/app_icon
       - name: Convert PNG to ICNS
         run: png2icns icon.icns icon.png
-        working-directory: ./data/icons
+        working-directory: ./data/app_icon
       - uses: actions/upload-artifact@v4
         with:
           name: icons
