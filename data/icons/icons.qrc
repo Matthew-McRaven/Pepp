@@ -1,0 +1,31 @@
+<RCC>
+    <qresource prefix="/icons">
+        <file>debug/bug.svg</file>
+        <file>build/build.svg</file>
+        <file>build/flash.svg</file>
+        <file>build/info.svg</file>
+        <file>build/warning.svg</file>
+        <file>build/error.svg</file>
+        <file>file/copy.svg</file>
+        <file>file/cut.svg</file>
+        <file>file/load_source.svg</file>
+        <file>file/new.svg</file>
+        <file>file/open.svg</file>
+        <file>file/paste.svg</file>
+        <file>file/paste_go.svg</file>
+        <file>file/print.svg</file>
+        <file>file/redo.svg</file>
+        <file>file/save.svg</file>
+        <file>file/undo.svg</file>
+        <file>debug/restart.svg</file>
+        <file>debug/start_debug.svg</file>
+        <file>debug/start_normal.svg</file>
+        <file>debug/step_into.svg</file>
+        <file>debug/step_normal.svg</file>
+        <file>debug/step_out.svg</file>
+        <file>debug/step_over.svg</file>
+        <file>debug/stop_debug.svg</file>
+        <file>debug/stop_normal.svg</file>
+        <file>debug/pause.svg</file>
+    </qresource>
+</RCC>
