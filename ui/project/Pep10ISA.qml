@@ -65,16 +65,31 @@ Item {
         }
         Loader {
             id: loader
-            source: "qrc:/ui/memory/hexdump/MemoryDump.qml"
+            Component.onCompleted: {
+                const props = {
+                    "memory": project.memory,
+                    "mnemonics": project.mnemonics
+                }
+                // Construction sets current address to 0, which propogates back to project.
+                // Must reject changes in current address until component is fully rendered.
+                con.enabled = false
+                setSource("qrc:/ui/memory/hexdump/MemoryDump.qml", props)
+            }
             visible: mode === "debug"
             asynchronous: true
             SplitView.minimumWidth: 340
             onLoaded: {
-                if (item !== null) {
-                    item.memory = project.memory
-                    item.mnemonics = project.mnemonics
-                }
+                loader.item.scrollToAddress(project.currentAddress)
+                con.enabled = true
             }
+        }
+    }
+    Connections {
+        id: con
+        enabled: false
+        target: loader.item
+        function onCurrentAddressChanged() {
+            project.currentAddress = loader.item.currentAddress
         }
     }
 }

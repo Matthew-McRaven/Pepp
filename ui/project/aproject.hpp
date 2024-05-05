@@ -125,6 +125,8 @@ class Pep10_ISA final : public QObject {
   Q_PROPERTY(QVariant delegate MEMBER _delegate NOTIFY delegateChanged)
   Q_PROPERTY(QString objectCodeText READ objectCodeText WRITE setObjectCodeText NOTIFY objectCodeTextChanged);
   Q_PROPERTY(ARawMemory *memory READ memory CONSTANT)
+  // Preserve the current address in the memory dump pane on tab-switch.
+  Q_PROPERTY(quint16 currentAddress MEMBER _currentAddress NOTIFY currentAddressChanged)
   Q_PROPERTY(RegisterModel *registers MEMBER _registers CONSTANT)
   Q_PROPERTY(OpcodeModel *mnemonics READ mnemonics CONSTANT)
   Q_PROPERTY(FlagModel *flags MEMBER _flags CONSTANT)
@@ -148,6 +150,7 @@ public:
 signals:
   void objectCodeTextChanged();
   void delegateChanged();
+  void currentAddressChanged();
 
 private:
   QString _objectCodeText = {};
@@ -156,6 +159,7 @@ private:
   ArrayRawMemory *_memory = nullptr;
   RegisterModel *_registers = nullptr;
   FlagModel *_flags = nullptr;
+  qint16 _currentAddress = 0;
 };
 
 // Factory to ensure class invariants of project are maintained.
