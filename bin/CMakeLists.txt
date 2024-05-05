@@ -11,12 +11,12 @@ list(REMOVE_ITEM sources ${demos})
 list(REMOVE_ITEM sources ${guis})
 
 # Set icon for the application if it exists.
-if (EXISTS "${PROJECT_DATA_DIR}/icons/icon.ico" AND WIN32)
-    LIST(APPEND sources "${PROJECT_DATA_DIR}/icons/res.rc")
-elseif (EXISTS "${PROJECT_DATA_DIR}/icons/icon.icns" AND APPLE)
+if (EXISTS "${PROJECT_DATA_DIR}/app_icon/icon.ico" AND WIN32)
+    LIST(APPEND sources "${PROJECT_DATA_DIR}/app_icon/res.rc")
+elseif (EXISTS "${PROJECT_DATA_DIR}/app_icon/icon.icns" AND APPLE)
     # Name of icns file, not including directory path or extension.
     set(MACOSX_BUNDLE_ICON_FILE "icon")
-    set(app_icon_macos "${PROJECT_DATA_DIR}/icons/icon.icns")
+    set(app_icon_macos "${PROJECT_DATA_DIR}/app_icon/icon.icns")
     set_source_files_properties(${app_icon_macos} PROPERTIES MACOSX_PACKAGE_LOCATION "Resources")
     LIST(APPEND sources ${app_icon_macos})
 else ()
