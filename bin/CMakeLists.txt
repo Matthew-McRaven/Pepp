@@ -26,7 +26,7 @@ endif ()
 make_target(
         TARGET pepp
         TYPE "EXEC"
-        SOURCES ${sources} ${guis}
+        SOURCES ${sources} ${guis} ${CMAKE_SOURCE_DIR}/data/icons/icons.qrc
         DEPENDS
         TextFlow cli about macro pas builtins isa targets sim
         Qt6::Core Qt6::Gui Qt::Qml Qt::Quick Qt::QuickControls2
@@ -70,7 +70,7 @@ endif ()
 make_target(
         TARGET pepp-term
         TYPE "EXEC"
-        SOURCES ${sources}
+        SOURCES ${sources} ${CMAKE_SOURCE_DIR}/data/icons/icons.qrc
         DEPENDS TextFlow cli about macro pas builtins isa targets sim Qt6::Core catch test-lib-all
 )
 set_target_properties(pepp-term PROPERTIES FOLDER "qtc_runnable")
