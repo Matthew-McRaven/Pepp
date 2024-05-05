@@ -7,6 +7,7 @@
 #include "../memory_globals.hpp"
 #include "memorycolumns.hpp"
 #include "rawmemory.hpp"
+#include "utils/opcodemodel.hpp"
 
 class MEMORY_EXPORT MemoryRoles : public QObject {
   Q_OBJECT
@@ -29,6 +30,7 @@ class MEMORY_EXPORT MemoryByteModel : public QAbstractTableModel {
   EmptyRawMemory *empty_ = nullptr;
   bool reclaimMemory_ = false;
   ARawMemory *memory_ = nullptr;
+  OpcodeModel *mnemonics_ = nullptr;
   QSet<quint8> selected_;
   qint32 editing_ = -1;
   qint32 lastEdit_ = -1;
@@ -38,6 +40,7 @@ class MEMORY_EXPORT MemoryByteModel : public QAbstractTableModel {
   Q_PROPERTY(ARawMemory *memory READ memory WRITE setMemory NOTIFY memoryChanged)
   Q_PROPERTY(int BytesPerRow READ rowCount NOTIFY dimensionsChanged)
   Q_PROPERTY(int BytesPerColumn READ columnCount NOTIFY dimensionsChanged)
+  Q_PROPERTY(OpcodeModel *mnemonics MEMBER mnemonics_ NOTIFY mnemonicsChanged)
 
 public:
   // Define the role names to be used
@@ -93,6 +96,7 @@ public:
 signals:
   void dimensionsChanged();
   void memoryChanged();
+  void mnemonicsChanged();
 
 protected: //  Role Names must be under protected
   //  Columns available to Qml model. Represents a translation from

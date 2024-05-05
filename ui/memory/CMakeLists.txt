@@ -24,4 +24,4 @@ qt_add_qml_module(memory
 )
 
 target_compile_definitions(memory PRIVATE "MEMORY_LIBRARY")
-target_link_libraries(memory PUBLIC Qt6::Core Qt6::Gui Qt6::Quick)
+target_link_libraries(memory PUBLIC Qt6::Core Qt6::Gui Qt6::Quick ui_utils)

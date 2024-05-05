@@ -31,6 +31,7 @@ Rectangle {
     property int rowHeight: 20
     property alias model: tableView.model
     property alias memory: memory.memory
+    property alias mnemonics: memory.mnemonics
 
     TableView {
         id: tableView

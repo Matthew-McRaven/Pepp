@@ -1,5 +1,4 @@
 #include "opcodemodel.hpp"
-#include "isa/pep10.hpp"
 OpcodeModel::OpcodeModel(QObject *parent) : QAbstractListModel(parent) {}
 
 int OpcodeModel::rowCount(const QModelIndex &parent) const {

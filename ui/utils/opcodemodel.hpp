@@ -1,8 +1,9 @@
 #pragma once
 
 #include <QAbstractListModel>
+#include "utils_global.hpp"
 
-class OpcodeModel : public QAbstractListModel {
+class UTILS_EXPORT OpcodeModel : public QAbstractListModel {
   Q_OBJECT
 
 public:

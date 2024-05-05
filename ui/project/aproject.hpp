@@ -6,8 +6,8 @@
 #include "cpu/registermodel.hpp"
 #include "cpu/statusbitmodel.hpp"
 #include "memory/hexdump/rawmemory.hpp"
-#include "opcodemodel.hpp"
 #include "utils/constants.hpp"
+#include "utils/opcodemodel.hpp"
 
 namespace project {
 // Additional options requested for a project.
