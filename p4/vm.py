@@ -73,11 +73,11 @@ class vm (object):
 			if self.debug: addr_chain.append(addr)
 		self.ip = addr
 		if self.debug:
-			addr_chain_str = " = ".join([f"(*[{_as_hex(it)}])" for it in addr_chain[::-1]])
+			addr_chain_str = " = ".join([f"(*[{_as_hex(it)}])" for it in addr_chain[::-1]]) + f" = {hex(opcode&0xffff)}"
 			name_chain = " ".join(f"{name(self, nearest_header(self, it))}" for it in addr_chain)
 			print(f"Executing CWA {_as_hex(self.ip):4} opcode {self.decode_opcode(opcode).FORTH['name']:10} = {addr_chain_str}")
-			#print(f"{self.decode_opcode(opcode).FORTH['name']:10}")
-			# print(f"The return stack is {name_chain} {{{self.decode_opcode(opcode).FORTH['name']}}}")
+			# print(f"{self.decode_opcode(opcode).FORTH['name']:10}")
+			# print(f"The return stack is {name_chain} {opcode}")
 		return opcode
 
 	def run(self):
