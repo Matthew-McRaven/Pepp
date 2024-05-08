@@ -2,7 +2,7 @@ from collections import OrderedDict
 import copy
 import graphlib
 
-from .dictionary import defforth as _defforth, Flags as _Flags
+from .dictionary import defforth as _defforth, Flags as _Flags, alias as _alias
 
 def word_graph(words):
 	ret = OrderedDict()
@@ -13,6 +13,8 @@ def word_graph(words):
 		# Add all dependencies to graph
 		if "refs" in word.FORTH:
 			for ref in word.FORTH["refs"]: ret[word.FORTH["name"]].add(ref)
+		elif "alias" in word.FORTH:
+			ret[word.FORTH["name"]].add(word.FORTH["alias"])
 	return ret
 # Traverse the graph, marking all nodes reachable FROM the set of nodes to_keep.
 # Any unmarked node will be pruned, and links to pruned nodes removed.
@@ -45,7 +47,9 @@ def order(words, graph):
 
 # Assume topological sorting of words
 def define(VM, word):
-	if word.FORTH["native"]:
+	if "alias" in word.FORTH:
+		_alias(VM, word.FORTH["alias"], word.FORTH["name"], immediate=word.FORTH["immediate"])
+	elif word.FORTH["native"]:
 		VM.nativeWord(word.FORTH["name"], word, immediate=("immediate" in word.FORTH))
 		if "pad" in word.FORTH:
 			word.pad = VM.tcb.here()

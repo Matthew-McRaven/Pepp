@@ -33,7 +33,14 @@ def	NATIVE(name, **kwargs):
 		function.FORTH = {"priority": 100, "native":True, "refs":[], **kwargs, "name": name}
 		return function
 	return wrapper
-
+def ALIAS(old, new,  **kwargs):
+	return SimpleNamespace(FORTH={
+		"priority": 100,
+		"alias": old,
+		"name": new,
+		"immediate":False,
+		**kwargs
+	})
 def INTERPRET(name, definition, **kwargs):
 	refs = set()
 	for word in set(definition.split()):

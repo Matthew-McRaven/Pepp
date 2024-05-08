@@ -2,7 +2,7 @@
 Native words for manipulating the control flow of the VM
 """
 
-from p4.utils import NATIVE
+from p4.utils import NATIVE, ALIAS
 
 # Stops further instructions from executing in VM
 @NATIVE("HALT")
@@ -10,6 +10,8 @@ def halt(VM):
     VM.alive = False
     VM.io.log.critical("\nHALTING")
     VM.next()
+
+lbrac_halt_rbrac = ALIAS("HALT", "[HALT]", immediate=True)
 
 
 # ( -- ) Relative unconditional branch, consumes following cell for jump address.

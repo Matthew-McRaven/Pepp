@@ -14,6 +14,7 @@ class Offsets(enum.IntEnum):
 # Bit masks for possible dictionary entry flags.
 class Flags(enum.IntEnum):
 	IMMEDIATE = 0x80
+	ALIAS = 0x40
 	HIDDEN = 0x20
 	# LEN includes includes hidden bit.
 	# This way, a hidden entry will NEVER match against a string, since
@@ -87,13 +88,14 @@ def dump(VM):
 		_link, _cwa = link(VM, addr), cwa(VM, addr)
 		_strlen, _str = namelen(VM, addr), name(VM, addr)
 		_flagBits = (flags(VM, addr) & Flags.FLAG_MASK)
-		keys = ["I" if _flagBits & Flags.IMMEDIATE else ""] + ["H" if _flagBits & Flags.HIDDEN else ""]
+		f = lambda bit,r: r if _flagBits & bit else ""
+		keys = [f(Flags.IMMEDIATE, "I"), f(Flags.HIDDEN, "H"), f(Flags.ALIAS, "A")]
 		_flags = (3*" "+"".join(keys))[-3:]
 		strs = []
 		for i in range(codelen(VM, addr)//2): strs.append((4*"0" + hex(VM.memory.read_b16(_cwa+2*i,signed=False))[2:])[-4:])
 		#print(' '.join(a+b for a,b in zip(s[::2], s[1::2])))
 		print(f"{_as_hex(_link)} <= {_as_hex(addr):4} {_flags:3} {_strlen:2}|{_str:10} ({codelen(VM, addr):4})*[{hex(_cwa):4}]={' '.join(strs)}")
-		# print(" ".join([_as_hex(byte)[2:] for byte in entrybytes(VM, addr)]))
+		#print(" ".join([_as_hex(byte)[2:] for byte in entrybytes(VM, addr)]))
 	visit(VM, functor)
 	current, prev = VM.tcb.latest(), 0
 
@@ -124,7 +126,7 @@ def addr_from_name(VM, targetname):
 
 		
 # Helpers to create the initial native forth definitions
-def header(VM, name, immediate=False, hidden=False, alignment=2):
+def header(VM, name, immediate=False, hidden=False, alias=False, alignment=2):
 
 	name_bytes = bytearray(name, "utf-8")
 
@@ -157,6 +159,7 @@ def header(VM, name, immediate=False, hidden=False, alignment=2):
 	VM.memory.write_b8(VM.herePP(1),
 		(Flags.IMMEDIATE if immediate else 0)
 		| (Flags.HIDDEN if hidden else 0)
+		| (Flags.ALIAS if alias else 0)
 		| (len(name_bytes) & Flags.LEN), signed=False)
 
 	# u8 number of bytes in code
@@ -195,3 +198,10 @@ def defforth(VM, word, insertEnter=True):
 	header(VM, name, True if (flags & Flags.IMMEDIATE) else False)
 	entries = entries if not insertEnter else enter+entries+exit
 	writeTokens(VM, entries)
+
+
+# Use the alias word in forth to do this, but it allows me to prototype implementations here.
+def alias(vm, old, new, immediate=False, hidden=False):
+	de = addr_from_name(vm, old)
+	header(vm, new, immediate=immediate, alias=True)
+	writeTokens(vm, [de["cwa"]])
