@@ -69,3 +69,4 @@ colon = INTERPRET(":", "WORD CREATE LIT ENTER @ , LATEST HIDDEN [")
 # Fixup Code Len for latest word
 fcl = INTERPRET("FCL", "HERE@ LATEST >CWA - TRUNC LATEST >CODELEN !c")
 semicolon = INTERPRET(";", "LIT EXIT @ , LATEST HIDDEN ] FCL", immediate=True)
+interpret = INTERPRET("INTERP", "COREINT BRANCH -4")
