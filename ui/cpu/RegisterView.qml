@@ -61,6 +61,7 @@ Rectangle {
         anchors.left: parent.left
         anchors.right: parent.right
         height: contentHeight
+        interactive: false
 
         columnWidthProvider: function (column) {
             return (registers.model.columnCharWidth(
