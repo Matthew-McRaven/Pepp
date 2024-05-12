@@ -21,7 +21,7 @@ qsizetype OpcodeModel::indexFromOpcode(quint8 opcode) const {
   auto result =
       std::find_if(_mnemonics.begin(), _mnemonics.end(), [&](const auto &pair) { return pair.opcode == opcode; });
   if (result == _mnemonics.end())
-    return 0;
+    return -1;
   return result - _mnemonics.begin();
 }
 
