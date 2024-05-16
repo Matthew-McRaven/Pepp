@@ -41,17 +41,18 @@ Rectangle {
         anchors.right: parent.right
         Repeater {
             id: flags
-            delegate: Column {
+            delegate: Row {
                 required property string display
                 required property bool value
                 Layout.fillWidth: true
                 Layout.fillHeight: true
+                spacing: -5
                 Text {
-                    anchors.horizontalCenter: parent.horizontalCenter
+                    anchors.verticalCenter: parent.verticalCenter
                     text: display
                 }
                 CheckBox {
-                    anchors.horizontalCenter: parent.horizontalCenter
+                    anchors.verticalCenter: parent.verticalCenter
                     enabled: false
                     checked: value
                 }
