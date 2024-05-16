@@ -11,7 +11,9 @@ struct Pep10OpcodeInit {
       if (!op.valid)
         continue;
       QString formatted;
-      if (op.instr.unary) {
+      // instr.unary indicates if the instruction is hardware-unary (i.e., it could be a nonunary trap SCALL).
+      // This is why we test the addressing mode instead, since nonunary traps will have an addressing mode.
+      if (op.mode == isa::Pep10::AddressingMode::NONE) {
         formatted = QString(mnemonicEnum.valueToKey((int)op.instr.mnemon)).toUpper();
       } else {
         formatted = u"%1, %2"_qs.arg(QString(mnemonicEnum.valueToKey((int)op.instr.mnemon)).toUpper(),

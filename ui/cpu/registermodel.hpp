@@ -26,12 +26,11 @@ private:
 //  Read only class for change in Register values
 class CPU_EXPORT RegisterModel : public QAbstractTableModel {
   Q_OBJECT
+  Q_PROPERTY(Roles Box MEMBER _box CONSTANT);
+  Q_PROPERTY(Roles RightJustify MEMBER _justify CONSTANT);
 
 public:
-  // In practice, all are RO, but we use it to add or remove a box outline.
-  enum class Roles {
-    ReadOnly = Qt::UserRole + 1,
-  };
+  enum class Roles { Box = Qt::UserRole + 1, RightJustify };
   Q_ENUM(Roles)
 
   explicit RegisterModel(QObject *parent = nullptr);
@@ -48,6 +47,8 @@ public:
 private:
   uint32_t _cols = 0;
   QVector<QVector<QSharedPointer<RegisterFormatter>>> _data;
+  const Roles _box = Roles::Box;
+  const Roles _justify = Roles::RightJustify;
 
 protected:  //  Role Names must be under protected
   QHash<int, QByteArray> roleNames() const override;

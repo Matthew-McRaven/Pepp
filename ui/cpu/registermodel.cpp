@@ -22,12 +22,12 @@ QVariant RegisterModel::data(const QModelIndex &index, int role) const
     const auto col = index.column();
     auto item = _data[row][col];
     switch (role) {
-    case static_cast<int>(Roles::ReadOnly):
-      return item->readOnly();
-      break;
+    case static_cast<int>(Roles::Box):
+      return !item->readOnly();
+    case static_cast<int>(Roles::RightJustify):
+      return index.column() == 0;
     case Qt::DisplayRole:
       return item->format();
-      break;
     }
     return {};
 }
@@ -40,15 +40,19 @@ void RegisterModel::appendFormatters(QVector<QSharedPointer<RegisterFormatter>> 
 }
 
 qsizetype RegisterModel::columnCharWidth(int column) const {
+  if (column >= _cols)
+    return 0;
   qsizetype ret = 0;
   for (const auto &row : _data) {
-    ret = std::max(ret, row[column]->length());
+    auto rowMax = row[column]->length();
+    ret = std::max(ret, rowMax);
   }
   return ret;
 }
 
 QHash<int, QByteArray> RegisterModel::roleNames() const {
   static const QHash<int, QByteArray> ret{{Qt::DisplayRole, "display"},
-                                          {static_cast<int>(Roles::ReadOnly), "readOnly"}};
+                                          {static_cast<int>(Roles::Box), "box"},
+                                          {static_cast<int>(Roles::RightJustify), "rightJustify"}};
   return ret;
 }

@@ -28,6 +28,12 @@ Rectangle {
     FontMetrics {
         id: metrics
     }
+    TextMetrics {
+        id: tm
+        font: metrics.font
+        text: '0'
+    }
+
     RowLayout {
         id: flagsContainer
         anchors.top: parent.top
@@ -35,43 +41,72 @@ Rectangle {
         anchors.right: parent.right
         Repeater {
             id: flags
-            delegate: Column {
+            delegate: Row {
                 required property string display
                 required property bool value
                 Layout.fillWidth: true
                 Layout.fillHeight: true
+                spacing: -5
                 Text {
-                    anchors.horizontalCenter: parent.horizontalCenter
+                    anchors.verticalCenter: parent.verticalCenter
                     text: display
                 }
                 CheckBox {
-                    anchors.horizontalCenter: parent.horizontalCenter
+                    anchors.verticalCenter: parent.verticalCenter
                     enabled: false
                     checked: value
                 }
             }
         }
     }
-
-    // TODO: switch to Row+Repeater
-    TableView {
+    ListView {
         id: registers
         anchors.top: flagsContainer.bottom
         anchors.bottom: parent.bottom
         anchors.left: parent.left
         anchors.right: parent.right
-        height: contentHeight
-
-        columnWidthProvider: function (column) {
-            return (registers.model.columnCharWidth(
-                        column) + 2) * metrics.averageCharacterWidth
-        }
-        delegate: Component {
-            Text {
-                required property bool readOnly
-                required property string display
-                text: display
-                font: metrics.font
+        clip: true
+        spacing: 1
+        contentWidth: parent.width
+        delegate: RowLayout {
+            id: rowDelegate
+            required property int index
+            width: registers.width
+            Repeater {
+                model: registers.model.columnCount()
+                delegate: Rectangle {
+                    id: columnDelegate
+                    required property int index
+                    property int row: rowDelegate.index
+                    property int column: index
+                    property var mindex: registers.model.index(row, column)
+                    property string display: registers.model.data(mindex)
+                    property bool box: registers.model.data(mindex,
+                                                            registers.model.Box)
+                    property bool rightJustify: registers.model.data(
+                                                    mindex,
+                                                    registers.model.RightJustify)
+                    Layout.minimumWidth: Math.max(35, textField.width)
+                    Layout.minimumHeight: textField.height
+                    Layout.fillWidth: true
+                    TextField {
+                        id: textField
+                        background: Rectangle {
+                            color: "transparent"
+                            border.color: "black"
+                            border.width: box ? 1 : 0
+                            radius: 2
+                        }
+                        font: metrics.font
+                        readOnly: true
+                        maximumLength: registers.model.columnCharWidth(column)
+                        anchors.centerIn: columnDelegate
+                        text: display
+                        horizontalAlignment: rightJustify ? Qt.AlignRight : Qt.AlignHCenter
+                        // '0' is a wide character, and tm contains a single '0' in the current font.
+                        width: tm.width * (maximumLength + 3)
+                    }
+                }
             }
         }
     }

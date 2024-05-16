@@ -62,7 +62,11 @@ private:
 
 struct UnsignedDecFormatter : public RegisterFormatter {
   explicit UnsignedDecFormatter(std::function<uint64_t()> fn, uint16_t byteCount = 2)
-      : _fn(fn), _bytes(byteCount), _len(std::floor(std::log10(byteCount))), _mask(byteCount) {}
+      : _fn(fn), _bytes(byteCount), _mask(byteCount) {
+    auto maxNum = std::pow(2, 8 * byteCount);
+    auto digits = std::ceil(std::log10(maxNum));
+    _len = digits;
+  }
   ~UnsignedDecFormatter() override = default;
   QString format() const override { return QString::number(_mask & _fn()); }
   bool readOnly() const override { return false; }
@@ -76,7 +80,11 @@ private:
 
 struct SignedDecFormatter : public RegisterFormatter {
   explicit SignedDecFormatter(std::function<int64_t()> fn, uint16_t byteCount = 2)
-      : _fn(fn), _bytes(byteCount), _len(std::floor(std::log10(byteCount))), _mask(mask(byteCount)) {}
+      : _fn(fn), _bytes(byteCount), _mask(mask(byteCount)) {
+    auto maxNum = std::pow(2, 8 * byteCount);
+    auto digits = std::ceil(std::log10(maxNum));
+    _len = digits + 1;
+  }
   ~SignedDecFormatter() override = default;
   QString format() const override {
     if (auto v = _fn(); v < 0)
@@ -85,7 +93,7 @@ struct SignedDecFormatter : public RegisterFormatter {
     return QString::number(_mask & _fn());
   }
   bool readOnly() const override { return false; }
-  qsizetype length() const override { return 1 + _len; }
+  qsizetype length() const override { return _len; }
 
 private:
   uint16_t _bytes = 0, _len = 0;
@@ -110,7 +118,7 @@ struct MnemonicFormatter : public RegisterFormatter {
   explicit MnemonicFormatter(std::function<QString()> fn) : _fn(fn) {}
   ~MnemonicFormatter() override = default;
   QString format() const override { return _fn(); }
-  bool readOnly() const override { return false; }
+  bool readOnly() const override { return true; }
   qsizetype length() const override { return 7 + 2 + 3; }
 
 private:

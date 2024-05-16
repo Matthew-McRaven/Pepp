@@ -131,7 +131,7 @@ constexpr std::array<Opcode, 256> initOpcodes() {
   };
   auto add_all = [&ret](Instruction i) {
     auto base = static_cast<quint8>(i.mnemon);
-    ret[base] = {.instr = i, .mode = AM::I, .valid = true};
+    ret[base] = {.instr = i, .mode = AM::I, .valid = i.type != T::RAAA_noi};
     ret[base + 1] = {.instr = i, .mode = AM::D, .valid = true};
     ret[base + 2] = {.instr = i, .mode = AM::N, .valid = true};
     ret[base + 3] = {.instr = i, .mode = AM::S, .valid = true};
