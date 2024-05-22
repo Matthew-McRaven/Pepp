@@ -36,6 +36,64 @@ ApplicationWindow {
     visible: true
     title: qsTr("Pepp IDE")
 
+    //  Set palette in parent. Inherited by all children
+    palette {
+      /*  See https://doc.qt.io/qt-6/qml-qtquick-colorgroup.html for
+          color explanation
+      accent: A color that typically contrasts or compliments base,
+            window, and button colors. It usually represents the
+            users' choice of desktop personalisation. Styling of
+            interactive components is a typical use case. Unless
+            explicitly set, it defaults to highlight.
+      alternateBase: Used as the alternate background color in item
+            views with alternating row colors.
+      base: Used mostly as the background color for text editor
+            controls and items views. It is usually white or another
+            light color.
+      brightText: A text color that is very different from
+            palette.windowText, and contrasts well with e.g.
+            palette.dark. Typically used for text that needs to be drawn
+            where palette.text, palette.windowText or palette.buttonText
+            would give poor contrast, such as on highlighted buttons.
+      button: The general button background color. This background can
+            be different from palette.window as some styles require a
+            different background color for buttons.
+      buttonText: A foreground color used with the palette.button color.
+      dark: A foreground color used with the palette color.
+      highlight: A background color to indicate a selected item or the
+            current item.
+      highlightedText: A text color that contrasts with highlight.
+      light: Lighter than palette.button.
+      link: A text color used for hyperlinks.
+      linkVisited: A text color used for already visited hyperlinks.
+      mid: Between palette.button and palette.dark.
+      midlight: Between palette.button and palette.light.
+      placeholderText: Used as the place holder color for editable
+            single line fields.
+      shadow: A very dark color.
+      text: The foreground color used with palette.base. This is usually
+            the same as the palette.windowText, in which case it must
+            provide good contrast with palette.window and palette.base.
+      toolTipBase: Used as the background color for tooltips.
+      toolTipText: Used as the foreground color for tooltips.
+      window: A general background color.
+      windowText: A general foreground color.*/
+      alternateBase: Theme.container.background
+      base: Theme.surface.background
+      text: Theme.surface.foreground
+      button: Theme.container.background
+      buttonText: Theme.container.foreground
+      highlight: Theme.primary.background
+      highlightedText: Theme.primary.foreground
+      window: Theme.container.background
+      windowText: Theme.container.foregound
+
+      //  Colors when control is disabled. Overrides normal palette
+      disabled: {
+        highlight: Theme.container.background
+      }
+    }
+
     property var currentProject: null
 
     property string mode: "welcome"

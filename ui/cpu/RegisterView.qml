@@ -25,6 +25,7 @@ Rectangle {
     id: wrapper
     property alias registers: registers.model
     property alias flags: flags.model
+    color: palette.window
     FontMetrics {
         id: metrics
     }
@@ -50,6 +51,7 @@ Rectangle {
                 Text {
                     anchors.verticalCenter: parent.verticalCenter
                     text: display
+                    color: palette.text
                 }
                 CheckBox {
                     anchors.verticalCenter: parent.verticalCenter
@@ -89,11 +91,12 @@ Rectangle {
                     Layout.minimumWidth: Math.max(35, textField.width)
                     Layout.minimumHeight: textField.height
                     Layout.fillWidth: true
+                    color: "transparent"
                     TextField {
                         id: textField
                         background: Rectangle {
                             color: "transparent"
-                            border.color: "black"
+                            border.color: palette.shadow
                             border.width: box ? 1 : 0
                             radius: 2
                         }
@@ -102,6 +105,7 @@ Rectangle {
                         maximumLength: registers.model.columnCharWidth(column)
                         anchors.centerIn: columnDelegate
                         text: display
+                        color: palette.windowText
                         horizontalAlignment: rightJustify ? Qt.AlignRight : Qt.AlignHCenter
                         // '0' is a wide character, and tm contains a single '0' in the current font.
                         width: tm.width * (maximumLength + 3)

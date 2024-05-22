@@ -1,3 +1,4 @@
+
 /*
  * Copyright (c) 2024 J. Stanley Warford, Matthew McRaven
  * This program is free software: you can redistribute it and/or modify
@@ -30,7 +31,7 @@ ScrollView {
     }
     Rectangle {
         anchors.fill: parent
-        color: "white"
+        color: palette.base
     }
     Editor.ObjectUtilities {
         id: utils

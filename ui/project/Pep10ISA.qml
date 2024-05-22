@@ -38,7 +38,7 @@ Item {
                 anchors.horizontalCenter: parent.horizontalCenter
                 height: parent.height
                 // TODO: add color for handle
-                color: 'grey'
+                color: palette.base
             }
         }
         Text.ObjTextEditor {
