@@ -3,37 +3,32 @@ import QtQuick.Controls
 import QtQuick.Controls.Material
 
 Item {
-  id: root
+    id: root
 
-  property int colWidth: 30
-  property int rowHeight: 20
-  property alias backgroundColor: background.color
-  property alias textColor: rowNum.color
-  property alias text: rowNum.text
-  property alias textAlign: rowNum.horizontalAlignment
-  property alias font: rowNum.font
+    property int colWidth: 30
+    property int rowHeight: 20
+    property alias backgroundColor: background.color
+    property alias textColor: rowNum.color
+    property alias text: rowNum.text
+    property alias textAlign: rowNum.horizontalAlignment
+    property alias font: rowNum.font
 
-  implicitWidth: colWidth
-  implicitHeight: rowHeight
+    implicitWidth: colWidth
+    implicitHeight: rowHeight
 
-  Rectangle {
-    id: background
-    anchors.fill: root
-    color: "gray"
+    Rectangle {
+        id: background
+        anchors.fill: root
 
-    //border.width: 1
-    //border.color: "red"
+        Label {
+            id: rowNum
 
-    Label {
-      id: rowNum
+            anchors.fill: parent
+            verticalAlignment: Text.AlignVCenter
+            horizontalAlignment: Text.AlignHCenter
 
-      anchors.fill: parent
-      verticalAlignment: Text.AlignVCenter
-      horizontalAlignment: Text.AlignHCenter
-
-      color: "white"
-      text: ""
+            color: palette.text
+            text: ""
+        }
     }
-  }
 }
-

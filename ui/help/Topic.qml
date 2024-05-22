@@ -1,3 +1,5 @@
+
+
 /*
  * Copyright (c) 2024 J. Stanley Warford, Matthew McRaven
  * This program is free software: you can redistribute it and/or modify
@@ -13,7 +15,6 @@
  * You should have received a copy of the GNU General Public License
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
-
 import QtQuick
 import QtQuick.Controls
 
@@ -32,12 +33,13 @@ Item {
             id: title
             font.pixelSize: 22
             width: parent.width
-            color: "#ffffff"
+            color: palette.brightText
             elide: Label.ElideRight
             horizontalAlignment: Qt.AlignLeft
             text: qsTr("Writing Programs")
             background: Rectangle {
-                color: "#ff7d33"; radius: 5
+                color: "#ff7d33"
+                radius: 5
             }
         }
 

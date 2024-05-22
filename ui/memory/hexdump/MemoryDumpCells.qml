@@ -25,13 +25,6 @@ Item {
         id: cell
         anchors.fill: parent
 
-        //  Testing only
-        //border.width: 1
-        //border.color: "red"
-
-        //  Colors are managed by model
-        color: "gray"
-
         //  Used to create editable cell
         Text {
             id: display

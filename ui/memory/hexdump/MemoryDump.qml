@@ -394,8 +394,8 @@ Item {
                     rowHeight: rowHeight
                     colWidth: colWidth
 
-                    backgroundColor: "#f5f5f5"
-                    foregroundColor: "#000000"
+                    backgroundColor: palette.base
+                    foregroundColor: palette.text
                 }
             }
 
@@ -422,11 +422,11 @@ Item {
                         default:
                             // Alternating colors, using array to avoid conditional logic.
                             backgroundColor = Qt.binding(
-                                        () => ["#f5f5f5", "#e0e0e0"][column % 2])
+                                        () => [palette.base, palette.alternateBase][column % 2])
                         }
                     }
 
-                    textColor: "#000000"
+                    textColor: palette.text
                     text: model.display
                     textAlign: Text.AlignHCenter
                     font: hexFont
@@ -497,8 +497,8 @@ Item {
                     rowHeight: rowHeight
                     colWidth: colWidth
 
-                    backgroundColor: "#f5f5f5"
-                    textColor: "#000000"
+                    backgroundColor: palette.base
+                    textColor: palette.text
                     text: model.display
                     textAlign: model.textAlign
                     font: asciiFont
@@ -551,6 +551,7 @@ Item {
         anchors.right: parent.right
         Label {
             text: "Scroll to:"
+            color: palette.windowText
         }
         TextField {
             id: addrField

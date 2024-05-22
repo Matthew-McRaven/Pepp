@@ -1,3 +1,4 @@
+
 /*
  * Copyright (c) 2024 J. Stanley Warford, Matthew McRaven
  * This program is free software: you can redistribute it and/or modify
@@ -96,7 +97,7 @@ Item {
                     text: figType.textRole ? (Array.isArray(
                                                   figType.model) ? modelData[figType.textRole] : model[figType.textRole]) : modelData
                     //  Text color in dropdown
-                    color: figType.highlightedIndex === index ? "#ffffff" : "#333333" // "#ff7d33"
+                    color: figType.highlightedIndex === index ? palette.window : palette.dark
                     font.pointSize: 12
                     elide: Text.ElideRight
                     verticalAlignment: Text.AlignVCenter
@@ -136,7 +137,7 @@ Item {
 
                 text: figType.displayText
                 font: figType.font
-                color: "#ffffff"
+                color: palette.window
                 verticalAlignment: Text.AlignVCenter
                 elide: Text.ElideRight
             }

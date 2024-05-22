@@ -51,6 +51,7 @@ Item {
     Rectangle {
         id: container
         anchors.fill: parent
+        color: palette.window
 
         TreeView {
             property var selectedFig: undefined
@@ -111,6 +112,7 @@ Item {
                     x: padding + (treeDelegate.depth * treeDelegate.indent)
                     anchors.verticalCenter: label.verticalCenter
                     text: "▸"
+                    color: palette.text
                     rotation: treeDelegate.expanded ? 90 : 0
                 }
 
@@ -121,6 +123,7 @@ Item {
                     width: treeDelegate.width - treeDelegate.padding - x
                     clip: true
                     text: model.display
+                    color: palette.text
                 }
             }
 
