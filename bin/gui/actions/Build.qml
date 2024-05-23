@@ -8,10 +8,12 @@ QtObject {
         text: "&Load Object Code"
         onTriggered: console.log(this.text)
         icon.source: "qrc:/icons/build/flash.svg"
+        shortcut: ["Ctrl+Shift+L"]
     }
     readonly property var execute: Action {
         text: "&Execute"
         onTriggered: console.log(this.text)
         icon.source: "qrc:/icons/debug/start_normal.svg"
+        shortcut: ["Ctrl+Shift+R"]
     }
 }
