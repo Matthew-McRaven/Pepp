@@ -7,14 +7,17 @@ QtObject {
     readonly property var new_: Action {
         text: "&New"
         onTriggered: console.log(this.text)
+        icon.source: "qrc:/icons/file/new.svg"
     }
     readonly property var open: Action {
         text: "&Open..."
         onTriggered: console.log(this.text)
+        icon.source: "qrc:/icons/file/open.svg"
     }
     readonly property var save: Action {
         text: "&Save"
         onTriggered: console.log(this.text)
+        icon.source: "qrc:/icons/file/save.svg"
     }
     readonly property var print_: Action {
         text: "&Print"
