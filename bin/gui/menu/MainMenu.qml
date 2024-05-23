@@ -9,7 +9,7 @@ MenuBar {
     property alias printModel: printInstantiator.model
     property alias closeModel: closeInstantiator.model
     signal saveAs(int type)
-    signal print(int type)
+    signal print_(int type)
     signal openRecent(string path)
     signal close(int index)
 
@@ -74,7 +74,7 @@ MenuBar {
             model: 3
             delegate: MenuItem {
                 text: "Print" + modelData
-                onTriggered: print(modelData)
+                onTriggered: print_(modelData)
             }
             onObjectAdded: function (index, object) {
                 const m = fileMenu
