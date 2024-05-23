@@ -8,16 +8,19 @@ QtObject {
         text: "&New"
         onTriggered: console.log(this.text)
         icon.source: "qrc:/icons/file/new.svg"
+        shortcut: StandardKey.New
     }
     readonly property var open: Action {
         text: "&Open..."
         onTriggered: console.log(this.text)
         icon.source: "qrc:/icons/file/open.svg"
+        shortcut: StandardKey.Open
     }
     readonly property var save: Action {
         text: "&Save"
         onTriggered: console.log(this.text)
         icon.source: "qrc:/icons/file/save.svg"
+        shortcut: StandardKey.Save
     }
     readonly property var print_: Action {
         text: "&Print"

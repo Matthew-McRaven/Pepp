@@ -8,6 +8,7 @@ QtObject {
         text: "Start &Debugging"
         onTriggered: console.log(this.text)
         icon.source: "qrc:/icons/debug/start_debug.svg"
+        shortcut: "Ctrl+D"
     }
     readonly property var continue_: Action {
         text: "&Continue Debugging"
@@ -18,6 +19,7 @@ QtObject {
         text: "I&nterrupt Debugging"
         onTriggered: console.log(this.text)
         icon.source: "qrc:/icons/debug/pause.svg"
+        shortcut: "Ctrl+."
     }
     readonly property var stop: Action {
         text: "S&top Debugging"
@@ -28,6 +30,7 @@ QtObject {
         text: "&Step"
         onTriggered: console.log(this.text)
         icon.source: "qrc:/icons/debug/step_normal.svg"
+        shortcut: "Ctrl+Return"
     }
     readonly property var stepOver: Action {
         text: "Step O&ver"
