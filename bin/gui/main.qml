@@ -28,6 +28,8 @@ import "qrc:/ui/text/editor" as Editor
 import "qrc:/ui/project" as Project
 import "qrc:/ui/preferences" as Pref
 import edu.pepp 1.0
+import edu.pepp.Actions as Actions
+import "./menu" as Menu
 
 ApplicationWindow {
     id: window
@@ -38,7 +40,9 @@ ApplicationWindow {
 
     //  Set palette in parent. Inherited by all children
     palette {
-      /*  See https://doc.qt.io/qt-6/qml-qtquick-colorgroup.html for
+
+
+        /*  See https://doc.qt.io/qt-6/qml-qtquick-colorgroup.html for
           color explanation
       accent: A color that typically contrasts or compliments base,
             window, and button colors. It usually represents the
@@ -78,20 +82,20 @@ ApplicationWindow {
       toolTipText: Used as the foreground color for tooltips.
       window: A general background color.
       windowText: A general foreground color.*/
-      alternateBase: Theme.container.background
-      base: Theme.surface.background
-      text: Theme.surface.foreground
-      button: Theme.container.background
-      buttonText: Theme.container.foreground
-      highlight: Theme.primary.background
-      highlightedText: Theme.primary.foreground
-      window: Theme.container.background
-      windowText: Theme.container.foregound
+        alternateBase: Theme.container.background
+        base: Theme.surface.background
+        text: Theme.surface.foreground
+        button: Theme.container.background
+        buttonText: Theme.container.foreground
+        highlight: Theme.primary.background
+        highlightedText: Theme.primary.foreground
+        window: Theme.container.background
+        windowText: Theme.container.foregound
 
-      //  Colors when control is disabled. Overrides normal palette
-      disabled: {
-        highlight: Theme.container.background
-      }
+        //  Colors when control is disabled. Overrides normal palette
+        disabled: {
+            highlight: Theme.container.background
+        }
     }
 
     property var currentProject: null
@@ -132,6 +136,8 @@ ApplicationWindow {
         help.addProject.connect(() => switchToProject(pm.count - 1))
         help.switchToMode.connect(sidebar.switchToMode)
         currentProjectChanged.connect(projectLoader.onCurrentProjectChanged)
+        Actions.Edit.prefs.triggered.connect(preferencesDialog.open)
+        Actions.Help.about.triggered.connect(aboutDialog.open)
     }
 
     ProjectModel {
@@ -156,55 +162,7 @@ ApplicationWindow {
         id: menuFont
     }
 
-    menuBar: MenuBar {
-        Menu {
-            title: qsTr("&File")
-            Menu {
-                title: "nested"
-                Action {
-                    text: qsTr("&Save Object")
-                }
-                Action {
-                    text: qsTr("Save Object &As...")
-                }
-            }
-
-            Action {
-                text: qsTr("&New...")
-            }
-            Action {
-                text: qsTr("&Open...")
-            }
-
-            MenuSeparator {}
-            Action {
-                text: qsTr("&Quit")
-            }
-        }
-        Menu {
-            title: qsTr("&Edit")
-            Action {
-                text: qsTr("Cu&t")
-            }
-            Action {
-                text: qsTr("&Copy")
-            }
-            Action {
-                text: qsTr("&Paste")
-            }
-        }
-        Menu {
-            title: qsTr("&Help")
-            Action {
-                text: qsTr("&About")
-                onTriggered: aboutDialog.open()
-            }
-            Action {
-                text: qsTr("Preferences")
-                onTriggered: preferencesDialog.open()
-            }
-        }
-    }
+    menuBar: Menu.MainMenu {}
     Item {
         // Intersection of header and mode select.
         // Make transparent, influenced by Qt Creator Style.
