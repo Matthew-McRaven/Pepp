@@ -27,7 +27,7 @@ QtObject {
     readonly property var step: Action {
         text: "&Step"
         onTriggered: console.log(this.text)
-        icon.source: "qrc:/icons/debug/step.svg"
+        icon.source: "qrc:/icons/debug/step_normal.svg"
     }
     readonly property var stepOver: Action {
         text: "Step O&ver"
