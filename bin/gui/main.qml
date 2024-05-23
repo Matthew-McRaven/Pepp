@@ -187,19 +187,69 @@ ApplicationWindow {
             RowLayout {
                 anchors.fill: parent
                 ToolButton {
-                    text: qsTr("‹")
-                    font: menuFont.font
+                    action: Actions.File.new_
+                    hoverEnabled: true
+                    ToolTip.visible: hovered
+                    ToolTip.text: action.text
+                    text: ''
                 }
-                Label {
-                    text: "Title"
-                    font: menuFont.font
-                    elide: Label.ElideRight
-                    horizontalAlignment: Qt.AlignHCenter
-                    verticalAlignment: Qt.AlignVCenter
+                ToolSeparator {}
+                ToolButton {
+                    action: Actions.Build.execute
+                    hoverEnabled: true
+                    ToolTip.visible: hovered
+                    ToolTip.text: action.text
+                    text: ''
                 }
                 ToolButton {
-                    text: qsTr("⋮")
-                    font: menuFont.font
+                    action: Actions.Debug.start
+                    hoverEnabled: true
+                    ToolTip.visible: hovered
+                    ToolTip.text: action.text
+                    text: ''
+                }
+                ToolSeparator {}
+                ToolButton {
+                    action: Actions.Debug.continue_
+                    hoverEnabled: true
+                    ToolTip.visible: hovered
+                    ToolTip.text: action.text
+                    text: ''
+                }
+                ToolButton {
+                    action: Actions.Debug.stop
+                    hoverEnabled: true
+                    ToolTip.visible: hovered
+                    ToolTip.text: action.text
+                    text: ''
+                }
+                ToolButton {
+                    action: Actions.Debug.step
+                    hoverEnabled: true
+                    ToolTip.visible: hovered
+                    ToolTip.text: action.text
+                    text: ''
+                }
+                ToolButton {
+                    action: Actions.Debug.stepOver
+                    hoverEnabled: true
+                    ToolTip.visible: hovered
+                    ToolTip.text: action.text
+                    text: ''
+                }
+                ToolButton {
+                    action: Actions.Debug.stepInto
+                    hoverEnabled: true
+                    ToolTip.visible: hovered
+                    ToolTip.text: action.text
+                    text: ''
+                }
+                ToolButton {
+                    action: Actions.Debug.stepOut
+                    hoverEnabled: true
+                    ToolTip.visible: hovered
+                    ToolTip.text: action.text
+                    text: ''
                 }
                 ToolSeparator {}
                 Help.Converters {
