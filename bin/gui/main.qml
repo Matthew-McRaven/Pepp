@@ -116,6 +116,19 @@ ApplicationWindow {
             projectBar.currentIndex = index
     }
 
+    Repeater {
+        model: 10
+        delegate: Item {
+            Shortcut {
+                property int index: modelData
+                //%10 to ensure that Alt+0 maps to index==10
+                sequences: [`Alt+${(index + 1) % 10}`]
+                onActivated: switchToProject(index, true)
+                enabled: index < pm.count
+            }
+        }
+    }
+
     function closeProject(index) {
         console.log(`project: closed ${index}`)
         // TODO: add logic to save project before closing or reject change entirely.
