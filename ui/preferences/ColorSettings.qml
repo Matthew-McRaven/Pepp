@@ -5,10 +5,8 @@ import Qt.labs.platform as Platform //  Font picker
 
 import "." as Ui
 
-Item {
+Rectangle {
   id: root
-  width: 350
-  height: 500
 
   //  Used to paint screen
   required property var preference
@@ -18,25 +16,26 @@ Item {
 
   ColumnLayout  {
     id: wrapper
-    Layout.fillHeight: true
-    Layout.fillWidth: true
-    Layout.margins: 5
+    //Layout.margins: 5
+    anchors.fill: parent
     property int colWidth: 70
 
     //  Group box for parent properties
-    GroupBox  {
+    /*GroupBox  {
       id: inheritGB
       Layout.topMargin: 20
       Layout.leftMargin: 10
       background: Rectangle {
-        color: Theme.container.background
-        border.color: Theme.container.foreground
-        border.width: 1
+      color: palette.window
+      border.color: palette.windowText
+        //color: Theme.container.background
+        //border.color: Theme.container.foreground
+      border.width: 1
       }
 
       //  Groupbox label
       label: Ui.GroupBoxLabel {
-        textColor: Theme.primary.foreground
+        //textColor: Theme.primary.foreground
         text: "Parent Data"
       }
       ColumnLayout {
@@ -131,22 +130,22 @@ Item {
           }
         } //  RowLayout
       } //  ColumnLayout
-    } //  GroupBox
+    }*/ //  GroupBox
     GroupBox  {
-      Layout.topMargin: 20
-      Layout.leftMargin: 10
-      Layout.rightMargin: 10
-
-      background: Rectangle {
-        color: Theme.container.background
-        border.color: Theme.container.foreground
-        border.width: 1
-      }
+      Layout.alignment: Qt.AlignHCenter
+      implicitWidth: 200
 
       //  Groupbox label
       label: Ui.GroupBoxLabel {
-        textColor: Theme.primary.foreground
-        text: parentId.currentIndex === 0 ? ("Set Data for " + preference.name) : "Override Parent"
+        textColor: palette.windowText
+        backgroundColor: palette.window
+        text: "Update " + preference.name
+      }
+
+      background: Rectangle {
+        color: palette.window
+        border.color: palette.windowText
+        border.width: 1
       }
 
       ColumnLayout {
@@ -182,7 +181,7 @@ Item {
               }
             }
           }
-          Button {
+          /*Button {
             text: "Clear"
             enabled: parentId.currentIndex === 0 || fgColor.color !== pfgColor.color
             Layout.preferredWidth: wrapper.colWidth
@@ -197,7 +196,7 @@ Item {
                 fgText.text = pfgText.text
               }
             }
-          }
+          }*/
         }
         RowLayout {
           id: background
@@ -229,7 +228,7 @@ Item {
             }
           }
 
-          Button {
+          /*Button {
             text: "Clear"
             enabled: parentId.currentIndex === 0 || bgColor.color !== pbgColor.color
             Layout.preferredWidth: wrapper.colWidth
@@ -244,7 +243,7 @@ Item {
                 bgText.text = pbgText.text
               }
             }
-          }
+          } */
         }
 
         RowLayout {

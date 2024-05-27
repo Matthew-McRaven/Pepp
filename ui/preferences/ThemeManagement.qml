@@ -13,7 +13,7 @@ RowLayout {
   Text {
     id: text;
     text: "Current Theme"
-    color: Theme.surface.foreground
+    color: palette.windowText
   }
   ComboBox {
     id: themeId
@@ -32,10 +32,6 @@ RowLayout {
   }
   Button {
     text: "Copy";
-    palette {
-      button: Theme.container.background
-      buttonText: Theme.surface.foreground
-    }
 
     Layout.preferredWidth: buttonWidth
     onClicked: {
@@ -49,29 +45,20 @@ RowLayout {
     enabled: !Theme.systemTheme
     onClicked: deleteDialog.open()
     palette {
-      button: Theme.container.background
       buttonText: del.enabled
-                  ? Theme.surface.foreground
-                  : Theme.container.foreground
+                  ? palette.button
+                  : palette.mid
     }
   }
   Button {
     text: "Import";
     Layout.preferredWidth: buttonWidth
     onClicked: importDialog.open()
-    palette {
-      button: Theme.container.background
-      buttonText: Theme.surface.foreground
-    }
   }
   Button {
     text: "Export"
     Layout.preferredWidth: buttonWidth
     onClicked: exportDialog.open()
-    palette {
-      button: Theme.container.background
-      buttonText: Theme.surface.foreground
-    }
   }
 
   FileDialog {
@@ -105,8 +92,6 @@ RowLayout {
 
     //  Set dialog colors
     //palette.text: Theme.container.foreground
-    //palette.button: Theme.container.background
-    //palette.window: Theme.container.background
 
     onAccepted: {
       Theme.importTheme(decodeURIComponent(selectedFile))
@@ -147,9 +132,7 @@ RowLayout {
     spacing: 5
 
     //  Set dialog colors
-    palette.text: Theme.container.foreground
-    palette.button: Theme.container.background
-    palette.window: Theme.container.background
+    //palette.text: Theme.container.foreground
 
     ColumnLayout {
       anchors.fill: parent

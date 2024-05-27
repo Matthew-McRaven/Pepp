@@ -110,34 +110,50 @@ void Preference::setStrikeOut(const bool strikeOut)
 
 QJsonObject Preference::toJson() const {
     QJsonObject prefData;
+    bool ok;
+    quint32 hex;
+
     prefData["id"]    = id();
     prefData["name"]  = name();
     prefData["parent"]  = parentId();
-    prefData["foreground"]  = static_cast<qint64>(foreground().rgba());//.value();
-    prefData["background"]  = static_cast<qint64>(background().rgba());//.value();
-    prefData["bold"]  = bold();
-    prefData["italics"]  = italics();
-    prefData["underline"]  = underline();
-    prefData["strikeOut"]  = strikeOut();
+    //prefData["foreground"]  = static_cast<qint64>(foreground().rgba());//.value();
+    //prefData["background"]  = static_cast<qint64>(background().rgba());//.value();
+    hex = static_cast<qint64>(foreground().rgba());
+    prefData["foreground"]  = QString("%1").arg(hex, 8, 16, QLatin1Char( '0' ));
+    hex = static_cast<qint64>(background().rgba());
+    prefData["background"]  = QString("%1").arg(hex, 8, 16, QLatin1Char( '0' ));
+    prefData["bold"]        = bold();
+    prefData["italics"]     = italics();
+    prefData["underline"]   = underline();
+    prefData["strikeOut"]   = strikeOut();
 
     return prefData;
 }
 
 void Preference::fromJson(const QJsonObject &json, Preference& pref) {
 
+    bool ok;
     if (const QJsonValue v = json["id"]; v.isDouble())
       pref.setId(v.toInt());
     if (const QJsonValue v = json["name"]; v.isString())
       pref.setName(v.toString());
     if (const QJsonValue v = json["parent"]; v.isDouble())
       pref.setParent(v.toInt());
-    if (const QJsonValue v = json["foreground"]; v.isDouble()) {
-      quint32 color = v.toDouble();
-      pref.setForeground(QRgb(color));
+    if (const QJsonValue v = json["foreground"]; v.isString()) {
+      //  Convert from hex string. If error, assign default color
+      quint32 color = v.toString().toLongLong(&ok,16);
+      if(ok)
+        pref.setForeground(QRgb(color));
+      else
+        pref.setForeground(qRgb(0x0,0x0,0x0));
     }
-    if (const QJsonValue v = json["background"]; v.isDouble()) {
-      quint32 color = v.toDouble();
-      pref.setBackground(QRgb(color));
+    if (const QJsonValue v = json["background"]; v.isString()) {
+      //  Convert from hex string. If error, assign default color
+      quint32 color = v.toString().toLongLong(&ok,16);
+      if(ok)
+        pref.setBackground(QRgb(color));
+      else
+        pref.setBackground(qRgb(0xff,0xff,0xff));
     }
     if (const QJsonValue v = json["bold"]; v.isBool())
       pref.setBold(v.toBool(false));

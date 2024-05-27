@@ -31,6 +31,7 @@ Theme::Theme(QObject *parent)
     //  In future, this will load last saved theme. For now, it's hardcoded
     load(systemPath_ + "Default.theme");
 
+    //  Used to generate sample file
     //save("Default.theme");
 }
 
@@ -280,43 +281,74 @@ void Theme::loadMissing() {
     Preference* pref = nullptr;
 
     switch(i) {
-    case Roles::SurfaceRole:
-      pref =
-          new Preference(this, SurfaceRole, "Surface", qRgb(0x06, 0x06, 0x06), qRgb(0xff, 0xff, 0xff)); //  Black/White
+    case Roles::BaseRole:
+      pref  = new Preference(this, BaseRole, "Base Text/Background",
+              qRgb(0x0,0x0,0x0),qRgb(0xff,0xff,0xff));  //  Black/White
       break;
-    case Roles::ContainerRole:
-        pref =  new Preference(this, ContainerRole, "Container",
-                qRgb(0x7f,0x7f,0x7f),qRgb(0xee,0xee,0xee));  //  Black/gray
-        break;
-    case Roles::PrimaryRole:
-        pref =  new Preference(this, PrimaryRole, "Primary",
-                qRgb(0x44,0x44,0x44),qRgb(0x90,0xeb,0xff), //  Black/Light Blue
-                0, true);  // Bold
-        break;
-    case Roles::SecondaryRole:
-        pref =  new Preference(this, SecondaryRole, "Secondary",
-                qRgb(0xf0,0xf0,0xf0),qRgb(0x2e,0x3e,0x84), //  White/Dark Blue
-                0, true, true); //  Bold, italics
-        break;
-    case Roles::TertiaryRole:
-        pref =  new Preference(this, TertiaryRole, "Tertiary",
-                qRgb(0xff,0xff,0xff),qRgb(0x35,0xb5,0x48), //  White/Green
-                0, false, true, true);  //  Italics, underline
-        break;
-    case Roles::ErrorRole:
-        pref =  new Preference(this, ErrorRole,"Error",
-                qRgb(0x00,0x00,0x00),qRgb(0xff,0x00,0x00), //  Black/Red
-                0, true); //  Bold
-        break;
-    case Roles::WarningRole:
-      pref =  new Preference(this, WarningRole,"Warning",
-              qRgb(0x00,0x00,0x00),qRgb(0xff,0xaa,0x00), //  Black/Red
-              0, true); //  Bold
+    case Roles::WindowRole:
+      pref =  new Preference(this, WindowRole, "Window Text/Background",
+              qRgb(0x0f,0x0f,0x0f),qRgb(0xee,0xee,0xee));  //  Dark Gray/gray
+      break;
+    case Roles::ButtonRole:
+      pref =  new Preference(this, ButtonRole, "Button Text/Background",
+              qRgb(0x0,0x0,0x0),qRgb(0xf0,0xf0,0xf0)); //  Black/gray
+      break;
+    case Roles::HighlightRole:
+      pref =  new Preference(this, HighlightRole, "Highlight Text/Background",
+              qRgb(0xff,0xff,0xff),qRgb(0x0,0x78,0xd7)); //  White/Mid Blue
+      break;
+    case Roles::TooltipRole:
+      pref =  new Preference(this, TooltipRole, "Tooltip Text/Background",
+              qRgb(0x0,0x0,0x0),qRgb(0xff,0xff,0xdc)); //  black/light yellow
+      break;
+    case Roles::AlternateBaseRole:
+      pref =  new Preference(this, AlternateBaseRole, "AlternateBase Background",
+              qRgb(0x7f,0x7f,0x7f),qRgb(0xa0,0xa0,0xa0)); //  Dark Gray/Light gray
+      break;
+    case Roles::AccentRole:
+      pref =  new Preference(this, AccentRole,"Accent Background",
+              qRgb(0xff,0xff,0xff),qRgb(0x0,0x78,0xd7)); //  White/Mid Blue
+      break;
+    case Roles::LightRole:
+      pref =  new Preference(this, LightRole,"Light Background",
+              qRgb(0x0,0x0,0xff),qRgb(0xff,0xff,0xff)); //  Blue/White
+      break;
+    case Roles::MidLightRole:
+      pref =  new Preference(this, MidLightRole,"Midlight Background",
+              qRgb(0x00,0x00,0x00),qRgb(0xe3,0xe3,0xe3)); //  Black/Light Gray
+      break;
+    case Roles::MidRole:
+      pref =  new Preference(this, MidRole,"Mid Background",
+              qRgb(0xf0,0xf0,0xf0),qRgb(0xa0,0xa0,0xa0)); //  Black/Gray
+      break;
+    case Roles::DarkRole:
+      pref =  new Preference(this, DarkRole,"Dark Background",
+              qRgb(0xf0,0xf0,0xf0),qRgb(0xa0,0xa0,0xa0)); //  Black/Gray
+      break;
+    case Roles::ShadowRole:
+      pref =  new Preference(this, ShadowRole,"Shadow Background",
+              qRgb(0xff,0xff,0xff),qRgb(0x69,0x69,0x69)); //  White/Dark Gray
+      break;
+    case Roles::LinkRole:
+      pref =  new Preference(this, LinkRole,"Link Text",
+              qRgb(0x0,0x78,0xd7),qRgb(0xff,0xff,0xff)); //  Mid Blue/White
+      break;
+    case Roles::LinkVisitedRole:
+      pref =  new Preference(this, LinkVisitedRole,"Link Visited Text",
+              qRgb(0x78,0x40,0xa0),qRgb(0xff,0xff,0xff)); //  Purple/White
+      break;
+    case Roles::BrightTextRole:
+      pref =  new Preference(this, BrightTextRole,"Bright Text",
+              qRgb(0xff,0xff,0xff),qRgb(0xa0,0xa0,0xa0)); //  White/Mid
+      break;
+    case Roles::PlaceHolderTextRole:
+      pref =  new Preference(this, PlaceHolderTextRole,"Placeholder Text",
+              qRgb(0x7f,0x7f,0x7f),qRgb(0xee,0xee,0xee)); //  Gray/white
       break;
     case Roles::RowNumberRole:
-        pref =  new Preference(this, RowNumberRole,"Row Number",
-                qRgb(0x66,0x66,0x66),qRgb(0xff,0xff,0xff), //  Black/Red
-                0, false, false, false, true); // Strikeout
+      pref =  new Preference(this, RowNumberRole,"Row Number",
+              qRgb(0x66,0x66,0x66),qRgb(0xff,0xff,0xff), //  Black/Red
+              0, false, false, false, true); // Strikeout
         break;
 
     case Roles::BreakpointRole:
@@ -326,13 +358,13 @@ void Theme::loadMissing() {
       break;
 
     case Roles::SeqCircuitRole:
-        pref =  new Preference(this, SeqCircuitRole,"Breakpoint",
+        pref =  new Preference(this, SeqCircuitRole,"SeqCircuit",
                 qRgb(0xff,0xff,0x00),qRgb(0x04,0xab,0x0a), //  Yellow/Green
                 0); // None
       break;
 
     case Roles::CircuitGreenRole:
-        pref =  new Preference(this, CircuitGreenRole,"SeqCircuit",
+        pref =  new Preference(this, CircuitGreenRole,"Green Circuit",
                 qRgb(0x0,0x0,0xff),qRgb(0xff,0xe1,0xff), //  Blue/Violet
                 0); // None
         break;
@@ -351,7 +383,7 @@ QFont Theme::font() const {
 void Theme::setFont(QFont font) {
   font_.setFamily(font.family());
 
-         //  Make sure font is at least 8 points
+  //  Make sure font is at least 8 points
   font_.setPointSize(std::max(font.pointSize(), 8));
 
   for (auto* it : prefs_) {

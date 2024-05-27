@@ -6,9 +6,9 @@ import Qt.labs.platform as Platform //  Font picker
 import "." as Ui
 import edu.pepperdine 1.0
 
-Item {
+Rectangle {
   id: root
-  width: 600
+  //width: 600
   property int buttonWidth: 50
   required property var model
 
@@ -31,27 +31,38 @@ Item {
 
         //  Groupbox label
         label: Ui.GroupBoxLabel {
-          textColor: Theme.primary.foreground
+          textColor: palette.windowText
+          backgroundColor: palette.window
           text: "Font"
         }
 
         background: Rectangle {
-          color: Theme.container.background
-          border.color: Theme.container.foreground
+          color: palette.window
+          border.color: palette.windowText
           border.width: 1
         }
 
         RowLayout {
-          Label { text: "Current Font Family: "; color: Theme.container.foreground}
-          Text { id: family; text: root.model.font.family; color: Theme.container.foreground}
-          Label { text: "Size: "; color: Theme.container.foreground}
-          Text { id: fontsize; text: root.model.font.pointSize; color: Theme.container.foreground}
+          Label {
+            text: "Current Font Family: ";
+          }
+          Text {
+            id: family;
+            text: root.model.font.family;
+            color: palette.windowText
+          }
+          Label {
+            text: "Size: "
+          }
+          Text { id: fontsize; text: root.model.font.pointSize;
+            color: palette.windowText
+          }
           Button {
             text: "Change";
             Layout.preferredWidth: buttonWidth
             palette {
-              button: Theme.container.background
-              buttonText: Theme.surface.foreground
+              //button: Theme.container.background
+              //buttonText: Theme.surface.foreground
             }
 
             onClicked: {
@@ -66,30 +77,69 @@ Item {
         }
       }
     } //  RowLayout - Font
+
     RowLayout {
-      //Layout.topMargin: 10
-      GroupBox {
-        id: propertiesGB
-        Layout.fillHeight: true
+      //  Listbox with current color scheme
+      Layout.fillWidth: true
+      spacing: 5
+      RowLayout {
         Layout.fillWidth: true
-        z: -1
+        GroupBox {
+          id: propertiesGB
+          Layout.fillHeight: true
+          Layout.fillWidth: true
+          z: -1
 
-        background: Rectangle {
-          color: Theme.container.background
-          border.color: Theme.container.foreground
-          border.width: 1
+          //  Groupbox label
+          label: Ui.GroupBoxLabel {
+            textColor: palette.windowText
+            backgroundColor: palette.window
+            text: "Color Scheme for Theme: " + Theme.name
+          }
+
+          background: Rectangle {
+            color: palette.window
+            border.color: palette.windowText
+            border.width: 1
+          }
+
+          Ui.PreferenceList {
+            id: listView
+            model: root.model
+            anchors.fill: parent
+          }
         }
+      }
+      //  Overrides
+      Rectangle {
+        id: overrides
+        Layout.fillHeight: true
+        Layout.margins: 0
+        implicitWidth: 225
 
-        //  Groupbox label
-        label: Ui.GroupBoxLabel {
-          textColor: Theme.primary.foreground
-          text: "Color Scheme for Theme: " + Theme.name
-        }
+        color: palette.window
+        border.color: palette.windowText
 
-        Ui.PreferenceList {
-          id: listView
-          model: root.model
+        Ui.ColorSettings {
+          visible: !Theme.systemTheme
           anchors.fill: parent
+          //implicitWidth: 225
+
+          color: palette.window
+
+          //  Currently selected preference
+          preference: root.model.currentPref
+          model: root.model
+        }
+        Text {
+          visible: Theme.systemTheme
+          anchors.fill: parent
+          verticalAlignment: Text.AlignVCenter
+          wrapMode: Text.WordWrap
+          padding: 5
+          color: palette.windowText
+
+          text: "<b>Builtin color schemes must be copied before they can be changed.<b>"
         }
       }
     }

@@ -70,24 +70,24 @@ void PreferenceModel::load()
 
     auto& general = categories_.emplace_back("General");
     categoryList_.append(general.name());
-    for( int i = Theme::Roles::SurfaceRole;
-         i <= Theme::Roles::WarningRole; ++i)
+    for( int i = Theme::Roles::GeneralCategoryStart;
+         i < Theme::Roles::GeneralCategoryEnd; ++i)
     {
       general.addChild(theme_->preference(i)->name());
     }
 
     auto& editor = categories_.emplace_back("Editor");
     categoryList_.append(editor.name());
-    for( int i = Theme::Roles::RowNumberRole;
-         i <= Theme::Roles::BreakpointRole; ++i)
+    for( int i = Theme::Roles::GeneralCategoryEnd;
+         i < Theme::Roles::EditorCategoryEnd; ++i)
     {
       editor.addChild(theme_->preference(i)->name());
     }
 
     auto& circuit = categories_.emplace_back("Circuit");
     categoryList_.append(circuit.name());
-    for( int i = Theme::Roles::SeqCircuitRole;
-         i <= Theme::Roles::CircuitGreenRole; ++i)
+    for( int i = Theme::Roles::EditorCategoryEnd;
+         i < Theme::Roles::CircuitCategoryEnd; ++i)
     {
       circuit.addChild(theme_->preference(i)->name());
     }

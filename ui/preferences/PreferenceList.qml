@@ -6,7 +6,10 @@ Rectangle {
   id: root
   property alias model: listView.model
 
-  color: Theme.container.background
+  width: parent.width
+
+  color: palette.window
+  border.color: "transparent"
 
   Component {
     id: preferenceDelegate
@@ -16,7 +19,7 @@ Rectangle {
       height: info.height
       color: model.currentList.background
       border.color: wrapper.ListView.isCurrentItem ?
-                    Theme.error.background : "transparent"
+                    Theme.accent.background : "transparent"
       border.width: 1
 
       Text {
@@ -24,7 +27,7 @@ Rectangle {
         text: model.currentCategory
         color: model.currentList.foreground
         font: model.currentList.font
-        padding: 2
+        //padding: 2
       }
       MouseArea
       {

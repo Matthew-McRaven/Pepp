@@ -10,14 +10,30 @@
 class Theme : public QObject {
   Q_OBJECT
 
+  /*  See https://doc.qt.io/qt-6/qml-qtquick-colorgroup.html for
+      color explanation
+
+    First block of colors relates to standard QT palette
+  */
   Q_PROPERTY(QFont   font  READ font WRITE setFont    NOTIFY fontChanged)
-  Q_PROPERTY(Preference* surface     READ surface     NOTIFY preferenceChanged)
-  Q_PROPERTY(Preference* container   READ container   NOTIFY preferenceChanged)
-  Q_PROPERTY(Preference* primary     READ primary     NOTIFY preferenceChanged)
-  Q_PROPERTY(Preference* secondary   READ secondary   NOTIFY preferenceChanged)
-  Q_PROPERTY(Preference* tertiary    READ tertiary    NOTIFY preferenceChanged)
-  Q_PROPERTY(Preference* error       READ error       NOTIFY preferenceChanged)
-  Q_PROPERTY(Preference* warning     READ warning     NOTIFY preferenceChanged)
+  Q_PROPERTY(Preference* base       READ base         NOTIFY preferenceChanged)
+  Q_PROPERTY(Preference* window     READ window       NOTIFY preferenceChanged)
+  Q_PROPERTY(Preference* button     READ button       NOTIFY preferenceChanged)
+  Q_PROPERTY(Preference* highlight  READ highlight    NOTIFY preferenceChanged)
+  Q_PROPERTY(Preference* tooltip    READ tooltip      NOTIFY preferenceChanged)
+  Q_PROPERTY(Preference* alternateBase READ alternateBase NOTIFY preferenceChanged)
+  Q_PROPERTY(Preference* accent     READ accent       NOTIFY preferenceChanged)
+  Q_PROPERTY(Preference* light      READ light        NOTIFY preferenceChanged)
+  Q_PROPERTY(Preference* midlight   READ midlight     NOTIFY preferenceChanged)
+  Q_PROPERTY(Preference* mid        READ mid          NOTIFY preferenceChanged)
+  Q_PROPERTY(Preference* dark       READ dark         NOTIFY preferenceChanged)
+  Q_PROPERTY(Preference* shadow       READ shadow     NOTIFY preferenceChanged)
+  Q_PROPERTY(Preference* link       READ link         NOTIFY preferenceChanged)
+  Q_PROPERTY(Preference* linkVisited READ linkVisited NOTIFY preferenceChanged)
+  Q_PROPERTY(Preference* brightText READ brightText   NOTIFY preferenceChanged)
+  Q_PROPERTY(Preference* placeholderText READ placeholderText NOTIFY preferenceChanged)
+
+  //  Custom colors
   Q_PROPERTY(Preference* rowNumber   READ rowNumber   NOTIFY preferenceChanged)
   Q_PROPERTY(Preference* breakpoint  READ breakpoint  NOTIFY preferenceChanged)
   Q_PROPERTY(Preference* seqCircuit  READ seqCircuit  NOTIFY preferenceChanged)
@@ -27,7 +43,7 @@ class Theme : public QObject {
   Q_PROPERTY(QStringList themes      READ themes      NOTIFY themesChanged)
 
   QString name_ = "Default";
-  QString version_ = "0.2";
+  QString version_ = "0.4";
   bool system_{true};
   QFont font_;
   std::vector<Preference*> prefs_;
@@ -38,19 +54,33 @@ class Theme : public QObject {
 
 public:
   enum Roles {
-    SurfaceRole = 0,
-    ContainerRole,
-    PrimaryRole,
-    SecondaryRole,
-    TertiaryRole,
-    ErrorRole,
-    WarningRole,
+    GeneralCategoryStart = 0,  //  Only used for iteration
+    BaseRole = GeneralCategoryStart,
+    WindowRole,
+    ButtonRole,
+    HighlightRole,
+    TooltipRole,
+    AlternateBaseRole,
+    AccentRole,
+    LightRole,
+    MidLightRole,
+    MidRole,
+    DarkRole,
+    ShadowRole,
+    LinkRole,
+    LinkVisitedRole,
+    BrightTextRole,
+    PlaceHolderTextRole,
 
-    RowNumberRole,
+    GeneralCategoryEnd, //  Only used for iteration
+
+    RowNumberRole = GeneralCategoryEnd,
     BreakpointRole,
+    EditorCategoryEnd,
 
-    SeqCircuitRole,
+    SeqCircuitRole = EditorCategoryEnd,
     CircuitGreenRole,
+    CircuitCategoryEnd,
 
     Total, // Must be last
   };
@@ -81,20 +111,39 @@ public:
   QStringList themes() const;
 
   //  Accessor when outside delegate
-  Preference* surface() const {
-    return preference(Theme::Roles::SurfaceRole);  }
-  Preference* container() const {
-    return preference(Theme::Roles::ContainerRole); }
-  Preference* primary() const {
-    return preference(Theme::Roles::PrimaryRole); }
-  Preference* secondary() const {
-    return preference(Theme::Roles::SecondaryRole); }
-  Preference* tertiary() const {
-    return preference(Theme::Roles::TertiaryRole); }
-  Preference* error() const {
-    return preference(Theme::Roles::ErrorRole); }
-  Preference* warning() const {
-    return preference(Theme::Roles::WarningRole); }
+  Preference* base() const {
+    return preference(Theme::Roles::BaseRole);  }
+  Preference* window() const {
+    return preference(Theme::Roles::WindowRole); }
+  Preference* button() const {
+    return preference(Theme::Roles::ButtonRole); }
+  Preference* highlight() const {
+    return preference(Theme::Roles::HighlightRole); }
+  Preference* tooltip() const {
+    return preference(Theme::Roles::TooltipRole); }
+  Preference* alternateBase() const {
+    return preference(Theme::Roles::AlternateBaseRole); }
+  Preference* accent() const {
+    return preference(Theme::Roles::AccentRole); }
+  Preference* light() const {
+    return preference(Theme::Roles::LightRole); }
+  Preference* midlight() const {
+    return preference(Theme::Roles::MidLightRole); }
+  Preference* mid() const {
+    return preference(Theme::Roles::MidRole); }
+  Preference* dark() const {
+    return preference(Theme::Roles::DarkRole); }
+  Preference* shadow() const {
+    return preference(Theme::Roles::ShadowRole); }
+  Preference* link() const {
+    return preference(Theme::Roles::LinkRole); }
+  Preference* linkVisited() const {
+    return preference(Theme::Roles::LinkVisitedRole); }
+  Preference* brightText() const {
+    return preference(Theme::Roles::BrightTextRole); }
+  Preference* placeholderText() const {
+    return preference(Theme::Roles::PlaceHolderTextRole); }
+
   Preference* rowNumber() const {
     return preference(Theme::Roles::RowNumberRole); }
   Preference* breakpoint() const {
