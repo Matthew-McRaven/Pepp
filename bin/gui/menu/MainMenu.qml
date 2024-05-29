@@ -1,8 +1,7 @@
 import QtQuick
-import QtQuick.Window
 import QtQuick.Controls
 import QtQuick.Layouts
-
+import "./"
 MenuBar {
     id: wrapper
     required property var target
@@ -28,11 +27,13 @@ MenuBar {
     Menu {
         id: fileMenu
         title: qsTr("&File")
-        MenuItem {
+        ShortcutMenuItem {
             action: actions.file.new_
+            target: wrapper.target
         }
-        MenuItem {
+        ShortcutMenuItem {
             action: actions.file.open
+            target: wrapper.target
         }
         Menu {
             id: recentMenu
@@ -49,9 +50,10 @@ MenuBar {
         }
 
         MenuSeparator {}
-        MenuItem {
+        ShortcutMenuItem {
             action: actions.file.save
             text: "&Save Object"
+            target: wrapper.target
         }
         MenuSeparator {
             id: _saveAsPrev
@@ -115,29 +117,27 @@ MenuBar {
     }
     Menu {
         title: qsTr("&Edit")
-        MenuItem {
+        ShortcutMenuItem {
             action: actions.edit.undo
+            target: wrapper.target
         }
-        MenuItem {
+        ShortcutMenuItem {
             action: actions.edit.redo
+            target: wrapper.target
         }
         MenuSeparator {}
-        MenuItem {
+        ShortcutMenuItem {
             action: actions.edit.cut
+            target: wrapper.target
         }
-        MenuItem {
+        ShortcutMenuItem {
             action: actions.edit.copy
-            Text {
-                anchors.verticalCenter: parent.verticalCenter
-                anchors.right: parent.right
-                text: actions.edit.copy.nativeText
-                width: tm.width * 20 // 40 spaces wide
-                horizontalAlignment: Text.AlignLeft
-                rightPadding: tm.width
-            }
+            target: wrapper.target
         }
-        MenuItem {
+
+        ShortcutMenuItem {
             action: actions.edit.paste
+            target: wrapper.target
         }
         // Formatting magic!
         MenuSeparator {}
@@ -157,8 +157,9 @@ MenuBar {
     }
     Menu {
         title: qsTr("&Debug")
-        MenuItem {
+        ShortcutMenuItem {
             action: actions.debug.start
+            target: wrapper.target
         }
         MenuSeparator {}
         MenuItem {
