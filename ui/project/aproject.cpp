@@ -1,6 +1,7 @@
 #include "aproject.hpp"
 #include <QQmlEngine>
 #include "isa/pep10.hpp"
+#include "utils/commands.hpp"
 
 struct Pep10OpcodeInit {
   explicit Pep10OpcodeInit(OpcodeModel *model) {
@@ -97,7 +98,15 @@ void Pep10_ISA::set(int abstraction, QString value) {
   }
 }
 
-QVariant Pep10_ISA::onCommand(int command, QVariant data) { return false; }
+QVariant Pep10_ISA::onCommand(int command, QVariant data) {
+  QMetaEnum enu = QMetaEnum::fromType<utils::Command>();
+  qDebug() << enu.valueToKey(command);
+  switch (static_cast<utils::Command>(command)) {
+  default:
+    return false;
+  }
+  return false;
+}
 
 int ProjectModel::rowCount(const QModelIndex &parent) const { return _projects.size(); }
 
