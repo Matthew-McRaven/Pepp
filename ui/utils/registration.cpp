@@ -20,6 +20,7 @@
 #include "commands.hpp"
 #include "opcodemodel.hpp"
 #include "strings.hpp"
+#include "sequenceconverter.hpp"
 
 void utils::registerTypes(const char *uri) {
   qmlRegisterUncreatableType<utils::AbstractionHelper>(uri, 1, 0, "Abstraction", error_only_enums);
@@ -27,4 +28,7 @@ void utils::registerTypes(const char *uri) {
   qmlRegisterType<OpcodeModel>(uri, 1, 0, "OpcodeModel");
   qmlRegisterUncreatableType<utils::WhichPaneHelper>(uri, 1, 0, "Panes", error_only_enums);
   qmlRegisterUncreatableType<utils::CommandHelper>(uri, 1, 0, "Commands", error_only_enums);
+  qmlRegisterSingletonType<utils::SequenceConverter>(uri, 1, 0, "SequenceConverter", [](auto*, auto*){
+    return new utils::SequenceConverter();
+  });
 }

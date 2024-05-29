@@ -1,5 +1,6 @@
 import QtQuick
 import QtQuick.Controls
+import edu.pepp 1.0
 
 QtObject {
     required property var target
@@ -55,7 +56,8 @@ QtObject {
         }
         readonly property var copy: Action {
             // TODO: Add C++ helper to convert strings & ints to key sequences.
-            property string nativeText: "Ctrl+C"
+            property string nativeText: ""
+            onShortcutChanged: nativeText = Qt.binding(()=>SequenceConverter.toNativeText(this.shortcut))
             text: "&Copy"
             onTriggered: console.log(this.text)
             icon.source: "qrc:/icons/file/copy.svg"
