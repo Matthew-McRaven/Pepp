@@ -54,6 +54,8 @@ QtObject {
             shortcut: StandardKey.Redo
         }
         readonly property var copy: Action {
+            // TODO: Add C++ helper to convert strings & ints to key sequences.
+            property string nativeText: "Ctrl+C"
             text: "&Copy"
             onTriggered: console.log(this.text)
             icon.source: "qrc:/icons/file/copy.svg"

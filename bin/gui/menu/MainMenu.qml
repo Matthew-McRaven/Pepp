@@ -4,6 +4,7 @@ import QtQuick.Controls
 import QtQuick.Layouts
 
 MenuBar {
+    id: wrapper
     required property var target
     required property Actions actions
     property alias saveAsModel: saveAsInstantiator.model
@@ -17,6 +18,11 @@ MenuBar {
             }
         }
         return menu.count
+    }
+    TextMetrics {
+        id: tm
+        font: wrapper.font
+        text: "  "
     }
 
     Menu {
@@ -121,6 +127,14 @@ MenuBar {
         }
         MenuItem {
             action: actions.edit.copy
+            Text {
+                anchors.verticalCenter: parent.verticalCenter
+                anchors.right: parent.right
+                text: actions.edit.copy.nativeText
+                width: tm.width * 20 // 40 spaces wide
+                horizontalAlignment: Text.AlignLeft
+                rightPadding: tm.width
+            }
         }
         MenuItem {
             action: actions.edit.paste
