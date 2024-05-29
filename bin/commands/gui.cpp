@@ -107,13 +107,6 @@ int gui_main(const gui_args &args) {
 
     static const auto default_entry = u"qrc:/qt/qml/Pepp/gui/main.qml"_qs;
     const QUrl url(args.QMLEntry.isEmpty() ? default_entry : args.QMLEntry);
-    qmlRegisterSingletonType(QUrl(u"qrc:/qt/qml/Pepp/gui/actions/File.qml"_qs), "edu.pepp.Actions", 1, 0, "File");
-    qmlRegisterSingletonType(QUrl(u"qrc:/qt/qml/Pepp/gui/actions/Edit.qml"_qs), "edu.pepp.Actions", 1, 0, "Edit");
-    qmlRegisterSingletonType(QUrl(u"qrc:/qt/qml/Pepp/gui/actions/View.qml"_qs), "edu.pepp.Actions", 1, 0, "View");
-    qmlRegisterSingletonType(QUrl(u"qrc:/qt/qml/Pepp/gui/actions/Build.qml"_qs), "edu.pepp.Actions", 1, 0, "Build");
-    qmlRegisterSingletonType(QUrl(u"qrc:/qt/qml/Pepp/gui/actions/Debug.qml"_qs), "edu.pepp.Actions", 1, 0, "Debug");
-    qmlRegisterSingletonType(QUrl(u"qrc:/qt/qml/Pepp/gui/actions/Sim.qml"_qs), "edu.pepp.Actions", 1, 0, "Sim");
-    qmlRegisterSingletonType(QUrl(u"qrc:/qt/qml/Pepp/gui/actions/Help.qml"_qs), "edu.pepp.Actions", 1, 0, "Help");
 
     QObject::connect(
         &engine, &QQmlApplicationEngine::objectCreated, &app,

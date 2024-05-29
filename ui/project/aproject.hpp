@@ -154,6 +154,9 @@ public:
   }
   // Actually utils::Abstraction, but QM passes it as an int.
   Q_INVOKABLE void set(int abstraction, QString value);
+public slots:
+  // int is really utils::Command, but JS erases enum types.
+  QVariant onCommand(int command, QVariant data);
 
 signals:
   void objectCodeTextChanged();

@@ -2,16 +2,13 @@ import QtQuick
 import QtQuick.Window
 import QtQuick.Controls
 import QtQuick.Layouts
-import edu.pepp.Actions as Actions
 
 MenuBar {
+    required property var target
+    required property Actions actions
     property alias saveAsModel: saveAsInstantiator.model
     property alias printModel: printInstantiator.model
     property alias closeModel: closeInstantiator.model
-    signal saveAs(int type)
-    signal print_(int type)
-    signal openRecent(string path)
-    signal close(int index)
 
     function indexOf(menu, menuItem) {
         for (var i = 0; i < menu.count; i++) {
@@ -26,10 +23,10 @@ MenuBar {
         id: fileMenu
         title: qsTr("&File")
         MenuItem {
-            action: Actions.File.new_
+            action: actions.file.new_
         }
         MenuItem {
-            action: Actions.File.open
+            action: actions.file.open
         }
         Menu {
             id: recentMenu
@@ -47,7 +44,7 @@ MenuBar {
 
         MenuSeparator {}
         MenuItem {
-            action: Actions.File.save
+            action: actions.file.save
             text: "&Save Object"
         }
         MenuSeparator {
@@ -99,100 +96,101 @@ MenuBar {
             onObjectRemoved: (index, object) => fileMenu.removeItem(object)
         }
         MenuItem {
-            action: Actions.File.closeAll
+            action: actions.file.closeAll
         }
         MenuItem {
-            action: Actions.File.closeAllButCurrent
+            action: actions.file.closeAllButCurrent
         }
 
         MenuSeparator {}
         MenuItem {
-            action: Actions.File.quit
+            action: actions.file.quit
         }
     }
     Menu {
         title: qsTr("&Edit")
         MenuItem {
-            action: Actions.Edit.undo
+            action: actions.edit.undo
         }
         MenuItem {
-            action: Actions.Edit.redo
+            action: actions.edit.redo
         }
         MenuSeparator {}
         MenuItem {
-            action: Actions.Edit.cut
+            action: actions.edit.cut
         }
         MenuItem {
-            action: Actions.Edit.copy
+            action: actions.edit.copy
         }
         MenuItem {
-            action: Actions.Edit.paste
+            action: actions.edit.paste
         }
         // Formatting magic!
         MenuSeparator {}
         MenuItem {
-            action: Actions.Edit.prefs
+            action: actions.edit.prefs
         }
     }
     Menu {
+        id: build
         title: qsTr("&Build")
         MenuItem {
-            action: Actions.Build.loadObject
+            action: actions.build.loadObject
         }
         MenuItem {
-            action: Actions.Build.execute
+            action: actions.build.execute
         }
     }
     Menu {
         title: qsTr("&Debug")
         MenuItem {
-            action: Actions.Debug.start
+            action: actions.debug.start
         }
         MenuSeparator {}
         MenuItem {
-            action: Actions.Debug.continue_
+            action: actions.debug.continue_
         }
         MenuItem {
-            action: Actions.Debug.pause
+            action: actions.debug.pause
         }
         MenuItem {
-            action: Actions.Debug.stop
-        }
-        MenuSeparator {}
-        MenuItem {
-            action: Actions.Debug.stepInto
-        }
-        MenuItem {
-            action: Actions.Debug.stepOver
-        }
-        MenuItem {
-            action: Actions.Debug.stepOut
+            action: actions.debug.stop
         }
         MenuSeparator {}
         MenuItem {
-            action: Actions.Debug.removeAllBreakpoints
+            action: actions.debug.stepInto
+        }
+        MenuItem {
+            action: actions.debug.stepOver
+        }
+        MenuItem {
+            action: actions.debug.stepOut
+        }
+        MenuSeparator {}
+        MenuItem {
+            action: actions.debug.removeAllBreakpoints
         }
     }
     Menu {
         title: qsTr("&Simulator")
         MenuItem {
-            action: Actions.Sim.clearCPU
+            action: actions.sim.clearCPU
         }
         MenuItem {
-            action: Actions.Sim.clearMemory
+            action: actions.sim.clearMemory
         }
     }
     Menu {
         title: qsTr("&View")
         MenuItem {
-            action: Actions.View.fullscreen
+            action: actions.view.fullscreen
         }
         // Dynamic magic to mode switch!
     }
     Menu {
         title: qsTr("&Help")
         MenuItem {
-            action: Actions.Help.about
+            action: actions.help.about
         }
     }
 }

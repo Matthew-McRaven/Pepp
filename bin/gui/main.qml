@@ -28,7 +28,6 @@ import "qrc:/ui/text/editor" as Editor
 import "qrc:/ui/project" as Project
 import "qrc:/ui/preferences" as Pref
 import edu.pepp 1.0
-import edu.pepp.Actions as Actions
 import "./menu" as Menu
 
 ApplicationWindow {
@@ -149,8 +148,8 @@ ApplicationWindow {
         help.addProject.connect(() => switchToProject(pm.count - 1))
         help.switchToMode.connect(sidebar.switchToMode)
         currentProjectChanged.connect(projectLoader.onCurrentProjectChanged)
-        Actions.Edit.prefs.triggered.connect(preferencesDialog.open)
-        Actions.Help.about.triggered.connect(aboutDialog.open)
+        actions.edit.prefs.triggered.connect(preferencesDialog.open)
+        actions.help.about.triggered.connect(aboutDialog.open)
     }
 
     ProjectModel {
@@ -174,8 +173,16 @@ ApplicationWindow {
     FontMetrics {
         id: menuFont
     }
+    Menu.Actions {
+        id: actions
+        target: window.currentProject
+    }
 
-    menuBar: Menu.MainMenu {}
+    menuBar: Menu.MainMenu {
+        id: menu
+        target: window.currentProject
+        actions: actions
+    }
     Item {
         // Intersection of header and mode select.
         // Make transparent, influenced by Qt Creator Style.
@@ -200,7 +207,7 @@ ApplicationWindow {
             RowLayout {
                 anchors.fill: parent
                 ToolButton {
-                    action: Actions.File.new_
+                    action: actions.file.new_
                     hoverEnabled: true
                     ToolTip.visible: hovered
                     ToolTip.text: action.text
@@ -208,14 +215,14 @@ ApplicationWindow {
                 }
                 ToolSeparator {}
                 ToolButton {
-                    action: Actions.Build.execute
+                    action: actions.build.execute
                     hoverEnabled: true
                     ToolTip.visible: hovered
                     ToolTip.text: action.text
                     text: ''
                 }
                 ToolButton {
-                    action: Actions.Debug.start
+                    action: actions.debug.start
                     hoverEnabled: true
                     ToolTip.visible: hovered
                     ToolTip.text: action.text
@@ -223,42 +230,42 @@ ApplicationWindow {
                 }
                 ToolSeparator {}
                 ToolButton {
-                    action: Actions.Debug.continue_
+                    action: actions.debug.continue_
                     hoverEnabled: true
                     ToolTip.visible: hovered
                     ToolTip.text: action.text
                     text: ''
                 }
                 ToolButton {
-                    action: Actions.Debug.stop
+                    action: actions.debug.stop
                     hoverEnabled: true
                     ToolTip.visible: hovered
                     ToolTip.text: action.text
                     text: ''
                 }
                 ToolButton {
-                    action: Actions.Debug.step
+                    action: actions.debug.step
                     hoverEnabled: true
                     ToolTip.visible: hovered
                     ToolTip.text: action.text
                     text: ''
                 }
                 ToolButton {
-                    action: Actions.Debug.stepOver
+                    action: actions.debug.stepOver
                     hoverEnabled: true
                     ToolTip.visible: hovered
                     ToolTip.text: action.text
                     text: ''
                 }
                 ToolButton {
-                    action: Actions.Debug.stepInto
+                    action: actions.debug.stepInto
                     hoverEnabled: true
                     ToolTip.visible: hovered
                     ToolTip.text: action.text
                     text: ''
                 }
                 ToolButton {
-                    action: Actions.Debug.stepOut
+                    action: actions.debug.stepOut
                     hoverEnabled: true
                     ToolTip.visible: hovered
                     ToolTip.text: action.text

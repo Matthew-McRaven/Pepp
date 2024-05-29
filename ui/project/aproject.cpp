@@ -97,6 +97,8 @@ void Pep10_ISA::set(int abstraction, QString value) {
   }
 }
 
+QVariant Pep10_ISA::onCommand(int command, QVariant data) { return false; }
+
 int ProjectModel::rowCount(const QModelIndex &parent) const { return _projects.size(); }
 
 QVariant ProjectModel::data(const QModelIndex &index, int role) const {
