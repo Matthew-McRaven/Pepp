@@ -98,15 +98,33 @@ void Pep10_ISA::set(int abstraction, QString value) {
   }
 }
 
-QVariant Pep10_ISA::onCommand(int command, QVariant data) {
-  QMetaEnum enu = QMetaEnum::fromType<utils::Command>();
-  qDebug() << enu.valueToKey(command);
-  switch (static_cast<utils::Command>(command)) {
-  default:
-    return false;
-  }
-  return false;
-}
+bool Pep10_ISA::onSaveCurrent() { return false; }
+
+bool Pep10_ISA::onLoadObject() { return false; }
+
+bool Pep10_ISA::onExecute() { return false; }
+
+bool Pep10_ISA::onDebuggingStart() { return false; }
+
+bool Pep10_ISA::onDebuggingContinue() { return false; }
+
+bool Pep10_ISA::onDebuggingPause() { return false; }
+
+bool Pep10_ISA::onDebuggingStop() { return false; }
+
+bool Pep10_ISA::onISARemoveAllBreakpoints() { return false; }
+
+bool Pep10_ISA::onISAStep() { return false; }
+
+bool Pep10_ISA::onISAStepOver() { return false; }
+
+bool Pep10_ISA::onISAStepInto() { return false; }
+
+bool Pep10_ISA::onISAStepOut() { return false; }
+
+bool Pep10_ISA::onClearCPU() { return false; }
+
+bool Pep10_ISA::onClearMemory() { return false; }
 
 int ProjectModel::rowCount(const QModelIndex &parent) const { return _projects.size(); }
 

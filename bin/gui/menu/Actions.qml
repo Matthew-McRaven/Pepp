@@ -3,7 +3,8 @@ import QtQuick.Controls
 import edu.pepp 1.0
 
 QtObject {
-    required property var target
+    required property var window
+    required property var project
     readonly property var file: QtObject {
         readonly property var new_: Action {
             property string nativeText: ""
@@ -11,7 +12,7 @@ QtObject {
                                    () => SequenceConverter.toNativeText(
                                        this.shortcut))
             text: "&New"
-            onTriggered: target.onCommand(Commands.New, null)
+            onTriggered: window.onNew()
             icon.source: "qrc:/icons/file/new.svg"
             shortcut: StandardKey.New
         }
@@ -21,7 +22,7 @@ QtObject {
                                    () => SequenceConverter.toNativeText(
                                        this.shortcut))
             text: "&Open..."
-            onTriggered: target.onCommand(Commands.OpenDialog, null)
+            onTriggered: window.onOpenDialog()
             icon.source: "qrc:/icons/file/open.svg"
             shortcut: StandardKey.Open
         }
@@ -30,7 +31,7 @@ QtObject {
             onShortcutChanged: nativeText = Qt.binding(
                                    () => SequenceConverter.toNativeText(
                                        this.shortcut))
-            onTriggered: target.onCommand(Commands.SaveCurrent, null)
+            onTriggered: project.onSaveCurrent()
             text: "&Save"
             icon.source: "qrc:/icons/file/save.svg"
             shortcut: StandardKey.Save
@@ -41,16 +42,15 @@ QtObject {
         }
         readonly property var closeAll: Action {
             text: "Close All"
-            onTriggered: target.onCommand(Commands.CloseAllProjects, null)
+            onTriggered: window.onCloseAllProjects(false)
         }
         readonly property var closeAllButCurrent: Action {
             text: "Close All Except Current"
-            onTriggered: target.onCommand(
-                             Commands.CloseAllProjectsExceptCurrent, null)
+            onTriggered: window.onCloseAllProjects(true)
         }
         readonly property var quit: Action {
             text: "&Quit"
-            onTriggered: console.log(this.text)
+            onTriggered: window.onQuit()
         }
     }
 
@@ -60,7 +60,6 @@ QtObject {
             onShortcutChanged: nativeText = Qt.binding(
                                    () => SequenceConverter.toNativeText(
                                        this.shortcut))
-            onTriggered: target.onCommand(Commands.EditorUndo, null)
             text: "&Undo"
             icon.source: "qrc:/icons/file/undo.svg"
             shortcut: StandardKey.Undo
@@ -70,7 +69,6 @@ QtObject {
             onShortcutChanged: nativeText = Qt.binding(
                                    () => SequenceConverter.toNativeText(
                                        this.shortcut))
-            onTriggered: target.onCommand(Commands.EditorRedo, null)
             text: "&Redo"
             icon.source: "qrc:/icons/file/redo.svg"
             shortcut: StandardKey.Redo
@@ -80,7 +78,6 @@ QtObject {
             onShortcutChanged: nativeText = Qt.binding(
                                    () => SequenceConverter.toNativeText(
                                        this.shortcut))
-            onTriggered: target.onCommand(Commands.EditorCopy, null)
             text: "&Copy"
             icon.source: "qrc:/icons/file/copy.svg"
             shortcut: StandardKey.Copy
@@ -90,7 +87,6 @@ QtObject {
             onShortcutChanged: nativeText = Qt.binding(
                                    () => SequenceConverter.toNativeText(
                                        this.shortcut))
-            onTriggered: target.onCommand(Commands.EditorCut, null)
             text: "Cu&t"
             icon.source: "qrc:/icons/file/cut.svg"
             shortcut: StandardKey.Cut
@@ -100,14 +96,12 @@ QtObject {
             onShortcutChanged: nativeText = Qt.binding(
                                    () => SequenceConverter.toNativeText(
                                        this.shortcut))
-            onTriggered: target.onCommand(Commands.EditorPaste, null)
             text: "&Paste"
             icon.source: "qrc:/icons/file/paste.svg"
             shortcut: StandardKey.Paste
         }
         readonly property var prefs: Action {
             text: "Pr&eferences"
-            onTriggered: console.log(this.text)
             icon.source: "qrc:/icons/file/settings.svg"
         }
     }
@@ -118,7 +112,7 @@ QtObject {
             onShortcutChanged: nativeText = Qt.binding(
                                    () => SequenceConverter.toNativeText(
                                        this.shortcut))
-            onTriggered: target.onCommand(Commands.LoadObject, null)
+            onTriggered: project.onLoadObject()
             text: "&Load Object Code"
             icon.source: "qrc:/icons/build/flash.svg"
             shortcut: "Ctrl+Shift+L"
@@ -128,7 +122,7 @@ QtObject {
             onShortcutChanged: nativeText = Qt.binding(
                                    () => SequenceConverter.toNativeText(
                                        this.shortcut))
-            onTriggered: target.onCommand(Commands.Execute, null)
+            onTriggered: project.onExecute()
             text: "&Execute"
             icon.source: "qrc:/icons/debug/start_normal.svg"
             shortcut: "Ctrl+Shift+R"
@@ -141,14 +135,14 @@ QtObject {
             onShortcutChanged: nativeText = Qt.binding(
                                    () => SequenceConverter.toNativeText(
                                        this.shortcut))
-            onTriggered: target.onCommand(Commands.DebugStart, null)
+            onTriggered: project.onDebuggingStart()
             text: "Start &Debugging"
             icon.source: "qrc:/icons/debug/start_debug.svg"
             shortcut: "Ctrl+D"
         }
         readonly property var continue_: Action {
             text: "&Continue Debugging"
-            onTriggered: target.onCommand(Commands.DebugContinue, null)
+            onTriggered: project.onDebuggingContinue()
             icon.source: "qrc:/icons/debug/continue_debug.svg"
         }
         readonly property var pause: Action {
@@ -156,14 +150,14 @@ QtObject {
             onShortcutChanged: nativeText = Qt.binding(
                                    () => SequenceConverter.toNativeText(
                                        this.shortcut))
-            onTriggered: target.onCommand(Commands.DebugPause, null)
+            onTriggered: project.onDebuggingPause()
             text: "I&nterrupt Debugging"
             icon.source: "qrc:/icons/debug/pause.svg"
             shortcut: "Ctrl+."
         }
         readonly property var stop: Action {
             text: "S&top Debugging"
-            onTriggered: target.onCommand(Commands.DebugStop, null)
+            onTriggered: project.onDebuggingStop()
             icon.source: "qrc:/icons/debug/stop_debug.svg"
         }
         readonly property var step: Action {
@@ -171,47 +165,46 @@ QtObject {
             onShortcutChanged: nativeText = Qt.binding(
                                    () => SequenceConverter.toNativeText(
                                        this.shortcut))
-            onTriggered: target.onCommand(Commands.DebugStep, null)
+            onTriggered: project.onISAStep()
             text: "&Step"
             icon.source: "qrc:/icons/debug/step_normal.svg"
             shortcut: "Ctrl+Return"
         }
         readonly property var stepOver: Action {
             text: "Step O&ver"
-            onTriggered: target.onCommand(Commands.DebugStepOver, null)
+            onTriggered: project.onISAStepOver()
             icon.source: "qrc:/icons/debug/step_over.svg"
         }
         readonly property var stepInto: Action {
             text: "Step &Into"
-            onTriggered: target.onCommand(Commands.DebugStepInto, null)
+            onTriggered: project.onISAStepInto()
             icon.source: "qrc:/icons/debug/step_into.svg"
         }
         readonly property var stepOut: Action {
             text: "Step &Out"
-            onTriggered: target.onCommand(Commands.DebugStepOut, null)
+            onTriggered: project.onISAStepOut()
             icon.source: "qrc:/icons/debug/step_out.svg"
         }
         readonly property var removeAllBreakpoints: Action {
+            onTriggered: project.onISARemoveAllBreakpoints()
             text: "&Remove All Breakpoints"
-            onTriggered: target.onCommand(Commands.RemoveAllBreakpoints, null)
         }
     }
 
     readonly property var view: QtObject {
         readonly property var fullscreen: Action {
             text: "&Toggle Fullscreen"
-            onTriggered: target.onCommand(Commands.ToggleFullScreen, null)
         }
     }
 
     readonly property var sim: QtObject {
         readonly property var clearCPU: Action {
             text: "Clear &CPU"
-            onTriggered: target.onCommand(Commands.ClearCPU, null)
+            onTriggered: project.onClearCPU()
         }
         readonly property var clearMemory: Action {
             text: "Clear &Memory"
-            onTriggered: target.onCommand(Commands.ClearMemory, null)
+            onTriggered: project.onClearMemory()
         }
     }
 

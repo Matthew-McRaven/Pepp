@@ -148,8 +148,10 @@ ApplicationWindow {
         help.addProject.connect(() => switchToProject(pm.count - 1))
         help.switchToMode.connect(sidebar.switchToMode)
         currentProjectChanged.connect(projectLoader.onCurrentProjectChanged)
+
         actions.edit.prefs.triggered.connect(preferencesDialog.open)
         actions.help.about.triggered.connect(aboutDialog.open)
+        actions.view.fullscreen.triggered.connect(onToggleFullScreen)
     }
 
     ProjectModel {
@@ -175,12 +177,14 @@ ApplicationWindow {
     }
     Menu.Actions {
         id: actions
-        target: window.currentProject
+        project: window.currentProject
+        window: window
     }
 
     menuBar: Menu.MainMenu {
         id: menu
-        target: window.currentProject
+        project: window.currentProject
+        window: window
         actions: actions
     }
     Item {
@@ -479,4 +483,9 @@ ApplicationWindow {
         }
         standardButtons: Dialog.Close
     }
+    function onNew() {}
+    function onOpenDialog() {}
+    function onCloseAllProjects(excludeCurrent: bool) {}
+    function onQuit() {}
+    function onToggleFullScreen() {}
 }

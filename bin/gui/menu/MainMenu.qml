@@ -2,9 +2,11 @@ import QtQuick
 import QtQuick.Controls
 import QtQuick.Layouts
 import "./"
+
 MenuBar {
     id: wrapper
-    required property var target
+    required property var window
+    required property var project
     required property Actions actions
     property alias saveAsModel: saveAsInstantiator.model
     property alias printModel: printInstantiator.model
@@ -29,11 +31,9 @@ MenuBar {
         title: qsTr("&File")
         ShortcutMenuItem {
             action: actions.file.new_
-            target: wrapper.target
         }
         ShortcutMenuItem {
             action: actions.file.open
-            target: wrapper.target
         }
         Menu {
             id: recentMenu
@@ -53,7 +53,6 @@ MenuBar {
         ShortcutMenuItem {
             action: actions.file.save
             text: "&Save Object"
-            target: wrapper.target
         }
         MenuSeparator {
             id: _saveAsPrev
@@ -119,25 +118,20 @@ MenuBar {
         title: qsTr("&Edit")
         ShortcutMenuItem {
             action: actions.edit.undo
-            target: wrapper.target
         }
         ShortcutMenuItem {
             action: actions.edit.redo
-            target: wrapper.target
         }
         MenuSeparator {}
         ShortcutMenuItem {
             action: actions.edit.cut
-            target: wrapper.target
         }
         ShortcutMenuItem {
             action: actions.edit.copy
-            target: wrapper.target
         }
 
         ShortcutMenuItem {
             action: actions.edit.paste
-            target: wrapper.target
         }
         // Formatting magic!
         MenuSeparator {}
@@ -159,7 +153,6 @@ MenuBar {
         title: qsTr("&Debug")
         ShortcutMenuItem {
             action: actions.debug.start
-            target: wrapper.target
         }
         MenuSeparator {}
         MenuItem {
