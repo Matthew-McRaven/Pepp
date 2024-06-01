@@ -203,6 +203,7 @@ ApplicationWindow {
         anchors.right: parent.right
         // Must explicitly set height to avoid binding loop; only account for tab bar if visibile.
         height: toolbar.height + (projectSelect.visible ? projectSelect.height : 0)
+        // TODO: fix disabled icon colors
         ToolBar {
             id: toolbar
             anchors.top: parent.top

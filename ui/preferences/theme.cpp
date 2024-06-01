@@ -281,9 +281,9 @@ void Theme::loadMissing() {
 
     switch(i) {
     case Roles::SurfaceRole:
-        pref  = new Preference(this, SurfaceRole, "Surface",
-                qRgb(0x0,0x0,0x0),qRgb(0xff,0xff,0xff));  //  Black/White
-        break;
+      pref =
+          new Preference(this, SurfaceRole, "Surface", qRgb(0x06, 0x06, 0x06), qRgb(0xff, 0xff, 0xff)); //  Black/White
+      break;
     case Roles::ContainerRole:
         pref =  new Preference(this, ContainerRole, "Container",
                 qRgb(0x7f,0x7f,0x7f),qRgb(0xee,0xee,0xee));  //  Black/gray

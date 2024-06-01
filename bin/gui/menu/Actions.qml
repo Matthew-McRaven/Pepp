@@ -108,6 +108,7 @@ QtObject {
 
     readonly property var build: QtObject {
         readonly property var loadObject: Action {
+            enabled: project?.allowedDebugging & DebugEnableFlags.LoadObject
             property string nativeText: ""
             onShortcutChanged: nativeText = Qt.binding(
                                    () => SequenceConverter.toNativeText(
@@ -118,6 +119,7 @@ QtObject {
             shortcut: "Ctrl+Shift+L"
         }
         readonly property var execute: Action {
+            enabled: project?.allowedDebugging & DebugEnableFlags.Execute
             property string nativeText: ""
             onShortcutChanged: nativeText = Qt.binding(
                                    () => SequenceConverter.toNativeText(
@@ -131,6 +133,7 @@ QtObject {
 
     readonly property var debug: QtObject {
         readonly property var start: Action {
+            enabled: project?.allowedDebugging & DebugEnableFlags.Start
             property string nativeText: ""
             onShortcutChanged: nativeText = Qt.binding(
                                    () => SequenceConverter.toNativeText(
@@ -141,11 +144,13 @@ QtObject {
             shortcut: "Ctrl+D"
         }
         readonly property var continue_: Action {
+            enabled: project?.allowedDebugging & DebugEnableFlags.Continue
             text: "&Continue Debugging"
             onTriggered: project.onDebuggingContinue()
             icon.source: "qrc:/icons/debug/continue_debug.svg"
         }
         readonly property var pause: Action {
+            enabled: project?.allowedDebugging & DebugEnableFlags.Pause
             property string nativeText: ""
             onShortcutChanged: nativeText = Qt.binding(
                                    () => SequenceConverter.toNativeText(
@@ -156,11 +161,13 @@ QtObject {
             shortcut: "Ctrl+."
         }
         readonly property var stop: Action {
+            enabled: project?.allowedDebugging & DebugEnableFlags.Stop
             text: "S&top Debugging"
             onTriggered: project.onDebuggingStop()
             icon.source: "qrc:/icons/debug/stop_debug.svg"
         }
         readonly property var step: Action {
+            enabled: project?.allowedSteps & StepEnableFlags.Step
             property string nativeText: ""
             onShortcutChanged: nativeText = Qt.binding(
                                    () => SequenceConverter.toNativeText(
@@ -171,16 +178,19 @@ QtObject {
             shortcut: "Ctrl+Return"
         }
         readonly property var stepOver: Action {
+            enabled: project?.allowedSteps & StepEnableFlags.StepOver
             text: "Step O&ver"
             onTriggered: project.onISAStepOver()
             icon.source: "qrc:/icons/debug/step_over.svg"
         }
         readonly property var stepInto: Action {
+            enabled: project?.allowedSteps & StepEnableFlags.StepInto
             text: "Step &Into"
             onTriggered: project.onISAStepInto()
             icon.source: "qrc:/icons/debug/step_into.svg"
         }
         readonly property var stepOut: Action {
+            enabled: project?.allowedSteps & StepEnableFlags.StepOut
             text: "Step &Out"
             onTriggered: project.onISAStepOut()
             icon.source: "qrc:/icons/debug/step_out.svg"

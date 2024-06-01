@@ -20,6 +20,19 @@ MenuBar {
         }
         return menu.count
     }
+    function isDark(c) {
+        return (0.299 * c.r + 0.587 * c.g + 0.114 * c.g) < 0.5
+    }
+    function fixTextColors(item) {
+        const p = item.palette
+        const en = p.text, dis = p.disabled.text
+        // TODO: Remove when themes work properly
+        // TODO: fix icon colors
+        const en_shifted = Qt.rgba(en.r + 0.1, en.g + 0.1, en.b + 0.1, en.a)
+        const backup = isDark(en) ? en_shifted.lighter(4.0) : en.darker()
+        const selected = item.enabled ? en : (en === dis ? backup : dis)
+        item.contentItem.color = selected
+    }
     TextMetrics {
         id: tm
         font: wrapper.font
@@ -143,35 +156,71 @@ MenuBar {
         title: qsTr("&Build")
         MenuItem {
             action: actions.build.loadObject
+            enabled: action.enabled
+            onEnabledChanged: contentItem.enabled = enabled
+            contentItem.onEnabledChanged: fixTextColors(this)
+            onPaletteChanged: fixTextColors(this)
         }
         MenuItem {
             action: actions.build.execute
+            enabled: action.enabled
+            onEnabledChanged: contentItem.enabled = enabled
+            contentItem.onEnabledChanged: fixTextColors(this)
+            onPaletteChanged: fixTextColors(this)
         }
     }
     Menu {
         title: qsTr("&Debug")
         ShortcutMenuItem {
             action: actions.debug.start
+            enabled: action.enabled
+            contentItem.enabled: action.enabled
+            onEnabledChanged: fixTextColors(this)
+            onPaletteChanged: fixTextColors(this)
         }
         MenuSeparator {}
         MenuItem {
             action: actions.debug.continue_
+            enabled: action.enabled
+            onEnabledChanged: contentItem.enabled = enabled
+            contentItem.onEnabledChanged: fixTextColors(this)
+            onPaletteChanged: fixTextColors(this)
         }
         MenuItem {
             action: actions.debug.pause
+            enabled: action.enabled
+            onEnabledChanged: contentItem.enabled = enabled
+            contentItem.onEnabledChanged: fixTextColors(this)
+            onPaletteChanged: fixTextColors(this)
         }
         MenuItem {
             action: actions.debug.stop
+            enabled: action.enabled
+            onEnabledChanged: contentItem.enabled = enabled
+            contentItem.onEnabledChanged: fixTextColors(this)
+            onPaletteChanged: fixTextColors(this)
         }
         MenuSeparator {}
         MenuItem {
             action: actions.debug.stepInto
+            enabled: action.enabled
+            onEnabledChanged: contentItem.enabled = enabled
+            contentItem.onEnabledChanged: fixTextColors(this)
+            onPaletteChanged: fixTextColors(this)
         }
         MenuItem {
             action: actions.debug.stepOver
+            enabled: action.enabled
+            onEnabledChanged: contentItem.enabled = enabled
+            contentItem.onEnabledChanged: fixTextColors(this)
+            onPaletteChanged: fixTextColors(this)
         }
         MenuItem {
             action: actions.debug.stepOut
+            enabled: action.enabled
+            onEnabledChanged: contentItem.enabled = enabled
+            contentItem.onEnabledChanged: fixTextColors(this)
+            onPaletteChanged: fixTextColors(this)
         }
         MenuSeparator {}
         MenuItem {

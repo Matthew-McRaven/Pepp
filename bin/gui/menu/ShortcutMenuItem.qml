@@ -5,7 +5,8 @@ import edu.pepp 1.0
 
 MenuItem {
     id: wrapper
-    Text {
+    Label {
+        enabled: wrapper.action?.enabled
         anchors.verticalCenter: parent.verticalCenter
         anchors.right: parent.right
         text: wrapper.action.nativeText
