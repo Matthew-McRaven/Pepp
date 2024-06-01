@@ -483,7 +483,9 @@ ApplicationWindow {
         }
         standardButtons: Dialog.Close
     }
-    function onNew() {}
+    function onNew() {
+        pm.onAddProject(Architecture.PEP10, Abstraction.ISA3, "")
+    }
     function onOpenDialog() {}
     function onCloseAllProjects(excludeCurrent: bool) {}
     function onQuit() {}

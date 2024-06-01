@@ -129,7 +129,6 @@ MenuBar {
         ShortcutMenuItem {
             action: actions.edit.copy
         }
-
         ShortcutMenuItem {
             action: actions.edit.paste
         }
