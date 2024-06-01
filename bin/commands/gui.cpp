@@ -25,12 +25,12 @@
 //  Testing only
 #include <QDirIterator>
 
-#include "help/about/version.hpp"
-#include "memory/hexdump/memorybytemodel.hpp"
-
+#include "../iconprovider.hpp"
 #include "about/registration.hpp"
 #include "cpu/registration.hpp"
+#include "help/about/version.hpp"
 #include "help/registration.hpp"
+#include "memory/hexdump/memorybytemodel.hpp"
 #include "memory/registration.hpp"
 #include "preferences/preferencemodel.hpp"
 #include "preferences/registration.hpp"
@@ -90,6 +90,8 @@ int gui_main(const gui_args &args) {
   { //  This scope forces engine to be deleted before model
     //  Instantiate QML engine before models
     QQmlApplicationEngine engine;
+    // TODO: connect to PreferenceModel, read field corresponding to QPalette (Disabled, Text) field.
+    engine.addImageProvider(QLatin1String("icons"), new PreferenceAwareImageProvider);
     QSharedPointer<gui_globals> globals;
     if (args.extra_init)
       globals = args.extra_init(engine);

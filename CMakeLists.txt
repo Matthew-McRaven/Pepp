@@ -192,7 +192,7 @@ if (ONLY STREQUAL "BUILD")
     # We always want universal builds, so do not set on a per-target basis
     SET(CMAKE_OSX_ARCHITECTURES "x86_64;arm64" CACHE INTERNAL "" FORCE)
 
-    find_package(Qt6 6.4 COMPONENTS REQUIRED Svg Quick Core Gui Qml Test Widgets QuickControls2 )
+    find_package(Qt6 6.4 COMPONENTS REQUIRED Svg Quick Core Gui Qml Test Widgets QuickControls2 Xml )
     add_subdirectory(3rd-party)
     set(CMAKE_AUTOMOC ON)
     set(CMAKE_AUTORCC ON)
