@@ -18,13 +18,20 @@ public:
   PreferenceAwareImageProvider() : QQuickImageProvider(QQuickImageProvider::Image) {}
 
   QImage requestImage(const QString &id, QSize *size, const QSize &requestedSize) override {
-    // We depend on properties of the SVG renderer, so exclude other icon types.
-    if (!id.endsWith("svg"))
+    // If the image exists, return it without modification. Allows of passthrough of non vector graphics.
+    if (auto path = ":/icons" + id; QFile::exists(path))
+      return QImage(path);
+    // Otherwise, we assume that the image has tags like _disabled or _enabled.
+    // The current algorithm to generate those tagged images from a base image only work for SVG images.
+    else if (!id.endsWith("svg"))
       return {};
-    // If the icon path ends in disabled, we need to strip the suffix, since no file exists with "_disabled.svg'
+    // If the icon path contains relevant tags, strip the tag(s) and apply modifications to the SVG's fill.
     // That suffix is an indicator that we should render the SVG with a disabled color from the current theme.
-    static const auto re = QRegularExpression(R"(_disabled)");
-    bool isDisabled = id.contains(re);
+    static const auto disabled = QRegularExpression(R"(_disabled)");
+    static const auto dark = QRegularExpression(R"(_dark)");
+    static const auto re = QRegularExpression(R"(_((dis|en)abled|light|dark))");
+    bool isDisabled = id.contains(disabled);
+    bool isDark = id.contains(dark);
     QString iconPath = ":/icons/" + QString(id).replace(re, "");
 
     QFile f(iconPath);
@@ -39,14 +46,15 @@ public:
       return {};
     }
 
-    // If a disabled icon is requested, parse the document and change the "fill" attribute
-    if (isDisabled) {
+    if (isDisabled || isDark) {
       QDomDocument doc;
       if (!doc.setContent(contents))
         return {};
       // TODO: pick fill color from current palette.
+      static const QStringList colors = {/*00*/ u"#000000"_qs, /*01*/ u"#CCCCCC"_qs, /*10*/ u"#FFFFFF"_qs,
+                                         /*11*/ u"#CCCCCC"_qs};
       if (QDomElement svgElement = doc.documentElement(); svgElement.tagName() == "svg")
-        svgElement.setAttribute("fill", "#CCCCCC");
+        svgElement.setAttribute("fill", colors[(isDark ? 2 : 0) | (isDisabled ? 1 : 0)]);
       contents = doc.toByteArray();
     }
     // Render the SVG's XML to a QImage.
