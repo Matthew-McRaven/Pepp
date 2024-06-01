@@ -214,7 +214,7 @@ ApplicationWindow {
                     action: actions.file.new_
                     hoverEnabled: true
                     ToolTip.visible: hovered
-                    ToolTip.text: action.text
+                    ToolTip.text: action.text.replace(/&/g, "")
                     text: ''
                 }
                 ToolSeparator {}
@@ -222,14 +222,14 @@ ApplicationWindow {
                     action: actions.build.execute
                     hoverEnabled: true
                     ToolTip.visible: hovered
-                    ToolTip.text: action.text
+                    ToolTip.text: action.text.replace(/&/g, "")
                     text: ''
                 }
                 ToolButton {
                     action: actions.debug.start
                     hoverEnabled: true
                     ToolTip.visible: hovered
-                    ToolTip.text: action.text
+                    ToolTip.text: action.text.replace(/&/g, "")
                     text: ''
                 }
                 ToolSeparator {}
@@ -237,42 +237,42 @@ ApplicationWindow {
                     action: actions.debug.continue_
                     hoverEnabled: true
                     ToolTip.visible: hovered
-                    ToolTip.text: action.text
+                    ToolTip.text: action.text.replace(/&/g, "")
                     text: ''
                 }
                 ToolButton {
                     action: actions.debug.stop
                     hoverEnabled: true
                     ToolTip.visible: hovered
-                    ToolTip.text: action.text
+                    ToolTip.text: action.text.replace(/&/g, "")
                     text: ''
                 }
                 ToolButton {
                     action: actions.debug.step
                     hoverEnabled: true
                     ToolTip.visible: hovered
-                    ToolTip.text: action.text
+                    ToolTip.text: action.text.replace(/&/g, "")
                     text: ''
                 }
                 ToolButton {
                     action: actions.debug.stepOver
                     hoverEnabled: true
                     ToolTip.visible: hovered
-                    ToolTip.text: action.text
+                    ToolTip.text: action.text.replace(/&/g, "")
                     text: ''
                 }
                 ToolButton {
                     action: actions.debug.stepInto
                     hoverEnabled: true
                     ToolTip.visible: hovered
-                    ToolTip.text: action.text
+                    ToolTip.text: action.text.replace(/&/g, "")
                     text: ''
                 }
                 ToolButton {
                     action: actions.debug.stepOut
                     hoverEnabled: true
                     ToolTip.visible: hovered
-                    ToolTip.text: action.text
+                    ToolTip.text: action.text.replace(/&/g, "")
                     text: ''
                 }
                 ToolSeparator {}
