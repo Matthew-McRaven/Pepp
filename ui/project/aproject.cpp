@@ -1,7 +1,6 @@
 #include "aproject.hpp"
 #include <QQmlEngine>
 #include "isa/pep10.hpp"
-#include "utils/commands.hpp"
 
 struct Pep10OpcodeInit {
   explicit Pep10OpcodeInit(OpcodeModel *model) {
