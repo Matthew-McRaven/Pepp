@@ -18,6 +18,7 @@
 #include "../shared.hpp"
 #include "bits/strings.hpp"
 #include "help/builtins/figure.hpp"
+#include "helpers/asmb.hpp"
 #include "obj/mmio.hpp"
 #include "sim/device/broadcast/mmi.hpp"
 #include "sim/device/broadcast/mmo.hpp"
@@ -39,7 +40,7 @@ bool RunTask::loadToElf() {
     _elf = ret;
     return true;
   }
-  auto book = detail::book(_ed);
+  auto book = helpers::book(_ed);
   if (book.isNull())
     return false;
   QString osContents;
@@ -54,8 +55,8 @@ bool RunTask::loadToElf() {
     oIn.open(QIODevice::ReadOnly | QIODevice::Text);
     osContents = oIn.readAll();
   }
-  auto macroRegistry = detail::registry(book, {});
-  detail::AsmHelper helper(macroRegistry, osContents);
+  auto macroRegistry = helpers::registry(book, {});
+  helpers::AsmHelper helper(macroRegistry, osContents);
   auto result = helper.assemble();
   if (!result) {
     std::cerr << "OS assembly failed" << std::endl;

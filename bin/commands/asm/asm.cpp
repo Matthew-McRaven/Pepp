@@ -18,6 +18,7 @@
 #include "../../shared.hpp"
 #include "asm/pas/operations/pepp/bytes.hpp"
 #include "help/builtins/figure.hpp"
+#include "helpers/asmb.hpp"
 #include "isa/pep10.hpp"
 #include "macro/registry.hpp"
 
@@ -38,11 +39,11 @@ void AsmTask::setMacroDirs(std::list<std::string> dirs) { macroDirs = dirs; }
 void AsmTask::emitElfTo(std::string fname) { elfOut = fname; }
 
 void AsmTask::run() {
-  auto book = detail::book(ed);
+  auto book = helpers::book(ed);
   if (book.isNull())
     return emit finished(2);
-  auto macroRegistry = detail::registry(book, {});
-  detail::addMacros(*macroRegistry, macroDirs, "Pep/10");
+  auto macroRegistry = helpers::registry(book, {});
+  helpers::addMacros(*macroRegistry, macroDirs, "Pep/10");
 
   QString userContents;
   {
@@ -72,7 +73,7 @@ void AsmTask::run() {
     oIn.open(QIODevice::ReadOnly | QIODevice::Text);
     osContents = oIn.readAll();
   }
-  detail::AsmHelper helper(macroRegistry, osContents);
+  helpers::AsmHelper helper(macroRegistry, osContents);
   helper.setUserText(userContents);
   auto result = helper.assemble();
   if (!result) {

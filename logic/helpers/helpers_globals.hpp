@@ -1,5 +1,6 @@
 /*
- * Copyright (c) 2023-2024 J. Stanley Warford, Matthew McRaven
+ * Copyright (c) 2023 J. Stanley Warford, Matthew McRaven
+ *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
  * the Free Software Foundation, either version 3 of the License, or
@@ -14,24 +15,12 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-#include "macro.hpp"
-#include <iostream>
-#include "../../shared.hpp"
-#include "helpers/asmb.hpp"
+#pragma once
 
-GetMacroTask::GetMacroTask(int ed, std::string name, QObject *parent) : Task(parent), ed(ed), name(name) {}
+#include <QtCore/QtGlobal>
 
-void GetMacroTask::run() {
-  auto book = helpers::book(ed);
-  if (book.isNull())
-    return emit finished(1);
-
-  auto macro = book->findMacro(QString::fromStdString(name));
-  if (macro.isNull())
-    return emit finished(1);
-
-  auto body = macro->body();
-  std::cout << body.toStdString() << std::endl;
-
-  return emit finished(0);
-}
+#if defined(HELPERS_LIBRARY)
+#define HELPERS_EXPORT Q_DECL_EXPORT
+#else
+#define HELPERS_EXPORT Q_DECL_IMPORT
+#endif

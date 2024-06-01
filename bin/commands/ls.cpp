@@ -18,11 +18,12 @@
 #include <iostream>
 #include "../shared.hpp"
 #include "help/builtins/figure.hpp"
+#include "helpers/asmb.hpp"
 
 ListTask::ListTask(int ed, QObject *parent) : Task(parent), ed(ed) {}
 
 void ListTask::run() {
-  auto book = detail::book(ed);
+  auto book = helpers::book(ed);
   if (book.isNull())
     return emit finished(1);
   auto figures = book->figures();
