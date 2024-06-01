@@ -3,6 +3,7 @@
 #include <QStringListModel>
 #include <deque>
 #include <qabstractitemmodel.h>
+#include <targets/pep10/isa3/system.hpp>
 #include "cpu/registermodel.hpp"
 #include "cpu/statusbitmodel.hpp"
 #include "memory/hexdump/rawmemory.hpp"
@@ -215,9 +216,13 @@ signals:
   void allowedDebuggingChanged();
   void allowedStepsChanged();
 
+  void beginResetModel();
+  void endResetModel();
+
 private:
   QString _objectCodeText = {};
   QVariant _delegate = {};
+  QSharedPointer<targets::pep10::isa::System> _system = {};
   // Use raw pointer to avoid double-free with parent'ed QObjects.
   ArrayRawMemory *_memory = nullptr;
   RegisterModel *_registers = nullptr;

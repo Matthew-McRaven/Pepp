@@ -31,7 +31,11 @@ public:
 
   void appendFlag(QSharedPointer<Flag> flag);
 
-protected:  //  Role Names must be under protected
+public slots:
+  void onBeginExternalReset();
+  void onEndExternalReset();
+
+protected: //  Role Names must be under protected
   QHash<int, QByteArray> roleNames() const override;
   QVector<QSharedPointer<Flag>> _flags;
 };
