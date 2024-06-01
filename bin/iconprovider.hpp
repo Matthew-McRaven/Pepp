@@ -56,12 +56,15 @@ public:
     if (renderer.isValid()) {
       // Per documentation, must respect requested size if it is valid.
       auto image = QImage(requestedSize.isValid() ? requestedSize : renderer.defaultSize(), QImage::Format_ARGB32);
-      image.fill(Qt::transparent);
-      QPainter painter(&image);
-      renderer.render(&painter);
-
+      if (image.isNull())
+        return {};
       if (size)
         *size = image.size();
+      image.fill(Qt::transparent);
+      QPainter painter(&image);
+      if (!painter.isActive())
+        return {};
+      renderer.render(&painter);
       return image;
     } else
       return {};

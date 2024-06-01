@@ -43,6 +43,7 @@ MenuBar {
         id: fileMenu
         title: qsTr("&File")
         ShortcutMenuItem {
+            id: new_
             action: actions.file.new_
         }
         ShortcutMenuItem {
@@ -51,11 +52,18 @@ MenuBar {
         Menu {
             id: recentMenu
             title: "Recent Files"
+            // Use blank icon to force menu items to line up. Do not use image provider for a Menu item, since
+            // this icon is rendered before the image provider's paint engine is set up.
+            icon.source: "qrc:/icons/blank.svg"
+            // As such, the width of the icon may be wrong, so use the width of a different (working) icon.
+            icon.width: new_.icon.width
+
             Instantiator {
                 model: 5
                 delegate: MenuItem {
                     text: `${modelData}.pep`
                     onTriggered: openRecent(modelData)
+                    icon.source: "image://icons/blank.svg"
                 }
                 onObjectAdded: (i, obj) => recentMenu.insertItem(i, obj)
                 onObjectRemoved: (i, obj) => recentMenu.removeItem(obj)
@@ -76,6 +84,8 @@ MenuBar {
             delegate: MenuItem {
                 text: "Save as" + modelData
                 onTriggered: saveAs(modelData)
+                // Use blank icon to force menu items to line up.
+                icon.source: "image://icons/blank.svg"
             }
             onObjectAdded: function (index, object) {
                 const m = fileMenu
@@ -92,6 +102,8 @@ MenuBar {
             delegate: MenuItem {
                 text: "Print" + modelData
                 onTriggered: print_(modelData)
+                // Use blank icon to force menu items to line up.
+                icon.source: "image://icons/blank.svg"
             }
             onObjectAdded: function (index, object) {
                 const m = fileMenu
@@ -108,6 +120,8 @@ MenuBar {
             delegate: MenuItem {
                 text: "Close" + modelData
                 onTriggered: close(modelData)
+                // Use blank icon to force menu items to line up.
+                icon.source: "image://icons/blank.svg"
             }
             onObjectAdded: function (index, object) {
                 const m = fileMenu

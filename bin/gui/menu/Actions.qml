@@ -39,18 +39,23 @@ QtObject {
         readonly property var print_: Action {
             text: "&Print"
             onTriggered: console.log(this.text)
+            // Use blank icon to force menu items to line up.
+            icon.source: "image://icons/blank.svg"
         }
         readonly property var closeAll: Action {
             text: "Close All"
             onTriggered: window.onCloseAllProjects(false)
+            icon.source: "image://icons/blank.svg"
         }
         readonly property var closeAllButCurrent: Action {
             text: "Close All Except Current"
             onTriggered: window.onCloseAllProjects(true)
+            icon.source: "image://icons/blank.svg"
         }
         readonly property var quit: Action {
             text: "&Quit"
             onTriggered: window.onQuit()
+            icon.source: "image://icons/blank.svg"
         }
     }
 
@@ -198,12 +203,14 @@ QtObject {
         readonly property var removeAllBreakpoints: Action {
             onTriggered: project.onISARemoveAllBreakpoints()
             text: "&Remove All Breakpoints"
+            icon.source: "image://icons/blank.svg"
         }
     }
 
     readonly property var view: QtObject {
         readonly property var fullscreen: Action {
             text: "&Toggle Fullscreen"
+            icon.source: "image://icons/blank.svg"
         }
     }
 
@@ -211,16 +218,19 @@ QtObject {
         readonly property var clearCPU: Action {
             text: "Clear &CPU"
             onTriggered: project.onClearCPU()
+            icon.source: "image://icons/blank.svg"
         }
         readonly property var clearMemory: Action {
             text: "Clear &Memory"
             onTriggered: project.onClearMemory()
+            icon.source: "image://icons/blank.svg"
         }
     }
 
     readonly property var help: QtObject {
         readonly property var about: Action {
             text: "&About"
+            icon.source: "image://icons/blank.svg"
         }
     }
 }
