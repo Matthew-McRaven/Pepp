@@ -20,17 +20,17 @@ MenuBar {
         }
         return menu.count
     }
-    function isDark(c) {
-        return (0.299 * c.r + 0.587 * c.g + 0.114 * c.g) < 0.5
-    }
     function fixTextColors(item) {
         const p = item.palette
         const en = p.text, dis = p.disabled.text
         // TODO: Remove when themes work properly
         // TODO: fix icon colors
-        const en_shifted = Qt.rgba(en.r + 0.1, en.g + 0.1, en.b + 0.1, en.a)
-        const backup = isDark(en) ? en_shifted.lighter(4.0) : en.darker()
+        const ens = Qt.rgba(en.r + 0.1, en.g + 0.1, en.b + 0.1, en.a)
+        // Color to pick if enabled == disabled, and that color is #000000, on which lighter does not work.
+        const backup = en.hslLightness < 0.5 ? ens.lighter(4.0) : en.darker()
         const selected = item.enabled ? en : (en === dis ? backup : dis)
+        if (item.color)
+            item.color = Qt.binding(() => selected)
         item.contentItem.color = selected
     }
     TextMetrics {
@@ -152,12 +152,15 @@ MenuBar {
         MenuSeparator {}
         ShortcutMenuItem {
             action: actions.edit.cut
+            onPaletteChanged: fixTextColors(this)
         }
         ShortcutMenuItem {
             action: actions.edit.copy
+            onPaletteChanged: fixTextColors(this)
         }
         ShortcutMenuItem {
             action: actions.edit.paste
+            onPaletteChanged: fixTextColors(this)
         }
         // Formatting magic!
         MenuSeparator {}
