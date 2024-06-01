@@ -29,5 +29,6 @@
         <file>debug/pause.svg</file>
         <file>debug/continue_debug.svg</file>
         <file>file/settings.svg</file>
+        <file alias="blank.svg">file/empty.svg</file>
     </qresource>
 </RCC>

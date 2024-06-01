@@ -25,12 +25,12 @@
 //  Testing only
 #include <QDirIterator>
 
-#include "help/about/version.hpp"
-#include "memory/hexdump/memorybytemodel.hpp"
-
+#include "../iconprovider.hpp"
 #include "about/registration.hpp"
 #include "cpu/registration.hpp"
+#include "help/about/version.hpp"
 #include "help/registration.hpp"
+#include "memory/hexdump/memorybytemodel.hpp"
 #include "memory/registration.hpp"
 #include "preferences/preferencemodel.hpp"
 #include "preferences/registration.hpp"
@@ -90,6 +90,8 @@ int gui_main(const gui_args &args) {
   { //  This scope forces engine to be deleted before model
     //  Instantiate QML engine before models
     QQmlApplicationEngine engine;
+    // TODO: connect to PreferenceModel, read field corresponding to QPalette (Disabled, Text) field.
+    engine.addImageProvider(QLatin1String("icons"), new PreferenceAwareImageProvider);
     QSharedPointer<gui_globals> globals;
     if (args.extra_init)
       globals = args.extra_init(engine);
@@ -107,13 +109,6 @@ int gui_main(const gui_args &args) {
 
     static const auto default_entry = u"qrc:/qt/qml/Pepp/gui/main.qml"_qs;
     const QUrl url(args.QMLEntry.isEmpty() ? default_entry : args.QMLEntry);
-    qmlRegisterSingletonType(QUrl(u"qrc:/qt/qml/Pepp/gui/actions/File.qml"_qs), "edu.pepp.Actions", 1, 0, "File");
-    qmlRegisterSingletonType(QUrl(u"qrc:/qt/qml/Pepp/gui/actions/Edit.qml"_qs), "edu.pepp.Actions", 1, 0, "Edit");
-    qmlRegisterSingletonType(QUrl(u"qrc:/qt/qml/Pepp/gui/actions/View.qml"_qs), "edu.pepp.Actions", 1, 0, "View");
-    qmlRegisterSingletonType(QUrl(u"qrc:/qt/qml/Pepp/gui/actions/Build.qml"_qs), "edu.pepp.Actions", 1, 0, "Build");
-    qmlRegisterSingletonType(QUrl(u"qrc:/qt/qml/Pepp/gui/actions/Debug.qml"_qs), "edu.pepp.Actions", 1, 0, "Debug");
-    qmlRegisterSingletonType(QUrl(u"qrc:/qt/qml/Pepp/gui/actions/Sim.qml"_qs), "edu.pepp.Actions", 1, 0, "Sim");
-    qmlRegisterSingletonType(QUrl(u"qrc:/qt/qml/Pepp/gui/actions/Help.qml"_qs), "edu.pepp.Actions", 1, 0, "Help");
 
     QObject::connect(
         &engine, &QQmlApplicationEngine::objectCreated, &app,

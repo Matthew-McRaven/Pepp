@@ -1,17 +1,16 @@
 import QtQuick
-import QtQuick.Window
 import QtQuick.Controls
 import QtQuick.Layouts
-import edu.pepp.Actions as Actions
+import "./"
 
 MenuBar {
+    id: wrapper
+    required property var window
+    required property var project
+    required property Actions actions
     property alias saveAsModel: saveAsInstantiator.model
     property alias printModel: printInstantiator.model
     property alias closeModel: closeInstantiator.model
-    signal saveAs(int type)
-    signal print_(int type)
-    signal openRecent(string path)
-    signal close(int index)
 
     function indexOf(menu, menuItem) {
         for (var i = 0; i < menu.count; i++) {
@@ -21,24 +20,50 @@ MenuBar {
         }
         return menu.count
     }
+    function isDark(c) {
+        return (0.299 * c.r + 0.587 * c.g + 0.114 * c.g) < 0.5
+    }
+    function fixTextColors(item) {
+        const p = item.palette
+        const en = p.text, dis = p.disabled.text
+        // TODO: Remove when themes work properly
+        // TODO: fix icon colors
+        const en_shifted = Qt.rgba(en.r + 0.1, en.g + 0.1, en.b + 0.1, en.a)
+        const backup = isDark(en) ? en_shifted.lighter(4.0) : en.darker()
+        const selected = item.enabled ? en : (en === dis ? backup : dis)
+        item.contentItem.color = selected
+    }
+    TextMetrics {
+        id: tm
+        font: wrapper.font
+        text: "  "
+    }
 
     Menu {
         id: fileMenu
         title: qsTr("&File")
-        MenuItem {
-            action: Actions.File.new_
+        ShortcutMenuItem {
+            id: new_
+            action: actions.file.new_
         }
-        MenuItem {
-            action: Actions.File.open
+        ShortcutMenuItem {
+            action: actions.file.open
         }
         Menu {
             id: recentMenu
             title: "Recent Files"
+            // Use blank icon to force menu items to line up. Do not use image provider for a Menu item, since
+            // this icon is rendered before the image provider's paint engine is set up.
+            icon.source: "qrc:/icons/blank.svg"
+            // As such, the width of the icon may be wrong, so use the width of a different (working) icon.
+            icon.width: new_.icon.width
+
             Instantiator {
                 model: 5
                 delegate: MenuItem {
                     text: `${modelData}.pep`
                     onTriggered: openRecent(modelData)
+                    icon.source: "image://icons/blank.svg"
                 }
                 onObjectAdded: (i, obj) => recentMenu.insertItem(i, obj)
                 onObjectRemoved: (i, obj) => recentMenu.removeItem(obj)
@@ -46,8 +71,8 @@ MenuBar {
         }
 
         MenuSeparator {}
-        MenuItem {
-            action: Actions.File.save
+        ShortcutMenuItem {
+            action: actions.file.save
             text: "&Save Object"
         }
         MenuSeparator {
@@ -59,6 +84,8 @@ MenuBar {
             delegate: MenuItem {
                 text: "Save as" + modelData
                 onTriggered: saveAs(modelData)
+                // Use blank icon to force menu items to line up.
+                icon.source: "image://icons/blank.svg"
             }
             onObjectAdded: function (index, object) {
                 const m = fileMenu
@@ -75,6 +102,8 @@ MenuBar {
             delegate: MenuItem {
                 text: "Print" + modelData
                 onTriggered: print_(modelData)
+                // Use blank icon to force menu items to line up.
+                icon.source: "image://icons/blank.svg"
             }
             onObjectAdded: function (index, object) {
                 const m = fileMenu
@@ -91,6 +120,8 @@ MenuBar {
             delegate: MenuItem {
                 text: "Close" + modelData
                 onTriggered: close(modelData)
+                // Use blank icon to force menu items to line up.
+                icon.source: "image://icons/blank.svg"
             }
             onObjectAdded: function (index, object) {
                 const m = fileMenu
@@ -99,100 +130,137 @@ MenuBar {
             onObjectRemoved: (index, object) => fileMenu.removeItem(object)
         }
         MenuItem {
-            action: Actions.File.closeAll
+            action: actions.file.closeAll
         }
         MenuItem {
-            action: Actions.File.closeAllButCurrent
+            action: actions.file.closeAllButCurrent
         }
 
         MenuSeparator {}
         MenuItem {
-            action: Actions.File.quit
+            action: actions.file.quit
         }
     }
     Menu {
         title: qsTr("&Edit")
-        MenuItem {
-            action: Actions.Edit.undo
+        ShortcutMenuItem {
+            action: actions.edit.undo
         }
-        MenuItem {
-            action: Actions.Edit.redo
+        ShortcutMenuItem {
+            action: actions.edit.redo
         }
         MenuSeparator {}
-        MenuItem {
-            action: Actions.Edit.cut
+        ShortcutMenuItem {
+            action: actions.edit.cut
         }
-        MenuItem {
-            action: Actions.Edit.copy
+        ShortcutMenuItem {
+            action: actions.edit.copy
         }
-        MenuItem {
-            action: Actions.Edit.paste
+        ShortcutMenuItem {
+            action: actions.edit.paste
         }
         // Formatting magic!
         MenuSeparator {}
         MenuItem {
-            action: Actions.Edit.prefs
+            action: actions.edit.prefs
         }
     }
     Menu {
+        id: build
         title: qsTr("&Build")
         MenuItem {
-            action: Actions.Build.loadObject
+            action: actions.build.loadObject
+            enabled: action.enabled
+            onEnabledChanged: contentItem.enabled = enabled
+            contentItem.onEnabledChanged: fixTextColors(this)
+            onPaletteChanged: fixTextColors(this)
         }
         MenuItem {
-            action: Actions.Build.execute
+            action: actions.build.execute
+            enabled: action.enabled
+            onEnabledChanged: contentItem.enabled = enabled
+            contentItem.onEnabledChanged: fixTextColors(this)
+            onPaletteChanged: fixTextColors(this)
         }
     }
     Menu {
         title: qsTr("&Debug")
-        MenuItem {
-            action: Actions.Debug.start
+        ShortcutMenuItem {
+            action: actions.debug.start
+            enabled: action.enabled
+            contentItem.enabled: action.enabled
+            onEnabledChanged: fixTextColors(this)
+            onPaletteChanged: fixTextColors(this)
         }
         MenuSeparator {}
         MenuItem {
-            action: Actions.Debug.continue_
+            action: actions.debug.continue_
+            enabled: action.enabled
+            onEnabledChanged: contentItem.enabled = enabled
+            contentItem.onEnabledChanged: fixTextColors(this)
+            onPaletteChanged: fixTextColors(this)
         }
         MenuItem {
-            action: Actions.Debug.pause
+            action: actions.debug.pause
+            enabled: action.enabled
+            onEnabledChanged: contentItem.enabled = enabled
+            contentItem.onEnabledChanged: fixTextColors(this)
+            onPaletteChanged: fixTextColors(this)
         }
         MenuItem {
-            action: Actions.Debug.stop
+            action: actions.debug.stop
+            enabled: action.enabled
+            onEnabledChanged: contentItem.enabled = enabled
+            contentItem.onEnabledChanged: fixTextColors(this)
+            onPaletteChanged: fixTextColors(this)
         }
         MenuSeparator {}
         MenuItem {
-            action: Actions.Debug.stepInto
+            action: actions.debug.stepInto
+            enabled: action.enabled
+            onEnabledChanged: contentItem.enabled = enabled
+            contentItem.onEnabledChanged: fixTextColors(this)
+            onPaletteChanged: fixTextColors(this)
         }
         MenuItem {
-            action: Actions.Debug.stepOver
+            action: actions.debug.stepOver
+            enabled: action.enabled
+            onEnabledChanged: contentItem.enabled = enabled
+            contentItem.onEnabledChanged: fixTextColors(this)
+            onPaletteChanged: fixTextColors(this)
         }
         MenuItem {
-            action: Actions.Debug.stepOut
+            action: actions.debug.stepOut
+            enabled: action.enabled
+            onEnabledChanged: contentItem.enabled = enabled
+            contentItem.onEnabledChanged: fixTextColors(this)
+            onPaletteChanged: fixTextColors(this)
         }
         MenuSeparator {}
         MenuItem {
-            action: Actions.Debug.removeAllBreakpoints
+            action: actions.debug.removeAllBreakpoints
         }
     }
     Menu {
         title: qsTr("&Simulator")
         MenuItem {
-            action: Actions.Sim.clearCPU
+            action: actions.sim.clearCPU
         }
         MenuItem {
-            action: Actions.Sim.clearMemory
+            action: actions.sim.clearMemory
         }
     }
     Menu {
         title: qsTr("&View")
         MenuItem {
-            action: Actions.View.fullscreen
+            action: actions.view.fullscreen
         }
         // Dynamic magic to mode switch!
     }
     Menu {
         title: qsTr("&Help")
         MenuItem {
-            action: Actions.Help.about
+            action: actions.help.about
         }
     }
 }

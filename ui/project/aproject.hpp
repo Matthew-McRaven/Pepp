@@ -20,6 +20,38 @@ enum class Features : int {
   NoOS,
 };
 
+class DebugEnableFlags : public QObject {
+  Q_OBJECT
+public:
+  explicit DebugEnableFlags(QObject *parent = nullptr);
+  enum Value {
+    Start = 1,
+    Continue = 2,
+    Pause = 4,
+    Stop = 8,
+    LoadObject = 16,
+    Execute = 32,
+  };
+  Q_ENUM(Value);
+};
+
+class StepEnableFlags : public QObject {
+  Q_OBJECT
+public:
+  explicit StepEnableFlags(QObject *parent = nullptr);
+  enum Value {
+    Step = 1,
+    StepOver = 2,
+    StepInto = 4,
+    StepOut = 8,
+    StepBack = 16,
+    StepBackOver = 32,
+    StepBackInto = 64,
+    StepBackOut = 128,
+  };
+  Q_ENUM(Value);
+};
+
 // TODO: Expose values on AProject directly
 struct Environment {
   utils::Architecture arch;
@@ -138,6 +170,8 @@ class Pep10_ISA final : public QObject {
   Q_PROPERTY(RegisterModel *registers MEMBER _registers CONSTANT)
   Q_PROPERTY(OpcodeModel *mnemonics READ mnemonics CONSTANT)
   Q_PROPERTY(FlagModel *flags MEMBER _flags CONSTANT)
+  Q_PROPERTY(int allowedDebugging READ allowedDebugging NOTIFY allowedDebuggingChanged)
+  Q_PROPERTY(int allowedSteps READ allowedSteps NOTIFY allowedStepsChanged)
 public:
   explicit Pep10_ISA(QVariant delegate, QObject *parent = nullptr);
   project::Environment env() const;
@@ -154,11 +188,31 @@ public:
   }
   // Actually utils::Abstraction, but QM passes it as an int.
   Q_INVOKABLE void set(int abstraction, QString value);
+  Q_INVOKABLE int allowedDebugging() const;
+  Q_INVOKABLE int allowedSteps() const;
+public slots:
+  bool onSaveCurrent();
+  bool onLoadObject();
+  bool onExecute();
+  bool onDebuggingStart();
+  bool onDebuggingContinue();
+  bool onDebuggingPause();
+  bool onDebuggingStop();
+  bool onISARemoveAllBreakpoints();
+  bool onISAStep();
+  bool onISAStepOver();
+  bool onISAStepInto();
+  bool onISAStepOut();
+
+  bool onClearCPU();
+  bool onClearMemory();
 
 signals:
   void objectCodeTextChanged();
   void delegateChanged();
   void currentAddressChanged();
+  void allowedDebuggingChanged();
+  void allowedStepsChanged();
 
 private:
   QString _objectCodeText = {};

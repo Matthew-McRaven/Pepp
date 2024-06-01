@@ -17,7 +17,7 @@
 #pragma once
 #include <QObject>
 #include "help/builtins/utils.hpp"
-#include "qqmlintegration.h"
+#include <qqmlintegration.h>
 #include "utils_global.hpp"
 
 namespace utils {

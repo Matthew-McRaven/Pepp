@@ -1,6 +1,7 @@
 #include "aproject.hpp"
 #include <QQmlEngine>
 #include "isa/pep10.hpp"
+#include "utils/commands.hpp"
 
 struct Pep10OpcodeInit {
   explicit Pep10OpcodeInit(OpcodeModel *model) {
@@ -97,6 +98,38 @@ void Pep10_ISA::set(int abstraction, QString value) {
   }
 }
 
+int Pep10_ISA::allowedDebugging() const { return -1; }
+
+int Pep10_ISA::allowedSteps() const { return -1; }
+
+bool Pep10_ISA::onSaveCurrent() { return false; }
+
+bool Pep10_ISA::onLoadObject() { return false; }
+
+bool Pep10_ISA::onExecute() { return false; }
+
+bool Pep10_ISA::onDebuggingStart() { return false; }
+
+bool Pep10_ISA::onDebuggingContinue() { return false; }
+
+bool Pep10_ISA::onDebuggingPause() { return false; }
+
+bool Pep10_ISA::onDebuggingStop() { return false; }
+
+bool Pep10_ISA::onISARemoveAllBreakpoints() { return false; }
+
+bool Pep10_ISA::onISAStep() { return false; }
+
+bool Pep10_ISA::onISAStepOver() { return false; }
+
+bool Pep10_ISA::onISAStepInto() { return false; }
+
+bool Pep10_ISA::onISAStepOut() { return false; }
+
+bool Pep10_ISA::onClearCPU() { return false; }
+
+bool Pep10_ISA::onClearMemory() { return false; }
+
 int ProjectModel::rowCount(const QModelIndex &parent) const { return _projects.size(); }
 
 QVariant ProjectModel::data(const QModelIndex &index, int role) const {
@@ -149,3 +182,7 @@ uint64_t mask(uint8_t byteCount) {
     return -1;
   return (1ULL << (byteCount * 8ULL)) - 1ULL;
 }
+
+project::DebugEnableFlags::DebugEnableFlags(QObject *parent) : QObject(parent) {}
+
+project::StepEnableFlags::StepEnableFlags(QObject *parent) : QObject(parent) {}
