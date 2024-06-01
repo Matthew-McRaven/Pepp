@@ -137,7 +137,7 @@ MenuBar {
         }
 
         MenuSeparator {}
-        MenuItem {
+        ShortcutMenuItem {
             action: actions.file.quit
         }
     }
@@ -171,14 +171,14 @@ MenuBar {
     Menu {
         id: build
         title: qsTr("&Build")
-        MenuItem {
+        ShortcutMenuItem {
             action: actions.build.loadObject
             enabled: action.enabled
             onEnabledChanged: contentItem.enabled = enabled
             contentItem.onEnabledChanged: fixTextColors(this)
             onPaletteChanged: fixTextColors(this)
         }
-        MenuItem {
+        ShortcutMenuItem {
             action: actions.build.execute
             enabled: action.enabled
             onEnabledChanged: contentItem.enabled = enabled
