@@ -29,6 +29,8 @@ MenuBar {
         // Color to pick if enabled == disabled, and that color is #000000, on which lighter does not work.
         const backup = en.hslLightness < 0.5 ? ens.lighter(4.0) : en.darker()
         const selected = item.enabled ? en : (en === dis ? backup : dis)
+        if (item.color)
+            item.color = Qt.binding(() => selected)
         item.contentItem.color = selected
     }
     TextMetrics {
@@ -150,12 +152,15 @@ MenuBar {
         MenuSeparator {}
         ShortcutMenuItem {
             action: actions.edit.cut
+            onPaletteChanged: fixTextColors(this)
         }
         ShortcutMenuItem {
             action: actions.edit.copy
+            onPaletteChanged: fixTextColors(this)
         }
         ShortcutMenuItem {
             action: actions.edit.paste
+            onPaletteChanged: fixTextColors(this)
         }
         // Formatting magic!
         MenuSeparator {}
