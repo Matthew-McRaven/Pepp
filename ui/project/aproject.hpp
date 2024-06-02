@@ -94,7 +94,7 @@ private:
 };
 
 struct UnsignedDecFormatter : public RegisterFormatter {
-  explicit UnsignedDecFormatter(std::function<uint64_t()> fn, uint16_t byteCount = 2)
+  explicit UnsignedDecFormatter(std::function<std::uint64_t()> fn, uint16_t byteCount = 2)
       : _fn(fn), _bytes(byteCount), _mask(mask(byteCount)) {
     auto maxNum = std::pow(2, 8 * byteCount);
     auto digits = std::ceil(std::log10(maxNum));
@@ -159,6 +159,18 @@ private:
   std::function<QString()> _fn;
 };
 
+struct OptionalFormatter : public RegisterFormatter {
+  explicit OptionalFormatter(QSharedPointer<RegisterFormatter> fmt, std::function<bool()> valid)
+      : _fmt(fmt), _valid(valid) {}
+  ~OptionalFormatter() override = default;
+  QString format() const override { return _valid() ? _fmt->format() : ""; }
+  bool readOnly() const override { return _fmt->readOnly(); }
+  qsizetype length() const override { return _fmt->length(); }
+
+private:
+  QSharedPointer<RegisterFormatter> _fmt;
+  std::function<bool()> _valid;
+};
 class Pep10_ISA final : public QObject {
   Q_OBJECT
   Q_PROPERTY(project::Environment env READ env CONSTANT)

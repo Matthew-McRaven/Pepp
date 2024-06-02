@@ -53,6 +53,7 @@ Pep10_ISA::Pep10_ISA(QVariant delegate, QObject *parent)
   using SF = QSharedPointer<SignedDecFormatter>;
   using UF = QSharedPointer<UnsignedDecFormatter>;
   using BF = QSharedPointer<BinaryFormatter>;
+  using OF = QSharedPointer<OptionalFormatter>;
   auto _register = [](isa::Pep10::Register r, auto *system) {
     if (system == nullptr)
       return quint16{0};
@@ -61,24 +62,33 @@ Pep10_ISA::Pep10_ISA(QVariant delegate, QObject *parent)
     targets::pep10::isa::readRegister(cpu->regs(), r, ret, gs);
     return ret;
   };
+  // BUG: _system seems to be getting deleted very easily. It probably shouldn't be a shared pointer.
+  // DO NOT CAPTURE _system INDIRECTLY VIA ANOTHER LAMBDA. It will crash.
   auto A = [&_register, this]() { return _register(isa::Pep10::Register::A, &*this->_system); };
   auto X = [&_register, this]() { return _register(isa::Pep10::Register::X, &*this->_system); };
   auto SP = [&_register, this]() { return _register(isa::Pep10::Register::SP, &*this->_system); };
   auto PC = [&_register, this]() { return _register(isa::Pep10::Register::PC, &*this->_system); };
   auto IS = [&_register, this]() { return _register(isa::Pep10::Register::IS, &*this->_system); };
-  auto IS_TEXT = [&]() {
-    int opcode = IS();
+  auto IS_TEXT = [&_register, this]() {
+    int opcode = _register(isa::Pep10::Register::IS, &*this->_system);
     auto row = mnemonics()->indexFromOpcode(opcode);
     return mnemonics()->data(mnemonics()->index(row), Qt::DisplayRole).toString();
   };
   auto OS = [&_register, this]() { return _register(isa::Pep10::Register::OS, &*this->_system); };
+  auto notU = [&_register, this]() {
+    auto is = _register(isa::Pep10::Register::IS, &*this->_system);
+    auto op = isa::Pep10::opcodeLUT[is];
+    return !op.instr.unary;
+  };
   _registers->appendFormatters({TF::create("Accumulator"), HF::create(A, 2), SF::create(A, 2)});
   _registers->appendFormatters({TF::create("Index Register"), HF::create(X, 2), SF::create(X, 2)});
   _registers->appendFormatters({TF::create("Stack Pointer"), HF::create(SP, 2), UF::create(SP, 2)});
   _registers->appendFormatters({TF::create("Program Counter"), HF::create(PC, 2), UF::create(PC, 2)});
   _registers->appendFormatters({TF::create("Instruction Specifier"), BF::create(IS, 1), MF::create(IS_TEXT)});
-  _registers->appendFormatters({TF::create("Operand Specifier"), HF::create(OS, 2), SF::create(OS, 2)});
-  _registers->appendFormatters({TF::create("(Operand)"), TF::create("??"), TF::create("??")});
+  _registers->appendFormatters(
+      {TF::create("Operand Specifier"), OF::create(HF::create(OS, 2), notU), OF::create(SF::create(OS, 2), notU)});
+  _registers->appendFormatters(
+      {TF::create("(Operand)"), OF::create(TF::create("??"), notU), OF::create(TF::create("??"), notU)});
   connect(this, &Pep10_ISA::beginResetModel, _registers, &RegisterModel::onBeginExternalReset);
   connect(this, &Pep10_ISA::endResetModel, _registers, &RegisterModel::onEndExternalReset);
 
@@ -91,6 +101,7 @@ Pep10_ISA::Pep10_ISA(QVariant delegate, QObject *parent)
     targets::pep10::isa::readCSR(cpu->csrs(), s, ret, gs);
     return ret;
   };
+  // See above for wanings on _system pointer.
   auto N = [&_flag, this]() { return _flag(isa::Pep10::CSR::N, &*this->_system); };
   auto Z = [&_flag, this]() { return _flag(isa::Pep10::CSR::Z, &*this->_system); };
   auto V = [&_flag, this]() { return _flag(isa::Pep10::CSR::V, &*this->_system); };
