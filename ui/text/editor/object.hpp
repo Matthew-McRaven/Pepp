@@ -8,7 +8,7 @@ class TEXT_EXPORT ObjectUtilities : public QObject {
 public:
   explicit ObjectUtilities(QObject *parent = nullptr);
   Q_INVOKABLE static bool valid(int key);
-  Q_INVOKABLE QString format(QString input) const;
+  Q_INVOKABLE QString format(QString input, bool includeZZ = true) const;
 public slots:
   void setBytesPerRow(int bytes);
   int bytesPerRow() const;
