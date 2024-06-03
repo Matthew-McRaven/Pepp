@@ -8,6 +8,7 @@
 #include "targets/pep10/isa3/cpu.hpp"
 #include "targets/pep10/isa3/helpers.hpp"
 #include "targets/pep10/isa3/system.hpp"
+#include "text/editor/object.hpp"
 
 struct Pep10OpcodeInit {
   explicit Pep10OpcodeInit(OpcodeModel *model) {
@@ -152,7 +153,7 @@ int Pep10_ISA::allowedSteps() const { return -1; }
 bool Pep10_ISA::onSaveCurrent() { return false; }
 
 bool Pep10_ISA::onLoadObject() {
-
+  static ObjectUtilities utils;
   emit beginResetModel();
   auto book = helpers::book(6);
   auto os = book->findFigure("os", "pep10baremetal");
@@ -164,8 +165,12 @@ bool Pep10_ISA::onLoadObject() {
     qWarning() << "Assembly failed";
     return false;
   }
-  std::string objText;
+  std::string objText = utils.format(objectCodeText(), false).toStdString();
   auto bytes = bits::asciiHexToByte({objText.data(), objText.size()});
+  if (!bytes) {
+    qWarning() << "Invalid object code, probably invalid hex characters.";
+    return false;
+  }
   // Need to reload to properly compute segment addresses. Store in temp
   // directory to prevent clobbering local file contents.
   auto elf = helper.elf(*bytes);

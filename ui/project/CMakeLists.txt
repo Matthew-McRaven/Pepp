@@ -19,4 +19,4 @@ qt_add_qml_module(project
 )
 
 target_compile_definitions(project PRIVATE "PROJECT_LIBRARY")
-target_link_libraries(project PUBLIC Qt6::Core Qt6::Gui Qt6::Quick ui_utils memory cpu isa helpers targets)
+target_link_libraries(project PUBLIC Qt6::Core Qt6::Gui Qt6::Quick ui_utils memory cpu isa helpers targets text)
