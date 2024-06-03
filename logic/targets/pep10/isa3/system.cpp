@@ -48,11 +48,12 @@ sim::api2::device::Descriptor desc_mmo(sim::api2::device::ID id, QString name) {
           .baseName = u"mmo-%1"_qs.arg(name),
           .fullName = u"/bus/mmo-%1"_qs.arg(name)};
 }
-
+namespace {
 const auto gs = sim::api2::memory::Operation {
     .type = sim::api2::memory::Operation::Type::Application,
     .kind = sim::api2::memory::Operation::Kind::data,
 };
+}
 
 targets::pep10::isa::System::System(QList<obj::MemoryRegion> regions,
                                     QList<obj::AddressedIO> mmios)
@@ -79,16 +80,7 @@ targets::pep10::isa::System::System(QList<obj::MemoryRegion> regions,
         {.minOffset = reg.minOffset, .maxOffset = reg.maxOffset}, target);
 
     // Perform load!
-    quint16 base = 0;
-    for (const auto seg : reg.segs) {
-      auto fileData = seg->get_data();
-      auto size = seg->get_file_size();
-      if (fileData == nullptr)
-        continue;
-      using size_type = bits::span<const quint8>::size_type;
-      mem->write(base, {reinterpret_cast<const quint8 *>(fileData), static_cast<size_type>(size)}, gs);
-      base += size;
-    }
+    loadRegion(*mem, reg, static_cast<quint16>(-reg.minOffset));
   }
 
   // Create MMIO, do not perform buffering
@@ -260,5 +252,41 @@ targets::pep10::isa::systemFromElf(const ELFIO::elfio &elf,
   if (auto bootFlg = obj::getBootFlagsAddress(elf); bootFlg)
     ret->setBootFlagAddress(*bootFlg);
 
+  return ret;
+}
+
+bool targets::pep10::isa::loadRegion(sim::api2::memory::Target<quint16> &mem, const obj::MemoryRegion &reg,
+                                     quint16 baseOffset) {
+  constexpr auto gs = sim::api2::memory::Operation{
+      .type = sim::api2::memory::Operation::Type::Application,
+      .kind = sim::api2::memory::Operation::Kind::data,
+  };
+  auto ret = true;
+  quint16 base = baseOffset + reg.minOffset;
+  for (const auto seg : reg.segs) {
+    auto fileData = seg->get_data();
+    auto size = seg->get_file_size();
+    if (fileData == nullptr)
+      continue;
+    using size_type = bits::span<const quint8>::size_type;
+    mem.write(base, {reinterpret_cast<const quint8 *>(fileData), static_cast<size_type>(size)}, gs);
+    base += size;
+  }
+  return ret;
+}
+
+bool targets::pep10::isa::loadElfSegments(sim::api2::memory::Target<quint16> &mem, const ELFIO::elfio &elf) {
+  const auto gs = sim::api2::memory::Operation{
+      .type = sim::api2::memory::Operation::Type::Application,
+      .kind = sim::api2::memory::Operation::Kind::data,
+  };
+
+  using size_type = bits::span<const quint8>::size_type;
+  auto segs = obj::getLoadableSegments(elf);
+  auto memmap = obj::mergeSegmentRegions(segs);
+  bool ret = true;
+  for (const auto &reg : memmap) {
+    ret &= loadRegion(mem, reg, 0);
+  }
   return ret;
 }

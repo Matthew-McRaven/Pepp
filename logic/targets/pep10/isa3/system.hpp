@@ -16,8 +16,9 @@
  */
 
 #pragma once
-#include "sim/api2.hpp"
 #include <elfio/elfio.hpp>
+#include "obj/memmap.hpp"
+#include "sim/api2.hpp"
 
 namespace obj {
 struct MemoryRegion;
@@ -75,7 +76,10 @@ private:
   QMap<QString, QSharedPointer<sim::memory::Output<quint16>>> _mmo = {};
 };
 
+bool loadRegion(sim::api2::memory::Target<quint16> &mem, const obj::MemoryRegion &reg, quint16 baseOffset = 0);
+// Do not buffer any MMIO values.
+bool loadElfSegments(sim::api2::memory::Target<quint16> &mem, const ELFIO::elfio &elf);
+
 // loadUserImmediate bypasses loading user program to DDR.
-QSharedPointer<System> systemFromElf(const ELFIO::elfio &elf,
-                                     bool loadUserImmediate);
+QSharedPointer<System> systemFromElf(const ELFIO::elfio &elf, bool loadUserImmediate);
 } // namespace targets::pep10::isa
