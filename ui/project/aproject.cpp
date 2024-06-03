@@ -5,6 +5,7 @@
 #include "help/builtins/figure.hpp"
 #include "helpers/asmb.hpp"
 #include "isa/pep10.hpp"
+#include "sim/device/simple_bus.hpp"
 #include "targets/pep10/isa3/cpu.hpp"
 #include "targets/pep10/isa3/helpers.hpp"
 #include "targets/pep10/isa3/system.hpp"
@@ -113,6 +114,27 @@ Pep10_ISA::Pep10_ISA(QVariant delegate, QObject *parent)
   _flags->appendFlag({F::create("C", C)});
   connect(this, &Pep10_ISA::beginResetModel, _flags, &FlagModel::onBeginExternalReset);
   connect(this, &Pep10_ISA::endResetModel, _flags, &FlagModel::onEndExternalReset);
+
+  auto book = helpers::book(6);
+  auto os = book->findFigure("os", "pep10baremetal");
+  auto osContents = os->typesafeElements()["pep"]->contents;
+  auto macroRegistry = helpers::registry(book, {});
+  helpers::AsmHelper helper(macroRegistry, osContents);
+  auto result = helper.assemble();
+  if (!result) {
+    qWarning() << "Default OS assembly failed";
+  }
+  // Need to reload to properly compute segment addresses. Store in temp
+  // directory to prevent clobbering local file contents.
+  _elf = helper.elf();
+  {
+    std::stringstream s;
+    _elf->save(s);
+    s.seekg(0, std::ios::beg);
+    _elf->load(s);
+  }
+  _system = targets::pep10::isa::systemFromElf(*_elf, true);
+  // TODO: store system state so that we can reload it later.
 }
 
 project::Environment Pep10_ISA::env() const {
@@ -155,32 +177,18 @@ bool Pep10_ISA::onSaveCurrent() { return false; }
 bool Pep10_ISA::onLoadObject() {
   static ObjectUtilities utils;
   emit beginResetModel();
-  auto book = helpers::book(6);
-  auto os = book->findFigure("os", "pep10baremetal");
-  auto osContents = os->typesafeElements()["pep"]->contents;
-  auto macroRegistry = helpers::registry(book, {});
-  helpers::AsmHelper helper(macroRegistry, osContents);
-  auto result = helper.assemble();
-  if (!result) {
-    qWarning() << "Assembly failed";
-    return false;
-  }
   std::string objText = utils.format(objectCodeText(), false).toStdString();
   auto bytes = bits::asciiHexToByte({objText.data(), objText.size()});
   if (!bytes) {
     qWarning() << "Invalid object code, probably invalid hex characters.";
     return false;
   }
-  // Need to reload to properly compute segment addresses. Store in temp
-  // directory to prevent clobbering local file contents.
-  auto elf = helper.elf(*bytes);
-  {
-    std::stringstream s;
-    elf->save(s);
-    s.seekg(0, std::ios::beg);
-    elf->load(s);
-  }
-  _system = targets::pep10::isa::systemFromElf(*elf, true);
+  auto bus = _system->bus();
+  bus->clear(0);
+  // Reload OS into memory.
+  targets::pep10::isa::loadElfSegments(*bus, *_elf);
+  // Load user program into memory.
+  bus->write(0, *bytes, gs);
   targets::pep10::isa::writeRegister(_system->cpu()->regs(), isa::Pep10::Register::A, 0x11, gs);
   targets::pep10::isa::writeRegister(_system->cpu()->regs(), isa::Pep10::Register::X, 9, gs);
   targets::pep10::isa::writeRegister(_system->cpu()->regs(), isa::Pep10::Register::SP, 11, gs);

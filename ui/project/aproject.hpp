@@ -235,6 +235,7 @@ private:
   QString _objectCodeText = {};
   QVariant _delegate = {};
   QSharedPointer<targets::pep10::isa::System> _system = {};
+  QSharedPointer<ELFIO::elfio> _elf = {};
   // Use raw pointer to avoid double-free with parent'ed QObjects.
   ArrayRawMemory *_memory = nullptr;
   RegisterModel *_registers = nullptr;
