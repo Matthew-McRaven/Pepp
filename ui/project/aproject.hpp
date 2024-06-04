@@ -237,7 +237,7 @@ private:
   QSharedPointer<targets::pep10::isa::System> _system = {};
   QSharedPointer<ELFIO::elfio> _elf = {};
   // Use raw pointer to avoid double-free with parent'ed QObjects.
-  ArrayRawMemory *_memory = nullptr;
+  SimulatorRawMemory *_memory = nullptr;
   RegisterModel *_registers = nullptr;
   FlagModel *_flags = nullptr;
   qint16 _currentAddress = 0;

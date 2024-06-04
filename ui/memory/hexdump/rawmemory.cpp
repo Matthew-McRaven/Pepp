@@ -65,3 +65,35 @@ QObject *ArrayRawMemoryFactory::singletonProvider(QQmlEngine *engine, QJSEngine 
   Q_UNUSED(scriptEngine)
   return new ArrayRawMemoryFactory();
 }
+
+static const auto gs = sim::api2::memory::Operation{
+    .type = sim::api2::memory::Operation::Type::Application,
+    .kind = sim::api2::memory::Operation::Kind::data,
+};
+
+SimulatorRawMemory::SimulatorRawMemory(sim::memory::SimpleBus<quint16> *memory, QObject *parent) : _memory(memory) {}
+
+quint32 SimulatorRawMemory::byteCount() const {
+  auto span = _memory->span();
+  return 1 + span.maxOffset - span.minOffset;
+}
+
+quint8 SimulatorRawMemory::read(quint32 address) const {
+  auto span = _memory->span();
+  quint8 ret = 0;
+  if (address >= span.minOffset && address <= span.maxOffset) {
+    _memory->read(address, {&ret, sizeof(ret)}, gs);
+  }
+  return ret;
+}
+
+MemoryHighlight::V SimulatorRawMemory::status(quint32 address) const { return MemoryHighlight::None; }
+
+void SimulatorRawMemory::write(quint32 address, quint8 value) {
+  auto span = _memory->span();
+  if (address >= span.minOffset && address <= span.maxOffset) {
+    _memory->write(address, {&value, sizeof(value)}, gs);
+  }
+}
+
+void SimulatorRawMemory::clear() { _memory->clear(0); }

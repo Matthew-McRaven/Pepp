@@ -3,6 +3,7 @@
 #include <QtTypes>
 #include <vector>
 #include "../memory_globals.hpp"
+#include "sim/device/simple_bus.hpp"
 
 class QJSEngine;
 class QQmlEngine;
@@ -66,8 +67,22 @@ private:
 
 class MEMORY_EXPORT ArrayRawMemoryFactory : public QObject {
   Q_OBJECT
-
 public:
   Q_INVOKABLE ArrayRawMemory *create(quint32 size);
   static QObject *singletonProvider(QQmlEngine *engine, QJSEngine *scriptEngine);
+};
+
+// TODO: add access to CPU, add access to traces.
+class MEMORY_EXPORT SimulatorRawMemory : public ARawMemory {
+  Q_OBJECT
+public:
+  explicit SimulatorRawMemory(sim::memory::SimpleBus<quint16> *memory, QObject *parent = nullptr);
+  quint32 byteCount() const override;
+  quint8 read(quint32 address) const override;
+  MemoryHighlight::V status(quint32 address) const override;
+  void write(quint32 address, quint8 value) override;
+  void clear() override;
+
+private:
+  sim::memory::SimpleBus<quint16> *_memory;
 };

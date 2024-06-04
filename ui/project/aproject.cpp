@@ -42,8 +42,8 @@ auto gs = sim::api2::memory::Operation{
 }
 
 Pep10_ISA::Pep10_ISA(QVariant delegate, QObject *parent)
-    : QObject(parent), _delegate(delegate), _memory(new ArrayRawMemory(0x10000, this)),
-      _registers(new RegisterModel(this)), _flags(new FlagModel(this)) {
+    : QObject(parent), _delegate(delegate), _memory(nullptr), _registers(new RegisterModel(this)),
+      _flags(new FlagModel(this)) {
   QQmlEngine::setObjectOwnership(_memory, QQmlEngine::CppOwnership);
   QQmlEngine::setObjectOwnership(_registers, QQmlEngine::CppOwnership);
   _system.clear();
@@ -134,7 +134,7 @@ Pep10_ISA::Pep10_ISA(QVariant delegate, QObject *parent)
     _elf->load(s);
   }
   _system = targets::pep10::isa::systemFromElf(*_elf, true);
-  // TODO: store system state so that we can reload it later.
+  _memory = new SimulatorRawMemory(_system->bus(), this);
 }
 
 project::Environment Pep10_ISA::env() const {
