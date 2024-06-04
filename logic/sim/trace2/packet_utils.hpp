@@ -21,7 +21,7 @@ private:
 // Number of actual bytes in a single payload.
 std::size_t payload_length(const sim::api2::packet::Payload &payload);
 // Number of bytes in all payloads following a packet header.
-std::size_t packet_payloads_length(api2::trace::PacketIterator iter);
+std::size_t packet_payloads_length(api2::trace::PacketIterator iter, bool includeRead = true);
 
 namespace detail {
 // Return the address of a packet as type T, otherwise return nullopt if not present.
@@ -37,10 +37,13 @@ public:
   };
   std::optional<T> operator()(const auto &header) const { return std::nullopt; }
 };
-// Return the number of bytes in all payloads following a packet header
+// Return the number of bytes in all payloads following a packet header.
+// If includeRead is true, PureRead payload lengths are returned from packets. Otherwise, 0 is returned.
+// No other packet types are impacted. It is meant to help determine the set of addresses written to over a simulation.
 class PacketPayloadsLength {
 public:
-  PacketPayloadsLength(sim::api2::trace::PacketIterator iter) : _iter(iter){};
+  PacketPayloadsLength(sim::api2::trace::PacketIterator iter, bool includeRead = true);
+  ;
   std::size_t operator()(const sim::api2::packet::header::PureRead &header) const;
   std::size_t operator()(const sim::api2::packet::header::Clear &header) const;
   template <typename Header> std::size_t operator()(const Header &header) const {
@@ -53,6 +56,7 @@ public:
 
 private:
   sim::api2::trace::PacketIterator _iter;
+  bool _includeRead;
 };
 
 // Return the number of bytes in a single payload.

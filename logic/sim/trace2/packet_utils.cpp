@@ -3,9 +3,12 @@
 std::size_t sim::trace2::payload_length(const sim::api2::packet::Payload &payload) {
   return std::visit(sim::trace2::detail::PayloadLength{}, payload);
 }
-std::size_t sim::trace2::packet_payloads_length(sim::api2::trace::PacketIterator iter) {
-  return std::visit(sim::trace2::detail::PacketPayloadsLength{iter}, *iter);
+std::size_t sim::trace2::packet_payloads_length(sim::api2::trace::PacketIterator iter, bool includeRead) {
+  return std::visit(sim::trace2::detail::PacketPayloadsLength{iter, includeRead}, *iter);
 }
+
+sim::trace2::detail::PacketPayloadsLength::PacketPayloadsLength(sim::api2::trace::PacketIterator iter, bool includeRead)
+    : _iter(iter), _includeRead(includeRead) {}
 
 std::size_t
 sim::trace2::detail::PacketPayloadsLength::operator()(const sim::api2::packet::header::Clear &header) const {
@@ -14,7 +17,10 @@ sim::trace2::detail::PacketPayloadsLength::operator()(const sim::api2::packet::h
 
 std::size_t
 sim::trace2::detail::PacketPayloadsLength::operator()(const sim::api2::packet::header::PureRead &header) const {
-  return header.payload_len;
+  if (_includeRead)
+    return header.payload_len;
+  else
+    return 0;
 }
 
 void sim::trace2::emitFrameStart(sim::api2::trace::Buffer *tb)
