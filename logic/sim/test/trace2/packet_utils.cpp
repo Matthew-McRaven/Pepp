@@ -65,6 +65,22 @@ TEST_CASE("Packet IsSameDevice", "[scope:sim][kind:unit][arch:*]") {
   CHECK_FALSE(std::visit(nequal, hdr));
 }
 
+TEST_CASE("Packet get_address", "[scope:sim][kind:unit][arch:*]") {
+  using namespace sim::api2::packet;
+  auto x = [](auto i) { return VariableBytes<8>::from_address<quint16>(i); };
+  packet::Header wr = header::Write{.device = 5, .address = x(6)};
+  packet::Header clr = header::Clear{.device = 5};
+  packet::Header rd = header::PureRead{.device = 5, .payload_len = 2, .address = x(7)};
+  packet::Header ir = header::ImpureRead{.device = 5, .address = x(8)};
+  CHECK(get_address<quint16>(wr));
+  CHECK(*get_address<quint16>(wr) == 6);
+  CHECK_FALSE(get_address<quint16>(clr));
+  CHECK(get_address<quint16>(rd));
+  CHECK(*get_address<quint16>(rd) == 7);
+  CHECK(get_address<quint16>(ir));
+  CHECK(*get_address<quint16>(ir) == 8);
+}
+
 TEST_CASE("Packet serialization utilities", "[scope:sim][kind:unit][arch:*]") {
   SECTION("Pure Read") {
     auto [address, device, payload_len] = GENERATE(table<quint16, device::ID, quint16>({

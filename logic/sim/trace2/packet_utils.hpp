@@ -4,9 +4,8 @@
 namespace sim::trace2 {
 // TODO: should check that the struct is a packet header.
 template <typename T>
-concept HasDevice =
-    requires(T t) {
-    { t.device } -> std::convertible_to<decltype(t.device)>;
+concept HasDevice = requires(T t) {
+  { t.device } -> std::convertible_to<decltype(t.device)>;
 };
 class IsSameDevice {
 public:
@@ -18,12 +17,32 @@ public:
 private:
     sim::api2::device::ID _device;
 };
+
+namespace detail {
+template <typename T>
+concept HasAddress = requires(T t) {
+  { t.address } -> std::convertible_to<decltype(t.address)>;
+};
+using Addr_t = quint16;
+template <typename T> class GetAddress {
+public:
+  template <HasAddress Header> std::optional<T> operator()(const Header &header) const {
+    return std::make_optional<T>(header.address.template to_address<T>());
+  };
+  std::optional<T> operator()(const auto &header) const { return std::nullopt; }
+};
+} // namespace detail
+
+template <typename T> std::optional<T> get_address(const sim::api2::packet::Header &header) {
+  return std::visit(detail::GetAddress<T>{}, header);
+}
+
 namespace detail {
 void emit_payloads(sim::api2::trace::Buffer* tb,
                    bits::span<const quint8> buf1, bits::span<const quint8> buf2);
 void emit_payloads(sim::api2::trace::Buffer* tb,
                    bits::span<const quint8> buf1);
-} // sim::trace2::detail
+} // namespace detail
 
 void emitFrameStart(sim::api2::trace::Buffer* tb);
 
