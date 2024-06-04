@@ -60,7 +60,7 @@ TEST_CASE("Packet IsSameDevice", "[scope:sim][kind:unit][arch:*]") {
   using namespace sim::api2::packet;
   auto equal = IsSameDevice{5};
   auto nequal = IsSameDevice{6};
-  packet::Header hdr = packet::header::Write{.device = 5, .address = 0};
+  packet::Header hdr = packet::header::Write{.device = 5, .address = VariableBytes<8>{0}};
   CHECK(std::visit(equal, hdr));
   CHECK_FALSE(std::visit(nequal, hdr));
 }

@@ -49,7 +49,11 @@ namespace packet {
 // for each address size. The variable-length byte-array allows this to be
 // expressed in a single packet type.
 template <size_t N> struct VariableBytes {
-  VariableBytes(quint8 len, bool continues = false) {
+  explicit VariableBytes() {
+    this->len = 0;
+    bytes.fill(0);
+  }
+  explicit VariableBytes(quint8 len, bool continues = false) {
     this->len = (len & len_mask()) | (continues ? 0x80 : 0x00);
     bytes.fill(0);
   }
@@ -60,7 +64,7 @@ template <size_t N> struct VariableBytes {
   }
 
   template <std::unsigned_integral Address> static VariableBytes from_address(Address address) {
-    auto len = sizeof(address);
+    constexpr auto len = sizeof(address);
     // Copy address bytes into bytes array.
     return VariableBytes(len, bits::span<const quint8>((quint8 *)&address, len));
   }
@@ -136,28 +140,28 @@ namespace header {
 struct Clear {
   device_id_t device = 0;
   static constexpr std::size_t N = 8;
-  VariableBytes<N> value = {0};
+  VariableBytes<N> value = VariableBytes<N>{0};
 };
 
 struct PureRead {
   device_id_t device = 0;
   zpp::bits::varint<quint64> payload_len = 0;
   static constexpr std::size_t N = 8;
-  VariableBytes<N> address = {0};
+  VariableBytes<N> address = VariableBytes<N>{0};
 };
 
 // MUST be followed by 1+ payloads.
 struct ImpureRead {
   device_id_t device = 0;
   static constexpr std::size_t N = 8;
-  VariableBytes<N> address = {0};
+  VariableBytes<N> address = VariableBytes<N>{0};
 };
 
 // MUST be followed by 1+ payload.
 struct Write {
   device_id_t device = 0;
   static constexpr std::size_t N = 8;
-  VariableBytes<N> address = {0};
+  VariableBytes<N> address = VariableBytes<N>{0};
 };
 } // namespace header
 using Header = std::variant<header::Clear, header::PureRead, header::ImpureRead, header::Write>;
@@ -166,7 +170,8 @@ namespace payload {
 // Successive payloads belong to the same packet.
 struct Variable {
   static constexpr std::size_t N = 32;
-  VariableBytes<N> payload = {0};
+  using Bytes = VariableBytes<N>;
+  VariableBytes<N> payload = VariableBytes<N>{0};
 };
 } // namespace payload
 using Payload = std::variant<payload::Variable>;
