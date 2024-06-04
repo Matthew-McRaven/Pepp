@@ -18,6 +18,7 @@
 #include <catch.hpp>
 #include <zpp_bits.h>
 #include "sim/api2.hpp"
+#include "sim/trace2/buffers.hpp"
 
 namespace {
 using namespace sim::api2;
@@ -79,6 +80,13 @@ TEST_CASE("Packet get_address", "[scope:sim][kind:unit][arch:*]") {
   CHECK(*get_address<quint16>(rd) == 7);
   CHECK(get_address<quint16>(ir));
   CHECK(*get_address<quint16>(ir) == 8);
+}
+
+TEST_CASE("Packet payload_length", "[scope:sim][kind:unit][arch:*]") {
+  using namespace sim::api2::packet;
+  bits::span<const quint8> bytes = {{0, 1, 2, 3, 4, 5}};
+  packet::Payload x = payload::Variable{.payload = payload::Variable::Bytes{6, bytes}};
+  CHECK(payload_length(x) == 6);
 }
 
 TEST_CASE("Packet serialization utilities", "[scope:sim][kind:unit][arch:*]") {
@@ -180,5 +188,47 @@ TEST_CASE("Packet serialization utilities", "[scope:sim][kind:unit][arch:*]") {
         current += bytes.payload.len;
       }
     }
+  }
+}
+
+TEST_CASE("Packet packet_payloads_length", "[scope:sim][kind:unit][arch:*]") {
+  using namespace sim::api2::packet;
+  bits::span<const quint8> bytes = {{0, 1, 2, 3, 4, 5}};
+  SECTION("ImpureRead") {
+    InfiniteBuffer buf;
+    buf.trace(0, true);
+    emitFrameStart(&buf);
+    emitMMRead(&buf, 0, 0u, bytes);
+    emitFrameStart(&buf);
+    auto frame_iter = buf.cbegin();
+    CHECK(packet_payloads_length(frame_iter.cbegin()) == 6);
+  }
+  SECTION("PureRead") {
+    InfiniteBuffer buf;
+    buf.trace(0, true);
+    emitFrameStart(&buf);
+    emitPureRead(&buf, 0, 0u, 4u);
+    emitFrameStart(&buf);
+    auto frame_iter = buf.cbegin();
+    CHECK(packet_payloads_length(frame_iter.cbegin()) == 4);
+  }
+  SECTION("Clear") {
+    InfiniteBuffer buf;
+    buf.trace(0, true);
+    emitFrameStart(&buf);
+    buf.writeFragment(Header{header::Clear{.device = 0}});
+    emitFrameStart(&buf);
+    auto frame_iter = buf.cbegin();
+    CHECK(packet_payloads_length(frame_iter.cbegin()) == 0);
+  }
+  SECTION("Write") {
+    InfiniteBuffer buf;
+    buf.trace(0, true);
+    emitFrameStart(&buf);
+    std::array<quint8, 6> dest{0};
+    emitWrite(&buf, 0, 0u, bytes, dest);
+    emitFrameStart(&buf);
+    auto frame_iter = buf.cbegin();
+    CHECK(packet_payloads_length(frame_iter.cbegin()) == 6);
   }
 }

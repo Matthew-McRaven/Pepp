@@ -18,7 +18,13 @@ private:
     sim::api2::device::ID _device;
 };
 
+// Number of actual bytes in a single payload.
+std::size_t payload_length(const sim::api2::packet::Payload &payload);
+// Number of bytes in all payloads following a packet header.
+std::size_t packet_payloads_length(api2::trace::PacketIterator iter);
+
 namespace detail {
+// Return the address of a packet as type T, otherwise return nullopt if not present.
 template <typename T>
 concept HasAddress = requires(T t) {
   { t.address } -> std::convertible_to<decltype(t.address)>;
@@ -30,6 +36,29 @@ public:
     return std::make_optional<T>(header.address.template to_address<T>());
   };
   std::optional<T> operator()(const auto &header) const { return std::nullopt; }
+};
+// Return the number of bytes in all payloads following a packet header
+class PacketPayloadsLength {
+public:
+  PacketPayloadsLength(sim::api2::trace::PacketIterator iter) : _iter(iter){};
+  std::size_t operator()(const sim::api2::packet::header::PureRead &header) const;
+  std::size_t operator()(const sim::api2::packet::header::Clear &header) const;
+  template <typename Header> std::size_t operator()(const Header &header) const {
+    std::size_t acc = 0;
+    sim::api2::packet::Payload vb;
+    for (auto it = _iter.cbegin(); it != _iter.cend(); ++it)
+      acc += payload_length(*it);
+    return acc;
+  }
+
+private:
+  sim::api2::trace::PacketIterator _iter;
+};
+
+// Return the number of bytes in a single payload.
+struct PayloadLength {
+  std::size_t operator()(const sim::api2::packet::payload::Variable &p) const { return p.payload.len; }
+  template <typename T> std::size_t operator()(const T &p) const { return 0; }
 };
 } // namespace detail
 
