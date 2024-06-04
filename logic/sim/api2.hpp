@@ -208,11 +208,6 @@ using Header = std::variant<header::Trace, header::Extender>;
 } // namespace frame
 
 namespace trace {
-enum class Mode {
-  Realtime, // Trace frames are parsed as they are received
-  Deferred, // Trace frames will be parsed at some later point.
-};
-
 enum class Level {
   Frame = 1,
   Packet = 2,
@@ -408,7 +403,7 @@ public:
   virtual ~Buffer() = default;
   virtual bool trace(device::ID deviceID, bool enabled = true) = 0;
 
-  virtual bool registerSink(Sink *, Mode) = 0;
+  virtual bool registerSink(Sink *) = 0;
   virtual void unregisterSink(Sink *) = 0;
 
   // Must implicitly call updateFrameHeader to fix back links / lengths.

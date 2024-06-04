@@ -30,7 +30,7 @@ struct SimpleBuffer : public sim::api2::trace::Buffer {
   SimpleBuffer() : _data(), _in(_data), _out(_data) {}
   // Buffer interface
   bool trace(sim::api2::device::ID deviceID, bool enabled) override { return true; }
-  bool registerSink(sim::api2::trace::Sink *, sim::api2::trace::Mode) override { return true; }
+  bool registerSink(sim::api2::trace::Sink *) override { return true; }
   void unregisterSink(sim::api2::trace::Sink *) override {}
   bool writeFragment(const sim::api2::frame::Header &hdr) override {
     _out(w{hdr}).or_throw();
