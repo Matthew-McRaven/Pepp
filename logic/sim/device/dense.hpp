@@ -42,7 +42,7 @@ public:
   void dump(bits::span<quint8> dest) const override;
 
   // Sink interface
-  bool analyze(const api2::trace::PacketIterator iter, Direction) override;
+  bool analyze(const api2::trace::PacketIterator iter, api2::trace::Direction) override;
 
   // Source interface
   void setBuffer(api2::trace::Buffer *tb) override;
@@ -120,7 +120,8 @@ template <typename Address> struct PayloadHelper {
 };
 } // namespace detail
 
-template <typename Address> bool Dense<Address>::analyze(api2::trace::PacketIterator iter, Direction direction) {
+template <typename Address>
+bool Dense<Address>::analyze(api2::trace::PacketIterator iter, api2::trace::Direction direction) {
   auto header = *iter;
   if (!std::visit(sim::trace2::IsSameDevice{_device.id}, header))
     return false;

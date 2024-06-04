@@ -43,7 +43,7 @@ public:
   void dump(bits::span<quint8> dest) const override;
 
   // Sink interface
-  bool analyze(api2::trace::PacketIterator iter, Direction) override;
+  bool analyze(api2::trace::PacketIterator iter, api2::trace::Direction) override;
 
   // Source interface
   void trace(bool enabled) override;
@@ -91,14 +91,15 @@ QSharedPointer<typename detail::Channel<Address, quint8>::Endpoint> Output<Addre
   return _channel->new_endpoint();
 }
 
-template <typename Address> bool Output<Address>::analyze(api2::trace::PacketIterator iter, Direction direction) {
+template <typename Address>
+bool Output<Address>::analyze(api2::trace::PacketIterator iter, api2::trace::Direction direction) {
   auto header = *iter;
   if (!std::visit(sim::trace2::IsSameDevice{_device.id}, header))
     return false;
   else if (std::holds_alternative<api2::packet::header::Write>(header)) {
     // Address is always implicitly 0 since this is a 1-byte port.
     auto hdr = std::get<api2::packet::header::Write>(header);
-    if (direction == Direction::Backward)
+    if (direction == api2::trace::Direction::Reverse)
       _endpoint->unwrite();
     // Forward direction
     // We don't emit multiple payloads, so receiving multiple (or 0) doesn't make sense.

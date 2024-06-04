@@ -433,13 +433,9 @@ public:
 class Sink {
 public:
   virtual ~Sink() = default;
-  enum class Direction {
-    Forward,  // Apply the action specified by the packet.
-    Backward, // Undo the effects of the action specified by the packet.
-  };
   // Return true if the packet was processed by this sink, otherwise return
   // false.
-  virtual bool analyze(PacketIterator iter, Direction) = 0;
+  virtual bool analyze(PacketIterator iter, Direction direction) = 0;
 };
 
 } // namespace trace

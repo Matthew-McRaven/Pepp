@@ -75,7 +75,7 @@ sim::api2::tick::Result targets::pep10::isa::CPU::clock(sim::api2::tick::Type cu
   return ret;
 }
 
-bool targets::pep10::isa::CPU::analyze(sim::api2::trace::PacketIterator iter, Direction) {
+bool targets::pep10::isa::CPU::analyze(sim::api2::trace::PacketIterator iter, sim::api2::trace::Direction) {
   // At the moment, this class does not emit any trace events directly.
   return false;
 }
