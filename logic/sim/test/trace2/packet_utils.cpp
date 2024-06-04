@@ -46,6 +46,11 @@ struct SimpleBuffer : public sim::api2::trace::Buffer {
   }
   bool updateFrameHeader() override { return true; }
   void dropLast() override { throw std::logic_error("Unimplemented"); }
+  void clear() override {
+    _data.clear();
+    _in.reset();
+    _out.reset();
+  }
   FrameIterator cbegin() const override { throw std::logic_error("Unimplemented"); }
   FrameIterator cend() const override { throw std::logic_error("Unimplemented"); }
   FrameIterator crbegin() const override { throw std::logic_error("Unimplemented"); }

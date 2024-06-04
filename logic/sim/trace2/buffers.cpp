@@ -97,6 +97,14 @@ void sim::trace2::InfiniteBuffer::dropLast()
 
 }
 
+void sim::trace2::InfiniteBuffer::clear() {
+  _out.reset();
+  _in.reset();
+  _lastFrameStart = 0;
+  _data.resize(0);
+  _backlinks.clear();
+}
+
 sim::trace2::InfiniteBuffer::FrameIterator sim::trace2::InfiniteBuffer::cbegin() const
 {
     return FrameIterator(this, 0);

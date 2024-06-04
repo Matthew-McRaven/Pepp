@@ -416,6 +416,7 @@ public:
   // Remove the last frame from the buffer.
   // TODO: replace with integration for iterators / std::erase.
   virtual void dropLast() = 0;
+  virtual void clear() = 0;
 
   virtual FrameIterator cbegin() const = 0;
   virtual FrameIterator cend() const = 0;

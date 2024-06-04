@@ -37,6 +37,7 @@ public:
     bool writeFragment(const api2::packet::Payload&) override;
     bool updateFrameHeader() override;
     void dropLast() override;
+    void clear() override;
     FrameIterator cbegin() const override;
     FrameIterator cend() const override;
     FrameIterator crbegin() const override;
