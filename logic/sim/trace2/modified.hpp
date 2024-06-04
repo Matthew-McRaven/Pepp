@@ -1,6 +1,8 @@
 #pragma once
 #include <ostream>
 #include <set>
+#include "packet_utils.hpp"
+#include "sim/api2.hpp"
 
 namespace sim::trace2 {
 template <typename T> struct Interval {
@@ -28,6 +30,9 @@ private:
   T _lower, _upper;
 };
 
+template <typename T> bool contains(const Interval<T> &outer, const T &inner) {
+  return outer.lower() <= inner && inner <= outer.upper();
+}
 template <typename T> bool contains(const Interval<T> &outer, const Interval<T> &inner) {
   return outer.lower() <= inner.lower() && inner.upper() <= outer.upper();
 }
@@ -50,6 +55,7 @@ template <std::unsigned_integral T> class IntervalSet {
   std::set<Interval<T>> _intervals;
 
 public:
+  void insert(T lower, T upper) { insert(Interval<T>(lower, upper)); }
   void insert(T point) { insert(Interval<T>(point)); }
   void insert(Interval<T> interval) {
     // The key assumption is that intervals are stored in sorted order, implying that a single insert
@@ -100,4 +106,40 @@ template <typename T> std::ostream &operator<<(std::ostream &os, const IntervalS
     os << i;
   return os;
 }
+
+template <typename addr_size_t> class ModifiedAddressSink : public ::sim::api2::trace::Sink {
+public:
+  virtual ~ModifiedAddressSink() = default;
+  bool analyze(api2::trace::PacketIterator iter, sim::api2::trace::Direction) override {
+    using namespace sim::api2::packet;
+    auto start = sim::trace2::get_address<addr_size_t>(*iter);
+    if (!start) {
+    } else if (auto len = sim::trace2::packet_payloads_length(iter, false); len > 0)
+      _iset.insert(*start, *start + len - 1);
+    return true;
+  }
+  void clear() { _iset.clear(); }
+  const std::set<Interval<addr_size_t>> &intervals() const { return _iset.intervals(); }
+  bool contains(addr_size_t addr) const {
+    auto i = _iset.intervals();
+    if (i.size() == 0)
+      return false;
+    // Use O(lg n) search to find glb.
+    // If glb is at the start, this is the only interval which could contain addr.
+    else if (auto lb = i.lower_bound(Interval<addr_size_t>{addr, addr}); lb == i.cbegin())
+      return sim::trace2::contains(*lb, addr);
+    else if (lb != i.cend() && lb->lower() <= addr)
+      return sim::trace2::contains(*lb, addr);
+    // prev might fail if lb is cbegin.
+    else if (auto prev = std::prev(lb); prev == i.cend())
+      return false;
+    else
+      return sim::trace2::contains(*prev, addr);
+  }
+  void insert(addr_size_t addr) { _iset.insert(addr); }
+  void insert(addr_size_t lower, addr_size_t upper) { _iset.insert(lower, upper); }
+
+private:
+  IntervalSet<addr_size_t> _iset;
+};
 } // namespace sim::trace2

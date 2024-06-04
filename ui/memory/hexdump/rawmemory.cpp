@@ -71,7 +71,10 @@ static const auto gs = sim::api2::memory::Operation{
     .kind = sim::api2::memory::Operation::Kind::data,
 };
 
-SimulatorRawMemory::SimulatorRawMemory(sim::memory::SimpleBus<quint16> *memory, QObject *parent) : _memory(memory) {}
+SimulatorRawMemory::SimulatorRawMemory(sim::memory::SimpleBus<quint16> *memory,
+                                       QSharedPointer<sim::trace2::ModifiedAddressSink<quint16>> addrSink,
+                                       QObject *parent)
+    : ARawMemory(parent), _memory(memory), _sink(addrSink) {}
 
 quint32 SimulatorRawMemory::byteCount() const {
   auto span = _memory->span();
@@ -87,7 +90,19 @@ quint8 SimulatorRawMemory::read(quint32 address) const {
   return ret;
 }
 
-MemoryHighlight::V SimulatorRawMemory::status(quint32 address) const { return MemoryHighlight::None; }
+void SimulatorRawMemory::setPC(quint32 start, quint32 end) { _pc = {start, end}; }
+
+void SimulatorRawMemory::setSP(quint32 address) { _sp = {address, address}; }
+
+MemoryHighlight::V SimulatorRawMemory::status(quint32 address) const {
+  if (sim::trace2::contains(_pc, address))
+    return MemoryHighlight::PC;
+  else if (sim::trace2::contains(_sp, address))
+    return MemoryHighlight::SP;
+  else if (!_sink.isNull() && _sink->contains(address))
+    return MemoryHighlight::Modified;
+  return MemoryHighlight::None;
+}
 
 void SimulatorRawMemory::write(quint32 address, quint8 value) {
   auto span = _memory->span();

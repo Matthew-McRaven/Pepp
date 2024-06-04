@@ -1,5 +1,6 @@
 #include "sim/trace2/modified.hpp"
 #include <catch.hpp>
+#include "sim/trace2/buffers.hpp"
 
 using namespace sim::trace2;
 using I = Interval<uint16_t>;
@@ -174,5 +175,141 @@ TEST_CASE("IntervalSet", "[scope:sim][kind:unit][arch:*]") {
     auto i = *set.intervals().begin();
     CHECK(i.lower() == 0);
     CHECK(i.upper() == 0xffff);
+  }
+}
+
+TEST_CASE("ModifiedAddressSink", "[scope:sim][kind:unit][arch:*]") {
+  using namespace sim::api2::packet;
+  quint8 v1[] = {0};
+  quint8 v2[] = {0, 0};
+  SECTION("Append-only, no merge") {
+    InfiniteBuffer buf;
+    buf.trace(0, true);
+    ModifiedAddressSink<uint16_t> sink;
+    emitFrameStart(&buf);
+    emitWrite<quint16>(&buf, 0, 0u, v1, v1);
+    emitWrite<quint16>(&buf, 0, 2u, v1, v1);
+    emitWrite<quint16>(&buf, 0, 4u, v1, v1);
+    emitFrameStart(&buf);
+    auto frame = buf.cbegin();
+    for (auto pkt = frame.cbegin(); pkt != frame.cend(); ++pkt)
+      sink.analyze(pkt, sim::api2::trace::Direction::Forward);
+    CHECK(sink.intervals().size() == 3);
+    for (int it = 0; it <= 5; it++)
+      CHECK(sink.contains(it) == (it % 2 == 0));
+    sink.clear();
+    CHECK(sink.intervals().size() == 0);
+  }
+  SECTION("Append-only and merge") {
+    InfiniteBuffer buf;
+    buf.trace(0, true);
+    ModifiedAddressSink<uint16_t> sink;
+    emitFrameStart(&buf);
+    emitWrite<quint16>(&buf, 0, 0u, v2, v2);
+    emitWrite<quint16>(&buf, 0, 2u, v2, v2);
+    emitWrite<quint16>(&buf, 0, 4u, v2, v2);
+    emitFrameStart(&buf);
+    auto frame = buf.cbegin();
+    for (auto pkt = frame.cbegin(); pkt != frame.cend(); ++pkt)
+      sink.analyze(pkt, sim::api2::trace::Direction::Forward);
+    CHECK(sink.intervals().size() == 1);
+    for (int it = 0; it <= 5; it++)
+      CHECK(sink.contains(it));
+  }
+  SECTION("Prepend-only, no merge") {
+    InfiniteBuffer buf;
+    buf.trace(0, true);
+    ModifiedAddressSink<uint16_t> sink;
+    emitFrameStart(&buf);
+    emitWrite<quint16>(&buf, 0, 4u, v1, v1);
+    emitWrite<quint16>(&buf, 0, 2u, v1, v1);
+    emitWrite<quint16>(&buf, 0, 0, v1, v1);
+    emitFrameStart(&buf);
+    auto frame = buf.cbegin();
+    for (auto pkt = frame.cbegin(); pkt != frame.cend(); ++pkt)
+      sink.analyze(pkt, sim::api2::trace::Direction::Forward);
+    CHECK(sink.intervals().size() == 3);
+    for (int it = 0; it <= 5; it++)
+      CHECK(sink.contains(it) == (it % 2 == 0));
+  }
+  SECTION("Prepend-only and merge") {
+    InfiniteBuffer buf;
+    buf.trace(0, true);
+    ModifiedAddressSink<uint16_t> sink;
+    emitFrameStart(&buf);
+    emitWrite<quint16>(&buf, 0, 4, v2, v2);
+    emitWrite<quint16>(&buf, 0, 2, v2, v2);
+    emitWrite<quint16>(&buf, 0, 0, v2, v2);
+    emitFrameStart(&buf);
+    auto frame = buf.cbegin();
+    for (auto pkt = frame.cbegin(); pkt != frame.cend(); ++pkt)
+      sink.analyze(pkt, sim::api2::trace::Direction::Forward);
+    CHECK(sink.intervals().size() == 1);
+    for (int it = 0; it <= 5; it++)
+      CHECK(sink.contains(it));
+  }
+  SECTION("Merge previous and next intervals") {
+    InfiniteBuffer buf;
+    buf.trace(0, true);
+    ModifiedAddressSink<uint16_t> sink;
+    emitFrameStart(&buf);
+    emitWrite<quint16>(&buf, 0, 0, v2, v2);
+    emitWrite<quint16>(&buf, 0, 4, v2, v2);
+    emitWrite<quint16>(&buf, 0, 2, v2, v2);
+    emitFrameStart(&buf);
+    auto frame = buf.cbegin();
+    for (auto pkt = frame.cbegin(); pkt != frame.cend(); ++pkt)
+      sink.analyze(pkt, sim::api2::trace::Direction::Forward);
+    CHECK(sink.intervals().size() == 1);
+    for (int it = 0; it <= 5; it++)
+      CHECK(sink.contains(it));
+    IS set;
+  }
+  SECTION("Insert contained in existing interval") {
+    InfiniteBuffer buf;
+    buf.trace(0, true);
+    ModifiedAddressSink<uint16_t> sink;
+    emitFrameStart(&buf);
+    emitWrite<quint16>(&buf, 0, 0, v2, v2);
+    emitWrite<quint16>(&buf, 0, 0, v1, v1);
+    emitFrameStart(&buf);
+    auto frame = buf.cbegin();
+    for (auto pkt = frame.cbegin(); pkt != frame.cend(); ++pkt)
+      sink.analyze(pkt, sim::api2::trace::Direction::Forward);
+    CHECK(sink.intervals().size() == 1);
+    CHECK(sink.contains(0));
+    CHECK(sink.contains(1));
+  }
+  SECTION("Existing contained in inserted interval") {
+    InfiniteBuffer buf;
+    buf.trace(0, true);
+    ModifiedAddressSink<uint16_t> sink;
+    emitFrameStart(&buf);
+    emitWrite<quint16>(&buf, 0, 0, v1, v1);
+    emitWrite<quint16>(&buf, 0, 2, v1, v1);
+    emitWrite<quint16>(&buf, 0, 4, v1, v1);
+    emitWrite<quint16>(&buf, 0, 6, v1, v1);
+    emitFrameStart(&buf);
+    auto frame = buf.cbegin();
+    for (auto pkt = frame.cbegin(); pkt != frame.cend(); ++pkt)
+      sink.analyze(pkt, sim::api2::trace::Direction::Forward);
+    CHECK(sink.intervals().size() == 4);
+    for (int it = 0; it <= 7; it++)
+      CHECK(sink.contains(it) == (it % 2 == 0));
+    buf.clear();
+    quint8 v5[] = {1, 2, 3, 4, 5};
+    emitFrameStart(&buf);
+    emitWrite<quint16>(&buf, 0, 1, v5, v5);
+    emitFrameStart(&buf);
+    frame = buf.cbegin();
+    for (auto pkt = frame.cbegin(); pkt != frame.cend(); ++pkt)
+      sink.analyze(pkt, sim::api2::trace::Direction::Forward);
+    CHECK(sink.intervals().size() == 1);
+    for (int it = 0; it <= 6; it++)
+      CHECK(sink.contains(it));
+    CHECK_FALSE(sink.contains(7));
+  }
+  SECTION("Wrap-around") {
+    // TODO, write that wraps around from 0xFFFF to 0x0000
   }
 }

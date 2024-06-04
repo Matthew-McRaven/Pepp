@@ -134,7 +134,8 @@ Pep10_ISA::Pep10_ISA(QVariant delegate, QObject *parent)
     _elf->load(s);
   }
   _system = targets::pep10::isa::systemFromElf(*_elf, true);
-  _memory = new SimulatorRawMemory(_system->bus(), this);
+  _memory = new SimulatorRawMemory(_system->bus(), nullptr, this);
+  // TODO: connect simulation paused signal to lambda which updates _memory PC and SP.
 }
 
 project::Environment Pep10_ISA::env() const {
