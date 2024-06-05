@@ -310,6 +310,21 @@ TEST_CASE("ModifiedAddressSink", "[scope:sim][kind:unit][arch:*]") {
     CHECK_FALSE(sink.contains(7));
   }
   SECTION("Wrap-around") {
-    // TODO, write that wraps around from 0xFFFF to 0x0000
+    InfiniteBuffer buf;
+    buf.trace(0, true);
+    ModifiedAddressSink<uint16_t> sink;
+    emitFrameStart(&buf);
+    emitWrite<quint16>(&buf, 0, 0xFFFF, v2, v2);
+    emitFrameStart(&buf);
+    auto frame = buf.cbegin();
+    for (auto pkt = frame.cbegin(); pkt != frame.cend(); ++pkt)
+      sink.analyze(pkt, sim::api2::trace::Direction::Forward);
+    CHECK(sink.intervals().size() == 2);
+    CHECK_FALSE(sink.contains(0xFFFE));
+    CHECK(sink.contains(0xFFFF));
+    CHECK(sink.contains(0x0000));
+    CHECK_FALSE(sink.contains(0x0001));
+    // Check there's not some overflow to negative max.
+    CHECK_FALSE(sink.contains(0x8000));
   }
 }
