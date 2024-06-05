@@ -18,8 +18,7 @@
 #include <zpp_bits.h>
 #include "sim/api2.hpp"
 
-TEST_CASE("Variable-length spans"
-          "[scope:sim][kind:int][arch:*]") {
+TEST_CASE("Variable-length spans", "[scope:sim][kind:int][arch:*]") {
   using namespace sim::api2;
   auto [data, in, out] = zpp::bits::data_in_out();
 
