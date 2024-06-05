@@ -4,6 +4,7 @@
 #include <deque>
 #include <qabstractitemmodel.h>
 #include <targets/pep10/isa3/system.hpp>
+#include "bits/mask.hpp"
 #include "cpu/registermodel.hpp"
 #include "cpu/statusbitmodel.hpp"
 #include "memory/hexdump/rawmemory.hpp"
@@ -76,12 +77,9 @@ private:
   const project::Environment _env;
 };
 
-// TODO: move to bits
-uint64_t mask(uint8_t byteCount);
-
 struct HexFormatter : public RegisterFormatter {
   explicit HexFormatter(std::function<uint64_t()> fn, uint16_t byteCount = 2)
-      : _fn(fn), _bytes(byteCount), _mask(mask(byteCount)) {}
+      : _fn(fn), _bytes(byteCount), _mask(bits::mask(byteCount)) {}
   ~HexFormatter() override = default;
   QString format() const override { return u"0x%1"_qs.arg(_mask & _fn(), _bytes * 2, 16, QChar('0')); }
   bool readOnly() const override { return false; }
@@ -95,7 +93,7 @@ private:
 
 struct UnsignedDecFormatter : public RegisterFormatter {
   explicit UnsignedDecFormatter(std::function<std::uint64_t()> fn, uint16_t byteCount = 2)
-      : _fn(fn), _bytes(byteCount), _mask(mask(byteCount)) {
+      : _fn(fn), _bytes(byteCount), _mask(bits::mask(byteCount)) {
     auto maxNum = std::pow(2, 8 * byteCount);
     auto digits = std::ceil(std::log10(maxNum));
     _len = digits;
@@ -113,7 +111,7 @@ private:
 
 struct SignedDecFormatter : public RegisterFormatter {
   explicit SignedDecFormatter(std::function<int64_t()> fn, uint16_t byteCount = 2)
-      : _fn(fn), _bytes(byteCount), _mask(mask(byteCount)) {
+      : _fn(fn), _bytes(byteCount), _mask(bits::mask(byteCount)) {
     auto maxNum = std::pow(2, 8 * byteCount);
     auto digits = std::ceil(std::log10(maxNum));
     _len = digits + 1;
@@ -136,7 +134,7 @@ private:
 
 struct BinaryFormatter : public RegisterFormatter {
   explicit BinaryFormatter(std::function<uint64_t()> fn, uint16_t byteCount = 1)
-      : _fn(fn), _len(byteCount), _mask(mask(byteCount)) {}
+      : _fn(fn), _len(byteCount), _mask(bits::mask(byteCount)) {}
   ~BinaryFormatter() override = default;
   QString format() const override { return u"%1"_qs.arg(_mask & _fn(), length(), 2, QChar('0')); }
   bool readOnly() const override { return false; }

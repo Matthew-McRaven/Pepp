@@ -269,12 +269,6 @@ QHash<int, QByteArray> ProjectModel::roleNames() const {
   return ret;
 }
 
-uint64_t mask(uint8_t byteCount) {
-  if (byteCount >= 8)
-    return -1;
-  return (1ULL << (byteCount * 8ULL)) - 1ULL;
-}
-
 project::DebugEnableFlags::DebugEnableFlags(QObject *parent) : QObject(parent) {}
 
 project::StepEnableFlags::StepEnableFlags(QObject *parent) : QObject(parent) {}

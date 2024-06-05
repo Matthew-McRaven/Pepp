@@ -1,6 +1,7 @@
 #pragma once
 #include <ostream>
 #include <set>
+#include "bits/mask.hpp"
 #include "packet_utils.hpp"
 #include "sim/api2.hpp"
 
@@ -117,17 +118,11 @@ public:
     } else if (auto len = sim::trace2::packet_payloads_length(iter, false); len > 0) {
       addr_size_t start = startAddrBytes->to_address<addr_size_t>();
       // If the number of bytes to represent the address is large than our address type, or the address type
-      // will not fit int the u64, we probably
+      // will not fit int the u64, modular arithmetic will not work. Depend on typecast to truncate.
       uint64_t endAsU64 = ((static_cast<uint64_t>(start)) + static_cast<uint64_t>(len) - 1ull);
-      addr_size_t end; // start + len - 1;
-      // Force end to wrap around to start if it overflows its source length.
-      // Check to ensure addr_size_t is less than u64, otherwise modular arithemtic breaks.
-      if (startAddrBytes->len <= sizeof(addr_size_t) && sizeof(addr_size_t) < sizeof(uint64_t))
-        // Should not overflow on shift.
-        end = static_cast<addr_size_t>(endAsU64 % (1ull << (startAddrBytes->len * 8)));
-      else
-        end = static_cast<addr_size_t>(endAsU64);
-      // Memory-write abused wraparound in unsigned domain, split in to upper and lower intervals.
+      // Use bitmask to force wraparound when len < sizeof(addr_size_t).
+      addr_size_t end = endAsU64 & bits::mask(startAddrBytes->len);
+      // Split in to upper and lower intervals.
       if (end < start) {
         addr_size_t maxAddr = (1ull << (startAddrBytes->len * 8)) - 1;
         _iset.insert(start, maxAddr);
