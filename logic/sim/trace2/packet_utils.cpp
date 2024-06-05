@@ -6,6 +6,10 @@ std::size_t sim::trace2::payload_length(const sim::api2::packet::Payload &payloa
 std::size_t sim::trace2::packet_payloads_length(sim::api2::trace::PacketIterator iter, bool includeRead) {
   return std::visit(sim::trace2::detail::PacketPayloadsLength{iter, includeRead}, *iter);
 }
+std::optional<sim::api2::packet::VariableBytes<8>>
+sim::trace2::get_address_bytes(const sim::api2::packet::Header &header) {
+  return std::visit(detail::GetAddressBytes{}, header);
+}
 
 sim::trace2::detail::PacketPayloadsLength::PacketPayloadsLength(sim::api2::trace::PacketIterator iter, bool includeRead)
     : _iter(iter), _includeRead(includeRead) {}
