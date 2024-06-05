@@ -9,7 +9,7 @@ template <typename T> struct Interval {
   explicit Interval() : _lower(T()), _upper(T()) {}
   explicit Interval(T point) : _lower(point), _upper(point) {}
   // Enforce lower <= upper to make math easier.
-  Interval(T lower, T upper) : _lower(lower <= upper ? lower : upper), _upper(lower <= upper ? upper : lower) {}
+  Interval(T lower, T upper) : _lower(lower), _upper(upper) { Q_ASSERT(lower <= upper); }
   Interval(const Interval &) = default;
   Interval &operator=(const Interval &) = default;
   Interval(Interval &&) = default;
