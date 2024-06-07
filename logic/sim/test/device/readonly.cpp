@@ -55,6 +55,8 @@ TEST_CASE("Read-only storage in-bounds access", "[scope:sim][kind:int][arch:*][!
   sim::memory::Dense<quint8> dev_rw(desc_rw, span, 0xFE);
   sim::memory::ReadOnly<quint8> dev_ro(false);
   dev_ro.setTarget(&dev_rw, nullptr);
+  CHECK(dev_ro.deviceID() == desc_rw.id);
+  CHECK(dev_rw.deviceID() == desc_rw.id);
 
   // Create an 8-byte temporary buffer.
   quint8 length = 4;

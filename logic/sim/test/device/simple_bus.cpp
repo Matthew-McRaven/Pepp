@@ -36,6 +36,7 @@ auto make = []() {
   auto m2 = QSharedPointer<sim::memory::Dense<quint16>>::create(d2, Span{.minOffset = 0, .maxOffset = 0x1});
   auto m3 = QSharedPointer<sim::memory::Dense<quint16>>::create(d3, Span{.minOffset = 0, .maxOffset = 0x1});
   auto bus = QSharedPointer<sim::memory::SimpleBus<quint16>>::create(b1, Span{.minOffset = 0, .maxOffset = 5});
+  CHECK(bus->deviceID() == b1.id);
   bus->pushFrontTarget(Span{.minOffset = 0, .maxOffset = 1}, &*m1);
   bus->pushFrontTarget(Span{.minOffset = 2, .maxOffset = 3}, &*m2);
   bus->pushFrontTarget(Span{.minOffset = 4, .maxOffset = 5}, &*m3);

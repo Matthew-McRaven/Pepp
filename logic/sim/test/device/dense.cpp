@@ -48,6 +48,7 @@ TEST_CASE("Dense storage in-bounds access", "[scope:sim][kind:int][arch:*]") {
 
   // Initialize a memory block to a fixed value
   sim::memory::Dense<quint8> dev(desc, span, 0xFE);
+  CHECK(dev.deviceID() == desc.id);
 
   // Create an 8-byte temporary buffer.
   quint64 reg = 0;

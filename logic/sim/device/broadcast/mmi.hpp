@@ -36,6 +36,7 @@ public:
 
   // API v2
   // Target interface
+  sim::api2::device::ID deviceID() const override { return _device.id; }
   AddressSpan span() const override;
   api2::memory::Result read(Address address, bits::span<quint8> dest, api2::memory::Operation op) const override;
   api2::memory::Result write(Address address, bits::span<const quint8> src, api2::memory::Operation op) override;
@@ -66,8 +67,8 @@ private:
 
 template <typename Address>
 Input<Address>::Input(api2::device::Descriptor device, AddressSpan span, quint8 defaultValue)
-    : _fill(defaultValue), _span(span), _channel(QSharedPointer<detail::Channel<Address, quint8>>::create(_fill)),
-      _endpoint(_channel->new_endpoint()) {
+    : _fill(defaultValue), _span(span), _device(device),
+      _channel(QSharedPointer<detail::Channel<Address, quint8>>::create(_fill)), _endpoint(_channel->new_endpoint()) {
   if (_span.minOffset != _span.maxOffset)
     throw std::logic_error("MMI only handles bytes.");
 }

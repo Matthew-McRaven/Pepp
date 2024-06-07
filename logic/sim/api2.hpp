@@ -550,6 +550,9 @@ struct Operation {
 
 template <typename Address> struct Target {
   virtual ~Target() = default;
+  // Needed by Translators to perform standalone address translation.
+  virtual device::ID deviceID() const = 0;
+
   virtual AddressSpan<Address> span() const = 0;
   virtual Result read(Address address, bits::span<quint8> dest, Operation op) const = 0;
   virtual Result write(Address address, bits::span<const quint8> src, Operation op) = 0;
