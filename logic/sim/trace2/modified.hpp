@@ -52,16 +52,16 @@ template <typename T> std::ostream &operator<<(std::ostream &os, const Interval<
 // Class to store and merge intervals of numeric types.
 // Good words to google: interval tree, interval set.
 // BUG: boundary arithmetic can overflow, so require unsigned to avoid UB.
-template <std::unsigned_integral T> class IntervalSet {
+template <std::unsigned_integral T, bool right_inclusive> class IntervalSet {
   std::set<Interval<T>> _intervals;
 
 public:
   void insert(T lower, T upper) { insert(Interval<T>(lower, upper)); }
   void insert(T point) { insert(Interval<T>(point)); }
   void insert(Interval<T> interval) {
+    static constexpr T offset = right_inclusive ? T(1) : T(0);
     // The key assumption is that intervals are stored in sorted order, implying that a single insert
     // can only merge consectuive indices.
-
     // First element !< interval
     auto next = _intervals.lower_bound(interval);
     // Set up iterators for merging+erasing items > interval.
@@ -75,7 +75,8 @@ public:
       if (auto prev = std::prev(next); prev == _intervals.cend()) {
       } else if (contains(*prev, interval))
         return; // Optimization to avoid processing an insert / merge when containment is met.
-      else if (intersects(*prev, interval) || prev->upper() + T(1) == interval.lower()) {
+      else if (intersects(*prev, interval) || prev->upper() + offset == interval.lower()) {
+        bool _t = intersects(*prev, interval);
         interval = {prev->lower(), interval.upper()};
         // prev->upper <= interval.upper due to lower_bound.
         // Start the merge process from the previous interval, eliminating an extra erase call.
@@ -85,7 +86,7 @@ public:
 
     // Merge with following intervals.
     for (auto it = eraseStart;
-         it != _intervals.end() && (intersects(*it, interval) || it->lower() == interval.upper() + T(1));
+         it != _intervals.end() && (intersects(*it, interval) || it->lower() == interval.upper() + offset);
          // Set end pointer to the last element that will be erased to avoid it being cend().
          eraseEnd = it++) {
       // Must use max, since input interval may entirely contain it's interval.
@@ -102,7 +103,8 @@ public:
   void clear() { _intervals.clear(); }
 };
 
-template <typename T> std::ostream &operator<<(std::ostream &os, const IntervalSet<T> &set) {
+template <typename T, bool right_inclusive>
+std::ostream &operator<<(std::ostream &os, const IntervalSet<T, right_inclusive> &set) {
   for (const auto &i : set.intervals())
     os << i;
   return os;
@@ -154,6 +156,6 @@ public:
   void insert(addr_size_t lower, addr_size_t upper) { _iset.insert(lower, upper); }
 
 private:
-  IntervalSet<addr_size_t> _iset;
+  IntervalSet<addr_size_t, true> _iset;
 };
 } // namespace sim::trace2

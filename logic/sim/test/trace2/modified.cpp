@@ -94,8 +94,8 @@ TEST_CASE("Interval", "[scope:sim][kind:unit][arch:*]") {
     CHECK(i.upper() == 0xffff);
   }
 }
-using IS = IntervalSet<uint16_t>;
-TEST_CASE("IntervalSet", "[scope:sim][kind:unit][arch:*]") {
+using IS = IntervalSet<uint16_t, true>;
+TEST_CASE("Inclusive IntervalSet", "[scope:sim][kind:unit][arch:*]") {
   SECTION("Append-only, no merge") {
     IS set;
     set.insert({0, 0});
@@ -171,6 +171,92 @@ TEST_CASE("IntervalSet", "[scope:sim][kind:unit][arch:*]") {
     set.insert({0, 0xFFFD});
     CHECK(set.intervals().size() == 1);
     set.insert({0xFFFE, 0xFFFF});
+    CHECK(set.intervals().size() == 1);
+    auto i = *set.intervals().begin();
+    CHECK(i.lower() == 0);
+    CHECK(i.upper() == 0xffff);
+  }
+}
+
+using ISE = IntervalSet<uint16_t, false>;
+TEST_CASE("Exclusive IntervalSet", "[scope:sim][kind:unit][arch:*]") {
+  SECTION("Append-only, no merge") {
+    ISE set;
+    set.insert({0, 1});
+    CHECK(set.intervals().size() == 1);
+    set.insert({2, 3});
+    CHECK(set.intervals().size() == 2);
+    set.insert({4, 5});
+    CHECK(set.intervals().size() == 3);
+  }
+  SECTION("Clear") {
+    ISE set;
+    set.insert({0, 0});
+    set.insert({2, 2});
+    set.insert({4, 4});
+    REQUIRE(set.intervals().size() == 3);
+    set.clear();
+    CHECK(set.intervals().empty());
+  }
+  SECTION("Append-only and merge") {
+    ISE set;
+    set.insert({0, 1});
+    CHECK(set.intervals().size() == 1);
+    set.insert({1, 2});
+    CHECK(set.intervals().size() == 1);
+    set.insert({2, 3});
+    CHECK(set.intervals().size() == 1);
+  }
+  SECTION("Prepend-only, no merge") {
+    ISE set;
+    set.insert({4, 5});
+    CHECK(set.intervals().size() == 1);
+    set.insert({2, 3});
+    CHECK(set.intervals().size() == 2);
+    set.insert({0, 1});
+    CHECK(set.intervals().size() == 3);
+  }
+  SECTION("Prepend-only and merge") {
+    ISE set;
+    set.insert({3, 4});
+    CHECK(set.intervals().size() == 1);
+    set.insert({2, 3});
+    CHECK(set.intervals().size() == 1);
+    set.insert({0, 2});
+    CHECK(set.intervals().size() == 1);
+  }
+  SECTION("Merge next intervals") {
+    ISE set;
+    set.insert({0, 1});
+    set.insert({3, 4});
+    CHECK(set.intervals().size() == 2);
+    set.insert({2, 4});
+    CHECK(set.intervals().size() == 2);
+  }
+  SECTION("Insert contained in existing interval") {
+    ISE set;
+    set.insert({0, 1});
+    CHECK(set.intervals().size() == 1);
+    set.insert(1);
+    CHECK(set.intervals().size() == 1);
+  }
+  SECTION("Existing contained in inserted interval") {
+    ISE set;
+    set.insert({0, 0});
+
+    set.insert({2, 2});
+    set.insert({4, 4});
+
+    set.insert({6, 6});
+    CHECK(set.intervals().size() == 4);
+    set.insert({1, 5});
+    CHECK(set.intervals().size() == 3);
+  }
+  SECTION("Wrap-around") {
+    ISE set;
+    set.insert({0, 0xFFFD});
+    CHECK(set.intervals().size() == 1);
+    set.insert({0xFFFD, 0xFFFF});
     CHECK(set.intervals().size() == 1);
     auto i = *set.intervals().begin();
     CHECK(i.lower() == 0);
