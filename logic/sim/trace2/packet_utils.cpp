@@ -75,3 +75,7 @@ void sim::trace2::detail::emit_payloads(sim::api2::trace::Buffer *tb,
         it += payload_len;
     }
 }
+
+std::optional<sim::api2::packet::path_t> sim::trace2::get_path(const sim::api2::packet::Header &header) {
+  return std::visit(detail::GetHeaderPath{}, header);
+}

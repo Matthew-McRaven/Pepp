@@ -98,6 +98,7 @@ void sim::trace2::InfiniteBuffer::dropLast()
 }
 
 void sim::trace2::InfiniteBuffer::clear() {
+  sim::api2::trace::Buffer::clear();
   _out.reset();
   _in.reset();
   _lastFrameStart = 0;

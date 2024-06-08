@@ -47,6 +47,7 @@ struct SimpleBuffer : public sim::api2::trace::Buffer {
   bool updateFrameHeader() override { return true; }
   void dropLast() override { throw std::logic_error("Unimplemented"); }
   void clear() override {
+    sim::api2::trace::Buffer::clear();
     _data.clear();
     _in.reset();
     _out.reset();

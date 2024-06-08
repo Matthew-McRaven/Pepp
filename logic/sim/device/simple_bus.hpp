@@ -19,7 +19,10 @@
 #include "sim/trace2/modified.hpp"
 
 namespace sim::memory {
-template <typename Address> class SimpleBus : public api2::memory::Target<Address> {
+template <typename Address>
+class SimpleBus : public api2::memory::Target<Address>,
+                  public api2::memory::Translator<Address>,
+                  public sim::api2::trace::Source {
 public:
   using AddressSpan = typename api2::memory::AddressSpan<Address>;
   SimpleBus(api2::device::Descriptor device, AddressSpan span);
@@ -39,21 +42,21 @@ public:
   void clear(quint8 fill) override;
   void dump(bits::span<quint8> dest) const override;
 
+  // Translator interface
+  std::tuple<bool, sim::api2::device::ID, Address> forward(Address address) const override;
+  std::optional<Address> backward(sim::api2::device::ID child, Address address) const override;
+  void setPathManager(QSharedPointer<api2::Paths> paths) override { _paths = paths; };
+  QSharedPointer<const api2::Paths> pathManager() const override { return _paths; }
+
+  // Source interface
+  void setBuffer(api2::trace::Buffer *tb) override;
+  void trace(bool enabled) override;
+
   // Bus API
   void pushFrontTarget(AddressSpan at, api2::memory::Target<Address> *target);
   api2::memory::Target<Address> *deviceAt(Address address);
 
 private:
-  AddressSpan _span;
-  api2::device::Descriptor _device;
-
-  sim::trace2::AddressBiMap<Address, quint16> _addrs;
-  using TargetPair = std::pair<sim::api2::device::ID, api2::memory::Target<Address> *>;
-  QVector<TargetPair> _devices;
-
-  struct LBID {
-    inline bool operator()(const TargetPair &V, const quint16 find) const { return V.first < find; }
-  };
   const api2::memory::Target<Address> *device(sim::api2::device::ID id) const {
     auto it = std::lower_bound(_devices.cbegin(), _devices.cend(), id, LBID{});
     if (it == _devices.cend() || it->first != id)
@@ -65,6 +68,23 @@ private:
     if (it == _devices.end() || it->first != id)
       return nullptr;
     return it->second;
+  }
+  using TargetPair = std::pair<sim::api2::device::ID, api2::memory::Target<Address> *>;
+  struct LBID {
+    inline bool operator()(const TargetPair &V, const quint16 find) const { return V.first < find; }
+  };
+
+  AddressSpan _span;
+  api2::device::Descriptor _device;
+  sim::trace2::AddressBiMap<Address, quint16> _addrs;
+  QVector<TargetPair> _devices;
+  QSharedPointer<sim::api2::Paths> _paths = nullptr;
+  mutable api2::trace::Buffer *_tb = nullptr;
+  api2::trace::PathGuard makeGuard() const {
+    if (!_tb && !_paths)
+      return api2::trace::PathGuard(nullptr, -1);
+    auto currentPath = _tb->currentPath();
+    return api2::trace::PathGuard(_tb, _paths->find(currentPath, _device.id));
   }
 };
 
@@ -83,6 +103,9 @@ api2::memory::Result SimpleBus<Address>::read(Address address, bits::span<quint8
   if (auto maxDestAddr = (address + std::max<Address>(0, dest.size() - 1));
       address < _span.minOffset || maxDestAddr > _span.maxOffset)
     throw E(E::Type::OOBAccess, address);
+
+  auto guard = std::move(makeGuard());
+  // Construct a guard for the trace buffer.
   for (auto [offset, length] = T{0, dest.size()}; length > 0;) {
     auto region = _addrs.region_at(address + offset);
     if (!region)
@@ -112,6 +135,8 @@ api2::memory::Result SimpleBus<Address>::write(Address address, bits::span<const
   if (auto maxDestAddr = (address + std::max<Address>(0, src.size() - 1));
       address < _span.minOffset || maxDestAddr > _span.maxOffset)
     throw E(E::Type::OOBAccess, address);
+
+  auto guard = makeGuard();
   for (auto [offset, length] = T{0, src.size()}; length > 0;) {
     auto region = _addrs.region_at(address + offset);
     if (!region)
@@ -168,11 +193,29 @@ void SimpleBus<Address>::pushFrontTarget(AddressSpan at, api2::memory::Target<Ad
 }
 
 template <typename Address> sim::api2::memory::Target<Address> *SimpleBus<Address>::deviceAt(Address address) {
-
   auto region = _addrs.region_at(address);
   if (!region)
     return nullptr;
   return _devices[region.device];
+}
+
+template <typename Address>
+std::tuple<bool, api2::device::ID, Address> SimpleBus<Address>::forward(Address address) const {
+  return _addrs.value(address);
+}
+
+template <typename Address>
+std::optional<Address> SimpleBus<Address>::backward(api2::device::ID child, Address address) const {
+  if (auto r = _addrs.key(child, address); std::get<0>(r))
+    return std::get<1>(r);
+  return std::nullopt;
+}
+
+template <typename Address> inline void SimpleBus<Address>::setBuffer(api2::trace::Buffer *tb) { this->_tb = tb; }
+
+template <typename Address> inline void SimpleBus<Address>::trace(bool enabled) {
+  if (_tb)
+    _tb->trace(_device.id, enabled);
 }
 
 } // namespace sim::memory
