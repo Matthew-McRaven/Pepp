@@ -264,6 +264,91 @@ TEST_CASE("Exclusive IntervalSet", "[scope:sim][kind:unit][arch:*]") {
   }
 }
 
+TEST_CASE("AddressBiMap", "[scope:sim][kind:unit][arch:*]") {
+  using namespace sim::trace2;
+  using I = Interval<uint16_t>;
+  using Map = AddressBiMap<uint16_t, uint16_t>;
+
+  SECTION("Adjacent does not merge") {
+    Map m;
+    m.insert_or_overwrite(I{0, 9}, I{100, 109}, 0, 0);
+    m.insert_or_overwrite(I{10, 19}, I{100, 109}, 1, 0);
+    m.insert_or_overwrite(I{20, 29}, I{100, 109}, 2, 0);
+    CHECK(m.regions().size() == 3);
+    for (int it = 0; it < 30; it++) {
+      auto region = m.region_at(it);
+      CHECK(region.has_value());
+      CHECK(region->device == it / 10);
+    }
+  }
+
+  SECTION("Delete overlapped element") {
+    Map m;
+    m.insert_or_overwrite(I{0, 9}, I{100, 109}, 0, 0);
+    m.insert_or_overwrite(I{10, 19}, I{100, 109}, 1, 0);
+    m.insert_or_overwrite(I{20, 29}, I{100, 109}, 2, 0);
+    // Replace a region without affecting adjacent regions.
+    m.insert_or_overwrite(I{10, 19}, I{100, 109}, 3, 0);
+    CHECK(m.regions().size() == 3);
+    CHECK(m.region_at(9)->device == 0);
+    for (int it = 10; it < 19; it++) {
+      CHECK(m.region_at(it)->device == 3);
+    }
+    CHECK(m.region_at(20)->device == 2);
+  }
+
+  SECTION("Contract adjacent regions") {
+    Map m;
+    m.insert_or_overwrite(I{0, 9}, I{100, 109}, 0, 0);
+    m.insert_or_overwrite(I{10, 19}, I{100, 109}, 1, 0);
+    m.insert_or_overwrite(I{20, 29}, I{100, 109}, 2, 0);
+    // Contract adjacent regions
+    m.insert_or_overwrite(I{5, 15}, I{105, 115}, 3, 0);
+    CHECK(m.regions().size() == 4);
+    CHECK(m.region_at(4)->device == 0);
+    for (int it = 5; it < 15; it++) {
+      CHECK(m.region_at(it)->device == 3);
+    }
+    CHECK(m.region_at(16)->device == 1);
+    // Check that "to" address ranges get shrunk accordingly.
+    for (auto reg : m.regions())
+      CHECK(size(reg.from) == size(reg.to));
+  }
+
+  SECTION("Forward translation") {
+    Map m;
+    m.insert_or_overwrite(I{0, 2}, I{100, 102}, 0, 0);
+    m.insert_or_overwrite(I{3, 5}, I{100, 102}, 1, 0);
+    m.insert_or_overwrite(I{6, 8}, I{100, 102}, 2, 0);
+    for (int it = 0; it < 9; it++) {
+      auto [success, id, addr] = m.value(it);
+      REQUIRE(success);
+      CHECK(id == it / 3);
+      CHECK(addr == 100 + (it % 3));
+    }
+    auto [success, id, addr] = m.value(10);
+    CHECK_FALSE(success);
+  }
+
+  SECTION("Backward translation") {
+    Map m;
+    m.insert_or_overwrite(I{0, 2}, I{100, 102}, 0, 0);
+    m.insert_or_overwrite(I{3, 5}, I{100, 102}, 1, 0);
+    m.insert_or_overwrite(I{6, 8}, I{100, 102}, 2, 0);
+    for (int dev_id = 0; dev_id < 3; dev_id++) {
+      for (int dev_addr = 100; dev_addr < 103; dev_addr++) {
+        auto [success, addr] = m.key(dev_id, dev_addr);
+        REQUIRE(success);
+        CHECK(addr == (dev_addr - 100) + (dev_id * 3));
+      }
+    }
+    CHECK_FALSE(std::get<0>(m.key(2, 104)));
+    CHECK_FALSE(std::get<0>(m.key(2, 99)));
+    CHECK_FALSE(std::get<0>(m.key(3, 0)));
+    CHECK_FALSE(std::get<0>(m.key(3, 99)));
+  }
+}
+
 TEST_CASE("ModifiedAddressSink", "[scope:sim][kind:unit][arch:*]") {
   using namespace sim::api2::packet;
   quint8 v1[] = {0};

@@ -31,6 +31,10 @@ private:
   T _lower, _upper;
 };
 
+template <typename T, bool exclude_right = false> T size(const Interval<T> &interval) {
+  constexpr T offset = exclude_right ? T(0) : T(1);
+  return interval.upper() - interval.lower() + offset;
+}
 template <typename T> bool contains(const Interval<T> &outer, const T &inner) {
   return outer.lower() <= inner && inner <= outer.upper();
 }
@@ -47,6 +51,16 @@ template <typename T> Interval<T> intersection(const Interval<T> &lhs, const Int
 }
 template <typename T> std::ostream &operator<<(std::ostream &os, const Interval<T> &interval) {
   return os << "[" << interval.lower() << ", " << interval.upper() << "]";
+}
+
+// Helper to translate a value in a src interval into an offset, then translate that offset into a destintation
+// interval. It is essentially segmented address translation.
+template <typename T> inline T convert(T v, const Interval<T> &src, const Interval<T> &dst) {
+  Q_ASSERT(src.lower() <= v && v <= src.upper());
+  T key_src_offet = v - src.lower();
+  T ret = dst.lower() + key_src_offet;
+  Q_ASSERT(dst.lower() <= ret && ret <= dst.upper());
+  return ret;
 }
 
 // Class to store and merge intervals of numeric types.
@@ -109,6 +123,111 @@ std::ostream &operator<<(std::ostream &os, const IntervalSet<T, right_inclusive>
     os << i;
   return os;
 }
+
+// Each device must only appear in the map once. D type allows sticking custom data in a given node.
+// As a class invariant, we ensure that no Nodes exist with overlapping from intervals.
+template <std::unsigned_integral T, typename D = quint16> class AddressBiMap {
+public:
+  // A single address translation. device indicates the device which owns the "to" address range.
+  // Data is a custom tag to store additional information, like context IDs for address translation.
+  struct Node {
+    api2::device::ID device;
+    Interval<T> from, to;
+    D data;
+    // Ignore device, data since they are values, not keys.
+    auto operator<=>(const Node &other) const {
+      if (auto cmp_from = from <=> other.from; cmp_from != 0)
+        return cmp_from;
+      return to <=> other.to;
+    }
+  };
+  // Create a node with the given address translation parameters. If the from interval overlaps with any existing nodes,
+  // those nodes are shrunk to avoid overlap. If the from interval entirely contains any nodes, those nodes are removed.
+  // PRE: from and to must be of the same length.
+  // PRE: device must not already be in the map.
+  void insert_or_overwrite(Interval<T> from, Interval<T> to, sim::api2::device::ID device, D data) {
+    Q_ASSERT((size<T, true>(from) == size<T, true>(to)));
+    // Erase any nodes entirely contained within "from".
+    using trace2::contains;
+    if (auto remove =
+            std::remove_if(_elements.begin(), _elements.end(), [&from](auto &n) { return contains(from, n.from); });
+        remove != _elements.end())
+      _elements.erase(remove, _elements.end());
+
+    // Shrink any intervals that intersect from.
+    // We only need to adjust the immediately adjacent elements, since no elements overlap because of above erase.
+    // We find the lower_bound of from, which is the first element that is greater or equal to from.
+    // Any non-sentinel case implies that we need to evaluate the previous element for its upper bound
+    if (auto lb = std::lower_bound(_elements.begin(), _elements.end(), from, LBFrom{});
+        lb != _elements.end() && lb != _elements.begin()) {
+      auto prev = std::prev(lb);
+      if (prev != _elements.end() && intersects(from, prev->from)) {
+        prev->from = {prev->from.lower(), from.lower()};
+        prev->to = {prev->to.lower(), T(prev->to.lower() + size<T, true>(prev->from))};
+      }
+    }
+    // UB is first element such that from < other
+    if (auto ub = std::upper_bound(_elements.begin(), _elements.end(), from, AddressBiMap<T, D>::UBFrom{});
+        ub != _elements.end()) {
+      if (intersects(from, ub->from)) {
+        ub->from = {from.upper(), ub->from.upper()};
+        ub->to = {T(ub->to.upper() - size<T, true>(ub->from)), ub->to.upper()};
+      }
+    }
+    // Insert Node & resort elements;
+    _elements.push_back({device, from, to, data});
+    std::sort(_elements.begin(), _elements.end());
+  }
+
+  // Translate T in "from" space T in "to" space, also returning device.
+  // Return {false, 0, X} if no mapping is found.
+  std::tuple<bool, sim::api2::device::ID, T> value(T from_key) const {
+    auto region = region_at(from_key);
+    if (region)
+      return {true, region->device, convert(from_key, region->from, region->to)};
+    return {false, 0, 0};
+  }
+
+  // Translate from T in "to" space to T in "from" space. Use data tag to filter valid "to" intervals.
+  std::tuple<bool, T> key(sim::api2::device::ID device, T to_value) const {
+    // Elements are not sorted by "to" interval, so we must do a full linear search.
+    for (const auto &node : _elements)
+      if (node.device == device && contains(node.to, to_value))
+        return {true, convert(to_value, node.to, node.from)};
+    return {false, T()};
+  }
+
+  // Given an address in the "from" space, return the region it belongs to.
+  std::optional<Node> region_at(T from_key) const {
+    if (_elements.size() == 0)
+      return std::nullopt;
+    // Use O(lg n) search to find glb.
+    // If glb is at the start, this is the only interval which could contain addr.
+    else if (auto lb = std::lower_bound(_elements.cbegin(), _elements.cend(), from_key, LBFrom{});
+             // If at end, deref will cause OOB access.
+             lb != _elements.cend() &&
+             // If at begin, we can only check this element. lb may also return a lb whose lower == from_key
+             ((lb == _elements.cbegin() && contains(lb->from, from_key)) || lb->from.lower() <= from_key))
+      return *lb;
+    // Otherwise lb might point to an element > from_key; so go to previous.
+    else if (auto prev = std::prev(lb); prev != _elements.cend() && sim::trace2::contains(prev->from, from_key))
+      return *prev;
+    return std::nullopt;
+  }
+  const std::span<const Node> regions() const { return _elements; }
+  void clear() { _elements.clear(); }
+
+private:
+  struct LBFrom {
+    bool operator()(const Node &V, const Interval<T> &find) const { return V.from < find; }
+    bool operator()(const Node &V, const T &find) const { return V.from.lower() < find; }
+  };
+  struct UBFrom {
+    bool operator()(const Interval<T> &find, const Node &V) const { return find < V.from; }
+  };
+  // Must always be sorted to allow log(n) forward translations.
+  std::vector<Node> _elements;
+};
 
 template <typename addr_size_t> class ModifiedAddressSink : public ::sim::api2::trace::Sink {
 public:
