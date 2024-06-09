@@ -32,8 +32,7 @@ public:
   void appendFlag(QSharedPointer<Flag> flag);
 
 public slots:
-  void onBeginExternalReset();
-  void onEndExternalReset();
+  void onUpdateGUI();
 
 protected: //  Role Names must be under protected
   QHash<int, QByteArray> roleNames() const override;

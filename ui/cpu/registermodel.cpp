@@ -50,9 +50,10 @@ qsizetype RegisterModel::columnCharWidth(int column) const {
   return ret;
 }
 
-void RegisterModel::onBeginExternalReset() { beginResetModel(); }
-
-void RegisterModel::onEndExternalReset() { endResetModel(); }
+void RegisterModel::onUpdateGUI() {
+  beginResetModel();
+  endResetModel();
+}
 
 QHash<int, QByteArray> RegisterModel::roleNames() const {
   static const QHash<int, QByteArray> ret{{Qt::DisplayRole, "display"},

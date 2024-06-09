@@ -185,6 +185,10 @@ class Pep10_ISA final : public QObject {
   Q_PROPERTY(int allowedDebugging READ allowedDebugging NOTIFY allowedDebuggingChanged)
   Q_PROPERTY(int allowedSteps READ allowedSteps NOTIFY allowedStepsChanged)
 public:
+  enum class UpdateType {
+    Partial,
+    Full,
+  };
   explicit Pep10_ISA(QVariant delegate, QObject *parent = nullptr);
   project::Environment env() const;
   utils::Architecture architecture() const;
@@ -226,8 +230,7 @@ signals:
   void allowedDebuggingChanged();
   void allowedStepsChanged();
 
-  void beginResetModel();
-  void endResetModel();
+  void updateGUI(UpdateType type);
 
 private:
   QString _objectCodeText = {};

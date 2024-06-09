@@ -91,8 +91,7 @@ Pep10_ISA::Pep10_ISA(QVariant delegate, QObject *parent)
       {TF::create("Operand Specifier"), OF::create(HF::create(OS, 2), notU), OF::create(SF::create(OS, 2), notU)});
   _registers->appendFormatters(
       {TF::create("(Operand)"), OF::create(TF::create("??"), notU), OF::create(TF::create("??"), notU)});
-  connect(this, &Pep10_ISA::beginResetModel, _registers, &RegisterModel::onBeginExternalReset);
-  connect(this, &Pep10_ISA::endResetModel, _registers, &RegisterModel::onEndExternalReset);
+  connect(this, &Pep10_ISA::updateGUI, _registers, &RegisterModel::onUpdateGUI);
 
   using F = QSharedPointer<Flag>;
   auto _flag = [](isa::Pep10::CSR s, auto *system) {
@@ -112,8 +111,7 @@ Pep10_ISA::Pep10_ISA(QVariant delegate, QObject *parent)
   _flags->appendFlag({F::create("Z", Z)});
   _flags->appendFlag({F::create("V", V)});
   _flags->appendFlag({F::create("C", C)});
-  connect(this, &Pep10_ISA::beginResetModel, _flags, &FlagModel::onBeginExternalReset);
-  connect(this, &Pep10_ISA::endResetModel, _flags, &FlagModel::onEndExternalReset);
+  connect(this, &Pep10_ISA::updateGUI, _flags, &FlagModel::onUpdateGUI);
 
   auto book = helpers::book(6);
   auto os = book->findFigure("os", "pep10baremetal");
@@ -177,7 +175,6 @@ bool Pep10_ISA::onSaveCurrent() { return false; }
 
 bool Pep10_ISA::onLoadObject() {
   static ObjectUtilities utils;
-  emit beginResetModel();
   std::string objText = utils.format(objectCodeText(), false).toStdString();
   auto bytes = bits::asciiHexToByte({objText.data(), objText.size()});
   if (!bytes) {
@@ -194,7 +191,7 @@ bool Pep10_ISA::onLoadObject() {
   targets::pep10::isa::writeRegister(_system->cpu()->regs(), isa::Pep10::Register::X, 9, gs);
   targets::pep10::isa::writeRegister(_system->cpu()->regs(), isa::Pep10::Register::SP, 11, gs);
   targets::pep10::isa::writeRegister(_system->cpu()->regs(), isa::Pep10::Register::OS, 7, gs);
-  emit endResetModel();
+  emit updateGUI(UpdateType::Full);
   return true;
 }
 

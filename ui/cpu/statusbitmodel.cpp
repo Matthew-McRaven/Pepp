@@ -31,9 +31,10 @@ void FlagModel::appendFlag(QSharedPointer<Flag> flag) {
   endResetModel();
 }
 
-void FlagModel::onBeginExternalReset() { beginResetModel(); }
-
-void FlagModel::onEndExternalReset() { endResetModel(); }
+void FlagModel::onUpdateGUI() {
+  beginResetModel();
+  endResetModel();
+}
 
 QHash<int, QByteArray> FlagModel::roleNames() const {
   static QHash<int, QByteArray> ret{{Qt::DisplayRole, "display"}, {(int)Roles::Value, "value"}};
