@@ -3,6 +3,7 @@ import QtQuick.Controls
 import QtQuick.Layouts
 import "qrc:/ui/text/editor" as Text
 import "qrc:/ui/memory/hexdump" as Memory
+import "qrc:/ui/memory/io" as IO
 import "qrc:/ui/cpu" as Cpu
 import edu.pepp
 
@@ -14,7 +15,6 @@ Item {
         // Must connect and disconnect manually, otherwise project may be changed underneath us, and "save" targets wrong project.
         // Do not need to update on mode change, since mode change implies loss of focus of objEdit.
         objEdit.editingFinished.connect(save)
-        project.charOutChanged.connect(() => console.log(project.charOut))
     }
     // Will be called before project is changed on unload, so we can disconnect save-triggering signals.
     Component.onDestruction: {
@@ -60,8 +60,14 @@ Item {
                 registers: project.registers
                 flags: project.flags
             }
-            TextArea {
+            IO.Batch {
                 SplitView.fillHeight: true
+                width: parent.width
+                id: batchio
+                Component.onCompleted: {
+                    onInputChanged.connect(() => project.charIn = input)
+                }
+                output: project.charOut
             }
         }
         Loader {
