@@ -55,12 +55,13 @@ const auto gs = sim::api2::memory::Operation {
 };
 }
 
-targets::pep10::isa::System::System(QList<obj::MemoryRegion> regions,
-                                    QList<obj::AddressedIO> mmios)
+targets::pep10::isa::System::System(QList<obj::MemoryRegion> regions, QList<obj::AddressedIO> mmios)
     : _cpu(QSharedPointer<CPU>::create(desc_cpu(nextID()), _nextIDGenerator)),
-      _bus(QSharedPointer<sim::memory::SimpleBus<quint16>>::create(
-          desc_bus(nextID()),
-          AddressSpan{.minOffset = 0, .maxOffset = 0xFFFF})) {
+      _bus(QSharedPointer<sim::memory::SimpleBus<quint16>>::create(desc_bus(nextID()),
+                                                                   AddressSpan{.minOffset = 0, .maxOffset = 0xFFFF})),
+      _paths(QSharedPointer<sim::api2::Paths>::create()) {
+  _bus->setPathManager(_paths);
+  _paths->add(0, _bus->deviceID());
   // Construct Dense memory and ignore W bit, since we have no mechanism for it.
   for (const auto &reg : regions) {
     auto span = AddressSpan{
@@ -135,6 +136,8 @@ void targets::pep10::isa::System::setBuffer(
     sim::api2::trace::Buffer *buffer) {
   throw std::logic_error("Unimplemented");
 }
+
+QSharedPointer<const sim::api2::Paths> targets::pep10::isa::System::pathManager() const { return _paths; }
 
 void targets::pep10::isa::System::setBootFlagAddress(quint16 addr) {
   _bootFlg = addr;

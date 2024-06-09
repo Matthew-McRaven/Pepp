@@ -45,6 +45,7 @@ public:
   sim::api2::device::ID nextID() override;
   sim::api2::device::IDGenerator nextIDGenerator() override;
   void setBuffer(sim::api2::trace::Buffer *buffer) override;
+  QSharedPointer<const sim::api2::Paths> pathManager() const override;
 
   // Set default register values, modify dispatcher / loader behavior.
   void setBootFlagAddress(quint16 addr);
@@ -69,6 +70,7 @@ private:
 
   QSharedPointer<CPU> _cpu = nullptr;
   QSharedPointer<sim::memory::SimpleBus<quint16>> _bus = nullptr;
+  QSharedPointer<sim::api2::Paths> _paths = nullptr;
   QVector<QSharedPointer<sim::memory::Dense<quint16>>> _rawMemory = {};
   QVector<QSharedPointer<sim::memory::ReadOnly<quint16>>> _readonly = {};
 

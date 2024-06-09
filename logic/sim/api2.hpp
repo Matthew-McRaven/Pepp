@@ -661,6 +661,7 @@ template <typename Address> struct System {
   virtual device::IDGenerator nextIDGenerator() = 0;
 
   virtual void setBuffer(trace::Buffer *buffer) = 0;
+  virtual QSharedPointer<const api2::Paths> pathManager() const = 0;
 };
 
 } // namespace sim::api2
