@@ -144,6 +144,7 @@ ApplicationWindow {
         // Allow welcome mode to create a new project, and switch to it on creation.
         welcome.addProject.connect(pm.onAddProject)
         welcome.addProject.connect(() => switchToProject(pm.count - 1))
+        welcome.addProject.connect(() => sidebar.switchToMode("edit"))
         help.addProject.connect(pm.onAddProject)
         help.addProject.connect(() => switchToProject(pm.count - 1))
         help.switchToMode.connect(sidebar.switchToMode)
