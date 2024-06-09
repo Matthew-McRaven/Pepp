@@ -281,7 +281,7 @@ Channel<offset_t, val_size_t>::clear(val_size_t default_value) {
   // Depend on the fact that revert event will default to head when given an OOB
   // time/publisher combo.
   this->revert_event(0, 0);
-  auto temp = std::make_shared<Event>(default_value, 0, false, nullptr, 0);
+  auto temp = QSharedPointer<Event>::create(default_value, 0, false, nullptr, 0);
   // Both head and tail will point to the same object, so we only need to update
   // one.
   head->next_node = head->prev_node = temp;
