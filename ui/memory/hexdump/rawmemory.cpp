@@ -112,3 +112,30 @@ void SimulatorRawMemory::write(quint32 address, quint8 value) {
 }
 
 void SimulatorRawMemory::clear() { _memory->clear(0); }
+
+void SimulatorRawMemory::onUpdateGUI() {
+  // If there is no TB, then there is no data to analyze.
+  // Conservatively, we assume that all data is modified.
+  auto tb = _memory->buffer();
+  if (tb == nullptr)
+    emit dataChanged(0, 0xffff);
+
+  // Purge data from previous updates
+  _sink->clear();
+  for (auto frame = tb->cbegin(); frame != tb->cend(); ++frame)
+    for (auto packet = frame.cbegin(); packet != frame.cend(); ++packet)
+      _sink->analyze(packet, sim::api2::trace::Direction::Forward);
+
+  // If no memory addresses changed, conservatively assume that the trace buffer was disabled and therefore any address
+  // may have changed
+  if (auto intervals = _sink->intervals(); intervals.size() == 0) {
+    return emit dataChanged(0, 0xffff);
+  } else {
+    // Otherwise, emit the intervals that were modified.
+    for (const auto &interval : intervals)
+      emit dataChanged(interval.lower(), interval.upper());
+    // And update intervals containing PC, SP to fix the higlighting.
+    emit dataChanged(this->_sp.lower(), this->_sp.upper());
+    emit dataChanged(this->_pc.lower(), this->_pc.upper());
+  }
+}

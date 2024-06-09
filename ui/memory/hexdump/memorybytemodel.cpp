@@ -46,11 +46,15 @@ void MemoryByteModel::setMemory(ARawMemory *memory) {
   beginResetModel();
   if (reclaimMemory_)
     delete memory_;
+  else
+    // Delete would disconnect. If the memory remains, we must not respond to its signals.
+    disconnect(memory_, &ARawMemory::dataChanged, this, &MemoryByteModel::onDataChanged);
 
   if (memory == nullptr)
     memory_ = empty_;
   else
     memory_ = memory;
+  connect(memory_, &ARawMemory::dataChanged, this, &MemoryByteModel::onDataChanged);
   // We only need to reclaim the "memory" pointer if it is currently owned by JS.
   // If it is alreay owned by CPP, then it is either empty_ or came from an project.
   // In either case, we should not delete it.
@@ -132,7 +136,6 @@ QVariant MemoryByteModel::data(const QModelIndex &index, int role) const {
 
   using M = MemoryRoles::Roles;
   switch (role) {
-
   //  Determines which delegate to assign in grid
   case M::Type:
     //  First column is formatted row number
@@ -429,3 +432,18 @@ QModelIndex MemoryByteModel::currentCell() {
 }
 
 QModelIndex MemoryByteModel::lastCell() { return memoryIndex(lastEdit_); }
+
+void MemoryByteModel::onDataChanged(quint32 start, quint32 end) {
+  auto startIndex = memoryIndex(start);
+  auto endIndex = memoryIndex(end);
+  static const auto roles = QList<int>{Qt::DisplayRole, (int)MemoryRoles::Highlight};
+  if (!(startIndex.isValid() && endIndex.isValid()))
+    return;
+  // Update the entire block of rows rather than a subset of cells.
+  // We know the ascii changes, and I want to avoid 2x the number of events.
+  startIndex = index(startIndex.row(), 1); // skip row number column
+  endIndex = index(endIndex.row(), columnCount() - 1);
+  if (!(startIndex.isValid() && endIndex.isValid()))
+    throw std::logic_error("Bad column access");
+  emit dataChanged(startIndex, endIndex, roles);
+}
