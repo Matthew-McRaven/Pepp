@@ -211,7 +211,12 @@ std::optional<Address> SimpleBus<Address>::backward(api2::device::ID child, Addr
   return std::nullopt;
 }
 
-template <typename Address> inline void SimpleBus<Address>::setBuffer(api2::trace::Buffer *tb) { this->_tb = tb; }
+template <typename Address> inline void SimpleBus<Address>::setBuffer(api2::trace::Buffer *tb) {
+  this->_tb = tb;
+  for (auto dev : _devices)
+    if (auto as_source = dynamic_cast<api2::trace::Source *>(dev.second); as_source != nullptr)
+      as_source->setBuffer(tb);
+}
 
 template <typename Address> inline void SimpleBus<Address>::trace(bool enabled) {
   if (_tb)
