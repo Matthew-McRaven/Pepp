@@ -11,6 +11,11 @@
 #include "utils/constants.hpp"
 #include "utils/opcodemodel.hpp"
 
+namespace sim {
+namespace trace2 {
+class InfiniteBuffer;
+}
+} // namespace sim
 namespace project {
 // Additional options requested for a project.
 // A particular (arch, level) tuple may only support a subset of features.
@@ -235,6 +240,7 @@ signals:
 private:
   QString _objectCodeText = {};
   QVariant _delegate = {};
+  QSharedPointer<sim::trace2::InfiniteBuffer> _tb = {};
   QSharedPointer<targets::pep10::isa::System> _system = {};
   QSharedPointer<ELFIO::elfio> _elf = {};
   // Use raw pointer to avoid double-free with parent'ed QObjects.

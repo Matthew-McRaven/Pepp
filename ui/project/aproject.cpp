@@ -5,7 +5,10 @@
 #include "help/builtins/figure.hpp"
 #include "helpers/asmb.hpp"
 #include "isa/pep10.hpp"
+#include "sim/device/broadcast/mmo.hpp"
+#include "sim/device/broadcast/pubsub.hpp"
 #include "sim/device/simple_bus.hpp"
+#include "sim/trace2/buffers.hpp"
 #include "targets/pep10/isa3/cpu.hpp"
 #include "targets/pep10/isa3/helpers.hpp"
 #include "targets/pep10/isa3/system.hpp"
@@ -42,9 +45,8 @@ auto gs = sim::api2::memory::Operation{
 }
 
 Pep10_ISA::Pep10_ISA(QVariant delegate, QObject *parent)
-    : QObject(parent), _delegate(delegate), _memory(nullptr), _registers(new RegisterModel(this)),
-      _flags(new FlagModel(this)) {
-  QQmlEngine::setObjectOwnership(_memory, QQmlEngine::CppOwnership);
+    : QObject(parent), _delegate(delegate), _tb(QSharedPointer<sim::trace2::InfiniteBuffer>::create()),
+      _memory(nullptr), _registers(new RegisterModel(this)), _flags(new FlagModel(this)) {
   QQmlEngine::setObjectOwnership(_registers, QQmlEngine::CppOwnership);
   _system.clear();
   assert(_system.isNull());
@@ -132,8 +134,14 @@ Pep10_ISA::Pep10_ISA(QVariant delegate, QObject *parent)
     _elf->load(s);
   }
   _system = targets::pep10::isa::systemFromElf(*_elf, true);
-  _memory = new SimulatorRawMemory(_system->bus(), nullptr, this);
-  // TODO: connect simulation paused signal to lambda which updates _memory PC and SP.
+  auto sink = QSharedPointer<sim::trace2::TranslatingModifiedAddressSink<quint16>>::create(_system->pathManager(),
+                                                                                           _system->bus());
+  _system->bus()->setBuffer(&*_tb);
+  //_system->cpu()->setBuffer(&*_tb);
+  //_system->cpu()->trace(true);
+  _memory = new SimulatorRawMemory(_system->bus(), sink, this);
+  connect(this, &Pep10_ISA::updateGUI, _memory, &SimulatorRawMemory::onUpdateGUI);
+  QQmlEngine::setObjectOwnership(_memory, QQmlEngine::CppOwnership);
 }
 
 project::Environment Pep10_ISA::env() const {
@@ -175,6 +183,9 @@ bool Pep10_ISA::onSaveCurrent() { return false; }
 
 bool Pep10_ISA::onLoadObject() {
   static ObjectUtilities utils;
+  _tb->clear();
+  // Only enable trace while running the program to prevent spurious changed highlights.
+  _system->bus()->trace(false);
   std::string objText = utils.format(objectCodeText(), false).toStdString();
   auto bytes = bits::asciiHexToByte({objText.data(), objText.size()});
   if (!bytes) {
@@ -190,12 +201,62 @@ bool Pep10_ISA::onLoadObject() {
   targets::pep10::isa::writeRegister(_system->cpu()->regs(), isa::Pep10::Register::A, 0x11, gs);
   targets::pep10::isa::writeRegister(_system->cpu()->regs(), isa::Pep10::Register::X, 9, gs);
   targets::pep10::isa::writeRegister(_system->cpu()->regs(), isa::Pep10::Register::SP, 11, gs);
+  _memory->setSP(-1);
+  _memory->setPC(-1, -1);
   targets::pep10::isa::writeRegister(_system->cpu()->regs(), isa::Pep10::Register::OS, 7, gs);
   emit updateGUI(UpdateType::Full);
   return true;
 }
 
-bool Pep10_ISA::onExecute() { return false; }
+bool Pep10_ISA::onExecute() {
+  _tb->clear();
+  _system->init();
+  auto pwrOff = _system->output("pwrOff");
+  auto charOut = _system->output("pwrOff");
+  auto endpoint = pwrOff->endpoint();
+  bool noMMI = false;
+  // Only enable trace while running the program to prevent spurious changed highlights.
+  _system->bus()->trace(true);
+  // Step for a small number of instructions or until we write to pwrOff.
+  try {
+    while (_system->currentTick() < 800 && !endpoint->next_value().has_value())
+      _system->tick(sim::api2::Scheduler::Mode::Jump);
+  } catch (const sim::api2::memory::Error &e) {
+    if (e.type() == sim::api2::memory::Error::Type::NeedsMMI) {
+      noMMI = true;
+    } else
+      std::cerr << "Memory error: " << e.what() << std::endl;
+    // Handle illegal opcodes or program crashes.
+  } catch (const std::logic_error &e) {
+    std::cerr << e.what() << std::endl;
+  }
+  _system->bus()->trace(false);
+
+  // TODO: direct output to GUI, not CERR.
+  if (auto charOut = _system->output("charOut"); charOut) {
+    auto charOutEndpoint = charOut->endpoint();
+    charOutEndpoint->set_to_head();
+    auto writeOut = [&](QTextStream &outF) {
+      for (auto next = charOutEndpoint->next_value(); next.has_value(); next = charOutEndpoint->next_value()) {
+        outF << char(*next);
+      }
+    };
+    QTextStream out(stderr, QIODevice::WriteOnly | QIODevice::Truncate | QIODevice::Text);
+    writeOut(out);
+    charOut->clear(0);
+  }
+
+  // Update cpu-dependent fields in memory before triggering a GUI update.
+  quint8 is;
+  quint16 sp, pc;
+  targets::pep10::isa::readRegister(_system->cpu()->regs(), isa::Pep10::Register::SP, sp, gs);
+  targets::pep10::isa::readRegister(_system->cpu()->regs(), isa::Pep10::Register::PC, pc, gs);
+  _system->bus()->read(pc, {&is, 1}, gs);
+  _memory->setSP(sp);
+  _memory->setPC(pc, pc + (isa::Pep10::opcodeLUT[is].instr.unary ? 0 : 2));
+  emit updateGUI(UpdateType::Partial);
+  return true;
+}
 
 bool Pep10_ISA::onDebuggingStart() { return false; }
 
