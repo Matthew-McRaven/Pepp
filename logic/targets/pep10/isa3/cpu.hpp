@@ -41,8 +41,11 @@ public:
   };
 
   Status status() const;
+  // Helper to convert OS to an operand value.
+  // It will use Application access, and will not trigger MMIO.
+  std::optional<quint16> currentOperand();
 
-  // Recipient interface
+  // Target interface
   const sim::api2::tick::Source *getSource() override;
   void setSource(sim::api2::tick::Source *) override;
   sim::api2::tick::Result clock(sim::api2::tick::Type currentTick) override;
@@ -57,7 +60,6 @@ public:
 
   // Initiator interface
   void setTarget(sim::api2::memory::Target<quint16> *target, void* port) override;
-
 private:
   Status _status = Status::Ok;
   sim::api2::device::Descriptor _device;
@@ -76,9 +78,7 @@ private:
 
   sim::api2::tick::Result unaryDispatch(quint8 is);
   sim::api2::tick::Result nonunaryDispatch(quint8 is, quint16 os, quint16 pc);
-  void decodeStoreOperand(quint8 is, quint16 os,
-                                              quint16 &decoded);
-  void decodeLoadOperand(quint8 is, quint16 os,
-                                             quint16 &decoded);
+  void decodeStoreOperand(quint8 is, quint16 os, quint16 &decoded, bool traced = true);
+  void decodeLoadOperand(quint8 is, quint16 os, quint16 &decoded, bool traced = true);
 };
 } // namespace targets::pep10::isa
