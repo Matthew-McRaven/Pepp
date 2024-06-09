@@ -74,7 +74,10 @@ Output<Address>::Output(api2::device::Descriptor device, AddressSpan span, quint
 
 template <typename Address> typename Output<Address>::AddressSpan Output<Address>::span() const { return _span; }
 
-template <typename Address> void Output<Address>::clear(quint8 fill) { _endpoint->set_to_head(); }
+template <typename Address> void Output<Address>::clear(quint8 fill) {
+  _channel->clear(fill);
+  _endpoint->set_to_head();
+}
 
 template <typename Address> void Output<Address>::dump(bits::span<quint8> dest) const {
   if (dest.size() <= 0)

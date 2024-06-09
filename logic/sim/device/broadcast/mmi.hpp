@@ -78,6 +78,7 @@ template <typename Address> typename Input<Address>::AddressSpan Input<Address>:
 
 template <typename Address> void Input<Address>::clear(quint8 fill) {
   _fill = fill;
+  _channel->clear(fill);
   _endpoint->set_to_head();
 }
 
