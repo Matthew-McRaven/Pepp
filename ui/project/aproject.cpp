@@ -242,6 +242,8 @@ bool Pep10_ISA::onLoadObject() {
 }
 
 bool Pep10_ISA::onExecute() {
+  // Ensure latests changes to object code pane are reflected in simulator.
+  onLoadObject();
   _tb->clear();
   _system->init();
   auto pwrOff = _system->output("pwrOff");
