@@ -38,16 +38,14 @@ Rectangle {
     RowLayout {
         id: flagsContainer
         anchors.top: parent.top
-        anchors.left: parent.left
-        anchors.right: parent.right
+        anchors.horizontalCenter: parent.horizontalCenter
         Repeater {
             id: flags
             delegate: Row {
                 required property string display
                 required property bool value
-                Layout.fillWidth: true
-                Layout.fillHeight: true
                 spacing: -5
+                Layout.fillWidth: false
                 Text {
                     anchors.verticalCenter: parent.verticalCenter
                     text: display
@@ -65,15 +63,15 @@ Rectangle {
         id: registers
         anchors.top: flagsContainer.bottom
         anchors.bottom: parent.bottom
-        anchors.left: parent.left
-        anchors.right: parent.right
+        anchors.horizontalCenter: parent.horizontalCenter
         clip: true
         spacing: 1
         contentWidth: parent.width
+        width: parent.width
         delegate: RowLayout {
             id: rowDelegate
             required property int index
-            width: registers.width
+            anchors.horizontalCenter: parent.horizontalCenter
             Repeater {
                 model: registers.model.columnCount()
                 delegate: Rectangle {
@@ -91,7 +89,7 @@ Rectangle {
                                                 ?? false
                     Layout.minimumWidth: Math.max(35, textField.width)
                     Layout.minimumHeight: textField.height
-                    Layout.fillWidth: true
+                    Layout.preferredWidth: childrenRect.width
                     color: "transparent"
                     TextField {
                         id: textField
