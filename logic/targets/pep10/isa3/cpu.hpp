@@ -53,6 +53,7 @@ public:
   // Source interface
   void trace(bool enabled) override;
   void setBuffer(sim::api2::trace::Buffer *tb) override;
+  const sim::api2::trace::Buffer *buffer() const override { return _tb; }
 
   // Initiator interface
   void setTarget(sim::api2::memory::Target<quint16> *target, void* port) override;

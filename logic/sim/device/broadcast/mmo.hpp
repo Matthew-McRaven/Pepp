@@ -49,6 +49,7 @@ public:
   // Source interface
   void trace(bool enabled) override;
   void setBuffer(api2::trace::Buffer *tb) override;
+  const api2::trace::Buffer *buffer() const override { return _tb; }
 
   // Helpers
   QSharedPointer<typename detail::Channel<Address, quint8>::Endpoint> endpoint();

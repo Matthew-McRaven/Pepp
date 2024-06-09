@@ -47,6 +47,7 @@ public:
 
   // Source interface
   void setBuffer(api2::trace::Buffer *tb) override;
+  const api2::trace::Buffer *buffer() const override { return _tb; }
   void trace(bool enabled) override;
 
   // Helpers

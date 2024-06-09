@@ -484,6 +484,7 @@ class Source {
 public:
   virtual ~Source() = default;
   virtual void setBuffer(Buffer *tb) = 0;
+  virtual const Buffer *buffer() const = 0;
   virtual void trace(bool enabled) = 0;
 };
 
