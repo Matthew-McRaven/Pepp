@@ -58,6 +58,7 @@ Pep10_ISA::Pep10_ISA(QVariant delegate, QObject *parent)
   using UF = QSharedPointer<UnsignedDecFormatter>;
   using BF = QSharedPointer<BinaryFormatter>;
   using OF = QSharedPointer<OptionalFormatter>;
+  using VF = QSharedPointer<VariableByteLengthFormatter>;
   auto _register = [](isa::Pep10::Register r, auto *system) {
     if (system == nullptr)
       return quint16{0};
@@ -84,6 +85,10 @@ Pep10_ISA::Pep10_ISA(QVariant delegate, QObject *parent)
     auto op = isa::Pep10::opcodeLUT[is];
     return !op.instr.unary;
   };
+  auto operand = [&_register, this]() {
+    auto system = &*this->_system;
+    return system->cpu()->currentOperand().value_or(0);
+  };
   _registers->appendFormatters({TF::create("Accumulator"), HF::create(A, 2), SF::create(A, 2)});
   _registers->appendFormatters({TF::create("Index Register"), HF::create(X, 2), SF::create(X, 2)});
   _registers->appendFormatters({TF::create("Stack Pointer"), HF::create(SP, 2), UF::create(SP, 2)});
@@ -91,8 +96,15 @@ Pep10_ISA::Pep10_ISA(QVariant delegate, QObject *parent)
   _registers->appendFormatters({TF::create("Instruction Specifier"), BF::create(IS, 1), MF::create(IS_TEXT)});
   _registers->appendFormatters(
       {TF::create("Operand Specifier"), OF::create(HF::create(OS, 2), notU), OF::create(SF::create(OS, 2), notU)});
-  _registers->appendFormatters(
-      {TF::create("(Operand)"), OF::create(TF::create("??"), notU), OF::create(TF::create("??"), notU)});
+  auto length = [&_register, this]() {
+    auto is = _register(isa::Pep10::Register::IS, &*this->_system);
+    return isa::Pep10::operandBytes(is);
+  };
+  auto opr_hex = HF::create(operand, 2);
+  auto opr_dec = SF::create(operand, 2);
+  auto opr_hex_wrapped = VF::create(OF::create(opr_hex, notU), length, 2);
+  auto opr_dec_wrapped = VF::create(OF::create(opr_dec, notU), length, 2);
+  _registers->appendFormatters({TF::create("(Operand)"), opr_hex_wrapped, opr_dec_wrapped});
   connect(this, &Pep10_ISA::updateGUI, _registers, &RegisterModel::onUpdateGUI);
 
   using F = QSharedPointer<Flag>;
