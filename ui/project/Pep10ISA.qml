@@ -14,6 +14,7 @@ Item {
         // Must connect and disconnect manually, otherwise project may be changed underneath us, and "save" targets wrong project.
         // Do not need to update on mode change, since mode change implies loss of focus of objEdit.
         objEdit.editingFinished.connect(save)
+        project.charOutChanged.connect(() => console.log(project.charOut))
     }
     // Will be called before project is changed on unload, so we can disconnect save-triggering signals.
     Component.onDestruction: {

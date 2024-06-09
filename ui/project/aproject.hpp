@@ -223,6 +223,10 @@ class Pep10_ISA final : public QObject {
   Q_PROPERTY(FlagModel *flags MEMBER _flags CONSTANT)
   Q_PROPERTY(int allowedDebugging READ allowedDebugging NOTIFY allowedDebuggingChanged)
   Q_PROPERTY(int allowedSteps READ allowedSteps NOTIFY allowedStepsChanged)
+  // Only changed externally
+  Q_PROPERTY(QString charIn READ charIn WRITE setCharIn)
+  // Only changed internally.
+  Q_PROPERTY(QString charOut READ charOut NOTIFY charOutChanged)
 public:
   enum class UpdateType {
     Partial,
@@ -245,6 +249,9 @@ public:
   Q_INVOKABLE void set(int abstraction, QString value);
   Q_INVOKABLE int allowedDebugging() const;
   Q_INVOKABLE int allowedSteps() const;
+  Q_INVOKABLE QString charIn() const;
+  Q_INVOKABLE void setCharIn(QString value);
+  Q_INVOKABLE QString charOut() const;
 public slots:
   bool onSaveCurrent();
   bool onLoadObject();
@@ -268,10 +275,13 @@ signals:
   void currentAddressChanged();
   void allowedDebuggingChanged();
   void allowedStepsChanged();
+  void charInChanged();
+  void charOutChanged();
 
   void updateGUI(UpdateType type);
 
 private:
+  QString _charIn = {};
   QString _objectCodeText = {};
   QVariant _delegate = {};
   QSharedPointer<sim::trace2::InfiniteBuffer> _tb = {};
