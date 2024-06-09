@@ -36,6 +36,7 @@ public:
 
   // API v2
   // Target interface
+  sim::api2::device::ID deviceID() const override { return _device.id; }
   AddressSpan span() const override;
   api2::memory::Result read(Address address, bits::span<quint8> dest, api2::memory::Operation op) const override;
   api2::memory::Result write(Address address, bits::span<const quint8> src, api2::memory::Operation op) override;
@@ -44,10 +45,11 @@ public:
 
   // Source interface
   void setBuffer(api2::trace::Buffer *tb) override;
+  const api2::trace::Buffer *buffer() const override { return _tb; }
   void trace(bool enabled) override;
 
   // Sink interface
-  bool analyze(api2::trace::PacketIterator iter, Direction) override;
+  bool analyze(api2::trace::PacketIterator iter, sim::api2::trace::Direction) override;
 
   // Helpers
   QSharedPointer<typename detail::Channel<Address, quint8>::Endpoint> endpoint();
@@ -66,8 +68,8 @@ private:
 
 template <typename Address>
 Input<Address>::Input(api2::device::Descriptor device, AddressSpan span, quint8 defaultValue)
-    : _fill(defaultValue), _span(span), _channel(QSharedPointer<detail::Channel<Address, quint8>>::create(_fill)),
-      _endpoint(_channel->new_endpoint()) {
+    : _fill(defaultValue), _span(span), _device(device),
+      _channel(QSharedPointer<detail::Channel<Address, quint8>>::create(_fill)), _endpoint(_channel->new_endpoint()) {
   if (_span.minOffset != _span.maxOffset)
     throw std::logic_error("MMI only handles bytes.");
 }
@@ -98,7 +100,8 @@ QSharedPointer<typename detail::Channel<Address, quint8>::Endpoint> Input<Addres
 
 template <typename Address> void Input<Address>::setFailPolicy(api2::memory::FailPolicy policy) { _policy = policy; }
 
-template <typename Address> bool Input<Address>::analyze(api2::trace::PacketIterator iter, Direction direction) {
+template <typename Address>
+bool Input<Address>::analyze(api2::trace::PacketIterator iter, api2::trace::Direction direction) {
   auto header = *iter;
   if (!std::visit(sim::trace2::IsSameDevice{_device.id}, header))
     return false;
@@ -106,7 +109,7 @@ template <typename Address> bool Input<Address>::analyze(api2::trace::PacketIter
     // Address is always implicitly 0 since this is a 1-byte port.
     auto hdr = std::get<api2::packet::header::ImpureRead>(header);
     // read() consumes a value via next_value(), which unread will undo.
-    if (direction == Direction::Backward)
+    if (direction == api2::trace::Direction::Reverse)
       _endpoint->unread();
     // Forward direction
     // We don't emit multiple payloads, so receiving multiple (or 0) doesn't make sense.

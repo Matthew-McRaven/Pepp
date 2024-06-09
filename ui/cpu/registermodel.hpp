@@ -43,6 +43,8 @@ public:
   // Append rows / columns to data model.
   void appendFormatters(QVector<QSharedPointer<RegisterFormatter>> formatters);
   Q_INVOKABLE qsizetype columnCharWidth(int column) const;
+public slots:
+  void onUpdateGUI();
 
 private:
   uint32_t _cols = 0;

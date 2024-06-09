@@ -33,6 +33,7 @@ public:
 
   // API v2
   // Target interface
+  sim::api2::device::ID deviceID() const override { return _target->deviceID(); }
   AddressSpan span() const override;
   api2::memory::Result read(Address address, bits::span<quint8> dest, api2::memory::Operation op) const override;
   api2::memory::Result write(Address address, bits::span<const quint8> src, api2::memory::Operation op) override;

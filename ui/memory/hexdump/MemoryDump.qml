@@ -406,7 +406,10 @@ Item {
                     id: cell
                     rowHeight: rowHeight
                     colWidth: colWidth
-                    Component.onCompleted: updateBackground()
+                    Component.onCompleted: {
+                        updateBackground()
+                        highlightChanged.connect(updateBackground)
+                    }
 
                     function updateBackground() {
                         switch (model.highlight) {
@@ -428,6 +431,7 @@ Item {
 
                     textColor: palette.text
                     text: model.display
+                    property int highlight: model.highlight
                     textAlign: Text.AlignHCenter
                     font: hexFont
                     tooltip: model.toolTip ?? null

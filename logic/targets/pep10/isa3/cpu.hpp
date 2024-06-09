@@ -48,11 +48,12 @@ public:
   sim::api2::tick::Result clock(sim::api2::tick::Type currentTick) override;
 
   // Sink interfae
-  bool analyze(sim::api2::trace::PacketIterator iter, Direction) override;
+  bool analyze(sim::api2::trace::PacketIterator iter, sim::api2::trace::Direction) override;
 
   // Source interface
   void trace(bool enabled) override;
   void setBuffer(sim::api2::trace::Buffer *tb) override;
+  const sim::api2::trace::Buffer *buffer() const override { return _tb; }
 
   // Initiator interface
   void setTarget(sim::api2::memory::Target<quint16> *target, void* port) override;

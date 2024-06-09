@@ -34,6 +34,7 @@ auto span = sim::api2::memory::AddressSpan<quint16>{.minOffset = 0, .maxOffset =
 
 TEST_CASE("Memory-mapped input read", "[scope:sim][kind:int][arch:*]") {
   auto in = QSharedPointer<sim::memory::Input<quint16>>::create(desc, span, 0);
+  CHECK(in->deviceID() == desc.id);
   auto endpoint = in->endpoint();
   endpoint->append_value(10);
   endpoint->append_value(20);

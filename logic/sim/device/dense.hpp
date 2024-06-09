@@ -35,17 +35,19 @@ public:
 
   // API v2
   // Target interface
+  sim::api2::device::ID deviceID() const override { return _device.id; }
+  AddressSpan span() const override;
   api2::memory::Result read(Address address, bits::span<quint8> dest, api2::memory::Operation op) const override;
   api2::memory::Result write(Address address, bits::span<const quint8> src, api2::memory::Operation op) override;
-  AddressSpan span() const override;
   void clear(quint8 fill) override;
   void dump(bits::span<quint8> dest) const override;
 
   // Sink interface
-  bool analyze(const api2::trace::PacketIterator iter, Direction) override;
+  bool analyze(const api2::trace::PacketIterator iter, api2::trace::Direction) override;
 
   // Source interface
   void setBuffer(api2::trace::Buffer *tb) override;
+  const api2::trace::Buffer *buffer() const override { return _tb; }
   void trace(bool enabled) override;
 
   // Helpers
@@ -120,7 +122,8 @@ template <typename Address> struct PayloadHelper {
 };
 } // namespace detail
 
-template <typename Address> bool Dense<Address>::analyze(api2::trace::PacketIterator iter, Direction direction) {
+template <typename Address>
+bool Dense<Address>::analyze(api2::trace::PacketIterator iter, api2::trace::Direction direction) {
   auto header = *iter;
   if (!std::visit(sim::trace2::IsSameDevice{_device.id}, header))
     return false;

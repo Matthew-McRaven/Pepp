@@ -16,8 +16,9 @@
  */
 
 #pragma once
-#include "sim/api2.hpp"
 #include <elfio/elfio.hpp>
+#include "obj/memmap.hpp"
+#include "sim/api2.hpp"
 
 namespace obj {
 struct MemoryRegion;
@@ -44,6 +45,7 @@ public:
   sim::api2::device::ID nextID() override;
   sim::api2::device::IDGenerator nextIDGenerator() override;
   void setBuffer(sim::api2::trace::Buffer *buffer) override;
+  QSharedPointer<const sim::api2::Paths> pathManager() const override;
 
   // Set default register values, modify dispatcher / loader behavior.
   void setBootFlagAddress(quint16 addr);
@@ -68,6 +70,7 @@ private:
 
   QSharedPointer<CPU> _cpu = nullptr;
   QSharedPointer<sim::memory::SimpleBus<quint16>> _bus = nullptr;
+  QSharedPointer<sim::api2::Paths> _paths = nullptr;
   QVector<QSharedPointer<sim::memory::Dense<quint16>>> _rawMemory = {};
   QVector<QSharedPointer<sim::memory::ReadOnly<quint16>>> _readonly = {};
 
@@ -75,7 +78,10 @@ private:
   QMap<QString, QSharedPointer<sim::memory::Output<quint16>>> _mmo = {};
 };
 
+bool loadRegion(sim::api2::memory::Target<quint16> &mem, const obj::MemoryRegion &reg, quint16 baseOffset = 0);
+// Do not buffer any MMIO values.
+bool loadElfSegments(sim::api2::memory::Target<quint16> &mem, const ELFIO::elfio &elf);
+
 // loadUserImmediate bypasses loading user program to DDR.
-QSharedPointer<System> systemFromElf(const ELFIO::elfio &elf,
-                                     bool loadUserImmediate);
+QSharedPointer<System> systemFromElf(const ELFIO::elfio &elf, bool loadUserImmediate);
 } // namespace targets::pep10::isa

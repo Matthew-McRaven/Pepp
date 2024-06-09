@@ -16,9 +16,13 @@
 
 #pragma once
 #include "sim/api2.hpp"
+#include "sim/trace2/modified.hpp"
 
 namespace sim::memory {
-template <typename Address> class SimpleBus : public api2::memory::Target<Address> {
+template <typename Address>
+class SimpleBus : public api2::memory::Target<Address>,
+                  public api2::memory::Translator<Address>,
+                  public sim::api2::trace::Source {
 public:
   using AddressSpan = typename api2::memory::AddressSpan<Address>;
   SimpleBus(api2::device::Descriptor device, AddressSpan span);
@@ -31,71 +35,58 @@ public:
   SimpleBus &operator=(const SimpleBus &) = delete;
 
   // Target interface
+  sim::api2::device::ID deviceID() const override { return _device.id; }
   AddressSpan span() const override;
   api2::memory::Result read(Address address, bits::span<quint8> dest, api2::memory::Operation op) const override;
   api2::memory::Result write(Address address, bits::span<const quint8> src, api2::memory::Operation op) override;
   void clear(quint8 fill) override;
   void dump(bits::span<quint8> dest) const override;
 
+  // Translator interface
+  std::tuple<bool, sim::api2::device::ID, Address> forward(Address address) const override;
+  std::optional<Address> backward(sim::api2::device::ID child, Address address) const override;
+  void setPathManager(QSharedPointer<api2::Paths> paths) override { _paths = paths; };
+  QSharedPointer<const api2::Paths> pathManager() const override { return _paths; }
+
+  // Source interface
+  void setBuffer(api2::trace::Buffer *tb) override;
+  const api2::trace::Buffer *buffer() const override { return _tb; }
+  void trace(bool enabled) override;
+
   // Bus API
   void pushFrontTarget(AddressSpan at, api2::memory::Target<Address> *target);
   api2::memory::Target<Address> *deviceAt(Address address);
 
 private:
+  const api2::memory::Target<Address> *device(sim::api2::device::ID id) const {
+    auto it = std::lower_bound(_devices.cbegin(), _devices.cend(), id, LBID{});
+    if (it == _devices.cend() || it->first != id)
+      return nullptr;
+    return it->second;
+  }
+  api2::memory::Target<Address> *device(sim::api2::device::ID id) {
+    auto it = std::lower_bound(_devices.begin(), _devices.end(), id, LBID{});
+    if (it == _devices.end() || it->first != id)
+      return nullptr;
+    return it->second;
+  }
+  using TargetPair = std::pair<sim::api2::device::ID, api2::memory::Target<Address> *>;
+  struct LBID {
+    inline bool operator()(const TargetPair &V, const quint16 find) const { return V.first < find; }
+  };
+
   AddressSpan _span;
   api2::device::Descriptor _device;
-
-  struct Region {
-    AddressSpan span;
-    api2::memory::Target<Address> *target;
-  };
-  Region regionAt(Address address);
-  template <typename Data, bool w>
-  api2::memory::Result access(Address address, std::span<Data> data, api2::memory::Operation op) const {
-    using E = api2::memory::Error;
-    // Length is 1-indexed, address are 0, so must offset by -1.
-    auto maxDestAddr = (address + std::max<Address>(0, data.size() - 1));
-    if (address < _span.minOffset || maxDestAddr > _span.maxOffset)
-      throw E(E::Type::OOBAccess, address);
-    Address offset = 0;
-    auto length = data.size();
-    while (length > 0) {
-      Region region = {{}, nullptr};
-      // Inline body of regionAt manually, so that I can violate const with
-      // mutable.
-      for (auto reg : _regions) {
-        if (reg.span.minOffset <= (address + offset) && (address + offset) <= reg.span.maxOffset) {
-          region = reg;
-          break;
-        }
-      }
-
-      if (region.target == nullptr)
-        throw E(E::Type::Unmapped, address + offset);
-
-      // Compute how many bytes we can read without OOB'ing on the device.
-      auto devSpan = region.target->span();
-      auto devLength = devSpan.maxOffset - devSpan.minOffset + 1;
-      auto usableLength = std::min<qsizetype>(length, devLength);
-      auto subspan = data.subspan(offset, usableLength);
-
-      // Convert bus address => device address
-      auto busToDev = (address + offset) - region.span.minOffset;
-      api2::memory::Result acc;
-      if constexpr (w)
-        acc = region.target->write(busToDev, subspan, op);
-      else
-        acc = region.target->read(busToDev, subspan, op);
-
-      offset += usableLength;
-      length -= usableLength;
-    }
-    return {};
+  sim::trace2::AddressBiMap<Address, quint16> _addrs;
+  QVector<TargetPair> _devices;
+  QSharedPointer<sim::api2::Paths> _paths = nullptr;
+  mutable api2::trace::Buffer *_tb = nullptr;
+  api2::trace::PathGuard makeGuard() const {
+    if (!_tb || !_paths)
+      return api2::trace::PathGuard(nullptr, -1);
+    auto currentPath = _tb->currentPath();
+    return api2::trace::PathGuard(_tb, _paths->find(currentPath, _device.id));
   }
-  // Marked as mutable so that access can be const even when it is doing a
-  // write. Reduces amount of code by 2x because read/write use same
-  // implementation now.
-  mutable QList<Region> _regions = {};
 };
 
 template <typename Address>
@@ -107,44 +98,133 @@ template <typename Address>
 api2::memory::Result SimpleBus<Address>::read(Address address, bits::span<quint8> dest,
                                               api2::memory::Operation op) const {
   // TODO: add trace code that we traversed the bus.
-  return access<quint8, false>(address, dest, op);
+  using E = api2::memory::Error;
+  using T = std::tuple<Address, std::size_t>;
+  // Length is 1-indexed, address are 0, so must offset by -1.
+  if (auto maxDestAddr = (address + std::max<Address>(0, dest.size() - 1));
+      address < _span.minOffset || maxDestAddr > _span.maxOffset)
+    throw E(E::Type::OOBAccess, address);
+
+  auto guard = std::move(makeGuard());
+  // Construct a guard for the trace buffer.
+  for (auto [offset, length] = T{0, dest.size()}; length > 0;) {
+    auto region = _addrs.region_at(address + offset);
+    if (!region)
+      throw E(E::Type::Unmapped, address + offset);
+    // Avoid nullptr check. If region is non-null and device is null, a class invariant was violated.
+    auto dev = device(region->device);
+    // Compute how many bytes we can read without OOB'ing on the device.
+    auto devSpan = dev->span();
+    auto usableLength = std::min<qsizetype>(length, devSpan.maxOffset - devSpan.minOffset + 1);
+    // Convert bus address => device address
+    auto busToDev = trace2::convert<Address>(address + offset, region->from, region->to);
+    api2::memory::Result acc;
+    acc = dev->read(busToDev, dest.subspan(offset, usableLength), op);
+
+    offset += usableLength;
+    length -= usableLength;
+  }
+  return {};
 }
 template <typename Address>
 api2::memory::Result SimpleBus<Address>::write(Address address, bits::span<const quint8> src,
                                                api2::memory::Operation op) {
   // TODO: add trace code that we traversed the bus.
-  return access<const quint8, true>(address, src, op);
+  using E = api2::memory::Error;
+  using T = std::tuple<Address, std::size_t>;
+  // Length is 1-indexed, address are 0, so must offset by -1.
+  if (auto maxDestAddr = (address + std::max<Address>(0, src.size() - 1));
+      address < _span.minOffset || maxDestAddr > _span.maxOffset)
+    throw E(E::Type::OOBAccess, address);
+
+  auto guard = makeGuard();
+  for (auto [offset, length] = T{0, src.size()}; length > 0;) {
+    auto region = _addrs.region_at(address + offset);
+    if (!region)
+      throw E(E::Type::Unmapped, address + offset);
+    // Avoid nullptr check. If region is non-null and device is null, a class invariant was violated.
+    auto dev = device(region->device);
+    // Compute how many bytes we can read without OOB'ing on the device.
+    auto devSpan = dev->span();
+    auto usableLength = std::min<qsizetype>(length, devSpan.maxOffset - devSpan.minOffset + 1);
+    // Convert bus address => device address
+    auto busToDev = trace2::convert<Address>(address + offset, region->from, region->to);
+    api2::memory::Result acc;
+    acc = dev->write(busToDev, src.subspan(offset, usableLength), op);
+    offset += usableLength;
+    length -= usableLength;
+  }
+  return {};
 }
 
 template <typename Address> void SimpleBus<Address>::clear(quint8 fill) {
-  for (auto &region : _regions)
-    region.target->clear(fill);
+  for (auto dev : _devices)
+    dev.second->clear(fill);
 }
 
 template <typename Address> void SimpleBus<Address>::dump(bits::span<quint8> dest) const {
   if (dest.size() <= 0)
     throw std::logic_error("dump requires non-0 size");
-  for (auto rit = _regions.crbegin(); rit != _regions.crend(); ++rit) {
-    auto start = rit->span.minOffset;
-    auto end = rit->span.maxOffset;
-    rit->target->dump(dest.subspan(start, end - start + 1));
+  // Can't iterate devices directly, as this would not respect layering.
+  for (auto &rit : _addrs.regions()) {
+    auto dev = device(rit.device);
+    if (!dev)
+      continue;
+    dev->dump(dest.subspan(rit.from.lower(), size<Address, false>(rit.from)));
   }
 }
 
+namespace detail {
+template <typename Address> struct SortOnDeviceID {
+  bool operator()(const std::pair<sim::api2::device::ID, api2::memory::Target<Address> *> &lhs,
+                  const std::pair<sim::api2::device::ID, api2::memory::Target<Address> *> &rhs) const {
+    return lhs.first < rhs.first;
+  }
+};
+} // namespace detail
 template <typename Address>
 void SimpleBus<Address>::pushFrontTarget(AddressSpan at, api2::memory::Target<Address> *target) {
-  _regions.push_front(Region{at, target});
+  sim::trace2::Interval<Address> from = {at.minOffset, at.maxOffset},
+                                 to = {target->span().minOffset, target->span().maxOffset};
+  if (device(target->deviceID()) != nullptr)
+    throw std::logic_error("Device ID already in use");
+  _addrs.insert_or_overwrite(from, to, target->deviceID(), 0);
+  _devices.push_back({target->deviceID(), target});
+  std::sort(_devices.begin(), _devices.end(), detail::SortOnDeviceID<Address>{});
 }
 
 template <typename Address> sim::api2::memory::Target<Address> *SimpleBus<Address>::deviceAt(Address address) {
-  return regionAt(address).target;
+  auto region = _addrs.region_at(address);
+  if (!region)
+    return nullptr;
+  return _devices[region.device];
 }
 
-template <typename Address> typename SimpleBus<Address>::Region SimpleBus<Address>::regionAt(Address address) {
-  for (auto reg : _regions) {
-    if (reg.span.minOffset <= address && address <= reg.span.maxOffset)
-      return reg;
-  }
-  return {{}, nullptr};
+template <typename Address>
+std::tuple<bool, api2::device::ID, Address> SimpleBus<Address>::forward(Address address) const {
+  return _addrs.value(address);
 }
+
+template <typename Address>
+std::optional<Address> SimpleBus<Address>::backward(api2::device::ID child, Address address) const {
+  if (auto r = _addrs.key(child, address); std::get<0>(r))
+    return std::get<1>(r);
+  return std::nullopt;
+}
+
+template <typename Address> inline void SimpleBus<Address>::setBuffer(api2::trace::Buffer *tb) {
+  this->_tb = tb;
+  for (auto dev : _devices)
+    if (auto as_source = dynamic_cast<api2::trace::Source *>(dev.second); as_source != nullptr)
+      as_source->setBuffer(tb);
+}
+
+template <typename Address> inline void SimpleBus<Address>::trace(bool enabled) {
+  if (_tb)
+    _tb->trace(_device.id, enabled);
+  for (auto dev : _devices)
+    if (auto as_source = dynamic_cast<api2::trace::Source *>(dev.second); as_source != nullptr)
+      as_source->trace(enabled);
+}
+
 } // namespace sim::memory

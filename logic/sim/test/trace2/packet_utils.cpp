@@ -18,6 +18,7 @@
 #include <catch.hpp>
 #include <zpp_bits.h>
 #include "sim/api2.hpp"
+#include "sim/trace2/buffers.hpp"
 
 namespace {
 using namespace sim::api2;
@@ -29,7 +30,7 @@ struct SimpleBuffer : public sim::api2::trace::Buffer {
   SimpleBuffer() : _data(), _in(_data), _out(_data) {}
   // Buffer interface
   bool trace(sim::api2::device::ID deviceID, bool enabled) override { return true; }
-  bool registerSink(sim::api2::trace::Sink *, sim::api2::trace::Mode) override { return true; }
+  bool registerSink(sim::api2::trace::Sink *) override { return true; }
   void unregisterSink(sim::api2::trace::Sink *) override {}
   bool writeFragment(const sim::api2::frame::Header &hdr) override {
     _out(w{hdr}).or_throw();
@@ -45,6 +46,12 @@ struct SimpleBuffer : public sim::api2::trace::Buffer {
   }
   bool updateFrameHeader() override { return true; }
   void dropLast() override { throw std::logic_error("Unimplemented"); }
+  void clear() override {
+    sim::api2::trace::Buffer::clear();
+    _data.clear();
+    _in.reset();
+    _out.reset();
+  }
   FrameIterator cbegin() const override { throw std::logic_error("Unimplemented"); }
   FrameIterator cend() const override { throw std::logic_error("Unimplemented"); }
   FrameIterator crbegin() const override { throw std::logic_error("Unimplemented"); }
@@ -60,9 +67,32 @@ TEST_CASE("Packet IsSameDevice", "[scope:sim][kind:unit][arch:*]") {
   using namespace sim::api2::packet;
   auto equal = IsSameDevice{5};
   auto nequal = IsSameDevice{6};
-  packet::Header hdr = packet::header::Write{.device = 5, .address = 0};
+  packet::Header hdr = packet::header::Write{.device = 5, .address = VariableBytes<8>{0}};
   CHECK(std::visit(equal, hdr));
   CHECK_FALSE(std::visit(nequal, hdr));
+}
+
+TEST_CASE("Packet get_address", "[scope:sim][kind:unit][arch:*]") {
+  using namespace sim::api2::packet;
+  auto x = [](auto i) { return VariableBytes<8>::from_address<quint16>(i); };
+  packet::Header wr = header::Write{.device = 5, .address = x(6)};
+  packet::Header clr = header::Clear{.device = 5};
+  packet::Header rd = header::PureRead{.device = 5, .payload_len = 2, .address = x(7)};
+  packet::Header ir = header::ImpureRead{.device = 5, .address = x(8)};
+  CHECK(get_address<quint16>(wr));
+  CHECK(*get_address<quint16>(wr) == 6);
+  CHECK_FALSE(get_address<quint16>(clr));
+  CHECK(get_address<quint16>(rd));
+  CHECK(*get_address<quint16>(rd) == 7);
+  CHECK(get_address<quint16>(ir));
+  CHECK(*get_address<quint16>(ir) == 8);
+}
+
+TEST_CASE("Packet payload_length", "[scope:sim][kind:unit][arch:*]") {
+  using namespace sim::api2::packet;
+  bits::span<const quint8> bytes = {{0, 1, 2, 3, 4, 5}};
+  packet::Payload x = payload::Variable{.payload = payload::Variable::Bytes{6, bytes}};
+  CHECK(payload_length(x) == 6);
 }
 
 TEST_CASE("Packet serialization utilities", "[scope:sim][kind:unit][arch:*]") {
@@ -164,5 +194,47 @@ TEST_CASE("Packet serialization utilities", "[scope:sim][kind:unit][arch:*]") {
         current += bytes.payload.len;
       }
     }
+  }
+}
+
+TEST_CASE("Packet packet_payloads_length", "[scope:sim][kind:unit][arch:*]") {
+  using namespace sim::api2::packet;
+  bits::span<const quint8> bytes = {{0, 1, 2, 3, 4, 5}};
+  SECTION("ImpureRead") {
+    InfiniteBuffer buf;
+    buf.trace(0, true);
+    emitFrameStart(&buf);
+    emitMMRead(&buf, 0, 0u, bytes);
+    emitFrameStart(&buf);
+    auto frame_iter = buf.cbegin();
+    CHECK(packet_payloads_length(frame_iter.cbegin()) == 6);
+  }
+  SECTION("PureRead") {
+    InfiniteBuffer buf;
+    buf.trace(0, true);
+    emitFrameStart(&buf);
+    emitPureRead(&buf, 0, 0u, 4u);
+    emitFrameStart(&buf);
+    auto frame_iter = buf.cbegin();
+    CHECK(packet_payloads_length(frame_iter.cbegin()) == 4);
+  }
+  SECTION("Clear") {
+    InfiniteBuffer buf;
+    buf.trace(0, true);
+    emitFrameStart(&buf);
+    buf.writeFragment(Header{header::Clear{.device = 0}});
+    emitFrameStart(&buf);
+    auto frame_iter = buf.cbegin();
+    CHECK(packet_payloads_length(frame_iter.cbegin()) == 0);
+  }
+  SECTION("Write") {
+    InfiniteBuffer buf;
+    buf.trace(0, true);
+    emitFrameStart(&buf);
+    std::array<quint8, 6> dest{0};
+    emitWrite(&buf, 0, 0u, bytes, dest);
+    emitFrameStart(&buf);
+    auto frame_iter = buf.cbegin();
+    CHECK(packet_payloads_length(frame_iter.cbegin()) == 6);
   }
 }

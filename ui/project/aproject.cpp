@@ -1,7 +1,18 @@
 #include "aproject.hpp"
 #include <QQmlEngine>
+#include <sstream>
+#include "bits/strings.hpp"
+#include "help/builtins/figure.hpp"
+#include "helpers/asmb.hpp"
 #include "isa/pep10.hpp"
-#include "utils/commands.hpp"
+#include "sim/device/broadcast/mmo.hpp"
+#include "sim/device/broadcast/pubsub.hpp"
+#include "sim/device/simple_bus.hpp"
+#include "sim/trace2/buffers.hpp"
+#include "targets/pep10/isa3/cpu.hpp"
+#include "targets/pep10/isa3/helpers.hpp"
+#include "targets/pep10/isa3/system.hpp"
+#include "text/editor/object.hpp"
 
 struct Pep10OpcodeInit {
   explicit Pep10OpcodeInit(OpcodeModel *model) {
@@ -25,11 +36,20 @@ struct Pep10OpcodeInit {
   }
 };
 
+// Prevent WASM-ld error due to multiply defined symbol in static lib.
+namespace {
+auto gs = sim::api2::memory::Operation{
+    .type = sim::api2::memory::Operation::Type::Application,
+    .kind = sim::api2::memory::Operation::Kind::data,
+};
+}
+
 Pep10_ISA::Pep10_ISA(QVariant delegate, QObject *parent)
-    : QObject(parent), _delegate(delegate), _memory(new ArrayRawMemory(0x10000, this)),
-      _registers(new RegisterModel(this)), _flags(new FlagModel(this)) {
-  QQmlEngine::setObjectOwnership(_memory, QQmlEngine::CppOwnership);
+    : QObject(parent), _delegate(delegate), _tb(QSharedPointer<sim::trace2::InfiniteBuffer>::create()),
+      _memory(nullptr), _registers(new RegisterModel(this)), _flags(new FlagModel(this)) {
   QQmlEngine::setObjectOwnership(_registers, QQmlEngine::CppOwnership);
+  _system.clear();
+  assert(_system.isNull());
   using RF = QSharedPointer<RegisterFormatter>;
   using TF = QSharedPointer<TextFormatter>;
   using MF = QSharedPointer<MnemonicFormatter>;
@@ -37,34 +57,91 @@ Pep10_ISA::Pep10_ISA(QVariant delegate, QObject *parent)
   using SF = QSharedPointer<SignedDecFormatter>;
   using UF = QSharedPointer<UnsignedDecFormatter>;
   using BF = QSharedPointer<BinaryFormatter>;
-  auto A = []() { return 0; };
-  auto X = []() { return 0; };
-  auto SP = []() { return 0; };
-  auto PC = []() { return 0; };
-  auto IS = []() { return 1; };
-  auto IS_TEXT = [&]() {
-    int opcode = IS();
+  using OF = QSharedPointer<OptionalFormatter>;
+  auto _register = [](isa::Pep10::Register r, auto *system) {
+    if (system == nullptr)
+      return quint16{0};
+    quint16 ret = 0;
+    auto cpu = system->cpu();
+    targets::pep10::isa::readRegister(cpu->regs(), r, ret, gs);
+    return ret;
+  };
+  // BUG: _system seems to be getting deleted very easily. It probably shouldn't be a shared pointer.
+  // DO NOT CAPTURE _system INDIRECTLY VIA ANOTHER LAMBDA. It will crash.
+  auto A = [&_register, this]() { return _register(isa::Pep10::Register::A, &*this->_system); };
+  auto X = [&_register, this]() { return _register(isa::Pep10::Register::X, &*this->_system); };
+  auto SP = [&_register, this]() { return _register(isa::Pep10::Register::SP, &*this->_system); };
+  auto PC = [&_register, this]() { return _register(isa::Pep10::Register::PC, &*this->_system); };
+  auto IS = [&_register, this]() { return _register(isa::Pep10::Register::IS, &*this->_system); };
+  auto IS_TEXT = [&_register, this]() {
+    int opcode = _register(isa::Pep10::Register::IS, &*this->_system);
     auto row = mnemonics()->indexFromOpcode(opcode);
     return mnemonics()->data(mnemonics()->index(row), Qt::DisplayRole).toString();
   };
-  auto OS = []() { return 0; };
+  auto OS = [&_register, this]() { return _register(isa::Pep10::Register::OS, &*this->_system); };
+  auto notU = [&_register, this]() {
+    auto is = _register(isa::Pep10::Register::IS, &*this->_system);
+    auto op = isa::Pep10::opcodeLUT[is];
+    return !op.instr.unary;
+  };
   _registers->appendFormatters({TF::create("Accumulator"), HF::create(A, 2), SF::create(A, 2)});
   _registers->appendFormatters({TF::create("Index Register"), HF::create(X, 2), SF::create(X, 2)});
   _registers->appendFormatters({TF::create("Stack Pointer"), HF::create(SP, 2), UF::create(SP, 2)});
   _registers->appendFormatters({TF::create("Program Counter"), HF::create(PC, 2), UF::create(PC, 2)});
   _registers->appendFormatters({TF::create("Instruction Specifier"), BF::create(IS, 1), MF::create(IS_TEXT)});
-  _registers->appendFormatters({TF::create("Operand Specifier"), HF::create(OS, 2), SF::create(OS, 2)});
-  _registers->appendFormatters({TF::create("(Operand)"), TF::create("??"), TF::create("??")});
+  _registers->appendFormatters(
+      {TF::create("Operand Specifier"), OF::create(HF::create(OS, 2), notU), OF::create(SF::create(OS, 2), notU)});
+  _registers->appendFormatters(
+      {TF::create("(Operand)"), OF::create(TF::create("??"), notU), OF::create(TF::create("??"), notU)});
+  connect(this, &Pep10_ISA::updateGUI, _registers, &RegisterModel::onUpdateGUI);
 
   using F = QSharedPointer<Flag>;
-  auto N = []() { return false; };
-  auto Z = []() { return false; };
-  auto V = []() { return false; };
-  auto C = []() { return false; };
+  auto _flag = [](isa::Pep10::CSR s, auto *system) {
+    if (system == nullptr)
+      return false;
+    bool ret = 0;
+    auto cpu = system->cpu();
+    targets::pep10::isa::readCSR(cpu->csrs(), s, ret, gs);
+    return ret;
+  };
+  // See above for wanings on _system pointer.
+  auto N = [&_flag, this]() { return _flag(isa::Pep10::CSR::N, &*this->_system); };
+  auto Z = [&_flag, this]() { return _flag(isa::Pep10::CSR::Z, &*this->_system); };
+  auto V = [&_flag, this]() { return _flag(isa::Pep10::CSR::V, &*this->_system); };
+  auto C = [&_flag, this]() { return _flag(isa::Pep10::CSR::C, &*this->_system); };
   _flags->appendFlag({F::create("N", N)});
   _flags->appendFlag({F::create("Z", Z)});
   _flags->appendFlag({F::create("V", V)});
   _flags->appendFlag({F::create("C", C)});
+  connect(this, &Pep10_ISA::updateGUI, _flags, &FlagModel::onUpdateGUI);
+
+  auto book = helpers::book(6);
+  auto os = book->findFigure("os", "pep10baremetal");
+  auto osContents = os->typesafeElements()["pep"]->contents;
+  auto macroRegistry = helpers::registry(book, {});
+  helpers::AsmHelper helper(macroRegistry, osContents);
+  auto result = helper.assemble();
+  if (!result) {
+    qWarning() << "Default OS assembly failed";
+  }
+  // Need to reload to properly compute segment addresses. Store in temp
+  // directory to prevent clobbering local file contents.
+  _elf = helper.elf();
+  {
+    std::stringstream s;
+    _elf->save(s);
+    s.seekg(0, std::ios::beg);
+    _elf->load(s);
+  }
+  _system = targets::pep10::isa::systemFromElf(*_elf, true);
+  auto sink = QSharedPointer<sim::trace2::TranslatingModifiedAddressSink<quint16>>::create(_system->pathManager(),
+                                                                                           _system->bus());
+  _system->bus()->setBuffer(&*_tb);
+  //_system->cpu()->setBuffer(&*_tb);
+  //_system->cpu()->trace(true);
+  _memory = new SimulatorRawMemory(_system->bus(), sink, this);
+  connect(this, &Pep10_ISA::updateGUI, _memory, &SimulatorRawMemory::onUpdateGUI);
+  QQmlEngine::setObjectOwnership(_memory, QQmlEngine::CppOwnership);
 }
 
 project::Environment Pep10_ISA::env() const {
@@ -104,9 +181,82 @@ int Pep10_ISA::allowedSteps() const { return -1; }
 
 bool Pep10_ISA::onSaveCurrent() { return false; }
 
-bool Pep10_ISA::onLoadObject() { return false; }
+bool Pep10_ISA::onLoadObject() {
+  static ObjectUtilities utils;
+  _tb->clear();
+  // Only enable trace while running the program to prevent spurious changed highlights.
+  _system->bus()->trace(false);
+  std::string objText = utils.format(objectCodeText(), false).toStdString();
+  auto bytes = bits::asciiHexToByte({objText.data(), objText.size()});
+  if (!bytes) {
+    qWarning() << "Invalid object code, probably invalid hex characters.";
+    return false;
+  }
+  auto bus = _system->bus();
+  bus->clear(0);
+  // Reload OS into memory.
+  targets::pep10::isa::loadElfSegments(*bus, *_elf);
+  // Load user program into memory.
+  bus->write(0, *bytes, gs);
+  targets::pep10::isa::writeRegister(_system->cpu()->regs(), isa::Pep10::Register::A, 0x11, gs);
+  targets::pep10::isa::writeRegister(_system->cpu()->regs(), isa::Pep10::Register::X, 9, gs);
+  targets::pep10::isa::writeRegister(_system->cpu()->regs(), isa::Pep10::Register::SP, 11, gs);
+  _memory->setSP(-1);
+  _memory->setPC(-1, -1);
+  targets::pep10::isa::writeRegister(_system->cpu()->regs(), isa::Pep10::Register::OS, 7, gs);
+  emit updateGUI(UpdateType::Full);
+  return true;
+}
 
-bool Pep10_ISA::onExecute() { return false; }
+bool Pep10_ISA::onExecute() {
+  _tb->clear();
+  _system->init();
+  auto pwrOff = _system->output("pwrOff");
+  auto charOut = _system->output("pwrOff");
+  auto endpoint = pwrOff->endpoint();
+  bool noMMI = false;
+  // Only enable trace while running the program to prevent spurious changed highlights.
+  _system->bus()->trace(true);
+  // Step for a small number of instructions or until we write to pwrOff.
+  try {
+    while (_system->currentTick() < 800 && !endpoint->next_value().has_value())
+      _system->tick(sim::api2::Scheduler::Mode::Jump);
+  } catch (const sim::api2::memory::Error &e) {
+    if (e.type() == sim::api2::memory::Error::Type::NeedsMMI) {
+      noMMI = true;
+    } else
+      std::cerr << "Memory error: " << e.what() << std::endl;
+    // Handle illegal opcodes or program crashes.
+  } catch (const std::logic_error &e) {
+    std::cerr << e.what() << std::endl;
+  }
+  _system->bus()->trace(false);
+
+  // TODO: direct output to GUI, not CERR.
+  if (auto charOut = _system->output("charOut"); charOut) {
+    auto charOutEndpoint = charOut->endpoint();
+    charOutEndpoint->set_to_head();
+    auto writeOut = [&](QTextStream &outF) {
+      for (auto next = charOutEndpoint->next_value(); next.has_value(); next = charOutEndpoint->next_value()) {
+        outF << char(*next);
+      }
+    };
+    QTextStream out(stderr, QIODevice::WriteOnly | QIODevice::Truncate | QIODevice::Text);
+    writeOut(out);
+    charOut->clear(0);
+  }
+
+  // Update cpu-dependent fields in memory before triggering a GUI update.
+  quint8 is;
+  quint16 sp, pc;
+  targets::pep10::isa::readRegister(_system->cpu()->regs(), isa::Pep10::Register::SP, sp, gs);
+  targets::pep10::isa::readRegister(_system->cpu()->regs(), isa::Pep10::Register::PC, pc, gs);
+  _system->bus()->read(pc, {&is, 1}, gs);
+  _memory->setSP(sp);
+  _memory->setPC(pc, pc + (isa::Pep10::opcodeLUT[is].instr.unary ? 0 : 2));
+  emit updateGUI(UpdateType::Partial);
+  return true;
+}
 
 bool Pep10_ISA::onDebuggingStart() { return false; }
 
@@ -175,12 +325,6 @@ QHash<int, QByteArray> ProjectModel::roleNames() const {
   auto ret = QAbstractListModel::roleNames();
   ret[static_cast<int>(Roles::ProjectRole)] = "ProjectRole";
   return ret;
-}
-
-uint64_t mask(uint8_t byteCount) {
-  if (byteCount >= 8)
-    return -1;
-  return (1ULL << (byteCount * 8ULL)) - 1ULL;
 }
 
 project::DebugEnableFlags::DebugEnableFlags(QObject *parent) : QObject(parent) {}

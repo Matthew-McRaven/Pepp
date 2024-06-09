@@ -19,6 +19,8 @@
 #include "sim/api2.hpp"
 #include "sim/device/dense.hpp"
 #include "sim/device/simple_bus.hpp"
+#include "sim/trace2/buffers.hpp"
+#include "sim/trace2/packet_utils.hpp"
 
 namespace {
 auto rw = sim::api2::memory::Operation{
@@ -30,12 +32,14 @@ auto d1 = sim::api2::device::Descriptor{.id = 1, .baseName = "d1", .fullName = "
 auto d2 = sim::api2::device::Descriptor{.id = 2, .baseName = "d2", .fullName = "/bus0/d2"};
 auto d3 = sim::api2::device::Descriptor{.id = 3, .baseName = "d3", .fullName = "/bus0/d3"};
 auto b1 = sim::api2::device::Descriptor{.id = 4, .baseName = "bus0", .fullName = "/bus0"};
+auto b2 = sim::api2::device::Descriptor{.id = 5, .baseName = "bus1", .fullName = "/bus1"};
 using Span = sim::api2::memory::AddressSpan<quint16>;
 auto make = []() {
   auto m1 = QSharedPointer<sim::memory::Dense<quint16>>::create(d1, Span{.minOffset = 0, .maxOffset = 0x1});
   auto m2 = QSharedPointer<sim::memory::Dense<quint16>>::create(d2, Span{.minOffset = 0, .maxOffset = 0x1});
   auto m3 = QSharedPointer<sim::memory::Dense<quint16>>::create(d3, Span{.minOffset = 0, .maxOffset = 0x1});
   auto bus = QSharedPointer<sim::memory::SimpleBus<quint16>>::create(b1, Span{.minOffset = 0, .maxOffset = 5});
+  CHECK(bus->deviceID() == b1.id);
   bus->pushFrontTarget(Span{.minOffset = 0, .maxOffset = 1}, &*m1);
   bus->pushFrontTarget(Span{.minOffset = 2, .maxOffset = 3}, &*m2);
   bus->pushFrontTarget(Span{.minOffset = 4, .maxOffset = 5}, &*m3);
@@ -121,4 +125,41 @@ TEST_CASE("Simple bus dump", "[scope:sim][kind:int][arch:*]") {
     for (int it = 0; it < sizeof(out); it++)
       CHECK(buf[it] == out[it]);
   }
+}
+
+TEST_CASE("Simple bus path tracking", "[scope:sim][kind:int][arch:*]") {
+  auto mem = QSharedPointer<sim::memory::Dense<quint16>>::create(d1, Span{.minOffset = 0, .maxOffset = 0x1});
+  auto bus0 = QSharedPointer<sim::memory::SimpleBus<quint16>>::create(b1, Span{.minOffset = 0, .maxOffset = 5});
+  bus0->pushFrontTarget({0, 1}, &*mem);
+  auto bus1 = QSharedPointer<sim::memory::SimpleBus<quint16>>::create(b2, Span{.minOffset = 0, .maxOffset = 5});
+  bus1->pushFrontTarget({2, 3}, &*mem);
+
+  auto paths = QSharedPointer<sim::api2::Paths>::create();
+  auto path0 = paths->add(0, bus0->deviceID());
+  auto path1 = paths->add(0, bus1->deviceID());
+  auto tb = QSharedPointer<sim::trace2::InfiniteBuffer>::create();
+  for (auto &bus : {bus0, bus1}) {
+    bus->setPathManager(paths);
+    bus->setBuffer(&*tb);
+    bus->trace(true);
+  }
+  mem->setBuffer(&*tb);
+  mem->trace(true);
+
+  quint8 buf[2];
+  for (int it = 0; it < 2; it++)
+    buf[it] = it + 1;
+  sim::trace2::emitFrameStart(&*tb);
+  bus0->write(0, {buf}, rw);
+  bus1->write(2, {buf}, rw);
+  sim::trace2::emitFrameStart(&*tb);
+  auto frames = tb->cbegin();
+  auto packets = frames.cbegin();
+  REQUIRE(packets != frames.cend());
+  CHECK(sim::trace2::get_path(*packets) == path0);
+  CHECK(sim::trace2::get_address<quint16>(*packets) == std::make_optional<quint16>(0));
+  ++packets;
+  REQUIRE(packets != frames.cend());
+  CHECK(sim::trace2::get_path(*packets) == path1);
+  CHECK(sim::trace2::get_address<quint16>(*packets) == std::make_optional<quint16>(0));
 }

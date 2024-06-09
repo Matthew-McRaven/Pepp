@@ -36,6 +36,7 @@ public:
 
   // API v2
   // Target interface
+  sim::api2::device::ID deviceID() const override { return _device.id; }
   AddressSpan span() const override;
   api2::memory::Result read(Address address, bits::span<quint8> dest, api2::memory::Operation op) const override;
   api2::memory::Result write(Address address, bits::span<const quint8> src, api2::memory::Operation op) override;
@@ -43,11 +44,12 @@ public:
   void dump(bits::span<quint8> dest) const override;
 
   // Sink interface
-  bool analyze(api2::trace::PacketIterator iter, Direction) override;
+  bool analyze(api2::trace::PacketIterator iter, api2::trace::Direction) override;
 
   // Source interface
   void trace(bool enabled) override;
   void setBuffer(api2::trace::Buffer *tb) override;
+  const api2::trace::Buffer *buffer() const override { return _tb; }
 
   // Helpers
   QSharedPointer<typename detail::Channel<Address, quint8>::Endpoint> endpoint();
@@ -91,14 +93,15 @@ QSharedPointer<typename detail::Channel<Address, quint8>::Endpoint> Output<Addre
   return _channel->new_endpoint();
 }
 
-template <typename Address> bool Output<Address>::analyze(api2::trace::PacketIterator iter, Direction direction) {
+template <typename Address>
+bool Output<Address>::analyze(api2::trace::PacketIterator iter, api2::trace::Direction direction) {
   auto header = *iter;
   if (!std::visit(sim::trace2::IsSameDevice{_device.id}, header))
     return false;
   else if (std::holds_alternative<api2::packet::header::Write>(header)) {
     // Address is always implicitly 0 since this is a 1-byte port.
     auto hdr = std::get<api2::packet::header::Write>(header);
-    if (direction == Direction::Backward)
+    if (direction == api2::trace::Direction::Reverse)
       _endpoint->unwrite();
     // Forward direction
     // We don't emit multiple payloads, so receiving multiple (or 0) doesn't make sense.

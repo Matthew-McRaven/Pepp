@@ -10,7 +10,7 @@ MenuItem {
         anchors.verticalCenter: parent.verticalCenter
         anchors.right: parent.right
         text: wrapper.action.nativeText
-        width: tm.width * 20 // 40 spaces wide
+        width: tm.width * 21 // 42 spaces wide, enough for Ctrl+Shift+L
         horizontalAlignment: Text.AlignLeft
         rightPadding: tm.width
         color: wrapper.color

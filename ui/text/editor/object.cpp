@@ -28,7 +28,7 @@ bool ObjectUtilities::valid(int key) {
   return valids.contains(key);
 }
 
-QString ObjectUtilities::format(QString input) const {
+QString ObjectUtilities::format(QString input, bool includeZZ) const {
   static const auto re = QRegularExpression(R"(\s+|[zZ]+)");
   static const auto space = [](int offset, int bytes) { return (offset % bytes == 0) ? '\n' : ' '; };
   input = input.replace(re, "");
@@ -37,7 +37,8 @@ QString ObjectUtilities::format(QString input) const {
   int paddedSize = input.size() + trailingNibble;
   // 1 for space before ZZ if not empty, 2 for "ZZ",
   // plus the length of the string, plus spacing after each pair.
-  QString result((paddedSize > 0 ? 1 : 0) + 2 + paddedSize + (paddedSize - 1) / 2, 'X');
+  int bytesForEnd = includeZZ ? (paddedSize > 0 ? 1 : 0) + 2 : 0;
+  QString result(bytesForEnd + paddedSize + (paddedSize - 1) / 2, 'X');
 
   int offset = 0;
   // Don't copy the trailing nibble if present, since we need to pad it to an otcet.
@@ -47,21 +48,30 @@ QString ObjectUtilities::format(QString input) const {
       // Newline follows last byte in row, not leading the first byte.
       // Pre-increment achieves this effect with less math in spaces(...).
       offset++;
+      // If inserting a space would overflow the result, we are are at the end of the string; stop.
+      if (it + offset >= result.size()) {
+        // Neither shouuld be true, because it would imply we still need to append more data.
+        Q_ASSERT(!(includeZZ | trailingNibble));
+        break;
+      }
       result[it + offset] = space(offset, _bytesPerRow);
     }
   }
   // Result will always be 5 characters long if the input is non-empty.
   // Trailing nibble is impossible if len(input)==0; access will not be OOB.
   if (trailingNibble) {
-    result[result.size() - 5] = '0';
-    result[result.size() - 4] = input[input.size() - 1].toUpper();
+    result[result.size() - bytesForEnd - 2] = '0';
+    result[result.size() - bytesForEnd - 1] = input[input.size() - 1].toUpper();
   }
-  // Leading space on ZZ with an empty input looks bad, so supress it.
-  if (input.size() != 0)
-    // Pre-increment offset to match above.
-    result[result.size() - 3] = space(++offset, _bytesPerRow);
-  result[result.size() - 2] = 'Z';
-  result[result.size() - 1] = 'Z';
+  // Optionally skip " ZZ", adding ability for text=>byte preprocessing.
+  if (includeZZ) {
+    // Leading space on ZZ with an empty input looks bad, so supress it.
+    if (input.size() != 0)
+      // Pre-increment offset to match above.
+      result[result.size() - 3] = space(++offset, _bytesPerRow);
+    result[result.size() - 2] = 'Z';
+    result[result.size() - 1] = 'Z';
+  }
   return result;
 }
 

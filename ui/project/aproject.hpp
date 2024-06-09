@@ -3,12 +3,19 @@
 #include <QStringListModel>
 #include <deque>
 #include <qabstractitemmodel.h>
+#include <targets/pep10/isa3/system.hpp>
+#include "bits/mask.hpp"
 #include "cpu/registermodel.hpp"
 #include "cpu/statusbitmodel.hpp"
 #include "memory/hexdump/rawmemory.hpp"
 #include "utils/constants.hpp"
 #include "utils/opcodemodel.hpp"
 
+namespace sim {
+namespace trace2 {
+class InfiniteBuffer;
+}
+} // namespace sim
 namespace project {
 // Additional options requested for a project.
 // A particular (arch, level) tuple may only support a subset of features.
@@ -75,12 +82,9 @@ private:
   const project::Environment _env;
 };
 
-// TODO: move to bits
-uint64_t mask(uint8_t byteCount);
-
 struct HexFormatter : public RegisterFormatter {
   explicit HexFormatter(std::function<uint64_t()> fn, uint16_t byteCount = 2)
-      : _fn(fn), _bytes(byteCount), _mask(byteCount) {}
+      : _fn(fn), _bytes(byteCount), _mask(bits::mask(byteCount)) {}
   ~HexFormatter() override = default;
   QString format() const override { return u"0x%1"_qs.arg(_mask & _fn(), _bytes * 2, 16, QChar('0')); }
   bool readOnly() const override { return false; }
@@ -93,8 +97,8 @@ private:
 };
 
 struct UnsignedDecFormatter : public RegisterFormatter {
-  explicit UnsignedDecFormatter(std::function<uint64_t()> fn, uint16_t byteCount = 2)
-      : _fn(fn), _bytes(byteCount), _mask(byteCount) {
+  explicit UnsignedDecFormatter(std::function<std::uint64_t()> fn, uint16_t byteCount = 2)
+      : _fn(fn), _bytes(byteCount), _mask(bits::mask(byteCount)) {
     auto maxNum = std::pow(2, 8 * byteCount);
     auto digits = std::ceil(std::log10(maxNum));
     _len = digits;
@@ -112,7 +116,7 @@ private:
 
 struct SignedDecFormatter : public RegisterFormatter {
   explicit SignedDecFormatter(std::function<int64_t()> fn, uint16_t byteCount = 2)
-      : _fn(fn), _bytes(byteCount), _mask(mask(byteCount)) {
+      : _fn(fn), _bytes(byteCount), _mask(bits::mask(byteCount)) {
     auto maxNum = std::pow(2, 8 * byteCount);
     auto digits = std::ceil(std::log10(maxNum));
     _len = digits + 1;
@@ -134,7 +138,8 @@ private:
 };
 
 struct BinaryFormatter : public RegisterFormatter {
-  explicit BinaryFormatter(std::function<uint64_t()> fn, uint16_t byteCount = 1) : _fn(fn), _len(byteCount) {}
+  explicit BinaryFormatter(std::function<uint64_t()> fn, uint16_t byteCount = 1)
+      : _fn(fn), _len(byteCount), _mask(bits::mask(byteCount)) {}
   ~BinaryFormatter() override = default;
   QString format() const override { return u"%1"_qs.arg(_mask & _fn(), length(), 2, QChar('0')); }
   bool readOnly() const override { return false; }
@@ -157,6 +162,18 @@ private:
   std::function<QString()> _fn;
 };
 
+struct OptionalFormatter : public RegisterFormatter {
+  explicit OptionalFormatter(QSharedPointer<RegisterFormatter> fmt, std::function<bool()> valid)
+      : _fmt(fmt), _valid(valid) {}
+  ~OptionalFormatter() override = default;
+  QString format() const override { return _valid() ? _fmt->format() : ""; }
+  bool readOnly() const override { return _fmt->readOnly(); }
+  qsizetype length() const override { return _fmt->length(); }
+
+private:
+  QSharedPointer<RegisterFormatter> _fmt;
+  std::function<bool()> _valid;
+};
 class Pep10_ISA final : public QObject {
   Q_OBJECT
   Q_PROPERTY(project::Environment env READ env CONSTANT)
@@ -173,6 +190,10 @@ class Pep10_ISA final : public QObject {
   Q_PROPERTY(int allowedDebugging READ allowedDebugging NOTIFY allowedDebuggingChanged)
   Q_PROPERTY(int allowedSteps READ allowedSteps NOTIFY allowedStepsChanged)
 public:
+  enum class UpdateType {
+    Partial,
+    Full,
+  };
   explicit Pep10_ISA(QVariant delegate, QObject *parent = nullptr);
   project::Environment env() const;
   utils::Architecture architecture() const;
@@ -214,11 +235,16 @@ signals:
   void allowedDebuggingChanged();
   void allowedStepsChanged();
 
+  void updateGUI(UpdateType type);
+
 private:
   QString _objectCodeText = {};
   QVariant _delegate = {};
+  QSharedPointer<sim::trace2::InfiniteBuffer> _tb = {};
+  QSharedPointer<targets::pep10::isa::System> _system = {};
+  QSharedPointer<ELFIO::elfio> _elf = {};
   // Use raw pointer to avoid double-free with parent'ed QObjects.
-  ArrayRawMemory *_memory = nullptr;
+  SimulatorRawMemory *_memory = nullptr;
   RegisterModel *_registers = nullptr;
   FlagModel *_flags = nullptr;
   qint16 _currentAddress = 0;

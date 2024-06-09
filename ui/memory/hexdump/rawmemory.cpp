@@ -65,3 +65,77 @@ QObject *ArrayRawMemoryFactory::singletonProvider(QQmlEngine *engine, QJSEngine 
   Q_UNUSED(scriptEngine)
   return new ArrayRawMemoryFactory();
 }
+
+static const auto gs = sim::api2::memory::Operation{
+    .type = sim::api2::memory::Operation::Type::Application,
+    .kind = sim::api2::memory::Operation::Kind::data,
+};
+
+SimulatorRawMemory::SimulatorRawMemory(sim::memory::SimpleBus<quint16> *memory,
+                                       QSharedPointer<sim::trace2::ModifiedAddressSink<quint16>> addrSink,
+                                       QObject *parent)
+    : ARawMemory(parent), _memory(memory), _sink(addrSink) {}
+
+quint32 SimulatorRawMemory::byteCount() const {
+  auto span = _memory->span();
+  return 1 + span.maxOffset - span.minOffset;
+}
+
+quint8 SimulatorRawMemory::read(quint32 address) const {
+  auto span = _memory->span();
+  quint8 ret = 0;
+  if (address >= span.minOffset && address <= span.maxOffset) {
+    _memory->read(address, {&ret, sizeof(ret)}, gs);
+  }
+  return ret;
+}
+
+void SimulatorRawMemory::setPC(quint32 start, quint32 end) { _pc = {start, end}; }
+
+void SimulatorRawMemory::setSP(quint32 address) { _sp = {address, address}; }
+
+MemoryHighlight::V SimulatorRawMemory::status(quint32 address) const {
+  if (sim::trace2::contains(_pc, address))
+    return MemoryHighlight::PC;
+  else if (sim::trace2::contains(_sp, address))
+    return MemoryHighlight::SP;
+  else if (!_sink.isNull() && _sink->contains(address))
+    return MemoryHighlight::Modified;
+  return MemoryHighlight::None;
+}
+
+void SimulatorRawMemory::write(quint32 address, quint8 value) {
+  auto span = _memory->span();
+  if (address >= span.minOffset && address <= span.maxOffset) {
+    _memory->write(address, {&value, sizeof(value)}, gs);
+  }
+}
+
+void SimulatorRawMemory::clear() { _memory->clear(0); }
+
+void SimulatorRawMemory::onUpdateGUI() {
+  // If there is no TB, then there is no data to analyze.
+  // Conservatively, we assume that all data is modified.
+  auto tb = _memory->buffer();
+  if (tb == nullptr)
+    emit dataChanged(0, 0xffff);
+
+  // Purge data from previous updates
+  _sink->clear();
+  for (auto frame = tb->cbegin(); frame != tb->cend(); ++frame)
+    for (auto packet = frame.cbegin(); packet != frame.cend(); ++packet)
+      _sink->analyze(packet, sim::api2::trace::Direction::Forward);
+
+  // If no memory addresses changed, conservatively assume that the trace buffer was disabled and therefore any address
+  // may have changed
+  if (auto intervals = _sink->intervals(); intervals.size() == 0) {
+    return emit dataChanged(0, 0xffff);
+  } else {
+    // Otherwise, emit the intervals that were modified.
+    for (const auto &interval : intervals)
+      emit dataChanged(interval.lower(), interval.upper());
+    // And update intervals containing PC, SP to fix the higlighting.
+    emit dataChanged(this->_sp.lower(), this->_sp.upper());
+    emit dataChanged(this->_pc.lower(), this->_pc.upper());
+  }
+}

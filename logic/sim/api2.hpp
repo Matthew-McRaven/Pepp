@@ -16,8 +16,10 @@
 
 #pragma once
 #include <QtCore>
+#include <stack>
 #include <zpp_bits.h>
 
+#include "api2/path.hpp"
 #include "bits/operations/copy.hpp"
 #include "bits/span.hpp"
 
@@ -49,7 +51,11 @@ namespace packet {
 // for each address size. The variable-length byte-array allows this to be
 // expressed in a single packet type.
 template <size_t N> struct VariableBytes {
-  VariableBytes(quint8 len, bool continues = false) {
+  explicit VariableBytes() {
+    this->len = 0;
+    bytes.fill(0);
+  }
+  explicit VariableBytes(quint8 len, bool continues = false) {
     this->len = (len & len_mask()) | (continues ? 0x80 : 0x00);
     bytes.fill(0);
   }
@@ -60,7 +66,7 @@ template <size_t N> struct VariableBytes {
   }
 
   template <std::unsigned_integral Address> static VariableBytes from_address(Address address) {
-    auto len = sizeof(address);
+    constexpr auto len = sizeof(address);
     // Copy address bytes into bytes array.
     return VariableBytes(len, bits::span<const quint8>((quint8 *)&address, len));
   }
@@ -128,6 +134,10 @@ template <size_t N> struct VariableBytes {
 };
 
 using device_id_t = zpp::bits::varint<quint16>;
+// Type used to associate a packet with the series of devices it traverses.
+// A path of 0 implies no address translation.
+// See: api2/path.hpp
+using path_t = quint16;
 enum class DeltaEncoding : quint8 {
   XOR, // The old and new values are XOR'ed together
 };
@@ -136,37 +146,46 @@ namespace header {
 struct Clear {
   device_id_t device = 0;
   static constexpr std::size_t N = 8;
-  VariableBytes<N> value = {0};
+  VariableBytes<N> value = VariableBytes<N>{0};
 };
 
 struct PureRead {
   device_id_t device = 0;
+  zpp::bits::varint<path_t> path = 0;
   zpp::bits::varint<quint64> payload_len = 0;
   static constexpr std::size_t N = 8;
-  VariableBytes<N> address = {0};
+  VariableBytes<N> address = VariableBytes<N>{0};
 };
 
 // MUST be followed by 1+ payloads.
 struct ImpureRead {
   device_id_t device = 0;
+  zpp::bits::varint<path_t> path = 0;
   static constexpr std::size_t N = 8;
-  VariableBytes<N> address = {0};
+  VariableBytes<N> address = VariableBytes<N>{0};
 };
 
 // MUST be followed by 1+ payload.
 struct Write {
   device_id_t device = 0;
+  zpp::bits::varint<path_t> path = 0;
   static constexpr std::size_t N = 8;
-  VariableBytes<N> address = {0};
+  VariableBytes<N> address = VariableBytes<N>{0};
 };
 } // namespace header
 using Header = std::variant<header::Clear, header::PureRead, header::ImpureRead, header::Write>;
+
+template <typename T>
+concept HasPath = requires(T t) {
+  { t.path } -> std::convertible_to<path_t>;
+};
 
 namespace payload {
 // Successive payloads belong to the same packet.
 struct Variable {
   static constexpr std::size_t N = 32;
-  VariableBytes<N> payload = {0};
+  using Bytes = VariableBytes<N>;
+  VariableBytes<N> payload = VariableBytes<N>{0};
 };
 } // namespace payload
 using Payload = std::variant<payload::Variable>;
@@ -203,11 +222,6 @@ using Header = std::variant<header::Trace, header::Extender>;
 } // namespace frame
 
 namespace trace {
-enum class Mode {
-  Realtime, // Trace frames are parsed as they are received
-  Deferred, // Trace frames will be parsed at some later point.
-};
-
 enum class Level {
   Frame = 1,
   Packet = 2,
@@ -389,6 +403,7 @@ using PacketIterator = HierarchicalIterator<Level::Packet, Level::Payload>;
 template <Level... args> auto begin(HierarchicalIterator<args...> &iter) { return iter.cbegin(); }
 template <Level... args> auto end(HierarchicalIterator<args...> &iter) { return iter.cend(); }
 
+class PathGuard;
 class Sink;
 // If you inherit from this, you will likely want to inherit IteratorImpl as
 // well. IteratorImpl allows polymorphic implementation of this class while
@@ -403,11 +418,15 @@ public:
   virtual ~Buffer() = default;
   virtual bool trace(device::ID deviceID, bool enabled = true) = 0;
 
-  virtual bool registerSink(Sink *, Mode) = 0;
+  virtual bool registerSink(Sink *) = 0;
   virtual void unregisterSink(Sink *) = 0;
 
   // Must implicitly call updateFrameHeader to fix back links / lengths.
   virtual bool writeFragment(const frame::Header &) = 0;
+  template <packet::HasPath T> bool writeFragmentWithPath(T &&t) {
+    t.path = currentPath();
+    return writeFragment(packet::Header{t});
+  }
   virtual bool writeFragment(const packet::Header &) = 0;
   virtual bool writeFragment(const packet::Payload &) = 0;
 
@@ -416,30 +435,65 @@ public:
   // Remove the last frame from the buffer.
   // TODO: replace with integration for iterators / std::erase.
   virtual void dropLast() = 0;
+  // Deriving classes MUST also call this implementation of clear() if overriding it.
+  virtual void clear() { _paths = {paths_init()}; }
 
   virtual FrameIterator cbegin() const = 0;
   virtual FrameIterator cend() const = 0;
   virtual FrameIterator crbegin() const = 0;
   virtual FrameIterator crend() const = 0;
+  // Paths must be stored on TB and not some other object, since the average target only has access to a TB.
+  // Use a PathGuard to manipulate the current path.
+  quint16 currentPath() const { return _paths.top(); }
+
+protected:
+  void pushPath(packet::path_t path) { _paths.push(path); }
+  void popPath() { _paths.pop(); }
+  // stacks don't take initializer lists...
+  static std::stack<packet::path_t> paths_init() {
+    std::stack<packet::path_t> stack;
+    stack.push(0);
+    return stack;
+  }
+  friend class PathGuard;
+  std::stack<packet::path_t> _paths = {paths_init()};
+};
+
+// Helper to enable RAII for pushing/popping paths on buffer.
+class PathGuard {
+public:
+  PathGuard(Buffer *buffer, packet::path_t path) : _buffer(buffer), _path(path) {
+    if (_buffer && _buffer->currentPath() != _path)
+      _buffer->pushPath(_path);
+  }
+  ~PathGuard() {
+    if (_buffer && _buffer->currentPath() == _path)
+      _buffer->popPath();
+  }
+  PathGuard(const PathGuard &) = delete;
+  PathGuard &operator=(const PathGuard &) = delete;
+  PathGuard(PathGuard &&) = default;
+  PathGuard &operator=(PathGuard &&) = default;
+
+private:
+  quint16 _path = 0;
+  Buffer *_buffer = 0;
 };
 
 class Source {
 public:
   virtual ~Source() = default;
   virtual void setBuffer(Buffer *tb) = 0;
+  virtual const Buffer *buffer() const = 0;
   virtual void trace(bool enabled) = 0;
 };
 
 class Sink {
 public:
   virtual ~Sink() = default;
-  enum class Direction {
-    Forward,  // Apply the action specified by the packet.
-    Backward, // Undo the effects of the action specified by the packet.
-  };
   // Return true if the packet was processed by this sink, otherwise return
   // false.
-  virtual bool analyze(PacketIterator iter, Direction) = 0;
+  virtual bool analyze(PacketIterator iter, Direction direction) = 0;
 };
 
 } // namespace trace
@@ -553,6 +607,9 @@ struct Operation {
 
 template <typename Address> struct Target {
   virtual ~Target() = default;
+  // Needed by Translators to perform standalone address translation.
+  virtual device::ID deviceID() const = 0;
+
   virtual AddressSpan<Address> span() const = 0;
   virtual Result read(Address address, bits::span<quint8> dest, Operation op) const = 0;
   virtual Result write(Address address, bits::span<const quint8> src, Operation op) = 0;
@@ -561,6 +618,15 @@ template <typename Address> struct Target {
   // If dest is larger than maxOffset-minOffset+1, copy bytes from this target
   // to the span.
   virtual void dump(bits::span<quint8> dest) const = 0;
+};
+
+// If you act like a bus you need to implement this. It allows decoding of packets into their initiator's address space.
+template <typename Address> struct Translator {
+  virtual ~Translator() = default;
+  virtual std::tuple<bool, device::ID, Address> forward(Address address) const = 0;
+  virtual std::optional<Address> backward(device::ID child, Address address) const = 0;
+  virtual void setPathManager(QSharedPointer<api2::Paths> paths) = 0;
+  virtual QSharedPointer<const api2::Paths> pathManager() const = 0;
 };
 
 template <typename Address> struct Initiator {
@@ -596,6 +662,7 @@ template <typename Address> struct System {
   virtual device::IDGenerator nextIDGenerator() = 0;
 
   virtual void setBuffer(trace::Buffer *buffer) = 0;
+  virtual QSharedPointer<const api2::Paths> pathManager() const = 0;
 };
 
 } // namespace sim::api2

@@ -6,36 +6,35 @@ QtObject {
     required property var window
     required property var project
     property bool dark: window.palette.text.hslLightness < 0.5
+    function updateNativeText(obj) {
+        obj.nativeText = Qt.binding(() => SequenceConverter.toNativeText(
+                                        obj.shortcut))
+    }
+
     readonly property var file: QtObject {
         readonly property var new_: Action {
             property string nativeText: ""
-            onShortcutChanged: nativeText = Qt.binding(
-                                   () => SequenceConverter.toNativeText(
-                                       this.shortcut))
             text: "&New"
             onTriggered: window.onNew()
             icon.source: `image://icons/file/new${dark ? '' : '_dark'}.svg`
             shortcut: StandardKey.New
+            onShortcutChanged: updateNativeText(this)
         }
         readonly property var open: Action {
             property string nativeText: ""
-            onShortcutChanged: nativeText = Qt.binding(
-                                   () => SequenceConverter.toNativeText(
-                                       this.shortcut))
             text: "&Open..."
             onTriggered: window.onOpenDialog()
             icon.source: `image://icons/file/open${dark ? '' : '_dark'}.svg`
             shortcut: StandardKey.Open
+            onShortcutChanged: updateNativeText(this)
         }
         readonly property var save: Action {
             property string nativeText: ""
-            onShortcutChanged: nativeText = Qt.binding(
-                                   () => SequenceConverter.toNativeText(
-                                       this.shortcut))
             onTriggered: project.onSaveCurrent()
             text: "&Save"
             icon.source: `image://icons/file/save${dark ? '' : '_dark'}.svg`
             shortcut: StandardKey.Save
+            onShortcutChanged: updateNativeText(this)
         }
         readonly property var print_: Action {
             text: "&Print"
@@ -54,57 +53,50 @@ QtObject {
             icon.source: "image://icons/blank.svg"
         }
         readonly property var quit: Action {
+            property string nativeText: ""
             text: "&Quit"
             onTriggered: window.onQuit()
             icon.source: "image://icons/blank.svg"
+            shortcut: ["Ctrl+Q"]
+            onShortcutChanged: updateNativeText(this)
         }
     }
 
     readonly property var edit: QtObject {
         readonly property var undo: Action {
             property string nativeText: ""
-            onShortcutChanged: nativeText = Qt.binding(
-                                   () => SequenceConverter.toNativeText(
-                                       this.shortcut))
             text: "&Undo"
             icon.source: `image://icons/file/undo${dark ? '' : '_dark'}.svg`
             shortcut: StandardKey.Undo
+            onShortcutChanged: updateNativeText(this)
         }
         readonly property var redo: Action {
             property string nativeText: ""
-            onShortcutChanged: nativeText = Qt.binding(
-                                   () => SequenceConverter.toNativeText(
-                                       this.shortcut))
             text: "&Redo"
             icon.source: `image://icons/file/redo${dark ? '' : '_dark'}.svg`
             shortcut: StandardKey.Redo
+            onShortcutChanged: updateNativeText(this)
         }
         readonly property var copy: Action {
             property string nativeText: ""
-            onShortcutChanged: nativeText = Qt.binding(
-                                   () => SequenceConverter.toNativeText(
-                                       this.shortcut))
             text: "&Copy"
             icon.source: `image://icons/file/copy${dark ? '' : '_dark'}.svg`
             shortcut: StandardKey.Copy
+            onShortcutChanged: updateNativeText(this)
         }
         readonly property var cut: Action {
             property string nativeText: ""
-            onShortcutChanged: nativeText = Qt.binding(
-                                   () => SequenceConverter.toNativeText(
-                                       this.shortcut))
             text: "Cu&t"
             icon.source: `image://icons/file/cut${dark ? '' : '_dark'}.svg`
             shortcut: StandardKey.Cut
+            onShortcutChanged: updateNativeText(this)
         }
         readonly property var paste: Action {
             property string nativeText: ""
-            onShortcutChanged: nativeText = Qt.binding(
-                                   () => SequenceConverter.toNativeText(
-                                       this.shortcut))
             text: "&Paste"
             icon.source: `image://icons/file/paste${dark ? '' : '_dark'}.svg`
             shortcut: StandardKey.Paste
+            onShortcutChanged: updateNativeText(this)
         }
         readonly property var prefs: Action {
             text: "Pr&eferences"
@@ -116,24 +108,20 @@ QtObject {
         readonly property var loadObject: Action {
             enabled: project?.allowedDebugging & DebugEnableFlags.LoadObject
             property string nativeText: ""
-            onShortcutChanged: nativeText = Qt.binding(
-                                   () => SequenceConverter.toNativeText(
-                                       this.shortcut))
             onTriggered: project.onLoadObject()
             text: "&Load Object Code"
             icon.source: `image://icons/build/flash${enabled ? '' : '_disabled'}${dark ? '' : '_dark'}.svg`
-            shortcut: "Ctrl+Shift+L"
+            shortcut: ["Ctrl+Shift+L"]
+            onShortcutChanged: updateNativeText(this)
         }
         readonly property var execute: Action {
             enabled: project?.allowedDebugging & DebugEnableFlags.Execute
             property string nativeText: ""
-            onShortcutChanged: nativeText = Qt.binding(
-                                   () => SequenceConverter.toNativeText(
-                                       this.shortcut))
             onTriggered: project.onExecute()
             text: "&Execute"
             icon.source: `image://icons/debug/start_normal${enabled ? '' : '_disabled'}${dark ? '' : '_dark'}.svg`
-            shortcut: "Ctrl+Shift+R"
+            shortcut: ["Ctrl+Shift+R"]
+            onShortcutChanged: updateNativeText(this)
         }
     }
 
@@ -141,13 +129,11 @@ QtObject {
         readonly property var start: Action {
             enabled: project?.allowedDebugging & DebugEnableFlags.Start
             property string nativeText: ""
-            onShortcutChanged: nativeText = Qt.binding(
-                                   () => SequenceConverter.toNativeText(
-                                       this.shortcut))
             onTriggered: project.onDebuggingStart()
             text: "Start &Debugging"
             icon.source: `image://icons/debug/start_debug${enabled ? '' : '_disabled'}${dark ? '' : '_dark'}.svg`
-            shortcut: "Ctrl+D"
+            shortcut: ["Ctrl+D"]
+            onShortcutChanged: updateNativeText(this)
         }
         readonly property var continue_: Action {
             enabled: project?.allowedDebugging & DebugEnableFlags.Continue
@@ -158,13 +144,11 @@ QtObject {
         readonly property var pause: Action {
             enabled: project?.allowedDebugging & DebugEnableFlags.Pause
             property string nativeText: ""
-            onShortcutChanged: nativeText = Qt.binding(
-                                   () => SequenceConverter.toNativeText(
-                                       this.shortcut))
             onTriggered: project.onDebuggingPause()
             text: "I&nterrupt Debugging"
             icon.source: `image://icons/debug/pause${enabled ? '' : '_disabled'}${dark ? '' : '_dark'}.svg`
-            shortcut: "Ctrl+."
+            shortcut: ["Ctrl+."]
+            onShortcutChanged: updateNativeText(this)
         }
         readonly property var stop: Action {
             enabled: project?.allowedDebugging & DebugEnableFlags.Stop
@@ -175,13 +159,11 @@ QtObject {
         readonly property var step: Action {
             enabled: project?.allowedSteps & StepEnableFlags.Step
             property string nativeText: ""
-            onShortcutChanged: nativeText = Qt.binding(
-                                   () => SequenceConverter.toNativeText(
-                                       this.shortcut))
             onTriggered: project.onISAStep()
             text: "&Step"
             icon.source: `image://icons/debug/step_normal${enabled ? '' : '_disabled'}${dark ? '' : '_dark'}.svg`
-            shortcut: "Ctrl+Return"
+            shortcut: ["Ctrl+Return"]
+            onShortcutChanged: updateNativeText(this)
         }
         readonly property var stepOver: Action {
             enabled: project?.allowedSteps & StepEnableFlags.StepOver

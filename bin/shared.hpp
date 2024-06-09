@@ -15,11 +15,7 @@
  */
 
 #pragma once
-#include "asm/pas/ast/node.hpp"
-#include "elfio/elfio.hpp"
-#include "help/builtins/book.hpp"
-#include "macro/registry.hpp"
-
+#include <QtCore>
 #if INCLUDE_GUI
 class QQmlApplicationEngine;
 // Base class for application-specific global handling.
@@ -33,38 +29,11 @@ using init_fn = QSharedPointer<gui_globals> (*)(QQmlApplicationEngine &);
 #endif
 
 namespace detail {
-QSharedPointer<const builtins::Book> book(int ed);
-QSharedPointer<macro::Registry> registry(QSharedPointer<const builtins::Book> book, QStringList directory);
-void addMacro(macro::Registry &registry, std::string directory, QString arch);
-void addMacros(macro::Registry &registry, const std::list<std::string> &dirs, QString arch);
-
-class AsmHelper {
-public:
-  AsmHelper(QSharedPointer<macro::Registry> registry, QString os);
-  void setUserText(QString user);
-  bool assemble();
-  QStringList errors();
-  QSharedPointer<ELFIO::elfio> elf(std::optional<QList<quint8>> userObj = std::nullopt);
-  QStringList listing(bool os);
-  QList<quint8> bytes(bool os);
-
-private:
-  QSharedPointer<macro::Registry> _reg;
-  QString _os;
-  std::optional<QString> _user = std::nullopt;
-
-  QSharedPointer<pas::ast::Node> _osRoot, _userRoot;
-  QSharedPointer<ELFIO::elfio> _elf;
-};
 struct SharedFlags {
   // Somewhat of a tri-state value.
   // Record if we should explicitly use app default,
   // or if a subcommand has explicitly chosen a mode.
-  enum kind {
-    DEFAULT,
-    TERM,
-    GUI
-  } kind = DEFAULT;
+  enum kind { DEFAULT, TERM, GUI } kind = DEFAULT;
 
   int edValue = 6;
 };

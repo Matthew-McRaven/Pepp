@@ -16,8 +16,8 @@
 
 #include "fig.hpp"
 #include <iostream>
-#include "../../shared.hpp"
 #include "help/builtins/figure.hpp"
+#include "helpers/asmb.hpp"
 
 GetFigTask::GetFigTask(int ed, std::string ch, std::string fig, std::string type, bool isFigure, QObject *parent)
     : Task(parent), ed(ed), isFigure(isFigure), ch(ch), fig(fig), type(type) {}
@@ -26,7 +26,7 @@ void GetFigTask::run() {
   static const auto err_noitem = u"%1 %2.%3 does not exist.\n"_qs;
   static const auto err_novar = u"%1 %2.%3 does not contain a \"%4\" variant.\n"_qs;
 
-  auto book = detail::book(ed);
+  auto book = helpers::book(ed);
   if (book.isNull())
     return emit finished(1);
   QSharedPointer<const builtins::Figure> item = nullptr;

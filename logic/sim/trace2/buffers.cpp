@@ -7,26 +7,22 @@
 // ~1 byte per fragment to the output stream.
 using wrapped = std::variant<sim::api2::frame::Header, sim::api2::packet::Header, sim::api2::packet::Payload>;
 
-sim::trace2::InfiniteBuffer::InfiniteBuffer()
-    : _in(_data)
-    , _out(_data)
-    , _backlinks(256)
-{
-}
+sim::trace2::InfiniteBuffer::InfiniteBuffer() : _in(_data), _out(_data), _backlinks(256) {}
 
 bool sim::trace2::InfiniteBuffer::trace(sim::api2::device::ID deviceID, bool enabled)
 {
-    if(enabled) _traced.insert(deviceID);
-    else _traced.remove(deviceID);
-    return true;
+  if (enabled)
+    _traced.insert(deviceID);
+  else
+    _traced.remove(deviceID);
+  return true;
 }
 
-bool sim::trace2::InfiniteBuffer::registerSink(api2::trace::Sink *sink,
-                                               api2::trace::Mode /*mode*/)
-{
-    if(_sinks.contains(sink)) return false;
-    _sinks.insert(sink);
-    return true;
+bool sim::trace2::InfiniteBuffer::registerSink(api2::trace::Sink *sink) {
+  if (_sinks.contains(sink))
+    return false;
+  _sinks.insert(sink);
+  return true;
 }
 
 void sim::trace2::InfiniteBuffer::unregisterSink(api2::trace::Sink * sink)
@@ -38,7 +34,8 @@ bool sim::trace2::InfiniteBuffer::writeFragment(const api2::frame::Header& heade
 {
     // Both will point to same position when header is first element to be
     // serialized.
-    if(_lastFrameStart  != _out.position()) updateFrameHeader();
+    if (_lastFrameStart != _out.position())
+      updateFrameHeader();
 
     // Zero out length field of header, and set back_offset.
     api2::frame::Header hdr = header;
@@ -98,6 +95,15 @@ bool sim::trace2::InfiniteBuffer::updateFrameHeader()
 void sim::trace2::InfiniteBuffer::dropLast()
 {
 
+}
+
+void sim::trace2::InfiniteBuffer::clear() {
+  sim::api2::trace::Buffer::clear();
+  _out.reset();
+  _in.reset();
+  _lastFrameStart = 0;
+  _data.resize(0);
+  _backlinks.clear();
 }
 
 sim::trace2::InfiniteBuffer::FrameIterator sim::trace2::InfiniteBuffer::cbegin() const

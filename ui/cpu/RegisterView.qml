@@ -82,12 +82,13 @@ Rectangle {
                     property int row: rowDelegate.index
                     property int column: index
                     property var mindex: registers.model.index(row, column)
-                    property string display: registers.model.data(mindex)
-                    property bool box: registers.model.data(mindex,
-                                                            registers.model.Box)
+                    property string display: registers.model.data(mindex) ?? ""
+                    property bool box: registers.model.data(
+                                           mindex, registers.model.Box) ?? false
                     property bool rightJustify: registers.model.data(
                                                     mindex,
                                                     registers.model.RightJustify)
+                                                ?? false
                     Layout.minimumWidth: Math.max(35, textField.width)
                     Layout.minimumHeight: textField.height
                     Layout.fillWidth: true
@@ -104,7 +105,7 @@ Rectangle {
                         readOnly: true
                         maximumLength: registers.model.columnCharWidth(column)
                         anchors.centerIn: columnDelegate
-                        text: display
+                        text: columnDelegate.display
                         color: palette.windowText
                         horizontalAlignment: rightJustify ? Qt.AlignRight : Qt.AlignHCenter
                         // '0' is a wide character, and tm contains a single '0' in the current font.

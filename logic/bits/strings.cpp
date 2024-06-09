@@ -76,7 +76,7 @@ std::optional<QList<quint8>> bits::asciiHexToByte(span<const char> in) {
   ret.reserve(in.size() / 3 + 2);
   qsizetype inIt = 0;
   char *endptr = nullptr;
-  while (inIt + 3 < in.size()) {
+  while (inIt < in.size()) {
     ret.push_back(strtol(in.subspan(inIt).data(), &endptr, 16));
     if (endptr > in.subspan(inIt + 2).data())
       return std::nullopt;

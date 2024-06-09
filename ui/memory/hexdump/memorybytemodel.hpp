@@ -88,7 +88,8 @@ public:
 
   Q_INVOKABLE QModelIndex currentCell();
   Q_INVOKABLE QModelIndex lastCell();
-
+public slots:
+  void onDataChanged(quint32 start, quint32 end);
 signals:
   void dimensionsChanged();
   void memoryChanged();
