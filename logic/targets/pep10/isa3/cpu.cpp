@@ -29,6 +29,11 @@ sim::api2::memory::Operation rw_i = {
     .kind = sim::api2::memory::Operation::Kind::instruction,
 };
 
+sim::api2::memory::Operation gs_i = {
+    .type = sim::api2::memory::Operation::Type::Application,
+    .kind = sim::api2::memory::Operation::Kind::instruction,
+};
+
 targets::pep10::isa::CPU::CPU(sim::api2::device::Descriptor device, sim::api2::device::IDGenerator gen)
     : _device(device), _regs({.id = gen(), .baseName = "regs", .fullName = _device.fullName + "/regs"},
                              {.minOffset = 0, .maxOffset = quint8(::isa::Pep10::RegisterCount * 2 - 1)}),
@@ -40,6 +45,18 @@ sim::api2::memory::Target<quint8> *targets::pep10::isa::CPU::regs() { return &_r
 sim::api2::memory::Target<quint8> *targets::pep10::isa::CPU::csrs() { return &_csrs; }
 
 targets::pep10::isa::CPU::Status targets::pep10::isa::CPU::status() const { return _status; }
+
+std::optional<quint16> targets::pep10::isa::CPU::currentOperand() {
+  using Register = ::isa::Pep10::Register;
+  auto is = readReg(Register::IS), os = readReg(Register::OS);
+  auto instrDef = ::isa::Pep10::opcodeLUT[is];
+  if (::isa::Pep10::isValidAddressingMode(instrDef.instr.mnemon, instrDef.mode) && !instrDef.instr.unary) {
+    quint16 operand = 0;
+    ::isa::Pep10::isStore(is) ? decodeStoreOperand(is, os, operand, false) : decodeLoadOperand(is, os, operand, false);
+    return operand;
+  }
+  return std::nullopt;
+}
 
 const sim::api2::tick::Source *targets::pep10::isa::CPU::getSource() { return _clock; }
 
@@ -676,9 +693,10 @@ sim::api2::tick::Result targets::pep10::isa::CPU::nonunaryDispatch(quint8 is, qu
   return {.pause = 0, .delay = 1};
 }
 
-void targets::pep10::isa::CPU::decodeStoreOperand(quint8 is, quint16 os, quint16 &decoded) {
+void targets::pep10::isa::CPU::decodeStoreOperand(quint8 is, quint16 os, quint16 &decoded, bool traced) {
   using Register = ::isa::Pep10::Register;
   using am = ::isa::Pep10::AddressingMode;
+  auto acc_i = traced ? rw_i : gs_i;
 
   static const bool swap = bits::hostOrder() != bits::Order::BigEndian;
   auto instruction = ::isa::Pep10::opcodeLUT[is];
@@ -689,7 +707,7 @@ void targets::pep10::isa::CPU::decodeStoreOperand(quint8 is, quint16 os, quint16
     decoded = os;
     break;
   case am::N:
-    _memory->read(os, {reinterpret_cast<quint8 *>(&decoded), 2}, rw_i);
+    _memory->read(os, {reinterpret_cast<quint8 *>(&decoded), 2}, acc_i);
     if (swap)
       decoded = bits::byteswap(decoded);
     break;
@@ -703,12 +721,12 @@ void targets::pep10::isa::CPU::decodeStoreOperand(quint8 is, quint16 os, quint16
     decoded = os + readReg(Register::SP) + readReg(Register::X);
     break;
   case am::SF:
-    _memory->read(os + readReg(Register::SP), {reinterpret_cast<quint8 *>(&decoded), 2}, rw_i);
+    _memory->read(os + readReg(Register::SP), {reinterpret_cast<quint8 *>(&decoded), 2}, acc_i);
     if (swap)
       decoded = bits::byteswap(decoded);
     break;
   case am::SFX:
-    _memory->read(os + readReg(Register::SP), {reinterpret_cast<quint8 *>(&decoded), 2}, rw_i);
+    _memory->read(os + readReg(Register::SP), {reinterpret_cast<quint8 *>(&decoded), 2}, acc_i);
     if (swap)
       decoded = bits::byteswap(decoded);
     decoded += readReg(Register::X);
@@ -718,10 +736,11 @@ void targets::pep10::isa::CPU::decodeStoreOperand(quint8 is, quint16 os, quint16
   }
 }
 
-void targets::pep10::isa::CPU::decodeLoadOperand(quint8 is, quint16 os, quint16 &decoded) {
+void targets::pep10::isa::CPU::decodeLoadOperand(quint8 is, quint16 os, quint16 &decoded, bool traced) {
   using Register = ::isa::Pep10::Register;
   using mn = ::isa::Pep10::Mnemonic;
   using am = ::isa::Pep10::AddressingMode;
+  auto acc_i = traced ? rw_i : gs_i;
 
   static const bool swap = bits::hostOrder() != bits::Order::BigEndian;
   auto instruction = ::isa::Pep10::opcodeLUT[is];
@@ -734,61 +753,61 @@ void targets::pep10::isa::CPU::decodeLoadOperand(quint8 is, quint16 os, quint16 
     break;
   case am::D:
     _memory->read(os, {reinterpret_cast<quint8 *>(&decoded) + int(isByte && swap ? 1 : 0), std::size_t(isByte ? 1 : 2)},
-                  rw_i);
+                  acc_i);
     if (swap)
       decoded = bits::byteswap(decoded);
     break;
   case am::N:
-    _memory->read(os, {reinterpret_cast<quint8 *>(&decoded), 2}, rw_i);
+    _memory->read(os, {reinterpret_cast<quint8 *>(&decoded), 2}, acc_i);
 
     if (swap)
       decoded = bits::byteswap(decoded);
     _memory->read(decoded,
                   {reinterpret_cast<quint8 *>(&decoded) + int(isByte && swap ? 1 : 0), std::size_t(isByte ? 1 : 2)},
-                  rw_i);
+                  acc_i);
     if (swap)
       decoded = bits::byteswap(decoded);
     break;
   case am::S:
     _memory->read(os + readReg(Register::SP),
                   {reinterpret_cast<quint8 *>(&decoded) + int(isByte && swap ? 1 : 0), std::size_t(isByte ? 1 : 2)},
-                  rw_i);
+                  acc_i);
     if (swap)
       decoded = bits::byteswap(decoded);
     break;
   case am::X:
     _memory->read(os + readReg(Register::X),
                   {reinterpret_cast<quint8 *>(&decoded) + int(isByte && swap ? 1 : 0), std::size_t(isByte ? 1 : 2)},
-                  rw_i);
+                  acc_i);
     if (swap)
       decoded = bits::byteswap(decoded);
     break;
   case am::SX:
     _memory->read(os + readReg(Register::SP) + readReg(Register::X),
                   {reinterpret_cast<quint8 *>(&decoded) + int(isByte && swap ? 1 : 0), std::size_t(isByte ? 1 : 2)},
-                  rw_i);
+                  acc_i);
     if (swap)
       decoded = bits::byteswap(decoded);
     break;
   case am::SF:
-    _memory->read(os + readReg(Register::SP), {reinterpret_cast<quint8 *>(&decoded), 2}, rw_i);
+    _memory->read(os + readReg(Register::SP), {reinterpret_cast<quint8 *>(&decoded), 2}, acc_i);
 
     if (swap)
       decoded = bits::byteswap(decoded);
     _memory->read(decoded,
                   {reinterpret_cast<quint8 *>(&decoded) + int(isByte && swap ? 1 : 0), std::size_t(isByte ? 1 : 2)},
-                  rw_i);
+                  acc_i);
     if (swap)
       decoded = bits::byteswap(decoded);
     break;
   case am::SFX:
-    _memory->read(os + readReg(Register::SP), {reinterpret_cast<quint8 *>(&decoded), 2}, rw_i);
+    _memory->read(os + readReg(Register::SP), {reinterpret_cast<quint8 *>(&decoded), 2}, acc_i);
 
     if (swap)
       decoded = bits::byteswap(decoded);
     _memory->read(decoded + readReg(Register::X),
                   {reinterpret_cast<quint8 *>(&decoded) + int(isByte && swap ? 1 : 0), std::size_t(isByte ? 1 : 2)},
-                  rw_i);
+                  acc_i);
     if (swap)
       decoded = bits::byteswap(decoded);
     break;
