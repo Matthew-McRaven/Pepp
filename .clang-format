@@ -9,3 +9,5 @@ IncludeCategories:
     Priority: 2
 IndentWidth: 2
 TabWidth: 2
+AllowShortCaseLabelsOnASingleLine: true
+AllowShortIfStatementsOnASingleLine: true
