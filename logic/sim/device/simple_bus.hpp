@@ -222,6 +222,9 @@ template <typename Address> inline void SimpleBus<Address>::setBuffer(api2::trac
 template <typename Address> inline void SimpleBus<Address>::trace(bool enabled) {
   if (_tb)
     _tb->trace(_device.id, enabled);
+  for (auto dev : _devices)
+    if (auto as_source = dynamic_cast<api2::trace::Source *>(dev.second); as_source != nullptr)
+      as_source->trace(enabled);
 }
 
 } // namespace sim::memory
