@@ -229,23 +229,28 @@ private:
   std::vector<Node> _elements;
 };
 
-template <typename addr_size_t> class ModifiedAddressSink : public ::sim::api2::trace::Sink {
+template <typename Address> class ModifiedAddressSink : public ::sim::api2::trace::Sink {
 public:
   virtual ~ModifiedAddressSink() = default;
   bool analyze(api2::trace::PacketIterator iter, sim::api2::trace::Direction) override {
     using namespace sim::api2::packet;
     auto startAddrBytes = sim::trace2::get_address_bytes(*iter);
+    auto path = sim::trace2::get_path(*iter).value_or(0);
+    auto id = sim::trace2::get_id(*iter).value_or(0);
     if (!startAddrBytes) {
     } else if (auto len = sim::trace2::packet_payloads_length(iter, false); len > 0) {
-      addr_size_t start = startAddrBytes->to_address<addr_size_t>();
+      Address start = startAddrBytes->to_address<Address>();
       // If the number of bytes to represent the address is large than our address type, or the address type
       // will not fit int the u64, modular arithmetic will not work. Depend on typecast to truncate.
       uint64_t endAsU64 = ((static_cast<uint64_t>(start)) + static_cast<uint64_t>(len) - 1ull);
       // Use bitmask to force wraparound when len < sizeof(addr_size_t).
-      addr_size_t end = endAsU64 & bits::mask(startAddrBytes->len);
+      Address end = endAsU64 & bits::mask(startAddrBytes->len);
+      start = translate(id, path, start);
+      end = translate(id, path, end);
       // Split in to upper and lower intervals.
       if (end < start) {
-        addr_size_t maxAddr = (1ull << (startAddrBytes->len * 8)) - 1;
+        // TODO: This is probably wrong when intermediate addresses have more bytes.
+        Address maxAddr = (1ull << (startAddrBytes->len * 8)) - 1;
         _iset.insert(start, maxAddr);
         _iset.insert(0, end);
       } else
@@ -254,14 +259,14 @@ public:
     return true;
   }
   void clear() { _iset.clear(); }
-  const std::set<Interval<addr_size_t>> &intervals() const { return _iset.intervals(); }
-  bool contains(addr_size_t addr) const {
+  const std::set<Interval<Address>> &intervals() const { return _iset.intervals(); }
+  bool contains(Address addr) const {
     auto i = _iset.intervals();
     if (i.size() == 0)
       return false;
     // Use O(lg n) search to find glb.
     // If glb is at the start, this is the only interval which could contain addr.
-    else if (auto lb = i.lower_bound(Interval<addr_size_t>{addr, addr}); lb == i.cbegin())
+    else if (auto lb = i.lower_bound(Interval<Address>{addr, addr}); lb == i.cbegin())
       return sim::trace2::contains(*lb, addr);
     else if (lb != i.cend() && lb->lower() <= addr)
       return sim::trace2::contains(*lb, addr);
@@ -271,10 +276,31 @@ public:
     else
       return sim::trace2::contains(*prev, addr);
   }
-  void insert(addr_size_t addr) { _iset.insert(addr); }
-  void insert(addr_size_t lower, addr_size_t upper) { _iset.insert(lower, upper); }
+
+protected:
+  using path_t = api2::packet::path_t;
+  using device_id_t = api2::device::ID;
+  virtual Address translate(device_id_t, path_t, Address addr) const { return addr; }
 
 private:
-  IntervalSet<addr_size_t, true> _iset;
+  IntervalSet<Address, true> _iset;
+};
+
+template <typename Address> class TranslatingModifiedAddressSink : public ModifiedAddressSink<Address> {
+public:
+  TranslatingModifiedAddressSink(QSharedPointer<const api2::Paths> paths,
+                                 const api2::memory::Translator<Address> *translator)
+      : ModifiedAddressSink<Address>(), _paths(paths), _translator(translator) {}
+
+protected:
+  using path_t = api2::packet::path_t;
+  using device_id_t = api2::device::ID;
+  Address translate(device_id_t dev, path_t path, Address addr) const override {
+    return _translator->backward(dev, addr).value_or(0);
+  }
+
+private:
+  const api2::memory::Translator<Address> *_translator = nullptr;
+  QSharedPointer<const api2::Paths> _paths = nullptr;
 };
 } // namespace sim::trace2

@@ -81,7 +81,7 @@ private:
   QSharedPointer<sim::api2::Paths> _paths = nullptr;
   mutable api2::trace::Buffer *_tb = nullptr;
   api2::trace::PathGuard makeGuard() const {
-    if (!_tb && !_paths)
+    if (!_tb || !_paths)
       return api2::trace::PathGuard(nullptr, -1);
     auto currentPath = _tb->currentPath();
     return api2::trace::PathGuard(_tb, _paths->find(currentPath, _device.id));

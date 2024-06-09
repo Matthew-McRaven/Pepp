@@ -1,5 +1,7 @@
 #include "sim/trace2/modified.hpp"
 #include <catch.hpp>
+#include "sim/device/dense.hpp"
+#include "sim/device/simple_bus.hpp"
 #include "sim/trace2/buffers.hpp"
 
 using namespace sim::trace2;
@@ -434,7 +436,6 @@ TEST_CASE("ModifiedAddressSink", "[scope:sim][kind:unit][arch:*]") {
     CHECK(sink.intervals().size() == 1);
     for (int it = 0; it <= 5; it++)
       CHECK(sink.contains(it));
-    IS set;
   }
   SECTION("Insert contained in existing interval") {
     InfiniteBuffer buf;
@@ -497,5 +498,151 @@ TEST_CASE("ModifiedAddressSink", "[scope:sim][kind:unit][arch:*]") {
     CHECK_FALSE(sink.contains(0x0001));
     // Check there's not some overflow to negative max.
     CHECK_FALSE(sink.contains(0x8000));
+  }
+}
+
+TEST_CASE("TranslatingModifiedAddressSink", "[scope:sim][kind:unit][arch:*]") {
+  using namespace sim::api2::packet;
+  auto d1 = sim::api2::device::Descriptor{.id = 1, .baseName = "d1", .fullName = "/bus0/d1"};
+  auto d2 = sim::api2::device::Descriptor{.id = 2, .baseName = "d2", .fullName = "/bus0/d2"};
+  auto d3 = sim::api2::device::Descriptor{.id = 3, .baseName = "d3", .fullName = "/bus0/d3"};
+  auto b1 = sim::api2::device::Descriptor{.id = 4, .baseName = "bus0", .fullName = "/bus0"};
+  auto b2 = sim::api2::device::Descriptor{.id = 5, .baseName = "bus1", .fullName = "/bus1"};
+  using Span = sim::api2::memory::AddressSpan<quint16>;
+  auto make = [&](sim::api2::trace::Buffer *tb) {
+    auto m1 = QSharedPointer<sim::memory::Dense<quint16>>::create(d1, Span{.minOffset = 0, .maxOffset = 0x1});
+    auto m2 = QSharedPointer<sim::memory::Dense<quint16>>::create(d2, Span{.minOffset = 0, .maxOffset = 0x1});
+    auto m3 = QSharedPointer<sim::memory::Dense<quint16>>::create(d3, Span{.minOffset = 0, .maxOffset = 0x1});
+    auto bus = QSharedPointer<sim::memory::SimpleBus<quint16>>::create(b1, Span{.minOffset = 0, .maxOffset = 5});
+    CHECK(bus->deviceID() == b1.id);
+    bus->pushFrontTarget(Span{.minOffset = 0, .maxOffset = 1}, &*m1);
+    bus->pushFrontTarget(Span{.minOffset = 2, .maxOffset = 3}, &*m2);
+    bus->pushFrontTarget(Span{.minOffset = 4, .maxOffset = 5}, &*m3);
+    m1->setBuffer(tb);
+    m1->trace(true);
+    m2->setBuffer(tb);
+    m2->trace(true);
+    m3->setBuffer(tb);
+    m3->trace(true);
+    bus->setBuffer(tb);
+    bus->trace(true);
+    return std::tuple{bus, m1, m2, m3};
+  };
+  quint8 v1[] = {0};
+  quint8 v2[] = {0, 0};
+  SECTION("Append-only, no merge") {
+    InfiniteBuffer buf;
+    auto [bus, m1, m2, m3] = make(&buf);
+    auto paths = QSharedPointer<sim::api2::Paths>::create();
+    auto path = paths->add(0, bus->deviceID());
+    TranslatingModifiedAddressSink<uint16_t> sink(paths, &*bus);
+    auto guard = sim::api2::trace::PathGuard(&buf, path);
+    emitFrameStart(&buf);
+    emitWrite<quint16>(&buf, d1.id, 0u, v1, v1);
+    emitWrite<quint16>(&buf, d2.id, 0u, v1, v1);
+    emitWrite<quint16>(&buf, d3.id, 0u, v1, v1);
+    emitFrameStart(&buf);
+    auto frame = buf.cbegin();
+    for (auto pkt = frame.cbegin(); pkt != frame.cend(); ++pkt)
+      sink.analyze(pkt, sim::api2::trace::Direction::Forward);
+    CHECK(sink.intervals().size() == 3);
+    for (int it = 0; it <= 5; it++)
+      CHECK(sink.contains(it) == (it % 2 == 0));
+    sink.clear();
+    CHECK(sink.intervals().size() == 0);
+  }
+  SECTION("Append-only and merge") {
+    InfiniteBuffer buf;
+    auto [bus, m1, m2, m3] = make(&buf);
+    auto paths = QSharedPointer<sim::api2::Paths>::create();
+    auto path = paths->add(0, bus->deviceID());
+    TranslatingModifiedAddressSink<uint16_t> sink(paths, &*bus);
+    auto guard = sim::api2::trace::PathGuard(&buf, path);
+    emitFrameStart(&buf);
+    emitWrite<quint16>(&buf, d1.id, 0u, v2, v2);
+    emitWrite<quint16>(&buf, d2.id, 0u, v2, v2);
+    emitWrite<quint16>(&buf, d3.id, 0u, v2, v2);
+    emitFrameStart(&buf);
+    auto frame = buf.cbegin();
+    for (auto pkt = frame.cbegin(); pkt != frame.cend(); ++pkt)
+      sink.analyze(pkt, sim::api2::trace::Direction::Forward);
+    CHECK(sink.intervals().size() == 1);
+    for (int it = 0; it <= 5; it++)
+      CHECK(sink.contains(it));
+  }
+  SECTION("Prepend-only, no merge") {
+    InfiniteBuffer buf;
+    auto [bus, m1, m2, m3] = make(&buf);
+    auto paths = QSharedPointer<sim::api2::Paths>::create();
+    auto path = paths->add(0, bus->deviceID());
+    TranslatingModifiedAddressSink<uint16_t> sink(paths, &*bus);
+    auto guard = sim::api2::trace::PathGuard(&buf, path);
+    emitFrameStart(&buf);
+    emitWrite<quint16>(&buf, d3.id, 0u, v1, v1);
+    emitWrite<quint16>(&buf, d2.id, 0u, v1, v1);
+    emitWrite<quint16>(&buf, d1.id, 0u, v1, v1);
+    emitFrameStart(&buf);
+    auto frame = buf.cbegin();
+    for (auto pkt = frame.cbegin(); pkt != frame.cend(); ++pkt)
+      sink.analyze(pkt, sim::api2::trace::Direction::Forward);
+    CHECK(sink.intervals().size() == 3);
+    for (int it = 0; it <= 5; it++)
+      CHECK(sink.contains(it) == (it % 2 == 0));
+  }
+  SECTION("Prepend-only and merge") {
+    InfiniteBuffer buf;
+    auto [bus, m1, m2, m3] = make(&buf);
+    auto paths = QSharedPointer<sim::api2::Paths>::create();
+    auto path = paths->add(0, bus->deviceID());
+    TranslatingModifiedAddressSink<uint16_t> sink(paths, &*bus);
+    auto guard = sim::api2::trace::PathGuard(&buf, path);
+    emitFrameStart(&buf);
+    emitWrite<quint16>(&buf, d3.id, 0, v2, v2);
+    emitWrite<quint16>(&buf, d2.id, 0, v2, v2);
+    emitWrite<quint16>(&buf, d1.id, 0, v2, v2);
+    emitFrameStart(&buf);
+    auto frame = buf.cbegin();
+    for (auto pkt = frame.cbegin(); pkt != frame.cend(); ++pkt)
+      sink.analyze(pkt, sim::api2::trace::Direction::Forward);
+    CHECK(sink.intervals().size() == 1);
+    for (int it = 0; it <= 5; it++)
+      CHECK(sink.contains(it));
+  }
+  SECTION("Merge previous and next intervals") {
+    InfiniteBuffer buf;
+    auto [bus, m1, m2, m3] = make(&buf);
+    auto paths = QSharedPointer<sim::api2::Paths>::create();
+    auto path = paths->add(0, bus->deviceID());
+    TranslatingModifiedAddressSink<uint16_t> sink(paths, &*bus);
+    auto guard = sim::api2::trace::PathGuard(&buf, path);
+    emitFrameStart(&buf);
+    emitWrite<quint16>(&buf, d3.id, 0, v2, v2);
+    emitWrite<quint16>(&buf, d1.id, 0, v2, v2);
+    emitWrite<quint16>(&buf, d2.id, 0, v2, v2);
+    emitFrameStart(&buf);
+    auto frame = buf.cbegin();
+    for (auto pkt = frame.cbegin(); pkt != frame.cend(); ++pkt)
+      sink.analyze(pkt, sim::api2::trace::Direction::Forward);
+    CHECK(sink.intervals().size() == 1);
+    for (int it = 0; it <= 5; it++)
+      CHECK(sink.contains(it));
+  }
+  SECTION("Insert contained in existing interval") {
+    InfiniteBuffer buf;
+    auto [bus, m1, m2, m3] = make(&buf);
+    auto paths = QSharedPointer<sim::api2::Paths>::create();
+    auto path = paths->add(0, bus->deviceID());
+    TranslatingModifiedAddressSink<uint16_t> sink(paths, &*bus);
+    auto guard = sim::api2::trace::PathGuard(&buf, path);
+    emitFrameStart(&buf);
+    emitWrite<quint16>(&buf, d3.id, 0, v2, v2);
+    emitWrite<quint16>(&buf, d3.id, 0, v1, v1);
+    emitFrameStart(&buf);
+    auto frame = buf.cbegin();
+    for (auto pkt = frame.cbegin(); pkt != frame.cend(); ++pkt)
+      sink.analyze(pkt, sim::api2::trace::Direction::Forward);
+    CHECK(sink.intervals().size() == 1);
+    CHECK(sink.contains(4));
+    CHECK(sink.contains(5));
   }
 }

@@ -56,6 +56,14 @@ public:
   std::optional<api2::packet::path_t> operator()(const auto &header) const { return std::nullopt; }
 };
 
+class GetHeaderID {
+public:
+  template <HasDevice Header> std::optional<api2::device::ID> operator()(const Header &header) const {
+    return header.device;
+  };
+  std::optional<api2::device::ID> operator()(const auto &header) const { return 0; }
+};
+
 // Return the number of bytes in all payloads following a packet header.
 // If includeRead is true, PureRead payload lengths are returned from packets. Otherwise, 0 is returned.
 // No other packet types are impacted. It is meant to help determine the set of addresses written to over a simulation.
@@ -87,6 +95,7 @@ struct PayloadLength {
 
 std::optional<api2::packet::VariableBytes<8>> get_address_bytes(const sim::api2::packet::Header &header);
 std::optional<api2::packet::path_t> get_path(const sim::api2::packet::Header &header);
+std::optional<api2::device::ID> get_id(const sim::api2::packet::Header &header);
 
 template <typename T> std::optional<T> get_address(const sim::api2::packet::Header &header) {
   return std::visit(detail::GetAddress<T>{}, header);
