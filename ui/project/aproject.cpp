@@ -5,6 +5,7 @@
 #include "help/builtins/figure.hpp"
 #include "helpers/asmb.hpp"
 #include "isa/pep10.hpp"
+#include "sim/device/broadcast/mmi.hpp"
 #include "sim/device/broadcast/mmo.hpp"
 #include "sim/device/broadcast/pubsub.hpp"
 #include "sim/device/simple_bus.hpp"
@@ -191,6 +192,26 @@ int Pep10_ISA::allowedDebugging() const { return -1; }
 
 int Pep10_ISA::allowedSteps() const { return -1; }
 
+QString Pep10_ISA::charIn() const { return _charIn; }
+
+void Pep10_ISA::setCharIn(QString value) { _charIn = value; }
+
+QString Pep10_ISA::charOut() const {
+  if (auto charOut = _system->output("charOut"); charOut) {
+    auto charOutEndpoint = charOut->endpoint();
+    charOutEndpoint->set_to_head();
+    int index = 0;
+    QString out;
+    for (auto next = charOutEndpoint->next_value(); next.has_value(); next = charOutEndpoint->next_value()) {
+      if (out.capacity() < index + 1)
+        out.reserve(2 * (index + 1));
+      out.append(char(*next));
+    }
+    return out;
+  }
+  return u""_qs;
+}
+
 bool Pep10_ISA::onSaveCurrent() { return false; }
 
 bool Pep10_ISA::onLoadObject() {
@@ -224,8 +245,15 @@ bool Pep10_ISA::onExecute() {
   _tb->clear();
   _system->init();
   auto pwrOff = _system->output("pwrOff");
-  auto charOut = _system->output("pwrOff");
+  auto charOut = _system->output("charOut");
+  charOut->clear(0);
+  pwrOff->clear(0);
   auto endpoint = pwrOff->endpoint();
+  auto charIn = _system->input("charIn");
+  auto charInEndpoint = charIn->endpoint();
+  for (int it = 0; it < _charIn.size(); it++)
+    charInEndpoint->append_value(_charIn[it].toLatin1());
+
   bool noMMI = false;
   // Only enable trace while running the program to prevent spurious changed highlights.
   _system->bus()->trace(true);
@@ -244,20 +272,6 @@ bool Pep10_ISA::onExecute() {
   }
   _system->bus()->trace(false);
 
-  // TODO: direct output to GUI, not CERR.
-  if (auto charOut = _system->output("charOut"); charOut) {
-    auto charOutEndpoint = charOut->endpoint();
-    charOutEndpoint->set_to_head();
-    auto writeOut = [&](QTextStream &outF) {
-      for (auto next = charOutEndpoint->next_value(); next.has_value(); next = charOutEndpoint->next_value()) {
-        outF << char(*next);
-      }
-    };
-    QTextStream out(stderr, QIODevice::WriteOnly | QIODevice::Truncate | QIODevice::Text);
-    writeOut(out);
-    charOut->clear(0);
-  }
-
   // Update cpu-dependent fields in memory before triggering a GUI update.
   quint8 is;
   quint16 sp, pc;
@@ -266,6 +280,7 @@ bool Pep10_ISA::onExecute() {
   _system->bus()->read(pc, {&is, 1}, gs);
   _memory->setSP(sp);
   _memory->setPC(pc, pc + (isa::Pep10::opcodeLUT[is].instr.unary ? 0 : 2));
+  emit charOutChanged();
   emit updateGUI(UpdateType::Partial);
   return true;
 }
