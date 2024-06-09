@@ -28,9 +28,9 @@ isa::Pep10::AddressingMode isa::Pep10::defaultAddressingMode() {
 isa::Pep10::AddressingMode
 isa::Pep10::defaultAddressingMode(Mnemonic mnemonic) {
     if (isAType(mnemonic))
-        return AddressingMode::I;
+      return AddressingMode::I;
     else
-        return defaultAddressingMode();
+      return defaultAddressingMode();
 }
 
 quint8 isa::Pep10::opcode(Mnemonic mnemonic) {
@@ -124,13 +124,11 @@ bool isa::Pep10::isRAAAType(Mnemonic mnemonic) {
   return type == T::RAAA_all || type == T::RAAA_noi;
 }
 
-bool isa::Pep10::isValidRAAATypeAddressingMode(Mnemonic mnemonic,
-                                               AddressingMode addr) {
+bool isa::Pep10::isValidRAAATypeAddressingMode(Mnemonic mnemonic, AddressingMode addr) {
   using T = InstructionType;
   using AM = AddressingMode;
   auto type = opcodeLUT[opcode(mnemonic)].instr.type;
-  return !(addr == AM::ALL || addr == AM::INVALID || addr == AM::NONE ||
-           (type == T::RAAA_noi && addr == AM::I));
+  return !(addr == AM::ALL || addr == AM::INVALID || addr == AM::NONE || (type == T::RAAA_noi && addr == AM::I));
 }
 
 bool isa::Pep10::isValidAddressingMode(Mnemonic mnemonic, AddressingMode addr) {
@@ -138,43 +136,30 @@ bool isa::Pep10::isValidAddressingMode(Mnemonic mnemonic, AddressingMode addr) {
   using AM = AddressingMode;
   auto type = opcodeLUT[opcode(mnemonic)].instr.type;
   switch (type) {
-  case detail::pep10::InstructionType::Invalid:
-    [[fallthrough]];
-  case detail::pep10::InstructionType::U_none:
-    [[fallthrough]];
-  case detail::pep10::InstructionType::R_none:
-    return false;
-  case detail::pep10::InstructionType::A_ix:
-    return addr == AM::X || addr == AM::I;
-  case detail::pep10::InstructionType::AAA_i:
-    return addr == AM::I;
-  case detail::pep10::InstructionType::AAA_all:
-  case detail::pep10::InstructionType::RAAA_all:
-    return !(addr == AM::ALL || addr == AM::INVALID || addr == AM::NONE);
+  case detail::pep10::InstructionType::Invalid: [[fallthrough]];
+  case detail::pep10::InstructionType::U_none: [[fallthrough]];
+  case detail::pep10::InstructionType::R_none: return false;
+  case detail::pep10::InstructionType::A_ix: return addr == AM::X || addr == AM::I;
+  case detail::pep10::InstructionType::AAA_i: return addr == AM::I;
+  case detail::pep10::InstructionType::AAA_all: [[fallthrough]];
+  case detail::pep10::InstructionType::RAAA_all: return !(addr == AM::ALL || addr == AM::INVALID || addr == AM::NONE);
   case detail::pep10::InstructionType::RAAA_noi:
-    return !(addr == AM::ALL || addr == AM::INVALID || addr == AM::NONE ||
-             addr == AM::I);
+    return !(addr == AM::ALL || addr == AM::INVALID || addr == AM::NONE || addr == AM::I);
   }
   return false;
 }
 
-bool isa::Pep10::requiresAddressingMode(Mnemonic mnemonic) {
-  return isAAAType(mnemonic) | isRAAAType(mnemonic);
-}
+bool isa::Pep10::requiresAddressingMode(Mnemonic mnemonic) { return isAAAType(mnemonic) | isRAAAType(mnemonic); }
 
-bool isa::Pep10::canElideAddressingMode(Mnemonic mnemonic,
-                                        AddressingMode addr) {
-    return isAType(mnemonic) && addr == AddressingMode::I;
+bool isa::Pep10::canElideAddressingMode(Mnemonic mnemonic, AddressingMode addr) {
+  return isAType(mnemonic) && addr == AddressingMode::I;
 }
 
 QSet<QString> isa::Pep10::legalDirectives()
 {
-    static const auto valid = QSet<QString>{
-                                            "ALIGN", "ASCII",  "BLOCK", "BYTE",  "EQUATE",  "EXPORT", "IMPORT",
-                                            "INPUT", "OUTPUT", "ORG",   "SCALL", "SECTION", "USCALL", "WORD"};
-    return valid;
+  static const auto valid = QSet<QString>{"ALIGN", "ASCII",  "BLOCK", "BYTE",  "EQUATE",  "EXPORT", "IMPORT",
+                                          "INPUT", "OUTPUT", "ORG",   "SCALL", "SECTION", "USCALL", "WORD"};
+  return valid;
 }
 
-bool isa::Pep10::isLegalDirective(QString directive) {
-    return legalDirectives().contains(directive.toUpper());
-}
+bool isa::Pep10::isLegalDirective(QString directive) { return legalDirectives().contains(directive.toUpper()); }
