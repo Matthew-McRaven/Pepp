@@ -29,6 +29,8 @@ public:
   virtual MemoryHighlight::V status(quint32 address) const;
   virtual void write(quint32 address, quint8 value) = 0;
   virtual void clear() = 0;
+  Q_INVOKABLE virtual quint32 pc() const { return 0; }
+  Q_INVOKABLE virtual quint32 sp() const { return 0; }
 signals:
   void dataChanged(quint32 start, quint32 end);
 };
@@ -89,6 +91,8 @@ public:
   quint8 read(quint32 address) const override;
   void setPC(quint32 start, quint32 end);
   void setSP(quint32 address);
+  Q_INVOKABLE quint32 pc() const override;
+  Q_INVOKABLE quint32 sp() const override;
   MemoryHighlight::V status(quint32 address) const override;
   void write(quint32 address, quint8 value) override;
   void clear() override;

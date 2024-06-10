@@ -578,12 +578,12 @@ Item {
         Button {
             id: spButton
             text: "SP"
-            onClicked: root.scrollToAddress(0xFEED)
+            onClicked: root.scrollToAddress(root.memory.sp())
         }
         Button {
             id: pcButton
             text: "PC"
-            onClicked: root.scrollToAddress(0xBEEF)
+            onClicked: root.scrollToAddress(root.memory.pc())
         }
     }
 }

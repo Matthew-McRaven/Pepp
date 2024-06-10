@@ -96,6 +96,10 @@ void SimulatorRawMemory::setPC(quint32 start, quint32 end) { _PC = {start, end};
 
 void SimulatorRawMemory::setSP(quint32 address) { _SP = {address, address}; }
 
+quint32 SimulatorRawMemory::pc() const { return _PC.lower(); }
+
+quint32 SimulatorRawMemory::sp() const { return _SP.lower(); }
+
 MemoryHighlight::V SimulatorRawMemory::status(quint32 address) const {
   if (sim::trace2::contains(_PC, address))
     return MemoryHighlight::PC;
