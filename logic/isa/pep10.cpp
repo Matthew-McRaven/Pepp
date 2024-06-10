@@ -97,6 +97,10 @@ quint8 isa::Pep10::operandBytes(Mnemonic mnemonic) {
 
 quint8 isa::Pep10::operandBytes(quint8 opcode) { return operandBytes(opcodeLUT[opcode].instr.mnemon); }
 
+bool isa::Pep10::isCall(Mnemonic mnemonic) { return mnemonic == Mnemonic::CALL || mnemonic == Mnemonic::SCALL; }
+
+bool isa::Pep10::isCall(quint8 opcode) { return isCall(opcodeLUT[opcode].instr.mnemon); }
+
 bool isa::Pep10::isUType(Mnemonic mnemonic) {
   using T = InstructionType;
   auto type = opcodeLUT[opcode(mnemonic)].instr.type;
