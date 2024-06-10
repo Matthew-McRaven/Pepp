@@ -188,9 +188,27 @@ void Pep10_ISA::set(int abstraction, QString value) {
   }
 }
 
-int Pep10_ISA::allowedDebugging() const { return -1; }
+int Pep10_ISA::allowedDebugging() const {
+  using D = project::DebugEnableFlags;
+  switch (_state) {
+  case State::Halted: return D::Start | D::LoadObject | D::Execute;
+  case State::DebugPaused: return D::Continue | D::Stop;
+  case State::NormalExec: return D::Stop;
+  case State::DebugExec: return D::Stop;
+  default: return 0b0;
+  }
+}
 
-int Pep10_ISA::allowedSteps() const { return -1; }
+int Pep10_ISA::allowedSteps() const {
+  if (_state != State::DebugPaused) return 0b0;
+  using S = project::StepEnableFlags::Value;
+  quint16 pc = 0;
+  targets::pep10::isa::readRegister(_system->cpu()->regs(), isa::Pep10::Register::PC, pc, gs);
+  quint8 is;
+  _system->bus()->read(pc, {&is, 1}, gs);
+  if (isa::Pep10::isCall(is)) return S::Step | S::StepOver | S::StepOut | S::StepInto;
+  return S::Step | S::StepOver | S::StepOut;
+}
 
 QString Pep10_ISA::charIn() const { return _charIn; }
 
@@ -203,8 +221,7 @@ QString Pep10_ISA::charOut() const {
     int index = 0;
     QString out;
     for (auto next = charOutEndpoint->next_value(); next.has_value(); next = charOutEndpoint->next_value()) {
-      if (out.capacity() < index + 1)
-        out.reserve(2 * (index + 1));
+      if (out.capacity() < index + 1) out.reserve(2 * (index + 1));
       out.append(char(*next));
     }
     return out;
@@ -237,25 +254,15 @@ bool Pep10_ISA::onLoadObject() {
   _memory->setSP(-1);
   _memory->setPC(-1, -1);
   targets::pep10::isa::writeRegister(_system->cpu()->regs(), isa::Pep10::Register::OS, 7, gs);
-  emit updateGUI(UpdateType::Full);
+  emit updateGUI(_tb->cbegin());
   return true;
 }
 
 bool Pep10_ISA::onExecute() {
-  // Ensure latests changes to object code pane are reflected in simulator.
-  onLoadObject();
-  _tb->clear();
-  _system->init();
-  auto pwrOff = _system->output("pwrOff");
-  auto charOut = _system->output("charOut");
-  charOut->clear(0);
-  pwrOff->clear(0);
-  auto endpoint = pwrOff->endpoint();
-  auto charIn = _system->input("charIn");
-  auto charInEndpoint = charIn->endpoint();
-  for (int it = 0; it < _charIn.size(); it++)
-    charInEndpoint->append_value(_charIn[it].toLatin1());
+  prepareSim();
 
+  auto pwrOff = _system->output("pwrOff");
+  auto endpoint = pwrOff->endpoint();
   bool noMMI = false;
   // Only enable trace while running the program to prevent spurious changed highlights.
   _system->bus()->trace(true);
@@ -273,31 +280,77 @@ bool Pep10_ISA::onExecute() {
     std::cerr << e.what() << std::endl;
   }
   _system->bus()->trace(false);
-
-  // Update cpu-dependent fields in memory before triggering a GUI update.
-  quint8 is;
-  quint16 sp, pc;
-  targets::pep10::isa::readRegister(_system->cpu()->regs(), isa::Pep10::Register::SP, sp, gs);
-  targets::pep10::isa::readRegister(_system->cpu()->regs(), isa::Pep10::Register::PC, pc, gs);
-  _system->bus()->read(pc, {&is, 1}, gs);
-  _memory->setSP(sp);
-  _memory->setPC(pc, pc + (isa::Pep10::opcodeLUT[is].instr.unary ? 0 : 2));
-  emit charOutChanged();
-  emit updateGUI(UpdateType::Partial);
+  prepareGUIUpdate(_tb->cbegin());
   return true;
 }
 
-bool Pep10_ISA::onDebuggingStart() { return false; }
+bool Pep10_ISA::onDebuggingStart() {
+  prepareSim();
+  _state = State::DebugPaused;
+  emit allowedDebuggingChanged();
+  emit allowedStepsChanged();
+  _system->bus()->trace(true);
+  return true;
+}
 
-bool Pep10_ISA::onDebuggingContinue() { return false; }
+bool Pep10_ISA::onDebuggingContinue() {
+  _state = State::DebugExec;
+  emit allowedDebuggingChanged();
+  auto pwrOff = _system->output("pwrOff");
+  auto endpoint = pwrOff->endpoint();
+  auto from = _tb->cend();
+  bool err = false;
+  try {
+    while (_system->currentTick() < 800 && !endpoint->next_value().has_value())
+      _system->tick(sim::api2::Scheduler::Mode::Jump);
+  } catch (const sim::api2::memory::Error &e) {
+    err = true;
+    if (e.type() == sim::api2::memory::Error::Type::NeedsMMI) {
+    } else
+      std::cerr << "Memory error: " << e.what() << std::endl;
+    // Handle illegal opcodes or program crashes.
+  } catch (const std::logic_error &e) {
+    err = true;
+    std::cerr << e.what() << std::endl;
+  }
+  onDebuggingStop();
+  prepareGUIUpdate(from);
+  return true;
+}
 
 bool Pep10_ISA::onDebuggingPause() { return false; }
 
-bool Pep10_ISA::onDebuggingStop() { return false; }
+bool Pep10_ISA::onDebuggingStop() {
+  _system->bus()->trace(false);
+  _state = State::Halted;
+  emit allowedDebuggingChanged();
+  emit allowedStepsChanged();
+  return true;
+}
 
 bool Pep10_ISA::onISARemoveAllBreakpoints() { return false; }
 
-bool Pep10_ISA::onISAStep() { return false; }
+bool Pep10_ISA::onISAStep() {
+  auto pwrOff = _system->output("pwrOff");
+  auto endpoint = pwrOff->endpoint();
+  auto from = _tb->cend();
+  bool err = false;
+  try {
+    _system->tick(sim::api2::Scheduler::Mode::Jump);
+  } catch (const sim::api2::memory::Error &e) {
+    err = true;
+    if (e.type() == sim::api2::memory::Error::Type::NeedsMMI) {
+    } else
+      std::cerr << "Memory error: " << e.what() << std::endl;
+    // Handle illegal opcodes or program crashes.
+  } catch (const std::logic_error &e) {
+    err = true;
+    std::cerr << e.what() << std::endl;
+  }
+  if (endpoint->next_value().has_value()) onDebuggingStop();
+  prepareGUIUpdate(from);
+  return true;
+}
 
 bool Pep10_ISA::onISAStepOver() { return false; }
 
@@ -309,17 +362,43 @@ bool Pep10_ISA::onClearCPU() { return false; }
 
 bool Pep10_ISA::onClearMemory() { return false; }
 
+void Pep10_ISA::prepareSim() {
+  // Ensure latests changes to object code pane are reflected in simulator.
+  onLoadObject();
+  _tb->clear();
+  _system->init();
+  auto pwrOff = _system->output("pwrOff");
+  auto charOut = _system->output("charOut");
+  charOut->clear(0);
+  pwrOff->clear(0);
+
+  auto charIn = _system->input("charIn");
+  charIn->clear(0);
+  auto charInEndpoint = charIn->endpoint();
+  for (int it = 0; it < _charIn.size(); it++) charInEndpoint->append_value(_charIn[it].toLatin1());
+}
+
+void Pep10_ISA::prepareGUIUpdate(sim::api2::trace::FrameIterator from) {
+  // Update cpu-dependent fields in memory before triggering a GUI update.
+  quint8 is;
+  // Use cached PC
+  quint16 sp, pc = _system->cpu()->startingPC();
+  targets::pep10::isa::readRegister(_system->cpu()->regs(), isa::Pep10::Register::SP, sp, gs);
+  _system->bus()->read(pc, {&is, 1}, gs);
+  _memory->setSP(sp);
+  _memory->setPC(pc, pc + (isa::Pep10::opcodeLUT[is].instr.unary ? 0 : 2));
+  emit charOutChanged();
+  emit updateGUI(from);
+}
+
 int ProjectModel::rowCount(const QModelIndex &parent) const { return _projects.size(); }
 
 QVariant ProjectModel::data(const QModelIndex &index, int role) const {
-  if (!index.isValid() || index.row() >= _projects.size() || index.column() != 0)
-    return {};
+  if (!index.isValid() || index.row() >= _projects.size() || index.column() != 0) return {};
 
   switch (role) {
-  case static_cast<int>(Roles::ProjectRole):
-    return QVariant::fromValue(_projects[index.row()]);
-  default:
-    return {};
+  case static_cast<int>(Roles::ProjectRole): return QVariant::fromValue(_projects[index.row()]);
+  default: return {};
   }
   return {};
 }
@@ -335,8 +414,7 @@ Pep10_ISA *ProjectModel::pep10ISA(QVariant delegate) {
 }
 
 bool ProjectModel::removeRows(int row, int count, const QModelIndex &parent) {
-  if (row < 0 || row + count > _projects.size() || count <= 0)
-    return false;
+  if (row < 0 || row + count > _projects.size() || count <= 0) return false;
   // row+count is one past the last element to be removed.
   beginRemoveRows(QModelIndex(), row, row + count - 1);
   _projects.erase(_projects.begin() + row, _projects.begin() + row + count);

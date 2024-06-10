@@ -93,11 +93,12 @@ public:
   void write(quint32 address, quint8 value) override;
   void clear() override;
 public slots:
-  void onUpdateGUI();
+  void onUpdateGUI(sim::api2::trace::FrameIterator from);
 
 private:
   sim::memory::SimpleBus<quint16> *_memory;
   QSharedPointer<sim::trace2::ModifiedAddressSink<quint16>> _sink;
   static constexpr quint32 n1 = -1;
-  sim::trace2::Interval<quint32> _pc = {n1, n1}, _sp = {n1, n1};
+  sim::trace2::Interval<quint32> _PC = {n1, n1}, _SP = {n1, n1};
+  sim::trace2::Interval<quint32> _lastPC = {n1, n1}, _lastSP = {n1, n1};
 };

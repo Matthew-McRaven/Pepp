@@ -278,9 +278,17 @@ signals:
   void charInChanged();
   void charOutChanged();
 
-  void updateGUI(UpdateType type);
+  void updateGUI(sim::api2::trace::FrameIterator from);
 
 private:
+  enum class State {
+    Halted,
+    NormalExec,
+    DebugExec,
+    DebugPaused,
+  } _state = State::Halted;
+  void prepareSim();
+  void prepareGUIUpdate(sim::api2::trace::FrameIterator from);
   QString _charIn = {};
   QString _objectCodeText = {};
   QVariant _delegate = {};

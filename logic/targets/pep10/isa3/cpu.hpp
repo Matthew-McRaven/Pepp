@@ -44,6 +44,7 @@ public:
   // Helper to convert OS to an operand value.
   // It will use Application access, and will not trigger MMIO.
   std::optional<quint16> currentOperand();
+  quint16 startingPC() const;
 
   // Target interface
   const sim::api2::tick::Source *getSource() override;
@@ -61,6 +62,8 @@ public:
   // Initiator interface
   void setTarget(sim::api2::memory::Target<quint16> *target, void* port) override;
 private:
+  // TODO: This probably needs to be cleared between simulations
+  quint16 _startingPC = 0;
   Status _status = Status::Ok;
   sim::api2::device::Descriptor _device;
   sim::memory::Dense<quint8> _regs, _csrs;

@@ -266,6 +266,9 @@ struct ISA_EXPORT Pep10 {
   static bool isStore(quint8 opcode);
   static quint8 operandBytes(Mnemonic mnemonic);
   static quint8 operandBytes(quint8 opcode);
+  // SCALL and CALL
+  static bool isCall(Mnemonic mnemonic);
+  static bool isCall(quint8 opcode);
 
   static bool isUType(Mnemonic mnemonic);
   static bool isRType(Mnemonic mnemonic);

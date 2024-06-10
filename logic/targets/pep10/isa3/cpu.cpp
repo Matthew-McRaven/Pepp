@@ -58,13 +58,15 @@ std::optional<quint16> targets::pep10::isa::CPU::currentOperand() {
   return std::nullopt;
 }
 
+quint16 targets::pep10::isa::CPU::startingPC() const { return _startingPC; }
+
 const sim::api2::tick::Source *targets::pep10::isa::CPU::getSource() { return _clock; }
 
 void targets::pep10::isa::CPU::setSource(sim::api2::tick::Source *clock) { _clock = clock; }
 
 sim::api2::tick::Result targets::pep10::isa::CPU::clock(sim::api2::tick::Type currentTick) {
   using Register = ::isa::Pep10::Register;
-  quint16 pc = readReg(Register::PC);
+  quint16 pc = _startingPC = readReg(Register::PC);
 
   // Instruction specifier fetch + writeback.
   quint8 is = 0;

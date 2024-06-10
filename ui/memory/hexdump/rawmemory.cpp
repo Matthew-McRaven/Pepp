@@ -2,6 +2,8 @@
 
 #include <QQmlEngine>
 
+#include <sim/trace2/modified.hpp>
+
 ARawMemory::ARawMemory(QObject *parent) : QObject(parent) {}
 
 MemoryHighlight::V ARawMemory::status(quint32 address) const { return MemoryHighlight::None; }
@@ -90,14 +92,14 @@ quint8 SimulatorRawMemory::read(quint32 address) const {
   return ret;
 }
 
-void SimulatorRawMemory::setPC(quint32 start, quint32 end) { _pc = {start, end}; }
+void SimulatorRawMemory::setPC(quint32 start, quint32 end) { _PC = {start, end}; }
 
-void SimulatorRawMemory::setSP(quint32 address) { _sp = {address, address}; }
+void SimulatorRawMemory::setSP(quint32 address) { _SP = {address, address}; }
 
 MemoryHighlight::V SimulatorRawMemory::status(quint32 address) const {
-  if (sim::trace2::contains(_pc, address))
+  if (sim::trace2::contains(_PC, address))
     return MemoryHighlight::PC;
-  else if (sim::trace2::contains(_sp, address))
+  else if (sim::trace2::contains(_SP, address))
     return MemoryHighlight::SP;
   else if (!_sink.isNull() && _sink->contains(address))
     return MemoryHighlight::Modified;
@@ -111,31 +113,40 @@ void SimulatorRawMemory::write(quint32 address, quint8 value) {
   }
 }
 
-void SimulatorRawMemory::clear() { _memory->clear(0); }
+void SimulatorRawMemory::clear() {
+  _memory->clear(0);
+  _PC = _lastPC = _SP = _lastSP = {n1, n1};
+}
 
-void SimulatorRawMemory::onUpdateGUI() {
+void SimulatorRawMemory::onUpdateGUI(sim::api2::trace::FrameIterator from) {
   // If there is no TB, then there is no data to analyze.
   // Conservatively, we assume that all data is modified.
   auto tb = _memory->buffer();
-  if (tb == nullptr)
-    emit dataChanged(0, 0xffff);
+  if (tb == nullptr) emit dataChanged(0, 0xffff);
 
-  // Purge data from previous updates
+  // Remove highlighted cells from previous steps.
+  auto oldHiglights = std::set{_sink->intervals()};
+  oldHiglights.insert({(quint16)_lastSP.lower(), (quint16)_lastSP.upper()});
+  oldHiglights.insert({(quint16)_lastPC.lower(), (quint16)_lastPC.upper()});
+  // Purge data from previous updates. Must be cleared before iterating and emitting events, or higlights are wrong.
   _sink->clear();
-  for (auto frame = tb->cbegin(); frame != tb->cend(); ++frame)
+  for (auto oldHiglght : oldHiglights) emit dataChanged(oldHiglght.lower(), oldHiglght.upper());
+  for (auto frame = from; frame != tb->cend(); ++frame)
     for (auto packet = frame.cbegin(); packet != frame.cend(); ++packet)
       _sink->analyze(packet, sim::api2::trace::Direction::Forward);
 
+  // Must cache current SP/PC so that we can clear the highlighting next time.
+  _lastSP = _SP;
+  _lastPC = _PC;
   // If no memory addresses changed, conservatively assume that the trace buffer was disabled and therefore any address
   // may have changed
   if (auto intervals = _sink->intervals(); intervals.size() == 0) {
     return emit dataChanged(0, 0xffff);
   } else {
     // Otherwise, emit the intervals that were modified.
-    for (const auto &interval : intervals)
-      emit dataChanged(interval.lower(), interval.upper());
+    for (const auto &interval : intervals) emit dataChanged(interval.lower(), interval.upper());
     // And update intervals containing PC, SP to fix the higlighting.
-    emit dataChanged(this->_sp.lower(), this->_sp.upper());
-    emit dataChanged(this->_pc.lower(), this->_pc.upper());
+    emit dataChanged(this->_SP.lower(), this->_SP.upper());
+    emit dataChanged(this->_PC.lower(), this->_PC.upper());
   }
 }
