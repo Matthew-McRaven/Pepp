@@ -6,10 +6,10 @@
     "name": "Dark",
     "preferences": [
         {
-            "background": "ff000000",
+            "background": "0xff000000",
             "bold": false,
-            "foreground": "ffffffff",
-            "id": 0,
+            "foreground": "0xffffffff",
+            "id": "BaseRole",
             "italics": false,
             "name": "Base Text/Background",
             "parent": 0,
@@ -17,10 +17,10 @@
             "underline": false
         },
         {
-            "background": "ff7f7f7f",
+            "background": "0xff7f7f7f",
             "bold": false,
-            "foreground": "ffeeeeee",
-            "id": 1,
+            "foreground": "0xffeeeeee",
+            "id": "WindowRole",
             "italics": false,
             "name": "Window Text/Background",
             "parent": 0,
@@ -28,10 +28,10 @@
             "underline": false
         },
         {
-            "background": "ff7f7f7f",
+            "background": "0xff7f7f7f",
             "bold": false,
-            "foreground": "fff0f0f0",
-            "id": 2,
+            "foreground": "0xfff0f0f0",
+            "id": "ButtonRole",
             "italics": false,
             "name": "Button Text/Background",
             "parent": 0,
@@ -39,10 +39,10 @@
             "underline": false
         },
         {
-            "background": "ff0078d7",
+            "background": "0xff0078d7",
             "bold": false,
-            "foreground": "ffffffff",
-            "id": 3,
+            "foreground": "0xffffffff",
+            "id": "HighlightRole",
             "italics": false,
             "name": "Highlight Text/Background",
             "parent": 0,
@@ -50,10 +50,10 @@
             "underline": false
         },
         {
-            "background": "ff000000",
+            "background": "0xff000000",
             "bold": false,
-            "foreground": "ffffffdc",
-            "id": 4,
+            "foreground": "0xffffffdc",
+            "id": "TooltipRole",
             "italics": false,
             "name": "Tooltip Text/Background",
             "parent": 0,
@@ -61,10 +61,10 @@
             "underline": false
         },
         {
-            "background": "ff7f7f7f",
+            "background": "0xff7f7f7f",
             "bold": false,
-            "foreground": "ffa0a0a0",
-            "id": 5,
+            "foreground": "0xffa0a0a0",
+            "id": "AlternateBaseRole",
             "italics": false,
             "name": "AlternateBase Background",
             "parent": 0,
@@ -72,10 +72,10 @@
             "underline": false
         },
         {
-            "background": "ffffffff",
+            "background": "0xffffffff",
             "bold": false,
-            "foreground": "ff0078d7",
-            "id": 6,
+            "foreground": "0xff0078d7",
+            "id": "AccentRole",
             "italics": false,
             "name": "Accent Background",
             "parent": 0,
@@ -83,10 +83,10 @@
             "underline": false
         },
         {
-            "background": "ff0000ff",
+            "background": "0xff0000ff",
             "bold": false,
-            "foreground": "ffffffff",
-            "id": 7,
+            "foreground": "0xffffffff",
+            "id": "LightRole",
             "italics": false,
             "name": "Light Background",
             "parent": 0,
@@ -94,10 +94,10 @@
             "underline": false
         },
         {
-            "background": "ff000000",
+            "background": "0xff000000",
             "bold": false,
-            "foreground": "ffe3e3e3",
-            "id": 8,
+            "foreground": "0xffe3e3e3",
+            "id": "MidLightRole",
             "italics": false,
             "name": "Midlight Background",
             "parent": 0,
@@ -105,10 +105,10 @@
             "underline": false
         },
         {
-            "background": "fff0f0f0",
+            "background": "0xfff0f0f0",
             "bold": false,
-            "foreground": "ffa0a0a0",
-            "id": 9,
+            "foreground": "0xffa0a0a0",
+            "id": "MidRole",
             "italics": false,
             "name": "Mid Background",
             "parent": 0,
@@ -116,10 +116,10 @@
             "underline": false
         },
         {
-            "background": "fff0f0f0",
+            "background": "0xfff0f0f0",
             "bold": false,
-            "foreground": "ffa0a0a0",
-            "id": 10,
+            "foreground": "0xffa0a0a0",
+            "id": "DarkRole",
             "italics": false,
             "name": "Dark Background",
             "parent": 0,
@@ -127,10 +127,10 @@
             "underline": false
         },
         {
-            "background": "ffffffff",
+            "background": "0xffffffff",
             "bold": false,
-            "foreground": "ff696969",
-            "id": 11,
+            "foreground": "0xff696969",
+            "id": "ShadowRole",
             "italics": false,
             "name": "Shadow Background",
             "parent": 0,
@@ -138,10 +138,10 @@
             "underline": false
         },
         {
-            "background": "ff0078d7",
+            "background": "0xff0078d7",
             "bold": false,
-            "foreground": "ffffffff",
-            "id": 12,
+            "foreground": "0xffffffff",
+            "id": "LinkRole",
             "italics": false,
             "name": "Link Text",
             "parent": 0,
@@ -149,10 +149,10 @@
             "underline": false
         },
         {
-            "background": "ff7840a0",
+            "background": "0xff7840a0",
             "bold": false,
-            "foreground": "ffffffff",
-            "id": 13,
+            "foreground": "0xffffffff",
+            "id": "LinkVisitedRole",
             "italics": false,
             "name": "Link Visited Text",
             "parent": 0,
@@ -160,10 +160,10 @@
             "underline": false
         },
         {
-            "background": "ffffffff",
+            "background": "0xffffffff",
             "bold": false,
-            "foreground": "ffa0a0a0",
-            "id": 14,
+            "foreground": "0xffa0a0a0",
+            "id": "BrightTextRole",
             "italics": false,
             "name": "Bright Text",
             "parent": 0,
@@ -171,10 +171,10 @@
             "underline": false
         },
         {
-            "background": "ff7f7f7f",
+            "background": "0xff7f7f7f",
             "bold": false,
-            "foreground": "ffeeeeee",
-            "id": 15,
+            "foreground": "0xffeeeeee",
+            "id": "PlaceHolderTextRole",
             "italics": false,
             "name": "Placeholder Text",
             "parent": 0,
@@ -182,10 +182,10 @@
             "underline": false
         },
         {
-            "background": "ff666666",
+            "background": "0xff666666",
             "bold": false,
-            "foreground": "ffffffff",
-            "id": 16,
+            "foreground": "0xffffffff",
+            "id": "RowNumberRole",
             "italics": false,
             "name": "Row Number",
             "parent": 0,
@@ -193,10 +193,10 @@
             "underline": false
         },
         {
-            "background": "ff000000",
+            "background": "0xff000000",
             "bold": false,
-            "foreground": "ffffaa00",
-            "id": 17,
+            "foreground": "0xffffaa00",
+            "id": "BreakpointRole",
             "italics": false,
             "name": "Breakpoint",
             "parent": 0,
@@ -204,10 +204,10 @@
             "underline": false
         },
         {
-            "background": "ffffff00",
+            "background": "0xffffff00",
             "bold": false,
-            "foreground": "ff04ab0a",
-            "id": 18,
+            "foreground": "0xff04ab0a",
+            "id": "SeqCircuitRole",
             "italics": false,
             "name": "SeqCircuit",
             "parent": 0,
@@ -215,10 +215,10 @@
             "underline": false
         },
         {
-            "background": "ff0000ff",
+            "background": "0xff0000ff",
             "bold": false,
-            "foreground": "ffffe1ff",
-            "id": 19,
+            "foreground": "0xffffe1ff",
+            "id": "CircuitGreenRole",
             "italics": false,
             "name": "Green Circuit",
             "parent": 0,
@@ -227,5 +227,5 @@
         }
     ],
     "system": true,
-    "version": "0.4"
+    "version": "0.5"
 }

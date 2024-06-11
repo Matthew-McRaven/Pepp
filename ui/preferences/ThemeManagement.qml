@@ -31,11 +31,20 @@ RowLayout {
     }
   }
   Button {
-    text: "Copy";
-
+    //  System themese can never have state change
+    //  If non-system theme has changes, they must
+    //  be saved before a copy can be made
+    text: Theme.isDirty ? "Save" : "Copy"
     Layout.preferredWidth: buttonWidth
     onClicked: {
-      copyDialog.open()
+      if(Theme.isDirty) {
+        //  If theme has change, changes must be saved first
+        console.log("Save Theme")
+        Theme.saveTheme()
+      } else {
+        console.log("Copy Theme")
+        copyDialog.open()
+      }
     }
   }
   Button {
@@ -45,9 +54,9 @@ RowLayout {
     enabled: !Theme.systemTheme
     onClicked: deleteDialog.open()
     palette {
-      buttonText: del.enabled
-                  ? palette.button
-                  : palette.mid
+      buttonText: !Theme.systemTheme
+                  ? root.palette.buttonText
+                  : root.palette.shadow
     }
   }
   Button {

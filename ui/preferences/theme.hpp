@@ -1,11 +1,11 @@
-#ifndef THEME_HPP
-#define THEME_HPP
+#pragma once
 
 #include <QObject>
 #include <QFont>
 #include <vector>
 
 #include "preference.hpp"
+#include "themes.hpp"
 
 class Theme : public QObject {
   Q_OBJECT
@@ -38,57 +38,42 @@ class Theme : public QObject {
   Q_PROPERTY(Preference* breakpoint  READ breakpoint  NOTIFY preferenceChanged)
   Q_PROPERTY(Preference* seqCircuit  READ seqCircuit  NOTIFY preferenceChanged)
   Q_PROPERTY(Preference* circuitGreen READ circuitGreen NOTIFY preferenceChanged)
+
   Q_PROPERTY(QString name            READ name        NOTIFY themesChanged)
   Q_PROPERTY(bool systemTheme        READ systemTheme NOTIFY themesChanged)
+  Q_PROPERTY(bool isDirty            READ isDirty     NOTIFY themesChanged)
   Q_PROPERTY(QStringList themes      READ themes      NOTIFY themesChanged)
 
   QString name_ = "Default";
-  QString version_ = "0.4";
+  QString version_ = "0.5";
   bool system_{true};
+  //  Dirty flag is cleared on save (a const function)
+  mutable bool isDirty_{false};
+
   QFont font_;
+  //  Preference is a QObject with a pointer to it's parent
+  //  No smart pointers are necessary since child preferences will
+  //  go out of scope with the parent class
   std::vector<Preference*> prefs_;
 
   //  Track all themes
   QString systemPath_, userPath_;
+  QString currentTheme_;
   QStringList themes_;
 
 public:
-  enum Roles {
-    GeneralCategoryStart = 0,  //  Only used for iteration
-    BaseRole = GeneralCategoryStart,
-    WindowRole,
-    ButtonRole,
-    HighlightRole,
-    TooltipRole,
-    AlternateBaseRole,
-    AccentRole,
-    LightRole,
-    MidLightRole,
-    MidRole,
-    DarkRole,
-    ShadowRole,
-    LinkRole,
-    LinkVisitedRole,
-    BrightTextRole,
-    PlaceHolderTextRole,
-
-    GeneralCategoryEnd, //  Only used for iteration
-
-    RowNumberRole = GeneralCategoryEnd,
-    BreakpointRole,
-    EditorCategoryEnd,
-
-    SeqCircuitRole = EditorCategoryEnd,
-    CircuitGreenRole,
-    CircuitCategoryEnd,
-
-    Total, // Must be last
+  enum Ranges {
+    GeneralCategoryStart = Themes::BaseRole,  //  Only used for iteration
+    GeneralCategoryEnd=Themes::PlaceHolderTextRole, //  Only used for iteration
+    EditorCategoryEnd = Themes::SeqCircuitRole,
+    CircuitCategoryEnd = Themes::CircuitGreenRole, //  Only used for iteration
   };
 
   explicit Theme(QObject *parent = nullptr);
 
   //  Call back from QML to save specified theme
   Q_INVOKABLE void selectTheme(const QString file);
+  Q_INVOKABLE void saveTheme() const;
   Q_INVOKABLE void copyTheme(const QString file);
   Q_INVOKABLE void importTheme(const QString file);
   Q_INVOKABLE void exportTheme(const QString file) const;
@@ -96,6 +81,7 @@ public:
 
   void load(const QString& file);
   bool save(const QString& file) const;
+  bool isDirty() const;
 
   QFont       font() const;
   Preference* preference(int role);
@@ -112,46 +98,46 @@ public:
 
   //  Accessor when outside delegate
   Preference* base() const {
-    return preference(Theme::Roles::BaseRole);  }
+    return preference(Themes::Roles::BaseRole);  }
   Preference* window() const {
-    return preference(Theme::Roles::WindowRole); }
+    return preference(Themes::Roles::WindowRole); }
   Preference* button() const {
-    return preference(Theme::Roles::ButtonRole); }
+    return preference(Themes::Roles::ButtonRole); }
   Preference* highlight() const {
-    return preference(Theme::Roles::HighlightRole); }
+    return preference(Themes::Roles::HighlightRole); }
   Preference* tooltip() const {
-    return preference(Theme::Roles::TooltipRole); }
+    return preference(Themes::Roles::TooltipRole); }
   Preference* alternateBase() const {
-    return preference(Theme::Roles::AlternateBaseRole); }
+    return preference(Themes::Roles::AlternateBaseRole); }
   Preference* accent() const {
-    return preference(Theme::Roles::AccentRole); }
+    return preference(Themes::Roles::AccentRole); }
   Preference* light() const {
-    return preference(Theme::Roles::LightRole); }
+    return preference(Themes::Roles::LightRole); }
   Preference* midlight() const {
-    return preference(Theme::Roles::MidLightRole); }
+    return preference(Themes::Roles::MidLightRole); }
   Preference* mid() const {
-    return preference(Theme::Roles::MidRole); }
+    return preference(Themes::Roles::MidRole); }
   Preference* dark() const {
-    return preference(Theme::Roles::DarkRole); }
+    return preference(Themes::Roles::DarkRole); }
   Preference* shadow() const {
-    return preference(Theme::Roles::ShadowRole); }
+    return preference(Themes::Roles::ShadowRole); }
   Preference* link() const {
-    return preference(Theme::Roles::LinkRole); }
+    return preference(Themes::Roles::LinkRole); }
   Preference* linkVisited() const {
-    return preference(Theme::Roles::LinkVisitedRole); }
+    return preference(Themes::Roles::LinkVisitedRole); }
   Preference* brightText() const {
-    return preference(Theme::Roles::BrightTextRole); }
+    return preference(Themes::Roles::BrightTextRole); }
   Preference* placeholderText() const {
-    return preference(Theme::Roles::PlaceHolderTextRole); }
+    return preference(Themes::Roles::PlaceHolderTextRole); }
 
   Preference* rowNumber() const {
-    return preference(Theme::Roles::RowNumberRole); }
+    return preference(Themes::Roles::RowNumberRole); }
   Preference* breakpoint() const {
-    return preference(Theme::Roles::BreakpointRole); }
+    return preference(Themes::Roles::BreakpointRole); }
   Preference* seqCircuit() const {
-    return preference(Theme::Roles::SeqCircuitRole); }
+    return preference(Themes::Roles::SeqCircuitRole); }
   Preference* circuitGreen() const {
-    return preference(Theme::Roles::CircuitGreenRole); }
+    return preference(Themes::Roles::CircuitGreenRole); }
 
 signals:
   void fontChanged();
@@ -165,5 +151,3 @@ private:
   void loadMissing();
   void loadThemeList();
 };
-
-#endif // THEME_HPP

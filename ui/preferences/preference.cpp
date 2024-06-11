@@ -2,13 +2,15 @@
 
 #include <QJsonObject>
 #include <QJsonValue>
+#include <QMetaEnum>
 
+#include "themes.hpp"
 Preference::Preference(QObject *parent)
     : QObject(parent)
     , d(new PreferencePrivate)
 {}
 
-Preference::Preference(QObject *parent, const quint32 id, const QString name)
+Preference::Preference(QObject *parent, const Themes::Roles id, const QString name)
     : QObject(parent)
     , d(new PreferencePrivate)
 {
@@ -16,7 +18,7 @@ Preference::Preference(QObject *parent, const quint32 id, const QString name)
   d->name_ = name;
 }
 
-Preference::Preference(QObject *parent, const quint32 id, const QString name,
+Preference::Preference(QObject *parent, const Themes::Roles id, const QString name,
       const QRgb foreground,const QRgb background,
       const quint32 parentId, const bool bold,
       const bool italics, const bool underline,
@@ -40,7 +42,7 @@ size_t Preference::size() const
 { return 11; }
 
 //  Getter & Setter
-int Preference::id() const
+Themes::Roles Preference::id() const
 { return d->id_; }
 
 QString Preference::name() const
@@ -70,7 +72,7 @@ bool Preference::underline() const
 bool Preference::strikeOut() const
 { return d->font_.strikeOut(); }
 
-void Preference::setId(const quint32 id)
+void Preference::setId(const Themes::Roles id)
 { d->id_ = id; }
 
 void Preference::setName(const QString name)
@@ -109,58 +111,77 @@ void Preference::setStrikeOut(const bool strikeOut)
 { d->font_.setStrikeOut(strikeOut); }
 
 QJsonObject Preference::toJson() const {
-    QJsonObject prefData;
-    bool ok;
-    quint32 hex;
+  QJsonObject prefData;
+  bool ok;
+  quint32 hex;
 
-    prefData["id"]    = id();
-    prefData["name"]  = name();
-    prefData["parent"]  = parentId();
-    //prefData["foreground"]  = static_cast<qint64>(foreground().rgba());//.value();
-    //prefData["background"]  = static_cast<qint64>(background().rgba());//.value();
-    hex = static_cast<qint64>(foreground().rgba());
-    prefData["foreground"]  = QString("%1").arg(hex, 8, 16, QLatin1Char( '0' ));
-    hex = static_cast<qint64>(background().rgba());
-    prefData["background"]  = QString("%1").arg(hex, 8, 16, QLatin1Char( '0' ));
-    prefData["bold"]        = bold();
-    prefData["italics"]     = italics();
-    prefData["underline"]   = underline();
-    prefData["strikeOut"]   = strikeOut();
+  auto key  = QMetaEnum::fromType<Themes::Roles>().valueToKey(id());
+  prefData["id"]    = key;  //id();
+  prefData["name"]  = name();
+  prefData["parent"]  = parentId();
+  hex = static_cast<qint64>(foreground().rgba());
+  prefData["foreground"]  = QString("0x%1").arg(hex, 8, 16, QLatin1Char( '0' ));
+  hex = static_cast<qint64>(background().rgba());
+  prefData["background"]  = QString("0x%1").arg(hex, 8, 16, QLatin1Char( '0' ));
+  prefData["bold"]        = bold();
+  prefData["italics"]     = italics();
+  prefData["underline"]   = underline();
+  prefData["strikeOut"]   = strikeOut();
 
-    return prefData;
+  return prefData;
 }
 
-void Preference::fromJson(const QJsonObject &json, Preference& pref) {
+bool Preference::fromJson(const QJsonObject &json, Preference& pref) {
 
     bool ok;
-    if (const QJsonValue v = json["id"]; v.isDouble())
-      pref.setId(v.toInt());
-    if (const QJsonValue v = json["name"]; v.isString())
-      pref.setName(v.toString());
-    if (const QJsonValue v = json["parent"]; v.isDouble())
-      pref.setParent(v.toInt());
-    if (const QJsonValue v = json["foreground"]; v.isString()) {
-      //  Convert from hex string. If error, assign default color
-      quint32 color = v.toString().toLongLong(&ok,16);
-      if(ok)
-        pref.setForeground(QRgb(color));
-      else
-        pref.setForeground(qRgb(0x0,0x0,0x0));
-    }
-    if (const QJsonValue v = json["background"]; v.isString()) {
-      //  Convert from hex string. If error, assign default color
-      quint32 color = v.toString().toLongLong(&ok,16);
-      if(ok)
-        pref.setBackground(QRgb(color));
-      else
-        pref.setBackground(qRgb(0xff,0xff,0xff));
-    }
-    if (const QJsonValue v = json["bold"]; v.isBool())
-      pref.setBold(v.toBool(false));
-    if (const QJsonValue v = json["italics"]; v.isBool())
-      pref.setItalics(v.toBool(false));
-    if (const QJsonValue v = json["underline"]; v.isBool())
-      pref.setUnderline(v.toBool(false));
-    if (const QJsonValue v = json["strikeOut"]; v.isBool())
-      pref.setStrikeOut(v.toBool(false));
+  if (const QJsonValue v = json["id"]; v.isString()) {
+    //  Json is resorted, and this cannot be disabled.
+    //  Use enum name for lookup for enum id, and assign
+    //  to array in the enum address
+
+    //  Check for conversion errors
+    const auto sName = v.toString();
+    if(sName.isEmpty()) return false;
+
+    const auto stdName = sName.toStdString();
+    if(stdName.empty()) return false;
+
+    const char* name = stdName.c_str();
+    if(name == nullptr) return false;
+
+    auto id = static_cast<Themes::Roles>(
+        QMetaEnum::fromType<Themes::Roles>().keyToValue(name));
+
+    pref.setId(id);
+  }
+  if (const QJsonValue v = json["name"]; v.isString())
+    pref.setName(v.toString());
+  if (const QJsonValue v = json["parent"]; v.isDouble())
+    pref.setParent(v.toInt());
+  if (const QJsonValue v = json["foreground"]; v.isString()) {
+    //  Convert from hex string. If error, assign default color
+    quint32 color = v.toString().toLongLong(&ok,16);
+    if(ok)
+      pref.setForeground(QRgb(color));
+    else
+      pref.setForeground(qRgb(0x0,0x0,0x0));
+  }
+  if (const QJsonValue v = json["background"]; v.isString()) {
+    //  Convert from hex string. If error, assign default color
+    quint32 color = v.toString().toLongLong(&ok,16);
+    if(ok)
+      pref.setBackground(QRgb(color));
+    else
+      pref.setBackground(qRgb(0xff,0xff,0xff));
+  }
+  if (const QJsonValue v = json["bold"]; v.isBool())
+    pref.setBold(v.toBool(false));
+  if (const QJsonValue v = json["italics"]; v.isBool())
+    pref.setItalics(v.toBool(false));
+  if (const QJsonValue v = json["underline"]; v.isBool())
+    pref.setUnderline(v.toBool(false));
+  if (const QJsonValue v = json["strikeOut"]; v.isBool())
+    pref.setStrikeOut(v.toBool(false));
+
+  return true;
 }
