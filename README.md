@@ -48,7 +48,7 @@ This build step must be added to each build configuration (e.g., build, release)
 | Line              | Value                                                            | Description                                              |
 |-------------------|------------------------------------------------------------------|----------------------------------------------------------|
 | Command           | `<QT_ROOT>/bin/windeployqt6.exe`                                 | On my PC, `<QT_ROOT>` is `C:/Qt/6.6.0/msvc2019_64`       |
-| Arguments         | `%{buildDir}\output\pepp.exe --qmldir --qmldir %{sourceDir}\bin` | `--qmldir` is required for discovery of our dependencies |
+| Arguments         | `%{buildDir}\output\pepp.exe --qmldir %{sourceDir}`              | `--qmldir` is required for discovery of our dependencies |
 | Working Directory | (blank)                                                          | This value does not matter and is unused                 |
 
 # Relation to [Pep9Suite](https://github.com/StanWarford/pep9suite)
