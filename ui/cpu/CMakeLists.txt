@@ -19,4 +19,4 @@ qt_add_qml_module(cpu
 )
 
 target_compile_definitions(cpu PRIVATE "CPU_LIBRARY")
-target_link_libraries(cpu PUBLIC Qt6::Core Qt6::Gui Qt6::Quick ui_utils)
+target_link_libraries(cpu PUBLIC Qt6::Core Qt6::Gui Qt6::Quick ui_utils bits)

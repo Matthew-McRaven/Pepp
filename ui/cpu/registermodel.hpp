@@ -5,28 +5,7 @@
 #include <QVector>
 #include "./cpu_globals.hpp"
 
-struct CPU_EXPORT RegisterFormatter {
-  virtual ~RegisterFormatter() = default;
-  virtual QString format() const = 0;
-  virtual QString format(quint8 byteCount) const = 0;
-  virtual bool readOnly() const = 0;
-  virtual qsizetype length() const = 0;
-  virtual qsizetype length(quint8 byteCount) const = 0;
-};
-
-struct CPU_EXPORT TextFormatter : public RegisterFormatter {
-  explicit TextFormatter(QString value) : _value(value) {}
-  ~TextFormatter() override = default;
-  QString format() const override { return _value; }
-  QString format(quint8 byteCount) const override { return _value; }
-  bool readOnly() const override { return true; }
-  qsizetype length() const override { return _value.length(); }
-  qsizetype length(quint8 byteCount) const override { return _value.length(); }
-
-private:
-  QString _value;
-};
-
+struct RegisterFormatter;
 //  Read only class for change in Register values
 class CPU_EXPORT RegisterModel : public QAbstractTableModel {
   Q_OBJECT

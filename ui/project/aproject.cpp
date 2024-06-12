@@ -2,6 +2,7 @@
 #include <QQmlEngine>
 #include <sstream>
 #include "bits/strings.hpp"
+#include "cpu/formats.hpp"
 #include "help/builtins/figure.hpp"
 #include "helpers/asmb.hpp"
 #include "isa/pep10.hpp"
