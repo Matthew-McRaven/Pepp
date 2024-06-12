@@ -201,5 +201,5 @@ signals:
   void rowCountChanged(int);
 
 private:
-  std::deque<QObject *> _projects = {};
+  std::deque<std::unique_ptr<QObject>> _projects = {};
 };

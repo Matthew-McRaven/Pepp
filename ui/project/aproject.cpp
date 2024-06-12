@@ -398,17 +398,19 @@ QVariant ProjectModel::data(const QModelIndex &index, int role) const {
   if (!index.isValid() || index.row() >= _projects.size() || index.column() != 0) return {};
 
   switch (role) {
-  case static_cast<int>(Roles::ProjectRole): return QVariant::fromValue(_projects[index.row()]);
+  case static_cast<int>(Roles::ProjectRole): return QVariant::fromValue(&*_projects[index.row()]);
   default: return {};
   }
   return {};
 }
 
 Pep10_ISA *ProjectModel::pep10ISA(QVariant delegate) {
-  auto ret = new Pep10_ISA(delegate);
+  // use
+  auto ptr = std::make_unique<Pep10_ISA>(delegate, nullptr);
+  auto ret = &*ptr;
   QQmlEngine::setObjectOwnership(ret, QQmlEngine::CppOwnership);
   beginInsertRows(QModelIndex(), _projects.size(), _projects.size());
-  _projects.push_back(ret);
+  _projects.push_back(std::move(ptr));
   endInsertRows();
   emit rowCountChanged(_projects.size());
   return ret;
