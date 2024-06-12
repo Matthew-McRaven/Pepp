@@ -57,8 +57,8 @@ Item {
             Cpu.RegisterView {
                 id: registers
                 SplitView.minimumHeight: 200
-                registers: project.registers
-                flags: project.flags
+                registers: project?.registers ?? null
+                flags: project?.flags ?? null
             }
             IO.Batch {
                 SplitView.fillHeight: true
@@ -67,7 +67,7 @@ Item {
                 Component.onCompleted: {
                     onInputChanged.connect(() => project.charIn = input)
                 }
-                output: project.charOut
+                output: project?.charOut ?? null
             }
         }
         Loader {
