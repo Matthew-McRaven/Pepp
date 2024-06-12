@@ -201,5 +201,5 @@ signals:
   void rowCountChanged(int);
 
 private:
-  std::deque<Pep10_ISA *> _projects = {};
+  std::deque<QObject *> _projects = {};
 };
