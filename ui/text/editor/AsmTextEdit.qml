@@ -23,7 +23,7 @@ import "qrc:/qt/qml/Pepp/gui/components" as Ui
 import edu.pepp 1.0
 
 //  Figure contents
-ScrollView {
+Flickable {
     id: wrapper
     Layout.alignment: Qt.AlignCenter
     Layout.fillHeight: true
@@ -36,6 +36,9 @@ ScrollView {
 
     property int colWidth: 30
     property int rows: 16
+    ScrollBar.vertical: ScrollBar {}
+    contentHeight: editor.implicitHeight
+    clip: true
 
     //  Set page contents based on parent selected values
     Component.onCompleted: {
