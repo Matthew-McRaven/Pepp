@@ -405,8 +405,18 @@ QVariant ProjectModel::data(const QModelIndex &index, int role) const {
 }
 
 Pep10_ISA *ProjectModel::pep10ISA(QVariant delegate) {
-  // use
   auto ptr = std::make_unique<Pep10_ISA>(delegate, nullptr);
+  auto ret = &*ptr;
+  QQmlEngine::setObjectOwnership(ret, QQmlEngine::CppOwnership);
+  beginInsertRows(QModelIndex(), _projects.size(), _projects.size());
+  _projects.push_back(std::move(ptr));
+  endInsertRows();
+  emit rowCountChanged(_projects.size());
+  return ret;
+}
+
+Pep10_ASMB *ProjectModel::pep10ASMB(QVariant delegate) {
+  auto ptr = std::make_unique<Pep10_ASMB>(delegate, nullptr);
   auto ret = &*ptr;
   QQmlEngine::setObjectOwnership(ret, QQmlEngine::CppOwnership);
   beginInsertRows(QModelIndex(), _projects.size(), _projects.size());
@@ -440,3 +450,32 @@ QHash<int, QByteArray> ProjectModel::roleNames() const {
 project::DebugEnableFlags::DebugEnableFlags(QObject *parent) : QObject(parent) {}
 
 project::StepEnableFlags::StepEnableFlags(QObject *parent) : QObject(parent) {}
+
+Pep10_ASMB::Pep10_ASMB(QVariant delegate, QObject *parent) : Pep10_ISA(delegate, parent) {}
+
+void Pep10_ASMB::set(int abstraction, QString value) {
+  if (abstraction == static_cast<int>(utils::Abstraction::ASMB5)) {
+    setUserAsmText(value);
+  }
+}
+
+QString Pep10_ASMB::userAsmText() const { return _userAsmText; }
+
+void Pep10_ASMB::setUserAsmText(const QString &userAsmText) {
+
+  if (_userAsmText == userAsmText) return;
+  _userAsmText = userAsmText;
+  emit userAsmTextChanged();
+}
+
+project::Environment Pep10_ASMB::env() const {
+  return {.arch = utils::Architecture::PEP10, .level = utils::Abstraction::ASMB5, .features = project::Features::None};
+}
+
+utils::Architecture Pep10_ASMB::architecture() const { return utils::Architecture::PEP10; }
+
+utils::Abstraction Pep10_ASMB::abstraction() const { return utils::Abstraction::ASMB5; }
+
+void Pep10_ASMB::prepareSim() {}
+
+void Pep10_ASMB::prepareGUIUpdate(sim::api2::trace::FrameIterator from) {}

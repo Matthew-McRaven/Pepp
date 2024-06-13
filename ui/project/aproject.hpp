@@ -81,7 +81,7 @@ private:
   const project::Environment _env;
 };
 
-class Pep10_ISA final : public QObject {
+class Pep10_ISA : public QObject {
   Q_OBJECT
   Q_PROPERTY(project::Environment env READ env CONSTANT)
   Q_PROPERTY(utils::Architecture architecture READ architecture CONSTANT)
@@ -106,9 +106,9 @@ public:
     Full,
   };
   explicit Pep10_ISA(QVariant delegate, QObject *parent = nullptr);
-  project::Environment env() const;
-  utils::Architecture architecture() const;
-  utils::Abstraction abstraction() const;
+  virtual project::Environment env() const;
+  virtual utils::Architecture architecture() const;
+  virtual utils::Abstraction abstraction() const;
   ARawMemory *memory() const;
   OpcodeModel *mnemonics() const;
   QString objectCodeText() const;
@@ -153,7 +153,7 @@ signals:
 
   void updateGUI(sim::api2::trace::FrameIterator from);
 
-private:
+protected:
   enum class State {
     Halted,
     NormalExec,
@@ -175,6 +175,29 @@ private:
   qint16 _currentAddress = 0;
 };
 
+class Pep10_ASMB final : public Pep10_ISA {
+  Q_OBJECT
+  Q_PROPERTY(QString userAsmText READ userAsmText WRITE setUserAsmText NOTIFY userAsmTextChanged);
+
+public:
+  explicit Pep10_ASMB(QVariant delegate, QObject *parent = nullptr);
+  // Actually utils::Abstraction, but QM passes it as an int.
+  Q_INVOKABLE void set(int abstraction, QString value);
+  Q_INVOKABLE QString userAsmText() const;
+  Q_INVOKABLE void setUserAsmText(const QString &userAsmText);
+  project::Environment env() const override;
+  utils::Architecture architecture() const override;
+  utils::Abstraction abstraction() const override;
+signals:
+  void userAsmTextChanged();
+  void updateGUI(sim::api2::trace::FrameIterator from);
+
+protected:
+  void prepareSim();
+  void prepareGUIUpdate(sim::api2::trace::FrameIterator from);
+  QString _userAsmText = {};
+};
+
 // Factory to ensure class invariants of project are maintained.
 // Must be a singleton to call methods on it.
 // Can't seem to call Q_INVOKABLE on an uncreatable type.
@@ -193,6 +216,7 @@ public:
   int rowCount(const QModelIndex &parent) const override;
   QVariant data(const QModelIndex &index, int role) const override;
   Q_INVOKABLE Pep10_ISA *pep10ISA(QVariant delegate);
+  Q_INVOKABLE Pep10_ASMB *pep10ASMB(QVariant delegate);
   bool removeRows(int row, int count, const QModelIndex &parent) override;
   bool moveRows(const QModelIndex &sourceParent, int sourceRow, int count, const QModelIndex &destinationParent,
                 int destinationChild) override;

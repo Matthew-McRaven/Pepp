@@ -25,10 +25,9 @@ import edu.pepp 1.0
 //  Figure contents
 Flickable {
     id: wrapper
-    Layout.alignment: Qt.AlignCenter
-    Layout.fillHeight: true
-    Layout.fillWidth: true
+    signal editingFinished
     required property bool isReadOnly
+    property alias readOnly: wrapper.isReadOnly
     property bool allowsBP: true
     required property string edition
     required property string language
@@ -47,6 +46,7 @@ Flickable {
         highlighter.set_styles(styles)
         highlighter.set_document(editor.textDocument)
         highlighter.set_highlighter(edition, language)
+        editor.editingFinished.connect(wrapper.editingFinished)
     }
 
     StyleMap {
