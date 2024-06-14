@@ -456,6 +456,8 @@ Pep10_ASMB::Pep10_ASMB(QVariant delegate, QObject *parent) : Pep10_ISA(delegate,
 void Pep10_ASMB::set(int abstraction, QString value) {
   if (abstraction == static_cast<int>(utils::Abstraction::ASMB5)) {
     setUserAsmText(value);
+  } else if (abstraction == static_cast<int>(utils::Abstraction::OS4)) {
+    setOSAsmText(value);
   }
 }
 
@@ -466,6 +468,14 @@ void Pep10_ASMB::setUserAsmText(const QString &userAsmText) {
   if (_userAsmText == userAsmText) return;
   _userAsmText = userAsmText;
   emit userAsmTextChanged();
+}
+
+QString Pep10_ASMB::osAsmText() const { return _osAsmText; }
+
+void Pep10_ASMB::setOSAsmText(const QString &osAsmText) {
+  if (_osAsmText == osAsmText) return;
+  _osAsmText = osAsmText;
+  emit osAsmTextChanged();
 }
 
 project::Environment Pep10_ASMB::env() const {

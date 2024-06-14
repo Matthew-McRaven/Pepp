@@ -178,6 +178,7 @@ protected:
 class Pep10_ASMB final : public Pep10_ISA {
   Q_OBJECT
   Q_PROPERTY(QString userAsmText READ userAsmText WRITE setUserAsmText NOTIFY userAsmTextChanged);
+  Q_PROPERTY(QString osAsmText READ osAsmText WRITE setOSAsmText NOTIFY osAsmTextChanged);
 
 public:
   explicit Pep10_ASMB(QVariant delegate, QObject *parent = nullptr);
@@ -185,6 +186,8 @@ public:
   Q_INVOKABLE void set(int abstraction, QString value);
   Q_INVOKABLE QString userAsmText() const;
   Q_INVOKABLE void setUserAsmText(const QString &userAsmText);
+  Q_INVOKABLE QString osAsmText() const;
+  Q_INVOKABLE void setOSAsmText(const QString &osAsmText);
   project::Environment env() const override;
   utils::Architecture architecture() const override;
   utils::Abstraction abstraction() const override;
@@ -194,12 +197,13 @@ public slots:
   bool onAssembleThenFormat();
 signals:
   void userAsmTextChanged();
+  void osAsmTextChanged();
   void updateGUI(sim::api2::trace::FrameIterator from);
 
 protected:
   void prepareSim();
   void prepareGUIUpdate(sim::api2::trace::FrameIterator from);
-  QString _userAsmText = {};
+  QString _userAsmText = {}, _osAsmText = {};
 };
 
 // Factory to ensure class invariants of project are maintained.

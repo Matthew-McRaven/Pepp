@@ -14,11 +14,11 @@ Item {
     Component.onCompleted: {
         // Must connect and disconnect manually, otherwise project may be changed underneath us, and "save" targets wrong project.
         // Do not need to update on mode change, since mode change implies loss of focus of objEdit.
-        asmEdit.editingFinished.connect(save)
+        userAsmEdit.editingFinished.connect(save)
     }
     // Will be called before project is changed on unload, so we can disconnect save-triggering signals.
     Component.onDestruction: {
-        asmEdit.editingFinished.disconnect(save)
+        userAsmEdit.editingFinished.disconnect(save)
     }
 
     function save() {
@@ -26,7 +26,7 @@ Item {
         if (project === null)
             return
         else if (!asmEdit.readOnly) {
-            project.userAsmText = asmEdit.text
+            project.userAsmText = userAsmEdit.text
         }
     }
 
@@ -43,16 +43,46 @@ Item {
                 color: palette.base
             }
         }
-        Text.AsmTextEdit {
-            id: asmEdit
-            readOnly: mode !== "edit"
-            // text is only an initial binding, the value diverges from there.
-            text: project?.userAsmText ?? ""
+
+        Item {
             SplitView.minimumWidth: 100
             SplitView.fillWidth: true
-            edition: "Computer Systems, 6th edition"
-            language: "pep"
+            ComboBox {
+                id: textSelector
+                anchors.left: parent.left
+                anchors.right: parent.right
+                anchors.top: parent.top
+                model: ["User", "OS"]
+            }
+            StackLayout {
+                anchors.left: parent.left
+                anchors.right: parent.right
+                anchors.top: textSelector.bottom
+                anchors.bottom: parent.bottom
+                currentIndex: textSelector.currentIndex
+                Text.AsmTextEdit {
+                    id: userAsmEdit
+                    Layout.fillHeight: true
+                    Layout.fillWidth: true
+                    readOnly: mode !== "edit"
+                    // text is only an initial binding, the value diverges from there.
+                    text: project?.userAsmText ?? ""
+                    edition: "Computer Systems, 6th edition"
+                    language: "pep"
+                }
+                Text.AsmTextEdit {
+                    id: osAsmEdit
+                    Layout.fillHeight: true
+                    Layout.fillWidth: true
+                    readOnly: true
+                    // text is only an initial binding, the value diverges from there.
+                    text: project?.osAsmText ?? ""
+                    edition: "Computer Systems, 6th edition"
+                    language: "pep"
+                }
+            }
         }
+
         SplitView {
             visible: mode === "debug"
             SplitView.minimumWidth: 200
