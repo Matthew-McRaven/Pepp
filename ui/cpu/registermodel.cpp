@@ -1,5 +1,5 @@
 #include "registermodel.hpp"
-
+#include "./formats.hpp"
 //  For testing only
 #include <QRandomGenerator>
 

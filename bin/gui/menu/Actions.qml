@@ -114,6 +114,24 @@ QtObject {
             shortcut: ["Ctrl+Shift+L"]
             onShortcutChanged: updateNativeText(this)
         }
+        readonly property var assemble: Action {
+            enabled: project?.onAssemble !== undefined
+            property string nativeText: ""
+            onTriggered: project.onAssemble()
+            text: "&Assemble"
+            icon.source: `image://icons/build/build${enabled ? '' : '_disabled'}${dark ? '' : '_dark'}.svg`
+            shortcut: ["Ctrl+Shift+B"]
+            onShortcutChanged: updateNativeText(this)
+        }
+        readonly property var assembleThenFormat: Action {
+            enabled: project?.onAssembleThenFormat !== undefined
+            property string nativeText: ""
+            onTriggered: project.onAssembleThenFormat()
+            text: "Assemble then &Format"
+            // Use blank icon to force menu items to line up.
+            icon.source: "image://icons/blank.svg"
+            onShortcutChanged: updateNativeText(this)
+        }
         readonly property var execute: Action {
             enabled: project?.allowedDebugging & DebugEnableFlags.Execute
             property string nativeText: ""

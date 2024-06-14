@@ -2,6 +2,7 @@
 #include <QQmlEngine>
 #include <sstream>
 #include "bits/strings.hpp"
+#include "cpu/formats.hpp"
 #include "help/builtins/figure.hpp"
 #include "helpers/asmb.hpp"
 #include "isa/pep10.hpp"
@@ -397,17 +398,29 @@ QVariant ProjectModel::data(const QModelIndex &index, int role) const {
   if (!index.isValid() || index.row() >= _projects.size() || index.column() != 0) return {};
 
   switch (role) {
-  case static_cast<int>(Roles::ProjectRole): return QVariant::fromValue(_projects[index.row()]);
+  case static_cast<int>(Roles::ProjectRole): return QVariant::fromValue(&*_projects[index.row()]);
   default: return {};
   }
   return {};
 }
 
 Pep10_ISA *ProjectModel::pep10ISA(QVariant delegate) {
-  auto ret = new Pep10_ISA(delegate);
+  auto ptr = std::make_unique<Pep10_ISA>(delegate, nullptr);
+  auto ret = &*ptr;
   QQmlEngine::setObjectOwnership(ret, QQmlEngine::CppOwnership);
   beginInsertRows(QModelIndex(), _projects.size(), _projects.size());
-  _projects.push_back(ret);
+  _projects.push_back(std::move(ptr));
+  endInsertRows();
+  emit rowCountChanged(_projects.size());
+  return ret;
+}
+
+Pep10_ASMB *ProjectModel::pep10ASMB(QVariant delegate) {
+  auto ptr = std::make_unique<Pep10_ASMB>(delegate, nullptr);
+  auto ret = &*ptr;
+  QQmlEngine::setObjectOwnership(ret, QQmlEngine::CppOwnership);
+  beginInsertRows(QModelIndex(), _projects.size(), _projects.size());
+  _projects.push_back(std::move(ptr));
   endInsertRows();
   emit rowCountChanged(_projects.size());
   return ret;
@@ -437,3 +450,57 @@ QHash<int, QByteArray> ProjectModel::roleNames() const {
 project::DebugEnableFlags::DebugEnableFlags(QObject *parent) : QObject(parent) {}
 
 project::StepEnableFlags::StepEnableFlags(QObject *parent) : QObject(parent) {}
+
+Pep10_ASMB::Pep10_ASMB(QVariant delegate, QObject *parent) : Pep10_ISA(delegate, parent) {}
+
+void Pep10_ASMB::set(int abstraction, QString value) {
+  if (abstraction == static_cast<int>(utils::Abstraction::ASMB5)) {
+    setUserAsmText(value);
+  } else if (abstraction == static_cast<int>(utils::Abstraction::OS4)) {
+    setOSAsmText(value);
+  }
+}
+
+QString Pep10_ASMB::userAsmText() const { return _userAsmText; }
+
+void Pep10_ASMB::setUserAsmText(const QString &userAsmText) {
+
+  if (_userAsmText == userAsmText) return;
+  _userAsmText = userAsmText;
+  emit userAsmTextChanged();
+}
+
+QString Pep10_ASMB::osAsmText() const { return _osAsmText; }
+
+void Pep10_ASMB::setOSAsmText(const QString &osAsmText) {
+  if (_osAsmText == osAsmText) return;
+  _osAsmText = osAsmText;
+  emit osAsmTextChanged();
+}
+
+project::Environment Pep10_ASMB::env() const {
+  return {.arch = utils::Architecture::PEP10, .level = utils::Abstraction::ASMB5, .features = project::Features::None};
+}
+
+utils::Architecture Pep10_ASMB::architecture() const { return utils::Architecture::PEP10; }
+
+utils::Abstraction Pep10_ASMB::abstraction() const { return utils::Abstraction::ASMB5; }
+
+int Pep10_ASMB::allowedDebugging() const {
+  using D = project::DebugEnableFlags;
+  switch (_state) {
+  case State::Halted: return D::Start | D::Execute;
+  case State::DebugPaused: return D::Continue | D::Stop;
+  case State::NormalExec: return D::Stop;
+  case State::DebugExec: return D::Stop;
+  default: return 0b0;
+  }
+}
+
+bool Pep10_ASMB::onAssemble() { return false; }
+
+bool Pep10_ASMB::onAssembleThenFormat() { return false; }
+
+void Pep10_ASMB::prepareSim() {}
+
+void Pep10_ASMB::prepareGUIUpdate(sim::api2::trace::FrameIterator from) {}

@@ -8,5 +8,6 @@ void project::registerTypes(const char *uri) {
   qmlRegisterUncreatableType<DebugEnableFlags>(uri, 1, 0, "DebugEnableFlags", utils::error_only_enums);
   qmlRegisterUncreatableType<StepEnableFlags>(uri, 1, 0, "StepEnableFlags", utils::error_only_enums);
   qmlRegisterUncreatableType<Pep10_ISA>(uri, 1, 0, "Pep10ISA", error_only_project);
+  qmlRegisterUncreatableType<Pep10_ASMB>(uri, 1, 0, "Pep10ASMB", error_only_project);
   qmlRegisterType<ProjectModel>(uri, 1, 0, "ProjectModel");
 }

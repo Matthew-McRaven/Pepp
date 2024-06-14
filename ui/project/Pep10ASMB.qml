@@ -14,22 +14,24 @@ Item {
     Component.onCompleted: {
         // Must connect and disconnect manually, otherwise project may be changed underneath us, and "save" targets wrong project.
         // Do not need to update on mode change, since mode change implies loss of focus of objEdit.
-        objEdit.editingFinished.connect(save)
+        userAsmEdit.editingFinished.connect(save)
     }
     // Will be called before project is changed on unload, so we can disconnect save-triggering signals.
     Component.onDestruction: {
-        objEdit.editingFinished.disconnect(save)
+        userAsmEdit.editingFinished.disconnect(save)
     }
 
     function save() {
         // Supress saving messages when there is no project.
         if (project === null)
             return
-        else if (!objEdit.readOnly)
-            project.objectCodeText = objEdit.text
+        else if (!userAsmEdit.readOnly) {
+            project.userAsmText = userAsmEdit.text
+        }
     }
 
     SplitView {
+        id: split
         anchors.fill: parent
         orientation: Qt.Horizontal
         handle: Item {
@@ -42,14 +44,62 @@ Item {
                 color: palette.base
             }
         }
-        Text.ObjTextEditor {
-            id: objEdit
-            readOnly: mode !== "edit"
-            // text is only an initial binding, the value diverges from there.
-            text: project?.objectCodeText ?? ""
+
+        Item {
             SplitView.minimumWidth: 100
             SplitView.fillWidth: true
+            ComboBox {
+                id: textSelector
+                anchors.left: parent.left
+                anchors.right: parent.right
+                anchors.top: parent.top
+                model: ["User", "OS"]
+            }
+            SplitView {
+                handle: split.handle
+                orientation: Qt.Vertical
+                anchors.left: parent.left
+                anchors.right: parent.right
+                anchors.top: textSelector.bottom
+                anchors.bottom: parent.bottom
+                StackLayout {
+                    currentIndex: textSelector.currentIndex
+                    SplitView.fillHeight: true
+                    Text.AsmTextEdit {
+                        id: userAsmEdit
+                        Layout.fillHeight: true
+                        Layout.fillWidth: true
+                        height: parent.height
+                        readOnly: mode !== "edit"
+                        // text is only an initial binding, the value diverges from there.
+                        text: project?.userAsmText ?? ""
+                        edition: "Computer Systems, 6th edition"
+                        language: "pep"
+                        contentHeight: Math.max(parent.height, editorHeight)
+                    }
+                    Text.AsmTextEdit {
+                        id: osAsmEdit
+                        Layout.fillHeight: true
+                        Layout.fillWidth: true
+                        height: parent.height
+                        readOnly: true
+                        // text is only an initial binding, the value diverges from there.
+                        text: project?.osAsmText ?? ""
+                        edition: "Computer Systems, 6th edition"
+                        language: "pep"
+                        contentHeight: Math.max(parent.height, editorHeight)
+                    }
+                }
+                Text.ObjTextEditor {
+                    id: objView
+                    readOnly: true
+                    // text is only an initial binding, the value diverges from there.
+                    text: "FE ED BE EF ZZ"
+                    SplitView.minimumHeight: 100
+                }
+            }
         }
+
         SplitView {
             visible: mode === "debug"
             SplitView.minimumWidth: 200

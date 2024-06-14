@@ -23,7 +23,7 @@ import "qrc:/ui/text/editor" as TextEdit
 Item {
     id: wrapper
     property alias text_area: figContent
-    signal addProject(string feats, string text, string switchToMode)
+    signal addProject(string feats, string text, string switchToMode, var optionalOS)
 
     //required property var model
     ColumnLayout {
@@ -41,8 +41,8 @@ Item {
         //  Set page contents based on parent selected values
         Component.onCompleted: {
             copyTitle = treeView.selectedFig.display
-            let payload = treeView.selectedFig.payload
-            let edition = treeView.selectedFig.edition
+            payload = treeView.selectedFig.payload
+            edition = treeView.selectedFig.edition
 
             copyToSource = Qt.binding(() => (payload.chapterName !== "04"))
 
@@ -176,7 +176,9 @@ Item {
                 anchors {
                     horizontalCenter: copyRow.center
                 }
-                onClicked: wrapper.addProject("", figCol.listing, "Edit")
+                onClicked: wrapper.addProject(
+                               "", figCol.listing, "Edit",
+                               figCol?.payload?.defaultOS?.elements[figCol.language]?.content)
             }
 
             //  Figure title

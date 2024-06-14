@@ -4,7 +4,6 @@
 #include <deque>
 #include <qabstractitemmodel.h>
 #include <targets/pep10/isa3/system.hpp>
-#include "bits/mask.hpp"
 #include "cpu/registermodel.hpp"
 #include "cpu/statusbitmodel.hpp"
 #include "memory/hexdump/rawmemory.hpp"
@@ -82,133 +81,7 @@ private:
   const project::Environment _env;
 };
 
-struct HexFormatter : public RegisterFormatter {
-  explicit HexFormatter(std::function<uint64_t()> fn, uint16_t byteCount = 2)
-      : _fn(fn), _bytes(byteCount), _mask(bits::mask(byteCount)) {}
-  ~HexFormatter() override = default;
-  QString format() const override { return u"0x%1"_qs.arg(_mask & _fn(), _bytes * 2, 16, QChar('0')); }
-  QString format(quint8 byteCount) const override {
-    return u"0x%1"_qs.arg(bits::mask(byteCount) & _fn(), byteCount * 2, 16, QChar('0'));
-  }
-  bool readOnly() const override { return false; }
-  qsizetype length() const override { return length(_bytes); }
-  qsizetype length(quint8 byteCount) const override { return 2 * byteCount + 2; };
-
-private:
-  uint16_t _bytes = 0;
-  uint64_t _mask = 0;
-  std::function<uint64_t()> _fn;
-};
-
-struct UnsignedDecFormatter : public RegisterFormatter {
-  explicit UnsignedDecFormatter(std::function<std::uint64_t()> fn, uint16_t byteCount = 2)
-      : _fn(fn), _bytes(byteCount), _mask(bits::mask(byteCount)), _len(byteCount) {}
-  ~UnsignedDecFormatter() override = default;
-  QString format() const override { return QString::number(_mask & _fn()); }
-  QString format(quint8 byteCount) const override { return QString::number(bits::mask(byteCount) & _fn()); }
-  bool readOnly() const override { return false; }
-  qsizetype length() const override { return _len; }
-  qsizetype length(quint8 byteCount) const override { return digits(byteCount); }
-
-private:
-  static uint16_t digits(quint8 byteCount) { return std::ceil(std::log10(std::pow(2, 8 * byteCount))); }
-  uint16_t _bytes = 0, _len = 0;
-  uint64_t _mask = 0;
-  std::function<uint64_t()> _fn;
-};
-
-struct SignedDecFormatter : public RegisterFormatter {
-  explicit SignedDecFormatter(std::function<int64_t()> fn, uint16_t byteCount = 2)
-      : _fn(fn), _bytes(byteCount), _mask(bits::mask(byteCount)), _len(digits(byteCount) + 1) {}
-  ~SignedDecFormatter() override = default;
-  QString format() const override {
-    if (auto v = _fn(); v < 0)
-      // Limit V to the range expressable with an N-bit unsigned int before restoring the sign.
-      return QString::number(~(_mask & ~v));
-    return QString::number(_mask & _fn());
-  }
-  QString format(quint8 byteCount) const override {
-    if (auto v = _fn(); v < 0)
-      // Limit V to the range expressable with an N-bit unsigned int before restoring the sign.
-      return QString::number(~(bits::mask(byteCount) & ~v));
-    return QString::number(bits::mask(byteCount) & _fn());
-  }
-  bool readOnly() const override { return false; }
-  qsizetype length() const override { return _len; }
-  qsizetype length(quint8 byteCount) const override { return digits(byteCount); }
-
-private:
-  static uint16_t digits(quint8 byteCount) { return std::ceil(std::log10(std::pow(2, 8 * byteCount))); }
-  uint16_t _bytes = 0, _len = 0;
-  uint64_t _mask = 0;
-  std::function<int64_t()> _fn;
-};
-
-struct BinaryFormatter : public RegisterFormatter {
-  explicit BinaryFormatter(std::function<uint64_t()> fn, uint16_t byteCount = 1)
-      : _fn(fn), _len(byteCount), _mask(bits::mask(byteCount)) {}
-  ~BinaryFormatter() override = default;
-  QString format() const override { return u"%1"_qs.arg(_mask & _fn(), length(), 2, QChar('0')); }
-  QString format(quint8 byteCount) const override {
-    return u"%1"_qs.arg(bits::mask(byteCount) & _fn(), length(byteCount), 2, QChar('0'));
-  }
-  bool readOnly() const override { return false; }
-  qsizetype length() const override { return 8 * _len; }
-  qsizetype length(quint8 byteCount) const override { return 8 * byteCount; }
-
-private:
-  uint16_t _len = 0;
-  uint64_t _mask = 0;
-  std::function<uint64_t()> _fn;
-};
-
-// Ignore lengthed overrides since they do not depend on byte count
-struct MnemonicFormatter : public RegisterFormatter {
-  explicit MnemonicFormatter(std::function<QString()> fn) : _fn(fn) {}
-  ~MnemonicFormatter() override = default;
-  QString format() const override { return _fn(); }
-  QString format(quint8 byteCount) const override { return _fn(); }
-  bool readOnly() const override { return true; }
-  qsizetype length() const override { return 7 + 2 + 3; }
-  qsizetype length(quint8 byteCount) const override { return 7 + 2 + 3; }
-
-private:
-  std::function<QString()> _fn;
-};
-
-struct OptionalFormatter : public RegisterFormatter {
-  explicit OptionalFormatter(QSharedPointer<RegisterFormatter> fmt, std::function<bool()> valid)
-      : _fmt(fmt), _valid(valid) {}
-  ~OptionalFormatter() override = default;
-  QString format() const override { return _valid() ? _fmt->format() : ""; }
-  QString format(quint8 byteCount) const override { return _valid() ? _fmt->format(byteCount) : ""; }
-  bool readOnly() const override { return _fmt->readOnly(); }
-  qsizetype length() const override { return _fmt->length(); }
-  qsizetype length(quint8 byteCount) const override { return _fmt->length(byteCount); }
-
-private:
-  QSharedPointer<RegisterFormatter> _fmt;
-  std::function<bool()> _valid;
-};
-
-struct VariableByteLengthFormatter : public RegisterFormatter {
-  explicit VariableByteLengthFormatter(QSharedPointer<RegisterFormatter> fmt, std::function<quint8()> bytes,
-                                       quint8 maxBytes = 2)
-      : _fmt(fmt), _bytes(bytes), _maxBytes(maxBytes) {}
-  ~VariableByteLengthFormatter() override = default;
-  QString format() const override { return _fmt->format(_bytes()); }
-  QString format(quint8 byteCount) const override { return _fmt->format(byteCount); }
-  bool readOnly() const override { return _fmt->readOnly(); }
-  // This method will be called to determine max column width, so we should always use the max.
-  qsizetype length() const override { return _fmt->length(_maxBytes); }
-  qsizetype length(quint8 byteCount) const override { return _fmt->length(byteCount); }
-
-private:
-  quint8 _maxBytes = 2;
-  QSharedPointer<RegisterFormatter> _fmt;
-  std::function<quint8()> _bytes;
-};
-class Pep10_ISA final : public QObject {
+class Pep10_ISA : public QObject {
   Q_OBJECT
   Q_PROPERTY(project::Environment env READ env CONSTANT)
   Q_PROPERTY(utils::Architecture architecture READ architecture CONSTANT)
@@ -233,9 +106,9 @@ public:
     Full,
   };
   explicit Pep10_ISA(QVariant delegate, QObject *parent = nullptr);
-  project::Environment env() const;
-  utils::Architecture architecture() const;
-  utils::Abstraction abstraction() const;
+  virtual project::Environment env() const;
+  virtual utils::Architecture architecture() const;
+  virtual utils::Abstraction abstraction() const;
   ARawMemory *memory() const;
   OpcodeModel *mnemonics() const;
   QString objectCodeText() const;
@@ -247,8 +120,8 @@ public:
   }
   // Actually utils::Abstraction, but QM passes it as an int.
   Q_INVOKABLE void set(int abstraction, QString value);
-  Q_INVOKABLE int allowedDebugging() const;
-  Q_INVOKABLE int allowedSteps() const;
+  Q_INVOKABLE virtual int allowedDebugging() const;
+  Q_INVOKABLE virtual int allowedSteps() const;
   Q_INVOKABLE QString charIn() const;
   Q_INVOKABLE void setCharIn(QString value);
   Q_INVOKABLE QString charOut() const;
@@ -280,7 +153,7 @@ signals:
 
   void updateGUI(sim::api2::trace::FrameIterator from);
 
-private:
+protected:
   enum class State {
     Halted,
     NormalExec,
@@ -302,6 +175,37 @@ private:
   qint16 _currentAddress = 0;
 };
 
+class Pep10_ASMB final : public Pep10_ISA {
+  Q_OBJECT
+  Q_PROPERTY(QString userAsmText READ userAsmText WRITE setUserAsmText NOTIFY userAsmTextChanged);
+  Q_PROPERTY(QString osAsmText READ osAsmText WRITE setOSAsmText NOTIFY osAsmTextChanged);
+
+public:
+  explicit Pep10_ASMB(QVariant delegate, QObject *parent = nullptr);
+  // Actually utils::Abstraction, but QM passes it as an int.
+  Q_INVOKABLE void set(int abstraction, QString value);
+  Q_INVOKABLE QString userAsmText() const;
+  Q_INVOKABLE void setUserAsmText(const QString &userAsmText);
+  Q_INVOKABLE QString osAsmText() const;
+  Q_INVOKABLE void setOSAsmText(const QString &osAsmText);
+  project::Environment env() const override;
+  utils::Architecture architecture() const override;
+  utils::Abstraction abstraction() const override;
+  int allowedDebugging() const override;
+public slots:
+  bool onAssemble();
+  bool onAssembleThenFormat();
+signals:
+  void userAsmTextChanged();
+  void osAsmTextChanged();
+  void updateGUI(sim::api2::trace::FrameIterator from);
+
+protected:
+  void prepareSim();
+  void prepareGUIUpdate(sim::api2::trace::FrameIterator from);
+  QString _userAsmText = {}, _osAsmText = {};
+};
+
 // Factory to ensure class invariants of project are maintained.
 // Must be a singleton to call methods on it.
 // Can't seem to call Q_INVOKABLE on an uncreatable type.
@@ -320,6 +224,7 @@ public:
   int rowCount(const QModelIndex &parent) const override;
   QVariant data(const QModelIndex &index, int role) const override;
   Q_INVOKABLE Pep10_ISA *pep10ISA(QVariant delegate);
+  Q_INVOKABLE Pep10_ASMB *pep10ASMB(QVariant delegate);
   bool removeRows(int row, int count, const QModelIndex &parent) override;
   bool moveRows(const QModelIndex &sourceParent, int sourceRow, int count, const QModelIndex &destinationParent,
                 int destinationChild) override;
@@ -328,5 +233,5 @@ signals:
   void rowCountChanged(int);
 
 private:
-  std::deque<Pep10_ISA *> _projects = {};
+  std::deque<std::unique_ptr<QObject>> _projects = {};
 };
