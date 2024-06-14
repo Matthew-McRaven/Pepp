@@ -25,24 +25,25 @@ Item {
     id: root
     property alias architecture: filterModel.architecture
     property alias abstraction: filterModel.abstraction
-    signal addProject(int level, int abstraction, string feats, string text)
+    signal addProject(int level, int abstraction, string feats, var text)
     signal switchToMode(string mode)
-    function addProjectWrapper(feats, text, mode) {
-        root.addProject(root.architecture, root.abstraction, feats, text)
+    function addProjectWrapper(feats, texts, mode) {
+        root.addProject(root.architecture, root.abstraction, feats, texts)
         root.switchToMode(mode ?? "Edit")
+    }
+    function selectSource(arg) {
+        if (treeView.selectedFig === undefined) {
+            topicWindow.source = "Topic.qml"
+        } else {
+            topicWindow.source = ""
+            topicWindow.source = "Figure.qml"
+
+            //figCol.help( drawer.selected.display,drawer.selected.payload );
+        }
     }
 
     Component.onCompleted: {
-        treeView.onSelectedFigChanged.connect(arg => {
-                                                  if (treeView.selectedFig === undefined) {
-                                                      topicWindow.source = "Topic.qml"
-                                                  } else {
-                                                      topicWindow.source = ""
-                                                      topicWindow.source = "Figure.qml"
-
-                                                      //figCol.help( drawer.selected.display,drawer.selected.payload );
-                                                  }
-                                              })
+        treeView.onSelectedFigChanged.connect(selectSource)
     }
     BookModel {
         id: model
@@ -142,8 +143,15 @@ Item {
             Connections {
                 ignoreUnknownSignals: topicWindow.source !== "Figure.qml"
                 target: topicWindow.item
-                function onAddProject(feats, text, switchToMode) {
-                    root.addProjectWrapper(feats, text, switchToMode)
+                function onAddProject(feats, text, switchToMode, optionalOS) {
+                    if (optionalOS !== undefined && optionalOS) {
+                        // foratter keeps destroying compute property names in map, so build map manually.
+                        let v = {}
+                        v[root.abstraction] = text
+                        v[Abstraction.OS4] = optionalOS
+                        root.addProjectWrapper(feats, v, switchToMode)
+                    } else
+                        root.addProjectWrapper(feats, text, switchToMode)
                 }
             }
             Loader {

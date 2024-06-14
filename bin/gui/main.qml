@@ -157,7 +157,7 @@ ApplicationWindow {
 
     ProjectModel {
         id: pm
-        function onAddProject(arch, level, feats, optText) {
+        function onAddProject(arch, level, feats, optTexts) {
             var proj = null
             // Attach a delegate to the project which can render its edit/debug modes. Since it is a C++ property,
             // binding changes propogate automatically.
@@ -170,9 +170,14 @@ ApplicationWindow {
                 }
                 break
             }
-
-            if (optText)
-                proj.set(level, optText)
+            if (optTexts === undefined || optTexts === null)
+                return
+            else if (typeof (optTexts) === "string")
+                proj.set(level, optTexts)
+            else {
+                for (const list of Object.entries(optTexts))
+                    proj.set(list[0], list[1])
+            }
         }
     }
     ListModel {
