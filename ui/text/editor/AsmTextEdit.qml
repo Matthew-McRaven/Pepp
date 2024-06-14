@@ -170,24 +170,25 @@ Flickable {
             readOnly: wrapper.isReadOnly
 
             text: wrapper.text
-            Keys.onPressed: event => {
-                                if (event.key === Qt.Key_Tab
-                                    || event.key === Qt.Key_Backtab) {
-                                    if (editor.readOnly) {
-                                        event.accepted = true
-                                        return
-                                    } else if (event.key === Qt.Key_Backtab
-                                               || (event.key === Qt.Key_Tab
-                                                   && event.modifiers & Qt.ShiftModifier)) {
-                                        event.accepted = true
-                                        tabNanny.backtab(editor.cursorPosition)
-                                    } else if (event.key === Qt.Key_Tab
-                                               && event.modifiers === Qt.NoModifier) {
-                                        event.accepted = true
-                                        tabNanny.tab(editor.cursorPosition)
-                                    }
-                                }
-                            }
+            function onPressedHandler(event) {
+                if (event.key === Qt.Key_Tab || event.key === Qt.Key_Backtab) {
+                    if (editor.readOnly) {
+                        event.accepted = true
+                        return
+                    } else if (event.key === Qt.Key_Backtab
+                               || (event.key === Qt.Key_Tab
+                                   && event.modifiers & Qt.ShiftModifier)) {
+                        event.accepted = true
+                        tabNanny.backtab(editor.cursorPosition)
+                    } else if (event.key === Qt.Key_Tab
+                               && event.modifiers === Qt.NoModifier) {
+                        event.accepted = true
+                        tabNanny.tab(editor.cursorPosition)
+                    }
+                }
+            }
         }
+
+        Keys.onPressed: event => onPressedHandler(event)
     }
 }
