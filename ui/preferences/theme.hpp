@@ -47,6 +47,7 @@ class Theme : public QObject {
   QString name_ = "Default";
   QString version_ = "0.5";
   bool system_{true};
+
   //  Dirty flag is cleared on save (a const function)
   mutable bool isDirty_{false};
 
@@ -64,16 +65,16 @@ class Theme : public QObject {
 public:
   enum Ranges {
     GeneralCategoryStart = Themes::BaseRole,  //  Only used for iteration
-    GeneralCategoryEnd=Themes::PlaceHolderTextRole, //  Only used for iteration
-    EditorCategoryEnd = Themes::SeqCircuitRole,
-    CircuitCategoryEnd = Themes::CircuitGreenRole, //  Only used for iteration
+    GeneralCategoryEnd  = Themes::RowNumberRole, //  Only used for iteration
+    EditorCategoryEnd   = Themes::SeqCircuitRole,
+    CircuitCategoryEnd  = Themes::Total, //  Only used for iteration
   };
 
   explicit Theme(QObject *parent = nullptr);
 
   //  Call back from QML to save specified theme
   Q_INVOKABLE void selectTheme(const QString file);
-  Q_INVOKABLE void saveTheme() const;
+  Q_INVOKABLE void saveTheme();
   Q_INVOKABLE void copyTheme(const QString file);
   Q_INVOKABLE void importTheme(const QString file);
   Q_INVOKABLE void exportTheme(const QString file) const;
@@ -138,11 +139,15 @@ public:
     return preference(Themes::Roles::SeqCircuitRole); }
   Preference* circuitGreen() const {
     return preference(Themes::Roles::CircuitGreenRole); }
-
 signals:
   void fontChanged();
   void preferenceChanged();
   void themesChanged();
+
+
+public slots:
+  void clearIsDirty();
+  void setIsDirty();
 
 private:
   QJsonObject toJson() const;
@@ -150,4 +155,5 @@ private:
 
   void loadMissing();
   void loadThemeList();
+  void setDirty(bool flag=true);
 };

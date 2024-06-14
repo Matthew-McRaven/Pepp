@@ -1,6 +1,6 @@
 {
     "font": {
-        "name": "Courier New",
+        "name": "Dark (copy)",
         "points": 12
     },
     "name": "Dark",
@@ -28,9 +28,9 @@
             "underline": false
         },
         {
-            "background": "0xff7f7f7f",
+            "background": "0xff8c8c8c",
             "bold": false,
-            "foreground": "0xfff0f0f0",
+            "foreground": "0xfff8f8f8",
             "id": "ButtonRole",
             "italics": false,
             "name": "Button Text/Background",
@@ -50,9 +50,9 @@
             "underline": false
         },
         {
-            "background": "0xff000000",
+            "background": "0xff346792",
             "bold": false,
-            "foreground": "0xffffffdc",
+            "foreground": "0xffdfe1e2",
             "id": "TooltipRole",
             "italics": false,
             "name": "Tooltip Text/Background",
@@ -61,9 +61,9 @@
             "underline": false
         },
         {
-            "background": "0xff7f7f7f",
+            "background": "0xff707070",
             "bold": false,
-            "foreground": "0xffa0a0a0",
+            "foreground": "0xffeeeeee",
             "id": "AlternateBaseRole",
             "italics": false,
             "name": "AlternateBase Background",
@@ -72,9 +72,9 @@
             "underline": false
         },
         {
-            "background": "0xffffffff",
+            "background": "0xff0078d7",
             "bold": false,
-            "foreground": "0xff0078d7",
+            "foreground": "0xffffffff",
             "id": "AccentRole",
             "italics": false,
             "name": "Accent Background",
@@ -83,9 +83,9 @@
             "underline": false
         },
         {
-            "background": "0xff0000ff",
+            "background": "0xffffffff",
             "bold": false,
-            "foreground": "0xffffffff",
+            "foreground": "0xff696969",
             "id": "LightRole",
             "italics": false,
             "name": "Light Background",
@@ -94,9 +94,9 @@
             "underline": false
         },
         {
-            "background": "0xff000000",
+            "background": "0xffeeeeee",
             "bold": false,
-            "foreground": "0xffe3e3e3",
+            "foreground": "0xff3f3f3f",
             "id": "MidLightRole",
             "italics": false,
             "name": "Midlight Background",
@@ -105,9 +105,9 @@
             "underline": false
         },
         {
-            "background": "0xfff0f0f0",
+            "background": "0xffcccccc",
             "bold": false,
-            "foreground": "0xffa0a0a0",
+            "foreground": "0xff3f3f3f",
             "id": "MidRole",
             "italics": false,
             "name": "Mid Background",
@@ -116,9 +116,9 @@
             "underline": false
         },
         {
-            "background": "0xfff0f0f0",
+            "background": "0xff7f7f7f",
             "bold": false,
-            "foreground": "0xffa0a0a0",
+            "foreground": "0xff3f3f3f",
             "id": "DarkRole",
             "italics": false,
             "name": "Dark Background",
@@ -127,9 +127,9 @@
             "underline": false
         },
         {
-            "background": "0xffffffff",
+            "background": "0xff464646",
             "bold": false,
-            "foreground": "0xff696969",
+            "foreground": "0xffe6e6e6",
             "id": "ShadowRole",
             "italics": false,
             "name": "Shadow Background",
@@ -171,9 +171,9 @@
             "underline": false
         },
         {
-            "background": "0xff7f7f7f",
+            "background": "0xff707070",
             "bold": false,
-            "foreground": "0xffeeeeee",
+            "foreground": "0xffb6b7b8",
             "id": "PlaceHolderTextRole",
             "italics": false,
             "name": "Placeholder Text",

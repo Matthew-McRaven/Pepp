@@ -14,9 +14,12 @@ Rectangle {
   //  Used for updates
   required property var model
 
+  border.color: palette.windowText
+  border.width: 1
+
   ColumnLayout  {
     id: wrapper
-    //Layout.margins: 5
+    Layout.margins: 5
     anchors.fill: parent
     property int colWidth: 70
 

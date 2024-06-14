@@ -14,7 +14,6 @@ Rectangle {
 
   RowLayout {
   //Rectangle {
-    //spacing: 2
     anchors.fill: parent
 
     //  Category list
@@ -34,9 +33,7 @@ Rectangle {
       Layout.fillWidth: true
       Layout.margins: 3
 
-      //implicitWidth: 350
       color: palette.base
-      //border.color: palette.windowText
       model: root.model
     }
 

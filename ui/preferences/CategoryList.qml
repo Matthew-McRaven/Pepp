@@ -6,15 +6,16 @@ Rectangle {
   id: root
 
   required property var model
-  color: palette.window // Theme.container.background
-  border.color: palette.windowText  //  Theme.container.foreground
+
+  color: palette.window
+  border.color: palette.windowText
   border.width: 1
 
    ListView {
     id: listView
     model: root.model.categoryList
     anchors.fill: root
-    anchors.margins: 1
+    anchors.margins: 2
 
     delegate: Rectangle {
       id: wrapper
@@ -27,16 +28,11 @@ Rectangle {
       height: info.height
       color: ListView.isCurrentItem ?
               palette.highlight : "transparent"
-              //Theme.container.background
-               //  "darkslateblue" : "white"
       Text {
         id: info
-        text: modelData //listView.model.name
+        text: modelData
         color: wrapper.ListView.isCurrentItem ?
                 palette.highlightedText : palette.windowText
-                /*Theme.secondary.foreground :
-                Theme.container.foreground*/
-                 //  "white" : "black"
       }
       MouseArea
       {

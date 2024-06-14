@@ -21,6 +21,11 @@ PreferenceModel::PreferenceModel(Theme* theme,QObject *parent)
 
     //  Start with default preference
     current_ = theme_->preference(0);
+
+    //  Set dirty flag anytime a preference changes
+    QObject::connect(this, &PreferenceModel::preferenceChanged,
+                     theme, &Theme::setIsDirty);
+
 }
 
 QFont PreferenceModel::font() const
@@ -193,8 +198,8 @@ void PreferenceModel::updatePreference(const quint32 key,
                       const PrefProperty field,
                       const QVariant& value)
 {
-  //  Negative key is bad
-  if( key < 0)
+  //  Invalid key is bad
+  if( key == Themes::Roles::Invalid)
     return;
 
   //  Roles are maintained in a vector. Lookup

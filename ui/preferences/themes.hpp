@@ -31,7 +31,7 @@ public:
     SeqCircuitRole,
     CircuitGreenRole,
 
-    Total, // Must be last
+    Total, // Must be last valid theme
     //  Indicates invalid state from parsing input files
     Invalid = 0xffffffff,
   };

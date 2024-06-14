@@ -25,17 +25,16 @@ Theme::Theme(QObject *parent)
   loadThemeList();
 
   //  See if themes were found
-  if(themes_.size() == 0)
-    //  User deleted system themes, load defaults
-    loadMissing();
-  else
+  if(themes_.size() > 0) {
+
     //  In future, this will load last saved theme. For now, it's hardcoded
     load(systemPath_ + "Default.theme");
+  }
 
-  //  Set dirty flag anytime a preference changes
-  QObject::connect(this, &Theme::preferenceChanged,
-                   this, [this]{isDirty_=true;});
-    //  Used to generate sample file
+  //  Fill in any missing preferences. Should only occur if error in system
+  loadMissing();
+
+         //  Used to generate sample file
     //save("Default.theme");
 }
 
@@ -161,7 +160,7 @@ void Theme::selectTheme(const QString newTheme) {
   }
   //  Notify QML that theme has changed
   emit fontChanged();
-  emit preferenceChanged();
+  emit preferenceChanged(); //  Required for screen refresh
   emit themesChanged();
 }
 
@@ -177,6 +176,13 @@ void Theme::exportTheme(const QString file) const {
 void Theme::importTheme(const QString file) {
   auto cleanFile = file;
 
+  //  Ensure export system theme is not treated as system
+  //  theme on later import
+  if( system_ ) {
+    system_ = false;
+    cleanFile.replace(".theme", "-Copy.theme");
+  }
+
   //  Remove "file:///" from URL file name
   cleanFile = cleanFile.remove(0,8);
 
@@ -184,7 +190,7 @@ void Theme::importTheme(const QString file) {
 
   //  Notify QML that theme has changed
   emit fontChanged();
-  emit preferenceChanged();
+  //emit preferenceChanged;
   emit themesChanged();
 }
 
@@ -195,7 +201,7 @@ void Theme::copyTheme(const QString theme) {
   //  Update theme name to match user update
   name_ = theme;
 
-         //  Change to non-system theme
+  //  Ensure not treated as system theme
   system_ = false;
 
   save(fullName);
@@ -243,11 +249,35 @@ bool Theme::isDirty() const {
   return !system_ && isDirty_;
 }
 
-void Theme::saveTheme() const {
+void Theme::clearIsDirty() {
+  setDirty(false);
+}
+
+void Theme::setIsDirty() {
+  setDirty(true);
+}
+
+void Theme::setDirty(bool flag) {
+  //  Only non-system themes can change or be saved
+  if(isDirty_ != flag) {
+    isDirty_ = flag;
+    emit preferenceChanged();
+    emit themesChanged();
+  }
+}
+
+void Theme::saveTheme() {
   //  Only save if theme in non-system and has changed
-  if(isDirty() && !currentTheme_.isEmpty())
+  if(isDirty() && !currentTheme_.isEmpty()) {
     save( currentTheme_ );
 
+    //  Set dirty data flag
+    isDirty_ = false;
+
+    //  Signal controls to redraw
+    emit preferenceChanged();
+    emit themesChanged();
+  }
 }
 
 bool Theme::save(const QString& file) const {
@@ -298,19 +328,18 @@ QJsonObject Theme::toJson() const {
 
 void Theme::loadMissing() {
 
-  //  This function is only called if all themes have been removed from the system
-  themes_.append("Default");
-
-  //  Clear old preferences before reloading
-  prefs_.clear();
-
+  //  Loop through all preferences
   for(int i = 0; i < Themes::Roles::Total; ++i ) {
 
     Preference* pref = nullptr;
 
-    //auto id = QMetaEnum::fromType<Themes::Roles>().valueToKey(i);
     auto id = static_cast<Themes::Roles>(i);
 
+    //  If preference is not null, it was already assigned
+    if(prefs_[id] != nullptr )
+      continue;
+
+    //  Current preference is missing. Assign a default.
     switch(i) {
     case Themes::Roles::BaseRole:
       pref  = new Preference(this, id, "Base Text/Background",
@@ -401,7 +430,8 @@ void Theme::loadMissing() {
         return;
     }
     pref->setFont(&font_);
-    prefs_.emplace_back(pref);
+    //prefs_.emplace_back(pref);
+    prefs_[id] = pref;
   }
 }
 

@@ -31,7 +31,7 @@ RowLayout {
     }
   }
   Button {
-    //  System themese can never have state change
+    //  System themes can never have state change
     //  If non-system theme has changes, they must
     //  be saved before a copy can be made
     text: Theme.isDirty ? "Save" : "Copy"
@@ -51,12 +51,14 @@ RowLayout {
     id: del
     text: "Delete";
     Layout.preferredWidth: buttonWidth
+
+    //  Do not delete system themes
     enabled: !Theme.systemTheme
     onClicked: deleteDialog.open()
     palette {
       buttonText: !Theme.systemTheme
                   ? root.palette.buttonText
-                  : root.palette.shadow
+                  : root.palette.placeholderText
     }
   }
   Button {
@@ -67,7 +69,15 @@ RowLayout {
   Button {
     text: "Export"
     Layout.preferredWidth: buttonWidth
+
+    //  Do not export system themes
+    enabled: !Theme.systemTheme
     onClicked: exportDialog.open()
+    palette {
+      buttonText: !Theme.systemTheme
+                  ? root.palette.buttonText
+                  : root.palette.placeholderText
+    }
   }
 
   FileDialog {
@@ -79,10 +89,6 @@ RowLayout {
     nameFilters: ["Pep Theme files (*.theme)"]
     defaultSuffix: "theme"
     selectedFile: Theme.name
-
-    //  Set dialog colors
-    //Control.palette.windowText: Theme.container.foreground
-    //Control.palette.base: Theme.container.background
 
     onAccepted: {
       Theme.exportTheme(decodeURIComponent(selectedFile))
@@ -139,9 +145,6 @@ RowLayout {
     modal: true
     standardButtons: Dialog.Ok | Dialog.Cancel
     spacing: 5
-
-    //  Set dialog colors
-    //palette.text: Theme.container.foreground
 
     ColumnLayout {
       anchors.fill: parent

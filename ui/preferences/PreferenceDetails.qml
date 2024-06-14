@@ -119,11 +119,11 @@ Rectangle {
 
         color: palette.window
         border.color: palette.windowText
+        border.width: 1
 
         Ui.ColorSettings {
           visible: !Theme.systemTheme
           anchors.fill: parent
-          //implicitWidth: 225
 
           color: palette.window
 
