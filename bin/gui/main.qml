@@ -340,8 +340,9 @@ ApplicationWindow {
                         radius: 4
                     }
                     onClicked: {
-                        // TODO: Use window.currentProject.env to create a new project with same features.
-                        pm.onAddProject("pep/10", "isa3", "")
+                        // TODO: Need to add OS to assembly-level projects.
+                        pm.onAddProject(window.currentProject.architecture,
+                                        window.currentProject.abstraction, "")
                         window.switchToProject(pm.count - 1)
                     }
                 }
