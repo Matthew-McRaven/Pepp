@@ -45,11 +45,6 @@ Flickable {
 
     //  Set page contents based on parent selected values
     Component.onCompleted: {
-        DefaultStyles.pep10_asm(styles)
-        DefaultStyles.c(styles)
-        highlighter.set_styles(styles)
-        highlighter.set_document(editor.textDocument)
-        highlighter.set_highlighter(edition, language)
         editor.editingFinished.connect(wrapper.editingFinished)
     }
 
@@ -58,9 +53,6 @@ Flickable {
     }
     BlockFinder {
         id: finder
-    }
-    Highlighter {
-        id: highlighter
     }
     LineInfoModel {
         id: lineModel
