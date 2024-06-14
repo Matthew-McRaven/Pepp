@@ -36,7 +36,11 @@ Flickable {
     property int colWidth: 30
     property int rows: 16
     ScrollBar.vertical: ScrollBar {}
-    contentHeight: editor.implicitHeight
+    property alias editorHeight: editor.implicitHeight
+    // To force the flickable to consume all available space in parent (leaving no gray areas below it),
+    // set `contentHeight: Math.max(editorHeight, parent.height)`.
+    // Content height must be set or scrolling is not possible.
+    contentHeight: editorHeight
     clip: true
 
     //  Set page contents based on parent selected values
