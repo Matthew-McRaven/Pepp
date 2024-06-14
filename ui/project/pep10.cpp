@@ -1,5 +1,6 @@
 #include "./pep10.hpp"
 #include <QQmlEngine>
+#include <elfio/elfio.hpp>
 #include <sstream>
 #include "bits/strings.hpp"
 #include "cpu/formats.hpp"
@@ -45,87 +46,12 @@ struct Pep10OpcodeInit {
   }
 };
 
-Pep10_ISA::Pep10_ISA(QVariant delegate, QObject *parent)
-    : QObject(parent), _delegate(delegate), _tb(QSharedPointer<sim::trace2::InfiniteBuffer>::create()),
-      _memory(nullptr), _registers(new RegisterModel(this)), _flags(new FlagModel(this)) {
-  QQmlEngine::setObjectOwnership(_registers, QQmlEngine::CppOwnership);
-  _system.clear();
-  assert(_system.isNull());
-  using RF = QSharedPointer<RegisterFormatter>;
-  using TF = QSharedPointer<TextFormatter>;
-  using MF = QSharedPointer<MnemonicFormatter>;
-  using HF = QSharedPointer<HexFormatter>;
-  using SF = QSharedPointer<SignedDecFormatter>;
-  using UF = QSharedPointer<UnsignedDecFormatter>;
-  using BF = QSharedPointer<BinaryFormatter>;
-  using OF = QSharedPointer<OptionalFormatter>;
-  using VF = QSharedPointer<VariableByteLengthFormatter>;
-  auto _register = [](isa::Pep10::Register r, auto *system) {
-    if (system == nullptr) return quint16{0};
-    quint16 ret = 0;
-    auto cpu = system->cpu();
-    targets::pep10::isa::readRegister(cpu->regs(), r, ret, gs);
-    return ret;
-  };
-  // BUG: _system seems to be getting deleted very easily. It probably shouldn't be a shared pointer.
-  // DO NOT CAPTURE _system INDIRECTLY VIA ANOTHER LAMBDA. It will crash.
-  auto A = [&_register, this]() { return _register(isa::Pep10::Register::A, &*this->_system); };
-  auto X = [&_register, this]() { return _register(isa::Pep10::Register::X, &*this->_system); };
-  auto SP = [&_register, this]() { return _register(isa::Pep10::Register::SP, &*this->_system); };
-  auto PC = [&_register, this]() { return _register(isa::Pep10::Register::PC, &*this->_system); };
-  auto IS = [&_register, this]() { return _register(isa::Pep10::Register::IS, &*this->_system); };
-  auto IS_TEXT = [&_register, this]() {
-    int opcode = _register(isa::Pep10::Register::IS, &*this->_system);
-    auto row = mnemonics()->indexFromOpcode(opcode);
-    return mnemonics()->data(mnemonics()->index(row), Qt::DisplayRole).toString();
-  };
-  auto OS = [&_register, this]() { return _register(isa::Pep10::Register::OS, &*this->_system); };
-  auto notU = [&_register, this]() {
-    auto is = _register(isa::Pep10::Register::IS, &*this->_system);
-    auto op = isa::Pep10::opcodeLUT[is];
-    return !op.instr.unary;
-  };
-  auto operand = [&_register, this]() {
-    auto system = &*this->_system;
-    return system->cpu()->currentOperand().value_or(0);
-  };
-  _registers->appendFormatters({TF::create("Accumulator"), HF::create(A, 2), SF::create(A, 2)});
-  _registers->appendFormatters({TF::create("Index Register"), HF::create(X, 2), SF::create(X, 2)});
-  _registers->appendFormatters({TF::create("Stack Pointer"), HF::create(SP, 2), UF::create(SP, 2)});
-  _registers->appendFormatters({TF::create("Program Counter"), HF::create(PC, 2), UF::create(PC, 2)});
-  _registers->appendFormatters({TF::create("Instruction Specifier"), BF::create(IS, 1), MF::create(IS_TEXT)});
-  _registers->appendFormatters(
-      {TF::create("Operand Specifier"), OF::create(HF::create(OS, 2), notU), OF::create(SF::create(OS, 2), notU)});
-  auto length = [&_register, this]() {
-    auto is = _register(isa::Pep10::Register::IS, &*this->_system);
-    return isa::Pep10::operandBytes(is);
-  };
-  auto opr_hex = HF::create(operand, 2);
-  auto opr_dec = SF::create(operand, 2);
-  auto opr_hex_wrapped = VF::create(OF::create(opr_hex, notU), length, 2);
-  auto opr_dec_wrapped = VF::create(OF::create(opr_dec, notU), length, 2);
-  _registers->appendFormatters({TF::create("(Operand)"), opr_hex_wrapped, opr_dec_wrapped});
-  connect(this, &Pep10_ISA::updateGUI, _registers, &RegisterModel::onUpdateGUI);
+struct SystemAssembly {
+  QSharedPointer<ELFIO::elfio> elf;
+  QSharedPointer<targets::pep10::isa::System> system;
+};
 
-  using F = QSharedPointer<Flag>;
-  auto _flag = [](isa::Pep10::CSR s, auto *system) {
-    if (system == nullptr) return false;
-    bool ret = 0;
-    auto cpu = system->cpu();
-    targets::pep10::isa::readCSR(cpu->csrs(), s, ret, gs);
-    return ret;
-  };
-  // See above for wanings on _system pointer.
-  auto N = [&_flag, this]() { return _flag(isa::Pep10::CSR::N, &*this->_system); };
-  auto Z = [&_flag, this]() { return _flag(isa::Pep10::CSR::Z, &*this->_system); };
-  auto V = [&_flag, this]() { return _flag(isa::Pep10::CSR::V, &*this->_system); };
-  auto C = [&_flag, this]() { return _flag(isa::Pep10::CSR::C, &*this->_system); };
-  _flags->appendFlag({F::create("N", N)});
-  _flags->appendFlag({F::create("Z", Z)});
-  _flags->appendFlag({F::create("V", V)});
-  _flags->appendFlag({F::create("C", C)});
-  connect(this, &Pep10_ISA::updateGUI, _flags, &FlagModel::onUpdateGUI);
-
+SystemAssembly make_isa_system() {
   auto book = helpers::book(6);
   auto os = book->findFigure("os", "pep10baremetal");
   auto osContents = os->typesafeElements()["pep"]->contents;
@@ -135,21 +61,119 @@ Pep10_ISA::Pep10_ISA(QVariant delegate, QObject *parent)
   if (!result) {
     qWarning() << "Default OS assembly failed";
   }
+  SystemAssembly ret;
   // Need to reload to properly compute segment addresses. Store in temp
   // directory to prevent clobbering local file contents.
-  _elf = helper.elf();
+  ret.elf = helper.elf();
   {
     std::stringstream s;
-    _elf->save(s);
+    ret.elf->save(s);
     s.seekg(0, std::ios::beg);
-    _elf->load(s);
+    ret.elf->load(s);
   }
-  _system = targets::pep10::isa::systemFromElf(*_elf, true);
-  auto sink = QSharedPointer<sim::trace2::TranslatingModifiedAddressSink<quint16>>::create(_system->pathManager(),
-                                                                                           _system->bus());
+  ret.system = targets::pep10::isa::systemFromElf(*ret.elf, true);
+  return ret;
+}
+
+RegisterModel *register_model(targets::pep10::isa::System *system, OpcodeModel *opcodes, QObject *parent = nullptr) {
+  using RF = QSharedPointer<RegisterFormatter>;
+  using TF = QSharedPointer<TextFormatter>;
+  using MF = QSharedPointer<MnemonicFormatter>;
+  using HF = QSharedPointer<HexFormatter>;
+  using SF = QSharedPointer<SignedDecFormatter>;
+  using UF = QSharedPointer<UnsignedDecFormatter>;
+  using BF = QSharedPointer<BinaryFormatter>;
+  using OF = QSharedPointer<OptionalFormatter>;
+  using VF = QSharedPointer<VariableByteLengthFormatter>;
+  auto ret = new RegisterModel(parent);
+  auto _register = [](isa::Pep10::Register r, auto *system) {
+    if (system == nullptr) return quint16{0};
+    quint16 ret = 0;
+    auto cpu = system->cpu();
+    targets::pep10::isa::readRegister(cpu->regs(), r, ret, gs);
+    return ret;
+  };
+  // BUG: _system seems to be getting deleted very easily. It probably shouldn't be a shared pointer.
+  // DO NOT CAPTURE _system INDIRECTLY VIA ANOTHER LAMBDA. It will crash.
+  auto A = [=]() { return _register(isa::Pep10::Register::A, system); };
+  auto X = [=]() { return _register(isa::Pep10::Register::X, system); };
+  auto SP = [=]() { return _register(isa::Pep10::Register::SP, system); };
+  auto PC = [=]() { return _register(isa::Pep10::Register::PC, system); };
+  auto IS = [=]() { return _register(isa::Pep10::Register::IS, system); };
+  auto IS_TEXT = [=]() {
+    int opcode = _register(isa::Pep10::Register::IS, system);
+    auto row = opcodes->indexFromOpcode(opcode);
+    return opcodes->data(opcodes->index(row), Qt::DisplayRole).toString();
+  };
+  auto OS = [=]() { return _register(isa::Pep10::Register::OS, system); };
+  auto notU = [=]() {
+    auto is = _register(isa::Pep10::Register::IS, system);
+    auto op = isa::Pep10::opcodeLUT[is];
+    return !op.instr.unary;
+  };
+  auto operand = [=]() { return system->cpu()->currentOperand().value_or(0); };
+  ret->appendFormatters({TF::create("Accumulator"), HF::create(A, 2), SF::create(A, 2)});
+  ret->appendFormatters({TF::create("Index Register"), HF::create(X, 2), SF::create(X, 2)});
+  ret->appendFormatters({TF::create("Stack Pointer"), HF::create(SP, 2), UF::create(SP, 2)});
+  ret->appendFormatters({TF::create("Program Counter"), HF::create(PC, 2), UF::create(PC, 2)});
+  ret->appendFormatters({TF::create("Instruction Specifier"), BF::create(IS, 1), MF::create(IS_TEXT)});
+  ret->appendFormatters(
+      {TF::create("Operand Specifier"), OF::create(HF::create(OS, 2), notU), OF::create(SF::create(OS, 2), notU)});
+  auto length = [=]() {
+    auto is = _register(isa::Pep10::Register::IS, system);
+    return isa::Pep10::operandBytes(is);
+  };
+  auto opr_hex = HF::create(operand, 2);
+  auto opr_dec = SF::create(operand, 2);
+  auto opr_hex_wrapped = VF::create(OF::create(opr_hex, notU), length, 2);
+  auto opr_dec_wrapped = VF::create(OF::create(opr_dec, notU), length, 2);
+  ret->appendFormatters({TF::create("(Operand)"), opr_hex_wrapped, opr_dec_wrapped});
+  return ret;
+}
+
+FlagModel *flag_mode(targets::pep10::isa::System *system, QObject *parent = nullptr) {
+  using F = QSharedPointer<Flag>;
+  auto ret = new FlagModel(parent);
+  auto _flag = [](isa::Pep10::CSR s, auto *system) {
+    if (system == nullptr) return false;
+    bool ret = 0;
+    auto cpu = system->cpu();
+    targets::pep10::isa::readCSR(cpu->csrs(), s, ret, gs);
+    return ret;
+  };
+  // See above for wanings on _system pointer.
+  auto N = [=]() { return _flag(isa::Pep10::CSR::N, system); };
+  auto Z = [=]() { return _flag(isa::Pep10::CSR::Z, system); };
+  auto V = [=]() { return _flag(isa::Pep10::CSR::V, system); };
+  auto C = [=]() { return _flag(isa::Pep10::CSR::C, system); };
+  ret->appendFlag({F::create("N", N)});
+  ret->appendFlag({F::create("Z", Z)});
+  ret->appendFlag({F::create("V", V)});
+  ret->appendFlag({F::create("C", C)});
+  return ret;
+}
+Pep10_ISA::Pep10_ISA(QVariant delegate, QObject *parent)
+    : QObject(parent), _delegate(delegate), _tb(QSharedPointer<sim::trace2::InfiniteBuffer>::create()),
+      _memory(nullptr), _registers(nullptr), _flags(nullptr) {
+  _system.clear();
+  assert(_system.isNull());
+
+  auto elfsys = make_isa_system();
+  _elf = elfsys.elf;
+  _system = elfsys.system;
   _system->bus()->setBuffer(&*_tb);
-  //_system->cpu()->setBuffer(&*_tb);
-  //_system->cpu()->trace(true);
+
+  _flags = flag_mode(&*_system, this);
+  connect(this, &Pep10_ISA::updateGUI, _flags, &FlagModel::onUpdateGUI);
+  QQmlEngine::setObjectOwnership(_flags, QQmlEngine::CppOwnership);
+
+  _registers = register_model(&*_system, mnemonics(), this);
+  connect(this, &Pep10_ISA::updateGUI, _registers, &RegisterModel::onUpdateGUI);
+  QQmlEngine::setObjectOwnership(_registers, QQmlEngine::CppOwnership);
+
+  using TMAS = sim::trace2::TranslatingModifiedAddressSink<quint16>;
+  auto sink = QSharedPointer<TMAS>::create(_system->pathManager(), _system->bus());
+
   _memory = new SimulatorRawMemory(_system->bus(), sink, this);
   connect(this, &Pep10_ISA::updateGUI, _memory, &SimulatorRawMemory::onUpdateGUI);
   QQmlEngine::setObjectOwnership(_memory, QQmlEngine::CppOwnership);
