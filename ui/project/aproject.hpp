@@ -120,8 +120,8 @@ public:
   }
   // Actually utils::Abstraction, but QM passes it as an int.
   Q_INVOKABLE void set(int abstraction, QString value);
-  Q_INVOKABLE int allowedDebugging() const;
-  Q_INVOKABLE int allowedSteps() const;
+  Q_INVOKABLE virtual int allowedDebugging() const;
+  Q_INVOKABLE virtual int allowedSteps() const;
   Q_INVOKABLE QString charIn() const;
   Q_INVOKABLE void setCharIn(QString value);
   Q_INVOKABLE QString charOut() const;
@@ -188,6 +188,7 @@ public:
   project::Environment env() const override;
   utils::Architecture architecture() const override;
   utils::Abstraction abstraction() const override;
+  int allowedDebugging() const override;
 signals:
   void userAsmTextChanged();
   void updateGUI(sim::api2::trace::FrameIterator from);

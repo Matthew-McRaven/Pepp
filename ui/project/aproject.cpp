@@ -476,6 +476,16 @@ utils::Architecture Pep10_ASMB::architecture() const { return utils::Architectur
 
 utils::Abstraction Pep10_ASMB::abstraction() const { return utils::Abstraction::ASMB5; }
 
+int Pep10_ASMB::allowedDebugging() const {
+  using D = project::DebugEnableFlags;
+  switch (_state) {
+  case State::Halted: return D::Start | D::Execute;
+  case State::DebugPaused: return D::Continue | D::Stop;
+  case State::NormalExec: return D::Stop;
+  case State::DebugExec: return D::Stop;
+  default: return 0b0;
+  }
+}
 void Pep10_ASMB::prepareSim() {}
 
 void Pep10_ASMB::prepareGUIUpdate(sim::api2::trace::FrameIterator from) {}
