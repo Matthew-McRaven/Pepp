@@ -189,6 +189,9 @@ public:
   utils::Architecture architecture() const override;
   utils::Abstraction abstraction() const override;
   int allowedDebugging() const override;
+public slots:
+  bool onAssemble();
+  bool onAssembleThenFormat();
 signals:
   void userAsmTextChanged();
   void updateGUI(sim::api2::trace::FrameIterator from);

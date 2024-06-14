@@ -486,6 +486,11 @@ int Pep10_ASMB::allowedDebugging() const {
   default: return 0b0;
   }
 }
+
+bool Pep10_ASMB::onAssemble() { return false; }
+
+bool Pep10_ASMB::onAssembleThenFormat() { return false; }
+
 void Pep10_ASMB::prepareSim() {}
 
 void Pep10_ASMB::prepareGUIUpdate(sim::api2::trace::FrameIterator from) {}
