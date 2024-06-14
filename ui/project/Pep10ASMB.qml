@@ -25,12 +25,13 @@ Item {
         // Supress saving messages when there is no project.
         if (project === null)
             return
-        else if (!asmEdit.readOnly) {
+        else if (!userAsmEdit.readOnly) {
             project.userAsmText = userAsmEdit.text
         }
     }
 
     SplitView {
+        id: split
         anchors.fill: parent
         orientation: Qt.Horizontal
         handle: Item {
@@ -54,31 +55,47 @@ Item {
                 anchors.top: parent.top
                 model: ["User", "OS"]
             }
-            StackLayout {
+            SplitView {
+                handle: split.handle
+                orientation: Qt.Vertical
                 anchors.left: parent.left
                 anchors.right: parent.right
                 anchors.top: textSelector.bottom
                 anchors.bottom: parent.bottom
-                currentIndex: textSelector.currentIndex
-                Text.AsmTextEdit {
-                    id: userAsmEdit
-                    Layout.fillHeight: true
-                    Layout.fillWidth: true
-                    readOnly: mode !== "edit"
-                    // text is only an initial binding, the value diverges from there.
-                    text: project?.userAsmText ?? ""
-                    edition: "Computer Systems, 6th edition"
-                    language: "pep"
+                StackLayout {
+                    currentIndex: textSelector.currentIndex
+                    SplitView.fillHeight: true
+                    Text.AsmTextEdit {
+                        id: userAsmEdit
+                        Layout.fillHeight: true
+                        Layout.fillWidth: true
+                        height: parent.height
+                        readOnly: mode !== "edit"
+                        // text is only an initial binding, the value diverges from there.
+                        text: project?.userAsmText ?? ""
+                        edition: "Computer Systems, 6th edition"
+                        language: "pep"
+                        contentHeight: Math.max(parent.height, editorHeight)
+                    }
+                    Text.AsmTextEdit {
+                        id: osAsmEdit
+                        Layout.fillHeight: true
+                        Layout.fillWidth: true
+                        height: parent.height
+                        readOnly: true
+                        // text is only an initial binding, the value diverges from there.
+                        text: project?.osAsmText ?? ""
+                        edition: "Computer Systems, 6th edition"
+                        language: "pep"
+                        contentHeight: Math.max(parent.height, editorHeight)
+                    }
                 }
-                Text.AsmTextEdit {
-                    id: osAsmEdit
-                    Layout.fillHeight: true
-                    Layout.fillWidth: true
+                Text.ObjTextEditor {
+                    id: objView
                     readOnly: true
                     // text is only an initial binding, the value diverges from there.
-                    text: project?.osAsmText ?? ""
-                    edition: "Computer Systems, 6th edition"
-                    language: "pep"
+                    text: "FE ED BE EF ZZ"
+                    SplitView.minimumHeight: 100
                 }
             }
         }
