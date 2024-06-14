@@ -35,7 +35,7 @@ public:
     Partial,
     Full,
   };
-  explicit Pep10_ISA(QVariant delegate, QObject *parent = nullptr);
+  explicit Pep10_ISA(QVariant delegate, QObject *parent = nullptr, bool initializeSystem = true);
   virtual project::Environment env() const;
   virtual utils::Architecture architecture() const;
   virtual utils::Abstraction abstraction() const;
@@ -84,6 +84,7 @@ signals:
   void updateGUI(sim::api2::trace::FrameIterator from);
 
 protected:
+  void bindToSystem();
   enum class State {
     Halted,
     NormalExec,

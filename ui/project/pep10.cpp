@@ -51,12 +51,42 @@ struct SystemAssembly {
   QSharedPointer<targets::pep10::isa::System> system;
 };
 
+QSharedPointer<macro::Registry> cs6e_macros() {
+  auto book = helpers::book(6);
+  return helpers::registry(book, {});
+}
 SystemAssembly make_isa_system() {
   auto book = helpers::book(6);
   auto os = book->findFigure("os", "pep10baremetal");
   auto osContents = os->typesafeElements()["pep"]->contents;
-  auto macroRegistry = helpers::registry(book, {});
+  auto macroRegistry = cs6e_macros();
   helpers::AsmHelper helper(macroRegistry, osContents);
+  auto result = helper.assemble();
+  if (!result) {
+    qWarning() << "Default OS assembly failed";
+  }
+  SystemAssembly ret;
+  // Need to reload to properly compute segment addresses. Store in temp
+  // directory to prevent clobbering local file contents.
+  ret.elf = helper.elf();
+  {
+    std::stringstream s;
+    ret.elf->save(s);
+    s.seekg(0, std::ios::beg);
+    ret.elf->load(s);
+  }
+  ret.system = targets::pep10::isa::systemFromElf(*ret.elf, true);
+  return ret;
+}
+
+QString cs6e_os() {
+  auto book = helpers::book(6);
+  auto os = book->findFigure("os", "pep10os");
+  return os->typesafeElements()["pep"]->contents;
+}
+SystemAssembly make_asmb_system(QString os) {
+  auto macroRegistry = cs6e_macros();
+  helpers::AsmHelper helper(macroRegistry, os);
   auto result = helper.assemble();
   if (!result) {
     qWarning() << "Default OS assembly failed";
@@ -152,17 +182,23 @@ FlagModel *flag_mode(targets::pep10::isa::System *system, QObject *parent = null
   ret->appendFlag({F::create("C", C)});
   return ret;
 }
-Pep10_ISA::Pep10_ISA(QVariant delegate, QObject *parent)
+
+Pep10_ISA::Pep10_ISA(QVariant delegate, QObject *parent, bool initializeSystem)
     : QObject(parent), _delegate(delegate), _tb(QSharedPointer<sim::trace2::InfiniteBuffer>::create()),
       _memory(nullptr), _registers(nullptr), _flags(nullptr) {
   _system.clear();
   assert(_system.isNull());
 
-  auto elfsys = make_isa_system();
-  _elf = elfsys.elf;
-  _system = elfsys.system;
-  _system->bus()->setBuffer(&*_tb);
+  if (initializeSystem) {
+    auto elfsys = make_isa_system();
+    _elf = elfsys.elf;
+    _system = elfsys.system;
+    _system->bus()->setBuffer(&*_tb);
+    bindToSystem();
+  }
+}
 
+void Pep10_ISA::bindToSystem() {
   _flags = flag_mode(&*_system, this);
   connect(this, &Pep10_ISA::updateGUI, _flags, &FlagModel::onUpdateGUI);
   QQmlEngine::setObjectOwnership(_flags, QQmlEngine::CppOwnership);
@@ -416,7 +452,14 @@ project::DebugEnableFlags::DebugEnableFlags(QObject *parent) : QObject(parent) {
 
 project::StepEnableFlags::StepEnableFlags(QObject *parent) : QObject(parent) {}
 
-Pep10_ASMB::Pep10_ASMB(QVariant delegate, QObject *parent) : Pep10_ISA(delegate, parent) {}
+Pep10_ASMB::Pep10_ASMB(QVariant delegate, QObject *parent) : Pep10_ISA(delegate, parent, false) {
+  _osAsmText = cs6e_os();
+  auto elfsys = make_asmb_system(_osAsmText);
+  _elf = elfsys.elf;
+  _system = elfsys.system;
+  _system->bus()->setBuffer(&*_tb);
+  bindToSystem();
+}
 
 void Pep10_ASMB::set(int abstraction, QString value) {
   if (abstraction == static_cast<int>(utils::Abstraction::ASMB5)) {
@@ -462,7 +505,13 @@ int Pep10_ASMB::allowedDebugging() const {
   }
 }
 
-bool Pep10_ASMB::onAssemble() { return false; }
+bool Pep10_ASMB::onAssemble() {
+  auto macroRegistry = cs6e_macros();
+  helpers::AsmHelper helper(macroRegistry, _osAsmText);
+  helper.setUserText(_userAsmText);
+  auto ret = helper.assemble();
+  return false;
+}
 
 bool Pep10_ASMB::onAssembleThenFormat() { return false; }
 
