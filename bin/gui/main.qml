@@ -60,8 +60,13 @@ ApplicationWindow {
 
     property string mode: "welcome"
     function setCurrentProject(index) {
+        if (window?.currentProject?.message !== undefined) {
+            window.currentProject.message.disconnect(window.message)
+        }
         window.currentProject = pm.data(pm.index(index, 0),
                                         ProjectModel.ProjectRole)
+        if (window.currentProject.message)
+            window.currentProject.message.connect(window.message)
     }
 
     function switchToProject(index, force) {
@@ -112,6 +117,9 @@ ApplicationWindow {
         actions.edit.prefs.triggered.connect(preferencesDialog.open)
         actions.help.about.triggered.connect(aboutDialog.open)
         actions.view.fullscreen.triggered.connect(onToggleFullScreen)
+        message.connect(text => footer.text = text)
+        message.connect(() => messageTimer.restart())
+        messageTimer.restart()
     }
 
     ProjectModel {
@@ -154,6 +162,17 @@ ApplicationWindow {
         id: actions
         project: window.currentProject
         window: window
+    }
+
+    signal message(string message)
+    footer: Label {
+        anchors.left: headerSpacer.right
+        text: "test message"
+        Timer {
+            id: messageTimer
+            interval: 10000
+            onTriggered: window.footer.text = ""
+        }
     }
 
     menuBar: Menu.MainMenu {

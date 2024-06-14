@@ -199,6 +199,7 @@ signals:
   void userAsmTextChanged();
   void osAsmTextChanged();
   void updateGUI(sim::api2::trace::FrameIterator from);
+  void message(QString message);
 
 protected:
   void prepareSim();
