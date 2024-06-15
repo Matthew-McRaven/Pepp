@@ -71,8 +71,7 @@ template <typename Address>
 Input<Address>::Input(api2::device::Descriptor device, AddressSpan span, quint8 defaultValue)
     : _fill(defaultValue), _span(span), _device(device),
       _channel(QSharedPointer<detail::Channel<Address, quint8>>::create(_fill)), _endpoint(_channel->new_endpoint()) {
-  if (_span.minOffset != _span.maxOffset)
-    throw std::logic_error("MMI only handles bytes.");
+  if (_span.lower() != _span.upper()) throw std::logic_error("MMI only handles bytes.");
 }
 
 template <typename Address> typename Input<Address>::AddressSpan Input<Address>::span() const { return _span; }
@@ -84,15 +83,13 @@ template <typename Address> void Input<Address>::clear(quint8 fill) {
 }
 
 template <typename Address> void Input<Address>::dump(bits::span<quint8> dest) const {
-  if (dest.size() <= 0)
-    throw std::logic_error("dump requires non-0 size");
+  if (dest.size() <= 0) throw std::logic_error("dump requires non-0 size");
   auto v = *_endpoint->current_value();
   bits::memcpy(dest, bits::span<const quint8>{&v, sizeof(v)});
 }
 
 template <typename Address> void Input<Address>::trace(bool enabled) {
-  if (_tb)
-    _tb->trace(_device.id, enabled);
+  if (_tb) _tb->trace(_device.id, enabled);
 }
 
 template <typename Address>
@@ -105,18 +102,15 @@ template <typename Address> void Input<Address>::setFailPolicy(api2::memory::Fai
 template <typename Address>
 bool Input<Address>::analyze(api2::trace::PacketIterator iter, api2::trace::Direction direction) {
   auto header = *iter;
-  if (!std::visit(sim::trace2::IsSameDevice{_device.id}, header))
-    return false;
+  if (!std::visit(sim::trace2::IsSameDevice{_device.id}, header)) return false;
   else if (std::holds_alternative<api2::packet::header::ImpureRead>(header)) {
     // Address is always implicitly 0 since this is a 1-byte port.
     auto hdr = std::get<api2::packet::header::ImpureRead>(header);
     // read() consumes a value via next_value(), which unread will undo.
-    if (direction == api2::trace::Direction::Reverse)
-      _endpoint->unread();
+    if (direction == api2::trace::Direction::Reverse) _endpoint->unread();
     // Forward direction
     // We don't emit multiple payloads, so receiving multiple (or 0) doesn't make sense.
-    else if (std::distance(iter.cbegin(), iter.cend()) != 1)
-      return false;
+    else if (std::distance(iter.cbegin(), iter.cend()) != 1) return false;
     // Otherwise we are seeing this byte for the first time via the trace.
     // We need to mimic the effect of read() by appending and setting to tail.
     else if (std::holds_alternative<api2::packet::payload::Variable>(*iter.cbegin())) {
@@ -125,8 +119,7 @@ bool Input<Address>::analyze(api2::trace::PacketIterator iter, api2::trace::Dire
       _endpoint->append_value(payload.payload.bytes[0]);
       _endpoint->set_to_tail();
     }
-  } else
-    return false;
+  } else return false;
   return true;
 }
 
@@ -139,8 +132,7 @@ api2::memory::Result Input<Address>::read(Address address, bits::span<quint8> de
   // Length is 1-indexed, address are 0, so must offset by -1.
   auto maxDestAddr = (address + std::max<Address>(0, dest.size() - 1));
 
-  if (address < _span.minOffset || maxDestAddr > _span.maxOffset)
-    throw E(E::Type::OOBAccess, address);
+  if (address < _span.lower() || maxDestAddr > _span.upper()) throw E(E::Type::OOBAccess, address);
   else if (op.type == Operation::Type::Application || op.type == Operation::Type::BufferInternal) {
     quint8 tmp = *_endpoint->current_value();
     bits::memcpy(dest, bits::span<const quint8>{&tmp, 1});
@@ -156,8 +148,7 @@ api2::memory::Result Input<Address>::read(Address address, bits::span<quint8> de
   }
 
   // All paths to here are non-application code, and should emit a trace
-  if (_tb)
-    sim::trace2::emitMMRead<Address>(_tb, _device.id, 0, dest);
+  if (_tb) sim::trace2::emitMMRead<Address>(_tb, _device.id, 0, dest);
 
   return {};
 }
@@ -167,8 +158,7 @@ api2::memory::Result Input<Address>::write(Address address, bits::span<const qui
   using E = api2::memory::Error;
   // Length is 1-indexed, address are 0, so must offset by -1.
   auto maxDestAddr = (address + std::max<Address>(0, src.size() - 1));
-  if (address < _span.minOffset || maxDestAddr > _span.maxOffset)
-    throw E(E::Type::OOBAccess, address);
+  if (address < _span.lower() || maxDestAddr > _span.upper()) throw E(E::Type::OOBAccess, address);
   return {};
 }
 

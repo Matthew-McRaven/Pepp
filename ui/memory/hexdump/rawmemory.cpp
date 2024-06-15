@@ -78,17 +78,12 @@ SimulatorRawMemory::SimulatorRawMemory(sim::memory::SimpleBus<quint16> *memory,
                                        QObject *parent)
     : ARawMemory(parent), _memory(memory), _sink(addrSink) {}
 
-quint32 SimulatorRawMemory::byteCount() const {
-  auto span = _memory->span();
-  return 1 + span.maxOffset - span.minOffset;
-}
+quint32 SimulatorRawMemory::byteCount() const { return sim::api2::memory::size<quint16, false>(_memory->span()); }
 
 quint8 SimulatorRawMemory::read(quint32 address) const {
   auto span = _memory->span();
   quint8 ret = 0;
-  if (address >= span.minOffset && address <= span.maxOffset) {
-    _memory->read(address, {&ret, sizeof(ret)}, gs);
-  }
+  if (sim::api2::memory::contains(span, static_cast<quint16>(address))) _memory->read(address, {&ret, sizeof(ret)}, gs);
   return ret;
 }
 
@@ -101,20 +96,17 @@ quint32 SimulatorRawMemory::pc() const { return _PC.lower(); }
 quint32 SimulatorRawMemory::sp() const { return _SP.lower(); }
 
 MemoryHighlight::V SimulatorRawMemory::status(quint32 address) const {
-  if (sim::trace2::contains(_PC, address))
-    return MemoryHighlight::PC;
-  else if (sim::trace2::contains(_SP, address))
-    return MemoryHighlight::SP;
-  else if (!_sink.isNull() && _sink->contains(address))
-    return MemoryHighlight::Modified;
+  using sim::api2::memory::contains;
+  if (contains(_PC, address)) return MemoryHighlight::PC;
+  else if (contains(_SP, address)) return MemoryHighlight::SP;
+  else if (!_sink.isNull() && _sink->contains(address)) return MemoryHighlight::Modified;
   return MemoryHighlight::None;
 }
 
 void SimulatorRawMemory::write(quint32 address, quint8 value) {
+  using sim::api2::memory::contains;
   auto span = _memory->span();
-  if (address >= span.minOffset && address <= span.maxOffset) {
-    _memory->write(address, {&value, sizeof(value)}, gs);
-  }
+  if (contains(span, static_cast<quint16>(address))) _memory->write(address, {&value, sizeof(value)}, gs);
 }
 
 void SimulatorRawMemory::clear() {
@@ -144,9 +136,8 @@ void SimulatorRawMemory::onUpdateGUI(sim::api2::trace::FrameIterator from) {
   _lastPC = _PC;
   // If no memory addresses changed, conservatively assume that the trace buffer was disabled and therefore any address
   // may have changed
-  if (auto intervals = _sink->intervals(); intervals.size() == 0) {
-    return emit dataChanged(0, 0xffff);
-  } else {
+  if (auto intervals = _sink->intervals(); intervals.size() == 0) return emit dataChanged(0, 0xffff);
+  else {
     // Otherwise, emit the intervals that were modified.
     for (const auto &interval : intervals) emit dataChanged(interval.lower(), interval.upper());
     // And update intervals containing PC, SP to fix the higlighting.

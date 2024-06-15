@@ -65,8 +65,7 @@ private:
 template <typename Address>
 sim::memory::Dense<Address>::Dense(api2::device::Descriptor device, AddressSpan span, quint8 fill)
     : _fill(fill), _span(span), _device(device) {
-  _data.fill(_fill,
-             _span.maxOffset - _span.minOffset + 1); // Resizes before filling.
+  _data.fill(_fill, size_inclusive(_span)); // Resizes before filling.
 }
 
 template <typename Address>
@@ -150,9 +149,8 @@ api2::memory::Result Dense<Address>::read(Address address, bits::span<quint8> de
   using Operation = sim::api2::memory::Operation;
   // Length is 1-indexed, address are 0, so must offset by -1.
   auto maxDestAddr = (address + std::max<Address>(0, dest.size() - 1));
-  if (address < _span.minOffset || maxDestAddr > _span.maxOffset)
-    throw E(E::Type::OOBAccess, address);
-  auto offset = address - _span.minOffset;
+  if (address < _span.lower() || maxDestAddr > _span.upper()) throw E(E::Type::OOBAccess, address);
+  auto offset = address - _span.lower();
   auto src = bits::span<const quint8>{_data.data(), std::size_t(_data.size())}.subspan(offset);
   // Ignore reads from UI, since this device only issues pure reads.
   // Ignore reads from buffer internal operations.
@@ -168,9 +166,8 @@ api2::memory::Result Dense<Address>::write(Address address, bits::span<const qui
   using Operation = sim::api2::memory::Operation;
   // Length is 1-indexed, address are 0, so must offset by -1.
   auto maxDestAddr = (address + std::max<Address>(0, src.size() - 1));
-  if (address < _span.minOffset || maxDestAddr > _span.maxOffset)
-    throw E(E::Type::OOBAccess, address);
-  auto offset = address - _span.minOffset;
+  if (address < _span.lower() || maxDestAddr > _span.upper()) throw E(E::Type::OOBAccess, address);
+  auto offset = address - _span.lower();
   auto dest = bits::span<quint8>{_data.data(), std::size_t(_data.size())}.subspan(offset);
   // Record changes, even if the come from UI. Otherwise, step back fails.
   if (op.type != Operation::Type::BufferInternal && _tb)

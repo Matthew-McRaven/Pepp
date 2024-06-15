@@ -29,7 +29,7 @@ auto app = sim::api2::memory::Operation{
     .type = sim::api2::memory::Operation::Type::Application,
     .kind = sim::api2::memory::Operation::Kind::data,
 };
-auto span = sim::api2::memory::AddressSpan<quint16>{.minOffset = 0, .maxOffset = 0};
+auto span = sim::api2::memory::AddressSpan<quint16>(0, 0);
 } // namespace
 
 TEST_CASE("Memory-mapped input read", "[scope:sim][kind:int][arch:*]") {

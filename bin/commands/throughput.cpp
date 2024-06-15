@@ -32,16 +32,12 @@ const auto desc_cpu = sim::api2::device::Descriptor{
     .fullName = "/cpu",
 };
 
-const auto span = sim::api2::memory::AddressSpan<quint16>{
-    .minOffset = 0,
-    .maxOffset = 0xFFFF,
-};
+const auto span = sim::api2::memory::AddressSpan<quint16>(0, 0xFFFF);
 
 auto make = []() {
   int i = 3;
   sim::api2::device::IDGenerator gen = [&i]() { return i++; };
-  auto storage =
-      QSharedPointer<sim::memory::Dense<quint16>>::create(desc_mem, span);
+  auto storage = QSharedPointer<sim::memory::Dense<quint16>>::create(desc_mem, span);
   auto cpu = QSharedPointer<targets::pep10::isa::CPU>::create(desc_cpu, gen);
   cpu->setTarget(storage.data(), nullptr);
   return std::pair{storage, cpu};
@@ -59,13 +55,11 @@ void ThroughputTask::run() {
   cpu->regs()->clear(0);
   cpu->csrs()->clear(0);
   // Infinite looping branch to 0.
-  auto program = std::array<quint8, 3>{0b0001'1100, 0x00, 0x00};
+  auto program = std::array<quint8, 3>{static_cast<quint8>(isa::Pep10::Mnemonic::BR), 0x00, 0x00};
   mem->write(0, {program.data(), program.size()}, rw);
   auto start = std::chrono::high_resolution_clock::now();
   auto maxInstr = 1'000'000;
-  for (int it = 0; it < maxInstr; it++) {
-    cpu->clock(it);
-  }
+  for (int it = 0; it < maxInstr; it++) cpu->clock(it);
   auto end = std::chrono::high_resolution_clock::now();
   auto ms = std::chrono::duration_cast<std::chrono::milliseconds>(end - start);
   auto dt = 1.0 / (ms.count() / 1000.0);

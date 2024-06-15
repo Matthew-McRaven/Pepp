@@ -69,8 +69,7 @@ template <typename Address>
 Output<Address>::Output(api2::device::Descriptor device, AddressSpan span, quint8 defaultValue)
     : _fill(defaultValue), _span(span), _device(device),
       _channel(QSharedPointer<detail::Channel<Address, quint8>>::create(_fill)), _endpoint(_channel->new_endpoint()) {
-  if (_span.minOffset != _span.maxOffset)
-    throw std::logic_error("MMO only works with single byte.");
+  if (_span.lower() != _span.upper()) throw std::logic_error("MMO only works with single byte.");
 }
 
 template <typename Address> typename Output<Address>::AddressSpan Output<Address>::span() const { return _span; }
@@ -81,15 +80,13 @@ template <typename Address> void Output<Address>::clear(quint8 fill) {
 }
 
 template <typename Address> void Output<Address>::dump(bits::span<quint8> dest) const {
-  if (dest.size() <= 0)
-    throw std::logic_error("dump requires non-0 size");
+  if (dest.size() <= 0) throw std::logic_error("dump requires non-0 size");
   auto v = *_endpoint->current_value();
   bits::memcpy(dest, bits::span<const quint8>{&v, sizeof(v)});
 }
 
 template <typename Address> void Output<Address>::trace(bool enabled) {
-  if (_tb)
-    _tb->trace(_device.id, enabled);
+  if (_tb) _tb->trace(_device.id, enabled);
 }
 
 template <typename Address>
@@ -100,8 +97,7 @@ QSharedPointer<typename detail::Channel<Address, quint8>::Endpoint> Output<Addre
 template <typename Address>
 bool Output<Address>::analyze(api2::trace::PacketIterator iter, api2::trace::Direction direction) {
   auto header = *iter;
-  if (!std::visit(sim::trace2::IsSameDevice{_device.id}, header))
-    return false;
+  if (!std::visit(sim::trace2::IsSameDevice{_device.id}, header)) return false;
   else if (std::holds_alternative<api2::packet::header::Write>(header)) {
     // Address is always implicitly 0 since this is a 1-byte port.
     auto hdr = std::get<api2::packet::header::Write>(header);
@@ -109,8 +105,7 @@ bool Output<Address>::analyze(api2::trace::PacketIterator iter, api2::trace::Dir
       _endpoint->unwrite();
     // Forward direction
     // We don't emit multiple payloads, so receiving multiple (or 0) doesn't make sense.
-    else if (std::distance(iter.cbegin(), iter.cend()) != 1)
-      return false;
+    else if (std::distance(iter.cbegin(), iter.cend()) != 1) return false;
     // Otherwise we are seeing this byte for the first time via the trace.
     // We need to mimic the effects of write().
     else if (std::holds_alternative<api2::packet::payload::Variable>(*iter.cbegin())) {
@@ -118,8 +113,7 @@ bool Output<Address>::analyze(api2::trace::PacketIterator iter, api2::trace::Dir
       // Only use the first byte, since this port only has 1 address.
       _endpoint->append_value(payload.payload.bytes[0]);
     }
-  } else
-    return false;
+  } else return false;
   return true;
 }
 
@@ -131,8 +125,7 @@ api2::memory::Result Output<Address>::read(Address address, bits::span<quint8> d
   using Operation = sim::api2::memory::Operation;
   // Length is 1-indexed, address are 0, so must offset by -1.
   auto maxDestAddr = (address + std::max<Address>(0, dest.size() - 1));
-  if (address < _span.minOffset || maxDestAddr > _span.maxOffset)
-    throw E(E::Type::OOBAccess, address);
+  if (address < _span.lower() || maxDestAddr > _span.upper()) throw E(E::Type::OOBAccess, address);
   // Only emit a trace if the operation isn't related to app-internal state.
   else if (auto end = _endpoint->current_value(); end) {
     if (!(op.type == Operation::Type::Application || op.type == Operation::Type::BufferInternal) && _tb)
@@ -149,12 +142,10 @@ api2::memory::Result Output<Address>::write(Address address, bits::span<const qu
   using Operation = sim::api2::memory::Operation;
   // Length is 1-indexed, address are 0, so must offset by -1.
   auto maxDestAddr = (address + std::max<Address>(0, src.size() - 1));
-  if (address < _span.minOffset || maxDestAddr > _span.maxOffset)
-    throw E(E::Type::OOBAccess, address);
+  if (address < _span.lower() || maxDestAddr > _span.upper()) throw E(E::Type::OOBAccess, address);
   // Only emit a trace if the operation isn't related to app-internal state.
   else if (!(op.type == Operation::Type::Application || op.type == Operation::Type::BufferInternal)) {
-    if (_tb)
-      sim::trace2::emitMMWrite<Address>(_tb, _device.id, 0, src);
+    if (_tb) sim::trace2::emitMMWrite<Address>(_tb, _device.id, 0, src);
     quint8 tmp;
     bits::memcpy(bits::span<quint8>{&tmp, 1}, src);
     _endpoint->append_value(tmp);

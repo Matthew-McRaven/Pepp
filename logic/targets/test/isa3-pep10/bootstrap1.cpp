@@ -31,7 +31,7 @@ TEST_CASE("Pep/10 System Creation", "[scope:sim][kind:e2e][target:pep10]") {
   auto nextID = [&id]() { return id++; };
   auto desc_mem =
       sim::api2::device::Descriptor{.id = nextID(), .compatible = nullptr, .baseName = "dev", .fullName = "/dev"};
-  auto span = sim::api2::memory::AddressSpan<quint16>{.minOffset = 0, .maxOffset = 0xFFFF};
+  auto span = sim::api2::memory::AddressSpan<quint16>(0, 0xffff);
   sim::memory::Dense<quint16> mem(desc_mem, span, (int)isa::Pep10::Mnemonic::NOP);
   auto desc_cpu =
       sim::api2::device::Descriptor{.id = nextID(), .compatible = nullptr, .baseName = "cpu", .fullName = "/cpu"};
