@@ -523,6 +523,7 @@ void Pep10_ASMB::prepareSim() {
   auto charOut = _system->output("charOut");
   charOut->clear(0);
   pwrOff->clear(0);
+  _system->setBootFlags(true, false);
 
   auto charIn = _system->input("charIn");
   charIn->clear(0);
