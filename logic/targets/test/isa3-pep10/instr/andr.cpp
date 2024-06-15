@@ -54,7 +54,7 @@ template <isa::Pep10::Register target_reg, isa::Pep10::Register other_reg> void 
       CHECK(reg(cpu, target_reg) == endRegVal);
       // Check that target status bits match RTL.
       CHECK(csr(cpu, isa::Pep10::CSR::N) == (endRegVal & 0x8000 ? 1 : 0));
-      CHECK(csr(cpu, isa::Pep10::CSR::Z) == (endRegVal == 0));
+      CHECK(!!csr(cpu, isa::Pep10::CSR::Z) == (endRegVal == 0));
       CHECK(csr(cpu, isa::Pep10::CSR::V) == 0);
       CHECK(csr(cpu, isa::Pep10::CSR::C) == 0);
     }

@@ -54,13 +54,13 @@ template <isa::Pep10::Register target_reg, isa::Pep10::Register other_reg> void 
       CHECK(reg(cpu, target_reg) == endRegVal);
       // Check that target status bits match RTL.
       CHECK(csr(cpu, isa::Pep10::CSR::N) == (endRegVal & 0x8000 ? 1 : 0));
-      CHECK(csr(cpu, isa::Pep10::CSR::Z) == (endRegVal == 0));
+      CHECK(!!csr(cpu, isa::Pep10::CSR::Z) == (endRegVal == 0));
       auto input_sign_match = ~(init_reg ^ opspec) & 0x8000;
       auto output_sign_match = ~(endRegVal ^ init_reg) & 0x8000;
       // Explicitly check that if input signs do no match, thatV is always
       // false.
       auto signed_overflow = input_sign_match ? input_sign_match != output_sign_match : false;
-      CHECK(csr(cpu, isa::Pep10::CSR::V) == signed_overflow);
+      CHECK(!!csr(cpu, isa::Pep10::CSR::V) == signed_overflow);
       // Don't use bit twiddling here. This validates that my bit twiddles in
       // the CPU are logically equivalent to to carrying into bit 17 of a
       // 32-bit type.

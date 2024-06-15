@@ -48,9 +48,9 @@ template <isa::Pep10::Register target_reg> void inner(isa::Pep10::Mnemonic op) {
     // Check that target register had arithmetic performed.
     CHECK(reg(cpu, target_reg) == endRegVal);
     // Check that target status bits match RTL.
-    CHECK(!!csr(cpu, isa::Pep10::CSR::N) == (endRegVal & 0x8000 ? 1 : 0));
+    CHECK(csr(cpu, isa::Pep10::CSR::N) == (endRegVal & 0x8000 ? 1 : 0));
     CHECK(!!csr(cpu, isa::Pep10::CSR::Z) == (endRegVal == 0));
-    CHECK(csr(cpu, isa::Pep10::CSR::V) == (endRegVal == 0x8000));
+    CHECK(!!csr(cpu, isa::Pep10::CSR::V) == (endRegVal == 0x8000));
     // Don't use bit twiddling here. This validates that my bit twiddles in
     // the CPU are logically equivalent to to carrying into bit 17 of a
     // 32-bit type.
