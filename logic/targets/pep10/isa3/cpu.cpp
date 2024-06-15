@@ -44,6 +44,8 @@ sim::api2::memory::Target<quint8> *targets::pep10::isa::CPU::regs() { return &_r
 
 sim::api2::memory::Target<quint8> *targets::pep10::isa::CPU::csrs() { return &_csrs; }
 
+sim::api2::device::Descriptor targets::pep10::isa::CPU::device() const { return _device; }
+
 targets::pep10::isa::CPU::Status targets::pep10::isa::CPU::status() const { return _status; }
 
 std::optional<quint16> targets::pep10::isa::CPU::currentOperand() {
