@@ -25,13 +25,13 @@ import edu.pepp 1.0
 //  Figure contents
 Flickable {
     id: wrapper
-    signal editingFinished
+    signal editingFinished(string text)
     required property bool isReadOnly
     property alias readOnly: wrapper.isReadOnly
     property bool allowsBP: true
     required property string edition
     required property string language
-    property string text
+    property alias text: editor.text
 
     property int colWidth: 30
     property int rows: 16
@@ -45,7 +45,7 @@ Flickable {
 
     //  Set page contents based on parent selected values
     Component.onCompleted: {
-        editor.editingFinished.connect(wrapper.editingFinished)
+        editor.editingFinished.connect(text => wrapper.editingFinished(text))
     }
 
     StyleMap {
@@ -163,9 +163,8 @@ Flickable {
             background: Rectangle {
                 color: palette.base
             }
-            readOnly: wrapper.isReadOnly
 
-            text: wrapper.text
+            readOnly: wrapper.isReadOnly
         }
 
         function onPressedHandler(event) {
