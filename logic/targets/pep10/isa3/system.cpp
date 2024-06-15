@@ -54,15 +54,17 @@ targets::pep10::isa::System::System(QList<obj::MemoryRegion> regions, QList<obj:
       _bus(QSharedPointer<sim::memory::SimpleBus<quint16>>::create(desc_bus(nextID()),
                                                                    AddressSpan{.minOffset = 0, .maxOffset = 0xFFFF})),
       _paths(QSharedPointer<sim::api2::Paths>::create()) {
+  addDevice(_cpu->device());
+  addDevice(_cpu->csrs()->device());
+  addDevice(_cpu->regs()->device());
   _bus->setPathManager(_paths);
   _paths->add(0, _bus->deviceID());
   // Construct Dense memory and ignore W bit, since we have no mechanism for it.
   for (const auto &reg : regions) {
-    auto span = AddressSpan{
-        .minOffset = 0,
-        .maxOffset = static_cast<quint16>(reg.maxOffset - reg.minOffset)};
-    auto mem = QSharedPointer<sim::memory::Dense<quint16>>::create(
-        desc_dense(nextID()), span);
+    auto span = AddressSpan{.minOffset = 0, .maxOffset = static_cast<quint16>(reg.maxOffset - reg.minOffset)};
+    auto desc = desc_dense(nextID());
+    addDevice(desc);
+    auto mem = QSharedPointer<sim::memory::Dense<quint16>>::create(desc, span);
     _rawMemory.push_back(mem);
     sim::api2::memory::Target<quint16> *target = &*mem;
     if (!reg.w) {
@@ -71,8 +73,7 @@ targets::pep10::isa::System::System(QList<obj::MemoryRegion> regions, QList<obj:
       ro->setTarget(target, nullptr);
       target = &*ro;
     }
-    _bus->pushFrontTarget(
-        {.minOffset = reg.minOffset, .maxOffset = reg.maxOffset}, target);
+    _bus->pushFrontTarget({.minOffset = reg.minOffset, .maxOffset = reg.maxOffset}, target);
 
     // Perform load!
     loadRegion(*mem, reg, static_cast<quint16>(-reg.minOffset));
@@ -80,30 +81,25 @@ targets::pep10::isa::System::System(QList<obj::MemoryRegion> regions, QList<obj:
 
   // Create MMIO, do not perform buffering
   for (const auto &mmio : mmios) {
-    auto span = AddressSpan{
-        .minOffset = 0,
-        .maxOffset = static_cast<quint16>(mmio.maxOffset - mmio.minOffset)};
+    auto span = AddressSpan{.minOffset = 0, .maxOffset = static_cast<quint16>(mmio.maxOffset - mmio.minOffset)};
     if (mmio.direction == obj::IO::Direction::kInput) {
-      auto mem = QSharedPointer<sim::memory::Input<quint16>>::create(
-          desc_mmi(nextID(), mmio.name), span);
-      _bus->pushFrontTarget(
-          AddressSpan{.minOffset = mmio.minOffset, .maxOffset = mmio.maxOffset},
-          &*mem);
+      auto desc = desc_mmi(nextID(), mmio.name);
+      addDevice(desc);
+      auto mem = QSharedPointer<sim::memory::Input<quint16>>::create(desc, span);
+      _bus->pushFrontTarget(AddressSpan{.minOffset = mmio.minOffset, .maxOffset = mmio.maxOffset}, &*mem);
       _mmi[mmio.name] = mem;
       // By default, charIn should raise an error when it runs out of input.
-      if (mmio.name == "charIn")
-        mem->setFailPolicy(sim::api2::memory::FailPolicy::RaiseError);
+      if (mmio.name == "charIn") mem->setFailPolicy(sim::api2::memory::FailPolicy::RaiseError);
       // Disk in must not raise an error, otherwise loader will not work.
       else if (mmio.name == "diskIn") {
         mem->setFailPolicy(sim::api2::memory::FailPolicy::YieldDefaultValue);
         mem->clear('z' /*Loader sentinel character*/);
       }
     } else {
-      auto mem = QSharedPointer<sim::memory::Output<quint16>>::create(
-          desc_mmi(nextID(), mmio.name), span);
-      _bus->pushFrontTarget(
-          AddressSpan{.minOffset = mmio.minOffset, .maxOffset = mmio.maxOffset},
-          &*mem);
+      auto desc = desc_mmo(nextID(), mmio.name);
+      addDevice(desc);
+      auto mem = QSharedPointer<sim::memory::Output<quint16>>::create(desc, span);
+      _bus->pushFrontTarget(AddressSpan{.minOffset = mmio.minOffset, .maxOffset = mmio.maxOffset}, &*mem);
       _mmo[mmio.name] = mem;
     }
   }
@@ -122,6 +118,12 @@ sim::api2::device::ID targets::pep10::isa::System::nextID() { return _nextID++; 
 
 sim::api2::device::IDGenerator targets::pep10::isa::System::nextIDGenerator() { return _nextIDGenerator; }
 
+void targets::pep10::isa::System::addDevice(sim::api2::device::Descriptor desc) { _devices[desc.id] = desc; }
+
+sim::api2::device::Descriptor *targets::pep10::isa::System::descriptor(sim::api2::device::ID id) {
+  if (auto it = _devices.find(id); it == _devices.cend()) return nullptr;
+  else return &it.value();
+}
 
 void targets::pep10::isa::System::setBuffer(sim::api2::trace::Buffer *buffer) {
   throw std::logic_error("Unimplemented");

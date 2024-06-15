@@ -661,6 +661,8 @@ template <typename Address> struct System {
   virtual tick::Type currentTick() const = 0;
   virtual device::ID nextID() = 0;
   virtual device::IDGenerator nextIDGenerator() = 0;
+  virtual void addDevice(device::Descriptor) = 0;
+  virtual device::Descriptor *descriptor(device::ID) = 0;
 
   virtual void setBuffer(trace::Buffer *buffer) = 0;
   virtual QSharedPointer<const api2::Paths> pathManager() const = 0;

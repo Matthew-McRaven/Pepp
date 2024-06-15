@@ -44,6 +44,8 @@ public:
   sim::api2::tick::Type currentTick() const override;
   sim::api2::device::ID nextID() override;
   sim::api2::device::IDGenerator nextIDGenerator() override;
+  void addDevice(sim::api2::device::Descriptor) override;
+  sim::api2::device::Descriptor *descriptor(sim::api2::device::ID) override;
   void setBuffer(sim::api2::trace::Buffer *buffer) override;
   QSharedPointer<const sim::api2::Paths> pathManager() const override;
 
@@ -76,6 +78,7 @@ private:
 
   QMap<QString, QSharedPointer<sim::memory::Input<quint16>>> _mmi = {};
   QMap<QString, QSharedPointer<sim::memory::Output<quint16>>> _mmo = {};
+  QMap<sim::api2::device::ID, sim::api2::device::Descriptor> _devices = {};
 };
 
 bool loadRegion(sim::api2::memory::Target<quint16> &mem, const obj::MemoryRegion &reg, quint16 baseOffset = 0);
