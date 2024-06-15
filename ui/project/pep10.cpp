@@ -505,18 +505,27 @@ int Pep10_ASMB::allowedDebugging() const {
   }
 }
 
-bool Pep10_ASMB::onAssemble() {
+bool Pep10_ASMB::onAssemble(bool doLoad) {
   auto macroRegistry = cs6e_macros();
   helpers::AsmHelper helper(macroRegistry, _osAsmText);
   helper.setUserText(_userAsmText);
   auto ret = helper.assemble();
+  if (!ret) {
+    qWarning() << "Assembly failed.";
+    return false;
+  }
+  if (doLoad) {
+    auto userBytes = helper.bytes(false);
+    _system->bus()->write(0, {userBytes.data(), std::size_t(userBytes.length())}, gs);
+    _memory->onRepaintAddress(0, userBytes.length());
+  }
   return false;
 }
 
 bool Pep10_ASMB::onAssembleThenFormat() { return false; }
 
 void Pep10_ASMB::prepareSim() {
-  onAssemble();
+  onAssemble(true);
   _tb->clear();
   _system->init();
   auto pwrOff = _system->output("pwrOff");

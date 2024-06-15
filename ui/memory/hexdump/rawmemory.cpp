@@ -145,3 +145,5 @@ void SimulatorRawMemory::onUpdateGUI(sim::api2::trace::FrameIterator from) {
     emit dataChanged(this->_PC.lower(), this->_PC.upper());
   }
 }
+
+void SimulatorRawMemory::onRepaintAddress(quint32 start, quint32 end) { emit dataChanged(start, end); }

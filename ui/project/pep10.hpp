@@ -124,7 +124,7 @@ public:
   utils::Abstraction abstraction() const override;
   int allowedDebugging() const override;
 public slots:
-  bool onAssemble();
+  bool onAssemble(bool doLoad = false);
   bool onAssembleThenFormat();
 signals:
   void userAsmTextChanged();
