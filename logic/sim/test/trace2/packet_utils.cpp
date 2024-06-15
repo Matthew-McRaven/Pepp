@@ -23,8 +23,7 @@
 namespace {
 using namespace sim::api2;
 using namespace sim::trace2;
-using wrapped = std::variant<frame::Header, packet::Header, packet::Payload>;
-using w = wrapped;
+using Fragment = sim::api2::trace::detail::Fragment;
 struct SimpleBuffer : public sim::api2::trace::Buffer {
   using FrameIterator = sim::api2::trace::FrameIterator;
   SimpleBuffer() : _data(), _in(_data), _out(_data) {}
@@ -32,16 +31,9 @@ struct SimpleBuffer : public sim::api2::trace::Buffer {
   bool trace(sim::api2::device::ID deviceID, bool enabled) override { return true; }
   bool registerSink(sim::api2::trace::Sink *) override { return true; }
   void unregisterSink(sim::api2::trace::Sink *) override {}
-  bool writeFragment(const sim::api2::frame::Header &hdr) override {
-    _out(w{hdr}).or_throw();
-    return true;
-  }
-  bool writeFragment(const sim::api2::packet::Header &hdr) override {
-    _out(w{hdr}).or_throw();
-    return true;
-  }
-  bool writeFragment(const sim::api2::packet::Payload &hdr) override {
-    _out(w{hdr}).or_throw();
+  bool writeFragment(const sim::api2::trace::Fragment &hdr) override {
+    Fragment as_frag = hdr;
+    _out(as_frag).or_throw();
     return true;
   }
   bool updateFrameHeader() override { return true; }
@@ -106,10 +98,10 @@ TEST_CASE("Packet serialization utilities", "[scope:sim][kind:unit][arch:*]") {
     }));
     SimpleBuffer buf;
     emitPureRead(&buf, device, address, payload_len);
-    wrapped w;
+    Fragment w;
     REQUIRE_NOTHROW(buf._in(w).or_throw());
-    REQUIRE(std::holds_alternative<packet::Header>(w));
-    auto hdr = std::get<packet::Header>(w);
+    REQUIRE(is_packet_header(w));
+    auto hdr = as_packet_header(w);
     REQUIRE(std::holds_alternative<packet::header::PureRead>(hdr));
     auto read = std::get<packet::header::PureRead>(hdr);
     CHECK(read.address.to_address<decltype(address)>() == address);
@@ -152,10 +144,10 @@ TEST_CASE("Packet serialization utilities", "[scope:sim][kind:unit][arch:*]") {
       else
         emitWrite(&buf, device, address, {src}, {dest});
 
-      wrapped w;
+      Fragment w;
       REQUIRE_NOTHROW(buf._in(w).or_throw());
-      REQUIRE(std::holds_alternative<packet::Header>(w));
-      auto hdr = std::get<packet::Header>(w);
+      REQUIRE(is_packet_header(w));
+      auto hdr = as_packet_header(w);
 
       // Decode packet header based on if it is read or write.
       if (kind == 0) {
@@ -175,8 +167,8 @@ TEST_CASE("Packet serialization utilities", "[scope:sim][kind:unit][arch:*]") {
       while (payload_len - current > 0) {
         // Read in payload
         REQUIRE_NOTHROW(buf._in(w).or_throw());
-        REQUIRE(std::holds_alternative<packet::Payload>(w));
-        auto pay = std::get<packet::Payload>(w);
+        REQUIRE(is_packet_payload(w));
+        auto pay = as_packet_payload(w);
         REQUIRE(std::holds_alternative<packet::payload::Variable>(pay));
         auto bytes = std::get<packet::payload::Variable>(pay);
 
@@ -222,7 +214,7 @@ TEST_CASE("Packet packet_payloads_length", "[scope:sim][kind:unit][arch:*]") {
     InfiniteBuffer buf;
     buf.trace(0, true);
     emitFrameStart(&buf);
-    buf.writeFragment(Header{header::Clear{.device = 0}});
+    buf.writeFragment(sim::api2::trace::Fragment{header::Clear{.device = 0}});
     emitFrameStart(&buf);
     auto frame_iter = buf.cbegin();
     CHECK(packet_payloads_length(frame_iter.cbegin()) == 0);

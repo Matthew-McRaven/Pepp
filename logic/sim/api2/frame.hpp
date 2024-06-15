@@ -43,5 +43,6 @@ struct Extender {
   quint16 length = 0, back_offset = 0xFFFF;
 };
 } // namespace header
-using Header = std::variant<header::Trace, header::Extender>;
+// If you add a type, update Fragment trace/buffer.hpp
+using Header = std::variant<std::monostate, header::Trace, header::Extender>;
 } // namespace sim::api2::frame

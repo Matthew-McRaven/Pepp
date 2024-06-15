@@ -32,9 +32,7 @@ public:
     bool trace(quint16 deviceID, bool enabled) override;
     bool registerSink(api2::trace::Sink *) override;
     void unregisterSink(api2::trace::Sink *) override;
-    bool writeFragment(const api2::frame::Header&) override;
-    bool writeFragment(const api2::packet::Header&) override;
-    bool writeFragment(const api2::packet::Payload&) override;
+    bool writeFragment(const api2::trace::Fragment &) override;
     bool updateFrameHeader() override;
     void dropLast() override;
     void clear() override;

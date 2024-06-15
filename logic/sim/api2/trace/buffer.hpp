@@ -25,6 +25,13 @@
 namespace sim::api2::trace {
 class PathGuard;
 class Sink;
+namespace detail {
+using namespace sim::api2::frame::header;
+using namespace sim::api2::packet::header;
+using namespace sim::api2::packet::payload;
+using Fragment = std::variant<std::monostate, Trace, Extender, Clear, PureRead, ImpureRead, Write, Variable>;
+} // namespace detail
+using Fragment = detail::Fragment;
 // If you inherit from this, you will likely want to inherit IteratorImpl as
 // well. IteratorImpl allows polymorphic implementation of this class while
 // mantaining a stable ABI for the iterator class.
@@ -42,13 +49,11 @@ public:
   virtual void unregisterSink(Sink *) = 0;
 
   // Must implicitly call updateFrameHeader to fix back links / lengths.
-  virtual bool writeFragment(const frame::Header &) = 0;
+  virtual bool writeFragment(const api2::trace::Fragment &) = 0;
   template <packet::HasPath T> bool writeFragmentWithPath(T &&t) {
     t.path = currentPath();
-    return writeFragment(packet::Header{t});
+    return writeFragment(Fragment{t});
   }
-  virtual bool writeFragment(const packet::Header &) = 0;
-  virtual bool writeFragment(const packet::Payload &) = 0;
 
   virtual bool updateFrameHeader() = 0;
 

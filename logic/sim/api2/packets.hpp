@@ -148,7 +148,8 @@ struct Write {
   VariableBytes<N> address = VariableBytes<N>{0};
 };
 } // namespace header
-using Header = std::variant<header::Clear, header::PureRead, header::ImpureRead, header::Write>;
+// If you add a type, update Fragment trace/buffer.hpp
+using Header = std::variant<std::monostate, header::Clear, header::PureRead, header::ImpureRead, header::Write>;
 
 template <typename T>
 concept HasPath = requires(T t) {
@@ -163,6 +164,6 @@ struct Variable {
   VariableBytes<N> payload = VariableBytes<N>{0};
 };
 } // namespace payload
-using Payload = std::variant<payload::Variable>;
-using Fragment = std::variant<packet::Header, Payload>;
+// If you add a type, update Fragment trace/buffer.hpp
+using Payload = std::variant<std::monostate, payload::Variable>;
 } // namespace sim::api2::packet
