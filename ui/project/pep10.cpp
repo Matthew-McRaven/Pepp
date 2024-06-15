@@ -522,7 +522,19 @@ bool Pep10_ASMB::onAssemble(bool doLoad) {
   return false;
 }
 
-bool Pep10_ASMB::onAssembleThenFormat() { return false; }
+bool Pep10_ASMB::onAssembleThenFormat() {
+  auto macroRegistry = cs6e_macros();
+  helpers::AsmHelper helper(macroRegistry, _osAsmText);
+  helper.setUserText(_userAsmText);
+  auto ret = helper.assemble();
+  if (!ret) {
+    qWarning() << "Assembly failed.";
+    return false;
+  }
+  auto source = helper.formattedSource(false);
+  setUserAsmText(source.join("\n"));
+  return false;
+}
 
 void Pep10_ASMB::prepareSim() {
   onAssemble(true);

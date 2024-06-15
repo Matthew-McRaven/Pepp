@@ -20,6 +20,7 @@ public:
   QStringList errors();
   QSharedPointer<ELFIO::elfio> elf(std::optional<QList<quint8>> userObj = std::nullopt);
   QStringList listing(bool os);
+  QStringList formattedSource(bool os);
   QList<quint8> bytes(bool os);
 
 private:
