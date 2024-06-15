@@ -13,16 +13,10 @@
  * You should have received a copy of the GNU General Public License
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
-
 #pragma once
-#include "api2/clock.hpp"
-#include "api2/device.hpp"
-#include "api2/frame.hpp"
-#include "api2/memory/access.hpp"
-#include "api2/memory/target.hpp"
-#include "api2/packets.hpp"
-#include "api2/path.hpp"
-#include "api2/system.hpp"
-#include "api2/trace/buffer.hpp"
-#include "api2/trace/endpoint.hpp"
-#include "api2/trace/iterator.hpp"
+
+namespace sim::api2::memory {
+template <typename Address> struct AddressSpan {
+  Address minOffset, maxOffset;
+};
+} // namespace sim::api2::memory
