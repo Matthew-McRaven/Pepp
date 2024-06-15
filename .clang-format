@@ -10,5 +10,5 @@ IncludeCategories:
 IndentWidth: 2
 TabWidth: 2
 AllowShortCaseLabelsOnASingleLine: true
-AllowShortIfStatementsOnASingleLine: true
+AllowShortIfStatementsOnASingleLine: AllIfsAndElse
 AllowShortLoopsOnASingleLine: true
