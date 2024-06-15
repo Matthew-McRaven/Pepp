@@ -53,7 +53,7 @@ template <isa::Pep10::Register target_reg> void inner(isa::Pep10::Mnemonic op) {
     // Check that target register did not change.
     CHECK(reg(cpu, target_reg) == init_reg);
     // Check that target status bits match RTL.
-    CHECK(csr(cpu, isa::Pep10::CSR::Z) == (endRegVal == 0));
+    CHECK(!!csr(cpu, isa::Pep10::CSR::Z) == (endRegVal == 0));
     CHECK(csr(cpu, isa::Pep10::CSR::V) == 0);
     CHECK(csr(cpu, isa::Pep10::CSR::C) == 0);
     CHECK(csr(cpu, isa::Pep10::CSR::N) == (endRegVal & 0x80 ? 1 : 0));

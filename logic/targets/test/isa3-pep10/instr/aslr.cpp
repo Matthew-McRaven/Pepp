@@ -48,7 +48,7 @@ template <isa::Pep10::Register target_reg> void inner(isa::Pep10::Mnemonic op) {
     // Check that target register had arithmetic performed.
     CHECK(reg(cpu, target_reg) == endRegVal);
     // Check that target status bits match RTL.
-    CHECK(!!csr(cpu, isa::Pep10::CSR::N) == (endRegVal & 0x8000 ? 1 : 0));
+    CHECK(csr(cpu, isa::Pep10::CSR::N) == (endRegVal & 0x8000 ? 1 : 0));
     CHECK(!!csr(cpu, isa::Pep10::CSR::Z) == (endRegVal == 0));
     auto new_reg = reg(cpu, target_reg);
     // Count the number of 1's in A[0:1].
