@@ -34,6 +34,7 @@ public:
   // API v2
   // Target interface
   sim::api2::device::ID deviceID() const override { return _target->deviceID(); }
+  sim::api2::device::Descriptor device() const override { return _target->device(); }
   AddressSpan span() const override;
   api2::memory::Result read(Address address, bits::span<quint8> dest, api2::memory::Operation op) const override;
   api2::memory::Result write(Address address, bits::span<const quint8> src, api2::memory::Operation op) override;
@@ -73,8 +74,7 @@ api2::memory::Result ReadOnly<Address>::write(Address address, bits::span<const 
   auto maxDestAddr = (address + std::max<Address>(0, src.size() - 1));
   // Duplicate bounds-checking from target, because we can't check bounds
   // in the target without doing an access.
-  if (address < _target->span().minOffset || maxDestAddr > _target->span().maxOffset)
-    throw E(E::Type::OOBAccess, address);
+  if (address < _target->span().lower() || maxDestAddr > _target->span().upper()) throw E(E::Type::OOBAccess, address);
   // If the write is coming from the app (e.g., memory editor) allow it.
   else if (op.type == api2::memory::Operation::Type::Application)
     return _target->write(address, src, op);

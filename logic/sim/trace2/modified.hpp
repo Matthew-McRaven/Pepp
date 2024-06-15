@@ -4,64 +4,9 @@
 #include "bits/mask.hpp"
 #include "packet_utils.hpp"
 #include "sim/api2.hpp"
-
+#include "sim/api2/memory/address.hpp"
 namespace sim::trace2 {
-template <typename T> struct Interval {
-  explicit Interval() : _lower(T()), _upper(T()) {}
-  explicit Interval(T point) : _lower(point), _upper(point) {}
-  // Enforce lower <= upper to make math easier.
-  Interval(T lower, T upper) : _lower(lower), _upper(upper) { Q_ASSERT(lower <= upper); }
-  Interval(const Interval &) = default;
-  Interval &operator=(const Interval &) = default;
-  Interval(Interval &&) = default;
-  Interval &operator=(Interval &&) = default;
-  friend void swap(Interval &lhs, Interval &rhs) {
-    using std::swap;
-    swap(lhs._lower, rhs._lower);
-    swap(lhs._upper, rhs._upper);
-  }
-  ~Interval() = default;
-  auto operator<=>(const Interval &other) const = default;
-  inline T lower() const { return _lower; }
-  inline T upper() const { return _upper; }
-
-private:
-  // Prevent writes to _lower and _upper to maintain class invariant of lower() <= upper();
-  // This is enforced by the constructor(s).
-  T _lower, _upper;
-};
-
-template <typename T, bool exclude_right = false> T size(const Interval<T> &interval) {
-  constexpr T offset = exclude_right ? T(0) : T(1);
-  return interval.upper() - interval.lower() + offset;
-}
-template <typename T> bool contains(const Interval<T> &outer, const T &inner) {
-  return outer.lower() <= inner && inner <= outer.upper();
-}
-template <typename T> bool contains(const Interval<T> &outer, const Interval<T> &inner) {
-  return outer.lower() <= inner.lower() && inner.upper() <= outer.upper();
-}
-template <typename T> bool intersects(const Interval<T> &lhs, const Interval<T> &rhs) {
-  return lhs.lower() <= rhs.upper() && rhs.lower() <= lhs.upper();
-}
-template <typename T> Interval<T> intersection(const Interval<T> &lhs, const Interval<T> &rhs) {
-  using std::max;
-  using std::min;
-  return {min(lhs.lower(), rhs.lower()), max(lhs.upper(), rhs.upper())};
-}
-template <typename T> std::ostream &operator<<(std::ostream &os, const Interval<T> &interval) {
-  return os << "[" << interval.lower() << ", " << interval.upper() << "]";
-}
-
-// Helper to translate a value in a src interval into an offset, then translate that offset into a destintation
-// interval. It is essentially segmented address translation.
-template <typename T> inline T convert(T v, const Interval<T> &src, const Interval<T> &dst) {
-  Q_ASSERT(src.lower() <= v && v <= src.upper());
-  T key_src_offet = v - src.lower();
-  T ret = dst.lower() + key_src_offet;
-  Q_ASSERT(dst.lower() <= ret && ret <= dst.upper());
-  return ret;
-}
+template <typename T> using Interval = sim::api2::memory::Interval<T>;
 
 // Class to store and merge intervals of numeric types.
 // Good words to google: interval tree, interval set.
@@ -148,7 +93,7 @@ public:
   void insert_or_overwrite(Interval<T> from, Interval<T> to, sim::api2::device::ID device, D data) {
     Q_ASSERT((size<T, true>(from) == size<T, true>(to)));
     // Erase any nodes entirely contained within "from".
-    using trace2::contains;
+    using sim::api2::memory::contains;
     if (auto remove =
             std::remove_if(_elements.begin(), _elements.end(), [&from](auto &n) { return contains(from, n.from); });
         remove != _elements.end())
@@ -199,8 +144,8 @@ public:
 
   // Given an address in the "from" space, return the region it belongs to.
   std::optional<Node> region_at(T from_key) const {
-    if (_elements.size() == 0)
-      return std::nullopt;
+    using sim::api2::memory::contains;
+    if (_elements.size() == 0) return std::nullopt;
     // Use O(lg n) search to find glb.
     // If glb is at the start, this is the only interval which could contain addr.
     else if (auto lb = std::lower_bound(_elements.cbegin(), _elements.cend(), from_key, LBFrom{});
@@ -210,8 +155,7 @@ public:
              ((lb == _elements.cbegin() && contains(lb->from, from_key)) || lb->from.lower() <= from_key))
       return *lb;
     // Otherwise lb might point to an element > from_key; so go to previous.
-    else if (auto prev = std::prev(lb); prev != _elements.cend() && sim::trace2::contains(prev->from, from_key))
-      return *prev;
+    else if (auto prev = std::prev(lb); prev != _elements.cend() && contains(prev->from, from_key)) return *prev;
     return std::nullopt;
   }
   const std::span<const Node> regions() const { return _elements; }
@@ -253,28 +197,23 @@ public:
         Address maxAddr = (1ull << (startAddrBytes->len * 8)) - 1;
         _iset.insert(start, maxAddr);
         _iset.insert(0, end);
-      } else
-        _iset.insert(start, end);
+      } else _iset.insert(start, end);
     }
     return true;
   }
   void clear() { _iset.clear(); }
   const std::set<Interval<Address>> &intervals() const { return _iset.intervals(); }
   bool contains(Address addr) const {
+    using sim::api2::memory::contains;
     auto i = _iset.intervals();
-    if (i.size() == 0)
-      return false;
+    if (i.size() == 0) return false;
     // Use O(lg n) search to find glb.
     // If glb is at the start, this is the only interval which could contain addr.
-    else if (auto lb = i.lower_bound(Interval<Address>{addr, addr}); lb == i.cbegin())
-      return sim::trace2::contains(*lb, addr);
-    else if (lb != i.cend() && lb->lower() <= addr)
-      return sim::trace2::contains(*lb, addr);
+    else if (auto lb = i.lower_bound(Interval<Address>{addr, addr}); lb == i.cbegin()) return contains(*lb, addr);
+    else if (lb != i.cend() && lb->lower() <= addr) return contains(*lb, addr);
     // prev might fail if lb is cbegin.
-    else if (auto prev = std::prev(lb); prev == i.cend())
-      return false;
-    else
-      return sim::trace2::contains(*prev, addr);
+    else if (auto prev = std::prev(lb); prev == i.cend()) return false;
+    else return contains(*prev, addr);
   }
 
 protected:

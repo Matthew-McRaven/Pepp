@@ -98,6 +98,9 @@ public:
   void clear() override;
 public slots:
   void onUpdateGUI(sim::api2::trace::FrameIterator from);
+  // Addresses were changed, but not tracked in the trace buffer.
+  // We don't want to highlight them. We just want to make sure they get re-painted.
+  void onRepaintAddress(quint32 start, quint32 end);
 
 private:
   sim::memory::SimpleBus<quint16> *_memory;

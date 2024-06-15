@@ -34,15 +34,18 @@ sim::api2::memory::Operation gs_i = {
     .kind = sim::api2::memory::Operation::Kind::instruction,
 };
 
+template <typename T> using AddressSpan = sim::api2::memory::AddressSpan<T>;
 targets::pep10::isa::CPU::CPU(sim::api2::device::Descriptor device, sim::api2::device::IDGenerator gen)
     : _device(device), _regs({.id = gen(), .baseName = "regs", .fullName = _device.fullName + "/regs"},
-                             {.minOffset = 0, .maxOffset = quint8(::isa::Pep10::RegisterCount * 2 - 1)}),
+                             AddressSpan<quint8>(0, quint8(::isa::Pep10::RegisterCount * 2 - 1))),
       _csrs({.id = gen(), .baseName = "csrs", .fullName = _device.fullName + "/csrs"},
-            {.minOffset = 0, .maxOffset = quint8(::isa::Pep10::CSRCount - 1)}) {}
+            AddressSpan<quint8>(0, quint8(::isa::Pep10::CSRCount - 1))) {}
 
 sim::api2::memory::Target<quint8> *targets::pep10::isa::CPU::regs() { return &_regs; }
 
 sim::api2::memory::Target<quint8> *targets::pep10::isa::CPU::csrs() { return &_csrs; }
+
+sim::api2::device::Descriptor targets::pep10::isa::CPU::device() const { return _device; }
 
 targets::pep10::isa::CPU::Status targets::pep10::isa::CPU::status() const { return _status; }
 
@@ -321,7 +324,7 @@ sim::api2::tick::Result targets::pep10::isa::CPU::unaryDispatch(quint8 is) {
     // Fill ctx with all register's current values.
     // Then we can do a single write back to _regs and only generate 1 trace
     // packet.
-    tmp = (_regs.span().maxOffset - _regs.span().minOffset + 1);
+    tmp = size_inclusive(_regs.span());
     _regs.read(0, {ctx, tmp}, rw_d);
 
     // Reload NZVC

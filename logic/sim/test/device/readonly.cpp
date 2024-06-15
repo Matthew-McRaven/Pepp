@@ -49,7 +49,7 @@ void compare_ne(const quint8 *lhs, const quint8 *rhs, quint8 length) {
 
 TEST_CASE("Read-only storage in-bounds access", "[scope:sim][kind:int][arch:*][!throws]") {
 
-  auto span = api2::memory::AddressSpan<quint8>{.minOffset = 0x10, .maxOffset = 255};
+  auto span = api2::memory::AddressSpan<quint8>(0x10, 255);
 
   // Initialize a memory block to a fixed value
   sim::memory::Dense<quint8> dev_rw(desc_rw, span, 0xFE);
@@ -99,7 +99,7 @@ TEST_CASE("Read-only storage in-bounds access", "[scope:sim][kind:int][arch:*][!
 }
 
 TEST_CASE("Read-only storage out-of-bounds access", "[scope:sim][kind:int][arch:*][!throws]") {
-  auto span = api2::memory::AddressSpan<quint8>{.minOffset = 0x10, .maxOffset = 0x10};
+  auto span = api2::memory::AddressSpan<quint8>(0x10, 0x10);
 
   // Initialize a memory block to a fixed value
   sim::memory::Dense<quint8> dev_rw(desc_rw, span, 0xFE);

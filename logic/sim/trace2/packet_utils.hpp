@@ -1,7 +1,46 @@
 #pragma once
-#include "sim/api2.hpp"
 #include "bits/operations/copy.hpp"
+#include "sim/api2.hpp"
+#include "sim/utils.hpp"
 namespace sim::trace2 {
+
+template <typename T>
+concept PacketHeader =
+    is_variant_member<T, sim::api2::packet::Header>::value && !std::is_same<T, std::monostate>::value;
+template <typename T>
+concept NotPacketHeader =
+    !is_variant_member<T, sim::api2::packet::Header>::value || std::is_same<T, std::monostate>::value;
+
+template <typename T>
+concept PacketPayload =
+    is_variant_member<T, sim::api2::packet::Payload>::value && !std::is_same<T, std::monostate>::value;
+template <typename T>
+concept NotPacketPayload =
+    !is_variant_member<T, sim::api2::packet::Payload>::value || std::is_same<T, std::monostate>::value;
+
+struct IsPacketHeader {
+  template <PacketHeader T> bool operator()(const T &hdr) { return true; }
+  template <NotPacketHeader T> bool operator()(const T &hdr) { return false; }
+};
+struct AsPacketHeader {
+  template <PacketHeader T> api2::packet::Header operator()(const T &hdr) { return hdr; }
+  template <NotPacketHeader T> api2::packet::Header operator()(const T &hdr) { return {}; }
+};
+
+struct IsPacketPayload {
+  template <PacketPayload T> bool operator()(const T &) const { return true; }
+  template <NotPacketPayload T> bool operator()(const T &) { return false; }
+};
+struct AsPacketPayload {
+  template <PacketPayload T> api2::packet::Payload operator()(const T &hdr) const { return hdr; }
+  template <NotPacketPayload T> api2::packet::Payload operator()(const T &) { return {}; }
+};
+
+bool is_packet_header(const sim::api2::trace::Fragment &f);
+api2::packet::Header as_packet_header(const sim::api2::trace::Fragment &f);
+bool is_packet_payload(const sim::api2::trace::Fragment &f);
+api2::packet::Payload as_packet_payload(const sim::api2::trace::Fragment &f);
+
 // TODO: should check that the struct is a packet header.
 template <typename T>
 concept HasDevice = requires(T t) {
@@ -117,8 +156,7 @@ void emitWrite(sim::api2::trace::Buffer* tb, sim::api2::device::ID id,
     auto address_bytes = vb::from_address<Address>(address);
     auto header = api2::packet::header::Write{.device = id, .address = address_bytes};
     // Don't write payloads if the buffer rejected the packet header.
-    if (tb->writeFragmentWithPath(header))
-      detail::emit_payloads(tb, src, dest);
+    if (tb->writeFragmentWithPath(header)) detail::emit_payloads(tb, src, dest);
 }
 
 // Generate a Write packet. Bytes will not be XOR encoded.
@@ -131,8 +169,7 @@ void emitMMWrite(sim::api2::trace::Buffer* tb, sim::api2::device::ID id,
     auto header = api2::packet::header::Write{.device = id,
                                               .address = vb::from_address(address)};
     // Don't write payloads if the buffer rejected the packet header.
-    if (tb->writeFragmentWithPath(header))
-      detail::emit_payloads(tb, src);
+    if (tb->writeFragmentWithPath(header)) detail::emit_payloads(tb, src);
 }
 
 template <typename Address>
@@ -153,8 +190,7 @@ void emitMMRead(sim::api2::trace::Buffer* tb, sim::api2::device::ID id,
     auto header = api2::packet::header::ImpureRead{.device = id,
                                               .address = vb::from_address(address)};
     // Don't write payloads if the buffer rejected the packet header.
-    if (tb->writeFragmentWithPath(header))
-      detail::emit_payloads(tb, src);
+    if (tb->writeFragmentWithPath(header)) detail::emit_payloads(tb, src);
 }
 
-} // sim::trace2
+} // namespace sim::trace2

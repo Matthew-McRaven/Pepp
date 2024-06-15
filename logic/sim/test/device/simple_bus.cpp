@@ -35,14 +35,14 @@ auto b1 = sim::api2::device::Descriptor{.id = 4, .baseName = "bus0", .fullName =
 auto b2 = sim::api2::device::Descriptor{.id = 5, .baseName = "bus1", .fullName = "/bus1"};
 using Span = sim::api2::memory::AddressSpan<quint16>;
 auto make = []() {
-  auto m1 = QSharedPointer<sim::memory::Dense<quint16>>::create(d1, Span{.minOffset = 0, .maxOffset = 0x1});
-  auto m2 = QSharedPointer<sim::memory::Dense<quint16>>::create(d2, Span{.minOffset = 0, .maxOffset = 0x1});
-  auto m3 = QSharedPointer<sim::memory::Dense<quint16>>::create(d3, Span{.minOffset = 0, .maxOffset = 0x1});
-  auto bus = QSharedPointer<sim::memory::SimpleBus<quint16>>::create(b1, Span{.minOffset = 0, .maxOffset = 5});
+  auto m1 = QSharedPointer<sim::memory::Dense<quint16>>::create(d1, Span(0, 1));
+  auto m2 = QSharedPointer<sim::memory::Dense<quint16>>::create(d2, Span(0, 1));
+  auto m3 = QSharedPointer<sim::memory::Dense<quint16>>::create(d3, Span(0, 1));
+  auto bus = QSharedPointer<sim::memory::SimpleBus<quint16>>::create(b1, Span(0, 5));
   CHECK(bus->deviceID() == b1.id);
-  bus->pushFrontTarget(Span{.minOffset = 0, .maxOffset = 1}, &*m1);
-  bus->pushFrontTarget(Span{.minOffset = 2, .maxOffset = 3}, &*m2);
-  bus->pushFrontTarget(Span{.minOffset = 4, .maxOffset = 5}, &*m3);
+  bus->pushFrontTarget(Span(0, 1), &*m1);
+  bus->pushFrontTarget(Span(2, 3), &*m2);
+  bus->pushFrontTarget(Span(4, 5), &*m3);
   return std::tuple{bus, m1, m2, m3};
 };
 } // namespace
@@ -102,13 +102,13 @@ TEST_CASE("Simple bus dump", "[scope:sim][kind:int][arch:*]") {
       CHECK(buf[it] == it);
   }
   SECTION("sparse memory map") {
-    auto m1 = QSharedPointer<sim::memory::Dense<quint16>>::create(d1, Span{.minOffset = 0, .maxOffset = 0x1});
-    auto m2 = QSharedPointer<sim::memory::Dense<quint16>>::create(d2, Span{.minOffset = 0, .maxOffset = 0x1});
-    auto m3 = QSharedPointer<sim::memory::Dense<quint16>>::create(d3, Span{.minOffset = 0, .maxOffset = 0x1});
-    auto bus = QSharedPointer<sim::memory::SimpleBus<quint16>>::create(b1, Span{.minOffset = 0, .maxOffset = 9});
-    bus->pushFrontTarget(Span{.minOffset = 0, .maxOffset = 1}, &*m1);
-    bus->pushFrontTarget(Span{.minOffset = 4, .maxOffset = 5}, &*m2);
-    bus->pushFrontTarget(Span{.minOffset = 8, .maxOffset = 9}, &*m3);
+    auto m1 = QSharedPointer<sim::memory::Dense<quint16>>::create(d1, Span(0, 1));
+    auto m2 = QSharedPointer<sim::memory::Dense<quint16>>::create(d2, Span(0, 1));
+    auto m3 = QSharedPointer<sim::memory::Dense<quint16>>::create(d3, Span(0, 1));
+    auto bus = QSharedPointer<sim::memory::SimpleBus<quint16>>::create(b1, Span(0, 9));
+    bus->pushFrontTarget(Span(0, 1), &*m1);
+    bus->pushFrontTarget(Span(4, 5), &*m2);
+    bus->pushFrontTarget(Span(8, 9), &*m3);
     quint8 buf[10], out[10];
     bits::span bufSpan = {buf};
     bits::span outSpan = {out};
@@ -128,10 +128,10 @@ TEST_CASE("Simple bus dump", "[scope:sim][kind:int][arch:*]") {
 }
 
 TEST_CASE("Simple bus path tracking", "[scope:sim][kind:int][arch:*]") {
-  auto mem = QSharedPointer<sim::memory::Dense<quint16>>::create(d1, Span{.minOffset = 0, .maxOffset = 0x1});
-  auto bus0 = QSharedPointer<sim::memory::SimpleBus<quint16>>::create(b1, Span{.minOffset = 0, .maxOffset = 5});
+  auto mem = QSharedPointer<sim::memory::Dense<quint16>>::create(d1, Span(0, 1));
+  auto bus0 = QSharedPointer<sim::memory::SimpleBus<quint16>>::create(b1, Span(0, 5));
   bus0->pushFrontTarget({0, 1}, &*mem);
-  auto bus1 = QSharedPointer<sim::memory::SimpleBus<quint16>>::create(b2, Span{.minOffset = 0, .maxOffset = 5});
+  auto bus1 = QSharedPointer<sim::memory::SimpleBus<quint16>>::create(b2, Span(0, 5));
   bus1->pushFrontTarget({2, 3}, &*mem);
 
   auto paths = QSharedPointer<sim::api2::Paths>::create();

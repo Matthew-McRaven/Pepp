@@ -1,6 +1,7 @@
 #include "registration.hpp"
 #include <qqml.h>
 #include "./aproject.hpp"
+#include "./pep10.hpp"
 #include "utils/strings.hpp"
 
 static const char *error_only_project = "Can only be created through Project::";

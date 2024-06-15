@@ -25,13 +25,13 @@ import edu.pepp 1.0
 //  Figure contents
 Flickable {
     id: wrapper
-    signal editingFinished
+    signal editingFinished(string text)
     required property bool isReadOnly
     property alias readOnly: wrapper.isReadOnly
     property bool allowsBP: true
     required property string edition
     required property string language
-    property string text
+    property alias text: editor.text
 
     property int colWidth: 30
     property int rows: 16
@@ -45,12 +45,7 @@ Flickable {
 
     //  Set page contents based on parent selected values
     Component.onCompleted: {
-        DefaultStyles.pep10_asm(styles)
-        DefaultStyles.c(styles)
-        highlighter.set_styles(styles)
-        highlighter.set_document(editor.textDocument)
-        highlighter.set_highlighter(edition, language)
-        editor.editingFinished.connect(wrapper.editingFinished)
+        editor.editingFinished.connect(text => wrapper.editingFinished(text))
     }
 
     StyleMap {
@@ -58,9 +53,6 @@ Flickable {
     }
     BlockFinder {
         id: finder
-    }
-    Highlighter {
-        id: highlighter
     }
     LineInfoModel {
         id: lineModel
@@ -171,28 +163,27 @@ Flickable {
             background: Rectangle {
                 color: palette.base
             }
-            readOnly: wrapper.isReadOnly
 
-            text: wrapper.text
-            function onPressedHandler(event) {
-                if (event.key === Qt.Key_Tab || event.key === Qt.Key_Backtab) {
-                    if (editor.readOnly) {
-                        event.accepted = true
-                        return
-                    } else if (event.key === Qt.Key_Backtab
-                               || (event.key === Qt.Key_Tab
-                                   && event.modifiers & Qt.ShiftModifier)) {
-                        event.accepted = true
-                        tabNanny.backtab(editor.cursorPosition)
-                    } else if (event.key === Qt.Key_Tab
-                               && event.modifiers === Qt.NoModifier) {
-                        event.accepted = true
-                        tabNanny.tab(editor.cursorPosition)
-                    }
+            readOnly: wrapper.isReadOnly
+        }
+
+        function onPressedHandler(event) {
+            if (event.key === Qt.Key_Tab || event.key === Qt.Key_Backtab) {
+                if (editor.readOnly) {
+                    event.accepted = true
+                    return
+                } else if (event.key === Qt.Key_Backtab
+                           || (event.key === Qt.Key_Tab
+                               && event.modifiers & Qt.ShiftModifier)) {
+                    event.accepted = true
+                    tabNanny.backtab(editor.cursorPosition)
+                } else if (event.key === Qt.Key_Tab
+                           && event.modifiers === Qt.NoModifier) {
+                    event.accepted = true
+                    tabNanny.tab(editor.cursorPosition)
                 }
             }
         }
-
         Keys.onPressed: event => onPressedHandler(event)
     }
 }

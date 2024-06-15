@@ -84,3 +84,15 @@ std::optional<sim::api2::device::ID> sim::trace2::get_id(const sim::api2::packet
 
   return std::visit(detail::GetHeaderID{}, header);
 }
+
+bool sim::trace2::is_packet_header(const sim::api2::trace::Fragment &f) { return std::visit(IsPacketHeader{}, f); }
+
+sim::api2::packet::Header sim::trace2::as_packet_header(const sim::api2::trace::Fragment &f) {
+  return std::visit(AsPacketHeader{}, f);
+}
+
+bool sim::trace2::is_packet_payload(const sim::api2::trace::Fragment &f) { return std::visit(IsPacketPayload{}, f); }
+
+sim::api2::packet::Payload sim::trace2::as_packet_payload(const sim::api2::trace::Fragment &f) {
+  return std::visit(AsPacketPayload{}, f);
+}

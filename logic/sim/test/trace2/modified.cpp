@@ -510,14 +510,14 @@ TEST_CASE("TranslatingModifiedAddressSink", "[scope:sim][kind:unit][arch:*]") {
   auto b2 = sim::api2::device::Descriptor{.id = 5, .baseName = "bus1", .fullName = "/bus1"};
   using Span = sim::api2::memory::AddressSpan<quint16>;
   auto make = [&](sim::api2::trace::Buffer *tb) {
-    auto m1 = QSharedPointer<sim::memory::Dense<quint16>>::create(d1, Span{.minOffset = 0, .maxOffset = 0x1});
-    auto m2 = QSharedPointer<sim::memory::Dense<quint16>>::create(d2, Span{.minOffset = 0, .maxOffset = 0x1});
-    auto m3 = QSharedPointer<sim::memory::Dense<quint16>>::create(d3, Span{.minOffset = 0, .maxOffset = 0x1});
-    auto bus = QSharedPointer<sim::memory::SimpleBus<quint16>>::create(b1, Span{.minOffset = 0, .maxOffset = 5});
+    auto m1 = QSharedPointer<sim::memory::Dense<quint16>>::create(d1, Span(0, 1));
+    auto m2 = QSharedPointer<sim::memory::Dense<quint16>>::create(d2, Span(0, 1));
+    auto m3 = QSharedPointer<sim::memory::Dense<quint16>>::create(d3, Span(0, 1));
+    auto bus = QSharedPointer<sim::memory::SimpleBus<quint16>>::create(b1, Span(0, 5));
     CHECK(bus->deviceID() == b1.id);
-    bus->pushFrontTarget(Span{.minOffset = 0, .maxOffset = 1}, &*m1);
-    bus->pushFrontTarget(Span{.minOffset = 2, .maxOffset = 3}, &*m2);
-    bus->pushFrontTarget(Span{.minOffset = 4, .maxOffset = 5}, &*m3);
+    bus->pushFrontTarget(Span(0, 1), &*m1);
+    bus->pushFrontTarget(Span(2, 3), &*m2);
+    bus->pushFrontTarget(Span(4, 5), &*m3);
     m1->setBuffer(tb);
     m1->trace(true);
     m2->setBuffer(tb);

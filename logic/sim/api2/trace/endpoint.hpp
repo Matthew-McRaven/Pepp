@@ -13,16 +13,25 @@
  * You should have received a copy of the GNU General Public License
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
-
 #pragma once
-#include "api2/clock.hpp"
-#include "api2/device.hpp"
-#include "api2/frame.hpp"
-#include "api2/memory/access.hpp"
-#include "api2/memory/target.hpp"
-#include "api2/packets.hpp"
-#include "api2/path.hpp"
-#include "api2/system.hpp"
-#include "api2/trace/buffer.hpp"
-#include "api2/trace/endpoint.hpp"
-#include "api2/trace/iterator.hpp"
+#include "./iterator.hpp"
+
+namespace sim::api2::trace {
+class Buffer;
+class Source {
+public:
+  virtual ~Source() = default;
+  virtual void setBuffer(Buffer *tb) = 0;
+  virtual const Buffer *buffer() const = 0;
+  virtual void trace(bool enabled) = 0;
+};
+
+class Sink {
+public:
+  virtual ~Sink() = default;
+  // Return true if the packet was processed by this sink, otherwise return
+  // false.
+  virtual bool analyze(PacketIterator iter, Direction direction) = 0;
+};
+
+} // namespace sim::api2::trace

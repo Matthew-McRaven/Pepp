@@ -41,10 +41,7 @@ static inline std::pair<QSharedPointer<sim::memory::Dense<quint16>>, QSharedPoin
       .fullName = "/cpu",
   };
 
-  static const auto span = sim::api2::memory::AddressSpan<quint16>{
-      .minOffset = 0,
-      .maxOffset = 0xFFFF,
-  };
+  static const auto span = sim::api2::memory::AddressSpan<quint16>(0, 0xFFFF);
   sim::api2::device::IDGenerator gen = [&i]() { return i++; };
   auto storage = QSharedPointer<sim::memory::Dense<quint16>>::create(desc_mem, span);
   auto cpu = QSharedPointer<targets::pep10::isa::CPU>::create(desc_cpu, gen);

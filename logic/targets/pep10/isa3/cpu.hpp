@@ -35,6 +35,7 @@ public:
 
   sim::api2::memory::Target<quint8> *regs();
   sim::api2::memory::Target<quint8> *csrs();
+  sim::api2::device::Descriptor device() const;
   enum class Status {
     Ok = 0,
     IllegalOpcode = 1,

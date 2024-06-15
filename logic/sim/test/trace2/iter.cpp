@@ -20,8 +20,7 @@
 #include "sim/trace2/buffers.hpp"
 #include "sim/trace2/packet_utils.hpp"
 
-TEST_CASE("Trace buffer iterators"
-          "[scope:sim][kind:unit][arch:*]") {
+TEST_CASE("Trace buffer iterators", "[scope:sim][kind:unit][arch:*]") {
   sim::trace2::InfiniteBuffer buf;
   std::array<quint8, 16> src, dest;
   for (int it = 0; it < src.size(); it++) {
@@ -45,6 +44,7 @@ TEST_CASE("Trace buffer iterators"
 
     // Four packets.
     auto frame = buf.cbegin();
+    auto cbeg = frame.cbegin(), cend = frame.cend();
     CHECK(std::distance(frame.cbegin(), frame.cbegin()) == 0);
     CHECK(std::distance(frame.cend(), frame.cend()) == 0);
     CHECK(std::distance(frame.cbegin(), frame.cend()) == 4);

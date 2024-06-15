@@ -13,16 +13,15 @@
  * You should have received a copy of the GNU General Public License
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
-
 #pragma once
-#include "api2/clock.hpp"
-#include "api2/device.hpp"
-#include "api2/frame.hpp"
-#include "api2/memory/access.hpp"
-#include "api2/memory/target.hpp"
-#include "api2/packets.hpp"
-#include "api2/path.hpp"
-#include "api2/system.hpp"
-#include "api2/trace/buffer.hpp"
-#include "api2/trace/endpoint.hpp"
-#include "api2/trace/iterator.hpp"
+#include <QtCore>
+
+namespace sim::api2::device {
+using ID = quint16; // Only use 9 bits (max of 512)!
+struct Descriptor {
+  device::ID id; // Must uniquely identify a device within a system.
+  void *compatible;
+  QString baseName, fullName;
+};
+using IDGenerator = std::function<ID()>;
+} // namespace sim::api2::device

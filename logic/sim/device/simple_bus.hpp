@@ -36,6 +36,7 @@ public:
 
   // Target interface
   sim::api2::device::ID deviceID() const override { return _device.id; }
+  sim::api2::device::Descriptor device() const override { return _device; }
   AddressSpan span() const override;
   api2::memory::Result read(Address address, bits::span<quint8> dest, api2::memory::Operation op) const override;
   api2::memory::Result write(Address address, bits::span<const quint8> src, api2::memory::Operation op) override;
@@ -97,12 +98,13 @@ template <typename Address> typename SimpleBus<Address>::AddressSpan SimpleBus<A
 template <typename Address>
 api2::memory::Result SimpleBus<Address>::read(Address address, bits::span<quint8> dest,
                                               api2::memory::Operation op) const {
+  using sim::api2::memory::convert;
   // TODO: add trace code that we traversed the bus.
   using E = api2::memory::Error;
   using T = std::tuple<Address, std::size_t>;
   // Length is 1-indexed, address are 0, so must offset by -1.
   if (auto maxDestAddr = (address + std::max<Address>(0, dest.size() - 1));
-      address < _span.minOffset || maxDestAddr > _span.maxOffset)
+      address < _span.lower() || maxDestAddr > _span.upper())
     throw E(E::Type::OOBAccess, address);
 
   auto guard = std::move(makeGuard());
@@ -115,9 +117,9 @@ api2::memory::Result SimpleBus<Address>::read(Address address, bits::span<quint8
     auto dev = device(region->device);
     // Compute how many bytes we can read without OOB'ing on the device.
     auto devSpan = dev->span();
-    auto usableLength = std::min<qsizetype>(length, devSpan.maxOffset - devSpan.minOffset + 1);
+    auto usableLength = std::min<qsizetype>(length, size_inclusive(devSpan));
     // Convert bus address => device address
-    auto busToDev = trace2::convert<Address>(address + offset, region->from, region->to);
+    auto busToDev = convert<Address>(address + offset, region->from, region->to);
     api2::memory::Result acc;
     acc = dev->read(busToDev, dest.subspan(offset, usableLength), op);
 
@@ -129,12 +131,14 @@ api2::memory::Result SimpleBus<Address>::read(Address address, bits::span<quint8
 template <typename Address>
 api2::memory::Result SimpleBus<Address>::write(Address address, bits::span<const quint8> src,
                                                api2::memory::Operation op) {
+  using sim::api2::memory::convert;
+  using sim::api2::memory::size;
   // TODO: add trace code that we traversed the bus.
   using E = api2::memory::Error;
   using T = std::tuple<Address, std::size_t>;
   // Length is 1-indexed, address are 0, so must offset by -1.
   if (auto maxDestAddr = (address + std::max<Address>(0, src.size() - 1));
-      address < _span.minOffset || maxDestAddr > _span.maxOffset)
+      address < _span.lower() || maxDestAddr > _span.upper())
     throw E(E::Type::OOBAccess, address);
 
   auto guard = makeGuard();
@@ -146,9 +150,9 @@ api2::memory::Result SimpleBus<Address>::write(Address address, bits::span<const
     auto dev = device(region->device);
     // Compute how many bytes we can read without OOB'ing on the device.
     auto devSpan = dev->span();
-    auto usableLength = std::min<qsizetype>(length, devSpan.maxOffset - devSpan.minOffset + 1);
+    auto usableLength = std::min<qsizetype>(length, size<Address, false>(devSpan));
     // Convert bus address => device address
-    auto busToDev = trace2::convert<Address>(address + offset, region->from, region->to);
+    auto busToDev = convert<Address>(address + offset, region->from, region->to);
     api2::memory::Result acc;
     acc = dev->write(busToDev, src.subspan(offset, usableLength), op);
     offset += usableLength;
@@ -184,8 +188,7 @@ template <typename Address> struct SortOnDeviceID {
 } // namespace detail
 template <typename Address>
 void SimpleBus<Address>::pushFrontTarget(AddressSpan at, api2::memory::Target<Address> *target) {
-  sim::trace2::Interval<Address> from = {at.minOffset, at.maxOffset},
-                                 to = {target->span().minOffset, target->span().maxOffset};
+  sim::trace2::Interval<Address> from = at, to = target->span();
   if (device(target->deviceID()) != nullptr)
     throw std::logic_error("Device ID already in use");
   _addrs.insert_or_overwrite(from, to, target->deviceID(), 0);
