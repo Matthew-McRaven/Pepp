@@ -87,14 +87,11 @@ template <size_t N> struct VariableBytes {
     if (archive.kind() == zpp::bits::kind::out) {
       // Mask out flag bits before checking max size.
       auto len = self.len & len_mask();
-      if (len > N)
-        return zpp::bits::errc(std::errc::value_too_large);
+      if (len > N) return zpp::bits::errc(std::errc::value_too_large);
       // Write out length + flags.
       zpp::bits::errc errc = archive(self.len);
-      if (errc.code != std::errc())
-        return errc;
-      else if (self.len == 0)
-        return errc;
+      if (errc.code != std::errc()) return errc;
+      else if (self.len == 0) return errc;
 
       // Let compiler deduce [const quint8] vs [quint8].
       auto span = std::span(self.bytes.data(), len);
@@ -104,20 +101,16 @@ template <size_t N> struct VariableBytes {
     else if (archive.kind() == zpp::bits::kind::in && !std::is_const<decltype(self)>()) {
       zpp::bits::errc errc = archive(self.len);
       auto len = self.len & len_mask();
-      if (errc.code != std::errc())
-        return errc;
+      if (errc.code != std::errc()) return errc;
       // Ignore flag bits in bounds check
-      else if (len > N)
-        return zpp::bits::errc(std::errc::value_too_large);
-      else if (len == 0)
-        return errc;
+      else if (len > N) return zpp::bits::errc(std::errc::value_too_large);
+      else if (len == 0) return errc;
 
       // We serialized the length ourselves. If we pass array_view directly,
       // size will be serialzed again.
       auto array_view = bits::span<quint8>(self.bytes.data(), len);
       return archive(zpp::bits::bytes(array_view, array_view.size_bytes()));
-    } else if (archive.kind() == zpp::bits::kind::in)
-      throw std::logic_error("Can't read into const");
+    } else if (archive.kind() == zpp::bits::kind::in) throw std::logic_error("Can't read into const");
     throw std::logic_error("Unimplemented");
   }
 
@@ -263,18 +256,14 @@ public:
       : _impl(impl), _location(location), _dir(dir) {}
 
   HierarchicalIterator &operator++() {
-    if (_dir == Direction::Forward)
-      _location = _impl->next(_location, Current);
-    else
-      _location = _impl->prev(_location, Current);
+    if (_dir == Direction::Forward) _location = _impl->next(_location, Current);
+    else _location = _impl->prev(_location, Current);
     return *this;
   }
 
   HierarchicalIterator &operator--() {
-    if (_dir == Direction::Forward)
-      _location = _impl->prev(_location, Current);
-    else
-      _location = _impl->next(_location, Current);
+    if (_dir == Direction::Forward) _location = _impl->prev(_location, Current);
+    else _location = _impl->next(_location, Current);
     return *this;
   }
 
@@ -299,12 +288,9 @@ public:
   std::size_t fragment_size() const { return _impl->size_at(_location, Current); }
 
   value_type operator*() const {
-    if constexpr (Current == Level::Frame)
-      return _impl->frame(_location);
-    else if constexpr (Current == Level::Packet)
-      return _impl->packet(_location);
-    else
-      return _impl->payload(_location);
+    if constexpr (Current == Level::Frame) return _impl->frame(_location);
+    else if constexpr (Current == Level::Packet) return _impl->packet(_location);
+    else return _impl->payload(_location);
   }
 
 protected:
@@ -358,8 +344,7 @@ protected:
       // If the next item is below our level of abstraction,
       // then we need to search for the next item that is at our level of
       // abstraction.
-      if ((int)Current < (int)next_type)
-        next = this->_impl->next(next, Current);
+      if ((int)Current < (int)next_type) next = this->_impl->next(next, Current);
     }
     return HierarchicalIterator<Descendants...>(this->_impl, next);
   }
@@ -368,14 +353,9 @@ protected:
     // Figure out what next level is.
     Level below;
     switch (Current) {
-    case Level::Frame:
-      below = Level::Packet;
-      break;
-    case Level::Packet:
-      below = Level::Payload;
-      break;
-    default:
-      throw std::logic_error("Supposedly unreachable");
+    case Level::Frame: below = Level::Packet; break;
+    case Level::Packet: below = Level::Payload; break;
+    default: throw std::logic_error("Supposedly unreachable");
     }
 
     // Find the first successor element at the current level of abstraction,
@@ -463,12 +443,10 @@ protected:
 class PathGuard {
 public:
   PathGuard(Buffer *buffer, packet::path_t path) : _buffer(buffer), _path(path) {
-    if (_buffer && _buffer->currentPath() != _path)
-      _buffer->pushPath(_path);
+    if (_buffer && _buffer->currentPath() != _path) _buffer->pushPath(_path);
   }
   ~PathGuard() {
-    if (_buffer && _buffer->currentPath() == _path)
-      _buffer->popPath();
+    if (_buffer && _buffer->currentPath() == _path) _buffer->popPath();
   }
   PathGuard(const PathGuard &) = delete;
   PathGuard &operator=(const PathGuard &) = delete;
