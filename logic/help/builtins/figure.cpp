@@ -17,8 +17,8 @@
 
 #include "figure.hpp"
 
-builtins::Figure::Figure(Architecture arch, Abstraction level, QString chapter, QString figure)
-    : QObject(nullptr), _arch(arch), _level(level), _chapterName(chapter), _figureName(figure) {}
+builtins::Figure::Figure(Architecture arch, Abstraction level, QString prefix, QString chapter, QString figure)
+    : QObject(nullptr), _arch(arch), _level(level), _prefix(prefix), _chapterName(chapter), _figureName(figure) {}
 
 builtins::Figure::~Figure() {
   for (auto value : _tests) {
@@ -32,6 +32,8 @@ builtins::Figure::~Figure() {
 builtins::Architecture builtins::Figure::arch() const { return _arch; }
 
 builtins::Abstraction builtins::Figure::level() const { return _level; }
+
+QString builtins::Figure::prefix() const { return _prefix; }
 
 QString builtins::Figure::chapterName() const { return _chapterName; }
 

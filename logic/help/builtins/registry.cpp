@@ -130,7 +130,8 @@ builtins::detail::loadFigure(QString manifestPath) {
       qFatal("Invalid abstraction level");
   }
 
-  auto figure = QSharedPointer<builtins::Figure>::create(arch, level, chapterName, figureName);
+  // TODO: decide between "figure" and "problem" based on type field.
+  auto figure = QSharedPointer<builtins::Figure>::create(arch, level, "Figure", chapterName, figureName);
   figure->setIsOS(manifest["is_os"].toBool(false));
 
   // Add tests
