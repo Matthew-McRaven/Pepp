@@ -120,7 +120,7 @@ else ()
     target_compile_definitions(pepp PRIVATE "DEFAULT_GUI=0")
 endif ()
 
-if (0)
+if (ENABLE_TERM_TESTS)
     configure_file(test/config.hpp.in "${CMAKE_CURRENT_BINARY_DIR}/config.hpp")
     make_target(
             TARGET test-term
