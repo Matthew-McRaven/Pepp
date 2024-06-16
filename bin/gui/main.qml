@@ -40,20 +40,33 @@ ApplicationWindow {
     //  Set palette in parent. Inherited by all children
     /*  See https://doc.qt.io/qt-6/qml-qtquick-colorgroup.html for color explanation*/
     palette {
-        alternateBase: Theme.container.background
-        base: Theme.surface.background
-        text: Theme.surface.foreground
-        button: Theme.container.background
-        buttonText: Theme.container.foreground
-        highlight: Theme.primary.background
-        highlightedText: Theme.primary.foreground
-        window: Theme.container.background
-        windowText: Theme.container.foregound
+        alternateBase: Theme.alternateBase.background
+        base: Theme.base.background
+        text: Theme.base.foreground
+        button: Theme.button.background
+        buttonText: Theme.button.foreground
+        highlight: Theme.highlight.background
+        highlightedText: Theme.highlight.foreground
+        toolTipBase: Theme.tooltip.background
+        toolTipText: Theme.tooltip.foreground
+        window: Theme.window.background
+        windowText: Theme.window.foreground
+
+        accent: Theme.accent.background
+        light: Theme.light.background
+        midlight: Theme.midlight.background
+        mid: Theme.mid.background
+        dark: Theme.dark.background
+        shadow: Theme.shadow.background
+        link: Theme.link.foreground
+        linkVisited: Theme.linkVisited.foreground
+        brightText: Theme.brightText.foreground
+        placeholderText: Theme.placeholderText.foreground
 
         //  Colors when control is disabled. Overrides normal palette
         disabled {
-          highlight: Theme.window.background
-          buttonText: Theme.shadow.foreground
+            highlight: Theme.window.background
+            buttonText: Theme.shadow.foreground
         }
     }
 
