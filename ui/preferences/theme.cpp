@@ -86,6 +86,7 @@ void Theme::load(const QString& file) {
 
     //  Read data from Json file
     fromJson(doc.object());
+    loadMissing();
 
     //  Reset save flag
     isDirty_ = false;
@@ -112,7 +113,7 @@ void Theme::fromJson(const QJsonObject &json)
     const QJsonArray prefsObj = v.toArray();
 
     //  Set size of preferences equal to items in file
-    prefs_.resize(prefsObj.size());
+    prefs_.resize(std::max(prefsObj.size(), (qsizetype)Themes::Roles::Total));
 
     //  Loop through preferences
     for(const QJsonValue &prefObj : prefsObj) {
