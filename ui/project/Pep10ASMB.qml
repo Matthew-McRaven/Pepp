@@ -94,7 +94,7 @@ Item {
                     id: objView
                     readOnly: true
                     // text is only an initial binding, the value diverges from there.
-                    text: "FE ED BE EF ZZ"
+                    text: project?.objectCodeText ?? ""
                     SplitView.minimumHeight: 100
                 }
             }
