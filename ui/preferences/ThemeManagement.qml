@@ -83,7 +83,7 @@ RowLayout {
   FileDialog {
     id: exportDialog
 
-    currentFolder: StandardPaths.standardLocations(StandardPaths.DownloadLocation)[0]
+    currentFolder: StandardPaths.standardLocations(StandardPaths.AppConfigLocation)[0]
     fileMode: FileDialog.SaveFile
     title: "Export Theme"
     nameFilters: ["Pep Theme files (*.theme)"]
@@ -98,7 +98,7 @@ RowLayout {
   FileDialog {
     id: importDialog
 
-    currentFolder: StandardPaths.standardLocations(StandardPaths.DownloadLocation)[0]
+    currentFolder: StandardPaths.standardLocations(StandardPaths.AppConfigLocation)[0]
     fileMode: FileDialog.OpenFile
     title: "Import Theme"
     nameFilters: ["Pep Theme files (*.theme)"]
