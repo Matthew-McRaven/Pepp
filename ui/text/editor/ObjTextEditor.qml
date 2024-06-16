@@ -68,6 +68,7 @@ ScrollView {
             anchors.left: parent.left
             anchors.right: parent.right
             anchors.bottom: parent.bottom
+            height: visible ? implicitHeight : 0
             Button {
                 // Buttons must not take focus, or spurious editor.editingFinished will be emitted.
                 focusPolicy: Qt.NoFocus
