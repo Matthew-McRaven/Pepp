@@ -21,7 +21,8 @@
 void addBookItems(QStandardItem *parent, QSharedPointer<const builtins::Book> book) {
   auto figures = book->figures();
   for (const auto &figure : figures) {
-    auto figureItem = new QStandardItem(u"%1.%2"_qs.arg(figure->chapterName(), figure->figureName()));
+    auto figureItem =
+        new QStandardItem(u"%1 %2.%3"_qs.arg(figure->prefix(), figure->chapterName(), figure->figureName()));
     figureItem->setData("figure", builtins::FigureConstants::FIG_ROLE_KIND);
     // Registry is read-only, and BookModel keeps it alive for the lifetime of
     // the model. Therefore, we can use the data() safely.

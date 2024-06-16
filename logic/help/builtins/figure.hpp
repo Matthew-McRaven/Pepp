@@ -36,6 +36,7 @@ class BUILTINS_EXPORT Figure : public QObject {
   Q_OBJECT
   Q_PROPERTY(builtins::Architecture arch READ arch CONSTANT);
   Q_PROPERTY(builtins::Abstraction level READ level CONSTANT);
+  Q_PROPERTY(QString prefix READ prefix CONSTANT);
   Q_PROPERTY(QString chapterName READ chapterName CONSTANT);
   Q_PROPERTY(QString figureName READ figureName CONSTANT);
   Q_PROPERTY(bool isOS READ isOS WRITE setIsOS NOTIFY isOSChanged);
@@ -48,14 +49,14 @@ class BUILTINS_EXPORT Figure : public QObject {
   Q_PROPERTY(QVariantMap elements READ elements NOTIFY elementsChanged);
 
 public:
-  Figure(Architecture arch, Abstraction level, QString chapter, QString figure);
+  Figure(Architecture arch, Abstraction level, QString prefix, QString chapter, QString figure);
   ~Figure();
 
   builtins::Architecture arch() const;
   builtins::Abstraction level() const;
 
+  QString prefix() const;
   QString chapterName() const;
-
   QString figureName() const;
 
   bool isOS() const;
@@ -85,7 +86,7 @@ signals:
 private:
   const Architecture _arch;
   const Abstraction _level;
-  const QString _chapterName, _figureName;
+  const QString _prefix, _chapterName, _figureName;
   bool _isOS = false;
   // Non-owning
   const Figure *_defaultOS = nullptr;
