@@ -157,8 +157,12 @@ TEST_CASE("CS6E figure assembly", "[scope:asm][kind:e2e][arch:pep10]") {
         pas::obj::pep10::combineSections(*userRoot);
         pas::obj::pep10::writeUser(*elf, *userRoot);
         // Segments are not layed out correctly until saving.
-        elf->save(u"%1.%2.elf"_qs.arg(chapter, figName).toStdString());
-        elf->load(u"%1.%2.elf"_qs.arg(chapter, figName).toStdString());
+        {
+          std::stringstream s;
+          elf->save(s);
+          s.seekg(0, std::ios::beg);
+          elf->load(s);
+        }
         REQUIRE(result);
 
         // Verify MMIO information.

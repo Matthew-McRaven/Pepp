@@ -72,15 +72,12 @@ bool RunTask::loadToElf() {
   if (!bytes)
     return false;
   _elf = helper.elf(*bytes);
-  // Need to reload to properly compute segment addresses. Store in temp
-  // directory to prevent clobbering local file contents.
+  // Need to reload to properly compute segment addresses.
   {
-    QTemporaryDir dir;
-    if (!dir.isValid())
-      return false;
-    auto path = dir.filePath("tmp.elf").toStdString();
-    _elf->save(path);
-    _elf->load(path);
+    std::stringstream s;
+    _elf->save(s);
+    s.seekg(0, std::ios::beg);
+    _elf->load(s);
   }
   return true;
 }

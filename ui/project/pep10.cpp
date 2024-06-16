@@ -67,8 +67,7 @@ SystemAssembly make_isa_system() {
     qWarning() << "Default OS assembly failed";
   }
   SystemAssembly ret;
-  // Need to reload to properly compute segment addresses. Store in temp
-  // directory to prevent clobbering local file contents.
+  // Need to reload to properly compute segment addresses.
   ret.elf = helper.elf();
   {
     std::stringstream s;
