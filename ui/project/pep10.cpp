@@ -17,6 +17,7 @@
 #include "targets/pep10/isa3/helpers.hpp"
 #include "targets/pep10/isa3/system.hpp"
 #include "text/editor/object.hpp"
+#include "utils/strings.hpp"
 
 // Prevent WASM-ld error due to multiply defined symbol in static lib.
 namespace {
@@ -507,7 +508,7 @@ bool Pep10_ASMB::onAssemble(bool doLoad) {
   helper.setUserText(_userAsmText);
   auto ret = helper.assemble();
   if (!ret) {
-    qWarning() << "Assembly failed.";
+    message(utils::msg_asm_failed);
     return false;
   }
   auto userBytes = helper.bytes(false);
@@ -525,13 +526,15 @@ bool Pep10_ASMB::onAssembleThenFormat() {
   helpers::AsmHelper helper(macroRegistry, _osAsmText);
   helper.setUserText(_userAsmText);
   auto ret = helper.assemble();
-  if (!ret) {
-    qWarning() << "Assembly failed.";
-    return false;
+  if (!ret) message(utils::msg_asm_failed);
+  else {
+    auto source = helper.formattedSource(false);
+    setUserAsmText(source.join("\n"));
+    auto userBytes = helper.bytes(false);
+    QString objectCodeText = pas::ops::pepp::bytesToObject(userBytes, 16);
+    setObjectCodeText(objectCodeText);
   }
-  auto source = helper.formattedSource(false);
-  setUserAsmText(source.join("\n"));
-  return false;
+  return true;
 }
 
 void Pep10_ASMB::prepareSim() {
