@@ -18,4 +18,5 @@
 
 namespace utils {
 static const char *error_only_enums = "Only contains enums";
+static const char *msg_asm_failed = "Assebmly failed; check source pane for errors";
 }
