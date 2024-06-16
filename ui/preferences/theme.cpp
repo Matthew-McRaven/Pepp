@@ -406,7 +406,14 @@ void Theme::loadMissing() {
       pref =  new Preference(this, id,"Placeholder Text",
               qRgb(0x7f,0x7f,0x7f),qRgb(0xee,0xee,0xee)); //  Gray/white
       break;
-
+    case Themes::Roles::ErrorRole:
+      pref = new Preference(this, id, "Error", qRgb(0x00, 0x00, 0x00), qRgb(0xff, 0x00, 0x00), 0, false, false, false,
+                            false);
+      break;
+    case Themes::Roles::WarningRole:
+      pref = new Preference(this, id, "Warning", qRgb(0x00, 0x00, 0x00), qRgb(0xff, 0xFF, 0xE0), 0, false, false, false,
+                            false);
+      break;
     case Themes::Roles::RowNumberRole:
       pref =  new Preference(this, id,"Row Number",
               qRgb(0x66,0x66,0x66),qRgb(0xff,0xff,0xff), //  Black/Red
