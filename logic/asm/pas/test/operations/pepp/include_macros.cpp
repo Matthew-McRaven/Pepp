@@ -79,10 +79,8 @@ void smoke(QSharedPointer<macro::Registry> registry, QString input, testFn valid
     pipelines.globals = QSharedPointer<pas::driver::Globals>::create();
     pipelines.globals->macroRegistry = registry;
     pipelines.assemble(pas::driver::pep10::Stage::IncludeMacros);
-    if (!errors)
-      CHECK(pipelines.pipelines[0].first->stage == pas::driver::pep10::Stage::FlattenMacros);
-    else
-      CHECK(pipelines.pipelines[0].first->stage == pas::driver::pep10::Stage::IncludeMacros);
+    if (!errors) CHECK(pipelines.pipelines[0].first->stage == pas::driver::pep10::Stage::FlattenMacros);
+    else CHECK(pipelines.pipelines[0].first->stage == pas::driver::pep10::Stage::IncludeMacros);
     REQUIRE(pipelines.pipelines[0].first->bodies.contains(pas::driver::repr::Nodes::name));
     root = pipelines.pipelines[0].first->bodies[pas::driver::repr::Nodes::name].value<pas::driver::repr::Nodes>().value;
   } else {

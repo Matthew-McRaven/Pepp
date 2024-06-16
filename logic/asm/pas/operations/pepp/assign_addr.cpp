@@ -16,29 +16,24 @@
  */
 
 #include "./assign_addr.hpp"
-#include "is.hpp"
 #include "asm/pas/ast/node.hpp"
 #include "asm/pas/ast/value/base.hpp"
+#include "is.hpp"
 
-bool pas::ops::pepp::detail::hasBurn(
-    QList<QSharedPointer<pas::ast::Node>> &list) {
+bool pas::ops::pepp::detail::hasBurn(QList<QSharedPointer<pas::ast::Node>> &list) {
   for (auto &child : list)
-    if (pas::ops::pepp::isBurn()(*child))
-      return true;
+    if (pas::ops::pepp::isBurn()(*child)) return true;
   return false;
 }
 
-quint16 pas::ops::pepp::detail::getBurnArg(
-    QList<QSharedPointer<pas::ast::Node>> &list) {
+quint16 pas::ops::pepp::detail::getBurnArg(QList<QSharedPointer<pas::ast::Node>> &list) {
   quint16 ret = 0xFFFF;
   for (auto &child : list)
     if (pas::ops::pepp::isBurn()(*child)) {
-      if (!child->has<pas::ast::generic::Argument>())
-        return ret;
+      if (!child->has<pas::ast::generic::Argument>()) return ret;
       else {
-        child->get<pas::ast::generic::Argument>().value->value(
-            bits::span<quint8>{reinterpret_cast<quint8 *>(&ret), 2},
-            bits::hostOrder());
+        child->get<pas::ast::generic::Argument>().value->value(bits::span<quint8>{reinterpret_cast<quint8 *>(&ret), 2},
+                                                               bits::hostOrder());
         return ret;
       }
     }

@@ -17,9 +17,7 @@
 
 #include "strings.hpp"
 
-bool bits::startsWithHexPrefix(const QString &string) {
-  return string.startsWith("0x") || string.startsWith("0X");
-}
+bool bits::startsWithHexPrefix(const QString &string) { return string.startsWith("0x") || string.startsWith("0X"); }
 
 qsizetype bits::escapedStringLength(const QString string) {
   auto asUTF = string.toUtf8();
@@ -31,8 +29,7 @@ qsizetype bits::escapedStringLength(const QString string) {
     okay &= bits::charactersToByte(start, asUTF.end(), _);
     accumulated_size++;
   }
-  if (!okay)
-    throw std::logic_error("Not a valid string!");
+  if (!okay) throw std::logic_error("Not a valid string!");
   return accumulated_size;
 }
 
@@ -48,19 +45,16 @@ bool bits::escapedStringToBytes(const QString &string, QByteArray &output) {
   return okay;
 }
 
-qsizetype bits::bytesToAsciiHex(span<char> out, span<const quint8> in,
-                                QVector<SeparatorRule> separators) {
+qsizetype bits::bytesToAsciiHex(span<char> out, span<const quint8> in, QVector<SeparatorRule> separators) {
   static const quint8 chars[] = "0123456789ABCDEF";
   qsizetype outIt = 0;
   for (int inIt = 0; inIt < in.size(); inIt++) {
     if (outIt + 2 <= out.size()) {
       out[outIt++] = chars[(in[inIt] >> 4) & 0x0f];
       out[outIt++] = chars[in[inIt] & 0xf];
-    } else
-      break;
+    } else break;
 
-    if (outIt + 1 > out.size())
-      break;
+    if (outIt + 1 > out.size()) break;
     for (auto &rule : separators) {
       if ((inIt + 1) % rule.modulus == 0) {
         out[outIt++] = rule.separator;
@@ -78,8 +72,7 @@ std::optional<QList<quint8>> bits::asciiHexToByte(span<const char> in) {
   char *endptr = nullptr;
   while (inIt < in.size()) {
     ret.push_back(strtol(in.subspan(inIt).data(), &endptr, 16));
-    if (endptr > in.subspan(inIt + 2).data())
-      return std::nullopt;
+    if (endptr > in.subspan(inIt + 2).data()) return std::nullopt;
     inIt += 3;
   }
   return ret;

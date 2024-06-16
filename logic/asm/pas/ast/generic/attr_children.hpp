@@ -25,8 +25,7 @@ class Node;
 namespace pas::ast::generic {
 struct PAS_EXPORT Children {
   static const inline QString attributeName = u"generic:children"_qs;
-  QList<QSharedPointer<pas::ast::Node>> value =
-      {}; // All direct children of the owning node
+  QList<QSharedPointer<pas::ast::Node>> value = {}; // All direct children of the owning node
   // TODO: replace with element-wise value comparison.
   bool operator==(const Children &other) const = default;
 };

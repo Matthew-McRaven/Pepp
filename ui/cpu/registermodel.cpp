@@ -5,31 +5,22 @@
 
 RegisterModel::RegisterModel(QObject *parent) : QAbstractTableModel(parent) {}
 
-int RegisterModel::rowCount(const QModelIndex &) const {
-  return _data.length();
-}
+int RegisterModel::rowCount(const QModelIndex &) const { return _data.length(); }
 
-int RegisterModel::columnCount(const QModelIndex &parent) const {
-  return _cols;
-}
+int RegisterModel::columnCount(const QModelIndex &parent) const { return _cols; }
 
-QVariant RegisterModel::data(const QModelIndex &index, int role) const
-{
-    if (!index.isValid())
-      return {};
+QVariant RegisterModel::data(const QModelIndex &index, int role) const {
+  if (!index.isValid()) return {};
 
-    const auto row = index.row();
-    const auto col = index.column();
-    auto item = _data[row][col];
-    switch (role) {
-    case static_cast<int>(Roles::Box):
-      return !item->readOnly();
-    case static_cast<int>(Roles::RightJustify):
-      return index.column() == 0;
-    case Qt::DisplayRole:
-      return item->format();
-    }
-    return {};
+  const auto row = index.row();
+  const auto col = index.column();
+  auto item = _data[row][col];
+  switch (role) {
+  case static_cast<int>(Roles::Box): return !item->readOnly();
+  case static_cast<int>(Roles::RightJustify): return index.column() == 0;
+  case Qt::DisplayRole: return item->format();
+  }
+  return {};
 }
 
 void RegisterModel::appendFormatters(QVector<QSharedPointer<RegisterFormatter>> formatters) {
@@ -40,8 +31,7 @@ void RegisterModel::appendFormatters(QVector<QSharedPointer<RegisterFormatter>> 
 }
 
 qsizetype RegisterModel::columnCharWidth(int column) const {
-  if (column >= _cols)
-    return 0;
+  if (column >= _cols) return 0;
   qsizetype ret = 0;
   for (const auto &row : _data) {
     auto rowMax = row[column]->length();

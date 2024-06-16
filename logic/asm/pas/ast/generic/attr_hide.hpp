@@ -25,11 +25,7 @@ struct PAS_EXPORT Hide {
   struct In {
     bool source = false;
     bool listing = false;
-    enum class Object {
-      NoEmit_CountSize,
-      NoEmit_NoCountSize,
-      Emit
-    } object = Object::Emit;
+    enum class Object { NoEmit_CountSize, NoEmit_NoCountSize, Emit } object = Object::Emit;
     bool addressInListing = false;
 
     bool operator==(const In &other) const = default;

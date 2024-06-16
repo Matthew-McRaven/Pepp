@@ -18,22 +18,16 @@
 #include "./find.hpp"
 #include "asm/pas/ast/node.hpp"
 
-QSharedPointer<const pas::ast::Node>
-pas::ops::generic::findFirst(const ast::Node &node, SelectorFn selector) {
-  if (selector(node))
-    return node.sharedFromThis();
+QSharedPointer<const pas::ast::Node> pas::ops::generic::findFirst(const ast::Node &node, SelectorFn selector) {
+  if (selector(node)) return node.sharedFromThis();
   for (auto &child : ast::children(node))
-    if (auto childFind = findFirst(*child, selector); childFind != nullptr)
-      return childFind;
+    if (auto childFind = findFirst(*child, selector); childFind != nullptr) return childFind;
   return nullptr;
 }
 
-QSharedPointer<pas::ast::Node>
-pas::ops::generic::findFirst(ast::Node &node, SelectorFn selector) {
-  if (selector(node))
-    return node.sharedFromThis();
+QSharedPointer<pas::ast::Node> pas::ops::generic::findFirst(ast::Node &node, SelectorFn selector) {
+  if (selector(node)) return node.sharedFromThis();
   for (auto &child : ast::children(node))
-    if (auto childFind = findFirst(*child, selector); childFind != nullptr)
-      return childFind;
+    if (auto childFind = findFirst(*child, selector); childFind != nullptr) return childFind;
   return nullptr;
 }

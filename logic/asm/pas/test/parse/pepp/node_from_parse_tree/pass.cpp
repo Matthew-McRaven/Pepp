@@ -258,8 +258,7 @@ TEST_CASE("Passing Pepp AST conversions", "[scope:asm][kind:unit][arch:pep10]") 
     if (firstChild->template has<pas::ast::generic::Error>()) {
       auto visit = pas::ops::generic::CollectErrors();
       pas::ast::apply_recurse<void>(*root, visit);
-      for (const auto &err : visit.errors)
-        std::cerr << err.second.message.toStdString() << std::endl;
+      for (const auto &err : visit.errors) std::cerr << err.second.message.toStdString() << std::endl;
     }
     REQUIRE(!firstChild->template has<pas::ast::generic::Error>());
     REQUIRE(symbol == firstChild->template has<pas::ast::generic::SymbolDeclaration>());

@@ -53,15 +53,13 @@ QList<highlight::Rule> highlight::rules_pep9_asm() {
 
   QMetaEnum mnemonic_enum = QMetaEnum::fromType<isa::Pep9::Mnemonic>();
   QStringList mnemonics_list;
-  for (int it = 0; it < mnemonic_enum.keyCount(); it++)
-    mnemonics_list << u"\\b"_qs + mnemonic_enum.key(it) + u"\\b"_qs;
+  for (int it = 0; it < mnemonic_enum.keyCount(); it++) mnemonics_list << u"\\b"_qs + mnemonic_enum.key(it) + u"\\b"_qs;
   auto mnemonic_re = QRegularExpression(mnemonics_list.join("|"), QRegularExpression::CaseInsensitiveOption);
   rules.push_back({mnemonic_re, style::Types::Mnemonic});
 
   QStringList directives_list;
   auto dirs = isa::Pep9::legalDirectives();
-  for (const QString &pattern : dirs)
-    directives_list << "\\." + pattern + "\\b";
+  for (const QString &pattern : dirs) directives_list << "\\." + pattern + "\\b";
   auto directive_re =
       QRegularExpression(directives_list.join("|"), QRegularExpression::PatternOption::CaseInsensitiveOption);
   rules.append({directive_re, style::Types::Dot});
@@ -86,15 +84,13 @@ QList<highlight::Rule> highlight::rules_pep10_asm() {
 
   QMetaEnum mnemonic_enum = QMetaEnum::fromType<isa::Pep10::Mnemonic>();
   QStringList mnemonics_list;
-  for (int it = 0; it < mnemonic_enum.keyCount(); it++)
-    mnemonics_list << u"\\b"_qs + mnemonic_enum.key(it) + u"\\b"_qs;
+  for (int it = 0; it < mnemonic_enum.keyCount(); it++) mnemonics_list << u"\\b"_qs + mnemonic_enum.key(it) + u"\\b"_qs;
   auto mnemonic_re = QRegularExpression(mnemonics_list.join("|"), QRegularExpression::CaseInsensitiveOption);
   rules.push_back({mnemonic_re, style::Types::Mnemonic});
 
   QStringList directives_list;
   auto dirs = isa::Pep10::legalDirectives();
-  for (const QString &pattern : dirs)
-    directives_list << "\\." + pattern + "\\b";
+  for (const QString &pattern : dirs) directives_list << "\\." + pattern + "\\b";
   auto directive_re =
       QRegularExpression(directives_list.join("|"), QRegularExpression::PatternOption::CaseInsensitiveOption);
   rules.append({directive_re, style::Types::Dot});

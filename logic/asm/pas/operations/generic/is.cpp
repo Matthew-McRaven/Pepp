@@ -30,98 +30,72 @@ bool pas::ops::generic::isBlank::operator()(const ast::Node &node) {
 }
 
 bool pas::ops::generic::isComment::operator()(const ast::Node &node) {
-  return node.get<ast::generic::Type>().value == ast::generic::Type::Comment &&
-         node.has<ast::generic::Comment>() &&
+  return node.get<ast::generic::Type>().value == ast::generic::Type::Comment && node.has<ast::generic::Comment>() &&
          node.has<ast::generic::CommentIndent>();
 }
 
 bool pas::ops::generic::isAlign::operator()(const ast::Node &node) {
-  return node.get<ast::generic::Type>().value ==
-             ast::generic::Type::Directive &&
-         node.has<ast::generic::Directive>() &&
-         node.get<ast::generic::Directive>().value.toUpper() == u"ALIGN"_qs &&
-         node.has<ast::generic::Argument>();
+  return node.get<ast::generic::Type>().value == ast::generic::Type::Directive && node.has<ast::generic::Directive>() &&
+         node.get<ast::generic::Directive>().value.toUpper() == u"ALIGN"_qs && node.has<ast::generic::Argument>();
 }
 
 bool pas::ops::generic::isString::operator()(const ast::Node &node) {
-  return node.get<ast::generic::Type>().value ==
-             ast::generic::Type::Directive &&
-         node.has<ast::generic::Directive>() &&
-         directiveAliases.contains(
-             node.get<ast::generic::Directive>().value.toUpper()) &&
+  return node.get<ast::generic::Type>().value == ast::generic::Type::Directive && node.has<ast::generic::Directive>() &&
+         directiveAliases.contains(node.get<ast::generic::Directive>().value.toUpper()) &&
          node.has<ast::generic::Argument>();
 }
 
 bool pas::ops::generic::isSkip::operator()(const ast::Node &node) {
   if (allowFill)
-    return node.get<ast::generic::Type>().value ==
-               ast::generic::Type::Directive &&
+    return node.get<ast::generic::Type>().value == ast::generic::Type::Directive &&
            node.has<ast::generic::Directive>() &&
-           directiveAliases.contains(
-               node.get<ast::generic::Directive>().value.toUpper()) &&
+           directiveAliases.contains(node.get<ast::generic::Directive>().value.toUpper()) &&
            node.has<ast::generic::ArgumentList>();
   else
-    return node.get<ast::generic::Type>().value ==
-               ast::generic::Type::Directive &&
+    return node.get<ast::generic::Type>().value == ast::generic::Type::Directive &&
            node.has<ast::generic::Directive>() &&
-           directiveAliases.contains(
-               node.get<ast::generic::Directive>().value.toUpper()) &&
+           directiveAliases.contains(node.get<ast::generic::Directive>().value.toUpper()) &&
            node.has<ast::generic::Argument>();
 }
 
 bool pas::ops::generic::isByte1::operator()(const ast::Node &node) {
   if (allowMultiple)
-    return node.get<ast::generic::Type>().value ==
-               ast::generic::Type::Directive &&
+    return node.get<ast::generic::Type>().value == ast::generic::Type::Directive &&
            node.has<ast::generic::Directive>() &&
-           directiveAliases.contains(
-               node.get<ast::generic::Directive>().value.toUpper()) &&
+           directiveAliases.contains(node.get<ast::generic::Directive>().value.toUpper()) &&
            node.has<ast::generic::ArgumentList>();
   else
-    return node.get<ast::generic::Type>().value ==
-               ast::generic::Type::Directive &&
+    return node.get<ast::generic::Type>().value == ast::generic::Type::Directive &&
            node.has<ast::generic::Directive>() &&
-           directiveAliases.contains(
-               node.get<ast::generic::Directive>().value.toUpper()) &&
+           directiveAliases.contains(node.get<ast::generic::Directive>().value.toUpper()) &&
            node.has<ast::generic::Argument>();
 }
 
 bool pas::ops::generic::isByte2::operator()(const ast::Node &node) {
   if (allowMultiple)
-    return node.get<ast::generic::Type>().value ==
-               ast::generic::Type::Directive &&
+    return node.get<ast::generic::Type>().value == ast::generic::Type::Directive &&
            node.has<ast::generic::Directive>() &&
-           directiveAliases.contains(
-               node.get<ast::generic::Directive>().value.toUpper()) &&
+           directiveAliases.contains(node.get<ast::generic::Directive>().value.toUpper()) &&
            node.has<ast::generic::ArgumentList>();
   else
-    return node.get<ast::generic::Type>().value ==
-               ast::generic::Type::Directive &&
+    return node.get<ast::generic::Type>().value == ast::generic::Type::Directive &&
            node.has<ast::generic::Directive>() &&
-           directiveAliases.contains(
-               node.get<ast::generic::Directive>().value.toUpper()) &&
+           directiveAliases.contains(node.get<ast::generic::Directive>().value.toUpper()) &&
            node.has<ast::generic::Argument>();
 }
 
 bool pas::ops::generic::isSet::operator()(const ast::Node &node) {
-  return node.get<ast::generic::Type>().value ==
-             ast::generic::Type::Directive &&
-         node.has<ast::generic::Directive>() &&
-         directiveAliases.contains(
-             node.get<ast::generic::Directive>().value.toUpper()) &&
+  return node.get<ast::generic::Type>().value == ast::generic::Type::Directive && node.has<ast::generic::Directive>() &&
+         directiveAliases.contains(node.get<ast::generic::Directive>().value.toUpper()) &&
          node.has<ast::generic::Argument>();
 }
 
 bool pas::ops::generic::isDirective::operator()(const ast::Node &node) {
-  return node.get<ast::generic::Type>().value ==
-             ast::generic::Type::Directive &&
-         node.has<ast::generic::Directive>();
+  return node.get<ast::generic::Type>().value == ast::generic::Type::Directive && node.has<ast::generic::Directive>();
 }
 
 bool pas::ops::generic::isMacro::operator()(const ast::Node &node) {
-  return node.get<ast::generic::Type>().value ==
-             ast::generic::Type::MacroInvoke &&
-         node.has<ast::generic::Macro>();
+  return node.get<ast::generic::Type>().value == ast::generic::Type::MacroInvoke && node.has<ast::generic::Macro>();
 }
 
 bool pas::ops::generic::isStructural::operator()(const ast::Node &node) {
@@ -129,21 +103,16 @@ bool pas::ops::generic::isStructural::operator()(const ast::Node &node) {
 }
 
 bool pas::ops::generic::SourceHidden::operator()(const ast::Node &node) {
-  return node.has<ast::generic::Hide>() &&
-         node.get<ast::generic::Hide>().value.source;
+  return node.has<ast::generic::Hide>() && node.get<ast::generic::Hide>().value.source;
 }
 
 bool pas::ops::generic::ListingHidden::operator()(const ast::Node &node) {
-  return node.has<ast::generic::Hide>() &&
-         node.get<ast::generic::Hide>().value.listing;
+  return node.has<ast::generic::Hide>() && node.get<ast::generic::Hide>().value.listing;
 }
 
 bool pas::ops::generic::isOrg::operator()(const ast::Node &node) {
   using namespace pas;
-  return node.get<ast::generic::Type>().value ==
-             ast::generic::Type::Directive &&
-         node.has<ast::generic::Directive>() &&
-         (directiveAliases.contains(
-             node.get<ast::generic::Directive>().value.toUpper())) &&
+  return node.get<ast::generic::Type>().value == ast::generic::Type::Directive && node.has<ast::generic::Directive>() &&
+         (directiveAliases.contains(node.get<ast::generic::Directive>().value.toUpper())) &&
          node.has<ast::generic::Argument>();
 }

@@ -48,8 +48,7 @@ static const auto is_pwrOff = [](const auto &x) {
 };
 
 void loadBookMacros(QSharedPointer<const builtins::Book> book, QSharedPointer<macro::Registry> registry) {
-  for (auto &macro : book->macros())
-    registry->registerMacro(macro::types::Core, macro);
+  for (auto &macro : book->macros()) registry->registerMacro(macro::types::Core, macro);
 }
 
 void injectFakeSCallMacros(QSharedPointer<macro::Registry> registry) {
@@ -69,16 +68,14 @@ TEST_CASE("CS6E figure assembly", "[scope:asm][kind:e2e][arch:pep10]") {
     auto registry = QSharedPointer<macro::Registry>::create();
     REQUIRE_FALSE(book.isNull());
     for (auto &fig : book->figures()) {
-      if (!fig->typesafeElements().contains("pep"))
-        continue;
+      if (!fig->typesafeElements().contains("pep")) continue;
       QString chapter = fig->chapterName();
       QString figName = fig->figureName();
       QString body = fig->typesafeElements()["pep"]->contents;
       bool isOS = fig->isOS();
       DYNAMIC_SECTION(chapter.toStdString() << "." << figName.toStdString()) {
         loadBookMacros(book, registry);
-        if (!isOS)
-          injectFakeSCallMacros(registry);
+        if (!isOS) injectFakeSCallMacros(registry);
 
         auto pipeline = pas::driver::pep10::pipeline<pas::driver::ANTLRParserTag>(
             {{body, {.isOS = isOS, .ignoreUndefinedSymbols = !isOS}}}, registry);
@@ -90,8 +87,7 @@ TEST_CASE("CS6E figure assembly", "[scope:asm][kind:e2e][arch:pep10]") {
         // tests.
         if (!result) {
           auto errors = pas::ops::generic::collectErrors(*root);
-          for (auto &error : errors)
-            qCritical() << error.first.value.line << error.second.message;
+          for (auto &error : errors) qCritical() << error.first.value.line << error.second.message;
         }
 
         REQUIRE(result);
@@ -106,14 +102,10 @@ TEST_CASE("CS6E figure assembly", "[scope:asm][kind:e2e][arch:pep10]") {
     loadBookMacros(book, registry);
     for (auto &fig : book->figures()) {
       auto defaultOS = fig->defaultOS();
-      if (!fig->typesafeElements().contains("pep"))
-        continue;
-      else if (fig->isOS())
-        continue;
-      else if (defaultOS == nullptr)
-        continue;
-      else if (!defaultOS->typesafeElements().contains("pep"))
-        continue;
+      if (!fig->typesafeElements().contains("pep")) continue;
+      else if (fig->isOS()) continue;
+      else if (defaultOS == nullptr) continue;
+      else if (!defaultOS->typesafeElements().contains("pep")) continue;
       QString chapter = fig->chapterName();
       QString figName = fig->figureName();
       QString osBody = defaultOS->typesafeElements()["pep"]->contents;
@@ -133,8 +125,7 @@ TEST_CASE("CS6E figure assembly", "[scope:asm][kind:e2e][arch:pep10]") {
         REQUIRE(osTarget->bodies.contains(pas::driver::repr::Nodes::name));
         auto osRoot = osTarget->bodies[pas::driver::repr::Nodes::name].value<pas::driver::repr::Nodes>().value;
         if (pipeline->pipelines[0].first->stage != pas::driver::pep10::Stage::End) {
-          for (auto &error : pas::ops::generic::collectErrors(*osRoot))
-            qCritical() << "OS:   " << error.second.message;
+          for (auto &error : pas::ops::generic::collectErrors(*osRoot)) qCritical() << "OS:   " << error.second.message;
           REQUIRE(false);
         }
         auto userTarget = pipeline->pipelines[1].first;
@@ -144,10 +135,8 @@ TEST_CASE("CS6E figure assembly", "[scope:asm][kind:e2e][arch:pep10]") {
         // tests.
         if (!result) {
           auto lines = pas::ops::pepp::formatListing<isa::Pep10>(*userRoot);
-          for (auto &line : lines)
-            qCritical() << line;
-          for (auto &error : pas::ops::generic::collectErrors(*osRoot))
-            qCritical() << "OS:   " << error.second.message;
+          for (auto &line : lines) qCritical() << line;
+          for (auto &error : pas::ops::generic::collectErrors(*osRoot)) qCritical() << "OS:   " << error.second.message;
           for (auto &error : pas::ops::generic::collectErrors(*userRoot))
             qCritical() << "USER: " << error.second.message;
         }

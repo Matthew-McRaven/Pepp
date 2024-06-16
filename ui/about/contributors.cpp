@@ -23,26 +23,20 @@ QString Maintainer::email() { return _email; }
 
 MaintainerList::MaintainerList(QList<Maintainer *> list, QObject *parent) : QAbstractListModel(parent), _list(list) {
   // Must re-parent to avoid memory leaks.
-  for (auto *item : list)
-    item->setParent(this);
+  for (auto *item : list) item->setParent(this);
 }
 
 int MaintainerList::rowCount(const QModelIndex &parent) const { return _list.size(); }
 
 QVariant MaintainerList::data(const QModelIndex &index, int role) const {
   int row = index.row();
-  if (!index.isValid() || row < 0 || row >= _list.size())
-    return QVariant();
+  if (!index.isValid() || row < 0 || row >= _list.size()) return QVariant();
   auto *item = _list.at(row);
   switch (role) {
-  case NAME:
-    return item->name();
-  case EMAIL:
-    return item->email();
-  case ITEM:
-    return QVariant::fromValue(item);
-  default:
-    return QVariant();
+  case NAME: return item->name();
+  case EMAIL: return item->email();
+  case ITEM: return QVariant::fromValue(item);
+  default: return QVariant();
   }
 }
 

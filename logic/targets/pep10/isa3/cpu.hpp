@@ -61,7 +61,8 @@ public:
   const sim::api2::trace::Buffer *buffer() const override { return _tb; }
 
   // Initiator interface
-  void setTarget(sim::api2::memory::Target<quint16> *target, void* port) override;
+  void setTarget(sim::api2::memory::Target<quint16> *target, void *port) override;
+
 private:
   // TODO: This probably needs to be cleared between simulations
   quint16 _startingPC = 0;

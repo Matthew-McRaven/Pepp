@@ -10,9 +10,8 @@ QString utils::SequenceConverter::toNativeText(const QVariant &sequence) {
     ks = QKeySequence(sequence.value<QString>());
   } else if (auto asL = sequence; asL.canConvert<QVariantList>() && asL.convert((QMetaType)QMetaType::QVariantList)) {
     QVariantList asList = asL.toList();
-    if(asList.length() >= 1) return toNativeText(asList[0]);
-      else return "";
-  } else
-    return "";
+    if (asList.length() >= 1) return toNativeText(asList[0]);
+    else return "";
+  } else return "";
   return ks.toString(QKeySequence::NativeText);
 }

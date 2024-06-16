@@ -16,10 +16,10 @@
  */
 
 #pragma once
+#include <QtCore>
 #include "asm/pas/ast/generic/attr_error.hpp"
 #include "asm/pas/ast/generic/attr_location.hpp"
 #include "asm/pas/ast/op.hpp"
-#include <QtCore>
 #include "asm/pas/pas_globals.hpp"
 
 namespace pas::ast {
@@ -43,5 +43,5 @@ struct PAS_EXPORT LinkGlobals : public pas::ops::MutatingOp<void> {
 };
 
 void PAS_EXPORT linkGlobals(ast::Node &node, QSharedPointer<pas::driver::Globals> globals,
-                 QSet<QString> exportDirectives);
+                            QSet<QString> exportDirectives);
 } // namespace pas::ops::generic

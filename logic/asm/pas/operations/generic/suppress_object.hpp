@@ -16,9 +16,9 @@
  */
 
 #pragma once
+#include <QtCore>
 #include "asm/pas/ast/node.hpp"
 #include "asm/pas/ast/op.hpp"
-#include <QtCore>
 #include "asm/pas/pas_globals.hpp"
 
 namespace pas::ops::generic {

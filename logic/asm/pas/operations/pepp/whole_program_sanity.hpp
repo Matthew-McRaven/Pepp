@@ -27,18 +27,14 @@
 #include "asm/pas/pas_globals.hpp"
 
 namespace pas::ops::pepp {
-template <typename ISA>
-struct ValidateDirectives : public pas::ops::MutatingOp<void> {
+template <typename ISA> struct ValidateDirectives : public pas::ops::MutatingOp<void> {
   bool valid = true;
   void operator()(ast::Node &node) {
-    auto localValid =
-        ISA::isLegalDirective(node.get<pas::ast::generic::Directive>().value);
+    auto localValid = ISA::isLegalDirective(node.get<pas::ast::generic::Directive>().value);
     valid &= localValid;
     if (!localValid) {
-      auto message = pas::errors::pepp::illegalDirective.arg(
-          "." + node.get<pas::ast::generic::Directive>().value);
-      ast::addError(node, {.severity = ast::generic::Message::Severity::Fatal,
-                           .message = message});
+      auto message = pas::errors::pepp::illegalDirective.arg("." + node.get<pas::ast::generic::Directive>().value);
+      ast::addError(node, {.severity = ast::generic::Message::Severity::Fatal, .message = message});
     }
   }
 };
@@ -81,17 +77,14 @@ struct PAS_EXPORT ErrorOnMultipleSymbolDefiniton : public pas::ops::MutatingOp<v
 
 bool PAS_EXPORT errorOnMultipleSymbolDefiniton(ast::Node &node);
 
-template <typename ISA>
-bool checkWholeProgramSanity(ast::Node &node, Features features) {
+template <typename ISA> bool checkWholeProgramSanity(ast::Node &node, Features features) {
   if (implicitSize<ISA>(node) > 0x10000) {
     // Add error to first "real" node
-    auto target =
-        ops::generic::findFirst(node, pas::ops::pepp::findNonStructural);
+    auto target = ops::generic::findFirst(node, pas::ops::pepp::findNonStructural);
     // No need to error check. If size is non-zero, there must exist some node
     // that is non-structural.
     ast::addError(target,
-                  {.severity = pas::ast::generic::Message::Severity::Fatal,
-                   .message = pas::errors::pepp::objTooBig});
+                  {.severity = pas::ast::generic::Message::Severity::Fatal, .message = pas::errors::pepp::objTooBig});
     return false;
   } else if (!validateDirectives<ISA>(node))
     // Visitor adds its own errors, just signal error
@@ -114,8 +107,7 @@ bool checkWholeProgramSanity(ast::Node &node, Features features) {
                    .message = pas::errors::pepp::missingEnd});
     return false;
   }*/
-  else if (!features.ignoreUndefinedSymbols &&
-           errorOnUndefinedSymbolicArgument(node))
+  else if (!features.ignoreUndefinedSymbols && errorOnUndefinedSymbolicArgument(node))
     // Visitor adds its own errors, just signal error
     return false;
   else if (errorOnMultipleSymbolDefiniton(node))

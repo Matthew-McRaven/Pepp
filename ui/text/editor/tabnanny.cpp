@@ -21,16 +21,13 @@
 TabNanny::TabNanny(QObject *parent) : QObject(parent) {}
 
 void TabNanny::setDocument(QQuickTextDocument *doc) {
-  if (doc == nullptr)
-    return;
-  else
-    _doc = doc->textDocument();
+  if (doc == nullptr) return;
+  else _doc = doc->textDocument();
 }
 
 // Tab for Pep 8/9/10
 void TabNanny::tab(int position) {
-  if (_doc == nullptr)
-    return;
+  if (_doc == nullptr) return;
 
   auto cursor = QTextCursor(_doc), editCursor = QTextCursor(_doc);
   cursor.setPosition(position);
@@ -56,8 +53,7 @@ void TabNanny::tab(int position) {
 
 // Backtab for Pep 8/9/10
 void TabNanny::backtab(int position) {
-  if (_doc == nullptr)
-    return;
+  if (_doc == nullptr) return;
 
   auto cursor = QTextCursor(_doc), editCursor = QTextCursor(_doc);
   cursor.setPosition(position);

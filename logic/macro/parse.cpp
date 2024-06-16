@@ -31,8 +31,7 @@ using namespace antlr4;
 using namespace macro;
 using namespace macro::detail;
 
-std::tuple<bool, QString, quint8>
-macro::analyze_macro_definition(QString macro_text) {
+std::tuple<bool, QString, quint8> macro::analyze_macro_definition(QString macro_text) {
   /*
    * A macro file must begin with with name of the macro, followed by an
    * arbitrary number of spaces followed by an integer in [0,16] specifying the
@@ -56,9 +55,9 @@ macro::analyze_macro_definition(QString macro_text) {
    *
    */
   // Append a newline to ensure that our find operation always succeds.
-  auto as_std = macro_text.toUtf8().toStdString()+"\n";
+  auto as_std = macro_text.toUtf8().toStdString() + "\n";
   // Include the newline in the text we pass to the lexer to make our grammar simpler.
-  std::string text = as_std.substr(0, as_std.find("\n")+1);
+  std::string text = as_std.substr(0, as_std.find("\n") + 1);
   ANTLRInputStream input(text);
   MacroLexer lexer(&input);
   // Remove listener that writes to stderr.
@@ -69,7 +68,7 @@ macro::analyze_macro_definition(QString macro_text) {
   CommonTokenStream tokens(&lexer);
   MacroParser parser(&tokens);
   auto *tree = parser.decl();
-  if(listener.hadError()) return {false, QString(), 0};
+  if (listener.hadError()) return {false, QString(), 0};
   // Strip ampersand to be left with macro name as identifier.
   auto name = QString::fromStdString(tree->AT_IDENTIFIER()->getText()).replace("@", "");
   bool arg_convert = true;

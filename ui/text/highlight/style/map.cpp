@@ -21,8 +21,7 @@ highlight::style::Map::Map(QObject *parent) : QObject(parent) {}
 
 void highlight::style::Map::clear() {
   auto &container = _styles;
-  for (auto _style : container)
-    delete _style;
+  for (auto _style : container) delete _style;
   _styles.clear();
   emit styleChanged();
 }
@@ -33,11 +32,9 @@ bool highlight::style::Map::setStyle(highlight::style::Types key, ::highlight::S
   // Keys initialized to nullptr; avoid dereference for member-wise equality comparison.
   if (_styles[key] == nullptr)
     ;
-  else if (*newStyle == *_styles[key])
-    return false;
+  else if (*newStyle == *_styles[key]) return false;
   // We prevsiously claimed ownership of the styles; we must delete them.
-  if (auto _old = _styles[key]; _old)
-    delete _old;
+  if (auto _old = _styles[key]; _old) delete _old;
   _styles[key] = newStyle;
   // We can receive objects from both C++ and QML. These have different lifetime semantics.
   // We transfer ownership of QML objects to C++ so that there's only one place it can be reclaimed,

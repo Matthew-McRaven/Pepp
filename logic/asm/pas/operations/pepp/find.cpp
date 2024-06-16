@@ -26,6 +26,5 @@ bool pas::ops::pepp::detail::findNonStructural(const ast::Node &node) {
 
 bool pas::ops::pepp::detail::findUnhiddenEnd(const ast::Node &node) {
   return pas::ops::pepp::isEnd()(node) &&
-         !(node.has<ast::generic::Hide>() &&
-           node.get<ast::generic::Hide>().value.source);
+         !(node.has<ast::generic::Hide>() && node.get<ast::generic::Hide>().value.source);
 }

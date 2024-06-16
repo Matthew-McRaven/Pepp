@@ -76,10 +76,8 @@ api2::memory::Result ReadOnly<Address>::write(Address address, bits::span<const 
   // in the target without doing an access.
   if (address < _target->span().lower() || maxDestAddr > _target->span().upper()) throw E(E::Type::OOBAccess, address);
   // If the write is coming from the app (e.g., memory editor) allow it.
-  else if (op.type == api2::memory::Operation::Type::Application)
-    return _target->write(address, src, op);
-  else if (_hardFail)
-    throw E(E::Type::WriteToRO, address);
+  else if (op.type == api2::memory::Operation::Type::Application) return _target->write(address, src, op);
+  else if (_hardFail) throw E(E::Type::WriteToRO, address);
   return {};
 }
 

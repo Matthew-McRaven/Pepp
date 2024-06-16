@@ -16,9 +16,9 @@
  */
 
 #pragma once
+#include <QtCore>
 #include "asm/pas/ast/generic/attr_sec.hpp"
 #include "asm/pas/ast/op.hpp"
-#include <QtCore>
 #include "asm/pas/pas_globals.hpp"
 
 namespace pas::ast {

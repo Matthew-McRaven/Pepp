@@ -24,31 +24,23 @@ int LineInfoModel::rowCount(const QModelIndex &parent) const { return _linecount
 
 QVariant LineInfoModel::data(const QModelIndex &index, int role) const {
   // _doc is a nullptr when class is init'ed, so we must guard against null deref.
-  if (!_doc)
-    return QVariant();
+  if (!_doc) return QVariant();
   auto block = _doc->findBlockByNumber(index.row());
   auto data = userDataForBlock(block);
 
   switch (role) {
-  case LineInfoConstants::ALLOWS_BP:
-    return QVariant(data->allowsBP);
-  case LineInfoConstants::HAS_BP:
-    return QVariant(data->hasBP);
-  case LineInfoConstants::HAS_NUMBER:
-    return QVariant(data->allowsNumber);
-  case LineInfoConstants::NUMBER:
-    return QVariant(data->number);
-  case LineInfoConstants::ERROR_STATE:
-    return QVariant(data->errorState);
-  default:
-    return QVariant();
+  case LineInfoConstants::ALLOWS_BP: return QVariant(data->allowsBP);
+  case LineInfoConstants::HAS_BP: return QVariant(data->hasBP);
+  case LineInfoConstants::HAS_NUMBER: return QVariant(data->allowsNumber);
+  case LineInfoConstants::NUMBER: return QVariant(data->number);
+  case LineInfoConstants::ERROR_STATE: return QVariant(data->errorState);
+  default: return QVariant();
   }
 }
 
 bool LineInfoModel::setData(const QModelIndex &index, const QVariant &value, int role) {
   // _doc is a nullptr when class is init'ed, so we must guard against null deref.
-  if (!_doc)
-    return false;
+  if (!_doc) return false;
 
   auto block = _doc->findBlockByNumber(index.row());
   auto data = userDataForBlock(block);
@@ -56,17 +48,14 @@ bool LineInfoModel::setData(const QModelIndex &index, const QVariant &value, int
   // Reject updates that don't change the value. This saves a UI refresh.
   switch (role) {
   case LineInfoConstants::ALLOWS_BP:
-    if (data->allowsBP == value.toBool())
-      return false;
+    if (data->allowsBP == value.toBool()) return false;
     data->allowsBP = value.toBool();
     break;
   case LineInfoConstants::HAS_BP:
-    if (data->hasBP == value.toBool())
-      return false;
+    if (data->hasBP == value.toBool()) return false;
     data->hasBP = value.toBool();
     break;
-  default:
-    return false;
+  default: return false;
   }
 
   emit dataChanged(index, index, {role});
@@ -98,8 +87,7 @@ void LineInfoModel::setDocument(QQuickTextDocument *doc) {
     return;
   else {
     // Disconnect old document to avoid memory leaks.
-    if (_doc)
-      disconnect(_doc, &QTextDocument::contentsChange, this, &LineInfoModel::onContentsChange);
+    if (_doc) disconnect(_doc, &QTextDocument::contentsChange, this, &LineInfoModel::onContentsChange);
     _doc = textDocument;
     reset();
     connect(textDocument, &QTextDocument::contentsChange, this, &LineInfoModel::onContentsChange);
@@ -108,8 +96,7 @@ void LineInfoModel::setDocument(QQuickTextDocument *doc) {
 
 void LineInfoModel::onContentsChange(int position, int charsRemoved, int charsAdded) {
   // _doc is a nullptr when class is init'ed, so we must guard against null deref.
-  if (_doc == nullptr)
-    return;
+  if (_doc == nullptr) return;
 
   // I would prefer to avoid beginResetModel here, since it would completely re-render the UI.
   // Instead, I will track how many lines were added / removed and emit the corresponding events.
@@ -136,8 +123,7 @@ void LineInfoModel::onContentsChange(int position, int charsRemoved, int charsAd
   // findBlock(position+charsAdded) can go past the end of the document.
   // Instead, we find either: the last valid block, of the block at position+charsAdded.
   auto endBlock = startBlock;
-  for (auto it = startBlock; it.isValid() && it.position() <= position + charsAdded; it = it.next())
-    endBlock = it;
+  for (auto it = startBlock; it.isValid() && it.position() <= position + charsAdded; it = it.next()) endBlock = it;
 
   auto previous = startBlock.previous();
   // An insert may modify the previous block. At the begining of the document, the previous block is not valid.
@@ -149,10 +135,8 @@ void LineInfoModel::onContentsChange(int position, int charsRemoved, int charsAd
   bool changedLineNum = updateLineNumbers(startLine);
 
   // Complete UI update.
-  if (change == REMOVE)
-    emit endRemoveRows();
-  else if (change == ADD)
-    emit endInsertRows();
+  if (change == REMOVE) emit endRemoveRows();
+  else if (change == ADD) emit endInsertRows();
 
   // Re-render the UI if any row's data changed. Always trigger on insert/delete,
   // because I am not sure if the UI will pick up the changes outside of the inserted regions.
@@ -171,8 +155,7 @@ void LineInfoModel::onContentsChange(int position, int charsRemoved, int charsAd
 void LineInfoModel::clearErrors() { onSetErrors({}); }
 
 void LineInfoModel::onSetErrors(QMap<int, int> errors) {
-  if (_doc == nullptr)
-    return;
+  if (_doc == nullptr) return;
 
   bool changed = false;
 
@@ -192,8 +175,7 @@ void LineInfoModel::onSetErrors(QMap<int, int> errors) {
 
 void LineInfoModel::toggleBreakpoint(int line) {
   auto index = this->index(line, 0);
-  if (!data(index, LineInfoConstants::ALLOWS_BP).toBool())
-    return;
+  if (!data(index, LineInfoConstants::ALLOWS_BP).toBool()) return;
   auto current_state = data(index, LineInfoConstants::HAS_BP).toBool();
   setData(index, !current_state, LineInfoConstants::HAS_BP);
 }
@@ -206,8 +188,7 @@ void LineInfoModel::reset() {
     _linecount = _doc->blockCount();
     updateAllowsBreakpoint(0, _linecount);
     updateLineNumbers(0);
-  } else
-    _linecount = 0;
+  } else _linecount = 0;
 
   emit endResetModel();
 }
@@ -219,8 +200,7 @@ bool LineInfoModel::updateAllowsBreakpoint(int start, int end) {
   static const auto isWhitespace = QRegularExpression(R"(^\W*$)");
 
   // _doc is a nullptr when class is init'ed, so we must guard against null deref.
-  if (_doc == nullptr)
-    return false;
+  if (_doc == nullptr) return false;
 
   // Track if any value in the range was updated.
   // If a line became non-exectuable due to an added newline, attempt to move the BP to the next line.
@@ -276,10 +256,8 @@ bool LineInfoModel::updateLineNumbers(int from) {
 
 LineInfoData *LineInfoModel::userDataForBlock(QTextBlock &block) const {
   if (auto data = block.userData(); data != nullptr) {
-    if (auto typed_data = dynamic_cast<LineInfoData *>(data); typed_data != nullptr)
-      return typed_data;
-    else
-      throw std::logic_error("Block has user data, but it is not of the expected type.");
+    if (auto typed_data = dynamic_cast<LineInfoData *>(data); typed_data != nullptr) return typed_data;
+    else throw std::logic_error("Block has user data, but it is not of the expected type.");
   }
 
   // Ownership transfers to block.

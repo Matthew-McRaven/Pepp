@@ -25,49 +25,36 @@
 #include "asm/pas/operations/pepp/register_system_calls.hpp"
 #include "asm/pas/operations/pepp/whole_program_sanity.hpp"
 
-bool pas::driver::pep10::TransformFlattenMacros::operator()(
-    QSharedPointer<Globals>,
-    QSharedPointer<pas::driver::Target<Stage>> target) {
+bool pas::driver::pep10::TransformFlattenMacros::operator()(QSharedPointer<Globals>,
+                                                            QSharedPointer<pas::driver::Target<Stage>> target) {
   auto root = target->bodies[repr::Nodes::name].value<repr::Nodes>().value;
   pas::ops::generic::flattenMacros(*root);
   return true;
 }
 
-pas::driver::pep10::Stage
-pas::driver::pep10::TransformFlattenMacros::toStage() {
-  return Stage::GroupNodes;
-}
+pas::driver::pep10::Stage pas::driver::pep10::TransformFlattenMacros::toStage() { return Stage::GroupNodes; }
 
-bool pas::driver::pep10::TransformGroup::operator()(
-    QSharedPointer<Globals>,
-    QSharedPointer<pas::driver::Target<Stage>> target) {
+bool pas::driver::pep10::TransformGroup::operator()(QSharedPointer<Globals>,
+                                                    QSharedPointer<pas::driver::Target<Stage>> target) {
   auto root = target->bodies[repr::Nodes::name].value<repr::Nodes>().value;
-  pas::ops::generic::groupSections(*root,
-                                   pas::ops::pepp::isAddressable<isa::Pep10>);
+  pas::ops::generic::groupSections(*root, pas::ops::pepp::isAddressable<isa::Pep10>);
   return true;
 }
 
-pas::driver::pep10::Stage pas::driver::pep10::TransformGroup::toStage() {
-  return Stage::RegisterExports;
-}
+pas::driver::pep10::Stage pas::driver::pep10::TransformGroup::toStage() { return Stage::RegisterExports; }
 
-bool pas::driver::pep10::TransformRegisterExports::operator()(
-    QSharedPointer<Globals> globals,
-    QSharedPointer<pas::driver::Target<Stage>> target) {
+bool pas::driver::pep10::TransformRegisterExports::operator()(QSharedPointer<Globals> globals,
+                                                              QSharedPointer<pas::driver::Target<Stage>> target) {
 
   auto root = target->bodies[repr::Nodes::name].value<repr::Nodes>().value;
   pas::ops::generic::linkGlobals(*root, globals, {u"EXPORT"_qs});
   return pas::ops::pepp::registerSystemCalls(*root, globals->macroRegistry);
 }
 
-pas::driver::pep10::Stage
-pas::driver::pep10::TransformRegisterExports::toStage() {
-  return Stage::AssignAddresses;
-}
+pas::driver::pep10::Stage pas::driver::pep10::TransformRegisterExports::toStage() { return Stage::AssignAddresses; }
 
-bool pas::driver::pep10::TransformAssignAddresses::operator()(
-    QSharedPointer<Globals>,
-    QSharedPointer<pas::driver::Target<Stage>> target) {
+bool pas::driver::pep10::TransformAssignAddresses::operator()(QSharedPointer<Globals>,
+                                                              QSharedPointer<pas::driver::Target<Stage>> target) {
 
   auto root = target->bodies[repr::Nodes::name].value<repr::Nodes>().value;
   pas::ops::pepp::assignAddresses<isa::Pep10>(*root);
@@ -75,22 +62,14 @@ bool pas::driver::pep10::TransformAssignAddresses::operator()(
   return true;
 }
 
-pas::driver::pep10::Stage
-pas::driver::pep10::TransformAssignAddresses::toStage() {
-  return Stage::WholeProgramSanity;
-}
+pas::driver::pep10::Stage pas::driver::pep10::TransformAssignAddresses::toStage() { return Stage::WholeProgramSanity; }
 
-bool pas::driver::pep10::TransformWholeProgramSanity::operator()(
-    QSharedPointer<Globals>,
-    QSharedPointer<pas::driver::Target<Stage>> target) {
+bool pas::driver::pep10::TransformWholeProgramSanity::operator()(QSharedPointer<Globals>,
+                                                                 QSharedPointer<pas::driver::Target<Stage>> target) {
   auto root = target->bodies[repr::Nodes::name].value<repr::Nodes>().value;
   // TODO: tie class variable to OS features.
   return pas::ops::pepp::checkWholeProgramSanity<isa::Pep10>(
-      *root, {.allowOSFeatures = isOS,
-              .ignoreUndefinedSymbols = ignoreUndefinedSymbols});
+      *root, {.allowOSFeatures = isOS, .ignoreUndefinedSymbols = ignoreUndefinedSymbols});
 }
 
-pas::driver::pep10::Stage
-pas::driver::pep10::TransformWholeProgramSanity::toStage() {
-  return Stage::End;
-}
+pas::driver::pep10::Stage pas::driver::pep10::TransformWholeProgramSanity::toStage() { return Stage::End; }

@@ -16,12 +16,12 @@
  */
 
 #include "./register_system_calls.hpp"
-#include "macro/macro.hpp"
 #include "asm/pas/ast/generic/attr_argument.hpp"
 #include "asm/pas/ast/generic/attr_directive.hpp"
 #include "asm/pas/ast/value/base.hpp"
 #include "asm/pas/operations/generic/is.hpp"
 #include "asm/pas/operations/pepp/is.hpp"
+#include "macro/macro.hpp"
 
 #include <asm/pas/ast/value/symbolic.hpp>
 
@@ -40,44 +40,33 @@ bool pas::ops::pepp::RegisterSystemCalls::operator()(ast::Node &node) {
   // macro kind (unary/non-unary)
   if (!node.has<ast::generic::Argument>()) {
     addedError = true;
-    ast::addError(node, {.severity = Message::Severity::Fatal,
-                         .message = u"%1 missing argument."_qs.arg(macroKind)});
-  } else if (auto argument = dynamic_cast<ast::value::Symbolic *>(
-                 &*node.get<ast::generic::Argument>().value);
+    ast::addError(node, {.severity = Message::Severity::Fatal, .message = u"%1 missing argument."_qs.arg(macroKind)});
+  } else if (auto argument = dynamic_cast<ast::value::Symbolic *>(&*node.get<ast::generic::Argument>().value);
              argument == nullptr) {
     addedError = true;
-    ast::addError(
-        node,
-        {.severity = Message::Severity::Fatal,
-         .message = u"%1 expected a identifier argument."_qs.arg(macroKind)});
+    ast::addError(node, {.severity = Message::Severity::Fatal,
+                         .message = u"%1 expected a identifier argument."_qs.arg(macroKind)});
   } else if (macroKind.toUpper() == "SCALL") {
     auto name = argument->string();
-    parsed = QSharedPointer<macro::Parsed>::create(
-        name, 2, nonunarySCallMacro.arg(name) + "$1, $2\n", "pep/10");
+    parsed = QSharedPointer<macro::Parsed>::create(name, 2, nonunarySCallMacro.arg(name) + "$1, $2\n", "pep/10");
   } else if (macroKind.toUpper() == "USCALL") {
     auto name = argument->string();
-    parsed = QSharedPointer<macro::Parsed>::create(
-        name, 0, unarySCallMacro.arg(name), "pep/10");
+    parsed = QSharedPointer<macro::Parsed>::create(name, 0, unarySCallMacro.arg(name), "pep/10");
   } else {
     addedError = true;
-    ast::addError(node, {.severity = Message::Severity::Fatal,
-                         .message = u"Unspecified error."_qs});
+    ast::addError(node, {.severity = Message::Severity::Fatal, .message = u"Unspecified error."_qs});
   }
 
   // Attempt to register macro, and propogate error if it already exists.
-  if (!parsed.isNull() &&
-      registry->registerMacro(macro::types::System, parsed) == nullptr) {
+  if (!parsed.isNull() && registry->registerMacro(macro::types::System, parsed) == nullptr) {
     addedError = true;
-    ast::addError(node, {.severity = Message::Severity::Fatal,
-                         .message = u"Duplicate system call."_qs});
+    ast::addError(node, {.severity = Message::Severity::Fatal, .message = u"Duplicate system call."_qs});
   }
   return addedError;
 }
 
-bool pas::ops::pepp::registerSystemCalls(
-    ast::Node &node, QSharedPointer<macro::Registry> registry) {
-  auto is = pas::ops::generic::Or<pas::ops::pepp::isSCall,
-                                  pas::ops::pepp::isUSCall>();
+bool pas::ops::pepp::registerSystemCalls(ast::Node &node, QSharedPointer<macro::Registry> registry) {
+  auto is = pas::ops::generic::Or<pas::ops::pepp::isSCall, pas::ops::pepp::isUSCall>();
   auto visit = RegisterSystemCalls();
   visit.registry = registry;
   ast::apply_recurse_if(node, is, visit);

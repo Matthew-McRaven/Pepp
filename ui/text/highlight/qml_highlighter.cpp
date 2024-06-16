@@ -37,22 +37,17 @@ static const auto _6e = u"Computer Systems, 6th Edition"_qs;
 
 void QMLHighlighter::set_highlighter(QString edition, QString language) {
   language = language.toLower();
-  if (_active.edition == edition && _active.language == language)
-    return;
+  if (_active.edition == edition && _active.language == language) return;
 
   QList<Rule> _rules = {};
   if (edition.compare(_5e, Qt::CaseInsensitive) == 0) {
     if (language == "pepo") {
-    } else if (language == "pep")
-      _rules = rules_pep9_asm();
-    else if (language == "c")
-      _rules = rules_c();
+    } else if (language == "pep") _rules = rules_pep9_asm();
+    else if (language == "c") _rules = rules_c();
   } else if (edition.compare(_6e, Qt::CaseInsensitive) == 0) {
     if (language == "pepo") {
-    } else if (language == "pep")
-      _rules = rules_pep10_asm();
-    else if (language == "c")
-      _rules = rules_c();
+    } else if (language == "pep") _rules = rules_pep10_asm();
+    else if (language == "c") _rules = rules_c();
   }
 
   _active.edition = edition;
@@ -63,8 +58,7 @@ void QMLHighlighter::set_highlighter(QString edition, QString language) {
     PatternedHighlighter::Pattern _pattern;
     _pattern.pattern = rule.pattern;
     auto style = _styles->getStyle(rule.style);
-    if (style == nullptr)
-      continue;
+    if (style == nullptr) continue;
     _pattern.format = style->format();
     _pattern.from = rule.fromState;
     _pattern.to = rule.toState;

@@ -28,24 +28,16 @@ int Dependencies::rowCount(const QModelIndex &parent) const { return _deps.size(
 QVariant Dependencies::data(const QModelIndex &index, int role) const {
   using enum DependencyRoles::RoleNames;
   int row = index.row();
-  if (!index.isValid() || row < 0 || row >= _deps.size())
-    return QVariant();
+  if (!index.isValid() || row < 0 || row >= _deps.size()) return QVariant();
   auto &item = _deps.at(row);
   switch (role) {
-  case Name:
-    return item.name;
-  case URL:
-    return item.url;
-  case LicenseName:
-    return item.licenseName;
-  case LicenseSPDXID:
-    return item.licenseSPDXID;
-  case LicenseText:
-    return item.licenseText;
-  case DevDependency:
-    return item.devDependency;
-  default:
-    return QVariant();
+  case Name: return item.name;
+  case URL: return item.url;
+  case LicenseName: return item.licenseName;
+  case LicenseSPDXID: return item.licenseSPDXID;
+  case LicenseText: return item.licenseText;
+  case DevDependency: return item.devDependency;
+  default: return QVariant();
   }
 }
 

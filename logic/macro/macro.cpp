@@ -17,10 +17,8 @@
 
 #include "./macro.hpp"
 
-macro::Parsed::Parsed(QString name, quint8 argCount, QString body,
-                      QString architecture)
-    : QObject(nullptr), _name(name), _body(body), _architecture(architecture),
-      _argCount(argCount) {}
+macro::Parsed::Parsed(QString name, quint8 argCount, QString body, QString architecture)
+    : QObject(nullptr), _name(name), _body(body), _architecture(architecture), _argCount(argCount) {}
 
 QString macro::Parsed::name() const { return _name; }
 

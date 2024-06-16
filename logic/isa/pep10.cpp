@@ -15,34 +15,24 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-#include "pep_shared.hpp"
 #include "pep10.hpp"
 #include <QMetaEnum>
+#include "pep_shared.hpp"
 
 isa::Pep10::Mnemonic isa::Pep10::defaultMnemonic() { return Mnemonic::INVALID; }
 
-isa::Pep10::AddressingMode isa::Pep10::defaultAddressingMode() {
-  return AddressingMode::INVALID;
+isa::Pep10::AddressingMode isa::Pep10::defaultAddressingMode() { return AddressingMode::INVALID; }
+
+isa::Pep10::AddressingMode isa::Pep10::defaultAddressingMode(Mnemonic mnemonic) {
+  if (isAType(mnemonic)) return AddressingMode::I;
+  else return defaultAddressingMode();
 }
 
-isa::Pep10::AddressingMode
-isa::Pep10::defaultAddressingMode(Mnemonic mnemonic) {
-    if (isAType(mnemonic))
-      return AddressingMode::I;
-    else
-      return defaultAddressingMode();
-}
+quint8 isa::Pep10::opcode(Mnemonic mnemonic) { return isa::detail::opcode(mnemonic); }
 
-quint8 isa::Pep10::opcode(Mnemonic mnemonic) {
-  return isa::detail::opcode(mnemonic);
-}
+quint8 isa::Pep10::opcode(Mnemonic mnemonic, AddressingMode addr) { return isa::detail::opcode(mnemonic, addr); }
 
-quint8 isa::Pep10::opcode(Mnemonic mnemonic, AddressingMode addr) {
-  return isa::detail::opcode(mnemonic, addr);
-}
-
-isa::Pep10::AddressingMode
-isa::Pep10::parseAddressingMode(const QString &addr) {
+isa::Pep10::AddressingMode isa::Pep10::parseAddressingMode(const QString &addr) {
   return isa::detail::parseAddressingMode<AddressingMode>(addr);
 }
 
@@ -50,17 +40,11 @@ isa::Pep10::Mnemonic isa::Pep10::parseMnemonic(const QString &mnemonic) {
   return isa::detail::parseMnemonic<Mnemonic>(mnemonic);
 }
 
-QString isa::Pep10::string(Mnemonic mnemonic) {
-  return isa::detail::stringMnemonic(mnemonic);
-}
+QString isa::Pep10::string(Mnemonic mnemonic) { return isa::detail::stringMnemonic(mnemonic); }
 
-QString isa::Pep10::string(AddressingMode addr) {
-  return isa::detail::stringAddr(addr);
-}
+QString isa::Pep10::string(AddressingMode addr) { return isa::detail::stringAddr(addr); }
 
-bool isa::Pep10::isMnemonicUnary(Mnemonic mnemonic) {
-  return isMnemonicUnary(opcode(mnemonic));
-}
+bool isa::Pep10::isMnemonicUnary(Mnemonic mnemonic) { return isMnemonicUnary(opcode(mnemonic)); }
 
 bool isa::Pep10::isMnemonicUnary(quint8 opcode) {
   using T = detail::pep10::InstructionType;
@@ -68,21 +52,13 @@ bool isa::Pep10::isMnemonicUnary(quint8 opcode) {
   return type == T::R_none || type == T::U_none;
 }
 
-bool isa::Pep10::isOpcodeUnary(Mnemonic mnemonic) {
-  return isOpcodeUnary(opcode(mnemonic));
-}
+bool isa::Pep10::isOpcodeUnary(Mnemonic mnemonic) { return isOpcodeUnary(opcode(mnemonic)); }
 
-bool isa::Pep10::isOpcodeUnary(quint8 opcode) {
-  return opcodeLUT[opcode].instr.unary;
-}
+bool isa::Pep10::isOpcodeUnary(quint8 opcode) { return opcodeLUT[opcode].instr.unary; }
 
-bool isa::Pep10::isStore(Mnemonic mnemonic) {
-  return isa::detail::isStore(mnemonic);
-}
+bool isa::Pep10::isStore(Mnemonic mnemonic) { return isa::detail::isStore(mnemonic); }
 
-bool isa::Pep10::isStore(quint8 opcode) {
-  return isStore(opcodeLUT[opcode].instr.mnemon);
-}
+bool isa::Pep10::isStore(quint8 opcode) { return isStore(opcodeLUT[opcode].instr.mnemon); }
 
 quint8 isa::Pep10::operandBytes(Mnemonic mnemonic) {
   if (isMnemonicUnary(mnemonic)) return 0;
@@ -172,8 +148,7 @@ bool isa::Pep10::canElideAddressingMode(Mnemonic mnemonic, AddressingMode addr) 
   return isAType(mnemonic) && addr == AddressingMode::I;
 }
 
-QSet<QString> isa::Pep10::legalDirectives()
-{
+QSet<QString> isa::Pep10::legalDirectives() {
   static const auto valid = QSet<QString>{"ALIGN", "ASCII",  "BLOCK", "BYTE",  "EQUATE",  "EXPORT", "IMPORT",
                                           "INPUT", "OUTPUT", "ORG",   "SCALL", "SECTION", "USCALL", "WORD"};
   return valid;

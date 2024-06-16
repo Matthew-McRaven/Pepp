@@ -16,9 +16,9 @@
  */
 
 #include "flatten.hpp"
-#include "is.hpp"
 #include "asm/pas/ast/generic/attr_children.hpp"
 #include "asm/pas/ast/node.hpp"
+#include "is.hpp"
 
 void pas::ops::generic::flattenMacros(ast::Node &node) {
   if (node.has<ast::generic::Children>()) {
@@ -26,10 +26,8 @@ void pas::ops::generic::flattenMacros(ast::Node &node) {
     for (auto &child : node.take<ast::generic::Children>().value) {
       flattenMacros(*child);
       if (isMacro()(*child)) {
-        for (auto &macroChild : child->get<ast::generic::Children>().value)
-          newChildren.append(macroChild);
-      } else
-        newChildren.append(child);
+        for (auto &macroChild : child->get<ast::generic::Children>().value) newChildren.append(macroChild);
+      } else newChildren.append(child);
     }
 
     node.set(ast::generic::Children{.value = newChildren});
