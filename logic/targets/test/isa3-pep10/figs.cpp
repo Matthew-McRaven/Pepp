@@ -99,14 +99,12 @@ void smoke(QString os, QString userPep, QString userPepo, QString input, QByteAr
   auto elf = pas::obj::pep10::createElf();
   assemble(*elf, os, {.pep = userPep, .pepo = userPepo}, reg);
 
-  // Need to reload to properly compute segment addresses. Store in temp
-  // directory to prevent clobbering local file contents.
+  // Need to reload to properly compute segment addresses.
   {
-    QTemporaryDir dir;
-    REQUIRE(dir.isValid());
-    auto path = dir.filePath("tmp.elf").toStdString();
-    elf->save(path);
-    elf->load(path);
+    std::stringstream s;
+    elf->save(s);
+    s.seekg(0, std::ios::beg);
+    elf->load(s);
   }
   // Skip loading, to save on cycles. However, can't skip dispatch, or
   // main's stack will be wrong.
