@@ -34,7 +34,9 @@ class Theme : public QObject {
   Q_PROPERTY(Preference* placeholderText READ placeholderText NOTIFY preferenceChanged)
 
   //  Custom colors
-  Q_PROPERTY(Preference* rowNumber   READ rowNumber   NOTIFY preferenceChanged)
+  Q_PROPERTY(Preference *error READ error NOTIFY preferenceChanged)
+  Q_PROPERTY(Preference *warning READ warning NOTIFY preferenceChanged)
+  Q_PROPERTY(Preference *rowNumber READ rowNumber NOTIFY preferenceChanged)
   Q_PROPERTY(Preference* breakpoint  READ breakpoint  NOTIFY preferenceChanged)
   Q_PROPERTY(Preference* seqCircuit  READ seqCircuit  NOTIFY preferenceChanged)
   Q_PROPERTY(Preference* circuitGreen READ circuitGreen NOTIFY preferenceChanged)
@@ -131,8 +133,9 @@ public:
   Preference* placeholderText() const {
     return preference(Themes::Roles::PlaceHolderTextRole); }
 
-  Preference* rowNumber() const {
-    return preference(Themes::Roles::RowNumberRole); }
+  Preference *error() const { return preference(Themes::Roles::ErrorRole); }
+  Preference *warning() const { return preference(Themes::Roles::WarningRole); }
+  Preference *rowNumber() const { return preference(Themes::Roles::RowNumberRole); }
   Preference* breakpoint() const {
     return preference(Themes::Roles::BreakpointRole); }
   Preference* seqCircuit() const {

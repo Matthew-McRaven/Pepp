@@ -26,6 +26,8 @@ public:
     //  Editor enums
     RowNumberRole,
     BreakpointRole,
+    ErrorRole,
+    WarningRole,
 
     //  Circuit enums
     SeqCircuitRole,
