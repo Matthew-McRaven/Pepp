@@ -14,8 +14,7 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-#ifndef PREFERENCEMODEL_HPP
-#define PREFERENCEMODEL_HPP
+#pragma once
 
 #include <QAbstractListModel>
 #include <QColor>
@@ -161,4 +160,3 @@ protected: //  Role Names must be under protected
 private:
   void load();
 };
-#endif // PREFERENCEMODEL_HPP

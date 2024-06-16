@@ -4,6 +4,8 @@
 #include <QDebug>
 #include <QColor>
 
+#include "themes.hpp"
+
 PreferenceModel::PreferenceModel(Theme* theme,QObject *parent)
     : QAbstractListModel(parent)
     , theme_(theme)
@@ -19,6 +21,11 @@ PreferenceModel::PreferenceModel(Theme* theme,QObject *parent)
 
     //  Start with default preference
     current_ = theme_->preference(0);
+
+    //  Set dirty flag anytime a preference changes
+    QObject::connect(this, &PreferenceModel::preferenceChanged,
+                     theme, &Theme::setIsDirty);
+
 }
 
 QFont PreferenceModel::font() const
@@ -70,24 +77,24 @@ void PreferenceModel::load()
 
     auto& general = categories_.emplace_back("General");
     categoryList_.append(general.name());
-    for( int i = Theme::Roles::SurfaceRole;
-         i <= Theme::Roles::WarningRole; ++i)
+    for( int i = Theme::Ranges::GeneralCategoryStart;
+         i < Theme::Ranges::GeneralCategoryEnd; ++i)
     {
       general.addChild(theme_->preference(i)->name());
     }
 
     auto& editor = categories_.emplace_back("Editor");
     categoryList_.append(editor.name());
-    for( int i = Theme::Roles::RowNumberRole;
-         i <= Theme::Roles::BreakpointRole; ++i)
+    for( int i = Theme::Ranges::GeneralCategoryEnd;
+         i < Theme::Ranges::EditorCategoryEnd; ++i)
     {
       editor.addChild(theme_->preference(i)->name());
     }
 
     auto& circuit = categories_.emplace_back("Circuit");
     categoryList_.append(circuit.name());
-    for( int i = Theme::Roles::SeqCircuitRole;
-         i <= Theme::Roles::CircuitGreenRole; ++i)
+    for( int i = Theme::Ranges::EditorCategoryEnd;
+         i < Theme::Ranges::CircuitCategoryEnd; ++i)
     {
       circuit.addChild(theme_->preference(i)->name());
     }
@@ -125,9 +132,9 @@ QVariant PreferenceModel::data(const QModelIndex &index, int role) const
 
         int offset{};
         if(category_ == 1)
-          offset = Theme::Roles::RowNumberRole;
+          offset = Themes::Roles::RowNumberRole;
         else if(category_ == 2)
-          offset = Theme::Roles::SeqCircuitRole;
+          offset = Themes::Roles::SeqCircuitRole;
 
         if(auto* pref = theme_->preference(row + offset); pref != nullptr)
           return QVariant::fromValue(pref);
@@ -191,8 +198,8 @@ void PreferenceModel::updatePreference(const quint32 key,
                       const PrefProperty field,
                       const QVariant& value)
 {
-  //  Negative key is bad
-  if( key < 0)
+  //  Invalid key is bad
+  if( key == Themes::Roles::Invalid)
     return;
 
   //  Roles are maintained in a vector. Lookup

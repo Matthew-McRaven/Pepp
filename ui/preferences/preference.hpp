@@ -31,7 +31,8 @@
 //  same data structure.
 class PREFS_EXPORT Preference : public QObject {
   Q_OBJECT
-  Q_PROPERTY(int id         READ id   CONSTANT)
+  //Q_PROPERTY(int id       READ id   CONSTANT)
+  Q_PROPERTY(Themes::Roles id     READ id   CONSTANT)
   Q_PROPERTY(QString name   READ name CONSTANT)
   Q_PROPERTY(QColor foreground READ foreground WRITE setForeground NOTIFY preferenceChanged)
   Q_PROPERTY(QColor background READ background WRITE setBackground NOTIFY preferenceChanged)
@@ -49,8 +50,8 @@ public:
   explicit Preference(QObject *parent = nullptr);
   virtual ~Preference() = default;
 
-  Preference(QObject* parent, const quint32 id, const QString name);
-  Preference(QObject* parent, const quint32 id, const QString name,
+  Preference(QObject* parent, const Themes::Roles id, const QString name);
+  Preference(QObject* parent, const Themes::Roles id, const QString name,
              const QRgb foreground, const QRgb background,
              const quint32 parentId = 0, const bool bold = false,
              const bool italics = false, const bool underline = false,
@@ -65,7 +66,8 @@ public:
   size_t size() const;
 
   //  Getter & Setter
-  int id() const;
+  //int id() const;
+  Themes::Roles id() const;
   QString name() const;
 
   int parentId() const;
@@ -88,13 +90,13 @@ public:
   void setStrikeOut(const bool strikeOut);
 
   QJsonObject toJson() const;
-  static void fromJson(const QJsonObject &json, Preference& pref);
+  static bool fromJson(const QJsonObject &json, Preference& pref);
 
 signals:
   void preferenceChanged();
 
 private:
-  void setId(const quint32 id);
+  void setId(const Themes::Roles id);
   void setName(const QString name);
 };
 

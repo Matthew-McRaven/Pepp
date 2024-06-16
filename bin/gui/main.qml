@@ -52,7 +52,8 @@ ApplicationWindow {
 
         //  Colors when control is disabled. Overrides normal palette
         disabled {
-            highlight: Theme.container.background
+          highlight: Theme.window.background
+          buttonText: Theme.shadow.foreground
         }
     }
 

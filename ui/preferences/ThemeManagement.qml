@@ -13,7 +13,7 @@ RowLayout {
   Text {
     id: text;
     text: "Current Theme"
-    color: Theme.surface.foreground
+    color: palette.windowText
   }
   ComboBox {
     id: themeId
@@ -31,62 +31,64 @@ RowLayout {
     }
   }
   Button {
-    text: "Copy";
-    palette {
-      button: Theme.container.background
-      buttonText: Theme.surface.foreground
-    }
-
+    //  System themes can never have state change
+    //  If non-system theme has changes, they must
+    //  be saved before a copy can be made
+    text: Theme.isDirty ? "Save" : "Copy"
     Layout.preferredWidth: buttonWidth
     onClicked: {
-      copyDialog.open()
+      if(Theme.isDirty) {
+        //  If theme has change, changes must be saved first
+        console.log("Save Theme")
+        Theme.saveTheme()
+      } else {
+        console.log("Copy Theme")
+        copyDialog.open()
+      }
     }
   }
   Button {
     id: del
     text: "Delete";
     Layout.preferredWidth: buttonWidth
+
+    //  Do not delete system themes
     enabled: !Theme.systemTheme
     onClicked: deleteDialog.open()
     palette {
-      button: Theme.container.background
-      buttonText: del.enabled
-                  ? Theme.surface.foreground
-                  : Theme.container.foreground
+      buttonText: !Theme.systemTheme
+                  ? root.palette.buttonText
+                  : root.palette.placeholderText
     }
   }
   Button {
     text: "Import";
     Layout.preferredWidth: buttonWidth
     onClicked: importDialog.open()
-    palette {
-      button: Theme.container.background
-      buttonText: Theme.surface.foreground
-    }
   }
   Button {
     text: "Export"
     Layout.preferredWidth: buttonWidth
+
+    //  Do not export system themes
+    enabled: !Theme.systemTheme
     onClicked: exportDialog.open()
     palette {
-      button: Theme.container.background
-      buttonText: Theme.surface.foreground
+      buttonText: !Theme.systemTheme
+                  ? root.palette.buttonText
+                  : root.palette.placeholderText
     }
   }
 
   FileDialog {
     id: exportDialog
 
-    currentFolder: StandardPaths.standardLocations(StandardPaths.DownloadLocation)[0]
+    currentFolder: StandardPaths.standardLocations(StandardPaths.AppConfigLocation)[0]
     fileMode: FileDialog.SaveFile
     title: "Export Theme"
     nameFilters: ["Pep Theme files (*.theme)"]
     defaultSuffix: "theme"
     selectedFile: Theme.name
-
-    //  Set dialog colors
-    //Control.palette.windowText: Theme.container.foreground
-    //Control.palette.base: Theme.container.background
 
     onAccepted: {
       Theme.exportTheme(decodeURIComponent(selectedFile))
@@ -96,7 +98,7 @@ RowLayout {
   FileDialog {
     id: importDialog
 
-    currentFolder: StandardPaths.standardLocations(StandardPaths.DownloadLocation)[0]
+    currentFolder: StandardPaths.standardLocations(StandardPaths.AppConfigLocation)[0]
     fileMode: FileDialog.OpenFile
     title: "Import Theme"
     nameFilters: ["Pep Theme files (*.theme)"]
@@ -105,8 +107,6 @@ RowLayout {
 
     //  Set dialog colors
     //palette.text: Theme.container.foreground
-    //palette.button: Theme.container.background
-    //palette.window: Theme.container.background
 
     onAccepted: {
       Theme.importTheme(decodeURIComponent(selectedFile))
@@ -145,11 +145,6 @@ RowLayout {
     modal: true
     standardButtons: Dialog.Ok | Dialog.Cancel
     spacing: 5
-
-    //  Set dialog colors
-    palette.text: Theme.container.foreground
-    palette.button: Theme.container.background
-    palette.window: Theme.container.background
 
     ColumnLayout {
       anchors.fill: parent

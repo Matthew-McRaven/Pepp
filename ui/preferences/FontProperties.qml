@@ -14,7 +14,7 @@ Item {
   property alias underline: underlineCB.checked
   property alias strikeout: strikeoutCB.checked
 
-  implicitWidth: 300
+  implicitWidth: parent.width
 
   //  Indicates user changed font properties
   signal updatedFont(fontProperty: int, value: bool)
