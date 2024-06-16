@@ -16,9 +16,9 @@
  */
 
 #pragma once
-#include "asm/pas/ast/pepp/attr_addr.hpp"
-#include "asm/pas/ast/pepp/attr_instruction.hpp"
 #include <QtCore>
 #include <isa/pep10.hpp>
+#include "asm/pas/ast/pepp/attr_addr.hpp"
+#include "asm/pas/ast/pepp/attr_instruction.hpp"
 Q_DECLARE_METATYPE(pas::ast::pepp::Instruction<isa::Pep10>);
 Q_DECLARE_METATYPE(pas::ast::pepp::AddressingMode<isa::Pep10>);

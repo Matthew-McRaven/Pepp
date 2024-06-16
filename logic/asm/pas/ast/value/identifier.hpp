@@ -39,8 +39,7 @@ public:
   bool isIdentifier() const override { return true; }
   bool isSigned() const override { return false; }
   QSharedPointer<Base> clone() const override;
-  void value(bits::span<quint8> dest,
-             bits::Order destEndian = bits::hostOrder()) const override;
+  void value(bits::span<quint8> dest, bits::Order destEndian = bits::hostOrder()) const override;
   quint64 size() const override;
   bool resize(quint64 size) override;
   quint64 requiredBytes() const override;

@@ -12,15 +12,12 @@ int FlagModel::rowCount(const QModelIndex &) const { return _flags.size(); }
 
 QVariant FlagModel::data(const QModelIndex &index, int role) const {
   const auto row = index.row();
-  if (!index.isValid() || row < 0 || row >= _flags.size())
-    return {};
+  if (!index.isValid() || row < 0 || row >= _flags.size()) return {};
   auto flag = _flags[row];
 
   switch (role) {
-  case Qt::DisplayRole:
-    return flag->name();
-  case static_cast<int>(Roles::Value):
-    return flag->value();
+  case Qt::DisplayRole: return flag->name();
+  case static_cast<int>(Roles::Value): return flag->value();
   }
   return {};
 }

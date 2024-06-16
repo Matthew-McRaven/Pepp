@@ -22,8 +22,7 @@ Style::Style(QObject *parent) : QObject(parent) {}
 QString Style::getFont() const { return m_font; }
 
 void Style::setFont(const QString &newFont) {
-  if (m_font == newFont)
-    return;
+  if (m_font == newFont) return;
   m_font = newFont;
   emit fontChanged();
 }
@@ -31,8 +30,7 @@ void Style::setFont(const QString &newFont) {
 QColor Style::getColor() const { return m_color; }
 
 void Style::setColor(const QColor &newColor) {
-  if (m_color == newColor)
-    return;
+  if (m_color == newColor) return;
   m_color = newColor;
   emit colorChanged();
 }
@@ -40,8 +38,7 @@ void Style::setColor(const QColor &newColor) {
 QColor Style::getBackground() const { return m_background; }
 
 void Style::setBackground(const QColor &newBackground) {
-  if (m_background == newBackground)
-    return;
+  if (m_background == newBackground) return;
   m_background = newBackground;
   emit backgroundChanged();
 }
@@ -49,8 +46,7 @@ void Style::setBackground(const QColor &newBackground) {
 bool Style::getItalics() const { return m_italics; }
 
 void Style::setItalics(bool newItalics) {
-  if (m_italics == newItalics)
-    return;
+  if (m_italics == newItalics) return;
   m_italics = newItalics;
   emit italicsChanged();
 }
@@ -58,8 +54,7 @@ void Style::setItalics(bool newItalics) {
 QFont::Weight Style::getWeight() const { return m_weight; }
 
 void Style::setWeight(const QFont::Weight &newWeight) {
-  if (m_weight == newWeight)
-    return;
+  if (m_weight == newWeight) return;
   m_weight = newWeight;
   emit weightChanged();
 }

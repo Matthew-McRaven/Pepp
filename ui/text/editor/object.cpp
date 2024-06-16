@@ -76,8 +76,7 @@ QString ObjectUtilities::format(QString input, bool includeZZ) const {
 }
 
 void ObjectUtilities::setBytesPerRow(int bytes) {
-  if (bytes == _bytesPerRow)
-    return;
+  if (bytes == _bytesPerRow) return;
   _bytesPerRow = bytes;
   emit bytesPerRowChanged();
 }

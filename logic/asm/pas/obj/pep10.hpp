@@ -16,9 +16,9 @@
  */
 
 #pragma once
-#include "asm/pas/ast/node.hpp"
 #include <QtCore>
 #include <elfio/elfio.hpp>
+#include "asm/pas/ast/node.hpp"
 #include "asm/pas/pas_globals.hpp"
 
 namespace pas::obj::pep10 {

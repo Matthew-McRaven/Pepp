@@ -36,8 +36,7 @@ void single_test(QSharedPointer<pas::ast::Node> root) {
   REQUIRE(root->has<pas::ast::generic::Children>());
   auto children = root->get<pas::ast::generic::Children>().value;
   CHECK(children.size() == 3);
-  for (auto &child : children)
-    REQUIRE_FALSE(pas::ops::generic::isMacro()(*child));
+  for (auto &child : children) REQUIRE_FALSE(pas::ops::generic::isMacro()(*child));
 }
 
 void nesting_test(QSharedPointer<pas::ast::Node> root) {
@@ -45,8 +44,7 @@ void nesting_test(QSharedPointer<pas::ast::Node> root) {
   REQUIRE(root->has<pas::ast::generic::Children>());
   auto children = root->get<pas::ast::generic::Children>().value;
   CHECK(children.size() == 5);
-  for (auto &child : children)
-    REQUIRE_FALSE(pas::ops::generic::isMacro()(*child));
+  for (auto &child : children) REQUIRE_FALSE(pas::ops::generic::isMacro()(*child));
 }
 } // namespace
 

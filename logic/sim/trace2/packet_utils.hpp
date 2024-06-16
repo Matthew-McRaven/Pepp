@@ -48,13 +48,12 @@ concept HasDevice = requires(T t) {
 };
 class IsSameDevice {
 public:
+  IsSameDevice(sim::api2::device::ID device) : _device(device){};
+  template <HasDevice Header> bool operator()(const Header &header) const { return header.device == _device; };
+  bool operator()(const auto &header) const { return false; }
 
-    IsSameDevice(sim::api2::device::ID device): _device(device) {};
-    template <HasDevice Header>
-    bool operator()(const Header& header) const {return header.device == _device;};
-    bool operator()(const auto& header) const {return false;}
 private:
-    sim::api2::device::ID _device;
+  sim::api2::device::ID _device;
 };
 
 // Number of actual bytes in a single payload.
@@ -115,8 +114,7 @@ public:
   template <typename Header> std::size_t operator()(const Header &header) const {
     std::size_t acc = 0;
     sim::api2::packet::Payload vb;
-    for (auto it = _iter.cbegin(); it != _iter.cend(); ++it)
-      acc += payload_length(*it);
+    for (auto it = _iter.cbegin(); it != _iter.cend(); ++it) acc += payload_length(*it);
     return acc;
   }
 
@@ -141,56 +139,49 @@ template <typename T> std::optional<T> get_address(const sim::api2::packet::Head
 }
 
 namespace detail {
-void emit_payloads(sim::api2::trace::Buffer* tb,
-                   bits::span<const quint8> buf1, bits::span<const quint8> buf2);
-void emit_payloads(sim::api2::trace::Buffer* tb,
-                   bits::span<const quint8> buf1);
+void emit_payloads(sim::api2::trace::Buffer *tb, bits::span<const quint8> buf1, bits::span<const quint8> buf2);
+void emit_payloads(sim::api2::trace::Buffer *tb, bits::span<const quint8> buf1);
 } // namespace detail
 
-void emitFrameStart(sim::api2::trace::Buffer* tb);
+void emitFrameStart(sim::api2::trace::Buffer *tb);
 
 template <typename Address>
-void emitWrite(sim::api2::trace::Buffer* tb, sim::api2::device::ID id,
-           Address address, bits::span<const quint8> src, bits::span<quint8> dest) {
-    using vb = decltype(api2::packet::header::Write::address);
-    auto address_bytes = vb::from_address<Address>(address);
-    auto header = api2::packet::header::Write{.device = id, .address = address_bytes};
-    // Don't write payloads if the buffer rejected the packet header.
-    if (tb->writeFragmentWithPath(header)) detail::emit_payloads(tb, src, dest);
+void emitWrite(sim::api2::trace::Buffer *tb, sim::api2::device::ID id, Address address, bits::span<const quint8> src,
+               bits::span<quint8> dest) {
+  using vb = decltype(api2::packet::header::Write::address);
+  auto address_bytes = vb::from_address<Address>(address);
+  auto header = api2::packet::header::Write{.device = id, .address = address_bytes};
+  // Don't write payloads if the buffer rejected the packet header.
+  if (tb->writeFragmentWithPath(header)) detail::emit_payloads(tb, src, dest);
 }
 
 // Generate a Write packet. Bytes will not be XOR encoded.
 // A write to a MM port appends to the state of that port.
 // We do not need to know previous value, since the pub/sub system records it.
 template <typename Address>
-void emitMMWrite(sim::api2::trace::Buffer* tb, sim::api2::device::ID id,
-               Address address, bits::span<const quint8> src) {
-    using vb = decltype(api2::packet::header::Write::address);
-    auto header = api2::packet::header::Write{.device = id,
-                                              .address = vb::from_address(address)};
-    // Don't write payloads if the buffer rejected the packet header.
-    if (tb->writeFragmentWithPath(header)) detail::emit_payloads(tb, src);
+void emitMMWrite(sim::api2::trace::Buffer *tb, sim::api2::device::ID id, Address address,
+                 bits::span<const quint8> src) {
+  using vb = decltype(api2::packet::header::Write::address);
+  auto header = api2::packet::header::Write{.device = id, .address = vb::from_address(address)};
+  // Don't write payloads if the buffer rejected the packet header.
+  if (tb->writeFragmentWithPath(header)) detail::emit_payloads(tb, src);
 }
 
 template <typename Address>
-void emitPureRead(sim::api2::trace::Buffer* tb, sim::api2::device::ID id,
-           Address address, Address len) {
-    using vb = decltype(api2::packet::header::PureRead::address);
-    auto header = api2::packet::header::PureRead{.device = id, .payload_len = len,
-                                                 .address = vb::from_address(address)};
-    tb->writeFragmentWithPath(header);
+void emitPureRead(sim::api2::trace::Buffer *tb, sim::api2::device::ID id, Address address, Address len) {
+  using vb = decltype(api2::packet::header::PureRead::address);
+  auto header = api2::packet::header::PureRead{.device = id, .payload_len = len, .address = vb::from_address(address)};
+  tb->writeFragmentWithPath(header);
 }
 
 // Generate a ImpureRead packet. Bytes will not be XOR encoded.
 // We do not need to know previous value, since the pub/sub system records it.
 template <typename Address>
-void emitMMRead(sim::api2::trace::Buffer* tb, sim::api2::device::ID id,
-                 Address address, bits::span<const quint8> src) {
-    using vb = decltype(api2::packet::header::Write::address);
-    auto header = api2::packet::header::ImpureRead{.device = id,
-                                              .address = vb::from_address(address)};
-    // Don't write payloads if the buffer rejected the packet header.
-    if (tb->writeFragmentWithPath(header)) detail::emit_payloads(tb, src);
+void emitMMRead(sim::api2::trace::Buffer *tb, sim::api2::device::ID id, Address address, bits::span<const quint8> src) {
+  using vb = decltype(api2::packet::header::Write::address);
+  auto header = api2::packet::header::ImpureRead{.device = id, .address = vb::from_address(address)};
+  // Don't write payloads if the buffer rejected the packet header.
+  if (tb->writeFragmentWithPath(header)) detail::emit_payloads(tb, src);
 }
 
 } // namespace sim::trace2

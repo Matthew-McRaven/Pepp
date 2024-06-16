@@ -101,8 +101,7 @@ bool Output<Address>::analyze(api2::trace::PacketIterator iter, api2::trace::Dir
   else if (std::holds_alternative<api2::packet::header::Write>(header)) {
     // Address is always implicitly 0 since this is a 1-byte port.
     auto hdr = std::get<api2::packet::header::Write>(header);
-    if (direction == api2::trace::Direction::Reverse)
-      _endpoint->unwrite();
+    if (direction == api2::trace::Direction::Reverse) _endpoint->unwrite();
     // Forward direction
     // We don't emit multiple payloads, so receiving multiple (or 0) doesn't make sense.
     else if (std::distance(iter.cbegin(), iter.cend()) != 1) return false;

@@ -30,8 +30,7 @@ struct IO {
   QString name;
   enum class Direction { kInput, kOutput } direction;
 };
-void addMMIODeclarations(ELFIO::elfio &elf, ELFIO::section *symTab,
-                         QList<IO> mmios);
+void addMMIODeclarations(ELFIO::elfio &elf, ELFIO::section *symTab, QList<IO> mmios);
 struct AddressedIO : public IO {
   quint16 minOffset, maxOffset;
 };

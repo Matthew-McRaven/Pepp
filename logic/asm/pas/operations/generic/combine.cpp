@@ -16,7 +16,6 @@
  */
 
 #include "./combine.hpp"
-#include "bits/order.hpp"
 #include "asm/pas/ast/generic/attr_address.hpp"
 #include "asm/pas/ast/generic/attr_argument.hpp"
 #include "asm/pas/ast/generic/attr_symbol.hpp"
@@ -24,48 +23,41 @@
 #include "asm/pas/operations/generic/is.hpp"
 #include "asm/symbol/entry.hpp"
 #include "asm/symbol/value.hpp"
+#include "bits/order.hpp"
 
 bool pas::ops::generic::detail::isOrgSection(const ast::Node &section) {
   bool accumulator = false;
-  for (const auto &child : ast::children(section))
-    accumulator |= pas::ops::generic::isOrg()(*child);
+  for (const auto &child : ast::children(section)) accumulator |= pas::ops::generic::isOrg()(*child);
   return accumulator;
 }
 
 quint64 pas::ops::generic::detail::minAddress(const ast::Node &section) {
   quint64 ret = -1;
   for (auto &child : ast::children(section))
-    if (child->has<ast::generic::Address>())
-      ret = qMin(ret, child->get<ast::generic::Address>().value.start);
+    if (child->has<ast::generic::Address>()) ret = qMin(ret, child->get<ast::generic::Address>().value.start);
   return ret;
 }
 
-pas::ops::generic::detail::Traits
-pas::ops::generic::detail::getTraits(const ast::Node &section) {
+pas::ops::generic::detail::Traits pas::ops::generic::detail::getTraits(const ast::Node &section) {
   quint64 start = -1, size = 0, align = 1;
   for (const auto &child : ast::children(section)) {
-    if (!child->has<ast::generic::Address>())
-      continue;
+    if (!child->has<ast::generic::Address>()) continue;
     auto address = child->get<ast::generic::Address>().value;
     start = qMin(address.start, start);
     size += address.size;
     if (pas::ops::generic::isAlign()(*child)) {
       auto arg = child->get<pas::ast::generic::Argument>().value;
       quint64 dest = 0;
-      auto destSpan =
-          bits::span<quint8>{reinterpret_cast<quint8 *>(&dest), sizeof(dest)};
+      auto destSpan = bits::span<quint8>{reinterpret_cast<quint8 *>(&dest), sizeof(dest)};
       arg->value(destSpan, bits::hostOrder());
       align = qMax(dest, align);
     }
   }
   // If start is 0xFF..F, then ther is no addressable bytes in the section.
-  if (start == -1)
-    return {.base = 0, .size = 0, .alignment = 1};
-  else
-    return {.base = start, .size = size, .alignment = align};
+  if (start == -1) return {.base = 0, .size = 0, .alignment = 1};
+  else return {.base = start, .size = size, .alignment = align};
 }
-void pas::ops::generic::detail::addOffset(ast::Node &section,
-                                          qsizetype offset) {
+void pas::ops::generic::detail::addOffset(ast::Node &section, qsizetype offset) {
   for (auto &child : ast::children(section)) {
     if (child->has<ast::generic::Address>()) {
       auto address = child->get<ast::generic::Address>().value;
@@ -75,9 +67,7 @@ void pas::ops::generic::detail::addOffset(ast::Node &section,
     // Relocate symbols so that symtab will have latest address
     if (child->has<ast::generic::SymbolDeclaration>()) {
       auto sym = child->get<ast::generic::SymbolDeclaration>().value;
-      if (auto asLocation =
-              dynamic_cast<symbol::value::Location *>(&*sym->value);
-          asLocation != nullptr)
+      if (auto asLocation = dynamic_cast<symbol::value::Location *>(&*sym->value); asLocation != nullptr)
         asLocation->addToOffset(offset);
     }
   }
@@ -89,8 +79,7 @@ bool pas::ops::generic::concatSectionAddresses(ast::Node &root) {
   quint64 nextBase = 0;
   auto children = ast::children(root);
   for (int it = 0; it < children.size(); it++)
-    if (detail::isOrgSection(*children[it]))
-      orgSections[it] = children[it];
+    if (detail::isOrgSection(*children[it])) orgSections[it] = children[it];
   qsizetype previousOrg = -1;
   quint64 previousAddress = 0;
   for (auto [index, sec] : orgSections.asKeyValueRange()) {
@@ -99,8 +88,7 @@ bool pas::ops::generic::concatSectionAddresses(ast::Node &root) {
     for (int it = index - 1; it > previousOrg; --it) {
       auto secTraits = detail::getTraits(*children[it]);
       quint64 unalignedStart = previousAddress - secTraits.size;
-      quint64 alignedStart =
-          unalignedStart - (unalignedStart % secTraits.alignment);
+      quint64 alignedStart = unalignedStart - (unalignedStart % secTraits.alignment);
       quint64 paddingBytes = unalignedStart - alignedStart;
       // TODO: Insert padding block at end of current section
       if (paddingBytes != 0) {
@@ -116,9 +104,7 @@ bool pas::ops::generic::concatSectionAddresses(ast::Node &root) {
   for (int it = previousOrg + 1; it < children.size(); it++) {
     // Forwards combine
     auto secTraits = detail::getTraits(*children[it]);
-    quint64 paddingBytes =
-        (secTraits.alignment - (previousAddress % secTraits.alignment)) %
-        secTraits.alignment;
+    quint64 paddingBytes = (secTraits.alignment - (previousAddress % secTraits.alignment)) % secTraits.alignment;
     quint64 alignedStart = previousAddress + paddingBytes;
     detail::addOffset(*children[it], alignedStart);
     // TODO: Insert padding block at start of current section

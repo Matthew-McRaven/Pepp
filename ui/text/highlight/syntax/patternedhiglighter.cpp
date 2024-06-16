@@ -26,18 +26,15 @@ void PatternedHighlighter::setPatterns(QList<Pattern> rules) { _rules = rules; }
 
 void PatternedHighlighter::highlightBlock(const QString &text) {
   auto prevState = previousBlockState();
-  if (prevState == -1)
-    prevState = 0;
+  if (prevState == -1) prevState = 0;
   int index = 0;
   for (const auto &rule : _rules) {
-    if (rule.from != prevState)
-      continue;
+    if (rule.from != prevState) continue;
     else if (auto match = rule.pattern.match(text, rule.reset ? 0 : index); match.hasMatch()) {
       setFormat(match.capturedStart(), match.capturedLength(), rule.format);
       setCurrentBlockState(prevState = rule.to);
       index = match.capturedEnd();
-      if (index >= text.length())
-        break;
+      if (index >= text.length()) break;
     }
   }
 }

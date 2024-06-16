@@ -109,8 +109,7 @@ void targets::pep10::isa::CPU::setBuffer(sim::api2::trace::Buffer *tb) {
 }
 
 void targets::pep10::isa::CPU::trace(bool enabled) {
-  if (_tb)
-    _tb->trace(_device.id, enabled);
+  if (_tb) _tb->trace(_device.id, enabled);
   _regs.trace(enabled);
   _csrs.trace(enabled);
 }
@@ -166,29 +165,21 @@ sim::api2::tick::Result targets::pep10::isa::CPU::unaryDispatch(quint8 is) {
     _memory->read(sp, {reinterpret_cast<quint8 *>(&tmp), 2}, rw_d);
     // Must byteswap tmp if on big endian host, as _memory stores in little
     // endian
-    if (swap)
-      tmp = bits::byteswap(tmp);
+    if (swap) tmp = bits::byteswap(tmp);
     writeReg(Register::PC, tmp);
     writeReg(Register::SP, sp + 2);
     break;
 
-  case mn::MOVFLGA:
-    writeReg(Register::A, readPackedCSR());
-    break;
-  case mn::MOVAFLG:
-    writePackedCSR(a);
-    break;
+  case mn::MOVFLGA: writeReg(Register::A, readPackedCSR()); break;
+  case mn::MOVAFLG: writePackedCSR(a); break;
 
-  case mn::MOVSPA:
-    writeReg(Register::A, sp);
-    break;
+  case mn::MOVSPA: writeReg(Register::A, sp); break;
   case mn::SWAPSPA:
     writeReg(Register::A, sp);
     writeReg(Register::SP, a);
     break;
 
-  case mn::NOP:
-    break;
+  case mn::NOP: break;
 
   case mn::NOTA:
     tmp = ~a;
@@ -350,8 +341,7 @@ sim::api2::tick::Result targets::pep10::isa::CPU::unaryDispatch(quint8 is) {
 
     tmp = sp + 10;
     // Using "host"'s variables, so byte swap if necessary.
-    if (swap)
-      tmp = bits::byteswap(tmp);
+    if (swap) tmp = bits::byteswap(tmp);
     _memory->write(static_cast<quint16>(::isa::Pep10::MemoryVectors::SystemStackPtr),
                    {reinterpret_cast<quint8 *>(&tmp), 2}, rw_d);
     break;
@@ -373,8 +363,7 @@ sim::api2::tick::Result targets::pep10::isa::CPU::unaryDispatch(quint8 is) {
     // Read system stack address.
     _memory->read(static_cast<quint16>(::isa::Pep10::MemoryVectors::SystemStackPtr),
                   {reinterpret_cast<quint8 *>(&tmp), 2}, rw_d);
-    if (swap)
-      tmp = bits::byteswap(tmp);
+    if (swap) tmp = bits::byteswap(tmp);
 
     // Allocate ctx frame with -=.
     _memory->write(tmp -= 10, {ctx, 10}, rw_d);
@@ -384,13 +373,10 @@ sim::api2::tick::Result targets::pep10::isa::CPU::unaryDispatch(quint8 is) {
     // Read trap handler pc.
     _memory->read(static_cast<quint16>(::isa::Pep10::MemoryVectors::TrapHandler), {reinterpret_cast<quint8 *>(&tmp), 2},
                   rw_d);
-    if (swap)
-      tmp = bits::byteswap(tmp);
+    if (swap) tmp = bits::byteswap(tmp);
     writeReg(Register::PC, tmp);
     break;
-  default:
-    _status = Status::IllegalOpcode;
-    throw std::logic_error("Illegal opcode");
+  default: _status = Status::IllegalOpcode; throw std::logic_error("Illegal opcode");
   }
   return {.pause = 0, .delay = 1};
 }
@@ -411,37 +397,18 @@ sim::api2::tick::Result targets::pep10::isa::CPU::nonunaryDispatch(quint8 is, qu
   auto instrDef = ::isa::Pep10::opcodeLUT[is];
   if (::isa::Pep10::isValidAddressingMode(instrDef.instr.mnemon, instrDef.mode))
     ::isa::Pep10::isStore(is) ? decodeStoreOperand(is, os, operand) : decodeLoadOperand(is, os, operand);
-  else
-    throw std::logic_error("Invalid addressing mode");
+  else throw std::logic_error("Invalid addressing mode");
 
   switch (mnemonic.instr.mnemon) {
-  case mn::BR:
-    pc = operand;
-    break;
-  case mn::BRLE:
-    pc = (n || z) ? operand : pc;
-    break;
-  case mn::BRLT:
-    pc = n ? operand : pc;
-    break;
-  case mn::BREQ:
-    pc = z ? operand : pc;
-    break;
-  case mn::BRNE:
-    pc = !z ? operand : pc;
-    break;
-  case mn::BRGE:
-    pc = !n ? operand : pc;
-    break;
-  case mn::BRGT:
-    pc = (!n && !z) ? operand : pc;
-    break;
-  case mn::BRV:
-    pc = v ? operand : pc;
-    break;
-  case mn::BRC:
-    pc = c ? operand : pc;
-    break;
+  case mn::BR: pc = operand; break;
+  case mn::BRLE: pc = (n || z) ? operand : pc; break;
+  case mn::BRLT: pc = n ? operand : pc; break;
+  case mn::BREQ: pc = z ? operand : pc; break;
+  case mn::BRNE: pc = !z ? operand : pc; break;
+  case mn::BRGE: pc = !n ? operand : pc; break;
+  case mn::BRGT: pc = (!n && !z) ? operand : pc; break;
+  case mn::BRV: pc = v ? operand : pc; break;
+  case mn::BRC: pc = c ? operand : pc; break;
   case mn::CALL:
     // Write PC to stack
     tmp = swap ? bits::byteswap(pc) : pc;
@@ -682,15 +649,9 @@ sim::api2::tick::Result targets::pep10::isa::CPU::nonunaryDispatch(quint8 is, qu
     writePackedCSR(packCSR(n, z, v, c));
     break;
 
-  case mn::ADDSP:
-    writeReg(Register::SP, sp + operand);
-    break;
-  case mn::SUBSP:
-    writeReg(Register::SP, sp - operand);
-    break;
-  default:
-    _status = Status::IllegalOpcode;
-    throw std::runtime_error("Illegal Opcode");
+  case mn::ADDSP: writeReg(Register::SP, sp + operand); break;
+  case mn::SUBSP: writeReg(Register::SP, sp - operand); break;
+  default: _status = Status::IllegalOpcode; throw std::runtime_error("Illegal Opcode");
   }
 
   // Increment PC and writeback
@@ -708,36 +669,24 @@ void targets::pep10::isa::CPU::decodeStoreOperand(quint8 is, quint16 os, quint16
 
   switch (instruction.mode) {
   // case am::I:
-  case am::D:
-    decoded = os;
-    break;
+  case am::D: decoded = os; break;
   case am::N:
     _memory->read(os, {reinterpret_cast<quint8 *>(&decoded), 2}, acc_i);
-    if (swap)
-      decoded = bits::byteswap(decoded);
+    if (swap) decoded = bits::byteswap(decoded);
     break;
-  case am::S:
-    decoded = os + readReg(Register::SP);
-    break;
-  case am::X:
-    decoded = os + readReg(Register::X);
-    break;
-  case am::SX:
-    decoded = os + readReg(Register::SP) + readReg(Register::X);
-    break;
+  case am::S: decoded = os + readReg(Register::SP); break;
+  case am::X: decoded = os + readReg(Register::X); break;
+  case am::SX: decoded = os + readReg(Register::SP) + readReg(Register::X); break;
   case am::SF:
     _memory->read(os + readReg(Register::SP), {reinterpret_cast<quint8 *>(&decoded), 2}, acc_i);
-    if (swap)
-      decoded = bits::byteswap(decoded);
+    if (swap) decoded = bits::byteswap(decoded);
     break;
   case am::SFX:
     _memory->read(os + readReg(Register::SP), {reinterpret_cast<quint8 *>(&decoded), 2}, acc_i);
-    if (swap)
-      decoded = bits::byteswap(decoded);
+    if (swap) decoded = bits::byteswap(decoded);
     decoded += readReg(Register::X);
     break;
-  default:
-    throw std::logic_error("Invalid addressing mode");
+  default: throw std::logic_error("Invalid addressing mode");
   }
 }
 
@@ -753,71 +702,58 @@ void targets::pep10::isa::CPU::decodeLoadOperand(quint8 is, quint16 os, quint16 
   bool isByte = mnemon == mn::LDBA || mnemon == mn::LDBX || mnemon == mn::CPBA || mnemon == mn::CPBX;
   quint16 mask = isByte ? 0xFF : 0xFFFF;
   switch (instruction.mode) {
-  case am::I:
-    decoded = os;
-    break;
+  case am::I: decoded = os; break;
   case am::D:
     _memory->read(os, {reinterpret_cast<quint8 *>(&decoded) + int(isByte && swap ? 1 : 0), std::size_t(isByte ? 1 : 2)},
                   acc_i);
-    if (swap)
-      decoded = bits::byteswap(decoded);
+    if (swap) decoded = bits::byteswap(decoded);
     break;
   case am::N:
     _memory->read(os, {reinterpret_cast<quint8 *>(&decoded), 2}, acc_i);
 
-    if (swap)
-      decoded = bits::byteswap(decoded);
+    if (swap) decoded = bits::byteswap(decoded);
     _memory->read(decoded,
                   {reinterpret_cast<quint8 *>(&decoded) + int(isByte && swap ? 1 : 0), std::size_t(isByte ? 1 : 2)},
                   acc_i);
-    if (swap)
-      decoded = bits::byteswap(decoded);
+    if (swap) decoded = bits::byteswap(decoded);
     break;
   case am::S:
     _memory->read(os + readReg(Register::SP),
                   {reinterpret_cast<quint8 *>(&decoded) + int(isByte && swap ? 1 : 0), std::size_t(isByte ? 1 : 2)},
                   acc_i);
-    if (swap)
-      decoded = bits::byteswap(decoded);
+    if (swap) decoded = bits::byteswap(decoded);
     break;
   case am::X:
     _memory->read(os + readReg(Register::X),
                   {reinterpret_cast<quint8 *>(&decoded) + int(isByte && swap ? 1 : 0), std::size_t(isByte ? 1 : 2)},
                   acc_i);
-    if (swap)
-      decoded = bits::byteswap(decoded);
+    if (swap) decoded = bits::byteswap(decoded);
     break;
   case am::SX:
     _memory->read(os + readReg(Register::SP) + readReg(Register::X),
                   {reinterpret_cast<quint8 *>(&decoded) + int(isByte && swap ? 1 : 0), std::size_t(isByte ? 1 : 2)},
                   acc_i);
-    if (swap)
-      decoded = bits::byteswap(decoded);
+    if (swap) decoded = bits::byteswap(decoded);
     break;
   case am::SF:
     _memory->read(os + readReg(Register::SP), {reinterpret_cast<quint8 *>(&decoded), 2}, acc_i);
 
-    if (swap)
-      decoded = bits::byteswap(decoded);
+    if (swap) decoded = bits::byteswap(decoded);
     _memory->read(decoded,
                   {reinterpret_cast<quint8 *>(&decoded) + int(isByte && swap ? 1 : 0), std::size_t(isByte ? 1 : 2)},
                   acc_i);
-    if (swap)
-      decoded = bits::byteswap(decoded);
+    if (swap) decoded = bits::byteswap(decoded);
     break;
   case am::SFX:
     _memory->read(os + readReg(Register::SP), {reinterpret_cast<quint8 *>(&decoded), 2}, acc_i);
 
-    if (swap)
-      decoded = bits::byteswap(decoded);
+    if (swap) decoded = bits::byteswap(decoded);
     _memory->read(decoded + readReg(Register::X),
                   {reinterpret_cast<quint8 *>(&decoded) + int(isByte && swap ? 1 : 0), std::size_t(isByte ? 1 : 2)},
                   acc_i);
-    if (swap)
-      decoded = bits::byteswap(decoded);
+    if (swap) decoded = bits::byteswap(decoded);
     break;
-  default:
-    throw std::logic_error("Invalid addressing mode");
+  default: throw std::logic_error("Invalid addressing mode");
   }
   decoded &= mask;
 }

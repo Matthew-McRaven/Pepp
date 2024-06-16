@@ -21,8 +21,7 @@
 
 BlockFinder::BlockFinder(QObject *parent) : QObject(parent) {}
 int BlockFinder::find_pos(int pos) {
-  if (_doc == nullptr)
-    return -1;
+  if (_doc == nullptr) return -1;
   return _doc->findBlock(pos).blockNumber();
 }
 

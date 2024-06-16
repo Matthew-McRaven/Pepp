@@ -330,8 +330,7 @@ bool Pep10_ISA::onExecute() {
   } catch (const sim::api2::memory::Error &e) {
     if (e.type() == sim::api2::memory::Error::Type::NeedsMMI) {
       noMMI = true;
-    } else
-      std::cerr << "Memory error: " << e.what() << std::endl;
+    } else std::cerr << "Memory error: " << e.what() << std::endl;
     // Handle illegal opcodes or program crashes.
   } catch (const std::logic_error &e) {
     std::cerr << e.what() << std::endl;
@@ -363,8 +362,7 @@ bool Pep10_ISA::onDebuggingContinue() {
   } catch (const sim::api2::memory::Error &e) {
     err = true;
     if (e.type() == sim::api2::memory::Error::Type::NeedsMMI) {
-    } else
-      std::cerr << "Memory error: " << e.what() << std::endl;
+    } else std::cerr << "Memory error: " << e.what() << std::endl;
     // Handle illegal opcodes or program crashes.
   } catch (const std::logic_error &e) {
     err = true;
@@ -397,8 +395,7 @@ bool Pep10_ISA::onISAStep() {
   } catch (const sim::api2::memory::Error &e) {
     err = true;
     if (e.type() == sim::api2::memory::Error::Type::NeedsMMI) {
-    } else
-      std::cerr << "Memory error: " << e.what() << std::endl;
+    } else std::cerr << "Memory error: " << e.what() << std::endl;
     // Handle illegal opcodes or program crashes.
   } catch (const std::logic_error &e) {
     err = true;

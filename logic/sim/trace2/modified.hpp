@@ -64,8 +64,7 @@ public:
 
 template <typename T, bool right_inclusive>
 std::ostream &operator<<(std::ostream &os, const IntervalSet<T, right_inclusive> &set) {
-  for (const auto &i : set.intervals())
-    os << i;
+  for (const auto &i : set.intervals()) os << i;
   return os;
 }
 
@@ -81,8 +80,7 @@ public:
     D data;
     // Ignore device, data since they are values, not keys.
     auto operator<=>(const Node &other) const {
-      if (auto cmp_from = from <=> other.from; cmp_from != 0)
-        return cmp_from;
+      if (auto cmp_from = from <=> other.from; cmp_from != 0) return cmp_from;
       return to <=> other.to;
     }
   };
@@ -128,8 +126,7 @@ public:
   // Return {false, 0, X} if no mapping is found.
   std::tuple<bool, sim::api2::device::ID, T> value(T from_key) const {
     auto region = region_at(from_key);
-    if (region)
-      return {true, region->device, convert(from_key, region->from, region->to)};
+    if (region) return {true, region->device, convert(from_key, region->from, region->to)};
     return {false, 0, 0};
   }
 
@@ -137,8 +134,7 @@ public:
   std::tuple<bool, T> key(sim::api2::device::ID device, T to_value) const {
     // Elements are not sorted by "to" interval, so we must do a full linear search.
     for (const auto &node : _elements)
-      if (node.device == device && contains(node.to, to_value))
-        return {true, convert(to_value, node.to, node.from)};
+      if (node.device == device && contains(node.to, to_value)) return {true, convert(to_value, node.to, node.from)};
     return {false, T()};
   }
 

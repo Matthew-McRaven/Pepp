@@ -41,8 +41,7 @@ public:
   // Ownership of macro is always transfered to this.
   // Returns nullptr if the macro already exists in the registry.
   // Returned pointer is non-owning
-  QSharedPointer<const Registered> registerMacro(types::Type type,
-                                                 QSharedPointer<Parsed> macro);
+  QSharedPointer<const Registered> registerMacro(types::Type type, QSharedPointer<Parsed> macro);
   void removeMacro(QString name);
 
 signals:

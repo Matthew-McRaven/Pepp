@@ -26,12 +26,9 @@ enum class Order {
 };
 constexpr Order hostOrder() {
   switch (QSysInfo::ByteOrder) {
-  case QSysInfo::LittleEndian:
-    return Order::LittleEndian;
-  case QSysInfo::BigEndian:
-    return Order::BigEndian;
-  default:
-    throw std::logic_error("Endian must be big or little");
+  case QSysInfo::LittleEndian: return Order::LittleEndian;
+  case QSysInfo::BigEndian: return Order::BigEndian;
+  default: throw std::logic_error("Endian must be big or little");
   }
 }
 

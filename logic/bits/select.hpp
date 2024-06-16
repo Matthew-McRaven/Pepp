@@ -32,6 +32,5 @@ struct ByteSelection {
   qsizetype srcByteOffset, destByteOffset;
   quint16 count;
 };
-void bitSelect(const quint8 src, BitSelection srcOp, quint8 &out,
-               BitSelection destOp);
+void bitSelect(const quint8 src, BitSelection srcOp, quint8 &out, BitSelection destOp);
 } // namespace bits

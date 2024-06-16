@@ -15,173 +15,130 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-#include "pep_shared.hpp"
 #include "pep9.hpp"
 #include <QMetaEnum>
+#include "pep_shared.hpp"
 
 isa::Pep9::Mnemonic isa::Pep9::defaultMnemonic() { return Mnemonic::INVALID; }
 
-isa::Pep9::AddressingMode isa::Pep9::defaultAddressingMode() {
-    return AddressingMode::INVALID;
+isa::Pep9::AddressingMode isa::Pep9::defaultAddressingMode() { return AddressingMode::INVALID; }
+
+isa::Pep9::AddressingMode isa::Pep9::defaultAddressingMode(Mnemonic mnemonic) {
+  if (isAType(mnemonic)) return AddressingMode::I;
+  else return defaultAddressingMode();
 }
 
-isa::Pep9::AddressingMode
-isa::Pep9::defaultAddressingMode(Mnemonic mnemonic) {
-    if (isAType(mnemonic))
-        return AddressingMode::I;
-    else
-        return defaultAddressingMode();
-}
+quint8 isa::Pep9::opcode(Mnemonic mnemonic) { return isa::detail::opcode(mnemonic); }
 
-quint8 isa::Pep9::opcode(Mnemonic mnemonic) {
-    return isa::detail::opcode(mnemonic);
-}
+quint8 isa::Pep9::opcode(Mnemonic mnemonic, AddressingMode addr) { return isa::detail::opcode(mnemonic, addr); }
 
-quint8 isa::Pep9::opcode(Mnemonic mnemonic, AddressingMode addr) {
-    return isa::detail::opcode(mnemonic, addr);
-}
-
-isa::Pep9::AddressingMode
-isa::Pep9::parseAddressingMode(const QString &addr) {
-    return isa::detail::parseAddressingMode<AddressingMode>(addr);
+isa::Pep9::AddressingMode isa::Pep9::parseAddressingMode(const QString &addr) {
+  return isa::detail::parseAddressingMode<AddressingMode>(addr);
 }
 
 isa::Pep9::Mnemonic isa::Pep9::parseMnemonic(const QString &mnemonic) {
-    return isa::detail::parseMnemonic<Mnemonic>(mnemonic);
+  return isa::detail::parseMnemonic<Mnemonic>(mnemonic);
 }
 
-QString isa::Pep9::string(Mnemonic mnemonic) {
-    return isa::detail::stringMnemonic(mnemonic);
-}
+QString isa::Pep9::string(Mnemonic mnemonic) { return isa::detail::stringMnemonic(mnemonic); }
 
-QString isa::Pep9::string(AddressingMode addr) {
-    return isa::detail::stringAddr(addr);
-}
+QString isa::Pep9::string(AddressingMode addr) { return isa::detail::stringAddr(addr); }
 
-bool isa::Pep9::isMnemonicUnary(Mnemonic mnemonic) {
-    return isMnemonicUnary(opcode(mnemonic));
-}
+bool isa::Pep9::isMnemonicUnary(Mnemonic mnemonic) { return isMnemonicUnary(opcode(mnemonic)); }
 
 bool isa::Pep9::isMnemonicUnary(quint8 opcode) {
-    using T = detail::pep9::InstructionType;
-    auto type = opcodeLUT[opcode].instr.type;
-    return type == T::R_none || type == T::U_none;
+  using T = detail::pep9::InstructionType;
+  auto type = opcodeLUT[opcode].instr.type;
+  return type == T::R_none || type == T::U_none;
 }
 
-bool isa::Pep9::isOpcodeUnary(Mnemonic mnemonic) {
-    return isOpcodeUnary(opcode(mnemonic));
-}
+bool isa::Pep9::isOpcodeUnary(Mnemonic mnemonic) { return isOpcodeUnary(opcode(mnemonic)); }
 
-bool isa::Pep9::isOpcodeUnary(quint8 opcode) {
-    return opcodeLUT[opcode].instr.unary;
-}
+bool isa::Pep9::isOpcodeUnary(quint8 opcode) { return opcodeLUT[opcode].instr.unary; }
 
-bool isa::Pep9::isStore(Mnemonic mnemonic) {
-    return isa::detail::isStore(mnemonic);
-}
+bool isa::Pep9::isStore(Mnemonic mnemonic) { return isa::detail::isStore(mnemonic); }
 
-bool isa::Pep9::isStore(quint8 opcode) {
-    return isStore(opcodeLUT[opcode].instr.mnemon);
-}
+bool isa::Pep9::isStore(quint8 opcode) { return isStore(opcodeLUT[opcode].instr.mnemon); }
 
 bool isa::Pep9::isUType(Mnemonic mnemonic) {
-    using T = InstructionType;
-    auto type = opcodeLUT[opcode(mnemonic)].instr.type;
-    return type == T::U_none;
+  using T = InstructionType;
+  auto type = opcodeLUT[opcode(mnemonic)].instr.type;
+  return type == T::U_none;
 }
 
 bool isa::Pep9::isRType(Mnemonic mnemonic) {
-    using T = InstructionType;
-    auto type = opcodeLUT[opcode(mnemonic)].instr.type;
-    return type == T::R_none;
+  using T = InstructionType;
+  auto type = opcodeLUT[opcode(mnemonic)].instr.type;
+  return type == T::R_none;
 }
 
 bool isa::Pep9::isAType(Mnemonic mnemonic) {
-    using T = InstructionType;
-    auto type = opcodeLUT[opcode(mnemonic)].instr.type;
-    return type == T::A_ix;
+  using T = InstructionType;
+  auto type = opcodeLUT[opcode(mnemonic)].instr.type;
+  return type == T::A_ix;
 }
 
 bool isa::Pep9::isValidATypeAddressingMode(Mnemonic, AddressingMode addr) {
-    using AM = AddressingMode;
-    return addr == AM::I || addr == AM::X;
+  using AM = AddressingMode;
+  return addr == AM::I || addr == AM::X;
 }
 
 bool isa::Pep9::isAAAType(Mnemonic mnemonic) {
-    using T = InstructionType;
-    auto type = opcodeLUT[opcode(mnemonic)].instr.type;
-    return type == T::AAA_all || type == T::AAA_i;
+  using T = InstructionType;
+  auto type = opcodeLUT[opcode(mnemonic)].instr.type;
+  return type == T::AAA_all || type == T::AAA_i;
 }
 
 bool isa::Pep9::isValidAAATypeAddressingMode(Mnemonic, AddressingMode addr) {
-    using AM = AddressingMode;
-    return !(addr == AM::ALL || addr == AM::INVALID || addr == AM::NONE);
+  using AM = AddressingMode;
+  return !(addr == AM::ALL || addr == AM::INVALID || addr == AM::NONE);
 }
 
 bool isa::Pep9::isRAAAType(Mnemonic mnemonic) {
-    using T = InstructionType;
-    auto type = opcodeLUT[opcode(mnemonic)].instr.type;
-    return type == T::RAAA_all || type == T::RAAA_noi;
+  using T = InstructionType;
+  auto type = opcodeLUT[opcode(mnemonic)].instr.type;
+  return type == T::RAAA_all || type == T::RAAA_noi;
 }
 
-bool isa::Pep9::isValidRAAATypeAddressingMode(Mnemonic mnemonic,
-                                               AddressingMode addr) {
-    using T = InstructionType;
-    using AM = AddressingMode;
-    auto type = opcodeLUT[opcode(mnemonic)].instr.type;
-    return !(addr == AM::ALL || addr == AM::INVALID || addr == AM::NONE ||
-             (type == T::RAAA_noi && addr == AM::I));
+bool isa::Pep9::isValidRAAATypeAddressingMode(Mnemonic mnemonic, AddressingMode addr) {
+  using T = InstructionType;
+  using AM = AddressingMode;
+  auto type = opcodeLUT[opcode(mnemonic)].instr.type;
+  return !(addr == AM::ALL || addr == AM::INVALID || addr == AM::NONE || (type == T::RAAA_noi && addr == AM::I));
 }
 
 bool isa::Pep9::isValidAddressingMode(Mnemonic mnemonic, AddressingMode addr) {
-    using T = InstructionType;
-    using AM = AddressingMode;
-    auto type = opcodeLUT[opcode(mnemonic)].instr.type;
-    switch (type) {
-    case detail::pep9::InstructionType::Invalid:
-        [[fallthrough]];
-    case detail::pep9::InstructionType::U_none:
-        [[fallthrough]];
-    case detail::pep9::InstructionType::R_none:
-        return false;
-    case detail::pep9::InstructionType::A_ix:
-        return addr == AM::X || addr == AM::I;
+  using T = InstructionType;
+  using AM = AddressingMode;
+  auto type = opcodeLUT[opcode(mnemonic)].instr.type;
+  switch (type) {
+  case detail::pep9::InstructionType::Invalid: [[fallthrough]];
+  case detail::pep9::InstructionType::U_none: [[fallthrough]];
+  case detail::pep9::InstructionType::R_none: return false;
+  case detail::pep9::InstructionType::A_ix: return addr == AM::X || addr == AM::I;
 
-    case detail::pep9::InstructionType::AAA_i:
-        return addr == AM::I;
-    case detail::pep9::InstructionType::AAA_stro:
-        return !(addr == AM::ALL || addr == AM::INVALID || addr == AM::NONE ||
-                 addr == AM::I || addr == AM::SX || addr == AM::SFX);
-    case detail::pep9::InstructionType::AAA_all:
-        [[fallthrough]];
-    case detail::pep9::InstructionType::RAAA_all:
-        return !(addr == AM::ALL || addr == AM::INVALID || addr == AM::NONE);
-    case detail::pep9::InstructionType::AAA_noi:
-        [[fallthrough]];
-    case detail::pep9::InstructionType::RAAA_noi:
-        return !(addr == AM::ALL || addr == AM::INVALID || addr == AM::NONE ||
-                 addr == AM::I);
-    }
-    return false;
+  case detail::pep9::InstructionType::AAA_i: return addr == AM::I;
+  case detail::pep9::InstructionType::AAA_stro:
+    return !(addr == AM::ALL || addr == AM::INVALID || addr == AM::NONE || addr == AM::I || addr == AM::SX ||
+             addr == AM::SFX);
+  case detail::pep9::InstructionType::AAA_all: [[fallthrough]];
+  case detail::pep9::InstructionType::RAAA_all: return !(addr == AM::ALL || addr == AM::INVALID || addr == AM::NONE);
+  case detail::pep9::InstructionType::AAA_noi: [[fallthrough]];
+  case detail::pep9::InstructionType::RAAA_noi:
+    return !(addr == AM::ALL || addr == AM::INVALID || addr == AM::NONE || addr == AM::I);
+  }
+  return false;
 }
 
-bool isa::Pep9::requiresAddressingMode(Mnemonic mnemonic) {
-    return isAAAType(mnemonic) | isRAAAType(mnemonic);
+bool isa::Pep9::requiresAddressingMode(Mnemonic mnemonic) { return isAAAType(mnemonic) | isRAAAType(mnemonic); }
+
+bool isa::Pep9::canElideAddressingMode(Mnemonic mnemonic, AddressingMode addr) {
+  return isAType(mnemonic) && addr == AddressingMode::I;
 }
 
-bool isa::Pep9::canElideAddressingMode(Mnemonic mnemonic,
-                                        AddressingMode addr) {
-    return isAType(mnemonic) && addr == AddressingMode::I;
+QSet<QString> isa::Pep9::legalDirectives() {
+  static const auto valid = QSet<QString>{"ADDRSS", "ALIGN", "ASCII", "BLOCK", "BURN", "BYTE", "END", "EQUATE", "WORD"};
+  return valid;
 }
 
-QSet<QString> isa::Pep9::legalDirectives()
-{
-    static const auto valid = QSet<QString>{
-                                            "ADDRSS", "ALIGN",  "ASCII",  "BLOCK", "BURN",
-                                            "BYTE",   "END",    "EQUATE", "WORD"};
-    return valid;
-}
-
-bool isa::Pep9::isLegalDirective(QString directive) {
-    return legalDirectives().contains(directive.toUpper());
-}
+bool isa::Pep9::isLegalDirective(QString directive) { return legalDirectives().contains(directive.toUpper()); }

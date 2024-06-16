@@ -1,9 +1,9 @@
 #pragma once
 #include <QGuiApplication>
-#include <QQmlApplicationEngine>
 #include <QKeySequence>
-#include <QQmlContext>
 #include <QObject>
+#include <QQmlApplicationEngine>
+#include <QQmlContext>
 #include "utils_global.hpp"
 
 namespace utils {
@@ -15,5 +15,4 @@ public:
 
 signals:
 };
-}
-
+} // namespace utils

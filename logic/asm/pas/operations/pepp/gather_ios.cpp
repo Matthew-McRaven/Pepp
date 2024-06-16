@@ -22,14 +22,11 @@
 #include "asm/pas/operations/pepp/is.hpp"
 
 void pas::ops::pepp::GatherIODefinitions::operator()(const ast::Node &node) {
-  if (!node.has<ast::generic::Directive>())
-    return;
+  if (!node.has<ast::generic::Directive>()) return;
   auto directive = node.get<ast::generic::Directive>().value;
-  if (!(directive == "INPUT" || directive == "OUTPUT"))
-    return;
-  ::obj::IO::Direction direction = (directive == "INPUT")
-                                       ? ::obj::IO::Direction::kInput
-                                       : ::obj::IO::Direction::kOutput;
+  if (!(directive == "INPUT" || directive == "OUTPUT")) return;
+  ::obj::IO::Direction direction =
+      (directive == "INPUT") ? ::obj::IO::Direction::kInput : ::obj::IO::Direction::kOutput;
   auto arg = node.get<ast::generic::Argument>().value;
   auto symbol = arg->rawString();
   ios.append({.name = symbol, .direction = direction});

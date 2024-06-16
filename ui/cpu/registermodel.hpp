@@ -35,6 +35,6 @@ private:
   const Roles _box = Roles::Box;
   const Roles _justify = Roles::RightJustify;
 
-protected:  //  Role Names must be under protected
+protected: //  Role Names must be under protected
   QHash<int, QByteArray> roleNames() const override;
 };

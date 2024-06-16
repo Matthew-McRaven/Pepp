@@ -17,8 +17,8 @@
 
 #pragma once
 
-#include "macro_globals.hpp"
 #include <QtCore>
+#include "macro_globals.hpp"
 
 namespace macro::types {
 Q_NAMESPACE_EXPORT(MACRO_EXPORT)

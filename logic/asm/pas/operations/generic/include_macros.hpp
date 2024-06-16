@@ -16,12 +16,12 @@
  */
 
 #pragma once
+#include <QtCore>
 #include "asm/pas/ast/node.hpp"
 #include "asm/pas/ast/op.hpp"
+#include "asm/pas/pas_globals.hpp"
 #include "errors.hpp"
 #include "is.hpp"
-#include <QtCore>
-#include "asm/pas/pas_globals.hpp"
 
 namespace pas::driver {
 class ParseResult;
@@ -41,12 +41,9 @@ struct PAS_EXPORT IncludeMacros : public pas::ops::MutatingOp<bool> {
     QString macroName;
     QStringList args;
     bool operator==(const MacroInvocation &other) const = default;
-    inline friend size_t
-    qHash(const pas::ops::generic::IncludeMacros::MacroInvocation &invoke,
-          size_t seed = 0) {
+    inline friend size_t qHash(const pas::ops::generic::IncludeMacros::MacroInvocation &invoke, size_t seed = 0) {
       seed = qHash(invoke.macroName, seed);
-      for (const auto &arg : invoke.args)
-        seed = qHash(arg, seed);
+      for (const auto &arg : invoke.args) seed = qHash(arg, seed);
       return seed;
     }
   };
@@ -63,19 +60,16 @@ private:
 };
 
 // BUG: Shouldn't be inline, but MSVC refuses to find this function in a CPP file, when GCC and clang can.
-inline bool includeMacros(
-    ast::Node &root,
-    std::function<pas::driver::ParseResult(QString, QSharedPointer<ast::Node>)>
-        convertFn,
-    QSharedPointer<macro::Registry> registry)
-{
-    static auto isMacro = pas::ops::generic::isMacro();
-    auto converter = IncludeMacros();
-    converter.convertFn = convertFn;
-    converter.registry = registry;
-    ast::apply_recurse_if(root, isMacro, converter);
-    auto errors = pas::ops::generic::CollectErrors();
-    ast::apply_recurse(root, errors);
-    return errors.errors.size() == 0;
+inline bool includeMacros(ast::Node &root,
+                          std::function<pas::driver::ParseResult(QString, QSharedPointer<ast::Node>)> convertFn,
+                          QSharedPointer<macro::Registry> registry) {
+  static auto isMacro = pas::ops::generic::isMacro();
+  auto converter = IncludeMacros();
+  converter.convertFn = convertFn;
+  converter.registry = registry;
+  ast::apply_recurse_if(root, isMacro, converter);
+  auto errors = pas::ops::generic::CollectErrors();
+  ast::apply_recurse(root, errors);
+  return errors.errors.size() == 0;
 }
 } // namespace pas::ops::generic

@@ -48,9 +48,7 @@ QSharedPointer<symbol::value::Abstract> symbol::value::Empty::clone() const {
 
 symbol::value::Deleted::Deleted() {}
 
-symbol::value::Deleted::Deleted(Deleted &&other) noexcept {
-  swap(*this, other);
-}
+symbol::value::Deleted::Deleted(Deleted &&other) noexcept { swap(*this, other); }
 
 symbol::value::Deleted::Deleted(const Deleted &other) {}
 
@@ -66,9 +64,7 @@ symbol::value::MaskedBits symbol::value::Deleted::value() const {
   return {.byteCount = 0, .bitPattern = 0, .mask = 0x0};
 }
 
-symbol::Type symbol::value::Deleted::type() const {
-  return symbol::Type::kDeleted;
-}
+symbol::Type symbol::value::Deleted::type() const { return symbol::Type::kDeleted; }
 
 QSharedPointer<symbol::value::Abstract> symbol::value::Deleted::clone() const {
   return QSharedPointer<Deleted>::create(*this);
@@ -78,12 +74,9 @@ symbol::value::Constant::Constant() : _value({}) {}
 
 symbol::value::Constant::Constant(MaskedBits value) : _value(value) {}
 
-symbol::value::Constant::Constant(const Constant &other)
-    : _value(other._value) {}
+symbol::value::Constant::Constant(const Constant &other) : _value(other._value) {}
 
-symbol::value::Constant::Constant(Constant &&other) noexcept {
-  swap(*this, other);
-}
+symbol::value::Constant::Constant(Constant &&other) noexcept { swap(*this, other); }
 
 symbol::value::Constant &symbol::value::Constant::operator=(Constant other) {
   swap(*this, other);
@@ -92,46 +85,32 @@ symbol::value::Constant &symbol::value::Constant::operator=(Constant other) {
 
 quint32 symbol::value::Constant::size() const { return _value.byteCount; }
 
-symbol::value::MaskedBits symbol::value::Constant::value() const {
-  return _value;
-}
+symbol::value::MaskedBits symbol::value::Constant::value() const { return _value; }
 
-symbol::Type symbol::value::Constant::type() const {
-  return symbol::Type::kConstant;
-}
+symbol::Type symbol::value::Constant::type() const { return symbol::Type::kConstant; }
 
 QSharedPointer<symbol::value::Abstract> symbol::value::Constant::clone() const {
   return QSharedPointer<Constant>::create(*this);
 }
 
-void symbol::value::Constant::setValue(MaskedBits value) {
-  this->_value = value;
-}
+void symbol::value::Constant::setValue(MaskedBits value) { this->_value = value; }
 
 symbol::value::Location::Location() {}
 
-symbol::value::Location::Location(quint16 pointedSize, quint16 pointerSize,
-                                  quint64 base, quint64 offset, Type type)
-    : _pointedSize(pointedSize), _pointerSize(pointerSize), _base(base),
-      _offset(offset), _type(type) {
+symbol::value::Location::Location(quint16 pointedSize, quint16 pointerSize, quint64 base, quint64 offset, Type type)
+    : _pointedSize(pointedSize), _pointerSize(pointerSize), _base(base), _offset(offset), _type(type) {
   switch (type) {
-  case symbol::Type::kObject:
-    [[fallthrough]];
-  case symbol::Type::kCode:
-    break;
-  default:
-    qCritical() << "Invalid Location type passed to symbol::value::Location"
-                << type;
+  case symbol::Type::kObject: [[fallthrough]];
+  case symbol::Type::kCode: break;
+  default: qCritical() << "Invalid Location type passed to symbol::value::Location" << type;
   }
 }
 
 symbol::value::Location::Location(const Location &other)
-    : _pointerSize(other._pointerSize), _pointedSize(other._pointedSize),
-      _base(other._base), _offset(other._offset), _type(other._type) {}
+    : _pointerSize(other._pointerSize), _pointedSize(other._pointedSize), _base(other._base), _offset(other._offset),
+      _type(other._type) {}
 
-symbol::value::Location::Location(Location &&other) noexcept {
-  swap(*this, other);
-}
+symbol::value::Location::Location(Location &&other) noexcept { swap(*this, other); }
 
 symbol::value::Location &symbol::value::Location::operator=(Location other) {
   swap(*this, other);
@@ -163,23 +142,17 @@ quint64 symbol::value::Location::offset() const { return _offset; }
 
 quint64 symbol::value::Location::base() const { return _base; }
 
-symbol::value::InternalPointer::InternalPointer(quint16 ptrSize)
-    : _ptrSize(ptrSize) {}
+symbol::value::InternalPointer::InternalPointer(quint16 ptrSize) : _ptrSize(ptrSize) {}
 
-symbol::value::InternalPointer::InternalPointer(quint16 ptrSize,
-                                                QSharedPointer<const Entry> ptr)
+symbol::value::InternalPointer::InternalPointer(quint16 ptrSize, QSharedPointer<const Entry> ptr)
     : _ptrSize(ptrSize), symbol_pointer(ptr) {}
 
 symbol::value::InternalPointer::InternalPointer(const InternalPointer &other)
     : _ptrSize(other._ptrSize), symbol_pointer(other.symbol_pointer) {}
 
-symbol::value::InternalPointer::InternalPointer(
-    InternalPointer &&other) noexcept {
-  swap(*this, other);
-}
+symbol::value::InternalPointer::InternalPointer(InternalPointer &&other) noexcept { swap(*this, other); }
 
-symbol::value::InternalPointer &
-symbol::value::InternalPointer::operator=(InternalPointer other) {
+symbol::value::InternalPointer &symbol::value::InternalPointer::operator=(InternalPointer other) {
   swap(*this, other);
   return *this;
 }
@@ -187,46 +160,34 @@ symbol::value::InternalPointer::operator=(InternalPointer other) {
 quint32 symbol::value::InternalPointer::size() const { return _ptrSize; }
 
 symbol::value::MaskedBits symbol::value::InternalPointer::value() const {
-  if (symbol_pointer.isNull())
-    return {.byteCount = 0, .bitPattern = 0, .mask = 0};
+  if (symbol_pointer.isNull()) return {.byteCount = 0, .bitPattern = 0, .mask = 0};
   return symbol_pointer->value->value();
 }
 
-symbol::Type symbol::value::InternalPointer::type() const {
-  return symbol::Type::kPtrToSym;
-}
+symbol::Type symbol::value::InternalPointer::type() const { return symbol::Type::kPtrToSym; }
 
-QSharedPointer<symbol::value::Abstract>
-symbol::value::InternalPointer::clone() const {
+QSharedPointer<symbol::value::Abstract> symbol::value::InternalPointer::clone() const {
   return QSharedPointer<InternalPointer>::create(*this);
 }
 
 quint64 symbol::value::MaskedBits::operator()() { return bitPattern & mask; }
 
 bool symbol::value::MaskedBits::operator==(const MaskedBits &other) const {
-  return this->byteCount == other.byteCount &&
-         this->bitPattern == other.bitPattern && this->mask == other.mask;
+  return this->byteCount == other.byteCount && this->bitPattern == other.bitPattern && this->mask == other.mask;
 }
 
-symbol::value::ExternalPointer::ExternalPointer(quint16 ptrSize)
-    : _ptrSize(ptrSize) {}
+symbol::value::ExternalPointer::ExternalPointer(quint16 ptrSize) : _ptrSize(ptrSize) {}
 
-symbol::value::ExternalPointer::ExternalPointer(quint16 ptrSize,
-                                                QSharedPointer<Table> table,
+symbol::value::ExternalPointer::ExternalPointer(quint16 ptrSize, QSharedPointer<Table> table,
                                                 QSharedPointer<const Entry> ptr)
     : symbol_table(table), symbol_pointer(ptr), _ptrSize(ptrSize) {}
 
 symbol::value::ExternalPointer::ExternalPointer(const ExternalPointer &other)
-    : symbol_table(other.symbol_table), symbol_pointer(other.symbol_pointer),
-      _ptrSize(other._ptrSize) {}
+    : symbol_table(other.symbol_table), symbol_pointer(other.symbol_pointer), _ptrSize(other._ptrSize) {}
 
-symbol::value::ExternalPointer::ExternalPointer(
-    ExternalPointer &&other) noexcept {
-  swap(*this, other);
-}
+symbol::value::ExternalPointer::ExternalPointer(ExternalPointer &&other) noexcept { swap(*this, other); }
 
-symbol::value::ExternalPointer &
-symbol::value::ExternalPointer::operator=(ExternalPointer other) {
+symbol::value::ExternalPointer &symbol::value::ExternalPointer::operator=(ExternalPointer other) {
   swap(*this, other);
   return *this;
 }
@@ -235,16 +196,12 @@ quint32 symbol::value::ExternalPointer::size() const { return _ptrSize; }
 
 symbol::value::MaskedBits symbol::value::ExternalPointer::value() const {
   auto locked_table = symbol_table.lock();
-  if (locked_table.isNull())
-    return {.byteCount = 0, .bitPattern = 0, .mask = 0};
+  if (locked_table.isNull()) return {.byteCount = 0, .bitPattern = 0, .mask = 0};
   return symbol_pointer->value->value();
 }
 
-symbol::Type symbol::value::ExternalPointer::type() const {
-  return symbol::Type::kPtrToSym;
-}
+symbol::Type symbol::value::ExternalPointer::type() const { return symbol::Type::kPtrToSym; }
 
-QSharedPointer<symbol::value::Abstract>
-symbol::value::ExternalPointer::clone() const {
+QSharedPointer<symbol::value::Abstract> symbol::value::ExternalPointer::clone() const {
   return QSharedPointer<symbol::value::ExternalPointer>::create(*this);
 }

@@ -16,6 +16,7 @@
  */
 
 #pragma once
+#include <QtCore>
 #include "asm/pas/ast/generic/attr_children.hpp"
 #include "asm/pas/ast/generic/attr_comment.hpp"
 #include "asm/pas/ast/generic/attr_directive.hpp"
@@ -26,7 +27,6 @@
 #include "asm/pas/ast/value/base.hpp"
 #include "asm/pas/operations/generic/is.hpp"
 #include "asm/pas/operations/pepp/is.hpp"
-#include <QtCore>
 #include "asm/pas/pas_globals.hpp"
 
 namespace pas::ops::pepp {
@@ -43,8 +43,7 @@ template <typename ISA> qsizetype implicitSize(const ast::Node &node);
 // Makes no assumption about if the node is a root, or any placement parameters.
 // Use this if you want to place code at a non-standard location in memory.
 template <typename ISA>
-qsizetype explicitSize(const ast::Node &node, quint16 at,
-                       Direction direction = Direction::Forward);
+qsizetype explicitSize(const ast::Node &node, quint16 at, Direction direction = Direction::Forward);
 
 // Compute the size of a contiguous region from the addresses.
 qsizetype PAS_EXPORT sizeFromAddress(const ast::Node &node);
@@ -58,24 +57,19 @@ quint16 PAS_EXPORT sizeWord(const ast::Node, quint16 at, Direction direction);
 } // namespace detail
 } // namespace pas::ops::pepp
 
-template <typename ISA>
-qsizetype pas::ops::pepp::implicitSize(const pas::ast::Node &node) {
+template <typename ISA> qsizetype pas::ops::pepp::implicitSize(const pas::ast::Node &node) {
   return explicitSize<ISA>(node, baseAddress(node), direction(node));
 }
-template <typename ISA>
-qsizetype pas::ops::pepp::explicitSize(const ast::Node &node, quint16 at,
-                                       Direction direction) {
+template <typename ISA> qsizetype pas::ops::pepp::explicitSize(const ast::Node &node, quint16 at, Direction direction) {
   using sizeFn = std::function<quint16(const ast::Node &, quint16, Direction)>;
-  static const QMap<QString, sizeFn> directiveMap = {
-      {u"ALIGN"_qs, &detail::sizeAlign},
-      {u"ASCII"_qs, &detail::sizeASCII},
-      {u"BLOCK"_qs, &detail::sizeBlock},
-      {u"BYTE"_qs, &detail::sizeByte},
-      {u"WORD"_qs, &detail::sizeWord}};
+  static const QMap<QString, sizeFn> directiveMap = {{u"ALIGN"_qs, &detail::sizeAlign},
+                                                     {u"ASCII"_qs, &detail::sizeASCII},
+                                                     {u"BLOCK"_qs, &detail::sizeBlock},
+                                                     {u"BYTE"_qs, &detail::sizeByte},
+                                                     {u"WORD"_qs, &detail::sizeWord}};
   if (generic::isDirective()(node)) {
     auto name = node.get<ast::generic::Directive>().value;
-    if (auto item = directiveMap.find(name.toUpper());
-        item != directiveMap.end()) {
+    if (auto item = directiveMap.find(name.toUpper()); item != directiveMap.end()) {
       return item.value()(node, at, direction);
     }
     return 0;
@@ -86,10 +80,7 @@ qsizetype pas::ops::pepp::explicitSize(const ast::Node &node, quint16 at,
       ret += explicitSize<ISA>(*child, innerAt, direction);
     }
     return ret;
-  } else if (pepp::isUnary<ISA>()(node))
-    return 1;
-  else if (pepp::isNonUnary<ISA>()(node))
-    return 3;
-  else
-    return 0;
+  } else if (pepp::isUnary<ISA>()(node)) return 1;
+  else if (pepp::isNonUnary<ISA>()(node)) return 3;
+  else return 0;
 }

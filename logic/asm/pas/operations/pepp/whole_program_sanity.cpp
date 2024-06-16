@@ -24,8 +24,7 @@
 #include <asm/pas/ast/generic/attr_symbol.hpp>
 
 bool pas::ops::pepp::IsOSFeature::operator()(const ast::Node &node) {
-  static const auto osDirectives = QSet<QString>{
-      "BURN", "EXPORT", "IMPORT", "INPUT", "OUTPUT", "SCALL", "USCALL"};
+  static const auto osDirectives = QSet<QString>{"BURN", "EXPORT", "IMPORT", "INPUT", "OUTPUT", "SCALL", "USCALL"};
   return ast::type(node).value == ast::generic::Type::Directive &&
          osDirectives.contains(node.get<ast::generic::Directive>().value);
 }
@@ -43,9 +42,7 @@ void pas::ops::pepp::ErrorOnOSFeatures::operator()(ast::Node &node) {
       auto name = node.get<ast::generic::Directive>().value;
       auto message = pas::errors::pepp::illegalInUser.arg("." + name);
       ast::addError(node,
-                    ast::generic::Message{
-                        .severity = ast::generic::Message::Severity::Fatal,
-                        .message = message});
+                    ast::generic::Message{.severity = ast::generic::Message::Severity::Fatal, .message = message});
     } else {
       throw std::logic_error("Unimplemented code path in ErrorsOnOSFeatures");
     }
@@ -60,26 +57,19 @@ void pas::ops::pepp::errorOnOSFeatures(ast::Node &node) {
 
 // Return true if there is an undefined symbolic argument.
 // Also annotates the node with an appropriate error message.
-bool annotateUndefinedArgument(pas::ast::Node &node,
-                               pas::ast::value::Base *arg) {
+bool annotateUndefinedArgument(pas::ast::Node &node, pas::ast::value::Base *arg) {
   auto casted = dynamic_cast<pas::ast::value::Symbolic *>(arg);
-  if (casted == nullptr)
-    return false;
+  if (casted == nullptr) return false;
   else if (casted->symbol()->state == symbol::DefinitionState::kUndefined) {
-    pas::ast::addError(node,
-                       {.severity = pas::ast::generic::Message::Severity::Fatal,
-                        .message = pas::errors::pepp::undefinedSymbol.arg(
-                            casted->symbol()->name)});
+    pas::ast::addError(node, {.severity = pas::ast::generic::Message::Severity::Fatal,
+                              .message = pas::errors::pepp::undefinedSymbol.arg(casted->symbol()->name)});
     return true;
-  } else
-    return false;
+  } else return false;
 }
 
-void pas::ops::pepp::ErrorOnUndefinedSymbolicArgument::operator()(
-    ast::Node &node) {
+void pas::ops::pepp::ErrorOnUndefinedSymbolicArgument::operator()(ast::Node &node) {
   if (node.has<ast::generic::Argument>())
-    hadError |= annotateUndefinedArgument(
-        node, node.get<ast::generic::Argument>().value.data());
+    hadError |= annotateUndefinedArgument(node, node.get<ast::generic::Argument>().value.data());
   else if (node.has<ast::generic::ArgumentList>())
     for (auto arg : node.get<ast::generic::ArgumentList>().value)
       hadError |= annotateUndefinedArgument(node, arg.data());
@@ -91,19 +81,15 @@ bool pas::ops::pepp::errorOnUndefinedSymbolicArgument(ast::Node &node) {
   return visit.hadError;
 }
 
-void pas::ops::pepp::ErrorOnMultipleSymbolDefiniton::operator()(
-    ast::Node &node) {
+void pas::ops::pepp::ErrorOnMultipleSymbolDefiniton::operator()(ast::Node &node) {
   if (node.has<ast::generic::SymbolDeclaration>()) {
     auto symbol = node.get<ast::generic::SymbolDeclaration>().value;
     // Don't need to check for undefined. Undefined is impossible if we have a
     // symbol declaration.
-    if (symbol->state == symbol::DefinitionState::kSingle)
-      return;
+    if (symbol->state == symbol::DefinitionState::kSingle) return;
     hadError |= true;
-    ast::addError(
-        node, {.severity = pas::ast::generic::Message::Severity::Fatal,
-               .message =
-                   pas::errors::pepp::multiplyDefinedSymbol.arg(symbol->name)});
+    ast::addError(node, {.severity = pas::ast::generic::Message::Severity::Fatal,
+                         .message = pas::errors::pepp::multiplyDefinedSymbol.arg(symbol->name)});
   }
 }
 

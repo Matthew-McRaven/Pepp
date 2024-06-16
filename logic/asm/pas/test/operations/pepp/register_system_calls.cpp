@@ -52,10 +52,8 @@ void smoke(QString input, testFn validate, bool useDriver, bool errors) {
     pipelines.globals = QSharedPointer<pas::driver::Globals>::create();
     pipelines.globals->macroRegistry = registry;
     CHECK(pipelines.assemble(pas::driver::pep10::Stage::RegisterExports) == !errors);
-    if (!errors)
-      CHECK(pipelines.pipelines[0].first->stage == pas::driver::pep10::Stage::AssignAddresses);
-    else
-      CHECK(pipelines.pipelines[0].first->stage == pas::driver::pep10::Stage::RegisterExports);
+    if (!errors) CHECK(pipelines.pipelines[0].first->stage == pas::driver::pep10::Stage::AssignAddresses);
+    else CHECK(pipelines.pipelines[0].first->stage == pas::driver::pep10::Stage::RegisterExports);
     REQUIRE(pipelines.pipelines[0].first->bodies.contains(pas::driver::repr::Nodes::name));
     root = pipelines.pipelines[0].first->bodies[pas::driver::repr::Nodes::name].value<pas::driver::repr::Nodes>().value;
   } else {

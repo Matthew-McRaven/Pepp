@@ -79,14 +79,12 @@ template <typename Address> void sim::memory::Dense<Address>::clear(quint8 fill)
 }
 
 template <typename Address> void Dense<Address>::dump(bits::span<quint8> dest) const {
-  if (dest.size() <= 0)
-    throw std::logic_error("dump requires non-0 size");
+  if (dest.size() <= 0) throw std::logic_error("dump requires non-0 size");
   bits::memcpy(dest, bits::span<const quint8>{_data.constData(), std::size_t(_data.size())});
 }
 
 template <typename Address> void Dense<Address>::trace(bool enabled) {
-  if (this->_tb)
-    _tb->trace(_device.id, enabled);
+  if (this->_tb) _tb->trace(_device.id, enabled);
 }
 
 template <typename Address> const quint8 *sim::memory::Dense<Address>::constData() const { return _data.constData(); }
@@ -125,8 +123,7 @@ template <typename Address> struct PayloadHelper {
 template <typename Address>
 bool Dense<Address>::analyze(api2::trace::PacketIterator iter, api2::trace::Direction direction) {
   auto header = *iter;
-  if (!std::visit(sim::trace2::IsSameDevice{_device.id}, header))
-    return false;
+  if (!std::visit(sim::trace2::IsSameDevice{_device.id}, header)) return false;
   // Read has no side effects, dense only issues pure reads.
   // Therefore we only need to handle out write packets.
   else if (std::holds_alternative<api2::packet::header::Write>(header)) {
@@ -135,8 +132,7 @@ bool Dense<Address>::analyze(api2::trace::PacketIterator iter, api2::trace::Dire
     // forward vs backwards does not matter for dense memory,
     // since payloads are XOR encoded. We can compute (current XOR payload)
     // to determine the updated memory values.
-    for (auto payload : iter)
-      address += std::visit(detail::PayloadHelper<Address>(address, this), payload);
+    for (auto payload : iter) address += std::visit(detail::PayloadHelper<Address>(address, this), payload);
   }
   return true;
 }

@@ -46,4 +46,3 @@ void registerTypes(const char *uri) {
 }
 
 } // namespace about
-

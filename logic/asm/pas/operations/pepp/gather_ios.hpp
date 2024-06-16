@@ -16,10 +16,10 @@
  */
 
 #pragma once
-#include "obj/mmio.hpp"
 #include "asm/pas/ast/node.hpp"
 #include "asm/pas/ast/op.hpp"
 #include "asm/pas/pas_globals.hpp"
+#include "obj/mmio.hpp"
 
 namespace pas::ops::pepp {
 struct PAS_EXPORT GatherIODefinitions : public pas::ops::ConstOp<void> {

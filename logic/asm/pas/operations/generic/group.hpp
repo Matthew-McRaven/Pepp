@@ -16,18 +16,17 @@
  */
 
 #pragma once
-#include "errors.hpp"
-#include "is.hpp"
+#include <QtCore>
 #include "asm/pas/ast/generic/attr_children.hpp"
 #include "asm/pas/ast/node.hpp"
 #include "asm/pas/ast/op.hpp"
-#include <QtCore>
 #include "asm/pas/pas_globals.hpp"
+#include "errors.hpp"
+#include "is.hpp"
 
 namespace pas::ops::generic {
 struct PAS_EXPORT GroupSections : public pas::ops::MutatingOp<void> {
-  GroupSections(QString defaultSectionName,
-                std::function<bool(const ast::Node &)> addressable);
+  GroupSections(QString defaultSectionName, std::function<bool(const ast::Node &)> addressable);
   pas::ast::generic::Children newChildren;
   void operator()(ast::Node &node) override;
 
@@ -37,6 +36,5 @@ private:
   bool hasSeenAddressable = false;
 };
 
-void PAS_EXPORT groupSections(ast::Node &root,
-                   std::function<bool(const ast::Node &)> addressable);
+void PAS_EXPORT groupSections(ast::Node &root, std::function<bool(const ast::Node &)> addressable);
 } // namespace pas::ops::generic

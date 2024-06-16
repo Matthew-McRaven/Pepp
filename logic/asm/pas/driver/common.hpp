@@ -35,7 +35,7 @@ class Node;
 
 namespace pas::driver {
 
-struct PAS_EXPORT ANTLRParserTag{};
+struct PAS_EXPORT ANTLRParserTag {};
 
 struct PAS_EXPORT ParseResult {
   bool hadError;
@@ -80,8 +80,7 @@ template <typename Stage> struct Target {
 
 template <typename stage> class Transform {
 public:
-  virtual bool operator()(QSharedPointer<Globals>,
-                          QSharedPointer<Target<stage>>) = 0;
+  virtual bool operator()(QSharedPointer<Globals>, QSharedPointer<Target<stage>>) = 0;
   virtual stage toStage() = 0;
 };
 
@@ -102,12 +101,9 @@ template <typename stage> bool Pipeline<stage>::assemble(stage targetStage) {
     for (auto &op : ops) {
       // Must explicitly deref op, or will attempt to call operator() on
       // QSharedPointer<>.
-      if (op->operator()(globals, target))
-        target->stage = op->toStage();
-      else
-        return false;
-      if ((int)target->stage > (int)targetStage)
-        break;
+      if (op->operator()(globals, target)) target->stage = op->toStage();
+      else return false;
+      if ((int)target->stage > (int)targetStage) break;
     }
   }
   return true;

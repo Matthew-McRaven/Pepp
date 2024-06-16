@@ -16,33 +16,8 @@
  */
 
 #pragma once
-
-// File: value.hpp
-/*
-    The Pep/10 suite of applications (Pep10, Pep10CPU, Pep10Term) are
-    simulators for the Pep/10 virtual machine, and allow users to
-    create, simulate, and debug across various levels of abstraction.
-
-    Copyright (C) 2019-2023 J. Stanley Warford & Matthew McRaven, Pepperdine
-   University
-
-    This program is free software: you can redistribute it and/or modify
-    it under the terms of the GNU General Public License as published by
-    the Free Software Foundation, either version 3 of the License, or
-    (at your option) any later version.
-
-    This program is distributed in the hope that it will be useful,
-    but WITHOUT ANY WARRANTY; without even the implied warranty of
-    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-    GNU General Public License for more details.
-
-    You should have received a copy of the GNU General Public License
-    along with this program.  If not, see <http://www.gnu.org/licenses/>.
-*/
-
 #include <QSharedPointer>
 #include <QtCore>
-
 #include "symbol_globals.hpp"
 #include "types.hpp"
 
@@ -219,8 +194,7 @@ public:
   // pointedSize is the number of bytes stored at the pointer, while pointerSize
   // is the number of bytes to store the pointer. i.e., in pep10 `x:.block 65`
   // would have a pointedSize of 65 and a pointerSize of 2.
-  explicit Location(quint16 pointedSize, quint16 pointerSize, quint64 base,
-                    quint64 offset, symbol::Type type);
+  explicit Location(quint16 pointedSize, quint16 pointerSize, quint64 base, quint64 offset, symbol::Type type);
   Location(const Location &other);
   Location(Location &&other) noexcept;
   Location &operator=(Location other);
@@ -330,8 +304,7 @@ private:
 class SYMBOL_EXPORT InternalPointer : public Abstract {
 public:
   explicit InternalPointer(quint16 ptrSize);
-  explicit InternalPointer(quint16 ptrSize,
-                           QSharedPointer<const symbol::Entry> ptr);
+  explicit InternalPointer(quint16 ptrSize, QSharedPointer<const symbol::Entry> ptr);
   InternalPointer(const InternalPointer &other);
   InternalPointer(InternalPointer &&other) noexcept;
   InternalPointer &operator=(InternalPointer other);

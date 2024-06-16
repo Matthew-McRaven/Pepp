@@ -119,16 +119,14 @@ TEST_CASE("Single symbol table", "[scope:asm.sym][kind:unit][arch:*]") {
   SECTION("Multiple references") {
     for (int it = 0; it < 4; it++) {
       auto st = QSharedPointer<symbol::Table>::create(2);
-      for (int i = 0; i < it; i++)
-        st->reference("hello");
+      for (int i = 0; i < it; i++) st->reference("hello");
       CHECK(st->reference("hello")->state == symbol::DefinitionState::kUndefined);
     }
   }
   SECTION("Multiple defines") {
     for (int it = 2; it < 4; it++) {
       auto st = QSharedPointer<symbol::Table>::create(2);
-      for (int i = 0; i < it; i++)
-        st->define("hello");
+      for (int i = 0; i < it; i++) st->define("hello");
       CHECK(st->reference("hello")->state == symbol::DefinitionState::kMultiple);
     }
   }

@@ -84,13 +84,10 @@ TEST_CASE("Copy bits", "[scope:bits][kind:unit][arch:*]") {
     auto dest_le = quint64_le{0};
     auto dest_be = quint64_be{0};
     quint8 *dest = nullptr;
-    if (destOrder == Order::BigEndian)
-      dest = reinterpret_cast<quint8 *>(&dest_be);
-    else if (destOrder == Order::LittleEndian)
-      dest = reinterpret_cast<quint8 *>(&dest_le);
+    if (destOrder == Order::BigEndian) dest = reinterpret_cast<quint8 *>(&dest_be);
+    else if (destOrder == Order::LittleEndian) dest = reinterpret_cast<quint8 *>(&dest_le);
     auto src = srcData.constData();
     memcpy_endian({dest, destLen}, destOrder, {src, srcLen}, srcOrder);
-    for (int it = 0; it < destLen; it++)
-      verify(dest, it, destGolden[it]);
+    for (int it = 0; it < destLen; it++) verify(dest, it, destGolden[it]);
   }
 }

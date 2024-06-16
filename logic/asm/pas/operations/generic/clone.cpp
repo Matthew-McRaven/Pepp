@@ -26,34 +26,27 @@
 #include "asm/symbol/fork.hpp"
 #include "asm/symbol/table.hpp"
 
-QSharedPointer<pas::ast::Node>
-pas::ops::generic::clone::operator()(const ast::Node &node) {
+QSharedPointer<pas::ast::Node> pas::ops::generic::clone::operator()(const ast::Node &node) {
   using namespace ast::generic;
   auto cloned = QSharedPointer<ast::Node>::create(node.get<Type>());
   auto attr = cloned->attributes();
   cloned->fromAttributes(attr);
   for (auto key = attr.keyBegin(); key != attr.keyEnd(); ++key) {
     if (*key == ast::generic::Argument::attributeName) {
-      auto symbolArg = dynamic_cast<ast::value::Symbolic *>(
-          node.get<Argument>().value.data());
+      auto symbolArg = dynamic_cast<ast::value::Symbolic *>(node.get<Argument>().value.data());
       if (symbolArg != nullptr) {
-        auto argument = QSharedPointer<ast::value::Symbolic>::create(
-            entry(&*symbolArg->symbol()));
+        auto argument = QSharedPointer<ast::value::Symbolic>::create(entry(&*symbolArg->symbol()));
         cloned->set(Argument{.value = argument});
-      } else
-        cloned->set(node.get<Argument>());
+      } else cloned->set(node.get<Argument>());
     } else if (*key == ast::generic::ArgumentList::attributeName) {
       auto args = node.get<ast::generic::ArgumentList>().value;
       for (int it = 0; it < args.size(); it++) {
         auto symbolArg = dynamic_cast<ast::value::Symbolic *>(args[it].data());
-        if (symbolArg != nullptr)
-          args[it] = QSharedPointer<ast::value::Symbolic>::create(
-              entry(&*symbolArg->symbol()));
+        if (symbolArg != nullptr) args[it] = QSharedPointer<ast::value::Symbolic>::create(entry(&*symbolArg->symbol()));
       }
       cloned->set(ArgumentList{.value = args});
     } else if (*key == ast::generic::SymbolTable::attributeName) {
-      cloned->set(SymbolTable{
-          .value = table(&*cloned->get<ast::generic::SymbolTable>().value)});
+      cloned->set(SymbolTable{.value = table(&*cloned->get<ast::generic::SymbolTable>().value)});
     } else if (*key == ast::generic::SymbolDeclaration::attributeName) {
       auto oldSymbolDec = node.get<SymbolDeclaration>().value;
       // Value replication is handled by symbol table `fork`.
@@ -67,12 +60,10 @@ pas::ops::generic::clone::operator()(const ast::Node &node) {
   }
   return cloned;
 }
-QSharedPointer<symbol::Entry>
-pas::ops::generic::clone::entry(const symbol::Entry *entry) {
+QSharedPointer<symbol::Entry> pas::ops::generic::clone::entry(const symbol::Entry *entry) {
   return mapping->map(entry);
 }
 
-QSharedPointer<symbol::Table>
-pas::ops::generic::clone::table(const symbol::Table *table) {
+QSharedPointer<symbol::Table> pas::ops::generic::clone::table(const symbol::Table *table) {
   return mapping->map(table);
 }
