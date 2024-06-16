@@ -2,6 +2,7 @@
 #include <QQmlEngine>
 #include <elfio/elfio.hpp>
 #include <sstream>
+#include "asm/pas/operations/pepp/bytes.hpp"
 #include "bits/strings.hpp"
 #include "cpu/formats.hpp"
 #include "help/builtins/figure.hpp"
@@ -472,7 +473,6 @@ void Pep10_ASMB::set(int abstraction, QString value) {
 QString Pep10_ASMB::userAsmText() const { return _userAsmText; }
 
 void Pep10_ASMB::setUserAsmText(const QString &userAsmText) {
-
   if (_userAsmText == userAsmText) return;
   _userAsmText = userAsmText;
   emit userAsmTextChanged();
@@ -514,11 +514,13 @@ bool Pep10_ASMB::onAssemble(bool doLoad) {
     qWarning() << "Assembly failed.";
     return false;
   }
+  auto userBytes = helper.bytes(false);
+  QString objectCodeText = pas::ops::pepp::bytesToObject(userBytes, 16);
   if (doLoad) {
-    auto userBytes = helper.bytes(false);
     _system->bus()->write(0, {userBytes.data(), std::size_t(userBytes.length())}, gs);
     _memory->onRepaintAddress(0, userBytes.length());
   }
+  setObjectCodeText(objectCodeText);
   return false;
 }
 
