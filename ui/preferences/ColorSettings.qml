@@ -8,9 +8,6 @@ import "." as Ui
 Rectangle {
   id: root
 
-  //  Used to paint screen
-  required property var preference
-
   //  Used for updates
   required property var model
 
@@ -142,7 +139,7 @@ Rectangle {
       label: Ui.GroupBoxLabel {
         textColor: palette.windowText
         backgroundColor: palette.window
-        text: "Update " + preference.name
+        text: "Update " + root.model.currentPref.name
       }
 
       background: Rectangle {
@@ -173,10 +170,10 @@ Rectangle {
             id: fgText
             Layout.preferredWidth: wrapper.colWidth
             Layout.preferredHeight: 20
-            color: preference.foreground
+            color:  root.model.currentPref.foreground
 
             onUpdatedColor: (newColor) => {
-              if(newColor !== preference.foreground) {
+              if(newColor !== root.model.currentPref.foreground ) {
 
                 //  Update model. Model will trigger screen repaint
                 model.updatePreference(preference.id,1,newColor)
@@ -219,10 +216,10 @@ Rectangle {
             id: bgText
             Layout.preferredWidth: wrapper.colWidth
             Layout.preferredHeight: 20
-            color: preference.background
+            color: root.model.currentPref.background
 
             onUpdatedColor: (newColor) => {
-              if(newColor !== preference.background) {
+              if(newColor !== root.model.currentPref.background) {
 
                 //  Update model. Model will trigger screen repaint
                 model.updatePreference(preference.id,2,newColor)
@@ -270,10 +267,10 @@ Rectangle {
             height: 40
             Layout.alignment: Qt.AlignLeft
 
-            bold:      preference.bold
-            italics:   preference.italics
-            underline: preference.underline
-            strikeout: preference.strikeout
+            bold:      root.model.currentPref.bold
+            italics:   root.model.currentPref.italics
+            underline: root.model.currentPref.underline
+            strikeout: root.model.currentPref.strikeout
 
             onUpdatedFont: (prop,flag) => {
 

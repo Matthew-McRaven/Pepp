@@ -121,25 +121,38 @@ Rectangle {
         border.color: palette.windowText
         border.width: 1
 
-        Ui.ColorSettings {
-          visible: !Theme.systemTheme
+        ColumnLayout {
           anchors.fill: parent
+          Rectangle {
+            color: 'red'
+            Layout.preferredWidth: 225
+            Layout.topMargin: 15
 
-          color: palette.window
+            Ui.ColorSettings {
+              id: settings
+              enabled: !Theme.systemTheme
+              anchors.fill: parent
 
-          //  Currently selected preference
-          preference: root.model.currentPref
-          model: root.model
-        }
-        Text {
-          visible: Theme.systemTheme
-          anchors.fill: parent
-          verticalAlignment: Text.AlignVCenter
-          wrapMode: Text.WordWrap
-          padding: 5
-          color: palette.windowText
+              color: palette.window
 
-          text: "<b>Builtin color schemes must be copied before they can be changed.<b>"
+              //  Currently selected preference
+              //preference: root.model.currentPref
+              model: root.model
+            }
+          }
+
+          //  Do not hide control or ColumnLayout will move ColorSettings
+          //  Hide text instead to keep consistent layout.
+          Text {
+            Layout.topMargin: 140
+            Layout.fillWidth: true
+            Layout.fillHeight: true
+            wrapMode: Text.WordWrap
+            padding: 15
+            color: Theme.systemTheme ? palette.windowText : "transparent"
+
+            text: "<b>Builtin color schemes must be copied before they can be changed.<b>"
+          }
         }
       }
     }
