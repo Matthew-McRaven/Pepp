@@ -62,7 +62,8 @@ class PREFS_EXPORT PreferenceModel : public QAbstractListModel {
   Q_OBJECT
 
   Q_PROPERTY(QFont font READ font     WRITE setFont   NOTIFY fontChanged)
-  Q_PROPERTY(Preference* currentPref  READ preference NOTIFY preferenceChanged)
+  //  When theme changes, current preference is updated.
+  Q_PROPERTY(Preference* currentPref  READ preference NOTIFY preferenceRefreshed)
   Q_PROPERTY(qint32 category          READ category   WRITE setCategory NOTIFY categoryChanged)
   Q_PROPERTY(QStringList categoryList MEMBER categoryList_ NOTIFY categoryChanged)
 
@@ -150,9 +151,17 @@ public:
 signals:
   void categoryChanged();
   void fontChanged();
+
+  //  Indicates that use updated preference data.
+  //  Triggers save button
   void preferenceChanged();
 
+  //  Indicates that user selected different preference
+  //  but data did not change. No Save action.
+  void preferenceRefreshed();
+
 public slots:
+  void onPreferenceRefreshed();
 
 protected: //  Role Names must be under protected
   QHash<int, QByteArray> roleNames() const override;

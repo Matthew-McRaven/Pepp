@@ -13,7 +13,6 @@ Rectangle {
   required property variant model
 
   RowLayout {
-  //Rectangle {
     anchors.fill: parent
 
     //  Category list
@@ -36,7 +35,6 @@ Rectangle {
       color: palette.base
       model: root.model
     }
-
   }
 }
 

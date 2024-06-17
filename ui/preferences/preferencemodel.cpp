@@ -22,11 +22,19 @@ PreferenceModel::PreferenceModel(Theme* theme,QObject *parent)
     //  Start with default preference
     current_ = theme_->preference(0);
 
-    //  Set dirty flag anytime a preference changes
+    //  Set dirty flag anytime a preference or font changes
     QObject::connect(this, &PreferenceModel::preferenceChanged,
                      theme, &Theme::setIsDirty);
+    QObject::connect(this, &PreferenceModel::fontChanged,
+                     theme, &Theme::setIsDirty);
 
+
+    QObject::connect(theme, &Theme::themesChanged,
+                     this, &PreferenceModel::onPreferenceRefreshed);
 }
+
+void PreferenceModel::onPreferenceRefreshed()
+{ emit preferenceRefreshed();}
 
 QFont PreferenceModel::font() const
 { return font_; }
@@ -136,8 +144,9 @@ QVariant PreferenceModel::data(const QModelIndex &index, int role) const
         else if(category_ == 2)
           offset = Themes::Roles::SeqCircuitRole;
 
-        if(auto* pref = theme_->preference(row + offset); pref != nullptr)
+        if(auto* pref = theme_->preference(row + offset); pref != nullptr) {
           return QVariant::fromValue(pref);
+        }
       }
       break;
 
@@ -168,7 +177,8 @@ bool PreferenceModel::setData(const QModelIndex &index, const QVariant &value, i
         //  Update current preference
         current_ = temp;
 
-        emit preferenceChanged();
+        //  Signal that preference selected is different
+        emit preferenceRefreshed();
 
         return true;
       }
@@ -275,4 +285,5 @@ void PreferenceModel::updatePreference(const quint32 key,
   //  If we get here, model was updated. End reset.
   endResetModel();
   emit preferenceChanged();
+  emit preferenceRefreshed();
 }

@@ -161,8 +161,8 @@ void Theme::selectTheme(const QString newTheme) {
   }
   //  Notify QML that theme has changed
   emit fontChanged();
-  emit preferenceChanged(); //  Required for screen refresh
   emit themesChanged();
+  emit preferenceChanged(); //  Required for screen refresh
 }
 
 void Theme::exportTheme(const QString file) const {
@@ -191,8 +191,8 @@ void Theme::importTheme(const QString file) {
 
   //  Notify QML that theme has changed
   emit fontChanged();
-  //emit preferenceChanged;
   emit themesChanged();
+  emit preferenceChanged();
 }
 
 void Theme::copyTheme(const QString theme) {
