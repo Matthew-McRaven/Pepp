@@ -10,6 +10,8 @@
 class Theme : public QObject {
   Q_OBJECT
 
+  //  Location in registry or config file for Theme settings
+  static const char *themeSettings;
   /*  See https://doc.qt.io/qt-6/qml-qtquick-colorgroup.html for
       color explanation
 
@@ -47,7 +49,7 @@ class Theme : public QObject {
   Q_PROPERTY(QStringList themes      READ themes      NOTIFY themesChanged)
 
   QString name_ = "Default";
-  QString version_ = "0.5";
+  QString version_ = "0.6";
   bool system_{true};
 
   //  Dirty flag is cleared on save (a const function)
@@ -73,6 +75,7 @@ public:
   };
 
   explicit Theme(QObject *parent = nullptr);
+  virtual ~Theme();
 
   //  Call back from QML to save specified theme
   Q_INVOKABLE void selectTheme(const QString file);
@@ -159,4 +162,5 @@ private:
   void loadMissing();
   void loadThemeList();
   void setDirty(bool flag=true);
+  void setFont(const QString family, const int pointSize);
 };

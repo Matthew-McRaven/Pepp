@@ -1,6 +1,6 @@
 {
     "font": {
-        "name": "Dark (copy)",
+        "familyName": "Courier New",
         "points": 12
     },
     "name": "Dark",
@@ -227,5 +227,5 @@
         }
     ],
     "system": true,
-    "version": "0.5"
+    "version": "0.6"
 }

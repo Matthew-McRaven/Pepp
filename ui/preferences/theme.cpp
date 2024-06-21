@@ -8,6 +8,10 @@
 #include <QJsonDocument>
 #include <QJsonObject>
 #include <QMetaEnum>  //  Cast enum integer to character name
+#include <QSettings>  //  Persist user state from last session
+
+//  Path for saving in registry or ini file
+const char *Theme::themeSettings = "ThemeSettings";
 
 Theme::Theme(QObject *parent)
     : QObject{parent}
@@ -26,16 +30,56 @@ Theme::Theme(QObject *parent)
 
   //  See if themes were found
   if(themes_.size() > 0) {
+    //  Use default Organization and applicaation name set in gui.cpp
+    //  using QApplication::setOrganizationName and setApplicationName
+    QSettings settings;
+    settings.beginGroup(themeSettings);
 
-    //  In future, this will load last saved theme. For now, it's hardcoded
-    load(systemPath_ + "Default.theme");
+    //  Retrieve last theme theme
+    auto lastTheme = settings.value("theme").toString();
+
+    if(lastTheme.isEmpty()) {
+      //  Fallback to default if no previous theme
+      load(systemPath_ + "Default.theme");
+    }
+    else {
+      load(lastTheme);
+    }
+
+    //  Load font
+    const auto family = settings.value("fontFamily").toString();
+    const auto size   = settings.value("fontSize").toInt();
+
+    //  If values are in registery, use them. Otherwise keep default
+    if(!family.isEmpty() && size > 0)
+      setFont(family, size);
+
+    //  Load last theme
+    settings.endGroup();
   }
-
-  //  Fill in any missing preferences. Should only occur if error in system
-  loadMissing();
+  else
+    //  System failure. Load hard-coded theme
+    load(systemPath_ + "Default.theme");
 
          //  Used to generate sample file
     //save("Default.theme");
+}
+
+Theme::~Theme() {
+  //  Save last user settings
+  //  Use default Organization and applicaation name set in gui.cpp
+  //  using QApplication::setOrganizationName and setApplicationName
+  QSettings settings;
+  settings.beginGroup(themeSettings);
+
+  //  Save current theme
+  settings.setValue("theme", currentTheme_);
+
+  //  Save current font
+  settings.setValue("fontFamily", font_.family());
+  settings.setValue("fontSize",   font_.pointSize());
+
+  settings.endGroup();
 }
 
 void Theme::loadThemeList() {
@@ -92,6 +136,37 @@ void Theme::load(const QString& file) {
     isDirty_ = false;
 }
 
+QJsonObject Theme::toJson() const {
+  QJsonObject doc;
+
+         //  Save font structure to document
+  doc["name"] = name_;
+  doc["version"] = version_;
+  doc["system"] = system_;
+
+  //  Font data saved but not used. Fonts are currently set for all
+  //  themes. If we decide to have a font for each theme, then
+  //  fromJson will be updated to use this data.
+  QJsonObject fontData;
+  fontData["familyName"]  = font_.family();
+  fontData["points"]      = font_.pointSize();
+
+         //  Save font structure to document
+  doc["font"] = fontData;
+
+  QJsonArray prefData;
+
+         //  Save individual preferences to an array
+  for(const auto& p : prefs_) {
+    prefData.append( p->toJson());
+  }
+
+         //  Append preferences to document
+  doc["preferences"] = prefData;
+
+  return doc;
+}
+
 void Theme::fromJson(const QJsonObject &json)
 {
   if (const QJsonValue v = json["name"]; v.isString())
@@ -101,10 +176,14 @@ void Theme::fromJson(const QJsonObject &json)
     version_ = v.toString();
   if (const QJsonValue v = json["system"]; v.isBool())
     system_ = v.toBool();
-  if (const QJsonValue v = json["name"]; v.isString())
+  //  Font data saved but not used. Fonts are currently set for all
+  //  themes. If we decide to have a font for each theme, then
+  //  fromJson will be updated to use this data.
+/*  if (const QJsonValue v = json["familyName"]; v.isString())
     font_.setFamily(v.toString());
   if (const QJsonValue v = json["points"]; v.isDouble())
      font_.setPointSize(v.toInt());
+*/
 
   //  Remove previous preferences
   prefs_.clear();
@@ -250,6 +329,7 @@ bool Theme::isDirty() const {
   return !system_ && isDirty_;
 }
 
+//  Used by slots
 void Theme::clearIsDirty() {
   setDirty(false);
 }
@@ -297,34 +377,6 @@ bool Theme::save(const QString& file) const {
   isDirty_ = false;
 
   return true;
-}
-
-QJsonObject Theme::toJson() const {
-  QJsonObject doc;
-
-  //  Save font structure to document
-  doc["name"] = name_;
-  doc["version"] = version_;
-  doc["system"] = system_;
-
-  QJsonObject fontData;
-  fontData["name"]    = font_.family();
-  fontData["points"]  = font_.pointSize();
-
-  //  Save font structure to document
-  doc["font"] = fontData;
-
-  QJsonArray prefData;
-
-  //  Save individual preferences to an array
-  for(const auto& p : prefs_) {
-    prefData.append( p->toJson());
-  }
-
-  //  Append preferences to document
-  doc["preferences"] = prefData;
-
-  return doc;
 }
 
 void Theme::loadMissing() {
@@ -438,7 +490,6 @@ void Theme::loadMissing() {
         return;
     }
     pref->setFont(&font_);
-    //prefs_.emplace_back(pref);
     prefs_[id] = pref;
   }
 }
@@ -447,11 +498,18 @@ QFont Theme::font() const {
     return font_;
 }
 
+//  Public QML interface
 void Theme::setFont(QFont font) {
-  font_.setFamily(font.family());
+  setFont(font.family(),font.pointSize());
+}
+
+//  Internal interface
+void Theme::setFont(const QString family, const int pointSize) {
+
+  font_.setFamily(family);
 
   //  Make sure font is at least 8 points
-  font_.setPointSize(std::max(font.pointSize(), 8));
+  font_.setPointSize(std::max(pointSize, 8));
 
   for (auto& it : prefs_) {
     it->setFont(&font_);
