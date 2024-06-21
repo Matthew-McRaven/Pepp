@@ -176,7 +176,7 @@ Rectangle {
               if(newColor !== root.model.currentPref.foreground ) {
 
                 //  Update model. Model will trigger screen repaint
-                model.updatePreference(preference.id,1,newColor)
+                model.updatePreference(root.model.currentPref.id,1,newColor)
                 //console.log("After pref.foreground: " + model.currentPref.foreground)
               }
             }
@@ -222,7 +222,7 @@ Rectangle {
               if(newColor !== root.model.currentPref.background) {
 
                 //  Update model. Model will trigger screen repaint
-                model.updatePreference(preference.id,2,newColor)
+                model.updatePreference(root.model.currentPref.id,2,newColor)
                 //console.log("After pref.foreground: " + model.currentPref.background)
               }
             }
@@ -275,7 +275,7 @@ Rectangle {
             onUpdatedFont: (prop,flag) => {
 
               //  Update model. Model will trigger screen repaint
-              model.updatePreference(preference.id,prop,flag)
+              model.updatePreference(root.model.currentPref.id,prop,flag)
               //console.log("After pref.foreground: " + prop +"="+flag)
             }
           }
