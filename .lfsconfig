@@ -1,0 +1,3 @@
+[lfs]
+fetchinclude = *
+fetchexclude = scintilla/doc/*.png scintilla/cocoa/res/*.png
