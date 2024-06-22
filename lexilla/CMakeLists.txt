@@ -16,8 +16,9 @@ file(GLOB_RECURSE lexilla_unit_sources CONFIGURE_DEPENDS "${CMAKE_CURRENT_LIST_D
 add_executable(lexilla_unit ${lexilla_unit_sources})
 target_compile_definitions(lexilla_unit PRIVATE LEXILLA_STATIC)
 set_target_properties(lexilla_unit PROPERTIES FOLDER "qtc_runnable")
-target_link_libraries(lexilla_unit PRIVATE lexilla)
+target_link_libraries(lexilla_unit PRIVATE lexilla scintilla_catch)
 add_test(NAME lexilla_unit COMMAND lexilla_unit WORKING_DIRECTORY test)
+target_include_directories(lexilla_unit PUBLIC "${PROJECT_SOURCE_DIR}/catch")
 
 add_executable(lexilla_test test/TestDocument.cxx test/TestLexers.cxx)
 # Does not create a dependency. If examples are updated, they will not be re-copied.
