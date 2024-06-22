@@ -33,7 +33,6 @@
 #include <QAction>
 #include <QTime>
 #include <QMessageBox>
-#include <QTextCodec>
 #include <QListWidget>
 #include <QVarLengthArray>
 #include <QScrollBar>
@@ -98,8 +97,9 @@ const char *CharacterSetID(CharacterSet characterSet)
 	}
 }
 
-QString UnicodeFromText(QTextCodec *codec, std::string_view text) {
-	return codec->toUnicode(text.data(), static_cast<int>(text.length()));
+QString UnicodeFromText(QStringDecoder *decoder, std::string_view text)
+{
+    return decoder->decode(text);
 }
 
 static QFont::StyleStrategy ChooseStrategy(FontQuality eff)
@@ -252,10 +252,10 @@ void SurfaceImpl::SetCodec(const Font *font)
 		if (!(mode.codePage == SC_CP_UTF8))
 			csid = CharacterSetID(pfacs->characterSet);
 		if (csid != codecName) {
-			codecName = csid;
-			codec = QTextCodec::codecForName(csid);
-		}
-	}
+            codecName = csid;
+            decoder = std::make_unique<QStringDecoder>(csid);
+        }
+    }
 }
 
 void SurfaceImpl::SetFont(const Font *font)
@@ -512,8 +512,8 @@ void SurfaceImpl::DrawTextNoClip(PRectangle rc,
 
 	GetPainter()->setBackground(QColorFromColourRGBA(back));
 	GetPainter()->setBackgroundMode(Qt::OpaqueMode);
-	QString su = UnicodeFromText(codec, text);
-	GetPainter()->drawText(QPointF(rc.left, ybase), su);
+    QString su = UnicodeFromText(decoder.get(), text);
+    GetPainter()->drawText(QPointF(rc.left, ybase), su);
 }
 
 void SurfaceImpl::DrawTextClipped(PRectangle rc,
@@ -538,8 +538,8 @@ void SurfaceImpl::DrawTextTransparent(PRectangle rc,
 	PenColour(fore);
 
 	GetPainter()->setBackgroundMode(Qt::TransparentMode);
-	QString su = UnicodeFromText(codec, text);
-	GetPainter()->drawText(QPointF(rc.left, ybase), su);
+    QString su = UnicodeFromText(decoder.get(), text);
+    GetPainter()->drawText(QPointF(rc.left, ybase), su);
 }
 
 void SurfaceImpl::SetClip(PRectangle rc)
@@ -560,9 +560,9 @@ void SurfaceImpl::MeasureWidths(const Font *font,
 	if (!font)
 		return;
 	SetCodec(font);
-	QString su = UnicodeFromText(codec, text);
-	QTextLayout tlay(su, *FontPointer(font), GetPaintDevice());
-	tlay.beginLayout();
+    QString su = UnicodeFromText(decoder.get(), text);
+    QTextLayout tlay(su, *FontPointer(font), GetPaintDevice());
+    tlay.beginLayout();
 	QTextLine tl = tlay.createLine();
 	tlay.endLayout();
 	if (mode.codePage == SC_CP_UTF8) {
@@ -608,7 +608,7 @@ XYPOSITION SurfaceImpl::WidthText(const Font *font, std::string_view text)
 {
 	QFontMetricsF metrics(*FontPointer(font), device);
 	SetCodec(font);
-	QString su = UnicodeFromText(codec, text);
+    QString su = UnicodeFromText(decoder.get(), text);
 #if QT_VERSION >= QT_VERSION_CHECK(6, 0, 0)
 	return metrics.horizontalAdvance(su);
 #else

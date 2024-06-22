@@ -24,11 +24,11 @@
 #include "ScintillaMessages.h"
 #include "Platform.h"
 
-#include <QUrl>
+#include <QHash>
 #include <QPaintDevice>
 #include <QPainter>
-#include <QHash>
-#include <QTextCodec>
+#include <QStringDecoder>
+#include <QUrl>
 
 namespace Scintilla::Internal {
 
@@ -75,10 +75,10 @@ private:
 	bool deviceOwned = false;
 	bool painterOwned = false;
 	SurfaceMode mode;
-	const char *codecName = nullptr;
-	QTextCodec *codec = nullptr;
+    const char *codecName = nullptr;
+    std::unique_ptr<QStringDecoder> decoder = nullptr;
 
-	void Clear();
+    void Clear();
 
 public:
 	SurfaceImpl();
