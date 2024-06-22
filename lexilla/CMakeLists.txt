@@ -5,7 +5,9 @@ file(GLOB_RECURSE lexers CONFIGURE_DEPENDS "${CMAKE_CURRENT_LIST_DIR}/lexers/*.c
 file(GLOB_RECURSE lexlib CONFIGURE_DEPENDS "${CMAKE_CURRENT_LIST_DIR}/lexlib/*.cxx" "${CMAKE_CURRENT_LIST_DIR}/lexlib/*.h")
 file(GLOB_RECURSE access CONFIGURE_DEPENDS "${CMAKE_CURRENT_LIST_DIR}/access/*.cxx" "${CMAKE_CURRENT_LIST_DIR}/access/*.h")
 
-add_library(lexilla STATIC ${sources} ${lexers} ${lexlib} ${access})
+add_library(lexilla SHARED ${sources} ${lexers} ${lexlib} ${access})
+# Even though library is shared, setting this value allows Lexilla to look for
+# lexers compiled into the library rather than in the filesystem.
 target_compile_definitions(lexilla PRIVATE LEXILLA_STATIC)
 target_include_directories(lexilla PUBLIC "${CMAKE_CURRENT_LIST_DIR}/lexlib"
  "${CMAKE_CURRENT_LIST_DIR}/include" "${CMAKE_CURRENT_LIST_DIR}/access"
