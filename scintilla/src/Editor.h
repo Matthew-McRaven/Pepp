@@ -1,4 +1,9 @@
 // Scintilla source code edit control
+
+#include "Platform.h"
+
+#include <memory>
+#include <optional>
 /** @file Editor.h
  ** Defines the main editor class.
  **/
@@ -605,12 +610,14 @@ protected:	// ScintillaBase subclass needs access to much of Editor
 	virtual bool ValidCodePage(int /* codePage */) const { return true; }
 	virtual std::string UTF8FromEncoded(std::string_view encoded) const = 0;
 	virtual std::string EncodedFromUTF8(std::string_view utf8) const = 0;
-	virtual std::unique_ptr<Surface> CreateMeasurementSurface() const;
-	virtual std::unique_ptr<Surface> CreateDrawingSurface(SurfaceID sid, std::optional<Scintilla::Technology> technologyOpt = {}) const;
+    virtual std::unique_ptr<Surface> CreateMeasurementSurface(
+        Scintilla::Internal::PainterID pid = nullptr) const;
+    virtual std::unique_ptr<Surface> CreateDrawingSurface(
+        SurfaceID sid, std::optional<Scintilla::Technology> technologyOpt = {}) const;
 
-	Sci::Line WrapCount(Sci::Line line);
-	void AddStyledText(const char *buffer, Sci::Position appendLength);
-	Sci::Position GetStyledText(char *buffer, Sci::Position cpMin, Sci::Position cpMax) const noexcept;
+    Sci::Line WrapCount(Sci::Line line);
+    void AddStyledText(const char *buffer, Sci::Position appendLength);
+    Sci::Position GetStyledText(char *buffer, Sci::Position cpMin, Sci::Position cpMax) const noexcept;
 	Sci::Position GetTextRange(char *buffer, Sci::Position cpMin, Sci::Position cpMax) const;
 
 	virtual Scintilla::sptr_t DefWndProc(Scintilla::Message iMessage, Scintilla::uptr_t wParam, Scintilla::sptr_t lParam) = 0;
@@ -706,17 +713,22 @@ public:
 class AutoSurface {
 private:
 	std::unique_ptr<Surface> surf;
+
 public:
-	AutoSurface(const Editor *ed) :
-		surf(ed->CreateMeasurementSurface())  {
-	}
-	AutoSurface(SurfaceID sid, const Editor *ed, std::optional<Scintilla::Technology> technology = {}) :
-		surf(ed->CreateDrawingSurface(sid, technology)) {
-	}
-	// Deleted so AutoSurface objects can not be copied.
-	AutoSurface(const AutoSurface &) = delete;
-	AutoSurface(AutoSurface &&) = delete;
-	void operator=(const AutoSurface &) = delete;
+    AutoSurface(const Editor *ed, Scintilla::Internal::PainterID pid = nullptr)
+        : surf(ed->CreateMeasurementSurface())
+    {
+        surf->Init(false, pid);
+    }
+    AutoSurface(SurfaceID sid,
+                const Editor *ed,
+                std::optional<Scintilla::Technology> technology = {})
+        : surf(ed->CreateDrawingSurface(sid, technology))
+    {}
+    // Deleted so AutoSurface objects can not be copied.
+    AutoSurface(const AutoSurface &) = delete;
+    AutoSurface(AutoSurface &&) = delete;
+    void operator=(const AutoSurface &) = delete;
 	void operator=(AutoSurface &&) = delete;
 	~AutoSurface() {
 	}

@@ -20,25 +20,32 @@
 #if QT_VERSION >= QT_VERSION_CHECK(5, 0, 0)
 #include <QScreen>
 #endif
-#include <QFont>
+#include <QAction>
 #include <QColor>
-#include <QRect>
+#include <QFont>
+#include <QLibrary>
+#include <QListWidget>
+#include <QMenu>
+#include <QMessageBox>
 #include <QPaintDevice>
 #include <QPaintEngine>
-#include <QWidget>
-#include <QPixmap>
 #include <QPainter>
 #include <QPainterPath>
-#include <QMenu>
-#include <QAction>
-#include <QTime>
-#include <QMessageBox>
-#include <QListWidget>
-#include <QVarLengthArray>
+#include <QPixmap>
+#include <QQuickPaintedItem>
+#include <QRect>
 #include <QScrollBar>
 #include <QTextLayout>
 #include <QTextLine>
-#include <QLibrary>
+#include <QTime>
+#include <QVarLengthArray>
+#include <QWidget>
+
+#ifdef PLAT_QT_QML
+extern void ProcessScintillaContextMenu(Scintilla::Internal::Point pt,
+                                        const Scintilla::Internal::Window &w,
+                                        const QList<QPair<QString, QPair<int, bool>>> &menu);
+#endif
 
 using namespace Scintilla;
 
@@ -183,16 +190,37 @@ void SurfaceImpl::Clear()
 	painterOwned = false;
 }
 
+void SurfaceImpl::Init(bool signatureFlag, PainterID pid)
+{
+    Q_UNUSED(signatureFlag);
+    Release();
+#ifdef PLAT_QT_QML
+    painter = static_cast<QPainter *>(pid);
+#else
+    Q_ASSERT(false);
+#endif
+}
+
 void SurfaceImpl::Init(WindowID wid)
 {
-	Release();
-	device = static_cast<QWidget *>(wid);
+    Release();
+#ifdef PLAT_QT_QML
+    Q_ASSERT(false);
+    Q_UNUSED(wid);
+#else
+    device = static_cast<QWidget *>(wid);
+#endif
 }
 
 void SurfaceImpl::Init(SurfaceID sid, WindowID /*wid*/)
 {
-	Release();
-	device = static_cast<QPaintDevice *>(sid);
+    Release();
+#ifdef PLAT_QT_QML
+    Q_ASSERT(false); // not supported yet, is it really needed ?
+    Q_UNUSED(sid);
+#else
+    device = static_cast<QPaintDevice *>(sid);
+#endif
 }
 
 std::unique_ptr<Surface> SurfaceImpl::AllocatePixMap(int width, int height)
@@ -221,7 +249,11 @@ int SurfaceImpl::SupportsFeature(Supports feature) noexcept
 
 bool SurfaceImpl::Initialised()
 {
-	return device != nullptr;
+#ifdef PLAT_QT_QML
+    return painter != nullptr;
+#else
+    return device != nullptr;
+#endif
 }
 
 void SurfaceImpl::PenColour(ColourRGBA fore)
@@ -269,7 +301,12 @@ void SurfaceImpl::SetFont(const Font *font)
 
 int SurfaceImpl::LogPixelsY()
 {
-	return device->logicalDpiY();
+#ifdef PLAT_QT_QML
+    // TODO --> improve for multiple screens !!!! get current screen... ?
+    return QGuiApplication::primaryScreen()->logicalDotsPerInchY();
+#else
+    return device->logicalDpiY();
+#endif
 }
 
 int SurfaceImpl::PixelDivisions()
@@ -563,45 +600,45 @@ void SurfaceImpl::MeasureWidths(const Font *font,
     QString su = UnicodeFromText(decoder.get(), text);
     QTextLayout tlay(su, *FontPointer(font), GetPaintDevice());
     tlay.beginLayout();
-	QTextLine tl = tlay.createLine();
-	tlay.endLayout();
-	if (mode.codePage == SC_CP_UTF8) {
-		int fit = su.size();
-		int ui=0;
-		size_t i=0;
-		while (ui<fit) {
-			const unsigned char uch = text[i];
-			const unsigned int byteCount = UTF8BytesOfLead[uch];
-			const int codeUnits = UTF16LengthFromUTF8ByteCount(byteCount);
-			qreal xPosition = tl.cursorToX(ui+codeUnits);
-			for (size_t bytePos=0; (bytePos<byteCount) && (i<text.length()); bytePos++) {
-				positions[i++] = xPosition;
-			}
-			ui += codeUnits;
-		}
-		XYPOSITION lastPos = 0;
-		if (i > 0)
-			lastPos = positions[i-1];
-		while (i<text.length()) {
-			positions[i++] = lastPos;
-		}
-	} else if (mode.codePage) {
-		// DBCS
-		int ui = 0;
-		for (size_t i=0; i<text.length();) {
-			size_t lenChar = DBCSIsLeadByte(mode.codePage, text[i]) ? 2 : 1;
-			qreal xPosition = tl.cursorToX(ui+1);
-			for (unsigned int bytePos=0; (bytePos<lenChar) && (i<text.length()); bytePos++) {
-				positions[i++] = xPosition;
-			}
-			ui++;
-		}
-	} else {
-		// Single byte encoding
-		for (int i=0; i<static_cast<int>(text.length()); i++) {
-			positions[i] = tl.cursorToX(i+1);
-		}
-	}
+    QTextLine tl = tlay.createLine();
+    tlay.endLayout();
+    if (mode.codePage == SC_CP_UTF8) {
+        int fit = su.size();
+        int ui = 0;
+        size_t i = 0;
+        while (ui < fit) {
+            const unsigned char uch = text[i];
+            const unsigned int byteCount = UTF8BytesOfLead[uch];
+            const int codeUnits = UTF16LengthFromUTF8ByteCount(byteCount);
+            qreal xPosition = tl.cursorToX(ui + codeUnits);
+            for (size_t bytePos = 0; (bytePos < byteCount) && (i < text.length()); bytePos++) {
+                positions[i++] = xPosition;
+            }
+            ui += codeUnits;
+        }
+        XYPOSITION lastPos = 0;
+        if (i > 0)
+            lastPos = positions[i - 1];
+        while (i < text.length()) {
+            positions[i++] = lastPos;
+        }
+    } else if (mode.codePage) {
+        // DBCS
+        int ui = 0;
+        for (size_t i = 0; i < text.length();) {
+            size_t lenChar = DBCSIsLeadByte(mode.codePage, text[i]) ? 2 : 1;
+            qreal xPosition = tl.cursorToX(ui + 1);
+            for (unsigned int bytePos = 0; (bytePos < lenChar) && (i < text.length()); bytePos++) {
+                positions[i++] = xPosition;
+            }
+            ui++;
+        }
+    } else {
+        // Single byte encoding
+        for (int i = 0; i < static_cast<int>(text.length()); i++) {
+            positions[i] = tl.cursorToX(i + 1);
+        }
+    }
 }
 
 XYPOSITION SurfaceImpl::WidthText(const Font *font, std::string_view text)
@@ -753,23 +790,25 @@ QPaintDevice *SurfaceImpl::GetPaintDevice()
 
 QPainter *SurfaceImpl::GetPainter()
 {
-	Q_ASSERT(device);
-	if (!painter) {
-		if (device->paintingActive()) {
-			painter = device->paintEngine()->painter();
-		} else {
-			painterOwned = true;
-			painter = new QPainter(device);
-		}
+#ifndef PLAT_QT_QML
+    Q_ASSERT(device);
+#endif
+    if (!painter) {
+        if (device->paintingActive()) {
+            painter = device->paintEngine()->painter();
+        } else {
+            painterOwned = true;
+            painter = new QPainter(device);
+        }
 
-		// Set text antialiasing unconditionally.
-		// The font's style strategy will override.
-		painter->setRenderHint(QPainter::TextAntialiasing, true);
+        // Set text antialiasing unconditionally.
+        // The font's style strategy will override.
+        painter->setRenderHint(QPainter::TextAntialiasing, true);
 
-		painter->setRenderHint(QPainter::Antialiasing, true);
-	}
+        painter->setRenderHint(QPainter::Antialiasing, true);
+    }
 
-	return painter;
+    return painter;
 }
 
 std::unique_ptr<Surface> Surface::Allocate(Technology)
@@ -782,10 +821,17 @@ std::unique_ptr<Surface> Surface::Allocate(Technology)
 
 namespace {
 
+#ifdef PLAT_QT_QML
+QQuickPaintedItem *window(WindowID wid) noexcept
+{
+    return static_cast<QQuickPaintedItem *>(wid);
+}
+#else
 QWidget *window(WindowID wid) noexcept
 {
-	return static_cast<QWidget *>(wid);
+    return static_cast<QWidget *>(wid);
 }
+#endif
 
 QRect ScreenRectangleForPoint(QPoint posGlobal)
 {
@@ -813,29 +859,45 @@ void Window::Destroy() noexcept
 }
 PRectangle Window::GetPosition() const
 {
-	// Before any size allocated pretend its 1000 wide so not scrolled
-	return wid ? PRectFromQRect(window(wid)->frameGeometry()) : PRectangle(0, 0, 1000, 1000);
+    // Before any size allocated pretend its 1000 wide so not scrolled
+#ifdef PLAT_QT_QML
+    return wid ? PRectFromQRectF(window(wid)->contentsBoundingRect())
+               : PRectangle(0, 0, 1000, 1000);
+#else
+    return wid ? PRectFromQRect(window(wid)->frameGeometry()) : PRectangle(0, 0, 1000, 1000);
+#endif
 }
 
 void Window::SetPosition(PRectangle rc)
 {
-	if (wid)
-		window(wid)->setGeometry(QRectFromPRect(rc));
+    if (wid) {
+#ifdef PLAT_QT_QML
+        QRect aRect = QRectFromPRect(rc);
+        window(wid)->setPosition(QPointF(aRect.x(), aRect.y()));
+        window(wid)->setSize(QSizeF(aRect.width(), aRect.height()));
+#else
+        window(wid)->setGeometry(QRectFromPRect(rc));
+#endif
+    }
 }
 
 void Window::SetPositionRelative(PRectangle rc, const Window *relativeTo)
 {
-	QPoint oPos = window(relativeTo->wid)->mapToGlobal(QPoint(0,0));
-	int ox = oPos.x();
-	int oy = oPos.y();
-	ox += rc.left;
-	oy += rc.top;
+#ifdef PLAT_QT_QML
+    QPointF oPos = window(relativeTo->wid)->mapToGlobal(QPointF(0, 0));
+#else
+    QPoint oPos = window(relativeTo->wid)->mapToGlobal(QPoint(0, 0));
+#endif
+    int ox = oPos.x();
+    int oy = oPos.y();
+    ox += rc.left;
+    oy += rc.top;
 
-	const QRect rectDesk = ScreenRectangleForPoint(QPoint(ox, oy));
-	/* do some corrections to fit into screen */
-	int sizex = rc.right - rc.left;
-	int sizey = rc.bottom - rc.top;
-	int screenWidth = rectDesk.width();
+    const QRect rectDesk = ScreenRectangleForPoint(QPoint(ox, oy));
+    /* do some corrections to fit into screen */
+    int sizex = rc.right - rc.left;
+    int sizey = rc.bottom - rc.top;
+    int screenWidth = rectDesk.width();
 	if (ox < rectDesk.x())
 		ox = rectDesk.x();
 	if (sizex > screenWidth)
@@ -848,8 +910,13 @@ void Window::SetPositionRelative(PRectangle rc, const Window *relativeTo)
 		oy = rectDesk.top();
 
 	Q_ASSERT(wid);
-	window(wid)->move(ox, oy);
-	window(wid)->resize(sizex, sizey);
+#ifdef PLAT_QT_QML
+    window(wid)->setPosition(QPointF(ox, oy));
+    window(wid)->setSize(QSizeF(sizex, sizey));
+#else
+    window(wid)->move(ox, oy);
+    window(wid)->resize(sizex, sizey);
+#endif
 }
 
 PRectangle Window::GetClientPosition() const
@@ -905,11 +972,21 @@ void Window::SetCursor(Cursor curs)
    window coordinates */
 PRectangle Window::GetMonitorRect(Point pt)
 {
-	const QPoint posGlobal = window(wid)->mapToGlobal(QPoint(pt.x, pt.y));
-	const QPoint originGlobal = window(wid)->mapToGlobal(QPoint(0, 0));
-	QRect rectScreen = ScreenRectangleForPoint(posGlobal);
-	rectScreen.translate(-originGlobal.x(), -originGlobal.y());
-	return PRectFromQRect(rectScreen);
+#ifdef PLAT_QT_QML
+    const QPointF originGlobal = window(wid)->mapToGlobal(QPoint(0, 0));
+    const QPointF posGlobal = window(wid)->mapToGlobal(QPoint(pt.x, pt.y));
+#else
+    const QPoint posGlobal = window(wid)->mapToGlobal(QPoint(pt.x, pt.y));
+    const QPoint originGlobal = window(wid)->mapToGlobal(QPoint(0, 0));
+#endif
+#ifdef PLAT_QT_QML
+    const QScreen *screen = QGuiApplication::screenAt(QPoint(posGlobal.x(), posGlobal.y()));
+    QRect rectScreen = screen->availableGeometry();
+#else
+    QRect rectScreen = ScreenRectangleForPoint(posGlobal);
+#endif
+    rectScreen.translate(-originGlobal.x(), -originGlobal.y());
+    return PRectFromQRect(rectScreen);
 }
 
 //----------------------------------------------------------------------
@@ -1269,22 +1346,38 @@ Menu::Menu() noexcept : mid(nullptr) {}
 void Menu::CreatePopUp()
 {
 	Destroy();
-	mid = new QMenu();
+#ifndef PLAT_QT_QML
+    mid = new QMenu();
+#else
+    mid = new QList<QPair<QString, QPair<int, bool>>>(); // text, menuId, enabled
+#endif
 }
 
 void Menu::Destroy() noexcept
 {
-	if (mid) {
-		QMenu *menu = static_cast<QMenu *>(mid);
-		delete menu;
-	}
-	mid = nullptr;
+    if (mid) {
+#ifndef PLAT_QT_QML
+        QMenu *menu = static_cast<QMenu *>(mid);
+        delete menu;
+#else
+        QList<QPair<QString, QPair<int, bool>>> *menu
+            = static_cast<QList<QPair<QString, QPair<int, bool>>> *>(mid);
+        delete menu;
+#endif
+    }
+    mid = nullptr;
 }
-void Menu::Show(Point pt, const Window & /*w*/)
+void Menu::Show(Point pt, const Window &w)
 {
-	QMenu *menu = static_cast<QMenu *>(mid);
-	menu->exec(QPoint(pt.x, pt.y));
-	Destroy();
+#ifndef PLAT_QT_QML
+    QMenu *menu = static_cast<QMenu *>(mid);
+    menu->exec(QPoint(pt.x, pt.y));
+#else
+    QList<QPair<QString, QPair<int, bool>>> *menu
+        = static_cast<QList<QPair<QString, QPair<int, bool>>> *>(mid);
+    ProcessScintillaContextMenu(pt, w, *menu);
+#endif;
+    Destroy();
 }
 
 //----------------------------------------------------------------------

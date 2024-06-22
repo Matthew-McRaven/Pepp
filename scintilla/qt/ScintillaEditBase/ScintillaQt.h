@@ -67,11 +67,12 @@
 #include "ScintillaBase.h"
 #include "CaseConvert.h"
 
-#include <QObject>
 #include <QAbstractScrollArea>
 #include <QAction>
 #include <QClipboard>
+#include <QObject>
 #include <QPaintEvent>
+#include <QQuickPaintedItem>
 
 class ScintillaEditBase;
 
@@ -81,13 +82,21 @@ class ScintillaQt : public QObject, public ScintillaBase {
 	Q_OBJECT
 
 public:
-	explicit ScintillaQt(QAbstractScrollArea *parent);
-	virtual ~ScintillaQt();
+#ifdef PLAT_QT_QML
+    explicit ScintillaQt(QQuickPaintedItem *parent);
+    void UpdateInfos(int winId);
+    QQuickPaintedItem *GetScrollArea() { return scrollArea; }
+    void selectCurrentWord();
+#else
+    explicit ScintillaQt(QAbstractScrollArea *parent);
+#endif
+    virtual ~ScintillaQt();
 
 signals:
-	void horizontalScrolled(int value);
-	void verticalScrolled(int value);
-	void horizontalRangeChanged(int max, int page);
+    void cursorPositionChanged();
+    void horizontalScrolled(int value);
+    void verticalScrolled(int value);
+    void horizontalRangeChanged(int max, int page);
 	void verticalRangeChanged(int max, int page);
 
 	void notifyParent(Scintilla::NotificationData scn);
@@ -154,12 +163,14 @@ private:
 				     unsigned int iMessage, uptr_t wParam, sptr_t lParam);
 	static sptr_t DirectStatusFunction(sptr_t ptr,
 				     unsigned int iMessage, uptr_t wParam, sptr_t lParam, int *pStatus);
-
+#ifdef PLAT_QT_QML
+    QPainter *GetPainter() { return currentPainter; }
+#endif
 protected:
+    void PartialPaint(const PRectangle &rect);
+    void PartialPaintQml(const PRectangle &rect, QPainter *painter);
 
-	void PartialPaint(const PRectangle &rect);
-
-	void DragEnter(const Point &point);
+    void DragEnter(const Point &point);
 	void DragMove(const Point &point);
 	void DragLeave();
 	void Drop(const Point &point, const QMimeData *data, bool move);
@@ -168,16 +179,24 @@ protected:
 	void timerEvent(QTimerEvent *event) override;
 
 private:
-	QAbstractScrollArea *scrollArea;
+#ifdef PLAT_QT_QML
+    QQuickPaintedItem *scrollArea; // is a ScintillaEditBase
+#else
+    QAbstractScrollArea *scrollArea;
+#endif
 
-	int vMax, hMax;   // Scroll bar maximums.
-	int vPage, hPage; // Scroll bar page sizes.
+    int vMax, hMax;   // Scroll bar maximums.
+    int vPage, hPage; // Scroll bar page sizes.
 
-	bool haveMouseCapture;
-	bool dragWasDropped;
-	int rectangularSelectionModifier;
+    bool haveMouseCapture;
+    bool dragWasDropped;
+    int rectangularSelectionModifier;
 
-	friend class ::ScintillaEditBase;
+#ifdef PLAT_QT_QML
+    QPainter *currentPainter; // temporary variable for paint() handling
+#endif
+
+    friend class ::ScintillaEditBase;
 };
 
 }

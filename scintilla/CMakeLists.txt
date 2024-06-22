@@ -20,4 +20,4 @@ file(GLOB_RECURSE qt_sources CONFIGURE_DEPENDS "${CMAKE_CURRENT_LIST_DIR}/qt/*.c
 add_library(scintilla_qt STATIC ${qt_sources})
 target_include_directories(scintilla_qt PUBLIC "${CMAKE_CURRENT_LIST_DIR}/qt")
 target_link_libraries(scintilla_qt PUBLIC scintilla_core Qt6::Quick Qt6::Core Qt6::Gui Qt6::Qml Qt6::Widgets)
-target_compile_definitions(scintilla_qt PRIVATE MAKING_LIBRARY=1)
+target_compile_definitions(scintilla_qt PRIVATE MAKING_LIBRARY=1 SCINTILLA_QT_QML=1)

@@ -1,4 +1,6 @@
 // Scintilla source code edit control
+
+#include <assert.h>
 /** @file Platform.h
  ** Interface to platform facilities. Also includes some basic utilities.
  ** Implemented in PlatGTK.cxx for GTK+/Linux, PlatWin.cxx for Windows, and PlatWX.cxx for wxWindows.
@@ -92,6 +94,7 @@ typedef void *MenuID;
 typedef void *TickerID;
 typedef void *Function;
 typedef void *IdlerID;
+typedef void *PainterID;
 
 /**
  * Font management.
@@ -191,9 +194,14 @@ public:
 	virtual ~Surface() noexcept = default;
 	static std::unique_ptr<Surface> Allocate(Scintilla::Technology technology);
 
-	virtual void Init(WindowID wid)=0;
-	virtual void Init(SurfaceID sid, WindowID wid)=0;
-	virtual std::unique_ptr<Surface> AllocatePixMap(int width, int height)=0;
+    // this method is only needed for QtQuick/QML support and must be overwritten in a derived class !
+    virtual void Init(bool /*signatureFlag*/, Scintilla::Internal::PainterID /*pid*/)
+    {
+        assert(false);
+    }
+    virtual void Init(WindowID wid) = 0;
+    virtual void Init(SurfaceID sid, WindowID wid) = 0;
+    virtual std::unique_ptr<Surface> AllocatePixMap(int width, int height)=0;
 
 	virtual void SetMode(SurfaceMode mode)=0;
 

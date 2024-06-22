@@ -54,6 +54,13 @@ inline PRectangle PRectFromQRect(QRect qr)
 	return PRectangle(qr.x(), qr.y(), qr.x() + qr.width(), qr.y() + qr.height());
 }
 
+#ifdef PLAT_QT_QML
+inline PRectangle PRectFromQRectF(QRectF qr)
+{
+    return PRectangle(qr.x(), qr.y(), qr.x() + qr.width(), qr.y() + qr.height());
+}
+#endif
+
 inline Point PointFromQPoint(QPoint qp)
 {
 	return Point(qp.x(), qp.y());
@@ -85,9 +92,10 @@ public:
 	SurfaceImpl(int width, int height, SurfaceMode mode_);
 	virtual ~SurfaceImpl() override;
 
-	void Init(WindowID wid) override;
-	void Init(SurfaceID sid, WindowID wid) override;
-	std::unique_ptr<Surface> AllocatePixMap(int width, int height) override;
+    void Init(bool, PainterID pid) override;
+    void Init(WindowID wid) override;
+    void Init(SurfaceID sid, WindowID wid) override;
+    std::unique_ptr<Surface> AllocatePixMap(int width, int height) override;
 
 	void SetMode(SurfaceMode mode) override;
 

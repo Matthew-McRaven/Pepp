@@ -5862,7 +5862,7 @@ int Editor::CodePage() const noexcept {
 		return 0;
 }
 
-std::unique_ptr<Surface> Editor::CreateMeasurementSurface() const {
+std::unique_ptr<Surface> Editor::CreateMeasurementSurface(Scintilla::Internal::PainterID pid) const {
 	if (!wMain.GetID()) {
 		return {};
 	}
