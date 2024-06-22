@@ -12,3 +12,11 @@ target_include_directories(lexilla PUBLIC "${CMAKE_CURRENT_LIST_DIR}/lexlib"
  "${CMAKE_CURRENT_LIST_DIR}/include" "${CMAKE_CURRENT_LIST_DIR}/access"
  "${CMAKE_CURRENT_LIST_DIR}/../scintilla/include"
  )
+
+add_executable(lexilla_test test/TestDocument.cxx test/TestLexers.cxx)
+# Does not create a dependency. If examples are updated, they will not be re-copied.
+file(COPY ${CMAKE_CURRENT_LIST_DIR}/test/examples DESTINATION ${CMAKE_CURRENT_BINARY_DIR}/test)
+target_compile_definitions(lexilla_test PRIVATE LEXILLA_STATIC)
+set_target_properties(lexilla_test PROPERTIES FOLDER "qtc_runnable")
+target_link_libraries(lexilla_test PRIVATE lexilla)
+add_test(NAME lexilla_test COMMAND lexilla_test WORKING_DIRECTORY test)

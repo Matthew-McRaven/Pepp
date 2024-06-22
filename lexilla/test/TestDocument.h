@@ -1,4 +1,8 @@
 // Lexilla lexer library
+
+#include <ILexer.h>
+#include <string_view>
+#include <vector>
 /** @file TestDocument.h
  ** Lexer testing.
  **/

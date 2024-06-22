@@ -835,15 +835,15 @@ bool TestFile(const std::filesystem::path &path, const PropertyMap &propertyMap)
 		std::cout << "\n" << path.string() << ":1: has no language\n\n";
 		return false;
 	}
-	Scintilla::ILexer5 *plex = Lexilla::MakeLexer(*language);
-	if (!plex) {
-		std::cout << "\n" << path.string() << ":1: has no lexer for " << *language << "\n\n";
-		return false;
-	}
+    Scintilla::ILexer5 *plex = Lexilla::MakeLexer(*language);
+    if (!plex) {
+        std::cout << "\n" << path.string() << ":1: has no lexer for " << *language << "\n\n";
+        return false;
+    }
 
-	TestILexer(plex);
+    TestILexer(plex);
 
-	if (!SetProperties(plex, *language, propertyMap, path)) {
+    if (!SetProperties(plex, *language, propertyMap, path)) {
 		return false;
 	}
 
@@ -988,9 +988,10 @@ std::filesystem::path FindLexillaDirectory(std::filesystem::path startDirectory)
 
 
 int main(int argc, char **argv) {
-	bool success = false;
-	const std::filesystem::path baseDirectory = FindLexillaDirectory(std::filesystem::current_path());
-	if (!baseDirectory.empty()) {
+    bool success = false;
+    const std::filesystem::path baseDirectory = FindLexillaDirectory(
+        std::filesystem::current_path());
+    if (!baseDirectory.empty()) {
 #if !defined(LEXILLA_STATIC)
 		const std::filesystem::path sharedLibrary = baseDirectory / "bin" / LEXILLA_LIB;
 		if (!Lexilla::Load(sharedLibrary.string())) {
@@ -1005,6 +1006,6 @@ int main(int argc, char **argv) {
 			}
 		}
 		success = AccessLexilla(examplesDirectory);
-	}
-	return success ? 0 : 1;
+    }
+    return success ? 0 : 1;
 }
