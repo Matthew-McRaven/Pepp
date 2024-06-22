@@ -1,6 +1,7 @@
 file(GLOB_RECURSE core_sources CONFIGURE_DEPENDS "${CMAKE_CURRENT_LIST_DIR}/src/*.cxx" "${CMAKE_CURRENT_LIST_DIR}/include/*.h")
 
-add_library(scintilla_core STATIC ${core_sources})
+add_library(scintilla_core STATIC ${core_sources}
+  qt/ScintillaEditBase/ScintillaText.qml)
 target_include_directories(scintilla_core PUBLIC "${CMAKE_CURRENT_LIST_DIR}/src" "${CMAKE_CURRENT_LIST_DIR}/include")
 target_link_libraries(scintilla_core PUBLIC lexilla)
 
@@ -17,7 +18,14 @@ set(CMAKE_AUTOMOC ON)
 set(CMAKE_AUTORCC ON)
 
 file(GLOB_RECURSE qt_sources CONFIGURE_DEPENDS "${CMAKE_CURRENT_LIST_DIR}/qt/*.cpp")
-add_library(scintilla_qt STATIC ${qt_sources})
+qt_add_qml_module(scintilla_qt
+    URI edu.pepp
+    VERSION 5.5.0
+    SOURCES
+        ${qt_sources}
+    QML_FILES
+        qt/ScintillaEditBase/ScintillaText.qml
+)
 target_include_directories(scintilla_qt PUBLIC "${CMAKE_CURRENT_LIST_DIR}/qt")
 target_link_libraries(scintilla_qt PUBLIC scintilla_core Qt6::Quick Qt6::Core Qt6::Gui Qt6::Qml Qt6::Widgets)
 target_compile_definitions(scintilla_qt PRIVATE MAKING_LIBRARY=1 SCINTILLA_QT_QML=1)
