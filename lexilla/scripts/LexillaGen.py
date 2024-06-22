@@ -22,75 +22,9 @@ from FileGenerator import Regenerate, UpdateLineInFile, \
 import LexillaData
 import LexFacer
 
-sys.path.append(str(thisPath.parent.parent / "src"))
-import DepGen
-
-# RegenerateXcodeProject and associated functions are copied from scintilla/scripts/LexGen.py
-
-def uid24():
-    """ Last 24 digits of UUID, used for item IDs in Xcode. """
-    return str(uuid.uuid4()).replace("-", "").upper()[-24:]
-
 def ciLexerKey(a):
     """ Return 3rd element of string lowered to be used when sorting. """
     return a.split()[2].lower()
-
-
-"""
-		11F35FDB12AEFAF100F0236D /* LexA68k.cxx in Sources */ = {isa = PBXBuildFile; fileRef = 11F35FDA12AEFAF100F0236D /* LexA68k.cxx */; };
-		11F35FDA12AEFAF100F0236D /* LexA68k.cxx */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; name = LexA68k.cxx; path = ../../lexers/LexA68k.cxx; sourceTree = SOURCE_ROOT; };
-				11F35FDA12AEFAF100F0236D /* LexA68k.cxx */,
-				11F35FDB12AEFAF100F0236D /* LexA68k.cxx in Sources */,
-"""
-def RegenerateXcodeProject(path, lexers, lexerReferences):
-    """ Regenerate project to include any new lexers. """
-    # Build 4 blocks for insertion:
-    # Each markers contains a unique section start, an optional wait string, and a section end
-
-    markersPBXBuildFile = ["Begin PBXBuildFile section", "", "End PBXBuildFile section"]
-    sectionPBXBuildFile = []
-
-    markersPBXFileReference = ["Begin PBXFileReference section", "", "End PBXFileReference section"]
-    sectionPBXFileReference = []
-
-    markersLexers = ["/* Lexers */ =", "children", ");"]
-    sectionLexers = []
-
-    markersPBXSourcesBuildPhase = ["Begin PBXSourcesBuildPhase section", "files", ");"]
-    sectionPBXSourcesBuildPhase = []
-
-    for lexer in lexers:
-        if lexer not in lexerReferences:
-            uid1 = uid24()
-            uid2 = uid24()
-            print("Lexer", lexer, "is not in Xcode project. Use IDs", uid1, uid2)
-            lexerReferences[lexer] = [uid1, uid2]
-            linePBXBuildFile = f"\t\t{uid1} /* {lexer}.cxx in Sources */ = {{isa = PBXBuildFile; fileRef = {uid2} /* {lexer}.cxx */; }};"
-            linePBXFileReference = f"\t\t{uid2} /* {lexer}.cxx */ = {{isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; name = {lexer}.cxx; path = ../../lexers/{lexer}.cxx; sourceTree = SOURCE_ROOT; }};"
-            lineLexers = f"\t\t\t\t{uid2} /* {lexer}.cxx */,"
-            linePBXSourcesBuildPhase = f"\t\t\t\t{uid1} /* {lexer}.cxx in Sources */,"
-            sectionPBXBuildFile.append(linePBXBuildFile)
-            sectionPBXFileReference.append(linePBXFileReference)
-            sectionLexers.append(lineLexers)
-            sectionPBXSourcesBuildPhase.append(linePBXSourcesBuildPhase)
-
-    lines = LexillaData.ReadFileAsList(path)
-
-    sli = LexillaData.FindSectionInList(lines, markersPBXBuildFile)
-    lines[sli.stop:sli.stop] = sectionPBXBuildFile
-
-    sli = LexillaData.FindSectionInList(lines, markersPBXFileReference)
-    lines[sli.stop:sli.stop] = sectionPBXFileReference
-
-    sli = LexillaData.FindSectionInList(lines, markersLexers)
-    # This section is shown in the project outline so sort it to make it easier to navigate.
-    allLexers = sorted(lines[sli.start:sli.stop] + sectionLexers, key=ciLexerKey)
-    lines[sli] = allLexers
-
-    sli = LexillaData.FindSectionInList(lines, markersPBXSourcesBuildPhase)
-    lines[sli.stop:sli.stop] = sectionPBXSourcesBuildPhase
-
-    UpdateFileFromLines(path, lines, os.linesep)
 
 def RegenerateAll(rootDirectory):
     """ Regenerate all the files. """
@@ -106,7 +40,6 @@ def RegenerateAll(rootDirectory):
     docDir = lexillaDir / "doc"
 
     Regenerate(srcDir / "Lexilla.cxx", "//", lex.lexerModules)
-    Regenerate(srcDir / "lexilla.mak", "#", lex.lexFiles)
 
     # Discover version information
     version = (lexillaDir / "version.txt").read_text().strip()
@@ -141,25 +74,8 @@ def RegenerateAll(rootDirectory):
         '	Released ' + lex.dmyModified + '.')
 
     lexillaXcode = lexillaDir / "src" / "Lexilla"
-    lexillaXcodeProject = lexillaXcode / "Lexilla.xcodeproj" / "project.pbxproj"
-
-    lexerReferences = LexillaData.FindLexersInXcode(lexillaXcodeProject)
-
-    UpdateLineInPlistFile(lexillaXcode / "Info.plist",
-        "CFBundleShortVersionString", versionDotted)
-
-    ReplaceREInFile(lexillaXcodeProject, "CURRENT_PROJECT_VERSION = [0-9.]+;",
-        f'CURRENT_PROJECT_VERSION = {versionDotted};',
-        0)
-
-    RegenerateXcodeProject(lexillaXcodeProject, lex.lexFiles, lexerReferences)
 
     LexFacer.RegenerateAll(root, False)
-
-    currentDirectory = pathlib.Path.cwd()
-    os.chdir(srcDir)
-    DepGen.Generate()
-    os.chdir(currentDirectory)
 
 if __name__=="__main__":
     RegenerateAll(pathlib.Path(__file__).resolve().parent.parent)

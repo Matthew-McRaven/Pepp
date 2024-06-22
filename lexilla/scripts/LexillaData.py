@@ -302,8 +302,6 @@ class LexillaData:
         self.lexerProperties = list(lexerProperties)
         SortListInsensitive(self.lexerProperties)
 
-        self.lexersXcode = FindLexersInXcode(scintillaRoot /
-            "src/Lexilla/Lexilla.xcodeproj/project.pbxproj")
         self.credits = FindCredits(scintillaRoot / "doc" / "LexillaHistory.html")
 
 def printWrapped(text):
