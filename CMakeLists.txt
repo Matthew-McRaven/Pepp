@@ -1,3 +1,4 @@
+cmake_minimum_required(VERSION 3.24)
 project(Scintilla LANGUAGES CXX)
 # Needed so GENERATED is propogated
 # See: https://cmake.org/cmake/help/latest/policy/CMP0118.html
