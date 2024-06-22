@@ -1,3 +1,4 @@
+#pragma once
 // Scintilla source code edit control
 /** @file PropSetSimple.h
  ** A basic string to string map.
@@ -5,13 +6,14 @@
 // Copyright 1998-2009 by Neil Hodgson <neilh@scintilla.org>
 // The License.txt file describes the conditions under which this software may be distributed.
 
-#ifndef PROPSETSIMPLE_H
-#define PROPSETSIMPLE_H
+#include <string_view>
+#include "lexilla_globals.h"
 
 namespace Lexilla {
 
-class PropSetSimple {
-	void *impl;
+class LEXILLA_EXPORT PropSetSimple {
+  void *impl;
+
 public:
 	PropSetSimple();
 	// Deleted so PropSetSimple objects can not be copied.
@@ -25,7 +27,5 @@ public:
 	const char *Get(std::string_view key) const;
 	int GetInt(std::string_view key, int defaultValue=0) const;
 };
-
 }
 
-#endif

@@ -1,3 +1,4 @@
+#pragma once
 // Scintilla source code edit control
 /** @file DefaultLexer.h
  ** A lexer base class with default empty implementations of methods.
@@ -7,15 +8,16 @@
 // Copyright 2017 by Neil Hodgson <neilh@scintilla.org>
 // The License.txt file describes the conditions under which this software may be distributed.
 
-#ifndef DEFAULTLEXER_H
-#define DEFAULTLEXER_H
+#include "ILexer.h"
+#include "LexAccessor.h"
+#include "lexilla_globals.h"
 
 namespace Lexilla {
 
 // A simple lexer with no state
-class DefaultLexer : public Scintilla::ILexer5 {
-	const char *languageName;
-	int language;
+class LEXILLA_EXPORT DefaultLexer : public Scintilla::ILexer5 {
+  const char *languageName;
+  int language;
 	const LexicalClass *lexClasses;
 	size_t nClasses;
 public:
@@ -51,7 +53,5 @@ public:
 	const char * SCI_METHOD GetName() override;
 	int SCI_METHOD GetIdentifier() override;
 };
-
 }
 
-#endif

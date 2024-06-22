@@ -8,23 +8,19 @@
 // Copyright 2019 by Neil Hodgson <neilh@scintilla.org>
 // The License.txt file describes the conditions under which this software may be distributed.
 
-#include <cstring>
-
-#include <string>
-#include <string_view>
-#include <vector>
-#include <set>
-
 #if !defined(_WIN32)
 #include <dlfcn.h>
 #else
 #include <windows.h>
 #endif
 
+#include <cstring>
+#include <set>
+#include <string>
+#include <string_view>
+#include <vector>
 #include "ILexer.h"
-
 #include "Lexilla.h"
-
 #include "LexillaAccess.h"
 
 namespace {

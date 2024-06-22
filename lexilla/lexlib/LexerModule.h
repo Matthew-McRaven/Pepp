@@ -1,3 +1,4 @@
+#pragma once
 // Scintilla source code edit control
 /** @file LexerModule.h
  ** Colourise for particular languages.
@@ -5,8 +6,9 @@
 // Copyright 1998-2001 by Neil Hodgson <neilh@scintilla.org>
 // The License.txt file describes the conditions under which this software may be distributed.
 
-#ifndef LEXERMODULE_H
-#define LEXERMODULE_H
+#include "ILexer.h"
+#include "Sci_Position.h"
+#include "lexilla_globals.h"
 
 namespace Lexilla {
 
@@ -14,8 +16,8 @@ class Accessor;
 class WordList;
 struct LexicalClass;
 
-typedef void (*LexerFunction)(Sci_PositionU startPos, Sci_Position lengthDoc, int initStyle,
-                  WordList *keywordlists[], Accessor &styler);
+typedef void (*LexerFunction)(Sci_PositionU startPos, Sci_Position lengthDoc, int initStyle, WordList *keywordlists[],
+                              Accessor &styler);
 typedef Scintilla::ILexer5 *(*LexerFactoryFunction)();
 
 /**
@@ -24,56 +26,46 @@ typedef Scintilla::ILexer5 *(*LexerFactoryFunction)();
  * module appropriate to a particular language.
  * The ExternalLexerModule subclass holds lexers loaded from DLLs or shared libraries.
  */
-class LexerModule {
+class LEXILLA_EXPORT LexerModule {
 protected:
-	int language;
-	LexerFunction fnLexer;
-	LexerFunction fnFolder;
-	LexerFactoryFunction fnFactory;
-	const char * const * wordListDescriptions;
-	const LexicalClass *lexClasses;
-	size_t nClasses;
+  int language;
+  LexerFunction fnLexer;
+  LexerFunction fnFolder;
+  LexerFactoryFunction fnFactory;
+  const char *const *wordListDescriptions;
+  const LexicalClass *lexClasses;
+  size_t nClasses;
 
 public:
-	const char *languageName;
-	LexerModule(
-		int language_,
-		LexerFunction fnLexer_,
-		const char *languageName_=nullptr,
-		LexerFunction fnFolder_= nullptr,
-		const char * const wordListDescriptions_[]=nullptr,
-		const LexicalClass *lexClasses_=nullptr,
-		size_t nClasses_=0) noexcept;
-	LexerModule(
-		int language_,
-		LexerFactoryFunction fnFactory_,
-		const char *languageName_,
-		const char * const wordListDescriptions_[]=nullptr) noexcept;
-	int GetLanguage() const noexcept;
+  const char *languageName;
+  LexerModule(int language_, LexerFunction fnLexer_, const char *languageName_ = nullptr,
+              LexerFunction fnFolder_ = nullptr, const char *const wordListDescriptions_[] = nullptr,
+              const LexicalClass *lexClasses_ = nullptr, size_t nClasses_ = 0) noexcept;
+  LexerModule(int language_, LexerFactoryFunction fnFactory_, const char *languageName_,
+              const char *const wordListDescriptions_[] = nullptr) noexcept;
+  int GetLanguage() const noexcept;
 
-	// -1 is returned if no WordList information is available
-	int GetNumWordLists() const noexcept;
-	const char *GetWordListDescription(int index) const noexcept;
-	const LexicalClass *LexClasses() const noexcept;
-	size_t NamedStyles() const noexcept;
+  // -1 is returned if no WordList information is available
+  int GetNumWordLists() const noexcept;
+  const char *GetWordListDescription(int index) const noexcept;
+  const LexicalClass *LexClasses() const noexcept;
+  size_t NamedStyles() const noexcept;
 
-	Scintilla::ILexer5 *Create() const;
+  Scintilla::ILexer5 *Create() const;
 
-	void Lex(Sci_PositionU startPos, Sci_Position lengthDoc, int initStyle,
-                  WordList *keywordlists[], Accessor &styler) const;
-	void Fold(Sci_PositionU startPos, Sci_Position lengthDoc, int initStyle,
-                  WordList *keywordlists[], Accessor &styler) const;
+  void Lex(Sci_PositionU startPos, Sci_Position lengthDoc, int initStyle, WordList *keywordlists[],
+           Accessor &styler) const;
+  void Fold(Sci_PositionU startPos, Sci_Position lengthDoc, int initStyle, WordList *keywordlists[],
+            Accessor &styler) const;
 
-	friend class CatalogueModules;
+  friend class CatalogueModules;
 };
 
-constexpr int Maximum(int a, int b) noexcept {
-	return (a > b) ? a : b;
-}
+LEXILLA_EXPORT constexpr int Maximum(int a, int b) noexcept { return (a > b) ? a : b; }
 
 // Shut up annoying Visual C++ warnings:
 #if defined(_MSC_VER)
-#pragma warning(disable: 4244 4456 4457)
+#pragma warning(disable : 4244 4456 4457)
 #endif
 
 // Turn off shadow warnings for lexers as may be maintained by others
@@ -87,6 +79,4 @@ constexpr int Maximum(int a, int b) noexcept {
 #pragma clang diagnostic ignored "-Wmissing-braces"
 #endif
 
-}
-
-#endif
+} // namespace Lexilla

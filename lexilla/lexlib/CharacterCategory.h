@@ -1,3 +1,4 @@
+#pragma once
 // Scintilla source code edit control
 /** @file CharacterCategory.h
  ** Returns the Unicode general category of a character.
@@ -5,11 +6,12 @@
 // Copyright 2013 by Neil Hodgson <neilh@scintilla.org>
 // The License.txt file describes the conditions under which this software may be distributed.
 
-#ifndef CHARACTERCATEGORY_H
-#define CHARACTERCATEGORY_H
+#include "lexilla_globals.h"
 
+#include <vector>
 namespace Lexilla {
 
+// clang-format off
 enum CharacterCategory {
 	ccLu, ccLl, ccLt, ccLm, ccLo,
 	ccMn, ccMc, ccMe,
@@ -19,32 +21,32 @@ enum CharacterCategory {
 	ccZs, ccZl, ccZp,
 	ccCc, ccCf, ccCs, ccCo, ccCn
 };
+// clang-format on
 
-CharacterCategory CategoriseCharacter(int character) noexcept;
+LEXILLA_EXPORT CharacterCategory CategoriseCharacter(int character) noexcept;
 
 // Common definitions of allowable characters in identifiers from UAX #31.
-bool IsIdStart(int character) noexcept;
-bool IsIdContinue(int character) noexcept;
-bool IsXidStart(int character) noexcept;
-bool IsXidContinue(int character) noexcept;
+LEXILLA_EXPORT bool IsIdStart(int character) noexcept;
+LEXILLA_EXPORT bool IsIdContinue(int character) noexcept;
+LEXILLA_EXPORT bool IsXidStart(int character) noexcept;
+LEXILLA_EXPORT bool IsXidContinue(int character) noexcept;
 
-class CharacterCategoryMap {
+class LEXILLA_EXPORT CharacterCategoryMap {
 private:
-	std::vector<unsigned char> dense;
+  std::vector<unsigned char> dense;
+
 public:
-	CharacterCategoryMap();
-	CharacterCategory CategoryFor(int character) const noexcept {
-		if (static_cast<size_t>(character) < dense.size()) {
-			return static_cast<CharacterCategory>(dense[character]);
-		} else {
-			// binary search through ranges
-			return CategoriseCharacter(character);
-		}
-	}
-	int Size() const noexcept;
-	void Optimize(int countCharacters);
+  CharacterCategoryMap();
+  CharacterCategory CategoryFor(int character) const noexcept {
+    if (static_cast<size_t>(character) < dense.size()) {
+      return static_cast<CharacterCategory>(dense[character]);
+    } else {
+      // binary search through ranges
+      return CategoriseCharacter(character);
+    }
+  }
+  int Size() const noexcept;
+  void Optimize(int countCharacters);
 };
 
-}
-
-#endif
+} // namespace Lexilla

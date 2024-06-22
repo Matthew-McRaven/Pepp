@@ -3,10 +3,9 @@
  ** Tests OptionSet.
  **/
 
+#include <SparseState.h>
 #include <string>
 #include <string_view>
-#include <vector>
-#include <map>
 
 #include "Scintilla.h"
 
@@ -17,8 +16,6 @@
 using namespace Lexilla;
 
 // Test OptionSet.
-
-namespace {
 
 // Simple example options structure with each type: string, bool, int
 struct Options {
@@ -44,7 +41,6 @@ const char *const sparseWordLists[] = {
 	nullptr,
 };
 
-}
 
 using Catch::Matchers::Equals;
 

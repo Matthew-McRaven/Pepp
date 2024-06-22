@@ -1,4 +1,6 @@
+#pragma once
 // Lexilla lexer library
+
 /** @file Lexilla.h
  ** Lexilla definitions for dynamic and static linking.
  ** For C++, more features and type safety are available with the LexillaAccess module.
@@ -6,8 +8,8 @@
 // Copyright 2020 by Neil Hodgson <neilh@scintilla.org>
 // The License.txt file describes the conditions under which this software may be distributed.
 
-#ifndef LEXILLA_H
-#define LEXILLA_H
+#include "ILexer.h"
+#include "lexilla_globals.h"
 
 // Define the default Lexilla shared library name for each platform
 #if defined(_WIN32)
@@ -84,14 +86,14 @@ typedef const char *(LEXILLA_CALL *GetNameSpaceFn)(void);
 extern "C" {
 #endif
 
-ILexer5 * LEXILLA_CALL CreateLexer(const char *name);
-int LEXILLA_CALL GetLexerCount(void);
-void LEXILLA_CALL GetLexerName(unsigned int index, char *name, int buflength);
-LexerFactoryFunction LEXILLA_CALL GetLexerFactory(unsigned int index);
-DEPRECATE_DEFINITION const char *LEXILLA_CALL LexerNameFromID(int identifier);
-const char * LEXILLA_CALL GetLibraryPropertyNames(void);
-void LEXILLA_CALL SetLibraryProperty(const char *key, const char *value);
-const char *LEXILLA_CALL GetNameSpace(void);
+LEXILLA_EXPORT ILexer5 *LEXILLA_CALL CreateLexer(const char *name);
+LEXILLA_EXPORT int LEXILLA_CALL GetLexerCount(void);
+LEXILLA_EXPORT void LEXILLA_CALL GetLexerName(unsigned int index, char *name, int buflength);
+LEXILLA_EXPORT LexerFactoryFunction LEXILLA_CALL GetLexerFactory(unsigned int index);
+DEPRECATE_DEFINITION LEXILLA_EXPORT const char *LEXILLA_CALL LexerNameFromID(int identifier);
+LEXILLA_EXPORT const char *LEXILLA_CALL GetLibraryPropertyNames(void);
+LEXILLA_EXPORT void LEXILLA_CALL SetLibraryProperty(const char *key, const char *value);
+LEXILLA_EXPORT const char *LEXILLA_CALL GetNameSpace(void);
 
 #if defined(__cplusplus)
 }
@@ -102,7 +104,5 @@ namespace Lexilla {
 	class LexerModule;
 }
 // Add a static lexer (in the same binary) to Lexilla's list
-void AddStaticLexerModule(Lexilla::LexerModule *plm);
-#endif
-
+LEXILLA_EXPORT void AddStaticLexerModule(Lexilla::LexerModule *plm);
 #endif
