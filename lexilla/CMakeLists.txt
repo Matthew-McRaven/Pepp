@@ -1,4 +1,3 @@
-cmake_minimum_required(VERSION 3.24)
 
 
 file(GLOB_RECURSE sources CONFIGURE_DEPENDS "${CMAKE_CURRENT_LIST_DIR}/src/*.cxx" "${CMAKE_CURRENT_LIST_DIR}/include/*.h")
@@ -12,6 +11,13 @@ target_include_directories(lexilla PUBLIC "${CMAKE_CURRENT_LIST_DIR}/lexlib"
  "${CMAKE_CURRENT_LIST_DIR}/include" "${CMAKE_CURRENT_LIST_DIR}/access"
  "${CMAKE_CURRENT_LIST_DIR}/../scintilla/include"
  )
+
+file(GLOB_RECURSE lexilla_unit_sources CONFIGURE_DEPENDS "${CMAKE_CURRENT_LIST_DIR}/test/unit/*.cxx")
+add_executable(lexilla_unit ${lexilla_unit_sources})
+target_compile_definitions(lexilla_unit PRIVATE LEXILLA_STATIC)
+set_target_properties(lexilla_unit PROPERTIES FOLDER "qtc_runnable")
+target_link_libraries(lexilla_unit PRIVATE lexilla)
+add_test(NAME lexilla_unit COMMAND lexilla_unit WORKING_DIRECTORY test)
 
 add_executable(lexilla_test test/TestDocument.cxx test/TestLexers.cxx)
 # Does not create a dependency. If examples are updated, they will not be re-copied.
