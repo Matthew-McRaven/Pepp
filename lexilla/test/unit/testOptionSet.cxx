@@ -6,11 +6,8 @@
 #include <SparseState.h>
 #include <string>
 #include <string_view>
-
 #include "Scintilla.h"
-
 #include "OptionSet.h"
-
 #include "catch.hpp"
 
 using namespace Lexilla;
@@ -23,6 +20,11 @@ struct Options {
 	bool bo = false;
 	int io = 0;
 };
+
+// Must explicitly instantiate or we get LNK2019 errors.
+namespace Lexilla {
+template class OptionSet<Options>;
+}
 
 const char *const denseWordLists[] = {
 	"Keywords 1",

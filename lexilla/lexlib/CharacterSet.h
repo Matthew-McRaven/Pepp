@@ -6,6 +6,7 @@
 // Copyright 2007 by Neil Hodgson <neilh@scintilla.org>
 // The License.txt file describes the conditions under which this software may be distributed.
 
+#include <assert.h>
 #include <string_view>
 #include "lexilla_globals.h"
 

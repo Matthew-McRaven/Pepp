@@ -8,12 +8,7 @@
         SparseState
 */
 
-#include <cstdio>
-#include <cstdarg>
-
-#include <string_view>
-#include <vector>
-#include <memory>
+#include "SparseState.h"
 
 #if defined(__GNUC__)
 // Want to avoid misleading indentation warnings in catch.hpp but the pragma
@@ -27,3 +22,8 @@
 
 #define CATCH_CONFIG_MAIN  // This tells Catch to provide a main() - only do this in one cpp file
 #include "catch.hpp"
+
+// Must explicitly instantiate or we get LNK2019 errors.
+namespace Lexilla {
+template class SparseState<int>;
+}
