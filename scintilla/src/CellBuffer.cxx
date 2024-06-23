@@ -213,59 +213,59 @@ public:
 		}
 	}
 	void InsertLines(Sci::Line line, const Sci::Position *positions, size_t lines, bool lineStart) override {
-		const POS lineAsPos = pos_cast(line);
-		if constexpr (sizeof(Sci::Position) == sizeof(POS)) {
-			starts.InsertPartitions(lineAsPos, positions, lines);
-		} else {
-			starts.InsertPartitionsWithCast(lineAsPos, positions, lines);
-		}
-		if (activeIndices != LineCharacterIndexType::None) {
-			if (FlagSet(activeIndices, LineCharacterIndexType::Utf32)) {
-				startsUTF32.InsertLines(line, lines);
-			}
-			if (FlagSet(activeIndices, LineCharacterIndexType::Utf16)) {
-				startsUTF16.InsertLines(line, lines);
-			}
-		}
-		if (perLine) {
-			if ((line > 0) && lineStart)
-				line--;
-			perLine->InsertLines(line, lines);
-		}
-	}
-	void SetLineStart(Sci::Line line, Sci::Position position) noexcept override {
-		starts.SetPartitionStartPosition(pos_cast(line), pos_cast(position));
-	}
-	void RemoveLine(Sci::Line line) override {
-		starts.RemovePartition(pos_cast(line));
-		if (FlagSet(activeIndices, LineCharacterIndexType::Utf32)) {
-			startsUTF32.starts.RemovePartition(pos_cast(line));
-		}
-		if (FlagSet(activeIndices, LineCharacterIndexType::Utf16)) {
-			startsUTF16.starts.RemovePartition(pos_cast(line));
-		}
-		if (perLine) {
+    const POS lineAsPos = pos_cast(line);
+    // Must check that pointers have 64 bits, otherwise cast from positions to longs will fail.
+    if constexpr (sizeof(Sci::Position) == sizeof(POS) && sizeof(ptrdiff_t) == sizeof(int64_t)) {
+      starts.InsertPartitions(lineAsPos, positions, lines);
+    } else {
+      // POS is not the same size as a pointer, so we need a cast.
+      // This can happen  on a 32-bit host, or when a smaller datatype is used on a 64-bit host
+      starts.InsertPartitionsWithCast(lineAsPos, positions, lines);
+    }
+    if (activeIndices != LineCharacterIndexType::None) {
+      if (FlagSet(activeIndices, LineCharacterIndexType::Utf32)) {
+        startsUTF32.InsertLines(line, lines);
+      }
+      if (FlagSet(activeIndices, LineCharacterIndexType::Utf16)) {
+        startsUTF16.InsertLines(line, lines);
+      }
+    }
+    if (perLine) {
+      if ((line > 0) && lineStart) line--;
+      perLine->InsertLines(line, lines);
+    }
+  }
+  void SetLineStart(Sci::Line line, Sci::Position position) noexcept override {
+    starts.SetPartitionStartPosition(pos_cast(line), pos_cast(position));
+  }
+  void RemoveLine(Sci::Line line) override {
+    starts.RemovePartition(pos_cast(line));
+    if (FlagSet(activeIndices, LineCharacterIndexType::Utf32)) {
+      startsUTF32.starts.RemovePartition(pos_cast(line));
+    }
+    if (FlagSet(activeIndices, LineCharacterIndexType::Utf16)) {
+      startsUTF16.starts.RemovePartition(pos_cast(line));
+    }
+    if (perLine) {
 			perLine->RemoveLine(line);
 		}
-	}
-	Sci::Line Lines() const noexcept override {
-		return line_from_pos_cast(starts.Partitions());
-	}
-	void AllocateLines(Sci::Line lines) override {
-		if (lines > Lines()) {
-			starts.ReAllocate(lines);
+  }
+  Sci::Line Lines() const noexcept override { return line_from_pos_cast(starts.Partitions()); }
+  void AllocateLines(Sci::Line lines) override {
+    if (lines > Lines()) {
+      starts.ReAllocate(lines);
 			if (FlagSet(activeIndices, LineCharacterIndexType::Utf32)) {
 				startsUTF32.AllocateLines(lines);
 			}
 			if (FlagSet(activeIndices, LineCharacterIndexType::Utf16)) {
 				startsUTF16.AllocateLines(lines);
 			}
-		}
-	}
-	Sci::Line LineFromPosition(Sci::Position pos) const noexcept override {
-		return line_from_pos_cast(starts.PartitionFromPosition(pos_cast(pos)));
-	}
-	Sci::Position LineStart(Sci::Line line) const noexcept override {
+    }
+  }
+  Sci::Line LineFromPosition(Sci::Position pos) const noexcept override {
+    return line_from_pos_cast(starts.PartitionFromPosition(pos_cast(pos)));
+  }
+  Sci::Position LineStart(Sci::Line line) const noexcept override {
 		return starts.PositionFromPartition(pos_cast(line));
 	}
 	void InsertCharacters(Sci::Line line, CountWidths delta) noexcept override {
@@ -339,8 +339,7 @@ CellBuffer::CellBuffer(bool hasStyles_, bool largeDocument_) :
 	uh = std::make_unique<UndoHistory>();
 	if (largeDocument)
 		plv = std::make_unique<LineVector<Sci::Position>>();
-	else
-		plv = std::make_unique<LineVector<int>>();
+  else plv = std::make_unique<LineVector<int32_t>>();
 }
 
 CellBuffer::~CellBuffer() noexcept = default;
