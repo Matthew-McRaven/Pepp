@@ -17,8 +17,10 @@
 
 #pragma once
 
+#include <QtCore/QtCore>
+
 #if defined(SCINTILLA_LIBRARY)
-#define SCINTILLA_EXPORT __declspec(dllexport)
+#define SCINTILLA_EXPORT Q_DECL_EXPORT
 #else
-#define SCINTILLA_EXPORT __declspec(dllimport)
+#define SCINTILLA_EXPORT Q_DECL_IMPORT
 #endif

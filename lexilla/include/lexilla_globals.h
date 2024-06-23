@@ -16,9 +16,9 @@
  */
 
 #pragma once
-
+#include <QtCore/QtCore>
 #if defined(LEXILLA_LIBRARY)
-#define LEXILLA_EXPORT __declspec(dllexport)
+#define LEXILLA_EXPORT Q_DECL_EXPORT
 #else
-#define LEXILLA_EXPORT __declspec(dllimport)
+#define LEXILLA_EXPORT Q_DECL_IMPORT
 #endif

@@ -4,10 +4,10 @@ file(GLOB_RECURSE lexlib CONFIGURE_DEPENDS "${CMAKE_CURRENT_LIST_DIR}/lexlib/*.c
 file(GLOB_RECURSE access CONFIGURE_DEPENDS "${CMAKE_CURRENT_LIST_DIR}/access/*.cxx" "${CMAKE_CURRENT_LIST_DIR}/access/*.h")
 
 add_library(lexilla SHARED ${sources} ${lexers} ${lexlib} ${access})
+target_link_libraries(lexilla PUBLIC Qt6::Core)
 target_compile_definitions(lexilla PRIVATE LEXILLA_STATIC "LEXILLA_LIBRARY")
 target_include_directories(lexilla PUBLIC "${CMAKE_CURRENT_LIST_DIR}/lexlib"
- "${CMAKE_CURRENT_LIST_DIR}/include" "${CMAKE_CURRENT_LIST_DIR}/access"
- "${CMAKE_CURRENT_LIST_DIR}/../scintilla/include"
+ "${CMAKE_CURRENT_LIST_DIR}/include" "${CMAKE_CURRENT_LIST_DIR}/access""${CMAKE_CURRENT_LIST_DIR}/../scintilla/include"
  )
 
 set(CMAKE_AUTORCC ON)
