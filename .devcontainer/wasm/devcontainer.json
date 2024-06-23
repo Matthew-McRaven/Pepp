@@ -1,5 +1,5 @@
 {
-    "name": "GCC",
+    "name": "WASM w/ Debug",
     "image":"ghcr.io/matthew-mcraven/pepp/dev-wasm-dbg:v0.12.0",
     "postCreateCommand": "git submodule init && git submodule update",
 }
