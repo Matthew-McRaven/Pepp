@@ -19,3 +19,4 @@ add_library(zpp_bits INTERFACE zpp_bits/zpp_bits.h)
 target_include_directories(zpp_bits INTERFACE zpp_bits)
 
 add_subdirectory(lru)
+add_subdirectory(scintilla)

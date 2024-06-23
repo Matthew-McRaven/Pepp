@@ -24,6 +24,12 @@ set(DOC_AUDIENCE "APP" CACHE STRING "Which version of the documentation to build
 if (EMSCRIPTEN)
     set(DOC_AUDIENCE "WEB")
 endif ()
+option(SANITIZE "Enable sanitizers" OFF)
+if(SANITIZE AND CMAKE_CXX_COMPILER_ID STREQUAL "Clang")
+    add_compile_options("-fsanitize=undefined -fsanitize=address")
+    add_link_options("-fsanitize=undefined -fsanitize=address")
+endif()
+
 # If set, skip documentation generation, and generate a QRC directly from this directory.
 set(DOC_PREBUILT_DIR CACHE STRING "Directory in which pre-built help documentation can be found")
 

@@ -9,3 +9,6 @@ ANTLR4,https://github.com/antlr/antlr4,BSD 3-Clause "New" or "Revised" License,B
 zpp::bits,https://github.com/eyalz800/zpp_bits,MIT License,MIT,:/about/dep/zpp.txt, 0
 lru-cache,https://github.com/Matthew-McRaven/lru-cache,MIT License,MIT,:/about/dep/lru.txt,0
 Material Icons / Symbols,https://github.com/google/material-design-icons,Apache License 2.0,Apache-2.0,:/about/dep/mdi.txt, 0
+Lexilla,https://github.com/ScintillaOrg/lexilla,MIT License,MIT,:/about/dep/scintilla.txt, 0
+Scintilla,https://www.scintilla.org/,MIT License,MIT,:/about/dep/scintilla.txt, 0
+SciTEQt,https://github.com/mneuroth/SciTEQt,MIT License,MIT,:/about/dep/scintilla.txt, 1

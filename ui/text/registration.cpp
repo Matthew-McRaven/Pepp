@@ -15,6 +15,7 @@
  */
 
 #include "registration.hpp"
+#include "ScintillaEditBase/ScintillaEditBase.h"
 #include "editor/blockfinder.hpp"
 #include "editor/lineinfomodel.hpp"
 #include "editor/object.hpp"
@@ -34,4 +35,5 @@ void text::registerTypes(const char *uri) {
   qmlRegisterType<LineInfoModel>(uri, 1, 0, "LineInfoModel");
   qmlRegisterType<TabNanny>(uri, 1, 0, "TabNanny");
   qmlRegisterType<ObjectUtilities>("edu.pepp.text", 1, 0, "ObjectUtilities");
+  qmlRegisterType<ScintillaEditBase>("org.scintilla.scintilla", 1, 0, "ScintillaEditBase");
 }

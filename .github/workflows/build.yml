@@ -20,6 +20,7 @@ on:
       docs_artifact: { type: string }
       images_artifact: { type: string }
       docs_audience: { type: string }
+      artifact_key: { type: string, default: "" }
     secrets:
       MAC_BUILD_CERTIFICATE_BASE64:
         description: 'Contains an apple developer cert.'
@@ -141,19 +142,39 @@ jobs:
           ${{ inputs.cmake_xargs }}
           ${{ inputs.docs_audience && format('-D DOC_AUDIENCE={0}', inputs.docs_audience) || '' }}
           ${{inputs.docs_artifact && format('-D DOC_PREBUILT_DIR="{0}"', inputs.docs_artifact) || '' }}
-          -D CMAKE_BUILD_TYPE=Debug -D MAC_DEVELOPER_NAME="$MAC_DEVELOPER_NAME"
-          -D CPACK_BUILD_CONFIG=Debug -D CMAKE_INSTALL_PREFIX=./install
+          -D CMAKE_BUILD_TYPE=${{inputs.variant}} -D MAC_DEVELOPER_NAME="$MAC_DEVELOPER_NAME"
+          -D CPACK_BUILD_CONFIG=${{inputs.variant}} -D CMAKE_INSTALL_PREFIX=./install
         env:
           MAC_DEVELOPER_NAME: ${{ secrets.MAC_DEVELOPER_NAME }}
 
+
       - name: Run build
         run: cmake --build build -j6
+
+      - name: Rename HTML
+        if: ${{ contains(inputs.name, 'EMSDK') }}
+        run: mv build/output/pepp.html build/output/index.html
+
+      - name: Gather WASM build artifacts
+        uses: actions/upload-artifact@v4
+        if: ${{ contains(inputs.name, 'EMSDK') }}
+        with:
+           name: wasm-artifacts
+           # TODO: replace fake logo with real Pepp one.
+           path: |
+             build/output/index.html
+             build/output/pepp.js
+             build/output/pepp.wasm
+             build/output/qtloader.js
+             build/output/qtlogo.svg
+           retention-days: 1
+           if-no-files-found: error
 
       - name: Run cpack
         shell: bash
         if: ${{ !contains(inputs.name, 'EMSDK') }}
         working-directory: build
-        run: ls -lah && cpack -c Debug
+        run: ls -lah && cpack -c ${{inputs.variant}}
 
       # Run tests, sign outputs, and upload artifacts
       - name: Run tests
@@ -163,6 +184,18 @@ jobs:
           # Must be offscreen, or tests that involve GUI libraries will fail
           QT_QPA_PLATFORM: 'offscreen'
           CTEST_OUTPUT_ON_FAILURE: 'TRUE'
+      - run: ls build
+
+      - name: Upload assets
+        if: ${{ inputs.artifact_key }}
+        uses: actions/upload-artifact@v4
+        with:
+          name: ${{ inputs.artifact_key }}
+          path: |
+            build/*.dmg
+            build/*.exe
+            build/*.tar.gz
+          retention-days: 1
 
       - name: Analyze buildtime for Linux-Clang
         if: inputs.runs-on == 'ubuntu-latest' && inputs.compiler_c == 'clang'
