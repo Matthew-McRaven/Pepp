@@ -1449,8 +1449,4 @@ void ScintillaEditBase::cursorChangedUpdateMarker()
     }
 }
 
-void RegisterScintillaType()
-{
-    qmlRegisterType<ScintillaEditBase>("org.scintilla.scintilla", 1, 0, "ScintillaEditBase");
-}
 #endif

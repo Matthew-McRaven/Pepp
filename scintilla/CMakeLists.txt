@@ -6,15 +6,16 @@ set(CMAKE_AUTOMOC ON)
 set(CMAKE_AUTORCC ON)
 
 qt_add_qml_module(scintilla_qt
-    URI edu.pepp
+    URI "scintilla"
     VERSION 5.5.0
     SOURCES
         ${qt_sources}
         ${core_sources}
-    QML_FILES
-        qt/ScintillaEditBase/ScintillaText.qml
+    RESOURCE_PREFIX /ui
+  )
+target_include_directories(scintilla_qt PUBLIC "${CMAKE_CURRENT_LIST_DIR}/qt"
+"${CMAKE_CURRENT_LIST_DIR}/qt" "${CMAKE_CURRENT_LIST_DIR}/src" "${CMAKE_CURRENT_LIST_DIR}/include"
 )
-target_include_directories(scintilla_qt PUBLIC "${CMAKE_CURRENT_LIST_DIR}/qt" "${CMAKE_CURRENT_LIST_DIR}/src" "${CMAKE_CURRENT_LIST_DIR}/include")
 target_link_libraries(scintilla_qt PUBLIC lexilla Qt6::Quick Qt6::Core Qt6::Gui Qt6::Qml Qt6::Widgets)
 target_compile_definitions(scintilla_qt PRIVATE MAKING_LIBRARY=1 SCINTILLA_QT_QML=1 "SCINTILLA_LIBRARY")
 

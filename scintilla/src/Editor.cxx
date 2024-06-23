@@ -5867,7 +5867,7 @@ std::unique_ptr<Surface> Editor::CreateMeasurementSurface(Scintilla::Internal::P
 		return {};
 	}
 	std::unique_ptr<Surface> surf = Surface::Allocate(technology);
-	surf->Init(wMain.GetID());
+    surf->Init(false, pid);
 	surf->SetMode(CurrentSurfaceMode());
 	return surf;
 }
