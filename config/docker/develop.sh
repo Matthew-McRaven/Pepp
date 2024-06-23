@@ -14,7 +14,8 @@
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 #
 
-docker buildx build --target output-gcc --push --platform=linux/amd64,linux/arm64 -t ghcr.io/matthew-mcraven/pepp/dev-gcc:v0.10.0 develop
-docker buildx build --target output-wasm --push --platform=linux/amd64 -t ghcr.io/matthew-mcraven/pepp/dev-wasm:v0.10.0 develop
-docker buildx build --target output-clang --push --platform=linux/amd64,linux/arm64 -t ghcr.io/matthew-mcraven/pepp/dev-clang:v0.10.0 develop
-docker buildx build --push --platform=linux/amd64 -t ghcr.io/matthew-mcraven/pepp/docs:v0.10.0 docs
+docker buildx build --target output-gcc --push --platform=linux/amd64,linux/arm64 -t ghcr.io/matthew-mcraven/pepp/dev-gcc:v0.11.0 develop
+docker buildx build --target output-wasm --push --platform=linux/amd64 -t ghcr.io/matthew-mcraven/pepp/dev-wasm:v0.11.0 develop
+docker buildx build --target output-wasm --build-arg="QT_WASM_XARGS=-sanitize address  -sanitize undefined -device-option QT_WASM_SOURCE_MAP=1" --push --platform=linux/amd64 -t ghcr.io/matthew-mcraven/pepp/dev-wasm-dbg:v0.11.0 develop
+docker buildx build --target output-clang --push --platform=linux/amd64,linux/arm64 -t ghcr.io/matthew-mcraven/pepp/dev-clang:v0.11.0 develop
+docker buildx build --push --platform=linux/amd64 -t ghcr.io/matthew-mcraven/pepp/docs:v0.11.0 docs

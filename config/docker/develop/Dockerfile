@@ -23,7 +23,7 @@ RUN wget -q -O ninja.zip "https://github.com/ninja-build/ninja/releases/download
 # Need to pick this locale otherwise Qt complains and overrides the locale anyway.
 ENV LANG="C.UTF-8"
 # Must occur after the "FROM" directive, allows choice of Qt version.
-ARG QT_VERSION="6.6.1"
+ARG QT_VERSION="6.7.2"
 # Don't cache pip internal files, reduce image size.
 ENV PIP_NO_CACHE_DIR=1
 SHELL ["/bin/bash", "-c"]
@@ -43,13 +43,47 @@ RUN pip install Sphinx==7.1.2 breathe==4.35.0 Pillow \
   && sed -i '253 i \        "property": (CMacroObject, "macro"),' "/usr/local/lib/python3.10/dist-packages/breathe/renderer/sphinxrenderer.py"
 RUN git clone https://github.com/emscripten-core/emsdk.git /emsdk
 # Must combine, otherwise a layer is the same in multi-arch builds, breaking everything
-RUN cd /emsdk && git pull && ./emsdk install 3.1.37  && ./emsdk activate 3.1.37 && echo uname -a /emsdk.arch
-
-
-FROM base-wasm as output-wasm
+RUN cd /emsdk && git pull && ./emsdk install 3.1.50  && ./emsdk activate 3.1.50 && echo uname -a /emsdk.arch
+# Install shadertools and 3d modules otherwise building from sources will fail.
 RUN pip install aqtinstall \
-    && aqt install-qt linux desktop ${QT_VERSION} wasm_singlethread --outputdir /qt  --autodesktop \
+    && aqt install-qt linux desktop ${QT_VERSION} -m qtshadertools qtquick3d qt3d --outputdir /qt  \
     && pip uninstall aqtinstall -y && rm aqtinstall.log
+
+
+# Use separate step to build Qt to avoid inflating the size of the build image further.
+FROM base-wasm as build-wasm
+# Get sources for the current version of Qt.
+RUN pip install aqtinstall \
+    && aqt install-src -O /build-qt linux ${QT_VERSION} \
+    && pip uninstall aqtinstall -y && rm aqtinstall.log
+# Install Qt requirements: https://doc.qt.io/qt-6/linux-requirements.html
+RUN apt update \
+    && apt install -y --no-install-recommends libfontconfig1-dev libfreetype-dev libx11-dev \
+       libx11-xcb-dev libxext-dev libxfixes-dev libxi-dev libxrender-dev libxcb1-dev libxcb-cursor-dev libxcb-glx0-dev \
+       libxcb-keysyms1-dev libxcb-image0-dev libxcb-shm0-dev libxcb-icccm4-dev libxcb-sync-dev libxcb-xfixes0-dev \
+       libxcb-shape0-dev libxcb-randr0-dev libxcb-render-util0-dev libxcb-util-dev libxcb-xinerama0-dev libxcb-xkb-dev \
+       libxkbcommon-dev libxkbcommon-x11-dev \
+    && rm -rf /var/lib/apt/lists/*
+# Extra args with which to build Qt
+ARG QT_WASM_XARGS=""
+# Must activate EMSDK or it will not build. Skip some features that would require installing additional libraries.
+# Enable excptions, because that was the whole point of building Qt from the sources
+RUN source /emsdk/emsdk_env.sh \
+    && cd /build-qt/${QT_VERSION}/Src \
+    && ./configure -qt-host-path /qt/${QT_VERSION}/gcc_64 -platform wasm-emscripten \
+       -no-feature-thread -feature-wasm-exceptions ${QT_WASM_XARGS} \
+       -skip qtremoteobjects -skip qtwebengine -skip qtscxml -skip qthttpserver \
+       -skip qtwebview -skip qtwebchannel -skip qtsensors -skip qtwebsockets -skip qtlocation \
+       -skip qtpositioning -skip qtactiveqt -skip qt5compat\
+       -prefix /qt/${QT_VERSION}/wasm_singlethread
+# Separate build from configure so that I get better logs
+RUN cd /build-qt/${QT_VERSION}/Src \
+    && cmake --build . --parallel \
+    && cmake --install .
+
+# Only copy over WASM artifacts, since we already have GCC from the base image.
+FROM base-wasm as output-wasm
+COPY --from=build-wasm /qt/${QT_VERSION}/wasm_singlethread /qt/${QT_VERSION}/wasm_singlethread
 # Define standard Qt environment variables so that executing cmake directly will work.
 ENV LD_LIBRARY_PATH=/qt/${QT_VERSION}/wasm_singlethread/lib:${LD_LIBRARY_PATH}
 ENV Qt6_DIR=/qt/${QT_VERSION}/wasm_singlethread/lib/cmake/Qt6
@@ -57,7 +91,6 @@ ENV QT_PLUGIN_PATH=/qt/${QT_VERSION}/wasm_singlethread/plugins
 ENV QML2_IMPORT_PATH=/qt/${QT_VERSION}/wasm_singlethread/qml
 ENV PATH=/qt/${QT_VERSION}/wasm_singlethread/bin/:$PATH
 LABEL description="A wasm build container using Qt $QT_VERSION."
-
 
 FROM base-gcc as output-gcc
 # Install Qt with aqtinstall (see https://github.com/miurahr/aqtinstall), selecting only the modules we need.

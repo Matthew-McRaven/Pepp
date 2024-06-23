@@ -176,4 +176,6 @@ Otherwise, it can be prototyped under [bin/gui/](bin/gui/).
 Please find an appropriate subdirectory in either location for your feature.
 
 
-
+# Debugging WASM
+Install [the following plugin](https://chromewebstore.google.com/detail/cc++-devtools-support-dwa/pdcpmagijalfljmkmjngeonclgbbannb?pli=1) into chrome.
+See [Qt help](https://doc.qt.io/qt-6/wasm.html#debugging-and-profiling) for aditional settings
