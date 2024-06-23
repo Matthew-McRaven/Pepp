@@ -20,7 +20,7 @@ jobs:
       not_default: ${{ steps.branch.outputs.not_default }}
       publish_release: ${{ inputs.publish_release }}
       tag_name: ${{ inputs.tag_name }}
-      build_release: ${{ github.event_name == 'workflow_dispatch' }}
+      build_release: ${{ github.event_name == 'workflow_dispatch' || !!steps.branch.outputs.not_default  || startsWith(github.ref, 'refs/tags/') }}
     steps:
       - name: set branch info
         id: branch
@@ -168,12 +168,13 @@ jobs:
       MAC_P12_PASSWORD: ${{ secrets.MAC_P12_PASSWORD }}
       MAC_DEVELOPER_NAME: ${{ secrets.MAC_DEVELOPER_NAME }}
   deploy_pages:
+    name: Trigger deployment to github pages
+    if: needs.branch_info.outputs.not_default == false
     permissions:
       contents: read
       pages: write
       id-token: write
-    name: Trigger deployment to github pages
-    needs: [ build ]
+    needs: [ build, branch_info ]
     uses: ./.github/workflows/deploy-pages.yml
   create_release:
     name: Create GitHub release
@@ -181,10 +182,10 @@ jobs:
     runs-on: ubuntu-latest
     permissions:
       contents: write
+    if: startsWith(github.ref, 'refs/tags/')
     steps:
       - name: Create release
         uses: softprops/action-gh-release@v2
-        if: startsWith(github.ref, 'refs/tags/')
         with:
           # body_path: ${{ github.workspace }}-CHANGELOG.txt
           repository: matthew-mcraven/Pepp
