@@ -20,6 +20,7 @@ on:
       docs_artifact: { type: string }
       images_artifact: { type: string }
       docs_audience: { type: string }
+      artifact_key: { type: string, default: "" }
     secrets:
       MAC_BUILD_CERTIFICATE_BASE64:
         description: 'Contains an apple developer cert.'
@@ -156,10 +157,12 @@ jobs:
         with:
            name: wasm-artifacts
            path: |
-             output/pepp.html
-             output/pepp.js
-             output/pepp.wasm
-             output/qtloader.js
+             build/output/pepp.html
+             build/output/pepp.js
+             build/output/pepp.wasm
+             build/output/qtloader.js
+           retention-days: 1
+           if-no-files-found: error
 
       - name: Run cpack
         shell: bash
@@ -175,6 +178,17 @@ jobs:
           # Must be offscreen, or tests that involve GUI libraries will fail
           QT_QPA_PLATFORM: 'offscreen'
           CTEST_OUTPUT_ON_FAILURE: 'TRUE'
+      - run: ls build && (ls build/install || true) && ls output
+      - name: Upload assets
+        if: ${{ inputs.artifact_key }}
+        uses: actions/upload-artifact@v4
+        with:
+          name: ${{ inputs.artifact_key }}
+          path: |
+            build/install/*.dmg
+            build/install/*.exe
+            build/install/*.AppImage
+          retention-days: 1
 
       - name: Analyze buildtime for Linux-Clang
         if: inputs.runs-on == 'ubuntu-latest' && inputs.compiler_c == 'clang'

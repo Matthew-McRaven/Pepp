@@ -137,13 +137,13 @@ jobs:
       # Trying to use `env` or inputs will fail in this context.
       matrix:
         config:
-          - { name: "Ubuntu 22.04; GCC", cache_name: 'ubuntu-gcc', runs-on: "ubuntu-latest", image: "ghcr.io/matthew-mcraven/pepp/dev-gcc:v0.11.0", compiler_launcher: "ccache", compiler_c: "", compiler_cpp: "", cmake_generator: "Ninja" }
+          - { name: "Ubuntu 22.04; GCC", cache_name: 'ubuntu-gcc', runs-on: "ubuntu-latest", image: "ghcr.io/matthew-mcraven/pepp/dev-gcc:v0.11.0", compiler_launcher: "ccache", compiler_c: "", compiler_cpp: "", cmake_generator: "Ninja", artifact_key: "artifact-linux"}
           # Do CodeQL in clang run, to prevent needing yet another target.
           - { name: "Ubuntu 22.04; Clang 17.0", cache_name: 'ubuntu-clang', runs-on: "ubuntu-latest", image: "ghcr.io/matthew-mcraven/pepp/dev-clang:v0.11.0",  compiler_launcher: "", compiler_c: "clang", compiler_cpp: "clang++" , cmake_generator: "Ninja" }
           - { name: "Ubuntu 22.04; EMSDK 3.1.50", cache_name: 'ubuntu-emsdk', runs-on: "ubuntu-latest", image: "ghcr.io/matthew-mcraven/pepp/dev-wasm:v0.11.0", cmake_toolchain: '$Qt6_DIR/qt.toolchain.cmake', cmake_xargs: '-D QT_HOST_PATH=/qt/6.7.2/gcc_64', docs_audience: 'WEB', release_type: 'MinSizeRel' }
           # See: https://bugreports.qt.io/browse/QTBUG-118086
-          - { name: "MacOS-14; Clang 15.0.7", cache_name: 'macos-clang', runs-on: "macos-14" , compiler_launcher: "ccache", compiler_c: '$(brew --prefix llvm@15)/bin/clang', compiler_cpp: '$(brew --prefix llvm@15)/bin/clang++', cmake_generator: "Ninja" }
-          - { name: "Windows Latest; MSVC", cache_name: 'windows-msvc', runs-on: "windows-latest" , compiler_launcher: "ccache", }
+          - { name: "MacOS-14; Clang 15.0.7", cache_name: 'macos-clang', runs-on: "macos-14" , compiler_launcher: "ccache", compiler_c: '$(brew --prefix llvm@15)/bin/clang', compiler_cpp: '$(brew --prefix llvm@15)/bin/clang++', cmake_generator: "Ninja", artifact_key: "artifact-macos" }
+          - { name: "Windows Latest; MSVC", cache_name: 'windows-msvc', runs-on: "windows-latest" , compiler_launcher: "ccache", artifact_key: "artifact-windows"}
     with:
       name: ${{ matrix.config.name }}
       cache_name: ${{ matrix.config.cache_name }}
@@ -161,6 +161,7 @@ jobs:
       docs_audience: ${{ matrix.config.docs_audience || '' }}
       docs_artifact: ${{ (matrix.config.docs_audience && '') || 'app-docs' }}
       images_artifact: 'icons'
+      artifact_key: ${{ matrix.config.artifact_key || ''}}
     secrets:
       MAC_BUILD_CERTIFICATE_BASE64: ${{ secrets.MAC_BUILD_CERTIFICATE_BASE64 }}
       MAC_KEYCHAIN_PASSWORD: ${{ secrets.MAC_KEYCHAIN_PASSWORD }}
@@ -174,3 +175,21 @@ jobs:
     name: Trigger deployment to github pages
     needs: [ build ]
     uses: ./.github/workflows/deploy-pages.yml
+  create_release:
+    name: Create GitHub release
+    needs: [ build ]
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - name: Create release
+        uses: softprops/action-gh-release@v2
+        if: startsWith(github.ref, 'refs/tags/')
+        with:
+          # body_path: ${{ github.workspace }}-CHANGELOG.txt
+          repository: matthew-mcraven/Pepp
+          token: ${{ secrets.GITHUB_TOKEN }}
+          tag_name: test
+          name: test
+          files: build/install/*
+          make_latest: false
