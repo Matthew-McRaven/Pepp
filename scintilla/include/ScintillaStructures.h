@@ -1,3 +1,4 @@
+#pragma once
 // Scintilla source code edit control
 /** @file ScintillaStructures.h
  ** Structures used to communicate with Scintilla.
@@ -7,49 +8,49 @@
 // Copyright 2021 by Neil Hodgson <neilh@scintilla.org>
 // The License.txt file describes the conditions under which this software may be distributed.
 
-#ifndef SCINTILLASTRUCTURES_H
-#define SCINTILLASTRUCTURES_H
+#include "ScintillaTypes.h"
+#include "scintilla_globals.h"
 
 namespace Scintilla {
 
 using PositionCR = long;
 
-struct CharacterRange {
-	PositionCR cpMin;
+struct SCINTILLA_EXPORT CharacterRange {
+  PositionCR cpMin;
 	PositionCR cpMax;
 };
 
-struct CharacterRangeFull {
-	Position cpMin;
+struct SCINTILLA_EXPORT CharacterRangeFull {
+  Position cpMin;
 	Position cpMax;
 };
 
-struct TextRange {
-	CharacterRange chrg;
+struct SCINTILLA_EXPORT TextRange {
+  CharacterRange chrg;
 	char *lpstrText;
 };
 
-struct TextRangeFull {
-	CharacterRangeFull chrg;
+struct SCINTILLA_EXPORT TextRangeFull {
+  CharacterRangeFull chrg;
 	char *lpstrText;
 };
 
-struct TextToFind {
-	CharacterRange chrg;
+struct SCINTILLA_EXPORT TextToFind {
+  CharacterRange chrg;
 	const char *lpstrText;
 	CharacterRange chrgText;
 };
 
-struct TextToFindFull {
-	CharacterRangeFull chrg;
+struct SCINTILLA_EXPORT TextToFindFull {
+  CharacterRangeFull chrg;
 	const char *lpstrText;
 	CharacterRangeFull chrgText;
 };
 
 using SurfaceID = void *;
 
-struct Rectangle {
-	int left;
+struct SCINTILLA_EXPORT Rectangle {
+  int left;
 	int top;
 	int right;
 	int bottom;
@@ -57,24 +58,24 @@ struct Rectangle {
 
 /* This structure is used in printing. Not needed by most client code. */
 
-struct RangeToFormat {
-	SurfaceID hdc;
+struct SCINTILLA_EXPORT RangeToFormat {
+  SurfaceID hdc;
 	SurfaceID hdcTarget;
 	Rectangle rc;
 	Rectangle rcPage;
 	CharacterRange chrg;
 };
 
-struct RangeToFormatFull {
-	SurfaceID hdc;
+struct SCINTILLA_EXPORT RangeToFormatFull {
+  SurfaceID hdc;
 	SurfaceID hdcTarget;
 	Rectangle rc;
 	Rectangle rcPage;
 	CharacterRangeFull chrg;
 };
 
-struct NotifyHeader {
-	/* Compatible with Windows NMHDR.
+struct SCINTILLA_EXPORT NotifyHeader {
+  /* Compatible with Windows NMHDR.
 	 * hwndFrom is really an environment specific window handle or pointer
 	 * but most clients of Scintilla.h do not have this type visible. */
 	void *hwndFrom;
@@ -84,8 +85,8 @@ struct NotifyHeader {
 
 enum class Message;	// Declare in case ScintillaMessages.h not included
 
-struct NotificationData {
-	NotifyHeader nmhdr;
+struct SCINTILLA_EXPORT NotificationData {
+  NotifyHeader nmhdr;
 	Position position;
 	/* SCN_STYLENEEDED, SCN_DOUBLECLICK, SCN_MODIFIED, SCN_MARGINCLICK, */
 	/* SCN_NEEDSHOWN, SCN_DWELLSTART, SCN_DWELLEND, SCN_CALLTIPCLICK, */
@@ -123,7 +124,4 @@ struct NotificationData {
 	/* SCN_AUTOCSELECTION, SCN_AUTOCCOMPLETED, SCN_USERLISTSELECTION, */
 	CharacterSource characterSource;	/* SCN_CHARADDED */
 };
-
 }
-
-#endif

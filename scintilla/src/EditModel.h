@@ -1,3 +1,4 @@
+#pragma once
 // Scintilla source code edit control
 /** @file EditModel.h
  ** Defines the editor state that must be visible to EditorView.
@@ -5,14 +6,21 @@
 // Copyright 1998-2014 by Neil Hodgson <neilh@scintilla.org>
 // The License.txt file describes the conditions under which this software may be distributed.
 
-#ifndef EDITMODEL_H
-#define EDITMODEL_H
+#include <memory>
+#include "ContractionState.h"
+#include "Document.h"
+#include "Platform.h"
+#include "Position.h"
+#include "PositionCache.h"
+#include "ScintillaTypes.h"
+#include "Selection.h"
+#include "UniqueString.h"
 
 namespace Scintilla::Internal {
 
 /**
 */
-class Caret {
+class SCINTILLA_EXPORT Caret {
 public:
 	bool active;
 	bool on;
@@ -21,7 +29,7 @@ public:
 	Caret() noexcept;
 };
 
-class EditModel {
+class SCINTILLA_EXPORT EditModel {
 public:
 	bool inOverstrike;
 	int xOffset;		///< Horizontal scrolled amount in pixels
@@ -75,7 +83,4 @@ public:
 	InSelection LineEndInSelection(Sci::Line lineDoc) const;
 	[[nodiscard]] int GetMark(Sci::Line line) const;
 };
-
 }
-
-#endif

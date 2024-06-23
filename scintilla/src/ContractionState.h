@@ -1,3 +1,4 @@
+#pragma once
 // Scintilla source code edit control
 /** @file ContractionState.h
  ** Manages visibility of lines for folding and wrapping.
@@ -5,14 +6,15 @@
 // Copyright 1998-2007 by Neil Hodgson <neilh@scintilla.org>
 // The License.txt file describes the conditions under which this software may be distributed.
 
-#ifndef CONTRACTIONSTATE_H
-#define CONTRACTIONSTATE_H
+#include <memory>
+#include "Position.h"
+#include "scintilla_globals.h"
 
 namespace Scintilla::Internal {
 
 /**
 */
-class IContractionState {
+class SCINTILLA_EXPORT IContractionState {
 public:
 	virtual ~IContractionState() {};
 
@@ -45,8 +47,5 @@ public:
 	virtual void ShowAll() noexcept=0;
 };
 
-std::unique_ptr<IContractionState> ContractionStateCreate(bool largeDocument);
-
+SCINTILLA_EXPORT std::unique_ptr<IContractionState> ContractionStateCreate(bool largeDocument);
 }
-
-#endif

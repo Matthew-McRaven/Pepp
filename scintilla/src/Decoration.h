@@ -1,59 +1,61 @@
+#pragma once
 /** @file Decoration.h
  ** Visual elements added over text.
  **/
 // Copyright 1998-2007 by Neil Hodgson <neilh@scintilla.org>
 // The License.txt file describes the conditions under which this software may be distributed.
 
-#ifndef DECORATION_H
-#define DECORATION_H
+#include <memory>
+#include <vector>
+#include "Position.h"
+#include "RunStyles.h"
+#include "scintilla_globals.h"
 
 namespace Scintilla::Internal {
 
-class IDecoration {
+class SCINTILLA_EXPORT IDecoration {
 public:
-	virtual ~IDecoration() {}
-	virtual bool Empty() const noexcept = 0;
-	virtual int Indicator() const noexcept = 0;
-	virtual Sci::Position Length() const noexcept = 0;
-	virtual int ValueAt(Sci::Position position) const noexcept = 0;
-	virtual Sci::Position StartRun(Sci::Position position) const noexcept = 0;
-	virtual Sci::Position EndRun(Sci::Position position) const noexcept = 0;
-	virtual void SetValueAt(Sci::Position position, int value) = 0;
-	virtual void InsertSpace(Sci::Position position, Sci::Position insertLength) = 0;
-	virtual Sci::Position Runs() const noexcept = 0;
+  virtual ~IDecoration() {}
+  virtual bool Empty() const noexcept = 0;
+  virtual int Indicator() const noexcept = 0;
+  virtual Sci::Position Length() const noexcept = 0;
+  virtual int ValueAt(Sci::Position position) const noexcept = 0;
+  virtual Sci::Position StartRun(Sci::Position position) const noexcept = 0;
+  virtual Sci::Position EndRun(Sci::Position position) const noexcept = 0;
+  virtual void SetValueAt(Sci::Position position, int value) = 0;
+  virtual void InsertSpace(Sci::Position position, Sci::Position insertLength) = 0;
+  virtual Sci::Position Runs() const noexcept = 0;
 };
 
-class IDecorationList {
+class SCINTILLA_EXPORT IDecorationList {
 public:
-	virtual ~IDecorationList() {}
+  virtual ~IDecorationList() {}
 
-	virtual const std::vector<const IDecoration*> &View() const noexcept = 0;
+  virtual const std::vector<const IDecoration *> &View() const noexcept = 0;
 
-	virtual void SetCurrentIndicator(int indicator) = 0;
-	virtual int GetCurrentIndicator() const noexcept = 0;
+  virtual void SetCurrentIndicator(int indicator) = 0;
+  virtual int GetCurrentIndicator() const noexcept = 0;
 
-	virtual void SetCurrentValue(int value) noexcept = 0;
-	virtual int GetCurrentValue() const noexcept = 0;
+  virtual void SetCurrentValue(int value) noexcept = 0;
+  virtual int GetCurrentValue() const noexcept = 0;
 
-	// Returns with changed=true if some values may have changed
-	virtual FillResult<Sci::Position> FillRange(Sci::Position position, int value, Sci::Position fillLength) = 0;
-	virtual void InsertSpace(Sci::Position position, Sci::Position insertLength) = 0;
-	virtual void DeleteRange(Sci::Position position, Sci::Position deleteLength) = 0;
-	virtual void DeleteLexerDecorations() = 0;
+  // Returns with changed=true if some values may have changed
+  virtual FillResult<Sci::Position> FillRange(Sci::Position position, int value, Sci::Position fillLength) = 0;
+  virtual void InsertSpace(Sci::Position position, Sci::Position insertLength) = 0;
+  virtual void DeleteRange(Sci::Position position, Sci::Position deleteLength) = 0;
+  virtual void DeleteLexerDecorations() = 0;
 
-	virtual int AllOnFor(Sci::Position position) const noexcept = 0;
-	virtual int ValueAt(int indicator, Sci::Position position) noexcept = 0;
-	virtual Sci::Position Start(int indicator, Sci::Position position) noexcept = 0;
-	virtual Sci::Position End(int indicator, Sci::Position position) noexcept = 0;
+  virtual int AllOnFor(Sci::Position position) const noexcept = 0;
+  virtual int ValueAt(int indicator, Sci::Position position) noexcept = 0;
+  virtual Sci::Position Start(int indicator, Sci::Position position) noexcept = 0;
+  virtual Sci::Position End(int indicator, Sci::Position position) noexcept = 0;
 
-	virtual bool ClickNotified() const noexcept = 0;
-	virtual void SetClickNotified(bool notified) noexcept = 0;
+  virtual bool ClickNotified() const noexcept = 0;
+  virtual void SetClickNotified(bool notified) noexcept = 0;
 };
 
-std::unique_ptr<IDecoration> DecorationCreate(bool largeDocument, int indicator);
+SCINTILLA_EXPORT std::unique_ptr<IDecoration> DecorationCreate(bool largeDocument, int indicator);
 
-std::unique_ptr<IDecorationList> DecorationListCreate(bool largeDocument);
+SCINTILLA_EXPORT std::unique_ptr<IDecorationList> DecorationListCreate(bool largeDocument);
 
-}
-
-#endif
+} // namespace Scintilla::Internal

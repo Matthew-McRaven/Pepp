@@ -3,18 +3,9 @@
  **/
 
 #include <cstring>
-
 #include <string>
 #include <string_view>
-#include <vector>
-#include <optional>
-#include <algorithm>
-#include <memory>
-
-#include "Debugging.h"
-
 #include "UniConversion.h"
-
 #include "catch.hpp"
 
 using namespace Scintilla::Internal;

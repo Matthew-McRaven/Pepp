@@ -2,30 +2,17 @@
  ** Unit Tests for Scintilla internal data structures
  **/
 
-#include <cstddef>
-#include <cassert>
-#include <cstring>
-
-#include <stdexcept>
-#include <string_view>
-#include <vector>
-#include <optional>
-#include <algorithm>
 #include <memory>
-
-#include "Debugging.h"
-
-#include "Position.h"
 #include "UniqueString.h"
-#include "SplitVector.h"
-#include "Partitioning.h"
 #include "SparseVector.h"
-
 #include "catch.hpp"
 
 using namespace Scintilla::Internal;
 
 // Test SparseVector.
+
+template class Scintilla::Internal::SparseVector<int>;
+template class Scintilla::Internal::SparseVector<UniqueString>;
 
 using UniqueInt = std::unique_ptr<int>;
 

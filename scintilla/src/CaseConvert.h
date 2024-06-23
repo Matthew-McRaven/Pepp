@@ -1,3 +1,4 @@
+#pragma once
 // Scintilla source code edit control
 // Encoding: UTF-8
 /** @file CaseConvert.h
@@ -7,26 +8,22 @@
 // Copyright 2013 by Neil Hodgson <neilh@scintilla.org>
 // The License.txt file describes the conditions under which this software may be distributed.
 
-#ifndef CASECONVERT_H
-#define CASECONVERT_H
+#include <string>
+#include "scintilla_globals.h"
 
 namespace Scintilla::Internal {
 
-enum class CaseConversion {
-	fold,
-	upper,
-	lower
-};
+enum class CaseConversion { fold, upper, lower };
 
-class ICaseConverter {
+class SCINTILLA_EXPORT ICaseConverter {
 public:
-	virtual size_t CaseConvertString(char *converted, size_t sizeConverted, const char *mixed, size_t lenMixed) = 0;
+  virtual size_t CaseConvertString(char *converted, size_t sizeConverted, const char *mixed, size_t lenMixed) = 0;
 };
 
-ICaseConverter *ConverterFor(CaseConversion conversion);
+SCINTILLA_EXPORT ICaseConverter *ConverterFor(CaseConversion conversion);
 
 // Returns a UTF-8 string. Empty when no conversion
-const char *CaseConvert(int character, CaseConversion conversion);
+SCINTILLA_EXPORT const char *CaseConvert(int character, CaseConversion conversion);
 
 // When performing CaseConvertString, the converted value may be up to 3 times longer than the input.
 // Ligatures are often decomposed into multiple characters and long cases include:
@@ -36,11 +33,9 @@ constexpr size_t maxExpansionCaseConversion = 3;
 // Converts a mixed case string using a particular conversion.
 // Result may be a different length to input and the length is the return value.
 // If there is not enough space then 0 is returned.
-size_t CaseConvertString(char *converted, size_t sizeConverted, const char *mixed, size_t lenMixed, CaseConversion conversion);
+SCINTILLA_EXPORT size_t CaseConvertString(char *converted, size_t sizeConverted, const char *mixed, size_t lenMixed,
+                                          CaseConversion conversion);
 
 // Converts a mixed case string using a particular conversion.
-std::string CaseConvertString(const std::string &s, CaseConversion conversion);
-
-}
-
-#endif
+SCINTILLA_EXPORT std::string CaseConvertString(const std::string &s, CaseConversion conversion);
+} // namespace Scintilla::Internal

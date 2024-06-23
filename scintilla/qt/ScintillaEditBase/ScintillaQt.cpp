@@ -9,6 +9,7 @@
 // @file ScintillaQt.cpp - Qt specific subclass of ScintillaBase
 
 #include "ScintillaQt.h"
+#include "CaseConvert.h"
 #include "PlatQt.h"
 
 #include <QApplication>
@@ -21,6 +22,7 @@
 #include <QScrollBar>
 #include <QStringConverter>
 #include <QTimer>
+#include "Scintilla.h"
 
 using namespace Scintilla;
 using namespace Scintilla::Internal;

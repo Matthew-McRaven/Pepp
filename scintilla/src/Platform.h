@@ -1,6 +1,6 @@
+#pragma once
 // Scintilla source code edit control
 
-#include <assert.h>
 /** @file Platform.h
  ** Interface to platform facilities. Also includes some basic utilities.
  ** Implemented in PlatGTK.cxx for GTK+/Linux, PlatWin.cxx for Windows, and PlatWX.cxx for wxWindows.
@@ -8,8 +8,13 @@
 // Copyright 1998-2009 by Neil Hodgson <neilh@scintilla.org>
 // The License.txt file describes the conditions under which this software may be distributed.
 
-#ifndef PLATFORM_H
-#define PLATFORM_H
+#include <assert.h>
+#include <memory>
+#include <optional>
+#include <string_view>
+#include <vector>
+#include "Geometry.h"
+#include "ScintillaTypes.h"
 
 // PLAT_GTK = GTK+ on Linux or Win32
 // PLAT_GTK_WIN32 is defined additionally when running PLAT_GTK under Win32
@@ -102,10 +107,10 @@ typedef void *PainterID;
 
 constexpr const char *localeNameDefault = "en-us";
 
-struct FontParameters {
-	const char *faceName;
-	XYPOSITION size;
-	Scintilla::FontWeight weight;
+struct SCINTILLA_EXPORT FontParameters {
+  const char *faceName;
+  XYPOSITION size;
+  Scintilla::FontWeight weight;
 	bool italic;
 	Scintilla::FontQuality extraFontFlag;
 	Scintilla::Technology technology;
@@ -132,10 +137,9 @@ struct FontParameters {
 		localeName(localeName_)
 	{
 	}
-
 };
 
-class Font {
+class SCINTILLA_EXPORT Font {
 public:
 	Font() noexcept = default;
 	// Deleted so Font objects can not be copied
@@ -148,7 +152,7 @@ public:
 	static std::shared_ptr<Font> Allocate(const FontParameters &fp);
 };
 
-class IScreenLine {
+class SCINTILLA_EXPORT IScreenLine {
 public:
 	virtual std::string_view Text() const = 0;
 	virtual size_t Length() const = 0;
@@ -162,7 +166,7 @@ public:
 	virtual XYPOSITION TabPositionAfter(XYPOSITION xPosition) const = 0;
 };
 
-class IScreenLineLayout {
+class SCINTILLA_EXPORT IScreenLineLayout {
 public:
 	virtual ~IScreenLineLayout() noexcept = default;
 	virtual size_t PositionFromX(XYPOSITION xDistance, bool charPosition) = 0;
@@ -173,10 +177,10 @@ public:
 /**
  * Parameters for surfaces.
  */
-struct SurfaceMode {
-	int codePage = 0;
-	bool bidiR2L = false;
-	SurfaceMode() = default;
+struct SCINTILLA_EXPORT SurfaceMode {
+  int codePage = 0;
+  bool bidiR2L = false;
+  SurfaceMode() = default;
 	explicit SurfaceMode(int codePage_, bool bidiR2L_) noexcept : codePage(codePage_), bidiR2L(bidiR2L_) {
 	}
 };
@@ -184,7 +188,7 @@ struct SurfaceMode {
 /**
  * A surface abstracts a place to draw.
  */
-class Surface {
+class SCINTILLA_EXPORT Surface {
 public:
 	Surface() noexcept = default;
 	Surface(const Surface &) = delete;
@@ -266,7 +270,7 @@ public:
  * Class to hide the details of window manipulation.
  * Does not own the window which will normally have a longer life than this object.
  */
-class Window {
+class SCINTILLA_EXPORT Window {
 protected:
 	WindowID wid;
 public:
@@ -305,26 +309,26 @@ private:
 
 // ScintillaBase implements IListBoxDelegate to receive ListBoxEvents from a ListBox
 
-struct ListBoxEvent {
-	enum class EventType { selectionChange, doubleClick } event;
-	ListBoxEvent(EventType event_) noexcept : event(event_) {
+struct SCINTILLA_EXPORT ListBoxEvent {
+  enum class EventType { selectionChange, doubleClick } event;
+  ListBoxEvent(EventType event_) noexcept : event(event_) {
 	}
 };
 
-class IListBoxDelegate {
+class SCINTILLA_EXPORT IListBoxDelegate {
 public:
 	virtual void ListNotify(ListBoxEvent *plbe)=0;
 };
 
-struct ListOptions {
-	std::optional<ColourRGBA> fore;
+struct SCINTILLA_EXPORT ListOptions {
+  std::optional<ColourRGBA> fore;
 	std::optional<ColourRGBA> back;
 	std::optional<ColourRGBA> foreSelected;
 	std::optional<ColourRGBA> backSelected;
 	AutoCompleteOption options=AutoCompleteOption::Normal;
 };
 
-class ListBox : public Window {
+class SCINTILLA_EXPORT ListBox : public Window {
 public:
 	ListBox() noexcept;
 	~ListBox() noexcept override;
@@ -355,8 +359,9 @@ public:
 /**
  * Menu management.
  */
-class Menu {
-	MenuID mid;
+class SCINTILLA_EXPORT Menu {
+  MenuID mid;
+
 public:
 	Menu() noexcept;
 	MenuID GetID() const noexcept { return mid; }
@@ -371,17 +376,12 @@ public:
  */
 namespace Platform {
 
-ColourRGBA Chrome();
-ColourRGBA ChromeHighlight();
-const char *DefaultFont();
-int DefaultFontSize();
-unsigned int DoubleClickTime();
-constexpr long LongFromTwoShorts(short a,short b) noexcept {
-	return (a) | ((b) << 16);
+SCINTILLA_EXPORT ColourRGBA Chrome();
+SCINTILLA_EXPORT ColourRGBA ChromeHighlight();
+SCINTILLA_EXPORT const char *DefaultFont();
+SCINTILLA_EXPORT int DefaultFontSize();
+SCINTILLA_EXPORT unsigned int DoubleClickTime();
+SCINTILLA_EXPORT constexpr long LongFromTwoShorts(short a, short b) noexcept { return (a) | ((b) << 16); }
 }
 
 }
-
-}
-
-#endif

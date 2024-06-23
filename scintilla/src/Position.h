@@ -1,3 +1,4 @@
+#pragma once
 // Scintilla source code edit control
 /** @file Position.h
  ** Defines global type name Position in the Sci internal namespace.
@@ -5,8 +6,7 @@
 // Copyright 2015 by Neil Hodgson <neilh@scintilla.org>
 // The License.txt file describes the conditions under which this software may be distributed.
 
-#ifndef POSITION_H
-#define POSITION_H
+#include <cstdint>
 
 /**
  * A Position is a position within a document between two characters or at the beginning or end.
@@ -21,6 +21,4 @@ typedef ptrdiff_t Line;
 
 inline constexpr Position invalidPosition = -1;
 
-}
-
-#endif
+} // namespace Sci
