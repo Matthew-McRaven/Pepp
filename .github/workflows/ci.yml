@@ -191,5 +191,5 @@ jobs:
           token: ${{ secrets.GITHUB_TOKEN }}
           tag_name: test
           name: test
-          files: build/install/*
+          files: build/*
           make_latest: false

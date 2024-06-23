@@ -31,10 +31,11 @@ jobs:
         uses: actions/download-artifact@v4
         with:
           name: wasm-artifacts
+      - run: ls -lah && (ls -lah build || true)
       - name: Upload artifact
         uses: actions/upload-pages-artifact@v3
         with:
-          path: 'build/output'
+          path: '.'
       - name: Deploy to GitHub Pages
         id: deployment
         uses: actions/deploy-pages@v4

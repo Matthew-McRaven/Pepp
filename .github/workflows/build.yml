@@ -151,13 +151,17 @@ jobs:
       - name: Run build
         run: cmake --build build -j6
 
+      - name: Rename HTML
+        if: ${{ contains(inputs.name, 'EMSDK') }}
+        run: mv build/output/pepp.html build/output/index.html
+
       - name: Gather WASM build artifacts
         uses: actions/upload-artifact@v4
         if: ${{ contains(inputs.name, 'EMSDK') }}
         with:
            name: wasm-artifacts
            path: |
-             build/output/pepp.html
+             build/output/index.html
              build/output/pepp.js
              build/output/pepp.wasm
              build/output/qtloader.js
@@ -178,16 +182,17 @@ jobs:
           # Must be offscreen, or tests that involve GUI libraries will fail
           QT_QPA_PLATFORM: 'offscreen'
           CTEST_OUTPUT_ON_FAILURE: 'TRUE'
-      - run: ls build && (ls build/install || true) && ls output
+      - run: ls build
+
       - name: Upload assets
         if: ${{ inputs.artifact_key }}
         uses: actions/upload-artifact@v4
         with:
           name: ${{ inputs.artifact_key }}
           path: |
-            build/install/*.dmg
-            build/install/*.exe
-            build/install/*.AppImage
+            build/*.dmg
+            build/*.exe
+            build/*.tar.gz
           retention-days: 1
 
       - name: Analyze buildtime for Linux-Clang
