@@ -989,23 +989,13 @@ std::filesystem::path FindLexillaDirectory(std::filesystem::path startDirectory)
 
 int main(int argc, char **argv) {
     bool success = false;
-    const std::filesystem::path baseDirectory = FindLexillaDirectory(
-        std::filesystem::current_path());
-    if (!baseDirectory.empty()) {
-#if !defined(LEXILLA_STATIC)
-		const std::filesystem::path sharedLibrary = baseDirectory / "bin" / LEXILLA_LIB;
-		if (!Lexilla::Load(sharedLibrary.string())) {
-			std::cout << "Failed to load " << sharedLibrary << "\n";
-			return 1;	// Indicate failure
-		}
-#endif
-		std::filesystem::path examplesDirectory = baseDirectory / "test" / "examples";
-		for (int i = 1; i < argc; i++) {
-			if (argv[i][0] != '-') {
+    const std::filesystem::path baseDirectory = FindLexillaDirectory(std::filesystem::current_path());
+    std::filesystem::path examplesDirectory = baseDirectory / "test" / "examples";
+    for (int i = 1; i < argc; i++) {
+      if (argv[i][0] != '-') {
 				examplesDirectory = argv[i];
 			}
-		}
-		success = AccessLexilla(examplesDirectory);
     }
+    success = AccessLexilla(examplesDirectory);
     return success ? 0 : 1;
 }
