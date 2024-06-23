@@ -15,7 +15,7 @@
 
 namespace Lexilla {
 
-template <typename T> class LEXILLA_EXPORT SparseState {
+template <typename T> class SparseState {
   struct State {
     Sci_Position position;
     T value;

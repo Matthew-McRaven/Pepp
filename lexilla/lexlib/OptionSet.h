@@ -11,11 +11,10 @@
 #include <map>
 #include <string>
 #include "Scintilla.h"
-#include "lexilla_globals.h"
 
 namespace Lexilla {
 
-template <typename T> class LEXILLA_EXPORT OptionSet {
+template <typename T> class OptionSet {
   typedef T Target;
   typedef bool T::*plcob;
   typedef int T::*plcoi;

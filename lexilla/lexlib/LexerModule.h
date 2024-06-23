@@ -61,7 +61,7 @@ public:
   friend class CatalogueModules;
 };
 
-LEXILLA_EXPORT constexpr int Maximum(int a, int b) noexcept { return (a > b) ? a : b; }
+constexpr int Maximum(int a, int b) noexcept { return (a > b) ? a : b; }
 
 // Shut up annoying Visual C++ warnings:
 #if defined(_MSC_VER)

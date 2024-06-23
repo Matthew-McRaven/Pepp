@@ -14,7 +14,7 @@ namespace Lexilla {
 // Instantiate over fixed length strings of both char and wchar_t.
 // May truncate if source doesn't fit into dest with room for NUL.
 
-template <typename T, size_t count> void LEXILLA_EXPORT StringCopy(T (&dest)[count], const T *source) {
+template <typename T, size_t count> void StringCopy(T (&dest)[count], const T *source) {
   for (size_t i = 0; i < count; i++) {
     dest[i] = source[i];
     if (!source[i]) break;

@@ -12,7 +12,7 @@
 
 namespace Lexilla {
 
-template <int N> class LEXILLA_EXPORT CharacterSetArray {
+template <int N> class CharacterSetArray {
   unsigned char bset[(N - 1) / 8 + 1] = {};
   bool valueAfter = false;
 
@@ -68,7 +68,7 @@ using CharacterSet = CharacterSetArray<0x80>;
 
 // Functions for classifying characters
 
-template <typename T, typename... Args> LEXILLA_EXPORT constexpr bool AnyOf(T t, Args... args) noexcept {
+template <typename T, typename... Args> constexpr bool AnyOf(T t, Args... args) noexcept {
 #if defined(__clang__)
   static_assert(__is_integral(T) || __is_enum(T));
 #endif
@@ -77,23 +77,23 @@ template <typename T, typename... Args> LEXILLA_EXPORT constexpr bool AnyOf(T t,
 
 // prevent pointer without <type_traits>
 template <typename T, typename... Args>
-LEXILLA_EXPORT constexpr void AnyOf([[maybe_unused]] T *t, [[maybe_unused]] Args... args) noexcept {}
+constexpr void AnyOf([[maybe_unused]] T *t, [[maybe_unused]] Args... args) noexcept {}
 template <typename T, typename... Args>
-LEXILLA_EXPORT constexpr void AnyOf([[maybe_unused]] const T *t, [[maybe_unused]] Args... args) noexcept {}
+constexpr void AnyOf([[maybe_unused]] const T *t, [[maybe_unused]] Args... args) noexcept {}
 
-LEXILLA_EXPORT constexpr bool IsASpace(int ch) noexcept { return (ch == ' ') || ((ch >= 0x09) && (ch <= 0x0d)); }
+constexpr bool IsASpace(int ch) noexcept { return (ch == ' ') || ((ch >= 0x09) && (ch <= 0x0d)); }
 
-LEXILLA_EXPORT constexpr bool IsASpaceOrTab(int ch) noexcept { return (ch == ' ') || (ch == '\t'); }
+constexpr bool IsASpaceOrTab(int ch) noexcept { return (ch == ' ') || (ch == '\t'); }
 
-LEXILLA_EXPORT constexpr bool IsADigit(int ch) noexcept { return (ch >= '0') && (ch <= '9'); }
+constexpr bool IsADigit(int ch) noexcept { return (ch >= '0') && (ch <= '9'); }
 
-LEXILLA_EXPORT constexpr bool IsAHeXDigit(int ch) noexcept {
+constexpr bool IsAHeXDigit(int ch) noexcept {
   return (ch >= '0' && ch <= '9') || (ch >= 'A' && ch <= 'F') || (ch >= 'a' && ch <= 'f');
 }
 
-LEXILLA_EXPORT constexpr bool IsAnOctalDigit(int ch) noexcept { return ch >= '0' && ch <= '7'; }
+constexpr bool IsAnOctalDigit(int ch) noexcept { return ch >= '0' && ch <= '7'; }
 
-LEXILLA_EXPORT constexpr bool IsADigit(int ch, int base) noexcept {
+constexpr bool IsADigit(int ch, int base) noexcept {
   if (base <= 10) {
     return (ch >= '0') && (ch < '0' + base);
   } else {
@@ -102,15 +102,13 @@ LEXILLA_EXPORT constexpr bool IsADigit(int ch, int base) noexcept {
   }
 }
 
-LEXILLA_EXPORT constexpr bool IsASCII(int ch) noexcept { return (ch >= 0) && (ch < 0x80); }
+constexpr bool IsASCII(int ch) noexcept { return (ch >= 0) && (ch < 0x80); }
 
-LEXILLA_EXPORT constexpr bool IsLowerCase(int ch) noexcept { return (ch >= 'a') && (ch <= 'z'); }
+constexpr bool IsLowerCase(int ch) noexcept { return (ch >= 'a') && (ch <= 'z'); }
+constexpr bool IsUpperCase(int ch) noexcept { return (ch >= 'A') && (ch <= 'Z'); }
+constexpr bool IsUpperOrLowerCase(int ch) noexcept { return IsUpperCase(ch) || IsLowerCase(ch); }
 
-LEXILLA_EXPORT constexpr bool IsUpperCase(int ch) noexcept { return (ch >= 'A') && (ch <= 'Z'); }
-
-LEXILLA_EXPORT constexpr bool IsUpperOrLowerCase(int ch) noexcept { return IsUpperCase(ch) || IsLowerCase(ch); }
-
-LEXILLA_EXPORT constexpr bool IsAlphaNumeric(int ch) noexcept {
+constexpr bool IsAlphaNumeric(int ch) noexcept {
   return ((ch >= '0') && (ch <= '9')) || ((ch >= 'a') && (ch <= 'z')) || ((ch >= 'A') && (ch <= 'Z'));
 }
 
@@ -118,13 +116,13 @@ LEXILLA_EXPORT constexpr bool IsAlphaNumeric(int ch) noexcept {
  * Check if a character is a space.
  * This is ASCII specific but is safe with chars >= 0x80.
  */
-LEXILLA_EXPORT constexpr bool isspacechar(int ch) noexcept { return (ch == ' ') || ((ch >= 0x09) && (ch <= 0x0d)); }
+constexpr bool isspacechar(int ch) noexcept { return (ch == ' ') || ((ch >= 0x09) && (ch <= 0x0d)); }
 
-LEXILLA_EXPORT constexpr bool iswordchar(int ch) noexcept { return IsAlphaNumeric(ch) || ch == '.' || ch == '_'; }
+constexpr bool iswordchar(int ch) noexcept { return IsAlphaNumeric(ch) || ch == '.' || ch == '_'; }
 
-LEXILLA_EXPORT constexpr bool iswordstart(int ch) noexcept { return IsAlphaNumeric(ch) || ch == '_'; }
+constexpr bool iswordstart(int ch) noexcept { return IsAlphaNumeric(ch) || ch == '_'; }
 
-LEXILLA_EXPORT constexpr bool isoperator(int ch) noexcept {
+constexpr bool isoperator(int ch) noexcept {
   if (IsAlphaNumeric(ch)) return false;
   if (ch == '%' || ch == '^' || ch == '&' || ch == '*' || ch == '(' || ch == ')' || ch == '-' || ch == '+' ||
       ch == '=' || ch == '|' || ch == '{' || ch == '}' || ch == '[' || ch == ']' || ch == ':' || ch == ';' ||
@@ -135,12 +133,12 @@ LEXILLA_EXPORT constexpr bool isoperator(int ch) noexcept {
 
 // Simple case functions for ASCII supersets.
 
-template <typename T> LEXILLA_EXPORT constexpr T MakeUpperCase(T ch) noexcept {
+template <typename T> constexpr T MakeUpperCase(T ch) noexcept {
   if (ch < 'a' || ch > 'z') return ch;
   else return ch - 'a' + 'A';
 }
 
-template <typename T> LEXILLA_EXPORT constexpr T MakeLowerCase(T ch) noexcept {
+template <typename T> constexpr T MakeLowerCase(T ch) noexcept {
   if (ch < 'A' || ch > 'Z') return ch;
   else return ch - 'A' + 'a';
 }
