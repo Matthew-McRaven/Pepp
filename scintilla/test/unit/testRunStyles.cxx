@@ -22,7 +22,6 @@
 #include "catch.hpp"
 
 using namespace Scintilla::Internal;
-template class Scintilla::Internal::RunStyles<int, int>;
 
 // Test RunStyles.
 
