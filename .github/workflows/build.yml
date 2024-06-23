@@ -146,8 +146,20 @@ jobs:
         env:
           MAC_DEVELOPER_NAME: ${{ secrets.MAC_DEVELOPER_NAME }}
 
+
       - name: Run build
         run: cmake --build build -j6
+
+      - name: Gather WASM build artifacts
+        uses: actions/upload-artifact@v4
+        if: ${{ contains(inputs.name, 'EMSDK') }}
+        with:
+           name: wasm-artifacts
+           path: |
+             output/pepp.html
+             output/pepp.js
+             output/pepp.wasm
+             output/qtloader.js
 
       - name: Run cpack
         shell: bash
