@@ -71,7 +71,7 @@ make_target(
         TARGET pepp-term
         TYPE "EXEC"
         SOURCES ${sources} ${CMAKE_SOURCE_DIR}/data/icons/icons.qrc
-        DEPENDS TextFlow cli about macro pas builtins isa targets sim Qt6::Core catch test-lib-all helpers
+        DEPENDS TextFlow cli about macro pas builtins isa targets sim Qt6::Core catch test-lib-all helpers scintilla_qt
 )
 set_target_properties(pepp-term PROPERTIES FOLDER "qtc_runnable")
 target_compile_definitions(pepp-term PRIVATE "INCLUDE_GUI=0")
