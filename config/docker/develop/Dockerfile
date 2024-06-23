@@ -1,5 +1,6 @@
+ARG BASE_IMAGE=ubuntu:22.04
 # Will be the latest LTS by the time we release the book, which I assume to be ~ 2025.
-FROM ubuntu:22.04 as base-gcc
+FROM ${BASE_IMAGE} as base-gcc
 # Prevent apt-get from pausing for input in an environment in which it can never
 ENV DEBIAN_FRONTEND=noninteractive
 # Building boost + final build image needs all of the same tools.
