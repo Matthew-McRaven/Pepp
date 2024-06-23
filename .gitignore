@@ -12,3 +12,4 @@ cmake-build-*
 CMakeLists.txt.user
 version
 .idea
+/build*/
