@@ -130,7 +130,9 @@ Dialog {
                 wrapMode: Text.WordWrap
             }
             ComboBox {
-                Component.onCompleted: {onCurrentIndexChanged()}
+                Component.onCompleted: {
+                    projectCombo.onCurrentIndexChanged()
+                }
 
                 Layout.fillWidth: true
                 id: projectCombo
@@ -138,9 +140,10 @@ Dialog {
                 currentIndex: 0
                 textRole: "name"
 
-                onCurrentIndexChanged: {
+                function onCurrentIndexChanged() {
                     let index = model.index(currentIndex, 0)
-                    projectLicense.text = model.data(index, DependencyRoles.LicenseText)
+                    projectLicense.text = model.data(
+                                index, DependencyRoles.LicenseText)
                     let url = model.data(index, DependencyRoles.URL)
                     projectUrl.text = "<a href=\"" + url + "\">" + url + "</a>"
                 }
