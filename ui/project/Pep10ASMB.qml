@@ -12,13 +12,15 @@ Item {
     required property var project
     required property string mode
     Component.onCompleted: {
+
         // Must connect and disconnect manually, otherwise project may be changed underneath us, and "save" targets wrong project.
         // Do not need to update on mode change, since mode change implies loss of focus of objEdit.
-        userAsmEdit.editingFinished.connect(save)
+        // userAsmEdit.editingFinished.connect(save)
     }
     // Will be called before project is changed on unload, so we can disconnect save-triggering signals.
     Component.onDestruction: {
-        userAsmEdit.editingFinished.disconnect(save)
+
+        // userAsmEdit.editingFinished.disconnect(save)
     }
 
     function save() {
