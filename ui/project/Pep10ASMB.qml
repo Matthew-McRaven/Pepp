@@ -65,7 +65,7 @@ Item {
                 StackLayout {
                     currentIndex: textSelector.currentIndex
                     SplitView.fillHeight: true
-                    Text.AsmTextEdit {
+                    Text.ScintillaAsmEdit {
                         id: userAsmEdit
                         Layout.fillHeight: true
                         Layout.fillWidth: true
@@ -73,11 +73,9 @@ Item {
                         readOnly: mode !== "edit"
                         // text is only an initial binding, the value diverges from there.
                         text: project?.userAsmText ?? ""
-                        edition: "Computer Systems, 6th edition"
-                        language: "pep"
                         contentHeight: Math.max(parent.height, editorHeight)
                     }
-                    Text.AsmTextEdit {
+                    Text.ScintillaAsmEdit {
                         id: osAsmEdit
                         Layout.fillHeight: true
                         Layout.fillWidth: true
@@ -85,8 +83,6 @@ Item {
                         readOnly: true
                         // text is only an initial binding, the value diverges from there.
                         text: project?.osAsmText ?? ""
-                        edition: "Computer Systems, 6th edition"
-                        language: "pep"
                         contentHeight: Math.max(parent.height, editorHeight)
                     }
                 }
