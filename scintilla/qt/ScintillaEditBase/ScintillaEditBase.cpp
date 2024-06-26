@@ -144,6 +144,8 @@ void ScintillaEditBase::scrollRow(int deltaLines) {
   // scrollVertical(currentLine + deltaLines);       // also ok !
 }
 
+void ScintillaEditBase::scrollRowAbsolute(int firstVisible) { scrollVertical(firstVisible); }
+
 void ScintillaEditBase::scrollColumn(int deltaColumns) {
   int currentColumnInPixel = send(SCI_GETXOFFSET);
   int newValue = currentColumnInPixel + deltaColumns * getCharWidth();

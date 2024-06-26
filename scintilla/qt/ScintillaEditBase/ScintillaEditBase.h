@@ -81,6 +81,7 @@ public:
 
 #ifdef PLAT_QT_QML
   Q_INVOKABLE void scrollRow(int deltaLines);
+  Q_INVOKABLE void scrollRowAbsolute(int firstVisible);
   Q_INVOKABLE void scrollColumn(int deltaColumns);
   Q_INVOKABLE void enableUpdate(bool enable);
   Q_INVOKABLE void debug();
