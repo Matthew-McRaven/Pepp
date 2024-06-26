@@ -55,6 +55,10 @@ Item {
                 anchors.top: parent.top
                 model: ["User", "OS"]
             }
+            FontMetrics {
+                id: editorFM
+                font.family: "Courier New"
+            }
             SplitView {
                 handle: split.handle
                 orientation: Qt.Vertical
@@ -73,7 +77,7 @@ Item {
                         readOnly: mode !== "edit"
                         // text is only an initial binding, the value diverges from there.
                         text: project?.userAsmText ?? ""
-                        contentHeight: Math.max(parent.height, editorHeight)
+                        editorFont: editorFM.font
                     }
                     Text.ScintillaAsmEdit {
                         id: osAsmEdit
@@ -83,7 +87,7 @@ Item {
                         readOnly: true
                         // text is only an initial binding, the value diverges from there.
                         text: project?.osAsmText ?? ""
-                        contentHeight: Math.max(parent.height, editorHeight)
+                        editorFont: editorFM.font
                     }
                 }
                 Text.ObjTextEditor {

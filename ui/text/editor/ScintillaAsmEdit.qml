@@ -36,7 +36,7 @@ ScrollView {
     // public properties
     property alias text: quickScintillaEditor.text
     property alias readOnly: quickScintillaEditor.readonly
-
+    property alias editorFont: quickScintillaEditor.font
     // private properties, used only for technical details...
     property alias scintilla: quickScintillaEditor
     //property Flickable flickableItem: flickableItem
