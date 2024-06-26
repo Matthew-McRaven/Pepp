@@ -59,6 +59,7 @@ Item {
                 id: editorFM
                 font.family: "Courier New"
             }
+
             SplitView {
                 handle: split.handle
                 orientation: Qt.Vertical
@@ -81,10 +82,13 @@ Item {
                     }
                     Text.ScintillaAsmEdit {
                         id: osAsmEdit
+                        Component.onCompleted: {
+                            // Don't set declaratively, otherwise text will not be repainted.
+                            osAsmEdit.readOnly = true
+                        }
                         Layout.fillHeight: true
                         Layout.fillWidth: true
                         height: parent.height
-                        readOnly: true
                         // text is only an initial binding, the value diverges from there.
                         text: project?.osAsmText ?? ""
                         editorFont: editorFM.font
