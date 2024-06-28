@@ -81,6 +81,7 @@ Item {
         visible: editor.visibleLines < editor.totalLines
         width: verticalScrollBar.visible ? 10 : 0
         stepSize: 3.0 / editor.totalLines
+        position: editor.firstVisibleLine / editor.totalLines
         onPositionChanged: {
             editor.enableUpdate(false)
             editor.scrollRowAbsolute(Math.round(position * editor.totalLines))
@@ -97,5 +98,6 @@ Item {
         visible: editor.visibleColumuns < editor.totalColumns
         height: horizontalScrollBar.visible ? 20 : 0
         stepSize: 3.0 / editor.totalColumns
+        position: editor.firstVisibleColumn / editor.totalColumns
     }
 }
