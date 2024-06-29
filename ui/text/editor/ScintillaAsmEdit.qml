@@ -32,6 +32,7 @@ Item {
     property alias text: editor.text
     property alias readOnly: editor.readonly
     property alias editorFont: editor.font
+    property alias language: editor.language
     // private properties, used only for technical details...
     property alias scintilla: editor
     property bool actionFromKeyboard: false

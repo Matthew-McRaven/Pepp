@@ -81,6 +81,7 @@ Item {
                         // text is only an initial binding, the value diverges from there.
                         text: project?.userAsmText ?? ""
                         editorFont: editorFM.font
+                        language: "Pep/10 ASM"
                     }
                     Text.ScintillaAsmEdit {
                         id: osAsmEdit
@@ -94,6 +95,7 @@ Item {
                         // text is only an initial binding, the value diverges from there.
                         text: project?.osAsmText ?? ""
                         editorFont: editorFM.font
+                        language: "Pep/10 ASM"
                     }
                 }
                 Text.ObjTextEditor {
