@@ -388,6 +388,8 @@ void ScintillaEditBase::keyPressEvent(QKeyEvent *event) {
   bool alt = QApplication::keyboardModifiers() & Qt::AltModifier;
 
   bool consumed = false;
+
+  int firstCol = getFirstVisibleColumn(), firstRow = getFirstVisibleLine();
   bool added = sqt->KeyDownWithModifiers(static_cast<Keys>(key), ModifierFlags(shift, ctrl, alt), &consumed) != 0;
   if (!consumed) consumed = added;
 
@@ -419,6 +421,8 @@ void ScintillaEditBase::keyPressEvent(QKeyEvent *event) {
     }
   }
 
+  if (firstCol != getFirstVisibleColumn()) emit firstVisibleColumnChanged();
+  if (firstRow != getFirstVisibleLine()) emit firstVisibleLineChanged();
   emit keyPressed(event);
 }
 
