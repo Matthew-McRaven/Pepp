@@ -9,7 +9,9 @@
 // @file ScintillaEditBase.cpp - Qt widget that wraps ScintillaQt and provides events and scrolling
 
 #include "ScintillaEditBase.h"
+#include "LexillaAccess.h"
 #include "PlatQt.h"
+#include "SciLexer.h"
 #include "ScintillaQt.h"
 
 #include <QApplication>
@@ -1170,6 +1172,13 @@ void ScintillaEditBase::setReadonly(bool value) {
 
     emit readonlyChanged();
   }
+}
+
+QString ScintillaEditBase::lexerLanguage() const { return ""; }
+
+void ScintillaEditBase::setLexerLanguage(const QString &language) {
+  auto lexer = Lexilla::MakeLexer("Pep10ASM");
+  send(SCI_SETILEXER, (uintptr_t)lexer);
 }
 
 void ScintillaEditBase::UpdateQuickView() {
