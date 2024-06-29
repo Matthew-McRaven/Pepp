@@ -172,6 +172,13 @@ ApplicationWindow {
     FontMetrics {
         id: menuFont
     }
+
+    // Helper to propogate to current delegate.
+    function preAssemble() {
+        if (projectLoader.item)
+            projectLoader.item.preAssemble()
+    }
+
     Menu.Actions {
         id: actions
         project: window.currentProject

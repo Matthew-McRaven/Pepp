@@ -15,12 +15,11 @@ Item {
 
         // Must connect and disconnect manually, otherwise project may be changed underneath us, and "save" targets wrong project.
         // Do not need to update on mode change, since mode change implies loss of focus of objEdit.
-        // userAsmEdit.editingFinished.connect(save)
+        userAsmEdit.editingFinished.connect(save)
     }
     // Will be called before project is changed on unload, so we can disconnect save-triggering signals.
     Component.onDestruction: {
-
-        // userAsmEdit.editingFinished.disconnect(save)
+        userAsmEdit.editingFinished.disconnect(save)
     }
 
     function save() {
@@ -30,6 +29,13 @@ Item {
         else if (!userAsmEdit.readOnly) {
             project.userAsmText = userAsmEdit.text
         }
+    }
+
+    function preAssemble() {
+        if (project === null)
+            return
+        project.userAsmText = userAsmEdit.text
+        project.osAsmText = osAsmEdit.text
     }
 
     SplitView {

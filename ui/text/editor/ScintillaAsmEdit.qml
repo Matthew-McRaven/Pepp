@@ -20,6 +20,13 @@ import org.scintilla.scintilla 1.0
 
 Item {
     id: root
+    signal editingFinished(string text)
+    Component.onCompleted: {
+        editor.onActiveFocusChanged.connect(function () {
+            if (!editor.activeFocus)
+                root.editingFinished(editor.text)
+        })
+    }
 
     property real charHeight: editor.charHeight
 
