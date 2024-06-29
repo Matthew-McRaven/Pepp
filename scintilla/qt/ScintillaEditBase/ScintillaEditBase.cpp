@@ -164,6 +164,15 @@ void ScintillaEditBase::debug() {
 
 void ScintillaEditBase::cmdContextMenu(int menuID) { sqt->Command(menuID); }
 
+void ScintillaEditBase::clearAllEOLAnnotations() { send(SCI_EOLANNOTATIONCLEARALL); }
+
+void ScintillaEditBase::setEOLAnnotationsVisibile(int style) { send(SCI_EOLANNOTATIONSETVISIBLE, style); }
+
+void ScintillaEditBase::addEOLAnnotation(int line, const QString &annotation) {
+  auto str = annotation.toStdString();
+  send(SCI_EOLANNOTATIONSETTEXT, line, (sptr_t)str.c_str());
+}
+
 void ScintillaEditBase::enableUpdate(bool enable) {
   enableUpdateFlag = enable;
   if (enableUpdateFlag) {

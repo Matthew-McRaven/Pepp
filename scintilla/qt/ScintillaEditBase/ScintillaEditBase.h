@@ -87,6 +87,9 @@ public:
   Q_INVOKABLE void enableUpdate(bool enable);
   Q_INVOKABLE void debug();
   Q_INVOKABLE virtual void cmdContextMenu(int menuID);
+  Q_INVOKABLE void clearAllEOLAnnotations();
+  Q_INVOKABLE void setEOLAnnotationsVisibile(int style);
+  Q_INVOKABLE void addEOLAnnotation(int line, const QString &annotation);
 #endif
 
 public slots:
