@@ -88,6 +88,20 @@ QStringList helpers::AsmHelper::errors() {
   return ret;
 }
 
+QList<QPair<int, QString>> helpers::AsmHelper::errorsWithLines() {
+  using ErrList = decltype(pas::ops::generic::collectErrors(*_osRoot));
+  bool hadOsErr = false;
+  ErrList userErrors = _user && !_userRoot.isNull() ? pas::ops::generic::collectErrors(*_userRoot) : ErrList{};
+  auto ret = QList<QPair<int, QString>>{};
+  if (!userErrors.empty()) {
+    auto splitUser = _user->split("\n");
+    for (const auto &err : userErrors) {
+      ret.push_back({err.first.value.line + 1, err.second.message});
+    }
+  }
+  return ret;
+}
+
 QSharedPointer<ELFIO::elfio> helpers::AsmHelper::elf(std::optional<QList<quint8>> userObj) {
   _elf = pas::obj::pep10::createElf();
   pas::obj::pep10::combineSections(*_osRoot);

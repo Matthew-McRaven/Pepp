@@ -16,10 +16,15 @@ Item {
         // Must connect and disconnect manually, otherwise project may be changed underneath us, and "save" targets wrong project.
         // Do not need to update on mode change, since mode change implies loss of focus of objEdit.
         userAsmEdit.editingFinished.connect(save)
+        project.errorsChanged.connect(displayErrors)
     }
     // Will be called before project is changed on unload, so we can disconnect save-triggering signals.
     Component.onDestruction: {
         userAsmEdit.editingFinished.disconnect(save)
+        project.errorsChanged.disconnect(displayErrors)
+    }
+    function displayErrors() {
+        userAsmEdit.addEOLAnnotations(project.assemblerErrors)
     }
 
     function save() {
@@ -80,10 +85,14 @@ Item {
                     SplitView.fillHeight: true
                     Text.ScintillaAsmEdit {
                         id: userAsmEdit
+                        Component.onCompleted: {
+                            // Don't set declaratively, otherwise text will not be repainted.
+                            userAsmEdit.readOnly = Qt.binding(
+                                        () => mode !== "edit")
+                        }
                         Layout.fillHeight: true
                         Layout.fillWidth: true
                         height: parent.height
-                        readOnly: mode !== "edit"
                         // text is only an initial binding, the value diverges from there.
                         text: project?.userAsmText ?? ""
                         editorFont: editorFM.font
@@ -93,7 +102,7 @@ Item {
                         id: osAsmEdit
                         Component.onCompleted: {
                             // Don't set declaratively, otherwise text will not be repainted.
-                            osAsmEdit.readOnly = true
+                            osAsmEdit.readOnly = Qt.binding(() => true)
                         }
                         Layout.fillHeight: true
                         Layout.fillWidth: true

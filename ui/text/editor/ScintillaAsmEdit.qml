@@ -1,5 +1,4 @@
 
-
 /***************************************************************************
  *
  * SciteQt - a port of SciTE to Qt Quick/QML
@@ -8,14 +7,9 @@
  *
  ***************************************************************************/
 import QtQuick
-//2.9
 import QtQuick.Controls
-//2.3
 import QtQuick.Dialogs
-//1.2
 import QtQml.Models
-
-//2.1
 import org.scintilla.scintilla 1.0
 
 Item {
@@ -26,6 +20,16 @@ Item {
             if (!editor.activeFocus)
                 root.editingFinished(editor.text)
         })
+    }
+    // List has {line:#, message:str}
+    function addEOLAnnotations(lst) {
+        editor.clearAllEOLAnnotations()
+        // See styles at: https://scintilla.org/ScintillaDoc.html#EndOfLineAnnotations
+        let style = lst.length === 0 ? 0x0 : 0x2
+        editor.setEOLAnnotationsVisibile(style)
+        for (var i = 0; i < lst.length; i++) {
+            editor.addEOLAnnotation(lst[i].line - 1, lst[i].message)
+        }
     }
 
     property real charHeight: editor.charHeight
