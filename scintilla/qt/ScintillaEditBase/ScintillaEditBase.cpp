@@ -1248,6 +1248,19 @@ void ScintillaEditBase::setErrorBackgroundColor(const QColor &color) {
   emit colorChanged();
 }
 
+bool ScintillaEditBase::lineNumbersVisible() const
+{
+  auto currentWidth = send(SCI_GETMARGINWIDTHN, 0);
+  return currentWidth > 0;
+}
+
+void ScintillaEditBase::setLineNumbersVisible(bool visible) {
+
+  if (lineNumbersVisible() == visible) return;
+  auto width = getCharWidth() * 6;
+  send(SCI_SETMARGINWIDTHN, 0, width);
+  emit lineNumbersVisibleChanged();
+}
 void ScintillaEditBase::applyStyles() {
   send(SCI_STYLESETFORE, STYLE_DEFAULT, _text);
   send(SCI_SETCARETFORE, _text);

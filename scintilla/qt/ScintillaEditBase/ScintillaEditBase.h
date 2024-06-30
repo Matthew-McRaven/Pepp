@@ -70,6 +70,8 @@ class SCINTILLA_EXPORT ScintillaEditBase : public
   Q_PROPERTY(QColor backgroundColor READ backgroundColor WRITE setBackgroundColor NOTIFY colorChanged);
   Q_PROPERTY(QColor errorForegroundColor READ errorForegroundColor WRITE setErrorForegroundColor NOTIFY colorChanged);
   Q_PROPERTY(QColor errorBackgroundColor READ errorBackgroundColor WRITE setErrorBackgroundColor NOTIFY colorChanged);
+  Q_PROPERTY(
+      bool lineNumbersVisible READ lineNumbersVisible WRITE setLineNumbersVisible NOTIFY lineNumbersVisibleChanged);
   //
 #endif
 
@@ -178,6 +180,7 @@ signals:
   void clearContextMenu();
   void lexerLanguageChanged();
   void colorChanged();
+  void lineNumbersVisibleChanged();
   // void readonlyChanged();
 #endif
 
@@ -253,6 +256,8 @@ private:
   void setErrorForegroundColor(const QColor &color);
   QColor errorBackgroundColor() const;
   void setErrorBackgroundColor(const QColor &color);
+  bool lineNumbersVisible() const;
+  void setLineNumbersVisible(bool visible);
   // Defer style update so that we can layer multiple changes over defaults.
   void applyStyles();
 
