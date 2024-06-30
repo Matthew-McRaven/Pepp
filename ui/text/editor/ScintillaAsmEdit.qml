@@ -87,6 +87,7 @@ Item {
         backgroundColor: root.palette.base
         errorBackgroundColor: Theme.error.background
         errorForegroundColor: Theme.error.foreground
+        lineNumbersVisible: true
     }
     ScrollBar {
         id: verticalScrollBar
