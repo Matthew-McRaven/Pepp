@@ -127,6 +127,11 @@ ScintillaEditBase::ScintillaEditBase(QWidget *parent)
 
 // connect(&aLongTouchTimer, SIGNAL(timeout()), this, SLOT(onLongTouch()));
 #endif
+  // Handle adding breakpoints.
+  connect(this, &ScintillaEditBase::marginClicked, this, &ScintillaEditBase::onMarginClicked);
+  send(SCI_SETMARGINSENSITIVEN, 0, true);
+  send(SCI_SETMARGINSENSITIVEN, 1, true);
+
   _text = send(SCI_STYLEGETFORE, STYLE_DEFAULT, 0);
   _bg = send(SCI_STYLEGETBACK, STYLE_DEFAULT, 0);
   _errFg = send(SCI_STYLEGETFORE, errorStyle, 0);
@@ -1084,6 +1089,30 @@ void ScintillaEditBase::notifyParent(NotificationData scn) {
 
 void ScintillaEditBase::event_command(uptr_t wParam, sptr_t lParam) { emit command(wParam, lParam); }
 
+void ScintillaEditBase::onMarginClicked(Scintilla::Position position, Scintilla::KeyMod modifiers, int margin) {
+  // Get line number from position
+  int line = send(SCI_LINEFROMPOSITION, position, 0);
+
+  // Toggle marker on the line
+  int markers = send(SCI_MARKERGET, line);
+  auto msg = markers & (1 << SC_MARK_CIRCLE) ? SCI_MARKERDELETE : SCI_MARKERADD;
+  send(msg, line, SC_MARK_CIRCLE);
+}
+
+/* // I actually think this is a bad idea, but keeping code for reference.
+void ScintillaEditBase::removeMarkersOnModified(Scintilla::ModificationFlags type, Scintilla::Position position,
+                                                Scintilla::Position length, Scintilla::Position linesAdded,
+                                                const QByteArray &text, Scintilla::Position line,
+                                                Scintilla::FoldLevel foldNow, Scintilla::FoldLevel foldPrev) {
+  // Lines added is unsigned, but can contain negative values if lines were deleted.
+  // Cast to avoid signed'ness issues / trivially being true.
+  if (!FlagSet(type, ModificationFlags::DeleteText) || std::make_signed<Scintilla::Position>::type(linesAdded) >= 0)
+    return;
+  int startLine = send(SCI_LINEFROMPOSITION, position);
+  // markers are merged when lines are deleted, so we may remove markers we wished to keep.
+  for (int it = startLine + linesAdded; it <= startLine; ++it) send(SCI_MARKERDELETE, it, -1);
+}*/
+
 KeyMod ScintillaEditBase::ModifiersOfKeyboard() {
   const bool shift = QApplication::keyboardModifiers() & Qt::ShiftModifier;
   const bool ctrl = QApplication::keyboardModifiers() & Qt::ControlModifier;
@@ -1261,13 +1290,18 @@ void ScintillaEditBase::setLineNumbersVisible(bool visible) {
   send(SCI_SETMARGINWIDTHN, 0, width);
   emit lineNumbersVisibleChanged();
 }
+
 void ScintillaEditBase::applyStyles() {
   send(SCI_STYLESETFORE, STYLE_DEFAULT, _text);
   send(SCI_SETCARETFORE, _text);
   send(SCI_STYLESETBACK, STYLE_DEFAULT, _bg);
   send(SCI_STYLECLEARALL, 0, 0);
+  // For EOL error annotations
   send(SCI_STYLESETFORE, errorStyle, _errFg);
   send(SCI_STYLESETBACK, errorStyle, _errBg);
+  // For breakpoints
+  send(SCI_MARKERSETFORE, SC_MARK_CIRCLE, _bg);
+  send(SCI_MARKERSETBACK, SC_MARK_CIRCLE, _errBg);
 }
 
 void ScintillaEditBase::UpdateQuickView() {

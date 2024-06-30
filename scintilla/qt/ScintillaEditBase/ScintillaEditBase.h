@@ -107,6 +107,8 @@ public slots:
   // Emit Scintilla notifications as signals.
   void notifyParent(Scintilla::NotificationData scn);
   void event_command(Scintilla::uptr_t wParam, Scintilla::sptr_t lParam);
+  // For breakpoints
+  void onMarginClicked(Scintilla::Position position, Scintilla::KeyMod modifiers, int margin);
 
 signals:
   void cursorPositionChanged();
