@@ -85,6 +85,8 @@ Item {
         focus: true
         textColor: root.palette.text
         backgroundColor: root.palette.base
+        errorBackgroundColor: Theme.error.background
+        errorForegroundColor: Theme.error.foreground
     }
     ScrollBar {
         id: verticalScrollBar
