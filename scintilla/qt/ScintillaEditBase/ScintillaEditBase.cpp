@@ -127,6 +127,10 @@ ScintillaEditBase::ScintillaEditBase(QWidget *parent)
 
 // connect(&aLongTouchTimer, SIGNAL(timeout()), this, SLOT(onLongTouch()));
 #endif
+  _text = send(SCI_STYLEGETFORE, STYLE_DEFAULT, 0);
+  _bg = send(SCI_STYLEGETBACK, STYLE_DEFAULT, 0);
+  _errFg = send(SCI_STYLEGETFORE, errorStyle, 0);
+  _errBg = send(SCI_STYLEGETBACK, errorStyle, 0);
 }
 
 ScintillaEditBase::~ScintillaEditBase() = default;
@@ -172,6 +176,7 @@ void ScintillaEditBase::setEOLAnnotationsVisibile(int style) { send(SCI_EOLANNOT
 void ScintillaEditBase::addEOLAnnotation(int line, const QString &annotation) {
   auto str = annotation.toStdString();
   send(SCI_EOLANNOTATIONSETTEXT, line, (sptr_t)str.c_str());
+  send(SCI_EOLANNOTATIONSETSTYLE, line, (sptr_t)errorStyle);
 }
 
 void ScintillaEditBase::enableUpdate(bool enable) {
@@ -1201,10 +1206,10 @@ QColor ScintillaEditBase::textColor() const {
 }
 
 void ScintillaEditBase::setTextColor(const QColor &color) {
-  auto colorRGBA = ColourRGBAFromQColor(color);
-  send(SCI_STYLESETFORE, STYLE_DEFAULT, colorRGBA.AsInteger());
-  // Apply the changes to the current document
-  send(SCI_STYLECLEARALL, 0, 0);
+  if (textColor() == color) return;
+  _text = ColourRGBAFromQColor(color).AsInteger();
+  applyStyles();
+  emit colorChanged();
 }
 
 QColor ScintillaEditBase::backgroundColor() const {
@@ -1213,10 +1218,43 @@ QColor ScintillaEditBase::backgroundColor() const {
 }
 
 void ScintillaEditBase::setBackgroundColor(const QColor &color) {
-  auto colorRGBA = ColourRGBAFromQColor(color);
-  send(SCI_STYLESETBACK, STYLE_DEFAULT, colorRGBA.AsInteger());
-  // Apply the changes to the current document
+  if (backgroundColor() == color) return;
+  _bg = ColourRGBAFromQColor(color).AsInteger();
+  applyStyles();
+  emit colorChanged();
+}
+
+QColor ScintillaEditBase::errorForegroundColor() const {
+  auto ca = ColourRGBA::FromIpRGB(send(SCI_STYLEGETFORE, errorStyle));
+  return QColorFromColourRGBA(ca);
+}
+
+void ScintillaEditBase::setErrorForegroundColor(const QColor &color) {
+  if (errorForegroundColor() == color) return;
+  _errFg = ColourRGBAFromQColor(color).AsInteger();
+  applyStyles();
+  emit colorChanged();
+}
+
+QColor ScintillaEditBase::errorBackgroundColor() const {
+  auto ca = ColourRGBA::FromIpRGB(send(SCI_STYLEGETBACK, errorStyle));
+  return QColorFromColourRGBA(ca);
+}
+
+void ScintillaEditBase::setErrorBackgroundColor(const QColor &color) {
+  if (errorBackgroundColor() == color) return;
+  _errBg = ColourRGBAFromQColor(color).AsInteger();
+  applyStyles();
+  emit colorChanged();
+}
+
+void ScintillaEditBase::applyStyles() {
+  send(SCI_STYLESETFORE, STYLE_DEFAULT, _text);
+  send(SCI_SETCARETFORE, _text);
+  send(SCI_STYLESETBACK, STYLE_DEFAULT, _bg);
   send(SCI_STYLECLEARALL, 0, 0);
+  send(SCI_STYLESETFORE, errorStyle, _errFg);
+  send(SCI_STYLESETBACK, errorStyle, _errBg);
 }
 
 void ScintillaEditBase::UpdateQuickView() {

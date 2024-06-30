@@ -156,8 +156,7 @@ class SCINTILLA_EXPORT ColourRGBA {
 public:
   constexpr explicit ColourRGBA(int co_ = 0) noexcept : co(co_) {}
 
-  constexpr ColourRGBA(unsigned int red, unsigned int green, unsigned int blue,
-                       unsigned int alpha = maximumByte) noexcept
+  constexpr ColourRGBA(uint8_t red, uint8_t green, uint8_t blue, uint8_t alpha = maximumByte) noexcept
       : ColourRGBA(red | (green << 8) | (blue << 16) | (alpha << 24)) {}
 
   constexpr ColourRGBA(ColourRGBA cd, unsigned int alpha) noexcept : ColourRGBA(cd.OpaqueRGB() | (alpha << 24)) {}

@@ -68,6 +68,8 @@ class SCINTILLA_EXPORT ScintillaEditBase : public
   Q_PROPERTY(QString language READ lexerLanguage WRITE setLexerLanguage NOTIFY lexerLanguageChanged);
   Q_PROPERTY(QColor textColor READ textColor WRITE setTextColor NOTIFY colorChanged);
   Q_PROPERTY(QColor backgroundColor READ backgroundColor WRITE setBackgroundColor NOTIFY colorChanged);
+  Q_PROPERTY(QColor errorForegroundColor READ errorForegroundColor WRITE setErrorForegroundColor NOTIFY colorChanged);
+  Q_PROPERTY(QColor errorBackgroundColor READ errorBackgroundColor WRITE setErrorBackgroundColor NOTIFY colorChanged);
   //
 #endif
 
@@ -217,6 +219,7 @@ protected:
 #endif
 
 private:
+  int errorStyle = STYLE_LASTPREDEFINED + 1;
 #ifdef PLAT_QT_QML
   QString getText() const;
   void setText(const QString &txt);
@@ -240,10 +243,18 @@ private:
   void setReadonly(bool value);
   QString lexerLanguage() const;
   void setLexerLanguage(const QString &language);
+  // Must set in CTOR, set*Color. Used in applyStyles().
+  int _text, _bg, _errFg, _errBg;
   QColor textColor() const;
   void setTextColor(const QColor &color);
   QColor backgroundColor() const;
   void setBackgroundColor(const QColor &color);
+  QColor errorForegroundColor() const;
+  void setErrorForegroundColor(const QColor &color);
+  QColor errorBackgroundColor() const;
+  void setErrorBackgroundColor(const QColor &color);
+  // Defer style update so that we can layer multiple changes over defaults.
+  void applyStyles();
 
   void cursorChangedUpdateMarker();
 
