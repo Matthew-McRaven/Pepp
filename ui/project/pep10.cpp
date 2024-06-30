@@ -483,6 +483,12 @@ void Pep10_ASMB::setOSAsmText(const QString &osAsmText) {
   emit osAsmTextChanged();
 }
 
+const QList<Error *> Pep10_ASMB::errors() const {
+  QList<Error *> ret;
+  for (auto [line, str] : _errors) ret.push_back(new Error{line, str});
+  return ret;
+}
+
 project::Environment Pep10_ASMB::env() const {
   return {.arch = utils::Architecture::PEP10, .level = utils::Abstraction::ASMB5, .features = project::Features::None};
 }
@@ -507,10 +513,14 @@ bool Pep10_ASMB::onAssemble(bool doLoad) {
   helpers::AsmHelper helper(macroRegistry, _osAsmText);
   helper.setUserText(_userAsmText);
   auto ret = helper.assemble();
+  _errors = helper.errorsWithLines();
+  emit errorsChanged();
   if (!ret) {
     message(utils::msg_asm_failed);
+    setObjectCodeText("");
     return false;
   }
+
   auto userBytes = helper.bytes(false);
   QString objectCodeText = pas::ops::pepp::bytesToObject(userBytes, 16);
   if (doLoad) {
@@ -518,7 +528,7 @@ bool Pep10_ASMB::onAssemble(bool doLoad) {
     _memory->onRepaintAddress(0, userBytes.length());
   }
   setObjectCodeText(objectCodeText);
-  return false;
+  return true;
 }
 
 bool Pep10_ASMB::onAssembleThenFormat() {
@@ -526,6 +536,8 @@ bool Pep10_ASMB::onAssembleThenFormat() {
   helpers::AsmHelper helper(macroRegistry, _osAsmText);
   helper.setUserText(_userAsmText);
   auto ret = helper.assemble();
+  _errors = helper.errorsWithLines();
+  emit errorsChanged();
   if (!ret) message(utils::msg_asm_failed);
   else {
     auto source = helper.formattedSource(false);
@@ -554,3 +566,5 @@ void Pep10_ASMB::prepareSim() {
 }
 
 void Pep10_ASMB::prepareGUIUpdate(sim::api2::trace::FrameIterator from) { Pep10_ISA::prepareGUIUpdate(from); }
+
+Error::Error(int line, QString error, QObject *parent) : QObject(parent), line(line), error(error) {}

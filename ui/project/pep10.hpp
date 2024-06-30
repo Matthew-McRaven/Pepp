@@ -106,10 +106,22 @@ protected:
   qint16 _currentAddress = 0;
 };
 
+struct Error : public QObject {
+  Q_OBJECT
+  Q_PROPERTY(int line MEMBER line CONSTANT);
+  Q_PROPERTY(QString message MEMBER error CONSTANT);
+
+public:
+  Error(int line, QString error, QObject *parent = nullptr);
+  int line;
+  QString error;
+};
+
 class Pep10_ASMB final : public Pep10_ISA {
   Q_OBJECT
   Q_PROPERTY(QString userAsmText READ userAsmText WRITE setUserAsmText NOTIFY userAsmTextChanged);
   Q_PROPERTY(QString osAsmText READ osAsmText WRITE setOSAsmText NOTIFY osAsmTextChanged);
+  Q_PROPERTY(QList<Error *> assemblerErrors READ errors NOTIFY errorsChanged)
 
 public:
   explicit Pep10_ASMB(QVariant delegate, QObject *parent = nullptr);
@@ -119,6 +131,7 @@ public:
   Q_INVOKABLE void setUserAsmText(const QString &userAsmText);
   Q_INVOKABLE QString osAsmText() const;
   Q_INVOKABLE void setOSAsmText(const QString &osAsmText);
+  Q_INVOKABLE const QList<Error *> errors() const;
   project::Environment env() const override;
   utils::Architecture architecture() const override;
   utils::Abstraction abstraction() const override;
@@ -129,6 +142,8 @@ public slots:
 signals:
   void userAsmTextChanged();
   void osAsmTextChanged();
+  void errorsChanged();
+
   void updateGUI(sim::api2::trace::FrameIterator from);
   void message(QString message);
 
@@ -136,4 +151,5 @@ protected:
   void prepareSim() override;
   void prepareGUIUpdate(sim::api2::trace::FrameIterator from) override;
   QString _userAsmText = {}, _osAsmText = {};
+  QList<QPair<int, QString>> _errors = {};
 };

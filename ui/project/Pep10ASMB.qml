@@ -12,13 +12,19 @@ Item {
     required property var project
     required property string mode
     Component.onCompleted: {
+
         // Must connect and disconnect manually, otherwise project may be changed underneath us, and "save" targets wrong project.
         // Do not need to update on mode change, since mode change implies loss of focus of objEdit.
         userAsmEdit.editingFinished.connect(save)
+        project.errorsChanged.connect(displayErrors)
     }
     // Will be called before project is changed on unload, so we can disconnect save-triggering signals.
     Component.onDestruction: {
         userAsmEdit.editingFinished.disconnect(save)
+        project.errorsChanged.disconnect(displayErrors)
+    }
+    function displayErrors() {
+        userAsmEdit.addEOLAnnotations(project.assemblerErrors)
     }
 
     function save() {
@@ -28,6 +34,13 @@ Item {
         else if (!userAsmEdit.readOnly) {
             project.userAsmText = userAsmEdit.text
         }
+    }
+
+    function preAssemble() {
+        if (project === null)
+            return
+        project.userAsmText = userAsmEdit.text
+        project.osAsmText = osAsmEdit.text
     }
 
     SplitView {
@@ -55,6 +68,11 @@ Item {
                 anchors.top: parent.top
                 model: ["User", "OS"]
             }
+            FontMetrics {
+                id: editorFM
+                font.family: "Courier New"
+            }
+
             SplitView {
                 handle: split.handle
                 orientation: Qt.Vertical
@@ -65,29 +83,34 @@ Item {
                 StackLayout {
                     currentIndex: textSelector.currentIndex
                     SplitView.fillHeight: true
-                    Text.AsmTextEdit {
+                    Text.ScintillaAsmEdit {
                         id: userAsmEdit
+                        Component.onCompleted: {
+                            // Don't set declaratively, otherwise text will not be repainted.
+                            userAsmEdit.readOnly = Qt.binding(
+                                        () => mode !== "edit")
+                        }
                         Layout.fillHeight: true
                         Layout.fillWidth: true
                         height: parent.height
-                        readOnly: mode !== "edit"
                         // text is only an initial binding, the value diverges from there.
                         text: project?.userAsmText ?? ""
-                        edition: "Computer Systems, 6th edition"
-                        language: "pep"
-                        contentHeight: Math.max(parent.height, editorHeight)
+                        editorFont: editorFM.font
+                        language: "Pep/10 ASM"
                     }
-                    Text.AsmTextEdit {
+                    Text.ScintillaAsmEdit {
                         id: osAsmEdit
+                        Component.onCompleted: {
+                            // Don't set declaratively, otherwise text will not be repainted.
+                            osAsmEdit.readOnly = Qt.binding(() => true)
+                        }
                         Layout.fillHeight: true
                         Layout.fillWidth: true
                         height: parent.height
-                        readOnly: true
                         // text is only an initial binding, the value diverges from there.
                         text: project?.osAsmText ?? ""
-                        edition: "Computer Systems, 6th edition"
-                        language: "pep"
-                        contentHeight: Math.max(parent.height, editorHeight)
+                        editorFont: editorFM.font
+                        language: "Pep/10 ASM"
                     }
                 }
                 Text.ObjTextEditor {

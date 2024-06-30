@@ -18,6 +18,7 @@ public:
   void setUserText(QString user);
   bool assemble();
   QStringList errors();
+  QList<QPair<int, QString>> errorsWithLines();
   QSharedPointer<ELFIO::elfio> elf(std::optional<QList<quint8>> userObj = std::nullopt);
   QStringList listing(bool os);
   QStringList formattedSource(bool os);
