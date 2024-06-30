@@ -1137,6 +1137,9 @@ void ScintillaEditBase::setText(const QString &txt) {
   send(SCI_EMPTYUNDOBUFFER);
   send(SCI_COLOURISE, 0, -1);
   setFocus(true);
+  emit textChanged();
+  emit totalColumnsChanged();
+  emit totalLinesChanged();
 }
 
 void ScintillaEditBase::setFont(const QFont &newFont) {
