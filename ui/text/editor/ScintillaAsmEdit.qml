@@ -83,6 +83,8 @@ Item {
 
         Accessible.role: Accessible.EditableText
         focus: true
+        textColor: root.palette.text
+        backgroundColor: root.palette.base
     }
     ScrollBar {
         id: verticalScrollBar
