@@ -30,6 +30,10 @@ SCINTILLA_EXPORT inline QColor QColorFromColourRGBA(ColourRGBA ca) {
   return QColor(ca.GetRed(), ca.GetGreen(), ca.GetBlue(), ca.GetAlpha());
 }
 
+SCINTILLA_EXPORT inline ColourRGBA ColourRGBAFromQColor(QColor ca) {
+  return ColourRGBA(ca.red(), ca.green(), ca.blue(), ca.alpha());
+}
+
 SCINTILLA_EXPORT inline QRect QRectFromPRect(PRectangle pr) { return QRect(pr.left, pr.top, pr.Width(), pr.Height()); }
 
 SCINTILLA_EXPORT inline QRectF QRectFFromPRect(PRectangle pr) {

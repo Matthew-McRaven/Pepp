@@ -66,6 +66,9 @@ class SCINTILLA_EXPORT ScintillaEditBase : public
   Q_PROPERTY(Qt::InputMethodHints inputMethodHints READ inputMethodHints WRITE setInputMethodHints NOTIFY
                  inputMethodHintsChanged);
   Q_PROPERTY(QString language READ lexerLanguage WRITE setLexerLanguage NOTIFY lexerLanguageChanged);
+  Q_PROPERTY(QColor textColor READ textColor WRITE setTextColor NOTIFY colorChanged);
+  Q_PROPERTY(QColor backgroundColor READ backgroundColor WRITE setBackgroundColor NOTIFY colorChanged);
+  //
 #endif
 
 public:
@@ -172,6 +175,7 @@ signals:
   void addToContextMenu(int menuId, const QString &txt, bool enabled);
   void clearContextMenu();
   void lexerLanguageChanged();
+  void colorChanged();
   // void readonlyChanged();
 #endif
 
@@ -236,6 +240,10 @@ private:
   void setReadonly(bool value);
   QString lexerLanguage() const;
   void setLexerLanguage(const QString &language);
+  QColor textColor() const;
+  void setTextColor(const QColor &color);
+  QColor backgroundColor() const;
+  void setBackgroundColor(const QColor &color);
 
   void cursorChangedUpdateMarker();
 

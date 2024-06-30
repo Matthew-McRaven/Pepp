@@ -9,6 +9,7 @@
 // @file ScintillaEditBase.cpp - Qt widget that wraps ScintillaQt and provides events and scrolling
 
 #include "ScintillaEditBase.h"
+#include "Geometry.h"
 #include "LexillaAccess.h"
 #include "PlatQt.h"
 #include "SciLexer.h"
@@ -1192,6 +1193,30 @@ QString ScintillaEditBase::lexerLanguage() const { return ""; }
 void ScintillaEditBase::setLexerLanguage(const QString &language) {
   auto lexer = Lexilla::MakeLexer("Pep10ASM");
   send(SCI_SETILEXER, (uintptr_t)lexer);
+}
+
+QColor ScintillaEditBase::textColor() const {
+  auto ca = ColourRGBA::FromIpRGB(send(SCI_STYLEGETFORE, STYLE_DEFAULT));
+  return QColorFromColourRGBA(ca);
+}
+
+void ScintillaEditBase::setTextColor(const QColor &color) {
+  auto colorRGBA = ColourRGBAFromQColor(color);
+  send(SCI_STYLESETFORE, STYLE_DEFAULT, colorRGBA.AsInteger());
+  // Apply the changes to the current document
+  send(SCI_STYLECLEARALL, 0, 0);
+}
+
+QColor ScintillaEditBase::backgroundColor() const {
+  auto ca = ColourRGBA::FromIpRGB(send(SCI_STYLEGETBACK, STYLE_DEFAULT));
+  return QColorFromColourRGBA(ca);
+}
+
+void ScintillaEditBase::setBackgroundColor(const QColor &color) {
+  auto colorRGBA = ColourRGBAFromQColor(color);
+  send(SCI_STYLESETBACK, STYLE_DEFAULT, colorRGBA.AsInteger());
+  // Apply the changes to the current document
+  send(SCI_STYLECLEARALL, 0, 0);
 }
 
 void ScintillaEditBase::UpdateQuickView() {
