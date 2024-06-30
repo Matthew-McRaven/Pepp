@@ -475,6 +475,8 @@ void Pep10_ASMB::setUserAsmText(const QString &userAsmText) {
   emit userAsmTextChanged();
 }
 
+QString Pep10_ASMB::userList() const { return _userList; }
+
 QString Pep10_ASMB::osAsmText() const { return _osAsmText; }
 
 void Pep10_ASMB::setOSAsmText(const QString &osAsmText) {
@@ -482,7 +484,7 @@ void Pep10_ASMB::setOSAsmText(const QString &osAsmText) {
   _osAsmText = osAsmText;
   emit osAsmTextChanged();
 }
-
+QString Pep10_ASMB::osList() const { return _osList; }
 const QList<Error *> Pep10_ASMB::errors() const {
   QList<Error *> ret;
   for (auto [line, str] : _errors) ret.push_back(new Error{line, str});
@@ -509,6 +511,7 @@ int Pep10_ASMB::allowedDebugging() const {
 }
 
 bool Pep10_ASMB::onAssemble(bool doLoad) {
+  _userList = _osList = "";
   auto macroRegistry = cs6e_macros();
   helpers::AsmHelper helper(macroRegistry, _osAsmText);
   helper.setUserText(_userAsmText);
@@ -518,8 +521,12 @@ bool Pep10_ASMB::onAssemble(bool doLoad) {
   if (!ret) {
     message(utils::msg_asm_failed);
     setObjectCodeText("");
+    emit listingChanged();
     return false;
   }
+  _userList = helper.listing(false).join("\n");
+  _osList = helper.listing(true).join("\n");
+  emit listingChanged();
 
   auto userBytes = helper.bytes(false);
   QString objectCodeText = pas::ops::pepp::bytesToObject(userBytes, 16);
@@ -532,12 +539,14 @@ bool Pep10_ASMB::onAssemble(bool doLoad) {
 }
 
 bool Pep10_ASMB::onAssembleThenFormat() {
+  _userList = _osList = "";
   auto macroRegistry = cs6e_macros();
   helpers::AsmHelper helper(macroRegistry, _osAsmText);
   helper.setUserText(_userAsmText);
   auto ret = helper.assemble();
   _errors = helper.errorsWithLines();
   emit errorsChanged();
+  emit listingChanged();
   if (!ret) message(utils::msg_asm_failed);
   else {
     auto source = helper.formattedSource(false);
@@ -546,6 +555,8 @@ bool Pep10_ASMB::onAssembleThenFormat() {
     QString objectCodeText = pas::ops::pepp::bytesToObject(userBytes, 16);
     setObjectCodeText(objectCodeText);
   }
+  _userList = helper.listing(false).join("\n");
+  _osList = helper.listing(true).join("\n");
   return true;
 }
 
