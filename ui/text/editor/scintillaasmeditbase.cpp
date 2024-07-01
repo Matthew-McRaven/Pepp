@@ -14,18 +14,38 @@ ScintillaAsmEditBase::ScintillaAsmEditBase(QQuickItem *parent) : ScintillaEditBa
   connect(this, &ScintillaAsmEditBase::marginClicked, this, &ScintillaAsmEditBase::onMarginClicked);
   send(SCI_SETMARGINSENSITIVEN, 0, true);
   send(SCI_SETMARGINSENSITIVEN, 1, true);
+  send(SCI_SETMARGINSENSITIVEN, 2, true);
+  // For code folding of comments and macros
+  send(SCI_SETMARGINWIDTHN, 2, getCharWidth() * 2);
+  send(SCI_SETMARGINTYPEN, 2, SC_MARGIN_SYMBOL);
+  send(SCI_SETMARGINMASKN, 2, SC_MASK_FOLDERS);
+  send(SCI_MARKERDEFINE, SC_MARKNUM_FOLDEROPEN, SC_MARK_MINUS);
+  send(SCI_MARKERDEFINE, SC_MARKNUM_FOLDER, SC_MARK_PLUS);
+  send(SCI_MARKERDEFINE, SC_MARKNUM_FOLDERSUB, SC_MARK_EMPTY);
+  send(SCI_MARKERDEFINE, SC_MARKNUM_FOLDERTAIL, SC_MARK_EMPTY);
+  send(SCI_MARKERDEFINE, SC_MARKNUM_FOLDEREND, SC_MARK_EMPTY);
+  send(SCI_MARKERDEFINE, SC_MARKNUM_FOLDEROPENMID, SC_MARK_EMPTY);
+  send(SCI_MARKERDEFINE, SC_MARKNUM_FOLDERMIDTAIL, SC_MARK_EMPTY);
 }
 
 QString ScintillaAsmEditBase::lexerLanguage() const { return ""; }
 
 void ScintillaAsmEditBase::onMarginClicked(Scintilla::Position position, Scintilla::KeyMod modifiers, int margin) {
-  // Get line number from position
-  int line = send(SCI_LINEFROMPOSITION, position, 0);
+  // Margin 2 is used for folding
+  if (margin == 2) {
+    int line = send(SCI_LINEFROMPOSITION, position);
+    int level = send(SCI_GETFOLDLEVEL, line);
 
-  // Toggle marker on the line
-  int markers = send(SCI_MARKERGET, line);
-  auto msg = markers & (1 << SC_MARK_CIRCLE) ? SCI_MARKERDELETE : SCI_MARKERADD;
-  send(msg, line, SC_MARK_CIRCLE);
+    if (level & SC_FOLDLEVELHEADERFLAG) send(SCI_TOGGLEFOLD, line);
+  } else { // Otherwise treat as BP modification.
+    // Get line number from position
+    int line = send(SCI_LINEFROMPOSITION, position, 0);
+
+    // Toggle marker on the line
+    int markers = send(SCI_MARKERGET, line);
+    auto msg = markers & (1 << SC_MARK_CIRCLE) ? SCI_MARKERDELETE : SCI_MARKERADD;
+    send(msg, line, SC_MARK_CIRCLE);
+  }
 }
 
 /* // I actually think this is a bad idea, but keeping code for reference.
@@ -115,6 +135,10 @@ void ScintillaAsmEditBase::applyStyles() {
   send(SCI_STYLESETBACK, charStyle, c2i(_theme->character()->background()));
   send(SCI_STYLESETFORE, stringStyle, c2i(_theme->string()->foreground()));
   send(SCI_STYLESETBACK, stringStyle, c2i(_theme->string()->background()));
+  send(SCI_STYLESETFORE, SCE_PEPASM_MACRO_START, c2i(_theme->comment()->foreground()));
+  send(SCI_STYLESETBACK, SCE_PEPASM_MACRO_START, c2i(_theme->comment()->background()));
+  send(SCI_STYLESETFORE, SCE_PEPASM_MACRO_END, c2i(_theme->comment()->foreground()));
+  send(SCI_STYLESETBACK, SCE_PEPASM_MACRO_END, c2i(_theme->comment()->background()));
   send(SCI_STYLESETFORE, commentStyle, c2i(_theme->comment()->foreground()));
   send(SCI_STYLESETBACK, commentStyle, c2i(_theme->comment()->background()));
   send(SCI_STYLESETFORE, errorStyle, c2i(_theme->error()->foreground()));

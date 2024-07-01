@@ -118,7 +118,7 @@ QSharedPointer<ELFIO::elfio> helpers::AsmHelper::elf(std::optional<QList<quint8>
 QStringList helpers::AsmHelper::listing(bool os) {
   try {
     if (os && !_osRoot.isNull()) return pas::ops::pepp::formatListing<isa::Pep10>(*_osRoot);
-    if (!os && !_userRoot.isNull()) return pas::ops::pepp::formatListing<isa::Pep10>(*_userRoot);
+    else if (!os && !_userRoot.isNull()) return pas::ops::pepp::formatListing<isa::Pep10>(*_userRoot);
   } catch (std::exception &e) {
   }
   return {};

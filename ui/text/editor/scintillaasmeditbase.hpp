@@ -16,7 +16,6 @@ public slots:
   void clearAllEOLAnnotations();
   void setEOLAnnotationsVisibile(int style);
   void addEOLAnnotation(int line, const QString &annotation);
-  // For breakpoints
   void onMarginClicked(Scintilla::Position position, Scintilla::KeyMod modifiers, int margin);
 signals:
   void lexerLanguageChanged();

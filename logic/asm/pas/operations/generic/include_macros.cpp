@@ -108,8 +108,10 @@ void pas::ops::generic::IncludeMacros::addExtraChildren(ast::Node &node) {
 
   // Must generate start comment before removing symbol declaration.
   auto start = QSharedPointer<ast::Node>::create(commentType);
-  start->set(ast::generic::CommentIndent{.value = ast::generic::CommentIndent::Level::Instruction});
-  start->set(ast::generic::Comment{.value = detail::formatMacro(node, {})});
+  start->set(ast::generic::CommentIndent{.value = ast::generic::CommentIndent::Level::Left});
+  // Align the macro commen as if it were an instruction.
+  auto formattedMacro = detail::formatMacro(node, {}).mid(3);
+  start->set(ast::generic::Comment{.value = formattedMacro});
 
   // Use an empty .BLOCK to avoid having to complex line manipulations.
   if (node.has<ast::generic::SymbolDeclaration>()) {
