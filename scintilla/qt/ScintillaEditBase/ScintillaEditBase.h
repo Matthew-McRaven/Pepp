@@ -14,6 +14,7 @@
 #include <QElapsedTimer>
 #include <QMimeData>
 #include "Platform.h"
+#include "SciLexer.h"
 #include "Scintilla.h"
 #include "ScintillaMessages.h"
 #include "ScintillaStructures.h"
@@ -70,6 +71,10 @@ class SCINTILLA_EXPORT ScintillaEditBase : public
   Q_PROPERTY(QColor backgroundColor READ backgroundColor WRITE setBackgroundColor NOTIFY colorChanged);
   Q_PROPERTY(QColor errorForegroundColor READ errorForegroundColor WRITE setErrorForegroundColor NOTIFY colorChanged);
   Q_PROPERTY(QColor errorBackgroundColor READ errorBackgroundColor WRITE setErrorBackgroundColor NOTIFY colorChanged);
+  Q_PROPERTY(
+      QColor commentForegroundColor READ commentForegroundColor WRITE setCommentForegroundColor NOTIFY colorChanged);
+  Q_PROPERTY(
+      QColor commentBackgroundColor READ commentBackgroundColor WRITE setCommentBackgroundColor NOTIFY colorChanged);
   Q_PROPERTY(
       bool lineNumbersVisible READ lineNumbersVisible WRITE setLineNumbersVisible NOTIFY lineNumbersVisibleChanged);
   //
@@ -225,6 +230,7 @@ protected:
 
 private:
   int errorStyle = STYLE_LASTPREDEFINED + 1;
+  int commentStyle = SCE_PEPASM_COMMENT;
 #ifdef PLAT_QT_QML
   QString getText() const;
   void setText(const QString &txt);
@@ -249,7 +255,7 @@ private:
   QString lexerLanguage() const;
   void setLexerLanguage(const QString &language);
   // Must set in CTOR, set*Color. Used in applyStyles().
-  int _text, _bg, _errFg, _errBg;
+  int _text, _bg, _errFg, _errBg, _commentFg, _commentBg;
   QColor textColor() const;
   void setTextColor(const QColor &color);
   QColor backgroundColor() const;
@@ -258,6 +264,10 @@ private:
   void setErrorForegroundColor(const QColor &color);
   QColor errorBackgroundColor() const;
   void setErrorBackgroundColor(const QColor &color);
+  QColor commentForegroundColor() const;
+  void setCommentForegroundColor(const QColor &color);
+  QColor commentBackgroundColor() const;
+  void setCommentBackgroundColor(const QColor &color);
   bool lineNumbersVisible() const;
   void setLineNumbersVisible(bool visible);
   // Defer style update so that we can layer multiple changes over defaults.

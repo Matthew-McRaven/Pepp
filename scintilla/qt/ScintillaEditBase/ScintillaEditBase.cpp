@@ -136,6 +136,8 @@ ScintillaEditBase::ScintillaEditBase(QWidget *parent)
   _bg = send(SCI_STYLEGETBACK, STYLE_DEFAULT, 0);
   _errFg = send(SCI_STYLEGETFORE, errorStyle, 0);
   _errBg = send(SCI_STYLEGETBACK, errorStyle, 0);
+  _commentFg = send(SCI_STYLEGETFORE, commentStyle, 0);
+  _commentBg = send(SCI_STYLEGETBACK, commentStyle, 0);
 }
 
 ScintillaEditBase::~ScintillaEditBase() = default;
@@ -1229,7 +1231,7 @@ QString ScintillaEditBase::lexerLanguage() const { return ""; }
 
 void ScintillaEditBase::setLexerLanguage(const QString &language) {
   auto lexer = Lexilla::MakeLexer("Pep10ASM");
-  send(SCI_SETILEXER, (uintptr_t)lexer);
+  send(SCI_SETILEXER, /*unused*/ 0, (uintptr_t)lexer);
 }
 
 QColor ScintillaEditBase::textColor() const {
@@ -1280,6 +1282,30 @@ void ScintillaEditBase::setErrorBackgroundColor(const QColor &color) {
   emit colorChanged();
 }
 
+QColor ScintillaEditBase::commentForegroundColor() const {
+  auto ca = ColourRGBA::FromIpRGB(send(SCI_STYLEGETFORE, commentStyle));
+  return QColorFromColourRGBA(ca);
+}
+
+void ScintillaEditBase::setCommentForegroundColor(const QColor &color) {
+  if (commentForegroundColor() == color) return;
+  _commentFg = ColourRGBAFromQColor(color).AsInteger();
+  applyStyles();
+  emit colorChanged();
+}
+
+QColor ScintillaEditBase::commentBackgroundColor() const {
+  auto ca = ColourRGBA::FromIpRGB(send(SCI_STYLEGETBACK, commentStyle));
+  return QColorFromColourRGBA(ca);
+}
+
+void ScintillaEditBase::setCommentBackgroundColor(const QColor &color) {
+  if (commentBackgroundColor() == color) return;
+  _commentBg = ColourRGBAFromQColor(color).AsInteger();
+  applyStyles();
+  emit colorChanged();
+}
+
 bool ScintillaEditBase::lineNumbersVisible() const
 {
   auto currentWidth = send(SCI_GETMARGINWIDTHN, 0);
@@ -1299,6 +1325,9 @@ void ScintillaEditBase::applyStyles() {
   send(SCI_SETCARETFORE, _text);
   send(SCI_STYLESETBACK, STYLE_DEFAULT, _bg);
   send(SCI_STYLECLEARALL, 0, 0);
+  // For comments
+  send(SCI_STYLESETFORE, commentStyle, _commentFg);
+  send(SCI_STYLESETBACK, commentStyle, _commentBg);
   // For EOL error annotations
   send(SCI_STYLESETFORE, errorStyle, _errFg);
   send(SCI_STYLESETBACK, errorStyle, _errBg);

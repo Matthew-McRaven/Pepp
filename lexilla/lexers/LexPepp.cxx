@@ -166,7 +166,7 @@ void SCI_METHOD LexerPepAsm::Lex(Sci_PositionU startPos, Sci_Position length, in
   const char commentCharacter = ';';
 
   // Do not leak onto next line
-  if (initStyle == SCE_ASM_STRINGEOL) initStyle = SCE_ASM_DEFAULT;
+  if (initStyle == SCE_ASM_STRINGEOL) initStyle = SCE_PEPASM_DEFAULT;
 
   StyleContext sc(startPos, length, initStyle, styler);
 
@@ -174,73 +174,19 @@ void SCI_METHOD LexerPepAsm::Lex(Sci_PositionU startPos, Sci_Position length, in
 
     if (sc.atLineStart) {
       switch (sc.state) {
-      case SCE_ASM_COMMENT: sc.SetState(SCE_ASM_DEFAULT); break;
+      case SCE_PEPASM_COMMENT: sc.SetState(SCE_PEPASM_DEFAULT); break;
       default: break;
       }
     }
-
-    // Determine if the current state should terminate.
-    if (sc.state == SCE_ASM_NUMBER) {
-      if (!IsAWordChar(sc.ch)) {
-        sc.SetState(SCE_ASM_DEFAULT);
-      }
-    } else if (sc.state == SCE_PEPASM_IDENTIFIER) {
-      if (!IsAWordChar(sc.ch)) {
-        char s[100];
-        sc.GetCurrentLowered(s, sizeof(s));
-        bool IsDirective = false;
-
-        if (mnemonics.InList(s)) {
-          sc.ChangeState(SCE_PEPASM_MNEMONIC);
-        } else if (directive.InList(s)) {
-          sc.ChangeState(SCE_PEPASM_DIRECTIVE);
-          IsDirective = true;
-        }
-      }
-    } else if (sc.state == SCE_ASM_COMMENTDIRECTIVE) {
-      char delimiter = options.delimiter.empty() ? '~' : options.delimiter.c_str()[0];
-      if (sc.ch == delimiter) {
-        while (!sc.MatchLineEnd()) {
-          sc.Forward();
-        }
-        sc.SetState(SCE_ASM_DEFAULT);
-      }
-    } else if (sc.state == SCE_ASM_STRING) {
-      if (sc.ch == '\\') {
-        if (sc.chNext == '\"' || sc.chNext == '\'' || sc.chNext == '\\') {
-          sc.Forward();
-        }
-      } else if (sc.ch == '\"') {
-        sc.ForwardSetState(SCE_ASM_DEFAULT);
-      } else if (sc.atLineEnd) {
-        sc.ChangeState(SCE_ASM_STRINGEOL);
-        sc.ForwardSetState(SCE_ASM_DEFAULT);
-      }
-    } else if (sc.state == SCE_ASM_CHARACTER) {
-      if (sc.ch == '\\') {
-        if (sc.chNext == '\"' || sc.chNext == '\'' || sc.chNext == '\\') {
-          sc.Forward();
-        }
-      } else if (sc.ch == '\'') {
-        sc.ForwardSetState(SCE_ASM_DEFAULT);
-      } else if (sc.atLineEnd) {
-        sc.ChangeState(SCE_ASM_STRINGEOL);
-        sc.ForwardSetState(SCE_ASM_DEFAULT);
-      }
-    }
-
-    // Determine if a new state should be entered.
-    if (sc.state == SCE_ASM_DEFAULT) {
-      if (sc.ch == commentCharacter) {
-        sc.SetState(SCE_ASM_COMMENT);
-      } else if (IsASCII(sc.ch) && (isdigit(sc.ch) || (sc.ch == '.' && IsASCII(sc.chNext) && isdigit(sc.chNext)))) {
-        sc.SetState(SCE_ASM_NUMBER);
-      } else if (IsAWordStart(sc.ch)) {
-        sc.SetState(SCE_ASM_IDENTIFIER);
-      } else if (sc.ch == '\"') {
-        sc.SetState(SCE_ASM_STRING);
-      } else if (sc.ch == '\'') {
-        sc.SetState(SCE_ASM_CHARACTER);
+    if (sc.ch == commentCharacter) sc.SetState(SCE_PEPASM_COMMENT);
+    else {
+      // Actions + transition table.
+      switch (sc.state) {
+      case SCE_PEPASM_COMMENT:
+        if (sc.atLineEnd) sc.SetState(SCE_PEPASM_DEFAULT);
+        break;
+      case SCE_PEPASM_DEFAULT: break;
+      default: break;
       }
     }
   }
