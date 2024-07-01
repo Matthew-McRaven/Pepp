@@ -7,28 +7,26 @@
 // Copyright 1998-2003 by Neil Hodgson <neilh@scintilla.org>
 // The License.txt file describes the conditions under which this software may be distributed.
 
+#include <QRegularExpression>
 #include <assert.h>
 #include <ctype.h>
+#include <functional>
+#include <map>
+#include <set>
 #include <stdarg.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-
-#include <functional>
-#include <map>
-#include <set>
 #include <string>
 #include <string_view>
-
-#include "ILexer.h"
-#include "SciLexer.h"
-#include "Scintilla.h"
-
 #include "CharacterSet.h"
 #include "DefaultLexer.h"
+#include "ILexer.h"
 #include "LexAccessor.h"
 #include "LexerModule.h"
 #include "OptionSet.h"
+#include "SciLexer.h"
+#include "Scintilla.h"
 #include "StyleContext.h"
 #include "WordList.h"
 
@@ -49,19 +47,13 @@ static inline int LowerCase(int c) {
 // Options used for LexerPepAsm
 struct OptionsPepAsm {
   bool fold;
-  bool foldSyntaxBased;
-  bool foldCommentMultiline;
-  bool foldCommentExplicit;
-  bool foldExplicitAnywhere;
   bool foldCompact;
+  bool foldCommentMultiline;
   bool allowMacros;
   OptionsPepAsm() {
-    fold = false;
-    foldSyntaxBased = true;
-    foldCommentMultiline = false;
-    foldCommentExplicit = false;
-    foldExplicitAnywhere = false;
+    fold = true;
     foldCompact = true;
+    foldCommentMultiline = true;
     allowMacros = false;
   }
 };
@@ -76,19 +68,9 @@ struct OptionSetPepAsm : public OptionSet<OptionsPepAsm> {
   OptionSetPepAsm() {
     DefineProperty("fold", &OptionsPepAsm::fold);
 
-    DefineProperty("fold.asm.syntax.based", &OptionsPepAsm::foldSyntaxBased,
-                   "Set this property to 0 to disable syntax based folding.");
-
     DefineProperty("fold.asm.comment.multiline", &OptionsPepAsm::foldCommentMultiline,
                    "Set this property to 1 to enable folding multi-line comments.");
 
-    DefineProperty("fold.asm.comment.explicit", &OptionsPepAsm::foldCommentExplicit,
-                   "This option enables folding explicit fold points when using the Asm lexer. "
-                   "Explicit fold points allows adding extra folding by placing a ;{ comment at the start and a ;} "
-                   "at the end of a section that should fold.");
-
-    DefineProperty("fold.asm.explicit.anywhere", &OptionsPepAsm::foldExplicitAnywhere,
-                   "Set this property to 1 to enable explicit fold points anywhere, not just in line comments.");
 
     DefineProperty("fold.compact", &OptionsPepAsm::foldCompact);
 
@@ -155,56 +137,65 @@ void SCI_METHOD LexerPepAsm::Lex(Sci_PositionU startPos, Sci_Position length, in
   LexAccessor styler(pAccess);
 
   const char commentCharacter = ';';
+  static const auto macroStart = QRegularExpression(R"(^\s*;\s*@\w+)");
+  static const auto macroEnd = QRegularExpression(R"(^\s*;End @\w+)");
 
   StyleContext sc(startPos, length, initStyle, styler);
 
-  char s[100];
-  for (; sc.More(); sc.Forward()) {
+  char s[256];
+  while (sc.More()) {
 
-      // Actions + transition table.
-      switch (sc.state) {
-      case SCE_PEPASM_IDENTIFIER:
-        if (sc.ch == ':') {
-          sc.ChangeState(SCE_PEPASM_SYMBOL_DECL);
-          sc.SetState(SCE_PEPASM_DEFAULT);
-        } else if (!IsAWordChar(sc.ch)) {
-          sc.GetCurrentLowered(s, sizeof(s));
-          if (mnemonics.InList(s)) sc.ChangeState(SCE_PEPASM_MNEMONIC);
-          sc.SetState(SCE_PEPASM_DEFAULT);
-        }
-        break;
-      case SCE_PEPASM_DIRECTIVE:
-        if (!IsAWordChar(sc.ch)) {
-          sc.GetCurrentLowered(s, sizeof(s));
-          if (!directives.InList(s)) sc.ChangeState(SCE_PEPASM_IDENTIFIER);
-          sc.SetState(SCE_PEPASM_DEFAULT);
-        }
-        break;
-      case SCE_PEPASM_MACRO:
-        if (!IsAWordChar(sc.ch)) sc.SetState(SCE_PEPASM_DEFAULT);
-        break;
-      case SCE_PEPASM_DEFAULT:
-        if (options.allowMacros && sc.ch == '@') sc.SetState(SCE_PEPASM_MACRO);
-        else if (sc.ch == ';') sc.SetState(SCE_PEPASM_COMMENT);
-        else if (sc.ch == '\'') sc.SetState(SCE_PEPASM_CHARACTER);
-        else if (sc.ch == '"') sc.SetState(SCE_PEPASM_STRING);
-        else if (sc.ch == '.') sc.SetState(SCE_PEPASM_DIRECTIVE);
-        else if (IsAWordStart(sc.ch)) sc.SetState(SCE_PEPASM_IDENTIFIER);
-        else if (sc.atLineEnd) sc.SetState(SCE_PEPASM_DEFAULT);
-        break;
-      case SCE_PEPASM_CHARACTER:
-        if (sc.ch == '\'') sc.ForwardSetState(SCE_PEPASM_DEFAULT);
-        else if (sc.atLineEnd) sc.SetState(SCE_PEPASM_DEFAULT);
-        break;
-      case SCE_PEPASM_STRING:
-        if (sc.ch == '"' && sc.chPrev != '\\') sc.ForwardSetState(SCE_PEPASM_DEFAULT);
-        else if (sc.atLineEnd) sc.SetState(SCE_PEPASM_DEFAULT);
-      case SCE_PEPASM_COMMENT:
-        if (sc.atLineEnd) sc.SetState(SCE_PEPASM_DEFAULT);
-        break;
-      default: break;
+    // Actions + transition table.
+    switch (sc.state) {
+    case SCE_PEPASM_IDENTIFIER:
+      if (sc.ch == ':') {
+        sc.ChangeState(SCE_PEPASM_SYMBOL_DECL);
+        sc.SetState(SCE_PEPASM_DEFAULT);
+      } else if (!IsAWordChar(sc.ch)) {
+        sc.GetCurrentLowered(s, sizeof(s));
+        if (mnemonics.InList(s)) sc.ChangeState(SCE_PEPASM_MNEMONIC);
+        sc.SetState(SCE_PEPASM_DEFAULT);
       }
+      break;
+    case SCE_PEPASM_DIRECTIVE:
+      if (!IsAWordChar(sc.ch)) {
+        sc.GetCurrentLowered(s, sizeof(s));
+        if (!directives.InList(s)) sc.ChangeState(SCE_PEPASM_IDENTIFIER);
+        sc.SetState(SCE_PEPASM_DEFAULT);
+      }
+      break;
+    case SCE_PEPASM_MACRO:
+      if (!IsAWordChar(sc.ch)) sc.SetState(SCE_PEPASM_DEFAULT);
+      break;
+    case SCE_PEPASM_DEFAULT:
+      if (options.allowMacros && sc.ch == '@') sc.SetState(SCE_PEPASM_MACRO);
+      else if (sc.ch == ';') sc.SetState(SCE_PEPASM_COMMENT);
+      else if (sc.ch == '\'') sc.SetState(SCE_PEPASM_CHARACTER);
+      else if (sc.ch == '"') sc.SetState(SCE_PEPASM_STRING);
+      else if (sc.ch == '.') sc.SetState(SCE_PEPASM_DIRECTIVE);
+      else if (IsAWordStart(sc.ch)) sc.SetState(SCE_PEPASM_IDENTIFIER);
+      else if (sc.atLineEnd) sc.SetState(SCE_PEPASM_DEFAULT);
+      break;
+    case SCE_PEPASM_CHARACTER:
+      if (sc.ch == '\'') sc.ForwardSetState(SCE_PEPASM_DEFAULT);
+      else if (sc.atLineEnd) sc.SetState(SCE_PEPASM_DEFAULT);
+      break;
+    case SCE_PEPASM_STRING:
+      if (sc.ch == '"' && sc.chPrev != '\\') sc.ForwardSetState(SCE_PEPASM_DEFAULT);
+      else if (sc.atLineEnd) sc.SetState(SCE_PEPASM_DEFAULT);
+    case SCE_PEPASM_COMMENT:
+      if (sc.atLineEnd) {
+        sc.GetCurrentLowered(s, sizeof(s));
+        if (macroStart.match(s).hasMatch()) sc.ChangeState(SCE_PEPASM_MACRO_START);
+        else if (macroEnd.match(s).hasMatch()) sc.ChangeState(SCE_PEPASM_MACRO_END);
+        sc.ForwardSetState(SCE_PEPASM_DEFAULT);
+        continue;
+      }
+      break;
+    default: break;
     }
+    sc.Forward();
+  }
   sc.Complete();
 }
 
@@ -237,37 +228,22 @@ void SCI_METHOD LexerPepAsm::Fold(Sci_PositionU startPos, Sci_Position length, i
     style = styleNext;
     styleNext = styler.StyleAt(i + 1);
     bool atEOL = (ch == '\r' && chNext != '\n') || (ch == '\n');
-    if (options.foldCommentExplicit && ((style == SCE_ASM_COMMENT) || options.foldExplicitAnywhere)) {
-        if (ch == ';') {
-          if (chNext == '{') {
-            levelNext++;
-          } else if (chNext == '}') {
-            levelNext--;
-          }
-        }
+    bool atSOL = (styler.SafeGetCharAt(i - 1) == '\n');
+    if (style == SCE_PEPASM_MACRO_START && stylePrev != SCE_PEPASM_MACRO_START) levelNext++;
+    else if (style == SCE_PEPASM_MACRO_END && styleNext != SCE_PEPASM_MACRO_END) levelNext--;
+    else if (options.foldCommentMultiline && style == SCE_PEPASM_COMMENT) {
+      if (stylePrev != SCE_PEPASM_COMMENT) levelNext++;
+      else if (atEOL && styleNext != SCE_PEPASM_COMMENT) levelNext--;
     }
-    if (options.foldSyntaxBased && (style == SCE_ASM_DIRECTIVE)) {
-      word[wordlen++] = static_cast<char>(LowerCase(ch));
-      if (wordlen == 100) { // prevent overflow
-        word[0] = '\0';
-        wordlen = 1;
-      }
-    }
+
     if (!IsASpace(ch)) visibleChars++;
     if (atEOL || (i == endPos - 1)) {
       int levelUse = levelCurrent;
-      int lev = levelUse | levelNext << 16;
-      if (visibleChars == 0 && options.foldCompact) lev |= SC_FOLDLEVELWHITEFLAG;
-      if (levelUse < levelNext) lev |= SC_FOLDLEVELHEADERFLAG;
-      if (lev != styler.LevelAt(lineCurrent)) {
-        styler.SetLevel(lineCurrent, lev);
-      }
+      if (levelUse < levelNext) levelUse |= SC_FOLDLEVELHEADERFLAG;
+      if (visibleChars == 0 && options.foldCompact) levelUse |= SC_FOLDLEVELWHITEFLAG;
+      styler.SetLevel(lineCurrent, levelUse | (levelNext << 16));
       lineCurrent++;
       levelCurrent = levelNext;
-      if (atEOL && (i == static_cast<Sci_PositionU>(styler.Length() - 1))) {
-        // There is an empty line at end of file so give it same level and empty
-        styler.SetLevel(lineCurrent, (levelCurrent | levelCurrent << 16) | SC_FOLDLEVELWHITEFLAG);
-      }
       visibleChars = 0;
     }
   }
