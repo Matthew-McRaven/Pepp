@@ -19,6 +19,7 @@
 #include "editor/blockfinder.hpp"
 #include "editor/lineinfomodel.hpp"
 #include "editor/object.hpp"
+#include "editor/scintillaasmeditbase.hpp"
 #include "editor/tabnanny.hpp"
 #include "highlight/qml_highlighter.hpp"
 #include "highlight/style.hpp"
@@ -36,4 +37,5 @@ void text::registerTypes(const char *uri) {
   qmlRegisterType<TabNanny>(uri, 1, 0, "TabNanny");
   qmlRegisterType<ObjectUtilities>("edu.pepp.text", 1, 0, "ObjectUtilities");
   qmlRegisterType<ScintillaEditBase>("org.scintilla.scintilla", 1, 0, "ScintillaEditBase");
+  qmlRegisterType<ScintillaAsmEditBase>("org.scintilla.scintilla", 1, 0, "ScintillaAsmEdit");
 }

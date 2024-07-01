@@ -10,7 +10,7 @@ import QtQuick
 import QtQuick.Controls
 import QtQuick.Dialogs
 import QtQml.Models
-import org.scintilla.scintilla 1.0
+import org.scintilla.scintilla 1.0 as S
 
 Item {
     id: root
@@ -72,7 +72,7 @@ Item {
         }
     }
     // the QuickScintilla control
-    ScintillaEditBase {
+    S.ScintillaAsmEdit {
         id: editor
         anchors.top: parent.top
         anchors.bottom: horizontalScrollBar.top
