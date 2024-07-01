@@ -17,6 +17,16 @@ Item {
         // Do not need to update on mode change, since mode change implies loss of focus of objEdit.
         userAsmEdit.editingFinished.connect(save)
         project.errorsChanged.connect(displayErrors)
+        project.listingChanged.connect(function () {
+            const curURO = userList.readOnly
+            userList.readOnly = false
+            userList.text = project.userList
+            userList.readOnly = curURO
+            const curORO = osList.readOnly
+            osList.readOnly = false
+            osList.text = project.osList
+            osList.readOnly = curORO
+        })
     }
     // Will be called before project is changed on unload, so we can disconnect save-triggering signals.
     Component.onDestruction: {
@@ -81,15 +91,11 @@ Item {
                 anchors.top: textSelector.bottom
                 anchors.bottom: parent.bottom
                 StackLayout {
+                    visible: mode == "edit"
                     currentIndex: textSelector.currentIndex
                     SplitView.fillHeight: true
                     Text.ScintillaAsmEdit {
                         id: userAsmEdit
-                        Component.onCompleted: {
-                            // Don't set declaratively, otherwise text will not be repainted.
-                            userAsmEdit.readOnly = Qt.binding(
-                                        () => mode !== "edit")
-                        }
                         Layout.fillHeight: true
                         Layout.fillWidth: true
                         height: parent.height
@@ -109,6 +115,33 @@ Item {
                         height: parent.height
                         // text is only an initial binding, the value diverges from there.
                         text: project?.osAsmText ?? ""
+                        editorFont: editorFM.font
+                        language: "Pep/10 ASM"
+                    }
+                }
+                StackLayout {
+                    visible: mode == "debug"
+                    currentIndex: textSelector.currentIndex
+                    SplitView.fillHeight: true
+                    Text.ScintillaAsmEdit {
+                        id: userList
+                        readOnly: true
+                        Layout.fillHeight: true
+                        Layout.fillWidth: true
+                        height: parent.height
+                        // text is only an initial binding, the value diverges from there.
+                        text: project?.userList ?? ""
+                        editorFont: editorFM.font
+                        language: "Pep/10 ASM"
+                    }
+                    Text.ScintillaAsmEdit {
+                        id: osList
+                        readOnly: true
+                        Layout.fillHeight: true
+                        Layout.fillWidth: true
+                        height: parent.height
+                        // text is only an initial binding, the value diverges from there.
+                        text: project?.osList ?? ""
                         editorFont: editorFM.font
                         language: "Pep/10 ASM"
                     }
