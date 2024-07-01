@@ -30,6 +30,7 @@ struct PAS_EXPORT Type {
     Structural, // Root or section group nodes
   };
   static const inline QString attributeName = u"generic:type"_qs;
+  static const inline uint8_t attribute = 18;
   Types value; // The type of the node (i.e., pseudodirective, comment)
   bool operator==(const Type &other) const = default;
 };

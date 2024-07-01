@@ -23,6 +23,7 @@ namespace pas::ast::generic {
 
 struct PAS_EXPORT SectionFlags {
   static const inline QString attributeName = u"generic:section_flags"_qs;
+  static const inline uint8_t attribute = 14;
   struct Flags {
     bool R = 1, W = 1, X = 1, Z = 0;
     bool operator==(const Flags &other) const = default;
@@ -31,6 +32,7 @@ struct PAS_EXPORT SectionFlags {
 };
 struct PAS_EXPORT SectionName {
   static const inline QString attributeName = u"generic:section_name"_qs;
+  static const inline uint8_t attribute = 15;
   QString value = {};
   bool operator==(const SectionName &other) const = default;
 };

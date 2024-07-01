@@ -23,6 +23,7 @@ namespace pas::ast::generic {
 struct PAS_EXPORT CommentIndent {
   enum class Level { Left, Instruction };
   static const inline QString attributeName = u"generic:comment_indent"_qs;
+  static const inline uint8_t attribute = 7;
   Level value = Level::Left;
   bool operator==(const CommentIndent &other) const = default;
 };

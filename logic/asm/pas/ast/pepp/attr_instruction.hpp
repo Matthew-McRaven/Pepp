@@ -21,6 +21,7 @@
 namespace pas::ast::pepp {
 template <typename ISA> struct Instruction {
   static const inline QString attributeName = u"pepp:instr"_qs;
+  static const inline uint8_t attribute = 19;
   typename ISA::Mnemonic value = {};
   bool operator==(const Instruction<ISA> &other) const = default;
 };

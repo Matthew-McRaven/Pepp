@@ -22,6 +22,7 @@
 namespace pas::ast::generic {
 struct PAS_EXPORT Macro {
   static const inline QString attributeName = u"generic:macro"_qs;
+  static const inline uint8_t attribute = 12;
   QString value = {};
   bool operator==(const Macro &other) const = default;
 };

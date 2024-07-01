@@ -27,12 +27,14 @@ class Table;
 namespace pas::ast::generic {
 struct PAS_EXPORT SymbolDeclaration {
   static const inline QString attributeName = u"generic:symbol_decl"_qs;
+  static const inline uint8_t attribute = 16;
   QSharedPointer<symbol::Entry> value = {};
   bool operator==(const SymbolDeclaration &other) const = default;
 };
 
 struct PAS_EXPORT SymbolTable {
   static const inline QString attributeName = u"generic:symbol_table"_qs;
+  static const inline uint8_t attribute = 17;
   QSharedPointer<symbol::Table> value = {};
   bool operator==(const SymbolTable &other) const = default;
 };

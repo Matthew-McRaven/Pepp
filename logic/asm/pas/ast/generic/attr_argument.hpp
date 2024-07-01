@@ -25,12 +25,14 @@ class Base;
 namespace pas::ast::generic {
 struct PAS_EXPORT Argument {
   static const inline QString attributeName = u"generic:arg"_qs;
+  static const inline uint8_t attribute = 3;
   QSharedPointer<value::Base> value = {};
   bool operator==(const Argument &other) const = default;
 };
 
 struct PAS_EXPORT ArgumentList {
   static const inline QString attributeName = u"generic:arg_list"_qs;
+  static const inline uint8_t attribute = 4;
   QList<QSharedPointer<value::Base>> value = {};
   bool operator==(const ArgumentList &other) const = default;
 };
