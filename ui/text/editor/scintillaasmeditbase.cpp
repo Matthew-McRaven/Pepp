@@ -3,6 +3,8 @@
 #include "LexillaAccess.h"
 #include "SciLexer.h"
 #include "ScintillaEditBase/PlatQt.h"
+
+#include <QQmlEngine>
 using namespace Scintilla;
 using namespace Scintilla::Internal;
 
@@ -11,13 +13,6 @@ ScintillaAsmEditBase::ScintillaAsmEditBase(QQuickItem *parent) : ScintillaEditBa
   connect(this, &ScintillaAsmEditBase::marginClicked, this, &ScintillaAsmEditBase::onMarginClicked);
   send(SCI_SETMARGINSENSITIVEN, 0, true);
   send(SCI_SETMARGINSENSITIVEN, 1, true);
-
-  _text = send(SCI_STYLEGETFORE, STYLE_DEFAULT, 0);
-  _bg = send(SCI_STYLEGETBACK, STYLE_DEFAULT, 0);
-  _errFg = send(SCI_STYLEGETFORE, errorStyle, 0);
-  _errBg = send(SCI_STYLEGETBACK, errorStyle, 0);
-  _commentFg = send(SCI_STYLEGETFORE, commentStyle, 0);
-  _commentBg = send(SCI_STYLEGETBACK, commentStyle, 0);
 }
 
 QString ScintillaAsmEditBase::lexerLanguage() const { return ""; }
@@ -61,76 +56,16 @@ void ScintillaAsmEditBase::setLexerLanguage(const QString &language) {
   send(SCI_SETILEXER, /*unused*/ 0, (uintptr_t)lexer);
 }
 
-QColor ScintillaAsmEditBase::textColor() const {
-  auto ca = ColourRGBA::FromIpRGB(send(SCI_STYLEGETFORE, STYLE_DEFAULT));
-  return QColorFromColourRGBA(ca);
+Theme *ScintillaAsmEditBase::theme() const {
+  QQmlEngine::setObjectOwnership(_theme, QQmlEngine::CppOwnership);
+  return _theme;
 }
 
-void ScintillaAsmEditBase::setTextColor(const QColor &color) {
-  if (textColor() == color) return;
-  _text = ColourRGBAFromQColor(color).AsInteger();
+void ScintillaAsmEditBase::setTheme(Theme *theme) {
+  if (_theme == theme) return;
+  _theme = theme;
   applyStyles();
-  emit colorChanged();
-}
-
-QColor ScintillaAsmEditBase::backgroundColor() const {
-  auto ca = ColourRGBA::FromIpRGB(send(SCI_STYLEGETBACK, STYLE_DEFAULT));
-  return QColorFromColourRGBA(ca);
-}
-
-void ScintillaAsmEditBase::setBackgroundColor(const QColor &color) {
-  if (backgroundColor() == color) return;
-  _bg = ColourRGBAFromQColor(color).AsInteger();
-  applyStyles();
-  emit colorChanged();
-}
-
-QColor ScintillaAsmEditBase::errorForegroundColor() const {
-  auto ca = ColourRGBA::FromIpRGB(send(SCI_STYLEGETFORE, errorStyle));
-  return QColorFromColourRGBA(ca);
-}
-
-void ScintillaAsmEditBase::setErrorForegroundColor(const QColor &color) {
-  if (errorForegroundColor() == color) return;
-  _errFg = ColourRGBAFromQColor(color).AsInteger();
-  applyStyles();
-  emit colorChanged();
-}
-
-QColor ScintillaAsmEditBase::errorBackgroundColor() const {
-  auto ca = ColourRGBA::FromIpRGB(send(SCI_STYLEGETBACK, errorStyle));
-  return QColorFromColourRGBA(ca);
-}
-
-void ScintillaAsmEditBase::setErrorBackgroundColor(const QColor &color) {
-  if (errorBackgroundColor() == color) return;
-  _errBg = ColourRGBAFromQColor(color).AsInteger();
-  applyStyles();
-  emit colorChanged();
-}
-
-QColor ScintillaAsmEditBase::commentForegroundColor() const {
-  auto ca = ColourRGBA::FromIpRGB(send(SCI_STYLEGETFORE, commentStyle));
-  return QColorFromColourRGBA(ca);
-}
-
-void ScintillaAsmEditBase::setCommentForegroundColor(const QColor &color) {
-  if (commentForegroundColor() == color) return;
-  _commentFg = ColourRGBAFromQColor(color).AsInteger();
-  applyStyles();
-  emit colorChanged();
-}
-
-QColor ScintillaAsmEditBase::commentBackgroundColor() const {
-  auto ca = ColourRGBA::FromIpRGB(send(SCI_STYLEGETBACK, commentStyle));
-  return QColorFromColourRGBA(ca);
-}
-
-void ScintillaAsmEditBase::setCommentBackgroundColor(const QColor &color) {
-  if (commentBackgroundColor() == color) return;
-  _commentBg = ColourRGBAFromQColor(color).AsInteger();
-  applyStyles();
-  emit colorChanged();
+  emit themeChanged();
 }
 
 bool ScintillaAsmEditBase::lineNumbersVisible() const {
@@ -146,18 +81,17 @@ void ScintillaAsmEditBase::setLineNumbersVisible(bool visible) {
   emit lineNumbersVisibleChanged();
 }
 
+sptr_t c2i(const QColor &color) { return ColourRGBAFromQColor(color).AsInteger(); }
 void ScintillaAsmEditBase::applyStyles() {
-  send(SCI_STYLESETFORE, STYLE_DEFAULT, _text);
-  send(SCI_SETCARETFORE, _text);
-  send(SCI_STYLESETBACK, STYLE_DEFAULT, _bg);
+  if (_theme == nullptr) return;
+  send(SCI_STYLESETFORE, STYLE_DEFAULT, c2i(_theme->base()->foreground()));
+  send(SCI_SETCARETFORE, c2i(_theme->base()->foreground()));
+  send(SCI_STYLESETBACK, STYLE_DEFAULT, c2i(_theme->base()->background()));
   send(SCI_STYLECLEARALL, 0, 0);
-  // For comments
-  send(SCI_STYLESETFORE, commentStyle, _commentFg);
-  send(SCI_STYLESETBACK, commentStyle, _commentBg);
-  // For EOL error annotations
-  send(SCI_STYLESETFORE, errorStyle, _errFg);
-  send(SCI_STYLESETBACK, errorStyle, _errBg);
-  // For breakpoints
-  send(SCI_MARKERSETFORE, SC_MARK_CIRCLE, _bg);
-  send(SCI_MARKERSETBACK, SC_MARK_CIRCLE, _errBg);
+  send(SCI_STYLESETFORE, commentStyle, c2i(_theme->comment()->foreground()));
+  send(SCI_STYLESETBACK, commentStyle, c2i(_theme->comment()->background()));
+  send(SCI_STYLESETFORE, errorStyle, c2i(_theme->error()->foreground()));
+  send(SCI_STYLESETBACK, errorStyle, c2i(_theme->error()->background()));
+  send(SCI_MARKERSETFORE, SC_MARK_CIRCLE, c2i(_theme->error()->background()));
+  send(SCI_MARKERSETBACK, SC_MARK_CIRCLE, c2i(_theme->base()->background()));
 }

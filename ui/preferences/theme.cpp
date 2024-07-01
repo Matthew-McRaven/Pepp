@@ -1,35 +1,32 @@
 #include "theme.hpp"
 
 #include <QCoreApplication> //  For application executable path
-#include <QFile>
 #include <QDir>
-#include <QStandardPaths>
+#include <QFile>
 #include <QJsonArray>
 #include <QJsonDocument>
 #include <QJsonObject>
-#include <QMetaEnum>  //  Cast enum integer to character name
-#include <QSettings>  //  Persist user state from last session
+#include <QMetaEnum> //  Cast enum integer to character name
+#include <QSettings> //  Persist user state from last session
+#include <QStandardPaths>
 
 //  Path for saving in registry or ini file
 const char *Theme::themeSettings = "ThemeSettings";
 
-Theme::Theme(QObject *parent)
-    : QObject{parent}
-    , font_("Courier New", 12)
-{
+Theme::Theme(QObject *parent) : QObject{parent}, font_("Courier New", 12) {
   prefs_.reserve(Themes::Roles::Total);
 
   //  Read system themes from QRC file
-  systemPath_ =  ":/themes/";
+  systemPath_ = ":/themes/";
 
   //  Location for user themes
-  userPath_ = QStandardPaths::writableLocation(QStandardPaths::AppConfigLocation)+ "/";
+  userPath_ = QStandardPaths::writableLocation(QStandardPaths::AppConfigLocation) + "/";
 
   //  Load system and user themes
   loadThemeList();
 
   //  See if themes were found
-  if(themes_.size() > 0) {
+  if (themes_.size() > 0) {
     //  Use default Organization and applicaation name set in gui.cpp
     //  using QApplication::setOrganizationName and setApplicationName
     QSettings settings;
@@ -38,31 +35,28 @@ Theme::Theme(QObject *parent)
     //  Retrieve last theme theme
     auto lastTheme = settings.value("theme").toString();
 
-    if(lastTheme.isEmpty()) {
+    if (lastTheme.isEmpty()) {
       //  Fallback to default if no previous theme
       load(systemPath_ + "Default.theme");
-    }
-    else {
+    } else {
       load(lastTheme);
     }
 
     //  Load font
     const auto family = settings.value("fontFamily").toString();
-    const auto size   = settings.value("fontSize").toInt();
+    const auto size = settings.value("fontSize").toInt();
 
     //  If values are in registery, use them. Otherwise keep default
-    if(!family.isEmpty() && size > 0)
-      setFont(family, size);
+    if (!family.isEmpty() && size > 0) setFont(family, size);
 
     //  Load last theme
     settings.endGroup();
-  }
-  else
+  } else
     //  System failure. Load hard-coded theme
     load(systemPath_ + "Default.theme");
 
-         //  Used to generate sample file
-    //save("Default.theme");
+  //  Used to generate sample file
+  // save("Default.theme");
 }
 
 Theme::~Theme() {
@@ -77,7 +71,7 @@ Theme::~Theme() {
 
   //  Save current font
   settings.setValue("fontFamily", font_.family());
-  settings.setValue("fontSize",   font_.pointSize());
+  settings.setValue("fontSize", font_.pointSize());
 
   settings.endGroup();
 }
@@ -88,58 +82,55 @@ void Theme::loadThemeList() {
   //  Themes shipped with application
   dir.setPath(systemPath_);
   QFileInfoList list = dir.entryInfoList(QDir::Files);
-  for( auto& file : list ) {
-    if(file.fileName().endsWith(".theme"))
-      themes_.append(file.baseName());
+  for (auto &file : list) {
+    if (file.fileName().endsWith(".theme")) themes_.append(file.baseName());
   }
 
   //  User themes-can be updated
   dir.setPath(userPath_);
   list = dir.entryInfoList(QDir::Files);
-  for( auto& file : list ) {
-    if(file.fileName().endsWith(".theme"))
-      themes_.append(file.baseName());
+  for (auto &file : list) {
+    if (file.fileName().endsWith(".theme")) themes_.append(file.baseName());
   }
 }
 
-void Theme::load(const QString& file) {
-    //  Save current theme path for updates
-    currentTheme_ = file;
+void Theme::load(const QString &file) {
+  //  Save current theme path for updates
+  currentTheme_ = file;
 
-    QFile jsonFile(file);
+  QFile jsonFile(file);
 
-    QJsonParseError parseError;
+  QJsonParseError parseError;
 
-    if(!jsonFile.open(QIODevice::ReadOnly)) {
-        //  File could not be opened, load default if empty
-        if(prefs_.size() == 0)
-            loadMissing();
+  if (!jsonFile.open(QIODevice::ReadOnly)) {
+    //  File could not be opened, load default if empty
+    if (prefs_.size() == 0) loadMissing();
 
-        return;
-    }
+    return;
+  }
 
-    //  Read contents and close file
-    QByteArray ba = jsonFile.readAll();
-    jsonFile.close();
+  //  Read contents and close file
+  QByteArray ba = jsonFile.readAll();
+  jsonFile.close();
 
-    QJsonDocument doc = QJsonDocument::fromJson(ba, &parseError);
+  QJsonDocument doc = QJsonDocument::fromJson(ba, &parseError);
 
-    if (parseError.error != QJsonParseError::NoError) {
-      qWarning() << "Parse error at" << parseError.offset << ":" << parseError.errorString();
-    }
+  if (parseError.error != QJsonParseError::NoError) {
+    qWarning() << "Parse error at" << parseError.offset << ":" << parseError.errorString();
+  }
 
-    //  Read data from Json file
-    fromJson(doc.object());
-    loadMissing();
+  //  Read data from Json file
+  fromJson(doc.object());
+  loadMissing();
 
-    //  Reset save flag
-    isDirty_ = false;
+  //  Reset save flag
+  isDirty_ = false;
 }
 
 QJsonObject Theme::toJson() const {
   QJsonObject doc;
 
-         //  Save font structure to document
+  //  Save font structure to document
   doc["name"] = name_;
   doc["version"] = version_;
   doc["system"] = system_;
@@ -148,42 +139,39 @@ QJsonObject Theme::toJson() const {
   //  themes. If we decide to have a font for each theme, then
   //  fromJson will be updated to use this data.
   QJsonObject fontData;
-  fontData["familyName"]  = font_.family();
-  fontData["points"]      = font_.pointSize();
+  fontData["familyName"] = font_.family();
+  fontData["points"] = font_.pointSize();
 
-         //  Save font structure to document
+  //  Save font structure to document
   doc["font"] = fontData;
 
   QJsonArray prefData;
 
-         //  Save individual preferences to an array
-  for(const auto& p : prefs_) {
-    prefData.append( p->toJson());
+  //  Save individual preferences to an array
+  for (const auto &p : prefs_) {
+    prefData.append(p->toJson());
   }
 
-         //  Append preferences to document
+  //  Append preferences to document
   doc["preferences"] = prefData;
 
   return doc;
 }
 
-void Theme::fromJson(const QJsonObject &json)
-{
-  if (const QJsonValue v = json["name"]; v.isString())
-    name_ = v.toString();
+void Theme::fromJson(const QJsonObject &json) {
+  if (const QJsonValue v = json["name"]; v.isString()) name_ = v.toString();
   if (const QJsonValue v = json["version"]; v.isString())
-    //assert( version_ == v.toString());
+    // assert( version_ == v.toString());
     version_ = v.toString();
-  if (const QJsonValue v = json["system"]; v.isBool())
-    system_ = v.toBool();
+  if (const QJsonValue v = json["system"]; v.isBool()) system_ = v.toBool();
   //  Font data saved but not used. Fonts are currently set for all
   //  themes. If we decide to have a font for each theme, then
   //  fromJson will be updated to use this data.
-/*  if (const QJsonValue v = json["familyName"]; v.isString())
-    font_.setFamily(v.toString());
-  if (const QJsonValue v = json["points"]; v.isDouble())
-     font_.setPointSize(v.toInt());
-*/
+  /*  if (const QJsonValue v = json["familyName"]; v.isString())
+      font_.setFamily(v.toString());
+    if (const QJsonValue v = json["points"]; v.isDouble())
+       font_.setPointSize(v.toInt());
+  */
 
   //  Remove previous preferences
   prefs_.clear();
@@ -195,20 +183,20 @@ void Theme::fromJson(const QJsonObject &json)
     prefs_.resize(std::max(prefsObj.size(), (qsizetype)Themes::Roles::Total));
 
     //  Loop through preferences
-    for(const QJsonValue &prefObj : prefsObj) {
+    for (const QJsonValue &prefObj : prefsObj) {
       //  Create new preference. Pass parent to preference
       //  so that parent manages memory
-      Preference* pref = new Preference(this);
+      Preference *pref = new Preference(this);
 
       //  Initialize with font from above
       pref->setFont(&font_);
 
       //  Populate from json object, skip if error parsing
-      if(Preference::fromJson(prefObj.toObject(), *pref)) {
+      if (Preference::fromJson(prefObj.toObject(), *pref)) {
         Q_ASSERT(pref->id() < Themes::Roles::Total);
 
         //  If there is a parsing error, the role will be invalid
-        if(pref->id() != Themes::Roles::Invalid)
+        if (pref->id() != Themes::Roles::Invalid)
           //  Preference Id's are based on sequential Role Enum
           prefs_[pref->id()] = pref;
       }
@@ -219,20 +207,17 @@ void Theme::fromJson(const QJsonObject &json)
 //  Callback from QML
 void Theme::selectTheme(const QString newTheme) {
   //  If same theme, no changes required
-  if(newTheme == name_)
-    return;
+  if (newTheme == name_) return;
 
-  for( const auto& theme : themes_) {
-    if(newTheme == theme )
-    {
+  for (const auto &theme : themes_) {
+    if (newTheme == theme) {
       QString systemFile = systemPath_ + theme + ".theme";
       QString userFile = userPath_ + theme + ".theme";
       //  Search system first
-      if(QFile::exists(systemFile)) {
+      if (QFile::exists(systemFile)) {
         load(systemFile);
         break;
-      }
-      else if(QFile::exists(userFile)) {
+      } else if (QFile::exists(userFile)) {
         load(userFile);
         break;
       }
@@ -248,7 +233,7 @@ void Theme::exportTheme(const QString file) const {
   auto cleanFile = file;
 
   //  Remove "file:///" from URL file name
-  cleanFile = cleanFile.remove(0,8);
+  cleanFile = cleanFile.remove(0, 8);
 
   save(cleanFile);
 }
@@ -258,13 +243,13 @@ void Theme::importTheme(const QString file) {
 
   //  Ensure export system theme is not treated as system
   //  theme on later import
-  if( system_ ) {
+  if (system_) {
     system_ = false;
     cleanFile.replace(".theme", "-Copy.theme");
   }
 
   //  Remove "file:///" from URL file name
-  cleanFile = cleanFile.remove(0,8);
+  cleanFile = cleanFile.remove(0, 8);
 
   load(cleanFile);
 
@@ -299,7 +284,7 @@ void Theme::deleteTheme(const QString theme) {
 
   QJsonParseError parseError;
 
-  if(!themeFile.exists()) {
+  if (!themeFile.exists()) {
     //  Theme file cannot be found. Just return
     return;
   }
@@ -311,10 +296,9 @@ void Theme::deleteTheme(const QString theme) {
   //  Load Default theme
   const QString systemFile = systemPath_ + "Default.theme";
   //  Search system first
-  if(QFile::exists(systemFile)) {
+  if (QFile::exists(systemFile)) {
     load(systemFile);
-  }
-  else
+  } else
     //  No theme files. Create default theme
     loadMissing();
 
@@ -330,17 +314,13 @@ bool Theme::isDirty() const {
 }
 
 //  Used by slots
-void Theme::clearIsDirty() {
-  setDirty(false);
-}
+void Theme::clearIsDirty() { setDirty(false); }
 
-void Theme::setIsDirty() {
-  setDirty(true);
-}
+void Theme::setIsDirty() { setDirty(true); }
 
 void Theme::setDirty(bool flag) {
   //  Only non-system themes can change or be saved
-  if(isDirty_ != flag) {
+  if (isDirty_ != flag) {
     isDirty_ = flag;
     emit preferenceChanged();
     emit themesChanged();
@@ -349,8 +329,8 @@ void Theme::setDirty(bool flag) {
 
 void Theme::saveTheme() {
   //  Only save if theme in non-system and has changed
-  if(isDirty() && !currentTheme_.isEmpty()) {
-    save( currentTheme_ );
+  if (isDirty() && !currentTheme_.isEmpty()) {
+    save(currentTheme_);
 
     //  Set dirty data flag
     isDirty_ = false;
@@ -361,12 +341,12 @@ void Theme::saveTheme() {
   }
 }
 
-bool Theme::save(const QString& file) const {
-  QFile saveFile (file);
+bool Theme::save(const QString &file) const {
+  QFile saveFile(file);
 
   if (!saveFile.open(QIODevice::WriteOnly)) {
-      qWarning("Couldn't open save file.");
-      return false;
+    qWarning("Couldn't open save file.");
+    return false;
   }
 
   QJsonObject themeJson = toJson();
@@ -382,82 +362,80 @@ bool Theme::save(const QString& file) const {
 void Theme::loadMissing() {
 
   //  Loop through all preferences
-  for(int i = 0; i < Themes::Roles::Total; ++i ) {
+  for (int i = 0; i < Themes::Roles::Total; ++i) {
 
-    Preference* pref = nullptr;
+    Preference *pref = nullptr;
 
     auto id = static_cast<Themes::Roles>(i);
 
     //  If preference is not null, it was already assigned
-    if(prefs_[id] != nullptr )
-      continue;
+    if (prefs_[id] != nullptr) continue;
 
     //  Current preference is missing. Assign a default.
-    switch(i) {
+    switch (i) {
     case Themes::Roles::BaseRole:
-      pref  = new Preference(this, id, "Base Text/Background",
-              qRgb(0x0,0x0,0x0),qRgb(0xff,0xff,0xff));  //  Black/White
+      pref =
+          new Preference(this, id, "Base Text/Background", qRgb(0x0, 0x0, 0x0), qRgb(0xff, 0xff, 0xff)); //  Black/White
       break;
     case Themes::Roles::WindowRole:
-      pref =  new Preference(this, id, "Window Text/Background",
-              qRgb(0x0f,0x0f,0x0f),qRgb(0xee,0xee,0xee));  //  Dark Gray/gray
+      pref = new Preference(this, id, "Window Text/Background", qRgb(0x0f, 0x0f, 0x0f),
+                            qRgb(0xee, 0xee, 0xee)); //  Dark Gray/gray
       break;
     case Themes::Roles::ButtonRole:
-      pref =  new Preference(this, id, "Button Text/Background",
-              qRgb(0x0,0x0,0x0),qRgb(0xf0,0xf0,0xf0)); //  Black/gray
+      pref = new Preference(this, id, "Button Text/Background", qRgb(0x0, 0x0, 0x0),
+                            qRgb(0xf0, 0xf0, 0xf0)); //  Black/gray
       break;
     case Themes::Roles::HighlightRole:
-      pref =  new Preference(this, id, "Highlight Text/Background",
-              qRgb(0xff,0xff,0xff),qRgb(0x0,0x78,0xd7)); //  White/Mid Blue
+      pref = new Preference(this, id, "Highlight Text/Background", qRgb(0xff, 0xff, 0xff),
+                            qRgb(0x0, 0x78, 0xd7)); //  White/Mid Blue
       break;
     case Themes::Roles::TooltipRole:
-      pref =  new Preference(this, id, "Tooltip Text/Background",
-              qRgb(0x0,0x0,0x0),qRgb(0xff,0xff,0xdc)); //  black/light yellow
+      pref = new Preference(this, id, "Tooltip Text/Background", qRgb(0x0, 0x0, 0x0),
+                            qRgb(0xff, 0xff, 0xdc)); //  black/light yellow
       break;
     case Themes::Roles::AlternateBaseRole:
-      pref =  new Preference(this, id, "AlternateBase Background",
-              qRgb(0x7f,0x7f,0x7f),qRgb(0xa0,0xa0,0xa0)); //  Dark Gray/Light gray
+      pref = new Preference(this, id, "AlternateBase Background", qRgb(0x7f, 0x7f, 0x7f),
+                            qRgb(0xa0, 0xa0, 0xa0)); //  Dark Gray/Light gray
       break;
     case Themes::Roles::AccentRole:
-      pref =  new Preference(this, id,"Accent Background",
-              qRgb(0xff,0xff,0xff),qRgb(0x0,0x78,0xd7)); //  White/Mid Blue
+      pref = new Preference(this, id, "Accent Background", qRgb(0xff, 0xff, 0xff),
+                            qRgb(0x0, 0x78, 0xd7)); //  White/Mid Blue
       break;
     case Themes::Roles::LightRole:
-      pref =  new Preference(this, id,"Light Background",
-              qRgb(0x0,0x0,0xff),qRgb(0xff,0xff,0xff)); //  Blue/White
+      pref = new Preference(this, id, "Light Background", qRgb(0x0, 0x0, 0xff), qRgb(0xff, 0xff, 0xff)); //  Blue/White
       break;
     case Themes::Roles::MidLightRole:
-      pref =  new Preference(this, id,"Midlight Background",
-              qRgb(0x00,0x00,0x00),qRgb(0xe3,0xe3,0xe3)); //  Black/Light Gray
+      pref = new Preference(this, id, "Midlight Background", qRgb(0x00, 0x00, 0x00),
+                            qRgb(0xe3, 0xe3, 0xe3)); //  Black/Light Gray
       break;
     case Themes::Roles::MidRole:
-      pref =  new Preference(this, id,"Mid Background",
-              qRgb(0xf0,0xf0,0xf0),qRgb(0xa0,0xa0,0xa0)); //  Black/Gray
+      pref = new Preference(this, id, "Mid Background", qRgb(0xf0, 0xf0, 0xf0), qRgb(0xa0, 0xa0, 0xa0)); //  Black/Gray
       break;
     case Themes::Roles::DarkRole:
-      pref =  new Preference(this, id,"Dark Background",
-              qRgb(0xf0,0xf0,0xf0),qRgb(0xa0,0xa0,0xa0)); //  Black/Gray
+      pref = new Preference(this, id, "Dark Background", qRgb(0xf0, 0xf0, 0xf0), qRgb(0xa0, 0xa0, 0xa0)); //  Black/Gray
       break;
     case Themes::Roles::ShadowRole:
-      pref =  new Preference(this, id,"Shadow Background",
-              qRgb(0xff,0xff,0xff),qRgb(0x69,0x69,0x69)); //  White/Dark Gray
+      pref = new Preference(this, id, "Shadow Background", qRgb(0xff, 0xff, 0xff),
+                            qRgb(0x69, 0x69, 0x69)); //  White/Dark Gray
       break;
     case Themes::Roles::LinkRole:
-      pref =  new Preference(this, id,"Link Text",
-              qRgb(0x0,0x78,0xd7),qRgb(0xff,0xff,0xff)); //  Mid Blue/White
+      pref = new Preference(this, id, "Link Text", qRgb(0x0, 0x78, 0xd7), qRgb(0xff, 0xff, 0xff)); //  Mid Blue/White
       break;
     case Themes::Roles::LinkVisitedRole:
-      pref =  new Preference(this, id,"Link Visited Text",
-              qRgb(0x78,0x40,0xa0),qRgb(0xff,0xff,0xff)); //  Purple/White
+      pref = new Preference(this, id, "Link Visited Text", qRgb(0x78, 0x40, 0xa0),
+                            qRgb(0xff, 0xff, 0xff)); //  Purple/White
       break;
     case Themes::Roles::BrightTextRole:
-      pref =  new Preference(this, id,"Bright Text",
-              qRgb(0xff,0xff,0xff),qRgb(0xa0,0xa0,0xa0)); //  White/Mid
+      pref = new Preference(this, id, "Bright Text", qRgb(0xff, 0xff, 0xff), qRgb(0xa0, 0xa0, 0xa0)); //  White/Mid
       break;
     case Themes::Roles::PlaceHolderTextRole:
-      pref =  new Preference(this, id,"Placeholder Text",
-              qRgb(0x7f,0x7f,0x7f),qRgb(0xee,0xee,0xee)); //  Gray/white
+      pref =
+          new Preference(this, id, "Placeholder Text", qRgb(0x7f, 0x7f, 0x7f), qRgb(0xee, 0xee, 0xee)); //  Gray/white
       break;
+
+    case Themes::Roles::CommentRole:
+      pref = new Preference(this, id, "Comment", qRgb(0x00, 0x80, 0x00), qRgba(0xff, 0x00, 0x00, 0x00), 0, false, false,
+                            false, false);
     case Themes::Roles::ErrorRole:
       pref = new Preference(this, id, "Error", qRgb(0x00, 0x00, 0x00), qRgb(0xff, 0x00, 0x00), 0, false, false, false,
                             false);
@@ -467,41 +445,32 @@ void Theme::loadMissing() {
                             false);
       break;
     case Themes::Roles::RowNumberRole:
-      pref =  new Preference(this, id,"Row Number",
-              qRgb(0x66,0x66,0x66),qRgb(0xff,0xff,0xff), //  Black/Red
-              0, false, true, false, true); // Italics, Strikeout
-        break;
+      pref = new Preference(this, id, "Row Number", qRgb(0x66, 0x66, 0x66), qRgb(0xff, 0xff, 0xff), //  Black/Red
+                            0, false, true, false, true); // Italics, Strikeout
+      break;
     case Themes::Roles::BreakpointRole:
-        pref =  new Preference(this, id,"Breakpoint",
-                qRgb(0x00,0x00,0x00),qRgb(0xff,0xaa,0x00), //  Black/Red
-                0, true, false, false, true); // Bold Strikeout
+      pref = new Preference(this, id, "Breakpoint", qRgb(0x00, 0x00, 0x00), qRgb(0xff, 0xaa, 0x00), //  Black/Red
+                            0, true, false, false, true);                                           // Bold Strikeout
       break;
     case Themes::Roles::SeqCircuitRole:
-        pref =  new Preference(this, id,"SeqCircuit",
-                qRgb(0xff,0xff,0x00),qRgb(0x04,0xab,0x0a), //  Yellow/Green
-                0, false, true); // Italics
+      pref = new Preference(this, id, "SeqCircuit", qRgb(0xff, 0xff, 0x00), qRgb(0x04, 0xab, 0x0a), //  Yellow/Green
+                            0, false, true);                                                        // Italics
       break;
     case Themes::Roles::CircuitGreenRole:
-        pref =  new Preference(this, id,"Green Circuit",
-                qRgb(0x0,0x0,0xff),qRgb(0xff,0xe1,0xff), //  Blue/Violet
-                0, false, false, true); // Underline
-        break;
-    default:
-        return;
+      pref = new Preference(this, id, "Green Circuit", qRgb(0x0, 0x0, 0xff), qRgb(0xff, 0xe1, 0xff), //  Blue/Violet
+                            0, false, false, true);                                                  // Underline
+      break;
+    default: return;
     }
     pref->setFont(&font_);
     prefs_[id] = pref;
   }
 }
 
-QFont Theme::font() const {
-    return font_;
-}
+QFont Theme::font() const { return font_; }
 
 //  Public QML interface
-void Theme::setFont(QFont font) {
-  setFont(font.family(),font.pointSize());
-}
+void Theme::setFont(QFont font) { setFont(font.family(), font.pointSize()); }
 
 //  Internal interface
 void Theme::setFont(const QString family, const int pointSize) {
@@ -511,42 +480,32 @@ void Theme::setFont(const QString family, const int pointSize) {
   //  Make sure font is at least 8 points
   font_.setPointSize(std::max(pointSize, 8));
 
-  for (auto& it : prefs_) {
+  for (auto &it : prefs_) {
     it->setFont(&font_);
   }
 }
 
-QString Theme::name() const {
-  return name_;
-}
+QString Theme::name() const { return name_; }
 
 //  Name can only be set on creation. Not changeable in QML.
-void Theme::setName(QString name) {
-  name_ = name;
-}
+void Theme::setName(QString name) { name_ = name; }
 
-bool Theme::systemTheme() const {
-  return system_;
-}
+bool Theme::systemTheme() const { return system_; }
 
-Preference* Theme::preference(int role) {
+Preference *Theme::preference(int role) {
   //  Cehck error conditions
-  if( role < 0 || role >= Themes::Roles::Total)
-    return nullptr;
+  if (role < 0 || role >= Themes::Roles::Total) return nullptr;
 
   //  Role is in our vector, return it
   return prefs_[role];
 }
 
-Preference* Theme::preference(int role) const {
+Preference *Theme::preference(int role) const {
   //  Cehck error conditions
-  if( role < 0 || role >= Themes::Roles::Total)
-    return nullptr;
+  if (role < 0 || role >= Themes::Roles::Total) return nullptr;
 
-         //  Role is in our vector, return it
+  //  Role is in our vector, return it
   return prefs_[role];
 }
 
-QStringList Theme::themes() const {
-  return themes_;
-}
+QStringList Theme::themes() const { return themes_; }

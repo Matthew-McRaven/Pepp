@@ -24,6 +24,7 @@ public:
     PlaceHolderTextRole,
 
     //  Editor enums
+    CommentRole,
     RowNumberRole,
     BreakpointRole,
     ErrorRole,

@@ -83,10 +83,7 @@ Item {
 
         Accessible.role: Accessible.EditableText
         focus: true
-        textColor: root.palette.text
-        backgroundColor: root.palette.base
-        errorBackgroundColor: Theme.error.background
-        errorForegroundColor: Theme.error.foreground
+        theme: Theme
         lineNumbersVisible: true
     }
     ScrollBar {
