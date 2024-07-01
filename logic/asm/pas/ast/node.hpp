@@ -35,8 +35,8 @@ public:
   // Get && remove from attributes.
   template <typename T> T take();
   // do not modify
-  const QMap<QString, QVariant> attributes() const;
-  void fromAttributes(const QMap<QString, QVariant> attributes);
+  const QMap<uint8_t, QVariant> attributes() const;
+  void fromAttributes(const QMap<uint8_t, QVariant> attributes);
   template <typename T> void set(T attribute);
   template <typename T> T apply_self(ops::ConstOp<T> &transform) const;
   template <typename T> T apply_self(ops::MutatingOp<T> &transform);
@@ -55,31 +55,29 @@ public:
                           ops::MutatingOp<T> &transform);
 
 private:
-  QVariantMap _attributes;
+  QMap<uint8_t, QVariant> _attributes;
 };
 
-template <typename T> bool Node::has() const {
-  return _attributes.contains(T::attributeName);
-}
+template <typename T> bool Node::has() const { return _attributes.contains(T::attribute); }
 
 template <typename T> const T Node::get() const {
-  QVariant attribute = _attributes[T::attributeName];
+  QVariant attribute = _attributes[T::attribute];
   if (attribute.userType() != qMetaTypeId<T>())
     throw std::logic_error("Cannot convert");
   return attribute.value<T>();
 }
 
 template <typename T> T Node::take() {
-  QVariant attribute = _attributes[T::attributeName];
+  QVariant attribute = _attributes[T::attribute];
   if (attribute.userType() != qMetaTypeId<T>())
     throw std::logic_error("Cannot convert");
-  _attributes.remove(T::attributeName);
+  _attributes.remove(T::attribute);
   return attribute.value<T>();
 }
 
 template <typename T> void Node::set(T attribute) {
   // static_assert(QVariant::fromValue(attribute));
-  _attributes[T::attributeName] = QVariant::fromValue(attribute);
+  _attributes[T::attribute] = QVariant::fromValue(attribute);
 }
 
 template <typename T> T Node::apply_self(ops::ConstOp<T> &transform) const {

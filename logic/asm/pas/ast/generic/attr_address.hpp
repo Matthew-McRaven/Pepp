@@ -27,6 +27,7 @@ struct PAS_EXPORT Address {
   };
 
   static const inline QString attributeName = u"generic:address"_qs;
+  static const inline uint8_t attribute = 2;
   Span value = {};
   bool operator==(const Address &other) const = default;
 };

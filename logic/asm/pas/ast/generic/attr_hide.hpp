@@ -22,6 +22,7 @@
 namespace pas::ast::generic {
 struct PAS_EXPORT Hide {
   static const inline QString attributeName = u"generic:hide"_qs;
+  static const inline uint8_t attribute = 10;
   struct In {
     bool source = false;
     bool listing = false;

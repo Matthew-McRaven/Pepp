@@ -28,6 +28,7 @@ struct PAS_EXPORT Location {
 
 struct PAS_EXPORT SourceLocation {
   static const inline QString attributeName = u"generic:source_loc"_qs;
+  static const inline uint8_t attribute = 11;
   Location value = {}; // The location (line) line in the source file on which
                        // the node starts.
   bool operator==(const SourceLocation &other) const = default;

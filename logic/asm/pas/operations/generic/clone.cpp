@@ -32,29 +32,29 @@ QSharedPointer<pas::ast::Node> pas::ops::generic::clone::operator()(const ast::N
   auto attr = cloned->attributes();
   cloned->fromAttributes(attr);
   for (auto key = attr.keyBegin(); key != attr.keyEnd(); ++key) {
-    if (*key == ast::generic::Argument::attributeName) {
+    if (*key == ast::generic::Argument::attribute) {
       auto symbolArg = dynamic_cast<ast::value::Symbolic *>(node.get<Argument>().value.data());
       if (symbolArg != nullptr) {
         auto argument = QSharedPointer<ast::value::Symbolic>::create(entry(&*symbolArg->symbol()));
         cloned->set(Argument{.value = argument});
       } else cloned->set(node.get<Argument>());
-    } else if (*key == ast::generic::ArgumentList::attributeName) {
+    } else if (*key == ast::generic::ArgumentList::attribute) {
       auto args = node.get<ast::generic::ArgumentList>().value;
       for (int it = 0; it < args.size(); it++) {
         auto symbolArg = dynamic_cast<ast::value::Symbolic *>(args[it].data());
         if (symbolArg != nullptr) args[it] = QSharedPointer<ast::value::Symbolic>::create(entry(&*symbolArg->symbol()));
       }
       cloned->set(ArgumentList{.value = args});
-    } else if (*key == ast::generic::SymbolTable::attributeName) {
+    } else if (*key == ast::generic::SymbolTable::attribute) {
       cloned->set(SymbolTable{.value = table(&*cloned->get<ast::generic::SymbolTable>().value)});
-    } else if (*key == ast::generic::SymbolDeclaration::attributeName) {
+    } else if (*key == ast::generic::SymbolDeclaration::attribute) {
       auto oldSymbolDec = node.get<SymbolDeclaration>().value;
       // Value replication is handled by symbol table `fork`.
       auto newSymbolDec = SymbolDeclaration{.value = entry(&*oldSymbolDec)};
       cloned->set<SymbolDeclaration>(newSymbolDec);
-    } else if (*key == ast::generic::Parent::attributeName) {
+    } else if (*key == ast::generic::Parent::attribute) {
       cloned->set(Parent{.value = {}});
-    } else if (*key == ast::generic::Children::attributeName) {
+    } else if (*key == ast::generic::Children::attribute) {
       cloned->set(Children{.value = {}});
     }
   }

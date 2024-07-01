@@ -33,6 +33,7 @@ struct PAS_EXPORT Message {
 
 struct PAS_EXPORT Error {
   static const inline QString attributeName = u"generic:error"_qs;
+  static const inline uint8_t attribute = 9;
   QList<Message> value = {};
   bool operator==(const Error &other) const = default;
 };
