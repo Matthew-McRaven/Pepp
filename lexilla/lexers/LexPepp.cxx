@@ -139,12 +139,13 @@ void SCI_METHOD LexerPepAsm::Lex(Sci_PositionU startPos, Sci_Position length, in
   const char commentCharacter = ';';
   static const auto macroStart = QRegularExpression(R"(^\s*;\s*@\w+)");
   static const auto macroEnd = QRegularExpression(R"(^\s*;End @\w+)");
-
+  bool onlyWhiteSpace = true;
   StyleContext sc(startPos, length, initStyle, styler);
 
   char s[256];
   while (sc.More()) {
-
+    if (sc.atLineStart) onlyWhiteSpace = true;
+    onlyWhiteSpace &= IsASpace(sc.ch);
     // Actions + transition table.
     switch (sc.state) {
     case SCE_PEPASM_IDENTIFIER:
@@ -155,6 +156,7 @@ void SCI_METHOD LexerPepAsm::Lex(Sci_PositionU startPos, Sci_Position length, in
         sc.GetCurrentLowered(s, sizeof(s));
         if (mnemonics.InList(s)) sc.ChangeState(SCE_PEPASM_MNEMONIC);
         sc.SetState(SCE_PEPASM_DEFAULT);
+        continue;
       }
       break;
     case SCE_PEPASM_DIRECTIVE:
@@ -162,14 +164,19 @@ void SCI_METHOD LexerPepAsm::Lex(Sci_PositionU startPos, Sci_Position length, in
         sc.GetCurrentLowered(s, sizeof(s));
         if (!directives.InList(s)) sc.ChangeState(SCE_PEPASM_IDENTIFIER);
         sc.SetState(SCE_PEPASM_DEFAULT);
+        continue;
       }
       break;
     case SCE_PEPASM_MACRO:
-      if (!IsAWordChar(sc.ch)) sc.SetState(SCE_PEPASM_DEFAULT);
+      if (!IsAWordChar(sc.ch)) {
+        sc.SetState(SCE_PEPASM_DEFAULT);
+        continue;
+      }
       break;
     case SCE_PEPASM_DEFAULT:
       if (options.allowMacros && sc.ch == '@') sc.SetState(SCE_PEPASM_MACRO);
-      else if (sc.ch == ';') sc.SetState(SCE_PEPASM_COMMENT);
+      else if (sc.ch == ';' && !onlyWhiteSpace) sc.SetState(SCE_PEPASM_COMMENT);
+      else if (sc.ch == ';' && onlyWhiteSpace) sc.ChangeState(SCE_PEPASM_COMMENT);
       else if (sc.ch == '\'') sc.SetState(SCE_PEPASM_CHARACTER);
       else if (sc.ch == '"') sc.SetState(SCE_PEPASM_STRING);
       else if (sc.ch == '.') sc.SetState(SCE_PEPASM_DIRECTIVE);
