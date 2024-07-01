@@ -432,10 +432,34 @@ void Theme::loadMissing() {
       pref =
           new Preference(this, id, "Placeholder Text", qRgb(0x7f, 0x7f, 0x7f), qRgb(0xee, 0xee, 0xee)); //  Gray/white
       break;
-
-    case Themes::Roles::CommentRole:
-      pref = new Preference(this, id, "Comment", qRgb(0x00, 0x80, 0x00), qRgba(0xff, 0x00, 0x00, 0x00), 0, false, false,
+    case Themes::Roles::SymbolRole:
+      pref = new Preference(this, id, "Symbol", QColor("red").rgba64(), qRgba(0x00, 0x00, 0x00, 0x00), 0, false, false,
                             false, false);
+      break;
+    case Themes::Roles::MnemonicRole:
+      pref = new Preference(this, id, "Mnemonic", QColor("lightsteelblue").rgba64(), qRgba(0x00, 0x00, 0x00, 0x00), 0,
+                            false, false, false, false);
+      break;
+    case Themes::Roles::DirectiveRole:
+      pref = new Preference(this, id, "Directive", QColor("lightsteelblue").rgba64(), qRgba(0x00, 0x00, 0x00, 0x00), 0,
+                            false, false, false, false);
+      break;
+    case Themes::Roles::MacroRole:
+      pref = new Preference(this, id, "Directive", QColor("lightsteelblue").rgba64(), qRgba(0x00, 0x00, 0x00, 0x00), 0,
+                            false, false, false, false);
+      break;
+    case Themes::Roles::CharacterRole:
+      pref = new Preference(this, id, "Character", QColor("orangered").rgba64(), qRgba(0x00, 0x00, 0x00, 0x00), 0,
+                            false, false, false, false);
+      break;
+    case Themes::Roles::StringRole:
+      pref = new Preference(this, id, "String", QColor("orangered").rgba64(), qRgba(0x00, 0x00, 0x00, 0x00), 0, false,
+                            false, false, false);
+      break;
+    case Themes::Roles::CommentRole:
+      pref = new Preference(this, id, "Comment", qRgb(0x00, 0x80, 0x00), qRgba(0x00, 0x00, 0x00, 0x00), 0, false, false,
+                            false, false);
+      break;
     case Themes::Roles::ErrorRole:
       pref = new Preference(this, id, "Error", qRgb(0x00, 0x00, 0x00), qRgb(0xff, 0x00, 0x00), 0, false, false, false,
                             false);

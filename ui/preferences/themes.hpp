@@ -24,6 +24,12 @@ public:
     PlaceHolderTextRole,
 
     //  Editor enums
+    SymbolRole,
+    MnemonicRole,
+    DirectiveRole,
+    MacroRole,
+    CharacterRole,
+    StringRole,
     CommentRole,
     RowNumberRole,
     BreakpointRole,

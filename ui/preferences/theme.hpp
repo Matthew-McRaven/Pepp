@@ -36,6 +36,12 @@ class PREFS_EXPORT Theme : public QObject {
   Q_PROPERTY(Preference* placeholderText READ placeholderText NOTIFY preferenceChanged)
 
   //  Custom colors
+  Q_PROPERTY(Preference *symbol READ symbol NOTIFY preferenceChanged)
+  Q_PROPERTY(Preference *mnemonic READ mnemonic NOTIFY preferenceChanged)
+  Q_PROPERTY(Preference *directive READ directive NOTIFY preferenceChanged)
+  Q_PROPERTY(Preference *macro READ macro NOTIFY preferenceChanged)
+  Q_PROPERTY(Preference *character READ character NOTIFY preferenceChanged)
+  Q_PROPERTY(Preference *string READ string NOTIFY preferenceChanged)
   Q_PROPERTY(Preference *comment READ comment NOTIFY preferenceChanged)
   Q_PROPERTY(Preference *error READ error NOTIFY preferenceChanged)
   Q_PROPERTY(Preference *warning READ warning NOTIFY preferenceChanged)
@@ -121,13 +127,19 @@ public:
   Preference *brightText() const { return preference(Themes::Roles::BrightTextRole); }
   Preference *placeholderText() const { return preference(Themes::Roles::PlaceHolderTextRole); }
 
-  Preference *comment() const { return preference(Themes::Roles::ErrorRole); }
+  Preference *symbol() const { return preference(Themes::Roles::SymbolRole); }
+  Preference *mnemonic() const { return preference(Themes::Roles::MnemonicRole); }
+  Preference *directive() const { return preference(Themes::Roles::DirectiveRole); }
+  Preference *macro() const { return preference(Themes::Roles::MacroRole); }
+  Preference *character() const { return preference(Themes::Roles::CharacterRole); }
+  Preference *string() const { return preference(Themes::Roles::StringRole); }
+  Preference *comment() const { return preference(Themes::Roles::CommentRole); }
   Preference *error() const { return preference(Themes::Roles::ErrorRole); }
   Preference *warning() const { return preference(Themes::Roles::WarningRole); }
   Preference *rowNumber() const { return preference(Themes::Roles::RowNumberRole); }
   Preference *breakpoint() const { return preference(Themes::Roles::BreakpointRole); }
-  Preference *seqCircuit() const { return preference(Themes::Roles::SeqCircuitRole); }
 
+  Preference *seqCircuit() const { return preference(Themes::Roles::SeqCircuitRole); }
   Preference *circuitGreen() const { return preference(Themes::Roles::CircuitGreenRole); }
 signals:
   void fontChanged();

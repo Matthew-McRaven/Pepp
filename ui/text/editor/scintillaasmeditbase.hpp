@@ -25,6 +25,13 @@ signals:
 
 private:
   const int errorStyle = STYLE_LASTPREDEFINED + 1;
+  const int warningStyle = STYLE_LASTPREDEFINED + 2;
+  const int symbolStyle = SCE_PEPASM_SYMBOL_DECL;
+  const int mnemonicStyle = SCE_PEPASM_MNEMONIC;
+  const int directiveStyle = SCE_PEPASM_DIRECTIVE;
+  const int macroStyle = SCE_PEPASM_MACRO;
+  const int charStyle = SCE_PEPASM_CHARACTER;
+  const int stringStyle = SCE_PEPASM_STRING;
   const int commentStyle = SCE_PEPASM_COMMENT;
   QString lexerLanguage() const;
   void setLexerLanguage(const QString &language);

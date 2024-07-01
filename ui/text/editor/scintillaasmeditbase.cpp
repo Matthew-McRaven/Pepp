@@ -1,10 +1,11 @@
 #include "scintillaasmeditbase.hpp"
+#include <QQmlEngine>
 #include "Geometry.h"
 #include "LexillaAccess.h"
 #include "SciLexer.h"
 #include "ScintillaEditBase/PlatQt.h"
+#include "isa/pep10.hpp"
 
-#include <QQmlEngine>
 using namespace Scintilla;
 using namespace Scintilla::Internal;
 
@@ -50,9 +51,23 @@ void ScintillaAsmEditBase::addEOLAnnotation(int line, const QString &annotation)
   send(SCI_EOLANNOTATIONSETTEXT, line, (sptr_t)str.c_str());
   send(SCI_EOLANNOTATIONSETSTYLE, line, (sptr_t)errorStyle);
 }
-
+std::string mnemonics() {
+  QStringList mnemonics_list;
+  QMetaEnum mnemonic_enum = QMetaEnum::fromType<isa::Pep10::Mnemonic>();
+  for (int it = 0; it < mnemonic_enum.keyCount(); it++) mnemonics_list << QString(mnemonic_enum.key(it)).toLower();
+  return mnemonics_list.join(" ").toStdString();
+}
+std::string directives() {
+  std::string dirs;
+  for (const auto &dir : isa::Pep10::legalDirectives()) dirs += "." + dir.toLower().toStdString() + " ";
+  return dirs;
+}
 void ScintillaAsmEditBase::setLexerLanguage(const QString &language) {
   auto lexer = Lexilla::MakeLexer("Pep10ASM");
+  static const auto mn_pep10 = mnemonics();
+  static const auto dirs_pep10 = directives();
+  lexer->WordListSet(0, mn_pep10.c_str());
+  lexer->WordListSet(1, dirs_pep10.c_str());
   send(SCI_SETILEXER, /*unused*/ 0, (uintptr_t)lexer);
 }
 
@@ -88,6 +103,18 @@ void ScintillaAsmEditBase::applyStyles() {
   send(SCI_SETCARETFORE, c2i(_theme->base()->foreground()));
   send(SCI_STYLESETBACK, STYLE_DEFAULT, c2i(_theme->base()->background()));
   send(SCI_STYLECLEARALL, 0, 0);
+  send(SCI_STYLESETFORE, symbolStyle, c2i(_theme->symbol()->foreground()));
+  send(SCI_STYLESETBACK, symbolStyle, c2i(_theme->symbol()->background()));
+  send(SCI_STYLESETFORE, mnemonicStyle, c2i(_theme->mnemonic()->foreground()));
+  send(SCI_STYLESETBACK, mnemonicStyle, c2i(_theme->mnemonic()->background()));
+  send(SCI_STYLESETFORE, directiveStyle, c2i(_theme->directive()->foreground()));
+  send(SCI_STYLESETBACK, directiveStyle, c2i(_theme->directive()->background()));
+  send(SCI_STYLESETFORE, macroStyle, c2i(_theme->macro()->foreground()));
+  send(SCI_STYLESETBACK, macroStyle, c2i(_theme->macro()->background()));
+  send(SCI_STYLESETFORE, charStyle, c2i(_theme->character()->foreground()));
+  send(SCI_STYLESETBACK, charStyle, c2i(_theme->character()->background()));
+  send(SCI_STYLESETFORE, stringStyle, c2i(_theme->string()->foreground()));
+  send(SCI_STYLESETBACK, stringStyle, c2i(_theme->string()->background()));
   send(SCI_STYLESETFORE, commentStyle, c2i(_theme->comment()->foreground()));
   send(SCI_STYLESETBACK, commentStyle, c2i(_theme->comment()->background()));
   send(SCI_STYLESETFORE, errorStyle, c2i(_theme->error()->foreground()));
