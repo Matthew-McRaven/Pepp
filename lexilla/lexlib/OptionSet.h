@@ -66,9 +66,9 @@ template <typename T> class OptionSet {
     const char *Get() const noexcept { return value.c_str(); }
   };
   typedef std::map<std::string, Option, std::less<>> OptionMap;
-  OptionMap nameToDef;
-  std::string names;
-  std::string wordLists;
+  OptionMap nameToDef = {};
+  std::string names = {};
+  std::string wordLists = {};
 
   void AppendName(const char *name) {
     if (!names.empty()) names += "\n";
