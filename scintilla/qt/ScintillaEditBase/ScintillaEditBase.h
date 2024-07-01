@@ -66,17 +66,6 @@ class SCINTILLA_EXPORT ScintillaEditBase : public
   Q_PROPERTY(int firstVisibleColumn READ getFirstVisibleColumn NOTIFY firstVisibleColumnChanged)
   Q_PROPERTY(Qt::InputMethodHints inputMethodHints READ inputMethodHints WRITE setInputMethodHints NOTIFY
                  inputMethodHintsChanged);
-  Q_PROPERTY(QString language READ lexerLanguage WRITE setLexerLanguage NOTIFY lexerLanguageChanged);
-  Q_PROPERTY(QColor textColor READ textColor WRITE setTextColor NOTIFY colorChanged);
-  Q_PROPERTY(QColor backgroundColor READ backgroundColor WRITE setBackgroundColor NOTIFY colorChanged);
-  Q_PROPERTY(QColor errorForegroundColor READ errorForegroundColor WRITE setErrorForegroundColor NOTIFY colorChanged);
-  Q_PROPERTY(QColor errorBackgroundColor READ errorBackgroundColor WRITE setErrorBackgroundColor NOTIFY colorChanged);
-  Q_PROPERTY(
-      QColor commentForegroundColor READ commentForegroundColor WRITE setCommentForegroundColor NOTIFY colorChanged);
-  Q_PROPERTY(
-      QColor commentBackgroundColor READ commentBackgroundColor WRITE setCommentBackgroundColor NOTIFY colorChanged);
-  Q_PROPERTY(
-      bool lineNumbersVisible READ lineNumbersVisible WRITE setLineNumbersVisible NOTIFY lineNumbersVisibleChanged);
   //
 #endif
 
@@ -99,9 +88,6 @@ public:
   Q_INVOKABLE void enableUpdate(bool enable);
   Q_INVOKABLE void debug();
   Q_INVOKABLE virtual void cmdContextMenu(int menuID);
-  Q_INVOKABLE void clearAllEOLAnnotations();
-  Q_INVOKABLE void setEOLAnnotationsVisibile(int style);
-  Q_INVOKABLE void addEOLAnnotation(int line, const QString &annotation);
 #endif
 
 public slots:
@@ -112,8 +98,6 @@ public slots:
   // Emit Scintilla notifications as signals.
   void notifyParent(Scintilla::NotificationData scn);
   void event_command(Scintilla::uptr_t wParam, Scintilla::sptr_t lParam);
-  // For breakpoints
-  void onMarginClicked(Scintilla::Position position, Scintilla::KeyMod modifiers, int margin);
 
 signals:
   void cursorPositionChanged();
@@ -185,10 +169,6 @@ signals:
   void showContextMenu(const QPoint &pos);
   void addToContextMenu(int menuId, const QString &txt, bool enabled);
   void clearContextMenu();
-  void lexerLanguageChanged();
-  void colorChanged();
-  void lineNumbersVisibleChanged();
-  // void readonlyChanged();
 #endif
 
 protected:
@@ -228,9 +208,7 @@ protected:
   void touchEvent(QTouchEvent *event) override;
 #endif
 
-private:
-  int errorStyle = STYLE_LASTPREDEFINED + 1;
-  int commentStyle = SCE_PEPASM_COMMENT;
+protected:
 #ifdef PLAT_QT_QML
   QString getText() const;
   void setText(const QString &txt);
@@ -252,26 +230,6 @@ private:
   void setInputMethodHints(Qt::InputMethodHints hints);
   bool getReadonly() const;
   void setReadonly(bool value);
-  QString lexerLanguage() const;
-  void setLexerLanguage(const QString &language);
-  // Must set in CTOR, set*Color. Used in applyStyles().
-  int _text, _bg, _errFg, _errBg, _commentFg, _commentBg;
-  QColor textColor() const;
-  void setTextColor(const QColor &color);
-  QColor backgroundColor() const;
-  void setBackgroundColor(const QColor &color);
-  QColor errorForegroundColor() const;
-  void setErrorForegroundColor(const QColor &color);
-  QColor errorBackgroundColor() const;
-  void setErrorBackgroundColor(const QColor &color);
-  QColor commentForegroundColor() const;
-  void setCommentForegroundColor(const QColor &color);
-  QColor commentBackgroundColor() const;
-  void setCommentBackgroundColor(const QColor &color);
-  bool lineNumbersVisible() const;
-  void setLineNumbersVisible(bool visible);
-  // Defer style update so that we can layer multiple changes over defaults.
-  void applyStyles();
 
   void cursorChangedUpdateMarker();
 
