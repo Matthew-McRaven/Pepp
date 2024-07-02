@@ -54,11 +54,22 @@ template <typename ISA> struct FormatListing : public pas::ops::ConstOp<void> {
   void operator()(const ast::Node &node) override;
 };
 
+// Helper to format with ast::apply methods.
+template <typename ISA> struct FormatSplitListing : public pas::ops::ConstOp<void> {
+  QList<QPair<QString, QString>> ret;
+  ListingOptions opts;
+  void operator()(const ast::Node &node) override;
+};
+
 // Format entire tree recursively as source.
 template <typename ISA> QStringList formatSource(const ast::Node &node, SourceOptions opts = {});
 
 // Format entire tree recursively as listing.
 template <typename ISA> QStringList formatListing(const ast::Node &node, ListingOptions opts = {});
+
+// Format the entire tree recursively as a listing, with continuation lines separated.
+template <typename ISA>
+QList<QPair<QString, QString>> formatSplitListing(const ast::Node &node, ListingOptions opts = {});
 
 namespace detail {
 // Format single unary node as source.
@@ -137,6 +148,16 @@ template <typename ISA> void pas::ops::pepp::FormatListing<ISA>::operator()(cons
   for (auto &line : list<ISA>(node, opts)) ret.push_back(line);
 }
 
+template <typename ISA> void pas::ops::pepp::FormatSplitListing<ISA>::operator()(const ast::Node &node) {
+  auto asTxt = format<ISA>(node);
+  auto lines = list<ISA>(node, opts);
+  switch (lines.length()) {
+  case 0: return;
+  case 1: return ret.push_back({lines[0], {}});
+  default: return ret.push_back({lines[0], lines.mid(1).join("\n")});
+  }
+}
+
 template <typename ISA> QStringList pas::ops::pepp::formatSource(const ast::Node &node, SourceOptions opts) {
   auto visit = FormatSource<ISA>();
   visit.opts = opts;
@@ -149,6 +170,20 @@ template <typename ISA> QStringList pas::ops::pepp::formatSource(const ast::Node
 
 template <typename ISA> QStringList pas::ops::pepp::formatListing(const ast::Node &node, ListingOptions opts) {
   auto visit = FormatListing<ISA>();
+  visit.opts = opts;
+  // Do not visit structural nodes, because this will inject unneeded
+  // newlines. Do not visit macro nodes, otherwise macro invocation AND
+  // macro body will be printed. At this point, macros should not exist
+  // anyways. Do not print/visit hidden nodes.
+  auto is = generic::And<generic::Negate<generic::Or<generic::isStructural, generic::isMacro>>,
+                         generic::Negate<generic::ListingHidden>>();
+  ast::apply_recurse_if(node, is, visit);
+  return visit.ret;
+}
+
+template <typename ISA>
+QList<QPair<QString, QString>> pas::ops::pepp::formatSplitListing(const ast::Node &node, ListingOptions opts) {
+  auto visit = FormatSplitListing<ISA>();
   visit.opts = opts;
   // Do not visit structural nodes, because this will inject unneeded
   // newlines. Do not visit macro nodes, otherwise macro invocation AND
