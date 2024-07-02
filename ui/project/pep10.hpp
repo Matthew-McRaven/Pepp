@@ -121,8 +121,10 @@ class Pep10_ASMB final : public Pep10_ISA {
   Q_OBJECT
   Q_PROPERTY(QString userAsmText READ userAsmText WRITE setUserAsmText NOTIFY userAsmTextChanged);
   Q_PROPERTY(QString userList READ userList NOTIFY listingChanged);
+  Q_PROPERTY(QList<Error *> userListAnnotations READ userListAnnotations NOTIFY listingChanged);
   Q_PROPERTY(QString osAsmText READ osAsmText WRITE setOSAsmText NOTIFY osAsmTextChanged);
   Q_PROPERTY(QString osList READ osList NOTIFY listingChanged);
+  Q_PROPERTY(QList<Error *> osListAnnotations READ osListAnnotations NOTIFY listingChanged);
   Q_PROPERTY(QList<Error *> assemblerErrors READ errors NOTIFY errorsChanged)
 
 public:
@@ -132,9 +134,11 @@ public:
   Q_INVOKABLE QString userAsmText() const;
   Q_INVOKABLE void setUserAsmText(const QString &userAsmText);
   Q_INVOKABLE QString userList() const;
+  Q_INVOKABLE const QList<Error *> userListAnnotations() const;
   Q_INVOKABLE QString osAsmText() const;
   Q_INVOKABLE void setOSAsmText(const QString &osAsmText);
   Q_INVOKABLE QString osList() const;
+  Q_INVOKABLE const QList<Error *> osListAnnotations() const;
   Q_INVOKABLE const QList<Error *> errors() const;
   project::Environment env() const override;
   utils::Architecture architecture() const override;
@@ -157,5 +161,5 @@ protected:
   void prepareGUIUpdate(sim::api2::trace::FrameIterator from) override;
   QString _userAsmText = {}, _osAsmText = {};
   QString _userList = {}, _osList = {};
-  QList<QPair<int, QString>> _errors = {};
+  QList<QPair<int, QString>> _errors = {}, _userListAnnotations = {}, _osListAnnotations = {};
 };

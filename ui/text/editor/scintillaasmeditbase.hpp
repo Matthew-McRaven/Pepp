@@ -14,8 +14,13 @@ public:
 public slots:
   // For errors
   void clearAllEOLAnnotations();
-  void setEOLAnnotationsVisibile(int style);
+  void setEOLAnnotationsVisible(int style);
   void addEOLAnnotation(int line, const QString &annotation);
+  // For listing
+  void clearAllInlineAnnotations();
+  void setInlineAnnotationsVisible(int style);
+  void addInlineAnnotation(int line, const QString &annotation);
+  // Breakpoints & folding
   void onMarginClicked(Scintilla::Position position, Scintilla::KeyMod modifiers, int margin);
 signals:
   void lexerLanguageChanged();

@@ -96,7 +96,7 @@ QList<QPair<int, QString>> helpers::AsmHelper::errorsWithLines() {
   if (!userErrors.empty()) {
     auto splitUser = _user->split("\n");
     for (const auto &err : userErrors) {
-      ret.push_back({err.first.value.line + 1, err.second.message});
+      ret.push_back({err.first.value.line, err.second.message});
     }
   }
   return ret;
@@ -119,6 +119,15 @@ QStringList helpers::AsmHelper::listing(bool os) {
   try {
     if (os && !_osRoot.isNull()) return pas::ops::pepp::formatListing<isa::Pep10>(*_osRoot);
     else if (!os && !_userRoot.isNull()) return pas::ops::pepp::formatListing<isa::Pep10>(*_userRoot);
+  } catch (std::exception &e) {
+  }
+  return {};
+}
+
+QList<QPair<QString, QString>> helpers::AsmHelper::splitListing(bool os) {
+  try {
+    if (os && !_osRoot.isNull()) return pas::ops::pepp::formatSplitListing<isa::Pep10>(*_osRoot);
+    else if (!os && !_userRoot.isNull()) return pas::ops::pepp::formatSplitListing<isa::Pep10>(*_userRoot);
   } catch (std::exception &e) {
   }
   return {};

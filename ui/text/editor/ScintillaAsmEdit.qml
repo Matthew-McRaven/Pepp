@@ -26,9 +26,19 @@ Item {
         editor.clearAllEOLAnnotations()
         // See styles at: https://scintilla.org/ScintillaDoc.html#EndOfLineAnnotations
         let style = lst.length === 0 ? 0x0 : 0x2
-        editor.setEOLAnnotationsVisibile(style)
+        editor.setEOLAnnotationsVisible(style)
         for (var i = 0; i < lst.length; i++) {
-            editor.addEOLAnnotation(lst[i].line - 1, lst[i].message)
+            editor.addEOLAnnotation(lst[i].line, lst[i].message)
+        }
+    }
+    // List has {line:#, message:str}
+    function addListingAnnotations(lst) {
+        editor.clearAllInlineAnnotations()
+        // See styles at: https://scintilla.org/ScintillaDoc.html#EndOfLineAnnotations
+        let style = lst.length === 0 ? 0x0 : 0x1
+        editor.setInlineAnnotationsVisible(style)
+        for (var i = 0; i < lst.length; i++) {
+            editor.addInlineAnnotation(lst[i].line, lst[i].message)
         }
     }
 

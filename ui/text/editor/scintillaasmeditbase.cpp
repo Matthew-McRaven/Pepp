@@ -64,13 +64,25 @@ void ScintillaEditBase::removeMarkersOnModified(Scintilla::ModificationFlags typ
 
 void ScintillaAsmEditBase::clearAllEOLAnnotations() { send(SCI_EOLANNOTATIONCLEARALL); }
 
-void ScintillaAsmEditBase::setEOLAnnotationsVisibile(int style) { send(SCI_EOLANNOTATIONSETVISIBLE, style); }
+void ScintillaAsmEditBase::setEOLAnnotationsVisible(int style) { send(SCI_EOLANNOTATIONSETVISIBLE, style); }
 
 void ScintillaAsmEditBase::addEOLAnnotation(int line, const QString &annotation) {
   auto str = annotation.toStdString();
   send(SCI_EOLANNOTATIONSETTEXT, line, (sptr_t)str.c_str());
   send(SCI_EOLANNOTATIONSETSTYLE, line, (sptr_t)errorStyle);
 }
+
+void ScintillaAsmEditBase::clearAllInlineAnnotations() { send(SCI_ANNOTATIONCLEARALL); }
+
+void ScintillaAsmEditBase::setInlineAnnotationsVisible(int style) { send(SCI_ANNOTATIONSETVISIBLE, style); }
+
+void ScintillaAsmEditBase::addInlineAnnotation(int line, const QString &annotation)
+{
+  auto str = annotation.toStdString();
+  send(SCI_ANNOTATIONSETTEXT, line, (sptr_t)str.c_str());
+  send(SCI_ANNOTATIONSETSTYLE, line, (sptr_t)STYLE_DEFAULT);
+}
+
 std::string mnemonics() {
   QStringList mnemonics_list;
   QMetaEnum mnemonic_enum = QMetaEnum::fromType<isa::Pep10::Mnemonic>();

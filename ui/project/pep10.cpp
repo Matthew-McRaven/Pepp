@@ -477,6 +477,12 @@ void Pep10_ASMB::setUserAsmText(const QString &userAsmText) {
 
 QString Pep10_ASMB::userList() const { return _userList; }
 
+const QList<Error *> Pep10_ASMB::userListAnnotations() const {
+  QList<Error *> ret;
+  for (auto [line, str] : _userListAnnotations) ret.push_back(new Error{line, str});
+  return ret;
+}
+
 QString Pep10_ASMB::osAsmText() const { return _osAsmText; }
 
 void Pep10_ASMB::setOSAsmText(const QString &osAsmText) {
@@ -485,6 +491,12 @@ void Pep10_ASMB::setOSAsmText(const QString &osAsmText) {
   emit osAsmTextChanged();
 }
 QString Pep10_ASMB::osList() const { return _osList; }
+
+const QList<Error *> Pep10_ASMB::osListAnnotations() const {
+  QList<Error *> ret;
+  for (auto [line, str] : _osListAnnotations) ret.push_back(new Error{line, str});
+  return ret;
+}
 const QList<Error *> Pep10_ASMB::errors() const {
   QList<Error *> ret;
   for (auto [line, str] : _errors) ret.push_back(new Error{line, str});
@@ -510,8 +522,12 @@ int Pep10_ASMB::allowedDebugging() const {
   }
 }
 
+static constexpr auto to_string = [](const QString &acc, const auto &pair) {
+  return acc.isEmpty() ? pair.first : acc + "\n" + pair.first;
+};
 bool Pep10_ASMB::onAssemble(bool doLoad) {
   _userList = _osList = "";
+  _userListAnnotations = _osListAnnotations = {};
   auto macroRegistry = cs6e_macros();
   helpers::AsmHelper helper(macroRegistry, _osAsmText);
   helper.setUserText(_userAsmText);
@@ -524,8 +540,15 @@ bool Pep10_ASMB::onAssemble(bool doLoad) {
     emit listingChanged();
     return false;
   }
-  _userList = helper.listing(false).join("\n");
-  _osList = helper.listing(true).join("\n");
+
+  auto user = helper.splitListing(false);
+  _userList = std::accumulate(user.begin(), user.end(), QString(), to_string);
+  for (auto it = 0; it < user.size(); it++)
+    if (auto pair = user[it]; !pair.second.isEmpty()) _userListAnnotations.push_back({it, pair.second});
+  auto os = helper.splitListing(true);
+  _osList = std::accumulate(os.begin(), os.end(), QString(), to_string);
+  for (auto it = 0; it < os.size(); it++)
+    if (auto pair = os[it]; !pair.second.isEmpty()) _osListAnnotations.push_back({it, pair.second});
   emit listingChanged();
 
   auto userBytes = helper.bytes(false);
@@ -540,23 +563,32 @@ bool Pep10_ASMB::onAssemble(bool doLoad) {
 
 bool Pep10_ASMB::onAssembleThenFormat() {
   _userList = _osList = "";
+  _userListAnnotations = _osListAnnotations = {};
   auto macroRegistry = cs6e_macros();
   helpers::AsmHelper helper(macroRegistry, _osAsmText);
   helper.setUserText(_userAsmText);
   auto ret = helper.assemble();
   _errors = helper.errorsWithLines();
   emit errorsChanged();
-  emit listingChanged();
-  if (!ret) message(utils::msg_asm_failed);
-  else {
+  if (!ret) {
+    message(utils::msg_asm_failed);
+    emit listingChanged();
+  } else {
     auto source = helper.formattedSource(false);
     setUserAsmText(source.join("\n"));
     auto userBytes = helper.bytes(false);
     QString objectCodeText = pas::ops::pepp::bytesToObject(userBytes, 16);
     setObjectCodeText(objectCodeText);
   }
-  _userList = helper.listing(false).join("\n");
-  _osList = helper.listing(true).join("\n");
+  auto user = helper.splitListing(false);
+  _userList = std::accumulate(user.begin(), user.end(), QString(), to_string);
+  for (auto it = 0; it < user.size(); it++)
+    if (auto pair = user[it]; !pair.second.isEmpty()) _userListAnnotations.push_back({it, pair.second});
+  auto os = helper.splitListing(true);
+  _osList = std::accumulate(os.begin(), os.end(), QString(), to_string);
+  for (auto it = 0; it < os.size(); it++)
+    if (auto pair = os[it]; !pair.second.isEmpty()) _osListAnnotations.push_back({it, pair.second});
+  emit listingChanged();
   return true;
 }
 

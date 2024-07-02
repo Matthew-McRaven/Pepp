@@ -21,6 +21,7 @@ public:
   QList<QPair<int, QString>> errorsWithLines();
   QSharedPointer<ELFIO::elfio> elf(std::optional<QList<quint8>> userObj = std::nullopt);
   QStringList listing(bool os);
+  QList<QPair<QString, QString>> splitListing(bool os);
   QStringList formattedSource(bool os);
   QList<quint8> bytes(bool os);
 
