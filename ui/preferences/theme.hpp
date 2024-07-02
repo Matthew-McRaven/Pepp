@@ -75,10 +75,12 @@ class PREFS_EXPORT Theme : public QObject {
 
 public:
   enum Ranges {
-    GeneralCategoryStart = Themes::BaseRole,  //  Only used for iteration
-    GeneralCategoryEnd  = Themes::RowNumberRole, //  Only used for iteration
-    EditorCategoryEnd   = Themes::SeqCircuitRole,
-    CircuitCategoryEnd  = Themes::Total, //  Only used for iteration
+    GeneralCategoryStart = Themes::BaseRole, //  Only used for iteration
+    GeneralCategoryEnd = Themes::SymbolRole, //  Only used for iteration
+    EditorCategoryStart = GeneralCategoryEnd,
+    EditorCategoryEnd = Themes::SeqCircuitRole,
+    CircuitCategoryStart = EditorCategoryEnd,
+    CircuitCategoryEnd = Themes::Total, //  Only used for iteration
   };
 
   explicit Theme(QObject *parent = nullptr);
