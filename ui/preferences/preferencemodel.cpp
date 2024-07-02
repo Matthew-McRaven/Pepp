@@ -127,8 +127,7 @@ QVariant PreferenceModel::data(const QModelIndex &index, int role) const
       //  Name of curent category
       case RoleNames::CurrentCategoryRole: {
         const auto it = categories_.at(category_).preference(row);
-        if(!it.isEmpty())
-            return it;
+        if (!it.isEmpty()) return it;
       }
       break;
 
@@ -139,16 +138,12 @@ QVariant PreferenceModel::data(const QModelIndex &index, int role) const
         //  Items under categories start at 100x of the category id
 
         int offset{};
-        if(category_ == 1)
-          offset = Themes::Roles::RowNumberRole;
-        else if(category_ == 2)
-          offset = Themes::Roles::SeqCircuitRole;
+        if (category_ == 1) offset = Theme::Ranges::EditorCategoryStart;
+        else if (category_ == 2) offset = Theme::Ranges::CircuitCategoryStart;
 
-        if(auto* pref = theme_->preference(row + offset); pref != nullptr) {
-          return QVariant::fromValue(pref);
-        }
-      }
-      break;
+        if (auto *pref = theme_->preference(row + offset); pref != nullptr) return QVariant::fromValue(pref);
+
+      } break;
 
       //  Return currently selected preference
       //  Used for in preferences screen for overrides
