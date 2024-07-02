@@ -51,11 +51,9 @@ public:
   virtual ~Preference() = default;
 
   Preference(QObject* parent, const Themes::Roles id, const QString name);
-  Preference(QObject* parent, const Themes::Roles id, const QString name,
-             const QRgb foreground, const QRgb background,
-             const quint32 parentId = 0, const bool bold = false,
-             const bool italics = false, const bool underline = false,
-             const bool strikeout = false);
+  Preference(QObject *parent, const Themes::Roles id, const QString name, const QRgb foreground, const QRgb background,
+             const quint32 parentId = 0, const bool bold = false, const bool italics = false,
+             const bool underline = false, const bool strikeout = false);
 
   //  Cannot move or copy QObject
   Preference(const Preference &) = delete;

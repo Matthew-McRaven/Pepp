@@ -18,18 +18,14 @@ Preference::Preference(QObject *parent, const Themes::Roles id, const QString na
   d->name_ = name;
 }
 
-Preference::Preference(QObject *parent, const Themes::Roles id, const QString name,
-      const QRgb foreground,const QRgb background,
-      const quint32 parentId, const bool bold,
-      const bool italics, const bool underline,
-      const bool strikeout)
-    : QObject(parent)
-    , d(new PreferencePrivate)
-{
+Preference::Preference(QObject *parent, const Themes::Roles id, const QString name, const QRgb foreground,
+                       const QRgb background, const quint32 parentId, const bool bold, const bool italics,
+                       const bool underline, const bool strikeout)
+    : QObject(parent), d(new PreferencePrivate) {
   d->id_ = id;
   d->name_ = name;
-  d->foreground_ = foreground;
-  d->background_ = background;
+  d->foreground_ = QRgba64::fromArgb32(foreground);
+  d->background_ = QRgba64::fromArgb32(background);
   d->parentId_ = parentId;
 
   d->font_.setBold(bold);
