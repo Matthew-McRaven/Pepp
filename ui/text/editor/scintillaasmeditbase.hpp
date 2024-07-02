@@ -22,6 +22,7 @@ public slots:
   void addInlineAnnotation(int line, const QString &annotation);
   // Breakpoints & folding
   void onMarginClicked(Scintilla::Position position, Scintilla::KeyMod modifiers, int margin);
+  void applyStyles();
 signals:
   void lexerLanguageChanged();
   void themeChanged();
@@ -46,5 +47,4 @@ private:
   bool lineNumbersVisible() const;
   void setLineNumbersVisible(bool visible);
   // Defer style update so that we can layer multiple changes over defaults.
-  void applyStyles();
 };

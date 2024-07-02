@@ -83,6 +83,10 @@ Item {
     }
     // the QuickScintilla control
     S.ScintillaAsmEdit {
+        Component.onCompleted: {
+            Theme.themesChanged.connect(editor.applyStyles)
+        }
+
         id: editor
         anchors.top: parent.top
         anchors.bottom: horizontalScrollBar.top
