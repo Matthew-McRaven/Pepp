@@ -27,21 +27,26 @@ Item {
         userAsmEdit.editingFinished.disconnect(save)
         project.errorsChanged.disconnect(displayErrors)
         project.listingChanged.connect(fixListings)
+        onProjectChanged.disconnect(fixListings)
     }
     function displayErrors() {
         userAsmEdit.addEOLAnnotations(project.assemblerErrors)
     }
     function fixListings() {
-        const curURO = userList.readOnly
-        userList.readOnly = false
-        userList.text = project.userList
-        userList.addListingAnnotations(project.userListAnnotations)
-        userList.readOnly = curURO
-        const curORO = osList.readOnly
-        osList.readOnly = false
-        osList.text = project.osList
-        osList.addListingAnnotations(project.osListAnnotations)
-        osList.readOnly = curORO
+        if (userList) {
+            const curURO = userList.readOnly
+            userList.readOnly = false
+            userList.text = project.userList
+            userList.addListingAnnotations(project.userListAnnotations)
+            userList.readOnly = curURO
+        }
+        if (osList) {
+            const curORO = osList.readOnly
+            osList.readOnly = false
+            osList.text = project.osList
+            osList.addListingAnnotations(project.osListAnnotations)
+            osList.readOnly = curORO
+        }
     }
 
     function save() {
