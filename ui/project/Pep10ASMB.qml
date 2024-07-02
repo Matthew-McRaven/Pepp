@@ -17,26 +17,31 @@ Item {
         // Do not need to update on mode change, since mode change implies loss of focus of objEdit.
         userAsmEdit.editingFinished.connect(save)
         project.errorsChanged.connect(displayErrors)
-        project.listingChanged.connect(function () {
-            const curURO = userList.readOnly
-            userList.readOnly = false
-            userList.text = project.userList
-            userList.addListingAnnotations(project.userListAnnotations)
-            userList.readOnly = curURO
-            const curORO = osList.readOnly
-            osList.readOnly = false
-            osList.text = project.osList
-            osList.addListingAnnotations(project.osListAnnotations)
-            osList.readOnly = curORO
-        })
+        project.listingChanged.connect(fixListings)
+        onProjectChanged.connect(fixListings)
+        if (project)
+            fixListings()
     }
     // Will be called before project is changed on unload, so we can disconnect save-triggering signals.
     Component.onDestruction: {
         userAsmEdit.editingFinished.disconnect(save)
         project.errorsChanged.disconnect(displayErrors)
+        project.listingChanged.connect(fixListings)
     }
     function displayErrors() {
         userAsmEdit.addEOLAnnotations(project.assemblerErrors)
+    }
+    function fixListings() {
+        const curURO = userList.readOnly
+        userList.readOnly = false
+        userList.text = project.userList
+        userList.addListingAnnotations(project.userListAnnotations)
+        userList.readOnly = curURO
+        const curORO = osList.readOnly
+        osList.readOnly = false
+        osList.text = project.osList
+        osList.addListingAnnotations(project.osListAnnotations)
+        osList.readOnly = curORO
     }
 
     function save() {
