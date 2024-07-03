@@ -35,17 +35,26 @@ void ScintillaAsmEditBase::onMarginClicked(Scintilla::Position position, Scintil
   if (margin == 2) {
     int line = send(SCI_LINEFROMPOSITION, position);
     int level = send(SCI_GETFOLDLEVEL, line);
-
     if (level & SC_FOLDLEVELHEADERFLAG) send(SCI_TOGGLEFOLD, line);
   } else { // Otherwise treat as BP modification.
     // Get line number from position
     int line = send(SCI_LINEFROMPOSITION, position, 0);
-
-    // Toggle marker on the line
     int markers = send(SCI_MARKERGET, line);
-    auto msg = markers & (1 << SC_MARK_CIRCLE) ? SCI_MARKERDELETE : SCI_MARKERADD;
-    send(msg, line, SC_MARK_CIRCLE);
+    emit modifyBP(line, markers & (1 << SC_MARK_CIRCLE) ? Action::Remove : Action::Toggle);
   }
+}
+
+void ScintillaAsmEditBase::onModifyBP(int line, Action action) {
+  int markers = send(SCI_MARKERGET, line);
+  unsigned int msg = SCI_MARKERDELETE;
+  switch (action) {
+  // Toggle marker on the line
+  case Action::Toggle: msg = markers & (1 << SC_MARK_CIRCLE) ? SCI_MARKERDELETE : SCI_MARKERADD; break;
+  case Action::Add: msg = SCI_MARKERADD; break;
+  case Action::Remove: msg = SCI_MARKERDELETE; break;
+  default: break;
+  }
+  send(msg, line, SC_MARK_CIRCLE);
 }
 
 /* // I actually think this is a bad idea, but keeping code for reference.

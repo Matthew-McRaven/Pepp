@@ -8,6 +8,7 @@
 #include "cpu/registermodel.hpp"
 #include "cpu/statusbitmodel.hpp"
 #include "memory/hexdump/rawmemory.hpp"
+#include "text/editor/scintillaasmeditbase.hpp"
 #include "utils/constants.hpp"
 #include "utils/opcodemodel.hpp"
 
@@ -126,6 +127,7 @@ class Pep10_ASMB final : public Pep10_ISA {
   Q_PROPERTY(QString osList READ osList NOTIFY listingChanged);
   Q_PROPERTY(QList<Error *> osListAnnotations READ osListAnnotations NOTIFY listingChanged);
   Q_PROPERTY(QList<Error *> assemblerErrors READ errors NOTIFY errorsChanged)
+  using Action = ScintillaAsmEditBase::Action;
 
 public:
   explicit Pep10_ASMB(QVariant delegate, QObject *parent = nullptr);
@@ -147,6 +149,10 @@ public:
 public slots:
   bool onAssemble(bool doLoad = false);
   bool onAssembleThenFormat();
+  void onModifyUserSourceBP(int line, Action action = Action::Toggle);
+  void onModifyOSSourceBP(int line, Action action = Action::Toggle);
+  void onModifyUserListBP(int line, Action action = Action::Toggle);
+  void onModifyOSListBP(int line, Action action = Action::Toggle);
 signals:
   void userAsmTextChanged();
   void osAsmTextChanged();
@@ -155,6 +161,10 @@ signals:
 
   void updateGUI(sim::api2::trace::FrameIterator from);
   void message(QString message);
+  void modifyUserSourceBP(int line, Action action = Action::Toggle);
+  void modifyOSSourceBP(int line, Action action = Action::Toggle);
+  void modifyUserListBP(int line, Action action = Action::Toggle);
+  void modifyOSListBP(int line, Action action = Action::Toggle);
 
 protected:
   void prepareSim() override;

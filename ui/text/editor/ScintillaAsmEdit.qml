@@ -48,6 +48,7 @@ Item {
 
     //filtersChildMouseEvents: false
     property alias quickScintillaEditor: editor
+    property alias editor: editor
 
     // public properties
     property alias text: editor.text

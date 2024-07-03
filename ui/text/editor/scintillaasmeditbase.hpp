@@ -1,8 +1,9 @@
 #pragma once
 #include <QObject>
+#include "../text_globals.hpp"
 #include "ScintillaEditBase/ScintillaEditBase.h"
 #include "preferences/theme.hpp"
-class ScintillaAsmEditBase : public ScintillaEditBase {
+class TEXT_EXPORT ScintillaAsmEditBase : public ScintillaEditBase {
   Q_OBJECT
   Q_PROPERTY(QString language READ lexerLanguage WRITE setLexerLanguage NOTIFY lexerLanguageChanged);
   Q_PROPERTY(Theme *theme READ theme WRITE setTheme NOTIFY themeChanged)
@@ -10,6 +11,8 @@ class ScintillaAsmEditBase : public ScintillaEditBase {
       bool lineNumbersVisible READ lineNumbersVisible WRITE setLineNumbersVisible NOTIFY lineNumbersVisibleChanged);
 
 public:
+  enum class Action { Toggle, Add, Remove };
+  Q_ENUM(Action);
   ScintillaAsmEditBase(QQuickItem *parent = 0);
 public slots:
   // For errors
@@ -22,11 +25,13 @@ public slots:
   void addInlineAnnotation(int line, const QString &annotation);
   // Breakpoints & folding
   void onMarginClicked(Scintilla::Position position, Scintilla::KeyMod modifiers, int margin);
+  void onModifyBP(int line, Action action = Action::Toggle);
   void applyStyles();
 signals:
   void lexerLanguageChanged();
   void themeChanged();
   void lineNumbersVisibleChanged();
+  void modifyBP(int line, Action action);
 
 private:
   const int errorStyle = STYLE_LASTPREDEFINED + 1;

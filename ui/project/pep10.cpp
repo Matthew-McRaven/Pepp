@@ -592,6 +592,14 @@ bool Pep10_ASMB::onAssembleThenFormat() {
   return true;
 }
 
+void Pep10_ASMB::onModifyUserSourceBP(int line, Action action) { emit modifyUserSourceBP(line, action); }
+
+void Pep10_ASMB::onModifyOSSourceBP(int line, Action action) { emit modifyOSSourceBP(line, action); }
+
+void Pep10_ASMB::onModifyUserListBP(int line, Action action) { emit modifyUserListBP(line, action); }
+
+void Pep10_ASMB::onModifyOSListBP(int line, Action action) { emit modifyOSListBP(line, action); }
+
 void Pep10_ASMB::prepareSim() {
   onAssemble(true);
   _tb->clear();
