@@ -533,6 +533,8 @@ bool Pep10_ASMB::onAssemble(bool doLoad) {
   helper.setUserText(_userAsmText);
   auto ret = helper.assemble();
   _errors = helper.errorsWithLines();
+  _userLines2Address = helper.address2Lines(false);
+  _osLines2Address = helper.address2Lines(true);
   emit errorsChanged();
   if (!ret) {
     message(utils::msg_asm_failed);
@@ -569,6 +571,8 @@ bool Pep10_ASMB::onAssembleThenFormat() {
   helper.setUserText(_userAsmText);
   auto ret = helper.assemble();
   _errors = helper.errorsWithLines();
+  _userLines2Address = helper.address2Lines(false);
+  _osLines2Address = helper.address2Lines(false);
   emit errorsChanged();
   if (!ret) {
     message(utils::msg_asm_failed);
@@ -592,13 +596,25 @@ bool Pep10_ASMB::onAssembleThenFormat() {
   return true;
 }
 
-void Pep10_ASMB::onModifyUserSourceBP(int line, Action action) { emit modifyUserSourceBP(line, action); }
+void Pep10_ASMB::onModifyUserSourceBP(int line, Action action) {
+  emit modifyUserSourceBP(line, action);
+  if (auto list = _userLines2Address.source2List(line); list) emit modifyUserListBP(*list, action);
+}
 
-void Pep10_ASMB::onModifyOSSourceBP(int line, Action action) { emit modifyOSSourceBP(line, action); }
+void Pep10_ASMB::onModifyOSSourceBP(int line, Action action) {
+  emit modifyOSSourceBP(line, action);
+  if (auto list = _osLines2Address.source2List(line); list) emit modifyOSListBP(*list, action);
+}
 
-void Pep10_ASMB::onModifyUserListBP(int line, Action action) { emit modifyUserListBP(line, action); }
+void Pep10_ASMB::onModifyUserListBP(int line, Action action) {
+  emit modifyUserListBP(line, action);
+  if (auto src = _userLines2Address.list2Source(line); src) emit modifyUserSourceBP(*src, action);
+}
 
-void Pep10_ASMB::onModifyOSListBP(int line, Action action) { emit modifyOSListBP(line, action); }
+void Pep10_ASMB::onModifyOSListBP(int line, Action action) {
+  emit modifyOSListBP(line, action);
+  if (auto src = _osLines2Address.list2Source(line); src) emit modifyOSSourceBP(*src, action);
+}
 
 void Pep10_ASMB::prepareSim() {
   onAssemble(true);

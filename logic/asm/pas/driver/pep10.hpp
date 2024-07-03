@@ -43,10 +43,16 @@ Q_ENUM_NS(Stage);
 template <typename ParserTag> class TransformParse : public driver::Transform<Stage> {
 public:
   bool operator()(QSharedPointer<Globals>, QSharedPointer<pas::driver::Target<Stage>> target) override {
+
     auto source = target->bodies[repr::Source::name];
     auto body = source.value<repr::Source>().value;
     auto parser = pas::driver::pepp::createParser<isa::Pep10, ParserTag>(false);
     auto parsed = parser(body, nullptr);
+    int it = 0;
+    auto children = pas::ast::children(*parsed.root);
+    for (auto child : children) {
+      child->template set<ast::generic::RootLocation>({.value = {it++}});
+    }
     target->bodies[repr::Nodes::name] = QVariant::fromValue(repr::Nodes{.value = parsed.root});
     return !parsed.hadError;
   }

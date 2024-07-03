@@ -2,6 +2,7 @@
 #include <iostream>
 #include "asm/pas/driver/pep10.hpp"
 #include "asm/pas/obj/pep10.hpp"
+#include "asm/pas/operations/generic/addr2line.hpp"
 #include "asm/pas/operations/generic/errors.hpp"
 #include "asm/pas/operations/pepp/bytes.hpp"
 #include "asm/pas/operations/pepp/string.hpp"
@@ -151,8 +152,65 @@ QList<quint8> helpers::AsmHelper::bytes(bool os) {
   return {};
 }
 
+helpers::AsmHelper::Lines2Addresses helpers::AsmHelper::address2Lines(bool os) {
+  if (os && !_osRoot.isNull()) {
+    auto source = pas::ops::generic::source2addr(*_osRoot);
+    auto list = pas::ops::generic::list2addr(*_osRoot);
+    return Lines2Addresses{source, list};
+  } else if (!os && !_userRoot.isNull()) {
+    auto source = pas::ops::generic::source2addr(*_userRoot);
+    auto list = pas::ops::generic::list2addr(*_userRoot);
+    return Lines2Addresses{source, list};
+  }
+  return {};
+}
+
 QSharedPointer<macro::Registry> helpers::registry(QSharedPointer<const builtins::Book> book, QStringList directory) {
   auto macroRegistry = QSharedPointer<::macro::Registry>::create();
   for (auto &macro : book->macros()) macroRegistry->registerMacro(::macro::types::Core, macro);
   return macroRegistry;
+}
+
+helpers::AsmHelper::Lines2Addresses::Lines2Addresses(QList<QPair<int, quint32>> source,
+                                                     QList<QPair<int, quint32>> list) {
+  for (auto [line, addr] : source) {
+    _source2Addr[line] = addr;
+    _addr2Source[addr] = line;
+  }
+  for (auto [line, addr] : list) {
+    _list2Addr[line] = addr;
+    _addr2List[addr] = line;
+  }
+}
+
+std::optional<quint32> helpers::AsmHelper::Lines2Addresses::source2Address(int sourceLine) {
+  if (_source2Addr.contains(sourceLine)) return _source2Addr[sourceLine];
+  return std::nullopt;
+}
+
+std::optional<quint32> helpers::AsmHelper::Lines2Addresses::list2Address(int listLine) {
+  if (_list2Addr.contains(listLine)) return _list2Addr[listLine];
+  return std::nullopt;
+}
+
+std::optional<int> helpers::AsmHelper::Lines2Addresses::address2Source(quint32 address) {
+  if (_addr2Source.contains(address)) return _addr2Source[address];
+  return std::nullopt;
+}
+
+std::optional<int> helpers::AsmHelper::Lines2Addresses::address2List(quint32 address) {
+  if (_addr2List.contains(address)) return _addr2List[address];
+  return std::nullopt;
+}
+
+std::optional<int> helpers::AsmHelper::Lines2Addresses::source2List(int source) {
+  auto addr = source2Address(source);
+  if (!addr) return std::nullopt;
+  return address2List(*addr);
+}
+
+std::optional<int> helpers::AsmHelper::Lines2Addresses::list2Source(int list) {
+  auto addr = list2Address(list);
+  if (!addr) return std::nullopt;
+  return source2List(*addr);
 }

@@ -2,6 +2,7 @@
 
 #include <QQmlEngine>
 #include <QStringListModel>
+#include <helpers/asmb.hpp>
 #include <qabstractitemmodel.h>
 #include <targets/pep10/isa3/system.hpp>
 #include "./aproject.hpp"
@@ -172,4 +173,5 @@ protected:
   QString _userAsmText = {}, _osAsmText = {};
   QString _userList = {}, _osList = {};
   QList<QPair<int, QString>> _errors = {}, _userListAnnotations = {}, _osListAnnotations = {};
+  helpers::AsmHelper::Lines2Addresses _userLines2Address = {}, _osLines2Address = {};
 };
