@@ -150,22 +150,24 @@ public:
 public slots:
   bool onAssemble(bool doLoad = false);
   bool onAssembleThenFormat();
-  void onModifyUserSourceBP(int line, Action action = Action::Toggle);
-  void onModifyOSSourceBP(int line, Action action = Action::Toggle);
-  void onModifyUserListBP(int line, Action action = Action::Toggle);
-  void onModifyOSListBP(int line, Action action = Action::Toggle);
+  void onModifyUserSourceBP(int line, Action action);
+  void onModifyOSSourceBP(int line, Action action);
+  void onModifyUserListBP(int line, Action action);
+  void onModifyOSListBP(int line, Action action);
 signals:
   void userAsmTextChanged();
   void osAsmTextChanged();
   void listingChanged();
   void errorsChanged();
+  void requestSourceBreakpoints();
+  void clearListingBreakpoints();
 
   void updateGUI(sim::api2::trace::FrameIterator from);
   void message(QString message);
-  void modifyUserSourceBP(int line, Action action = Action::Toggle);
-  void modifyOSSourceBP(int line, Action action = Action::Toggle);
-  void modifyUserListBP(int line, Action action = Action::Toggle);
-  void modifyOSListBP(int line, Action action = Action::Toggle);
+  void modifyUserSourceBP(int line, Action action);
+  void modifyOSSourceBP(int line, Action action);
+  void modifyUserListBP(int line, Action action);
+  void modifyOSListBP(int line, Action action);
 
 protected:
   void prepareSim() override;
@@ -174,4 +176,6 @@ protected:
   QString _userList = {}, _osList = {};
   QList<QPair<int, QString>> _errors = {}, _userListAnnotations = {}, _osListAnnotations = {};
   helpers::AsmHelper::Lines2Addresses _userLines2Address = {}, _osLines2Address = {};
+  void updateBPAtAddress(quint32 address, Action action);
+  QSet<quint32> _breakpoints = {};
 };

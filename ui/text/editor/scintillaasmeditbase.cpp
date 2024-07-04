@@ -40,21 +40,34 @@ void ScintillaAsmEditBase::onMarginClicked(Scintilla::Position position, Scintil
     // Get line number from position
     int line = send(SCI_LINEFROMPOSITION, position, 0);
     int markers = send(SCI_MARKERGET, line);
-    emit modifyBP(line, markers & (1 << SC_MARK_CIRCLE) ? Action::Remove : Action::Toggle);
+    emit modifyBP(line, markers & (1 << SC_MARK_CIRCLE) ? Action::Remove : Action::Add);
   }
 }
 
 void ScintillaAsmEditBase::onModifyBP(int line, Action action) {
   int markers = send(SCI_MARKERGET, line);
   unsigned int msg = SCI_MARKERDELETE;
+  auto exists = markers & (1 << SC_MARK_CIRCLE);
   switch (action) {
   // Toggle marker on the line
-  case Action::Toggle: msg = markers & (1 << SC_MARK_CIRCLE) ? SCI_MARKERDELETE : SCI_MARKERADD; break;
-  case Action::Add: msg = SCI_MARKERADD; break;
+  case Action::Toggle: msg = exists ? SCI_MARKERDELETE : SCI_MARKERADD; break;
+  case Action::Add:
+    if (exists) return;
+    msg = SCI_MARKERADD;
+    break;
   case Action::Remove: msg = SCI_MARKERDELETE; break;
   default: break;
   }
   send(msg, line, SC_MARK_CIRCLE);
+}
+
+void ScintillaAsmEditBase::onClearAllBreakpoints() { send(SCI_MARKERDELETEALL); }
+
+void ScintillaAsmEditBase::onRequestAllBreakpoints() {
+  int totalLines = send(SCI_GETLINECOUNT);
+
+  for (int line = 0; line < totalLines; ++line)
+    if (send(SCI_MARKERGET, line) & (1 << SC_MARK_CIRCLE)) modifyBP(line, Action::Add);
 }
 
 /* // I actually think this is a bad idea, but keeping code for reference.

@@ -27,6 +27,14 @@ Item {
         project.modifyOSSourceBP.connect(osAsmEdit.editor.onModifyBP)
         project.modifyUserListBP.connect(userList.editor.onModifyBP)
         project.modifyOSListBP.connect(osList.editor.onModifyBP)
+        project.clearListingBreakpoints.connect(
+                    userList.editor.onClearAllBreakpoints)
+        project.clearListingBreakpoints.connect(
+                    osList.editor.onClearAllBreakpoints)
+        project.requestSourceBreakpoints.connect(
+                    userAsmEdit.editor.onRequestAllBreakpoints)
+        project.requestSourceBreakpoints.connect(
+                    osAsmEdit.editor.onRequestAllBreakpoints)
         if (project)
             fixListings()
     }
@@ -44,6 +52,14 @@ Item {
         project.modifyOSSourceBP.disconnect(osAsmEdit.editor.onModifyBP)
         project.modifyUserListBP.disconnect(userList.editor.onModifyBP)
         project.modifyOSListBP.disconnect(osList.editor.onModifyBP)
+        project.clearListingBreakpoints.disconnect(
+                    userList.editor.onClearAllBreakpoints)
+        project.clearListingBreakpoints.disconnect(
+                    osList.editor.onClearAllBreakpoints)
+        project.requestSourceBreakpoints.disconnect(
+                    userAsmEdit.editor.onRequestAllBreakpoints)
+        project.requestSourceBreakpoints.disconnect(
+                    osAsmEdit.editor.onRequestAllBreakpoints)
     }
     function displayErrors() {
         userAsmEdit.addEOLAnnotations(project.assemblerErrors)

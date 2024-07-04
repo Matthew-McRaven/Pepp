@@ -25,7 +25,9 @@ public slots:
   void addInlineAnnotation(int line, const QString &annotation);
   // Breakpoints & folding
   void onMarginClicked(Scintilla::Position position, Scintilla::KeyMod modifiers, int margin);
-  void onModifyBP(int line, Action action = Action::Toggle);
+  void onModifyBP(int line, Action action);
+  void onClearAllBreakpoints();
+  void onRequestAllBreakpoints();
   void applyStyles();
 signals:
   void lexerLanguageChanged();

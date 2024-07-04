@@ -535,6 +535,7 @@ bool Pep10_ASMB::onAssemble(bool doLoad) {
   _errors = helper.errorsWithLines();
   _userLines2Address = helper.address2Lines(false);
   _osLines2Address = helper.address2Lines(true);
+  emit clearListingBreakpoints();
   emit errorsChanged();
   if (!ret) {
     message(utils::msg_asm_failed);
@@ -560,6 +561,7 @@ bool Pep10_ASMB::onAssemble(bool doLoad) {
     _memory->onRepaintAddress(0, userBytes.length());
   }
   setObjectCodeText(objectCodeText);
+  emit requestSourceBreakpoints();
   return true;
 }
 
@@ -573,6 +575,7 @@ bool Pep10_ASMB::onAssembleThenFormat() {
   _errors = helper.errorsWithLines();
   _userLines2Address = helper.address2Lines(false);
   _osLines2Address = helper.address2Lines(false);
+  emit clearListingBreakpoints();
   emit errorsChanged();
   if (!ret) {
     message(utils::msg_asm_failed);
@@ -584,6 +587,7 @@ bool Pep10_ASMB::onAssembleThenFormat() {
     QString objectCodeText = pas::ops::pepp::bytesToObject(userBytes, 16);
     setObjectCodeText(objectCodeText);
   }
+  emit requestSourceBreakpoints();
   auto user = helper.splitListing(false);
   _userList = std::accumulate(user.begin(), user.end(), QString(), to_string);
   for (auto it = 0; it < user.size(); it++)
@@ -597,21 +601,25 @@ bool Pep10_ASMB::onAssembleThenFormat() {
 }
 
 void Pep10_ASMB::onModifyUserSourceBP(int line, Action action) {
+  if (auto address = _userLines2Address.source2Address(line); address) updateBPAtAddress(*address, action);
   emit modifyUserSourceBP(line, action);
   if (auto list = _userLines2Address.source2List(line); list) emit modifyUserListBP(*list, action);
 }
 
 void Pep10_ASMB::onModifyOSSourceBP(int line, Action action) {
+  if (auto address = _osLines2Address.source2Address(line); address) updateBPAtAddress(*address, action);
   emit modifyOSSourceBP(line, action);
   if (auto list = _osLines2Address.source2List(line); list) emit modifyOSListBP(*list, action);
 }
 
 void Pep10_ASMB::onModifyUserListBP(int line, Action action) {
+  if (auto address = _userLines2Address.list2Address(line); address) updateBPAtAddress(*address, action);
   emit modifyUserListBP(line, action);
   if (auto src = _userLines2Address.list2Source(line); src) emit modifyUserSourceBP(*src, action);
 }
 
 void Pep10_ASMB::onModifyOSListBP(int line, Action action) {
+  if (auto address = _osLines2Address.list2Address(line); address) updateBPAtAddress(*address, action);
   emit modifyOSListBP(line, action);
   if (auto src = _osLines2Address.list2Source(line); src) emit modifyOSSourceBP(*src, action);
 }
@@ -633,5 +641,16 @@ void Pep10_ASMB::prepareSim() {
 }
 
 void Pep10_ASMB::prepareGUIUpdate(sim::api2::trace::FrameIterator from) { Pep10_ISA::prepareGUIUpdate(from); }
+
+void Pep10_ASMB::updateBPAtAddress(quint32 address, Action action) {
+  switch (action) {
+  case ScintillaAsmEditBase::Action::Toggle:
+    if (_breakpoints.contains(address)) _breakpoints.remove(address);
+    else _breakpoints.insert(address);
+    break;
+  case ScintillaAsmEditBase::Action::Add: _breakpoints.insert(address); break;
+  case ScintillaAsmEditBase::Action::Remove: _breakpoints.remove(address); break;
+  }
+}
 
 Error::Error(int line, QString error, QObject *parent) : QObject(parent), line(line), error(error) {}
