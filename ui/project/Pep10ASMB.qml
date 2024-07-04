@@ -19,6 +19,22 @@ Item {
         project.errorsChanged.connect(displayErrors)
         project.listingChanged.connect(fixListings)
         onProjectChanged.connect(fixListings)
+        userAsmEdit.editor.modifyLine.connect(project.onModifyUserSource)
+        osAsmEdit.editor.modifyLine.connect(project.onModifyOSSource)
+        userList.editor.modifyLine.connect(project.onModifyUserList)
+        osList.editor.modifyLine.connect(project.onModifyOSList)
+        project.modifyUserSource.connect(userAsmEdit.editor.onLineAction)
+        project.modifyOSSource.connect(osAsmEdit.editor.onLineAction)
+        project.modifyUserList.connect(userList.editor.onLineAction)
+        project.modifyOSList.connect(osList.editor.onLineAction)
+        project.clearListingBreakpoints.connect(
+                    userList.editor.onClearAllBreakpoints)
+        project.clearListingBreakpoints.connect(
+                    osList.editor.onClearAllBreakpoints)
+        project.requestSourceBreakpoints.connect(
+                    userAsmEdit.editor.onRequestAllBreakpoints)
+        project.requestSourceBreakpoints.connect(
+                    osAsmEdit.editor.onRequestAllBreakpoints)
         if (project)
             fixListings()
     }
@@ -28,6 +44,22 @@ Item {
         project.errorsChanged.disconnect(displayErrors)
         project.listingChanged.connect(fixListings)
         onProjectChanged.disconnect(fixListings)
+        userAsmEdit.editor.modifyLine.disconnect(project.onModifyUserSource)
+        osAsmEdit.editor.modifyLine.disconnect(project.onModifyOSSource)
+        userList.editor.modifyLine.disconnect(project.onModifyUserList)
+        osList.editor.modifyLine.disconnect(project.onModifyOSList)
+        project.modifyUserSource.disconnect(userAsmEdit.editor.onLineAction)
+        project.modifyOSSource.disconnect(osAsmEdit.editor.onLineAction)
+        project.modifyUserList.disconnect(userList.editor.onLineAction)
+        project.modifyOSList.disconnect(osList.editor.onLineAction)
+        project.clearListingBreakpoints.disconnect(
+                    userList.editor.onClearAllBreakpoints)
+        project.clearListingBreakpoints.disconnect(
+                    osList.editor.onClearAllBreakpoints)
+        project.requestSourceBreakpoints.disconnect(
+                    userAsmEdit.editor.onRequestAllBreakpoints)
+        project.requestSourceBreakpoints.disconnect(
+                    osAsmEdit.editor.onRequestAllBreakpoints)
     }
     function displayErrors() {
         userAsmEdit.addEOLAnnotations(project.assemblerErrors)

@@ -67,6 +67,12 @@ pas::driver::pep10::Stage pas::driver::pep10::TransformAssignAddresses::toStage(
 bool pas::driver::pep10::TransformWholeProgramSanity::operator()(QSharedPointer<Globals>,
                                                                  QSharedPointer<pas::driver::Target<Stage>> target) {
   auto root = target->bodies[repr::Nodes::name].value<repr::Nodes>().value;
+  int it = 0;
+  auto sections = pas::ast::children(*root);
+  for (auto &section : sections) {
+    auto children = pas::ast::children(*section);
+    for (auto &child : children) child->set(ast::generic::ListingLocation{it++});
+  }
   // TODO: tie class variable to OS features.
   return pas::ops::pepp::checkWholeProgramSanity<isa::Pep10>(
       *root, {.allowOSFeatures = isOS, .ignoreUndefinedSymbols = ignoreUndefinedSymbols});

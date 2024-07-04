@@ -35,17 +35,38 @@ void ScintillaAsmEditBase::onMarginClicked(Scintilla::Position position, Scintil
   if (margin == 2) {
     int line = send(SCI_LINEFROMPOSITION, position);
     int level = send(SCI_GETFOLDLEVEL, line);
-
     if (level & SC_FOLDLEVELHEADERFLAG) send(SCI_TOGGLEFOLD, line);
   } else { // Otherwise treat as BP modification.
     // Get line number from position
     int line = send(SCI_LINEFROMPOSITION, position, 0);
-
-    // Toggle marker on the line
     int markers = send(SCI_MARKERGET, line);
-    auto msg = markers & (1 << SC_MARK_CIRCLE) ? SCI_MARKERDELETE : SCI_MARKERADD;
-    send(msg, line, SC_MARK_CIRCLE);
+    emit modifyLine(line, markers & (1 << SC_MARK_CIRCLE) ? Action::RemoveBP : Action::AddBP);
   }
+}
+
+void ScintillaAsmEditBase::onLineAction(int line, Action action) {
+  int markers = send(SCI_MARKERGET, line);
+  auto exists = markers & (1 << SC_MARK_CIRCLE);
+  switch (action) {
+  // Toggle marker on the line
+  case Action::ToggleBP: send(exists ? SCI_MARKERDELETE : SCI_MARKERADD, line, SC_MARK_CIRCLE); break;
+  case Action::AddBP:
+    if (exists) return;
+    send(SCI_MARKERADD, line, SC_MARK_CIRCLE);
+    break;
+  case Action::RemoveBP: send(SCI_MARKERDELETE, line, SC_MARK_CIRCLE); break;
+  case Action::ScrollTo: send(SCI_GOTOLINE, line); break;
+  default: break;
+  }
+}
+
+void ScintillaAsmEditBase::onClearAllBreakpoints() { send(SCI_MARKERDELETEALL); }
+
+void ScintillaAsmEditBase::onRequestAllBreakpoints() {
+  int totalLines = send(SCI_GETLINECOUNT);
+
+  for (int line = 0; line < totalLines; ++line)
+    if (send(SCI_MARKERGET, line) & (1 << SC_MARK_CIRCLE)) modifyLine(line, Action::AddBP);
 }
 
 /* // I actually think this is a bad idea, but keeping code for reference.
@@ -172,6 +193,8 @@ void ScintillaAsmEditBase::applyStyles() {
   send(SCI_STYLESETBACK, SCE_PEPASM_MACRO_END, alphaBlend(_theme->comment()->background(), baseBack));
   send(SCI_STYLESETFORE, commentStyle, c2i(_theme->comment()->foreground()));
   send(SCI_STYLESETBACK, commentStyle, alphaBlend(_theme->comment()->background(), baseBack));
+  send(SCI_STYLESETFORE, SCE_PEPASM_COMMENT_LINE, c2i(_theme->comment()->foreground()));
+  send(SCI_STYLESETBACK, SCE_PEPASM_COMMENT_LINE, alphaBlend(_theme->comment()->background(), baseBack));
   send(SCI_STYLESETFORE, errorStyle, c2i(_theme->error()->foreground()));
   send(SCI_STYLESETBACK, errorStyle, alphaBlend(_theme->error()->background(), baseBack));
   send(SCI_MARKERSETFORE, SC_MARK_CIRCLE, c2i(_theme->error()->background()));

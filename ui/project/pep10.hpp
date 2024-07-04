@@ -2,12 +2,14 @@
 
 #include <QQmlEngine>
 #include <QStringListModel>
+#include <helpers/asmb.hpp>
 #include <qabstractitemmodel.h>
 #include <targets/pep10/isa3/system.hpp>
 #include "./aproject.hpp"
 #include "cpu/registermodel.hpp"
 #include "cpu/statusbitmodel.hpp"
 #include "memory/hexdump/rawmemory.hpp"
+#include "text/editor/scintillaasmeditbase.hpp"
 #include "utils/constants.hpp"
 #include "utils/opcodemodel.hpp"
 
@@ -126,6 +128,7 @@ class Pep10_ASMB final : public Pep10_ISA {
   Q_PROPERTY(QString osList READ osList NOTIFY listingChanged);
   Q_PROPERTY(QList<Error *> osListAnnotations READ osListAnnotations NOTIFY listingChanged);
   Q_PROPERTY(QList<Error *> assemblerErrors READ errors NOTIFY errorsChanged)
+  using Action = ScintillaAsmEditBase::Action;
 
 public:
   explicit Pep10_ASMB(QVariant delegate, QObject *parent = nullptr);
@@ -147,19 +150,33 @@ public:
 public slots:
   bool onAssemble(bool doLoad = false);
   bool onAssembleThenFormat();
+  void onModifyUserSource(int line, Action action);
+  void onModifyOSSource(int line, Action action);
+  void onModifyUserList(int line, Action action);
+  void onModifyOSList(int line, Action action);
 signals:
   void userAsmTextChanged();
   void osAsmTextChanged();
   void listingChanged();
   void errorsChanged();
+  void requestSourceBreakpoints();
+  void clearListingBreakpoints();
 
   void updateGUI(sim::api2::trace::FrameIterator from);
   void message(QString message);
+  void modifyUserSource(int line, Action action);
+  void modifyOSSource(int line, Action action);
+  void modifyUserList(int line, Action action);
+  void modifyOSList(int line, Action action);
 
 protected:
   void prepareSim() override;
   void prepareGUIUpdate(sim::api2::trace::FrameIterator from) override;
+  void updatePCLine();
   QString _userAsmText = {}, _osAsmText = {};
   QString _userList = {}, _osList = {};
   QList<QPair<int, QString>> _errors = {}, _userListAnnotations = {}, _osListAnnotations = {};
+  helpers::AsmHelper::Lines2Addresses _userLines2Address = {}, _osLines2Address = {};
+  void updateBPAtAddress(quint32 address, Action action);
+  QSet<quint32> _breakpoints = {};
 };
