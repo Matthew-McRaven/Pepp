@@ -138,7 +138,9 @@ void SCI_METHOD LexerPepAsm::Lex(Sci_PositionU startPos, Sci_Position length, in
 
   const char commentCharacter = ';';
   static const auto macroStart = QRegularExpression(R"(^\s*;\s*@\w+)");
-  static const auto macroEnd = QRegularExpression(R"(^\s*;End @\w+)");
+  static const auto macroEnd =
+      QRegularExpression(R"(^\s*;\s*End\s*@\w+)", QRegularExpression::PatternOption::CaseInsensitiveOption);
+  // Up to, but not including the current character, has only been white space.
   bool onlyWhiteSpace = true;
   StyleContext sc(startPos, length, initStyle, styler);
 
