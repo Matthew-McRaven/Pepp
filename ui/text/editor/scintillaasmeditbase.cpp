@@ -181,6 +181,8 @@ void ScintillaAsmEditBase::applyStyles() {
   send(SCI_STYLESETBACK, SCE_PEPASM_MACRO_END, alphaBlend(_theme->comment()->background(), baseBack));
   send(SCI_STYLESETFORE, commentStyle, c2i(_theme->comment()->foreground()));
   send(SCI_STYLESETBACK, commentStyle, alphaBlend(_theme->comment()->background(), baseBack));
+  send(SCI_STYLESETFORE, SCE_PEPASM_COMMENT_LINE, c2i(_theme->comment()->foreground()));
+  send(SCI_STYLESETBACK, SCE_PEPASM_COMMENT_LINE, alphaBlend(_theme->comment()->background(), baseBack));
   send(SCI_STYLESETFORE, errorStyle, c2i(_theme->error()->foreground()));
   send(SCI_STYLESETBACK, errorStyle, alphaBlend(_theme->error()->background(), baseBack));
   send(SCI_MARKERSETFORE, SC_MARK_CIRCLE, c2i(_theme->error()->background()));
