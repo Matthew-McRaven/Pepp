@@ -11,7 +11,7 @@ class TEXT_EXPORT ScintillaAsmEditBase : public ScintillaEditBase {
       bool lineNumbersVisible READ lineNumbersVisible WRITE setLineNumbersVisible NOTIFY lineNumbersVisibleChanged);
 
 public:
-  enum class Action { Toggle, Add, Remove };
+  enum class Action { ToggleBP, AddBP, RemoveBP, ScrollTo };
   Q_ENUM(Action);
   ScintillaAsmEditBase(QQuickItem *parent = 0);
 public slots:
@@ -25,7 +25,7 @@ public slots:
   void addInlineAnnotation(int line, const QString &annotation);
   // Breakpoints & folding
   void onMarginClicked(Scintilla::Position position, Scintilla::KeyMod modifiers, int margin);
-  void onModifyBP(int line, Action action);
+  void onLineAction(int line, Action action);
   void onClearAllBreakpoints();
   void onRequestAllBreakpoints();
   void applyStyles();
@@ -33,7 +33,7 @@ signals:
   void lexerLanguageChanged();
   void themeChanged();
   void lineNumbersVisibleChanged();
-  void modifyBP(int line, Action action);
+  void modifyLine(int line, Action action);
 
 private:
   const int errorStyle = STYLE_LASTPREDEFINED + 1;

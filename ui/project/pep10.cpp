@@ -600,28 +600,32 @@ bool Pep10_ASMB::onAssembleThenFormat() {
   return true;
 }
 
-void Pep10_ASMB::onModifyUserSourceBP(int line, Action action) {
-  if (auto address = _userLines2Address.source2Address(line); address) updateBPAtAddress(*address, action);
-  emit modifyUserSourceBP(line, action);
-  if (auto list = _userLines2Address.source2List(line); list) emit modifyUserListBP(*list, action);
+void Pep10_ASMB::onModifyUserSource(int line, Action action) {
+  if (auto address = _userLines2Address.source2Address(line); address && action != Action::ScrollTo)
+    updateBPAtAddress(*address, action);
+  emit modifyUserSource(line, action);
+  if (auto list = _userLines2Address.source2List(line); list) emit modifyUserList(*list, action);
 }
 
-void Pep10_ASMB::onModifyOSSourceBP(int line, Action action) {
-  if (auto address = _osLines2Address.source2Address(line); address) updateBPAtAddress(*address, action);
-  emit modifyOSSourceBP(line, action);
-  if (auto list = _osLines2Address.source2List(line); list) emit modifyOSListBP(*list, action);
+void Pep10_ASMB::onModifyOSSource(int line, Action action) {
+  if (auto address = _osLines2Address.source2Address(line); address && action != Action::ScrollTo)
+    updateBPAtAddress(*address, action);
+  emit modifyOSSource(line, action);
+  if (auto list = _osLines2Address.source2List(line); list) emit modifyOSList(*list, action);
 }
 
-void Pep10_ASMB::onModifyUserListBP(int line, Action action) {
-  if (auto address = _userLines2Address.list2Address(line); address) updateBPAtAddress(*address, action);
-  emit modifyUserListBP(line, action);
-  if (auto src = _userLines2Address.list2Source(line); src) emit modifyUserSourceBP(*src, action);
+void Pep10_ASMB::onModifyUserList(int line, Action action) {
+  if (auto address = _userLines2Address.list2Address(line); address && action != Action::ScrollTo)
+    updateBPAtAddress(*address, action);
+  emit modifyUserList(line, action);
+  if (auto src = _userLines2Address.list2Source(line); src) emit modifyUserSource(*src, action);
 }
 
-void Pep10_ASMB::onModifyOSListBP(int line, Action action) {
-  if (auto address = _osLines2Address.list2Address(line); address) updateBPAtAddress(*address, action);
-  emit modifyOSListBP(line, action);
-  if (auto src = _osLines2Address.list2Source(line); src) emit modifyOSSourceBP(*src, action);
+void Pep10_ASMB::onModifyOSList(int line, Action action) {
+  if (auto address = _osLines2Address.list2Address(line); address && action != Action::ScrollTo)
+    updateBPAtAddress(*address, action);
+  emit modifyOSList(line, action);
+  if (auto src = _osLines2Address.list2Source(line); src) emit modifyOSSource(*src, action);
 }
 
 void Pep10_ASMB::prepareSim() {
@@ -640,16 +644,28 @@ void Pep10_ASMB::prepareSim() {
   for (int it = 0; it < _charIn.size(); it++) charInEndpoint->append_value(_charIn[it].toLatin1());
 }
 
-void Pep10_ASMB::prepareGUIUpdate(sim::api2::trace::FrameIterator from) { Pep10_ISA::prepareGUIUpdate(from); }
+void Pep10_ASMB::prepareGUIUpdate(sim::api2::trace::FrameIterator from) {
+  updatePCLine();
+  Pep10_ISA::prepareGUIUpdate(from);
+}
+
+void Pep10_ASMB::updatePCLine() {
+  auto pc = _system->cpu()->startingPC();
+  if (auto userSrc = _userLines2Address.address2List(pc); userSrc) emit modifyUserSource(*userSrc, Action::ScrollTo);
+  if (auto userList = _userLines2Address.address2List(pc); userList) emit modifyUserSource(*userList, Action::ScrollTo);
+  if (auto osSrc = _userLines2Address.address2List(pc); osSrc) emit modifyUserSource(*osSrc, Action::ScrollTo);
+  if (auto osList = _userLines2Address.address2List(pc); osList) emit modifyUserSource(*osList, Action::ScrollTo);
+}
 
 void Pep10_ASMB::updateBPAtAddress(quint32 address, Action action) {
   switch (action) {
-  case ScintillaAsmEditBase::Action::Toggle:
+  case ScintillaAsmEditBase::Action::ToggleBP:
     if (_breakpoints.contains(address)) _breakpoints.remove(address);
     else _breakpoints.insert(address);
     break;
-  case ScintillaAsmEditBase::Action::Add: _breakpoints.insert(address); break;
-  case ScintillaAsmEditBase::Action::Remove: _breakpoints.remove(address); break;
+  case ScintillaAsmEditBase::Action::AddBP: _breakpoints.insert(address); break;
+  case ScintillaAsmEditBase::Action::RemoveBP: _breakpoints.remove(address); break;
+  default: break;
   }
 }
 

@@ -150,10 +150,10 @@ public:
 public slots:
   bool onAssemble(bool doLoad = false);
   bool onAssembleThenFormat();
-  void onModifyUserSourceBP(int line, Action action);
-  void onModifyOSSourceBP(int line, Action action);
-  void onModifyUserListBP(int line, Action action);
-  void onModifyOSListBP(int line, Action action);
+  void onModifyUserSource(int line, Action action);
+  void onModifyOSSource(int line, Action action);
+  void onModifyUserList(int line, Action action);
+  void onModifyOSList(int line, Action action);
 signals:
   void userAsmTextChanged();
   void osAsmTextChanged();
@@ -164,14 +164,15 @@ signals:
 
   void updateGUI(sim::api2::trace::FrameIterator from);
   void message(QString message);
-  void modifyUserSourceBP(int line, Action action);
-  void modifyOSSourceBP(int line, Action action);
-  void modifyUserListBP(int line, Action action);
-  void modifyOSListBP(int line, Action action);
+  void modifyUserSource(int line, Action action);
+  void modifyOSSource(int line, Action action);
+  void modifyUserList(int line, Action action);
+  void modifyOSList(int line, Action action);
 
 protected:
   void prepareSim() override;
   void prepareGUIUpdate(sim::api2::trace::FrameIterator from) override;
+  void updatePCLine();
   QString _userAsmText = {}, _osAsmText = {};
   QString _userList = {}, _osList = {};
   QList<QPair<int, QString>> _errors = {}, _userListAnnotations = {}, _osListAnnotations = {};
