@@ -147,7 +147,6 @@ void SCI_METHOD LexerPepAsm::Lex(Sci_PositionU startPos, Sci_Position length, in
   char s[256];
   while (sc.More()) {
     if (sc.atLineStart) onlyWhiteSpace = true;
-    onlyWhiteSpace &= IsASpace(sc.ch);
     // Actions + transition table.
     switch (sc.state) {
     case SCE_PEPASM_IDENTIFIER:
@@ -178,7 +177,7 @@ void SCI_METHOD LexerPepAsm::Lex(Sci_PositionU startPos, Sci_Position length, in
     case SCE_PEPASM_DEFAULT:
       if (options.allowMacros && sc.ch == '@') sc.SetState(SCE_PEPASM_MACRO);
       else if (sc.ch == ';' && !onlyWhiteSpace) sc.SetState(SCE_PEPASM_COMMENT);
-      else if (sc.ch == ';' && onlyWhiteSpace) sc.ChangeState(SCE_PEPASM_COMMENT);
+      else if (sc.ch == ';' && onlyWhiteSpace) sc.SetState(SCE_PEPASM_COMMENT_LINE);
       else if (sc.ch == '\'') sc.SetState(SCE_PEPASM_CHARACTER);
       else if (sc.ch == '"') sc.SetState(SCE_PEPASM_STRING);
       else if (sc.ch == '.') sc.SetState(SCE_PEPASM_DIRECTIVE);
@@ -192,6 +191,7 @@ void SCI_METHOD LexerPepAsm::Lex(Sci_PositionU startPos, Sci_Position length, in
     case SCE_PEPASM_STRING:
       if (sc.ch == '"' && sc.chPrev != '\\') sc.ForwardSetState(SCE_PEPASM_DEFAULT);
       else if (sc.atLineEnd) sc.SetState(SCE_PEPASM_DEFAULT);
+    case SCE_PEPASM_COMMENT_LINE: [[fallthrough]];
     case SCE_PEPASM_COMMENT:
       if (sc.atLineEnd) {
         sc.GetCurrentLowered(s, sizeof(s));
@@ -203,6 +203,8 @@ void SCI_METHOD LexerPepAsm::Lex(Sci_PositionU startPos, Sci_Position length, in
       break;
     default: break;
     }
+    // Evaluate after loop so that "    ;" evaluates
+    onlyWhiteSpace &= IsASpace(sc.ch);
     sc.Forward();
   }
   sc.Complete();
@@ -240,9 +242,9 @@ void SCI_METHOD LexerPepAsm::Fold(Sci_PositionU startPos, Sci_Position length, i
     bool atSOL = (styler.SafeGetCharAt(i - 1) == '\n');
     if (style == SCE_PEPASM_MACRO_START && stylePrev != SCE_PEPASM_MACRO_START) levelNext++;
     else if (style == SCE_PEPASM_MACRO_END && styleNext != SCE_PEPASM_MACRO_END) levelNext--;
-    else if (options.foldCommentMultiline && style == SCE_PEPASM_COMMENT) {
-      if (stylePrev != SCE_PEPASM_COMMENT) levelNext++;
-      else if (atEOL && styleNext != SCE_PEPASM_COMMENT) levelNext--;
+    else if (options.foldCommentMultiline && style == SCE_PEPASM_COMMENT_LINE) {
+      if (stylePrev != SCE_PEPASM_COMMENT_LINE) levelNext++;
+      else if (atEOL && styleNext != SCE_PEPASM_COMMENT_LINE) levelNext--;
     }
 
     if (!IsASpace(ch)) visibleChars++;
