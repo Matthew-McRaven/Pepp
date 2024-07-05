@@ -27,8 +27,6 @@ public:
   InfiniteBuffer();
   // Buffer interface
   bool trace(quint16 deviceID, bool enabled) override;
-  bool registerSink(api2::trace::Sink *) override;
-  void unregisterSink(api2::trace::Sink *) override;
   bool writeFragment(const api2::trace::Fragment &) override;
   bool updateFrameHeader() override;
   void dropLast() override;

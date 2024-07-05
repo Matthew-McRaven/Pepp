@@ -45,9 +45,6 @@ public:
   virtual ~Buffer() = default;
   virtual bool trace(device::ID deviceID, bool enabled = true) = 0;
 
-  virtual bool registerSink(Sink *) = 0;
-  virtual void unregisterSink(Sink *) = 0;
-
   // Must implicitly call updateFrameHeader to fix back links / lengths.
   virtual bool writeFragment(const api2::trace::Fragment &) = 0;
   template <packet::HasPath T> bool writeFragmentWithPath(T &&t) {

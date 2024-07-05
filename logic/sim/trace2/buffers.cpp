@@ -12,14 +12,6 @@ bool sim::trace2::InfiniteBuffer::trace(sim::api2::device::ID deviceID, bool ena
   return true;
 }
 
-bool sim::trace2::InfiniteBuffer::registerSink(api2::trace::Sink *sink) {
-  if (_sinks.contains(sink)) return false;
-  _sinks.insert(sink);
-  return true;
-}
-
-void sim::trace2::InfiniteBuffer::unregisterSink(api2::trace::Sink *sink) { _sinks.remove(sink); }
-
 bool sim::trace2::InfiniteBuffer::writeFragment(const sim::api2::trace::Fragment &fragment) {
   if (auto hdr = std::visit(sim::trace2::AsFrameHeader{}, fragment); hdr.index() != 0) {
     // Both will point to same position when header is first element to be serialized.
