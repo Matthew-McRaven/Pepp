@@ -74,6 +74,8 @@ public slots:
   bool onClearCPU();
   bool onClearMemory();
 
+  void onDeferredExecution(sim::api2::trace::Action stopOn);
+
 signals:
   void objectCodeTextChanged();
   void delegateChanged();
@@ -84,9 +86,11 @@ signals:
   void charOutChanged();
 
   void updateGUI(sim::api2::trace::FrameIterator from);
+  void deferredExecution(sim::api2::trace::Action stopOn);
 
 protected:
   void bindToSystem();
+  bool pendingPause = false;
   enum class State {
     Halted,
     NormalExec,
