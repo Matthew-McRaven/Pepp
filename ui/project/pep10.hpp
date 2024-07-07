@@ -178,5 +178,5 @@ protected:
   QList<QPair<int, QString>> _errors = {}, _userListAnnotations = {}, _osListAnnotations = {};
   helpers::AsmHelper::Lines2Addresses _userLines2Address = {}, _osLines2Address = {};
   void updateBPAtAddress(quint32 address, Action action);
-  QSet<quint32> _breakpoints = {};
+  sim::api2::trace::ValueFilter<quint8> *_breakpoints = nullptr;
 };

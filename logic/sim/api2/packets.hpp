@@ -108,10 +108,14 @@ template <size_t N> struct VariableBytes {
   std::array<quint8, N> bytes = {0};
 
   // Used to allow membership in std::set.
-  auto operator<=>(const VariableBytes &other) const {
+  auto operator<=>(const VariableBytes<N> &other) const {
     if (len != other.len) return len <=> other.len;
-    return bytes <=> other.bytes;
+    if (auto res = memcmp(bytes.data(), other.bytes.data(), len); res < 0) return std::strong_ordering::less;
+    else if (res > 0) return std::strong_ordering::greater;
+    else return std::strong_ordering::equal;
   }
+  // Equality operator
+  bool operator==(const VariableBytes<N> &other) const = default;
 };
 
 using device_id_t = zpp::bits::varint<quint16>;

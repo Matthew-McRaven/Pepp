@@ -8,6 +8,7 @@
 #include "help/builtins/figure.hpp"
 #include "helpers/asmb.hpp"
 #include "isa/pep10.hpp"
+#include "sim/api2/trace/buffer.hpp"
 #include "sim/device/broadcast/mmi.hpp"
 #include "sim/device/broadcast/mmo.hpp"
 #include "sim/device/broadcast/pubsub.hpp"
@@ -326,8 +327,10 @@ bool Pep10_ISA::onExecute() {
   _system->bus()->trace(true);
   // Step for a small number of instructions or until we write to pwrOff.
   try {
-    while (_system->currentTick() < 800 && !endpoint->next_value().has_value())
+    while (_system->currentTick() < 16'000 && !endpoint->next_value().has_value()) {
+      _tb->clearEvents();
       _system->tick(sim::api2::Scheduler::Mode::Jump);
+    }
   } catch (const sim::api2::memory::Error &e) {
     if (e.type() == sim::api2::memory::Error::Type::NeedsMMI) {
       noMMI = true;
@@ -358,8 +361,14 @@ bool Pep10_ISA::onDebuggingContinue() {
   auto from = _tb->cend();
   bool err = false;
   try {
-    while (_system->currentTick() < 800 && !endpoint->next_value().has_value())
+    while (_system->currentTick() < 16'000 && !endpoint->next_value().has_value()) {
       _system->tick(sim::api2::Scheduler::Mode::Jump);
+      if (auto events = _tb->events(); events.size() > 0) {
+        _tb->clearEvents();
+        prepareGUIUpdate(from);
+        return true;
+      }
+    }
   } catch (const sim::api2::memory::Error &e) {
     err = true;
     if (e.type() == sim::api2::memory::Error::Type::NeedsMMI) {
@@ -457,6 +466,10 @@ Pep10_ASMB::Pep10_ASMB(QVariant delegate, QObject *parent) : Pep10_ISA(delegate,
   _system = elfsys.system;
   _system->bus()->setBuffer(&*_tb);
   bindToSystem();
+  auto asUnique = std::make_unique<sim::api2::trace::ValueFilter<quint8>>(
+      _system->cpu()->regs(), static_cast<quint8>(isa::Pep10::Register::PC));
+  _breakpoints = asUnique.get();
+  _tb->addFilter(std::move(asUnique));
 }
 
 void Pep10_ASMB::set(int abstraction, QString value) {
@@ -660,11 +673,11 @@ void Pep10_ASMB::updatePCLine() {
 void Pep10_ASMB::updateBPAtAddress(quint32 address, Action action) {
   switch (action) {
   case ScintillaAsmEditBase::Action::ToggleBP:
-    if (_breakpoints.contains(address)) _breakpoints.remove(address);
-    else _breakpoints.insert(address);
+    if (_breakpoints->contains(address)) _breakpoints->remove(address);
+    else _breakpoints->insert(address);
     break;
-  case ScintillaAsmEditBase::Action::AddBP: _breakpoints.insert(address); break;
-  case ScintillaAsmEditBase::Action::RemoveBP: _breakpoints.remove(address); break;
+  case ScintillaAsmEditBase::Action::AddBP: _breakpoints->insert(address); break;
+  case ScintillaAsmEditBase::Action::RemoveBP: _breakpoints->remove(address); break;
   default: break;
   }
 }
