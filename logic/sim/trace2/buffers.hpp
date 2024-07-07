@@ -35,6 +35,11 @@ public:
   FrameIterator cend() const override;
   FrameIterator crbegin() const override;
   FrameIterator crend() const override;
+  quint16 addFilter(std::unique_ptr<api2::trace::Filter>) override;
+  void removeFilter(quint16 id) override;
+  void replaceFilter(quint16 id, std::unique_ptr<api2::trace::Filter>) override;
+  std::span<api2::trace::FilterEvent> events() const override;
+  void clearEvents() override;
 
 private:
   QSet<api2::device::ID> _traced = {};
@@ -42,6 +47,10 @@ private:
   std::size_t _lastFrameStart = 0;
   // Need to be mutable so that IteratorImpl can read from them.
   mutable std::vector<std::byte> _data = {};
+  // Mutable since reads may trigger an event.
+  mutable std::vector<api2::trace::FilterEvent> _events = {};
+  quint16 _nextFilterID = 0;
+  std::vector<std::pair<quint16, std::unique_ptr<api2::trace::Filter>>> _filters = {};
 
   mutable LRU::Cache<std::size_t, std::size_t> _backlinks;
   zpp::bits::in<decltype(_data)> _in;

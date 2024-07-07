@@ -15,6 +15,8 @@
  */
 #pragma once
 #include <QtCore>
+#include <set>
+#include <sim/api2/memory/target.hpp>
 #include <stack>
 #include <zpp_bits.h>
 #include "../device.hpp"
@@ -32,6 +34,39 @@ using namespace sim::api2::packet::payload;
 using Fragment = std::variant<std::monostate, Trace, Extender, Clear, PureRead, ImpureRead, Write, Variable>;
 } // namespace detail
 using Fragment = detail::Fragment;
+enum class Action { Assert, Break, Record, None };
+struct Filter {
+  virtual Action operator()(device::ID, quint32) = 0;
+};
+struct TraceFilter : public Filter {
+  const device::ID target = 0;
+  virtual Action operator()(device::ID dev, quint32) override {
+    return (dev == target) ? Action::Record : Action::None;
+  };
+};
+template <typename T> struct ValueFilter : public Filter {
+  const sim::api2::memory::Target<T> _target;
+  const quint32 _address;
+  const quint8 _valueLength = 2;
+  std::set<packet::VariableBytes<4>> values;
+  virtual Action operator()(device::ID dev, quint32 address) override {
+    static constexpr auto gs = memory::Operation{.type = memory::Operation::Type::BufferInternal, .kind = {}};
+    if (_address != address) return Action::None;
+    auto _value = packet::VariableBytes<4>(_valueLength);
+    auto val = _target.read(address, std::span(_value.bytes.data(), _valueLength), gs);
+    if (values.contains(_value)) return Action::Record;
+    return Action::None;
+  };
+};
+
+struct FilterEvent {
+  device::ID deviceID;
+  Action action;
+  quint32 address;
+};
+template <typename Address>
+  requires(std::is_signed<Address>::is_signed)
+std::function<Action(device::ID, Address)> filter;
 // If you inherit from this, you will likely want to inherit IteratorImpl as
 // well. IteratorImpl allows polymorphic implementation of this class while
 // mantaining a stable ABI for the iterator class.
@@ -43,7 +78,6 @@ using Fragment = detail::Fragment;
 class Buffer {
 public:
   virtual ~Buffer() = default;
-  virtual bool trace(device::ID deviceID, bool enabled = true) = 0;
 
   // Must implicitly call updateFrameHeader to fix back links / lengths.
   virtual bool writeFragment(const api2::trace::Fragment &) = 0;
@@ -67,6 +101,16 @@ public:
   // Paths must be stored on TB and not some other object, since the average target only has access to a TB.
   // Use a PathGuard to manipulate the current path.
   quint16 currentPath() const { return _paths.top(); }
+
+  // Add, remove, or modify filters.
+  virtual bool trace(device::ID deviceID, bool enabled = true) = 0;
+  virtual quint16 addFilter(std::unique_ptr<sim::api2::trace::Filter>) = 0;
+  virtual void removeFilter(quint16 id) = 0;
+  virtual void replaceFilter(quint16 id, std::unique_ptr<sim::api2::trace::Filter>) = 0;
+
+  // Process the events produced by the filters.
+  virtual std::span<sim::api2::trace::FilterEvent> events() const = 0;
+  virtual void clearEvents() = 0;
 
 protected:
   void pushPath(packet::path_t path) { _paths.push(path); }

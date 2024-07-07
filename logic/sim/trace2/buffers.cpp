@@ -83,6 +83,27 @@ sim::trace2::InfiniteBuffer::FrameIterator sim::trace2::InfiniteBuffer::crend() 
   return FrameIterator(this, -1, api2::trace::Direction::Reverse);
 }
 
+quint16 sim::trace2::InfiniteBuffer::addFilter(std::unique_ptr<api2::trace::Filter> f) {
+  auto id = _nextFilterID++;
+  _filters.emplace_back(std::pair{id, std::move(f)});
+  return id;
+}
+
+void sim::trace2::InfiniteBuffer::removeFilter(quint16 id)
+{
+  _filters.erase(std::remove_if(_filters.begin(), _filters.end(), [id](const auto &pair) { return pair.first == id; }),
+                 _filters.end());
+}
+
+void sim::trace2::InfiniteBuffer::replaceFilter(quint16 id, std::unique_ptr<api2::trace::Filter> f) {
+  auto it = std::find_if(_filters.begin(), _filters.end(), [id](const auto &pair) { return pair.first == id; });
+  if (it != _filters.end()) it->second = std::move(f);
+}
+
+std::span<sim::api2::trace::FilterEvent> sim::trace2::InfiniteBuffer::events() const { return _events; }
+
+void sim::trace2::InfiniteBuffer::clearEvents() { _events.clear(); }
+
 std::size_t sim::trace2::InfiniteBuffer::size_at(std::size_t loc, api2::trace::Level level) const {
   typename std::remove_const<decltype(_in)>::type in(_data);
   in.reset(loc);

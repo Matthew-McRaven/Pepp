@@ -46,6 +46,11 @@ struct SimpleBuffer : public sim::api2::trace::Buffer {
   FrameIterator cend() const override { throw std::logic_error("Unimplemented"); }
   FrameIterator crbegin() const override { throw std::logic_error("Unimplemented"); }
   FrameIterator crend() const override { throw std::logic_error("Unimplemented"); }
+  quint16 addFilter(std::unique_ptr<trace::Filter>) override { throw std::logic_error("Unimplemented"); }
+  void removeFilter(quint16 id) override { throw std::logic_error("Unimplemented"); }
+  void replaceFilter(quint16 id, std::unique_ptr<trace::Filter>) override { throw std::logic_error("Unimplemented"); }
+  std::span<trace::FilterEvent> events() const override { throw std::logic_error("Unimplemented"); }
+  void clearEvents() override { throw std::logic_error("Unimplemented"); }
 
   mutable std::vector<std::byte> _data = {};
   zpp::bits::in<decltype(_data)> _in;
