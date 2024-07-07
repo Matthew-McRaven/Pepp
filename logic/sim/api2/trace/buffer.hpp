@@ -47,7 +47,7 @@ struct TraceFilter : public Filter {
 template <typename T> struct ValueFilter : public Filter {
   const sim::api2::memory::Target<T> _target;
   const quint32 _address;
-  const quint8 _valueLength = 2;
+  const quint8 _valueLength = sizeof(T);
   std::set<packet::VariableBytes<4>> values;
   virtual Action operator()(device::ID dev, quint32 address) override {
     static constexpr auto gs = memory::Operation{.type = memory::Operation::Type::BufferInternal, .kind = {}};
@@ -112,7 +112,76 @@ public:
   virtual std::span<sim::api2::trace::FilterEvent> events() const = 0;
   virtual void clearEvents() = 0;
 
+  inline void emitFrameStart() { writeFragment({sim::api2::frame::header::Trace{}}); }
+  template <typename Address>
+  void emitWrite(sim::api2::device::ID id, Address address, bits::span<const quint8> src, bits::span<quint8> dest) {
+    using vb = decltype(api2::packet::header::Write::address);
+    auto address_bytes = vb::from_address<Address>(address);
+    auto header = api2::packet::header::Write{.device = id, .address = address_bytes};
+    // Don't write payloads if the buffer rejected the packet header.
+    if (writeFragmentWithPath(header)) emit_payloads(src, dest);
+  }
+  // Generate a Write packet. Bytes will not be XOR encoded.
+  // A write to a MM port appends to the state of that port.
+  // We do not need to know previous value, since the pub/sub system records it.
+  template <typename Address>
+  void emitMMWrite(sim::api2::device::ID id, Address address, bits::span<const quint8> src) {
+    using vb = decltype(api2::packet::header::Write::address);
+    auto header = api2::packet::header::Write{.device = id, .address = vb::from_address(address)};
+    // Don't write payloads if the buffer rejected the packet header.
+    if (writeFragmentWithPath(header)) emit_payloads(src);
+  }
+  template <typename Address> void emitPureRead(sim::api2::device::ID id, Address address, Address len) {
+    using vb = decltype(api2::packet::header::PureRead::address);
+    auto header =
+        api2::packet::header::PureRead{.device = id, .payload_len = len, .address = vb::from_address(address)};
+    writeFragmentWithPath(header);
+  }
+  // Generate a ImpureRead packet. Bytes will not be XOR encoded.
+  // We do not need to know previous value, since the pub/sub system records it.
+  template <typename Address> void emitMMRead(sim::api2::device::ID id, Address address, bits::span<const quint8> src) {
+    using vb = decltype(api2::packet::header::Write::address);
+    auto header = api2::packet::header::ImpureRead{.device = id, .address = vb::from_address(address)};
+    // Don't write payloads if the buffer rejected the packet header.
+    if (writeFragmentWithPath(header)) emit_payloads(src);
+  }
+
 protected:
+  // Max payload size is a compile time constant, so compute at compile time.
+  using vb = sim::api2::packet::payload::Variable;
+  static constexpr auto payload_max_size = vb::N;
+  inline void emit_payloads(bits::span<const quint8> buf1, bits::span<const quint8> buf2) {
+    auto data_len = std::min(buf1.size(), buf2.size());
+    // Split the data into chunks that are `payload_max_size` bytes long.
+    for (int it = 0; it < data_len;) {
+      auto payload_len = std::min(data_len - it, payload_max_size);
+      bool continues = data_len - it > payload_max_size;
+      // Additional payloads needed if it is more than N elements away from data_len.
+      auto bytes = api2::packet::VariableBytes<payload_max_size>(payload_len, continues);
+
+      // XOR-encode data to reduce storage by 2x.
+      bits::memcpy_xor(bits::span<quint8>{bytes.bytes}, buf1.subspan(it, payload_len), buf2.subspan(it, payload_len));
+
+      api2::packet::payload::Variable payload{std::move(bytes)};
+      writeFragment({payload});
+      it += payload_len;
+    }
+  }
+  inline void emit_payloads(bits::span<const quint8> buf) {
+    auto data_len = buf.size();
+    // Split the data into chunks that are `payload_max_size` bytes long.
+    for (int it = 0; it < data_len;) {
+      auto payload_len = std::min(data_len - it, payload_max_size);
+      bool continues = data_len - it > payload_max_size;
+      // Additional payloads needed if it is more than N elements away from data_len.
+      auto bytes = api2::packet::VariableBytes<payload_max_size>(payload_len, continues);
+
+      bits::memcpy(bits::span<quint8>{bytes.bytes}, buf.subspan(it, payload_len));
+      api2::packet::payload::Variable payload{std::move(bytes)};
+      writeFragment({payload});
+      it += payload_len;
+    }
+  }
   void pushPath(packet::path_t path) { _paths.push(path); }
   void popPath() { _paths.pop(); }
   // stacks don't take initializer lists...

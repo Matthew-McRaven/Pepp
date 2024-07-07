@@ -29,12 +29,12 @@ TEST_CASE("Trace buffer iterators", "[scope:sim][kind:unit][arch:*]") {
   }
   buf.trace(1, true);
   buf.trace(2, true);
-  sim::trace2::emitFrameStart(&buf);
-  sim::trace2::emitWrite<quint16>(&buf, 1, 0, src, dest);
-  sim::trace2::emitWrite<quint16>(&buf, 1, 32, src, dest);
-  sim::trace2::emitWrite<quint16>(&buf, 1, 64, src, dest);
-  sim::trace2::emitPureRead<quint16>(&buf, 1, 0, 16);
-  sim::trace2::emitFrameStart(&buf);
+  buf.emitFrameStart();
+  buf.emitWrite<quint16>(1, 0, src, dest);
+  buf.emitWrite<quint16>(1, 32, src, dest);
+  buf.emitWrite<quint16>(1, 64, src, dest);
+  buf.emitPureRead<quint16>(1, 0, 16);
+  buf.emitFrameStart();
   buf.updateFrameHeader();
 
   // FORWARD ITERATION

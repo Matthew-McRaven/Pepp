@@ -100,7 +100,7 @@ TEST_CASE("Packet serialization utilities", "[scope:sim][kind:unit][arch:*]") {
         {20, 1, 33},
     }));
     SimpleBuffer buf;
-    emitPureRead(&buf, device, address, payload_len);
+    buf.emitPureRead(device, address, payload_len);
     Fragment w;
     REQUIRE_NOTHROW(buf._in(w).or_throw());
     REQUIRE(is_packet_header(w));
@@ -140,12 +140,9 @@ TEST_CASE("Packet serialization utilities", "[scope:sim][kind:unit][arch:*]") {
 
       SimpleBuffer buf;
 
-      if (kind == 0)
-        emitMMRead(&buf, device, address, {src});
-      else if (kind == 1)
-        emitMMWrite(&buf, device, address, {src});
-      else
-        emitWrite(&buf, device, address, {src}, {dest});
+      if (kind == 0) buf.emitMMRead(device, address, {src});
+      else if (kind == 1) buf.emitMMWrite(device, address, {src});
+      else buf.emitWrite(device, address, {src}, {dest});
 
       Fragment w;
       REQUIRE_NOTHROW(buf._in(w).or_throw());
@@ -198,37 +195,37 @@ TEST_CASE("Packet packet_payloads_length", "[scope:sim][kind:unit][arch:*]") {
   SECTION("ImpureRead") {
     InfiniteBuffer buf;
     buf.trace(0, true);
-    emitFrameStart(&buf);
-    emitMMRead(&buf, 0, 0u, bytes);
-    emitFrameStart(&buf);
+    buf.emitFrameStart();
+    buf.emitMMRead(0, 0u, bytes);
+    buf.emitFrameStart();
     auto frame_iter = buf.cbegin();
     CHECK(packet_payloads_length(frame_iter.cbegin()) == 6);
   }
   SECTION("PureRead") {
     InfiniteBuffer buf;
     buf.trace(0, true);
-    emitFrameStart(&buf);
-    emitPureRead(&buf, 0, 0u, 4u);
-    emitFrameStart(&buf);
+    buf.emitFrameStart();
+    buf.emitPureRead(0, 0u, 4u);
+    buf.emitFrameStart();
     auto frame_iter = buf.cbegin();
     CHECK(packet_payloads_length(frame_iter.cbegin()) == 4);
   }
   SECTION("Clear") {
     InfiniteBuffer buf;
     buf.trace(0, true);
-    emitFrameStart(&buf);
+    buf.emitFrameStart();
     buf.writeFragment(sim::api2::trace::Fragment{header::Clear{.device = 0}});
-    emitFrameStart(&buf);
+    buf.emitFrameStart();
     auto frame_iter = buf.cbegin();
     CHECK(packet_payloads_length(frame_iter.cbegin()) == 0);
   }
   SECTION("Write") {
     InfiniteBuffer buf;
     buf.trace(0, true);
-    emitFrameStart(&buf);
+    buf.emitFrameStart();
     std::array<quint8, 6> dest{0};
-    emitWrite(&buf, 0, 0u, bytes, dest);
-    emitFrameStart(&buf);
+    buf.emitWrite(0, 0u, bytes, dest);
+    buf.emitFrameStart();
     auto frame_iter = buf.cbegin();
     CHECK(packet_payloads_length(frame_iter.cbegin()) == 6);
   }

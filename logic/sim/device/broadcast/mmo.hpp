@@ -128,7 +128,7 @@ api2::memory::Result Output<Address>::read(Address address, bits::span<quint8> d
   // Only emit a trace if the operation isn't related to app-internal state.
   else if (auto end = _endpoint->current_value(); end) {
     if (!(op.type == Operation::Type::Application || op.type == Operation::Type::BufferInternal) && _tb)
-      sim::trace2::emitPureRead<Address>(_tb, _device.id, 0, dest.size());
+      _tb->emitPureRead<Address>(_device.id, 0, dest.size());
     quint8 tmp = *end;
     bits::memcpy(dest, bits::span<const quint8>{&tmp, 1});
   }
@@ -144,7 +144,7 @@ api2::memory::Result Output<Address>::write(Address address, bits::span<const qu
   if (address < _span.lower() || maxDestAddr > _span.upper()) throw E(E::Type::OOBAccess, address);
   // Only emit a trace if the operation isn't related to app-internal state.
   else if (!(op.type == Operation::Type::Application || op.type == Operation::Type::BufferInternal)) {
-    if (_tb) sim::trace2::emitMMWrite<Address>(_tb, _device.id, 0, src);
+    if (_tb) _tb->emitMMWrite<Address>(_device.id, 0, src);
     quint8 tmp;
     bits::memcpy(bits::span<quint8>{&tmp, 1}, src);
     _endpoint->append_value(tmp);

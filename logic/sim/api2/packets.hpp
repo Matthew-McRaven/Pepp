@@ -106,6 +106,12 @@ template <size_t N> struct VariableBytes {
   // High order bit is used for "continues" flag.
   quint8 len = 0;
   std::array<quint8, N> bytes = {0};
+
+  // Used to allow membership in std::set.
+  auto operator<=>(const VariableBytes &other) const {
+    if (len != other.len) return len <=> other.len;
+    return bytes <=> other.bytes;
+  }
 };
 
 using device_id_t = zpp::bits::varint<quint16>;

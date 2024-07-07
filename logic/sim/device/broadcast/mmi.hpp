@@ -148,7 +148,7 @@ api2::memory::Result Input<Address>::read(Address address, bits::span<quint8> de
   }
 
   // All paths to here are non-application code, and should emit a trace
-  if (_tb) sim::trace2::emitMMRead<Address>(_tb, _device.id, 0, dest);
+  if (_tb) _tb->emitMMRead<Address>(_device.id, 0, dest);
 
   return {};
 }
