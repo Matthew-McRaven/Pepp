@@ -34,15 +34,30 @@ using namespace sim::api2::packet::payload;
 using Fragment = std::variant<std::monostate, Trace, Extender, Clear, PureRead, ImpureRead, Write, Variable>;
 } // namespace detail
 using Fragment = detail::Fragment;
-enum class Action { Assert, Break, Record, None };
+enum class Action { None, Record, Break, Assert };
 struct Filter {
   virtual Action operator()(device::ID, quint32) = 0;
 };
 struct TraceFilter : public Filter {
-  const device::ID target = 0;
-  virtual Action operator()(device::ID dev, quint32) override {
-    return (dev == target) ? Action::Record : Action::None;
+  inline bool contains(device::ID dev) {
+    auto it = std::lower_bound(_targets.cbegin(), _targets.cend(), dev);
+    return it != _targets.cend() && *it == dev;
+  }
+  inline void insert(device::ID dev) {
+    auto it = std::lower_bound(_targets.begin(), _targets.end(), dev);
+    // Should maintain sorted order on insert.
+    if (it == _targets.end() || *it != dev) _targets.insert(it, dev);
+  }
+  inline void remove(device::ID dev) {
+    auto _ = std::remove(_targets.begin(), _targets.end(), dev);
+    (void)_;
+  }
+  inline virtual Action operator()(device::ID dev, quint32) override {
+    return (contains(dev)) ? Action::Record : Action::None;
   };
+
+private:
+  std::vector<device::ID> _targets;
 };
 template <typename T> struct ValueFilter : public Filter {
   const sim::api2::memory::Target<T> _target;
@@ -109,7 +124,7 @@ public:
   virtual void replaceFilter(quint16 id, std::unique_ptr<sim::api2::trace::Filter>) = 0;
 
   // Process the events produced by the filters.
-  virtual std::span<sim::api2::trace::FilterEvent> events() const = 0;
+  virtual std::span<const sim::api2::trace::FilterEvent> events() const = 0;
   virtual void clearEvents() = 0;
 
   inline void emitFrameStart() { writeFragment({sim::api2::frame::header::Trace{}}); }
@@ -119,7 +134,10 @@ public:
     auto address_bytes = vb::from_address<Address>(address);
     auto header = api2::packet::header::Write{.device = id, .address = address_bytes};
     // Don't write payloads if the buffer rejected the packet header.
-    if (writeFragmentWithPath(header)) emit_payloads(src, dest);
+    if (applyFilters(id, address, header) >= Action::Record) {
+      writeFragmentWithPath(header);
+      emit_payloads(src, dest);
+    }
   }
   // Generate a Write packet. Bytes will not be XOR encoded.
   // A write to a MM port appends to the state of that port.
@@ -129,13 +147,16 @@ public:
     using vb = decltype(api2::packet::header::Write::address);
     auto header = api2::packet::header::Write{.device = id, .address = vb::from_address(address)};
     // Don't write payloads if the buffer rejected the packet header.
-    if (writeFragmentWithPath(header)) emit_payloads(src);
+    if (applyFilters(id, address, header) >= Action::Record) {
+      writeFragmentWithPath(header);
+      emit_payloads(src);
+    }
   }
   template <typename Address> void emitPureRead(sim::api2::device::ID id, Address address, Address len) {
     using vb = decltype(api2::packet::header::PureRead::address);
     auto header =
         api2::packet::header::PureRead{.device = id, .payload_len = len, .address = vb::from_address(address)};
-    writeFragmentWithPath(header);
+    if (applyFilters(id, address, header) >= Action::Record) writeFragmentWithPath(header);
   }
   // Generate a ImpureRead packet. Bytes will not be XOR encoded.
   // We do not need to know previous value, since the pub/sub system records it.
@@ -143,10 +164,14 @@ public:
     using vb = decltype(api2::packet::header::Write::address);
     auto header = api2::packet::header::ImpureRead{.device = id, .address = vb::from_address(address)};
     // Don't write payloads if the buffer rejected the packet header.
-    if (writeFragmentWithPath(header)) emit_payloads(src);
+    if (applyFilters(id, address, header) >= Action::Record) {
+      writeFragmentWithPath(header);
+      emit_payloads(src);
+    }
   }
 
 protected:
+  virtual Action applyFilters(sim::api2::device::ID id, quint32 address, const Fragment &frag) = 0;
   // Max payload size is a compile time constant, so compute at compile time.
   using vb = sim::api2::packet::payload::Variable;
   static constexpr auto payload_max_size = vb::N;

@@ -38,17 +38,18 @@ public:
   quint16 addFilter(std::unique_ptr<api2::trace::Filter>) override;
   void removeFilter(quint16 id) override;
   void replaceFilter(quint16 id, std::unique_ptr<api2::trace::Filter>) override;
-  std::span<api2::trace::FilterEvent> events() const override;
+  std::span<const api2::trace::FilterEvent> events() const override;
   void clearEvents() override;
 
+protected:
+  api2::trace::Action applyFilters(api2::device::ID id, quint32 address, const api2::trace::Fragment &frag) override;
+
 private:
-  QSet<api2::device::ID> _traced = {};
   QSet<api2::trace::Sink *> _sinks = {};
   std::size_t _lastFrameStart = 0;
   // Need to be mutable so that IteratorImpl can read from them.
   mutable std::vector<std::byte> _data = {};
-  // Mutable since reads may trigger an event.
-  mutable std::vector<api2::trace::FilterEvent> _events = {};
+  std::vector<api2::trace::FilterEvent> _events = {};
   quint16 _nextFilterID = 0;
   std::vector<std::pair<quint16, std::unique_ptr<api2::trace::Filter>>> _filters = {};
 
