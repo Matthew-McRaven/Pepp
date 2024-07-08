@@ -85,12 +85,14 @@ signals:
   void charInChanged();
   void charOutChanged();
 
+  void message(QString message);
   void updateGUI(sim::api2::trace::FrameIterator from);
   void deferredExecution(sim::api2::trace::Action stopOn);
 
 protected:
   void bindToSystem();
-  bool pendingPause = false;
+  bool _pendingPause = false;
+  int _stepsSinceLastInteraction = 0;
   enum class State {
     Halted,
     NormalExec,
@@ -167,7 +169,6 @@ signals:
   void clearListingBreakpoints();
 
   void updateGUI(sim::api2::trace::FrameIterator from);
-  void message(QString message);
   void modifyUserSource(int line, Action action);
   void modifyOSSource(int line, Action action);
   void modifyUserList(int line, Action action);

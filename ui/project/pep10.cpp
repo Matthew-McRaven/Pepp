@@ -322,6 +322,7 @@ bool Pep10_ISA::onLoadObject() {
 bool Pep10_ISA::onExecute() {
   prepareSim();
   _state = State::NormalExec;
+  _stepsSinceLastInteraction = 0;
   emit allowedDebuggingChanged();
   emit allowedStepsChanged();
   _system->bus()->trace(true);
@@ -332,6 +333,7 @@ bool Pep10_ISA::onExecute() {
 bool Pep10_ISA::onDebuggingStart() {
   prepareSim();
   _state = State::DebugPaused;
+  _stepsSinceLastInteraction = 0;
   emit allowedDebuggingChanged();
   emit allowedStepsChanged();
   _system->bus()->trace(true);
@@ -340,14 +342,15 @@ bool Pep10_ISA::onDebuggingStart() {
 
 bool Pep10_ISA::onDebuggingContinue() {
   _state = State::DebugExec;
-  pendingPause = false;
+  _pendingPause = false;
+  _stepsSinceLastInteraction = 0;
   emit allowedDebuggingChanged();
   emit allowedStepsChanged();
   emit deferredExecution(sim::api2::trace::Action::Break);
   return true;
 }
 
-bool Pep10_ISA::onDebuggingPause() { return pendingPause = true; }
+bool Pep10_ISA::onDebuggingPause() { return _pendingPause = true; }
 
 bool Pep10_ISA::onDebuggingStop() {
   _system->bus()->trace(false);
@@ -361,6 +364,8 @@ bool Pep10_ISA::onISARemoveAllBreakpoints() { return false; }
 
 bool Pep10_ISA::onISAStep() {
   _state = State::DebugExec;
+  _stepsSinceLastInteraction = 0;
+  _pendingPause = false;
   emit allowedDebuggingChanged();
   emit allowedStepsChanged();
   emit deferredExecution(sim::api2::trace::Action::Break);
@@ -382,6 +387,20 @@ void Pep10_ISA::onDeferredExecution(sim::api2::trace::Action stopOn) {
   auto endpoint = pwrOff->endpoint();
   auto from = _tb->cend();
   bool err = false;
+
+  State newState = _state;
+  switch (_state) {
+  case State::Halted: newState = State::NormalExec; break;
+  case State::NormalExec: break;
+  case State::DebugPaused: break;
+  case State::DebugExec: newState = State::DebugExec; break;
+  }
+  if (newState != _state) {
+    _state = newState;
+    emit allowedDebuggingChanged();
+    emit allowedStepsChanged();
+  }
+
   try {
     auto ending = _system->currentTick() + 1000;
     while (_system->currentTick() < ending && endpoint->at_end()) {
@@ -413,7 +432,12 @@ void Pep10_ISA::onDeferredExecution(sim::api2::trace::Action stopOn) {
     default: break;
     }
     _system->bus()->trace(false);
-  } else if (pendingPause) pendingPause = false;
+  } else if (_stepsSinceLastInteraction++ > 10) {
+    _state = State::DebugPaused;
+    emit allowedDebuggingChanged();
+    emit allowedStepsChanged();
+    emit message("Pausing, potential infinite loop detected.");
+  } else if (_pendingPause) _pendingPause = false;
   else emit deferredExecution(stopOn);
   prepareGUIUpdate(from);
 }
@@ -432,8 +456,7 @@ void Pep10_ISA::prepareSim() {
   charIn->clear(0);
   auto charInEndpoint = charIn->endpoint();
   for (int it = 0; it < _charIn.size(); it++) charInEndpoint->append_value(_charIn[it].toLatin1());
-
-  pendingPause = false;
+  _pendingPause = false;
 }
 
 void Pep10_ISA::prepareGUIUpdate(sim::api2::trace::FrameIterator from) {
