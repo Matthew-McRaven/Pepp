@@ -35,6 +35,7 @@ Item {
                     userAsmEdit.editor.onRequestAllBreakpoints)
         project.requestSourceBreakpoints.connect(
                     osAsmEdit.editor.onRequestAllBreakpoints)
+        project.switchTo.connect(wrapper.onSwitchTo)
         if (project)
             fixListings()
     }
@@ -61,6 +62,10 @@ Item {
         project.requestSourceBreakpoints.disconnect(
                     osAsmEdit.editor.onRequestAllBreakpoints)
     }
+    function onSwitchTo(os) {
+        textSelector.currentIndex = Qt.binding(() => os ? 1 : 0)
+    }
+
     function displayErrors() {
         userAsmEdit.addEOLAnnotations(project.assemblerErrors)
     }

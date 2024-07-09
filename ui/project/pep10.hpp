@@ -61,7 +61,7 @@ public slots:
   bool onSaveCurrent();
   bool onLoadObject();
   bool onExecute();
-  bool onDebuggingStart();
+  virtual bool onDebuggingStart();
   bool onDebuggingContinue();
   bool onDebuggingPause();
   bool onDebuggingStop();
@@ -154,6 +154,7 @@ public:
   utils::Abstraction abstraction() const override;
   int allowedDebugging() const override;
 public slots:
+  bool onDebuggingStart() override;
   bool onAssemble(bool doLoad = false);
   bool onAssembleThenFormat();
   void onModifyUserSource(int line, Action action);
@@ -168,6 +169,7 @@ signals:
   void requestSourceBreakpoints();
   void clearListingBreakpoints();
 
+  void switchTo(bool os);
   void updateGUI(sim::api2::trace::FrameIterator from);
   void modifyUserSource(int line, Action action);
   void modifyOSSource(int line, Action action);

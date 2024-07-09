@@ -552,6 +552,12 @@ int Pep10_ASMB::allowedDebugging() const {
   }
 }
 
+bool Pep10_ASMB::onDebuggingStart() {
+  updatePCLine();
+  Pep10_ISA::onDebuggingStart();
+  return true;
+}
+
 static constexpr auto to_string = [](const QString &acc, const auto &pair) {
   return acc.isEmpty() ? pair.first : acc + "\n" + pair.first;
 };
@@ -681,10 +687,16 @@ void Pep10_ASMB::prepareGUIUpdate(sim::api2::trace::FrameIterator from) {
 
 void Pep10_ASMB::updatePCLine() {
   auto pc = _system->cpu()->startingPC();
-  if (auto userSrc = _userLines2Address.address2List(pc); userSrc) emit modifyUserSource(*userSrc, Action::ScrollTo);
-  if (auto userList = _userLines2Address.address2List(pc); userList) emit modifyUserSource(*userList, Action::ScrollTo);
-  if (auto osSrc = _userLines2Address.address2List(pc); osSrc) emit modifyUserSource(*osSrc, Action::ScrollTo);
-  if (auto osList = _userLines2Address.address2List(pc); osList) emit modifyUserSource(*osList, Action::ScrollTo);
+  if (auto userSrc = _userLines2Address.address2Source(pc); userSrc) emit modifyUserSource(*userSrc, Action::ScrollTo);
+  if (auto userList = _userLines2Address.address2List(pc); userList) {
+    emit switchTo(false);
+    emit modifyUserList(*userList, Action::ScrollTo);
+  }
+  if (auto osSrc = _osLines2Address.address2Source(pc); osSrc) emit modifyOSSource(*osSrc, Action::ScrollTo);
+  if (auto osList = _osLines2Address.address2List(pc); osList) {
+    emit switchTo(true);
+    emit modifyOSList(*osList, Action::ScrollTo);
+  }
 }
 
 void Pep10_ASMB::updateBPAtAddress(quint32 address, Action action) {
