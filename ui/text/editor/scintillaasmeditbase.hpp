@@ -11,7 +11,7 @@ class TEXT_EXPORT ScintillaAsmEditBase : public ScintillaEditBase {
       bool lineNumbersVisible READ lineNumbersVisible WRITE setLineNumbersVisible NOTIFY lineNumbersVisibleChanged);
 
 public:
-  enum class Action { ToggleBP, AddBP, RemoveBP, ScrollTo };
+  enum class Action { ToggleBP, AddBP, RemoveBP, ScrollTo, HighlightExclusive };
   Q_ENUM(Action);
   ScintillaAsmEditBase(QQuickItem *parent = 0);
 public slots:

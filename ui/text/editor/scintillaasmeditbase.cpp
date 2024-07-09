@@ -47,6 +47,8 @@ void ScintillaAsmEditBase::onMarginClicked(Scintilla::Position position, Scintil
 void ScintillaAsmEditBase::onLineAction(int line, Action action) {
   int markers = send(SCI_MARKERGET, line);
   auto exists = markers & (1 << SC_MARK_CIRCLE);
+  int start = send(SCI_POSITIONFROMLINE, line);
+  int end = send(SCI_GETLINEENDPOSITION, line);
   switch (action) {
   // Toggle marker on the line
   case Action::ToggleBP: send(exists ? SCI_MARKERDELETE : SCI_MARKERADD, line, SC_MARK_CIRCLE); break;
@@ -56,6 +58,11 @@ void ScintillaAsmEditBase::onLineAction(int line, Action action) {
     break;
   case Action::RemoveBP: send(SCI_MARKERDELETE, line, SC_MARK_CIRCLE); break;
   case Action::ScrollTo: send(SCI_GOTOLINE, line); break;
+  case Action::HighlightExclusive:
+    send(SCI_GOTOLINE, line);
+    send(SCI_INDICATORCLEARRANGE, 0, send(SCI_GETLENGTH));
+    send(SCI_INDICATORFILLRANGE, start, end - start);
+    break;
   default: break;
   }
 }
@@ -199,4 +206,11 @@ void ScintillaAsmEditBase::applyStyles() {
   send(SCI_STYLESETBACK, errorStyle, alphaBlend(_theme->error()->background(), baseBack));
   send(SCI_MARKERSETFORE, SC_MARK_CIRCLE, c2i(_theme->error()->background()));
   send(SCI_MARKERSETBACK, SC_MARK_CIRCLE, c2i(_theme->base()->background()));
+  // Set the selection / highlighting for lines
+  send(SCI_SETSELFORE, STYLE_DEFAULT, c2i(_theme->alternateBase()->foreground()));
+  send(SCI_SETSELBACK, STYLE_DEFAULT, c2i(_theme->alternateBase()->background()));
+  // Set the indicator style to a plain underline
+  send(SCI_INDICSETSTYLE, 0, INDIC_ROUNDBOX);
+  send(SCI_INDICSETFORE, 0, c2i(_theme->alternateBase()->foreground()));
+  send(SCI_SETINDICATORVALUE, 0);
 }
