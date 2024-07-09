@@ -46,6 +46,8 @@ public:
   // It will use Application access, and will not trigger MMIO.
   std::optional<quint16> currentOperand();
   quint16 startingPC() const;
+  // Set the starting PC to the current PC. Needed to get 1st step correct.
+  void updateStartingPC();
 
   // Target interface
   const sim::api2::tick::Source *getSource() override;

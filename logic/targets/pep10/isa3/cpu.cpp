@@ -63,6 +63,8 @@ std::optional<quint16> targets::pep10::isa::CPU::currentOperand() {
 
 quint16 targets::pep10::isa::CPU::startingPC() const { return _startingPC; }
 
+void targets::pep10::isa::CPU::updateStartingPC() { _startingPC = readReg(::isa::Pep10::Register::PC); }
+
 const sim::api2::tick::Source *targets::pep10::isa::CPU::getSource() { return _clock; }
 
 void targets::pep10::isa::CPU::setSource(sim::api2::tick::Source *clock) { _clock = clock; }
