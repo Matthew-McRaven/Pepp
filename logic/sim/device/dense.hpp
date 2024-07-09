@@ -151,7 +151,7 @@ api2::memory::Result Dense<Address>::read(Address address, bits::span<quint8> de
   // Ignore reads from UI, since this device only issues pure reads.
   // Ignore reads from buffer internal operations.
   if (!(op.type == Operation::Type::Application || op.type == Operation::Type::BufferInternal) && _tb)
-    sim::trace2::emitPureRead<Address>(_tb, _device.id, offset, src.size());
+    _tb->emitPureRead<Address>(_device.id, offset, src.size());
   bits::memcpy(dest, src);
   return {};
 }
@@ -166,8 +166,7 @@ api2::memory::Result Dense<Address>::write(Address address, bits::span<const qui
   auto offset = address - _span.lower();
   auto dest = bits::span<quint8>{_data.data(), std::size_t(_data.size())}.subspan(offset);
   // Record changes, even if the come from UI. Otherwise, step back fails.
-  if (op.type != Operation::Type::BufferInternal && _tb)
-    sim::trace2::emitWrite<Address>(_tb, _device.id, offset, src, dest);
+  if (op.type != Operation::Type::BufferInternal && _tb) _tb->emitWrite<Address>(_device.id, offset, src, dest);
   bits::memcpy(dest, src);
   return {};
 }

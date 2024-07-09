@@ -8,6 +8,7 @@
 #include "help/builtins/figure.hpp"
 #include "helpers/asmb.hpp"
 #include "isa/pep10.hpp"
+#include "sim/api2/trace/buffer.hpp"
 #include "sim/device/broadcast/mmi.hpp"
 #include "sim/device/broadcast/mmo.hpp"
 #include "sim/device/broadcast/pubsub.hpp"
@@ -197,6 +198,7 @@ Pep10_ISA::Pep10_ISA(QVariant delegate, QObject *parent, bool initializeSystem)
     _system->bus()->setBuffer(&*_tb);
     bindToSystem();
   }
+  connect(this, &Pep10_ISA::deferredExecution, this, &Pep10_ISA::onDeferredExecution, Qt::QueuedConnection);
 }
 
 void Pep10_ISA::bindToSystem() {
@@ -214,6 +216,7 @@ void Pep10_ISA::bindToSystem() {
   _memory = new SimulatorRawMemory(_system->bus(), sink, this);
   connect(this, &Pep10_ISA::updateGUI, _memory, &SimulatorRawMemory::onUpdateGUI);
   QQmlEngine::setObjectOwnership(_memory, QQmlEngine::CppOwnership);
+
 }
 
 project::Environment Pep10_ISA::env() const {
@@ -318,32 +321,19 @@ bool Pep10_ISA::onLoadObject() {
 
 bool Pep10_ISA::onExecute() {
   prepareSim();
-
-  auto pwrOff = _system->output("pwrOff");
-  auto endpoint = pwrOff->endpoint();
-  bool noMMI = false;
-  // Only enable trace while running the program to prevent spurious changed highlights.
+  _state = State::NormalExec;
+  _stepsSinceLastInteraction = 0;
+  emit allowedDebuggingChanged();
+  emit allowedStepsChanged();
   _system->bus()->trace(true);
-  // Step for a small number of instructions or until we write to pwrOff.
-  try {
-    while (_system->currentTick() < 800 && !endpoint->next_value().has_value())
-      _system->tick(sim::api2::Scheduler::Mode::Jump);
-  } catch (const sim::api2::memory::Error &e) {
-    if (e.type() == sim::api2::memory::Error::Type::NeedsMMI) {
-      noMMI = true;
-    } else std::cerr << "Memory error: " << e.what() << std::endl;
-    // Handle illegal opcodes or program crashes.
-  } catch (const std::logic_error &e) {
-    std::cerr << e.what() << std::endl;
-  }
-  _system->bus()->trace(false);
-  prepareGUIUpdate(_tb->cbegin());
+  emit deferredExecution(sim::api2::trace::Action::Assert, project::StepEnableFlags::Continue);
   return true;
 }
 
 bool Pep10_ISA::onDebuggingStart() {
   prepareSim();
   _state = State::DebugPaused;
+  _stepsSinceLastInteraction = 0;
   emit allowedDebuggingChanged();
   emit allowedStepsChanged();
   _system->bus()->trace(true);
@@ -352,29 +342,15 @@ bool Pep10_ISA::onDebuggingStart() {
 
 bool Pep10_ISA::onDebuggingContinue() {
   _state = State::DebugExec;
+  _pendingPause = false;
+  _stepsSinceLastInteraction = 0;
   emit allowedDebuggingChanged();
-  auto pwrOff = _system->output("pwrOff");
-  auto endpoint = pwrOff->endpoint();
-  auto from = _tb->cend();
-  bool err = false;
-  try {
-    while (_system->currentTick() < 800 && !endpoint->next_value().has_value())
-      _system->tick(sim::api2::Scheduler::Mode::Jump);
-  } catch (const sim::api2::memory::Error &e) {
-    err = true;
-    if (e.type() == sim::api2::memory::Error::Type::NeedsMMI) {
-    } else std::cerr << "Memory error: " << e.what() << std::endl;
-    // Handle illegal opcodes or program crashes.
-  } catch (const std::logic_error &e) {
-    err = true;
-    std::cerr << e.what() << std::endl;
-  }
-  onDebuggingStop();
-  prepareGUIUpdate(from);
+  emit allowedStepsChanged();
+  emit deferredExecution(sim::api2::trace::Action::Break, project::StepEnableFlags::Continue);
   return true;
 }
 
-bool Pep10_ISA::onDebuggingPause() { return false; }
+bool Pep10_ISA::onDebuggingPause() { return _pendingPause = true; }
 
 bool Pep10_ISA::onDebuggingStop() {
   _system->bus()->trace(false);
@@ -387,23 +363,12 @@ bool Pep10_ISA::onDebuggingStop() {
 bool Pep10_ISA::onISARemoveAllBreakpoints() { return false; }
 
 bool Pep10_ISA::onISAStep() {
-  auto pwrOff = _system->output("pwrOff");
-  auto endpoint = pwrOff->endpoint();
-  auto from = _tb->cend();
-  bool err = false;
-  try {
-    _system->tick(sim::api2::Scheduler::Mode::Jump);
-  } catch (const sim::api2::memory::Error &e) {
-    err = true;
-    if (e.type() == sim::api2::memory::Error::Type::NeedsMMI) {
-    } else std::cerr << "Memory error: " << e.what() << std::endl;
-    // Handle illegal opcodes or program crashes.
-  } catch (const std::logic_error &e) {
-    err = true;
-    std::cerr << e.what() << std::endl;
-  }
-  if (endpoint->next_value().has_value()) onDebuggingStop();
-  prepareGUIUpdate(from);
+  _state = State::DebugExec;
+  _stepsSinceLastInteraction = 0;
+  _pendingPause = false;
+  emit allowedDebuggingChanged();
+  emit allowedStepsChanged();
+  emit deferredExecution(sim::api2::trace::Action::Break, project::StepEnableFlags::Step);
   return true;
 }
 
@@ -416,6 +381,85 @@ bool Pep10_ISA::onISAStepOut() { return false; }
 bool Pep10_ISA::onClearCPU() { return false; }
 
 bool Pep10_ISA::onClearMemory() { return false; }
+
+void Pep10_ISA::onDeferredExecution(sim::api2::trace::Action stopOn, project::StepEnableFlags::Value step) {
+  auto pwrOff = _system->output("pwrOff");
+  auto endpoint = pwrOff->endpoint();
+  auto from = _tb->cend();
+  bool err = false;
+
+  State newState = _state;
+  switch (_state) {
+  case State::Halted: newState = State::NormalExec; break;
+  case State::NormalExec: break;
+  case State::DebugPaused: [[fallthrough]];
+  case State::DebugExec: newState = State::DebugExec; break;
+  }
+  if (newState != _state) {
+    _state = newState;
+    emit allowedDebuggingChanged();
+    emit allowedStepsChanged();
+  }
+
+  // If we exceed the number of steps, do we allow another deferredExecution?
+  bool allowsResume = false;
+  try {
+    auto ending = _system->currentTick();
+    // TODO: need a function to check if we have pushed / popped stuff on the call stack.
+    // std::function<bool(decltype(_system->currentTick()))> s;
+    switch (step) {
+    case project::StepEnableFlags::Step: ending += 1; break;
+    case project::StepEnableFlags::StepInto: break;
+    case project::StepEnableFlags::Continue:
+      ending += 1000;
+      allowsResume = true;
+      break;
+    default: break;
+    }
+    while (_system->currentTick() < ending && endpoint->at_end() && !_pendingPause) {
+      _system->tick(sim::api2::Scheduler::Mode::Jump);
+      for (const auto &event : _tb->events()) {
+        if (event.action >= stopOn) _pendingPause = true;
+      }
+      _tb->clearEvents();
+    }
+  } catch (const sim::api2::memory::Error &e) {
+    err = true;
+    if (e.type() == sim::api2::memory::Error::Type::NeedsMMI) {
+      std::cerr << "Ran out of MMI\n";
+    } else std::cerr << "Memory error: " << e.what() << std::endl;
+    // Handle illegal opcodes or program crashes.
+  } catch (const std::logic_error &e) {
+    err = true;
+    std::cerr << e.what() << std::endl;
+  }
+  // Only terminates if something written to endpoint or there was an error
+  if (endpoint->next_value().has_value() || err) {
+    switch (_state) {
+    case State::DebugExec: [[fallthrough]];
+    case State::DebugPaused: onDebuggingStop(); break;
+    default: break;
+    }
+    _system->bus()->trace(false);
+  }
+  // Trigger a BP if we exceed a resonable number of chained executions
+  else if (_stepsSinceLastInteraction++ > 10) {
+    _state = State::DebugPaused;
+    emit allowedDebuggingChanged();
+    emit allowedStepsChanged();
+    emit message("Pausing, potential infinite loop detected.");
+  }
+  // Queued connection, so it will be evaluated after the display is updated.
+  else if (allowsResume && !_pendingPause)
+    emit deferredExecution(stopOn, step);
+  else {
+    _pendingPause = false;
+    _state = State::DebugPaused;
+    emit allowedDebuggingChanged();
+    emit allowedStepsChanged();
+  }
+  prepareGUIUpdate(from);
+}
 
 void Pep10_ISA::prepareSim() {
   // Ensure latests changes to object code pane are reflected in simulator.
@@ -431,6 +475,7 @@ void Pep10_ISA::prepareSim() {
   charIn->clear(0);
   auto charInEndpoint = charIn->endpoint();
   for (int it = 0; it < _charIn.size(); it++) charInEndpoint->append_value(_charIn[it].toLatin1());
+  _pendingPause = false;
 }
 
 void Pep10_ISA::prepareGUIUpdate(sim::api2::trace::FrameIterator from) {
@@ -457,6 +502,10 @@ Pep10_ASMB::Pep10_ASMB(QVariant delegate, QObject *parent) : Pep10_ISA(delegate,
   _system = elfsys.system;
   _system->bus()->setBuffer(&*_tb);
   bindToSystem();
+  auto asUnique = std::make_unique<sim::api2::trace::ValueFilter<quint8>>(
+      _system->cpu()->regs(), static_cast<quint8>(isa::Pep10::Register::PC));
+  _breakpoints = asUnique.get();
+  _tb->addFilter(std::move(asUnique));
 }
 
 void Pep10_ASMB::set(int abstraction, QString value) {
@@ -520,6 +569,12 @@ int Pep10_ASMB::allowedDebugging() const {
   case State::DebugExec: return D::Stop;
   default: return 0b0;
   }
+}
+
+bool Pep10_ASMB::onDebuggingStart() {
+  Pep10_ISA::onDebuggingStart();
+  updatePCLine();
+  return true;
 }
 
 static constexpr auto to_string = [](const QString &acc, const auto &pair) {
@@ -636,12 +691,14 @@ void Pep10_ASMB::prepareSim() {
   auto charOut = _system->output("charOut");
   charOut->clear(0);
   pwrOff->clear(0);
-  _system->setBootFlags(true, false);
+  _system->setBootFlags(false, true);
 
   auto charIn = _system->input("charIn");
   charIn->clear(0);
   auto charInEndpoint = charIn->endpoint();
   for (int it = 0; it < _charIn.size(); it++) charInEndpoint->append_value(_charIn[it].toLatin1());
+
+  _pendingPause = false;
 }
 
 void Pep10_ASMB::prepareGUIUpdate(sim::api2::trace::FrameIterator from) {
@@ -651,20 +708,26 @@ void Pep10_ASMB::prepareGUIUpdate(sim::api2::trace::FrameIterator from) {
 
 void Pep10_ASMB::updatePCLine() {
   auto pc = _system->cpu()->startingPC();
-  if (auto userSrc = _userLines2Address.address2List(pc); userSrc) emit modifyUserSource(*userSrc, Action::ScrollTo);
-  if (auto userList = _userLines2Address.address2List(pc); userList) emit modifyUserSource(*userList, Action::ScrollTo);
-  if (auto osSrc = _userLines2Address.address2List(pc); osSrc) emit modifyUserSource(*osSrc, Action::ScrollTo);
-  if (auto osList = _userLines2Address.address2List(pc); osList) emit modifyUserSource(*osList, Action::ScrollTo);
+  if (auto userSrc = _userLines2Address.address2Source(pc); userSrc) emit modifyUserSource(*userSrc, Action::ScrollTo);
+  if (auto userList = _userLines2Address.address2List(pc); userList) {
+    emit switchTo(false);
+    emit modifyUserList(*userList, Action::HighlightExclusive);
+  }
+  if (auto osSrc = _osLines2Address.address2Source(pc); osSrc) emit modifyOSSource(*osSrc, Action::ScrollTo);
+  if (auto osList = _osLines2Address.address2List(pc); osList) {
+    emit switchTo(true);
+    emit modifyOSList(*osList, Action::HighlightExclusive);
+  }
 }
 
 void Pep10_ASMB::updateBPAtAddress(quint32 address, Action action) {
   switch (action) {
   case ScintillaAsmEditBase::Action::ToggleBP:
-    if (_breakpoints.contains(address)) _breakpoints.remove(address);
-    else _breakpoints.insert(address);
+    if (_breakpoints->contains(address)) _breakpoints->remove(address);
+    else _breakpoints->insert(address);
     break;
-  case ScintillaAsmEditBase::Action::AddBP: _breakpoints.insert(address); break;
-  case ScintillaAsmEditBase::Action::RemoveBP: _breakpoints.remove(address); break;
+  case ScintillaAsmEditBase::Action::AddBP: _breakpoints->insert(address); break;
+  case ScintillaAsmEditBase::Action::RemoveBP: _breakpoints->remove(address); break;
   default: break;
   }
 }

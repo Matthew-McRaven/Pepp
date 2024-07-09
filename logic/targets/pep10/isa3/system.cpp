@@ -163,6 +163,7 @@ void targets::pep10::isa::System::init() {
   _bus->read(static_cast<quint16>(::isa::Pep10::MemoryVectors::SystemStackPtr), bufSpan, gs);
   writeRegister(cpu()->regs(), ::isa::Pep10::Register::SP,
                 bits::memcpy_endian<quint16>(bufSpan, bits::Order::BigEndian), gs);
+  cpu()->updateStartingPC();
 }
 
 targets::pep10::isa::CPU *targets::pep10::isa::System::cpu() { return &*_cpu; }

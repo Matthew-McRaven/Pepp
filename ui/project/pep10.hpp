@@ -61,7 +61,7 @@ public slots:
   bool onSaveCurrent();
   bool onLoadObject();
   bool onExecute();
-  bool onDebuggingStart();
+  virtual bool onDebuggingStart();
   bool onDebuggingContinue();
   bool onDebuggingPause();
   bool onDebuggingStop();
@@ -74,6 +74,8 @@ public slots:
   bool onClearCPU();
   bool onClearMemory();
 
+  void onDeferredExecution(sim::api2::trace::Action stopOn, project::StepEnableFlags::Value step);
+
 signals:
   void objectCodeTextChanged();
   void delegateChanged();
@@ -83,10 +85,14 @@ signals:
   void charInChanged();
   void charOutChanged();
 
+  void message(QString message);
   void updateGUI(sim::api2::trace::FrameIterator from);
+  void deferredExecution(sim::api2::trace::Action stopOn, project::StepEnableFlags::Value step);
 
 protected:
   void bindToSystem();
+  bool _pendingPause = false;
+  int _stepsSinceLastInteraction = 0;
   enum class State {
     Halted,
     NormalExec,
@@ -148,6 +154,7 @@ public:
   utils::Abstraction abstraction() const override;
   int allowedDebugging() const override;
 public slots:
+  bool onDebuggingStart() override;
   bool onAssemble(bool doLoad = false);
   bool onAssembleThenFormat();
   void onModifyUserSource(int line, Action action);
@@ -162,8 +169,8 @@ signals:
   void requestSourceBreakpoints();
   void clearListingBreakpoints();
 
+  void switchTo(bool os);
   void updateGUI(sim::api2::trace::FrameIterator from);
-  void message(QString message);
   void modifyUserSource(int line, Action action);
   void modifyOSSource(int line, Action action);
   void modifyUserList(int line, Action action);
@@ -178,5 +185,5 @@ protected:
   QList<QPair<int, QString>> _errors = {}, _userListAnnotations = {}, _osListAnnotations = {};
   helpers::AsmHelper::Lines2Addresses _userLines2Address = {}, _osLines2Address = {};
   void updateBPAtAddress(quint32 address, Action action);
-  QSet<quint32> _breakpoints = {};
+  sim::api2::trace::ValueFilter<quint8> *_breakpoints = nullptr;
 };

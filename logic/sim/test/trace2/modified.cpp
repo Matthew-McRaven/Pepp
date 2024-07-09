@@ -359,11 +359,11 @@ TEST_CASE("ModifiedAddressSink", "[scope:sim][kind:unit][arch:*]") {
     InfiniteBuffer buf;
     buf.trace(0, true);
     ModifiedAddressSink<uint16_t> sink;
-    emitFrameStart(&buf);
-    emitWrite<quint16>(&buf, 0, 0u, v1, v1);
-    emitWrite<quint16>(&buf, 0, 2u, v1, v1);
-    emitWrite<quint16>(&buf, 0, 4u, v1, v1);
-    emitFrameStart(&buf);
+    buf.emitFrameStart();
+    buf.emitWrite<quint16>(0, 0u, v1, v1);
+    buf.emitWrite<quint16>(0, 2u, v1, v1);
+    buf.emitWrite<quint16>(0, 4u, v1, v1);
+    buf.emitFrameStart();
     auto frame = buf.cbegin();
     for (auto pkt = frame.cbegin(); pkt != frame.cend(); ++pkt)
       sink.analyze(pkt, sim::api2::trace::Direction::Forward);
@@ -377,11 +377,11 @@ TEST_CASE("ModifiedAddressSink", "[scope:sim][kind:unit][arch:*]") {
     InfiniteBuffer buf;
     buf.trace(0, true);
     ModifiedAddressSink<uint16_t> sink;
-    emitFrameStart(&buf);
-    emitWrite<quint16>(&buf, 0, 0u, v2, v2);
-    emitWrite<quint16>(&buf, 0, 2u, v2, v2);
-    emitWrite<quint16>(&buf, 0, 4u, v2, v2);
-    emitFrameStart(&buf);
+    buf.emitFrameStart();
+    buf.emitWrite<quint16>(0, 0u, v2, v2);
+    buf.emitWrite<quint16>(0, 2u, v2, v2);
+    buf.emitWrite<quint16>(0, 4u, v2, v2);
+    buf.emitFrameStart();
     auto frame = buf.cbegin();
     for (auto pkt = frame.cbegin(); pkt != frame.cend(); ++pkt)
       sink.analyze(pkt, sim::api2::trace::Direction::Forward);
@@ -393,11 +393,11 @@ TEST_CASE("ModifiedAddressSink", "[scope:sim][kind:unit][arch:*]") {
     InfiniteBuffer buf;
     buf.trace(0, true);
     ModifiedAddressSink<uint16_t> sink;
-    emitFrameStart(&buf);
-    emitWrite<quint16>(&buf, 0, 4u, v1, v1);
-    emitWrite<quint16>(&buf, 0, 2u, v1, v1);
-    emitWrite<quint16>(&buf, 0, 0, v1, v1);
-    emitFrameStart(&buf);
+    buf.emitFrameStart();
+    buf.emitWrite<quint16>(0, 4u, v1, v1);
+    buf.emitWrite<quint16>(0, 2u, v1, v1);
+    buf.emitWrite<quint16>(0, 0, v1, v1);
+    buf.emitFrameStart();
     auto frame = buf.cbegin();
     for (auto pkt = frame.cbegin(); pkt != frame.cend(); ++pkt)
       sink.analyze(pkt, sim::api2::trace::Direction::Forward);
@@ -409,11 +409,11 @@ TEST_CASE("ModifiedAddressSink", "[scope:sim][kind:unit][arch:*]") {
     InfiniteBuffer buf;
     buf.trace(0, true);
     ModifiedAddressSink<uint16_t> sink;
-    emitFrameStart(&buf);
-    emitWrite<quint16>(&buf, 0, 4, v2, v2);
-    emitWrite<quint16>(&buf, 0, 2, v2, v2);
-    emitWrite<quint16>(&buf, 0, 0, v2, v2);
-    emitFrameStart(&buf);
+    buf.emitFrameStart();
+    buf.emitWrite<quint16>(0, 4, v2, v2);
+    buf.emitWrite<quint16>(0, 2, v2, v2);
+    buf.emitWrite<quint16>(0, 0, v2, v2);
+    buf.emitFrameStart();
     auto frame = buf.cbegin();
     for (auto pkt = frame.cbegin(); pkt != frame.cend(); ++pkt)
       sink.analyze(pkt, sim::api2::trace::Direction::Forward);
@@ -425,11 +425,11 @@ TEST_CASE("ModifiedAddressSink", "[scope:sim][kind:unit][arch:*]") {
     InfiniteBuffer buf;
     buf.trace(0, true);
     ModifiedAddressSink<uint16_t> sink;
-    emitFrameStart(&buf);
-    emitWrite<quint16>(&buf, 0, 0, v2, v2);
-    emitWrite<quint16>(&buf, 0, 4, v2, v2);
-    emitWrite<quint16>(&buf, 0, 2, v2, v2);
-    emitFrameStart(&buf);
+    buf.emitFrameStart();
+    buf.emitWrite<quint16>(0, 0, v2, v2);
+    buf.emitWrite<quint16>(0, 4, v2, v2);
+    buf.emitWrite<quint16>(0, 2, v2, v2);
+    buf.emitFrameStart();
     auto frame = buf.cbegin();
     for (auto pkt = frame.cbegin(); pkt != frame.cend(); ++pkt)
       sink.analyze(pkt, sim::api2::trace::Direction::Forward);
@@ -441,10 +441,10 @@ TEST_CASE("ModifiedAddressSink", "[scope:sim][kind:unit][arch:*]") {
     InfiniteBuffer buf;
     buf.trace(0, true);
     ModifiedAddressSink<uint16_t> sink;
-    emitFrameStart(&buf);
-    emitWrite<quint16>(&buf, 0, 0, v2, v2);
-    emitWrite<quint16>(&buf, 0, 0, v1, v1);
-    emitFrameStart(&buf);
+    buf.emitFrameStart();
+    buf.emitWrite<quint16>(0, 0, v2, v2);
+    buf.emitWrite<quint16>(0, 0, v1, v1);
+    buf.emitFrameStart();
     auto frame = buf.cbegin();
     for (auto pkt = frame.cbegin(); pkt != frame.cend(); ++pkt)
       sink.analyze(pkt, sim::api2::trace::Direction::Forward);
@@ -456,12 +456,12 @@ TEST_CASE("ModifiedAddressSink", "[scope:sim][kind:unit][arch:*]") {
     InfiniteBuffer buf;
     buf.trace(0, true);
     ModifiedAddressSink<uint16_t> sink;
-    emitFrameStart(&buf);
-    emitWrite<quint16>(&buf, 0, 0, v1, v1);
-    emitWrite<quint16>(&buf, 0, 2, v1, v1);
-    emitWrite<quint16>(&buf, 0, 4, v1, v1);
-    emitWrite<quint16>(&buf, 0, 6, v1, v1);
-    emitFrameStart(&buf);
+    buf.emitFrameStart();
+    buf.emitWrite<quint16>(0, 0, v1, v1);
+    buf.emitWrite<quint16>(0, 2, v1, v1);
+    buf.emitWrite<quint16>(0, 4, v1, v1);
+    buf.emitWrite<quint16>(0, 6, v1, v1);
+    buf.emitFrameStart();
     auto frame = buf.cbegin();
     for (auto pkt = frame.cbegin(); pkt != frame.cend(); ++pkt)
       sink.analyze(pkt, sim::api2::trace::Direction::Forward);
@@ -470,9 +470,9 @@ TEST_CASE("ModifiedAddressSink", "[scope:sim][kind:unit][arch:*]") {
       CHECK(sink.contains(it) == (it % 2 == 0));
     buf.clear();
     quint8 v5[] = {1, 2, 3, 4, 5};
-    emitFrameStart(&buf);
-    emitWrite<quint16>(&buf, 0, 1, v5, v5);
-    emitFrameStart(&buf);
+    buf.emitFrameStart();
+    buf.emitWrite<quint16>(0, 1, v5, v5);
+    buf.emitFrameStart();
     frame = buf.cbegin();
     for (auto pkt = frame.cbegin(); pkt != frame.cend(); ++pkt)
       sink.analyze(pkt, sim::api2::trace::Direction::Forward);
@@ -485,9 +485,9 @@ TEST_CASE("ModifiedAddressSink", "[scope:sim][kind:unit][arch:*]") {
     InfiniteBuffer buf;
     buf.trace(0, true);
     ModifiedAddressSink<uint16_t> sink;
-    emitFrameStart(&buf);
-    emitWrite<quint16>(&buf, 0, 0xFFFF, v2, v2);
-    emitFrameStart(&buf);
+    buf.emitFrameStart();
+    buf.emitWrite<quint16>(0, 0xFFFF, v2, v2);
+    buf.emitFrameStart();
     auto frame = buf.cbegin();
     for (auto pkt = frame.cbegin(); pkt != frame.cend(); ++pkt)
       sink.analyze(pkt, sim::api2::trace::Direction::Forward);
@@ -537,11 +537,11 @@ TEST_CASE("TranslatingModifiedAddressSink", "[scope:sim][kind:unit][arch:*]") {
     auto path = paths->add(0, bus->deviceID());
     TranslatingModifiedAddressSink<uint16_t> sink(paths, &*bus);
     auto guard = sim::api2::trace::PathGuard(&buf, path);
-    emitFrameStart(&buf);
-    emitWrite<quint16>(&buf, d1.id, 0u, v1, v1);
-    emitWrite<quint16>(&buf, d2.id, 0u, v1, v1);
-    emitWrite<quint16>(&buf, d3.id, 0u, v1, v1);
-    emitFrameStart(&buf);
+    buf.emitFrameStart();
+    buf.emitWrite<quint16>(d1.id, 0u, v1, v1);
+    buf.emitWrite<quint16>(d2.id, 0u, v1, v1);
+    buf.emitWrite<quint16>(d3.id, 0u, v1, v1);
+    buf.emitFrameStart();
     auto frame = buf.cbegin();
     for (auto pkt = frame.cbegin(); pkt != frame.cend(); ++pkt)
       sink.analyze(pkt, sim::api2::trace::Direction::Forward);
@@ -558,11 +558,11 @@ TEST_CASE("TranslatingModifiedAddressSink", "[scope:sim][kind:unit][arch:*]") {
     auto path = paths->add(0, bus->deviceID());
     TranslatingModifiedAddressSink<uint16_t> sink(paths, &*bus);
     auto guard = sim::api2::trace::PathGuard(&buf, path);
-    emitFrameStart(&buf);
-    emitWrite<quint16>(&buf, d1.id, 0u, v2, v2);
-    emitWrite<quint16>(&buf, d2.id, 0u, v2, v2);
-    emitWrite<quint16>(&buf, d3.id, 0u, v2, v2);
-    emitFrameStart(&buf);
+    buf.emitFrameStart();
+    buf.emitWrite<quint16>(d1.id, 0u, v2, v2);
+    buf.emitWrite<quint16>(d2.id, 0u, v2, v2);
+    buf.emitWrite<quint16>(d3.id, 0u, v2, v2);
+    buf.emitFrameStart();
     auto frame = buf.cbegin();
     for (auto pkt = frame.cbegin(); pkt != frame.cend(); ++pkt)
       sink.analyze(pkt, sim::api2::trace::Direction::Forward);
@@ -577,11 +577,11 @@ TEST_CASE("TranslatingModifiedAddressSink", "[scope:sim][kind:unit][arch:*]") {
     auto path = paths->add(0, bus->deviceID());
     TranslatingModifiedAddressSink<uint16_t> sink(paths, &*bus);
     auto guard = sim::api2::trace::PathGuard(&buf, path);
-    emitFrameStart(&buf);
-    emitWrite<quint16>(&buf, d3.id, 0u, v1, v1);
-    emitWrite<quint16>(&buf, d2.id, 0u, v1, v1);
-    emitWrite<quint16>(&buf, d1.id, 0u, v1, v1);
-    emitFrameStart(&buf);
+    buf.emitFrameStart();
+    buf.emitWrite<quint16>(d3.id, 0u, v1, v1);
+    buf.emitWrite<quint16>(d2.id, 0u, v1, v1);
+    buf.emitWrite<quint16>(d1.id, 0u, v1, v1);
+    buf.emitFrameStart();
     auto frame = buf.cbegin();
     for (auto pkt = frame.cbegin(); pkt != frame.cend(); ++pkt)
       sink.analyze(pkt, sim::api2::trace::Direction::Forward);
@@ -596,11 +596,11 @@ TEST_CASE("TranslatingModifiedAddressSink", "[scope:sim][kind:unit][arch:*]") {
     auto path = paths->add(0, bus->deviceID());
     TranslatingModifiedAddressSink<uint16_t> sink(paths, &*bus);
     auto guard = sim::api2::trace::PathGuard(&buf, path);
-    emitFrameStart(&buf);
-    emitWrite<quint16>(&buf, d3.id, 0, v2, v2);
-    emitWrite<quint16>(&buf, d2.id, 0, v2, v2);
-    emitWrite<quint16>(&buf, d1.id, 0, v2, v2);
-    emitFrameStart(&buf);
+    buf.emitFrameStart();
+    buf.emitWrite<quint16>(d3.id, 0, v2, v2);
+    buf.emitWrite<quint16>(d2.id, 0, v2, v2);
+    buf.emitWrite<quint16>(d1.id, 0, v2, v2);
+    buf.emitFrameStart();
     auto frame = buf.cbegin();
     for (auto pkt = frame.cbegin(); pkt != frame.cend(); ++pkt)
       sink.analyze(pkt, sim::api2::trace::Direction::Forward);
@@ -615,11 +615,11 @@ TEST_CASE("TranslatingModifiedAddressSink", "[scope:sim][kind:unit][arch:*]") {
     auto path = paths->add(0, bus->deviceID());
     TranslatingModifiedAddressSink<uint16_t> sink(paths, &*bus);
     auto guard = sim::api2::trace::PathGuard(&buf, path);
-    emitFrameStart(&buf);
-    emitWrite<quint16>(&buf, d3.id, 0, v2, v2);
-    emitWrite<quint16>(&buf, d1.id, 0, v2, v2);
-    emitWrite<quint16>(&buf, d2.id, 0, v2, v2);
-    emitFrameStart(&buf);
+    buf.emitFrameStart();
+    buf.emitWrite<quint16>(d3.id, 0, v2, v2);
+    buf.emitWrite<quint16>(d1.id, 0, v2, v2);
+    buf.emitWrite<quint16>(d2.id, 0, v2, v2);
+    buf.emitFrameStart();
     auto frame = buf.cbegin();
     for (auto pkt = frame.cbegin(); pkt != frame.cend(); ++pkt)
       sink.analyze(pkt, sim::api2::trace::Direction::Forward);
@@ -634,10 +634,10 @@ TEST_CASE("TranslatingModifiedAddressSink", "[scope:sim][kind:unit][arch:*]") {
     auto path = paths->add(0, bus->deviceID());
     TranslatingModifiedAddressSink<uint16_t> sink(paths, &*bus);
     auto guard = sim::api2::trace::PathGuard(&buf, path);
-    emitFrameStart(&buf);
-    emitWrite<quint16>(&buf, d3.id, 0, v2, v2);
-    emitWrite<quint16>(&buf, d3.id, 0, v1, v1);
-    emitFrameStart(&buf);
+    buf.emitFrameStart();
+    buf.emitWrite<quint16>(d3.id, 0, v2, v2);
+    buf.emitWrite<quint16>(d3.id, 0, v1, v1);
+    buf.emitFrameStart();
     auto frame = buf.cbegin();
     for (auto pkt = frame.cbegin(); pkt != frame.cend(); ++pkt)
       sink.analyze(pkt, sim::api2::trace::Direction::Forward);

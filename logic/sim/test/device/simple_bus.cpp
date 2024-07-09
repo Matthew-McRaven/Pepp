@@ -149,10 +149,10 @@ TEST_CASE("Simple bus path tracking", "[scope:sim][kind:int][arch:*]") {
   quint8 buf[2];
   for (int it = 0; it < 2; it++)
     buf[it] = it + 1;
-  sim::trace2::emitFrameStart(&*tb);
+  tb->emitFrameStart();
   bus0->write(0, {buf}, rw);
   bus1->write(2, {buf}, rw);
-  sim::trace2::emitFrameStart(&*tb);
+  tb->emitFrameStart();
   auto frames = tb->cbegin();
   auto packets = frames.cbegin();
   REQUIRE(packets != frames.cend());
