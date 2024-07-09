@@ -61,6 +61,7 @@ Item {
                     userAsmEdit.editor.onRequestAllBreakpoints)
         project.requestSourceBreakpoints.disconnect(
                     osAsmEdit.editor.onRequestAllBreakpoints)
+        project.switchTo.disconnect(wrapper.onSwitchTo)
     }
     function onSwitchTo(os) {
         textSelector.currentIndex = Qt.binding(() => os ? 1 : 0)
