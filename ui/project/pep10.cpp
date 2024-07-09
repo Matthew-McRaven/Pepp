@@ -553,8 +553,8 @@ int Pep10_ASMB::allowedDebugging() const {
 }
 
 bool Pep10_ASMB::onDebuggingStart() {
-  updatePCLine();
   Pep10_ISA::onDebuggingStart();
+  updatePCLine();
   return true;
 }
 
@@ -678,6 +678,8 @@ void Pep10_ASMB::prepareSim() {
   charIn->clear(0);
   auto charInEndpoint = charIn->endpoint();
   for (int it = 0; it < _charIn.size(); it++) charInEndpoint->append_value(_charIn[it].toLatin1());
+
+  _pendingPause = false;
 }
 
 void Pep10_ASMB::prepareGUIUpdate(sim::api2::trace::FrameIterator from) {
@@ -690,12 +692,12 @@ void Pep10_ASMB::updatePCLine() {
   if (auto userSrc = _userLines2Address.address2Source(pc); userSrc) emit modifyUserSource(*userSrc, Action::ScrollTo);
   if (auto userList = _userLines2Address.address2List(pc); userList) {
     emit switchTo(false);
-    emit modifyUserList(*userList, Action::ScrollTo);
+    emit modifyUserList(*userList, Action::HighlightExclusive);
   }
   if (auto osSrc = _osLines2Address.address2Source(pc); osSrc) emit modifyOSSource(*osSrc, Action::ScrollTo);
   if (auto osList = _osLines2Address.address2List(pc); osList) {
     emit switchTo(true);
-    emit modifyOSList(*osList, Action::ScrollTo);
+    emit modifyOSList(*osList, Action::HighlightExclusive);
   }
 }
 
