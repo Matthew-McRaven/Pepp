@@ -54,6 +54,7 @@ public:
     StepBackOver = 32,
     StepBackInto = 64,
     StepBackOut = 128,
+    Continue = 256,
   };
   Q_ENUM(Value);
 };

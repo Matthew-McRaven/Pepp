@@ -74,7 +74,7 @@ public slots:
   bool onClearCPU();
   bool onClearMemory();
 
-  void onDeferredExecution(sim::api2::trace::Action stopOn);
+  void onDeferredExecution(sim::api2::trace::Action stopOn, project::StepEnableFlags::Value step);
 
 signals:
   void objectCodeTextChanged();
@@ -87,7 +87,7 @@ signals:
 
   void message(QString message);
   void updateGUI(sim::api2::trace::FrameIterator from);
-  void deferredExecution(sim::api2::trace::Action stopOn);
+  void deferredExecution(sim::api2::trace::Action stopOn, project::StepEnableFlags::Value step);
 
 protected:
   void bindToSystem();

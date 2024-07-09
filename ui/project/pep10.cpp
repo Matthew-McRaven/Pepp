@@ -326,7 +326,7 @@ bool Pep10_ISA::onExecute() {
   emit allowedDebuggingChanged();
   emit allowedStepsChanged();
   _system->bus()->trace(true);
-  emit deferredExecution(sim::api2::trace::Action::Assert);
+  emit deferredExecution(sim::api2::trace::Action::Assert, project::StepEnableFlags::Continue);
   return true;
 }
 
@@ -346,7 +346,7 @@ bool Pep10_ISA::onDebuggingContinue() {
   _stepsSinceLastInteraction = 0;
   emit allowedDebuggingChanged();
   emit allowedStepsChanged();
-  emit deferredExecution(sim::api2::trace::Action::Break);
+  emit deferredExecution(sim::api2::trace::Action::Break, project::StepEnableFlags::Continue);
   return true;
 }
 
@@ -368,7 +368,7 @@ bool Pep10_ISA::onISAStep() {
   _pendingPause = false;
   emit allowedDebuggingChanged();
   emit allowedStepsChanged();
-  emit deferredExecution(sim::api2::trace::Action::Break);
+  emit deferredExecution(sim::api2::trace::Action::Break, project::StepEnableFlags::Step);
   return true;
 }
 
@@ -382,7 +382,7 @@ bool Pep10_ISA::onClearCPU() { return false; }
 
 bool Pep10_ISA::onClearMemory() { return false; }
 
-void Pep10_ISA::onDeferredExecution(sim::api2::trace::Action stopOn) {
+void Pep10_ISA::onDeferredExecution(sim::api2::trace::Action stopOn, project::StepEnableFlags::Value step) {
   auto pwrOff = _system->output("pwrOff");
   auto endpoint = pwrOff->endpoint();
   auto from = _tb->cend();
@@ -392,7 +392,7 @@ void Pep10_ISA::onDeferredExecution(sim::api2::trace::Action stopOn) {
   switch (_state) {
   case State::Halted: newState = State::NormalExec; break;
   case State::NormalExec: break;
-  case State::DebugPaused: break;
+  case State::DebugPaused: [[fallthrough]];
   case State::DebugExec: newState = State::DebugExec; break;
   }
   if (newState != _state) {
@@ -401,30 +401,39 @@ void Pep10_ISA::onDeferredExecution(sim::api2::trace::Action stopOn) {
     emit allowedStepsChanged();
   }
 
+  // If we exceed the number of steps, do we allow another deferredExecution?
+  bool allowsResume = false;
   try {
-    auto ending = _system->currentTick() + 1000;
-    while (_system->currentTick() < ending && endpoint->at_end()) {
+    auto ending = _system->currentTick();
+    // TODO: need a function to check if we have pushed / popped stuff on the call stack.
+    // std::function<bool(decltype(_system->currentTick()))> s;
+    switch (step) {
+    case project::StepEnableFlags::Step: ending += 1; break;
+    case project::StepEnableFlags::StepInto: break;
+    case project::StepEnableFlags::Continue:
+      ending += 1000;
+      allowsResume = true;
+      break;
+    default: break;
+    }
+    while (_system->currentTick() < ending && endpoint->at_end() && !_pendingPause) {
       _system->tick(sim::api2::Scheduler::Mode::Jump);
       for (const auto &event : _tb->events()) {
-        if (event.action >= stopOn) {
-          _state = State::DebugPaused;
-          emit allowedDebuggingChanged();
-          emit allowedStepsChanged();
-          break;
-        }
+        if (event.action >= stopOn) _pendingPause = true;
       }
       _tb->clearEvents();
     }
   } catch (const sim::api2::memory::Error &e) {
     err = true;
     if (e.type() == sim::api2::memory::Error::Type::NeedsMMI) {
+      std::cerr << "Ran out of MMI\n";
     } else std::cerr << "Memory error: " << e.what() << std::endl;
     // Handle illegal opcodes or program crashes.
   } catch (const std::logic_error &e) {
     err = true;
     std::cerr << e.what() << std::endl;
   }
-
+  // Only terminates if something written to endpoint or there was an error
   if (endpoint->next_value().has_value() || err) {
     switch (_state) {
     case State::DebugExec: [[fallthrough]];
@@ -432,13 +441,23 @@ void Pep10_ISA::onDeferredExecution(sim::api2::trace::Action stopOn) {
     default: break;
     }
     _system->bus()->trace(false);
-  } else if (_stepsSinceLastInteraction++ > 10) {
+  }
+  // Trigger a BP if we exceed a resonable number of chained executions
+  else if (_stepsSinceLastInteraction++ > 10) {
     _state = State::DebugPaused;
     emit allowedDebuggingChanged();
     emit allowedStepsChanged();
     emit message("Pausing, potential infinite loop detected.");
-  } else if (_pendingPause) _pendingPause = false;
-  else emit deferredExecution(stopOn);
+  }
+  // Queued connection, so it will be evaluated after the display is updated.
+  else if (allowsResume && !_pendingPause)
+    emit deferredExecution(stopOn, step);
+  else {
+    _pendingPause = false;
+    _state = State::DebugPaused;
+    emit allowedDebuggingChanged();
+    emit allowedStepsChanged();
+  }
   prepareGUIUpdate(from);
 }
 
