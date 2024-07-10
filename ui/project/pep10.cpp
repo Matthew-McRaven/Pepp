@@ -294,6 +294,8 @@ QString Pep10_ISA::charOut() const {
   return u""_qs;
 }
 
+bool Pep10_ISA::isEmpty() const { return _objectCodeText.isEmpty(); }
+
 bool Pep10_ISA::onSaveCurrent() { return false; }
 
 bool Pep10_ISA::onLoadObject() {
@@ -555,6 +557,8 @@ const QList<Error *> Pep10_ASMB::errors() const {
   for (auto [line, str] : _errors) ret.push_back(new Error{line, str});
   return ret;
 }
+
+bool Pep10_ASMB::isEmpty() const { return _userAsmText.isEmpty(); }
 
 project::Environment Pep10_ASMB::env() const {
   return {.arch = utils::Architecture::PEP10, .level = utils::Abstraction::ASMB5, .features = project::Features::None};

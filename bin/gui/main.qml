@@ -145,14 +145,25 @@ ApplicationWindow {
         id: pm
         function onAddProject(arch, level, feats, optTexts) {
             var proj = null
+            var cur = window.currentProject
             // Attach a delegate to the project which can render its edit/debug modes. Since it is a C++ property,
             // binding changes propogate automatically.
             switch (Number(arch)) {
             case Architecture.PEP10:
                 if (Number(level) === Abstraction.ISA3) {
-                    proj = pm.pep10ISA(pep10isaComponent)
+                    if (cur && cur.architecture === Architecture.PEP10
+                            && cur.abstraction === Abstraction.ISA3
+                            && cur.isEmpty)
+                        proj = cur
+                    else
+                        proj = pm.pep10ISA(pep10isaComponent)
                 } else {
-                    proj = pm.pep10ASMB(pep10asmbComponent)
+                    if (cur && cur.architecture === Architecture.PEP10
+                            && cur.abstraction === Abstraction.ASMB5
+                            && cur.isEmpty)
+                        proj = cur
+                    else
+                        proj = pm.pep10ASMB(pep10asmbComponent)
                 }
                 break
             }
