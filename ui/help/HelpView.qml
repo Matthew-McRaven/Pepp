@@ -26,9 +26,12 @@ Item {
     property alias architecture: filterModel.architecture
     property alias abstraction: filterModel.abstraction
     signal addProject(int level, int abstraction, string feats, var text)
+    signal setCharIn(string text)
     signal switchToMode(string mode)
-    function addProjectWrapper(feats, texts, mode) {
+    function addProjectWrapper(feats, texts, mode, tests) {
         root.addProject(root.architecture, root.abstraction, feats, texts)
+        if (tests && tests[0])
+            root.setCharIn(tests[0].output)
         root.switchToMode(mode ?? "Edit")
     }
     function selectSource(arg) {
@@ -143,15 +146,15 @@ Item {
             Connections {
                 ignoreUnknownSignals: topicWindow.source !== "Figure.qml"
                 target: topicWindow.item
-                function onAddProject(feats, text, switchToMode, optionalOS) {
+                function onAddProject(feats, text, switchToMode, optionalOS, tests) {
                     if (optionalOS !== undefined && optionalOS) {
                         // foratter keeps destroying compute property names in map, so build map manually.
                         let v = {}
                         v[root.abstraction] = text
                         v[Abstraction.OS4] = optionalOS
-                        root.addProjectWrapper(feats, v, switchToMode)
+                        root.addProjectWrapper(feats, v, switchToMode, tests)
                     } else
-                        root.addProjectWrapper(feats, text, switchToMode)
+                        root.addProjectWrapper(feats, text, switchToMode, tests)
                 }
             }
             Loader {

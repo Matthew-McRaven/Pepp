@@ -19,14 +19,18 @@ Item {
         project.errorsChanged.connect(displayErrors)
         project.listingChanged.connect(fixListings)
         onProjectChanged.connect(fixListings)
+        project.charInChanged.connect(() => batchio.setInput(project.charIn))
+        // Connect editor BPs to project
         userAsmEdit.editor.modifyLine.connect(project.onModifyUserSource)
         osAsmEdit.editor.modifyLine.connect(project.onModifyOSSource)
         userList.editor.modifyLine.connect(project.onModifyUserList)
         osList.editor.modifyLine.connect(project.onModifyOSList)
+        // Connect project to editors
         project.modifyUserSource.connect(userAsmEdit.editor.onLineAction)
         project.modifyOSSource.connect(osAsmEdit.editor.onLineAction)
         project.modifyUserList.connect(userList.editor.onLineAction)
         project.modifyOSList.connect(osList.editor.onLineAction)
+        // Update breakpoints on switch
         project.clearListingBreakpoints.connect(
                     userList.editor.onClearAllBreakpoints)
         project.clearListingBreakpoints.connect(
@@ -220,8 +224,17 @@ Item {
                 SplitView.fillHeight: true
                 width: parent.width
                 id: batchio
+                property bool ignoreInputChange: false
+                function setInput(input) {
+                    ignoreInputChange = true
+                    batchio.input = input
+                    ignoreInputChange = false
+                }
                 Component.onCompleted: {
-                    onInputChanged.connect(() => project.charIn = input)
+                    onInputChanged.connect(() => {
+                                               if (!ignoreInputChange)
+                                               project.charIn = input
+                                           })
                 }
                 output: project?.charOut ?? null
             }

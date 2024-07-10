@@ -73,6 +73,10 @@ ApplicationWindow {
     property var currentProject: null
 
     property string mode: "welcome"
+    function setProjectCharIn(charIn) {
+        if (currentProject)
+            currentProject.charIn = charIn
+    }
     function setCurrentProject(index) {
         if (window?.currentProject?.message !== undefined) {
             window.currentProject.message.disconnect(window.message)
@@ -126,6 +130,7 @@ ApplicationWindow {
         help.addProject.connect(pm.onAddProject)
         help.addProject.connect(() => switchToProject(pm.count - 1))
         help.switchToMode.connect(sidebar.switchToMode)
+        help.setCharIn.connect(i => setProjectCharIn(i))
         currentProjectChanged.connect(projectLoader.onCurrentProjectChanged)
 
         actions.edit.prefs.triggered.connect(preferencesDialog.open)

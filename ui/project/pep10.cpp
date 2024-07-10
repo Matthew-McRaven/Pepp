@@ -273,7 +273,11 @@ int Pep10_ISA::allowedSteps() const {
 
 QString Pep10_ISA::charIn() const { return _charIn; }
 
-void Pep10_ISA::setCharIn(QString value) { _charIn = value; }
+void Pep10_ISA::setCharIn(QString value) {
+  if (_charIn == value) return;
+  _charIn = value;
+  emit charInChanged();
+}
 
 QString Pep10_ISA::charOut() const {
   if (auto charOut = _system->output("charOut"); charOut) {
