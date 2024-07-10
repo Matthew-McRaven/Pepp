@@ -377,7 +377,15 @@ Item {
 
             return true
         }
+        // TODO: precalculate in C++ so that we don't do it thousands of times in JS.
+        function blendColors(color1, color2, ratio) {
+            var r = color1.r * (1 - ratio) + color2.r * ratio
+            var g = color1.g * (1 - ratio) + color2.g * ratio
+            var b = color1.b * (1 - ratio) + color2.b * ratio
+            var a = color1.a * (1 - ratio) + color2.a * ratio
 
+            return Qt.rgba(r, g, b, a)
+        }
         //  Used for drawing grid
         delegate: memoryDelegateChooser
 
@@ -414,13 +422,23 @@ Item {
                     function updateBackground() {
                         switch (model.highlight) {
                         case MemoryHighlight.Modified:
-                            backgroundColor = Qt.binding(() => "#FF0000")
+                            backgroundColor = Qt.binding(
+                                        () => tableView.blendColors(
+                                            Qt.rgba(1, 0, 0, 1),
+                                            [palette.base, palette.alternateBase][column % 2],
+                                            .25))
                             break
                         case MemoryHighlight.PC:
-                            backgroundColor = Qt.binding(() => "#3f51b5")
+                            backgroundColor = Qt.binding(() => tableView.blendColors(
+                                                             Qt.rgba(0x3f / 255., 0x51 / 255., 0xb5 / 255., 1), [palette.base, palette.alternateBase][column % 2],
+                                                             .25))
                             break
                         case MemoryHighlight.SP:
-                            backgroundColor = Qt.binding(() => "#FF9800")
+                            backgroundColor = Qt.binding(
+                                        () => tableView.blendColors(
+                                            Qt.rgba(1, 0x98 / 255., 0, 1),
+                                            [palette.base, palette.alternateBase][column % 2],
+                                            .25))
                             break
                         default:
                             // Alternating colors, using array to avoid conditional logic.
