@@ -187,8 +187,7 @@ Item {
                 // figCol.copyTitle & figCol.copyContent
                 width: copyRow.width - button.width - copyRow.spacing
                 textFormat: Text.RichText
-                text: "<div><b>Figure " + figCol.copyTitle + ":</b> "
-                      + figCol.copyContent + "</div>"
+                text: "<div><b>" + figCol.copyTitle + ":</b> " + figCol.copyContent + "</div>"
                 wrapMode: Text.WordWrap
             }
         } //  Row
