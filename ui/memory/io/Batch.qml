@@ -11,7 +11,7 @@ ColumnLayout {
     TextArea {
         id: inputArea
         background: Rectangle {
-            color: "red"
+            color: Qt.rgba(1, 0, 0, 0.25)
         }
         Layout.fillWidth: true
         Layout.fillHeight: true
@@ -23,7 +23,7 @@ ColumnLayout {
         id: outputArea
         readOnly: true
         background: Rectangle {
-            color: "blue"
+            color: Qt.rgba(0, 0, 1, 0.25)
         }
         Layout.fillWidth: true
         Layout.fillHeight: true
