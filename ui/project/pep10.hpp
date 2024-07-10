@@ -32,6 +32,7 @@ class Pep10_ISA : public QObject {
   Q_PROPERTY(QString charIn READ charIn WRITE setCharIn NOTIFY charInChanged)
   // Only changed internally.
   Q_PROPERTY(QString charOut READ charOut NOTIFY charOutChanged)
+  Q_PROPERTY(bool isEmpty READ isEmpty)
 public:
   enum class UpdateType {
     Partial,
@@ -57,6 +58,7 @@ public:
   Q_INVOKABLE QString charIn() const;
   Q_INVOKABLE void setCharIn(QString value);
   Q_INVOKABLE QString charOut() const;
+  Q_INVOKABLE virtual bool isEmpty() const;
 public slots:
   bool onSaveCurrent();
   bool onLoadObject();
@@ -149,6 +151,7 @@ public:
   Q_INVOKABLE QString osList() const;
   Q_INVOKABLE const QList<Error *> osListAnnotations() const;
   Q_INVOKABLE const QList<Error *> errors() const;
+  Q_INVOKABLE bool isEmpty() const override;
   project::Environment env() const override;
   utils::Architecture architecture() const override;
   utils::Abstraction abstraction() const override;
