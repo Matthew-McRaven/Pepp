@@ -20,11 +20,11 @@
 
 When cloning this project, use `--recurse-submodules` to install relevant source code dependencies.
 
-| Required Build Tools                                              | Reason                                              |
-|-------------------------------------------------------------------|-----------------------------------------------------|
-| [Qt 6.6](https://doc.qt.io/qt-6/get-and-install-qt.html) or later | Required for cross-platform GUIs                    |
-| [CMake 3.24](https://cmake.org/download/)  or later               | Required build system; usually bundled with Qt      |
-| [git lfs](https://git-lfs.com/)                                   | Required for binary assets, such as images an icons |
+| Required Build Tools                                               | Reason                                                                                                  |
+|--------------------------------------------------------------------|---------------------------------------------------------------------------------------------------------|
+| [Qt 6.7](https://doc.qt.io/qt-6/get-and-install-qt.html) or later  | Required for cross-platform GUIs. Under "Additional libraries", install `Qt WebEngine` and `Qt WebView` |
+| [CMake 3.24](https://cmake.org/download/)or later                  | Required build system; usually bundled with Qt                                                          | 
+| [git lfs](https://git-lfs.com/)                                    | Required for binary assets, such as images an icons                                                     |
 
 While not required, the following tools enable additional features in built applications:
 
@@ -45,11 +45,11 @@ This is fixed with
 a [custom build step](https://doc.qt.io/qtcreator/creator-build-settings.html#adding-custom-build-steps).
 This build step must be added to each build configuration (e.g., build, release).
 
-| Line              | Value                                                            | Description                                              |
-|-------------------|------------------------------------------------------------------|----------------------------------------------------------|
-| Command           | `<QT_ROOT>/bin/windeployqt6.exe`                                 | On my PC, `<QT_ROOT>` is `C:/Qt/6.6.0/msvc2019_64`       |
-| Arguments         | `%{buildDir}\output\pepp.exe --qmldir %{sourceDir}`              | `--qmldir` is required for discovery of our dependencies |
-| Working Directory | (blank)                                                          | This value does not matter and is unused                 |
+| Line              | Value                                               | Description                                              |
+|-------------------|-----------------------------------------------------|----------------------------------------------------------|
+| Command           | `<QT_ROOT>/bin/windeployqt6.exe`                    | On my PC, `<QT_ROOT>` is `C:/Qt/6.6.0/msvc2019_64`       |
+| Arguments         | `%{buildDir}\output\pepp.exe --qmldir %{sourceDir}` | `--qmldir` is required for discovery of our dependencies |
+| Working Directory | (blank)                                             | This value does not matter and is unused                 |
 
 # Relation to [Pep9Suite](https://github.com/StanWarford/pep9suite)
 
@@ -175,7 +175,8 @@ If the feature is mostly complete (i.e., stable enough to be reused), it belongs
 Otherwise, it can be prototyped under [bin/gui/](bin/gui/).
 Please find an appropriate subdirectory in either location for your feature.
 
-
 # Debugging WASM
-Install [the following plugin](https://chromewebstore.google.com/detail/cc++-devtools-support-dwa/pdcpmagijalfljmkmjngeonclgbbannb?pli=1) into chrome.
+
+Install [the following plugin](https://chromewebstore.google.com/detail/cc++-devtools-support-dwa/pdcpmagijalfljmkmjngeonclgbbannb?pli=1)
+into chrome.
 See [Qt help](https://doc.qt.io/qt-6/wasm.html#debugging-and-profiling) for aditional settings
