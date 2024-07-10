@@ -23,7 +23,7 @@ import "qrc:/ui/text/editor" as TextEdit
 Item {
     id: wrapper
     property alias text_area: figContent
-    signal addProject(string feats, string text, string switchToMode, var optionalOS)
+    signal addProject(string feats, string text, string switchToMode, var optionalOS, var tests)
 
     //required property var model
     ColumnLayout {
@@ -178,7 +178,8 @@ Item {
                 }
                 onClicked: wrapper.addProject(
                                "", figCol.listing, "Edit",
-                               figCol?.payload?.defaultOS?.elements[figCol.language]?.content)
+                               figCol?.payload?.defaultOS?.elements[figCol.language]?.content,
+                               figCol?.payload?.tests)
             }
 
             //  Figure title

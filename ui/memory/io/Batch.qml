@@ -3,7 +3,7 @@ import QtQuick.Controls
 import QtQuick.Layouts
 
 ColumnLayout {
-    property string input: inputArea.text
+    property alias input: inputArea.text
     property alias output: outputArea.text
     Label {
         text: "Input"

@@ -29,7 +29,7 @@ class Pep10_ISA : public QObject {
   Q_PROPERTY(int allowedDebugging READ allowedDebugging NOTIFY allowedDebuggingChanged)
   Q_PROPERTY(int allowedSteps READ allowedSteps NOTIFY allowedStepsChanged)
   // Only changed externally
-  Q_PROPERTY(QString charIn READ charIn WRITE setCharIn)
+  Q_PROPERTY(QString charIn READ charIn WRITE setCharIn NOTIFY charInChanged)
   // Only changed internally.
   Q_PROPERTY(QString charOut READ charOut NOTIFY charOutChanged)
 public:
