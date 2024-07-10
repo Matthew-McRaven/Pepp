@@ -73,8 +73,7 @@ QVariantList builtins::Figure::tests() const {
   // Convert type-correct map to a QVariantMap, which can be accessed natively
   // in QML
   QVariantList v;
-  for (auto x : _tests)
-    v.push_back(QVariant::fromValue(x));
+  for (auto x : _tests) v.push_back(QVariant::fromValue(x));
   return v;
 }
 void builtins::Figure::addTest(const Test *test) {
