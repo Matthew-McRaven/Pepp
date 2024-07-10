@@ -52,5 +52,5 @@ qt_add_resources(about "about"
 )
 
 target_sources(about PRIVATE "${CMAKE_CURRENT_BINARY_DIR}/version.cpp")
-target_sources(about PRIVATE "${CMAKE_SOURCE_DIR}/license.qrc")
+target_sources(about PRIVATE "${CMAKE_SOURCE_DIR}/resource_license.qrc")
 
