@@ -48,9 +48,6 @@ Flickable {
         editor.editingFinished.connect(text => wrapper.editingFinished(text))
     }
 
-    StyleMap {
-        id: styles
-    }
     BlockFinder {
         id: finder
     }
