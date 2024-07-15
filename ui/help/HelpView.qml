@@ -25,11 +25,11 @@ Item {
     id: root
     property alias architecture: filterModel.architecture
     property alias abstraction: filterModel.abstraction
-    signal addProject(int level, int abstraction, string feats, var text)
+    signal addProject(int level, int abstraction, string feats, var text, bool reuse)
     signal setCharIn(string text)
     signal switchToMode(string mode)
     function addProjectWrapper(feats, texts, mode, tests) {
-        root.addProject(root.architecture, root.abstraction, feats, texts)
+        root.addProject(root.architecture, root.abstraction, feats, texts, true)
         if (tests && tests[0])
             root.setCharIn(tests[0].output)
         root.switchToMode(mode ?? "Edit")

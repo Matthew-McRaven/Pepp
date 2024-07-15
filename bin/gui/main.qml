@@ -143,7 +143,7 @@ ApplicationWindow {
 
     ProjectModel {
         id: pm
-        function onAddProject(arch, level, feats, optTexts) {
+        function onAddProject(arch, level, feats, optTexts, reuse) {
             var proj = null
             var cur = window.currentProject
             // Attach a delegate to the project which can render its edit/debug modes. Since it is a C++ property,
@@ -153,14 +153,14 @@ ApplicationWindow {
                 if (Number(level) === Abstraction.ISA3) {
                     if (cur && cur.architecture === Architecture.PEP10
                             && cur.abstraction === Abstraction.ISA3
-                            && cur.isEmpty)
+                            && cur.isEmpty && reuse)
                         proj = cur
                     else
                         proj = pm.pep10ISA(pep10isaComponent)
                 } else {
                     if (cur && cur.architecture === Architecture.PEP10
                             && cur.abstraction === Abstraction.ASMB5
-                            && cur.isEmpty)
+                            && cur.isEmpty && reuse)
                         proj = cur
                     else
                         proj = pm.pep10ASMB(pep10asmbComponent)
@@ -525,7 +525,7 @@ ApplicationWindow {
         standardButtons: Dialog.Close
     }
     function onNew() {
-        pm.onAddProject(Architecture.PEP10, Abstraction.ISA3, "")
+        pm.onAddProject(Architecture.PEP10, Abstraction.ISA3, "", false)
     }
     function onOpenDialog() {}
     function onCloseAllProjects(excludeCurrent: bool) {}

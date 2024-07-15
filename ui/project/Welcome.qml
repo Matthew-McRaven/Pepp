@@ -5,19 +5,21 @@ import edu.pepp 1.0
 
 Rectangle {
     color: 'purple'
-    signal addProject(string arch, string abstraction, string features)
+    signal addProject(string arch, string abstraction, string features, bool reuse)
     RowLayout {
         anchors.fill: parent
         anchors.centerIn: parent
         Button {
             text: "Create ISA project"
             Layout.alignment: Qt.AlignHCenter
-            onClicked: addProject(Architecture.PEP10, Abstraction.ISA3, "")
+            onClicked: addProject(Architecture.PEP10, Abstraction.ISA3,
+                                  "", false)
         }
         Button {
             text: "Create ASM project"
             Layout.alignment: Qt.AlignHCenter
-            onClicked: addProject(Architecture.PEP10, Abstraction.ASMB5, "")
+            onClicked: addProject(Architecture.PEP10, Abstraction.ASMB5,
+                                  "", false)
         }
     }
 }
