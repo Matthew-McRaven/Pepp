@@ -32,6 +32,9 @@ ScrollView {
     Rectangle {
         anchors.fill: parent
         color: palette.base
+        //  Give object code viewer a background box
+        border.width: 1
+        border.color: palette.mid
     }
     Editor.ObjectUtilities {
         id: utils
