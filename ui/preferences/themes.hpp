@@ -45,5 +45,4 @@ public:
     Invalid = 0xffffffff,
   };
   Q_ENUM(Roles)
-
 };

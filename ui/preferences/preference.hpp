@@ -13,15 +13,12 @@
  * You should have received a copy of the GNU General Public License
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
-
-#ifndef PREFERENCE_HPP
-#define PREFERENCE_HPP
+#pragma once
 
 #include <QColor>
+#include <QExplicitlySharedDataPointer>
 #include <QFont>
 #include <QObject>
-#include <QExplicitlySharedDataPointer>
-
 #include "preference_globals.hpp"
 #include "preference_p.hpp"
 
@@ -31,26 +28,25 @@
 //  same data structure.
 class PREFS_EXPORT Preference : public QObject {
   Q_OBJECT
-  //Q_PROPERTY(int id       READ id   CONSTANT)
-  Q_PROPERTY(Themes::Roles id     READ id   CONSTANT)
-  Q_PROPERTY(QString name   READ name CONSTANT)
+  // Q_PROPERTY(int id       READ id   CONSTANT)
+  Q_PROPERTY(Themes::Roles id READ id CONSTANT)
+  Q_PROPERTY(QString name READ name CONSTANT)
   Q_PROPERTY(QColor foreground READ foreground WRITE setForeground NOTIFY preferenceChanged)
   Q_PROPERTY(QColor background READ background WRITE setBackground NOTIFY preferenceChanged)
-  Q_PROPERTY(QFont font     READ font CONSTANT)
-  Q_PROPERTY(bool bold      READ bold      WRITE setBold NOTIFY preferenceChanged);
-  Q_PROPERTY(bool italics   READ italics   WRITE setItalics NOTIFY preferenceChanged);
+  Q_PROPERTY(QFont font READ font CONSTANT)
+  Q_PROPERTY(bool bold READ bold WRITE setBold NOTIFY preferenceChanged);
+  Q_PROPERTY(bool italics READ italics WRITE setItalics NOTIFY preferenceChanged);
   Q_PROPERTY(bool underline READ underline WRITE setUnderline NOTIFY preferenceChanged);
   Q_PROPERTY(bool strikeout READ strikeOut WRITE setStrikeOut NOTIFY preferenceChanged);
 
-  //Preference(PreferencePrivate* p) : d(p){};
+  // Preference(PreferencePrivate* p) : d(p){};
   QExplicitlySharedDataPointer<PreferencePrivate> d;
 
 public:
-
   explicit Preference(QObject *parent = nullptr);
   virtual ~Preference() = default;
 
-  Preference(QObject* parent, const Themes::Roles id, const QString name);
+  Preference(QObject *parent, const Themes::Roles id, const QString name);
   Preference(QObject *parent, const Themes::Roles id, const QString name, const QRgb foreground, const QRgb background,
              const quint32 parentId = 0, const bool bold = false, const bool italics = false,
              const bool underline = false, const bool strikeout = false);
@@ -64,7 +60,7 @@ public:
   size_t size() const;
 
   //  Getter & Setter
-  //int id() const;
+  // int id() const;
   Themes::Roles id() const;
   QString name() const;
 
@@ -73,8 +69,8 @@ public:
   QColor background() const;
   QFont font() const;
 
-  bool bold()      const;
-  bool italics()   const;
+  bool bold() const;
+  bool italics() const;
   bool underline() const;
   bool strikeOut() const;
 
@@ -82,13 +78,13 @@ public:
   void setForeground(const QColor foreground);
   void setBackground(const QColor background);
   void setFont(QFont *font);
-  void setBold(     const bool bold     );
-  void setItalics(  const bool italics  );
+  void setBold(const bool bold);
+  void setItalics(const bool italics);
   void setUnderline(const bool underline);
   void setStrikeOut(const bool strikeOut);
 
   QJsonObject toJson() const;
-  static bool fromJson(const QJsonObject &json, Preference& pref);
+  static bool fromJson(const QJsonObject &json, Preference &pref);
 
 signals:
   void preferenceChanged();
@@ -98,4 +94,3 @@ private:
   void setName(const QString name);
 };
 
-#endif // PREFERENCE_HPP

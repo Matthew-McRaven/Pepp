@@ -49,9 +49,7 @@ public:
   size_t size() const { return preferences_.size(); }
 
   const QString preference(int child) const {
-    if (child < 0 || child >= size())
-      return {};
-
+    if (child < 0 || child >= size()) return {};
     return preferences_.at(child);
   }
 
@@ -61,10 +59,10 @@ public:
 class PREFS_EXPORT PreferenceModel : public QAbstractListModel {
   Q_OBJECT
 
-  Q_PROPERTY(QFont font READ font     WRITE setFont   NOTIFY fontChanged)
+  Q_PROPERTY(QFont font READ font WRITE setFont NOTIFY fontChanged)
   //  When theme changes, current preference is updated.
-  Q_PROPERTY(Preference* currentPref  READ preference NOTIFY preferenceRefreshed)
-  Q_PROPERTY(qint32 category          READ category   WRITE setCategory NOTIFY categoryChanged)
+  Q_PROPERTY(Preference *currentPref READ preference NOTIFY preferenceRefreshed)
+  Q_PROPERTY(qint32 category READ category WRITE setCategory NOTIFY categoryChanged)
   Q_PROPERTY(QStringList categoryList MEMBER categoryList_ NOTIFY categoryChanged)
 
   //  Treat object as a QML singleton. Used to manage
@@ -74,31 +72,22 @@ class PREFS_EXPORT PreferenceModel : public QAbstractListModel {
 
   QHash<int, QByteArray> roleNames_;
   QFont font_;
-  Preference* current_;
+  Preference *current_;
 
   QList<Category> categories_;
 
   //  Returned to QML for category list
-  QStringList     categoryList_;
+  QStringList categoryList_;
   qint32 category_{0};
-  Theme* theme_;
+  Theme *theme_;
 
 public:
-
-  enum PrefProperty : quint8 {
-    Parent = 0,
-    Foreground,
-    Background,
-    Bold,
-    Italic,
-    Underline,
-    Strikeout
-  };
+  enum PrefProperty : quint8 { Parent = 0, Foreground, Background, Bold, Italic, Underline, Strikeout };
   Q_ENUM(PrefProperty)
 
   // Define the role names to be used
   enum RoleNames : quint32 {
-    //CategoriesRole ,
+    // CategoriesRole ,
     CurrentCategoryRole = Qt::UserRole,
     CurrentListRole,
 
@@ -108,13 +97,11 @@ public:
 
   Q_ENUM(RoleNames)
 
-  explicit PreferenceModel(Theme* theme, QObject *parent = nullptr);
+  explicit PreferenceModel(Theme *theme, QObject *parent = nullptr);
   ~PreferenceModel() = default;
 
   //  Call back from QML to updatge preferences
-  Q_INVOKABLE void updatePreference(const quint32 key,
-                                    const PrefProperty field,
-                                    const QVariant& value);
+  Q_INVOKABLE void updatePreference(const quint32 key, const PrefProperty field, const QVariant &value);
 
   //  Theme may be updated outside model. Trigger model update
   //  when theme data has changed externally.
@@ -146,7 +133,7 @@ public:
   Qt::ItemFlags flags(const QModelIndex &index) const override;
 
   //  Accessor when outside delegate
-  Preference* preference() const;
+  Preference *preference() const;
 
 signals:
   void categoryChanged();

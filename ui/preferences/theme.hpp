@@ -1,7 +1,7 @@
 #pragma once
 
-#include <QObject>
 #include <QFont>
+#include <QObject>
 #include <vector>
 
 #include "preference.hpp"
@@ -17,23 +17,23 @@ class PREFS_EXPORT Theme : public QObject {
 
     First block of colors relates to standard QT palette
   */
-  Q_PROPERTY(QFont   font  READ font WRITE setFont    NOTIFY fontChanged)
-  Q_PROPERTY(Preference* base       READ base         NOTIFY preferenceChanged)
-  Q_PROPERTY(Preference* window     READ window       NOTIFY preferenceChanged)
-  Q_PROPERTY(Preference* button     READ button       NOTIFY preferenceChanged)
-  Q_PROPERTY(Preference* highlight  READ highlight    NOTIFY preferenceChanged)
-  Q_PROPERTY(Preference* tooltip    READ tooltip      NOTIFY preferenceChanged)
-  Q_PROPERTY(Preference* alternateBase READ alternateBase NOTIFY preferenceChanged)
-  Q_PROPERTY(Preference* accent     READ accent       NOTIFY preferenceChanged)
-  Q_PROPERTY(Preference* light      READ light        NOTIFY preferenceChanged)
-  Q_PROPERTY(Preference* midlight   READ midlight     NOTIFY preferenceChanged)
-  Q_PROPERTY(Preference* mid        READ mid          NOTIFY preferenceChanged)
-  Q_PROPERTY(Preference* dark       READ dark         NOTIFY preferenceChanged)
-  Q_PROPERTY(Preference* shadow       READ shadow     NOTIFY preferenceChanged)
-  Q_PROPERTY(Preference* link       READ link         NOTIFY preferenceChanged)
-  Q_PROPERTY(Preference* linkVisited READ linkVisited NOTIFY preferenceChanged)
-  Q_PROPERTY(Preference* brightText READ brightText   NOTIFY preferenceChanged)
-  Q_PROPERTY(Preference* placeholderText READ placeholderText NOTIFY preferenceChanged)
+  Q_PROPERTY(QFont font READ font WRITE setFont NOTIFY fontChanged)
+  Q_PROPERTY(Preference *base READ base NOTIFY preferenceChanged)
+  Q_PROPERTY(Preference *window READ window NOTIFY preferenceChanged)
+  Q_PROPERTY(Preference *button READ button NOTIFY preferenceChanged)
+  Q_PROPERTY(Preference *highlight READ highlight NOTIFY preferenceChanged)
+  Q_PROPERTY(Preference *tooltip READ tooltip NOTIFY preferenceChanged)
+  Q_PROPERTY(Preference *alternateBase READ alternateBase NOTIFY preferenceChanged)
+  Q_PROPERTY(Preference *accent READ accent NOTIFY preferenceChanged)
+  Q_PROPERTY(Preference *light READ light NOTIFY preferenceChanged)
+  Q_PROPERTY(Preference *midlight READ midlight NOTIFY preferenceChanged)
+  Q_PROPERTY(Preference *mid READ mid NOTIFY preferenceChanged)
+  Q_PROPERTY(Preference *dark READ dark NOTIFY preferenceChanged)
+  Q_PROPERTY(Preference *shadow READ shadow NOTIFY preferenceChanged)
+  Q_PROPERTY(Preference *link READ link NOTIFY preferenceChanged)
+  Q_PROPERTY(Preference *linkVisited READ linkVisited NOTIFY preferenceChanged)
+  Q_PROPERTY(Preference *brightText READ brightText NOTIFY preferenceChanged)
+  Q_PROPERTY(Preference *placeholderText READ placeholderText NOTIFY preferenceChanged)
 
   //  Custom colors
   Q_PROPERTY(Preference *symbol READ symbol NOTIFY preferenceChanged)
@@ -46,14 +46,14 @@ class PREFS_EXPORT Theme : public QObject {
   Q_PROPERTY(Preference *error READ error NOTIFY preferenceChanged)
   Q_PROPERTY(Preference *warning READ warning NOTIFY preferenceChanged)
   Q_PROPERTY(Preference *rowNumber READ rowNumber NOTIFY preferenceChanged)
-  Q_PROPERTY(Preference* breakpoint  READ breakpoint  NOTIFY preferenceChanged)
-  Q_PROPERTY(Preference* seqCircuit  READ seqCircuit  NOTIFY preferenceChanged)
-  Q_PROPERTY(Preference* circuitGreen READ circuitGreen NOTIFY preferenceChanged)
+  Q_PROPERTY(Preference *breakpoint READ breakpoint NOTIFY preferenceChanged)
+  Q_PROPERTY(Preference *seqCircuit READ seqCircuit NOTIFY preferenceChanged)
+  Q_PROPERTY(Preference *circuitGreen READ circuitGreen NOTIFY preferenceChanged)
 
-  Q_PROPERTY(QString name            READ name        NOTIFY themesChanged)
-  Q_PROPERTY(bool systemTheme        READ systemTheme NOTIFY themesChanged)
-  Q_PROPERTY(bool isDirty            READ isDirty     NOTIFY themesChanged)
-  Q_PROPERTY(QStringList themes      READ themes      NOTIFY themesChanged)
+  Q_PROPERTY(QString name READ name NOTIFY themesChanged)
+  Q_PROPERTY(bool systemTheme READ systemTheme NOTIFY themesChanged)
+  Q_PROPERTY(bool isDirty READ isDirty NOTIFY themesChanged)
+  Q_PROPERTY(QStringList themes READ themes NOTIFY themesChanged)
 
   QString name_ = "Default";
   QString version_ = "0.6";
@@ -66,7 +66,7 @@ class PREFS_EXPORT Theme : public QObject {
   //  Preference is a QObject with a pointer to it's parent
   //  No smart pointers are necessary since child preferences will
   //  go out of scope with the parent class
-  std::vector<Preference*> prefs_;
+  std::vector<Preference *> prefs_;
 
   //  Track all themes
   QString systemPath_, userPath_;
@@ -94,13 +94,13 @@ public:
   Q_INVOKABLE void exportTheme(const QString file) const;
   Q_INVOKABLE void deleteTheme(const QString file);
 
-  void load(const QString& file);
-  bool save(const QString& file) const;
+  void load(const QString &file);
+  bool save(const QString &file) const;
   bool isDirty() const;
 
-  QFont       font() const;
-  Preference* preference(int role);
-  Preference* preference(int role) const;
+  QFont font() const;
+  Preference *preference(int role);
+  Preference *preference(int role) const;
 
   void setFont(QFont font);
 
@@ -148,7 +148,6 @@ signals:
   void preferenceChanged();
   void themesChanged();
 
-
 public slots:
   void clearIsDirty();
   void setIsDirty();
@@ -159,6 +158,6 @@ private:
 
   void loadMissing();
   void loadThemeList();
-  void setDirty(bool flag=true);
+  void setDirty(bool flag = true);
   void setFont(const QString family, const int pointSize);
 };
