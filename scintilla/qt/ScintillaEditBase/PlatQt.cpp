@@ -1145,7 +1145,7 @@ void Menu::Show(Point pt, const Window &w) {
 #else
   QList<QPair<QString, QPair<int, bool>>> *menu = static_cast<QList<QPair<QString, QPair<int, bool>>> *>(mid);
   ProcessScintillaContextMenu(pt, w, *menu);
-#endif;
+#endif
   Destroy();
 }
 
@@ -1196,8 +1196,7 @@ void Scintilla::Internal::Platform::Assert(const char *c, const char *file, int 
   char buffer[2000];
   snprintf(buffer, std::size(buffer), "Assertion [%s] failed at %s %d", c, file, line);
   if (Platform::ShowAssertionPopUps(false)) {
-    QMessageBox mb("Assertion Failure", buffer, QMessageBox::NoIcon, QMessageBox::Ok, QMessageBox::NoButton,
-                   QMessageBox::NoButton);
+    QMessageBox mb(QMessageBox::NoIcon, "Assertion Failure", buffer, QMessageBox::Ok);
     mb.exec();
   } else {
     strcat(buffer, "\n");

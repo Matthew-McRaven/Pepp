@@ -562,7 +562,7 @@ void ScintillaEditBase::dragEnterEvent(QDragEnterEvent *event) {
   } else if (event->mimeData()->hasText()) {
     event->acceptProposedAction();
 
-    Point point = PointFromQPoint(event->pos());
+    Point point = PointFromQPoint(event->position().toPoint());
     sqt->DragEnter(point);
   } else {
     event->ignore();
@@ -577,7 +577,7 @@ void ScintillaEditBase::dragMoveEvent(QDragMoveEvent *event) {
   } else if (event->mimeData()->hasText()) {
     event->acceptProposedAction();
 
-    Point point = PointFromQPoint(event->pos());
+    Point point = PointFromQPoint(event->position().toPoint());
     sqt->DragMove(point);
   } else {
     event->ignore();
@@ -591,7 +591,7 @@ void ScintillaEditBase::dropEvent(QDropEvent *event) {
   } else if (event->mimeData()->hasText()) {
     event->acceptProposedAction();
 
-    Point point = PointFromQPoint(event->pos());
+    Point point = PointFromQPoint(event->position().toPoint());
     bool move = (event->source() == this && event->proposedAction() == Qt::MoveAction);
     sqt->Drop(point, event->mimeData(), move);
   } else {
@@ -667,7 +667,7 @@ static std::vector<int> MapImeIndicators(QInputMethodEvent *event) {
       if (format.hasProperty(QTextFormat::BackgroundBrush)) // win32, linux
         indicator = IndicatorTarget;
 
-#ifdef Q_OS_OSX
+#ifdef Q_OS_MACOS
       if (charFormat.underlineStyle() == QTextCharFormat::SingleUnderline) {
         QColor uc = charFormat.underlineColor();
         if (uc.lightness() < 2) { // osx
@@ -910,10 +910,10 @@ void ScintillaEditBase::touchEvent(QTouchEvent *event) {
 
   forceActiveFocus();
 
-  if (event->touchPointStates() == Qt::TouchPointPressed && event->touchPoints().count() > 0) {
+  if (event->touchPointStates() == Qt::TouchPointPressed && event->points().count() > 0) {
     aLastTouchPressTime = time.elapsed();
-    QTouchEvent::TouchPoint point = event->touchPoints().first();
-    QPoint mousePressedPoint = point.pos().toPoint();
+    QTouchEvent::TouchPoint point = event->points().first();
+    QPoint mousePressedPoint = point.position().toPoint();
     // mouseMoved = false;
     // mouseDeltaLineMove = 0;
     //  moves the cursor...
@@ -921,7 +921,7 @@ void ScintillaEditBase::touchEvent(QTouchEvent *event) {
     // Sci::Position pos = sqt->PositionFromLocation(scintillaPoint);
     // sqt->MovePositionTo(pos);
 
-    longTouchPoint = point.pos().toPoint();
+    longTouchPoint = point.position().toPoint();
 
     // #ifndef Q_OS_ANDROID
     //         aLongTouchTimer.start(500);
@@ -934,19 +934,19 @@ void ScintillaEditBase::touchEvent(QTouchEvent *event) {
   //        QTouchEvent::TouchPoint point = event->touchPoints().first();
   //        emit showContextMenu(point.pos().toPoint());
   //    }
-  else if (event->touchPointStates() == Qt::TouchPointStationary && event->touchPoints().count() > 0) {
-  } else if (event->touchPointStates() == Qt::TouchPointMoved && event->touchPoints().count() > 0) {
+  else if (event->touchPointStates() == Qt::TouchPointStationary && event->points().count() > 0) {
+  } else if (event->touchPointStates() == Qt::TouchPointMoved && event->points().count() > 0) {
     // #ifndef Q_OS_ANDROID
     //         aLongTouchTimer.stop();
     // #endif
-  } else if (event->touchPointStates() == Qt::TouchPointReleased && event->touchPoints().count() > 0) {
+  } else if (event->touchPointStates() == Qt::TouchPointReleased && event->points().count() > 0) {
     // #ifndef Q_OS_ANDROID
     //         aLongTouchTimer.stop();
     // #endif
     //  is ths a short touch (time between press and release < 100ms) ?
     if (aLastTouchPressTime >= 0 && (time.elapsed() - aLastTouchPressTime) < 100) {
-      QTouchEvent::TouchPoint point = event->touchPoints().first();
-      QPoint mousePressedPoint = point.pos().toPoint();
+      QTouchEvent::TouchPoint point = event->points().first();
+      QPoint mousePressedPoint = point.position().toPoint();
       Point scintillaPoint = PointFromQPoint(mousePressedPoint);
 
       Sci::Position pos = sqt->PositionFromLocation(scintillaPoint);
