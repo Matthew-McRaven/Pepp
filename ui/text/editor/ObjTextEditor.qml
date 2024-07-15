@@ -47,7 +47,7 @@ ScrollView {
             anchors.left: parent.left
             anchors.right: parent.right
             anchors.top: parent.top
-            anchors.bottom: buttons.top
+            anchors.bottom: parent.bottom
             textFormat: TextEdit.PlainText
             renderType: Text.NativeRendering
             font.family: "Courier New"
@@ -61,40 +61,6 @@ ScrollView {
                                 // Use that behavior to filter out "wrong" keys.
                                 event.accepted = !utils.valid(event.key)
                             }
-        }
-        RowLayout {
-            id: buttons
-            visible: !editor.readOnly
-            anchors.left: parent.left
-            anchors.right: parent.right
-            anchors.bottom: parent.bottom
-            height: visible ? implicitHeight : 0
-            Button {
-                // Buttons must not take focus, or spurious editor.editingFinished will be emitted.
-                focusPolicy: Qt.NoFocus
-                Layout.fillHeight: true
-                Layout.fillWidth: true
-                Layout.minimumHeight: 40
-                Layout.maximumHeight: 100
-                implicitHeight: wrapper.height * .1
-                text: "Format"
-                onClicked: {
-                    if (!editor.readOnly)
-                        editor.text = utils.format(editor.text)
-                    editor.editingFinished()
-                }
-            }
-            Button {
-                // Buttons must not take focus, or spurious editor.editingFinished will be emitted.
-                focusPolicy: Qt.NoFocus // Prevent the button from taking focus
-                Layout.fillHeight: true
-                Layout.fillWidth: true
-                Layout.minimumHeight: 40
-                Layout.maximumHeight: 100
-                implicitHeight: wrapper.height * .1
-                text: editor.overwriteMode ? "Replace" : "Insert"
-                onClicked: editor.overwriteMode = !editor.overwriteMode
-            }
         }
     }
 }

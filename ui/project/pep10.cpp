@@ -324,6 +324,14 @@ bool Pep10_ISA::onLoadObject() {
   emit updateGUI(_tb->cbegin());
   return true;
 }
+bool Pep10_ISA::onFormatObject() {
+
+  ObjectUtilities utils;
+  utils.setBytesPerRow(16);
+  auto fmt = utils.format(_objectCodeText, true);
+  setObjectCodeText(fmt);
+  return true;
+}
 
 bool Pep10_ISA::onExecute() {
   prepareSim();
