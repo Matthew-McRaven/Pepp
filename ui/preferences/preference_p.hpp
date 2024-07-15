@@ -14,8 +14,7 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-#ifndef PREFERENCE_H_HPP
-#define PREFERENCE_H_HPP
+#pragma once
 
 #include <QColor>
 #include <QFont>
@@ -36,11 +35,9 @@ public:
   PreferencePrivate &operator=(PreferencePrivate &&) = delete;
 
   Themes::Roles id_ = Themes::Roles::Invalid;
-  quint32 parentId_ = 0;  //  Not currently used
+  quint32 parentId_ = 0; //  Not currently used
   QString name_{};
-  QColor  foreground_{Qt::black};
-  QColor  background_{Qt::white};
-  QFont   font_;
+  QColor foreground_{Qt::black};
+  QColor background_{Qt::white};
+  QFont font_;
 };
-
-#endif // PREFERENCE_H_HPP
