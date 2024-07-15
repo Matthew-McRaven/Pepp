@@ -22,5 +22,5 @@ runs:
     with:
       name: clang-time-trace
       path: /trace.json
-      retention-days: 3
+      retention-days: 1
       if-no-files-found: error
