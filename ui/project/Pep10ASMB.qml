@@ -212,11 +212,11 @@ Item {
 
         SplitView {
             visible: mode === "debug"
-            SplitView.minimumWidth: 200
+            SplitView.minimumWidth: 280
             orientation: Qt.Vertical
             Cpu.RegisterView {
                 id: registers
-                SplitView.minimumHeight: 200
+                SplitView.minimumHeight: 225
                 registers: project?.registers ?? null
                 flags: project?.flags ?? null
             }
