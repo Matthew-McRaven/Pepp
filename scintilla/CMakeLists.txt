@@ -21,7 +21,6 @@ target_compile_definitions(scintilla_qt PRIVATE MAKING_LIBRARY=1 SCINTILLA_QT_QM
 
 file(GLOB_RECURSE scintilla_unit_sources CONFIGURE_DEPENDS "${CMAKE_CURRENT_LIST_DIR}/test/unit/*.cxx")
 add_executable(scintilla_unit_qt ${scintilla_unit_sources})
-set_target_properties(scintilla_unit_qt PROPERTIES FOLDER "qtc_runnable")
 target_link_libraries(scintilla_unit_qt PRIVATE scintilla_qt scintilla_catch)
 add_test(NAME scintilla_unit_qt COMMAND scintilla_unit_qt WORKING_DIRECTORY test)
 target_include_directories(scintilla_unit_qt PUBLIC "${PROJECT_SOURCE_DIR}/catch")
