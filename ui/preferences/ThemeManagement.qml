@@ -164,6 +164,7 @@ RowLayout {
     onAccepted: {
       Theme.copyTheme(fileName.text)
       themeId.currentIndex = themeId.find(Theme.name)
+                color: palette.text
     }
   }
 }
