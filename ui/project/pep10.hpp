@@ -62,6 +62,7 @@ public:
 public slots:
   bool onSaveCurrent();
   bool onLoadObject();
+  bool onFormatObject();
   bool onExecute();
   virtual bool onDebuggingStart();
   bool onDebuggingContinue();

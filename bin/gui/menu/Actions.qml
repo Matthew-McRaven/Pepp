@@ -105,6 +105,15 @@ QtObject {
     }
 
     readonly property var build: QtObject {
+        readonly property var formatObject: Action {
+            enabled: project?.allowedDebugging & DebugEnableFlags.LoadObject
+            property string nativeText: ""
+            onTriggered: project.onFormatObject()
+            text: "&Format Object Code"
+            icon.source: "image://icons/blank.svg"
+            shortcut: ["Ctrl+Shift+F"]
+            onShortcutChanged: updateNativeText(this)
+        }
         readonly property var loadObject: Action {
             enabled: project?.allowedDebugging & DebugEnableFlags.LoadObject
             property string nativeText: ""
