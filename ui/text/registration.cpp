@@ -21,17 +21,8 @@
 #include "editor/object.hpp"
 #include "editor/scintillaasmeditbase.hpp"
 #include "editor/tabnanny.hpp"
-#include "highlight/qml_highlighter.hpp"
-#include "highlight/style.hpp"
-#include "highlight/style/defaults.hpp"
-#include "highlight/style/map.hpp"
 
 void text::registerTypes(const char *uri) {
-  qmlRegisterType<highlight::QMLHighlighter>(uri, 1, 0, "Highlighter");
-  qmlRegisterType<highlight::Style>(uri, 1, 0, "Style");
-  qmlRegisterType<highlight::style::Map>(uri, 1, 0, "StyleMap");
-  qmlRegisterSingletonInstance<highlight::style::Defaults>(uri, 1, 0, "DefaultStyles",
-                                                           new highlight::style::Defaults());
   qmlRegisterType<BlockFinder>(uri, 1, 0, "BlockFinder");
   qmlRegisterType<LineInfoModel>(uri, 1, 0, "LineInfoModel");
   qmlRegisterType<TabNanny>(uri, 1, 0, "TabNanny");
