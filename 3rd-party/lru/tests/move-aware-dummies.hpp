@@ -108,7 +108,7 @@ struct MoveAwareKey : public MoveAwareBase<MoveAwareKey> {
   using super = MoveAwareBase<MoveAwareKey>;
 
   // clang-format off
-  MoveAwareKey() = default;
+  MoveAwareKey() = delete;
   MoveAwareKey(const MoveAwareKey& other) : super(other) {}
   MoveAwareKey(MoveAwareKey&& other) : super(std::move(other)) {}
   MoveAwareKey(std::string&& s_) : super(std::move(s_)) {}
@@ -133,7 +133,7 @@ struct MoveAwareValue : public MoveAwareBase<MoveAwareValue> {
   using super = MoveAwareBase<MoveAwareValue>;
 
   // clang-format off
-  MoveAwareValue() = default;
+  MoveAwareValue() = delete;
   MoveAwareValue(const MoveAwareValue& other) : super(other) {}
   MoveAwareValue(MoveAwareValue&& other) : super(std::move(other)) {}
   MoveAwareValue(std::string&& s_) : super(std::move(s_)) {}
