@@ -3,80 +3,88 @@ import QtQuick.Controls
 import QtQuick.Layouts
 
 Item {
-  id: wrapper
+    id: wrapper
 
-  property bool isEnabled: true
-  property int buttonWidth: 100
-  property int buttonHeight: 20
+    property bool isEnabled: true
+    property int buttonWidth: 100
+    property int buttonHeight: 20
 
-  property alias bold: boldCB.checked
-  property alias italics: italicsCB.checked
-  property alias underline: underlineCB.checked
-  property alias strikeout: strikeoutCB.checked
+    property alias bold: boldCB.checked
+    property alias italics: italicsCB.checked
+    property alias underline: underlineCB.checked
+    property alias strikeout: strikeoutCB.checked
 
-  implicitWidth: parent.width
+    implicitWidth: parent.width
 
-  //  Indicates user changed font properties
-  signal updatedFont(fontProperty: int, value: bool)
+    //  Indicates user changed font properties
+    signal updatedFont(int fontProperty, bool value)
 
-  ColumnLayout {
+    ColumnLayout {
 
-    RowLayout {
-      Layout.fillWidth: true
-      Layout.alignment: Qt.AlignTop
+        RowLayout {
+            Layout.fillWidth: true
+            Layout.alignment: Qt.AlignTop
 
-      CheckBox {
-        id: boldCB
-        text: "Bold"
-        enabled: isEnabled
-        Layout.preferredWidth: buttonWidth
-        Layout.preferredHeight: buttonHeight
+            CheckBox {
+                id: boldCB
+                text: "Bold"
+                enabled: isEnabled
+                Layout.preferredWidth: buttonWidth
+                Layout.preferredHeight: buttonHeight
 
-        onClicked: {
-          wrapper.updatedFont(3 /*PreferenceModel.PrefProperty.Bold*/, boldCB.checked)
+                onClicked: {
+                    wrapper.updatedFont(3 /*PreferenceModel.PrefProperty.Bold*/
+                                        , boldCB.checked)
+                }
+            }
+            CheckBox {
+                id: italicsCB
+                Layout.preferredWidth: buttonWidth
+                Layout.preferredHeight: buttonHeight
+                enabled: isEnabled
+                text: "Italics"
+
+                onClicked: {
+                    wrapper.updatedFont(
+                                4 /*PreferenceModel.PrefProperty.Italic*/
+                                , italicsCB.checked)
+                }
+            }
         }
-      }
-      CheckBox {
-        id: italicsCB
-        Layout.preferredWidth: buttonWidth
-        Layout.preferredHeight: buttonHeight
-        enabled: isEnabled
-        text: "Italics"
+        RowLayout {
+            Layout.fillWidth: true
+            Layout.alignment: Qt.AlignTop
 
-        onClicked: {
-          wrapper.updatedFont(4/*PreferenceModel.PrefProperty.Italic*/, italicsCB.checked)
+            CheckBox {
+                id: underlineCB
+                text: "Underline"
+                enabled: isEnabled
+                Layout.preferredWidth: buttonWidth
+                Layout.preferredHeight: buttonHeight
+
+                onClicked: {
+                    wrapper.updatedFont(
+                                5 /*PreferenceModel.PrefProperty.Underline*/
+                                , underlineCB.checked)
+                }
+            }
+            CheckBox {
+                id: strikeoutCB
+                text: "Strikeout"
+                enabled: isEnabled
+                Layout.preferredWidth: buttonWidth
+                Layout.preferredHeight: buttonHeight
+
+                onClicked: {
+                    wrapper.updatedFont(
+                                6 /*PreferenceModel.PrefProperty.Strikeout*/
+                                , strikeoutCB.checked)
+                }
+            }
+        } //  RowLayout
+        RowLayout {
+            Layout.fillHeight: true
+            Layout.fillWidth: true
         }
-      }
-    }
-    RowLayout {
-      Layout.fillWidth: true
-      Layout.alignment: Qt.AlignTop
-
-      CheckBox {
-        id: underlineCB
-        text: "Underline"
-        enabled: isEnabled
-        Layout.preferredWidth: buttonWidth
-        Layout.preferredHeight: buttonHeight
-
-        onClicked: {
-          wrapper.updatedFont(5 /*PreferenceModel.PrefProperty.Underline*/, underlineCB.checked)
-        }
-      }
-      CheckBox {
-        id: strikeoutCB
-        text: "Strikeout"
-        enabled: isEnabled
-        Layout.preferredWidth: buttonWidth
-        Layout.preferredHeight: buttonHeight
-
-        onClicked: {
-          wrapper.updatedFont(6 /*PreferenceModel.PrefProperty.Strikeout*/, strikeoutCB.checked)
-        }      }
-    } //  RowLayout
-    RowLayout {
-      Layout.fillHeight: true
-      Layout.fillWidth: true
-    }
-  } //  ColumnLayout
+    } //  ColumnLayout
 }
