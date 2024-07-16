@@ -30,7 +30,7 @@ make_target(
         DEPENDS
         TextFlow cli about macro pas builtins isa targets sim
         Qt6::Core Qt6::Gui Qt::Qml Qt::Quick Qt::QuickControls2 Qt6::Svg Qt6::Xml
-        Qt::Widgets test-lib-all ui_utils memory text cpu ui_about prefs project ui_help helpers
+        Qt::Widgets test-lib-all ui_utils memory text cpu about prefs project ui_help helpers
 )
 
 target_compile_definitions(pepp PRIVATE "INCLUDE_GUI=1")

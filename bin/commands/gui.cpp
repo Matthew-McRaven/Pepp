@@ -27,8 +27,8 @@
 
 #include "../iconprovider.hpp"
 #include "about/registration.hpp"
+#include "about/version.hpp"
 #include "cpu/registration.hpp"
-#include "help/about/version.hpp"
 #include "help/registration.hpp"
 #include "memory/hexdump/memorybytemodel.hpp"
 #include "memory/registration.hpp"
@@ -41,9 +41,9 @@
 struct default_data : public gui_globals {
   default_data() : pm(&theme) {}
   ~default_data() override = default;
-  Theme           theme;
+  Theme theme;
   PreferenceModel pm;
-  QTimer          interval;
+  QTimer interval;
 };
 
 QSharedPointer<gui_globals> default_init(QQmlApplicationEngine &engine, QSharedPointer<default_data> data) {
@@ -58,8 +58,8 @@ QSharedPointer<gui_globals> default_init(QQmlApplicationEngine &engine, QSharedP
 
   //  Connect models
   auto *ctx = engine.rootContext();
-  ctx->setContextProperty("PreferenceModel", 	&data->pm);
-  ctx->setContextProperty("Theme",            &data->theme);
+  ctx->setContextProperty("PreferenceModel", &data->pm);
+  ctx->setContextProperty("Theme", &data->theme);
 
   return data;
 }
@@ -70,8 +70,7 @@ int gui_main(const gui_args &args) {
   std::vector<char *> argvs(argc);
   // Must make copy of strings, since argvs should be editable.
   std::vector<std::string> arg_strs = args.argvs;
-  for (int it = 0; it < argc; it++)
-    argvs[it] = arg_strs[it].data();
+  for (int it = 0; it < argc; it++) argvs[it] = arg_strs[it].data();
   QApplication app(argc, argvs.data());
 
   QApplication::setOrganizationName("Pepperdine University");
@@ -93,10 +92,8 @@ int gui_main(const gui_args &args) {
     // TODO: connect to PreferenceModel, read field corresponding to QPalette (Disabled, Text) field.
     engine.addImageProvider(QLatin1String("icons"), new PreferenceAwareImageProvider);
     QSharedPointer<gui_globals> globals;
-    if (args.extra_init)
-      globals = args.extra_init(engine);
-    else
-      globals = default_init(engine, data);
+    if (args.extra_init) globals = args.extra_init(engine);
+    else globals = default_init(engine, data);
     (void)globals; // Unused, but keeps bound context variables from being deleted.
 
     /*QDirIterator i(":", QDirIterator::Subdirectories);
@@ -113,8 +110,7 @@ int gui_main(const gui_args &args) {
     QObject::connect(
         &engine, &QQmlApplicationEngine::objectCreated, &app,
         [url](QObject *obj, const QUrl &objUrl) {
-          if (!obj && url == objUrl)
-            QCoreApplication::exit(-1);
+          if (!obj && url == objUrl) QCoreApplication::exit(-1);
         },
         Qt::QueuedConnection);
     engine.load(url);

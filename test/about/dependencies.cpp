@@ -14,12 +14,11 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-#include "help/about/dependencies.hpp"
+#include "about/dependencies.hpp"
 #include <catch.hpp>
 
 TEST_CASE("About Dependencies", "[scope:help.about][kind:unit][arch:*]") {
   auto deps = about::dependencies();
   CHECK(deps.length() == 13);
-  for (const auto &dep : deps)
-    CHECK(dep.licenseText.size() != 0);
+  for (const auto &dep : deps) CHECK(dep.licenseText.size() != 0);
 };

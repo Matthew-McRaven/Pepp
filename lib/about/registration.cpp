@@ -17,11 +17,10 @@
 #include "./registration.hpp"
 #include <QQmlEngine>
 #include <iostream>
-#include "contributors.hpp"
-#include "dependencies.hpp"
-#include "help/about/pepp.hpp"
-#include "help/about/version.hpp"
-#include "version.hpp"
+#include "./contributors.hpp"
+#include "./dependencies.hpp"
+#include "./pepp.hpp"
+#include "./version.hpp"
 
 namespace about {
 void registerTypes(const char *uri) {
