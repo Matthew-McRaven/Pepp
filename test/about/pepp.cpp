@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2023-2024 J. Stanley Warford, Matthew McRaven
+ * Copyright (c) 2024 J. Stanley Warford, Matthew McRaven
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
  * the Free Software Foundation, either version 3 of the License, or
@@ -14,12 +14,21 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-#pragma once
-namespace about {
-const char *const g_GIT_SHA1();
-const char *const g_GIT_TAG();
-int g_MAJOR_VERSION();
-int g_MINOR_VERSION();
-int g_PATCH_VERSION();
-bool g_GIT_LOCAL_CHANGES();
-} // namespace about
+#include "about/pepp.hpp"
+#include <catch.hpp>
+
+TEST_CASE("About Pepp", "[scope:help.about][kind:unit][arch:*]") {
+  QDirIterator i(":/about", QDirIterator::Subdirectories);
+  while (i.hasNext()) {
+    auto f = QFileInfo(i.next());
+    if (!f.isFile()) continue;
+    qDebug() << f.filePath();
+  }
+
+  CHECK_FALSE(about::projectRepoURL().size() == 0);
+  CHECK_FALSE(about::maintainers().size() == 0);
+  CHECK_FALSE(about::contributors().size() == 0);
+  CHECK_FALSE(about::licenseFull().size() == 0);
+  CHECK_FALSE(about::licenseNotice().size() == 0);
+  CHECK(about::versionString().size() > 1);
+}

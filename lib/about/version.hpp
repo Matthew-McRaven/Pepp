@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2024 J. Stanley Warford, Matthew McRaven
+ * Copyright (c) 2023-2024 J. Stanley Warford, Matthew McRaven
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
  * the Free Software Foundation, either version 3 of the License, or
@@ -16,9 +16,16 @@
 
 #pragma once
 #include <QtCore>
-#include "about_globals.hpp"
 
-class UI_ABOUT_EXPORT Version : public QObject {
+namespace about {
+const char *const g_GIT_SHA1();
+const char *const g_GIT_TAG();
+int g_MAJOR_VERSION();
+int g_MINOR_VERSION();
+int g_PATCH_VERSION();
+bool g_GIT_LOCAL_CHANGES();
+
+class Version : public QObject {
   Q_OBJECT
   Q_PROPERTY(QString git_sha READ git_sha CONSTANT)
   Q_PROPERTY(QString git_tag READ git_tag CONSTANT)
@@ -38,3 +45,5 @@ public:
   static int version_patch();
   static QString version_str_full();
 };
+
+} // namespace about

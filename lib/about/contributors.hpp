@@ -16,9 +16,8 @@
 
 #pragma once
 #include <QtCore>
-#include "about_globals.hpp"
 
-class UI_ABOUT_EXPORT Maintainer : public QObject {
+class Maintainer : public QObject {
   Q_OBJECT
   Q_PROPERTY(QString name READ name CONSTANT)
   Q_PROPERTY(QString email READ email CONSTANT)
@@ -32,7 +31,7 @@ private:
   QString _name = {}, _email = {};
 };
 
-class UI_ABOUT_EXPORT MaintainerList : public QAbstractListModel {
+class MaintainerList : public QAbstractListModel {
 public:
   enum { NAME = Qt::UserRole, EMAIL = Qt::UserRole + 1, ITEM };
   explicit MaintainerList(QList<Maintainer *> list, QObject *parent = nullptr);
@@ -45,7 +44,7 @@ private:
   QList<Maintainer *> _list;
 };
 
-class UI_ABOUT_EXPORT Contributors : public QObject {
+class Contributors : public QObject {
   Q_OBJECT
   Q_PROPERTY(QString text READ text CONSTANT)
 public:
