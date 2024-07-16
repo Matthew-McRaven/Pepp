@@ -29,6 +29,8 @@ import "qrc:/ui/project" as Project
 import "qrc:/ui/preferences" as Pref
 import edu.pepp 1.0
 import "./menu" as Menu
+import Qt.labs.platform as Labs//  Native menu for apple, linux, and windows
+
 
 ApplicationWindow {
     id: window
@@ -212,7 +214,7 @@ ApplicationWindow {
         }
     }
 
-    menuBar: Menu.MainMenu {
+    Menu.MainMenu {
         id: menu
         project: window.currentProject
         window: window
@@ -529,6 +531,6 @@ ApplicationWindow {
     }
     function onOpenDialog() {}
     function onCloseAllProjects(excludeCurrent: bool) {}
-    function onQuit() {}
+    function onQuit() {window.close()}
     function onToggleFullScreen() {}
 }
