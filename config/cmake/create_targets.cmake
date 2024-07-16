@@ -3,7 +3,6 @@ include_guard()
 set(CMAKE_WINDOWS_EXPORT_ALL_SYMBOLS ON)
 # We always want universal builds, so do not set on a per-target basis
 # NOTE: This prevents us from building statically!!
-SET(CMAKE_OSX_ARCHITECTURES "x86_64;arm64" CACHE INTERNAL "" FORCE)
 
 
 # test-lib-all will include the sources for all catch tests, and be dependent on all the tests' libaries.
@@ -135,11 +134,11 @@ function(make_target)
     if (MK_DEPENDS)
         target_link_libraries(${MK_TARGET} PUBLIC ${MK_DEPENDS})
     endif ()
-    if(APPLE)
+    if (APPLE)
         install(TARGETS ${MK_TARGET} LIBRARY DESTINATION pepp.app/Contents/Frameworks)
-    else()
+    else ()
         install(TARGETS ${MK_TARGET} RUNTIME DESTINATION bin BUNDLE DESTINATION .)
-    endif()
+    endif ()
 endfunction()
 
 # Helper to make a PUBLIC library with cpp sources.
