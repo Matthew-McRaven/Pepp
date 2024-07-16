@@ -1,11 +1,13 @@
 import QtQuick
 import QtQuick.Controls
 import QtQuick.Layouts
+import Qt.labs.platform as Labs
+//  Native menu for apple, linux, and windows
 import "./"
 
-MenuBar {
+Labs.MenuBar {
     id: wrapper
-    required property var window
+
     required property var project
     required property Actions actions
     property alias saveAsModel: saveAsInstantiator.model
@@ -20,44 +22,31 @@ MenuBar {
         }
         return menu.count
     }
-    function fixTextColors(item) {
-        const p = item.palette
-        const en = p.text, dis = p.disabled.text
-        // TODO: Remove when themes work properly
-        // TODO: fix icon colors
-        const ens = Qt.rgba(en.r + 0.1, en.g + 0.1, en.b + 0.1, en.a)
-        // Color to pick if enabled == disabled, and that color is #000000, on which lighter does not work.
-        const backup = en.hslLightness < 0.5 ? ens.lighter(4.0) : en.darker()
-        const selected = item.enabled ? en : (en === dis ? backup : dis)
-        if (item.color)
-            item.color = Qt.binding(() => selected)
-        item.contentItem.color = selected
-    }
-    TextMetrics {
-        id: tm
-        font: wrapper.font
-        text: "  "
-    }
-
-    Menu {
+    Labs.Menu {
         id: fileMenu
         title: qsTr("&File")
-        ShortcutMenuItem {
+        Labs.MenuItem {
             id: new_
-            action: actions.file.new_
+            text: actions.file.new_.text
+            onTriggered: actions.file.new_.trigger()
+            icon.source: actions.file.new_.icon.source
+            shortcut: actions.file.new_.shortcut
         }
-        ShortcutMenuItem {
-            action: actions.file.open
+        Labs.MenuItem {
+            text: actions.file.open.text
+            onTriggered: actions.file.open.trigger()
+            icon.source: actions.file.open.icon.source
+            shortcut: actions.file.open.shortcut
         }
-        Menu {
+        Labs.Menu {
             id: recentMenu
             title: "Recent Files"
             // Use blank icon to force menu items to line up. Do not use image provider for a Menu item, since
             // this icon is rendered before the image provider's paint engine is set up.
             icon.source: "qrc:/icons/blank.svg"
-            // As such, the width of the icon may be wrong, so use the width of a different (working) icon.
-            icon.width: new_.icon.width
 
+            // As such, the width of the icon may be wrong, so use the width of a different (working) icon.
+            //icon.width: new_.icon.width
             Instantiator {
                 model: 5
                 delegate: MenuItem {
@@ -70,18 +59,20 @@ MenuBar {
             }
         }
 
-        MenuSeparator {}
-        ShortcutMenuItem {
-            action: actions.file.save
-            text: "&Save Object"
+        Labs.MenuSeparator {}
+        Labs.MenuItem {
+            text: actions.file.save.text
+            onTriggered: actions.file.save.trigger()
+            icon.source: actions.file.save.icon.source
+            shortcut: actions.file.save.shortcut
         }
-        MenuSeparator {
+        Labs.MenuSeparator {
             id: _saveAsPrev
         }
         Instantiator {
             id: saveAsInstantiator
             model: 2
-            delegate: MenuItem {
+            delegate: Labs.MenuItem {
                 text: "Save as" + modelData
                 onTriggered: saveAs(modelData)
                 // Use blank icon to force menu items to line up.
@@ -93,15 +84,15 @@ MenuBar {
             }
             onObjectRemoved: (index, object) => fileMenu.removeItem(object)
         }
-        MenuSeparator {
+        Labs.MenuSeparator {
             id: _printPrev
         }
         Instantiator {
             id: printInstantiator
             model: 3
-            delegate: MenuItem {
+            delegate: Labs.MenuItem {
                 text: "Print" + modelData
-                onTriggered: print_(modelData)
+                onTriggered: actions.file.print_(modelData).trigger()
                 // Use blank icon to force menu items to line up.
                 icon.source: "image://icons/blank.svg"
             }
@@ -111,15 +102,15 @@ MenuBar {
             }
             onObjectRemoved: (index, object) => fileMenu.removeItem(object)
         }
-        MenuSeparator {
+        Labs.MenuSeparator {
             id: _closePrev
         }
         Instantiator {
             id: closeInstantiator
             model: 3
-            delegate: MenuItem {
+            delegate: Labs.MenuItem {
                 text: "Close" + modelData
-                onTriggered: close(modelData)
+                onTriggered: actions.file.close(modelData).trigger()
                 // Use blank icon to force menu items to line up.
                 icon.source: "image://icons/blank.svg"
             }
@@ -130,169 +121,182 @@ MenuBar {
             onObjectRemoved: (index, object) => fileMenu.removeItem(object)
         }
         MenuItem {
-            action: actions.file.closeAll
+            text: actions.file.closeAll.text
+            onTriggered: actions.file.closeAll.trigger()
+            icon.source: actions.file.closeAll.icon.source
         }
         MenuItem {
-            action: actions.file.closeAllButCurrent
+            text: actions.file.closeAllButCurrent.text
+            onTriggered: actions.file.closeAllButCurrent.trigger()
+            icon.source: actions.file.closeAllButCurrent.icon.source
         }
 
-        MenuSeparator {}
-        ShortcutMenuItem {
-            action: actions.file.quit
+        Labs.MenuSeparator {}
+        Labs.MenuItem {
+            text: actions.file.quit.text
+            onTriggered: actions.file.quit.trigger()
+            icon.source: actions.file.quit.icon.source
+            shortcut: actions.file.quit.shortcut
         }
     }
-    Menu {
+    Labs.Menu {
         title: qsTr("&Edit")
-        ShortcutMenuItem {
-            action: actions.edit.undo
+        Labs.MenuItem {
+            text: actions.edit.undo.text
+            onTriggered: actions.edit.undo.trigger()
+            icon.source: actions.edit.undo.icon.source
+            shortcut: actions.edit.undo.shortcut
         }
-        ShortcutMenuItem {
-            action: actions.edit.redo
+        Labs.MenuItem {
+            text: actions.edit.redo.text
+            onTriggered: actions.edit.redo.trigger()
+            icon.source: actions.edit.redo.icon.source
+            shortcut: actions.edit.redo.shortcut
         }
-        MenuSeparator {}
-        ShortcutMenuItem {
-            action: actions.edit.cut
-            onPaletteChanged: fixTextColors(this)
+        Labs.MenuSeparator {}
+        Labs.MenuItem {
+            text: actions.edit.cut.text
+            onTriggered: actions.edit.cut.trigger()
+            icon.source: actions.edit.cut.icon.source
+            shortcut: actions.edit.cut.shortcut
         }
-        ShortcutMenuItem {
-            action: actions.edit.copy
-            onPaletteChanged: fixTextColors(this)
+        Labs.MenuItem {
+            text: actions.edit.copy.text
+            onTriggered: actions.edit.copy.trigger()
+            icon.source: actions.edit.copy.icon.source
+            shortcut: actions.edit.copy.shortcut
         }
-        ShortcutMenuItem {
-            action: actions.edit.paste
-            onPaletteChanged: fixTextColors(this)
+        Labs.MenuItem {
+            text: actions.edit.paste.text
+            onTriggered: actions.edit.paste.trigger()
+            icon.source: actions.edit.paste.icon.source
+            shortcut: actions.edit.paste.shortcut
         }
         // Formatting magic!
-        MenuSeparator {}
-        MenuItem {
-            action: actions.edit.prefs
+        Labs.MenuSeparator {}
+        Labs.MenuItem {
+            text: actions.edit.prefs.text
+            onTriggered: actions.edit.prefs.trigger()
+            icon.source: actions.edit.prefs.icon.source
         }
     }
-    Menu {
+    Labs.Menu {
         id: build
         title: qsTr("&Build")
-        ShortcutMenuItem {
-            action: actions.build.formatObject
-            enabled: action.enabled
-            visible: enabled
-            height: enabled ? implicitHeight : 0
-            onEnabledChanged: contentItem.enabled = enabled
-            contentItem.onEnabledChanged: fixTextColors(this)
-            onPaletteChanged: fixTextColors(this)
+        Labs.MenuItem {
+            text: actions.build.formatObject.text
+            onTriggered: actions.build.formatObject.trigger()
+            enabled: actions.build.formatObject.enabled
         }
-        ShortcutMenuItem {
-            action: actions.build.loadObject
-            enabled: action.enabled
+        Labs.MenuItem {
+            text: actions.build.loadObject.text
+            onTriggered: actions.build.loadObject.trigger()
+            enabled: actions.build.loadObject.enabled
             visible: enabled
-            height: enabled ? implicitHeight : 0
-            onEnabledChanged: contentItem.enabled = enabled
-            contentItem.onEnabledChanged: fixTextColors(this)
-            onPaletteChanged: fixTextColors(this)
+            icon.source: actions.build.loadObject.icon.source
+            shortcut: actions.build.loadObject.shortcut
         }
-        ShortcutMenuItem {
-            action: actions.build.assemble
-            enabled: action.enabled
+        Labs.MenuItem {
+            text: actions.build.assemble.text
+            onTriggered: actions.build.assemble.trigger()
+            enabled: actions.build.assemble.enabled
             visible: enabled
-            height: enabled ? implicitHeight : 0
-            onEnabledChanged: contentItem.enabled = enabled
-            contentItem.onEnabledChanged: fixTextColors(this)
-            onPaletteChanged: fixTextColors(this)
+            icon.source: actions.build.assemble.icon.source
+            shortcut: actions.build.assemble.shortcut
         }
-        ShortcutMenuItem {
-            action: actions.build.assembleThenFormat
-            enabled: action.enabled
+        Labs.MenuItem {
+            text: actions.build.assembleThenFormat.text
+            onTriggered: actions.build.assembleThenFormat.trigger()
+            enabled: actions.build.assembleThenFormat.enabled
             visible: enabled
-            height: enabled ? implicitHeight : 0
-            onEnabledChanged: contentItem.enabled = enabled
-            contentItem.onEnabledChanged: fixTextColors(this)
-            onPaletteChanged: fixTextColors(this)
+            icon.source: actions.build.assembleThenFormat.icon.source
         }
-        ShortcutMenuItem {
-            action: actions.build.execute
-            enabled: action.enabled
-            onEnabledChanged: contentItem.enabled = enabled
-            contentItem.onEnabledChanged: fixTextColors(this)
-            onPaletteChanged: fixTextColors(this)
+        Labs.MenuItem {
+            text: actions.build.execute.text
+            onTriggered: actions.build.execute.trigger()
+            enabled: actions.build.execute.enabled
+            icon.source: actions.build.execute.icon.source
+            shortcut: actions.build.execute.shortcut
         }
     }
-    Menu {
+    Labs.Menu {
         title: qsTr("&Debug")
-        ShortcutMenuItem {
-            action: actions.debug.start
-            enabled: action.enabled
-            contentItem.enabled: action.enabled
-            onEnabledChanged: fixTextColors(this)
-            onPaletteChanged: fixTextColors(this)
+        Labs.MenuItem {
+            text: actions.debug.start.text
+            onTriggered: actions.debug.start.trigger()
+            enabled: actions.debug.start.enabled
+            icon.source: actions.debug.start.icon.source
+            shortcut: actions.debug.start.shortcut
         }
-        MenuSeparator {}
-        MenuItem {
-            action: actions.debug.continue_
-            enabled: action.enabled
-            onEnabledChanged: contentItem.enabled = enabled
-            contentItem.onEnabledChanged: fixTextColors(this)
-            onPaletteChanged: fixTextColors(this)
+        Labs.MenuSeparator {}
+        Labs.MenuItem {
+            text: actions.debug.continue_.text
+            onTriggered: actions.debug.continue_.trigger()
+            enabled: actions.debug.continue_.enabled
+            icon.source: actions.debug.continue_.icon.source
         }
-        MenuItem {
-            action: actions.debug.pause
-            enabled: action.enabled
-            onEnabledChanged: contentItem.enabled = enabled
-            contentItem.onEnabledChanged: fixTextColors(this)
-            onPaletteChanged: fixTextColors(this)
+        Labs.MenuItem {
+            text: actions.debug.pause.text
+            onTriggered: actions.debug.pause.trigger()
+            enabled: actions.debug.pause.enabled
+            icon.source: actions.debug.pause.icon.source
+            shortcut: actions.debug.pause.shortcut
         }
-        MenuItem {
-            action: actions.debug.stop
-            enabled: action.enabled
-            onEnabledChanged: contentItem.enabled = enabled
-            contentItem.onEnabledChanged: fixTextColors(this)
-            onPaletteChanged: fixTextColors(this)
+        Labs.MenuItem {
+            text: actions.debug.stop.text
+            onTriggered: actions.debug.stop.trigger()
+            enabled: actions.debug.stop.enabled
+            icon.source: actions.debug.stop.icon.source
         }
-        MenuSeparator {}
-        MenuItem {
-            action: actions.debug.stepInto
-            enabled: action.enabled
-            onEnabledChanged: contentItem.enabled = enabled
-            contentItem.onEnabledChanged: fixTextColors(this)
-            onPaletteChanged: fixTextColors(this)
+        Labs.MenuSeparator {}
+        Labs.MenuItem {
+            text: actions.debug.stepInto.text
+            onTriggered: actions.debug.stepInto.trigger()
+            enabled: actions.debug.stepInto.enabled
+            icon.source: actions.debug.stepInto.icon.source
         }
-        MenuItem {
-            action: actions.debug.stepOver
-            enabled: action.enabled
-            onEnabledChanged: contentItem.enabled = enabled
-            contentItem.onEnabledChanged: fixTextColors(this)
-            onPaletteChanged: fixTextColors(this)
+        Labs.MenuItem {
+            text: actions.debug.stepOver.text
+            onTriggered: actions.debug.stepOver.trigger()
+            enabled: actions.debug.stepOver.enabled
+            icon.source: actions.debug.stepOver.icon.source
         }
-        MenuItem {
-            action: actions.debug.stepOut
-            enabled: action.enabled
-            onEnabledChanged: contentItem.enabled = enabled
-            contentItem.onEnabledChanged: fixTextColors(this)
-            onPaletteChanged: fixTextColors(this)
+        Labs.MenuItem {
+            text: actions.debug.stepOut.text
+            onTriggered: actions.debug.stepOut.trigger()
+            enabled: actions.debug.stepOut.enabled
+            icon.source: actions.debug.stepOut.icon.source
         }
-        MenuSeparator {}
-        MenuItem {
-            action: actions.debug.removeAllBreakpoints
+        Labs.MenuSeparator {}
+        Labs.MenuItem {
+            text: qsTr("&Remove All Breakpoints")
+            onTriggered: actions.debug.removeAllBreakpoints.trigger()
         }
     }
-    Menu {
+    Labs.Menu {
         title: qsTr("&Simulator")
-        MenuItem {
-            action: actions.sim.clearCPU
+        Labs.MenuItem {
+            text: actions.sim.clearCPU.text
+            onTriggered: actions.sim.clearCPU.trigger()
         }
-        MenuItem {
-            action: actions.sim.clearMemory
+        Labs.MenuItem {
+            text: actions.sim.clearMemory.text
+            onTriggered: actions.sim.clearMemory.trigger()
         }
     }
-    Menu {
+    Labs.Menu {
         title: qsTr("&View")
-        MenuItem {
-            action: actions.view.fullscreen
+        Labs.MenuItem {
+            text: actions.view.fullscreen.text
+            onTriggered: actions.view.fullscreen.trigger()
         }
         // Dynamic magic to mode switch!
     }
-    Menu {
+    Labs.Menu {
         title: qsTr("&Help")
-        MenuItem {
-            action: actions.help.about
+        Labs.MenuItem {
+            text: actions.help.about.text
+            onTriggered: actions.help.about.trigger()
         }
     }
 }
