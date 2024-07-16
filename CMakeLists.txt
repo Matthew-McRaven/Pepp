@@ -28,10 +28,10 @@ if (EMSCRIPTEN)
     set(QT_WASM_INITIAL_MEMORY 999948288 CACHE INTERNAL "" FORCE)
 endif ()
 option(SANITIZE "Enable sanitizers" OFF)
-if(SANITIZE AND CMAKE_CXX_COMPILER_ID STREQUAL "Clang")
+if (SANITIZE AND CMAKE_CXX_COMPILER_ID STREQUAL "Clang")
     add_compile_options(-fsanitize=undefined -fsanitize=address)
     add_link_options(-fsanitize=undefined -fsanitize=address)
-endif()
+endif ()
 
 # If set, skip documentation generation, and generate a QRC directly from this directory.
 set(DOC_PREBUILT_DIR CACHE STRING "Directory in which pre-built help documentation can be found")
@@ -199,9 +199,8 @@ if (ONLY STREQUAL "BUILD")
     set(CMAKE_CXX_STANDARD 20)
     set(CMAKE_CXX_STANDARD_REQUIRED ON)
     # We always want universal builds, so do not set on a per-target basis
-    SET(CMAKE_OSX_ARCHITECTURES "x86_64;arm64" CACHE INTERNAL "" FORCE)
 
-    find_package(Qt6 6.4 COMPONENTS REQUIRED Svg Quick Core Gui Qml Test Widgets QuickControls2 Xml )
+    find_package(Qt6 6.4 COMPONENTS REQUIRED Svg Quick Core Gui Qml Test Widgets QuickControls2 Xml)
     add_subdirectory(3rd-party)
     set(CMAKE_AUTOMOC ON)
     set(CMAKE_AUTORCC ON)
