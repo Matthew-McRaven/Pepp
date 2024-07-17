@@ -15,12 +15,13 @@ Labs.MenuBar {
     property alias closeModel: closeInstantiator.model
 
     function indexOf(menu, menuItem) {
-        for (var i = 0; i < menu.count; i++) {
-            if (menu.itemAt(i) === menuItem) {
+        for (var i = 0; i < menu.data.length; i++) {
+            //  See if item is same as list
+            if (menu.data[i] === menuItem) {
                 return i
             }
         }
-        return menu.count
+        return menu.data.length
     }
     Labs.Menu {
         id: fileMenu
@@ -49,11 +50,12 @@ Labs.MenuBar {
             //icon.width: new_.icon.width
             Instantiator {
                 model: 5
-                delegate: MenuItem {
+                delegate: Labs.MenuItem {
                     text: `${modelData}.pep`
                     onTriggered: openRecent(modelData)
                     icon.source: "image://icons/blank.svg"
                 }
+
                 onObjectAdded: (i, obj) => recentMenu.insertItem(i, obj)
                 onObjectRemoved: (i, obj) => recentMenu.removeItem(obj)
             }
@@ -73,16 +75,17 @@ Labs.MenuBar {
             id: saveAsInstantiator
             model: 2
             delegate: Labs.MenuItem {
-                text: "Save as" + modelData
+                text: "Save as " + modelData
                 onTriggered: saveAs(modelData)
                 // Use blank icon to force menu items to line up.
                 icon.source: "image://icons/blank.svg"
             }
-            onObjectAdded: function (index, object) {
+            onObjectAdded: function (i, obj) {
                 const m = fileMenu
-                m.insertItem(index + indexOf(m, _saveAsPrev) + 1, object)
+                //  Insert under parent
+                m.insertItem(i + indexOf(m, _saveAsPrev) + 1, obj)
             }
-            onObjectRemoved: (index, object) => fileMenu.removeItem(object)
+            onObjectRemoved: (i, obj) => fileMenu.removeItem(obj)
         }
         Labs.MenuSeparator {
             id: _printPrev
@@ -91,16 +94,17 @@ Labs.MenuBar {
             id: printInstantiator
             model: 3
             delegate: Labs.MenuItem {
-                text: "Print" + modelData
+                text: "Print " + modelData
                 onTriggered: actions.file.print_(modelData).trigger()
                 // Use blank icon to force menu items to line up.
                 icon.source: "image://icons/blank.svg"
             }
-            onObjectAdded: function (index, object) {
+            onObjectAdded: function (i, obj) {
                 const m = fileMenu
-                m.insertItem(index + indexOf(m, _printPrev) + 1, object)
+                //  Insert under parent, note that inserted item shifted list down by 1
+                m.insertItem(i + indexOf(m, _printPrev), obj)
             }
-            onObjectRemoved: (index, object) => fileMenu.removeItem(object)
+            onObjectRemoved: (i, obj) => fileMenu.removeItem(obj)
         }
         Labs.MenuSeparator {
             id: _closePrev
@@ -109,16 +113,17 @@ Labs.MenuBar {
             id: closeInstantiator
             model: 3
             delegate: Labs.MenuItem {
-                text: "Close" + modelData
+                text: "Close " + modelData
                 onTriggered: actions.file.close(modelData).trigger()
                 // Use blank icon to force menu items to line up.
                 icon.source: "image://icons/blank.svg"
             }
-            onObjectAdded: function (index, object) {
+            onObjectAdded: function (i, obj) {
                 const m = fileMenu
-                m.insertItem(index + indexOf(m, _closePrev) + 1, object)
+                //  Insert under parent, note that inserted items shifted list down by 2
+                m.insertItem(i + indexOf(m, _closePrev) - 1, obj)
             }
-            onObjectRemoved: (index, object) => fileMenu.removeItem(object)
+            onObjectRemoved: (i, obj) => fileMenu.removeItem(obj)
         }
         MenuItem {
             text: actions.file.closeAll.text
