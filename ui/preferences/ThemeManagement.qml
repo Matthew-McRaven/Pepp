@@ -154,6 +154,7 @@ RowLayout {
                 width: 100
                 text: themeId.currentText + " (copy)"
                 focus: true
+                color: palette.text
                 validator: RegularExpressionValidator {
                     regularExpression: /^[^<>:;,?"*|\\/]+$/
                 }
