@@ -6,6 +6,7 @@ Rectangle {
     id: wrapper
     required property int architecture
     required property int abstraction
+    property bool enabled: true
     property alias text: title.text
     property alias description: description.text
     property real textPadding: 5
@@ -24,10 +25,11 @@ Rectangle {
         onClicked: {
             console.log("Card clicked")
             // Magic function that exists in Welcome.qml and is exposed to us.
-            addProject(architecture, abstraction, "", false)
+            if (wrapper.enabled)
+                addProject(architecture, abstraction, "", false)
         }
     }
-    color: palette.button
+    color: wrapper.enabled ? palette.button : palette.button.darker(1.4)
 
     // Placeholder for image showing current project type.
     Rectangle {

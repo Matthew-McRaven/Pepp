@@ -29,8 +29,8 @@ import "qrc:/ui/project" as Project
 import "qrc:/ui/preferences" as Pref
 import edu.pepp 1.0
 import "./menu" as Menu
-import Qt.labs.platform as Labs//  Native menu for apple, linux, and windows
-
+//  Native menu for apple, linux, and windows
+import Qt.labs.platform as Labs
 
 ApplicationWindow {
     id: window
@@ -69,6 +69,7 @@ ApplicationWindow {
         disabled {
             highlight: Theme.window.background
             buttonText: Theme.shadow.foreground
+            button: Theme.base.background
         }
     }
 
@@ -159,7 +160,7 @@ ApplicationWindow {
                         proj = cur
                     else
                         proj = pm.pep10ISA(pep10isaComponent)
-                } else {
+                } else if (Number(level) === Abstraction.ASMB5) {
                     if (cur && cur.architecture === Architecture.PEP10
                             && cur.abstraction === Abstraction.ASMB5
                             && cur.isEmpty && reuse)
@@ -531,6 +532,8 @@ ApplicationWindow {
     }
     function onOpenDialog() {}
     function onCloseAllProjects(excludeCurrent: bool) {}
-    function onQuit() {window.close()}
+    function onQuit() {
+        window.close()
+    }
     function onToggleFullScreen() {}
 }
