@@ -18,11 +18,13 @@ Rectangle {
             text: "MC2, 1 byte bus"
             architecture: Architecture.PEP10
             abstraction: Abstraction.MC2
+            enabled: false
         }
         WelcomeCard {
             text: "MC2, 2 byte bus"
             architecture: Architecture.PEP10
             abstraction: Abstraction.MC2
+            enabled: false
         }
         WelcomeCard {
             text: "ISA3, bare metal"
@@ -33,11 +35,13 @@ Rectangle {
             text: "Assembly Language, bare metal"
             architecture: Architecture.PEP10
             abstraction: Abstraction.ISA3
+            enabled: false
         }
         WelcomeCard {
             text: "OS4"
             architecture: Architecture.PEP10
             abstraction: Abstraction.OS4
+            enabled: false
         }
         WelcomeCard {
             text: "ASMB5, full OS"
