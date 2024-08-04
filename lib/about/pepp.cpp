@@ -15,7 +15,7 @@
  */
 
 #include "pepp.hpp"
-#include "help/about/version.hpp"
+#include "./version.hpp"
 #include "read.hpp"
 
 QString about::projectRepoURL() {
@@ -33,8 +33,7 @@ QList<about::Maintainer> about::maintainers() {
   // maintainers.csv has no headers
   for (const auto &line : text->split("\n")) {
     // Skip empty lines.
-    if (line.isEmpty())
-      continue;
+    if (line.isEmpty()) continue;
     auto parts = line.split(",");
     if (parts.size() != 2) {
       qWarning() << "Failed to parse maintainers row: " << line << "\n";
@@ -51,8 +50,7 @@ QList<QString> about::contributors() {
   // maintainers.csv has no headers
   for (const auto &line : text->split("\n")) {
     // Skip empty lines.
-    if (line.isEmpty())
-      continue;
+    if (line.isEmpty()) continue;
     ret.push_back(line);
   }
   return ret;

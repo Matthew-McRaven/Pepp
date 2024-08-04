@@ -14,8 +14,8 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-#include "contributors.hpp"
-#include "help/about/pepp.hpp"
+#include "./contributors.hpp"
+#include "./pepp.hpp"
 
 Maintainer::Maintainer(QString name, QString email, QObject *parent) : QObject(parent), _name(name), _email(email) {}
 QString Maintainer::name() { return _name; }

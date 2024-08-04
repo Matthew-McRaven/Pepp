@@ -17,9 +17,9 @@
 #include "./about.hpp"
 #include <iostream>
 #include "TextFlow.hpp"
-#include "help/about/dependencies.hpp"
-#include "help/about/pepp.hpp"
-#include "help/about/version.hpp"
+#include "about/dependencies.hpp"
+#include "about/pepp.hpp"
+#include "about/version.hpp"
 
 AboutTask::AboutTask(QObject *parent) : Task(parent) {}
 

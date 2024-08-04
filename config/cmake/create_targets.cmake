@@ -176,3 +176,25 @@ function(make_library)
         )
     endforeach ()
 endfunction()
+
+# Helper to make a test thing library with cpp sources.
+function(add_pepp_test)
+    set(options TEST_IN_QTC)
+    set(oneValueArgs TARGET)
+    # SOURCES and DEPENDS work as above.
+    # TESTS should be a list of standalone CPP files that can be compiled into a test executable
+    # These tests will be linked against DEPENDS, QTest, and TARGET.
+    set(multiValueArgs TESTS DEPENDS)
+    cmake_parse_arguments(AT "${options}" "${oneValueArgs}" "${multiValueArgs}" ${ARGN})
+    string(TOUPPER ${AT_TARGET} AT_TARGET_UPPER)
+    # Make target for each test file
+    foreach (TEST_FILE ${AT_TESTS})
+        get_filename_component(STEM ${TEST_FILE} NAME_WE)
+        make_target(
+                TARGET "test-${AT_TARGET}-${STEM}"
+                TYPE "TEST"
+                SOURCES ${TEST_FILE}
+                DEPENDS ${AT_DEPENDS} ${AT_TARGET}
+        )
+    endforeach ()
+endfunction()

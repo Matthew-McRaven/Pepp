@@ -8,7 +8,7 @@ cmake_policy(SET CMP0118 NEW)
 
 # Allow normalized paths (e.g., "asm/pas" ) without nesting that directory folder
 # inside a nested "src" hierarchy. May cause linking issues if you do not pay attention.
-include_directories(${CMAKE_CURRENT_LIST_DIR}/logic ${CMAKE_CURRENT_LIST_DIR}/ui)
+include_directories(${CMAKE_CURRENT_LIST_DIR}/logic ${CMAKE_CURRENT_LIST_DIR}/ui ${CMAKE_CURRENT_LIST_DIR}/lib)
 
 # Derived from: https://vicrucann.github.io/tutorials/quick-cmake-doxygen/
 # Can be BUILD, DOC, VERSION.
@@ -210,9 +210,11 @@ if (ONLY STREQUAL "BUILD")
     set(CMAKE_WINDOWS_EXPORT_ALL_SYMBOLS ON)
     include(config/cmake/create_targets.cmake)
     # Must be earlier or we have issues creating installers.
+    add_subdirectory(lib)
     add_subdirectory(logic)
     add_subdirectory(ui)
     add_subdirectory(bin)
+    add_subdirectory(test)
 
     # Needed to genrate documentation
     find_package(Python COMPONENTS Interpreter)
