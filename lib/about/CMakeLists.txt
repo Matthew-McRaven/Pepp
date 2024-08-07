@@ -1,7 +1,6 @@
 cmake_minimum_required(VERSION 3.10)
 
-file(GLOB_RECURSE sources_and_tests CONFIGURE_DEPENDS "${CMAKE_CURRENT_LIST_DIR}/*.cpp" "${CMAKE_CURRENT_LIST_DIR}/*.hpp")
-list(APPEND sources ${sources_and_tests})
+file(GLOB_RECURSE sources CONFIGURE_DEPENDS "${CMAKE_CURRENT_LIST_DIR}/*.cpp" "${CMAKE_CURRENT_LIST_DIR}/*.hpp")
 
 # GLOB_RECURSE uses abs paths, QML_FILES expects relative paths. This blob converts from abs to rel.
 file(GLOB_RECURSE abs_qml_sources CONFIGURE_DEPENDS "*.qml")
