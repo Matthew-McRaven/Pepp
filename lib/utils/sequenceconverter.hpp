@@ -4,10 +4,9 @@
 #include <QObject>
 #include <QQmlApplicationEngine>
 #include <QQmlContext>
-#include "utils_global.hpp"
 
 namespace utils {
-class UTILS_EXPORT SequenceConverter : public QObject {
+class SequenceConverter : public QObject {
   Q_OBJECT
 public:
   explicit SequenceConverter(QObject *parent = nullptr);

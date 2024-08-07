@@ -21,12 +21,11 @@
 
 // Needed to prevent type_traits from complaining that Book has throwing dtor.
 #include "book.hpp"
-#include "builtins_globals.hpp"
 namespace macro {
 class Parsed;
 }
 namespace builtins {
-class BUILTINS_EXPORT Registry : public QObject {
+class Registry : public QObject {
   Q_OBJECT
   Q_PROPERTY(
       QList<QSharedPointer<const builtins::Book>> books READ books CONSTANT);

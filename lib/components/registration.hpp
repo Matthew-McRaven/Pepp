@@ -13,13 +13,9 @@
  * You should have received a copy of the GNU General Public License
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
-
 #pragma once
-
-#include <QtCore/QtGlobal>
-
-#if defined(UTILS_LIBRARY)
-#define UTILS_EXPORT Q_DECL_EXPORT
-#else
-#define UTILS_EXPORT Q_DECL_IMPORT
-#endif
+#include <QQmlApplicationEngine>
+#include <QtCore>
+namespace components {
+void registerTypes(const char *uri);
+}

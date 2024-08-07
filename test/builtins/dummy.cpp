@@ -1,6 +1,5 @@
 /*
- * Copyright (c) 2023 J. Stanley Warford, Matthew McRaven
- *
+ * Copyright (c) 2023-2024 J. Stanley Warford, Matthew McRaven
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
  * the Free Software Foundation, either version 3 of the License, or
@@ -15,12 +14,9 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-#pragma once
+#include <catch.hpp>
+#include "builtins/registry.hpp"
 
-#include <QtCore/QtGlobal>
-
-#if defined(HELP_LIBRARY)
-#define HELP_EXPORT Q_DECL_EXPORT
-#else
-#define HELP_EXPORT Q_DECL_IMPORT
-#endif
+TEST_CASE("Builtins", "[scope:help.bi][kind:unit][arch:*]") {
+  REQUIRE_NOTHROW([]() { auto x = builtins::Registry(nullptr); }());
+}

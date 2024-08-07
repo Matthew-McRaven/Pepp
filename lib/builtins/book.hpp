@@ -21,8 +21,6 @@
 #include <QObject>
 #include <QtCore>
 
-#include "builtins_globals.hpp"
-
 namespace builtins {
 class Figure;
 
@@ -33,7 +31,7 @@ class Figure;
  * crash. Multiple macros with the same name and arity will cause a runtime
  * crash.
  */
-class BUILTINS_EXPORT Book : public QObject {
+class Book : public QObject {
   Q_OBJECT
   Q_PROPERTY(QString name READ name CONSTANT);
   Q_PROPERTY(const QList<QSharedPointer<builtins::Figure>> figures READ figures

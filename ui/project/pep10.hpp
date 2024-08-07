@@ -6,18 +6,18 @@
 #include <qabstractitemmodel.h>
 #include <targets/pep10/isa3/system.hpp>
 #include "./aproject.hpp"
+#include "builtins/constants.hpp"
 #include "cpu/registermodel.hpp"
 #include "cpu/statusbitmodel.hpp"
 #include "memory/hexdump/rawmemory.hpp"
 #include "text/editor/scintillaasmeditbase.hpp"
-#include "utils/constants.hpp"
 #include "utils/opcodemodel.hpp"
 
 class Pep10_ISA : public QObject {
   Q_OBJECT
   Q_PROPERTY(project::Environment env READ env CONSTANT)
-  Q_PROPERTY(utils::Architecture architecture READ architecture CONSTANT)
-  Q_PROPERTY(utils::Abstraction abstraction READ abstraction CONSTANT)
+  Q_PROPERTY(builtins::Architecture architecture READ architecture CONSTANT)
+  Q_PROPERTY(builtins::Abstraction abstraction READ abstraction CONSTANT)
   Q_PROPERTY(QVariant delegate MEMBER _delegate NOTIFY delegateChanged)
   Q_PROPERTY(QString objectCodeText READ objectCodeText WRITE setObjectCodeText NOTIFY objectCodeTextChanged);
   Q_PROPERTY(ARawMemory *memory READ memory CONSTANT)
@@ -40,8 +40,8 @@ public:
   };
   explicit Pep10_ISA(QVariant delegate, QObject *parent = nullptr, bool initializeSystem = true);
   virtual project::Environment env() const;
-  virtual utils::Architecture architecture() const;
-  virtual utils::Abstraction abstraction() const;
+  virtual builtins::Architecture architecture() const;
+  virtual builtins::Abstraction abstraction() const;
   ARawMemory *memory() const;
   OpcodeModel *mnemonics() const;
   QString objectCodeText() const;
@@ -154,8 +154,8 @@ public:
   Q_INVOKABLE const QList<Error *> errors() const;
   Q_INVOKABLE bool isEmpty() const override;
   project::Environment env() const override;
-  utils::Architecture architecture() const override;
-  utils::Abstraction abstraction() const override;
+  builtins::Architecture architecture() const override;
+  builtins::Abstraction abstraction() const override;
   int allowedDebugging() const override;
 public slots:
   bool onDebuggingStart() override;

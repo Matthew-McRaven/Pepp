@@ -4,10 +4,10 @@
 #include <deque>
 #include <qabstractitemmodel.h>
 #include <targets/pep10/isa3/system.hpp>
+#include "builtins/constants.hpp"
 #include "cpu/registermodel.hpp"
 #include "cpu/statusbitmodel.hpp"
 #include "memory/hexdump/rawmemory.hpp"
-#include "utils/constants.hpp"
 #include "utils/opcodemodel.hpp"
 
 namespace sim {
@@ -61,8 +61,8 @@ public:
 
 // TODO: Expose values on AProject directly
 struct Environment {
-  utils::Architecture arch;
-  utils::Abstraction level;
+  builtins::Architecture arch;
+  builtins::Abstraction level;
   Features features;
 };
 } // namespace project

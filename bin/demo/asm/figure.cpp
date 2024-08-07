@@ -16,9 +16,9 @@
  */
 
 #include "./figure.hpp"
-#include "help/builtins/book.hpp"
-#include "help/builtins/figure.hpp"
-#include "help/builtins/registry.hpp"
+#include "builtins/book.hpp"
+#include "builtins/figure.hpp"
+#include "builtins/registry.hpp"
 #include <QQmlEngine>
 FigureManager::FigureManager() {
   auto registry = _reg = QSharedPointer<builtins::Registry>::create(nullptr);

@@ -21,15 +21,14 @@
 #include <QString>
 #include <QtCore>
 #include <optional>
-#include "builtins_globals.hpp"
-#include "utils.hpp"
+#include "constants.hpp"
 namespace builtins {
 
 class Figure;
 /*!
  * \brief Contains a unit of content that makes up a help item
  */
-struct BUILTINS_EXPORT Element : public QObject {
+struct Element : public QObject {
 private:
   Q_OBJECT
   Q_PROPERTY(bool generated MEMBER generated);
@@ -54,7 +53,7 @@ public:
  * \brief A single input:output pair that can be used to unit test an
  * figure.
  */
-struct BUILTINS_EXPORT Test : public QObject {
+struct Test : public QObject {
 private:
   Q_OBJECT
   Q_PROPERTY(QVariant input MEMBER input);
@@ -69,7 +68,7 @@ public:
   QVariant output;
 };
 
-struct BUILTINS_EXPORT Macro : public QObject {
+struct Macro : public QObject {
 private:
   Q_OBJECT
   Q_PROPERTY(Architecture arch MEMBER arch);

@@ -8,8 +8,8 @@ foreach (f_abs IN LISTS abs_qml_sources)
     list(APPEND rel_qml_sources "${f_rel}")
 endforeach ()
 
-qt_add_qml_module(ui_help
-        URI "help"
+qt_add_qml_module(components
+        URI "comp"
         VERSION 0.1
         QML_FILES
         ${rel_qml_sources}
@@ -18,5 +18,4 @@ qt_add_qml_module(ui_help
         ${sources}
 )
 
-target_compile_definitions(ui_help PRIVATE "HELP_LIBRARY")
-target_link_libraries(ui_help PUBLIC Qt6::Core Qt6::Gui Qt6::Quick ui_utils builtins)
+target_link_libraries(components PUBLIC Qt6::Core Qt6::Gui Qt6::Quick ui_utils builtins)

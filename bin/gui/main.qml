@@ -21,12 +21,13 @@ import QtQuick.Controls
 import QtQuick.Layouts
 import Qt.labs.qmlmodels
 import "qrc:/ui/about" as About
-import "qrc:/ui/help" as Help
+import "qrc:/ui/comp" as Comp
 import "qrc:/ui/memory/hexdump" as Memory
 import "qrc:/ui/cpu" as Cpu
 import "qrc:/ui/text/editor" as Editor
 import "qrc:/ui/project" as Project
 import "qrc:/ui/preferences" as Pref
+import "qrc:/ui/builtins" as Builtins
 import edu.pepp 1.0
 import "./menu" as Menu
 //  Native menu for apple, linux, and windows
@@ -311,7 +312,7 @@ ApplicationWindow {
                     text: ''
                 }
                 ToolSeparator {}
-                Help.Converters {
+                Comp.Converters {
                     initialValue: 'a'.charCodeAt(0)
                     mnemonics: currentProject?.mnemonics ?? null
                 }
@@ -442,7 +443,7 @@ ApplicationWindow {
             Layout.fillHeight: true
             Layout.fillWidth: true
         }
-        Help.HelpView {
+        Builtins.HelpView {
             id: help
             Layout.fillHeight: true
             Layout.fillWidth: true

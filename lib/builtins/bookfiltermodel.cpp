@@ -1,5 +1,5 @@
 #include "bookfiltermodel.hpp"
-#include "help/builtins/utils.hpp"
+#include "constants.hpp"
 
 builtins::BookFilterModel::BookFilterModel(QObject *parent) : QSortFilterProxyModel(parent) {}
 
