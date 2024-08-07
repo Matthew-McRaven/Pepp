@@ -1,2 +1,5 @@
+add_subdirectory(utils)
 add_subdirectory(about)
 add_subdirectory(macro)
+add_subdirectory(builtins)
+add_subdirectory(components)

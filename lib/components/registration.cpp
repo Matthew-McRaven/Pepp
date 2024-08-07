@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2024 J. Stanley Warford, Matthew McRaven
+ * Copyright (c) 2023-2024 J. Stanley Warford, Matthew McRaven
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
  * the Free Software Foundation, either version 3 of the License, or
@@ -14,8 +14,12 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-#include "constants.hpp"
+#include "registration.hpp"
+#include "charcheck.hpp"
 
-utils::AbstractionHelper::AbstractionHelper(QObject *parent) : QObject(parent) {}
-
-utils::ArchitectureHelper::ArchitectureHelper(QObject *parent) : QObject(parent) {}
+namespace components {
+void registerTypes(const char *uri) {
+  // TODO: Missing translations
+  qmlRegisterType<CharCheck>(uri, 1, 0, "CharCheck");
+}
+} // namespace componentp

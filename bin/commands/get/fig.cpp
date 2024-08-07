@@ -16,7 +16,7 @@
 
 #include "fig.hpp"
 #include <iostream>
-#include "help/builtins/figure.hpp"
+#include "builtins/figure.hpp"
 #include "helpers/asmb.hpp"
 
 GetFigTask::GetFigTask(int ed, std::string ch, std::string fig, std::string type, bool isFigure, QObject *parent)

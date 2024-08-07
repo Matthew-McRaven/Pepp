@@ -17,7 +17,7 @@
 #include "run.hpp"
 #include "../shared.hpp"
 #include "bits/strings.hpp"
-#include "help/builtins/figure.hpp"
+#include "builtins/figure.hpp"
 #include "helpers/asmb.hpp"
 #include "obj/mmio.hpp"
 #include "sim/device/broadcast/mmi.hpp"

@@ -28,9 +28,9 @@
 #include "../iconprovider.hpp"
 #include "about/registration.hpp"
 #include "about/version.hpp"
+#include "builtins/registration.hpp"
+#include "components//registration.hpp"
 #include "cpu/registration.hpp"
-#include "help/registration.hpp"
-#include "memory/hexdump/memorybytemodel.hpp"
 #include "memory/registration.hpp"
 #include "preferences/preferencemodel.hpp"
 #include "preferences/registration.hpp"
@@ -54,7 +54,8 @@ QSharedPointer<gui_globals> default_init(QQmlApplicationEngine &engine, QSharedP
   text::registerTypes("edu.pepp");
   cpu::registerTypes("edu.pepp");
   project::registerTypes("edu.pepp");
-  help::registerTypes("edu.pepp");
+  builtins::registerTypes("edu.pepp");
+  components::registerTypes("edu.pepp");
 
   //  Connect models
   auto *ctx = engine.rootContext();
@@ -96,8 +97,8 @@ int gui_main(const gui_args &args) {
     else globals = default_init(engine, data);
     (void)globals; // Unused, but keeps bound context variables from being deleted.
 
-    /*QDirIterator i(":", QDirIterator::Subdirectories);
-    while (i.hasNext()) {
+    QDirIterator i(":", QDirIterator::Subdirectories);
+    /*while (i.hasNext()) {
       auto f = QFileInfo(i.next());
       if (!f.isFile())
         continue;

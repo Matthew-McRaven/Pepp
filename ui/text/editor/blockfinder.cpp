@@ -17,7 +17,7 @@
 #include "blockfinder.hpp"
 #include <QQuickTextDocument>
 #include <QTextBlock>
-#include "help/builtins/registry.hpp"
+#include "builtins/registry.hpp"
 
 BlockFinder::BlockFinder(QObject *parent) : QObject(parent) {}
 int BlockFinder::find_pos(int pos) {

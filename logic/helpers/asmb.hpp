@@ -2,7 +2,7 @@
 #include <elfio/elfio.hpp>
 #include "./helpers_globals.hpp"
 #include "asm/pas/ast/node.hpp"
-#include "help/builtins/book.hpp"
+#include "builtins/book.hpp"
 #include "macro/registry.hpp"
 
 namespace helpers {

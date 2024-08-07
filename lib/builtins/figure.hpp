@@ -18,7 +18,6 @@
 #pragma once
 #include "elements.hpp"
 #include <QtCore>
-#include "builtins_globals.hpp"
 namespace builtins {
 
 /*!
@@ -32,7 +31,7 @@ namespace builtins {
  * \see builtins::Figure#_tests \see builtins::Figure#_elements
  *
  */
-class BUILTINS_EXPORT Figure : public QObject {
+class Figure : public QObject {
   Q_OBJECT
   Q_PROPERTY(builtins::Architecture arch READ arch CONSTANT);
   Q_PROPERTY(builtins::Abstraction level READ level CONSTANT);

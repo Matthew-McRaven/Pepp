@@ -38,7 +38,8 @@ class MEMORY_EXPORT MemoryByteModel : public QAbstractTableModel {
 
   Q_PROPERTY(MemoryColumns *Column READ column CONSTANT)
   Q_PROPERTY(ARawMemory *memory READ memory WRITE setMemory NOTIFY memoryChanged)
-  Q_PROPERTY(OpcodeModel *mnemonics MEMBER mnemonics_ NOTIFY mnemonicsChanged)
+  // Workaround for type being erased on Opcode Model
+  Q_PROPERTY(QObject *mnemonics READ mnemonics WRITE setMnemonics NOTIFY mnemonicsChanged)
   Q_PROPERTY(int bytesPerRow READ bytesPerRow NOTIFY dimensionsChanged)
   // Q_PROPERTY(int columns READ columnCount NOTIFY dimensionsChanged)
   // Q_PROPERTY(int rows READ rowCount NOTIFY dimensionsChanged)
@@ -54,6 +55,10 @@ public:
 
   ARawMemory *memory() const;
   void setMemory(ARawMemory *memory);
+
+  OpcodeModel *mnemonics() const;
+  void setMnemonics(OpcodeModel *mn);
+  void setMnemonics(QObject *mn);
 
   //  Helper functions for other C++ functions to call and affect the
   //  memory model without knowledge of the model layout.

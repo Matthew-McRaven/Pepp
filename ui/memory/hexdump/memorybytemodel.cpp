@@ -61,6 +61,20 @@ void MemoryByteModel::setMemory(ARawMemory *memory) {
   endResetModel();
 }
 
+OpcodeModel *MemoryByteModel::mnemonics() const { return mnemonics_; }
+
+void MemoryByteModel::setMnemonics(OpcodeModel *mn) {
+  if (mnemonics_ == mn) return;
+  QQmlEngine::setObjectOwnership(mn, QQmlEngine::CppOwnership);
+  mnemonics_ = mn;
+  emit mnemonicsChanged();
+}
+
+void MemoryByteModel::setMnemonics(QObject *mn) {
+  auto model = qobject_cast<OpcodeModel *>(mn);
+  if (model) setMnemonics(model);
+}
+
 quint8 MemoryByteModel::readByte(const quint32 address) const { return memory_->read(address); }
 
 void MemoryByteModel::writeByte(const quint32 address, const quint8 value) {

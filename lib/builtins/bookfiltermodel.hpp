@@ -1,8 +1,7 @@
 #pragma once
-#include "book_item_model.hpp"
-#include "help/builtins/utils.hpp"
-
 #include <QSortFilterProxyModel>
+#include "book_item_model.hpp"
+#include "builtins/constants.hpp"
 
 namespace builtins {
 class BookFilterModel : public QSortFilterProxyModel {

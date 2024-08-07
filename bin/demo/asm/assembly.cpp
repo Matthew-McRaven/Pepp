@@ -16,8 +16,8 @@
  */
 
 #include "./assembly.hpp"
-#include "help/builtins/book.hpp"
-#include "help/builtins/registry.hpp"
+#include "builtins/book.hpp"
+#include "builtins/registry.hpp"
 #include "isa/pep10.hpp"
 #include "macro/registry.hpp"
 #include "asm/pas/driver/pep10.hpp"

@@ -6,7 +6,7 @@
 #include "asm/pas/operations/generic/errors.hpp"
 #include "asm/pas/operations/pepp/bytes.hpp"
 #include "asm/pas/operations/pepp/string.hpp"
-#include "help/builtins/registry.hpp"
+#include "builtins/registry.hpp"
 #include "isa/pep10.hpp"
 #include "macro/parse.hpp"
 

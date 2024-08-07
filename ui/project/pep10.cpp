@@ -5,7 +5,7 @@
 #include "asm/pas/operations/pepp/bytes.hpp"
 #include "bits/strings.hpp"
 #include "cpu/formats.hpp"
-#include "help/builtins/figure.hpp"
+#include "builtins/figure.hpp"
 #include "helpers/asmb.hpp"
 #include "isa/pep10.hpp"
 #include "sim/api2/trace/buffer.hpp"
@@ -220,12 +220,13 @@ void Pep10_ISA::bindToSystem() {
 }
 
 project::Environment Pep10_ISA::env() const {
-  return {.arch = utils::Architecture::PEP10, .level = utils::Abstraction::ISA3, .features = project::Features::None};
+  using namespace builtins;
+  return {.arch = Architecture::PEP10, .level = Abstraction::ISA3, .features = project::Features::None};
 }
 
-utils::Architecture Pep10_ISA::architecture() const { return utils::Architecture::PEP10; }
+builtins::Architecture Pep10_ISA::architecture() const { return builtins::Architecture::PEP10; }
 
-utils::Abstraction Pep10_ISA::abstraction() const { return utils::Abstraction::ISA3; }
+builtins::Abstraction Pep10_ISA::abstraction() const { return builtins::Abstraction::ISA3; }
 
 ARawMemory *Pep10_ISA::memory() const { return _memory; }
 
@@ -244,7 +245,8 @@ void Pep10_ISA::setObjectCodeText(const QString &objectCodeText) {
 }
 
 void Pep10_ISA::set(int abstraction, QString value) {
-  if (abstraction == static_cast<int>(utils::Abstraction::ISA3)) {
+  using namespace builtins;
+  if (abstraction == static_cast<int>(Abstraction::ISA3)) {
     setObjectCodeText(value);
   }
 }
@@ -523,9 +525,10 @@ Pep10_ASMB::Pep10_ASMB(QVariant delegate, QObject *parent) : Pep10_ISA(delegate,
 }
 
 void Pep10_ASMB::set(int abstraction, QString value) {
-  if (abstraction == static_cast<int>(utils::Abstraction::ASMB5)) {
+  using namespace builtins;
+  if (abstraction == static_cast<int>(Abstraction::ASMB5)) {
     setUserAsmText(value);
-  } else if (abstraction == static_cast<int>(utils::Abstraction::OS4)) {
+  } else if (abstraction == static_cast<int>(Abstraction::OS4)) {
     setOSAsmText(value);
   }
 }
@@ -569,12 +572,13 @@ const QList<Error *> Pep10_ASMB::errors() const {
 bool Pep10_ASMB::isEmpty() const { return _userAsmText.isEmpty(); }
 
 project::Environment Pep10_ASMB::env() const {
-  return {.arch = utils::Architecture::PEP10, .level = utils::Abstraction::ASMB5, .features = project::Features::None};
+  using namespace builtins;
+  return {.arch = Architecture::PEP10, .level = Abstraction::ASMB5, .features = project::Features::None};
 }
 
-utils::Architecture Pep10_ASMB::architecture() const { return utils::Architecture::PEP10; }
+builtins::Architecture Pep10_ASMB::architecture() const { return builtins::Architecture::PEP10; }
 
-utils::Abstraction Pep10_ASMB::abstraction() const { return utils::Abstraction::ASMB5; }
+builtins::Abstraction Pep10_ASMB::abstraction() const { return builtins::Abstraction::ASMB5; }
 
 int Pep10_ASMB::allowedDebugging() const {
   using D = project::DebugEnableFlags;

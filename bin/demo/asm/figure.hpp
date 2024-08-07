@@ -19,9 +19,9 @@
 #include <QMap>
 #include <QObject>
 
-#include <help/builtins/registry.hpp>
+#include <builtins/registry.hpp>
 
-#include "help/builtins/figure.hpp"
+#include "builtins/figure.hpp"
 
 class FigureManager : public QObject {
   Q_OBJECT
