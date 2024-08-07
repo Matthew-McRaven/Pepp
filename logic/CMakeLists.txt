@@ -1,4 +1,3 @@
-add_subdirectory(macro)
 add_subdirectory(help)
 add_subdirectory(bits)
 add_subdirectory(isa)
