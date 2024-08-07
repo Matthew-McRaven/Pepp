@@ -17,14 +17,26 @@
 
 #pragma once
 
-#include <QtCore>
-#include <tuple>
+#include <QObject>
 
-#include "macro_globals.hpp"
+#include "./types.hpp"
 
 namespace macro {
-// Analyze a macro's text body, and attempt to extract header information.
-// Tuple returns 1) is the header well formed, 2) what is the macro's name,
-// 3) how many arguments does the macro require?
-MACRO_EXPORT std::tuple<bool, QString, quint8> analyze_macro_definition(QString macro_text);
-}; // End namespace macro
+class Parsed;
+class Registered : public QObject {
+  Q_OBJECT
+  Q_PROPERTY(const Parsed *contents READ contentsPtr CONSTANT)
+  Q_PROPERTY(types::Type type READ type CONSTANT)
+public:
+  // Takes ownership of contents and changes its parent to this
+  Registered(types::Type type, QSharedPointer<const Parsed> contents);
+  // Needed to access from QML.
+  const Parsed *contentsPtr() const;
+  QSharedPointer<const Parsed> contents() const;
+  types::Type type() const;
+
+private:
+  QSharedPointer<const Parsed> _contents;
+  types::Type _type;
+};
+} // namespace macro

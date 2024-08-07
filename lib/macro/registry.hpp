@@ -20,14 +20,13 @@
 #include <QObject>
 
 #include "./types.hpp"
-#include "macro_globals.hpp"
 
 namespace macro {
 
 class Parsed;
 class Registered;
 
-class MACRO_EXPORT Registry : public QObject {
+class Registry : public QObject {
   Q_OBJECT
 public:
   explicit Registry(QObject *parent = nullptr);
