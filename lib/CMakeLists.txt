@@ -1,3 +1,4 @@
+add_subdirectory(isa)
 add_subdirectory(bits)
 add_subdirectory(utils)
 add_subdirectory(about)
