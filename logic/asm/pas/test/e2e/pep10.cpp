@@ -23,9 +23,9 @@
 #include "builtins/figure.hpp"
 #include "builtins/registry.hpp"
 #include "isa/pep10.hpp"
+#include "link/memmap.hpp"
+#include "link/mmio.hpp"
 #include "macro/registry.hpp"
-#include "obj/memmap.hpp"
-#include "obj/mmio.hpp"
 #include "sim/device/simple_bus.hpp"
 #include "targets/pep10/isa3/system.hpp"
 

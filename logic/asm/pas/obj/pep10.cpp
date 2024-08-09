@@ -26,7 +26,7 @@
 #include "asm/symbol/value.hpp"
 #include "bits/operations/copy.hpp"
 #include "isa/pep10.hpp"
-#include "obj/mmio.hpp"
+#include "link/mmio.hpp"
 
 void pas::obj::pep10::combineSections(ast::Node &root) {
   QList<QSharedPointer<pas::ast::Node>> newChildren{};

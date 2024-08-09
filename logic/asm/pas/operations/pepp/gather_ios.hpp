@@ -19,7 +19,7 @@
 #include "asm/pas/ast/node.hpp"
 #include "asm/pas/ast/op.hpp"
 #include "asm/pas/pas_globals.hpp"
-#include "obj/mmio.hpp"
+#include "link/mmio.hpp"
 
 namespace pas::ops::pepp {
 struct PAS_EXPORT GatherIODefinitions : public pas::ops::ConstOp<void> {
