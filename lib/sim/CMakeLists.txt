@@ -5,6 +5,7 @@ list(REMOVE_ITEM sources ${tests})
 
 make_library(
         TARGET sim
+        TYPE STATIC
         SOURCES ${sources}
         DEPENDS Qt6::Core bits zpp_bits lru-cache
         TESTS ${tests}
