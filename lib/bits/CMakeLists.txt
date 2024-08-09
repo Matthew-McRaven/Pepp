@@ -7,14 +7,13 @@ else ()
 endif ()
 
 file(GLOB_RECURSE sources_and_tests CONFIGURE_DEPENDS "${CMAKE_CURRENT_LIST_DIR}/*.cpp" "${CMAKE_CURRENT_LIST_DIR}/*.hpp")
-file(GLOB_RECURSE tests CONFIGURE_DEPENDS "${CMAKE_CURRENT_LIST_DIR}/test/*.cpp" "${CMAKE_CURRENT_LIST_DIR}/test/*.hpp")
 file(GLOB_RECURSE compile_tests CONFIGURE_DEPENDS "${CMAKE_CURRENT_LIST_DIR}/compile-test/*.cpp")
 list(APPEND sources ${sources_and_tests})
-list(REMOVE_ITEM sources ${tests})
 list(REMOVE_ITEM sources ${compile_tests})
 
 make_library(
         TARGET bits
+        TYPE STATIC
         SOURCES ${sources}
         DEPENDS Qt6::Core
         TESTS ${tests}
