@@ -17,7 +17,7 @@
 
 #pragma once
 #include <elfio/elfio.hpp>
-#include "obj/memmap.hpp"
+#include "link/memmap.hpp"
 #include "sim/api2.hpp"
 
 namespace obj {

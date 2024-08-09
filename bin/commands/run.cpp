@@ -19,7 +19,7 @@
 #include "bits/strings.hpp"
 #include "builtins/figure.hpp"
 #include "helpers/asmb.hpp"
-#include "obj/mmio.hpp"
+#include "link/mmio.hpp"
 #include "sim/device/broadcast/mmi.hpp"
 #include "sim/device/broadcast/mmo.hpp"
 #include "sim/device/simple_bus.hpp"

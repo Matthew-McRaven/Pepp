@@ -16,9 +16,9 @@
  */
 
 #include "./system.hpp"
-#include "obj/bytes.hpp"
-#include "obj/memmap.hpp"
-#include "obj/mmio.hpp"
+#include "link/bytes.hpp"
+#include "link/memmap.hpp"
+#include "link/mmio.hpp"
 #include "sim/device/broadcast/mmi.hpp"
 #include "sim/device/broadcast/mmo.hpp"
 #include "sim/device/readonly.hpp"

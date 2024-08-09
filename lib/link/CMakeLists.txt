@@ -2,6 +2,7 @@ file(GLOB_RECURSE sources CONFIGURE_DEPENDS "${CMAKE_CURRENT_LIST_DIR}/*.cpp" "$
 
 make_library(
   TARGET obj
+  TYPE STATIC
   SOURCES ${sources}
   DEPENDS Qt6::Core elfio bits isa
 )
