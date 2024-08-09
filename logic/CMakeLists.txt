@@ -1,4 +1,3 @@
 add_subdirectory(asm)
-add_subdirectory(sim)
 add_subdirectory(targets)
 add_subdirectory(helpers)
