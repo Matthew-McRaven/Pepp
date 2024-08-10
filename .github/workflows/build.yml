@@ -39,8 +39,7 @@ jobs:
   matrix_build:
     name: ${{ inputs.name }}
     runs-on: ${{ inputs.runs-on }}
-    # Configure repo permissions for CodeQL job, so that it may upload the SARIF outputs
-    timeout-minutes: ${{ github.event.inputs.codeql && 360 || 60 }}
+    timeout-minutes: ${{ inputs.codeql && 360 || 90 }}
     container:
       image: ${{ inputs.image }}
     env:
