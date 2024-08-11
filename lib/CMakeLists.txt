@@ -51,7 +51,7 @@ target_include_directories(pepp-lib PRIVATE about builtins components cpu helper
 file(GLOB_RECURSE dependency_licenses CONFIGURE_DEPENDS "${PROJECT_DATA_DIR}/about/dep/*")
 set_source_files_properties(${CMAKE_SOURCE_DIR}/NOTICE PROPERTIES QT_RESOURCE_ALIAS LICENSE_NOTICE)
 set_source_files_properties(${CMAKE_SOURCE_DIR}/LICENSE PROPERTIES QT_RESOURCE_ALIAS LICENSE_FULL)
-qt_add_resources(pepp-lib "abou"
+qt_add_resources(pepp-lib "about"
         PREFIX "/about"
         BASE "${PROJECT_DATA_DIR}/about"
         FILES ${PROJECT_DATA_DIR}/about/contributors.csv ${PROJECT_DATA_DIR}/about/maintainers.csv
@@ -66,7 +66,14 @@ foreach (f-abs IN LISTS cs-res-abs)
     list(APPEND cs-res "${f-rel}")
 endforeach()
 qt_add_resources(pepp-lib "builtins" PREFIX "/" BASE "${PROJECT_DATA_DIR}/" FILES ${cs-res})
-
+#Add help resources
+file(GLOB_RECURSE help-res-abs CONFIGURE_DEPENDS "${PROJECT_DATA_DIR}/help/*")
+SET(help-res, "")
+foreach (f-abs IN LISTS help-res-abs)
+    file(RELATIVE_PATH f-rel "${CMAKE_CURRENT_LIST_DIR}" ${f-abs})
+    list(APPEND help-res "${f-rel}")
+endforeach ()
+qt_add_resources(pepp-lib "help" PREFIX "/help" BASE "${PROJECT_DATA_DIR}/help" FILES ${help-res})
 # Install
   # Only add dependencies if present
 if(APPLE)
