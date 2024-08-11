@@ -1,8 +1,9 @@
 #pragma once
 #include <QtCore/QtCore>
-#include "help2_globals.hpp"
+#include "help_globals.hpp"
 
-struct HELP2_EXPORT HelpEntry {
+namespace help {
+struct HELP_EXPORT Entry {
   enum class Category {
     Root,
     About,
@@ -10,6 +11,7 @@ struct HELP2_EXPORT HelpEntry {
     ISAGreenCard,
     Text,
   } category;
+  Q_ENUM(Category)
   // TBD on how to filter these items.
   int tags;
   // Display name in help system; path to QML file which can display it.
@@ -20,5 +22,7 @@ struct HELP2_EXPORT HelpEntry {
   // From the model's perspective, report this item as having no children.
   bool showInParent = false;
   // Items which occur under this item.
-  QList<QSharedPointer<HelpEntry>> children = {};
+  QList<QSharedPointer<Entry>> children = {};
 };
+
+} // namespace help
