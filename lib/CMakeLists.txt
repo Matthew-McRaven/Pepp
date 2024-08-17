@@ -1,0 +1,17 @@
+add_subdirectory(isa)
+add_subdirectory(bits)
+add_subdirectory(utils)
+add_subdirectory(about)
+add_subdirectory(macro)
+add_subdirectory(builtins)
+add_subdirectory(components)
+add_subdirectory(link)
+add_subdirectory(asm) # Not to static lib ported, still a DLL.
+add_subdirectory(sim)
+add_subdirectory(targets)
+add_subdirectory(preferences)
+add_subdirectory(cpu)
+add_subdirectory(text)
+add_subdirectory(memory)
+add_subdirectory(helpers) # These are helpers to make the assembler easier to use.
+add_subdirectory(project)

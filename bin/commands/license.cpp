@@ -17,7 +17,7 @@
 #include "./license.hpp"
 #include <iostream>
 #include "TextFlow.hpp"
-#include "help/about/dependencies.hpp"
+#include "about/dependencies.hpp"
 
 LicenseTask::LicenseTask(QObject *parent) : Task(parent) {}
 
