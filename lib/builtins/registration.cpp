@@ -17,11 +17,14 @@
 #include "registration.hpp"
 #include "book_item_model.hpp"
 #include "bookfiltermodel.hpp"
+#include "constants.hpp"
 
 namespace builtins {
 void registerTypes(const char *uri) {
   // TODO: Missing translations
   qmlRegisterType<builtins::BookModel>(uri, 1, 0, "BookModel");
   qmlRegisterType<builtins::BookFilterModel>(uri, 1, 0, "BookFilterModel");
+  qmlRegisterUncreatableType<builtins::ArchitectureHelper>(uri, 1, 0, "Architecture", "Only enums");
+  qmlRegisterUncreatableType<builtins::AbstractionHelper>(uri, 1, 0, "Abstraction", "Only enums");
 }
 } // namespace builtins
