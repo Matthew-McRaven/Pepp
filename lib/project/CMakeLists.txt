@@ -11,12 +11,11 @@ endforeach ()
 qt_add_qml_module(project
         URI "project"
         VERSION 0.1
-        QML_FILES
-        ${rel_qml_sources}
+        STATIC
+        QML_FILES ${rel_qml_sources}
         RESOURCE_PREFIX /ui
-        SOURCES
-        ${sources}
+        SOURCES ${sources}
+        NO_PLUGIN
 )
 
-target_compile_definitions(project PRIVATE "PROJECT_LIBRARY")
 target_link_libraries(project PUBLIC Qt6::Core Qt6::Gui Qt6::Quick ui_utils memory cpu isa helpers targets text pas scintilla_qt)

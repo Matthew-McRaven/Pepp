@@ -14,3 +14,4 @@ add_subdirectory(cpu)
 add_subdirectory(text)
 add_subdirectory(memory)
 add_subdirectory(helpers) # These are helpers to make the assembler easier to use.
+add_subdirectory(project)

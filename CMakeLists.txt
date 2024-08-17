@@ -211,7 +211,6 @@ if (ONLY STREQUAL "BUILD")
     include(config/cmake/create_targets.cmake)
     # Must be earlier or we have issues creating installers.
     add_subdirectory(lib)
-    add_subdirectory(ui)
     add_subdirectory(test)
     add_subdirectory(bin)
 
