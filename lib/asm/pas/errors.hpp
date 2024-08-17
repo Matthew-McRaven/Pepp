@@ -17,7 +17,6 @@
 
 #pragma once
 #include <QtCore>
-#include "asm/pas/pas_globals.hpp"
 
 namespace pas::errors::pepp {
 // Macro issues

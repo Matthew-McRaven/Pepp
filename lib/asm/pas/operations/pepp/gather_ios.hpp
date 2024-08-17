@@ -18,15 +18,14 @@
 #pragma once
 #include "asm/pas/ast/node.hpp"
 #include "asm/pas/ast/op.hpp"
-#include "asm/pas/pas_globals.hpp"
 #include "link/mmio.hpp"
 
 namespace pas::ops::pepp {
-struct PAS_EXPORT GatherIODefinitions : public pas::ops::ConstOp<void> {
+struct GatherIODefinitions : public pas::ops::ConstOp<void> {
 
   void operator()(const pas::ast::Node &node) override;
   QList<::obj::IO> ios;
 };
 
-QList<::obj::IO> PAS_EXPORT gatherIODefinitions(const pas::ast::Node &node);
+QList<::obj::IO> gatherIODefinitions(const pas::ast::Node &node);
 } // namespace pas::ops::pepp

@@ -22,22 +22,13 @@
 #include <QQmlContext>
 #include <QQuickStyle>
 #include <QTimer>
+#include <registration.hpp>
+#include "../iconprovider.hpp"
+#include "about/version.hpp"
+#include "preferences/preferencemodel.hpp"
+#include "preferences/theme.hpp"
 //  Testing only
 #include <QDirIterator>
-
-#include "../iconprovider.hpp"
-#include "about/registration.hpp"
-#include "about/version.hpp"
-#include "builtins/registration.hpp"
-#include "components//registration.hpp"
-#include "cpu/registration.hpp"
-#include "memory/registration.hpp"
-#include "preferences/preferencemodel.hpp"
-#include "preferences/registration.hpp"
-#include "preferences/theme.hpp"
-#include "project/registration.hpp"
-#include "text/registration.hpp"
-#include "utils/registration.hpp"
 
 struct default_data : public gui_globals {
   default_data() : pm(&theme) {}
@@ -48,15 +39,7 @@ struct default_data : public gui_globals {
 };
 
 QSharedPointer<gui_globals> default_init(QQmlApplicationEngine &engine, QSharedPointer<default_data> data) {
-  utils::registerTypes("edu.pepp");
-  prefs::registerTypes("edu.pepp");
-  about::registerTypes("edu.pepp");
-  memory::registerTypes("edu.pepp");
-  text::registerTypes("edu.pepp");
-  cpu::registerTypes("edu.pepp");
-  project::registerTypes("edu.pepp");
-  builtins::registerTypes("edu.pepp");
-  components::registerTypes("edu.pepp");
+  registerTypes("edu.pepp");
 
   //  Connect models
   auto *ctx = engine.rootContext();
@@ -98,13 +81,13 @@ int gui_main(const gui_args &args) {
     else globals = default_init(engine, data);
     (void)globals; // Unused, but keeps bound context variables from being deleted.
 
-    QDirIterator i(":", QDirIterator::Subdirectories);
-    /*while (i.hasNext()) {
+    QDirIterator i(":/ui", QDirIterator::Subdirectories);
+    while (i.hasNext()) {
       auto f = QFileInfo(i.next());
       if (!f.isFile())
         continue;
       qDebug() << f.filePath();
-    }*/
+    }
 
     static const auto default_entry = u"qrc:/qt/qml/Pepp/gui/main.qml"_qs;
     const QUrl url(args.QMLEntry.isEmpty() ? default_entry : args.QMLEntry);

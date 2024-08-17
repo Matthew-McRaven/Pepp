@@ -18,7 +18,6 @@
 #pragma once
 #include <QSharedPointer>
 #include <QtCore>
-#include "symbol_globals.hpp"
 #include "types.hpp"
 
 namespace symbol {
@@ -26,7 +25,7 @@ class Entry;
 class Table;
 } // namespace symbol
 namespace symbol::value {
-struct SYMBOL_EXPORT MaskedBits {
+struct MaskedBits {
   quint8 byteCount = 0;
   quint64 bitPattern = 0, mask = 0;
   quint64 operator()();
@@ -41,7 +40,7 @@ struct SYMBOL_EXPORT MaskedBits {
  * memory. Since all of these types have different value types, a common API is
  * needed to allow them to act as drop-in replacements for each other.
  */
-class SYMBOL_EXPORT Abstract {
+class Abstract {
 private:
 public:
   Abstract() = default;
@@ -94,7 +93,7 @@ public:
 /*!
  * \brief Represent a value that is indefinite (not yet defined).
  */
-class SYMBOL_EXPORT Empty : public Abstract {
+class Empty : public Abstract {
 public:
   explicit Empty();
   explicit Empty(quint8 bytes);
@@ -124,7 +123,7 @@ private:
  * A deleted value should never be propagated into an ELF binary--the linker
  * should error if deleted values are stuffed into the symbol table.
  */
-class SYMBOL_EXPORT Deleted : public Abstract {
+class Deleted : public Abstract {
 public:
   explicit Deleted();
   Deleted(Deleted &&other) noexcept;
@@ -146,7 +145,7 @@ public:
 /*!
  * \brief Represent a value that is an integral constant.
  */
-class SYMBOL_EXPORT Constant : public Abstract {
+class Constant : public Abstract {
   MaskedBits _value;
 
 public:
@@ -185,7 +184,7 @@ public:
  * to move the program around in memory. After creation, the base address is
  * immutable.
  */
-class SYMBOL_EXPORT Location : public Abstract {
+class Location : public Abstract {
 
 public:
   // Type defaults to kConstant, to avoid participation in relocation.
@@ -259,7 +258,7 @@ private:
  * This value cannot be relocated, since it acts like a numeric constant rather
  * than a location.
  */
-class SYMBOL_EXPORT ExternalPointer : public Abstract {
+class ExternalPointer : public Abstract {
 public:
   explicit ExternalPointer(quint16 ptrSize);
   explicit ExternalPointer(quint16 ptrSize, QSharedPointer<symbol::Table> table,
@@ -301,7 +300,7 @@ private:
  * This value cannot be relocated, since it acts like a numeric constant rather
  * than a location.
  */
-class SYMBOL_EXPORT InternalPointer : public Abstract {
+class InternalPointer : public Abstract {
 public:
   explicit InternalPointer(quint16 ptrSize);
   explicit InternalPointer(quint16 ptrSize, QSharedPointer<const symbol::Entry> ptr);

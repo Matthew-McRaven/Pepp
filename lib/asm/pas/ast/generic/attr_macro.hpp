@@ -17,10 +17,9 @@
 
 #pragma once
 #include <QtCore>
-#include "asm/pas/pas_globals.hpp"
 
 namespace pas::ast::generic {
-struct PAS_EXPORT Macro {
+struct Macro {
   static const inline QString attributeName = u"generic:macro"_qs;
   static const inline uint8_t attribute = 12;
   QString value = {};

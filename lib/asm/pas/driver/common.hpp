@@ -17,7 +17,6 @@
 
 #pragma once
 #include <QtCore>
-#include "asm/pas/pas_globals.hpp"
 
 namespace symbol {
 class Entry;
@@ -35,14 +34,14 @@ class Node;
 
 namespace pas::driver {
 
-struct PAS_EXPORT ANTLRParserTag {};
+struct ANTLRParserTag {};
 
-struct PAS_EXPORT ParseResult {
+struct ParseResult {
   bool hadError;
   QSharedPointer<pas::ast::Node> root;
   QStringList errors;
 };
-struct PAS_EXPORT Globals {
+struct Globals {
   QMap<QString, QSharedPointer<symbol::Entry>> table;
   QSharedPointer<macro::Registry> macroRegistry;
   bool contains(QString symbol) const;
@@ -52,15 +51,15 @@ struct PAS_EXPORT Globals {
 
 // Holds different REPResentations of a target
 namespace repr {
-struct PAS_EXPORT Source {
+struct Source {
   static const inline QString name = u"source_text"_qs;
   QString value;
 };
-struct PAS_EXPORT Nodes {
+struct Nodes {
   static const inline QString name = u"ast_node_list"_qs;
   QSharedPointer<ast::Node> value;
 };
-struct PAS_EXPORT Object {
+struct Object {
   static const inline QString name = u"object_code_list"_qs;
   QList<void *> value;
 };

@@ -20,16 +20,12 @@
 #include "asm/pas/ast/node.hpp"
 #include "asm/pas/driver/common.hpp"
 #include "asm/pas/operations/generic/errors.hpp"
-
 #include <QObject>
 #include <QtCore>
 #include <functional>
 
-
 namespace isa { class Pep10; }
 namespace pas::driver::pepp {
-
-
 namespace detail {
 template <typename ParserTag, typename ISA>
 struct Helper {

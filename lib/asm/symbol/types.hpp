@@ -19,7 +19,6 @@
 #include <QDebug>
 #include <QVariant>
 #include <QtCore>
-#include "symbol_globals.hpp"
 
 /*!
  * \file types.hpp
@@ -32,7 +31,7 @@
  *
  * */
 namespace symbol {
-Q_NAMESPACE_EXPORT(SYMBOL_EXPORT)
+Q_NAMESPACE;
 // Format for symbols
 enum class SymbolReprFormat : qint32 { kNone, kChar, kDec, kHex };
 

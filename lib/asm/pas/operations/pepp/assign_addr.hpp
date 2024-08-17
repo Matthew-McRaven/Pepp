@@ -23,7 +23,6 @@
 #include "asm/pas/ast/op.hpp"
 #include "asm/pas/ast/value/symbolic.hpp"
 #include "asm/pas/operations/pepp/size.hpp"
-#include "asm/pas/pas_globals.hpp"
 #include "asm/symbol/table.hpp"
 #include "asm/symbol/visit.hpp"
 
@@ -37,8 +36,8 @@ namespace detail {
 // TODO: extend to handle sections
 template <typename ISA>
 void assignAddressesImpl(ast::Node &node, quint16 &start, Direction direction = Direction::Forward);
-bool PAS_EXPORT hasBurn(QList<QSharedPointer<ast::Node>> &list);
-quint16 PAS_EXPORT getBurnArg(QList<QSharedPointer<ast::Node>> &list);
+bool hasBurn(QList<QSharedPointer<ast::Node>> &list);
+quint16 getBurnArg(QList<QSharedPointer<ast::Node>> &list);
 } // namespace detail
 // Handles multiple, nested sections.
 template <typename ISA> void assignAddresses(ast::Node &root);

@@ -17,15 +17,14 @@
 
 #pragma once
 #include "./common.hpp"
-#include "asm/pas/driver/pepp.hpp"
+#include "./pepp.hpp"
 #include "asm/pas/operations/generic/include_macros.hpp"
-#include "asm/pas/pas_globals.hpp"
 #include "asm/symbol/table.hpp"
 #include "isa/pep10.hpp"
 #include "macro/registry.hpp"
 
 namespace pas::driver::pep10 {
-Q_NAMESPACE_EXPORT(PAS_EXPORT)
+Q_NAMESPACE;
 enum class Stage {
   Start,
   Parse,
@@ -69,30 +68,30 @@ public:
   Stage toStage() override { return Stage::FlattenMacros; }
 };
 
-class PAS_EXPORT TransformFlattenMacros : public driver::Transform<Stage> {
+class TransformFlattenMacros : public driver::Transform<Stage> {
 public:
   bool operator()(QSharedPointer<Globals>, QSharedPointer<pas::driver::Target<Stage>> target) override;
   Stage toStage() override;
 };
 
 // Currently no-op
-class PAS_EXPORT TransformGroup : public driver::Transform<Stage> {
+class TransformGroup : public driver::Transform<Stage> {
 public:
   bool operator()(QSharedPointer<Globals>, QSharedPointer<pas::driver::Target<Stage>> target) override;
   Stage toStage() override;
 };
-class PAS_EXPORT TransformRegisterExports : public driver::Transform<Stage> {
+class TransformRegisterExports : public driver::Transform<Stage> {
 public:
   bool operator()(QSharedPointer<Globals>, QSharedPointer<pas::driver::Target<Stage>> target) override;
   Stage toStage() override;
 };
-class PAS_EXPORT TransformAssignAddresses : public driver::Transform<Stage> {
+class TransformAssignAddresses : public driver::Transform<Stage> {
 public:
   bool operator()(QSharedPointer<Globals>, QSharedPointer<pas::driver::Target<Stage>> target) override;
   Stage toStage() override;
 };
 
-class PAS_EXPORT TransformWholeProgramSanity : public driver::Transform<Stage> {
+class TransformWholeProgramSanity : public driver::Transform<Stage> {
 public:
   bool isOS = false;
   bool ignoreUndefinedSymbols = false;
@@ -108,12 +107,12 @@ public:
   Stage toStage() override { return Stage::IncludeMacros; };
 };*/
 
-struct PAS_EXPORT Features {
+struct Features {
   bool isOS = false;
   bool ignoreUndefinedSymbols = false;
 };
 
-struct PAS_EXPORT TargetDefinition {
+struct TargetDefinition {
   Features enabledFeatures = {};
   QString body;
   Stage to = Stage::Start;

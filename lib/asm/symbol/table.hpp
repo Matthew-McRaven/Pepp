@@ -23,7 +23,6 @@
 #include <iostream>
 #include <optional>
 #include "entry.hpp"
-#include "symbol_globals.hpp"
 // #include "visit.hpp"
 
 namespace symbol {
@@ -55,7 +54,7 @@ private:
  * child tables. Symbols are not allowed to be removed, but they are allowed to
  * be marked as deleted.
  */
-class SYMBOL_EXPORT Table : public QEnableSharedFromThis<Table> {
+class Table : public QEnableSharedFromThis<Table> {
 public:
   using entry_ptr_t = QSharedPointer<symbol::Entry>;
   using map_t = QMap<QString, entry_ptr_t>;

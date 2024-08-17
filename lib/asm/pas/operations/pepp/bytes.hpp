@@ -24,14 +24,13 @@
 #include "asm/pas/operations/generic/is.hpp"
 #include "asm/pas/operations/pepp/is.hpp"
 #include "asm/pas/operations/pepp/size.hpp"
-#include "asm/pas/pas_globals.hpp"
 
 namespace pas::ops::pepp {
-QString PAS_EXPORT bytesToObject(const QList<quint8> &bytes, quint8 bytesPerLine = 16);
+QString bytesToObject(const QList<quint8> &bytes, quint8 bytesPerLine = 16);
 template <typename ISA> QList<quint8> toBytes(const pas::ast::Node &node);
 namespace detail {
 template <typename ISA> quint16 nodeToBytes(const pas::ast::Node &node, bits::span<quint8> dest);
-quint16 PAS_EXPORT directiveToBytes(const pas::ast::Node &node, bits::span<quint8> dest);
+quint16 directiveToBytes(const pas::ast::Node &node, bits::span<quint8> dest);
 template <typename ISA> quint16 unaryToBytes(const pas::ast::Node &node, bits::span<quint8> dest);
 template <typename ISA> quint16 nonUnaryToBytes(const pas::ast::Node &node, bits::span<quint8> dest);
 } // namespace detail

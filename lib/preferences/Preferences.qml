@@ -3,7 +3,7 @@ import QtQuick.Controls
 import QtQuick.Layouts
 
 import "." as Ui
-import edu.pepperdine 1.0
+import edu.pepp 1.0
 
 Rectangle {
     id: root

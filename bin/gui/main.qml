@@ -21,7 +21,7 @@ import QtQuick.Controls
 import QtQuick.Layouts
 import Qt.labs.qmlmodels
 import "qrc:/ui/about" as About
-import "qrc:/ui/comp" as Comp
+import "qrc:/ui/components" as Comp
 import "qrc:/ui/memory/hexdump" as Memory
 import "qrc:/ui/cpu" as Cpu
 import "qrc:/ui/text/editor" as Editor

@@ -17,12 +17,11 @@
 
 #pragma once
 #include <QtCore>
-#include "asm/pas/pas_globals.hpp"
 #include "bits/order.hpp"
 #include "bits/span.hpp"
 
 namespace pas::ast::value {
-class PAS_EXPORT Base {
+class Base {
 public:
   explicit Base();
   friend void swap(Base &first, Base &second) { using std::swap; }
