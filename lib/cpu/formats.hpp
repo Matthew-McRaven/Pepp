@@ -1,7 +1,6 @@
 #pragma once
 #include <QtCore>
-#include "./cpu_globals.hpp"
-struct CPU_EXPORT RegisterFormatter {
+struct RegisterFormatter {
   virtual ~RegisterFormatter() = default;
   virtual QString format() const = 0;
   virtual QString format(quint8 byteCount) const = 0;
@@ -10,7 +9,7 @@ struct CPU_EXPORT RegisterFormatter {
   virtual qsizetype length(quint8 byteCount) const = 0;
 };
 
-struct CPU_EXPORT TextFormatter : public RegisterFormatter {
+struct TextFormatter : public RegisterFormatter {
   explicit TextFormatter(QString value);
   ~TextFormatter() override = default;
   QString format() const override;
@@ -23,7 +22,7 @@ private:
   QString _value;
 };
 
-struct CPU_EXPORT HexFormatter : public RegisterFormatter {
+struct HexFormatter : public RegisterFormatter {
   explicit HexFormatter(std::function<uint64_t()> fn, uint16_t byteCount = 2);
   ~HexFormatter() override = default;
   QString format() const override;
@@ -38,7 +37,7 @@ private:
   std::function<uint64_t()> _fn;
 };
 
-struct CPU_EXPORT UnsignedDecFormatter : public RegisterFormatter {
+struct UnsignedDecFormatter : public RegisterFormatter {
   explicit UnsignedDecFormatter(std::function<std::uint64_t()> fn, uint16_t byteCount = 2);
   ~UnsignedDecFormatter() override = default;
   QString format() const override;
@@ -54,7 +53,7 @@ private:
   std::function<uint64_t()> _fn;
 };
 
-struct CPU_EXPORT SignedDecFormatter : public RegisterFormatter {
+struct SignedDecFormatter : public RegisterFormatter {
   explicit SignedDecFormatter(std::function<int64_t()> fn, uint16_t byteCount = 2);
   ~SignedDecFormatter() override = default;
   QString format() const override;
@@ -70,7 +69,7 @@ private:
   std::function<int64_t()> _fn;
 };
 
-struct CPU_EXPORT BinaryFormatter : public RegisterFormatter {
+struct BinaryFormatter : public RegisterFormatter {
   explicit BinaryFormatter(std::function<uint64_t()> fn, uint16_t byteCount = 1);
   ~BinaryFormatter() override = default;
   QString format() const override;
@@ -86,7 +85,7 @@ private:
 };
 
 // Ignore lengthed overrides since they do not depend on byte count
-struct CPU_EXPORT MnemonicFormatter : public RegisterFormatter {
+struct MnemonicFormatter : public RegisterFormatter {
   explicit MnemonicFormatter(std::function<QString()> fn);
   ~MnemonicFormatter() override = default;
   QString format() const override;
@@ -99,7 +98,7 @@ private:
   std::function<QString()> _fn;
 };
 
-struct CPU_EXPORT OptionalFormatter : public RegisterFormatter {
+struct OptionalFormatter : public RegisterFormatter {
   explicit OptionalFormatter(QSharedPointer<RegisterFormatter> fmt, std::function<bool()> valid);
   ~OptionalFormatter() override = default;
   QString format() const override;
@@ -113,7 +112,7 @@ private:
   std::function<bool()> _valid;
 };
 
-struct CPU_EXPORT VariableByteLengthFormatter : public RegisterFormatter {
+struct VariableByteLengthFormatter : public RegisterFormatter {
   explicit VariableByteLengthFormatter(QSharedPointer<RegisterFormatter> fmt, std::function<quint8()> bytes,
                                        quint8 maxBytes = 2);
   ~VariableByteLengthFormatter() override = default;

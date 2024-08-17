@@ -3,11 +3,10 @@
 #include <QAbstractListModel>
 #include <QQmlEngine>
 #include <QVector>
-#include "./cpu_globals.hpp"
 
 struct RegisterFormatter;
 //  Read only class for change in Register values
-class CPU_EXPORT RegisterModel : public QAbstractTableModel {
+class RegisterModel : public QAbstractTableModel {
   Q_OBJECT
   Q_PROPERTY(Roles Box MEMBER _box CONSTANT);
   Q_PROPERTY(Roles RightJustify MEMBER _justify CONSTANT);

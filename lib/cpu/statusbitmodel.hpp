@@ -2,9 +2,8 @@
 
 #include <QAbstractListModel>
 #include <QVector>
-#include "./cpu_globals.hpp"
 
-class CPU_EXPORT Flag {
+class Flag {
 public:
   explicit Flag(QString name, std::function<bool()> value);
   QString name() const;
@@ -16,7 +15,7 @@ private:
 };
 
 //  Read only class for change in status bits
-class CPU_EXPORT FlagModel : public QAbstractListModel {
+class FlagModel : public QAbstractListModel {
   Q_OBJECT
 
 public:
