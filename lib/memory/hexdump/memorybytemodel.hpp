@@ -4,12 +4,11 @@
 #include <QAbstractTableModel>
 #include <QHash>
 #include <QSet>
-#include "../memory_globals.hpp"
 #include "memorycolumns.hpp"
 #include "rawmemory.hpp"
 #include "utils/opcodemodel.hpp"
 
-class MEMORY_EXPORT MemoryRoles : public QObject {
+class MemoryRoles : public QObject {
   Q_OBJECT
 public:
   enum Roles {
@@ -21,7 +20,7 @@ public:
   Q_ENUM(Roles)
 };
 
-class MEMORY_EXPORT MemoryByteModel : public QAbstractTableModel {
+class MemoryByteModel : public QAbstractTableModel {
   Q_OBJECT
 
   //  Statistics on memory size and layout
@@ -37,7 +36,7 @@ class MEMORY_EXPORT MemoryByteModel : public QAbstractTableModel {
   std::unique_ptr<MemoryColumns> column_;
 
   Q_PROPERTY(MemoryColumns *Column READ column CONSTANT)
-  Q_PROPERTY(ARawMemory *memory READ memory WRITE setMemory NOTIFY memoryChanged)
+  Q_PROPERTY(QObject *memory READ memory WRITE setMemory NOTIFY memoryChanged)
   // Workaround for type being erased on Opcode Model
   Q_PROPERTY(QObject *mnemonics READ mnemonics WRITE setMnemonics NOTIFY mnemonicsChanged)
   Q_PROPERTY(int bytesPerRow READ bytesPerRow NOTIFY dimensionsChanged)
@@ -55,6 +54,7 @@ public:
 
   ARawMemory *memory() const;
   void setMemory(ARawMemory *memory);
+  void setMemory(QObject *memory);
 
   OpcodeModel *mnemonics() const;
   void setMnemonics(OpcodeModel *mn);

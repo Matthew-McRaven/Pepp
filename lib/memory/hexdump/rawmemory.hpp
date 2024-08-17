@@ -2,13 +2,12 @@
 #include <QObject>
 #include <QtTypes>
 #include <vector>
-#include "../memory_globals.hpp"
 #include "sim/device/simple_bus.hpp"
 #include "sim/trace2/modified.hpp"
 
 class QJSEngine;
 class QQmlEngine;
-class MEMORY_EXPORT MemoryHighlight : public QObject {
+class MemoryHighlight : public QObject {
   Q_OBJECT
 public:
   enum V {
@@ -19,7 +18,7 @@ public:
   };
   Q_ENUM(V)
 };
-class MEMORY_EXPORT ARawMemory : public QObject {
+class ARawMemory : public QObject {
   Q_OBJECT
 public:
   ARawMemory(QObject *parent = nullptr);
@@ -35,7 +34,7 @@ signals:
   void dataChanged(quint32 start, quint32 end);
 };
 
-class MEMORY_EXPORT EmptyRawMemory : public ARawMemory {
+class EmptyRawMemory : public ARawMemory {
   Q_OBJECT
 public:
   explicit EmptyRawMemory(quint32 size, QObject *parent = nullptr);
@@ -48,7 +47,7 @@ private:
   quint32 _size;
 };
 
-class MEMORY_EXPORT EmptyRawMemoryFactory : public QObject {
+class EmptyRawMemoryFactory : public QObject {
   Q_OBJECT
 
 public:
@@ -56,7 +55,7 @@ public:
   static QObject *singletonProvider(QQmlEngine *engine, QJSEngine *scriptEngine);
 };
 
-class MEMORY_EXPORT ArrayRawMemory : public ARawMemory {
+class ArrayRawMemory : public ARawMemory {
   Q_OBJECT
 public:
   explicit ArrayRawMemory(quint32 size, QObject *parent = nullptr);
@@ -70,7 +69,7 @@ private:
   std::vector<quint8> _data;
 };
 
-class MEMORY_EXPORT ArrayRawMemoryFactory : public QObject {
+class ArrayRawMemoryFactory : public QObject {
   Q_OBJECT
 public:
   Q_INVOKABLE ArrayRawMemory *create(quint32 size);
@@ -81,7 +80,7 @@ namespace sim::trace2 {
 template <typename T> class ModifiedAddressSink;
 }
 // TODO: add access to CPU, add access to traces.
-class MEMORY_EXPORT SimulatorRawMemory : public ARawMemory {
+class SimulatorRawMemory : public ARawMemory {
   Q_OBJECT
 public:
   explicit SimulatorRawMemory(sim::memory::SimpleBus<quint16> *memory,

@@ -1,8 +1,7 @@
-add_subdirectory(memory)
 add_subdirectory(project)
 
 
-set(ui_targets "memory;project")
+set(ui_targets "project")
 
 
 if (APPLE)

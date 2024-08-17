@@ -61,6 +61,11 @@ void MemoryByteModel::setMemory(ARawMemory *memory) {
   endResetModel();
 }
 
+void MemoryByteModel::setMemory(QObject *memory) {
+  auto mem = qobject_cast<ARawMemory *>(memory);
+  if (mem) setMemory(mem);
+}
+
 OpcodeModel *MemoryByteModel::mnemonics() const { return mnemonics_; }
 
 void MemoryByteModel::setMnemonics(OpcodeModel *mn) {

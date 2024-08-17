@@ -3,9 +3,8 @@
 #include <QAbstractTableModel>
 #include <QHash>
 #include <QSet>
-#include "../memory_globals.hpp"
 
-class MEMORY_EXPORT MemoryColumns : public QObject {
+class MemoryColumns : public QObject {
   Q_OBJECT
 
   Q_PROPERTY(quint8 LineNo READ LineNo CONSTANT)
