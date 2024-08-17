@@ -19,9 +19,9 @@ qt_add_qml_module(text
         RESOURCE_PREFIX /ui
         SOURCES
         ${sources}
+        NO_PLUGIN
 )
 
 target_compile_definitions(text PRIVATE "TEXT_LIBRARY")
-target_link_libraries(text PUBLIC Qt6::Core Qt6::Gui Qt6::Quick isa scintilla_qt prefs)
 target_link_libraries(text PUBLIC Qt6::Core Qt6::Gui Qt6::Quick isa scintilla_qt preferences)
 target_include_directories(text PRIVATE ${CMAKE_CURRENT_LIST_DIR}/editor)
