@@ -1,18 +1,16 @@
 #pragma once
 #include <elfio/elfio.hpp>
-#include "./helpers_globals.hpp"
 #include "asm/pas/ast/node.hpp"
 #include "builtins/book.hpp"
 #include "macro/registry.hpp"
 
 namespace helpers {
-HELPERS_EXPORT QSharedPointer<const builtins::Book> book(int ed);
-HELPERS_EXPORT QSharedPointer<macro::Registry> registry(QSharedPointer<const builtins::Book> book,
-                                                        QStringList directory);
-HELPERS_EXPORT void addMacro(macro::Registry &registry, std::string directory, QString arch);
-HELPERS_EXPORT void addMacros(macro::Registry &registry, const std::list<std::string> &dirs, QString arch);
+QSharedPointer<const builtins::Book> book(int ed);
+QSharedPointer<macro::Registry> registry(QSharedPointer<const builtins::Book> book, QStringList directory);
+void addMacro(macro::Registry &registry, std::string directory, QString arch);
+void addMacros(macro::Registry &registry, const std::list<std::string> &dirs, QString arch);
 
-class HELPERS_EXPORT AsmHelper {
+class AsmHelper {
 public:
   struct Lines2Addresses {
     Lines2Addresses(){};
