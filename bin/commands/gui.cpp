@@ -81,13 +81,13 @@ int gui_main(const gui_args &args) {
     else globals = default_init(engine, data);
     (void)globals; // Unused, but keeps bound context variables from being deleted.
 
-    QDirIterator i(":/ui", QDirIterator::Subdirectories);
+    /*QDirIterator i(":/ui", QDirIterator::Subdirectories);
     while (i.hasNext()) {
       auto f = QFileInfo(i.next());
       if (!f.isFile())
         continue;
       qDebug() << f.filePath();
-    }
+    }*/
 
     static const auto default_entry = u"qrc:/qt/qml/Pepp/gui/main.qml"_qs;
     const QUrl url(args.QMLEntry.isEmpty() ? default_entry : args.QMLEntry);
