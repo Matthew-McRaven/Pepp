@@ -213,8 +213,8 @@ if (ONLY STREQUAL "BUILD")
     add_subdirectory(lib)
     add_subdirectory(logic)
     add_subdirectory(ui)
-    add_subdirectory(bin)
     add_subdirectory(test)
+    add_subdirectory(bin)
 
     # Needed to genrate documentation
     find_package(Python COMPONENTS Interpreter)
