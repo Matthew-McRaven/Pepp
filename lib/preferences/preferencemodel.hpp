@@ -22,11 +22,9 @@
 #include <QHash>
 #include <QList>
 #include <QtQml>
-#include "preference_globals.hpp"
-
-#include "theme.hpp"
 
 class Preference;
+class Theme;
 
 class Category {
   QString name_;
@@ -56,7 +54,7 @@ public:
   QString name() const { return name_; }
 };
 
-class PREFS_EXPORT PreferenceModel : public QAbstractListModel {
+class PreferenceModel : public QAbstractListModel {
   Q_OBJECT
 
   Q_PROPERTY(QFont font READ font WRITE setFont NOTIFY fontChanged)

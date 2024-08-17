@@ -7,7 +7,7 @@
 #include "preference.hpp"
 #include "themes.hpp"
 
-class PREFS_EXPORT Theme : public QObject {
+class Theme : public QObject {
   Q_OBJECT
 
   //  Location in registry or config file for Theme settings

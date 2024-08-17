@@ -20,7 +20,6 @@
 #include <QFont>
 #include <QObject>
 #include <QSharedData>
-
 #include "themes.hpp"
 
 class PreferencePrivate : public QSharedData {

@@ -1,9 +1,7 @@
 #include "preferencemodel.hpp"
-
-//  For testing only
 #include <QColor>
 #include <QDebug>
-
+#include "theme.hpp"
 #include "themes.hpp"
 
 PreferenceModel::PreferenceModel(Theme *theme, QObject *parent)

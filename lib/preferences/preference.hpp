@@ -19,14 +19,13 @@
 #include <QExplicitlySharedDataPointer>
 #include <QFont>
 #include <QObject>
-#include "preference_globals.hpp"
 #include "preference_p.hpp"
 
 //  Class is implemented as a PIMPL pattern because the structure is passed
 //  to QML as a copy. When QML is updated, the copy sees the changes but not
 //  the original object. Using PIMPL pattern forces all copies to reference
 //  same data structure.
-class PREFS_EXPORT Preference : public QObject {
+class Preference : public QObject {
   Q_OBJECT
   // Q_PROPERTY(int id       READ id   CONSTANT)
   Q_PROPERTY(Themes::Roles id READ id CONSTANT)
@@ -93,4 +92,3 @@ private:
   void setId(const Themes::Roles id);
   void setName(const QString name);
 };
-

@@ -361,6 +361,7 @@ bool Theme::save(const QString &file) const {
 
 void Theme::loadMissing() {
 
+  prefs_.resize(static_cast<int>(Themes::Roles::Total), nullptr);
   //  Loop through all preferences
   for (int i = 0; i < Themes::Roles::Total; ++i) {
 

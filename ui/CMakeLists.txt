@@ -1,10 +1,9 @@
-add_subdirectory(preferences)
 add_subdirectory(text)
 add_subdirectory(memory)
 add_subdirectory(project)
 
 
-set(ui_targets "text;memory;prefs;project")
+set(ui_targets "text;memory;project")
 
 
 if (APPLE)

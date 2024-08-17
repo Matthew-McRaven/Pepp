@@ -34,6 +34,7 @@
 #include "memory/registration.hpp"
 #include "preferences/preferencemodel.hpp"
 #include "preferences/registration.hpp"
+#include "preferences/theme.hpp"
 #include "project/registration.hpp"
 #include "text/registration.hpp"
 #include "utils/registration.hpp"
