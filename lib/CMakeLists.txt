@@ -8,4 +8,4 @@ add_subdirectory(components)
 add_subdirectory(link)
 add_subdirectory(asm) # Not to static lib ported, still a DLL.
 add_subdirectory(sim)
-
+add_subdirectory(targets)
