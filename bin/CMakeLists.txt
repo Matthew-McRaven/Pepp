@@ -28,11 +28,9 @@ make_target(
         TYPE "EXEC"
         SOURCES ${sources} ${guis} ${CMAKE_SOURCE_DIR}/data/icons/icons.qrc
         DEPENDS
-        TextFlow cli about macro pas builtins isa targets sim
+        TextFlow cli catch
         Qt6::Core Qt6::Gui Qt::Qml Qt::Quick Qt::QuickControls2 Qt6::Svg Qt6::Xml
-        Qt::Widgets test-lib-all ui_utils memory text cpu about preferences project
-        builtins helpers components
-)
+        Qt::Widgets test-lib-all pepp-lib)
 
 target_compile_definitions(pepp PRIVATE "INCLUDE_GUI=1")
 # Must occur before install scripts, otherwise MacOS builds will fail.
@@ -72,7 +70,7 @@ make_target(
         TARGET pepp-term
         TYPE "EXEC"
         SOURCES ${sources} ${CMAKE_SOURCE_DIR}/data/icons/icons.qrc
-        DEPENDS TextFlow cli about macro pas builtins isa targets sim Qt6::Core catch test-lib-all helpers scintilla_qt
+        DEPENDS TextFlow cli Qt6::Core catch test-lib-all pepp-lib catch
 )
 set_target_properties(pepp-term PROPERTIES FOLDER "qtc_runnable")
 target_compile_definitions(pepp-term PRIVATE "INCLUDE_GUI=0")

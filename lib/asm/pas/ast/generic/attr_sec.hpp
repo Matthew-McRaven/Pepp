@@ -17,11 +17,10 @@
 
 #pragma once
 #include <QtCore>
-#include "asm/pas/pas_globals.hpp"
 
 namespace pas::ast::generic {
 
-struct PAS_EXPORT SectionFlags {
+struct SectionFlags {
   static const inline QString attributeName = u"generic:section_flags"_qs;
   static const inline uint8_t attribute = 14;
   struct Flags {
@@ -30,7 +29,7 @@ struct PAS_EXPORT SectionFlags {
   } value = {};
   bool operator==(const SectionFlags &other) const = default;
 };
-struct PAS_EXPORT SectionName {
+struct SectionName {
   static const inline QString attributeName = u"generic:section_name"_qs;
   static const inline uint8_t attribute = 15;
   QString value = {};

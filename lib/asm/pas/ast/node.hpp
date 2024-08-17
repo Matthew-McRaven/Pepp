@@ -22,11 +22,10 @@
 #include "asm/pas/ast/generic/attr_error.hpp"
 #include <QMetaType>
 #include <QtCore>
-#include "asm/pas/pas_globals.hpp"
 
 
 namespace pas::ast {
-class PAS_EXPORT Node : public QEnableSharedFromThis<Node> {
+class Node : public QEnableSharedFromThis<Node> {
 public:
   explicit Node(const pas::ast::generic::Type type,
                 QWeakPointer<Node> parent = {});
@@ -88,21 +87,20 @@ template <typename T> T Node::apply_self(ops::MutatingOp<T> &transform) {
   return transform(*this);
 }
 
-QWeakPointer<const Node> PAS_EXPORT parent(const Node &node);
-QWeakPointer<Node> PAS_EXPORT parent(Node &node);
-void PAS_EXPORT setParent(Node &node, QWeakPointer<Node> parent);
-const generic::Type PAS_EXPORT type(const Node &node);
+QWeakPointer<const Node> parent(const Node &node);
+QWeakPointer<Node> parent(Node &node);
+void setParent(Node &node, QWeakPointer<Node> parent);
+const generic::Type type(const Node &node);
 // TODO: add custom iterator so that I can have QSharedPointer<const Node>
 // override;
-QList<QSharedPointer<Node>> PAS_EXPORT children(const Node &node);
-QList<QSharedPointer<Node>> PAS_EXPORT children(Node &node);
+QList<QSharedPointer<Node>> children(const Node &node);
+QList<QSharedPointer<Node>> children(Node &node);
 // Does not update child's parent pointer.
-void PAS_EXPORT addChild(Node &parent, QSharedPointer<Node> child);
-void PAS_EXPORT setAddress(Node &node, quint64 start, quint64 size);
+void addChild(Node &parent, QSharedPointer<Node> child);
+void setAddress(Node &node, quint64 start, quint64 size);
 
-QSharedPointer<Node> PAS_EXPORT addError(QSharedPointer<Node> node,
-                              pas::ast::generic::Message msg);
-void PAS_EXPORT addError(Node &node, pas::ast::generic::Message msg);
+QSharedPointer<Node> addError(QSharedPointer<Node> node, pas::ast::generic::Message msg);
+void addError(Node &node, pas::ast::generic::Message msg);
 // Shorthand to reduce template verbosity in calling contexts
 template <typename T> bool matches(const Node &node, const T &value) {
   return node.has<T>() && node.get<T>() == value;

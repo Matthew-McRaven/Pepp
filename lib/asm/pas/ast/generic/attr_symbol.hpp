@@ -17,7 +17,6 @@
 
 #pragma once
 #include <QtCore>
-#include "asm/pas/pas_globals.hpp"
 
 namespace symbol {
 class Entry;
@@ -25,14 +24,14 @@ class Table;
 } // namespace symbol
 
 namespace pas::ast::generic {
-struct PAS_EXPORT SymbolDeclaration {
+struct SymbolDeclaration {
   static const inline QString attributeName = u"generic:symbol_decl"_qs;
   static const inline uint8_t attribute = 16;
   QSharedPointer<symbol::Entry> value = {};
   bool operator==(const SymbolDeclaration &other) const = default;
 };
 
-struct PAS_EXPORT SymbolTable {
+struct SymbolTable {
   static const inline QString attributeName = u"generic:symbol_table"_qs;
   static const inline uint8_t attribute = 17;
   QSharedPointer<symbol::Table> value = {};

@@ -19,7 +19,6 @@
 #include <QtCore>
 #include "asm/pas/ast/node.hpp"
 #include "asm/pas/ast/op.hpp"
-#include "asm/pas/pas_globals.hpp"
 #include "errors.hpp"
 #include "is.hpp"
 
@@ -36,7 +35,7 @@ class Registry;
 }
 
 namespace pas::ops::generic {
-struct PAS_EXPORT IncludeMacros : public pas::ops::MutatingOp<bool> {
+struct IncludeMacros : public pas::ops::MutatingOp<bool> {
   struct MacroInvocation {
     QString macroName;
     QStringList args;

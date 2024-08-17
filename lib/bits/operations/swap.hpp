@@ -49,7 +49,7 @@ using detail::bit_cast;
 using ::std::byteswap;
 #else
 
-#ifdef BITS_HAS_RANGES_REVERSE
+#ifdef PEPP_HAS_RANGES_REVERSE
 // Use (better) range version when possible
 template <std::integral T> constexpr T byteswap(T value) noexcept {
   // Sample code from: https://en.cppreference.com/w/cpp/numeric/byteswap

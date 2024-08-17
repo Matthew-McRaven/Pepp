@@ -17,10 +17,9 @@
 
 #pragma once
 #include "./base.hpp"
-#include "asm/pas/pas_globals.hpp"
 
 namespace pas::ast::value {
-struct PAS_EXPORT Identifier : public Base {
+struct Identifier : public Base {
 public:
   explicit Identifier();
   explicit Identifier(QString value);

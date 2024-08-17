@@ -19,7 +19,6 @@
 #include <QtCore>
 #include "asm/pas/ast/generic/attr_sec.hpp"
 #include "asm/pas/ast/op.hpp"
-#include "asm/pas/pas_globals.hpp"
 
 namespace pas::ast {
 class Node;
@@ -31,7 +30,7 @@ class ForkMap;
 } // namespace symbol
 
 namespace pas::ops::generic {
-struct PAS_EXPORT clone : public ConstOp<QSharedPointer<ast::Node>> {
+struct clone : public ConstOp<QSharedPointer<ast::Node>> {
   QSharedPointer<symbol::ForkMap> mapping;
   QSharedPointer<ast::Node> operator()(const ast::Node &node) override;
 

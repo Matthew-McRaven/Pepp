@@ -17,10 +17,9 @@
 
 #pragma once
 #include "./numeric.hpp"
-#include "asm/pas/pas_globals.hpp"
 
 namespace pas::ast::value {
-class PAS_EXPORT Hexadecimal : public Numeric {
+class Hexadecimal : public Numeric {
 public:
   explicit Hexadecimal();
   Hexadecimal(quint64 value, quint16 size);

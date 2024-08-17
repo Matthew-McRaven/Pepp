@@ -2,7 +2,7 @@
 
 // Must be before Qt stuff, or compile errors.
 #include "asm/parse/PeppParserBaseVisitor.h"
-
+// So a newline is necessary.
 #include <QSharedPointer>
 #include <optional>
 

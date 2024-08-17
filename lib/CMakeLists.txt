@@ -1,17 +1,70 @@
-add_subdirectory(isa)
-add_subdirectory(bits)
-add_subdirectory(utils)
-add_subdirectory(about)
-add_subdirectory(macro)
-add_subdirectory(builtins)
-add_subdirectory(components)
-add_subdirectory(link)
-add_subdirectory(asm) # Not to static lib ported, still a DLL.
-add_subdirectory(sim)
-add_subdirectory(targets)
-add_subdirectory(preferences)
-add_subdirectory(cpu)
-add_subdirectory(text)
-add_subdirectory(memory)
-add_subdirectory(helpers) # These are helpers to make the assembler easier to use.
-add_subdirectory(project)
+cmake_minimum_required(VERSION 3.10)
+
+# Extract git info
+include(about/git.cmake)
+get_git_head_revision(GIT_REFSPEC GIT_SHA1)
+git_get_exact_tag(GIT_TAG)
+if (GIT_TAG MATCHES ".*NOTFOUND")
+    set(GIT_TAG "unknown")
+endif ()
+# Let program know if it was built from a clean dir.
+# App can use that to render about info.
+git_local_changes(GIT_CLEAN_RAW)
+if (GIT_CLEAN_RAW MATCHES "CLEAN")
+    set(GIT_CLEAN "1")
+else ()
+    set(GIT_CLEAN "0")
+endif ()
+configure_file("${CMAKE_CURRENT_SOURCE_DIR}/about/version_gen.cpp.in" "${CMAKE_CURRENT_BINARY_DIR}/version_gen.cpp" @ONLY)
+
+file(GLOB_RECURSE sources CONFIGURE_DEPENDS "${CMAKE_CURRENT_LIST_DIR}/*.cpp" "${CMAKE_CURRENT_LIST_DIR}/*.hpp")
+# GLOB_RECURSE uses abs paths, QML_FILES expects relative paths. This blob converts from abs to rel.
+file(GLOB_RECURSE abs_qml_sources CONFIGURE_DEPENDS "*.qml")
+SET(rel_qml_sources, "")
+foreach (f_abs IN LISTS abs_qml_sources)
+    file(RELATIVE_PATH f_rel "${CMAKE_CURRENT_LIST_DIR}" ${f_abs})
+    list(APPEND rel_qml_sources "${f_rel}")
+endforeach ()
+qt_add_qml_module(pepp-lib
+  URI "ui"
+        VERSION 0.1
+        STATIC
+        SOURCES ${sources} "${CMAKE_CURRENT_BINARY_DIR}/version_gen.cpp" "${CMAKE_SOURCE_DIR}/resource_license.qrc"
+        QML_FILES ${rel_qml_sources}
+        RESOURCE_PREFIX /
+        RESOURCES preferences/themes/themes.qrc
+        NO_PLUGIN
+)
+
+target_link_libraries(pepp-lib PUBLIC Qt6::Core Qt6::Gui Qt6::Quick antlr4_shared elfio lru-cache scintilla_qt zpp_bits)
+# Will fail to find hpp files without this, see https://bugreports.qt.io/browse/QTBUG-101146.
+get_target_property(ANTLR4_INCLUDE_DIR antlr4_shared INCLUDE_DIRECTORIES)
+target_include_directories(pepp-lib PUBLIC ${CMAKE_CURRENT_BINARY_DIR} ${ANTLR4_INCLUDE_DIR})
+target_include_directories(pepp-lib PRIVATE about builtins components cpu helpers isa link macro memory preferences project sim targets text utils text/editor)
+
+# Include dependency licenses without having to hard-code.
+file(GLOB_RECURSE dependency_licenses CONFIGURE_DEPENDS "${PROJECT_DATA_DIR}/about/dep/*")
+set_source_files_properties(${CMAKE_SOURCE_DIR}/NOTICE PROPERTIES QT_RESOURCE_ALIAS LICENSE_NOTICE)
+set_source_files_properties(${CMAKE_SOURCE_DIR}/LICENSE PROPERTIES QT_RESOURCE_ALIAS LICENSE_FULL)
+qt_add_resources(pepp-lib "abou"
+        PREFIX "/about"
+        BASE "${PROJECT_DATA_DIR}/about"
+        FILES
+        ${PROJECT_DATA_DIR}/about/contributors.csv ${PROJECT_DATA_DIR}/about/maintainers.csv
+        ${PROJECT_DATA_DIR}/about/repo.url
+        ${PROJECT_DATA_DIR}/about/dependencies.csv
+        ${dependency_licenses}
+        ${CMAKE_SOURCE_DIR}/NOTICE
+        ${CMAKE_SOURCE_DIR}/LICENSE
+)
+
+# Add book resources
+file(GLOB_RECURSE cs-res-abs CONFIGURE_DEPENDS "${PROJECT_DATA_DIR}/books/cs4e/*" "${PROJECT_DATA_DIR}/books/cs5e/*" "${PROJECT_DATA_DIR}/books/cs6e/*")
+SET(ce-res, "")
+foreach (f-abs IN LISTS cs-res-abs)
+    file(RELATIVE_PATH f-rel "${CMAKE_CURRENT_LIST_DIR}" ${f-abs})
+    list(APPEND cs-res "${f-rel}")
+endforeach ()
+qt_add_resources(pepp-lib "builtins" PREFIX "/" BASE "${PROJECT_DATA_DIR}/" FILES ${cs-res})
+
+

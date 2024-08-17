@@ -19,10 +19,9 @@
 #include <QtCore>
 #include "asm/pas/ast/node.hpp"
 #include "asm/pas/ast/op.hpp"
-#include "asm/pas/pas_globals.hpp"
 
 namespace pas::ops::generic {
-struct PAS_EXPORT SuppressObject : public pas::ops::MutatingOp<void> {
+struct SuppressObject : public pas::ops::MutatingOp<void> {
   void operator()(ast::Node &node) override;
 };
 } // namespace pas::ops::generic

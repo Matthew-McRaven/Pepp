@@ -17,10 +17,9 @@
 
 #pragma once
 #include <QtCore>
-#include "asm/pas/pas_globals.hpp"
 
 namespace pas::ast::generic {
-struct PAS_EXPORT Address {
+struct Address {
   struct Span {
     quint64 start = 0, size = 0;
     bool operator==(const Span &other) const = default;

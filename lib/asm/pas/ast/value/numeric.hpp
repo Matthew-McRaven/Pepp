@@ -17,10 +17,9 @@
 
 #pragma once
 #include "./base.hpp"
-#include "asm/pas/pas_globals.hpp"
 
 namespace pas::ast::value {
-struct PAS_EXPORT Numeric : public Base {
+struct Numeric : public Base {
 public:
   explicit Numeric();
   Numeric(qint64 value, quint8 size);

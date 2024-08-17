@@ -17,14 +17,13 @@
 
 #pragma once
 #include "./base.hpp"
-#include "asm/pas/pas_globals.hpp"
 
 namespace symbol {
 class Entry;
 }
 
 namespace pas::ast::value {
-struct PAS_EXPORT Symbolic : public Base {
+struct Symbolic : public Base {
 public:
   explicit Symbolic();
   Symbolic(QSharedPointer<symbol::Entry> value);

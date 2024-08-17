@@ -16,7 +16,6 @@
  */
 
 #pragma once
-#include "asm/pas/pas_globals.hpp"
 
 namespace pas::ast {
 class Node;

@@ -17,13 +17,12 @@
 
 #pragma once
 #include <QtCore>
-#include "asm/pas/pas_globals.hpp"
 
 namespace pas::ast {
 class Node;
 }
 namespace pas::ast::generic {
-struct PAS_EXPORT Children {
+struct Children {
   static const inline QString attributeName = u"generic:children"_qs;
   static const inline uint8_t attribute = 5;
   QList<QSharedPointer<pas::ast::Node>> value = {}; // All direct children of the owning node

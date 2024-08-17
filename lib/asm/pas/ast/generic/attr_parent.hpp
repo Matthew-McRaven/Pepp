@@ -17,13 +17,12 @@
 
 #pragma once
 #include <QtCore>
-#include "asm/pas/pas_globals.hpp"
 
 namespace pas::ast {
 class Node;
 }
 namespace pas::ast::generic {
-struct PAS_EXPORT Parent {
+struct Parent {
   static const inline QString attributeName = u"generic:parent"_qs;
   static const inline uint8_t attribute = 13;
   QWeakPointer<pas::ast::Node> value = {}; // The direct parent of the owning node (empty if owner is root).
