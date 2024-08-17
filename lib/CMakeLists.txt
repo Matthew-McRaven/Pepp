@@ -11,4 +11,5 @@ add_subdirectory(sim)
 add_subdirectory(targets)
 add_subdirectory(preferences)
 add_subdirectory(cpu)
+add_subdirectory(text)
 add_subdirectory(helpers) # These are helpers to make the assembler easier to use.

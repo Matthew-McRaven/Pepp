@@ -1,7 +1,4 @@
-file(GLOB_RECURSE sources_and_tests CONFIGURE_DEPENDS "${CMAKE_CURRENT_LIST_DIR}/*.cpp" "${CMAKE_CURRENT_LIST_DIR}/*.hpp")
-file(GLOB_RECURSE old_sources CONFIGURE_DEPENDS "${CMAKE_CURRENT_LIST_DIR}/highlight/__old/*.cpp")
-list(APPEND sources ${sources_and_tests})
-list(REMOVE_ITEM sources ${old_sources})
+file(GLOB_RECURSE sources CONFIGURE_DEPENDS "${CMAKE_CURRENT_LIST_DIR}/*.cpp" "${CMAKE_CURRENT_LIST_DIR}/*.hpp")
 
 # GLOB_RECURSE uses abs paths, QML_FILES expects relative paths. This blob converts from abs to rel.
 file(GLOB_RECURSE abs_qml_sources CONFIGURE_DEPENDS "main.qml" "*.qml")
@@ -14,14 +11,12 @@ endforeach ()
 qt_add_qml_module(text
         URI "text"
         VERSION 0.1
-        QML_FILES
-        ${rel_qml_sources}
+        STATIC
+        QML_FILES ${rel_qml_sources}
         RESOURCE_PREFIX /ui
-        SOURCES
-        ${sources}
+        SOURCES ${sources}
         NO_PLUGIN
 )
 
-target_compile_definitions(text PRIVATE "TEXT_LIBRARY")
 target_link_libraries(text PUBLIC Qt6::Core Qt6::Gui Qt6::Quick isa scintilla_qt preferences)
 target_include_directories(text PRIVATE ${CMAKE_CURRENT_LIST_DIR}/editor)

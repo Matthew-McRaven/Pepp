@@ -1,8 +1,7 @@
 #pragma once
 #include <QObject>
-#include "../text_globals.hpp"
 
-class TEXT_EXPORT ObjectUtilities : public QObject {
+class ObjectUtilities : public QObject {
   Q_OBJECT
   Q_PROPERTY(int bytesPerRow READ bytesPerRow WRITE setBytesPerRow NOTIFY bytesPerRowChanged)
 public:

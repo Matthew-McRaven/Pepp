@@ -1,9 +1,8 @@
 #pragma once
 #include <QObject>
-#include "../text_globals.hpp"
 #include "ScintillaEditBase/ScintillaEditBase.h"
 #include "preferences/theme.hpp"
-class TEXT_EXPORT ScintillaAsmEditBase : public ScintillaEditBase {
+class ScintillaAsmEditBase : public ScintillaEditBase {
   Q_OBJECT
   Q_PROPERTY(QString language READ lexerLanguage WRITE setLexerLanguage NOTIFY lexerLanguageChanged);
   Q_PROPERTY(Theme *theme READ theme WRITE setTheme NOTIFY themeChanged)
