@@ -1,4 +1,8 @@
 cmake_minimum_required(VERSION 3.10)
+inject_cxx_standard()
+inject_clang_tidy()
+inject_dwarf_debug()
+inject_code_coverage()
 
 # Extract git info
 include(about/git.cmake)
@@ -37,6 +41,7 @@ qt_add_qml_module(pepp-lib
 )
 
 target_link_libraries(pepp-lib PUBLIC Qt6::Core Qt6::Gui Qt6::Quick antlr4_shared elfio lru-cache scintilla_qt zpp_bits)
+
 # Will fail to find hpp files without this, see https://bugreports.qt.io/browse/QTBUG-101146.
 get_target_property(ANTLR4_INCLUDE_DIR antlr4_shared INCLUDE_DIRECTORIES)
 target_include_directories(pepp-lib PUBLIC ${CMAKE_CURRENT_BINARY_DIR} ${ANTLR4_INCLUDE_DIR})
@@ -49,13 +54,8 @@ set_source_files_properties(${CMAKE_SOURCE_DIR}/LICENSE PROPERTIES QT_RESOURCE_A
 qt_add_resources(pepp-lib "abou"
         PREFIX "/about"
         BASE "${PROJECT_DATA_DIR}/about"
-        FILES
-        ${PROJECT_DATA_DIR}/about/contributors.csv ${PROJECT_DATA_DIR}/about/maintainers.csv
-        ${PROJECT_DATA_DIR}/about/repo.url
-        ${PROJECT_DATA_DIR}/about/dependencies.csv
-        ${dependency_licenses}
-        ${CMAKE_SOURCE_DIR}/NOTICE
-        ${CMAKE_SOURCE_DIR}/LICENSE
+        FILES ${PROJECT_DATA_DIR}/about/contributors.csv ${PROJECT_DATA_DIR}/about/maintainers.csv
+        ${PROJECT_DATA_DIR}/about/repo.url ${PROJECT_DATA_DIR}/about/dependencies.csv ${dependency_licenses} ${CMAKE_SOURCE_DIR}/NOTICE ${CMAKE_SOURCE_DIR}/LICENSE
 )
 
 # Add book resources
@@ -64,7 +64,14 @@ SET(ce-res, "")
 foreach (f-abs IN LISTS cs-res-abs)
     file(RELATIVE_PATH f-rel "${CMAKE_CURRENT_LIST_DIR}" ${f-abs})
     list(APPEND cs-res "${f-rel}")
-endforeach ()
+endforeach()
 qt_add_resources(pepp-lib "builtins" PREFIX "/" BASE "${PROJECT_DATA_DIR}/" FILES ${cs-res})
 
+# Install
+  # Only add dependencies if present
+if(APPLE)
+  install(TARGETS pepp-lib LIBRARY DESTINATION pepp.app/Contents/Frameworks)
+else()
+  install(TARGETS pepp-lib RUNTIME DESTINATION bin BUNDLE DESTINATION .)
+endif()
 

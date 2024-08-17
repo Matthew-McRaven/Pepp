@@ -218,7 +218,7 @@ if (ONLY STREQUAL "BUILD")
        message("Using Qt helpers for byteswap")
     endif()
     add_subdirectory(lib)
-    # add_subdirectory(test)
+    add_subdirectory(test)
     add_subdirectory(bin)
 
     # Needed to genrate documentation

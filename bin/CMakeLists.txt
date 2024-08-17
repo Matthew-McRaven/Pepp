@@ -23,15 +23,8 @@ else ()
     # Future platform-specific logic for icons.
 endif ()
 
-make_target(
-        TARGET pepp
-        TYPE "EXEC"
-        SOURCES ${sources} ${guis} ${CMAKE_SOURCE_DIR}/data/icons/icons.qrc
-        DEPENDS
-        TextFlow cli catch
-        Qt6::Core Qt6::Gui Qt::Qml Qt::Quick Qt::QuickControls2 Qt6::Svg Qt6::Xml
-        Qt::Widgets test-lib-all pepp-lib)
-
+qt6_add_executable(pepp ${sources} ${guis} ${CMAKE_SOURCE_DIR}/data/icons/icons.qrc)
+target_link_libraries(pepp PRIVATE TextFlow cli catch Qt6::Core Qt6::Gui Qt::Qml Qt::Quick Qt::QuickControls2 Qt6::Svg Qt6::Xml Qt::Widgets test-lib-all pepp-lib)
 target_compile_definitions(pepp PRIVATE "INCLUDE_GUI=1")
 # Must occur before install scripts, otherwise MacOS builds will fail.
 set_target_properties(pepp PROPERTIES
@@ -55,7 +48,6 @@ if (NOT (WIN32 OR EMSCRIPTEN))
             $<LIST:JOIN,$<LIST:APPEND,$<TARGET_FILE:pepp>,-term>,>
             COMMAND chmod +x $<LIST:JOIN,$<LIST:APPEND,$<TARGET_FILE:pepp>,-term>,>
             COMMENT "Create terminal target"
-
     )
     # Create a helper script which will launch the main executable in GUI mode.
     file(GENERATE
@@ -66,12 +58,8 @@ if (NOT (WIN32 OR EMSCRIPTEN))
 endif ()
 
 
-make_target(
-        TARGET pepp-term
-        TYPE "EXEC"
-        SOURCES ${sources} ${CMAKE_SOURCE_DIR}/data/icons/icons.qrc
-        DEPENDS TextFlow cli Qt6::Core catch test-lib-all pepp-lib catch
-)
+qt6_add_executable(pepp-term ${sources} ${CMAKE_SOURCE_DIR}/data/icons/icons.qrc)
+target_link_libraries(pepp-term PRIVATE TextFlow cli Qt6::Core catch test-lib-all pepp-lib catch)
 set_target_properties(pepp-term PROPERTIES FOLDER "qtc_runnable")
 target_compile_definitions(pepp-term PRIVATE "INCLUDE_GUI=0")
 target_compile_definitions(pepp-term PRIVATE "DEFAULT_GUI=0")
@@ -121,23 +109,10 @@ endif ()
 
 if (ENABLE_TERM_TESTS)
     configure_file(test/config.hpp.in "${CMAKE_CURRENT_BINARY_DIR}/config.hpp")
-    make_target(
-            TARGET test-term
-            TYPE "EXEC"
-            SOURCES
-            test/about.cpp
-            test/asmrun.cpp
-            test/ls.cpp
-            test/get.cpp
-            test/test_main.cpp
-            test/samples.qrc
-            test/samples.cpp
-            DEPENDS Qt6::Core catch
-    )
-
+    qt6_add_executable(test-term test/about.cpp test/asmrun.cpp test/ls.cpp test/get.cpp test/test_main.cpp test/samples.qrc test/samples.cpp)
     # Needed to find config file.
     target_include_directories(test-term PRIVATE ${CMAKE_CURRENT_BINARY_DIR})
-    add_dependencies(pepp test-term)
+    add_dependencies(pepp test-term Qt6::Core catch)
     option(ENABLE_TERM_TESTS "Enable shell tests of pepp" OFF)
     if (ENABLE_TERM_TESTS)
         add_test(NAME test-term COMMAND test-term)
