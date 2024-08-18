@@ -33,11 +33,8 @@
 #include "memory/hexdump/memorybytemodel.hpp"
 #include "preferences/preferencemodel.hpp"
 #include "project/pep10.hpp"
-#include "text/editor/blockfinder.hpp"
-#include "text/editor/lineinfomodel.hpp"
 #include "text/editor/object.hpp"
 #include "text/editor/scintillaasmeditbase.hpp"
-#include "text/editor/tabnanny.hpp"
 #include "utils/opcodemodel.hpp"
 #include "utils/sequenceconverter.hpp"
 #include "utils/strings.hpp"
@@ -100,9 +97,6 @@ void registerTypes(const char *) {
   qmlRegisterUncreatableType<Pep10_ASMB>("edu.pepp", 1, 0, "Pep10ASMB", utils::error_only_project);
   qmlRegisterType<ProjectModel>("edu.pepp", 1, 0, "ProjectModel");
   // Text
-  qmlRegisterType<BlockFinder>("edu.pepp", 1, 0, "BlockFinder");
-  qmlRegisterType<LineInfoModel>("edu.pepp", 1, 0, "LineInfoModel");
-  qmlRegisterType<TabNanny>("edu.pepp", 1, 0, "TabNanny");
   qmlRegisterType<ObjectUtilities>("edu.pepp.text", 1, 0, "ObjectUtilities");
   qmlRegisterType<ScintillaEditBase>("org.scintilla.scintilla", 1, 0, "ScintillaEditBase");
   qmlRegisterType<ScintillaAsmEditBase>("org.scintilla.scintilla", 1, 0, "ScintillaAsmEdit");
