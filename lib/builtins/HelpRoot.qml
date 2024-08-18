@@ -24,9 +24,6 @@ Item {
         id: textMetrics
         text: "Computer Systems, 200th edition"
     }
-    HelpModel {
-        id: helpModel
-    }
 
     TreeView {
         id: treeView
@@ -37,7 +34,13 @@ Item {
         }
         width: textMetrics.width
         clip: true
-        model: helpModel
+        model: FilteredHelpModel {
+            id: helpModel
+            model: HelpModel {}
+            abstraction: root.abstraction
+            architecture: root.architecture
+        }
+
         delegate: TreeViewDelegate {
             id: treeDelegate
             width: treeView.width

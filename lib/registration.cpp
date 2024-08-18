@@ -64,8 +64,9 @@ void registerTypes(const char *) {
   // TODO: Missing translations
   qmlRegisterUncreatableType<builtins::ArchitectureHelper>("edu.pepp", 1, 0, "Architecture", "Only enums");
   qmlRegisterUncreatableType<builtins::AbstractionHelper>("edu.pepp", 1, 0, "Abstraction", "Only enums");
-  qmlRegisterType<HelpModel>("edu.pepp", 1, 0, "HelpModel");
   qmlRegisterUncreatableType<HelpEntry>("edu.pepp", 1, 0, "HelpEntry", "Created with HelpModel");
+  qmlRegisterType<HelpModel>("edu.pepp", 1, 0, "HelpModel");
+  qmlRegisterType<HelpFilterModel>("edu.pepp", 1, 0, "FilteredHelpModel");
   // Components
   // TODO: Missing translations
   qmlRegisterType<CharCheck>("edu.pepp", 1, 0, "CharCheck");

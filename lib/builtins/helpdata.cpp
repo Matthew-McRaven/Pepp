@@ -5,53 +5,57 @@
 
 QSharedPointer<HelpEntry> about_root() {
   // relative to this the directroy in which HelpRoot.qml is located.
-  return QSharedPointer<HelpEntry>::create(HelpCategory::Category::About, 0, "About", "../about/About.qml");
+  return QSharedPointer<HelpEntry>::create(HelpCategory::Category::About, -1, "About", "../about/About.qml");
 }
 
 QSharedPointer<HelpEntry> writing_root() {
+  int mc10 = bitmask(builtins::Architecture::PEP10, builtins::Abstraction::MC2);
+  int oc10 = bitmask(builtins::Architecture::PEP10, builtins::Abstraction::ISA3);
+  int as10 = bitmask(builtins::Architecture::PEP10, builtins::Abstraction::ASMB5);
+  int p10 = mc10 | oc10 | as10;
   auto microcode10_language =
-      QSharedPointer<HelpEntry>::create(HelpCategory::Category::Text, 0, "Microcode", "MDText.qml");
+      QSharedPointer<HelpEntry>::create(HelpCategory::Category::Text, mc10, "Microcode", "MDText.qml");
   microcode10_language->props = QVariantMap{{"file", QVariant(u":/help/pep10/writing_mc.md"_qs)}};
   auto machine10_language =
-      QSharedPointer<HelpEntry>::create(HelpCategory::Category::Text, 0, "Machine Language", "MDText.qml");
+      QSharedPointer<HelpEntry>::create(HelpCategory::Category::Text, oc10, "Machine Language", "MDText.qml");
   machine10_language->props = QVariantMap{{"file", QVariant(u":/help/pep10/writing_oc.md"_qs)}};
   auto assembly10_language =
-      QSharedPointer<HelpEntry>::create(HelpCategory::Category::Text, 0, "Assembly Language", "MDText.qml");
+      QSharedPointer<HelpEntry>::create(HelpCategory::Category::Text, as10, "Assembly Language", "MDText.qml");
   assembly10_language->props = QVariantMap{{"file", QVariant(u":/help/pep10/writing_asmb.md"_qs)}};
-  auto root = QSharedPointer<HelpEntry>::create(HelpCategory::Category::Text, 0, "Writing Programs", "MDText.qml");
+  auto root = QSharedPointer<HelpEntry>::create(HelpCategory::Category::Text, p10, "Writing Programs", "MDText.qml");
   root->props = QVariantMap{{"file", QVariant(u":/help/pep10/writing_progs.md"_qs)}},
   root->addChildren({microcode10_language, machine10_language, assembly10_language});
   return root;
 }
 
 QSharedPointer<HelpEntry> debugging_root() {
-  auto root = QSharedPointer<HelpEntry>::create(HelpCategory::Category::Text, 0, "Debugging Programs", "MDText.qml");
+  auto root = QSharedPointer<HelpEntry>::create(HelpCategory::Category::Text, -1, "Debugging Programs", "MDText.qml");
   root->props = QVariantMap{{"file", QVariant(u":/help/pep10/debugging_progs.md"_qs)}};
   return root;
 }
 
 QSharedPointer<HelpEntry> systemcalls_root() {
-  auto root = QSharedPointer<HelpEntry>::create(HelpCategory::Category::Text, 0, "Writing System Calls", "MDText.qml");
+  auto root = QSharedPointer<HelpEntry>::create(HelpCategory::Category::Text, -1, "Writing System Calls", "MDText.qml");
   root->props = QVariantMap{{"file", QVariant(u":/help/pep10/debugging_progs.md"_qs)}};
   return root;
 }
 
 QSharedPointer<HelpEntry> greencard10_root() {
-  auto c_bit = QSharedPointer<HelpEntry>::create(HelpCategory::Category::Text, 0, "Setting the C bit on subtraction",
+  auto c_bit = QSharedPointer<HelpEntry>::create(HelpCategory::Category::Text, -1, "Setting the C bit on subtraction",
                                                  "MDText.qml");
   c_bit->props = QVariantMap{{"file", QVariant(u":/help/pep10/debugging_progs.md"_qs)}};
-  auto n_bit = QSharedPointer<HelpEntry>::create(HelpCategory::Category::Text, 0,
+  auto n_bit = QSharedPointer<HelpEntry>::create(HelpCategory::Category::Text, -1,
                                                  "Setting the N bit on <mono>CPr</mono>", "MDText.qml");
   n_bit->props = QVariantMap{{"file", QVariant(u":/help/pep10/n_bit.md"_qs)}};
-  auto addr = QSharedPointer<HelpEntry>::create(HelpCategory::Category::Text, 0, "Addressing Modes", "MDText.qml");
+  auto addr = QSharedPointer<HelpEntry>::create(HelpCategory::Category::Text, -1, "Addressing Modes", "MDText.qml");
   addr->props = QVariantMap{{"file", QVariant(u":/help/pep10/debugging_progs.md"_qs)}};
-  auto reg = QSharedPointer<HelpEntry>::create(HelpCategory::Category::Text, 0, "Register field", "MDText.qml");
+  auto reg = QSharedPointer<HelpEntry>::create(HelpCategory::Category::Text, -1, "Register field", "MDText.qml");
   reg->props = QVariantMap{{"file", QVariant(u":/help/pep10/debugging_progs.md"_qs)}};
-  auto mmio = QSharedPointer<HelpEntry>::create(HelpCategory::Category::Text, 0, "Memory-mapped IO", "MDText.qml");
+  auto mmio = QSharedPointer<HelpEntry>::create(HelpCategory::Category::Text, -1, "Memory-mapped IO", "MDText.qml");
   mmio->props = QVariantMap{{"file", QVariant(u":/help/pep10/debugging_progs.md"_qs)}};
-  auto alu = QSharedPointer<HelpEntry>::create(HelpCategory::Category::Text, 0, "ALU Functions", "MDText.qml");
+  auto alu = QSharedPointer<HelpEntry>::create(HelpCategory::Category::Text, -1, "ALU Functions", "MDText.qml");
   alu->props = QVariantMap{{"file", QVariant(u":/help/pep10/debugging_progs.md"_qs)}};
-  auto root = QSharedPointer<HelpEntry>::create(HelpCategory::Category::ISAGreenCard, 0, "Pep/10 Reference", "ISA");
+  auto root = QSharedPointer<HelpEntry>::create(HelpCategory::Category::ISAGreenCard, -1, "Pep/10 Reference", "ISA");
   root->addChildren({c_bit, n_bit, addr, reg, mmio, alu});
   // TODO: probably need to add props...
   return root;
@@ -64,8 +68,11 @@ QSharedPointer<HelpEntry> examples_root() {
   for (const auto &book : books) {
     for (const auto &figure : book->figures()) {
       auto title = u"%1 %2.%3"_qs.arg(figure->prefix(), figure->chapterName(), figure->figureName());
+      int mask = bitmask(figure->arch(), figure->level());
+      qDebug() << book->name().toStdString().c_str() << title.toStdString().c_str()
+               << QString::number(mask, 16).toStdString().c_str();
       auto entry =
-          QSharedPointer<HelpEntry>::create(HelpCategory::Category::Figure, 0, title, "../builtins/Figure2.qml");
+          QSharedPointer<HelpEntry>::create(HelpCategory::Category::Figure, mask, title, "../builtins/Figure2.qml");
       entry->props = QVariantMap{
           {"title", title},
           {"payload", QVariant::fromValue(figure.data())},
@@ -73,7 +80,7 @@ QSharedPointer<HelpEntry> examples_root() {
       children.push_back(entry);
     }
   }
-  auto root = QSharedPointer<HelpEntry>::create(HelpCategory::Category::Text, 0, "Figures", "ISA");
+  auto root = QSharedPointer<HelpEntry>::create(HelpCategory::Category::Text, -1, "Figures", "ISA");
   root->addChildren(children);
   return root;
 }
@@ -81,3 +88,39 @@ QSharedPointer<HelpEntry> examples_root() {
 QSharedPointer<HelpEntry> problems_root() { return {}; }
 
 QSharedPointer<HelpEntry> os_root() { return {}; }
+
+int bitmask(builtins::Architecture arch) {
+  switch (arch) {
+  case builtins::ArchitectureHelper::Architecture::NONE: return 0;
+  case builtins::ArchitectureHelper::Architecture::PEP8: return 1;
+  case builtins::ArchitectureHelper::Architecture::PEP9: return 2;
+  case builtins::ArchitectureHelper::Architecture::PEP10: return 4;
+  case builtins::ArchitectureHelper::Architecture::RISCV: return 8;
+  default: throw std::invalid_argument("Invalid architecture");
+  }
+}
+
+int bitmask(builtins::Abstraction level) {
+  switch (level) {
+  case builtins::AbstractionHelper::Abstraction::NONE: return 0;
+  case builtins::AbstractionHelper::Abstraction::MC2: return 1;
+  case builtins::AbstractionHelper::Abstraction::ISA3: return 2;
+  case builtins::AbstractionHelper::Abstraction::OS4: return 4;
+  case builtins::AbstractionHelper::Abstraction::ASMB5: return 8;
+  default: throw std::invalid_argument("Invalid abstraction");
+  }
+}
+
+constexpr int shift = 16;
+int bitmask(builtins::Architecture arch, builtins::Abstraction level) {
+  return bitmask(arch) << shift | bitmask(level);
+}
+
+bool masked(int lhs, int rhs) {
+  static_assert(shift >= 0);
+  static_assert(shift <= 31);
+  int shift_mask = (1 << shift) - 1;
+  int mask_upper = (rhs & lhs & ~shift_mask);
+  int mask_lower = (rhs & lhs & shift_mask);
+  return mask_upper > 0 && mask_lower > 0;
+}

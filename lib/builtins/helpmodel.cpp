@@ -2,6 +2,7 @@
 #include "helpdata.hpp"
 
 static const bool dbg = false;
+
 void HelpEntry::addChild(QSharedPointer<HelpEntry> child) {
   _children.push_back(child);
   child->_parent = this->sharedFromThis();
@@ -15,13 +16,14 @@ HelpModel::HelpModel(QObject *parent) : QAbstractItemModel{parent} {
   _roots = {
       about_root(), writing_root(), debugging_root(), systemcalls_root(), greencard10_root(), examples_root(),
   };
+  for (auto &root : _roots) addToIndex(root);
 }
 
 QModelIndex HelpModel::index(int row, int column, const QModelIndex &parent) const {
   QModelIndex ret;
   if (row < 0 || column != 0) {
   } else if (!parent.isValid() && row < _roots.size()) ret = createIndex(row, column, _roots[row].data());
-  else if (auto casted = (HelpEntry *)parent.internalPointer(); row < casted->_children.size())
+  else if (auto casted = ptr(parent); row < casted->_children.size())
     ret = createIndex(row, column, casted->_children[row].data());
   if constexpr (dbg) qDebug() << "HelpModel::index(" << row << "," << column << "," << parent << " ) ->" << ret;
   return ret;
@@ -30,7 +32,7 @@ QModelIndex HelpModel::index(int row, int column, const QModelIndex &parent) con
 QModelIndex HelpModel::parent(const QModelIndex &child) const {
   QModelIndex ret{};
   if (!child.isValid()) {
-  } else if (auto cast_child = static_cast<HelpEntry *>(child.internalPointer()); false) {
+  } else if (auto cast_child = ptr(child); false) {
   } else if (auto parent = cast_child->_parent.lock(); !parent) {
   } else if (auto grandparent = parent->_parent.lock(); grandparent)
     ret = createIndex(grandparent->_children.indexOf(parent), 0, parent.data());
@@ -42,7 +44,7 @@ QModelIndex HelpModel::parent(const QModelIndex &child) const {
 int HelpModel::rowCount(const QModelIndex &parent) const {
   auto ret = 0;
   if (!parent.isValid()) ret = _roots.size();
-  else ret = static_cast<HelpEntry *>(parent.internalPointer())->_children.size();
+  else ret = ptr(parent)->_children.size();
   if constexpr (dbg) qDebug() << "HelpModel::rowCount(" << parent << " ) ->" << ret;
   return ret;
 }
@@ -56,7 +58,7 @@ int HelpModel::columnCount(const QModelIndex &parent) const {
 QVariant HelpModel::data(const QModelIndex &index, int role) const {
   if constexpr (dbg) qDebug() << "HelpModel::data" << index << role;
   if (!index.isValid()) return QVariant();
-  auto entry = static_cast<HelpEntry *>(index.internalPointer());
+  auto entry = ptr(index);
   switch (role) {
   case (int)Roles::Category: return static_cast<int>(entry->category);
   case (int)Roles::Tags: return entry->tags;
@@ -76,4 +78,46 @@ QHash<int, QByteArray> HelpModel::roleNames() const {
   ret[static_cast<int>(Roles::Delegate)] = "delegate";
   ret[static_cast<int>(Roles::Props)] = "props";
   return ret;
+}
+
+void HelpModel::addToIndex(QSharedPointer<HelpEntry> entry) {
+  _indices.insert(reinterpret_cast<ptrdiff_t>(entry.data()));
+  for (auto &child : entry->_children) addToIndex(child);
+}
+
+HelpFilterModel::HelpFilterModel(QObject *parent) : QSortFilterProxyModel(parent) {}
+
+void HelpFilterModel::setSourceModel(QAbstractItemModel *sourceModel) {
+  if (sourceModel == this->sourceModel()) return;
+  QSortFilterProxyModel::setSourceModel(sourceModel);
+  emit sourceModelChanged();
+}
+
+builtins::Architecture HelpFilterModel::architecture() const { return _architecture; }
+
+void HelpFilterModel::setArchitecture(builtins::Architecture architecture) {
+  if (_architecture == architecture) return;
+  _architecture = architecture;
+  invalidateRowsFilter();
+  qDebug() << "Mask is " << QString::number(bitmask(_architecture, _abstraction), 16).toStdString().c_str();
+  emit architectureChanged();
+}
+
+builtins::Abstraction HelpFilterModel::abstraction() const { return _abstraction; }
+
+void HelpFilterModel::setAbstraction(builtins::Abstraction abstraction) {
+  if (_abstraction == abstraction) return;
+  _abstraction = abstraction;
+  invalidateRowsFilter();
+  qDebug() << "Mask is " << QString::number(bitmask(_architecture, _abstraction), 16).toStdString().c_str();
+  emit abstractionChanged();
+}
+
+bool HelpFilterModel::filterAcceptsRow(int source_row, const QModelIndex &source_parent) const {
+  auto sm = sourceModel();
+  if (!sm) return false;
+  uint32_t mask = bitmask(_architecture, _abstraction);
+  auto index = sm->index(source_row, 0, source_parent);
+  auto tags = sm->data(index, (int)HelpModel::Roles::Tags).toUInt();
+  return masked(mask, tags);
 }

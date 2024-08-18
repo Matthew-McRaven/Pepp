@@ -1,6 +1,9 @@
 #pragma once
 
 #include <QAbstractItemModel>
+#include <qsortfilterproxymodel.h>
+#include "builtins/constants.hpp"
+
 class HelpModel;
 class HelpCategory : public QObject {
   Q_OBJECT
@@ -21,7 +24,7 @@ public:
       : category(category), tags(tags), name(name), delgate(delgate) {}
   HelpCategory::Category category;
   // TBD on how to filter these items.
-  int tags;
+  uint32_t tags = -1;
   // Display name in help system; path to QML file which can display it.
   QString name, delgate;
   // Props which will be injected into the delegate.
@@ -51,4 +54,39 @@ public:
 
 private:
   QList<QSharedPointer<HelpEntry>> _roots;
+  void addToIndex(QSharedPointer<HelpEntry>);
+  inline HelpEntry *ptr(const QModelIndex &index) const {
+    if (_indices.contains(index.internalId())) return static_cast<HelpEntry *>(index.internalPointer());
+    else {
+      auto x = 5;
+      return nullptr;
+    }
+  }
+  QSet<ptrdiff_t> _indices;
+};
+
+class HelpFilterModel : public QSortFilterProxyModel {
+  Q_OBJECT
+  Q_PROPERTY(builtins::Architecture architecture READ architecture WRITE setArchitecture NOTIFY architectureChanged)
+  Q_PROPERTY(builtins::Abstraction abstraction READ abstraction WRITE setAbstraction NOTIFY abstractionChanged)
+  Q_PROPERTY(QAbstractItemModel *model READ sourceModel WRITE setSourceModel NOTIFY sourceModelChanged)
+public:
+  explicit HelpFilterModel(QObject *parent = nullptr);
+
+  void setSourceModel(QAbstractItemModel *sourceModel) override;
+  builtins::Architecture architecture() const;
+  void setArchitecture(builtins::Architecture architecture);
+  builtins::Abstraction abstraction() const;
+  void setAbstraction(builtins::Abstraction abstraction);
+
+protected:
+  bool filterAcceptsRow(int source_row, const QModelIndex &source_parent) const override;
+signals:
+  void sourceModelChanged();
+  void architectureChanged();
+  void abstractionChanged();
+
+private:
+  builtins::Architecture _architecture = builtins::Architecture::NONE;
+  builtins::Abstraction _abstraction = builtins::Abstraction::NONE;
 };
