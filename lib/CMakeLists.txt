@@ -56,7 +56,7 @@ qt_add_resources(pepp-lib "about"
         BASE "${PROJECT_DATA_DIR}/about"
         FILES ${PROJECT_DATA_DIR}/about/contributors.csv ${PROJECT_DATA_DIR}/about/maintainers.csv
         ${PROJECT_DATA_DIR}/about/repo.url ${PROJECT_DATA_DIR}/about/dependencies.csv ${dependency_licenses} ${CMAKE_SOURCE_DIR}/NOTICE ${CMAKE_SOURCE_DIR}/LICENSE
-)
+      )
 
 # Add book resources
 file(GLOB_RECURSE cs-res-abs CONFIGURE_DEPENDS "${PROJECT_DATA_DIR}/books/cs4e/*" "${PROJECT_DATA_DIR}/books/cs5e/*" "${PROJECT_DATA_DIR}/books/cs6e/*")

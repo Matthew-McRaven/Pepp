@@ -22,9 +22,11 @@
 #include "about/contributors.hpp"
 #include "about/dependencies.hpp"
 #include "about/pepp.hpp"
+#include "about/read.hpp"
 #include "about/version.hpp"
 #include "builtins/book_item_model.hpp"
 #include "builtins/bookfiltermodel.hpp"
+#include "builtins/helpmodel.hpp"
 #include "components/charcheck.hpp"
 #include "cpu/registermodel.hpp"
 #include "cpu/statusbitmodel.hpp"
@@ -61,12 +63,16 @@ void registerTypes(const char *) {
   qmlRegisterUncreatableType<about::DependencyRoles>("edu.pepp", 1, 0, "DependencyRoles", "Error: only enums");
   qmlRegisterSingletonType<about::Dependencies>("edu.pepp", 1, 0, "Dependencies",
                                                 [](QQmlEngine *, QJSEngine *) { return new about::Dependencies(); });
+  qmlRegisterSingletonType<about::detail::ReadHelper>(
+      "edu.pepp", 1, 0, "FileReader", [](QQmlEngine *, QJSEngine *eng) { return new about::detail::ReadHelper(eng); });
   // Builtins
   // TODO: Missing translations
   qmlRegisterType<builtins::BookModel>("edu.pepp", 1, 0, "BookModel");
   qmlRegisterType<builtins::BookFilterModel>("edu.pepp", 1, 0, "BookFilterModel");
   qmlRegisterUncreatableType<builtins::ArchitectureHelper>("edu.pepp", 1, 0, "Architecture", "Only enums");
   qmlRegisterUncreatableType<builtins::AbstractionHelper>("edu.pepp", 1, 0, "Abstraction", "Only enums");
+  qmlRegisterType<HelpModel>("edu.pepp", 1, 0, "HelpModel");
+  qmlRegisterUncreatableType<HelpEntry>("edu.pepp", 1, 0, "HelpEntry", "Created with HelpModel");
   // Components
   // TODO: Missing translations
   qmlRegisterType<CharCheck>("edu.pepp", 1, 0, "CharCheck");

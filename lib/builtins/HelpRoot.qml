@@ -1,15 +1,31 @@
 import QtQuick
+import QtQuick.Controls
+import edu.pepp 1.0
 
-Rectangle {
-    color: "orange"
+Item {
+    id: root
     property var architecture
     property var abstraction
+    property var selected
+    Component.onCompleted: {
+        console.log(helpModel.rowCount())
+    }
+    onSelectedChanged: {
+        console.log("selected =", selected)
+        const props = helpModel.data(selected, HelpModel.Props)
+        const url = helpModel.data(selected, HelpModel.Delegate)
+
+        contentLoader.setSource(url, props)
+    }
 
     // Make sure the drawer is always at least as wide as the text
     // There was an issue in WASM where the titles clipper the center area
     TextMetrics {
         id: textMetrics
         text: "Computer Systems, 200th edition"
+    }
+    HelpModel {
+        id: helpModel
     }
 
     TreeView {
@@ -20,6 +36,13 @@ Rectangle {
             bottom: parent.bottom
         }
         width: textMetrics.width
+        model: helpModel
+        delegate: TreeViewDelegate {
+            id: treeDelegate
+            onClicked: {
+                root.selected = treeDelegate.treeView.index(row, column)
+            }
+        }
     }
     Flickable {
         id: contentFlickable
@@ -30,10 +53,6 @@ Rectangle {
             bottom: parent.bottom
         }
         clip: true
-        Rectangle {
-            anchors.fill: parent
-            color: "yellow"
-        }
         Loader {
             id: contentLoader
             anchors.fill: parent

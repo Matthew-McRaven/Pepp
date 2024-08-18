@@ -131,10 +131,10 @@ ApplicationWindow {
         welcome.addProject.connect(pm.onAddProject)
         welcome.addProject.connect(() => switchToProject(pm.count - 1))
         welcome.addProject.connect(() => sidebar.switchToMode("edit"))
-        help.addProject.connect(pm.onAddProject)
-        help.addProject.connect(() => switchToProject(pm.count - 1))
-        help.switchToMode.connect(sidebar.switchToMode)
-        help.setCharIn.connect(i => setProjectCharIn(i))
+        //help.addProject.connect(pm.onAddProject)
+        //help.addProject.connect(() => switchToProject(pm.count - 1))
+        //help.switchToMode.connect(sidebar.switchToMode)
+        //help.setCharIn.connect(i => setProjectCharIn(i))
         currentProjectChanged.connect(projectLoader.onCurrentProjectChanged)
 
         actions.edit.prefs.triggered.connect(preferencesDialog.open)
@@ -443,7 +443,7 @@ ApplicationWindow {
             Layout.fillHeight: true
             Layout.fillWidth: true
         }
-        Help.HelpRoot {
+        Builtins.HelpRoot {
             id: help
             Layout.fillHeight: true
             Layout.fillWidth: true
