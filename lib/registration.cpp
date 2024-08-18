@@ -22,20 +22,17 @@
 #include "about/contributors.hpp"
 #include "about/dependencies.hpp"
 #include "about/pepp.hpp"
+#include "about/read.hpp"
 #include "about/version.hpp"
-#include "builtins/book_item_model.hpp"
-#include "builtins/bookfiltermodel.hpp"
+#include "builtins/helpmodel.hpp"
 #include "components/charcheck.hpp"
 #include "cpu/registermodel.hpp"
 #include "cpu/statusbitmodel.hpp"
 #include "memory/hexdump/memorybytemodel.hpp"
 #include "preferences/preferencemodel.hpp"
 #include "project/pep10.hpp"
-#include "text/editor/blockfinder.hpp"
-#include "text/editor/lineinfomodel.hpp"
 #include "text/editor/object.hpp"
 #include "text/editor/scintillaasmeditbase.hpp"
-#include "text/editor/tabnanny.hpp"
 #include "utils/opcodemodel.hpp"
 #include "utils/sequenceconverter.hpp"
 #include "utils/strings.hpp"
@@ -61,12 +58,15 @@ void registerTypes(const char *) {
   qmlRegisterUncreatableType<about::DependencyRoles>("edu.pepp", 1, 0, "DependencyRoles", "Error: only enums");
   qmlRegisterSingletonType<about::Dependencies>("edu.pepp", 1, 0, "Dependencies",
                                                 [](QQmlEngine *, QJSEngine *) { return new about::Dependencies(); });
+  qmlRegisterSingletonType<about::detail::ReadHelper>(
+      "edu.pepp", 1, 0, "FileReader", [](QQmlEngine *, QJSEngine *eng) { return new about::detail::ReadHelper(eng); });
   // Builtins
   // TODO: Missing translations
-  qmlRegisterType<builtins::BookModel>("edu.pepp", 1, 0, "BookModel");
-  qmlRegisterType<builtins::BookFilterModel>("edu.pepp", 1, 0, "BookFilterModel");
   qmlRegisterUncreatableType<builtins::ArchitectureHelper>("edu.pepp", 1, 0, "Architecture", "Only enums");
   qmlRegisterUncreatableType<builtins::AbstractionHelper>("edu.pepp", 1, 0, "Abstraction", "Only enums");
+  qmlRegisterUncreatableType<HelpEntry>("edu.pepp", 1, 0, "HelpEntry", "Created with HelpModel");
+  qmlRegisterType<HelpModel>("edu.pepp", 1, 0, "HelpModel");
+  qmlRegisterType<HelpFilterModel>("edu.pepp", 1, 0, "FilteredHelpModel");
   // Components
   // TODO: Missing translations
   qmlRegisterType<CharCheck>("edu.pepp", 1, 0, "CharCheck");
@@ -94,9 +94,6 @@ void registerTypes(const char *) {
   qmlRegisterUncreatableType<Pep10_ASMB>("edu.pepp", 1, 0, "Pep10ASMB", utils::error_only_project);
   qmlRegisterType<ProjectModel>("edu.pepp", 1, 0, "ProjectModel");
   // Text
-  qmlRegisterType<BlockFinder>("edu.pepp", 1, 0, "BlockFinder");
-  qmlRegisterType<LineInfoModel>("edu.pepp", 1, 0, "LineInfoModel");
-  qmlRegisterType<TabNanny>("edu.pepp", 1, 0, "TabNanny");
   qmlRegisterType<ObjectUtilities>("edu.pepp.text", 1, 0, "ObjectUtilities");
   qmlRegisterType<ScintillaEditBase>("org.scintilla.scintilla", 1, 0, "ScintillaEditBase");
   qmlRegisterType<ScintillaAsmEditBase>("org.scintilla.scintilla", 1, 0, "ScintillaAsmEdit");

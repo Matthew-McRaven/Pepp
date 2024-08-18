@@ -10,3 +10,10 @@ std::optional<QString> about::detail::readFile(QString fname) {
   }
   return fileText;
 }
+
+about::detail::ReadHelper::ReadHelper(QObject *parent) : QObject(parent) {}
+
+QString about::detail::ReadHelper::readFile(QString fname) {
+  auto ret = about::detail::readFile(fname);
+  return ret.value_or("");
+}

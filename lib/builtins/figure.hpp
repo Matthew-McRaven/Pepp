@@ -46,6 +46,7 @@ class Figure : public QObject {
   Q_PROPERTY(QVariantList tests READ tests NOTIFY testsChanged);
   // See builtins::Element for available properties
   Q_PROPERTY(QVariantMap elements READ elements NOTIFY elementsChanged);
+  Q_PROPERTY(QString copyToElementLanguage READ defaultElement CONSTANT);
 
 public:
   Figure(Architecture arch, Abstraction level, QString prefix, QString chapter, QString figure);
@@ -75,6 +76,8 @@ public:
   QVariantMap elements() const;
   // Transfer ownership to this. Must be deleted in this object's destructor
   bool addElement(QString name, const builtins::Element *element);
+  QString defaultElement() const;
+  void setDefaultElement(QString lang);
 
 signals:
   void isOSChanged();
@@ -93,6 +96,7 @@ private:
   QList<const builtins::Test *> _tests = {};
   // Owns pointers
   QMap<QString, const builtins::Element *> _elements = {};
+  QString _defaultElement = {};
 };
 } // end namespace builtins
 Q_DECLARE_METATYPE(builtins::Figure);

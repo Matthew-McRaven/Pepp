@@ -443,7 +443,7 @@ ApplicationWindow {
             Layout.fillHeight: true
             Layout.fillWidth: true
         }
-        Builtins.HelpView {
+        Builtins.HelpRoot {
             id: help
             Layout.fillHeight: true
             Layout.fillWidth: true
