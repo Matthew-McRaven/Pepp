@@ -24,8 +24,6 @@
 #include "about/pepp.hpp"
 #include "about/read.hpp"
 #include "about/version.hpp"
-#include "builtins/book_item_model.hpp"
-#include "builtins/bookfiltermodel.hpp"
 #include "builtins/helpmodel.hpp"
 #include "components/charcheck.hpp"
 #include "cpu/registermodel.hpp"
@@ -64,8 +62,6 @@ void registerTypes(const char *) {
       "edu.pepp", 1, 0, "FileReader", [](QQmlEngine *, QJSEngine *eng) { return new about::detail::ReadHelper(eng); });
   // Builtins
   // TODO: Missing translations
-  qmlRegisterType<builtins::BookModel>("edu.pepp", 1, 0, "BookModel");
-  qmlRegisterType<builtins::BookFilterModel>("edu.pepp", 1, 0, "BookFilterModel");
   qmlRegisterUncreatableType<builtins::ArchitectureHelper>("edu.pepp", 1, 0, "Architecture", "Only enums");
   qmlRegisterUncreatableType<builtins::AbstractionHelper>("edu.pepp", 1, 0, "Abstraction", "Only enums");
   qmlRegisterType<HelpModel>("edu.pepp", 1, 0, "HelpModel");
