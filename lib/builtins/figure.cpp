@@ -107,3 +107,7 @@ bool builtins::Figure::addElement(QString name, const Element *element) {
   }
   return false;
 }
+
+QString builtins::Figure::defaultElement() const { return _defaultElement; }
+
+void builtins::Figure::setDefaultElement(QString lang) { _defaultElement = lang; }

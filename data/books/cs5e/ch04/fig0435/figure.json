@@ -4,6 +4,7 @@
   "arch": "pep9",
   "abstraction": "ISA3",
   "default_os": "os:pep9os",
+  "default_element": "pepo",
   "items": {
     "pepb": "{ch}{fig}.pepb",
     "peph": "{ch}{fig}.peph",

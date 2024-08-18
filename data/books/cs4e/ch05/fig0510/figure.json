@@ -3,6 +3,7 @@
   "name": "05:10",
   "arch": "pep8",
   "default_os": "os:pep8os",
+  "default_element": "pep",
   "items": {
     "pep": "{ch}{fig}.pep"
   }

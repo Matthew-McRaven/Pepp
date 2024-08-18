@@ -66,7 +66,10 @@ QSharedPointer<HelpEntry> examples_root() {
       auto title = u"%1 %2.%3"_qs.arg(figure->prefix(), figure->chapterName(), figure->figureName());
       auto entry =
           QSharedPointer<HelpEntry>::create(HelpCategory::Category::Figure, 0, title, "../builtins/Figure2.qml");
-      entry->props = QVariantMap{{"title", title}, {"payload", QVariant::fromValue(figure.data())}};
+      entry->props = QVariantMap{
+          {"title", title},
+          {"payload", QVariant::fromValue(figure.data())},
+      };
       children.push_back(entry);
     }
   }

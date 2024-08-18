@@ -167,6 +167,9 @@ builtins::detail::loadFigure(QString manifestPath) {
     figure->addElement(language, item);
   }
 
+  auto default_element = manifest["default_element"];
+  figure->setDefaultElement(default_element.toString());
+
   return figure;
 }
 

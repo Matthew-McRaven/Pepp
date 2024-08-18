@@ -29,16 +29,20 @@ Item {
     property var curElement: undefined
     Component.onCompleted: {
         const el = payload.elements
+        const langs = Object.keys(el)
+        var defaultElementIndex = 0
         Object.keys(el).map(lang => {
                                 languageModel.append({
                                                          "key": lang,
                                                          "value": el[lang].content
                                                      })
+                                if (lang === wrapper.payload.copyToElementLanguage)
+                                defaultElementIndex = languageModel.count - 1
                             })
-        wrapper.curLang = Qt.binding(() => Object.keys(payload.elements)[0])
+        wrapper.curLang = Qt.binding(() => Object.keys(el)[defaultElementIndex])
         wrapper.curElement = Qt.binding(() => payload.elements[wrapper.curLang])
-        langSelector.currentIndex = Qt.binding(() => 0)
-        langSelector.activated(0)
+        langSelector.currentIndex = Qt.binding(() => defaultElementIndex)
+        langSelector.activated(defaultElementIndex)
     }
 
     ColumnLayout {
@@ -132,8 +136,16 @@ Item {
             //  Copy button logic
             Button {
                 id: button
+                visible: enabled
+                enabled: wrapper.payload.copyToElementLanguage.length > 0
                 text: "Copy to New Project"
                 anchors.horizontalCenter: copyRow.center
+                onClicked: {
+                    const lang = wrapper.payload.copyToElementLanguage
+                    const text = wrapper.payload.elements[lang].content
+                    console.log("Requested to copy:")
+                    console.log(text)
+                }
             }
             //  Figure title
             Text {
