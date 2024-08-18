@@ -10,13 +10,6 @@ Item {
     Component.onCompleted: {
         console.log(helpModel.rowCount())
     }
-    onSelectedChanged: {
-        console.log("selected =", selected)
-        const props = helpModel.data(selected, HelpModel.Props)
-        const url = helpModel.data(selected, HelpModel.Delegate)
-
-        contentLoader.setSource(url, props)
-    }
 
     // Make sure the drawer is always at least as wide as the text
     // There was an issue in WASM where the titles clipper the center area
@@ -63,6 +56,27 @@ Item {
             anchors.fill: parent
             // contentWidth: contentItem.width
             // contentHeight: contentItem.height
+            Connections {
+                target: contentLoader.item
+                function onAddProject(feats, texts, mode, os, tests) {
+                    root.addProject(root.architecture, root.abstraction, feats,
+                                    texts, true)
+                    if (tests && tests[0])
+                        root.setCharIn(tests[0].output)
+                    root.switchToMode(mode ?? "Edit")
+                }
+                ignoreUnknownSignals: true
+            }
         }
+    }
+    signal addProject(int level, int abstraction, string feats, var text, bool reuse)
+    signal setCharIn(string text)
+    signal switchToMode(string mode)
+    onSelectedChanged: {
+        console.log("selected =", selected)
+        const props = helpModel.data(selected, HelpModel.Props)
+        const url = helpModel.data(selected, HelpModel.Delegate)
+
+        contentLoader.setSource(url, props)
     }
 }

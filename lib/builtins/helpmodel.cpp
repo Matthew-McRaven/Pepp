@@ -99,7 +99,7 @@ void HelpFilterModel::setArchitecture(builtins::Architecture architecture) {
   if (_architecture == architecture) return;
   _architecture = architecture;
   invalidateRowsFilter();
-  qDebug() << "Mask is " << QString::number(bitmask(_architecture, _abstraction), 16).toStdString().c_str();
+  // qDebug() << "Mask is " << QString::number(bitmask(_architecture, _abstraction), 16).toStdString().c_str();
   emit architectureChanged();
 }
 
@@ -109,14 +109,14 @@ void HelpFilterModel::setAbstraction(builtins::Abstraction abstraction) {
   if (_abstraction == abstraction) return;
   _abstraction = abstraction;
   invalidateRowsFilter();
-  qDebug() << "Mask is " << QString::number(bitmask(_architecture, _abstraction), 16).toStdString().c_str();
+  // qDebug() << "Mask is " << QString::number(bitmask(_architecture, _abstraction), 16).toStdString().c_str();
   emit abstractionChanged();
 }
 
 bool HelpFilterModel::filterAcceptsRow(int source_row, const QModelIndex &source_parent) const {
   auto sm = sourceModel();
   if (!sm) return false;
-  uint32_t mask = bitmask(_architecture, _abstraction);
+  int32_t mask = bitmask(_architecture, _abstraction);
   auto index = sm->index(source_row, 0, source_parent);
   auto tags = sm->data(index, (int)HelpModel::Roles::Tags).toUInt();
   return masked(mask, tags);

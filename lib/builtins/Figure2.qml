@@ -141,10 +141,12 @@ Item {
                 text: "Copy to New Project"
                 anchors.horizontalCenter: copyRow.center
                 onClicked: {
-                    const lang = wrapper.payload.copyToElementLanguage
-                    const text = wrapper.payload.elements[lang].content
-                    console.log("Requested to copy:")
-                    console.log(text)
+                    const pl = wrapper.payload
+                    const lang = pl.copyToElementLanguage
+                    const text = pl.elements[lang].content
+                    wrapper.addProject("", text, "Edit",
+                                       pl?.defaultOS?.elements["pep"]?.content,
+                                       pl?.tests)
                 }
             }
             //  Figure title
@@ -160,4 +162,5 @@ Item {
         id: editorFM
         font.family: "Courier New"
     }
+    signal addProject(string feats, string text, string switchToMode, var optionalOS, var tests)
 }

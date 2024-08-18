@@ -69,8 +69,8 @@ QSharedPointer<HelpEntry> examples_root() {
     for (const auto &figure : book->figures()) {
       auto title = u"%1 %2.%3"_qs.arg(figure->prefix(), figure->chapterName(), figure->figureName());
       int mask = bitmask(figure->arch(), figure->level());
-      qDebug() << book->name().toStdString().c_str() << title.toStdString().c_str()
-               << QString::number(mask, 16).toStdString().c_str();
+      /*qDebug() << book->name().toStdString().c_str() << title.toStdString().c_str()
+               << QString::number(mask, 16).toStdString().c_str();*/
       auto entry =
           QSharedPointer<HelpEntry>::create(HelpCategory::Category::Figure, mask, title, "../builtins/Figure2.qml");
       entry->props = QVariantMap{
