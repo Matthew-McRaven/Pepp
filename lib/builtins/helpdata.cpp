@@ -1,4 +1,6 @@
 #include "helpdata.hpp"
+#include <builtins/figure.hpp>
+#include <builtins/registry.hpp>
 #include "helpmodel.hpp"
 
 QSharedPointer<HelpEntry> about_root() {
@@ -55,7 +57,23 @@ QSharedPointer<HelpEntry> greencard10_root() {
   return root;
 }
 
-QSharedPointer<HelpEntry> examples_root() { return {}; }
+QSharedPointer<HelpEntry> examples_root() {
+  static builtins::Registry reg(nullptr);
+  auto books = reg.books();
+  QList<QSharedPointer<HelpEntry>> children;
+  for (const auto &book : books) {
+    for (const auto &figure : book->figures()) {
+      auto title = u"%1 %2.%3"_qs.arg(figure->prefix(), figure->chapterName(), figure->figureName());
+      auto entry =
+          QSharedPointer<HelpEntry>::create(HelpCategory::Category::Figure, 0, title, "../builtins/Figure2.qml");
+      entry->props = QVariantMap{{"title", title}, {"payload", QVariant::fromValue(figure.data())}};
+      children.push_back(entry);
+    }
+  }
+  auto root = QSharedPointer<HelpEntry>::create(HelpCategory::Category::Text, 0, "Figures", "ISA");
+  root->addChildren(children);
+  return root;
+}
 
 QSharedPointer<HelpEntry> problems_root() { return {}; }
 

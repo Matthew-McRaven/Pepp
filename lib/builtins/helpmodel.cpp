@@ -13,7 +13,7 @@ void HelpEntry::addChildren(QList<QSharedPointer<HelpEntry>> children) {
 
 HelpModel::HelpModel(QObject *parent) : QAbstractItemModel{parent} {
   _roots = {
-      about_root(), writing_root(), debugging_root(), systemcalls_root(), greencard10_root(),
+      about_root(), writing_root(), debugging_root(), systemcalls_root(), greencard10_root(), examples_root(),
   };
 }
 

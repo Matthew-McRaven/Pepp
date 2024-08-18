@@ -36,9 +36,11 @@ Item {
             bottom: parent.bottom
         }
         width: textMetrics.width
+        clip: true
         model: helpModel
         delegate: TreeViewDelegate {
             id: treeDelegate
+            width: treeView.width
             onClicked: {
                 root.selected = treeDelegate.treeView.index(row, column)
             }
