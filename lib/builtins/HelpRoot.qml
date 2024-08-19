@@ -63,7 +63,7 @@ Item {
                                     texts, true)
                     if (tests && tests[0])
                         root.setCharIn(tests[0].output)
-                    root.switchToMode(mode ?? "Edit")
+                    root.switchToMode(mode ?? "Editor")
                 }
                 ignoreUnknownSignals: true
             }

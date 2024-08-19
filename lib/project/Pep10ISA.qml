@@ -44,14 +44,14 @@ Item {
         }
         Text.ObjTextEditor {
             id: objEdit
-            readOnly: mode !== "edit"
+            readOnly: mode !== "editor"
             // text is only an initial binding, the value diverges from there.
             text: project?.objectCodeText ?? ""
             SplitView.minimumWidth: 100
             SplitView.fillWidth: true
         }
         SplitView {
-            visible: mode === "debug"
+            visible: mode === "debugger"
             SplitView.minimumWidth: 200
             orientation: Qt.Vertical
             Cpu.RegisterView {
@@ -82,7 +82,7 @@ Item {
                 con.enabled = false
                 setSource("qrc:/ui/memory/hexdump/MemoryDump.qml", props)
             }
-            visible: mode === "debug"
+            visible: mode === "debugger"
             asynchronous: true
             SplitView.minimumWidth: 340
             onLoaded: {
