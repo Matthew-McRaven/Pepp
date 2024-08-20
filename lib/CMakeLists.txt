@@ -36,7 +36,6 @@ qt_add_qml_module(pepp-lib
         SOURCES ${sources} "${CMAKE_CURRENT_BINARY_DIR}/version_gen.cpp" "${CMAKE_SOURCE_DIR}/resource_license.qrc"
         QML_FILES ${rel_qml_sources}
         RESOURCE_PREFIX /
-        RESOURCES preferences/themes/themes.qrc
         NO_PLUGIN
 )
 
@@ -46,6 +45,14 @@ target_link_libraries(pepp-lib PUBLIC Qt6::Core Qt6::Gui Qt6::Quick antlr4_share
 get_target_property(ANTLR4_INCLUDE_DIR antlr4_shared INCLUDE_DIRECTORIES)
 target_include_directories(pepp-lib PUBLIC ${CMAKE_CURRENT_BINARY_DIR} ${ANTLR4_INCLUDE_DIR})
 target_include_directories(pepp-lib PRIVATE about builtins components cpu helpers isa link macro memory preferences project sim targets text utils text/editor menu)
+
+# Include default themes without having to hard-code.
+file(GLOB_RECURSE themes CONFIGURE_DEPENDS "${CMAKE_CURRENT_LIST_DIR}/preferences/themes/*")
+qt_add_resources(pepp-lib "themes"
+        PREFIX "/themes"
+        BASE "${CMAKE_CURRENT_LIST_DIR}/preferences/themes/"
+        FILES ${themes}
+)
 
 # Include dependency licenses without having to hard-code.
 file(GLOB_RECURSE dependency_licenses CONFIGURE_DEPENDS "${PROJECT_DATA_DIR}/about/dep/*")
