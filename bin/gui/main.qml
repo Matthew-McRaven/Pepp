@@ -186,6 +186,9 @@ ApplicationWindow {
         ListElement {
             display: "Welcome"
         }
+        ListElement {
+            display: "Help"
+        }
     }
 
     // Provide a default font for menu items.
