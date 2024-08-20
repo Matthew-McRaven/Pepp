@@ -34,6 +34,7 @@
 #include "text/editor/object.hpp"
 #include "text/editor/scintillaasmeditbase.hpp"
 #include "utils/opcodemodel.hpp"
+#include "utils/platformdetector.hpp"
 #include "utils/sequenceconverter.hpp"
 #include "utils/strings.hpp"
 
@@ -99,6 +100,8 @@ void registerTypes(const char *) {
   qmlRegisterType<ScintillaAsmEditBase>("org.scintilla.scintilla", 1, 0, "ScintillaAsmEdit");
   // Utils
   qmlRegisterType<OpcodeModel>("edu.pepp", 1, 0, "OpcodeModel");
-  qmlRegisterSingletonType<utils::SequenceConverter>("edu.pepp", 1, 0, "SequenceConverter",
-                                                     [](auto *, auto *) { return new utils::SequenceConverter(); });
+  qmlRegisterSingletonType<utils::SequenceConverter>(
+      "edu.pepp", 1, 0, "SequenceConverter", [](auto *, auto *eng) { return new utils::SequenceConverter(eng); });
+  qmlRegisterSingletonType<PlatformDetector>("edu.pepp", 1, 0, "PlatformDetector",
+                                             [](auto *, auto *eng) { return new PlatformDetector(eng); });
 }
