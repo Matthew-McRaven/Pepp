@@ -138,6 +138,11 @@ Labs.MenuBar {
 
         Labs.MenuSeparator {}
         Labs.MenuItem {
+            text: actions.edit.prefs.text
+            onTriggered: actions.edit.prefs.trigger()
+            icon.source: actions.edit.prefs.icon.source
+        }
+        Labs.MenuItem {
             text: actions.file.quit.text
             onTriggered: actions.file.quit.trigger()
             icon.source: actions.file.quit.icon.source
@@ -178,12 +183,6 @@ Labs.MenuBar {
             shortcut: actions.edit.paste.shortcut
         }
         // Formatting magic!
-        Labs.MenuSeparator {}
-        Labs.MenuItem {
-            text: actions.edit.prefs.text
-            onTriggered: actions.edit.prefs.trigger()
-            icon.source: actions.edit.prefs.icon.source
-        }
     }
     Labs.Menu {
         id: build
@@ -222,6 +221,11 @@ Labs.MenuBar {
             enabled: actions.build.execute.enabled
             icon.source: actions.build.execute.icon.source
             shortcut: actions.build.execute.shortcut
+        }
+        Labs.MenuSeparator {}
+        Labs.MenuItem {
+            text: actions.help.about.text
+            onTriggered: actions.help.about.trigger()
         }
     }
     Labs.Menu {
@@ -296,12 +300,5 @@ Labs.MenuBar {
             onTriggered: actions.view.fullscreen.trigger()
         }
         // Dynamic magic to mode switch!
-    }
-    Labs.Menu {
-        title: qsTr("&Help")
-        Labs.MenuItem {
-            text: actions.help.about.text
-            onTriggered: actions.help.about.trigger()
-        }
     }
 }
