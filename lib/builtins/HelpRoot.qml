@@ -132,6 +132,8 @@ Item {
             // Sane defaults
             abstraction: Abstraction.ASMB5
             architecture: Architecture.PEP10
+            onAbstractionChanged: root.selected = treeView.index(0, 0)
+            onArchitectureChanged: root.selected = treeView.index(0, 0)
         }
 
         delegate: TreeViewDelegate {
@@ -179,7 +181,7 @@ Item {
         console.log("selected =", selected)
         const props = helpModel.data(selected, HelpModel.Props)
         const url = helpModel.data(selected, HelpModel.Delegate)
-
-        contentLoader.setSource(url, props)
+        if (url !== undefined)
+            contentLoader.setSource(url, props)
     }
 }
