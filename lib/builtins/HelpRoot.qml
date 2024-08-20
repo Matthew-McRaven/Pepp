@@ -2,6 +2,7 @@ import QtQuick
 import QtQuick.Controls
 import QtQuick.Layouts
 import edu.pepp 1.0
+import "qrc:/ui/components" as Comp
 
 Item {
     id: root
@@ -79,7 +80,7 @@ Item {
             Label {
                 text: "Architecture"
             }
-            ComboBox {
+            Comp.DisableableComboBox {
                 id: architectureCombo
                 enabled: architecture === Architecture.NONE
                 textRole: "key"
@@ -99,7 +100,7 @@ Item {
             Label {
                 text: "Abstraction"
             }
-            ComboBox {
+            Comp.DisableableComboBox {
                 id: abstractionCombo
                 enabled: architecture === Abstraction.NONE
                 textRole: "key"
