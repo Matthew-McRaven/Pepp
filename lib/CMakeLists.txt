@@ -45,7 +45,7 @@ target_link_libraries(pepp-lib PUBLIC Qt6::Core Qt6::Gui Qt6::Quick antlr4_share
 # Will fail to find hpp files without this, see https://bugreports.qt.io/browse/QTBUG-101146.
 get_target_property(ANTLR4_INCLUDE_DIR antlr4_shared INCLUDE_DIRECTORIES)
 target_include_directories(pepp-lib PUBLIC ${CMAKE_CURRENT_BINARY_DIR} ${ANTLR4_INCLUDE_DIR})
-target_include_directories(pepp-lib PRIVATE about builtins components cpu helpers isa link macro memory preferences project sim targets text utils text/editor)
+target_include_directories(pepp-lib PRIVATE about builtins components cpu helpers isa link macro memory preferences project sim targets text utils text/editor menu)
 
 # Include dependency licenses without having to hard-code.
 file(GLOB_RECURSE dependency_licenses CONFIGURE_DEPENDS "${PROJECT_DATA_DIR}/about/dep/*")

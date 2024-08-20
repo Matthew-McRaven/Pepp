@@ -29,7 +29,7 @@ import "qrc:/ui/project" as Project
 import "qrc:/ui/preferences" as Pref
 import "qrc:/ui/builtins" as Builtins
 import edu.pepp 1.0
-import "./menu" as Menu
+import "qrc:/ui/menu" as Menu
 //  Native menu for apple, linux, and windows
 import Qt.labs.platform as Labs
 
