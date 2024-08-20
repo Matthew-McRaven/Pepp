@@ -144,7 +144,7 @@ Item {
                     const pl = wrapper.payload
                     const lang = pl.copyToElementLanguage
                     const text = pl.elements[lang].content
-                    wrapper.addProject("", text, "Edit",
+                    wrapper.addProject("", text, "Editor",
                                        pl?.defaultOS?.elements["pep"]?.content,
                                        pl?.tests)
                 }

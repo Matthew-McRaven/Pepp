@@ -145,7 +145,7 @@ Item {
                 anchors.top: textSelector.bottom
                 anchors.bottom: parent.bottom
                 StackLayout {
-                    visible: mode == "edit"
+                    visible: mode == "editor"
                     currentIndex: textSelector.currentIndex
                     SplitView.fillHeight: true
                     Text.ScintillaAsmEdit {
@@ -174,7 +174,7 @@ Item {
                     }
                 }
                 StackLayout {
-                    visible: mode == "debug"
+                    visible: mode == "debugger"
                     currentIndex: textSelector.currentIndex
                     SplitView.fillHeight: true
                     Text.ScintillaAsmEdit {
@@ -211,7 +211,7 @@ Item {
         }
 
         SplitView {
-            visible: mode === "debug"
+            visible: mode === "debugger"
             SplitView.minimumWidth: 280
             orientation: Qt.Vertical
             Cpu.RegisterView {
@@ -251,7 +251,7 @@ Item {
                 con.enabled = false
                 setSource("qrc:/ui/memory/hexdump/MemoryDump.qml", props)
             }
-            visible: mode === "debug"
+            visible: mode === "debugger"
             asynchronous: true
             SplitView.minimumWidth: 340
             onLoaded: {
