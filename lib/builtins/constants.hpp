@@ -40,6 +40,7 @@ public:
   };
   Q_ENUM(Abstraction)
   AbstractionHelper(QObject *parent = nullptr);
+  Q_INVOKABLE QString string(Abstraction abstraction) const;
 };
 using Abstraction = AbstractionHelper::Abstraction;
 
@@ -58,6 +59,7 @@ public:
   };
   Q_ENUM(Architecture)
   ArchitectureHelper(QObject *parent = nullptr);
+  Q_INVOKABLE QString string(Architecture architecture) const;
 };
 using Architecture = ArchitectureHelper::Architecture;
 

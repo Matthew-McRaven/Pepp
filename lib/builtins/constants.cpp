@@ -16,4 +16,14 @@
 #include "constants.hpp"
 builtins::AbstractionHelper::AbstractionHelper(QObject *parent) : QObject(parent) {}
 
+QString builtins::AbstractionHelper::string(Abstraction abstraction) const {
+  QMetaEnum metaEnum = QMetaEnum::fromType<Abstraction>();
+  return metaEnum.valueToKey(static_cast<int>(abstraction));
+}
+
 builtins::ArchitectureHelper::ArchitectureHelper(QObject *parent) : QObject(parent) {}
+
+QString builtins::ArchitectureHelper::string(Architecture architecture) const {
+  QMetaEnum metaEnum = QMetaEnum::fromType<Architecture>();
+  return metaEnum.valueToKey(static_cast<int>(architecture));
+}

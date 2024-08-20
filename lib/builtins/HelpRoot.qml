@@ -1,14 +1,65 @@
 import QtQuick
 import QtQuick.Controls
+import QtQuick.Layouts
 import edu.pepp 1.0
 
 Item {
     id: root
-    property var architecture
-    property var abstraction
+    property var architecture: 0
+    property var abstraction: 0
+    onArchitectureChanged: {
+        var idx = 0
+        for (var i = 0; i < architectureModel.count; i++) {
+            if (architectureModel.get(i).value === architecture)
+                idx = i
+        }
+        architectureCombo.currentIndex = idx
+        architectureCombo.activated(idx)
+    }
+    onAbstractionChanged: {
+        var idx = 0
+        for (var i = 0; i < abstractionModel.count; i++) {
+            if (abstractionModel.get(i).value === abstraction)
+                idx = i
+        }
+        abstractionCombo.currentIndex = idx
+        abstractionCombo.activated(idx)
+    }
     property var selected
     Component.onCompleted: {
         console.log(helpModel.rowCount())
+        architectureModel.append({
+                                     "key": "Pep/10",
+                                     "value": Architecture.PEP10
+                                 })
+        architectureModel.append({
+                                     "key": "Pep/9",
+                                     "value": Architecture.PEP9
+                                 })
+        architectureModel.append({
+                                     "key": "Pep/8",
+                                     "value": Architecture.PEP8
+                                 })
+        architectureModel.append({
+                                     "key": "RISC-V",
+                                     "value": Architecture.RISCV
+                                 })
+        abstractionModel.append({
+                                    "key": "ASMB5",
+                                    "value": Abstraction.ASMB5
+                                })
+        abstractionModel.append({
+                                    "key": "ISA3",
+                                    "value": Abstraction.ISA3
+                                })
+        abstractionModel.append({
+                                    "key": "MC2",
+                                    "value": Abstraction.MC2
+                                })
+        abstractionModel.append({
+                                    "key": "OS4",
+                                    "value": Abstraction.OS4
+                                })
     }
 
     // Make sure the drawer is always at least as wide as the text
@@ -17,12 +68,60 @@ Item {
         id: textMetrics
         text: "Computer Systems, 200th edition"
     }
+    RowLayout {
+        id: comboBoxes
+        anchors {
+            left: parent.left
+            top: parent.top
+            right: parent.right
+        }
+        Column {
+            Label {
+                text: "Architecture"
+            }
+            ComboBox {
+                id: architectureCombo
+                enabled: architecture === Architecture.NONE
+                textRole: "key"
+                valueRole: "value"
+                model: ListModel {
+                    id: architectureModel
+                }
+                onCurrentIndexChanged: {
+                    helpModel.architecture = Qt.binding(
+                                () => architectureModel.get(
+                                    architectureCombo.currentIndex)?.value
+                                ?? Architecture.PEP10)
+                }
+            }
+        }
+        Column {
+            Label {
+                text: "Abstraction"
+            }
+            ComboBox {
+                id: abstractionCombo
+                enabled: architecture === Abstraction.NONE
+                textRole: "key"
+                valueRole: "value"
+                model: ListModel {
+                    id: abstractionModel
+                }
+                onCurrentIndexChanged: {
+                    helpModel.abstraction = Qt.binding(
+                                () => abstractionModel.get(
+                                    abstractionCombo.currentIndex)?.value
+                                ?? Abstraction.ASMB5)
+                }
+            }
+        }
+    }
 
     TreeView {
         id: treeView
         anchors {
             left: parent.left
-            top: parent.top
+            top: comboBoxes.bottom
             bottom: parent.bottom
         }
         width: textMetrics.width
@@ -30,8 +129,9 @@ Item {
         model: FilteredHelpModel {
             id: helpModel
             model: HelpModel {}
-            abstraction: root.abstraction
-            architecture: root.architecture
+            // Sane defaults
+            abstraction: Abstraction.ASMB5
+            architecture: Architecture.PEP10
         }
 
         delegate: TreeViewDelegate {
@@ -46,7 +146,7 @@ Item {
         id: contentFlickable
         anchors {
             left: treeView.right
-            top: parent.top
+            top: comboBoxes.bottom
             right: parent.right
             bottom: parent.bottom
         }
@@ -59,8 +159,11 @@ Item {
             Connections {
                 target: contentLoader.item
                 function onAddProject(feats, texts, mode, os, tests) {
-                    root.addProject(root.architecture, root.abstraction, feats,
-                                    texts, true)
+                    const abs = abstractionModel.get(
+                                  abstractionCombo.currentIndex).value
+                    const arch = architectureModel.get(
+                                   architectureCombo.currentIndex).value
+                    root.addProject(arch, abs, feats, texts, true)
                     if (tests && tests[0])
                         root.setCharIn(tests[0].output)
                     root.switchToMode(mode ?? "Editor")
