@@ -97,6 +97,14 @@ elseif (APPLE)
             PERMISSIONS OWNER_READ OWNER_WRITE OWNER_EXECUTE GROUP_READ GROUP_EXECUTE WORLD_READ WORLD_EXECUTE
     )
     target_compile_definitions(pepp PRIVATE "DEFAULT_GUI=1")
+elseif(EMSCRIPTEN)
+    # Otherwise use default install logic on Linux for now.
+    install(TARGETS pepp antlr4_shared
+            COMPONENT Pepp
+            RUNTIME DESTINATION bin
+            BUNDLE DESTINATION .
+    )
+    target_compile_definitions(pepp PRIVATE "DEFAULT_GUI=1")
 else ()
     # Otherwise use default install logic on Linux for now.
     install(TARGETS pepp antlr4_shared
