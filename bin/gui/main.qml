@@ -218,13 +218,26 @@ ApplicationWindow {
             onTriggered: window.footer.text = ""
         }
     }
-
-    Menu.MainMenu {
-        id: menu
-        project: window.currentProject
-        window: window
-        actions: actions
+    Loader {
+        id: loader
+        Component.onCompleted: {
+            const props = {
+                "window": window,
+                "actions": actions,
+                "project": window.currentProject
+            }
+            if (PlatformDetector.isWASM) {
+                setSource("qrc:/ui/menu/QMLMainMenu.qml", props)
+            } else
+                setSource("qrc:/ui/menu/NativeMainMenu.qml", props)
+        }
+        onLoaded: {
+            if (PlatformDetector.isWASM)
+                window.menuBar = loader.item
+        }
+        asynchronous: false
     }
+
     Item {
         // Intersection of header and mode select.
         // Make transparent, influenced by Qt Creator Style.
