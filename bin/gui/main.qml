@@ -218,13 +218,28 @@ ApplicationWindow {
             onTriggered: window.footer.text = ""
         }
     }
-
-    Menu.MainMenu {
-        id: menu
-        project: window.currentProject
-        window: window
-        actions: actions
+    Loader {
+        id: menuLoader
+        Component.onCompleted: {
+            const props = {
+                "actions": actions,
+                "project": window.currentProject
+            }
+            if (PlatformDetector.isWASM) {
+                props["window"] = window
+                setSource("qrc:/ui/menu/QMLMainMenu.qml", props)
+            } else
+                // Auto-recurses on "parent" to find "window" of correct type.
+                // If explicitly set, the menu bar will not render until hovered over.
+                setSource("qrc:/ui/menu/NativeMainMenu.qml", props)
+        }
+        onLoaded: {
+            if (PlatformDetector.isWASM)
+                window.menuBar = item
+        }
+        asynchronous: false
     }
+
     Item {
         // Intersection of header and mode select.
         // Make transparent, influenced by Qt Creator Style.

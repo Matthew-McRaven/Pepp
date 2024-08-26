@@ -8,7 +8,6 @@
  ***************************************************************************/
 import QtQuick
 import QtQuick.Controls
-import QtQuick.Dialogs
 import QtQml.Models
 import org.scintilla.scintilla 1.0 as S
 
