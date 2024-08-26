@@ -219,21 +219,23 @@ ApplicationWindow {
         }
     }
     Loader {
-        id: loader
+        id: menuLoader
         Component.onCompleted: {
             const props = {
-                "window": window,
                 "actions": actions,
                 "project": window.currentProject
             }
             if (PlatformDetector.isWASM) {
+                props["window"] = window
                 setSource("qrc:/ui/menu/QMLMainMenu.qml", props)
             } else
+                // Auto-recurses on "parent" to find "window" of correct type.
+                // If explicitly set, the menu bar will not render until hovered over.
                 setSource("qrc:/ui/menu/NativeMainMenu.qml", props)
         }
         onLoaded: {
             if (PlatformDetector.isWASM)
-                window.menuBar = loader.item
+                window.menuBar = item
         }
         asynchronous: false
     }
