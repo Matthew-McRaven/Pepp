@@ -1,8 +1,8 @@
-import QtCore
 import QtQuick
 import QtQuick.Controls
 import QtQuick.Layouts
-import QtQuick.Dialogs
+
+// import QtQuick.Dialogs
 
 //  Theme selection
 RowLayout {
@@ -76,7 +76,8 @@ RowLayout {
         }
     }
 
-    FileDialog {
+
+    /*FileDialog {
         id: exportDialog
 
         currentFolder: StandardPaths.standardLocations(
@@ -134,8 +135,7 @@ RowLayout {
             }
             themeId.currentIndex = themeId.find(Theme.name)
         }
-    }
-
+    }*/
     Dialog {
         id: copyDialog
         title: "Copy Theme"
