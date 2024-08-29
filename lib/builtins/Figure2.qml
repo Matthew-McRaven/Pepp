@@ -58,12 +58,17 @@ Item {
         ComboBox {
             id: langSelector
             Layout.alignment: Qt.AlignTop
-            Layout.preferredHeight: 35
+            Layout.preferredHeight: Math.max(35, langSelectorFM.height)
             Layout.preferredWidth: parent.width
             Layout.fillWidth: true
             textRole: "key"
             valueRole: "value"
-            font.pointSize: 22
+            font: langSelectorFM.font
+            FontMetrics {
+                id: langSelectorFM
+                font.pointSize: 25
+            }
+
             model: ListModel {
                 id: languageModel
             }
