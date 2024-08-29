@@ -134,7 +134,7 @@ Item {
             }
             FontMetrics {
                 id: editorFM
-                font.family: "Courier New"
+                font.family: "Courier Prime"
             }
 
             SplitView {

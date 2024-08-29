@@ -4,22 +4,23 @@ import QtQuick
 
 //  Default style is light
 QtObject {
-  id: root
-  property string styleName: "Dark"
+    id: root
+    property string styleName: "Dark"
 
-  //  General window presentation
-  property color textColor: root.arrowColorOn
-  property color backgroundColor: "0x31363b"
+    //  General window presentation
+    property color textColor: root.arrowColorOn
+    property color backgroundColor: "0x31363b"
 
-  //  Text editor colors
-  property color breakpointColor: "red" // Color for break points
+    //  Text editor colors
+    property color breakpointColor: "red" // Color for break points
 
-  property font font
-  font.bold: false
-  font.underline: false
-  font.pixelSize: 11
-  font.family: "Courier"
-/*
+    property font font
+    font.bold: false
+    font.underline: false
+    font.pixelSize: 11
+    font.family: "Courier Prime"
+
+    /*
   property color comment: Qt.lighter("green")         //Used for normal comments in micro & asm.
   property color rightOfExpression: "red"             //Used for right hand side of expressions in micro, and mnemonics and pseudo-ops in asm
   property color leftOfExpression: "lightsteelblue";  //Used for numbers in micro, and symbols in asm.

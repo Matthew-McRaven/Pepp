@@ -160,7 +160,7 @@ Item {
     }
     FontMetrics {
         id: editorFM
-        font.family: "Courier New"
+        font.family: "Courier Prime"
     }
     signal addProject(string feats, string text, string switchToMode, var optionalOS, var tests)
 }
