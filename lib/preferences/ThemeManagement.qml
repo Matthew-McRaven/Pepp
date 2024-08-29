@@ -1,8 +1,8 @@
 import QtQuick
 import QtQuick.Controls
 import QtQuick.Layouts
-
-// import QtQuick.Dialogs
+// For PlatformDetector
+import edu.pepp 1.0
 
 //  Theme selection
 RowLayout {
@@ -54,23 +54,26 @@ RowLayout {
 
         //  Do not delete system themes
         enabled: !Theme.systemTheme
-        onClicked: deleteDialog.open()
+        onClicked: deleteLoader.item.open()
         palette {
             buttonText: !Theme.systemTheme ? root.palette.buttonText : root.palette.placeholderText
         }
     }
     Button {
         text: "Import"
+        visible: !PlatformDetector.isWASM
+        enabled: !PlatformDetector.isWASM
         Layout.preferredWidth: buttonWidth
-        onClicked: importDialog.open()
+        onClicked: importLoader.item.open()
     }
     Button {
         text: "Export"
         Layout.preferredWidth: buttonWidth
 
+        visible: !PlatformDetector.isWASM
         //  Do not export system themes
-        enabled: !Theme.systemTheme
-        onClicked: exportDialog.open()
+        enabled: !Theme.systemTheme && !PlatformDetector.isWASM
+        onClicked: exportLoader.item.open()
         palette {
             buttonText: !Theme.systemTheme ? root.palette.buttonText : root.palette.placeholderText
         }
@@ -91,51 +94,94 @@ RowLayout {
         onAccepted: {
             Theme.exportTheme(decodeURIComponent(selectedFile))
         }
-    }
-
-    FileDialog {
-        id: importDialog
-
-        currentFolder: StandardPaths.standardLocations(
-                           StandardPaths.AppConfigLocation)[0]
-        fileMode: FileDialog.OpenFile
-        title: "Import Theme"
-        nameFilters: ["Pep Theme files (*.theme)"]
-        selectedNameFilter.index: 0
-        defaultSuffix: "theme"
-
-        //  Set dialog colors
-        //palette.text: Theme.container.foreground
-        onAccepted: {
-            Theme.importTheme(decodeURIComponent(selectedFile))
-
-            //  Once new theme is imported, reset model to
-            //  refresh screen.
-            root.model.resetModel()
-        }
-    }
-
-    MessageDialog {
-        id: deleteDialog
-        title: "Delete Theme"
-        text: qsTr("Are you sure you want to delete this theme permanently?")
-        buttons: MessageDialog.Ok | MessageDialog.Cancel
-
-        onButtonClicked: function (button, role) {
-            switch (button) {
-            case MessageDialog.Ok:
-                Theme.deleteTheme(themeId.currentText)
-
-                //  Once current theme is deleted, default
-                //  theme will be reloaded. Reset model to
-                //  refresh screen.
-                root.model.resetModel()
-
-                break
-            }
-            themeId.currentIndex = themeId.find(Theme.name)
-        }
     }*/
+    Loader {
+        id: exportLoader
+        Component.onCompleted: {
+            const props = {
+                "mode": "SaveFile",
+                "title": "Export Theme",
+                "nameFilters": ["Pep Theme files (*.theme)"],
+                "selectedNameFilter_index": 0,
+                "defaultSuffix": "theme",
+                "selectedFile": Theme.name
+            }
+
+            if (PlatformDetector.isWASM) {
+                console.warn("Export dialog not implemented for WASM.")
+            } else {
+                setSource("qrc:/ui/preferences/NativeFileDialog.qml", props)
+            }
+        }
+        asynchronous: false
+        Connections {
+            target: exportLoader.item
+            function onAccepted() {
+                const d = decodeURIComponent(exportLoader.item.selectedFile)
+                Theme.exportTheme(d)
+            }
+        }
+    }
+    Loader {
+        id: importLoader
+        Component.onCompleted: {
+            const props = {
+                "mode": "OpenFile",
+                "title": "Import Theme",
+                "nameFilters": ["Pep Theme files (*.theme)"],
+                "selectedNameFilter_index": 0,
+                "defaultSuffix": "theme"
+            }
+
+            if (PlatformDetector.isWASM) {
+                console.warn("Import dialog not implemented for WASM.")
+            } else {
+                setSource("qrc:/ui/preferences/NativeFileDialog.qml", props)
+            }
+        }
+        asynchronous: false
+        Connections {
+            target: importLoader.item
+            function onAccepted() {
+                const d = decodeURIComponent(importLoader.item.selectedFile)
+                Theme.importTheme(d)
+                //  Once new theme is imported, reset model to refresh screen.
+                root.model.resetModel()
+            }
+        }
+    }
+
+    Loader {
+        id: deleteLoader
+        Component.onCompleted: {
+            const props = {
+                "title": "Delete Theme",
+                "text": qsTr("Are you sure you want to delete this theme permanently?"),
+                "standardButtons": Dialog.Ok | Dialog.Cancel
+            }
+            if (PlatformDetector.isWASM) {
+                props["modal"] = true
+                props["spacing"] = 5
+
+                props["x"] = 0
+                props["y"] = 0
+                props["parent"] = root
+                setSource("qrc:/ui/preferences/QMLMessageDialog.qml", props)
+            } else
+                setSource("qrc:/ui/preferences/NativeMessageDialog.qml", props)
+        }
+        asynchronous: false
+        Connections {
+            target: deleteLoader.item
+            function onAccepted() {
+                Theme.deleteTheme(themeId.currentText)
+                //  Once current theme is deleted, default theme will be reloaded. Reset model to refresh screen.
+                root.model.resetModel()
+                themeId.currentIndex = themeId.find(Theme.name)
+            }
+        }
+    }
+
     Dialog {
         id: copyDialog
         title: "Copy Theme"

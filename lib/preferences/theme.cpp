@@ -13,7 +13,7 @@
 //  Path for saving in registry or ini file
 const char *Theme::themeSettings = "ThemeSettings";
 
-Theme::Theme(QObject *parent) : QObject{parent}, font_("Courier New", 12) {
+Theme::Theme(QObject *parent) : QObject{parent}, font_("Courier Prime", 12) {
   prefs_.reserve(Themes::Roles::Total);
 
   //  Read system themes from QRC file
