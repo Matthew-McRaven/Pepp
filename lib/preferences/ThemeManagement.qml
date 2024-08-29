@@ -61,16 +61,19 @@ RowLayout {
     }
     Button {
         text: "Import"
+        visible: !PlatformDetector.isWASM
+        enabled: !PlatformDetector.isWASM
         Layout.preferredWidth: buttonWidth
-        onClicked: importDialog.open()
+        onClicked: importLoader.item.open()
     }
     Button {
         text: "Export"
         Layout.preferredWidth: buttonWidth
 
+        visible: !PlatformDetector.isWASM
         //  Do not export system themes
-        enabled: !Theme.systemTheme
-        onClicked: exportDialog.open()
+        enabled: !Theme.systemTheme && !PlatformDetector.isWASM
+        onClicked: exportLoader.item.open()
         palette {
             buttonText: !Theme.systemTheme ? root.palette.buttonText : root.palette.placeholderText
         }
@@ -91,29 +94,63 @@ RowLayout {
         onAccepted: {
             Theme.exportTheme(decodeURIComponent(selectedFile))
         }
+    }*/
+    Loader {
+        id: exportLoader
+        Component.onCompleted: {
+            const props = {
+                "mode": "SaveFile",
+                "title": "Export Theme",
+                "nameFilters": ["Pep Theme files (*.theme)"],
+                "selectedNameFilter_index": 0,
+                "defaultSuffix": "theme",
+                "selectedFile": Theme.name
+            }
+
+            if (PlatformDetector.isWASM) {
+                console.warn("Export dialog not implemented for WASM.")
+            } else {
+                setSource("qrc:/ui/preferences/NativeFileDialog.qml", props)
+            }
+        }
+        asynchronous: false
+        Connections {
+            target: exportLoader.item
+            function onAccepted() {
+                const d = decodeURIComponent(exportLoader.item.selectedFile)
+                Theme.exportTheme(d)
+            }
+        }
+    }
+    Loader {
+        id: importLoader
+        Component.onCompleted: {
+            const props = {
+                "mode": "OpenFile",
+                "title": "Import Theme",
+                "nameFilters": ["Pep Theme files (*.theme)"],
+                "selectedNameFilter_index": 0,
+                "defaultSuffix": "theme"
+            }
+
+            if (PlatformDetector.isWASM) {
+                console.warn("Import dialog not implemented for WASM.")
+            } else {
+                setSource("qrc:/ui/preferences/NativeFileDialog.qml", props)
+            }
+        }
+        asynchronous: false
+        Connections {
+            target: importLoader.item
+            function onAccepted() {
+                const d = decodeURIComponent(importLoader.item.selectedFile)
+                Theme.importTheme(d)
+                //  Once new theme is imported, reset model to refresh screen.
+                root.model.resetModel()
+            }
+        }
     }
 
-    FileDialog {
-        id: importDialog
-
-        currentFolder: StandardPaths.standardLocations(
-                           StandardPaths.AppConfigLocation)[0]
-        fileMode: FileDialog.OpenFile
-        title: "Import Theme"
-        nameFilters: ["Pep Theme files (*.theme)"]
-        selectedNameFilter.index: 0
-        defaultSuffix: "theme"
-
-        //  Set dialog colors
-        //palette.text: Theme.container.foreground
-        onAccepted: {
-            Theme.importTheme(decodeURIComponent(selectedFile))
-
-            //  Once new theme is imported, reset model to
-            //  refresh screen.
-            root.model.resetModel()
-        }
-    }*/
     Loader {
         id: deleteLoader
         Component.onCompleted: {
