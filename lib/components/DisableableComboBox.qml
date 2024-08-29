@@ -31,7 +31,8 @@ ComboBox {
     }
 
     function setTextColor() {
-        textColor = control.enabled ? palette.text : palette.placeholderText
+        textColor = Qt.binding(
+                    () => control.enabled ? palette.text : palette.placeholderText)
         canvas.requestPaint()
     }
 
