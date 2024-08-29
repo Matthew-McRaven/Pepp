@@ -13,7 +13,17 @@ Labs.MenuBar {
     property alias saveAsModel: saveAsInstantiator.model
     property alias printModel: printInstantiator.model
     property alias closeModel: closeInstantiator.model
-
+    property bool darkMode: Application.styleHints.colorScheme === Qt.ColorScheme.Dark
+    // Must pass wrapper.darkMode as the 2nd parameter so that updates to application color scheme will
+    // cascade through icon.source in menu bar.
+    function fixSuffix(source, useDark) {
+        // Coerce to JS string so that replace works correctly.
+        const withoutColor = ("" + source).replace(/_dark/i, "")
+        const ret = withoutColor.replace(/\.svg/i,
+                                         `${useDark ? "_dark" : ""}.svg`)
+        // console.log(ret)
+        return ret
+    }
     function indexOf(menu, menuItem) {
         for (var i = 0; i < menu.data.length; i++) {
             //  See if item is same as list
@@ -23,6 +33,15 @@ Labs.MenuBar {
         }
         return menu.data.length
     }
+    function updateDarkMode() {
+        wrapper.darkMode = Qt.binding(
+                    () => Application.styleHints.colorScheme === Qt.ColorScheme.Dark)
+    }
+
+    Component.onCompleted: {
+        Application.styleHints.colorSchemeChanged.connect(
+                    () => wrapper.updateDarkMode)
+    }
     Labs.Menu {
         id: fileMenu
         title: qsTr("&File")
@@ -30,13 +49,15 @@ Labs.MenuBar {
             id: new_
             text: actions.file.new_.text
             onTriggered: actions.file.new_.trigger()
-            icon.source: actions.file.new_.icon.source
+            icon.source: fixSuffix(actions.file.new_.icon.source,
+                                   wrapper.darkMode)
             shortcut: actions.file.new_.shortcut
         }
         Labs.MenuItem {
             text: actions.file.open.text
             onTriggered: actions.file.open.trigger()
-            icon.source: actions.file.open.icon.source
+            icon.source: fixSuffix(actions.file.open.icon.source,
+                                   wrapper.darkMode)
             shortcut: actions.file.open.shortcut
         }
         Labs.Menu {
@@ -65,7 +86,8 @@ Labs.MenuBar {
         Labs.MenuItem {
             text: actions.file.save.text
             onTriggered: actions.file.save.trigger()
-            icon.source: actions.file.save.icon.source
+            icon.source: fixSuffix(actions.file.save.icon.source,
+                                   wrapper.darkMode)
             shortcut: actions.file.save.shortcut
         }
         Labs.MenuSeparator {
@@ -128,24 +150,28 @@ Labs.MenuBar {
         MenuItem {
             text: actions.file.closeAll.text
             onTriggered: actions.file.closeAll.trigger()
-            icon.source: actions.file.closeAll.icon.source
+            icon.source: fixSuffix(actions.file.closeAll.icon.source,
+                                   wrapper.darkMode)
         }
         MenuItem {
             text: actions.file.closeAllButCurrent.text
             onTriggered: actions.file.closeAllButCurrent.trigger()
-            icon.source: actions.file.closeAllButCurrent.icon.source
+            icon.source: fixSuffix(actions.file.closeAllButCurrent.icon.source,
+                                   wrapper.darkMode)
         }
 
         Labs.MenuSeparator {}
         Labs.MenuItem {
             text: actions.edit.prefs.text
             onTriggered: actions.edit.prefs.trigger()
-            icon.source: actions.edit.prefs.icon.source
+            icon.source: fixSuffix(actions.edit.prefs.icon.source,
+                                   wrapper.darkMode)
         }
         Labs.MenuItem {
             text: actions.file.quit.text
             onTriggered: actions.file.quit.trigger()
-            icon.source: actions.file.quit.icon.source
+            icon.source: fixSuffix(actions.file.quit.icon.source,
+                                   wrapper.darkMode)
             shortcut: actions.file.quit.shortcut
         }
     }
@@ -154,32 +180,37 @@ Labs.MenuBar {
         Labs.MenuItem {
             text: actions.edit.undo.text
             onTriggered: actions.edit.undo.trigger()
-            icon.source: actions.edit.undo.icon.source
+            icon.source: fixSuffix(actions.edit.undo.icon.source,
+                                   wrapper.darkMode)
             shortcut: actions.edit.undo.shortcut
         }
         Labs.MenuItem {
             text: actions.edit.redo.text
             onTriggered: actions.edit.redo.trigger()
-            icon.source: actions.edit.redo.icon.source
+            icon.source: fixSuffix(actions.edit.redo.icon.source,
+                                   wrapper.darkMode)
             shortcut: actions.edit.redo.shortcut
         }
         Labs.MenuSeparator {}
         Labs.MenuItem {
             text: actions.edit.cut.text
             onTriggered: actions.edit.cut.trigger()
-            icon.source: actions.edit.cut.icon.source
+            icon.source: fixSuffix(actions.edit.cut.icon.source,
+                                   wrapper.darkMode)
             shortcut: actions.edit.cut.shortcut
         }
         Labs.MenuItem {
             text: actions.edit.copy.text
             onTriggered: actions.edit.copy.trigger()
-            icon.source: actions.edit.copy.icon.source
+            icon.source: fixSuffix(actions.edit.copy.icon.source,
+                                   wrapper.darkMode)
             shortcut: actions.edit.copy.shortcut
         }
         Labs.MenuItem {
             text: actions.edit.paste.text
             onTriggered: actions.edit.paste.trigger()
-            icon.source: actions.edit.paste.icon.source
+            icon.source: fixSuffix(actions.edit.paste.icon.source,
+                                   wrapper.darkMode)
             shortcut: actions.edit.paste.shortcut
         }
         // Formatting magic!
@@ -197,7 +228,8 @@ Labs.MenuBar {
             onTriggered: actions.build.loadObject.trigger()
             enabled: actions.build.loadObject.enabled
             visible: enabled
-            icon.source: actions.build.loadObject.icon.source
+            icon.source: fixSuffix(actions.build.loadObject.icon.source,
+                                   wrapper.darkMode)
             shortcut: actions.build.loadObject.shortcut
         }
         Labs.MenuItem {
@@ -205,7 +237,8 @@ Labs.MenuBar {
             onTriggered: actions.build.assemble.trigger()
             enabled: actions.build.assemble.enabled
             visible: enabled
-            icon.source: actions.build.assemble.icon.source
+            icon.source: fixSuffix(actions.build.assemble.icon.source,
+                                   wrapper.darkMode)
             shortcut: actions.build.assemble.shortcut
         }
         Labs.MenuItem {
@@ -213,13 +246,16 @@ Labs.MenuBar {
             onTriggered: actions.build.assembleThenFormat.trigger()
             enabled: actions.build.assembleThenFormat.enabled
             visible: enabled
-            icon.source: actions.build.assembleThenFormat.icon.source
+            icon.source: fixSuffix(
+                             actions.build.assembleThenFormat.icon.source,
+                             wrapper.darkMode)
         }
         Labs.MenuItem {
             text: actions.build.execute.text
             onTriggered: actions.build.execute.trigger()
             enabled: actions.build.execute.enabled
-            icon.source: actions.build.execute.icon.source
+            icon.source: fixSuffix(actions.build.execute.icon.source,
+                                   wrapper.darkMode)
             shortcut: actions.build.execute.shortcut
         }
         Labs.MenuSeparator {}
@@ -234,7 +270,8 @@ Labs.MenuBar {
             text: actions.debug.start.text
             onTriggered: actions.debug.start.trigger()
             enabled: actions.debug.start.enabled
-            icon.source: actions.debug.start.icon.source
+            icon.source: fixSuffix(actions.debug.start.icon.source,
+                                   wrapper.darkMode)
             shortcut: actions.debug.start.shortcut
         }
         Labs.MenuSeparator {}
@@ -242,39 +279,45 @@ Labs.MenuBar {
             text: actions.debug.continue_.text
             onTriggered: actions.debug.continue_.trigger()
             enabled: actions.debug.continue_.enabled
-            icon.source: actions.debug.continue_.icon.source
+            icon.source: fixSuffix(actions.debug.continue_.icon.source,
+                                   wrapper.darkMode)
         }
         Labs.MenuItem {
             text: actions.debug.pause.text
             onTriggered: actions.debug.pause.trigger()
             enabled: actions.debug.pause.enabled
-            icon.source: actions.debug.pause.icon.source
+            icon.source: fixSuffix(actions.debug.pause.icon.source,
+                                   wrapper.darkMode)
             shortcut: actions.debug.pause.shortcut
         }
         Labs.MenuItem {
             text: actions.debug.stop.text
             onTriggered: actions.debug.stop.trigger()
             enabled: actions.debug.stop.enabled
-            icon.source: actions.debug.stop.icon.source
+            icon.source: fixSuffix(actions.debug.stop.icon.source,
+                                   wrapper.darkMode)
         }
         Labs.MenuSeparator {}
         Labs.MenuItem {
             text: actions.debug.stepInto.text
             onTriggered: actions.debug.stepInto.trigger()
             enabled: actions.debug.stepInto.enabled
-            icon.source: actions.debug.stepInto.icon.source
+            icon.source: fixSuffix(actions.debug.stepInto.icon.source,
+                                   wrapper.darkMode)
         }
         Labs.MenuItem {
             text: actions.debug.stepOver.text
             onTriggered: actions.debug.stepOver.trigger()
             enabled: actions.debug.stepOver.enabled
-            icon.source: actions.debug.stepOver.icon.source
+            icon.source: fixSuffix(actions.debug.stepOver.icon.source,
+                                   wrapper.darkMode)
         }
         Labs.MenuItem {
             text: actions.debug.stepOut.text
             onTriggered: actions.debug.stepOut.trigger()
             enabled: actions.debug.stepOut.enabled
-            icon.source: actions.debug.stepOut.icon.source
+            icon.source: fixSuffix(actions.debug.stepOut.icon.source,
+                                   wrapper.darkMode)
         }
         Labs.MenuSeparator {}
         Labs.MenuItem {
