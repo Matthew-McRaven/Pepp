@@ -18,6 +18,7 @@
 #if INCLUDE_GUI
 
 #include <QApplication>
+#include <QFontDatabase>
 #include <QQmlApplicationEngine>
 #include <QQmlContext>
 #include <QQuickStyle>
@@ -57,6 +58,10 @@ int gui_main(const gui_args &args) {
   std::vector<std::string> arg_strs = args.argvs;
   for (int it = 0; it < argc; it++) argvs[it] = arg_strs[it].data();
   QApplication app(argc, argvs.data());
+  QFontDatabase::addApplicationFont(":/fonts/mono/CourierPrime-Regular.ttf");
+  QFontDatabase::addApplicationFont(":/fonts/mono/CourierPrime-Italic.ttf");
+  QFontDatabase::addApplicationFont(":/fonts/mono/CourierPrime-Bold.ttf");
+  QFontDatabase::addApplicationFont(":/fonts/mono/CourierPrime-BoldItalic.ttf");
 
   QApplication::setOrganizationName("Pepperdine University");
   QApplication::setApplicationName("Pep/10");

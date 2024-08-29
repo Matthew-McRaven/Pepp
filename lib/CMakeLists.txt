@@ -46,6 +46,14 @@ get_target_property(ANTLR4_INCLUDE_DIR antlr4_shared INCLUDE_DIRECTORIES)
 target_include_directories(pepp-lib PUBLIC ${CMAKE_CURRENT_BINARY_DIR} ${ANTLR4_INCLUDE_DIR})
 target_include_directories(pepp-lib PRIVATE about builtins components cpu helpers isa link macro memory preferences project sim targets text utils text/editor menu)
 
+# Include additional fonts
+file(GLOB_RECURSE fonts CONFIGURE_DEPENDS "${PROJECT_DATA_DIR}/fonts/*")
+qt_add_resources(pepp-lib "fonts"
+        PREFIX "/fonts"
+        BASE "${PROJECT_DATA_DIR}/fonts"
+        FILES ${fonts}
+)
+
 # Include default themes without having to hard-code.
 file(GLOB_RECURSE themes CONFIGURE_DEPENDS "${CMAKE_CURRENT_LIST_DIR}/preferences/themes/*")
 qt_add_resources(pepp-lib "themes"

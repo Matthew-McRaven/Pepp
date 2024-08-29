@@ -53,7 +53,7 @@ ScrollView {
             anchors.bottom: parent.bottom
             textFormat: TextEdit.PlainText
             renderType: Text.NativeRendering
-            font.family: "Courier New"
+            font.family: "Courier Prime"
             readOnly: wrapper.isReadOnly
             Keys.onPressed: event => {
                                 if (event.key === Qt.Key_Insert
