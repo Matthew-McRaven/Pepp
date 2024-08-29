@@ -5,7 +5,7 @@
 #include "themes.hpp"
 
 PreferenceModel::PreferenceModel(Theme *theme, QObject *parent)
-    : QAbstractListModel(parent), theme_(theme), font_("Courier New", 12) {
+    : QAbstractListModel(parent), theme_(theme), font_("Courier Prime", 12) {
   //  List column names that will appear in view
   roleNames_[CurrentCategoryRole] = "currentCategory";
   roleNames_[CurrentListRole] = "currentList";
