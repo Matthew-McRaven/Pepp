@@ -1,8 +1,8 @@
 import QtQuick
 import QtQuick.Controls
 import QtQuick.Layouts
-
-// import QtQuick.Dialogs
+// For PlatformDetector
+import edu.pepp 1.0
 
 //  Theme selection
 RowLayout {
@@ -54,7 +54,7 @@ RowLayout {
 
         //  Do not delete system themes
         enabled: !Theme.systemTheme
-        onClicked: deleteDialog.open()
+        onClicked: deleteLoader.item.open()
         palette {
             buttonText: !Theme.systemTheme ? root.palette.buttonText : root.palette.placeholderText
         }
@@ -113,29 +113,38 @@ RowLayout {
             //  refresh screen.
             root.model.resetModel()
         }
+    }*/
+    Loader {
+        id: deleteLoader
+        Component.onCompleted: {
+            const props = {
+                "title": "Delete Theme",
+                "text": qsTr("Are you sure you want to delete this theme permanently?"),
+                "standardButtons": Dialog.Ok | Dialog.Cancel
+            }
+            if (PlatformDetector.isWASM) {
+                props["modal"] = true
+                props["spacing"] = 5
+
+                props["x"] = 0
+                props["y"] = 0
+                props["parent"] = root
+                setSource("qrc:/ui/preferences/QMLMessageDialog.qml", props)
+            } else
+                setSource("qrc:/ui/preferences/NativeMessageDialog.qml", props)
+        }
+        asynchronous: false
+        Connections {
+            target: deleteLoader.item
+            function onAccepted() {
+                Theme.deleteTheme(themeId.currentText)
+                //  Once current theme is deleted, default theme will be reloaded. Reset model to refresh screen.
+                root.model.resetModel()
+                themeId.currentIndex = themeId.find(Theme.name)
+            }
+        }
     }
 
-    MessageDialog {
-        id: deleteDialog
-        title: "Delete Theme"
-        text: qsTr("Are you sure you want to delete this theme permanently?")
-        buttons: MessageDialog.Ok | MessageDialog.Cancel
-
-        onButtonClicked: function (button, role) {
-            switch (button) {
-            case MessageDialog.Ok:
-                Theme.deleteTheme(themeId.currentText)
-
-                //  Once current theme is deleted, default
-                //  theme will be reloaded. Reset model to
-                //  refresh screen.
-                root.model.resetModel()
-
-                break
-            }
-            themeId.currentIndex = themeId.find(Theme.name)
-        }
-    }*/
     Dialog {
         id: copyDialog
         title: "Copy Theme"
