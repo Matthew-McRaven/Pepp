@@ -112,7 +112,7 @@ Item {
                 rightPadding: langSelector.indicator.width + langSelector.spacing
                 text: langSelector.displayText
                 font: langSelector.font
-                color: palette.window
+                color: palette.text
                 verticalAlignment: Text.AlignVCenter
                 elide: Text.ElideRight
             }
