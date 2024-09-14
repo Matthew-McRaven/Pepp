@@ -18,16 +18,9 @@
 #include "../shared.hpp"
 #include "../task.hpp"
 
-#if INCLUDE_GUI
-
-QSharedPointer<gui_globals> default_init(QQmlApplicationEngine &engine);
-
-#endif
-
 struct gui_args {
   std::vector<std::string> argvs;
 #if INCLUDE_GUI
-  init_fn extra_init = nullptr; // If nullptr, not called.
   QUrl QMLEntry{};              // If empty, pick "GUI" default.
 #endif
 };
