@@ -157,6 +157,9 @@ quint16 targets::pep10::isa::System::getBootFlags() const {
 void targets::pep10::isa::System::init() {
   quint8 buf[2];
   bits::span<quint8> bufSpan = {buf};
+  // Clear registers and CSRs before inserting non-0 values.
+  cpu()->csrs()->clear(0);
+  cpu()->regs()->clear(0);
   // Initalize PC to dispatcher
   _bus->read(static_cast<quint16>(::isa::Pep10::MemoryVectors::Dispatcher), bufSpan, gs);
   writeRegister(cpu()->regs(), ::isa::Pep10::Register::PC,
