@@ -2,6 +2,8 @@ import QtQuick
 import QtQuick.Controls
 import QtQuick.Layouts
 import "./"
+// For PlatformDetector
+import edu.pepp 1.0
 
 MenuBar {
     id: wrapper
@@ -288,6 +290,9 @@ MenuBar {
     Menu {
         title: qsTr("&View")
         MenuItem {
+            enabled: !PlatformDetector.isWASM
+            visible: enabled
+            height: enabled ? implicitHeight : 0
             action: actions.view.fullscreen
         }
         // Dynamic magic to mode switch!
