@@ -206,13 +206,11 @@ void Pep10_ISA::bindToSystem() {
   // Use old-style connections to avoid a linker error in WASM.
   // For some reason, new-style connects cause LD to insert a 0-arg updateGUI into the object file.
   // We can defeat the linker with the following Qt macros.
-  connect(this, SIGNAL(updateGUI(sim::api2::trace::FrameIterator)), _flags,
-          SLOT(onUpdateGUI(sim::api2::trace::FrameIterator)));
+  connect(this, SIGNAL(updateGUI(sim::api2::trace::FrameIterator)), _flags, SLOT(onUpdateGUI()));
   QQmlEngine::setObjectOwnership(_flags, QQmlEngine::CppOwnership);
 
   _registers = register_model(&*_system, mnemonics(), this);
-  connect(this, SIGNAL(updateGUI(sim::api2::trace::FrameIterator)), _registers,
-          SLOT(onUpdateGUI(sim::api2::trace::FrameIterator)));
+  connect(this, SIGNAL(updateGUI(sim::api2::trace::FrameIterator)), _registers, SLOT(onUpdateGUI()));
   QQmlEngine::setObjectOwnership(_registers, QQmlEngine::CppOwnership);
 
   using TMAS = sim::trace2::TranslatingModifiedAddressSink<quint16>;
@@ -485,6 +483,7 @@ void Pep10_ISA::onDeferredExecution(sim::api2::trace::Action stopOn, project::St
 }
 
 void Pep10_ISA::prepareSim() {
+
   // Ensure latests changes to object code pane are reflected in simulator.
   onLoadObject();
   _tb->clear();
@@ -499,6 +498,11 @@ void Pep10_ISA::prepareSim() {
   auto charInEndpoint = charIn->endpoint();
   for (int it = 0; it < _charIn.size(); it++) charInEndpoint->append_value(_charIn[it].toLatin1());
   _pendingPause = false;
+
+  // Repaint CPU & Memory panes
+  _flags->onUpdateGUI();
+  _registers->onUpdateGUI();
+  // _memory->onUpdateGUI();
 }
 
 void Pep10_ISA::prepareGUIUpdate(sim::api2::trace::FrameIterator from) {
@@ -726,6 +730,10 @@ void Pep10_ASMB::prepareSim() {
   for (int it = 0; it < _charIn.size(); it++) charInEndpoint->append_value(_charIn[it].toLatin1());
 
   _pendingPause = false;
+
+  // Repaint CPU & Memory panes
+  _flags->onUpdateGUI();
+  _registers->onUpdateGUI();
 }
 
 void Pep10_ASMB::prepareGUIUpdate(sim::api2::trace::FrameIterator from) {
