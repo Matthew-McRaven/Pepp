@@ -75,7 +75,8 @@ ApplicationWindow {
     }
 
     property var currentProject: null
-
+    // Used to expose actions to inner area.
+    property var actionRef: actions
     property string mode: "welcome"
     function setProjectCharIn(charIn) {
         if (currentProject)
@@ -477,6 +478,12 @@ ApplicationWindow {
                 sourceComponent = null
                 sourceComponent = window.currentProject?.delegate
             }
+            Connections {
+                target: projectLoader.item
+                function onRequestModeSwitchTo(mode) {
+                    sidebar.switchToMode(mode)
+                }
+            }
         }
         Component.onCompleted: {
             window.modeChanged.connect(onModeChanged)
@@ -505,6 +512,7 @@ ApplicationWindow {
             project: window.currentProject
             anchors.fill: parent
             mode: window.mode
+            actions: window.actionRef
         }
     }
     Component {
@@ -513,6 +521,7 @@ ApplicationWindow {
             project: window.currentProject
             anchors.fill: parent
             mode: window.mode
+            actions: window.actionRef
         }
     }
 
