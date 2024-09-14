@@ -108,7 +108,8 @@ RowLayout {
             }
 
             if (PlatformDetector.isWASM) {
-                console.warn("Export dialog not implemented for WASM.")
+
+                //console.warn("Export dialog not implemented for WASM.")
             } else {
                 setSource("qrc:/ui/preferences/NativeFileDialog.qml", props)
             }
@@ -134,7 +135,8 @@ RowLayout {
             }
 
             if (PlatformDetector.isWASM) {
-                console.warn("Import dialog not implemented for WASM.")
+
+                // console.warn("Import dialog not implemented for WASM.")
             } else {
                 setSource("qrc:/ui/preferences/NativeFileDialog.qml", props)
             }
