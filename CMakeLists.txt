@@ -23,8 +23,8 @@ set(DOC_AUDIENCE "APP" CACHE STRING "Which version of the documentation to build
 # Must disable QRC logic if emscripten, because a developer may forget to set this flag.
 if (EMSCRIPTEN)
     set(DOC_AUDIENCE "WEB")
-    add_compile_options(-O1)
-    add_link_options(-sALLOW_MEMORY_GROWTH=1 -s TOTAL_MEMORY=1000000000 -sINITIAL_MEMORY=999948288 -g2)
+    add_compile_options(-O1 -gsource-map)
+    add_link_options(-sALLOW_MEMORY_GROWTH=1 -sTOTAL_MEMORY=1000000000 -sINITIAL_MEMORY=999948288 -g2 -gsource-map)
     set(QT_WASM_INITIAL_MEMORY 999948288 CACHE INTERNAL "" FORCE)
 endif ()
 option(SANITIZE "Enable sanitizers" OFF)

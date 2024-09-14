@@ -75,12 +75,20 @@ QString pas::ops::generic::detail::formatDirectiveOrMacro(const pas::ast::Node &
 }
 
 QString pas::ops::generic::detail::formatDirective(const ast::Node &node, SourceOptions opts) {
-  if (!node.has<ast::generic::Directive>()) throw std::logic_error("Directive missing directive element");
+  if (!node.has<ast::generic::Directive>()) {
+    static const char *const e = "Directive missing directive element";
+    qCritical(e);
+    throw std::logic_error(e);
+  }
   return formatDirectiveOrMacro(node, u".%1"_qs.arg(node.get<ast::generic::Directive>().value), opts);
 }
 
 QString pas::ops::generic::detail::formatMacro(const ast::Node &node, SourceOptions opts) {
-  if (!node.has<ast::generic::Macro>()) throw std::logic_error("Macro missing directive macro");
+  if (!node.has<ast::generic::Macro>()) {
+    static const char *const e = "Macro missing directive macro";
+    qCritical(e);
+    throw std::logic_error(e);
+  }
   return formatDirectiveOrMacro(node, u"@%1"_qs.arg(node.get<ast::generic::Macro>().value), opts);
 }
 

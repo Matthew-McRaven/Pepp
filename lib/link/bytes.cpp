@@ -42,8 +42,11 @@ QList<quint8> obj::segmentAsAsciiHex(const ELFIO::segment *segment) {
   QList<quint8> ret(std::max<qsizetype>(0, 3 * rawBytes - 1));
   // Copy over segment's file bytes
   for (auto buffer : buffered) {
-    if (it + 1 > ret.size())
-      throw std::logic_error("Dest buffer too small");
+    if (it + 1 > ret.size()) {
+      static const char *const e = "Dest buffer too small";
+      qCritical(e);
+      throw std::logic_error(e);
+    }
     auto i = bits::bytesToAsciiHex(
         {(char *)ret.data() + it, ret.length() - it},
         {reinterpret_cast<const quint8 *>(buffer.src),

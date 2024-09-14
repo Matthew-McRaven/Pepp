@@ -55,5 +55,7 @@ builtins::Figure *FigureManager::figureAt(qsizetype index) {
     QQmlEngine::setObjectOwnership(ptr, QQmlEngine::CppOwnership);
     return ptr;
   }
-  throw std::logic_error("Can't get here");
+  static const char *const e = "Unreachable";
+  qCritical(e);
+  throw std::logic_error(e);
 }

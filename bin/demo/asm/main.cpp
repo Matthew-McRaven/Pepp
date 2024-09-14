@@ -22,11 +22,3 @@
 #include <QTranslator>
 #include "assembly.hpp"
 #include "figure.hpp"
-
-QSharedPointer<gui_globals> initializeAsm(QQmlApplicationEngine &engine) {
-  // TODO: Missing translations
-  qmlRegisterType<FigureManager>("edu.pepperdine.cslab.p10asm", 1, 0, "FigureManager");
-  qmlRegisterType<builtins::Figure>("edu.pepperdine.cslab.p10asm", 1, 0, "Figure");
-  qmlRegisterType<AssemblyManger>("edu.pepperdine.cslab.p10asm", 1, 0, "AssemblyManager");
-  return nullptr;
-}

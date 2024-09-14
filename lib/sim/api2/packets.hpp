@@ -92,8 +92,14 @@ template <size_t N> struct VariableBytes {
       // size will be serialzed again.
       auto array_view = bits::span<quint8>(self.bytes.data(), len);
       return archive(zpp::bits::bytes(array_view, array_view.size_bytes()));
-    } else if (archive.kind() == zpp::bits::kind::in) throw std::logic_error("Can't read into const");
-    throw std::logic_error("Unimplemented");
+    } else if (archive.kind() == zpp::bits::kind::in) {
+      const char *const e = "Can't read into const";
+      qCritical(e);
+      throw std::logic_error(e);
+    }
+    const char *const e = "Unreachable";
+    qCritical(e);
+    throw std::logic_error(e);
   }
 
   bool continues() const { return len & ~len_mask(); }

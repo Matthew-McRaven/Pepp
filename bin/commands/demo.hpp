@@ -30,7 +30,6 @@ void registerDemo(auto &app, task_factory_t &task, detail::SharedFlags &flags, g
   asmDemo->set_help_flag();
 #if INCLUDE_GUI
   asmDemo->callback([&]() {
-    args.extra_init = &initializeAsm;
     args.QMLEntry = asmQMLMain;
   });
 #endif

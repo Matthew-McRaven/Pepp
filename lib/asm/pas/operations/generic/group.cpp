@@ -34,7 +34,11 @@ pas::ops::generic::GroupSections::GroupSections(QString defaultSectionName,
 }
 
 void attemptParseName(pas::ast::Node &node, const pas::ast::value::Base &arg) {
-  if (!arg.isText()) throw std::logic_error("missing section name");
+  if (!arg.isText()) {
+    static const char *const e = "missing section name";
+    qCritical(e);
+    throw std::logic_error(e);
+  }
   node.set(pas::ast::generic::SectionName{.value = arg.rawString()});
 }
 
@@ -49,11 +53,19 @@ void pas::ops::generic::GroupSections::operator()(ast::Node &node) {
       attemptParseName(*newSection, *node.get<Argument>().value);
     } else if (node.has<ArgumentList>()) {
       auto args = node.get<ArgumentList>().value;
-      if (args.size() > 2) throw std::logic_error("Too many arguments to section");
+      if (args.size() > 2) {
+        static const char *const e = "Too many arguments to section";
+        qCritical(e);
+        throw std::logic_error(e);
+      }
       attemptParseName(*newSection, *args[0]);
 
       auto flagArg = args[1];
-      if (!flagArg->isText()) throw std::logic_error("Flags must be text");
+      if (!flagArg->isText()) {
+        static const char *const e = "Flags must be text";
+        qCritical(e);
+        throw std::logic_error(e);
+      }
       auto flagText = flagArg->rawString();
       flags.value.R = flagText.contains("R", Qt::CaseInsensitive);
       flags.value.W = flagText.contains("W", Qt::CaseInsensitive);
@@ -86,8 +98,11 @@ void pas::ops::generic::groupSections(ast::Node &root, std::function<bool(const 
 
   // Can't apply_recurse, because visitor modifies children.
   for (auto &child : children(root)) {
-    if (child->has<ast::generic::Children>() && ast::children(*child).size() > 0)
-      throw std::logic_error("Not allowed to have nested children.");
+    if (child->has<ast::generic::Children>() && ast::children(*child).size() > 0) {
+      static const char *const e = "Not allowed to have nested children.";
+      qCritical(e);
+      throw std::logic_error(e);
+    }
 
     child->apply_self(sections);
   }

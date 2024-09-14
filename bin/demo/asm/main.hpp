@@ -18,5 +18,4 @@
 #include <QtCore>
 #include "commands/gui.hpp"
 
-QSharedPointer<gui_globals> initializeAsm(QQmlApplicationEngine &engine);
 inline static const QUrl asmQMLMain = QUrl(u"qrc:/Pepp/demo/asm/main.qml"_qs);

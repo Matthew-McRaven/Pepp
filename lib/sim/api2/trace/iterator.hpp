@@ -160,7 +160,10 @@ protected:
     switch (Current) {
     case Level::Frame: below = Level::Packet; break;
     case Level::Packet: below = Level::Payload; break;
-    default: throw std::logic_error("Supposedly unreachable");
+    default:
+      static const char *const e = "Unreachable?";
+      qCritical(e);
+      throw std::logic_error(e);
     }
 
     // Find the first successor element at the current level of abstraction,

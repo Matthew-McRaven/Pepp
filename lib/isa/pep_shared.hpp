@@ -29,8 +29,9 @@ template <typename AddressingMode, typename Mnemonic> quint8 opcode(Mnemonic mne
   auto base = opcode(mnemonic);
   // TODO: Look up instruction type instead of doing opcode math.
   if (base >= static_cast<quint8>(M::BR) && base <= static_cast<quint8>(M::CALL)) return base | (addr == AM::X ? 1 : 0);
+  static const char *const e = "Invalid ADDR mode";
   switch (addr) {
-  case AM::NONE: throw std::logic_error("Invalid ADDR mode");
+  case AM::NONE: qCritical(e); throw std::logic_error(e);
   case AM::I: return base | 0x0;
   case AM::D: return base | 0x1;
   case AM::N: return base | 0x2;
@@ -39,10 +40,12 @@ template <typename AddressingMode, typename Mnemonic> quint8 opcode(Mnemonic mne
   case AM::X: return base | 0x5;
   case AM::SX: return base | 0x6;
   case AM::SFX: return base | 0x7;
-  case AM::ALL: throw std::logic_error("Invalid ADDR mode");
-  case AM::INVALID: throw std::logic_error("Invalid ADDR mode");
+  case AM::ALL: qCritical(e); throw std::logic_error(e);
+  case AM::INVALID: qCritical(e); throw std::logic_error(e);
   }
-  throw std::logic_error("Unreachable");
+  static const char *const e2 = "Unreachable";
+  qCritical(e2);
+  throw std::logic_error(e2);
 }
 
 template <typename AddressingMode> AddressingMode parseAddressingMode(const QString &addr) {

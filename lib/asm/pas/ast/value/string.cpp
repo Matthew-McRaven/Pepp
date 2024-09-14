@@ -23,8 +23,15 @@ pas::ast::value::ShortString::ShortString() : Base() {}
 pas::ast::value::ShortString::ShortString(QString value, quint8 size, bits::Order endian)
     : _size(size), _value(value), _valueAsBytes({}) {
   bool okay = bits::escapedStringToBytes(value, _valueAsBytes);
-  if (!okay) throw std::logic_error("Invalid escape sequence in string");
-  else if (_valueAsBytes.length() > 2) throw std::logic_error("Too many bytes for short string");
+  if (!okay) {
+    static const char *const e = "Invalid escape sequence in string";
+    qCritical(e);
+    throw std::logic_error(e);
+  } else if (_valueAsBytes.length() > 2) {
+    static const char *const e = "Too many bytes for short string";
+    qCritical(e);
+    throw std::logic_error(e);
+  }
 }
 
 pas::ast::value::ShortString::ShortString(const ShortString &other)
@@ -63,7 +70,11 @@ pas::ast::value::LongString::LongString() : Base() {}
 
 pas::ast::value::LongString::LongString(QString value, bits::Order endian) : _value(value), _valueAsBytes({}) {
   bool okay = bits::escapedStringToBytes(value, _valueAsBytes);
-  if (!okay) throw std::logic_error("Invalid escape sequence in string");
+  if (!okay) {
+    static const char *const e = "Invalid escape sequence in string";
+    qCritical(e);
+    throw std::logic_error(e);
+  }
 }
 
 pas::ast::value::LongString::LongString(const LongString &other)

@@ -22,8 +22,15 @@ pas::ast::value::Character::Character() : Base() {}
 
 pas::ast::value::Character::Character(QString value) : Base(), _value(value), _valueAsBytes({}) {
   bool okay = bits::escapedStringToBytes(value, _valueAsBytes);
-  if (!okay) throw std::logic_error("Invalid escape sequence in character");
-  else if (_valueAsBytes.length() > 1) throw std::logic_error("Too many bytes for character");
+  if (!okay) {
+    static const char *const e = "Invalid escape sequence in character";
+    qCritical(e);
+    throw std::logic_error(e);
+  } else if (_valueAsBytes.length() > 1) {
+    static const char *const e = "Too many bytes for character";
+    qCritical(e);
+    throw std::logic_error(e);
+  }
 }
 
 pas::ast::value::Character::Character(const Character &other)

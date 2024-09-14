@@ -174,7 +174,8 @@ signals:
   void clearListingBreakpoints();
 
   void switchTo(bool os);
-  void updateGUI(sim::api2::trace::FrameIterator from);
+  // Use inherited signal.
+  // void updateGUI(sim::api2::trace::FrameIterator from);
   void modifyUserSource(int line, Action action);
   void modifyOSSource(int line, Action action);
   void modifyUserList(int line, Action action);

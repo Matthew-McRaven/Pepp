@@ -101,14 +101,19 @@ void RunTask::run() {
       enu = QMetaEnum::fromType<::isa::Pep10::Register>();
       break;
     default:
-      throw std::logic_error("Unhandled book");
+      static const char *const e = "Unhandled book";
+      qCritical(e);
+      throw std::logic_error(e);
     }
     bool ok = true;
     // Always compare in caps
     auto transformed = QString::fromStdString(reg).toUpper().toStdString();
     auto regEnu = enu.keyToValue(transformed.c_str(), &ok);
-    if (!ok)
-      throw std::logic_error("Invalid register");
+    if (!ok) {
+      static const char *const e = "Invalid register";
+      qCritical(e);
+      throw std::logic_error(e);
+    }
     targets::pep10::isa::writeRegister(system->cpu()->regs(), static_cast<isa::Pep10::Register>(regEnu), val, gs);
   }
 

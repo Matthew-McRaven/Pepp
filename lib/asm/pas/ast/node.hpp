@@ -61,15 +61,21 @@ template <typename T> bool Node::has() const { return _attributes.contains(T::at
 
 template <typename T> const T Node::get() const {
   QVariant attribute = _attributes[T::attribute];
-  if (attribute.userType() != qMetaTypeId<T>())
-    throw std::logic_error("Cannot convert");
+  if (attribute.userType() != qMetaTypeId<T>()) {
+    static const char *const e = "Cannot convert";
+    qCritical(e);
+    throw std::logic_error(e);
+  }
   return attribute.value<T>();
 }
 
 template <typename T> T Node::take() {
   QVariant attribute = _attributes[T::attribute];
-  if (attribute.userType() != qMetaTypeId<T>())
-    throw std::logic_error("Cannot convert");
+  if (attribute.userType() != qMetaTypeId<T>()) {
+    static const char *const e = "Cannot convert";
+    qCritical(e);
+    throw std::logic_error(e);
+  }
   _attributes.remove(T::attribute);
   return attribute.value<T>();
 }

@@ -125,7 +125,9 @@ sim::api2::device::Descriptor *targets::pep10::isa::System::descriptor(sim::api2
 }
 
 void targets::pep10::isa::System::setBuffer(sim::api2::trace::Buffer *buffer) {
-  throw std::logic_error("Unimplemented");
+  static const char *const e = "Unimplemented";
+  qCritical(e);
+  throw std::logic_error(e);
 }
 
 QSharedPointer<const sim::api2::Paths> targets::pep10::isa::System::pathManager() const { return _paths; }

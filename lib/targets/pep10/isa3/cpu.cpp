@@ -378,7 +378,11 @@ sim::api2::tick::Result targets::pep10::isa::CPU::unaryDispatch(quint8 is) {
     if (swap) tmp = bits::byteswap(tmp);
     writeReg(Register::PC, tmp);
     break;
-  default: _status = Status::IllegalOpcode; throw std::logic_error("Illegal opcode");
+  default:
+    _status = Status::IllegalOpcode;
+    static const char *const e = "Illegal opcode";
+    qCritical(e);
+    throw std::logic_error(e);
   }
   return {.pause = 0, .delay = 1};
 }

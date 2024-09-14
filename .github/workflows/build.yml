@@ -164,6 +164,7 @@ jobs:
              build/output/index.html
              build/output/pepp.js
              build/output/pepp.wasm
+             build/output/pepp.wasm.map
              build/output/qtloader.js
              build/output/qtlogo.svg
            retention-days: 1
