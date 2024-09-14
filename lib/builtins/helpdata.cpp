@@ -78,7 +78,8 @@ QSharedPointer<HelpEntry> examples_root() {
       children.push_back(entry);
     }
   }
-  auto root = QSharedPointer<HelpEntry>::create(HelpCategory::Category::Text, -1, "Figures", "ISA");
+  auto root = QSharedPointer<HelpEntry>::create(HelpCategory::Category::Text, -1, "Figures", "MDText.qml");
+  root->props = QVariantMap{{"file", QVariant(u":/help/pep10/figures.md"_qs)}};
   root->addChildren(children);
   return root;
 }
