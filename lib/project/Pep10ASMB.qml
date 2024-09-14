@@ -10,9 +10,9 @@ import edu.pepp
 Item {
     id: wrapper
     required property var project
+    required property var actions
     required property string mode
     Component.onCompleted: {
-
         // Must connect and disconnect manually, otherwise project may be changed underneath us, and "save" targets wrong project.
         // Do not need to update on mode change, since mode change implies loss of focus of objEdit.
         userAsmEdit.editingFinished.connect(save)
@@ -42,6 +42,12 @@ Item {
         project.switchTo.connect(wrapper.onSwitchTo)
         if (project)
             fixListings()
+        // Can't modify our mode directly because it would break binding with parent.
+        // i.e., we can't be notified if editor is entered ever again.
+        wrapper.actions.debug.start.triggered.connect(
+                    wrapper.requestModeSwitchToDebugger)
+        wrapper.actions.build.execute.triggered.connect(
+                    wrapper.requestModeSwitchToDebugger)
     }
     // Will be called before project is changed on unload, so we can disconnect save-triggering signals.
     Component.onDestruction: {
@@ -66,7 +72,16 @@ Item {
         project.requestSourceBreakpoints.disconnect(
                     osAsmEdit.editor.onRequestAllBreakpoints)
         project.switchTo.disconnect(wrapper.onSwitchTo)
+        wrapper.actions.debug.start.triggered.disconnect(
+                    wrapper.requestModeSwitchToDebugger)
+        wrapper.actions.build.execute.triggered.disconnect(
+                    wrapper.requestModeSwitchToDebugger)
     }
+    signal requestModeSwitchTo(string mode)
+    function requestModeSwitchToDebugger() {
+        wrapper.requestModeSwitchTo("debugger")
+    }
+
     function onSwitchTo(os) {
         textSelector.currentIndex = Qt.binding(() => os ? 1 : 0)
     }

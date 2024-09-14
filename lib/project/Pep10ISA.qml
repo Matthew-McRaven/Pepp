@@ -10,15 +10,30 @@ import edu.pepp
 Item {
     id: wrapper
     required property var project
+    required property var actions
     required property string mode
+    signal requestModeSwitchTo(string mode)
+    function requestModeSwitchToDebugger() {
+        wrapper.requestModeSwitchTo("debugger")
+    }
     Component.onCompleted: {
         // Must connect and disconnect manually, otherwise project may be changed underneath us, and "save" targets wrong project.
         // Do not need to update on mode change, since mode change implies loss of focus of objEdit.
         objEdit.editingFinished.connect(save)
+        // Can't modify our mode directly because it would break binding with parent.
+        // i.e., we can't be notified if editor is entered ever again.
+        wrapper.actions.debug.start.triggered.connect(
+                    wrapper.requestModeSwitchToDebugger)
+        wrapper.actions.build.execute.triggered.connect(
+                    wrapper.requestModeSwitchToDebugger)
     }
     // Will be called before project is changed on unload, so we can disconnect save-triggering signals.
     Component.onDestruction: {
         objEdit.editingFinished.disconnect(save)
+        wrapper.actions.debug.start.triggered.disconnect(
+                    wrapper.requestModeSwitchToDebugger)
+        wrapper.actions.build.execute.triggered.disconnect(
+                    wrapper.requestModeSwitchToDebugger)
     }
 
     function save() {
