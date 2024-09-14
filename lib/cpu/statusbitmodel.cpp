@@ -28,7 +28,7 @@ void FlagModel::appendFlag(QSharedPointer<Flag> flag) {
   endResetModel();
 }
 
-void FlagModel::onUpdateGUI() {
+void FlagModel::onUpdateGUI(sim::api2::trace::FrameIterator) {
   beginResetModel();
   endResetModel();
 }

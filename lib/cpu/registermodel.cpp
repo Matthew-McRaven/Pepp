@@ -40,7 +40,7 @@ qsizetype RegisterModel::columnCharWidth(int column) const {
   return ret;
 }
 
-void RegisterModel::onUpdateGUI() {
+void RegisterModel::onUpdateGUI(sim::api2::trace::FrameIterator) {
   beginResetModel();
   endResetModel();
 }

@@ -203,18 +203,24 @@ Pep10_ISA::Pep10_ISA(QVariant delegate, QObject *parent, bool initializeSystem)
 
 void Pep10_ISA::bindToSystem() {
   _flags = flag_mode(&*_system, this);
-  connect(this, &Pep10_ISA::updateGUI, _flags, &FlagModel::onUpdateGUI);
+  // Use old-style connections to avoid a linker error in WASM.
+  // For some reason, new-style connects cause LD to insert a 0-arg updateGUI into the object file.
+  // We can defeat the linker with the following Qt macros.
+  connect(this, SIGNAL(updateGUI(sim::api2::trace::FrameIterator)), _flags,
+          SLOT(onUpdateGUI(sim::api2::trace::FrameIterator)));
   QQmlEngine::setObjectOwnership(_flags, QQmlEngine::CppOwnership);
 
   _registers = register_model(&*_system, mnemonics(), this);
-  connect(this, &Pep10_ISA::updateGUI, _registers, &RegisterModel::onUpdateGUI);
+  connect(this, SIGNAL(updateGUI(sim::api2::trace::FrameIterator)), _registers,
+          SLOT(onUpdateGUI(sim::api2::trace::FrameIterator)));
   QQmlEngine::setObjectOwnership(_registers, QQmlEngine::CppOwnership);
 
   using TMAS = sim::trace2::TranslatingModifiedAddressSink<quint16>;
   auto sink = QSharedPointer<TMAS>::create(_system->pathManager(), _system->bus());
 
   _memory = new SimulatorRawMemory(_system->bus(), sink, this);
-  connect(this, &Pep10_ISA::updateGUI, _memory, &SimulatorRawMemory::onUpdateGUI);
+  connect(this, SIGNAL(updateGUI(sim::api2::trace::FrameIterator)), _memory,
+          SLOT(onUpdateGUI(sim::api2::trace::FrameIterator)));
   QQmlEngine::setObjectOwnership(_memory, QQmlEngine::CppOwnership);
 
 }
@@ -323,7 +329,8 @@ bool Pep10_ISA::onLoadObject() {
   _memory->setSP(-1);
   _memory->setPC(-1, -1);
   targets::pep10::isa::writeRegister(_system->cpu()->regs(), isa::Pep10::Register::OS, 7, gs);
-  emit updateGUI(_tb->cbegin());
+  sim::api2::trace::FrameIterator it = _tb->cbegin();
+  emit updateGUI(it);
   return true;
 }
 bool Pep10_ISA::onFormatObject() {
