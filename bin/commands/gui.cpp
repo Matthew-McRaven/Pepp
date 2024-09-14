@@ -50,6 +50,9 @@ QSharedPointer<gui_globals> default_init(QQmlApplicationEngine &engine, QSharedP
   return data;
 }
 
+#ifdef __EMSCRIPTEN__
+QApplication *app = nullptr;
+#endif
 int gui_main(const gui_args &args) {
   // Must forward args for things like QML debugger to work.
   int argc = args.argvs.size();
@@ -57,7 +60,11 @@ int gui_main(const gui_args &args) {
   // Must make copy of strings, since argvs should be editable.
   std::vector<std::string> arg_strs = args.argvs;
   for (int it = 0; it < argc; it++) argvs[it] = arg_strs[it].data();
+#ifdef __EMSCRIPTEN__
+  app = new QApplication(argc, argvs.data());
+#else
   QApplication app(argc, argvs.data());
+#endif
   QFontDatabase::addApplicationFont(":/fonts/mono/CourierPrime-Regular.ttf");
   QFontDatabase::addApplicationFont(":/fonts/mono/CourierPrime-Italic.ttf");
   QFontDatabase::addApplicationFont(":/fonts/mono/CourierPrime-Bold.ttf");
@@ -81,42 +88,45 @@ int gui_main(const gui_args &args) {
   //  Data must outlive QML engine, or you will get TypeErrors on close. See
   //  https://tobiasmarciszko.github.io/qml-binding-errors/ for discussion.
   auto data = QSharedPointer<default_data>::create();
-  int flag{};
-  { //  This scope forces engine to be deleted before model
-    //  Instantiate QML engine before models
-    QQmlApplicationEngine engine;
-    // TODO: connect to PreferenceModel, read field corresponding to QPalette (Disabled, Text) field.
-    engine.addImageProvider(QLatin1String("icons"), new PreferenceAwareImageProvider);
-    QSharedPointer<gui_globals> globals;
-    if (args.extra_init) globals = args.extra_init(engine);
-    else globals = default_init(engine, data);
-    (void)globals; // Unused, but keeps bound context variables from being deleted.
+  QQmlApplicationEngine engine;
+  // TODO: connect to PreferenceModel, read field corresponding to QPalette (Disabled, Text) field.
+  engine.addImageProvider(QLatin1String("icons"), new PreferenceAwareImageProvider);
+  QSharedPointer<gui_globals> globals;
+  if (args.extra_init) globals = args.extra_init(engine);
+  else globals = default_init(engine, data);
+  (void)globals; // Unused, but keeps bound context variables from being deleted.
 
-    /*QDirIterator i(":/ui", QDirIterator::Subdirectories);
-    while (i.hasNext()) {
-      auto f = QFileInfo(i.next());
-      if (!f.isFile())
-        continue;
-      qDebug() << f.filePath();
-    }*/
+  /*QDirIterator i(":/ui", QDirIterator::Subdirectories);
+  while (i.hasNext()) {
+    auto f = QFileInfo(i.next());
+    if (!f.isFile())
+      continue;
+    qDebug() << f.filePath();
+  }*/
 
-    static const auto default_entry = u"qrc:/qt/qml/Pepp/gui/main.qml"_qs;
-    const QUrl url(args.QMLEntry.isEmpty() ? default_entry : args.QMLEntry);
+  static const auto default_entry = u"qrc:/qt/qml/Pepp/gui/main.qml"_qs;
+  const QUrl url(args.QMLEntry.isEmpty() ? default_entry : args.QMLEntry);
+#ifdef __EMSCRIPTEN__
+  QApplication *app_ptr = app;
+#else
+  QApplication *app_ptr = &app;
+#endif
 
-    QObject::connect(
-        &engine, &QQmlApplicationEngine::objectCreated, &app,
-        [url](QObject *obj, const QUrl &objUrl) {
-          if (!obj && url == objUrl) QCoreApplication::exit(-1);
-        },
-        Qt::QueuedConnection);
-    engine.load(url);
-    flag = app.exec();
-
-    //  Engine deleted here
-  }
-
-  //  Model deleted here
-  return flag;
+  QObject::connect(
+      &engine, &QQmlApplicationEngine::objectCreated, app_ptr,
+      [url](QObject *obj, const QUrl &objUrl) {
+        if (!obj && url == objUrl) QCoreApplication::exit(-1);
+      },
+      Qt::QueuedConnection);
+  engine.load(url);
+  // Don't block the event loop in WASM, especially important if wasm-exceptions are enabled.
+  // See: https://doc.qt.io/qt-6/wasm.html#wasm-exceptions
+  // See: https://doc.qt.io/qt-6/wasm.html#application-startup-and-the-event-loop
+#ifdef __EMSCRIPTEN__
+  return 0;
+#else
+  return app.exec();
+#endif
 }
 
 #else
