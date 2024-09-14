@@ -23,7 +23,6 @@ Rectangle {
         onEntered: infoOverlay.state = "hovered"
         onExited: infoOverlay.state = "unhovered"
         onClicked: {
-            console.log("Card clicked")
             // Magic function that exists in Welcome.qml and is exposed to us.
             if (wrapper.enabled)
                 addProject(architecture, abstraction, "", false)

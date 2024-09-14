@@ -21,7 +21,6 @@ Labs.MenuBar {
         const withoutColor = ("" + source).replace(/_dark/i, "")
         const ret = withoutColor.replace(/\.svg/i,
                                          `${useDark ? "_dark" : ""}.svg`)
-        // console.log(ret)
         return ret
     }
     function indexOf(menu, menuItem) {

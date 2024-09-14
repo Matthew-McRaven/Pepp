@@ -94,7 +94,6 @@ ComboBox {
             context.lineTo(width / 2, height)
             context.closePath()
             context.fillStyle = control.textColor
-            //console.log("control.enabled=" & control.enabled)
             context.fill()
         }
     }

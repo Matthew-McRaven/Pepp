@@ -92,7 +92,6 @@ ApplicationWindow {
     }
 
     function switchToProject(index, force) {
-        // console.log(`project: switching to ${index}`)
         var needsManualUpdate = (force ?? false)
                 && projectBar.currentIndex === index
         if (needsManualUpdate)
@@ -115,7 +114,6 @@ ApplicationWindow {
     }
 
     function closeProject(index) {
-        console.log(`project: closed ${index}`)
         // TODO: add logic to save project before closing or reject change entirely.
         pm.removeRows(index, 1)
         if (pm.rowCount() === 0)
@@ -484,7 +482,6 @@ ApplicationWindow {
             onModeChanged()
         }
         function onModeChanged() {
-            console.log(`Changed to ${window.mode}`)
             switch (window.mode.toLowerCase()) {
             case "welcome":
                 mainArea.currentIndex = 0

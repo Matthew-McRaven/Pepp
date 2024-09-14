@@ -28,7 +28,6 @@ Item {
     }
     property var selected
     Component.onCompleted: {
-        console.log(helpModel.rowCount())
         architectureModel.append({
                                      "key": "Pep/10",
                                      "value": Architecture.PEP10
@@ -179,7 +178,6 @@ Item {
     signal setCharIn(string text)
     signal switchToMode(string mode)
     onSelectedChanged: {
-        console.log("selected =", selected)
         const props = helpModel.data(selected, HelpModel.Props)
         const url = helpModel.data(selected, HelpModel.Delegate)
         if (url !== undefined)
