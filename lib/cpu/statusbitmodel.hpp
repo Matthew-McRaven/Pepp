@@ -32,7 +32,7 @@ public:
   void appendFlag(QSharedPointer<Flag> flag);
 
 public slots:
-  void onUpdateGUI(sim::api2::trace::FrameIterator);
+  void onUpdateGUI();
 
 protected: //  Role Names must be under protected
   QHash<int, QByteArray> roleNames() const override;

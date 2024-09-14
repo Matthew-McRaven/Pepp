@@ -27,7 +27,7 @@ public:
   void appendFormatters(QVector<QSharedPointer<RegisterFormatter>> formatters);
   Q_INVOKABLE qsizetype columnCharWidth(int column) const;
 public slots:
-  void onUpdateGUI(sim::api2::trace::FrameIterator);
+  void onUpdateGUI();
 
 private:
   uint32_t _cols = 0;
