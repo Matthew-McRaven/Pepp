@@ -96,6 +96,7 @@ public:
   void write(quint32 address, quint8 value) override;
   void clear() override;
 public slots:
+  void clearModifiedAndUpdateGUI();
   void onUpdateGUI(sim::api2::trace::FrameIterator from);
   // Addresses were changed, but not tracked in the trace buffer.
   // We don't want to highlight them. We just want to make sure they get re-painted.

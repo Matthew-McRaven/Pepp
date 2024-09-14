@@ -321,14 +321,9 @@ bool Pep10_ISA::onLoadObject() {
   targets::pep10::isa::loadElfSegments(*bus, *_elf);
   // Load user program into memory.
   bus->write(0, *bytes, gs);
-  targets::pep10::isa::writeRegister(_system->cpu()->regs(), isa::Pep10::Register::A, 0x11, gs);
-  targets::pep10::isa::writeRegister(_system->cpu()->regs(), isa::Pep10::Register::X, 9, gs);
-  targets::pep10::isa::writeRegister(_system->cpu()->regs(), isa::Pep10::Register::SP, 11, gs);
   _memory->setSP(-1);
   _memory->setPC(-1, -1);
-  targets::pep10::isa::writeRegister(_system->cpu()->regs(), isa::Pep10::Register::OS, 7, gs);
-  sim::api2::trace::FrameIterator it = _tb->cbegin();
-  emit updateGUI(it);
+  _memory->clearModifiedAndUpdateGUI();
   return true;
 }
 bool Pep10_ISA::onFormatObject() {
@@ -486,8 +481,8 @@ void Pep10_ISA::prepareSim() {
 
   // Ensure latests changes to object code pane are reflected in simulator.
   onLoadObject();
-  _tb->clear();
   _system->init();
+  _tb->clear();
   auto pwrOff = _system->output("pwrOff");
   auto charOut = _system->output("charOut");
   charOut->clear(0);
@@ -715,9 +710,10 @@ void Pep10_ASMB::onModifyOSList(int line, Action action) {
 }
 
 void Pep10_ASMB::prepareSim() {
-  onAssemble(true);
-  _tb->clear();
+  _system->bus()->clear(0);
+  if (!onAssemble(true)) return;
   _system->init();
+  _tb->clear();
   auto pwrOff = _system->output("pwrOff");
   auto charOut = _system->output("charOut");
   charOut->clear(0);
@@ -731,9 +727,10 @@ void Pep10_ASMB::prepareSim() {
 
   _pendingPause = false;
 
-  // Repaint CPU & Memory panes
+  // Repaint CPU
   _flags->onUpdateGUI();
   _registers->onUpdateGUI();
+  _memory->clearModifiedAndUpdateGUI();
 }
 
 void Pep10_ASMB::prepareGUIUpdate(sim::api2::trace::FrameIterator from) {
