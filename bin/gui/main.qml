@@ -141,6 +141,7 @@ ApplicationWindow {
         message.connect(text => footer.text = text)
         message.connect(() => messageTimer.restart())
         messageTimer.restart()
+        sidebar.switchToMode("Welcome")
     }
 
     ProjectModel {
