@@ -114,6 +114,12 @@ void SimulatorRawMemory::clear() {
   _PC = _lastPC = _SP = _lastSP = {n1, n1};
 }
 
+void SimulatorRawMemory::clearModifiedAndUpdateGUI() {
+  _sink->clear();
+  _PC = _lastPC = _SP = _lastSP = {n1, n1};
+  emit dataChanged(0, 0xffff);
+}
+
 void SimulatorRawMemory::onUpdateGUI(sim::api2::trace::FrameIterator from) {
   // If there is no TB, then there is no data to analyze.
   // Conservatively, we assume that all data is modified.
