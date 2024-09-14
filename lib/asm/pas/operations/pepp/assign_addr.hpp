@@ -137,7 +137,11 @@ template <typename ISA> void pas::ops::pepp::assignAddresses(ast::Node &root) {
   // recursion.
   for (auto &child : children(root)) {
     if (generic::isStructural()(*child)) {
-      if (!child->has<pas::ast::generic::SectionName>()) throw std::logic_error("Sections must be named");
+      if (!child->has<pas::ast::generic::SectionName>()) {
+        static const char *const e = "Sections must be named";
+        qCritical(e);
+        throw std::logic_error(e);
+      }
 
       auto name = child->get<pas::ast::generic::SectionName>().value;
       auto sectionChildren = pas::ast::children(*child);
@@ -157,6 +161,10 @@ template <typename ISA> void pas::ops::pepp::assignAddresses(ast::Node &root) {
       else
         for (auto &child : sectionChildren) detail::assignAddressesImpl<ISA>(*child, *base, Direction::Forward);
 
-    } else throw std::logic_error("code needs to be in a section!");
+    } else {
+      static const char *const e = "Code must be in a section!";
+      qCritical(e);
+      throw std::logic_error(e);
+    }
   }
 }

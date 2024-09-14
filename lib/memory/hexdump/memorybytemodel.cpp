@@ -423,6 +423,10 @@ void MemoryByteModel::onDataChanged(quint32 start, quint32 end) {
   // We know the ascii changes, and I want to avoid 2x the number of events.
   startIndex = index(startIndex.row(), 1); // skip row number column
   endIndex = index(endIndex.row(), columnCount() - 1);
-  if (!(startIndex.isValid() && endIndex.isValid())) throw std::logic_error("Bad column access");
+  if (!(startIndex.isValid() && endIndex.isValid())) {
+    static const char *const e = "Bad column access";
+    qCritical(e);
+    throw std::logic_error(e);
+  }
   emit dataChanged(startIndex, endIndex, roles);
 }

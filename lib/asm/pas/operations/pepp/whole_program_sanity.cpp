@@ -44,7 +44,9 @@ void pas::ops::pepp::ErrorOnOSFeatures::operator()(ast::Node &node) {
       ast::addError(node,
                     ast::generic::Message{.severity = ast::generic::Message::Severity::Fatal, .message = message});
     } else {
-      throw std::logic_error("Unimplemented code path in ErrorsOnOSFeatures");
+      static const char *const e = "Unimplemented code path in ErrorsOnOSFeatures";
+      qCritical(e);
+      throw std::logic_error(e);
     }
   }
 }

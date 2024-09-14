@@ -20,7 +20,11 @@
 pas::ast::value::Numeric::Numeric() : Base() {}
 
 pas::ast::value::Numeric::Numeric(qint64 value, quint8 size) : _size(size), _value(value) {
-  if (size > 8) throw std::logic_error("Numeric constants must be <=8 bytes");
+  if (size > 8) {
+    static const char *const e = "Numeric constants must be <=8 bytes";
+    qCritical(e);
+    throw std::logic_error(e);
+  }
 }
 
 void pas::ast::value::Numeric::value(bits::span<quint8> dest, bits::Order destEndian) const {

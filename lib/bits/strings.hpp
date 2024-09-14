@@ -52,7 +52,9 @@ template <typename Iterator> bool charactersToByte(Iterator &start, Iterator end
         if (*end != '\0') return false;
       }
     } else {
-      throw std::logic_error("I don't know where this was ever used!");
+      static const char *const e = "Unreachable";
+      qCritical(e);
+      throw std::logic_error(e);
       value = static_cast<uint8_t>('\\');
     }
   } else {
