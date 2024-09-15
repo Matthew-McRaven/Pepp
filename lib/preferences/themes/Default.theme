@@ -171,7 +171,7 @@
             "underline": false
         },
         {
-            "background": "0xffeeeeee",
+            "background": "0xffffffff",
             "bold": false,
             "foreground": "0xff7f7f7f",
             "id": "PlaceHolderTextRole",
@@ -182,7 +182,7 @@
             "underline": false
         },
         {
-            "background": "0x00000000",
+            "background": "0xffffffff",
             "bold": false,
             "foreground": "0xffb67bbc",
             "id": "SymbolRole",
@@ -193,7 +193,7 @@
             "underline": false
         },
         {
-            "background": "0x00000000",
+            "background": "0xffffffff",
             "bold": true,
             "foreground": "0xff2540bd",
             "id": "MnemonicRole",
@@ -204,7 +204,7 @@
             "underline": false
         },
         {
-            "background": "0x00000000",
+            "background": "0xffffffff",
             "bold": false,
             "foreground": "0xff2540bd",
             "id": "DirectiveRole",
@@ -215,7 +215,7 @@
             "underline": false
         },
         {
-            "background": "0x00000000",
+            "background": "0xffffffff",
             "bold": false,
             "foreground": "0xff2540bd",
             "id": "MacroRole",
@@ -226,7 +226,7 @@
             "underline": false
         },
         {
-            "background": "0x00000000",
+            "background": "0xffffffff",
             "bold": false,
             "foreground": "0xffff4500",
             "id": "CharacterRole",
@@ -237,7 +237,7 @@
             "underline": false
         },
         {
-            "background": "0x00000000",
+            "background": "0xffffffff",
             "bold": false,
             "foreground": "0xffff4500",
             "id": "StringRole",
@@ -248,7 +248,7 @@
             "underline": false
         },
         {
-            "background": "0x00000000",
+            "background": "0xffffffff",
             "bold": false,
             "foreground": "0xff006400",
             "id": "CommentRole",
