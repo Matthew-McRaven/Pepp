@@ -143,7 +143,6 @@ Item {
                 currentIndex: 0
                 textRole: "name"
                 function onCurrentIndexChanged() {
-                    console.log("Here")
                     let index = model.index(currentIndex, 0)
                     projectLicense.text = model.data(
                                 index, DependencyRoles.LicenseText)
