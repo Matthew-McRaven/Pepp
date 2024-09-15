@@ -37,10 +37,10 @@ Rectangle {
                 abstraction: Abstraction.ISA3
             }
             WelcomeCard {
-                text: "Assembly Language, bare metal"
+                text: "Pep/10, Asmb3, bare metal"
                 architecture: Architecture.PEP10
-                abstraction: Abstraction.ISA3
-                enabled: false
+                abstraction: Abstraction.ASMB3
+                enabled: true
             }
             WelcomeCard {
                 text: "OS4"
@@ -60,9 +60,9 @@ Rectangle {
                 Layout.preferredHeight: implicitHeight
             }
             WelcomeCard {
-                text: "Assembly Language, bare metal"
+                text: "RISC-V, Asmb3, bare metal"
                 architecture: Architecture.RISCV
-                abstraction: Abstraction.ISA3
+                abstraction: Abstraction.ASMB3
                 enabled: false
             }
             Text {

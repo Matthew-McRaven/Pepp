@@ -140,7 +140,8 @@ class Pep10_ASMB final : public Pep10_ISA {
   using Action = ScintillaAsmEditBase::Action;
 
 public:
-  explicit Pep10_ASMB(QVariant delegate, QObject *parent = nullptr);
+  explicit Pep10_ASMB(QVariant delegate, builtins::Abstraction abstraction = builtins::Abstraction::ASMB5,
+                      QObject *parent = nullptr);
   // Actually utils::Abstraction, but QM passes it as an int.
   Q_INVOKABLE void set(int abstraction, QString value);
   Q_INVOKABLE QString userAsmText() const;
@@ -185,6 +186,8 @@ protected:
   void prepareSim() override;
   void prepareGUIUpdate(sim::api2::trace::FrameIterator from) override;
   void updatePCLine();
+  // Can either be ASMB3 or ASMB5.
+  builtins::Abstraction _abstraction = builtins::Abstraction::ASMB5;
   QString _userAsmText = {}, _osAsmText = {};
   QString _userList = {}, _osList = {};
   QList<QPair<int, QString>> _errors = {}, _userListAnnotations = {}, _osListAnnotations = {};

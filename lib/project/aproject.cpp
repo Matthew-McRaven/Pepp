@@ -25,8 +25,8 @@ Pep10_ISA *ProjectModel::pep10ISA(QVariant delegate) {
   return ret;
 }
 
-Pep10_ASMB *ProjectModel::pep10ASMB(QVariant delegate) {
-  auto ptr = std::make_unique<Pep10_ASMB>(delegate, nullptr);
+Pep10_ASMB *ProjectModel::pep10ASMB(QVariant delegate, builtins::Abstraction abstraction) {
+  auto ptr = std::make_unique<Pep10_ASMB>(delegate, abstraction, nullptr);
   auto ret = &*ptr;
   QQmlEngine::setObjectOwnership(ret, QQmlEngine::CppOwnership);
   beginInsertRows(QModelIndex(), _projects.size(), _projects.size());

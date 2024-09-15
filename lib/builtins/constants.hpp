@@ -31,10 +31,11 @@ public:
   enum class Abstraction {
     NONE = -1,
     // LG1 = 1,
-    MC2 = 2,
-    ISA3 = 3,
-    OS4 = 4,
-    ASMB5 = 5,
+    MC2 = 20,
+    ISA3 = 30,
+    ASMB3 = 31,
+    OS4 = 40,
+    ASMB5 = 50,
     // HOL6 = 6,
     // APP7 = 7,
   };

@@ -161,13 +161,22 @@ ApplicationWindow {
                         proj = cur
                     else
                         proj = pm.pep10ISA(pep10isaComponent)
+                } else if (Number(level) === Abstraction.ASMB3) {
+                    if (cur && cur.architecture === Architecture.PEP10
+                            && cur.abstraction === Abstraction.ASMB3
+                            && cur.isEmpty && reuse)
+                        proj = cur
+                    else
+                        proj = pm.pep10ASMB(pep10asmbComponent,
+                                            Abstraction.ASMB3)
                 } else if (Number(level) === Abstraction.ASMB5) {
                     if (cur && cur.architecture === Architecture.PEP10
                             && cur.abstraction === Abstraction.ASMB5
                             && cur.isEmpty && reuse)
                         proj = cur
                     else
-                        proj = pm.pep10ASMB(pep10asmbComponent)
+                        proj = pm.pep10ASMB(pep10asmbComponent,
+                                            Abstraction.ASMB5)
                 }
                 break
             }
