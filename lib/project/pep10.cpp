@@ -638,7 +638,7 @@ bool Pep10_ASMB::onAssemble(bool doLoad) {
   emit clearListingBreakpoints();
   emit errorsChanged();
   if (!ret) {
-    message(utils::msg_asm_failed);
+    emit message(utils::msg_asm_failed);
     setObjectCodeText("");
     emit listingChanged();
     return false;
@@ -662,6 +662,7 @@ bool Pep10_ASMB::onAssemble(bool doLoad) {
   }
   setObjectCodeText(objectCodeText);
   emit requestSourceBreakpoints();
+  emit message(utils::msg_asm_success);
   return true;
 }
 
