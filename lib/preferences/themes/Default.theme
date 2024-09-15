@@ -182,6 +182,83 @@
             "underline": false
         },
         {
+            "background": "0x00000000",
+            "bold": false,
+            "foreground": "0xffb67bbc",
+            "id": "SymbolRole",
+            "italics": false,
+            "name": "Symbol",
+            "parent": 0,
+            "strikeOut": false,
+            "underline": false
+        },
+        {
+            "background": "0x00000000",
+            "bold": true,
+            "foreground": "0xff2540bd",
+            "id": "MnemonicRole",
+            "italics": false,
+            "name": "Mnemonic",
+            "parent": 0,
+            "strikeOut": false,
+            "underline": false
+        },
+        {
+            "background": "0x00000000",
+            "bold": false,
+            "foreground": "0xff2540bd",
+            "id": "DirectiveRole",
+            "italics": true,
+            "name": "Directive",
+            "parent": 0,
+            "strikeOut": false,
+            "underline": false
+        },
+        {
+            "background": "0x00000000",
+            "bold": false,
+            "foreground": "0xff2540bd",
+            "id": "MacroRole",
+            "italics": true,
+            "name": "Macro",
+            "parent": 0,
+            "strikeOut": false,
+            "underline": false
+        },
+        {
+            "background": "0x00000000",
+            "bold": false,
+            "foreground": "0xffff4500",
+            "id": "CharacterRole",
+            "italics": false,
+            "name": "Character",
+            "parent": 0,
+            "strikeOut": false,
+            "underline": false
+        },
+        {
+            "background": "0x00000000",
+            "bold": false,
+            "foreground": "0xffff4500",
+            "id": "StringRole",
+            "italics": false,
+            "name": "String",
+            "parent": 0,
+            "strikeOut": false,
+            "underline": false
+        },
+        {
+            "background": "0x00000000",
+            "bold": false,
+            "foreground": "0xff006400",
+            "id": "CommentRole",
+            "italics": false,
+            "name": "Comment",
+            "parent": 0,
+            "strikeOut": false,
+            "underline": false
+        },
+        {
             "background": "0xffffffff",
             "bold": false,
             "foreground": "0xff666666",
@@ -201,6 +278,28 @@
             "name": "Breakpoint",
             "parent": 0,
             "strikeOut": true,
+            "underline": false
+        },
+        {
+            "background": "0xffff0000",
+            "bold": false,
+            "foreground": "0xff000000",
+            "id": "ErrorRole",
+            "italics": false,
+            "name": "Error",
+            "parent": 0,
+            "strikeOut": false,
+            "underline": false
+        },
+        {
+            "background": "0xffffffe0",
+            "bold": false,
+            "foreground": "0xff000000",
+            "id": "WarningRole",
+            "italics": false,
+            "name": "Warning",
+            "parent": 0,
+            "strikeOut": false,
             "underline": false
         },
         {
