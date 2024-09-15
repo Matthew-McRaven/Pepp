@@ -394,9 +394,23 @@ bool Pep10_ISA::onISAStepInto() { return false; }
 
 bool Pep10_ISA::onISAStepOut() { return false; }
 
-bool Pep10_ISA::onClearCPU() { return false; }
+bool Pep10_ISA::onClearCPU() {
+  _system->cpu()->csrs()->clear(0);
+  _system->cpu()->regs()->clear(0);
+  // Reset trace buffer, since its content is now meaningless.
+  _tb->clear();
+  _flags->onUpdateGUI();
+  _registers->onUpdateGUI();
+  return true;
+}
 
-bool Pep10_ISA::onClearMemory() { return false; }
+bool Pep10_ISA::onClearMemory() {
+  _system->bus()->clear(0);
+  // Reset trace buffer, since its content is now meaningless.
+  _tb->clear();
+  _memory->clearModifiedAndUpdateGUI();
+  return true;
+}
 
 void Pep10_ISA::onDeferredExecution(sim::api2::trace::Action stopOn, project::StepEnableFlags::Value step) {
   auto pwrOff = _system->output("pwrOff");
