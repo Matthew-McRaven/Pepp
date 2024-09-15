@@ -190,33 +190,40 @@ QVariant MemoryByteModel::data(const QModelIndex &index, int role) const {
     // return QVariant("tool tip");
     //   Only show for memory
     if (col >= column_->CellStart() && col <= column_->CellEnd()) {
-
-      //  toUpper will work on entire string literal. Separate hex
-      //  values and cast to upper case as separate strings
-      const auto mem = QStringLiteral("%1").arg(i, 4, 16, QLatin1Char('0')).toUpper();
-      auto v = memory_->read(i);
-      const auto newH = QStringLiteral("%1").arg(v, 2, 16, QLatin1Char('0')).toUpper();
-      const auto oldH = QStringLiteral("%1").arg(v, 2, 16, QLatin1Char('0')).toUpper();
       static const auto convert = [](const OpcodeModel *opcodes, const quint8 v, bool prev = false) {
         if (!opcodes) return QStringLiteral("");
         else if (auto index = opcodes->indexFromOpcode(v); index == -1) return QStringLiteral("");
         else if (const auto mnemonic = opcodes->data(opcodes->index(index)); prev)
           return QStringLiteral("<br>Previous Opcode: %1").arg(mnemonic.toString());
-        else return QStringLiteral("Opcode: %1<br>").arg(mnemonic.toString());
+        else return QStringLiteral("<br>Opcode: %1").arg(mnemonic.toString());
       };
-      const auto newOpcode = convert(mnemonics_, v, false);
-      const auto oldOpcode = convert(mnemonics_, v, true);
+      //  toUpper will work on entire string literal. Separate hex
+      //  values and cast to upper case as separate strings
+      const auto mem = QStringLiteral("%1").arg(i, 4, 16, QLatin1Char('0')).toUpper();
+      auto current = memory_->read(i);
+      const auto newH = QStringLiteral("%1").arg(current, 2, 16, QLatin1Char('0')).toUpper();
+      const auto newOpcode = convert(mnemonics_, current, false);
+
+      auto old = memory_->readPrevious(i);
+      QString trailer;
+      if (old) {
+        const auto oldH = QStringLiteral("%1").arg(*old, 2, 16, QLatin1Char('0')).toUpper();
+        const auto oldOpcode = convert(mnemonics_, *old, true);
+        trailer = QStringLiteral("<br>Previous Hex: 0x%1<br>"
+                                 "Previous Unsigned Decimal: %2<br>"
+                                 "Previous Binary: 0b%3"
+                                 "%4")
+                      .arg(oldH, QString::number(*old), u"%1"_qs.arg(*old, 8, 2, QChar('0')), oldOpcode);
+      }
 
       return QStringLiteral("<b>Memory Location: 0x%1</b><br>"
                             "Hex: 0x%2<br>"
                             "Unsigned Decimal: %3<br>"
-                            "Binary: 0b%4<br>"
+                            "Binary: 0b%4"
                             "%5"
-                            "Previous Hex: 0x%6<br>"
-                            "Previous Unsigned Decimal: %7<br>"
-                            "Previous Binary: 0b%8"
-                            "%9")
-          .arg(mem, newH, QString::number(v), u"%1"_qs.arg(v, 8, 2, QChar('0')), newOpcode, oldH, "0", "0", oldOpcode);
+                            "%6")
+          .arg(mem, newH, QString::number(current), u"%1"_qs.arg(current, 8, 2, QChar('0')), newOpcode, trailer)
+          .trimmed();
     } else return {};
   }
 
