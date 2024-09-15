@@ -68,87 +68,94 @@ Item {
         id: textMetrics
         text: "Computer Systems, 200th edition"
     }
-    RowLayout {
-        id: comboBoxes
+    ColumnLayout {
+        id: controlPanel
         anchors {
             left: parent.left
             top: parent.top
-            right: parent.right
-        }
-        Column {
-            Label {
-                text: "Architecture"
-            }
-            Comp.DisableableComboBox {
-                id: architectureCombo
-                enabled: architecture === Architecture.NONE
-                textRole: "key"
-                valueRole: "value"
-                model: ListModel {
-                    id: architectureModel
-                }
-                onCurrentIndexChanged: {
-                    helpModel.architecture = Qt.binding(
-                                () => architectureModel.get(
-                                    architectureCombo.currentIndex)?.value
-                                ?? Architecture.PEP10)
-                }
-            }
-        }
-        Column {
-            Label {
-                text: "Abstraction"
-            }
-            Comp.DisableableComboBox {
-                id: abstractionCombo
-                enabled: architecture === Abstraction.NONE
-                textRole: "key"
-                valueRole: "value"
-                model: ListModel {
-                    id: abstractionModel
-                }
-                onCurrentIndexChanged: {
-                    helpModel.abstraction = Qt.binding(
-                                () => abstractionModel.get(
-                                    abstractionCombo.currentIndex)?.value
-                                ?? Abstraction.ASMB5)
-                }
-            }
-        }
-    }
-
-    TreeView {
-        id: treeView
-        anchors {
-            left: parent.left
-            top: comboBoxes.bottom
             bottom: parent.bottom
         }
-        width: textMetrics.width
-        clip: true
-        model: FilteredHelpModel {
-            id: helpModel
-            model: HelpModel {}
-            // Sane defaults
-            abstraction: Abstraction.ASMB5
-            architecture: Architecture.PEP10
-            onAbstractionChanged: root.selected = treeView.index(0, 0)
-            onArchitectureChanged: root.selected = treeView.index(0, 0)
+        RowLayout {
+            id: comboBoxes
+            spacing: 0
+            Column {
+                Layout.fillWidth: false
+                Label {
+                    text: "Architecture"
+                }
+                Comp.DisableableComboBox {
+                    id: architectureCombo
+                    enabled: architecture === Architecture.NONE
+                    textRole: "key"
+                    valueRole: "value"
+                    model: ListModel {
+                        id: architectureModel
+                    }
+                    onCurrentIndexChanged: {
+                        helpModel.architecture = Qt.binding(
+                                    () => architectureModel.get(
+                                        architectureCombo.currentIndex)?.value
+                                    ?? Architecture.PEP10)
+                    }
+                }
+            }
+            Column {
+                Layout.fillWidth: false
+                Label {
+                    text: "Abstraction"
+                }
+                Comp.DisableableComboBox {
+                    id: abstractionCombo
+                    enabled: architecture === Abstraction.NONE
+                    textRole: "key"
+                    valueRole: "value"
+                    model: ListModel {
+                        id: abstractionModel
+                    }
+                    onCurrentIndexChanged: {
+                        helpModel.abstraction = Qt.binding(
+                                    () => abstractionModel.get(
+                                        abstractionCombo.currentIndex)?.value
+                                    ?? Abstraction.ASMB5)
+                    }
+                }
+            }
         }
 
-        delegate: TreeViewDelegate {
-            id: treeDelegate
-            width: treeView.width
-            onClicked: {
-                root.selected = treeDelegate.treeView.index(row, column)
+        TreeView {
+            id: treeView
+            Layout.minimumWidth: textMetrics.width
+            Layout.fillHeight: true
+            clip: true
+            model: FilteredHelpModel {
+                id: helpModel
+                model: HelpModel {}
+                // Sane defaults
+                abstraction: Abstraction.ASMB5
+                architecture: Architecture.PEP10
+                onAbstractionChanged: root.selected = treeView.index(0, 0)
+                onArchitectureChanged: root.selected = treeView.index(0, 0)
+            }
+
+            delegate: TreeViewDelegate {
+                id: treeDelegate
+                width: TreeView.availableWidth
+                // Default background does not fill entire delegate.
+                background: Rectangle {
+                    anchors.fill: parent
+                    color: treeDelegate.row % 2 === 0 ? palette.base : palette.alternateBase
+                }
+                onClicked: {
+                    root.selected = treeDelegate.treeView.index(row, column)
+                }
             }
         }
     }
     Flickable {
         id: contentFlickable
         anchors {
-            left: treeView.right
-            top: comboBoxes.bottom
+            left: controlPanel.right
+            top: parent.top
             right: parent.right
             bottom: parent.bottom
         }
@@ -156,8 +163,6 @@ Item {
         Loader {
             id: contentLoader
             anchors.fill: parent
-            // contentWidth: contentItem.width
-            // contentHeight: contentItem.height
             Connections {
                 target: contentLoader.item
                 function onAddProject(feats, texts, mode, os, tests) {
