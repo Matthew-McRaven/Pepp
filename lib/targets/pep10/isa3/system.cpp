@@ -50,7 +50,7 @@ const auto gs = sim::api2::memory::Operation{
 }
 
 targets::pep10::isa::System::System(QList<obj::MemoryRegion> regions, QList<obj::AddressedIO> mmios)
-    : _cpu(QSharedPointer<CPU>::create(desc_cpu(nextID()), _nextIDGenerator)),
+    : _regions(), _cpu(QSharedPointer<CPU>::create(desc_cpu(nextID()), _nextIDGenerator)),
       _bus(QSharedPointer<sim::memory::SimpleBus<quint16>>::create(desc_bus(nextID()), AddressSpan(0, 0xFFFF))),
       _paths(QSharedPointer<sim::api2::Paths>::create()) {
   addDevice(_cpu->device());
@@ -73,7 +73,7 @@ targets::pep10::isa::System::System(QList<obj::MemoryRegion> regions, QList<obj:
       target = &*ro;
     }
     _bus->pushFrontTarget(AddressSpan(reg.minOffset, reg.maxOffset), target);
-
+    appendReloadEntries(mem, reg, static_cast<quint16>(-reg.minOffset));
     // Perform load!
     loadRegion(*mem, reg, static_cast<quint16>(-reg.minOffset));
   }
@@ -160,6 +160,12 @@ void targets::pep10::isa::System::init() {
   // Clear registers and CSRs before inserting non-0 values.
   cpu()->csrs()->clear(0);
   cpu()->regs()->clear(0);
+
+  for (const auto &reg : _regions) {
+    using size_type = bits::span<const quint8>::size_type;
+    reg.target->write(reg.base,
+                      {reinterpret_cast<const quint8 *>(reg.data.data()), static_cast<size_type>(reg.data.size())}, gs);
+  }
   // Initalize PC to dispatcher
   _bus->read(static_cast<quint16>(::isa::Pep10::MemoryVectors::Dispatcher), bufSpan, gs);
   writeRegister(cpu()->regs(), ::isa::Pep10::Register::PC,
@@ -187,6 +193,20 @@ QStringList targets::pep10::isa::System::outputs() const { return _mmo.keys(); }
 sim::memory::Output<quint16> *targets::pep10::isa::System::output(QString name) {
   if (auto find = _mmo.find(name); find != _mmo.end()) return &**find;
   return nullptr;
+}
+
+void targets::pep10::isa::System::appendReloadEntries(QSharedPointer<sim::api2::memory::Target<quint16>> mem,
+                                                      const obj::MemoryRegion &reg, quint16 baseOffset) {
+  quint16 base = baseOffset + reg.minOffset;
+  for (const auto seg : reg.segs) {
+    auto fileData = seg->get_data();
+    auto size = seg->get_file_size();
+    if (fileData == nullptr) continue;
+    std::vector<quint8> data(size);
+    std::copy(fileData, fileData + size, data.data());
+    _regions.push_back(ReloadHelper{.target = mem, .base = base, .data = std::move(data)});
+    base += size;
+  }
 }
 
 QSharedPointer<targets::pep10::isa::System> targets::pep10::isa::systemFromElf(const ELFIO::elfio &elf,
