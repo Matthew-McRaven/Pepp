@@ -205,10 +205,10 @@
         },
         {
             "background": "0x00000000",
-            "bold": false,
+            "bold": true,
             "foreground": "0xff2540bd",
             "id": "DirectiveRole",
-            "italics": true,
+            "italics": false,
             "name": "Directive",
             "parent": 0,
             "strikeOut": false,

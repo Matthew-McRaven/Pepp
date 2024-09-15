@@ -442,8 +442,8 @@ void Theme::loadMissing() {
                             false, false);
       break;
     case Themes::Roles::DirectiveRole:
-      pref = new Preference(this, id, "Directive", qRgb(0x25, 0x40, 0xbd), qRgba(0xff, 0xff, 0xff, 0xff), 0, false,
-                            true, false, false);
+      pref = new Preference(this, id, "Directive", qRgb(0x25, 0x40, 0xbd), qRgba(0xff, 0xff, 0xff, 0xff), 0, true,
+                            false, false, false);
       break;
     case Themes::Roles::MacroRole:
       pref = new Preference(this, id, "Macro", qRgb(0x25, 0x40, 0xbd), qRgba(0xff, 0xff, 0xff, 0xff), 0, false, true,
