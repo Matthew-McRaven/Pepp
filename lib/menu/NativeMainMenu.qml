@@ -241,6 +241,15 @@ Labs.MenuBar {
             shortcut: actions.build.assemble.shortcut
         }
         Labs.MenuItem {
+            text: actions.build.assembleThenLoad.text
+            onTriggered: actions.build.assembleThenLoad.trigger()
+            enabled: actions.build.assembleThenLoad.enabled
+            visible: enabled
+            icon.source: fixSuffix(actions.build.assembleThenLoad.icon.source,
+                                   wrapper.darkMode)
+            shortcut: actions.build.assembleThenLoad.shortcut
+        }
+        Labs.MenuItem {
             text: actions.build.assembleThenFormat.text
             onTriggered: actions.build.assembleThenFormat.trigger()
             enabled: actions.build.assembleThenFormat.enabled

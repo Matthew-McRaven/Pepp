@@ -61,7 +61,7 @@ public:
   Q_INVOKABLE virtual bool isEmpty() const;
 public slots:
   bool onSaveCurrent();
-  bool onLoadObject();
+  virtual bool onLoadObject();
   bool onFormatObject();
   bool onExecute();
   virtual bool onDebuggingStart();

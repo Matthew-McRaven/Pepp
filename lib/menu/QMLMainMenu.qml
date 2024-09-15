@@ -204,6 +204,15 @@ MenuBar {
             onPaletteChanged: fixTextColors(this)
         }
         ShortcutMenuItem {
+            action: actions.build.assembleThenLoad
+            enabled: action.enabled
+            visible: enabled
+            height: enabled ? implicitHeight : 0
+            onEnabledChanged: contentItem.enabled = enabled
+            contentItem.onEnabledChanged: fixTextColors(this)
+            onPaletteChanged: fixTextColors(this)
+        }
+        ShortcutMenuItem {
             action: actions.build.assembleThenFormat
             enabled: action.enabled
             visible: enabled
