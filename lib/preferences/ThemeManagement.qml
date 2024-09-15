@@ -71,11 +71,11 @@ RowLayout {
         Layout.preferredWidth: buttonWidth
 
         visible: !PlatformDetector.isWASM
-        //  Do not export system themes
-        enabled: !Theme.systemTheme && !PlatformDetector.isWASM
+        // Now allows export of system themes. This makes it easier to keep theme files up-to-date.
+        enabled: !PlatformDetector.isWASM
         onClicked: exportLoader.item.open()
         palette {
-            buttonText: !Theme.systemTheme ? root.palette.buttonText : root.palette.placeholderText
+            buttonText: !PlatformDetector.isWASM ? root.palette.buttonText : root.palette.placeholderText
         }
     }
 
