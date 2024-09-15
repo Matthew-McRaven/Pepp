@@ -130,7 +130,11 @@ Item {
             }
             ComboBox {
                 Component.onCompleted: {
+                    // Force the correct license to be selected on load.
                     projectCombo.onCurrentIndexChanged()
+                    // onCurrentIndexChanged not called automatically, so we must connect to the appropriate signal.
+                    projectCombo.currentIndexChanged.connect(
+                                projectCombo.onCurrentIndexChanged)
                 }
 
                 Layout.fillWidth: true
@@ -138,8 +142,8 @@ Item {
                 model: Dependencies
                 currentIndex: 0
                 textRole: "name"
-
                 function onCurrentIndexChanged() {
+                    console.log("Here")
                     let index = model.index(currentIndex, 0)
                     projectLicense.text = model.data(
                                 index, DependencyRoles.LicenseText)
