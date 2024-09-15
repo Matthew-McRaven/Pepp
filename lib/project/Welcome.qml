@@ -20,19 +20,19 @@ Rectangle {
                 Layout.preferredHeight: implicitHeight
             }
             WelcomeCard {
-                text: "MC2, 1 byte bus"
+                text: "Pep/10, Mc2, 1-byte bus"
                 architecture: Architecture.PEP10
                 abstraction: Abstraction.MC2
                 enabled: false
             }
             WelcomeCard {
-                text: "MC2, 2 byte bus"
+                text: "Pep/10, Mc2, 2-byte bus"
                 architecture: Architecture.PEP10
                 abstraction: Abstraction.MC2
                 enabled: false
             }
             WelcomeCard {
-                text: "ISA3, bare metal"
+                text: "Pep/10, ISA3, bare metal"
                 architecture: Architecture.PEP10
                 abstraction: Abstraction.ISA3
             }
@@ -43,13 +43,13 @@ Rectangle {
                 enabled: true
             }
             WelcomeCard {
-                text: "OS4"
+                text: "Pep/10, OS4"
                 architecture: Architecture.PEP10
                 abstraction: Abstraction.OS4
                 enabled: false
             }
             WelcomeCard {
-                text: "ASMB5, full OS"
+                text: "Pep/10, Asmb5, full OS"
                 architecture: Architecture.PEP10
                 abstraction: Abstraction.ASMB5
             }
@@ -72,31 +72,31 @@ Rectangle {
                 Layout.preferredHeight: implicitHeight
             }
             WelcomeCard {
-                text: "MC2, 1 byte bus"
+                text: "Pep/9, Mc2, 1-byte bus"
                 architecture: Architecture.PEP9
                 abstraction: Abstraction.MC2
                 enabled: false
             }
             WelcomeCard {
-                text: "MC2, 2 byte bus"
+                text: "Pep/9, Mc2, 2-byte bus"
                 architecture: Architecture.PEP9
                 abstraction: Abstraction.MC2
                 enabled: false
             }
             WelcomeCard {
-                text: "ISA3"
+                text: "Pep/9, ISA3"
                 architecture: Architecture.PEP9
                 abstraction: Abstraction.ISA3
                 enabled: false
             }
             WelcomeCard {
-                text: "OS4"
+                text: "Pep/9, OS4"
                 architecture: Architecture.PEP9
                 abstraction: Abstraction.OS4
                 enabled: false
             }
             WelcomeCard {
-                text: "ASMB5"
+                text: "Pep/9, Asmb5"
                 architecture: Architecture.PEP9
                 abstraction: Abstraction.ASMB5
                 enabled: false
