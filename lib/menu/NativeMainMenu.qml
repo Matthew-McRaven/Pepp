@@ -221,6 +221,7 @@ Labs.MenuBar {
             text: actions.build.formatObject.text
             onTriggered: actions.build.formatObject.trigger()
             enabled: actions.build.formatObject.enabled
+            visible: enabled
         }
         Labs.MenuItem {
             text: actions.build.loadObject.text
