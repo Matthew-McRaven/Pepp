@@ -88,7 +88,7 @@ Rectangle {
                                                         registers.model.RightJustify)
                                                     ?? false
                         Layout.minimumWidth: Math.max(35, textField.width)
-                        Layout.minimumHeight: textField.height
+                        Layout.minimumHeight: textField.height + 1
                         Layout.preferredWidth: childrenRect.width
                         color: "transparent"
                         TextField {
