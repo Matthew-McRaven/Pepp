@@ -327,10 +327,12 @@ Labs.MenuBar {
     Labs.Menu {
         title: qsTr("&Simulator")
         Labs.MenuItem {
+            enabled: actions.sim.clearCPU.enabled
             text: actions.sim.clearCPU.text
             onTriggered: actions.sim.clearCPU.trigger()
         }
         Labs.MenuItem {
+            enabled: actions.sim.clearMemory.enabled
             text: actions.sim.clearMemory.text
             onTriggered: actions.sim.clearMemory.trigger()
         }
