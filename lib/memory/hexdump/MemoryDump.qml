@@ -441,9 +441,7 @@ Item {
                                             .25))
                             break
                         default:
-                            // Alternating colors, using array to avoid conditional logic.
-                            backgroundColor = Qt.binding(
-                                        () => [palette.base, palette.alternateBase][column % 2])
+                            backgroundColor = Qt.binding(() => palette.base)
                         }
                     }
 
