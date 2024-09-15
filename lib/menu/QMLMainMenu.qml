@@ -281,9 +281,11 @@ MenuBar {
     Menu {
         title: qsTr("&Simulator")
         MenuItem {
+            enabled: actions.sim.clearCPU.enabled
             action: actions.sim.clearCPU
         }
         MenuItem {
+            enabled: actions.sim.clearMemory.enabled
             action: actions.sim.clearMemory
         }
     }
