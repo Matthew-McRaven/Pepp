@@ -142,7 +142,7 @@ QtObject {
             onTriggered: {
                 // New editor does not lose focus before "assemble" is triggered, so we must save manually.
                 window.preAssemble()
-                project.onAssemble(true)
+                project.onAssembleThenLoad()
             }
             text: qsTr("Assemble then &Load Object Code")
             icon.source: `image://icons/build/flash${enabled ? '' : '_disabled'}${dark ? '' : '_dark'}.svg`

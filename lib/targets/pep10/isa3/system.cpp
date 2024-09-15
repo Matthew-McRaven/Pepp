@@ -161,11 +161,7 @@ void targets::pep10::isa::System::init() {
   cpu()->csrs()->clear(0);
   cpu()->regs()->clear(0);
 
-  for (const auto &reg : _regions) {
-    using size_type = bits::span<const quint8>::size_type;
-    reg.target->write(reg.base,
-                      {reinterpret_cast<const quint8 *>(reg.data.data()), static_cast<size_type>(reg.data.size())}, gs);
-  }
+  doReloadEntries();
   // Initalize PC to dispatcher
   _bus->read(static_cast<quint16>(::isa::Pep10::MemoryVectors::Dispatcher), bufSpan, gs);
   writeRegister(cpu()->regs(), ::isa::Pep10::Register::PC,
@@ -193,6 +189,14 @@ QStringList targets::pep10::isa::System::outputs() const { return _mmo.keys(); }
 sim::memory::Output<quint16> *targets::pep10::isa::System::output(QString name) {
   if (auto find = _mmo.find(name); find != _mmo.end()) return &**find;
   return nullptr;
+}
+
+void targets::pep10::isa::System::doReloadEntries() {
+  for (const auto &reg : _regions) {
+    using size_type = bits::span<const quint8>::size_type;
+    reg.target->write(reg.base,
+                      {reinterpret_cast<const quint8 *>(reg.data.data()), static_cast<size_type>(reg.data.size())}, gs);
+  }
 }
 
 void targets::pep10::isa::System::appendReloadEntries(QSharedPointer<sim::api2::memory::Target<quint16>> mem,

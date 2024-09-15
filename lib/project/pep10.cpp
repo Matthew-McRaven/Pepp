@@ -670,13 +670,21 @@ bool Pep10_ASMB::onAssemble(bool doLoad) {
 
   auto userBytes = helper.bytes(false);
   QString objectCodeText = pas::ops::pepp::bytesToObject(userBytes, 16);
-  if (doLoad) {
-    _system->bus()->write(0, {userBytes.data(), std::size_t(userBytes.length())}, gs);
-    _memory->onRepaintAddress(0, userBytes.length());
-  }
+
+  if (doLoad) _system->bus()->write(0, {userBytes.data(), std::size_t(userBytes.length())}, gs);
+
   setObjectCodeText(objectCodeText);
   emit requestSourceBreakpoints();
   emit message(utils::msg_asm_success);
+  return true;
+}
+
+bool Pep10_ASMB::onAssembleThenLoad() {
+  _system->bus()->clear(0);
+  onAssemble(true);
+  _system->doReloadEntries();
+  _memory->clearModifiedAndUpdateGUI();
+  _tb->clear();
   return true;
 }
 
@@ -745,8 +753,8 @@ void Pep10_ASMB::onModifyOSList(int line, Action action) {
 
 void Pep10_ASMB::prepareSim() {
   _system->bus()->clear(0);
-  if (!onAssemble(true)) return;
   _system->init();
+  if (!onAssemble(true)) return;
   _tb->clear();
   auto pwrOff = _system->output("pwrOff");
   auto charOut = _system->output("charOut");
