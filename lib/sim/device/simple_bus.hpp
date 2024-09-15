@@ -190,7 +190,7 @@ void SimpleBus<Address>::pushFrontTarget(AddressSpan at, api2::memory::Target<Ad
 template <typename Address> sim::api2::memory::Target<Address> *SimpleBus<Address>::deviceAt(Address address) {
   auto region = _addrs.region_at(address);
   if (!region) return nullptr;
-  return _devices[region.device];
+  return _devices[region.value().device].second;
 }
 
 template <typename Address>

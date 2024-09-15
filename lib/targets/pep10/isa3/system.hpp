@@ -66,6 +66,14 @@ private:
   sim::api2::device::IDGenerator _nextIDGenerator = [this]() { return _nextID++; };
   sim::api2::tick::Type _tick = 0;
   std::optional<quint16> _bootFlg = std::nullopt;
+  struct ReloadHelper {
+    QSharedPointer<sim::api2::memory::Target<quint16>> target;
+    quint16 base;
+    std::vector<quint8> data;
+  };
+  void appendReloadEntries(QSharedPointer<sim::api2::memory::Target<quint16>> mem, const obj::MemoryRegion &reg,
+                           quint16 baseOffset = 0);
+  QList<ReloadHelper> _regions;
 
   QSharedPointer<CPU> _cpu = nullptr;
   QSharedPointer<sim::memory::SimpleBus<quint16>> _bus = nullptr;
