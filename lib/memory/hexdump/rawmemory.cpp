@@ -87,6 +87,12 @@ quint8 SimulatorRawMemory::read(quint32 address) const {
   return ret;
 }
 
+std::optional<quint8> SimulatorRawMemory::readPrevious(quint32 address) const {
+  auto it = _modifiedCache.find(address);
+  if (it != _modifiedCache.end()) return it->second;
+  return std::nullopt;
+}
+
 void SimulatorRawMemory::setPC(quint32 start, quint32 end) { _PC = {start, end}; }
 
 void SimulatorRawMemory::setSP(quint32 address) { _SP = {address, address}; }
@@ -116,7 +122,7 @@ void SimulatorRawMemory::clear() {
 
 void SimulatorRawMemory::clearModifiedAndUpdateGUI() {
   _sink->clear();
-  _PC = _lastPC = _SP = _lastSP = {n1, n1};
+  _modifiedCache.clear();
   emit dataChanged(0, 0xffff);
 }
 
@@ -145,7 +151,11 @@ void SimulatorRawMemory::onUpdateGUI(sim::api2::trace::FrameIterator from) {
   if (auto intervals = _sink->intervals(); intervals.size() == 0) return emit dataChanged(0, 0xffff);
   else {
     // Otherwise, emit the intervals that were modified.
-    for (const auto &interval : intervals) emit dataChanged(interval.lower(), interval.upper());
+    for (const auto &interval : intervals) {
+      // Cache the previous value of the modified addresses.
+
+      emit dataChanged(interval.lower(), interval.upper());
+    }
     // And update intervals containing PC, SP to fix the higlighting.
     emit dataChanged(this->_SP.lower(), this->_SP.upper());
     emit dataChanged(this->_PC.lower(), this->_PC.upper());

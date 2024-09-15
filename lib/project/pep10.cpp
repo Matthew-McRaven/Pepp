@@ -750,6 +750,8 @@ void Pep10_ASMB::prepareSim() {
   // Repaint CPU
   _flags->onUpdateGUI();
   _registers->onUpdateGUI();
+  _memory->setSP(-1);
+  _memory->setPC(-1, -1);
   _memory->clearModifiedAndUpdateGUI();
 }
 
