@@ -102,7 +102,7 @@ public:
   int rowCount(const QModelIndex &parent) const override;
   QVariant data(const QModelIndex &index, int role) const override;
   Q_INVOKABLE Pep10_ISA *pep10ISA(QVariant delegate);
-  Q_INVOKABLE Pep10_ASMB *pep10ASMB(QVariant delegate);
+  Q_INVOKABLE Pep10_ASMB *pep10ASMB(QVariant delegate, builtins::Abstraction abstraction);
   bool removeRows(int row, int count, const QModelIndex &parent) override;
   bool moveRows(const QModelIndex &sourceParent, int sourceRow, int count, const QModelIndex &destinationParent,
                 int destinationChild) override;

@@ -49,6 +49,10 @@ Item {
                                     "value": Abstraction.ASMB5
                                 })
         abstractionModel.append({
+                                    "key": "ASMB3",
+                                    "value": Abstraction.ASMB3
+                                })
+        abstractionModel.append({
                                     "key": "ISA3",
                                     "value": Abstraction.ISA3
                                 })

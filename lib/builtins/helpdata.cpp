@@ -91,10 +91,10 @@ QSharedPointer<HelpEntry> os_root() { return {}; }
 int bitmask(builtins::Architecture arch) {
   switch (arch) {
   case builtins::ArchitectureHelper::Architecture::NONE: return 0;
-  case builtins::ArchitectureHelper::Architecture::PEP8: return 1;
-  case builtins::ArchitectureHelper::Architecture::PEP9: return 2;
-  case builtins::ArchitectureHelper::Architecture::PEP10: return 4;
-  case builtins::ArchitectureHelper::Architecture::RISCV: return 8;
+  case builtins::ArchitectureHelper::Architecture::PEP8: return 1 << 0;
+  case builtins::ArchitectureHelper::Architecture::PEP9: return 1 << 1;
+  case builtins::ArchitectureHelper::Architecture::PEP10: return 1 << 2;
+  case builtins::ArchitectureHelper::Architecture::RISCV: return 1 << 3;
   default:
     static const char *const e = "Invalid architecture";
     qCritical(e);
@@ -105,10 +105,11 @@ int bitmask(builtins::Architecture arch) {
 int bitmask(builtins::Abstraction level) {
   switch (level) {
   case builtins::AbstractionHelper::Abstraction::NONE: return 0;
-  case builtins::AbstractionHelper::Abstraction::MC2: return 1;
-  case builtins::AbstractionHelper::Abstraction::ISA3: return 2;
-  case builtins::AbstractionHelper::Abstraction::OS4: return 4;
-  case builtins::AbstractionHelper::Abstraction::ASMB5: return 8;
+  case builtins::AbstractionHelper::Abstraction::MC2: return 1 << 0;
+  case builtins::AbstractionHelper::Abstraction::ISA3: return 1 << 1;
+  case builtins::AbstractionHelper::Abstraction::ASMB3: return 1 << 2;
+  case builtins::AbstractionHelper::Abstraction::OS4: return 1 << 3;
+  case builtins::AbstractionHelper::Abstraction::ASMB5: return 1 << 4;
   default:
     static const char *const e = "Invalid abstraction";
     qCritical(e);

@@ -81,6 +81,11 @@ SystemAssembly make_isa_system() {
   return ret;
 }
 
+QString cs6e_bm() {
+  auto book = helpers::book(6);
+  auto os = book->findFigure("os", "pep10baremetal");
+  return os->typesafeElements()["pep"]->contents;
+}
 QString cs6e_os() {
   auto book = helpers::book(6);
   auto os = book->findFigure("os", "pep10os");
@@ -536,8 +541,17 @@ project::DebugEnableFlags::DebugEnableFlags(QObject *parent) : QObject(parent) {
 
 project::StepEnableFlags::StepEnableFlags(QObject *parent) : QObject(parent) {}
 
-Pep10_ASMB::Pep10_ASMB(QVariant delegate, QObject *parent) : Pep10_ISA(delegate, parent, false) {
-  _osAsmText = cs6e_os();
+Pep10_ASMB::Pep10_ASMB(QVariant delegate, builtins::Abstraction abstraction, QObject *parent)
+    : Pep10_ISA(delegate, parent, false) {
+  switch (abstraction) {
+  case builtins::Abstraction::ASMB3: [[fallthrough]];
+  case builtins::Abstraction::ASMB5: _abstraction = abstraction; break;
+  default: throw std::invalid_argument("Invalid abstraction level for Pep10_ASMB");
+  }
+
+  if (_abstraction == builtins::Abstraction::ASMB3) _osAsmText = cs6e_bm();
+  else _osAsmText = cs6e_os();
+
   auto elfsys = make_asmb_system(_osAsmText);
   _elf = elfsys.elf;
   _system = elfsys.system;
@@ -551,7 +565,7 @@ Pep10_ASMB::Pep10_ASMB(QVariant delegate, QObject *parent) : Pep10_ISA(delegate,
 
 void Pep10_ASMB::set(int abstraction, QString value) {
   using namespace builtins;
-  if (abstraction == static_cast<int>(Abstraction::ASMB5)) {
+  if (abstraction == static_cast<int>(Abstraction::ASMB5) || abstraction == static_cast<int>(Abstraction::ASMB3)) {
     setUserAsmText(value);
   } else if (abstraction == static_cast<int>(Abstraction::OS4)) {
     setOSAsmText(value);
@@ -598,12 +612,12 @@ bool Pep10_ASMB::isEmpty() const { return _userAsmText.isEmpty(); }
 
 project::Environment Pep10_ASMB::env() const {
   using namespace builtins;
-  return {.arch = Architecture::PEP10, .level = Abstraction::ASMB5, .features = project::Features::None};
+  return {.arch = Architecture::PEP10, .level = _abstraction, .features = project::Features::None};
 }
 
 builtins::Architecture Pep10_ASMB::architecture() const { return builtins::Architecture::PEP10; }
 
-builtins::Abstraction Pep10_ASMB::abstraction() const { return builtins::Abstraction::ASMB5; }
+builtins::Abstraction Pep10_ASMB::abstraction() const { return _abstraction; }
 
 int Pep10_ASMB::allowedDebugging() const {
   using D = project::DebugEnableFlags;
