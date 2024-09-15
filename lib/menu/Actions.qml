@@ -136,6 +136,19 @@ QtObject {
             shortcut: "Ctrl+Shift+B"
             onShortcutChanged: updateNativeText(this)
         }
+        readonly property var assembleThenLoad: Action {
+            enabled: project?.onAssemble !== undefined
+            property string nativeText: ""
+            onTriggered: {
+                // New editor does not lose focus before "assemble" is triggered, so we must save manually.
+                window.preAssemble()
+                project.onAssemble(true)
+            }
+            text: qsTr("Assemble then &Load Object Code")
+            icon.source: `image://icons/build/flash${enabled ? '' : '_disabled'}${dark ? '' : '_dark'}.svg`
+            shortcut: "Ctrl+Shift+L"
+            onShortcutChanged: updateNativeText(this)
+        }
         readonly property var assembleThenFormat: Action {
             enabled: project?.onAssembleThenFormat !== undefined
             property string nativeText: ""
