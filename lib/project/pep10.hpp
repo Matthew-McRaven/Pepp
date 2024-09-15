@@ -161,6 +161,7 @@ public:
 public slots:
   bool onDebuggingStart() override;
   bool onAssemble(bool doLoad = false);
+  bool onAssembleThenLoad();
   bool onAssembleThenFormat();
   void onModifyUserSource(int line, Action action);
   void onModifyOSSource(int line, Action action);

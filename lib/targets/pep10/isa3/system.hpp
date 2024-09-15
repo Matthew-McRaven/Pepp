@@ -61,6 +61,8 @@ public:
   QStringList outputs() const;
   sim::memory::Output<quint16> *output(QString name);
 
+  void doReloadEntries();
+
 private:
   sim::api2::device::ID _nextID = 0;
   sim::api2::device::IDGenerator _nextIDGenerator = [this]() { return _nextID++; };
