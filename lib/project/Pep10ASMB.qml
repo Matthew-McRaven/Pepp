@@ -5,6 +5,7 @@ import "qrc:/ui/text/editor" as Text
 import "qrc:/ui/memory/hexdump" as Memory
 import "qrc:/ui/memory/io" as IO
 import "qrc:/ui/cpu" as Cpu
+import "qrc:/ui/symtab" as SymTab
 import edu.pepp
 
 Item {
@@ -215,12 +216,32 @@ Item {
                         language: "Pep/10 ASM"
                     }
                 }
-                Text.ObjTextEditor {
-                    id: objView
-                    readOnly: true
-                    // text is only an initial binding, the value diverges from there.
-                    text: project?.objectCodeText ?? ""
+                TabBar {
+                    id: debugTabBar
+                    visible: mode == "debugger"
+                    TabButton {
+                        text: qsTr("Home")
+                    }
+                    TabButton {
+                        text: qsTr("Discover")
+                    }
+                }
+                StackLayout {
+                    currentIndex: debugTabBar.currentIndex
+                    visible: mode == "debugger"
                     SplitView.minimumHeight: 100
+                    clip: true
+                    Text.ObjTextEditor {
+                        id: objView
+                        readOnly: true
+                        // text is only an initial binding, the value diverges from there.
+                        text: project?.objectCodeText ?? ""
+                    }
+                    SymTab.SymbolViewer {
+                        id: symTab
+                        model: textSelector.currentIndex
+                               === 0 ? project?.userSymbols : project?.osSymbols
+                    }
                 }
             }
         }
