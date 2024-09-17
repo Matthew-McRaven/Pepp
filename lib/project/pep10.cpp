@@ -4,8 +4,8 @@
 #include <sstream>
 #include "asm/pas/operations/pepp/bytes.hpp"
 #include "bits/strings.hpp"
-#include "cpu/formats.hpp"
 #include "builtins/figure.hpp"
+#include "cpu/formats.hpp"
 #include "helpers/asmb.hpp"
 #include "isa/pep10.hpp"
 #include "sim/api2/trace/buffer.hpp"
@@ -542,7 +542,7 @@ project::DebugEnableFlags::DebugEnableFlags(QObject *parent) : QObject(parent) {
 project::StepEnableFlags::StepEnableFlags(QObject *parent) : QObject(parent) {}
 
 Pep10_ASMB::Pep10_ASMB(QVariant delegate, builtins::Abstraction abstraction, QObject *parent)
-    : Pep10_ISA(delegate, parent, false) {
+    : Pep10_ISA(delegate, parent, false), _userModel(new SymbolModel(this)), _osModel(new SymbolModel(this)) {
   switch (abstraction) {
   case builtins::Abstraction::ASMB3: [[fallthrough]];
   case builtins::Abstraction::ASMB5: _abstraction = abstraction; break;
@@ -610,6 +610,9 @@ const QList<Error *> Pep10_ASMB::errors() const {
 
 bool Pep10_ASMB::isEmpty() const { return _userAsmText.isEmpty(); }
 
+SymbolModel *Pep10_ASMB::userSymbols() const { return _userModel; }
+SymbolModel *Pep10_ASMB::osSymbols() const { return _osModel; }
+
 project::Environment Pep10_ASMB::env() const {
   using namespace builtins;
   return {.arch = Architecture::PEP10, .level = _abstraction, .features = project::Features::None};
@@ -654,10 +657,14 @@ bool Pep10_ASMB::onAssemble(bool doLoad) {
   if (!ret) {
     emit message(utils::msg_asm_failed);
     setObjectCodeText("");
+    _userModel->clearData();
+    _osModel->clearData();
     emit listingChanged();
     return false;
   }
-
+  auto elf = helper.elf();
+  _userModel->setFromElf(elf.get(), "usr.symtab");
+  _osModel->setFromElf(elf.get(), "os.symtab");
   auto user = helper.splitListing(false);
   _userList = std::accumulate(user.begin(), user.end(), QString(), to_string);
   for (auto it = 0; it < user.size(); it++)

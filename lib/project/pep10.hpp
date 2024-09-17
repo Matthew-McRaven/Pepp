@@ -10,6 +10,7 @@
 #include "cpu/registermodel.hpp"
 #include "cpu/statusbitmodel.hpp"
 #include "memory/hexdump/rawmemory.hpp"
+#include "symtab/symbolmodel.hpp"
 #include "text/editor/scintillaasmeditbase.hpp"
 #include "utils/opcodemodel.hpp"
 
@@ -137,6 +138,8 @@ class Pep10_ASMB final : public Pep10_ISA {
   Q_PROPERTY(QString osList READ osList NOTIFY listingChanged);
   Q_PROPERTY(QList<Error *> osListAnnotations READ osListAnnotations NOTIFY listingChanged);
   Q_PROPERTY(QList<Error *> assemblerErrors READ errors NOTIFY errorsChanged)
+  Q_PROPERTY(SymbolModel *userSymbols READ userSymbols CONSTANT)
+  Q_PROPERTY(SymbolModel *osSymbols READ osSymbols CONSTANT)
   using Action = ScintillaAsmEditBase::Action;
 
 public:
@@ -154,6 +157,8 @@ public:
   Q_INVOKABLE const QList<Error *> osListAnnotations() const;
   Q_INVOKABLE const QList<Error *> errors() const;
   Q_INVOKABLE bool isEmpty() const override;
+  Q_INVOKABLE SymbolModel *userSymbols() const;
+  Q_INVOKABLE SymbolModel *osSymbols() const;
   project::Environment env() const override;
   builtins::Architecture architecture() const override;
   builtins::Abstraction abstraction() const override;
@@ -187,6 +192,7 @@ protected:
   void prepareSim() override;
   void prepareGUIUpdate(sim::api2::trace::FrameIterator from) override;
   void updatePCLine();
+  SymbolModel *_userModel = nullptr, *_osModel = nullptr;
   // Can either be ASMB3 or ASMB5.
   builtins::Abstraction _abstraction = builtins::Abstraction::ASMB5;
   QString _userAsmText = {}, _osAsmText = {};
