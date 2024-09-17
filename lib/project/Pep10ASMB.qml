@@ -220,10 +220,10 @@ Item {
                     id: debugTabBar
                     visible: mode == "debugger"
                     TabButton {
-                        text: qsTr("Home")
+                        text: qsTr("Object Code")
                     }
                     TabButton {
-                        text: qsTr("Discover")
+                        text: qsTr("Symbol Table")
                     }
                 }
                 StackLayout {
