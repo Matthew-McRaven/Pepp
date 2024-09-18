@@ -10,9 +10,10 @@ Rectangle {
     property alias text: title.text
     property alias description: description.text
     property real textPadding: 5
+    property alias source: image.source
 
-    width: 150
-    height: 150
+    width: 165
+    height: 200
     // We cannot use button, since we want to control the foreground image, which interferes with `hover`.
     // Since `hover` is RO on a button, we can't set it from the MouseArea.
     // Therefore, we need to imitate the behaviors/styling of Button in place.
@@ -31,8 +32,9 @@ Rectangle {
     color: wrapper.enabled ? palette.button : palette.button.darker(1.4)
 
     // Placeholder for image showing current project type.
-    Rectangle {
+    Image {
         id: image
+        fillMode: Image.PreserveAspectFit
         anchors {
             right: parent.right
             top: parent.top
@@ -42,8 +44,11 @@ Rectangle {
             bottomMargin: title.height + title.topPadding + title.bottomPadding
             margins: wrapper.textPadding
         }
-        color: 'red'
+        verticalAlignment: Image.AlignTop
+        horizontalAlignment: Image.AlignHCenter
+        source: "image://icons/blank.svg"
     }
+
     // "Popup" with persistent tile and description shown on hover,
     Item {
         id: infoOverlay
@@ -55,7 +60,8 @@ Rectangle {
         // Must nest background to prevent making text more opaque
         Rectangle {
             anchors.fill: parent
-            opacity: 0.6
+            // TODO: when blur is implemented, replace this with a blur effect
+            opacity: 1
             color: wrapper.color
         }
 
@@ -95,6 +101,7 @@ Rectangle {
             }
             // Hidden by default when not hovered.
             Rectangle {
+                id: bar
                 border.color: palette.text
                 height: 5
                 border.width: height

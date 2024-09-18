@@ -35,11 +35,13 @@ Rectangle {
                 text: "Pep/10, ISA3, bare metal"
                 architecture: Architecture.PEP10
                 abstraction: Abstraction.ISA3
+                source: "image://icons/cards/p10_isa3.svg"
             }
             WelcomeCard {
                 text: "Pep/10, Asmb3, bare metal"
                 architecture: Architecture.PEP10
                 abstraction: Abstraction.ASMB3
+                source: "image://icons/cards/p10_asmb3.svg"
                 enabled: true
             }
             WelcomeCard {
@@ -52,6 +54,7 @@ Rectangle {
                 text: "Pep/10, Asmb5, full OS"
                 architecture: Architecture.PEP10
                 abstraction: Abstraction.ASMB5
+                source: "image://icons/cards/p10_asmb5.svg"
             }
             Text {
                 text: "<b>RISC-V</b>"
