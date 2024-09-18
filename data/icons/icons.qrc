@@ -33,5 +33,7 @@
         <file>cards/p10_asmb3.svg</file>
         <file>cards/p10_asmb5.svg</file>
         <file>cards/p10_isa3.svg</file>
+        <file>cards/p9_isa3.svg</file>
+        <file>cards/p9_asmb5.svg</file>
     </qresource>
 </RCC>

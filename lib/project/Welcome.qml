@@ -91,6 +91,7 @@ Rectangle {
                 architecture: Architecture.PEP9
                 abstraction: Abstraction.ISA3
                 enabled: false
+                source: "image://icons/cards/p9_isa3.svg"
             }
             WelcomeCard {
                 text: "Pep/9, OS4"
@@ -103,6 +104,7 @@ Rectangle {
                 architecture: Architecture.PEP9
                 abstraction: Abstraction.ASMB5
                 enabled: false
+                source: "image://icons/cards/p9_asmb5.svg"
             }
         }
     }
