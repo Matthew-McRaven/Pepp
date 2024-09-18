@@ -66,12 +66,12 @@ CREATE TABLE "changes" (
         for type, priority, ver, msg in reader:
             # Convert version string into row reference
             cursor.execute("SELECT id FROM versions WHERE version = ?", (ver,))
-            if  (ver_row := cursor.fetchone()):  ver_id = ver_row[0]
+            if (ver_row := cursor.fetchone()): ver_id = ver_row[0]
             else: ver_id = None
 
             # Convert change type into row reference
             cursor.execute("SELECT rowid FROM types WHERE name = ?", (type,))
-            if  (type_row := cursor.fetchone()):  type_id = type_row[0]
+            if (type_row := cursor.fetchone()): type_id = type_row[0]
             else: type_id = None
 
             # Convert string priority to int
