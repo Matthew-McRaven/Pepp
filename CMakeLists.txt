@@ -200,7 +200,7 @@ if (ONLY STREQUAL "BUILD")
     set(CMAKE_CXX_STANDARD_REQUIRED ON)
     # We always want universal builds, so do not set on a per-target basis
 
-    find_package(Qt6 6.4 COMPONENTS REQUIRED Svg Quick Core Gui Qml Test Widgets QuickControls2 Xml)
+    find_package(Qt6 6.4 COMPONENTS REQUIRED Svg Quick Core Gui Qml Test Widgets QuickControls2 Xml Sql)
     add_subdirectory(3rd-party)
     set(CMAKE_AUTOMOC ON)
     set(CMAKE_AUTORCC ON)
