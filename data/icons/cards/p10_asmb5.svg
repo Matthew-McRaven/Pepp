@@ -10,7 +10,7 @@
     }
     .macro {
       fill: navy;
-      font-weight: italic
+      font-style: italic
     }
     .mnemonic {
       fill: navy;
