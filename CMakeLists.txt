@@ -226,9 +226,10 @@ if (ONLY STREQUAL "BUILD")
     add_subdirectory(test)
     add_subdirectory(bin)
 
+    option(FORCE_DISABLE_CHANGEDB "Do not generate changelog DB, even if python is found" OFF)
     # Convert changelog sources to DB, embded in QRC, and inject into library.
     # Do not enable feature if lacking python.
-    if(Python_FOUND)
+    if(Python_FOUND AND (NOT FORCE_DISABLE_CHANGEDB))
         # Ensure that target only rebuils iff the CSV files change using depends.
         add_custom_command(
                 OUTPUT ${CMAKE_CURRENT_BINARY_DIR}/changelog.db
