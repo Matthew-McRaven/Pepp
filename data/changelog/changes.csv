@@ -18,3 +18,4 @@ Added,Minor,0.7.2,"Enable projects for ""Pep/10, Asmb3, bare metal"""
 Fixed,,0.7.2,Reduce vertical clipping in debugger's CPU pane
 Changed,,0.7.2,Remove alternate column color bands from Memory Hex Dump
 Added,Minor,0.7.3,Add Symbol Table Viewer to Debugger
+Changed,Minor,0.7.3,"Replace icons on ""Welcome"" mode cards with abstraction-specific artwork"

@@ -230,11 +230,12 @@ if (ONLY STREQUAL "BUILD")
     # Convert changelog sources to DB, embded in QRC, and inject into library.
     # Do not enable feature if lacking python.
     if(Python_FOUND AND (NOT FORCE_DISABLE_CHANGEDB))
+        message("Generating changelog")
         # Ensure that target only rebuils iff the CSV files change using depends.
         add_custom_command(
                 OUTPUT ${CMAKE_CURRENT_BINARY_DIR}/changelog.db
                 COMMAND ${Python_EXECUTABLE} ${CMAKE_CURRENT_LIST_DIR}/scripts/changelog_tools.py to_sql ${CMAKE_CURRENT_BINARY_DIR}/changelog.db
-                DEPENDS ${CMAKE_CURRENT_LIST_DIR}/data/changelog/changes.csv ${CMAKE_CURRENT_LIST_DIR}/data/changelog/versions.csv
+                DEPENDS ${CMAKE_CURRENT_LIST_DIR}/data/changelog/changes.csv ${CMAKE_CURRENT_LIST_DIR}/data/changelog/versions.csv ${CMAKE_CURRENT_LIST_DIR}/scripts/changelog_tools.py
                 COMMENT "Generating changelog SQL"
                 WORKING_DIRECTORY ${CMAKE_CURRENT_LIST_DIR}
         )
@@ -246,6 +247,8 @@ if (ONLY STREQUAL "BUILD")
                 BIG_RESOURCES
                 FILES ${CMAKE_CURRENT_BINARY_DIR}/changelog.db
         )
+    else()
+        message("Skipping changelog generation")
     endif()
 
 

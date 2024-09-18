@@ -31,7 +31,7 @@ CREATE TABLE "changes" (
         "type"	INTEGER NOT NULL,
         "priority"	INTEGER,
         "message"	TEXT,
-        FOREIGN KEY("type") REFERENCES "types"("name"),
+        FOREIGN KEY("type") REFERENCES "types"("rowid"),
         FOREIGN KEY("version") REFERENCES "versions"("id")
 );
 """
@@ -70,7 +70,7 @@ CREATE TABLE "changes" (
             else: ver_id = None
 
             # Convert change type into row reference
-            cursor.execute("SELECT name FROM types WHERE name = ?", (type,))
+            cursor.execute("SELECT rowid FROM types WHERE name = ?", (type,))
             if  (type_row := cursor.fetchone()):  type_id = type_row[0]
             else: type_id = None
 
