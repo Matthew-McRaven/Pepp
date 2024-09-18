@@ -5,7 +5,14 @@
 
 QSharedPointer<HelpEntry> about_root() {
   // relative to this the directroy in which HelpRoot.qml is located.
-  return QSharedPointer<HelpEntry>::create(HelpCategory::Category::About, -1, "About", "../about/About.qml");
+  auto ret = QSharedPointer<HelpEntry>::create(HelpCategory::Category::About, -1, "About", "../about/About.qml");
+  QList<QSharedPointer<HelpEntry>> children;
+  if (auto changedb = QFileInfo(":/changelog/changelog.db"); changedb.exists()) {
+    children.append(
+        QSharedPointer<HelpEntry>::create(HelpCategory::Category::About, -1, "Changelog", "ChangelogViewer.qml"));
+  }
+  if (children.size() != 0) ret->addChildren(children);
+  return ret;
 }
 
 QSharedPointer<HelpEntry> writing_root() {

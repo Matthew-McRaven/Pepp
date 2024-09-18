@@ -25,6 +25,7 @@
 #include "about/read.hpp"
 #include "about/version.hpp"
 #include "builtins/helpmodel.hpp"
+#include "changelogmodel.hpp"
 #include "components/charcheck.hpp"
 #include "cpu/registermodel.hpp"
 #include "cpu/statusbitmodel.hpp"
@@ -68,6 +69,7 @@ void registerTypes(const char *) {
   qmlRegisterUncreatableType<HelpEntry>("edu.pepp", 1, 0, "HelpEntry", "Created with HelpModel");
   qmlRegisterType<HelpModel>("edu.pepp", 1, 0, "HelpModel");
   qmlRegisterType<HelpFilterModel>("edu.pepp", 1, 0, "FilteredHelpModel");
+  qmlRegisterType<ChangelogModel>("edu.pepp", 1, 0, "ChangelogModel");
   // Components
   // TODO: Missing translations
   qmlRegisterType<CharCheck>("edu.pepp", 1, 0, "CharCheck");

@@ -200,7 +200,7 @@ if (ONLY STREQUAL "BUILD")
     set(CMAKE_CXX_STANDARD_REQUIRED ON)
     # We always want universal builds, so do not set on a per-target basis
 
-    find_package(Qt6 6.4 COMPONENTS REQUIRED Svg Quick Core Gui Qml Test Widgets QuickControls2 Xml)
+    find_package(Qt6 6.4 COMPONENTS REQUIRED Svg Quick Core Gui Qml Test Widgets QuickControls2 Xml Sql)
     add_subdirectory(3rd-party)
     set(CMAKE_AUTOMOC ON)
     set(CMAKE_AUTORCC ON)
@@ -217,12 +217,40 @@ if (ONLY STREQUAL "BUILD")
     else()
        message("Using Qt helpers for byteswap")
     endif()
+    # Needed to genrate documentation, changelogs
+    find_package(Python COMPONENTS Interpreter)
+
+
+
     add_subdirectory(lib)
     add_subdirectory(test)
     add_subdirectory(bin)
 
-    # Needed to genrate documentation
-    find_package(Python COMPONENTS Interpreter)
+    option(FORCE_DISABLE_CHANGEDB "Do not generate changelog DB, even if python is found" OFF)
+    # Convert changelog sources to DB, embded in QRC, and inject into library.
+    # Do not enable feature if lacking python.
+    if(Python_FOUND AND (NOT FORCE_DISABLE_CHANGEDB))
+        message("Generating changelog")
+        # Ensure that target only rebuils iff the CSV files change using depends.
+        add_custom_command(
+                OUTPUT ${CMAKE_CURRENT_BINARY_DIR}/changelog.db
+                COMMAND ${Python_EXECUTABLE} ${CMAKE_CURRENT_LIST_DIR}/scripts/changelog_tools.py to_sql ${CMAKE_CURRENT_BINARY_DIR}/changelog.db
+                DEPENDS ${CMAKE_CURRENT_LIST_DIR}/data/changelog/changes.csv ${CMAKE_CURRENT_LIST_DIR}/data/changelog/versions.csv ${CMAKE_CURRENT_LIST_DIR}/scripts/changelog_tools.py
+                COMMENT "Generating changelog SQL"
+                WORKING_DIRECTORY ${CMAKE_CURRENT_LIST_DIR}
+        )
+        qt_add_resources(pepp-lib "changelog"
+                PREFIX "changelog"
+                BASE ${CMAKE_CURRENT_BINARY_DIR}
+                # This will cause issues in IOS, bug we can cross that bridge later.
+                # See: https://doc.qt.io/qt-6/qt-add-resources.html#arguments-of-the-target-based-variant
+                BIG_RESOURCES
+                FILES ${CMAKE_CURRENT_BINARY_DIR}/changelog.db
+        )
+    else()
+        message("Skipping changelog generation")
+    endif()
+
 
     # Remove generated documentation files on each re-run,
     # to prevent files from leaking between configurations.
