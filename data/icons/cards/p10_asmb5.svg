@@ -1,0 +1,38 @@
+<svg width="190" height="150" xmlns="http://www.w3.org/2000/svg">
+  <style>
+    @font-face {
+      font-family: 'Courier Prime';
+      src: local('Courier Prime');
+    }
+    text {
+      font-family: 'Courier Prime', monospace;
+      font-size: 16px;
+    }
+    .macro {
+      fill: navy;
+      font-style: italic
+    }
+    .mnemonic {
+      fill: navy;
+      font-weight: BOLD
+    }
+    .symbol {
+      fill: magenta;
+    }
+  </style>
+  <text x="10" y="20" class="symbol" >main:</text>
+  <text x="60" y="20" class="macro" >@DECI</text>
+  <text x="130" y="20">tmp, s</text>
+  <text x="60" y="40" class="mnemonic" >LDWA</text>
+  <text x="130" y="40">tmp, s</text>
+  <text x="60" y="60" class="mnemonic" >ADDA</text>
+  <text x="130" y="60">1, i</text>
+  <text x="60" y="80" class="mnemonic" >STWA</text>
+  <text x="130" y="80">tmp, s</text>
+  <text x="60" y="100" class="macro" >@DECO</text>
+  <text x="130" y="100">tmp, s</text>
+  <text x="60" y="120" class="mnemonic" >RET</text>
+  <text x="10" y="140" class="symbol" >tmp: </text>
+  <text x="60" y="140" class="mnemonic" >.EQUATE</text>
+  <text x="130" y="140">0</text>
+</svg>

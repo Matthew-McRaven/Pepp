@@ -1,0 +1,17 @@
+<svg width="115" height="90" xmlns="http://www.w3.org/2000/svg">
+  <style>
+    @font-face {
+      font-family: 'Courier Prime';
+      src: local('Courier Prime');
+    }
+    text {
+      font-family: 'Courier Prime', monospace;
+      font-size: 16px;
+      fill: black;
+    }
+  </style>
+  <text x="10" y="20">D0 00 48 F1</text>
+  <text x="10" y="40">FC 16 D0 00</text>
+  <text x="10" y="60">69 F1 FC 16</text>
+  <text x="10" y="80">00 00 00 zz</text>
+</svg>
