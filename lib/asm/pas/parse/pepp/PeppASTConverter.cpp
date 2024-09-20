@@ -62,6 +62,7 @@ std::any parse::PeppASTConverter::visitProg(PeppParser::ProgContext *context) {
   _blockInfo.symTab = parent->get<generic::SymbolTable>().value;
 
   bool firstLine = true;
+  int lineNo = 0;
   for (auto it = 0; it < context->children.size(); it++) {
     auto child = context->children[it];
     // Clear line-specific meta-info
@@ -72,12 +73,13 @@ std::any parse::PeppASTConverter::visitProg(PeppParser::ProgContext *context) {
       auto typedChild = antlrcpp::downCast<antlr4::tree::TerminalNode *>(child);
       auto token = typedChild->getSymbol();
       if (token->getType() == PeppParser::EOF) break;
-      else if (token->getType() == PeppParser::NEWLINE) addBlank(parent);
+      else if (token->getType() == PeppParser::NEWLINE) {
+        lineNo++;
+        addBlank(parent);
+      }
     } else {
       auto node = std::any_cast<QSharedPointer<Node>>(this->visit(child));
-      // Our internal line number is 0-indexed, and ANTLR4 is 1-indexed.
-      auto line = (qsizetype)context->start->getLine() - 1;
-      node->set(generic::SourceLocation{.value = {.line = line, .valid = true}});
+      node->set(generic::SourceLocation{.value = {.line = lineNo++, .valid = true}});
       addChild(*parent, node);
       // Eat the newline or EOF that always follows an expression.
       it++;
