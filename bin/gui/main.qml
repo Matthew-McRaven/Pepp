@@ -271,10 +271,16 @@ ApplicationWindow {
             anchors.top: parent.top
             anchors.left: parent.left
             anchors.right: parent.right
+            property int iconHeight: 30
             RowLayout {
                 anchors.fill: parent
                 ToolButton {
                     action: actions.file.new_
+                    icon {
+                        source: action.icon.source
+                        height: toolbar.iconHeight
+                        width: toolbar.iconHeight
+                    }
                     hoverEnabled: true
                     ToolTip.visible: hovered
                     ToolTip.text: action.text.replace(/&/g, "")
@@ -283,6 +289,11 @@ ApplicationWindow {
                 ToolSeparator {}
                 ToolButton {
                     action: actions.build.execute
+                    icon {
+                        source: action.icon.source
+                        height: toolbar.iconHeight
+                        width: toolbar.iconHeight
+                    }
                     hoverEnabled: true
                     ToolTip.visible: hovered
                     ToolTip.text: action.text.replace(/&/g, "")
@@ -290,6 +301,11 @@ ApplicationWindow {
                 }
                 ToolButton {
                     action: actions.debug.start
+                    icon {
+                        source: action.icon.source
+                        height: toolbar.iconHeight
+                        width: toolbar.iconHeight
+                    }
                     hoverEnabled: true
                     ToolTip.visible: hovered
                     ToolTip.text: action.text.replace(/&/g, "")
@@ -298,6 +314,11 @@ ApplicationWindow {
                 ToolSeparator {}
                 ToolButton {
                     action: actions.debug.continue_
+                    icon {
+                        source: action.icon.source
+                        height: toolbar.iconHeight
+                        width: toolbar.iconHeight
+                    }
                     hoverEnabled: true
                     ToolTip.visible: hovered
                     ToolTip.text: action.text.replace(/&/g, "")
@@ -305,6 +326,11 @@ ApplicationWindow {
                 }
                 ToolButton {
                     action: actions.debug.stop
+                    icon {
+                        source: action.icon.source
+                        height: toolbar.iconHeight
+                        width: toolbar.iconHeight
+                    }
                     hoverEnabled: true
                     ToolTip.visible: hovered
                     ToolTip.text: action.text.replace(/&/g, "")
@@ -312,6 +338,11 @@ ApplicationWindow {
                 }
                 ToolButton {
                     action: actions.debug.step
+                    icon {
+                        source: action.icon.source
+                        height: toolbar.iconHeight
+                        width: toolbar.iconHeight
+                    }
                     hoverEnabled: true
                     ToolTip.visible: hovered
                     ToolTip.text: action.text.replace(/&/g, "")
@@ -319,6 +350,11 @@ ApplicationWindow {
                 }
                 ToolButton {
                     action: actions.debug.stepOver
+                    icon {
+                        source: action.icon.source
+                        height: toolbar.iconHeight
+                        width: toolbar.iconHeight
+                    }
                     hoverEnabled: true
                     ToolTip.visible: hovered
                     ToolTip.text: action.text.replace(/&/g, "")
@@ -326,6 +362,11 @@ ApplicationWindow {
                 }
                 ToolButton {
                     action: actions.debug.stepInto
+                    icon {
+                        source: action.icon.source
+                        height: toolbar.iconHeight
+                        width: toolbar.iconHeight
+                    }
                     hoverEnabled: true
                     ToolTip.visible: hovered
                     ToolTip.text: action.text.replace(/&/g, "")
@@ -333,6 +374,11 @@ ApplicationWindow {
                 }
                 ToolButton {
                     action: actions.debug.stepOut
+                    icon {
+                        source: action.icon.source
+                        height: toolbar.iconHeight
+                        width: toolbar.iconHeight
+                    }
                     hoverEnabled: true
                     ToolTip.visible: hovered
                     ToolTip.text: action.text.replace(/&/g, "")
