@@ -107,6 +107,7 @@ public:
   bool moveRows(const QModelIndex &sourceParent, int sourceRow, int count, const QModelIndex &destinationParent,
                 int destinationChild) override;
   QHash<int, QByteArray> roleNames() const override;
+  Q_INVOKABLE QString describe(int index) const;
 signals:
   void rowCountChanged(int);
 

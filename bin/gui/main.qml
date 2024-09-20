@@ -423,10 +423,10 @@ ApplicationWindow {
                         anchors.fill: parent
                         delegate: TabButton {
                             // required property bool isPlus
-                            text: index
+                            text: `${index}<br>${pm.describe(index)}`
                             font: menuFont.font
-                            // TODO: Set to equal the width of the text + 2 spaces.
-                            width: Math.max(100, projectSelect.width / 6)
+                            width: Math.max(200, projectSelect.width / 4,
+                                            implicitContentWidth)
                             Button {
                                 text: "X"
                                 anchors.right: parent.right
