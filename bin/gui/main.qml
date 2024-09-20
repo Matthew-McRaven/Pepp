@@ -204,6 +204,10 @@ ApplicationWindow {
     FontMetrics {
         id: menuFont
     }
+    function syncEditors() {
+        if (projectLoader.item)
+            projectLoader.item.syncEditors()
+    }
 
     // Helper to propogate to current delegate.
     function preAssemble() {
