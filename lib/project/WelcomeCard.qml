@@ -30,14 +30,20 @@ Rectangle {
         }
     }
     color: wrapper.enabled ? palette.button : palette.button.darker(1.4)
-
+    WelcomeTitle {
+        id: title
+        anchors.top: parent.top
+        anchors.left: parent.left
+        anchors.right: parent.right
+        bottomPadding: wrapper.textPadding
+    }
     // Placeholder for image showing current project type.
     Image {
         id: image
         fillMode: Image.PreserveAspectFit
         anchors {
             right: parent.right
-            top: parent.top
+            top: title.bottom
             left: parent.left
             bottom: parent.bottom
             // Ensure that the image does not clip the title text
@@ -67,22 +73,20 @@ Rectangle {
 
         // Must clip or description text will overflow into buttons below.
         clip: true
-        // Animate height to slide in and out.
-        height: title.height
         state: "unhovered"
         states: [
             State {
                 name: "unhovered"
                 PropertyChanges {
                     target: infoOverlay
-                    height: title.height
+                    height: 0
                 }
             },
             State {
                 name: "hovered"
                 PropertyChanges {
                     target: infoOverlay
-                    height: parent.height
+                    height: parent.height - title.height
                 }
             }
         ]
@@ -94,11 +98,6 @@ Rectangle {
         Column {
             anchors.fill: parent
             anchors.margins: wrapper.textPadding
-            WelcomeTitle {
-                id: title
-                width: parent.width
-                bottomPadding: wrapper.textPadding
-            }
             // Hidden by default when not hovered.
             Rectangle {
                 id: bar
