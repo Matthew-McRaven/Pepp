@@ -56,3 +56,25 @@ QHash<int, QByteArray> ProjectModel::roleNames() const {
   ret[static_cast<int>(Roles::ProjectRole)] = "ProjectRole";
   return ret;
 }
+
+QString ProjectModel::describe(int index) const {
+  if (index < 0 || index >= _projects.size()) return {};
+  QMap<builtins::Architecture, QString> arch_map = {
+      {builtins::Architecture::PEP10, "Pep/10"},
+      {builtins::Architecture::PEP9, "Pep/9"},
+      {builtins::Architecture::PEP8, "Pep/8"},
+      {builtins::Architecture::RISCV, "RISC-V"},
+  };
+  auto abs_enum = QMetaEnum::fromType<builtins::Abstraction>();
+  builtins::Architecture arch;
+  builtins::Abstraction abs;
+  if (auto isa = dynamic_cast<Pep10_ISA *>(_projects[index].get())) {
+    arch = isa->architecture();
+    abs = isa->abstraction();
+  } else if (auto asmb = dynamic_cast<Pep10_ASMB *>(_projects[index].get())) {
+    arch = asmb->architecture();
+    abs = asmb->abstraction();
+  }
+  QString abs_str = abs_enum.valueToKey((int)abs);
+  return QStringLiteral("%1, %2").arg(arch_map[arch], abs_str);
+}
