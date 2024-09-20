@@ -108,7 +108,10 @@ QtObject {
         readonly property var formatObject: Action {
             enabled: project?.allowedDebugging & DebugEnableFlags.LoadObject
             property string nativeText: ""
-            onTriggered: project.onFormatObject()
+            onTriggered: {
+                window.syncEditors()
+                project.onFormatObject()
+            }
             text: "&Format Object Code"
             icon.source: "image://icons/blank.svg"
             shortcut: ["Ctrl+Shift+F"]
@@ -117,7 +120,10 @@ QtObject {
         readonly property var loadObject: Action {
             enabled: project?.allowedDebugging & DebugEnableFlags.LoadObject
             property string nativeText: ""
-            onTriggered: project.onLoadObject()
+            onTriggered: {
+                window.syncEditors()
+                project.onLoadObject()
+            }
             text: qsTr("&Load Object Code")
             icon.source: `image://icons/build/flash${enabled ? '' : '_disabled'}${dark ? '' : '_dark'}.svg`
             shortcut: "Ctrl+Shift+L"

@@ -106,7 +106,10 @@ Item {
             osList.readOnly = curORO
         }
     }
-
+    // TODO: replace preAssemble someday...
+    function syncEditors() {
+        save()
+    }
     function save() {
         // Supress saving messages when there is no project.
         if (project === null)
