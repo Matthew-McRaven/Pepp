@@ -4,7 +4,7 @@ import QtQuick.Layouts
 import edu.pepp 1.0
 
 Rectangle {
-    color: 'purple'
+
     signal addProject(string arch, string abstraction, string features, bool reuse)
     ScrollView {
         anchors.fill: parent
