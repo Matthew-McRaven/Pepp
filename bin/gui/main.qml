@@ -35,8 +35,8 @@ import Qt.labs.platform as Labs
 
 ApplicationWindow {
     id: window
-    width: 640
-    height: 480
+    width: 1920
+    height: 1080
     visible: true
     title: qsTr("Pepp IDE")
 
