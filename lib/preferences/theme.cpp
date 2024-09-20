@@ -458,8 +458,8 @@ void Theme::loadMissing() {
                             false, false, false);
       break;
     case Themes::Roles::CommentRole:
-      pref = new Preference(this, id, "Comment", QColor("darkgreen").rgba(), qRgba(0xff, 0xff, 0xff, 0xff), 0, false,
-                            false, false, false);
+      pref = new Preference(this, id, "Comment", qRgb(0x66, 0xa3, 0x33), qRgba(0xff, 0xff, 0xff, 0xff), 0, false, false,
+                            false, false);
       break;
     case Themes::Roles::ErrorRole:
       pref = new Preference(this, id, "Error", qRgb(0x00, 0x00, 0x00), qRgba(0xff, 0x00, 0x00, 0xff), 0, false, false,

@@ -250,7 +250,7 @@
         {
             "background": "0xffffffff",
             "bold": false,
-            "foreground": "0xff006400",
+            "foreground": "0xff66a333",
             "id": "CommentRole",
             "italics": false,
             "name": "Comment",
