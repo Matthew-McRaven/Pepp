@@ -154,6 +154,9 @@ jobs:
         if: ${{ contains(inputs.name, 'EMSDK') }}
         run: mv build/output/pepp.html build/output/index.html
 
+      - name: Replace default Qt logo
+        if: ${{ contains(inputs.name, 'EMSDK') }}
+        run: mv data/app_icon/icon.svg build/output/qtlogo.svg
       - name: Gather WASM build artifacts
         uses: actions/upload-artifact@v4
         if: ${{ contains(inputs.name, 'EMSDK') }}
