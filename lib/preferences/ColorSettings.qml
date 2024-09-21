@@ -11,7 +11,6 @@ Item {
 
     //  Used for updates
     required property var model
-    property int colWidth: 70
     property alias color: backgroundRect.color
     implicitWidth: layout.childrenRect.width
     implicitHeight: layout.childrenRect.height
@@ -31,67 +30,46 @@ Item {
             border.color: palette.windowText
             border.width: 1
         }
-        ColumnLayout {
+        GridLayout {
+            columns: 2
             anchors.fill: parent
-            RowLayout {
-                id: foreground
-                spacing: 5
-                height: 20
-                Layout.alignment: Qt.AlignLeft
-                Layout.fillWidth: true
-                Label {
-                    text: "Foreground:"
-                    Layout.preferredWidth: wrapper.colWidth * 1.25
-                    Layout.preferredHeight: 20
-                    horizontalAlignment: Text.AlignLeft
-                    verticalAlignment: Text.AlignVCenter
-                }
-                Ui.ColorButton {
-                    id: fgText
-                    Layout.preferredWidth: wrapper.colWidth
-                    Layout.preferredHeight: 20
-                    color: root.model.currentPref.foreground
-
-                    onUpdatedColor: function (newColor) {
-                        if (newColor !== root.model.currentPref.foreground) {
-
-                            model.updatePreference(root.model.currentPref.id,
-                                                   1, newColor)
-                        }
-                    }
-                }
+            Label {
+                text: "Foreground:"
+                horizontalAlignment: Text.AlignLeft
+                verticalAlignment: Text.AlignVCenter
             }
-            RowLayout {
-                id: background
-                spacing: 5
-                height: 20
-                Layout.fillWidth: true
-                Layout.alignment: Qt.AlignLeft
-                Label {
-                    text: "Background:"
-                    Layout.preferredWidth: wrapper.colWidth * 1.25
-                    Layout.preferredHeight: 20
-                    horizontalAlignment: Text.AlignLeft
-                    verticalAlignment: Text.AlignVCenter
-                }
+            Ui.ColorButton {
+                id: fgText
+                color: root.model.currentPref.foreground
 
-                Ui.ColorButton {
-                    id: bgText
-                    Layout.preferredWidth: wrapper.colWidth
-                    Layout.preferredHeight: 20
-                    color: root.model.currentPref.background
+                onUpdatedColor: function (newColor) {
+                    if (newColor !== root.model.currentPref.foreground) {
 
-                    onUpdatedColor: function (newColor) {
-                        if (newColor !== root.model.currentPref.background) {
-
-                            model.updatePreference(root.model.currentPref.id,
-                                                   2, newColor)
-                        }
+                        model.updatePreference(root.model.currentPref.id,
+                                               1, newColor)
                     }
                 }
             }
             Label {
-                text: "Font Properties"
+                text: "Background:"
+                horizontalAlignment: Text.AlignLeft
+                verticalAlignment: Text.AlignVCenter
+            }
+
+            Ui.ColorButton {
+                id: bgText
+                color: root.model.currentPref.background
+
+                onUpdatedColor: function (newColor) {
+                    if (newColor !== root.model.currentPref.background) {
+
+                        model.updatePreference(root.model.currentPref.id,
+                                               2, newColor)
+                    }
+                }
+            }
+            Label {
+                text: "Font Properties: "
                 Layout.preferredHeight: 30
                 Layout.fillWidth: true
                 Layout.alignment: Qt.AlignLeft
@@ -117,6 +95,7 @@ Item {
             Rectangle {
                 Layout.fillWidth: true
                 Layout.fillHeight: true
+                Layout.columnSpan: 2
                 color: "transparent"
             }
         }
