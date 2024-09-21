@@ -9,14 +9,16 @@ class Change : public QObject {
   Q_OBJECT
   Q_PROPERTY(QString body READ body CONSTANT)
   Q_PROPERTY(int priority READ priority CONSTANT)
+  Q_PROPERTY(int ghRef READ ghRef CONSTANT)
 public:
-  Change(QString body, int priority, QObject *parent = nullptr);
+  Change(QString body, int priority, int ghRef = 0, QObject *parent = nullptr);
   QString body() const { return _body; }
   int priority() const { return _priority; }
+  int ghRef() const { return _ghRef; }
 
 private:
   QString _body;
-  int _priority, _type;
+  int _priority, _ghRef;
 };
 
 class Section : public QObject {

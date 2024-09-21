@@ -42,7 +42,12 @@ Rectangle {
                         delegate: Text {
                             id: changeDelegate
                             required property var modelData
-                            text: `        - ${modelData.body}`
+                            property string link: modelData.ghRef === 0 ? "" : `https://github.com/Matthew-McRaven/Pepp/issues/${modelData.ghRef}`
+                            text: `        - ${modelData.body}` + (modelData.ghRef !== 0 ? ` (<a href="${changeDelegate.link}">#${modelData.ghRef}</a>)` : "")
+                            onLinkActivated: {
+                                if (changeDelegate.link.length > 0)
+                                    Qt.openUrlExternally(changeDelegate.link)
+                            }
                         }
                     }
                 }

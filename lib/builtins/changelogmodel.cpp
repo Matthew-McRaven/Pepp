@@ -6,7 +6,8 @@
 #include <QSqlError>
 #include <QSqlQuery>
 
-Change::Change(QString body, int priority, QObject *parent) : QObject(parent), _body(body), _priority(priority) {}
+Change::Change(QString body, int priority, int ref, QObject *parent)
+    : QObject(parent), _body(body), _priority(priority), _ghRef(ref) {}
 
 Section::Section(QString title, QObject *parent) : QObject(parent), _title(title) {}
 
@@ -68,7 +69,7 @@ void ChangelogModel::loadFromDB() {
 
     // Construct appropriate sections and changes as we iteratre over changes table.
     {
-      QSqlQuery q("SELECT version, type, priority, message FROM changes", db);
+      QSqlQuery q("SELECT version, type, priority, ref, message FROM changes", db);
       q.exec();
       // Map (version, type) to section.
       QMap<std::tuple<int, int>, Section *> sections;
@@ -77,7 +78,7 @@ void ChangelogModel::loadFromDB() {
         auto version = versions[q.value(0).toInt()];
         int type = q.value(1).toInt();
         int priority = q.value(2).toInt();
-        QString message = q.value(3).toString();
+        QString message = q.value(4).toString();
 
         // Attempt to find existing section (if it exists), or create one.
         auto section_key = std::make_tuple<int, int>(q.value(0).toInt(), q.value(1).toInt());
@@ -91,7 +92,7 @@ void ChangelogModel::loadFromDB() {
         }
 
         // Add the current change to that section
-        auto tmp = new Change(message, priority, nullptr);
+        auto tmp = new Change(message, priority, q.value(3).toInt(), nullptr);
         QQmlEngine::setObjectOwnership(tmp, QQmlEngine::CppOwnership);
         target_section->add_change(tmp);
       }
