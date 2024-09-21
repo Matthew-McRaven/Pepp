@@ -5,6 +5,10 @@ Rectangle {
     ChangelogModel {
         id: model
     }
+    TextMetrics {
+        id: tm
+        text: "      "
+    }
     ListView {
         id: list
         anchors.fill: parent
@@ -41,9 +45,15 @@ Rectangle {
                         model: modelData.changes
                         delegate: Text {
                             id: changeDelegate
+
                             required property var modelData
+                            //font.weight: modelData.priority === 2 ? Font.Bold : Font.Normal
+                            //font.underline: modelData.priority === 2
                             property string link: modelData.ghRef === 0 ? "" : `https://github.com/Matthew-McRaven/Pepp/issues/${modelData.ghRef}`
-                            text: `        - ${modelData.body}` + (modelData.ghRef !== 0 ? ` (<a href="${changeDelegate.link}">#${modelData.ghRef}</a>)` : "")
+                            property string linkTail: modelData.ghRef === 0 ? "" : `(<a href="${changeDelegate.link}">#${modelData.ghRef}</a>)`
+                            text: `<p style="text-indent:${Math.floor(
+                                      tm.width)}px;"> - ${modelData.body} ${linkTail}</p>`
+                            textFormat: Text.RichText
                             onLinkActivated: {
                                 if (changeDelegate.link.length > 0)
                                     Qt.openUrlExternally(changeDelegate.link)
