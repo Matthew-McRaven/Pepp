@@ -27,10 +27,12 @@ Rectangle {
                 text: `<h1><a href="${verDelegate.link}">${version.version}</a> -- ${verDelegate.dateStr(
                           )}</h1>`
                 onLinkActivated: Qt.openUrlExternally(verDelegate.link)
+                color: palette.windowText
             }
             Text {
                 text: version.blurb.length > 0 ? version.blurb + "<br><br>" : ""
                 wrapMode: Text.Wrap
+                color: palette.windowText
             }
 
             Repeater {
@@ -40,6 +42,7 @@ Rectangle {
                     required property var modelData
                     Text {
                         text: `    <b>${modelData.title}</b>`
+                        color: palette.windowText
                     }
                     Repeater {
                         model: modelData.changes
@@ -54,6 +57,7 @@ Rectangle {
                             text: `<p style="text-indent:${Math.floor(
                                       tm.width)}px;"> - ${modelData.body} ${linkTail}</p>`
                             textFormat: Text.RichText
+                            color: palette.windowText
                             onLinkActivated: {
                                 if (changeDelegate.link.length > 0)
                                     Qt.openUrlExternally(changeDelegate.link)
