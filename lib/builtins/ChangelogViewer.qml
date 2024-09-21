@@ -12,8 +12,16 @@ Rectangle {
         delegate: Column {
             id: verDelegate
             property var version: model.display
+            function dateStr() {
+                if (version.hasDate) {
+                    return version.date.toISOString().substring(0, 10)
+                } else
+                    return "Unreleased"
+            }
+            property string link: `https://github.com/Matthew-McRaven/Pepp/releases/v${version.version}`
             Text {
-                text: `<h1>${version.version}</h1>`
+                text: `<h1><a href="${verDelegate.link}">${version.version}</a> -- ${verDelegate.dateStr(
+                          )}</h1>`
             }
             Repeater {
                 model: version.sections

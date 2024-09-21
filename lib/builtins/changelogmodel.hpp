@@ -1,5 +1,6 @@
 #pragma once
 #include <QAbstractListModel>
+#include <QDate>
 #include <QMap>
 #include <QObject>
 #include <QVersionNumber>
@@ -41,18 +42,23 @@ class Version : public QObject {
   Q_PROPERTY(int major READ major CONSTANT)
   Q_PROPERTY(int minor READ minor CONSTANT)
   Q_PROPERTY(int micro READ micro CONSTANT)
+  Q_PROPERTY(bool hasDate READ hasDate CONSTANT)
+  Q_PROPERTY(QDate date READ date CONSTANT)
 public:
-  Version(QVersionNumber ver, QObject *parent = nullptr);
+  Version(QVersionNumber ver, QDate date, QObject *parent = nullptr);
   void add_section(Section *section);
   QVersionNumber version() const { return _version; }
   Q_INVOKABLE QString version_str() const { return _version.toString(); }
   Q_INVOKABLE int major() const { return _version.majorVersion(); }
   Q_INVOKABLE int minor() const { return _version.minorVersion(); }
   Q_INVOKABLE int micro() const { return _version.microVersion(); }
+  Q_INVOKABLE bool hasDate() const { return _date.isValid(); }
+  Q_INVOKABLE QDate date() const { return _date; }
   Q_INVOKABLE QList<Section *> sections() const { return _sections; }
 
 private:
   QVersionNumber _version;
+  QDate _date;
   QList<Section *> _sections;
 };
 

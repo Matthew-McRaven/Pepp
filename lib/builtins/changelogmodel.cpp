@@ -15,7 +15,7 @@ void Section::add_change(Change *change) {
   _changes.append(change);
 }
 
-Version::Version(QVersionNumber ver, QObject *parent) : QObject(parent), _version(ver) {}
+Version::Version(QVersionNumber ver, QDate date, QObject *parent) : QObject(parent), _version(ver), _date(date) {}
 
 void Version::add_section(Section *section) {
   section->setParent(this);
@@ -41,16 +41,11 @@ void ChangelogModel::loadFromDB() {
     // Create Version objects for each row in version table, include special handling for NULL/0 cases
     QMap<int, Version *> versions;
     {
-      auto tmp = new Version(QVersionNumber(), this);
-      QQmlEngine::setObjectOwnership(tmp, QQmlEngine::CppOwnership);
-      versions[0] = tmp;
-      _versions.push_back(tmp);
-    }
-    {
-      QSqlQuery q("SELECT id,version FROM versions", db);
+      QSqlQuery q("SELECT id,version, date FROM versions", db);
       q.exec();
       while (q.next()) {
-        auto tmp = new Version(QVersionNumber::fromString(q.value(1).toString()), this);
+        auto date = QDate::fromString(q.value(2).toString(), "yyyy-MM-dd");
+        auto tmp = new Version(QVersionNumber::fromString(q.value(1).toString()), date, this);
         QQmlEngine::setObjectOwnership(tmp, QQmlEngine::CppOwnership);
         if (auto it = versions.find(q.value(0).toInt()); it != versions.end()) qFatal("Duplicate version");
         versions[q.value(0).toInt()] = tmp;
