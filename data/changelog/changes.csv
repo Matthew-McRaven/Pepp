@@ -24,3 +24,4 @@ Fixed,Minor,0.7.3,616,"Prevent ""Build > Format Object Code"" from deleting all 
 Changed,Minor,0.7.3,615,Increase size of icons in application toolbar
 Changed,Minor,0.7.3,619,Display project's architecture and abstraction in tab control
 Fixed,,0.7.3,620,"In WASM builds, use our Pepp logo instead of Qt's default logo"
+Changed,,0.7.3,624,"In ""Welcome"" mode, add meaningful descriptions to enabled cards"
