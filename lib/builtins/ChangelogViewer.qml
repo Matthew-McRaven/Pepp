@@ -24,6 +24,11 @@ Rectangle {
                           )}</h1>`
                 onLinkActivated: Qt.openUrlExternally(verDelegate.link)
             }
+            Text {
+                text: version.blurb.length > 0 ? version.blurb + "<br><br>" : ""
+                wrapMode: Text.Wrap
+            }
+
             Repeater {
                 model: version.sections
                 delegate: Column {
