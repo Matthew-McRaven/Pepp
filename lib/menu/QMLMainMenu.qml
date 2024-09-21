@@ -308,4 +308,12 @@ MenuBar {
         }
         // Dynamic magic to mode switch!
     }
+    // Only meant for testing the app, not meant for deployment to users!
+    Menu {
+        title: qsTr("App D&ev")
+        MenuItem {
+            text: qsTr("Clear Changelog Cache")
+            onTriggered: actions.appdev.clearChangelogCache.trigger()
+        }
+    }
 }

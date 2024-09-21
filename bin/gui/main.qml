@@ -20,6 +20,7 @@ import QtQuick.Window
 import QtQuick.Controls
 import QtQuick.Layouts
 import Qt.labs.qmlmodels
+import QtCore
 import "qrc:/ui/about" as About
 import "qrc:/ui/components" as Comp
 import "qrc:/ui/memory/hexdump" as Memory
@@ -593,6 +594,36 @@ ApplicationWindow {
         parent: Overlay.overlay
         anchors.centerIn: parent
     }
+    Dialog {
+        id: whatsNewDialog
+        title: qsTr("What's New")
+        parent: Overlay.overlay
+        anchors.centerIn: parent
+        modal: true
+        width: 700
+        clip: true
+        height: 700
+        contentItem: Builtins.ChangelogViewer {}
+        standardButtons: Dialog.Close
+        Settings {
+            id: whatsNewDialogSettings
+            property string lastOpenedVersion
+        }
+        function onClearLastVersion() {
+            whatsNewDialogSettings.lastOpenedVersion = ""
+            whatsNewDialogSettings.sync()
+        }
+        Component.onCompleted: {
+            actions.appdev.clearChangelogCache.triggered.connect(
+                        onClearLastVersion)
+            if (whatsNewDialogSettings.lastOpenedVersion !== Version.version_str_full) {
+                whatsNewDialogSettings.lastOpenedVersion = Version.version_str_full
+                whatsNewDialogSettings.sync()
+                open()
+            }
+        }
+    }
+
     Dialog {
         id: preferencesDialog
         title: qsTr("Preferences")
