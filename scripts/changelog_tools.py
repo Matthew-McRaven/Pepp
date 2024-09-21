@@ -4,7 +4,25 @@ import sqlite3
 
 data_dir = pathlib.Path(__file__).parent.parent / "data" / "changelog"
 
-def to_sqlite(args):
+def compare_versions(version1: str, version2: str) -> int:
+    # Split the version strings into parts
+    v1_parts = [int(part) for part in version1.split('.')]
+    v2_parts = [int(part) for part in version2.split('.')]
+
+    # Compare each part
+    for v1, v2 in zip(v1_parts, v2_parts):
+        if v1 > v2: return 1
+        elif v1 < v2: return -1
+
+    # If one version has more parts (e.g., 1.2 vs 1.2.1), compare remaining parts
+    if len(v1_parts) > len(v2_parts): return 1
+    elif len(v1_parts) < len(v2_parts): return -1
+    else: return 0
+def version_key(version: str):
+    # Convert the version string into a tuple of integers
+    return tuple(int(part) for part in version.split('.'))
+
+def to_sqlite_helper(conn):
     create_ver_table ="""
 CREATE TABLE "versions" (
         "id"	INTEGER UNIQUE, 
@@ -19,12 +37,14 @@ CREATE TABLE "versions" (
         UNIQUE(major, minor, patch)
 );
 """
+
     create_types_table="""
 CREATE TABLE "types" (
         "name"	TEXT UNIQUE COLLATE NOCASE,
         PRIMARY KEY("name")
 );
 """
+
     create_changes_table="""
 CREATE TABLE "changes" (
         "version"	INTEGER,
@@ -37,7 +57,6 @@ CREATE TABLE "changes" (
 );
 """
     import csv
-    conn = sqlite3.connect(args.db)
     cursor = conn.cursor()
 
     # Create table with info about versions
@@ -84,8 +103,50 @@ CREATE TABLE "changes" (
                            (ver_id, type_id, priority_int, msg,ref))
     conn.commit()
 
+def to_sqlite(args):
+    conn = sqlite3.connect(args.db)
+    to_sqlite_helper(conn)
+    conn.close()
 
-def to_text(args): raise NotImplemented()
+def stringize_version(conn, version):
+    # Print header
+    date,version_id = conn.execute("SELECT date, id FROM versions WHERE version = ?", (version,)).fetchone()[0:2]
+    hdr_date = f"Released {date}" if date!="??" else "Unreleased"
+    hdr_title = f"# Version [{version}](https://github.com/Matthew-McRaven/Pepp/releases/v{version})"
+    hdr_blurb = conn.execute("SELECT blurb FROM versions WHERE version = ?", (version,)).fetchone()[0]
+
+    # Print (sorted) sections
+    sections = []
+    section_order = [x for x in conn.execute("SELECT rowid, name FROM types ORDER BY rowid;").fetchall()]
+    for section_id, section_name in section_order:
+        changes = conn.execute("SELECT ref, message FROM changes WHERE version = ? AND type = ? ORDER BY priority DESC", (version_id, section_id)).fetchall()
+        if len(changes) == 0: continue
+        section = f"## {section_name}\n\n"
+        change_strs = []
+        for ref, message in changes:
+            if not ref: change_strs.append(f" - {message}")
+            else: change_strs.append(f" - {message}. See [#{ref}]()")
+        sections.append(section + "\n".join(change_strs)+"\n")
+    n="\n"
+    return f"""{hdr_title} -- {hdr_date}\n\n{hdr_blurb}\n\n{n.join(sections)}"""
+
+def to_text(args):
+    conn = sqlite3.connect(":memory:")
+    to_sqlite_helper(conn)
+    cursor = conn.cursor()
+    # Get version range
+    cursor.execute("SELECT version FROM versions ORDER BY id;")
+    all_versions = sorted([row[0] for row in cursor.fetchall()], key=version_key)
+    begin = args.begin if args.begin else all_versions[0]
+    assert begin in all_versions, f"Version {begin} not found in database"
+    end = args.end if args.end else all_versions[-1]
+    assert end in all_versions, f"Version {end} not found in database"
+    to_list = reversed(all_versions[all_versions.index(begin):all_versions.index(end)+1])
+    items = [stringize_version(conn, v) for v in to_list]
+    output = "\n\n".join(items).rstrip()
+    with open(args.changelog, "w") as f: f.write(output+"\n")
+    conn.close()
+
 
 def normalize(args): raise NotImplemented()
 
@@ -102,8 +163,8 @@ if __name__ == "__main__":
     # Subcommand: to_text
     parser_to_text = subparsers.add_parser('to_text', help='Create a MD changelog for a range of versions')
     parser_to_text.add_argument('changelog', help='File into which to write changelog')
-    parser_to_text.add_argument('--from', dest='_from', help='First version to include in changelog', default=None)
-    parser_to_text.add_argument('--to', dest='to', help='Last version to include in changelog', default=None)
+    parser_to_text.add_argument('--begin', dest='begin', help='First version to include in changelog', default=None)
+    parser_to_text.add_argument('--end', dest='end', help='Last version to include in changelog (inclusive)', default=None)
     parser_to_text.set_defaults(func=to_text)
 
     # Subcommand: null_to_latest
@@ -113,5 +174,3 @@ if __name__ == "__main__":
     args = parser.parse_args()
     if hasattr(args, 'func'): args.func(args)
     else: parser.print_help()
-
-
