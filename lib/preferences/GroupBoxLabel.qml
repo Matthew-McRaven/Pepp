@@ -5,6 +5,8 @@ Item {
     property alias backgroundColor: backColor.color
     property alias textColor: label.color
     property alias text: label.text
+    implicitWidth: childrenRect.width
+    implicitHeight: childrenRect.height
 
     Label {
         id: label

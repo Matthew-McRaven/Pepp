@@ -599,11 +599,10 @@ ApplicationWindow {
         parent: Overlay.overlay
         anchors.centerIn: parent
         modal: true
-        width: 700 // TODO: prevent binding loop on preferences size.
-        height: 700
-
+        height: Math.min(prefs.contentHeight + 100, 1000)
         contentItem: Pref.Preferences {
             id: prefs
+            anchors.margins: parent.padding
             anchors.left: parent.left
             anchors.right: parent.right
             anchors.top: parent.header.bottom

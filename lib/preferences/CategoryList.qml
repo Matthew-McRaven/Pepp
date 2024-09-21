@@ -6,7 +6,8 @@ Rectangle {
     id: root
 
     required property var model
-
+    implicitWidth: listView.childrenRect.width
+    implicitHeight: listView.childrenRect.height
     color: palette.window
     border.color: palette.windowText
     border.width: 1
