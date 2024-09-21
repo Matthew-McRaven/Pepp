@@ -471,8 +471,8 @@ void Pep10_ISA::onDeferredExecution(sim::api2::trace::Action stopOn, project::St
   // Only terminates if something written to endpoint or there was an error
   if (endpoint->next_value().has_value() || err) {
     switch (_state) {
-      _system->bus()->trace(false);
     case State::NormalExec:
+      _system->bus()->trace(false);
       _state = State::Halted;
       emit allowedDebuggingChanged();
       emit allowedStepsChanged();
