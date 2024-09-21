@@ -6,6 +6,8 @@ import Qt.labs.platform as Platform
 Item {
     id: root
     required property color color
+    implicitWidth: wrapper.implicitWidth
+    implicitHeight: wrapper.implicitHeight
 
     //  Indicates user changed colors
     signal updatedColor(color newColor)

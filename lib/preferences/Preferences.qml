@@ -5,16 +5,18 @@ import QtQuick.Layouts
 import "." as Ui
 import edu.pepp 1.0
 
-Rectangle {
+Flickable {
     id: root
 
-    color: palette.base
+    implicitHeight: layout.childrenRect.height
+    implicitWidth: layout.childrenRect.width
+    contentWidth: layout.childrenRect.width
+    contentHeight: layout.childrenRect.height
 
+    clip: true
     required property variant model
-
     RowLayout {
-        anchors.fill: parent
-
+        id: layout
         //  Category list
         Ui.CategoryList {
             id: categoryList
@@ -31,7 +33,6 @@ Rectangle {
             Layout.fillHeight: true
             Layout.fillWidth: true
             Layout.margins: 3
-
             color: palette.base
             model: root.model
         }

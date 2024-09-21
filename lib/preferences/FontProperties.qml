@@ -14,75 +14,59 @@ Item {
     property alias underline: underlineCB.checked
     property alias strikeout: strikeoutCB.checked
 
-    implicitWidth: parent.width
+    implicitWidth: layout.childrenRect.width
+    implicitHeight: layout.childrenRect.height
 
     //  Indicates user changed font properties
     signal updatedFont(int fontProperty, bool value)
 
-    ColumnLayout {
+    GridLayout {
+        id: layout
+        columns: 2
+        columnSpacing: 2
+        rowSpacing: 2
 
-        RowLayout {
-            Layout.fillWidth: true
-            Layout.alignment: Qt.AlignTop
+        CheckBox {
+            id: boldCB
+            text: "Bold"
+            enabled: isEnabled
 
-            CheckBox {
-                id: boldCB
-                text: "Bold"
-                enabled: isEnabled
-                Layout.preferredWidth: buttonWidth
-                Layout.preferredHeight: buttonHeight
-
-                onClicked: {
-                    wrapper.updatedFont(3 /*PreferenceModel.PrefProperty.Bold*/
-                                        , boldCB.checked)
-                }
-            }
-            CheckBox {
-                id: italicsCB
-                Layout.preferredWidth: buttonWidth
-                Layout.preferredHeight: buttonHeight
-                enabled: isEnabled
-                text: "Italics"
-
-                onClicked: {
-                    wrapper.updatedFont(
-                                4 /*PreferenceModel.PrefProperty.Italic*/
-                                , italicsCB.checked)
-                }
+            onClicked: {
+                wrapper.updatedFont(3 /*PreferenceModel.PrefProperty.Bold*/
+                                    , boldCB.checked)
             }
         }
-        RowLayout {
-            Layout.fillWidth: true
-            Layout.alignment: Qt.AlignTop
-
-            CheckBox {
-                id: underlineCB
-                text: "Underline"
-                enabled: isEnabled
-                Layout.preferredWidth: buttonWidth
-                Layout.preferredHeight: buttonHeight
-
-                onClicked: {
-                    wrapper.updatedFont(
-                                5 /*PreferenceModel.PrefProperty.Underline*/
-                                , underlineCB.checked)
-                }
+        CheckBox {
+            id: italicsCB
+            enabled: isEnabled
+            text: "Italics"
+            onClicked: {
+                wrapper.updatedFont(4 /*PreferenceModel.PrefProperty.Italic*/
+                                    , italicsCB.checked)
             }
-            CheckBox {
-                id: strikeoutCB
-                text: "Strikeout"
-                enabled: isEnabled
-                Layout.preferredWidth: buttonWidth
-                Layout.preferredHeight: buttonHeight
+        }
+        CheckBox {
+            id: underlineCB
+            text: "Underline"
+            enabled: isEnabled
 
-                onClicked: {
-                    wrapper.updatedFont(
-                                6 /*PreferenceModel.PrefProperty.Strikeout*/
-                                , strikeoutCB.checked)
-                }
+            onClicked: {
+                wrapper.updatedFont(5 /*PreferenceModel.PrefProperty.Underline*/
+                                    , underlineCB.checked)
+            }
+        }
+        CheckBox {
+            id: strikeoutCB
+            text: "Strikeout"
+            enabled: isEnabled
+
+            onClicked: {
+                wrapper.updatedFont(6 /*PreferenceModel.PrefProperty.Strikeout*/
+                                    , strikeoutCB.checked)
             }
         } //  RowLayout
         RowLayout {
+            Layout.columnSpan: 2
             Layout.fillHeight: true
             Layout.fillWidth: true
         }
