@@ -22,6 +22,7 @@ Rectangle {
             Text {
                 text: `<h1><a href="${verDelegate.link}">${version.version}</a> -- ${verDelegate.dateStr(
                           )}</h1>`
+                onLinkActivated: Qt.openUrlExternally(verDelegate.link)
             }
             Repeater {
                 model: version.sections
