@@ -55,10 +55,10 @@ qt_add_resources(pepp-lib "fonts"
 )
 
 # Include default themes without having to hard-code.
-file(GLOB_RECURSE themes CONFIGURE_DEPENDS "${CMAKE_CURRENT_LIST_DIR}/preferences/themes/*")
+file(GLOB_RECURSE themes CONFIGURE_DEPENDS "${PROJECT_DATA_DIR}/themes/*")
 qt_add_resources(pepp-lib "themes"
         PREFIX "/themes"
-        BASE "${CMAKE_CURRENT_LIST_DIR}/preferences/themes/"
+        BASE "${PROJECT_DATA_DIR}/themes"
         FILES ${themes}
 )
 
