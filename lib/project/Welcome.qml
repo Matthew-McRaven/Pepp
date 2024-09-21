@@ -58,6 +58,7 @@ Flickable {
             Rectangle {
                 height: childrenRect.height
                 width: childrenRect.width
+                color: "transparent"
                 Row {
                     spacing: layout.columnSpacing
                     WelcomeCard {
@@ -77,6 +78,7 @@ Flickable {
             Rectangle {
                 height: childrenRect.height
                 width: childrenRect.width
+                color: "transparent"
                 Row {
                     spacing: layout.columnSpacing
                     WelcomeCard {
@@ -120,6 +122,7 @@ Flickable {
             Rectangle {
                 height: childrenRect.height
                 width: childrenRect.width
+                color: "transparent"
                 Row {
                     spacing: layout.columnSpacing
                     WelcomeCard {
@@ -198,7 +201,7 @@ Flickable {
                 color: palette.text
                 Layout.preferredHeight: implicitHeight
             }
-            Rectangle {}
+            Item {}
             WelcomeCard {
                 Layout.alignment: Qt.AlignRight
                 text: "RISC-V, Asmb3, bare metal"
@@ -206,8 +209,8 @@ Flickable {
                 abstraction: Abstraction.ASMB3
                 enabled: false
             }
-            Rectangle {}
-            Rectangle {}
+            Item {}
+            Item {}
         }
     }
 }
