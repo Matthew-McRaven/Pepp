@@ -10,6 +10,7 @@ class Change : public QObject {
   Q_PROPERTY(QString body READ body CONSTANT)
   Q_PROPERTY(int priority READ priority CONSTANT)
   Q_PROPERTY(int ghRef READ ghRef CONSTANT)
+
 public:
   Change(QString body, int priority, int ghRef = 0, QObject *parent = nullptr);
   QString body() const { return _body; }
@@ -25,6 +26,7 @@ class Section : public QObject {
   Q_OBJECT
   Q_PROPERTY(QList<Change *> changes READ changes CONSTANT)
   Q_PROPERTY(QString title READ title CONSTANT)
+
 public:
   // Section(QString title);
   Section(QString title, QObject *parent = nullptr);
@@ -47,6 +49,7 @@ class Version : public QObject {
   Q_PROPERTY(QString blurb READ blurb CONSTANT)
   Q_PROPERTY(bool hasDate READ hasDate CONSTANT)
   Q_PROPERTY(QDate date READ date CONSTANT)
+
 public:
   Version(QVersionNumber ver, QDate date, QString blurb = "", QObject *parent = nullptr);
   void add_section(Section *section);
