@@ -1,5 +1,6 @@
 #pragma once
 #include <QAbstractListModel>
+#include <QDate>
 #include <QMap>
 #include <QObject>
 #include <QVersionNumber>
@@ -8,20 +9,24 @@ class Change : public QObject {
   Q_OBJECT
   Q_PROPERTY(QString body READ body CONSTANT)
   Q_PROPERTY(int priority READ priority CONSTANT)
+  Q_PROPERTY(int ghRef READ ghRef CONSTANT)
+
 public:
-  Change(QString body, int priority, QObject *parent = nullptr);
+  Change(QString body, int priority, int ghRef = 0, QObject *parent = nullptr);
   QString body() const { return _body; }
   int priority() const { return _priority; }
+  int ghRef() const { return _ghRef; }
 
 private:
   QString _body;
-  int _priority, _type;
+  int _priority, _ghRef;
 };
 
 class Section : public QObject {
   Q_OBJECT
   Q_PROPERTY(QList<Change *> changes READ changes CONSTANT)
   Q_PROPERTY(QString title READ title CONSTANT)
+
 public:
   // Section(QString title);
   Section(QString title, QObject *parent = nullptr);
@@ -41,18 +46,27 @@ class Version : public QObject {
   Q_PROPERTY(int major READ major CONSTANT)
   Q_PROPERTY(int minor READ minor CONSTANT)
   Q_PROPERTY(int micro READ micro CONSTANT)
+  Q_PROPERTY(QString blurb READ blurb CONSTANT)
+  Q_PROPERTY(bool hasDate READ hasDate CONSTANT)
+  Q_PROPERTY(QDate date READ date CONSTANT)
+
 public:
-  Version(QVersionNumber ver, QObject *parent = nullptr);
+  Version(QVersionNumber ver, QDate date, QString blurb = "", QObject *parent = nullptr);
   void add_section(Section *section);
   QVersionNumber version() const { return _version; }
   Q_INVOKABLE QString version_str() const { return _version.toString(); }
   Q_INVOKABLE int major() const { return _version.majorVersion(); }
   Q_INVOKABLE int minor() const { return _version.minorVersion(); }
   Q_INVOKABLE int micro() const { return _version.microVersion(); }
+  Q_INVOKABLE bool hasDate() const { return _date.isValid(); }
+  Q_INVOKABLE QDate date() const { return _date; }
+  Q_INVOKABLE QString blurb() const { return _blurb; }
   Q_INVOKABLE QList<Section *> sections() const { return _sections; }
 
 private:
   QVersionNumber _version;
+  QDate _date;
+  QString _blurb;
   QList<Section *> _sections;
 };
 

@@ -28,6 +28,7 @@ CREATE TABLE "types" (
     create_changes_table="""
 CREATE TABLE "changes" (
         "version"	INTEGER,
+        "ref"           INTEGER,
         "type"	INTEGER NOT NULL,
         "priority"	INTEGER,
         "message"	TEXT,
@@ -63,7 +64,7 @@ CREATE TABLE "changes" (
     with open(data_dir/"changes.csv") as f:
         reader = csv.reader(f)
         next(reader) # Skip first line, which contains headers
-        for type, priority, ver, msg in reader:
+        for type, priority, ver, ref, msg in reader:
             # Convert version string into row reference
             cursor.execute("SELECT id FROM versions WHERE version = ?", (ver,))
             if (ver_row := cursor.fetchone()): ver_id = ver_row[0]
@@ -79,8 +80,8 @@ CREATE TABLE "changes" (
             if priority.lower() == "major": priority_int = 2
             elif priority.lower() == "minor": priority_int = 1
 
-            cursor.execute("INSERT INTO changes(version, type, priority, message) VALUES(?,?,?,?)",
-                           (ver_id, type_id, priority_int, msg))
+            cursor.execute("INSERT INTO changes(version, type, priority, message, ref) VALUES(?,?,?,?,?)",
+                           (ver_id, type_id, priority_int, msg,ref))
     conn.commit()
 
 

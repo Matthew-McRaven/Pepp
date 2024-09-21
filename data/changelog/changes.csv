@@ -1,21 +1,26 @@
-Type,Priority,Version,Message
-Added,Minor,0.7.3,"Add changelog to ""Help"" mode"
-Fixed,,0.6.0,Menu entries to clear CPU/Memory 
-Fixed,,0.6.0,Re-enabled ability to view licenses of included Products
-Added,Major,0.7.2,"Added Web Assembly builds, deployed regularly to https://compsys-pep.com/"
-Added,,0.6.0,Added ability to filter help items to a selected abstraction & architecture
-Changed,,0.6.0,Changed default monospace font to Courier Prime
-Fixed,,0.7.2,Use system's colors in native menu bars
-Optimization,Minor,0.7.2,Improve Web Assembly download speeds by reducing build size
-Fixed,,0.7.2,Clear debugger's CPU & Memory on start of new simulation
-Fixed,,0.7.2,Fixed higlighting of mode buttons on application startup
-Added,,0.7.2,"In assembly source editor, style text using theme's italic/bold settings"
-Changed,,0.7.2,Import syntax highlighting colors from Pep/9
-Changed,,0.7.2,"On menu items: ""Build > Execute"", or ""Debug > Start Debugging"", switch active mode to ""Debugger"""
-Added,,0.7.2,"Add menu entry ""Build > Assemble then Load Object Code"" "
-Fixed,,0.7.2,"Hide menu entry ""Build > Format Object Code"" when not in ISA3 project"
-Added,Minor,0.7.2,"Enable projects for ""Pep/10, Asmb3, bare metal"""
-Fixed,,0.7.2,Reduce vertical clipping in debugger's CPU pane
-Changed,,0.7.2,Remove alternate column color bands from Memory Hex Dump
-Added,Minor,0.7.3,Add Symbol Table Viewer to Debugger
-Changed,Minor,0.7.3,"Replace icons on ""Welcome"" mode cards with abstraction-specific artwork"
+Type,Priority,Version,GHRef,Message
+Added,Major,0.7.3,612,"Add changelog to ""Help"" mode"
+Fixed,,0.6.0,587,Menu entries to clear CPU/Memory
+Fixed,,0.6.0,586,Re-enabled ability to view licenses of included Products
+Added,Major,0.7.2,585,"Added Web Assembly builds, deployed regularly to https://compsys-pep.com/"
+Added,,0.6.0,572,Added ability to filter help items to a selected abstraction & architecture
+Changed,,0.6.0,578,Changed default monospace font to Courier Prime
+Fixed,,0.7.2,,Use system's colors in native menu bars
+Optimization,Minor,0.7.2,580,Improve Web Assembly download speeds by reducing build size
+Fixed,,0.7.2,587,Clear debugger's CPU & Memory on start of new simulation
+Fixed,,0.7.2,586,Fixed higlighting of mode buttons on application startup
+Added,,0.7.2,601,"In assembly source editor, style text using theme's italic/bold settings"
+Changed,,0.7.2,586,Import syntax highlighting colors from Pep/9
+Changed,,0.7.2,586,"On menu items: ""Build > Execute"", or ""Debug > Start Debugging"", switch active mode to ""Debugger"""
+Added,,0.7.2,587,"Add menu entry ""Build > Assemble then Load Object Code"" "
+Fixed,,0.7.2,593,"Hide menu entry ""Build > Format Object Code"" when not in ISA3 project"
+Added,Major,0.7.2,606,"Enable projects for ""Pep/10, Asmb3, bare metal"""
+Fixed,,0.7.2,604,Reduce vertical clipping in debugger's CPU pane
+Changed,,0.7.2,599,Remove alternate column color bands from Memory Hex Dump
+Added,Minor,0.7.3,603,Add Symbol Table Viewer to Debugger
+Changed,Minor,0.7.3,600,"Replace icons on ""Welcome"" mode cards with abstraction-specific artwork"
+Changed,Minor,0.7.3,617,"In ""Welcome"" mode, create uniform grid layout for abstractions and levels"
+Fixed,Minor,0.7.3,616,"Prevent ""Build > Format Object Code"" from deleting all object code in some cases"
+Changed,Minor,0.7.3,615,Increase size of icons in application toolbar
+Changed,Minor,0.7.3,619,Display project's architecture and abstraction in tab control
+Fixed,,0.7.3,620,"In WASM builds, use our Pepp logo instead of Qt's default logo"

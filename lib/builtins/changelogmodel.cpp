@@ -6,7 +6,8 @@
 #include <QSqlError>
 #include <QSqlQuery>
 
-Change::Change(QString body, int priority, QObject *parent) : QObject(parent), _body(body), _priority(priority) {}
+Change::Change(QString body, int priority, int ref, QObject *parent)
+    : QObject(parent), _body(body), _priority(priority), _ghRef(ref) {}
 
 Section::Section(QString title, QObject *parent) : QObject(parent), _title(title) {}
 
@@ -15,7 +16,8 @@ void Section::add_change(Change *change) {
   _changes.append(change);
 }
 
-Version::Version(QVersionNumber ver, QObject *parent) : QObject(parent), _version(ver) {}
+Version::Version(QVersionNumber ver, QDate date, QString blurb, QObject *parent)
+    : QObject(parent), _version(ver), _date(date), _blurb(blurb) {}
 
 void Version::add_section(Section *section) {
   section->setParent(this);
@@ -41,16 +43,11 @@ void ChangelogModel::loadFromDB() {
     // Create Version objects for each row in version table, include special handling for NULL/0 cases
     QMap<int, Version *> versions;
     {
-      auto tmp = new Version(QVersionNumber(), this);
-      QQmlEngine::setObjectOwnership(tmp, QQmlEngine::CppOwnership);
-      versions[0] = tmp;
-      _versions.push_back(tmp);
-    }
-    {
-      QSqlQuery q("SELECT id,version FROM versions", db);
+      QSqlQuery q("SELECT id,version,date,blurb FROM versions", db);
       q.exec();
       while (q.next()) {
-        auto tmp = new Version(QVersionNumber::fromString(q.value(1).toString()), this);
+        auto date = QDate::fromString(q.value(2).toString(), "yyyy-MM-dd");
+        auto tmp = new Version(QVersionNumber::fromString(q.value(1).toString()), date, q.value(3).toString(), this);
         QQmlEngine::setObjectOwnership(tmp, QQmlEngine::CppOwnership);
         if (auto it = versions.find(q.value(0).toInt()); it != versions.end()) qFatal("Duplicate version");
         versions[q.value(0).toInt()] = tmp;
@@ -72,7 +69,7 @@ void ChangelogModel::loadFromDB() {
 
     // Construct appropriate sections and changes as we iteratre over changes table.
     {
-      QSqlQuery q("SELECT version, type, priority, message FROM changes", db);
+      QSqlQuery q("SELECT version, type, priority, ref, message FROM changes", db);
       q.exec();
       // Map (version, type) to section.
       QMap<std::tuple<int, int>, Section *> sections;
@@ -81,7 +78,7 @@ void ChangelogModel::loadFromDB() {
         auto version = versions[q.value(0).toInt()];
         int type = q.value(1).toInt();
         int priority = q.value(2).toInt();
-        QString message = q.value(3).toString();
+        QString message = q.value(4).toString();
 
         // Attempt to find existing section (if it exists), or create one.
         auto section_key = std::make_tuple<int, int>(q.value(0).toInt(), q.value(1).toInt());
@@ -95,7 +92,7 @@ void ChangelogModel::loadFromDB() {
         }
 
         // Add the current change to that section
-        auto tmp = new Change(message, priority, nullptr);
+        auto tmp = new Change(message, priority, q.value(3).toInt(), nullptr);
         QQmlEngine::setObjectOwnership(tmp, QQmlEngine::CppOwnership);
         target_section->add_change(tmp);
       }
