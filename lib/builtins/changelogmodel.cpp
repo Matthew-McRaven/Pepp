@@ -117,6 +117,51 @@ QVariant ChangelogModel::data(const QModelIndex &index, int role) const {
   if (!index.isValid()) return QVariant();
   switch (role) {
   case Qt::DisplayRole: return QVariant::fromValue(_versions[index.row()]);
+  case Qt::UserRole + 1: return _versions[index.row()]->version_str();
   default: return QVariant();
   }
+}
+
+QHash<int, QByteArray> ChangelogModel::roleNames() const {
+  auto ret = QAbstractListModel::roleNames();
+  ret[Qt::UserRole + 1] = "version_str";
+  return ret;
+}
+
+ChangelogFilterModel::ChangelogFilterModel(QObject *parent) : QSortFilterProxyModel(parent) {}
+
+void ChangelogFilterModel::setSourceModel(QAbstractItemModel *sourceModel) {
+  if (sourceModel == this->sourceModel()) return;
+  else if (auto casted = qobject_cast<ChangelogModel *>(sourceModel); casted == nullptr)
+    qFatal("ChangelogFilterModel only accepts ChangelogModel as sourceModel");
+  QSortFilterProxyModel::setSourceModel(sourceModel);
+  emit sourceModelChanged();
+}
+
+void ChangelogFilterModel::setMin(QString min_str) {
+  QVersionNumber min = QVersionNumber::fromString(min_str);
+  if (_min == min) return;
+  _min = min;
+  invalidateRowsFilter();
+  // qDebug() << QStringLiteral("[%1, %2]").arg(_min.toString(), _max.toString());
+  emit minChanged();
+}
+
+void ChangelogFilterModel::setMax(QString max_str) {
+  QVersionNumber max = QVersionNumber::fromString(max_str);
+  if (_max == max) return;
+  _max = max;
+  invalidateRowsFilter();
+  // qDebug() << QStringLiteral("[%1, %2]").arg(_min.toString(), _max.toString());
+  emit maxChanged();
+}
+
+bool ChangelogFilterModel::filterAcceptsRow(int source_row, const QModelIndex &source_parent) const {
+  auto sm = sourceModel();
+  if (!sm) return false;
+  auto index = sm->index(source_row, 0, source_parent);
+  auto version = sm->data(index, Qt::DisplayRole).value<Version *>()->version();
+  if (!_min.isNull() && version < _min) return false;
+  if (!_max.isNull() && version > _max) return false;
+  return true;
 }

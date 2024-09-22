@@ -3,6 +3,7 @@
 #include <QDate>
 #include <QMap>
 #include <QObject>
+#include <QSortFilterProxyModel>
 #include <QVersionNumber>
 
 class Change : public QObject {
@@ -78,6 +79,7 @@ public:
   int rowCount(const QModelIndex &parent) const override;
   // Returns lots of Version objects
   QVariant data(const QModelIndex &index, int role) const override;
+  QHash<int, QByteArray> roleNames() const override;
 
 private:
   QList<Version *> _versions{};
@@ -86,4 +88,27 @@ private:
   void loadFromDB();
 };
 
-class ChangelogFilterModel {};
+class ChangelogFilterModel : public QSortFilterProxyModel {
+  Q_OBJECT
+  Q_PROPERTY(QAbstractItemModel *model READ sourceModel WRITE setSourceModel NOTIFY sourceModelChanged)
+  Q_PROPERTY(QString min READ min WRITE setMin NOTIFY minChanged)
+  Q_PROPERTY(QString max READ max WRITE setMax NOTIFY maxChanged)
+public:
+  explicit ChangelogFilterModel(QObject *parent = nullptr);
+  void setSourceModel(QAbstractItemModel *sourceModel) override;
+  QString min() const { return _min.toString(); }
+  void setMin(QString min);
+  QString max() const { return _max.toString(); }
+  void setMax(QString max);
+
+signals:
+  void sourceModelChanged();
+  void minChanged();
+  void maxChanged();
+
+protected:
+  bool filterAcceptsRow(int source_row, const QModelIndex &source_parent) const override;
+
+private:
+  QVersionNumber _min = {}, _max = {};
+};
