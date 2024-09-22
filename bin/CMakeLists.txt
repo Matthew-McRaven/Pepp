@@ -57,12 +57,14 @@ if (NOT (WIN32 OR EMSCRIPTEN))
     )
 endif ()
 
-
-qt6_add_executable(pepp-term ${sources} ${CMAKE_SOURCE_DIR}/data/icons/icons.qrc)
-target_link_libraries(pepp-term PRIVATE TextFlow cli Qt6::Core catch test-lib-all pepp-lib catch)
-set_target_properties(pepp-term PROPERTIES FOLDER "qtc_runnable")
-target_compile_definitions(pepp-term PRIVATE "INCLUDE_GUI=0")
-target_compile_definitions(pepp-term PRIVATE "DEFAULT_GUI=0")
+# Skip term target on platforms where it is not needed.
+if(NOT EMSCRIPTEN)
+    qt6_add_executable(pepp-term ${sources} ${CMAKE_SOURCE_DIR}/data/icons/icons.qrc)
+    target_link_libraries(pepp-term PRIVATE TextFlow cli Qt6::Core catch test-lib-all pepp-lib catch)
+    set_target_properties(pepp-term PROPERTIES FOLDER "qtc_runnable")
+    target_compile_definitions(pepp-term PRIVATE "INCLUDE_GUI=0")
+    target_compile_definitions(pepp-term PRIVATE "DEFAULT_GUI=0")
+endif()
 
 if (WIN32)
     # On Windows, applications may either be GUI or terminal, not both.

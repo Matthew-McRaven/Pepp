@@ -2,6 +2,7 @@
 
 #include <QCoreApplication> //  For application executable path
 #include <QDir>
+#include <QDirIterator>
 #include <QFile>
 #include <QJsonArray>
 #include <QJsonDocument>
@@ -9,6 +10,10 @@
 #include <QMetaEnum> //  Cast enum integer to character name
 #include <QSettings> //  Persist user state from last session
 #include <QStandardPaths>
+
+#ifdef __EMSCRIPTEN__
+#include <emscripten.h>
+#endif
 
 //  Path for saving in registry or ini file
 const char *Theme::themeSettings = "ThemeSettings";
@@ -19,25 +24,35 @@ Theme::Theme(QObject *parent) : QObject{parent}, font_("Courier Prime", 12) {
   //  Read system themes from QRC file
   systemPath_ = ":/themes/";
 
-  //  Location for user themes
+//  Location for user themes
+#ifdef __EMSCRIPTEN__
+  userPath_ = "/themes/";
+#else
   userPath_ = QStandardPaths::writableLocation(QStandardPaths::AppConfigLocation) + "/";
+#endif
 
   //  Load system and user themes
   loadThemeList();
 
   //  See if themes were found
   if (themes_.size() > 0) {
-    //  Use default Organization and applicaation name set in gui.cpp
-    //  using QApplication::setOrganizationName and setApplicationName
+
+#ifdef __EMSCRIPTEN__
+    QSettings settings(QSettings::Format::WebLocalStorageFormat, QSettings::SystemScope,
+                       QCoreApplication::organizationName(), QCoreApplication::applicationName());
+#else
     QSettings settings;
+#endif
     settings.beginGroup(themeSettings);
 
     //  Retrieve last theme theme
     auto lastTheme = settings.value("theme").toString();
 
     if (lastTheme.isEmpty()) {
+      auto def = systemPath_ + "Default.theme";
       //  Fallback to default if no previous theme
       load(systemPath_ + "Default.theme");
+      settings.setValue("theme", def);
     } else {
       load(lastTheme);
     }
@@ -48,9 +63,14 @@ Theme::Theme(QObject *parent) : QObject{parent}, font_("Courier Prime", 12) {
 
     //  If values are in registery, use them. Otherwise keep default
     if (!family.isEmpty() && size > 0) setFont(family, size);
+    else {
+      settings.setValue("fontFamily", font_.family());
+      settings.setValue("fontSize", font_.pointSize());
+    }
 
     //  Load last theme
     settings.endGroup();
+    settings.sync();
   } else
     //  System failure. Load hard-coded theme
     load(systemPath_ + "Default.theme");
@@ -61,9 +81,12 @@ Theme::Theme(QObject *parent) : QObject{parent}, font_("Courier Prime", 12) {
 
 Theme::~Theme() {
   //  Save last user settings
-  //  Use default Organization and applicaation name set in gui.cpp
-  //  using QApplication::setOrganizationName and setApplicationName
+#ifdef __EMSCRIPTEN__
+  QSettings settings(QSettings::Format::WebLocalStorageFormat, QSettings::SystemScope,
+                     QCoreApplication::organizationName(), QCoreApplication::applicationName());
+#else
   QSettings settings;
+#endif
   settings.beginGroup(themeSettings);
 
   //  Save current theme
@@ -74,6 +97,7 @@ Theme::~Theme() {
   settings.setValue("fontSize", font_.pointSize());
 
   settings.endGroup();
+  settings.sync();
 }
 
 void Theme::loadThemeList() {
@@ -123,6 +147,19 @@ void Theme::load(const QString &file) {
   fromJson(doc.object());
   loadMissing();
 
+  // If WASM, must force sync because we might not sync at the end of app runtime.
+#ifdef __EMSCRIPTEN__
+  QSettings settings(QSettings::Format::WebLocalStorageFormat, QSettings::SystemScope,
+                     QCoreApplication::organizationName(), QCoreApplication::applicationName());
+  settings.beginGroup(themeSettings);
+  //  Save current theme
+  settings.setValue("theme", currentTheme_);
+  //  Save current font
+  settings.setValue("fontFamily", font_.family());
+  settings.setValue("fontSize", font_.pointSize());
+  settings.endGroup();
+  settings.sync();
+#endif
   //  Reset save flag
   isDirty_ = false;
 }
@@ -343,7 +380,6 @@ void Theme::saveTheme() {
 
 bool Theme::save(const QString &file) const {
   QFile saveFile(file);
-
   if (!saveFile.open(QIODevice::WriteOnly)) {
     qWarning("Couldn't open save file.");
     return false;
@@ -352,6 +388,12 @@ bool Theme::save(const QString &file) const {
   QJsonObject themeJson = toJson();
   saveFile.write(QJsonDocument(themeJson).toJson());
   saveFile.close();
+
+#ifdef __EMSCRIPTEN__
+  EM_ASM(FS.syncfs(function(err) {
+    if (err) console.log(err)
+  }););
+#endif
 
   //  Disable save flag
   isDirty_ = false;
