@@ -603,7 +603,15 @@ ApplicationWindow {
         width: 700
         clip: true
         height: 700
-        contentItem: Builtins.ChangelogViewer {}
+        contentItem: Builtins.ChangelogViewer {
+            // Opening the dialog also sets the last opened version
+            // Use this magic to prevent the dialog
+            Binding on min {
+                restoreMode: Binding.RestoreNone
+                when: !whatsNewDialog.visible
+                value: whatsNewDialogSettings.lastOpenedVersion
+            }
+        }
         standardButtons: Dialog.Close
         Settings {
             id: whatsNewDialogSettings
@@ -616,10 +624,12 @@ ApplicationWindow {
         Component.onCompleted: {
             actions.appdev.clearChangelogCache.triggered.connect(
                         onClearLastVersion)
-            if (whatsNewDialogSettings.lastOpenedVersion !== Version.version_str_full) {
+            if (whatsNewDialogSettings.lastOpenedVersion === "") {
                 whatsNewDialogSettings.lastOpenedVersion = Version.version_str_full
-                whatsNewDialogSettings.sync()
                 open()
+            } else if (whatsNewDialogSettings.lastOpenedVersion !== Version.version_str_full) {
+                open()
+                whatsNewDialogSettings.lastOpenedVersion = Version.version_str_full
             }
         }
     }

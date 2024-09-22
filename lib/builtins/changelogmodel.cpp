@@ -143,7 +143,7 @@ void ChangelogFilterModel::setMin(QString min_str) {
   if (_min == min) return;
   _min = min;
   invalidateRowsFilter();
-  // qDebug() << QStringLiteral("[%1, %2]").arg(_min.toString(), _max.toString());
+  // qDebug() << QStringLiteral("Min set: [%1, %2]").arg(_min.toString(), _max.toString());
   emit minChanged();
 }
 
@@ -152,7 +152,7 @@ void ChangelogFilterModel::setMax(QString max_str) {
   if (_max == max) return;
   _max = max;
   invalidateRowsFilter();
-  // qDebug() << QStringLiteral("[%1, %2]").arg(_min.toString(), _max.toString());
+  // qDebug() << QStringLiteral("Max set: [%1, %2]").arg(_min.toString(), _max.toString());
   emit maxChanged();
 }
 

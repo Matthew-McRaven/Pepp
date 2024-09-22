@@ -16,6 +16,14 @@ Rectangle {
     ChangelogFilterModel {
         id: filterModel
         sourceModel: baseModel
+        onMaxChanged: {
+            //console.log(`Max changed to ${max}`)
+            maxVer.update()
+        }
+        onMinChanged: {
+            //console.log(`Min changed to ${min}`)
+            minVer.update()
+        }
     }
     TextMetrics {
         id: tm
@@ -46,7 +54,8 @@ Rectangle {
             id: minVer
             textRole: 'version_str'
             onCurrentTextChanged: {
-                filterModel.min = Qt.binding(() => currentText)
+                const v = currentText
+                filterModel.min = Qt.binding(() => v)
             }
             model: ChangelogFilterModel {
                 sourceModel: baseModel
@@ -62,9 +71,10 @@ Rectangle {
                     oldRowCount = rowCount()
                 }
             }
-            Component.onCompleted: {
+            Component.onCompleted: update()
+            function update() {
                 const initialMin = find(filterModel.min)
-                // console.log(`Min is ${filterModel.min}, index ${initialMin}`)
+                //console.log(`Min is ${filterModel.min}, index ${initialMin}`)
                 if (initialMin !== -1)
                     currentIndex = Qt.binding(() => initialMin)
                 else
@@ -75,16 +85,18 @@ Rectangle {
             id: maxVer
             textRole: 'version_str'
             onCurrentTextChanged: {
-                filterModel.max = Qt.binding(() => currentText)
+                const v = currentText
+                filterModel.max = Qt.binding(() => v)
             }
             model: ChangelogFilterModel {
                 id: maxVerModel
                 sourceModel: baseModel
                 min: minVer.currentText
             }
-            Component.onCompleted: {
+            Component.onCompleted: update()
+            function update() {
                 const initialMax = find(filterModel.max)
-                // console.log(`Max is ${filterModel.max}, index ${initialMax}`)
+                //console.log(`Max is ${filterModel.max}, index ${initialMax}`)
                 if (initialMax !== -1)
                     currentIndex = Qt.binding(() => initialMax)
                 else
