@@ -604,12 +604,17 @@ ApplicationWindow {
         clip: true
         height: 700
         contentItem: Builtins.ChangelogViewer {
-            // Opening the dialog also sets the last opened version
-            // Use this magic to prevent the dialog
-            Binding on min {
-                restoreMode: Binding.RestoreNone
-                when: !whatsNewDialog.visible
-                value: whatsNewDialogSettings.lastOpenedVersion
+            // Do not create binding to settings directly, so that we don't get modified when the setting is updated.
+            min: {
+                // By making a copy of the value before binding, we can avoid propogating updates to settings.
+                var copy
+                if (whatsNewDialogSettings.lastOpenedVersion === "")
+                    copy = Version.version_str_full
+                else {
+                    copy = whatsNewDialogSettings.lastOpenedVersion
+                }
+                // We still need to use a binding, or the model filtering will be unlinked from combo boxes.
+                min = Qt.binding(() => copy)
             }
         }
         standardButtons: Dialog.Close
@@ -624,13 +629,9 @@ ApplicationWindow {
         Component.onCompleted: {
             actions.appdev.clearChangelogCache.triggered.connect(
                         onClearLastVersion)
-            if (whatsNewDialogSettings.lastOpenedVersion === "") {
-                whatsNewDialogSettings.lastOpenedVersion = Version.version_str_full
+            if (whatsNewDialogSettings.lastOpenedVersion !== Version.version_str_full)
                 open()
-            } else if (whatsNewDialogSettings.lastOpenedVersion !== Version.version_str_full) {
-                open()
-                whatsNewDialogSettings.lastOpenedVersion = Version.version_str_full
-            }
+            whatsNewDialogSettings.lastOpenedVersion = Version.version_str_full
         }
     }
 

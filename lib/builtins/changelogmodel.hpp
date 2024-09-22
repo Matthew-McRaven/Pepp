@@ -80,6 +80,8 @@ public:
   // Returns lots of Version objects
   QVariant data(const QModelIndex &index, int role) const override;
   QHash<int, QByteArray> roleNames() const override;
+  QVersionNumber min() const;
+  QVersionNumber max() const;
 
 private:
   QList<Version *> _versions{};
