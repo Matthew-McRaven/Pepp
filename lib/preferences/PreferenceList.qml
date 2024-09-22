@@ -2,51 +2,47 @@ import QtQuick
 import QtQuick.Controls
 
 //  Represents row in listview
-Rectangle {
+ListView {
     id: root
-    property alias model: listView.model
+    clip: true
+    currentIndex: 0
+    implicitHeight: contentHeight
 
-    width: parent.width
-
-    color: palette.window
-    border.color: "transparent"
-
-    Component {
-        id: preferenceDelegate
-        Rectangle {
+    delegate: Component {
+        Item {
             id: wrapper
-            width: listView.width
+            // hack to get LHS of border to be in visible area.
+            width: ListView.view.width
             height: info.height
-            color: model.currentList.background
-            border.color: wrapper.ListView.isCurrentItem ? Theme.accent.background : "transparent"
-            border.width: 1
+            property var isCurrentItem: ListView.isCurrentItem
 
+            Rectangle {
+                color: model.currentList.background
+                border.color: wrapper.isCurrentItem ? Theme.accent.background : "transparent"
+                border.width: 1
+                anchors.fill: parent
+                anchors.leftMargin: border.width
+            }
             Text {
                 id: info
+                Component.onCompleted: {
+                    const v = Math.max(root.implicitWidth,
+                                       info.width + leftPadding + rightPadding)
+                    root.implicitWidth = Qt.binding(() => v)
+                }
                 text: model.currentCategory
                 color: model.currentList.foreground
                 font: model.currentList.font
-                //padding: 2
+                leftPadding: 4
+                rightPadding: 2
             }
             MouseArea {
-                anchors.fill: wrapper
+                anchors.fill: parent
                 onClicked: {
-
-                    listView.currentIndex = index
-                    //console.log("PrefList.onClick: " + info.text + ", id: " +model.currentList.name)
+                    root.currentIndex = index
                     model.currentPreference = model.currentList
                 }
             }
         }
-    }
-
-    ListView {
-        id: listView
-        anchors.fill: root
-        anchors.margins: 1
-        clip: true
-        currentIndex: 0
-
-        delegate: preferenceDelegate
     }
 }

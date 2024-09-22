@@ -6,14 +6,23 @@ import Qt.labs.platform as Platform
 Item {
     id: root
     required property color color
+    implicitWidth: wrapper.width
+    implicitHeight: wrapper.implicitHeight
 
     //  Indicates user changed colors
     signal updatedColor(color newColor)
+    TextMetrics {
+        id: tm
+        font: textItem.font
+        // Use 9 (instead of the usual 8) 0's to ensure button widths are constant
+        text: "#000000000"
+    }
 
     Button {
         id: wrapper
         anchors.fill: parent
         highlighted: true
+        width: tm.width
 
         contentItem: Text {
             id: textItem
