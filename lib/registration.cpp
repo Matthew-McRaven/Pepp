@@ -31,6 +31,7 @@
 #include "cpu/statusbitmodel.hpp"
 #include "memory/hexdump/memorybytemodel.hpp"
 #include "preferences/preferencemodel.hpp"
+#include "preferences/wasm_io.hpp"
 #include "project/pep10.hpp"
 #include "text/editor/object.hpp"
 #include "text/editor/scintillaasmeditbase.hpp"
@@ -91,6 +92,7 @@ void registerTypes(const char *) {
                                                   ArrayRawMemoryFactory::singletonProvider);
   // Preferences
   qmlRegisterUncreatableType<PreferenceModel>("edu.pepp", 1, 0, "PrefProperty", "Error: only enums");
+  qmlRegisterType<WASMIO>("edu.pepp", 1, 0, "WASMIO");
   // Project
   qmlRegisterUncreatableType<project::DebugEnableFlags>("edu.pepp", 1, 0, "DebugEnableFlags", utils::error_only_enums);
   qmlRegisterUncreatableType<project::StepEnableFlags>("edu.pepp", 1, 0, "StepEnableFlags", utils::error_only_enums);
