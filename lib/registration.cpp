@@ -70,6 +70,7 @@ void registerTypes(const char *) {
   qmlRegisterType<HelpModel>("edu.pepp", 1, 0, "HelpModel");
   qmlRegisterType<HelpFilterModel>("edu.pepp", 1, 0, "FilteredHelpModel");
   qmlRegisterType<ChangelogModel>("edu.pepp", 1, 0, "ChangelogModel");
+  qmlRegisterType<ChangelogFilterModel>("edu.pepp", 1, 0, "ChangelogFilterModel");
   // Components
   // TODO: Missing translations
   qmlRegisterType<CharCheck>("edu.pepp", 1, 0, "CharCheck");

@@ -274,4 +274,11 @@ QtObject {
             icon.source: "image://icons/blank.svg"
         }
     }
+
+    readonly property var appdev: QtObject {
+        readonly property var clearChangelogCache: Action {
+            text: qsTr("Clear Changelog Cache")
+            icon.source: "image://icons/blank.svg"
+        }
+    }
 }

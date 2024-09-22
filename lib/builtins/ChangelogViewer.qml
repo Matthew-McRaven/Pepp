@@ -1,18 +1,120 @@
 import QtQuick
+import QtQuick.Controls
+import QtQuick.Layouts
 import edu.pepp
 
 Rectangle {
+    property alias min: filterModel.min
+    property alias max: filterModel.max
+    Component.onCompleted: {
+
+    }
+
     ChangelogModel {
-        id: model
+        id: baseModel
+    }
+    ChangelogFilterModel {
+        id: filterModel
+        sourceModel: baseModel
+        onMaxChanged: {
+            //console.log(`Max changed to ${max}`)
+            maxVer.update()
+        }
+        onMinChanged: {
+            //console.log(`Min changed to ${min}`)
+            minVer.update()
+        }
     }
     TextMetrics {
         id: tm
         text: "      "
     }
+    GridLayout {
+        id: filterCombos
+        columns: 3
+        anchors {
+            top: parent.top
+            left: parent.left
+        }
+        Label {
+            Layout.rowSpan: 2
+            text: "<b>Filter by version:<b>"
+            Layout.alignment: Qt.AlignTop
+            rightPadding: 8
+        }
+
+        Label {
+            text: "From..."
+        }
+        Label {
+            text: "To..."
+        }
+
+        ComboBox {
+            id: minVer
+            textRole: 'version_str'
+            onCurrentTextChanged: {
+                const v = currentText
+                filterModel.min = Qt.binding(() => v)
+            }
+            model: ChangelogFilterModel {
+                sourceModel: baseModel
+                max: maxVer.currentText
+                property int oldRowCount: baseModel.rowCount()
+                onMaxChanged: function () {
+                    // rowCount() is updated before we enter this handler
+                    // When we leave this handler, if currentIndex>rowCount, then currentIndex will be set to end.
+                    // Translate our current index into an offset from the old end of the array to maintain a stable ordering
+                    const oldDistanceFromEnd = oldRowCount - minVer.currentIndex
+                    const adjusted = rowCount() - oldDistanceFromEnd
+                    minVer.currentIndex = Qt.binding(() => adjusted)
+                    oldRowCount = rowCount()
+                }
+            }
+            Component.onCompleted: update()
+            function update() {
+                const initialMin = find(filterModel.min)
+                //console.log(`Min is ${filterModel.min}, index ${initialMin}`)
+                if (initialMin !== -1)
+                    currentIndex = Qt.binding(() => initialMin)
+                else
+                    currentIndex = Qt.binding(() => baseModel.rowCount() - 1)
+            }
+        }
+        ComboBox {
+            id: maxVer
+            textRole: 'version_str'
+            onCurrentTextChanged: {
+                const v = currentText
+                filterModel.max = Qt.binding(() => v)
+            }
+            model: ChangelogFilterModel {
+                id: maxVerModel
+                sourceModel: baseModel
+                min: minVer.currentText
+            }
+            Component.onCompleted: update()
+            function update() {
+                const initialMax = find(filterModel.max)
+                //console.log(`Max is ${filterModel.max}, index ${initialMax}`)
+                if (initialMax !== -1)
+                    currentIndex = Qt.binding(() => initialMax)
+                else
+                    currentIndex = Qt.binding(() => 0)
+            }
+        }
+    }
+
     ListView {
         id: list
-        anchors.fill: parent
-        model: model
+        anchors {
+            top: filterCombos.bottom
+            bottom: parent.bottom
+            left: parent.left
+            right: parent.right
+        }
+        clip: true
+        model: filterModel
         delegate: Column {
             id: verDelegate
             property var version: model.display
@@ -27,10 +129,12 @@ Rectangle {
                 text: `<h1><a href="${verDelegate.link}">${version.version}</a> -- ${verDelegate.dateStr(
                           )}</h1>`
                 onLinkActivated: Qt.openUrlExternally(verDelegate.link)
+                color: palette.windowText
             }
             Text {
                 text: version.blurb.length > 0 ? version.blurb + "<br><br>" : ""
                 wrapMode: Text.Wrap
+                color: palette.windowText
             }
 
             Repeater {
@@ -40,6 +144,7 @@ Rectangle {
                     required property var modelData
                     Text {
                         text: `    <b>${modelData.title}</b>`
+                        color: palette.windowText
                     }
                     Repeater {
                         model: modelData.changes
@@ -54,6 +159,7 @@ Rectangle {
                             text: `<p style="text-indent:${Math.floor(
                                       tm.width)}px;"> - ${modelData.body} ${linkTail}</p>`
                             textFormat: Text.RichText
+                            color: palette.windowText
                             onLinkActivated: {
                                 if (changeDelegate.link.length > 0)
                                     Qt.openUrlExternally(changeDelegate.link)

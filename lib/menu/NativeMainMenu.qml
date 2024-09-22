@@ -355,4 +355,12 @@ Labs.MenuBar {
         }
         // Dynamic magic to mode switch!
     }
+    // Only meant for testing the app, not meant for deployment to users!
+    Labs.Menu {
+        title: qsTr("App D&ev")
+        Labs.MenuItem {
+            text: qsTr("Clear Changelog Cache")
+            onTriggered: actions.appdev.clearChangelogCache.trigger()
+        }
+    }
 }
