@@ -1,4 +1,5 @@
 Number,GitRef,Date,Blurb
-0.7.2,,2024-09-14,This is the first version of the application to deploy in WASM and be accessible externally. Stan and I will rapidly iterate from here.
-0.7.3,,??,"This version includes bug fixes, a new changelog viewer in the Help mode, and tweaks to the Welcome screen."
 0.6.0,,2024-08-28,This release contains changes to eventually allow deploying to a webpage.
+0.7.2,,2024-09-14,This is the first version of the application to deploy in WASM and be accessible externally. Stan and I will rapidly iterate from here.
+0.7.3,,2024-09-21,"This version includes bug fixes, a new changelog viewer in the Help mode, and tweaks to the Welcome screen."
+0.7.4,,??,"This version includes improved setting peristences in WASM"
