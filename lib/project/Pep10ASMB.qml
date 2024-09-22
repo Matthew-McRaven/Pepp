@@ -226,7 +226,7 @@ Item {
                         text: qsTr("Object Code")
                     }
                     TabButton {
-                        text: qsTr("Symbol Table")
+                        text: qsTr(`Symbol Table: ${textSelector.currentText}`)
                     }
                 }
                 StackLayout {
