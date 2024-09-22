@@ -147,7 +147,7 @@ Item {
                 // Default background does not fill entire delegate.
                 background: Rectangle {
                     anchors.fill: parent
-                    color: treeDelegate.row % 2 === 0 ? palette.base : palette.alternateBase
+                    color: palette.base
                 }
                 onClicked: {
                     root.selected = treeDelegate.treeView.index(row, column)
