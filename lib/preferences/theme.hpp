@@ -151,6 +151,8 @@ signals:
 public slots:
   void clearIsDirty();
   void setIsDirty();
+  QString jsonString() const;
+  QString themePath() const;
 
 private:
   QJsonObject toJson() const;

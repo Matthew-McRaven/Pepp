@@ -195,6 +195,8 @@ QJsonObject Theme::toJson() const {
   return doc;
 }
 
+QString Theme::themePath() const { return currentTheme_; }
+
 void Theme::fromJson(const QJsonObject &json) {
   if (const QJsonValue v = json["name"]; v.isString()) name_ = v.toString();
   if (const QJsonValue v = json["version"]; v.isString())
@@ -354,6 +356,11 @@ bool Theme::isDirty() const {
 void Theme::clearIsDirty() { setDirty(false); }
 
 void Theme::setIsDirty() { setDirty(true); }
+
+QString Theme::jsonString() const {
+  auto json = toJson();
+  return QJsonDocument(json).toJson();
+}
 
 void Theme::setDirty(bool flag) {
   //  Only non-system themes can change or be saved

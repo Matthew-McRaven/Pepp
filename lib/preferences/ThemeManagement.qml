@@ -69,32 +69,12 @@ RowLayout {
     Button {
         text: "Export"
         Layout.preferredWidth: buttonWidth
-
-        visible: !PlatformDetector.isWASM
         // Now allows export of system themes. This makes it easier to keep theme files up-to-date.
-        enabled: !PlatformDetector.isWASM
         onClicked: exportLoader.item.open()
         palette {
-            buttonText: !PlatformDetector.isWASM ? root.palette.buttonText : root.palette.placeholderText
+            buttonText: root.palette.buttonText
         }
     }
-
-
-    /*FileDialog {
-        id: exportDialog
-
-        currentFolder: StandardPaths.standardLocations(
-                           StandardPaths.AppConfigLocation)[0]
-        fileMode: FileDialog.SaveFile
-        title: "Export Theme"
-        nameFilters: ["Pep Theme files (*.theme)"]
-        defaultSuffix: "theme"
-        selectedFile: Theme.name
-
-        onAccepted: {
-            Theme.exportTheme(decodeURIComponent(selectedFile))
-        }
-    }*/
     Loader {
         id: exportLoader
         Component.onCompleted: {
@@ -108,8 +88,7 @@ RowLayout {
             }
 
             if (PlatformDetector.isWASM) {
-
-                //console.warn("Export dialog not implemented for WASM.")
+                setSource("qrc:/ui/preferences/QMLExportDialog.qml", props)
             } else {
                 setSource("qrc:/ui/preferences/NativeFileDialog.qml", props)
             }
