@@ -129,6 +129,7 @@ Item {
         TreeView {
             id: treeView
             Layout.minimumWidth: textMetrics.width
+            selectionModel: ItemSelectionModel {}
             Layout.fillHeight: true
             clip: true
             model: FilteredHelpModel {
@@ -148,9 +149,15 @@ Item {
                 background: Rectangle {
                     anchors.fill: parent
                     color: palette.base
+                    border {
+                        color: treeDelegate.current ? palette.highlight : "transparent"
+                        width: 2
+                    }
                 }
                 onClicked: {
                     root.selected = treeDelegate.treeView.index(row, column)
+                    treeDelegate.treeView.selectionModel.setCurrentIndex(
+                                root.selected, ItemSelectionModel.NoUpdate)
                 }
             }
         }
