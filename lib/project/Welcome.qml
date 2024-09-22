@@ -14,16 +14,18 @@ Flickable {
             anchors.centerIn: parent
             // Header
             Item {}
+
             Text {
-                text: "Mc2"
+                text: "ISA3"
                 font.pointSize: 24
                 font.weight: Font.Bold
                 color: palette.text
                 horizontalAlignment: Text.AlignHCenter
                 Layout.fillWidth: true
             }
+
             Text {
-                text: "ISA3"
+                text: "Asmb5"
                 font.pointSize: 24
                 font.weight: Font.Bold
                 color: palette.text
@@ -39,7 +41,7 @@ Flickable {
                 Layout.fillWidth: true
             }
             Text {
-                text: "Asmb5"
+                text: "Mc2"
                 font.pointSize: 24
                 font.weight: Font.Bold
                 color: palette.text
@@ -55,26 +57,7 @@ Flickable {
                 color: palette.text
                 Layout.preferredHeight: implicitHeight
             }
-            Rectangle {
-                height: childrenRect.height
-                width: childrenRect.width
-                color: "transparent"
-                Row {
-                    spacing: layout.columnSpacing
-                    WelcomeCard {
-                        text: "Pep/10, Mc2, 1-byte bus"
-                        architecture: Architecture.PEP10
-                        abstraction: Abstraction.MC2
-                        enabled: false
-                    }
-                    WelcomeCard {
-                        text: "Pep/10, Mc2, 2-byte bus"
-                        architecture: Architecture.PEP10
-                        abstraction: Abstraction.MC2
-                        enabled: false
-                    }
-                }
-            }
+
             Rectangle {
                 height: childrenRect.height
                 width: childrenRect.width
@@ -98,18 +81,39 @@ Flickable {
                     }
                 }
             }
-            WelcomeCard {
-                text: "Pep/10, OS4"
-                architecture: Architecture.PEP10
-                abstraction: Abstraction.OS4
-                enabled: false
-            }
+
             WelcomeCard {
                 text: "Pep/10, Asmb5, full OS"
                 architecture: Architecture.PEP10
                 abstraction: Abstraction.ASMB5
                 source: "image://icons/cards/p10_asmb5.svg"
                 description: "Develop and debug assembly language programs alongside Pep/10's operating system. This level enables you to utilize OS features using system calls for enhanced functionality."
+            }
+            WelcomeCard {
+                text: "Pep/10, OS4"
+                architecture: Architecture.PEP10
+                abstraction: Abstraction.OS4
+                enabled: false
+            }
+            Rectangle {
+                height: childrenRect.height
+                width: childrenRect.width
+                color: "transparent"
+                Row {
+                    spacing: layout.columnSpacing
+                    WelcomeCard {
+                        text: "Pep/10, Mc2, 1-byte bus"
+                        architecture: Architecture.PEP10
+                        abstraction: Abstraction.MC2
+                        enabled: false
+                    }
+                    WelcomeCard {
+                        text: "Pep/10, Mc2, 2-byte bus"
+                        architecture: Architecture.PEP10
+                        abstraction: Abstraction.MC2
+                        enabled: false
+                    }
+                }
             }
             // Row 2
             Text {
@@ -118,6 +122,28 @@ Flickable {
                 font.weight: Font.Bold
                 color: palette.text
                 Layout.preferredHeight: implicitHeight
+            }
+
+            WelcomeCard {
+                text: "Pep/9, ISA3"
+                architecture: Architecture.PEP9
+                abstraction: Abstraction.ISA3
+                enabled: false
+                source: "image://icons/cards/p9_isa3.svg"
+            }
+
+            WelcomeCard {
+                text: "Pep/9, Asmb5"
+                architecture: Architecture.PEP9
+                abstraction: Abstraction.ASMB5
+                enabled: false
+                source: "image://icons/cards/p9_asmb5.svg"
+            }
+            WelcomeCard {
+                text: "Pep/9, OS4"
+                architecture: Architecture.PEP9
+                abstraction: Abstraction.OS4
+                enabled: false
             }
             Rectangle {
                 height: childrenRect.height
@@ -139,26 +165,6 @@ Flickable {
                     }
                 }
             }
-            WelcomeCard {
-                text: "Pep/9, ISA3"
-                architecture: Architecture.PEP9
-                abstraction: Abstraction.ISA3
-                enabled: false
-                source: "image://icons/cards/p9_isa3.svg"
-            }
-            WelcomeCard {
-                text: "Pep/9, OS4"
-                architecture: Architecture.PEP9
-                abstraction: Abstraction.OS4
-                enabled: false
-            }
-            WelcomeCard {
-                text: "Pep/9, Asmb5"
-                architecture: Architecture.PEP9
-                abstraction: Abstraction.ASMB5
-                enabled: false
-                source: "image://icons/cards/p9_asmb5.svg"
-            }
             // Row 3
             Text {
                 text: "Pep/8"
@@ -167,12 +173,7 @@ Flickable {
                 color: palette.text
                 Layout.preferredHeight: implicitHeight
             }
-            WelcomeCard {
-                text: "Pep/8, Mc2, 1-byte bus"
-                architecture: Architecture.PEP8
-                abstraction: Abstraction.MC2
-                enabled: false
-            }
+
             WelcomeCard {
                 text: "Pep/8, ISA3"
                 architecture: Architecture.PEP8
@@ -181,17 +182,24 @@ Flickable {
                 source: "image://icons/cards/p9_isa3.svg"
             }
             WelcomeCard {
-                text: "Pep/8, OS4"
-                architecture: Architecture.PEP8
-                abstraction: Abstraction.OS4
-                enabled: false
-            }
-            WelcomeCard {
                 text: "Pep/8, Asmb5"
                 architecture: Architecture.PEP8
                 abstraction: Abstraction.ASMB5
                 enabled: false
                 source: "image://icons/cards/p9_asmb5.svg"
+            }
+            WelcomeCard {
+                text: "Pep/8, OS4"
+                architecture: Architecture.PEP8
+                abstraction: Abstraction.OS4
+                enabled: false
+            }
+
+            WelcomeCard {
+                text: "Pep/8, Mc2, 1-byte bus"
+                architecture: Architecture.PEP8
+                abstraction: Abstraction.MC2
+                enabled: false
             }
             // Row 4
             Text {
@@ -201,7 +209,6 @@ Flickable {
                 color: palette.text
                 Layout.preferredHeight: implicitHeight
             }
-            Item {}
             WelcomeCard {
                 Layout.alignment: Qt.AlignRight
                 text: "RISC-V, Asmb3, bare metal"
@@ -209,6 +216,8 @@ Flickable {
                 abstraction: Abstraction.ASMB3
                 enabled: false
             }
+            Item {}
+
             Item {}
             Item {}
         }
