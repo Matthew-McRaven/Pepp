@@ -4,26 +4,15 @@ import QtQuick.Layouts
 import edu.pepp
 
 Rectangle {
+    id: wrapper
     property alias min: filterModel.min
     property alias max: filterModel.max
-    Component.onCompleted: {
-
-    }
-
     ChangelogModel {
         id: baseModel
     }
     ChangelogFilterModel {
         id: filterModel
         sourceModel: baseModel
-        onMaxChanged: {
-            //console.log(`Max changed to ${max}`)
-            maxVer.update()
-        }
-        onMinChanged: {
-            //console.log(`Min changed to ${min}`)
-            minVer.update()
-        }
     }
     TextMetrics {
         id: tm
@@ -53,54 +42,35 @@ Rectangle {
         ComboBox {
             id: minVer
             textRole: 'version_str'
-            onCurrentTextChanged: {
-                const v = currentText
-                filterModel.min = Qt.binding(() => v)
-            }
             model: ChangelogFilterModel {
                 sourceModel: baseModel
-                max: maxVer.currentText
-                property int oldRowCount: baseModel.rowCount()
-                onMaxChanged: function () {
-                    // rowCount() is updated before we enter this handler
-                    // When we leave this handler, if currentIndex>rowCount, then currentIndex will be set to end.
-                    // Translate our current index into an offset from the old end of the array to maintain a stable ordering
-                    const oldDistanceFromEnd = oldRowCount - minVer.currentIndex
-                    const adjusted = rowCount() - oldDistanceFromEnd
-                    minVer.currentIndex = Qt.binding(() => adjusted)
-                    oldRowCount = rowCount()
-                }
+                max: filterModel.max
+                onMaxChanged: minVer.update()
             }
+            // Activated only occurs with user interaction and not programtic manipulation of current index.
+            // This prevents spurious updates to the model.
+            onActivated: filterModel.min = currentText
             Component.onCompleted: update()
             function update() {
-                const initialMin = find(filterModel.min)
-                //console.log(`Min is ${filterModel.min}, index ${initialMin}`)
-                if (initialMin !== -1)
-                    currentIndex = Qt.binding(() => initialMin)
-                else
-                    currentIndex = Qt.binding(() => baseModel.rowCount() - 1)
+                const index = find(filterModel.min)
+                currentIndex = Qt.binding(() => index)
             }
         }
         ComboBox {
             id: maxVer
             textRole: 'version_str'
-            onCurrentTextChanged: {
-                const v = currentText
-                filterModel.max = Qt.binding(() => v)
-            }
             model: ChangelogFilterModel {
-                id: maxVerModel
                 sourceModel: baseModel
-                min: minVer.currentText
+                min: filterModel.min
+                onMinChanged: maxVer.update()
             }
+            // Activated only occurs with user interaction and not programtic manipulation of current index.
+            // This prevents spurious updates to the model.
+            onActivated: filterModel.max = currentText
             Component.onCompleted: update()
             function update() {
-                const initialMax = find(filterModel.max)
-                //console.log(`Max is ${filterModel.max}, index ${initialMax}`)
-                if (initialMax !== -1)
-                    currentIndex = Qt.binding(() => initialMax)
-                else
-                    currentIndex = Qt.binding(() => 0)
+                const index = find(filterModel.max)
+                currentIndex = Qt.binding(() => index)
             }
         }
     }

@@ -128,6 +128,16 @@ QHash<int, QByteArray> ChangelogModel::roleNames() const {
   return ret;
 }
 
+QVersionNumber ChangelogModel::min() const {
+  if (_versions.empty()) return {};
+  return _versions.last()->version();
+}
+
+QVersionNumber ChangelogModel::max() const {
+  if (_versions.empty()) return {};
+  return _versions.first()->version();
+}
+
 ChangelogFilterModel::ChangelogFilterModel(QObject *parent) : QSortFilterProxyModel(parent) {}
 
 void ChangelogFilterModel::setSourceModel(QAbstractItemModel *sourceModel) {
@@ -135,6 +145,8 @@ void ChangelogFilterModel::setSourceModel(QAbstractItemModel *sourceModel) {
   else if (auto casted = qobject_cast<ChangelogModel *>(sourceModel); casted == nullptr)
     qFatal("ChangelogFilterModel only accepts ChangelogModel as sourceModel");
   QSortFilterProxyModel::setSourceModel(sourceModel);
+  if (_min.isNull()) setMin(static_cast<ChangelogModel *>(sourceModel)->min().toString());
+  if (_max.isNull()) setMax(static_cast<ChangelogModel *>(sourceModel)->max().toString());
   emit sourceModelChanged();
 }
 
@@ -161,6 +173,7 @@ bool ChangelogFilterModel::filterAcceptsRow(int source_row, const QModelIndex &s
   if (!sm) return false;
   auto index = sm->index(source_row, 0, source_parent);
   auto version = sm->data(index, Qt::DisplayRole).value<Version *>()->version();
+  // qDebug() << reinterpret_cast<const int *>(this) << _min.toString() << _max.toString() << version.toString();
   if (!_min.isNull() && version < _min) return false;
   if (!_max.isNull() && version > _max) return false;
   return true;

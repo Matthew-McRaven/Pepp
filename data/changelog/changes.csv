@@ -30,3 +30,4 @@ Changed,Minor,0.7.4,,Made custom themes persistent between sessions in WASM
 Changed,,0.7.4,629,Re-order "Welcome" mode cards to match order of presentation in text
 Changed,,0.7.4,630,Remove banding for "Help" rows
 Fixed,,0.7.4,634,"In assembler symbol tables, differentiate between user program and OS symbols"
+Fixed,,0.7.4,638,Only show relevant changes in "What's New" startup dialog
