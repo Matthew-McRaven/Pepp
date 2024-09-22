@@ -49,6 +49,7 @@ void default_init(QQmlApplicationEngine &engine, default_data *data) {
 }
 
 #ifdef __EMSCRIPTEN__
+#include <emscripten.h>
 QApplication *g_app = nullptr;
 gui_globals *g_globals = nullptr;
 QQmlApplicationEngine *g_engine = nullptr;
@@ -136,6 +137,28 @@ int gui_main(const gui_args &args) {
   // See: https://doc.qt.io/qt-6/wasm.html#wasm-exceptions
   // See: https://doc.qt.io/qt-6/wasm.html#application-startup-and-the-event-loop
 #ifdef __EMSCRIPTEN__
+  // Request that IDB be persisted, even for localhost
+  EM_ASM(if (navigator.storage) navigator.storage.persist().then(function(persistent) {
+    if (persistent) {
+      console.log("Storage will not be cleared except by explicit user action.");
+    } else {
+      console.log("Storage may be cleared by the browser under storage pressure.");
+    }
+  }););
+  // Make a persistent FS for themes. `true` to load from disk 2 mem
+  // clang-format off
+  EM_ASM(
+    if (!FS.analyzePath('/themes').exists) FS.mkdir('/themes');
+    FS.mount(IDBFS, {}, '/themes');
+    FS.syncfs(true, function(err) {
+      if (err) console.error("Error mounting IDBFS /themes:", err);
+      else {
+        console.log("mounted IDBFS /themes");
+          console.log('Files in /themes:', FS.readdir('/themes'));
+      }
+    });
+  );
+  // clang-format on
   return 0;
 #else
   return app.exec();

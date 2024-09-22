@@ -46,6 +46,12 @@ get_target_property(ANTLR4_INCLUDE_DIR antlr4_shared INCLUDE_DIRECTORIES)
 target_include_directories(pepp-lib PUBLIC ${CMAKE_CURRENT_BINARY_DIR} ${ANTLR4_INCLUDE_DIR})
 target_include_directories(pepp-lib PRIVATE about builtins components cpu helpers isa link macro memory preferences project sim targets text utils text/editor menu)
 
+# Add additional JS support files
+if(EMSCRIPTEN)
+    target_link_libraries(pepp-lib PRIVATE idbfs.js)
+    target_link_options(pepp-lib PRIVATE "SHELL:-s FORCE_FILESYSTEM=1 ")
+endif()
+
 # Include additional fonts
 file(GLOB_RECURSE fonts CONFIGURE_DEPENDS "${PROJECT_DATA_DIR}/fonts/*")
 qt_add_resources(pepp-lib "fonts"
