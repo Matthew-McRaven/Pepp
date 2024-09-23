@@ -11,14 +11,19 @@ void WASMIO::save(const QString &filename, const QString &data) {
 void WASMIO::load(const QString &nameFilter) {
   auto ready = [this](const QString &fileName, const QByteArray &fileContent) {
     if (!fileName.isEmpty()) {
-      _loadedName = fileName;
-      _loadedData = QString::fromUtf8(fileContent);
+      QFileInfo fileInfo(fileName);
+      if (!QDir("/tmp/").exists()) QDir().mkdir("/tmp/");
+      QString dest = "/tmp/" + fileInfo.fileName();
+      _loadedName = "file:////tmp/" + fileInfo.fileName();
+      QFile file(dest);
+      if (!file.open(QIODevice::WriteOnly)) throw std::runtime_error("Could not open file for writing");
+      file.write(fileContent);
+      file.close();
       emit loaded();
     }
   };
   QFileDialog::getOpenFileContent(nameFilter, ready);
 }
 
-QString WASMIO::loadedData() const { return _loadedData; }
 
 QString WASMIO::loadedName() const { return _loadedName; }
