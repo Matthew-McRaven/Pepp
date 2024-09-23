@@ -8,17 +8,12 @@ Item {
     property alias symbolText: symbol.text
     property alias valueText: value.text
 
-    //property alias symbolWidth: symbol.width
     property alias valueWidth: value.width
 
-    property alias backgroundColor: background.color
     property alias textColor: symbol.color
     property alias font: symbol.font
 
-    //implicitWidth: colWidth
-    //implicitHeight: rowHeight
-    Rectangle {
-        id: background
+    Item {
         anchors.fill: root
 
         Label {
