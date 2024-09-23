@@ -25,8 +25,7 @@ RowLayout {
         onActivated: {
             Theme.selectTheme(themeId.currentText)
 
-            //  When theme is changed, reset model to
-            //  refresh screen.
+            //  When theme is changed, reset model to refresh screen.
             root.model.resetModel()
         }
     }
@@ -61,8 +60,6 @@ RowLayout {
     }
     Button {
         text: "Import"
-        visible: !PlatformDetector.isWASM
-        enabled: !PlatformDetector.isWASM
         Layout.preferredWidth: buttonWidth
         onClicked: importLoader.item.open()
     }
@@ -88,7 +85,7 @@ RowLayout {
             }
 
             if (PlatformDetector.isWASM) {
-                setSource("qrc:/ui/preferences/QMLExportDialog.qml", props)
+                setSource("qrc:/ui/preferences/QMLFileDialog.qml", props)
             } else {
                 setSource("qrc:/ui/preferences/NativeFileDialog.qml", props)
             }
@@ -114,8 +111,7 @@ RowLayout {
             }
 
             if (PlatformDetector.isWASM) {
-
-                // console.warn("Import dialog not implemented for WASM.")
+                setSource("qrc:/ui/preferences/QMLFileDialog.qml", props)
             } else {
                 setSource("qrc:/ui/preferences/NativeFileDialog.qml", props)
             }
