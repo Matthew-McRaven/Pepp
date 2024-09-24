@@ -548,7 +548,6 @@ void Theme::setFont(QFont font) { setFont(font.family(), font.pointSize()); }
 
 //  Internal interface
 void Theme::setFont(const QString family, const int pointSize) {
-
   font_.setFamily(family);
 
   //  Make sure font is at least 8 points
