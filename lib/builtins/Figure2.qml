@@ -18,8 +18,8 @@
 import QtQuick
 import QtQuick.Controls
 import QtQuick.Layouts
-import edu.peppx 1.0
-import "qrc:/edu/peppx/text/editor" as Editor
+import edu.pepp 1.0
+import "qrc:/edu/pepp/text/editor" as Editor
 
 Item {
     id: wrapper

@@ -3,7 +3,7 @@ import QtQuick.Controls
 import QtQuick.Layouts
 
 import "." as Ui
-import edu.peppx 1.0
+import edu.pepp 1.0
 
 Flickable {
     id: root

@@ -2,7 +2,7 @@ import QtQuick
 import QtQuick.Controls
 import QtQuick.Layouts
 // For PlatformDetector
-import edu.peppx 1.0
+import edu.pepp 1.0
 
 //  Theme selection
 RowLayout {
@@ -85,9 +85,9 @@ RowLayout {
             }
 
             if (PlatformDetector.isWASM) {
-                setSource("qrc:/edu/peppx/preferences/QMLFileDialog.qml", props)
+                setSource("qrc:/edu/pepp/preferences/QMLFileDialog.qml", props)
             } else {
-                setSource("qrc:/edu/peppx/preferences/NativeFileDialog.qml",
+                setSource("qrc:/edu/pepp/preferences/NativeFileDialog.qml",
                           props)
             }
         }
@@ -112,9 +112,9 @@ RowLayout {
             }
 
             if (PlatformDetector.isWASM) {
-                setSource("qrc:/edu/peppx/preferences/QMLFileDialog.qml", props)
+                setSource("qrc:/edu/pepp/preferences/QMLFileDialog.qml", props)
             } else {
-                setSource("qrc:/edu/peppx/preferences/NativeFileDialog.qml",
+                setSource("qrc:/edu/pepp/preferences/NativeFileDialog.qml",
                           props)
             }
         }
@@ -145,10 +145,10 @@ RowLayout {
                 props["x"] = 0
                 props["y"] = 0
                 props["parent"] = root
-                setSource("qrc:/edu/peppx/preferences/QMLMessageDialog.qml",
+                setSource("qrc:/edu/pepp/preferences/QMLMessageDialog.qml",
                           props)
             } else
-                setSource("qrc:/edu/peppx/preferences/NativeMessageDialog.qml",
+                setSource("qrc:/edu/pepp/preferences/NativeMessageDialog.qml",
                           props)
         }
         asynchronous: false

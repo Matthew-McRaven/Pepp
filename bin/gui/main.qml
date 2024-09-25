@@ -21,16 +21,16 @@ import QtQuick.Controls
 import QtQuick.Layouts
 import Qt.labs.qmlmodels
 import QtCore
-import "qrc:/edu/peppx/about" as About
-import "qrc:/edu/peppx/components" as Comp
-import "qrc:/edu/peppx/memory/hexdump" as Memory
-import "qrc:/edu/peppx/cpu" as Cpu
-import "qrc:/edu/peppx/text/editor" as Editor
-import "qrc:/edu/peppx/project" as Project
-import "qrc:/edu/peppx/preferences" as Pref
-import "qrc:/edu/peppx/builtins" as Builtins
-import edu.peppx 1.0
-import "qrc:/edu/peppx/menu" as Menu
+import "qrc:/edu/pepp/about" as About
+import "qrc:/edu/pepp/components" as Comp
+import "qrc:/edu/pepp/memory/hexdump" as Memory
+import "qrc:/edu/pepp/cpu" as Cpu
+import "qrc:/edu/pepp/text/editor" as Editor
+import "qrc:/edu/pepp/project" as Project
+import "qrc:/edu/pepp/preferences" as Pref
+import "qrc:/edu/pepp/builtins" as Builtins
+import edu.pepp 1.0
+import "qrc:/edu/pepp/menu" as Menu
 //  Native menu for apple, linux, and windows
 import Qt.labs.platform as Labs
 
@@ -241,11 +241,11 @@ ApplicationWindow {
             }
             if (PlatformDetector.isWASM) {
                 props["window"] = window
-                setSource("qrc:/edu/peppx/menu/QMLMainMenu.qml", props)
+                setSource("qrc:/edu/pepp/menu/QMLMainMenu.qml", props)
             } else
                 // Auto-recurses on "parent" to find "window" of correct type.
                 // If explicitly set, the menu bar will not render until hovered over.
-                setSource("qrc:/edu/peppx/menu/NativeMainMenu.qml", props)
+                setSource("qrc:/edu/pepp/menu/NativeMainMenu.qml", props)
         }
         onLoaded: {
             if (PlatformDetector.isWASM)

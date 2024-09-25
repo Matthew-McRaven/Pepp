@@ -9,7 +9,7 @@
 import QtQuick
 import QtQuick.Controls
 import QtQml.Models
-import edu.peppx 1.0 as Pepp
+import edu.pepp 1.0 as Pepp
 
 Item {
     id: root

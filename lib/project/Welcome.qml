@@ -1,7 +1,7 @@
 import QtQuick 2.15
 import QtQuick.Controls
 import QtQuick.Layouts
-import edu.peppx 1.0
+import edu.pepp 1.0
 
 Flickable {
     signal addProject(string arch, string abstraction, string features, bool reuse)

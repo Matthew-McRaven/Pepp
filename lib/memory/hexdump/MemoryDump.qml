@@ -5,7 +5,7 @@ import Qt.labs.qmlmodels
 
 //  For DelegateChooser
 import "." as Ui
-import edu.peppx 1.0
+import edu.pepp 1.0
 
 Item {
     id: root

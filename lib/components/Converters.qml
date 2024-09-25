@@ -1,7 +1,7 @@
 import QtQuick
 import QtQuick.Controls
 import QtQuick.Layouts
-import edu.peppx 1.0
+import edu.pepp 1.0
 
 Item {
     id: wrapper
