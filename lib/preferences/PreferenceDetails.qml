@@ -5,7 +5,7 @@ import Qt.labs.platform as Platform
 
 //  Font picker
 import "." as Ui
-import edu.pepp 1.0
+import edu.peppx 1.0
 
 Rectangle {
     id: root

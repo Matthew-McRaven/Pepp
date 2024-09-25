@@ -9,7 +9,7 @@
 import QtQuick
 import QtQuick.Controls
 import QtQml.Models
-import org.scintilla.scintilla 1.0 as S
+import edu.peppx 1.0 as Pepp
 
 Item {
     id: root
@@ -82,7 +82,7 @@ Item {
         }
     }
     // the QuickScintilla control
-    S.ScintillaAsmEdit {
+    Pepp.ScintillaAsmEditBase {
         Component.onCompleted: {
             Theme.themesChanged.connect(editor.applyStyles)
         }

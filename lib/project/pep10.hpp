@@ -5,7 +5,7 @@
 #include <helpers/asmb.hpp>
 #include <qabstractitemmodel.h>
 #include <targets/pep10/isa3/system.hpp>
-#include "./aproject.hpp"
+#include "aproject.hpp"
 #include "builtins/constants.hpp"
 #include "cpu/registermodel.hpp"
 #include "cpu/statusbitmodel.hpp"
@@ -13,6 +13,7 @@
 #include "symtab/symbolmodel.hpp"
 #include "text/editor/scintillaasmeditbase.hpp"
 #include "utils/opcodemodel.hpp"
+#include "utils/strings.hpp"
 
 class Pep10_ISA : public QObject {
   Q_OBJECT
@@ -34,6 +35,8 @@ class Pep10_ISA : public QObject {
   // Only changed internally.
   Q_PROPERTY(QString charOut READ charOut NOTIFY charOutChanged)
   Q_PROPERTY(bool isEmpty READ isEmpty)
+  QML_UNCREATABLE("Can only be created through Project::")
+
 public:
   enum class UpdateType {
     Partial,
@@ -140,6 +143,7 @@ class Pep10_ASMB final : public Pep10_ISA {
   Q_PROPERTY(QList<Error *> assemblerErrors READ errors NOTIFY errorsChanged)
   Q_PROPERTY(SymbolModel *userSymbols READ userSymbols CONSTANT)
   Q_PROPERTY(SymbolModel *osSymbols READ osSymbols CONSTANT)
+  QML_UNCREATABLE("Can only be created through Project::")
   using Action = ScintillaAsmEditBase::Action;
 
 public:

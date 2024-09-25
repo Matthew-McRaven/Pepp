@@ -22,7 +22,7 @@ import QtQuick.Window
 import Qt.labs.platform as Platform
 
 import "ui" as Ui
-import "qrc:/ui/memory/hexdump" as Memory
+import "qrc:/edu/peppx/memory/hexdump" as Memory
 
 ApplicationWindow {
     id: window

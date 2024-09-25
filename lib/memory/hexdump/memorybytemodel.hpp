@@ -10,6 +10,9 @@
 
 class MemoryRoles : public QObject {
   Q_OBJECT
+  QML_ELEMENT
+  QML_UNCREATABLE("Error: only enums")
+
 public:
   enum Roles {
     Selected = Qt::UserRole + 1,
@@ -22,6 +25,7 @@ public:
 
 class MemoryByteModel : public QAbstractTableModel {
   Q_OBJECT
+  QML_NAMED_ELEMENT(MemoryModel)
 
   //  Statistics on memory size and layout
   quint8 width_ = 8; //  Default to 8 columns

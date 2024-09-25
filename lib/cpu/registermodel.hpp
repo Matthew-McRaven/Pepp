@@ -11,6 +11,7 @@ class RegisterModel : public QAbstractTableModel {
   Q_OBJECT
   Q_PROPERTY(Roles Box MEMBER _box CONSTANT);
   Q_PROPERTY(Roles RightJustify MEMBER _justify CONSTANT);
+  QML_ELEMENT
 
 public:
   enum class Roles { Box = Qt::UserRole + 1, RightJustify };

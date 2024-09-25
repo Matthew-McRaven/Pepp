@@ -1,6 +1,6 @@
 import QtQuick
 import QtQuick.Controls
-import edu.pepp 1.0
+import edu.peppx 1.0
 
 Flickable {
     required property string file

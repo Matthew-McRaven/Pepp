@@ -1,5 +1,6 @@
 #pragma once
 #include <QtCore>
+#include <QtQmlIntegration>
 
 namespace about {
 struct Dependency {
@@ -10,6 +11,8 @@ QList<Dependency> dependencies();
 
 class DependencyRoles : public QObject {
   Q_OBJECT
+  QML_ELEMENT
+  QML_UNCREATABLE("Error: Only enums")
 public:
   enum RoleNames {
     Name = Qt::UserRole,
@@ -31,6 +34,9 @@ private:
 
 class Dependencies : public QAbstractListModel {
   Q_OBJECT
+  QML_ELEMENT
+  QML_SINGLETON
+
 public:
   explicit Dependencies(QObject *parent = nullptr);
   ~Dependencies() override = default;

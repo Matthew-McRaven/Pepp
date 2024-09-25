@@ -1,6 +1,7 @@
 #pragma once
 
 #include <QAbstractItemModel>
+#include <QtQmlIntegration>
 #include <qsortfilterproxymodel.h>
 #include "builtins/constants.hpp"
 
@@ -41,6 +42,8 @@ private:
 
 class HelpModel : public QAbstractItemModel {
   Q_OBJECT
+  QML_ELEMENT
+
 public:
   enum class Roles { Category = Qt::UserRole + 1, Tags, Name, Delegate, Props };
   Q_ENUM(Roles);
@@ -70,6 +73,8 @@ class HelpFilterModel : public QSortFilterProxyModel {
   Q_PROPERTY(builtins::Architecture architecture READ architecture WRITE setArchitecture NOTIFY architectureChanged)
   Q_PROPERTY(builtins::Abstraction abstraction READ abstraction WRITE setAbstraction NOTIFY abstractionChanged)
   Q_PROPERTY(QAbstractItemModel *model READ sourceModel WRITE setSourceModel NOTIFY sourceModelChanged)
+  QML_NAMED_ELEMENT(FilteredHelpModel)
+
 public:
   explicit HelpFilterModel(QObject *parent = nullptr);
 

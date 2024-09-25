@@ -2,7 +2,7 @@ import QtQuick
 import QtQuick.Layouts
 import QtQuick.Controls
 import QtQuick.Window
-import edu.pepp 1.0
+import edu.peppx 1.0
 import "../about" as About
 
 Dialog {

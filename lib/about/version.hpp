@@ -16,6 +16,7 @@
 
 #pragma once
 #include <QtCore>
+#include <QtQmlIntegration>
 
 namespace about {
 const char *const g_GIT_SHA1();
@@ -34,6 +35,9 @@ class Version : public QObject {
   Q_PROPERTY(int version_minor READ version_minor CONSTANT)
   Q_PROPERTY(int version_patch READ version_patch CONSTANT)
   Q_PROPERTY(QString version_str_full READ version_str_full CONSTANT)
+  QML_ELEMENT
+  QML_SINGLETON
+
 public:
   explicit Version(QObject *parent = nullptr);
   ~Version() override = default;

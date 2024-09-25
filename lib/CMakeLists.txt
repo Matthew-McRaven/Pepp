@@ -30,21 +30,25 @@ foreach (f_abs IN LISTS abs_qml_sources)
     list(APPEND rel_qml_sources "${f_rel}")
 endforeach ()
 qt_add_qml_module(pepp-lib
-  URI "ui"
-        VERSION 0.1
+  URI "edu.peppx"
+        VERSION 1.0
         STATIC
+        CLASS_NAME PeppLibPlugin
         SOURCES ${sources} "${CMAKE_CURRENT_BINARY_DIR}/version_gen.cpp" "${CMAKE_SOURCE_DIR}/resource_license.qrc"
         QML_FILES ${rel_qml_sources}
         RESOURCE_PREFIX /
-        NO_PLUGIN
+        OUTPUT_DIRECTORY "${CMAKE_CURRENT_BINARY_DIR}/edu/peppx"
 )
 
 target_link_libraries(pepp-lib PUBLIC Qt6::Core Qt6::Gui Qt6::Quick Qt6::Sql antlr4_shared elfio lru-cache scintilla_qt zpp_bits)
-
 # Will fail to find hpp files without this, see https://bugreports.qt.io/browse/QTBUG-101146.
 get_target_property(ANTLR4_INCLUDE_DIR antlr4_shared INCLUDE_DIRECTORIES)
 target_include_directories(pepp-lib PUBLIC ${CMAKE_CURRENT_BINARY_DIR} ${ANTLR4_INCLUDE_DIR})
-target_include_directories(pepp-lib PRIVATE about builtins components cpu helpers isa link macro memory preferences project sim targets text utils text/editor menu)
+target_include_directories(pepp-lib PRIVATE
+        about builtins components cpu helpers isa
+        link macro memory memory/hexdump preferences project sim targets
+        text utils text/editor menu settings
+)
 
 # Add additional JS support files
 if(EMSCRIPTEN)

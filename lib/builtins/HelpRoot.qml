@@ -1,8 +1,8 @@
 import QtQuick
 import QtQuick.Controls
 import QtQuick.Layouts
-import edu.pepp 1.0
-import "qrc:/ui/components" as Comp
+import edu.peppx 1.0
+import "qrc:/edu/peppx/components" as Comp
 
 Item {
     id: root

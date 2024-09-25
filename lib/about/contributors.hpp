@@ -16,11 +16,17 @@
 
 #pragma once
 #include <QtCore>
+#include <QtQmlIntegration>
 
+class QQmlEngine;
+class QJSEngine;
 class Maintainer : public QObject {
   Q_OBJECT
   Q_PROPERTY(QString name READ name CONSTANT)
   Q_PROPERTY(QString email READ email CONSTANT)
+  QML_ELEMENT
+  QML_UNCREATABLE("Must be created from C++")
+
 public:
   Maintainer(QString name, QString email, QObject *parent = nullptr);
   ~Maintainer() override = default;
@@ -32,10 +38,16 @@ private:
 };
 
 class MaintainerList : public QAbstractListModel {
+  Q_OBJECT
+  QML_ELEMENT
+  QML_SINGLETON
+
 public:
   enum { NAME = Qt::UserRole, EMAIL = Qt::UserRole + 1, ITEM };
   explicit MaintainerList(QList<Maintainer *> list, QObject *parent = nullptr);
   ~MaintainerList() override = default;
+  static MaintainerList *create(QQmlEngine *, QJSEngine *);
+
   int rowCount(const QModelIndex &parent) const override;
   QVariant data(const QModelIndex &index, int role) const override;
   QHash<int, QByteArray> roleNames() const override;
@@ -47,8 +59,12 @@ private:
 class Contributors : public QObject {
   Q_OBJECT
   Q_PROPERTY(QString text READ text CONSTANT)
+  QML_ELEMENT
+  QML_SINGLETON
+
 public:
   explicit Contributors(QObject *parent = nullptr);
   ~Contributors() override = default;
+  static Contributors *create(QQmlEngine *, QJSEngine *);
   static QString text();
 };

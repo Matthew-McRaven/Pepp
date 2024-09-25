@@ -1,10 +1,12 @@
 #pragma once
 
 #include <QObject>
+#include <QtQmlIntegration>
 
 class WASMIO : public QObject {
   Q_OBJECT
   Q_PROPERTY(QString loadedName READ loadedName NOTIFY loaded)
+  QML_ELEMENT
 
 public:
   WASMIO(QObject *parent = nullptr);

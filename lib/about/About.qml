@@ -18,7 +18,7 @@ import QtQuick
 import QtQuick.Layouts
 import QtQuick.Controls
 import QtQuick.Window
-import edu.pepp 1.0
+import edu.peppx 1.0
 
 Item {
     id: root
@@ -69,14 +69,14 @@ Item {
                 Layout.fillWidth: true
                 Layout.fillHeight: true
                 Repeater {
-                    model: Maintainers
+                    model: MaintainerList
                     Label {
                         width: parent.width
                         height: fontMetrics.height
                         required property var item
                         text: item.name + "  <" + item.email + ">"
                     }
-                    height: Maintainers.rowCount * fontMetrics.height
+                    height: MaintainerList.rowCount * fontMetrics.height
                 }
             }
             Label {

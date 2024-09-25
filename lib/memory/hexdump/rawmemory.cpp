@@ -27,11 +27,7 @@ EmptyRawMemory *EmptyRawMemoryFactory::create(quint32 size) {
   return ret;
 }
 
-QObject *EmptyRawMemoryFactory::singletonProvider(QQmlEngine *engine, QJSEngine *scriptEngine) {
-  Q_UNUSED(engine)
-  Q_UNUSED(scriptEngine)
-  return new EmptyRawMemoryFactory();
-}
+QObject *EmptyRawMemoryFactory::create(QQmlEngine *, QJSEngine *) { return new EmptyRawMemoryFactory(); }
 
 ArrayRawMemory::ArrayRawMemory(quint32 size, QObject *parent) : ARawMemory(parent), _data(size, 0) {}
 
@@ -62,11 +58,7 @@ ArrayRawMemory *ArrayRawMemoryFactory::create(quint32 size) {
   return ret;
 }
 
-QObject *ArrayRawMemoryFactory::singletonProvider(QQmlEngine *engine, QJSEngine *scriptEngine) {
-  Q_UNUSED(engine)
-  Q_UNUSED(scriptEngine)
-  return new ArrayRawMemoryFactory();
-}
+QObject *ArrayRawMemoryFactory::create(QQmlEngine *, QJSEngine *) { return new ArrayRawMemoryFactory(); }
 
 static const auto gs = sim::api2::memory::Operation{
     .type = sim::api2::memory::Operation::Type::Application,

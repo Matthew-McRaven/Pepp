@@ -1,5 +1,6 @@
 #pragma once
 #include <QObject>
+#include <QtQmlIntegration>
 #include <QtTypes>
 #include <vector>
 #include "sim/device/simple_bus.hpp"
@@ -9,6 +10,9 @@ class QJSEngine;
 class QQmlEngine;
 class MemoryHighlight : public QObject {
   Q_OBJECT
+  QML_ELEMENT
+  QML_UNCREATABLE("")
+
 public:
   enum V {
     None,
@@ -20,6 +24,7 @@ public:
 };
 class ARawMemory : public QObject {
   Q_OBJECT
+
 public:
   ARawMemory(QObject *parent = nullptr);
   virtual ~ARawMemory() = 0;
@@ -37,6 +42,9 @@ signals:
 
 class EmptyRawMemory : public ARawMemory {
   Q_OBJECT
+  QML_ELEMENT
+  QML_UNCREATABLE("")
+
 public:
   explicit EmptyRawMemory(quint32 size, QObject *parent = nullptr);
   quint32 byteCount() const override;
@@ -50,14 +58,19 @@ private:
 
 class EmptyRawMemoryFactory : public QObject {
   Q_OBJECT
+  QML_ELEMENT
+  QML_SINGLETON
 
 public:
   Q_INVOKABLE EmptyRawMemory *create(quint32 size);
-  static QObject *singletonProvider(QQmlEngine *engine, QJSEngine *scriptEngine);
+  static QObject *create(QQmlEngine *, QJSEngine *);
 };
 
 class ArrayRawMemory : public ARawMemory {
   Q_OBJECT
+  QML_ELEMENT
+  QML_UNCREATABLE("")
+
 public:
   explicit ArrayRawMemory(quint32 size, QObject *parent = nullptr);
   quint32 byteCount() const override;
@@ -72,9 +85,12 @@ private:
 
 class ArrayRawMemoryFactory : public QObject {
   Q_OBJECT
+  QML_ELEMENT
+  QML_SINGLETON
+
 public:
   Q_INVOKABLE ArrayRawMemory *create(quint32 size);
-  static QObject *singletonProvider(QQmlEngine *engine, QJSEngine *scriptEngine);
+  static QObject *create(QQmlEngine *, QJSEngine *);
 };
 
 namespace sim::trace2 {

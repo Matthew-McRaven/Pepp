@@ -5,6 +5,7 @@
 #include <QObject>
 #include <QSortFilterProxyModel>
 #include <QVersionNumber>
+#include <QtQmlIntegration>
 
 class Change : public QObject {
   Q_OBJECT
@@ -73,6 +74,8 @@ private:
 
 class ChangelogModel : public QAbstractListModel {
   Q_OBJECT
+  QML_ELEMENT
+
 public:
   ChangelogModel();
   // QAbstractItemModel interface
@@ -95,6 +98,8 @@ class ChangelogFilterModel : public QSortFilterProxyModel {
   Q_PROPERTY(QAbstractItemModel *model READ sourceModel WRITE setSourceModel NOTIFY sourceModelChanged)
   Q_PROPERTY(QString min READ min WRITE setMin NOTIFY minChanged)
   Q_PROPERTY(QString max READ max WRITE setMax NOTIFY maxChanged)
+  QML_ELEMENT
+
 public:
   explicit ChangelogFilterModel(QObject *parent = nullptr);
   void setSourceModel(QAbstractItemModel *sourceModel) override;
