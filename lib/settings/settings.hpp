@@ -1,21 +1,32 @@
-#pragma once
-
 #include <QObject>
 #include <QtQmlIntegration>
 
 class QJSEngine;
 class QQmlEngine;
 
-class ApplicationPreferences : public QObject {
+class GeneralCategory : public QObject {
   Q_OBJECT
-  Q_PROPERTY(QString general MEMBER _general)
+  QML_UNCREATABLE("")
+  QML_NAMED_ELEMENT(GeneralCategory)
+  Q_PROPERTY(QString name READ name CONSTANT)
+public:
+  explicit GeneralCategory(QObject *parent = nullptr);
+  QString name() const { return "General"; };
+};
+
+class AppSettings : public QObject {
+  Q_OBJECT
+  // Q_PROPERTY(GeneralPreferences *general READ general CONSTANT)
+  Q_PROPERTY(QList<QObject *> categories READ categories CONSTANT)
   QML_SINGLETON
-  QML_NAMED_ELEMENT(ApplicationPreferences)
+  QML_NAMED_ELEMENT(AppSettings)
+  Q_CLASSINFO("DefaultProperty", "categories")
 
 public:
-  explicit ApplicationPreferences(QObject *parent = nullptr);
-  static ApplicationPreferences *create(QQmlEngine *, QJSEngine *);
+  explicit AppSettings(QObject *parent = nullptr);
+  QList<QObject *> categories() const { return _categories; };
 
 private:
-  QString _general;
+  GeneralCategory *_p = nullptr;
+  QList<QObject *> _categories;
 };
