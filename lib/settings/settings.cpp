@@ -1,8 +1,10 @@
 #include "settings.hpp"
 #include <QQmlEngine>
 
-ApplicationPreferences::ApplicationPreferences(QObject *parent) : QObject{parent} {}
+AppSettings::AppSettings(QObject *parent) : QObject{parent} {
+  _p = new GeneralCategory(this);
 
-ApplicationPreferences *ApplicationPreferences::create(QQmlEngine *eng, QJSEngine *) {
-  return new ApplicationPreferences(eng);
+  _categories.append(_p);
 }
+
+GeneralCategory::GeneralCategory(QObject *parent) : QObject(parent) {}
