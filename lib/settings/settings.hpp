@@ -15,6 +15,7 @@ public:
   explicit Category(QObject *parent = nullptr);
   virtual QString name() const = 0;
   virtual QString delegate() const { return ""; };
+  virtual void sync() {};
 };
 
 class GeneralCategory : public Category {
@@ -51,6 +52,8 @@ public:
   QList<Category *> categories() const { return _categories; };
   GeneralCategory *general() const { return _general; };
   ThemeCategory *theme() const { return _theme; }
+public slots:
+  void sync();
 
 private:
   GeneralCategory *_general = nullptr;
