@@ -38,11 +38,33 @@ public:
   QString name() const override { return "Fonts & Colors"; };
 };
 
+class EditorCategory : public Category {
+  Q_OBJECT
+  QML_UNCREATABLE("")
+  QML_NAMED_ELEMENT(ThemeCategory)
+
+public:
+  explicit EditorCategory(QObject *parent = nullptr);
+  QString name() const override { return "Editor"; };
+};
+
+class KeyMapCategory : public Category {
+  Q_OBJECT
+  QML_UNCREATABLE("")
+  QML_NAMED_ELEMENT(ThemeCategory)
+
+public:
+  explicit KeyMapCategory(QObject *parent = nullptr);
+  QString name() const override { return "Key Map"; };
+};
+
 class AppSettings : public QObject {
   Q_OBJECT
   Q_PROPERTY(QList<Category *> categories READ categories CONSTANT)
   Q_PROPERTY(GeneralCategory general READ general CONSTANT)
   Q_PROPERTY(ThemeCategory theme READ theme CONSTANT)
+  Q_PROPERTY(EditorCategory editor READ editor CONSTANT)
+  Q_PROPERTY(KeyMapCategory keymap READ keymap CONSTANT)
   QML_SINGLETON
   QML_NAMED_ELEMENT(AppSettings)
   Q_CLASSINFO("DefaultProperty", "categories")
@@ -52,12 +74,16 @@ public:
   QList<Category *> categories() const { return _categories; };
   GeneralCategory *general() const { return _general; };
   ThemeCategory *theme() const { return _theme; }
+  EditorCategory *editor() const { return _editor; }
+  KeyMapCategory *keymap() const { return _keymap; }
 public slots:
   void sync();
 
 private:
   GeneralCategory *_general = nullptr;
   ThemeCategory *_theme = nullptr;
+  EditorCategory *_editor = nullptr;
+  KeyMapCategory *_keymap = nullptr;
   QList<Category *> _categories;
 };
 } // namespace pepp::settings
