@@ -9,6 +9,8 @@ static const char *defaultAbstractionKey = "General/defaultAbstraction";
 static const char *maxRecentFilesKey = "General/maxRecentFiles";
 static const char *showMenuHotkeysKey = "General/showMenuHotkeys";
 static const char *showChangeDialogKey = "General/showChangeDialog";
+// Editor
+static const char *visualizeWhitespaceKey = "Editor/visualizeWhitespace";
 // Simulator
 static const char *maxStepbackBufferKBKey = "Simulator/maxStepbackBufferKB";
 
@@ -100,7 +102,25 @@ bool pepp::settings::GeneralCategory::validateMaxRecentFiles(int max) const {
 }
 
 pepp::settings::ThemeCategory::ThemeCategory(QObject *parent) : Category(parent) {}
+
 pepp::settings::EditorCategory::EditorCategory(QObject *parent) : Category(parent) {}
+
+void pepp::settings::EditorCategory::sync() { _settings.sync(); }
+
+bool pepp::settings::EditorCategory::visualizeWhitespace() const {
+  auto value = _settings.value(visualizeWhitespaceKey);
+  if (value.isValid()) return value.toBool();
+  else {
+    _settings.setValue(visualizeWhitespaceKey, _defaultVisualizeWhitespace);
+    return _defaultVisualizeWhitespace;
+  }
+}
+
+void pepp::settings::EditorCategory::setVisualizeWhitespace(bool visualize) {
+  _settings.setValue(visualizeWhitespaceKey, visualize);
+  emit visualizeWhitespaceChanged();
+}
+
 pepp::settings::SimulatorCategory::SimulatorCategory(QObject *parent) {}
 
 void pepp::settings::SimulatorCategory::sync() { _settings.sync(); }
