@@ -87,10 +87,24 @@ class EditorCategory : public Category {
   Q_OBJECT
   QML_UNCREATABLE("")
   QML_NAMED_ELEMENT(ThemeCategory)
+  Q_PROPERTY(
+      bool visualizeWhitespace READ visualizeWhitespace WRITE setVisualizeWhitespace NOTIFY visualizeWhitespaceChanged)
 
 public:
   explicit EditorCategory(QObject *parent = nullptr);
   QString name() const override { return "Editor"; };
+  QString source() const override { return "EditorCategoryDelegate.qml"; };
+  void sync() override;
+
+  bool visualizeWhitespace() const;
+  void setVisualizeWhitespace(bool visualize);
+
+signals:
+  void visualizeWhitespaceChanged();
+
+private:
+  bool _defaultVisualizeWhitespace = false;
+  mutable QSettings _settings;
 };
 
 class SimulatorCategory : public Category {
