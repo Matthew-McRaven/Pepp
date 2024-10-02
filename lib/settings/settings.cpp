@@ -1,10 +1,11 @@
 #include "settings.hpp"
 #include <QQmlEngine>
 
-AppSettings::AppSettings(QObject *parent) : QObject{parent} {
-  _p = new GeneralCategory(this);
+pepp::settings::Category::Category(QObject *parent) : QObject(parent) {}
+pepp::settings::GeneralCategory::GeneralCategory(QObject *parent) : Category(parent) {}
+pepp::settings::ThemeCategory::ThemeCategory(QObject *parent) : Category(parent) {}
 
-  _categories.append(_p);
+pepp::settings::AppSettings::AppSettings(QObject *parent) : QObject{parent} {
+  _categories.append(_general = new GeneralCategory(this));
+  _categories.append(_theme = new ThemeCategory(this));
 }
-
-GeneralCategory::GeneralCategory(QObject *parent) : QObject(parent) {}
