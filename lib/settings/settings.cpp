@@ -9,3 +9,7 @@ pepp::settings::AppSettings::AppSettings(QObject *parent) : QObject{parent} {
   _categories.append(_general = new GeneralCategory(this));
   _categories.append(_theme = new ThemeCategory(this));
 }
+
+void pepp::settings::AppSettings::sync() {
+  for (auto category : _categories) category->sync();
+}
