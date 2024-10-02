@@ -3,11 +3,14 @@
 
 pepp::settings::Category::Category(QObject *parent) : QObject(parent) {}
 
+// General
 static const char *defaultArchKey = "General/defaultArch";
 static const char *defaultAbstractionKey = "General/defaultAbstraction";
 static const char *maxRecentFilesKey = "General/maxRecentFiles";
 static const char *showMenuHotkeysKey = "General/showMenuHotkeys";
 static const char *showChangeDialogKey = "General/showChangeDialog";
+// Simulator
+static const char *maxStepbackBufferKBKey = "Simulator/maxStepbackBufferKB";
 
 pepp::settings::GeneralCategory::GeneralCategory(QObject *parent) : Category(parent) {}
 
@@ -98,12 +101,41 @@ bool pepp::settings::GeneralCategory::validateMaxRecentFiles(int max) const {
 
 pepp::settings::ThemeCategory::ThemeCategory(QObject *parent) : Category(parent) {}
 pepp::settings::EditorCategory::EditorCategory(QObject *parent) : Category(parent) {}
+pepp::settings::SimulatorCategory::SimulatorCategory(QObject *parent) {}
+
+void pepp::settings::SimulatorCategory::sync() { _settings.sync(); }
+
+int pepp::settings::SimulatorCategory::minMaxStepbackBufferKB() const { return 10; }
+
+int pepp::settings::SimulatorCategory::maxMaxStepbackBufferKB() const { return 200'000; }
+
+int pepp::settings::SimulatorCategory::maxStepbackBufferKB() const {
+  bool casted = false;
+  auto value = _settings.value(maxStepbackBufferKBKey);
+  if (auto asInt = value.toInt(&casted); value.isValid() && casted) return asInt;
+  else {
+    _settings.setValue(maxStepbackBufferKBKey, _defaultMaxStepbackBufferKB);
+    return _defaultMaxStepbackBufferKB;
+  }
+}
+
+void pepp::settings::SimulatorCategory::setMaxStepbackBufferKB(int max) {
+  if (!validateMaxStepbackBufferKB(max)) return;
+  _settings.setValue(maxStepbackBufferKBKey, max);
+  emit maxStepbackBufferKBChanged();
+}
+
+bool pepp::settings::SimulatorCategory::validateMaxStepbackBufferKB(int max) const {
+  return max >= minMaxStepbackBufferKB() && max <= maxMaxStepbackBufferKB();
+}
+
 pepp::settings::KeyMapCategory::KeyMapCategory(QObject *parent) : Category(parent) {}
 
 pepp::settings::AppSettings::AppSettings(QObject *parent) : QObject{parent} {
   _categories.append(_general = new GeneralCategory(this));
   _categories.append(_theme = new ThemeCategory(this));
   _categories.append(_editor = new EditorCategory(this));
+  _categories.append(_simulator = new SimulatorCategory(this));
   _categories.append(_keymap = new KeyMapCategory(this));
 }
 
