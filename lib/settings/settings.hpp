@@ -9,12 +9,12 @@ class Category : public QObject {
   Q_OBJECT
   QML_UNCREATABLE("")
   Q_PROPERTY(QString name READ name CONSTANT)
-  Q_PROPERTY(QString delegate READ delegate CONSTANT)
+  Q_PROPERTY(QString source READ source CONSTANT)
 
 public:
   explicit Category(QObject *parent = nullptr);
   virtual QString name() const = 0;
-  virtual QString delegate() const { return ""; };
+  virtual QString source() const { return "UnimplementedCategoryDelegate.qml"; };
   virtual void sync() {};
 };
 
@@ -26,6 +26,7 @@ class GeneralCategory : public Category {
 public:
   explicit GeneralCategory(QObject *parent = nullptr);
   QString name() const override { return "General"; };
+  QString source() const override { return "GeneralCategoryDelegate.qml"; };
 };
 
 class ThemeCategory : public Category {

@@ -4,9 +4,11 @@ import QtQuick.Controls
 Rectangle {
     id: root
 
-    // Can't use alias or is not propogated
+    // Inputs
     property alias model: listView.model
     property alias contentWidth: listView.contentWidth
+    // Output
+    property var currentCategory: model[listView.currentIndex]
     // Re-add margins to center ListView items within rectangle
     implicitHeight: listView.contentItem.childrenRect.height
                     + listView.anchors.margins + border.width * 2

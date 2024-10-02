@@ -19,11 +19,17 @@ Rectangle {
             Layout.fillHeight: true
             Layout.margins: 3
             model: AppSettings.categories
+            onCurrentCategoryChanged: {
+                const props = {}
+                if (categoryList.currentCategory)
+                    loader.setSource(categoryList.currentCategory.source, props)
+            }
         }
-        Rectangle {
+        Loader {
+            id: loader
             Layout.fillHeight: true
             Layout.fillWidth: true
-            color: "red"
+            source: "UnimplementedCategoryDelegate.qml"
         }
     }
 }
