@@ -29,6 +29,7 @@ class GeneralCategory : public Category {
   QML_UNCREATABLE("")
   QML_NAMED_ELEMENT(GeneralCategory)
   // "Defaults" group box
+  // When given a file with an ambiguous extension, interpret it using this architecture.
   Q_PROPERTY(builtins::Architecture defaultArch READ defaultArch WRITE setDefaultArch NOTIFY defaultArchChanged)
   Q_PROPERTY(builtins::Abstraction defaultAbstraction READ defaultAbstraction WRITE setDefaultAbstraction NOTIFY
                  defaultAbstractionChanged)
@@ -92,6 +93,33 @@ public:
   QString name() const override { return "Editor"; };
 };
 
+class SimulatorCategory : public Category {
+  Q_OBJECT
+  QML_UNCREATABLE("")
+  QML_NAMED_ELEMENT(ThemeCategory)
+  Q_PROPERTY(
+      int maxStepbackBufferKB READ maxStepbackBufferKB WRITE setMaxStepbackBufferKB NOTIFY maxStepbackBufferKBChanged)
+
+public:
+  explicit SimulatorCategory(QObject *parent = nullptr);
+  QString name() const override { return "Simulator"; };
+  QString source() const override { return "SimulatorCategoryDelegate.qml"; };
+  void sync() override;
+
+  Q_INVOKABLE int minMaxStepbackBufferKB() const;
+  Q_INVOKABLE int maxMaxStepbackBufferKB() const;
+  int maxStepbackBufferKB() const;
+  void setMaxStepbackBufferKB(int max);
+
+signals:
+  void maxStepbackBufferKBChanged();
+
+private:
+  bool validateMaxStepbackBufferKB(int max) const;
+  int _defaultMaxStepbackBufferKB = 50;
+  mutable QSettings _settings;
+};
+
 class KeyMapCategory : public Category {
   Q_OBJECT
   QML_UNCREATABLE("")
@@ -108,6 +136,7 @@ class AppSettings : public QObject {
   Q_PROPERTY(GeneralCategory general READ general CONSTANT)
   Q_PROPERTY(ThemeCategory theme READ theme CONSTANT)
   Q_PROPERTY(EditorCategory editor READ editor CONSTANT)
+  Q_PROPERTY(SimulatorCategory simulator READ simulator CONSTANT)
   Q_PROPERTY(KeyMapCategory keymap READ keymap CONSTANT)
   QML_SINGLETON
   QML_NAMED_ELEMENT(AppSettings)
@@ -119,6 +148,7 @@ public:
   GeneralCategory *general() const { return _general; };
   ThemeCategory *theme() const { return _theme; }
   EditorCategory *editor() const { return _editor; }
+  SimulatorCategory *simulator() const { return _simulator; }
   KeyMapCategory *keymap() const { return _keymap; }
 public slots:
   void sync();
@@ -127,6 +157,7 @@ private:
   GeneralCategory *_general = nullptr;
   ThemeCategory *_theme = nullptr;
   EditorCategory *_editor = nullptr;
+  SimulatorCategory *_simulator = nullptr;
   KeyMapCategory *_keymap = nullptr;
   QList<Category *> _categories;
 };
