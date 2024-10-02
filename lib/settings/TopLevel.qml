@@ -20,7 +20,9 @@ Rectangle {
             Layout.margins: 3
             model: AppSettings.categories
             onCurrentCategoryChanged: {
-                const props = {}
+                const props = {
+                    "category": categoryList.currentCategory
+                }
                 if (categoryList.currentCategory)
                     loader.setSource(categoryList.currentCategory.source, props)
             }
