@@ -27,6 +27,7 @@ Item {
         abstractionCombo.activated(idx)
     }
     property var selected
+    // Duplicated in GeneralCategoryDelegate. Must manually propogate changes between files.
     Component.onCompleted: {
         architectureModel.append({
                                      "key": "Pep/10",
