@@ -25,6 +25,12 @@ Rectangle {
         anchors.fill: parent
         anchors.margins: 2
         clip: true
+        focus: true
+        focusPolicy: Qt.StrongFocus
+        Keys.onUpPressed: listView.currentIndex = Math.max(
+                              0, listView.currentIndex - 1)
+        Keys.onDownPressed: listView.currentIndex = Math.min(
+                                listView.count - 1, listView.currentIndex + 1)
         delegate: Item {
             id: wrapper
             implicitWidth: childrenRect.width
@@ -37,6 +43,7 @@ Rectangle {
                 anchors.fill: parent
                 onClicked: {
                     listView.currentIndex = row
+                    listView.forceActiveFocus()
                 }
                 // Dear future progammer, this is a hack. I want all rectangles to have the same width, but since I am autosizing based
                 // off of listView.contentItem.childrenRect there are binding loops on implicitWidth.The simplest solution is to
