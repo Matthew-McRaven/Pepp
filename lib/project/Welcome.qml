@@ -9,7 +9,7 @@ Flickable {
         anchors.fill: parent
         GridLayout {
             id: layout
-            columns: 1 + 4
+            columns: 1 + 5
             anchors.fill: parent
             anchors.centerIn: parent
             // Header
@@ -23,7 +23,14 @@ Flickable {
                 horizontalAlignment: Text.AlignHCenter
                 Layout.fillWidth: true
             }
-
+            Text {
+                text: "Asmb3"
+                font.pointSize: 24
+                font.weight: Font.Bold
+                color: palette.text
+                horizontalAlignment: Text.AlignHCenter
+                Layout.fillWidth: true
+            }
             Text {
                 text: "Asmb5"
                 font.pointSize: 24
@@ -58,28 +65,20 @@ Flickable {
                 Layout.preferredHeight: implicitHeight
             }
 
-            Rectangle {
-                height: childrenRect.height
-                width: childrenRect.width
-                color: "transparent"
-                Row {
-                    spacing: layout.columnSpacing
-                    WelcomeCard {
-                        text: "Pep/10, ISA3, bare metal"
-                        architecture: Architecture.PEP10
-                        abstraction: Abstraction.ISA3
-                        source: "image://icons/cards/p10_isa3.svg"
-                        description: "Develop and debug machine language programs in bare metal mode."
-                    }
-                    WelcomeCard {
-                        text: "Pep/10, Asmb3, bare metal"
-                        architecture: Architecture.PEP10
-                        abstraction: Abstraction.ASMB3
-                        source: "image://icons/cards/p10_asmb3.svg"
-                        enabled: true
-                        description: "Develop and debug assembly language programs in bare metal mode."
-                    }
-                }
+            WelcomeCard {
+                text: "Pep/10, ISA3, bare metal"
+                architecture: Architecture.PEP10
+                abstraction: Abstraction.ISA3
+                source: "image://icons/cards/p10_isa3.svg"
+                description: "Develop and debug machine language programs in bare metal mode."
+            }
+            WelcomeCard {
+                text: "Pep/10, Asmb3, bare metal"
+                architecture: Architecture.PEP10
+                abstraction: Abstraction.ASMB3
+                source: "image://icons/cards/p10_asmb3.svg"
+                enabled: true
+                description: "Develop and debug assembly language programs in bare metal mode."
             }
 
             WelcomeCard {
@@ -132,6 +131,7 @@ Flickable {
                 enabled: false
                 source: "image://icons/cards/p9_isa3.svg"
             }
+            Item {}
 
             WelcomeCard {
                 text: "Pep/9, Asmb5"
@@ -183,6 +183,7 @@ Flickable {
                 enabled: false
                 source: "image://icons/cards/p9_isa3.svg"
             }
+            Item {}
             WelcomeCard {
                 text: "Pep/8, Asmb5"
                 architecture: Architecture.PEP8
@@ -212,6 +213,7 @@ Flickable {
                 color: palette.text
                 Layout.preferredHeight: implicitHeight
             }
+            Item {}
             WelcomeCard {
                 Layout.alignment: Qt.AlignRight
                 text: "RISC-V, Asmb3, bare metal"
