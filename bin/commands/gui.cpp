@@ -64,6 +64,19 @@ int gui_main(const gui_args &args) {
   std::vector<std::string> arg_strs = args.argvs;
   for (int it = 0; it < argc; it++) argvs[it] = arg_strs[it].data();
 #ifdef __EMSCRIPTEN__
+  // clang-format off
+  // Request that IDBFS be persisted, even for localhost
+  EM_ASM(if (navigator.storage) navigator.storage.persist().then(() => {}););
+  // Make a persistent FS for themes. `true` to load from disk 2 mem
+  EM_ASM(
+    if (!FS.analyzePath('/themes').exists) FS.mkdir('/themes');
+    FS.mount(IDBFS, {}, '/themes');
+    FS.syncfs(true, function(err) {
+      if (err) console.error("Error mounting IDBFS /themes:", err);
+      else console.log('Files in /themes:', FS.readdir('/themes'));
+    });
+  );
+  // clang-format on
   g_app = new QApplication(argc, argvs.data());
 #else
   QApplication app(argc, argvs.data());
@@ -138,28 +151,6 @@ int gui_main(const gui_args &args) {
   // See: https://doc.qt.io/qt-6/wasm.html#wasm-exceptions
   // See: https://doc.qt.io/qt-6/wasm.html#application-startup-and-the-event-loop
 #ifdef __EMSCRIPTEN__
-  // Request that IDB be persisted, even for localhost
-  EM_ASM(if (navigator.storage) navigator.storage.persist().then(function(persistent) {
-    if (persistent) {
-      console.log("Storage will not be cleared except by explicit user action.");
-    } else {
-      console.log("Storage may be cleared by the browser under storage pressure.");
-    }
-  }););
-  // Make a persistent FS for themes. `true` to load from disk 2 mem
-  // clang-format off
-  EM_ASM(
-    if (!FS.analyzePath('/themes').exists) FS.mkdir('/themes');
-    FS.mount(IDBFS, {}, '/themes');
-    FS.syncfs(true, function(err) {
-      if (err) console.error("Error mounting IDBFS /themes:", err);
-      else {
-        console.log("mounted IDBFS /themes");
-          console.log('Files in /themes:', FS.readdir('/themes'));
-      }
-    });
-  );
-  // clang-format on
   return 0;
 #else
   return app.exec();
