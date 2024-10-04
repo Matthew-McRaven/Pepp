@@ -2,6 +2,7 @@ import QtQuick 2.15
 import QtQuick.Controls
 import QtQuick.Layouts
 import "qrc:/ui/text/editor" as Text
+import "qrc:/ui/memory/stack" as Stack
 import "qrc:/ui/memory/hexdump" as Memory
 import "qrc:/ui/memory/io" as IO
 import "qrc:/ui/cpu" as Cpu
@@ -278,24 +279,49 @@ Item {
                 output: project?.charOut ?? null
             }
         }
-        Loader {
-            id: loader
-            Component.onCompleted: {
-                const props = {
-                    "memory": project.memory,
-                    "mnemonics": project.mnemonics
-                }
-                // Construction sets current address to 0, which propogates back to project.
-                // Must reject changes in current address until component is fully rendered.
-                con.enabled = false
-                setSource("qrc:/ui/memory/hexdump/MemoryDump.qml", props)
-            }
-            visible: mode === "debugger"
-            asynchronous: true
+        Item {
             SplitView.minimumWidth: 340
-            onLoaded: {
-                loader.item.scrollToAddress(project.currentAddress)
-                con.enabled = true
+            visible: mode === "debugger"
+            TabBar {
+                id: memoryTab
+                anchors.top: parent.top
+                anchors.left: parent.left
+                anchors.right: parent.right
+                TabButton {
+                    text: qsTr("Hex Dump")
+                }
+                TabButton {
+                    text: qsTr("Stack Trace")
+                }
+            }
+            StackLayout {
+                anchors {
+                    top: memoryTab.bottom
+                    left: parent.left
+                    right: parent.right
+                    bottom: parent.bottom
+                }
+                currentIndex: memoryTab.currentIndex
+                Loader {
+                    id: loader
+                    Component.onCompleted: {
+                        const props = {
+                            "memory": project.memory,
+                            "mnemonics": project.mnemonics
+                        }
+                        // Construction sets current address to 0, which propogates back to project.
+                        // Must reject changes in current address until component is fully rendered.
+                        con.enabled = false
+                        setSource("qrc:/ui/memory/hexdump/MemoryDump.qml",
+                                  props)
+                    }
+                    asynchronous: true
+                    onLoaded: {
+                        loader.item.scrollToAddress(project.currentAddress)
+                        con.enabled = true
+                    }
+                }
+                Stack.StackTrace {}
             }
         }
     }

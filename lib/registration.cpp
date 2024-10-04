@@ -33,6 +33,7 @@
 #include "preferences/preferencemodel.hpp"
 #include "preferences/wasm_io.hpp"
 #include "project/pep10.hpp"
+#include "stack/stackitems.hpp"
 #include "text/editor/object.hpp"
 #include "text/editor/scintillaasmeditbase.hpp"
 #include "utils/opcodemodel.hpp"
@@ -90,6 +91,9 @@ void registerTypes(const char *) {
   qmlRegisterUncreatableType<ArrayRawMemory>("edu.pepp", 1, 0, "ArrayRawMemory", "Must use create(int)");
   qmlRegisterSingletonType<ArrayRawMemoryFactory>("edu.pepp", 1, 0, "ArrayRawMemoryFactory",
                                                   ArrayRawMemoryFactory::singletonProvider);
+  qmlRegisterType<RecordLine>("edu.pepp", 1, 0, "RecordLine");
+  qmlRegisterType<ActivationRecord>("edu.pepp", 1, 0, "ActivationRecord");
+  qmlRegisterType<ActivationModel>("edu.pepp", 1, 0, "ActivationModel");
   // Preferences
   qmlRegisterUncreatableType<PreferenceModel>("edu.pepp", 1, 0, "PrefProperty", "Error: only enums");
   qmlRegisterType<WASMIO>("edu.pepp", 1, 0, "WASMIO");
