@@ -3,6 +3,7 @@
 #include <QAbstractListModel>
 #include <QVector>
 #include "api2/trace/iterator.hpp"
+#include <QtQmlIntegration>
 
 class Flag {
 public:
@@ -18,6 +19,7 @@ private:
 //  Read only class for change in status bits
 class FlagModel : public QAbstractListModel {
   Q_OBJECT
+  QML_ELEMENT
 
 public:
   enum class Roles { Value = Qt::UserRole + 1 };

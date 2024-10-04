@@ -36,8 +36,7 @@ class Book : public QObject {
   Q_PROPERTY(QString name READ name CONSTANT);
   Q_PROPERTY(const QList<QSharedPointer<builtins::Figure>> figures READ figures
                  NOTIFY figuresChanged);
-  Q_PROPERTY(const QList<QSharedPointer<macro::Parsed>> macros READ macros
-                 NOTIFY macrosChanged);
+  Q_PROPERTY(const QList<QSharedPointer<macro::Parsed>> macros READ macros NOTIFY macrosChanged);
 
 public:
     explicit Book(QString name);

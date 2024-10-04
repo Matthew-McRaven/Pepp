@@ -1,6 +1,7 @@
 #pragma once
 
 #include <QObject>
+#include <QtQmlIntegration>
 #include <qqmllist.h>
 
 class RecordLine : public QObject {
@@ -11,6 +12,7 @@ class RecordLine : public QObject {
   Q_PROPERTY(QString value READ value WRITE setValue NOTIFY valueChanged)
   // symbol value to right of line
   Q_PROPERTY(QString name READ name WRITE setName NOTIFY nameChanged)
+  QML_ELEMENT
 
 public:
   explicit RecordLine(QObject *parent = nullptr);
@@ -38,6 +40,8 @@ class ActivationRecord : public QObject {
   Q_PROPERTY(bool active READ active WRITE setActive NOTIFY activeChanged)
   Q_PROPERTY(QQmlListProperty<RecordLine> lines READ lines NOTIFY linesChanged)
   Q_CLASSINFO("DefaultProperty", "lines")
+  QML_ELEMENT
+
 public:
   explicit ActivationRecord(QObject *parent = nullptr);
   bool active() const;
@@ -61,6 +65,8 @@ class ActivationModel : public QObject {
   Q_OBJECT
   Q_PROPERTY(QQmlListProperty<ActivationRecord> records READ records NOTIFY recordsChanged)
   Q_CLASSINFO("DefaultProperty", "records")
+  QML_ELEMENT
+
 public:
   explicit ActivationModel(QObject *parent = nullptr);
 

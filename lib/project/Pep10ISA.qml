@@ -1,11 +1,11 @@
 import QtQuick 2.15
 import QtQuick.Controls
 import QtQuick.Layouts
-import "qrc:/ui/text/editor" as Text
-import "qrc:/ui/memory/hexdump" as Memory
-import "qrc:/ui/memory/io" as IO
-import "qrc:/ui/cpu" as Cpu
-import edu.pepp
+import "qrc:/edu/pepp/text/editor" as Text
+import "qrc:/edu/pepp/memory/hexdump" as Memory
+import "qrc:/edu/pepp/memory/io" as IO
+import "qrc:/edu/pepp/cpu" as Cpu
+import edu.pepp 1.0
 
 Item {
     id: wrapper
@@ -98,7 +98,7 @@ Item {
                 // Construction sets current address to 0, which propogates back to project.
                 // Must reject changes in current address until component is fully rendered.
                 con.enabled = false
-                setSource("qrc:/ui/memory/hexdump/MemoryDump.qml", props)
+                setSource("qrc:/edu/pepp/memory/hexdump/MemoryDump.qml", props)
             }
             visible: mode === "debugger"
             asynchronous: true

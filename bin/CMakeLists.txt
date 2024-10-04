@@ -24,7 +24,9 @@ else ()
 endif ()
 
 qt6_add_executable(pepp ${sources} ${guis} ${CMAKE_SOURCE_DIR}/data/icons/icons.qrc)
-target_link_libraries(pepp PRIVATE TextFlow cli catch Qt6::Core Qt6::Gui Qt::Qml Qt::Quick Qt::QuickControls2 Qt6::Svg Qt6::Xml Qt::Widgets test-lib-all pepp-lib)
+qt_import_qml_plugins(pepp)
+target_link_libraries(pepp PRIVATE TextFlow cli catch Qt6::Core Qt6::Gui Qt::Qml Qt::Quick Qt::QuickControls2 Qt6::Svg Qt6::Xml Qt::Widgets test-lib-all pepp-lib pepp-libplugin)
+qt_import_plugins(pepp INCLUDE pepp-libplugin)
 target_compile_definitions(pepp PRIVATE "INCLUDE_GUI=1")
 # Must occur before install scripts, otherwise MacOS builds will fail.
 set_target_properties(pepp PROPERTIES

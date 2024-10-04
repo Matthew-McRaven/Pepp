@@ -15,6 +15,7 @@
  */
 
 #include "./contributors.hpp"
+#include <QQmlEngine>
 #include "./pepp.hpp"
 
 Maintainer::Maintainer(QString name, QString email, QObject *parent) : QObject(parent), _name(name), _email(email) {}
@@ -25,6 +26,18 @@ MaintainerList::MaintainerList(QList<Maintainer *> list, QObject *parent) : QAbs
   // Must re-parent to avoid memory leaks.
   for (auto *item : list) item->setParent(this);
 }
+
+MaintainerList *MaintainerList::create(QQmlEngine *eng, QJSEngine *) {
+  // Need global scope ::, or it picks up about::Maintainer
+  QList<::Maintainer *> maintainers{};
+  for (const auto &maintainer : about::maintainers()) {
+    auto *item = new ::Maintainer(maintainer.name, maintainer.email, eng);
+    maintainers.push_back(item);
+  }
+  // Class assumes ownership of objects via modifying parent pointer.
+  auto owning = new MaintainerList(maintainers);
+  return owning;
+};
 
 int MaintainerList::rowCount(const QModelIndex &parent) const { return _list.size(); }
 
@@ -49,6 +62,8 @@ QHash<int, QByteArray> MaintainerList::roleNames() const {
 }
 
 Contributors::Contributors(QObject *parent) : QObject(parent) {}
+
+Contributors *Contributors::create(QQmlEngine *eng, QJSEngine *) { return new Contributors(eng); }
 
 QString Contributors::text() {
   static QString text = about::contributors().join(", ");

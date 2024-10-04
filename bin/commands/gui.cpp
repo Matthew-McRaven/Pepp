@@ -23,13 +23,14 @@
 #include <QQmlContext>
 #include <QQuickStyle>
 #include <QTimer>
-#include <registration.hpp>
 #include "../iconprovider.hpp"
 #include "about/version.hpp"
 #include "preferences/preferencemodel.hpp"
 #include "preferences/theme.hpp"
 //  Testing only
 #include <QDirIterator>
+
+Q_IMPORT_PLUGIN(PeppLibPlugin)
 
 struct default_data : public gui_globals {
   default_data() : pm(&theme) {}
@@ -40,7 +41,6 @@ struct default_data : public gui_globals {
 };
 
 void default_init(QQmlApplicationEngine &engine, default_data *data) {
-  registerTypes("edu.pepp");
 
   //  Connect models
   auto *ctx = engine.rootContext();

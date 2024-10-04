@@ -18,7 +18,7 @@
 #pragma once
 
 #include <QtCore>
-#include <qqmlintegration.h>
+#include <QtQmlIntegration>
 
 // Must be in separate file to prevent circuluar include in Qt MOC.
 namespace builtins {
@@ -27,6 +27,8 @@ Q_NAMESPACE;
 class AbstractionHelper : public QObject {
   Q_GADGET
   QML_NAMED_ELEMENT(Abstraction)
+  QML_UNCREATABLE("Error:Only enums")
+
 public:
   enum class Abstraction {
     NONE = -1,
@@ -48,6 +50,8 @@ using Abstraction = AbstractionHelper::Abstraction;
 class ArchitectureHelper : public QObject {
   Q_GADGET
   QML_NAMED_ELEMENT(Architecture)
+  QML_UNCREATABLE("Error:Only enums")
+
 public:
   //! Describe which architecture a help item is to be used with.
   enum class Architecture {

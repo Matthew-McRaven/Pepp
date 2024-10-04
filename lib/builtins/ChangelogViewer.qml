@@ -1,7 +1,7 @@
 import QtQuick
 import QtQuick.Controls
 import QtQuick.Layouts
-import edu.pepp
+import edu.pepp 1.0
 
 Rectangle {
     id: wrapper

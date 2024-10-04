@@ -1,6 +1,7 @@
 #pragma once
 
 #include <QObject>
+#include <QtQmlIntegration>
 
 class PlatformDetector : public QObject {
   Q_OBJECT
@@ -8,6 +9,9 @@ class PlatformDetector : public QObject {
   Q_PROPERTY(bool isMac READ isMac CONSTANT)
   Q_PROPERTY(bool isLinux READ isLinux CONSTANT)
   Q_PROPERTY(bool isWASM READ isWASM CONSTANT)
+  QML_NAMED_ELEMENT(PlatformDetector)
+  QML_SINGLETON
+
 public:
   explicit PlatformDetector(QObject *parent = nullptr);
   Q_INVOKABLE bool isWindows() const;

@@ -17,7 +17,7 @@
 import QtQuick
 import QtQuick.Controls
 import QtQuick.Layouts
-import edu.pepp.text 1.0 as Editor
+import edu.pepp 1.0 as Pepp
 
 ScrollView {
     id: wrapper
@@ -36,7 +36,7 @@ ScrollView {
         border.width: 1
         border.color: palette.mid
     }
-    Editor.ObjectUtilities {
+    Pepp.ObjectUtilities {
         id: utils
         bytesPerRow: wrapper.bytesPerRow
     }

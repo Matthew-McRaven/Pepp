@@ -21,16 +21,16 @@ import QtQuick.Controls
 import QtQuick.Layouts
 import Qt.labs.qmlmodels
 import QtCore
-import "qrc:/ui/about" as About
-import "qrc:/ui/components" as Comp
-import "qrc:/ui/memory/hexdump" as Memory
-import "qrc:/ui/cpu" as Cpu
-import "qrc:/ui/text/editor" as Editor
-import "qrc:/ui/project" as Project
-import "qrc:/ui/preferences" as Pref
-import "qrc:/ui/builtins" as Builtins
+import "qrc:/edu/pepp/about" as About
+import "qrc:/edu/pepp/components" as Comp
+import "qrc:/edu/pepp/memory/hexdump" as Memory
+import "qrc:/edu/pepp/cpu" as Cpu
+import "qrc:/edu/pepp/text/editor" as Editor
+import "qrc:/edu/pepp/project" as Project
+import "qrc:/edu/pepp/preferences" as Pref
+import "qrc:/edu/pepp/builtins" as Builtins
 import edu.pepp 1.0
-import "qrc:/ui/menu" as Menu
+import "qrc:/edu/pepp/menu" as Menu
 //  Native menu for apple, linux, and windows
 import Qt.labs.platform as Labs
 
@@ -74,7 +74,6 @@ ApplicationWindow {
             button: Theme.base.background
         }
     }
-
     property var currentProject: null
     // Used to expose actions to inner area.
     property var actionRef: actions
@@ -127,6 +126,7 @@ ApplicationWindow {
     }
 
     Component.onCompleted: {
+        console.log(ApplicationPreferences)
         // Allow welcome mode to create a new project, and switch to it on creation.
         welcome.addProject.connect(pm.onAddProject)
         welcome.addProject.connect(() => switchToProject(pm.count - 1))
@@ -241,11 +241,11 @@ ApplicationWindow {
             }
             if (PlatformDetector.isWASM) {
                 props["window"] = window
-                setSource("qrc:/ui/menu/QMLMainMenu.qml", props)
+                setSource("qrc:/edu/pepp/menu/QMLMainMenu.qml", props)
             } else
                 // Auto-recurses on "parent" to find "window" of correct type.
                 // If explicitly set, the menu bar will not render until hovered over.
-                setSource("qrc:/ui/menu/NativeMainMenu.qml", props)
+                setSource("qrc:/edu/pepp/menu/NativeMainMenu.qml", props)
         }
         onLoaded: {
             if (PlatformDetector.isWASM)

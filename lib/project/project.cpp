@@ -1,2 +1,0 @@
-#include "aproject.hpp"
-

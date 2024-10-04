@@ -2,12 +2,19 @@
 #include <QObject>
 #include "ScintillaEditBase/ScintillaEditBase.h"
 #include "preferences/theme.hpp"
+class ScintillaEditBaseExporter : public QObject {
+  Q_OBJECT
+  QML_NAMED_ELEMENT(ScintillaEditBase)
+  QML_FOREIGN(ScintillaEditBase)
+};
+
 class ScintillaAsmEditBase : public ScintillaEditBase {
   Q_OBJECT
   Q_PROPERTY(QString language READ lexerLanguage WRITE setLexerLanguage NOTIFY lexerLanguageChanged);
   Q_PROPERTY(Theme *theme READ theme WRITE setTheme NOTIFY themeChanged)
   Q_PROPERTY(
       bool lineNumbersVisible READ lineNumbersVisible WRITE setLineNumbersVisible NOTIFY lineNumbersVisibleChanged);
+  QML_ELEMENT
 
 public:
   enum class Action { ToggleBP, AddBP, RemoveBP, ScrollTo, HighlightExclusive };

@@ -2,9 +2,11 @@
 
 #include <QAbstractListModel>
 #include <QtCore>
+#include <QtQmlIntegration>
 
 class OpcodeModel : public QAbstractListModel {
   Q_OBJECT
+  QML_ELEMENT
 
 public:
   explicit OpcodeModel(QObject *parent = nullptr);
