@@ -1,0 +1,1572 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<!DOCTYPE svg PUBLIC "-//W3C//DTD SVG 1.1//EN" "http://www.w3.org/Graphics/SVG/1.1/DTD/svg11.dtd">
+<svg xmlns:xl="http://www.w3.org/1999/xlink" xmlns:dc="http://purl.org/dc/elements/1.1/" xmlns="http://www.w3.org/2000/svg" version="1.1" viewBox="31.75 43.75 436.25 536.5" width="436.25" height="536.5">
+  <defs/>
+  <g id="Pep_10_data_path" stroke-opacity="1" fill-opacity="1" fill="none" stroke="none" stroke-dasharray="none">
+    <title>Pep/10 data path</title>
+    <rect fill="white" x="31.75" y="43.75" width="436.25" height="536.5"/>
+    <g id="Pep_10_data_path_1._Control_wires">
+      <title>1. Control wires</title>
+      <g id="Group_3817">
+        <title>MemRead</title>
+        <g id="Group_3808">
+          <title>Left arrow</title>
+          <g id="Graphic_3810">
+            <path d="M 118 572 L 125 574 L 124.06667 572 L 125 570 Z" fill="black"/>
+            <path d="M 118 572 L 125 574 L 124.06667 572 L 125 570 Z" stroke="black" stroke-linecap="round" stroke-linejoin="miter" stroke-width=".5"/>
+          </g>
+          <g id="Graphic_3809"/>
+        </g>
+        <g id="Line_1858">
+          <line x1="122" y1="572" x2="424" y2="572" stroke="#231f20" stroke-linecap="butt" stroke-linejoin="round" stroke-width=".5"/>
+        </g>
+      </g>
+      <g id="Group_3830">
+        <title>MemWrite</title>
+        <g id="Group_3824">
+          <title>Dot</title>
+          <g id="Graphic_3826">
+            <circle cx="132" cy="560" r="1.0000015979019" fill="black"/>
+            <circle cx="132" cy="560" r="1.0000015979019" stroke="black" stroke-linecap="round" stroke-linejoin="round" stroke-width="0"/>
+          </g>
+          <g id="Graphic_3825">
+            <rect x="128" y="556" width="8" height="8" stroke="black" stroke-linecap="round" stroke-linejoin="round" stroke-width="0"/>
+          </g>
+        </g>
+        <g id="Group_3827">
+          <title>Up arrow</title>
+          <g id="Graphic_3829">
+            <path d="M 132 288 L 130 295 L 132 294.06667 L 134 295 Z" fill="black"/>
+            <path d="M 132 288 L 130 295 L 132 294.06667 L 134 295 Z" stroke="black" stroke-linecap="round" stroke-linejoin="miter" stroke-width=".5"/>
+          </g>
+          <g id="Graphic_3828"/>
+        </g>
+        <g id="Line_3818">
+          <line x1="132" y1="292" x2="132" y2="560" stroke="black" stroke-linecap="round" stroke-linejoin="round" stroke-width=".5"/>
+        </g>
+        <g id="Group_3811">
+          <title>Left arrow</title>
+          <g id="Graphic_3813">
+            <path d="M 118 560 L 125 562 L 124.06667 560 L 125 558 Z" fill="black"/>
+            <path d="M 118 560 L 125 562 L 124.06667 560 L 125 558 Z" stroke="black" stroke-linecap="round" stroke-linejoin="miter" stroke-width=".5"/>
+          </g>
+          <g id="Graphic_3812"/>
+        </g>
+        <g id="Line_1857">
+          <line x1="122" y1="560" x2="424" y2="560" stroke="#231f20" stroke-linecap="butt" stroke-linejoin="round" stroke-width=".5"/>
+        </g>
+      </g>
+      <g id="Group_3789">
+        <title>AndZ to Z</title>
+        <g id="Group_3786">
+          <title>Right arrow</title>
+          <g id="Graphic_3788">
+            <path d="M 386.0689 506.1041 L 379.0689 504.1041 L 380.00223 506.1041 L 379.0689 508.1041 Z" fill="black"/>
+            <path d="M 386.0689 506.1041 L 379.0689 504.1041 L 380.00223 506.1041 L 379.0689 508.1041 Z" stroke="black" stroke-linecap="round" stroke-linejoin="miter" stroke-width=".5"/>
+          </g>
+          <g id="Graphic_3787"/>
+        </g>
+        <g id="Line_1815">
+          <line x1="360" y1="506" x2="384" y2="506" stroke="#231f20" stroke-linecap="butt" stroke-linejoin="round" stroke-width=".5"/>
+        </g>
+      </g>
+      <g id="Group_3776">
+        <title>ALU to N</title>
+        <g id="Group_3778">
+          <title>Right arrow</title>
+          <g id="Graphic_3780">
+            <path d="M 385.9311 537.8959 L 378.9311 535.8959 L 379.86444 537.8959 L 378.9311 539.8959 Z" fill="black"/>
+            <path d="M 385.9311 537.8959 L 378.9311 535.8959 L 379.86444 537.8959 L 378.9311 539.8959 Z" stroke="black" stroke-linecap="round" stroke-linejoin="miter" stroke-width=".5"/>
+          </g>
+          <g id="Graphic_3779"/>
+        </g>
+        <g id="Line_3777">
+          <title>Line</title>
+          <path d="M 292.23087 384 L 292.23087 538 L 384 538" stroke="#231f20" stroke-linecap="butt" stroke-linejoin="round" stroke-width=".5"/>
+        </g>
+      </g>
+      <g id="Group_3771">
+        <title>ALU to AndZ</title>
+        <g id="Group_3773">
+          <title>Right arrow</title>
+          <g id="Graphic_3775">
+            <path d="M 325.9311 505.8959 L 318.9311 503.8959 L 319.86444 505.8959 L 318.9311 507.8959 Z" fill="black"/>
+            <path d="M 325.9311 505.8959 L 318.9311 503.8959 L 319.86444 505.8959 L 318.9311 507.8959 Z" stroke="black" stroke-linecap="round" stroke-linejoin="miter" stroke-width=".5"/>
+          </g>
+          <g id="Graphic_3774"/>
+        </g>
+        <g id="Line_3772">
+          <title>Line</title>
+          <path d="M 304.23087 384 L 304 506 L 324 506" stroke="#231f20" stroke-linecap="butt" stroke-linejoin="round" stroke-width=".5"/>
+        </g>
+      </g>
+      <g id="Group_3762">
+        <title>ALU to V</title>
+        <g id="Group_3764">
+          <title>Right arrow</title>
+          <g id="Graphic_3766">
+            <path d="M 385.9311 470.1041 L 378.9311 468.1041 L 379.86444 470.1041 L 378.9311 472.1041 Z" fill="black"/>
+            <path d="M 385.9311 470.1041 L 378.9311 468.1041 L 379.86444 470.1041 L 378.9311 472.1041 Z" stroke="black" stroke-linecap="round" stroke-linejoin="miter" stroke-width=".5"/>
+          </g>
+          <g id="Graphic_3765"/>
+        </g>
+        <g id="Line_3763">
+          <title>Line</title>
+          <path d="M 316.23087 384 L 316.23087 470 L 384 470" stroke="#231f20" stroke-linecap="butt" stroke-linejoin="round" stroke-width=".5"/>
+        </g>
+      </g>
+      <g id="Group_3839">
+        <title>ALU to C</title>
+        <g id="Group_3834">
+          <title>Dot</title>
+          <g id="Graphic_3836">
+            <circle cx="328" cy="430" r="1.00000159790184" fill="black"/>
+            <circle cx="328" cy="430" r="1.00000159790184" stroke="black" stroke-linecap="round" stroke-linejoin="round" stroke-width="0"/>
+          </g>
+          <g id="Graphic_3835">
+            <rect x="324" y="426" width="8" height="8" stroke="black" stroke-linecap="round" stroke-linejoin="round" stroke-width="0"/>
+          </g>
+        </g>
+        <g id="Group_3749">
+          <title>Right arrow</title>
+          <g id="Graphic_3751">
+            <path d="M 385.9311 429.8959 L 378.9311 427.8959 L 379.86444 429.8959 L 378.9311 431.8959 Z" fill="black"/>
+            <path d="M 385.9311 429.8959 L 378.9311 427.8959 L 379.86444 429.8959 L 378.9311 431.8959 Z" stroke="black" stroke-linecap="round" stroke-linejoin="miter" stroke-width=".5"/>
+          </g>
+          <g id="Graphic_3750"/>
+        </g>
+        <g id="Line_3748">
+          <line x1="328.36866" y1="430" x2="384" y2="430" stroke="black" stroke-linecap="round" stroke-linejoin="round" stroke-width=".5"/>
+        </g>
+        <g id="Group_3744">
+          <title>Right arrow</title>
+          <g id="Graphic_3746">
+            <path d="M 386.0689 450.1041 L 379.0689 448.1041 L 380.00223 450.1041 L 379.0689 452.1041 Z" fill="black"/>
+            <path d="M 386.0689 450.1041 L 379.0689 448.1041 L 380.00223 450.1041 L 379.0689 452.1041 Z" stroke="black" stroke-linecap="round" stroke-linejoin="miter" stroke-width=".5"/>
+          </g>
+          <g id="Graphic_3745"/>
+        </g>
+        <g id="Line_3743">
+          <title>Line</title>
+          <path d="M 328 384 L 328 450 L 384 450.1659" stroke="#231f20" stroke-linecap="butt" stroke-linejoin="round" stroke-width=".5"/>
+        </g>
+      </g>
+      <g id="Group_3681">
+        <title>CSMux to ALU</title>
+        <g id="Line_1755">
+          <path d="M 342 380 L 380 380 L 380 396" stroke="#231f20" stroke-linecap="butt" stroke-linejoin="round" stroke-width=".5"/>
+        </g>
+        <g id="Group_3678">
+          <title>Left arrow</title>
+          <g id="Graphic_3680">
+            <path d="M 336 380 L 343 382 L 342.06667 380 L 343 378 Z" fill="black"/>
+            <path d="M 336 380 L 343 382 L 342.06667 380 L 343 378 Z" stroke="black" stroke-linecap="round" stroke-linejoin="miter" stroke-width=".5"/>
+          </g>
+          <g id="Graphic_3679"/>
+        </g>
+      </g>
+      <g id="Group_3733">
+        <title>N to NZVC</title>
+        <g id="Line_3737">
+          <path d="M 232 484 L 252 484 L 252 548 L 394 548 L 394 544" stroke="#231f20" stroke-linecap="butt" stroke-linejoin="round" stroke-width=".5"/>
+        </g>
+        <g id="Group_3734">
+          <title>Left arrow</title>
+          <g id="Graphic_3736">
+            <path d="M 226 484 L 233 486 L 232.06667 484 L 233 482 Z" fill="black"/>
+            <path d="M 226 484 L 233 486 L 232.06667 484 L 233 482 Z" stroke="black" stroke-linecap="round" stroke-linejoin="miter" stroke-width=".5"/>
+          </g>
+          <g id="Graphic_3735"/>
+        </g>
+      </g>
+      <g id="Group_3837">
+        <title>Z to NZVC</title>
+        <g id="Group_3823">
+          <title>Dot</title>
+          <g id="Graphic_3820">
+            <circle cx="344" cy="524" r="1.00000159790188" fill="black"/>
+            <circle cx="344" cy="524" r="1.00000159790188" stroke="black" stroke-linecap="round" stroke-linejoin="round" stroke-width="0"/>
+          </g>
+          <g id="Graphic_3821">
+            <rect x="340" y="520" width="8" height="8" stroke="black" stroke-linecap="round" stroke-linejoin="round" stroke-width="0"/>
+          </g>
+        </g>
+        <g id="Group_3729">
+          <title>Left arrow</title>
+          <g id="Graphic_3731">
+            <path d="M 226 476 L 233 478 L 232.06667 476 L 233 474 Z" fill="black"/>
+            <path d="M 226 476 L 233 478 L 232.06667 476 L 233 474 Z" stroke="black" stroke-linecap="round" stroke-linejoin="miter" stroke-width=".5"/>
+          </g>
+          <g id="Graphic_3730"/>
+        </g>
+        <g id="Line_3732">
+          <path d="M 232 476 L 260 476 L 260 524 L 394 524 L 394 512" stroke="#231f20" stroke-linecap="butt" stroke-linejoin="round" stroke-width=".5"/>
+        </g>
+        <g id="Group_3781">
+          <title>Up arrow</title>
+          <g id="Graphic_3783">
+            <path d="M 344 514 L 342 521 L 344 520.06667 L 346 521 Z" fill="black"/>
+            <path d="M 344 514 L 342 521 L 344 520.06667 L 346 521 Z" stroke="black" stroke-linecap="round" stroke-linejoin="miter" stroke-width=".5"/>
+          </g>
+          <g id="Graphic_3782"/>
+        </g>
+        <g id="Line_3784">
+          <line x1="344" y1="524" x2="344" y2="516" stroke="black" stroke-linecap="round" stroke-linejoin="round" stroke-width=".5"/>
+        </g>
+      </g>
+      <g id="Group_3723">
+        <title>V to NZVC</title>
+        <g id="Line_3727">
+          <path d="M 232 468 L 268 468 L 268 480 L 394 480 L 394 476" stroke="#231f20" stroke-linecap="butt" stroke-linejoin="round" stroke-width=".5"/>
+        </g>
+        <g id="Group_3724">
+          <title>Left arrow</title>
+          <g id="Graphic_3726">
+            <path d="M 226 468 L 233 470 L 232.06667 468 L 233 466 Z" fill="black"/>
+            <path d="M 226 468 L 233 470 L 232.06667 468 L 233 466 Z" stroke="black" stroke-linecap="round" stroke-linejoin="miter" stroke-width=".5"/>
+          </g>
+          <g id="Graphic_3725"/>
+        </g>
+      </g>
+      <g id="Group_3838">
+        <title>C to NZVC</title>
+        <g id="Group_3831">
+          <title>Dot</title>
+          <g id="Graphic_3833">
+            <circle cx="366" cy="460" r="1.00000159790186" fill="black"/>
+            <circle cx="366" cy="460" r="1.00000159790186" stroke="black" stroke-linecap="round" stroke-linejoin="round" stroke-width="0"/>
+          </g>
+          <g id="Graphic_3832">
+            <rect x="362" y="456" width="8" height="8" stroke="black" stroke-linecap="round" stroke-linejoin="round" stroke-width="0"/>
+          </g>
+        </g>
+        <g id="Group_3710">
+          <title>Left arrow</title>
+          <g id="Graphic_3712">
+            <path d="M 226 460 L 233 462 L 232.06667 460 L 233 458 Z" fill="black"/>
+            <path d="M 226 460 L 233 462 L 232.06667 460 L 233 458 Z" stroke="black" stroke-linecap="round" stroke-linejoin="miter" stroke-width=".5"/>
+          </g>
+          <g id="Graphic_3711"/>
+        </g>
+        <g id="Line_1829">
+          <path d="M 228 460 L 394 460 L 394 456" stroke="#231f20" stroke-linecap="butt" stroke-linejoin="round" stroke-width=".5"/>
+        </g>
+        <g id="Group_3695">
+          <title>Up arrow</title>
+          <g id="Graphic_3697">
+            <path d="M 366 410 L 364 417 L 366 416.06667 L 368 417 Z" fill="black"/>
+            <path d="M 366 410 L 364 417 L 366 416.06667 L 368 417 Z" stroke="black" stroke-linecap="round" stroke-linejoin="miter" stroke-width=".5"/>
+          </g>
+          <g id="Graphic_3696"/>
+        </g>
+        <g id="Line_3704">
+          <line x1="366" y1="414" x2="366" y2="460" stroke="black" stroke-linecap="round" stroke-linejoin="round" stroke-width=".5"/>
+        </g>
+      </g>
+      <g id="Group_3708">
+        <title>S to CSMux</title>
+        <g id="Group_3698">
+          <title>Up arrow</title>
+          <g id="Graphic_3700">
+            <path d="M 394 410 L 392 417 L 394 416.06667 L 396 417 Z" fill="black"/>
+            <path d="M 394 410 L 392 417 L 394 416.06667 L 396 417 Z" stroke="black" stroke-linecap="round" stroke-linejoin="miter" stroke-width=".5"/>
+          </g>
+          <g id="Graphic_3699"/>
+        </g>
+        <g id="Line_3707">
+          <line x1="394" y1="414" x2="394" y2="424" stroke="black" stroke-linecap="round" stroke-linejoin="round" stroke-width=".5"/>
+        </g>
+      </g>
+      <g id="Group_3673">
+        <title>NCk</title>
+        <g id="Line_3677">
+          <title>Line</title>
+          <line x1="406" y1="538" x2="424" y2="538" stroke="#231f20" stroke-linecap="butt" stroke-linejoin="round" stroke-width=".5"/>
+        </g>
+        <g id="Group_3674">
+          <title>Left arrow</title>
+          <g id="Graphic_3676">
+            <path d="M 402 538 L 409 540 L 408.06667 538 L 409 536 Z" fill="black"/>
+            <path d="M 402 538 L 409 540 L 408.06667 538 L 409 536 Z" stroke="black" stroke-linecap="round" stroke-linejoin="miter" stroke-width=".5"/>
+          </g>
+          <g id="Graphic_3675"/>
+        </g>
+      </g>
+      <g id="Group_3623">
+        <title>ZCk</title>
+        <g id="Line_3627">
+          <title>Line</title>
+          <line x1="406" y1="506" x2="424" y2="506" stroke="#231f20" stroke-linecap="butt" stroke-linejoin="round" stroke-width=".5"/>
+        </g>
+        <g id="Group_3624">
+          <title>Left arrow</title>
+          <g id="Graphic_3626">
+            <path d="M 402 506 L 409 508 L 408.06667 506 L 409 504 Z" fill="black"/>
+            <path d="M 402 506 L 409 508 L 408.06667 506 L 409 504 Z" stroke="black" stroke-linecap="round" stroke-linejoin="miter" stroke-width=".5"/>
+          </g>
+          <g id="Graphic_3625"/>
+        </g>
+      </g>
+      <g id="Group_3633">
+        <title>AndZ</title>
+        <g id="Line_3637">
+          <title>Line</title>
+          <path d="M 344 494 L 344 486 L 424 486" stroke="#231f20" stroke-linecap="butt" stroke-linejoin="round" stroke-width=".5"/>
+        </g>
+        <g id="Group_3634">
+          <title>Down arrow</title>
+          <g id="Graphic_3636">
+            <path d="M 344 498 L 346 491 L 344 491.93333 L 342 491 Z" fill="black"/>
+            <path d="M 344 498 L 346 491 L 344 491.93333 L 342 491 Z" stroke="black" stroke-linecap="round" stroke-linejoin="miter" stroke-width=".5"/>
+          </g>
+          <g id="Graphic_3635"/>
+        </g>
+      </g>
+      <g id="Group_3618">
+        <title>VCk</title>
+        <g id="Line_3622">
+          <title>Line</title>
+          <line x1="406" y1="470" x2="424" y2="470" stroke="#231f20" stroke-linecap="butt" stroke-linejoin="round" stroke-width=".5"/>
+        </g>
+        <g id="Group_3619">
+          <title>Left arrow</title>
+          <g id="Graphic_3621">
+            <path d="M 402 470 L 409 472 L 408.06667 470 L 409 468 Z" fill="black"/>
+            <path d="M 402 470 L 409 472 L 408.06667 470 L 409 468 Z" stroke="black" stroke-linecap="round" stroke-linejoin="miter" stroke-width=".5"/>
+          </g>
+          <g id="Graphic_3620"/>
+        </g>
+      </g>
+      <g id="Group_3613">
+        <title>CCk</title>
+        <g id="Line_3617">
+          <title>Line</title>
+          <line x1="406" y1="450" x2="424" y2="450" stroke="#231f20" stroke-linecap="butt" stroke-linejoin="round" stroke-width=".5"/>
+        </g>
+        <g id="Group_3614">
+          <title>Left arrow</title>
+          <g id="Graphic_3616">
+            <path d="M 402 450 L 409 452 L 408.06667 450 L 409 448 Z" fill="black"/>
+            <path d="M 402 450 L 409 452 L 408.06667 450 L 409 448 Z" stroke="black" stroke-linecap="round" stroke-linejoin="miter" stroke-width=".5"/>
+          </g>
+          <g id="Graphic_3615"/>
+        </g>
+      </g>
+      <g id="Group_3608">
+        <title>SCk</title>
+        <g id="Line_3612">
+          <title>Line</title>
+          <line x1="406" y1="430" x2="424" y2="430" stroke="#231f20" stroke-linecap="butt" stroke-linejoin="round" stroke-width=".5"/>
+        </g>
+        <g id="Group_3609">
+          <title>Left arrow</title>
+          <g id="Graphic_3611">
+            <path d="M 402 430 L 409 432 L 408.06667 430 L 409 428 Z" fill="black"/>
+            <path d="M 402 430 L 409 432 L 408.06667 430 L 409 428 Z" stroke="black" stroke-linecap="round" stroke-linejoin="miter" stroke-width=".5"/>
+          </g>
+          <g id="Graphic_3610"/>
+        </g>
+      </g>
+      <g id="Group_3603">
+        <title>CSMux</title>
+        <g id="Line_3607">
+          <line x1="410" y1="402" x2="424" y2="402" stroke="#231f20" stroke-linecap="butt" stroke-linejoin="round" stroke-width=".5"/>
+        </g>
+        <g id="Group_3604">
+          <title>Left arrow</title>
+          <g id="Graphic_3606">
+            <path d="M 406 402 L 413 404 L 412.06667 402 L 413 400 Z" fill="black"/>
+            <path d="M 406 402 L 413 404 L 412.06667 402 L 413 400 Z" stroke="black" stroke-linecap="round" stroke-linejoin="miter" stroke-width=".5"/>
+          </g>
+          <g id="Graphic_3605"/>
+        </g>
+      </g>
+      <g id="Group_3602">
+        <title>ALU</title>
+        <g id="Line_1683">
+          <line x1="348" y1="368" x2="424" y2="368" stroke="#231f20" stroke-linecap="butt" stroke-linejoin="round" stroke-width=".5"/>
+        </g>
+        <g id="Group_3599">
+          <title>Left arrow</title>
+          <g id="Graphic_3601">
+            <path d="M 342 368 L 349 370 L 348.06667 368 L 349 366 Z" fill="black"/>
+            <path d="M 342 368 L 349 370 L 348.06667 368 L 349 366 Z" stroke="black" stroke-linecap="round" stroke-linejoin="miter" stroke-width=".5"/>
+          </g>
+          <g id="Graphic_3600"/>
+        </g>
+      </g>
+      <g id="Group_3594">
+        <title>CMux</title>
+        <g id="Line_3598">
+          <path d="M 240 364 L 240 356 L 424 356" stroke="#231f20" stroke-linecap="butt" stroke-linejoin="round" stroke-width=".5"/>
+        </g>
+        <g id="Group_3595">
+          <title>Down arrow</title>
+          <g id="Graphic_3597">
+            <path d="M 240 370 L 242 363 L 240 363.93333 L 238 363 Z" fill="black"/>
+            <path d="M 240 370 L 242 363 L 240 363.93333 L 238 363 Z" stroke="black" stroke-linecap="round" stroke-linejoin="miter" stroke-width=".5"/>
+          </g>
+          <g id="Graphic_3596"/>
+        </g>
+      </g>
+      <g id="Group_3593">
+        <title>MDRMux</title>
+        <g id="Line_3589">
+          <path d="M 196 314 L 212 314 L 212 328 L 424 328" stroke="#231f20" stroke-linecap="butt" stroke-linejoin="round" stroke-width=".5"/>
+        </g>
+        <g id="Group_3590">
+          <title>Left arrow</title>
+          <g id="Graphic_3592">
+            <path d="M 190 314 L 197 316 L 196.06667 314 L 197 312 Z" fill="black"/>
+            <path d="M 190 314 L 197 316 L 196.06667 314 L 197 312 Z" stroke="black" stroke-linecap="round" stroke-linejoin="miter" stroke-width=".5"/>
+          </g>
+          <g id="Graphic_3591"/>
+        </g>
+      </g>
+      <g id="Group_3587">
+        <title>AMux</title>
+        <g id="Line_1928">
+          <line x1="300" y1="314" x2="424" y2="314" stroke="#231f20" stroke-linecap="butt" stroke-linejoin="round" stroke-width=".5"/>
+        </g>
+        <g id="Group_3584">
+          <title>Left arrow</title>
+          <g id="Graphic_3586">
+            <path d="M 294 314 L 301 316 L 300.06667 314 L 301 312 Z" fill="black"/>
+            <path d="M 294 314 L 301 316 L 300.06667 314 L 301 312 Z" stroke="black" stroke-linecap="round" stroke-linejoin="miter" stroke-width=".5"/>
+          </g>
+          <g id="Graphic_3585"/>
+        </g>
+      </g>
+      <g id="Group_3583">
+        <title>MDRCk</title>
+        <g id="Line_1962">
+          <path d="M 164 272 L 164 264 L 424 264" stroke="#231f20" stroke-linecap="butt" stroke-linejoin="round" stroke-width=".5"/>
+        </g>
+        <g id="Group_3580">
+          <title>Down arrow</title>
+          <g id="Graphic_3582">
+            <path d="M 164 274 L 166 267 L 164 267.93333 L 162 267 Z" fill="black"/>
+            <path d="M 164 274 L 166 267 L 164 267.93333 L 162 267 Z" stroke="black" stroke-linecap="round" stroke-linejoin="miter" stroke-width=".5"/>
+          </g>
+          <g id="Graphic_3581"/>
+        </g>
+      </g>
+      <g id="Group_3571">
+        <title>MARCk</title>
+        <g id="Group_3577">
+          <title>Down arrow</title>
+          <g id="Graphic_3579">
+            <path d="M 180 242 L 182 235 L 180 235.93333 L 178 235 Z" fill="black"/>
+            <path d="M 180 242 L 182 235 L 180 235.93333 L 178 235 Z" stroke="black" stroke-linecap="round" stroke-linejoin="miter" stroke-width=".5"/>
+          </g>
+          <g id="Graphic_3578">
+            <title>Rectangle</title>
+          </g>
+        </g>
+        <g id="Group_3572">
+          <title>Up arrow</title>
+          <g id="Graphic_3575">
+            <path d="M 180 222 L 178 229 L 180 228.06667 L 182 229 Z" fill="black"/>
+            <path d="M 180 222 L 178 229 L 180 228.06667 L 182 229 Z" stroke="black" stroke-linecap="round" stroke-linejoin="miter" stroke-width=".5"/>
+          </g>
+          <g id="Graphic_3574"/>
+        </g>
+        <g id="Line_1668">
+          <line x1="180" y1="224" x2="180" y2="240" stroke="#231f20" stroke-linecap="butt" stroke-linejoin="round" stroke-width=".5"/>
+        </g>
+        <g id="Line_3566">
+          <line x1="180" y1="232" x2="424" y2="232" stroke="#231f20" stroke-linecap="butt" stroke-linejoin="round" stroke-width=".5"/>
+        </g>
+      </g>
+      <g id="Group_3791">
+        <title>C</title>
+        <g id="Group_3793">
+          <title>Left arrow</title>
+          <g id="Graphic_3795">
+            <path d="M 390 148 L 397 150 L 396.06667 148 L 397 146 Z" fill="black"/>
+            <path d="M 390 148 L 397 150 L 396.06667 148 L 397 146 Z" stroke="black" stroke-linecap="round" stroke-linejoin="miter" stroke-width=".5"/>
+          </g>
+          <g id="Graphic_3794"/>
+        </g>
+        <g id="Line_3792">
+          <line x1="394" y1="148" x2="424" y2="148" stroke="#231f20" stroke-linecap="butt" stroke-linejoin="round" stroke-width=".5"/>
+        </g>
+      </g>
+      <g id="Group_3796">
+        <title>B</title>
+        <g id="Group_3798">
+          <title>Left arrow</title>
+          <g id="Graphic_3800">
+            <path d="M 390 128 L 397 130 L 396.06667 128 L 397 126 Z" fill="black"/>
+            <path d="M 390 128 L 397 130 L 396.06667 128 L 397 126 Z" stroke="black" stroke-linecap="round" stroke-linejoin="miter" stroke-width=".5"/>
+          </g>
+          <g id="Graphic_3799"/>
+        </g>
+        <g id="Line_3797">
+          <line x1="394" y1="128" x2="424" y2="128" stroke="#231f20" stroke-linecap="butt" stroke-linejoin="round" stroke-width=".5"/>
+        </g>
+      </g>
+      <g id="Group_3790">
+        <title>A</title>
+        <g id="Group_3548">
+          <title>Left arrow</title>
+          <g id="Graphic_3550">
+            <path d="M 390 108 L 397 110 L 396.06667 108 L 397 106 Z" fill="black"/>
+            <path d="M 390 108 L 397 110 L 396.06667 108 L 397 106 Z" stroke="black" stroke-linecap="round" stroke-linejoin="miter" stroke-width=".5"/>
+          </g>
+          <g id="Graphic_3549"/>
+        </g>
+        <g id="Line_3551">
+          <line x1="394" y1="108" x2="424" y2="108" stroke="#231f20" stroke-linecap="butt" stroke-linejoin="round" stroke-width=".5"/>
+        </g>
+      </g>
+      <g id="Group_3801">
+        <title>LoadCk</title>
+        <g id="Group_3803">
+          <title>Left arrow</title>
+          <g id="Graphic_3805">
+            <path d="M 390 68 L 397 70 L 396.06667 68 L 397 66 Z" fill="black"/>
+            <path d="M 390 68 L 397 70 L 396.06667 68 L 397 66 Z" stroke="black" stroke-linecap="round" stroke-linejoin="miter" stroke-width=".5"/>
+          </g>
+          <g id="Graphic_3804"/>
+        </g>
+        <g id="Line_3802">
+          <line x1="394" y1="68" x2="424" y2="68" stroke="#231f20" stroke-linecap="butt" stroke-linejoin="round" stroke-width=".5"/>
+        </g>
+      </g>
+    </g>
+    <g id="Pep_10_data_path_2._Devices">
+      <title>2. Devices</title>
+      <g id="Group_3503">
+        <title>Components</title>
+        <g id="Group_3420">
+          <title>ALU</title>
+          <g id="Graphic_1560">
+            <path d="M 248 344 L 288 344 L 292 352 L 308 352 L 312 344 L 352 344 L 332 384 L 268 384 Z" fill="white"/>
+            <path d="M 248 344 L 288 344 L 292 352 L 308 352 L 312 344 L 352 344 L 332 384 L 268 384 Z" stroke="#231f20" stroke-linecap="butt" stroke-linejoin="round" stroke-width=".5"/>
+          </g>
+          <g id="Graphic_3419">
+            <title>ALU</title>
+            <rect x="288" y="360" width="24" height="12" stroke="black" stroke-linecap="square" stroke-linejoin="miter" stroke-width="0"/>
+            <text transform="translate(288 360.5)" fill="black">
+              <tspan font-family="Times" font-size="9" fill="black" x="2.751709" y="9" xml:space="preserve">ALU</tspan>
+            </text>
+          </g>
+        </g>
+        <g id="Graphic_1627">
+          <title>Memory</title>
+          <rect x="32" y="436" width="32" height="76" stroke="#231f20" stroke-linecap="butt" stroke-linejoin="round" stroke-width=".5"/>
+        </g>
+        <g id="Graphic_3483">
+          <title>AndZ</title>
+          <rect x="328" y="500" width="32" height="12" fill="white"/>
+          <rect x="328" y="500" width="32" height="12" stroke="#231f20" stroke-linecap="butt" stroke-linejoin="round" stroke-width=".5"/>
+          <text transform="translate(328 500.5)" fill="black">
+            <tspan font-family="Times" font-size="9" fill="black" x="5.501465" y="9" xml:space="preserve">AndZ</tspan>
+          </text>
+        </g>
+        <g id="Graphic_3484">
+          <title>N</title>
+          <rect x="388" y="532" width="12" height="12" fill="#ab7942" fill-opacity=".25"/>
+          <rect x="388" y="532" width="12" height="12" stroke="#231f20" stroke-linecap="butt" stroke-linejoin="round" stroke-width=".5"/>
+          <text transform="translate(388 532.5)" fill="black">
+            <tspan font-family="Times" font-size="9" fill="black" x="2.750244" y="9" xml:space="preserve">N</tspan>
+          </text>
+        </g>
+        <g id="Graphic_3482">
+          <title>Z</title>
+          <rect x="388" y="500" width="12" height="12" fill="#ab7942" fill-opacity=".25"/>
+          <rect x="388" y="500" width="12" height="12" stroke="#231f20" stroke-linecap="butt" stroke-linejoin="round" stroke-width=".5"/>
+          <text transform="translate(388 500.5)" fill="black">
+            <tspan font-family="Times" font-size="9" fill="black" x="3.2512207" y="9" xml:space="preserve">Z</tspan>
+          </text>
+        </g>
+        <g id="Graphic_3481">
+          <title>V</title>
+          <rect x="388" y="464" width="12" height="12" fill="#ab7942" fill-opacity=".25"/>
+          <rect x="388" y="464" width="12" height="12" stroke="#231f20" stroke-linecap="butt" stroke-linejoin="round" stroke-width=".5"/>
+          <text transform="translate(388 464.5)" fill="black">
+            <tspan font-family="Times" font-size="9" fill="black" x="2.750244" y="9" xml:space="preserve">V</tspan>
+          </text>
+        </g>
+        <g id="Graphic_3480">
+          <title>C</title>
+          <rect x="388" y="444" width="12" height="12" fill="#ab7942" fill-opacity=".25"/>
+          <rect x="388" y="444" width="12" height="12" stroke="#231f20" stroke-linecap="butt" stroke-linejoin="round" stroke-width=".5"/>
+          <text transform="translate(388 444.5)" fill="black">
+            <tspan font-family="Times" font-size="9" fill="black" x="2.998535" y="9" xml:space="preserve">C</tspan>
+          </text>
+        </g>
+        <g id="Graphic_3479">
+          <title>S</title>
+          <rect x="388" y="424" width="12" height="12" fill="#ab7942" fill-opacity=".25"/>
+          <rect x="388" y="424" width="12" height="12" stroke="#231f20" stroke-linecap="butt" stroke-linejoin="round" stroke-width=".5"/>
+          <text transform="translate(388 424.5)" fill="black">
+            <tspan font-family="Times" font-size="9" fill="black" x="3.4973145" y="9" xml:space="preserve">S</tspan>
+          </text>
+        </g>
+        <g id="Graphic_3478">
+          <title>CSMux</title>
+          <rect x="356" y="396" width="48" height="12" fill="white"/>
+          <rect x="356" y="396" width="48" height="12" stroke="#231f20" stroke-linecap="butt" stroke-linejoin="round" stroke-width=".5"/>
+          <text transform="translate(356 396.5)" fill="black">
+            <tspan font-family="Times" font-size="9" fill="black" x="9.994629" y="9" xml:space="preserve">CSMux</tspan>
+          </text>
+        </g>
+        <g id="Graphic_3476">
+          <title>CMux</title>
+          <rect x="200" y="372" width="48" height="12" fill="white"/>
+          <rect x="200" y="372" width="48" height="12" stroke="#231f20" stroke-linecap="butt" stroke-linejoin="round" stroke-width=".5"/>
+          <text transform="translate(200 372.5)" fill="black">
+            <tspan font-family="Times" font-size="9" fill="black" x="12.497314" y="9" xml:space="preserve">CMux</tspan>
+          </text>
+        </g>
+        <g id="Graphic_3471">
+          <title>AMux</title>
+          <rect x="244" y="308" width="48" height="12" fill="white"/>
+          <rect x="244" y="308" width="48" height="12" stroke="#231f20" stroke-linecap="butt" stroke-linejoin="round" stroke-width=".5"/>
+          <text transform="translate(244 308.5)" fill="black">
+            <tspan font-family="Times" font-size="9" fill="black" x="12.249023" y="9" xml:space="preserve">AMux</tspan>
+          </text>
+        </g>
+        <g id="Graphic_3470">
+          <title>MDRMux</title>
+          <rect x="140" y="308" width="48" height="12" fill="white"/>
+          <rect x="140" y="308" width="48" height="12" stroke="#231f20" stroke-linecap="butt" stroke-linejoin="round" stroke-width=".5"/>
+          <text transform="translate(140 308.5)" fill="black">
+            <tspan font-family="Times" font-size="9" fill="black" x="5.246338" y="9" xml:space="preserve">MDRMux</tspan>
+          </text>
+        </g>
+        <g id="Graphic_3469">
+          <title>MDR</title>
+          <rect x="140" y="276" width="48" height="12" fill="#ab7942" fill-opacity=".25"/>
+          <rect x="140" y="276" width="48" height="12" stroke="#231f20" stroke-linecap="butt" stroke-linejoin="round" stroke-width=".5"/>
+          <text transform="translate(145 276.5)" fill="black">
+            <tspan font-family="Times" font-size="9" fill="black" x="8.747559" y="9" xml:space="preserve">MDR</tspan>
+          </text>
+        </g>
+        <g id="Graphic_3468">
+          <title>MARA</title>
+          <rect x="140" y="244" width="48" height="12" fill="#ab7942" fill-opacity=".25"/>
+          <rect x="140" y="244" width="48" height="12" stroke="#231f20" stroke-linecap="butt" stroke-linejoin="round" stroke-width=".5"/>
+          <text transform="translate(145 244.5)" fill="black">
+            <tspan font-family="Times" font-size="9" fill="black" x="5.497803" y="9" xml:space="preserve">MARA</tspan>
+          </text>
+        </g>
+        <g id="Graphic_1595">
+          <title>MARB</title>
+          <rect x="140" y="208" width="48" height="12" fill="#ab7942" fill-opacity=".25"/>
+          <rect x="140" y="208" width="48" height="12" stroke="#231f20" stroke-linecap="butt" stroke-linejoin="round" stroke-width=".5"/>
+          <text transform="translate(145 208.5)" fill="black">
+            <tspan font-family="Times" font-size="9" fill="black" x="5.746094" y="9" xml:space="preserve">MARB</tspan>
+          </text>
+        </g>
+      </g>
+      <g id="Group_3504">
+        <title>Floating labels</title>
+        <g id="Graphic_3524">
+          <title>Data</title>
+          <rect x="36" y="488" width="24" height="12" stroke="black" stroke-linecap="square" stroke-linejoin="miter" stroke-width="0"/>
+          <text transform="translate(36 488.5)" fill="black">
+            <tspan font-family="Times" font-size="9" fill="black" x="7.010742" y="9" xml:space="preserve">Data</tspan>
+          </text>
+        </g>
+        <g id="Graphic_3523">
+          <title>Addr</title>
+          <rect x="36" y="460" width="24" height="12" stroke="black" stroke-linecap="square" stroke-linejoin="miter" stroke-width="0"/>
+          <text transform="translate(36 460.5)" fill="black">
+            <tspan font-family="Times" font-size="9" fill="black" x="5.503418" y="9" xml:space="preserve">Addr</tspan>
+          </text>
+        </g>
+        <g id="Graphic_3522">
+          <title>Mem</title>
+          <rect x="36" y="436" width="24" height="12" stroke="black" stroke-linecap="square" stroke-linejoin="miter" stroke-width="0"/>
+          <text transform="translate(36 436.5)" fill="black">
+            <tspan font-family="Times" font-size="9" fill="black" x="0" y="9" xml:space="preserve">Mem</tspan>
+          </text>
+        </g>
+        <g id="Graphic_3518">
+          <title>0 [0]</title>
+          <rect x="228" y="512" width="8" height="8" stroke="black" stroke-linecap="square" stroke-linejoin="miter" stroke-width="0"/>
+          <text transform="translate(228 510.5)" fill="black">
+            <tspan font-family="Times" font-size="9" fill="black" x="0" y="9" xml:space="preserve">0</tspan>
+          </text>
+        </g>
+        <g id="Graphic_3519">
+          <title>0 [1]</title>
+          <rect x="228" y="504" width="8" height="8" stroke="black" stroke-linecap="square" stroke-linejoin="miter" stroke-width="0"/>
+          <text transform="translate(228 502.5)" fill="black">
+            <tspan font-family="Times" font-size="9" fill="black" x="0" y="9" xml:space="preserve">0</tspan>
+          </text>
+        </g>
+        <g id="Graphic_3520">
+          <title>0 [2]</title>
+          <rect x="228" y="496" width="8" height="8" stroke="black" stroke-linecap="square" stroke-linejoin="miter" stroke-width="0"/>
+          <text transform="translate(228 494.5)" fill="black">
+            <tspan font-family="Times" font-size="9" fill="black" x="0" y="9" xml:space="preserve">0</tspan>
+          </text>
+        </g>
+        <g id="Graphic_3521">
+          <title>0 [3]</title>
+          <rect x="228" y="488" width="8" height="8" stroke="black" stroke-linecap="square" stroke-linejoin="miter" stroke-width="0"/>
+          <text transform="translate(228 486.5)" fill="black">
+            <tspan font-family="Times" font-size="9" fill="black" x="0" y="9" xml:space="preserve">0</tspan>
+          </text>
+        </g>
+        <g id="Graphic_3517">
+          <title>Zout</title>
+          <rect x="304" y="506" width="40" height="12" stroke="black" stroke-linecap="square" stroke-linejoin="miter" stroke-width="0"/>
+          <text transform="translate(304 506.5)" fill="black">
+            <tspan font-family="Times" font-size="9" fill="black" x="0" y="9" xml:space="preserve">Zout</tspan>
+          </text>
+        </g>
+        <g id="Graphic_3516">
+          <title>Cout</title>
+          <rect x="332" y="412" width="40" height="12" stroke="black" stroke-linecap="square" stroke-linejoin="miter" stroke-width="0"/>
+          <text transform="translate(332 412.5)" fill="black">
+            <tspan font-family="Times" font-size="9" fill="black" x="0" y="9" xml:space="preserve">Cout</tspan>
+          </text>
+        </g>
+        <g id="Graphic_3515">
+          <title>Cin</title>
+          <rect x="352" y="368" width="40" height="12" stroke="black" stroke-linecap="square" stroke-linejoin="miter" stroke-width="0"/>
+          <text transform="translate(352 368.5)" fill="black">
+            <tspan font-family="Times" font-size="9" fill="black" x="0" y="9" xml:space="preserve">Cin</tspan>
+          </text>
+        </g>
+        <g id="Graphic_3413">
+          <title>BBus</title>
+          <rect x="340" y="172" width="24" height="12" stroke="black" stroke-linecap="square" stroke-linejoin="miter" stroke-width="0"/>
+          <text transform="translate(340 172.5)" fill="black">
+            <tspan font-family="Times" font-size="9" fill="black" x="0" y="9" xml:space="preserve">BBus</tspan>
+          </text>
+        </g>
+        <g id="Graphic_3412">
+          <title>ABus</title>
+          <rect x="292" y="172" width="24" height="12" stroke="black" stroke-linecap="square" stroke-linejoin="miter" stroke-width="0"/>
+          <text transform="translate(292 172.5)" fill="black">
+            <tspan font-family="Times" font-size="9" fill="black" x="0" y="9" xml:space="preserve">ABus</tspan>
+          </text>
+        </g>
+        <g id="Graphic_3411">
+          <title>CBus</title>
+          <rect x="236" y="172" width="24" height="12" stroke="black" stroke-linecap="square" stroke-linejoin="miter" stroke-width="0"/>
+          <text transform="translate(236 172.5)" fill="black">
+            <tspan font-family="Times" font-size="9" fill="black" x="0" y="9" xml:space="preserve">CBus</tspan>
+          </text>
+        </g>
+        <g id="Graphic_3430">
+          <title>System bus</title>
+          <rect x="84" y="180" width="32" height="24" stroke="black" stroke-linecap="square" stroke-linejoin="miter" stroke-width="0"/>
+          <text transform="translate(84 181)" fill="black">
+            <tspan font-family="Times" font-size="9" fill="black" x="2.748291" y="9" xml:space="preserve">System</tspan>
+            <tspan font-family="Times" font-size="9" fill="black" x="9.748779" y="20" xml:space="preserve">bus</tspan>
+          </text>
+        </g>
+        <g id="Group_3512">
+          <title>\4 ALU</title>
+          <g id="Line_3514">
+            <line x1="404" y1="364" x2="408" y2="372" stroke="#231f20" stroke-linecap="butt" stroke-linejoin="round" stroke-width=".5"/>
+          </g>
+          <g id="Graphic_3513">
+            <title>A</title>
+            <rect x="408" y="356" width="8" height="12" stroke="black" stroke-linecap="square" stroke-linejoin="miter" stroke-width="0"/>
+            <text transform="translate(408 356.5)" fill="black">
+              <tspan font-family="Times" font-size="9" fill="black" x="0" y="9" xml:space="preserve">4</tspan>
+            </text>
+          </g>
+        </g>
+        <g id="Group_3509">
+          <title>\5 C</title>
+          <g id="Line_3511">
+            <line x1="408" y1="144" x2="412" y2="152" stroke="#231f20" stroke-linecap="butt" stroke-linejoin="round" stroke-width=".5"/>
+          </g>
+          <g id="Graphic_3510">
+            <title>A</title>
+            <rect x="412" y="136" width="8" height="12" stroke="black" stroke-linecap="square" stroke-linejoin="miter" stroke-width="0"/>
+            <text transform="translate(412 136.5)" fill="black">
+              <tspan font-family="Times" font-size="9" fill="black" x="0" y="9" xml:space="preserve">5</tspan>
+            </text>
+          </g>
+        </g>
+        <g id="Group_3506">
+          <title>\5 B</title>
+          <g id="Line_3508">
+            <line x1="408" y1="124" x2="412" y2="132" stroke="#231f20" stroke-linecap="butt" stroke-linejoin="round" stroke-width=".5"/>
+          </g>
+          <g id="Graphic_3507">
+            <title>A</title>
+            <rect x="412" y="116" width="8" height="12" stroke="black" stroke-linecap="square" stroke-linejoin="miter" stroke-width="0"/>
+            <text transform="translate(412 116.5)" fill="black">
+              <tspan font-family="Times" font-size="9" fill="black" x="0" y="9" xml:space="preserve">5</tspan>
+            </text>
+          </g>
+        </g>
+        <g id="Group_3505">
+          <title>\5 A</title>
+          <g id="Line_3404">
+            <line x1="408" y1="104" x2="412" y2="112" stroke="#231f20" stroke-linecap="butt" stroke-linejoin="round" stroke-width=".5"/>
+          </g>
+          <g id="Graphic_3403">
+            <title>A</title>
+            <rect x="412" y="96" width="8" height="12" stroke="black" stroke-linecap="square" stroke-linejoin="miter" stroke-width="0"/>
+            <text transform="translate(412 96.5)" fill="black">
+              <tspan font-family="Times" font-size="9" fill="black" x="0" y="9" xml:space="preserve">5</tspan>
+            </text>
+          </g>
+        </g>
+      </g>
+      <g id="Group_3494">
+        <title>Control labels</title>
+        <g id="Graphic_3501">
+          <title>MemRead</title>
+          <rect x="428" y="564" width="40" height="12" stroke="black" stroke-linecap="square" stroke-linejoin="miter" stroke-width="0"/>
+          <text transform="translate(428 564.5)" fill="black">
+            <tspan font-family="Times" font-size="9" fill="black" x="0" y="9" xml:space="preserve">MemRead</tspan>
+          </text>
+        </g>
+        <g id="Graphic_3500">
+          <title>MemWrite</title>
+          <rect x="428" y="552" width="40" height="12" stroke="black" stroke-linecap="square" stroke-linejoin="miter" stroke-width="0"/>
+          <text transform="translate(428 552.5)" fill="black">
+            <tspan font-family="Times" font-size="9" fill="black" x="0" y="9" xml:space="preserve">MemWrite</tspan>
+          </text>
+        </g>
+        <g id="Graphic_3499">
+          <title>NCk</title>
+          <rect x="428" y="532" width="40" height="12" stroke="black" stroke-linecap="square" stroke-linejoin="miter" stroke-width="0"/>
+          <text transform="translate(428 532.5)" fill="black">
+            <tspan font-family="Times" font-size="9" fill="black" x="0" y="9" xml:space="preserve">NCk</tspan>
+          </text>
+        </g>
+        <g id="Graphic_3498">
+          <title>ZCk</title>
+          <rect x="428" y="500" width="40" height="12" stroke="black" stroke-linecap="square" stroke-linejoin="miter" stroke-width="0"/>
+          <text transform="translate(428 500.5)" fill="black">
+            <tspan font-family="Times" font-size="9" fill="black" x="0" y="9" xml:space="preserve">ZCk</tspan>
+          </text>
+        </g>
+        <g id="Graphic_3485">
+          <title>AndZ</title>
+          <rect x="428" y="480" width="40" height="12" stroke="black" stroke-linecap="square" stroke-linejoin="miter" stroke-width="0"/>
+          <text transform="translate(428 480.5)" fill="black">
+            <tspan font-family="Times" font-size="9" fill="black" x="0" y="9" xml:space="preserve">AndZ</tspan>
+          </text>
+        </g>
+        <g id="Graphic_3497">
+          <title>VCk</title>
+          <rect x="428" y="464" width="40" height="12" stroke="black" stroke-linecap="square" stroke-linejoin="miter" stroke-width="0"/>
+          <text transform="translate(428 464.5)" fill="black">
+            <tspan font-family="Times" font-size="9" fill="black" x="0" y="9" xml:space="preserve">VCk</tspan>
+          </text>
+        </g>
+        <g id="Graphic_3496">
+          <title>CCk</title>
+          <rect x="428" y="444" width="40" height="12" stroke="black" stroke-linecap="square" stroke-linejoin="miter" stroke-width="0"/>
+          <text transform="translate(428 444.5)" fill="black">
+            <tspan font-family="Times" font-size="9" fill="black" x="0" y="9" xml:space="preserve">CCk</tspan>
+          </text>
+        </g>
+        <g id="Graphic_3495">
+          <title>SCk</title>
+          <rect x="428" y="424" width="40" height="12" stroke="black" stroke-linecap="square" stroke-linejoin="miter" stroke-width="0"/>
+          <text transform="translate(428 424.5)" fill="black">
+            <tspan font-family="Times" font-size="9" fill="black" x="0" y="9" xml:space="preserve">SCk</tspan>
+          </text>
+        </g>
+        <g id="Graphic_3493">
+          <title>CSMux</title>
+          <rect x="428" y="396" width="40" height="12" stroke="black" stroke-linecap="square" stroke-linejoin="miter" stroke-width="0"/>
+          <text transform="translate(428 396.5)" fill="black">
+            <tspan font-family="Times" font-size="9" fill="black" x="0" y="9" xml:space="preserve">CSMux</tspan>
+          </text>
+        </g>
+        <g id="Graphic_3486">
+          <title>ALU</title>
+          <rect x="428" y="360" width="40" height="16" stroke="black" stroke-linecap="square" stroke-linejoin="miter" stroke-width="0"/>
+          <text transform="translate(428 362.5)" fill="black">
+            <tspan font-family="Times" font-size="9" fill="black" x="0" y="9" xml:space="preserve">ALU</tspan>
+          </text>
+        </g>
+        <g id="Graphic_3487">
+          <title>CMux</title>
+          <rect x="428" y="348" width="40" height="16" stroke="black" stroke-linecap="square" stroke-linejoin="miter" stroke-width="0"/>
+          <text transform="translate(428 350.5)" fill="black">
+            <tspan font-family="Times" font-size="9" fill="black" x="0" y="9" xml:space="preserve">CMux</tspan>
+          </text>
+        </g>
+        <g id="Graphic_3488">
+          <title>MDRMux</title>
+          <rect x="428" y="320" width="40" height="16" stroke="black" stroke-linecap="square" stroke-linejoin="miter" stroke-width="0"/>
+          <text transform="translate(428 322.5)" fill="black">
+            <tspan font-family="Times" font-size="9" fill="black" x="0" y="9" xml:space="preserve">MDRMux</tspan>
+          </text>
+        </g>
+        <g id="Graphic_3492">
+          <title>AMux</title>
+          <rect x="428" y="308" width="40" height="12" stroke="black" stroke-linecap="square" stroke-linejoin="miter" stroke-width="0"/>
+          <text transform="translate(428 308.5)" fill="black">
+            <tspan font-family="Times" font-size="9" fill="black" x="0" y="9" xml:space="preserve">AMux</tspan>
+          </text>
+        </g>
+        <g id="Graphic_3489">
+          <title>MDRCk</title>
+          <rect x="428" y="256" width="40" height="16" stroke="black" stroke-linecap="square" stroke-linejoin="miter" stroke-width="0"/>
+          <text transform="translate(428 258.5)" fill="black">
+            <tspan font-family="Times" font-size="9" fill="black" x="0" y="9" xml:space="preserve">MDRCk</tspan>
+          </text>
+        </g>
+        <g id="Graphic_3490">
+          <title>MaRCk</title>
+          <rect x="428" y="224" width="40" height="16" stroke="black" stroke-linecap="square" stroke-linejoin="miter" stroke-width="0"/>
+          <text transform="translate(428 226.5)" fill="black">
+            <tspan font-family="Times" font-size="9" fill="black" x="0" y="9" xml:space="preserve">MARCk</tspan>
+          </text>
+        </g>
+        <g id="Graphic_3399">
+          <title>C</title>
+          <rect x="428" y="140" width="40" height="16" stroke="black" stroke-linecap="square" stroke-linejoin="miter" stroke-width="0"/>
+          <text transform="translate(428 142.5)" fill="black">
+            <tspan font-family="Times" font-size="9" fill="black" x="0" y="9" xml:space="preserve">C</tspan>
+          </text>
+        </g>
+        <g id="Graphic_3400">
+          <title>B</title>
+          <rect x="428" y="120" width="40" height="16" stroke="black" stroke-linecap="square" stroke-linejoin="miter" stroke-width="0"/>
+          <text transform="translate(428 122.5)" fill="black">
+            <tspan font-family="Times" font-size="9" fill="black" x="0" y="9" xml:space="preserve">B</tspan>
+          </text>
+        </g>
+        <g id="Graphic_3402">
+          <title>A</title>
+          <rect x="428" y="100" width="40" height="16" stroke="black" stroke-linecap="square" stroke-linejoin="miter" stroke-width="0"/>
+          <text transform="translate(428 102.5)" fill="black">
+            <tspan font-family="Times" font-size="9" fill="black" x="0" y="9" xml:space="preserve">A</tspan>
+          </text>
+        </g>
+        <g id="Graphic_3396">
+          <title>LoadCk</title>
+          <rect x="428" y="60" width="40" height="16" stroke="black" stroke-linecap="square" stroke-linejoin="miter" stroke-width="0"/>
+          <text transform="translate(428 62.5)" fill="black">
+            <tspan font-family="Times" font-size="9" fill="black" x="0" y="9" xml:space="preserve">LoadCk</tspan>
+          </text>
+        </g>
+      </g>
+      <g id="Group_3477">
+        <title>Register Bank</title>
+        <g id="Graphic_1545">
+          <title>Rectangle Bank</title>
+          <rect x="64" y="44" width="324" height="128" stroke="#231f20" stroke-linecap="butt" stroke-linejoin="round" stroke-width=".5"/>
+        </g>
+        <g id="Graphic_3332">
+          <title>CPU registers</title>
+          <rect x="84" y="152" width="56" height="12" stroke="black" stroke-linecap="square" stroke-linejoin="miter" stroke-width="0"/>
+          <text transform="translate(84 152.5)" fill="black">
+            <tspan font-family="Times" font-size="9" fill="black" x="0" y="9" xml:space="preserve">CPU registers</tspan>
+          </text>
+        </g>
+        <g id="Graphic_3475">
+          <title>C4</title>
+          <rect x="304" y="152" width="16" height="12" stroke="black" stroke-linecap="square" stroke-linejoin="miter" stroke-width="0"/>
+          <text transform="translate(304 152.5)" fill="black">
+            <tspan font-family="Times" font-size="9" fill="black" x="5.49707" y="9" xml:space="preserve">C4</tspan>
+          </text>
+        </g>
+        <g id="Graphic_3474">
+          <title>C3</title>
+          <rect x="304" y="128" width="16" height="12" stroke="black" stroke-linecap="square" stroke-linejoin="miter" stroke-width="0"/>
+          <text transform="translate(304 128.5)" fill="black">
+            <tspan font-family="Times" font-size="9" fill="black" x="5.49707" y="9" xml:space="preserve">C3</tspan>
+          </text>
+        </g>
+        <g id="Graphic_3473">
+          <title>C2</title>
+          <rect x="304" y="104" width="16" height="12" stroke="black" stroke-linecap="square" stroke-linejoin="miter" stroke-width="0"/>
+          <text transform="translate(304 104.5)" fill="black">
+            <tspan font-family="Times" font-size="9" fill="black" x="5.49707" y="9" xml:space="preserve">C2</tspan>
+          </text>
+        </g>
+        <g id="Graphic_3472">
+          <title>C1</title>
+          <rect x="304" y="80" width="16" height="12" stroke="black" stroke-linecap="square" stroke-linejoin="miter" stroke-width="0"/>
+          <text transform="translate(304 80.5)" fill="black">
+            <tspan font-family="Times" font-size="9" fill="black" x="5.49707" y="9" xml:space="preserve">C1</tspan>
+          </text>
+        </g>
+        <g id="Graphic_3386">
+          <title>C0</title>
+          <rect x="304" y="56" width="16" height="12" stroke="black" stroke-linecap="square" stroke-linejoin="miter" stroke-width="0"/>
+          <text transform="translate(304 56.5)" fill="black">
+            <tspan font-family="Times" font-size="9" fill="black" x="5.49707" y="9" xml:space="preserve">C0</tspan>
+          </text>
+        </g>
+        <g id="Graphic_3356">
+          <title>R4</title>
+          <rect x="224" y="128" width="16" height="12" stroke="black" stroke-linecap="square" stroke-linejoin="miter" stroke-width="0"/>
+          <text transform="translate(224 128.5)" fill="black">
+            <tspan font-family="Times" font-size="9" fill="black" x="5.49707" y="9" xml:space="preserve">R4</tspan>
+          </text>
+        </g>
+        <g id="Graphic_3362">
+          <title>R3</title>
+          <rect x="224" y="104" width="16" height="12" stroke="black" stroke-linecap="square" stroke-linejoin="miter" stroke-width="0"/>
+          <text transform="translate(224 104.5)" fill="black">
+            <tspan font-family="Times" font-size="9" fill="black" x="5.49707" y="9" xml:space="preserve">R3</tspan>
+          </text>
+        </g>
+        <g id="Graphic_3350">
+          <title>R2</title>
+          <rect x="224" y="80" width="16" height="12" stroke="black" stroke-linecap="square" stroke-linejoin="miter" stroke-width="0"/>
+          <text transform="translate(224 80.5)" fill="black">
+            <tspan font-family="Times" font-size="9" fill="black" x="5.49707" y="9" xml:space="preserve">R2</tspan>
+          </text>
+        </g>
+        <g id="Graphic_3344">
+          <title>R1</title>
+          <rect x="224" y="56" width="16" height="12" stroke="black" stroke-linecap="square" stroke-linejoin="miter" stroke-width="0"/>
+          <text transform="translate(224 56.5)" fill="black">
+            <tspan font-family="Times" font-size="9" fill="black" x="5.49707" y="9" xml:space="preserve">R1</tspan>
+          </text>
+        </g>
+        <g id="Graphic_3338">
+          <title>R0</title>
+          <rect x="144" y="128" width="16" height="12" stroke="black" stroke-linecap="square" stroke-linejoin="miter" stroke-width="0"/>
+          <text transform="translate(144 128.5)" fill="black">
+            <tspan font-family="Times" font-size="9" fill="black" x="5.49707" y="9" xml:space="preserve">R0</tspan>
+          </text>
+        </g>
+        <g id="Graphic_3319">
+          <title>IR</title>
+          <rect x="144" y="80" width="16" height="12" stroke="black" stroke-linecap="square" stroke-linejoin="miter" stroke-width="0"/>
+          <text transform="translate(144 80.5)" fill="black">
+            <tspan font-family="Times" font-size="9" fill="black" x="7" y="9" xml:space="preserve">IR</tspan>
+          </text>
+        </g>
+        <g id="Graphic_3325">
+          <title>T</title>
+          <rect x="144" y="56" width="16" height="12" stroke="black" stroke-linecap="square" stroke-linejoin="miter" stroke-width="0"/>
+          <text transform="translate(144 56.5)" fill="black">
+            <tspan font-family="Times" font-size="9" fill="black" x="10.502441" y="9" xml:space="preserve">T</tspan>
+          </text>
+        </g>
+        <g id="Graphic_3293">
+          <title>PC</title>
+          <rect x="64" y="128" width="16" height="12" stroke="black" stroke-linecap="square" stroke-linejoin="miter" stroke-width="0"/>
+          <text transform="translate(64 128.5)" fill="black">
+            <tspan font-family="Times" font-size="9" fill="black" x="4.991699" y="9" xml:space="preserve">PC</tspan>
+          </text>
+        </g>
+        <g id="Graphic_3294">
+          <title>SP</title>
+          <rect x="64" y="104" width="16" height="12" stroke="black" stroke-linecap="square" stroke-linejoin="miter" stroke-width="0"/>
+          <text transform="translate(64 104.5)" fill="black">
+            <tspan font-family="Times" font-size="9" fill="black" x="5.989258" y="9" xml:space="preserve">SP</tspan>
+          </text>
+        </g>
+        <g id="Graphic_3292">
+          <title>X</title>
+          <rect x="64" y="80" width="16" height="12" stroke="black" stroke-linecap="square" stroke-linejoin="miter" stroke-width="0"/>
+          <text transform="translate(64 80.5)" fill="black">
+            <tspan font-family="Times" font-size="9" fill="black" x="9.500488" y="9" xml:space="preserve">X</tspan>
+          </text>
+        </g>
+        <g id="Graphic_3296">
+          <title>A</title>
+          <rect x="64" y="56" width="16" height="12" stroke="black" stroke-linecap="square" stroke-linejoin="miter" stroke-width="0"/>
+          <text transform="translate(64 56.5)" fill="black">
+            <tspan font-family="Times" font-size="9" fill="black" x="9.500488" y="9" xml:space="preserve">A</tspan>
+          </text>
+        </g>
+        <g id="Graphic_3387">
+          <title>31</title>
+          <rect x="352" y="140" width="16" height="12" stroke="black" stroke-linecap="square" stroke-linejoin="miter" stroke-width="0"/>
+          <text transform="translate(352 140.5)" fill="black">
+            <tspan font-family="Times" font-size="9" fill="black" x="0" y="9" xml:space="preserve">31</tspan>
+          </text>
+        </g>
+        <g id="Graphic_3388">
+          <title>30</title>
+          <rect x="324" y="140" width="16" height="12" stroke="black" stroke-linecap="square" stroke-linejoin="miter" stroke-width="0"/>
+          <text transform="translate(324 140.5)" fill="black">
+            <tspan font-family="Times" font-size="9" fill="black" x="0" y="9" xml:space="preserve">30</tspan>
+          </text>
+        </g>
+        <g id="Graphic_3363">
+          <title>29</title>
+          <rect x="352" y="116" width="16" height="12" stroke="black" stroke-linecap="square" stroke-linejoin="miter" stroke-width="0"/>
+          <text transform="translate(352 116.5)" fill="black">
+            <tspan font-family="Times" font-size="9" fill="black" x="0" y="9" xml:space="preserve">29</tspan>
+          </text>
+        </g>
+        <g id="Graphic_3364">
+          <title>28</title>
+          <rect x="324" y="116" width="16" height="12" stroke="black" stroke-linecap="square" stroke-linejoin="miter" stroke-width="0"/>
+          <text transform="translate(324 116.5)" fill="black">
+            <tspan font-family="Times" font-size="9" fill="black" x="0" y="9" xml:space="preserve">28</tspan>
+          </text>
+        </g>
+        <g id="Graphic_3369">
+          <title>27</title>
+          <rect x="352" y="92" width="16" height="12" stroke="black" stroke-linecap="square" stroke-linejoin="miter" stroke-width="0"/>
+          <text transform="translate(352 92.5)" fill="black">
+            <tspan font-family="Times" font-size="9" fill="black" x="0" y="9" xml:space="preserve">27</tspan>
+          </text>
+        </g>
+        <g id="Graphic_3370">
+          <title>26</title>
+          <rect x="324" y="92" width="16" height="12" stroke="black" stroke-linecap="square" stroke-linejoin="miter" stroke-width="0"/>
+          <text transform="translate(324 92.5)" fill="black">
+            <tspan font-family="Times" font-size="9" fill="black" x="0" y="9" xml:space="preserve">26</tspan>
+          </text>
+        </g>
+        <g id="Graphic_3375">
+          <title>25</title>
+          <rect x="352" y="68" width="16" height="12" stroke="black" stroke-linecap="square" stroke-linejoin="miter" stroke-width="0"/>
+          <text transform="translate(352 68.5)" fill="black">
+            <tspan font-family="Times" font-size="9" fill="black" x="0" y="9" xml:space="preserve">25</tspan>
+          </text>
+        </g>
+        <g id="Graphic_3376">
+          <title>24</title>
+          <rect x="324" y="68" width="16" height="12" stroke="black" stroke-linecap="square" stroke-linejoin="miter" stroke-width="0"/>
+          <text transform="translate(324 68.5)" fill="black">
+            <tspan font-family="Times" font-size="9" fill="black" x="0" y="9" xml:space="preserve">24</tspan>
+          </text>
+        </g>
+        <g id="Graphic_3381">
+          <title>23</title>
+          <rect x="352" y="44" width="16" height="12" stroke="black" stroke-linecap="square" stroke-linejoin="miter" stroke-width="0"/>
+          <text transform="translate(352 44.5)" fill="black">
+            <tspan font-family="Times" font-size="9" fill="black" x="0" y="9" xml:space="preserve">23</tspan>
+          </text>
+        </g>
+        <g id="Graphic_3382">
+          <title>22</title>
+          <rect x="324" y="44" width="16" height="12" stroke="black" stroke-linecap="square" stroke-linejoin="miter" stroke-width="0"/>
+          <text transform="translate(324 44.5)" fill="black">
+            <tspan font-family="Times" font-size="9" fill="black" x="0" y="9" xml:space="preserve">22</tspan>
+          </text>
+        </g>
+        <g id="Graphic_3351">
+          <title>21</title>
+          <rect x="272" y="116" width="16" height="12" stroke="black" stroke-linecap="square" stroke-linejoin="miter" stroke-width="0"/>
+          <text transform="translate(272 116.5)" fill="black">
+            <tspan font-family="Times" font-size="9" fill="black" x="0" y="9" xml:space="preserve">21</tspan>
+          </text>
+        </g>
+        <g id="Graphic_3352">
+          <title>20</title>
+          <rect x="244" y="116" width="16" height="12" stroke="black" stroke-linecap="square" stroke-linejoin="miter" stroke-width="0"/>
+          <text transform="translate(244 116.5)" fill="black">
+            <tspan font-family="Times" font-size="9" fill="black" x="0" y="9" xml:space="preserve">20</tspan>
+          </text>
+        </g>
+        <g id="Graphic_3357">
+          <title>19</title>
+          <rect x="272" y="92" width="16" height="12" stroke="black" stroke-linecap="square" stroke-linejoin="miter" stroke-width="0"/>
+          <text transform="translate(272 92.5)" fill="black">
+            <tspan font-family="Times" font-size="9" fill="black" x="0" y="9" xml:space="preserve">19</tspan>
+          </text>
+        </g>
+        <g id="Graphic_3358">
+          <title>18</title>
+          <rect x="244" y="92" width="16" height="12" stroke="black" stroke-linecap="square" stroke-linejoin="miter" stroke-width="0"/>
+          <text transform="translate(244 92.5)" fill="black">
+            <tspan font-family="Times" font-size="9" fill="black" x="0" y="9" xml:space="preserve">18</tspan>
+          </text>
+        </g>
+        <g id="Graphic_3345">
+          <title>17</title>
+          <rect x="272" y="68" width="16" height="12" stroke="black" stroke-linecap="square" stroke-linejoin="miter" stroke-width="0"/>
+          <text transform="translate(272 68.5)" fill="black">
+            <tspan font-family="Times" font-size="9" fill="black" x="0" y="9" xml:space="preserve">17</tspan>
+          </text>
+        </g>
+        <g id="Graphic_3346">
+          <title>16</title>
+          <rect x="244" y="68" width="16" height="12" stroke="black" stroke-linecap="square" stroke-linejoin="miter" stroke-width="0"/>
+          <text transform="translate(244 68.5)" fill="black">
+            <tspan font-family="Times" font-size="9" fill="black" x="0" y="9" xml:space="preserve">16</tspan>
+          </text>
+        </g>
+        <g id="Graphic_3339">
+          <title>15</title>
+          <rect x="272" y="44" width="16" height="12" stroke="black" stroke-linecap="square" stroke-linejoin="miter" stroke-width="0"/>
+          <text transform="translate(272 44.5)" fill="black">
+            <tspan font-family="Times" font-size="9" fill="black" x="0" y="9" xml:space="preserve">15</tspan>
+          </text>
+        </g>
+        <g id="Graphic_3340">
+          <title>14</title>
+          <rect x="244" y="44" width="16" height="12" stroke="black" stroke-linecap="square" stroke-linejoin="miter" stroke-width="0"/>
+          <text transform="translate(244 44.5)" fill="black">
+            <tspan font-family="Times" font-size="9" fill="black" x="0" y="9" xml:space="preserve">14</tspan>
+          </text>
+        </g>
+        <g id="Graphic_3334">
+          <title>13</title>
+          <rect x="164" y="116" width="16" height="12" stroke="black" stroke-linecap="square" stroke-linejoin="miter" stroke-width="0"/>
+          <text transform="translate(164 116.5)" fill="black">
+            <tspan font-family="Times" font-size="9" fill="black" x="0" y="9" xml:space="preserve">13</tspan>
+          </text>
+        </g>
+        <g id="Graphic_3326">
+          <title>12</title>
+          <rect x="192" y="92" width="16" height="12" stroke="black" stroke-linecap="square" stroke-linejoin="miter" stroke-width="0"/>
+          <text transform="translate(192 92.5)" fill="black">
+            <tspan font-family="Times" font-size="9" fill="black" x="0" y="9" xml:space="preserve">12</tspan>
+          </text>
+        </g>
+        <g id="Graphic_3327">
+          <title>11</title>
+          <rect x="164" y="92" width="16" height="12" stroke="black" stroke-linecap="square" stroke-linejoin="miter" stroke-width="0"/>
+          <text transform="translate(164 92.5)" fill="black">
+            <tspan font-family="Times" font-size="9" fill="black" x="0" y="9" xml:space="preserve">11</tspan>
+          </text>
+        </g>
+        <g id="Graphic_3315">
+          <title>10</title>
+          <rect x="164" y="68" width="16" height="12" stroke="black" stroke-linecap="square" stroke-linejoin="miter" stroke-width="0"/>
+          <text transform="translate(164 68.5)" fill="black">
+            <tspan font-family="Times" font-size="9" fill="black" x="0" y="9" xml:space="preserve">10</tspan>
+          </text>
+        </g>
+        <g id="Graphic_3320">
+          <title>9</title>
+          <rect x="192" y="44" width="16" height="12" stroke="black" stroke-linecap="square" stroke-linejoin="miter" stroke-width="0"/>
+          <text transform="translate(192 44.5)" fill="black">
+            <tspan font-family="Times" font-size="9" fill="black" x="0" y="9" xml:space="preserve">9</tspan>
+          </text>
+        </g>
+        <g id="Graphic_3321">
+          <title>8</title>
+          <rect x="164" y="44" width="16" height="12" stroke="black" stroke-linecap="square" stroke-linejoin="miter" stroke-width="0"/>
+          <text transform="translate(164 44.5)" fill="black">
+            <tspan font-family="Times" font-size="9" fill="black" x="0" y="9" xml:space="preserve">8</tspan>
+          </text>
+        </g>
+        <g id="Graphic_3304">
+          <title>7</title>
+          <rect x="112" y="116" width="16" height="12" stroke="black" stroke-linecap="square" stroke-linejoin="miter" stroke-width="0"/>
+          <text transform="translate(112 116.5)" fill="black">
+            <tspan font-family="Times" font-size="9" fill="black" x="0" y="9" xml:space="preserve">7</tspan>
+          </text>
+        </g>
+        <g id="Graphic_3305">
+          <title>6</title>
+          <rect x="84" y="116" width="16" height="12" stroke="black" stroke-linecap="square" stroke-linejoin="miter" stroke-width="0"/>
+          <text transform="translate(84 116.5)" fill="black">
+            <tspan font-family="Times" font-size="9" fill="black" x="0" y="9" xml:space="preserve">6</tspan>
+          </text>
+        </g>
+        <g id="Graphic_3309">
+          <title>5</title>
+          <rect x="112" y="92" width="16" height="12" stroke="black" stroke-linecap="square" stroke-linejoin="miter" stroke-width="0"/>
+          <text transform="translate(112 92.5)" fill="black">
+            <tspan font-family="Times" font-size="9" fill="black" x="0" y="9" xml:space="preserve">5</tspan>
+          </text>
+        </g>
+        <g id="Graphic_3310">
+          <title>4</title>
+          <rect x="84" y="92" width="16" height="12" stroke="black" stroke-linecap="square" stroke-linejoin="miter" stroke-width="0"/>
+          <text transform="translate(84 92.5)" fill="black">
+            <tspan font-family="Times" font-size="9" fill="black" x="0" y="9" xml:space="preserve">4</tspan>
+          </text>
+        </g>
+        <g id="Graphic_3299">
+          <title>3</title>
+          <rect x="112" y="68" width="16" height="12" stroke="black" stroke-linecap="square" stroke-linejoin="miter" stroke-width="0"/>
+          <text transform="translate(112 68.5)" fill="black">
+            <tspan font-family="Times" font-size="9" fill="black" x="0" y="9" xml:space="preserve">3</tspan>
+          </text>
+        </g>
+        <g id="Graphic_3300">
+          <title>2</title>
+          <rect x="84" y="68" width="16" height="12" stroke="black" stroke-linecap="square" stroke-linejoin="miter" stroke-width="0"/>
+          <text transform="translate(84 68.5)" fill="black">
+            <tspan font-family="Times" font-size="9" fill="black" x="0" y="9" xml:space="preserve">2</tspan>
+          </text>
+        </g>
+        <g id="Graphic_3298">
+          <title>1</title>
+          <rect x="112" y="44" width="16" height="12" stroke="black" stroke-linecap="square" stroke-linejoin="miter" stroke-width="0"/>
+          <text transform="translate(112 44.5)" fill="black">
+            <tspan font-family="Times" font-size="9" fill="black" x="0" y="9" xml:space="preserve">1</tspan>
+          </text>
+        </g>
+        <g id="Graphic_3297">
+          <title>0</title>
+          <rect x="84" y="44" width="16" height="12" stroke="black" stroke-linecap="square" stroke-linejoin="miter" stroke-width="0"/>
+          <text transform="translate(84 44.5)" fill="black">
+            <tspan font-family="Times" font-size="9" fill="black" x="0" y="9" xml:space="preserve">0</tspan>
+          </text>
+        </g>
+        <g id="Graphic_3389">
+          <title>Rectangle 31</title>
+          <rect x="352" y="152" width="28" height="12" stroke="#231f20" stroke-linecap="butt" stroke-linejoin="round" stroke-width=".5"/>
+          <text transform="translate(354 152.5)" fill="black">
+            <tspan font-family="Times" font-size="9" fill="black" x="2.494629" y="9" xml:space="preserve">0xFF</tspan>
+          </text>
+        </g>
+        <g id="Graphic_3421">
+          <title>Rectangle 30</title>
+          <rect x="324" y="152" width="28" height="12" stroke="#231f20" stroke-linecap="butt" stroke-linejoin="round" stroke-width=".5"/>
+          <text transform="translate(326 152.5)" fill="black">
+            <tspan font-family="Times" font-size="9" fill="black" x="2.2485352" y="9" xml:space="preserve">0xFE</tspan>
+          </text>
+        </g>
+        <g id="Graphic_3429">
+          <title>Rectangle 29</title>
+          <rect x="352" y="128" width="28" height="12" stroke="#231f20" stroke-linecap="butt" stroke-linejoin="round" stroke-width=".5"/>
+          <text transform="translate(354 128.5)" fill="black">
+            <tspan font-family="Times" font-size="9" fill="black" x="1.9958496" y="9" xml:space="preserve">0xFB</tspan>
+          </text>
+        </g>
+        <g id="Graphic_3428">
+          <title>Rectangle 28</title>
+          <rect x="324" y="128" width="28" height="12" stroke="#231f20" stroke-linecap="butt" stroke-linejoin="round" stroke-width=".5"/>
+          <text transform="translate(326 128.5)" fill="black">
+            <tspan font-family="Times" font-size="9" fill="black" x="2.0793457" y="9" xml:space="preserve">0xFA</tspan>
+          </text>
+        </g>
+        <g id="Graphic_3427">
+          <title>Rectangle 27</title>
+          <rect x="352" y="104" width="28" height="12" stroke="#231f20" stroke-linecap="butt" stroke-linejoin="round" stroke-width=".5"/>
+          <text transform="translate(354 104.5)" fill="black">
+            <tspan font-family="Times" font-size="9" fill="black" x="3" y="9" xml:space="preserve">0x08</tspan>
+          </text>
+        </g>
+        <g id="Graphic_3426">
+          <title>Rectangle 26</title>
+          <rect x="324" y="104" width="28" height="12" stroke="#231f20" stroke-linecap="butt" stroke-linejoin="round" stroke-width=".5"/>
+          <text transform="translate(326 104.5)" fill="black">
+            <tspan font-family="Times" font-size="9" fill="black" x="3" y="9" xml:space="preserve">0x04</tspan>
+          </text>
+        </g>
+        <g id="Graphic_3425">
+          <title>Rectangle 25</title>
+          <rect x="352" y="80" width="28" height="12" stroke="#231f20" stroke-linecap="butt" stroke-linejoin="round" stroke-width=".5"/>
+          <text transform="translate(354 80.5)" fill="black">
+            <tspan font-family="Times" font-size="9" fill="black" x="3" y="9" xml:space="preserve">0x03</tspan>
+          </text>
+        </g>
+        <g id="Graphic_3424">
+          <title>Rectangle 24</title>
+          <rect x="324" y="80" width="28" height="12" stroke="#231f20" stroke-linecap="butt" stroke-linejoin="round" stroke-width=".5"/>
+          <text transform="translate(326 80.5)" fill="black">
+            <tspan font-family="Times" font-size="9" fill="black" x="3" y="9" xml:space="preserve">0x02</tspan>
+          </text>
+        </g>
+        <g id="Graphic_3423">
+          <title>Rectangle 23</title>
+          <rect x="352" y="56" width="28" height="12" stroke="#231f20" stroke-linecap="butt" stroke-linejoin="round" stroke-width=".5"/>
+          <text transform="translate(354 56.5)" fill="black">
+            <tspan font-family="Times" font-size="9" fill="black" x="3" y="9" xml:space="preserve">0x01</tspan>
+          </text>
+        </g>
+        <g id="Graphic_3422">
+          <title>Rectangle 22</title>
+          <rect x="324" y="56" width="28" height="12" stroke="#231f20" stroke-linecap="butt" stroke-linejoin="round" stroke-width=".5"/>
+          <text transform="translate(326 56.5)" fill="black">
+            <tspan font-family="Times" font-size="9" fill="black" x="3" y="9" xml:space="preserve">0x00</tspan>
+          </text>
+        </g>
+        <g id="Graphic_3353">
+          <title>Rectangle 21</title>
+          <rect x="272" y="128" width="28" height="12" fill="#ab7942" fill-opacity=".25"/>
+          <rect x="272" y="128" width="28" height="12" stroke="#231f20" stroke-linecap="butt" stroke-linejoin="round" stroke-width=".5"/>
+        </g>
+        <g id="Graphic_3354">
+          <title>Rectangle 20</title>
+          <rect x="244" y="128" width="28" height="12" fill="#ab7942" fill-opacity=".25"/>
+          <rect x="244" y="128" width="28" height="12" stroke="#231f20" stroke-linecap="butt" stroke-linejoin="round" stroke-width=".5"/>
+        </g>
+        <g id="Graphic_3359">
+          <title>Rectangle 19</title>
+          <rect x="272" y="104" width="28" height="12" fill="#ab7942" fill-opacity=".25"/>
+          <rect x="272" y="104" width="28" height="12" stroke="#231f20" stroke-linecap="butt" stroke-linejoin="round" stroke-width=".5"/>
+        </g>
+        <g id="Graphic_3360">
+          <title>Rectangle 18</title>
+          <rect x="244" y="104" width="28" height="12" fill="#ab7942" fill-opacity=".25"/>
+          <rect x="244" y="104" width="28" height="12" stroke="#231f20" stroke-linecap="butt" stroke-linejoin="round" stroke-width=".5"/>
+        </g>
+        <g id="Graphic_3347">
+          <title>Rectangle 17</title>
+          <rect x="272" y="80" width="28" height="12" fill="#ab7942" fill-opacity=".25"/>
+          <rect x="272" y="80" width="28" height="12" stroke="#231f20" stroke-linecap="butt" stroke-linejoin="round" stroke-width=".5"/>
+        </g>
+        <g id="Graphic_3348">
+          <title>Rectangle 16</title>
+          <rect x="244" y="80" width="28" height="12" fill="#ab7942" fill-opacity=".25"/>
+          <rect x="244" y="80" width="28" height="12" stroke="#231f20" stroke-linecap="butt" stroke-linejoin="round" stroke-width=".5"/>
+        </g>
+        <g id="Graphic_3341">
+          <title>Rectangle 15</title>
+          <rect x="272" y="56" width="28" height="12" fill="#ab7942" fill-opacity=".25"/>
+          <rect x="272" y="56" width="28" height="12" stroke="#231f20" stroke-linecap="butt" stroke-linejoin="round" stroke-width=".5"/>
+        </g>
+        <g id="Graphic_3342">
+          <title>Rectangle 14</title>
+          <rect x="244" y="56" width="28" height="12" fill="#ab7942" fill-opacity=".25"/>
+          <rect x="244" y="56" width="28" height="12" stroke="#231f20" stroke-linecap="butt" stroke-linejoin="round" stroke-width=".5"/>
+        </g>
+        <g id="Graphic_3336">
+          <title>Rectangle 13</title>
+          <rect x="164" y="128" width="28" height="12" fill="#ab7942" fill-opacity=".25"/>
+          <rect x="164" y="128" width="28" height="12" stroke="#231f20" stroke-linecap="butt" stroke-linejoin="round" stroke-width=".5"/>
+        </g>
+        <g id="Graphic_3328">
+          <title>Rectangle 12</title>
+          <rect x="192" y="104" width="28" height="12" fill="#ab7942" fill-opacity=".25"/>
+          <rect x="192" y="104" width="28" height="12" stroke="#231f20" stroke-linecap="butt" stroke-linejoin="round" stroke-width=".5"/>
+        </g>
+        <g id="Graphic_3329">
+          <title>Rectangle 11</title>
+          <rect x="164" y="104" width="28" height="12" fill="#ab7942" fill-opacity=".25"/>
+          <rect x="164" y="104" width="28" height="12" stroke="#231f20" stroke-linecap="butt" stroke-linejoin="round" stroke-width=".5"/>
+        </g>
+        <g id="Graphic_3317">
+          <title>Rectangle 10</title>
+          <rect x="164" y="80" width="28" height="12" fill="#ab7942" fill-opacity=".25"/>
+          <rect x="164" y="80" width="28" height="12" stroke="#231f20" stroke-linecap="butt" stroke-linejoin="round" stroke-width=".5"/>
+        </g>
+        <g id="Graphic_3322">
+          <title>Rectangle 9</title>
+          <rect x="192" y="56" width="28" height="12" fill="#ab7942" fill-opacity=".25"/>
+          <rect x="192" y="56" width="28" height="12" stroke="#231f20" stroke-linecap="butt" stroke-linejoin="round" stroke-width=".5"/>
+        </g>
+        <g id="Graphic_3323">
+          <title>Rectangle 8</title>
+          <rect x="164" y="56" width="28" height="12" fill="#ab7942" fill-opacity=".25"/>
+          <rect x="164" y="56" width="28" height="12" stroke="#231f20" stroke-linecap="butt" stroke-linejoin="round" stroke-width=".5"/>
+        </g>
+        <g id="Graphic_3306">
+          <title>Rectangle 7</title>
+          <rect x="112" y="128" width="28" height="12" fill="#ab7942" fill-opacity=".25"/>
+          <rect x="112" y="128" width="28" height="12" stroke="#231f20" stroke-linecap="butt" stroke-linejoin="round" stroke-width=".5"/>
+        </g>
+        <g id="Graphic_3307">
+          <title>Rectangle 6</title>
+          <rect x="84" y="128" width="28" height="12" fill="#ab7942" fill-opacity=".25"/>
+          <rect x="84" y="128" width="28" height="12" stroke="#231f20" stroke-linecap="butt" stroke-linejoin="round" stroke-width=".5"/>
+        </g>
+        <g id="Graphic_3311">
+          <title>Rectangle 5</title>
+          <rect x="112" y="104" width="28" height="12" fill="#ab7942" fill-opacity=".25"/>
+          <rect x="112" y="104" width="28" height="12" stroke="#231f20" stroke-linecap="butt" stroke-linejoin="round" stroke-width=".5"/>
+        </g>
+        <g id="Graphic_3312">
+          <title>Rectangle 4</title>
+          <rect x="84" y="104" width="28" height="12" fill="#ab7942" fill-opacity=".25"/>
+          <rect x="84" y="104" width="28" height="12" stroke="#231f20" stroke-linecap="butt" stroke-linejoin="round" stroke-width=".5"/>
+        </g>
+        <g id="Graphic_3301">
+          <title>Rectangle 3</title>
+          <rect x="112" y="80" width="28" height="12" fill="#ab7942" fill-opacity=".25"/>
+          <rect x="112" y="80" width="28" height="12" stroke="#231f20" stroke-linecap="butt" stroke-linejoin="round" stroke-width=".5"/>
+        </g>
+        <g id="Graphic_3302">
+          <title>Rectangle 2</title>
+          <rect x="84" y="80" width="28" height="12" fill="#ab7942" fill-opacity=".25"/>
+          <rect x="84" y="80" width="28" height="12" stroke="#231f20" stroke-linecap="butt" stroke-linejoin="round" stroke-width=".5"/>
+        </g>
+        <g id="Graphic_1307">
+          <title>Rectangle 1</title>
+          <rect x="112" y="56" width="28" height="12" fill="#ab7942" fill-opacity=".25"/>
+          <rect x="112" y="56" width="28" height="12" stroke="#231f20" stroke-linecap="butt" stroke-linejoin="round" stroke-width=".5"/>
+        </g>
+        <g id="Graphic_1302">
+          <title>Rectangle 0</title>
+          <rect x="84" y="56" width="28" height="12" fill="#ab7942" fill-opacity=".25"/>
+          <rect x="84" y="56" width="28" height="12" stroke="#231f20" stroke-linecap="butt" stroke-linejoin="round" stroke-width=".5"/>
+        </g>
+      </g>
+    </g>
+    <g id="Pep_10_data_path_3._Busses">
+      <title>3. Busses</title>
+      <g id="Graphic_2420">
+        <title>Address bus</title>
+        <rect x="92" y="208" width="16" height="372" stroke="#231f20" stroke-linecap="butt" stroke-linejoin="round" stroke-width=".5"/>
+      </g>
+      <g id="Graphic_3280">
+        <title>Data bus</title>
+        <rect x="108" y="256" width="8" height="324" stroke="#231f20" stroke-linecap="butt" stroke-linejoin="round" stroke-width=".5"/>
+      </g>
+      <g id="Graphic_1642">
+        <title>Databus to Mem</title>
+        <path d="M 64 496 L 72 488 L 72 492 L 84 492 L 84 488 L 92 496 L 84 504 L 84 500 L 72 500 L 72 504 Z" stroke="#231f20" stroke-linecap="butt" stroke-linejoin="round" stroke-width=".5"/>
+      </g>
+      <g id="Graphic_2418">
+        <title>Address bus to Mem</title>
+        <path d="M 64 468 L 76 456 L 76 460 L 92 460 L 92 476 L 76 476 L 76 480 Z" stroke="#231f20" stroke-linecap="butt" stroke-linejoin="round" stroke-width=".5"/>
+      </g>
+      <g id="Group_3807">
+        <title>NZVC to CMux</title>
+        <g id="Line_3806">
+          <line x1="224" y1="458" x2="224" y2="522" stroke="#231f20" stroke-linecap="butt" stroke-linejoin="round" stroke-width=".5"/>
+        </g>
+        <g id="Graphic_1886">
+          <title>Bézier</title>
+          <path d="M 208 384 L 200 392 L 204 392 L 204 492 L 224 492 L 224 484 L 212 484 L 212 392 L 216 392 Z" stroke="#231f20" stroke-linecap="butt" stroke-linejoin="round" stroke-width=".5"/>
+        </g>
+      </g>
+      <g id="Graphic_1671">
+        <title>ALU to CMux</title>
+        <path d="M 240 384 L 248 392 L 244 392 L 244 400 L 272 400 L 272 384 L 280 384 L 280 408 L 236 408 L 236 392 L 232 392 Z" stroke="#231f20" stroke-linecap="butt" stroke-linejoin="round" stroke-width=".5"/>
+      </g>
+      <g id="Graphic_1667">
+        <title>AMux to ALU</title>
+        <path d="M 264 320 L 264 336 L 260 336 L 268 344 L 276 336 L 272 336 L 272 320 Z" fill="white"/>
+        <path d="M 264 320 L 264 336 L 260 336 L 268 344 L 276 336 L 272 336 L 272 320 Z" stroke="#231f20" stroke-linecap="butt" stroke-linejoin="round" stroke-width=".5"/>
+      </g>
+      <g id="Graphic_1608">
+        <title>MDRMux to MDR</title>
+        <path d="M 164 288 L 156 296 L 160 296 L 160 308 L 168 308 L 168 296 L 172 296 Z" stroke="#231f20" stroke-linecap="butt" stroke-linejoin="round" stroke-width=".5"/>
+      </g>
+      <g id="Graphic_2419">
+        <title>Data to MDRMux</title>
+        <path d="M 148 320 L 156 328 L 152 328 L 152 348 L 116 348 L 116 340 L 144 340 L 144 328 L 140 328 Z" fill="white"/>
+        <path d="M 148 320 L 156 328 L 152 328 L 152 348 L 116 348 L 116 340 L 144 340 L 144 328 L 140 328 Z" stroke="#231f20" stroke-linecap="butt" stroke-linejoin="round" stroke-width=".5"/>
+      </g>
+      <g id="Graphic_1672">
+        <title>MDR to AMux</title>
+        <path d="M 252 308 L 244 300 L 248 300 L 248 286 L 188 286 L 188 278 L 256 278 L 256 300 L 260 300 Z" fill="white"/>
+        <path d="M 252 308 L 244 300 L 248 300 L 248 286 L 188 286 L 188 278 L 256 278 L 256 300 L 260 300 Z" stroke="#231f20" stroke-linecap="butt" stroke-linejoin="round" stroke-width=".5"/>
+      </g>
+      <g id="Graphic_1992">
+        <title>MDR to Data bus</title>
+        <path d="M 116 282 L 124 290 L 124 286 L 140 286 L 140 278 L 124 278 L 124 274 Z" stroke="#231f20" stroke-linecap="butt" stroke-linejoin="round" stroke-width=".5"/>
+      </g>
+      <g id="Group_3431">
+        <title>MAR to Address bus</title>
+        <g id="Line_1607">
+          <line x1="128" y1="232" x2="168" y2="232" stroke="#231f20" stroke-linecap="butt" stroke-linejoin="round" stroke-width=".5"/>
+        </g>
+        <g id="Graphic_1606">
+          <title>Bézier</title>
+          <path d="M 160 220 L 168 220 L 168 244 L 160 244 L 160 240 L 120 240 L 120 244 L 108 232 L 120 220 L 120 224 L 160 224 Z" stroke="#231f20" stroke-linecap="butt" stroke-linejoin="round" stroke-width=".5"/>
+        </g>
+      </g>
+      <g id="Graphic_1673">
+        <title>ABus</title>
+        <path d="M 284 308 L 276 300 L 280 300 L 280 254 L 196 254 L 196 258 L 188 250 L 196 242 L 196 246 L 280 246 L 280 172 L 288 172 L 288 300 L 292 300 Z" fill="white"/>
+        <path d="M 284 308 L 276 300 L 280 300 L 280 254 L 196 254 L 196 258 L 188 250 L 196 242 L 196 246 L 280 246 L 280 172 L 288 172 L 288 300 L 292 300 Z" stroke="#231f20" stroke-linecap="butt" stroke-linejoin="round" stroke-width=".5"/>
+      </g>
+    </g>
+    <g id="Pep_10_data_path_4._BBus">
+      <title>4. BBus</title>
+      <g id="Graphic_1674">
+        <path d="M 332 344 L 324 336 L 328 336 L 328 218 L 196 218 L 196 222 L 188 214 L 196 206 L 196 210 L 328 210 L 328 172 L 336 172 L 336 336 L 340 336 Z" fill="white"/>
+        <path d="M 332 344 L 324 336 L 328 336 L 328 218 L 196 218 L 196 222 L 188 214 L 196 206 L 196 210 L 328 210 L 328 172 L 336 172 L 336 336 L 340 336 Z" stroke="#231f20" stroke-linecap="butt" stroke-linejoin="round" stroke-width=".5"/>
+      </g>
+    </g>
+    <g id="Pep_10_data_path_5._CBus">
+      <title>5. CBus</title>
+      <g id="Graphic_1626">
+        <path d="M 180 320 L 188 328 L 184 328 L 184 340 L 220 340 L 220 180 L 216 180 L 224 172 L 232 180 L 228 180 L 228 372 L 220 372 L 220 348 L 176 348 L 176 328 L 172 328 Z" fill="white"/>
+        <path d="M 180 320 L 188 328 L 184 328 L 184 340 L 220 340 L 220 180 L 216 180 L 224 172 L 232 180 L 228 180 L 228 372 L 220 372 L 220 348 L 176 348 L 176 328 L 172 328 Z" stroke="#231f20" stroke-linecap="butt" stroke-linejoin="round" stroke-width=".5"/>
+      </g>
+    </g>
+  </g>
+</svg>

@@ -1,0 +1,211 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<!DOCTYPE svg PUBLIC "-//W3C//DTD SVG 1.1//EN" "http://www.w3.org/Graphics/SVG/1.1/DTD/svg11.dtd">
+<svg xmlns="http://www.w3.org/2000/svg" version="1.1" xmlns:xl="http://www.w3.org/1999/xlink" xmlns:dc="http://purl.org/dc/elements/1.1/" viewBox="-3.414342 -6.25 239.66434 152.5" width="239.66434" height="152.5">
+  <defs/>
+  <g id="Easy_Export" fill-opacity="1" fill="none" stroke-opacity="1" stroke-dasharray="none" stroke="none">
+    <title>Easy Export</title>
+    <g id="Easy_Export_1._Control_wires">
+      <title>1. Control wires</title>
+      <g id="Group_3830">
+        <title>MemWrite</title>
+        <g id="Group_3827">
+          <title>Up arrow</title>
+          <g id="Graphic_3829">
+            <path d="M 12 20.919708 L 10 24.138686 L 12 23.70949 L 14 24.138686 Z" fill="black"/>
+            <path d="M 12 20.919708 L 10 24.138686 L 12 23.70949 L 14 24.138686 Z" stroke="black" stroke-linecap="round" stroke-linejoin="miter" stroke-width=".5"/>
+          </g>
+          <g id="Graphic_3828"/>
+        </g>
+        <g id="Line_3818">
+          <path d="M 12 22.759124 L 12 74 L -3.164342 74 L -3.164342 82 L 12 82 L 12 146" stroke="black" stroke-linecap="round" stroke-linejoin="round" stroke-width=".5"/>
+        </g>
+      </g>
+      <g id="Line_3777">
+        <title>Line</title>
+        <line x1="173.06653" y1="118" x2="173.06653" y2="145.82163" stroke="#231f20" stroke-linecap="butt" stroke-linejoin="round" stroke-width=".5"/>
+      </g>
+      <g id="Line_3763">
+        <title>Line</title>
+        <line x1="197.06653" y1="118" x2="197.06653" y2="145.82163" stroke="#231f20" stroke-linecap="butt" stroke-linejoin="round" stroke-width=".5"/>
+      </g>
+      <g id="Line_3743">
+        <title>Line</title>
+        <line x1="208.83566" y1="118" x2="208.83566" y2="145.82163" stroke="#231f20" stroke-linecap="butt" stroke-linejoin="round" stroke-width=".5"/>
+      </g>
+      <g id="Group_3681">
+        <title>CSMux to ALU</title>
+        <g id="Line_1755">
+          <line x1="222.83566" y1="114" x2="236" y2="114" stroke="#231f20" stroke-linecap="butt" stroke-linejoin="round" stroke-width=".5"/>
+        </g>
+        <g id="Group_3678">
+          <title>Left arrow</title>
+          <g id="Graphic_3680">
+            <path d="M 216.83566 114 L 223.83566 116 L 222.90232 114 L 223.83566 112 Z" fill="black"/>
+            <path d="M 216.83566 114 L 223.83566 116 L 222.90232 114 L 223.83566 112 Z" stroke="black" stroke-linecap="round" stroke-linejoin="miter" stroke-width=".5"/>
+          </g>
+          <g id="Graphic_3679"/>
+        </g>
+      </g>
+      <g id="Group_3602">
+        <title>ALU</title>
+        <g id="Line_1683">
+          <line x1="228.83566" y1="102" x2="236" y2="102" stroke="#231f20" stroke-linecap="butt" stroke-linejoin="round" stroke-width=".5"/>
+        </g>
+        <g id="Group_3599">
+          <title>Left arrow</title>
+          <g id="Graphic_3601">
+            <path d="M 222.83566 102 L 229.83566 104 L 228.90232 102 L 229.83566 100 Z" fill="black"/>
+            <path d="M 222.83566 102 L 229.83566 104 L 228.90232 102 L 229.83566 100 Z" stroke="black" stroke-linecap="round" stroke-linejoin="miter" stroke-width=".5"/>
+          </g>
+          <g id="Graphic_3600"/>
+        </g>
+      </g>
+      <g id="Group_3594">
+        <title>CMux</title>
+        <g id="Line_3598">
+          <path d="M 120.83566 98 L 120.83566 90 L 134.91082 90" stroke="#231f20" stroke-linecap="butt" stroke-linejoin="round" stroke-width=".5"/>
+        </g>
+        <g id="Group_3595">
+          <title>Down arrow</title>
+          <g id="Graphic_3597">
+            <path d="M 120.83566 104 L 122.83566 97 L 120.83566 97.93333 L 118.83566 97 Z" fill="black"/>
+            <path d="M 120.83566 104 L 122.83566 97 L 120.83566 97.93333 L 118.83566 97 Z" stroke="black" stroke-linecap="round" stroke-linejoin="miter" stroke-width=".5"/>
+          </g>
+          <g id="Graphic_3596"/>
+        </g>
+      </g>
+      <g id="Group_3593">
+        <title>MDRMux</title>
+        <g id="Line_3589">
+          <path d="M 76.83566 48 L 100 48 L 100 -6 L 108 -6 L 108 48 L 116 48 L 116 62.11802 L 144 62 L 144 54 L 152 54 L 152 62.11802 L 208 62" stroke="#231f20" stroke-linecap="butt" stroke-linejoin="round" stroke-width=".5"/>
+        </g>
+        <g id="Group_3590">
+          <title>Left arrow</title>
+          <g id="Graphic_3592">
+            <path d="M 70.83566 48 L 77.83566 50 L 76.902325 48 L 77.83566 46 Z" fill="black"/>
+            <path d="M 70.83566 48 L 77.83566 50 L 76.902325 48 L 77.83566 46 Z" stroke="black" stroke-linecap="round" stroke-linejoin="miter" stroke-width=".5"/>
+          </g>
+          <g id="Graphic_3591"/>
+        </g>
+      </g>
+      <g id="Group_3587">
+        <title>AMux</title>
+        <g id="Line_1928">
+          <line x1="177.4534" y1="48" x2="208" y2="48" stroke="#231f20" stroke-linecap="butt" stroke-linejoin="round" stroke-width=".5"/>
+        </g>
+        <g id="Group_3584">
+          <title>Left arrow</title>
+          <g id="Graphic_3586">
+            <path d="M 174.6732 48 L 177.91677 50 L 177.4843 48 L 177.91677 46 Z" fill="black"/>
+            <path d="M 174.6732 48 L 177.91677 50 L 177.4843 48 L 177.91677 46 Z" stroke="black" stroke-linecap="round" stroke-linejoin="miter" stroke-width=".5"/>
+          </g>
+          <g id="Graphic_3585"/>
+        </g>
+      </g>
+      <g id="Group_3583">
+        <title>MDRCk</title>
+        <g id="Line_1962">
+          <path d="M 44.83566 6 L 44.83566 -2 L 100 -2 L 100 -6 L 108 -6 L 108 -2 L 160 -2 L 160 -6 L 168 -6 L 168 -2 L 208 -2" stroke="#231f20" stroke-linecap="butt" stroke-linejoin="round" stroke-width=".5"/>
+        </g>
+        <g id="Group_3580">
+          <title>Down arrow</title>
+          <g id="Graphic_3582">
+            <path d="M 44.83566 8 L 46.83566 1 L 44.83566 1.9333333 L 42.83566 1 Z" fill="black"/>
+            <path d="M 44.83566 8 L 46.83566 1 L 44.83566 1.9333333 L 42.83566 1 Z" stroke="black" stroke-linecap="round" stroke-linejoin="miter" stroke-width=".5"/>
+          </g>
+          <g id="Graphic_3581"/>
+        </g>
+      </g>
+    </g>
+    <g id="Easy_Export_2._Devices">
+      <title>2. Devices</title>
+      <g id="Group_3503">
+        <title>Components</title>
+        <g id="Group_3420">
+          <title>ALU</title>
+          <g id="Graphic_1560">
+            <path d="M 128.83566 78 L 168.83566 78 L 172.83566 86 L 188.83566 86 L 192.83566 78 L 232.83566 78 L 212.83566 118 L 148.83566 118 Z" stroke="#231f20" stroke-linecap="butt" stroke-linejoin="round" stroke-width=".5"/>
+          </g>
+          <g id="Graphic_3419">
+            <title>ALU</title>
+            <rect x="168.83566" y="94" width="24" height="12" stroke="black" stroke-linecap="square" stroke-linejoin="miter" stroke-width="0"/>
+          </g>
+        </g>
+        <g id="Graphic_3476">
+          <title>CMux</title>
+          <rect x="80.83566" y="106" width="48" height="12" stroke="#231f20" stroke-linecap="butt" stroke-linejoin="round" stroke-width=".5"/>
+        </g>
+        <g id="Graphic_3471">
+          <title>AMux</title>
+          <rect x="124.83566" y="42" width="48" height="12" stroke="#231f20" stroke-linecap="butt" stroke-linejoin="round" stroke-width=".5"/>
+        </g>
+        <g id="Graphic_3470">
+          <title>MDRMux</title>
+          <rect x="20.835658" y="42" width="48" height="12" stroke="#231f20" stroke-linecap="butt" stroke-linejoin="round" stroke-width=".5"/>
+        </g>
+        <g id="Graphic_3469">
+          <title>MDR</title>
+          <rect x="20.835658" y="10" width="48" height="12" fill="#ab7942" fill-opacity=".25"/>
+          <rect x="20.835658" y="10" width="48" height="12" stroke="#231f20" stroke-linecap="butt" stroke-linejoin="round" stroke-width=".5"/>
+        </g>
+      </g>
+      <g id="Graphic_3965"/>
+      <g id="Line_3975">
+        <line x1="226.63598" y1="90" x2="236" y2="90" stroke="#231f20" stroke-linecap="butt" stroke-linejoin="round" stroke-width=".5"/>
+      </g>
+      <g id="Graphic_3976">
+        <title>AMux to ALU</title>
+        <path d="M 208 -6 L 208 70 L 204 70 L 212 78 L 220 70 L 216 70 L 216 -6 Z" stroke="#231f20" stroke-linecap="butt" stroke-linejoin="round" stroke-width=".5"/>
+      </g>
+      <g id="Line_3982">
+        <line x1="216" y1="48" x2="236" y2="48" stroke="#231f20" stroke-linecap="butt" stroke-linejoin="round" stroke-width=".5"/>
+      </g>
+      <g id="Line_3983">
+        <line x1="216" y1="62" x2="236" y2="62" stroke="#231f20" stroke-linecap="butt" stroke-linejoin="round" stroke-width=".5"/>
+      </g>
+      <g id="Line_3984">
+        <line x1="216" y1="-2" x2="236" y2="-2" stroke="#231f20" stroke-linecap="butt" stroke-linejoin="round" stroke-width=".5"/>
+      </g>
+    </g>
+    <g id="Easy_Export_3._Busses">
+      <title>3. Busses</title>
+      <g id="Graphic_1667">
+        <title>AMux to ALU</title>
+        <path d="M 144 54 L 144 70 L 140 70 L 148 78 L 156 70 L 152 70 L 152 54 Z" stroke="#231f20" stroke-linecap="butt" stroke-linejoin="round" stroke-width=".5"/>
+      </g>
+      <g id="Graphic_1671">
+        <title>ALU to CMux</title>
+        <path d="M 120.83566 118 L 128.83566 126 L 124.83566 126 L 124.83566 134 L 152.83566 134 L 152.83566 118 L 160.83566 118 L 160.83566 142 L 116.83566 142 L 116.83566 126 L 112.83566 126 Z" stroke="#231f20" stroke-linecap="butt" stroke-linejoin="round" stroke-width=".5"/>
+      </g>
+      <g id="Graphic_1608">
+        <title>MDRMux to MDR</title>
+        <path d="M 44.83566 22 L 36.83566 30 L 40.83566 30 L 40.83566 42 L 48.83566 42 L 48.83566 30 L 52.83566 30 Z" stroke="#231f20" stroke-linecap="butt" stroke-linejoin="round" stroke-width=".5"/>
+      </g>
+      <g id="Graphic_2419">
+        <title>Data to MDRMux</title>
+        <path d="M 28.835658 54 L 36.83566 62 L 32.835658 62 L 32.835658 82 L 12 82 L -3.164342 82 L -3.164342 74 L 24.835658 74 L 24.835658 62 L 20.835658 62 Z" stroke="#231f20" stroke-linecap="butt" stroke-linejoin="round" stroke-width=".5"/>
+      </g>
+      <g id="Graphic_1672">
+        <title>MDR to AMux</title>
+        <path d="M 132.83566 42 L 124.83566 34 L 128.83566 34 L 128.83566 20 L 108 20 L 108 -6 L 100 -6 L 100 20 L 68.83566 20 L 68.83566 12 L 100 12 L 100 -6 L 108 -6 L 108 12 L 136.83566 12 L 136.83566 34 L 140.83566 34 Z" stroke="#231f20" stroke-linecap="butt" stroke-linejoin="round" stroke-width=".5"/>
+      </g>
+      <g id="Graphic_1992">
+        <title>MDR to Data bus</title>
+        <path d="M -3.164342 16 L 4.835658 24 L 4.835658 20 L 20.835658 20 L 20.835658 12 L 4.835658 12 L 4.835658 8 Z" stroke="#231f20" stroke-linecap="butt" stroke-linejoin="round" stroke-width=".5"/>
+      </g>
+    </g>
+    <g id="Easy_Export_4._BBus">
+      <title>4. BBus</title>
+      <g id="Graphic_3841">
+        <title>AMux to ALU</title>
+        <path d="M 160 -6 L 160 34 L 156 34 L 164 42 L 172 34 L 168 34 L 168 -6 Z" stroke="#231f20" stroke-linecap="butt" stroke-linejoin="round" stroke-width=".5"/>
+      </g>
+    </g>
+    <g id="Easy_Export_5._CBus">
+      <title>5. CBus</title>
+      <g id="Graphic_1626">
+        <path d="M 60 54 L 68 62 L 64 62 L 64 74 L 100 74 L 100 12 L 100 -6 L 108 -6 L 108 106 L 100 106 L 100 82 L 56 82 L 56 62 L 52 62 Z" stroke="#231f20" stroke-linecap="butt" stroke-linejoin="round" stroke-width=".5"/>
+      </g>
+    </g>
+  </g>
+</svg>

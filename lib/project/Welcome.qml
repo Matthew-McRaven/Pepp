@@ -105,6 +105,7 @@ Flickable {
                         text: "Pep/10, Mc2, 1-byte bus"
                         architecture: Architecture.PEP10
                         abstraction: Abstraction.MC2
+                        source: "image://icons/cards/p10_mc2_1byte.svg"
                         enabled: false
                     }
                     WelcomeCard {
@@ -155,6 +156,7 @@ Flickable {
                         text: "Pep/9, Mc2, 1-byte bus"
                         architecture: Architecture.PEP9
                         abstraction: Abstraction.MC2
+                        source: "image://icons/cards/p10_mc2_1byte.svg"
                         enabled: false
                     }
                     WelcomeCard {
@@ -199,6 +201,7 @@ Flickable {
                 text: "Pep/8, Mc2, 1-byte bus"
                 architecture: Architecture.PEP8
                 abstraction: Abstraction.MC2
+                source: "image://icons/cards/p10_mc2_1byte.svg"
                 enabled: false
             }
             // Row 4
