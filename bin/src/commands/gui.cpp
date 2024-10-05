@@ -25,27 +25,19 @@
 #include <QTimer>
 #include "../iconprovider.hpp"
 #include "about/version.hpp"
-#include "preferences/preferencemodel.hpp"
-#include "preferences/theme.hpp"
 //  Testing only
 #include <QDirIterator>
 
 Q_IMPORT_PLUGIN(PeppLibPlugin)
 
 struct default_data : public gui_globals {
-  default_data() : pm(&theme) {}
+  default_data() = default;
   ~default_data() override = default;
-  Theme theme;
-  PreferenceModel pm;
   QTimer interval;
 };
 
 void default_init(QQmlApplicationEngine &engine, default_data *data) {
-
-  //  Connect models
   auto *ctx = engine.rootContext();
-  ctx->setContextProperty("PreferenceModel", &data->pm);
-  ctx->setContextProperty("Theme", &data->theme);
 }
 
 #ifdef __EMSCRIPTEN__

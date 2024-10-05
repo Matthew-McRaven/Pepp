@@ -1,7 +1,7 @@
 #pragma once
 #include <QObject>
 #include "ScintillaEditBase/ScintillaEditBase.h"
-#include "preferences/theme.hpp"
+#include "settings/themes.hpp"
 class ScintillaEditBaseExporter : public QObject {
   Q_OBJECT
   QML_NAMED_ELEMENT(ScintillaEditBase)

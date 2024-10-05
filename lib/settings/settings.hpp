@@ -81,6 +81,7 @@ class ThemeCategory : public Category {
 public:
   explicit ThemeCategory(QObject *parent = nullptr);
   QString name() const override { return "Fonts & Colors"; };
+  QString source() const override { return "ThemeCategoryDelegate.qml"; };
 };
 
 class EditorCategory : public Category {

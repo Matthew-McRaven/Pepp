@@ -43,7 +43,8 @@ ApplicationWindow {
 
     //  Set palette in parent. Inherited by all children
     /*  See https://doc.qt.io/qt-6/qml-qtquick-colorgroup.html for color explanation*/
-    palette {
+
+    /*palette {
         alternateBase: Theme.alternateBase.background
         base: Theme.base.background
         text: Theme.base.foreground
@@ -73,7 +74,7 @@ ApplicationWindow {
             buttonText: Theme.shadow.foreground
             button: Theme.base.background
         }
-    }
+    }*/
     property var currentProject: null
     // Used to expose actions to inner area.
     property var actionRef: actions
