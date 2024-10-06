@@ -1,7 +1,7 @@
-import p4.vocabs.boot, p4.dictionary
+import p4.vocabs.boot, p4.dictionary, p4.vocabs.debug
 import test.utils
 
-words = p4.vocabs.boot.ALL
+words = p4.vocabs.boot.ALL + p4.vocabs.debug.ALL
 vm = test.utils.create_vm(words)
 p4.dictionary.alias(vm, ";", "END")
 
