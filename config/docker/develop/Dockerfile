@@ -24,7 +24,7 @@ RUN wget -q -O ninja.zip "https://github.com/ninja-build/ninja/releases/download
 # Need to pick this locale otherwise Qt complains and overrides the locale anyway.
 ENV LANG="C.UTF-8"
 # Must occur after the "FROM" directive, allows choice of Qt version.
-ARG QT_VERSION="6.7.2"
+ARG QT_VERSION="6.8.0"
 # Don't cache pip internal files, reduce image size.
 ENV PIP_NO_CACHE_DIR=1
 SHELL ["/bin/bash", "-c"]
@@ -44,7 +44,7 @@ RUN pip install Sphinx==7.1.2 breathe==4.35.0 Pillow \
   && sed -i '253 i \        "property": (CMacroObject, "macro"),' "/usr/local/lib/python3.10/dist-packages/breathe/renderer/sphinxrenderer.py"
 RUN git clone https://github.com/emscripten-core/emsdk.git /emsdk
 # Must combine, otherwise a layer is the same in multi-arch builds, breaking everything
-RUN cd /emsdk && git pull && ./emsdk install 3.1.50  && ./emsdk activate 3.1.50 && echo uname -a /emsdk.arch
+RUN cd /emsdk && git pull && ./emsdk install 3.1.56  && ./emsdk activate 3.1.56 && echo uname -a /emsdk.arch
 # Install shadertools and 3d modules otherwise building from sources will fail.
 RUN pip install aqtinstall \
     && aqt install-qt linux desktop ${QT_VERSION} -m qtshadertools qtquick3d qt3d --outputdir /qt  \
