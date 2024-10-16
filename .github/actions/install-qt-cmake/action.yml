@@ -2,7 +2,7 @@ name: 'Install CMake & Qt'
 inputs:
   qt_version:
     required: true
-    default: '6.7.2'
+    default: '6.8.0'
   cache-key-prefix:
     required: false
 runs:
@@ -12,10 +12,11 @@ runs:
     - name: Install CMake and Ninja
       uses: lukka/get-cmake@v3.27.9
     - name: Install Qt
-      uses: jurplel/install-qt-action@v3
+      uses: jurplel/install-qt-action@v4
       with:
         version: ${{ inputs.qt_version }}
         cache: true
+        arch: ${runner.os == 'Windows' ? win64_msvc2019_64 : ''}
         extra: "--base https://mirrors.ocf.berkeley.edu/qt"
         tools: 'tools_ifw,qt.tools.ifw.47'
-        add-tools-to-path: true
+        modules: 'qtshadertools'
