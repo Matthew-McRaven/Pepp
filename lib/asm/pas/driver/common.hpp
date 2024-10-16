@@ -52,15 +52,15 @@ struct Globals {
 // Holds different REPResentations of a target
 namespace repr {
 struct Source {
-  static const inline QString name = u"source_text"_qs;
+  static const inline QString name = "source_text";
   QString value;
 };
 struct Nodes {
-  static const inline QString name = u"ast_node_list"_qs;
+  static const inline QString name = "ast_node_list";
   QSharedPointer<ast::Node> value;
 };
 struct Object {
-  static const inline QString name = u"object_code_list"_qs;
+  static const inline QString name = "object_code_list";
   QList<void *> value;
 };
 } // namespace repr

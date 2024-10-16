@@ -20,7 +20,7 @@
 
 namespace pas::ast::generic {
 struct Hide {
-  static const inline QString attributeName = u"generic:hide"_qs;
+  static const inline QString attributeName = "generic:hide";
   static const inline uint8_t attribute = 10;
   struct In {
     bool source = false;

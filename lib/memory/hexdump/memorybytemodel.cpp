@@ -11,6 +11,8 @@
 //  For testing only
 #include <QRandomGenerator>
 
+using namespace Qt::StringLiterals;
+
 quint32 MemoryByteModel::height() const {
   //  Compute memory height.
   const auto size = memory_->byteCount();
@@ -213,7 +215,7 @@ QVariant MemoryByteModel::data(const QModelIndex &index, int role) const {
                                  "Previous Unsigned Decimal: %2<br>"
                                  "Previous Binary: 0b%3"
                                  "%4")
-                      .arg(oldH, QString::number(*old), u"%1"_qs.arg(*old, 8, 2, QChar('0')), oldOpcode);
+                      .arg(oldH, QString::number(*old), u"%1"_s.arg(*old, 8, 2, QChar('0')), oldOpcode);
       }
 
       return QStringLiteral("<b>Memory Location: 0x%1</b><br>"
@@ -222,7 +224,7 @@ QVariant MemoryByteModel::data(const QModelIndex &index, int role) const {
                             "Binary: 0b%4"
                             "%5"
                             "%6")
-          .arg(mem, newH, QString::number(current), u"%1"_qs.arg(current, 8, 2, QChar('0')), newOpcode, trailer)
+          .arg(mem, newH, QString::number(current), u"%1"_s.arg(current, 8, 2, QChar('0')), newOpcode, trailer)
           .trimmed();
     } else return {};
   }

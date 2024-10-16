@@ -20,7 +20,7 @@
 
 namespace pas::ast::generic {
 struct Comment {
-  static const inline QString attributeName = u"generic:comment"_qs;
+  static const inline QString attributeName = "generic:comment";
   static const inline uint8_t attribute = 6;
   QString value = {};
   bool operator==(const Comment &other) const = default;

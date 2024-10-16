@@ -24,6 +24,8 @@
 
 using pas::ops::pepp::Direction;
 using pas::ops::pepp::explicitSize;
+using namespace Qt::StringLiterals;
+
 TEST_CASE("Size", "[scope:asm][kind:unit][arch:pep10]") {
   SECTION("Unary") {
     QString body = "rola\nrolx";
@@ -49,8 +51,8 @@ TEST_CASE("Size", "[scope:asm][kind:unit][arch:pep10]") {
   }
   for (auto name : {".IMPORT", ".EXPORT", ".SCALL", ".USCALL", ".INPUT", ".OUTPUT"}) {
     DYNAMIC_SECTION(name) {
-      auto ret = pas::driver::pepp::createParser<isa::Pep10, pas::driver::ANTLRParserTag>(false)(u"%1 s"_qs.arg(name),
-                                                                                                 nullptr);
+      auto ret =
+          pas::driver::pepp::createParser<isa::Pep10, pas::driver::ANTLRParserTag>(false)(u"%1 s"_s.arg(name), nullptr);
       REQUIRE_FALSE(ret.hadError);
       auto children = ret.root->get<pas::ast::generic::Children>().value;
       CHECK(children.size() == 1);
@@ -68,7 +70,7 @@ TEST_CASE("Size", "[scope:asm][kind:unit][arch:pep10]") {
   for (auto [name, value] : ascii_cases) {
     DYNAMIC_SECTION(name) {
       auto ret = pas::driver::pepp::createParser<isa::Pep10, pas::driver::ANTLRParserTag>(false)(
-          u".ASCII \"%1\""_qs.arg(value), nullptr);
+          u".ASCII \"%1\""_s.arg(value), nullptr);
 
       REQUIRE_FALSE(ret.hadError);
       auto children = ret.root->get<pas::ast::generic::Children>().value;
@@ -89,7 +91,7 @@ TEST_CASE("Size", "[scope:asm][kind:unit][arch:pep10]") {
   for (auto [name, align, base] : align_cases) {
     DYNAMIC_SECTION(name) {
       auto ret = pas::driver::pepp::createParser<isa::Pep10, pas::driver::ANTLRParserTag>(false)(
-          u".ALIGN %1"_qs.arg(align), nullptr);
+          u".ALIGN %1"_s.arg(align), nullptr);
 
       REQUIRE_FALSE(ret.hadError);
       auto children = ret.root->get<pas::ast::generic::Children>().value;
@@ -105,9 +107,9 @@ TEST_CASE("Size", "[scope:asm][kind:unit][arch:pep10]") {
   }
   constexpr std::array<qsizetype, 4> block_cases = {0x0, 0x1, 0xFFFF, 0x10};
   for (auto count : block_cases) {
-    DYNAMIC_SECTION(".BLOCK " << u"%1"_qs.arg(count, 0, 16).toStdString()) {
+    DYNAMIC_SECTION(".BLOCK " << u"%1"_s.arg(count, 0, 16).toStdString()) {
       auto ret = pas::driver::pepp::createParser<isa::Pep10, pas::driver::ANTLRParserTag>(false)(
-          u".BLOCK %1"_qs.arg(count), nullptr);
+          u".BLOCK %1"_s.arg(count), nullptr);
 
       REQUIRE_FALSE(ret.hadError);
       auto children = ret.root->get<pas::ast::generic::Children>().value;
@@ -120,7 +122,7 @@ TEST_CASE("Size", "[scope:asm][kind:unit][arch:pep10]") {
   }
   SECTION("Word") {
     auto ret = pas::driver::pepp::createParser<isa::Pep10, pas::driver::ANTLRParserTag>(false)(
-        u".WORD 0\n .WORD 1\n.WORD 0xFFFF"_qs, nullptr);
+        u".WORD 0\n .WORD 1\n.WORD 0xFFFF"_s, nullptr);
 
     REQUIRE_FALSE(ret.hadError);
     auto children = ret.root->get<pas::ast::generic::Children>().value;
@@ -132,7 +134,7 @@ TEST_CASE("Size", "[scope:asm][kind:unit][arch:pep10]") {
   }
   SECTION("Byte") {
     auto ret = pas::driver::pepp::createParser<isa::Pep10, pas::driver::ANTLRParserTag>(false)(
-        u".BYTE 0\n .BYTE 1\n.BYTE 0xFF"_qs, nullptr);
+        u".BYTE 0\n .BYTE 1\n.BYTE 0xFF"_s, nullptr);
 
     REQUIRE_FALSE(ret.hadError);
     auto children = ret.root->get<pas::ast::generic::Children>().value;
@@ -144,10 +146,10 @@ TEST_CASE("Size", "[scope:asm][kind:unit][arch:pep10]") {
   }
   SECTION("Macro") {
     auto registry = QSharedPointer<macro::Registry>::create();
-    auto macro = QSharedPointer<macro::Parsed>::create(u"alpha"_qs, 0, u".BYTE 1\n.WORD 2"_qs, u"pep/10"_qs);
+    auto macro = QSharedPointer<macro::Parsed>::create(u"alpha"_s, 0, u".BYTE 1\n.WORD 2"_s, u"pep/10"_s);
     registry->registerMacro(macro::types::Core, macro);
     auto parseRoot = pas::driver::pepp::createParser<isa::Pep10, pas::driver::ANTLRParserTag>(false);
-    auto res = parseRoot(u"@alpha\n.END"_qs, nullptr);
+    auto res = parseRoot(u"@alpha\n.END"_s, nullptr);
 
     REQUIRE_FALSE(res.hadError);
     auto ret = pas::ops::generic::includeMacros(
@@ -157,7 +159,7 @@ TEST_CASE("Size", "[scope:asm][kind:unit][arch:pep10]") {
     CHECK(explicitSize<isa::Pep10>(*res.root, 0, Direction::Backward) == 3);
   }
   SECTION("Empty") {
-    auto ret = pas::driver::pepp::createParser<isa::Pep10, pas::driver::ANTLRParserTag>(false)(u"\n\n\n"_qs, nullptr);
+    auto ret = pas::driver::pepp::createParser<isa::Pep10, pas::driver::ANTLRParserTag>(false)(u"\n\n\n"_s, nullptr);
 
     REQUIRE_FALSE(ret.hadError);
     auto children = ret.root->get<pas::ast::generic::Children>().value;

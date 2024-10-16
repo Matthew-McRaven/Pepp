@@ -36,7 +36,7 @@ bool pas::ops::generic::isComment::operator()(const ast::Node &node) {
 
 bool pas::ops::generic::isAlign::operator()(const ast::Node &node) {
   return node.get<ast::generic::Type>().value == ast::generic::Type::Directive && node.has<ast::generic::Directive>() &&
-         node.get<ast::generic::Directive>().value.toUpper() == u"ALIGN"_qs && node.has<ast::generic::Argument>();
+         node.get<ast::generic::Directive>().value.toUpper() == "ALIGN" && node.has<ast::generic::Argument>();
 }
 
 bool pas::ops::generic::isString::operator()(const ast::Node &node) {

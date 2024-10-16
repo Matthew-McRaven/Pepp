@@ -51,6 +51,7 @@ sim::api2::memory::Operation rw = {
 ThroughputTask::ThroughputTask(QObject *parent) : Task(parent) {}
 
 void ThroughputTask::run() {
+  using namespace Qt::StringLiterals;
   auto [mem, cpu] = make();
   cpu->regs()->clear(0);
   cpu->csrs()->clear(0);
@@ -63,8 +64,8 @@ void ThroughputTask::run() {
   auto end = std::chrono::high_resolution_clock::now();
   auto ms = std::chrono::duration_cast<std::chrono::milliseconds>(end - start);
   auto dt = 1.0 / (ms.count() / 1000.0);
-  std::cout << u"Duration was: %1\n"_qs.arg(ms.count()).toStdString();
-  std::cout << u"Throughput was: %1\n"_qs.arg(dt * maxInstr).toStdString();
+  std::cout << u"Duration was: %1\n"_s.arg(ms.count()).toStdString();
+  std::cout << u"Throughput was: %1\n"_s.arg(dt * maxInstr).toStdString();
 
   emit finished(0);
 }

@@ -44,6 +44,7 @@ QList<QSharedPointer<const builtins::Book>> builtins::Registry::books() const {
 
 QSharedPointer<const builtins::Book>
 builtins::Registry::findBook(QString name) {
+  using namespace Qt::StringLiterals;
   QList<QSharedPointer<const builtins::Book>> temp;
   for (auto &bookPtr : _books) {
     if (bookPtr->name() == name) {
@@ -55,7 +56,7 @@ builtins::Registry::findBook(QString name) {
   else if (length == 1)
     return temp.first();
   else {
-    qDebug() << (u"More than one copy of book {}"_qs).arg(name);
+    qDebug() << u"More than one copy of book {}"_s.arg(name);
     return nullptr;
   }
 }

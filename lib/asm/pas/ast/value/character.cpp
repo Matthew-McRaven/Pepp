@@ -64,6 +64,9 @@ bool pas::ast::value::Character::resize(quint64 size) {
 
 quint64 pas::ast::value::Character::requiredBytes() const { return _valueAsBytes.size(); }
 
-QString pas::ast::value::Character::string() const { return u"'%1'"_qs.arg(_value); }
+QString pas::ast::value::Character::string() const {
+  using namespace Qt::StringLiterals;
+  return u"'%1'"_s.arg(_value);
+}
 
 QString pas::ast::value::Character::rawString() const { return _value; }

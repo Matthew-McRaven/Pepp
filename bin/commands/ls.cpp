@@ -23,6 +23,7 @@
 ListTask::ListTask(int ed, QObject *parent) : Task(parent), ed(ed) {}
 
 void ListTask::run() {
+  using namespace Qt::StringLiterals;
   auto book = helpers::book(ed);
   if (book.isNull())
     return emit finished(1);
@@ -44,7 +45,7 @@ void ListTask::run() {
   std::cout << "Figures: " << std::endl;
   for (auto &figure : figures) {
     std::cout
-        << u"%1.%2"_qs.arg(figure->chapterName(), figure->figureName()).leftJustified(maxFigWidth + 2).toStdString();
+        << u"%1.%2"_s.arg(figure->chapterName(), figure->figureName()).leftJustified(maxFigWidth + 2).toStdString();
     std::cout << figure->typesafeElements().keys().join(", ").toStdString();
     std::cout << std::endl;
   }
@@ -52,9 +53,8 @@ void ListTask::run() {
   if (problems.size() > 0) {
     std::cout << "\nProblems: \n";
     for (auto &problem : problems) {
-      std::cout << u"%1.%2"_qs.arg(problem->chapterName(), problem->figureName())
-                       .leftJustified(maxFigWidth + 2)
-                       .toStdString();
+      std::cout
+          << u"%1.%2"_s.arg(problem->chapterName(), problem->figureName()).leftJustified(maxFigWidth + 2).toStdString();
       std::cout << problem->typesafeElements().keys().join(", ").toStdString();
       std::cout << std::endl;
     }
@@ -63,8 +63,8 @@ void ListTask::run() {
   if (macros.size() > 0) {
     std::cout << "\nMacros: \n";
     for (auto &macro : macros)
-      std::cout << u"%1"_qs.arg(macro->name()).leftJustified(maxMacroWidth + 2).toStdString()
-                << u"%1"_qs.arg(macro->argCount()).toStdString() << std::endl;
+      std::cout << u"%1"_s.arg(macro->name()).leftJustified(maxMacroWidth + 2).toStdString()
+                << u"%1"_s.arg(macro->argCount()).toStdString() << std::endl;
   }
   return emit finished(0);
 }

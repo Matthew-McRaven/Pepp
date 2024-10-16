@@ -23,8 +23,9 @@ GetFigTask::GetFigTask(int ed, std::string ch, std::string fig, std::string type
     : Task(parent), ed(ed), isFigure(isFigure), ch(ch), fig(fig), type(type) {}
 
 void GetFigTask::run() {
-  static const auto err_noitem = u"%1 %2.%3 does not exist.\n"_qs;
-  static const auto err_novar = u"%1 %2.%3 does not contain a \"%4\" variant.\n"_qs;
+  using namespace Qt::StringLiterals;
+  static const auto err_noitem = u"%1 %2.%3 does not exist.\n"_s;
+  static const auto err_novar = u"%1 %2.%3 does not contain a \"%4\" variant.\n"_s;
 
   auto book = helpers::book(ed);
   if (book.isNull())

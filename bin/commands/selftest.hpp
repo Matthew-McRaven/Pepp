@@ -29,6 +29,7 @@ private:
 };
 
 void registerSelfTest(auto &app, task_factory_t &task, detail::SharedFlags &flags) {
+  using namespace Qt::StringLiterals;
   static auto test = app.add_subcommand("selftest", "Run all integrated tests");
   // No help flag, defer to catch2's help.
   test->prefix_command(true);
@@ -40,7 +41,7 @@ void registerSelfTest(auto &app, task_factory_t &task, detail::SharedFlags &flag
       std::reverse(remainingArgs.begin(), remainingArgs.end());
       // Must push executable name to argv[0], or catch arg parsing CTDs.
       auto realArgs = QCoreApplication::arguments();
-      remainingArgs.insert(remainingArgs.begin(), u"%1 selftest"_qs.arg(realArgs[0]).toStdString());
+      remainingArgs.insert(remainingArgs.begin(), u"%1 selftest"_s.arg(realArgs[0]).toStdString());
       return new SelfTestTask(remainingArgs);
     };
   });

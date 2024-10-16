@@ -20,7 +20,7 @@
 
 namespace pas::ast::generic {
 struct Macro {
-  static const inline QString attributeName = u"generic:macro"_qs;
+  static const inline QString attributeName = "generic:macro";
   static const inline uint8_t attribute = 12;
   QString value = {};
   bool operator==(const Macro &other) const = default;

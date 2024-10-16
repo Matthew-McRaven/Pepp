@@ -18,24 +18,25 @@
 #include "macro/parse.hpp"
 #include <catch.hpp>
 #include <tuple>
+using namespace Qt::StringLiterals;
 TEST_CASE("Macro parser", "[scope:macro][kind:unit][arch:*]") {
   SECTION("Accepts valid spaces") {
-    CHECK(std::get<0>(macro::analyze_macro_definition(u"@deci 0"_qs)));
-    CHECK(std::get<0>(macro::analyze_macro_definition(u"@deci 	0"_qs)));
-    CHECK(std::get<0>(macro::analyze_macro_definition(u"@deci 0	"_qs)));
-    CHECK(std::get<0>(macro::analyze_macro_definition(u"@deci  0"_qs)));
-    CHECK(std::get<0>(macro::analyze_macro_definition(u"@deci  0  "_qs)));
-    CHECK(std::get<0>(macro::analyze_macro_definition(u"@deci	0	"_qs)));
-    CHECK(std::get<0>(macro::analyze_macro_definition(u" @deci 0"_qs)));
+    CHECK(std::get<0>(macro::analyze_macro_definition(u"@deci 0"_s)));
+    CHECK(std::get<0>(macro::analyze_macro_definition(u"@deci 	0"_s)));
+    CHECK(std::get<0>(macro::analyze_macro_definition(u"@deci 0	"_s)));
+    CHECK(std::get<0>(macro::analyze_macro_definition(u"@deci  0"_s)));
+    CHECK(std::get<0>(macro::analyze_macro_definition(u"@deci  0  "_s)));
+    CHECK(std::get<0>(macro::analyze_macro_definition(u"@deci	0	"_s)));
+    CHECK(std::get<0>(macro::analyze_macro_definition(u" @deci 0"_s)));
   }
   SECTION("Rejects invalid spaces") {
-    CHECK_FALSE(std::get<0>(macro::analyze_macro_definition(u"@deco​0​"_qs))); // 0-width space before and after
+    CHECK_FALSE(std::get<0>(macro::analyze_macro_definition(u"@deco​0​"_s))); // 0-width space before and after
     CHECK_FALSE(
-        std::get<0>(macro::analyze_macro_definition(u"@ deci 0"_qs))); // Can't have whitespace between @ and name
+        std::get<0>(macro::analyze_macro_definition(u"@ deci 0"_s))); // Can't have whitespace between @ and name
   }
   SECTION("Handles different arity") {
-    auto _0ar = macro::analyze_macro_definition(u"@deci 0"_qs);
-    auto _8ar = macro::analyze_macro_definition(u"@deco 8"_qs);
+    auto _0ar = macro::analyze_macro_definition(u"@deci 0"_s);
+    auto _8ar = macro::analyze_macro_definition(u"@deco 8"_s);
     REQUIRE(std::get<0>(_0ar));
     CHECK(std::get<1>(_0ar).toUtf8().toStdString() == "deci");
     CHECK(std::get<2>(_0ar) == 0);

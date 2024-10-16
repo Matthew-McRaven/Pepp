@@ -18,4 +18,4 @@
 #include <QtCore>
 #include "commands/gui.hpp"
 
-inline static const QUrl asmQMLMain = QUrl(u"qrc:/Pepp/demo/asm/main.qml"_qs);
+inline static const QUrl asmQMLMain = QUrl("qrc:/Pepp/demo/asm/main.qml");

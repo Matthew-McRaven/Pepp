@@ -141,6 +141,7 @@ void smoke(QString os, QString userPep, QString userPepo, QString input, QByteAr
 } // namespace
 
 TEST_CASE("Pep/10 Figure Assembly", "[scope:asm][kind:e2e][arch:pep10]") {
+  using namespace Qt::StringLiterals;
   auto bookReg = builtins::Registry(nullptr);
   auto bookPtr = book(bookReg);
   auto figures = bookPtr->figures();
@@ -159,7 +160,7 @@ TEST_CASE("Pep/10 Figure Assembly", "[scope:asm][kind:e2e][arch:pep10]") {
     auto ch = figure->chapterName(), fig = figure->figureName();
     int num = 0;
     for (auto io : figure->typesafeTests()) {
-      auto name = u"Figure %1.%2 on IO %3"_qs.arg(ch).arg(fig).arg(num);
+      auto name = u"Figure %1.%2 on IO %3"_s.arg(ch).arg(fig).arg(num);
       auto nameAsStd = name.toStdString();
 
       QString input = io->input.toString().replace(lf, "");

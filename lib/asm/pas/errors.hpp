@@ -20,55 +20,55 @@
 
 namespace pas::errors::pepp {
 // Macro issues
-inline const QString macroLoop = u"Macro invocation loop detected."_qs;
-inline const QString noSuchMacro = u"No such macro \"%1\""_qs;
-inline const QString macroWrongArity = u"%1 expected %2 args, received %3."_qs;
-inline const QString expectedAMacro = u"Can only apply this operation to a macro node."_qs;
+inline const QString macroLoop = "Macro invocation loop detected.";
+inline const QString noSuchMacro = "No such macro \"%1\"";
+inline const QString macroWrongArity = "%1 expected %2 args, received %3.";
+inline const QString expectedAMacro = "Can only apply this operation to a macro node.";
 // Bad instructions and command;
-inline const QString invalidMnemonic = u"Invalid mnemonic."_qs;
-inline const QString invalidDirective = u"Invalid dot command."_qs;
-inline const QString invalidSection = u"Invalid section directive."_qs;
-inline const QString illegalAddrMode = u"Illegal addressing mode for this instruction"_qs;
-inline const QString invalidAddrMode = u"Invalid addressing mode."_qs;
-inline const QString requiredAddrMode = u"Addressing mode required for this instruction"_qs;
-inline const QString badLineStart = u""_qs;
-inline const QString equateRequiresSymbol = u".EQUATE must have a symbol definition."_qs;
-inline const QString dotRequiresString = u"%1 requires a string constant argument."_qs;
-inline const QString argAfterMnemonic = u""_qs;
-inline const QString expectedNumeric = u"Expected a decimal, hexadecimal, or symbolic argument."_qs;
-inline const QString expectNArguments = u"Expected %1 argument(s)."_qs;
-inline const QString expectNMArguments = u"Expected %1 to %2 argument(s)."_qs;
-inline const QString expectedSymbolic = u"Expected a symbolic argument."_qs;
-inline const QString sectionFlagsString = u"SECTION flags must be a string."_qs;
-inline const QString illegalDirective = u"%1 is not a valid directive."_qs;
-inline const QString illegalInUser = u"%1 cannot be used in a user program."_qs;
+inline const QString invalidMnemonic = "Invalid mnemonic.";
+inline const QString invalidDirective = "Invalid dot command.";
+inline const QString invalidSection = "Invalid section directive.";
+inline const QString illegalAddrMode = "Illegal addressing mode for this instruction";
+inline const QString invalidAddrMode = "Invalid addressing mode.";
+inline const QString requiredAddrMode = "Addressing mode required for this instruction";
+inline const QString badLineStart = "";
+inline const QString equateRequiresSymbol = ".EQUATE must have a symbol definition.";
+inline const QString dotRequiresString = "%1 requires a string constant argument.";
+inline const QString argAfterMnemonic = "";
+inline const QString expectedNumeric = "Expected a decimal, hexadecimal, or symbolic argument.";
+inline const QString expectNArguments = "Expected %1 argument(s).";
+inline const QString expectNMArguments = "Expected %1 to %2 argument(s).";
+inline const QString expectedSymbolic = "Expected a symbolic argument.";
+inline const QString sectionFlagsString = "SECTION flags must be a string.";
+inline const QString illegalDirective = "%1 is not a valid directive.";
+inline const QString illegalInUser = "%1 cannot be used in a user program.";
 // Address problems
-inline const QString objTooBig = u"Object code must fit within 65536 bytes."_qs;
+inline const QString objTooBig = "Object code must fit within 65536 bytes.";
 // Bad program END
-inline const QString missingEnd = u"Missing .END."_qs;
-inline const QString onlyCommentAfterEnd = u""_qs;
+inline const QString missingEnd = "Missing .END.";
+inline const QString onlyCommentAfterEnd = "";
 // Symbol problems
-inline const QString undefinedSymbol = u"Undefined symbol %1."_qs;
-inline const QString multiplyDefinedSymbol = u"Multiply defined symbol %1."_qs;
-inline const QString symbolNeedsDotInst = u""_qs;
-inline const QString previouslyDefinedSymbol = u""_qs;
-inline const QString tooLongSymbol = u""_qs;
-inline const QString noDefineSymbol = u"%1 may not define a symbol."_qs;
+inline const QString undefinedSymbol = "Undefined symbol %1.";
+inline const QString multiplyDefinedSymbol = "Multiply defined symbol %1.";
+inline const QString symbolNeedsDotInst = "";
+inline const QString previouslyDefinedSymbol = "";
+inline const QString tooLongSymbol = "";
+inline const QString noDefineSymbol = "%1 may not define a symbol.";
 // Burn problems
-inline const QString onlyOSBurn = u""_qs;
-inline const QString os1Burn = u""_qs;
-inline const QString requiresHex = u"%1 requires a hexadecimal argument in range of [0x0000,0xFFFF]."_qs;
+inline const QString onlyOSBurn = "";
+inline const QString os1Burn = "";
+inline const QString requiresHex = "%1 requires a hexadecimal argument in range of [0x0000,0xFFFF].";
 // Malformed values
-inline const QString malformedChar = u""_qs;
-inline const QString malformedString = u""_qs;
+inline const QString malformedChar = "";
+inline const QString malformedString = "";
 // Values too big
-inline const QString strTooLong1 = u"String operands must have length 1."_qs;
-inline const QString strTooLong2 = u"String operands must have length 2."_qs;
-inline const QString decTooBig1 = u"Decimal constant is out of range [-128,255]"_qs;
-inline const QString decTooBig2 = u"Decimal constant is out of range [-32768,65535]"_qs;
-inline const QString decUnsigned2 = u"Decimal constant is out of range [0,65535]"_qs;
-inline const QString hexTooBig1 = u"Hexadecimal constant is out of range [0x00, 0xFF]"_qs;
-inline const QString hexTooBig2 = u"Hexadecimal constant is out of range [0x0000, 0xFFFF]"_qs;
-inline const QString alignPow2 = u".ALIGN requires a decimal constant in (2, 4, 8)."_qs;
+inline const QString strTooLong1 = "String operands must have length 1.";
+inline const QString strTooLong2 = "String operands must have length 2.";
+inline const QString decTooBig1 = "Decimal constant is out of range [-128,255]";
+inline const QString decTooBig2 = "Decimal constant is out of range [-32768,65535]";
+inline const QString decUnsigned2 = "Decimal constant is out of range [0,65535]";
+inline const QString hexTooBig1 = "Hexadecimal constant is out of range [0x00, 0xFF]";
+inline const QString hexTooBig2 = "Hexadecimal constant is out of range [0x0000, 0xFFFF]";
+inline const QString alignPow2 = ".ALIGN requires a decimal constant in (2, 4, 8).";
 
 }; // namespace pas::errors::pepp

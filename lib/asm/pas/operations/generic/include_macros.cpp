@@ -45,6 +45,7 @@ void appendError(pas::ast::Node &node, QString message) {
 }
 
 bool pas::ops::generic::IncludeMacros::operator()(ast::Node &node) {
+  using namespace Qt::StringLiterals;
   // Node should be a macro
   if (!node.has<ast::generic::Macro>()) {
     appendError(node, errors::pepp::expectedAMacro);
@@ -73,7 +74,7 @@ bool pas::ops::generic::IncludeMacros::operator()(ast::Node &node) {
   }
   // Perform macro arg substitution on body.
   auto macroText = macroContents->body();
-  for (int it = 0; it < args.size(); it++) macroText = macroText.replace(u"$"_qs + QString::number(it + 1), args[it]);
+  for (int it = 0; it < args.size(); it++) macroText = macroText.replace(u"$"_s + QString::number(it + 1), args[it]);
 
   // Function handles parenting macroText's nodes as node's children.
   // Parent/child relationships also established.
@@ -101,6 +102,7 @@ bool pas::ops::generic::IncludeMacros::pushMacroInvocation(MacroInvocation invok
 void pas::ops::generic::IncludeMacros::popMacroInvocation(MacroInvocation invoke) { _chain.remove(invoke); }
 
 void pas::ops::generic::IncludeMacros::addExtraChildren(ast::Node &node) {
+  using namespace Qt::StringLiterals;
   auto children = ast::children(node);
 
   static const auto commentType = ast::generic::Type{.value = ast::generic::Type::Comment};
@@ -128,7 +130,7 @@ void pas::ops::generic::IncludeMacros::addExtraChildren(ast::Node &node) {
   auto end = QSharedPointer<ast::Node>::create(commentType);
   end->set(ast::generic::CommentIndent{.value = ast::generic::CommentIndent::Level::Left});
   // TODO: enable translations.
-  end->set(ast::generic::Comment{.value = u"End @%1"_qs.arg(node.get<ast::generic::Macro>().value)});
+  end->set(ast::generic::Comment{.value = u"End @%1"_s.arg(node.get<ast::generic::Macro>().value)});
   children.push_back(end);
 
   node.set<ast::generic::Children>(ast::generic::Children{.value = children});

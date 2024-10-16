@@ -34,6 +34,7 @@ FigureManager::FigureManager() {
 }
 
 QStringList FigureManager::figures() {
+  using namespace Qt::StringLiterals;
   QStringList ret;
 
   auto keys = _figureMap.keys();
@@ -43,7 +44,7 @@ QStringList FigureManager::figures() {
     auto fig = _figureMap[key];
     auto chName = fig->chapterName();
     auto figName = fig->figureName();
-    ret.push_back(u"Figure %1.%2"_qs.arg(chName, figName));
+    ret.push_back(u"Figure %1.%2"_s.arg(chName, figName));
   }
 
   return ret;

@@ -20,7 +20,7 @@
 
 namespace pas::ast::generic {
 struct Directive {
-  static const inline QString attributeName = u"generic:directive"_qs;
+  static const inline QString attributeName = "generic:directive";
   static const inline uint8_t attribute = 8;
   QString value = {};
   bool operator==(const Directive &other) const = default;

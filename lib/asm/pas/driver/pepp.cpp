@@ -26,7 +26,7 @@ pas::driver::ParseResult pas::driver::pepp::detail::antlr4_pep10(const std::stri
   ret.root = std::any_cast<QSharedPointer<pas::ast::Node>>(ast);
   if (listener.hadError()) {
     ret.hadError = true;
-    ret.errors.push_back(u"Partial parse failure"_qs);
+    ret.errors.push_back("Partial parse failure");
     return ret;
   }
   return ret;

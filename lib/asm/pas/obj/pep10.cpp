@@ -86,10 +86,10 @@ QSharedPointer<ELFIO::elfio> pas::obj::pep10::createElf() {
 }
 
 void writeSymtab(ELFIO::elfio &elf, symbol::Table &table, QString prefix) {
-
+  using namespace Qt::StringLiterals;
   auto strTab = addStrTab(elf);
 
-  auto symTab = elf.sections.add(u"%1.symtab"_qs.arg(prefix).toStdString());
+  auto symTab = elf.sections.add(u"%1.symtab"_s.arg(prefix).toStdString());
   symTab->set_type(ELFIO::SHT_SYMTAB);
   symTab->set_info(0);
   symTab->set_addr_align(2);
@@ -138,6 +138,7 @@ void writeSymtab(ELFIO::elfio &elf, symbol::Table &table, QString prefix) {
 
 void writeTree(ELFIO::elfio &elf, pas::ast::Node &node, QString prefix, bool isOS) {
   using namespace pas;
+  using namespace Qt::StringLiterals;
   ELFIO::segment *activeSeg = nullptr;
 
   auto getOrCreateBSS = [&](ast::generic::SectionFlags::Flags &flags) {
@@ -185,7 +186,7 @@ void writeTree(ELFIO::elfio &elf, pas::ast::Node &node, QString prefix, bool isO
     auto bytes = pas::ops::pepp::toBytes<isa::Pep10>(*astSec);
     if (size == 0) continue; // 0-sized sections are meaningless, do not emit.
 
-    auto sec = elf.sections.add(u"%1.%2"_qs.arg(prefix, secName).toStdString());
+    auto sec = elf.sections.add(u"%1.%2"_s.arg(prefix, secName).toStdString());
     // All sections from AST correspond to bits in Pep/10 memory, so alloc
     auto shFlags = ELFIO::SHF_ALLOC;
     shFlags |= secFlags.X ? ELFIO::SHF_EXECINSTR : 0;

@@ -30,6 +30,7 @@
 
 using isa::Pep10;
 using pas::ops::pepp::Direction;
+using namespace Qt::StringLiterals;
 
 namespace {
 void childRange(QSharedPointer<pas::ast::Node> parent, qsizetype index, qsizetype start, qsizetype end) {
@@ -103,7 +104,7 @@ void org_test(QSharedPointer<pas::ast::Node> root, qsizetype base) {
 
 TEST_CASE("Assign Address", "[scope:asm][kind:unit][arch:pep10]") {
   SECTION("Sequential sections") {
-    QString body = u"ldwa 0,i\n.SECTION \"l\"\nldwa 0,i"_qs;
+    QString body = u"ldwa 0,i\n.SECTION \"l\"\nldwa 0,i"_s;
     auto pipeline = pas::driver::pep10::stages<pas::driver::ANTLRParserTag>(body, {.isOS = false});
     auto pipelines = pas::driver::Pipeline<pas::driver::pep10::Stage>{};
     pipelines.pipelines.push_back(pipeline);
@@ -170,7 +171,7 @@ TEST_CASE("Assign Address", "[scope:asm][kind:unit][arch:pep10]") {
   for (auto item : aligns) {
     auto [name, align, base, useDriver] = item;
     DYNAMIC_SECTION(name.toStdString()) {
-      QString body = u".block 1\n.ALIGN %1\n.block 0"_qs.arg(align);
+      QString body = u".block 1\n.ALIGN %1\n.block 0"_s.arg(align);
       QSharedPointer<pas::ast::Node> root;
       if (useDriver) {
         auto pipeline = pas::driver::pep10::stages<pas::driver::ANTLRParserTag>(body, {.isOS = false});
@@ -208,22 +209,22 @@ TEST_CASE("Assign Address", "[scope:asm][kind:unit][arch:pep10]") {
 
   using type = std::tuple<QString, qsizetype, bool, QString, testFn>;
   std::list<type> items{
-      {"unary @ 0: visitor", 0, false, u"rola\nrolx"_qs, &unary_test},
-      {"unary @ 0: driver", 0, true, u"rola\nrolx"_qs, &unary_test},
+      {"unary @ 0: visitor", 0, false, u"rola\nrolx"_s, &unary_test},
+      {"unary @ 0: driver", 0, true, u"rola\nrolx"_s, &unary_test},
 
-      {"nonunary @ 0: visitor", 0, false, u"adda 0,i\nldwa 0,i"_qs, &nonunary_test},
-      {"nonunary @ 0: driver", 0, true, u"adda 0,i\nldwa 0,i"_qs, &nonunary_test},
+      {"nonunary @ 0: visitor", 0, false, u"adda 0,i\nldwa 0,i"_s, &nonunary_test},
+      {"nonunary @ 0: driver", 0, true, u"adda 0,i\nldwa 0,i"_s, &nonunary_test},
 
-      {".IMPORT @ 0: visitor", 0, false, u".IMPORT s\n.BLOCK 2"_qs, &size0_test},
-      {".IMPORT @ 0: driver", 0, true, u".IMPORT s\n.BLOCK 2"_qs, &size0_test},
-      {".EXPORT @ 0: visitor", 0, false, u".EXPORT s\n.BLOCK 2"_qs, &size0_test},
-      {".EXPORT @ 0: driver", 0, true, u".EXPORT s\n.BLOCK 2"_qs, &size0_test},
-      {".SCALL @ 0: visitor", 0, false, u".SCALL s\n.BLOCK 2"_qs, &size0_test},
-      {".SCALL @ 0: driver", 0, true, u".SCALL s\n.BLOCK 2"_qs, &size0_test},
-      {".INPUT @ 0: visitor", 0, false, u".INPUT s\n.BLOCK 2"_qs, &size0_test},
-      {".INPUT @ 0: driver", 0, true, u".INPUT s\n.BLOCK 2"_qs, &size0_test},
-      {".OUTPUT @ 0: visitor", 0, false, u".OUTPUT s\n.BLOCK 2"_qs, &size0_test},
-      {".OUTPUT @ 0: driver", 0, true, u".OUTPUT s\n.BLOCK 2"_qs, &size0_test},
+      {".IMPORT @ 0: visitor", 0, false, u".IMPORT s\n.BLOCK 2"_s, &size0_test},
+      {".IMPORT @ 0: driver", 0, true, u".IMPORT s\n.BLOCK 2"_s, &size0_test},
+      {".EXPORT @ 0: visitor", 0, false, u".EXPORT s\n.BLOCK 2"_s, &size0_test},
+      {".EXPORT @ 0: driver", 0, true, u".EXPORT s\n.BLOCK 2"_s, &size0_test},
+      {".SCALL @ 0: visitor", 0, false, u".SCALL s\n.BLOCK 2"_s, &size0_test},
+      {".SCALL @ 0: driver", 0, true, u".SCALL s\n.BLOCK 2"_s, &size0_test},
+      {".INPUT @ 0: visitor", 0, false, u".INPUT s\n.BLOCK 2"_s, &size0_test},
+      {".INPUT @ 0: driver", 0, true, u".INPUT s\n.BLOCK 2"_s, &size0_test},
+      {".OUTPUT @ 0: visitor", 0, false, u".OUTPUT s\n.BLOCK 2"_s, &size0_test},
+      {".OUTPUT @ 0: driver", 0, true, u".OUTPUT s\n.BLOCK 2"_s, &size0_test},
 
   };
   QMap<QString, QString> shortArgs = {{"short string, no escaped", "hi"},
@@ -231,10 +232,10 @@ TEST_CASE("Assign Address", "[scope:asm][kind:unit][arch:pep10]") {
                                       {"short string, 2 escaped", "\\r\\n"},
                                       {"short string, 2 hex", "\\xff\\x00"}};
   for (auto caseName : shortArgs.keys()) {
-    auto input = u".block 2\n.ASCII \"%1\""_qs.arg(shortArgs[caseName]);
+    auto input = u".block 2\n.ASCII \"%1\""_s.arg(shortArgs[caseName]);
     auto caseStr = caseName.toStdString();
-    items.push_front({u"%1: visitor"_qs.arg(caseStr.data()), 0, false, input, &ascii2_test});
-    items.push_front({u"%1: driver"_qs.arg(caseStr.data()), 0, true, input, &ascii2_test});
+    items.push_front({u"%1: visitor"_s.arg(caseStr.data()), 0, false, input, &ascii2_test});
+    items.push_front({u"%1: driver"_s.arg(caseStr.data()), 0, true, input, &ascii2_test});
   }
 
   QMap<QString, QString> longArgs = {{"long string, no escaped", "ahi"},
@@ -242,16 +243,16 @@ TEST_CASE("Assign Address", "[scope:asm][kind:unit][arch:pep10]") {
                                      {"long string, 2 escaped", "a\\r\\n"},
                                      {"long string, 2 hex", "a\\xff\\x00"}};
   for (auto caseName : longArgs.keys()) {
-    auto input = u".block 2\n.ASCII \"%1\""_qs.arg(longArgs[caseName]);
+    auto input = u".block 2\n.ASCII \"%1\""_s.arg(longArgs[caseName]);
     auto caseStr = caseName.toStdString();
-    items.push_front({u"%1: visitor"_qs.arg(caseStr.data()), 0, false, input, &ascii3_test});
-    items.push_front({u"%1: driver"_qs.arg(caseStr.data()), 0, true, input, &ascii3_test});
+    items.push_front({u"%1: visitor"_s.arg(caseStr.data()), 0, false, input, &ascii3_test});
+    items.push_front({u"%1: driver"_s.arg(caseStr.data()), 0, true, input, &ascii3_test});
   }
-  items.push_front({".EQUATE @ 0: visitor", 0, false, u".block 1\ns:.EQUATE 10\nn:.EQUATE s"_qs, &equate_test});
-  items.push_front({".OUTPUT @ 0: driver", 0, true, u".block 1\ns:.EQUATE 10\nn:.EQUATE s"_qs, &equate_test});
+  items.push_front({".EQUATE @ 0: visitor", 0, false, u".block 1\ns:.EQUATE 10\nn:.EQUATE s"_s, &equate_test});
+  items.push_front({".OUTPUT @ 0: driver", 0, true, u".block 1\ns:.EQUATE 10\nn:.EQUATE s"_s, &equate_test});
 
-  items.push_front({".ORG @ 0: visitor", 0, false, u".ORG 0x8000\nldwa 0,i"_qs, &org_test});
-  items.push_front({".ORG @ 0: driver", 0, true, u".ORG 0x8000\nldwa 0,i"_qs, &org_test});
+  items.push_front({".ORG @ 0: visitor", 0, false, u".ORG 0x8000\nldwa 0,i"_s, &org_test});
+  items.push_front({".ORG @ 0: driver", 0, true, u".ORG 0x8000\nldwa 0,i"_s, &org_test});
   for (auto item : items) {
     auto [name, base, useDriver, body, validate] = item;
     DYNAMIC_SECTION(name.toStdString()) {

@@ -23,5 +23,6 @@ int about::Version::version_major() { return about::g_MAJOR_VERSION(); }
 int about::Version::version_minor() { return about::g_MINOR_VERSION(); }
 int about::Version::version_patch() { return about::g_PATCH_VERSION(); }
 QString about::Version::version_str_full() {
-  return u"%1.%2.%3"_qs.arg(version_major()).arg(version_minor()).arg(version_patch());
+  using namespace Qt::StringLiterals;
+  return u"%1.%2.%3"_s.arg(version_major()).arg(version_minor()).arg(version_patch());
 }

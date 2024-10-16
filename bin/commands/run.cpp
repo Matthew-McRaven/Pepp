@@ -83,6 +83,7 @@ bool RunTask::loadToElf() {
 }
 
 void RunTask::run() {
+  using namespace Qt::StringLiterals;
   if (!loadToElf())
     return emit finished(1);
   bool hasBootFlag = (obj::getBootFlagsAddress(*_elf).has_value());
@@ -136,11 +137,12 @@ void RunTask::run() {
         charInEndpoint->append_value(buffer[it]);
     }
   }
+
   auto printReg = [&](isa::Pep10::Register reg) {
     quint16 tmp = 0;
     targets::pep10::isa::readRegister(system->cpu()->regs(), reg, tmp, gs);
     auto regName = QMetaEnum::fromType<isa::detail::pep10::Register>().valueToKey((int)reg);
-    std::cout << u"%1=%2"_qs.arg(regName).arg(QString::number(tmp, 16), 4, '0').toStdString() << " ";
+    std::cout << u"%1=%2"_s.arg(regName).arg(QString::number(tmp, 16), 4, '0').toStdString() << " ";
   };
   bool noMMI = false;
   try {

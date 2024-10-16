@@ -166,8 +166,9 @@ template <typename Address> sim::api2::trace::Analyzer::FilterArgs sim::debug::A
 }
 
 template <typename Address> void AccessSnooper<Address>::printData(detail::Decoded decoded, bool dir) {
+  using namespace Qt::StringLiterals;
   if (decoded.success && decoded.length > 0) {
-    std::cout << u"[%1]"_qs.arg(QString::number(decoded.address, 16), decoded.addrBytes * 2).toStdString()
+    std::cout << u"[%1]"_s.arg(QString::number(decoded.address, 16), decoded.addrBytes * 2).toStdString()
               << (decoded.write ^ dir ? ">" : "<");
     char str[64];
     std::span<char> strSpan = str;

@@ -20,7 +20,7 @@
 
 namespace pas::ast::pepp {
 template <typename ISA> struct AddressingMode {
-  static const inline QString attributeName = u"pepp:addr"_qs;
+  static const inline QString attributeName = "pepp:addr";
   static const inline uint8_t attribute = 1;
   typename ISA::AddressingMode value = {};
   bool operator==(const AddressingMode<ISA> &other) const = default;

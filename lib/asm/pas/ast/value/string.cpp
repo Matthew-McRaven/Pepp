@@ -62,7 +62,10 @@ bool pas::ast::value::ShortString::resize(quint64 size) { return false; }
 
 quint64 pas::ast::value::ShortString::requiredBytes() const { return _size; }
 
-QString pas::ast::value::ShortString::string() const { return u"\"%1\""_qs.arg(_value); }
+QString pas::ast::value::ShortString::string() const {
+  using namespace Qt::StringLiterals;
+  return u"\"%1\""_s.arg(_value);
+}
 
 QString pas::ast::value::ShortString::rawString() const { return _value; }
 
@@ -105,6 +108,9 @@ bool pas::ast::value::LongString::resize(quint64 size) { return false; }
 
 quint64 pas::ast::value::LongString::requiredBytes() const { return _valueAsBytes.size(); }
 
-QString pas::ast::value::LongString::string() const { return u"\"%1\""_qs.arg(_value); }
+QString pas::ast::value::LongString::string() const {
+  using namespace Qt::StringLiterals;
+  return u"\"%1\""_s.arg(_value);
+}
 
 QString pas::ast::value::LongString::rawString() const { return _value; }

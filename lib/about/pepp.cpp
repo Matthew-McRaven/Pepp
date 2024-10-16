@@ -67,5 +67,6 @@ QString about::licenseNotice() {
 }
 
 QString about::versionString() {
-  return u"%1.%2.%3"_qs.arg(about::g_MAJOR_VERSION()).arg(about::g_MINOR_VERSION()).arg(about::g_PATCH_VERSION());
+  using namespace Qt::StringLiterals;
+  return u"%1.%2.%3"_s.arg(about::g_MAJOR_VERSION()).arg(about::g_MINOR_VERSION()).arg(about::g_PATCH_VERSION());
 }

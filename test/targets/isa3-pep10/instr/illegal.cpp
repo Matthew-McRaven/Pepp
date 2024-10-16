@@ -47,8 +47,9 @@ void inner(quint8 op) {
 } // namespace
 
 TEST_CASE("Illegal Opcodes", "[scope:targets][kind:int][target:pep10]") {
+  using namespace Qt::StringLiterals;
   SECTION("Opcode 0") { inner(0); }
   for (quint8 opcode = 8; opcode < 0x18; opcode++) {
-    DYNAMIC_SECTION(u"Opcode %1"_qs.arg(opcode).toStdString()) { inner(opcode); }
+    DYNAMIC_SECTION(u"Opcode %1"_s.arg(opcode).toStdString()) { inner(opcode); }
   }
 }

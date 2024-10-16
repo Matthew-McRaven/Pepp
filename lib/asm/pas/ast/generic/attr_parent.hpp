@@ -23,7 +23,7 @@ class Node;
 }
 namespace pas::ast::generic {
 struct Parent {
-  static const inline QString attributeName = u"generic:parent"_qs;
+  static const inline QString attributeName = "generic:parent";
   static const inline uint8_t attribute = 13;
   QWeakPointer<pas::ast::Node> value = {}; // The direct parent of the owning node (empty if owner is root).
   bool operator==(const Parent &other) const = default;

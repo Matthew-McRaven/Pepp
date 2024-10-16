@@ -56,6 +56,7 @@ QQmlApplicationEngine *g_engine = nullptr;
 #endif
 
 int gui_main(const gui_args &args) {
+  using namespace Qt::StringLiterals;
   // Must forward args for things like QML debugger to work.
   int argc = args.argvs.size();
   std::vector<char *> argvs(argc);
@@ -73,9 +74,9 @@ int gui_main(const gui_args &args) {
   QFontDatabase::addApplicationFont(":/fonts/mono/CourierPrime-BoldItalic.ttf");
   // Helper to enumerate all application fonts.
   /*for (const QString &family : QFontDatabase::families()) {
-    qDebug() << u"Family: %1"_qs.arg(family).toStdString().c_str();
+    qDebug() << u"Family: %1"_s.arg(family).toStdString().c_str();
     const QStringList fontStyles = QFontDatabase::styles(family);
-    for (const QString &style : fontStyles) qDebug() << u"  style: %1"_qs.arg(style).toStdString().c_str();
+    for (const QString &style : fontStyles) qDebug() << u"  style: %1"_s.arg(style).toStdString().c_str();
   }*/
 
   QApplication::setOrganizationName("Pepperdine University");
@@ -83,7 +84,7 @@ int gui_main(const gui_args &args) {
   QApplication::setOrganizationDomain("pep.pepperdine.edu");
   QApplication::setApplicationDisplayName("Pep/10 IDE");
   static auto version =
-      u"%1.%2.%3"_qs.arg(about::g_MAJOR_VERSION()).arg(about::g_MINOR_VERSION()).arg(about::g_PATCH_VERSION());
+      u"%1.%2.%3"_s.arg(about::g_MAJOR_VERSION()).arg(about::g_MINOR_VERSION()).arg(about::g_PATCH_VERSION());
   QApplication::setApplicationVersion(version);
   QQuickStyle::setStyle("Fusion");
 
@@ -118,7 +119,7 @@ int gui_main(const gui_args &args) {
     qDebug() << f.filePath();
   }*/
 
-  static const auto default_entry = u"qrc:/qt/qml/Pepp/gui/main.qml"_qs;
+  static const auto default_entry = u"qrc:/qt/qml/Pepp/gui/main.qml"_s;
   const QUrl url(args.QMLEntry.isEmpty() ? default_entry : args.QMLEntry);
 #ifdef __EMSCRIPTEN__
   QApplication *app_ptr = g_app;

@@ -23,7 +23,7 @@ class Node;
 }
 namespace pas::ast::generic {
 struct Children {
-  static const inline QString attributeName = u"generic:children"_qs;
+  static const inline QString attributeName = "generic:children";
   static const inline uint8_t attribute = 5;
   QList<QSharedPointer<pas::ast::Node>> value = {}; // All direct children of the owning node
   // TODO: replace with element-wise value comparison.

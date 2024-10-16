@@ -19,32 +19,33 @@
 #include "asm/pas/ast/node.hpp"
 #include "asm/pas/driver/pep10.hpp"
 #include "isa/pep10.hpp"
+using namespace Qt::StringLiterals;
 
 TEST_CASE("Addressable", "[scope:asm][kind:unit][arch:pep10]") {
   auto [name, body, addressable] = GENERATE(table<QString, QString, bool>({
-      {"blank", u""_qs, false},
-      {"comment", u";hi"_qs, false},
+      {"blank", u""_s, false},
+      {"comment", u";hi"_s, false},
 
-      {"unary", u"ret"_qs, true},
-      {"nonunary branch", u"br 20"_qs, true},
-      {"nonunary nonbranch", u"ldwa 0,i"_qs, true},
+      {"unary", u"ret"_s, true},
+      {"nonunary branch", u"br 20"_s, true},
+      {"nonunary nonbranch", u"ldwa 0,i"_s, true},
 
-      {".ALIGN", u".ALIGN 2"_qs, true},
-      {".ASCII", u".ASCII \"hi\""_qs, true},
-      {".BLOCK", u".BLOCK 2"_qs, true},
-      {".BURN", u".BURN 0xFFFF"_qs, false},
-      {".BYTE", u".BYTE 0xff"_qs, true},
-      {".END", u".END"_qs, false},
-      {".EQUATE", u"s:.EQUATE 10"_qs, false},
-      {".EXPORT", u".EXPORT s"_qs, false},
-      {".IMPORT", u".IMPORT s"_qs, false},
-      {".INPUT", u".INPUT s"_qs, false},
-      {".OUTPUT", u".OUTPUT s"_qs, false},
-      {".ORG", u".ORG 0xFAAD"_qs, false},
-      {".SCALL", u".SCALL s"_qs, false},
-      {".SECTION", u".SECTION \".text\""_qs, false},
-      {".USCALL", u".USCALL s"_qs, false},
-      {".WORD", u".WORD 10"_qs, true},
+      {".ALIGN", u".ALIGN 2"_s, true},
+      {".ASCII", u".ASCII \"hi\""_s, true},
+      {".BLOCK", u".BLOCK 2"_s, true},
+      {".BURN", u".BURN 0xFFFF"_s, false},
+      {".BYTE", u".BYTE 0xff"_s, true},
+      {".END", u".END"_s, false},
+      {".EQUATE", u"s:.EQUATE 10"_s, false},
+      {".EXPORT", u".EXPORT s"_s, false},
+      {".IMPORT", u".IMPORT s"_s, false},
+      {".INPUT", u".INPUT s"_s, false},
+      {".OUTPUT", u".OUTPUT s"_s, false},
+      {".ORG", u".ORG 0xFAAD"_s, false},
+      {".SCALL", u".SCALL s"_s, false},
+      {".SECTION", u".SECTION \".text\""_s, false},
+      {".USCALL", u".USCALL s"_s, false},
+      {".WORD", u".WORD 10"_s, true},
   }));
   auto pipeline = pas::driver::pep10::pipeline<pas::driver::ANTLRParserTag>({{body, {.isOS = true}}});
   REQUIRE(pipeline->assemble(pas::driver::pep10::Stage::Parse));

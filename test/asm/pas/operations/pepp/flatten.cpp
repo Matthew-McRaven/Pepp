@@ -28,6 +28,8 @@
 #include "macro/registry.hpp"
 
 using isa::Pep10;
+using namespace Qt::StringLiterals;
+
 using testFn = void (*)(QSharedPointer<pas::ast::Node>);
 namespace {
 
@@ -54,7 +56,7 @@ TEST_CASE("Flatten macros", "[scope:asm][kind:unit][arch:pep10]") {
   // Valid non-nesting
   {
     auto registry = QSharedPointer<macro::Registry>::create();
-    auto macro = QSharedPointer<macro::Parsed>::create(u"alpa"_qs, 0, u".block 1"_qs, u"pep/10"_qs);
+    auto macro = QSharedPointer<macro::Parsed>::create(u"alpa"_s, 0, u".block 1"_s, u"pep/10"_s);
     registry->registerMacro(macro::types::Core, macro);
     QString input = "@alpa";
     items.push_front({"valid non-nesting: visitor", registry, input, &single_test, false});
@@ -64,9 +66,9 @@ TEST_CASE("Flatten macros", "[scope:asm][kind:unit][arch:pep10]") {
   // Valid nesting
   {
     auto registry = QSharedPointer<macro::Registry>::create();
-    auto macro = QSharedPointer<macro::Parsed>::create(u"alpa"_qs, 0, u"@beta"_qs, u"pep/10"_qs);
+    auto macro = QSharedPointer<macro::Parsed>::create(u"alpa"_s, 0, u"@beta"_s, u"pep/10"_s);
     registry->registerMacro(macro::types::Core, macro);
-    auto macro2 = QSharedPointer<macro::Parsed>::create(u"beta"_qs, 0, u".block 1"_qs, u"pep/10"_qs);
+    auto macro2 = QSharedPointer<macro::Parsed>::create(u"beta"_s, 0, u".block 1"_s, u"pep/10"_s);
     registry->registerMacro(macro::types::Core, macro2);
     QString input = "@alpa";
     items.push_front({"valid nesting: visitor", registry, input, &nesting_test, false});

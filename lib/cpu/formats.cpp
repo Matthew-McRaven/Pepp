@@ -1,5 +1,6 @@
 #include "formats.hpp"
 #include "bits/mask.hpp"
+using namespace Qt::StringLiterals;
 
 TextFormatter::TextFormatter(QString value) : _value(value) {}
 
@@ -16,10 +17,10 @@ qsizetype TextFormatter::length(quint8 byteCount) const { return _value.length()
 HexFormatter::HexFormatter(std::function<uint64_t()> fn, uint16_t byteCount)
     : _fn(fn), _bytes(byteCount), _mask(bits::mask(byteCount)) {}
 
-QString HexFormatter::format() const { return u"0x%1"_qs.arg(_mask & _fn(), _bytes * 2, 16, QChar('0')); }
+QString HexFormatter::format() const { return u"0x%1"_s.arg(_mask & _fn(), _bytes * 2, 16, QChar('0')); }
 
 QString HexFormatter::format(quint8 byteCount) const {
-  return u"0x%1"_qs.arg(bits::mask(byteCount) & _fn(), byteCount * 2, 16, QChar('0'));
+  return u"0x%1"_s.arg(bits::mask(byteCount) & _fn(), byteCount * 2, 16, QChar('0'));
 }
 
 bool HexFormatter::readOnly() const { return false; }
@@ -71,10 +72,10 @@ uint16_t SignedDecFormatter::digits(quint8 byteCount) { return std::ceil(std::lo
 BinaryFormatter::BinaryFormatter(std::function<uint64_t()> fn, uint16_t byteCount)
     : _fn(fn), _len(byteCount), _mask(bits::mask(byteCount)) {}
 
-QString BinaryFormatter::format() const { return u"%1"_qs.arg(_mask & _fn(), length(), 2, QChar('0')); }
+QString BinaryFormatter::format() const { return u"%1"_s.arg(_mask & _fn(), length(), 2, QChar('0')); }
 
 QString BinaryFormatter::format(quint8 byteCount) const {
-  return u"%1"_qs.arg(bits::mask(byteCount) & _fn(), length(byteCount), 2, QChar('0'));
+  return u"%1"_s.arg(bits::mask(byteCount) & _fn(), length(byteCount), 2, QChar('0'));
 }
 
 bool BinaryFormatter::readOnly() const { return false; }

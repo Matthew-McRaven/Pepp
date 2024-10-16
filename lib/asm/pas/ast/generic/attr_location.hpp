@@ -26,7 +26,7 @@ struct Location {
 };
 
 struct SourceLocation {
-  static const inline QString attributeName = u"generic:source_loc"_qs;
+  static const inline QString attributeName = "generic:source_loc";
   static const inline uint8_t attribute = 11;
   Location value = {}; // The location (line) line in the source file on which
                        // the node starts.
@@ -34,14 +34,14 @@ struct SourceLocation {
 };
 
 struct RootLocation {
-  static const inline QString attributeName = u"generic:root_loc"_qs;
+  static const inline QString attributeName = "generic:root_loc";
   static const inline uint8_t attribute = 30;
   Location value = {}; // The line in the root source file to which this belongs
   bool operator==(const RootLocation &other) const = default;
 };
 
 struct ListingLocation {
-  static const inline QString attributeName = u"generic:listing_loc"_qs;
+  static const inline QString attributeName = "generic:listing_loc";
   static const inline uint8_t attribute = 31;
   Location value = {}; // The line in the root source file to which this belongs
   bool operator==(const ListingLocation &other) const = default;

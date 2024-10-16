@@ -27,8 +27,8 @@ const QList<QSharedPointer<builtins::Figure>> builtins::Book::figures() const {
   return _figures;
 }
 
-QSharedPointer<const builtins::Figure>
-builtins::Book::findFigure(QString chapter, QString figure) const {
+QSharedPointer<const builtins::Figure> builtins::Book::findFigure(QString chapter, QString figure) const {
+  using namespace Qt::StringLiterals;
   QList<QSharedPointer<const builtins::Figure>> temp;
   for (auto figurePtr : _figures) {
     if (figurePtr->chapterName() == chapter &&
@@ -41,8 +41,7 @@ builtins::Book::findFigure(QString chapter, QString figure) const {
   else if (length == 1)
     return temp.first();
   else {
-    qDebug()
-        << (u"More than one copy of figure {}.{}"_qs).arg(chapter).arg(figure);
+    qDebug() << u"More than one copy of figure {}.{}"_s.arg(chapter).arg(figure);
     return nullptr;
   }
 }
@@ -63,6 +62,7 @@ const QList<QSharedPointer<builtins::Figure>> builtins::Book::problems() const {
 
 QSharedPointer<const builtins::Figure>
 builtins::Book::findProblem(QString chapter, QString problem) const {
+  using namespace Qt::StringLiterals;
   QList<QSharedPointer<const builtins::Figure>> temp;
   for (auto figurePtr : _problems) {
     if (figurePtr->chapterName() == chapter &&
@@ -75,9 +75,7 @@ builtins::Book::findProblem(QString chapter, QString problem) const {
   else if (length == 1)
     return temp.first();
   else {
-    qDebug() << (u"More than one copy of problem {}.{}"_qs)
-                    .arg(chapter)
-                    .arg(problem);
+    qDebug() << u"More than one copy of problem {}.{}"_s.arg(chapter).arg(problem);
     return nullptr;
   }
 }
@@ -98,6 +96,7 @@ const QList<QSharedPointer<macro::Parsed>> builtins::Book::macros() const {
 
 QSharedPointer<const macro::Parsed>
 builtins::Book::findMacro(QString name) const {
+  using namespace Qt::StringLiterals;
   QList<QSharedPointer<const macro::Parsed>> temp;
   for (const auto &macroPtr : _macros) {
     if (macroPtr->name() == name)
@@ -108,7 +107,7 @@ builtins::Book::findMacro(QString name) const {
   else if (length == 1)
     return temp.first();
   else {
-    qDebug() << (u"More than one copy of macro {}"_qs).arg(name);
+    qDebug() << u"More than one copy of macro {}"_s.arg(name);
     return nullptr;
   }
 }

@@ -25,6 +25,7 @@
 #include "sim/device/simple_bus.hpp"
 #include "targets/pep10/isa3/cpu.hpp"
 #include "targets/pep10/isa3/helpers.hpp"
+using namespace Qt::StringLiterals;
 
 using AddressSpan = sim::api2::memory::AddressSpan<quint16>;
 sim::api2::device::Descriptor desc_cpu(sim::api2::device::ID id) {
@@ -34,13 +35,13 @@ sim::api2::device::Descriptor desc_bus(sim::api2::device::ID id) {
   return {.id = id, .baseName = "bus", .fullName = "/bus"};
 }
 sim::api2::device::Descriptor desc_dense(sim::api2::device::ID id) {
-  return {.id = id, .baseName = u"dense%1"_qs.arg(id), .fullName = u"/bus/dense%1"_qs.arg(id)};
+  return {.id = id, .baseName = u"dense%1"_s.arg(id), .fullName = u"/bus/dense%1"_s.arg(id)};
 }
 sim::api2::device::Descriptor desc_mmi(sim::api2::device::ID id, QString name) {
-  return {.id = id, .baseName = u"mmi-%1"_qs.arg(name), .fullName = u"/bus/mmi-%1"_qs.arg(name)};
+  return {.id = id, .baseName = u"mmi-%1"_s.arg(name), .fullName = u"/bus/mmi-%1"_s.arg(name)};
 }
 sim::api2::device::Descriptor desc_mmo(sim::api2::device::ID id, QString name) {
-  return {.id = id, .baseName = u"mmo-%1"_qs.arg(name), .fullName = u"/bus/mmo-%1"_qs.arg(name)};
+  return {.id = id, .baseName = u"mmo-%1"_s.arg(name), .fullName = u"/bus/mmo-%1"_s.arg(name)};
 }
 namespace {
 const auto gs = sim::api2::memory::Operation{
