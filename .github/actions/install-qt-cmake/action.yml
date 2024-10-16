@@ -2,7 +2,7 @@ name: 'Install CMake & Qt'
 inputs:
   qt_version:
     required: true
-    default: '6.7.2'
+    default: '6.8.0'
   cache-key-prefix:
     required: false
 runs:
@@ -11,11 +11,36 @@ runs:
   steps:
     - name: Install CMake and Ninja
       uses: lukka/get-cmake@v3.27.9
+    - uses: actions/checkout@v4
+      with:
+        repository: 'jurplel/install-qt-action'
+        ref: 'b4123591bcdbd2bf01b594312f8e1c062ddd8c76'
+        path: 'install-qt-action'
+    - uses: actions/setup-node@v4
+      with:
+        node-version: 20
+        cache: npm
+        cache-dependency-path: install-qt-action/action/
+    # Must allow breaking system packages on Mac OS runners, else setup fails.
+    # See: https://github.com/jurplel/install-qt-action/issues/252
+    - name: Set up pip config on macOS
+      if: runner.os == 'macOS'
+      run: |
+        mkdir -p ~/.config/pip
+        echo "[global]" > ~/.config/pip/pip.conf
+        echo "break-system-packages = true" >> ~/.config/pip/pip.conf
+      shell: bash
+    - name: Build jurplel/install-qt-action
+      run: |
+        cd install-qt-action/action/
+        npm ci || npm install
+        npm run build
+      shell: bash
     - name: Install Qt
-      uses: jurplel/install-qt-action@v3
+      uses: ./install-qt-action/action/
       with:
         version: ${{ inputs.qt_version }}
         cache: true
         extra: "--base https://mirrors.ocf.berkeley.edu/qt"
         tools: 'tools_ifw,qt.tools.ifw.47'
-        add-tools-to-path: true
+        modules: 'qtshadertools'
