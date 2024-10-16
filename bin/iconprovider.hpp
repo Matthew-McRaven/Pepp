@@ -51,8 +51,8 @@ public:
       if (!doc.setContent(contents))
         return {};
       // TODO: pick fill color from current palette.
-      static const QStringList colors = {/*00*/ u"#000000"_qs, /*01*/ u"#CCCCCC"_qs, /*10*/ u"#FFFFFF"_qs,
-                                         /*11*/ u"#CCCCCC"_qs};
+      static const QStringList colors = {/*00*/ "#000000", /*01*/ "#CCCCCC", /*10*/ "#FFFFFF",
+                                         /*11*/ "#CCCCCC"};
       if (QDomElement svgElement = doc.documentElement(); svgElement.tagName() == "svg")
         svgElement.setAttribute("fill", colors[(isDark ? 2 : 0) | (isDisabled ? 1 : 0)]);
       contents = doc.toByteArray();

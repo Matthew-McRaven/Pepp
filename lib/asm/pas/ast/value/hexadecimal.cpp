@@ -35,7 +35,8 @@ QSharedPointer<pas::ast::value::Base> pas::ast::value::Hexadecimal::clone() cons
 }
 
 QString pas::ast::value::Hexadecimal::string() const {
-  return u"0x%1"_qs.arg(QString::number(_value, 16).toUpper(), 2 * _size, QChar('0'));
+  using namespace Qt::StringLiterals;
+  return u"0x%1"_s.arg(QString::number(_value, 16).toUpper(), 2 * _size, QChar('0'));
 }
 
 QString pas::ast::value::Hexadecimal::rawString() const { return string(); }

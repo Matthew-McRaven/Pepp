@@ -26,7 +26,7 @@
 #include "asm/pas/ast/value/base.hpp"
 #include "asm/symbol/entry.hpp"
 
-QString pas::ops::generic::detail::formatBlank(const ast::Node &node, SourceOptions opts) { return u""_qs; }
+QString pas::ops::generic::detail::formatBlank(const ast::Node &node, SourceOptions opts) { return ""; }
 
 QString pas::ops::generic::detail::formatComment(const ast::Node &node, SourceOptions opts) {
   QString lpad = "%1;%2";
@@ -45,9 +45,10 @@ QString pas::ops::generic::detail::formatComment(const ast::Node &node, SourceOp
 }
 
 QString pas::ops::generic::detail::format(QString symbol, QString invoke, QStringList args, QString comment) {
+  using namespace Qt::StringLiterals;
   auto joinedArgs = args.join(", ");
-  auto symPlaceholder = symbol.isEmpty() ? u"         "_qs : u"%1"_qs.arg(symbol + ":", -9, QChar(' '));
-  auto ret = u"%1%2%3%4"_qs.arg(symPlaceholder)
+  auto symPlaceholder = symbol.isEmpty() ? u"         "_s : u"%1"_s.arg(symbol + ":", -9, QChar(' '));
+  auto ret = u"%1%2%3%4"_s.arg(symPlaceholder)
                  .arg(invoke, -9, ' ')
                  .arg(joinedArgs, -8, ' ')
                  .arg(comment.isEmpty() ? "" : ";" + comment);
@@ -75,27 +76,30 @@ QString pas::ops::generic::detail::formatDirectiveOrMacro(const pas::ast::Node &
 }
 
 QString pas::ops::generic::detail::formatDirective(const ast::Node &node, SourceOptions opts) {
+  using namespace Qt::StringLiterals;
   if (!node.has<ast::generic::Directive>()) {
     static const char *const e = "Directive missing directive element";
     qCritical(e);
     throw std::logic_error(e);
   }
-  return formatDirectiveOrMacro(node, u".%1"_qs.arg(node.get<ast::generic::Directive>().value), opts);
+  return formatDirectiveOrMacro(node, u".%1"_s.arg(node.get<ast::generic::Directive>().value), opts);
 }
 
 QString pas::ops::generic::detail::formatMacro(const ast::Node &node, SourceOptions opts) {
+  using namespace Qt::StringLiterals;
   if (!node.has<ast::generic::Macro>()) {
     static const char *const e = "Macro missing directive macro";
     qCritical(e);
     throw std::logic_error(e);
   }
-  return formatDirectiveOrMacro(node, u"@%1"_qs.arg(node.get<ast::generic::Macro>().value), opts);
+  return formatDirectiveOrMacro(node, u"@%1"_s.arg(node.get<ast::generic::Macro>().value), opts);
 }
 
 QString pas::ops::generic::detail::formatErrorsAsComments(const ast::Node &node) {
+  using namespace Qt::StringLiterals;
   QString ret = "";
   if (node.has<pas::ast::generic::Error>())
-    for (auto &error : node.get<pas::ast::generic::Error>().value) ret += u";ERROR: %1"_qs.arg(error.message);
+    for (auto &error : node.get<pas::ast::generic::Error>().value) ret += u";ERROR: %1"_s.arg(error.message);
 
   return ret;
 }

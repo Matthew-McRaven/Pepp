@@ -30,7 +30,7 @@ TEST_CASE("Link Globals", "[scope:asm][kind:unit][arch:pep10]") {
     auto globals = QSharedPointer<pas::driver::Globals>::create();
     auto ret = pas::driver::pepp::createParser<isa::Pep10, pas::driver::ANTLRParserTag>(false)(body, nullptr);
     REQUIRE(!ret.hadError);
-    pas::ops::generic::linkGlobals(*ret.root, globals, {u"EXPORT"_qs});
+    pas::ops::generic::linkGlobals(*ret.root, globals, {"EXPORT"});
     REQUIRE(globals->contains("s"));
     auto sym = globals->get("s");
     CHECK(sym->binding == symbol::Binding::kGlobal);
@@ -49,7 +49,7 @@ TEST_CASE("Link Globals", "[scope:asm][kind:unit][arch:pep10]") {
 
     auto ret = pas::driver::pepp::createParser<isa::Pep10, pas::driver::ANTLRParserTag>(false)(body, nullptr);
     REQUIRE(!ret.hadError);
-    pas::ops::generic::linkGlobals(*ret.root, globals, {u"EXPORT"_qs});
+    pas::ops::generic::linkGlobals(*ret.root, globals, {"EXPORT"});
 
     // Verify that local symbol is correct
     REQUIRE(ret.root->has<pas::ast::generic::SymbolTable>());
@@ -77,7 +77,7 @@ TEST_CASE("Link Globals", "[scope:asm][kind:unit][arch:pep10]") {
 
     auto ret = pas::driver::pepp::createParser<isa::Pep10, pas::driver::ANTLRParserTag>(false)(body, nullptr);
     REQUIRE(!ret.hadError);
-    pas::ops::generic::linkGlobals(*ret.root, globals, {u"EXPORT"_qs});
+    pas::ops::generic::linkGlobals(*ret.root, globals, {"EXPORT"});
 
     // Verify that local symbol is correct
     REQUIRE(ret.root->has<pas::ast::generic::SymbolTable>());

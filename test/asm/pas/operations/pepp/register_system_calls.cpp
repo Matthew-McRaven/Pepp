@@ -33,9 +33,9 @@ void nonunary_test(macro::Registry *registry) {
   auto macro = registry->findMacro("s");
   CHECK(macro->type() == macro::types::System);
   auto contents = macro->contents();
-  CHECK(contents->name() == u"s"_qs);
+  CHECK(contents->name() == "s");
   CHECK(contents->argCount() == 2);
-  CHECK(contents->body() == u"LDWA s, i\nSCALL $1, $2\n"_qs);
+  CHECK(contents->body() == "LDWA s, i\nSCALL $1, $2\n");
 }
 
 void duplicates_test(macro::Registry *macro) {

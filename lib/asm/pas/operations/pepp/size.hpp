@@ -61,11 +61,11 @@ template <typename ISA> qsizetype pas::ops::pepp::implicitSize(const pas::ast::N
 }
 template <typename ISA> qsizetype pas::ops::pepp::explicitSize(const ast::Node &node, quint16 at, Direction direction) {
   using sizeFn = std::function<quint16(const ast::Node &, quint16, Direction)>;
-  static const QMap<QString, sizeFn> directiveMap = {{u"ALIGN"_qs, &detail::sizeAlign},
-                                                     {u"ASCII"_qs, &detail::sizeASCII},
-                                                     {u"BLOCK"_qs, &detail::sizeBlock},
-                                                     {u"BYTE"_qs, &detail::sizeByte},
-                                                     {u"WORD"_qs, &detail::sizeWord}};
+  static const QMap<QString, sizeFn> directiveMap = {{"ALIGN", &detail::sizeAlign},
+                                                     {"ASCII", &detail::sizeASCII},
+                                                     {"BLOCK", &detail::sizeBlock},
+                                                     {"BYTE", &detail::sizeByte},
+                                                     {"WORD", &detail::sizeWord}};
   if (generic::isDirective()(node)) {
     auto name = node.get<ast::generic::Directive>().value;
     if (auto item = directiveMap.find(name.toUpper()); item != directiveMap.end()) {

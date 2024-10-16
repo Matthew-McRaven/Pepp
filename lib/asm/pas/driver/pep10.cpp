@@ -47,7 +47,7 @@ bool pas::driver::pep10::TransformRegisterExports::operator()(QSharedPointer<Glo
                                                               QSharedPointer<pas::driver::Target<Stage>> target) {
 
   auto root = target->bodies[repr::Nodes::name].value<repr::Nodes>().value;
-  pas::ops::generic::linkGlobals(*root, globals, {u"EXPORT"_qs});
+  pas::ops::generic::linkGlobals(*root, globals, {"EXPORT"});
   return pas::ops::pepp::registerSystemCalls(*root, globals->macroRegistry);
 }
 

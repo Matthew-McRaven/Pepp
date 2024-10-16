@@ -199,8 +199,17 @@ if (ONLY STREQUAL "BUILD")
     set(CMAKE_CXX_STANDARD 20)
     set(CMAKE_CXX_STANDARD_REQUIRED ON)
     # We always want universal builds, so do not set on a per-target basis
+    find_package(Qt6 6.5 COMPONENTS REQUIRED Svg Quick Core Gui Qml Test Widgets QuickControls2 Xml Sql)
+    if(Qt6_VERSION  VERSION_GREATER_EQUAL 6.8)
+      # Qt6.8/WASM stopped building without this flag being set.
+      if(EMSCRIPTEN)
+        add_link_options(--bind)
+      endif()
+      # Silence Qt's CMake warnings about policy being unset.
+      qt_policy(SET QTP0004 NEW)
+    endif()
 
-    find_package(Qt6 6.4 COMPONENTS REQUIRED Svg Quick Core Gui Qml Test Widgets QuickControls2 Xml Sql)
+
     add_subdirectory(3rd-party)
     set(CMAKE_AUTOMOC ON)
     set(CMAKE_AUTORCC ON)
@@ -231,6 +240,11 @@ if (ONLY STREQUAL "BUILD")
     # Do not enable feature if lacking python.
     if(Python_FOUND AND (NOT FORCE_DISABLE_CHANGEDB))
         message("Generating changelog")
+        # Ensure that changelog exists at configure time, otherwise qt_add_resources will fail on some Mac platforms.
+        execute_process(
+            OUTPUT_FILE ${CMAKE_CURRENT_BINARY_DIR}/changelog.db
+            COMMAND ${Python_EXECUTABLE} ${CMAKE_CURRENT_LIST_DIR}/scripts/changelog_tools.py to_sql ${CMAKE_CURRENT_BINARY_DIR}/changelog.db
+            WORKING_DIRECTORY ${CMAKE_CURRENT_LIST_DIR})
         # Ensure that target only rebuils iff the CSV files change using depends.
         add_custom_command(
                 OUTPUT ${CMAKE_CURRENT_BINARY_DIR}/changelog.db

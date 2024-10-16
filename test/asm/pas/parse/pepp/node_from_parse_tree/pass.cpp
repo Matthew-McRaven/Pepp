@@ -35,7 +35,7 @@ using namespace parse;
 namespace {
 // Declare all matchers as globals, so they don't fall out of scope in data fn.
 // Must manually type erase, since QTest can;'t figure this out on its own.
-
+using namespace Qt::StringLiterals;
 QSharedPointer<pas::ops::ConstOp<bool>> isBlank = QSharedPointer<pas::ops::generic::isBlank>::create();
 QSharedPointer<pas::ops::ConstOp<bool>> isComment = QSharedPointer<pas::ops::generic::isComment>::create();
 
@@ -51,26 +51,26 @@ QSharedPointer<pas::ops::ConstOp<bool>> isMacro = QSharedPointer<pas::ops::gener
 QSharedPointer<pas::ops::ConstOp<bool>> isAlign = QSharedPointer<pas::ops::generic::isAlign>::create();
 QSharedPointer<pas::ops::ConstOp<bool>> isASCII = []() {
   auto ret = QSharedPointer<pas::ops::generic::isString>::create();
-  ret->directiveAliases = {u"ASCII"_qs};
+  ret->directiveAliases = {u"ASCII"_s};
   return ret;
 }();
 QSharedPointer<pas::ops::ConstOp<bool>> isBlock = []() {
   auto ret = QSharedPointer<pas::ops::generic::isSkip>::create();
   ret->allowFill = false;
-  ret->directiveAliases = {u"BLOCK"_qs};
+  ret->directiveAliases = {u"BLOCK"_s};
   return ret;
 }();
 QSharedPointer<pas::ops::ConstOp<bool>> isBurn = QSharedPointer<pas::ops::pepp::isBurn>::create();
 QSharedPointer<pas::ops::ConstOp<bool>> isByte = []() {
   auto ret = QSharedPointer<pas::ops::generic::isByte1>::create();
   ret->allowMultiple = false;
-  ret->directiveAliases = {u"BYTE"_qs};
+  ret->directiveAliases = {u"BYTE"_s};
   return ret;
 }();
 QSharedPointer<pas::ops::ConstOp<bool>> isEnd = QSharedPointer<pas::ops::pepp::isEnd>::create();
 QSharedPointer<pas::ops::ConstOp<bool>> isEquate = []() {
   auto ret = QSharedPointer<pas::ops::generic::isSet>::create();
-  ret->directiveAliases = {u"EQUATE"_qs};
+  ret->directiveAliases = {u"EQUATE"_s};
   return ret;
 }();
 QSharedPointer<pas::ops::ConstOp<bool>> isExport = QSharedPointer<pas::ops::pepp::isExport>::create();
@@ -84,7 +84,7 @@ QSharedPointer<pas::ops::ConstOp<bool>> isUSCall = QSharedPointer<pas::ops::pepp
 QSharedPointer<pas::ops::ConstOp<bool>> isWord = []() {
   auto ret = QSharedPointer<pas::ops::generic::isByte2>::create();
   ret->allowMultiple = false;
-  ret->directiveAliases = {u"WORD"_qs};
+  ret->directiveAliases = {u"WORD"_s};
   return ret;
 }();
 

@@ -40,33 +40,33 @@ struct isAlign : public pas::ops::ConstOp<bool> {
 };
 
 struct isString : public pas::ops::ConstOp<bool> {
-  QList<QString> directiveAliases = {u"STRING"_qs};
+  QList<QString> directiveAliases = {"STRING"};
   bool operator()(const ast::Node &node);
 };
 
 struct isSkip : public pas::ops::ConstOp<bool> {
-  QList<QString> directiveAliases = {u"SKIP"_qs};
+  QList<QString> directiveAliases = {"SKIP"};
   bool allowFill = false;
   bool operator()(const ast::Node &node);
 };
 
 struct isByte1 : public pas::ops::ConstOp<bool> {
-  QList<QString> directiveAliases = {u"BYTE1"_qs};
+  QList<QString> directiveAliases = {"BYTE1"};
   bool allowMultiple = false;
   bool operator()(const ast::Node &node);
 };
 struct isByte2 : public pas::ops::ConstOp<bool> {
-  QList<QString> directiveAliases = {u"BYTE2"_qs};
+  QList<QString> directiveAliases = {"BYTE2"};
   bool allowMultiple = false;
   bool operator()(const ast::Node &node);
 };
 struct isSet : public pas::ops::ConstOp<bool> {
-  QList<QString> directiveAliases = {u"SET"_qs};
+  QList<QString> directiveAliases = {"SET"};
   bool operator()(const ast::Node &node);
 };
 
 struct isOrg : public pas::ops::ConstOp<bool> {
-  QList<QString> directiveAliases = {u"ORG"_qs};
+  QList<QString> directiveAliases = {"ORG"};
   bool operator()(const ast::Node &node);
 };
 

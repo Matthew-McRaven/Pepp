@@ -222,14 +222,14 @@ std::any parse::PeppASTConverter::visitDirectiveLine(PeppParser::DirectiveLineCo
   using namespace std::placeholders;
   // Must pass this manually, otherwise the first instance of our AST converter will be bound into the map.
   static QMap<QString, convert_fn> converters = {
-      {u"ALIGN"_qs, &PeppASTConverter::align},   {u"ASCII"_qs, &PeppASTConverter::ascii},
-      {u"BLOCK"_qs, &PeppASTConverter::block},   {u"BURN"_qs, &PeppASTConverter::burn},
-      {u"BYTE"_qs, &PeppASTConverter::byte},     {u"END"_qs, &PeppASTConverter::end},
-      {u"EQUATE"_qs, &PeppASTConverter::equate}, {u"EXPORT"_qs, &PeppASTConverter::_export},
-      {u"IMPORT"_qs, &PeppASTConverter::import}, {u"INPUT"_qs, &PeppASTConverter::input},
-      {u"OUTPUT"_qs, &PeppASTConverter::output}, {u"ORG"_qs, &PeppASTConverter::org},
-      {u"SCALL"_qs, &PeppASTConverter::scall},   {u"SECTION"_qs, &PeppASTConverter::section},
-      {u"USCALL"_qs, &PeppASTConverter::uscall}, {u"WORD"_qs, &PeppASTConverter::word},
+      {"ALIGN", &PeppASTConverter::align},   {"ASCII", &PeppASTConverter::ascii},
+      {"BLOCK", &PeppASTConverter::block},   {"BURN", &PeppASTConverter::burn},
+      {"BYTE", &PeppASTConverter::byte},     {"END", &PeppASTConverter::end},
+      {"EQUATE", &PeppASTConverter::equate}, {"EXPORT", &PeppASTConverter::_export},
+      {"IMPORT", &PeppASTConverter::import}, {"INPUT", &PeppASTConverter::input},
+      {"OUTPUT", &PeppASTConverter::output}, {"ORG", &PeppASTConverter::org},
+      {"SCALL", &PeppASTConverter::scall},   {"SECTION", &PeppASTConverter::section},
+      {"USCALL", &PeppASTConverter::uscall}, {"WORD", &PeppASTConverter::word},
   };
 
   auto identifier = *_lineInfo.identifier;
@@ -383,7 +383,7 @@ void parse::PeppASTConverter::ascii(QSharedPointer<pas::ast::Node> node, PeppPar
   }
 
   auto arg = _lineInfo.arguments.at(0);
-  if (!arg->isText()) addError(node, {.severity = S::Fatal, .message = EP::dotRequiresString.arg(u".ASCII"_qs)});
+  if (!arg->isText()) addError(node, {.severity = S::Fatal, .message = EP::dotRequiresString.arg(".ASCII")});
   else node->set(generic::Argument{.value = arg});
 }
 
@@ -502,7 +502,7 @@ void parse::PeppASTConverter::section(QSharedPointer<pas::ast::Node> node, PeppP
 
   auto arg = _lineInfo.arguments[0];
   // Triggers when the argument is not a string
-  if (!arg->isText()) addError(node, {.severity = S::Fatal, .message = EP::dotRequiresString.arg(u".SECTION"_qs)});
+  if (!arg->isText()) addError(node, {.severity = S::Fatal, .message = EP::dotRequiresString.arg(".SECTION")});
   else if (node->has<generic::SymbolDeclaration>())
     addError(node, {.severity = S::Fatal, .message = EP::noDefineSymbol.arg(".SECTION")});
   else if (_lineInfo.arguments.size() == 2) {

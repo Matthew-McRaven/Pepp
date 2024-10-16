@@ -24,6 +24,9 @@
 #include "isa/pep10.hpp"
 #include "macro/macro.hpp"
 #include "macro/registry.hpp"
+
+using namespace Qt::StringLiterals;
+
 using testFn = void (*)(QSharedPointer<pas::ast::Node>);
 namespace {
 
@@ -102,7 +105,7 @@ TEST_CASE("Include macros", "[scope:asm][kind:unit][arch:pep10]") {
   // Valid non-nesting
   SECTION("Valid non-nesting") {
     auto registry = QSharedPointer<macro::Registry>::create();
-    auto macro = QSharedPointer<macro::Parsed>::create(u"alpa"_qs, 0, u".block 1"_qs, u"pep/10"_qs);
+    auto macro = QSharedPointer<macro::Parsed>::create(u"alpa"_s, 0, u".block 1"_s, u"pep/10"_s);
     registry->registerMacro(macro::types::Core, macro);
     QString input = "@alpa";
     smoke(registry, input, &success_test, false, false);
@@ -113,7 +116,7 @@ TEST_CASE("Include macros", "[scope:asm][kind:unit][arch:pep10]") {
   SECTION("Error on incorrect arg count") {
     auto registry = QSharedPointer<macro::Registry>::create();
 
-    auto macro = QSharedPointer<macro::Parsed>::create(u"alpa"_qs, 2, u".END"_qs, u"pep/10"_qs);
+    auto macro = QSharedPointer<macro::Parsed>::create(u"alpa"_s, 2, u".END"_s, u"pep/10"_s);
     registry->registerMacro(macro::types::Core, macro);
     QString input = "@alpa";
     smoke(registry, input, &errorOnIncorrectArgCount_test, false, true);
@@ -131,9 +134,9 @@ TEST_CASE("Include macros", "[scope:asm][kind:unit][arch:pep10]") {
   // Valid nesting
   SECTION("Valid nesting") {
     auto registry = QSharedPointer<macro::Registry>::create();
-    auto macro = QSharedPointer<macro::Parsed>::create(u"alpa"_qs, 0, u"@beta"_qs, u"pep/10"_qs);
+    auto macro = QSharedPointer<macro::Parsed>::create(u"alpa"_s, 0, u"@beta"_s, u"pep/10"_s);
     registry->registerMacro(macro::types::Core, macro);
-    auto macro1 = QSharedPointer<macro::Parsed>::create(u"beta"_qs, 0, u".block 1"_qs, u"pep/10"_qs);
+    auto macro1 = QSharedPointer<macro::Parsed>::create(u"beta"_s, 0, u".block 1"_s, u"pep/10"_s);
     registry->registerMacro(macro::types::Core, macro1);
     QString input = "@alpa";
     smoke(registry, input, &validNesting_test, false, false);

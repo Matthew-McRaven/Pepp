@@ -31,7 +31,7 @@ struct Message {
 };
 
 struct Error {
-  static const inline QString attributeName = u"generic:error"_qs;
+  static const inline QString attributeName = "generic:error";
   static const inline uint8_t attribute = 9;
   QList<Message> value = {};
   bool operator==(const Error &other) const = default;

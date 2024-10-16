@@ -33,6 +33,7 @@ const QString nonunarySCallMacro = "LDWA %1, i\nSCALL ";
 using pas::ast::generic::Message;
 
 bool pas::ops::pepp::RegisterSystemCalls::operator()(ast::Node &node) {
+  using namespace Qt::StringLiterals;
   auto macroKind = node.get<ast::generic::Directive>().value;
   QSharedPointer<macro::Parsed> parsed = {};
 
@@ -40,12 +41,12 @@ bool pas::ops::pepp::RegisterSystemCalls::operator()(ast::Node &node) {
   // macro kind (unary/non-unary)
   if (!node.has<ast::generic::Argument>()) {
     addedError = true;
-    ast::addError(node, {.severity = Message::Severity::Fatal, .message = u"%1 missing argument."_qs.arg(macroKind)});
+    ast::addError(node, {.severity = Message::Severity::Fatal, .message = u"%1 missing argument."_s.arg(macroKind)});
   } else if (auto argument = dynamic_cast<ast::value::Symbolic *>(&*node.get<ast::generic::Argument>().value);
              argument == nullptr) {
     addedError = true;
     ast::addError(node, {.severity = Message::Severity::Fatal,
-                         .message = u"%1 expected a identifier argument."_qs.arg(macroKind)});
+                         .message = u"%1 expected a identifier argument."_s.arg(macroKind)});
   } else if (macroKind.toUpper() == "SCALL") {
     auto name = argument->string();
     parsed = QSharedPointer<macro::Parsed>::create(name, 2, nonunarySCallMacro.arg(name) + "$1, $2\n", "pep/10");
@@ -54,13 +55,13 @@ bool pas::ops::pepp::RegisterSystemCalls::operator()(ast::Node &node) {
     parsed = QSharedPointer<macro::Parsed>::create(name, 0, unarySCallMacro.arg(name), "pep/10");
   } else {
     addedError = true;
-    ast::addError(node, {.severity = Message::Severity::Fatal, .message = u"Unspecified error."_qs});
+    ast::addError(node, {.severity = Message::Severity::Fatal, .message = u"Unspecified error."_s});
   }
 
   // Attempt to register macro, and propogate error if it already exists.
   if (!parsed.isNull() && registry->registerMacro(macro::types::System, parsed) == nullptr) {
     addedError = true;
-    ast::addError(node, {.severity = Message::Severity::Fatal, .message = u"Duplicate system call."_qs});
+    ast::addError(node, {.severity = Message::Severity::Fatal, .message = u"Duplicate system call."_s});
   }
   return addedError;
 }

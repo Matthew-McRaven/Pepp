@@ -141,13 +141,14 @@ QList<QSharedPointer<symbol::Entry>> symbol::enumerate(QSharedPointer<Table> tab
 }
 
 QString symbol::tableListing(QSharedPointer<Table> table, quint8 maxBytes, TraversalPolicy policy) {
+  using namespace Qt::StringLiterals;
   // TODO: Use QString throughout, potentially eliding spurious data copy.
   auto symbols = enumerate(table, policy);
   auto it = symbols.cbegin();
   // Compute the bitwidth of the symbol table.
   // Helper lambda to pretty print a single symbol.
   auto format = [&maxBytes](const auto &sym) {
-    return u"%1 0x%2"_qs.arg(sym->name.leftJustified(9, ' '))
+    return u"%1 0x%2"_s.arg(sym->name.leftJustified(9, ' '))
         .arg(QString::number(sym->value->value()(), 16).toUpper(), 2 * maxBytes, u'0');
   };
   std::ostringstream ss;

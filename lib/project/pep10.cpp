@@ -27,6 +27,7 @@ auto gs = sim::api2::memory::Operation{
     .kind = sim::api2::memory::Operation::Kind::data,
 };
 }
+using namespace Qt::StringLiterals;
 
 struct Pep10OpcodeInit {
   explicit Pep10OpcodeInit(OpcodeModel *model) {
@@ -41,8 +42,8 @@ struct Pep10OpcodeInit {
       if (op.mode == isa::Pep10::AddressingMode::NONE) {
         formatted = QString(mnemonicEnum.valueToKey((int)op.instr.mnemon)).toUpper();
       } else {
-        formatted = u"%1, %2"_qs.arg(QString(mnemonicEnum.valueToKey((int)op.instr.mnemon)).toUpper(),
-                                     QString(addressEnum.valueToKey((int)op.mode)).toLower());
+        formatted = u"%1, %2"_s.arg(QString(mnemonicEnum.valueToKey((int)op.instr.mnemon)).toUpper(),
+                                    QString(addressEnum.valueToKey((int)op.mode)).toLower());
       }
       model->appendRow(formatted, it);
     }
@@ -302,7 +303,8 @@ QString Pep10_ISA::charOut() const {
     }
     return out;
   }
-  return u""_qs;
+  using namespace Qt::StringLiterals;
+  return u""_s;
 }
 
 bool Pep10_ISA::isEmpty() const { return _objectCodeText.isEmpty(); }
