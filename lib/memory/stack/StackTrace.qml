@@ -5,7 +5,7 @@ Rectangle {
     color: "orange"
 
     // Create C++ items using the magic of QQmlPropertyList and DefaultProperty
-    ActivationModel {
+    /*ActivationModel {
         id: activationModel
         ActivationRecord {
             active: true
@@ -46,6 +46,60 @@ Rectangle {
                 name: "f"
             }
         }
+    }*/
+
+    ListModel {
+        id: activationModel
+        ListElement {
+            active: false
+            subItems: [
+                ListElement {
+                    address: 0
+                    value: "10"
+                    name: "a"
+                },
+                ListElement {
+                    address: 2
+                    value: "20"
+                    name: "b"
+                }
+            ]
+        }
+        ListElement {
+            active: true
+            subItems: [
+                ListElement {
+                    address: 4
+                    value: "30"
+                    name: "c"
+                },
+                ListElement {
+                    address: 12
+                    value: "200"
+                    name: "b2"
+                }
+            ]
+        }
+        ListElement {
+            active: true
+            subItems: [
+                ListElement {
+                    address: 6
+                    value: "40"
+                    name: "d"
+                },
+                ListElement {
+                    address: 7
+                    value: "50"
+                    name: "e"
+                },
+                ListElement {
+                    address: 9
+                    value: "60"
+                    name: "f"
+                }
+            ]
+        }
     }
 
     //  Globals
@@ -61,7 +115,19 @@ Rectangle {
             text: "W" // Dummy value to get width of widest character
         }
 
-        ListView {
+        //Column {
+        MemoryStack {
+            //Layout.alignment: Qt.AlignBottom
+            //anchors.fill: parent
+            //y: 100
+            font: tm.font
+            itemModel: activationModel
+        }
+        //}
+    }
+
+
+    /*ListView {
             anchors.fill: parent
             spacing: 0
             //  Using example 5.22 for sample global
@@ -103,29 +169,6 @@ Rectangle {
             }
 
             //focus: true
-        }
-    }
-
-
-    /*
-            text: `0x${root.currentAddress.toString(16).padStart(
-                      4, '0').toUpperCase()}`
-Column {
-        anchors.fill: parent
-        Repeater {
-            model: activationModel.records
-            delegate: Column {
-                id: recordDelegate
-                required property var modelData
-                Repeater {
-                    model: modelData.lines
-                    delegate: Text {
-                        required property var modelData
-                        text: `${modelData.address} -- ${modelData.value} -- ${modelData.name}`
-                        font.bold: recordDelegate.modelData.active
-                    }
-                }
-            }
         }
     }*/
 }
