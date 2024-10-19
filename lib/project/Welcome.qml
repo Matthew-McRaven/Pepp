@@ -9,7 +9,7 @@ Flickable {
         anchors.fill: parent
         GridLayout {
             id: layout
-            columns: 1 + 5
+            columns: 1 + 6
             anchors.fill: parent
             anchors.centerIn: parent
             // Header
@@ -48,7 +48,15 @@ Flickable {
                 Layout.fillWidth: true
             }
             Text {
-                text: "Mc2"
+                text: "Mc2-1B"
+                font.pointSize: 24
+                font.weight: Font.Bold
+                color: palette.text
+                horizontalAlignment: Text.AlignHCenter
+                Layout.fillWidth: true
+            }
+            Text {
+                text: "Mc2-2B"
                 font.pointSize: 24
                 font.weight: Font.Bold
                 color: palette.text
@@ -94,26 +102,18 @@ Flickable {
                 abstraction: Abstraction.OS4
                 enabled: false
             }
-            Rectangle {
-                height: childrenRect.height
-                width: childrenRect.width
-                color: "transparent"
-                Row {
-                    spacing: layout.columnSpacing
-                    WelcomeCard {
-                        text: "Pep/10, Mc2, 1-byte bus"
-                        architecture: Architecture.PEP10
-                        abstraction: Abstraction.MC2
-                        source: "image://icons/cards/p10_mc2_1byte.svg"
-                        enabled: false
-                    }
-                    WelcomeCard {
-                        text: "Pep/10, Mc2, 2-byte bus"
-                        architecture: Architecture.PEP10
-                        abstraction: Abstraction.MC2
-                        enabled: false
-                    }
-                }
+            WelcomeCard {
+                text: "Pep/10, Mc2, 1-byte bus"
+                architecture: Architecture.PEP10
+                abstraction: Abstraction.MC2
+                source: "image://icons/cards/p10_mc2_1byte.svg"
+                enabled: false
+            }
+            WelcomeCard {
+                text: "Pep/10, Mc2, 2-byte bus"
+                architecture: Architecture.PEP10
+                abstraction: Abstraction.MC2
+                enabled: false
             }
             // Row 2
             Text {
@@ -146,26 +146,18 @@ Flickable {
                 abstraction: Abstraction.OS4
                 enabled: false
             }
-            Rectangle {
-                height: childrenRect.height
-                width: childrenRect.width
-                color: "transparent"
-                Row {
-                    spacing: layout.columnSpacing
-                    WelcomeCard {
-                        text: "Pep/9, Mc2, 1-byte bus"
-                        architecture: Architecture.PEP9
-                        abstraction: Abstraction.MC2
-                        source: "image://icons/cards/p10_mc2_1byte.svg"
-                        enabled: false
-                    }
-                    WelcomeCard {
-                        text: "Pep/9, Mc2, 2-byte bus"
-                        architecture: Architecture.PEP9
-                        abstraction: Abstraction.MC2
-                        enabled: false
-                    }
-                }
+            WelcomeCard {
+                text: "Pep/9, Mc2, 1-byte bus"
+                architecture: Architecture.PEP9
+                abstraction: Abstraction.MC2
+                source: "image://icons/cards/p10_mc2_1byte.svg"
+                enabled: false
+            }
+            WelcomeCard {
+                text: "Pep/9, Mc2, 2-byte bus"
+                architecture: Architecture.PEP9
+                abstraction: Abstraction.MC2
+                enabled: false
             }
             // Row 3
             Text {
@@ -205,6 +197,7 @@ Flickable {
                 source: "image://icons/cards/p10_mc2_1byte.svg"
                 enabled: false
             }
+            Item {}
             // Row 4
             Text {
                 text: "RISC-V"
@@ -223,6 +216,7 @@ Flickable {
             }
             Item {}
 
+            Item {}
             Item {}
             Item {}
         }
