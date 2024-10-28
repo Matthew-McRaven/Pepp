@@ -140,6 +140,18 @@ void smoke(QString os, QString userPep, QString userPepo, QString input, QByteAr
 }
 } // namespace
 
+TEST_CASE("Pep/10 Assembler Assembly", "[scope:asm][kind:e2e][arch:pep10]") {
+  using namespace Qt::StringLiterals;
+  auto bookReg = builtins::Registry(nullptr);
+  auto bookPtr = book(bookReg);
+  auto assemblerFig = bookPtr->findFigure("os", "assembler");
+  REQUIRE(!assemblerFig.isNull());
+  auto os = QString(assemblerFig->typesafeElements()["pep"]->contents).replace(lf, "");
+  auto reg = registry(bookPtr, {});
+  auto elf = pas::obj::pep10::createElf();
+  assemble(*elf, os, {}, reg);
+}
+
 TEST_CASE("Pep/10 Figure Assembly", "[scope:asm][kind:e2e][arch:pep10]") {
   using namespace Qt::StringLiterals;
   auto bookReg = builtins::Registry(nullptr);
