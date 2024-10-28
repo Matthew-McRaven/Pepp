@@ -6,5 +6,6 @@
   "is_os": true,
   "items": {
     "pep": "assembler.pep"
-  }
+  },
+  "hidden": true
 }

@@ -51,6 +51,17 @@ bool builtins::Figure::setIsOS(bool value) {
   return false;
 }
 
+bool builtins::Figure::isHidden() const { return _isHidden; }
+
+bool builtins::Figure::setIsHidden(bool value) {
+  if (value != _isHidden) {
+    _isHidden = value;
+    emit isHiddenChanged();
+    return true;
+  }
+  return false;
+}
+
 const builtins::Figure *builtins::Figure::defaultOS() const {
   return _defaultOS;
 }
