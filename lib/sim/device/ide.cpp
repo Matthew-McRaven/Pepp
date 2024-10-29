@@ -32,12 +32,24 @@ sim::memory::IDEController::IDEController(api2::device::Descriptor device, quint
 
 sim::memory::IDEController::IDERegs sim::memory::IDEController::regs() const {
   IDERegs ret;
-  read(0, bits::span<quint8>((quint8 *)&ret, sizeof(IDERegs)), gs);
+  quint8 buf[8];
+  read(0, {buf, sizeof(buf)}, gs);
+  ret.ideCMD = bits::memcpy_endian<quint8>({buf, 1}, bits::Order::BigEndian);
+  ret.offLBA = bits::memcpy_endian<quint8>({buf + 1, 1}, bits::Order::BigEndian);
+  ret.LBA = bits::memcpy_endian<quint16>({buf + 2, 2}, bits::Order::BigEndian);
+  ret.addrDMA = bits::memcpy_endian<quint16>({buf + 4, 2}, bits::Order::BigEndian);
+  ret.lenDMA = bits::memcpy_endian<quint16>({buf + 6, 2}, bits::Order::BigEndian);
   return ret;
 }
 
 void sim::memory::IDEController::setRegs(IDERegs regs, bool triggerExec) {
-  write(0, bits::span<const quint8>((const quint8 *)&regs, sizeof(IDERegs)), gs);
+  quint8 buf[8];
+  bits::memcpy_endian({buf, 1}, bits::Order::BigEndian, {&regs.ideCMD, 1}, bits::hostOrder());
+  bits::memcpy_endian({buf + 1, 1}, bits::Order::BigEndian, {&regs.offLBA, 1}, bits::hostOrder());
+  bits::memcpy_endian({buf + 2, 2}, bits::Order::BigEndian, {(quint8 *)&regs.LBA, 2}, bits::hostOrder());
+  bits::memcpy_endian({buf + 4, 2}, bits::Order::BigEndian, {(quint8 *)&regs.addrDMA, 2}, bits::hostOrder());
+  bits::memcpy_endian({buf + 6, 2}, bits::Order::BigEndian, {(quint8 *)&regs.lenDMA, 2}, bits::hostOrder());
+  write(0, {buf, sizeof(buf)}, gs);
   if (triggerExec) exec_command();
 }
 
@@ -70,7 +82,8 @@ sim::api2::memory::Result sim::memory::IDEController::write(quint16 address, bit
   switch (op.type) {
   case api2::memory::Operation::Type::Standard: do_exec = true;
   }
-  if (do_exec) exec_command();
+  api2::memory::Interval<quint16> accessed(address, address + src.size());
+  if (do_exec && contains(accessed, (quint16)RegisterOffsets::ideCMD)) exec_command();
   return ret;
 }
 

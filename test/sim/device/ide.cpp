@@ -65,7 +65,7 @@ TEST_CASE("IDE Controller storage out-of-bounds access", "[scope:sim][kind:int][
   // Neither write will stick, so tmp is meaningless
   *tmp = 0xfe;
   REQUIRE_THROWS_AS(dev.write(0x9, {tmp, 1}, op), api2::memory::Error);
-  REQUIRE_THROWS_AS(dev.write(0x10 + 7, {tmp, 1}, op), api2::memory::Error);
+  REQUIRE_THROWS_AS(dev.write(0x10 + 8, {tmp, 1}, op), api2::memory::Error);
 }
 
 using C = sim::memory::IDEController::Commands;

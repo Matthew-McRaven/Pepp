@@ -25,12 +25,12 @@ bmRAM:   .BLOCK  2
 ;0xC9 for READ, 0xCB for WRITE, 0x50 to erase (set to 0). All other values ignored.
 ideCMD:  .BLOCK  1
          .EXPORT ideCMD
-;Combine lowLBA and hiLBA, and reverse order of registers WRT the spec so they are big endian.
-LBA:     .BLOCK  2
-         .EXPORT LBA
 ;Offset into the sector from which the transfer will start.
 offLBA:  .BLOCK  1
          .EXPORT offLBA
+;Combine lowLBA and hiLBA, and reverse order of registers WRT the spec so they are big endian.
+LBA:     .BLOCK  2
+         .EXPORT LBA
 addrDMA: .BLOCK  2
          .EXPORT addrDMA
 ;Number of bytes to transfer via DMA. May be <256.
