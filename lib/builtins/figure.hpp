@@ -39,6 +39,7 @@ class Figure : public QObject {
   Q_PROPERTY(QString chapterName READ chapterName CONSTANT);
   Q_PROPERTY(QString figureName READ figureName CONSTANT);
   Q_PROPERTY(bool isOS READ isOS WRITE setIsOS NOTIFY isOSChanged);
+  Q_PROPERTY(bool isHidden READ isHidden NOTIFY isHiddenChanged);
   Q_PROPERTY(const Figure *defaultOS READ defaultOS WRITE setDefaultOS NOTIFY defaultOSChanged);
   // Must use variants if we want these to be accessed from QML.
   // We provide a type safe version, which should be used instead if in C++.
@@ -62,6 +63,9 @@ public:
   bool isOS() const;
   bool setIsOS(bool value);
 
+  bool isHidden() const;
+  bool setIsHidden(bool value);
+
   const Figure *defaultOS() const;
   bool setDefaultOS(const Figure *);
 
@@ -81,6 +85,7 @@ public:
 
 signals:
   void isOSChanged();
+  void isHiddenChanged();
   void defaultOSChanged();
   void testsChanged();
   void elementsChanged();
@@ -89,7 +94,7 @@ private:
   const Architecture _arch;
   const Abstraction _level;
   const QString _prefix, _chapterName, _figureName;
-  bool _isOS = false;
+  bool _isOS = false, _isHidden = false;
   // Non-owning
   const Figure *_defaultOS = nullptr;
   // Owns pointers

@@ -26,6 +26,8 @@ struct AddressedIO;
 } // namespace obj
 namespace sim {
 namespace memory {
+
+class IDEController;
 template <typename Address> class Dense;
 template <typename Address> class SimpleBus;
 template <typename Address> class Input;
@@ -60,6 +62,8 @@ public:
   sim::memory::Input<quint16> *input(QString name);
   QStringList outputs() const;
   sim::memory::Output<quint16> *output(QString name);
+  QStringList ideControllers() const;
+  sim::memory::IDEController *ideController(QString name);
 
   void doReloadEntries();
 
@@ -85,6 +89,7 @@ private:
 
   QMap<QString, QSharedPointer<sim::memory::Input<quint16>>> _mmi = {};
   QMap<QString, QSharedPointer<sim::memory::Output<quint16>>> _mmo = {};
+  QMap<QString, QSharedPointer<sim::memory::IDEController>> _ide = {};
   QMap<sim::api2::device::ID, sim::api2::device::Descriptor> _devices = {};
 };
 

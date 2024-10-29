@@ -28,9 +28,12 @@ ELFIO::section *addMMIONoteSection(ELFIO::elfio &elf);
 
 struct IO {
   QString name;
-  enum class Direction { kInput, kOutput } direction;
+  enum class Type { kInput, kOutput, kIDE } type;
 };
 void addMMIODeclarations(ELFIO::elfio &elf, ELFIO::section *symTab, QList<IO> mmios);
+// Mark the following symbol as the starting symbol for an memory-mapped IDE controller.
+void addIDEDeclaration(ELFIO::elfio &elf, ELFIO::section *symTab, QString symbol);
+
 struct AddressedIO : public IO {
   quint16 minOffset, maxOffset;
 };

@@ -134,6 +134,7 @@ builtins::detail::loadFigure(QString manifestPath) {
   // TODO: decide between "figure" and "problem" based on type field.
   auto figure = QSharedPointer<builtins::Figure>::create(arch, level, "Figure", chapterName, figureName);
   figure->setIsOS(manifest["is_os"].toBool(false));
+  figure->setIsHidden(manifest["hidden"].toBool(false));
 
   // Add tests
   auto ios = manifest["ios"];

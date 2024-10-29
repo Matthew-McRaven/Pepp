@@ -75,6 +75,8 @@ QSharedPointer<HelpEntry> examples_root() {
   QList<QSharedPointer<HelpEntry>> children;
   for (const auto &book : books) {
     for (const auto &figure : book->figures()) {
+      // Skip explicitly hidden figures (like the assembler).
+      if (figure->isHidden()) continue;
       auto title = u"%1 %2.%3"_s.arg(figure->prefix(), figure->chapterName(), figure->figureName());
       int mask = bitmask(figure->arch(), figure->level());
       auto entry =
