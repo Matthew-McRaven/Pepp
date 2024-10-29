@@ -31,20 +31,16 @@
 
 namespace {
 static const auto is_diskIn = [](const auto &x) {
-  return x.name == "diskIn" && x.direction == obj::IO::Direction::kInput && x.minOffset == 0xFFFC &&
-         x.maxOffset == 0xFFFC;
+  return x.name == "diskIn" && x.type == obj::IO::Type::kInput && x.minOffset == 0xFFFC && x.maxOffset == 0xFFFC;
 };
 static const auto is_charIn = [](const auto &x) {
-  return x.name == "charIn" && x.direction == obj::IO::Direction::kInput && x.minOffset == 0xFFFD &&
-         x.maxOffset == 0xFFFD;
+  return x.name == "charIn" && x.type == obj::IO::Type::kInput && x.minOffset == 0xFFFD && x.maxOffset == 0xFFFD;
 };
 static const auto is_charOut = [](const auto &x) {
-  return x.name == "charOut" && x.direction == obj::IO::Direction::kOutput && x.minOffset == 0xFFFE &&
-         x.maxOffset == 0xFFFE;
+  return x.name == "charOut" && x.type == obj::IO::Type::kOutput && x.minOffset == 0xFFFE && x.maxOffset == 0xFFFE;
 };
 static const auto is_pwrOff = [](const auto &x) {
-  return x.name == "pwrOff" && x.direction == obj::IO::Direction::kOutput && x.minOffset == 0xFFFF &&
-         x.maxOffset == 0xFFFF;
+  return x.name == "pwrOff" && x.type == obj::IO::Type::kOutput && x.minOffset == 0xFFFF && x.maxOffset == 0xFFFF;
 };
 
 void loadBookMacros(QSharedPointer<const builtins::Book> book, QSharedPointer<macro::Registry> registry) {

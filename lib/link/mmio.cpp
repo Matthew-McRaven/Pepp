@@ -44,11 +44,9 @@ void addNoteSeg(ELFIO::elfio &elf) {
     if (seg->get_type() == ELFIO::PT_NOTE) noteSeg = &*seg;
   }
   if (noteSeg == nullptr) {
-    if (noteSeg == nullptr) {
-      noteSeg = elf.segments.add();
-      noteSeg->set_type(ELFIO::PT_NOTE);
-      noteSeg->add_section(noteSec, 1);
-    }
+    noteSeg = elf.segments.add();
+    noteSeg->set_type(ELFIO::PT_NOTE);
+    noteSeg->add_section(noteSec, 1);
   }
 }
 
@@ -82,8 +80,41 @@ void obj::addMMIODeclarations(ELFIO::elfio &elf, ELFIO::section *symTab, QList<I
     auto stIndex = symTab->get_index();
     bits::memcpy_endian(descSpan.first(2), bits::Order::BigEndian, stIndex);
     bits::memcpy_endian(descSpan.subspan(2), bits::Order::BigEndian, it);
-    noteAc.add_note(target->direction == ::obj::IO::Direction::kInput ? 0x11 : 0x12, "pepp.mmios", (char *)desc,
-                    sizeof(desc));
+    switch (target->type) {
+    case ::obj::IO::Type::kInput: noteAc.add_note(0x11, "pepp.mmios", (char *)desc, sizeof(desc)); break;
+    case ::obj::IO::Type::kOutput: noteAc.add_note(0x12, "pepp.mmios", (char *)desc, sizeof(desc)); break;
+    case ::obj::IO::Type::kIDE: noteAc.add_note(0x13, "pepp.mmios", (char *)desc, sizeof(desc)); break;
+    }
+  }
+}
+
+void obj::addIDEDeclaration(ELFIO::elfio &elf, ELFIO::section *symTab, QString symbol) {
+  ELFIO::symbol_section_accessor symTabAc(elf, symTab);
+  auto noteSec = addMMIONoteSection(elf);
+  addNoteSeg(elf);
+  auto noteAc = ELFIO::note_section_accessor(elf, noteSec);
+  // Iterate over the symtab first, since it is much longer than MMIO list
+  for (ELFIO::Elf_Xword it = 1; it < symTabAc.get_symbols_num(); it++) {
+    std::string name;
+    ELFIO::Elf64_Addr value;
+    ELFIO::Elf_Xword size;
+    unsigned char bind, type, other;
+    ELFIO::Elf_Half index;
+    // Skip to next iteration if it does not name a valid symbol
+    if (!symTabAc.get_symbol(it, name, value, size, bind, type, index, other)) continue;
+
+    QString nameQs = QString::fromStdString(name);
+    if (symbol != nameQs) continue;
+
+    // Must use copy helper to maintain stable bit order between host
+    // platforms.
+    quint8 desc[2 + 4]; // ELF_half (16b for symtab section index) and
+                        // ELF32_WORD (32b for symbol index)
+    bits::span descSpan = {desc};
+    auto stIndex = symTab->get_index();
+    bits::memcpy_endian(descSpan.first(2), bits::Order::BigEndian, stIndex);
+    bits::memcpy_endian(descSpan.subspan(2), bits::Order::BigEndian, it);
+    noteAc.add_note(0x13, "pepp.mmios", (char *)desc, sizeof(desc));
   }
 }
 
@@ -112,10 +143,22 @@ QList<obj::AddressedIO> obj::getMMIODeclarations(const ELFIO::elfio &elf) {
     ELFIO::Elf_Half index;
     // Skip to next iteration if it does not name a valid symbol.
     if (!symTabAc.get_symbol(symIt, name, value, size, bind, symbolType, index, other)) continue;
-    ret.push_back(obj::AddressedIO{{.name = QString::fromStdString(name),
-                                    .direction = (noteType == 0x11) ? IO::Direction::kInput : IO::Direction::kOutput},
-                                   static_cast<quint16>(value),
-                                   static_cast<quint16>(value + std::max<decltype(size)>(size - 1, 0))});
+    IO::Type type;
+    switch (noteType) {
+    case 0x11: type = IO::Type::kInput; break;
+    case 0x12: type = IO::Type::kOutput; break;
+    case 0x13: type = IO::Type::kIDE; break;
+    }
+    if (noteType == 0x11 || noteType == 0x12) {
+      ret.push_back(obj::AddressedIO{{.name = QString::fromStdString(name), .type = type},
+                                     static_cast<quint16>(value),
+                                     static_cast<quint16>(value + std::max<decltype(size)>(size - 1, 0))});
+    } else if (noteType == 0x13) {
+      ret.push_back(obj::AddressedIO{{.name = QString::fromStdString(name), .type = type},
+                                     static_cast<quint16>(value),
+                                     // IDE uses 10 bytes worth of registers.
+                                     static_cast<quint16>(value + 9)});
+    }
   }
   return ret;
 }

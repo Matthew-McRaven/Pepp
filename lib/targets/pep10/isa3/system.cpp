@@ -82,7 +82,7 @@ targets::pep10::isa::System::System(QList<obj::MemoryRegion> regions, QList<obj:
   // Create MMIO, do not perform buffering
   for (const auto &mmio : mmios) {
     auto span = AddressSpan(0, static_cast<quint16>(mmio.maxOffset - mmio.minOffset));
-    if (mmio.direction == obj::IO::Direction::kInput) {
+    if (mmio.type == obj::IO::Type::kInput) {
       auto desc = desc_mmi(nextID(), mmio.name);
       addDevice(desc);
       auto mem = QSharedPointer<sim::memory::Input<quint16>>::create(desc, span);
@@ -95,12 +95,14 @@ targets::pep10::isa::System::System(QList<obj::MemoryRegion> regions, QList<obj:
         mem->setFailPolicy(sim::api2::memory::FailPolicy::YieldDefaultValue);
         mem->clear('z' /*Loader sentinel character*/);
       }
-    } else {
+    } else if (mmio.type == obj::IO::Type::kOutput) {
       auto desc = desc_mmo(nextID(), mmio.name);
       addDevice(desc);
       auto mem = QSharedPointer<sim::memory::Output<quint16>>::create(desc, span);
       _bus->pushFrontTarget(AddressSpan(mmio.minOffset, mmio.maxOffset), &*mem);
       _mmo[mmio.name] = mem;
+    } else {
+      throw std::logic_error("Unreachable");
     }
   }
   _cpu->setTarget(&*_bus, nullptr);

@@ -24,6 +24,7 @@
 #include "builtins/book.hpp"
 #include "builtins/figure.hpp"
 #include "builtins/registry.hpp"
+#include "link/mmio.hpp"
 #include "macro/registry.hpp"
 #include "sim/device/broadcast/mmi.hpp"
 #include "sim/device/broadcast/mmo.hpp"
@@ -176,6 +177,14 @@ TEST_CASE("Pep/10 Assembler Assembly", "[scope:asm][kind:e2e][arch:pep10]") {
   auto reg = registry(bookPtr, {});
   auto elf = pas::obj::pep10::createElf();
   assemble(*elf, os, {.pep = IDE_test}, reg);
+  // Insert IDE MMIO declaration
+  obj::addIDEDeclaration(*elf, elf->sections["os.symtab"], "ideCMD");
+  auto decls = obj::getMMIODeclarations(*elf);
+  CHECK(decls.size() == 5);
+  // And ensure that it is the correct size / is present
+  auto IDE = std::find_if(decls.begin(), decls.end(), [](auto &x) { return x.type == obj::IO::Type::kIDE; });
+  REQUIRE(IDE != decls.end());
+  CHECK(IDE->maxOffset - IDE->minOffset + 1 == 10);
   // Ensure that LBA[0x0 to 0xA] == 0
   // Run program which;
   // - WRITES FEED BEEF to LBA[0x0]

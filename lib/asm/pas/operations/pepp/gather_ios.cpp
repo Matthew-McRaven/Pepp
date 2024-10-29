@@ -25,11 +25,10 @@ void pas::ops::pepp::GatherIODefinitions::operator()(const ast::Node &node) {
   if (!node.has<ast::generic::Directive>()) return;
   auto directive = node.get<ast::generic::Directive>().value;
   if (!(directive == "INPUT" || directive == "OUTPUT")) return;
-  ::obj::IO::Direction direction =
-      (directive == "INPUT") ? ::obj::IO::Direction::kInput : ::obj::IO::Direction::kOutput;
+  ::obj::IO::Type type = (directive == "INPUT") ? ::obj::IO::Type::kInput : ::obj::IO::Type::kOutput;
   auto arg = node.get<ast::generic::Argument>().value;
   auto symbol = arg->rawString();
-  ios.append({.name = symbol, .direction = direction});
+  ios.append({.name = symbol, .type = type});
 }
 
 QList<::obj::IO> pas::ops::pepp::gatherIODefinitions(const ast::Node &node) {
