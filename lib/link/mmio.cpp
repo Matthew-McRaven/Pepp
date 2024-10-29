@@ -156,8 +156,8 @@ QList<obj::AddressedIO> obj::getMMIODeclarations(const ELFIO::elfio &elf) {
     } else if (noteType == 0x13) {
       ret.push_back(obj::AddressedIO{{.name = QString::fromStdString(name), .type = type},
                                      static_cast<quint16>(value),
-                                     // IDE uses 10 bytes worth of registers.
-                                     static_cast<quint16>(value + 9)});
+                                     // IDE uses 8 bytes worth of registers.
+                                     static_cast<quint16>(value + 7)});
     }
   }
   return ret;

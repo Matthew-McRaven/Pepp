@@ -144,8 +144,7 @@ void smoke(QString os, QString userPep, QString userPepo, QString input, QByteAr
 const auto IDE_test = "\
 ;Transfer FEED BEEF to LBA[0].\n\
     LDWA 0,i\n\
-    STWA hiLBA,d\n\
-    STWA lowLBA,d\n\
+    STWA LBA,d\n\
     STBA offLBA,d\n\
     LDWA da,i\n\
     STWA addrDMA,d\n\
@@ -184,7 +183,7 @@ TEST_CASE("Pep/10 Assembler Assembly", "[scope:asm][kind:e2e][arch:pep10]") {
   // And ensure that it is the correct size / is present
   auto IDE = std::find_if(decls.begin(), decls.end(), [](auto &x) { return x.type == obj::IO::Type::kIDE; });
   REQUIRE(IDE != decls.end());
-  CHECK(IDE->maxOffset - IDE->minOffset + 1 == 10);
+  CHECK(IDE->maxOffset - IDE->minOffset + 1 == 8);
   // Ensure that LBA[0x0 to 0xA] == 0
   // Run program which;
   // - WRITES FEED BEEF to LBA[0x0]
