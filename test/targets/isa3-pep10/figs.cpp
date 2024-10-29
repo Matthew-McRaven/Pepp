@@ -140,6 +140,32 @@ void smoke(QString os, QString userPep, QString userPepo, QString input, QByteAr
 }
 } // namespace
 
+const auto IDE_test = "\
+;Transfer FEED BEEF to LBA[0].\n\
+    LDWA 0,i\n\
+    STWA hiLBA,d\n\
+    STWA lowLBA,d\n\
+    STBA offLBA,d\n\
+    LDWA da,i\n\
+    STWA addrDMA,d\n\
+    LDWA 4,i\n\
+    STWA lenDMA,d\n\
+    LDBA 0xCB,i\n\
+    STBA ideCMD,d\n\
+;Transfer FEED BEEF from LBA[0] to Mem[0].\n\
+;LBA, LBA offset, DMA len remain the same.\n\
+    LDWA 0,i\n\
+    STWA addrDMA,d\n\
+    LDBA 0xC9,i\n\
+    STBA ideCMD,d\n\
+;Erase FEED from LBA[0].\n\
+    LDWA 2,i\n\
+    STWA lenDMA,d\n\
+    LDBA 0x50,i\n\
+    STBA ideCMD,d\n\
+da: .WORD 0xFEED\n\
+    .WORD 0xBEEF\n\
+";
 TEST_CASE("Pep/10 Assembler Assembly", "[scope:asm][kind:e2e][arch:pep10]") {
   using namespace Qt::StringLiterals;
   auto bookReg = builtins::Registry(nullptr);
@@ -149,7 +175,13 @@ TEST_CASE("Pep/10 Assembler Assembly", "[scope:asm][kind:e2e][arch:pep10]") {
   auto os = QString(assemblerFig->typesafeElements()["pep"]->contents).replace(lf, "");
   auto reg = registry(bookPtr, {});
   auto elf = pas::obj::pep10::createElf();
-  assemble(*elf, os, {}, reg);
+  assemble(*elf, os, {.pep = IDE_test}, reg);
+  // Ensure that LBA[0x0 to 0xA] == 0
+  // Run program which;
+  // - WRITES FEED BEEF to LBA[0x0]
+  // - READS LBA[0x0] to Mem[0x0]
+  // - ERASES FEED while keeping BEEF
+  // Ensure MEM has FEED BEEF and LBA has 0000 BEEF
 }
 
 TEST_CASE("Pep/10 Figure Assembly", "[scope:asm][kind:e2e][arch:pep10]") {
