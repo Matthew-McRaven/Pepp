@@ -16,6 +16,7 @@
  */
 
 #include "./system.hpp"
+#include "device/ide.hpp"
 #include "link/bytes.hpp"
 #include "link/memmap.hpp"
 #include "link/mmio.hpp"
@@ -42,6 +43,9 @@ sim::api2::device::Descriptor desc_mmi(sim::api2::device::ID id, QString name) {
 }
 sim::api2::device::Descriptor desc_mmo(sim::api2::device::ID id, QString name) {
   return {.id = id, .baseName = u"mmo-%1"_s.arg(name), .fullName = u"/bus/mmo-%1"_s.arg(name)};
+}
+sim::api2::device::Descriptor desc_ide(sim::api2::device::ID id, QString name) {
+  return {.id = id, .baseName = u"ide-%1"_s.arg(name), .fullName = u"/bus/ide-%1"_s.arg(name)};
 }
 namespace {
 const auto gs = sim::api2::memory::Operation{
@@ -101,6 +105,13 @@ targets::pep10::isa::System::System(QList<obj::MemoryRegion> regions, QList<obj:
       auto mem = QSharedPointer<sim::memory::Output<quint16>>::create(desc, span);
       _bus->pushFrontTarget(AddressSpan(mmio.minOffset, mmio.maxOffset), &*mem);
       _mmo[mmio.name] = mem;
+    } else if (mmio.type == obj::IO::Type::kIDE) {
+      auto desc = desc_ide(nextID(), mmio.name);
+      addDevice(desc);
+      auto mem = QSharedPointer<sim::memory::IDEController>::create(desc, 0, _nextIDGenerator);
+      mem->setTarget(&*_bus, nullptr);
+      _bus->pushFrontTarget(AddressSpan(mmio.minOffset, mmio.maxOffset), &*mem);
+      _ide[mmio.name] = mem;
     } else {
       throw std::logic_error("Unreachable");
     }
@@ -191,6 +202,13 @@ QStringList targets::pep10::isa::System::outputs() const { return _mmo.keys(); }
 
 sim::memory::Output<quint16> *targets::pep10::isa::System::output(QString name) {
   if (auto find = _mmo.find(name); find != _mmo.end()) return &**find;
+  return nullptr;
+}
+
+QStringList targets::pep10::isa::System::ideControllers() const { return _ide.keys(); }
+
+sim::memory::IDEController *targets::pep10::isa::System::ideController(QString name) {
+  if (auto find = _ide.find(name); find != _ide.end()) return &**find;
   return nullptr;
 }
 
