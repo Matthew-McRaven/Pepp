@@ -20,7 +20,7 @@ bmRAM:   .BLOCK  2
 ;The sector offset is primarily intended to allow sub-256B transfers within one sector.
 ; It is assumed that the underlying IDE device will require 256B transfers,
 ; so the controller will be responsible for a read-modify-write if needed.
-;The memory-mapped registers will total to 10 bytes.
+;The memory-mapped registers will total to 8 bytes.
 ;
 ;0xC9 for READ, 0xCB for WRITE, 0x50 to erase (set to 0). All other values ignored.
 ideCMD:  .BLOCK  1
