@@ -199,7 +199,7 @@ if (ONLY STREQUAL "BUILD")
     set(CMAKE_CXX_STANDARD 20)
     set(CMAKE_CXX_STANDARD_REQUIRED ON)
     # We always want universal builds, so do not set on a per-target basis
-    find_package(Qt6 6.5 COMPONENTS REQUIRED Svg Quick Core Gui Qml Test Widgets QuickControls2 Xml Sql)
+    find_package(Qt6 6.8 COMPONENTS REQUIRED Svg Quick Core Gui Qml Test Widgets QuickControls2 Xml Sql)
     if(Qt6_VERSION  VERSION_GREATER_EQUAL 6.8)
       # Qt6.8/WASM stopped building without this flag being set.
       if(EMSCRIPTEN)
