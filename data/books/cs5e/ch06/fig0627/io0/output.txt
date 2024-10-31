@@ -1,0 +1,1 @@
+Enter an integer: Enter an integer: Ordered they are: 4, 9

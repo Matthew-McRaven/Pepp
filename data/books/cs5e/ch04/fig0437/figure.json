@@ -5,6 +5,9 @@
   "abstraction": "ISA3",
   "default_os": "os:pep9os",
   "default_element": "pepo",
+  "ios": [
+    "io0"
+  ],
   "items": {
     "pepb": "{ch}{fig}.pepb",
     "peph": "{ch}{fig}.peph",
