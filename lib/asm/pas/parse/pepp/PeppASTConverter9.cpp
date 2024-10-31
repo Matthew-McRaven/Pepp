@@ -99,9 +99,7 @@ std::any parse::PeppASTConverter9::visitNonUnaryInstruction(PeppParser::NonUnary
   if (auto child = children[0]; antlr4::tree::TerminalNode::is(child)) {
     auto typedChild = antlrcpp::downCast<antlr4::tree::TerminalNode *>(child);
     auto token = typedChild->getSymbol();
-    if (token->getType() == PeppParser::PLACEHOLDER_MACRO || token->getType() == PeppParser::IDENTIFIER) {
-      _lineInfo.identifier = typedChild->getText();
-    }
+    if (token->getType() == PeppParser::IDENTIFIER) _lineInfo.identifier = typedChild->getText();
   }
 
   // Next item is always operand, which is an argument.
@@ -142,6 +140,7 @@ std::any parse::PeppASTConverter9::visitInvoke_macro(PeppParser::Invoke_macroCon
 
   _lineInfo.identifier = context->AT_IDENTIFIER()->getText();
   _lineInfo.identifier->erase(0, 1); // Remove @ from macro name.
+
   return std::any();
 }
 
@@ -224,14 +223,11 @@ std::any parse::PeppASTConverter9::visitDirectiveLine(PeppParser::DirectiveLineC
   using namespace std::placeholders;
   // Must pass this manually, otherwise the first instance of our AST converter will be bound into the map.
   static QMap<QString, convert_fn> converters = {
-      {"ALIGN", &PeppASTConverter9::align},   {"ASCII", &PeppASTConverter9::ascii},
-      {"BLOCK", &PeppASTConverter9::block},   {"BURN", &PeppASTConverter9::burn},
-      {"BYTE", &PeppASTConverter9::byte},     {"END", &PeppASTConverter9::end},
-      {"EQUATE", &PeppASTConverter9::equate}, {"EXPORT", &PeppASTConverter9::_export},
-      {"IMPORT", &PeppASTConverter9::import}, {"INPUT", &PeppASTConverter9::input},
-      {"OUTPUT", &PeppASTConverter9::output}, {"ORG", &PeppASTConverter9::org},
-      {"SCALL", &PeppASTConverter9::scall},   {"SECTION", &PeppASTConverter9::section},
-      {"USCALL", &PeppASTConverter9::uscall}, {"WORD", &PeppASTConverter9::word},
+      {"ADDRSS", &PeppASTConverter9::addrss}, {"ALIGN", &PeppASTConverter9::align},
+      {"ASCII", &PeppASTConverter9::ascii},   {"BLOCK", &PeppASTConverter9::block},
+      {"BURN", &PeppASTConverter9::burn},     {"BYTE", &PeppASTConverter9::byte},
+      {"END", &PeppASTConverter9::end},       {"EQUATE", &PeppASTConverter9::equate},
+      {"WORD", &PeppASTConverter9::word},
   };
 
   auto identifier = *_lineInfo.identifier;
@@ -270,27 +266,9 @@ std::any parse::PeppASTConverter9::visitMacroInvokeLine(PeppParser::MacroInvokeL
   visitChildren(context);
 
   auto ret = QSharedPointer<Node>::create(Type{.value = Type::MacroInvoke});
-  auto identifier = *_lineInfo.identifier;
-  auto asQString = QString::fromStdString(identifier);
-  generic::Macro macro = {.value = asQString};
-  ret->set(macro);
-
-  // Must share root symbol table until we have ability to limit symbol visibility.
-  ret->set(generic::SymbolTable{.value = _blockInfo.symTab});
-
-  if (_lineInfo.symbol.has_value()) {
-    auto symbol = _blockInfo.symTab->define(QString::fromStdString(*_lineInfo.symbol));
-    ret->set(generic::SymbolDeclaration{.value = symbol});
-  }
-  if (auto comment = context->COMMENT(); comment) {
-    auto item = generic::Comment{.value = QString::fromStdString(comment->getText().substr(1))};
-    ret->set(item);
-  }
-  QList<QSharedPointer<value::Base>> args;
-  for (auto arg : _lineInfo.arguments) args.push_back(arg);
-  ret->set(generic::ArgumentList{.value = args});
-
-  return ret;
+  using S = pas::ast::generic::Message::Severity;
+  namespace EP = pas::errors::pepp;
+  return addError(ret, {.severity = S::Fatal, .message = EP::invalidMacro});
 }
 
 std::any parse::PeppASTConverter9::visitCommentLine(PeppParser::CommentLineContext *context) {
@@ -352,10 +330,7 @@ std::any parse::PeppASTConverter9::visitArgument_list(PeppParser::Argument_listC
     if (child->getTreeType() != antlr4::tree::ParseTreeType::TERMINAL) {
       auto ret = this->visit(child);
       using T = QSharedPointer<value::Base>;
-      if (ret.type() != typeid(T)) {
-        int x = 12;
-        throw std::logic_error("WTF");
-      }
+      if (ret.type() != typeid(T)) throw std::logic_error("Good luck debugging.");
       auto casted = std::any_cast<T>(ret);
       _lineInfo.arguments.push_back(casted);
     }
@@ -365,6 +340,17 @@ std::any parse::PeppASTConverter9::visitArgument_list(PeppParser::Argument_listC
 using S = pas::ast::generic::Message::Severity;
 namespace EP = pas::errors::pepp;
 
+void parse::PeppASTConverter9::addrss(QSharedPointer<pas::ast::Node> node, PeppParser::DirectiveLineContext *context) {
+  if (_lineInfo.arguments.size() != 1) {
+    addError(node, {.severity = S::Fatal, .message = EP::expectNArguments.arg(1)});
+    return;
+  }
+
+  auto arg = _lineInfo.arguments.at(0);
+  if (!arg->isIdentifier()) addError(node, {.severity = S::Fatal, .message = EP::expectedSymbolic});
+  else if (arg->requiredBytes() > 2) addError(node, {.severity = S::Fatal, .message = errorFromWordString(arg)});
+  else node->set(generic::Argument{.value = arg});
+}
 void parse::PeppASTConverter9::align(QSharedPointer<pas::ast::Node> node, PeppParser::DirectiveLineContext *context) {
   if (_lineInfo.arguments.size() != 1) {
     addError(node, {.severity = S::Fatal, .message = EP::expectNArguments.arg(1)});
@@ -461,23 +447,7 @@ void parse::PeppASTConverter9::equate(QSharedPointer<pas::ast::Node> node, PeppP
   else node->set(generic::Argument{.value = arg});
 }
 
-void parse::PeppASTConverter9::_export(QSharedPointer<pas::ast::Node> node, PeppParser::DirectiveLineContext *context) {
-  io_scall_helper(node, context, "EXPORT");
-}
-
-void parse::PeppASTConverter9::import(QSharedPointer<pas::ast::Node> node, PeppParser::DirectiveLineContext *context) {
-  io_scall_helper(node, context, "IMPORT");
-}
-
-void parse::PeppASTConverter9::input(QSharedPointer<pas::ast::Node> node, PeppParser::DirectiveLineContext *context) {
-  io_scall_helper(node, context, "INPUT");
-}
-
-void parse::PeppASTConverter9::output(QSharedPointer<pas::ast::Node> node, PeppParser::DirectiveLineContext *context) {
-  io_scall_helper(node, context, "OUTPUT");
-}
-
-void parse::PeppASTConverter9::org(QSharedPointer<pas::ast::Node> node, PeppParser::DirectiveLineContext *context) {
+/*void parse::PeppASTConverter9::org(QSharedPointer<pas::ast::Node> node, PeppParser::DirectiveLineContext *context) {
   if (_lineInfo.arguments.size() != 1) {
     addError(node, {.severity = S::Fatal, .message = EP::expectNArguments.arg(1)});
     return;
@@ -489,34 +459,7 @@ void parse::PeppASTConverter9::org(QSharedPointer<pas::ast::Node> node, PeppPars
     addError(node, {.severity = S::Fatal, .message = EP::requiresHex.arg(".ORG")});
   else if (arg->requiredBytes() > 2) addError(node, {.severity = S::Fatal, .message = errorFromWordString(arg)});
   else node->set(generic::Argument{.value = arg});
-}
-
-void parse::PeppASTConverter9::scall(QSharedPointer<pas::ast::Node> node, PeppParser::DirectiveLineContext *context) {
-  io_scall_helper(node, context, "SCALL");
-}
-
-void parse::PeppASTConverter9::section(QSharedPointer<pas::ast::Node> node, PeppParser::DirectiveLineContext *context) {
-
-  if (_lineInfo.arguments.size() == 0 || _lineInfo.arguments.size() > 2) {
-    addError(node, {.severity = S::Fatal, .message = EP::expectNMArguments.arg(1, 2)});
-    return;
-  }
-
-  auto arg = _lineInfo.arguments[0];
-  // Triggers when the argument is not a string
-  if (!arg->isText()) addError(node, {.severity = S::Fatal, .message = EP::dotRequiresString.arg(".SECTION")});
-  else if (node->has<generic::SymbolDeclaration>())
-    addError(node, {.severity = S::Fatal, .message = EP::noDefineSymbol.arg(".SECTION")});
-  else if (_lineInfo.arguments.size() == 2) {
-    auto flagArg = _lineInfo.arguments[1];
-    if (!flagArg->isText()) addError(node, {.severity = S::Fatal, .message = EP::sectionFlagsString});
-    else node->set(generic::ArgumentList{.value = {arg, flagArg}});
-  } else node->set(generic::Argument{.value = arg});
-}
-
-void parse::PeppASTConverter9::uscall(QSharedPointer<pas::ast::Node> node, PeppParser::DirectiveLineContext *context) {
-  io_scall_helper(node, context, "USCALL");
-}
+}*/
 
 void parse::PeppASTConverter9::word(QSharedPointer<pas::ast::Node> node, PeppParser::DirectiveLineContext *context) {
   if (_lineInfo.arguments.size() != 1) {
@@ -530,20 +473,5 @@ void parse::PeppASTConverter9::word(QSharedPointer<pas::ast::Node> node, PeppPar
   else if (!(arg->isFixedSize() && arg->isNumeric()))
     addError(node, {.severity = S::Fatal, .message = EP::expectedNumeric});
   else if (arg->requiredBytes() > 2) addError(node, {.severity = S::Fatal, .message = errorFromWordString(arg)});
-  else node->set(generic::Argument{.value = arg});
-}
-
-void parse::PeppASTConverter9::io_scall_helper(QSharedPointer<pas::ast::Node> node,
-                                               PeppParser::DirectiveLineContext *context, QString name) {
-  if (_lineInfo.arguments.size() != 1) {
-    addError(node, {.severity = S::Fatal, .message = EP::expectNArguments.arg(1)});
-    return;
-  }
-
-  auto arg = _lineInfo.arguments.at(0);
-  if (auto as_sym = dynamic_cast<value::Symbolic *>(arg.data()); as_sym == nullptr)
-    addError(node, {.severity = S::Fatal, .message = EP::expectedSymbolic});
-  else if (node->has<generic::SymbolDeclaration>())
-    addError(node, {.severity = S::Fatal, .message = EP::noDefineSymbol.arg("." + name)});
   else node->set(generic::Argument{.value = arg});
 }

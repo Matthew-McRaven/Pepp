@@ -49,6 +49,7 @@ public:
   std::any visitArgument_list(PeppParser::Argument_listContext *context) override;
 
 private:
+  void addrss(QSharedPointer<pas::ast::Node> node, PeppParser::DirectiveLineContext *context);
   void align(QSharedPointer<pas::ast::Node> node, PeppParser::DirectiveLineContext *context);
   void ascii(QSharedPointer<pas::ast::Node> node, PeppParser::DirectiveLineContext *context);
   void block(QSharedPointer<pas::ast::Node> node, PeppParser::DirectiveLineContext *context);
@@ -56,16 +57,7 @@ private:
   void byte(QSharedPointer<pas::ast::Node> node, PeppParser::DirectiveLineContext *context);
   void end(QSharedPointer<pas::ast::Node> node, PeppParser::DirectiveLineContext *context);
   void equate(QSharedPointer<pas::ast::Node> node, PeppParser::DirectiveLineContext *context);
-  void _export(QSharedPointer<pas::ast::Node> node, PeppParser::DirectiveLineContext *context);
-  void import(QSharedPointer<pas::ast::Node> node, PeppParser::DirectiveLineContext *context);
-  void input(QSharedPointer<pas::ast::Node> node, PeppParser::DirectiveLineContext *context);
-  void output(QSharedPointer<pas::ast::Node> node, PeppParser::DirectiveLineContext *context);
-  void org(QSharedPointer<pas::ast::Node> node, PeppParser::DirectiveLineContext *context);
-  void scall(QSharedPointer<pas::ast::Node> node, PeppParser::DirectiveLineContext *context);
-  void section(QSharedPointer<pas::ast::Node> node, PeppParser::DirectiveLineContext *context);
-  void uscall(QSharedPointer<pas::ast::Node> node, PeppParser::DirectiveLineContext *context);
   void word(QSharedPointer<pas::ast::Node> node, PeppParser::DirectiveLineContext *context);
-  void io_scall_helper(QSharedPointer<pas::ast::Node> node, PeppParser::DirectiveLineContext *context, QString name);
 };
 
 } // namespace parse
