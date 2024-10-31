@@ -18,27 +18,20 @@
 #include "asm/pas/driver/pep9.hpp"
 #include "asm/pas/operations/generic/combine.hpp"
 #include "asm/pas/operations/generic/flatten.hpp"
-#include "asm/pas/operations/generic/group.hpp"
 #include "asm/pas/operations/generic/link_globals.hpp"
-#include "asm/pas/operations/pepp/addressable.hpp"
 #include "asm/pas/operations/pepp/assign_addr.hpp"
 #include "asm/pas/operations/pepp/whole_program_sanity.hpp"
 
-pas::driver::pep9::Stage pas::driver::pep9::TransformGroup::toStage() { return Stage::RegisterExports; }
-
-bool pas::driver::pep9::TransformGroup::operator()(QSharedPointer<Globals>,
-                                                   QSharedPointer<pas::driver::Target<Stage>> target) {
-  auto root = target->bodies[repr::Nodes::name].value<repr::Nodes>().value;
-  pas::ops::generic::groupSections(*root, pas::ops::pepp::isAddressable<isa::Pep9>);
-  return true;
-}
 
 bool pas::driver::pep9::TransformRegisterExports::operator()(QSharedPointer<Globals> globals,
                                                              QSharedPointer<pas::driver::Target<Stage>> target) {
 
   auto root = target->bodies[repr::Nodes::name].value<repr::Nodes>().value;
-  // TODO: Insert charIn, charOut by default.
-  pas::ops::generic::linkGlobals(*root, globals, {"EXPORT"});
+  auto st = root->get<pas::ast::generic::SymbolTable>().value;
+  if (auto charOut = st->get("charOut"); charOut) globals->add(*charOut);
+  if (auto charIn = st->get("charIn"); charIn) globals->add(*charIn);
+  // Needed to make user program point to correct charIn/charOut.
+  pas::ops::generic::linkGlobals(*root, globals, {});
   return true;
 }
 

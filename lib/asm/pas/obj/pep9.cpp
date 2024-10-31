@@ -18,37 +18,88 @@
 #include "./pep9.hpp"
 #include "./common.hpp"
 #include "asm/pas/ast/generic/attr_children.hpp"
-#include "asm/pas/ast/generic/attr_sec.hpp"
 #include "asm/pas/operations/pepp/gather_ios.hpp"
 #include "isa/pep9.hpp"
 #include "link/mmio.hpp"
 
-void pas::obj::pep9::combineSections(ast::Node &root) {
-  QList<QSharedPointer<pas::ast::Node>> newChildren{};
-  QMap<QString, QSharedPointer<ast::Node>> newChildrenMap = {};
-  auto oldChildren = ast::children(root);
+namespace {
+void writeTree(ELFIO::elfio &elf, pas::ast::Node &node, QString prefix, bool isOS) {
+  using namespace pas;
+  using namespace Qt::StringLiterals;
 
-  // Iterate over all sections (that may have duplicate names), and combine the
-  // sub-nodes of sections with duplicate names. newChildren preserves the
-  // relative order of the first appearance of each section.
-  for (auto &oldChild : oldChildren) {
-    auto childName = oldChild->get<pas::ast::generic::SectionName>().value;
-    if (auto newSec = newChildrenMap.find(childName); newSec == newChildrenMap.end()) {
-      newChildrenMap[childName] = oldChild;
-      newChildren.push_back(oldChild);
-    } else {
-      auto newChild = newChildrenMap[childName];
-      auto newSubChildren = ast::children(*newChild);
-      auto oldSubChildren = ast::children(*oldChild);
-      for (auto &oldSubChild : oldSubChildren) ast::setParent(*oldSubChild, newChild);
-      newSubChildren.append(oldSubChildren);
+  static const quint16 stackbase = 0xFB8F;
+  static const quint16 textBase = 0xFC17;
 
-      newChild->set(ast::generic::Children{.value = newSubChildren});
+  if (!isOS) {
+    auto bytes = pas::ops::pepp::toBytes<isa::Pep9>(node);
+    auto sec = elf.sections.add(u"%1.%2"_s.arg(prefix, "txt").toStdString());
+    sec->set_flags(ELFIO::SHF_ALLOC | ELFIO::SHF_EXECINSTR | ELFIO::SHF_WRITE);
+    sec->set_addr_align(1);
+    sec->set_type(ELFIO::SHT_PROGBITS);
+    sec->set_data((const char *)bytes.constData(), bytes.size());
+    auto seg = elf.segments.add();
+    seg->set_align(1);
+    seg->set_virtual_address(0x0);
+    seg->set_physical_address(0x0);
+    seg->set_memory_size(bytes.size());
+    seg->set_type(ELFIO::PT_LOAD);
+    seg->set_flags(ELFIO::PF_R | ELFIO::PF_W | ELFIO::PF_X);
+    seg->add_section(sec, 1);
+    // Update the section index of all symbols in this section, otherwise symtab
+    // will link against SHN_UNDEF.
+    for (auto &line : ast::children(node))
+      if (line->has<ast::generic::SymbolDeclaration>())
+        line->get<ast::generic::SymbolDeclaration>().value->section_index = sec->get_index();
+
+  } else {
+    // As read from the source code of Pep/9 OS.
+    auto lastByteBeforeBurn = 136;
+    auto stack = elf.sections.add(u"%1.%2"_s.arg(prefix, "stack").toStdString());
+    stack->set_flags(ELFIO::SHF_ALLOC | ELFIO::SHF_WRITE);
+    stack->set_addr_align(1);
+    stack->set_type(ELFIO::SHT_NOBITS);
+    stack->set_size(lastByteBeforeBurn);
+
+    auto text = elf.sections.add(u"%1.%2"_s.arg(prefix, "txt").toStdString());
+    auto text_bytes = pas::ops::pepp::toBytes<isa::Pep9>(node);
+    text->set_flags(ELFIO::SHF_ALLOC | ELFIO::SHF_EXECINSTR);
+    text->set_addr_align(1);
+    text->set_type(ELFIO::SHT_PROGBITS);
+    text->set_data((const char *)text_bytes.constData() + lastByteBeforeBurn, text_bytes.size() - lastByteBeforeBurn);
+
+    // Create stack segment
+    auto stack_seg = elf.segments.add();
+    stack_seg->set_type(ELFIO::PT_LOAD);
+    stack_seg->set_flags(ELFIO::PF_R | ELFIO::PF_W);
+    stack_seg->set_physical_address(stackbase);
+    stack_seg->set_virtual_address(stackbase);
+    stack_seg->add_section(stack, 1);
+    stack_seg->set_memory_size(lastByteBeforeBurn);
+
+    auto text_seg = elf.segments.add();
+    text_seg->set_type(ELFIO::PT_LOAD);
+    text_seg->set_flags(ELFIO::PF_R | ELFIO::PF_X);
+    text_seg->set_physical_address(textBase);
+    text_seg->set_virtual_address(textBase);
+    text_seg->add_section(text, 1);
+    text_seg->set_memory_size(text_bytes.size() - lastByteBeforeBurn);
+
+    // repeat for stack & text sections.
+    // Update the section index of all symbols in this section, otherwise symtab
+    // will link against SHN_UNDEF.
+    bool seenBurn = false;
+    for (auto &line : ast::children(node)) {
+      if (line->has<ast::generic::Directive>() && line->get<ast::generic::Directive>().value == "BURN") seenBurn = true;
+      if (line->has<ast::generic::SymbolDeclaration>()) {
+        if (!seenBurn) line->get<ast::generic::SymbolDeclaration>().value->section_index = stack->get_index();
+        else line->get<ast::generic::SymbolDeclaration>().value->section_index = text->get_index();
+      }
     }
   }
-
-  root.set(ast::generic::Children{.value = newChildren});
+  if (node.has<ast::generic::SymbolTable>())
+    pas::obj::common::writeSymtab(elf, *node.get<ast::generic::SymbolTable>().value, prefix);
 }
+} // namespace
 
 QSharedPointer<ELFIO::elfio> pas::obj::pep9::createElf() {
   static const char p9mac[2] = {'p', '9'};
@@ -64,12 +115,13 @@ QSharedPointer<ELFIO::elfio> pas::obj::pep9::createElf() {
 }
 
 void pas::obj::pep9::writeOS(ELFIO::elfio &elf, ast::Node &os) {
-  common::writeTree<isa::Pep9>(elf, os, "os", true);
+  writeTree(elf, os, "os", true);
 
   elf.set_entry(/*TODO:determine OS entry point*/ 0x000);
 
-  // TODO: must gather MMIOs manually (charIn / charOut).
-  auto mmios = pas::ops::pepp::gatherIODefinitions(os);
+  // Manually gather MMIOs  (charIn / charOut).
+  QList<::obj::IO> mmios = {{.name = "charOut", .type = ::obj::IO::Type::kOutput},
+                            {.name = "charIn", .type = ::obj::IO::Type::kInput}};
 
   // Find symbol table for os or crash.
   ELFIO::section *symTab = nullptr;
@@ -77,12 +129,13 @@ void pas::obj::pep9::writeOS(ELFIO::elfio &elf, ast::Node &os) {
     if (sec->get_type() == ELFIO::SHT_SYMTAB && sec->get_name() == "os.symtab") symTab = &*sec;
   }
   Q_ASSERT(symTab != nullptr);
+
   ::obj::addMMIODeclarations(elf, symTab, mmios);
   ::obj::setBootFlagAddress(elf);
 }
 
 void pas::obj::pep9::writeUser(ELFIO::elfio &elf, ast::Node &user) {
-  common::writeTree<isa::Pep9>(elf, user, "usr", false);
+  writeTree(elf, user, "usr", false);
 
   // Add notes regarding MMIO buffering.
   for (auto &seg : elf.segments) {
@@ -116,23 +169,7 @@ void pas::obj::pep9::writeUser(ELFIO::elfio &elf, QList<quint8> bytes) {
   seg->set_virtual_address(0x0);
   seg->set_physical_address(0x0);
   seg->set_memory_size(size);
-  seg->set_type(ELFIO::PT_LOPROC + 1);
+  seg->set_type(ELFIO::PT_LOAD);
   seg->set_flags(ELFIO::PF_R | ELFIO::PF_W | ELFIO::PF_X);
   seg->add_section(sec, 1);
-
-  // Add notes regarding MMIO buffering.
-  for (auto &seg : elf.segments) {
-    // Only LOPROC+1 segments need buffering.
-    if (seg->get_type() != ELFIO::PT_LOPROC + 0x1) continue;
-    ::obj::addMMIBuffer(elf, seg.get());
-    // The "buffered" segments need to not overlap with default RWX segment,
-    // otherwise user program will always be loaded automatically.
-    // So, adjust the addreses+sizes of the default segment to exclude our
-    // buffered one.
-    auto newAddr = seg->get_physical_address() + seg->get_memory_size();
-    auto delta = newAddr - elf.segments[0]->get_physical_address();
-    elf.segments[0]->set_physical_address(newAddr);
-    elf.segments[0]->set_virtual_address(newAddr);
-    elf.segments[0]->set_memory_size(elf.segments[0]->get_memory_size() - delta);
-  }
 }

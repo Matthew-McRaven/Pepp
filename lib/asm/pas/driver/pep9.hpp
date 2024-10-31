@@ -27,7 +27,6 @@ Q_NAMESPACE;
 enum class Stage {
   Start,
   Parse,
-  GroupNodes,
   RegisterExports,
   AssignAddresses,
   WholeProgramSanity,
@@ -52,15 +51,9 @@ public:
     target->bodies[repr::Nodes::name] = QVariant::fromValue(repr::Nodes{.value = parsed.root});
     return !parsed.hadError;
   }
-  Stage toStage() override { return Stage::GroupNodes; }
+  Stage toStage() override { return Stage::RegisterExports; }
 };
 
-// Currently no-op
-class TransformGroup : public driver::Transform<Stage> {
-public:
-  bool operator()(QSharedPointer<Globals>, QSharedPointer<pas::driver::Target<Stage>> target) override;
-  Stage toStage() override;
-};
 class TransformRegisterExports : public driver::Transform<Stage> {
 public:
   bool operator()(QSharedPointer<Globals>, QSharedPointer<pas::driver::Target<Stage>> target) override;
@@ -102,7 +95,6 @@ QPair<QSharedPointer<Target<Stage>>, QList<QSharedPointer<Transform<Stage>>>> st
 
   QList<QSharedPointer<Transform<Stage>>> pipe;
   pipe.push_back(QSharedPointer<TransformParse<ParserTag>>::create());
-  pipe.push_back(QSharedPointer<TransformGroup>::create());
   pipe.push_back(QSharedPointer<TransformRegisterExports>::create());
   pipe.push_back(QSharedPointer<TransformAssignAddresses>::create());
 

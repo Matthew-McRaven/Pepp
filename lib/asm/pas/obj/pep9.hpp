@@ -21,7 +21,6 @@
 #include "asm/pas/ast/node.hpp"
 
 namespace pas::obj::pep9 {
-void combineSections(pas::ast::Node &root);
 QSharedPointer<ELFIO::elfio> createElf();
 void writeOS(ELFIO::elfio &elf, pas::ast::Node &os);
 void writeUser(ELFIO::elfio &elf, pas::ast::Node &user);

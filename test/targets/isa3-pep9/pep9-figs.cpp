@@ -49,7 +49,7 @@ static const auto gs = sim::api2::memory::Operation{
 };
 
 QSharedPointer<const builtins::Book> book(builtins::Registry &reg) {
-  QString bookName = "Computer Systems, 6th Edition";
+  QString bookName = "Computer Systems, 5th Edition";
 
   auto book = reg.findBook(bookName);
   return book;
@@ -70,21 +70,26 @@ void assemble(ELFIO::elfio &elf, QString os, User user, QSharedPointer<macro::Re
   if (!user.pep.isEmpty()) targets.push_back({user.pep, {.isOS = false}});
   auto pipeline = pas::driver::pep9::pipeline<pas::driver::ANTLRParserTag>(targets, reg);
   auto result = pipeline->assemble(pas::driver::pep9::Stage::End);
-  // TODO: only asserts that the pipeline does not throw.
-  return;
-  REQUIRE(result);
+  CHECK(result);
 
   auto osTarget = pipeline->pipelines[0].first;
   auto osRoot = osTarget->bodies[pas::driver::repr::Nodes::name].value<pas::driver::repr::Nodes>().value;
-  CHECK(pas::ops::generic::collectErrors(*osRoot).size() == 0);
-  pas::obj::pep9::combineSections(*osRoot);
+  auto errors = pas::ops::generic::collectErrors(*osRoot);
+  CHECK(errors.size() == 0);
+  if (errors.size() > 0) {
+    for (const auto [loc, err] : errors) qDebug() << err.message;
+  }
   pas::obj::pep9::writeOS(elf, *osRoot);
 
   if (!user.pep.isEmpty()) {
     auto userTarget = pipeline->pipelines[1].first;
     auto userRoot = userTarget->bodies[pas::driver::repr::Nodes::name].value<pas::driver::repr::Nodes>().value;
-    CHECK(pas::ops::generic::collectErrors(*userRoot).size() == 0);
-    pas::obj::pep9::combineSections(*userRoot);
+    REQUIRE(userRoot != nullptr);
+    auto errors = pas::ops::generic::collectErrors(*userRoot);
+    CHECK(errors.size() == 0);
+    if (errors.size() > 0) {
+      for (const auto [loc, err] : errors) qDebug() << err.message;
+    }
     pas::obj::pep9::writeUser(elf, *userRoot);
   } else {
     auto asStd = user.pepo.toStdString();
@@ -94,7 +99,8 @@ void assemble(ELFIO::elfio &elf, QString os, User user, QSharedPointer<macro::Re
   }
 }
 
-void smoke(QString os, QString userPep, QString userPepo, QString input, QByteArray output, bool isBM) {
+QSharedPointer<ELFIO::elfio> smoke(QString os, QString userPep, QString userPepo, QString input, QByteArray output,
+                                   bool isBM) {
   auto bookReg = builtins::Registry(nullptr);
   // Load book contents, macros.
   auto bookPtr = book(bookReg);
@@ -102,7 +108,7 @@ void smoke(QString os, QString userPep, QString userPepo, QString input, QByteAr
   auto elf = pas::obj::pep9::createElf();
   REQUIRE_NOTHROW(assemble(*elf, os, {.pep = userPep, .pepo = userPepo}, reg));
   // TODO: need to build system...
-  return;
+  return elf;
 
   // Need to reload to properly compute segment addresses.
   {
@@ -158,7 +164,6 @@ TEST_CASE("Pep/9 Figure Assembly", "[scope:asm][kind:e2e][arch:pep9]") {
     else if (figure->typesafeElements().contains("pepo"))
       userPepo = QString(figure->typesafeElements()["pepo"]->contents).replace(lf, "");
     auto os = QString(figure->defaultOS()->typesafeElements()["pep"]->contents).replace(lf, "");
-    bool isBM = !os.contains("bootFlg");
     auto ch = figure->chapterName(), fig = figure->figureName();
     int num = 0;
     for (auto io : figure->typesafeTests()) {
@@ -168,7 +173,9 @@ TEST_CASE("Pep/9 Figure Assembly", "[scope:asm][kind:e2e][arch:pep9]") {
       QString input = io->input.toString().replace(lf, "");
       QByteArray output = io->output.toString().replace(lf, "").toUtf8();
       DYNAMIC_SECTION(nameAsStd << " on: " << input.toStdString()) {
-        smoke(os, userPep, userPepo, input, output, isBM);
+        auto elf = smoke(os, userPep, userPepo, input, output, false);
+        std::string fname = u"%1%2.elf"_s.arg(ch, fig).toStdString();
+        elf->save(fname);
       }
       num++;
     }
