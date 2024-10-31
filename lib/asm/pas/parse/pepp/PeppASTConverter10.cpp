@@ -1,4 +1,4 @@
-#include "PeppASTConverter.h"
+#include "PeppASTConverter10.h"
 
 #undef emit
 #include "asm/pas/ast/generic/attr_argument.hpp"
@@ -23,6 +23,7 @@
 #include "isa/pep10.hpp"
 
 using namespace pas::ast;
+namespace {
 bool isPow2_duplicate(QSharedPointer<pas::ast::value::Base> arg) {
   quint64 val = 0;
   arg->value(bits::span<quint8>{reinterpret_cast<quint8 *>(&val), 8}, bits::hostOrder());
@@ -46,7 +47,7 @@ void addBlank(QSharedPointer<Node> parent) {
   auto bl = QSharedPointer<Node>::create(generic::Type{.value = generic::Type::Blank});
   addChild(*parent, bl);
 }
-
+} // namespace
 parse::PeppASTConverter::PeppASTConverter(QSharedPointer<pas::ast::Node> parent)
     : _blockInfo{.symTab = nullptr, .parent = parent} {}
 
@@ -167,7 +168,7 @@ std::any parse::PeppASTConverter::visitInstructionLine(PeppParser::InstructionLi
   // BUG: instr will remain uninitialized if mnemonic is PLACEHOLDER_MACRO and the invalid
   // mnemonic path is removed.
   ISA::Mnemonic instr = ISA::parseMnemonic(QString::fromStdString(*_lineInfo.identifier));
-  if (instr != ISA::Mnemonic::INVALID) ret->set(pepp::Instruction<isa::Pep10>{.value = instr});
+  if (instr != ISA::Mnemonic::INVALID) ret->set(pepp::Instruction<isa::Pep10>{instr});
   else return addError(ret, {.severity = S::Fatal, .message = EP::invalidMnemonic});
 
   // If there are arguments, insert them into AST after check that args are <= 2 bytes.

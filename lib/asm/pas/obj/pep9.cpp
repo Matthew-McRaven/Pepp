@@ -15,15 +15,15 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-#include "./pep10.hpp"
+#include "./pep9.hpp"
 #include "./common.hpp"
 #include "asm/pas/ast/generic/attr_children.hpp"
 #include "asm/pas/ast/generic/attr_sec.hpp"
 #include "asm/pas/operations/pepp/gather_ios.hpp"
-#include "isa/pep10.hpp"
+#include "isa/pep9.hpp"
 #include "link/mmio.hpp"
 
-void pas::obj::pep10::combineSections(ast::Node &root) {
+void pas::obj::pep9::combineSections(ast::Node &root) {
   QList<QSharedPointer<pas::ast::Node>> newChildren{};
   QMap<QString, QSharedPointer<ast::Node>> newChildrenMap = {};
   auto oldChildren = ast::children(root);
@@ -50,23 +50,25 @@ void pas::obj::pep10::combineSections(ast::Node &root) {
   root.set(ast::generic::Children{.value = newChildren});
 }
 
-QSharedPointer<ELFIO::elfio> pas::obj::pep10::createElf() {
-  static const char p10mac[2] = {'p', 'x'};
+QSharedPointer<ELFIO::elfio> pas::obj::pep9::createElf() {
+  static const char p9mac[2] = {'p', '9'};
   auto ret = QSharedPointer<ELFIO::elfio>::create();
   ret->create(ELFIO::ELFCLASS32, ELFIO::ELFDATA2MSB);
   ret->set_os_abi(ELFIO::ELFOSABI_NONE);
   ret->set_type(ELFIO::ET_EXEC);
-  ret->set_machine(*(quint16 *)p10mac);
+  ret->set_machine(*(quint16 *)p9mac);
   // Create strtab/notes early, so that it will be before any code sections.
   common::addStrTab(*ret);
   ::obj::addMMIONoteSection(*ret);
   return ret;
 }
 
-void pas::obj::pep10::writeOS(ELFIO::elfio &elf, ast::Node &os) {
-  common::writeTree<isa::Pep10>(elf, os, "os", true);
+void pas::obj::pep9::writeOS(ELFIO::elfio &elf, ast::Node &os) {
+  common::writeTree<isa::Pep9>(elf, os, "os", true);
+
   elf.set_entry(/*TODO:determine OS entry point*/ 0x000);
 
+  // TODO: must gather MMIOs manually (charIn / charOut).
   auto mmios = pas::ops::pepp::gatherIODefinitions(os);
 
   // Find symbol table for os or crash.
@@ -79,8 +81,8 @@ void pas::obj::pep10::writeOS(ELFIO::elfio &elf, ast::Node &os) {
   ::obj::setBootFlagAddress(elf);
 }
 
-void pas::obj::pep10::writeUser(ELFIO::elfio &elf, ast::Node &user) {
-  common::writeTree<isa::Pep10>(elf, user, "usr", false);
+void pas::obj::pep9::writeUser(ELFIO::elfio &elf, ast::Node &user) {
+  common::writeTree<isa::Pep9>(elf, user, "usr", false);
 
   // Add notes regarding MMIO buffering.
   for (auto &seg : elf.segments) {
@@ -99,13 +101,13 @@ void pas::obj::pep10::writeUser(ELFIO::elfio &elf, ast::Node &user) {
   }
 }
 
-void pas::obj::pep10::writeUser(ELFIO::elfio &elf, QList<quint8> bytes) {
+void pas::obj::pep9::writeUser(ELFIO::elfio &elf, QList<quint8> bytes) {
   auto align = 1;
   ELFIO::Elf64_Addr baseAddr = 0;
   auto size = bytes.size();
   auto sec = elf.sections.add("usr.txt");
   sec->set_type(ELFIO::SHT_PROGBITS);
-  // All sections from AST correspond to bits in Pep/10 memory, so alloc
+  // All sections from AST correspond to bits in Pep/9 memory, so alloc
   sec->set_flags(ELFIO::SHF_ALLOC | ELFIO::SHF_WRITE | ELFIO::SHF_EXECINSTR);
   sec->set_addr_align(align);
   sec->set_data((const char *)bytes.constData(), size);

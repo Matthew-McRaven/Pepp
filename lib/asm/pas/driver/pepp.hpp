@@ -24,7 +24,11 @@
 #include <QtCore>
 #include <functional>
 
-namespace isa { class Pep10; }
+namespace isa {
+class Pep10;
+class Pep9;
+} // namespace isa
+
 namespace pas::driver::pepp {
 namespace detail {
 template <typename ParserTag, typename ISA>
@@ -33,12 +37,18 @@ struct Helper {
 };
 
 driver::ParseResult antlr4_pep10(const std::string& input, QSharedPointer<ast::Node> parent, bool hideEnd);
-template <>
-struct Helper<isa::Pep10, pas::driver::ANTLRParserTag> {
-    driver::ParseResult operator()(const std::string& input, QSharedPointer<ast::Node> parent, bool hideEnd){
-        // Convert input string to parsed lines.
-        return detail::antlr4_pep10(input, parent, hideEnd);
-    };
+template <> struct Helper<pas::driver::ANTLRParserTag, isa::Pep10> {
+  driver::ParseResult operator()(const std::string &input, QSharedPointer<ast::Node> parent, bool hideEnd) {
+    // Convert input string to parsed lines.
+    return detail::antlr4_pep10(input, parent, hideEnd);
+  };
+};
+driver::ParseResult antlr4_pep9(const std::string &input, QSharedPointer<ast::Node> parent, bool hideEnd);
+template <> struct Helper<pas::driver::ANTLRParserTag, isa::Pep9> {
+  driver::ParseResult operator()(const std::string &input, QSharedPointer<ast::Node> parent, bool hideEnd) {
+    // Convert input string to parsed lines.
+    return detail::antlr4_pep9(input, parent, hideEnd);
+  };
 };
 }
 
@@ -47,7 +57,7 @@ template <typename ISA, typename ParserTag>
 std::function<ParseResult(QString, QSharedPointer<ast::Node>)>
 createParser(bool hideEnd) {
   return [hideEnd](QString text, QSharedPointer<ast::Node> parent) {
-    detail::Helper<ISA, ParserTag> helper;
+    detail::Helper<ParserTag, ISA> helper;
     auto asStd = text.toStdString();
     auto ret = helper(asStd, parent, hideEnd);
     if(ret.hadError) return ret;
