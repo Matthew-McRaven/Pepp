@@ -14,6 +14,7 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
+#include <QStringLiteral>
 #include <catch.hpp>
 #include <elfio/elfio.hpp>
 #include "asm/pas/driver/pep9.hpp"
@@ -31,9 +32,9 @@
 #include "sim/device/dense.hpp"
 #include "sim/device/ide.hpp"
 #include "sim/device/simple_bus.hpp"
-#include "targets/pep10/isa3/cpu.hpp"
-#include "targets/pep10/isa3/helpers.hpp"
-#include "targets/pep10/isa3/system.hpp"
+#include "targets/pep9/isa3/cpu.hpp"
+#include "targets/pep9/isa3/helpers.hpp"
+#include "targets/pep9/isa3/system.hpp"
 
 namespace {
 static const auto lf = QRegularExpression("\r");
@@ -99,15 +100,13 @@ void assemble(ELFIO::elfio &elf, QString os, User user, QSharedPointer<macro::Re
   }
 }
 
-QSharedPointer<ELFIO::elfio> smoke(QString os, QString userPep, QString userPepo, QString input, QByteArray output,
-                                   bool isBM) {
+QSharedPointer<ELFIO::elfio> smoke(QString os, QString userPep, QString userPepo, QString input, QByteArray output) {
   auto bookReg = builtins::Registry(nullptr);
   // Load book contents, macros.
   auto bookPtr = book(bookReg);
   auto reg = registry(bookPtr, {});
   auto elf = pas::obj::pep9::createElf();
   REQUIRE_NOTHROW(assemble(*elf, os, {.pep = userPep, .pepo = userPepo}, reg));
-  // TODO: need to build system...
   return elf;
 
   // Need to reload to properly compute segment addresses.
@@ -119,10 +118,8 @@ QSharedPointer<ELFIO::elfio> smoke(QString os, QString userPep, QString userPepo
   }
   // Skip loading, to save on cycles. However, can't skip dispatch, or
   // main's stack will be wrong.
-  auto system = targets::pep10::isa::systemFromElf(*elf, isBM);
-  system->init();
+  auto system = targets::pep9::isa::systemFromElf(*elf, true);
   REQUIRE(!system.isNull());
-  system->setBootFlags(true, true);
   if (auto charIn = system->input("charIn"); !input.isEmpty() && charIn) {
     auto charInEndpoint = charIn->endpoint();
     for (auto c : input.toStdString()) charInEndpoint->append_value(c);
@@ -146,7 +143,8 @@ QSharedPointer<ELFIO::elfio> smoke(QString os, QString userPep, QString userPepo
     for (auto next = charOutEndpoint->next_value(); next.has_value(); next = charOutEndpoint->next_value())
       actualOut.push_back(*next);
   }
-  CHECK(actualOut == output);
+  CHECK(std::string(actualOut) == std::string(output));
+  return elf;
 }
 } // namespace
 
@@ -173,7 +171,7 @@ TEST_CASE("Pep/9 Figure Assembly", "[scope:asm][kind:e2e][arch:pep9]") {
       QString input = io->input.toString().replace(lf, "");
       QByteArray output = io->output.toString().replace(lf, "").toUtf8();
       DYNAMIC_SECTION(nameAsStd << " on: " << input.toStdString()) {
-        auto elf = smoke(os, userPep, userPepo, input, output, false);
+        auto elf = smoke(os, userPep, userPepo, input, output);
         std::string fname = u"%1%2.elf"_s.arg(ch, fig).toStdString();
         elf->save(fname);
       }

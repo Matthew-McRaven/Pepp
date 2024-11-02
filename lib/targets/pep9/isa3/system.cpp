@@ -229,6 +229,7 @@ QSharedPointer<targets::pep9::isa::System> targets::pep9::isa::systemFromElf(con
   auto buffers = obj::getMMIBuffers(elf);
 
   auto ret = QSharedPointer<targets::pep9::isa::System>::create(memmap, mmios);
+  ret->init();
 
   // Either immediately load user program into memory, or buffer behind correct
   // port.
@@ -238,7 +239,7 @@ QSharedPointer<targets::pep9::isa::System> targets::pep9::isa::systemFromElf(con
     for (auto buffer : buffers) {
       auto ptr = reinterpret_cast<const quint8 *>(buffer.seg->get_data());
       if (ptr == nullptr) continue;
-      const auto ret = bus->write(address, {ptr, static_cast<size_type>(buffer.seg->get_memory_size())}, gs);
+      (void)bus->write(address, {ptr, static_cast<size_type>(buffer.seg->get_memory_size())}, gs);
       address += buffer.seg->get_memory_size();
     }
   } else {
@@ -253,15 +254,7 @@ QSharedPointer<targets::pep9::isa::System> targets::pep9::isa::systemFromElf(con
       for (auto byte : bytesAsHex) endpoint->append_value(byte);
     }
 
-    auto diskIn = ret->input("diskIn");
-    Q_ASSERT(diskIn != nullptr);
-    auto endpoint = diskIn->endpoint();
-    endpoint->append_value(' ');
-    endpoint->append_value('z');
-    endpoint->append_value('z');
   }
-
-  if (auto bootFlg = obj::getBootFlagsAddress(elf); bootFlg) ret->setBootFlagAddress(*bootFlg);
 
   return ret;
 }
