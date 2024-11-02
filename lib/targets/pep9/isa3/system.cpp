@@ -90,11 +90,6 @@ targets::pep9::isa::System::System(QList<obj::MemoryRegion> regions, QList<obj::
       _mmi[mmio.name] = mem;
       // By default, charIn should raise an error when it runs out of input.
       if (mmio.name == "charIn") mem->setFailPolicy(sim::api2::memory::FailPolicy::RaiseError);
-      // Disk in must not raise an error, otherwise loader will not work.
-      else if (mmio.name == "diskIn") {
-        mem->setFailPolicy(sim::api2::memory::FailPolicy::YieldDefaultValue);
-        mem->clear('z' /*Loader sentinel character*/);
-      }
     } else if (mmio.type == obj::IO::Type::kOutput) {
       auto desc = desc_mmo(nextID(), mmio.name);
       addDevice(desc);
@@ -105,6 +100,13 @@ targets::pep9::isa::System::System(QList<obj::MemoryRegion> regions, QList<obj::
       throw std::logic_error("Unreachable");
     }
   }
+  {
+    auto desc = desc_mmo(nextID(), "pwrOff");
+    addDevice(desc);
+    _mmo["pwrOff"] = QSharedPointer<sim::memory::Output<quint16>>::create(desc, AddressSpan(0, 0));
+    _cpu->setPwrOff(_mmo["pwrOff"].data());
+  }
+  // Add pwrOff device, which is not in the memory map, but will be passed to the CPU to implement STOP.
   _cpu->setTarget(&*_bus, nullptr);
 }
 

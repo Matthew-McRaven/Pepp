@@ -19,6 +19,11 @@
 #include "isa/pep9.hpp"
 #include "sim/api2.hpp"
 #include "sim/device/dense.hpp"
+
+namespace sim::memory {
+template <typename Address> class Output;
+} // namespace sim::memory
+
 namespace targets::pep9::isa {
 class CPU : public sim::api2::tick::Recipient,
             public sim::api2::trace::Source,
@@ -42,6 +47,8 @@ public:
   };
 
   Status status() const;
+  // Helper to implement STOP opcode.
+  void setPwrOff(sim::memory::Output<quint16> *pwrOff);
   // Helper to convert OS to an operand value.
   // It will use Application access, and will not trigger MMIO.
   std::optional<quint16> currentOperand();
@@ -72,6 +79,7 @@ private:
   sim::api2::device::Descriptor _device;
   sim::memory::Dense<quint8> _regs, _csrs;
   sim::api2::memory::Target<quint16> *_memory;
+  sim::memory::Output<quint16> *_pwrOff = nullptr;
 
   sim::api2::tick::Source *_clock = nullptr;
   sim::api2::trace::Buffer *_tb = nullptr;

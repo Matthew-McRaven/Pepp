@@ -17,6 +17,7 @@
 #include "cpu.hpp"
 #include <bit>
 #include "bits/operations/swap.hpp"
+#include "sim/device/broadcast/mmo.hpp"
 #include "targets/pep9/isa3/helpers.hpp"
 
 namespace {
@@ -49,6 +50,8 @@ sim::api2::memory::Target<quint8> *targets::pep9::isa::CPU::csrs() { return &_cs
 sim::api2::device::Descriptor targets::pep9::isa::CPU::device() const { return _device; }
 
 targets::pep9::isa::CPU::Status targets::pep9::isa::CPU::status() const { return _status; }
+
+void targets::pep9::isa::CPU::setPwrOff(sim::memory::Output<quint16> *pwrOff) { _pwrOff = pwrOff; }
 
 std::optional<quint16> targets::pep9::isa::CPU::currentOperand() {
   using Register = ::isa::Pep9::Register;
@@ -165,7 +168,8 @@ sim::api2::tick::Result targets::pep9::isa::CPU::unaryDispatch(quint8 is) {
 
   switch (mnemonic.instr.mnemon) {
   case mn::STOP:
-    // BUG: Unimplemented
+    tmp8 = 0xde;
+    if (_pwrOff) _pwrOff->write(0, {&tmp8, 1}, rw_d);
     break;
 
   case mn::RET:
