@@ -240,14 +240,14 @@ Q_ENUM_NS(Register);
 enum class CSR : quint8 { N, Z, V, C };
 Q_ENUM_NS(CSR);
 
-// TODO: Fill in from CS5E
+// TODO: Make offsets from end of OS, not absolute addresses.
 enum class MemoryVectors : quint16 {
-  UserStackPtr = 0xDEAD,
-  SystemStackPtr = 0xDEAD,
-  CharIn = 0xDEAD,
-  CharOut = 0xDEAD,
-  LOADER = 0xDEAD,
-  TrapHandler = 0xDEAD,
+  UserStackPtr = 0xFB8F,   // Offset -11
+  SystemStackPtr = 0xFC0F, // Offset -9
+  CharIn = 0xFC15,         // Offset -7
+  CharOut = 0xFC16,        // Offset -5
+  Loader = 0xFC17,         // Offset -3
+  TrapHandler = 0xFC52,    // Offset from -1 to 0
 };
 Q_ENUM_NS(MemoryVectors)
 } // namespace isa::detail::pep9
