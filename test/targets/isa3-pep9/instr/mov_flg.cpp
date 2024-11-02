@@ -20,7 +20,7 @@
 #include "bits/operations/swap.hpp"
 #include "sim/device/dense.hpp"
 #include "targets/pep9/isa3/cpu.hpp"
-#include "targets/pep9/isa3/helpers.hpp"
+#include "targets/isa3/helpers.hpp"
 
 namespace {
 void inner(isa::Pep9::Mnemonic op) {
@@ -34,11 +34,8 @@ void inner(isa::Pep9::Mnemonic op) {
     cpu->regs()->clear(0);
     cpu->csrs()->clear(0);
 
-    if (op == isa::Pep9::Mnemonic::MOVAFLG) {
-      targets::pep9::isa::writeRegister(cpu->regs(), Register::A, flg, rw);
-    } else {
-      targets::pep9::isa::writePackedCSR(cpu->csrs(), flg, rw);
-    }
+    if (op == isa::Pep9::Mnemonic::MOVAFLG) targets::isa::writeRegister<isa::Pep9>(cpu->regs(), Register::A, flg, rw);
+    else targets::isa::writePackedCSR<isa::Pep9>(cpu->csrs(), flg, rw);
 
     REQUIRE_NOTHROW(mem->write(0, {program.data(), program.size()}, rw));
     REQUIRE_NOTHROW(cpu->clock(0));

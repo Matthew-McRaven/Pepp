@@ -19,6 +19,7 @@
 #include "./common.hpp"
 #include "asm/pas/ast/generic/attr_children.hpp"
 #include "asm/pas/operations/pepp/gather_ios.hpp"
+#include "bits/operations/copy.hpp"
 #include "isa/pep9.hpp"
 #include "link/mmio.hpp"
 
@@ -113,11 +114,14 @@ void writeTree(ELFIO::elfio &elf, pas::ast::Node &node, QString prefix, bool isO
 
 QSharedPointer<ELFIO::elfio> pas::obj::pep9::createElf() {
   static const char p9mac[2] = {'p', '9'};
+  quint16 mac;
+  bits::memcpy_endian({(quint8 *)&mac, 2}, bits::hostOrder(), {(const quint8 *)p9mac, 2}, bits::Order::BigEndian);
+
   auto ret = QSharedPointer<ELFIO::elfio>::create();
   ret->create(ELFIO::ELFCLASS32, ELFIO::ELFDATA2MSB);
   ret->set_os_abi(ELFIO::ELFOSABI_NONE);
   ret->set_type(ELFIO::ET_EXEC);
-  ret->set_machine(*(quint16 *)p9mac);
+  ret->set_machine(mac);
   // Create strtab/notes early, so that it will be before any code sections.
   common::addStrTab(*ret);
   ::obj::addMMIONoteSection(*ret);

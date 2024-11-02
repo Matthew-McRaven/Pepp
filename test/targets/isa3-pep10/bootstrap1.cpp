@@ -18,7 +18,7 @@
 #include "bits/operations/swap.hpp"
 #include "sim/device/dense.hpp"
 #include "targets/pep10/isa3/cpu.hpp"
-#include "targets/pep10/isa3/helpers.hpp"
+#include "targets/isa3/helpers.hpp"
 namespace {
 sim::api2::memory::Operation rw = {
     .type = sim::api2::memory::Operation::Type::Standard,
@@ -40,24 +40,25 @@ TEST_CASE("Pep/10 System Creation", "[scope:sim][kind:e2e][target:pep10]") {
   auto regs = cpu.regs();
   quint16 tmp = 0;
 
-  using Register = isa::Pep10::Register;
+  using ISA = isa::Pep10;
+  using Register = ISA::Register;
   // Check that PC is incremented when executing NOP.
-  REQUIRE_NOTHROW(targets::pep10::isa::readRegister(regs, Register::PC, tmp, rw));
+  REQUIRE_NOTHROW(targets::isa::readRegister<ISA>(regs, Register::PC, tmp, rw));
   CHECK(tmp == 0);
 
   auto tick = cpu.clock(0);
 
-  REQUIRE_NOTHROW(targets::pep10::isa::readRegister(regs, Register::PC, tmp, rw));
+  REQUIRE_NOTHROW(targets::isa::readRegister<ISA>(regs, Register::PC, tmp, rw));
   CHECK(tmp == 1);
 
   // Check that A can be modified.
   quint8 v = (quint8)isa::Pep10::Mnemonic::NOTA;
   REQUIRE_NOTHROW(mem.write(0x01, {&v, 1}, rw));
-  REQUIRE_NOTHROW(targets::pep10::isa::readRegister(regs, Register::A, tmp, rw));
+  REQUIRE_NOTHROW(targets::isa::readRegister<ISA>(regs, Register::A, tmp, rw));
   CHECK(tmp == 0);
 
   tick = cpu.clock(1);
 
-  REQUIRE_NOTHROW(targets::pep10::isa::readRegister(regs, Register::A, tmp, rw));
+  REQUIRE_NOTHROW(targets::isa::readRegister<ISA>(regs, Register::A, tmp, rw));
   CHECK(tmp == 0xFFFF);
 }

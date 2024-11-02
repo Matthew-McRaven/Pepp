@@ -17,6 +17,7 @@
 
 #pragma once
 #include <elfio/elfio.hpp>
+#include "builtins/constants.hpp"
 #include "link/memmap.hpp"
 #include "sim/api2.hpp"
 
@@ -26,7 +27,6 @@ struct AddressedIO;
 } // namespace obj
 namespace sim {
 namespace memory {
-
 class IDEController;
 template <typename Address> class Dense;
 template <typename Address> class SimpleBus;
@@ -35,11 +35,11 @@ template <typename Address> class Output;
 template <typename Address> class ReadOnly;
 } // namespace memory
 } // namespace sim
-namespace targets::pep10::isa {
-class CPU;
+
+namespace targets::isa {
 class System : public sim::api2::System<quint16> {
 public:
-  System(QList<obj::MemoryRegion> regions, QList<obj::AddressedIO> mmios);
+  System(builtins::Architecture arch, QList<obj::MemoryRegion> regions, QList<obj::AddressedIO> mmios);
   // System interface
   std::pair<sim::api2::tick::Type, sim::api2::tick::Result> tick(sim::api2::Scheduler::Mode mode) override;
   sim::api2::tick::Type currentTick() const override;
@@ -56,7 +56,10 @@ public:
   std::optional<quint16> getBootFlagAddress();
   quint16 getBootFlags() const;
   void init();
-  CPU *cpu();
+
+  builtins::Architecture architecture() const;
+  sim::api2::tick::Recipient *cpu();
+
   sim::memory::SimpleBus<quint16> *bus();
   QStringList inputs() const;
   sim::memory::Input<quint16> *input(QString name);
@@ -81,7 +84,8 @@ private:
                            quint16 baseOffset = 0);
   QList<ReloadHelper> _regions;
 
-  QSharedPointer<CPU> _cpu = nullptr;
+  const builtins::Architecture _arch = builtins::Architecture::NONE;
+  QSharedPointer<sim::api2::tick::Recipient> _cpu = nullptr;
   QSharedPointer<sim::memory::SimpleBus<quint16>> _bus = nullptr;
   QSharedPointer<sim::api2::Paths> _paths = nullptr;
   QVector<QSharedPointer<sim::memory::Dense<quint16>>> _rawMemory = {};
@@ -99,4 +103,4 @@ bool loadElfSegments(sim::api2::memory::Target<quint16> &mem, const ELFIO::elfio
 
 // loadUserImmediate bypasses loading user program to DDR.
 QSharedPointer<System> systemFromElf(const ELFIO::elfio &elf, bool loadUserImmediate);
-} // namespace targets::pep10::isa
+} // namespace targets::isa

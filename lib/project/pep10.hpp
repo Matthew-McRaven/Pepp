@@ -4,13 +4,13 @@
 #include <QStringListModel>
 #include <helpers/asmb.hpp>
 #include <qabstractitemmodel.h>
-#include <targets/pep10/isa3/system.hpp>
 #include "aproject.hpp"
 #include "builtins/constants.hpp"
 #include "cpu/registermodel.hpp"
 #include "cpu/statusbitmodel.hpp"
 #include "memory/hexdump/rawmemory.hpp"
 #include "symtab/symbolmodel.hpp"
+#include "targets/isa3/system.hpp"
 #include "text/editor/scintillaasmeditbase.hpp"
 #include "utils/opcodemodel.hpp"
 #include "utils/strings.hpp"
@@ -112,7 +112,7 @@ protected:
   QString _objectCodeText = {};
   QVariant _delegate = {};
   QSharedPointer<sim::trace2::InfiniteBuffer> _tb = {};
-  QSharedPointer<targets::pep10::isa::System> _system = {};
+  QSharedPointer<targets::isa::System> _system = {};
   QSharedPointer<ELFIO::elfio> _elf = {};
   // Use raw pointer to avoid double-free with parent'ed QObjects.
   SimulatorRawMemory *_memory = nullptr;

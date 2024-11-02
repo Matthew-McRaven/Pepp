@@ -27,7 +27,7 @@
 #include "link/mmio.hpp"
 #include "macro/registry.hpp"
 #include "sim/device/simple_bus.hpp"
-#include "targets/pep10/isa3/system.hpp"
+#include "targets/isa3/system.hpp"
 
 namespace {
 static const auto is_diskIn = [](const auto &x) {
@@ -177,8 +177,8 @@ TEST_CASE("CS6E figure assembly", "[scope:asm][kind:e2e][arch:pep10]") {
           auto mmio = obj::MemoryRegion{.r = 1, .w = 1, .minOffset = 0xfffa, .maxOffset = 0xffff};
           CHECK(mergeMap[2] == mmio);
         }
-        QSharedPointer<targets::pep10::isa::System> sys;
-        REQUIRE_NOTHROW([&sys, &elf]() { sys = targets::pep10::isa::systemFromElf(*elf, true); }());
+        QSharedPointer<targets::isa::System> sys;
+        REQUIRE_NOTHROW([&sys, &elf]() { sys = targets::isa::systemFromElf(*elf, true); }());
         QVector<quint8> dump(0x1'00'00);
         sys->bus()->dump({dump.data(), std::size_t(dump.size())});
 

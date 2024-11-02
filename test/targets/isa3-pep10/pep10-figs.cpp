@@ -31,9 +31,9 @@
 #include "sim/device/dense.hpp"
 #include "sim/device/ide.hpp"
 #include "sim/device/simple_bus.hpp"
+#include "targets/isa3/helpers.hpp"
+#include "targets/isa3/system.hpp"
 #include "targets/pep10/isa3/cpu.hpp"
-#include "targets/pep10/isa3/helpers.hpp"
-#include "targets/pep10/isa3/system.hpp"
 
 namespace {
 static const auto lf = QRegularExpression("\r");
@@ -111,7 +111,7 @@ void smoke(QString os, QString userPep, QString userPepo, QString input, QByteAr
   }
   // Skip loading, to save on cycles. However, can't skip dispatch, or
   // main's stack will be wrong.
-  auto system = targets::pep10::isa::systemFromElf(*elf, isBM);
+  auto system = targets::isa::systemFromElf(*elf, isBM);
   system->init();
   REQUIRE(!system.isNull());
   system->setBootFlags(true, true);
@@ -199,7 +199,7 @@ TEST_CASE("Pep/10 Assembler Assembly", "[scope:asm][kind:e2e][arch:pep10]") {
   }
 
   // Skip loading, since BM OS does not have an OS-level loader.
-  auto system = targets::pep10::isa::systemFromElf(*elf, true);
+  auto system = targets::isa::systemFromElf(*elf, true);
   REQUIRE(!system.isNull());
   CHECK(system->ideControllers().size() == 1);
   auto ide = system->ideController("ideCMD");

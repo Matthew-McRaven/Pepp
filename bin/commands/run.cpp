@@ -23,9 +23,9 @@
 #include "sim/device/broadcast/mmi.hpp"
 #include "sim/device/broadcast/mmo.hpp"
 #include "sim/device/simple_bus.hpp"
+#include "targets/isa3/helpers.hpp"
+#include "targets/isa3/system.hpp"
 #include "targets/pep10/isa3/cpu.hpp"
-#include "targets/pep10/isa3/helpers.hpp"
-#include "targets/pep10/isa3/system.hpp"
 
 auto gs = sim::api2::memory::Operation{
     .type = sim::api2::memory::Operation::Type::Application,
@@ -89,7 +89,7 @@ void RunTask::run() {
   bool hasBootFlag = (obj::getBootFlagsAddress(*_elf).has_value());
   // Skip loading logic if there flag is set or there are no boot flags.
   bool skipLoad = _skipLoad | !hasBootFlag;
-  auto system = targets::pep10::isa::systemFromElf(*_elf, skipLoad);
+  auto system = targets::isa::systemFromElf(*_elf, skipLoad);
   system->init();
   // Skip dispatching logic if flag is set and there are boot flags.
   system->setBootFlags(!skipLoad, !_skipDispatch);
@@ -115,7 +115,8 @@ void RunTask::run() {
       qCritical(e);
       throw std::logic_error(e);
     }
-    targets::pep10::isa::writeRegister(system->cpu()->regs(), static_cast<isa::Pep10::Register>(regEnu), val, gs);
+    auto cpu = static_cast<targets::pep10::isa::CPU *>(system->cpu());
+    targets::isa::writeRegister<isa::Pep10>(cpu->regs(), static_cast<isa::Pep10::Register>(regEnu), val, gs);
   }
 
   auto pwrOff = system->output("pwrOff");
@@ -140,7 +141,8 @@ void RunTask::run() {
 
   auto printReg = [&](isa::Pep10::Register reg) {
     quint16 tmp = 0;
-    targets::pep10::isa::readRegister(system->cpu()->regs(), reg, tmp, gs);
+    auto cpu = static_cast<targets::pep10::isa::CPU *>(system->cpu());
+    targets::isa::readRegister<isa::Pep10>(cpu->regs(), reg, tmp, gs);
     auto regName = QMetaEnum::fromType<isa::detail::pep10::Register>().valueToKey((int)reg);
     std::cout << u"%1=%2"_s.arg(regName).arg(QString::number(tmp, 16), 4, '0').toStdString() << " ";
   };

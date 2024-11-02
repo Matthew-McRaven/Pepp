@@ -15,10 +15,9 @@
  */
 
 #include "cpu.hpp"
-#include <bit>
 #include "bits/operations/swap.hpp"
 #include "sim/device/broadcast/mmo.hpp"
-#include "targets/pep9/isa3/helpers.hpp"
+#include "targets/isa3/helpers.hpp"
 
 namespace {
 sim::api2::memory::Operation rw_d = {
@@ -124,35 +123,38 @@ void targets::pep9::isa::CPU::setTarget(sim::api2::memory::Target<quint16> *targ
 
 quint16 targets::pep9::isa::CPU::readReg(::isa::Pep9::Register reg) {
   quint16 ret = 0;
-  isa::readRegister<quint8>(&_regs, reg, ret, rw_d);
+  targets::isa::readRegister<::isa::Pep9, quint8>(&_regs, reg, ret, rw_d);
   return ret;
 }
 
 void targets::pep9::isa::CPU::writeReg(::isa::Pep9::Register reg, quint16 val) {
-  isa::writeRegister<quint8>(&_regs, reg, val, rw_d);
+  targets::isa::writeRegister<::isa::Pep9, quint8>(&_regs, reg, val, rw_d);
 }
 
 bool targets::pep9::isa::CPU::readCSR(::isa::Pep9::CSR csr) {
   bool ret = 0;
-  isa::readCSR(&_csrs, csr, ret, rw_d);
+  targets::isa::readCSR<::isa::Pep9>(&_csrs, csr, ret, rw_d);
   return ret;
 }
 
 void targets::pep9::isa::CPU::writeCSR(::isa::Pep9::CSR csr, bool val) {
-  isa::writeCSR<quint8>(&_csrs, csr, val, rw_d);
+  targets::isa::writeCSR<::isa::Pep9, quint8>(&_csrs, csr, val, rw_d);
 }
 
 quint8 targets::pep9::isa::CPU::readPackedCSR() {
   quint8 ret = 0;
-  isa::readPackedCSR(&_csrs, ret, rw_d);
+  targets::isa::readPackedCSR<::isa::Pep9>(&_csrs, ret, rw_d);
   return ret;
 }
 
-void targets::pep9::isa::CPU::writePackedCSR(quint8 val) { isa::writePackedCSR(&_csrs, val, rw_d); }
+void targets::pep9::isa::CPU::writePackedCSR(quint8 val) {
+  targets::isa::writePackedCSR<::isa::Pep9>(&_csrs, val, rw_d);
+}
 
 sim::api2::tick::Result targets::pep9::isa::CPU::unaryDispatch(quint8 is) {
-  using mn = ::isa::Pep9::Mnemonic;
-  using Register = ::isa::Pep9::Register;
+  using ISA = ::isa::Pep9;
+  using mn = ISA::Mnemonic;
+  using Register = ISA::Pep9::Register;
 
   static const bool swap = bits::hostOrder() != bits::Order::BigEndian;
   auto mnemonic = ::isa::Pep9::opcodeLUT[is];
@@ -164,7 +166,7 @@ sim::api2::tick::Result targets::pep9::isa::CPU::unaryDispatch(quint8 is) {
   static constexpr quint8 registersBytes = 2 * ::isa::Pep9::RegisterCount;
   quint8 ctx[std::max<std::size_t>(registersBytes, 10)];
   auto ctxSpan = bits::span<quint8>{ctx, sizeof(ctx)};
-  auto [n, z, v, c] = unpackCSR(readPackedCSR());
+  auto [n, z, v, c] = targets::isa::unpackCSR<ISA>(readPackedCSR());
 
   switch (mnemonic.instr.mnemon) {
   case mn::STOP:
@@ -226,14 +228,14 @@ sim::api2::tick::Result targets::pep9::isa::CPU::unaryDispatch(quint8 is) {
     n = tmp & 0x8000;
     z = tmp == 0x0000;
     writeReg(Register::A, tmp);
-    writePackedCSR(packCSR(n, z, v, c));
+    writePackedCSR(targets::isa::packCSR<ISA>(n, z, v, c));
     break;
   case mn::NOTX:
     tmp = ~x;
     n = tmp & 0x8000;
     z = tmp == 0x0000;
     writeReg(Register::X, tmp);
-    writePackedCSR(packCSR(n, z, v, c));
+    writePackedCSR(targets::isa::packCSR<ISA>(n, z, v, c));
     break;
 
   case mn::NEGA:
@@ -243,7 +245,7 @@ sim::api2::tick::Result targets::pep9::isa::CPU::unaryDispatch(quint8 is) {
     v = tmp == 0x8000;
     c = a == 0x0000;
     writeReg(Register::A, tmp);
-    writePackedCSR(packCSR(n, z, v, c));
+    writePackedCSR(targets::isa::packCSR<ISA>(n, z, v, c));
     break;
   case mn::NEGX:
     tmp = ~x + 1;
@@ -252,7 +254,7 @@ sim::api2::tick::Result targets::pep9::isa::CPU::unaryDispatch(quint8 is) {
     v = tmp == 0x8000;
     c = x == 0x0000;
     writeReg(Register::X, tmp);
-    writePackedCSR(packCSR(n, z, v, c));
+    writePackedCSR(targets::isa::packCSR<ISA>(n, z, v, c));
     break;
 
   case mn::ASLA:
@@ -269,7 +271,7 @@ sim::api2::tick::Result targets::pep9::isa::CPU::unaryDispatch(quint8 is) {
     // Carry out if register starts with high order 1.
     c = a & 0x8000;
     writeReg(Register::A, tmp);
-    writePackedCSR(packCSR(n, z, v, c));
+    writePackedCSR(targets::isa::packCSR<ISA>(n, z, v, c));
     break;
   case mn::ASLX:
     // Store in temp, because we need acc for status bit computation.
@@ -285,7 +287,7 @@ sim::api2::tick::Result targets::pep9::isa::CPU::unaryDispatch(quint8 is) {
     // Carry out if register starts with high order 1.
     c = x & 0x8000;
     writeReg(Register::X, tmp);
-    writePackedCSR(packCSR(n, z, v, c));
+    writePackedCSR(targets::isa::packCSR<ISA>(n, z, v, c));
     break;
 
   case mn::ASRA:
@@ -300,7 +302,7 @@ sim::api2::tick::Result targets::pep9::isa::CPU::unaryDispatch(quint8 is) {
     c = a & 0x1;
     v = 0;
     writeReg(Register::A, tmp);
-    writePackedCSR(packCSR(n, z, v, c));
+    writePackedCSR(targets::isa::packCSR<ISA>(n, z, v, c));
     break;
   case mn::ASRX:
     // Shift all bits to the right by 1 position. Since using unsigned shift,
@@ -314,7 +316,7 @@ sim::api2::tick::Result targets::pep9::isa::CPU::unaryDispatch(quint8 is) {
     c = x & 0x1;
     v = 0;
     writeReg(Register::X, tmp);
-    writePackedCSR(packCSR(n, z, v, c));
+    writePackedCSR(targets::isa::packCSR<ISA>(n, z, v, c));
     break;
 
   case mn::ROLA:
@@ -323,7 +325,7 @@ sim::api2::tick::Result targets::pep9::isa::CPU::unaryDispatch(quint8 is) {
     // Carry out if register starts with high order 1.
     c = a & 0x8000;
     writeReg(Register::A, tmp);
-    writePackedCSR(packCSR(n, z, v, c));
+    writePackedCSR(targets::isa::packCSR<ISA>(n, z, v, c));
     break;
   case mn::ROLX:
     // Shift the carry in to low order bit.
@@ -331,7 +333,7 @@ sim::api2::tick::Result targets::pep9::isa::CPU::unaryDispatch(quint8 is) {
     // Carry out if register starts with high order 1.
     c = x & 0x8000;
     writeReg(Register::X, tmp);
-    writePackedCSR(packCSR(n, z, v, c));
+    writePackedCSR(targets::isa::packCSR<ISA>(n, z, v, c));
     break;
 
   case mn::RORA:
@@ -340,7 +342,7 @@ sim::api2::tick::Result targets::pep9::isa::CPU::unaryDispatch(quint8 is) {
     // Carry out if register starts with low order 1.
     c = a & 0x1;
     writeReg(Register::A, tmp);
-    writePackedCSR(packCSR(n, z, v, c));
+    writePackedCSR(targets::isa::packCSR<ISA>(n, z, v, c));
     break;
   case mn::RORX:
     // Shift the carry in to high order bit.
@@ -348,7 +350,7 @@ sim::api2::tick::Result targets::pep9::isa::CPU::unaryDispatch(quint8 is) {
     // Carry out if register starts with low order 1.
     c = x & 0x1;
     writeReg(Register::X, tmp);
-    writePackedCSR(packCSR(n, z, v, c));
+    writePackedCSR(targets::isa::packCSR<ISA>(n, z, v, c));
     break;
   // Non-unary traps
   case mn::NOP: [[fallthrough]];
@@ -408,8 +410,9 @@ sim::api2::tick::Result targets::pep9::isa::CPU::unaryDispatch(quint8 is) {
 }
 
 sim::api2::tick::Result targets::pep9::isa::CPU::nonunaryDispatch(quint8 is, quint16 os, quint16 pc) {
-  using mn = ::isa::Pep9::Mnemonic;
-  using Register = ::isa::Pep9::Register;
+  using ISA = ::isa::Pep9;
+  using mn = ISA::Mnemonic;
+  using Register = ISA::Register;
 
   static const bool swap = bits::hostOrder() != bits::Order::BigEndian;
   auto mnemonic = ::isa::Pep9::opcodeLUT[is];
@@ -418,7 +421,7 @@ sim::api2::tick::Result targets::pep9::isa::CPU::nonunaryDispatch(quint8 is, qui
   quint16 operand = 0;
 
   quint16 tmp = 0;
-  auto [n, z, v, c] = unpackCSR(readPackedCSR());
+  auto [n, z, v, c] = targets::isa::unpackCSR<ISA>(readPackedCSR());
 
   auto instrDef = ::isa::Pep9::opcodeLUT[is];
   if (::isa::Pep9::isValidAddressingMode(instrDef.instr.mnemon, instrDef.mode))
@@ -461,7 +464,7 @@ sim::api2::tick::Result targets::pep9::isa::CPU::nonunaryDispatch(quint8 is, qui
     v = (~(a ^ operand) & (a ^ tmp)) >> 15;
     // Carry out iff result is unsigned less than register or operand.
     c = tmp < a || tmp < operand;
-    writePackedCSR(packCSR(n, z, v, c));
+    writePackedCSR(targets::isa::packCSR<ISA>(n, z, v, c));
     break;
   case mn::ADDX:
     // The result is the decoded operand specifier plus the index register.
@@ -478,7 +481,7 @@ sim::api2::tick::Result targets::pep9::isa::CPU::nonunaryDispatch(quint8 is, qui
     v = (~(x ^ operand) & (x ^ tmp)) >> 15;
     // Carry out iff result is unsigned less than register or operand.
     c = tmp < x || tmp < operand;
-    writePackedCSR(packCSR(n, z, v, c));
+    writePackedCSR(targets::isa::packCSR<ISA>(n, z, v, c));
     break;
 
   case mn::SUBA:
@@ -497,7 +500,7 @@ sim::api2::tick::Result targets::pep9::isa::CPU::nonunaryDispatch(quint8 is, qui
     v = (~(a ^ (~operand + 1)) & (a ^ tmp)) >> 15;
     // Carry out iff result is unsigned less than register or operand.
     c = tmp < a || tmp < static_cast<quint16>(1 + ~operand);
-    writePackedCSR(packCSR(n, z, v, c));
+    writePackedCSR(targets::isa::packCSR<ISA>(n, z, v, c));
     break;
   case mn::SUBX:
     // The result is the negated decoded operand specifier plus the index
@@ -513,7 +516,7 @@ sim::api2::tick::Result targets::pep9::isa::CPU::nonunaryDispatch(quint8 is, qui
     v = (~(x ^ (~operand + 1)) & (x ^ tmp)) >> 15;
     // Carry out iff result is unsigned less than register or operand.
     c = tmp < x || tmp < static_cast<quint16>(1 + ~operand);
-    writePackedCSR(packCSR(n, z, v, c));
+    writePackedCSR(targets::isa::packCSR<ISA>(n, z, v, c));
     break;
 
   case mn::ANDA:
@@ -523,7 +526,7 @@ sim::api2::tick::Result targets::pep9::isa::CPU::nonunaryDispatch(quint8 is, qui
     n = tmp & 0x8000;
     // Is zero if all bits are 0's.
     z = tmp == 0x0000;
-    writePackedCSR(packCSR(n, z, v, c));
+    writePackedCSR(targets::isa::packCSR<ISA>(n, z, v, c));
     break;
   case mn::ANDX:
     tmp = x & operand;
@@ -532,7 +535,7 @@ sim::api2::tick::Result targets::pep9::isa::CPU::nonunaryDispatch(quint8 is, qui
     n = tmp & 0x8000;
     // Is zero if all bits are 0's.
     z = tmp == 0x0000;
-    writePackedCSR(packCSR(n, z, v, c));
+    writePackedCSR(targets::isa::packCSR<ISA>(n, z, v, c));
     break;
 
   case mn::ORA:
@@ -542,7 +545,7 @@ sim::api2::tick::Result targets::pep9::isa::CPU::nonunaryDispatch(quint8 is, qui
     n = tmp & 0x8000;
     // Is zero if all bits are 0's.
     z = tmp == 0x0000;
-    writePackedCSR(packCSR(n, z, v, c));
+    writePackedCSR(targets::isa::packCSR<ISA>(n, z, v, c));
     break;
   case mn::ORX:
     tmp = x | operand;
@@ -551,7 +554,7 @@ sim::api2::tick::Result targets::pep9::isa::CPU::nonunaryDispatch(quint8 is, qui
     n = tmp & 0x8000;
     // Is zero if all bits are 0's.
     z = tmp == 0x0000;
-    writePackedCSR(packCSR(n, z, v, c));
+    writePackedCSR(targets::isa::packCSR<ISA>(n, z, v, c));
     break;
 
   case mn::CPWA:
@@ -569,7 +572,7 @@ sim::api2::tick::Result targets::pep9::isa::CPU::nonunaryDispatch(quint8 is, qui
     c = tmp < a || tmp < static_cast<quint16>(1 + ~operand);
     // Invert N bit if there was signed overflow.
     n ^= v;
-    writePackedCSR(packCSR(n, z, v, c));
+    writePackedCSR(targets::isa::packCSR<ISA>(n, z, v, c));
     break;
   case mn::CPWX:
     tmp = x + ~operand + 1;
@@ -586,7 +589,7 @@ sim::api2::tick::Result targets::pep9::isa::CPU::nonunaryDispatch(quint8 is, qui
     c = tmp < x || tmp < static_cast<quint16>(1 + ~operand);
     // Invert N bit if there was signed overflow.
     n ^= v;
-    writePackedCSR(packCSR(n, z, v, c));
+    writePackedCSR(targets::isa::packCSR<ISA>(n, z, v, c));
     break;
 
   case mn::CPBA:
@@ -598,7 +601,7 @@ sim::api2::tick::Result targets::pep9::isa::CPU::nonunaryDispatch(quint8 is, qui
     z = tmp == 0x00;
     // RTL specifies that VC get 0.
     v = c = 0;
-    writePackedCSR(packCSR(n, z, v, c));
+    writePackedCSR(targets::isa::packCSR<ISA>(n, z, v, c));
     break;
   case mn::CPBX:
     // The result is the decoded operand specifier plus the accumulator
@@ -609,20 +612,20 @@ sim::api2::tick::Result targets::pep9::isa::CPU::nonunaryDispatch(quint8 is, qui
     z = tmp == 0x00;
     // RTL specifies that VC get 0.
     v = c = 0;
-    writePackedCSR(packCSR(n, z, v, c));
+    writePackedCSR(targets::isa::packCSR<ISA>(n, z, v, c));
     break;
 
   case mn::LDWA:
     writeReg(Register::A, operand);
     n = operand & 0x8000;
     z = operand == 0x0000;
-    writePackedCSR(packCSR(n, z, v, c));
+    writePackedCSR(targets::isa::packCSR<ISA>(n, z, v, c));
     break;
   case mn::LDWX:
     writeReg(Register::X, operand);
     n = operand & 0x8000;
     z = operand == 0x0000;
-    writePackedCSR(packCSR(n, z, v, c));
+    writePackedCSR(targets::isa::packCSR<ISA>(n, z, v, c));
     break;
 
   // LDBx instructions depend on decodeLoadOperand to 0-fill upper byte.
@@ -631,14 +634,14 @@ sim::api2::tick::Result targets::pep9::isa::CPU::nonunaryDispatch(quint8 is, qui
     // LDBx always clears n.
     n = 0;
     z = operand == 0x0000;
-    writePackedCSR(packCSR(n, z, v, c));
+    writePackedCSR(targets::isa::packCSR<ISA>(n, z, v, c));
     break;
   case mn::LDBX:
     writeReg(Register::X, operand);
     // LDBx always clears n.
     n = 0;
     z = operand == 0x0000;
-    writePackedCSR(packCSR(n, z, v, c));
+    writePackedCSR(targets::isa::packCSR<ISA>(n, z, v, c));
     break;
 
   case mn::STWA:

@@ -20,7 +20,7 @@
 #include "sim/device/broadcast/mmo.hpp"
 #include "sim/device/dense.hpp"
 #include "targets/pep9/isa3/cpu.hpp"
-#include "targets/pep9/isa3/helpers.hpp"
+#include "targets/isa3/helpers.hpp"
 
 namespace {
 void inner(isa::Pep9::Mnemonic op) {
@@ -36,7 +36,7 @@ void inner(isa::Pep9::Mnemonic op) {
 
   cpu->regs()->clear(0);
   cpu->csrs()->clear(0);
-  targets::pep9::isa::writeRegister(cpu->regs(), isa::Pep9::Register::PC, 0, rw);
+  targets::isa::writeRegister<isa::Pep9>(cpu->regs(), isa::Pep9::Register::PC, 0, rw);
   REQUIRE_NOTHROW(mem->write(0x0000, {program.data(), program.size()}, rw));
   REQUIRE_NOTHROW(cpu->clock(0));
   CHECK(reg(cpu, isa::Pep9::Register::PC) == 1);

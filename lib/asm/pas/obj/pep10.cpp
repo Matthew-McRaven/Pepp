@@ -20,6 +20,7 @@
 #include "asm/pas/ast/generic/attr_children.hpp"
 #include "asm/pas/ast/generic/attr_sec.hpp"
 #include "asm/pas/operations/pepp/gather_ios.hpp"
+#include "bits/operations/copy.hpp"
 #include "isa/pep10.hpp"
 #include "link/mmio.hpp"
 
@@ -52,11 +53,13 @@ void pas::obj::pep10::combineSections(ast::Node &root) {
 
 QSharedPointer<ELFIO::elfio> pas::obj::pep10::createElf() {
   static const char p10mac[2] = {'p', 'x'};
+  quint16 mac;
+  bits::memcpy_endian({(quint8 *)&mac, 2}, bits::hostOrder(), {(const quint8 *)p10mac, 2}, bits::Order::BigEndian);
   auto ret = QSharedPointer<ELFIO::elfio>::create();
   ret->create(ELFIO::ELFCLASS32, ELFIO::ELFDATA2MSB);
   ret->set_os_abi(ELFIO::ELFOSABI_NONE);
   ret->set_type(ELFIO::ET_EXEC);
-  ret->set_machine(*(quint16 *)p10mac);
+  ret->set_machine(mac);
   // Create strtab/notes early, so that it will be before any code sections.
   common::addStrTab(*ret);
   ::obj::addMMIONoteSection(*ret);

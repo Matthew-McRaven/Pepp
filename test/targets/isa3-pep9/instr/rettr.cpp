@@ -19,10 +19,11 @@
 #include "bits/operations/swap.hpp"
 #include "sim/device/dense.hpp"
 #include "targets/pep9/isa3/cpu.hpp"
-#include "targets/pep9/isa3/helpers.hpp"
+#include "targets/isa3/helpers.hpp"
 
 TEST_CASE("Pep9::Mnemonic::RETTR", "[scope:targets][kind:int][target:pep9]") {
-  auto op = isa::Pep9::Mnemonic ::RETTR;
+  using ISA = isa::Pep9;
+  auto op = ISA::Mnemonic ::RETTR;
   auto [mem, cpu] = make();
 
   quint8 tmp8 = 0;
@@ -39,21 +40,21 @@ TEST_CASE("Pep9::Mnemonic::RETTR", "[scope:targets][kind:int][target:pep9]") {
   cpu->regs()->clear(0);
   cpu->csrs()->clear(0);
 
-  REQUIRE_NOTHROW(targets::pep9::isa::writeRegister(cpu->regs(), isa::Pep9::Register::SP, 0x8086 - 10, rw));
+  REQUIRE_NOTHROW(targets::isa::writeRegister<ISA>(cpu->regs(), isa::Pep9::Register::SP, 0x8086 - 10, rw));
   REQUIRE_NOTHROW(mem->write(0x0000, {program.data(), program.size()}, rw));
   REQUIRE_NOTHROW(mem->write(0x8086 - 10, {truth, sizeof(truth)}, rw));
 
   REQUIRE_NOTHROW(cpu->clock(0));
 
-  REQUIRE_NOTHROW(targets::pep9::isa::readPackedCSR(cpu->csrs(), tmp8, rw));
+  REQUIRE_NOTHROW(targets::isa::readPackedCSR<ISA>(cpu->csrs(), tmp8, rw));
   CHECK(tmp8 == truth[0]);
-  REQUIRE_NOTHROW(targets::pep9::isa::readRegister(cpu->regs(), isa::Pep9::Register::A, tmp, rw));
+  REQUIRE_NOTHROW(targets::isa::readRegister<ISA>(cpu->regs(), isa::Pep9::Register::A, tmp, rw));
   CHECK(tmp == (truth[1] << 8 | truth[2]));
-  REQUIRE_NOTHROW(targets::pep9::isa::readRegister(cpu->regs(), isa::Pep9::Register::X, tmp, rw));
+  REQUIRE_NOTHROW(targets::isa::readRegister<ISA>(cpu->regs(), isa::Pep9::Register::X, tmp, rw));
   CHECK(tmp == (truth[3] << 8 | truth[4]));
-  REQUIRE_NOTHROW(targets::pep9::isa::readRegister(cpu->regs(), isa::Pep9::Register::PC, tmp, rw));
+  REQUIRE_NOTHROW(targets::isa::readRegister<ISA>(cpu->regs(), isa::Pep9::Register::PC, tmp, rw));
   CHECK(tmp == (truth[5] << 8 | truth[6]));
-  REQUIRE_NOTHROW(targets::pep9::isa::readRegister(cpu->regs(), isa::Pep9::Register::SP, tmp, rw));
+  REQUIRE_NOTHROW(targets::isa::readRegister<ISA>(cpu->regs(), isa::Pep9::Register::SP, tmp, rw));
   CHECK(tmp == (truth[7] << 8 | truth[8]));
 
   REQUIRE_NOTHROW(mem->read((quint16)isa::Pep9::MemoryVectors::SystemStackPtr,

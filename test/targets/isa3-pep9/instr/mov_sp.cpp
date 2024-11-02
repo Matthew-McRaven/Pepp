@@ -20,7 +20,7 @@
 #include "bits/operations/swap.hpp"
 #include "sim/device/dense.hpp"
 #include "targets/pep9/isa3/cpu.hpp"
-#include "targets/pep9/isa3/helpers.hpp"
+#include "targets/isa3/helpers.hpp"
 
 TEST_CASE("Pep9::Mnemonic::MOVSPA", "[scope:targets][kind:int][target:pep9]") {
   using Register = isa::Pep9::Register;

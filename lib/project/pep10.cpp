@@ -14,9 +14,9 @@
 #include "sim/device/broadcast/pubsub.hpp"
 #include "sim/device/simple_bus.hpp"
 #include "sim/trace2/buffers.hpp"
+#include "targets/isa3/helpers.hpp"
+#include "targets/isa3/system.hpp"
 #include "targets/pep10/isa3/cpu.hpp"
-#include "targets/pep10/isa3/helpers.hpp"
-#include "targets/pep10/isa3/system.hpp"
 #include "text/editor/object.hpp"
 #include "utils/strings.hpp"
 
@@ -52,7 +52,7 @@ struct Pep10OpcodeInit {
 
 struct SystemAssembly {
   QSharedPointer<ELFIO::elfio> elf;
-  QSharedPointer<targets::pep10::isa::System> system;
+  QSharedPointer<targets::isa::System> system;
 };
 
 QSharedPointer<macro::Registry> cs6e_macros() {
@@ -78,7 +78,7 @@ SystemAssembly make_isa_system() {
     s.seekg(0, std::ios::beg);
     ret.elf->load(s);
   }
-  ret.system = targets::pep10::isa::systemFromElf(*ret.elf, true);
+  ret.system = targets::isa::systemFromElf(*ret.elf, true);
   return ret;
 }
 
@@ -109,11 +109,11 @@ SystemAssembly make_asmb_system(QString os) {
     s.seekg(0, std::ios::beg);
     ret.elf->load(s);
   }
-  ret.system = targets::pep10::isa::systemFromElf(*ret.elf, true);
+  ret.system = targets::isa::systemFromElf(*ret.elf, true);
   return ret;
 }
 
-RegisterModel *register_model(targets::pep10::isa::System *system, OpcodeModel *opcodes, QObject *parent = nullptr) {
+RegisterModel *register_model(targets::isa::System *system, OpcodeModel *opcodes, QObject *parent = nullptr) {
   using RF = QSharedPointer<RegisterFormatter>;
   using TF = QSharedPointer<TextFormatter>;
   using MF = QSharedPointer<MnemonicFormatter>;
@@ -127,10 +127,11 @@ RegisterModel *register_model(targets::pep10::isa::System *system, OpcodeModel *
   auto _register = [](isa::Pep10::Register r, auto *system) {
     if (system == nullptr) return quint16{0};
     quint16 ret = 0;
-    auto cpu = system->cpu();
-    targets::pep10::isa::readRegister(cpu->regs(), r, ret, gs);
+    auto cpu = static_cast<targets::pep10::isa::CPU *>(system->cpu());
+    targets::isa::readRegister<isa::Pep10>(cpu->regs(), r, ret, gs);
     return ret;
   };
+  auto cpu = static_cast<targets::pep10::isa::CPU *>(system->cpu());
   // BUG: _system seems to be getting deleted very easily. It probably shouldn't be a shared pointer.
   // DO NOT CAPTURE _system INDIRECTLY VIA ANOTHER LAMBDA. It will crash.
   auto A = [=]() { return _register(isa::Pep10::Register::A, system); };
@@ -149,7 +150,7 @@ RegisterModel *register_model(targets::pep10::isa::System *system, OpcodeModel *
     auto op = isa::Pep10::opcodeLUT[is];
     return !op.instr.unary;
   };
-  auto operand = [=]() { return system->cpu()->currentOperand().value_or(0); };
+  auto operand = [=]() { return cpu->currentOperand().value_or(0); };
   ret->appendFormatters({TF::create("Accumulator"), HF::create(A, 2), SF::create(A, 2)});
   ret->appendFormatters({TF::create("Index Register"), HF::create(X, 2), SF::create(X, 2)});
   ret->appendFormatters({TF::create("Stack Pointer"), HF::create(SP, 2), UF::create(SP, 2)});
@@ -169,16 +170,17 @@ RegisterModel *register_model(targets::pep10::isa::System *system, OpcodeModel *
   return ret;
 }
 
-FlagModel *flag_mode(targets::pep10::isa::System *system, QObject *parent = nullptr) {
+FlagModel *flag_mode(targets::isa::System *system, QObject *parent = nullptr) {
   using F = QSharedPointer<Flag>;
   auto ret = new FlagModel(parent);
   auto _flag = [](isa::Pep10::CSR s, auto *system) {
     if (system == nullptr) return false;
     bool ret = 0;
-    auto cpu = system->cpu();
-    targets::pep10::isa::readCSR(cpu->csrs(), s, ret, gs);
+    auto cpu = static_cast<targets::pep10::isa::CPU *>(system->cpu());
+    targets::isa::readCSR<isa::Pep10>(cpu->csrs(), s, ret, gs);
     return ret;
   };
+  auto cpu = static_cast<targets::pep10::isa::CPU *>(system->cpu());
   // See above for wanings on _system pointer.
   auto N = [=]() { return _flag(isa::Pep10::CSR::N, system); };
   auto Z = [=]() { return _flag(isa::Pep10::CSR::Z, system); };
@@ -276,7 +278,8 @@ int Pep10_ISA::allowedSteps() const {
   if (_state != State::DebugPaused) return 0b0;
   using S = project::StepEnableFlags::Value;
   quint16 pc = 0;
-  targets::pep10::isa::readRegister(_system->cpu()->regs(), isa::Pep10::Register::PC, pc, gs);
+  auto cpu = static_cast<targets::pep10::isa::CPU *>(_system->cpu());
+  targets::isa::readRegister<isa::Pep10>(cpu->regs(), isa::Pep10::Register::PC, pc, gs);
   quint8 is;
   _system->bus()->read(pc, {&is, 1}, gs);
   if (isa::Pep10::isCall(is)) return S::Step | S::StepOver | S::StepOut | S::StepInto;
@@ -325,7 +328,7 @@ bool Pep10_ISA::onLoadObject() {
   auto bus = _system->bus();
   bus->clear(0);
   // Reload OS into memory.
-  targets::pep10::isa::loadElfSegments(*bus, *_elf);
+  targets::isa::loadElfSegments(*bus, *_elf);
   // Load user program into memory.
   bus->write(0, *bytes, gs);
   _memory->setSP(-1);
@@ -402,8 +405,9 @@ bool Pep10_ISA::onISAStepInto() { return false; }
 bool Pep10_ISA::onISAStepOut() { return false; }
 
 bool Pep10_ISA::onClearCPU() {
-  _system->cpu()->csrs()->clear(0);
-  _system->cpu()->regs()->clear(0);
+  auto cpu = static_cast<targets::pep10::isa::CPU *>(_system->cpu());
+  cpu->csrs()->clear(0);
+  cpu->regs()->clear(0);
   // Reset trace buffer, since its content is now meaningless.
   _tb->clear();
   _flags->onUpdateGUI();
@@ -527,11 +531,12 @@ void Pep10_ISA::prepareSim() {
 }
 
 void Pep10_ISA::prepareGUIUpdate(sim::api2::trace::FrameIterator from) {
+  auto cpu = static_cast<targets::pep10::isa::CPU *>(_system->cpu());
   // Update cpu-dependent fields in memory before triggering a GUI update.
   quint8 is;
   // Use cached PC
-  quint16 sp, pc = _system->cpu()->startingPC();
-  targets::pep10::isa::readRegister(_system->cpu()->regs(), isa::Pep10::Register::SP, sp, gs);
+  quint16 sp, pc = cpu->startingPC();
+  targets::isa::readRegister<isa::Pep10>(cpu->regs(), isa::Pep10::Register::SP, sp, gs);
   _system->bus()->read(pc, {&is, 1}, gs);
   _memory->setSP(sp);
   _memory->setPC(pc, pc + (isa::Pep10::opcodeLUT[is].instr.unary ? 0 : 2));
@@ -559,8 +564,9 @@ Pep10_ASMB::Pep10_ASMB(QVariant delegate, builtins::Abstraction abstraction, QOb
   _system = elfsys.system;
   _system->bus()->setBuffer(&*_tb);
   bindToSystem();
+  auto cpu = static_cast<targets::pep10::isa::CPU *>(_system->cpu());
   auto asUnique = std::make_unique<sim::api2::trace::ValueFilter<quint8>>(
-      _system->cpu()->regs(), static_cast<quint8>(isa::Pep10::Register::PC));
+      cpu->regs(), static_cast<quint8>(isa::Pep10::Register::PC));
   _breakpoints = asUnique.get();
   _tb->addFilter(std::move(asUnique));
 }
@@ -792,7 +798,8 @@ void Pep10_ASMB::prepareGUIUpdate(sim::api2::trace::FrameIterator from) {
 }
 
 void Pep10_ASMB::updatePCLine() {
-  auto pc = _system->cpu()->startingPC();
+  auto cpu = static_cast<targets::pep10::isa::CPU *>(_system->cpu());
+  auto pc = cpu->startingPC();
   if (auto userSrc = _userLines2Address.address2Source(pc); userSrc) emit modifyUserSource(*userSrc, Action::ScrollTo);
   if (auto userList = _userLines2Address.address2List(pc); userList) {
     emit switchTo(false);

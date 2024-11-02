@@ -18,8 +18,8 @@
 #include <qtypes.h>
 #include "bits/operations/swap.hpp"
 #include "sim/device/dense.hpp"
+#include "targets/isa3/helpers.hpp"
 #include "targets/pep9/isa3/cpu.hpp"
-#include "targets/pep9/isa3/helpers.hpp"
 
 static inline sim::api2::memory::Operation rw = {
     .type = sim::api2::memory::Operation::Type::Standard,
@@ -51,12 +51,12 @@ static inline std::pair<QSharedPointer<sim::memory::Dense<quint16>>, QSharedPoin
 
 static inline auto reg(QSharedPointer<targets::pep9::isa::CPU> cpu, isa::Pep9::Register reg) -> quint16 {
   quint16 tmp = 0;
-  targets::pep9::isa::readRegister(cpu->regs(), reg, tmp, rw);
+  targets::isa::readRegister<isa::Pep9>(cpu->regs(), reg, tmp, rw);
   return tmp;
 };
 
 static inline quint16 csr(QSharedPointer<targets::pep9::isa::CPU> cpu, isa::Pep9::CSR csr) {
   bool tmp = 0;
-  targets::pep9::isa::readCSR(cpu->csrs(), csr, tmp, rw);
+  targets::isa::readCSR<isa::Pep9>(cpu->csrs(), csr, tmp, rw);
   return tmp;
 };
