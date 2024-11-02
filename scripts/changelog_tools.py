@@ -1,6 +1,7 @@
 import pathlib
 import argparse
 import sqlite3
+import tempfile, shutil
 
 data_dir = pathlib.Path(__file__).parent.parent / "data" / "changelog"
 
@@ -104,9 +105,15 @@ CREATE TABLE "changes" (
     conn.commit()
 
 def to_sqlite(args):
-    conn = sqlite3.connect(args.db)
-    to_sqlite_helper(conn)
-    conn.close()
+    # Create DB as a tempfile, because some IDEs (e.g., CLion) won't let python acquire RW lock on normal DB.
+    with tempfile.TemporaryDirectory() as d:
+        f = pathlib.Path(d) / "temp.db"
+        print(f)
+        conn = sqlite3.connect(f)
+        to_sqlite_helper(conn)
+        conn.close()
+        shutil.move(f, args.db)
+
 
 def stringize_version(conn, version):
     # Print header
