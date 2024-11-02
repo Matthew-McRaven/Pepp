@@ -16,7 +16,6 @@
  */
 
 #include "./system.hpp"
-#include "device/ide.hpp"
 #include "link/bytes.hpp"
 #include "link/memmap.hpp"
 #include "link/mmio.hpp"
@@ -24,8 +23,8 @@
 #include "sim/device/broadcast/mmo.hpp"
 #include "sim/device/readonly.hpp"
 #include "sim/device/simple_bus.hpp"
-#include "targets/pep10/isa3/cpu.hpp"
-#include "targets/pep10/isa3/helpers.hpp"
+#include "targets/pep9/isa3/cpu.hpp"
+#include "targets/pep9/isa3/helpers.hpp"
 using namespace Qt::StringLiterals;
 
 using AddressSpan = sim::api2::memory::AddressSpan<quint16>;
@@ -45,16 +44,13 @@ sim::api2::device::Descriptor desc_mmi(sim::api2::device::ID id, QString name) {
 sim::api2::device::Descriptor desc_mmo(sim::api2::device::ID id, QString name) {
   return {.id = id, .baseName = u"mmo-%1"_s.arg(name), .fullName = u"/bus/mmo-%1"_s.arg(name)};
 }
-sim::api2::device::Descriptor desc_ide(sim::api2::device::ID id, QString name) {
-  return {.id = id, .baseName = u"ide-%1"_s.arg(name), .fullName = u"/bus/ide-%1"_s.arg(name)};
-}
 const auto gs = sim::api2::memory::Operation{
     .type = sim::api2::memory::Operation::Type::Application,
     .kind = sim::api2::memory::Operation::Kind::data,
 };
 } // namespace
 
-targets::pep10::isa::System::System(QList<obj::MemoryRegion> regions, QList<obj::AddressedIO> mmios)
+targets::pep9::isa::System::System(QList<obj::MemoryRegion> regions, QList<obj::AddressedIO> mmios)
     : _regions(), _cpu(QSharedPointer<CPU>::create(desc_cpu(nextID()), _nextIDGenerator)),
       _bus(QSharedPointer<sim::memory::SimpleBus<quint16>>::create(desc_bus(nextID()), AddressSpan(0, 0xFFFF))),
       _paths(QSharedPointer<sim::api2::Paths>::create()) {
@@ -105,13 +101,6 @@ targets::pep10::isa::System::System(QList<obj::MemoryRegion> regions, QList<obj:
       auto mem = QSharedPointer<sim::memory::Output<quint16>>::create(desc, span);
       _bus->pushFrontTarget(AddressSpan(mmio.minOffset, mmio.maxOffset), &*mem);
       _mmo[mmio.name] = mem;
-    } else if (mmio.type == obj::IO::Type::kIDE) {
-      auto desc = desc_ide(nextID(), mmio.name);
-      addDevice(desc);
-      auto mem = QSharedPointer<sim::memory::IDEController>::create(desc, 0, _nextIDGenerator);
-      mem->setTarget(&*_bus, nullptr);
-      _bus->pushFrontTarget(AddressSpan(mmio.minOffset, mmio.maxOffset), &*mem);
-      _ide[mmio.name] = mem;
     } else {
       throw std::logic_error("Unreachable");
     }
@@ -120,35 +109,35 @@ targets::pep10::isa::System::System(QList<obj::MemoryRegion> regions, QList<obj:
 }
 
 std::pair<sim::api2::tick::Type, sim::api2::tick::Result>
-targets::pep10::isa::System::tick(sim::api2::Scheduler::Mode mode) {
+targets::pep9::isa::System::tick(sim::api2::Scheduler::Mode mode) {
   auto res = _cpu->clock(_tick);
   return {++_tick, res};
 }
 
-sim::api2::tick::Type targets::pep10::isa::System::currentTick() const { return _tick; }
+sim::api2::tick::Type targets::pep9::isa::System::currentTick() const { return _tick; }
 
-sim::api2::device::ID targets::pep10::isa::System::nextID() { return _nextID++; }
+sim::api2::device::ID targets::pep9::isa::System::nextID() { return _nextID++; }
 
-sim::api2::device::IDGenerator targets::pep10::isa::System::nextIDGenerator() { return _nextIDGenerator; }
+sim::api2::device::IDGenerator targets::pep9::isa::System::nextIDGenerator() { return _nextIDGenerator; }
 
-void targets::pep10::isa::System::addDevice(sim::api2::device::Descriptor desc) { _devices[desc.id] = desc; }
+void targets::pep9::isa::System::addDevice(sim::api2::device::Descriptor desc) { _devices[desc.id] = desc; }
 
-sim::api2::device::Descriptor *targets::pep10::isa::System::descriptor(sim::api2::device::ID id) {
+sim::api2::device::Descriptor *targets::pep9::isa::System::descriptor(sim::api2::device::ID id) {
   if (auto it = _devices.find(id); it == _devices.cend()) return nullptr;
   else return &it.value();
 }
 
-void targets::pep10::isa::System::setBuffer(sim::api2::trace::Buffer *buffer) {
+void targets::pep9::isa::System::setBuffer(sim::api2::trace::Buffer *buffer) {
   static const char *const e = "Unimplemented";
   qCritical(e);
   throw std::logic_error(e);
 }
 
-QSharedPointer<const sim::api2::Paths> targets::pep10::isa::System::pathManager() const { return _paths; }
+QSharedPointer<const sim::api2::Paths> targets::pep9::isa::System::pathManager() const { return _paths; }
 
-void targets::pep10::isa::System::setBootFlagAddress(quint16 addr) { _bootFlg = addr; }
+void targets::pep9::isa::System::setBootFlagAddress(quint16 addr) { _bootFlg = addr; }
 
-void targets::pep10::isa::System::setBootFlags(bool enableLoader, bool enableDispatcher) {
+void targets::pep9::isa::System::setBootFlags(bool enableLoader, bool enableDispatcher) {
   quint16 value = (enableLoader ? 1 << 0 : 0) | (enableDispatcher ? 1 << 1 : 0);
   if (bits::hostOrder() != bits::Order::BigEndian) value = bits::byteswap(value);
   if (_bootFlg) {
@@ -156,9 +145,9 @@ void targets::pep10::isa::System::setBootFlags(bool enableLoader, bool enableDis
   }
 }
 
-std::optional<quint16> targets::pep10::isa::System::getBootFlagAddress() { return _bootFlg; }
+std::optional<quint16> targets::pep9::isa::System::getBootFlagAddress() { return _bootFlg; }
 
-quint16 targets::pep10::isa::System::getBootFlags() const {
+quint16 targets::pep9::isa::System::getBootFlags() const {
   quint8 buf[2];
   bits::span<quint8> bufSpan = {buf};
   bits::memclr(bufSpan);
@@ -168,7 +157,8 @@ quint16 targets::pep10::isa::System::getBootFlags() const {
   return bits::memcpy_endian<quint16>(bufSpan, bits::Order::BigEndian);
 }
 
-void targets::pep10::isa::System::init() {
+void targets::pep9::isa::System::init() {
+
   quint8 buf[2];
   bits::span<quint8> bufSpan = {buf};
   // Clear registers and CSRs before inserting non-0 values.
@@ -176,43 +166,37 @@ void targets::pep10::isa::System::init() {
   cpu()->regs()->clear(0);
 
   doReloadEntries();
-  // Initalize PC to dispatcher
-  _bus->read(static_cast<quint16>(::isa::Pep10::MemoryVectors::Dispatcher), bufSpan, gs);
-  writeRegister(cpu()->regs(), ::isa::Pep10::Register::PC,
-                bits::memcpy_endian<quint16>(bufSpan, bits::Order::BigEndian), gs);
-  // Initalize SP to system stack pointer
-  _bus->read(static_cast<quint16>(::isa::Pep10::MemoryVectors::SystemStackPtr), bufSpan, gs);
-  writeRegister(cpu()->regs(), ::isa::Pep10::Register::SP,
-                bits::memcpy_endian<quint16>(bufSpan, bits::Order::BigEndian), gs);
+  // In Pep/9, we cannot execute the OS followed by the user program.
+  // By default, assume we are just executing the user program.
+  _bus->read(static_cast<quint16>(00), bufSpan, gs);
+  writeRegister(cpu()->regs(), ::isa::Pep9::Register::PC, bits::memcpy_endian<quint16>(bufSpan, bits::Order::BigEndian),
+                gs);
+  // Initalize SP to user stack pointer
+  _bus->read(static_cast<quint16>(::isa::Pep9::MemoryVectors::UserStackPtr), bufSpan, gs);
+  writeRegister(cpu()->regs(), ::isa::Pep9::Register::SP, bits::memcpy_endian<quint16>(bufSpan, bits::Order::BigEndian),
+                gs);
   cpu()->updateStartingPC();
 }
 
-targets::pep10::isa::CPU *targets::pep10::isa::System::cpu() { return &*_cpu; }
+targets::pep9::isa::CPU *targets::pep9::isa::System::cpu() { return &*_cpu; }
 
-sim::memory::SimpleBus<quint16> *targets::pep10::isa::System::bus() { return &*_bus; }
+sim::memory::SimpleBus<quint16> *targets::pep9::isa::System::bus() { return &*_bus; }
 
-QStringList targets::pep10::isa::System::inputs() const { return _mmi.keys(); }
+QStringList targets::pep9::isa::System::inputs() const { return _mmi.keys(); }
 
-sim::memory::Input<quint16> *targets::pep10::isa::System::input(QString name) {
+sim::memory::Input<quint16> *targets::pep9::isa::System::input(QString name) {
   if (auto find = _mmi.find(name); find != _mmi.end()) return &**find;
   return nullptr;
 }
 
-QStringList targets::pep10::isa::System::outputs() const { return _mmo.keys(); }
+QStringList targets::pep9::isa::System::outputs() const { return _mmo.keys(); }
 
-sim::memory::Output<quint16> *targets::pep10::isa::System::output(QString name) {
+sim::memory::Output<quint16> *targets::pep9::isa::System::output(QString name) {
   if (auto find = _mmo.find(name); find != _mmo.end()) return &**find;
   return nullptr;
 }
 
-QStringList targets::pep10::isa::System::ideControllers() const { return _ide.keys(); }
-
-sim::memory::IDEController *targets::pep10::isa::System::ideController(QString name) {
-  if (auto find = _ide.find(name); find != _ide.end()) return &**find;
-  return nullptr;
-}
-
-void targets::pep10::isa::System::doReloadEntries() {
+void targets::pep9::isa::System::doReloadEntries() {
   for (const auto &reg : _regions) {
     using size_type = bits::span<const quint8>::size_type;
     reg.target->write(reg.base,
@@ -220,8 +204,8 @@ void targets::pep10::isa::System::doReloadEntries() {
   }
 }
 
-void targets::pep10::isa::System::appendReloadEntries(QSharedPointer<sim::api2::memory::Target<quint16>> mem,
-                                                      const obj::MemoryRegion &reg, quint16 baseOffset) {
+void targets::pep9::isa::System::appendReloadEntries(QSharedPointer<sim::api2::memory::Target<quint16>> mem,
+                                                     const obj::MemoryRegion &reg, quint16 baseOffset) {
   quint16 base = baseOffset + reg.minOffset;
   for (const auto seg : reg.segs) {
     auto fileData = seg->get_data();
@@ -234,15 +218,15 @@ void targets::pep10::isa::System::appendReloadEntries(QSharedPointer<sim::api2::
   }
 }
 
-QSharedPointer<targets::pep10::isa::System> targets::pep10::isa::systemFromElf(const ELFIO::elfio &elf,
-                                                                               bool loadUserImmediate) {
+QSharedPointer<targets::pep9::isa::System> targets::pep9::isa::systemFromElf(const ELFIO::elfio &elf,
+                                                                             bool loadUserImmediate) {
   using size_type = bits::span<const quint8>::size_type;
   auto segs = obj::getLoadableSegments(elf);
   auto memmap = obj::mergeSegmentRegions(segs);
   auto mmios = obj::getMMIODeclarations(elf);
   auto buffers = obj::getMMIBuffers(elf);
 
-  auto ret = QSharedPointer<targets::pep10::isa::System>::create(memmap, mmios);
+  auto ret = QSharedPointer<targets::pep9::isa::System>::create(memmap, mmios);
 
   // Either immediately load user program into memory, or buffer behind correct
   // port.
@@ -280,8 +264,8 @@ QSharedPointer<targets::pep10::isa::System> targets::pep10::isa::systemFromElf(c
   return ret;
 }
 
-bool targets::pep10::isa::loadRegion(sim::api2::memory::Target<quint16> &mem, const obj::MemoryRegion &reg,
-                                     quint16 baseOffset) {
+bool targets::pep9::isa::loadRegion(sim::api2::memory::Target<quint16> &mem, const obj::MemoryRegion &reg,
+                                    quint16 baseOffset) {
   constexpr auto gs = sim::api2::memory::Operation{
       .type = sim::api2::memory::Operation::Type::Application,
       .kind = sim::api2::memory::Operation::Kind::data,
@@ -299,7 +283,7 @@ bool targets::pep10::isa::loadRegion(sim::api2::memory::Target<quint16> &mem, co
   return ret;
 }
 
-bool targets::pep10::isa::loadElfSegments(sim::api2::memory::Target<quint16> &mem, const ELFIO::elfio &elf) {
+bool targets::pep9::isa::loadElfSegments(sim::api2::memory::Target<quint16> &mem, const ELFIO::elfio &elf) {
   const auto gs = sim::api2::memory::Operation{
       .type = sim::api2::memory::Operation::Type::Application,
       .kind = sim::api2::memory::Operation::Kind::data,
