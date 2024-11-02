@@ -346,14 +346,20 @@ sim::api2::tick::Result targets::pep9::isa::CPU::unaryDispatch(quint8 is) {
     writeReg(Register::X, tmp);
     writePackedCSR(packCSR(n, z, v, c));
     break;
-
-  case mn::NOP0: [[fallthrough]];
-  case mn::NOP1: [[fallthrough]];
+  // Non-unary traps
   case mn::NOP: [[fallthrough]];
   case mn::DECI: [[fallthrough]];
   case mn::DECO: [[fallthrough]];
   case mn::HEXO: [[fallthrough]];
   case mn::STRO:
+    // Though not part of the specification, the Pep9 hardware must increment the program counter
+    // in order for non-unary traps to function correctly.
+    tmp = readReg(Register::PC);
+    writeReg(Register::PC, tmp + 2);
+    [[fallthrough]];
+  // Unary traps.
+  case mn::NOP0: [[fallthrough]];
+  case mn::NOP1:
     // Must byteswap because we are using "host" variables.
     ctx[0] = readPackedCSR();
     tmp = swap ? bits::byteswap(a) : a;
@@ -382,6 +388,11 @@ sim::api2::tick::Result targets::pep9::isa::CPU::unaryDispatch(quint8 is) {
                   rw_d);
     if (swap) tmp = bits::byteswap(tmp);
     writeReg(Register::PC, tmp);
+    // Though not part of the specification, clear out the index register to
+    // prevent bug in OS where non-unary instructions fail due to junk
+    // in the high order byte of the index register. The book is published,
+    // so we have to fix it here.
+    writeReg(Register::X, 0);
     break;
   default:
     _status = Status::IllegalOpcode;
