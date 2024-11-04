@@ -1,0 +1,68 @@
+: [COMPILE] [LATEST] IMMEDIATE
+	WORD FIND >CWA ,
+;
+
+: IF ' 0BRANCH , HERE@ 0 , ; [LATEST] IMMEDIATE
+
+: THEN [LATEST] IMMEDIATE
+    DUP
+    HERE@ SWAP -
+    SWAP !
+;
+
+: LITERAL [LATEST] IMMEDIATE
+    ' LIT , ,
+;
+
+: LITERAL.u8 [LATEST] IMMEDIATE
+    ' LIT.u8 , SE ,
+;
+
+: ELSE [LATEST] IMMEDIATE
+	' BRANCH ,
+	HERE@ 0 ,
+	SWAP
+	[COMPILE] THEN
+;
+
+: BEGIN [LATEST] IMMEDIATE
+    HERE@
+;
+
+: UNTIL [LATEST] IMMEDIATE
+    ' 0BRANCH ,
+    HERE@ - ,
+;
+
+: AGAIN [LATEST] IMMEDIATE
+    ' BRANCH ,
+    HERE@ - ,
+;
+
+: WHILE [LATEST] IMMEDIATE
+    [COMPILE] IF
+;
+
+: REPEAT [LATEST] IMMEDIATE
+    ' BRANCH ,
+    SWAP HERE@ - ,
+    DUP HERE@ SWAP -
+    SWAP !
+;
+: '(' ] CHAR ( [ LITERAL.u8 ;
+: ')' ] CHAR ) [ LITERAL.u8 ;
+
+: ( [LATEST] IMMEDIATE
+    1
+    BEGIN
+    KEY SE DUP '(' SE =
+    IF
+         DROP 1 +
+    ELSE
+        ')' SE = IF
+            1 -
+        THEN
+    THEN
+    DUP 0= UNTIL
+    DROP
+;
