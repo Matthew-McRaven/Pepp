@@ -331,8 +331,15 @@ bool Pep10_ISA::onLoadObject() {
   targets::isa::loadElfSegments(*bus, *_elf);
   // Load user program into memory.
   bus->write(0, *bytes, gs);
-  _memory->setSP(-1);
-  _memory->setPC(-1, -1);
+  // Update cpu-dependent fields in memory before triggering a GUI update.
+  auto cpu = static_cast<targets::pep10::isa::CPU *>(_system->cpu());
+  quint8 is;
+  quint16 sp, pc;
+  targets::isa::readRegister<isa::Pep10>(cpu->regs(), isa::Pep10::Register::PC, pc, gs);
+  targets::isa::readRegister<isa::Pep10>(cpu->regs(), isa::Pep10::Register::SP, sp, gs);
+  _system->bus()->read(pc, {&is, 1}, gs);
+  _memory->setSP(sp);
+  _memory->setPC(pc, pc + (isa::Pep10::opcodeLUT[is].instr.unary ? 0 : 2));
   _memory->clearModifiedAndUpdateGUI();
   return true;
 }
@@ -527,15 +534,15 @@ void Pep10_ISA::prepareSim() {
   // Repaint CPU & Memory panes
   _flags->onUpdateGUI();
   _registers->onUpdateGUI();
-  // _memory->onUpdateGUI();
+  //_memory->onUpdateGUI();
 }
 
 void Pep10_ISA::prepareGUIUpdate(sim::api2::trace::FrameIterator from) {
   auto cpu = static_cast<targets::pep10::isa::CPU *>(_system->cpu());
   // Update cpu-dependent fields in memory before triggering a GUI update.
   quint8 is;
-  // Use cached PC
-  quint16 sp, pc = cpu->startingPC();
+  quint16 sp, pc;
+  targets::isa::readRegister<isa::Pep10>(cpu->regs(), isa::Pep10::Register::PC, pc, gs);
   targets::isa::readRegister<isa::Pep10>(cpu->regs(), isa::Pep10::Register::SP, sp, gs);
   _system->bus()->read(pc, {&is, 1}, gs);
   _memory->setSP(sp);
@@ -785,10 +792,17 @@ void Pep10_ASMB::prepareSim() {
   _pendingPause = false;
 
   // Repaint CPU
+  quint8 is;
+  quint16 sp, pc;
+  auto cpu = static_cast<targets::pep10::isa::CPU *>(_system->cpu());
+  targets::isa::readRegister<isa::Pep10>(cpu->regs(), isa::Pep10::Register::PC, pc, gs);
+  targets::isa::readRegister<isa::Pep10>(cpu->regs(), isa::Pep10::Register::SP, sp, gs);
+  _system->bus()->read(pc, {&is, 1}, gs);
+  // Update cpu-dependent fields in memory before triggering a GUI update.
+  _memory->setSP(sp);
+  _memory->setPC(pc, pc + (isa::Pep10::opcodeLUT[is].instr.unary ? 0 : 2));
   _flags->onUpdateGUI();
   _registers->onUpdateGUI();
-  _memory->setSP(-1);
-  _memory->setPC(-1, -1);
   _memory->clearModifiedAndUpdateGUI();
 }
 
@@ -799,7 +813,8 @@ void Pep10_ASMB::prepareGUIUpdate(sim::api2::trace::FrameIterator from) {
 
 void Pep10_ASMB::updatePCLine() {
   auto cpu = static_cast<targets::pep10::isa::CPU *>(_system->cpu());
-  auto pc = cpu->startingPC();
+  quint16 pc = 0;
+  targets::isa::readRegister<isa::Pep10>(cpu->regs(), isa::Pep10::Register::PC, pc, gs);
   if (auto userSrc = _userLines2Address.address2Source(pc); userSrc) emit modifyUserSource(*userSrc, Action::ScrollTo);
   if (auto userList = _userLines2Address.address2List(pc); userList) {
     emit switchTo(false);
