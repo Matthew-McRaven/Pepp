@@ -242,12 +242,12 @@ Q_ENUM_NS(CSR);
 
 // TODO: Make offsets from end of OS, not absolute addresses.
 enum class MemoryVectors : quint16 {
-  UserStackPtr = 0xFB8F,   // Offset -11
-  SystemStackPtr = 0xFC0F, // Offset -9
-  CharIn = 0xFC15,         // Offset -7
-  CharOut = 0xFC16,        // Offset -5
-  Loader = 0xFC17,         // Offset -3
-  TrapHandler = 0xFC52,    // Offset from -1 to 0
+  UserStackPtr = 0xFFFF - 0xB,   // value==0xFB8F,
+  SystemStackPtr = 0xFFFF - 0x9, // value==0xFC0F
+  CharIn = 0xFFFF - 0x7,         // value==0xFC15
+  CharOut = 0xFFFF - 0x5,        // value==0xFC16
+  Loader = 0xFFFF - 0x3,         // value==0xFC17
+  TrapHandler = 0xFFFF - 0x1,    // Value==0xFC52
 };
 Q_ENUM_NS(MemoryVectors)
 } // namespace isa::detail::pep9
