@@ -134,7 +134,7 @@ public:
   QString error;
 };
 
-class Pep10_ASMB final : public Pep_ISA {
+class Pep_ASMB final : public Pep_ISA {
   Q_OBJECT
   Q_PROPERTY(QString userAsmText READ userAsmText WRITE setUserAsmText NOTIFY userAsmTextChanged);
   Q_PROPERTY(QString userList READ userList NOTIFY listingChanged);
@@ -149,8 +149,7 @@ class Pep10_ASMB final : public Pep_ISA {
   using Action = ScintillaAsmEditBase::Action;
 
 public:
-  explicit Pep10_ASMB(QVariant delegate, builtins::Abstraction abstraction = builtins::Abstraction::ASMB5,
-                      QObject *parent = nullptr);
+  explicit Pep_ASMB(project::Environment env, QVariant delegate, QObject *parent = nullptr);
   // Actually utils::Abstraction, but QM passes it as an int.
   Q_INVOKABLE void set(int abstraction, QString value);
   Q_INVOKABLE QString userAsmText() const;
@@ -165,9 +164,6 @@ public:
   Q_INVOKABLE bool isEmpty() const override;
   Q_INVOKABLE SymbolModel *userSymbols() const;
   Q_INVOKABLE SymbolModel *osSymbols() const;
-  project::Environment env() const override;
-  builtins::Architecture architecture() const override;
-  builtins::Abstraction abstraction() const override;
   int allowedDebugging() const override;
 public slots:
   bool onDebuggingStart() override;
@@ -199,8 +195,6 @@ protected:
   void prepareGUIUpdate(sim::api2::trace::FrameIterator from) override;
   void updatePCLine();
   SymbolModel *_userModel = nullptr, *_osModel = nullptr;
-  // Can either be ASMB3 or ASMB5.
-  builtins::Abstraction _abstraction = builtins::Abstraction::ASMB5;
   QString _userAsmText = {}, _osAsmText = {};
   QString _userList = {}, _osList = {};
   QList<QPair<int, QString>> _errors = {}, _userListAnnotations = {}, _osListAnnotations = {};

@@ -143,9 +143,28 @@ QString cs5e_os() {
 }
 
 // TODO: fix
-SystemAssembly make_asmb_system(QString os) {
-  auto macroRegistry = cs6e_macros();
-  helpers::AsmHelper helper(macroRegistry, os);
+SystemAssembly make_asmb_system(project::Environment env, QString os) {
+  QSharedPointer<const builtins::Book> book;
+  QSharedPointer<macro::Registry> macroRegistry;
+  QString osContents;
+  switch (env.arch) {
+  case builtins::ArchitectureHelper::Architecture::PEP9: {
+    book = helpers::book(5);
+    auto os = book->findFigure("os", "pep9os");
+    osContents = os->typesafeElements()["pep"]->contents;
+    macroRegistry = cs5e_macros();
+    break;
+  }
+  case builtins::ArchitectureHelper::Architecture::PEP10: {
+    book = helpers::book(6);
+    auto os = book->findFigure("os", "pep10baremetal");
+    osContents = os->typesafeElements()["pep"]->contents;
+    macroRegistry = cs6e_macros();
+    break;
+  }
+  default: throw std::logic_error("Unimplemented");
+  }
+  helpers::AsmHelper helper(macroRegistry, os, env.arch);
   auto result = helper.assemble();
   if (!result) {
     qWarning() << "Default OS assembly failed";
@@ -675,31 +694,45 @@ project::DebugEnableFlags::DebugEnableFlags(QObject *parent) : QObject(parent) {
 
 project::StepEnableFlags::StepEnableFlags(QObject *parent) : QObject(parent) {}
 
-Pep10_ASMB::Pep10_ASMB(QVariant delegate, builtins::Abstraction abstraction, QObject *parent)
-    : Pep_ISA({.arch = builtins::Architecture::PEP10, .level = abstraction}, delegate, parent, false),
-      _userModel(new SymbolModel(this)), _osModel(new SymbolModel(this)) {
-  switch (abstraction) {
-  case builtins::Abstraction::ASMB3: [[fallthrough]];
-  case builtins::Abstraction::ASMB5: _abstraction = abstraction; break;
-  default: throw std::invalid_argument("Invalid abstraction level for Pep10_ASMB");
+Pep_ASMB::Pep_ASMB(project::Environment env, QVariant delegate, QObject *parent)
+    : Pep_ISA(env, delegate, parent, false), _userModel(new SymbolModel(this)), _osModel(new SymbolModel(this)) {
+
+  switch (_env.arch) {
+  case builtins::Architecture::PEP9: _osAsmText = cs5e_os(); break;
+  case builtins::Architecture::PEP10:
+    if (_env.level == builtins::Abstraction::ASMB3) _osAsmText = cs6e_bm();
+    else _osAsmText = cs6e_os();
+    break;
+  default: throw std::logic_error("Unimplemented architecture");
   }
 
-  if (_abstraction == builtins::Abstraction::ASMB3) _osAsmText = cs6e_bm();
-  else _osAsmText = cs6e_os();
-
-  auto elfsys = make_asmb_system(_osAsmText);
+  auto elfsys = make_asmb_system(_env, _osAsmText);
   _elf = elfsys.elf;
   _system = elfsys.system;
   _system->bus()->setBuffer(&*_tb);
   bindToSystem();
-  auto cpu = static_cast<targets::pep10::isa::CPU *>(_system->cpu());
-  auto asUnique = std::make_unique<sim::api2::trace::ValueFilter<quint8>>(
-      cpu->regs(), static_cast<quint8>(isa::Pep10::Register::PC));
-  _breakpoints = asUnique.get();
-  _tb->addFilter(std::move(asUnique));
+  std::unique_ptr<sim::api2::trace::ValueFilter<quint8>> pcFilter;
+  switch (_env.arch) {
+  case builtins::Architecture::PEP9: {
+    auto cpu = static_cast<targets::pep9::isa::CPU *>(_system->cpu());
+    static const quint8 PC = static_cast<quint8>(isa::Pep9::Register::PC);
+    pcFilter = std::make_unique<sim::api2::trace::ValueFilter<quint8>>(cpu->regs(), PC);
+    break;
+  }
+  case builtins::Architecture::PEP10: {
+    auto cpu = static_cast<targets::pep10::isa::CPU *>(_system->cpu());
+    static const quint8 PC = static_cast<quint8>(isa::Pep10::Register::PC);
+    pcFilter = std::make_unique<sim::api2::trace::ValueFilter<quint8>>(cpu->regs(), PC);
+    break;
+  }
+  default: throw std::logic_error("Unimplemented architecture");
+  }
+
+  _breakpoints = pcFilter.get();
+  _tb->addFilter(std::move(pcFilter));
 }
 
-void Pep10_ASMB::set(int abstraction, QString value) {
+void Pep_ASMB::set(int abstraction, QString value) {
   using namespace builtins;
   if (abstraction == static_cast<int>(Abstraction::ASMB5) || abstraction == static_cast<int>(Abstraction::ASMB3)) {
     setUserAsmText(value);
@@ -708,57 +741,48 @@ void Pep10_ASMB::set(int abstraction, QString value) {
   }
 }
 
-QString Pep10_ASMB::userAsmText() const { return _userAsmText; }
+QString Pep_ASMB::userAsmText() const { return _userAsmText; }
 
-void Pep10_ASMB::setUserAsmText(const QString &userAsmText) {
+void Pep_ASMB::setUserAsmText(const QString &userAsmText) {
   if (_userAsmText == userAsmText) return;
   _userAsmText = userAsmText;
   emit userAsmTextChanged();
 }
 
-QString Pep10_ASMB::userList() const { return _userList; }
+QString Pep_ASMB::userList() const { return _userList; }
 
-const QList<Error *> Pep10_ASMB::userListAnnotations() const {
+const QList<Error *> Pep_ASMB::userListAnnotations() const {
   QList<Error *> ret;
   for (auto [line, str] : _userListAnnotations) ret.push_back(new Error{line, str});
   return ret;
 }
 
-QString Pep10_ASMB::osAsmText() const { return _osAsmText; }
+QString Pep_ASMB::osAsmText() const { return _osAsmText; }
 
-void Pep10_ASMB::setOSAsmText(const QString &osAsmText) {
+void Pep_ASMB::setOSAsmText(const QString &osAsmText) {
   if (_osAsmText == osAsmText) return;
   _osAsmText = osAsmText;
   emit osAsmTextChanged();
 }
-QString Pep10_ASMB::osList() const { return _osList; }
+QString Pep_ASMB::osList() const { return _osList; }
 
-const QList<Error *> Pep10_ASMB::osListAnnotations() const {
+const QList<Error *> Pep_ASMB::osListAnnotations() const {
   QList<Error *> ret;
   for (auto [line, str] : _osListAnnotations) ret.push_back(new Error{line, str});
   return ret;
 }
-const QList<Error *> Pep10_ASMB::errors() const {
+const QList<Error *> Pep_ASMB::errors() const {
   QList<Error *> ret;
   for (auto [line, str] : _errors) ret.push_back(new Error{line, str});
   return ret;
 }
 
-bool Pep10_ASMB::isEmpty() const { return _userAsmText.isEmpty(); }
+bool Pep_ASMB::isEmpty() const { return _userAsmText.isEmpty(); }
 
-SymbolModel *Pep10_ASMB::userSymbols() const { return _userModel; }
-SymbolModel *Pep10_ASMB::osSymbols() const { return _osModel; }
+SymbolModel *Pep_ASMB::userSymbols() const { return _userModel; }
+SymbolModel *Pep_ASMB::osSymbols() const { return _osModel; }
 
-project::Environment Pep10_ASMB::env() const {
-  using namespace builtins;
-  return {.arch = Architecture::PEP10, .level = _abstraction, .features = project::Features::None};
-}
-
-builtins::Architecture Pep10_ASMB::architecture() const { return builtins::Architecture::PEP10; }
-
-builtins::Abstraction Pep10_ASMB::abstraction() const { return _abstraction; }
-
-int Pep10_ASMB::allowedDebugging() const {
+int Pep_ASMB::allowedDebugging() const {
   using D = project::DebugEnableFlags;
   switch (_state) {
   case State::Halted: return D::Start | D::Execute;
@@ -769,7 +793,7 @@ int Pep10_ASMB::allowedDebugging() const {
   }
 }
 
-bool Pep10_ASMB::onDebuggingStart() {
+bool Pep_ASMB::onDebuggingStart() {
   Pep_ISA::onDebuggingStart();
   updatePCLine();
   return true;
@@ -778,11 +802,17 @@ bool Pep10_ASMB::onDebuggingStart() {
 static constexpr auto to_string = [](const QString &acc, const auto &pair) {
   return acc.isEmpty() ? pair.first : acc + "\n" + pair.first;
 };
-bool Pep10_ASMB::onAssemble(bool doLoad) {
+bool Pep_ASMB::onAssemble(bool doLoad) {
   _userList = _osList = "";
   _userListAnnotations = _osListAnnotations = {};
-  auto macroRegistry = cs6e_macros();
-  helpers::AsmHelper helper(macroRegistry, _osAsmText);
+  QSharedPointer<macro::Registry> macroRegistry = nullptr;
+  switch (_env.arch) {
+  case builtins::Architecture::PEP9: macroRegistry = cs5e_macros(); break;
+  case builtins::Architecture::PEP10: macroRegistry = cs6e_macros(); break;
+  default: throw std::logic_error("Unimplemented architecture");
+  }
+
+  helpers::AsmHelper helper(macroRegistry, _osAsmText, _env.arch);
   helper.setUserText(_userAsmText);
   auto ret = helper.assemble();
   _errors = helper.errorsWithLines();
@@ -822,7 +852,7 @@ bool Pep10_ASMB::onAssemble(bool doLoad) {
   return true;
 }
 
-bool Pep10_ASMB::onAssembleThenLoad() {
+bool Pep_ASMB::onAssembleThenLoad() {
   _system->bus()->clear(0);
   onAssemble(true);
   _system->doReloadEntries();
@@ -831,11 +861,16 @@ bool Pep10_ASMB::onAssembleThenLoad() {
   return true;
 }
 
-bool Pep10_ASMB::onAssembleThenFormat() {
+bool Pep_ASMB::onAssembleThenFormat() {
   _userList = _osList = "";
   _userListAnnotations = _osListAnnotations = {};
-  auto macroRegistry = cs6e_macros();
-  helpers::AsmHelper helper(macroRegistry, _osAsmText);
+  QSharedPointer<macro::Registry> macroRegistry = nullptr;
+  switch (_env.arch) {
+  case builtins::Architecture::PEP9: macroRegistry = cs5e_macros(); break;
+  case builtins::Architecture::PEP10: macroRegistry = cs6e_macros(); break;
+  default: throw std::logic_error("Unimplemented architecture");
+  }
+  helpers::AsmHelper helper(macroRegistry, _osAsmText, _env.arch);
   helper.setUserText(_userAsmText);
   auto ret = helper.assemble();
   _errors = helper.errorsWithLines();
@@ -866,35 +901,35 @@ bool Pep10_ASMB::onAssembleThenFormat() {
   return true;
 }
 
-void Pep10_ASMB::onModifyUserSource(int line, Action action) {
+void Pep_ASMB::onModifyUserSource(int line, Action action) {
   if (auto address = _userLines2Address.source2Address(line); address && action != Action::ScrollTo)
     updateBPAtAddress(*address, action);
   emit modifyUserSource(line, action);
   if (auto list = _userLines2Address.source2List(line); list) emit modifyUserList(*list, action);
 }
 
-void Pep10_ASMB::onModifyOSSource(int line, Action action) {
+void Pep_ASMB::onModifyOSSource(int line, Action action) {
   if (auto address = _osLines2Address.source2Address(line); address && action != Action::ScrollTo)
     updateBPAtAddress(*address, action);
   emit modifyOSSource(line, action);
   if (auto list = _osLines2Address.source2List(line); list) emit modifyOSList(*list, action);
 }
 
-void Pep10_ASMB::onModifyUserList(int line, Action action) {
+void Pep_ASMB::onModifyUserList(int line, Action action) {
   if (auto address = _userLines2Address.list2Address(line); address && action != Action::ScrollTo)
     updateBPAtAddress(*address, action);
   emit modifyUserList(line, action);
   if (auto src = _userLines2Address.list2Source(line); src) emit modifyUserSource(*src, action);
 }
 
-void Pep10_ASMB::onModifyOSList(int line, Action action) {
+void Pep_ASMB::onModifyOSList(int line, Action action) {
   if (auto address = _osLines2Address.list2Address(line); address && action != Action::ScrollTo)
     updateBPAtAddress(*address, action);
   emit modifyOSList(line, action);
   if (auto src = _osLines2Address.list2Source(line); src) emit modifyOSSource(*src, action);
 }
 
-void Pep10_ASMB::prepareSim() {
+void Pep_ASMB::prepareSim() {
   _system->bus()->clear(0);
   _system->init();
   if (!onAssemble(true)) return;
@@ -912,32 +947,59 @@ void Pep10_ASMB::prepareSim() {
 
   _pendingPause = false;
 
-  // TODO: handle Pep/9
-  // Repaint CPU
   quint8 is;
   quint16 sp, pc;
-  auto cpu = static_cast<targets::pep10::isa::CPU *>(_system->cpu());
-  targets::isa::readRegister<isa::Pep10>(cpu->regs(), isa::Pep10::Register::PC, pc, gs);
-  targets::isa::readRegister<isa::Pep10>(cpu->regs(), isa::Pep10::Register::SP, sp, gs);
-  _system->bus()->read(pc, {&is, 1}, gs);
+  bool isUnary;
+  switch (_env.arch) {
+  case builtins::Architecture::PEP9: {
+    auto cpu = static_cast<targets::pep9::isa::CPU *>(_system->cpu());
+    targets::isa::readRegister<isa::Pep9>(cpu->regs(), isa::Pep9::Register::PC, pc, gs);
+    targets::isa::readRegister<isa::Pep9>(cpu->regs(), isa::Pep9::Register::SP, sp, gs);
+    _system->bus()->read(pc, {&is, 1}, gs);
+    isUnary = isa::Pep9::opcodeLUT[is].instr.unary;
+    break;
+  }
+  case builtins::Architecture::PEP10: {
+    auto cpu = static_cast<targets::pep10::isa::CPU *>(_system->cpu());
+    targets::isa::readRegister<isa::Pep10>(cpu->regs(), isa::Pep10::Register::PC, pc, gs);
+    targets::isa::readRegister<isa::Pep10>(cpu->regs(), isa::Pep10::Register::SP, sp, gs);
+    _system->bus()->read(pc, {&is, 1}, gs);
+    isUnary = isa::Pep10::opcodeLUT[is].instr.unary;
+    break;
+  }
+  default: throw std::logic_error("Unimplemented");
+  }
+
   // Update cpu-dependent fields in memory before triggering a GUI update.
   _memory->setSP(sp);
-  _memory->setPC(pc, pc + (isa::Pep10::opcodeLUT[is].instr.unary ? 0 : 2));
+  _memory->setPC(pc, pc + (isUnary ? 0 : 2));
+  _memory->clearModifiedAndUpdateGUI();
+  // Repaint CPU
   _flags->onUpdateGUI();
   _registers->onUpdateGUI();
-  _memory->clearModifiedAndUpdateGUI();
 }
 
-void Pep10_ASMB::prepareGUIUpdate(sim::api2::trace::FrameIterator from) {
+void Pep_ASMB::prepareGUIUpdate(sim::api2::trace::FrameIterator from) {
   updatePCLine();
   Pep_ISA::prepareGUIUpdate(from);
 }
 
-void Pep10_ASMB::updatePCLine() {
-  // TODO: handle Pep/9
-  auto cpu = static_cast<targets::pep10::isa::CPU *>(_system->cpu());
+void Pep_ASMB::updatePCLine() {
   quint16 pc = 0;
-  targets::isa::readRegister<isa::Pep10>(cpu->regs(), isa::Pep10::Register::PC, pc, gs);
+  switch (_env.arch) {
+  case builtins::Architecture::PEP9: {
+    auto cpu = static_cast<targets::pep9::isa::CPU *>(_system->cpu());
+    targets::isa::readRegister<isa::Pep9>(cpu->regs(), isa::Pep9::Register::PC, pc, gs);
+    break;
+  }
+  case builtins::Architecture::PEP10: {
+    auto cpu = static_cast<targets::pep10::isa::CPU *>(_system->cpu());
+    targets::isa::readRegister<isa::Pep10>(cpu->regs(), isa::Pep10::Register::PC, pc, gs);
+    break;
+  }
+  default: throw std::logic_error("Unimplemented");
+  }
+
   if (auto userSrc = _userLines2Address.address2Source(pc); userSrc) emit modifyUserSource(*userSrc, Action::ScrollTo);
   if (auto userList = _userLines2Address.address2List(pc); userList) {
     emit switchTo(false);
@@ -950,7 +1012,7 @@ void Pep10_ASMB::updatePCLine() {
   }
 }
 
-void Pep10_ASMB::updateBPAtAddress(quint32 address, Action action) {
+void Pep_ASMB::updateBPAtAddress(quint32 address, Action action) {
   switch (action) {
   case ScintillaAsmEditBase::Action::ToggleBP:
     if (_breakpoints->contains(address)) _breakpoints->remove(address);

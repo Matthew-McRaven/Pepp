@@ -194,7 +194,7 @@ ApplicationWindow {
                             && cur.isEmpty && reuse)
                         proj = cur
                     else
-                        proj = pm.pep9ASMB(pep9asmbComponent, Abstraction.ASMB5)
+                        proj = pm.pep9ASMB(pep9asmbComponent)
                 }
                 break
             }
