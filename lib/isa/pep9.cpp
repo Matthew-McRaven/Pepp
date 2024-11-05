@@ -60,6 +60,19 @@ bool isa::Pep9::isStore(Mnemonic mnemonic) { return isa::detail::isStore(mnemoni
 
 bool isa::Pep9::isStore(quint8 opcode) { return isStore(opcodeLUT[opcode].instr.mnemon); }
 
+quint8 isa::Pep9::operandBytes(Mnemonic mnemonic) {
+  if (isMnemonicUnary(mnemonic)) return 0;
+  switch (mnemonic) {
+  case Mnemonic::LDBA: [[fallthrough]];
+  case Mnemonic::LDBX: [[fallthrough]];
+  case Mnemonic::CPBA: [[fallthrough]];
+  case Mnemonic::CPBX: return 1;
+  default: return 2;
+  }
+}
+
+quint8 isa::Pep9::operandBytes(quint8 opcode) { return operandBytes(opcodeLUT[opcode].instr.mnemon); }
+
 bool isa::Pep9::isUType(Mnemonic mnemonic) {
   using T = InstructionType;
   auto type = opcodeLUT[opcode(mnemonic)].instr.type;

@@ -128,8 +128,9 @@ Flickable {
                 text: "Pep/9, ISA3"
                 architecture: Architecture.PEP9
                 abstraction: Abstraction.ISA3
-                enabled: false
+                enabled: true
                 source: "image://icons/cards/p9_isa3.svg"
+                description: "Develop and debug machine language programs."
             }
             Item {}
 

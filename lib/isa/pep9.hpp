@@ -281,6 +281,8 @@ struct Pep9 {
   static bool isOpcodeUnary(quint8 opcode);
   static bool isStore(Mnemonic mnemonic);
   static bool isStore(quint8 opcode);
+  static quint8 operandBytes(Mnemonic mnemonic);
+  static quint8 operandBytes(quint8 opcode);
 
   static bool isUType(Mnemonic mnemonic);
   static bool isRType(Mnemonic mnemonic);

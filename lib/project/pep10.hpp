@@ -15,7 +15,7 @@
 #include "utils/opcodemodel.hpp"
 #include "utils/strings.hpp"
 
-class Pep10_ISA : public QObject {
+class Pep_ISA : public QObject {
   Q_OBJECT
   Q_PROPERTY(project::Environment env READ env CONSTANT)
   Q_PROPERTY(builtins::Architecture architecture READ architecture CONSTANT)
@@ -42,7 +42,8 @@ public:
     Partial,
     Full,
   };
-  explicit Pep10_ISA(QVariant delegate, QObject *parent = nullptr, bool initializeSystem = true);
+  explicit Pep_ISA(project::Environment env, QVariant delegate, QObject *parent = nullptr,
+                   bool initializeSystem = true);
   virtual project::Environment env() const;
   virtual builtins::Architecture architecture() const;
   virtual builtins::Abstraction abstraction() const;
@@ -108,6 +109,7 @@ protected:
   } _state = State::Halted;
   virtual void prepareSim();
   virtual void prepareGUIUpdate(sim::api2::trace::FrameIterator from);
+  project::Environment _env;
   QString _charIn = {};
   QString _objectCodeText = {};
   QVariant _delegate = {};
@@ -132,7 +134,7 @@ public:
   QString error;
 };
 
-class Pep10_ASMB final : public Pep10_ISA {
+class Pep10_ASMB final : public Pep_ISA {
   Q_OBJECT
   Q_PROPERTY(QString userAsmText READ userAsmText WRITE setUserAsmText NOTIFY userAsmTextChanged);
   Q_PROPERTY(QString userList READ userList NOTIFY listingChanged);

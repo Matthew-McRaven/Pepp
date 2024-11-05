@@ -180,6 +180,23 @@ ApplicationWindow {
                                             Abstraction.ASMB5)
                 }
                 break
+            case Architecture.PEP9:
+                if (Number(level) === Abstraction.ISA3) {
+                    if (cur && cur.architecture === Architecture.PEP9
+                            && cur.abstraction === Abstraction.ISA3
+                            && cur.isEmpty && reuse)
+                        proj = cur
+                    else
+                        proj = pm.pep9ISA(pep9isaComponent)
+                } else if (Number(level) === Abstraction.ASMB5) {
+                    if (cur && cur.architecture === Architecture.PEP9
+                            && cur.abstraction === Abstraction.ASMB5
+                            && cur.isEmpty && reuse)
+                        proj = cur
+                    else
+                        proj = pm.pep9ASMB(pep9asmbComponent, Abstraction.ASMB5)
+                }
+                break
             }
             if (optTexts === undefined || optTexts === null)
                 return
@@ -576,7 +593,25 @@ ApplicationWindow {
         }
     }
     Component {
+        id: pep9isaComponent
+        Project.Pep10ISA {
+            project: window.currentProject
+            anchors.fill: parent
+            mode: window.mode
+            actions: window.actionRef
+        }
+    }
+    Component {
         id: pep10asmbComponent
+        Project.Pep10ASMB {
+            project: window.currentProject
+            anchors.fill: parent
+            mode: window.mode
+            actions: window.actionRef
+        }
+    }
+    Component {
+        id: pep9asmbComponent
         Project.Pep10ASMB {
             project: window.currentProject
             anchors.fill: parent

@@ -2,6 +2,7 @@
 #include <elfio/elfio.hpp>
 #include "asm/pas/ast/node.hpp"
 #include "builtins/book.hpp"
+#include "builtins/constants.hpp"
 #include "macro/registry.hpp"
 
 namespace helpers {
@@ -26,7 +27,8 @@ public:
     QMap<int, quint32> _source2Addr{}, _list2Addr{};
     QMap<quint32, int> _addr2Source{}, _addr2List{};
   };
-  AsmHelper(QSharedPointer<macro::Registry> registry, QString os);
+  AsmHelper(QSharedPointer<macro::Registry> registry, QString os,
+            builtins::Architecture arch = builtins::Architecture::PEP10);
   void setUserText(QString user);
   bool assemble();
   QStringList errors();
@@ -39,6 +41,7 @@ public:
   Lines2Addresses address2Lines(bool os);
 
 private:
+  builtins::Architecture _arch;
   QSharedPointer<macro::Registry> _reg;
   QString _os;
   std::optional<QString> _user = std::nullopt;
