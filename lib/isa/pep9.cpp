@@ -71,6 +71,22 @@ quint8 isa::Pep9::operandBytes(Mnemonic mnemonic) {
   }
 }
 
+bool isa::Pep9::isCall(Mnemonic mnemonic) {
+  switch (mnemonic) {
+  case Mnemonic::NOP0: [[fallthrough]];
+  case Mnemonic::NOP1: [[fallthrough]];
+  case Mnemonic::CALL: [[fallthrough]];
+  case Mnemonic::NOP: [[fallthrough]];
+  case Mnemonic::DECI: [[fallthrough]];
+  case Mnemonic::DECO: [[fallthrough]];
+  case Mnemonic::HEXO: [[fallthrough]];
+  case Mnemonic::STRO: return true;
+  default: return false;
+  }
+}
+
+bool isa::Pep9::isCall(quint8 opcode) { return isCall(opcodeLUT[opcode].instr.mnemon); }
+
 quint8 isa::Pep9::operandBytes(quint8 opcode) { return operandBytes(opcodeLUT[opcode].instr.mnemon); }
 
 bool isa::Pep9::isUType(Mnemonic mnemonic) {

@@ -322,7 +322,6 @@ builtins::Abstraction Pep_ISA::abstraction() const { return _env.level; }
 ARawMemory *Pep_ISA::memory() const { return _memory; }
 
 OpcodeModel *Pep_ISA::mnemonics() const {
-  // TODO: switch between Pep/10 and Pep/9
   switch (_env.arch) {
   case builtins::ArchitectureHelper::Architecture::PEP9: {
     static OpcodeModel *model = new OpcodeModel();
@@ -368,12 +367,27 @@ int Pep_ISA::allowedSteps() const {
   if (_state != State::DebugPaused) return 0b0;
   using S = project::StepEnableFlags::Value;
   // TODO: have CPU tell you if next instr can step into.
-  // quint16 pc = 0;
-  // auto cpu = static_cast<targets::pep10::isa::CPU *>(_system->cpu());
-  // targets::isa::readRegister<isa::Pep10>(cpu->regs(), isa::Pep10::Register::PC, pc, gs);
-  // quint8 is;
-  //_system->bus()->read(pc, {&is, 1}, gs);
-  // if (isa::Pep10::isCall(is)) return S::Step | S::StepOver | S::StepOut | S::StepInto;
+  quint8 is = 0;
+  quint16 pc = 0;
+  bool isCall = false;
+  switch (_env.arch) {
+  case builtins::ArchitectureHelper::Architecture::PEP9: {
+    auto cpu = static_cast<targets::pep9::isa::CPU *>(_system->cpu());
+    targets::isa::readRegister<isa::Pep9>(cpu->regs(), isa::Pep9::Register::PC, pc, gs);
+    _system->bus()->read(pc, {&is, 1}, gs);
+    isCall = isa::Pep9::isCall(is);
+    break;
+  }
+  case builtins::ArchitectureHelper::Architecture::PEP10: {
+    auto cpu = static_cast<targets::pep10::isa::CPU *>(_system->cpu());
+    targets::isa::readRegister<isa::Pep10>(cpu->regs(), isa::Pep10::Register::PC, pc, gs);
+    _system->bus()->read(pc, {&is, 1}, gs);
+    isCall = isa::Pep10::isCall(is);
+    break;
+  }
+  default: throw std::logic_error("Unimplemented");
+  }
+  if (isCall) return S::Step | S::StepOver | S::StepOut | S::StepInto;
   return S::Step | S::StepOver | S::StepOut;
 }
 
