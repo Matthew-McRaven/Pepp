@@ -240,14 +240,14 @@ Q_ENUM_NS(Register);
 enum class CSR : quint8 { N, Z, V, C };
 Q_ENUM_NS(CSR);
 
-// TODO: Fill in from CS5E
+// TODO: Make offsets from end of OS, not absolute addresses.
 enum class MemoryVectors : quint16 {
-  UserStackPtr = 0xDEAD,
-  SystemStackPtr = 0xDEAD,
-  CharIn = 0xDEAD,
-  CharOut = 0xDEAD,
-  LOADER = 0xDEAD,
-  TrapHandler = 0xDEAD,
+  UserStackPtr = 0xFFFF - 0xB,   // value==0xFB8F,
+  SystemStackPtr = 0xFFFF - 0x9, // value==0xFC0F
+  CharIn = 0xFFFF - 0x7,         // value==0xFC15
+  CharOut = 0xFFFF - 0x5,        // value==0xFC16
+  Loader = 0xFFFF - 0x3,         // value==0xFC17
+  TrapHandler = 0xFFFF - 0x1,    // Value==0xFC52
 };
 Q_ENUM_NS(MemoryVectors)
 } // namespace isa::detail::pep9
@@ -281,6 +281,8 @@ struct Pep9 {
   static bool isOpcodeUnary(quint8 opcode);
   static bool isStore(Mnemonic mnemonic);
   static bool isStore(quint8 opcode);
+  static quint8 operandBytes(Mnemonic mnemonic);
+  static quint8 operandBytes(quint8 opcode);
 
   static bool isUType(Mnemonic mnemonic);
   static bool isRType(Mnemonic mnemonic);

@@ -23,8 +23,10 @@ public:
   int _rowCount() const { return rowCount({}); }
   int rowCount(const QModelIndex &parent) const override;
   QVariant data(const QModelIndex &index, int role) const override;
-  Q_INVOKABLE Pep10_ISA *pep10ISA(QVariant delegate);
-  Q_INVOKABLE Pep10_ASMB *pep10ASMB(QVariant delegate, builtins::Abstraction abstraction);
+  Q_INVOKABLE Pep_ISA *pep10ISA(QVariant delegate);
+  Q_INVOKABLE Pep_ISA *pep9ISA(QVariant delegate);
+  Q_INVOKABLE Pep_ASMB *pep10ASMB(QVariant delegate, builtins::Abstraction abstraction);
+  Q_INVOKABLE Pep_ASMB *pep9ASMB(QVariant delegate);
   bool removeRows(int row, int count, const QModelIndex &parent) override;
   bool moveRows(const QModelIndex &sourceParent, int sourceRow, int count, const QModelIndex &destinationParent,
                 int destinationChild) override;

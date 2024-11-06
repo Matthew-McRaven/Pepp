@@ -20,7 +20,7 @@
 #include "bits/operations/swap.hpp"
 #include "sim/device/dense.hpp"
 #include "targets/pep10/isa3/cpu.hpp"
-#include "targets/pep10/isa3/helpers.hpp"
+#include "targets/isa3/helpers.hpp"
 
 namespace {
 typedef bool (*should_branch)(bool n, bool z, bool v, bool c);
@@ -46,9 +46,9 @@ void inner(isa::Pep10::Mnemonic op, should_branch taken) {
     cpu->regs()->clear(0);
     cpu->csrs()->clear(0);
     quint8 tmp = 0;
-    targets::pep10::isa::writePackedCSR(cpu->csrs(), nzvc, rw);
-    targets::pep10::isa::readPackedCSR(cpu->csrs(), tmp, rw);
-    auto [n, z, v, c] = targets::pep10::isa::unpackCSR(tmp);
+    targets::isa::writePackedCSR<isa::Pep10>(cpu->csrs(), nzvc, rw);
+    targets::isa::readPackedCSR<isa::Pep10>(cpu->csrs(), tmp, rw);
+    auto [n, z, v, c] = targets::isa::unpackCSR<isa::Pep10>(tmp);
 
     REQUIRE_NOTHROW(mem->write(0, {program.data(), program.size()}, rw));
     REQUIRE_NOTHROW(cpu->clock(0));

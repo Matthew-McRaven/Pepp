@@ -5,6 +5,11 @@
   "abstraction": "ASMB5",
   "default_os": "os:pep9os",
   "default_element": "pep",
+  "ios": [
+    "io0",
+    "io1",
+    "io2"
+  ],
   "items": {
     "pep": "{ch}{fig}.pep",
     "c": "{ch}{fig}.c"

@@ -20,7 +20,7 @@
 #include "bits/operations/swap.hpp"
 #include "sim/device/dense.hpp"
 #include "targets/pep10/isa3/cpu.hpp"
-#include "targets/pep10/isa3/helpers.hpp"
+#include "targets/isa3/helpers.hpp"
 
 namespace {
 void inner(isa::Pep10::Mnemonic op) {
@@ -33,7 +33,7 @@ void inner(isa::Pep10::Mnemonic op) {
   cpu->regs()->clear(0);
   cpu->csrs()->clear(0);
   constexpr quint8 truth[2] = {0x11, 0x25};
-  targets::pep10::isa::writeRegister(cpu->regs(), isa::Pep10::Register::SP, 0xFFFD, rw);
+  targets::isa::writeRegister<::isa::Pep10>(cpu->regs(), isa::Pep10::Register::SP, 0xFFFD, rw);
   REQUIRE_NOTHROW(mem->write(0xFFFD, truth, rw));
 
   REQUIRE_NOTHROW(mem->write(0x0000, {program.data(), program.size()}, rw));

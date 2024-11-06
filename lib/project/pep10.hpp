@@ -4,18 +4,18 @@
 #include <QStringListModel>
 #include <helpers/asmb.hpp>
 #include <qabstractitemmodel.h>
-#include <targets/pep10/isa3/system.hpp>
 #include "aproject.hpp"
 #include "builtins/constants.hpp"
 #include "cpu/registermodel.hpp"
 #include "cpu/statusbitmodel.hpp"
 #include "memory/hexdump/rawmemory.hpp"
 #include "symtab/symbolmodel.hpp"
+#include "targets/isa3/system.hpp"
 #include "text/editor/scintillaasmeditbase.hpp"
 #include "utils/opcodemodel.hpp"
 #include "utils/strings.hpp"
 
-class Pep10_ISA : public QObject {
+class Pep_ISA : public QObject {
   Q_OBJECT
   Q_PROPERTY(project::Environment env READ env CONSTANT)
   Q_PROPERTY(builtins::Architecture architecture READ architecture CONSTANT)
@@ -42,7 +42,8 @@ public:
     Partial,
     Full,
   };
-  explicit Pep10_ISA(QVariant delegate, QObject *parent = nullptr, bool initializeSystem = true);
+  explicit Pep_ISA(project::Environment env, QVariant delegate, QObject *parent = nullptr,
+                   bool initializeSystem = true);
   virtual project::Environment env() const;
   virtual builtins::Architecture architecture() const;
   virtual builtins::Abstraction abstraction() const;
@@ -108,11 +109,12 @@ protected:
   } _state = State::Halted;
   virtual void prepareSim();
   virtual void prepareGUIUpdate(sim::api2::trace::FrameIterator from);
+  project::Environment _env;
   QString _charIn = {};
   QString _objectCodeText = {};
   QVariant _delegate = {};
   QSharedPointer<sim::trace2::InfiniteBuffer> _tb = {};
-  QSharedPointer<targets::pep10::isa::System> _system = {};
+  QSharedPointer<targets::isa::System> _system = {};
   QSharedPointer<ELFIO::elfio> _elf = {};
   // Use raw pointer to avoid double-free with parent'ed QObjects.
   SimulatorRawMemory *_memory = nullptr;
@@ -132,7 +134,7 @@ public:
   QString error;
 };
 
-class Pep10_ASMB final : public Pep10_ISA {
+class Pep_ASMB final : public Pep_ISA {
   Q_OBJECT
   Q_PROPERTY(QString userAsmText READ userAsmText WRITE setUserAsmText NOTIFY userAsmTextChanged);
   Q_PROPERTY(QString userList READ userList NOTIFY listingChanged);
@@ -147,8 +149,7 @@ class Pep10_ASMB final : public Pep10_ISA {
   using Action = ScintillaAsmEditBase::Action;
 
 public:
-  explicit Pep10_ASMB(QVariant delegate, builtins::Abstraction abstraction = builtins::Abstraction::ASMB5,
-                      QObject *parent = nullptr);
+  explicit Pep_ASMB(project::Environment env, QVariant delegate, QObject *parent = nullptr);
   // Actually utils::Abstraction, but QM passes it as an int.
   Q_INVOKABLE void set(int abstraction, QString value);
   Q_INVOKABLE QString userAsmText() const;
@@ -163,9 +164,6 @@ public:
   Q_INVOKABLE bool isEmpty() const override;
   Q_INVOKABLE SymbolModel *userSymbols() const;
   Q_INVOKABLE SymbolModel *osSymbols() const;
-  project::Environment env() const override;
-  builtins::Architecture architecture() const override;
-  builtins::Abstraction abstraction() const override;
   int allowedDebugging() const override;
 public slots:
   bool onDebuggingStart() override;
@@ -197,8 +195,6 @@ protected:
   void prepareGUIUpdate(sim::api2::trace::FrameIterator from) override;
   void updatePCLine();
   SymbolModel *_userModel = nullptr, *_osModel = nullptr;
-  // Can either be ASMB3 or ASMB5.
-  builtins::Abstraction _abstraction = builtins::Abstraction::ASMB5;
   QString _userAsmText = {}, _osAsmText = {};
   QString _userList = {}, _osList = {};
   QList<QPair<int, QString>> _errors = {}, _userListAnnotations = {}, _osListAnnotations = {};

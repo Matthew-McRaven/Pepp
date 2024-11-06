@@ -48,6 +48,7 @@ qsizetype explicitSize(const ast::Node &node, quint16 at, Direction direction = 
 qsizetype sizeFromAddress(const ast::Node &node);
 
 namespace detail {
+quint16 sizeAddrss(const ast::Node, quint16 at, Direction direction);
 quint16 sizeAlign(const ast::Node, quint16 at, Direction direction);
 quint16 sizeASCII(const ast::Node, quint16 at, Direction direction);
 quint16 sizeBlock(const ast::Node, quint16 at, Direction direction);
@@ -61,11 +62,9 @@ template <typename ISA> qsizetype pas::ops::pepp::implicitSize(const pas::ast::N
 }
 template <typename ISA> qsizetype pas::ops::pepp::explicitSize(const ast::Node &node, quint16 at, Direction direction) {
   using sizeFn = std::function<quint16(const ast::Node &, quint16, Direction)>;
-  static const QMap<QString, sizeFn> directiveMap = {{"ALIGN", &detail::sizeAlign},
-                                                     {"ASCII", &detail::sizeASCII},
-                                                     {"BLOCK", &detail::sizeBlock},
-                                                     {"BYTE", &detail::sizeByte},
-                                                     {"WORD", &detail::sizeWord}};
+  static const QMap<QString, sizeFn> directiveMap = {{"ADDRSS", &detail::sizeAddrss}, {"ALIGN", &detail::sizeAlign},
+                                                     {"ASCII", &detail::sizeASCII},   {"BLOCK", &detail::sizeBlock},
+                                                     {"BYTE", &detail::sizeByte},     {"WORD", &detail::sizeWord}};
   if (generic::isDirective()(node)) {
     auto name = node.get<ast::generic::Directive>().value;
     if (auto item = directiveMap.find(name.toUpper()); item != directiveMap.end()) {

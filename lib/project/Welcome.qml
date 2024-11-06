@@ -128,8 +128,9 @@ Flickable {
                 text: "Pep/9, ISA3"
                 architecture: Architecture.PEP9
                 abstraction: Abstraction.ISA3
-                enabled: false
+                enabled: true
                 source: "image://icons/cards/p9_isa3.svg"
+                description: "Develop and debug machine language programs."
             }
             Item {}
 
@@ -137,8 +138,9 @@ Flickable {
                 text: "Pep/9, Asmb5"
                 architecture: Architecture.PEP9
                 abstraction: Abstraction.ASMB5
-                enabled: false
+                enabled: true
                 source: "image://icons/cards/p9_asmb5.svg"
+                description: "Develop and debug assembly language programs alongside Pep/9's operating system. This level enables you to utilize OS features using trap instructions for enhanced functionality."
             }
             WelcomeCard {
                 text: "Pep/9, OS4"

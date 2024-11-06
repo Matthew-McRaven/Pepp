@@ -39,3 +39,14 @@ quint16 pas::ops::pepp::detail::getBurnArg(QList<QSharedPointer<pas::ast::Node>>
     }
   return ret;
 }
+
+template <> void pas::ops::pepp::assignAddresses<isa::Pep9>(ast::Node &root) {
+  auto children = pas::ast::children(root);
+  bool isOS = detail::hasBurn(children);
+  quint16 base = isOS ? detail::getBurnArg(children) : 0;
+  if (isOS)
+    for (auto child = children.rbegin(); child != children.rend(); ++child)
+      detail::assignAddressesImpl<isa::Pep9>(**child, base, Direction::Backward);
+  else
+    for (auto &child : children) detail::assignAddressesImpl<isa::Pep9>(*child, base, Direction::Forward);
+}

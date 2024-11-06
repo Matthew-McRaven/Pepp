@@ -1,7 +1,9 @@
 #include "asmb.hpp"
 #include <iostream>
 #include "asm/pas/driver/pep10.hpp"
+#include "asm/pas/driver/pep9.hpp"
 #include "asm/pas/obj/pep10.hpp"
+#include "asm/pas/obj/pep9.hpp"
 #include "asm/pas/operations/generic/addr2line.hpp"
 #include "asm/pas/operations/generic/errors.hpp"
 #include "asm/pas/operations/pepp/bytes.hpp"
@@ -44,23 +46,41 @@ void helpers::addMacros(::macro::Registry &registry, const std::list<std::string
   for (auto &dir : dirs) addMacro(registry, dir, arch);
 }
 
-helpers::AsmHelper::AsmHelper(QSharedPointer<::macro::Registry> registry, QString os) : _reg(registry), _os(os) {}
+helpers::AsmHelper::AsmHelper(QSharedPointer<::macro::Registry> registry, QString os, builtins::Architecture arch)
+    : _arch(arch), _reg(registry), _os(os) {}
 
 void helpers::AsmHelper::setUserText(QString user) { _user = user; }
 
 bool helpers::AsmHelper::assemble() {
-  QList<QPair<QString, pas::driver::pep10::Features>> targets = {{{_os, {.isOS = true}}}};
-  if (_user) targets.push_back({*_user, {.isOS = false}});
-  auto pipeline = pas::driver::pep10::pipeline<pas::driver::ANTLRParserTag>(targets, _reg);
-  auto result = pipeline->assemble(pas::driver::pep10::Stage::End);
-
-  auto osTarget = pipeline->pipelines[0].first;
-  _osRoot = osTarget->bodies[pas::driver::repr::Nodes::name].value<pas::driver::repr::Nodes>().value;
-  if (_user) {
-    auto userTarget = pipeline->pipelines[1].first;
-    _userRoot = userTarget->bodies[pas::driver::repr::Nodes::name].value<pas::driver::repr::Nodes>().value;
+  switch (_arch) {
+  case builtins::Architecture::PEP9: {
+    QList<QPair<QString, pas::driver::pep9::Features>> targets = {{{_os, {.isOS = true}}}};
+    if (_user) targets.push_back({*_user, {.isOS = false}});
+    auto pipeline = pas::driver::pep9::pipeline<pas::driver::ANTLRParserTag>(targets, _reg);
+    auto result = pipeline->assemble(pas::driver::pep9::Stage::End);
+    auto osTarget = pipeline->pipelines[0].first;
+    _osRoot = osTarget->bodies[pas::driver::repr::Nodes::name].value<pas::driver::repr::Nodes>().value;
+    if (_user) {
+      auto userTarget = pipeline->pipelines[1].first;
+      _userRoot = userTarget->bodies[pas::driver::repr::Nodes::name].value<pas::driver::repr::Nodes>().value;
+    }
+    return result;
+  };
+  case builtins::Architecture::PEP10: {
+    QList<QPair<QString, pas::driver::pep10::Features>> targets = {{{_os, {.isOS = true}}}};
+    if (_user) targets.push_back({*_user, {.isOS = false}});
+    auto pipeline = pas::driver::pep10::pipeline<pas::driver::ANTLRParserTag>(targets, _reg);
+    auto result = pipeline->assemble(pas::driver::pep10::Stage::End);
+    auto osTarget = pipeline->pipelines[0].first;
+    _osRoot = osTarget->bodies[pas::driver::repr::Nodes::name].value<pas::driver::repr::Nodes>().value;
+    if (_user) {
+      auto userTarget = pipeline->pipelines[1].first;
+      _userRoot = userTarget->bodies[pas::driver::repr::Nodes::name].value<pas::driver::repr::Nodes>().value;
+    }
+    return result;
+  };
+  default: throw std::runtime_error("Invalid architecture");
   }
-  return result;
 }
 
 QStringList helpers::AsmHelper::errors() {
@@ -104,22 +124,39 @@ QList<QPair<int, QString>> helpers::AsmHelper::errorsWithLines() {
 }
 
 QSharedPointer<ELFIO::elfio> helpers::AsmHelper::elf(std::optional<QList<quint8>> userObj) {
-  _elf = pas::obj::pep10::createElf();
-  pas::obj::pep10::combineSections(*_osRoot);
-  pas::obj::pep10::writeOS(*_elf, *_osRoot);
-  if (_userRoot) {
-    pas::obj::pep10::combineSections(*_userRoot);
-    pas::obj::pep10::writeUser(*_elf, *_userRoot);
-  } else if (userObj) {
-    pas::obj::pep10::writeUser(*_elf, *userObj);
+  switch (_arch) {
+  case builtins::Architecture::PEP9:
+    _elf = pas::obj::pep9::createElf();
+    pas::obj::pep9::writeOS(*_elf, *_osRoot);
+    if (_userRoot) pas::obj::pep9::writeUser(*_elf, *_userRoot);
+    else if (userObj) pas::obj::pep9::writeUser(*_elf, *userObj);
+    return _elf;
+  case builtins::Architecture::PEP10:
+    _elf = pas::obj::pep10::createElf();
+    pas::obj::pep10::combineSections(*_osRoot);
+    pas::obj::pep10::writeOS(*_elf, *_osRoot);
+    if (_userRoot) {
+      pas::obj::pep10::combineSections(*_userRoot);
+      pas::obj::pep10::writeUser(*_elf, *_userRoot);
+    } else if (userObj) pas::obj::pep10::writeUser(*_elf, *userObj);
+    return _elf;
+  default: throw std::logic_error("Unimplemented arch");
   }
+
   return _elf;
 }
 
 QStringList helpers::AsmHelper::listing(bool os) {
   try {
-    if (os && !_osRoot.isNull()) return pas::ops::pepp::formatListing<isa::Pep10>(*_osRoot);
-    else if (!os && !_userRoot.isNull()) return pas::ops::pepp::formatListing<isa::Pep10>(*_userRoot);
+    switch (_arch) {
+    case builtins::Architecture::PEP9:
+      if (os && !_osRoot.isNull()) return pas::ops::pepp::formatListing<isa::Pep9>(*_osRoot);
+      else if (!os && !_userRoot.isNull()) return pas::ops::pepp::formatListing<isa::Pep9>(*_userRoot);
+    case builtins::Architecture::PEP10:
+      if (os && !_osRoot.isNull()) return pas::ops::pepp::formatListing<isa::Pep10>(*_osRoot);
+      else if (!os && !_userRoot.isNull()) return pas::ops::pepp::formatListing<isa::Pep10>(*_userRoot);
+    default: throw std::logic_error("Unimplemented arch");
+    }
   } catch (std::exception &e) {
   }
   return {};
@@ -127,8 +164,15 @@ QStringList helpers::AsmHelper::listing(bool os) {
 
 QList<QPair<QString, QString>> helpers::AsmHelper::splitListing(bool os) {
   try {
-    if (os && !_osRoot.isNull()) return pas::ops::pepp::formatSplitListing<isa::Pep10>(*_osRoot);
-    else if (!os && !_userRoot.isNull()) return pas::ops::pepp::formatSplitListing<isa::Pep10>(*_userRoot);
+    switch (_arch) {
+    case builtins::Architecture::PEP9:
+      if (os && !_osRoot.isNull()) return pas::ops::pepp::formatSplitListing<isa::Pep9>(*_osRoot);
+      else if (!os && !_userRoot.isNull()) return pas::ops::pepp::formatSplitListing<isa::Pep9>(*_userRoot);
+    case builtins::Architecture::PEP10:
+      if (os && !_osRoot.isNull()) return pas::ops::pepp::formatSplitListing<isa::Pep10>(*_osRoot);
+      else if (!os && !_userRoot.isNull()) return pas::ops::pepp::formatSplitListing<isa::Pep10>(*_userRoot);
+    default: throw std::logic_error("Unimplemented arch");
+    }
   } catch (std::exception &e) {
   }
   return {};
@@ -136,8 +180,15 @@ QList<QPair<QString, QString>> helpers::AsmHelper::splitListing(bool os) {
 
 QStringList helpers::AsmHelper::formattedSource(bool os) {
   try {
-    if (os && !_osRoot.isNull()) return pas::ops::pepp::formatSource<isa::Pep10>(*_osRoot);
-    else if (!os && !_userRoot.isNull()) return pas::ops::pepp::formatSource<isa::Pep10>(*_userRoot);
+    switch (_arch) {
+    case builtins::Architecture::PEP9:
+      if (os && !_osRoot.isNull()) return pas::ops::pepp::formatSource<isa::Pep9>(*_osRoot);
+      else if (!os && !_userRoot.isNull()) return pas::ops::pepp::formatSource<isa::Pep9>(*_userRoot);
+    case builtins::Architecture::PEP10:
+      if (os && !_osRoot.isNull()) return pas::ops::pepp::formatSource<isa::Pep10>(*_osRoot);
+      else if (!os && !_userRoot.isNull()) return pas::ops::pepp::formatSource<isa::Pep10>(*_userRoot);
+    default: throw std::logic_error("Unimplemented arch");
+    }
   } catch (std::exception &e) {
   }
   return {};
@@ -145,8 +196,15 @@ QStringList helpers::AsmHelper::formattedSource(bool os) {
 
 QList<quint8> helpers::AsmHelper::bytes(bool os) {
   try {
-    if (os && !_osRoot.isNull()) return pas::ops::pepp::toBytes<isa::Pep10>(*_osRoot);
-    if (!os && !_userRoot.isNull()) return pas::ops::pepp::toBytes<isa::Pep10>(*_userRoot);
+    switch (_arch) {
+    case builtins::Architecture::PEP9:
+      if (os && !_osRoot.isNull()) return pas::ops::pepp::toBytes<isa::Pep9>(*_osRoot);
+      else if (!os && !_userRoot.isNull()) return pas::ops::pepp::toBytes<isa::Pep9>(*_userRoot);
+    case builtins::Architecture::PEP10:
+      if (os && !_osRoot.isNull()) return pas::ops::pepp::toBytes<isa::Pep10>(*_osRoot);
+      else if (!os && !_userRoot.isNull()) return pas::ops::pepp::toBytes<isa::Pep10>(*_userRoot);
+    default: throw std::logic_error("Unimplemented arch");
+    }
   } catch (std::exception &e) {
   }
   return {};

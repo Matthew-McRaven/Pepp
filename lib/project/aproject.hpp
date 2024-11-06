@@ -3,8 +3,8 @@
 #include <QStringListModel>
 #include <QtQmlIntegration>
 #include <qabstractitemmodel.h>
-#include <targets/pep10/isa3/system.hpp>
 #include "builtins/constants.hpp"
+#include "targets/isa3/system.hpp"
 
 namespace sim {
 namespace trace2 {

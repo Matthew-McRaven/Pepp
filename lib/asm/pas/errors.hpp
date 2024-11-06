@@ -22,6 +22,7 @@ namespace pas::errors::pepp {
 // Macro issues
 inline const QString macroLoop = "Macro invocation loop detected.";
 inline const QString noSuchMacro = "No such macro \"%1\"";
+inline const QString invalidMacro = "Invalid macro.";
 inline const QString macroWrongArity = "%1 expected %2 args, received %3.";
 inline const QString expectedAMacro = "Can only apply this operation to a macro node.";
 // Bad instructions and command;

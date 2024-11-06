@@ -27,7 +27,7 @@
 #include "asm/parse/PeppLexer.h"
 #include "asm/parse/PeppLexerErrorListener.h"
 #include "asm/parse/PeppParser.h"
-#include "asm/pas/parse/pepp/PeppASTConverter.h"
+#include "asm/pas/parse/pepp/PeppASTConverter10.h"
 using namespace Qt::StringLiterals;
 using namespace antlr4;
 using namespace parse;

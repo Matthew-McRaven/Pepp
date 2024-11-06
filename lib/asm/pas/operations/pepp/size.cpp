@@ -19,6 +19,8 @@
 #include "asm/pas/ast/generic/attr_address.hpp"
 #include "asm/pas/operations/pepp/assign_addr.hpp"
 
+quint16 pas::ops::pepp::detail::sizeAddrss(const ast::Node, quint16 at, Direction direction) { return 2; }
+
 quint16 pas::ops::pepp::detail::sizeAlign(const ast::Node node, quint16 at, Direction direction) {
   auto argument = node.get<ast::generic::Argument>().value;
   quint16 align = 0;

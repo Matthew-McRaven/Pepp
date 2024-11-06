@@ -69,11 +69,9 @@ quint16 wordToBytes(const pas::ast::Node &node, bits::span<quint8> dest) {
 
 using convertFn = std::function<quint16(const pas::ast::Node &, bits::span<quint8>)>;
 quint16 pas::ops::pepp::detail::directiveToBytes(const ast::Node &node, bits::span<quint8> dest) {
-  static QMap<QString, convertFn> directives = {{"ALIGN", alignToBytes},
-                                                {"ASCII", asciiToBytes},
-                                                {"BLOCK", blockToBytes},
-                                                {"BYTE", byteToBytes},
-                                                {"WORD", wordToBytes}};
+  static QMap<QString, convertFn> directives = {{"ADDRSS", wordToBytes}, {"ALIGN", alignToBytes},
+                                                {"ASCII", asciiToBytes}, {"BLOCK", blockToBytes},
+                                                {"BYTE", byteToBytes},   {"WORD", wordToBytes}};
   QString directive = node.get<ast::generic::Directive>().value;
   if (auto it = directives.find(directive); it != directives.end()) return it.value()(node, dest);
   else return 0;

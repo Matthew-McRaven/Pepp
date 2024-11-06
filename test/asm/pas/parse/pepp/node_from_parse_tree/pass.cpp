@@ -22,7 +22,7 @@
 #include "asm/pas/operations/generic/errors.hpp"
 #include "asm/pas/operations/generic/is.hpp"
 #include "asm/pas/operations/pepp/is.hpp"
-#include "asm/pas/parse/pepp/PeppASTConverter.h"
+#include "asm/pas/parse/pepp/PeppASTConverter10.h"
 #include "isa/pep10.hpp"
 
 #include "asm/parse/PeppLexer.h"

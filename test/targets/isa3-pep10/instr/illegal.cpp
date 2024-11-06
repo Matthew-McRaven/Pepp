@@ -20,7 +20,7 @@
 #include "bits/operations/swap.hpp"
 #include "sim/device/dense.hpp"
 #include "targets/pep10/isa3/cpu.hpp"
-#include "targets/pep10/isa3/helpers.hpp"
+#include "targets/isa3/helpers.hpp"
 
 namespace {
 void inner(quint8 op) {

@@ -12,8 +12,9 @@ QVariant ProjectModel::data(const QModelIndex &index, int role) const {
   return {};
 }
 
-Pep10_ISA *ProjectModel::pep10ISA(QVariant delegate) {
-  auto ptr = std::make_unique<Pep10_ISA>(delegate, nullptr);
+Pep_ISA *ProjectModel::pep10ISA(QVariant delegate) {
+  static const project::Environment env{.arch = builtins::Architecture::PEP10, .level = builtins::Abstraction::ISA3};
+  auto ptr = std::make_unique<Pep_ISA>(env, delegate, nullptr);
   auto ret = &*ptr;
   QQmlEngine::setObjectOwnership(ret, QQmlEngine::CppOwnership);
   beginInsertRows(QModelIndex(), _projects.size(), _projects.size());
@@ -23,8 +24,33 @@ Pep10_ISA *ProjectModel::pep10ISA(QVariant delegate) {
   return ret;
 }
 
-Pep10_ASMB *ProjectModel::pep10ASMB(QVariant delegate, builtins::Abstraction abstraction) {
-  auto ptr = std::make_unique<Pep10_ASMB>(delegate, abstraction, nullptr);
+Pep_ISA *ProjectModel::pep9ISA(QVariant delegate) {
+  static const project::Environment env{.arch = builtins::Architecture::PEP9, .level = builtins::Abstraction::ISA3};
+  auto ptr = std::make_unique<Pep_ISA>(env, delegate, nullptr);
+  auto ret = &*ptr;
+  QQmlEngine::setObjectOwnership(ret, QQmlEngine::CppOwnership);
+  beginInsertRows(QModelIndex(), _projects.size(), _projects.size());
+  _projects.push_back(std::move(ptr));
+  endInsertRows();
+  emit rowCountChanged(_projects.size());
+  return ret;
+}
+
+Pep_ASMB *ProjectModel::pep10ASMB(QVariant delegate, builtins::Abstraction abstraction) {
+  project::Environment env{.arch = builtins::Architecture::PEP10, .level = abstraction};
+  auto ptr = std::make_unique<Pep_ASMB>(env, delegate, nullptr);
+  auto ret = &*ptr;
+  QQmlEngine::setObjectOwnership(ret, QQmlEngine::CppOwnership);
+  beginInsertRows(QModelIndex(), _projects.size(), _projects.size());
+  _projects.push_back(std::move(ptr));
+  endInsertRows();
+  emit rowCountChanged(_projects.size());
+  return ret;
+}
+
+Pep_ASMB *ProjectModel::pep9ASMB(QVariant delegate) {
+  project::Environment env{.arch = builtins::Architecture::PEP9, .level = builtins::Abstraction::ASMB5};
+  auto ptr = std::make_unique<Pep_ASMB>(env, delegate, nullptr);
   auto ret = &*ptr;
   QQmlEngine::setObjectOwnership(ret, QQmlEngine::CppOwnership);
   beginInsertRows(QModelIndex(), _projects.size(), _projects.size());
@@ -66,10 +92,10 @@ QString ProjectModel::describe(int index) const {
   auto abs_enum = QMetaEnum::fromType<builtins::Abstraction>();
   builtins::Architecture arch;
   builtins::Abstraction abs;
-  if (auto isa = dynamic_cast<Pep10_ISA *>(_projects[index].get())) {
+  if (auto isa = dynamic_cast<Pep_ISA *>(_projects[index].get())) {
     arch = isa->architecture();
     abs = isa->abstraction();
-  } else if (auto asmb = dynamic_cast<Pep10_ASMB *>(_projects[index].get())) {
+  } else if (auto asmb = dynamic_cast<Pep_ASMB *>(_projects[index].get())) {
     arch = asmb->architecture();
     abs = asmb->abstraction();
   }
