@@ -109,6 +109,11 @@ public:
     ret->PropertySet("macros", "1");
     return ret;
   }
+  static ILexer5 *LexerFactoryPep9Asm() {
+    auto ret = new LexerPepAsm("Pep/9 ASM", SCLEX_PEP9ASM);
+    ret->PropertySet("macros", "0");
+    return ret;
+  }
 };
 
 Sci_Position SCI_METHOD LexerPepAsm::PropertySet(const char *key, const char *val) {
@@ -261,3 +266,4 @@ void SCI_METHOD LexerPepAsm::Fold(Sci_PositionU startPos, Sci_Position length, i
 }
 
 LexerModule lmPep10(SCLEX_PEP10ASM, LexerPepAsm::LexerFactoryPep10Asm, "Pep10ASM", PepAsmWordListDesc);
+LexerModule lmPep9(SCLEX_PEP9ASM, LexerPepAsm::LexerFactoryPep9Asm, "Pep9ASM", PepAsmWordListDesc);
