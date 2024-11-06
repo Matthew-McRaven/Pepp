@@ -83,6 +83,16 @@ Item {
     function requestModeSwitchToDebugger() {
         wrapper.requestModeSwitchTo("debugger")
     }
+    function getLexerLangauge() {
+        switch (project.architecture) {
+        case Architecture.PEP9:
+            return "Pep/9 ASM"
+        case Architecture.PEP10:
+            return "Pep/10 ASM"
+        default:
+            return "Pep/10 ASM"
+        }
+    }
 
     function onSwitchTo(os) {
         textSelector.currentIndex = Qt.binding(() => os ? 1 : 0)
@@ -176,7 +186,7 @@ Item {
                         // text is only an initial binding, the value diverges from there.
                         text: project?.userAsmText ?? ""
                         editorFont: editorFM.font
-                        language: "Pep/10 ASM"
+                        language: wrapper.getLexerLangauge()
                     }
                     Text.ScintillaAsmEdit {
                         id: osAsmEdit
@@ -190,7 +200,7 @@ Item {
                         // text is only an initial binding, the value diverges from there.
                         text: project?.osAsmText ?? ""
                         editorFont: editorFM.font
-                        language: "Pep/10 ASM"
+                        language: wrapper.getLexerLangauge()
                     }
                 }
                 StackLayout {
@@ -206,7 +216,7 @@ Item {
                         // text is only an initial binding, the value diverges from there.
                         text: project?.userList ?? ""
                         editorFont: editorFM.font
-                        language: "Pep/10 ASM"
+                        language: wrapper.getLexerLangauge()
                     }
                     Text.ScintillaAsmEdit {
                         id: osList
@@ -217,7 +227,7 @@ Item {
                         // text is only an initial binding, the value diverges from there.
                         text: project?.osList ?? ""
                         editorFont: editorFM.font
-                        language: "Pep/10 ASM"
+                        language: wrapper.getLexerLangauge()
                     }
                 }
                 TabBar {
