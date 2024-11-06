@@ -66,6 +66,8 @@ quint16 targets::pep10::isa::CPU::startingPC() const { return _startingPC; }
 
 void targets::pep10::isa::CPU::updateStartingPC() { _startingPC = readReg(::isa::Pep10::Register::PC); }
 
+quint16 targets::pep10::isa::CPU::depth() const { return _depth; }
+
 const sim::api2::tick::Source *targets::pep10::isa::CPU::getSource() { return _clock; }
 
 void targets::pep10::isa::CPU::setSource(sim::api2::tick::Source *clock) { _clock = clock; }
@@ -101,6 +103,7 @@ sim::api2::tick::Result targets::pep10::isa::CPU::clock(sim::api2::tick::Type cu
 }
 
 bool targets::pep10::isa::CPU::analyze(sim::api2::trace::PacketIterator iter, sim::api2::trace::Direction) {
+  // TODO: handle increment packets for depth value.
   // At the moment, this class does not emit any trace events directly.
   return false;
 }
@@ -118,6 +121,18 @@ void targets::pep10::isa::CPU::trace(bool enabled) {
 }
 
 void targets::pep10::isa::CPU::setTarget(sim::api2::memory::Target<quint16> *target, void *port) { _memory = target; }
+
+void targets::pep10::isa::CPU::incrDepth() {
+  static const quint8 amt = 1;
+  _depth++;
+  if (_tb) _tb->emitIncrement<quint8>(_device.id, 0, {&amt, 1});
+}
+
+void targets::pep10::isa::CPU::decrDepth() {
+  static const quint8 amt = -1;
+  if (_depth != 0) _depth--;
+  if (_tb) _tb->emitIncrement<quint8>(_device.id, 0, {&amt, 1});
+}
 
 quint16 targets::pep10::isa::CPU::readReg(::isa::Pep10::Register reg) {
   quint16 ret = 0;
@@ -174,6 +189,7 @@ sim::api2::tick::Result targets::pep10::isa::CPU::unaryDispatch(quint8 is) {
     if (swap) tmp = bits::byteswap(tmp);
     writeReg(Register::PC, tmp);
     writeReg(Register::SP, sp + 2);
+    decrDepth();
     break;
 
   case mn::MOVFLGA: writeReg(Register::A, readPackedCSR()); break;
@@ -350,6 +366,7 @@ sim::api2::tick::Result targets::pep10::isa::CPU::unaryDispatch(quint8 is) {
     if (swap) tmp = bits::byteswap(tmp);
     _memory->write(static_cast<quint16>(::isa::Pep10::MemoryVectors::SystemStackPtr),
                    {reinterpret_cast<quint8 *>(&tmp), 2}, rw_d);
+    decrDepth();
     break;
 
   case mn::SCALL:
@@ -381,6 +398,7 @@ sim::api2::tick::Result targets::pep10::isa::CPU::unaryDispatch(quint8 is) {
                   rw_d);
     if (swap) tmp = bits::byteswap(tmp);
     writeReg(Register::PC, tmp);
+    incrDepth();
     break;
   default:
     _status = Status::IllegalOpcode;
@@ -426,6 +444,7 @@ sim::api2::tick::Result targets::pep10::isa::CPU::nonunaryDispatch(quint8 is, qu
     _memory->write(sp -= 2, {reinterpret_cast<quint8 *>(&tmp), 2}, rw_d);
     pc = operand;
     writeReg(Register::SP, sp);
+    incrDepth();
     break;
 
   case mn::LDWA:
