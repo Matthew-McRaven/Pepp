@@ -5,6 +5,7 @@
 #include "SciLexer.h"
 #include "ScintillaEditBase/PlatQt.h"
 #include "isa/pep10.hpp"
+#include "isa/pep9.hpp"
 
 using namespace Scintilla;
 using namespace Scintilla::Internal;
@@ -111,23 +112,49 @@ void ScintillaAsmEditBase::addInlineAnnotation(int line, const QString &annotati
   send(SCI_ANNOTATIONSETSTYLE, line, (sptr_t)STYLE_DEFAULT);
 }
 
-std::string mnemonics() {
+std::string pep9_mnemonics() {
+  QStringList mnemonics_list;
+  QMetaEnum mnemonic_enum = QMetaEnum::fromType<isa::Pep9::Mnemonic>();
+  for (int it = 0; it < mnemonic_enum.keyCount(); it++) mnemonics_list << QString(mnemonic_enum.key(it)).toLower();
+  return mnemonics_list.join(" ").toStdString();
+}
+std::string pep9_directives() {
+  std::string dirs;
+  for (const auto &dir : isa::Pep9::legalDirectives()) dirs += "." + dir.toLower().toStdString() + " ";
+  return dirs;
+}
+
+std::string pep10_mnemonics() {
   QStringList mnemonics_list;
   QMetaEnum mnemonic_enum = QMetaEnum::fromType<isa::Pep10::Mnemonic>();
   for (int it = 0; it < mnemonic_enum.keyCount(); it++) mnemonics_list << QString(mnemonic_enum.key(it)).toLower();
   return mnemonics_list.join(" ").toStdString();
 }
-std::string directives() {
+std::string pep10_directives() {
   std::string dirs;
   for (const auto &dir : isa::Pep10::legalDirectives()) dirs += "." + dir.toLower().toStdString() + " ";
   return dirs;
 }
+
 void ScintillaAsmEditBase::setLexerLanguage(const QString &language) {
-  auto lexer = Lexilla::MakeLexer("Pep10ASM");
-  static const auto mn_pep10 = mnemonics();
-  static const auto dirs_pep10 = directives();
-  lexer->WordListSet(0, mn_pep10.c_str());
-  lexer->WordListSet(1, dirs_pep10.c_str());
+  Scintilla::ILexer5 *lexer = nullptr;
+  if (language == "Pep/9 ASM") {
+    lexer = Lexilla::MakeLexer("Pep9ASM");
+    static const auto mn_pep9 = pep9_mnemonics();
+    static const auto dirs_pep9 = pep9_directives();
+    lexer->WordListSet(0, mn_pep9.c_str());
+    lexer->WordListSet(1, dirs_pep9.c_str());
+
+  } else if (language == "Pep/10 ASM") {
+    lexer = Lexilla::MakeLexer("Pep10ASM");
+    static const auto mn_pep10 = pep10_mnemonics();
+    static const auto dirs_pep10 = pep10_directives();
+    lexer->WordListSet(0, mn_pep10.c_str());
+    lexer->WordListSet(1, dirs_pep10.c_str());
+  } else {
+    throw std::logic_error("Unknown language: " + language.toStdString());
+  }
+
   send(SCI_SETILEXER, /*unused*/ 0, (uintptr_t)lexer);
 }
 
