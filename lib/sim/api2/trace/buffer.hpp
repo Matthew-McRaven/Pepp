@@ -31,7 +31,7 @@ namespace detail {
 using namespace sim::api2::frame::header;
 using namespace sim::api2::packet::header;
 using namespace sim::api2::packet::payload;
-using Fragment = std::variant<std::monostate, Trace, Extender, Clear, PureRead, ImpureRead, Write, Variable>;
+using Fragment = std::variant<std::monostate, Trace, Extender, Clear, PureRead, ImpureRead, Write, Increment, Variable>;
 } // namespace detail
 using Fragment = detail::Fragment;
 enum class Action { None, Record, Break, Assert };
@@ -185,6 +185,15 @@ public:
     if (applyFilters(id, address, header) >= Action::Record) {
       writeFragmentWithPath(header);
       emit_payloads(src);
+    }
+  }
+  template <typename Address>
+  void emitIncrement(sim::api2::device::ID id, Address address, bits::span<const quint8> val) {
+    using vb = decltype(api2::packet::header::PureRead::address);
+    auto header = api2::packet::header::Increment{.device = id, .address = vb::from_address(address)};
+    if (applyFilters(id, address, header) >= Action::Record) {
+      writeFragment(header);
+      emit_payloads(val);
     }
   }
 

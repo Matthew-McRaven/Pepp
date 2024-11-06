@@ -163,9 +163,20 @@ struct Write {
   static constexpr std::size_t N = 8;
   VariableBytes<N> address = VariableBytes<N>{0};
 };
+
+// MUST be followed by 1+ payload containing addend.
+// Can be either a ++ or -- operation, so treat payload as signed.
+struct Increment {
+  device_id_t device = 0;
+  zpp::bits::varint<quint64> payload_len = 0;
+  static constexpr std::size_t N = 8;
+  VariableBytes<N> address = VariableBytes<N>{0};
+};
+
 } // namespace header
 // If you add a type, update Fragment trace/buffer.hpp
-using Header = std::variant<std::monostate, header::Clear, header::PureRead, header::ImpureRead, header::Write>;
+using Header =
+    std::variant<std::monostate, header::Clear, header::PureRead, header::ImpureRead, header::Write, header::Increment>;
 
 template <typename T>
 concept HasPath = requires(T t) {

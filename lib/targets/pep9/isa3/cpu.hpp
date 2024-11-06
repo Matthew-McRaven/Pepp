@@ -55,6 +55,7 @@ public:
   quint16 startingPC() const;
   // Set the starting PC to the current PC. Needed to get 1st step correct.
   void updateStartingPC();
+  quint16 depth() const;
 
   // Target interface
   const sim::api2::tick::Source *getSource() override;
@@ -73,8 +74,11 @@ public:
   void setTarget(sim::api2::memory::Target<quint16> *target, void *port) override;
 
 private:
+  // Increment depth and emit a trace packet.
+  void incrDepth();
+  void decrDepth();
   // TODO: This probably needs to be cleared between simulations
-  quint16 _startingPC = 0;
+  quint16 _depth = 0, _startingPC = 0;
   Status _status = Status::Ok;
   sim::api2::device::Descriptor _device;
   sim::memory::Dense<quint8> _regs, _csrs;
