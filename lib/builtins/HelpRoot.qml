@@ -183,7 +183,7 @@ Item {
                                    architectureCombo.currentIndex).value
                     root.addProject(arch, abs, feats, texts, true)
                     if (tests && tests[0])
-                        root.setCharIn(tests[0].output)
+                        root.setCharIn(tests[0].input)
                     root.switchToMode(mode ?? "Editor")
                 }
                 ignoreUnknownSignals: true

@@ -90,10 +90,9 @@ builtins::Test *builtins::detail::loadTest(QString testDirPath) {
   while (dir.hasNext()) {
     auto file = dir.next();
     QString data = read(file);
-    if (file.endsWith("input.txt"))
-      test->input = data;
-    else if (file.endsWith("output.txt"))
-      test->output = data;
+    data.replace("\r", "");
+    if (file.endsWith("input.txt")) test->input = data;
+    else if (file.endsWith("output.txt")) test->output = data;
   }
   return test;
 }
