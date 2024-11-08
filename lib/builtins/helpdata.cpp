@@ -69,6 +69,21 @@ QSharedPointer<HelpEntry> greencard10_root() {
   return root;
 }
 
+QString lexerLang(builtins::Architecture arch, builtins::Abstraction level) {
+  QString archStr = "", levelStr = "";
+  switch (arch) {
+  case builtins::Architecture::PEP9: archStr = "Pep/9"; break;
+  case builtins::Architecture::PEP10: archStr = "Pep/10"; break;
+  default: return "";
+  }
+  switch (level) {
+  case builtins::Abstraction::ASMB3: levelStr = "ASM"; break;
+  case builtins::Abstraction::ASMB5: levelStr = "ASM"; break;
+  default: return "";
+  }
+  return QStringLiteral("%1 %2").arg(archStr, levelStr);
+}
+
 QSharedPointer<HelpEntry> examples_root() {
   static builtins::Registry reg(nullptr);
   auto books = reg.books();
@@ -84,6 +99,7 @@ QSharedPointer<HelpEntry> examples_root() {
       entry->props = QVariantMap{
           {"title", title},
           {"payload", QVariant::fromValue(figure.data())},
+          {"lexerLang", lexerLang(figure->arch(), figure->level())},
       };
       children.push_back(entry);
     }
