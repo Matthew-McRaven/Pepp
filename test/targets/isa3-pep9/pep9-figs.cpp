@@ -25,6 +25,7 @@
 #include "builtins/book.hpp"
 #include "builtins/figure.hpp"
 #include "builtins/registry.hpp"
+#include "helpers/asmb.hpp"
 #include "link/mmio.hpp"
 #include "macro/registry.hpp"
 #include "sim/device/broadcast/mmi.hpp"
@@ -66,49 +67,17 @@ struct User {
   QString pep, pepo;
 };
 
-void assemble(ELFIO::elfio &elf, QString os, User user, QSharedPointer<macro::Registry> reg) {
-  QList<QPair<QString, pas::driver::pep9::Features>> targets = {{os, {.isOS = true}}};
-  if (!user.pep.isEmpty()) targets.push_back({user.pep, {.isOS = false}});
-  auto pipeline = pas::driver::pep9::pipeline<pas::driver::ANTLRParserTag>(targets, reg);
-  auto result = pipeline->assemble(pas::driver::pep9::Stage::End);
-  CHECK(result);
-
-  auto osTarget = pipeline->pipelines[0].first;
-  auto osRoot = osTarget->bodies[pas::driver::repr::Nodes::name].value<pas::driver::repr::Nodes>().value;
-  auto errors = pas::ops::generic::collectErrors(*osRoot);
-  CHECK(errors.size() == 0);
-  if (errors.size() > 0) {
-    for (const auto [loc, err] : errors) qDebug() << err.message;
-  }
-  pas::obj::pep9::writeOS(elf, *osRoot);
-
-  if (!user.pep.isEmpty()) {
-    auto userTarget = pipeline->pipelines[1].first;
-    auto userRoot = userTarget->bodies[pas::driver::repr::Nodes::name].value<pas::driver::repr::Nodes>().value;
-    REQUIRE(userRoot != nullptr);
-    auto errors = pas::ops::generic::collectErrors(*userRoot);
-    CHECK(errors.size() == 0);
-    if (errors.size() > 0) {
-      for (const auto [loc, err] : errors) qDebug() << err.message;
-    }
-    pas::obj::pep9::writeUser(elf, *userRoot);
-  } else {
+QSharedPointer<ELFIO::elfio> assemble(QString os, User user, QSharedPointer<macro::Registry> reg) {
+  helpers::AsmHelper helper(reg, os, builtins::Architecture::PEP9);
+  if (!user.pep.isEmpty()) helper.setUserText(user.pep);
+  CHECK(helper.assemble());
+  CHECK(helper.errors().isEmpty());
+  QSharedPointer<ELFIO::elfio> elf;
+  if (!user.pepo.isEmpty()) {
     auto asStd = user.pepo.toStdString();
     auto bytes = bits::asciiHexToByte({asStd.data(), asStd.size()});
-    REQUIRE(bytes);
-    pas::obj::pep9::writeUser(elf, *bytes);
-  }
-}
-
-QSharedPointer<ELFIO::elfio> smoke(QString os, QString userPep, QString userPepo, QString input, QByteArray output) {
-  auto bookReg = builtins::Registry(nullptr);
-  // Load book contents, macros.
-  auto bookPtr = book(bookReg);
-  auto reg = registry(bookPtr, {});
-  auto elf = pas::obj::pep9::createElf();
-  REQUIRE_NOTHROW(assemble(*elf, os, {.pep = userPep, .pepo = userPepo}, reg));
-  return elf;
-
+    elf = helper.elf(bytes);
+  } else elf = helper.elf();
   // Need to reload to properly compute segment addresses.
   {
     std::stringstream s;
@@ -116,10 +85,21 @@ QSharedPointer<ELFIO::elfio> smoke(QString os, QString userPep, QString userPepo
     s.seekg(0, std::ios::beg);
     elf->load(s);
   }
-  // Skip loading, to save on cycles. However, can't skip dispatch, or
-  // main's stack will be wrong.
+  return elf;
+}
+
+QSharedPointer<ELFIO::elfio> smoke(QString os, QString userPep, QString userPepo, QString input, QByteArray output) {
+  auto bookReg = builtins::Registry(nullptr);
+  // Load book contents, macros.
+  auto bookPtr = book(bookReg);
+  auto reg = registry(bookPtr, {});
+  QSharedPointer<ELFIO::elfio> elf = nullptr;
+  REQUIRE_NOTHROW(elf = assemble(os, {.pep = userPep, .pepo = userPepo}, reg));
+
+  // Skip loading, to save on cycles.
   auto system = targets::isa::systemFromElf(*elf, true);
   REQUIRE(!system.isNull());
+  system->init();
   if (auto charIn = system->input("charIn"); !input.isEmpty() && charIn) {
     auto charInEndpoint = charIn->endpoint();
     for (auto c : input.toStdString()) charInEndpoint->append_value(c);
@@ -133,10 +113,7 @@ QSharedPointer<ELFIO::elfio> smoke(QString os, QString userPep, QString userPepo
   while (system->currentTick() < max && !endpoint->next_value().has_value()) {
     system->tick(sim::api2::Scheduler::Mode::Jump);
   }
-  CHECK(system->currentTick() != max);
-  /* TODO: check outputs.
-   * As of 2024-11-02, system calls do not seem to work.
-   * So, I want to check that the machine does not explode on execution, even if I can't validate output.
+  CHECK(system->currentTick() < max);
   QByteArray actualOut;
   if (auto charOut = system->output("charOut"); !output.isEmpty() && charOut) {
     auto charOutEndpoint = charOut->endpoint();
@@ -144,7 +121,7 @@ QSharedPointer<ELFIO::elfio> smoke(QString os, QString userPep, QString userPepo
     for (auto next = charOutEndpoint->next_value(); next.has_value(); next = charOutEndpoint->next_value())
       actualOut.push_back(*next);
   }
-  CHECK(std::string(actualOut) == std::string(output));*/
+  CHECK(std::string(actualOut) == std::string(output));
   return elf;
 }
 } // namespace
@@ -155,9 +132,11 @@ TEST_CASE("Pep/9 Figure Assembly", "[scope:asm][kind:e2e][arch:pep9]") {
   auto bookPtr = book(bookReg);
   auto figures = bookPtr->figures();
   for (auto &figure : figures) {
+    // if (!(figure->chapterName() == "06" && figure->figureName() == "08")) continue;
+    // if (!(figure->chapterName() == "06" && figure->figureName() == "25")) continue;
     if (!figure->typesafeElements().contains("pep") && !figure->typesafeElements().contains("pepo")) continue;
     else if (figure->isOS()) continue;
-    QString userPep = "", userPepo = "";
+    QString userPep = {}, userPepo = {};
     if (figure->typesafeElements().contains("pep"))
       userPep = QString(figure->typesafeElements()["pep"]->contents).replace(lf, "");
     else if (figure->typesafeElements().contains("pepo"))
