@@ -109,6 +109,7 @@ protected:
   } _state = State::Halted;
   virtual void prepareSim();
   virtual void prepareGUIUpdate(sim::api2::trace::FrameIterator from);
+  void updateMemPCSP() const;
   bool stepDepthHelper(qint16 offset);
   project::Environment _env;
   QString _charIn = {};
