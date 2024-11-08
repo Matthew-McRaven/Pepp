@@ -130,7 +130,7 @@ bool isa::Pep9::isValidATypeAddressingMode(Mnemonic, AddressingMode addr) {
 bool isa::Pep9::isAAAType(Mnemonic mnemonic) {
   using T = InstructionType;
   auto type = opcodeLUT[opcode(mnemonic)].instr.type;
-  return type == T::AAA_all || type == T::AAA_i;
+  return type == T::AAA_all || type == T::AAA_i || type == T::AAA_stro;
 }
 
 bool isa::Pep9::isValidAAATypeAddressingMode(Mnemonic, AddressingMode addr) {

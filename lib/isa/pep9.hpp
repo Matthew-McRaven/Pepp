@@ -191,12 +191,12 @@ constexpr std::array<Opcode, 256> initOpcodes() {
   add_all({.mnemon = M::NOP, .type = T::AAA_all, .unary = 1});
   add_all({.mnemon = M::DECI, .type = T::AAA_noi, .unary = 1});
   ret[(quint8)M::DECI].valid = false;
-  add_all({.mnemon = M::DECO, .type = T::AAA_all, .unary = 1});
-  add_all({.mnemon = M::HEXO, .type = T::AAA_all, .unary = 1});
-  add_all({.mnemon = M::STRO, .type = T::AAA_stro, .unary = 1});
   ret[(quint8)M::DECI + 0].valid = false;
   ret[(quint8)M::DECI + 6].valid = false;
   ret[(quint8)M::DECI + 7].valid = false;
+  add_all({.mnemon = M::DECO, .type = T::AAA_all, .unary = 1});
+  add_all({.mnemon = M::HEXO, .type = T::AAA_all, .unary = 1});
+  add_all({.mnemon = M::STRO, .type = T::AAA_stro, .unary = 1});
 
   add_all({.mnemon = M::ADDSP, .type = T::AAA_all, .unary = 0});
   add_all({.mnemon = M::SUBSP, .type = T::AAA_all, .unary = 0});
