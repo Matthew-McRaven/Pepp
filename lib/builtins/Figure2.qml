@@ -25,6 +25,7 @@ Item {
     id: wrapper
     required property string title
     required property var payload
+    required property string lexerLang
     property string curLang: undefined
     property var curElement: undefined
     Component.onCompleted: {
@@ -129,7 +130,7 @@ Item {
             Layout.fillHeight: true
             Layout.fillWidth: true
             editorFont: editorFM.font
-            language: "Pep/10 ASM"
+            language: wrapper.lexerLang
         }
         Row {
             id: copyRow
