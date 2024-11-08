@@ -465,8 +465,8 @@ bool Pep_ISA::onLoadObject() {
   _memory->clearModifiedAndUpdateGUI();
   return true;
 }
-bool Pep_ISA::onFormatObject() {
 
+bool Pep_ISA::onFormatObject() {
   ObjectUtilities utils;
   utils.setBytesPerRow(16);
   auto fmt = utils.format(_objectCodeText, true);
@@ -681,11 +681,18 @@ void Pep_ISA::prepareSim() {
   // Repaint CPU & Memory panes
   _flags->onUpdateGUI();
   _registers->onUpdateGUI();
+  updateMemPCSP();
   _memory->clearModifiedAndUpdateGUI();
   //_memory->onUpdateGUI();
 }
 
 void Pep_ISA::prepareGUIUpdate(sim::api2::trace::FrameIterator from) {
+  updateMemPCSP();
+  emit charOutChanged();
+  emit updateGUI(from);
+}
+
+void Pep_ISA::updateMemPCSP() const {
   quint8 is;
   quint16 sp, pc;
   bool isUnary;
@@ -712,8 +719,6 @@ void Pep_ISA::prepareGUIUpdate(sim::api2::trace::FrameIterator from) {
 
   _memory->setSP(sp);
   _memory->setPC(pc, pc + (isUnary ? 0 : 2));
-  emit charOutChanged();
-  emit updateGUI(from);
 }
 
 bool Pep_ISA::stepDepthHelper(qint16 offset) {
