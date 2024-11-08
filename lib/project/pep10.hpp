@@ -82,7 +82,7 @@ public slots:
   bool onClearCPU();
   bool onClearMemory();
 
-  void onDeferredExecution(sim::api2::trace::Action stopOn, project::StepEnableFlags::Value step);
+  void onDeferredExecution(sim::api2::trace::Action stopOn, std::function<bool()> step);
 
 signals:
   void objectCodeTextChanged();
@@ -95,7 +95,7 @@ signals:
 
   void message(QString message);
   void updateGUI(sim::api2::trace::FrameIterator from);
-  void deferredExecution(sim::api2::trace::Action stopOn, project::StepEnableFlags::Value step);
+  void deferredExecution(sim::api2::trace::Action stopOn, std::function<bool()> step);
 
 protected:
   void bindToSystem();
@@ -109,6 +109,7 @@ protected:
   } _state = State::Halted;
   virtual void prepareSim();
   virtual void prepareGUIUpdate(sim::api2::trace::FrameIterator from);
+  bool stepDepthHelper(qint16 offset);
   project::Environment _env;
   QString _charIn = {};
   QString _objectCodeText = {};

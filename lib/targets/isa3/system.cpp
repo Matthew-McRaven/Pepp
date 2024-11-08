@@ -240,6 +240,8 @@ void targets::isa::System::init() {
   }
 }
 
+builtins::Architecture targets::isa::System::architecture() const { return _arch; }
+
 sim::api2::tick::Recipient *targets::isa::System::cpu() { return &*_cpu; }
 
 sim::memory::SimpleBus<quint16> *targets::isa::System::bus() { return &*_bus; }
