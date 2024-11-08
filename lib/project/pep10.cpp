@@ -481,7 +481,7 @@ bool Pep_ISA::onExecute() {
   emit allowedDebuggingChanged();
   emit allowedStepsChanged();
   _system->bus()->trace(true);
-  emit deferredExecution(sim::api2::trace::Action::Assert, project::StepEnableFlags::Continue);
+  emit deferredExecution(sim::api2::trace::Action::Assert, []() { return false; });
   return true;
 }
 
@@ -501,7 +501,7 @@ bool Pep_ISA::onDebuggingContinue() {
   _stepsSinceLastInteraction = 0;
   emit allowedDebuggingChanged();
   emit allowedStepsChanged();
-  emit deferredExecution(sim::api2::trace::Action::Break, project::StepEnableFlags::Continue);
+  emit deferredExecution(sim::api2::trace::Action::Break, []() { return false; });
   return true;
 }
 
@@ -517,21 +517,44 @@ bool Pep_ISA::onDebuggingStop() {
 
 bool Pep_ISA::onISARemoveAllBreakpoints() { return false; }
 
-bool Pep_ISA::onISAStep() {
-  _state = State::DebugExec;
-  _stepsSinceLastInteraction = 0;
-  _pendingPause = false;
-  emit allowedDebuggingChanged();
-  emit allowedStepsChanged();
-  emit deferredExecution(sim::api2::trace::Action::Break, project::StepEnableFlags::Step);
-  return true;
+template <typename CPU, typename ISA> auto generateStepCondition(targets::isa::System *system, qint16 offset) {
+  auto cpu = static_cast<CPU *>(system->cpu());
+  auto targetDepth = std::clamp<quint32>(cpu->depth() + (qint32)offset, 0, 0xffff);
+  auto ret = [cpu, targetDepth]() { return cpu->depth() <= targetDepth; };
+  return std::function<bool(void)>(ret);
 }
 
-bool Pep_ISA::onISAStepOver() { return false; }
+bool Pep_ISA::onISAStep() {
+  bool nextIsTrap = false;
+  quint8 is;
+  quint16 pc;
+  switch (_env.arch) {
+  case builtins::ArchitectureHelper::Architecture::PEP9: {
+    auto cpu = static_cast<targets::pep9::isa::CPU *>(_system->cpu());
+    targets::isa::readRegister<isa::Pep9>(cpu->regs(), isa::Pep9::Register::PC, pc, gs);
+    _system->bus()->read(pc, {&is, 1}, gs);
+    nextIsTrap = isa::Pep9::isTrap(is);
+    break;
+  }
+  case builtins::ArchitectureHelper::Architecture::PEP10: {
+    auto cpu = static_cast<targets::pep10::isa::CPU *>(_system->cpu());
+    targets::isa::readRegister<isa::Pep10>(cpu->regs(), isa::Pep10::Register::PC, pc, gs);
+    _system->bus()->read(pc, {&is, 1}, gs);
+    nextIsTrap = isa::Pep10::isTrap(is);
+    break;
+  }
+  default: throw std::logic_error("Unimplemented architecture");
+  }
 
-bool Pep_ISA::onISAStepInto() { return false; }
+  if (nextIsTrap) onISAStepOver();
+  else return onISAStepInto();
+}
 
-bool Pep_ISA::onISAStepOut() { return false; }
+bool Pep_ISA::onISAStepOver() { return stepDepthHelper(0); }
+
+bool Pep_ISA::onISAStepInto() { return stepDepthHelper(1); }
+
+bool Pep_ISA::onISAStepOut() { return stepDepthHelper(-1); }
 
 bool Pep_ISA::onClearCPU() {
   switch (_env.arch) {
@@ -565,7 +588,7 @@ bool Pep_ISA::onClearMemory() {
   return true;
 }
 
-void Pep_ISA::onDeferredExecution(sim::api2::trace::Action stopOn, project::StepEnableFlags::Value step) {
+void Pep_ISA::onDeferredExecution(sim::api2::trace::Action stopOn, std::function<bool()> step) {
   auto pwrOff = _system->output("pwrOff");
   auto endpoint = pwrOff->endpoint();
   auto from = _tb->cend();
@@ -585,27 +608,17 @@ void Pep_ISA::onDeferredExecution(sim::api2::trace::Action stopOn, project::Step
   }
 
   // If we exceed the number of steps, do we allow another deferredExecution?
-  bool allowsResume = false;
+  bool allowsResume = true;
   try {
-    auto ending = _system->currentTick();
-    // TODO: need a function to check if we have pushed / popped stuff on the call stack.
-    // std::function<bool(decltype(_system->currentTick()))> s;
-    switch (step) {
-    case project::StepEnableFlags::Step: ending += 1; break;
-    case project::StepEnableFlags::StepInto: break;
-    case project::StepEnableFlags::Continue:
-      ending += 1000;
-      allowsResume = true;
-      break;
-    default: break;
-    }
-    while (_system->currentTick() < ending && endpoint->at_end() && !_pendingPause) {
+    auto ending = _system->currentTick() + 1000;
+    do {
       _system->tick(sim::api2::Scheduler::Mode::Jump);
       for (const auto &event : _tb->events()) {
         if (event.action >= stopOn) _pendingPause = true;
       }
       _tb->clearEvents();
-    }
+      _pendingPause |= step();
+    } while (_system->currentTick() < ending && endpoint->at_end() && !_pendingPause);
   } catch (const sim::api2::memory::Error &e) {
     err = true;
     if (e.type() == sim::api2::memory::Error::Type::NeedsMMI) {
@@ -650,7 +663,6 @@ void Pep_ISA::onDeferredExecution(sim::api2::trace::Action stopOn, project::Step
 }
 
 void Pep_ISA::prepareSim() {
-
   // Ensure latests changes to object code pane are reflected in simulator.
   onLoadObject();
   _system->init();
@@ -702,6 +714,26 @@ void Pep_ISA::prepareGUIUpdate(sim::api2::trace::FrameIterator from) {
   _memory->setPC(pc, pc + (isUnary ? 0 : 2));
   emit charOutChanged();
   emit updateGUI(from);
+}
+
+bool Pep_ISA::stepDepthHelper(qint16 offset) {
+  _state = State::DebugExec;
+  _stepsSinceLastInteraction = 0;
+  _pendingPause = false;
+  emit allowedDebuggingChanged();
+  emit allowedStepsChanged();
+  switch (_system->architecture()) {
+  case builtins::Architecture::PEP9:
+    emit deferredExecution(sim::api2::trace::Action::Break,
+                           generateStepCondition<targets::pep9::isa::CPU, isa::Pep9>(&*_system, offset));
+    break;
+  case builtins::Architecture::PEP10:
+    emit deferredExecution(sim::api2::trace::Action::Break,
+                           generateStepCondition<targets::pep10::isa::CPU, isa::Pep10>(&*_system, offset));
+    break;
+  default: throw std::logic_error("Unimplemented architecture");
+  }
+  return true;
 }
 
 project::DebugEnableFlags::DebugEnableFlags(QObject *parent) : QObject(parent) {}

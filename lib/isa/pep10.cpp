@@ -77,6 +77,10 @@ bool isa::Pep10::isCall(Mnemonic mnemonic) { return mnemonic == Mnemonic::CALL |
 
 bool isa::Pep10::isCall(quint8 opcode) { return isCall(opcodeLUT[opcode].instr.mnemon); }
 
+bool isa::Pep10::isTrap(Mnemonic mnemonic) { return mnemonic == Mnemonic::SCALL; }
+
+bool isa::Pep10::isTrap(quint8 opcode) { return isTrap(opcodeLUT[opcode].instr.mnemon); }
+
 bool isa::Pep10::isUType(Mnemonic mnemonic) {
   using T = InstructionType;
   auto type = opcodeLUT[opcode(mnemonic)].instr.type;

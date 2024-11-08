@@ -286,6 +286,8 @@ struct Pep9 {
   // CALL and traps NOP0/NOP1/NOP/DECI/DECO/HEXO/STRO
   static bool isCall(Mnemonic mnemonic);
   static bool isCall(quint8 opcode);
+  static bool isTrap(Mnemonic mnemonic);
+  static bool isTrap(quint8 opcode);
 
   static bool isUType(Mnemonic mnemonic);
   static bool isRType(Mnemonic mnemonic);
