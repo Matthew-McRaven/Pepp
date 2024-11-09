@@ -1,7 +1,16 @@
-import QtQuick 2.15
+import QtQuick
+import QtQuick.Controls
+import QtQuick.Layouts
 import edu.pepp 1.0
 
 Rectangle {
+
+    color: palette.base
+    TextMetrics {
+        id: tm
+        font: Theme.font
+        text: "W" // Dummy value to get width of widest character
+    }
     // Create C++ items using the magic of QQmlPropertyList and DefaultProperty
     ActivationModel {
         id: activationModel
@@ -46,26 +55,39 @@ Rectangle {
         }
     }
 
-    //  Globals
-    Rectangle {
-        //width: 180
-        //height: 200
+    ScrollView {
         anchors.fill: parent
         anchors.topMargin: 8
-        color: palette.base
+        contentWidth: column.width // The important part
+        contentHeight: column.height // Same
+        clip: true // Prevent drawing column outside the scrollview borders
 
-        TextMetrics {
-            id: tm
-            font: Theme.font
-            text: "W" // Dummy value to get width of widest character
+        ColumnLayout {
+            id: column
+            MemoryStack {
+                //y: 100
+                id: globals
+                font: tm.font
+                itemModel: activationModel
+            }
+            Item {
+                id: globalHeapBreak
+                implicitHeight: 40
+            }
+            MemoryStack {
+                id: heap
+                font: tm.font
+                itemModel: activationModel
+            }
+            Item {
+                Layout.fillHeight: true
+                implicitHeight: 80
+            }
+            MemoryStack {
+                id: stack
+                font: tm.font
+                itemModel: activationModel
+            }
         }
-
-        //Column {
-        MemoryStack {
-            //y: 100
-            font: tm.font
-            itemModel: activationModel
-        }
-        //}
     }
 }
