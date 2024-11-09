@@ -103,11 +103,6 @@ targets::isa::System::System(builtins::Architecture arch, QList<obj::MemoryRegio
       _mmi[mmio.name] = mem;
       // By default, charIn should raise an error when it runs out of input.
       if (mmio.name == "charIn") mem->setFailPolicy(sim::api2::memory::FailPolicy::RaiseError);
-      // Disk in must not raise an error, otherwise loader will not work.
-      else if (mmio.name == "diskIn") {
-        mem->setFailPolicy(sim::api2::memory::FailPolicy::YieldDefaultValue);
-        mem->clear('z' /*Loader sentinel character*/);
-      }
     } else if (mmio.type == obj::IO::Type::kOutput) {
       auto desc = desc_mmo(nextID(), mmio.name);
       addDevice(desc);
@@ -179,28 +174,6 @@ void targets::isa::System::setBuffer(sim::api2::trace::Buffer *buffer) {
 }
 
 QSharedPointer<const sim::api2::Paths> targets::isa::System::pathManager() const { return _paths; }
-
-void targets::isa::System::setBootFlagAddress(quint16 addr) { _bootFlg = addr; }
-
-void targets::isa::System::setBootFlags(bool enableLoader, bool enableDispatcher) {
-  quint16 value = (enableLoader ? 1 << 0 : 0) | (enableDispatcher ? 1 << 1 : 0);
-  if (bits::hostOrder() != bits::Order::BigEndian) value = bits::byteswap(value);
-  if (_bootFlg) {
-    _bus->write(*_bootFlg, {reinterpret_cast<quint8 *>(&value), 2}, gs);
-  }
-}
-
-std::optional<quint16> targets::isa::System::getBootFlagAddress() { return _bootFlg; }
-
-quint16 targets::isa::System::getBootFlags() const {
-  quint8 buf[2];
-  bits::span<quint8> bufSpan = {buf};
-  bits::memclr(bufSpan);
-  if (_bootFlg) {
-    _bus->read(*_bootFlg, bufSpan, gs);
-  }
-  return bits::memcpy_endian<quint16>(bufSpan, bits::Order::BigEndian);
-}
 
 void targets::isa::System::init() {
   quint8 buf[2];
@@ -294,7 +267,6 @@ QSharedPointer<targets::isa::System> targets::isa::systemFromElf(const ELFIO::el
   auto segs = obj::getLoadableSegments(elf);
   auto memmap = obj::mergeSegmentRegions(segs);
   auto mmios = obj::getMMIODeclarations(elf);
-  auto buffers = obj::getMMIBuffers(elf);
   builtins::Architecture arch = builtins::Architecture::NONE;
   // determine arch from ELF.
   switch (elf.get_machine()) {
@@ -310,39 +282,21 @@ QSharedPointer<targets::isa::System> targets::isa::systemFromElf(const ELFIO::el
   if (loadUserImmediate) {
     quint16 address = 0;
     auto bus = ret->bus();
-    for (auto buffer : buffers) {
-      auto ptr = reinterpret_cast<const quint8 *>(buffer.seg->get_data());
-      if (ptr == nullptr) continue;
-      const auto ret = bus->write(address, {ptr, static_cast<size_type>(buffer.seg->get_memory_size())}, gs);
-      address += buffer.seg->get_memory_size();
-    }
+    auto seg = elf.segments[0];
+    auto ptr = reinterpret_cast<const quint8 *>(seg->get_data());
+    const auto ret = bus->write(address, {ptr, static_cast<size_type>(seg->get_file_size())}, gs);
   } else {
-    for (auto buffer : buffers) {
-      auto mmi = ret->input(buffer.portName);
-      Q_ASSERT(mmi != nullptr);
-      auto endpoint = mmi->endpoint();
-      auto bytesAsHex = obj::segmentAsAsciiHex(buffer.seg);
-      /*std::cout << "[SGLD]<";
-      std::cout.write((char *)bytesAsHex.data(), bytesAsHex.size());
-      std::cout << std::endl;*/
-      for (auto byte : bytesAsHex) endpoint->append_value(byte);
-    }
+    auto seg = elf.segments[0];
+    auto ptr = reinterpret_cast<const quint8 *>(seg->get_data());
+    auto mmi = ret->input("charIn");
+    Q_ASSERT(mmi != nullptr);
+    auto endpoint = mmi->endpoint();
+    auto bytesAsHex = obj::segmentAsAsciiHex(seg);
+    /*std::cout << "[SGLD]<";
+    std::cout.write((char *)bytesAsHex.data(), bytesAsHex.size());
+    std::cout << std::endl;*/
+    for (auto byte : bytesAsHex) endpoint->append_value(byte);
   }
-    switch (arch) {
-    case builtins::Architecture::PEP9: break;
-    case builtins::Architecture::PEP10: {
-      auto diskIn = ret->input("diskIn");
-      Q_ASSERT(diskIn != nullptr);
-      auto endpoint = diskIn->endpoint();
-      endpoint->append_value(' ');
-      endpoint->append_value('z');
-      endpoint->append_value('z');
-      if (auto bootFlg = obj::getBootFlagsAddress(elf); bootFlg) ret->setBootFlagAddress(*bootFlg);
-      break;
-    }
-    default: break;
-    }
-
   return ret;
 }
 

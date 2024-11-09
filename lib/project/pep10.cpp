@@ -546,7 +546,7 @@ bool Pep_ISA::onISAStep() {
   default: throw std::logic_error("Unimplemented architecture");
   }
 
-  if (nextIsTrap) onISAStepOver();
+  if (nextIsTrap) return onISAStepOver();
   else return onISAStepInto();
 }
 
@@ -989,7 +989,6 @@ void Pep_ASMB::prepareSim() {
   auto charOut = _system->output("charOut");
   charOut->clear(0);
   pwrOff->clear(0);
-  _system->setBootFlags(false, true);
 
   auto charIn = _system->input("charIn");
   charIn->clear(0);

@@ -39,15 +39,4 @@ struct AddressedIO : public IO {
 };
 
 QList<AddressedIO> getMMIODeclarations(const ELFIO::elfio &elf);
-
-void addMMIBuffer(ELFIO::elfio &elf, const ELFIO::segment *bufferableSe);
-struct MMIBuffer {
-  ELFIO::segment *seg;
-  QString portName;
-};
-QList<MMIBuffer> getMMIBuffers(const ELFIO::elfio &elf);
-
-// Automatically finds the boot flag in the symbol table and adds a note.
-void setBootFlagAddress(ELFIO::elfio &elf, QString name = "bootFlg");
-std::optional<quint16> getBootFlagsAddress(const ELFIO::elfio &elf);
 } // namespace obj

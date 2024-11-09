@@ -38,13 +38,7 @@ void writeTree(ELFIO::elfio &elf, pas::ast::Node &node, QString prefix, bool isO
     sec->set_addr_align(1);
     sec->set_type(ELFIO::SHT_PROGBITS);
     sec->set_data((const char *)bytes.constData(), bytes.size());
-    auto seg = elf.segments.add();
-    seg->set_align(1);
-    seg->set_virtual_address(0x0);
-    seg->set_physical_address(0x0);
-    seg->set_memory_size(bytes.size());
-    seg->set_type(ELFIO::PT_LOPROC + 1);
-    seg->set_flags(ELFIO::PF_R | ELFIO::PF_W | ELFIO::PF_X);
+    auto seg = elf.segments[0];
     seg->add_section(sec, 1);
     // Update the section index of all symbols in this section, otherwise symtab
     // will link against SHN_UNDEF.
@@ -145,60 +139,21 @@ void pas::obj::pep9::writeOS(ELFIO::elfio &elf, ast::Node &os) {
   Q_ASSERT(symTab != nullptr);
 
   ::obj::addMMIODeclarations(elf, symTab, mmios);
-  ::obj::setBootFlagAddress(elf);
 }
 
 void pas::obj::pep9::writeUser(ELFIO::elfio &elf, ast::Node &user) {
   writeTree(elf, user, "usr", false);
-
-  // Add notes regarding MMIO buffering.
-  for (auto &seg : elf.segments) {
-    // Only LOPROC+1 segments need buffering.
-    if (seg->get_type() != ELFIO::PT_LOPROC + 0x1) continue;
-    ::obj::addMMIBuffer(elf, seg.get());
-    // The "buffered" segments need to not overlap with default RWX segment,
-    // otherwise user program will always be loaded automatically.
-    // So, adjust the addreses+sizes of the default segment to exclude our
-    // buffered one.
-    auto newAddr = seg->get_physical_address() + seg->get_memory_size();
-    auto delta = newAddr - elf.segments[0]->get_physical_address();
-    elf.segments[0]->set_physical_address(newAddr);
-    elf.segments[0]->set_virtual_address(newAddr);
-    elf.segments[0]->set_memory_size(elf.segments[0]->get_memory_size() - delta);
-  }
 }
 
 void pas::obj::pep9::writeUser(ELFIO::elfio &elf, QList<quint8> bytes) {
   auto align = 1;
-  ELFIO::Elf64_Addr baseAddr = 0, size = bytes.size();
+  ELFIO::Elf64_Addr size = bytes.size();
   auto sec = elf.sections.add("usr.txt");
   sec->set_type(ELFIO::SHT_PROGBITS);
   // All sections from AST correspond to bits in Pep/9 memory, so alloc
   sec->set_flags(ELFIO::SHF_ALLOC | ELFIO::SHF_WRITE | ELFIO::SHF_EXECINSTR);
   sec->set_addr_align(align);
   sec->set_data((const char *)bytes.constData(), size);
-  auto seg = elf.segments.add();
-  seg->set_align(1);
-  seg->set_virtual_address(0x0);
-  seg->set_physical_address(0x0);
-  seg->set_memory_size(size);
-  seg->set_type(ELFIO::PT_LOPROC + 1);
-  seg->set_flags(ELFIO::PF_R | ELFIO::PF_W | ELFIO::PF_X);
+  auto seg = elf.segments[0];
   seg->add_section(sec, 1);
-
-  // Add notes regarding MMIO buffering.
-  for (auto &seg : elf.segments) {
-    // Only LOPROC+1 segments need buffering.
-    if (seg->get_type() != ELFIO::PT_LOPROC + 0x1) continue;
-    ::obj::addMMIBuffer(elf, seg.get());
-    // The "buffered" segments need to not overlap with default RWX segment,
-    // otherwise user program will always be loaded automatically.
-    // So, adjust the addreses+sizes of the default segment to exclude our
-    // buffered one.
-    auto newAddr = seg->get_physical_address() + seg->get_memory_size();
-    auto delta = newAddr - elf.segments[0]->get_physical_address();
-    elf.segments[0]->set_physical_address(newAddr);
-    elf.segments[0]->set_virtual_address(newAddr);
-    elf.segments[0]->set_memory_size(elf.segments[0]->get_memory_size() - delta);
-  }
 }

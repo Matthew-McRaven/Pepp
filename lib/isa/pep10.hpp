@@ -223,10 +223,9 @@ enum class CSR : quint8 { N, Z, V, C };
 Q_ENUM_NS(CSR);
 
 enum class MemoryVectors : quint16 {
-  TrapHandler = 0xFFF6,
-  Dispatcher = 0xFFF8,
-  SystemStackPtr = 0xFFFA,
-  DiskIn = 0xFFFC,
+  TrapHandler = 0xFFF7,
+  Dispatcher = 0xFFF9,
+  SystemStackPtr = 0xFFFB,
   CharIn = 0xFFFD,
   CharOut = 0xFFFE,
   PwrOff = 0xFFFF,

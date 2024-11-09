@@ -152,7 +152,7 @@ TEST_CASE("Pep/9 Figure Assembly", "[scope:asm][kind:e2e][arch:pep9]") {
       QByteArray output = io->output.toString().replace(lf, "").toUtf8();
       DYNAMIC_SECTION(nameAsStd << " on: " << input.toStdString()) {
         auto elf = smoke(os, userPep, userPepo, input, output);
-        std::string fname = u"%1%2.elf"_s.arg(ch, fig).toStdString();
+        std::string fname = u"cs5e.%1%2.elf"_s.arg(ch, fig).toStdString();
         elf->save(fname);
       }
       num++;
