@@ -2,8 +2,6 @@ import QtQuick 2.15
 import edu.pepp 1.0
 
 Rectangle {
-    color: "orange"
-
     // Create C++ items using the magic of QQmlPropertyList and DefaultProperty
     ActivationModel {
         id: activationModel
@@ -53,6 +51,7 @@ Rectangle {
         //width: 180
         //height: 200
         anchors.fill: parent
+        anchors.topMargin: 8
         color: palette.base
 
         TextMetrics {
