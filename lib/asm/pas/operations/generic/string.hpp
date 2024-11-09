@@ -32,7 +32,7 @@ struct ListingOptions {
 
 namespace pas::ops::generic::detail {
 QString formatErrorsAsComments(const ast::Node &node);
-QString format(QString symbol, QString invoke, QStringList args, QString comment);
+QString format(QString symbol, QString invoke, QStringList args, QString comment, bool spaceAfterComma = true);
 QString formatDirectiveOrMacro(const ast::Node &node, QString invoke, SourceOptions opts);
 QString formatDirective(const ast::Node &node, SourceOptions opts);
 QString formatMacro(const ast::Node &node, SourceOptions opts);

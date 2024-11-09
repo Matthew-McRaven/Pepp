@@ -224,5 +224,5 @@ template <typename ISA> QString pas::ops::pepp::detail::formatNonUnary(const ast
   QString comment = "";
   if (node.has<pas::ast::generic::Comment>()) comment = node.get<pas::ast::generic::Comment>().value;
 
-  return generic::detail::format(symbol, ISA::string(instr), args, comment);
+  return generic::detail::format(symbol, ISA::string(instr), args, comment, false);
 }

@@ -28,9 +28,9 @@ TEST_CASE("Format Pepp listing", "[scope:asm][kind:unit][arch:pep10]") {
       {"Unary", "asla\nasra", QStringList{"0000     1C          ASLA", "0001     1E          ASRA"}},
       {"Unary + symbol", "abcdefg:asla", QStringList{"0000     1C abcdefg: ASLA"}},
       {"Nonunary non-br", "adda 0xfaad,i\nsuba 0xbaad,sfx",
-       QStringList{"0000 A0FAAD          ADDA     0xFAAD, i", "0003 B7BAAD          SUBA     0xBAAD, sfx"}},
+       QStringList{"0000 A0FAAD          ADDA     0xFAAD,i", "0003 B7BAAD          SUBA     0xBAAD,sfx"}},
       {"Nonunary br", "br 10,i\nbr 20,x",
-       QStringList{"0000 24000A          BR       10", "0003 250014          BR       20, x"}},
+       QStringList{"0000 24000A          BR       10", "0003 250014          BR       20,x"}},
 
       {"ALIGN 1", ".ALIGN 1", QStringList{"0000                 .ALIGN   1"}},
       {"ALIGN 2 @ 0", ".ALIGN 2", QStringList{"0000                 .ALIGN   2"}},
