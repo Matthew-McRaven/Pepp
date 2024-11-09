@@ -36,3 +36,4 @@ Changed,,0.7.4,650,"In ""Welcome"" mode, split double-wide Mc2 into two labeled 
 Added,Major,0.7.4,655,"Added Pep/9 projects for ISA3 and Asmb5"
 Added,Minor,0.7.4,510,"Added step over/into/out for ISA and ASMB5"
 Changed,Major,0.7.5,666,"Removed Pep/10 OS's loader and diskIn port"
+Changed,Major,0.7.5,660,"Add stack trace to ""Debugger"" mode, containing views of globals, heap, and stack"
