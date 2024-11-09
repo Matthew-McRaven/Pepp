@@ -94,7 +94,7 @@ void assemble(ELFIO::elfio &elf, QString os, User user, QSharedPointer<macro::Re
   }
 }
 
-void smoke(QString os, QString userPep, QString userPepo, QString input, QByteArray output, bool isBM) {
+QSharedPointer<ELFIO::elfio> smoke(QString os, QString userPep, QString userPepo, QString input, QByteArray output) {
   auto bookReg = builtins::Registry(nullptr);
   // Load book contents, macros.
   auto bookPtr = book(bookReg);
@@ -111,10 +111,9 @@ void smoke(QString os, QString userPep, QString userPepo, QString input, QByteAr
   }
   // Skip loading, to save on cycles. However, can't skip dispatch, or
   // main's stack will be wrong.
-  auto system = targets::isa::systemFromElf(*elf, isBM);
+  auto system = targets::isa::systemFromElf(*elf, true);
   system->init();
   REQUIRE(!system.isNull());
-  system->setBootFlags(true, true);
   if (auto charIn = system->input("charIn"); !input.isEmpty() && charIn) {
     auto charInEndpoint = charIn->endpoint();
     for (auto c : input.toStdString())
@@ -140,6 +139,7 @@ void smoke(QString os, QString userPep, QString userPepo, QString input, QByteAr
       actualOut.push_back(*next);
   }
   CHECK(actualOut == output);
+  return elf;
 }
 } // namespace
 
@@ -184,7 +184,7 @@ TEST_CASE("Pep/10 Assembler Assembly", "[scope:asm][kind:e2e][arch:pep10]") {
   // Insert IDE MMIO declaration
   obj::addIDEDeclaration(*elf, elf->sections["os.symtab"], "ideCMD");
   auto decls = obj::getMMIODeclarations(*elf);
-  CHECK(decls.size() == 5);
+  CHECK(decls.size() == 4);
   // And ensure that it is the correct size / is present
   auto IDE = std::find_if(decls.begin(), decls.end(), [](auto &x) { return x.type == obj::IO::Type::kIDE; });
   REQUIRE(IDE != decls.end());
@@ -201,6 +201,7 @@ TEST_CASE("Pep/10 Assembler Assembly", "[scope:asm][kind:e2e][arch:pep10]") {
   // Skip loading, since BM OS does not have an OS-level loader.
   auto system = targets::isa::systemFromElf(*elf, true);
   REQUIRE(!system.isNull());
+  elf->save("pep10asmb.elf");
   CHECK(system->ideControllers().size() == 1);
   auto ide = system->ideController("ideCMD");
   CHECK(ide != nullptr);
@@ -237,17 +238,14 @@ TEST_CASE("Pep/10 Figure Assembly", "[scope:asm][kind:e2e][arch:pep10]") {
   auto bookPtr = book(bookReg);
   auto figures = bookPtr->figures();
   for (auto &figure : figures) {
-    if (!figure->typesafeElements().contains("pep") && !figure->typesafeElements().contains("pepo"))
-      continue;
-    else if (figure->isOS())
-      continue;
+    if (!figure->typesafeElements().contains("pep") && !figure->typesafeElements().contains("pepo")) continue;
+    else if (figure->isOS()) continue;
     QString userPep = "", userPepo = "";
     if (figure->typesafeElements().contains("pep"))
       userPep = QString(figure->typesafeElements()["pep"]->contents).replace(lf, "");
     else if (figure->typesafeElements().contains("pepo"))
       userPepo = QString(figure->typesafeElements()["pepo"]->contents).replace(lf, "");
     auto os = QString(figure->defaultOS()->typesafeElements()["pep"]->contents).replace(lf, "");
-    bool isBM = !os.contains("bootFlg");
     auto ch = figure->chapterName(), fig = figure->figureName();
     int num = 0;
     for (auto io : figure->typesafeTests()) {
@@ -257,7 +255,9 @@ TEST_CASE("Pep/10 Figure Assembly", "[scope:asm][kind:e2e][arch:pep10]") {
       QString input = io->input.toString().replace(lf, "");
       QByteArray output = io->output.toString().replace(lf, "").toUtf8();
       DYNAMIC_SECTION(nameAsStd << " on: " << input.toStdString()) {
-        smoke(os, userPep, userPepo, input, output, isBM);
+        auto elf = smoke(os, userPep, userPepo, input, output);
+        std::string fname = u"cs6e.%1%2.elf"_s.arg(ch, fig).toStdString();
+        elf->save(fname);
       }
       num++;
     }

@@ -58,10 +58,8 @@ trpHnd:   .WORD  trp
 initPC:  .WORD   0x0000
 ;
          .SECTION "memvec", "rw"
-         .ORG    0xFFFA
+         .ORG    0xFFFB
 initSP:  .WORD   bmRAM
-         .INPUT  diskIn
-diskIn:  .BLOCK  1
          .INPUT  charIn
          .EXPORT charIn
 charIn:  .BLOCK  1

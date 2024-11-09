@@ -37,7 +37,7 @@ template <typename ISA> void writeTree(ELFIO::elfio &elf, pas::ast::Node &node, 
           ((activeSeg->get_flags() & ELFIO::PF_W) > 0 == flags.W) &&
           ((activeSeg->get_flags() & ELFIO::PF_X) > 0 == flags.X))) {
       activeSeg = elf.segments.add();
-      activeSeg->set_type(isOS ? ELFIO::PT_LOAD : ELFIO::PT_LOPROC + 1);
+      activeSeg->set_type(ELFIO::PT_LOAD);
       ELFIO::Elf_Word elfFlags = 0;
       elfFlags |= flags.R ? ELFIO::PF_R : 0;
       elfFlags |= flags.W ? ELFIO::PF_W : 0;
@@ -91,7 +91,8 @@ template <typename ISA> void writeTree(ELFIO::elfio &elf, pas::ast::Node &node, 
     }
 
     // Both implicitly capture isOS.
-    if (secFlags.Z) getOrCreateBSS(secFlags);
+    if (!isOS) activeSeg = elf.segments[0];
+    else if (secFlags.Z) getOrCreateBSS(secFlags);
     else getOrCreateBits(secFlags);
 
     activeSeg->add_section(sec, align);
@@ -101,7 +102,7 @@ template <typename ISA> void writeTree(ELFIO::elfio &elf, pas::ast::Node &node, 
     // Field not re-computed on its own. Failure to compute will cause readelf
     // to crash.
     // TODO: in the future, handle alignment correctly?
-    activeSeg->set_memory_size(activeSeg->get_memory_size() + size);
+    if (isOS) activeSeg->set_memory_size(activeSeg->get_memory_size() + size);
 
     // Update the section index of all symbols in this section, otherwise symtab
     // will link against SHN_UNDEF.

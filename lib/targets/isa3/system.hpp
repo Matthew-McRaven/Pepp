@@ -50,11 +50,7 @@ public:
   void setBuffer(sim::api2::trace::Buffer *buffer) override;
   QSharedPointer<const sim::api2::Paths> pathManager() const override;
 
-  // Set default register values, modify dispatcher / loader behavior.
-  void setBootFlagAddress(quint16 addr);
-  void setBootFlags(bool enableLoader = true, bool enableDispatcher = true);
-  std::optional<quint16> getBootFlagAddress();
-  quint16 getBootFlags() const;
+  // Set default register values.
   void init();
 
   builtins::Architecture architecture() const;
@@ -74,7 +70,6 @@ private:
   sim::api2::device::ID _nextID = 0;
   sim::api2::device::IDGenerator _nextIDGenerator = [this]() { return _nextID++; };
   sim::api2::tick::Type _tick = 0;
-  std::optional<quint16> _bootFlg = std::nullopt;
   struct ReloadHelper {
     QSharedPointer<sim::api2::memory::Target<quint16>> target;
     quint16 base;

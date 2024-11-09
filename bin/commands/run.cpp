@@ -86,13 +86,8 @@ void RunTask::run() {
   using namespace Qt::StringLiterals;
   if (!loadToElf())
     return emit finished(1);
-  bool hasBootFlag = (obj::getBootFlagsAddress(*_elf).has_value());
-  // Skip loading logic if there flag is set or there are no boot flags.
-  bool skipLoad = _skipLoad | !hasBootFlag;
-  auto system = targets::isa::systemFromElf(*_elf, skipLoad);
+  auto system = targets::isa::systemFromElf(*_elf, true);
   system->init();
-  // Skip dispatching logic if flag is set and there are boot flags.
-  system->setBootFlags(!skipLoad, !_skipDispatch);
 
   // Perform any requested register overrides.
   for (auto [reg, val] : _regOverrides.asKeyValueRange()) {
@@ -212,9 +207,5 @@ void RunTask::setMaxSteps(quint64 maxSteps) { this->_maxSteps = maxSteps; }
 void RunTask::setBm(bool forceBm) { _forceBm = forceBm; }
 
 void RunTask::setOsIn(std::string fname) { _osIn = fname; }
-
-void RunTask::setSkipLoad(bool skip) { _skipLoad = skip; }
-
-void RunTask::setSkipDispatch(bool skip) { _skipDispatch = skip; }
 
 void RunTask::addRegisterOverride(std::string name, quint16 value) { _regOverrides[name] = value; }

@@ -32,8 +32,6 @@ public:
   void setMaxSteps(quint64 maxSteps);
   void setBm(bool forceBm);
   void setOsIn(std::string fname);
-  void setSkipLoad(bool skip);
-  void setSkipDispatch(bool skip);
   void addRegisterOverride(std::string name, quint16 value);
 
 private:
@@ -43,13 +41,13 @@ private:
   std::string _charOut, _charIn, _memDump;
   quint64 _maxSteps;
   std::optional<std::string> _osIn;
-  bool _skipLoad = false, _skipDispatch = false, _forceBm = false;
+  bool _forceBm = false;
   QMap<std::string, quint16> _regOverrides;
 };
 
 void registerRun(auto &app, task_factory_t &task, detail::SharedFlags &flags) {
   // Must initialize,
-  static bool skipLoad = false, skipDispatch = false, bm = false;
+  static bool bm = false;
   static std::string objIn, charIn, charOut, memDump, osIn;
   static uint64_t maxSteps;
   static std::map<std::string, quint64> regOverrides;
@@ -76,10 +74,6 @@ void registerRun(auto &app, task_factory_t &task, detail::SharedFlags &flags) {
   static auto osInOpt = runSC->add_option("--os", osIn, "File from which os will be read.");
   if (flags.edValue == 6)
     bmRunOpt = runSC->add_flag("--bm", bm, "Use bare metal OS.")->excludes(osInOpt);
-  if (flags.edValue == 6) {
-    runSC->add_flag("--skip-load", skipLoad)->group("");
-    runSC->add_flag("--skip-dispatch", skipDispatch)->group("");
-  }
   static auto regOverrideOpt = runSC->add_option("--reg", regOverrides)->group("");
   runSC->callback([&]() {
     flags.kind = detail::SharedFlags::TERM;
@@ -95,8 +89,6 @@ void registerRun(auto &app, task_factory_t &task, detail::SharedFlags &flags) {
       else if (*osInOpt)
         ret->setOsIn(osIn);
       ret->setMaxSteps(maxSteps);
-      ret->setSkipLoad(skipLoad);
-      ret->setSkipDispatch(skipDispatch);
       for (auto &reg : regOverrides)
         ret->addRegisterOverride(reg.first, reg.second);
       return ret;

@@ -30,9 +30,7 @@
 #include "targets/isa3/system.hpp"
 
 namespace {
-static const auto is_diskIn = [](const auto &x) {
-  return x.name == "diskIn" && x.type == obj::IO::Type::kInput && x.minOffset == 0xFFFC && x.maxOffset == 0xFFFC;
-};
+
 static const auto is_charIn = [](const auto &x) {
   return x.name == "charIn" && x.type == obj::IO::Type::kInput && x.minOffset == 0xFFFD && x.maxOffset == 0xFFFD;
 };
@@ -152,14 +150,11 @@ TEST_CASE("CS6E figure assembly", "[scope:asm][kind:e2e][arch:pep10]") {
 
         // Verify MMIO information.
         auto decs = ::obj::getMMIODeclarations(*elf);
-        CHECK(decs.length() == 4);
-        CHECK(std::find_if(decs.cbegin(), decs.cend(), is_diskIn) != decs.cend());
+        CHECK(decs.length() == 3);
         CHECK(std::find_if(decs.cbegin(), decs.cend(), is_charIn) != decs.cend());
         CHECK(std::find_if(decs.cbegin(), decs.cend(), is_charOut) != decs.cend());
         CHECK(std::find_if(decs.cbegin(), decs.cend(), is_pwrOff) != decs.cend());
 
-        auto buf = ::obj::getMMIBuffers(*elf);
-        CHECK(buf.size() == 1);
         auto memMap = obj::getLoadableSegments(*elf);
         auto mergeMap = obj::mergeSegmentRegions(memMap);
         if (isFullOS) {
@@ -181,15 +176,6 @@ TEST_CASE("CS6E figure assembly", "[scope:asm][kind:e2e][arch:pep10]") {
         REQUIRE_NOTHROW([&sys, &elf]() { sys = targets::isa::systemFromElf(*elf, true); }());
         QVector<quint8> dump(0x1'00'00);
         sys->bus()->dump({dump.data(), std::size_t(dump.size())});
-
-        auto bootFlg = ::obj::getBootFlagsAddress(*elf);
-        auto systemBootFlg = sys->getBootFlagAddress();
-        CHECK(bootFlg.has_value() == systemBootFlg.has_value());
-        if (bootFlg) {
-          CHECK(*bootFlg == 0xFA37);
-          CHECK(*systemBootFlg == *bootFlg);
-          CHECK(sys->getBootFlags() == 3);
-        }
       }
     }
   }

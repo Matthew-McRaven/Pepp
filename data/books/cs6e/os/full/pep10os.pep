@@ -17,39 +17,9 @@ false:   .EQUATE 0
 ;******* Operating system ROM
          .SECTION "text", "rx"
 ;
-;Place entry point flags in read-only memory, as these
-;  may only be modified by the simulator.
-bootFlg: .WORD   3           ;Entry point flags
-doLoad:  .EQUATE 0x0001      ;System entry point will load program from disk
-doExec:  .EQUATE 0x0002      ;System entry point will execute the program
-
-;
 ;******* System Entry Point
-disp:    LDWX    0,i         ;X <- 0
-         LDWA    bootFlg,d   ;Load start flags
-         ANDA    doLoad,i    ;Check if the start flags indicate
-         BREQ    callMain    ;  loading is to be performed
-         CALL    loader      ;If so, begin load
-
-callMain:LDWA    bootFlg,d  ;Reload start flags
-         ANDA    doExec,i   ;Check if the start flags indicate
-         BREQ    shutdown   ;  user program is to be run
-;Transfer control to method that will execute main
-;The system stack may be clobbered at runtime by system calls,
-;  so control will not be able to be returned to this point
-;  execMain is responsible for cleaning up the system stack
-;  and shutting down the machine.
-         BR      execMain
-;
-;Write an arbitrary value to the power off port to shutdown the computer.
-shutdown:LDWA    0xDEAD,i
-         STBA    pwrOff,d
-hang:    BR      hang
-
-         .BLOCK  64          ;Padding for possible future modification
-;
 retVal:  .EQUATE 0           ;Main return value #2d
-execMain:LDWA    osRAM,i     ;Load address of user stack
+disp:    LDWA    osRAM,i     ;Load address of user stack
          SWAPSPA             ;Switch to user stack
          STWA    initSp,d    ;Preserve system stack pointer
          SUBSP   2,i         ;Allocate @param #retVal
@@ -63,7 +33,10 @@ mainCln: LDWA    0,s         ;Load return value
          ADDSP   2,i         ;Deallocate @param #retVal
          LDWA    initSp,d    ;Restore system stack pointer
          SWAPSPA             ;OS Stack might be clobbered during by syscalls
-         BR      shutdown    ;  So branch instead of call
+;Write an arbitrary value to the power off port to shutdown the computer.
+shutdown:LDWA    0xDEAD,i
+         STBA    pwrOff,d
+hang:    BR      hang
 ;
 mainErr: LDWA    execErr,i   ;Load the address of the loader error address.
          STWA    -2,s        ;Push address of error message
@@ -76,50 +49,6 @@ mainErr: LDWA    execErr,i   ;Load the address of the loader error address.
          BR      shutdown
 execErr: .ASCII "Main failed with return value \x00"
          .BLOCK  64          ;Padding for possible future modification
-;******* System Loader
-;Data must be in the following format:
-;Each hex number representing a byte must contain exactly two
-;characters. Each character must be in 0..9, A..F, or a..f and
-;must be followed by exactly one space. There must be no
-;leading spaces at the beginning of a line and no trailing
-;spaces at the end of a line. The last two characters in the
-;file must be lowercase zz, which is used as the terminating
-;sentinel by the loader.
-;
-loader:  LDWX    0,i          ;X <- 0
-getChar: LDBA    diskIn,d    ;Get first hex character
-         CPBA    'z',i       ;If end of file sentinel 'z'
-         BREQ    endLoad     ;  then exit loader routine
-         CPBA    '9',i       ;If characer <= '9', assume decimal
-         BRLE    shift       ;  and right nybble is correct digit
-         ADDA    9,i         ;else convert nybble to correct digit
-shift:   ASLA                ;Shift left by four bits to send
-         ASLA                ;  the digit to the most significant
-         ASLA                ;  position in the byte
-         ASLA
-         STBA    byteTemp,d  ;Save the most significant nybble
-         LDBA    diskIn,d    ;Get second hex character
-         CPBA    '9',i       ;If characer <= '9', assume decimal
-         BRLE    combine     ;  and right nybble is correct digit
-         ADDA    9,i         ;else convert nybble to correct digit
-combine: ANDA    0x000F,i    ;Mask out the left nybble
-         ORA     wordTemp,d  ;Combine both hex digits in binary
-         STBA    0,x         ;Store in Mem[X]
-         ADDX    1,i         ;X <- X + 1
-         LDBA    diskIn,d    ;Skip blank or <LF>
-         BR      getChar     ;
-;
-endLoad: LDBA    diskIn,d    ;Consume second 'z'
-         CPBA    'z',i       ;If sentinel is not zz,
-         BRNE    loadErr     ;  then there is an error
-         RET
-loadErr: LDWA    ldErrMsg,i  ;Load the address of the loader error message.
-         STWA    -2,s        ;Push address of error message
-         SUBSP   2,i         ;Allocate @param #msgAddr
-         CALL    prntMsg
-         ADDSP   2,i         ;Deallocate @param #msgAddr
-         BR      shutdown
-ldErrMsg:.ASCII "Sentinel value was corrupted\x00"
 ;
 ;******* Trap handler
 ;NZVC bits, A and X registers contain user data after SCALL.
@@ -597,15 +526,12 @@ exitPrnt:RET
 ;
 ;******* Vectors for system memory map
 ;
-trpHnd:   .WORD  trap        ;Address of first instruction in trap handler.
-initPC:   .WORD  disp        ;Address of first instruction to execute on boot.
-          .SECTION "memvec", "rw"
-          .ORG   0xFFFA
-initSp:   .WORD  wordTemp    ;Initial stack pointer. Must be updated before
+trpHnd:  .WORD  trap        ;Address of first instruction in trap handler.
+initPC:  .WORD  disp        ;Address of first instruction to execute on boot.
+         .SECTION "memvec", "rw"
+         .ORG   0xFFFB
+initSp:  .WORD  wordTemp    ;Initial stack pointer. Must be updated before
                              ; calling main or OS state will be clobbered.
-;Do not allow diskIn to be referenced in user programs.
-         .INPUT  diskIn      ;Mark diskIn as a memory-mapped input device
-diskIn:  .BLOCK  1           ;Memory-mapped input device #1h.
 
          .EXPORT charIn      ;Allow charIn to be referenced in user programs.
          .INPUT  charIn      ;Mark charIn as a memory-mapped input device
