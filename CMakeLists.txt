@@ -226,7 +226,7 @@ if (ONLY STREQUAL "BUILD")
     else()
        message("Using Qt helpers for byteswap")
     endif()
-    # Needed to genrate documentation, changelogs
+    # Needed to generate documentation, changelogs
     find_package(Python COMPONENTS Interpreter)
 
 

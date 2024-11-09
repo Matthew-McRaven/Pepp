@@ -111,7 +111,7 @@ int gui_main(const gui_args &args) {
   // TODO: connect to PreferenceModel, read field corresponding to QPalette (Disabled, Text) field.
   engine.addImageProvider(QLatin1String("icons"), new PreferenceAwareImageProvider);
 
-  /*QDirIterator i(":/ui", QDirIterator::Subdirectories);
+  /*QDirIterator i(":/qt/qml/Pepp", QDirIterator::Subdirectories);
   while (i.hasNext()) {
     auto f = QFileInfo(i.next());
     if (!f.isFile())
@@ -119,7 +119,7 @@ int gui_main(const gui_args &args) {
     qDebug() << f.filePath();
   }*/
 
-  static const auto default_entry = u"qrc:/qt/qml/Pepp/gui/main.qml"_s;
+  static const auto default_entry = u"qrc:/qt/qml/Pepp/src/main.qml"_s;
   const QUrl url(args.QMLEntry.isEmpty() ? default_entry : args.QMLEntry);
 #ifdef __EMSCRIPTEN__
   QApplication *app_ptr = g_app;
