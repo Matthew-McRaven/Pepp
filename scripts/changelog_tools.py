@@ -132,7 +132,7 @@ def stringize_version(conn, version):
         change_strs = []
         for ref, message in changes:
             if not ref: change_strs.append(f" - {message}")
-            else: change_strs.append(f" - {message}. See [#{ref}]()")
+            else: change_strs.append(f" - {message}. See [#{ref}](https://github.com/Matthew-McRaven/Pepp/issues/{ref})")
         sections.append(section + "\n".join(change_strs)+"\n")
     n="\n"
     return f"""{hdr_title} -- {hdr_date}\n\n{hdr_blurb}\n\n{n.join(sections)}"""
