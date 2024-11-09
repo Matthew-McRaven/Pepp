@@ -21,7 +21,6 @@
 #include "./task.hpp"
 #include "commands/about.hpp"
 #include "commands/asm.hpp"
-#include "commands/demo.hpp"
 #include "commands/get.hpp"
 #include "commands/gui.hpp"
 #include "commands/license.hpp"
@@ -67,7 +66,6 @@ int main(int argc, char **argv) {
   registerRun(app, task, shared_flags);
   gui_args args{.argvs = {argv[0]}};
   registerGUI(app, task, shared_flags, args);
-  registerDemo(app, task, shared_flags, args);
 
   // Hidden commands
   registerThroughput(app, task, shared_flags);
