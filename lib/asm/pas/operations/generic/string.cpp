@@ -44,9 +44,10 @@ QString pas::ops::generic::detail::formatComment(const ast::Node &node, SourceOp
   return lpad.arg(node.get<ast::generic::Comment>().value);
 }
 
-QString pas::ops::generic::detail::format(QString symbol, QString invoke, QStringList args, QString comment) {
+QString pas::ops::generic::detail::format(QString symbol, QString invoke, QStringList args, QString comment,
+                                          bool spaceAfterComma) {
   using namespace Qt::StringLiterals;
-  auto joinedArgs = args.join(", ");
+  auto joinedArgs = args.join(spaceAfterComma ? ", " : ",");
   auto symPlaceholder = symbol.isEmpty() ? u"         "_s : u"%1"_s.arg(symbol + ":", -9, QChar(' '));
   auto ret = u"%1%2%3%4"_s.arg(symPlaceholder)
                  .arg(invoke, -9, ' ')
