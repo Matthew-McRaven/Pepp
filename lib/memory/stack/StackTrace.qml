@@ -1,8 +1,16 @@
-import QtQuick 2.15
+import QtQuick
+import QtQuick.Controls
+import QtQuick.Layouts
 import edu.pepp 1.0
 
 Rectangle {
-    color: "orange"
+
+    color: palette.base
+    TextMetrics {
+        id: tm
+        font: Theme.font
+        text: "W" // Dummy value to get width of widest character
+    }
     // Create C++ items using the magic of QQmlPropertyList and DefaultProperty
     ActivationModel {
         id: activationModel
@@ -47,21 +55,38 @@ Rectangle {
         }
     }
 
-    Column {
+    ScrollView {
         anchors.fill: parent
-        Repeater {
-            model: activationModel.records
-            delegate: Column {
-                id: recordDelegate
-                required property var modelData
-                Repeater {
-                    model: modelData.lines
-                    delegate: Text {
-                        required property var modelData
-                        text: `${modelData.address} -- ${modelData.value} -- ${modelData.name}`
-                        font.bold: recordDelegate.modelData.active
-                    }
-                }
+        anchors.topMargin: 8
+        contentWidth: column.width // The important part
+        contentHeight: column.height // Same
+        clip: true // Prevent drawing column outside the scrollview borders
+
+        ColumnLayout {
+            id: column
+            MemoryStack {
+                //y: 100
+                id: globals
+                font: tm.font
+                itemModel: activationModel
+            }
+            Item {
+                id: globalHeapBreak
+                implicitHeight: 40
+            }
+            MemoryStack {
+                id: heap
+                font: tm.font
+                itemModel: activationModel
+            }
+            Item {
+                Layout.fillHeight: true
+                implicitHeight: 80
+            }
+            MemoryStack {
+                id: stack
+                font: tm.font
+                itemModel: activationModel
             }
         }
     }
