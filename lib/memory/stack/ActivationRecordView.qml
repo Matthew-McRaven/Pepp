@@ -47,7 +47,7 @@ Item {
                     width: 8 * tm.width
                     height: tm.height
                     font: tm.font
-                    text: `0x${model.address.toString(16).padStart(
+                    text: `${model.address.toString(16).padStart(
                               4, '0').toUpperCase()}`
                     horizontalAlignment: Text.AlignRight
                 }
