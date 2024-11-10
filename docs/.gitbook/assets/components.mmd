@@ -1,0 +1,349 @@
+graph TB
+    direction TB
+    classDef Pure fill:#5f8
+    classDef Shared fill:#f58
+    classDef QML fill:#85f
+    classDef Dependency fill:#F0F077
+    classDef Deprecated fill:#f96,stroke:#333,stroke-width:2px,color:#333,opacity:0.5;
+
+
+    %% 3rd-party
+    ANTLR4[ANTLR4]:::Dependency
+    ELFIO[ELFIO]:::Dependency
+    QScintilla[QScintilla]:::Dependency
+    zppbits[zpp_bits]:::Dependency
+    LRU[lru-cache]:::Dependency
+
+    %% Utilities
+    subgraph Bits[pepp::bits]
+        direction TB
+        Bt_Mask[mask]:::Pure
+        Bt_Order[order]:::Pure
+        Bt_Select[select]:::Deprecated
+        Bt_Span[span]:::Pure
+        Bt_Strings[strings]:::Pure
+        Bt_Copy[copy]:::Pure
+        Bt_Log2[log2]:::Pure
+        Bt_Swap[swap]:::Pure
+
+        Bt_Copy --> Bt_Span & Bt_Order
+        Bt_Swap --> Bt_Order
+        Bt_Strings --> Bt_Span
+    end
+    subgraph Components[pepp::??]
+        direction TB
+        Cmp_Charcheck[CharCheck]:::Shared
+        Cmp_QConverters[Converts]:::QML
+
+        Cmp_QConverters --> Cmp_Charcheck
+    end
+    subgraph Utils[pepp::utils]
+        direction LR
+        Utils_Macors[Macros]:::Pure
+        Utils_OpModel[OpcodeModel]:::Shared
+        Utils_Seq[SequenceConverter]:::Shared
+        Utils_Strings[Strings]:::Pure
+    end
+
+
+    %% Assembler classes
+    subgraph Macro[pepp::macro]
+        direction TB
+        Mac_Macro[Parsed]:::Shared
+        Mac_Parse[Parse]:::Pure
+        Mac_Registered[Registered]:::Shared
+        Mac_Registry[Registry]:::Shared
+        Mac_Types[Types]:::Pure
+
+        Mac_Macro      --> Mac_Types
+        Mac_Registered --> Mac_Types
+        Mac_Registry   --> Mac_Macro & Mac_Registered & Mac_Types
+        Mac_Parse      ~~~ Mac_Registered
+    end
+    subgraph Symbol[pepp::symbol]
+        direction TB
+        S_entry[entry]:::Pure
+        S_table[table]:::Pure
+        S_type[types]:::Pure
+        S_value[value]:::Pure
+        S_visit[visit]:::Pure
+        S_fork[fork]:::Pure
+
+        S_table --> S_visit & S_entry
+        S_visit --> S_type
+        S_entry --> S_value
+        S_value --> S_type
+        S_fork  --> S_table & S_type
+    end
+    subgraph Parse [pepp::parse]
+        direction TB
+        P_PLexer[PeppLexer]:::Pure
+        P_PParser[PeppParser]:::Pure
+        P_PAstConv[PeppAstConverter]:::Pure
+        P_PParser --> P_PLexer
+        P_PAstConv --> P_PParser
+
+    end
+    subgraph Obj[pepp::link]
+        direction LR
+        Obj_mytes[bytes]:::Pure
+        Obj_mmio[mmio]:::Pure
+        Obj_memmap[memmap]:::Pure
+    end
+    subgraph Assembler[Junk Area]
+        direction TB
+        subgraph AsmNode [TODO]
+        end
+        subgraph AsmValue [TODO]
+        end
+        subgraph AsmOps [Todo]
+        end
+    end
+
+
+    %% Simulator Classes
+    subgraph ISA[pepp::isa]
+        direction TB
+        ISA_Pep10[pep10]:::Pure
+        ISA_Pep9[pep9]:::Pure
+        ISA_Shared[pep_shared]:::Pure
+
+        ISA_Pep10 --> ISA_Shared
+        ISA_Pep9  --> ISA_Shared
+    end
+    subgraph Sim[pepp::sim]
+        direction TB
+        Sim_Clock[Clock]:::Pure
+        Sim_Device[Device]:::Pure
+        Sim_Frame[Frame]:::Pure
+        Sim_Packets[Packets]:::Pure
+        Sim_Path[Path]:::Pure
+        Sim_Sys[System]:::Pure
+        Sim_TBuf[trace::Buffer]:::Pure
+        Sim_TEnd[trace:::Endpoint]:::Pure
+        Sim_TIter[trace:::Iterator]:::Pure
+        Sim_MAccess[mem:::Access]:::Pure
+        Sim_MAddr[mem:::Address]:::Pure
+        Sim_MTarget[mem:::Target]:::Pure
+
+
+        Sim_MAccess      --> Sim_Clock
+        Sim_MTarget      --> Sim_Device & Sim_Path & Sim_MAccess & Sim_MAddr
+        Sim_TBuf         --> Sim_Device & Sim_Frame & Sim_Packets & Sim_TIter
+        Sim_TEnd         --> Sim_TIter
+        Sim_TIter        --> Sim_Frame & Sim_Packets
+        Sim_Sys          --> Sim_Clock & Sim_Device & Sim_Path
+
+        %% They are here today, but do not belong in this package
+        Sim_REM_snoop[AccessSnooper]:::Deprecated
+        Sim_REM_dense[device::Dense]:::Pure
+        Sim_REM_ro[device::ReadOnly]:::Pure
+        Sim_REM_sbus[device::SimpleBus]:::Pure
+        Sim_REM_mmi[device::MMI]:::Pure
+        Sim_REM_mmo[device::MMO]:::Pure
+        Sim_REM_pubsub[~PubSub~]:::Pure
+        Sim_REM_pktutil[utils]:::Pure
+        Sim_REM_tracemod[modified]:::Pure
+        Sim_REM_tracebf[Buffers]:::Pure
+        Sim_REM_traceframe[frame_utils]:::Pure
+        Sim_REM_tracepkt[packet_utils]:::Pure
+
+
+        Sim_REM_dense    --> Sim_REM_pktutil
+        Sim_REM_ro       ~~~ Sim_REM_dense & Sim_REM_mmi & Sim_REM_mmo
+        Sim_REM_mmi      --> Sim_REM_pubsub & Sim_REM_pktutil
+        Sim_REM_mmo      --> Sim_REM_pubsub & Sim_REM_pktutil
+        Sim_REM_sbus     ~~~ Sim_REM_dense & Sim_REM_mmi & Sim_REM_mmo
+        Sim_REM_sbus     --> Sim_REM_tracemod
+        Sim_REM_tracebf  --> Sim_REM_tracemod & Sim_REM_tracepkt
+        Sim_REM_tracemod --> Sim_MAddr
+    end
+    subgraph Targets[pepp::targets]
+        direction TB
+        Tg_Cpu[pep10::CPU]:::Pure
+        Tg_Helpers[Helpers]:::Pure
+        Tg_System[System]:::Pure
+    end
+
+
+    %% GUI Packages
+    subgraph Editor[pepp::editor]
+        direction TB
+        Edit_QAsm[AsmTextEdit]:::Deprecated
+        Edit_BlockFinder[BlockFinder]:::Deprecated
+        Edit_Lines[LineInfoModel]:::Deprecated
+        Edit_Object[ObjectUtilities]:::Shared
+        Edit_QObj[ObjTextEditor]:::QML
+        Edit_QScint[ScintillaAsmEdit]:::QML
+        Edit_Scint[ScintillaAsmEditBase]:::Shared
+        Edit_Tabs[TabNanny]:::Deprecated
+
+        Edit_QAsm   --> Edit_BlockFinder & Edit_Tabs & Edit_Lines
+        Edit_QObj   --> Edit_Object
+        Edit_QScint --> Edit_Scint
+    end
+    subgraph CPU[pepp::cpu]
+        direction TB
+        CPU_Formats[Formatter]:::Pure
+        CPU_RegModel[RegisterModel]:::Shared
+        CPU_QRegView[RegisterView]:::QML
+        CPU_FlagModel[FlagModel]:::Shared
+
+        CPU_RegModel --> CPU_Formats
+        CPU_QRegView --> CPU_RegModel & CPU_FlagModel
+    end
+    subgraph Prefs[pepp::prefs]
+        direction TB
+        Pr_QCatList[CategoryList]:::QML
+        Pr_QColorBut[ColorButton]:::QML
+        Pr_QColorSettings[ColorSettings]:::QML
+        Pr_QFontProp[FontProperties]:::QML
+        Pr_QGroubLabel[GroupBoxLabel]:::QML
+        Pr_QDetails[PreferenceDetails]:::QML
+        Pr_QPrefList[PreferenceList]:::QML
+        Pr_QPref[Preferences]:::QML
+        Pr_QThemeMgmt[ThemeManagement]:::QML
+        Pr_Pref[Preference]:::Shared
+        Pr_Model[PreferenceModel]:::Shared
+        Pr_Theme[Theme]:::Shared
+        Pr_Themes[Themes]:::Shared
+
+        Pr_QCatList          --> Pr_Model
+        Pr_QColorSettings    --> Pr_QGroubLabel & Pr_QColorBut & Pr_QFontProp
+        Pr_QDetails          --> Pr_Model & Pr_QColorSettings & Pr_QGroubLabel & Pr_QPrefList & Pr_QThemeMgmt
+        Pr_QPrefList         --> Pr_Model
+        Pr_QPref             --> Pr_Model & Pr_QCatList & Pr_QDetails
+        Pr_QThemeMgmt        --> Pr_Theme
+        Pr_Theme             --> Pr_Themes & Pr_Pref
+    end
+    subgraph Memory[pepp::mem]
+        direction TB
+        Mem_QBatch[Batch]:::QML
+        Mem_QDump[MemoryDump]:::QML
+        Mem_QBorder[MemoryDumpBorder]:::QML
+        Mem_QCells[MemoryDumpCells]:::QML
+        Mem_QEdit[MemoryDumpEdit]:::QML
+        Mem_RO[MemoryDumpReadOnly]:::QML
+        Mem_Model[MemoryByteModel]:::Shared
+        Mem_Cols[MemoryColumns]:::Shared
+        Mem_Raw[RawMemory]:::Shared
+
+        Mem_QDump   --> Mem_QBorder & Mem_QCells & Mem_QEdit & Mem_RO & Mem_Model
+        Mem_Model   --> Mem_Cols & Mem_Raw
+        %% For positioning only
+        Mem_QBatch  ~~~ Mem_QBorder
+    end
+    subgraph Project[pepp::project]
+        direction TB
+        Prj_Abs[aproject]:::Shared
+        Prj_P10[Pep10]:::Shared
+        Prj_QAsmb[Pep10ASMB]:::QML
+        Prj_QISA[Pep10ISA]:::QML
+        %% TODO: Move to component library
+        Prj_QSideButton[SideButton]:::QML
+        Prj_QWelcome[Welcome]:::QML
+
+        Prj_P10          --> Prj_Abs
+        Prj_QAsmb        --> Prj_Abs
+        Prj_QISA         --> Prj_Abs
+        Prj_QWelcome     --> Prj_Abs
+    end
+
+    %% Help Package
+    subgraph About[pepp::about]
+        direction LR
+        About_Contrib[contributors]:::Shared
+        About_Deps[dependencies]:::Shared
+        About_Version[version]:::Shared
+    end
+    subgraph Builtins[pepp::builtins]
+        direction TB
+        Bi_Book[Book]:::Shared
+        Bi_BookModel[BookItemModel]:::Shared
+        Bi_FilterModel[BookFilterModel]:::Shared
+        Bi_Constants[Constants]:::Shared
+        Bi_Elements[Elements]:::Shared
+        Bi_Figure[Figure]:::Shared
+        Bi_Registry[Registry]:::Shared
+        Bi_QTopic[Topic]:::QML
+        Bi_QFigure[Figure]:::QML
+        Bi_QHelpView[HelpView]:::QML
+
+        Bi_QHelpView   --> Bi_QTopic & Bi_QFigure & Bi_FilterModel & Bi_Constants
+        Bi_FilterModel --> Bi_BookModel & Bi_Constants
+        Bi_BookModel   --> Bi_Book & Bi_Registry
+        Bi_Book        --> Bi_Figure
+        Bi_Figure      --> Bi_Elements & Bi_Constants
+        Bi_Elements    --> Bi_Constants
+        Bi_Registry    --> Bi_Book
+    end
+
+    %% Terminal Packages
+    %%subgraph Helpers[???Helpers???]
+    %%    Helpers_Asmb[contributors]:::Pure
+    %%end
+    subgraph Main[pepp.exe]
+        TL0[pepp.exe]:::Pure
+        Cmd_About[pepp-term.exe about]:::Pure
+        Cmd_Asm[pepp-term.exe asm]:::Pure
+        Cmd_Demo[pepp-term.exe demo]:::Pure
+        Cmd_Get[pepp-term.exe get]:::Pure
+        Cmd_License[pepp-term.exe license]:::Pure
+        Cmd_List[pepp-term.exe ls]:::Pure
+        Cmd_Run[pepp-term.exe run]:::Pure
+        Cmd_Test[pepp-term.exe selftest]:::Pure
+        Cmd_Throughput[pepp-term.exe mit]:::Pure
+        Cmd_Gui[pepp.exe]:::Shared
+        catch[Catch]:::Dependency
+        TextFlow[TextFlowCPP]:::Dependency
+        cli[CLI11]:::Dependency
+
+        TL0       --> Cmd_About & Cmd_Asm & Cmd_Demo & Cmd_License & Cmd_List
+        TL0      --> Cmd_Run & Cmd_Test & Cmd_Throughput & Cmd_Gui & Cmd_Get
+        TL0      --> TextFlow & cli
+        Cmd_Test -->|implict depenency on everything| catch
+
+    end
+
+
+    %% Top-level intra-block connections
+    subgraph Legend
+        direction TB
+        Lg_Pure[C++ Only]:::Pure
+        Lg_Shared[C++ in QML]:::Shared
+        Lg_Qml[QML]:::QML
+        Lg_3rd[3rd-party]:::Dependency
+        Lg_Dep[Deprecated]:::Deprecated
+    end
+
+    Cmd_Asm        --> Assembler
+    Cmd_Throughput --> Sim
+    Cmd_Run        --> Sim
+    Cmd_List       --> Builtins
+    Cmd_Get        --> Builtins
+    Cmd_License    --> About
+    Cmd_About      --> About
+    Cmd_Gui        --> Help
+    %% Add Helpers if uncommenting
+    Cmd_Gui        --> Project & Prefs & Sim  & Assembler
+
+    Assembler      --> Macro & ANTLR4 & Bits & ISA & Symbol
+    Assembler      --> Parse & Obj
+    Sim            --> Bits & zppbits & Targets & LRU
+    Help           --> About & Builtins
+    Project        --> Builtins & CPU & Memory & Utils & Editor
+    Obj            --> ELFIO
+    Parse          --> Symbol
+    Macro          --> ANTLR4
+    Targets        --> ISA & Sim & Bits
+    Builtins       --> Editor
+    Memory         --> Utils & Sim
+%%  Bi_Figure      --> Editor
+    Editor         --> QScintilla & Prefs
+    Components     --> Utils
+%%  Components     --> Util_Seq
+    Utils          -.ISO.-> ISA
+
+    %% For Spacing
+    %%Helpers ~~~~ Sim
+    Legend ~~~ Project

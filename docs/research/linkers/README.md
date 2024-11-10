@@ -1,3 +1,2 @@
-# Linkers
+# Linkers & Loaders
 
-Copied over from https://lwn.net/Articles/276782/ to ensure links stay live.
