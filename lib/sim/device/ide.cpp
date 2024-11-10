@@ -80,7 +80,8 @@ sim::api2::memory::Result sim::memory::IDEController::write(quint16 address, bit
   auto ret = _regs.write(address, src, op);
   bool do_exec = false;
   switch (op.type) {
-  case api2::memory::Operation::Type::Standard: do_exec = true;
+  case api2::memory::Operation::Type::Standard: do_exec = true; break;
+  default: do_exec = false; break;
   }
   api2::memory::Interval<quint16> accessed(address, address + src.size());
   if (do_exec && contains(accessed, (quint16)RegisterOffsets::ideCMD)) exec_command();
