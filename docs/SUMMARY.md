@@ -1,6 +1,11 @@
 # Table of contents
 
 * [Home Page](README.md)
+  * [Code of Conduct](https://github.com/Matthew-McRaven/Pepp/blob/main/CODE\_OF\_CONDUCT.md)
+  * [Contributing Guidelines](https://github.com/Matthew-McRaven/Pepp/blob/main/CONTRIBUTING.md)
+  * [Changelog](https://github.com/Matthew-McRaven/Pepp/blob/main/CHANGELOG.md)
+  * [Launch Web Version...](https://compsys-pep.com/)
+  * [Download a Release...](https://github.com/Matthew-McRaven/Pepp/releases)
 
 ## User
 
