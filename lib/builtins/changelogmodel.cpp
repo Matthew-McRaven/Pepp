@@ -38,7 +38,7 @@ void ChangelogModel::loadFromDB() {
     db.setConnectOptions("QSQLITE_USE_QT_VFS;QSQLITE_OPEN_READONLY");
     db.setDatabaseName(path);
     if (!db.open()) {
-      qFatal(db.lastError().text().toStdString().c_str());
+      qFatal("%s", db.lastError().text().toStdString().c_str());
     }
     // Create Version objects for each row in version table, include special handling for NULL/0 cases
     QMap<int, Version *> versions;
