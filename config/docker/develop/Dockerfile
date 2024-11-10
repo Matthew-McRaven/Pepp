@@ -7,11 +7,12 @@ ENV DEBIAN_FRONTEND=noninteractive
 # Combination of explicit Qt dependencies, implicit dependencies (as reported by aqtinstall),
 # and my development dependencies.
 RUN apt update \
-    &&  apt install -y --no-install-recommends curl bash wget python3-pip zstd jq python3-dev \
-        cloc curl build-essential libgl1-mesa-dev libpulse-dev libxcb-glx0 libxcb-icccm4 \
-        libxcb-image0 libxcb-keysyms1 libxcb-randr0 libxcb-render-util0 libxcb-render0 libxcb-shape0 \
-        libxcb-shm0 libxcb-sync1 libxcb-util1 libxcb-xfixes0 libxcb-xinerama0 libxcb1 fontconfig ccache \
-        libxkbcommon-dev libxcb-xkb-dev zip unzip tar git git-lfs lsb-release software-properties-common gnupg \
+    &&  apt install -y --no-install-recommends \
+        bash build-essential ccache cloc curl curl fontconfig git git-lfs gnupg jq libgl1-mesa-dev libpulse-dev \
+        libxcb-glx0 libxcb-icccm4 libxcb-image0 libxcb-keysyms1 libxcb-randr0 libxcb-render-util0 libxcb-render0 \
+        libxcb-shape0 libxcb-shm0 libxcb-sync1 libxcb-util1 libxcb-xfixes0 libxcb-xinerama0 libxcb-xkb-dev \
+        libxcb1 libxkbcommon-dev lsb-release python3-dev python3-pip software-properties-common tar\
+        unzip wget zip zstd \
     && rm -rf /var/lib/apt/lists/*
 # Install latest cmake that does not support modules, which is 3.27. Module detection breaks CI when the compiler doesn't support modules.
 # Remove cmake docs, since that's 40MB we really don't need.
@@ -36,11 +37,11 @@ FROM base-gcc as base-wasm
 # Must install documentation-building tools in WASM image.
 # Otherwise it will be very difficult to build GH pages deployments.
 RUN apt update \
-    && apt install -y --no-install-recommends graphviz imagemagick doxygen \
+    && apt install -y --no-install-recommends doxygen graphviz imagemagick \
     && rm -rf /var/lib/apt/lists/*
 # Insert workaround for Qt+breathe: https://github.com/breathe-doc/breathe/issues/574
 # Must install exactly 4.35.0, otherwise insert may fail.
-RUN pip install Sphinx==7.1.2 breathe==4.35.0 Pillow \
+RUN pip install breathe==4.35.0 Pillow Sphinx==7.1.2 \
   && sed -i '253 i \        "property": (CMacroObject, "macro"),' "/usr/local/lib/python3.10/dist-packages/breathe/renderer/sphinxrenderer.py"
 RUN git clone https://github.com/emscripten-core/emsdk.git /emsdk
 # Must combine, otherwise a layer is the same in multi-arch builds, breaking everything
@@ -59,11 +60,11 @@ RUN pip install aqtinstall \
     && pip uninstall aqtinstall -y && rm aqtinstall.log
 # Install Qt requirements: https://doc.qt.io/qt-6/linux-requirements.html
 RUN apt update \
-    && apt install -y --no-install-recommends libfontconfig1-dev libfreetype-dev libx11-dev \
-       libx11-xcb-dev libxext-dev libxfixes-dev libxi-dev libxrender-dev libxcb1-dev libxcb-cursor-dev libxcb-glx0-dev \
-       libxcb-keysyms1-dev libxcb-image0-dev libxcb-shm0-dev libxcb-icccm4-dev libxcb-sync-dev libxcb-xfixes0-dev \
-       libxcb-shape0-dev libxcb-randr0-dev libxcb-render-util0-dev libxcb-util-dev libxcb-xinerama0-dev libxcb-xkb-dev \
-       libxkbcommon-dev libxkbcommon-x11-dev \
+    && apt install -y --no-install-recommends \
+       libfreetype-dev libx11-dev libx11-xcb-dev libxcb-cursor-dev libxcb-glx0-dev libxcb-icccm4-dev \
+       libxcb-image0-dev libxcb-keysyms1-dev libxcb-randr0-dev libxcb-render-util0-dev libxcb-shape0-dev \
+       libxcb-shm0-dev libxcb-sync-dev libxcb-util-dev libxcb-xfixes0-dev libxcb-xinerama0-dev libxcb-xkb-dev \
+       libxcb1-dev libxext-dev libxfixes-dev libxi-dev libxkbcommon-dev libxkbcommon-x11-dev libxrender-dev\
     && rm -rf /var/lib/apt/lists/*
 # Extra args with which to build Qt
 ARG QT_WASM_XARGS=""
@@ -136,8 +137,8 @@ LABEL description="A GCC build container using Qt $QT_VERSION, and Mold $MOLD_VE
 #SOFTWARE.
 FROM output-gcc as output-clang
 ARG LLVM_VERSION="17"
-ADD llvm.list /etc/apt/sources.list.d/
-ADD llvm-snapshot.gpg.key.gpg /etc/apt/trusted.gpg.d/
+COPY llvm.list /etc/apt/sources.list.d/
+COPY llvm-snapshot.gpg.key.gpg /etc/apt/trusted.gpg.d/
 RUN apt update && apt install  --no-install-recommends -y \
     ca-certificates clang-$LLVM_VER clang-tools-$LLVM_VERSION clang-format-$LLVM_VERSION \
     libfuzzer-${LLVM_VERSION}-dev lld-$LLVM_VERSION \
