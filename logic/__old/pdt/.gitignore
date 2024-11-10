@@ -1,8 +1,0 @@
-node_modules/
-dist/
-build/
-cmake-build*/
-coverage/
-docs/
-junit.xml
-coverage.xml

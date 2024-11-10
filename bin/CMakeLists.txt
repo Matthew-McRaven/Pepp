@@ -1,14 +1,8 @@
 qt_policy(SET QTP0001 NEW)
 file(GLOB_RECURSE sources_and_tests CONFIGURE_DEPENDS "${CMAKE_CURRENT_LIST_DIR}/*.cpp")
 file(GLOB_RECURSE tests CONFIGURE_DEPENDS "test/*.cpp" "test/*.hpp")
-file(GLOB_RECURSE compile_tests CONFIGURE_DEPENDS "compile-test/*.cpp")
-file(GLOB_RECURSE demos CONFIGURE_DEPENDS "demo/*.cpp")
-file(GLOB_RECURSE guis CONFIGURE_DEPENDS "gui/*.cpp")
 list(APPEND sources ${sources_and_tests})
 list(REMOVE_ITEM sources ${tests})
-list(REMOVE_ITEM sources ${compile_tests})
-list(REMOVE_ITEM sources ${demos})
-list(REMOVE_ITEM sources ${guis})
 
 # Set icon for the application if it exists.
 if (EXISTS "${PROJECT_DATA_DIR}/app_icon/icon.ico" AND WIN32)
@@ -134,7 +128,7 @@ endif ()
 
 # Add main GUI module, qml sources, resources, and add demo applications.
 # GLOB_RECURSE uses abs paths, QML_FILES expects relative paths. This blob converts from abs to rel.
-file(GLOB_RECURSE abs_qml_sources CONFIGURE_DEPENDS "gui/*.qml" "demo/*.qml")
+file(GLOB_RECURSE abs_qml_sources CONFIGURE_DEPENDS "src/*.qml")
 SET(rel_qml_sources, "")
 foreach (f_abs IN LISTS abs_qml_sources)
     file(RELATIVE_PATH f_rel "${CMAKE_CURRENT_LIST_DIR}" ${f_abs})
@@ -145,6 +139,7 @@ qt_add_qml_module(pepp
         VERSION 0.2
         QML_FILES ${rel_qml_sources}
         SOURCES ${guis} ${demos}
+
 )
 qt6_add_resources(pepp "pepp"
         PREFIX "/"
