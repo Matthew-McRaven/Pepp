@@ -33,7 +33,7 @@ Item {
         color: "transparent"
         width: root.valueWidth + border.width
         height: (root.lineModel.lines.length * root.valueHeight) + border.width
-        border.color: root.active ? "black" : "transparent"
+        border.color: root.active ? palette.text : "transparent"
         border.width: 4
         z: 1
     }
@@ -55,7 +55,8 @@ Item {
                     id: valueRect
                     width: 8 * tm.width
                     height: tm.height + 2
-                    border.color: "black"
+                    color: palette.base
+                    border.color: palette.text
                     border.width: 1
                     Label {
                         anchors.fill: parent
@@ -72,10 +73,11 @@ Item {
                     height: tm.height
                     font: tm.font
                     text: model.name
+                    color: palette.text
                 }
                 Component.onCompleted: {
                     // Record position of the value column so we can place the background rect.
-                    if (model.row == 0) {
+                    if (model.row === 0) {
                         root.valueX = Qt.binding(function () {
                             return valueRect.x
                         })
