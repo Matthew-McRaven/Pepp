@@ -70,7 +70,9 @@ Rectangle {
         topPadding: 8
         bottomPadding: 0
         contentWidth: column.width // The important part
-        contentHeight: root.height - sv.topPadding //column.height // Same
+        contentHeight: Math.max(
+                           column.implicitHeight,
+                           root.height - sv.topPadding - sv.bottomPadding) // Same
         clip: true // Prevent drawing column outside the scrollview borders
         spacing: 0
 
@@ -95,8 +97,9 @@ Rectangle {
                 Layout.preferredWidth: root.width - column.margins * 2
                 Layout.alignment: Qt.AlignLeft & Qt.AlignVCenter
                 Layout.leftMargin: tm.width * 8 + 15
-                Layout.preferredHeight: 11
-                lineWidth: Math.round(tm.width * 7 / 8) * 8
+                Layout.preferredHeight: globalSpacer.ellipsisHeight
+
+                ellipsisSize: 7.5
             }
             MemoryStack {
                 id: heap
@@ -113,7 +116,7 @@ Rectangle {
                 Layout.preferredHeight: 41
                 Layout.minimumHeight: 41
 
-                lineWidth: Math.round(tm.width * 7 / 8) * 8
+                ellipsisSize: 7.5
             }
 
             MemoryStack {
@@ -131,20 +134,6 @@ Rectangle {
                 height: 20
             }
         } //  ColumnLayout
-
-
-        /*  We get binding loop error if we set this as QML element. Reassign when
-            vertical size has changed.
-        */
-        onHeightChanged: {
-            console.log("ColumnLayout Height/Col/Win was " + sv.contentHeight
-                        + "/" + column.implicitHeight + "/" + root.height)
-            sv.contentHeight = Qt.binding(function () {
-                return Math.max(column.implicitHeight,
-                                root.height - sv.topPadding - sv.bottomPadding)
-            })
-            console.log("ColumnLayout Height is " + sv.contentHeight)
-        }
     } //  ScrollView
 
 
