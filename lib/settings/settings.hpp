@@ -87,7 +87,7 @@ public:
 class EditorCategory : public Category {
   Q_OBJECT
   QML_UNCREATABLE("")
-  QML_NAMED_ELEMENT(ThemeCategory)
+  QML_NAMED_ELEMENT(EditorCategory)
   Q_PROPERTY(
       bool visualizeWhitespace READ visualizeWhitespace WRITE setVisualizeWhitespace NOTIFY visualizeWhitespaceChanged)
 
@@ -111,7 +111,7 @@ private:
 class SimulatorCategory : public Category {
   Q_OBJECT
   QML_UNCREATABLE("")
-  QML_NAMED_ELEMENT(ThemeCategory)
+  QML_NAMED_ELEMENT(SimulatorCategory)
   Q_PROPERTY(
       int maxStepbackBufferKB READ maxStepbackBufferKB WRITE setMaxStepbackBufferKB NOTIFY maxStepbackBufferKBChanged)
 
@@ -138,7 +138,7 @@ private:
 class KeyMapCategory : public Category {
   Q_OBJECT
   QML_UNCREATABLE("")
-  QML_NAMED_ELEMENT(ThemeCategory)
+  QML_NAMED_ELEMENT(KeyMapCategory)
 
 public:
   explicit KeyMapCategory(QObject *parent = nullptr);
