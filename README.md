@@ -158,23 +158,6 @@ Teachers can script PepTerm to batch test assembly language homework submissions
 
 Please see [our Contribution Guidelines](CONTRIBUTING.md) before contributing to this project.
 
-# Making Modifications
-
-| I want to...                                                         | ...so I should                                                                                                                                                 |
-|----------------------------------------------------------------------|----------------------------------------------------------------------------------------------------------------------------------------------------------------|
-| Expose a new C++ type to QML from [ui/](ui/) or [bin/gui/](bin/gui)  | Add your [QML Registration code](https://doc.qt.io/qt-6/qtqml-cppintegration-definetypes.html) to the nearest _registration.cpp_                               |
-| Add new registration to a child of [ui/](ui/) or [bin/gui/](bin/gui) | Copy an [existing registration](ui/text/registration.cpp). Update the [graphics entry point](bin/commands/gui.cpp) to invoke it                                |
-| Add a new QML screen to the application from [ui/](/ui)              | Add your QML file, accessed elsewhere via `qrc:/edu/pepp/<directory relative to ui>`                                                                                 |
-| Add a new QML screen to the application from [bin/gui](bin/gui)      | Add your QML file, accessed elsewhere via `qrc:/qt/qml/Pepp/gui/<directory relative to gui>`                                                                   |
-| Expose a C++ object of a registered type as a QML global             | Set a property on the [root context of the QQMLEngine](https://doc.qt.io/qt-6/qqmlengine.html#rootContext) in the [graphics entry point](bin/commands/gui.cpp) |
-| Modify the main screen of the application                            | Modify [bin/gui/main.qml](bin/gui/main.qml)                                                                                                                    |
-
-## GUI Edits
-
-If the feature is mostly complete (i.e., stable enough to be reused), it belongs under [ui/](ui/).
-Otherwise, it can be prototyped under [bin/gui/](bin/gui/).
-Please find an appropriate subdirectory in either location for your feature.
-
 # Debugging WASM
 
 Install [the following plugin](https://chromewebstore.google.com/detail/cc++-devtools-support-dwa/pdcpmagijalfljmkmjngeonclgbbannb?pli=1)
