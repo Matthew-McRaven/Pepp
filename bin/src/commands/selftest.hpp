@@ -35,7 +35,7 @@ void registerSelfTest(auto &app, task_factory_t &task, detail::SharedFlags &flag
   test->prefix_command(true);
   test->set_help_flag();
   test->callback([&]() {
-    flags.kind = detail::SharedFlags::TERM;
+    flags.kind = detail::SharedFlags::Kind::TERM;
     task = [&](QObject *parent) {
       auto remainingArgs = test->remaining_for_passthrough();
       std::reverse(remainingArgs.begin(), remainingArgs.end());

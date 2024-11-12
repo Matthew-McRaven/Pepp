@@ -29,6 +29,7 @@ public:
 void registerAbout(auto &app, task_factory_t &task, detail::SharedFlags &flags) {
   static auto about = app.add_subcommand("about", "Display information about versioning, and developers.");
   about->callback([&]() {
-    flags.kind = detail::SharedFlags::TERM;
-    task = [&](QObject *parent) { return new AboutTask(parent); }; });
+    flags.kind = detail::SharedFlags::Kind::TERM;
+    task = [&](QObject *parent) { return new AboutTask(parent); };
+  });
 }

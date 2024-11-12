@@ -76,7 +76,7 @@ void registerRun(auto &app, task_factory_t &task, detail::SharedFlags &flags) {
     bmRunOpt = runSC->add_flag("--bm", bm, "Use bare metal OS.")->excludes(osInOpt);
   static auto regOverrideOpt = runSC->add_option("--reg", regOverrides)->group("");
   runSC->callback([&]() {
-    flags.kind = detail::SharedFlags::TERM;
+    flags.kind = detail::SharedFlags::Kind::TERM;
     task = [&](QObject *parent) {
       auto ret = new RunTask(flags.edValue, objIn, parent);
       if (*charInOpt)

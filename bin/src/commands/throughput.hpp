@@ -31,7 +31,7 @@ void registerThroughput(auto &app, task_factory_t &task, detail::SharedFlags &fl
   static auto instrThruSC = app.add_subcommand("mit", "Measure instruction throughput");
   instrThruSC->group("");
   instrThruSC->callback([&]() {
-    flags.kind = detail::SharedFlags::TERM;
+    flags.kind = detail::SharedFlags::Kind::TERM;
     task = [](QObject *parent) { return new ThroughputTask(parent); };
   });
 }

@@ -33,7 +33,8 @@ struct SharedFlags {
   // Somewhat of a tri-state value.
   // Record if we should explicitly use app default,
   // or if a subcommand has explicitly chosen a mode.
-  enum kind { DEFAULT, TERM, GUI } kind = DEFAULT;
+  enum class Kind { DEFAULT, TERM, GUI };
+  Kind kind = Kind::DEFAULT;
 
   int edValue = 6;
 };

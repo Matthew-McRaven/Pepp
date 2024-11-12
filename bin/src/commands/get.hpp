@@ -34,7 +34,7 @@ void registerGet(auto &app, task_factory_t &task, detail::SharedFlags &flags) {
   get_selector->require_option(1);
   get_item->require_option(1);
   get->callback([&]() {
-    flags.kind = detail::SharedFlags::TERM;
+    flags.kind = detail::SharedFlags::Kind::TERM;
     if (chOpt->count() > 0)
       task = [&](QObject *parent) {
         if (*figOpt)

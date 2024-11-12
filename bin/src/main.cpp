@@ -47,7 +47,7 @@ int main(int argc, char **argv) {
   app.prefix_command(default_gui);
   app.set_help_flag("-h,--help", "Display this help message and exit.");
 
-  auto shared_flags = detail::SharedFlags{.kind =  detail::SharedFlags::DEFAULT};
+  auto shared_flags = detail::SharedFlags{.kind = detail::SharedFlags::Kind::DEFAULT};
   auto ed = app.add_flag("-e,--edition", shared_flags.edValue,
                          "Which edition of Computer Systems to target. "
                          "Possible values are 4, 5, and 6.")
@@ -72,10 +72,9 @@ int main(int argc, char **argv) {
   try {
     app.parse(argc, argv);
     // If kind is default, then no subcommand was called, forward all arguments.
-    if (shared_flags.kind == detail::SharedFlags::DEFAULT && default_gui)
+    if (shared_flags.kind == detail::SharedFlags::Kind::DEFAULT && default_gui)
       std::transform(argv + 1, argv + argc, std::back_inserter(args.argvs), [](char *s) { return std::string(s); });
-    else if (!(task || shared_flags.kind == detail::SharedFlags::GUI))
-      throw CLI::CallForHelp();
+    else if (!(task || shared_flags.kind == detail::SharedFlags::Kind::GUI)) throw CLI::CallForHelp();
   } catch (const CLI::CallForHelp &e) {
     std::cout << app.help() << std::endl;
     return 0;
@@ -83,8 +82,8 @@ int main(int argc, char **argv) {
     std::cerr << e.what() << std::endl;
     return 1;
   }
-  if(shared_flags.kind == detail::SharedFlags::GUI
-      || (shared_flags.kind == detail::SharedFlags::DEFAULT) && default_gui) {
+  if (shared_flags.kind == detail::SharedFlags::Kind::GUI ||
+      (shared_flags.kind == detail::SharedFlags::Kind::DEFAULT) && default_gui) {
 #if INCLUDE_GUI
     return gui_main(args);
 #else
