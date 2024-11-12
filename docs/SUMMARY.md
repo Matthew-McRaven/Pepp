@@ -22,7 +22,9 @@
 
 ## Developers <a href="#dev" id="dev"></a>
 
-* [Getting Started](dev/starting.md)
+* [Getting Started](dev/starting/README.md)
+  * [Using Git](dev/starting/using-git.md)
+  * [Setting up a Dev Environment](dev/starting/setting-up-a-dev-environment.md)
 * [Architectural Design Records](dev/readme/README.md)
   * [Add Padding Bytes to OS](dev/readme/add-os-padding.md)
   * [replace-custom-serialization](dev/readme/replace-custom-serialization.md)

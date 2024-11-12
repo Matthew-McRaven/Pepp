@@ -1,6 +1,6 @@
 # Getting Started
 
-
+## Installing Qt
 
 ## C++
 
