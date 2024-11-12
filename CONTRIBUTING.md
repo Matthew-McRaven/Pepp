@@ -47,19 +47,32 @@ projects [commit conventions](https://gist.github.com/Matthew-McRaven/8f7d042c99
 
 However, we have our own custom scopes:
 
-* **bin** if modifying bin/
-* **asm.pas** if modifying logic/asm/pas
-* **asm.sym** if modifying logic/asm/symbol
-* **bits** if modifying logic/bits
-* **help.about** if modifying logic/help/about
-* **help.bi** if modifying logic/help/builtins
-* **macro** if modifying logic/macro
-* **isa** if modifying logic/isa
-* **obj** if modifying logic/obj
-* **sim** if modifying logic/sim
-* **targets** if modifying logic/targets
-* **ui** if modifying ui
-* **3rd-party** if modifying 3rd-party modules
+If modifying `bin/`, use `bin`.
+If modifying 3rd-party, use `3rd`.
+If modifying `lib/`, consult the following table.
+If your a modifying a directory nested within the below table, use the nearest sccope.
+If there is no entry, do not use a scope.
+
+| Directory      | Scope        |
+|----------------|--------------|
+| about          | about        |
+| asm            | asm          |
+| bits           | bits         |
+| builtins       | bi           |
+| cpu            | cpu          |
+| isa            | isa          |
+| link           | obj          |
+| macro          | macro        |
+| memory         | mem          |
+| menu           | menu         |
+| preferences    | settings     |
+| project        | proj         |
+| settings       | settings     |
+| sim            | sim          |
+| symtab         | sym          |
+| targets        | target       |
+| text           | text         |
+
 
 Please note that older commits may have different scopes, due to re-organization of the project.
 
