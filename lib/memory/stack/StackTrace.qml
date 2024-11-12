@@ -110,8 +110,8 @@ Rectangle {
                 Layout.alignment: Qt.AlignLeft & Qt.AlignVCenter
                 Layout.leftMargin: tm.width * 8 + 15
                 Layout.preferredWidth: root.width - column.margins * 2
-                Layout.preferredHeight: 11
-                Layout.minimumHeight: 11
+                Layout.preferredHeight: 41
+                Layout.minimumHeight: 41
 
                 lineWidth: Math.round(tm.width * 7 / 8) * 8
             }
@@ -136,16 +136,15 @@ Rectangle {
         /*  We get binding loop error if we set this as QML element. Reassign when
             vertical size has changed.
         */
-
-
-        /*onHeightChanged: {
+        onHeightChanged: {
             console.log("ColumnLayout Height/Col/Win was " + sv.contentHeight
-                        + "/" + column.height + "/" + root.height)
+                        + "/" + column.implicitHeight + "/" + root.height)
             sv.contentHeight = Qt.binding(function () {
-                return Math.max(column.height, root.height- sv.topPadding - sv.bottomPadding)
+                return Math.max(column.implicitHeight,
+                                root.height - sv.topPadding - sv.bottomPadding)
             })
             console.log("ColumnLayout Height is " + sv.contentHeight)
-        }*/
+        }
     } //  ScrollView
 
 
