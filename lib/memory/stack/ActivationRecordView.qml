@@ -39,22 +39,32 @@ Item {
     }
     Column {
         id: column
+        spacing: 0
+
         Repeater {
             model: root.lineModel.lines
-            Row {
-                spacing: 10
+            RowLayout {
+                spacing: 0
                 Label {
-                    width: 8 * tm.width
-                    height: tm.height
+                    Layout.fillWidth: false
+                    Layout.preferredWidth: 8 * tm.width
+                    Layout.preferredHeight: tm.height
+                    Layout.alignment: Qt.AlignLeft & Qt.AlignVCenter
+
                     font: tm.font
                     text: `${model.address.toString(16).padStart(
                               4, '0').toUpperCase()}`
-                    horizontalAlignment: Text.AlignRight
+                    horizontalAlignment: Text.AlignHCenter
+                    verticalAlignment: Text.AlignVCenter
                 }
                 Rectangle {
                     id: valueRect
-                    width: 8 * tm.width
-                    height: tm.height + 2
+                    Layout.fillWidth: false
+                    Layout.preferredWidth: 8 * tm.width
+                    Layout.preferredHeight: tm.height + 3
+                    Layout.alignment: Qt.AlignLeft & Qt.AlignVCenter
+                    Layout.margins: -.5
+
                     color: palette.base
                     border.color: palette.text
                     border.width: 1
@@ -68,14 +78,17 @@ Item {
                 }
                 Label {
                     Layout.fillWidth: true
-                    horizontalAlignment: Text.AlignLeft
-                    width: 8 * tm.width
-                    height: tm.height
+                    Layout.alignment: Qt.AlignLeft & Qt.AlignVCenter
+                    Layout.preferredWidth: 8 * tm.width
+                    Layout.preferredHeight: tm.height
+                    Layout.leftMargin: 5
+
                     font: tm.font
                     text: model.name
                     color: palette.text
                 }
                 Component.onCompleted: {
+
                     // Record position of the value column so we can place the background rect.
                     if (model.row === 0) {
                         root.valueX = Qt.binding(function () {
