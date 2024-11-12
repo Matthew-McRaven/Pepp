@@ -97,11 +97,9 @@ void MemoryByteModel::setNumBytesPerLine(const quint8 bytesPerLine) {
   Q_ASSERT(bytesPerLine > 0);
 
   //  Set bytes per row
-  //  Initialized on construction to 8 bytes per row.
-  //  If values are invalid, default is used
-  if (bytesPerLine == 0) {
-    width_ = 8;
-  } else {
+  //  Initialized on construction to 8 bytes per row. If values are invalid, default is used
+  if (bytesPerLine == 0) width_ = 8;
+  else {
     //  Limit size to 32 since screen refresh will be slow
     width_ = bytesPerLine > 32 ? 32 : bytesPerLine;
   }
@@ -151,22 +149,17 @@ QVariant MemoryByteModel::data(const QModelIndex &index, int role) const {
   case M::Type:
     //  First column is formatted row number
     if (col == column_->LineNo()) return QString("lineNo");
-
     //  Last column is ascii representation of data
     if (col == column_->Ascii()) return QVariant("ascii");
-
     if (col == column_->Border1() || col == column_->Border2()) return QVariant("border");
 
     return QVariant("cell");
   case Qt::DisplayRole:
     //  First column is formatted row number
     if (col == column_->LineNo()) return QStringLiteral("%1").arg(row * width_, 4, 16, QLatin1Char('0')).toUpper();
-
     //  Last column is ascii representation of data
     else if (col == column_->Ascii()) return ascii(row);
-
     else if (col == column_->Border1() || col == column_->Border2()) return {};
-
     else if (i < 0) return QVariant("");
 
     //  Show data in hex format
@@ -175,21 +168,16 @@ QVariant MemoryByteModel::data(const QModelIndex &index, int role) const {
   case M::Editing:
     //  for last line when memory model is smaller than displayed items
     if (i < 0) return QVariant();
-
     //  Only one cell can be edited at a time
-    // return editing_;
     return i == editing_;
   case M::Highlight: return QVariant::fromValue(memory_->status(i));
   case Qt::TextAlignmentRole:
     if (col == column_->Ascii()) return QVariant(Qt::AlignLeft);
-
     //  Default for all other cells
     return QVariant(Qt::AlignHCenter);
   case Qt::ToolTipRole:
     //  Handle invalid index
     if (i < 0) return {};
-
-    // return QVariant("tool tip");
     //   Only show for memory
     if (col >= column_->CellStart() && col <= column_->CellEnd()) {
       static const auto convert = [](const OpcodeModel *opcodes, const quint8 v, bool prev = false) {
@@ -300,10 +288,10 @@ std::size_t MemoryByteModel::memoryOffset(const QModelIndex &index) const {
   if (offset >= size) return -1;
 
   //  Test if index is inside data model
-  if (index.row() < 0 && index.row() >= height()) return -1;
+  if (index.row() < 0 && std::cmp_greater_equal(index.row(), height())) return -1;
 
   //  First column is line number. Skip
-  if (index.column() <= 0 && index.column() >= width_) return -1;
+  if (index.column() <= 0 && std::cmp_greater_equal(index.column(), width_)) return -1;
 
   //  First column is line number. Return cell index to first edit column
   return offset;
@@ -319,10 +307,10 @@ QModelIndex MemoryByteModel::memoryIndex(std::size_t index) {
   const int col = index % width_;
 
   //  Test if index is inside data model
-  if (row < 0 && row >= height()) return QModelIndex();
+  if (row < 0 && std::cmp_greater_equal(row, height())) return QModelIndex();
 
   //  First column is line number. Skip
-  if (col <= 0 && col >= width_) return QModelIndex();
+  if (col <= 0 && std::cmp_greater_equal(col, width_)) return QModelIndex();
 
   //  First column is line number. Ignore
   return QAbstractItemModel::createIndex(row, col + column_->CellStart());
@@ -335,17 +323,10 @@ QString MemoryByteModel::ascii(const int row) const {
   const auto len = end - start;
   QString edit(static_cast<qsizetype>(len), ' ');
   for (int i = 0; i < len; ++i) {
-    if (i + start >= size) {
-      continue;
-    }
-
+    if (std::cmp_greater_equal(i + start, size)) continue;
     QChar c(memory_->read(start + i));
-
-    if (c.isPrint()) {
-      edit[i] = c;
-    } else {
-      edit[i] = '.';
-    }
+    if (c.isPrint()) edit[i] = c;
+    else edit[i] = '.';
   }
   return edit;
 }
@@ -359,9 +340,6 @@ QVariant MemoryByteModel::selected(const QModelIndex &index, const MemoryRoles::
 
   //  Check for edit mode
   if (role == MemoryRoles::Editing) return editing_;
-  // else if( role == RoleNames::Selected)
-  //   Return indicator for selected
-  //    return selected_.contains(i);
   return QVariant();
 }
 
@@ -375,10 +353,7 @@ QVariant MemoryByteModel::setSelected(const QModelIndex &index, const MemoryRole
     const QModelIndex oldIndex = memoryIndex(editing_);
 
     //  Clear old value, if any
-    if (oldIndex != index) {
-      //  clear old index
-      clearSelected(oldIndex, role);
-    }
+    if (oldIndex != index) clearSelected(oldIndex, role);
 
     //  Convert QModelIndex into memory location
     const auto i = memoryOffset(index);
@@ -399,20 +374,15 @@ void MemoryByteModel::clearSelected(const QModelIndex &index, const MemoryRoles:
 
   //  Check for edit mode
   if (role == MemoryRoles::Editing) {
-    if (editing_ == -1) {
-      return;
-    }
+    if (editing_ == -1) return;
 
     //  Only 1 cell can be edited. Find cell from currently selected item
     lastEdit_ = editing_;
     const QModelIndex oldIndex = memoryIndex(editing_);
 
     //  Check that old index matches currently edited field
-    //  before clearing.
-    if (oldIndex.isValid() && index == oldIndex) {
-      //  Fix colors on old cell
-      setData(oldIndex, -1, role);
-    }
+    //  before clearing, then fix colors on old cell
+    if (oldIndex.isValid() && index == oldIndex) setData(oldIndex, -1, role);
   }
 }
 

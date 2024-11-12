@@ -54,7 +54,7 @@ pas::ops::generic::detail::Traits pas::ops::generic::detail::getTraits(const ast
     }
   }
   // If start is 0xFF..F, then ther is no addressable bytes in the section.
-  if (start == -1) return {.base = 0, .size = 0, .alignment = 1};
+  if (std::cmp_equal(start, -1)) return {.base = 0, .size = 0, .alignment = 1};
   else return {.base = start, .size = size, .alignment = align};
 }
 void pas::ops::generic::detail::addOffset(ast::Node &section, qsizetype offset) {
