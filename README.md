@@ -22,7 +22,7 @@ When cloning this project, use `--recurse-submodules` to install relevant source
 
 | Required Build Tools                                               | Reason                                                                                                  |
 |--------------------------------------------------------------------|---------------------------------------------------------------------------------------------------------|
-| [Qt 6.7](https://doc.qt.io/qt-6/get-and-install-qt.html) or later  | Required for cross-platform GUIs. Under "Additional libraries", install `Qt WebEngine` and `Qt WebView` |
+| [Qt 6.8](https://doc.qt.io/qt-6/get-and-install-qt.html) or later  | Required for cross-platform GUIs. Under "Additional libraries", install `Qt WebEngine` and `Qt WebView` |
 | [CMake 3.24](https://cmake.org/download/)or later                  | Required build system; usually bundled with Qt                                                          | 
 | [git lfs](https://git-lfs.com/)                                    | Required for binary assets, such as images an icons                                                     |
 
