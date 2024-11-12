@@ -72,12 +72,6 @@ int gui_main(const gui_args &args) {
   QFontDatabase::addApplicationFont(":/fonts/mono/CourierPrime-Italic.ttf");
   QFontDatabase::addApplicationFont(":/fonts/mono/CourierPrime-Bold.ttf");
   QFontDatabase::addApplicationFont(":/fonts/mono/CourierPrime-BoldItalic.ttf");
-  // Helper to enumerate all application fonts.
-  /*for (const QString &family : QFontDatabase::families()) {
-    qDebug() << u"Family: %1"_s.arg(family).toStdString().c_str();
-    const QStringList fontStyles = QFontDatabase::styles(family);
-    for (const QString &style : fontStyles) qDebug() << u"  style: %1"_s.arg(style).toStdString().c_str();
-  }*/
 
   QApplication::setOrganizationName("Pepperdine University");
   QApplication::setApplicationName("Pep/10");

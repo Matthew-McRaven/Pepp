@@ -40,7 +40,7 @@ public:
       f.open(QIODevice::ReadOnly | QIODevice::Text);
       contents = f.readAll();
       f.close();
-    } catch (QFile::FileError &err) {
+    } catch ([[maybe_unused]] QFile::FileError &e) {
       if (f.isOpen())
         f.close();
       return {};

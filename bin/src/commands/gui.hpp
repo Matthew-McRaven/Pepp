@@ -32,7 +32,7 @@ void registerGUI(auto &app, task_factory_t &task, detail::SharedFlags &flags, gu
   gui->prefix_command(true);
   gui->set_help_flag();
   gui->callback([&]() {
-    flags.kind = detail::SharedFlags::GUI;
+    flags.kind = detail::SharedFlags::Kind::GUI;
     gui_args.argvs = gui->remaining_for_passthrough();
     std::reverse(gui_args.argvs.begin(), gui_args.argvs.end());
   });

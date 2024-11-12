@@ -39,7 +39,7 @@ void registerAsm(auto &app, task_factory_t &task, detail::SharedFlags &flags) {
 
   asmSC->add_option("-s,user", userName)->required()->expected(1);
   asmSC->callback([&]() {
-    flags.kind = detail::SharedFlags::TERM;
+    flags.kind = detail::SharedFlags::Kind::TERM;
     task = [&](QObject *parent) {
       auto ret = new AsmTask(flags.edValue, userName, parent);
       if (bmAsmOpt && *bmAsmOpt)

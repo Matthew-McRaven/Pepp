@@ -30,7 +30,7 @@ private:
 void registerList(auto &app, task_factory_t &task, detail::SharedFlags &flags) {
   static auto list = app.add_subcommand("ls", "Produce list of figures and macros");
   list->callback([&]() {
-    flags.kind = detail::SharedFlags::TERM;
+    flags.kind = detail::SharedFlags::Kind::TERM;
     task = [&](QObject *parent) {
     return new ListTask(flags.edValue, parent); };
   });
