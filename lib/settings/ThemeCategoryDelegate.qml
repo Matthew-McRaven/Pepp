@@ -9,9 +9,15 @@ Rectangle {
     property int activeCategory: 0
     property int buttonWidth: 50
     id: root
-    color: "red"
     implicitHeight: childrenRect.height
     implicitWidth: childrenRect.width
+    PaletteFilterModel {
+        id: paletteModel
+        category: root.activeCategory
+        sourceModel: PaletteModel {
+            palette: ExtendedPalette {}
+        }
+    }
     ColumnLayout {
         id: layout
         anchors.fill: parent
@@ -62,24 +68,39 @@ Rectangle {
                 }
             }
         }
-        Rectangle {
+        RowLayout {
             Layout.fillWidth: true
             Layout.fillHeight: true
-            color: "purple"
             Layout.margins: 10
             ListView {
-                anchors.fill: parent
+                id: listView
                 clip: true
-                model: PaletterFilterModel {
-                    category: root.activeCategory
-                    sourceModel: PaletteModel {
-                        palette: ExtendedPalette {}
-                    }
-                }
-                delegate: Label {
+                Layout.fillHeight: true
+                Layout.minimumWidth: Math.max(
+                                         100,
+                                         contentItem.childrenRect.width + 5,
+                                         childrenRect.width)
+                focus: true
+                focusPolicy: Qt.StrongFocus
+                Keys.onUpPressed: listView.currentIndex = Math.max(
+                                      0, listView.currentIndex - 1)
+                Keys.onDownPressed: listView.currentIndex = Math.min(
+                                        listView.count - 1,
+                                        listView.currentIndex + 1)
+                model: paletteModel
+                delegate: BoxedText {
                     required property string display
-                    text: display
+                    required property var paletteItem
+                    name: display
                 }
+            }
+            Rectangle {
+                id: modifyArea
+                property var currentItem: listView.currentItem
+                property var paletteItem: currentItem?.paletteItem ?? undefined
+                Layout.fillHeight: true
+                Layout.fillWidth: true
+                color: "red"
             }
         }
     }
