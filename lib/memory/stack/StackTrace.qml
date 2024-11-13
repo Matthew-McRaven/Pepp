@@ -6,7 +6,6 @@ import edu.pepp 1.0
 Rectangle {
     id: root
     color: palette.base
-    anchors.fill: parent
 
     //border.color: "red"
     //border.width: 1
