@@ -99,6 +99,7 @@ Rectangle {
             }
             PaletteDetails {
                 id: modifyArea
+                ePalette: extendedPalette
                 paletteRole: listView.currentItem?.paletteRole
                 paletteItem: listView.currentItem?.paletteItem
                 Layout.fillHeight: true

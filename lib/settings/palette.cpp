@@ -42,6 +42,13 @@ pepp::settings::Palette::Palette(QObject *parent) : QObject(parent) {
   loadDefaults();
 }
 
+int pepp::settings::Palette::itemToRole(const PaletteItem *item) const {
+  if (item == nullptr) return -1;
+  for (int it = 0; it < static_cast<int>(PaletteRole::Total); it++)
+    if (_items[it] == item) return it;
+  return -1;
+}
+
 void pepp::settings::Palette::loadDefaults() {
   for (int it = 0; it < static_cast<int>(PaletteRole::Total); it++) {
     if (_items[it] != nullptr) continue;

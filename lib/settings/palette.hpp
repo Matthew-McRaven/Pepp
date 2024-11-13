@@ -58,6 +58,8 @@ class Palette : public QObject {
   Q_PROPERTY(PaletteItem *circuitGreen READ circuitGreen)
 public:
   Palette(QObject *parent = nullptr);
+  // Return -1 if not found, or (int) PaletteRole if found.
+  Q_INVOKABLE int itemToRole(const PaletteItem *item) const;
 
   PaletteItem *item(int role);
   PaletteItem *item(int role) const;

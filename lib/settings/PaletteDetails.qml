@@ -7,6 +7,8 @@ import Qt.labs.platform as Platform
 
 Item {
     id: root
+    // Can't name palette or it clashes with exsiting property.
+    required property var ePalette
     required property var paletteRole
     required property var paletteItem
     Rectangle {
@@ -43,11 +45,25 @@ Item {
                     text: "Parent Item"
                 }
                 ComboBox {
+                    id: parentCombo
                     model: ValidPaletteParentModel {
                         role: root.paletteRole ?? 0
                     }
                     textRole: "display"
                     valueRole: "id"
+                    currentIndex: root.ePalette.itemToRole(
+                                      root.paletteItem?.parent)
+                }
+                CheckBox {
+                    id: hasParent
+                    checked: !!(root.paletteItem?.parent)
+                    onCheckedChanged: {
+                        if (!checked)
+                            parentCombo.currentIndex = -1
+                    }
+                }
+                Label {
+                    text: "Inherits from..."
                 }
             }
         } // parentGB
