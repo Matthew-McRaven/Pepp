@@ -83,7 +83,9 @@ Rectangle {
             id: column
             anchors.fill: parent
             width: Math.max(implicitWidth, root.width)
-
+            Item {
+                Layout.minimumHeight: 8
+            }
             MemoryStack {
                 id: globals
                 Layout.fillHeight: false
