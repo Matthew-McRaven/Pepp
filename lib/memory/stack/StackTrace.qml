@@ -86,12 +86,11 @@ Rectangle {
             id: column
             anchors.fill: parent
             width: Math.max(implicitWidth, root.width)
-            Item {
-                Layout.minimumHeight: 8
-            }
             MemoryStack {
                 id: globals
                 Layout.fillHeight: false
+                // Because of negative spacing inside, top rect clips tab bar. Add margin to avoid clipping.
+                Layout.topMargin: 4
                 font: tm.font
                 visible: activationModel
                 itemModel: activationModel
