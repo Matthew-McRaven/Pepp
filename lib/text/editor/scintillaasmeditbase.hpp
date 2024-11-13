@@ -1,10 +1,7 @@
 #pragma once
 #include <QObject>
 #include "ScintillaEditBase/ScintillaEditBase.h"
-namespace pepp::settings {
-class Palette;
-}
-Q_DECLARE_OPAQUE_POINTER(pepp::settings::Palette *);
+#include "settings/palette.hpp"
 
 class ScintillaEditBaseExporter : public QObject {
   Q_OBJECT

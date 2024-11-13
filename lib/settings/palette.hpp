@@ -3,10 +3,10 @@
 #include <QObject>
 #include <QtQmlIntegration>
 #include "./constants.hpp"
+#include "paletteitem.hpp"
 
 namespace pepp::settings {
 // Forward declare class used in interface. Opaque pointer declaration must be in global NS;
-class PaletteItem;
 class PaletteCategoryModel : public QAbstractListModel {
   Q_OBJECT
   QML_ELEMENT
@@ -110,5 +110,3 @@ private:
 };
 
 } // namespace pepp::settings
-
-Q_DECLARE_OPAQUE_POINTER(pepp::settings::PaletteItem *)
