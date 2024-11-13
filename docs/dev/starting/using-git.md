@@ -24,3 +24,26 @@ As for what goes in to a commit
 
 For writing good commit messages, see our [contributing guidelines](../../../CONTRIBUTING.md) in the repo.
 
+## That Early Commit History is Gnarly!
+
+To understand our Git history, you need to understand the evolution of the project.
+
+### The story so far
+
+Pepp started out as a fork of [Pep9Suite](https://github.com/StanWarford/pep9suite) written in Qt 5.X. Ultimately, Qt 5 could not provide the web features we were looking for.
+
+So, I ported Pep9Suite's non-GUI code to use [Boost](https://www.boost.org/) and [EMSDK](https://emscripten.org/docs/tools\_reference/emsdk.html). Since we were targeting WASM, we got the web version "for free". Ultimately, we hit hiccups with running this version as a desktop app with Node.js and a web version in strictly WASM.
+
+So we ported the C++ implementation to JS, which we ultimately abandoned when Qt 6's WASM support became better.
+
+### Rewriting History
+
+With every port, I tried to play with history to preserve my learnings along the way. While the original C++ code was a mono-repo, the JS implementation was many repos. Unfortunately, I lost some meaningful history in this one-to-many conversion.
+
+When I restarted with Qt 6, I made an effort to rewrite and merge all of the various JS packages that went into the project. The goal was to uses these packages inside a `JSEngine` to speed up porting, but it ended up being easier to rewrite it in C++.
+
+The merging of these \~20 simultaneously developed repos leads to the twisted history around our initial commit. In hindsight, I should have done it as an octopus merge, but I was not sufficiently confident in my skills at the time to perform that merge correctly.
+
+### (Hopefully) Not Doomed to Repeat it
+
+I made an effort to include snippets of the Pep9suite history as well as Pep/8's various apps. All of these applications had bugs and learnings about how to cope with them. I've done my best to logically connect these disparate histories, hopefully making it possible to avoid repeating mistakes we made in the past.
