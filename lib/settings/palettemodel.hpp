@@ -29,12 +29,12 @@ private:
   Palette *_palette{nullptr};
 };
 
-class PaletterFilterModel : public QSortFilterProxyModel {
+class PaletteFilterModel : public QSortFilterProxyModel {
   Q_OBJECT
   QML_ELEMENT
   Q_PROPERTY(QVariant category READ category WRITE setCategory NOTIFY categoryChanged)
 public:
-  explicit PaletterFilterModel(QObject *parent = nullptr);
+  explicit PaletteFilterModel(QObject *parent = nullptr);
   QVariant category() const;
   void setCategory(QVariant category);
 signals:
