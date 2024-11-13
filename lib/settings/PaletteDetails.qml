@@ -7,6 +7,7 @@ import Qt.labs.platform as Platform
 
 Item {
     id: root
+    required property var paletteRole
     required property var paletteItem
     Rectangle {
         id: bg
@@ -42,7 +43,11 @@ Item {
                     text: "Parent Item"
                 }
                 ComboBox {
-                    model: ["a", "b", "c"]
+                    model: ValidPaletteParentModel {
+                        role: root.paletteRole ?? 0
+                    }
+                    textRole: "display"
+                    valueRole: "id"
                 }
             }
         } // parentGB

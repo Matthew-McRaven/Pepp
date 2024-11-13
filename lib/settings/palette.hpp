@@ -6,7 +6,6 @@
 #include "paletteitem.hpp"
 
 namespace pepp::settings {
-// Forward declare class used in interface. Opaque pointer declaration must be in global NS;
 class PaletteCategoryModel : public QAbstractListModel {
   Q_OBJECT
   QML_ELEMENT

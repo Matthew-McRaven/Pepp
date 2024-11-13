@@ -13,7 +13,9 @@ class PaletteModel : public QAbstractListModel {
 
 public:
   enum class Role : int {
-    PaletteItemRole = Qt::UserRole + 1,
+    // Role which contails PaletteRole for a given item... sorry for the name.
+    PaletteRoleRole = Qt::UserRole + 1,
+    PaletteItemRole,
   };
   explicit PaletteModel(QObject *parent = nullptr);
   explicit Q_INVOKABLE PaletteModel(Palette *palette);

@@ -26,13 +26,16 @@ QVariant pepp::settings::PaletteModel::data(const QModelIndex &index, int role) 
     return QVariant();
   switch (role) {
   case Qt::DisplayRole: return PaletteRoleHelper::string(static_cast<PaletteRole>(index.row()));
+  case (int)Role::PaletteRoleRole: return QVariant::fromValue(static_cast<PaletteRole>(index.row()));
   case (int)Role::PaletteItemRole: return QVariant::fromValue(_palette->item(index.row()));
   default: return {};
   }
 }
 
 QHash<int, QByteArray> pepp::settings::PaletteModel::roleNames() const {
-  static const QHash<int, QByteArray> ret{{Qt::DisplayRole, "display"}, {(int)Role::PaletteItemRole, "paletteItem"}};
+  static const QHash<int, QByteArray> ret{{Qt::DisplayRole, "display"},
+                                          {(int)Role::PaletteRoleRole, "paletteRole"},
+                                          {(int)Role::PaletteItemRole, "paletteItem"}};
   return ret;
 }
 

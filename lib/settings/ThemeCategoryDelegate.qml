@@ -15,7 +15,9 @@ Rectangle {
         id: paletteModel
         category: root.activeCategory
         sourceModel: PaletteModel {
-            palette: ExtendedPalette {}
+            palette: ExtendedPalette {
+                id: extendedPalette
+            }
         }
     }
     ColumnLayout {
@@ -90,12 +92,14 @@ Rectangle {
                 model: paletteModel
                 delegate: BoxedText {
                     required property string display
+                    required property var paletteRole
                     required property var paletteItem
                     name: display
                 }
             }
             PaletteDetails {
                 id: modifyArea
+                paletteRole: listView.currentItem?.paletteRole
                 paletteItem: listView.currentItem?.paletteItem
                 Layout.fillHeight: true
                 Layout.fillWidth: true
