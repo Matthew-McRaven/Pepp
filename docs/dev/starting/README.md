@@ -6,4 +6,4 @@
 
 ## Qt / QML
 
-See [this link](https://www.kdab.com/kdab-tv/academy/) for a good tutorial on QML.
+The following [link](https://www.kdab.com/kdab-tv/academy/) contains the best QML tutorial I've seen to date as a series of videos. Alternatively, Qt's website has a [decent QML reference](https://www.qt.io/product/qt6/qml-book) in the form of a book.&#x20;
