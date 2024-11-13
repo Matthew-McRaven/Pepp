@@ -12,9 +12,6 @@ Rectangle {
     color: "red"
     implicitHeight: childrenRect.height
     implicitWidth: childrenRect.width
-    ThemeModel {
-        id: themeModel
-    }
     ColumnLayout {
         id: layout
         anchors.fill: parent
@@ -25,21 +22,21 @@ Rectangle {
             }
             ComboBox {
                 id: comboBox
-                model: themeModel
+                model: ["Default", "Dark"]
                 textRole: "name"
                 valueRole: "display"
             }
             Button {
                 //  System themes can never have state change
                 //  If non-system theme has changes, they must be saved before a copy can be made
-                text: Theme.isDirty ? "Save" : "Copy"
+                text: "Save"
                 Layout.preferredWidth: root.buttonWidth
             }
             Button {
                 id: del
                 text: "Delete"
                 Layout.preferredWidth: root.buttonWidth
-                enabled: !Theme.systemTheme
+                enabled: false //!Theme.systemTheme
             }
             Button {
                 text: "Import"
@@ -55,7 +52,7 @@ Rectangle {
             id: tabBar
             Layout.fillWidth: true
             Repeater {
-                model: CategoryModel {}
+                model: PaletteCategoryModel {}
                 TabButton {
                     required property variant model
                     text: model.display
@@ -70,6 +67,20 @@ Rectangle {
             Layout.fillHeight: true
             color: "purple"
             Layout.margins: 10
+            ListView {
+                anchors.fill: parent
+                clip: true
+                model: PaletterFilterModel {
+                    category: root.activeCategory
+                    sourceModel: PaletteModel {
+                        palette: ExtendedPalette {}
+                    }
+                }
+                delegate: Label {
+                    required property string display
+                    text: display
+                }
+            }
         }
     }
 }

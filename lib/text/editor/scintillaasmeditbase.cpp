@@ -6,6 +6,8 @@
 #include "ScintillaEditBase/PlatQt.h"
 #include "isa/pep10.hpp"
 #include "isa/pep9.hpp"
+#include "settings/palette.hpp"
+#include "settings/paletteitem.hpp"
 
 using namespace Scintilla;
 using namespace Scintilla::Internal;
@@ -158,12 +160,12 @@ void ScintillaAsmEditBase::setLexerLanguage(const QString &language) {
   send(SCI_SETILEXER, /*unused*/ 0, (uintptr_t)lexer);
 }
 
-Theme *ScintillaAsmEditBase::theme() const {
+pepp::settings::Palette *ScintillaAsmEditBase::theme() const {
   QQmlEngine::setObjectOwnership(_theme, QQmlEngine::CppOwnership);
   return _theme;
 }
 
-void ScintillaAsmEditBase::setTheme(Theme *theme) {
+void ScintillaAsmEditBase::setTheme(pepp::settings::Palette *theme) {
   if (_theme == theme) return;
   _theme = theme;
   applyStyles();
@@ -211,58 +213,58 @@ void ScintillaAsmEditBase::applyStyles() {
   send(SCI_STYLECLEARALL, 0, 0);
 
   send(SCI_STYLESETFORE, symbolStyle, c2i(_theme->symbol()->foreground()));
-  send(SCI_STYLESETITALIC, symbolStyle, _theme->symbol()->italics());
-  send(SCI_STYLESETBOLD, symbolStyle, _theme->symbol()->bold());
+  send(SCI_STYLESETITALIC, symbolStyle, _theme->symbol()->font().italic());
+  send(SCI_STYLESETBOLD, symbolStyle, _theme->symbol()->font().bold());
   send(SCI_STYLESETBACK, symbolStyle, alphaBlend(_theme->symbol()->background(), baseBack));
 
   send(SCI_STYLESETFORE, mnemonicStyle, c2i(_theme->mnemonic()->foreground()));
-  send(SCI_STYLESETITALIC, mnemonicStyle, _theme->mnemonic()->italics());
-  send(SCI_STYLESETBOLD, mnemonicStyle, _theme->mnemonic()->bold());
+  send(SCI_STYLESETITALIC, mnemonicStyle, _theme->mnemonic()->font().italic());
+  send(SCI_STYLESETBOLD, mnemonicStyle, _theme->mnemonic()->font().bold());
   send(SCI_STYLESETBACK, mnemonicStyle, alphaBlend(_theme->mnemonic()->background(), baseBack));
 
   send(SCI_STYLESETFORE, directiveStyle, c2i(_theme->directive()->foreground()));
-  send(SCI_STYLESETITALIC, directiveStyle, _theme->directive()->italics());
-  send(SCI_STYLESETBOLD, directiveStyle, _theme->directive()->bold());
+  send(SCI_STYLESETITALIC, directiveStyle, _theme->directive()->font().italic());
+  send(SCI_STYLESETBOLD, directiveStyle, _theme->directive()->font().bold());
   send(SCI_STYLESETBACK, directiveStyle, alphaBlend(_theme->directive()->background(), baseBack));
 
   send(SCI_STYLESETFORE, macroStyle, c2i(_theme->macro()->foreground()));
-  send(SCI_STYLESETITALIC, macroStyle, _theme->macro()->italics());
-  send(SCI_STYLESETBOLD, macroStyle, _theme->macro()->bold());
+  send(SCI_STYLESETITALIC, macroStyle, _theme->macro()->font().italic());
+  send(SCI_STYLESETBOLD, macroStyle, _theme->macro()->font().bold());
   send(SCI_STYLESETBACK, macroStyle, alphaBlend(_theme->macro()->background(), baseBack));
 
   send(SCI_STYLESETFORE, charStyle, c2i(_theme->character()->foreground()));
-  send(SCI_STYLESETITALIC, charStyle, _theme->character()->italics());
-  send(SCI_STYLESETBOLD, charStyle, _theme->character()->bold());
+  send(SCI_STYLESETITALIC, charStyle, _theme->character()->font().italic());
+  send(SCI_STYLESETBOLD, charStyle, _theme->character()->font().bold());
   send(SCI_STYLESETBACK, charStyle, alphaBlend(_theme->character()->background(), baseBack));
 
   send(SCI_STYLESETFORE, stringStyle, c2i(_theme->string()->foreground()));
-  send(SCI_STYLESETITALIC, stringStyle, _theme->string()->italics());
-  send(SCI_STYLESETBOLD, stringStyle, _theme->string()->bold());
+  send(SCI_STYLESETITALIC, stringStyle, _theme->string()->font().italic());
+  send(SCI_STYLESETBOLD, stringStyle, _theme->string()->font().bold());
   send(SCI_STYLESETBACK, stringStyle, alphaBlend(_theme->string()->background(), baseBack));
 
   send(SCI_STYLESETFORE, SCE_PEPASM_MACRO_START, c2i(_theme->comment()->foreground()));
-  send(SCI_STYLESETITALIC, SCE_PEPASM_MACRO_START, _theme->comment()->italics());
-  send(SCI_STYLESETBOLD, SCE_PEPASM_MACRO_START, _theme->comment()->bold());
+  send(SCI_STYLESETITALIC, SCE_PEPASM_MACRO_START, _theme->comment()->font().italic());
+  send(SCI_STYLESETBOLD, SCE_PEPASM_MACRO_START, _theme->comment()->font().bold());
   send(SCI_STYLESETBACK, SCE_PEPASM_MACRO_START, alphaBlend(_theme->comment()->background(), baseBack));
 
   send(SCI_STYLESETFORE, SCE_PEPASM_MACRO_END, c2i(_theme->comment()->foreground()));
-  send(SCI_STYLESETITALIC, SCE_PEPASM_MACRO_END, _theme->comment()->italics());
-  send(SCI_STYLESETBOLD, SCE_PEPASM_MACRO_END, _theme->comment()->bold());
+  send(SCI_STYLESETITALIC, SCE_PEPASM_MACRO_END, _theme->comment()->font().italic());
+  send(SCI_STYLESETBOLD, SCE_PEPASM_MACRO_END, _theme->comment()->font().bold());
   send(SCI_STYLESETBACK, SCE_PEPASM_MACRO_END, alphaBlend(_theme->comment()->background(), baseBack));
 
   send(SCI_STYLESETFORE, commentStyle, c2i(_theme->comment()->foreground()));
-  send(SCI_STYLESETITALIC, commentStyle, _theme->comment()->italics());
-  send(SCI_STYLESETBOLD, commentStyle, _theme->comment()->bold());
+  send(SCI_STYLESETITALIC, commentStyle, _theme->comment()->font().italic());
+  send(SCI_STYLESETBOLD, commentStyle, _theme->comment()->font().bold());
   send(SCI_STYLESETBACK, commentStyle, alphaBlend(_theme->comment()->background(), baseBack));
 
   send(SCI_STYLESETFORE, SCE_PEPASM_COMMENT_LINE, c2i(_theme->comment()->foreground()));
-  send(SCI_STYLESETITALIC, SCE_PEPASM_COMMENT_LINE, _theme->comment()->italics());
-  send(SCI_STYLESETBOLD, SCE_PEPASM_COMMENT_LINE, _theme->comment()->bold());
+  send(SCI_STYLESETITALIC, SCE_PEPASM_COMMENT_LINE, _theme->comment()->font().italic());
+  send(SCI_STYLESETBOLD, SCE_PEPASM_COMMENT_LINE, _theme->comment()->font().bold());
   send(SCI_STYLESETBACK, SCE_PEPASM_COMMENT_LINE, alphaBlend(_theme->comment()->background(), baseBack));
 
   send(SCI_STYLESETFORE, errorStyle, c2i(_theme->error()->foreground()));
-  send(SCI_STYLESETITALIC, errorStyle, _theme->error()->italics());
-  send(SCI_STYLESETBOLD, errorStyle, _theme->error()->bold());
+  send(SCI_STYLESETITALIC, errorStyle, _theme->error()->font().italic());
+  send(SCI_STYLESETBOLD, errorStyle, _theme->error()->font().bold());
   send(SCI_STYLESETBACK, errorStyle, alphaBlend(_theme->error()->background(), baseBack));
 
   send(SCI_MARKERSETFORE, SC_MARK_CIRCLE, c2i(_theme->error()->background()));
