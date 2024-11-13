@@ -4,12 +4,28 @@
 #include <QtQmlIntegration>
 #include <qqmllist.h>
 
+class ChangeTypeHelper : public QObject {
+  Q_GADGET
+  QML_NAMED_ELEMENT(ChangeType)
+  QML_UNCREATABLE("Error:Only enums")
+public:
+  enum class ChangeType : uint32_t {
+    None,
+    Modified,
+    Allocated,
+  };
+  Q_ENUM(ChangeType)
+  ChangeTypeHelper(QObject *parent = nullptr);
+};
+using ChangeType = ChangeTypeHelper::ChangeType;
+
 class RecordLine : public QObject {
   Q_OBJECT
   Q_PROPERTY(uint32_t address READ address WRITE setAddress NOTIFY addressChanged)
   // This class will format the value on the UI's behalf.
   // E.g., format as dec, (signed) int
   Q_PROPERTY(QString value READ value WRITE setValue NOTIFY valueChanged)
+  Q_PROPERTY(ChangeType status READ status WRITE setStatus NOTIFY statusChanged)
   // symbol value to right of line
   Q_PROPERTY(QString name READ name WRITE setName NOTIFY nameChanged)
   QML_ELEMENT
@@ -21,16 +37,20 @@ public:
   void setAddress(uint32_t address);
   QString value() const;
   void setValue(const QString &value);
+  ChangeType status() const;
+  void setStatus(ChangeType status);
   QString name() const;
   void setName(const QString &name);
 
 signals:
   void addressChanged();
   void valueChanged();
+  void statusChanged();
   void nameChanged();
 
 private:
   uint32_t _address = 0;
+  ChangeType _status = ChangeType::None;
   QString _value = {}, _name = {};
 };
 

@@ -22,11 +22,13 @@ Rectangle {
             RecordLine {
                 address: 0
                 value: "10"
+                status: ChangeType.Allocated
                 name: "a"
             }
             RecordLine {
                 address: 2
                 value: "20"
+                status: ChangeType.Modified
                 name: "b"
             }
         }
@@ -48,6 +50,7 @@ Rectangle {
             RecordLine {
                 address: 6
                 value: "40"
+                status: ChangeType.Modified
                 name: "d"
             }
             RecordLine {
@@ -58,6 +61,7 @@ Rectangle {
             RecordLine {
                 address: 9
                 value: "60"
+                status: ChangeType.Modified
                 name: "f"
             }
         }
