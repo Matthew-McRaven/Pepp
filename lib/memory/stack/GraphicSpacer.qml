@@ -2,14 +2,19 @@ import QtQuick
 import QtQuick.Shapes
 
 Item {
+    id: root
+    property alias graphicWidth: graphicShape.width
+
     Shape {
         id: graphicShape
+        property double lineWidth: root.graphicWidth / 6
+
         anchors.centerIn: parent
         width: 60
         height: 20
 
         ShapePath {
-            strokeWidth: 3 //  Controls thickness of lines
+            strokeWidth: 1 //  Controls thickness of lines
             strokeColor: palette.text
             fillColor: "transparent"
             capStyle: ShapePath.RoundCap
@@ -20,7 +25,7 @@ Item {
             //  Top line
             //  Top line
             PathLine {
-                x: 60
+                x: root.graphicWidth
                 y: 0
             }
 
@@ -35,47 +40,54 @@ Item {
             }
             //  Second diagonal
             PathMove {
-                x: 20
+                id: x2
+                //  Non-integer values each leg to render at different thicknesses
+                //  due to antialiasing. Always use integer values
+                x: Math.round(graphicShape.lineWidth * 2)
                 y: 0
             }
             PathLine {
-                x: 10
+                x: x2.x - 10
                 y: 10
             }
             //  Third diagonal
             PathMove {
-                x: 30
+                id: x3
+                x: Math.round(graphicShape.lineWidth * 3)
                 y: 0
             }
             PathLine {
-                x: 20
+                x: x3.x - 10
                 y: 10
             }
             //  Fourth diagonal
             PathMove {
-                x: 40
+                id: x4
+                x: Math.round(graphicShape.lineWidth * 4)
                 y: 0
             }
             PathLine {
-                x: 30
+                x: x4.x - 10
                 y: 10
             }
             //  Fifth diagonal
             PathMove {
-                x: 50
+                id: x5
+                x: Math.round(graphicShape.lineWidth * 5)
                 y: 0
             }
             PathLine {
-                x: 40
+                x: x5.x - 10
                 y: 10
             }
             //  Last diagonal
             PathMove {
-                x: 60
+                id: x6
+                x: Math.round(root.graphicWidth)
                 y: 0
             }
             PathLine {
-                x: 50
+                x: x6.x - 10
                 y: 10
             }
         }
