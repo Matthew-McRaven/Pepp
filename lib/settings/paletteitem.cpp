@@ -25,6 +25,12 @@ QColor pepp::settings::PaletteItem::foreground() const {
   else return _foreground.value_or(QColor{Qt::white});
 }
 
+void pepp::settings::PaletteItem::clearForeground() {
+  if (!_foreground.has_value()) return;
+  _foreground.reset();
+  emit preferenceChanged();
+}
+
 void pepp::settings::PaletteItem::setForeground(const QColor foreground) {
   if (foreground == _foreground) return;
   _foreground = foreground;
@@ -34,6 +40,12 @@ void pepp::settings::PaletteItem::setForeground(const QColor foreground) {
 QColor pepp::settings::PaletteItem::background() const {
   if (_parent && !_background.has_value()) return _parent->background();
   else return _background.value_or(QColor{Qt::black});
+}
+
+void pepp::settings::PaletteItem::clearBackground() {
+  if (!_background.has_value()) return;
+  _background.reset();
+  emit preferenceChanged();
 }
 
 void pepp::settings::PaletteItem::setBackground(const QColor background) {

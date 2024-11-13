@@ -50,8 +50,10 @@ public:
   // May fail if setting parent would induce a cycle in reltaionship graph.
   void setParent(PaletteItem *newParent);
   QColor foreground() const;
+  Q_INVOKABLE void clearForeground();
   void setForeground(const QColor foreground);
   QColor background() const;
+  Q_INVOKABLE void clearBackground();
   void setBackground(const QColor background);
   QFont font() const;
   void setFont(const QFont font);

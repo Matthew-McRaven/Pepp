@@ -94,13 +94,11 @@ Rectangle {
                     name: display
                 }
             }
-            Rectangle {
+            PaletteDetails {
                 id: modifyArea
-                property var currentItem: listView.currentItem
-                property var paletteItem: currentItem?.paletteItem ?? undefined
+                paletteItem: listView.currentItem.paletteItem
                 Layout.fillHeight: true
                 Layout.fillWidth: true
-                color: "red"
             }
         }
     }
