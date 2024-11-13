@@ -76,7 +76,7 @@ public slots:
   void onParentChanged();
 
 private:
-  PaletteItem *_parent;
+  PaletteItem *_parent{nullptr};
   std::optional<QColor> _foreground{Qt::black};
   std::optional<QColor> _background{Qt::white};
   std::optional<QFont> _font;
