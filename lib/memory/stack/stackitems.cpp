@@ -16,6 +16,13 @@ void RecordLine::setValue(const QString &value) {
   emit valueChanged();
 }
 
+ChangeType RecordLine::status() const { return _status; }
+
+void RecordLine::setStatus(ChangeType status) {
+  _status = status;
+  emit statusChanged();
+}
+
 QString RecordLine::name() const { return _name; }
 
 void RecordLine::setName(const QString &name) {
@@ -76,3 +83,5 @@ ActivationRecord *ActivationModel::at_record(QQmlListProperty<ActivationRecord> 
   ActivationModel *model = qobject_cast<ActivationModel *>(list->object);
   return model->_records[index];
 }
+
+ChangeTypeHelper::ChangeTypeHelper(QObject *parent) : QObject(parent) {}
