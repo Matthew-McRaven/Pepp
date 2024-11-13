@@ -28,3 +28,39 @@ pepp::settings::PaletteCategory pepp::settings::categoryForRole(PaletteRole role
   else if (asInt < EditorCategoryEnd) return PaletteCategory::Editor;
   else return PaletteCategory::Circuit;
 }
+
+pepp::settings::ValidPaletteParentModel::ValidPaletteParentModel(QObject *parent) : QAbstractListModel(parent) {}
+
+pepp::settings::ValidPaletteParentModel::ValidPaletteParentModel(PaletteRole role) : QAbstractListModel(nullptr) {}
+
+pepp::settings::PaletteRole pepp::settings::ValidPaletteParentModel::role() const { return _role; }
+
+void pepp::settings::ValidPaletteParentModel::setRole(PaletteRole role)
+{
+  if (_role == role) return;
+  beginResetModel();
+  _role = role;
+  endResetModel();
+  emit roleChanged();
+}
+
+int pepp::settings::ValidPaletteParentModel::rowCount(const QModelIndex &parent) const
+{
+  return static_cast<int>(_role);
+}
+
+QVariant pepp::settings::ValidPaletteParentModel::data(const QModelIndex &index, int role) const
+{
+  if (!index.isValid() || index.row() < 0 || index.row() >= static_cast<int>(_role)) return QVariant();
+  switch (role) {
+  case Qt::DisplayRole: return pepp::settings::PaletteRoleHelper::string(static_cast<PaletteRole>(index.row()));
+  case Qt::UserRole + 1: return QVariant::fromValue(static_cast<PaletteRole>(index.row()));
+  default: return QVariant();
+  }
+}
+
+
+QHash<int, QByteArray> pepp::settings::ValidPaletteParentModel::roleNames() const
+{
+  return {{Qt::DisplayRole, "display"}, {Qt::UserRole + 1, "id"}};
+}
