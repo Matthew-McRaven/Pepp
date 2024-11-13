@@ -6,13 +6,16 @@ Item {
     id: root
     property int stateChange: 0
     required property variant itemModel
-    property alias font: tm.font
+
+    //  Trigger height of this control based on height of all children
     implicitHeight: column.childrenRect.height
 
-    TextMetrics {
-        id: tm
-        text: "W" // Dummy value to get width of widest character
-    }
+    //  Pass in dimensions & font
+    required property variant font
+    required property double implicitAddressWidth
+    required property double implicitValueWidth
+    required property double implicitLineHeight
+
     Column {
         id: column
         Repeater {
@@ -20,7 +23,11 @@ Item {
             model: root.itemModel.records
             ActivationRecordView {
                 required property variant model
-                font: tm.font
+                font: root.font
+                implicitAddressWidth: root.implicitAddressWidth
+                implicitValueWidth: root.implicitValueWidth
+                implicitLineHeight: root.implicitLineHeight
+
                 lineModel: model
                 active: model.active
             }

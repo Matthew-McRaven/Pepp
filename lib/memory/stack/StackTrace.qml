@@ -7,12 +7,17 @@ Rectangle {
     id: root
     color: palette.base
 
-    //border.color: "red"
-    //border.width: 1
     TextMetrics {
         id: tm
         font: Theme.font
         text: "W" // Dummy value to get width of widest character
+
+        //  Calculate widths and height based on current font
+        //  All column and line sizing are determined in this
+        //  block.
+        property double addressWidth: tm.width * 8
+        property double valueWidth: tm.width * 8
+        property double lineHeight: tm.height + 4 // Allow space around text
     }
     // Create C++ items using the magic of QQmlPropertyList and DefaultProperty
     ActivationModel {
@@ -69,6 +74,7 @@ Rectangle {
 
     ScrollView {
         id: sv
+
         anchors.fill: parent
         topPadding: 8
         bottomPadding: 0
@@ -91,16 +97,24 @@ Rectangle {
                 Layout.fillHeight: false
                 // Because of negative spacing inside, top rect clips tab bar. Add margin to avoid clipping.
                 Layout.topMargin: 4
+                Layout.preferredHeight: implicitHeight
+                Layout.preferredWidth: globals.childrenRect.width
+
+                //  Font and dimensions - Globals
                 font: tm.font
+                implicitAddressWidth: tm.addressWidth
+                implicitValueWidth: tm.valueWidth
+                implicitLineHeight: tm.lineHeight
+
                 visible: activationModel
                 itemModel: activationModel
             }
             MemorySpacer {
                 id: globalSpacer
                 Layout.fillHeight: false
-                Layout.preferredWidth: root.width - column.margins * 2
-                Layout.alignment: Qt.AlignLeft & Qt.AlignVCenter
-                Layout.leftMargin: tm.width * 8 + 15
+                Layout.leftMargin: tm.addressWidth
+                Layout.preferredWidth: tm.valueWidth
+                Layout.alignment: Qt.AlignHCenter & Qt.AlignVCenter
                 Layout.preferredHeight: globalSpacer.ellipsisHeight
 
                 ellipsisSize: 7.5
@@ -108,15 +122,23 @@ Rectangle {
             MemoryStack {
                 id: heap
                 Layout.fillHeight: false
+                Layout.preferredHeight: implicitHeight
+
+                //  Font and dimensions - Heap
                 font: tm.font
+                implicitAddressWidth: tm.addressWidth
+                implicitValueWidth: tm.valueWidth
+                implicitLineHeight: tm.lineHeight
+
                 itemModel: activationModel
             }
             MemorySpacer {
                 id: heapSpacer
                 Layout.fillHeight: true
-                Layout.alignment: Qt.AlignLeft & Qt.AlignVCenter
-                Layout.leftMargin: tm.width * 8 + 15
-                Layout.preferredWidth: root.width - column.margins * 2
+                Layout.leftMargin: tm.addressWidth
+                Layout.preferredWidth: tm.valueWidth
+                Layout.alignment: Qt.AlignHCenter & Qt.AlignVCenter
+
                 Layout.preferredHeight: 41
                 Layout.minimumHeight: 41
 
@@ -126,30 +148,28 @@ Rectangle {
             MemoryStack {
                 id: stack
                 Layout.fillHeight: false
+                Layout.preferredHeight: implicitHeight
+
+                //  Font and dimensions - Stack
                 font: tm.font
+                implicitAddressWidth: tm.addressWidth
+                implicitValueWidth: tm.valueWidth
+                implicitLineHeight: tm.lineHeight
+
                 itemModel: activationModel
             }
             GraphicSpacer {
                 id: graphic
                 Layout.fillHeight: false
-                Layout.alignment: Qt.AlignLeft & Qt.AlignVCenter
-                Layout.leftMargin: tm.width * 8 + 48
-                Layout.preferredWidth: root.width - column.margins * 2
+                Layout.alignment: Qt.AlignHCenter & Qt.AlignVCenter
+                Layout.leftMargin: tm.addressWidth
+                Layout.preferredWidth: tm.valueWidth
+
                 height: 20
+
+                //  Force graphic to be same width as value column
+                graphicWidth: tm.valueWidth
             }
         } //  ColumnLayout
     } //  ScrollView
-
-
-    /*    Component.onCompleted: {
-        console.log("Main window Height / Width: " + root.height + "/" + root.width)
-        console.log("ColumnLayout Height / Width: " + column.height + "/" + column.width)
-        console.log("Globals Height / Width: " + globals.height + "/" + globals.width)
-        console.log("Global Space Height / Width: " + globalSpacer.height + "/"
-                    + globalSpacer.width)
-        console.log("Heap Height / Width: " + heap.height + "/" + heap.width)
-        console.log("Heap Space Height / Width: " + heapSpacer.height + "/" + heapSpacer.width)
-        console.log("Stack Height / Width: " + stack.height + "/" + stack.width)
-        console.log("Graphic Height / Width: " + graphic.height + "/" + graphic.width)
-    } */
 }

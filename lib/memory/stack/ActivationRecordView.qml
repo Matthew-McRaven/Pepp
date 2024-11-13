@@ -6,19 +6,23 @@ Item {
     id: root
     required property variant lineModel
     required property bool active
+
+    //  Pass in dimensions & font
+    required property variant font
+    required property double implicitAddressWidth
+    required property double implicitValueWidth
+    required property double implicitLineHeight
+
     // Helpers to "math" the position of the background rectangle.
     property double valueX: 0
     property double valueWidth: 0
     property double valueY: 0
     property double valueHeight: 0
-    property alias font: tm.font
+
+    //  Bubble children size up to parent control for corect sizing
     implicitHeight: column.implicitHeight
     implicitWidth: column.implicitWidth
 
-    TextMetrics {
-        id: tm
-        text: "W" // Dummy value to get width of widest character
-    }
     // Sorry all, this bit is cursed.
     // Instead of trying to do the "right thing" and use three columns+repeaters and place a rectangle
     // around the center column inside the middle repeater, I'm opting to only use a single repeater.
@@ -47,11 +51,11 @@ Item {
                 spacing: 0
                 Label {
                     Layout.fillWidth: false
-                    Layout.preferredWidth: 8 * tm.width
-                    Layout.preferredHeight: tm.height
+                    Layout.preferredWidth: root.implicitAddressWidth
+                    Layout.preferredHeight: root.implicitLineHeight
                     Layout.alignment: Qt.AlignLeft & Qt.AlignVCenter
 
-                    font: tm.font
+                    font: root.font
                     text: `${model.address.toString(16).padStart(
                               4, '0').toUpperCase()}`
                     horizontalAlignment: Text.AlignHCenter
@@ -60,9 +64,14 @@ Item {
                 Rectangle {
                     id: valueRect
                     Layout.fillWidth: false
-                    Layout.preferredWidth: 8 * tm.width
-                    Layout.preferredHeight: tm.height + 3
+                    Layout.preferredWidth: root.implicitValueWidth
+                    Layout.preferredHeight: root.implicitLineHeight
                     Layout.alignment: Qt.AlignLeft & Qt.AlignVCenter
+
+                    //  Force rectangle to overlap surrounding rectange
+                    //  This forces a single line with adjacent rectanges
+                    //  Without this offset, adjacent rectanges would have
+                    //  double line width
                     Layout.margins: -.5
 
                     color: palette.base
@@ -72,23 +81,22 @@ Item {
                         anchors.fill: parent
                         horizontalAlignment: Text.AlignHCenter
                         verticalAlignment: Text.AlignVCenter
-                        font: tm.font
+                        font: root.font
                         text: model.value
                     }
                 }
                 Label {
                     Layout.fillWidth: true
                     Layout.alignment: Qt.AlignLeft & Qt.AlignVCenter
-                    Layout.preferredWidth: 8 * tm.width
-                    Layout.preferredHeight: tm.height
+                    Layout.preferredWidth: root.implicitValueWidth
+                    Layout.preferredHeight: root.implicitLineHeight
                     Layout.leftMargin: 5
 
-                    font: tm.font
+                    font: root.font
                     text: model.name
                     color: palette.text
                 }
                 Component.onCompleted: {
-
                     // Record position of the value column so we can place the background rect.
                     if (model.row === 0) {
                         root.valueX = Qt.binding(function () {
