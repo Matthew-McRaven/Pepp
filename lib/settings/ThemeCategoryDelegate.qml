@@ -96,7 +96,7 @@ Rectangle {
             }
             PaletteDetails {
                 id: modifyArea
-                paletteItem: listView.currentItem.paletteItem
+                paletteItem: listView.currentItem?.paletteItem
                 Layout.fillHeight: true
                 Layout.fillWidth: true
             }

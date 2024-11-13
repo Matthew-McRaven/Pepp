@@ -63,12 +63,12 @@ Item {
                 }
                 Ui.ColorButton {
                     id: fgPicker
-                    color: root.paletteItem.foreground
+                    color: root.paletteItem?.foreground ?? "white"
                 }
                 CheckBox {
-                    checked: root.paletteItem.hasOwnForeground
+                    checked: root.paletteItem?.hasOwnForeground ?? false
                     onCheckedChanged: {
-                        if (!checked)
+                        if (!checked && root.paletteItem)
                             root.paletteItem.clearForeground()
                     }
                 }
@@ -80,12 +80,12 @@ Item {
                 }
                 Ui.ColorButton {
                     id: bgPicker
-                    color: root.paletteItem.background
+                    color: root.paletteItem?.background ?? "black"
                 }
                 CheckBox {
-                    checked: root.paletteItem.hasOwnBackground
+                    checked: root.paletteItem?.hasOwnBackground ?? false
                     onCheckedChanged: {
-                        if (!checked)
+                        if (!checked && root.paletteItem)
                             root.paletteItem.clearBackground()
                     }
                 }
