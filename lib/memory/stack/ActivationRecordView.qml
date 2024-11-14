@@ -1,6 +1,7 @@
 import QtQuick
 import QtQuick.Controls
 import QtQuick.Layouts
+import edu.pepp 1.0
 
 Item {
     id: root
@@ -19,7 +20,7 @@ Item {
     property double valueY: 0
     property double valueHeight: 0
 
-    //  Bubble children size up to parent control for corect sizing
+    //  Bubble children size up to parent control for correct sizing
     implicitHeight: column.implicitHeight
     implicitWidth: column.implicitWidth
 
@@ -74,7 +75,9 @@ Item {
                     //  double line width
                     Layout.margins: -.5
 
-                    color: palette.base
+                    //  Color changes based on status
+                    //  Update colors from theme when theme is complete
+                    color: (model.status === ChangeType.Allocated) ? "green" : (model.status === ChangeType.Modified) ? "red" : palette.base
                     border.color: palette.text
                     border.width: 1
                     Label {

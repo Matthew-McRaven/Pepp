@@ -117,6 +117,9 @@ Rectangle {
                 Layout.alignment: Qt.AlignHCenter & Qt.AlignVCenter
                 Layout.preferredHeight: globalSpacer.ellipsisHeight
 
+                //  If no global records, spacer is not needed
+                visible: globals.implicitHeight > 0
+
                 ellipsisSize: 7.5
             }
             MemoryStack {
@@ -142,6 +145,9 @@ Rectangle {
                 Layout.preferredHeight: 41
                 Layout.minimumHeight: 41
 
+                //  Control cannot be hidden or other shapes will not align
+                //  properly. Hidden will make graphic transparent.
+                hidden: stack.implicitHeight === 0
                 ellipsisSize: 7.5
             }
 

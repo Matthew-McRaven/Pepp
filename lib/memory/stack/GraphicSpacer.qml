@@ -22,7 +22,7 @@ Item {
 
             startX: 0
             startY: 0
-            //  Top line
+
             //  Top line
             PathLine {
                 x: root.graphicWidth
