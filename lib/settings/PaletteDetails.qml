@@ -87,6 +87,7 @@ Item {
                     color: root.paletteItem?.foreground ?? "white"
                 }
                 CheckBox {
+                    id: fgCheck
                     enabled: !!root.paletteItem?.parent
                     checked: enabled && root.paletteItem?.hasOwnForeground
                     onCheckedChanged: {
@@ -95,7 +96,7 @@ Item {
                     }
                 }
                 Label {
-                    text: "Override parent"
+                    text: !root.paletteItem?.parent ? "Using own value" : (fgCheck.checked ? "Overriding parent value" : "Using parent value")
                     enabled: root.paletteItem?.parent
                 }
                 Label {
@@ -106,6 +107,7 @@ Item {
                     color: root.paletteItem?.background ?? "black"
                 }
                 CheckBox {
+                    id: bgCheck
                     enabled: !!root.paletteItem?.parent
                     checked: enabled && root.paletteItem?.hasOwnBackground
                     onCheckedChanged: {
@@ -114,7 +116,7 @@ Item {
                     }
                 }
                 Label {
-                    text: "Override parent"
+                    text: !root.paletteItem?.parent ? "Using own value" : (bgCheck.checked ? "Overriding parent value" : "Using parent value")
                     enabled: root.paletteItem?.parent
                 }
             }
