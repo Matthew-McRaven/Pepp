@@ -80,9 +80,9 @@ public slots:
 
 private:
   PaletteItem *_parent{nullptr};
-  std::optional<QColor> _foreground{Qt::black};
-  std::optional<QColor> _background{Qt::white};
-  std::optional<QFont> _font;
+  std::optional<QColor> _foreground{std::nullopt};
+  std::optional<QColor> _background{std::nullopt};
+  std::optional<QFont> _font{std::nullopt};
   struct FontOverride {
     std::optional<bool> strikeout, bold, underline, italic;
     int weight;
