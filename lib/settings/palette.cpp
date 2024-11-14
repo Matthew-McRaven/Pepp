@@ -47,11 +47,13 @@ QJsonObject pepp::settings::Palette::toJson() {
   QJsonArray prefData;
 
   //  Save individual preferences to an array
-  for (const auto &p : _items) {
+  for (int it = 0; it < _items.size(); it++) {
+    auto p = _items[it];
     auto asJSON = p->toJson();
     if (auto parent = p->parent(); !parent) { // intentionally blank. negated to convert nested to chained if.
     } else if (auto role = itemToRole(parent); role != -1)
       asJSON["parent"] = PaletteRoleHelper::string(static_cast<PaletteRole>(role));
+    asJSON["name"] = PaletteRoleHelper::string(static_cast<PaletteRole>(it));
     prefData.append(asJSON);
   }
   doc["paletteItems"] = prefData;
