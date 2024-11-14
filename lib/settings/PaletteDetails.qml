@@ -90,7 +90,7 @@ Item {
                     enabled: !!root.paletteItem?.parent
                     checked: enabled && root.paletteItem?.hasOwnForeground
                     onCheckedChanged: {
-                        if (!checked && root.paletteItem)
+                        if (enabled && !checked && root.paletteItem)
                             root.paletteItem.clearForeground()
                     }
                 }
@@ -109,7 +109,7 @@ Item {
                     enabled: !!root.paletteItem?.parent
                     checked: enabled && root.paletteItem?.hasOwnBackground
                     onCheckedChanged: {
-                        if (!checked && root.paletteItem)
+                        if (enabled && !checked && root.paletteItem)
                             root.paletteItem.clearBackground()
                     }
                 }
