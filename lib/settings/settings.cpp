@@ -154,14 +154,38 @@ bool pepp::settings::SimulatorCategory::validateMaxStepbackBufferKB(int max) con
 
 pepp::settings::KeyMapCategory::KeyMapCategory(QObject *parent) : Category(parent) {}
 
-pepp::settings::AppSettings::AppSettings(QObject *parent) : QObject{parent} {
-  _categories.append(_general = new GeneralCategory(this));
-  _categories.append(_theme = new ThemeCategory(this));
-  _categories.append(_editor = new EditorCategory(this));
-  _categories.append(_simulator = new SimulatorCategory(this));
-  _categories.append(_keymap = new KeyMapCategory(this));
+pepp::settings::detail::AppSettingsData *pepp::settings::detail::AppSettingsData::getInstance() {
+  static auto data = new AppSettingsData();
+  return data;
 }
 
+pepp::settings::detail::AppSettingsData::AppSettingsData() {
+  // Naked new, but required to live lifetime of program so I don't care about leaks.
+  _categories.append(_general = new GeneralCategory(nullptr));
+  _categories.append(_theme = new ThemeCategory(nullptr));
+  _categories.append(_editor = new EditorCategory(nullptr));
+  _categories.append(_simulator = new SimulatorCategory(nullptr));
+  _categories.append(_keymap = new KeyMapCategory(nullptr));
+}
+
+pepp::settings::AppSettings::AppSettings(QObject *parent)
+    : QObject(parent), _data(detail::AppSettingsData::getInstance()) {
+  /*void defaultArchChanged();
+  void defaultAbstractionChanged();
+  void maxRecentFilesChanged();
+  void showMenuHotkeysChanged();
+  void showChangeDialogChanged();
+  QObject::connect(general(), &GeneralCategory::defaultArchChanged, this, &AppSettings::)*/
+}
+
+QList<pepp::settings::Category *> pepp::settings::AppSettings::categories() const { return _data->categories(); }
+pepp::settings::GeneralCategory *pepp::settings::AppSettings::general() const { return _data->general(); }
+pepp::settings::ThemeCategory *pepp::settings::AppSettings::theme() const { return _data->theme(); }
+pepp::settings::Palette *pepp::settings::AppSettings::themePalette() const { return _data->themePalette(); }
+pepp::settings::EditorCategory *pepp::settings::AppSettings::editor() const { return _data->editor(); }
+pepp::settings::SimulatorCategory *pepp::settings::AppSettings::simulator() const { return _data->simulator(); }
+pepp::settings::KeyMapCategory *pepp::settings::AppSettings::keymap() const { return _data->keymap(); }
+
 void pepp::settings::AppSettings::sync() {
-  for (auto category : _categories) category->sync();
+  for (auto category : categories()) category->sync();
 }

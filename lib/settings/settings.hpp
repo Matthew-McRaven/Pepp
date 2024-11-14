@@ -151,37 +151,63 @@ public:
   QString name() const override { return "Key Map"; };
 };
 
-class AppSettings : public QObject {
-  Q_OBJECT
-  Q_PROPERTY(QList<Category *> categories READ categories CONSTANT)
-  Q_PROPERTY(GeneralCategory general READ general CONSTANT)
-  Q_PROPERTY(ThemeCategory theme READ theme CONSTANT)
-  // alias to make access themeing take fewer keystrokes
-  Q_PROPERTY(pepp::settings::Palette *extPalette READ themePalette CONSTANT)
-  Q_PROPERTY(EditorCategory editor READ editor CONSTANT)
-  Q_PROPERTY(SimulatorCategory simulator READ simulator CONSTANT)
-  Q_PROPERTY(KeyMapCategory keymap READ keymap CONSTANT)
-  QML_NAMED_ELEMENT(NuAppSettings)
-  Q_CLASSINFO("DefaultProperty", "categories")
-
+namespace detail {
+class AppSettingsData {
 public:
-  explicit AppSettings(QObject *parent = nullptr);
+  static AppSettingsData *getInstance();
   QList<Category *> categories() const { return _categories; };
   GeneralCategory *general() const { return _general; };
-  ThemeCategory *theme() const { return _theme; }
-  pepp::settings::Palette *themePalette() const { return _theme->palette(); }
-  EditorCategory *editor() const { return _editor; }
-  SimulatorCategory *simulator() const { return _simulator; }
-  KeyMapCategory *keymap() const { return _keymap; }
-public slots:
-  void sync();
+  ThemeCategory *theme() const { return _theme; };
+  pepp::settings::Palette *themePalette() const { return _theme->palette(); };
+  EditorCategory *editor() const { return _editor; };
+  SimulatorCategory *simulator() const { return _simulator; };
+  KeyMapCategory *keymap() const { return _keymap; };
 
 private:
+  AppSettingsData();
   GeneralCategory *_general = nullptr;
   ThemeCategory *_theme = nullptr;
   EditorCategory *_editor = nullptr;
   SimulatorCategory *_simulator = nullptr;
   KeyMapCategory *_keymap = nullptr;
   QList<Category *> _categories;
+};
+
+} // namespace detail
+class AppSettings : public QObject {
+  Q_OBJECT
+  Q_PROPERTY(QList<Category *> categories READ categories NOTIFY categoriesChanged)
+  Q_PROPERTY(GeneralCategory general READ general NOTIFY generalChanged)
+  Q_PROPERTY(ThemeCategory theme READ theme NOTIFY themeChanged)
+  // alias to make access themeing take fewer keystrokes
+  Q_PROPERTY(pepp::settings::Palette *extPalette READ themePalette NOTIFY themePaletteChanged)
+  Q_PROPERTY(EditorCategory editor READ editor NOTIFY editorChanged)
+  Q_PROPERTY(SimulatorCategory simulator READ simulator NOTIFY simulatorChanged)
+  Q_PROPERTY(KeyMapCategory keymap READ keymap NOTIFY keymapChanged)
+  QML_NAMED_ELEMENT(NuAppSettings)
+  Q_CLASSINFO("DefaultProperty", "categories")
+
+public:
+  explicit AppSettings(QObject *parent = nullptr);
+  QList<Category *> categories() const;
+  GeneralCategory *general() const;
+  ThemeCategory *theme() const;
+  pepp::settings::Palette *themePalette() const;
+  EditorCategory *editor() const;
+  SimulatorCategory *simulator() const;
+  KeyMapCategory *keymap() const;
+public slots:
+  void sync();
+signals:
+  void categoriesChanged();
+  void generalChanged();
+  void themeChanged();
+  void themePaletteChanged();
+  void editorChanged();
+  void simulatorChanged();
+  void keymapChanged();
+
+private:
+  detail::AppSettingsData *_data = nullptr;
 };
 } // namespace pepp::settings
