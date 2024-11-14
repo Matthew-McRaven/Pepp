@@ -115,6 +115,103 @@ Item {
                 }
             }
         } // colorsGB
+        GroupBox {
+            id: fontGB
+            RowLayout {
+                Label {
+                    text: "Font "
+                }
+                Button {
+                    text: root.paletteItem?.font.family
+                    font: root.paletteItem?.font
+                    onPressed: {
+                        //  Open dialog and set properties.
+                        fontDialog.open()
+                        // Must explicitly update current font, because the binding is ignored.
+                        fontDialog.open()
+                        fontDialog.currentFont = root.paletteItem.font
+                        fontDialog.visible = true
+                    }
+                }
+                Button {
+                    text: "Reset to Parent"
+                    enabled: root.paletteItem?.parent
+                             && root.paletteItem?.hasOwnFont
+                    onPressed: {
+                        if (enabled)
+                            root.paletteItem.resetFont()
+                    }
+                }
+            }
+        } // fontGB
+
+        GroupBox {
+            id: fontOverrideGB
+            Layout.fillWidth: true
+            //  Groupbox label
+            label: GroupBoxLabel {
+                textColor: palette.windowText
+                backgroundColor: bg.color
+                text: "Font Overrides"
+                enabled: root.paletteItem ? !root.paletteItem.hasOwnFont : false
+            }
+            GridLayout {
+                id: layout
+                columns: 2
+                columnSpacing: 2
+                rowSpacing: 2
+                CheckBox {
+                    text: "Bold"
+                    enabled: root.paletteItem ? !root.paletteItem.hasOwnFont : false
+                    checked: root.paletteItem?.font.bold
+                    onCheckedChanged: {
+                        if (enabled)
+                            root.paletteItem.overrideBold(checked)
+                    }
+                }
+                CheckBox {
+                    text: "Italic"
+                    enabled: root.paletteItem ? !root.paletteItem.hasOwnFont : false
+                    checked: root.paletteItem?.font.italic
+                    onCheckedChanged: {
+                        if (enabled)
+                            root.paletteItem.overrideItalic(checked)
+                    }
+                }
+                CheckBox {
+                    text: "Underline"
+                    enabled: root.paletteItem ? !root.paletteItem.hasOwnFont : false
+                    checked: root.paletteItem?.font.underline
+                    onCheckedChanged: {
+                        if (enabled)
+                            root.paletteItem.overrideUnderline(checked)
+                    }
+                }
+                CheckBox {
+                    text: "Strikeout"
+                    enabled: root.paletteItem ? !root.paletteItem.hasOwnFont : false
+                    checked: root.paletteItem?.font.strikeout
+                    onCheckedChanged: {
+                        if (enabled)
+                            root.paletteItem.overrideStrikeout(checked)
+                    }
+                }
+                RowLayout {
+                    Layout.columnSpan: 2
+                    Label {
+                        text: "Size"
+                        enabled: root.paletteItem ? !root.paletteItem.hasOwnFont : false
+                    }
+                    SpinBox {
+                        id: sizeSB
+                        enabled: root.paletteItem ? !root.paletteItem.hasOwnFont : false
+                        value: root.paletteItem?.font.pixelSize
+                        from: 1
+                    }
+                }
+            } //  ColumnLayout
+        } // fontOverrideGB
+
         Item {
             Layout.fillHeight: true
         }
@@ -122,9 +219,9 @@ Item {
 
     Platform.FontDialog {
         id: fontDialog
-
+        currentFont: root.paletteItem.font
         onAccepted: {
-
+            root.paletteItem.font = font
         }
     }
     Platform.ColorDialog {

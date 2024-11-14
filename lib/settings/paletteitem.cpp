@@ -1,8 +1,6 @@
 #include "paletteitem.hpp"
 #include <QSet>
 
-pepp::settings::OverrideStateHelper::OverrideStateHelper(QObject *parent) : QObject(parent) {}
-
 pepp::settings::PaletteItem::PaletteItem(PreferenceOptions opts, QObject *parent) : QObject(parent) {
   // WTF to do with opts?
 }
@@ -17,6 +15,7 @@ void pepp::settings::PaletteItem::clearParent() {
     _foreground = _parent->foreground();
     _background = _parent->background();
     _font = _parent->font();
+    _fontOverrides = {};
   }
 
   _parent = nullptr;
@@ -83,73 +82,29 @@ void pepp::settings::PaletteItem::setFont(const QFont font) {
   emit preferenceChanged();
 }
 
-bool pepp::settings::PaletteItem::hasOwnForeground() const { return _foreground.has_value(); }
+bool pepp::settings::PaletteItem::hasOwnForeground() const { return !_parent || _foreground.has_value(); }
 
-bool pepp::settings::PaletteItem::hasOwnBackground() const { return _background.has_value(); }
+bool pepp::settings::PaletteItem::hasOwnBackground() const { return !_parent || _background.has_value(); }
 
-bool pepp::settings::PaletteItem::hasOwnFont() const { return _font.has_value(); }
+bool pepp::settings::PaletteItem::hasOwnFont() const { return !_parent || _font.has_value(); }
 
-pepp::settings::OverrideState pepp::settings::PaletteItem::boldOverride() const {
-  if (!_fontOverrides.bold) return OverrideState::Unset;
-  else if (_fontOverrides.bold.value()) return OverrideState::True;
-  else return OverrideState::False;
-}
-
-void pepp::settings::PaletteItem::setBoldOverride(OverrideState bold) {
-  if (bold == boldOverride()) return;
-  switch (bold) {
-  case OverrideStateHelper::OverrideState::True: _fontOverrides.bold = true; break;
-  case OverrideStateHelper::OverrideState::False: _fontOverrides.bold = false; break;
-  case OverrideStateHelper::OverrideState::Unset: _fontOverrides.bold.reset(); break;
-  }
+void pepp::settings::PaletteItem::overrideBold(bool bold) {
+  _fontOverrides.bold = bold;
   emit preferenceChanged();
 }
 
-pepp::settings::OverrideState pepp::settings::PaletteItem::italicOverride() const {
-  if (!_fontOverrides.italic) return OverrideState::Unset;
-  else if (_fontOverrides.italic.value()) return OverrideState::True;
-  else return OverrideState::False;
-}
-
-void pepp::settings::PaletteItem::setItalicOverride(OverrideState italic) {
-  if (italic == italicOverride()) return;
-  switch (italic) {
-  case OverrideStateHelper::OverrideState::True: _fontOverrides.italic = true; break;
-  case OverrideStateHelper::OverrideState::False: _fontOverrides.italic = false; break;
-  case OverrideStateHelper::OverrideState::Unset: _fontOverrides.italic.reset(); break;
-  }
+void pepp::settings::PaletteItem::overrideItalic(bool italic) {
+  _fontOverrides.italic = italic;
   emit preferenceChanged();
 }
 
-pepp::settings::OverrideState pepp::settings::PaletteItem::underlineOverride() const {
-  if (!_fontOverrides.underline) return OverrideState::Unset;
-  else if (_fontOverrides.underline.value()) return OverrideState::True;
-  else return OverrideState::False;
-}
-
-void pepp::settings::PaletteItem::setUnderlineOverride(OverrideState underline) {
-  if (underline == underlineOverride()) return;
-  switch (underline) {
-  case OverrideStateHelper::OverrideState::True: _fontOverrides.underline = true; break;
-  case OverrideStateHelper::OverrideState::False: _fontOverrides.underline = false; break;
-  case OverrideStateHelper::OverrideState::Unset: _fontOverrides.underline.reset(); break;
-  }
+void pepp::settings::PaletteItem::overrideUnderline(bool underline) {
+  _fontOverrides.underline = underline;
   emit preferenceChanged();
 }
 
-pepp::settings::OverrideState pepp::settings::PaletteItem::strikeoutOverride() const {
-  if (!_fontOverrides.strikeout) return OverrideState::Unset;
-  else if (_fontOverrides.strikeout.value()) return OverrideState::True;
-  else return OverrideState::False;
-}
-
-void pepp::settings::PaletteItem::setStrikeoutOverride(OverrideState strikeout) {
-  if (strikeout == strikeoutOverride()) return;
-  switch (strikeout) {
-  case OverrideStateHelper::OverrideState::True: _fontOverrides.strikeout = true; break;
-  case OverrideStateHelper::OverrideState::False: _fontOverrides.strikeout = false; break;
-  case OverrideStateHelper::OverrideState::Unset: _fontOverrides.strikeout.reset(); break;
-  }
+void pepp::settings::PaletteItem::overrideStrikeout(bool strikeout) {
+  _fontOverrides.strikeout = strikeout;
   emit preferenceChanged();
 }
 

@@ -5,22 +5,6 @@
 #include <QtQmlIntegration>
 
 namespace pepp::settings {
-class OverrideStateHelper : public QObject {
-  Q_GADGET
-  QML_NAMED_ELEMENT(OverrideState)
-  QML_UNCREATABLE("Error:Only enums")
-
-public:
-  enum class OverrideState : uint32_t {
-    True,
-    False,
-    Unset,
-  };
-  Q_ENUM(OverrideState)
-  OverrideStateHelper(QObject *parent = nullptr);
-};
-using OverrideState = OverrideStateHelper::OverrideState;
-
 class PaletteItem : public QObject {
   Q_OBJECT
   Q_PROPERTY(PaletteItem *parent READ parent WRITE setParent NOTIFY preferenceChanged)
@@ -30,10 +14,6 @@ class PaletteItem : public QObject {
   Q_PROPERTY(bool hasOwnForeground READ hasOwnForeground NOTIFY preferenceChanged)
   Q_PROPERTY(bool hasOwnBackground READ hasOwnBackground NOTIFY preferenceChanged)
   Q_PROPERTY(bool hasOwnFont READ hasOwnFont NOTIFY preferenceChanged)
-  Q_PROPERTY(OverrideState boldOverride READ boldOverride WRITE setBoldOverride NOTIFY preferenceChanged)
-  Q_PROPERTY(OverrideState italicOverride READ italicOverride WRITE setItalicOverride NOTIFY preferenceChanged)
-  Q_PROPERTY(OverrideState underlineOverride READ underlineOverride WRITE setUnderlineOverride NOTIFY preferenceChanged)
-  Q_PROPERTY(OverrideState strikeoutOverride READ strikeoutOverride WRITE setStrikeoutOverride NOTIFY preferenceChanged)
   QML_UNCREATABLE("")
   QML_ELEMENT
 
@@ -62,14 +42,10 @@ public:
   bool hasOwnForeground() const;
   bool hasOwnBackground() const;
   bool hasOwnFont() const;
-  OverrideState boldOverride() const;
-  void setBoldOverride(OverrideState bold);
-  OverrideState italicOverride() const;
-  void setItalicOverride(OverrideState italic);
-  OverrideState underlineOverride() const;
-  void setUnderlineOverride(OverrideState underline);
-  OverrideState strikeoutOverride() const;
-  void setStrikeoutOverride(OverrideState strikeout);
+  Q_INVOKABLE void overrideBold(bool bold);
+  Q_INVOKABLE void overrideItalic(bool italic);
+  Q_INVOKABLE void overrideUnderline(bool underline);
+  Q_INVOKABLE void overrideStrikeout(bool strikeout);
 
 signals:
   void fontChanged();
@@ -84,8 +60,8 @@ private:
   std::optional<QColor> _background{std::nullopt};
   std::optional<QFont> _font{std::nullopt};
   struct FontOverride {
-    std::optional<bool> strikeout, bold, underline, italic;
-    int weight;
+    std::optional<bool> strikeout{std::nullopt}, bold{std::nullopt}, underline{std::nullopt}, italic{std::nullopt};
+    std::optional<int> weight{std::nullopt};
   } _fontOverrides;
 };
 namespace detail {
