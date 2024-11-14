@@ -47,6 +47,8 @@ public:
   Q_INVOKABLE void overrideUnderline(bool underline);
   Q_INVOKABLE void overrideStrikeout(bool strikeout);
 
+  bool updateFromJson(const QJsonObject &json, PaletteItem *parent = nullptr);
+  QJsonObject toJson();
 signals:
   void fontChanged();
   void preferenceChanged();
@@ -66,9 +68,6 @@ private:
 };
 namespace detail {
 bool isAncestorOf(const PaletteItem *maybeAncestor, const PaletteItem *maybeDescendant);
-QJsonObject toJson();
-bool updateFromJson(const QJsonObject &json);
-static PaletteItem *fromJson(const QJsonObject &json);
 } // namespace detail
 
 } // namespace pepp::settings

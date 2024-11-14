@@ -37,9 +37,35 @@ pepp::settings::PaletteItem *pepp::settings::Palette::item(PaletteRole role) { r
 
 pepp::settings::PaletteItem *pepp::settings::Palette::item(PaletteRole role) const { return item((int)role); }
 
+QJsonObject pepp::settings::Palette::toJson() {
+  QJsonObject doc;
+
+  //  Save font structure to document
+  doc["name"] = "dummy";
+  doc["version"] = _version;
+
+  QJsonArray prefData;
+
+  //  Save individual preferences to an array
+  for (const auto &p : _items) {
+    auto asJSON = p->toJson();
+    if (auto parent = p->parent(); !parent) { // intentionally blank. negated to convert nested to chained if.
+    } else if (auto role = itemToRole(parent); role != -1)
+      asJSON["parent"] = PaletteRoleHelper::string(static_cast<PaletteRole>(role));
+    prefData.append(asJSON);
+  }
+  doc["paletteItems"] = prefData;
+
+  return doc;
+}
+
 pepp::settings::Palette::Palette(QObject *parent) : QObject(parent) {
   _items.resize(static_cast<int>(PaletteRole::Total));
   loadDefaults();
+  QFile f("X:/test.json");
+  f.open(QIODevice::WriteOnly);
+  f.write(QJsonDocument(toJson()).toJson());
+  f.close();
 }
 
 int pepp::settings::Palette::itemToRole(const PaletteItem *item) const {

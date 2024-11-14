@@ -101,6 +101,9 @@ public:
   PaletteItem *seqCircuit() const { return item(PaletteRole::SeqCircuitRole); }
   PaletteItem *circuitGreen() const { return item(PaletteRole::CircuitGreenRole); }
 
+  bool updateFromJson(const QJsonObject &json);
+  QJsonObject toJson();
+
 private:
   //  Dirty flag is cleared on save (a const function)
   mutable bool _isDirty{false};

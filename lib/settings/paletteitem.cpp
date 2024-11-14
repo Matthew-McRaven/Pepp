@@ -108,6 +108,33 @@ void pepp::settings::PaletteItem::overrideStrikeout(bool strikeout) {
   emit preferenceChanged();
 }
 
+bool pepp::settings::PaletteItem::updateFromJson(const QJsonObject &json, PaletteItem *parent) { return false; }
+
+QJsonObject pepp::settings::PaletteItem::toJson() {
+  QJsonObject prefData;
+  quint32 hex;
+  // We don't know how to convert our parent pointer to a enum, let Palette do this on our behalf.
+  if (hasOwnForeground()) {
+    hex = static_cast<qint64>(foreground().rgba());
+    prefData["foreground"] = QString("0x%1").arg(hex, 8, 16, QLatin1Char('0'));
+  }
+  if (hasOwnBackground()) {
+    hex = static_cast<qint64>(background().rgba());
+    prefData["background"] = QString("0x%1").arg(hex, 8, 16, QLatin1Char('0'));
+  }
+  if (hasOwnFont()) {
+    prefData["font"] = font().toString();
+  } else {
+    if (_fontOverrides.bold.has_value()) prefData["overrideBold"] = _fontOverrides.bold.value();
+    if (_fontOverrides.italic.has_value()) prefData["overrideItalic"] = _fontOverrides.italic.value();
+    if (_fontOverrides.underline.has_value()) prefData["overrideUnderline"] = _fontOverrides.underline.value();
+    if (_fontOverrides.strikeout.has_value()) prefData["overrideStrikeout"] = _fontOverrides.strikeout.value();
+    if (_fontOverrides.weight.has_value()) prefData["overrideWeight"] = _fontOverrides.weight.value();
+  }
+
+  return prefData;
+}
+
 void pepp::settings::PaletteItem::onParentChanged() { emit preferenceChanged(); }
 
 bool pepp::settings::detail::isAncestorOf(const PaletteItem *maybeAncestor, const PaletteItem *maybeDescendant) {
