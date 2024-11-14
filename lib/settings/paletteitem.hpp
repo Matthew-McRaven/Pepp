@@ -47,6 +47,7 @@ public:
   explicit PaletteItem(PreferenceOptions opts, QObject *parent = nullptr);
   PaletteItem *parent();
   const PaletteItem *parent() const;
+  Q_INVOKABLE void clearParent();
   // May fail if setting parent would induce a cycle in reltaionship graph.
   void setParent(PaletteItem *newParent);
   QColor foreground() const;

@@ -54,16 +54,12 @@ Item {
                     currentIndex: root.ePalette.itemToRole(
                                       root.paletteItem?.parent)
                 }
-                CheckBox {
-                    id: hasParent
-                    checked: !!(root.paletteItem?.parent)
-                    onCheckedChanged: {
-                        if (!checked)
-                            parentCombo.currentIndex = -1
+                Button {
+                    text: "Clear Parent"
+                    enabled: root.paletteItem?.parent
+                    onPressed: {
+                        root.paletteItem.clearParent()
                     }
-                }
-                Label {
-                    text: "Inherits from..."
                 }
             }
         } // parentGB

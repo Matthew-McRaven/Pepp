@@ -11,12 +11,18 @@ pepp::settings::PaletteItem *pepp::settings::PaletteItem::parent() { return _par
 
 const pepp::settings::PaletteItem *pepp::settings::PaletteItem::parent() const { return _parent; }
 
+void pepp::settings::PaletteItem::clearParent() {
+  if (_parent) QObject::disconnect(_parent, &PaletteItem::preferenceChanged, this, &PaletteItem::onParentChanged);
+  _parent = nullptr;
+  emit preferenceChanged();
+}
+
 void pepp::settings::PaletteItem::setParent(PaletteItem *newParent) {
   if (newParent == _parent) return;
   else if (detail::isAncestorOf(this, newParent)) return;
-  QObject::disconnect(_parent, &PaletteItem::preferenceChanged, this, &PaletteItem::onParentChanged);
+  if (_parent) QObject::disconnect(_parent, &PaletteItem::preferenceChanged, this, &PaletteItem::onParentChanged);
   _parent = newParent;
-  QObject::connect(_parent, &PaletteItem::preferenceChanged, this, &PaletteItem::onParentChanged);
+  if (newParent) QObject::connect(_parent, &PaletteItem::preferenceChanged, this, &PaletteItem::onParentChanged);
   emit preferenceChanged();
 }
 
