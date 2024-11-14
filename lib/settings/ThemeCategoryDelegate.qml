@@ -11,13 +11,15 @@ Rectangle {
     id: root
     implicitHeight: childrenRect.height
     implicitWidth: childrenRect.width
+    NuAppSettings {
+        id: settings
+    }
+
     PaletteFilterModel {
         id: paletteModel
         category: root.activeCategory
         sourceModel: PaletteModel {
-            palette: ExtendedPalette {
-                id: extendedPalette
-            }
+            palette: settings.extPalette
         }
     }
     ColumnLayout {
@@ -99,7 +101,7 @@ Rectangle {
             }
             PaletteDetails {
                 id: modifyArea
-                ePalette: extendedPalette
+                ePalette: settings.extPalette
                 paletteRole: listView.currentItem?.paletteRole
                 paletteItem: listView.currentItem?.paletteItem
                 Layout.fillHeight: true
