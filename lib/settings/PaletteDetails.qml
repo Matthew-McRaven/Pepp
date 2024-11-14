@@ -78,7 +78,7 @@ Item {
                 text: "Colors"
             }
             GridLayout {
-                columns: 4
+                columns: 3
                 Label {
                     text: "Foreground"
                 }
@@ -89,15 +89,12 @@ Item {
                 CheckBox {
                     id: fgCheck
                     enabled: !!root.paletteItem?.parent
+                    text: !root.paletteItem?.parent ? "Using own value" : (checked ? "Overriding parent value" : "Using parent value")
                     checked: enabled && root.paletteItem?.hasOwnForeground
                     onCheckedChanged: {
                         if (enabled && !checked && root.paletteItem)
                             root.paletteItem.clearForeground()
                     }
-                }
-                Label {
-                    text: !root.paletteItem?.parent ? "Using own value" : (fgCheck.checked ? "Overriding parent value" : "Using parent value")
-                    enabled: root.paletteItem?.parent
                 }
                 Label {
                     text: "Background"
@@ -109,15 +106,12 @@ Item {
                 CheckBox {
                     id: bgCheck
                     enabled: !!root.paletteItem?.parent
+                    text: !root.paletteItem?.parent ? "Using own value" : (checked ? "Overriding parent value" : "Using parent value")
                     checked: enabled && root.paletteItem?.hasOwnBackground
                     onCheckedChanged: {
                         if (enabled && !checked && root.paletteItem)
                             root.paletteItem.clearBackground()
                     }
-                }
-                Label {
-                    text: !root.paletteItem?.parent ? "Using own value" : (bgCheck.checked ? "Overriding parent value" : "Using parent value")
-                    enabled: root.paletteItem?.parent
                 }
             }
         } // colorsGB
