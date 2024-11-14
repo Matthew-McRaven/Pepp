@@ -9,6 +9,10 @@ Rectangle {
     implicitHeight: layout.childrenRect.height
     implicitWidth: layout.childrenRect.width
     clip: true
+    NuAppSettings {
+        id: settings
+    }
+
     RowLayout {
         id: layout
         anchors.fill: parent
@@ -18,7 +22,7 @@ Rectangle {
             Layout.preferredWidth: categoryList.contentWidth
             Layout.fillHeight: true
             Layout.margins: 3
-            model: AppSettings.categories
+            model: settings.categories
             onCurrentCategoryChanged: {
                 const props = {
                     "category": categoryList.currentCategory

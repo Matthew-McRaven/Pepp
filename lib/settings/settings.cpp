@@ -101,7 +101,10 @@ bool pepp::settings::GeneralCategory::validateMaxRecentFiles(int max) const {
   return true;
 }
 
-pepp::settings::ThemeCategory::ThemeCategory(QObject *parent) : Category(parent) {}
+pepp::settings::ThemeCategory::ThemeCategory(QObject *parent) : Category(parent) {
+  // TODO: load last selected theme from disk and bind to _palette.
+  _palette = new Palette(this);
+}
 
 pepp::settings::EditorCategory::EditorCategory(QObject *parent) : Category(parent) {}
 

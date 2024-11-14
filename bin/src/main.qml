@@ -40,41 +40,43 @@ ApplicationWindow {
     height: 1080
     visible: true
     title: qsTr("Pepp IDE")
+    // Compiler keeps identifying this as a singleton, but it is not.
+    NuAppSettings {
+        id: settings
+    }
 
     //  Set palette in parent. Inherited by all children
     /*  See https://doc.qt.io/qt-6/qml-qtquick-colorgroup.html for color explanation*/
-
-    /*palette {
-        alternateBase: Theme.alternateBase.background
-        base: Theme.base.background
-        text: Theme.base.foreground
-        button: Theme.button.background
-        buttonText: Theme.button.foreground
-        highlight: Theme.highlight.background
-        highlightedText: Theme.highlight.foreground
-        toolTipBase: Theme.tooltip.background
-        toolTipText: Theme.tooltip.foreground
-        window: Theme.window.background
-        windowText: Theme.window.foreground
-
-        accent: Theme.accent.background
-        light: Theme.light.background
-        midlight: Theme.midlight.background
-        mid: Theme.mid.background
-        dark: Theme.dark.background
-        shadow: Theme.shadow.background
-        link: Theme.link.foreground
-        linkVisited: Theme.linkVisited.foreground
-        brightText: Theme.brightText.foreground
-        placeholderText: Theme.placeholderText.foreground
-
+    palette {
+        alternateBase: settings.extPalette.alternateBase.background
+        base: settings.extPalette.base.background
+        text: settings.extPalette.base.foreground
+        button: settings.extPalette.button.background
+        buttonText: settings.extPalette.button.foreground
+        highlight: settings.extPalette.highlight.background
+        highlightedText: settings.extPalette.highlight.foreground
+        toolTipBase: settings.extPalette.tooltip.background
+        toolTipText: settings.extPalette.tooltip.foreground
+        window: settings.extPalette.window.background
+        windowText: settings.extPalette.window.foreground
+        accent: settings.extPalette.accent.background
+        light: settings.extPalette.light.background
+        midlight: settings.extPalette.midlight.background
+        mid: settings.extPalette.mid.background
+        dark: settings.extPalette.dark.background
+        shadow: settings.extPalette.shadow.background
+        link: settings.extPalette.link.foreground
+        linkVisited: settings.extPalette.linkVisited.foreground
+        brightText: settings.extPalette.brightText.foreground
+        placeholderText: settings.extPalette.placeholderText.foreground
         //  Colors when control is disabled. Overrides normal palette
         disabled {
-            highlight: Theme.window.background
-            buttonText: Theme.shadow.foreground
-            button: Theme.base.background
+            highlight: settings.extPalette.window.background
+            buttonText: settings.extPalette.shadow.foreground
+            button: settings.extPalette.base.background
         }
-    }*/
+    }
+
     property var currentProject: null
     // Used to expose actions to inner area.
     property var actionRef: actions

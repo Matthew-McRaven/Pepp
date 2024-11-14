@@ -1,6 +1,7 @@
 #include <QObject>
 #include <QtQmlIntegration>
 #include "builtins/constants.hpp"
+#include "palette.hpp"
 
 class QJSEngine;
 class QQmlEngine;
@@ -77,11 +78,16 @@ class ThemeCategory : public Category {
   Q_OBJECT
   QML_UNCREATABLE("")
   QML_NAMED_ELEMENT(ThemeCategory)
+  Q_PROPERTY(pepp::settings::Palette *palette READ palette CONSTANT)
 
 public:
   explicit ThemeCategory(QObject *parent = nullptr);
   QString name() const override { return "Fonts & Colors"; };
   QString source() const override { return "ThemeCategoryDelegate.qml"; };
+  pepp::settings::Palette *palette() const { return _palette; };
+
+private:
+  pepp::settings::Palette *_palette = nullptr;
 };
 
 class EditorCategory : public Category {
@@ -150,11 +156,12 @@ class AppSettings : public QObject {
   Q_PROPERTY(QList<Category *> categories READ categories CONSTANT)
   Q_PROPERTY(GeneralCategory general READ general CONSTANT)
   Q_PROPERTY(ThemeCategory theme READ theme CONSTANT)
+  // alias to make access themeing take fewer keystrokes
+  Q_PROPERTY(pepp::settings::Palette *extPalette READ themePalette CONSTANT)
   Q_PROPERTY(EditorCategory editor READ editor CONSTANT)
   Q_PROPERTY(SimulatorCategory simulator READ simulator CONSTANT)
   Q_PROPERTY(KeyMapCategory keymap READ keymap CONSTANT)
-  QML_SINGLETON
-  QML_NAMED_ELEMENT(AppSettings)
+  QML_NAMED_ELEMENT(NuAppSettings)
   Q_CLASSINFO("DefaultProperty", "categories")
 
 public:
@@ -162,6 +169,7 @@ public:
   QList<Category *> categories() const { return _categories; };
   GeneralCategory *general() const { return _general; };
   ThemeCategory *theme() const { return _theme; }
+  pepp::settings::Palette *themePalette() const { return _theme->palette(); }
   EditorCategory *editor() const { return _editor; }
   SimulatorCategory *simulator() const { return _simulator; }
   KeyMapCategory *keymap() const { return _keymap; }

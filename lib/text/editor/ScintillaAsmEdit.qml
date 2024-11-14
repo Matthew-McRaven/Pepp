@@ -13,6 +13,10 @@ import edu.pepp 1.0 as Pepp
 
 Item {
     id: root
+    NuAppSettings {
+        id: settings
+    }
+
     signal editingFinished(string text)
     Component.onCompleted: {
         editor.onActiveFocusChanged.connect(function () {
@@ -97,7 +101,7 @@ Item {
 
         Accessible.role: Accessible.EditableText
         focus: true
-        theme: Theme
+        theme: settings.extPalette
         lineNumbersVisible: true
     }
     ScrollBar {
