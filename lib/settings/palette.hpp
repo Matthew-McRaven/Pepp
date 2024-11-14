@@ -63,7 +63,7 @@ public:
 
   PaletteItem *item(int role);
   PaletteItem *item(int role) const;
-  PaletteItem *item(PaletteRole role);
+  Q_INVOKABLE PaletteItem *item(PaletteRole role);
   PaletteItem *item(PaletteRole role) const;
 
   // General

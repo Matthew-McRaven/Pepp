@@ -53,6 +53,10 @@ Item {
                     valueRole: "id"
                     currentIndex: root.ePalette.itemToRole(
                                       root.paletteItem?.parent)
+                    onActivated: {
+                        const parent = root.ePalette.item(currentIndex)
+                        root.paletteItem.parent = parent
+                    }
                 }
                 Button {
                     text: "Clear Parent"
@@ -83,7 +87,8 @@ Item {
                     color: root.paletteItem?.foreground ?? "white"
                 }
                 CheckBox {
-                    checked: root.paletteItem?.hasOwnForeground ?? false
+                    enabled: !!root.paletteItem?.parent
+                    checked: enabled && root.paletteItem?.hasOwnForeground
                     onCheckedChanged: {
                         if (!checked && root.paletteItem)
                             root.paletteItem.clearForeground()
@@ -91,6 +96,7 @@ Item {
                 }
                 Label {
                     text: "Override parent"
+                    enabled: root.paletteItem?.parent
                 }
                 Label {
                     text: "Background"
@@ -100,7 +106,8 @@ Item {
                     color: root.paletteItem?.background ?? "black"
                 }
                 CheckBox {
-                    checked: root.paletteItem?.hasOwnBackground ?? false
+                    enabled: !!root.paletteItem?.parent
+                    checked: enabled && root.paletteItem?.hasOwnBackground
                     onCheckedChanged: {
                         if (!checked && root.paletteItem)
                             root.paletteItem.clearBackground()
@@ -108,6 +115,7 @@ Item {
                 }
                 Label {
                     text: "Override parent"
+                    enabled: root.paletteItem?.parent
                 }
             }
         } // colorsGB
