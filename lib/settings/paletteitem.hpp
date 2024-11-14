@@ -20,9 +20,9 @@ class PaletteItem : public QObject {
 public:
   struct PreferenceOptions {
     PaletteItem *parent = nullptr;
-    QColor fg = Qt::black;
-    QColor bg = Qt::white;
-    QFont font;
+    std::optional<QColor> fg{std::nullopt};
+    std::optional<QColor> bg{std::nullopt};
+    std::optional<QFont> font{std::nullopt};
   };
   explicit PaletteItem(PreferenceOptions opts, QObject *parent = nullptr);
   PaletteItem *parent();

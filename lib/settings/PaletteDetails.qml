@@ -60,7 +60,7 @@ Item {
                 }
                 Button {
                     text: "Clear Parent"
-                    enabled: root.paletteItem?.parent
+                    enabled: root.paletteItem?.parent ?? false
                     onPressed: {
                         root.paletteItem.clearParent()
                     }
@@ -135,8 +135,8 @@ Item {
                 }
                 Button {
                     text: "Reset to Parent"
-                    enabled: root.paletteItem?.parent
-                             && root.paletteItem?.hasOwnFont
+                    enabled: (root.paletteItem?.parent
+                              && root.paletteItem?.hasOwnFont) ?? false
                     onPressed: {
                         if (enabled)
                             root.paletteItem.resetFont()
@@ -163,7 +163,7 @@ Item {
                 CheckBox {
                     text: "Bold"
                     enabled: root.paletteItem ? !root.paletteItem.hasOwnFont : false
-                    checked: root.paletteItem?.font.bold
+                    checked: root.paletteItem?.font.bold ?? false
                     onCheckedChanged: {
                         if (enabled)
                             root.paletteItem.overrideBold(checked)
@@ -172,7 +172,7 @@ Item {
                 CheckBox {
                     text: "Italic"
                     enabled: root.paletteItem ? !root.paletteItem.hasOwnFont : false
-                    checked: root.paletteItem?.font.italic
+                    checked: root.paletteItem?.font.italic ?? false
                     onCheckedChanged: {
                         if (enabled)
                             root.paletteItem.overrideItalic(checked)
@@ -181,7 +181,7 @@ Item {
                 CheckBox {
                     text: "Underline"
                     enabled: root.paletteItem ? !root.paletteItem.hasOwnFont : false
-                    checked: root.paletteItem?.font.underline
+                    checked: root.paletteItem?.font.underline ?? false
                     onCheckedChanged: {
                         if (enabled)
                             root.paletteItem.overrideUnderline(checked)
@@ -190,7 +190,7 @@ Item {
                 CheckBox {
                     text: "Strikeout"
                     enabled: root.paletteItem ? !root.paletteItem.hasOwnFont : false
-                    checked: root.paletteItem?.font.strikeout
+                    checked: root.paletteItem?.font.strikeout ?? false
                     onCheckedChanged: {
                         if (enabled)
                             root.paletteItem.overrideStrikeout(checked)
@@ -205,7 +205,7 @@ Item {
                     SpinBox {
                         id: sizeSB
                         enabled: root.paletteItem ? !root.paletteItem.hasOwnFont : false
-                        value: root.paletteItem?.font.pixelSize
+                        value: root.paletteItem?.font.pixelSize ?? 12
                         from: 1
                     }
                 }
@@ -219,7 +219,11 @@ Item {
 
     Platform.FontDialog {
         id: fontDialog
-        currentFont: root.paletteItem.font
+        // Hack to create a default font.
+        TextMetrics {
+            id: defaultFont
+        }
+        currentFont: root.paletteItem?.font ?? defaultFont.font
         onAccepted: {
             root.paletteItem.font = font
         }

@@ -28,8 +28,8 @@ public:
     PlaceHolderTextRole,
 
     //  Editor enums
-    SymbolRole,
     MnemonicRole,
+    SymbolRole,
     DirectiveRole,
     MacroRole,
     CharacterRole,

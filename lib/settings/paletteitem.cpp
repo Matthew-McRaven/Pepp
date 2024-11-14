@@ -2,7 +2,10 @@
 #include <QSet>
 
 pepp::settings::PaletteItem::PaletteItem(PreferenceOptions opts, QObject *parent) : QObject(parent) {
-  // WTF to do with opts?
+  if (opts.parent) _parent = opts.parent;
+  if (opts.fg.has_value()) _foreground = opts.fg;
+  if (opts.bg.has_value()) _background = opts.bg;
+  if (opts.font.has_value()) _font = opts.font;
 }
 
 pepp::settings::PaletteItem *pepp::settings::PaletteItem::parent() { return _parent; }

@@ -110,7 +110,7 @@ private:
   static const int _version{8};
   QList<PaletteItem *> _items;
 
-  void loadDefaults();
+  void loadLightDefaults();
 };
 
 } // namespace pepp::settings
