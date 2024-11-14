@@ -12,7 +12,13 @@ pepp::settings::PaletteItem *pepp::settings::PaletteItem::parent() { return _par
 const pepp::settings::PaletteItem *pepp::settings::PaletteItem::parent() const { return _parent; }
 
 void pepp::settings::PaletteItem::clearParent() {
-  if (_parent) QObject::disconnect(_parent, &PaletteItem::preferenceChanged, this, &PaletteItem::onParentChanged);
+  if (_parent) {
+    QObject::disconnect(_parent, &PaletteItem::preferenceChanged, this, &PaletteItem::onParentChanged);
+    _foreground = _parent->foreground();
+    _background = _parent->background();
+    _font = _parent->font();
+  }
+
   _parent = nullptr;
   emit preferenceChanged();
 }
