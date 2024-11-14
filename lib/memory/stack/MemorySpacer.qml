@@ -5,6 +5,7 @@ Rectangle {
     id: wrapper
     property double ellipsisSize: 5
     property alias ellipsisHeight: ellipsis.implicitHeight
+    property bool hidden: false
 
     Column {
         id: ellipsis
@@ -13,19 +14,19 @@ Rectangle {
         Rectangle {
             width: ellipsisSize
             height: ellipsisSize
-            color: palette.text
+            color: hidden ? "transparent" : palette.text
             radius: 180
         }
         Rectangle {
             width: ellipsisSize
             height: ellipsisSize
-            color: palette.text
+            color: hidden ? "transparent" : palette.text
             radius: 180
         }
         Rectangle {
             width: ellipsisSize
             height: ellipsisSize
-            color: palette.text
+            color: hidden ? "transparent" : palette.text
             radius: 180
         }
     }
