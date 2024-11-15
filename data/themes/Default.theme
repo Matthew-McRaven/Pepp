@@ -1,330 +1,167 @@
 {
-    "font": {
-        "familyName": "Courier Prime",
-        "points": 12
-    },
     "name": "Default",
-    "preferences": [
+    "paletteItems": [
         {
             "background": "0xffffffff",
-            "bold": false,
+            "font": "Segoe UI,9,-1,5,400,0,0,0,0,0,0,0,0,0,0,1",
             "foreground": "0xff000000",
-            "id": "BaseRole",
-            "italics": false,
-            "name": "Base Text/Background",
-            "parent": 0,
-            "strikeOut": false,
-            "underline": false
+            "name": "BaseRole"
         },
         {
             "background": "0xffeeeeee",
-            "bold": false,
             "foreground": "0xff0f0f0f",
-            "id": "WindowRole",
-            "italics": false,
-            "name": "Window Text/Background",
-            "parent": 0,
-            "strikeOut": false,
-            "underline": false
+            "name": "WindowRole",
+            "parent": "BaseRole"
         },
         {
             "background": "0xfff0f0f0",
-            "bold": false,
-            "foreground": "0xff000000",
-            "id": "ButtonRole",
-            "italics": false,
-            "name": "Button Text/Background",
-            "parent": 0,
-            "strikeOut": false,
-            "underline": false
+            "name": "ButtonRole",
+            "parent": "BaseRole"
         },
         {
             "background": "0xff0078d7",
-            "bold": false,
             "foreground": "0xffffffff",
-            "id": "HighlightRole",
-            "italics": false,
-            "name": "Highlight Text/Background",
-            "parent": 0,
-            "strikeOut": false,
-            "underline": false
+            "name": "HighlightRole",
+            "parent": "BaseRole"
         },
         {
             "background": "0xffffffdc",
-            "bold": false,
-            "foreground": "0xff000000",
-            "id": "TooltipRole",
-            "italics": false,
-            "name": "Tooltip Text/Background",
-            "parent": 0,
-            "strikeOut": false,
-            "underline": false
+            "name": "TooltipRole",
+            "parent": "BaseRole"
         },
         {
-            "background": "0xffa0a0a0",
-            "bold": false,
+            "background": "0xff0a0a0a",
             "foreground": "0xff7f7f7f",
-            "id": "AlternateBaseRole",
-            "italics": false,
-            "name": "AlternateBase Background",
-            "parent": 0,
-            "strikeOut": false,
-            "underline": false
+            "name": "AlternateBaseRole",
+            "parent": "BaseRole"
         },
         {
-            "background": "0xff0078d7",
-            "bold": false,
-            "foreground": "0xffffffff",
-            "id": "AccentRole",
-            "italics": false,
-            "name": "Accent Background",
-            "parent": 0,
-            "strikeOut": false,
-            "underline": false
+            "name": "AccentRole",
+            "parent": "HighlightRole"
         },
         {
-            "background": "0xffffffff",
-            "bold": false,
             "foreground": "0xff0000ff",
-            "id": "LightRole",
-            "italics": false,
-            "name": "Light Background",
-            "parent": 0,
-            "strikeOut": false,
-            "underline": false
+            "name": "LightRole",
+            "parent": "BaseRole"
         },
         {
             "background": "0xffe3e3e3",
-            "bold": false,
-            "foreground": "0xff000000",
-            "id": "MidLightRole",
-            "italics": false,
-            "name": "Midlight Background",
-            "parent": 0,
-            "strikeOut": false,
-            "underline": false
+            "name": "MidLightRole",
+            "parent": "BaseRole"
         },
         {
-            "background": "0xffa0a0a0",
-            "bold": false,
             "foreground": "0xfff0f0f0",
-            "id": "MidRole",
-            "italics": false,
-            "name": "Mid Background",
-            "parent": 0,
-            "strikeOut": false,
-            "underline": false
+            "name": "MidRole",
+            "parent": "AlternateBaseRole"
         },
         {
-            "background": "0xffa0a0a0",
-            "bold": false,
             "foreground": "0xfff0f0f0",
-            "id": "DarkRole",
-            "italics": false,
-            "name": "Dark Background",
-            "parent": 0,
-            "strikeOut": false,
-            "underline": false
+            "name": "DarkRole",
+            "parent": "AlternateBaseRole"
         },
         {
             "background": "0xff696969",
-            "bold": false,
-            "foreground": "0xffffffff",
-            "id": "ShadowRole",
-            "italics": false,
-            "name": "Shadow Background",
-            "parent": 0,
-            "strikeOut": false,
-            "underline": false
+            "name": "ShadowRole",
+            "parent": "HighlightRole"
         },
         {
-            "background": "0xffffffff",
-            "bold": false,
             "foreground": "0xff0078d7",
-            "id": "LinkRole",
-            "italics": false,
-            "name": "Link Text",
-            "parent": 0,
-            "strikeOut": false,
-            "underline": false
+            "name": "LinkRole",
+            "parent": "HighlightRole"
         },
         {
-            "background": "0xffffffff",
-            "bold": false,
             "foreground": "0xff7840a0",
-            "id": "LinkVisitedRole",
-            "italics": false,
-            "name": "Link Visited Text",
-            "parent": 0,
-            "strikeOut": false,
-            "underline": false
+            "name": "LinkVisitedRole",
+            "parent": "LinkRole"
         },
         {
             "background": "0xffa0a0a0",
-            "bold": false,
-            "foreground": "0xffffffff",
-            "id": "BrightTextRole",
-            "italics": false,
-            "name": "Bright Text",
-            "parent": 0,
-            "strikeOut": false,
-            "underline": false
+            "name": "BrightTextRole",
+            "parent": "HighlightRole"
         },
         {
-            "background": "0xffffffff",
-            "bold": false,
             "foreground": "0xff7f7f7f",
-            "id": "PlaceHolderTextRole",
-            "italics": false,
-            "name": "Placeholder Text",
-            "parent": 0,
-            "strikeOut": false,
-            "underline": false
+            "name": "PlaceHolderTextRole",
+            "parent": "HighlightRole"
         },
         {
             "background": "0xffffffff",
-            "bold": false,
+            "font": "Courier Prime,12,-1,5,400,0,0,0,0,0,0,0,0,0,0,1",
+            "foreground": "0xff2540bd",
+            "name": "MnemonicRole",
+            "parent": "BaseRole"
+        },
+        {
+            "background": "0xffffffff",
             "foreground": "0xffb67bbc",
-            "id": "SymbolRole",
-            "italics": false,
-            "name": "Symbol",
-            "parent": 0,
-            "strikeOut": false,
-            "underline": false
+            "name": "SymbolRole",
+            "overrideBold": true,
+            "parent": "MnemonicRole"
+        },
+        {
+            "name": "DirectiveRole",
+            "parent": "MnemonicRole"
+        },
+        {
+            "name": "MacroRole",
+            "overrideBold": false,
+            "overrideItalic": true,
+            "parent": "MnemonicRole"
         },
         {
             "background": "0xffffffff",
-            "bold": true,
-            "foreground": "0xff2540bd",
-            "id": "MnemonicRole",
-            "italics": false,
-            "name": "Mnemonic",
-            "parent": 0,
-            "strikeOut": false,
-            "underline": false
-        },
-        {
-            "background": "0xffffffff",
-            "bold": true,
-            "foreground": "0xff2540bd",
-            "id": "DirectiveRole",
-            "italics": false,
-            "name": "Directive",
-            "parent": 0,
-            "strikeOut": false,
-            "underline": false
-        },
-        {
-            "background": "0xffffffff",
-            "bold": false,
-            "foreground": "0xff2540bd",
-            "id": "MacroRole",
-            "italics": true,
-            "name": "Macro",
-            "parent": 0,
-            "strikeOut": false,
-            "underline": false
-        },
-        {
-            "background": "0xffffffff",
-            "bold": false,
             "foreground": "0xffff4500",
-            "id": "CharacterRole",
-            "italics": false,
-            "name": "Character",
-            "parent": 0,
-            "strikeOut": false,
-            "underline": false
+            "name": "CharacterRole",
+            "overrideBold": false,
+            "parent": "MnemonicRole"
+        },
+        {
+            "name": "StringRole",
+            "parent": "CharacterRole"
         },
         {
             "background": "0xffffffff",
-            "bold": false,
-            "foreground": "0xffff4500",
-            "id": "StringRole",
-            "italics": false,
-            "name": "String",
-            "parent": 0,
-            "strikeOut": false,
-            "underline": false
-        },
-        {
-            "background": "0xffffffff",
-            "bold": false,
             "foreground": "0xff66a333",
-            "id": "CommentRole",
-            "italics": false,
-            "name": "Comment",
-            "parent": 0,
-            "strikeOut": false,
-            "underline": false
+            "name": "CommentRole",
+            "overrideBold": false,
+            "parent": "MnemonicRole"
         },
         {
-            "background": "0xffffffff",
-            "bold": false,
             "foreground": "0xff666666",
-            "id": "RowNumberRole",
-            "italics": true,
-            "name": "Row Number",
-            "parent": 0,
-            "strikeOut": true,
-            "underline": false
+            "name": "RowNumberRole",
+            "parent": "BaseRole"
         },
         {
             "background": "0xffffaa00",
-            "bold": true,
-            "foreground": "0xff000000",
-            "id": "BreakpointRole",
-            "italics": false,
-            "name": "Breakpoint",
-            "parent": 0,
-            "strikeOut": true,
-            "underline": false
+            "name": "BreakpointRole",
+            "parent": "BaseRole"
         },
         {
             "background": "0xffff0000",
-            "bold": false,
             "foreground": "0xff000000",
-            "id": "ErrorRole",
-            "italics": false,
-            "name": "Error",
-            "parent": 0,
-            "strikeOut": false,
-            "underline": false
+            "name": "ErrorRole",
+            "parent": "CommentRole"
         },
         {
             "background": "0xffffffe0",
-            "bold": false,
             "foreground": "0xff000000",
-            "id": "WarningRole",
-            "italics": false,
-            "name": "Warning",
-            "parent": 0,
-            "strikeOut": false,
-            "underline": false
+            "name": "WarningRole",
+            "parent": "CommentRole"
         },
         {
             "background": "0xff04ab0a",
-            "bold": false,
             "foreground": "0xffffff00",
-            "id": "SeqCircuitRole",
-            "italics": true,
-            "name": "SeqCircuit",
-            "parent": 0,
-            "strikeOut": false,
-            "underline": false
+            "name": "SeqCircuitRole",
+            "overrideBold": false,
+            "parent": "MnemonicRole"
         },
         {
             "background": "0xffffe1ff",
-            "bold": false,
             "foreground": "0xff0000ff",
-            "id": "CircuitGreenRole",
-            "italics": false,
-            "name": "Green Circuit",
-            "parent": 0,
-            "strikeOut": false,
-            "underline": true
+            "name": "CircuitGreenRole",
+            "overrideBold": false,
+            "parent": "MnemonicRole"
         }
     ],
-    "system": true,
-    "version": 7
+    "version": 8
 }
