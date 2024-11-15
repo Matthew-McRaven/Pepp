@@ -11,12 +11,23 @@ Item {
     property alias font: info.font
     property bool isCurrentItem: ListView.isCurrentItem
     // Moved before text so that Rectangle will be below Text by default.
-    MouseArea {
+    Item {
         anchors.fill: parent
-        onClicked: {
+        function doOnClick() {
             listView.currentIndex = row
             listView.forceActiveFocus()
         }
+        // Nested inside item so that we don't cause a polish loop by changing our width.
+        MouseArea {
+            anchors {
+                top: parent.top
+                bottom: parent.bottom
+                left: parent.left
+            }
+            width: wrapper.ListView.view.width
+            onClicked: parent.doOnClick()
+        }
+
         // Dear future progammer, this is a hack. I want all rectangles to have the same width, but since I am autosizing based
         // off of listView.contentItem.childrenRect there are binding loops on implicitWidth.The simplest solution is to
         // make rectangle not be a child of the ListView.contentItem, using nesting such as this.
@@ -42,7 +53,7 @@ Item {
     Text {
         id: info
         anchors.left: wrapper.left
-        text: name
+        text: wrapper.name
         color: palette.windowText
         // Prevent text from clipping higlight rectangle
         leftPadding: 4 * fill.border.width
