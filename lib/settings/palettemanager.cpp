@@ -76,7 +76,7 @@ void pepp::settings::PaletteManager::loadFrom(QString directory) {
 
     QString name{};
     if (auto namePtr = doc["name"]; namePtr.isString()) name = namePtr.toString();
-    else name = file.fileName();
+    else name = file.completeBaseName();
 
     _palettes.append({.name = name, .path = file.absoluteFilePath(), .isSystem = !file.isWritable()});
   }
