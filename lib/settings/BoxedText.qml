@@ -6,6 +6,9 @@ Item {
     implicitHeight: info.height
     required property string name
     required property int row
+    property alias bgColor: fill.color
+    property alias fgColor: info.color
+    property alias font: info.font
     property bool isCurrentItem: ListView.isCurrentItem
     // Moved before text so that Rectangle will be below Text by default.
     MouseArea {

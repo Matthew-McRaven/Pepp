@@ -97,6 +97,9 @@ Rectangle {
                     required property var paletteRole
                     required property var paletteItem
                     name: display
+                    bgColor: paletteItem?.background ?? "transparent"
+                    fgColor: paletteItem?.foreground ?? "black"
+                    font: paletteItem?.font ?? "Courier Prime"
                 }
             }
             PaletteDetails {
