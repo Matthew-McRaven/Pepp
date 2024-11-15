@@ -16,7 +16,7 @@ QString pepp::settings::CategoryHelper::string(PaletteCategory cat) const {
 
 enum Ranges : uint32_t {
   GeneralCategoryStart = (uint32_t)pepp::settings::PaletteRole::BaseRole,
-  GeneralCategoryEnd = (uint32_t)pepp::settings::PaletteRole::SymbolRole,
+  GeneralCategoryEnd = (uint32_t)pepp::settings::PaletteRole::MnemonicRole,
   EditorCategoryStart = GeneralCategoryEnd,
   EditorCategoryEnd = (uint32_t)pepp::settings::PaletteRole::SeqCircuitRole,
   CircuitCategoryStart = EditorCategoryEnd,
