@@ -104,6 +104,15 @@ int pepp::settings::PaletteManager::importTheme(QString path) {
   return _palettes.size() - 1;
 }
 
+void pepp::settings::PaletteManager::deleteTheme(int row) {
+  if (row < 0 || row >= _palettes.size()) return;
+  auto entry = _palettes[row];
+  if (!entry.isSystem) QFile::remove(entry.path);
+  beginRemoveRows({}, row, row);
+  _palettes.removeAt(row);
+  endRemoveRows();
+}
+
 void pepp::settings::PaletteManager::loadFrom(QString directory) {
   QFileInfoList list = QDir(directory).entryInfoList(QDir::Files);
   // qDebug() << "Loading themes from " << directory << " found " << list.size();

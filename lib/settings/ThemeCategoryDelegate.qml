@@ -39,7 +39,7 @@ Rectangle {
                 textRole: "display"
                 valueRole: "path"
                 ToolTip.visible: hovered
-                ToolTip.text: currentValue
+                ToolTip.text: currentValue ?? ""
                 property bool isSystemTheme: onDisk.data(onDisk.index(
                                                              currentIndex, 0),
                                                          onDisk.isSystem)
@@ -82,6 +82,14 @@ Rectangle {
                 text: "Delete"
                 Layout.minimumWidth: root.buttonWidth
                 enabled: !comboBox.isSystemTheme
+                onClicked: {
+                    const index = comboBox.currentIndex
+                    if (index != -1) {
+                        onDisk.deleteTheme(index)
+                        comboBox.currentIndex = Math.min(index,
+                                                         comboBox.count - 1)
+                    }
+                }
                 palette {
                     buttonText: comboBox.isSystemTheme ? root.palette.placeholderText : root.palette.buttonText
                 }

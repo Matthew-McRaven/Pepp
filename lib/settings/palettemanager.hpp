@@ -26,6 +26,7 @@ public:
   Q_INVOKABLE void reload();
   Q_INVOKABLE int copy(int row);
   Q_INVOKABLE int importTheme(QString path);
+  Q_INVOKABLE void deleteTheme(int row);
 
 private:
   struct Entry {
