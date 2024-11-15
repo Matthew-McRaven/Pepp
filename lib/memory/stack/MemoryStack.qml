@@ -15,6 +15,7 @@ Item {
     required property double implicitAddressWidth
     required property double implicitValueWidth
     required property double implicitLineHeight
+    required property double boldBorderWidth
 
     Column {
         id: column
@@ -27,6 +28,7 @@ Item {
                 implicitAddressWidth: root.implicitAddressWidth
                 implicitValueWidth: root.implicitValueWidth
                 implicitLineHeight: root.implicitLineHeight
+                boldBorderWidth: root.boldBorderWidth
 
                 lineModel: model
                 active: model.active
