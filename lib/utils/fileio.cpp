@@ -10,7 +10,5 @@ void FileIO::save(const QString &filename, const QString &data) {
   if (file.open(QIODevice::WriteOnly)) {
     file.write(data.toUtf8());
     file.close();
-  } else {
-    throw std::runtime_error("Could not open file for writing");
-  }
+  } else qWarning() << "Could not open file for writing";
 }
