@@ -1,7 +1,8 @@
 #pragma once
 #include <QObject>
 #include "ScintillaEditBase/ScintillaEditBase.h"
-#include "preferences/theme.hpp"
+#include "settings/palette.hpp"
+
 class ScintillaEditBaseExporter : public QObject {
   Q_OBJECT
   QML_NAMED_ELEMENT(ScintillaEditBase)
@@ -11,7 +12,7 @@ class ScintillaEditBaseExporter : public QObject {
 class ScintillaAsmEditBase : public ScintillaEditBase {
   Q_OBJECT
   Q_PROPERTY(QString language READ lexerLanguage WRITE setLexerLanguage NOTIFY lexerLanguageChanged);
-  Q_PROPERTY(Theme *theme READ theme WRITE setTheme NOTIFY themeChanged)
+  Q_PROPERTY(pepp::settings::Palette *theme READ theme WRITE setTheme NOTIFY themeChanged)
   Q_PROPERTY(
       bool lineNumbersVisible READ lineNumbersVisible WRITE setLineNumbersVisible NOTIFY lineNumbersVisibleChanged);
   QML_ELEMENT
@@ -53,9 +54,9 @@ private:
   const int commentStyle = SCE_PEPASM_COMMENT;
   QString lexerLanguage() const;
   void setLexerLanguage(const QString &language);
-  Theme *_theme = nullptr;
-  Theme *theme() const;
-  void setTheme(Theme *theme);
+  pepp::settings::Palette *_theme = nullptr;
+  pepp::settings::Palette *theme() const;
+  void setTheme(pepp::settings::Palette *theme);
 
   bool lineNumbersVisible() const;
   void setLineNumbersVisible(bool visible);

@@ -1,6 +1,5 @@
 import QtQuick
 import QtQuick.Controls
-import Qt.labs.platform as Platform
 
 //  Color picker
 Item {
@@ -9,8 +8,7 @@ Item {
     implicitWidth: wrapper.width
     implicitHeight: wrapper.implicitHeight
 
-    //  Indicates user changed colors
-    signal updatedColor(color newColor)
+    signal requestColorChange
     TextMetrics {
         id: tm
         font: textItem.font
@@ -40,19 +38,8 @@ Item {
             //  Shows current color
             color: root.color
         }
-
-        onClicked: {
-            colorDialog.open()
-        }
     }
-
-    Platform.ColorDialog {
-        id: colorDialog
-        currentColor: root.color
-        options: Platform.ColorDialog.ShowAlphaChannel
-        //  Signal parent control that color has changed
-        onAccepted: {
-            root.updatedColor(colorDialog.color)
-        }
+    Component.onCompleted: {
+        wrapper.onClicked.connect(requestColorChange)
     }
 }

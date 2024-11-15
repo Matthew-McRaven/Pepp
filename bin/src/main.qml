@@ -27,7 +27,7 @@ import "qrc:/edu/pepp/memory/hexdump" as Memory
 import "qrc:/edu/pepp/cpu" as Cpu
 import "qrc:/edu/pepp/text/editor" as Editor
 import "qrc:/edu/pepp/project" as Project
-import "qrc:/edu/pepp/preferences" as Pref
+import "qrc:/edu/pepp/settings" as AppSettings
 import "qrc:/edu/pepp/builtins" as Builtins
 import edu.pepp 1.0
 import "qrc:/edu/pepp/menu" as Menu
@@ -40,40 +40,43 @@ ApplicationWindow {
     height: 1080
     visible: true
     title: qsTr("Pepp IDE")
+    // Compiler keeps identifying this as a singleton, but it is not.
+    NuAppSettings {
+        id: settings
+    }
 
     //  Set palette in parent. Inherited by all children
     /*  See https://doc.qt.io/qt-6/qml-qtquick-colorgroup.html for color explanation*/
     palette {
-        alternateBase: Theme.alternateBase.background
-        base: Theme.base.background
-        text: Theme.base.foreground
-        button: Theme.button.background
-        buttonText: Theme.button.foreground
-        highlight: Theme.highlight.background
-        highlightedText: Theme.highlight.foreground
-        toolTipBase: Theme.tooltip.background
-        toolTipText: Theme.tooltip.foreground
-        window: Theme.window.background
-        windowText: Theme.window.foreground
-
-        accent: Theme.accent.background
-        light: Theme.light.background
-        midlight: Theme.midlight.background
-        mid: Theme.mid.background
-        dark: Theme.dark.background
-        shadow: Theme.shadow.background
-        link: Theme.link.foreground
-        linkVisited: Theme.linkVisited.foreground
-        brightText: Theme.brightText.foreground
-        placeholderText: Theme.placeholderText.foreground
-
+        alternateBase: settings.extPalette.alternateBase.background
+        base: settings.extPalette.base.background
+        text: settings.extPalette.base.foreground
+        button: settings.extPalette.button.background
+        buttonText: settings.extPalette.button.foreground
+        highlight: settings.extPalette.highlight.background
+        highlightedText: settings.extPalette.highlight.foreground
+        toolTipBase: settings.extPalette.tooltip.background
+        toolTipText: settings.extPalette.tooltip.foreground
+        window: settings.extPalette.window.background
+        windowText: settings.extPalette.window.foreground
+        accent: settings.extPalette.accent.background
+        light: settings.extPalette.light.background
+        midlight: settings.extPalette.midlight.background
+        mid: settings.extPalette.mid.background
+        dark: settings.extPalette.dark.background
+        shadow: settings.extPalette.shadow.background
+        link: settings.extPalette.link.foreground
+        linkVisited: settings.extPalette.linkVisited.foreground
+        brightText: settings.extPalette.brightText.foreground
+        placeholderText: settings.extPalette.placeholderText.foreground
         //  Colors when control is disabled. Overrides normal palette
         disabled {
-            highlight: Theme.window.background
-            buttonText: Theme.shadow.foreground
-            button: Theme.base.background
+            highlight: settings.extPalette.window.background
+            buttonText: settings.extPalette.shadow.foreground
+            button: settings.extPalette.base.background
         }
     }
+
     property var currentProject: null
     // Used to expose actions to inner area.
     property var actionRef: actions
@@ -126,7 +129,7 @@ ApplicationWindow {
     }
 
     Component.onCompleted: {
-        console.log(ApplicationPreferences)
+        //console.log(ApplicationPreferences)
         // Allow welcome mode to create a new project, and switch to it on creation.
         welcome.addProject.connect(pm.onAddProject)
         welcome.addProject.connect(() => switchToProject(pm.count - 1))
@@ -676,15 +679,17 @@ ApplicationWindow {
         parent: Overlay.overlay
         anchors.centerIn: parent
         modal: true
-        height: Math.min(prefs.contentHeight + 100, 1000)
-        contentItem: Pref.Preferences {
+        height: 480 //Math.min(prefs.contentHeight + 100, 480)
+        width: 640 //Math.min(prefs.contentWidth + 100, 640)
+        contentItem: AppSettings.TopLevel {
             id: prefs
-            anchors.margins: parent.padding
-            anchors.left: parent.left
-            anchors.right: parent.right
-            anchors.top: parent.header.bottom
-            anchors.bottom: parent.footer.top
-            model: PreferenceModel
+            anchors {
+                margins: parent.padding
+                left: parent.left
+                right: parent.right
+                top: parent.header.bottom
+                bottom: parent.footer.top
+            }
         }
         standardButtons: Dialog.Close
     }

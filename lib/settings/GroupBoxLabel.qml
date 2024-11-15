@@ -5,19 +5,18 @@ Item {
     property alias backgroundColor: backColor.color
     property alias textColor: label.color
     property alias text: label.text
-    implicitWidth: childrenRect.width
-    implicitHeight: childrenRect.height
+    implicitWidth: label.width
+    implicitHeight: label.height / 4
 
     Label {
         id: label
-        x: 10
-        y: -height / 2
-        rightPadding: 5
-        leftPadding: 5
+        leftPadding: 9
         background: Rectangle {
             id: backColor
-            color: "#ffffff"
+            anchors {
+                fill: parent
+                leftMargin: label.leftPadding
+            }
         }
-        text: "Parent Data"
     }
 }

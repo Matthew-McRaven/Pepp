@@ -25,27 +25,19 @@
 #include <QTimer>
 #include "../iconprovider.hpp"
 #include "about/version.hpp"
-#include "preferences/preferencemodel.hpp"
-#include "preferences/theme.hpp"
 //  Testing only
 #include <QDirIterator>
 
 Q_IMPORT_PLUGIN(PeppLibPlugin)
 
 struct default_data : public gui_globals {
-  default_data() : pm(&theme) {}
+  default_data() = default;
   ~default_data() override = default;
-  Theme theme;
-  PreferenceModel pm;
   QTimer interval;
 };
 
 void default_init(QQmlApplicationEngine &engine, default_data *data) {
-
-  //  Connect models
   auto *ctx = engine.rootContext();
-  ctx->setContextProperty("PreferenceModel", &data->pm);
-  ctx->setContextProperty("Theme", &data->theme);
 }
 
 #ifdef __EMSCRIPTEN__
@@ -64,6 +56,19 @@ int gui_main(const gui_args &args) {
   std::vector<std::string> arg_strs = args.argvs;
   for (int it = 0; it < argc; it++) argvs[it] = arg_strs[it].data();
 #ifdef __EMSCRIPTEN__
+  // clang-format off
+  // Request that IDBFS be persisted, even for localhost
+  EM_ASM(if (navigator.storage) navigator.storage.persist().then(() => {}););
+  // Make a persistent FS for themes. `true` to load from disk 2 mem
+  EM_ASM(
+    if (!FS.analyzePath('/themes').exists) FS.mkdir('/themes');
+    FS.mount(IDBFS, {}, '/themes');
+    FS.syncfs(true, function(err) {
+      if (err) console.error("Error mounting IDBFS /themes:", err);
+      else console.log('Files in /themes:', FS.readdir('/themes'));
+    });
+  );
+  // clang-format on
   g_app = new QApplication(argc, argvs.data());
 #else
   QApplication app(argc, argvs.data());
@@ -74,9 +79,9 @@ int gui_main(const gui_args &args) {
   QFontDatabase::addApplicationFont(":/fonts/mono/CourierPrime-BoldItalic.ttf");
 
   QApplication::setOrganizationName("Pepperdine University");
-  QApplication::setApplicationName("Pep/10");
-  QApplication::setOrganizationDomain("pep.pepperdine.edu");
-  QApplication::setApplicationDisplayName("Pep/10 IDE");
+  QApplication::setApplicationName("Pepp");
+  QApplication::setOrganizationDomain("pepp.pepperdine.edu");
+  QApplication::setApplicationDisplayName("Pepp IDE");
   static auto version =
       u"%1.%2.%3"_s.arg(about::g_MAJOR_VERSION()).arg(about::g_MINOR_VERSION()).arg(about::g_PATCH_VERSION());
   QApplication::setApplicationVersion(version);
@@ -132,28 +137,6 @@ int gui_main(const gui_args &args) {
   // See: https://doc.qt.io/qt-6/wasm.html#wasm-exceptions
   // See: https://doc.qt.io/qt-6/wasm.html#application-startup-and-the-event-loop
 #ifdef __EMSCRIPTEN__
-  // Request that IDB be persisted, even for localhost
-  EM_ASM(if (navigator.storage) navigator.storage.persist().then(function(persistent) {
-    if (persistent) {
-      console.log("Storage will not be cleared except by explicit user action.");
-    } else {
-      console.log("Storage may be cleared by the browser under storage pressure.");
-    }
-  }););
-  // Make a persistent FS for themes. `true` to load from disk 2 mem
-  // clang-format off
-  EM_ASM(
-    if (!FS.analyzePath('/themes').exists) FS.mkdir('/themes');
-    FS.mount(IDBFS, {}, '/themes');
-    FS.syncfs(true, function(err) {
-      if (err) console.error("Error mounting IDBFS /themes:", err);
-      else {
-        console.log("mounted IDBFS /themes");
-          console.log('Files in /themes:', FS.readdir('/themes'));
-      }
-    });
-  );
-  // clang-format on
   return 0;
 #else
   return app.exec();

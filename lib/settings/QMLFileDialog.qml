@@ -5,6 +5,10 @@ import edu.pepp 1.0
 
 Item {
     id: root
+    NuAppSettings {
+        id: settings
+    }
+
     required property string mode
     required property var nameFilters
     required property int selectedNameFilter_index
@@ -22,7 +26,7 @@ Item {
     }
     function open() {
         if (root.mode === "SaveFile")
-            io.save(Theme.themePath(), Theme.jsonString())
+            io.save("default.theme", settings.extPalette.jsonString())
         else if (root.mode === "OpenFile")
             io.load(root.nameFilters[root.selectedNameFilter_index])
     }

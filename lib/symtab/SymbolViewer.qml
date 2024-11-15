@@ -2,6 +2,10 @@ import QtQuick 2.15
 import QtQuick.Controls
 
 Rectangle {
+    NuAppSettings {
+        id: settings
+    }
+
     color: palette.base
     property alias model: wrapper.model
     //  Give object code viewer a background box
@@ -35,7 +39,7 @@ Rectangle {
 
         TextMetrics {
             id: tm
-            font: Theme.font
+            font: settings.extPalette.base.font
             text: "W" // Dummy value to get width of widest character
         }
 
