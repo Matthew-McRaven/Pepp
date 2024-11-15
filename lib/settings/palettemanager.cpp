@@ -67,7 +67,6 @@ void pepp::settings::PaletteManager::reload()
 int pepp::settings::PaletteManager::copy(int row) {
   if (row < 0 || row >= _palettes.size()) return -1;
   auto entry = _palettes[row];
-  beginInsertRows({}, row, row);
   // TODO: if copy of copy, append - Copy 2, 3 instead.
   entry.name += " - Copy";
   QFileInfo targetFile;
@@ -76,7 +75,31 @@ int pepp::settings::PaletteManager::copy(int row) {
   entry.path = targetFile.absoluteFilePath();
   entry.isSystem = false;
   if (!QFile::copy(_palettes[row].path, entry.path)) return -1;
+  beginInsertRows({}, row, row);
   _palettes.append(entry);
+  endInsertRows();
+  return _palettes.size() - 1;
+}
+
+int pepp::settings::PaletteManager::importTheme(QString path) {
+  QFileInfo src(path);
+  if (!src.fileName().endsWith(".theme")) return -1;
+  QFile jsonFile(src.absoluteFilePath());
+  if (!jsonFile.open(QIODevice::ReadOnly)) return -1;
+  auto ba = jsonFile.readAll();
+  jsonFile.close();
+  QJsonParseError parseError;
+  auto doc = QJsonDocument::fromJson(ba, &parseError);
+
+  QString name{};
+  if (auto namePtr = doc["name"]; namePtr.isString()) name = namePtr.toString();
+  else name = src.completeBaseName();
+
+  QFileInfo dest(userThemeDir(), src.fileName());
+  if (!QFile::copy(path, dest.absoluteFilePath())) return -1;
+
+  beginInsertRows({}, _palettes.size() - 1, _palettes.size() - 1);
+  _palettes.append({.name = name, .path = dest.absoluteFilePath(), .isSystem = false});
   endInsertRows();
   return _palettes.size() - 1;
 }

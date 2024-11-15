@@ -89,9 +89,7 @@ Rectangle {
             Button {
                 text: "Import"
                 Layout.minimumWidth: root.buttonWidth
-                onClicked: {
-
-                }
+                onClicked: importLoader.item.open()
             }
             Button {
                 text: "Export"
@@ -185,6 +183,36 @@ Rectangle {
             function onAccepted() {
                 const path = decodeURIComponent(exportLoader.item.selectedFile)
                 FileIO.save(path, settings.extPalette.jsonString())
+            }
+        }
+    }
+    Loader {
+        id: importLoader
+        Component.onCompleted: {
+            const props = {
+                "mode": "OpenFile",
+                "title": "Import Theme",
+                "nameFilters": ["Pep Theme files (*.theme)"],
+                "selectedNameFilter_index": 0,
+                "defaultSuffix": "theme"
+            }
+
+            if (PlatformDetector.isWASM) {
+                console.warn("Import dialog not implemented for WASM.")
+            } else {
+                setSource("qrc:/edu/pepp/settings/NativeFileDialog.qml", props)
+            }
+        }
+        asynchronous: false
+        Connections {
+            target: importLoader.item
+            function onAccepted() {
+                const model = comboBox.model
+                const uri = decodeURIComponent(importLoader.item.selectedFile)
+                const file = uri.replace("file:///", "")
+                const index = model.importTheme(file)
+                if (index != -1)
+                    comboBox.currentIndex = index
             }
         }
     }
