@@ -24,6 +24,7 @@ public:
   Qt::ItemFlags flags(const QModelIndex &index) const override;
   QHash<int, QByteArray> roleNames() const override;
   Q_INVOKABLE void reload();
+  Q_INVOKABLE int copy(int row);
 
 private:
   struct Entry {

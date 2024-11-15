@@ -57,18 +57,25 @@ Rectangle {
             }
             Item {}
             Button {
+                id: copyButton
                 //  System themes can never have state change
                 //  If non-system theme has changes, they must be saved before a copy can be made
                 text: comboBox.isSystemTheme ? "Copy" : "Save"
                 Layout.minimumWidth: root.buttonWidth
                 onPressed: {
-                    if (Theme.isDirty) {
-                        //  If theme has change, changes must be saved first
-                        Theme.saveTheme()
+                    if (comboBox.isSystemTheme) {
+                        // Copy also creates the duplicate item for us!
+                        const index = onDisk.copy(comboBox.index)
+                        if (index != -1) {
+                            comboBox.currentIndex = index
+                            requestRename()
+                        }
                     } else {
-                        copyDialog.open()
+                        FileIO.save(comboBox.path,
+                                    settings.extPalette.jsonString())
                     }
                 }
+                signal requestRename
             }
             Button {
                 id: del
@@ -150,6 +157,9 @@ Rectangle {
                 Layout.fillWidth: true
             }
         }
+    }
+    Component.onCompleted: {
+        copyButton.requestRename.connect(renameDialog.open)
     }
     Loader {
         id: exportLoader

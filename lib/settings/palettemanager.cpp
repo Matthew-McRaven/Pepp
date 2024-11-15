@@ -53,13 +53,32 @@ QHash<int, QByteArray> pepp::settings::PaletteManager::roleNames() const
   return {{Qt::DisplayRole, "display"}, {(int)Role::PathRole, "path"}, {(int)Role::IsSystemRole, "isSystem"}};
 }
 
+// Can't be static, because we need information from main();
+QString userThemeDir() { return QStandardPaths::writableLocation(QStandardPaths::AppLocalDataLocation) + "/themes"; }
 void pepp::settings::PaletteManager::reload()
 {
   emit beginResetModel();
   _palettes.clear();
   loadFrom(":/themes");
-  loadFrom(QStandardPaths::writableLocation(QStandardPaths::AppLocalDataLocation) + "/themes");
+  loadFrom(userThemeDir());
   emit endResetModel();
+}
+
+int pepp::settings::PaletteManager::copy(int row) {
+  if (row < 0 || row >= _palettes.size()) return -1;
+  auto entry = _palettes[row];
+  beginInsertRows({}, row, row);
+  // TODO: if copy of copy, append - Copy 2, 3 instead.
+  entry.name += " - Copy";
+  QFileInfo targetFile;
+  if (entry.isSystem) targetFile.setFile(userThemeDir(), entry.name + ".theme");
+  else targetFile.setFile(targetFile.absolutePath(), entry.name + ".theme");
+  entry.path = targetFile.absoluteFilePath();
+  entry.isSystem = false;
+  if (!QFile::copy(_palettes[row].path, entry.path)) return -1;
+  _palettes.append(entry);
+  endInsertRows();
+  return _palettes.size() - 1;
 }
 
 void pepp::settings::PaletteManager::loadFrom(QString directory) {
