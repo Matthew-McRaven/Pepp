@@ -85,9 +85,9 @@ int gui_main(const gui_args &args) {
   }*/
 
   QApplication::setOrganizationName("Pepperdine University");
-  QApplication::setApplicationName("Pep/10");
-  QApplication::setOrganizationDomain("pep.pepperdine.edu");
-  QApplication::setApplicationDisplayName("Pep/10 IDE");
+  QApplication::setApplicationName("Pepp");
+  QApplication::setOrganizationDomain("pepp.pepperdine.edu");
+  QApplication::setApplicationDisplayName("Pepp IDE");
   static auto version =
       u"%1.%2.%3"_s.arg(about::g_MAJOR_VERSION()).arg(about::g_MINOR_VERSION()).arg(about::g_PATCH_VERSION());
   QApplication::setApplicationVersion(version);
