@@ -32,25 +32,42 @@ Rectangle {
             }
             ComboBox {
                 id: comboBox
-                model: ["Default", "Dark"]
-                textRole: "name"
-                valueRole: "display"
+                model: PaletteManager {
+                    id: onDisk
+                }
+                textRole: "display"
+                valueRole: "path"
+                ToolTip.visible: hovered
+                ToolTip.text: currentValue
+                property bool isSystemTheme: onDisk.data(onDisk.index(
+                                                             currentIndex, 0),
+                                                         onDisk.isSystem)
             }
             Button {
                 //  System themes can never have state change
                 //  If non-system theme has changes, they must be saved before a copy can be made
                 text: "Save"
                 Layout.preferredWidth: root.buttonWidth
+                enabled: !comboBox.isSystemTheme
+                palette {
+                    buttonText: comboBox.isSystemTheme ? root.palette.placeholderText : root.palette.buttonText
+                }
             }
             Button {
                 id: del
                 text: "Delete"
                 Layout.preferredWidth: root.buttonWidth
-                enabled: false //!Theme.systemTheme
+                enabled: !comboBox.isSystemTheme
+                palette {
+                    buttonText: comboBox.isSystemTheme ? root.palette.placeholderText : root.palette.buttonText
+                }
             }
             Button {
                 text: "Import"
                 Layout.preferredWidth: root.buttonWidth
+                onClicked: {
+
+                }
             }
             Button {
                 text: "Export"
