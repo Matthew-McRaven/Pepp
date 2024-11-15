@@ -162,17 +162,15 @@ void pepp::settings::Palette::loadLightDefaults() {
     case PaletteRoleHelper::Role::MidLightRole:
       pref = new PaletteItem(PO{.parent = _items[(int)R::BaseRole], .bg = qRgb(0xe3, 0xe3, 0xe3)}, this);
       break;
-    case PaletteRoleHelper::Role::MidRole:
-      pref = new PaletteItem(PO{.parent = _items[(int)R::AlternateBaseRole], .fg = qRgb(0xf0, 0xf0, 0xf0)}, this);
-      break;
-    case PaletteRoleHelper::Role::DarkRole: // same as mid
+    case PaletteRoleHelper::Role::MidRole: [[fallthrough]];
+    case PaletteRoleHelper::Role::DarkRole:
       pref = new PaletteItem(PO{.parent = _items[(int)R::AlternateBaseRole], .fg = qRgb(0xf0, 0xf0, 0xf0)}, this);
       break;
     case PaletteRoleHelper::Role::ShadowRole:
       pref = new PaletteItem(PO{.parent = _items[(int)R::HighlightRole], .bg = qRgb(0x69, 0x69, 0x69)}, this);
       break;
     case PaletteRoleHelper::Role::LinkRole:
-      pref = new PaletteItem(PO{.parent = _items[(int)R::HighlightRole], .fg = qRgb(0x0, 0x78, 0xd7)}, this);
+      pref = new PaletteItem(PO{.parent = _items[(int)R::BaseRole], .fg = qRgb(0x0, 0x78, 0xd7)}, this);
       break;
     case PaletteRoleHelper::Role::LinkVisitedRole:
       pref = new PaletteItem(PO{.parent = _items[(int)R::LinkRole], .fg = qRgb(0x78, 0x40, 0xa0)}, this);
