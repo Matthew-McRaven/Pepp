@@ -72,7 +72,7 @@
         {
             "foreground": "0xff0078d7",
             "name": "LinkRole",
-            "parent": "HighlightRole"
+            "parent": "BaseRole"
         },
         {
             "foreground": "0xff7840a0",
