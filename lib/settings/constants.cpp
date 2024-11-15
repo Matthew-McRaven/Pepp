@@ -7,6 +7,22 @@ QString pepp::settings::PaletteRoleHelper::string(Role role) {
   return metaEnum.valueToKey(static_cast<int>(role));
 }
 
+QString pepp::settings::PaletteRoleHelper::prettyString(Role role) {
+  switch (role) {
+  case Role::BaseMonoRole: return "Base + Monospace Font";
+  case Role::PlaceHolderTextRole: return "Placeholder Text";
+  case Role::SeqCircuitRole: return "Sequential Circuit";
+  default: {
+    auto str = string(role);
+    str.replace("Role", "");
+    // Replace capital letters in the middle of a word with a capital+space
+    static const QRegularExpression re("\\B([A-Z])");
+    str.replace(re, " \\1");
+    return str;
+  }
+  }
+}
+
 pepp::settings::CategoryHelper::CategoryHelper(QObject *parent) : QObject(parent) {}
 
 QString pepp::settings::CategoryHelper::string(PaletteCategory cat) const {
@@ -35,8 +51,7 @@ pepp::settings::ValidPaletteParentModel::ValidPaletteParentModel(PaletteRole rol
 
 pepp::settings::PaletteRole pepp::settings::ValidPaletteParentModel::role() const { return _role; }
 
-void pepp::settings::ValidPaletteParentModel::setRole(PaletteRole role)
-{
+void pepp::settings::ValidPaletteParentModel::setRole(PaletteRole role) {
   if (_role == role) return;
   beginResetModel();
   _role = role;
@@ -44,23 +59,19 @@ void pepp::settings::ValidPaletteParentModel::setRole(PaletteRole role)
   emit roleChanged();
 }
 
-int pepp::settings::ValidPaletteParentModel::rowCount(const QModelIndex &parent) const
-{
+int pepp::settings::ValidPaletteParentModel::rowCount(const QModelIndex &parent) const {
   return static_cast<int>(_role);
 }
 
-QVariant pepp::settings::ValidPaletteParentModel::data(const QModelIndex &index, int role) const
-{
+QVariant pepp::settings::ValidPaletteParentModel::data(const QModelIndex &index, int role) const {
   if (!index.isValid() || index.row() < 0 || index.row() >= static_cast<int>(_role)) return QVariant();
   switch (role) {
-  case Qt::DisplayRole: return pepp::settings::PaletteRoleHelper::string(static_cast<PaletteRole>(index.row()));
+  case Qt::DisplayRole: return pepp::settings::PaletteRoleHelper::prettyString(static_cast<PaletteRole>(index.row()));
   case Qt::UserRole + 1: return QVariant::fromValue(static_cast<PaletteRole>(index.row()));
   default: return QVariant();
   }
 }
 
-
-QHash<int, QByteArray> pepp::settings::ValidPaletteParentModel::roleNames() const
-{
+QHash<int, QByteArray> pepp::settings::ValidPaletteParentModel::roleNames() const {
   return {{Qt::DisplayRole, "display"}, {Qt::UserRole + 1, "id"}};
 }
