@@ -8,6 +8,11 @@
             "name": "BaseRole"
         },
         {
+            "font": "Courier Prime,12,-1,5,400,0,0,0,0,0,0,0,0,0,0,1",
+            "name": "BaseMonoRole",
+            "parent": "BaseRole"
+        },
+        {
             "background": "0xffeeeeee",
             "foreground": "0xff0f0f0f",
             "name": "WindowRole",
@@ -86,10 +91,9 @@
         },
         {
             "background": "0xffffffff",
-            "font": "Courier Prime,12,-1,5,400,0,0,0,0,0,0,0,0,0,0,1",
             "foreground": "0xff2540bd",
             "name": "MnemonicRole",
-            "parent": "BaseRole"
+            "parent": "BaseMonoRole"
         },
         {
             "background": "0xffffffff",
