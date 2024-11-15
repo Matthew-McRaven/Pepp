@@ -25,7 +25,7 @@ QVariant pepp::settings::PaletteModel::data(const QModelIndex &index, int role) 
   if (!index.isValid() || std::cmp_less(index.row(), 0) || std::cmp_greater_equal(index.row(), total))
     return QVariant();
   switch (role) {
-  case Qt::DisplayRole: return PaletteRoleHelper::string(static_cast<PaletteRole>(index.row()));
+  case Qt::DisplayRole: return PaletteRoleHelper::prettyString(static_cast<PaletteRole>(index.row()));
   case (int)Role::PaletteRoleRole: return QVariant::fromValue(static_cast<PaletteRole>(index.row()));
   case (int)Role::PaletteItemRole: return QVariant::fromValue(_palette->item(index.row()));
   default: return {};

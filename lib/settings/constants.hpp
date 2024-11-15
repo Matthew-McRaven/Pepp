@@ -51,7 +51,12 @@ public:
   };
   Q_ENUM(Role)
   PaletteRoleHelper(QObject *parent = nullptr);
+  // Convert category to a string which is easy to parse for a program
+  // e.g., Role::BaseMonoRole => "BaseMonoRole"
   Q_INVOKABLE static QString string(Role role);
+  // Convert to a pretty string which looks nice to users.
+  // e.g., Role::BaseMonoRole => "Base + Monospace font"
+  Q_INVOKABLE static QString prettyString(Role role);
 };
 using PaletteRole = PaletteRoleHelper::Role;
 
@@ -88,6 +93,7 @@ public:
   };
   Q_ENUM(PaletteCategory)
   CategoryHelper(QObject *parent = nullptr);
+
   Q_INVOKABLE QString string(PaletteCategory cat) const;
 };
 using PaletteCategory = CategoryHelper::PaletteCategory;
