@@ -11,6 +11,7 @@ class PaletteRoleHelper : public QObject {
 public:
   enum class Role : uint32_t {
     BaseRole = 0,
+    BaseMonoRole,
     WindowRole,
     ButtonRole,
     HighlightRole,

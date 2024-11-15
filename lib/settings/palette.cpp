@@ -132,6 +132,9 @@ void pepp::settings::Palette::loadLightDefaults() {
     case PaletteRoleHelper::Role::BaseRole:
       pref = new PaletteItem(PO{.fg = qRgb(0x0, 0x0, 0x0), .bg = qRgb(0xff, 0xff, 0xff), .font = QFont()}, this);
       break;
+    case PaletteRoleHelper::Role::BaseMonoRole:
+      pref = new PaletteItem(PO{.parent = _items[(int)R::BaseRole], .font = defaultMono}, this);
+      break;
     case PaletteRoleHelper::Role::WindowRole:
       pref = new PaletteItem(
           PO{.parent = _items[(int)R::BaseRole], .fg = qRgb(0x0f, 0x0f, 0x0f), .bg = qRgb(0xee, 0xee, 0xee)}, this);
@@ -182,11 +185,9 @@ void pepp::settings::Palette::loadLightDefaults() {
       break;
       // Welcome to editor land
     case PaletteRoleHelper::Role::MnemonicRole:
-      pref = new PaletteItem(PO{.parent = _items[(int)R::BaseRole],
-                                .fg = qRgb(0x25, 0x40, 0xbd),
-                                .bg = qRgba(0xff, 0xff, 0xff, 0xff),
-                                .font = defaultMono},
-                             this);
+      pref = new PaletteItem(
+          PO{.parent = _items[(int)R::BaseMonoRole], .fg = qRgb(0x25, 0x40, 0xbd), .bg = qRgba(0xff, 0xff, 0xff, 0xff)},
+          this);
       break;
     case PaletteRoleHelper::Role::SymbolRole:
       pref = new PaletteItem(
