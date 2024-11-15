@@ -164,36 +164,32 @@ Item {
                     text: "Bold"
                     enabled: root.paletteItem ? !root.paletteItem.hasOwnFont : false
                     checked: root.paletteItem?.font.bold ?? false
-                    onCheckedChanged: {
-                        if (enabled)
-                            root.paletteItem.overrideBold(checked)
+                    onReleased: {
+                        root.paletteItem.overrideBold(checked)
                     }
                 }
                 CheckBox {
                     text: "Italic"
                     enabled: root.paletteItem ? !root.paletteItem.hasOwnFont : false
                     checked: root.paletteItem?.font.italic ?? false
-                    onCheckedChanged: {
-                        if (enabled)
-                            root.paletteItem.overrideItalic(checked)
+                    onReleased: {
+                        root.paletteItem.overrideItalic(checked)
                     }
                 }
                 CheckBox {
                     text: "Underline"
                     enabled: root.paletteItem ? !root.paletteItem.hasOwnFont : false
                     checked: root.paletteItem?.font.underline ?? false
-                    onCheckedChanged: {
-                        if (enabled)
-                            root.paletteItem.overrideUnderline(checked)
+                    onReleased: {
+                        root.paletteItem.overrideUnderline(checked)
                     }
                 }
                 CheckBox {
                     text: "Strikeout"
                     enabled: root.paletteItem ? !root.paletteItem.hasOwnFont : false
                     checked: root.paletteItem?.font.strikeout ?? false
-                    onCheckedChanged: {
-                        if (enabled)
-                            root.paletteItem.overrideStrikeout(checked)
+                    onReleased: {
+                        root.paletteItem.overrideStrikeout(checked)
                     }
                 }
                 RowLayout {

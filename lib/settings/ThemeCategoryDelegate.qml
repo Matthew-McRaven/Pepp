@@ -55,6 +55,11 @@ Rectangle {
             Button {
                 text: "Export"
                 Layout.preferredWidth: root.buttonWidth
+                // Now allows export of system themes. This makes it easier to keep theme files up-to-date.
+                onClicked: exportLoader.item.open()
+                palette {
+                    buttonText: root.palette.buttonText
+                }
             }
         }
 
@@ -109,6 +114,33 @@ Rectangle {
                 paletteItem: listView.currentItem?.paletteItem
                 Layout.fillHeight: true
                 Layout.fillWidth: true
+            }
+        }
+    }
+    Loader {
+        id: exportLoader
+        Component.onCompleted: {
+            const props = {
+                "mode": "SaveFile",
+                "title": "Export Theme",
+                "nameFilters": ["Pep Theme files (*.theme)"],
+                "selectedNameFilter_index": 0,
+                "defaultSuffix": "theme",
+                "selectedFile": "default.theme"
+            }
+
+            if (PlatformDetector.isWASM) {
+                setSource("qrc:/edu/pepp/settings/QMLFileDialog.qml", props)
+            } else {
+                setSource("qrc:/edu/pepp/settings/NativeFileDialog.qml", props)
+            }
+        }
+        asynchronous: false
+        Connections {
+            target: exportLoader.item
+            function onAccepted() {
+                const path = decodeURIComponent(exportLoader.item.selectedFile)
+                FileIO.save(path, settings.extPalette.jsonString())
             }
         }
     }

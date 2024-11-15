@@ -61,13 +61,11 @@ QJsonObject pepp::settings::Palette::toJson() {
   return doc;
 }
 
+QString pepp::settings::Palette::jsonString() { return QJsonDocument(toJson()).toJson(); }
+
 pepp::settings::Palette::Palette(QObject *parent) : QObject(parent) {
   _items.resize(static_cast<int>(PaletteRole::Total), nullptr);
   loadLightDefaults();
-  QFile f("X:/test.json");
-  f.open(QIODevice::WriteOnly);
-  f.write(QJsonDocument(toJson()).toJson());
-  f.close();
 }
 
 int pepp::settings::Palette::itemToRole(const PaletteItem *item) const {
