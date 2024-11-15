@@ -25,7 +25,8 @@ Rectangle {
     ColumnLayout {
         id: layout
         anchors.fill: parent
-        RowLayout {
+        GridLayout {
+            columns: 4
             Label {
                 text: "Current Theme: "
                 Layout.alignment: Qt.AlignHCenter
@@ -44,10 +45,19 @@ Rectangle {
                                                          onDisk.isSystem)
             }
             Button {
+                text: "Rename"
+                Layout.minimumWidth: root.buttonWidth
+                enabled: !comboBox.isSystemTheme
+                palette {
+                    buttonText: comboBox.isSystemTheme ? root.palette.placeholderText : root.palette.buttonText
+                }
+            }
+            Item {}
+            Button {
                 //  System themes can never have state change
                 //  If non-system theme has changes, they must be saved before a copy can be made
                 text: "Save"
-                Layout.preferredWidth: root.buttonWidth
+                Layout.minimumWidth: root.buttonWidth
                 enabled: !comboBox.isSystemTheme
                 palette {
                     buttonText: comboBox.isSystemTheme ? root.palette.placeholderText : root.palette.buttonText
@@ -56,7 +66,7 @@ Rectangle {
             Button {
                 id: del
                 text: "Delete"
-                Layout.preferredWidth: root.buttonWidth
+                Layout.minimumWidth: root.buttonWidth
                 enabled: !comboBox.isSystemTheme
                 palette {
                     buttonText: comboBox.isSystemTheme ? root.palette.placeholderText : root.palette.buttonText
@@ -64,14 +74,14 @@ Rectangle {
             }
             Button {
                 text: "Import"
-                Layout.preferredWidth: root.buttonWidth
+                Layout.minimumWidth: root.buttonWidth
                 onClicked: {
 
                 }
             }
             Button {
                 text: "Export"
-                Layout.preferredWidth: root.buttonWidth
+                Layout.minimumWidth: root.buttonWidth
                 // Now allows export of system themes. This makes it easier to keep theme files up-to-date.
                 onClicked: exportLoader.item.open()
                 palette {
