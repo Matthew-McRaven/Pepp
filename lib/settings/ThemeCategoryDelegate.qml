@@ -71,7 +71,7 @@ Rectangle {
                             requestRename()
                         }
                     } else {
-                        FileIO.save(comboBox.path,
+                        FileIO.save(comboBox.currentValue,
                                     settings.extPalette.jsonString())
                     }
                 }
