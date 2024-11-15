@@ -13,6 +13,7 @@ Item {
     required property double implicitAddressWidth
     required property double implicitValueWidth
     required property double implicitLineHeight
+    required property double boldBorderWidth
 
     // Helpers to "math" the position of the background rectangle.
     property double valueX: 0
@@ -39,7 +40,7 @@ Item {
         width: root.valueWidth + border.width
         height: (root.lineModel.lines.length * root.valueHeight) + border.width
         border.color: root.active ? palette.text : "transparent"
-        border.width: 4
+        border.width: root.boldBorderWidth
         z: 1
     }
     Column {

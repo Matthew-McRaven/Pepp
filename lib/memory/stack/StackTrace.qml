@@ -18,6 +18,7 @@ Rectangle {
         property double addressWidth: tm.width * 8
         property double valueWidth: tm.width * 8
         property double lineHeight: tm.height + 4 // Allow space around text
+        property double boldBorderWidth: 4
     }
     // Create C++ items using the magic of QQmlPropertyList and DefaultProperty
     ActivationModel {
@@ -105,6 +106,7 @@ Rectangle {
                 implicitAddressWidth: tm.addressWidth
                 implicitValueWidth: tm.valueWidth
                 implicitLineHeight: tm.lineHeight
+                boldBorderWidth: tm.boldBorderWidth
 
                 visible: activationModel
                 itemModel: activationModel
@@ -132,6 +134,7 @@ Rectangle {
                 implicitAddressWidth: tm.addressWidth
                 implicitValueWidth: tm.valueWidth
                 implicitLineHeight: tm.lineHeight
+                boldBorderWidth: tm.boldBorderWidth
 
                 itemModel: activationModel
             }
@@ -161,6 +164,7 @@ Rectangle {
                 implicitAddressWidth: tm.addressWidth
                 implicitValueWidth: tm.valueWidth
                 implicitLineHeight: tm.lineHeight
+                boldBorderWidth: tm.boldBorderWidth
 
                 itemModel: activationModel
             }
@@ -168,13 +172,12 @@ Rectangle {
                 id: graphic
                 Layout.fillHeight: false
                 Layout.alignment: Qt.AlignHCenter & Qt.AlignVCenter
-                Layout.leftMargin: tm.addressWidth
-                Layout.preferredWidth: tm.valueWidth
-
-                height: 20
-
+                Layout.leftMargin: tm.addressWidth - tm.boldBorderWidth / 2
+                // Honestly not sure why I need -1 here, but if I don't include the offset it looks wrong.
+                Layout.preferredWidth: tm.valueWidth + tm.boldBorderWidth - 1
                 //  Force graphic to be same width as value column
-                graphicWidth: tm.valueWidth
+                graphicWidth: tm.valueWidth + tm.boldBorderWidth - 1
+                height: 20
             }
         } //  ColumnLayout
     } //  ScrollView
