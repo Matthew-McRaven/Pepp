@@ -692,6 +692,8 @@ ApplicationWindow {
             }
         }
         standardButtons: Dialog.Close
+        onAccepted: prefs.closed()
+        onClosed: prefs.closed()
     }
     function onNew() {
         pm.onAddProject(Architecture.PEP10, Abstraction.ISA3, "", false)
