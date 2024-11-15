@@ -16,6 +16,31 @@ QVariant pepp::settings::PaletteManager::data(const QModelIndex &index, int role
   }
 }
 
+bool pepp::settings::PaletteManager::setData(const QModelIndex &index, const QVariant &value, int role) {
+  if (!index.isValid() || index.row() < 0 || index.row() >= _palettes.size()) return false;
+  else if (role != Qt::DisplayRole) return false;
+  else if (!value.canConvert<QString>()) return false;
+  else if (auto asString = value.toString(); asString.isEmpty()) return false;
+  else {
+    auto &entry = _palettes[index.row()];
+    QFile jsonFile(entry.path);
+    if (!jsonFile.open(QIODevice::ReadOnly)) return false;
+    auto ba = jsonFile.readAll();
+    jsonFile.close();
+    QJsonParseError parseError;
+    auto doc = QJsonDocument::fromJson(ba, &parseError);
+    // Don't try to update doc in place; seems to not persist name change.
+    auto root = doc.object();
+    root["name"] = asString;
+    if (!jsonFile.open(QIODevice::WriteOnly)) return false;
+    jsonFile.write(QJsonDocument{root}.toJson());
+    jsonFile.close();
+    entry.name = asString;
+  }
+  emit dataChanged(index, index, {role});
+  return true;
+}
+
 Qt::ItemFlags pepp::settings::PaletteManager::flags(const QModelIndex &index) const
 {
   auto isSystem = data(index, (int)Role::IsSystemRole);

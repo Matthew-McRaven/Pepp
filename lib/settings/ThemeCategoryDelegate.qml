@@ -28,7 +28,7 @@ Rectangle {
         GridLayout {
             columns: 4
             Label {
-                text: "Current Theme: "
+                text: "Current Palette: "
                 Layout.alignment: Qt.AlignHCenter
             }
             ComboBox {
@@ -51,16 +51,23 @@ Rectangle {
                 palette {
                     buttonText: comboBox.isSystemTheme ? root.palette.placeholderText : root.palette.buttonText
                 }
+                onPressed: {
+                    renameDialog.open()
+                }
             }
             Item {}
             Button {
                 //  System themes can never have state change
                 //  If non-system theme has changes, they must be saved before a copy can be made
-                text: "Save"
+                text: comboBox.isSystemTheme ? "Copy" : "Save"
                 Layout.minimumWidth: root.buttonWidth
-                enabled: !comboBox.isSystemTheme
-                palette {
-                    buttonText: comboBox.isSystemTheme ? root.palette.placeholderText : root.palette.buttonText
+                onPressed: {
+                    if (Theme.isDirty) {
+                        //  If theme has change, changes must be saved first
+                        Theme.saveTheme()
+                    } else {
+                        copyDialog.open()
+                    }
                 }
             }
             Button {
@@ -169,6 +176,36 @@ Rectangle {
                 const path = decodeURIComponent(exportLoader.item.selectedFile)
                 FileIO.save(path, settings.extPalette.jsonString())
             }
+        }
+    }
+    Dialog {
+        id: renameDialog
+        title: "Rename Palette"
+        modal: true
+        standardButtons: Dialog.Ok | Dialog.Cancel
+        spacing: 5
+        ColumnLayout {
+            anchors.fill: parent
+            Label {
+                id: label
+                text: "Palette name:"
+            }
+            TextInput {
+                id: name
+                width: 100
+                text: comboBox.displayText
+                focus: true
+                color: palette.text
+                validator: RegularExpressionValidator {
+                    regularExpression: /^[^<>:;,?"*|\\/]+$/
+                }
+            }
+        }
+
+        onAccepted: {
+            const model = comboBox.model
+            const index = model.index(comboBox.currentIndex, 0)
+            model.setData(index, name.text, model.display)
         }
     }
 }
