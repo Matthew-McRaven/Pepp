@@ -38,4 +38,7 @@ Rectangle {
             source: "UnimplementedCategoryDelegate.qml"
         }
     }
+    function closed() {
+        categoryList.currentIndex = 0
+    }
 }

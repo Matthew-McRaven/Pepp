@@ -8,6 +8,7 @@ Rectangle {
     property alias model: listView.model
     property alias contentWidth: listView.contentWidth
     // Output
+    property alias currentIndex: listView.currentIndex
     property var currentCategory: model[listView.currentIndex]
     // Re-add margins to center ListView items within rectangle
     implicitHeight: listView.contentItem.childrenRect.height
