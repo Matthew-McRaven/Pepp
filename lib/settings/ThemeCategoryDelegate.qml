@@ -43,6 +43,7 @@ Rectangle {
                 property bool isSystemTheme: onDisk.data(onDisk.index(
                                                              currentIndex, 0),
                                                          onDisk.isSystem)
+                onCurrentValueChanged: settings.loadPalette(currentValue)
             }
             Button {
                 text: "Rename"

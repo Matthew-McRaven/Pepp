@@ -37,11 +37,57 @@ pepp::settings::PaletteItem *pepp::settings::Palette::item(PaletteRole role) { r
 
 pepp::settings::PaletteItem *pepp::settings::Palette::item(PaletteRole role) const { return item((int)role); }
 
+bool pepp::settings::Palette::updateFromJson(const QJsonObject &json) {
+  // this gon' be shitty
+  bool okay;
+  // if (const QJsonValue v = json["name"]; v.isString()) _name = v.toString();
+  if (auto asInt = json["version"].toInt(0); asInt != _version) {
+    qDebug() << "Version mismatch in theme file. Expected " << _version << " got " << asInt;
+    return false;
+  }
+  static const auto roles = QMetaEnum::fromType<PaletteRole>();
+  // Do any global updates, like changing the value of a font for each preference to match global font.
+  _name = json["name"].toString();
+
+  // Block signals to prevent a cascade of partial updates.
+  for (auto &p : _items) p->blockSignals(true);
+  if (const QJsonValue v = json["paletteItems"]; v.isArray()) {
+    const QJsonArray prefsObj = v.toArray();
+    //  Loop through preferences
+    for (const QJsonValue &prefObj : prefsObj) {
+      auto asObj = prefObj.toObject();
+      if (asObj.isEmpty()) continue;
+
+      auto index = roles.keyToValue(asObj["name"].toString().toStdString().c_str(), &okay);
+      if (!okay || index >= (int)PaletteRole::Total) {
+        qWarning() << "Skipping preference: " << asObj["name"].toString();
+        continue;
+      };
+
+      PaletteItem *parent = nullptr;
+      if (!asObj.contains("parent")) {                                                     // No parent, can't assign
+      } else if (auto parentString = asObj["parent"].toString(); parentString.isEmpty()) { // invalid parent
+      } else if (auto parentIndex = roles.keyToValue(parentString.toStdString().c_str(), &okay);
+                 !okay || index >= (int)PaletteRole::Total) { // invalid parent
+      } else if (parentIndex >= index) qWarning() << "Invalid parent " << parentIndex << " for " << index;
+      else parent = _items[parentIndex];
+
+      _items[index]->updateFromJson(asObj, parent);
+    }
+    // Allow changes signals to propogate, and manually trigger updates to roots.
+    for (auto &p : _items) p->blockSignals(false);
+    for (auto &p : _items)
+      if (p->parent() == nullptr) p->emitChanged();
+  }
+
+  return true;
+}
+
 QJsonObject pepp::settings::Palette::toJson() {
   QJsonObject doc;
 
   //  Save font structure to document
-  doc["name"] = "dummy";
+  doc["name"] = _name;
   doc["version"] = _version;
 
   QJsonArray prefData;

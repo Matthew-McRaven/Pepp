@@ -186,6 +186,21 @@ pepp::settings::EditorCategory *pepp::settings::AppSettings::editor() const { re
 pepp::settings::SimulatorCategory *pepp::settings::AppSettings::simulator() const { return _data->simulator(); }
 pepp::settings::KeyMapCategory *pepp::settings::AppSettings::keymap() const { return _data->keymap(); }
 
+void pepp::settings::AppSettings::loadPalette(const QString &path) {
+  QFile jsonFile(path);
+  if (!jsonFile.open(QIODevice::ReadOnly)) return;
+  QByteArray ba = jsonFile.readAll();
+  jsonFile.close();
+  QJsonParseError parseError;
+  QJsonDocument doc = QJsonDocument::fromJson(ba, &parseError);
+
+  if (parseError.error != QJsonParseError::NoError)
+    qWarning() << "Parse error at" << parseError.offset << ":" << parseError.errorString();
+
+  auto pal = themePalette();
+  pal->updateFromJson(doc.object());
+}
+
 void pepp::settings::AppSettings::sync() {
   for (auto category : categories()) category->sync();
 }

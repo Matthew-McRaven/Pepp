@@ -111,7 +111,29 @@ void pepp::settings::PaletteItem::overrideStrikeout(bool strikeout) {
   emit preferenceChanged();
 }
 
-bool pepp::settings::PaletteItem::updateFromJson(const QJsonObject &json, PaletteItem *parent) { return false; }
+bool pepp::settings::PaletteItem::updateFromJson(const QJsonObject &json, PaletteItem *parent) {
+
+  if (json.contains("foreground")) {
+    auto hex = json["foreground"].toString().toUInt(nullptr, 16);
+    _foreground = QColor::fromRgba(hex);
+  }
+  if (json.contains("background")) {
+    auto hex = json["background"].toString().toUInt(nullptr, 16);
+    _background = QColor::fromRgba(hex);
+  }
+  if (json.contains("font")) {
+    _font = QFont(json["font"].toString());
+  } else {
+    if (json.contains("overrideBold")) _fontOverrides.bold = json["overrideBold"].toBool();
+    if (json.contains("overrideItalic")) _fontOverrides.italic = json["overrideItalic"].toBool();
+    if (json.contains("overrideUnderline")) _fontOverrides.underline = json["overrideUnderline"].toBool();
+    if (json.contains("overrideStrikeout")) _fontOverrides.strikeout = json["overrideStrikeout"].toBool();
+    if (json.contains("overrideWeight")) _fontOverrides.weight = json["overrideWeight"].toInt();
+  }
+
+  if (parent != nullptr) setParent(parent);
+  return true;
+}
 
 QJsonObject pepp::settings::PaletteItem::toJson() {
   QJsonObject prefData;
@@ -139,6 +161,8 @@ QJsonObject pepp::settings::PaletteItem::toJson() {
 }
 
 void pepp::settings::PaletteItem::onParentChanged() { emit preferenceChanged(); }
+
+void pepp::settings::PaletteItem::emitChanged() { emit preferenceChanged(); }
 
 bool pepp::settings::detail::isAncestorOf(const PaletteItem *maybeAncestor, const PaletteItem *maybeDescendant) {
   QSet<const PaletteItem *> ancestors;

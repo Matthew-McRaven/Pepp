@@ -50,11 +50,11 @@ public:
   bool updateFromJson(const QJsonObject &json, PaletteItem *parent = nullptr);
   QJsonObject toJson();
 signals:
-  void fontChanged();
   void preferenceChanged();
 
 public slots:
   void onParentChanged();
+  void emitChanged();
 
 private:
   PaletteItem *_parent{nullptr};

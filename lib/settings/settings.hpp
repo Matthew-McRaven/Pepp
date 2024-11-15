@@ -196,6 +196,7 @@ public:
   EditorCategory *editor() const;
   SimulatorCategory *simulator() const;
   KeyMapCategory *keymap() const;
+  Q_INVOKABLE void loadPalette(const QString &path);
 public slots:
   void sync();
 signals:

@@ -110,6 +110,7 @@ private:
   mutable bool _isDirty{false};
   static const int _version{8};
   QList<PaletteItem *> _items;
+  QString _name{"Default"};
 
   void loadLightDefaults();
 };
