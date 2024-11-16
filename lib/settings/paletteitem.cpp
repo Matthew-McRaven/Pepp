@@ -2,7 +2,7 @@
 #include <QSet>
 
 pepp::settings::PaletteItem::PaletteItem(PreferenceOptions opts, QObject *parent) : QObject(parent) {
-  if (opts.parent) _parent = opts.parent;
+  if (opts.parent) setParent(opts.parent);
   if (opts.fg.has_value()) _foreground = opts.fg;
   if (opts.bg.has_value()) _background = opts.bg;
   if (opts.font.has_value()) _font = opts.font;
@@ -30,7 +30,7 @@ void pepp::settings::PaletteItem::setParent(PaletteItem *newParent) {
   else if (detail::isAncestorOf(this, newParent)) return;
   if (_parent) QObject::disconnect(_parent, &PaletteItem::preferenceChanged, this, &PaletteItem::onParentChanged);
   _parent = newParent;
-  if (newParent) QObject::connect(_parent, &PaletteItem::preferenceChanged, this, &PaletteItem::onParentChanged);
+  if (_parent) QObject::connect(_parent, &PaletteItem::preferenceChanged, this, &PaletteItem::onParentChanged);
   emit preferenceChanged();
 }
 
