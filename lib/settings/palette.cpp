@@ -49,8 +49,8 @@ bool pepp::settings::Palette::updateFromJson(const QJsonObject &json) {
   // Do any global updates, like changing the value of a font for each preference to match global font.
   _name = json["name"].toString();
 
-  // Block signals to prevent a cascade of partial updates.
-  for (auto &p : _items) p->blockSignals(true);
+  //
+
   if (const QJsonValue v = json["paletteItems"]; v.isArray()) {
     const QJsonArray prefsObj = v.toArray();
     //  Loop through preferences
@@ -71,13 +71,17 @@ bool pepp::settings::Palette::updateFromJson(const QJsonObject &json) {
                  !okay || index >= (int)PaletteRole::Total) { // invalid parent
       } else if (parentIndex >= index) qWarning() << "Invalid parent " << parentIndex << " for " << index;
       else parent = _items[parentIndex];
-
+      // Block signals to prevent a cascade of partial updates.
+      QSignalBlocker block(_items[index]);
       _items[index]->updateFromJson(asObj, parent);
     }
-    // Allow changes signals to propogate, and manually trigger updates to roots.
-    for (auto &p : _items) p->blockSignals(false);
-    for (auto &p : _items)
+    // Disconnect signals so that we do not emit itemChanged many times.
+    for (auto &p : _items) QObject::disconnect(p, &PaletteItem::preferenceChanged, this, &Palette::itemChanged);
+    for (auto &p : _items) {
       if (p->parent() == nullptr) p->emitChanged();
+      QObject::connect(p, &PaletteItem::preferenceChanged, this, &Palette::itemChanged);
+    }
+    emit itemChanged();
   }
 
   return true;
