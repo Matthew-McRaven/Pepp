@@ -37,6 +37,7 @@ public:
   Q_INVOKABLE void clearBackground();
   void setBackground(const QColor background);
   QFont font() const;
+  Q_INVOKABLE void clearFont();
   void setFont(const QFont font);
 
   bool hasOwnForeground() const;

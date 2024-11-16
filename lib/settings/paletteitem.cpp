@@ -79,6 +79,12 @@ QFont pepp::settings::PaletteItem::font() const {
   } else return _font.value_or(QFont{});
 }
 
+void pepp::settings::PaletteItem::clearFont() {
+  _font.reset();
+  _fontOverrides = {};
+  emit preferenceChanged();
+}
+
 void pepp::settings::PaletteItem::setFont(const QFont font) {
   if (font == _font) return;
   _font = font;
