@@ -77,6 +77,10 @@ int pepp::settings::PaletteManager::copy(int row) {
   // Maye need to create the directory or copy will fail.
   QDir().mkpath(userThemeDir());
   if (!QFile::copy(_palettes[row].path, entry.path)) return -1;
+  // Make sure we can write to this file later to update it.
+  auto perms = targetFile.permissions();
+  QFile(targetFile.absoluteFilePath()).setPermissions(perms | QFileDevice::WriteOwner);
+
   beginInsertRows({}, row, row);
   _palettes.append(entry);
   endInsertRows();
@@ -101,6 +105,9 @@ int pepp::settings::PaletteManager::importTheme(QString path) {
   // Maye need to create the directory or copy will fail.
   QDir().mkpath(userThemeDir());
   if (!QFile::copy(path, dest.absoluteFilePath())) return -1;
+  // Make sure we can write to this file later to update it.
+  auto perms = dest.permissions();
+  QFile(dest.absoluteFilePath()).setPermissions(perms | QFileDevice::WriteOwner);
 
   beginInsertRows({}, _palettes.size() - 1, _palettes.size() - 1);
   _palettes.append({.name = name, .path = dest.absoluteFilePath(), .isSystem = false});
