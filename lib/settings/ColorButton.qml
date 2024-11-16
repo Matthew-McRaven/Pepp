@@ -8,7 +8,7 @@ Item {
     implicitWidth: wrapper.width
     implicitHeight: wrapper.implicitHeight
 
-    signal requestColorChange
+    signal requestColorChange(color color)
     TextMetrics {
         id: tm
         font: textItem.font
@@ -40,6 +40,6 @@ Item {
         }
     }
     Component.onCompleted: {
-        wrapper.onClicked.connect(requestColorChange)
+        wrapper.onClicked.connect(() => requestColorChange(root.color))
     }
 }
