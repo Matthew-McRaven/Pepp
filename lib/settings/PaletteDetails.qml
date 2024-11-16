@@ -3,6 +3,7 @@ import QtQuick.Controls
 import QtQuick.Layouts
 import edu.pepp 1.0
 import "." as Ui
+import "qrc:/edu/pepp/components" as Comp
 import Qt.labs.platform as Platform
 
 Item {
@@ -11,6 +12,7 @@ Item {
     required property var ePalette
     required property var paletteRole
     required property var paletteItem
+    required property bool isSystem
     Rectangle {
         id: bg
         color: palette.base
@@ -44,11 +46,12 @@ Item {
                 Label {
                     text: "Parent Item"
                 }
-                ComboBox {
+                Comp.DisableableComboBox {
                     id: parentCombo
                     model: ValidPaletteParentModel {
                         role: root.paletteRole ?? 0
                     }
+                    enabled: !root.isSystem
                     textRole: "display"
                     valueRole: "id"
                     currentIndex: root.ePalette.itemToRole(
@@ -60,7 +63,8 @@ Item {
                 }
                 Button {
                     text: "Clear Parent"
-                    enabled: root.paletteItem?.parent ?? false
+                    enabled: !root.isSystem
+                             && (root.paletteItem?.parent ?? false)
                     onPressed: {
                         root.paletteItem.clearParent()
                     }
@@ -85,10 +89,11 @@ Item {
                 Ui.ColorButton {
                     id: fgPicker
                     color: root.paletteItem?.foreground ?? "white"
+                    enabled: !root.isSystem
                 }
                 CheckBox {
                     id: fgCheck
-                    enabled: !!root.paletteItem?.parent
+                    enabled: !root.isSystem && !!root.paletteItem?.parent
                     text: !root.paletteItem?.parent ? "Using own value" : (checked ? "Overriding parent value" : "Using parent value")
                     checked: enabled && root.paletteItem?.hasOwnForeground
                     onCheckedChanged: {
@@ -102,10 +107,11 @@ Item {
                 Ui.ColorButton {
                     id: bgPicker
                     color: root.paletteItem?.background ?? "black"
+                    enabled: !root.isSystem
                 }
                 CheckBox {
                     id: bgCheck
-                    enabled: !!root.paletteItem?.parent
+                    enabled: !root.isSystem && !!root.paletteItem?.parent
                     text: !root.paletteItem?.parent ? "Using own value" : (checked ? "Overriding parent value" : "Using parent value")
                     checked: enabled && root.paletteItem?.hasOwnBackground
                     onCheckedChanged: {
@@ -122,6 +128,7 @@ Item {
                     text: "Font "
                 }
                 Button {
+                    enabled: !root.isSystem
                     text: root.paletteItem?.font.family
                     font: root.paletteItem?.font
                     onPressed: {
@@ -135,8 +142,9 @@ Item {
                 }
                 Button {
                     text: "Reset to Parent"
-                    enabled: (root.paletteItem?.parent
-                              && root.paletteItem?.hasOwnFont) ?? false
+                    enabled: !root.isSystem
+                             && ((root.paletteItem?.parent
+                                  && root.paletteItem?.hasOwnFont) ?? false)
                     onPressed: {
                         if (enabled)
                             root.paletteItem.clearFont()
@@ -153,7 +161,8 @@ Item {
                 textColor: palette.windowText
                 backgroundColor: bg.color
                 text: "Font Overrides"
-                enabled: root.paletteItem ? !root.paletteItem.hasOwnFont : false
+                enabled: (!root.isSystem
+                          && root.paletteItem) ? !root.paletteItem.hasOwnFont : false
             }
             GridLayout {
                 id: layout
@@ -162,7 +171,8 @@ Item {
                 rowSpacing: 2
                 CheckBox {
                     text: "Bold"
-                    enabled: root.paletteItem ? !root.paletteItem.hasOwnFont : false
+                    enabled: (!root.isSystem
+                              && root.paletteItem) ? !root.paletteItem.hasOwnFont : false
                     checked: root.paletteItem?.font.bold ?? false
                     onReleased: {
                         root.paletteItem.overrideBold(checked)
@@ -170,7 +180,8 @@ Item {
                 }
                 CheckBox {
                     text: "Italic"
-                    enabled: root.paletteItem ? !root.paletteItem.hasOwnFont : false
+                    enabled: (!root.isSystem
+                              && root.paletteItem) ? !root.paletteItem.hasOwnFont : false
                     checked: root.paletteItem?.font.italic ?? false
                     onReleased: {
                         root.paletteItem.overrideItalic(checked)
@@ -178,7 +189,8 @@ Item {
                 }
                 CheckBox {
                     text: "Underline"
-                    enabled: root.paletteItem ? !root.paletteItem.hasOwnFont : false
+                    enabled: (!root.isSystem
+                              && root.paletteItem) ? !root.paletteItem.hasOwnFont : false
                     checked: root.paletteItem?.font.underline ?? false
                     onReleased: {
                         root.paletteItem.overrideUnderline(checked)
@@ -186,7 +198,8 @@ Item {
                 }
                 CheckBox {
                     text: "Strikeout"
-                    enabled: root.paletteItem ? !root.paletteItem.hasOwnFont : false
+                    enabled: (!root.isSystem
+                              && root.paletteItem) ? !root.paletteItem.hasOwnFont : false
                     checked: root.paletteItem?.font.strikeout ?? false
                     onReleased: {
                         root.paletteItem.overrideStrikeout(checked)
@@ -196,11 +209,13 @@ Item {
                     Layout.columnSpan: 2
                     Label {
                         text: "Size"
-                        enabled: root.paletteItem ? !root.paletteItem.hasOwnFont : false
+                        enabled: !root.isSystem
+                                 && (root.paletteItem ? !root.paletteItem.hasOwnFont : false)
                     }
                     SpinBox {
                         id: sizeSB
-                        enabled: root.paletteItem ? !root.paletteItem.hasOwnFont : false
+                        enabled: !root.isSystem
+                                 && (root.paletteItem ? !root.paletteItem.hasOwnFont : false)
                         value: root.paletteItem?.font.pixelSize ?? 12
                         from: 1
                     }

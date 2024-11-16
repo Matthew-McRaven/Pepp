@@ -40,10 +40,13 @@ Rectangle {
                 valueRole: "path"
                 ToolTip.visible: hovered
                 ToolTip.text: currentValue ?? ""
-                property bool isSystemTheme: onDisk.data(onDisk.index(
-                                                             currentIndex, 0),
-                                                         onDisk.isSystem)
+                property bool isSystemTheme: true
                 onCurrentValueChanged: settings.loadPalette(currentValue)
+                onCurrentIndexChanged: {
+                    const idx = onDisk.index(currentIndex, 0)
+                    isSystemTheme = Qt.binding(() => onDisk.data(
+                                                   idx, onDisk.isSystem))
+                }
             }
             Button {
                 text: "Rename"
@@ -160,6 +163,7 @@ Rectangle {
                 ePalette: settings.extPalette
                 paletteRole: listView.currentItem?.paletteRole
                 paletteItem: listView.currentItem?.paletteItem
+                isSystem: comboBox.isSystemTheme
                 Layout.fillHeight: true
                 Layout.fillWidth: true
             }
