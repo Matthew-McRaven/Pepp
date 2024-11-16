@@ -139,7 +139,7 @@ Item {
                               && root.paletteItem?.hasOwnFont) ?? false
                     onPressed: {
                         if (enabled)
-                            root.paletteItem.resetFont()
+                            root.paletteItem.clearFont()
                     }
                 }
             }
