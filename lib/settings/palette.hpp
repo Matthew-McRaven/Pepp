@@ -104,6 +104,8 @@ public:
   bool updateFromJson(const QJsonObject &json);
   QJsonObject toJson();
   Q_INVOKABLE QString jsonString();
+signals:
+  void itemChanged();
 
 private:
   //  Dirty flag is cleared on save (a const function)
