@@ -74,6 +74,8 @@ int pepp::settings::PaletteManager::copy(int row) {
   else targetFile.setFile(targetFile.absolutePath(), entry.name + ".theme");
   entry.path = targetFile.absoluteFilePath();
   entry.isSystem = false;
+  // Maye need to create the directory or copy will fail.
+  QDir().mkpath(userThemeDir());
   if (!QFile::copy(_palettes[row].path, entry.path)) return -1;
   beginInsertRows({}, row, row);
   _palettes.append(entry);
@@ -96,6 +98,8 @@ int pepp::settings::PaletteManager::importTheme(QString path) {
   else name = src.completeBaseName();
 
   QFileInfo dest(userThemeDir(), src.fileName());
+  // Maye need to create the directory or copy will fail.
+  QDir().mkpath(userThemeDir());
   if (!QFile::copy(path, dest.absoluteFilePath())) return -1;
 
   beginInsertRows({}, _palettes.size() - 1, _palettes.size() - 1);
