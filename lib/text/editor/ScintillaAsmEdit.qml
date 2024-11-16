@@ -88,7 +88,7 @@ Item {
     // the QuickScintilla control
     Pepp.ScintillaAsmEditBase {
         Component.onCompleted: {
-            Theme.themesChanged.connect(editor.applyStyles)
+            settings.extPalette.itemChanged.connect(editor.applyStyles)
         }
 
         id: editor

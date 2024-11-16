@@ -112,6 +112,7 @@ QString pepp::settings::Palette::jsonString() { return QJsonDocument(toJson()).t
 pepp::settings::Palette::Palette(QObject *parent) : QObject(parent) {
   _items.resize(static_cast<int>(PaletteRole::Total), nullptr);
   loadLightDefaults();
+  for (auto &p : _items) QObject::connect(p, &PaletteItem::preferenceChanged, this, &Palette::itemChanged);
 }
 
 int pepp::settings::Palette::itemToRole(const PaletteItem *item) const {
