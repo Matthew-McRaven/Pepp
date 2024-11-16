@@ -57,11 +57,11 @@ QHash<int, QByteArray> pepp::settings::PaletteManager::roleNames() const
 QString userThemeDir() { return QStandardPaths::writableLocation(QStandardPaths::AppLocalDataLocation) + "/themes"; }
 void pepp::settings::PaletteManager::reload()
 {
-  emit beginResetModel();
+  beginResetModel();
   _palettes.clear();
   loadFrom(":/themes");
   loadFrom(userThemeDir());
-  emit endResetModel();
+  endResetModel();
 }
 
 int pepp::settings::PaletteManager::copy(int row) {
