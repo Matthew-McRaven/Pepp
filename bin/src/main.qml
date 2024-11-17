@@ -679,8 +679,8 @@ ApplicationWindow {
         parent: Overlay.overlay
         anchors.centerIn: parent
         modal: true
-        height: 480 //Math.min(prefs.contentHeight + 100, 480)
-        width: 640 //Math.min(prefs.contentWidth + 100, 640)
+        height: 3 * 240 //Math.min(prefs.contentHeight + 100, 480)
+        width: 3 * 320 //Math.min(prefs.contentWidth + 100, 640)
         contentItem: AppSettings.TopLevel {
             id: prefs
             anchors {
