@@ -9,7 +9,7 @@ Rectangle {
 
     TextMetrics {
         id: tm
-        font: Theme.font
+        font.family: "Courier Prime"
         text: "W" // Dummy value to get width of widest character
 
         //  Calculate widths and height based on current font
@@ -93,6 +93,18 @@ Rectangle {
             id: column
             anchors.fill: parent
             width: Math.max(implicitWidth, root.width)
+            Label {
+                Layout.leftMargin: tm.addressWidth + (tm.valueWidth - implicitWidth) / 2
+                Layout.alignment: Qt.AlignHCenter & Qt.AlignVCenter
+                Layout.bottomMargin: -10
+                text: "Globals"
+                visible: globals.implicitHeight > 0
+                Layout.preferredHeight: visible ? implicitHeight : 0
+                font.family: tm.font.family
+                font.pointSize: tm.font.pointSize * 1.5
+                font.bold: true
+            }
+
             MemoryStack {
                 id: globals
                 Layout.fillHeight: false
@@ -100,6 +112,7 @@ Rectangle {
                 Layout.topMargin: 4
                 Layout.preferredHeight: implicitHeight
                 Layout.preferredWidth: globals.childrenRect.width
+                Layout.bottomMargin: 15
 
                 //  Font and dimensions - Globals
                 font: tm.font
@@ -111,18 +124,17 @@ Rectangle {
                 visible: activationModel
                 itemModel: activationModel
             }
-            MemorySpacer {
-                id: globalSpacer
-                Layout.fillHeight: false
-                Layout.leftMargin: tm.addressWidth
-                Layout.preferredWidth: tm.valueWidth
+            Label {
+                Layout.leftMargin: tm.addressWidth + (tm.valueWidth - implicitWidth) / 2
+                Layout.topMargin: -5
+                Layout.bottomMargin: -5
                 Layout.alignment: Qt.AlignHCenter & Qt.AlignVCenter
-                Layout.preferredHeight: globalSpacer.ellipsisHeight
-
-                //  If no global records, spacer is not needed
-                visible: globals.implicitHeight > 0
-
-                ellipsisSize: 7.5
+                text: "Heap"
+                visible: heap.implicitHeight > 0
+                Layout.preferredHeight: visible ? implicitHeight : 0
+                font.family: tm.font.family
+                font.pointSize: tm.font.pointSize * 1.5
+                font.bold: true
             }
             MemoryStack {
                 id: heap
@@ -138,20 +150,11 @@ Rectangle {
 
                 itemModel: activationModel
             }
-            MemorySpacer {
-                id: heapSpacer
+            Item {
                 Layout.fillHeight: true
-                Layout.leftMargin: tm.addressWidth
-                Layout.preferredWidth: tm.valueWidth
-                Layout.alignment: Qt.AlignHCenter & Qt.AlignVCenter
 
                 Layout.preferredHeight: 41
                 Layout.minimumHeight: 41
-
-                //  Control cannot be hidden or other shapes will not align
-                //  properly. Hidden will make graphic transparent.
-                hidden: stack.implicitHeight === 0
-                ellipsisSize: 7.5
             }
 
             MemoryStack {
@@ -168,16 +171,25 @@ Rectangle {
 
                 itemModel: activationModel
             }
-            GraphicSpacer {
+            StackGroundGraphic {
                 id: graphic
                 Layout.fillHeight: false
-                Layout.alignment: Qt.AlignHCenter & Qt.AlignVCenter
+                Layout.alignment: Qt.AlignHCenter & Qt.AlignBottom
                 Layout.leftMargin: tm.addressWidth - tm.boldBorderWidth / 2
                 // Honestly not sure why I need -1 here, but if I don't include the offset it looks wrong.
                 Layout.preferredWidth: tm.valueWidth + tm.boldBorderWidth - 1
                 //  Force graphic to be same width as value column
                 graphicWidth: tm.valueWidth + tm.boldBorderWidth - 1
-                height: 20
+                Layout.preferredHeight: 20
+            }
+            Label {
+                Layout.topMargin: -10
+                Layout.alignment: Qt.AlignHCenter & Qt.AlignTop
+                Layout.leftMargin: tm.addressWidth + (tm.valueWidth - implicitWidth) / 2
+                text: "Stack"
+                font.family: tm.font.family
+                font.pointSize: tm.font.pointSize * 1.5
+                font.bold: true
             }
         } //  ColumnLayout
     } //  ScrollView
