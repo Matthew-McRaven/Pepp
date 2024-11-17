@@ -21,6 +21,14 @@ pepp::settings::GeneralCategory::GeneralCategory(QObject *parent) : Category(par
 
 void pepp::settings::GeneralCategory::sync() { _settings.sync(); }
 
+void pepp::settings::GeneralCategory::resetToDefault() {
+  setDefaultArch(defaultDefaultArch);
+  setDefaultAbstraction(defaultDefaultAbstraction);
+  setMaxRecentFiles(defaultMaxRecentFiles);
+  setShowMenuHotkeys(defaultShowMenuHotkeys);
+  setShowChangeDialog(defaultShowChangeDialog);
+}
+
 builtins::Architecture pepp::settings::GeneralCategory::defaultArch() const {
   bool casted = false;
   auto archEnum = QMetaEnum::fromType<builtins::Architecture>();
@@ -167,6 +175,13 @@ void pepp::settings::ThemeCategory::sync() {
   _settings.sync();
 }
 
+void pepp::settings::ThemeCategory::resetToDefault() {
+  // Remove all child keys, including PaletteItems
+  _settings.remove(themeRootKey);
+  setThemePath(defaultPath);
+  loadFromPath(_palette, defaultPath);
+}
+
 bool pepp::settings::ThemeCategory::loadFromPath(Palette *pal, const QString &path) {
   QFile jsonFile(path);
   if (!jsonFile.open(QIODevice::ReadOnly)) return false;
@@ -179,17 +194,22 @@ bool pepp::settings::ThemeCategory::loadFromPath(Palette *pal, const QString &pa
     qWarning() << "Parse error at" << parseError.offset << ":" << parseError.errorString();
 
   auto ret = pal->updateFromJson(doc.object());
+// Only sync values on WASM to avoid needlessly polluting registry / plist / etc.
+#ifdef Q_OS_WASM
   if (ret) {
     _settings.beginGroup(themeRootKey);
     pal->toSettings(_settings);
     _settings.endGroup();
   }
+#endif
   return ret;
 }
 
 pepp::settings::EditorCategory::EditorCategory(QObject *parent) : Category(parent) {}
 
 void pepp::settings::EditorCategory::sync() { _settings.sync(); }
+
+void pepp::settings::EditorCategory::resetToDefault() { setVisualizeWhitespace(_defaultVisualizeWhitespace); }
 
 bool pepp::settings::EditorCategory::visualizeWhitespace() const {
   auto value = _settings.value(visualizeWhitespaceKey);
@@ -208,6 +228,8 @@ void pepp::settings::EditorCategory::setVisualizeWhitespace(bool visualize) {
 pepp::settings::SimulatorCategory::SimulatorCategory(QObject *parent) {}
 
 void pepp::settings::SimulatorCategory::sync() { _settings.sync(); }
+
+void pepp::settings::SimulatorCategory::resetToDefault() { setMaxStepbackBufferKB(_defaultMaxStepbackBufferKB); }
 
 int pepp::settings::SimulatorCategory::minMaxStepbackBufferKB() const { return 10; }
 
@@ -264,6 +286,10 @@ pepp::settings::KeyMapCategory *pepp::settings::AppSettings::keymap() const { re
 void pepp::settings::AppSettings::loadPalette(const QString &path) {
   auto pal = themePalette();
   if (_data->theme()->loadFromPath(pal, path)) _data->theme()->setThemePath(path);
+}
+
+void pepp::settings::AppSettings::resetToDefault() {
+  for (auto category : categories()) category->resetToDefault();
 }
 
 void pepp::settings::AppSettings::sync() {

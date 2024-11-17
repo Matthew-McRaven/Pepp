@@ -20,6 +20,7 @@
 
 struct gui_args {
   std::vector<std::string> argvs;
+  bool resetSettings = false;
 #if INCLUDE_GUI
   QUrl QMLEntry{};              // If empty, pick "GUI" default.
 #endif

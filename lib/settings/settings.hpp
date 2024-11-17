@@ -45,6 +45,7 @@ public:
   QString name() const override { return "General"; };
   QString source() const override { return "GeneralCategoryDelegate.qml"; };
   void sync() override;
+  void resetToDefault() override;
 
   builtins::Architecture defaultArch() const;
   void setDefaultArch(builtins::Architecture arch);
@@ -90,6 +91,7 @@ public:
   void setThemePath(const QString &path);
   // Flush all QSettings to a file
   void sync() override;
+  void resetToDefault() override;
   bool loadFromPath(pepp::settings::Palette *pal, const QString &path);
 signals:
   void themePathChanged();
@@ -114,6 +116,7 @@ public:
   QString name() const override { return "Editor"; };
   QString source() const override { return "EditorCategoryDelegate.qml"; };
   void sync() override;
+  void resetToDefault() override;
 
   bool visualizeWhitespace() const;
   void setVisualizeWhitespace(bool visualize);
@@ -122,7 +125,7 @@ signals:
   void visualizeWhitespaceChanged();
 
 private:
-  bool _defaultVisualizeWhitespace = false;
+  const bool _defaultVisualizeWhitespace = false;
   mutable QSettings _settings;
 };
 
@@ -138,6 +141,7 @@ public:
   QString name() const override { return "Simulator"; };
   QString source() const override { return "SimulatorCategoryDelegate.qml"; };
   void sync() override;
+  void resetToDefault() override;
 
   Q_INVOKABLE int minMaxStepbackBufferKB() const;
   Q_INVOKABLE int maxMaxStepbackBufferKB() const;
@@ -149,7 +153,7 @@ signals:
 
 private:
   bool validateMaxStepbackBufferKB(int max) const;
-  int _defaultMaxStepbackBufferKB = 50;
+  const int _defaultMaxStepbackBufferKB = 50;
   mutable QSettings _settings;
 };
 
@@ -209,6 +213,7 @@ public:
   SimulatorCategory *simulator() const;
   KeyMapCategory *keymap() const;
   Q_INVOKABLE void loadPalette(const QString &path);
+  void resetToDefault();
 public slots:
   void sync();
 signals:
