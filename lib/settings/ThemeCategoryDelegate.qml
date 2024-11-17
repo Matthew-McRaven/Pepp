@@ -259,7 +259,7 @@ Rectangle {
             }
 
             if (PlatformDetector.isWASM) {
-                console.warn("Import dialog not implemented for WASM.")
+                setSource("qrc:/edu/pepp/settings/QMLFileDialog.qml", props)
             } else {
                 setSource("qrc:/edu/pepp/settings/NativeFileDialog.qml", props)
             }
