@@ -13,6 +13,7 @@ Item {
     required property var paletteRole
     required property var paletteItem
     required property bool isSystem
+    required property bool isMonoFont
     implicitWidth: columnLayout.implicitWidth
     implicitHeight: columnLayout.implicitHeight
 
@@ -220,6 +221,7 @@ Item {
 
     Platform.FontDialog {
         id: fontDialog
+        options: root.isMonoFont ? Platform.FontDialog.MonospacedFonts : 0
         // Hack to create a default font.
         TextMetrics {
             id: defaultFont

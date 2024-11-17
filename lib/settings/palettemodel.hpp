@@ -16,6 +16,7 @@ public:
     // Role which contails PaletteRole for a given item... sorry for the name.
     PaletteRoleRole = Qt::UserRole + 1,
     PaletteItemRole,
+    RequiresMonoFontRole,
   };
   explicit PaletteModel(QObject *parent = nullptr);
   explicit Q_INVOKABLE PaletteModel(Palette *palette);

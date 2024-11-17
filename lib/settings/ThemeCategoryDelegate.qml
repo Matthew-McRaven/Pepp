@@ -64,11 +64,14 @@ Rectangle {
                     ToolTip.visible: hovered
                     ToolTip.text: currentValue ?? ""
                     property bool isSystemTheme: true
+                    property bool isMonoFont: false
                     onCurrentValueChanged: settings.loadPalette(currentValue)
                     onCurrentIndexChanged: {
                         const idx = onDisk.index(currentIndex, 0)
                         isSystemTheme = Qt.binding(() => onDisk.data(
                                                        idx, onDisk.isSystem))
+                        isMonoFont = Qt.binding(() => onDisk.data(
+                                                    idx, onDisk.isMonoFont))
                     }
                 }
                 Button {
@@ -189,6 +192,7 @@ Rectangle {
                     paletteRole: listView.currentItem?.paletteRole
                     paletteItem: listView.currentItem?.paletteItem
                     isSystem: comboBox.isSystemTheme
+                    isMonoFont: comboBox.isMonoFont
                     Layout.fillHeight: true
                     Layout.fillWidth: true
                 }

@@ -1,11 +1,14 @@
 #include "paletteitem.hpp"
 #include <QSet>
+#include <qfontinfo.h>
 
-pepp::settings::PaletteItem::PaletteItem(PreferenceOptions opts, QObject *parent) : QObject(parent) {
+pepp::settings::PaletteItem::PaletteItem(PreferenceOptions opts, PaletteRole ownRole, QObject *parent)
+    : QObject(parent) {
+  _ownRole = ownRole;
   if (opts.parent) setParent(opts.parent);
   if (opts.fg.has_value()) _foreground = opts.fg;
   if (opts.bg.has_value()) _background = opts.bg;
-  if (opts.font.has_value()) _font = opts.font;
+  if (opts.font.has_value()) updateFont(opts.font.value());
 }
 
 pepp::settings::PaletteItem *pepp::settings::PaletteItem::parent() { return _parent; }
@@ -17,7 +20,7 @@ void pepp::settings::PaletteItem::clearParent() {
     QObject::disconnect(_parent, &PaletteItem::preferenceChanged, this, &PaletteItem::onParentChanged);
     _foreground = _parent->foreground();
     _background = _parent->background();
-    _font = _parent->font();
+    updateFont(_parent->font());
     _fontOverrides = {};
   }
 
@@ -30,6 +33,7 @@ void pepp::settings::PaletteItem::setParent(PaletteItem *newParent) {
   else if (detail::isAncestorOf(this, newParent)) return;
   if (_parent) QObject::disconnect(_parent, &PaletteItem::preferenceChanged, this, &PaletteItem::onParentChanged);
   _parent = newParent;
+  if (PaletteRoleHelper::requiresMonoFont(_ownRole)) preventNonMonoParent();
   if (_parent) QObject::connect(_parent, &PaletteItem::preferenceChanged, this, &PaletteItem::onParentChanged);
   emit preferenceChanged();
 }
@@ -81,13 +85,14 @@ QFont pepp::settings::PaletteItem::font() const {
 
 void pepp::settings::PaletteItem::clearFont() {
   _font.reset();
+  if (PaletteRoleHelper::requiresMonoFont(_ownRole)) preventNonMonoParent();
   _fontOverrides = {};
   emit preferenceChanged();
 }
 
 void pepp::settings::PaletteItem::setFont(const QFont font) {
   if (font == _font) return;
-  _font = font;
+  updateFont(font);
   emit preferenceChanged();
 }
 
@@ -117,27 +122,35 @@ void pepp::settings::PaletteItem::overrideStrikeout(bool strikeout) {
   emit preferenceChanged();
 }
 
-bool pepp::settings::PaletteItem::updateFromJson(const QJsonObject &json, PaletteItem *parent) {
+bool pepp::settings::PaletteItem::updateFromJson(const QJsonObject &json, PaletteRole ownRole, PaletteItem *parent) {
 
+  _ownRole = ownRole;
+  setParent(parent);
   if (json.contains("foreground")) {
     auto hex = json["foreground"].toString().toUInt(nullptr, 16);
     _foreground = QColor::fromRgba(hex);
-  }
+  } else _foreground.reset();
+
   if (json.contains("background")) {
     auto hex = json["background"].toString().toUInt(nullptr, 16);
     _background = QColor::fromRgba(hex);
-  }
+  } else _background = {};
+
+  // If item requires a mono font and the provided font is not mono, reset to a default font.
   if (json.contains("font")) {
-    _font = QFont(json["font"].toString());
+    auto font = QFont(json["font"].toString());
+    updateFont(font);
+    _fontOverrides = {};
   } else {
+    _font.reset();
+    _fontOverrides = {};
+    preventNonMonoParent();
     if (json.contains("overrideBold")) _fontOverrides.bold = json["overrideBold"].toBool();
     if (json.contains("overrideItalic")) _fontOverrides.italic = json["overrideItalic"].toBool();
     if (json.contains("overrideUnderline")) _fontOverrides.underline = json["overrideUnderline"].toBool();
     if (json.contains("overrideStrikeout")) _fontOverrides.strikeout = json["overrideStrikeout"].toBool();
     if (json.contains("overrideWeight")) _fontOverrides.weight = json["overrideWeight"].toInt();
   }
-
-  if (parent != nullptr) setParent(parent);
   return true;
 }
 
@@ -166,9 +179,31 @@ QJsonObject pepp::settings::PaletteItem::toJson() {
   return prefData;
 }
 
-void pepp::settings::PaletteItem::onParentChanged() { emit preferenceChanged(); }
+void pepp::settings::PaletteItem::onParentChanged() {
+  // If parent font change would violate monospace requirements, reset to a default.
+  if (PaletteRoleHelper::requiresMonoFont(_ownRole)) preventNonMonoParent();
+  emit preferenceChanged();
+}
 
 void pepp::settings::PaletteItem::emitChanged() { emit preferenceChanged(); }
+
+void pepp::settings::PaletteItem::updateFont(const QFont newFont) {
+  QFontInfo fontInfo(newFont);
+  if (!fontInfo.fixedPitch() && PaletteRoleHelper::requiresMonoFont(_ownRole)) _font = QFont("Courier Prime", 12);
+  else _font = newFont;
+}
+
+void pepp::settings::PaletteItem::preventNonMonoParent() {
+  if (hasOwnFont()) { // We have a font -- no need to care about our parent.
+  } else if (!_parent) {
+    if (!hasOwnFont()) _font = QFont("Courier Prime", 12);
+  } else {
+    // For some reason, the actual font (returned below) does not set fixed pitch, while QFontInfo does.
+    auto font = _parent->font();
+    QFontInfo fontInfo(font);
+    if (!fontInfo.fixedPitch()) _font = QFont("Courier Prime", 12);
+  }
+}
 
 bool pepp::settings::detail::isAncestorOf(const PaletteItem *maybeAncestor, const PaletteItem *maybeDescendant) {
   QSet<const PaletteItem *> ancestors;

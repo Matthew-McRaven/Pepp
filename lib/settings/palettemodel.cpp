@@ -28,6 +28,8 @@ QVariant pepp::settings::PaletteModel::data(const QModelIndex &index, int role) 
   case Qt::DisplayRole: return PaletteRoleHelper::prettyString(static_cast<PaletteRole>(index.row()));
   case (int)Role::PaletteRoleRole: return QVariant::fromValue(static_cast<PaletteRole>(index.row()));
   case (int)Role::PaletteItemRole: return QVariant::fromValue(_palette->item(index.row()));
+  case (int)Role::RequiresMonoFontRole:
+    return PaletteRoleHelper::requiresMonoFont(static_cast<PaletteRole>(index.row()));
   default: return {};
   }
 }
@@ -35,7 +37,8 @@ QVariant pepp::settings::PaletteModel::data(const QModelIndex &index, int role) 
 QHash<int, QByteArray> pepp::settings::PaletteModel::roleNames() const {
   static const QHash<int, QByteArray> ret{{Qt::DisplayRole, "display"},
                                           {(int)Role::PaletteRoleRole, "paletteRole"},
-                                          {(int)Role::PaletteItemRole, "paletteItem"}};
+                                          {(int)Role::PaletteItemRole, "paletteItem"},
+                                          {(int)Role::RequiresMonoFontRole, "requiresMonoFont"}};
   return ret;
 }
 

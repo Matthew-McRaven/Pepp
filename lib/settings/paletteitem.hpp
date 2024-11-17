@@ -3,6 +3,7 @@
 #include <QFont>
 #include <QObject>
 #include <QtQmlIntegration>
+#include "./constants.hpp"
 
 namespace pepp::settings {
 class PaletteItem : public QObject {
@@ -24,7 +25,7 @@ public:
     std::optional<QColor> bg{std::nullopt};
     std::optional<QFont> font{std::nullopt};
   };
-  explicit PaletteItem(PreferenceOptions opts, QObject *parent = nullptr);
+  explicit PaletteItem(PreferenceOptions opts, PaletteRole ownRole, QObject *parent = nullptr);
   PaletteItem *parent();
   const PaletteItem *parent() const;
   Q_INVOKABLE void clearParent();
@@ -48,7 +49,8 @@ public:
   Q_INVOKABLE void overrideUnderline(bool underline);
   Q_INVOKABLE void overrideStrikeout(bool strikeout);
 
-  bool updateFromJson(const QJsonObject &json, PaletteItem *parent = nullptr);
+  bool updateFromJson(const QJsonObject &json, PaletteRole ownRole = PaletteRole::Invalid,
+                      PaletteItem *parent = nullptr);
   QJsonObject toJson();
 signals:
   void preferenceChanged();
@@ -66,6 +68,11 @@ private:
     std::optional<bool> strikeout{std::nullopt}, bold{std::nullopt}, underline{std::nullopt}, italic{std::nullopt};
     std::optional<int> weight{std::nullopt};
   } _fontOverrides;
+  // Apply new font to this item if it doesn't violate monospace requirements.
+  void updateFont(const QFont newFont);
+  // Something about our parent changed... make sure we don't inherit a non-mono font.
+  void preventNonMonoParent();
+  PaletteRole _ownRole;
 };
 namespace detail {
 bool isAncestorOf(const PaletteItem *maybeAncestor, const PaletteItem *maybeDescendant);
