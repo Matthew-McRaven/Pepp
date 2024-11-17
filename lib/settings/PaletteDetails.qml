@@ -13,18 +13,8 @@ Item {
     required property var paletteRole
     required property var paletteItem
     required property bool isSystem
-    Rectangle {
-        id: bg
-        color: palette.base
-        anchors {
-            fill: parent
-            margins: border.width
-        }
-        border {
-            color: palette.text
-            width: 1
-        }
-    }
+    implicitWidth: columnLayout.implicitWidth
+    implicitHeight: columnLayout.implicitHeight
 
     ColumnLayout {
         id: columnLayout

@@ -19,12 +19,17 @@ Item {
             width: 1
         }
     }
-    Flickable {
+    ScrollView {
+        id: flickable
         anchors {
             fill: parent
             margins: 2 * bg.border.width
             leftMargin: 4 * anchors.margins
         }
+        ScrollBar.vertical.policy: flickable.contentHeight
+                                   > flickable.height ? ScrollBar.AlwaysOn : ScrollBar.AsNeeded
+        ScrollBar.horizontal.policy: flickable.contentWidth
+                                     > flickable.width ? ScrollBar.AlwaysOn : ScrollBar.AsNeeded
 
         ColumnLayout {
             GroupBox {
