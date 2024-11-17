@@ -11,6 +11,8 @@ pepp::settings::PaletteItem::PaletteItem(PreferenceOptions opts, PaletteRole own
   if (opts.font.has_value()) updateFont(opts.font.value());
 }
 
+pepp::settings::PaletteRole pepp::settings::PaletteItem::ownRole() const { return _ownRole; }
+
 pepp::settings::PaletteItem *pepp::settings::PaletteItem::parent() { return _parent; }
 
 const pepp::settings::PaletteItem *pepp::settings::PaletteItem::parent() const { return _parent; }
@@ -177,6 +179,61 @@ QJsonObject pepp::settings::PaletteItem::toJson() {
   }
 
   return prefData;
+}
+
+void pepp::settings::PaletteItem::updateFromSettings(QSettings &settings, PaletteItem *parent) {
+  setParent(parent);
+  if (settings.contains("foreground")) {
+    auto hex = settings.value("foreground").toUInt();
+    _foreground = QColor::fromRgba(hex);
+  } else _foreground.reset();
+
+  if (settings.contains("background")) {
+    auto hex = settings.value("background").toUInt();
+    _background = QColor::fromRgba(hex);
+  } else _background.reset();
+
+  if (settings.contains("font")) {
+    auto font = QFont(settings.value("font").toString());
+    updateFont(font);
+    _fontOverrides = {};
+  } else {
+    _font.reset();
+    _fontOverrides = {};
+    preventNonMonoParent();
+    if (settings.contains("overrides")) {
+      settings.beginGroup("overrides");
+      if (settings.contains("overrideBold")) _fontOverrides.bold = settings.value("overrideBold").toBool();
+      if (settings.contains("overrideItalic")) _fontOverrides.italic = settings.value("overrideItalic").toBool();
+      if (settings.contains("overrideUnderline"))
+        _fontOverrides.underline = settings.value("overrideUnderline").toBool();
+      if (settings.contains("overrideStrikeout"))
+        _fontOverrides.strikeout = settings.value("overrideStrikeout").toBool();
+      if (settings.contains("overrideWeight")) _fontOverrides.weight = settings.value("overrideWeight").toInt();
+      settings.endGroup();
+    }
+  }
+  emit preferenceChanged();
+}
+
+void pepp::settings::PaletteItem::toSettings(QSettings &settings) const {
+  if (hasOwnForeground()) settings.setValue("foreground", foreground().rgba());
+  else settings.remove("foreground");
+
+  if (hasOwnBackground()) settings.setValue("background", background().rgba());
+  else settings.remove("background");
+
+  if (hasOwnFont()) settings.setValue("font", font().toString());
+  else {
+    settings.remove("overrides");
+    settings.beginGroup("overrides");
+    if (_fontOverrides.bold.has_value()) settings.setValue("overrideBold", _fontOverrides.bold.value());
+    if (_fontOverrides.italic.has_value()) settings.setValue("overrideItalic", _fontOverrides.italic.value());
+    if (_fontOverrides.underline.has_value()) settings.setValue("overrideUnderline", _fontOverrides.underline.value());
+    if (_fontOverrides.strikeout.has_value()) settings.setValue("overrideStrikeout", _fontOverrides.strikeout.value());
+    if (_fontOverrides.weight.has_value()) settings.setValue("overrideWeight", _fontOverrides.weight.value());
+    settings.endGroup();
+  }
 }
 
 void pepp::settings::PaletteItem::onParentChanged() {

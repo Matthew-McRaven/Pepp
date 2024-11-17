@@ -26,6 +26,7 @@ public:
     std::optional<QFont> font{std::nullopt};
   };
   explicit PaletteItem(PreferenceOptions opts, PaletteRole ownRole, QObject *parent = nullptr);
+  PaletteRole ownRole() const;
   PaletteItem *parent();
   const PaletteItem *parent() const;
   Q_INVOKABLE void clearParent();
@@ -52,6 +53,8 @@ public:
   bool updateFromJson(const QJsonObject &json, PaletteRole ownRole = PaletteRole::Invalid,
                       PaletteItem *parent = nullptr);
   QJsonObject toJson();
+  void updateFromSettings(QSettings &settings, PaletteItem *parent = nullptr);
+  void toSettings(QSettings &settings) const;
 signals:
   void preferenceChanged();
 

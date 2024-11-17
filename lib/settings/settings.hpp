@@ -93,6 +93,8 @@ public:
   bool loadFromPath(pepp::settings::Palette *pal, const QString &path);
 signals:
   void themePathChanged();
+private slots:
+  void onPaletteItemChanged();
 
 private:
   mutable QSettings _settings;

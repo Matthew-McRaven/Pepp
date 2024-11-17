@@ -38,9 +38,7 @@ pepp::settings::PaletteItem *pepp::settings::Palette::item(PaletteRole role) { r
 pepp::settings::PaletteItem *pepp::settings::Palette::item(PaletteRole role) const { return item((int)role); }
 
 bool pepp::settings::Palette::updateFromJson(const QJsonObject &json) {
-  // this gon' be shitty
   bool okay;
-  // if (const QJsonValue v = json["name"]; v.isString()) _name = v.toString();
   if (auto asInt = json["version"].toInt(0); asInt != _version) {
     qDebug() << "Version mismatch in theme file. Expected " << _version << " got " << asInt;
     return false;
@@ -48,8 +46,6 @@ bool pepp::settings::Palette::updateFromJson(const QJsonObject &json) {
   static const auto roles = QMetaEnum::fromType<PaletteRole>();
   // Do any global updates, like changing the value of a font for each preference to match global font.
   _name = json["name"].toString();
-
-  //
 
   if (const QJsonValue v = json["paletteItems"]; v.isArray()) {
     const QJsonArray prefsObj = v.toArray();
@@ -111,12 +107,44 @@ QJsonObject pepp::settings::Palette::toJson() {
   return doc;
 }
 
+void pepp::settings::Palette::updateFromSettings(QSettings &settings) {
+  for (auto item : _items) {
+    settings.beginGroup(PaletteRoleHelper::string(item->ownRole()));
+    PaletteItem *parent = nullptr;
+    if (auto parentString = settings.value("parent").toString();
+        parentString.isEmpty()) { // intentionally blank. negated to convert nested to chained if.
+    } else if (auto parentIndex = itemToRole(item); parentIndex != -1) parent = _items[parentIndex];
+
+    item->updateFromSettings(settings, parent);
+    settings.endGroup();
+  }
+}
+
+void pepp::settings::Palette::toSettings(QSettings &settings) const {
+  for (auto item : _items) {
+    settings.beginGroup(PaletteRoleHelper::string(item->ownRole()));
+    item->toSettings(settings);
+    if (auto parent = item->parent(); !parent) { // intentionally blank. negated to convert nested to chained if.
+    } else if (auto role = itemToRole(parent); role != -1)
+      settings.setValue("parent", PaletteRoleHelper::string(static_cast<PaletteRole>(role)));
+    settings.endGroup();
+  }
+}
+
 QString pepp::settings::Palette::jsonString() { return QJsonDocument(toJson()).toJson(); }
 
 pepp::settings::Palette::Palette(QObject *parent) : QObject(parent) {
   _items.resize(static_cast<int>(PaletteRole::Total), nullptr);
   loadLightDefaults();
   for (auto &p : _items) QObject::connect(p, &PaletteItem::preferenceChanged, this, &Palette::itemChanged);
+}
+
+std::span<const pepp::settings::PaletteItem *const> pepp::settings::Palette::items() const {
+  return std::span<const pepp::settings::PaletteItem *const>{_items.data(), _items.size()};
+}
+
+std::span<pepp::settings::PaletteItem *> pepp::settings::Palette::items() {
+  return std::span<pepp::settings::PaletteItem *>{_items.data(), _items.size()};
 }
 
 int pepp::settings::Palette::itemToRole(const PaletteItem *item) const {

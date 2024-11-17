@@ -106,6 +106,14 @@ bool pepp::settings::GeneralCategory::validateMaxRecentFiles(int max) const {
 static const auto defaultPath = ":/themes/Default.theme";
 pepp::settings::ThemeCategory::ThemeCategory(QObject *parent) : Category(parent) {
   auto pal = new Palette(this);
+  // In WASM, the IDBFS filesystem mounted at / will not be ready when we try to load the theme,
+  // So, we persist the theme into the Qt settings FS as a form of cache.
+  // By the time the settings pane is opened, the IDBFS should be synced.
+#if defined(Q_OS_WASM)
+  _settings.beginGroup(themeRootKey);
+  pal->updateFromSettings(_settings);
+  _settings.endGroup();
+#else
   if (auto path = _settings.value(themePathKey); path.isValid()) {
     // Attempt to load from path. If it fails, set to default and load that.
     if (!loadFromPath(pal, path.toString())) {
@@ -113,7 +121,24 @@ pepp::settings::ThemeCategory::ThemeCategory(QObject *parent) : Category(parent)
       loadFromPath(pal, defaultPath);
     }
   }
+#endif
+
+  for (auto item : pal->items())
+    connect(item, &PaletteItem::preferenceChanged, this, &ThemeCategory::onPaletteItemChanged);
   _palette = pal;
+}
+void pepp::settings::ThemeCategory::onPaletteItemChanged() {
+  auto sender = QObject::sender();
+#ifdef Q_OS_WASM
+  if (auto item = qobject_cast<PaletteItem *>(sender); item && true) {
+    QSettings nested;
+    nested.beginGroup(themeRootKey);
+    nested.beginGroup(PaletteRoleHelper::string(item->ownRole()));
+    item->toSettings(nested);
+    nested.endGroup();
+    nested.endGroup();
+  }
+#endif
 }
 
 QString pepp::settings::ThemeCategory::themePath() const {
@@ -131,8 +156,15 @@ void pepp::settings::ThemeCategory::setThemePath(const QString &path) {
 }
 
 void pepp::settings::ThemeCategory::sync() {
-  _settings.sync();
+// Only sync values on WASM to avoid needlessly polluting registry / plist / etc.
+#ifdef Q_OS_WASM
   // Write palette toDisk.
+  _settings.beginGroup(themeRootKey);
+  _palette->toSettings(_settings);
+  _settings.endGroup();
+#endif
+  // Synchronize other settings.
+  _settings.sync();
 }
 
 bool pepp::settings::ThemeCategory::loadFromPath(Palette *pal, const QString &path) {
@@ -146,7 +178,13 @@ bool pepp::settings::ThemeCategory::loadFromPath(Palette *pal, const QString &pa
   if (parseError.error != QJsonParseError::NoError)
     qWarning() << "Parse error at" << parseError.offset << ":" << parseError.errorString();
 
-  return pal->updateFromJson(doc.object());
+  auto ret = pal->updateFromJson(doc.object());
+  if (ret) {
+    _settings.beginGroup(themeRootKey);
+    pal->toSettings(_settings);
+    _settings.endGroup();
+  }
+  return ret;
 }
 
 pepp::settings::EditorCategory::EditorCategory(QObject *parent) : Category(parent) {}
