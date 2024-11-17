@@ -1,5 +1,9 @@
 #include "palettemanager.hpp"
 
+#ifdef __EMSCRIPTEN__
+#include <emscripten.h>
+#endif
+
 pepp::settings::PaletteManager::PaletteManager(QObject *parent) : QAbstractListModel(parent) { reload(); }
 
 int pepp::settings::PaletteManager::rowCount(const QModelIndex &parent) const { return _palettes.size(); }
@@ -35,6 +39,11 @@ bool pepp::settings::PaletteManager::setData(const QModelIndex &index, const QVa
     if (!jsonFile.open(QIODevice::WriteOnly)) return false;
     jsonFile.write(QJsonDocument{root}.toJson());
     jsonFile.close();
+#ifdef __EMSCRIPTEN__
+    EM_ASM(FS.syncfs(function(err) {
+      if (err) console.log(err)
+    }););
+#endif
     entry.name = asString;
   }
   emit dataChanged(index, index, {role});
@@ -86,6 +95,11 @@ int pepp::settings::PaletteManager::copy(int row) {
   // Make sure we can write to this file later to update it.
   auto perms = targetFile.permissions();
   QFile(targetFile.absoluteFilePath()).setPermissions(perms | QFileDevice::WriteOwner);
+#ifdef __EMSCRIPTEN__
+  EM_ASM(FS.syncfs(function(err) {
+    if (err) console.log(err)
+  }););
+#endif
 
   beginInsertRows({}, row, row);
   _palettes.append(entry);
@@ -115,6 +129,12 @@ int pepp::settings::PaletteManager::importTheme(QString path) {
   auto perms = dest.permissions();
   QFile(dest.absoluteFilePath()).setPermissions(perms | QFileDevice::WriteOwner);
 
+#ifdef __EMSCRIPTEN__
+  EM_ASM(FS.syncfs(function(err) {
+    if (err) console.log(err)
+  }););
+#endif
+
   beginInsertRows({}, _palettes.size() - 1, _palettes.size() - 1);
   _palettes.append({.name = name, .path = dest.absoluteFilePath(), .isSystem = false});
   endInsertRows();
@@ -125,6 +145,11 @@ void pepp::settings::PaletteManager::deleteTheme(int row) {
   if (row < 0 || row >= _palettes.size()) return;
   auto entry = _palettes[row];
   if (!entry.isSystem) QFile::remove(entry.path);
+#ifdef __EMSCRIPTEN__
+  EM_ASM(FS.syncfs(function(err) {
+    if (err) console.log(err)
+  }););
+#endif
   beginRemoveRows({}, row, row);
   _palettes.removeAt(row);
   endRemoveRows();
