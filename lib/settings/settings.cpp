@@ -11,6 +11,9 @@ static const char *showMenuHotkeysKey = "General/showMenuHotkeys";
 static const char *showChangeDialogKey = "General/showChangeDialog";
 // Editor
 static const char *visualizeWhitespaceKey = "Editor/visualizeWhitespace";
+// Palette
+static const char *themeRootKey = "Theme";
+static const char *themePathKey = "Theme/activePath";
 // Simulator
 static const char *maxStepbackBufferKBKey = "Simulator/maxStepbackBufferKB";
 
@@ -100,10 +103,50 @@ bool pepp::settings::GeneralCategory::validateMaxRecentFiles(int max) const {
   if (max <= 0 || max > 10) return false;
   return true;
 }
-
+static const auto defaultPath = ":/themes/Default.theme";
 pepp::settings::ThemeCategory::ThemeCategory(QObject *parent) : Category(parent) {
-  // TODO: load last selected theme from disk and bind to _palette.
-  _palette = new Palette(this);
+  auto pal = new Palette(this);
+  if (auto path = _settings.value(themePathKey); path.isValid()) {
+    // Attempt to load from path. If it fails, set to default and load that.
+    if (!loadFromPath(pal, path.toString())) {
+      _settings.setValue(themePathKey, defaultPath);
+      loadFromPath(pal, defaultPath);
+    }
+  }
+  _palette = pal;
+}
+
+QString pepp::settings::ThemeCategory::themePath() const {
+  auto value = _settings.value(themePathKey);
+  if (value.isValid()) return value.toString();
+  else {
+    _settings.setValue(themePathKey, defaultPath);
+    return defaultPath;
+  }
+}
+
+void pepp::settings::ThemeCategory::setThemePath(const QString &path) {
+  _settings.setValue(themePathKey, path);
+  emit themePathChanged();
+}
+
+void pepp::settings::ThemeCategory::sync() {
+  _settings.sync();
+  // Write palette toDisk.
+}
+
+bool pepp::settings::ThemeCategory::loadFromPath(Palette *pal, const QString &path) {
+  QFile jsonFile(path);
+  if (!jsonFile.open(QIODevice::ReadOnly)) return false;
+  QByteArray ba = jsonFile.readAll();
+  jsonFile.close();
+  QJsonParseError parseError;
+  QJsonDocument doc = QJsonDocument::fromJson(ba, &parseError);
+
+  if (parseError.error != QJsonParseError::NoError)
+    qWarning() << "Parse error at" << parseError.offset << ":" << parseError.errorString();
+
+  return pal->updateFromJson(doc.object());
 }
 
 pepp::settings::EditorCategory::EditorCategory(QObject *parent) : Category(parent) {}
@@ -170,12 +213,6 @@ pepp::settings::detail::AppSettingsData::AppSettingsData() {
 
 pepp::settings::AppSettings::AppSettings(QObject *parent)
     : QObject(parent), _data(detail::AppSettingsData::getInstance()) {
-  /*void defaultArchChanged();
-  void defaultAbstractionChanged();
-  void maxRecentFilesChanged();
-  void showMenuHotkeysChanged();
-  void showChangeDialogChanged();
-  QObject::connect(general(), &GeneralCategory::defaultArchChanged, this, &AppSettings::)*/
 }
 
 QList<pepp::settings::Category *> pepp::settings::AppSettings::categories() const { return _data->categories(); }
@@ -187,18 +224,8 @@ pepp::settings::SimulatorCategory *pepp::settings::AppSettings::simulator() cons
 pepp::settings::KeyMapCategory *pepp::settings::AppSettings::keymap() const { return _data->keymap(); }
 
 void pepp::settings::AppSettings::loadPalette(const QString &path) {
-  QFile jsonFile(path);
-  if (!jsonFile.open(QIODevice::ReadOnly)) return;
-  QByteArray ba = jsonFile.readAll();
-  jsonFile.close();
-  QJsonParseError parseError;
-  QJsonDocument doc = QJsonDocument::fromJson(ba, &parseError);
-
-  if (parseError.error != QJsonParseError::NoError)
-    qWarning() << "Parse error at" << parseError.offset << ":" << parseError.errorString();
-
   auto pal = themePalette();
-  pal->updateFromJson(doc.object());
+  if (_data->theme()->loadFromPath(pal, path)) _data->theme()->setThemePath(path);
 }
 
 void pepp::settings::AppSettings::sync() {

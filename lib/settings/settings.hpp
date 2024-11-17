@@ -79,14 +79,24 @@ class ThemeCategory : public Category {
   QML_UNCREATABLE("")
   QML_NAMED_ELEMENT(ThemeCategory)
   Q_PROPERTY(pepp::settings::Palette *palette READ palette CONSTANT)
+  Q_PROPERTY(QString themePath READ themePath WRITE setThemePath NOTIFY themePathChanged)
 
 public:
   explicit ThemeCategory(QObject *parent = nullptr);
   QString name() const override { return "Fonts & Colors"; };
   QString source() const override { return "ThemeCategoryDelegate.qml"; };
   pepp::settings::Palette *palette() const { return _palette; };
+  QString themePath() const;
+  void setThemePath(const QString &path);
+  // Flush all QSettings to a file
+  void sync() override;
+  bool loadFromPath(pepp::settings::Palette *pal, const QString &path);
+signals:
+  void themePathChanged();
 
 private:
+  mutable QSettings _settings;
+  QString _themePath;
   pepp::settings::Palette *_palette = nullptr;
 };
 
@@ -177,13 +187,13 @@ private:
 class AppSettings : public QObject {
   Q_OBJECT
   Q_PROPERTY(QList<Category *> categories READ categories NOTIFY categoriesChanged)
-  Q_PROPERTY(GeneralCategory general READ general NOTIFY generalChanged)
-  Q_PROPERTY(ThemeCategory theme READ theme NOTIFY themeChanged)
+  Q_PROPERTY(GeneralCategory *general READ general NOTIFY generalChanged)
+  Q_PROPERTY(ThemeCategory *theme READ theme NOTIFY themeChanged)
   // alias to make access themeing take fewer keystrokes
   Q_PROPERTY(pepp::settings::Palette *extPalette READ themePalette NOTIFY themePaletteChanged)
-  Q_PROPERTY(EditorCategory editor READ editor NOTIFY editorChanged)
-  Q_PROPERTY(SimulatorCategory simulator READ simulator NOTIFY simulatorChanged)
-  Q_PROPERTY(KeyMapCategory keymap READ keymap NOTIFY keymapChanged)
+  Q_PROPERTY(EditorCategory *editor READ editor NOTIFY editorChanged)
+  Q_PROPERTY(SimulatorCategory *simulator READ simulator NOTIFY simulatorChanged)
+  Q_PROPERTY(KeyMapCategory *keymap READ keymap NOTIFY keymapChanged)
   QML_NAMED_ELEMENT(NuAppSettings)
   Q_CLASSINFO("DefaultProperty", "categories")
 
