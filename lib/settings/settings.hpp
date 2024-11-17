@@ -45,6 +45,7 @@ public:
   QString name() const override { return "General"; };
   QString source() const override { return "GeneralCategoryDelegate.qml"; };
   void sync() override;
+  void resetToDefault() override;
 
   builtins::Architecture defaultArch() const;
   void setDefaultArch(builtins::Architecture arch);
@@ -79,14 +80,27 @@ class ThemeCategory : public Category {
   QML_UNCREATABLE("")
   QML_NAMED_ELEMENT(ThemeCategory)
   Q_PROPERTY(pepp::settings::Palette *palette READ palette CONSTANT)
+  Q_PROPERTY(QString themePath READ themePath WRITE setThemePath NOTIFY themePathChanged)
 
 public:
   explicit ThemeCategory(QObject *parent = nullptr);
   QString name() const override { return "Fonts & Colors"; };
   QString source() const override { return "ThemeCategoryDelegate.qml"; };
   pepp::settings::Palette *palette() const { return _palette; };
+  QString themePath() const;
+  void setThemePath(const QString &path);
+  // Flush all QSettings to a file
+  void sync() override;
+  void resetToDefault() override;
+  bool loadFromPath(pepp::settings::Palette *pal, const QString &path);
+signals:
+  void themePathChanged();
+private slots:
+  void onPaletteItemChanged();
 
 private:
+  mutable QSettings _settings;
+  QString _themePath;
   pepp::settings::Palette *_palette = nullptr;
 };
 
@@ -102,6 +116,7 @@ public:
   QString name() const override { return "Editor"; };
   QString source() const override { return "EditorCategoryDelegate.qml"; };
   void sync() override;
+  void resetToDefault() override;
 
   bool visualizeWhitespace() const;
   void setVisualizeWhitespace(bool visualize);
@@ -110,7 +125,7 @@ signals:
   void visualizeWhitespaceChanged();
 
 private:
-  bool _defaultVisualizeWhitespace = false;
+  const bool _defaultVisualizeWhitespace = false;
   mutable QSettings _settings;
 };
 
@@ -126,6 +141,7 @@ public:
   QString name() const override { return "Simulator"; };
   QString source() const override { return "SimulatorCategoryDelegate.qml"; };
   void sync() override;
+  void resetToDefault() override;
 
   Q_INVOKABLE int minMaxStepbackBufferKB() const;
   Q_INVOKABLE int maxMaxStepbackBufferKB() const;
@@ -137,7 +153,7 @@ signals:
 
 private:
   bool validateMaxStepbackBufferKB(int max) const;
-  int _defaultMaxStepbackBufferKB = 50;
+  const int _defaultMaxStepbackBufferKB = 50;
   mutable QSettings _settings;
 };
 
@@ -177,13 +193,13 @@ private:
 class AppSettings : public QObject {
   Q_OBJECT
   Q_PROPERTY(QList<Category *> categories READ categories NOTIFY categoriesChanged)
-  Q_PROPERTY(GeneralCategory general READ general NOTIFY generalChanged)
-  Q_PROPERTY(ThemeCategory theme READ theme NOTIFY themeChanged)
+  Q_PROPERTY(GeneralCategory *general READ general NOTIFY generalChanged)
+  Q_PROPERTY(ThemeCategory *theme READ theme NOTIFY themeChanged)
   // alias to make access themeing take fewer keystrokes
   Q_PROPERTY(pepp::settings::Palette *extPalette READ themePalette NOTIFY themePaletteChanged)
-  Q_PROPERTY(EditorCategory editor READ editor NOTIFY editorChanged)
-  Q_PROPERTY(SimulatorCategory simulator READ simulator NOTIFY simulatorChanged)
-  Q_PROPERTY(KeyMapCategory keymap READ keymap NOTIFY keymapChanged)
+  Q_PROPERTY(EditorCategory *editor READ editor NOTIFY editorChanged)
+  Q_PROPERTY(SimulatorCategory *simulator READ simulator NOTIFY simulatorChanged)
+  Q_PROPERTY(KeyMapCategory *keymap READ keymap NOTIFY keymapChanged)
   QML_NAMED_ELEMENT(NuAppSettings)
   Q_CLASSINFO("DefaultProperty", "categories")
 
@@ -197,6 +213,7 @@ public:
   SimulatorCategory *simulator() const;
   KeyMapCategory *keymap() const;
   Q_INVOKABLE void loadPalette(const QString &path);
+  void resetToDefault();
 public slots:
   void sync();
 signals:

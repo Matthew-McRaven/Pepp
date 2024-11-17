@@ -57,6 +57,7 @@ public:
   // Convert to a pretty string which looks nice to users.
   // e.g., Role::BaseMonoRole => "Base + Monospace font"
   Q_INVOKABLE static QString prettyString(Role role);
+  Q_INVOKABLE static bool requiresMonoFont(Role role);
 };
 using PaletteRole = PaletteRoleHelper::Role;
 

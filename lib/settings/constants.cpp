@@ -23,6 +23,24 @@ QString pepp::settings::PaletteRoleHelper::prettyString(Role role) {
   }
 }
 
+bool pepp::settings::PaletteRoleHelper::requiresMonoFont(Role role) {
+  switch (role) {
+  case Role::BaseMonoRole: [[fallthrough]];
+  case Role::MnemonicRole: [[fallthrough]];
+  case Role::SymbolRole: [[fallthrough]];
+  case Role::DirectiveRole: [[fallthrough]];
+  case Role::MacroRole: [[fallthrough]];
+  case Role::CharacterRole: [[fallthrough]];
+  case Role::StringRole: [[fallthrough]];
+  case Role::CommentRole: [[fallthrough]];
+  case Role::ErrorRole: [[fallthrough]];
+  case Role::WarningRole: [[fallthrough]];
+  case Role::SeqCircuitRole: [[fallthrough]];
+  case Role::CircuitGreenRole: return true;
+  default: return false;
+  }
+}
+
 pepp::settings::CategoryHelper::CategoryHelper(QObject *parent) : QObject(parent) {}
 
 QString pepp::settings::CategoryHelper::string(PaletteCategory cat) const {

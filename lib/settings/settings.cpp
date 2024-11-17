@@ -11,12 +11,23 @@ static const char *showMenuHotkeysKey = "General/showMenuHotkeys";
 static const char *showChangeDialogKey = "General/showChangeDialog";
 // Editor
 static const char *visualizeWhitespaceKey = "Editor/visualizeWhitespace";
+// Palette
+static const char *themeRootKey = "Theme";
+static const char *themePathKey = "Theme/activePath";
 // Simulator
 static const char *maxStepbackBufferKBKey = "Simulator/maxStepbackBufferKB";
 
 pepp::settings::GeneralCategory::GeneralCategory(QObject *parent) : Category(parent) {}
 
 void pepp::settings::GeneralCategory::sync() { _settings.sync(); }
+
+void pepp::settings::GeneralCategory::resetToDefault() {
+  setDefaultArch(defaultDefaultArch);
+  setDefaultAbstraction(defaultDefaultAbstraction);
+  setMaxRecentFiles(defaultMaxRecentFiles);
+  setShowMenuHotkeys(defaultShowMenuHotkeys);
+  setShowChangeDialog(defaultShowChangeDialog);
+}
 
 builtins::Architecture pepp::settings::GeneralCategory::defaultArch() const {
   bool casted = false;
@@ -100,15 +111,105 @@ bool pepp::settings::GeneralCategory::validateMaxRecentFiles(int max) const {
   if (max <= 0 || max > 10) return false;
   return true;
 }
-
+static const auto defaultPath = ":/themes/Default.theme";
 pepp::settings::ThemeCategory::ThemeCategory(QObject *parent) : Category(parent) {
-  // TODO: load last selected theme from disk and bind to _palette.
-  _palette = new Palette(this);
+  auto pal = new Palette(this);
+  // In WASM, the IDBFS filesystem mounted at / will not be ready when we try to load the theme,
+  // So, we persist the theme into the Qt settings FS as a form of cache.
+  // By the time the settings pane is opened, the IDBFS should be synced.
+#if defined(Q_OS_WASM)
+  _settings.beginGroup(themeRootKey);
+  pal->updateFromSettings(_settings);
+  _settings.endGroup();
+#else
+  if (auto path = _settings.value(themePathKey); path.isValid()) {
+    // Attempt to load from path. If it fails, set to default and load that.
+    if (!loadFromPath(pal, path.toString())) {
+      _settings.setValue(themePathKey, defaultPath);
+      loadFromPath(pal, defaultPath);
+    }
+  }
+#endif
+
+  for (auto item : pal->items())
+    connect(item, &PaletteItem::preferenceChanged, this, &ThemeCategory::onPaletteItemChanged);
+  _palette = pal;
+}
+void pepp::settings::ThemeCategory::onPaletteItemChanged() {
+  auto sender = QObject::sender();
+#ifdef Q_OS_WASM
+  if (auto item = qobject_cast<PaletteItem *>(sender); item && true) {
+    QSettings nested;
+    nested.beginGroup(themeRootKey);
+    nested.beginGroup(PaletteRoleHelper::string(item->ownRole()));
+    item->toSettings(nested);
+    nested.endGroup();
+    nested.endGroup();
+  }
+#endif
+}
+
+QString pepp::settings::ThemeCategory::themePath() const {
+  auto value = _settings.value(themePathKey);
+  if (value.isValid()) return value.toString();
+  else {
+    _settings.setValue(themePathKey, defaultPath);
+    return defaultPath;
+  }
+}
+
+void pepp::settings::ThemeCategory::setThemePath(const QString &path) {
+  _settings.setValue(themePathKey, path);
+  emit themePathChanged();
+}
+
+void pepp::settings::ThemeCategory::sync() {
+// Only sync values on WASM to avoid needlessly polluting registry / plist / etc.
+#ifdef Q_OS_WASM
+  // Write palette toDisk.
+  _settings.beginGroup(themeRootKey);
+  _palette->toSettings(_settings);
+  _settings.endGroup();
+#endif
+  // Synchronize other settings.
+  _settings.sync();
+}
+
+void pepp::settings::ThemeCategory::resetToDefault() {
+  // Remove all child keys, including PaletteItems
+  _settings.remove(themeRootKey);
+  setThemePath(defaultPath);
+  loadFromPath(_palette, defaultPath);
+}
+
+bool pepp::settings::ThemeCategory::loadFromPath(Palette *pal, const QString &path) {
+  QFile jsonFile(path);
+  if (!jsonFile.open(QIODevice::ReadOnly)) return false;
+  QByteArray ba = jsonFile.readAll();
+  jsonFile.close();
+  QJsonParseError parseError;
+  QJsonDocument doc = QJsonDocument::fromJson(ba, &parseError);
+
+  if (parseError.error != QJsonParseError::NoError)
+    qWarning() << "Parse error at" << parseError.offset << ":" << parseError.errorString();
+
+  auto ret = pal->updateFromJson(doc.object());
+// Only sync values on WASM to avoid needlessly polluting registry / plist / etc.
+#ifdef Q_OS_WASM
+  if (ret) {
+    _settings.beginGroup(themeRootKey);
+    pal->toSettings(_settings);
+    _settings.endGroup();
+  }
+#endif
+  return ret;
 }
 
 pepp::settings::EditorCategory::EditorCategory(QObject *parent) : Category(parent) {}
 
 void pepp::settings::EditorCategory::sync() { _settings.sync(); }
+
+void pepp::settings::EditorCategory::resetToDefault() { setVisualizeWhitespace(_defaultVisualizeWhitespace); }
 
 bool pepp::settings::EditorCategory::visualizeWhitespace() const {
   auto value = _settings.value(visualizeWhitespaceKey);
@@ -127,6 +228,8 @@ void pepp::settings::EditorCategory::setVisualizeWhitespace(bool visualize) {
 pepp::settings::SimulatorCategory::SimulatorCategory(QObject *parent) {}
 
 void pepp::settings::SimulatorCategory::sync() { _settings.sync(); }
+
+void pepp::settings::SimulatorCategory::resetToDefault() { setMaxStepbackBufferKB(_defaultMaxStepbackBufferKB); }
 
 int pepp::settings::SimulatorCategory::minMaxStepbackBufferKB() const { return 10; }
 
@@ -170,12 +273,6 @@ pepp::settings::detail::AppSettingsData::AppSettingsData() {
 
 pepp::settings::AppSettings::AppSettings(QObject *parent)
     : QObject(parent), _data(detail::AppSettingsData::getInstance()) {
-  /*void defaultArchChanged();
-  void defaultAbstractionChanged();
-  void maxRecentFilesChanged();
-  void showMenuHotkeysChanged();
-  void showChangeDialogChanged();
-  QObject::connect(general(), &GeneralCategory::defaultArchChanged, this, &AppSettings::)*/
 }
 
 QList<pepp::settings::Category *> pepp::settings::AppSettings::categories() const { return _data->categories(); }
@@ -187,18 +284,12 @@ pepp::settings::SimulatorCategory *pepp::settings::AppSettings::simulator() cons
 pepp::settings::KeyMapCategory *pepp::settings::AppSettings::keymap() const { return _data->keymap(); }
 
 void pepp::settings::AppSettings::loadPalette(const QString &path) {
-  QFile jsonFile(path);
-  if (!jsonFile.open(QIODevice::ReadOnly)) return;
-  QByteArray ba = jsonFile.readAll();
-  jsonFile.close();
-  QJsonParseError parseError;
-  QJsonDocument doc = QJsonDocument::fromJson(ba, &parseError);
-
-  if (parseError.error != QJsonParseError::NoError)
-    qWarning() << "Parse error at" << parseError.offset << ":" << parseError.errorString();
-
   auto pal = themePalette();
-  pal->updateFromJson(doc.object());
+  if (_data->theme()->loadFromPath(pal, path)) _data->theme()->setThemePath(path);
+}
+
+void pepp::settings::AppSettings::resetToDefault() {
+  for (auto category : categories()) category->resetToDefault();
 }
 
 void pepp::settings::AppSettings::sync() {

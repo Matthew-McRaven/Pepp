@@ -59,16 +59,37 @@ Rectangle {
                     model: PaletteManager {
                         id: onDisk
                     }
+                    Component.onCompleted: {
+                        const startTheme = settings.theme.themePath
+                        for (var row = 0; row < onDisk.rowCount(); row++) {
+                            const index = onDisk.index(row, 0)
+                            const rowPath = onDisk.data(index, onDisk.path)
+                            // As a side-effect, will reload from disk
+                            if (rowPath === startTheme) {
+                                currentIndex = row
+                                break
+                            }
+                        }
+                        // Reset to default theme if previously selected theme does not exist.
+                        if (currentIndex === -1)
+                            currentIndex = 0
+                    }
+
                     textRole: "display"
                     valueRole: "path"
                     ToolTip.visible: hovered
                     ToolTip.text: currentValue ?? ""
                     property bool isSystemTheme: true
+                    property bool isMonoFont: false
+                    // Must not start at 0, otherwise it will always reset to the default theme.
+                    currentIndex: -1
                     onCurrentValueChanged: settings.loadPalette(currentValue)
                     onCurrentIndexChanged: {
                         const idx = onDisk.index(currentIndex, 0)
                         isSystemTheme = Qt.binding(() => onDisk.data(
                                                        idx, onDisk.isSystem))
+                        isMonoFont = Qt.binding(() => onDisk.data(
+                                                    idx, onDisk.isMonoFont))
                     }
                 }
                 Button {
@@ -189,6 +210,7 @@ Rectangle {
                     paletteRole: listView.currentItem?.paletteRole
                     paletteItem: listView.currentItem?.paletteItem
                     isSystem: comboBox.isSystemTheme
+                    isMonoFont: comboBox.isMonoFont
                     Layout.fillHeight: true
                     Layout.fillWidth: true
                 }
@@ -237,7 +259,7 @@ Rectangle {
             }
 
             if (PlatformDetector.isWASM) {
-                console.warn("Import dialog not implemented for WASM.")
+                setSource("qrc:/edu/pepp/settings/QMLFileDialog.qml", props)
             } else {
                 setSource("qrc:/edu/pepp/settings/NativeFileDialog.qml", props)
             }

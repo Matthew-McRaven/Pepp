@@ -58,6 +58,8 @@ class Palette : public QObject {
   Q_PROPERTY(PaletteItem *circuitGreen READ circuitGreen CONSTANT)
 public:
   Palette(QObject *parent = nullptr);
+  std::span<PaletteItem const *const> items() const;
+  std::span<PaletteItem *> items();
   // Return -1 if not found, or (int) PaletteRole if found.
   Q_INVOKABLE int itemToRole(const PaletteItem *item) const;
 
@@ -103,6 +105,8 @@ public:
 
   bool updateFromJson(const QJsonObject &json);
   QJsonObject toJson();
+  void updateFromSettings(QSettings &settings);
+  void toSettings(QSettings &settings) const;
   Q_INVOKABLE QString jsonString();
 signals:
   void itemChanged();
@@ -111,7 +115,7 @@ private:
   //  Dirty flag is cleared on save (a const function)
   mutable bool _isDirty{false};
   static const int _version{8};
-  QList<PaletteItem *> _items;
+  std::vector<PaletteItem *> _items;
   QString _name{"Default"};
 
   void loadLightDefaults();

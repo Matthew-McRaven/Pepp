@@ -66,6 +66,7 @@ int main(int argc, char **argv) {
   registerRun(app, task, shared_flags);
   gui_args args{.argvs = {argv[0]}};
   registerGUI(app, task, shared_flags, args);
+  auto resetSettings = app.add_flag("--reset-settings", args.resetSettings, "Reset settings to default");
 
   // Hidden commands
   registerThroughput(app, task, shared_flags);

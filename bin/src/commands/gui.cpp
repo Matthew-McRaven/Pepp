@@ -28,6 +28,8 @@
 //  Testing only
 #include <QDirIterator>
 
+#include "settings/settings.hpp"
+
 Q_IMPORT_PLUGIN(PeppLibPlugin)
 
 struct default_data : public gui_globals {
@@ -73,6 +75,7 @@ int gui_main(const gui_args &args) {
 #else
   QApplication app(argc, argvs.data());
 #endif
+
   QFontDatabase::addApplicationFont(":/fonts/mono/CourierPrime-Regular.ttf");
   QFontDatabase::addApplicationFont(":/fonts/mono/CourierPrime-Italic.ttf");
   QFontDatabase::addApplicationFont(":/fonts/mono/CourierPrime-Bold.ttf");
@@ -86,6 +89,7 @@ int gui_main(const gui_args &args) {
       u"%1.%2.%3"_s.arg(about::g_MAJOR_VERSION()).arg(about::g_MINOR_VERSION()).arg(about::g_PATCH_VERSION());
   QApplication::setApplicationVersion(version);
   QQuickStyle::setStyle("Fusion");
+  if (args.resetSettings) pepp::settings::AppSettings().resetToDefault();
 
 #ifdef __EMSCRIPTEN__
   // Need to keep pointer to non-downcast type for default_init
