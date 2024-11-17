@@ -54,7 +54,13 @@ QHash<int, QByteArray> pepp::settings::PaletteManager::roleNames() const
 }
 
 // Can't be static, because we need information from main();
-QString userThemeDir() { return QStandardPaths::writableLocation(QStandardPaths::AppLocalDataLocation) + "/themes"; }
+QString userThemeDir() {
+#ifdef Q_OS_WASM
+  return "/themes";
+#else
+  return QStandardPaths::writableLocation(QStandardPaths::AppLocalDataLocation) + "/themes";
+#endif
+}
 void pepp::settings::PaletteManager::reload()
 {
   beginResetModel();
