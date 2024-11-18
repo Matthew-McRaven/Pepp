@@ -82,7 +82,7 @@ public slots:
   bool onClearCPU();
   bool onClearMemory();
 
-  void onDeferredExecution(sim::api2::trace::Action stopOn, std::function<bool()> step);
+  void onDeferredExecution(std::function<bool()> step);
 
 signals:
   void objectCodeTextChanged();
@@ -95,7 +95,7 @@ signals:
 
   void message(QString message);
   void updateGUI(sim::api2::trace::FrameIterator from);
-  void deferredExecution(sim::api2::trace::Action stopOn, std::function<bool()> step);
+  void deferredExecution(std::function<bool()> step);
 
 protected:
   void bindToSystem();
@@ -202,5 +202,5 @@ protected:
   QList<QPair<int, QString>> _errors = {}, _userListAnnotations = {}, _osListAnnotations = {};
   helpers::AsmHelper::Lines2Addresses _userLines2Address = {}, _osLines2Address = {};
   void updateBPAtAddress(quint32 address, Action action);
-  sim::api2::trace::ValueFilter<quint8> *_breakpoints = nullptr;
+  void *_breakpoints = nullptr;
 };

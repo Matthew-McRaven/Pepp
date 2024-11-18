@@ -481,7 +481,7 @@ bool Pep_ISA::onExecute() {
   emit allowedDebuggingChanged();
   emit allowedStepsChanged();
   _system->bus()->trace(true);
-  emit deferredExecution(sim::api2::trace::Action::Assert, []() { return false; });
+  emit deferredExecution([]() { return false; });
   return true;
 }
 
@@ -501,7 +501,7 @@ bool Pep_ISA::onDebuggingContinue() {
   _stepsSinceLastInteraction = 0;
   emit allowedDebuggingChanged();
   emit allowedStepsChanged();
-  emit deferredExecution(sim::api2::trace::Action::Break, []() { return false; });
+  emit deferredExecution([]() { return false; });
   return true;
 }
 
@@ -588,7 +588,7 @@ bool Pep_ISA::onClearMemory() {
   return true;
 }
 
-void Pep_ISA::onDeferredExecution(sim::api2::trace::Action stopOn, std::function<bool()> step) {
+void Pep_ISA::onDeferredExecution(std::function<bool()> step) {
   auto pwrOff = _system->output("pwrOff");
   auto endpoint = pwrOff->endpoint();
   auto from = _tb->cend();
@@ -613,10 +613,7 @@ void Pep_ISA::onDeferredExecution(sim::api2::trace::Action stopOn, std::function
     auto ending = _system->currentTick() + 1000;
     do {
       _system->tick(sim::api2::Scheduler::Mode::Jump);
-      for (const auto &event : _tb->events()) {
-        if (event.action >= stopOn) _pendingPause = true;
-      }
-      _tb->clearEvents();
+      if (false /*hasBP*/) _pendingPause = true;
       _pendingPause |= step();
     } while (_system->currentTick() < ending && endpoint->at_end() && !_pendingPause);
   } catch (const sim::api2::memory::Error &e) {
@@ -652,7 +649,7 @@ void Pep_ISA::onDeferredExecution(sim::api2::trace::Action stopOn, std::function
   }
   // Queued connection, so it will be evaluated after the display is updated.
   else if (allowsResume && !_pendingPause)
-    emit deferredExecution(stopOn, step);
+    emit deferredExecution(step);
   else {
     _pendingPause = false;
     _state = State::DebugPaused;
@@ -729,12 +726,10 @@ bool Pep_ISA::stepDepthHelper(qint16 offset) {
   emit allowedStepsChanged();
   switch (_system->architecture()) {
   case builtins::Architecture::PEP9:
-    emit deferredExecution(sim::api2::trace::Action::Break,
-                           generateStepCondition<targets::pep9::isa::CPU, isa::Pep9>(&*_system, offset));
+    emit deferredExecution(generateStepCondition<targets::pep9::isa::CPU, isa::Pep9>(&*_system, offset));
     break;
   case builtins::Architecture::PEP10:
-    emit deferredExecution(sim::api2::trace::Action::Break,
-                           generateStepCondition<targets::pep10::isa::CPU, isa::Pep10>(&*_system, offset));
+    emit deferredExecution(generateStepCondition<targets::pep10::isa::CPU, isa::Pep10>(&*_system, offset));
     break;
   default: throw std::logic_error("Unimplemented architecture");
   }
@@ -762,27 +757,27 @@ Pep_ASMB::Pep_ASMB(project::Environment env, QVariant delegate, QObject *parent)
   _system = elfsys.system;
   _system->bus()->setBuffer(&*_tb);
   bindToSystem();
-  std::unique_ptr<sim::api2::trace::ValueFilter<quint8>> pcFilter;
+  // std::unique_ptr<sim::api2::trace::ValueFilter<quint8>> pcFilter;
   switch (_env.arch) {
   case builtins::Architecture::PEP9: {
     auto cpu = static_cast<targets::pep9::isa::CPU *>(_system->cpu());
     static const quint8 PC = 2 * static_cast<quint8>(isa::Pep9::Register::PC);
-    pcFilter = std::make_unique<sim::api2::trace::ValueFilter<quint8>>(cpu->regs(), PC);
+    // pcFilter = std::make_unique<sim::api2::trace::ValueFilter<quint8>>(cpu->regs(), PC);
     cpu->setBuffer(&*_tb);
     break;
   }
   case builtins::Architecture::PEP10: {
     auto cpu = static_cast<targets::pep10::isa::CPU *>(_system->cpu());
     static const quint8 PC = 2 * static_cast<quint8>(isa::Pep10::Register::PC);
-    pcFilter = std::make_unique<sim::api2::trace::ValueFilter<quint8>>(cpu->regs(), PC);
+    // pcFilter = std::make_unique<sim::api2::trace::ValueFilter<quint8>>(cpu->regs(), PC);
     cpu->setBuffer(&*_tb);
     break;
   }
   default: throw std::logic_error("Unimplemented architecture");
   }
 
-  _breakpoints = pcFilter.get();
-  _tb->addFilter(std::move(pcFilter));
+  //_breakpoints = pcFilter.get();
+  //_tb->addFilter(std::move(pcFilter));
 }
 
 void Pep_ASMB::set(int abstraction, QString value) {
@@ -1069,7 +1064,7 @@ void Pep_ASMB::updateBPAtAddress(quint32 address, Action action) {
 
   auto as_quint16 = static_cast<quint16>(address);
   // Must byteswap if on big endian host
-  if (swap) as_quint16 = bits::byteswap(as_quint16);
+  /*if (swap) as_quint16 = bits::byteswap(as_quint16);
   switch (action) {
   case ScintillaAsmEditBase::Action::ToggleBP:
     if (_breakpoints->contains(as_quint16)) _breakpoints->remove<quint16>(as_quint16);
@@ -1078,7 +1073,7 @@ void Pep_ASMB::updateBPAtAddress(quint32 address, Action action) {
   case ScintillaAsmEditBase::Action::AddBP: _breakpoints->insert<quint16>(as_quint16); break;
   case ScintillaAsmEditBase::Action::RemoveBP: _breakpoints->remove<quint16>(as_quint16); break;
   default: break;
-  }
+  }*/
 }
 
 Error::Error(int line, QString error, QObject *parent) : QObject(parent), line(line), error(error) {}

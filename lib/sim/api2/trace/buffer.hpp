@@ -34,70 +34,7 @@ using namespace sim::api2::packet::payload;
 using Fragment = std::variant<std::monostate, Trace, Extender, Clear, PureRead, ImpureRead, Write, Increment, Variable>;
 } // namespace detail
 using Fragment = detail::Fragment;
-enum class Action { None, Record, Break, Assert };
-struct Filter {
-  virtual ~Filter() = default;
-  virtual Action operator()(device::ID, quint32) = 0;
-};
-struct TraceFilter : public Filter {
-  inline bool contains(device::ID dev) {
-    auto it = std::lower_bound(_targets.cbegin(), _targets.cend(), dev);
-    return it != _targets.cend() && *it == dev;
-  }
-  inline void insert(device::ID dev) {
-    auto it = std::lower_bound(_targets.begin(), _targets.end(), dev);
-    // Should maintain sorted order on insert.
-    if (it == _targets.end() || *it != dev) _targets.insert(it, dev);
-  }
-  inline void remove(device::ID dev) {
-    auto _ = std::remove(_targets.begin(), _targets.end(), dev);
-    (void)_;
-  }
-  inline virtual Action operator()(device::ID dev, quint32) override {
-    return (contains(dev)) ? Action::Record : Action::None;
-  };
 
-private:
-  std::vector<device::ID> _targets;
-};
-template <typename T> struct ValueFilter : public Filter {
-  explicit ValueFilter() = default;
-  ValueFilter(const sim::api2::memory::Target<T> *target, quint32 address) : _target(target), _address(address) {}
-  const sim::api2::memory::Target<T> *_target = nullptr;
-  const quint32 _address = 0;
-  static constexpr quint8 _valueLength = 2;
-  std::vector<quint16> values = {};
-  template <typename U> bool contains(U val) { return contains(quint16(val)); }
-  inline bool contains(const quint16 val) {
-    auto it = std::lower_bound(values.cbegin(), values.cend(), val);
-
-    return it != values.cend() && *it == val;
-  }
-  template <typename U> void remove(quint16 val) { (void)std::remove(values.begin(), values.end(), val); }
-  template <typename U> void insert(quint16 val) {
-    auto it = std::lower_bound(values.begin(), values.end(), val);
-    // Should maintain sorted order on insert.
-    if (it == values.end() || *it != val) values.insert(it, val);
-  }
-  virtual Action operator()(device::ID dev, quint32 address) override {
-    static constexpr auto gs = memory::Operation{.type = memory::Operation::Type::BufferInternal, .kind = {}};
-    if (_address != address || _target->deviceID() != dev) return Action::None;
-    auto _value = packet::VariableBytes<2>(_valueLength);
-    auto success = _target->read(address, std::span(_value.bytes.data(), _valueLength), gs);
-    quint16 val = _value.to_address<quint16>();
-    if (contains(val)) return Action::Break;
-    return Action::None;
-  };
-};
-
-struct FilterEvent {
-  device::ID deviceID;
-  Action action;
-  quint32 address;
-};
-template <typename Address>
-  requires(std::is_signed<Address>::is_signed)
-std::function<Action(device::ID, Address)> filter;
 // If you inherit from this, you will likely want to inherit IteratorImpl as
 // well. IteratorImpl allows polymorphic implementation of this class while
 // mantaining a stable ABI for the iterator class.
@@ -105,7 +42,7 @@ std::function<Action(device::ID, Address)> filter;
 // Simulation packets are notifications such as "there's no MMIO".
 // Command packets may set memory values, step forward some number of ticks.
 // With these changes, the trace buffer can become single point of
-// communication\ between the UI and the simulation.
+// communication\between the UI and the simulation.
 class Buffer {
 public:
   virtual ~Buffer() = default;
@@ -133,24 +70,16 @@ public:
   // Use a PathGuard to manipulate the current path.
   quint16 currentPath() const { return _paths.top(); }
 
-  // Add, remove, or modify filters.
   virtual bool trace(device::ID deviceID, bool enabled = true) = 0;
-  virtual quint16 addFilter(std::unique_ptr<sim::api2::trace::Filter>) = 0;
-  virtual void removeFilter(quint16 id) = 0;
-  virtual void replaceFilter(quint16 id, std::unique_ptr<sim::api2::trace::Filter>) = 0;
-
-  // Process the events produced by the filters.
-  virtual std::span<const sim::api2::trace::FilterEvent> events() const = 0;
-  virtual void clearEvents() = 0;
+  virtual bool traced(device::ID deviceID) const = 0;
 
   inline void emitFrameStart() { writeFragment({sim::api2::frame::header::Trace{}}); }
   template <typename Address>
   void emitWrite(sim::api2::device::ID id, Address address, bits::span<const quint8> src, bits::span<quint8> dest) {
     using vb = decltype(api2::packet::header::Write::address);
-    auto address_bytes = vb::from_address<Address>(address);
-    auto header = api2::packet::header::Write{.device = id, .address = address_bytes};
-    // Don't write payloads if the buffer rejected the packet header.
-    if (applyFilters(id, address, header) >= Action::Record) {
+    if (traced(id)) {
+      auto address_bytes = vb::from_address<Address>(address);
+      auto header = api2::packet::header::Write{.device = id, .address = address_bytes};
       writeFragmentWithPath(header);
       emit_payloads(src, dest);
     }
@@ -161,26 +90,26 @@ public:
   template <typename Address>
   void emitMMWrite(sim::api2::device::ID id, Address address, bits::span<const quint8> src) {
     using vb = decltype(api2::packet::header::Write::address);
-    auto header = api2::packet::header::Write{.device = id, .address = vb::from_address(address)};
-    // Don't write payloads if the buffer rejected the packet header.
-    if (applyFilters(id, address, header) >= Action::Record) {
+    if (traced(id)) {
+      auto header = api2::packet::header::Write{.device = id, .address = vb::from_address(address)};
       writeFragmentWithPath(header);
       emit_payloads(src);
     }
   }
   template <typename Address> void emitPureRead(sim::api2::device::ID id, Address address, Address len) {
     using vb = decltype(api2::packet::header::PureRead::address);
-    auto header =
-        api2::packet::header::PureRead{.device = id, .payload_len = len, .address = vb::from_address(address)};
-    if (applyFilters(id, address, header) >= Action::Record) writeFragmentWithPath(header);
+    if (traced(id)) {
+      auto header =
+          api2::packet::header::PureRead{.device = id, .payload_len = len, .address = vb::from_address(address)};
+      writeFragmentWithPath(header);
+    }
   }
   // Generate a ImpureRead packet. Bytes will not be XOR encoded.
   // We do not need to know previous value, since the pub/sub system records it.
   template <typename Address> void emitMMRead(sim::api2::device::ID id, Address address, bits::span<const quint8> src) {
     using vb = decltype(api2::packet::header::Write::address);
-    auto header = api2::packet::header::ImpureRead{.device = id, .address = vb::from_address(address)};
-    // Don't write payloads if the buffer rejected the packet header.
-    if (applyFilters(id, address, header) >= Action::Record) {
+    if (traced(id)) {
+      auto header = api2::packet::header::ImpureRead{.device = id, .address = vb::from_address(address)};
       writeFragmentWithPath(header);
       emit_payloads(src);
     }
@@ -188,15 +117,14 @@ public:
   template <typename Address>
   void emitIncrement(sim::api2::device::ID id, Address address, bits::span<const quint8> val) {
     using vb = decltype(api2::packet::header::PureRead::address);
-    auto header = api2::packet::header::Increment{.device = id, .address = vb::from_address(address)};
-    if (applyFilters(id, address, header) >= Action::Record) {
+    if (traced(id)) {
+      auto header = api2::packet::header::Increment{.device = id, .address = vb::from_address(address)};
       writeFragment(header);
       emit_payloads(val);
     }
   }
 
 protected:
-  virtual Action applyFilters(sim::api2::device::ID id, quint32 address, const Fragment &frag) = 0;
   // Max payload size is a compile time constant, so compute at compile time.
   using vb = sim::api2::packet::payload::Variable;
   static constexpr auto payload_max_size = vb::N;

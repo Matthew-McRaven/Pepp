@@ -165,11 +165,9 @@ api2::memory::Result Dense<Address>::write(Address address, bits::span<const qui
   if (address < _span.lower() || maxDestAddr > _span.upper()) throw E(E::Type::OOBAccess, address);
   auto offset = address - _span.lower();
   auto dest = bits::span<quint8>{_data.data(), std::size_t(_data.size())}.subspan(offset);
-  // BUG: if emitWrite fails, we will have written to memory without recording the change.
-  // Required to work around breakpoint bug until I have a better tracing system.
-  bits::memcpy(dest, src);
   // Record changes, even if the come from UI. Otherwise, step back fails.
   if (op.type != Operation::Type::BufferInternal && _tb) _tb->emitWrite<Address>(_device.id, offset, src, dest);
+  bits::memcpy(dest, src);
   return {};
 }
 
