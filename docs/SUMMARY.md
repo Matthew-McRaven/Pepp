@@ -64,3 +64,4 @@
     * [Part 20: Update on gold's status](research/linkers/linker-blog/part20.md)
   * [Object Code Format](research/linkers/object-code-format.md)
 * [Event Processing](research/event-processing.md)
+* [Maintenance & Testing](research/test.md)
