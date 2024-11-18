@@ -270,5 +270,5 @@ std::optional<int> helpers::AsmHelper::Lines2Addresses::source2List(int source) 
 std::optional<int> helpers::AsmHelper::Lines2Addresses::list2Source(int list) {
   auto addr = list2Address(list);
   if (!addr) return std::nullopt;
-  return source2List(*addr);
+  return address2Source(*addr);
 }
