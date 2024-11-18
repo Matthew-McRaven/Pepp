@@ -5,6 +5,7 @@
   "abstraction": "ASMB5",
   "default_os": "os:pep9os",
   "default_element": "pep",
+  "description": "A program to input a decimal value, add 1 to it, and output the sum.",
   "ios": [
     "io0"
   ],

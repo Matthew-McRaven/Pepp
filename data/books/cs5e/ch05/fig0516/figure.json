@@ -5,6 +5,7 @@
   "abstraction": "ASMB5",
   "default_os": "os:pep9os",
   "default_element": "pep",
+  "description": "A nonsense program that illustrates the underlying von Neumann nature of the machine.",
   "ios": [
     "io0"
   ],

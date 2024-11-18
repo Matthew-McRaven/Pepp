@@ -5,6 +5,7 @@
   "abstraction": "ASMB5",
   "default_os": "os:pep9os",
   "default_element": "pep",
+  "description": "A program that adds 1 to a decimal value. It is identical to Figure 5.12 except that it uses symbols.",
   "ios": [
     "io0"
   ],

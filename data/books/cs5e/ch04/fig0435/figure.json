@@ -5,6 +5,7 @@
   "abstraction": "ISA3",
   "default_os": "os:pep9os",
   "default_element": "pepo",
+  "description": "A machine language program to input two characters and output them in reverse order.",
   "ios": [
     "io0"
   ],
