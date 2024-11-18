@@ -134,6 +134,7 @@ builtins::detail::loadFigure(QString manifestPath) {
   auto figure = QSharedPointer<builtins::Figure>::create(arch, level, "Figure", chapterName, figureName);
   figure->setIsOS(manifest["is_os"].toBool(false));
   figure->setIsHidden(manifest["hidden"].toBool(false));
+  if (manifest["description"].isString()) figure->setDescription(manifest["description"].toString());
 
   // Add tests
   auto ios = manifest["ios"];
