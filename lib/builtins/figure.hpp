@@ -38,6 +38,7 @@ class Figure : public QObject {
   Q_PROPERTY(QString prefix READ prefix CONSTANT);
   Q_PROPERTY(QString chapterName READ chapterName CONSTANT);
   Q_PROPERTY(QString figureName READ figureName CONSTANT);
+  Q_PROPERTY(QString description READ description CONSTANT);
   Q_PROPERTY(bool isOS READ isOS WRITE setIsOS NOTIFY isOSChanged);
   Q_PROPERTY(bool isHidden READ isHidden NOTIFY isHiddenChanged);
   Q_PROPERTY(const Figure *defaultOS READ defaultOS WRITE setDefaultOS NOTIFY defaultOSChanged);
@@ -59,6 +60,9 @@ public:
   QString prefix() const;
   QString chapterName() const;
   QString figureName() const;
+
+  QString description() const;
+  void setDescription(QString description);
 
   bool isOS() const;
   bool setIsOS(bool value);
@@ -94,6 +98,7 @@ private:
   const Architecture _arch;
   const Abstraction _level;
   const QString _prefix, _chapterName, _figureName;
+  QString _description{};
   bool _isOS = false, _isHidden = false;
   // Non-owning
   const Figure *_defaultOS = nullptr;

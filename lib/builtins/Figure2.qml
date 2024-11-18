@@ -159,7 +159,7 @@ Item {
             Text {
                 width: copyRow.width - button.width - copyRow.spacing
                 textFormat: Text.RichText
-                text: "<div><b>" + wrapper.title + ":</b> Description here"
+                text: "<div><b>" + wrapper.title + ":</b> " + wrapper.payload.description
                 wrapMode: Text.WordWrap
             }
         }

@@ -39,6 +39,10 @@ QString builtins::Figure::chapterName() const { return _chapterName; }
 
 QString builtins::Figure::figureName() const { return _figureName; }
 
+QString builtins::Figure::description() const { return _description; }
+
+void builtins::Figure::setDescription(QString description) { _description = description; }
+
 bool builtins::Figure::isOS() const { return _isOS; }
 
 bool builtins::Figure::setIsOS(bool value) {
