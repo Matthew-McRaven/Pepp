@@ -5,6 +5,7 @@
   "abstraction": "ASMB5",
   "default_os": "os:pep9os",
   "default_element": "pep",
+  "description":"A program to output <code>Hi</code> using immediate addressing.",
   "ios": [
     "io0"
   ],

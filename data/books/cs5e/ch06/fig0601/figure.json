@@ -5,6 +5,7 @@
   "abstraction": "ASMB5",
   "default_os": "os:pep9os",
   "default_element": "pep",
+  "description":"Stack-relative addressing.",
   "ios": [
     "io0"
   ],

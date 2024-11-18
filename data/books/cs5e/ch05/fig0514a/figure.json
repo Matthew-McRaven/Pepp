@@ -4,6 +4,7 @@
   "arch": "pep9",
   "abstraction": "ASMB5",
   "default_os": "os:pep9os",
+  "description":"Two different source programs that produce the same object program and, therefore, the same output.",
   "default_element": "pep",
   "ios": [
     "io0"
