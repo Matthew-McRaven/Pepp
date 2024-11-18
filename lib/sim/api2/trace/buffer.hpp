@@ -65,29 +65,27 @@ template <typename T> struct ValueFilter : public Filter {
   ValueFilter(const sim::api2::memory::Target<T> *target, quint32 address) : _target(target), _address(address) {}
   const sim::api2::memory::Target<T> *_target = nullptr;
   const quint32 _address = 0;
-  static constexpr quint8 _valueLength = sizeof(T);
-  std::vector<sim::api2::packet::VariableBytes<4>> values = {};
-  template <typename U> bool contains(U val) { return contains(packet::VariableBytes<4>::from_address(val)); }
-  inline bool contains(const sim::api2::packet::VariableBytes<4> &val) {
+  static constexpr quint8 _valueLength = 2;
+  std::vector<quint16> values = {};
+  template <typename U> bool contains(U val) { return contains(quint16(val)); }
+  inline bool contains(const quint16 val) {
     auto it = std::lower_bound(values.cbegin(), values.cend(), val);
 
     return it != values.cend() && *it == val;
   }
-  template <typename U> void remove(U val) {
-    (void)std::remove(values.begin(), values.end(), packet::VariableBytes<4>::from_address(val));
-  }
-  template <typename U> void insert(U u) {
-    auto val = packet::VariableBytes<4>::from_address(u);
+  template <typename U> void remove(quint16 val) { (void)std::remove(values.begin(), values.end(), val); }
+  template <typename U> void insert(quint16 val) {
     auto it = std::lower_bound(values.begin(), values.end(), val);
     // Should maintain sorted order on insert.
     if (it == values.end() || *it != val) values.insert(it, val);
   }
   virtual Action operator()(device::ID dev, quint32 address) override {
     static constexpr auto gs = memory::Operation{.type = memory::Operation::Type::BufferInternal, .kind = {}};
-    if (_address != address) return Action::None;
-    auto _value = packet::VariableBytes<4>(_valueLength);
-    auto val = _target->read(address, std::span(_value.bytes.data(), _valueLength), gs);
-    if (contains(_value)) return Action::Record;
+    if (_address != address || _target->deviceID() != dev) return Action::None;
+    auto _value = packet::VariableBytes<2>(_valueLength);
+    auto success = _target->read(address, std::span(_value.bytes.data(), _valueLength), gs);
+    quint16 val = _value.to_address<quint16>();
+    if (contains(val)) return Action::Break;
     return Action::None;
   };
 };

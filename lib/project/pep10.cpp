@@ -766,14 +766,16 @@ Pep_ASMB::Pep_ASMB(project::Environment env, QVariant delegate, QObject *parent)
   switch (_env.arch) {
   case builtins::Architecture::PEP9: {
     auto cpu = static_cast<targets::pep9::isa::CPU *>(_system->cpu());
-    static const quint8 PC = static_cast<quint8>(isa::Pep9::Register::PC);
+    static const quint8 PC = 2 * static_cast<quint8>(isa::Pep9::Register::PC);
     pcFilter = std::make_unique<sim::api2::trace::ValueFilter<quint8>>(cpu->regs(), PC);
+    cpu->setBuffer(&*_tb);
     break;
   }
   case builtins::Architecture::PEP10: {
     auto cpu = static_cast<targets::pep10::isa::CPU *>(_system->cpu());
-    static const quint8 PC = static_cast<quint8>(isa::Pep10::Register::PC);
+    static const quint8 PC = 2 * static_cast<quint8>(isa::Pep10::Register::PC);
     pcFilter = std::make_unique<sim::api2::trace::ValueFilter<quint8>>(cpu->regs(), PC);
+    cpu->setBuffer(&*_tb);
     break;
   }
   default: throw std::logic_error("Unimplemented architecture");
@@ -1063,13 +1065,18 @@ void Pep_ASMB::updatePCLine() {
 }
 
 void Pep_ASMB::updateBPAtAddress(quint32 address, Action action) {
+  static const bool swap = bits::hostOrder() != bits::Order::BigEndian;
+
+  auto as_quint16 = static_cast<quint16>(address);
+  // Must byteswap if on big endian host
+  if (swap) as_quint16 = bits::byteswap(as_quint16);
   switch (action) {
   case ScintillaAsmEditBase::Action::ToggleBP:
-    if (_breakpoints->contains(address)) _breakpoints->remove(address);
-    else _breakpoints->insert(address);
+    if (_breakpoints->contains(as_quint16)) _breakpoints->remove<quint16>(as_quint16);
+    else _breakpoints->insert<quint16>(as_quint16);
     break;
-  case ScintillaAsmEditBase::Action::AddBP: _breakpoints->insert(address); break;
-  case ScintillaAsmEditBase::Action::RemoveBP: _breakpoints->remove(address); break;
+  case ScintillaAsmEditBase::Action::AddBP: _breakpoints->insert<quint16>(as_quint16); break;
+  case ScintillaAsmEditBase::Action::RemoveBP: _breakpoints->remove<quint16>(as_quint16); break;
   default: break;
   }
 }
