@@ -1,0 +1,178 @@
+{
+    "name": "Dark",
+    "paletteItems": [
+        {
+            "background": "0xff000000",
+            "font": "Segoe UI,12,-1,5,400,0,0,0,0,0,0,0,0,0,0,1",
+            "foreground": "0xffffffff",
+            "name": "BaseRole"
+        },
+        {
+            "font": "Courier Prime,12,-1,5,400,0,0,0,0,0,0,0,0,0,0,1",
+            "name": "BaseMonoRole",
+            "parent": "BaseRole"
+        },
+        {
+            "background": "0xff7f7f7f",
+            "font": "Courier Prime,12,-1,5,400,0,0,0,0,0,0,0,0,0,0,1",
+            "foreground": "0xffeeeeee",
+            "name": "WindowRole",
+            "parent": "BaseRole"
+        },
+        {
+            "background": "0xff8c8c8c",
+            "font": "Courier Prime,12,-1,5,400,0,0,0,0,0,0,0,0,0,0,1",
+            "foreground": "0xfff8f8f8",
+            "name": "ButtonRole",
+            "parent": "BaseRole"
+        },
+        {
+            "background": "0xff0078d7",
+            "font": "Courier Prime,12,-1,5,400,0,0,0,0,0,0,0,0,0,0,1",
+            "name": "HighlightRole",
+            "parent": "BaseRole"
+        },
+        {
+            "background": "0xff346792",
+            "font": "Courier Prime,12,-1,5,400,0,0,0,0,0,0,0,0,0,0,1",
+            "foreground": "0xffdfe1e2",
+            "name": "TooltipRole",
+            "parent": "BaseRole"
+        },
+        {
+            "background": "0xff707070",
+            "font": "Courier Prime,12,-1,5,400,0,0,0,0,0,0,0,0,0,0,1",
+            "name": "AlternateBaseRole",
+            "parent": "WindowRole"
+        },
+        {
+            "name": "AccentRole",
+            "parent": "HighlightRole"
+        },
+        {
+            "background": "0xffffffff",
+            "font": "Courier Prime,12,-1,5,400,0,0,0,0,0,0,0,0,0,0,1",
+            "foreground": "0xff696969",
+            "name": "LightRole",
+            "parent": "BaseRole"
+        },
+        {
+            "background": "0xffeeeeee",
+            "font": "Courier Prime,12,-1,5,400,0,0,0,0,0,0,0,0,0,0,1",
+            "foreground": "0xff3f3f3f",
+            "name": "MidLightRole",
+            "parent": "BaseRole"
+        },
+        {
+            "background": "0xffcccccc",
+            "name": "MidRole",
+            "parent": "MidLightRole"
+        },
+        {
+            "background": "0xff7f7f7f",
+            "name": "DarkRole",
+            "parent": "MidRole"
+        },
+        {
+            "background": "0xff696969",
+            "foreground": "0xff464646",
+            "name": "ShadowRole",
+            "parent": "HighlightRole"
+        },
+        {
+            "font": "Courier Prime,12,-1,5,400,0,0,0,0,0,0,0,0,0,0,1",
+            "foreground": "0xff0078d7",
+            "name": "LinkRole",
+            "parent": "BaseRole"
+        },
+        {
+            "foreground": "0xff7840a0",
+            "name": "LinkVisitedRole",
+            "parent": "LinkRole"
+        },
+        {
+            "background": "0xffffffff",
+            "foreground": "0xffa0a0a0",
+            "name": "BrightTextRole",
+            "parent": "BaseRole"
+        },
+        {
+            "foreground": "0xff464646",
+            "name": "PlaceHolderTextRole",
+            "parent": "MidRole"
+        },
+        {
+            "foreground": "0xffb0c4de",
+            "name": "MnemonicRole",
+            "parent": "BaseMonoRole"
+        },
+        {
+            "foreground": "0xffb67bbc",
+            "name": "SymbolRole",
+            "overrideBold": true,
+            "parent": "MnemonicRole"
+        },
+        {
+            "name": "DirectiveRole",
+            "parent": "MnemonicRole"
+        },
+        {
+            "name": "MacroRole",
+            "overrideBold": false,
+            "overrideItalic": true,
+            "parent": "MnemonicRole"
+        },
+        {
+            "foreground": "0xffffaa00",
+            "name": "CharacterRole",
+            "overrideBold": false,
+            "parent": "MnemonicRole"
+        },
+        {
+            "name": "StringRole",
+            "parent": "CharacterRole"
+        },
+        {
+            "foreground": "0xff00f000",
+            "name": "CommentRole",
+            "overrideBold": false,
+            "parent": "MnemonicRole"
+        },
+        {
+            "font": "Courier Prime,12,-1,5,400,0,0,0,0,0,0,0,0,0,0,1",
+            "foreground": "0xff666666",
+            "name": "RowNumberRole",
+            "parent": "BaseRole"
+        },
+        {
+            "background": "0xffffaa00",
+            "font": "Courier Prime,12,-1,5,400,0,0,0,0,0,0,0,0,0,0,1",
+            "name": "BreakpointRole",
+            "parent": "BaseRole"
+        },
+        {
+            "background": "0xffff4500",
+            "name": "ErrorRole",
+            "parent": "BreakpointRole"
+        },
+        {
+            "background": "0xffffffe0",
+            "name": "WarningRole",
+            "parent": "RowNumberRole"
+        },        {
+            "background": "0xff04ab0a",
+            "foreground": "0xffffff00",
+            "name": "SeqCircuitRole",
+            "overrideBold": false,
+            "parent": "MnemonicRole"
+        },
+        {
+            "background": "0xffffe1ff",
+            "foreground": "0xff0000ff",
+            "name": "CircuitGreenRole",
+            "overrideBold": false,
+            "parent": "MnemonicRole"
+        }
+    ],
+    "version": 8
+}
