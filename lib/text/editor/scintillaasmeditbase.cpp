@@ -268,7 +268,7 @@ void ScintillaAsmEditBase::applyStyles() {
   send(SCI_STYLESETBACK, errorStyle, alphaBlend(_theme->error()->background(), baseBack));
 
   send(SCI_MARKERSETFORE, SC_MARK_CIRCLE, c2i(_theme->error()->background()));
-  send(SCI_MARKERSETBACK, SC_MARK_CIRCLE, c2i(_theme->base()->background()));
+  send(SCI_MARKERSETBACK, SC_MARK_CIRCLE, c2i(_theme->error()->background()));
   // Set the selection / highlighting for lines
   send(SCI_SETSELFORE, STYLE_DEFAULT, c2i(_theme->alternateBase()->foreground()));
   send(SCI_SETSELBACK, STYLE_DEFAULT, c2i(_theme->alternateBase()->background()));
