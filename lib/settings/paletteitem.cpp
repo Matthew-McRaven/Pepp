@@ -182,6 +182,11 @@ QJsonObject pepp::settings::PaletteItem::toJson() {
 }
 
 void pepp::settings::PaletteItem::updateFromSettings(QSettings &settings, PaletteItem *parent) {
+  // No gaurantee that the settings object contains anything relevant or even exists.
+  // Before resetting all the values, perform a basic sanity test.
+  if (!(settings.contains("foreground") || settings.contains("background") || settings.contains("font") ||
+        settings.contains("parent")))
+    return;
   setParent(parent);
   if (settings.contains("foreground")) {
     auto hex = settings.value("foreground").toUInt();
