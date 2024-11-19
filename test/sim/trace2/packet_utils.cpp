@@ -29,6 +29,7 @@ struct SimpleBuffer : public sim::api2::trace::Buffer {
   SimpleBuffer() : _data(), _in(_data), _out(_data) {}
   // Buffer interface
   bool trace(sim::api2::device::ID deviceID, bool enabled) override { return true; }
+  bool traced(quint16 deviceID) const override { return true; }
   bool writeFragment(const sim::api2::trace::Fragment &hdr) override {
     Fragment as_frag = hdr;
     _out(as_frag).or_throw();
@@ -46,22 +47,10 @@ struct SimpleBuffer : public sim::api2::trace::Buffer {
   FrameIterator cend() const override { throw std::logic_error("Unimplemented"); }
   FrameIterator crbegin() const override { throw std::logic_error("Unimplemented"); }
   FrameIterator crend() const override { throw std::logic_error("Unimplemented"); }
-  quint16 addFilter(std::unique_ptr<trace::Filter>) override { throw std::logic_error("Unimplemented"); }
-  void removeFilter(quint16 id) override { throw std::logic_error("Unimplemented"); }
-  void replaceFilter(quint16 id, std::unique_ptr<trace::Filter>) override { throw std::logic_error("Unimplemented"); }
-  std::span<const trace::FilterEvent> events() const override { throw std::logic_error("Unimplemented"); }
-  void clearEvents() override { throw std::logic_error("Unimplemented"); }
 
   mutable std::vector<std::byte> _data = {};
   zpp::bits::in<decltype(_data)> _in;
   zpp::bits::out<decltype(_data)> _out;
-
-protected:
-  // Buffer interface
-protected:
-  trace::Action applyFilters(device::ID id, quint32 address, const trace::Fragment &frag) override {
-    return trace::Action::Record;
-  }
 };
 } // namespace
 

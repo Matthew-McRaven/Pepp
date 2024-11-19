@@ -7,20 +7,12 @@ using Fragment = sim::api2::trace::Fragment;
 sim::trace2::InfiniteBuffer::InfiniteBuffer() : _in(_data), _out(_data), _backlinks(256) {}
 
 bool sim::trace2::InfiniteBuffer::trace(sim::api2::device::ID deviceID, bool enabled) {
-  api2::trace::TraceFilter *asTF = nullptr;
-  for (int it = 0; it < _filters.size(); it++) {
-    auto &f = _filters[it];
-    if (asTF = dynamic_cast<api2::trace::TraceFilter *>(f.second.get()); asTF != nullptr) break;
-  }
-  if (asTF == nullptr) {
-    auto filter = std::make_unique<api2::trace::TraceFilter>();
-    asTF = filter.get();
-    addFilter(std::move(filter));
-  }
-  if (enabled) asTF->insert(deviceID);
-  else asTF->remove(deviceID);
+  if (enabled) _sinks.insert(deviceID);
+  else _sinks.remove(deviceID);
   return true;
 }
+
+bool sim::trace2::InfiniteBuffer::traced(quint16 deviceID) const { return _sinks.contains(deviceID); }
 
 bool sim::trace2::InfiniteBuffer::writeFragment(const sim::api2::trace::Fragment &fragment) {
   if (auto hdr = std::visit(sim::trace2::AsFrameHeader{}, fragment); hdr.index() != 0) {
@@ -91,41 +83,6 @@ sim::trace2::InfiniteBuffer::FrameIterator sim::trace2::InfiniteBuffer::crbegin(
 sim::trace2::InfiniteBuffer::FrameIterator sim::trace2::InfiniteBuffer::crend() const {
   // -1 has arbitrarily been chosen as end sentinel.
   return FrameIterator(this, -1, api2::trace::Direction::Reverse);
-}
-
-quint16 sim::trace2::InfiniteBuffer::addFilter(std::unique_ptr<api2::trace::Filter> f) {
-  auto id = _nextFilterID++;
-  _filters.emplace_back(std::pair{id, std::move(f)});
-  return id;
-}
-
-void sim::trace2::InfiniteBuffer::removeFilter(quint16 id)
-{
-  _filters.erase(std::remove_if(_filters.begin(), _filters.end(), [id](const auto &pair) { return pair.first == id; }),
-                 _filters.end());
-}
-
-void sim::trace2::InfiniteBuffer::replaceFilter(quint16 id, std::unique_ptr<api2::trace::Filter> f) {
-  auto it = std::find_if(_filters.begin(), _filters.end(), [id](const auto &pair) { return pair.first == id; });
-  if (it != _filters.end()) it->second = std::move(f);
-}
-
-std::span<const sim::api2::trace::FilterEvent> sim::trace2::InfiniteBuffer::events() const {
-  return std::span(_events.data(), _events.size());
-}
-
-void sim::trace2::InfiniteBuffer::clearEvents() { _events.clear(); }
-
-sim::api2::trace::Action sim::trace2::InfiniteBuffer::applyFilters(api2::device::ID id, quint32 address,
-                                                                   const api2::trace::Fragment &frag) {
-  auto max = api2::trace::Action::None;
-  for (const auto &[_, filter] : _filters) {
-    auto action = filter.get()->operator()(id, address);
-    if (action >= api2::trace::Action::Break) _events.push_back(api2::trace::FilterEvent{id, action, address});
-    max = std::max(max, action);
-  }
-
-  return max;
 }
 
 std::size_t sim::trace2::InfiniteBuffer::size_at(std::size_t loc, api2::trace::Level level) const {

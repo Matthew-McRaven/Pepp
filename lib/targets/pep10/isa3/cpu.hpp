@@ -18,7 +18,9 @@
 #pragma once
 #include "isa/pep10.hpp"
 #include "sim/api2.hpp"
+#include "sim/debug/debugger.hpp"
 #include "sim/device/dense.hpp"
+
 namespace targets::pep10::isa {
 class CPU : public sim::api2::tick::Recipient,
             public sim::api2::trace::Source,
@@ -66,6 +68,9 @@ public:
   // Initiator interface
   void setTarget(sim::api2::memory::Target<quint16> *target, void *port) override;
 
+  void setDebugger(pepp::sim::Debugger *debugger);
+  void clearDebugger();
+
 private:
   // Increment depth and emit a trace packet.
   void incrDepth();
@@ -79,6 +84,7 @@ private:
 
   sim::api2::tick::Source *_clock = nullptr;
   sim::api2::trace::Buffer *_tb = nullptr;
+  pepp::sim::Debugger *_dbg = nullptr;
 
   quint16 readReg(::isa::Pep10::Register reg);
   void writeReg(::isa::Pep10::Register reg, quint16 val);
@@ -87,7 +93,7 @@ private:
   quint8 readPackedCSR();
   void writePackedCSR(quint8 val);
 
-  sim::api2::tick::Result unaryDispatch(quint8 is);
+  sim::api2::tick::Result unaryDispatch(quint8 is, quint16 pc);
   sim::api2::tick::Result nonunaryDispatch(quint8 is, quint16 os, quint16 pc);
   void decodeStoreOperand(quint8 is, quint16 os, quint16 &decoded, bool traced = true);
   void decodeLoadOperand(quint8 is, quint16 os, quint16 &decoded, bool traced = true);

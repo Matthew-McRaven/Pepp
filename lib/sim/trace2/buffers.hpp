@@ -27,6 +27,7 @@ public:
   InfiniteBuffer();
   // Buffer interface
   bool trace(quint16 deviceID, bool enabled) override;
+  bool traced(quint16 deviceID) const override;
   bool writeFragment(const api2::trace::Fragment &) override;
   bool updateFrameHeader() override;
   void dropLast() override;
@@ -35,23 +36,12 @@ public:
   FrameIterator cend() const override;
   FrameIterator crbegin() const override;
   FrameIterator crend() const override;
-  quint16 addFilter(std::unique_ptr<api2::trace::Filter>) override;
-  void removeFilter(quint16 id) override;
-  void replaceFilter(quint16 id, std::unique_ptr<api2::trace::Filter>) override;
-  std::span<const api2::trace::FilterEvent> events() const override;
-  void clearEvents() override;
-
-protected:
-  api2::trace::Action applyFilters(api2::device::ID id, quint32 address, const api2::trace::Fragment &frag) override;
 
 private:
-  QSet<api2::trace::Sink *> _sinks = {};
+  QSet<sim::api2::device::ID> _sinks = {};
   std::size_t _lastFrameStart = 0;
   // Need to be mutable so that IteratorImpl can read from them.
   mutable std::vector<std::byte> _data = {};
-  std::vector<api2::trace::FilterEvent> _events = {};
-  quint16 _nextFilterID = 0;
-  std::vector<std::pair<quint16, std::unique_ptr<api2::trace::Filter>>> _filters = {};
 
   mutable LRU::Cache<std::size_t, std::size_t> _backlinks;
   zpp::bits::in<decltype(_data)> _in;
