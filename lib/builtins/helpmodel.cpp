@@ -121,3 +121,8 @@ bool HelpFilterModel::filterAcceptsRow(int source_row, const QModelIndex &source
   auto tags = sm->data(index, (int)HelpModel::Roles::Tags).toUInt();
   return masked(mask, tags);
 }
+
+bool HelpFilterModel::lessThan(const QModelIndex &left, const QModelIndex &right) const {
+  if (!left.parent().isValid() || !right.parent().isValid()) return left.row() < right.row();
+  else return QSortFilterProxyModel::lessThan(left, right);
+}
