@@ -141,6 +141,9 @@ Item {
                 architecture: Architecture.PEP10
                 onAbstractionChanged: root.selected = treeView.index(0, 0)
                 onArchitectureChanged: root.selected = treeView.index(0, 0)
+                Component.onCompleted: {
+                    helpModel.sort(0, Qt.AscendingOrder)
+                }
             }
 
             delegate: TreeViewDelegate {
