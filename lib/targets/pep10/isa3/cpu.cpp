@@ -404,6 +404,7 @@ sim::api2::tick::Result targets::pep10::isa::CPU::unaryDispatch(quint8 is, quint
     incrDepth();
     break;
   default:
+    writeReg(Register::PC, pc);
     _status = Status::IllegalOpcode;
     static const char *const e = "Illegal opcode";
     qCritical(e);
@@ -686,7 +687,10 @@ sim::api2::tick::Result targets::pep10::isa::CPU::nonunaryDispatch(quint8 is, qu
 
   case mn::ADDSP: writeReg(Register::SP, sp + operand); break;
   case mn::SUBSP: writeReg(Register::SP, sp - operand); break;
-  default: _status = Status::IllegalOpcode; throw std::runtime_error("Illegal Opcode");
+  default:
+    writeReg(Register::PC, pc);
+    _status = Status::IllegalOpcode;
+    throw std::runtime_error("Illegal Opcode");
   }
 
   // Increment PC and writeback
