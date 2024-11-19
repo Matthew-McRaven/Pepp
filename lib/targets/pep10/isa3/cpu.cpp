@@ -84,10 +84,8 @@ sim::api2::tick::Result targets::pep10::isa::CPU::clock(sim::api2::tick::Type cu
 
   sim::api2::tick::Result ret;
   if (::isa::Pep10::isOpcodeUnary(is)) {
-    // Increment PC and writeback
-    writeReg(Register::PC, pc);
     // Execute unary dispatch
-    ret = unaryDispatch(is);
+    ret = unaryDispatch(is, pc);
   } else {
     // Instruction specifier fetch + writeback.
     quint16 os = 0;
@@ -121,6 +119,10 @@ void targets::pep10::isa::CPU::trace(bool enabled) {
 }
 
 void targets::pep10::isa::CPU::setTarget(sim::api2::memory::Target<quint16> *target, void *port) { _memory = target; }
+
+void targets::pep10::isa::CPU::setDebugger(pepp::sim::Debugger *debugger) { _dbg = debugger; }
+
+void targets::pep10::isa::CPU::clearDebugger() { _dbg = nullptr; }
 
 void targets::pep10::isa::CPU::incrDepth() {
   static const quint8 amt = 1;
@@ -164,7 +166,7 @@ void targets::pep10::isa::CPU::writePackedCSR(quint8 val) {
   targets::isa::writePackedCSR<::isa::Pep10>(&_csrs, val, rw_d);
 }
 
-sim::api2::tick::Result targets::pep10::isa::CPU::unaryDispatch(quint8 is) {
+sim::api2::tick::Result targets::pep10::isa::CPU::unaryDispatch(quint8 is, quint16 pc) {
   using ISA = ::isa::Pep10;
   using mn = ISA::Mnemonic;
   using Register = ISA::Register;
@@ -187,7 +189,7 @@ sim::api2::tick::Result targets::pep10::isa::CPU::unaryDispatch(quint8 is) {
     // Must byteswap tmp if on big endian host, as _memory stores in little
     // endian
     if (swap) tmp = bits::byteswap(tmp);
-    writeReg(Register::PC, tmp);
+    pc = tmp;
     writeReg(Register::SP, sp + 2);
     decrDepth();
     break;
@@ -366,8 +368,10 @@ sim::api2::tick::Result targets::pep10::isa::CPU::unaryDispatch(quint8 is) {
     if (swap) tmp = bits::byteswap(tmp);
     _memory->write(static_cast<quint16>(::isa::Pep10::MemoryVectors::SystemStackPtr),
                    {reinterpret_cast<quint8 *>(&tmp), 2}, rw_d);
+    // Skip "normal" return path, since we've already written to PC.
+    if (_dbg) _dbg->notifyPCChanged(readReg(Register::PC));
     decrDepth();
-    break;
+    return {.pause = 0, .delay = 1};
 
   case mn::SCALL:
     // Must byteswap because we are using "host" variables.
@@ -376,8 +380,7 @@ sim::api2::tick::Result targets::pep10::isa::CPU::unaryDispatch(quint8 is) {
     bits::memcpy(ctxSpan.subspan(1, 2), tmpSpan);
     tmp = swap ? bits::byteswap(x) : x;
     bits::memcpy(ctxSpan.subspan(3, 2), tmpSpan);
-    tmp = readReg(Register::PC);
-    tmp = swap ? bits::byteswap(tmp) : tmp;
+    tmp = swap ? bits::byteswap(pc) : pc;
     bits::memcpy(ctxSpan.subspan(5, 2), tmpSpan);
     tmp = swap ? bits::byteswap(sp) : sp;
     bits::memcpy(ctxSpan.subspan(7, 2), tmpSpan);
@@ -397,7 +400,7 @@ sim::api2::tick::Result targets::pep10::isa::CPU::unaryDispatch(quint8 is) {
     _memory->read(static_cast<quint16>(::isa::Pep10::MemoryVectors::TrapHandler), {reinterpret_cast<quint8 *>(&tmp), 2},
                   rw_d);
     if (swap) tmp = bits::byteswap(tmp);
-    writeReg(Register::PC, tmp);
+    pc = tmp;
     incrDepth();
     break;
   default:
@@ -406,6 +409,8 @@ sim::api2::tick::Result targets::pep10::isa::CPU::unaryDispatch(quint8 is) {
     qCritical(e);
     throw std::logic_error(e);
   }
+  writeReg(Register::PC, pc);
+  if (_dbg) _dbg->notifyPCChanged(pc);
   return {.pause = 0, .delay = 1};
 }
 
@@ -686,6 +691,7 @@ sim::api2::tick::Result targets::pep10::isa::CPU::nonunaryDispatch(quint8 is, qu
 
   // Increment PC and writeback
   writeReg(Register::PC, pc);
+  if (_dbg) _dbg->notifyPCChanged(tmp);
   return {.pause = 0, .delay = 1};
 }
 

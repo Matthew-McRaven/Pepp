@@ -86,10 +86,8 @@ sim::api2::tick::Result targets::pep9::isa::CPU::clock(sim::api2::tick::Type cur
 
   sim::api2::tick::Result ret;
   if (::isa::Pep9::isOpcodeUnary(is)) {
-    // Increment PC and writeback
-    writeReg(Register::PC, pc);
     // Execute unary dispatch
-    ret = unaryDispatch(is);
+    ret = unaryDispatch(is, pc);
   } else {
     // Instruction specifier fetch + writeback.
     quint16 os = 0;
@@ -123,6 +121,10 @@ void targets::pep9::isa::CPU::trace(bool enabled) {
 }
 
 void targets::pep9::isa::CPU::setTarget(sim::api2::memory::Target<quint16> *target, void *port) { _memory = target; }
+
+void targets::pep9::isa::CPU::setDebugger(pepp::sim::Debugger *debugger) { _dbg = debugger; }
+
+void targets::pep9::isa::CPU::clearDebugger() { _dbg = nullptr; }
 
 void targets::pep9::isa::CPU::incrDepth() {
   static const quint8 amt = 1;
@@ -166,7 +168,7 @@ void targets::pep9::isa::CPU::writePackedCSR(quint8 val) {
   targets::isa::writePackedCSR<::isa::Pep9>(&_csrs, val, rw_d);
 }
 
-sim::api2::tick::Result targets::pep9::isa::CPU::unaryDispatch(quint8 is) {
+sim::api2::tick::Result targets::pep9::isa::CPU::unaryDispatch(quint8 is, quint16 pc) {
   using ISA = ::isa::Pep9;
   using mn = ISA::Mnemonic;
   using Register = ISA::Pep9::Register;
@@ -194,7 +196,7 @@ sim::api2::tick::Result targets::pep9::isa::CPU::unaryDispatch(quint8 is) {
     // Must byteswap tmp if on big endian host, as _memory stores in little
     // endian
     if (swap) tmp = bits::byteswap(tmp);
-    writeReg(Register::PC, tmp);
+    pc = tmp;
     writeReg(Register::SP, sp + 2);
     decrDepth();
     break;
@@ -231,8 +233,9 @@ sim::api2::tick::Result targets::pep9::isa::CPU::unaryDispatch(quint8 is) {
     if (swap) tmp = bits::byteswap(tmp);
     _memory->write(static_cast<quint16>(::isa::Pep9::MemoryVectors::SystemStackPtr),
                    {reinterpret_cast<quint8 *>(&tmp), 2}, rw_d);
+    if (_dbg) _dbg->notifyPCChanged(readReg(Register::PC));
     decrDepth();
-    break;
+    return {.pause = 0, .delay = 1};
 
   case mn::MOVSPA: writeReg(Register::A, sp); break;
 
@@ -377,8 +380,7 @@ sim::api2::tick::Result targets::pep9::isa::CPU::unaryDispatch(quint8 is) {
   case mn::STRO:
     // Though not part of the specification, the Pep9 hardware must increment the program counter
     // in order for non-unary traps to function correctly.
-    tmp = readReg(Register::PC);
-    writeReg(Register::PC, tmp + 2);
+    pc += 2;
     [[fallthrough]];
   // Unary traps.
   case mn::NOP0: [[fallthrough]];
@@ -389,8 +391,7 @@ sim::api2::tick::Result targets::pep9::isa::CPU::unaryDispatch(quint8 is) {
     bits::memcpy(ctxSpan.subspan(1, 2), tmpSpan);
     tmp = swap ? bits::byteswap(x) : x;
     bits::memcpy(ctxSpan.subspan(3, 2), tmpSpan);
-    tmp = readReg(Register::PC);
-    tmp = swap ? bits::byteswap(tmp) : tmp;
+    tmp = swap ? bits::byteswap(pc) : pc;
     bits::memcpy(ctxSpan.subspan(5, 2), tmpSpan);
     tmp = swap ? bits::byteswap(sp) : sp;
     bits::memcpy(ctxSpan.subspan(7, 2), tmpSpan);
@@ -410,7 +411,7 @@ sim::api2::tick::Result targets::pep9::isa::CPU::unaryDispatch(quint8 is) {
     _memory->read(static_cast<quint16>(::isa::Pep9::MemoryVectors::TrapHandler), {reinterpret_cast<quint8 *>(&tmp), 2},
                   rw_d);
     if (swap) tmp = bits::byteswap(tmp);
-    writeReg(Register::PC, tmp);
+    pc = tmp;
     // Though not part of the specification, clear out the index register to
     // prevent bug in OS where non-unary instructions fail due to junk
     // in the high order byte of the index register. The book is published,
@@ -424,6 +425,8 @@ sim::api2::tick::Result targets::pep9::isa::CPU::unaryDispatch(quint8 is) {
     qCritical(e);
     throw std::logic_error(e);
   }
+  writeReg(Register::PC, pc);
+  if (_dbg) _dbg->notifyPCChanged(tmp);
   return {.pause = 0, .delay = 1};
 }
 
@@ -685,6 +688,7 @@ sim::api2::tick::Result targets::pep9::isa::CPU::nonunaryDispatch(quint8 is, qui
 
   // Increment PC and writeback
   writeReg(Register::PC, pc);
+  if (_dbg) _dbg->notifyPCChanged(tmp);
   return {.pause = 0, .delay = 1};
 }
 
