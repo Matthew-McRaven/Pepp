@@ -109,7 +109,8 @@ QJsonObject pepp::settings::Palette::toJson() {
 
 void pepp::settings::Palette::updateFromSettings(QSettings &settings) {
   for (auto item : _items) {
-    settings.beginGroup(PaletteRoleHelper::string(item->ownRole()));
+    auto roleStr = PaletteRoleHelper::string(item->ownRole());
+    settings.beginGroup(roleStr);
     PaletteItem *parent = nullptr;
     if (auto parentString = settings.value("parent").toString();
         parentString.isEmpty()) { // intentionally blank. negated to convert nested to chained if.
