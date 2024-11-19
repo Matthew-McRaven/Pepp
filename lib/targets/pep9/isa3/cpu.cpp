@@ -426,7 +426,7 @@ sim::api2::tick::Result targets::pep9::isa::CPU::unaryDispatch(quint8 is, quint1
     throw std::logic_error(e);
   }
   writeReg(Register::PC, pc);
-  if (_dbg) _dbg->notifyPCChanged(tmp);
+  if (_dbg) _dbg->notifyPCChanged(pc);
   return {.pause = 0, .delay = 1};
 }
 

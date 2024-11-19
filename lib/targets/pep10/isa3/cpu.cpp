@@ -691,7 +691,7 @@ sim::api2::tick::Result targets::pep10::isa::CPU::nonunaryDispatch(quint8 is, qu
 
   // Increment PC and writeback
   writeReg(Register::PC, pc);
-  if (_dbg) _dbg->notifyPCChanged(tmp);
+  if (_dbg) _dbg->notifyPCChanged(pc);
   return {.pause = 0, .delay = 1};
 }
 
