@@ -269,7 +269,7 @@ Pep_ISA::Pep_ISA(project::Environment env, QVariant delegate, QObject *parent, b
       _memory(nullptr), _registers(nullptr), _flags(nullptr) {
   _system.clear();
   assert(_system.isNull());
-
+  _dbg = QSharedPointer<pepp::sim::Debugger>::create();
   if (initializeSystem) {
     auto elfsys = make_isa_system(env);
     _elf = elfsys.elf;
@@ -515,7 +515,10 @@ bool Pep_ISA::onDebuggingStop() {
   return true;
 }
 
-bool Pep_ISA::onISARemoveAllBreakpoints() { return false; }
+bool Pep_ISA::onISARemoveAllBreakpoints() {
+  _dbg->clearBPs();
+  return true;
+}
 
 template <typename CPU, typename ISA> auto generateStepCondition(targets::isa::System *system, qint16 offset) {
   auto cpu = static_cast<CPU *>(system->cpu());
@@ -613,7 +616,10 @@ void Pep_ISA::onDeferredExecution(std::function<bool()> step) {
     auto ending = _system->currentTick() + 1000;
     do {
       _system->tick(sim::api2::Scheduler::Mode::Jump);
-      if (false /*hasBP*/) _pendingPause = true;
+      if (_dbg->hit()) {
+        _dbg->clearHit();
+        _pendingPause = true;
+      }
       _pendingPause |= step();
     } while (_system->currentTick() < ending && endpoint->at_end() && !_pendingPause);
   } catch (const sim::api2::memory::Error &e) {
@@ -664,6 +670,7 @@ void Pep_ISA::prepareSim() {
   onLoadObject();
   _system->init();
   _tb->clear();
+  _dbg->clearHit();
   auto pwrOff = _system->output("pwrOff");
   auto charOut = _system->output("charOut");
   charOut->clear(0);
@@ -757,27 +764,24 @@ Pep_ASMB::Pep_ASMB(project::Environment env, QVariant delegate, QObject *parent)
   _system = elfsys.system;
   _system->bus()->setBuffer(&*_tb);
   bindToSystem();
-  // std::unique_ptr<sim::api2::trace::ValueFilter<quint8>> pcFilter;
   switch (_env.arch) {
   case builtins::Architecture::PEP9: {
     auto cpu = static_cast<targets::pep9::isa::CPU *>(_system->cpu());
     static const quint8 PC = 2 * static_cast<quint8>(isa::Pep9::Register::PC);
-    // pcFilter = std::make_unique<sim::api2::trace::ValueFilter<quint8>>(cpu->regs(), PC);
     cpu->setBuffer(&*_tb);
+    cpu->setDebugger(&*_dbg);
     break;
   }
   case builtins::Architecture::PEP10: {
     auto cpu = static_cast<targets::pep10::isa::CPU *>(_system->cpu());
     static const quint8 PC = 2 * static_cast<quint8>(isa::Pep10::Register::PC);
-    // pcFilter = std::make_unique<sim::api2::trace::ValueFilter<quint8>>(cpu->regs(), PC);
     cpu->setBuffer(&*_tb);
+    cpu->setDebugger(&*_dbg);
     break;
   }
   default: throw std::logic_error("Unimplemented architecture");
   }
 
-  //_breakpoints = pcFilter.get();
-  //_tb->addFilter(std::move(pcFilter));
 }
 
 void Pep_ASMB::set(int abstraction, QString value) {
@@ -982,6 +986,7 @@ void Pep_ASMB::prepareSim() {
   _system->init();
   if (!onAssemble(true)) return;
   _tb->clear();
+  _dbg->clearHit();
   auto pwrOff = _system->output("pwrOff");
   auto charOut = _system->output("charOut");
   charOut->clear(0);
@@ -1003,6 +1008,7 @@ void Pep_ASMB::prepareSim() {
     targets::isa::readRegister<isa::Pep9>(cpu->regs(), isa::Pep9::Register::PC, pc, gs);
     targets::isa::readRegister<isa::Pep9>(cpu->regs(), isa::Pep9::Register::SP, sp, gs);
     _system->bus()->read(pc, {&is, 1}, gs);
+
     isUnary = isa::Pep9::opcodeLUT[is].instr.unary;
     break;
   }
@@ -1016,7 +1022,6 @@ void Pep_ASMB::prepareSim() {
   }
   default: throw std::logic_error("Unimplemented");
   }
-
   // Update cpu-dependent fields in memory before triggering a GUI update.
   _memory->setSP(sp);
   _memory->setPC(pc, pc + (isUnary ? 0 : 2));
@@ -1059,21 +1064,18 @@ void Pep_ASMB::updatePCLine() {
   }
 }
 
-void Pep_ASMB::updateBPAtAddress(quint32 address, Action action) {
-  static const bool swap = bits::hostOrder() != bits::Order::BigEndian;
+void Pep_ISA::updateBPAtAddress(quint32 address, Action action) {
 
   auto as_quint16 = static_cast<quint16>(address);
-  // Must byteswap if on big endian host
-  /*if (swap) as_quint16 = bits::byteswap(as_quint16);
   switch (action) {
   case ScintillaAsmEditBase::Action::ToggleBP:
-    if (_breakpoints->contains(as_quint16)) _breakpoints->remove<quint16>(as_quint16);
-    else _breakpoints->insert<quint16>(as_quint16);
+    if (_dbg->hasBP(as_quint16)) _dbg->removeBP(as_quint16);
+    else _dbg->addBP(as_quint16);
     break;
-  case ScintillaAsmEditBase::Action::AddBP: _breakpoints->insert<quint16>(as_quint16); break;
-  case ScintillaAsmEditBase::Action::RemoveBP: _breakpoints->remove<quint16>(as_quint16); break;
+  case ScintillaAsmEditBase::Action::AddBP: _dbg->addBP(as_quint16); break;
+  case ScintillaAsmEditBase::Action::RemoveBP: _dbg->removeBP(as_quint16); break;
   default: break;
-  }*/
+  }
 }
 
 Error::Error(int line, QString error, QObject *parent) : QObject(parent), line(line), error(error) {}
