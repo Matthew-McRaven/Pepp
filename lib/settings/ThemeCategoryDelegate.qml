@@ -4,7 +4,7 @@ import QtQuick.Controls
 
 import edu.pepp
 
-Rectangle {
+Item {
     property var category: undefined
     property int activeCategory: 0
     property int buttonWidth: 50
@@ -40,6 +40,7 @@ Rectangle {
             fill: parent
             margins: 2 * bg.border.width
             leftMargin: 4 * anchors.margins
+            topMargin: anchors.leftMargin
         }
         ScrollBar.vertical.policy: flickable.contentHeight
                                    > flickable.height ? ScrollBar.AlwaysOn : ScrollBar.AsNeeded

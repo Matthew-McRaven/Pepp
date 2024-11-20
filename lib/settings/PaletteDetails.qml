@@ -66,12 +66,21 @@ Item {
         GroupBox {
             id: colorsGB
             Layout.fillWidth: true
+
+            //  Used to size dynamic text fields
+            TextMetrics {
+                id: tm
+                //font: parent.font
+                text: "Overriding parent value"
+            }
+
             //  Groupbox label
             label: GroupBoxLabel {
                 textColor: palette.windowText
                 backgroundColor: bg.color
                 text: "Colors"
             }
+
             GridLayout {
                 columns: 3
                 Label {
@@ -84,12 +93,15 @@ Item {
                 }
                 CheckBox {
                     id: fgCheck
+                    Layout.minimumWidth: tm.width + indicator.width + 30
                     enabled: !root.isSystem && !!root.paletteItem?.parent
                     text: !root.paletteItem?.parent ? "Using own value" : (checked ? "Overriding parent value" : "Using parent value")
                     checked: enabled && root.paletteItem?.hasOwnForeground
                     onCheckedChanged: {
-                        if (enabled && !checked && root.paletteItem)
+                        if (enabled && !checked && root.paletteItem) {
                             root.paletteItem.clearForeground()
+                        }
+                        //console.log("Text " + tm.width)
                     }
                 }
                 Label {
