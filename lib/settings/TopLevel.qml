@@ -9,6 +9,7 @@ Rectangle {
     implicitHeight: layout.childrenRect.height
     implicitWidth: layout.childrenRect.width
     clip: true
+    color: palette.base
     NuAppSettings {
         id: settings
     }
@@ -21,7 +22,7 @@ Rectangle {
             Layout.minimumWidth: 30
             Layout.preferredWidth: categoryList.contentWidth
             Layout.fillHeight: true
-            Layout.margins: 3
+            Layout.margins: 1 // Make margin same as loader below
             model: settings.categories
             onCurrentCategoryChanged: {
                 const props = {
