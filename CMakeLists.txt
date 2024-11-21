@@ -38,7 +38,6 @@ if (CMAKE_INSTALL_PREFIX_INITIALIZED_TO_DEFAULT)
     set(CMAKE_INSTALL_PREFIX "${PROJECT_BINARY_DIR}/install" CACHE PATH "Installation Directory" FORCE)
 endif ()
 set_property(GLOBAL PROPERTY USE_FOLDERS ON)
-include(config/cmake/enumerate_targets.cmake)
 
 # Use to all output object files (applications, libraries, etc) in a single directory.
 # Without this, Windows does a bad job of copying DLLs on change for the terminal application.
