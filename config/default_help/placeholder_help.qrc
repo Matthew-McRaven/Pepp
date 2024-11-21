@@ -1,5 +1,0 @@
-<RCC>
-    <qresource prefix="/help">
-        <file>index.html</file>
-    </qresource>
-</RCC>
