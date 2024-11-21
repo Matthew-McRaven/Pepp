@@ -17,9 +17,7 @@ on:
       variant: { type: string, default: "Debug" }
       not_default: { required: True, type: boolean }
       save_cache: { type: boolean, default: True }
-      docs_artifact: { type: string }
       images_artifact: { type: string }
-      docs_audience: { type: string }
       artifact_key: { type: string, default: "" }
     secrets:
       MAC_BUILD_CERTIFICATE_BASE64:
@@ -110,14 +108,6 @@ jobs:
         with:
           languages: "c-cpp"
 
-      # CMake configure & build
-      - name: Download prebuilt help documentation
-        uses: actions/download-artifact@v4
-        if: inputs.docs_artifact
-        with:
-          name: ${{ inputs.docs_artifact }}
-          path: ${{ inputs.docs_artifact }}
-
       - name: Download converted images and icons
         uses: actions/download-artifact@v4
         if: inputs.images_artifact
@@ -139,8 +129,6 @@ jobs:
           ${{ inputs.cmake_toolchain && format('-D CMAKE_TOOLCHAIN_FILE={0}', inputs.cmake_toolchain) || ''}}
           ${{ inputs.cmake_generator && format('-G {0}', inputs.cmake_generator) || '' }}
           ${{ inputs.cmake_xargs }}
-          ${{ inputs.docs_audience && format('-D DOC_AUDIENCE={0}', inputs.docs_audience) || '' }}
-          ${{inputs.docs_artifact && format('-D DOC_PREBUILT_DIR="{0}"', inputs.docs_artifact) || '' }}
           -D CMAKE_BUILD_TYPE=${{inputs.variant}} -D MAC_DEVELOPER_NAME="$MAC_DEVELOPER_NAME"
           -D CPACK_BUILD_CONFIG=${{inputs.variant}} -D CMAKE_INSTALL_PREFIX=./install
         env:

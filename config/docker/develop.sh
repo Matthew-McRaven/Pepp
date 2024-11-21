@@ -23,4 +23,3 @@ docker buildx build --target output-wasm --push --build-arg="QT_WASM_XARGS=-sani
 docker buildx build --target output-wasm --push --build-arg="BASE_IMAGE=mcr.microsoft.com/devcontainers/base:ubuntu" --build-arg="QT_WASM_XARGS=-sanitize address  -sanitize undefined -device-option QT_WASM_SOURCE_MAP=1" --platform=linux/amd64 -t ghcr.io/matthew-mcraven/pepp/dev-wasm-dbg:v0.13.0 develop
 
 docker buildx build --target output-clang --push --platform=linux/amd64,linux/arm64 -t ghcr.io/matthew-mcraven/pepp/clang:v0.13.0 develop
-docker buildx build --push --platform=linux/amd64 -t ghcr.io/matthew-mcraven/pepp/docs:v0.13.0 docs
