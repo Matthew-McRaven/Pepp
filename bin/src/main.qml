@@ -511,10 +511,14 @@ ApplicationWindow {
         }
 
         Repeater {
+            id: sidebarRepeater
             // If there is no current project, display a Welcome mode.
             model: window.currentProject ? window.currentProject.modes(
                                                ) : defaultModel
-            delegate: Project.SideButton {
+            delegate: Button {
+                checkable: true
+                width: 100
+                height: 65
                 text: model.display ?? "ERROR"
                 Component.onCompleted: {
                     // Triggers window.modeChanged, which will propogate to all relevant components.
@@ -523,11 +527,20 @@ ApplicationWindow {
                     })
                 }
             }
+            onChildrenChanged: modeGroup.updateChildren()
         }
     }
     // Make sidebar buttons mutually-exclusive.
     ButtonGroup {
-        buttons: sidebar.children
+        id: modeGroup
+        // sidebar's children includes the repeater, which we cannot include without an error.
+        // Instead, we will manually update the list of buttons on changes to the sidebar repeater.
+        function updateChildren() {
+            var list = []
+            for (var idx = 0; idx < sidebarRepeater.count; idx++)
+                list.push(sidebarRepeater.itemAt(idx))
+            buttons = list
+        }
     }
 
     StackLayout {
