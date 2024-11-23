@@ -17,7 +17,6 @@ Item {
         id: settings
     }
     function onCopy() {
-        console.log(editor, editor.focus, editor.activeFocus)
         if (editor.activeFocus)
             editor.onCopy()
     }
@@ -26,7 +25,6 @@ Item {
             editor.onCut()
     }
     function onPaste() {
-        console.log(editor, editor.focus, editor.activeFocus)
         if (editor.activeFocus)
             editor.onPaste()
     }
