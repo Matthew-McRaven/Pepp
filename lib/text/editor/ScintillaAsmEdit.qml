@@ -16,6 +16,28 @@ Item {
     NuAppSettings {
         id: settings
     }
+    function onCopy() {
+        console.log(editor, editor.focus, editor.activeFocus)
+        if (editor.activeFocus)
+            editor.onCopy()
+    }
+    function onCut() {
+        if (editor.activeFocus)
+            editor.onCut()
+    }
+    function onPaste() {
+        console.log(editor, editor.focus, editor.activeFocus)
+        if (editor.activeFocus)
+            editor.onPaste()
+    }
+    function onUndo() {
+        if (editor.activeFocus)
+            editor.onUndo()
+    }
+    function onRedo() {
+        if (editor.activeFocus)
+            editor.onRedo()
+    }
 
     signal editingFinished(string text)
     Component.onCompleted: {
