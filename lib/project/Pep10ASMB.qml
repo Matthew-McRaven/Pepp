@@ -50,7 +50,7 @@ Item {
                     wrapper.requestModeSwitchToDebugger)
         wrapper.actions.build.execute.triggered.connect(
                     wrapper.requestModeSwitchToDebugger)
-        const list = [userAsmEdit, osAsmEdit]
+        const list = [userAsmEdit, osAsmEdit, userList, osList]
         for (var i = 0; i < list.length; i++) {
             wrapper.actions.edit.copy.triggered.connect(list[i].onCopy)
             wrapper.actions.edit.cut.triggered.connect(list[i].onCut)
@@ -87,7 +87,7 @@ Item {
         wrapper.actions.build.execute.triggered.disconnect(
                     wrapper.requestModeSwitchToDebugger)
 
-        const list = [userAsmEdit, osAsmEdit]
+        const list = [userAsmEdit, osAsmEdit, userList, osList]
         for (var i = 0; i < list.length; i++) {
             wrapper.actions.edit.copy.triggered.disconnect(list[i].onCopy)
             wrapper.actions.edit.cut.triggered.disconnect(list[i].onCut)
