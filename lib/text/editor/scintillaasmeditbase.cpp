@@ -277,3 +277,13 @@ void ScintillaAsmEditBase::applyStyles() {
   send(SCI_INDICSETFORE, 0, c2i(_theme->alternateBase()->foreground()));
   send(SCI_SETINDICATORVALUE, 0);
 }
+
+void ScintillaAsmEditBase::onCut() { send(SCI_CUT); }
+
+void ScintillaAsmEditBase::onCopy() { send(SCI_COPY); }
+
+void ScintillaAsmEditBase::onPaste() { send(SCI_PASTE); }
+
+void ScintillaAsmEditBase::onUndo() { send(SCI_UNDO); }
+
+void ScintillaAsmEditBase::onRedo() { send(SCI_REDO); }

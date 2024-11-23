@@ -36,6 +36,12 @@ public slots:
   void onClearAllBreakpoints();
   void onRequestAllBreakpoints();
   void applyStyles();
+
+  Q_INVOKABLE void onCut();
+  Q_INVOKABLE void onCopy();
+  Q_INVOKABLE void onPaste();
+  Q_INVOKABLE void onUndo();
+  Q_INVOKABLE void onRedo();
 signals:
   void lexerLanguageChanged();
   void themeChanged();
