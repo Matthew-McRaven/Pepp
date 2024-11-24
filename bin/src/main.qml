@@ -473,13 +473,11 @@ ApplicationWindow {
                     }
                     background: Rectangle {
                         color: "transparent"
-                        // TODO: use "theme"'s hover color.
-                        border.color: addProjectButton.hovered ? "blue" : "transparent"
+                        border.color: addProjectButton.hovered ? palette.link : "transparent"
                         border.width: 2
                         radius: 4
                     }
                     onClicked: {
-                        // TODO: Need to add OS to assembly-level projects.
                         pm.onAddProject(window.currentProject.architecture,
                                         window.currentProject.abstraction, "")
                         window.switchToProject(pm.count - 1)

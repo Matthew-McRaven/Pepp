@@ -25,6 +25,10 @@ Item {
     implicitHeight: column.implicitHeight
     implicitWidth: column.implicitWidth
 
+    NuAppSettings {
+        id: settings
+    }
+
     // Sorry all, this bit is cursed.
     // Instead of trying to do the "right thing" and use three columns+repeaters and place a rectangle
     // around the center column inside the middle repeater, I'm opting to only use a single repeater.
@@ -78,7 +82,7 @@ Item {
 
                     //  Color changes based on status
                     //  Update colors from theme when theme is complete
-                    color: (model.status === ChangeType.Allocated) ? "green" : (model.status === ChangeType.Modified) ? "red" : palette.base
+                    color: (model.status === ChangeType.Allocated) ? settings.extPalette.comment.foreground : (model.status === ChangeType.Modified) ? settings.extPalette.error.background : palette.base
                     border.color: palette.text
                     border.width: 1
                     Label {
