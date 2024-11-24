@@ -140,6 +140,7 @@ ApplicationWindow {
         help.addProject.connect(() => switchToProject(pm.count - 1))
         help.switchToMode.connect(sidebar.switchToMode)
         help.setCharIn.connect(i => setProjectCharIn(i))
+        help.renameCurrentProject.connect(pm.renameCurrentProject)
         currentProjectChanged.connect(projectLoader.onCurrentProjectChanged)
 
         actions.edit.prefs.triggered.connect(preferencesDialog.open)
@@ -211,6 +212,13 @@ ApplicationWindow {
                 for (const list of Object.entries(optTexts))
                     proj.set(list[0], list[1])
             }
+        }
+        function renameCurrentProject(string) {
+            const row = pm.rowOf(window.currentProject)
+            if (row == -1)
+                return
+            const index = pm.index(row, 0)
+            pm.setData(index, string, ProjectModel.NameRole)
         }
     }
 

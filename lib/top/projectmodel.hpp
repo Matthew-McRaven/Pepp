@@ -35,6 +35,7 @@ public:
                 int destinationChild) override;
   QHash<int, QByteArray> roleNames() const override;
   Q_INVOKABLE QString describe(int index) const;
+  Q_INVOKABLE int rowOf(const QObject *item) const;
 signals:
   void rowCountChanged(int);
 

@@ -120,3 +120,10 @@ QString ProjectModel::describe(int index) const {
   QString abs_str = abs_enum.valueToKey((int)abs);
   return QStringLiteral("%1, %2").arg(arch_map[arch], abs_str);
 }
+
+int ProjectModel::rowOf(const QObject *item) const {
+  for (int i = 0; i < _projects.size(); ++i) {
+    if (&*_projects[i].impl == item) return i;
+  }
+  return -1;
+}
