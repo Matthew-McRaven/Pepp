@@ -22,7 +22,6 @@ import QtQuick.Layouts
 import Qt.labs.qmlmodels
 import QtCore
 import "qrc:/edu/pepp/about" as About
-import "qrc:/edu/pepp/components" as Comp
 import "qrc:/edu/pepp/memory/hexdump" as Memory
 import "qrc:/edu/pepp/cpu" as Cpu
 import "qrc:/edu/pepp/text/editor" as Editor
@@ -291,135 +290,12 @@ ApplicationWindow {
         anchors.right: parent.right
         // Must explicitly set height to avoid binding loop; only account for tab bar if visibile.
         height: toolbar.height + (projectSelect.visible ? projectSelect.height : 0)
-        // TODO: fix disabled icon colors
-        ToolBar {
+        Top.ToolBar {
             id: toolbar
             anchors.top: parent.top
             anchors.left: parent.left
             anchors.right: parent.right
-            property int iconHeight: 30
-            RowLayout {
-                anchors.fill: parent
-                ToolButton {
-                    action: actions.file.new_
-                    icon {
-                        source: action.icon.source
-                        height: toolbar.iconHeight
-                        width: toolbar.iconHeight
-                    }
-                    hoverEnabled: true
-                    ToolTip.visible: hovered
-                    ToolTip.text: action.text.replace(/&/g, "")
-                    text: ''
-                }
-                ToolSeparator {}
-                ToolButton {
-                    action: actions.build.execute
-                    icon {
-                        source: action.icon.source
-                        height: toolbar.iconHeight
-                        width: toolbar.iconHeight
-                    }
-                    hoverEnabled: true
-                    ToolTip.visible: hovered
-                    ToolTip.text: action.text.replace(/&/g, "")
-                    text: ''
-                }
-                ToolButton {
-                    action: actions.debug.start
-                    icon {
-                        source: action.icon.source
-                        height: toolbar.iconHeight
-                        width: toolbar.iconHeight
-                    }
-                    hoverEnabled: true
-                    ToolTip.visible: hovered
-                    ToolTip.text: action.text.replace(/&/g, "")
-                    text: ''
-                }
-                ToolSeparator {}
-                ToolButton {
-                    action: actions.debug.continue_
-                    icon {
-                        source: action.icon.source
-                        height: toolbar.iconHeight
-                        width: toolbar.iconHeight
-                    }
-                    hoverEnabled: true
-                    ToolTip.visible: hovered
-                    ToolTip.text: action.text.replace(/&/g, "")
-                    text: ''
-                }
-                ToolButton {
-                    action: actions.debug.stop
-                    icon {
-                        source: action.icon.source
-                        height: toolbar.iconHeight
-                        width: toolbar.iconHeight
-                    }
-                    hoverEnabled: true
-                    ToolTip.visible: hovered
-                    ToolTip.text: action.text.replace(/&/g, "")
-                    text: ''
-                }
-                ToolButton {
-                    action: actions.debug.step
-                    icon {
-                        source: action.icon.source
-                        height: toolbar.iconHeight
-                        width: toolbar.iconHeight
-                    }
-                    hoverEnabled: true
-                    ToolTip.visible: hovered
-                    ToolTip.text: action.text.replace(/&/g, "")
-                    text: ''
-                }
-                ToolButton {
-                    action: actions.debug.stepOver
-                    icon {
-                        source: action.icon.source
-                        height: toolbar.iconHeight
-                        width: toolbar.iconHeight
-                    }
-                    hoverEnabled: true
-                    ToolTip.visible: hovered
-                    ToolTip.text: action.text.replace(/&/g, "")
-                    text: ''
-                }
-                ToolButton {
-                    action: actions.debug.stepInto
-                    icon {
-                        source: action.icon.source
-                        height: toolbar.iconHeight
-                        width: toolbar.iconHeight
-                    }
-                    hoverEnabled: true
-                    ToolTip.visible: hovered
-                    ToolTip.text: action.text.replace(/&/g, "")
-                    text: ''
-                }
-                ToolButton {
-                    action: actions.debug.stepOut
-                    icon {
-                        source: action.icon.source
-                        height: toolbar.iconHeight
-                        width: toolbar.iconHeight
-                    }
-                    hoverEnabled: true
-                    ToolTip.visible: hovered
-                    ToolTip.text: action.text.replace(/&/g, "")
-                    text: ''
-                }
-                ToolSeparator {}
-                Comp.Converters {
-                    initialValue: 'a'.charCodeAt(0)
-                    mnemonics: currentProject?.mnemonics ?? null
-                }
-
-                Item {
-                    Layout.fillWidth: true
-                }
-            }
+            actions: actions
         }
 
         Flickable {
