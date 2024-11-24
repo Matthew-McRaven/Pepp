@@ -66,14 +66,16 @@ Flickable {
                 }
                 break
             }
+
             if (optTexts === undefined || optTexts === null)
-                return
+                return onMarkActiveDirty(false)
             else if (typeof (optTexts) === "string")
                 proj.set(level, optTexts)
             else {
                 for (const list of Object.entries(optTexts))
                     proj.set(list[0], list[1])
             }
+            onMarkActiveDirty(false)
         }
         function renameCurrentProject(string) {
             const row = pm.rowOf(currentProject)
@@ -82,8 +84,16 @@ Flickable {
             const index = pm.index(row, 0)
             pm.setData(index, string, ProjectModel.NameRole)
         }
+        function onMarkActiveDirty(dirtyValue) {
+            const row = pm.rowOf(currentProject)
+            if (row == -1)
+                return
+            const index = pm.index(row, 0)
+            pm.setData(index, dirtyValue, ProjectModel.DirtyRole)
+        }
     }
 
+    // Add Alt+# shortcuts to switch to correct tabs.
     Repeater {
         model: 10
         delegate: Item {
@@ -112,8 +122,14 @@ Flickable {
                     required property string name
                     required property string description
                     required property int row
-                    text: `${tabButton.name}<br>${tabButton.description}`
-                    font: menuFont.font
+                    required property bool isDirty
+                    text: `${tabButton.name} ${tabButton.isDirty ? " *" : ''}<br>${tabButton.description}`
+                    font {
+                        family: menuFont.font.family
+                        pixelSize: Math.min(16, menuFont.font.pixelSize)
+                        italic: tabButton.isDirty
+                    }
+
                     width: Math.max(200, projectSelect.width / 4,
                                     implicitContentWidth)
                     Button {
@@ -151,6 +167,17 @@ Flickable {
                 root.switchToProject(pm.count - 1)
             }
         }
+    }
+
+    Connections {
+        target: root.currentProject ?? null
+        function onObjectCodeTextChanged() {
+            pm.onMarkActiveDirty(true)
+        }
+        function onUserAsmTextChanged() {
+            pm.onMarkActiveDirty(true)
+        }
+        ignoreUnknownSignals: true
     }
 
     function setCurrentProject(index) {

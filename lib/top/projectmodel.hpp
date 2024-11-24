@@ -17,6 +17,7 @@ public:
     ProjectPtrRole = Qt::UserRole + 1,
     NameRole,
     DescriptionRole,
+    DirtyRole,
   };
   Q_ENUM(Roles);
   // Q_INVOKABLE ISAProject *isa(utils::Architecture::Value arch, project::Features features);
@@ -42,7 +43,8 @@ signals:
 private:
   struct Data {
     std::unique_ptr<QObject> impl = nullptr;
-    QString name;
+    QString name = "";
+    bool isDirty = false;
   };
   std::deque<Data> _projects = {};
 };

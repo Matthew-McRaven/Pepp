@@ -11,6 +11,7 @@ QVariant ProjectModel::data(const QModelIndex &index, int role) const {
   case static_cast<int>(Roles::ProjectPtrRole): return QVariant::fromValue(&*_projects[index.row()].impl);
   case static_cast<int>(Roles::NameRole): return _projects[index.row()].name;
   case static_cast<int>(Roles::DescriptionRole): return describe(index.row());
+  case static_cast<int>(Roles::DirtyRole): return _projects[index.row()].isDirty;
   default: return {};
   }
   return {};
@@ -20,6 +21,7 @@ bool ProjectModel::setData(const QModelIndex &index, const QVariant &value, int 
   if (!index.isValid() || index.row() >= _projects.size() || index.column() != 0) return {};
   switch (role) {
   case static_cast<int>(Roles::NameRole): _projects[index.row()].name = value.toString(); break;
+  case static_cast<int>(Roles::DirtyRole): _projects[index.row()].isDirty = value.toBool(); break;
   default: return false;
   }
 
@@ -96,6 +98,7 @@ QHash<int, QByteArray> ProjectModel::roleNames() const {
   ret[static_cast<int>(Roles::ProjectPtrRole)] = "project";
   ret[static_cast<int>(Roles::NameRole)] = "name";
   ret[static_cast<int>(Roles::DescriptionRole)] = "description";
+  ret[static_cast<int>(Roles::DirtyRole)] = "isDirty";
   return ret;
 }
 
