@@ -2,7 +2,7 @@
 #include <QAbstractListModel>
 #include <QtQmlIntegration>
 #include <deque>
-#include "pep10.hpp"
+#include "project/pep10.hpp"
 
 // Factory to ensure class invariants of project are maintained.
 // Must be a singleton to call methods on it.
@@ -25,6 +25,7 @@ public:
   int _rowCount() const { return rowCount({}); }
   int rowCount(const QModelIndex &parent) const override;
   QVariant data(const QModelIndex &index, int role) const override;
+  bool setData(const QModelIndex &index, const QVariant &value, int role) override;
   Q_INVOKABLE Pep_ISA *pep10ISA(QVariant delegate);
   Q_INVOKABLE Pep_ISA *pep9ISA(QVariant delegate);
   Q_INVOKABLE Pep_ASMB *pep10ASMB(QVariant delegate, builtins::Abstraction abstraction);

@@ -27,6 +27,7 @@ import "qrc:/edu/pepp/memory/hexdump" as Memory
 import "qrc:/edu/pepp/cpu" as Cpu
 import "qrc:/edu/pepp/text/editor" as Editor
 import "qrc:/edu/pepp/project" as Project
+import "qrc:/edu/pepp/top" as Top
 import "qrc:/edu/pepp/settings" as AppSettings
 import "qrc:/edu/pepp/builtins" as Builtins
 import edu.pepp 1.0
@@ -438,6 +439,7 @@ ApplicationWindow {
                             id: tabButton
                             required property string name
                             required property string description
+                            required property int row
                             text: `${tabButton.name}<br>${tabButton.description}`
                             font: menuFont.font
                             width: Math.max(200, projectSelect.width / 4,
@@ -448,7 +450,7 @@ ApplicationWindow {
                                 anchors.verticalCenter: parent.verticalCenter
                                 height: Math.max(20, parent.height - 2)
                                 width: height
-                                onClicked: window.closeProject(index)
+                                onClicked: window.closeProject(tabButton.row)
                             }
                         }
                     }
@@ -544,7 +546,7 @@ ApplicationWindow {
         anchors.bottom: parent.bottom
         anchors.right: parent.right
         anchors.left: sidebar.right
-        Project.Welcome {
+        Top.Welcome {
             id: welcome
             Layout.fillHeight: true
             Layout.fillWidth: true

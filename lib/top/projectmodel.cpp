@@ -16,6 +16,17 @@ QVariant ProjectModel::data(const QModelIndex &index, int role) const {
   return {};
 }
 
+bool ProjectModel::setData(const QModelIndex &index, const QVariant &value, int role) {
+  if (!index.isValid() || index.row() >= _projects.size() || index.column() != 0) return {};
+  switch (role) {
+  case static_cast<int>(Roles::NameRole): _projects[index.row()].name = value.toString(); break;
+  default: return false;
+  }
+
+  emit dataChanged(index, index);
+  return true;
+}
+
 auto fmt = QStringLiteral("%1");
 Pep_ISA *ProjectModel::pep10ISA(QVariant delegate) {
   static const project::Environment env{.arch = builtins::Architecture::PEP10, .level = builtins::Abstraction::ISA3};
