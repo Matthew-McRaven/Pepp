@@ -40,6 +40,8 @@ ApplicationWindow {
     height: 1080
     visible: true
     title: qsTr("Pepp IDE")
+    property alias currentProject: projectSelect.currentProject
+    property alias pm: projectSelect.projectModel
     // Compiler keeps identifying this as a singleton, but it is not.
     NuAppSettings {
         id: settings
@@ -77,7 +79,6 @@ ApplicationWindow {
         }
     }
 
-    property var currentProject: null
     // Used to expose actions to inner area.
     property var actionRef: actions
     property string mode: "welcome"
@@ -85,58 +86,16 @@ ApplicationWindow {
         if (currentProject)
             currentProject.charIn = charIn
     }
-    function setCurrentProject(index) {
-        if (window?.currentProject?.message !== undefined) {
-            window.currentProject.message.disconnect(window.message)
-        }
-        const proj = pm.data(pm.index(index, 0), ProjectModel.ProjectPtrRole)
-        if (proj)
-            window.currentProject = proj
-        if (window.currentProject.message)
-            window.currentProject.message.connect(window.message)
-    }
-
-    function switchToProject(index, force) {
-        var needsManualUpdate = (force ?? false)
-                && projectBar.currentIndex === index
-        if (needsManualUpdate)
-            setCurrentProject(index)
-        else
-            projectBar.currentIndex = index
-    }
-
-    Repeater {
-        model: 10
-        delegate: Item {
-            Shortcut {
-                property int index: modelData
-                //%10 to ensure that Alt+0 maps to index==10
-                sequences: [`Alt+${(index + 1) % 10}`]
-                onActivated: switchToProject(index, true)
-                enabled: index < pm.count
-            }
-        }
-    }
-
-    function closeProject(index) {
-        // TODO: add logic to save project before closing or reject change entirely.
-        pm.removeRows(index, 1)
-        if (pm.rowCount() === 0)
-            return
-        else if (index < pm.rowCount())
-            switchToProject(index, true)
-        else
-            switchToProject(pm.rowCount() - 1)
-    }
 
     Component.onCompleted: {
-        //console.log(ApplicationPreferences)
         // Allow welcome mode to create a new project, and switch to it on creation.
         welcome.addProject.connect(pm.onAddProject)
-        welcome.addProject.connect(() => switchToProject(pm.count - 1))
+        welcome.addProject.connect(() => projectSelect.switchToProject(
+                                       pm.count - 1))
         welcome.addProject.connect(() => sidebar.switchToMode("Editor"))
         help.addProject.connect(pm.onAddProject)
-        help.addProject.connect(() => switchToProject(pm.count - 1))
+        help.addProject.connect(() => projectSelect.switchToProject(
+                                    pm.count - 1))
         help.switchToMode.connect(sidebar.switchToMode)
         help.setCharIn.connect(i => setProjectCharIn(i))
         help.renameCurrentProject.connect(pm.renameCurrentProject)
@@ -145,80 +104,11 @@ ApplicationWindow {
         actions.edit.prefs.triggered.connect(preferencesDialog.open)
         actions.help.about.triggered.connect(aboutDialog.open)
         actions.view.fullscreen.triggered.connect(onToggleFullScreen)
+        projectSelect.message.connect(message)
         message.connect(text => footer.text = text)
         message.connect(() => messageTimer.restart())
         messageTimer.restart()
         sidebar.switchToMode("Welcome")
-    }
-
-    ProjectModel {
-        id: pm
-        function onAddProject(arch, level, feats, optTexts, reuse) {
-            var proj = null
-            var cur = window.currentProject
-            // Attach a delegate to the project which can render its edit/debug modes. Since it is a C++ property,
-            // binding changes propogate automatically.
-            switch (Number(arch)) {
-            case Architecture.PEP10:
-                if (Number(level) === Abstraction.ISA3) {
-                    if (cur && cur.architecture === Architecture.PEP10
-                            && cur.abstraction === Abstraction.ISA3
-                            && cur.isEmpty && reuse)
-                        proj = cur
-                    else
-                        proj = pm.pep10ISA(pep10isaComponent)
-                } else if (Number(level) === Abstraction.ASMB3) {
-                    if (cur && cur.architecture === Architecture.PEP10
-                            && cur.abstraction === Abstraction.ASMB3
-                            && cur.isEmpty && reuse)
-                        proj = cur
-                    else
-                        proj = pm.pep10ASMB(pep10asmbComponent,
-                                            Abstraction.ASMB3)
-                } else if (Number(level) === Abstraction.ASMB5) {
-                    if (cur && cur.architecture === Architecture.PEP10
-                            && cur.abstraction === Abstraction.ASMB5
-                            && cur.isEmpty && reuse)
-                        proj = cur
-                    else
-                        proj = pm.pep10ASMB(pep10asmbComponent,
-                                            Abstraction.ASMB5)
-                }
-                break
-            case Architecture.PEP9:
-                if (Number(level) === Abstraction.ISA3) {
-                    if (cur && cur.architecture === Architecture.PEP9
-                            && cur.abstraction === Abstraction.ISA3
-                            && cur.isEmpty && reuse)
-                        proj = cur
-                    else
-                        proj = pm.pep9ISA(pep9isaComponent)
-                } else if (Number(level) === Abstraction.ASMB5) {
-                    if (cur && cur.architecture === Architecture.PEP9
-                            && cur.abstraction === Abstraction.ASMB5
-                            && cur.isEmpty && reuse)
-                        proj = cur
-                    else
-                        proj = pm.pep9ASMB(pep9asmbComponent)
-                }
-                break
-            }
-            if (optTexts === undefined || optTexts === null)
-                return
-            else if (typeof (optTexts) === "string")
-                proj.set(level, optTexts)
-            else {
-                for (const list of Object.entries(optTexts))
-                    proj.set(list[0], list[1])
-            }
-        }
-        function renameCurrentProject(string) {
-            const row = pm.rowOf(window.currentProject)
-            if (row == -1)
-                return
-            const index = pm.index(row, 0)
-            pm.setData(index, string, ProjectModel.NameRole)
-        }
     }
 
     // Provide a default font for menu items.
@@ -297,73 +187,11 @@ ApplicationWindow {
             anchors.right: parent.right
             actions: actions
         }
-
-        Flickable {
+        Top.ProjectSelectBar {
             id: projectSelect
-            clip: true
-            visible: pm.count > 0
             anchors.right: parent.right
             anchors.left: parent.left
             anchors.top: toolbar.bottom
-            contentWidth: projectBar.width + addProjectButton.width
-            contentHeight: projectBar.height
-            height: contentHeight
-            // Use a row layout to handle proper sizing of tab bar and buttons.
-            Row {
-                TabBar {
-                    id: projectBar
-                    Layout.fillWidth: true
-                    Layout.fillHeight: true
-                    onCurrentIndexChanged: window.setCurrentProject(
-                                               currentIndex)
-                    Repeater {
-                        model: pm
-                        anchors.fill: parent
-                        delegate: TabButton {
-                            id: tabButton
-                            required property string name
-                            required property string description
-                            required property int row
-                            text: `${tabButton.name}<br>${tabButton.description}`
-                            font: menuFont.font
-                            width: Math.max(200, projectSelect.width / 4,
-                                            implicitContentWidth)
-                            Button {
-                                text: "X"
-                                anchors.right: parent.right
-                                anchors.verticalCenter: parent.verticalCenter
-                                height: Math.max(20, parent.height - 2)
-                                width: height
-                                onClicked: window.closeProject(tabButton.row)
-                            }
-                        }
-                    }
-                }
-                Button {
-                    id: addProjectButton
-                    text: "+"
-                    Layout.fillHeight: true
-                    width: plusTM.width
-                    font: menuFont.font
-                    height: projectBar.height // Border may clip into main area if unset.
-                    TextMetrics {
-                        id: plusTM
-                        font: addProjectButton.font
-                        text: `+${' '.repeat(10)}`
-                    }
-                    background: Rectangle {
-                        color: "transparent"
-                        border.color: addProjectButton.hovered ? palette.link : "transparent"
-                        border.width: 2
-                        radius: 4
-                    }
-                    onClicked: {
-                        pm.onAddProject(window.currentProject.architecture,
-                                        window.currentProject.abstraction, "")
-                        window.switchToProject(pm.count - 1)
-                    }
-                }
-            }
         }
     }
 
