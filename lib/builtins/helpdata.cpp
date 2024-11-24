@@ -84,6 +84,13 @@ QString lexerLang(builtins::Architecture arch, builtins::Abstraction level) {
   return QStringLiteral("%1 %2").arg(archStr, levelStr);
 }
 
+QString removeLeading0(const QString &str) {
+  for (int it = 0; it < str.size(); it++) {
+    if (str.at(it) != '0') return str.mid(it);
+  }
+  // Should be unreacheable, but here for safety.
+  return str;
+}
 QSharedPointer<HelpEntry> examples_root() {
   static builtins::Registry reg(nullptr);
   auto books = reg.books();
@@ -92,7 +99,7 @@ QSharedPointer<HelpEntry> examples_root() {
     for (const auto &figure : book->figures()) {
       // Skip explicitly hidden figures (like the assembler).
       if (figure->isHidden()) continue;
-      auto title = u"%1 %2.%3"_s.arg(figure->prefix(), figure->chapterName(), figure->figureName());
+      auto title = u"%1 %2.%3"_s.arg(figure->prefix(), removeLeading0(figure->chapterName()), (figure->figureName()));
       int mask = bitmask(figure->arch(), figure->level());
       auto entry =
           QSharedPointer<HelpEntry>::create(HelpCategory::Category::Figure, mask, title, "../builtins/Figure2.qml");
