@@ -158,7 +158,14 @@ Item {
                         width: 2
                     }
                 }
+                onCurrentChanged: {
+                    if (current)
+                        makeActive()
+                }
                 onClicked: {
+                    makeActive()
+                }
+                function makeActive() {
                     root.selected = treeDelegate.treeView.index(row, column)
                     treeDelegate.treeView.selectionModel.setCurrentIndex(
                                 root.selected, ItemSelectionModel.NoUpdate)
