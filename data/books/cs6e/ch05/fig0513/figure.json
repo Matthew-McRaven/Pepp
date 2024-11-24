@@ -5,6 +5,7 @@
   "abstraction": "ASMB5",
   "default_os": "os:pep10os",
   "default_element": "pep",
+  "description": "A nonsense program to illustrate the interpretation of bit patterns.",
   "ios": [
     "io0"
   ],

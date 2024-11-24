@@ -5,6 +5,7 @@
   "abstraction": "ASMB5",
   "default_os": "os:pep10os",
   "default_element": "pep",
+  "description": "A procedure call with no parameters.",
   "ios": [
     "io0"
   ],

@@ -5,6 +5,7 @@
   "abstraction": "ASMB5",
   "default_os": "os:pep10os",
   "default_element": "pep",
+  "description": "Translation of a boolean type.",
   "ios": [
     "io0", "io1", "io2", "io3", "io4"
   ],

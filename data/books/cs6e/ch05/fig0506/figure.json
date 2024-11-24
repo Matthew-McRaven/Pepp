@@ -5,6 +5,7 @@
   "abstraction": "ASMB3",
   "default_os": "os:pep10baremetal",
   "default_element": "pep",
+  "description": "An assembly language program to input two characters and output them in reverse order. It is the assembly language version of Figure 4.35.",
   "ios": [
     "io0"
   ],
