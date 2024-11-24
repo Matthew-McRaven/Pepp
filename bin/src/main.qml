@@ -89,8 +89,9 @@ ApplicationWindow {
         if (window?.currentProject?.message !== undefined) {
             window.currentProject.message.disconnect(window.message)
         }
-        window.currentProject = pm.data(pm.index(index, 0),
-                                        ProjectModel.ProjectRole)
+        const proj = pm.data(pm.index(index, 0), ProjectModel.ProjectRole)
+        if (proj)
+            window.currentProject = proj
         if (window.currentProject.message)
             window.currentProject.message.connect(window.message)
     }
@@ -209,15 +210,6 @@ ApplicationWindow {
                 for (const list of Object.entries(optTexts))
                     proj.set(list[0], list[1])
             }
-        }
-    }
-    ListModel {
-        id: defaultModel
-        ListElement {
-            display: "Welcome"
-        }
-        ListElement {
-            display: "Help"
         }
     }
 
@@ -508,11 +500,26 @@ ApplicationWindow {
             console.error(`Did not find mode ${mode}`)
         }
 
+        // Make sidebar buttons mutually-exclusive.
+        ButtonGroup {
+            id: modeGroup
+        }
+
+        ListModel {
+            id: defaultSidebarModel
+            ListElement {
+                display: "Welcome"
+            }
+            ListElement {
+                display: "Help"
+            }
+        }
+
         Repeater {
             id: sidebarRepeater
             // If there is no current project, display a Welcome mode.
             model: window.currentProject ? window.currentProject.modes(
-                                               ) : defaultModel
+                                               ) : defaultSidebarModel
             delegate: Button {
                 checkable: true
                 width: 100
@@ -527,10 +534,6 @@ ApplicationWindow {
                 }
             }
         }
-    }
-    // Make sidebar buttons mutually-exclusive.
-    ButtonGroup {
-        id: modeGroup
     }
 
     StackLayout {
