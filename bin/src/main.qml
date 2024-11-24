@@ -89,7 +89,7 @@ ApplicationWindow {
         if (window?.currentProject?.message !== undefined) {
             window.currentProject.message.disconnect(window.message)
         }
-        const proj = pm.data(pm.index(index, 0), ProjectModel.ProjectRole)
+        const proj = pm.data(pm.index(index, 0), ProjectModel.ProjectPtrRole)
         if (proj)
             window.currentProject = proj
         if (window.currentProject.message)
@@ -435,8 +435,10 @@ ApplicationWindow {
                         model: pm
                         anchors.fill: parent
                         delegate: TabButton {
-                            // required property bool isPlus
-                            text: `${index}<br>${pm.describe(index)}`
+                            id: tabButton
+                            required property string name
+                            required property string description
+                            text: `${tabButton.name}<br>${tabButton.description}`
                             font: menuFont.font
                             width: Math.max(200, projectSelect.width / 4,
                                             implicitContentWidth)

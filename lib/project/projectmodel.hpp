@@ -14,7 +14,9 @@ class ProjectModel : public QAbstractListModel {
 
 public:
   enum class Roles {
-    ProjectRole = Qt::UserRole + 1,
+    ProjectPtrRole = Qt::UserRole + 1,
+    NameRole,
+    DescriptionRole,
   };
   Q_ENUM(Roles);
   // Q_INVOKABLE ISAProject *isa(utils::Architecture::Value arch, project::Features features);
@@ -36,5 +38,9 @@ signals:
   void rowCountChanged(int);
 
 private:
-  std::deque<std::unique_ptr<QObject>> _projects = {};
+  struct Data {
+    std::unique_ptr<QObject> impl = nullptr;
+    QString name;
+  };
+  std::deque<Data> _projects = {};
 };

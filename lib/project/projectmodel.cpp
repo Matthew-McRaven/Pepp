@@ -1,4 +1,6 @@
 #include "projectmodel.hpp"
+#include <QStringLiteral>
+#include <qstringliteral.h>
 
 int ProjectModel::rowCount(const QModelIndex &parent) const { return _projects.size(); }
 
@@ -6,19 +8,22 @@ QVariant ProjectModel::data(const QModelIndex &index, int role) const {
   if (!index.isValid() || index.row() >= _projects.size() || index.column() != 0) return {};
 
   switch (role) {
-  case static_cast<int>(Roles::ProjectRole): return QVariant::fromValue(&*_projects[index.row()]);
+  case static_cast<int>(Roles::ProjectPtrRole): return QVariant::fromValue(&*_projects[index.row()].impl);
+  case static_cast<int>(Roles::NameRole): return _projects[index.row()].name;
+  case static_cast<int>(Roles::DescriptionRole): return describe(index.row());
   default: return {};
   }
   return {};
 }
 
+auto fmt = QStringLiteral("%1");
 Pep_ISA *ProjectModel::pep10ISA(QVariant delegate) {
   static const project::Environment env{.arch = builtins::Architecture::PEP10, .level = builtins::Abstraction::ISA3};
   auto ptr = std::make_unique<Pep_ISA>(env, delegate, nullptr);
   auto ret = &*ptr;
   QQmlEngine::setObjectOwnership(ret, QQmlEngine::CppOwnership);
   beginInsertRows(QModelIndex(), _projects.size(), _projects.size());
-  _projects.push_back(std::move(ptr));
+  _projects.push_back({.impl = std::move(ptr), .name = fmt.arg(_projects.size())});
   endInsertRows();
   emit rowCountChanged(_projects.size());
   return ret;
@@ -30,7 +35,7 @@ Pep_ISA *ProjectModel::pep9ISA(QVariant delegate) {
   auto ret = &*ptr;
   QQmlEngine::setObjectOwnership(ret, QQmlEngine::CppOwnership);
   beginInsertRows(QModelIndex(), _projects.size(), _projects.size());
-  _projects.push_back(std::move(ptr));
+  _projects.push_back({.impl = std::move(ptr), .name = fmt.arg(_projects.size())});
   endInsertRows();
   emit rowCountChanged(_projects.size());
   return ret;
@@ -42,7 +47,7 @@ Pep_ASMB *ProjectModel::pep10ASMB(QVariant delegate, builtins::Abstraction abstr
   auto ret = &*ptr;
   QQmlEngine::setObjectOwnership(ret, QQmlEngine::CppOwnership);
   beginInsertRows(QModelIndex(), _projects.size(), _projects.size());
-  _projects.push_back(std::move(ptr));
+  _projects.push_back({.impl = std::move(ptr), .name = fmt.arg(_projects.size())});
   endInsertRows();
   emit rowCountChanged(_projects.size());
   return ret;
@@ -54,7 +59,7 @@ Pep_ASMB *ProjectModel::pep9ASMB(QVariant delegate) {
   auto ret = &*ptr;
   QQmlEngine::setObjectOwnership(ret, QQmlEngine::CppOwnership);
   beginInsertRows(QModelIndex(), _projects.size(), _projects.size());
-  _projects.push_back(std::move(ptr));
+  _projects.push_back({.impl = std::move(ptr), .name = fmt.arg(_projects.size())});
   endInsertRows();
   emit rowCountChanged(_projects.size());
   return ret;
@@ -77,7 +82,9 @@ bool ProjectModel::moveRows(const QModelIndex &sourceParent, int sourceRow, int 
 
 QHash<int, QByteArray> ProjectModel::roleNames() const {
   auto ret = QAbstractListModel::roleNames();
-  ret[static_cast<int>(Roles::ProjectRole)] = "ProjectRole";
+  ret[static_cast<int>(Roles::ProjectPtrRole)] = "project";
+  ret[static_cast<int>(Roles::NameRole)] = "name";
+  ret[static_cast<int>(Roles::DescriptionRole)] = "description";
   return ret;
 }
 
@@ -92,10 +99,10 @@ QString ProjectModel::describe(int index) const {
   auto abs_enum = QMetaEnum::fromType<builtins::Abstraction>();
   builtins::Architecture arch;
   builtins::Abstraction abs;
-  if (auto isa = dynamic_cast<Pep_ISA *>(_projects[index].get())) {
+  if (auto isa = dynamic_cast<Pep_ISA *>(_projects[index].impl.get())) {
     arch = isa->architecture();
     abs = isa->abstraction();
-  } else if (auto asmb = dynamic_cast<Pep_ASMB *>(_projects[index].get())) {
+  } else if (auto asmb = dynamic_cast<Pep_ASMB *>(_projects[index].impl.get())) {
     arch = asmb->architecture();
     abs = asmb->abstraction();
   }
