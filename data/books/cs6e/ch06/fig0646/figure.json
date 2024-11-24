@@ -5,6 +5,7 @@
   "abstraction": "ASMB5",
   "default_os": "os:pep10os",
   "default_element": "pep",
+  "description": "Translation of a structure.",
   "ios": [
     "io0"
   ],
