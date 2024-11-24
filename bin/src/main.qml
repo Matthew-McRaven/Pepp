@@ -134,7 +134,7 @@ ApplicationWindow {
 
     signal message(string message)
     footer: Label {
-        anchors.left: headerSpacer.right
+        anchors.left: sidebar.right
         text: "test message"
         Timer {
             id: messageTimer
@@ -165,18 +165,9 @@ ApplicationWindow {
     }
 
     Item {
-        // Intersection of header and mode select.
-        // Make transparent, influenced by Qt Creator Style.
-        id: headerSpacer
-        anchors.top: parent.top
-        anchors.left: parent.left
-        width: sidebar.width
-        height: header.height
-    }
-    Item {
         id: header
         anchors.top: parent.top
-        anchors.left: headerSpacer.right
+        anchors.left: sidebar.right
         anchors.right: parent.right
         // Must explicitly set height to avoid binding loop; only account for tab bar if visibile.
         height: toolbar.height + (projectSelect.visible ? projectSelect.height : 0)
@@ -199,7 +190,7 @@ ApplicationWindow {
         id: sidebar
         modesModel: window.currentProject ? window.currentProject.modes(
                                                 ) : undefined
-        anchors.top: headerSpacer.bottom
+        anchors.top: header.bottom
         anchors.bottom: parent.bottom
         anchors.left: parent.left
         width: 100
