@@ -46,6 +46,7 @@ private:
     std::unique_ptr<QObject> impl = nullptr;
     QString name = "";
     bool isDirty = false;
+    QString path = "";
   };
   std::deque<Data> _projects = {};
 };
