@@ -425,20 +425,20 @@ Item {
                             backgroundColor = Qt.binding(
                                         () => tableView.blendColors(
                                             Qt.rgba(1, 0, 0, 1),
-                                            [palette.base, palette.alternateBase][column % 2],
-                                            .25))
+                                            palette.base, .25))
                             break
                         case MemoryHighlight.PC:
-                            backgroundColor = Qt.binding(() => tableView.blendColors(
-                                                             Qt.rgba(0x3f / 255., 0x51 / 255., 0xb5 / 255., 1), [palette.base, palette.alternateBase][column % 2],
-                                                             .25))
+                            backgroundColor = Qt.binding(
+                                        () => tableView.blendColors(
+                                            Qt.rgba(0x3f / 255., 0x51 / 255.,
+                                                    0xb5 / 255., 1),
+                                            palette.base, .25))
                             break
                         case MemoryHighlight.SP:
                             backgroundColor = Qt.binding(
                                         () => tableView.blendColors(
                                             Qt.rgba(1, 0x98 / 255., 0, 1),
-                                            [palette.base, palette.alternateBase][column % 2],
-                                            .25))
+                                            palette.base, .25))
                             break
                         default:
                             backgroundColor = Qt.binding(() => palette.base)
