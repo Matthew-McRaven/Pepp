@@ -40,6 +40,7 @@ ApplicationWindow {
     height: 1080
     visible: true
     title: qsTr("Pepp IDE")
+    property alias currentProjectRow: projectSelect.currentProjectRow
     property alias currentProject: projectSelect.currentProject
     property alias pm: projectSelect.projectModel
     // Compiler keeps identifying this as a singleton, but it is not.

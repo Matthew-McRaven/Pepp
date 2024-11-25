@@ -6,6 +6,7 @@ import edu.pepp 1.0
 Flickable {
     id: root
     property var currentProject: undefined
+    property int currentProjectRow: pm.rowOf(currentProject)
     property var projectModel: pm
     // Propogate a status message from current project to main window.
     signal message(string message)
