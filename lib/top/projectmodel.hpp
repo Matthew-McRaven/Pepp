@@ -20,7 +20,6 @@ public:
     DirtyRole,
   };
   Q_ENUM(Roles);
-  // Q_INVOKABLE ISAProject *isa(utils::Architecture::Value arch, project::Features features);
   explicit ProjectModel(QObject *parent = nullptr) : QAbstractListModel(parent) {};
   // Helper to expose rowCount as a property to QML.
   int _rowCount() const { return rowCount({}); }
@@ -37,6 +36,8 @@ public:
   QHash<int, QByteArray> roleNames() const override;
   Q_INVOKABLE QString describe(int index) const;
   Q_INVOKABLE int rowOf(const QObject *item) const;
+public slots:
+  Q_INVOKABLE void onSave(int index);
 signals:
   void rowCountChanged(int);
 

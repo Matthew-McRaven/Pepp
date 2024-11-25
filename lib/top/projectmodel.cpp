@@ -29,7 +29,7 @@ bool ProjectModel::setData(const QModelIndex &index, const QVariant &value, int 
   return true;
 }
 
-auto fmt = QStringLiteral("%1");
+const auto fmt = QStringLiteral("%1");
 Pep_ISA *ProjectModel::pep10ISA(QVariant delegate) {
   static const project::Environment env{.arch = builtins::Architecture::PEP10, .level = builtins::Abstraction::ISA3};
   auto ptr = std::make_unique<Pep_ISA>(env, delegate, nullptr);
@@ -119,7 +119,7 @@ QString ProjectModel::describe(int index) const {
   } else if (auto asmb = dynamic_cast<Pep_ASMB *>(_projects[index].impl.get())) {
     arch = asmb->architecture();
     abs = asmb->abstraction();
-  }
+  } else return "";
   QString abs_str = abs_enum.valueToKey((int)abs);
   return QStringLiteral("%1, %2").arg(arch_map[arch], abs_str);
 }
@@ -129,4 +129,10 @@ int ProjectModel::rowOf(const QObject *item) const {
     if (&*_projects[i].impl == item) return i;
   }
   return -1;
+}
+
+void ProjectModel::onSave(int row) {
+  qDebug() << "Someone called me!! " << row;
+  auto index = createIndex(row, 0);
+  setData(index, false, static_cast<int>(Roles::DirtyRole));
 }
