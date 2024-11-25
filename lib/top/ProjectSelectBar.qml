@@ -187,7 +187,7 @@ Flickable {
         const proj = pm.data(pm.index(index, 0), ProjectModel.ProjectPtrRole)
         if (proj)
             root.currentProject = proj
-        if (root.currentProject.message)
+        if (root.currentProject?.message)
             root.currentProject.message.connect(root.message)
     }
 

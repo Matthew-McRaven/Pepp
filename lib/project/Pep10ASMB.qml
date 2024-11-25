@@ -62,26 +62,29 @@ Item {
     // Will be called before project is changed on unload, so we can disconnect save-triggering signals.
     Component.onDestruction: {
         userAsmEdit.editingFinished.disconnect(save)
-        project.errorsChanged.disconnect(displayErrors)
-        project.listingChanged.connect(fixListings)
+        if (project) {
+            userAsmEdit.editor.modifyLine.disconnect(project.onModifyUserSource)
+            osAsmEdit.editor.modifyLine.disconnect(project.onModifyOSSource)
+            userList.editor.modifyLine.disconnect(project.onModifyUserList)
+            osList.editor.modifyLine.disconnect(project.onModifyOSList)
+            project.errorsChanged.disconnect(displayErrors)
+            project.listingChanged.connect(fixListings)
+            project.modifyUserSource.disconnect(userAsmEdit.editor.onLineAction)
+            project.modifyOSSource.disconnect(osAsmEdit.editor.onLineAction)
+            project.modifyUserList.disconnect(userList.editor.onLineAction)
+            project.modifyOSList.disconnect(osList.editor.onLineAction)
+            project.clearListingBreakpoints.disconnect(
+                        userList.editor.onClearAllBreakpoints)
+            project.clearListingBreakpoints.disconnect(
+                        osList.editor.onClearAllBreakpoints)
+            project.requestSourceBreakpoints.disconnect(
+                        userAsmEdit.editor.onRequestAllBreakpoints)
+            project.requestSourceBreakpoints.disconnect(
+                        osAsmEdit.editor.onRequestAllBreakpoints)
+            project.switchTo.disconnect(wrapper.onSwitchTo)
+        }
         onProjectChanged.disconnect(fixListings)
-        userAsmEdit.editor.modifyLine.disconnect(project.onModifyUserSource)
-        osAsmEdit.editor.modifyLine.disconnect(project.onModifyOSSource)
-        userList.editor.modifyLine.disconnect(project.onModifyUserList)
-        osList.editor.modifyLine.disconnect(project.onModifyOSList)
-        project.modifyUserSource.disconnect(userAsmEdit.editor.onLineAction)
-        project.modifyOSSource.disconnect(osAsmEdit.editor.onLineAction)
-        project.modifyUserList.disconnect(userList.editor.onLineAction)
-        project.modifyOSList.disconnect(osList.editor.onLineAction)
-        project.clearListingBreakpoints.disconnect(
-                    userList.editor.onClearAllBreakpoints)
-        project.clearListingBreakpoints.disconnect(
-                    osList.editor.onClearAllBreakpoints)
-        project.requestSourceBreakpoints.disconnect(
-                    userAsmEdit.editor.onRequestAllBreakpoints)
-        project.requestSourceBreakpoints.disconnect(
-                    osAsmEdit.editor.onRequestAllBreakpoints)
-        project.switchTo.disconnect(wrapper.onSwitchTo)
+
         wrapper.actions.debug.start.triggered.disconnect(
                     wrapper.requestModeSwitchToDebugger)
         wrapper.actions.build.execute.triggered.disconnect(
@@ -101,7 +104,7 @@ Item {
         wrapper.requestModeSwitchTo("debugger")
     }
     function getLexerLangauge() {
-        switch (project.architecture) {
+        switch (project?.architecture) {
         case Architecture.PEP9:
             return "Pep/9 ASM"
         case Architecture.PEP10:
@@ -119,6 +122,8 @@ Item {
         userAsmEdit.addEOLAnnotations(project.assemblerErrors)
     }
     function fixListings() {
+        if (!project)
+            return
         if (userList) {
             const curURO = userList.readOnly
             userList.readOnly = false
