@@ -16,10 +16,10 @@
 
 #include "./about.hpp"
 #include <iostream>
-#include "TextFlow.hpp"
 #include "about/dependencies.hpp"
 #include "about/pepp.hpp"
 #include "about/version.hpp"
+#include "catch.hpp"
 
 AboutTask::AboutTask(QObject *parent) : Task(parent) {}
 
@@ -34,7 +34,7 @@ void AboutTask::run() {
   for (const auto &maintainer : about::maintainers())
     std::cout << "\t" << maintainer.name.toStdString() << " <" << maintainer.email.toStdString() << "> \n";
   std::cout << "\nLicensing:\n";
-  auto lines = TextFlow::Column(about::licenseNotice().toStdString());
+  auto lines = Catch::TextFlow::Column(about::licenseNotice().toStdString());
   for (const auto &line : lines) {
     std::cout << "\t" << QString::fromStdString(line).replace("\n", "\n\t").toStdString() << "\n";
   }

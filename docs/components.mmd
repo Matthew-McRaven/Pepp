@@ -295,12 +295,11 @@ graph TB
         Cmd_Throughput[pepp-term.exe mit]:::Pure
         Cmd_Gui[pepp.exe]:::Shared
         catch[Catch]:::Dependency
-        TextFlow[TextFlowCPP]:::Dependency
         cli[CLI11]:::Dependency
 
         TL0       --> Cmd_About & Cmd_Asm & Cmd_Demo & Cmd_License & Cmd_List
         TL0      --> Cmd_Run & Cmd_Test & Cmd_Throughput & Cmd_Gui & Cmd_Get
-        TL0      --> TextFlow & cli
+        TL0      --> cli
         Cmd_Test -->|implict depenency on everything| catch
 
     end
