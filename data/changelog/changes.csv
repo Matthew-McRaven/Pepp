@@ -40,3 +40,6 @@ Changed,Major,0.7.5,660,"Add stack trace to ""Debugger"" mode, containing views 
 Changed,,0.7.5,667,"Redesign application preferences & styling"
 Changed,,0.7.5,691,"In ""Debugger"" mode, add labels to stack trace"
 Fixed,,0.7.5,710,"Fix copy/paste in assembly editor"
+Fixed,,0.7.5,596,"Re-added ability to save ISA3/ASMB3/ASMB5 projects to the filesystem"
+Changed,,0.7.5,,"Re-added descriptions to figures in the help system"
+Fixed,,0.7.5,702,"Fix off-by-1 when stopping for breakpoints"
