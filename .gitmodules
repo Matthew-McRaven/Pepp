@@ -1,9 +1,6 @@
 [submodule "3rd-party/elfio"]
 	path = 3rd-party/elfio
 	url = https://github.com/Matthew-McRaven/ELFIO
-[submodule "3rd-party/textflowcpp"]
-	path = 3rd-party/textflowcpp
-	url = https://github.com/Matthew-McRaven/textflowcpp
 [submodule "3rd-party/zpp_bits"]
 	path = 3rd-party/zpp_bits
 	url = https://github.com/eyalz800/zpp_bits.git
