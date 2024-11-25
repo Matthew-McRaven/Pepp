@@ -138,7 +138,7 @@ Flickable {
                         anchors.verticalCenter: parent.verticalCenter
                         height: Math.max(20, parent.height - 2)
                         width: height
-                        onClicked: window.closeProject(tabButton.row)
+                        onClicked: root.closeProject(tabButton.row)
                     }
                 }
             }
