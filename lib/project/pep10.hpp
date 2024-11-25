@@ -64,7 +64,7 @@ public:
   Q_INVOKABLE QString charIn() const;
   Q_INVOKABLE void setCharIn(QString value);
   Q_INVOKABLE QString charOut() const;
-  Q_INVOKABLE virtual bool isEmpty() const;
+  virtual bool isEmpty() const;
 public slots:
   bool onSaveCurrent();
   virtual bool onLoadObject();
@@ -167,7 +167,7 @@ public:
   Q_INVOKABLE QString osList() const;
   Q_INVOKABLE const QList<Error *> osListAnnotations() const;
   Q_INVOKABLE const QList<Error *> errors() const;
-  Q_INVOKABLE bool isEmpty() const override;
+  bool isEmpty() const override;
   Q_INVOKABLE SymbolModel *userSymbols() const;
   Q_INVOKABLE SymbolModel *osSymbols() const;
   int allowedDebugging() const override;

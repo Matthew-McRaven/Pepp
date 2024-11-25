@@ -30,7 +30,6 @@ QtObject {
         }
         readonly property var save: Action {
             property string nativeText: ""
-            onTriggered: project.onSaveCurrent()
             text: qsTr("&Save")
             icon.source: `image://icons/file/save${dark ? '' : '_dark'}.svg`
             shortcut: StandardKey.Save

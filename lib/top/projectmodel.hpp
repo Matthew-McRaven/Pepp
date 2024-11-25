@@ -2,7 +2,7 @@
 #include <QAbstractListModel>
 #include <QtQmlIntegration>
 #include <deque>
-#include "pep10.hpp"
+#include "project/pep10.hpp"
 
 // Factory to ensure class invariants of project are maintained.
 // Must be a singleton to call methods on it.
@@ -14,15 +14,18 @@ class ProjectModel : public QAbstractListModel {
 
 public:
   enum class Roles {
-    ProjectRole = Qt::UserRole + 1,
+    ProjectPtrRole = Qt::UserRole + 1,
+    NameRole,
+    DescriptionRole,
+    DirtyRole,
   };
   Q_ENUM(Roles);
-  // Q_INVOKABLE ISAProject *isa(utils::Architecture::Value arch, project::Features features);
   explicit ProjectModel(QObject *parent = nullptr) : QAbstractListModel(parent) {};
   // Helper to expose rowCount as a property to QML.
   int _rowCount() const { return rowCount({}); }
   int rowCount(const QModelIndex &parent) const override;
   QVariant data(const QModelIndex &index, int role) const override;
+  bool setData(const QModelIndex &index, const QVariant &value, int role) override;
   Q_INVOKABLE Pep_ISA *pep10ISA(QVariant delegate);
   Q_INVOKABLE Pep_ISA *pep9ISA(QVariant delegate);
   Q_INVOKABLE Pep_ASMB *pep10ASMB(QVariant delegate, builtins::Abstraction abstraction);
@@ -32,9 +35,18 @@ public:
                 int destinationChild) override;
   QHash<int, QByteArray> roleNames() const override;
   Q_INVOKABLE QString describe(int index) const;
+  Q_INVOKABLE int rowOf(const QObject *item) const;
+public slots:
+  Q_INVOKABLE void onSave(int index);
 signals:
   void rowCountChanged(int);
 
 private:
-  std::deque<std::unique_ptr<QObject>> _projects = {};
+  struct Data {
+    std::unique_ptr<QObject> impl = nullptr;
+    QString name = "";
+    bool isDirty = false;
+    QString path = "";
+  };
+  std::deque<Data> _projects = {};
 };

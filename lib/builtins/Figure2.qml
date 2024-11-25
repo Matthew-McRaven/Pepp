@@ -153,13 +153,14 @@ Item {
                     wrapper.addProject("", text, "Editor",
                                        pl?.defaultOS?.elements["pep"]?.content,
                                        pl?.tests)
+                    wrapper.renameCurrentProject(wrapper.title)
                 }
             }
             //  Figure title
             Text {
                 width: copyRow.width - button.width - copyRow.spacing
                 textFormat: Text.RichText
-                text: "<div><b>" + wrapper.title + ":</b> " + wrapper.payload.description
+                text: "<b>" + wrapper.title + ":</b> " + wrapper.payload.description
                 wrapMode: Text.WordWrap
             }
         }
@@ -169,4 +170,5 @@ Item {
         font.family: "Courier Prime"
     }
     signal addProject(string feats, string text, string switchToMode, var optionalOS, var tests)
+    signal renameCurrentProject(string newName)
 }

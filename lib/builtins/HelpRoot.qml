@@ -197,11 +197,15 @@ Item {
                         root.setCharIn(tests[0].input)
                     root.switchToMode(mode ?? "Editor")
                 }
+                function onRenameCurrentProject(name) {
+                    root.renameCurrentProject(name)
+                }
                 ignoreUnknownSignals: true
             }
         }
     }
     signal addProject(int level, int abstraction, string feats, var text, bool reuse)
+    signal renameCurrentProject(string name)
     signal setCharIn(string text)
     signal switchToMode(string mode)
     onSelectedChanged: {
