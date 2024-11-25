@@ -284,11 +284,13 @@ Item {
 
         SplitView {
             visible: mode === "debugger"
-            SplitView.minimumWidth: 280
+            SplitView.minimumWidth: Math.max(registers.implicitWidth,
+                                             batchio.implicitWidth) + 20
             orientation: Qt.Vertical
             Cpu.RegisterView {
                 id: registers
-                SplitView.minimumHeight: 225
+                SplitView.fillWidth: true
+                SplitView.minimumHeight: registers.implicitHeight + 20
                 registers: project?.registers ?? null
                 flags: project?.flags ?? null
             }
