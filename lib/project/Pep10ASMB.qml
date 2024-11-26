@@ -127,7 +127,7 @@ Item {
         if (userList) {
             const curURO = userList.readOnly
             userList.readOnly = false
-            userList.text = project.userList
+            userList.text = project.userList ?? ""
             userList.addListingAnnotations(project.userListAnnotations)
             userList.readOnly = curURO
         }
