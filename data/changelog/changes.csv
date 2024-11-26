@@ -44,3 +44,4 @@ Fixed,,0.7.5,596,"Re-added ability to save ISA3/ASMB3/ASMB5 projects to the file
 Changed,,0.7.5,,"Re-added descriptions to figures in the help system"
 Fixed,,0.7.5,702,"Fix off-by-1 when stopping for breakpoints"
 Fixed,,0.7.6,604,"Increase width of CPU pane in web version"
+Fixed,,0.7.6,,"Prevent text overflow in Batch IO pane"
