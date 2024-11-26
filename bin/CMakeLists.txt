@@ -19,7 +19,7 @@ endif ()
 
 qt6_add_executable(pepp ${sources} ${guis} ${CMAKE_SOURCE_DIR}/data/icons/icons.qrc)
 qt_import_qml_plugins(pepp)
-target_link_libraries(pepp PRIVATE TextFlow cli catch Qt6::Core Qt6::Gui Qt::Qml Qt::Quick Qt::QuickControls2 Qt6::Svg Qt6::Xml Qt::Widgets test-lib-all pepp-lib pepp-libplugin)
+target_link_libraries(pepp PRIVATE cli catch Qt6::Core Qt6::Gui Qt::Qml Qt::Quick Qt::QuickControls2 Qt6::Svg Qt6::Xml Qt::Widgets test-lib-all pepp-lib pepp-libplugin)
 qt_import_plugins(pepp INCLUDE pepp-libplugin)
 target_compile_definitions(pepp PRIVATE "INCLUDE_GUI=1")
 # Must occur before install scripts, otherwise MacOS builds will fail.
@@ -56,7 +56,7 @@ endif ()
 # Skip term target on platforms where it is not needed.
 if(NOT EMSCRIPTEN)
     qt6_add_executable(pepp-term ${sources} ${CMAKE_SOURCE_DIR}/data/icons/icons.qrc)
-    target_link_libraries(pepp-term PRIVATE TextFlow cli Qt6::Core catch test-lib-all pepp-lib catch)
+    target_link_libraries(pepp-term PRIVATE cli Qt6::Core catch test-lib-all pepp-lib catch)
     set_target_properties(pepp-term PROPERTIES FOLDER "qtc_runnable")
     target_compile_definitions(pepp-term PRIVATE "INCLUDE_GUI=0")
     target_compile_definitions(pepp-term PRIVATE "DEFAULT_GUI=0")

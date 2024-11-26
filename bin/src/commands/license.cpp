@@ -16,8 +16,8 @@
 
 #include "./license.hpp"
 #include <iostream>
-#include "TextFlow.hpp"
 #include "about/dependencies.hpp"
+#include "catch.hpp"
 
 LicenseTask::LicenseTask(QObject *parent) : Task(parent) {}
 
@@ -27,7 +27,7 @@ void LicenseTask::run() {
     std::cout << "    URL: " << dependency.url.toStdString() << "\n";
     std::cout << "    License: " << dependency.licenseName.toStdString() << "\n";
     std::cout << "    License Text:\n";
-    auto lines = TextFlow::Column(dependency.licenseText.toStdString());
+    auto lines = Catch::TextFlow::Column(dependency.licenseText.toStdString());
     // License-injected newlines break formatting, so must manually substitute
     // in-place.
     for (const auto &line : lines)
