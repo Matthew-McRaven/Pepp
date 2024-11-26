@@ -13,6 +13,7 @@ QVariant ProjectModel::data(const QModelIndex &index, int role) const {
   case static_cast<int>(Roles::NameRole): return _projects[index.row()].name;
   case static_cast<int>(Roles::DescriptionRole): return describe(index.row());
   case static_cast<int>(Roles::DirtyRole): return _projects[index.row()].isDirty;
+  case static_cast<int>(Roles::PathRole): return _projects[index.row()].path;
   default: return {};
   }
   return {};
@@ -105,6 +106,7 @@ QHash<int, QByteArray> ProjectModel::roleNames() const {
   ret[static_cast<int>(Roles::NameRole)] = "name";
   ret[static_cast<int>(Roles::DescriptionRole)] = "description";
   ret[static_cast<int>(Roles::DirtyRole)] = "isDirty";
+  ret[static_cast<int>(Roles::PathRole)] = "path";
   return ret;
 }
 

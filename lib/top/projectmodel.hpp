@@ -18,6 +18,7 @@ public:
     NameRole,
     DescriptionRole,
     DirtyRole,
+    PathRole,
   };
   Q_ENUM(Roles);
   explicit ProjectModel(QObject *parent = nullptr) : QAbstractListModel(parent) {};

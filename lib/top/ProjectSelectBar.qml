@@ -122,15 +122,18 @@ Flickable {
                     id: tabButton
                     required property string name
                     required property string description
+                    required property string path
                     required property int row
                     required property bool isDirty
                     text: `${tabButton.name} ${tabButton.isDirty ? " *" : ''}<br>${tabButton.description}`
+                    ToolTip.text: path
+                    hoverEnabled: true
+                    ToolTip.visible: hovered && path
                     font {
                         family: menuFont.font.family
                         pixelSize: Math.min(16, menuFont.font.pixelSize)
                         italic: tabButton.isDirty
                     }
-
                     width: Math.max(200, projectSelect.width / 4,
                                     implicitContentWidth)
                     Button {
