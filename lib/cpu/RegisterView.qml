@@ -109,7 +109,7 @@ ColumnLayout {
                         horizontalAlignment: rightJustify ? Qt.AlignRight : Qt.AlignHCenter
                         // '0' is a wide character, and tm contains a single '0' in the current font.
                         // There seems to be a bug where columnWidth for instruction spec register is wrong.
-                        width: tm.width * (maximumLength + 5)
+                        width: tm.width * (maximumLength + 14)
                     }
                 }
             }
