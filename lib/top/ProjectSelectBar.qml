@@ -5,13 +5,14 @@ import edu.pepp 1.0
 
 Flickable {
     id: root
+    property bool requestHide: false
     property var currentProject: undefined
     property int currentProjectRow: pm.rowOf(currentProject)
     property var projectModel: pm
     // Propogate a status message from current project to main window.
     signal message(string message)
     clip: true
-    visible: pm.count > 0
+    visible: !requestHide && (pm.count > 0)
     contentWidth: projectBar.width + addProjectButton.width
     contentHeight: projectBar.height
     height: contentHeight
@@ -122,15 +123,18 @@ Flickable {
                     id: tabButton
                     required property string name
                     required property string description
+                    required property string path
                     required property int row
                     required property bool isDirty
                     text: `${tabButton.name} ${tabButton.isDirty ? " *" : ''}<br>${tabButton.description}`
+                    ToolTip.text: path
+                    hoverEnabled: true
+                    ToolTip.visible: hovered && path
                     font {
                         family: menuFont.font.family
                         pixelSize: Math.min(16, menuFont.font.pixelSize)
                         italic: tabButton.isDirty
                     }
-
                     width: Math.max(200, projectSelect.width / 4,
                                     implicitContentWidth)
                     Button {

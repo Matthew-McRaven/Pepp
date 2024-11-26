@@ -10,9 +10,6 @@ MenuBar {
     required property var window
     required property var project
     required property Actions actions
-    property alias saveAsModel: saveAsInstantiator.model
-    property alias printModel: printInstantiator.model
-    property alias closeModel: closeInstantiator.model
 
     function indexOf(menu, menuItem) {
         for (var i = 0; i < menu.count; i++) {
@@ -51,96 +48,19 @@ MenuBar {
         ShortcutMenuItem {
             action: actions.file.open
         }
-        Menu {
-            id: recentMenu
-            title: "Recent Files"
-            // Use blank icon to force menu items to line up. Do not use image provider for a Menu item, since
-            // this icon is rendered before the image provider's paint engine is set up.
-            icon.source: "qrc:/icons/blank.svg"
-            // As such, the width of the icon may be wrong, so use the width of a different (working) icon.
-            icon.width: new_.icon.width
-
-            Instantiator {
-                model: 5
-                delegate: MenuItem {
-                    text: `${modelData}.pep`
-                    onTriggered: openRecent(modelData)
-                    icon.source: "image://icons/blank.svg"
-                }
-                onObjectAdded: (i, obj) => recentMenu.insertItem(i, obj)
-                onObjectRemoved: (i, obj) => recentMenu.removeItem(obj)
-            }
-        }
-
         MenuSeparator {}
         ShortcutMenuItem {
             action: actions.file.save
-            text: "&Save Object"
-        }
-        MenuSeparator {
-            id: _saveAsPrev
-        }
-        Instantiator {
-            id: saveAsInstantiator
-            model: 2
-            delegate: MenuItem {
-                text: "Save as" + modelData
-                onTriggered: saveAs(modelData)
-                // Use blank icon to force menu items to line up.
-                icon.source: "image://icons/blank.svg"
-            }
-            onObjectAdded: function (index, object) {
-                const m = fileMenu
-                m.insertItem(index + indexOf(m, _saveAsPrev) + 1, object)
-            }
-            onObjectRemoved: (index, object) => fileMenu.removeItem(object)
-        }
-        MenuSeparator {
-            id: _printPrev
-        }
-        Instantiator {
-            id: printInstantiator
-            model: 3
-            delegate: MenuItem {
-                text: "Print" + modelData
-                onTriggered: print_(modelData)
-                // Use blank icon to force menu items to line up.
-                icon.source: "image://icons/blank.svg"
-            }
-            onObjectAdded: function (index, object) {
-                const m = fileMenu
-                m.insertItem(index + indexOf(m, _printPrev) + 1, object)
-            }
-            onObjectRemoved: (index, object) => fileMenu.removeItem(object)
+            text: "&Save"
         }
         MenuSeparator {
             id: _closePrev
-        }
-        Instantiator {
-            id: closeInstantiator
-            model: 3
-            delegate: MenuItem {
-                text: "Close" + modelData
-                onTriggered: close(modelData)
-                // Use blank icon to force menu items to line up.
-                icon.source: "image://icons/blank.svg"
-            }
-            onObjectAdded: function (index, object) {
-                const m = fileMenu
-                m.insertItem(index + indexOf(m, _closePrev) + 1, object)
-            }
-            onObjectRemoved: (index, object) => fileMenu.removeItem(object)
         }
         MenuItem {
             action: actions.file.closeAll
         }
         MenuItem {
             action: actions.file.closeAllButCurrent
-        }
-
-        MenuSeparator {}
-        ShortcutMenuItem {
-            action: actions.file.quit
         }
     }
     Menu {

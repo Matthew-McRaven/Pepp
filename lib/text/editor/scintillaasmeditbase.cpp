@@ -154,7 +154,8 @@ void ScintillaAsmEditBase::setLexerLanguage(const QString &language) {
     lexer->WordListSet(0, mn_pep10.c_str());
     lexer->WordListSet(1, dirs_pep10.c_str());
   } else {
-    throw std::logic_error("Unknown language: " + language.toStdString());
+    // Unset previous lexer
+    lexer = Lexilla::MakeLexer("null");
   }
 
   send(SCI_SETILEXER, /*unused*/ 0, (uintptr_t)lexer);

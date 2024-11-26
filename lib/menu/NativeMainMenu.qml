@@ -10,9 +10,6 @@ Labs.MenuBar {
 
     required property var project
     required property Actions actions
-    property alias saveAsModel: saveAsInstantiator.model
-    property alias printModel: printInstantiator.model
-    property alias closeModel: closeInstantiator.model
     property bool darkMode: Application.styleHints.colorScheme === Qt.ColorScheme.Dark
     // Must pass wrapper.darkMode as the 2nd parameter so that updates to application color scheme will
     // cascade through icon.source in menu bar.
@@ -59,28 +56,6 @@ Labs.MenuBar {
                                    wrapper.darkMode)
             shortcut: actions.file.open.shortcut
         }
-        Labs.Menu {
-            id: recentMenu
-            title: "Recent Files"
-            // Use blank icon to force menu items to line up. Do not use image provider for a Menu item, since
-            // this icon is rendered before the image provider's paint engine is set up.
-            icon.source: "qrc:/icons/blank.svg"
-
-            // As such, the width of the icon may be wrong, so use the width of a different (working) icon.
-            //icon.width: new_.icon.width
-            Instantiator {
-                model: 5
-                delegate: Labs.MenuItem {
-                    text: `${modelData}.pep`
-                    onTriggered: openRecent(modelData)
-                    icon.source: "image://icons/blank.svg"
-                }
-
-                onObjectAdded: (i, obj) => recentMenu.insertItem(i, obj)
-                onObjectRemoved: (i, obj) => recentMenu.removeItem(obj)
-            }
-        }
-
         Labs.MenuSeparator {}
         Labs.MenuItem {
             text: actions.file.save.text
@@ -92,73 +67,9 @@ Labs.MenuBar {
         Labs.MenuSeparator {
             id: _saveAsPrev
         }
-        Instantiator {
-            id: saveAsInstantiator
-            model: 2
-            delegate: Labs.MenuItem {
-                text: "Save as " + modelData
-                onTriggered: saveAs(modelData)
-                // Use blank icon to force menu items to line up.
-                icon.source: "image://icons/blank.svg"
-            }
-            onObjectAdded: function (i, obj) {
-                const m = fileMenu
-                //  Insert under parent
-                m.insertItem(i + indexOf(m, _saveAsPrev) + 1, obj)
-            }
-            onObjectRemoved: (i, obj) => fileMenu.removeItem(obj)
-        }
-        Labs.MenuSeparator {
-            id: _printPrev
-        }
-        Instantiator {
-            id: printInstantiator
-            model: 3
-            delegate: Labs.MenuItem {
-                text: "Print " + modelData
-                onTriggered: actions.file.print_(modelData).trigger()
-                // Use blank icon to force menu items to line up.
-                icon.source: "image://icons/blank.svg"
-            }
-            onObjectAdded: function (i, obj) {
-                const m = fileMenu
-                //  Insert under parent, note that inserted item shifted list down by 1
-                m.insertItem(i + indexOf(m, _printPrev), obj)
-            }
-            onObjectRemoved: (i, obj) => fileMenu.removeItem(obj)
-        }
         Labs.MenuSeparator {
             id: _closePrev
         }
-        Instantiator {
-            id: closeInstantiator
-            model: 3
-            delegate: Labs.MenuItem {
-                text: "Close " + modelData
-                onTriggered: actions.file.close(modelData).trigger()
-                // Use blank icon to force menu items to line up.
-                icon.source: "image://icons/blank.svg"
-            }
-            onObjectAdded: function (i, obj) {
-                const m = fileMenu
-                //  Insert under parent, note that inserted items shifted list down by 2
-                m.insertItem(i + indexOf(m, _closePrev) - 1, obj)
-            }
-            onObjectRemoved: (i, obj) => fileMenu.removeItem(obj)
-        }
-        MenuItem {
-            text: actions.file.closeAll.text
-            onTriggered: actions.file.closeAll.trigger()
-            icon.source: fixSuffix(actions.file.closeAll.icon.source,
-                                   wrapper.darkMode)
-        }
-        MenuItem {
-            text: actions.file.closeAllButCurrent.text
-            onTriggered: actions.file.closeAllButCurrent.trigger()
-            icon.source: fixSuffix(actions.file.closeAllButCurrent.icon.source,
-                                   wrapper.darkMode)
-        }
-
         Labs.MenuSeparator {}
         Labs.MenuItem {
             text: actions.edit.prefs.text

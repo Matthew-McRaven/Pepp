@@ -182,6 +182,7 @@ ApplicationWindow {
         }
         Top.ProjectSelectBar {
             id: projectSelect
+            requestHide: window.mode === "welcome"
             anchors.right: parent.right
             anchors.left: parent.left
             anchors.top: toolbar.bottom

@@ -13,6 +13,7 @@ QVariant ProjectModel::data(const QModelIndex &index, int role) const {
   case static_cast<int>(Roles::NameRole): return _projects[index.row()].name;
   case static_cast<int>(Roles::DescriptionRole): return describe(index.row());
   case static_cast<int>(Roles::DirtyRole): return _projects[index.row()].isDirty;
+  case static_cast<int>(Roles::PathRole): return _projects[index.row()].path;
   default: return {};
   }
   return {};
@@ -30,7 +31,12 @@ bool ProjectModel::setData(const QModelIndex &index, const QVariant &value, int 
   return true;
 }
 
+#ifdef __EMSCRIPTEN__
+const auto fmt = QStringLiteral("Project %1");
+#else
 const auto fmt = QStringLiteral("Unnamed %1");
+#endif
+
 Pep_ISA *ProjectModel::pep10ISA(QVariant delegate) {
   static const project::Environment env{.arch = builtins::Architecture::PEP10, .level = builtins::Abstraction::ISA3};
   auto ptr = std::make_unique<Pep_ISA>(env, delegate, nullptr);
@@ -100,6 +106,7 @@ QHash<int, QByteArray> ProjectModel::roleNames() const {
   ret[static_cast<int>(Roles::NameRole)] = "name";
   ret[static_cast<int>(Roles::DescriptionRole)] = "description";
   ret[static_cast<int>(Roles::DirtyRole)] = "isDirty";
+  ret[static_cast<int>(Roles::PathRole)] = "path";
   return ret;
 }
 
