@@ -30,7 +30,12 @@ bool ProjectModel::setData(const QModelIndex &index, const QVariant &value, int 
   return true;
 }
 
+#ifdef __EMSCRIPTEN__
+const auto fmt = QStringLiteral("Project %1");
+#else
 const auto fmt = QStringLiteral("Unnamed %1");
+#endif
+
 Pep_ISA *ProjectModel::pep10ISA(QVariant delegate) {
   static const project::Environment env{.arch = builtins::Architecture::PEP10, .level = builtins::Abstraction::ISA3};
   auto ptr = std::make_unique<Pep_ISA>(env, delegate, nullptr);
