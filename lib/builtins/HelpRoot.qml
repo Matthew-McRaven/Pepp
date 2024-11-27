@@ -8,6 +8,10 @@ Item {
     id: root
     property var architecture: 0
     property var abstraction: 0
+    NuAppSettings {
+        id: settings
+    }
+
     onArchitectureChanged: {
         var idx = 0
         for (var i = 0; i < architectureModel.count; i++) {
@@ -139,6 +143,7 @@ Item {
                 // Sane defaults
                 abstraction: Abstraction.ASMB5
                 architecture: Architecture.PEP9
+                showWIPItems: settings.general.showDebugComponents
                 onAbstractionChanged: root.selected = treeView.index(0, 0)
                 onArchitectureChanged: root.selected = treeView.index(0, 0)
                 Component.onCompleted: {
