@@ -91,6 +91,7 @@ Rectangle {
             }
         ]
         transitions: Transition {
+            id: slideAnimation
             NumberAnimation {
                 properties: "height"
             }
@@ -106,12 +107,28 @@ Rectangle {
                 border.width: height
                 width: parent.width
             }
-            Text {
-                id: description
-                text: "Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat."
-                color: palette.text
-                wrapMode: Text.WordWrap
+            Flickable {
+                id: flickable
+                clip: true
                 width: parent.width
+                height: parent.height - bar.height
+                contentHeight: description.height
+                ScrollBar.vertical: ScrollBar {
+                    id: scrollBar
+                    anchors.right: parent.right
+                    // Don't show bar if animating.
+                    policy: (!slideAnimation.running && flickable.contentHeight
+                             > flickable.height) ? ScrollBar.AlwaysOn : ScrollBar.AlwaysOff
+                }
+                Text {
+                    anchors.top: parent.top
+                    anchors.left: parent.left
+                    id: description
+                    text: "Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat. Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat."
+                    color: palette.text
+                    wrapMode: Text.WordWrap
+                    width: parent.width - scrollBar.width
+                }
             }
         }
     }
