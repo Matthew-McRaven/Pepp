@@ -64,12 +64,6 @@ Labs.MenuBar {
                                    wrapper.darkMode)
             shortcut: actions.file.save.shortcut
         }
-        Labs.MenuSeparator {
-            id: _saveAsPrev
-        }
-        Labs.MenuSeparator {
-            id: _closePrev
-        }
         Labs.MenuSeparator {}
         Labs.MenuItem {
             text: actions.edit.prefs.text

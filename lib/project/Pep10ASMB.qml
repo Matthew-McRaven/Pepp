@@ -325,6 +325,8 @@ Item {
                     text: qsTr("Hex Dump")
                 }
                 TabButton {
+                    visible: settings.general.showDebugComponents
+                    enabled: visible
                     text: qsTr("Stack Trace")
                 }
             }

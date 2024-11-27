@@ -6,7 +6,8 @@ import edu.pepp 1.0
 MenuItem {
     id: wrapper
     property var color: palette.text
-    Label {
+
+    /*Label {
         anchors.verticalCenter: parent.verticalCenter
         anchors.right: parent.right
         text: wrapper.action.nativeText
@@ -14,5 +15,5 @@ MenuItem {
         horizontalAlignment: Text.AlignLeft
         rightPadding: tm.width
         color: wrapper.color
-    }
+    }*/
 }

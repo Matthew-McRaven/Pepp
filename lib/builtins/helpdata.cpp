@@ -24,27 +24,33 @@ QSharedPointer<HelpEntry> writing_root() {
   auto microcode10_language =
       QSharedPointer<HelpEntry>::create(HelpCategory::Category::Text, mc10, "Microcode", "MDText.qml");
   microcode10_language->props = QVariantMap{{"file", QVariant(u":/help/pep10/writing_mc.md"_s)}};
+  microcode10_language->isWIP = true;
   auto machine10_language =
       QSharedPointer<HelpEntry>::create(HelpCategory::Category::Text, oc10, "Machine Language", "MDText.qml");
   machine10_language->props = QVariantMap{{"file", QVariant(u":/help/pep10/writing_oc.md"_s)}};
+  machine10_language->isWIP = true;
   auto assembly10_language =
       QSharedPointer<HelpEntry>::create(HelpCategory::Category::Text, as10, "Assembly Language", "MDText.qml");
   assembly10_language->props = QVariantMap{{"file", QVariant(u":/help/pep10/writing_asmb.md"_s)}};
+  assembly10_language->isWIP = true;
   auto root = QSharedPointer<HelpEntry>::create(HelpCategory::Category::Text, p10, "Writing Programs", "MDText.qml");
   root->props = QVariantMap{{"file", QVariant(u":/help/pep10/writing_progs.md"_s)}},
   root->addChildren({microcode10_language, machine10_language, assembly10_language});
+  root->isWIP = true;
   return root;
 }
 
 QSharedPointer<HelpEntry> debugging_root() {
   auto root = QSharedPointer<HelpEntry>::create(HelpCategory::Category::Text, -1, "Debugging Programs", "MDText.qml");
   root->props = QVariantMap{{"file", QVariant(u":/help/pep10/debugging_progs.md"_s)}};
+  root->isWIP = true;
   return root;
 }
 
 QSharedPointer<HelpEntry> systemcalls_root() {
   auto root = QSharedPointer<HelpEntry>::create(HelpCategory::Category::Text, -1, "Writing System Calls", "MDText.qml");
   root->props = QVariantMap{{"file", QVariant(u":/help/pep10/debugging_progs.md"_s)}};
+  root->isWIP = true;
   return root;
 }
 
@@ -64,7 +70,10 @@ QSharedPointer<HelpEntry> greencard10_root() {
   auto alu = QSharedPointer<HelpEntry>::create(HelpCategory::Category::Text, -1, "ALU Functions", "MDText.qml");
   alu->props = QVariantMap{{"file", QVariant(u":/help/pep10/debugging_progs.md"_s)}};
   auto root = QSharedPointer<HelpEntry>::create(HelpCategory::Category::ISAGreenCard, -1, "Pep/10 Reference", "ISA");
-  root->addChildren({c_bit, n_bit, addr, reg, mmio, alu});
+  QVector<QSharedPointer<HelpEntry>> children{c_bit, n_bit, addr, reg, mmio, alu};
+  for (auto &c : children) c->isWIP = true;
+  root->addChildren(children);
+  root->isWIP = true;
   // TODO: probably need to add props...
   return root;
 }

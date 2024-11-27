@@ -66,6 +66,7 @@ QVariant HelpModel::data(const QModelIndex &index, int role) const {
   case (int)Roles::Name: return entry->name;
   case (int)Roles::Delegate: return entry->delgate;
   case (int)Roles::Props: return entry->props;
+  case (int)Roles::WIP: return entry->isWIP;
   }
   return QVariant();
 }
@@ -77,6 +78,7 @@ QHash<int, QByteArray> HelpModel::roleNames() const {
   ret[static_cast<int>(Roles::Name)] = "name";
   ret[static_cast<int>(Roles::Delegate)] = "delegate";
   ret[static_cast<int>(Roles::Props)] = "props";
+  ret[static_cast<int>(Roles::WIP)] = "isWIP";
   return ret;
 }
 
@@ -113,13 +115,23 @@ void HelpFilterModel::setAbstraction(builtins::Abstraction abstraction) {
   emit abstractionChanged();
 }
 
+bool HelpFilterModel::showWIPItems() const { return _showWIPItems; }
+
+void HelpFilterModel::setShowWIPItems(bool show) {
+  if (_showWIPItems == show) return;
+  _showWIPItems = show;
+  invalidateRowsFilter();
+  emit showWIPItemsChanged();
+}
+
 bool HelpFilterModel::filterAcceptsRow(int source_row, const QModelIndex &source_parent) const {
   auto sm = sourceModel();
   if (!sm) return false;
   int32_t mask = bitmask(_architecture, _abstraction);
   auto index = sm->index(source_row, 0, source_parent);
   auto tags = sm->data(index, (int)HelpModel::Roles::Tags).toUInt();
-  return masked(mask, tags);
+  if (!_showWIPItems && sm->data(index, (int)HelpModel::Roles::WIP).toBool()) return false;
+  else return masked(mask, tags);
 }
 
 bool HelpFilterModel::lessThan(const QModelIndex &left, const QModelIndex &right) const {

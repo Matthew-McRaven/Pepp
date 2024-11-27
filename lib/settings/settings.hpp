@@ -34,6 +34,8 @@ class GeneralCategory : public Category {
   Q_PROPERTY(builtins::Architecture defaultArch READ defaultArch WRITE setDefaultArch NOTIFY defaultArchChanged)
   Q_PROPERTY(builtins::Abstraction defaultAbstraction READ defaultAbstraction WRITE setDefaultAbstraction NOTIFY
                  defaultAbstractionChanged)
+  Q_PROPERTY(
+      bool showDebugComponents READ showDebugComponents WRITE setShowDebugComponents NOTIFY showDebugComponentsChanged)
   // "Menus" group box
   Q_PROPERTY(int maxRecentFiles READ maxRecentFiles WRITE setMaxRecentFiles NOTIFY maxRecentFilesChanged)
   Q_PROPERTY(bool showMenuHotkeys READ showMenuHotkeys WRITE setShowMenuHotkeys NOTIFY showMenuHotkeysChanged)
@@ -50,6 +52,8 @@ public:
   builtins::Architecture defaultArch() const;
   void setDefaultArch(builtins::Architecture arch);
   builtins::Abstraction defaultAbstraction() const;
+  bool showDebugComponents() const;
+  void setShowDebugComponents(bool show);
   void setDefaultAbstraction(builtins::Abstraction abstraction);
   int maxRecentFiles() const;
   void setMaxRecentFiles(int max);
@@ -61,14 +65,16 @@ public:
 signals:
   void defaultArchChanged();
   void defaultAbstractionChanged();
+  void showDebugComponentsChanged();
   void maxRecentFilesChanged();
   void showMenuHotkeysChanged();
   void showChangeDialogChanged();
 
 private:
   mutable QSettings _settings;
-  const builtins::Architecture defaultDefaultArch = builtins::Architecture::PEP10;
+  const builtins::Architecture defaultDefaultArch = builtins::Architecture::PEP9;
   const builtins::Abstraction defaultDefaultAbstraction = builtins::Abstraction::ASMB5;
+  const bool defaultShowDebugComponents = false;
   bool validateMaxRecentFiles(int max) const;
   const int defaultMaxRecentFiles = 5;
   const bool defaultShowMenuHotkeys = true;

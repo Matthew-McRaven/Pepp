@@ -93,6 +93,20 @@ Item {
                     Label {
                         text: qsTr("Default project abstraction")
                     }
+                    CheckBox {
+                        id: showDebug
+                        Component.onCompleted: checked = category.showDebugComponents
+                        onCheckedChanged: category.showDebugComponents = checked
+                        Connections {
+                            target: category
+                            function onShowDebugComponentsChanged() {
+                                showDebug.checked = category.showDebugComponents
+                            }
+                        }
+                    }
+                    Label {
+                        text: "Show work-in-progress UI components"
+                    }
                 }
             }
             GroupBox {

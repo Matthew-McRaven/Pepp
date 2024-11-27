@@ -252,15 +252,13 @@ QtObject {
 
     readonly property var sim: QtObject {
         readonly property var clearCPU: Action {
-            enabled: project
-                     && project?.allowedDebugging & DebugEnableFlags.Start
+            enabled: project?.allowedDebugging & DebugEnableFlags.Start
             text: qsTr("Clear &CPU")
             onTriggered: project.onClearCPU()
             icon.source: "image://icons/blank.svg"
         }
         readonly property var clearMemory: Action {
-            enabled: project
-                     && project?.allowedDebugging & DebugEnableFlags.Start
+            enabled: project?.allowedDebugging & DebugEnableFlags.Start
             text: qsTr("Clear &Memory")
             onTriggered: project.onClearMemory()
             icon.source: "image://icons/blank.svg"

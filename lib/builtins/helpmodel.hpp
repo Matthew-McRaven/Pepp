@@ -32,6 +32,8 @@ public:
   QVariantMap props = {};
   void addChild(QSharedPointer<HelpEntry> child);
   void addChildren(QVector<QSharedPointer<HelpEntry>> children);
+  // TODO: remove when all are no longer WIP.
+  bool isWIP = false;
 
 private:
   friend HelpModel;
@@ -45,7 +47,7 @@ class HelpModel : public QAbstractItemModel {
   QML_ELEMENT
 
 public:
-  enum class Roles { Category = Qt::UserRole + 1, Tags, Name, Delegate, Props };
+  enum class Roles { Category = Qt::UserRole + 1, Tags, Name, Delegate, Props, WIP };
   Q_ENUM(Roles);
   explicit HelpModel(QObject *parent = nullptr);
   QModelIndex index(int row, int column, const QModelIndex &parent) const override;
@@ -73,6 +75,7 @@ class HelpFilterModel : public QSortFilterProxyModel {
   Q_PROPERTY(builtins::Architecture architecture READ architecture WRITE setArchitecture NOTIFY architectureChanged)
   Q_PROPERTY(builtins::Abstraction abstraction READ abstraction WRITE setAbstraction NOTIFY abstractionChanged)
   Q_PROPERTY(QAbstractItemModel *model READ sourceModel WRITE setSourceModel NOTIFY sourceModelChanged)
+  Q_PROPERTY(bool showWIPItems READ showWIPItems WRITE setShowWIPItems NOTIFY showWIPItemsChanged)
   QML_NAMED_ELEMENT(FilteredHelpModel)
 
 public:
@@ -83,6 +86,8 @@ public:
   void setArchitecture(builtins::Architecture architecture);
   builtins::Abstraction abstraction() const;
   void setAbstraction(builtins::Abstraction abstraction);
+  bool showWIPItems() const;
+  void setShowWIPItems(bool show);
 
 protected:
   bool filterAcceptsRow(int source_row, const QModelIndex &source_parent) const override;
@@ -91,8 +96,10 @@ signals:
   void sourceModelChanged();
   void architectureChanged();
   void abstractionChanged();
+  void showWIPItemsChanged();
 
 private:
   builtins::Architecture _architecture = builtins::Architecture::NONE;
   builtins::Abstraction _abstraction = builtins::Abstraction::NONE;
+  bool _showWIPItems = false;
 };

@@ -6,6 +6,7 @@ pepp::settings::Category::Category(QObject *parent) : QObject(parent) {}
 // General
 static const char *defaultArchKey = "General/defaultArch";
 static const char *defaultAbstractionKey = "General/defaultAbstraction";
+static const char *showDebugKey = "General/showDebug";
 static const char *maxRecentFilesKey = "General/maxRecentFiles";
 static const char *showMenuHotkeysKey = "General/showMenuHotkeys";
 static const char *showChangeDialogKey = "General/showChangeDialog";
@@ -56,6 +57,22 @@ builtins::Abstraction pepp::settings::GeneralCategory::defaultAbstraction() cons
     _settings.setValue(defaultAbstractionKey, (int)defaultDefaultAbstraction);
     return defaultDefaultAbstraction;
   }
+}
+
+bool pepp::settings::GeneralCategory::showDebugComponents() const
+{
+  auto value = _settings.value(showDebugKey);
+  if (value.isValid()) return value.toBool();
+  else {
+    _settings.setValue(showDebugKey, defaultShowDebugComponents);
+    return defaultShowDebugComponents;
+  }
+}
+
+void pepp::settings::GeneralCategory::setShowDebugComponents(bool show)
+{
+  _settings.setValue(showDebugKey, show);
+  emit showDebugComponentsChanged();
 }
 
 void pepp::settings::GeneralCategory::setDefaultAbstraction(builtins::Abstraction abstraction) {
