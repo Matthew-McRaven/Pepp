@@ -72,7 +72,7 @@ signals:
 
 private:
   mutable QSettings _settings;
-  const builtins::Architecture defaultDefaultArch = builtins::Architecture::PEP10;
+  const builtins::Architecture defaultDefaultArch = builtins::Architecture::PEP9;
   const builtins::Abstraction defaultDefaultAbstraction = builtins::Abstraction::ASMB5;
   const bool defaultShowDebugComponents = false;
   bool validateMaxRecentFiles(int max) const;

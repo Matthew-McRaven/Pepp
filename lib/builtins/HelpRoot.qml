@@ -100,7 +100,7 @@ Item {
                         helpModel.architecture = Qt.binding(
                                     () => architectureModel.get(
                                         architectureCombo.currentIndex)?.value
-                                    ?? Architecture.PEP10)
+                                    ?? Architecture.PEP9)
                     }
                 }
             }
@@ -138,7 +138,7 @@ Item {
                 model: HelpModel {}
                 // Sane defaults
                 abstraction: Abstraction.ASMB5
-                architecture: Architecture.PEP10
+                architecture: Architecture.PEP9
                 onAbstractionChanged: root.selected = treeView.index(0, 0)
                 onArchitectureChanged: root.selected = treeView.index(0, 0)
                 Component.onCompleted: {
