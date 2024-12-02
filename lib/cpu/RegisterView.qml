@@ -35,7 +35,7 @@ ColumnLayout {
     TextMetrics {
         id: tm
         font: metrics.font
-        text: '0'
+        text: 'W'
     }
     RowLayout {
         id: flagsContainer
@@ -106,10 +106,10 @@ ColumnLayout {
                         anchors.centerIn: columnDelegate
                         text: columnDelegate.display
                         color: palette.windowText
-                        horizontalAlignment: rightJustify ? Qt.AlignRight : Qt.AlignHCenter
-                        // '0' is a wide character, and tm contains a single '0' in the current font.
-                        // There seems to be a bug where columnWidth for instruction spec register is wrong.
-                        width: tm.width * (maximumLength + 14)
+                        horizontalAlignment: rightJustify ? Qt.AlignRight : Qt.AlignLeft
+                        // 'W' is a wide character, and tm contains a single 'W' in the current font.
+                        // All characters should be same width in mono font, but previous experience (#604) tell me this is a lie.
+                        width: tm.width * (maximumLength)
                     }
                 }
             }
