@@ -145,6 +145,9 @@ jobs:
       - name: Replace default Qt logo
         if: ${{ contains(inputs.name, 'EMSDK') }}
         run: mv data/app_icon/icon.svg build/output/qtlogo.svg
+      - name: Copy favicon
+        if: ${{ contains(inputs.name, 'EMSDK') }}
+        run: mv data/app_icon/icon.ico build/output/favicon.ico
       - name: Gather WASM build artifacts
         uses: actions/upload-artifact@v4
         if: ${{ contains(inputs.name, 'EMSDK') }}
@@ -158,6 +161,7 @@ jobs:
              build/output/pepp.wasm.map
              build/output/qtloader.js
              build/output/qtlogo.svg
+             build/output/favicon.ico
            retention-days: 1
            if-no-files-found: error
 
