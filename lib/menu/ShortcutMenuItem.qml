@@ -19,8 +19,9 @@ MenuItem {
     }
     contentItem: Label {
         id: label
+        enabled: wrapper.enabled
         text: wrapper.text.replace("&", "")
-        color: palette.text
+        color: wrapper.enabled ? palette.text : palette.shadow
         font: wrapper.font
         horizontalAlignment: Text.AlignLeft
         elide: Text.ElideNone
@@ -29,11 +30,12 @@ MenuItem {
 
     Label {
         id: shortcut
+        enabled: wrapper.enabled
         anchors.verticalCenter: parent.verticalCenter
         anchors.right: parent.right
         anchors.rightMargin: fm.averageCharacterWidth
         text: wrapper.action.nativeText
         horizontalAlignment: Text.AlignLeft
-        color: palette.text
+        color: wrapper.enabled ? palette.text : palette.shadow
     }
 }

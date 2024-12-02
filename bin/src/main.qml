@@ -76,6 +76,7 @@ ApplicationWindow {
         disabled {
             highlight: settings.extPalette.window.background
             buttonText: settings.extPalette.shadow.foreground
+            text: settings.extPalette.shadow.foreground
             button: settings.extPalette.base.background
         }
     }

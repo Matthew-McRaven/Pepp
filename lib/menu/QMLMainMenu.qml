@@ -10,7 +10,16 @@ MenuBar {
     required property var window
     required property var project
     required property Actions actions
-
+    property bool darkMode: Application.styleHints.colorScheme === Qt.ColorScheme.Dark
+    // Must pass wrapper.darkMode as the 2nd parameter so that updates to application color scheme will
+    // cascade through icon.source in menu bar.
+    function fixSuffix(source, useDark) {
+        // Coerce to JS string so that replace works correctly.
+        const withoutColor = ("" + source).replace(/_dark/i, "")
+        const ret = withoutColor.replace(/\.svg/i,
+                                         `${useDark ? "_dark" : ""}.svg`)
+        return ret
+    }
     function indexOf(menu, menuItem) {
         for (var i = 0; i < menu.count; i++) {
             if (menu.itemAt(i) === menuItem) {
@@ -19,19 +28,7 @@ MenuBar {
         }
         return menu.count
     }
-    function fixTextColors(item) {
-        const p = item.palette
-        const en = p.text, dis = p.disabled.text
-        // TODO: Remove when themes work properly
-        // TODO: fix icon colors
-        const ens = Qt.rgba(en.r + 0.1, en.g + 0.1, en.b + 0.1, en.a)
-        // Color to pick if enabled == disabled, and that color is #000000, on which lighter does not work.
-        const backup = en.hslLightness < 0.5 ? ens.lighter(4.0) : en.darker()
-        const selected = item.enabled ? en : (en === dis ? backup : dis)
-        if (item.color)
-            item.color = Qt.binding(() => selected)
-        item.contentItem.color = selected
-    }
+
     TextMetrics {
         id: tm
         font: wrapper.font
@@ -44,14 +41,20 @@ MenuBar {
         ShortcutMenuItem {
             id: new_
             action: actions.file.new_
+            icon.source: fixSuffix(actions.file.new_.icon.source,
+                                   wrapper.darkMode)
         }
         ShortcutMenuItem {
             action: actions.file.open
+            icon.source: fixSuffix(actions.file.open.icon.source,
+                                   wrapper.darkMode)
         }
         MenuSeparator {}
         ShortcutMenuItem {
             action: actions.file.save
             text: "&Save"
+            icon.source: fixSuffix(actions.file.save.icon.source,
+                                   wrapper.darkMode)
         }
         MenuSeparator {
             id: _closePrev
@@ -67,27 +70,36 @@ MenuBar {
         title: qsTr("&Edit")
         ShortcutMenuItem {
             action: actions.edit.undo
+            icon.source: fixSuffix(actions.edit.undo.icon.source,
+                                   wrapper.darkMode)
         }
         ShortcutMenuItem {
             action: actions.edit.redo
+            icon.source: fixSuffix(actions.edit.redo.icon.source,
+                                   wrapper.darkMode)
         }
         MenuSeparator {}
         ShortcutMenuItem {
             action: actions.edit.cut
-            onPaletteChanged: fixTextColors(this)
+            icon.source: fixSuffix(actions.edit.cut.icon.source,
+                                   wrapper.darkMode)
         }
         ShortcutMenuItem {
             action: actions.edit.copy
-            onPaletteChanged: fixTextColors(this)
+            icon.source: fixSuffix(actions.edit.copy.icon.source,
+                                   wrapper.darkMode)
         }
         ShortcutMenuItem {
             action: actions.edit.paste
-            onPaletteChanged: fixTextColors(this)
+            icon.source: fixSuffix(actions.edit.paste.icon.source,
+                                   wrapper.darkMode)
         }
         // Formatting magic!
         MenuSeparator {}
         ShortcutMenuItem {
             action: actions.edit.prefs
+            icon.source: fixSuffix(actions.edit.prefs.icon.source,
+                                   wrapper.darkMode)
         }
         ShortcutMenuItem {
             action: actions.help.about
@@ -102,8 +114,6 @@ MenuBar {
             visible: enabled
             height: enabled ? implicitHeight : 0
             onEnabledChanged: contentItem.enabled = enabled
-            contentItem.onEnabledChanged: fixTextColors(this)
-            onPaletteChanged: fixTextColors(this)
         }
         ShortcutMenuItem {
             action: actions.build.loadObject
@@ -111,42 +121,39 @@ MenuBar {
             visible: enabled
             height: enabled ? implicitHeight : 0
             onEnabledChanged: contentItem.enabled = enabled
-            contentItem.onEnabledChanged: fixTextColors(this)
-            onPaletteChanged: fixTextColors(this)
+            icon.source: fixSuffix(actions.build.loadObject.icon.source,
+                                   wrapper.darkMode)
         }
         ShortcutMenuItem {
             action: actions.build.assemble
             enabled: action.enabled
             visible: enabled
             height: enabled ? implicitHeight : 0
-            onEnabledChanged: contentItem.enabled = enabled
-            contentItem.onEnabledChanged: fixTextColors(this)
-            onPaletteChanged: fixTextColors(this)
+            icon.source: fixSuffix(actions.build.assemble.icon.source,
+                                   wrapper.darkMode)
         }
         ShortcutMenuItem {
             action: actions.build.assembleThenLoad
             enabled: action.enabled
             visible: enabled
             height: enabled ? implicitHeight : 0
-            onEnabledChanged: contentItem.enabled = enabled
-            contentItem.onEnabledChanged: fixTextColors(this)
-            onPaletteChanged: fixTextColors(this)
+            icon.source: fixSuffix(actions.build.assembleThenLoad.icon.source,
+                                   wrapper.darkMode)
         }
         ShortcutMenuItem {
             action: actions.build.assembleThenFormat
             enabled: action.enabled
             visible: enabled
             height: enabled ? implicitHeight : 0
-            onEnabledChanged: contentItem.enabled = enabled
-            contentItem.onEnabledChanged: fixTextColors(this)
-            onPaletteChanged: fixTextColors(this)
+            icon.source: fixSuffix(
+                             actions.build.assembleThenFormat.icon.source,
+                             wrapper.darkMode)
         }
         ShortcutMenuItem {
             action: actions.build.execute
             enabled: action.enabled
-            onEnabledChanged: contentItem.enabled = enabled
-            contentItem.onEnabledChanged: fixTextColors(this)
-            onPaletteChanged: fixTextColors(this)
+            icon.source: fixSuffix(actions.build.execute.icon.source,
+                                   wrapper.darkMode)
         }
     }
     Menu {
@@ -154,53 +161,46 @@ MenuBar {
         ShortcutMenuItem {
             action: actions.debug.start
             enabled: action.enabled
-            contentItem.enabled: action.enabled
-            onEnabledChanged: fixTextColors(this)
-            onPaletteChanged: fixTextColors(this)
+            icon.source: fixSuffix(actions.debug.start.icon.source,
+                                   wrapper.darkMode)
         }
         MenuSeparator {}
         ShortcutMenuItem {
             action: actions.debug.continue_
             enabled: action.enabled
-            onEnabledChanged: contentItem.enabled = enabled
-            contentItem.onEnabledChanged: fixTextColors(this)
-            onPaletteChanged: fixTextColors(this)
+            icon.source: fixSuffix(actions.debug.continue_.icon.source,
+                                   wrapper.darkMode)
         }
         ShortcutMenuItem {
             action: actions.debug.pause
             enabled: action.enabled
-            onEnabledChanged: contentItem.enabled = enabled
-            contentItem.onEnabledChanged: fixTextColors(this)
-            onPaletteChanged: fixTextColors(this)
+            icon.source: fixSuffix(actions.debug.pause.icon.source,
+                                   wrapper.darkMode)
         }
         ShortcutMenuItem {
             action: actions.debug.stop
             enabled: action.enabled
-            onEnabledChanged: contentItem.enabled = enabled
-            contentItem.onEnabledChanged: fixTextColors(this)
-            onPaletteChanged: fixTextColors(this)
+            icon.source: fixSuffix(actions.debug.stop.icon.source,
+                                   wrapper.darkMode)
         }
         MenuSeparator {}
         ShortcutMenuItem {
             action: actions.debug.stepInto
             enabled: action.enabled
-            onEnabledChanged: contentItem.enabled = enabled
-            contentItem.onEnabledChanged: fixTextColors(this)
-            onPaletteChanged: fixTextColors(this)
+            icon.source: fixSuffix(actions.debug.stepInto.icon.source,
+                                   wrapper.darkMode)
         }
         ShortcutMenuItem {
             action: actions.debug.stepOver
             enabled: action.enabled
-            onEnabledChanged: contentItem.enabled = enabled
-            contentItem.onEnabledChanged: fixTextColors(this)
-            onPaletteChanged: fixTextColors(this)
+            icon.source: fixSuffix(actions.debug.stepOver.icon.source,
+                                   wrapper.darkMode)
         }
         ShortcutMenuItem {
             action: actions.debug.stepOut
             enabled: action.enabled
-            onEnabledChanged: contentItem.enabled = enabled
-            contentItem.onEnabledChanged: fixTextColors(this)
-            onPaletteChanged: fixTextColors(this)
+            icon.source: fixSuffix(actions.debug.stepOut.icon.source,
+                                   wrapper.darkMode)
         }
         MenuSeparator {}
         ShortcutMenuItem {
