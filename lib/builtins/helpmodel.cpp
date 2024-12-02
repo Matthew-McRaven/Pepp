@@ -63,8 +63,9 @@ QVariant HelpModel::data(const QModelIndex &index, int role) const {
   case (int)Roles::Category: return static_cast<int>(entry->category);
   case (int)Roles::Tags: return entry->tags;
   case Qt::DisplayRole: [[fallthrough]];
-  case (int)Roles::Name: return entry->name;
-  case (int)Roles::Delegate: return entry->delgate;
+  case (int)Roles::Name: return entry->displayName;
+  case (int)Roles::Sort: return entry->sortName;
+  case (int)Roles::Delegate: return entry->delegate;
   case (int)Roles::Props: return entry->props;
   case (int)Roles::WIP: return entry->isWIP;
   }
@@ -76,6 +77,7 @@ QHash<int, QByteArray> HelpModel::roleNames() const {
   ret[static_cast<int>(Roles::Category)] = "category";
   ret[static_cast<int>(Roles::Tags)] = "tags";
   ret[static_cast<int>(Roles::Name)] = "name";
+  ret[static_cast<int>(Roles::Sort)] = "sortName";
   ret[static_cast<int>(Roles::Delegate)] = "delegate";
   ret[static_cast<int>(Roles::Props)] = "props";
   ret[static_cast<int>(Roles::WIP)] = "isWIP";
@@ -92,6 +94,7 @@ HelpFilterModel::HelpFilterModel(QObject *parent) : QSortFilterProxyModel(parent
 void HelpFilterModel::setSourceModel(QAbstractItemModel *sourceModel) {
   if (sourceModel == this->sourceModel()) return;
   QSortFilterProxyModel::setSourceModel(sourceModel);
+  QSortFilterProxyModel::setSortRole((int)HelpModel::Roles::Sort);
   emit sourceModelChanged();
 }
 
@@ -101,7 +104,6 @@ void HelpFilterModel::setArchitecture(builtins::Architecture architecture) {
   if (_architecture == architecture) return;
   _architecture = architecture;
   invalidateRowsFilter();
-  // qDebug() << "Mask is " << QString::number(bitmask(_architecture, _abstraction), 16).toStdString().c_str();
   emit architectureChanged();
 }
 
