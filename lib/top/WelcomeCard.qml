@@ -14,21 +14,6 @@ Rectangle {
 
     width: 165
     height: 200
-    // We cannot use button, since we want to control the foreground image, which interferes with `hover`.
-    // Since `hover` is RO on a button, we can't set it from the MouseArea.
-    // Therefore, we need to imitate the behaviors/styling of Button in place.
-    MouseArea {
-        id: mouseArea
-        anchors.fill: parent
-        hoverEnabled: true
-        onEntered: infoOverlay.state = "hovered"
-        onExited: infoOverlay.state = "unhovered"
-        onClicked: {
-            // Magic function that exists in Welcome.qml and is exposed to us.
-            if (wrapper.enabled)
-                addProject(architecture, abstraction, "", false)
-        }
-    }
     color: wrapper.enabled ? palette.button : palette.button.darker(1.4)
     WelcomeTitle {
         id: title
@@ -130,6 +115,22 @@ Rectangle {
                     width: parent.width - scrollBar.width
                 }
             }
+        }
+    }
+    // We cannot use button, since we want to control the foreground image, which interferes with `hover`.
+    // Since `hover` is RO on a button, we can't set it from the MouseArea.
+    // Therefore, we need to imitate the behaviors/styling of Button in place.
+    // Must be last to be on top without messing with Z.
+    MouseArea {
+        id: mouseArea
+        anchors.fill: parent
+        hoverEnabled: true
+        onEntered: infoOverlay.state = "hovered"
+        onExited: infoOverlay.state = "unhovered"
+        onClicked: {
+            // Magic function that exists in Welcome.qml and is exposed to us.
+            if (wrapper.enabled)
+                addProject(architecture, abstraction, "", false)
         }
     }
 }
