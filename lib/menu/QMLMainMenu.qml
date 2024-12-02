@@ -56,10 +56,10 @@ MenuBar {
         MenuSeparator {
             id: _closePrev
         }
-        MenuItem {
+        ShortcutMenuItem {
             action: actions.file.closeAll
         }
-        MenuItem {
+        ShortcutMenuItem {
             action: actions.file.closeAllButCurrent
         }
     }
@@ -86,10 +86,10 @@ MenuBar {
         }
         // Formatting magic!
         MenuSeparator {}
-        MenuItem {
+        ShortcutMenuItem {
             action: actions.edit.prefs
         }
-        MenuItem {
+        ShortcutMenuItem {
             action: actions.help.about
         }
     }
@@ -159,21 +159,21 @@ MenuBar {
             onPaletteChanged: fixTextColors(this)
         }
         MenuSeparator {}
-        MenuItem {
+        ShortcutMenuItem {
             action: actions.debug.continue_
             enabled: action.enabled
             onEnabledChanged: contentItem.enabled = enabled
             contentItem.onEnabledChanged: fixTextColors(this)
             onPaletteChanged: fixTextColors(this)
         }
-        MenuItem {
+        ShortcutMenuItem {
             action: actions.debug.pause
             enabled: action.enabled
             onEnabledChanged: contentItem.enabled = enabled
             contentItem.onEnabledChanged: fixTextColors(this)
             onPaletteChanged: fixTextColors(this)
         }
-        MenuItem {
+        ShortcutMenuItem {
             action: actions.debug.stop
             enabled: action.enabled
             onEnabledChanged: contentItem.enabled = enabled
@@ -181,21 +181,21 @@ MenuBar {
             onPaletteChanged: fixTextColors(this)
         }
         MenuSeparator {}
-        MenuItem {
+        ShortcutMenuItem {
             action: actions.debug.stepInto
             enabled: action.enabled
             onEnabledChanged: contentItem.enabled = enabled
             contentItem.onEnabledChanged: fixTextColors(this)
             onPaletteChanged: fixTextColors(this)
         }
-        MenuItem {
+        ShortcutMenuItem {
             action: actions.debug.stepOver
             enabled: action.enabled
             onEnabledChanged: contentItem.enabled = enabled
             contentItem.onEnabledChanged: fixTextColors(this)
             onPaletteChanged: fixTextColors(this)
         }
-        MenuItem {
+        ShortcutMenuItem {
             action: actions.debug.stepOut
             enabled: action.enabled
             onEnabledChanged: contentItem.enabled = enabled
@@ -203,24 +203,24 @@ MenuBar {
             onPaletteChanged: fixTextColors(this)
         }
         MenuSeparator {}
-        MenuItem {
+        ShortcutMenuItem {
             action: actions.debug.removeAllBreakpoints
         }
     }
     Menu {
         title: qsTr("&Simulator")
-        MenuItem {
+        ShortcutMenuItem {
             enabled: actions.sim.clearCPU.enabled
             action: actions.sim.clearCPU
         }
-        MenuItem {
+        ShortcutMenuItem {
             enabled: actions.sim.clearMemory.enabled
             action: actions.sim.clearMemory
         }
     }
     Menu {
         title: qsTr("&View")
-        MenuItem {
+        ShortcutMenuItem {
             enabled: !PlatformDetector.isWASM
             visible: enabled
             height: enabled ? implicitHeight : 0
@@ -231,7 +231,7 @@ MenuBar {
     // Only meant for testing the app, not meant for deployment to users!
     Menu {
         title: qsTr("App D&ev")
-        MenuItem {
+        ShortcutMenuItem {
             text: qsTr("Clear Changelog Cache")
             onTriggered: actions.appdev.clearChangelogCache.trigger()
         }
