@@ -25,7 +25,7 @@ RUN wget -q -O ninja.zip "https://github.com/ninja-build/ninja/releases/download
 # Need to pick this locale otherwise Qt complains and overrides the locale anyway.
 ENV LANG="C.UTF-8"
 # Must occur after the "FROM" directive, allows choice of Qt version.
-ARG QT_VERSION="6.8.0"
+ARG QT_VERSION="6.8.1"
 # Don't cache pip internal files, reduce image size.
 ENV PIP_NO_CACHE_DIR=1
 SHELL ["/bin/bash", "-c"]
@@ -37,12 +37,8 @@ FROM base-gcc as base-wasm
 # Must install documentation-building tools in WASM image.
 # Otherwise it will be very difficult to build GH pages deployments.
 RUN apt update \
-    && apt install -y --no-install-recommends doxygen graphviz imagemagick \
+    && apt install -y --no-install-recommends graphviz imagemagick \
     && rm -rf /var/lib/apt/lists/*
-# Insert workaround for Qt+breathe: https://github.com/breathe-doc/breathe/issues/574
-# Must install exactly 4.35.0, otherwise insert may fail.
-RUN pip install breathe==4.35.0 Pillow Sphinx==7.1.2 \
-  && sed -i '253 i \        "property": (CMacroObject, "macro"),' "/usr/local/lib/python3.10/dist-packages/breathe/renderer/sphinxrenderer.py"
 RUN git clone https://github.com/emscripten-core/emsdk.git /emsdk
 # Must combine, otherwise a layer is the same in multi-arch builds, breaking everything
 RUN cd /emsdk && git pull && ./emsdk install 3.1.56  && ./emsdk activate 3.1.56 && echo uname -a /emsdk.arch
@@ -54,10 +50,6 @@ RUN pip install aqtinstall \
 
 # Use separate step to build Qt to avoid inflating the size of the build image further.
 FROM base-wasm as build-wasm
-# Get sources for the current version of Qt.
-RUN pip install aqtinstall \
-    && aqt install-src -O /build-qt linux ${QT_VERSION} \
-    && pip uninstall aqtinstall -y && rm aqtinstall.log
 # Install Qt requirements: https://doc.qt.io/qt-6/linux-requirements.html
 RUN apt update \
     && apt install -y --no-install-recommends \
@@ -66,12 +58,19 @@ RUN apt update \
        libxcb-shm0-dev libxcb-sync-dev libxcb-util-dev libxcb-xfixes0-dev libxcb-xinerama0-dev libxcb-xkb-dev \
        libxcb1-dev libxext-dev libxfixes-dev libxi-dev libxkbcommon-dev libxkbcommon-x11-dev libxrender-dev\
     && rm -rf /var/lib/apt/lists/*
+# Get sources for the current version of Qt.
+RUN wget -q "https://download.qt.io/official_releases/qt/6.8/6.8.1/single/qt-everywhere-src-${QT_VERSION}.tar.xz" \
+    && mkdir -p /build-qt \
+    && tar xf qt-everywhere-src-${QT_VERSION}.tar.xz --directory /build-qt \
+    && mv /build-qt/qt-everywhere-src-${QT_VERSION} /build-qt/${QT_VERSION} \
+    && rm qt-everywhere-src-${QT_VERSION}.tar.xz
+
 # Extra args with which to build Qt
 ARG QT_WASM_XARGS=""
 # Must activate EMSDK or it will not build. Skip some features that would require installing additional libraries.
 # Enable excptions, because that was the whole point of building Qt from the sources
 RUN source /emsdk/emsdk_env.sh \
-    && cd /build-qt/${QT_VERSION}/Src \
+    && cd /build-qt/${QT_VERSION} \
     && ./configure -qt-host-path /qt/${QT_VERSION}/gcc_64 -platform wasm-emscripten \
        -no-feature-thread -feature-wasm-exceptions ${QT_WASM_XARGS} \
        -skip qtremoteobjects -skip qtwebengine -skip qtscxml -skip qthttpserver \
@@ -79,7 +78,7 @@ RUN source /emsdk/emsdk_env.sh \
        -skip qtpositioning -skip qtactiveqt -skip qt5compat\
        -prefix /qt/${QT_VERSION}/wasm_singlethread
 # Separate build from configure so that I get better logs
-RUN cd /build-qt/${QT_VERSION}/Src \
+RUN cd /build-qt/${QT_VERSION} \
     && cmake --build . --parallel \
     && cmake --install .
 
