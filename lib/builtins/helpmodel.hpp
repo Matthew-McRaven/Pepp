@@ -21,13 +21,14 @@ public:
 
 class HelpEntry : public QEnableSharedFromThis<HelpEntry> {
 public:
-  HelpEntry(HelpCategory::Category category, int tags, QString name, QString delgate)
-      : category(category), tags(tags), name(name), delgate(delgate) {}
+  HelpEntry(HelpCategory::Category category, int tags, QString displayName, QString delegate)
+      : category(category), tags(tags), displayName(displayName), sortName(displayName), delegate(delegate) {}
   HelpCategory::Category category;
   // TBD on how to filter these items.
   uint32_t tags = -1;
   // Display name in help system; path to QML file which can display it.
-  QString name, delgate;
+  QString displayName, sortName;
+  QString delegate;
   // Props which will be injected into the delegate.
   QVariantMap props = {};
   void addChild(QSharedPointer<HelpEntry> child);
@@ -47,7 +48,7 @@ class HelpModel : public QAbstractItemModel {
   QML_ELEMENT
 
 public:
-  enum class Roles { Category = Qt::UserRole + 1, Tags, Name, Delegate, Props, WIP };
+  enum class Roles { Category = Qt::UserRole + 1, Tags, Name, Delegate, Props, Sort, WIP };
   Q_ENUM(Roles);
   explicit HelpModel(QObject *parent = nullptr);
   QModelIndex index(int row, int column, const QModelIndex &parent) const override;
