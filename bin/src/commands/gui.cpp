@@ -59,15 +59,14 @@ int gui_main(const gui_args &args) {
   for (int it = 0; it < argc; it++) argvs[it] = arg_strs[it].data();
 #ifdef __EMSCRIPTEN__
   // clang-format off
-  // Request that IDBFS be persisted, even for localhost
-  EM_ASM(if (navigator.storage) navigator.storage.persist().then(() => {}););
   // Make a persistent FS for themes. `true` to load from disk 2 mem
   EM_ASM(
+  // Request that IDBFS be persisted, even for localhost
+    if (navigator.storage) navigator.storage.persist().then(() => {});
     if (!FS.analyzePath('/themes').exists) FS.mkdir('/themes');
     FS.mount(IDBFS, {}, '/themes');
     FS.syncfs(true, function(err) {
       if (err) console.error("Error mounting IDBFS /themes:", err);
-      else console.log('Files in /themes:', FS.readdir('/themes'));
     });
   );
   // clang-format on

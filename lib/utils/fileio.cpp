@@ -15,8 +15,6 @@ void FileIO::save(const QString &filename, const QString &data) {
     file.close();
   } else qWarning() << "Could not open file for writing";
 #ifdef __EMSCRIPTEN__
-  EM_ASM(FS.syncfs(function(err) {
-    if (err) console.log(err)
-  }););
+  EM_ASM(FS.syncfs(function(){}););
 #endif
 }

@@ -40,9 +40,7 @@ bool pepp::settings::PaletteManager::setData(const QModelIndex &index, const QVa
     jsonFile.write(QJsonDocument{root}.toJson());
     jsonFile.close();
 #ifdef __EMSCRIPTEN__
-    EM_ASM(FS.syncfs(function(err) {
-      if (err) console.log(err)
-    }););
+    EM_ASM(FS.syncfs(function(){}););
 #endif
     entry.name = asString;
   }
@@ -96,9 +94,7 @@ int pepp::settings::PaletteManager::copy(int row) {
   auto perms = targetFile.permissions();
   QFile(targetFile.absoluteFilePath()).setPermissions(perms | QFileDevice::WriteOwner);
 #ifdef __EMSCRIPTEN__
-  EM_ASM(FS.syncfs(function(err) {
-    if (err) console.log(err)
-  }););
+  EM_ASM(FS.syncfs(function(){}););
 #endif
 
   beginInsertRows({}, row, row);
@@ -130,9 +126,7 @@ int pepp::settings::PaletteManager::importTheme(QString path) {
   QFile(dest.absoluteFilePath()).setPermissions(perms | QFileDevice::WriteOwner);
 
 #ifdef __EMSCRIPTEN__
-  EM_ASM(FS.syncfs(function(err) {
-    if (err) console.log(err)
-  }););
+  EM_ASM(FS.syncfs(function(){}););
 #endif
 
   beginInsertRows({}, _palettes.size() - 1, _palettes.size() - 1);
@@ -146,9 +140,7 @@ void pepp::settings::PaletteManager::deleteTheme(int row) {
   auto entry = _palettes[row];
   if (!entry.isSystem) QFile::remove(entry.path);
 #ifdef __EMSCRIPTEN__
-  EM_ASM(FS.syncfs(function(err) {
-    if (err) console.log(err)
-  }););
+  EM_ASM(FS.syncfs(function(){}););
 #endif
   beginRemoveRows({}, row, row);
   _palettes.removeAt(row);
