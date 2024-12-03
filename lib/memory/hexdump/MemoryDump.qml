@@ -57,7 +57,6 @@ Item {
         selectionBehavior: TableView.SelectCells
         selectionMode: TableView.ContiguousSelection
         editTriggers: TableView.SingleTapped //  Manage editor manually
-
         model: MemoryModel {
             id: memory
         }
@@ -407,18 +406,28 @@ Item {
                 }
             }
 
-            //  Show cell values. Control is editable
+            //  Default -- line numbers and ASCII
             DelegateChoice {
-                roleValue: "cell"
-                Ui.MemoryDumpCells {
-                    id: cell
+                Ui.MemoryDumpReadOnly {
                     rowHeight: rowHeight
                     colWidth: colWidth
                     Component.onCompleted: {
                         updateBackground()
                         highlightChanged.connect(updateBackground)
                     }
-
+                    // Higlight is "state", so must be manually
+                    TableView.onReused: {
+                        updateBackground()
+                        highlightChanged.connect(updateBackground)
+                    }
+                    TableView.onPooled: {
+                        highlightChanged.disconnect(updateBackground)
+                    }
+                    backgroundColor: palette.base
+                    textColor: palette.text
+                    text: model.display
+                    tooltip: model.toolTip ?? null
+                    property int highlight: model.highlight ?? 0
                     function updateBackground() {
                         switch (model.highlight) {
                         case MemoryHighlight.Modified:
@@ -445,122 +454,9 @@ Item {
                         }
                     }
 
-                    textColor: palette.text
-                    text: model.display
-                    property int highlight: model.highlight
-                    textAlign: Text.AlignHCenter
-                    font: hexFont
-                    tooltip: model.toolTip ?? null
-
-                    //  Initialize edit delegate here
-                    TableView.editDelegate: Ui.MemoryDumpEdit {
-                        id: ed
-                        rowHeight: rowHeight
-                        colWidth: colWidth
-                        backgroundColor: "#3f51b5"
-                        textColor: "#FF9800"
-                        text: model.display
-                        textAlign: Text.AlignHCenter
-                        font: hexFont
-                        editFocus: ed.visible
-
-                        //  Javascript cannot see parent tableView. Add as member for
-                        //  Javascript functions
-                        parentTable: tableView
-
-                        //  Appear in cell being edited
-                        anchors.fill: cell
-
-                        onStartEditing: {
-                            //TableView.onCurrentChanged?
-
-                            //  Set edit formatting
-                            const index = root.model.index(row, column)
-                            root.model.setSelected(index, MemoryRoles.Editing)
-                        }
-
-                        onFinishEditing: function (save) {
-                            // Only save if flagged, and values are different
-                            if (save) {
-                                if (model.display !== ed.text) {
-                                    console.log("Model updated")
-                                    model.display = ed.text
-                                    cell.text = ed.text
-                                }
-                            }
-
-                            //  Clear edit formatting
-                            root.model.clearSelected(root.model.index(row,
-                                                                      column),
-                                                     MemoryRoles.Editing)
-                        }
-
-                        onDirectionKey: function (key) {
-                            console.log("TableView.onDirectionKey" + row + ","
-                                        + column + "," + "," + key)
-
-                            //  Edit control has indicated that user has arrowed out of control
-                            //  Close current editor.
-                            tableView.closeEditor()
-
-                            //  Edit delegate cannot see table view. Pass tableview
-                            //  as parameter to access
-                            parentTable.keyPress(key)
-                        }
-                    }
-                }
-            }
-            //  Default -- line numbers and ASCII
-            DelegateChoice {
-
-                Ui.MemoryDumpReadOnly {
-                    rowHeight: rowHeight
-                    colWidth: colWidth
-
-                    backgroundColor: palette.base
-                    textColor: palette.text
-                    text: model.display
                     textAlign: model.textAlign
                     font: asciiFont
                 }
-            }
-        }
-
-        function openEditor(newRow, newCol) {
-            //  moveViewPort may trigger large movement in the
-            //  visible table. Force the layout to complete before
-            //  triggering editor. Otherwise, cell editor below will fail
-            //  because cell may not be rendered yet.
-            tableView.forceLayout()
-
-            const index = root.model.index(newRow, newCol)
-            //  Inform model that index is being edited.
-            root.model.setSelected(index, MemoryRoles.Editing)
-
-            //  Trigger edit delegate
-            tableView.edit(index)
-        }
-
-        function moveViewPort(rowOffset) {
-            //  View port is called from many places
-            //  When there are partial lines, the top line
-            //  may be partially obsured. Set top row to be fully
-            //  visible when offset is 0
-            if (rowOffset === 0) {
-                positionViewAtRow(tableView.topRow, TableView.Contain)
-            } //  Handle up. Do not scroll past first line
-            else if (rowOffset < 0) {
-                //  Prevent scrolling above beginning table
-                const newRow = Math.max(0, tableView.topRow + rowOffset)
-                positionViewAtRow(newRow, TableView.Contain)
-            } //  Handle down. Do not scroll past last line
-            else {
-                //  Leave 1 page of data on screen
-                const newRow = Math.min(tableView.rows - 1,
-                                        tableView.bottomRow + rowOffset)
-
-                positionViewAtRow(newRow, TableView.Contain)
-                console.log("newRow=" + newRow + "," + tableView.topRow)
             }
         }
     }

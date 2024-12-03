@@ -170,7 +170,11 @@ QVariant MemoryByteModel::data(const QModelIndex &index, int role) const {
     if (i < 0) return QVariant();
     //  Only one cell can be edited at a time
     return i == editing_;
-  case M::Highlight: return QVariant::fromValue(memory_->status(i));
+  case M::Highlight:
+    // Don't higlight non-memory-valued cells.
+    if (col == column_->LineNo() || col == column_->Ascii() || col == column_->Border1() || col == column_->Border2())
+      return {};
+    return QVariant::fromValue(memory_->status(i));
   case Qt::TextAlignmentRole:
     if (col == column_->Ascii()) return QVariant(Qt::AlignLeft);
     //  Default for all other cells
