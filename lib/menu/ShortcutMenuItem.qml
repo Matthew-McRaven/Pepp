@@ -34,7 +34,7 @@ MenuItem {
         anchors.verticalCenter: parent.verticalCenter
         anchors.right: parent.right
         anchors.rightMargin: fm.averageCharacterWidth
-        text: wrapper.action.nativeText
+        text: wrapper.action?.nativeText ?? ""
         horizontalAlignment: Text.AlignLeft
         color: wrapper.enabled ? palette.text : palette.shadow
     }
