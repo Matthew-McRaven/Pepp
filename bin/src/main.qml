@@ -370,7 +370,7 @@ ApplicationWindow {
         onClosed: prefs.closed()
     }
     function onNew() {
-        pm.onAddProject(Architecture.PEP10, Abstraction.ISA3, "", false)
+        pm.onAddProject(Architecture.PEP9, Abstraction.ASMB5, "", false)
     }
     function onOpenDialog() {}
     function onCloseAllProjects(excludeCurrent: bool) {}

@@ -79,14 +79,15 @@ Flickable {
                 abstraction: Abstraction.ISA3
                 source: "image://icons/cards/p10_isa3.svg"
                 description: "Develop and debug machine language programs in bare metal mode."
+                enabled: false
             }
             WelcomeCard {
                 text: "Pep/10, Asmb3, bare metal"
                 architecture: Architecture.PEP10
                 abstraction: Abstraction.ASMB3
                 source: "image://icons/cards/p10_asmb3.svg"
-                enabled: true
                 description: "Develop and debug assembly language programs in bare metal mode."
+                enabled: false
             }
 
             WelcomeCard {
@@ -95,6 +96,7 @@ Flickable {
                 abstraction: Abstraction.ASMB5
                 source: "image://icons/cards/p10_asmb5.svg"
                 description: "Develop and debug assembly language programs alongside Pep/10's operating system. This level enables you to utilize OS features using system calls for enhanced functionality."
+                enabled: false
             }
             WelcomeCard {
                 text: "Pep/10, OS4"
