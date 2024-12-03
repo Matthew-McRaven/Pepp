@@ -44,11 +44,6 @@ MenuBar {
             icon.source: fixSuffix(actions.file.new_.icon.source,
                                    wrapper.darkMode)
         }
-        ShortcutMenuItem {
-            action: actions.file.open
-            icon.source: fixSuffix(actions.file.open.icon.source,
-                                   wrapper.darkMode)
-        }
         MenuSeparator {}
         ShortcutMenuItem {
             action: actions.file.save
