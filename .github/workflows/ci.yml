@@ -153,13 +153,30 @@ jobs:
       MAC_DEVELOPER_NAME: ${{ secrets.MAC_DEVELOPER_NAME }}
   deploy_pages:
     name: Trigger deployment to github pages
-    # if: startsWith(needs.branch_info.outputs.not_default, 'false')
+    if: startsWith(needs.branch_info.outputs.not_default, 'false')
     permissions:
       contents: read
       pages: write
       id-token: write
     needs: [ build, branch_info ]
     uses: ./.github/workflows/deploy-pages.yml
+  test_wasm_pages:
+    name: Run WASM UI test
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: Install dependencies
+        run: npm ci
+        working-directory: ./test/web
+      - name: Install Playwright Browsers
+        run: npx playwright install --with-deps
+        working-directory: ./test/web
+      - name: Run Playwright tests
+        run: npx playwright test
+        working-directory: ./test/web
   create_release:
     name: Create GitHub release
     needs: [ build ]
