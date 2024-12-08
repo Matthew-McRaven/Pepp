@@ -151,16 +151,39 @@ jobs:
       MAC_KEYCHAIN_PASSWORD: ${{ secrets.MAC_KEYCHAIN_PASSWORD }}
       MAC_P12_PASSWORD: ${{ secrets.MAC_P12_PASSWORD }}
       MAC_DEVELOPER_NAME: ${{ secrets.MAC_DEVELOPER_NAME }}
-  deploy_pages:
-    name: Trigger deployment to github pages
+  deploy_prod_pages:
+    name: Trigger deployment to production github pages
     if: startsWith(needs.branch_info.outputs.not_default, 'false')
     permissions:
       contents: read
       pages: write
       id-token: write
     needs: [ build, branch_info ]
-    uses: ./.github/workflows/deploy-pages.yml
+    uses: ./.github/workflows/deploy-prod-pages.yml
+
+  deploy_test_pages:
+    name: Trigger deployment to test github pages
+    needs: [ build, branch_info ]
+    concurrency:
+      group: "pages-test"
+      cancel-in-progress: false
+    environment:
+      name: test
+      url: ${{ steps.deployment.outputs.page_url }}
+    runs-on: ubuntu-latest
+    steps:
+    - name: Trigger deployment
+      # Must sleep to allow the job to start before watching it.
+      run: gh -R Matthew-McRaven/pepp-dev workflow run -r main deploy.yml -F workflowID="${{ github.run_id }}" && sleep 5
+      env:
+        GH_TOKEN: ${{ secrets.DEPLOY_PAT }}
+    - name: Await deployment
+      # Get most recent run and wait until it is complete.
+      run: gh -R Matthew-McRaven/pepp-dev run list --workflow=deploy.yml --json databaseId -q .[0].databaseId | xargs gh -R Matthew-McRaven/pepp-dev run watch
+      env:
+        GH_TOKEN: ${{ secrets.DEPLOY_PAT }}
   test_wasm_pages:
+    needs: [ deploy_test_pages ]
     name: Run WASM UI test
     runs-on: ubuntu-latest
     steps:
