@@ -213,16 +213,6 @@ MenuBar {
             action: actions.sim.clearMemory
         }
     }
-    Menu {
-        title: qsTr("&View")
-        ShortcutMenuItem {
-            enabled: !PlatformDetector.isWASM
-            visible: enabled
-            height: enabled ? implicitHeight : 0
-            action: actions.view.fullscreen
-        }
-        // Dynamic magic to mode switch!
-    }
     // Only meant for testing the app, not meant for deployment to users!
     Menu {
         title: qsTr("App D&ev")
