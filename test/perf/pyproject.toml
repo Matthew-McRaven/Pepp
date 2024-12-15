@@ -1,0 +1,15 @@
+[tool.poetry]
+name = "perf"
+version = "0.1.0"
+description = ""
+authors = ["Matthew McRaven <matthew.mcraven@gmail.com>"]
+readme = "README.md"
+
+[tool.poetry.dependencies]
+python = "^3.13"
+click = "^8.1.7"
+
+
+[build-system]
+requires = ["poetry-core"]
+build-backend = "poetry.core.masonry.api"
