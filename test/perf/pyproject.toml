@@ -6,7 +6,7 @@ authors = ["Matthew McRaven <matthew.mcraven@gmail.com>"]
 readme = "README.md"
 
 [tool.poetry.dependencies]
-python = "^3.13"
+python = "^3.12"
 click = "^8.1.7"
 pygit2 = "==1.16.0"
 
