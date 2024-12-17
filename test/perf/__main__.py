@@ -47,6 +47,12 @@ def mit(build_dir):
     return stats.mean(vals), stats.stdev(vals)
 
 
+def get_figure(build_dir, fname):
+    term = Term(term_path(build_dir))
+    contents = term.get_fig("06", "48")
+    with open(fname, "w") as f: f.write(contents)
+
+
 @cli.command("run-once")
 @click.option("-b","--build-dir",type=str)
 def run_once(build_dir):
