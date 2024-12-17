@@ -1,3 +1,6 @@
+import tempfile
+from subprocess import CompletedProcess, CalledProcessError
+
 import click
 import statistics as stats, pathlib, re, shutil
 from . import CMake, Term
@@ -7,11 +10,14 @@ from pygit2.enums import SortMode, ResetMode
 @click.group()
 def cli(): pass
 
+def do_build(src_dir):
+    cmake = CMake(cmakePath="/Users/matthewmcraven/Qt/Tools/CMake/CMake.app/Contents/bin/cmake")
+    shutil.rmtree("/Volumes/RAMDisk/Build", ignore_errors=True)
+    cmake.build(src_dir, "/Volumes/RAMDisk/Build")
+
 @cli.command()
 def build():
-    cmake = CMake(cmakePath="/Users/matthewmcraven/Qt/Tools/CMake/CMake.app/Contents/bin/cmake")
-    shutil.rmtree("/Volumes/RAMDisk/Build")
-    cmake.build("/Users/matthewmcraven/Documents/Code/Pepp", "/Volumes/RAMDisk/Build")
+    do_build("/Volumes/RamDisk/src")
 
 @cli.command("run-once")
 def run_once():
@@ -33,7 +39,10 @@ def filter(commit):
         case "test.*": return False  # Tests should not affect perf
         case _: return True  # Everything else might
 
-
+def cleanup_worktree(repo, name):
+    # Delete worktree and is supporting branch if it already exists
+    if name in repo.list_worktrees() and (tree := repo.lookup_worktree(name)) is not None: tree.prune(True)
+    if name in repo.listall_branches() and (br := repo.lookup_branch(name)) is not None: br.delete()
 @cli.command("do-commits")
 def run():
     path = pathlib.Path(__file__).resolve().parent / "../../.git"
@@ -48,17 +57,23 @@ def run():
 
     for c in hide: walker.hide(c)
     commits = [c for c in walker if filter(c)]
-    worktrees = repo.list_worktrees()
-    if not "buildzone" in worktrees: repo.add_worktree("buildzone", "/Volumes/RAMDisk/src")
-    wt = repo.lookup_worktree("buildzone")
-    child_repo = Repository(wt.path)
-    for commit in commits:
-        child_repo.reset(commit.id, ResetMode.HARD)
-        child_repo.submodules.update(init=True)
-        cmake = CMake(cmakePath="/Users/matthewmcraven/Qt/Tools/CMake/CMake.app/Contents/bin/cmake")
-        shutil.rmtree("/Volumes/RAMDisk/Build")
-        cmake.build("/Volumes/RAMDisk/src", "/Volumes/RAMDisk/Build")
-    # wt.prune(True)
+    tree_tag = "buildzone"
+    with tempfile.TemporaryDirectory() as src_dir:
+        src_dir = str((pathlib.Path(src_dir) / "src").absolute())
+        try:
+            cleanup_worktree(repo, tree_tag)
+            wt = repo.add_worktree(tree_tag, src_dir)
+            child_repo = Repository(wt.path)
+            for commit in commits:
+                child_repo.reset(commit.id, ResetMode.HARD)
+                child_repo.submodules.update(init=True)
+                try: do_build(src_dir)
+                except CalledProcessError: pass
+        # Ensures that we clean up the worktree if someone hits ctrl+c.
+        except KeyboardInterrupt as e: raise e
+        finally:
+            cleanup_worktree(repo, tree_tag)
+
 
 
 if __name__ == '__main__':
