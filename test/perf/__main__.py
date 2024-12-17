@@ -36,11 +36,17 @@ def term_name():
         case 'darwin': return "output/pepp-term"
         case 'win32': return "output/pepp-term.exe"
 
+
+def term_path(build_dir): return str((pathlib.Path(build_dir)/term_name()).absolute())
+
+
 def mit(build_dir):
-    term_path = str((pathlib.Path(build_dir)/term_name()).absolute())
-    term = Term(term_path)
+    term_path(build_dir)
+    term = Term(term_path(build_dir))
     vals = [x for x in map(lambda _: term.mit(), range(10))]
     return stats.mean(vals), stats.stdev(vals)
+
+
 @cli.command("run-once")
 @click.option("-b","--build-dir",type=str)
 def run_once(build_dir):
