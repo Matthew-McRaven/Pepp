@@ -30,7 +30,7 @@ class REMatch(str):
     def __eq__(self, regex): return re.fullmatch(regex, self)
 
 
-def filter(commit):
+def commit_filter(commit):
     first_line = commit.message.split("\n")[0]
     match REMatch(first_line):
         case "docs.*": return False  # Docs do not affect perf
@@ -56,7 +56,7 @@ def run():
     }
 
     for c in hide: walker.hide(c)
-    commits = [c for c in walker if filter(c)]
+    commits = [c for c in walker if commit_filter(c)]
     tree_tag = "buildzone"
     with tempfile.TemporaryDirectory() as src_dir:
         src_dir = str((pathlib.Path(src_dir) / "src").absolute())
