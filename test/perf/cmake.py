@@ -7,4 +7,3 @@ class CMake:
     def build(self,cmakeRoot,buildPath,cwd=None):
         out = subprocess.run([self.cmakePath,"-S", cmakeRoot,"-B", buildPath], cwd=cwd, env=os.environ)
         out = subprocess.run([self.cmakePath, "--build", buildPath, "-j"],env=os.environ)
-    def clean(self,cmakeRoot=None,buildPath=None): pass

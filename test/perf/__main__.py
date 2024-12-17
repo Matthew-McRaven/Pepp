@@ -1,5 +1,5 @@
 import click
-import statistics as stats, pathlib, re
+import statistics as stats, pathlib, re, shutil
 from . import CMake, Term
 from pygit2 import Repository
 from pygit2.enums import SortMode
@@ -10,7 +10,7 @@ def cli(): pass
 @cli.command()
 def build():
     cmake = CMake(cmakePath="/Users/matthewmcraven/Qt/Tools/CMake/CMake.app/Contents/bin/cmake")
-    cmake.clean()
+    shutil.rmtree("/Volumes/RAMDisk/Build")
     cmake.build("/Users/matthewmcraven/Documents/Code/Pepp", "/Volumes/RAMDisk/Build")
 
 @cli.command("run-once")
