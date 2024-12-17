@@ -9,10 +9,12 @@ from pygit2.enums import SortMode, ResetMode
 
 from . import CMake, Term
 
+
 @click.group()
 def cli():
     # Load environment variables from file (if present)
     load_dotenv()
+
 
 def do_build(src_dir, build_dir, cmake_path=None, stdout=None, stderr=None):
     if cmake_path is None: cmake_path=os.environ["CMAKE_PATH"]
@@ -20,11 +22,13 @@ def do_build(src_dir, build_dir, cmake_path=None, stdout=None, stderr=None):
     shutil.rmtree(build_dir, ignore_errors=True)
     cmake.build(src_dir, build_dir, stdout=stdout, stderr=stderr)
 
+
 @cli.command()
 @click.option("-b","--build-dir",type=str)
 def build(build_dir):
     repo_root = pathlib.Path(__file__).resolve().parent / "../.."
     do_build(str(repo_root.absolute()), build_dir)
+
 
 def term_name():
     match sys.platform:
@@ -84,15 +88,18 @@ def create_tables(conn, cur):
     cur.execute(make_results)
     conn.commit()
 
+
 def add_experiment(conn, cur, description):
     cur.execute("INSERT INTO experiments (description) VALUES (?) RETURNING exp_id;", (description,),)
     (row_id,) = row if (row:=cur.fetchone()) else None
     conn.commit()
     return row_id
 
+
 def add_result(conn, cur, commit, exp_id, mean, stddev):
     cur.execute("INSERT INTO results (commit_sha, exp_id, mean, stddev) VALUES (?,?,?,?)", (commit, exp_id, mean, stddev))
     conn.commit()
+
 
 @cli.command("do-commits")
 @click.option("-b","--build-dir", type=str)
