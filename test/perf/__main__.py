@@ -1,4 +1,5 @@
 import json
+import math
 import statistics as stats, pathlib, re, shutil
 import subprocess
 import tempfile, sys, os, time, sqlite3
@@ -11,6 +12,10 @@ from pygit2.enums import SortMode, ResetMode
 
 from . import CMake, Term
 
+# For plot-commits
+import numpy as np
+import matplotlib.pyplot as plt
+import datetime
 
 @click.group()
 def cli():
@@ -184,6 +189,41 @@ def run(build_dir, log_dir, db):
         finally:
             cleanup_worktree(repo, tree_tag)
 
+
+@cli.command("plot-commits")
+@click.option("--db", type=pathlib.Path, default=pathlib.Path(__file__).resolve().parent/"result.db")
+def plot(db):
+    path = pathlib.Path(__file__).resolve().parent / "../../.git"
+    repo = Repository(path.resolve())
+    with sqlite3.connect(str(db.as_uri())+"?mode=ro", uri=True) as conn:
+        cur = conn.cursor()
+        exps = {exp_id:desc for (exp_id,desc) in cur.execute("SELECT exp_id,description FROM experiments")}
+
+        # How big does grid need to be to hold all plots?
+        grid_size = math.ceil(math.sqrt(len(exps)+1))
+        fig, axes = plt.subplots(grid_size,grid_size)
+
+        cur.execute("SELECT commit_sha FROM results",())
+        # Duplicate keys should be deleted by map CTOR
+        commit_to_time = {sha : datetime.datetime.fromtimestamp(repo.get(sha).commit_time, datetime.UTC) for (sha,) in cur}
+        # Sort tuples by time, allowing us to create commit ordering in O(n*lgn) instead of O(n**2)
+        times = sorted(commit_to_time.items(),key=lambda x:x[1])
+        commit_to_order = {sha: idx for idx, (sha,_) in enumerate(times)}
+        dates = np.array([commit_to_time[sha] for sha in commit_to_order.keys()])
+        x = np.arange(0,dates.shape[0])
+        ax = axes[0][0]
+        ax.scatter(x, dates)
+        ax.title.set_text("Commits vs Days")
+        for exp_id, desc in exps.items():
+            y, ybar = np.empty_like(x), np.empty_like(x)
+            for (commit,_,mean,stddev) in cur.execute("SELECT * FROM results WHERE exp_id == ?",(exp_id,)):
+                idx = commit_to_order[commit]
+                y[idx], ybar[idx] = mean, stddev
+            ax = axes[(exp_id)//grid_size][(exp_id)%grid_size]
+            ax.scatter(x, y)
+            ax.errorbar(x,y,yerr=ybar, fmt='none')
+            ax.title.set_text(desc)
+        plt.show()
 
 
 if __name__ == '__main__':
