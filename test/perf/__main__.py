@@ -143,7 +143,9 @@ def run(build_dir, log_dir, db):
                     mean, stddev = mit(build_dir)
                     add_result(conn, cur, commit.short_id, mit_id, mean, stddev)
                     click.echo(f"Finished commit #{idx+1} -- {commit.short_id}")
-                except CalledProcessError: pass
+                except CalledProcessError as e:
+                    click.echo("    " + str(e))
+                    click.echo(f"Failed commit #{idx + 1} -- {commit.short_id}")
         # Ensures that we clean up the worktree if someone hits ctrl+c.
         except KeyboardInterrupt as e: raise e
         finally:
