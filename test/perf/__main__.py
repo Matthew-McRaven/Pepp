@@ -1,35 +1,48 @@
-import tempfile
-from subprocess import CompletedProcess, CalledProcessError
+import statistics as stats, pathlib, re, shutil
+import tempfile, sys, os
+from subprocess import CalledProcessError
 
 import click
-import statistics as stats, pathlib, re, shutil
-from . import CMake, Term
+from dotenv import load_dotenv
 from pygit2 import Repository
 from pygit2.enums import SortMode, ResetMode
 
-@click.group()
-def cli(): pass
+from . import CMake, Term
 
-def do_build(src_dir):
-    cmake = CMake(cmakePath="/Users/matthewmcraven/Qt/Tools/CMake/CMake.app/Contents/bin/cmake")
-    shutil.rmtree("/Volumes/RAMDisk/Build", ignore_errors=True)
-    cmake.build(src_dir, "/Volumes/RAMDisk/Build")
+@click.group()
+def cli():
+    # Load environment variables from file (if present)
+    load_dotenv()
+
+def do_build(src_dir, build_dir, cmake_path=None, stdout=None, stderr=None):
+    if cmake_path is None: cmake_path=os.environ["CMAKE_PATH"]
+    cmake = CMake(cmake_path=cmake_path)
+    shutil.rmtree(build_dir, ignore_errors=True)
+    cmake.build(src_dir, build_dir, stdout=stdout, stderr=stderr)
 
 @cli.command()
-def build():
-    do_build("/Volumes/RamDisk/src")
+@click.option("-b","--build-dir",type=str)
+def build(build_dir):
+    repo_root = pathlib.Path(__file__).resolve().parent / "../.."
+    do_build(str(repo_root.absolute()), build_dir)
+
+def term_name():
+    match sys.platform:
+        case 'linux': return "output/pepp-term"
+        case 'darwin': return "output/pepp-term"
+        case 'win32': return "output/pepp-term.exe"
 
 @cli.command("run-once")
-def run_once():
-    term = Term("/Volumes/RAMDisk/Build/output/pepp-term")
+@click.option("-b","--build-dir",type=str)
+def run_once(build_dir):
+    term_path = str((pathlib.Path(build_dir)/term_name()).absolute())
+    term = Term(term_path)
     vals = [x for x in map(lambda _: term.mit(), range(10))]
     print(f"{stats.mean(vals)}±{round(stats.stdev(vals), 0)}")
 
 
 class REMatch(str):
     def __eq__(self, regex): return re.fullmatch(regex, self)
-
-
 def commit_filter(commit):
     first_line = commit.message.split("\n")[0]
     match REMatch(first_line):
@@ -39,12 +52,17 @@ def commit_filter(commit):
         case "test.*": return False  # Tests should not affect perf
         case _: return True  # Everything else might
 
+
 def cleanup_worktree(repo, name):
     # Delete worktree and is supporting branch if it already exists
     if name in repo.list_worktrees() and (tree := repo.lookup_worktree(name)) is not None: tree.prune(True)
     if name in repo.listall_branches() and (br := repo.lookup_branch(name)) is not None: br.delete()
+
+
 @cli.command("do-commits")
-def run():
+@click.option("-b","--build-dir", type=str)
+@click.option("-l","--log-dir", type=pathlib.Path, default=pathlib.Path(__file__).resolve().parent/"logs")
+def run(build_dir,log_dir):
     path = pathlib.Path(__file__).resolve().parent / "../../.git"
     repo = Repository(path.resolve())
     walker = repo.walk(repo.head.target, SortMode.TOPOLOGICAL | SortMode.REVERSE)
@@ -58,6 +76,10 @@ def run():
     for c in hide: walker.hide(c)
     commits = [c for c in walker if commit_filter(c)]
     tree_tag = "buildzone"
+    # Create a path for log files, deleting any existing logs
+    shutil.rmtree(log_dir, ignore_errors=True)
+    os.mkdir(log_dir)
+
     with tempfile.TemporaryDirectory() as src_dir:
         src_dir = str((pathlib.Path(src_dir) / "src").absolute())
         try:
@@ -67,7 +89,9 @@ def run():
             for commit in commits:
                 child_repo.reset(commit.id, ResetMode.HARD)
                 child_repo.submodules.update(init=True)
-                try: do_build(src_dir)
+                try:
+                    with open(log_dir/f"{commit.short_id}.out", "w") as stdout, open(log_dir/f"{commit.short_id}.err", "w") as stderr:
+                        do_build(src_dir, build_dir, stdout=stdout, stderr=stderr)
                 except CalledProcessError: pass
         # Ensures that we clean up the worktree if someone hits ctrl+c.
         except KeyboardInterrupt as e: raise e
