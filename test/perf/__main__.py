@@ -2,7 +2,7 @@ import click
 import statistics as stats, pathlib, re, shutil
 from . import CMake, Term
 from pygit2 import Repository
-from pygit2.enums import SortMode
+from pygit2.enums import SortMode, ResetMode
 
 @click.group()
 def cli(): pass
@@ -48,7 +48,17 @@ def run():
 
     for c in hide: walker.hide(c)
     commits = [c for c in walker if filter(c)]
-    print(len(commits))
+    worktrees = repo.list_worktrees()
+    if not "buildzone" in worktrees: repo.add_worktree("buildzone", "/Volumes/RAMDisk/src")
+    wt = repo.lookup_worktree("buildzone")
+    child_repo = Repository(wt.path)
+    for commit in commits:
+        child_repo.reset(commit.id, ResetMode.HARD)
+        child_repo.submodules.update(init=True)
+        cmake = CMake(cmakePath="/Users/matthewmcraven/Qt/Tools/CMake/CMake.app/Contents/bin/cmake")
+        shutil.rmtree("/Volumes/RAMDisk/Build")
+        cmake.build("/Volumes/RAMDisk/src", "/Volumes/RAMDisk/Build")
+    # wt.prune(True)
 
 
 if __name__ == '__main__':
