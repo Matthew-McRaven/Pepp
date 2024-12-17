@@ -78,6 +78,8 @@ def create_tables(conn, cur):
 	PRIMARY KEY("commit_sha","exp_id"),
 	FOREIGN KEY("exp_id") REFERENCES "experiments"("exp_id")
     ) STRICT;"""
+    cur.execute("DROP TABLE IF EXISTS results")
+    cur.execute("DROP TABLE IF EXISTS experiments")
     cur.execute(make_experiments)
     cur.execute(make_results)
     conn.commit()
