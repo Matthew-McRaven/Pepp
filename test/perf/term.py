@@ -10,4 +10,7 @@ class Term:
         out = self.run("mit")
         as_str = out.stdout.decode("utf-8")
         m = re.search(r"Throughput was: (\d\.\d+)e\+(\d+)", as_str, re.RegexFlag.M)
-        return float(m.group(1)) * 10**int(m.group(2))
+        try: return float(m.group(1)) * 10**int(m.group(2))
+        # If match fails, return 0
+        except IndexError: return 0
+        except AttributeError: return 0
