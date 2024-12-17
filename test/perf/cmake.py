@@ -8,5 +8,7 @@ class CMake:
         env = os.environ
         env["CMAKE_PREFIX_PATH"]="/Users/matthewmcraven/Qt/6.8.0/macos"
         out = subprocess.run([self.cmakePath,"-S", cmakeRoot,"-B", buildPath], cwd=cwd, env=env)
+        out.check_returncode()
         out = subprocess.run([self.cmakePath, "--build", buildPath, "-j"],env=env)
+        out.check_returncode()
 
