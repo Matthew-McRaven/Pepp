@@ -15,6 +15,6 @@ class Term:
         except IndexError: return 0
         except AttributeError: return 0
     def get_fig(self, ch, fig):
-        out = self.run("fig", "--ch", ch, "--fig", fig)
+        out = self.run("get", "--ch", ch, "--fig", fig)
         out.check_returncode()
         return out.stdout.decode("utf-8")

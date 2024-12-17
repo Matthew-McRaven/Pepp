@@ -1,4 +1,6 @@
+import json
 import statistics as stats, pathlib, re, shutil
+import subprocess
 import tempfile, sys, os, time, sqlite3
 from subprocess import CalledProcessError
 
@@ -120,7 +122,7 @@ def add_result(conn, cur, commit, exp_id, mean, stddev):
 def run(build_dir, log_dir, db):
     path = pathlib.Path(__file__).resolve().parent / "../../.git"
     repo = Repository(path.resolve())
-    walker = repo.walk(repo.head.target, SortMode.TOPOLOGICAL | SortMode.REVERSE)
+    walker = repo.walk(repo.head.target, SortMode.TOPOLOGICAL)
     hide = {
         "10238cae2735455dc9007c19246431f7cf8169e5",  # First revision to abandon boost and not require VCPKG.
         "7f39472a7c4029255a85ad5e845d2e3c37157190",  # Oldest commit where all output files are placed in /output.
@@ -144,6 +146,7 @@ def run(build_dir, log_dir, db):
         create_tables(conn, cur)
         build_time_id = add_experiment(conn, cur, "Build time")
         mit_id = add_experiment(conn, cur, "Instruction throughput")
+        assemble_id = add_experiment(conn, cur, "Assemble time")
         try:
             cleanup_worktree(repo, tree_tag)
             wt = repo.add_worktree(tree_tag, src_dir)
@@ -161,6 +164,17 @@ def run(build_dir, log_dir, db):
                         add_result(conn, cur, commit.short_id, build_time_id, build_duration, 0)
                     mean, stddev = mit(build_dir)
                     add_result(conn, cur, commit.short_id, mit_id, mean, stddev)
+                    # Report time to assemble file
+                    json_path = str((pathlib.Path(build_dir)/"out.json").absolute())
+                    pep_path = str((pathlib.Path(build_dir)/"a.pep").absolute())
+                    get_figure(build_dir, pep_path)
+                    with open(log_dir/f"{commit.short_id}.asmb.out", "w") as stdout, open(log_dir/f"{commit.short_id}.asmb.err", "w") as stderr:
+                        out = subprocess.run(["hyperfine", f"{term_path(build_dir)} asm {pep_path}","--export-json", json_path, "--show-output"],cwd=build_dir,stdout=stdout, stderr=stderr)
+                    out.check_returncode()
+                    with open(json_path,"r") as json_file:
+                        blob = json.load(json_file)
+                        res = blob["results"][0]
+                        add_result(conn,cur,commit.short_id, assemble_id, res["mean"], res["stddev"])
                     click.echo(f"Finished commit #{idx+1} -- {commit.short_id}")
                 except CalledProcessError as e:
                     click.echo("    " + str(e))
