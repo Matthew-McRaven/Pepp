@@ -71,22 +71,42 @@ Item {
         SplitView {
             visible: mode === "debugger"
             SplitView.minimumWidth: Math.max(registers.implicitWidth,
-                                             batchio.implicitWidth) + 20
+                                             batchInput.implicitWidth,
+                                             batchOutput.implicitWidth) + 20
             orientation: Qt.Vertical
             Cpu.RegisterView {
                 id: registers
                 SplitView.minimumHeight: registers.implicitHeight + 20
+                SplitView.maximumHeight: registers.implicitHeight + 20
                 registers: project?.registers ?? null
                 flags: project?.flags ?? null
             }
-            IO.Batch {
-                SplitView.fillHeight: true
+            IO.Labeled {
+                SplitView.minimumHeight: batchInput.minimumHeight
+                SplitView.preferredHeight: (parent.height - registers.height) / 2
+                id: batchInput
                 width: parent.width
-                id: batchio
+                label: "Input"
+                property bool ignoreTextChange: false
                 Component.onCompleted: {
-                    onInputChanged.connect(() => project.charIn = input)
+                    onTextChanged.connect(() => {
+                                              if (!ignoreTextChange)
+                                              project.charIn = text
+                                          })
                 }
-                output: project?.charOut ?? null
+                function setInput(input) {
+                    ignoreTextChange = true
+                    batchInput.text = input
+                    ignoreTextChange = false
+                }
+            }
+            IO.Labeled {
+                SplitView.minimumHeight: batchOutput.minimumHeight
+                SplitView.preferredHeight: (parent.height - registers.height) / 2
+                id: batchOutput
+                width: parent.width
+                label: "Output"
+                text: project?.charOut ?? ""
             }
         }
         Loader {

@@ -21,7 +21,7 @@ Item {
         project.errorsChanged.connect(displayErrors)
         project.listingChanged.connect(fixListings)
         onProjectChanged.connect(fixListings)
-        project.charInChanged.connect(() => batchio.setInput(project.charIn))
+        project.charInChanged.connect(() => batchInput.setInput(project.charIn))
         // Connect editor BPs to project
         userAsmEdit.editor.modifyLine.connect(project.onModifyUserSource)
         osAsmEdit.editor.modifyLine.connect(project.onModifyOSSource)
@@ -285,32 +285,42 @@ Item {
         SplitView {
             visible: mode === "debugger"
             SplitView.minimumWidth: Math.max(registers.implicitWidth,
-                                             batchio.implicitWidth) + 20
+                                             batchInput.implicitWidth,
+                                             batchOutput.implicitWidth) + 20
             orientation: Qt.Vertical
             Cpu.RegisterView {
                 id: registers
-                SplitView.fillWidth: true
                 SplitView.minimumHeight: registers.implicitHeight + 20
+                SplitView.maximumHeight: registers.implicitHeight + 20
                 registers: project?.registers ?? null
                 flags: project?.flags ?? null
             }
-            IO.Batch {
-                SplitView.fillHeight: true
+            IO.Labeled {
+                SplitView.minimumHeight: batchInput.minimumHeight
+                SplitView.preferredHeight: (parent.height - registers.height) / 2
+                id: batchInput
                 width: parent.width
-                id: batchio
-                property bool ignoreInputChange: false
-                function setInput(input) {
-                    ignoreInputChange = true
-                    batchio.input = input
-                    ignoreInputChange = false
-                }
+                label: "Input"
+                property bool ignoreTextChange: false
                 Component.onCompleted: {
-                    onInputChanged.connect(() => {
-                                               if (!ignoreInputChange)
-                                               project.charIn = input
-                                           })
+                    onTextChanged.connect(() => {
+                                              if (!ignoreTextChange)
+                                              project.charIn = text
+                                          })
                 }
-                output: project?.charOut ?? null
+                function setInput(input) {
+                    ignoreTextChange = true
+                    batchInput.text = input
+                    ignoreTextChange = false
+                }
+            }
+            IO.Labeled {
+                SplitView.minimumHeight: batchOutput.minimumHeight
+                SplitView.preferredHeight: (parent.height - registers.height) / 2
+                id: batchOutput
+                width: parent.width
+                label: "Output"
+                text: project?.charOut ?? ""
             }
         }
         Item {
