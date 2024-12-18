@@ -199,6 +199,17 @@ DUP:     LDWA    0,x         ;Load TOS+0, store to TOS-1
 @DC      RDROP, _RFROM, 0x06, 0x04
          ADDSP   2,i          ;Drop return TOS
          RET
+;******* FORTH words: standard IO
+@DC      KEY, _RDROP, 0x04, 0x0A
+         LDBA    charIn,d     ;Load char from STDIN
+         STBA    -1,x         ;Push to TOS,
+         ADDX    1,i
+         RET
+@DC      EMIT, _KEY, 0x05, 0x0A
+         LDBA    0,x          ;Pop TOS byte into A
+         ADDX    1,i          ;Increment PSP
+         STBA    charOut,d    ;Print it
+         RET
 ;******* FORTH interpreter
 cldstrt: LDWX    pStack, i
          CALL    HALT
