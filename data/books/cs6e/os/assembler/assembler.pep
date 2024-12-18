@@ -37,6 +37,8 @@ addrDMA: .BLOCK  2
 ;Number of bytes to transfer via DMA. May be <256.
 lenDMA:  .BLOCK  2
          .EXPORT lenDMA
+         .BLOCK 2            ;Padding to protect IDE controller
+_BUF:    .BLOCK  32          ;Static buffer into which WORD reads
 ;
          .SECTION "text", "rx"
 ;
@@ -263,7 +265,6 @@ initPC:  .WORD   0
          .SECTION "memvec", "rw"
 ;
 ;******* FORTH Globals
-_BUF:    .BLOCK  32          ;Static buffer into which WORD reads
          .BLOCK  2           ;Padding
 PSP:     .WORD   pStack      ;Current parameter stack pointer
 RSP:     .WORD   rStack      ;Current return stack pointer
