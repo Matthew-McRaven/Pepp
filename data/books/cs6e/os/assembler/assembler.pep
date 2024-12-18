@@ -159,6 +159,20 @@ DUP:     LDWA    0,x         ;Load TOS+0, store to TOS-1
          NOTA
          STWA    0,x
          RET
+@DCSTR   "@\x00", LOAD, _INV, 0x02, 0x10
+         STWX    PSP,d        ;Store PSP to global data
+         LDWX    0,x          ;Get the word pointed to by PSP
+         LDWA    0,x          ;Dereference that word
+         LDWX    PSP,d        ;Restore PSP
+         STWA    0,x          ;Store the word to TOS
+         RET
+@DCSTR   "!\x00", STORE, _LOAD, 0x02, 0x10
+         LDWA    2,x          ;Load TOS-1 into A
+         STWX    PSP,d        ;Store PSP to global data
+         LDWX    0,x          ;Get the word pointed to by PSP
+         STWA    0,x          ;Store TOS-1
+         LDWX    PSP,d        ;Restore PSP
+         RET
 ;
 ;******* FORTH interpreter
 cldstrt: LDWX    pStack, i
