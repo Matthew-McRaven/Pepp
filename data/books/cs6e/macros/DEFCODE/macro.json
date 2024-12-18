@@ -4,6 +4,7 @@
   "items": {
     "DC": "{name}.pepm",
     "DCSTR": "{name}.pepm",
-    "DVAR": "{name}.pepm"
+    "DVAR": "{name}.pepm",
+    "DCONST": "{name}.pepm"
   }
 }

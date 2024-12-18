@@ -185,6 +185,10 @@ DUP:     LDWA    0,x         ;Load TOS+0, store to TOS-1
 @DVAR    LATEST, _STATE,  0x07
 @DVAR    HERE,   _LATEST, 0x05
 ;
+;******* FORTH words: global constants
+@DCONST  F_IMM,   _HERE,   0x06, 0x80
+@DCONST  F_HID,   _F_IMM,  0x06, 0x20
+@DCONST  F_LNMSK, _F_HID,  0x08, 0x1f
 ;
 ;******* FORTH interpreter
 cldstrt: LDWX    pStack, i
