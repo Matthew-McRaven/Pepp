@@ -38,13 +38,6 @@ addrDMA: .BLOCK  2
 lenDMA:  .BLOCK  2
          .EXPORT lenDMA
 ;
-;******* FORTH Globals
-         .BLOCK  2           ;Padding
-PSP:     .WORD   pStack      ;Current parameter stack pointer
-RSP:     .WORD   rStack      ;Current return stack pointer
-STATE:   .WORD   0           ;0=interpret, !0=compile
-LATEST:  .WORD   _STORE      ;Pointer to the most recently defined word
-HERE:    .WORD   0x0000      ;Pointer to the next free memory location
          .SECTION "text", "rx"
 ;
 ;******* FORTH words: stack manipulation
@@ -210,6 +203,14 @@ trpHnd:  .WORD   trp
 initPC:  .WORD   0
 ;
          .SECTION "memvec", "rw"
+;
+;******* FORTH Globals
+         .BLOCK  2           ;Padding
+PSP:     .WORD   pStack      ;Current parameter stack pointer
+RSP:     .WORD   rStack      ;Current return stack pointer
+STATE:   .WORD   0           ;0=interpret, !0=compile
+LATEST:  .WORD   _STORE      ;Pointer to the most recently defined word
+HERE:    .WORD   0x0000      ;Pointer to the next free memory location
          .ORG    0xFFFB
 initSP:  .WORD   rStack
          .EXPORT charIn
