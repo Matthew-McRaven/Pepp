@@ -183,6 +183,22 @@ DUP:     LDWA    0,x         ;Load TOS+0, store to TOS-1
 @DCONST  F_HID,   _F_IMM,  0x06, 0x20
 @DCONST  F_LNMSK, _F_HID,  0x08, 0x1f
 ;
+;******* FORTH words: return stack
+@DCSTR   ">R\x00", TOR, _F_LNMSK, 0x03, 0x0D
+         LDWA    0,s          ;Load return TOS into A
+         ADDSP   2,i          ;Drop return TOS
+         STWA    -2,x
+         SUBX    2,i          ;Decrement PSP
+         RET
+@DCSTR   "R>\x00", RFROM, _TOR, 0x03, 0x0D
+         LDWA    0,x          ;Load TOS into A
+         ADDX    2,i          ;Increment PSP
+         STWA    0,s          ;Store A to return TOS
+         SUBSP   2,i
+         RET
+@DC      RDROP, _RFROM, 0x06, 0x04
+         ADDSP   2,i          ;Drop return TOS
+         RET
 ;******* FORTH interpreter
 cldstrt: LDWX    pStack, i
          CALL    HALT
@@ -209,7 +225,7 @@ initPC:  .WORD   0
 PSP:     .WORD   pStack      ;Current parameter stack pointer
 RSP:     .WORD   rStack      ;Current return stack pointer
 STATE:   .WORD   0           ;0=interpret, !0=compile
-LATEST:  .WORD   _STORE      ;Pointer to the most recently defined word
+LATEST:  .WORD   _RDROP       ;Pointer to the most recently defined word
 HERE:    .WORD   0x0000      ;Pointer to the next free memory location
          .ORG    0xFFFB
 initSP:  .WORD   rStack
