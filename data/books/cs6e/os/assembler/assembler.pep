@@ -1,5 +1,6 @@
          .SECTION "stack", "rwz"
-bmRAM:   .BLOCK  2
+pStack:  .BLOCK  128         ;Limit return stack to 128 bytes
+rStack:  .BLOCK  2           ;Padding before IDE controller
 ;Memory-mapped IDE controller registers
 ; It uses 256B sectors instead of the usual 512B so that offsets in a sector can be 8 bits.
 ; It always use DMA to avoid the CPU overhead of programmed IO (PIO).
@@ -37,7 +38,131 @@ addrDMA: .BLOCK  2
 lenDMA:  .BLOCK  2
          .EXPORT lenDMA
 ;
-         .SECTION "text", "wx"
+;******* FORTH Globals
+         .BLOCK  2           ;Padding
+PSP:     .WORD   pStack      ;Current parameter stack pointer
+RSP:     .WORD   rStack      ;Current return stack pointer
+         .SECTION "text", "rx"
+;******* FORTH Constants
+
+;******* FORTH words
+@DC      HALT, 0x0000, 0x05, 0x09
+HALT:    LDWA    0xDEAD, i
+         STBA    pwrOff, d
+hang:    BR      hang
+
+@DC      DROP, _HALT, 0x05, 0x04
+         ADDX    2,i         ;Drop top of parameter stack stack
+         RET
+
+;Also tried implementing with XOR-swap, but that used 3 more bytes.
+@DC      SWAP, _DROP, 0x05, 0x13
+         LDWA    0,x         ;Load TOS+0, store to TOS-1
+         STWA    -2,x
+         LDWA    2,x         ;Load TOS+1, store to TOS+0
+         STWA    0,x
+         LDWA    -2,x        ;Load TOS-1, store to TOS+1
+         STWA    2,x
+         RET
+
+@DC      DUP, _SWAP, 0x04, 0x0A
+DUP:     LDWA    0,x         ;Load TOS+0, store to TOS-1
+         STWA    -2,x
+         SUBX    2,i         ;Decrement PSP
+         RET
+
+@DC      OVER, _DUP, 0x05, 0x0A
+         LDWA    2,x         ;Load TOS+1, store to TOS-1
+         STWA    -2,x
+         SUBX    2,i         ;Decrement PSP
+         RET
+
+@DC      ROT, _OVER, 0x04, 0x1C
+         LDWA    0,x         ;Load TOS+0, store to TOS-1
+         STWA    -2,x
+         LDWA    2,x         ;Load TOS+1, store to TOS+0
+         STWA    0,x
+         LDWA    4,x         ;Load TOS+2, store to TOS+1
+         STWA    2,x
+         LDWA    -2,x        ;Load TOS-1, store to TOS+2
+         STWA    4,x
+         RET
+;Ignoring -ROT for now since I don't (yet) need it.
+@DCSTR   "2DROP\x00", DROP2, _ROT, 0x06, 0x05
+         ADDX    4,i         ;Drop top two elements of parameter stack
+         RET
+
+@DCSTR   "2DUP\x00", DUP2, _DROP2, 0x05, 0x0A
+         LDWA    0,x         ;Load TOS+0, store to TOS-2
+         STWA    -4,x
+         LDWA    2,x         ;Load TOS+1, store to TOS-1
+         STWA    -2,x
+         SUBX    4,i         ;Decrement PSP
+         RET
+
+@DCSTR   "?DUP\x00", MDUP, _DUP2, 0x05, 0x07
+         LDWA    0,x         ;Load TOS+0
+         BRNE    DUP         ;If non-0, DUP
+         RET
+@DCSTR   "1+\x00", INCR, _MDUP, 0x03, 0x0A
+         LDWA    0,x         ;Increment TOS by 1
+         ADDA    1,i
+         STWA    0,x
+         RET
+@DCSTR   "1-\x00", DECR, _INCR, 0x03, 0x0A
+         LDWA    0,x         ;Decrement TOS by 1
+         SUBA    1,i
+         STWA    0,x
+         RET
+@DCSTR   "2+\x00", INCR2, _DECR, 0x03, 0x0A
+         LDWA    0,x         ;Increment TOS by 2
+         ADDA    2,i
+         STWA    0,x
+         RET
+@DCSTR   "2-\x00", DECR2, _INCR2, 0x03, 0x0A
+         LDWA    0,x         ;Decrement TOS by 2
+         SUBA    2,i
+         STWA    0,x
+         RET
+@DCSTR   "+\x00", ADD, _DECR2, 0x02, 0x0D
+         LDWA    -2,x         ;Add TOS to TOS-1
+         ADDA    0,x
+         STWA    -2,x
+         ADDX    2,i
+         RET
+@DCSTR   "-\x00", SUB, _ADD, 0x02, 0x0D
+         LDWA    -2,x         ;Sub TOS from TOS-1
+         SUBA    0,x
+         STWA    -2,x
+         ADDX    2,i
+         RET
+@DC      AND, _SUB, 0x04, 0x0D
+         LDWA    -2,x         ;Bitwise AND TOS and TOS-1
+         ANDA     0,x
+         STWA    -2,x
+         ADDX    2,i
+         RET
+@DC      OR, _AND, 0x03, 0x0D
+         LDWA    -2,x         ;Bitwise OR TOS and TOS-1
+         ORA    0,x
+         STWA    -2,x
+         ADDX    2,i
+         RET
+@DC      XOR, _OR, 0x04, 0x0D
+         LDWA    -2,x         ;Bitwise XOR TOS and TOS-1
+         XORA     0,x
+         STWA    -2,x
+         ADDX    2,i
+         RET
+@DCSTR   "INVERT\x00", INV, _XOR, 0x07, 0x08
+         LDWA    0,x          ;Bitwise NOT TOS
+         NOTA
+         STWA    0,x
+         RET
+;
+;******* FORTH interpreter
+cldstrt: LDWX    pStack, i
+         CALL    HALT
 ;
 ;******* Trap Handler
 ;While bare metal mode is not supposed to have a trap handler,
@@ -45,27 +170,21 @@ lenDMA:  .BLOCK  2
 ;This trap handler will print out an error message before terminating execution.
 trp:     LDWX    0,i         ;X <- 0
 prntMore:LDBA    msg,x       ;Test next char
-         BREQ    exitPrnt    ;If null then exit
+         BREQ    HALT        ;If null then exit
          STBA    charOut,d   ;else print
          ADDX    1,i         ;X <- X + 1 for next character
-         BR      prntMore
-exitPrnt:LDWA    0xDEAD, i
-         STBA    pwrOff, d
-hang:    BR      hang
+         BR      HALT
 msg:     .ASCII "Cannot use system calls in bare metal mode\x00"
 ;
-trpHnd:   .WORD  trp
-initPC:  .WORD   0x0000
+trpHnd:  .WORD   trp
+initPC:  .WORD   cldstrt
 ;
          .SECTION "memvec", "rw"
          .ORG    0xFFFB
-initSP:  .WORD   bmRAM
+initSP:  .WORD   rStack
          .INPUT  charIn
-         .EXPORT charIn
 charIn:  .BLOCK  1
          .OUTPUT charOut
-         .EXPORT charOut
 charOut: .BLOCK  1
          .OUTPUT pwrOff
-         .EXPORT pwrOff
 pwrOff:  .BLOCK  1
