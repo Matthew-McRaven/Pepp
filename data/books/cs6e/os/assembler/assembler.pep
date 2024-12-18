@@ -46,9 +46,8 @@ STATE:   .WORD   0           ;0=interpret, !0=compile
 LATEST:  .WORD   _STORE      ;Pointer to the most recently defined word
 HERE:    .WORD   0x0000      ;Pointer to the next free memory location
          .SECTION "text", "rx"
-;******* FORTH Constants
-
-;******* FORTH words
+;
+;******* FORTH words: stack manipulation
 @DC      HALT, 0x0000, 0x05, 0x09
 HALT:    LDWA    0xDEAD, i
          STBA    pwrOff, d
@@ -107,6 +106,8 @@ DUP:     LDWA    0,x         ;Load TOS+0, store to TOS-1
          LDWA    0,x         ;Load TOS+0
          BRNE    DUP         ;If non-0, DUP
          RET
+;
+;******* FORTH words: arithmetic & logic
 @DCSTR   "1+\x00", INCR, _MDUP, 0x03, 0x0A
          LDWA    0,x         ;Increment TOS by 1
          ADDA    1,i
@@ -162,6 +163,8 @@ DUP:     LDWA    0,x         ;Load TOS+0, store to TOS-1
          NOTA
          STWA    0,x
          RET
+;
+;******* FORTH words: memory operations
 @DCSTR   "@\x00", LOAD, _INV, 0x02, 0x10
          STWX    PSP,d        ;Store PSP to global data
          LDWX    0,x          ;Get the word pointed to by PSP
@@ -176,9 +179,12 @@ DUP:     LDWA    0,x         ;Load TOS+0, store to TOS-1
          STWA    0,x          ;Store TOS-1
          LDWX    PSP,d        ;Restore PSP
          RET
-@DVAR    STATE, _STORE, 0x06
-@DVAR    LATEST, _STATE, 0x07
-@DVAR    HERE, _LATEST, 0x05
+;
+;******* FORTH words: global variables
+@DVAR    STATE,  _STORE,  0x06
+@DVAR    LATEST, _STATE,  0x07
+@DVAR    HERE,   _LATEST, 0x05
+;
 ;
 ;******* FORTH interpreter
 cldstrt: LDWX    pStack, i
