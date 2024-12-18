@@ -216,6 +216,31 @@ DUP:     LDWA    0,x         ;Load TOS+0, store to TOS-1
          LDBA '\n',i
          STBA charOut,d
          RET
+
+@DC      WORD, _CR, 0x05, 0x43
+         SUBX    2,i          ;Allocate 2 bytes for WORD length, so we can use STWX PSP,n to store to it
+         STWX    PSP,d        ;Preserve PSP
+         LDWX    0,i          ;Initialize buffer index
+bWrdLoop:LDBA    charIn,d     ;Load char from STDIN
+         CPBA   '!',i         ;Anything greater than 0x21 is printable, letting us skip whitespace checks.
+         BRGE   mWrdLoop      ;This is a performance-optimization for the common case.
+         CPBA   ' ',i         ;Terminate if non-leading space, tab, newline.
+         BREQ    eWrdLoop
+         CPBA   '\n',i
+         BREQ    eWrdLoop
+         CPBA   '\t',i
+         BREQ    eWrdLoop
+mWrdLoop:STBA    _BUF,x       ;Store char to buffer, incremeting pointer.
+         ADDX    1,x
+         BR      bWrdLoop
+eWrdLoop:CPWX    0,i          ;Consume leading whitespace when buffer is empty.
+         BREQ    bWrdLoop
+         STWX    PSP,N        ;Otherwise, push length to TOS
+         LDWX    PSP,d        ;Restore PSP
+         LDWA    _BUF,i       ;Push buffer pointer to TOS
+         STWA    -2,x
+         SUBX    2,i
+         RET
 ;******* FORTH interpreter
 cldstrt: LDWX    pStack, i
          CALL    HALT
@@ -238,6 +263,7 @@ initPC:  .WORD   0
          .SECTION "memvec", "rw"
 ;
 ;******* FORTH Globals
+_BUF:    .BLOCK  32          ;Static buffer into which WORD reads
          .BLOCK  2           ;Padding
 PSP:     .WORD   pStack      ;Current parameter stack pointer
 RSP:     .WORD   rStack      ;Current return stack pointer
