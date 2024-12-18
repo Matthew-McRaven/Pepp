@@ -145,7 +145,13 @@ Item {
                 width: TreeView.availableWidth
                 // Default background does not fill entire delegate.
                 background: Rectangle {
-                    anchors.fill: parent
+                    anchors {
+                        left: parent.left
+                        top: parent.top
+                        bottom: parent.bottom
+                    }
+                    width: treeView.width
+
                     color: palette.base
                     border {
                         color: treeDelegate.current ? palette.highlight : "transparent"
