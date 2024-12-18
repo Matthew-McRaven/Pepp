@@ -6,6 +6,7 @@ import "qrc:/edu/pepp/components" as Comp
 
 Item {
     id: root
+    // Treat as read-only inputs. If changed, they should force updates to the combo boxes.
     property var architecture: 0
     property var abstraction: 0
     NuAppSettings {
@@ -100,12 +101,6 @@ Item {
                     model: ListModel {
                         id: architectureModel
                     }
-                    onCurrentIndexChanged: {
-                        helpModel.architecture = Qt.binding(
-                                    () => architectureModel.get(
-                                        architectureCombo.currentIndex)?.value
-                                    ?? Architecture.PEP9)
-                    }
                 }
             }
             Column {
@@ -121,12 +116,6 @@ Item {
                     model: ListModel {
                         id: abstractionModel
                     }
-                    onCurrentIndexChanged: {
-                        helpModel.abstraction = Qt.binding(
-                                    () => abstractionModel.get(
-                                        abstractionCombo.currentIndex)?.value
-                                    ?? Abstraction.ASMB5)
-                    }
                 }
             }
         }
@@ -141,8 +130,8 @@ Item {
                 id: helpModel
                 model: HelpModel {}
                 // Sane defaults
-                abstraction: Abstraction.ASMB5
-                architecture: Architecture.PEP9
+                architecture: architectureCombo.currentValue
+                abstraction: abstractionCombo.currentValue
                 showWIPItems: settings.general.showDebugComponents
                 onAbstractionChanged: root.selected = treeView.index(0, 0)
                 onArchitectureChanged: root.selected = treeView.index(0, 0)
