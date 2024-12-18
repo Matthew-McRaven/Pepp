@@ -3,6 +3,7 @@
   "arch": "pep10",
   "items": {
     "DC": "{name}.pepm",
-    "DCSTR": "{name}.pepm"
+    "DCSTR": "{name}.pepm",
+    "DVAR": "{name}.pepm"
   }
 }

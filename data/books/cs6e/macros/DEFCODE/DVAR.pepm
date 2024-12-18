@@ -1,0 +1,9 @@
+@DVAR 3
+.ASCII  "$1\x00"
+_$1:    .WORD $2
+        .BYTE $3
+        .BYTE 0x0A
+        LDWA $1,i
+        STWA -2,x
+        SUBX 2,i
+        RET
