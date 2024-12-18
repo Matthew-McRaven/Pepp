@@ -33,6 +33,8 @@ Item {
             validator: RegularExpressionValidator {
                 regularExpression: /(25[0-5]|2[0-4]\d|1\d\d|[1-9]?\d)/
             }
+            ToolTip.text: qsTr("Signed decimal")
+            ToolTip.visible: hovered
         }
         TextField {
             id: hex
@@ -46,6 +48,8 @@ Item {
             validator: RegularExpressionValidator {
                 regularExpression: /0x[0-9a-fA-F]{1,2}/
             }
+            ToolTip.text: qsTr("Hexadecimal")
+            ToolTip.visible: hovered
         }
         TextField {
             id: bin
@@ -59,6 +63,8 @@ Item {
             validator: RegularExpressionValidator {
                 regularExpression: /[01]{1,8}/
             }
+            ToolTip.text: qsTr("Binary")
+            ToolTip.visible: hovered
         }
         TextField {
             CharCheck {
@@ -74,6 +80,8 @@ Item {
             onEditingFinished: {
                 wrapper.setValue(ascii.text.charCodeAt(0) ?? 0)
             }
+            ToolTip.text: qsTr("ASCII")
+            ToolTip.visible: hovered
         }
         ComboBox {
             id: mnemonic
@@ -105,6 +113,8 @@ Item {
             onActivated: {
                 wrapper.setValue(model.opcodeFromIndex(currentIndex))
             }
+            ToolTip.text: qsTr("Opcode")
+            ToolTip.visible: hovered
         }
     }
 }
