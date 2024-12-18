@@ -1,0 +1,5 @@
+@DCSTR 5
+.ASCII  $1
+_$2:    .WORD $3
+        .BYTE $4
+        .BYTE $5
