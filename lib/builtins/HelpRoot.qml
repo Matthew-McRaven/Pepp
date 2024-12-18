@@ -153,11 +153,17 @@ Item {
                     }
                 }
                 onCurrentChanged: {
-                    if (current)
+                    if (current) {
                         makeActive()
+                    }
                 }
                 onClicked: {
                     makeActive()
+                    if (treeView.isExpanded(row)) {
+                        treeView.collapseRecursively(row)
+                    } else {
+                        treeView.expandRecursively(row)
+                    }
                 }
                 function makeActive() {
                     root.selected = treeDelegate.treeView.index(row, column)
