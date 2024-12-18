@@ -243,6 +243,18 @@ eWrdLoop:CPWX    0,i          ;Consume leading whitespace when buffer is empty.
          STWA    -2,x
          SUBX    2,i
          RET
+
+@DC      DECO, _WORD, 0x05, 0x19
+         LDWA    0,x          ;Pop TOS into A
+         ADDX    2,i
+         STWX    PSP,d        ;Preserve PSP
+         STWA    -2,s         ;Push A to return stack
+         SUBSP   2,i
+         CALL    decPrint
+         ADDSP   2,i
+         LDWX    PSP,d        ;Restore PSP
+         RET
+
 ;******* FORTH interpreter
 cldstrt: LDWX    pStack, i
          CALL    HALT
@@ -261,6 +273,74 @@ msg:     .ASCII "Cannot use system calls in bare metal mode\x00"
 ;
 trpHnd:  .WORD   trp
 initPC:  .WORD   0
+;
+;******* Reusable assembly routines
+;Output format: If the operand is negative, the algorithm prints
+;a single '-' followed by the magnitude. Otherwise it prints the
+;magnitude without a leading '+'. It suppresses leading zeros.
+;
+;Print number
+;Expects the number to be printed stored in the accumulator.
+remain:  .EQUATE 0           ;#2d Remainder of value to output
+outYet:  .EQUATE 2           ;#2d Has a character been output yet?
+place:   .EQUATE 4           ;#2d Place value for division
+toPrint: .EQUATE 8           ;#2d Number to be printed
+decPrint:SUBSP   6,i         ;Allocate @locals #remain#outYet#place
+         LDWA    toPrint,s   ;Load the number to print
+         CPWA    0,i         ;If oprnd is negative then
+         BRGE    printMag
+         LDBX    '-',i       ;Print leading '-'
+         STBX    charOut,d
+         NEGA                ;Make magnitude positive
+printMag:STWA    remain,s    ;remain <- abs(oprnd)
+         LDWA    0,i         ;Initialize outYet <- false
+         STWA    outYet,s
+         LDWA    10000,i     ;place <- 10,000
+         STWA    place,s
+         CALL    divide      ;Write 10,000's place
+         LDWA    1000,i      ;place <- 1,000
+         STWA    place,s
+         CALL    divide      ;Write 1000's place
+         LDWA    100,i       ;place <- 100
+         STWA    place,s
+         CALL    divide      ;Write 100's place
+         LDWA    10,i        ;place <- 10
+         STWA    place,s
+         CALL    divide      ;Write 10's place
+         LDWA    remain,s    ;Always write 1's place
+         ORA     0x0030,i    ;Convert decimal to ASCII
+         STBA    charOut,d   ;  and output it
+         ADDSP   6,i         ;Deallocate @locals #place#outYet#remain
+         RET
+;
+;Subroutine to print the most significant decimal digit of the
+;remainder. It assumes that place (place2 here) contains the
+;decimal place value. It updates the remainder.
+;
+remain2: .EQUATE 2           ;Stack addresses while executing a
+outYet2: .EQUATE 4           ;  subroutine are greater by two because
+place2:  .EQUATE 6           ;  the retAddr is on the stack
+;
+divide:  LDWA    remain2,s   ;A <- remainder
+         LDWX    0,i         ;X <- 0
+divLoop: SUBA    place2,s    ;Division by repeated subtraction
+         BRLT    writeNum    ;If remainder is negative then done
+         ADDX    1,i         ;X <- X + 1
+         STWA    remain2,s   ;Store the new remainder
+         BR      divLoop
+;
+writeNum:CPWX    0,i         ;If X != 0 then
+         BREQ    checkOut
+         LDWA    1,i         ;outYet <- true
+         STWA    outYet2,s
+         BR      printDgt    ;and branch to print this digit
+checkOut:LDWA    outYet2,s   ;else if a previous char was output
+         BRNE    printDgt    ;then branch to print this zero
+         RET                 ;else return to calling routine
+;
+printDgt:ORX     0x0030,i    ;Convert decimal to ASCII
+         STBX    charOut,d   ;  and output it
+         RET                 ;return to calling routine
 ;
          .SECTION "memvec", "rw"
 ;
