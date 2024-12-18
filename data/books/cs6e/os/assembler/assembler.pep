@@ -205,10 +205,16 @@ DUP:     LDWA    0,x         ;Load TOS+0, store to TOS-1
          STBA    -1,x         ;Push to TOS,
          ADDX    1,i
          RET
+
 @DC      EMIT, _KEY, 0x05, 0x0A
          LDBA    0,x          ;Pop TOS byte into A
          ADDX    1,i          ;Increment PSP
          STBA    charOut,d    ;Print it
+         RET
+
+@DC      CR, _EMIT, 0x03, 0x07
+         LDBA '\n',i
+         STBA charOut,d
          RET
 ;******* FORTH interpreter
 cldstrt: LDWX    pStack, i
@@ -236,7 +242,7 @@ initPC:  .WORD   0
 PSP:     .WORD   pStack      ;Current parameter stack pointer
 RSP:     .WORD   rStack      ;Current return stack pointer
 STATE:   .WORD   0           ;0=interpret, !0=compile
-LATEST:  .WORD   _RDROP       ;Pointer to the most recently defined word
+LATEST:  .WORD   _RDROP      ;Pointer to the most recently defined word
 HERE:    .WORD   0x0000      ;Pointer to the next free memory location
          .ORG    0xFFFB
 initSP:  .WORD   rStack
