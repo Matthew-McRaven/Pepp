@@ -197,14 +197,17 @@ prntMore:LDBA    msg,x       ;Test next char
 msg:     .ASCII "Cannot use system calls in bare metal mode\x00"
 ;
 trpHnd:  .WORD   trp
-initPC:  .WORD   cldstrt
+initPC:  .WORD   0
 ;
          .SECTION "memvec", "rw"
          .ORG    0xFFFB
 initSP:  .WORD   rStack
+         .EXPORT charIn
          .INPUT  charIn
 charIn:  .BLOCK  1
+         .EXPORT charOut
          .OUTPUT charOut
 charOut: .BLOCK  1
+         .EXPORT pwrOff
          .OUTPUT pwrOff
 pwrOff:  .BLOCK  1
