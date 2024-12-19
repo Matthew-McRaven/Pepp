@@ -57,6 +57,7 @@ public:
   // Bus API
   void pushFrontTarget(AddressSpan at, api2::memory::Target<Address> *target);
   api2::memory::Target<Address> *deviceAt(Address address);
+  void removeAllTargets();
 
 private:
   const api2::memory::Target<Address> *device(sim::api2::device::ID id) const {
@@ -191,6 +192,11 @@ template <typename Address> sim::api2::memory::Target<Address> *SimpleBus<Addres
   auto region = _addrs.region_at(address);
   if (!region) return nullptr;
   return _devices[region.value().device].second;
+}
+
+template <typename Address> void SimpleBus<Address>::removeAllTargets() {
+  _addrs.clear();
+  _devices.clear();
 }
 
 template <typename Address>
