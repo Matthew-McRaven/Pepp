@@ -16,6 +16,7 @@
  */
 
 #include "./system.hpp"
+#include "api2/memory/address.hpp"
 #include "device/ide.hpp"
 #include "link/bytes.hpp"
 #include "link/memmap.hpp"
@@ -71,82 +72,7 @@ targets::isa::System::System(builtins::Architecture arch, QList<obj::MemoryRegio
       _paths(QSharedPointer<sim::api2::Paths>::create()) {
 
   _bus->setPathManager(_paths);
-  _paths->add(0, _bus->deviceID());
-  // Construct Dense memory and ignore W bit, since we have no mechanism for it.
-  for (const auto &reg : regions) {
-    auto span = AddressSpan(0, static_cast<quint16>(reg.maxOffset - reg.minOffset));
-    auto desc = desc_dense(nextID());
-    addDevice(desc);
-    auto mem = QSharedPointer<sim::memory::Dense<quint16>>::create(desc, span);
-    _rawMemory.push_back(mem);
-    sim::api2::memory::Target<quint16> *target = &*mem;
-    if (!reg.w) {
-      auto ro = QSharedPointer<sim::memory::ReadOnly<quint16>>::create(false);
-      _readonly.push_back(ro);
-      ro->setTarget(target, nullptr);
-      target = &*ro;
-    }
-    _bus->pushFrontTarget(AddressSpan(reg.minOffset, reg.maxOffset), target);
-    appendReloadEntries(mem, reg, static_cast<quint16>(-reg.minOffset));
-    // Perform load!
-    loadRegion(*mem, reg, static_cast<quint16>(-reg.minOffset));
-  }
-
-  // Create MMIO, do not perform buffering
-  for (const auto &mmio : mmios) {
-    auto span = AddressSpan(0, static_cast<quint16>(mmio.maxOffset - mmio.minOffset));
-    if (mmio.type == obj::IO::Type::kInput) {
-      auto desc = desc_mmi(nextID(), mmio.name);
-      addDevice(desc);
-      auto mem = QSharedPointer<sim::memory::Input<quint16>>::create(desc, span);
-      _bus->pushFrontTarget(AddressSpan(mmio.minOffset, mmio.maxOffset), &*mem);
-      _mmi[mmio.name] = mem;
-      // By default, charIn should raise an error when it runs out of input.
-      if (mmio.name == "charIn") mem->setFailPolicy(sim::api2::memory::FailPolicy::RaiseError);
-    } else if (mmio.type == obj::IO::Type::kOutput) {
-      auto desc = desc_mmo(nextID(), mmio.name);
-      addDevice(desc);
-      auto mem = QSharedPointer<sim::memory::Output<quint16>>::create(desc, span);
-      _bus->pushFrontTarget(AddressSpan(mmio.minOffset, mmio.maxOffset), &*mem);
-      _mmo[mmio.name] = mem;
-    } else if (mmio.type == obj::IO::Type::kIDE) {
-      auto desc = desc_ide(nextID(), mmio.name);
-      addDevice(desc);
-      auto mem = QSharedPointer<sim::memory::IDEController>::create(desc, 0, _nextIDGenerator);
-      mem->setTarget(&*_bus, nullptr);
-      _bus->pushFrontTarget(AddressSpan(mmio.minOffset, mmio.maxOffset), &*mem);
-      _ide[mmio.name] = mem;
-    } else {
-      throw std::logic_error("Unreachable");
-    }
-  }
-  // Use braces to limit scope of variables in switch.
-  switch (arch) {
-  case builtins::Architecture::PEP9: {
-    targets::pep9::isa::CPU *cpu = dynamic_cast<targets::pep9::isa::CPU *>(_cpu.data());
-    addDevice(cpu->device());
-    addDevice(cpu->csrs()->device());
-    addDevice(cpu->regs()->device());
-    // Add pwrOff if it does not already exist.
-    if (_mmo.find("pwrOff") == _mmo.end()) {
-      auto desc = desc_mmo(nextID(), "pwrOff");
-      addDevice(desc);
-      _mmo["pwrOff"] = QSharedPointer<sim::memory::Output<quint16>>::create(desc, AddressSpan(0, 0));
-    }
-    cpu->setPwrOff(_mmo["pwrOff"].data());
-    cpu->setTarget(&*_bus, nullptr);
-    break;
-  }
-  case builtins::Architecture::PEP10: {
-    targets::pep10::isa::CPU *cpu = dynamic_cast<targets::pep10::isa::CPU *>(_cpu.data());
-    addDevice(cpu->device());
-    addDevice(cpu->csrs()->device());
-    addDevice(cpu->regs()->device());
-    cpu->setTarget(&*_bus, nullptr);
-    break;
-  }
-  default: throw std::logic_error("Unimplemented");
-  }
+  reconfigure(arch, regions, mmios);
 }
 
 std::pair<sim::api2::tick::Type, sim::api2::tick::Result> targets::isa::System::tick(sim::api2::Scheduler::Mode mode) {
@@ -248,6 +174,154 @@ void targets::isa::System::doReloadEntries() {
   }
 }
 
+// Duplicated logic from systemFromElf to get the params to pass to reconfigure.
+void targets::isa::System::reconfigure(const ELFIO::elfio &elf) {
+  using size_type = bits::span<const quint8>::size_type;
+  auto segs = obj::getLoadableSegments(elf);
+  auto memmap = obj::mergeSegmentRegions(segs);
+  auto mmios = obj::getMMIODeclarations(elf);
+  builtins::Architecture arch = builtins::Architecture::NONE;
+  // determine arch from ELF.
+  switch (elf.get_machine()) {
+  case (((quint16)'p') << 8) | ((quint16)'9'): arch = builtins::Architecture::PEP9; break;
+  case (((quint16)'p') << 8) | ((quint16)'x'): arch = builtins::Architecture::PEP10; break;
+  default: throw std::logic_error("Unimplemented architecture");
+  }
+
+  reconfigure(arch, memmap, mmios);
+}
+
+// Using previous allocated Dense memory devices, allocate a "new" Dense memory with the specified parameters.
+// Will attempt to find an exact match in the pool, and if not, will attempt to find the smallest memory that can fit
+// the request. If no memory can fit the request, allocate a new Dense memory.
+QSharedPointer<sim::memory::Dense<quint16>> allocate(QVector<QSharedPointer<sim::memory::Dense<quint16>>> &pool,
+                                                     sim::api2::device::Descriptor desc, AddressSpan span) {
+  // Attempt to find exact match in pool.
+  for (int index = 0; index < pool.size(); index++) {
+    if (sim::api2::memory::size_inclusive(pool[index]->span()) == sim::api2::memory::size_inclusive(span)) {
+      auto ret = pool.takeAt(index);
+      ret->setDevice(desc);
+      return ret;
+    }
+  }
+
+  // TODO: consider using capacity rather than size, because additional memory may be reserved due to previous resizing.
+  // Compute the difference in sizes between the request and actual sizes. Positive and close to 0 is best.
+  QVector<std::size_t> size_diff(pool.size(), 0);
+  std::transform(pool.cbegin(), pool.cend(), size_diff.begin(), [span](const auto &mem) {
+    return sim::api2::memory::size_inclusive(mem->span()) - sim::api2::memory::size_inclusive(span);
+  });
+  // Find the element smallest element that can contain the request without expanding.
+  std::size_t min_diff = std::numeric_limits<std::size_t>::max(), index = std::numeric_limits<std::size_t>::max();
+  for (int i = 0; i < size_diff.size(); i++) {
+    if (size_diff[i] >= 0 && size_diff[i] < min_diff) {
+      min_diff = size_diff[i];
+      index = i;
+    }
+  }
+
+  // No element large enough to hold, so allocate a new one.
+  if (index >= pool.size()) return QSharedPointer<sim::memory::Dense<quint16>>::create(desc, span);
+  // Otherwise re-use the selected memory, resizing the span.
+  auto ret = pool.takeAt(index);
+  ret->setDevice(desc);
+  ret->setSpan(span);
+  return ret;
+}
+
+void targets::isa::System::reconfigure(builtins::Architecture arch, QList<obj::MemoryRegion> regions,
+                                       QList<obj::AddressedIO> mmios) {
+  // Take underlying memory and reuse it for new devices.
+  using std::swap;
+  decltype(_rawMemory) rawPool = {};
+  swap(rawPool, _rawMemory);
+
+  // Removed cached MMIO & RO devices, which should be cheap-ish except for IDE controller.
+  _mmi.clear(), _mmo.clear(), _ide.clear(), _devices.clear(), _readonly.clear();
+  _regions.clear();
+  _nextID = _bus->deviceID() + 1;
+
+  // Reset bus and path management.
+  _paths->clear();
+  _bus->removeAllTargets();
+  _paths->add(0, _bus->deviceID());
+
+  // Construct Dense memory, ignoring W bit, since we have no mechanism for it.
+  for (const auto &reg : regions) {
+    auto span = AddressSpan(0, static_cast<quint16>(reg.maxOffset - reg.minOffset));
+    auto desc = desc_dense(nextID());
+    auto mem = allocate(rawPool, desc, span);
+    _rawMemory.push_back(mem);
+    sim::api2::memory::Target<quint16> *target = &*mem;
+    if (!reg.w) {
+      auto ro = QSharedPointer<sim::memory::ReadOnly<quint16>>::create(false);
+      _readonly.push_back(ro);
+      ro->setTarget(target, nullptr);
+      target = &*ro;
+    }
+    _bus->pushFrontTarget(AddressSpan(reg.minOffset, reg.maxOffset), target);
+    appendReloadEntries(mem, reg, static_cast<quint16>(-reg.minOffset));
+    // Perform load!
+    loadRegion(*mem, reg, static_cast<quint16>(-reg.minOffset));
+  }
+
+  // Create MMIO, do not perform buffering
+  for (const auto &mmio : mmios) {
+    auto span = AddressSpan(0, static_cast<quint16>(mmio.maxOffset - mmio.minOffset));
+    if (mmio.type == obj::IO::Type::kInput) {
+      auto desc = desc_mmi(nextID(), mmio.name);
+      addDevice(desc);
+      auto mem = QSharedPointer<sim::memory::Input<quint16>>::create(desc, span);
+      _bus->pushFrontTarget(AddressSpan(mmio.minOffset, mmio.maxOffset), &*mem);
+      _mmi[mmio.name] = mem;
+      // By default, charIn should raise an error when it runs out of input.
+      if (mmio.name == "charIn") mem->setFailPolicy(sim::api2::memory::FailPolicy::RaiseError);
+    } else if (mmio.type == obj::IO::Type::kOutput) {
+      auto desc = desc_mmo(nextID(), mmio.name);
+      addDevice(desc);
+      auto mem = QSharedPointer<sim::memory::Output<quint16>>::create(desc, span);
+      _bus->pushFrontTarget(AddressSpan(mmio.minOffset, mmio.maxOffset), &*mem);
+      _mmo[mmio.name] = mem;
+    } else if (mmio.type == obj::IO::Type::kIDE) {
+      auto desc = desc_ide(nextID(), mmio.name);
+      addDevice(desc);
+      auto mem = QSharedPointer<sim::memory::IDEController>::create(desc, 0, _nextIDGenerator);
+      mem->setTarget(&*_bus, nullptr);
+      _bus->pushFrontTarget(AddressSpan(mmio.minOffset, mmio.maxOffset), &*mem);
+      _ide[mmio.name] = mem;
+    } else {
+      throw std::logic_error("Unreachable");
+    }
+  }
+  // Use braces to limit scope of variables in switch.
+  switch (arch) {
+  case builtins::Architecture::PEP9: {
+    targets::pep9::isa::CPU *cpu = dynamic_cast<targets::pep9::isa::CPU *>(_cpu.data());
+    addDevice(cpu->device());
+    addDevice(cpu->csrs()->device());
+    addDevice(cpu->regs()->device());
+    // Add pwrOff if it does not already exist.
+    if (_mmo.find("pwrOff") == _mmo.end()) {
+      auto desc = desc_mmo(nextID(), "pwrOff");
+      addDevice(desc);
+      _mmo["pwrOff"] = QSharedPointer<sim::memory::Output<quint16>>::create(desc, AddressSpan(0, 0));
+    }
+    cpu->setPwrOff(_mmo["pwrOff"].data());
+    cpu->setTarget(&*_bus, nullptr);
+    break;
+  }
+  case builtins::Architecture::PEP10: {
+    targets::pep10::isa::CPU *cpu = dynamic_cast<targets::pep10::isa::CPU *>(_cpu.data());
+    addDevice(cpu->device());
+    addDevice(cpu->csrs()->device());
+    addDevice(cpu->regs()->device());
+    cpu->setTarget(&*_bus, nullptr);
+    break;
+  }
+  default: throw std::logic_error("Unimplemented");
+  }
+}
+
 void targets::isa::System::appendReloadEntries(QSharedPointer<sim::api2::memory::Target<quint16>> mem,
                                                const obj::MemoryRegion &reg, quint16 baseOffset) {
   quint16 base = baseOffset + reg.minOffset;
@@ -292,9 +366,6 @@ QSharedPointer<targets::isa::System> targets::isa::systemFromElf(const ELFIO::el
     Q_ASSERT(mmi != nullptr);
     auto endpoint = mmi->endpoint();
     auto bytesAsHex = obj::segmentAsAsciiHex(seg);
-    /*std::cout << "[SGLD]<";
-    std::cout.write((char *)bytesAsHex.data(), bytesAsHex.size());
-    std::cout << std::endl;*/
     for (auto byte : bytesAsHex) endpoint->append_value(byte);
   }
   return ret;

@@ -882,6 +882,7 @@ bool Pep_ASMB::onAssemble(bool doLoad) {
   auto userBytes = helper.bytes(false);
   QString objectCodeText = pas::ops::pepp::bytesToObject(userBytes, 16);
 
+  _system->reconfigure(*elf);
   if (doLoad) _system->bus()->write(0, {userBytes.data(), std::size_t(userBytes.length())}, gs);
 
   setObjectCodeText(objectCodeText);
@@ -968,9 +969,11 @@ void Pep_ASMB::onModifyOSList(int line, Action action) {
 }
 
 void Pep_ASMB::prepareSim() {
+  // Must assemble first, otherwise we might load an outdated version of the OS
+  // via _system->init(). Specifically, outdated memory-mapped vector values.
+  if (!onAssemble(true)) return;
   _system->bus()->clear(0);
   _system->init();
-  if (!onAssemble(true)) return;
   _tb->clear();
   _dbg->clearHit();
   auto pwrOff = _system->output("pwrOff");
