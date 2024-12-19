@@ -480,7 +480,7 @@ eWrdLoop:CPWX    0,i          ;Consume leading whitespace when buffer is empty.
          RET
 
 @DC      DECO, _WORD, 0x05, 0x19
-         LDWA    0,x          ;Pop TOS into A
+DECO:    LDWA    0,x          ;Pop TOS into A
          ADDX    2,i
          STWX    PSP,d        ;Preserve PSP
          STWA    -2,s         ;Push A to return stack
@@ -557,6 +557,10 @@ fEnd:    LDWA    fEnt,s
 
 ;******* FORTH interpreter
 cldstrt: LDWX    pStack, i
+         @PUSH   2,i
+         @PUSH   3,i
+         CALL    ADD
+         CALL    DECO
          CALL    HALT
 ;
 ;******* Trap Handler
