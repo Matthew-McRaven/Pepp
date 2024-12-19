@@ -320,6 +320,10 @@ void targets::isa::System::reconfigure(builtins::Architecture arch, QList<obj::M
   }
   default: throw std::logic_error("Unimplemented");
   }
+
+  // re-propogate trace buffer to any new devices.
+  auto buf = _bus->buffer();
+  _bus->setBuffer(buf);
 }
 
 void targets::isa::System::appendReloadEntries(QSharedPointer<sim::api2::memory::Target<quint16>> mem,
