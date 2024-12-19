@@ -514,7 +514,7 @@ fWLen:   .EQUATE 6            ;#2d Length of scanned word
 fWPtr:   .EQUATE 4            ;#2h Address of start of scanned word
 fELen:   .EQUATE 2            ;#2d Length of entry string
 fEPtr:   .EQUATE 0            ;#2h Address of start of entry string
-@DC      FIND, _DECI, 0x05, 0x00
+@DC      FIND, _DECI, 0x05, 0x65
          SUBSP   11,i         ;@locals#fEnt#fWLen#fWPtr#fELen#fEPtr#fEq
          LDWA    0,x          ;fWPtr <- &_buf
          STWA    fWPtr,s
