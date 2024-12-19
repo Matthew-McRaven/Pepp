@@ -7,5 +7,5 @@
   "items": {
     "pep": "assembler.pep"
   },
-  "hidden": true
+  "abstraction": "OS4"
 }
