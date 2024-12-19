@@ -78,13 +78,6 @@ QSharedPointer<ELFIO::elfio> assemble(QString os, User user, QSharedPointer<macr
     auto bytes = bits::asciiHexToByte({asStd.data(), asStd.size()});
     elf = helper.elf(bytes);
   } else elf = helper.elf();
-  // Need to reload to properly compute segment addresses.
-  {
-    std::stringstream s;
-    elf->save(s);
-    s.seekg(0, std::ios::beg);
-    elf->load(s);
-  }
   return elf;
 }
 

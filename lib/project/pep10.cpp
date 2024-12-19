@@ -115,12 +115,6 @@ SystemAssembly make_isa_system(project::Environment env) {
   SystemAssembly ret;
   // Need to reload to properly compute segment addresses.
   ret.elf = helper.elf();
-  {
-    std::stringstream s;
-    ret.elf->save(s);
-    s.seekg(0, std::ios::beg);
-    ret.elf->load(s);
-  }
   ret.system = targets::isa::systemFromElf(*ret.elf, true);
   return ret;
 }
@@ -170,15 +164,7 @@ SystemAssembly make_asmb_system(project::Environment env, QString os) {
     qWarning() << "Default OS assembly failed";
   }
   SystemAssembly ret;
-  // Need to reload to properly compute segment addresses. Store in temp
-  // directory to prevent clobbering local file contents.
   ret.elf = helper.elf();
-  {
-    std::stringstream s;
-    ret.elf->save(s);
-    s.seekg(0, std::ios::beg);
-    ret.elf->load(s);
-  }
   ret.system = targets::isa::systemFromElf(*ret.elf, true);
   return ret;
 }

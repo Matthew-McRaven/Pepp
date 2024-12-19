@@ -72,13 +72,6 @@ bool RunTask::loadToElf() {
   if (!bytes)
     return false;
   _elf = helper.elf(*bytes);
-  // Need to reload to properly compute segment addresses.
-  {
-    std::stringstream s;
-    _elf->save(s);
-    s.seekg(0, std::ios::beg);
-    _elf->load(s);
-  }
   return true;
 }
 

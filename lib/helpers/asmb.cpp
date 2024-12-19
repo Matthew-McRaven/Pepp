@@ -1,5 +1,6 @@
 #include "asmb.hpp"
 #include <iostream>
+#include <sstream>
 #include "asm/pas/driver/pep10.hpp"
 #include "asm/pas/driver/pep9.hpp"
 #include "asm/pas/obj/pep10.hpp"
@@ -130,7 +131,7 @@ QSharedPointer<ELFIO::elfio> helpers::AsmHelper::elf(std::optional<QList<quint8>
     pas::obj::pep9::writeOS(*_elf, *_osRoot);
     if (_userRoot) pas::obj::pep9::writeUser(*_elf, *_userRoot);
     else if (userObj) pas::obj::pep9::writeUser(*_elf, *userObj);
-    return _elf;
+    break;
   case builtins::Architecture::PEP10:
     _elf = pas::obj::pep10::createElf();
     pas::obj::pep10::combineSections(*_osRoot);
@@ -139,10 +140,16 @@ QSharedPointer<ELFIO::elfio> helpers::AsmHelper::elf(std::optional<QList<quint8>
       pas::obj::pep10::combineSections(*_userRoot);
       pas::obj::pep10::writeUser(*_elf, *_userRoot);
     } else if (userObj) pas::obj::pep10::writeUser(*_elf, *userObj);
-    return _elf;
+    break;
   default: throw std::logic_error("Unimplemented arch");
   }
-
+  // Save and load so that offsets will be correct.
+  {
+    std::stringstream s;
+    _elf->save(s);
+    s.seekg(0, std::ios::beg);
+    _elf->load(s);
+  }
   return _elf;
 }
 
