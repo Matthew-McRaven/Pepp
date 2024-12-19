@@ -18,6 +18,7 @@ Item {
         // Must connect and disconnect manually, otherwise project may be changed underneath us, and "save" targets wrong project.
         // Do not need to update on mode change, since mode change implies loss of focus of objEdit.
         userAsmEdit.editingFinished.connect(save)
+        osAsmEdit.editingFinished.connect(save)
         project.errorsChanged.connect(displayErrors)
         project.listingChanged.connect(fixListings)
         onProjectChanged.connect(fixListings)
@@ -62,6 +63,7 @@ Item {
     // Will be called before project is changed on unload, so we can disconnect save-triggering signals.
     Component.onDestruction: {
         userAsmEdit.editingFinished.disconnect(save)
+        osAsmEdit.editingFinished.disconnect(save)
         if (project) {
             userAsmEdit.editor.modifyLine.disconnect(project.onModifyUserSource)
             osAsmEdit.editor.modifyLine.disconnect(project.onModifyOSSource)
@@ -147,8 +149,11 @@ Item {
         // Supress saving messages when there is no project.
         if (project === null)
             return
-        else if (!userAsmEdit.readOnly) {
+        if (!userAsmEdit.readOnly) {
             project.userAsmText = userAsmEdit.text
+        }
+        if (!osAsmEdit.readOnly) {
+            project.osAsmText = osAsmEdit.text
         }
     }
 
@@ -213,8 +218,9 @@ Item {
                     Text.ScintillaAsmEdit {
                         id: osAsmEdit
                         Component.onCompleted: {
+                            const isOS4 = project.abstraction === Abstraction.OS4
                             // Don't set declaratively, otherwise text will not be repainted.
-                            osAsmEdit.readOnly = Qt.binding(() => true)
+                            osAsmEdit.readOnly = Qt.binding(() => !isOS4)
                         }
                         Layout.fillHeight: true
                         Layout.fillWidth: true
