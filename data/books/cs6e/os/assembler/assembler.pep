@@ -209,7 +209,6 @@ deciErr: LDBA    0,i
 exitDeci:ADDSP   13,i        ;@locals#temp#state#isNeg#isOvfl#valAscii#asciiCh#bufIdx
          RET                 ;Return
 ;
-deciMsg: .ASCII  "ERROR: Invalid DECI input\x00"
 ;Output format: If the operand is negative, the algorithm prints
 ;a single '-' followed by the magnitude. Otherwise it prints the
 ;magnitude without a leading '+'. It suppresses leading zeros.
