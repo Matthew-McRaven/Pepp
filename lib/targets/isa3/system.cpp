@@ -76,7 +76,11 @@ targets::isa::System::System(builtins::Architecture arch, QList<obj::MemoryRegio
 }
 
 std::pair<sim::api2::tick::Type, sim::api2::tick::Result> targets::isa::System::tick(sim::api2::Scheduler::Mode mode) {
+  auto tb = _bus->buffer();
+  // TODO: only emit frames if something changed this cycle
+  if (tb) tb->emitFrameStart();
   auto res = _cpu->clock(_tick);
+  if (tb) tb->updateFrameHeader();
   return {++_tick, res};
 }
 
