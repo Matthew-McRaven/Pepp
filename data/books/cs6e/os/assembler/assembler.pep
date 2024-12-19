@@ -569,17 +569,6 @@ cldstrt: LDWX    pStack, i
          CALL    DECO
          CALL    HALT
 ;
-;******* Trap Handler
-;While bare metal mode is not supposed to have a trap handler,
-;failure to provide one could cause user-programs to enter an infinite loop.
-;This trap handler will print out an error message before terminating execution.
-trp:     LDWX    0,i         ;X <- 0
-prntMore:LDBA    msg,x       ;Test next char
-         BREQ    HALT        ;If null then exit
-         STBA    charOut,d   ;else print
-         ADDX    1,i         ;X <- X + 1 for next character
-         BR      HALT
-msg:     .ASCII "Cannot use system calls in bare metal mode\x00"
          .SECTION "memvec", "rw"
 ;
 ;******* FORTH Globals
@@ -590,7 +579,10 @@ STATE:   .WORD   0           ;0=interpret, !0=compile
 LATEST:  .WORD   _CFA        ;Pointer to the most recently defined word
 HERE:    .WORD   0x0000      ;Pointer to the next free memory location
 ; Probably should be RO, but I don't want to add another section.
-trpHnd:  .WORD   trp         ;Address of first instruction in trap handler.
+;While bare metal mode is not supposed to have a trap handler,
+;failure to provide one could cause user-programs to enter an infinite loop.
+;This trap handler prints no message to save ~60B.
+trpHnd:  .WORD   HALT        ;Address of first instruction in trap handler.
 initPC:  .WORD   cldstrt     ;Address of first instruction to execute on boot.
          .ORG    0xFFFB
 initSP:  .WORD   rStack
