@@ -554,6 +554,12 @@ fEnd:    LDWA    fEnt,s
          STWA    0,x          ;PUSH(fEnt)
          ADDSP   11,i         ;@locals#fEq#fEPtr#fELen#fWPtr#fWLen#fEnt
          RET
+@DCSTR   ">CFA\x00", CFA, _FIND, 0x05, 0x65
+         SUBSP   11,i         ;@locals#fEnt#fWLen#fWPtr#fELen#fEPtr#fEq
+         LDWA    0,x          ;Code address is 3 bytes from start of link ptr
+         ADDA    3,i
+         STWA    0,x
+         RET
 
 ;******* FORTH interpreter
 cldstrt: LDWX    pStack, i
@@ -581,7 +587,7 @@ msg:     .ASCII "Cannot use system calls in bare metal mode\x00"
 PSP:     .WORD   pStack      ;Current parameter stack pointer
 RSP:     .WORD   rStack      ;Current return stack pointer
 STATE:   .WORD   0           ;0=interpret, !0=compile
-LATEST:  .WORD   _FIND       ;Pointer to the most recently defined word
+LATEST:  .WORD   _CFA        ;Pointer to the most recently defined word
 HERE:    .WORD   0x0000      ;Pointer to the next free memory location
 ; Probably should be RO, but I don't want to add another section.
 trpHnd:  .WORD   trp         ;Address of first instruction in trap handler.
