@@ -255,6 +255,20 @@ eWrdLoop:CPWX    0,i          ;Consume leading whitespace when buffer is empty.
          LDWX    PSP,d        ;Restore PSP
          RET
 
+@DC      DECI,   _DECO, 0x05, 0x25
+         STWX    PSP,d        ;Preserve PSP
+         SUBSP   3,i          ;@params#total#success
+         LDBA    1,i          ;success <- true
+         STBA    2,s
+         CALL    decRead
+         LDWX    PSP,d        ;Restore PSP
+         LDWA    0,s          ;A<-total
+         STWA    -2,x         ;TOS<-total
+         LDBA    2,s          ;A<-success
+         STBA    -3,x         ;TOS<-success
+         SUBX    3,i
+         ADDSP   3,i          ;@params#success#total
+         RET
 ;******* FORTH interpreter
 cldstrt: LDWX    pStack, i
          CALL    HALT
@@ -275,6 +289,140 @@ trpHnd:  .WORD   trp
 initPC:  .WORD   0
 ;
 ;******* Reusable assembly routines
+;Input format: Any number of leading spaces or line feeds are
+;allowed, followed by '+', '-' or a digit as the first character,
+;after which digits are input until the first nondigit is
+;encountered.
+;
+
+total:   .EQUATE 16          ;#2d Cumulative total of DECI number
+success: .EQUATE 15          ;#1d Success boolean
+bufIdx:  .EQUATE 12          ;#2d Index into _BUF
+asciiCh: .EQUATE 10          ;#1c asciiCh, one byte
+valAscii:.EQUATE 8           ;#2d value(asciiCh)
+isOvfl:  .EQUATE 6           ;#2d Overflow boolean
+isNeg:   .EQUATE 4           ;#2d Negative boolean
+state:   .EQUATE 2           ;#2d State variable
+temp:    .EQUATE 0           ;#2d
+;
+init:    .EQUATE 0           ;Enumerated values for state
+sign:    .EQUATE 1
+digit:   .EQUATE 2
+;
+decRead: SUBSP   13,i        ;@locals#bufIdx#asciiCh#valAscii#isOvfl#isNeg#state#temp
+         LDWA    0,i         ;isOvfl <- false
+         STWA    isOvfl,s
+         STWA    bufIdx,s    ;bufIdx <- 0
+         LDWA    init,i      ;state <- init
+         STWA    state,s
+;
+deciDo:  LDWX    bufIdx,s    ;Get bufIdx
+         LDBA    _BUF,x      ;Get asciiCh
+         STBA    asciiCh,s
+         ADDX    1,i         ;bufIdx <- bufIdx + 1
+         STWX    bufIdx,s
+         ANDA    0x000F,i    ;Set value(asciiCh)
+         STWA    valAscii,s
+         LDBA    asciiCh,s   ;A<low> = asciiCh throughout the loop
+         LDWX    state,s     ;switch (state)
+         ASLX                ;Two bytes per address
+         BR      deciJT,x
+;
+deciJT:  .WORD sInit
+         .WORD sSign
+         .WORD sDigit
+;
+sInit:   CPBA    '+',i       ;if (asciiCh == '+')
+         BRNE    ifMinus
+         LDWX    0,i         ;isNeg <- false
+         STWX    isNeg,s
+         LDWX    sign,i      ;state <- sign
+         STWX    state,s
+         BR      deciDo
+;
+ifMinus: CPBA    '-',i       ;else if (asciiCh == '-')
+         BRNE    ifDigit
+         LDWX    1,i         ;isNeg <- true
+         STWX    isNeg,s
+         LDWX    sign,i      ;state <- sign
+         STWX    state,s
+         BR      deciDo
+;
+ifDigit: CPBA    '0',i       ;else if (asciiCh is a digit)
+         BRLT    ifWhite
+         CPBA    '9',i
+         BRGT    ifWhite
+         LDWX    0,i         ;isNeg <- false
+         STWX    isNeg,s
+         LDWX    valAscii,s  ;total <- value(asciiCh)
+         STWX    total,s
+         LDWX    digit,i     ;state <- digit
+         STWX    state,s
+         BR      deciDo
+;
+ifWhite: CPBA    ' ',i       ;else if (asciiCh is not a space
+         BREQ    deciDo
+         CPBA    '\n',i      ;or line feed)
+         BRNE    deciErr     ;exit with DECI error
+         BR      deciDo
+;
+sSign:   CPBA    '0',i       ;if asciiCh (is not a digit)
+         BRLT    deciErr
+         CPBA    '9',i
+         BRGT    deciErr     ;exit with DECI error
+         LDWX    valAscii,s  ;else total <- value(asciiCh)
+         STWX    total,s
+         LDWX    digit,i     ;state <- digit
+         STWX    state,s
+         BR      deciDo
+;
+sDigit:  CPBA    '0',i       ;if (asciiCh is not a digit)
+         BRLT    deciNorm
+         CPBA    '9',i
+         BRGT    deciNorm    ;exit normaly
+         LDWX    1,i         ;else X <- true for later assignments
+         LDWA    total,s     ;Multiply total by 10 as follows:
+         ASLA                ;First, times 2
+         BRV     ovfl1       ;If overflow then
+         BR      L1
+ovfl1:   STWX    isOvfl,s    ;isOvfl <- true
+L1:      STWA    temp,s      ;Save 2 * total in temp
+         ASLA                ;Now, 4 * total
+         BRV     ovfl2       ;If overflow then
+         BR      L2
+ovfl2:   STWX    isOvfl,s    ;isOvfl <- true
+L2:      ASLA                ;Now, 8 * total
+         BRV     ovfl3       ;If overflow then
+         BR      L3
+ovfl3:   STWX    isOvfl,s    ;isOvfl <- true
+L3:      ADDA    temp,s      ;Finally, 8 * total + 2 * total
+         BRV     ovfl4       ;If overflow then
+         BR      L4
+ovfl4:   STWX    isOvfl,s    ;isOvfl <- true
+L4:      ADDA    valAscii,s  ;A <- 10 * total + valAscii
+         BRV     ovfl5       ;If overflow then
+         BR      L5
+ovfl5:   STWX    isOvfl,s    ;isOvfl <- true
+L5:      STWA    total,s     ;Update total
+         BR      deciDo
+;
+deciNorm:LDWA    isNeg,s     ;If isNeg then
+         BREQ    exitDeci
+         LDWA    total,s     ;If total != 0x8000 then
+         CPWA    0x8000,i
+         BREQ    L6
+         NEGA                ;Negate total
+         STWA    total,s
+         BR      exitDeci
+L6:      LDWA    0,i         ;else -32768 is a special case
+         STWA    isOvfl,s    ;isOvfl <- false
+;
+deciErr: LDBA    0,i
+         STBA    success,s   ;success <- false
+exitDeci:ADDSP   13,i        ;@locals#temp#state#isNeg#isOvfl#valAscii#asciiCh#bufIdx
+         RET                 ;Return
+;
+deciMsg: .ASCII  "ERROR: Invalid DECI input\x00"
 ;Output format: If the operand is negative, the algorithm prints
 ;a single '-' followed by the magnitude. Otherwise it prints the
 ;magnitude without a leading '+'. It suppresses leading zeros.
