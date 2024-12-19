@@ -358,33 +358,33 @@ DUP:     LDWA    0,x         ;Load TOS+0, store to TOS-1
          STWA    0,x
          RET
 @DCSTR   "+\x00", ADD, _DECR2, 0x02, 0x0D
-         LDWA    -2,x         ;Add TOS to TOS-1
+ADD:     LDWA    2,x         ;Add TOS to TOS-1
          ADDA    0,x
-         STWA    -2,x
+         STWA    2,x
          ADDX    2,i
          RET
 @DCSTR   "-\x00", SUB, _ADD, 0x02, 0x0D
-         LDWA    -2,x         ;Sub TOS from TOS-1
+         LDWA    2,x         ;Sub TOS from TOS-1
          SUBA    0,x
-         STWA    -2,x
+         STWA    2,x
          ADDX    2,i
          RET
 @DC      AND, _SUB, 0x04, 0x0D
-         LDWA    -2,x         ;Bitwise AND TOS and TOS-1
-         ANDA     0,x
-         STWA    -2,x
+         LDWA    2,x         ;Bitwise AND TOS and TOS-1
+         ANDA    0,x
+         STWA    2,x
          ADDX    2,i
          RET
 @DC      OR, _AND, 0x03, 0x0D
-         LDWA    -2,x         ;Bitwise OR TOS and TOS-1
-         ORA    0,x
-         STWA    -2,x
+         LDWA    2,x         ;Bitwise OR TOS and TOS-1
+         ORA     0,x
+         STWA    2,x
          ADDX    2,i
          RET
 @DC      XOR, _OR, 0x04, 0x0D
-         LDWA    -2,x         ;Bitwise XOR TOS and TOS-1
-         XORA     0,x
-         STWA    -2,x
+         LDWA    2,x         ;Bitwise XOR TOS and TOS-1
+         XORA    0,x
+         STWA    2,x
          ADDX    2,i
          RET
 @DCSTR   "INVERT\x00", INV, _XOR, 0x07, 0x08
