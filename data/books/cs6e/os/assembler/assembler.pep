@@ -201,6 +201,7 @@ DUP:     LDWA    0,x         ;Load TOS+0, store to TOS-1
 @DC      RDROP, _RFROM, 0x06, 0x04
          ADDSP   2,i          ;Drop return TOS
          RET
+;
 ;******* FORTH words: standard IO
 @DC      KEY, _RDROP, 0x04, 0x0A
          LDBA    charIn,d     ;Load char from STDIN
@@ -269,6 +270,57 @@ eWrdLoop:CPWX    0,i          ;Consume leading whitespace when buffer is empty.
          SUBX    3,i
          ADDSP   3,i          ;@params#success#total
          RET
+;
+;******* FORTH words: dictionary access
+         ;(n address -- address)
+fEnt:    .EQUATE 9            ;#2h Address of start of dictionary entry
+fEq:     .EQUATE 8            ;#1c Equal boolean
+fWLen:   .EQUATE 6            ;#2d Length of scanned word
+fWPtr:   .EQUATE 4            ;#2h Address of start of scanned word
+fELen:   .EQUATE 2            ;#2d Length of entry string
+fEPtr:   .EQUATE 0            ;#2h Address of start of entry string
+@DC      FIND, _DECI, 0x05, 0x00
+         SUBSP   11,i         ;@locals#fEnt#fWLen#fWPtr#fELen#fEPtr#fEq
+         LDWA    0,x          ;fWPtr <- &_buf
+         STWA    fWPtr,s
+         LDWA    -2,x         ;fWLen <- len(&_buf)
+         STWA    fWLen,s
+         SUBX    2,i          ;_ <- POP()
+         STWX    PSP,d        ;PSP <- X
+         LDWX    LATEST,d     ;fEnt <- LATEST
+         STWX    fEnt,s
+;
+         ;Assumes X<-fEnt
+fndDo:   LDBA    2,x          ;A <- (fEnt->strLen & LEN_MASK)
+         ANDA    F_LNMSK,i
+         CPBA    fWLen,s      ;Length mismatch?
+         BRNE    fNext        ;  Try next word
+;
+         STWA    fELen,s      ;fELen <- (fEnt->strlen & LEN_MASK)
+         ADDA    1,i          ;Compute subtrahend to get from fEnt to string
+         NEGA
+         STWX    fEPtr,s      ;fEPtr <- &fEnt
+         ADDA    fEPtr,s      ;fEPtr <- &fEnt - length -1
+         STWA    fEPtr,s
+         LDBA    -1,i
+         STBA    fEq,s        ;fEq <- not equal
+         CALL    strCmp       ;Compare strings
+         LDBA    fEq,s
+         BRNE    fNext        ;If strings don't match, try next word
+         BR      fEnd         ;fEnt matches input string; stop and push to PSP.
+;
+fNext:   LDWX    fEnt,s       ;Get the address of the most recent word
+         LDWX    0,s          ;fEnt <- fEnt->link
+         STWX    fEnt,s
+         BREQ    fEnd         ;End iteration if fEnt == 0
+         BR      fndDo
+;
+fEnd:    LDWA    fEnt,s
+         LDWX    PSP,d        ;X <- PSP
+         STWA    0,x          ;PUSH(fEnt)
+         ADDSP   11,i         ;@locals#fEq#fEPtr#fELen#fWPtr#fWLen#fEnt
+         RET
+
 ;******* FORTH interpreter
 cldstrt: LDWX    pStack, i
          CALL    HALT
@@ -286,6 +338,39 @@ prntMore:LDBA    msg,x       ;Test next char
 msg:     .ASCII "Cannot use system calls in bare metal mode\x00"
 ;
 ;******* Reusable assembly routines
+;All of these routines assume they can clobber A & X; callers are reasonable for saving.
+;String comparison
+sEq:      .EQUATE 12           ;#1d Return val. 0 if equal, non-0 otherwise.
+sLen1:    .EQUATE 10           ;#2d String 1 length
+sPtr1:    .EQUATE 8            ;#2h String 1 pointer
+sLen2:    .EQUATE 6            ;#2d String 2 length
+sPtr2:    .EQUATE 4            ;#2h String 2 pointer
+;         .EQUATE 2            ;#2d Return address
+sMaxIdx:  .EQUATE 0            ;#2d Maximum index to compare
+strCmp:   SUBSP   2,i          ;@locals#sMaxIdx
+          LDWX    0,i          ;Initialize counter to 0
+          LDWA    sLen1,s      ;sMaxIdx <- min(sLen1, sLen2)
+          CPWA    sLen2,s
+          BRGE    strcL1
+          LDWA    sLen2,s
+          STWA    sMaxIdx,s
+          BR      strcLoop
+strcL1:   STWA    sMaxIdx,s
+;
+strcLoop: LDBA    sPtr1,sfx    ;A <- sPtr1[X]
+          CPBA    sPtr2,sfx    ;Z <- sPtr1[X] == sPtr2[X]
+          BRNE    strcNE
+          ADDX    1,i          ;X <- X + 1
+          CPWX    0,i          ;If X == sMaxIdx then
+          BREQ    strcEQ       ;  return suceess
+          BR      strcLoop
+strcNE:   LDBA    -1,i         ;sEq <- -1
+          BR      strcRet
+;
+strcEQ:   LDBA    0,i          ;sEq <- 0
+strcRet:  STBA    sEq,s
+          ADDSP   2,i          ;@locals#sMaxIdx
+          RET
 ;Input format: Any number of leading spaces or line feeds are
 ;allowed, followed by '+', '-' or a digit as the first character,
 ;after which digits are input until the first nondigit is
@@ -494,7 +579,7 @@ printDgt:ORX     0x0030,i    ;Convert decimal to ASCII
 PSP:     .WORD   pStack      ;Current parameter stack pointer
 RSP:     .WORD   rStack      ;Current return stack pointer
 STATE:   .WORD   0           ;0=interpret, !0=compile
-LATEST:  .WORD   _RDROP      ;Pointer to the most recently defined word
+LATEST:  .WORD   _FIND       ;Pointer to the most recently defined word
 HERE:    .WORD   0x0000      ;Pointer to the next free memory location
 ; Probably should be RO, but I don't want to add another section.
 trpHnd:  .WORD   trp         ;Address of first instruction in trap handler.
