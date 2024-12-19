@@ -283,7 +283,7 @@ HALT:    LDWA    0xDEAD, i
 hang:    BR      hang
 
 @DC      DROP, _HALT, 0x05, 0x04
-         ADDX    2,i         ;Drop top of parameter stack stack
+         @POP
          RET
 
 ;Also tried implementing with XOR-swap, but that used 3 more bytes.

@@ -5,6 +5,10 @@
     "DC": "{name}.pepm",
     "DCSTR": "{name}.pepm",
     "DVAR": "{name}.pepm",
-    "DCONST": "{name}.pepm"
+    "DCONST": "{name}.pepm",
+    "POP": "{name}.pepm",
+    "POPA": "{name}.pepm",
+    "PUSH": "{name}.pepm",
+    "PUSHA": "{name}.pepm"
   }
 }
