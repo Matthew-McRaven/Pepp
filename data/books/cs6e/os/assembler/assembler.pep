@@ -455,7 +455,7 @@ ADD:     LDWA    2,x         ;Add TOS to TOS-1
          RET
 
 @DC      WORD, _CR, 0x05, 0x43
-         SUBX    2,i          ;Allocate 2 bytes for WORD length, so we can use STWX PSP,n to store to it
+WORD:    SUBX    2,i          ;Allocate 2 bytes for WORD length, so we can use STWX PSP,n to store to it
          STWX    PSP,d        ;Preserve PSP
          LDWX    0,i          ;Initialize buffer index
 bWrdLoop:LDBA    charIn,d     ;Load char from STDIN
@@ -554,14 +554,127 @@ fEnd:    LDWA    fEnt,s
          STWA    0,x          ;PUSH(fEnt)
          ADDSP   11,i         ;@locals#fEq#fEPtr#fELen#fWPtr#fWLen#fEnt
          RET
-@DCSTR   ">CFA\x00", CFA, _FIND, 0x05, 0x65
+
+@DCSTR   ">CFA\x00", CFA, _FIND, 0x05, 0x0D
          SUBSP   11,i         ;@locals#fEnt#fWLen#fWPtr#fELen#fEPtr#fEq
          LDWA    0,x          ;Code address is 3 bytes from start of link ptr
          ADDA    3,i
          STWA    0,x
          RET
+;
+;******* FORTH words: basic compilation
+         ;(len *str -- )
+@DC      CREATE, _CFA, 0x07, 0x6A
+;
+;        Copy string to HERE++
+CREATE:  STWX    PSP,d        ;*PSP <- X
+         SUBSP   3,i          ;@params#2h#1d
+         LDWA    0,x          ;A <- str
+         STWA    0,s
+         LDBA    2,x          ;A <- len
+         STBA    2,s
+         ;
+         LDBX    0,i
+bCrLoop: CPBX    2,s
+         BRGE    eCrLoop
+         ADDX    1,i
+         LDBA    0,sfx        ;**here <- str[x]
+         STBA    HERE,n       ;*here <- *here +1
+         LDWA    HERE,d
+         ADDA    1,i
+         STWA    HERE,d
+         BR      bCrLoop
+eCrLoop: ADDSP   3,i          ;@locals#2h#1d
+         LDWX    PSP,d
+;
+                              ;Copy value of LATEST to *HERE
+         LDWA    LATEST,d     ; **HERE <- *LATEST
+         STWA    HERE,n
+         LDWA    HERE,d       ;*LATEST <- *HERE
+         STWA    LATEST,d
+         ADDA    2,i          ;*HERE <- *HERE + 2
+         STWA    HERE,d
+;
+                              ;Copy length of string as u8
+         LDBA    2,x          ;**HERE <- len
+         STBA    HERE,n
+         LDWA    HERE,d       ;*HERE <- *HERE + 1
+         ADDA    1,i
+         STWA    HERE,d
+                              ;Set code len to 0
+         LDWA    0,i          ;**HERE <- 0
+         STWA    HERE,n
+         LDWA    HERE,d       ;*HERE <- *HERE + 1
+         ADDA    1,i
+         STWA    HERE,d
+         SUBX    3,i          ;POP(len, *str)
+         RET
 
-;******* FORTH interpreter
+@DCSTR   ",\x00", COMMA, _CREATE, 0x02, 0x13
+COMMA:   @POPA                ;A <- TOS
+         STWA    HERE,n       ;**HERE <- A
+         LDWA    HERE,d       ;*HERE += 2
+         ADDA    2,i
+         STWA    HERE,d
+         RET
+
+@DCSTR   "CALL,\x00", CCOMMA, _COMMA, 0x02, 0x13
+         LDBA    __call,d     ;**HERE <- opcode(CALL)
+         STBA    HERE,n
+         LDWA    HERE,d       ;*HERE += 1
+         ADDA    1,i
+         STWA    HERE,d
+__call:  CALL    COMMA
+         RET
+
+@DCSTR   "[\x00", LBRAC, _CCOMMA, 0x82, 0x07
+LBRAC:   LDWA    0,i          ;STATE <- 0
+         STWA    STATE,d
+         RET
+
+@DCSTR   "]\x00", RBRAC, _LBRAC, 0x02, 0x07
+RBRAC:   LDWA    1,i          ;STATE <- 1
+         STWA    STATE,d
+         RET
+
+@DCSTR   "IMMEDIATE\x00",IMM,_RBRAC,0x8A,0x13
+         LDWA    LATEST,d
+         ADDA    1,i
+         STWA    -2,s
+         LDBA    -2,sf
+         XORA    F_IMM,i
+         STWA    -2, sf
+         RET
+
+@DCSTR   "HIDDEN\x00",HIDDEN,_IMM,0x07,0x13
+HIDDEN:  LDWA    LATEST,d
+         ADDA    1,i
+         STWA    -2,s
+         LDBA    -2,sf
+         XORA    F_HID,i
+         STWA    -2, sf
+         RET
+
+@DCSTR   ":\x00", COLON, _HIDDEN, 0x02, 0x0D
+         CALL    WORD
+         CALL    CREATE
+         CALL    HIDDEN
+         CALL    RBRAC
+         RET
+
+@DCSTR   ";\x00", SEMI, _COLON, 0x82, 0x1c
+         LDBA    __ret,d      ;**HERE <- opcode(RET)
+         STBA    HERE,n
+         LDWA    HERE,d       ;*HERE += 2
+         ADDA    2,i
+         STWA    HERE,d
+         CALL    HIDDEN
+         CALL    LBRAC
+__ret:   RET
+;
+;******* FORTH words: control flow
+;
+;******* FORTH words: core interpreter
 cldstrt: LDWX    pStack, i
          @PUSH   2,i
          @PUSH   3,i
@@ -576,7 +689,7 @@ cldstrt: LDWX    pStack, i
 PSP:     .WORD   pStack      ;Current parameter stack pointer
 RSP:     .WORD   rStack      ;Current return stack pointer
 STATE:   .WORD   0           ;0=interpret, !0=compile
-LATEST:  .WORD   _CFA        ;Pointer to the most recently defined word
+LATEST:  .WORD   _SEMI        ;Pointer to the most recently defined word
 HERE:    .WORD   0x0000      ;Pointer to the next free memory location
 ; Probably should be RO, but I don't want to add another section.
 ;While bare metal mode is not supposed to have a trap handler,
