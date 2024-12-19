@@ -285,9 +285,6 @@ prntMore:LDBA    msg,x       ;Test next char
          BR      HALT
 msg:     .ASCII "Cannot use system calls in bare metal mode\x00"
 ;
-trpHnd:  .WORD   trp
-initPC:  .WORD   0
-;
 ;******* Reusable assembly routines
 ;Input format: Any number of leading spaces or line feeds are
 ;allowed, followed by '+', '-' or a digit as the first character,
@@ -499,6 +496,9 @@ RSP:     .WORD   rStack      ;Current return stack pointer
 STATE:   .WORD   0           ;0=interpret, !0=compile
 LATEST:  .WORD   _RDROP      ;Pointer to the most recently defined word
 HERE:    .WORD   0x0000      ;Pointer to the next free memory location
+; Probably should be RO, but I don't want to add another section.
+trpHnd:  .WORD   trp         ;Address of first instruction in trap handler.
+initPC:  .WORD   cldstrt     ;Address of first instruction to execute on boot.
          .ORG    0xFFFB
 initSP:  .WORD   rStack
          .EXPORT charIn
