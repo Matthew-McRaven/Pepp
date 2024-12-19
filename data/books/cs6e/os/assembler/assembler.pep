@@ -42,6 +42,241 @@ _BUF:    .BLOCK  32          ;Static buffer into which WORD reads
 ;
          .SECTION "text", "rx"
 ;
+;******* Reusable assembly routines
+;All of these routines assume they can clobber A & X; callers are responsible for saving.
+;String comparison
+sEq:      .EQUATE 12           ;#1d Return val. 0 if equal, non-0 otherwise.
+sLen1:    .EQUATE 10           ;#2d String 1 length
+sPtr1:    .EQUATE 8            ;#2h String 1 pointer
+sLen2:    .EQUATE 6            ;#2d String 2 length
+sPtr2:    .EQUATE 4            ;#2h String 2 pointer
+;         .EQUATE 2            ;#2d Return address
+sMaxIdx:  .EQUATE 0            ;#2d Maximum index to compare
+strCmp:   SUBSP   2,i          ;@locals#sMaxIdx
+          LDWX    0,i          ;Initialize counter to 0
+          LDWA    sLen1,s      ;sMaxIdx <- min(sLen1, sLen2)
+          CPWA    sLen2,s
+          BRGE    strcL1
+          LDWA    sLen2,s
+          STWA    sMaxIdx,s
+          BR      strcLoop
+strcL1:   STWA    sMaxIdx,s
+;
+strcLoop: LDBA    sPtr1,sfx    ;A <- sPtr1[X]
+          CPBA    sPtr2,sfx    ;Z <- sPtr1[X] == sPtr2[X]
+          BRNE    strcNE
+          ADDX    1,i          ;X <- X + 1
+          CPWX    0,i          ;If X == sMaxIdx then
+          BREQ    strcEQ       ;  return suceess
+          BR      strcLoop
+strcNE:   LDBA    -1,i         ;sEq <- -1
+          BR      strcRet
+;
+strcEQ:   LDBA    0,i          ;sEq <- 0
+strcRet:  STBA    sEq,s
+          ADDSP   2,i          ;@locals#sMaxIdx
+          RET
+;Input format: Any number of leading spaces or line feeds are
+;allowed, followed by '+', '-' or a digit as the first character,
+;after which digits are input until the first nondigit is
+;encountered.
+;
+
+total:   .EQUATE 16          ;#2d Cumulative total of DECI number
+success: .EQUATE 15          ;#1d Success boolean
+bufIdx:  .EQUATE 12          ;#2d Index into _BUF
+asciiCh: .EQUATE 10          ;#1c asciiCh, one byte
+valAscii:.EQUATE 8           ;#2d value(asciiCh)
+isOvfl:  .EQUATE 6           ;#2d Overflow boolean
+isNeg:   .EQUATE 4           ;#2d Negative boolean
+state:   .EQUATE 2           ;#2d State variable
+temp:    .EQUATE 0           ;#2d
+;
+init:    .EQUATE 0           ;Enumerated values for state
+sign:    .EQUATE 1
+digit:   .EQUATE 2
+;
+decRead: SUBSP   13,i        ;@locals#bufIdx#asciiCh#valAscii#isOvfl#isNeg#state#temp
+         LDWA    0,i         ;isOvfl <- false
+         STWA    isOvfl,s
+         STWA    bufIdx,s    ;bufIdx <- 0
+         LDWA    init,i      ;state <- init
+         STWA    state,s
+;
+deciDo:  LDWX    bufIdx,s    ;Get bufIdx
+         LDBA    _BUF,x      ;Get asciiCh
+         STBA    asciiCh,s
+         ADDX    1,i         ;bufIdx <- bufIdx + 1
+         STWX    bufIdx,s
+         ANDA    0x000F,i    ;Set value(asciiCh)
+         STWA    valAscii,s
+         LDBA    asciiCh,s   ;A<low> = asciiCh throughout the loop
+         LDWX    state,s     ;switch (state)
+         ASLX                ;Two bytes per address
+         BR      deciJT,x
+;
+deciJT:  .WORD sInit
+         .WORD sSign
+         .WORD sDigit
+;
+sInit:   CPBA    '+',i       ;if (asciiCh == '+')
+         BRNE    ifMinus
+         LDWX    0,i         ;isNeg <- false
+         STWX    isNeg,s
+         LDWX    sign,i      ;state <- sign
+         STWX    state,s
+         BR      deciDo
+;
+ifMinus: CPBA    '-',i       ;else if (asciiCh == '-')
+         BRNE    ifDigit
+         LDWX    1,i         ;isNeg <- true
+         STWX    isNeg,s
+         LDWX    sign,i      ;state <- sign
+         STWX    state,s
+         BR      deciDo
+;
+ifDigit: CPBA    '0',i       ;else if (asciiCh is a digit)
+         BRLT    ifWhite
+         CPBA    '9',i
+         BRGT    ifWhite
+         LDWX    0,i         ;isNeg <- false
+         STWX    isNeg,s
+         LDWX    valAscii,s  ;total <- value(asciiCh)
+         STWX    total,s
+         LDWX    digit,i     ;state <- digit
+         STWX    state,s
+         BR      deciDo
+;
+ifWhite: CPBA    ' ',i       ;else if (asciiCh is not a space
+         BREQ    deciDo
+         CPBA    '\n',i      ;or line feed)
+         BRNE    deciErr     ;exit with DECI error
+         BR      deciDo
+;
+sSign:   CPBA    '0',i       ;if asciiCh (is not a digit)
+         BRLT    deciErr
+         CPBA    '9',i
+         BRGT    deciErr     ;exit with DECI error
+         LDWX    valAscii,s  ;else total <- value(asciiCh)
+         STWX    total,s
+         LDWX    digit,i     ;state <- digit
+         STWX    state,s
+         BR      deciDo
+;
+sDigit:  CPBA    '0',i       ;if (asciiCh is not a digit)
+         BRLT    deciNorm
+         CPBA    '9',i
+         BRGT    deciNorm    ;exit normaly
+         LDWX    1,i         ;else X <- true for later assignments
+         LDWA    total,s     ;Multiply total by 10 as follows:
+         ASLA                ;First, times 2
+         BRV     ovfl1       ;If overflow then
+         BR      L1
+ovfl1:   STWX    isOvfl,s    ;isOvfl <- true
+L1:      STWA    temp,s      ;Save 2 * total in temp
+         ASLA                ;Now, 4 * total
+         BRV     ovfl2       ;If overflow then
+         BR      L2
+ovfl2:   STWX    isOvfl,s    ;isOvfl <- true
+L2:      ASLA                ;Now, 8 * total
+         BRV     ovfl3       ;If overflow then
+         BR      L3
+ovfl3:   STWX    isOvfl,s    ;isOvfl <- true
+L3:      ADDA    temp,s      ;Finally, 8 * total + 2 * total
+         BRV     ovfl4       ;If overflow then
+         BR      L4
+ovfl4:   STWX    isOvfl,s    ;isOvfl <- true
+L4:      ADDA    valAscii,s  ;A <- 10 * total + valAscii
+         BRV     ovfl5       ;If overflow then
+         BR      L5
+ovfl5:   STWX    isOvfl,s    ;isOvfl <- true
+L5:      STWA    total,s     ;Update total
+         BR      deciDo
+;
+deciNorm:LDWA    isNeg,s     ;If isNeg then
+         BREQ    exitDeci
+         LDWA    total,s     ;If total != 0x8000 then
+         CPWA    0x8000,i
+         BREQ    L6
+         NEGA                ;Negate total
+         STWA    total,s
+         BR      exitDeci
+L6:      LDWA    0,i         ;else -32768 is a special case
+         STWA    isOvfl,s    ;isOvfl <- false
+;
+deciErr: LDBA    0,i
+         STBA    success,s   ;success <- false
+exitDeci:ADDSP   13,i        ;@locals#temp#state#isNeg#isOvfl#valAscii#asciiCh#bufIdx
+         RET                 ;Return
+;
+deciMsg: .ASCII  "ERROR: Invalid DECI input\x00"
+;Output format: If the operand is negative, the algorithm prints
+;a single '-' followed by the magnitude. Otherwise it prints the
+;magnitude without a leading '+'. It suppresses leading zeros.
+;
+;Print number
+;Expects the number to be printed stored in the accumulator.
+remain:  .EQUATE 0           ;#2d Remainder of value to output
+outYet:  .EQUATE 2           ;#2d Has a character been output yet?
+place:   .EQUATE 4           ;#2d Place value for division
+toPrint: .EQUATE 8           ;#2d Number to be printed
+decPrint:SUBSP   6,i         ;Allocate @locals #remain#outYet#place
+         LDWA    toPrint,s   ;Load the number to print
+         CPWA    0,i         ;If oprnd is negative then
+         BRGE    printMag
+         LDBX    '-',i       ;Print leading '-'
+         STBX    charOut,d
+         NEGA                ;Make magnitude positive
+printMag:STWA    remain,s    ;remain <- abs(oprnd)
+         LDWA    0,i         ;Initialize outYet <- false
+         STWA    outYet,s
+         LDWA    10000,i     ;place <- 10,000
+         STWA    place,s
+         CALL    divide      ;Write 10,000's place
+         LDWA    1000,i      ;place <- 1,000
+         STWA    place,s
+         CALL    divide      ;Write 1000's place
+         LDWA    100,i       ;place <- 100
+         STWA    place,s
+         CALL    divide      ;Write 100's place
+         LDWA    10,i        ;place <- 10
+         STWA    place,s
+         CALL    divide      ;Write 10's place
+         LDWA    remain,s    ;Always write 1's place
+         ORA     0x0030,i    ;Convert decimal to ASCII
+         STBA    charOut,d   ;  and output it
+         ADDSP   6,i         ;Deallocate @locals #place#outYet#remain
+         RET
+;
+;Subroutine to print the most significant decimal digit of the
+;remainder. It assumes that place (place2 here) contains the
+;decimal place value. It updates the remainder.
+;
+remain2: .EQUATE 2           ;Stack addresses while executing a
+outYet2: .EQUATE 4           ;  subroutine are greater by two because
+place2:  .EQUATE 6           ;  the retAddr is on the stack
+;
+divide:  LDWA    remain2,s   ;A <- remainder
+         LDWX    0,i         ;X <- 0
+divLoop: SUBA    place2,s    ;Division by repeated subtraction
+         BRLT    writeNum    ;If remainder is negative then done
+         ADDX    1,i         ;X <- X + 1
+         STWA    remain2,s   ;Store the new remainder
+         BR      divLoop
+;
+writeNum:CPWX    0,i         ;If X != 0 then
+         BREQ    checkOut
+         LDWA    1,i         ;outYet <- true
+         STWA    outYet2,s
+         BR      printDgt    ;and branch to print this digit
+checkOut:LDWA    outYet2,s   ;else if a previous char was output
+         BRNE    printDgt    ;then branch to print this zero
+         RET                 ;else return to calling routine
+;
+printDgt:ORX     0x0030,i    ;Convert decimal to ASCII
+         STBX    charOut,d   ;  and output it
+         RET                 ;return to calling routine
+;
 ;******* FORTH words: stack manipulation
 @DC      HALT, 0x0000, 0x05, 0x09
 HALT:    LDWA    0xDEAD, i
@@ -336,242 +571,6 @@ prntMore:LDBA    msg,x       ;Test next char
          ADDX    1,i         ;X <- X + 1 for next character
          BR      HALT
 msg:     .ASCII "Cannot use system calls in bare metal mode\x00"
-;
-;******* Reusable assembly routines
-;All of these routines assume they can clobber A & X; callers are reasonable for saving.
-;String comparison
-sEq:      .EQUATE 12           ;#1d Return val. 0 if equal, non-0 otherwise.
-sLen1:    .EQUATE 10           ;#2d String 1 length
-sPtr1:    .EQUATE 8            ;#2h String 1 pointer
-sLen2:    .EQUATE 6            ;#2d String 2 length
-sPtr2:    .EQUATE 4            ;#2h String 2 pointer
-;         .EQUATE 2            ;#2d Return address
-sMaxIdx:  .EQUATE 0            ;#2d Maximum index to compare
-strCmp:   SUBSP   2,i          ;@locals#sMaxIdx
-          LDWX    0,i          ;Initialize counter to 0
-          LDWA    sLen1,s      ;sMaxIdx <- min(sLen1, sLen2)
-          CPWA    sLen2,s
-          BRGE    strcL1
-          LDWA    sLen2,s
-          STWA    sMaxIdx,s
-          BR      strcLoop
-strcL1:   STWA    sMaxIdx,s
-;
-strcLoop: LDBA    sPtr1,sfx    ;A <- sPtr1[X]
-          CPBA    sPtr2,sfx    ;Z <- sPtr1[X] == sPtr2[X]
-          BRNE    strcNE
-          ADDX    1,i          ;X <- X + 1
-          CPWX    0,i          ;If X == sMaxIdx then
-          BREQ    strcEQ       ;  return suceess
-          BR      strcLoop
-strcNE:   LDBA    -1,i         ;sEq <- -1
-          BR      strcRet
-;
-strcEQ:   LDBA    0,i          ;sEq <- 0
-strcRet:  STBA    sEq,s
-          ADDSP   2,i          ;@locals#sMaxIdx
-          RET
-;Input format: Any number of leading spaces or line feeds are
-;allowed, followed by '+', '-' or a digit as the first character,
-;after which digits are input until the first nondigit is
-;encountered.
-;
-
-total:   .EQUATE 16          ;#2d Cumulative total of DECI number
-success: .EQUATE 15          ;#1d Success boolean
-bufIdx:  .EQUATE 12          ;#2d Index into _BUF
-asciiCh: .EQUATE 10          ;#1c asciiCh, one byte
-valAscii:.EQUATE 8           ;#2d value(asciiCh)
-isOvfl:  .EQUATE 6           ;#2d Overflow boolean
-isNeg:   .EQUATE 4           ;#2d Negative boolean
-state:   .EQUATE 2           ;#2d State variable
-temp:    .EQUATE 0           ;#2d
-;
-init:    .EQUATE 0           ;Enumerated values for state
-sign:    .EQUATE 1
-digit:   .EQUATE 2
-;
-decRead: SUBSP   13,i        ;@locals#bufIdx#asciiCh#valAscii#isOvfl#isNeg#state#temp
-         LDWA    0,i         ;isOvfl <- false
-         STWA    isOvfl,s
-         STWA    bufIdx,s    ;bufIdx <- 0
-         LDWA    init,i      ;state <- init
-         STWA    state,s
-;
-deciDo:  LDWX    bufIdx,s    ;Get bufIdx
-         LDBA    _BUF,x      ;Get asciiCh
-         STBA    asciiCh,s
-         ADDX    1,i         ;bufIdx <- bufIdx + 1
-         STWX    bufIdx,s
-         ANDA    0x000F,i    ;Set value(asciiCh)
-         STWA    valAscii,s
-         LDBA    asciiCh,s   ;A<low> = asciiCh throughout the loop
-         LDWX    state,s     ;switch (state)
-         ASLX                ;Two bytes per address
-         BR      deciJT,x
-;
-deciJT:  .WORD sInit
-         .WORD sSign
-         .WORD sDigit
-;
-sInit:   CPBA    '+',i       ;if (asciiCh == '+')
-         BRNE    ifMinus
-         LDWX    0,i         ;isNeg <- false
-         STWX    isNeg,s
-         LDWX    sign,i      ;state <- sign
-         STWX    state,s
-         BR      deciDo
-;
-ifMinus: CPBA    '-',i       ;else if (asciiCh == '-')
-         BRNE    ifDigit
-         LDWX    1,i         ;isNeg <- true
-         STWX    isNeg,s
-         LDWX    sign,i      ;state <- sign
-         STWX    state,s
-         BR      deciDo
-;
-ifDigit: CPBA    '0',i       ;else if (asciiCh is a digit)
-         BRLT    ifWhite
-         CPBA    '9',i
-         BRGT    ifWhite
-         LDWX    0,i         ;isNeg <- false
-         STWX    isNeg,s
-         LDWX    valAscii,s  ;total <- value(asciiCh)
-         STWX    total,s
-         LDWX    digit,i     ;state <- digit
-         STWX    state,s
-         BR      deciDo
-;
-ifWhite: CPBA    ' ',i       ;else if (asciiCh is not a space
-         BREQ    deciDo
-         CPBA    '\n',i      ;or line feed)
-         BRNE    deciErr     ;exit with DECI error
-         BR      deciDo
-;
-sSign:   CPBA    '0',i       ;if asciiCh (is not a digit)
-         BRLT    deciErr
-         CPBA    '9',i
-         BRGT    deciErr     ;exit with DECI error
-         LDWX    valAscii,s  ;else total <- value(asciiCh)
-         STWX    total,s
-         LDWX    digit,i     ;state <- digit
-         STWX    state,s
-         BR      deciDo
-;
-sDigit:  CPBA    '0',i       ;if (asciiCh is not a digit)
-         BRLT    deciNorm
-         CPBA    '9',i
-         BRGT    deciNorm    ;exit normaly
-         LDWX    1,i         ;else X <- true for later assignments
-         LDWA    total,s     ;Multiply total by 10 as follows:
-         ASLA                ;First, times 2
-         BRV     ovfl1       ;If overflow then
-         BR      L1
-ovfl1:   STWX    isOvfl,s    ;isOvfl <- true
-L1:      STWA    temp,s      ;Save 2 * total in temp
-         ASLA                ;Now, 4 * total
-         BRV     ovfl2       ;If overflow then
-         BR      L2
-ovfl2:   STWX    isOvfl,s    ;isOvfl <- true
-L2:      ASLA                ;Now, 8 * total
-         BRV     ovfl3       ;If overflow then
-         BR      L3
-ovfl3:   STWX    isOvfl,s    ;isOvfl <- true
-L3:      ADDA    temp,s      ;Finally, 8 * total + 2 * total
-         BRV     ovfl4       ;If overflow then
-         BR      L4
-ovfl4:   STWX    isOvfl,s    ;isOvfl <- true
-L4:      ADDA    valAscii,s  ;A <- 10 * total + valAscii
-         BRV     ovfl5       ;If overflow then
-         BR      L5
-ovfl5:   STWX    isOvfl,s    ;isOvfl <- true
-L5:      STWA    total,s     ;Update total
-         BR      deciDo
-;
-deciNorm:LDWA    isNeg,s     ;If isNeg then
-         BREQ    exitDeci
-         LDWA    total,s     ;If total != 0x8000 then
-         CPWA    0x8000,i
-         BREQ    L6
-         NEGA                ;Negate total
-         STWA    total,s
-         BR      exitDeci
-L6:      LDWA    0,i         ;else -32768 is a special case
-         STWA    isOvfl,s    ;isOvfl <- false
-;
-deciErr: LDBA    0,i
-         STBA    success,s   ;success <- false
-exitDeci:ADDSP   13,i        ;@locals#temp#state#isNeg#isOvfl#valAscii#asciiCh#bufIdx
-         RET                 ;Return
-;
-deciMsg: .ASCII  "ERROR: Invalid DECI input\x00"
-;Output format: If the operand is negative, the algorithm prints
-;a single '-' followed by the magnitude. Otherwise it prints the
-;magnitude without a leading '+'. It suppresses leading zeros.
-;
-;Print number
-;Expects the number to be printed stored in the accumulator.
-remain:  .EQUATE 0           ;#2d Remainder of value to output
-outYet:  .EQUATE 2           ;#2d Has a character been output yet?
-place:   .EQUATE 4           ;#2d Place value for division
-toPrint: .EQUATE 8           ;#2d Number to be printed
-decPrint:SUBSP   6,i         ;Allocate @locals #remain#outYet#place
-         LDWA    toPrint,s   ;Load the number to print
-         CPWA    0,i         ;If oprnd is negative then
-         BRGE    printMag
-         LDBX    '-',i       ;Print leading '-'
-         STBX    charOut,d
-         NEGA                ;Make magnitude positive
-printMag:STWA    remain,s    ;remain <- abs(oprnd)
-         LDWA    0,i         ;Initialize outYet <- false
-         STWA    outYet,s
-         LDWA    10000,i     ;place <- 10,000
-         STWA    place,s
-         CALL    divide      ;Write 10,000's place
-         LDWA    1000,i      ;place <- 1,000
-         STWA    place,s
-         CALL    divide      ;Write 1000's place
-         LDWA    100,i       ;place <- 100
-         STWA    place,s
-         CALL    divide      ;Write 100's place
-         LDWA    10,i        ;place <- 10
-         STWA    place,s
-         CALL    divide      ;Write 10's place
-         LDWA    remain,s    ;Always write 1's place
-         ORA     0x0030,i    ;Convert decimal to ASCII
-         STBA    charOut,d   ;  and output it
-         ADDSP   6,i         ;Deallocate @locals #place#outYet#remain
-         RET
-;
-;Subroutine to print the most significant decimal digit of the
-;remainder. It assumes that place (place2 here) contains the
-;decimal place value. It updates the remainder.
-;
-remain2: .EQUATE 2           ;Stack addresses while executing a
-outYet2: .EQUATE 4           ;  subroutine are greater by two because
-place2:  .EQUATE 6           ;  the retAddr is on the stack
-;
-divide:  LDWA    remain2,s   ;A <- remainder
-         LDWX    0,i         ;X <- 0
-divLoop: SUBA    place2,s    ;Division by repeated subtraction
-         BRLT    writeNum    ;If remainder is negative then done
-         ADDX    1,i         ;X <- X + 1
-         STWA    remain2,s   ;Store the new remainder
-         BR      divLoop
-;
-writeNum:CPWX    0,i         ;If X != 0 then
-         BREQ    checkOut
-         LDWA    1,i         ;outYet <- true
-         STWA    outYet2,s
-         BR      printDgt    ;and branch to print this digit
-checkOut:LDWA    outYet2,s   ;else if a previous char was output
-         BRNE    printDgt    ;then branch to print this zero
-         RET                 ;else return to calling routine
-;
-printDgt:ORX     0x0030,i    ;Convert decimal to ASCII
-         STBX    charOut,d   ;  and output it
-         RET                 ;return to calling routine
-;
          .SECTION "memvec", "rw"
 ;
 ;******* FORTH Globals
