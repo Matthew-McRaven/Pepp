@@ -99,7 +99,7 @@ Flickable {
                 text: "Pep/10, OS4"
                 architecture: Architecture.PEP10
                 abstraction: Abstraction.OS4
-                enabled: false
+                enabled: true
             }
             WelcomeCard {
                 text: "Pep/10, Mc2, 1-byte bus"
