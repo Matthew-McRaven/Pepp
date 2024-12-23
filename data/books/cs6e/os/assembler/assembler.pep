@@ -96,7 +96,7 @@ init:    .EQUATE 0           ;Enumerated values for state
 sign:    .EQUATE 1
 digit:   .EQUATE 2
 ;
-decRead: SUBSP   13,i        ;@locals#bufIdx#asciiCh#valAscii#isOvfl#isNeg#state#temp
+decRead: SUBSP   14,i        ;@locals#bufIdx#asciiCh#valAscii#isOvfl#isNeg#state#temp
          LDWA    0,i         ;isOvfl <- false
          STWA    isOvfl,s
          STWA    bufIdx,s    ;bufIdx <- 0
@@ -206,7 +206,7 @@ L6:      LDWA    0,i         ;else -32768 is a special case
 ;
 deciErr: LDBA    0,i
          STBA    success,s   ;success <- false
-exitDeci:ADDSP   13,i        ;@locals#temp#state#isNeg#isOvfl#valAscii#asciiCh#bufIdx
+exitDeci:ADDSP   14,i        ;@locals#temp#state#isNeg#isOvfl#valAscii#asciiCh#bufIdx
          RET                 ;Return
 ;
 ;Output format: If the operand is negative, the algorithm prints
@@ -476,7 +476,7 @@ eWrdLoop:CPWX    0,i          ;Consume leading whitespace when buffer is empty.
          SUBX    2,i
          RET
 
-         ; ( -- n )
+         ; ( n -- )
 @DC      DECO, _WORD, 0x04, 0x19
 DECO:    LDWA    0,x          ;Pop TOS into A
          ADDX    2,i
@@ -488,8 +488,9 @@ DECO:    LDWA    0,x          ;Pop TOS into A
          LDWX    PSP,d        ;Restore PSP
          RET
 
-         ;( n -- )
+         ;( -- n success.u8 )
 @DC      DECI,   _DECO, 0x04, 0x25
+DECI:    CALL    WORD
          STWX    PSP,d        ;Preserve PSP
          SUBSP   3,i          ;@params#total#success
          LDBA    1,i          ;success <- true
