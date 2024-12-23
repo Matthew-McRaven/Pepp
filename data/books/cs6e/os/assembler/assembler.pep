@@ -410,18 +410,21 @@ INV:     LDWA    0,x          ;Bitwise NOT TOS
 @DCONST  F_LNMSK, _F_HID,  0x08, 0x1f
 ;
 ;******* FORTH words: standard IO
+         ;( -- c )
 @DC      KEY,    _F_LNMSK, 0x04, 0x0A
          LDBA    charIn,d     ;Load char from STDIN
          STBA    -1,x         ;Push to TOS,
          ADDX    1,i
          RET
 
+         ; ( c -- )
 @DC      EMIT, _KEY, 0x05, 0x0A
 EMIT:    LDBA    0,x          ;Pop TOS byte into A
          ADDX    1,i          ;Increment PSP
          STBA    charOut,d    ;Print it
          RET
 
+         ; ( -- )
 @DC      CR, _EMIT, 0x03, 0x07
 CR:      LDBA '\n',i
          STBA charOut,d
@@ -466,6 +469,7 @@ eWrdLoop:CPWX    0,i          ;Consume leading whitespace when buffer is empty.
          SUBX    2,i
          RET
 
+         ; ( -- n )
 @DC      DECO, _WORD, 0x05, 0x19
 DECO:    LDWA    0,x          ;Pop TOS into A
          ADDX    2,i
@@ -477,6 +481,7 @@ DECO:    LDWA    0,x          ;Pop TOS into A
          LDWX    PSP,d        ;Restore PSP
          RET
 
+         ;( n -- )
 @DC      DECI,   _DECO, 0x05, 0x25
          STWX    PSP,d        ;Preserve PSP
          SUBSP   3,i          ;@params#total#success
@@ -549,6 +554,7 @@ fEnd:    LDWA    fEnt,s
          ADDSP   11,i         ;@locals#fEq#fEPtr#fELen#fWPtr#fWLen#fEnt
          RET
 
+;        ( &fEnt -- &fEnt->code )
 @DCSTR   ">CFA\x00", CFA, _FIND, 0x05, 0x0D
          SUBSP   11,i         ;@locals#fEnt#fWLen#fWPtr#fELen#fEPtr#fEq
          LDWA    0,x          ;Code address is 3 bytes from start of link ptr
@@ -604,6 +610,7 @@ eCrLoop: ADDSP   3,i          ;@locals#2h#1d
          SUBX    3,i          ;POP(len, *str)
          RET
 
+         ;( n -- )
 @DCSTR   ",\x00", COMMA, _CREATE, 0x02, 0x13
 COMMA:   @POPA                ;A <- TOS
          STWA    HERE,n       ;**HERE <- A
@@ -621,16 +628,19 @@ COMMA:   @POPA                ;A <- TOS
 __call:  CALL    COMMA
          RET
 
+         ; ( -- )
 @DCSTR   "[\x00", LBRAC, _CCOMMA, 0x82, 0x07
 LBRAC:   LDWA    0,i          ;STATE <- 0
          STWA    STATE,d
          RET
 
+         ; ( -- )
 @DCSTR   "]\x00", RBRAC, _LBRAC, 0x02, 0x07
 RBRAC:   LDWA    1,i          ;STATE <- 1
          STWA    STATE,d
          RET
 
+         ; ( -- )
 @DCSTR   "IMMEDIATE\x00",IMM,_RBRAC,0x8A,0x13
          LDWA    LATEST,d
          ADDA    1,i
@@ -640,6 +650,7 @@ RBRAC:   LDWA    1,i          ;STATE <- 1
          STWA    -2, sf
          RET
 
+         ; ( -- )
 @DCSTR   "HIDDEN\x00",HIDDEN,_IMM,0x07,0x13
 HIDDEN:  LDWA    LATEST,d
          ADDA    1,i
@@ -649,6 +660,7 @@ HIDDEN:  LDWA    LATEST,d
          STWA    -2, sf
          RET
 
+         ; ( -- )
 @DCSTR   ":\x00", COLON, _HIDDEN, 0x02, 0x0D
          CALL    WORD
          CALL    CREATE
@@ -656,6 +668,7 @@ HIDDEN:  LDWA    LATEST,d
          CALL    RBRAC
          RET
 
+         ; ( -- )
 @DCSTR   ";\x00", SEMI, _COLON, 0x82, 0x1c
          LDBA    __ret,d      ;**HERE <- opcode(RET)
          STBA    HERE,n
