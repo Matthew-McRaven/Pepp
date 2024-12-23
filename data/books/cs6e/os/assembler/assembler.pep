@@ -458,7 +458,7 @@ bWrdLoop:LDBA    charIn,d     ;Load char from STDIN
          CPBA   '\t',i
          BREQ    eWrdLoop
 mWrdLoop:STBA    _BUF,x       ;Store char to buffer, incremeting pointer.
-         ADDX    1,x
+         ADDX    1,i
          BR      bWrdLoop
 eWrdLoop:CPWX    0,i          ;Consume leading whitespace when buffer is empty.
          BREQ    bWrdLoop
