@@ -409,25 +409,8 @@ INV:     LDWA    0,x          ;Bitwise NOT TOS
 @DCONST  F_HID,   _F_IMM,  0x06, 0x20
 @DCONST  F_LNMSK, _F_HID,  0x08, 0x1f
 ;
-;******* FORTH words: return stack
-@DCSTR   ">R\x00", TOR, _F_LNMSK, 0x03, 0x0D
-         LDWA    0,s          ;Load return TOS into A
-         ADDSP   2,i          ;Drop return TOS
-         STWA    -2,x
-         SUBX    2,i          ;Decrement PSP
-         RET
-@DCSTR   "R>\x00", RFROM, _TOR, 0x03, 0x0D
-         LDWA    0,x          ;Load TOS into A
-         ADDX    2,i          ;Increment PSP
-         STWA    0,s          ;Store A to return TOS
-         SUBSP   2,i
-         RET
-@DC      RDROP, _RFROM, 0x06, 0x04
-         ADDSP   2,i          ;Drop return TOS
-         RET
-;
 ;******* FORTH words: standard IO
-@DC      KEY, _RDROP, 0x04, 0x0A
+@DC      KEY,    _F_LNMSK, 0x04, 0x0A
          LDBA    charIn,d     ;Load char from STDIN
          STBA    -1,x         ;Push to TOS,
          ADDX    1,i
