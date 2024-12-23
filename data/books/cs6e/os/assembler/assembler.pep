@@ -66,7 +66,7 @@ strcLoop: LDBA    sPtr1,sfx    ;A <- sPtr1[X]
           CPBA    sPtr2,sfx    ;Z <- sPtr1[X] == sPtr2[X]
           BRNE    strcNE
           ADDX    1,i          ;X <- X + 1
-          CPWX    0,i          ;If X == sMaxIdx then
+          CPWX    sMaxIdx,s    ;If X == sMaxIdx then
           BREQ    strcEQ       ;  return suceess
           BR      strcLoop
 strcNE:   LDBA    -1,i         ;sEq <- -1
@@ -524,9 +524,9 @@ fEPtr:   .EQUATE 0            ;#2h Address of start of entry string
 FIND:    SUBSP   11,i         ;@locals#fEnt#fWLen#fWPtr#fELen#fEPtr#fEq
          LDWA    0,x          ;fWPtr <- &_buf
          STWA    fWPtr,s
-         LDWA    -2,x         ;fWLen <- len(&_buf)
+         LDWA    2,x          ;fWLen <- len(&_buf)
          STWA    fWLen,s
-         SUBX    2,i          ;_ <- POP()
+         ADDX    2,i          ;_ <- POP()
          STWX    PSP,d        ;PSP <- X
          LDWX    LATEST,d     ;fEnt <- LATEST
          STWX    fEnt,s
@@ -534,11 +534,11 @@ FIND:    SUBSP   11,i         ;@locals#fEnt#fWLen#fWPtr#fELen#fEPtr#fEq
          ;Assumes X<-fEnt
 fndDo:   LDBA    2,x          ;A <- (fEnt->strLen & LEN_MASK)
          ANDA    F_LNMSK,i
-         CPBA    fWLen,s      ;Length mismatch?
+         CPWA    fWLen,s      ;Length mismatch?
          BRNE    fNext        ;  Try next word
 ;
          STWA    fELen,s      ;fELen <- (fEnt->strlen & LEN_MASK)
-         ADDA    1,i          ;Compute subtrahend to get from fEnt to string
+         ADDA    1,i          ;Account for null terminator
          NEGA
          STWX    fEPtr,s      ;fEPtr <- &fEnt
          ADDA    fEPtr,s      ;fEPtr <- &fEnt - length -1
@@ -550,8 +550,7 @@ fndDo:   LDBA    2,x          ;A <- (fEnt->strLen & LEN_MASK)
          BRNE    fNext        ;If strings don't match, try next word
          BR      fEnd         ;fEnt matches input string; stop and push to PSP.
 ;
-fNext:   LDWX    fEnt,s       ;Get the address of the most recent word
-         LDWX    0,s          ;fEnt <- fEnt->link
+fNext:   LDWX    fEnt,sf      ;fEnt <- fEnt->link
          STWX    fEnt,s
          BREQ    fEnd         ;End iteration if fEnt == 0
          BR      fndDo
