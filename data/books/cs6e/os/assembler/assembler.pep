@@ -493,14 +493,21 @@ DECO:    LDWA    0,x          ;Pop TOS into A
          RET
 ;
 ;******* FORTH words: dictionary access
-         ;(n address -- address)
+         ;( &fEnt -- *(fEnt->link) )
+@DC      PREV, _DECI, 0x05, 0x05
+PREV:    LDWA    0,x
+         STWA    -2,s
+         LDWA    -2,sf
+         STWA    0,x
+         RET
+
 fEnt:    .EQUATE 9            ;#2h Address of start of dictionary entry
 fEq:     .EQUATE 8            ;#1c Equal boolean
 fWLen:   .EQUATE 6            ;#2d Length of scanned word
 fWPtr:   .EQUATE 4            ;#2h Address of start of scanned word
 fELen:   .EQUATE 2            ;#2d Length of entry string
 fEPtr:   .EQUATE 0            ;#2h Address of start of entry string
-@DC      FIND, _DECI, 0x05, 0x65
+@DC      FIND, _PREV, 0x05, 0x65
          SUBSP   11,i         ;@locals#fEnt#fWLen#fWPtr#fELen#fEPtr#fEq
          LDWA    0,x          ;fWPtr <- &_buf
          STWA    fWPtr,s
