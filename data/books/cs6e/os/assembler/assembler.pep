@@ -283,12 +283,12 @@ HALT:    LDWA    0xDEAD, i
 hang:    BR      hang
 
 @DC      DROP, _HALT, 0x05, 0x04
-         @POP
+DROP:    @POP
          RET
 
 ;Also tried implementing with XOR-swap, but that used 3 more bytes.
 @DC      SWAP, _DROP, 0x05, 0x13
-         LDWA    0,x         ;Load TOS+0, store to TOS-1
+SWAP:    LDWA    0,x         ;Load TOS+0, store to TOS-1
          STWA    -2,x
          LDWA    2,x         ;Load TOS+1, store to TOS+0
          STWA    0,x
@@ -303,13 +303,13 @@ DUP:     LDWA    0,x         ;Load TOS+0, store to TOS-1
          RET
 
 @DC      OVER, _DUP, 0x05, 0x0A
-         LDWA    2,x         ;Load TOS+1, store to TOS-1
+OVER:    LDWA    2,x         ;Load TOS+1, store to TOS-1
          STWA    -2,x
          SUBX    2,i         ;Decrement PSP
          RET
 
 @DC      ROT, _OVER, 0x04, 0x1C
-         LDWA    0,x         ;Load TOS+0, store to TOS-1
+ROT:     LDWA    0,x         ;Load TOS+0, store to TOS-1
          STWA    -2,x
          LDWA    2,x         ;Load TOS+1, store to TOS+0
          STWA    0,x
@@ -320,11 +320,11 @@ DUP:     LDWA    0,x         ;Load TOS+0, store to TOS-1
          RET
 ;Ignoring -ROT for now since I don't (yet) need it.
 @DCSTR   "2DROP\x00", DROP2, _ROT, 0x06, 0x05
-         ADDX    4,i         ;Drop top two elements of parameter stack
+DROP2:   ADDX    4,i         ;Drop top two elements of parameter stack
          RET
 
 @DCSTR   "2DUP\x00", DUP2, _DROP2, 0x05, 0x0A
-         LDWA    0,x         ;Load TOS+0, store to TOS-2
+DUP2:    LDWA    0,x         ;Load TOS+0, store to TOS-2
          STWA    -4,x
          LDWA    2,x         ;Load TOS+1, store to TOS-1
          STWA    -2,x
@@ -332,18 +332,18 @@ DUP:     LDWA    0,x         ;Load TOS+0, store to TOS-1
          RET
 
 @DCSTR   "?DUP\x00", MDUP, _DUP2, 0x05, 0x07
-         LDWA    0,x         ;Load TOS+0
+MDUP:    LDWA    0,x         ;Load TOS+0
          BRNE    DUP         ;If non-0, DUP
          RET
 ;
 ;******* FORTH words: arithmetic & logic
 @DCSTR   "1+\x00", INCR, _MDUP, 0x03, 0x0A
-         LDWA    0,x         ;Increment TOS by 1
+INCR:    LDWA    0,x         ;Increment TOS by 1
          ADDA    1,i
          STWA    0,x
          RET
 @DCSTR   "1-\x00", DECR, _INCR, 0x03, 0x0A
-         LDWA    0,x         ;Decrement TOS by 1
+DECR:    LDWA    0,x         ;Decrement TOS by 1
          SUBA    1,i
          STWA    0,x
          RET
@@ -354,31 +354,31 @@ ADD:     LDWA    2,x         ;Add TOS to TOS-1
          ADDX    2,i
          RET
 @DCSTR   "-\x00", SUB, _ADD, 0x02, 0x0D
-         LDWA    2,x         ;Sub TOS from TOS-1
+SUB:     LDWA    2,x         ;Sub TOS from TOS-1
          SUBA    0,x
          STWA    2,x
          ADDX    2,i
          RET
 @DC      AND, _SUB, 0x04, 0x0D
-         LDWA    2,x         ;Bitwise AND TOS and TOS-1
+AND:     LDWA    2,x         ;Bitwise AND TOS and TOS-1
          ANDA    0,x
          STWA    2,x
          ADDX    2,i
          RET
 @DC      OR, _AND, 0x03, 0x0D
-         LDWA    2,x         ;Bitwise OR TOS and TOS-1
+OR:      LDWA    2,x         ;Bitwise OR TOS and TOS-1
          ORA     0,x
          STWA    2,x
          ADDX    2,i
          RET
 @DC      XOR, _OR, 0x04, 0x0D
-         LDWA    2,x         ;Bitwise XOR TOS and TOS-1
+XOR:     LDWA    2,x         ;Bitwise XOR TOS and TOS-1
          XORA    0,x
          STWA    2,x
          ADDX    2,i
          RET
 @DCSTR   "INVERT\x00", INV, _XOR, 0x07, 0x08
-         LDWA    0,x          ;Bitwise NOT TOS
+INV:     LDWA    0,x          ;Bitwise NOT TOS
          NOTA
          STWA    0,x
          RET
@@ -434,13 +434,13 @@ ADD:     LDWA    2,x         ;Add TOS to TOS-1
          RET
 
 @DC      EMIT, _KEY, 0x05, 0x0A
-         LDBA    0,x          ;Pop TOS byte into A
+EMIT:    LDBA    0,x          ;Pop TOS byte into A
          ADDX    1,i          ;Increment PSP
          STBA    charOut,d    ;Print it
          RET
 
 @DC      CR, _EMIT, 0x03, 0x07
-         LDBA '\n',i
+CR:      LDBA '\n',i
          STBA charOut,d
          RET
 
@@ -666,9 +666,10 @@ __ret:   RET
 ;
 ;******* FORTH words: core interpreter
 cldstrt: LDWX    pStack, i
-         @PUSH   2,i
-         @PUSH   3,i
-         CALL    ADD
+         @PUSH   60,i
+         CALL    DECO
+         CALL    CR
+         @PUSH   70,i
          CALL    DECO
          CALL    HALT
 ;
