@@ -427,7 +427,21 @@ CR:      LDBA '\n',i
          STBA charOut,d
          RET
 
-@DC      WORD, _CR, 0x05, 0x43
+        ; ( &str -- )
+@DCSTR  "PRINTCSTR\x00", prntCStr, _CR, 0x0A,0x14
+prntCStr:STWX   PSP,d
+         LDWX   0,x
+bPrntLp: LDBA   0,x
+         BREQ   ePrntLp
+         STBA   charOut,d
+         ADDX   1,i
+         BR     bPrntLp
+ePrntLp: LDWX   PSP,d
+         ADDX   2,i           ;Pop pointer
+         RET
+
+         ; ( -- len &str )
+@DC      WORD, _prntCStr, 0x05, 0x43
 WORD:    SUBX    2,i          ;Allocate 2 bytes for WORD length, so we can use STWX PSP,n to store to it
          STWX    PSP,d        ;Preserve PSP
          LDWX    0,i          ;Initialize buffer index
