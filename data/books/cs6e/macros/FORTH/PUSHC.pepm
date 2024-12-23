@@ -1,0 +1,4 @@
+@PUSH 2
+LDBA $1,$2
+SUBX 1,i
+STWA 0,x

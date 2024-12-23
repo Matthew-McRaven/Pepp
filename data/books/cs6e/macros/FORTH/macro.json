@@ -9,6 +9,7 @@
     "POP": "{name}.pepm",
     "POPA": "{name}.pepm",
     "PUSH": "{name}.pepm",
-    "PUSHA": "{name}.pepm"
+    "PUSHA": "{name}.pepm",
+    "PUSHC": "{name}.pepm"
   }
 }
