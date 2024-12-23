@@ -618,7 +618,8 @@ COMMA:   @POPA                ;A <- TOS
          STWA    HERE,d
          RET
 
-@DCSTR   "CALL,\x00", CCOMMA, _COMMA, 0x02, 0x13
+         ;( -- )
+@DCSTR   "CALL,\x00", CCOMMA, _COMMA, 0x06, 0x13
          LDBA    __call,d     ;**HERE <- opcode(CALL)
          STBA    HERE,n
          LDWA    HERE,d       ;*HERE += 1
