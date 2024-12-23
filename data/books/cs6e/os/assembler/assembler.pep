@@ -347,17 +347,7 @@ DUP:     LDWA    0,x         ;Load TOS+0, store to TOS-1
          SUBA    1,i
          STWA    0,x
          RET
-@DCSTR   "2+\x00", INCR2, _DECR, 0x03, 0x0A
-         LDWA    0,x         ;Increment TOS by 2
-         ADDA    2,i
-         STWA    0,x
-         RET
-@DCSTR   "2-\x00", DECR2, _INCR2, 0x03, 0x0A
-         LDWA    0,x         ;Decrement TOS by 2
-         SUBA    2,i
-         STWA    0,x
-         RET
-@DCSTR   "+\x00", ADD, _DECR2, 0x02, 0x0D
+@DCSTR   "+\x00", ADD, _DECR, 0x02, 0x0D
 ADD:     LDWA    2,x         ;Add TOS to TOS-1
          ADDA    0,x
          STWA    2,x
