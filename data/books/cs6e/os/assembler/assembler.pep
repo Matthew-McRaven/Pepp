@@ -560,6 +560,18 @@ fEnd:    LDWA    fEnt,s
          ADDA    3,i
          STWA    0,x
          RET
+
+        ;( &fEnt -- &fEnt->str )
+@DCSTR   ">STR\x00", STR, _CFA, 0x05, 0x17
+derefStr:LDWA    0,x          ;A <- &(fEnt->len)
+         ADDA    2,i
+         STWA    -2,s         ;A <- fEnt->len
+         LDBA    -2,sf
+         ANDA    F_LNMSK,i    ;A <- -(MASK && fEnt->len)
+         NEGA
+         ADDA    0,x          ;A <- &(fEnt->str)
+         STWA    0,x
+         RET
 ;
 ;******* FORTH words: basic compilation
          ;(len *str -- )
