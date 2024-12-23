@@ -277,17 +277,17 @@ printDgt:ORX     0x0030,i    ;Convert decimal to ASCII
          RET                 ;return to calling routine
 ;
 ;******* FORTH words: stack manipulation
-@DC      HALT, 0x0000, 0x05, 0x09
+@DC      HALT, 0x0000, 0x04, 0x09
 HALT:    LDWA    0xDEAD, i
          STBA    pwrOff, d
 hang:    BR      hang
 
-@DC      DROP, _HALT, 0x05, 0x04
+@DC      DROP, _HALT, 0x04, 0x04
 DROP:    @POP
          RET
 
 ;Also tried implementing with XOR-swap, but that used 3 more bytes.
-@DC      SWAP, _DROP, 0x05, 0x13
+@DC      SWAP, _DROP, 0x04, 0x13
 SWAP:    LDWA    0,x         ;Load TOS+0, store to TOS-1
          STWA    -2,x
          LDWA    2,x         ;Load TOS+1, store to TOS+0
@@ -296,19 +296,19 @@ SWAP:    LDWA    0,x         ;Load TOS+0, store to TOS-1
          STWA    2,x
          RET
 
-@DC      DUP, _SWAP, 0x04, 0x0A
+@DC      DUP, _SWAP, 0x03, 0x0A
 DUP:     LDWA    0,x         ;Load TOS+0, store to TOS-1
          STWA    -2,x
          SUBX    2,i         ;Decrement PSP
          RET
 
-@DC      OVER, _DUP, 0x05, 0x0A
+@DC      OVER, _DUP, 0x04, 0x0A
 OVER:    LDWA    2,x         ;Load TOS+1, store to TOS-1
          STWA    -2,x
          SUBX    2,i         ;Decrement PSP
          RET
 
-@DC      ROT, _OVER, 0x04, 0x1C
+@DC      ROT, _OVER, 0x03, 0x1C
 ROT:     LDWA    0,x         ;Load TOS+0, store to TOS-1
          STWA    -2,x
          LDWA    2,x         ;Load TOS+1, store to TOS+0
@@ -319,11 +319,11 @@ ROT:     LDWA    0,x         ;Load TOS+0, store to TOS-1
          STWA    4,x
          RET
 ;Ignoring -ROT for now since I don't (yet) need it.
-@DCSTR   "2DROP\x00", DROP2, _ROT, 0x06, 0x05
+@DCSTR   "2DROP\x00", DROP2, _ROT, 0x05, 0x05
 DROP2:   ADDX    4,i         ;Drop top two elements of parameter stack
          RET
 
-@DCSTR   "2DUP\x00", DUP2, _DROP2, 0x05, 0x0A
+@DCSTR   "2DUP\x00", DUP2, _DROP2, 0x04, 0x0A
 DUP2:    LDWA    0,x         ;Load TOS+0, store to TOS-2
          STWA    -4,x
          LDWA    2,x         ;Load TOS+1, store to TOS-1
@@ -331,67 +331,74 @@ DUP2:    LDWA    0,x         ;Load TOS+0, store to TOS-2
          SUBX    4,i         ;Decrement PSP
          RET
 
-@DCSTR   "?DUP\x00", MDUP, _DUP2, 0x05, 0x07
+@DCSTR   "?DUP\x00", MDUP, _DUP2, 0x04, 0x07
 MDUP:    LDWA    0,x         ;Load TOS+0
          BRNE    DUP         ;If non-0, DUP
          RET
 ;
 ;******* FORTH words: arithmetic & logic
-@DCSTR   "1+\x00", INCR, _MDUP, 0x03, 0x0A
+@DCSTR   "1+\x00", INCR, _MDUP, 0x02, 0x0A
 INCR:    LDWA    0,x         ;Increment TOS by 1
          ADDA    1,i
          STWA    0,x
          RET
-@DCSTR   "1-\x00", DECR, _INCR, 0x03, 0x0A
+
+@DCSTR   "1-\x00", DECR, _INCR, 0x02, 0x0A
 DECR:    LDWA    0,x         ;Decrement TOS by 1
          SUBA    1,i
          STWA    0,x
          RET
-@DCSTR   "+\x00", ADD, _DECR, 0x02, 0x0D
+
+@DCSTR   "+\x00", ADD, _DECR, 0x01, 0x0D
 ADD:     LDWA    2,x         ;Add TOS to TOS-1
          ADDA    0,x
          STWA    2,x
          ADDX    2,i
          RET
-@DCSTR   "-\x00", SUB, _ADD, 0x02, 0x0D
+
+@DCSTR   "-\x00", SUB, _ADD, 0x01, 0x0D
 SUB:     LDWA    2,x         ;Sub TOS from TOS-1
          SUBA    0,x
          STWA    2,x
          ADDX    2,i
          RET
-@DC      AND, _SUB, 0x04, 0x0D
+
+@DC      AND, _SUB, 0x03, 0x0D
 AND:     LDWA    2,x         ;Bitwise AND TOS and TOS-1
          ANDA    0,x
          STWA    2,x
          ADDX    2,i
          RET
-@DC      OR, _AND, 0x03, 0x0D
+
+@DC      OR, _AND, 0x02, 0x0D
 OR:      LDWA    2,x         ;Bitwise OR TOS and TOS-1
          ORA     0,x
          STWA    2,x
          ADDX    2,i
          RET
-@DC      XOR, _OR, 0x04, 0x0D
+
+@DC      XOR, _OR, 0x03, 0x0D
 XOR:     LDWA    2,x         ;Bitwise XOR TOS and TOS-1
          XORA    0,x
          STWA    2,x
          ADDX    2,i
          RET
-@DCSTR   "INVERT\x00", INV, _XOR, 0x07, 0x08
+
+@DCSTR   "INVERT\x00", INV, _XOR, 0x06, 0x08
 INV:     LDWA    0,x          ;Bitwise NOT TOS
          NOTA
          STWA    0,x
          RET
 ;
 ;******* FORTH words: memory operations
-@DCSTR   "@\x00", LOAD, _INV, 0x02, 0x10
+@DCSTR   "@\x00", LOAD, _INV, 0x01, 0x10
          STWX    PSP,d        ;Store PSP to global data
          LDWX    0,x          ;Get the word pointed to by PSP
          LDWA    0,x          ;Dereference that word
          LDWX    PSP,d        ;Restore PSP
          STWA    0,x          ;Store the word to TOS
          RET
-@DCSTR   "!\x00", STORE, _LOAD, 0x02, 0x10
+@DCSTR   "!\x00", STORE, _LOAD, 0x01, 0x10
          LDWA    2,x          ;Load TOS-1 into A
          STWX    PSP,d        ;Store PSP to global data
          LDWX    0,x          ;Get the word pointed to by PSP
@@ -400,38 +407,38 @@ INV:     LDWA    0,x          ;Bitwise NOT TOS
          RET
 ;
 ;******* FORTH words: global variables
-@DVAR    STATE,  _STORE,  0x06
-@DVAR    LATEST, _STATE,  0x07
-@DVAR    HERE,   _LATEST, 0x05
+@DVAR    STATE,  _STORE,  0x05
+@DVAR    LATEST, _STATE,  0x06
+@DVAR    HERE,   _LATEST, 0x04
 ;
 ;******* FORTH words: global constants
-@DCONST  F_IMM,   _HERE,   0x06, 0x80
-@DCONST  F_HID,   _F_IMM,  0x06, 0x20
-@DCONST  F_LNMSK, _F_HID,  0x08, 0x1f
+@DCONST  F_IMM,   _HERE,   0x05, 0x80
+@DCONST  F_HID,   _F_IMM,  0x05, 0x20
+@DCONST  F_LNMSK, _F_HID,  0x07, 0x1f
 ;
 ;******* FORTH words: standard IO
          ;( -- c )
-@DC      KEY,    _F_LNMSK, 0x04, 0x0A
+@DC      KEY,    _F_LNMSK, 0x03, 0x0A
          LDBA    charIn,d     ;Load char from STDIN
          STBA    -1,x         ;Push to TOS,
          ADDX    1,i
          RET
 
          ; ( c -- )
-@DC      EMIT, _KEY, 0x05, 0x0A
+@DC      EMIT, _KEY, 0x04, 0x0A
 EMIT:    LDBA    0,x          ;Pop TOS byte into A
          ADDX    1,i          ;Increment PSP
          STBA    charOut,d    ;Print it
          RET
 
          ; ( -- )
-@DC      CR, _EMIT, 0x03, 0x07
+@DC      CR, _EMIT, 0x02, 0x07
 CR:      LDBA '\n',i
          STBA charOut,d
          RET
 
         ; ( &str -- )
-@DCSTR  "PRINTCSTR\x00", prntCStr, _CR, 0x0A,0x14
+@DCSTR  "PRINTCSTR\x00", prntCStr, _CR, 0x09,0x14
 prntCStr:STWX   PSP,d
          LDWX   0,x
 bPrntLp: LDBA   0,x
@@ -444,7 +451,7 @@ ePrntLp: LDWX   PSP,d
          RET
 
          ; ( -- len &str )
-@DC      WORD, _prntCStr, 0x05, 0x43
+@DC      WORD, _prntCStr, 0x04, 0x43
 WORD:    SUBX    2,i          ;Allocate 2 bytes for WORD length, so we can use STWX PSP,n to store to it
          STWX    PSP,d        ;Preserve PSP
          LDWX    0,i          ;Initialize buffer index
@@ -470,7 +477,7 @@ eWrdLoop:CPWX    0,i          ;Consume leading whitespace when buffer is empty.
          RET
 
          ; ( -- n )
-@DC      DECO, _WORD, 0x05, 0x19
+@DC      DECO, _WORD, 0x04, 0x19
 DECO:    LDWA    0,x          ;Pop TOS into A
          ADDX    2,i
          STWX    PSP,d        ;Preserve PSP
@@ -482,7 +489,7 @@ DECO:    LDWA    0,x          ;Pop TOS into A
          RET
 
          ;( n -- )
-@DC      DECI,   _DECO, 0x05, 0x25
+@DC      DECI,   _DECO, 0x04, 0x25
          STWX    PSP,d        ;Preserve PSP
          SUBSP   3,i          ;@params#total#success
          LDBA    1,i          ;success <- true
@@ -499,21 +506,22 @@ DECO:    LDWA    0,x          ;Pop TOS into A
 ;
 ;******* FORTH words: dictionary access
          ;( &fEnt -- *(fEnt->link) )
-@DC      PREV, _DECI, 0x05, 0x05
+@DC      PREV, _DECI, 0x04, 0x05
 PREV:    LDWA    0,x
          STWA    -2,s
          LDWA    -2,sf
          STWA    0,x
          RET
 
+         ; ( len &str -- fEnt)
 fEnt:    .EQUATE 9            ;#2h Address of start of dictionary entry
 fEq:     .EQUATE 8            ;#1c Equal boolean
 fWLen:   .EQUATE 6            ;#2d Length of scanned word
 fWPtr:   .EQUATE 4            ;#2h Address of start of scanned word
 fELen:   .EQUATE 2            ;#2d Length of entry string
 fEPtr:   .EQUATE 0            ;#2h Address of start of entry string
-@DC      FIND, _PREV, 0x05, 0x65
-         SUBSP   11,i         ;@locals#fEnt#fWLen#fWPtr#fELen#fEPtr#fEq
+@DC      FIND, _PREV, 0x04, 0x65
+FIND:    SUBSP   11,i         ;@locals#fEnt#fWLen#fWPtr#fELen#fEPtr#fEq
          LDWA    0,x          ;fWPtr <- &_buf
          STWA    fWPtr,s
          LDWA    -2,x         ;fWLen <- len(&_buf)
@@ -555,18 +563,19 @@ fEnd:    LDWA    fEnt,s
          RET
 
 ;        ( &fEnt -- &fEnt->code )
-@DCSTR   ">CFA\x00", CFA, _FIND, 0x05, 0x0A
+@DCSTR   ">CFA\x00", CFA, _FIND, 0x04, 0x0A
          LDWA    0,x          ;Code address is 3 bytes from start of link ptr
          ADDA    3,i
          STWA    0,x
          RET
 
         ;( &fEnt -- &fEnt->str )
-@DCSTR   ">STR\x00", STR, _CFA, 0x05, 0x17
+@DCSTR   ">STR\x00", STR, _CFA, 0x04, 0x17
 derefStr:LDWA    0,x          ;A <- &(fEnt->len)
          ADDA    2,i
          STWA    -2,s         ;A <- fEnt->len
          LDBA    -2,sf
+         ADDA    1,i          ;Account for null terminator
          ANDA    F_LNMSK,i    ;A <- -(MASK && fEnt->len)
          NEGA
          ADDA    0,x          ;A <- &(fEnt->str)
@@ -574,7 +583,7 @@ derefStr:LDWA    0,x          ;A <- &(fEnt->len)
          RET
 
          ;( -- )
-@DCSTR   "DUMPDICT\x00", DD, _STR, 0x09, 0x1c
+@DCSTR   "DUMPDICT\x00", DD, _STR, 0x08, 0x1c
 DD:      LDWA    LATEST,d
          SUBX    2,i
          STWA    0,x
@@ -589,7 +598,7 @@ _ddLoop: CALL    DUP
 ;
 ;******* FORTH words: basic compilation
          ;( len &str -- )
-@DC      CREATE, _DD, 0x07, 0x6A
+@DC      CREATE, _DD, 0x06, 0x6A
 ;        Copy string to HERE++
 CREATE:  STWX    PSP,d        ;*PSP <- X
          SUBSP   3,i          ;@params#2h#1d
@@ -635,7 +644,7 @@ eCrLoop: ADDSP   3,i          ;@locals#2h#1d
          RET
 
          ;( n -- )
-@DCSTR   ",\x00", COMMA, _CREATE, 0x02, 0x13
+@DCSTR   ",\x00", COMMA, _CREATE, 0x01, 0x13
 COMMA:   @POPA                ;A <- TOS
          STWA    HERE,n       ;**HERE <- A
          LDWA    HERE,d       ;*HERE += 2
@@ -644,7 +653,7 @@ COMMA:   @POPA                ;A <- TOS
          RET
 
          ;( -- )
-@DCSTR   "CALL,\x00", CCOMMA, _COMMA, 0x06, 0x13
+@DCSTR   "CALL,\x00", CCOMMA, _COMMA, 0x05, 0x13
          LDBA    __call,d     ;**HERE <- opcode(CALL)
          STBA    HERE,n
          LDWA    HERE,d       ;*HERE += 1
@@ -654,19 +663,19 @@ __call:  CALL    COMMA
          RET
 
          ; ( -- )
-@DCSTR   "[\x00", LBRAC, _CCOMMA, 0x82, 0x07
+@DCSTR   "[\x00", LBRAC, _CCOMMA, 0x81, 0x07
 LBRAC:   LDWA    0,i          ;STATE <- 0
          STWA    STATE,d
          RET
 
          ; ( -- )
-@DCSTR   "]\x00", RBRAC, _LBRAC, 0x02, 0x07
+@DCSTR   "]\x00", RBRAC, _LBRAC, 0x01, 0x07
 RBRAC:   LDWA    1,i          ;STATE <- 1
          STWA    STATE,d
          RET
 
          ; ( -- )
-@DCSTR   "IMMEDIATE\x00",IMM,_RBRAC,0x8A,0x13
+@DCSTR   "IMMEDIATE\x00",IMM,_RBRAC,0x89,0x13
          LDWA    LATEST,d
          ADDA    1,i
          STWA    -2,s
@@ -676,7 +685,7 @@ RBRAC:   LDWA    1,i          ;STATE <- 1
          RET
 
          ; ( -- )
-@DCSTR   "HIDDEN\x00",HIDDEN,_IMM,0x07,0x13
+@DCSTR   "HIDDEN\x00",HIDDEN,_IMM,0x06,0x13
 HIDDEN:  LDWA    LATEST,d
          ADDA    1,i
          STWA    -2,s
@@ -686,7 +695,7 @@ HIDDEN:  LDWA    LATEST,d
          RET
 
          ; ( -- )
-@DCSTR   ":\x00", COLON, _HIDDEN, 0x02, 0x0D
+@DCSTR   ":\x00", COLON, _HIDDEN, 0x01, 0x0D
          CALL    WORD
          CALL    CREATE
          CALL    HIDDEN
@@ -694,7 +703,7 @@ HIDDEN:  LDWA    LATEST,d
          RET
 
          ; ( -- )
-@DCSTR   ";\x00", SEMI, _COLON, 0x82, 0x1c
+@DCSTR   ";\x00", SEMI, _COLON, 0x81, 0x1c
          LDBA    __ret,d      ;**HERE <- opcode(RET)
          STBA    HERE,n
          LDWA    HERE,d       ;*HERE += 2
