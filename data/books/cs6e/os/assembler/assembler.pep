@@ -572,11 +572,24 @@ derefStr:LDWA    0,x          ;A <- &(fEnt->len)
          ADDA    0,x          ;A <- &(fEnt->str)
          STWA    0,x
          RET
+
+         ;( -- )
+@DCSTR   "DUMPDICT\x00", DD, _STR, 0x09, 0x1c
+DD:      LDWA    LATEST,d
+         SUBX    2,i
+         STWA    0,x
+_ddLoop: CALL    DUP
+         CALL    derefStr
+         CALL    prntCStr
+         CALL    CR
+         CALL    PREV
+         BRNE    _ddLoop
+         ADDX   2,i
+         RET
 ;
 ;******* FORTH words: basic compilation
-         ;(len *str -- )
-@DC      CREATE, _CFA, 0x07, 0x6A
-;
+         ;( len &str -- )
+@DC      CREATE, _DD, 0x07, 0x6A
 ;        Copy string to HERE++
 CREATE:  STWX    PSP,d        ;*PSP <- X
          SUBSP   3,i          ;@params#2h#1d
@@ -695,11 +708,7 @@ __ret:   RET
 ;
 ;******* FORTH words: core interpreter
 cldstrt: LDWX    pStack, i
-         @PUSH   60,i
-         CALL    DECO
-         CALL    CR
-         @PUSH   70,i
-         CALL    DECO
+         CALL    DD
          CALL    HALT
 ;
          .SECTION "memvec", "rw"
