@@ -621,9 +621,17 @@ bCrLoop: CPBX    2,s
          ADDX    1,i
          BR      bCrLoop
 eCrLoop: ADDSP   3,i          ;@locals#2h#1d
-         LDWX    PSP,d
+;
+         LDBA    0,i          ;Add null terminator for ease of printing
+         STBA    HERE,n
+         ADDX    1,i
+         LDWA    HERE,d
+         ADDA    1,i
+         STWA    HERE,d
+
 ;
                               ;Copy value of LATEST to *HERE
+         LDWX    PSP,d
          LDWA    LATEST,d     ; **HERE <- *LATEST
          STWA    HERE,n
          LDWA    HERE,d       ;*LATEST <- *HERE
