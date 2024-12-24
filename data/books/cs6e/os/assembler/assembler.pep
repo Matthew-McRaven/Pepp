@@ -735,11 +735,11 @@ INTERP:  CALL    WORD
          CALL    DECICore
          @POPCA
          BREQ    _intErr
-         LDWA    state,d
+         LDWA    STATE,d
          BREQ    INTERP
          CALL    LDWAC
          CALL    INTERP
-_intWord:LDWA    state,d
+_intWord:LDWA    STATE,d
          BREQ    _intImm
          LDBA    2,x         ;A <- (fEnt->len & LEN_MASK)
          ANDA    F_IMM,i
