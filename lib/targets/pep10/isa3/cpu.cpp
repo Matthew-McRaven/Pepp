@@ -124,6 +124,10 @@ void targets::pep10::isa::CPU::setDebugger(pepp::sim::Debugger *debugger) { _dbg
 
 void targets::pep10::isa::CPU::clearDebugger() { _dbg = nullptr; }
 
+void targets::pep10::isa::CPU::setCallsViaRet(const QSet<quint16> &calls) { _callsViaRet = calls; }
+
+void targets::pep10::isa::CPU::clearCallsViaRet() { _callsViaRet.clear(); }
+
 void targets::pep10::isa::CPU::incrDepth() {
   static const quint8 amt = 1;
   _depth++;
@@ -185,13 +189,16 @@ sim::api2::tick::Result targets::pep10::isa::CPU::unaryDispatch(quint8 is, quint
 
   switch (mnemonic.instr.mnemon) {
   case mn::RET:
+    // Must occur before mdifying PC.
+    if (_callsViaRet.contains(pc - 1)) incrDepth();
+    else decrDepth();
+
     _memory->read(sp, {reinterpret_cast<quint8 *>(&tmp), 2}, rw_d);
     // Must byteswap tmp if on big endian host, as _memory stores in little
     // endian
     if (swap) tmp = bits::byteswap(tmp);
     pc = tmp;
     writeReg(Register::SP, sp + 2);
-    decrDepth();
     break;
 
   case mn::MOVFLGA: writeReg(Register::A, readPackedCSR()); break;

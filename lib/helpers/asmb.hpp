@@ -39,6 +39,7 @@ public:
   QStringList formattedSource(bool os);
   QList<quint8> bytes(bool os);
   Lines2Addresses address2Lines(bool os);
+  QSet<quint16> callViaRets();
 
 private:
   builtins::Architecture _arch;
@@ -48,6 +49,8 @@ private:
 
   QSharedPointer<pas::ast::Node> _osRoot, _userRoot;
   QSharedPointer<ELFIO::elfio> _elf;
+  // RET's that are being abused to act like a CALL via a double push.
+  QSet<quint16> _callViaRets = {};
 };
 
 } // namespace helpers

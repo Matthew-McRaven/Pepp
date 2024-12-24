@@ -25,6 +25,8 @@
 #include "asm/pas/operations/pepp/find.hpp"
 #include "asm/pas/operations/pepp/size.hpp"
 
+#include <asm/pas/ast/generic/attr_address.hpp>
+
 namespace pas::ops::pepp {
 template <typename ISA> struct ValidateDirectives : public pas::ops::MutatingOp<void> {
   bool valid = true;
@@ -75,6 +77,25 @@ struct ErrorOnMultipleSymbolDefiniton : public pas::ops::MutatingOp<void> {
 };
 
 bool errorOnMultipleSymbolDefiniton(ast::Node &node);
+
+template <typename ISA> struct AnnotateRetOps : public pas::ops::MutatingOp<void> {
+  AnnotateRetOps(QSet<quint16> &addresses) : addresses(addresses) {}
+  void operator()(ast::Node &node) {
+    if (node.has<ast::pepp::Instruction<ISA>>()) {
+      auto mn = node.get<ast::pepp::Instruction<ISA>>().value;
+      if (mn != ISA::Mnemonic::RET) return;
+      else if (!node.has<ast::generic::Comment>()) return;
+      if (auto com = node.get<ast::generic::Comment>().value; !com.toLower().contains("@call")) return;
+      addresses.insert(node.get<ast::generic::Address>().value.start);
+    }
+  }
+  QSet<quint16> &addresses;
+};
+
+template <typename ISA> void annotateRetOps(QSet<quint16> &ret, ast::Node &node) {
+  AnnotateRetOps<ISA> visit(ret);
+  ast::apply_recurse(node, visit);
+}
 
 template <typename ISA> bool checkWholeProgramSanity(ast::Node &node, Features features) {
   if (implicitSize<ISA>(node) > 0x10000) {

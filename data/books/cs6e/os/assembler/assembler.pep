@@ -752,7 +752,7 @@ _intImm: CALL    CFA
          @POPA
          STWA    -4,s
          SUBSP   4,i
-         RET
+         RET                 ;@call
 _intErr: @PUSH   _intMsg,i
          CALL    prntCStr
          @PUSH   _BUF,i

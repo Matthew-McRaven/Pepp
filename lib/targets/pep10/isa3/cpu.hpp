@@ -71,6 +71,9 @@ public:
   void setDebugger(pepp::sim::Debugger *debugger);
   void clearDebugger();
 
+  void setCallsViaRet(const QSet<quint16> &calls);
+  void clearCallsViaRet();
+
 private:
   // Increment depth and emit a trace packet.
   void incrDepth();
@@ -97,5 +100,8 @@ private:
   sim::api2::tick::Result nonunaryDispatch(quint8 is, quint16 os, quint16 pc);
   void decodeStoreOperand(quint8 is, quint16 os, quint16 &decoded, bool traced = true);
   void decodeLoadOperand(quint8 is, quint16 os, quint16 &decoded, bool traced = true);
+  // We have an assembler-level hack to allow indirect calls via a RET mnemonic.
+  // When used in that way, we need to increment the depth rather than decrement it.
+  QSet<quint16> _callsViaRet = {};
 };
 } // namespace targets::pep10::isa

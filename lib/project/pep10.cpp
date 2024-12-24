@@ -885,6 +885,16 @@ bool Pep_ASMB::onAssemble(bool doLoad) {
   _system->reconfigure(*elf);
   if (doLoad) _system->bus()->write(0, {userBytes.data(), std::size_t(userBytes.length())}, gs);
 
+  // Hack to help debugger understand callViaRet.
+  auto callViaRet = helper.callViaRets();
+  switch (_env.arch) {
+  case builtins::Architecture::PEP10: {
+    if (auto cpu = dynamic_cast<targets::pep10::isa::CPU *>(_system->cpu()); cpu) cpu->setCallsViaRet(callViaRet);
+    break;
+  }
+  default: throw std::logic_error("Unimplemented architecture");
+  }
+
   setObjectCodeText(objectCodeText);
   emit requestSourceBreakpoints();
   emit message(utils::msg_asm_success);
