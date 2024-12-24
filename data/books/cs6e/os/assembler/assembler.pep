@@ -731,6 +731,7 @@ INTERP:  CALL    WORD
          CALL    FIND
          LDWA    0,x
          BRNE    _intWord
+         ADDX    2,i         ;Pop nullptr
          CALL    DECICore
          @POPCA
          BREQ    _intErr
