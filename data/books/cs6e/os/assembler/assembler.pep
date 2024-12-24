@@ -477,7 +477,7 @@ eWrdLoop:CPWX    0,i          ;Consume leading whitespace when buffer is empty.
          RET
 
          ; ( n -- )
-@DC      DECO, _WORD, 0x04, 0x19
+@DCSTR   ".\x00", DECO, _WORD, 0x01, 0x19
 DECO:    LDWA    0,x          ;Pop TOS into A
          ADDX    2,i
          STWX    PSP,d        ;Preserve PSP
