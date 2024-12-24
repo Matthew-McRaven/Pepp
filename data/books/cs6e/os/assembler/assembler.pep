@@ -281,7 +281,9 @@ printDgt:ORX     0x0030,i    ;Convert decimal to ASCII
 mProd:   .EQUATE  6          ;#2h Product of mN2 * mN1
 mN1:     .EQUATE  4          ;#2h Integer larger than mN2
 mN2:     .EQUATE  2          ;#2h Integer smaller than mN1
-mul:     LDWA     mN1,s
+mul:     LDWA     0,i
+         STWA     mProd,s
+         LDWA     mN1,s
          CPWA     mN2,s
          BRGE     mSLoop     ;If mN1 < mN2, swap
          LDWX     mN2,s
