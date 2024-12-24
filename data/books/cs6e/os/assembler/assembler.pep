@@ -773,6 +773,7 @@ _intWord:LDWA    STATE,d
          LDBA    -2,sf
          ANDA    F_IMM,i
          BRNE    _intImm
+         CALL    CFA
          CALL    CALLC
          BR      INTERP
 _intImm: CALL    CFA
