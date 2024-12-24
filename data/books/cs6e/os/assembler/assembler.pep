@@ -492,7 +492,7 @@ DECO:    LDWA    0,x          ;Pop TOS into A
 @DC      DECI,   _DECO, 0x04, 0x25
 DECI:    CALL    WORD
          ADDX    4,i          ;Drop word/length from stack.
-         STWX    PSP,d        ;Preserve PSP
+DECICore:STWX    PSP,d        ;Preserve PSP
          SUBSP   3,i          ;@params#total#success
          LDBA    1,i          ;success <- true
          STBA    2,s
@@ -565,7 +565,7 @@ fEnd:    LDWA    fEnt,s
 
 ;        ( &fEnt -- &fEnt->code )
 @DCSTR   ">CFA\x00", CFA, _FIND, 0x04, 0x0A
-         LDWA    0,x          ;Code address is 3 bytes from start of link ptr
+CFA:     LDWA    0,x          ;Code address is 3 bytes from start of link ptr
          ADDA    3,i
          STWA    0,x
          RET
@@ -726,6 +726,38 @@ __ret:   RET
 ;
 ;******* FORTH words: control flow
 ;
+@DC      INTERP, _SEMI, 0x06, 0x00
+INTERP:  CALL    WORD
+         CALL    FIND
+         LDWA    0,x
+         BRNE    _intWord
+         CALL    DECICore
+         @POPCA
+         BREQ    _intErr
+         LDWA    state,d
+         BREQ    INTERP
+         CALL    LDWAC
+         CALL    INTERP
+_intWord:LDWA    state,d
+         BREQ    _intImm
+         LDBA    2,x         ;A <- (fEnt->len & LEN_MASK)
+         ANDA    F_IMM,i
+         BRNE    _intImm
+         CALL    CALLC
+         BR      INTERP
+_intImm: CALL    CFA
+         LDWA    INTERP,i
+         STWA    -4,s
+         @POPA
+         STWA    -2,s
+         SUBSP   4,i
+         RET
+_intErr: @PUSH   _intMsg,i
+         CALL    prntCStr
+         @PUSH   _BUF,i
+         CALL    prntCStr
+         BR      HALT
+_intMsg: .ASCII "PARSE ERROR: "
 ;******* FORTH words: core interpreter
 cldstrt: LDWX    pStack, i
          CALL    DECI
