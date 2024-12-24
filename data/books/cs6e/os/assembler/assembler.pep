@@ -82,8 +82,8 @@ strcRet:  STBA    sEq,s
 ;encountered.
 ;
 
+success: .EQUATE 18          ;#1d Success boolean
 total:   .EQUATE 16          ;#2d Cumulative total of DECI number
-success: .EQUATE 15          ;#1d Success boolean
 bufIdx:  .EQUATE 12          ;#2d Index into _BUF
 asciiCh: .EQUATE 10          ;#1c asciiCh, one byte
 valAscii:.EQUATE 8           ;#2d value(asciiCh)
@@ -744,15 +744,23 @@ INTERP:  CALL    WORD
          BRNE    _intWord
          ADDX    2,i         ;Pop nullptr
          CALL    DECICore
-         @POPCA
+         ADDX    1,i
+         LDBA    -1,x
          BREQ    _intErr
          LDWA    STATE,d
          BREQ    INTERP
          CALL    LDWAC
-         CALL    INTERP
+         @PUSH   2,i
+         CALL    SUBXIC
+         @PUSH   0,i
+         CALL    STWAXC
+         BR      INTERP
 _intWord:LDWA    STATE,d
          BREQ    _intImm
-         LDBA    2,x         ;A <- (fEnt->len & LEN_MASK)
+         LDWA    0,x         ;A <- &(fEnt->len)
+         ADDA    2,i
+         STWA    -2,s        ;A <- fEnt->len
+         LDBA    -2,sf
          ANDA    F_IMM,i
          BRNE    _intImm
          CALL    CALLC
