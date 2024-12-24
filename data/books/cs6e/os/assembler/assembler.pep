@@ -654,8 +654,8 @@ COMMA:   @POPA                ;A <- TOS
          RET
 
          ;( -- )
-@DCSTR   "CALL,\x00", CCOMMA, _COMMA, 0x05, 0x13
-         LDBA    __call,d     ;**HERE <- opcode(CALL)
+@DCSTR   "CALL,\x00", CALLC, _COMMA, 0x05, 0x13
+CALLC:   LDBA    __call,d     ;**HERE <- opcode(CALL)
          STBA    HERE,n
          LDWA    HERE,d       ;*HERE += 1
          ADDA    1,i
@@ -663,8 +663,18 @@ COMMA:   @POPA                ;A <- TOS
 __call:  CALL    COMMA
          RET
 
+@DCSTR   "LDWAi,\x00", LDWAC, _CALLC, 0x06, 0x13
+LDWAC:   LDBA    __ldwai,d     ;**HERE <- opcode(LDWA,i)
+         STBA    HERE,n
+         LDWA    HERE,d       ;*HERE += 1
+         ADDA    1,i
+         STWA    HERE,d
+         CALL    COMMA
+         RET
+__ldwai: LDWA    0,i
+
          ; ( -- )
-@DCSTR   "[\x00", LBRAC, _CCOMMA, 0x81, 0x07
+@DCSTR   "[\x00", LBRAC, _LDWAC, 0x81, 0x07
 LBRAC:   LDWA    0,i          ;STATE <- 0
          STWA    STATE,d
          RET
