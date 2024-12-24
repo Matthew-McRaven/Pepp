@@ -607,7 +607,7 @@ CREATE:  STWX    PSP,d        ;*PSP <- X
          SUBSP   3,i          ;@params#2h#1d
          LDWA    0,x          ;A <- str
          STWA    0,s
-         LDBA    2,x          ;A <- len
+         LDWA    2,x          ;A <- len
          STBA    2,s
          ;
          LDBX    0,i
@@ -632,14 +632,14 @@ eCrLoop: ADDSP   3,i          ;@locals#2h#1d
          STWA    HERE,d
 ;
                               ;Copy length of string as u8
-         LDBA    2,x          ;**HERE <- len
+         LDWA    2,x          ;**HERE <- len
          STBA    HERE,n
          LDWA    HERE,d       ;*HERE <- *HERE + 1
          ADDA    1,i
          STWA    HERE,d
                               ;Set code len to 0
          LDWA    0,i          ;**HERE <- 0
-         STWA    HERE,n
+         STBA    HERE,n
          LDWA    HERE,d       ;*HERE <- *HERE + 1
          ADDA    1,i
          STWA    HERE,d
@@ -701,21 +701,21 @@ RBRAC:   LDWA    1,i          ;STATE <- 1
          ; ( -- )
 @DCSTR   "IMMEDIATE\x00",IMM,_RBRAC,0x89,0x13
          LDWA    LATEST,d
-         ADDA    1,i
+         ADDA    2,i
          STWA    -2,s
          LDBA    -2,sf
          XORA    F_IMM,i
-         STWA    -2, sf
+         STBA    -2, sf
          RET
 
          ; ( -- )
 @DCSTR   "HIDDEN\x00",HIDDEN,_IMM,0x06,0x13
 HIDDEN:  LDWA    LATEST,d
-         ADDA    1,i
+         ADDA    2,i
          STWA    -2,s
          LDBA    -2,sf
          XORA    F_HID,i
-         STWA    -2, sf
+         STBA    -2, sf
          RET
 
          ; ( -- )
@@ -730,8 +730,8 @@ HIDDEN:  LDWA    LATEST,d
 @DCSTR   ";\x00", SEMI, _COLON, 0x81, 0x1c
          LDBA    __ret,d      ;**HERE <- opcode(RET)
          STBA    HERE,n
-         LDWA    HERE,d       ;*HERE += 2
-         ADDA    2,i
+         LDWA    HERE,d       ;*HERE += 1
+         ADDA    1,i
          STWA    HERE,d
          CALL    HIDDEN
          CALL    LBRAC
