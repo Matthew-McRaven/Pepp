@@ -653,28 +653,39 @@ COMMA:   @POPA                ;A <- TOS
          STWA    HERE,d
          RET
 
-         ;( -- )
-@DCSTR   "CALL,\x00", CALLC, _COMMA, 0x05, 0x13
-CALLC:   LDBA    __call,d     ;**HERE <- opcode(CALL)
-         STBA    HERE,n
+storeOp: STBA    HERE,n
          LDWA    HERE,d       ;*HERE += 1
          ADDA    1,i
          STWA    HERE,d
 __call:  CALL    COMMA
          RET
 
-@DCSTR   "LDWAi,\x00", LDWAC, _CALLC, 0x06, 0x13
+         ;( -- )
+@DCSTR   "CALL,\x00", CALLC, _COMMA, 0x05, 0x13
+CALLC:   LDBA    __call,d     ;**HERE <- opcode(CALL)
+         BR      storeOp
+
+         ; ( n -- )
+@DCSTR   "LDWAi,\x00", LDWAC, _CALLC, 0x06, 0x00
 LDWAC:   LDBA    __ldwai,d     ;**HERE <- opcode(LDWA,i)
-         STBA    HERE,n
-         LDWA    HERE,d       ;*HERE += 1
-         ADDA    1,i
-         STWA    HERE,d
-         CALL    COMMA
-         RET
-__ldwai: LDWA    0,i
+         BR      storeOp
+__ldwai: LDWA    0xFEED,i
+
+
+; ( n -- )
+@DCSTR   "STWAx,\x00", STWAXC, _LDWAC, 0x06, 0x00
+STWAXC: LDBA    __stwax,d     ;**HERE <- opcode(STWA,x)
+         BR      storeOp
+__stwax: STWA    0xDEAD,x
+
+; ( n -- )
+@DCSTR   "SUBXi,\x00", SUBXIC, _STWAXC, 0x06, 0x13
+SUBXIC:   LDBA    __subai,d     ;**HERE <- opcode(SUBX,i)
+         BR      storeOp
+__subai: SUBX    0xBEEF,i
 
          ; ( -- )
-@DCSTR   "[\x00", LBRAC, _LDWAC, 0x81, 0x07
+@DCSTR   "[\x00", LBRAC, _SUBXIC, 0x81, 0x07
 LBRAC:   LDWA    0,i          ;STATE <- 0
          STWA    STATE,d
          RET
