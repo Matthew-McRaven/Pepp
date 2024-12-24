@@ -613,12 +613,12 @@ CREATE:  STWX    PSP,d        ;*PSP <- X
          LDBX    0,i
 bCrLoop: CPBX    2,s
          BRGE    eCrLoop
-         ADDX    1,i
          LDBA    0,sfx        ;**here <- str[x]
          STBA    HERE,n       ;*here <- *here +1
          LDWA    HERE,d
          ADDA    1,i
          STWA    HERE,d
+         ADDX    1,i
          BR      bCrLoop
 eCrLoop: ADDSP   3,i          ;@locals#2h#1d
          LDWX    PSP,d
