@@ -451,7 +451,7 @@ ePrntLp: LDWX   PSP,d
          RET
 
          ; ( -- len &str )
-@DC      WORD, _prntCStr, 0x04, 0x43
+@DC      WORD, _prntCStr, 0x04, 0x49
 WORD:    SUBX    2,i          ;Allocate 2 bytes for WORD length, so we can use STWX PSP,n to store to it
          STWX    PSP,d        ;Preserve PSP
          LDWX    0,i          ;Initialize buffer index
@@ -470,6 +470,8 @@ mWrdLoop:STBA    _BUF,x       ;Store char to buffer, incremeting pointer.
 eWrdLoop:CPWX    0,i          ;Consume leading whitespace when buffer is empty.
          BREQ    bWrdLoop
          STWX    PSP,N        ;Otherwise, push length to TOS
+         LDBA    0,i          ;Ensure BUF is null terminated
+         STBA    _BUF,x
          LDWX    PSP,d        ;Restore PSP
          LDWA    _BUF,i       ;Push buffer pointer to TOS
          STWA    -2,x
