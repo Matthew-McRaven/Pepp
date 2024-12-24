@@ -565,8 +565,8 @@ fEnd:    LDWA    fEnt,s
 
 ;        ( &fEnt -- &fEnt->code )
 @DCSTR   ">CFA\x00", CFA, _FIND, 0x04, 0x0A
-CFA:     LDWA    0,x          ;Code address is 3 bytes from start of link ptr
-         ADDA    3,i
+CFA:     LDWA    0,x          ;Code address is 3\4 bytes from start of link ptr
+         ADDA    4,i
          STWA    0,x
          RET
 
