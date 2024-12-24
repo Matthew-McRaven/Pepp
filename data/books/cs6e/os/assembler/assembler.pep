@@ -748,9 +748,9 @@ _intWord:LDWA    state,d
          BR      INTERP
 _intImm: CALL    CFA
          LDWA    INTERP,i
-         STWA    -4,s
-         @POPA
          STWA    -2,s
+         @POPA
+         STWA    -4,s
          SUBSP   4,i
          RET
 _intErr: @PUSH   _intMsg,i
@@ -761,12 +761,7 @@ _intErr: @PUSH   _intMsg,i
 _intMsg: .ASCII "PARSE ERROR: "
 ;******* FORTH words: core interpreter
 cldstrt: LDWX    pStack, i
-         CALL    DECI
-         ADDX    1,i         ;Drop flag
-         CALL    DECI
-         ADDX    1,i         ;Drop flag
-         CALL    ADD
-         CALL    DECO
+         CALL    INTERP
          CALL    HALT
 ;
          .SECTION "memvec", "rw"
