@@ -275,6 +275,36 @@ checkOut:LDWA    outYet2,s   ;else if a previous char was output
 printDgt:ORX     0x0030,i    ;Convert decimal to ASCII
          STBX    charOut,d   ;  and output it
          RET                 ;return to calling routine
+;Subroutine to multiply two 16-bit integers together, returning the product.
+;It probably misbehaves if either input is negative, and overflows
+;if the product is greater than 0xFFFF.
+mProd:   .EQUATE  6          ;#2h Product of mN2 * mN1
+mN1:     .EQUATE  4          ;#2h Integer larger than mN2
+mN2:     .EQUATE  2          ;#2h Integer smaller than mN1
+mul:     LDWA     mN1,s
+         CPWA     mN2,s
+         BRGE     mSLoop     ;If mN1 < mN2, swap
+         LDWX     mN2,s
+         STWA     mN2,s
+         STWX     mN1,s
+mSLoop:  LDWX     mN2,s      ;Multiply setup loop
+mBLoop:  CPWX     0,i        ;Multiply begin loop, assume X<-mN2
+         BREQ     mELoop
+         ANDX     1,i
+         BREQ     mCLoop
+         LDWA     mProd,s    ;mProd <- mProd + mN1
+         ADDA     mN1,s
+         STWA     mProd,s
+;Multiple continue loop
+mCLoop:  LDWA     mN1,s      ;mN1 <- mN1*2
+         ASLA
+         STWA     mN1,s
+         LDWX     mN2,s      ;mN2 <- mN2/2
+         ANDX     0x7fff,i   ;Prevent sign extension
+         ASRX
+         STWX     mN2,s
+         BR       mBLoop
+mELoop:  RET
 ;
 ;******* FORTH words: stack manipulation
 @DC      HALT, 0x0000, 0x04, 0x09
