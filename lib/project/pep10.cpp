@@ -611,7 +611,7 @@ void Pep_ISA::onDeferredExecution(std::function<bool()> step) {
   } catch (const sim::api2::memory::Error &e) {
     err = true;
     if (e.type() == sim::api2::memory::Error::Type::NeedsMMI) {
-      std::cerr << "Ran out of MMI\n";
+      emit message("Ran out of MMI");
     } else std::cerr << "Memory error: " << e.what() << std::endl;
     // Handle illegal opcodes or program crashes.
   } catch (const std::logic_error &e) {
