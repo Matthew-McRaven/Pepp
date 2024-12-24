@@ -491,6 +491,7 @@ DECO:    LDWA    0,x          ;Pop TOS into A
          ;( -- n success.u8 )
 @DC      DECI,   _DECO, 0x04, 0x25
 DECI:    CALL    WORD
+         ADDX    4,i          ;Drop word/length from stack.
          STWX    PSP,d        ;Preserve PSP
          SUBSP   3,i          ;@params#total#success
          LDBA    1,i          ;success <- true
