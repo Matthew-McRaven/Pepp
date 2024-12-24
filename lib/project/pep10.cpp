@@ -616,7 +616,7 @@ void Pep_ISA::onDeferredExecution(std::function<bool()> step) {
     // Handle illegal opcodes or program crashes.
   } catch (const std::logic_error &e) {
     err = true;
-    std::cerr << e.what() << std::endl;
+    emit message(e.what());
   }
   // Only terminates if something written to endpoint or there was an error
   if (endpoint->next_value().has_value() || err) {
