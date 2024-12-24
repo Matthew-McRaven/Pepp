@@ -718,7 +718,12 @@ __ret:   RET
 ;
 ;******* FORTH words: core interpreter
 cldstrt: LDWX    pStack, i
-         CALL    DD
+         CALL    DECI
+         ADDX    1,i         ;Drop flag
+         CALL    DECI
+         ADDX    1,i         ;Drop flag
+         CALL    ADD
+         CALL    DECO
          CALL    HALT
 ;
          .SECTION "memvec", "rw"
@@ -728,7 +733,7 @@ cldstrt: LDWX    pStack, i
 PSP:     .WORD   pStack      ;Current parameter stack pointer
 RSP:     .WORD   rStack      ;Current return stack pointer
 STATE:   .WORD   0           ;0=interpret, !0=compile
-LATEST:  .WORD   _SEMI        ;Pointer to the most recently defined word
+LATEST:  .WORD   _SEMI       ;Pointer to the most recently defined word
 HERE:    .WORD   0x0000      ;Pointer to the next free memory location
 ; Probably should be RO, but I don't want to add another section.
 ;While bare metal mode is not supposed to have a trap handler,
