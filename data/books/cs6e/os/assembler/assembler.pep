@@ -769,7 +769,7 @@ _intErr: @PUSH   _intMsg,i
          @PUSH   _BUF,i
          CALL    prntCStr
          BR      HALT
-_intMsg: .ASCII "PARSE ERROR: "
+_intMsg: .ASCII "PARSE ERROR: \x00"
 ;******* FORTH words: core interpreter
 cldstrt: LDWX    pStack, i
          CALL    INTERP
