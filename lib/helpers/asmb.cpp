@@ -76,11 +76,11 @@ bool helpers::AsmHelper::assemble() {
     auto result = pipeline->assemble(pas::driver::pep10::Stage::End);
     auto osTarget = pipeline->pipelines[0].first;
     _osRoot = osTarget->bodies[pas::driver::repr::Nodes::name].value<pas::driver::repr::Nodes>().value;
-    pas::ops::pepp::annotateRetOps<isa::Pep10>(_callViaRets, *_osRoot);
+    if (_osRoot) pas::ops::pepp::annotateRetOps<isa::Pep10>(_callViaRets, *_osRoot);
     if (_user) {
       auto userTarget = pipeline->pipelines[1].first;
       _userRoot = userTarget->bodies[pas::driver::repr::Nodes::name].value<pas::driver::repr::Nodes>().value;
-      pas::ops::pepp::annotateRetOps<isa::Pep10>(_callViaRets, *_userRoot);
+      if (_userRoot) pas::ops::pepp::annotateRetOps<isa::Pep10>(_callViaRets, *_userRoot);
     }
     return result;
   };
