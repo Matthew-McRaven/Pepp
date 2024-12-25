@@ -86,6 +86,7 @@ template <typename ISA> struct AnnotateRetOps : public pas::ops::MutatingOp<void
       if (mn != ISA::Mnemonic::RET) return;
       else if (!node.has<ast::generic::Comment>()) return;
       if (auto com = node.get<ast::generic::Comment>().value; !com.toLower().contains("@call")) return;
+      if (!node.has<ast::generic::Address>()) return;
       addresses.insert(node.get<ast::generic::Address>().value.start);
     }
   }
