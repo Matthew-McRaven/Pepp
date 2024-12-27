@@ -123,7 +123,7 @@ inInit:  CPBA    '+',i
 inMinus: CPBA    '-',i
          BRNE    inDigit
          LDWX    1,i
-         STWX    inNeg,s
+         STBX    inNeg,s
          LDWX    inSSign,i
          STBX    inState,s
          BR      inSLoop
@@ -158,7 +158,7 @@ inWhite: LDBX    inState,s   ;If (state == sign) goto inErr
 ;
 inRep:   LDBX    inState,s   ;If (state == digit) goto end
          CPBX    inSDigit,i
-         BREQ    inRet
+         BREQ    inSign
          BR      inSLoop
 ;
 inComb:  LDWX    inSDigit,i
@@ -181,6 +181,11 @@ inComb:  LDWX    inSDigit,i
 
 inErr:   LDBA    0,i
          STBA    inSuc,s
+inSign:  LDBA    inNeg,s
+         BREQ    inRet
+         LDWA    inTotal,s
+         NEGA
+         STWA    inTotal,s
 inRet:   ADDSP   6,i
          RET
 ;
