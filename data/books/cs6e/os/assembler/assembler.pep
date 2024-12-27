@@ -81,133 +81,108 @@ strcRet:  STBA    sEq,s
 ;after which digits are input until the first nondigit is
 ;encountered.
 ;
+inSuc:   .EQUATE 12          ;#1d Success boolean
+inBase:  .EQUATE 10          ;#2d Base in which INTI works
+inTotal: .EQUATE 8           ;#2d Cumulative total of DECI number
+inIdx:   .EQUATE 4           ;#2d Index into _BUF
+inState: .EQUATE 3           ;#1d State variable
+inASCII: .EQUATE 2           ;#1c asciiCh, one byte
+inInt:   .EQUATE 1           ;#1d ascii as integer, one byte
+inNeg:   .EQUATE 0           ;#1d Negative boolean
+;States
+inSInit: .EQUATE 0           ;Enumerated values for state
+inSSign: .EQUATE 1
+inSDigit:.EQUATE 2
+;
+inti:    SUBSP   6,i         ;@locals#inIdx#inState#inASCII#inInt#inNeg
+         LDWA    0,i
+         STWA    inTotal,s   ;inTotal <- 0
+         STWA    inIdx,s     ;inIdx <- 0
+         STBA    inState,s   ;inState <- false
+         STBA    inASCII,s   ;inASCII <- 0
+         STBA    inInt,s     ;inInt <- 0
+         STBA    inNeg,s     ;inNeg <- 0
+;
+inSLoop: LDWX    inIdx,s
+         LDBA    _BUF,x
+         ADDX    1,i
+         STWX    inIdx,s
+         LDBX    inState,s
+         ASLX
+         BR      inJT,x
+inJT:    .WORD   inInit
+         .WORD   inDigit
+         .WORD   inDigit
+;
+inInit:  CPBA    '+',i
+         BRNE    inMinus
+         ;inNeg defaulted to 0.
+         LDWX    inSSign,i
+         STBX    inState,s
+         BR      inSLoop
+inMinus: CPBA    '-',i
+         BRNE    inDigit
+         LDWX    1,i
+         STWX    inNeg,s
+         LDWX    inSSign,i
+         STBX    inState,s
+         BR      inSLoop
+;
+inDigit: CPBA    '0',i       ;else if (asciiCh is a digit)
+         BRLT    inWhite
+         CPBA    '9',i
+         BRGT    inChar
+         SUBA    '0',i
+         STBA    inInt,s
+         BR      inComb
+;
+inChar:  ANDA    0xDF,i      ;Convert to uppercase
+         CPBA    'A',i       ;else if (asciiCh is a digit)
+         BRLT    inWhite
+         CPBA    'Z',i
+         BRGT    inErr
+         SUBA    0x37,i       ;'A'-0x37 == 0xA
+         STBA    inInt,s
+         BR      inComb
+;
+inWhite: LDBX    inState,s   ;If (state == sign) goto inErr
+         CPBX    inSSign,i
+         BREQ    inErr
+         CPBA    ' ',i       ;else if (asciiCh is not a space
+         BREQ    inRep
+         CPBA    '\n',i      ;or line feed
+         BREQ    inRep
+         CPBA    0,i         ;or null terminator)
+         BRNE    inErr       ;exit with error
+         BR      inRep
+;
+inRep:   LDBX    inState,s   ;If (state == digit) goto end
+         CPBX    inSDigit,i
+         BREQ    inRet
+         BR      inSLoop
+;
+inComb:  LDWX    inSDigit,i
+         STBX    inState,s
+         CPWA    inBase,s
+         BRGT    inErr
 
-success: .EQUATE 18          ;#1d Success boolean
-total:   .EQUATE 16          ;#2d Cumulative total of DECI number
-bufIdx:  .EQUATE 12          ;#2d Index into _BUF
-asciiCh: .EQUATE 10          ;#1c asciiCh, one byte
-valAscii:.EQUATE 8           ;#2d value(asciiCh)
-isOvfl:  .EQUATE 6           ;#2d Overflow boolean
-isNeg:   .EQUATE 4           ;#2d Negative boolean
-state:   .EQUATE 2           ;#2d State variable
-temp:    .EQUATE 0           ;#2d
-;
-init:    .EQUATE 0           ;Enumerated values for state
-sign:    .EQUATE 1
-digit:   .EQUATE 2
-;
-decRead: SUBSP   14,i        ;@locals#bufIdx#asciiCh#valAscii#isOvfl#isNeg#state#temp
-         LDWA    0,i         ;isOvfl <- false
-         STWA    isOvfl,s
-         STWA    bufIdx,s    ;bufIdx <- 0
-         LDWA    init,i      ;state <- init
-         STWA    state,s
-;
-deciDo:  LDWX    bufIdx,s    ;Get bufIdx
-         LDBA    _BUF,x      ;Get asciiCh
-         STBA    asciiCh,s
-         ADDX    1,i         ;bufIdx <- bufIdx + 1
-         STWX    bufIdx,s
-         ANDA    0x000F,i    ;Set value(asciiCh)
-         STWA    valAscii,s
-         LDBA    asciiCh,s   ;A<low> = asciiCh throughout the loop
-         LDWX    state,s     ;switch (state)
-         ASLX                ;Two bytes per address
-         BR      deciJT,x
-;
-deciJT:  .WORD sInit
-         .WORD sSign
-         .WORD sDigit
-;
-sInit:   CPBA    '+',i       ;if (asciiCh == '+')
-         BRNE    ifMinus
-         LDWX    0,i         ;isNeg <- false
-         STWX    isNeg,s
-         LDWX    sign,i      ;state <- sign
-         STWX    state,s
-         BR      deciDo
-;
-ifMinus: CPBA    '-',i       ;else if (asciiCh == '-')
-         BRNE    ifDigit
-         LDWX    1,i         ;isNeg <- true
-         STWX    isNeg,s
-         LDWX    sign,i      ;state <- sign
-         STWX    state,s
-         BR      deciDo
-;
-ifDigit: CPBA    '0',i       ;else if (asciiCh is a digit)
-         BRLT    ifWhite
-         CPBA    '9',i
-         BRGT    ifWhite
-         LDWX    0,i         ;isNeg <- false
-         STWX    isNeg,s
-         LDWX    valAscii,s  ;total <- value(asciiCh)
-         STWX    total,s
-         LDWX    digit,i     ;state <- digit
-         STWX    state,s
-         BR      deciDo
-;
-ifWhite: CPBA    ' ',i       ;else if (asciiCh is not a space
-         BREQ    deciDo
-         CPBA    '\n',i      ;or line feed)
-         BRNE    deciErr     ;exit with DECI error
-         BR      deciDo
-;
-sSign:   CPBA    '0',i       ;if asciiCh (is not a digit)
-         BRLT    deciErr
-         CPBA    '9',i
-         BRGT    deciErr     ;exit with DECI error
-         LDWX    valAscii,s  ;else total <- value(asciiCh)
-         STWX    total,s
-         LDWX    digit,i     ;state <- digit
-         STWX    state,s
-         BR      deciDo
-;
-sDigit:  CPBA    '0',i       ;if (asciiCh is not a digit)
-         BRLT    deciNorm
-         CPBA    '9',i
-         BRGT    deciNorm    ;exit normaly
-         LDWX    1,i         ;else X <- true for later assignments
-         LDWA    total,s     ;Multiply total by 10 as follows:
-         ASLA                ;First, times 2
-         BRV     ovfl1       ;If overflow then
-         BR      L1
-ovfl1:   STWX    isOvfl,s    ;isOvfl <- true
-L1:      STWA    temp,s      ;Save 2 * total in temp
-         ASLA                ;Now, 4 * total
-         BRV     ovfl2       ;If overflow then
-         BR      L2
-ovfl2:   STWX    isOvfl,s    ;isOvfl <- true
-L2:      ASLA                ;Now, 8 * total
-         BRV     ovfl3       ;If overflow then
-         BR      L3
-ovfl3:   STWX    isOvfl,s    ;isOvfl <- true
-L3:      ADDA    temp,s      ;Finally, 8 * total + 2 * total
-         BRV     ovfl4       ;If overflow then
-         BR      L4
-ovfl4:   STWX    isOvfl,s    ;isOvfl <- true
-L4:      ADDA    valAscii,s  ;A <- 10 * total + valAscii
-         BRV     ovfl5       ;If overflow then
-         BR      L5
-ovfl5:   STWX    isOvfl,s    ;isOvfl <- true
-L5:      STWA    total,s     ;Update total
-         BR      deciDo
-;
-deciNorm:LDWA    isNeg,s     ;If isNeg then
-         BREQ    exitDeci
-         LDWA    total,s     ;If total != 0x8000 then
-         CPWA    0x8000,i
-         BREQ    L6
-         NEGA                ;Negate total
-         STWA    total,s
-         BR      exitDeci
-L6:      LDWA    0,i         ;else -32768 is a special case
-         STWA    isOvfl,s    ;isOvfl <- false
-;
-deciErr: LDBA    0,i
-         STBA    success,s   ;success <- false
-exitDeci:ADDSP   14,i        ;@locals#temp#state#isNeg#isOvfl#valAscii#asciiCh#bufIdx
-         RET                 ;Return
+         LDWA    inBase,s   ;mN1Lo <- inBase
+         STWA    -8,s
+         LDWA    inTotal,s  ;mN2Hi <- inTotal
+         STWA    -6,s
+         SUBSP   8,i
+         CALL    mul
+         ADDSP   8,i
+
+         LDBA    inInt,s
+         ADDA    -2,s       ;inTotal <- inTotal + mProdLo
+         STWA    inTotal,s
+         BR      inSLoop
+
+inErr:   LDBA    0,i
+         STBA    inSuc,s
+inRet:   ADDSP   6,i
+         RET
 ;
 ;Output format: If the operand is negative, the algorithm prints
 ;a single '-' followed by the magnitude. Otherwise it prints the
@@ -278,35 +253,53 @@ printDgt:ORX     0x0030,i    ;Convert decimal to ASCII
 ;Subroutine to multiply two 16-bit integers together, returning the product.
 ;It probably misbehaves if either input is negative, and overflows
 ;if the product is greater than 0xFFFF.
-mProd:   .EQUATE  6          ;#2h Product of mN2 * mN1
-mN1:     .EQUATE  4          ;#2h Integer larger than mN2
-mN2:     .EQUATE  2          ;#2h Integer smaller than mN1
-mul:     LDWA     0,i
-         STWA     mProd,s
-         LDWA     mN1,s
+mProdLo: .EQUATE  10         ;#2h Product of mN2 * mN1
+mProdHi: .EQUATE  8          ;#2h Product of mN2 * mN1
+mN1Lo:   .EQUATE  6          ;#2h Integer larger than mN2
+mN2:     .EQUATE  4          ;#2h Integer smaller than mN1
+mN1Hi:   .EQUATE  0          ;#2h Integer larger than mN2
+mul:     SUBSP    2,i        ;@locals#mN1Hi
+         LDWA     0,i
+         STWA     mProdLo,s
+         STWA     mProdHi,s
+         STWA     mN1Hi,s
+         LDWA     mN1Lo,s
          CPWA     mN2,s
-         BRGE     mSLoop     ;If mN1 < mN2, swap
+         BRGE     mBLoop     ;If mN1 < mN2, swap
          LDWX     mN2,s
          STWA     mN2,s
-         STWX     mN1,s
-mSLoop:  LDWX     mN2,s      ;Multiply setup loop
-mBLoop:  CPWX     0,i        ;Multiply begin loop, assume X<-mN2
+         STWX     mN1Lo,s
+;
+mBLoop:  LDWX     mN2,s      ;Multiply setup loop
+         CPWX     0,i
          BREQ     mELoop
          ANDX     1,i
          BREQ     mCLoop
-         LDWA     mProd,s    ;mProd <- mProd + mN1
-         ADDA     mN1,s
-         STWA     mProd,s
-;Multiple continue loop
-mCLoop:  LDWA     mN1,s      ;mN1 <- mN1*2
-         ASLA
-         STWA     mN1,s
-         LDWX     mN2,s      ;mN2 <- mN2/2
-         ANDX     0x7fff,i   ;Prevent sign extension
-         ASRX
+         LDWA     mProdLo,s  ;mProd <- mProd + mN1
+         LDWX     mProdHi,s
+         ADDA     mN1Lo,s
+         BRC      mCHi
+mALoop:  ADDX     mN1Hi,s    ;Multiple add in loop
+         STWA     mProdLo,s  ;Write back mProd
+         STWX     mProdHi,s
+;
+mCLoop:  LDWX     mN2,s      ;mN2 <- mN2/2
+         RORX
+         CPWA     0,i        ;C is not cleared by load. N-0 should never carry out.
          STWX     mN2,s
+         LDWX     mN1Hi,s    ;mN1 <- mN1*2
+         LDWA     mN1Lo,s
+         ROLA
+         ROLX                ;C is set by shift
+         STWA     mN1Lo,s
+         STWX     mN1Hi,s
          BR       mBLoop
-mELoop:  RET
+;
+mELoop:  ADDSP    2,i        ;@locals#mN1Hi
+         RET
+;
+mCHi:    ADDX     1,i
+         BR       mALoop
 ;
 ;******* FORTH words: stack manipulation
 @DC      HALT, 0x0000, 0x04, 0x09
@@ -395,7 +388,23 @@ SUB:     LDWA    2,x         ;Sub TOS from TOS-1
          ADDX    2,i
          RET
 
-@DC      AND, _SUB, 0x03, 0x0D
+@DCSTR   "*\x00", MUL, _SUB, 0x01, 0x00
+MUL:     LDWA    2,x         ;Multiple TOS and TOS+1
+         SUBSP   8,i
+         STWA    0,s
+         LDWA    0,x
+         STWA    2,s
+         STWX    PSP,d
+         CALL    mul
+         LDWX    PSP,d
+         ADDSP   8,i
+         LDWA    -2,s
+         STWA    2,x
+         LDWA    -4,s
+         STWA    0,x
+         RET
+
+@DC      AND, _MUL, 0x03, 0x0D
 AND:     LDWA    2,x         ;Bitwise AND TOS and TOS-1
          ANDA    0,x
          STWA    2,x
@@ -527,17 +536,19 @@ DECO:    LDWA    0,x          ;Pop TOS into A
 DECI:    CALL    WORD
          ADDX    4,i          ;Drop word/length from stack.
 DECICore:STWX    PSP,d        ;Preserve PSP
-         SUBSP   3,i          ;@params#total#success
+         SUBSP   5,i          ;@params#inSuc#inTotal#inBase
          LDBA    1,i          ;success <- true
-         STBA    2,s
-         CALL    decRead
+         STBA    4,s
+         LDWA    10,i         ;base <- 10
+         STWA    2,s
+         CALL    inti
          LDWX    PSP,d        ;Restore PSP
          LDWA    0,s          ;A<-total
          STWA    -2,x         ;TOS<-total
-         LDBA    2,s          ;A<-success
+         LDBA    4,s          ;A<-success
          STBA    -3,x         ;TOS<-success
          SUBX    3,i
-         ADDSP   3,i          ;@params#success#total
+         ADDSP   5,i          ;@params#inBase#inSuc#inTotal
          RET
 ;
 ;******* FORTH words: dictionary access
