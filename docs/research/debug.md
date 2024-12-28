@@ -1,0 +1,1 @@
+https://media.ccc.de/v/38c3-demystifying-common-microcontroller-debug-protocols
