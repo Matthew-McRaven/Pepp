@@ -480,7 +480,7 @@ MUL:     LDWA    2,x         ;Multiple TOS and TOS+1
          RET
 
 @DCSTR   "/mod\x00", DIVMOD, _MUL, 0x04, 0x00
-DIVMOD:  LDWA    2,x         ;Multiple TOS and TOS+1
+DIVMOD:  LDWA    2,x         ;Divide TOS by TOS-1
          SUBSP   8,i
          STWA    0,s
          LDWA    0,x
@@ -488,14 +488,26 @@ DIVMOD:  LDWA    2,x         ;Multiple TOS and TOS+1
          STWX    PSP,d
          CALL    div
          LDWX    PSP,d
-         ADDSP   8,i
-         LDWA    -2,s
+         LDWA    6,s         ;Quotient
          STWA    2,x
-         LDWA    -4,s
+         LDWA    4,s         ;Remainder
          STWA    0,x
+         ADDSP   8,i
+         RET
+;
+@DCSTR   "%\x00", MOD, _DIVMOD, 0x01, 0x0D
+         CALL    DIVMOD
+         LDWA    0,x
+         STWA    2,x
+         ADDX    2,i
+         RET
+;
+@DCSTR   "/\x00", DIV, _MOD, 0x01, 0x07
+         CALL    DIVMOD
+         ADDX    2,i
          RET
 
-@DC      AND, _DIVMOD, 0x03, 0x0D
+@DC      AND, _DIV, 0x03, 0x0D
 AND:     LDWA    2,x         ;Bitwise AND TOS and TOS-1
          ANDA    0,x
          STWA    2,x
