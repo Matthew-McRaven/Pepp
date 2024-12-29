@@ -648,21 +648,36 @@ eWrdLoop:CPWX    0,i          ;Consume leading whitespace when buffer is empty.
 
          ; ( n -- )
 @DCSTR   ".\x00", DECO, _WORD, 0x01, 0x19
-DECO:    LDWA    0,x          ;Pop TOS into A
+DECO:    LDWA    10,i         ;Load base into A
+         SUBSP   5,i          ;@params#otTotal#otBase#otSign
+         STWA    1,s          ;otBase <- 10
+         STBA    0,s          ;otSign <- true
+         LDWA    0,x          ;Pop TOS into A
          ADDX    2,i
          STWX    PSP,d        ;Preserve PSP
-         LDWX    10,i
-         SUBSP   5,i          ;@params#otTotal#otBase#otSign
          STWA    3,s          ;otTotal <- TOS
-         STWX    1,s          ;otBase <- 10
-         STBX    0,s          ;otSign <- true
+         CALL    into
+         ADDSP   5,i          ;@params#otSign#otBase#otTotal
+         LDWX    PSP,d        ;Restore PSP
+         RET
+;
+@DCSTR   "HEX.\x00", HEXO, _DECO, 0x04, 0x19
+HEXO:    LDWA    16,i         ;Load base into A
+         SUBSP   5,i          ;@params#otTotal#otBase#otSign
+         STWA    1,s          ;otBase <- 10
+         LDBA    0,i
+         STBA    0,s          ;otSign <- false
+         LDWA    0,x          ;Pop TOS into A
+         ADDX    2,i
+         STWX    PSP,d        ;Preserve PSP
+         STWA    3,s          ;otTotal <- TOS
          CALL    into
          ADDSP   5,i          ;@params#otSign#otBase#otTotal
          LDWX    PSP,d        ;Restore PSP
          RET
 
          ;( -- n success.u8 )
-@DC      DECI,   _DECO, 0x04, 0x25
+@DC      DECI,   _HEXO, 0x04, 0x25
 DECI:    CALL    WORD
          ADDX    4,i          ;Drop word/length from stack.
 DECICore:STWX    PSP,d        ;Preserve PSP
@@ -680,6 +695,7 @@ DECICore:STWX    PSP,d        ;Preserve PSP
          SUBX    3,i
          ADDSP   5,i          ;@params#inBase#inSuc#inTotal
          RET
+
 ;
 ;******* FORTH words: dictionary access
          ;( &fEnt -- *(fEnt->link) )
