@@ -234,7 +234,7 @@ othDiv:  LDWA    othTotal,s
          BRGT    othChar
          ADDA    '0',i
          BR      othPrnt
-othChar: ADDA    0x31,i     ; 'A' - 10
+othChar: ADDA    0x37,i     ; 'A' - 10
 othPrnt: STBA    charOut,d
          RET
 ;
