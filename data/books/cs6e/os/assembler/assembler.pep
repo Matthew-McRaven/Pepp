@@ -189,72 +189,80 @@ inSign:  LDBA    inNeg,s
 inRet:   ADDSP   6,i
          RET
 ;
+othTotal:.EQUATE 6          ;#2h Value to output
+othBase: .EQUATE 4          ;#2d Base in which to output
+othBaseN:.EQUATE 2          ;#2d Base ^ N
+intoh:   LDWA    othBase,s  ;Compute base*base^N
+         LDWX    othBaseN,s
+         SUBSP   8,i
+         STWA    0,s
+         STWX    2,s
+         CALL    mul
+         LDWX    6,s        ;X <- mProdLo
+         LDWA    4,s        ;A <- mProdHi
+         ADDSP   8,i
+         BRNE    othDiv     ;If base^N+1 oveflows 16-bits, don't recurse
+         STWX    -6,s       ;othBaseN (theirs) <- X. If we don't branch to othRec, it is a dead store.
+         LDWX    othTotal,s ;if (othTotal < 0), use unsigned comparison
+         BRLT    othNeg
+         CPWX    -6,s       ;if (othTotal > base^N), don't recurse
+         BRLT    othDiv
+         BR      othRec
+othNeg:  CPWX    -6,s       ;if (unsigned(othTotal) > unsigned(base^N)), don't recurse
+         BRGT    othDiv
+othRec:  LDWA    othBase,s  ;othBase (theirs) <- othBase  (ours)
+         STWA    -4,s
+         LDWA    othTotal,s ;othTotal (theirs) <- othTotal (ours)
+         STWA    -2,s
+         SUBSP   6,i        ;@params#othTotal#othBase#othBaseN
+         CALL    intoh
+         ADDSP   6,i        ;@params#othBaseN#othBase#othTotal
+         LDWA    -2,s       ;othTotal (ours) <- othTotal (theirs). Their total contains remainder of othTotal (ours) / othBase^(N+1)
+         STWA    othTotal,s
+;
+othDiv:  LDWA    othTotal,s
+         LDWX    othBaseN,s
+         SUBSP   8,i        ;@params#dQ#dR#dZ#dD
+         STWA    2,s        ;Z <- othTotal
+         STWX    0,s        ;D <- base^N
+         CALL    div
+         LDWX    4,s        ;X <- remainder
+         LDWA    6,s        ;A <- quotient
+         ADDSP   8,i
+         STWX    othTotal,s
+         CPBA    9,i
+         BRGT    othChar
+         ADDA    '0',i
+         BR      othPrnt
+othChar: ADDA    0x31,i     ; 'A' - 10
+othPrnt: STBA    charOut,d
+         RET
+;
 ;Output format: If the operand is negative, the algorithm prints
 ;a single '-' followed by the magnitude. Otherwise it prints the
 ;magnitude without a leading '+'. It suppresses leading zeros.
-;
-;Print number
-;Expects the number to be printed stored in the accumulator.
-remain:  .EQUATE 0           ;#2d Remainder of value to output
-outYet:  .EQUATE 2           ;#2d Has a character been output yet?
-place:   .EQUATE 4           ;#2d Place value for division
-toPrint: .EQUATE 8           ;#2d Number to be printed
-decPrint:SUBSP   6,i         ;Allocate @locals #remain#outYet#place
-         LDWA    toPrint,s   ;Load the number to print
-         CPWA    0,i         ;If oprnd is negative then
-         BRGE    printMag
-         LDBX    '-',i       ;Print leading '-'
+otTotal: .EQUATE 5           ;#2h Value to output
+otBase:  .EQUATE 3           ;#2d Base in which to output
+otSigned:.EQUATE 2           ;#1d Treat the number as signed?
+into:    LDWA    otTotal,s   ;if(otTotal < 0
+         BRGE    otCall
+         LDBX    otSigned,s  ;  && otSigned)
+         BREQ    otCall
+         LDBX    '-',i
          STBX    charOut,d
-         NEGA                ;Make magnitude positive
-printMag:STWA    remain,s    ;remain <- abs(oprnd)
-         LDWA    0,i         ;Initialize outYet <- false
-         STWA    outYet,s
-         LDWA    10000,i     ;place <- 10,000
-         STWA    place,s
-         CALL    divide      ;Write 10,000's place
-         LDWA    1000,i      ;place <- 1,000
-         STWA    place,s
-         CALL    divide      ;Write 1000's place
-         LDWA    100,i       ;place <- 100
-         STWA    place,s
-         CALL    divide      ;Write 100's place
-         LDWA    10,i        ;place <- 10
-         STWA    place,s
-         CALL    divide      ;Write 10's place
-         LDWA    remain,s    ;Always write 1's place
-         ORA     0x0030,i    ;Convert decimal to ASCII
-         STBA    charOut,d   ;  and output it
-         ADDSP   6,i         ;Deallocate @locals #place#outYet#remain
+         NEGA
+         STWA    otTotal,s
+;
+otCall:  LDWX    otBase,s    ;X <- otBase
+         SUBSP   6,i         ;@params#othTotal#othBase#othBaseN
+         STWA    4,s         ;othTotal <- otTotal
+         STWX    2,s         ;othBase  <- otBase
+         LDWX    1,i         ;othBaseN <- 1
+         STWX    0,s
+         CALL    intoh
+         ADDSP   6,i         ;@params#othBaseN#othBase#othTotal
          RET
 ;
-;Subroutine to print the most significant decimal digit of the
-;remainder. It assumes that place (place2 here) contains the
-;decimal place value. It updates the remainder.
-;
-remain2: .EQUATE 2           ;Stack addresses while executing a
-outYet2: .EQUATE 4           ;  subroutine are greater by two because
-place2:  .EQUATE 6           ;  the retAddr is on the stack
-;
-divide:  LDWA    remain2,s   ;A <- remainder
-         LDWX    0,i         ;X <- 0
-divLoop2:SUBA    place2,s    ;Division by repeated subtraction
-         BRLT    writeNum    ;If remainder is negative then done
-         ADDX    1,i         ;X <- X + 1
-         STWA    remain2,s   ;Store the new remainder
-         BR      divLoop2
-;
-writeNum:CPWX    0,i         ;If X != 0 then
-         BREQ    checkOut
-         LDWA    1,i         ;outYet <- true
-         STWA    outYet2,s
-         BR      printDgt    ;and branch to print this digit
-checkOut:LDWA    outYet2,s   ;else if a previous char was output
-         BRNE    printDgt    ;then branch to print this zero
-         RET                 ;else return to calling routine
-;
-printDgt:ORX     0x0030,i    ;Convert decimal to ASCII
-         STBX    charOut,d   ;  and output it
-         RET                 ;return to calling routine
 ;Subroutine to multiply two 16-bit integers together, returning the product.
 ;It probably misbehaves if either input is negative, and overflows
 ;if the product is greater than 0xFFFF.
@@ -308,15 +316,12 @@ mCHi:    ADDX    1,i
 ;
 ;Subroutine to divide two 16-bit integers, the dividend (z) and divisod (d).
 ;It returns both the quotient (q) and remainder (r).
-dQ:      .EQUATE  15         ;#2h Quotient of z/d
-dR:      .EQUATE  13         ;#2h Remainder of z/d
-dZ:      .EQUATE  11         ;#2h Dividend
-dD:      .EQUATE  9          ;#2h Divisor
-dM:      .EQUATE  5          ;#2h Bitmask for division
-dAbsZ:   .EQUATE  3          ;#2d Absolute value of z
-dAbsD:   .EQUATE  1          ;#2d Absolute value of d
-dSign:   .EQUATE  0          ;#1h sign(dZ) XOR sign(dD)
-div:     SUBSP   7,i         ;@locals#dM#dAbsZ#dAbsD#dSign
+dQ:      .EQUATE 10          ;#2h Quotient of z/d
+dR:      .EQUATE 8           ;#2h Remainder of z/d
+dZ:      .EQUATE 6           ;#2h Dividend
+dD:      .EQUATE 4           ;#2h Divisor
+dM:      .EQUATE 0           ;#2h Bitmask for division
+div:     SUBSP   2,i         ;@locals#dM
          LDWA    0x8000,i    ;dM <- 0x8000
          STWA    dM,s        ;  We could identify leading digit in D to reduce iterations.
          LDWA    0,i
@@ -325,56 +330,75 @@ div:     SUBSP   7,i         ;@locals#dM#dAbsZ#dAbsD#dSign
          STWA    dQ,s        ;q <- 0
          STWA    dR,s        ;r <- 0
 ;
-         LDWX    dZ,s        ;dSign <- sign(z) XOR sign(d)
-         XORX    dD,s
-         ROLX
-         ROLX
-         ANDX     1,i
-         STBX    dSign,s
-; Compute abs(dZ)
-         LDWA    dZ,s
-         BRGE    divNorm2
-         NEGA
-divNorm2:STWA    dAbsZ,s
-;Compute abs(dD)
-         LDWA    dD,s
-         BRGE    divBLoop
-         NEGA
-divBLoop:STWA    dAbsD,s
 ;Prepare loop invariant A<-dR
          LDWA    dR,s
 ;R remains resident in A through whole loop.
-divLoop: ASLA              ;r <- r << 1
-         LDWX    dAbsZ,s   ;r <- r | (dividend & mask ? 1 : 0)
+divLoop: ASLA                 ;r <- r << 1
+         LDWX    dZ,s        ;r <- r | (dividend & mask ? 1 : 0)
          ANDX    dM,s
          BREQ    divLPQ
          ORA     1,i
-divLPQ:  LDWX    dQ,s      ;q <- q << 1
+divLPQ:  LDWX    dQ,s        ;q <- q << 1
          ASLX
-         CPWA    dAbsD,s   ;if (r >= abs(d))
-         BRLT    divLPWB   ;div loop writeback
-         SUBA    dAbsD,s   ;  r <- r - abs(d)
-         ORX     1,i       ;  q <- q | 1
+         CPWA    dD,s        ;if (r >= abs(d))
+         BRLT    divLPWB     ;div loop writeback
+         SUBA    dD,s        ;  r <- r - abs(d)
+         ORX     1,i         ;  q <- q | 1
 divLPWB: STWX    dQ,s
-         LDWX    dM,s      ;m <- m >> 1
-         CPWA    0,i       ;Clear C
+         LDWX    dM,s        ;m <- m >> 1
+         CPWA    0,i         ;Clear C
          RORX
          STWX    dM,s
-         CPWX    0,i       ;Ensure X is non-zero
-         BRNE    divLoop   ;Repeat while non-0 mask
+         CPWX    0,i         ;Ensure X is non-zero
+         BRNE    divLoop     ;Repeat while non-0 mask
 ;
-         LDWX    dZ,s
-         BRGE    divRWB    ;if (dividend <0)
-         NEGA              ;  r <- -r
-divRWB:  STWA    dR,s      ;Write back r, freeing A
-         LDBX    dSign,s
-         BREQ    divRet
-         LDWA    dQ,s
-         NEGA
-         STWA    dQ,s
-divRet:  ADDSP   7,i         ;@locals#dSign#dAbsD#dAbsZ#dM
+divRWB:  STWA    dR,s        ;Write back r, freeing A
+divRet:  ADDSP   2,i         ;@locals#dM
          RET
 divErr:  CALL    HALT
+;Subroutine to divide two 16-bit integers, the dividend (z) and divisod (d).
+;It returns both the quotient (q) and remainder (r).
+sdQ:     .EQUATE 9           ;#2h Quotient of z/d
+sdR:     .EQUATE 7           ;#2h Remainder of z/d
+sdZ:     .EQUATE 5           ;#2h Dividend
+sdD:     .EQUATE 3           ;#2h Divisor
+sdSign:  .EQUATE 0           ;#1d Sign of dividend
+sdAbsQ:  .EQUATE -2          ;#2h Absolute value of quotient
+sdAbsR:  .EQUATE -4          ;#2h Absolute value of remainder
+sdAbsZ:  .EQUATE -6          ;#2h Absolute value of dividend
+sdAbsD:  .EQUATE -8          ;#2h Absolute value of divisor
+sdiv:    SUBSP   1,i         ;@locals#sdSign
+         LDWX    sdZ,s       ;sdSign <- sign(z) XOR sign(d)
+         XORX    sdD,s
+         ROLX
+         ROLX
+         ANDX    1,i
+         STBX    sdSign,s
+; Compute abs(dZ)
+         LDWA    sdZ,s
+         BRGE    sdNorm
+         NEGA
+sdNorm:  STWA    sdAbsZ,s
+;Compute abs(dD)
+         LDWA    sdD,s
+         BRGE    sdNorm2
+         NEGA
+sdNorm2: STWA    sdAbsD,s
+         SUBSP   8,i         ;@params#dQ#dR#dZ#dD
+         CALL    div
+         ADDSP   8,i         ;@params#dD#dZ#dR#dQ
+         LDWA    sdAbsR,s
+         LDWX    sdZ,s
+         BRGE    sdRWB       ;if (dividend <0)
+         NEGA                ;  r <- -r
+sdRWB:   STWA    sdR,s       ;Write back r, freeing A
+         LDWA    sdAbsQ,s
+         LDBX    sdSign,s
+         BREQ    sdQWB
+         NEGA
+sdQWB:   STWA    sdQ,s
+sdRet:   ADDSP   1,i         ;@locals#sdSign
+         RET
 ;
 ;******* FORTH words: stack manipulation
 @DC      HALT, 0x0000, 0x04, 0x09
@@ -486,7 +510,7 @@ DIVMOD:  LDWA    2,x         ;Divide TOS by TOS-1
          LDWA    0,x
          STWA    2,s
          STWX    PSP,d
-         CALL    div
+         CALL    sdiv
          LDWX    PSP,d
          LDWA    6,s         ;Quotient
          STWA    2,x
@@ -627,10 +651,13 @@ eWrdLoop:CPWX    0,i          ;Consume leading whitespace when buffer is empty.
 DECO:    LDWA    0,x          ;Pop TOS into A
          ADDX    2,i
          STWX    PSP,d        ;Preserve PSP
-         STWA    -2,s         ;Push A to return stack
-         SUBSP   2,i
-         CALL    decPrint
-         ADDSP   2,i
+         LDWX    10,i
+         SUBSP   5,i          ;@params#otTotal#otBase#otSign
+         STWA    3,s          ;otTotal <- TOS
+         STWX    1,s          ;otBase <- 10
+         STBX    0,s          ;otSign <- true
+         CALL    into
+         ADDSP   5,i          ;@params#otSign#otBase#otTotal
          LDWX    PSP,d        ;Restore PSP
          RET
 
