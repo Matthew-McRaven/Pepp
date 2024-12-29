@@ -237,11 +237,11 @@ place2:  .EQUATE 6           ;  the retAddr is on the stack
 ;
 divide:  LDWA    remain2,s   ;A <- remainder
          LDWX    0,i         ;X <- 0
-divLoop: SUBA    place2,s    ;Division by repeated subtraction
+divLoop2:SUBA    place2,s    ;Division by repeated subtraction
          BRLT    writeNum    ;If remainder is negative then done
          ADDX    1,i         ;X <- X + 1
          STWA    remain2,s   ;Store the new remainder
-         BR      divLoop
+         BR      divLoop2
 ;
 writeNum:CPWX    0,i         ;If X != 0 then
          BREQ    checkOut
@@ -305,6 +305,76 @@ mELoop:  ADDSP    2,i        ;@locals#mN1Hi
 ;
 mCHi:    ADDX     1,i
          BR       mALoop
+;
+;Subroutine to divide two 16-bit integers, the dividend (z) and divisod (d).
+;It returns both the quotient (q) and remainder (r).
+dQ:      .EQUATE  15         ;#2h Quotient of z/d
+dR:      .EQUATE  13         ;#2h Remainder of z/d
+dZ:      .EQUATE  11         ;#2h Dividend
+dD:      .EQUATE  9          ;#2h Divisor
+dM:      .EQUATE  5          ;#2h Bitmask for division
+dAbsZ:   .EQUATE  3          ;#2d Absolute value of z
+dAbsD:   .EQUATE  1          ;#2d Absolute value of d
+dSign:   .EQUATE  0          ;#1h sign(dZ) XOR sign(dD)
+div:     SUBSP   7,i         ;@locals#dM#dAbsZ#dAbsD#dSign
+         LDWA    0x8000,i    ;dM <- 0x8000
+         STWA    dM,s        ;  We could identify leading digit in D to reduce iterations.
+         LDWA    0,i
+         CPWA    dD,s        ;Error is divisor==0
+         BREQ    divErr
+         STWA    dQ,s        ;q <- 0
+         STWA    dR,s        ;r <- 0
+;
+         LDWX    dZ,s        ;dSign <- sign(z) XOR sign(d)
+         XORX    dD,s
+         ROLX
+         ROLX
+         ANDX     1,i
+         STBX    dSign,s
+; Compute abs(dZ)
+         LDWA    dZ,s
+         BRGE    divNorm2
+         NEGA
+divNorm2:STWA    dAbsZ,s
+;Compute abs(dD)
+         LDWA    dD,s
+         BRGE    divBLoop
+         NEGA
+divBLoop:STWA    dAbsD,s
+;Prepare loop invariant A<-dR
+         LDWA    dR,s
+;R remains resident in A through whole loop.
+divLoop: ASLA              ;r <- r << 1
+         LDWX    dAbsZ,s   ;r <- r | (dividend & mask ? 1 : 0)
+         ANDX    dM,s
+         BREQ    divLPQ
+         ORA     1,i
+divLPQ:  LDWX    dQ,s      ;q <- q << 1
+         ASLX
+         CPWA    dAbsD,s   ;if (r >= abs(d))
+         BRLT    divLPWB   ;div loop writeback
+         SUBA    dAbsD,s   ;  r <- r - abs(d)
+         ORX     1,i       ;  q <- q | 1
+divLPWB: STWX    dQ,s
+         LDWX    dM,s      ;m <- m >> 1
+         CPWA    0,i       ;Clear C
+         RORX
+         STWX    dM,s
+         CPWX    0,i       ;Ensure X is non-zero
+         BRNE    divLoop   ;Repeat while non-0 mask
+;
+         LDWX    dZ,s
+         BRGE    divRWB    ;if (dividend <0)
+         NEGA              ;  r <- -r
+divRWB:  STWA    dR,s      ;Write back r, freeing A
+         LDBX    dSign,s
+         BREQ    divRet
+         LDWA    dQ,s
+         NEGA
+         STWA    dQ,s
+divRet:  ADDSP   7,i         ;@locals#dSign#dAbsD#dAbsZ#dM
+         RET
+divErr:  CALL    HALT
 ;
 ;******* FORTH words: stack manipulation
 @DC      HALT, 0x0000, 0x04, 0x09
@@ -409,7 +479,23 @@ MUL:     LDWA    2,x         ;Multiple TOS and TOS+1
          STWA    0,x
          RET
 
-@DC      AND, _MUL, 0x03, 0x0D
+@DCSTR   "/mod\x00", DIVMOD, _MUL, 0x04, 0x00
+DIVMOD:  LDWA    2,x         ;Multiple TOS and TOS+1
+         SUBSP   8,i
+         STWA    0,s
+         LDWA    0,x
+         STWA    2,s
+         STWX    PSP,d
+         CALL    div
+         LDWX    PSP,d
+         ADDSP   8,i
+         LDWA    -2,s
+         STWA    2,x
+         LDWA    -4,s
+         STWA    0,x
+         RET
+
+@DC      AND, _DIVMOD, 0x03, 0x0D
 AND:     LDWA    2,x         ;Bitwise AND TOS and TOS-1
          ANDA    0,x
          STWA    2,x
