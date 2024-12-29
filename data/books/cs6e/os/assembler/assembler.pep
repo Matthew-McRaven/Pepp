@@ -258,53 +258,53 @@ printDgt:ORX     0x0030,i    ;Convert decimal to ASCII
 ;Subroutine to multiply two 16-bit integers together, returning the product.
 ;It probably misbehaves if either input is negative, and overflows
 ;if the product is greater than 0xFFFF.
-mProdLo: .EQUATE  10         ;#2h Product of mN2 * mN1
-mProdHi: .EQUATE  8          ;#2h Product of mN2 * mN1
-mN1Lo:   .EQUATE  6          ;#2h Integer larger than mN2
-mN2:     .EQUATE  4          ;#2h Integer smaller than mN1
-mN1Hi:   .EQUATE  0          ;#2h Integer larger than mN2
-mul:     SUBSP    2,i        ;@locals#mN1Hi
-         LDWA     0,i
-         STWA     mProdLo,s
-         STWA     mProdHi,s
-         STWA     mN1Hi,s
-         LDWA     mN1Lo,s
-         CPWA     mN2,s
-         BRGE     mBLoop     ;If mN1 < mN2, swap
-         LDWX     mN2,s
-         STWA     mN2,s
-         STWX     mN1Lo,s
+mProdLo: .EQUATE 10         ;#2h Product of mN2 * mN1
+mProdHi: .EQUATE 8          ;#2h Product of mN2 * mN1
+mN1Lo:   .EQUATE 6          ;#2h Integer larger than mN2
+mN2:     .EQUATE 4          ;#2h Integer smaller than mN1
+mN1Hi:   .EQUATE 0          ;#2h Integer larger than mN2
+mul:     SUBSP   2,i        ;@locals#mN1Hi
+         LDWA    0,i
+         STWA    mProdLo,s
+         STWA    mProdHi,s
+         STWA    mN1Hi,s
+         LDWA    mN1Lo,s
+         CPWA    mN2,s
+         BRGE    mBLoop     ;If mN1 < mN2, swap
+         LDWX    mN2,s
+         STWA    mN2,s
+         STWX    mN1Lo,s
 ;
-mBLoop:  LDWX     mN2,s      ;Multiply setup loop
-         CPWX     0,i
-         BREQ     mELoop
-         ANDX     1,i
-         BREQ     mCLoop
-         LDWA     mProdLo,s  ;mProd <- mProd + mN1
-         LDWX     mProdHi,s
-         ADDA     mN1Lo,s
-         BRC      mCHi
-mALoop:  ADDX     mN1Hi,s    ;Multiple add in loop
-         STWA     mProdLo,s  ;Write back mProd
-         STWX     mProdHi,s
+mBLoop:  LDWX    mN2,s      ;Multiply setup loop
+         CPWX    0,i
+         BREQ    mELoop
+         ANDX    1,i
+         BREQ    mCLoop
+         LDWA    mProdLo,s  ;mProd <- mProd + mN1
+         LDWX    mProdHi,s
+         ADDA    mN1Lo,s
+         BRC     mCHi
+mALoop:  ADDX    mN1Hi,s    ;Multiple add in loop
+         STWA    mProdLo,s  ;Write back mProd
+         STWX    mProdHi,s
 ;
-mCLoop:  LDWX     mN2,s      ;mN2 <- mN2/2
+mCLoop:  LDWX    mN2,s      ;mN2 <- mN2/2
          RORX
-         CPWA     0,i        ;C is not cleared by load. N-0 should never carry out.
-         STWX     mN2,s
-         LDWX     mN1Hi,s    ;mN1 <- mN1*2
-         LDWA     mN1Lo,s
+         CPWA    0,i        ;C is not cleared by load. N-0 should never carry out.
+         STWX    mN2,s
+         LDWX    mN1Hi,s    ;mN1 <- mN1*2
+         LDWA    mN1Lo,s
          ROLA
-         ROLX                ;C is set by shift
-         STWA     mN1Lo,s
-         STWX     mN1Hi,s
-         BR       mBLoop
+         ROLX               ;C is set by shift
+         STWA    mN1Lo,s
+         STWX    mN1Hi,s
+         BR      mBLoop
 ;
-mELoop:  ADDSP    2,i        ;@locals#mN1Hi
+mELoop:  ADDSP   2,i        ;@locals#mN1Hi
          RET
 ;
-mCHi:    ADDX     1,i
-         BR       mALoop
+mCHi:    ADDX    1,i
+         BR      mALoop
 ;
 ;Subroutine to divide two 16-bit integers, the dividend (z) and divisod (d).
 ;It returns both the quotient (q) and remainder (r).
