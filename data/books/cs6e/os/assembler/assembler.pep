@@ -584,8 +584,32 @@ INV:     LDWA    0,x          ;Bitwise NOT TOS
          STWA    0,x
          RET
 ;
+;******* FORTH words: comparisons
+         ;( n1 n2 -- n1 == n2)
+@DCSTR   "=\x00",EQ, _INV, 0x01, 0x19
+         LDWA    2,x         ;Compare TOS and TOS-1
+         CPWA    0,x
+         BREQ    eqTrue
+         LDWA    0,i
+         BR      eqPop
+eqTrue:  LDWA    0xffff,i
+eqPop:   ADDX    2,i
+eqStore: STWA    0,x
+         RET
+
+         ;( n1 -- n ==0)
+@DCSTR   "0=\x00",EQ0, _EQ, 0x02, 0x00
+         LDWA    2,x         ;Compare TOS to 0
+         CPWA    0,i
+         BREQ    eq0True
+         LDWA    0,i
+         BR      eqStore
+eq0True: LDWA    0xffff,i
+         BR      eqStore
+
+;
 ;******* FORTH words: memory operations
-@DCSTR   "@\x00", LOAD, _INV, 0x01, 0x10
+@DCSTR   "@\x00", LOAD, _EQ0, 0x01, 0x10
          STWX    PSP,d        ;Store PSP to global data
          LDWX    0,x          ;Get the word pointed to by PSP
          LDWA    0,x          ;Dereference that word
