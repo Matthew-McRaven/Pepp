@@ -852,6 +852,9 @@ COMMA:   @POPA                ;A <- TOS
          STWA    HERE,d
          RET
 
+         ;( -- )
+@DCSTR   "CALL,\x00", CALLC, _COMMA, 0x05, 0x13
+CALLC:   LDBA    __call,d     ;**HERE <- opcode(CALL)
 storeOp: STBA    HERE,n
          LDWA    HERE,d       ;*HERE += 1
          ADDA    1,i
@@ -859,23 +862,17 @@ storeOp: STBA    HERE,n
 __call:  CALL    COMMA
          RET
 
-         ;( -- )
-@DCSTR   "CALL,\x00", CALLC, _COMMA, 0x05, 0x13
-CALLC:   LDBA    __call,d     ;**HERE <- opcode(CALL)
-         BR      storeOp
-
          ; ( n -- )
 @DCSTR   "LDWAi,\x00", LDWAC, _CALLC, 0x06, 0x00
 LDWAC:   LDBA    __ldwai,d     ;**HERE <- opcode(LDWA,i)
          BR      storeOp
 
-
-; ( n -- )
+         ; ( n -- )
 @DCSTR   "STWAx,\x00", STWAXC, _LDWAC, 0x06, 0x00
 STWAXC:  LDBA    __stwax,d     ;**HERE <- opcode(STWA,x)
          BR      storeOp
 
-; ( n -- )
+         ; ( n -- )
 @DCSTR   "SUBXi,\x00", SUBXIC, _STWAXC, 0x06, 0x13
 SUBXIC:  LDBA    __subxi,d     ;**HERE <- opcode(SUBX,i)
          BR      storeOp
