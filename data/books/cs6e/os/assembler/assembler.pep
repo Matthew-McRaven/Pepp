@@ -420,6 +420,7 @@ SWAP:    LDWA    0,x         ;Load TOS+0, store to TOS-1
          STWA    2,x
          RET
 
+         ;( n1 -- n1 n1)
 @DC      DUP, _SWAP, 0x03, 0x0A
 DUP:     LDWA    0,x         ;Load TOS+0, store to TOS-1
          STWA    -2,x
@@ -432,6 +433,7 @@ OVER:    LDWA    2,x         ;Load TOS+1, store to TOS-1
          SUBX    2,i         ;Decrement PSP
          RET
 
+         ;( n1 n2 n3 -- n2 n1 n3)
 @DC      ROT, _OVER, 0x03, 0x1C
 ROT:     LDWA    0,x         ;Load TOS+0, store to TOS-1
          STWA    -2,x
@@ -443,10 +445,13 @@ ROT:     LDWA    0,x         ;Load TOS+0, store to TOS-1
          STWA    4,x
          RET
 ;Ignoring -ROT for now since I don't (yet) need it.
+
+         ;( n1 n2 -- )
 @DCSTR   "2DROP\x00", DROP2, _ROT, 0x05, 0x05
 DROP2:   ADDX    4,i         ;Drop top two elements of parameter stack
          RET
 
+         ;( n1 n2 -- n2 n1 n2 n1)
 @DCSTR   "2DUP\x00", DUP2, _DROP2, 0x04, 0x0A
 DUP2:    LDWA    0,x         ;Load TOS+0, store to TOS-2
          STWA    -4,x
@@ -473,6 +478,7 @@ DECR:    LDWA    0,x         ;Decrement TOS by 1
          STWA    0,x
          RET
 
+         ;( n1 n2 -- sum)
 @DCSTR   "+\x00", ADD, _DECR, 0x01, 0x0D
 ADD:     LDWA    2,x         ;Add TOS to TOS-1
          ADDA    0,x
@@ -480,6 +486,7 @@ ADD:     LDWA    2,x         ;Add TOS to TOS-1
          ADDX    2,i
          RET
 
+         ;( n1 n2 -- n1-n2)
 @DCSTR   "-\x00", SUB, _ADD, 0x01, 0x0D
 SUB:     LDWA    2,x         ;Sub TOS from TOS-1
          SUBA    0,x
@@ -487,6 +494,7 @@ SUB:     LDWA    2,x         ;Sub TOS from TOS-1
          ADDX    2,i
          RET
 
+         ;( n1 n2 -- product[hi] product[lo] )
 @DCSTR   "*\x00", MUL, _SUB, 0x01, 0x00
 MUL:     LDWA    2,x         ;Multiple TOS and TOS+1
          SUBSP   8,i
@@ -503,6 +511,7 @@ MUL:     LDWA    2,x         ;Multiple TOS and TOS+1
          STWA    0,x
          RET
 
+         ;(divisor dividend -- remainder quotient)
 @DCSTR   "/mod\x00", DIVMOD, _MUL, 0x04, 0x00
 DIVMOD:  LDWA    2,x         ;Divide TOS by TOS-1
          SUBSP   8,i
@@ -518,19 +527,22 @@ DIVMOD:  LDWA    2,x         ;Divide TOS by TOS-1
          STWA    0,x
          ADDSP   8,i
          RET
-;
+
+         ;(divisor dividend -- remainder)
 @DCSTR   "%\x00", MOD, _DIVMOD, 0x01, 0x0D
          CALL    DIVMOD
          LDWA    0,x
          STWA    2,x
          ADDX    2,i
          RET
-;
+
+         ;(divisor dividend -- quotient)
 @DCSTR   "/\x00", DIV, _MOD, 0x01, 0x07
          CALL    DIVMOD
          ADDX    2,i
          RET
 
+         ;(n1 n2 -- n1 & n2)
 @DC      AND, _DIV, 0x03, 0x0D
 AND:     LDWA    2,x         ;Bitwise AND TOS and TOS-1
          ANDA    0,x
@@ -538,6 +550,7 @@ AND:     LDWA    2,x         ;Bitwise AND TOS and TOS-1
          ADDX    2,i
          RET
 
+         ;(n1 n2 -- n1 | n2)
 @DC      OR, _AND, 0x02, 0x0D
 OR:      LDWA    2,x         ;Bitwise OR TOS and TOS-1
          ORA     0,x
@@ -545,6 +558,7 @@ OR:      LDWA    2,x         ;Bitwise OR TOS and TOS-1
          ADDX    2,i
          RET
 
+         ;(n1 n2 -- n1 ^ n2)
 @DC      XOR, _OR, 0x03, 0x0D
 XOR:     LDWA    2,x         ;Bitwise XOR TOS and TOS-1
          XORA    0,x
@@ -552,6 +566,7 @@ XOR:     LDWA    2,x         ;Bitwise XOR TOS and TOS-1
          ADDX    2,i
          RET
 
+         ;( n -- -1*n)
 @DCSTR   "INVERT\x00", INV, _XOR, 0x06, 0x08
 INV:     LDWA    0,x          ;Bitwise NOT TOS
          NOTA
@@ -646,7 +661,7 @@ eWrdLoop:CPWX    0,i          ;Consume leading whitespace when buffer is empty.
          SUBX    2,i
          RET
 
-         ; ( n -- )
+         ;( n -- )
 @DCSTR   ".\x00", DECO, _WORD, 0x01, 0x19
 DECO:    LDWA    10,i         ;Load base into A
          SUBSP   5,i          ;@params#otTotal#otBase#otSign
@@ -661,6 +676,7 @@ DECO:    LDWA    10,i         ;Load base into A
          LDWX    PSP,d        ;Restore PSP
          RET
 ;
+         ;(n -- )
 @DCSTR   "HEX.\x00", HEXO, _DECO, 0x04, 0x19
 HEXO:    LDWA    16,i         ;Load base into A
          SUBSP   5,i          ;@params#otTotal#otBase#otSign
@@ -706,7 +722,7 @@ PREV:    LDWA    0,x
          STWA    0,x
          RET
 
-         ; ( len &str -- fEnt)
+         ;( len &str -- fEnt)
 fEnt:    .EQUATE 9            ;#2h Address of start of dictionary entry
 fEq:     .EQUATE 8            ;#1c Equal boolean
 fWLen:   .EQUATE 6            ;#2d Length of scanned word
@@ -754,7 +770,7 @@ fEnd:    LDWA    fEnt,s
          ADDSP   11,i         ;@locals#fEq#fEPtr#fELen#fWPtr#fWLen#fEnt
          RET
 
-;        ( &fEnt -- &fEnt->code )
+         ;( &fEnt -- &fEnt->code )
 @DCSTR   ">CFA\x00", CFA, _FIND, 0x04, 0x0A
 CFA:     LDWA    0,x          ;Code address is 3\4 bytes from start of link ptr
          ADDA    4,i
@@ -817,7 +833,6 @@ eCrLoop: ADDSP   3,i          ;@locals#2h#1d
          LDWA    HERE,d
          ADDA    1,i
          STWA    HERE,d
-
 ;
                               ;Copy value of LATEST to *HERE
          LDWX    PSP,d
