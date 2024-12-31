@@ -871,7 +871,6 @@ STWAH:   STWA    HERE,n
          ADDA    2,i
          STWA    HERE,d
          RET
-
          ;( n -- )
 @DCSTR   ",\x00", COMMA, _CREATE, 0x01, 0x00
 COMMA:   @POPA                ;A <- TOS
@@ -953,9 +952,8 @@ __ret:   RET
 ;
 ;******* FORTH words: control flow
 ;
-@DC      IF, _SEMI, 0x82, 0x09
-         ; Emit SUBX 2,i
-         LDBA    __addxi,d    ;**HERE <- opcode(ADDX,i)
+         ;Emit ADDX 2,i LDWA -2,x
+emitPop: LDBA    __addxi,d    ;**HERE <- opcode(ADDX,i)
          CALL    STBAH
          LDWA    2,i
          CALL    STWAH
@@ -964,21 +962,29 @@ __ret:   RET
          CALL    STBAH
          LDWA    -2,i
          CALL    STWAH
-         ;Emit BRNE with junk operand.
-         LDBA    __brnei,d    ;**HERE <- opcode(BRNE,i)
-         CALL    STBAH
+         RET
+
+emitBR:  CALL    STBAH
+         LDWA    0,i
+         CALL    STWAH
+         RET
+
+@DC      IF, _SEMI, 0x82, 0x00
+         CALL    emitPop
+         ; Emit BREQ,i with junk operand.
+         LDBA    __breqi,d     ;**HERE <- opcode(BREQ,i)
+         CALL    emitBR
          ;
          SUBSP   2,i
          LDWA    2,s          ;Shift return address down by 2.
          STWA    0,s
          LDWA    HERE,d
+         SUBA    2,i          ;Undo writing junk operand
          STWA    2,s
-         ADDA    2,i          ;*HERE <- *HERE + 2
-         STWA    HERE,d
          RET
 
-@DC      ELSE, _IF, 0x84, 0x09
-         ;Emit BR with junk operand.
+@DC      ELSE, _IF, 0x84, 0x00
+         ;Emit BR,iwith junk operand.
          LDBA    __bri,d    ;**HERE <- opcode(BR,i)
          CALL    STBAH
          CALL    STWAH
@@ -990,7 +996,7 @@ __ret:   RET
          STWA    2,s
          RET
 
-@DC      THEN, _ELSE, 0x84, 0x09
+@DC      THEN, _ELSE, 0x84, 0x00
          ;Patch operand of previous BR.
          LDWA    HERE,d
          STWA    2,sf
@@ -999,10 +1005,23 @@ __ret:   RET
          STWA    2,s
          ADDSP   2,i
          RET
+
+@DC      BEGIN, _THEN, 0x85, 0x00
+         @PUSH  HERE,d
+         RET
+
+@DC      UNTIL, _BEGIN, 0x85, 0x00
+         CALL   emitPop
+         ;Emit BRNE,i with backwards branch
+         LDBA   __breqi,d
+         CALL   STBAH
+         @POPA
+         CALL   STWAH
+         RET
 ;
 ;******* FORTH words: interpreter
 ;
-@DC      INTERP, _THEN, 0x06, 0x00
+@DC      INTERP, _UNTIL, 0x06, 0x00
 INTERP:  CALL    WORD
          CALL    FIND
          LDWA    0,x
