@@ -606,13 +606,22 @@ INV:     LDWA    0,x          ;Bitwise NOT TOS
 @DVAR    HERE,   _LATEST, 0x04
 ;
 ;******* FORTH words: global constants
-@DCONST  F_IMM,   _HERE,   0x05, 0x80
-@DCONST  F_HID,   _F_IMM,  0x05, 0x20
-@DCONST  F_LNMSK, _F_HID,  0x07, 0x1f
+@DCONST  F_IMM,   _HERE,    0x05, 0x80
+@DCONST  F_HID,   _F_IMM,   0x05, 0x20
+@DCONST  F_LNMSK, _F_HID,   0x07, 0x1f
+@DCSTR   "'('" , lParen, _F_LNMSK, 0x03, 0x00
+         LDBA    '(',i
+pushba:  SUBX    1,i
+         STBA    0,x
+         RET
+
+@DCSTR   "')'", rParen, _lParen, 0x03, 0x00
+         LDBA    ')',i
+         BR      pushba
 ;
 ;******* FORTH words: standard IO
          ;( -- c )
-@DC      KEY,    _F_LNMSK, 0x03, 0x0A
+@DC      KEY,    _rParen, 0x03, 0x0A
          LDBA    charIn,d     ;Load char from STDIN
          STBA    -1,x         ;Push to TOS,
          ADDX    1,i
