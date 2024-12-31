@@ -609,13 +609,13 @@ INV:     LDWA    0,x          ;Bitwise NOT TOS
 @DCONST  F_IMM,   _HERE,    0x05, 0x80
 @DCONST  F_HID,   _F_IMM,   0x05, 0x20
 @DCONST  F_LNMSK, _F_HID,   0x07, 0x1f
-@DCSTR   "'('" , lParen, _F_LNMSK, 0x03, 0x00
+@DCSTR   "'('\x00" , lParen, _F_LNMSK, 0x03, 0x00
          LDBA    '(',i
 pushba:  SUBX    1,i
          STBA    0,x
          RET
 
-@DCSTR   "')'", rParen, _lParen, 0x03, 0x00
+@DCSTR   "')'\x00", rParen, _lParen, 0x03, 0x00
          LDBA    ')',i
          BR      pushba
 ;
