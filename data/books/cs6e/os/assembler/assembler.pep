@@ -777,8 +777,8 @@ derefStr:LDWA    0,x          ;A <- &(fEnt->len)
          ;( -- )
 @DCSTR   "DUMPDICT\x00", DD, _STR, 0x08, 0x1c
 DD:      LDWA    LATEST,d
-         SUBX    2,i
-         STWA    0,x
+__subxi: SUBX    2,i
+__stwax: STWA    0,x
 _ddLoop: CALL    DUP
          CALL    derefStr
          CALL    prntCStr
@@ -835,7 +835,7 @@ eCrLoop: ADDSP   3,i          ;@locals#2h#1d
          ADDA    1,i
          STWA    HERE,d
                               ;Set code len to 0
-         LDWA    0,i          ;**HERE <- 0
+__ldwai: LDWA    0,i          ;**HERE <- 0
          STBA    HERE,n
          LDWA    HERE,d       ;*HERE <- *HERE + 1
          ADDA    1,i
@@ -868,20 +868,17 @@ CALLC:   LDBA    __call,d     ;**HERE <- opcode(CALL)
 @DCSTR   "LDWAi,\x00", LDWAC, _CALLC, 0x06, 0x00
 LDWAC:   LDBA    __ldwai,d     ;**HERE <- opcode(LDWA,i)
          BR      storeOp
-__ldwai: LDWA    0xFEED,i
 
 
 ; ( n -- )
 @DCSTR   "STWAx,\x00", STWAXC, _LDWAC, 0x06, 0x00
-STWAXC: LDBA    __stwax,d     ;**HERE <- opcode(STWA,x)
+STWAXC:  LDBA    __stwax,d     ;**HERE <- opcode(STWA,x)
          BR      storeOp
-__stwax: STWA    0xDEAD,x
 
 ; ( n -- )
 @DCSTR   "SUBXi,\x00", SUBXIC, _STWAXC, 0x06, 0x13
-SUBXIC:   LDBA    __subai,d     ;**HERE <- opcode(SUBX,i)
+SUBXIC:  LDBA    __subxi,d     ;**HERE <- opcode(SUBX,i)
          BR      storeOp
-__subai: SUBX    0xBEEF,i
 
          ; ( -- )
 @DCSTR   "[\x00", LBRAC, _SUBXIC, 0x81, 0x07
