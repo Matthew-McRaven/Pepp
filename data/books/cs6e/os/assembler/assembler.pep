@@ -844,7 +844,7 @@ eCrLoop: ADDSP   3,i          ;@locals#2h#1d
          STWA    HERE,d
 ;
                               ;Copy length of string as u8
-         LDWA    2,x          ;**HERE <- len
+__ldwax: LDWA    2,x          ;**HERE <- len
          STBA    HERE,n
          LDWA    HERE,d       ;*HERE <- *HERE + 1
          ADDA    1,i
@@ -858,22 +858,30 @@ __ldwai: LDWA    0,i          ;**HERE <- 0
          SUBX    3,i          ;POP(len, *str)
          RET
 
-         ;( n -- )
-@DCSTR   ",\x00", COMMA, _CREATE, 0x01, 0x13
-COMMA:   @POPA                ;A <- TOS
-         STWA    HERE,n       ;**HERE <- A
+         ;Store byte in A to *(here++)
+STBAH:   STBA    HERE,n
+         LDWA    HERE,d       ;*HERE += 1
+         ADDA    1,i
+         STWA    HERE,d
+         RET
+
+         ;Store word in A to *(here+=2)
+STWAH:   STWA    HERE,n
          LDWA    HERE,d       ;*HERE += 2
          ADDA    2,i
          STWA    HERE,d
          RET
 
+         ;( n -- )
+@DCSTR   ",\x00", COMMA, _CREATE, 0x01, 0x00
+COMMA:   @POPA                ;A <- TOS
+         BR      STWAH
+
+
          ;( -- )
 @DCSTR   "CALL,\x00", CALLC, _COMMA, 0x05, 0x13
 CALLC:   LDBA    __call,d     ;**HERE <- opcode(CALL)
-storeOp: STBA    HERE,n
-         LDWA    HERE,d       ;*HERE += 1
-         ADDA    1,i
-         STWA    HERE,d
+storeOp: CALL    STBAH
 __call:  CALL    COMMA
          RET
 
@@ -945,16 +953,65 @@ __ret:   RET
 ;
 ;******* FORTH words: control flow
 ;
-@DC      INTERP, _SEMI, 0x06, 0x00
+@DC      IF, _SEMI, 0x82, 0x09
+         ; Emit SUBX 2,i
+         LDBA    __addxi,d    ;**HERE <- opcode(ADDX,i)
+         CALL    STBAH
+         LDWA    2,i
+         CALL    STWAH
+         ;Emit   LDWA -2,x
+         LDBA    __ldwax,d    ;**HERE <- opcode(LDWA,x)
+         CALL    STBAH
+         LDWA    -2,i
+         CALL    STWAH
+         ;Emit BRNE with junk operand.
+         LDBA    __brnei,d    ;**HERE <- opcode(BRNE,i)
+         CALL    STBAH
+         ;
+         SUBSP   2,i
+         LDWA    2,s          ;Shift return address down by 2.
+         STWA    0,s
+         LDWA    HERE,d
+         STWA    2,s
+         ADDA    2,i          ;*HERE <- *HERE + 2
+         STWA    HERE,d
+         RET
+
+@DC      ELSE, _IF, 0x84, 0x09
+         ;Emit BR with junk operand.
+         LDBA    __bri,d    ;**HERE <- opcode(BR,i)
+         CALL    STBAH
+         CALL    STWAH
+         ;Patch operand of previous BR.
+         LDWA    HERE,d
+         STWA    2,sf
+         ;And mark current BR for patching
+         SUBA    2,i
+         STWA    2,s
+         RET
+
+@DC      THEN, _ELSE, 0x84, 0x09
+         ;Patch operand of previous BR.
+         LDWA    HERE,d
+         STWA    2,sf
+         ;Pop patch address from stack.
+         LDWA    0,s
+         STWA    2,s
+         ADDSP   2,i
+         RET
+;
+;******* FORTH words: interpreter
+;
+@DC      INTERP, _THEN, 0x06, 0x00
 INTERP:  CALL    WORD
          CALL    FIND
          LDWA    0,x
-         BRNE    _intWord
-         ADDX    2,i         ;Pop nullptr
+__brnei: BRNE    _intWord
+__addxi: ADDX    2,i         ;Pop nullptr
          CALL    DECICore
          ADDX    1,i
          LDBA    -1,x
-         BREQ    _intErr
+__breqi: BREQ    _intErr
          LDWA    STATE,d
          BREQ    INTERP
          CALL    LDWAC
@@ -962,7 +1019,7 @@ INTERP:  CALL    WORD
          CALL    SUBXIC
          @PUSH   0,i
          CALL    STWAXC
-         BR      INTERP
+__bri:   BR      INTERP
 _intWord:LDWA    STATE,d
          BREQ    _intImm
          LDWA    0,x         ;A <- &(fEnt->len)
@@ -999,7 +1056,7 @@ cldstrt: LDWX    pStack, i
 PSP:     .WORD   pStack      ;Current parameter stack pointer
 RSP:     .WORD   rStack      ;Current return stack pointer
 STATE:   .WORD   0           ;0=interpret, !0=compile
-LATEST:  .WORD   _SEMI       ;Pointer to the most recently defined word
+LATEST:  .WORD   _INTERP      ;Pointer to the most recently defined word
 HERE:    .WORD   0x0000      ;Pointer to the next free memory location
 ; Probably should be RO, but I don't want to add another section.
 ;While bare metal mode is not supposed to have a trap handler,
