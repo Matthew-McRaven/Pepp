@@ -466,7 +466,18 @@ MDUP:    LDWA    0,x         ;Load TOS+0
          RET
 ;
 ;******* FORTH words: arithmetic & logic
-@DCSTR   "1+\x00", INCR, _MDUP, 0x02, 0x0A
+         ;( i8 -- i16), sign extend a byte to a word
+@DCSTR   "SE\x00", SE, _MDUP, 0x02, 0x13
+         LDBA    0,x
+         ANDX    0x80,i
+         BREQ    seNotN
+         ORX     0xFF00,i
+seNotN:  SUBX    1,i
+         STWA    0,x
+         RET
+
+
+@DCSTR   "1+\x00", INCR, _SE, 0x02, 0x0A
 INCR:    LDWA    0,x         ;Increment TOS by 1
          ADDA    1,i
          STWA    0,x
