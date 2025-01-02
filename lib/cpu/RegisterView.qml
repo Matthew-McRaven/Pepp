@@ -79,6 +79,7 @@ ColumnLayout {
         Layout.fillHeight: true
         clip: true
         spacing: 1
+        interactive: false
         Layout.minimumWidth: contentItem.childrenRect.width
         Layout.minimumHeight: contentItem.childrenRect.height
         delegate: RowLayout {
