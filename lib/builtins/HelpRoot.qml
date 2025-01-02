@@ -126,6 +126,7 @@ Item {
             selectionModel: ItemSelectionModel {}
             Layout.fillHeight: true
             clip: true
+            boundsMovement: Flickable.StopAtBounds
             model: FilteredHelpModel {
                 id: helpModel
                 model: HelpModel {}
