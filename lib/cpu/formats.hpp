@@ -90,6 +90,21 @@ private:
   std::function<uint64_t()> _fn;
 };
 
+struct ASCIIFormatter : public RegisterFormatter {
+  explicit ASCIIFormatter(std::function<uint64_t()> fn, uint16_t byteCount = 1);
+  ~ASCIIFormatter() override = default;
+  QString format() const override;
+  QString format(quint8 byteCount) const override;
+  bool readOnly() const override;
+  qsizetype length() const override;
+  qsizetype length(quint8 byteCount) const override;
+  QString describe() const override { return "ASCII"; }
+
+private:
+  uint16_t _bytes = 0;
+  uint64_t _mask = 0;
+  std::function<uint64_t()> _fn;
+};
 // Ignore lengthed overrides since they do not depend on byte count
 struct MnemonicFormatter : public RegisterFormatter {
   explicit MnemonicFormatter(std::function<QString()> fn);
@@ -136,4 +151,24 @@ private:
   quint8 _maxBytes = 2;
   QSharedPointer<RegisterFormatter> _fmt;
   std::function<quint8()> _bytes;
+};
+
+struct ChoiceFormatter : public RegisterFormatter {
+  explicit ChoiceFormatter(QVector<QSharedPointer<RegisterFormatter>> formatters, qsizetype currentChoice = 0);
+  ~ChoiceFormatter() override = default;
+  QString format() const override;
+  QString format(quint8 byteCount) const override;
+  bool readOnly() const override;
+  qsizetype length() const override;
+  qsizetype length(quint8 byteCount) const override;
+  QStringList choices() const;
+  qsizetype currentIndex() const;
+  bool setCurrentIndex(qsizetype index);
+  const RegisterFormatter *current() const;
+
+  QString describe() const override { return _formatters[_currentChoice]->describe(); }
+
+private:
+  QVector<QSharedPointer<RegisterFormatter>> _formatters;
+  qsizetype _currentChoice;
 };

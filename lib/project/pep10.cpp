@@ -187,6 +187,7 @@ template <typename CPU, typename ISA>
 RegisterModel *register_model(targets::isa::System *system, OpcodeModel *opcodes, QObject *parent = nullptr) {
   using RF = QSharedPointer<RegisterFormatter>;
   using TF = QSharedPointer<TextFormatter>;
+  using AF = QSharedPointer<ASCIIFormatter>;
   using MF = QSharedPointer<MnemonicFormatter>;
   using HF = QSharedPointer<HexFormatter>;
   using SF = QSharedPointer<SignedDecFormatter>;
@@ -194,6 +195,7 @@ RegisterModel *register_model(targets::isa::System *system, OpcodeModel *opcodes
   using BF = QSharedPointer<BinaryFormatter>;
   using OF = QSharedPointer<OptionalFormatter>;
   using VF = QSharedPointer<VariableByteLengthFormatter>;
+  using VecF = QVector<RF>;
   auto ret = new RegisterModel(parent);
   auto _register = [](typename ISA::Register r, auto *system) {
     if (system == nullptr) return quint16{0};
@@ -222,10 +224,14 @@ RegisterModel *register_model(targets::isa::System *system, OpcodeModel *opcodes
     return !op.instr.unary;
   };
   auto operand = [=]() { return cpu->currentOperand().value_or(0); };
-  ret->appendFormatters({TF::create("Accumulator"), HF::create(A, 2), SF::create(A, 2)});
-  ret->appendFormatters({TF::create("Index Register"), HF::create(X, 2), SF::create(X, 2)});
-  ret->appendFormatters({TF::create("Stack Pointer"), HF::create(SP, 2), UF::create(SP, 2)});
-  ret->appendFormatters({TF::create("Program Counter"), HF::create(PC, 2), UF::create(PC, 2)});
+  auto cf = [](std::function<int64_t()> reg, qsizetype index) {
+    return QSharedPointer<ChoiceFormatter>::create(
+        VecF{SF::create(reg, 2), UF::create(reg, 2), BF::create(reg, 2), AF::create(reg, 2)}, index);
+  };
+  ret->appendFormatters({TF::create("Accumulator"), HF::create(A, 2), cf(A, 0)});
+  ret->appendFormatters({TF::create("Index Register"), HF::create(X, 2), cf(X, 0)});
+  ret->appendFormatters({TF::create("Stack Pointer"), HF::create(SP, 2), cf(SP, 1)});
+  ret->appendFormatters({TF::create("Program Counter"), HF::create(PC, 2), cf(PC, 1)});
   ret->appendFormatters({TF::create("Instruction Specifier"), BF::create(IS, 1), MF::create(IS_TEXT)});
   ret->appendFormatters(
       {TF::create("Operand Specifier"), OF::create(HF::create(OS, 2), notU), OF::create(SF::create(OS, 2), notU)});
