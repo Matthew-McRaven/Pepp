@@ -133,6 +133,8 @@ ColumnLayout {
                                     contextMenu.removeItem(
                                                 contextMenu.itemAt(0))
                                 }
+                                if (!choices)
+                                    return
                                 for (var i = 0; i < choices.length; i++) {
                                     var menuItem = menuItemComponent.createObject(
                                                 contextMenu.contentItem, {
