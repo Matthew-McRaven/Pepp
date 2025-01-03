@@ -206,12 +206,14 @@ Item {
                     currentIndex: textSelector.currentIndex
                     SplitView.fillHeight: true
                     Text.ScintillaAsmEdit {
+                        Component.onCompleted: {
+                            text = project?.userAsmText ?? ""
+                        }
+
                         id: userAsmEdit
                         Layout.fillHeight: true
                         Layout.fillWidth: true
                         height: parent.height
-                        // text is only an initial binding, the value diverges from there.
-                        text: project?.userAsmText ?? ""
                         editorFont: editorFM.font
                         language: wrapper.getLexerLangauge()
                     }
@@ -220,13 +222,13 @@ Item {
                         Component.onCompleted: {
                             const isOS4 = project.abstraction === Abstraction.OS4
                             // Don't set declaratively, otherwise text will not be repainted.
+                            text = project?.osAsmText ?? ""
                             osAsmEdit.readOnly = Qt.binding(() => !isOS4)
                         }
                         Layout.fillHeight: true
                         Layout.fillWidth: true
                         height: parent.height
                         // text is only an initial binding, the value diverges from there.
-                        text: project?.osAsmText ?? ""
                         editorFont: editorFM.font
                         language: wrapper.getLexerLangauge()
                     }
