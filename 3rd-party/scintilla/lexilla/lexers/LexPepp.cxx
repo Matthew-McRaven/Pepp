@@ -196,13 +196,15 @@ void SCI_METHOD LexerPepAsm::Lex(Sci_PositionU startPos, Sci_Position length, in
     case SCE_PEPASM_STRING:
       if (sc.ch == '"' && sc.chPrev != '\\') sc.ForwardSetState(SCE_PEPASM_DEFAULT);
       else if (sc.atLineEnd) sc.SetState(SCE_PEPASM_DEFAULT);
+      break;
     case SCE_PEPASM_COMMENT_LINE: [[fallthrough]];
     case SCE_PEPASM_COMMENT:
-      if (sc.atLineEnd) {
+      if (sc.atLineEnd || sc.ch == 0) {
         sc.GetCurrentLowered(s, sizeof(s));
         if (macroStart.match(s).hasMatch()) sc.ChangeState(SCE_PEPASM_MACRO_START);
         else if (macroEnd.match(s).hasMatch()) sc.ChangeState(SCE_PEPASM_MACRO_END);
-        sc.ForwardSetState(SCE_PEPASM_DEFAULT);
+        // newline must be in default state, else next lines becomes a comment.
+        sc.SetState(SCE_PEPASM_DEFAULT);
         continue;
       }
       break;
