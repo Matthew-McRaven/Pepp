@@ -106,7 +106,10 @@ ApplicationWindow {
         actions.edit.prefs.triggered.connect(preferencesDialog.open)
         actions.help.about.triggered.connect(aboutDialog.open)
         actions.view.fullscreen.triggered.connect(onToggleFullScreen)
-        actions.file.save.triggered.connect(() => pm.onSave(currentProjectRow))
+        actions.file.save.triggered.connect(() => {
+                                                preAssemble()
+                                                pm.onSave(currentProjectRow)
+                                            })
         projectSelect.message.connect(message)
         message.connect(text => footer.text = text)
         message.connect(() => messageTimer.restart())
