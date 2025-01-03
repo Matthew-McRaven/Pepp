@@ -170,7 +170,11 @@ QtObject {
         readonly property var execute: Action {
             enabled: project?.allowedDebugging & DebugEnableFlags.Execute
             property string nativeText: ""
-            onTriggered: project.onExecute()
+            onTriggered: {
+                // New editor does not lose focus before "assemble" is triggered, so we must save manually.
+                window.preAssemble()
+                project.onExecute()
+            }
             text: qsTr("&Execute")
             icon.source: `image://icons/debug/start_normal${enabled ? '' : '_disabled'}${dark ? '' : '_dark'}.svg`
             shortcut: "Ctrl+Shift+R"
@@ -182,7 +186,11 @@ QtObject {
         readonly property var start: Action {
             enabled: project?.allowedDebugging & DebugEnableFlags.Start
             property string nativeText: ""
-            onTriggered: project.onDebuggingStart()
+            onTriggered: {
+                // New editor does not lose focus before "assemble" is triggered, so we must save manually.
+                window.preAssemble()
+                project.onDebuggingStart()
+            }
             text: qsTr("Start &Debugging")
             icon.source: `image://icons/debug/start_debug${enabled ? '' : '_disabled'}${dark ? '' : '_dark'}.svg`
             shortcut: "Ctrl+D"
