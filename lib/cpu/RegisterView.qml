@@ -103,6 +103,20 @@ ColumnLayout {
                     Layout.minimumHeight: textField.height + 1
                     Layout.preferredWidth: childrenRect.width
                     color: "transparent"
+                    function updateFlagMargin() {
+                        flags.overrideLeftMargin = Qt.binding(
+                                    () => x + Layout.leftMargin + spacing)
+                    }
+
+                    onXChanged: {
+                        if (column == 1 && row == 0)
+                            updateFlagMargin()
+                    }
+                    onWidthChanged: {
+                        if (column == 1 && row == 0)
+                            updateFlagMargin()
+                    }
+
                     TextField {
                         id: textField
                         background: Rectangle {
