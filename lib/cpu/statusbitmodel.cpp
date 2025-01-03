@@ -34,6 +34,6 @@ void FlagModel::onUpdateGUI() {
 }
 
 QHash<int, QByteArray> FlagModel::roleNames() const {
-  static QHash<int, QByteArray> ret{{Qt::DisplayRole, "display"}, {(int)Roles::Value, "value"}};
+  static QHash<int, QByteArray> ret{{Qt::DisplayRole, "text"}, {(int)Roles::Value, "checked"}};
   return ret;
 }
