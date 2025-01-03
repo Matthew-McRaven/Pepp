@@ -151,7 +151,11 @@ void SCI_METHOD LexerPepAsm::Lex(Sci_PositionU startPos, Sci_Position length, in
 
   char s[256];
   while (sc.More()) {
-    if (sc.atLineStart) onlyWhiteSpace = true;
+    if (sc.atLineStart) {
+      onlyWhiteSpace = true;
+      // Lines are independent; prevent comments from bleeding one line to the next.
+      sc.ChangeState(SCE_PEPASM_DEFAULT);
+    }
     // Actions + transition table.
     switch (sc.state) {
     case SCE_PEPASM_IDENTIFIER:
@@ -203,8 +207,7 @@ void SCI_METHOD LexerPepAsm::Lex(Sci_PositionU startPos, Sci_Position length, in
         sc.GetCurrentLowered(s, sizeof(s));
         if (macroStart.match(s).hasMatch()) sc.ChangeState(SCE_PEPASM_MACRO_START);
         else if (macroEnd.match(s).hasMatch()) sc.ChangeState(SCE_PEPASM_MACRO_END);
-        // newline must be in default state, else next lines becomes a comment.
-        sc.SetState(SCE_PEPASM_DEFAULT);
+        sc.ForwardSetState(SCE_PEPASM_DEFAULT);
         continue;
       }
       break;
