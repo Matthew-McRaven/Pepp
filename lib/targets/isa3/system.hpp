@@ -65,8 +65,10 @@ public:
   sim::memory::IDEController *ideController(QString name);
 
   void doReloadEntries();
+  void reconfigure(const ELFIO::elfio &elf);
 
 private:
+  void reconfigure(builtins::Architecture arch, QList<obj::MemoryRegion> regions, QList<obj::AddressedIO> mmios);
   sim::api2::device::ID _nextID = 0;
   sim::api2::device::IDGenerator _nextIDGenerator = [this]() { return _nextID++; };
   sim::api2::tick::Type _tick = 0;

@@ -207,6 +207,11 @@ TEST_CASE("Pep/10 Assembler Assembly", "[scope:asm][kind:e2e][arch:pep10]") {
   CHECK(ide != nullptr);
 
   system->init();
+  auto cpu = dynamic_cast<targets::pep10::isa::CPU *>(system->cpu());
+  REQUIRE(cpu != nullptr);
+  auto regs = cpu->regs();
+  // Force PC to be 0, skipping OS stuff.
+  targets::isa::writeRegister<::isa::Pep10, quint8>(regs, isa::Pep10::Register::PC, 0x0000, gs);
   ide->disk()->clear(0);
   // Create an 8-byte temporary buffer.
   quint64 regVal = 7;

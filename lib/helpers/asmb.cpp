@@ -1,5 +1,6 @@
 #include "asmb.hpp"
 #include <iostream>
+#include <sstream>
 #include "asm/pas/driver/pep10.hpp"
 #include "asm/pas/driver/pep9.hpp"
 #include "asm/pas/obj/pep10.hpp"
@@ -8,6 +9,7 @@
 #include "asm/pas/operations/generic/errors.hpp"
 #include "asm/pas/operations/pepp/bytes.hpp"
 #include "asm/pas/operations/pepp/string.hpp"
+#include "asm/pas/operations/pepp/whole_program_sanity.hpp"
 #include "builtins/registry.hpp"
 #include "isa/pep10.hpp"
 #include "macro/parse.hpp"
@@ -52,6 +54,7 @@ helpers::AsmHelper::AsmHelper(QSharedPointer<::macro::Registry> registry, QStrin
 void helpers::AsmHelper::setUserText(QString user) { _user = user; }
 
 bool helpers::AsmHelper::assemble() {
+  _callViaRets.clear();
   switch (_arch) {
   case builtins::Architecture::PEP9: {
     QList<QPair<QString, pas::driver::pep9::Features>> targets = {{{_os, {.isOS = true}}}};
@@ -73,9 +76,11 @@ bool helpers::AsmHelper::assemble() {
     auto result = pipeline->assemble(pas::driver::pep10::Stage::End);
     auto osTarget = pipeline->pipelines[0].first;
     _osRoot = osTarget->bodies[pas::driver::repr::Nodes::name].value<pas::driver::repr::Nodes>().value;
+    if (_osRoot) pas::ops::pepp::annotateRetOps<isa::Pep10>(_callViaRets, *_osRoot);
     if (_user) {
       auto userTarget = pipeline->pipelines[1].first;
       _userRoot = userTarget->bodies[pas::driver::repr::Nodes::name].value<pas::driver::repr::Nodes>().value;
+      if (_userRoot) pas::ops::pepp::annotateRetOps<isa::Pep10>(_callViaRets, *_userRoot);
     }
     return result;
   };
@@ -130,7 +135,7 @@ QSharedPointer<ELFIO::elfio> helpers::AsmHelper::elf(std::optional<QList<quint8>
     pas::obj::pep9::writeOS(*_elf, *_osRoot);
     if (_userRoot) pas::obj::pep9::writeUser(*_elf, *_userRoot);
     else if (userObj) pas::obj::pep9::writeUser(*_elf, *userObj);
-    return _elf;
+    break;
   case builtins::Architecture::PEP10:
     _elf = pas::obj::pep10::createElf();
     pas::obj::pep10::combineSections(*_osRoot);
@@ -139,10 +144,16 @@ QSharedPointer<ELFIO::elfio> helpers::AsmHelper::elf(std::optional<QList<quint8>
       pas::obj::pep10::combineSections(*_userRoot);
       pas::obj::pep10::writeUser(*_elf, *_userRoot);
     } else if (userObj) pas::obj::pep10::writeUser(*_elf, *userObj);
-    return _elf;
+    break;
   default: throw std::logic_error("Unimplemented arch");
   }
-
+  // Save and load so that offsets will be correct.
+  {
+    std::stringstream s;
+    _elf->save(s);
+    s.seekg(0, std::ios::beg);
+    _elf->load(s);
+  }
   return _elf;
 }
 
@@ -222,6 +233,8 @@ helpers::AsmHelper::Lines2Addresses helpers::AsmHelper::address2Lines(bool os) {
   }
   return {};
 }
+
+QSet<quint16> helpers::AsmHelper::callViaRets() { return _callViaRets; }
 
 QSharedPointer<macro::Registry> helpers::registry(QSharedPointer<const builtins::Book> book, QStringList directory) {
   auto macroRegistry = QSharedPointer<::macro::Registry>::create();

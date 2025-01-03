@@ -53,6 +53,14 @@ public:
 
   // Helpers
   const quint8 *constData() const;
+  // Enables re-use of memory across multiple runs.
+  void setDevice(api2::device::Descriptor device) { _device = device; }
+  void setSpan(AddressSpan span) {
+    _span = span;
+    // Ensure no data leaks between configurations.
+    _data.resize(size_inclusive(_span));
+    _data.fill(_fill);
+  }
 
 private:
   quint8 _fill;

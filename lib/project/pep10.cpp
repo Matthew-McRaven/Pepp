@@ -115,12 +115,6 @@ SystemAssembly make_isa_system(project::Environment env) {
   SystemAssembly ret;
   // Need to reload to properly compute segment addresses.
   ret.elf = helper.elf();
-  {
-    std::stringstream s;
-    ret.elf->save(s);
-    s.seekg(0, std::ios::beg);
-    ret.elf->load(s);
-  }
   ret.system = targets::isa::systemFromElf(*ret.elf, true);
   return ret;
 }
@@ -170,15 +164,7 @@ SystemAssembly make_asmb_system(project::Environment env, QString os) {
     qWarning() << "Default OS assembly failed";
   }
   SystemAssembly ret;
-  // Need to reload to properly compute segment addresses. Store in temp
-  // directory to prevent clobbering local file contents.
   ret.elf = helper.elf();
-  {
-    std::stringstream s;
-    ret.elf->save(s);
-    s.seekg(0, std::ios::beg);
-    ret.elf->load(s);
-  }
   ret.system = targets::isa::systemFromElf(*ret.elf, true);
   return ret;
 }
@@ -631,12 +617,12 @@ void Pep_ISA::onDeferredExecution(std::function<bool()> step) {
   } catch (const sim::api2::memory::Error &e) {
     err = true;
     if (e.type() == sim::api2::memory::Error::Type::NeedsMMI) {
-      std::cerr << "Ran out of MMI\n";
+      emit message("Ran out of MMI");
     } else std::cerr << "Memory error: " << e.what() << std::endl;
     // Handle illegal opcodes or program crashes.
   } catch (const std::logic_error &e) {
     err = true;
-    std::cerr << e.what() << std::endl;
+    emit message(e.what());
   }
   // Only terminates if something written to endpoint or there was an error
   if (endpoint->next_value().has_value() || err) {
@@ -902,7 +888,18 @@ bool Pep_ASMB::onAssemble(bool doLoad) {
   auto userBytes = helper.bytes(false);
   QString objectCodeText = pas::ops::pepp::bytesToObject(userBytes, 16);
 
+  _system->reconfigure(*elf);
   if (doLoad) _system->bus()->write(0, {userBytes.data(), std::size_t(userBytes.length())}, gs);
+
+  // Hack to help debugger understand callViaRet.
+  auto callViaRet = helper.callViaRets();
+  switch (_env.arch) {
+  case builtins::Architecture::PEP10: {
+    if (auto cpu = dynamic_cast<targets::pep10::isa::CPU *>(_system->cpu()); cpu) cpu->setCallsViaRet(callViaRet);
+    break;
+  }
+  default: throw std::logic_error("Unimplemented architecture");
+  }
 
   setObjectCodeText(objectCodeText);
   emit requestSourceBreakpoints();
@@ -988,9 +985,11 @@ void Pep_ASMB::onModifyOSList(int line, Action action) {
 }
 
 void Pep_ASMB::prepareSim() {
+  // Must assemble first, otherwise we might load an outdated version of the OS
+  // via _system->init(). Specifically, outdated memory-mapped vector values.
+  if (!onAssemble(true)) return;
   _system->bus()->clear(0);
   _system->init();
-  if (!onAssemble(true)) return;
   _tb->clear();
   _dbg->clearHit();
   auto pwrOff = _system->output("pwrOff");

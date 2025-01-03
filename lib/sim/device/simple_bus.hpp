@@ -52,11 +52,14 @@ public:
   // Source interface
   void setBuffer(api2::trace::Buffer *tb) override;
   const api2::trace::Buffer *buffer() const override { return _tb; }
+  // Overload so that we can get mutable buffer when creating future memory devices.
+  api2::trace::Buffer *buffer() { return _tb; }
   void trace(bool enabled) override;
 
   // Bus API
   void pushFrontTarget(AddressSpan at, api2::memory::Target<Address> *target);
   api2::memory::Target<Address> *deviceAt(Address address);
+  void removeAllTargets();
 
 private:
   const api2::memory::Target<Address> *device(sim::api2::device::ID id) const {
@@ -104,7 +107,7 @@ api2::memory::Result SimpleBus<Address>::read(Address address, bits::span<quint8
       address < _span.lower() || maxDestAddr > _span.upper())
     throw E(E::Type::OOBAccess, address);
 
-  auto guard = std::move(makeGuard());
+  auto guard = makeGuard();
   // Construct a guard for the trace buffer.
   for (auto [offset, length] = T{0, dest.size()}; length > 0;) {
     auto region = _addrs.region_at(address + offset);
@@ -191,6 +194,11 @@ template <typename Address> sim::api2::memory::Target<Address> *SimpleBus<Addres
   auto region = _addrs.region_at(address);
   if (!region) return nullptr;
   return _devices[region.value().device].second;
+}
+
+template <typename Address> void SimpleBus<Address>::removeAllTargets() {
+  _addrs.clear();
+  _devices.clear();
 }
 
 template <typename Address>

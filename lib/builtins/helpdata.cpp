@@ -87,6 +87,7 @@ QString lexerLang(builtins::Architecture arch, builtins::Abstraction level) {
   }
   switch (level) {
   case builtins::Abstraction::ASMB3: levelStr = "ASM"; break;
+  case builtins::Abstraction::OS4: levelStr = "ASM"; break;
   case builtins::Abstraction::ASMB5: levelStr = "ASM"; break;
   default: return "";
   }

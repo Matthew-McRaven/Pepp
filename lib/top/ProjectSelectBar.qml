@@ -48,7 +48,15 @@ Flickable {
                     else
                         proj = pm.pep10ASMB(pep10asmbComponent,
                                             Abstraction.ASMB5)
+                } else if (Number(level) === Abstraction.OS4) {
+                    if (cur && cur.architecture === Architecture.PEP10
+                            && cur.abstraction === Abstraction.OS4
+                            && cur.isEmpty && reuse)
+                        proj = cur
+                    else
+                        proj = pm.pep10ASMB(pep10asmbComponent, Abstraction.OS4)
                 }
+                break
                 break
             case Architecture.PEP9:
                 if (Number(level) === Abstraction.ISA3) {
