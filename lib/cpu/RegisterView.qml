@@ -50,27 +50,21 @@ ColumnLayout {
         MenuItem {}
     }
 
-    RowLayout {
-        id: flagsContainer
-        Layout.alignment: Qt.AlignHCenter
-        Repeater {
-            id: flags
-            delegate: Row {
-                required property string display
-                required property bool value
-                spacing: -5
-                Layout.fillWidth: false
-                Text {
-                    anchors.verticalCenter: parent.verticalCenter
-                    text: display
-                    color: palette.text
-                }
-                CheckBox {
-                    anchors.verticalCenter: parent.verticalCenter
-                    enabled: false
-                    checked: value
-                }
-            }
+    ListView {
+        id: flags
+        property real overrideLeftMargin: 0
+        Layout.leftMargin: overrideLeftMargin
+        Layout.alignment: Qt.AlignVCenter
+        clip: true
+        boundsMovement: Flickable.StopAtBounds
+        Layout.minimumWidth: contentItem.childrenRect.width
+        Layout.minimumHeight: contentItem.childrenRect.height
+        orientation: Qt.Horizontal
+        delegate: CheckBox {
+            Layout.alignment: Qt.AlignVCenter
+            enabled: false
+            text: model.text
+            checked: model.checked
         }
     }
     ListView {
