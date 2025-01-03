@@ -16,11 +16,52 @@ QVariant RegisterModel::data(const QModelIndex &index, int role) const {
   const auto col = index.column();
   auto item = _data[row][col];
   switch (role) {
+  case Qt::DisplayRole: return item->format();
   case static_cast<int>(Roles::Box): return !item->readOnly();
   case static_cast<int>(Roles::RightJustify): return index.column() == 0;
-  case Qt::DisplayRole: return item->format();
+  case static_cast<int>(Roles::Choices): {
+    auto asChoice = dynamic_cast<ChoiceFormatter *>(item.data());
+    if (asChoice) return asChoice->choices();
+    return {};
+  }
+  case static_cast<int>(Roles::Selected): {
+    auto asChoice = dynamic_cast<ChoiceFormatter *>(item.data());
+    if (asChoice) return asChoice->currentIndex();
+    return {};
+  }
   }
   return {};
+}
+
+bool RegisterModel::setData(const QModelIndex &index, const QVariant &value, int role)
+{
+  if (!index.isValid()) return false;
+  const auto row = index.row();
+  const auto col = index.column();
+  auto item = _data[row][col];
+  switch (role) {
+  case static_cast<int>(Roles::Selected): {
+    auto asChoice = dynamic_cast<ChoiceFormatter *>(item.data());
+    if (asChoice) {
+      asChoice->setCurrentIndex(value.toInt());
+      onUpdateGUI(); // Force full-screen refresh, since the width of all rows & columns changed.
+      return true;
+    }
+    return false;
+  }
+  default: return false;
+  }
+}
+
+Qt::ItemFlags RegisterModel::flags(const QModelIndex &index) const
+{
+  if (!index.isValid()) return {};
+  const auto row = index.row();
+  const auto col = index.column();
+  auto item = _data[row][col];
+  auto asChoice = dynamic_cast<ChoiceFormatter *>(item.data());
+  if (!asChoice) return Qt::ItemIsEnabled;
+  return Qt::ItemIsEnabled | Qt::ItemIsEditable;
 }
 
 void RegisterModel::appendFormatters(QVector<QSharedPointer<RegisterFormatter>> formatters) {
@@ -48,6 +89,8 @@ void RegisterModel::onUpdateGUI() {
 QHash<int, QByteArray> RegisterModel::roleNames() const {
   static const QHash<int, QByteArray> ret{{Qt::DisplayRole, "display"},
                                           {static_cast<int>(Roles::Box), "box"},
-                                          {static_cast<int>(Roles::RightJustify), "rightJustify"}};
+                                          {static_cast<int>(Roles::RightJustify), "rightJustify"},
+                                          {static_cast<int>(Roles::Choices), "choices"},
+                                          {static_cast<int>(Roles::Selected), "selected"}};
   return ret;
 }

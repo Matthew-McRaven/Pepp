@@ -7,6 +7,7 @@ struct RegisterFormatter {
   virtual bool readOnly() const = 0;
   virtual qsizetype length() const = 0;
   virtual qsizetype length(quint8 byteCount) const = 0;
+  virtual QString describe() const = 0;
 };
 
 struct TextFormatter : public RegisterFormatter {
@@ -17,6 +18,7 @@ struct TextFormatter : public RegisterFormatter {
   bool readOnly() const override;
   qsizetype length() const override;
   qsizetype length(quint8 byteCount) const override;
+  QString describe() const override { return "Text"; }
 
 private:
   QString _value;
@@ -30,6 +32,7 @@ struct HexFormatter : public RegisterFormatter {
   bool readOnly() const override;
   qsizetype length() const override;
   qsizetype length(quint8 byteCount) const override;
+  QString describe() const override { return "Hexadecimal"; }
 
 private:
   uint16_t _bytes = 0;
@@ -45,6 +48,7 @@ struct UnsignedDecFormatter : public RegisterFormatter {
   bool readOnly() const override;
   qsizetype length() const override;
   qsizetype length(quint8 byteCount) const override;
+  QString describe() const override { return "Unsigned Decimal"; }
 
 private:
   static uint16_t digits(quint8 byteCount);
@@ -61,6 +65,7 @@ struct SignedDecFormatter : public RegisterFormatter {
   bool readOnly() const override;
   qsizetype length() const override;
   qsizetype length(quint8 byteCount) const override;
+  QString describe() const override { return "Signed Decimal"; }
 
 private:
   static uint16_t digits(quint8 byteCount);
@@ -77,6 +82,7 @@ struct BinaryFormatter : public RegisterFormatter {
   bool readOnly() const override;
   qsizetype length() const override;
   qsizetype length(quint8 byteCount) const override;
+  QString describe() const override { return "Binary"; }
 
 private:
   uint16_t _len = 0;
@@ -84,6 +90,21 @@ private:
   std::function<uint64_t()> _fn;
 };
 
+struct ASCIIFormatter : public RegisterFormatter {
+  explicit ASCIIFormatter(std::function<uint64_t()> fn, uint16_t byteCount = 1);
+  ~ASCIIFormatter() override = default;
+  QString format() const override;
+  QString format(quint8 byteCount) const override;
+  bool readOnly() const override;
+  qsizetype length() const override;
+  qsizetype length(quint8 byteCount) const override;
+  QString describe() const override { return "ASCII"; }
+
+private:
+  uint16_t _bytes = 0;
+  uint64_t _mask = 0;
+  std::function<uint64_t()> _fn;
+};
 // Ignore lengthed overrides since they do not depend on byte count
 struct MnemonicFormatter : public RegisterFormatter {
   explicit MnemonicFormatter(std::function<QString()> fn);
@@ -93,6 +114,7 @@ struct MnemonicFormatter : public RegisterFormatter {
   bool readOnly() const override;
   qsizetype length() const override;
   qsizetype length(quint8 byteCount) const override;
+  QString describe() const override { return "Mnemonic"; }
 
 private:
   std::function<QString()> _fn;
@@ -106,6 +128,7 @@ struct OptionalFormatter : public RegisterFormatter {
   bool readOnly() const override;
   qsizetype length() const override;
   qsizetype length(quint8 byteCount) const override;
+  QString describe() const override { return _fmt->describe(); }
 
 private:
   QSharedPointer<RegisterFormatter> _fmt;
@@ -122,9 +145,30 @@ struct VariableByteLengthFormatter : public RegisterFormatter {
   // This method will be called to determine max column width, so we should always use the max.
   qsizetype length() const override;
   qsizetype length(quint8 byteCount) const override;
+  QString describe() const override { return _fmt->describe(); }
 
 private:
   quint8 _maxBytes = 2;
   QSharedPointer<RegisterFormatter> _fmt;
   std::function<quint8()> _bytes;
+};
+
+struct ChoiceFormatter : public RegisterFormatter {
+  explicit ChoiceFormatter(QVector<QSharedPointer<RegisterFormatter>> formatters, qsizetype currentChoice = 0);
+  ~ChoiceFormatter() override = default;
+  QString format() const override;
+  QString format(quint8 byteCount) const override;
+  bool readOnly() const override;
+  qsizetype length() const override;
+  qsizetype length(quint8 byteCount) const override;
+  QStringList choices() const;
+  qsizetype currentIndex() const;
+  bool setCurrentIndex(qsizetype index);
+  const RegisterFormatter *current() const;
+
+  QString describe() const override { return _formatters[_currentChoice]->describe(); }
+
+private:
+  QVector<QSharedPointer<RegisterFormatter>> _formatters;
+  qsizetype _currentChoice;
 };

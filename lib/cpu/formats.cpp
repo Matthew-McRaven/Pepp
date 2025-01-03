@@ -10,9 +10,9 @@ QString TextFormatter::format(quint8 byteCount) const { return _value; }
 
 bool TextFormatter::readOnly() const { return true; }
 
-qsizetype TextFormatter::length() const { return _value.length(); }
+qsizetype TextFormatter::length() const { return _value.length() + 2; }
 
-qsizetype TextFormatter::length(quint8 byteCount) const { return _value.length(); }
+qsizetype TextFormatter::length(quint8 byteCount) const { return _value.length() + 2; }
 
 HexFormatter::HexFormatter(std::function<uint64_t()> fn, uint16_t byteCount)
     : _fn(fn), _bytes(byteCount), _mask(bits::mask(byteCount)) {}
@@ -48,16 +48,20 @@ SignedDecFormatter::SignedDecFormatter(std::function<int64_t()> fn, uint16_t byt
     : _fn(fn), _bytes(byteCount), _mask(bits::mask(byteCount)), _len(digits(byteCount) + 1) {}
 
 QString SignedDecFormatter::format() const {
-  if (auto v = _fn(); v < 0)
+  if (int64_t v = _fn(); v & (1 << (_bytes * 8 - 1))) {
+    int64_t bits = ~(_mask & ~v); // Bit-math turns into unsigned int, we explicitly need signed.
     // Limit V to the range expressable with an N-bit unsigned int before restoring the sign.
-    return QString::number(~(_mask & ~v));
+    return QString::number(bits);
+  }
   return QString::number(_mask & _fn());
 }
 
 QString SignedDecFormatter::format(quint8 byteCount) const {
-  if (auto v = _fn(); v < 0)
+  if (int64_t v = _fn(); v & (1 << (_bytes * 8 - 1))) {
+    int64_t bits = ~(bits::mask(byteCount) & ~v);
     // Limit V to the range expressable with an N-bit unsigned int before restoring the sign.
-    return QString::number(~(bits::mask(byteCount) & ~v));
+    return QString::number(bits);
+  }
   return QString::number(bits::mask(byteCount) & _fn());
 }
 
@@ -122,3 +126,73 @@ bool VariableByteLengthFormatter::readOnly() const { return _fmt->readOnly(); }
 qsizetype VariableByteLengthFormatter::length() const { return _fmt->length(_maxBytes); }
 
 qsizetype VariableByteLengthFormatter::length(quint8 byteCount) const { return _fmt->length(byteCount); }
+
+ASCIIFormatter::ASCIIFormatter(std::function<uint64_t()> fn, uint16_t byteCount)
+    : _fn(fn), _bytes(byteCount), _mask(bits::mask(byteCount)) {}
+
+QString ASCIIFormatter::format() const { return format(_bytes); }
+
+QString ASCIIFormatter::format(quint8 byteCount) const {
+  auto ret = QString(byteCount, ' ');
+  quint64 v = _mask & _fn();
+  for (int i = 0; i < byteCount; i++) {
+    ret[byteCount - i - 1] = QChar((quint8)v);
+    v >>= 8;
+  };
+  return ret;
+}
+
+bool ASCIIFormatter::readOnly() const { return false; }
+
+qsizetype ASCIIFormatter::length() const { return length(_bytes); }
+
+qsizetype ASCIIFormatter::length(quint8 byteCount) const { return byteCount; }
+
+ChoiceFormatter::ChoiceFormatter(QVector<QSharedPointer<RegisterFormatter>> formatters, qsizetype currentChoice)
+    : _formatters(formatters), _currentChoice(currentChoice) {}
+
+QString ChoiceFormatter::format() const {
+  auto active = current();
+  return active ? active->format() : "";
+}
+
+QString ChoiceFormatter::format(quint8 byteCount) const {
+  auto active = current();
+  return active ? active->format(byteCount) : "";
+}
+
+bool ChoiceFormatter::readOnly() const {
+  auto active = current();
+  return active ? active->readOnly() : true;
+}
+
+qsizetype ChoiceFormatter::length() const {
+  auto active = current();
+  return active ? active->length() : 0;
+}
+
+qsizetype ChoiceFormatter::length(quint8 byteCount) const {
+  auto active = current();
+  return active ? active->length(byteCount) : 0;
+}
+
+QStringList ChoiceFormatter::choices() const {
+  QStringList ret;
+  for (auto &f : _formatters) ret.push_back(f->describe());
+  return ret;
+}
+
+qsizetype ChoiceFormatter::currentIndex() const { return _currentChoice; }
+
+bool ChoiceFormatter::setCurrentIndex(qsizetype index) {
+  if (index < _formatters.size() && index >= 0) {
+    _currentChoice = index;
+    return true;
+  }
+  return false;
+}
+
+const RegisterFormatter *ChoiceFormatter::current() const {
+  if (_currentChoice < _formatters.size()) return _formatters[_currentChoice].get();
+  return nullptr;
+}

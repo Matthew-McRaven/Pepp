@@ -20,6 +20,7 @@ import QtQuick.Controls
 import QtQuick.Layouts
 import Qt.labs.qmlmodels
 import "../cpu" as Ui
+import edu.pepp
 
 ColumnLayout {
     id: layout
@@ -37,6 +38,18 @@ ColumnLayout {
         font: metrics.font
         text: 'W'
     }
+    Menu {
+        id: contextMenu
+        MenuItem {
+            text: "Test"
+        }
+    }
+    Component {
+        id: menuItemComponent
+
+        MenuItem {}
+    }
+
     RowLayout {
         id: flagsContainer
         Layout.alignment: Qt.AlignHCenter
@@ -66,6 +79,7 @@ ColumnLayout {
         Layout.fillHeight: true
         clip: true
         spacing: 1
+        interactive: false
         Layout.minimumWidth: contentItem.childrenRect.width
         Layout.minimumHeight: contentItem.childrenRect.height
         delegate: RowLayout {
@@ -74,20 +88,23 @@ ColumnLayout {
             Layout.alignment: Qt.AlignHCenter
             Layout.fillWidth: true
             Repeater {
-                model: registers.model.columnCount()
+                model: TransposeProxyModel {
+                    sourceModel: RowFilterModel {
+                        sourceModel: registers.model
+                        row: rowDelegate.index
+                    }
+                }
+
                 delegate: Rectangle {
                     id: columnDelegate
                     required property int index
                     property int row: rowDelegate.index
                     property int column: index
-                    property var mindex: registers.model.index(row, column)
-                    property string display: registers.model.data(mindex) ?? ""
-                    property bool box: registers.model.data(
-                                           mindex, registers.model.Box) ?? false
-                    property bool rightJustify: registers.model.data(
-                                                    mindex,
-                                                    registers.model.RightJustify)
-                                                ?? false
+                    required property string display
+                    required property bool box
+                    required property bool rightJustify
+                    required property int selected
+                    required property var choices
                     Layout.minimumWidth: textField.width
                     Layout.minimumHeight: textField.height + 1
                     Layout.preferredWidth: childrenRect.width
@@ -102,7 +119,8 @@ ColumnLayout {
                         }
                         font: metrics.font
                         readOnly: true
-                        maximumLength: registers.model.columnCharWidth(column)
+                        maximumLength: 2 + registers.model.columnCharWidth(
+                                           column)
                         anchors.centerIn: columnDelegate
                         text: columnDelegate.display
                         color: palette.windowText
@@ -110,6 +128,36 @@ ColumnLayout {
                         // 'W' is a wide character, and tm contains a single 'W' in the current font.
                         // All characters should be same width in mono font, but previous experience (#604) tell me this is a lie.
                         width: tm.width * (maximumLength)
+                        onPressed: function (mouse) {
+                            if (mouse.button === Qt.RightButton) {
+                                while (contextMenu.count) {
+                                    contextMenu.removeItem(
+                                                contextMenu.itemAt(0))
+                                }
+                                if (!choices)
+                                    return
+                                for (var i = 0; i < choices.length; i++) {
+                                    var menuItem = menuItemComponent.createObject(
+                                                contextMenu.contentItem, {
+                                                    "text": qsTr(choices[i]),
+                                                    "checkable": true,
+                                                    "checked": i === selected
+                                                })
+                                    // Stupid QML formatter keeps resetting i to var, and changes its scope.
+                                    const idx = i
+                                    const mindex = registers.model.index(row,
+                                                                         column)
+                                    menuItem.onTriggered.connect(function () {
+                                        registers.model.setData(
+                                                    mindex, idx,
+                                                    registers.model.Selected)
+                                    })
+                                    contextMenu.addItem(menuItem)
+                                }
+                                if (contextMenu.count > 0)
+                                    contextMenu.popup(textField)
+                            }
+                        }
                     }
                 }
             }
