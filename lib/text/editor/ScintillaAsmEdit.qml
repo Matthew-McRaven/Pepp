@@ -104,6 +104,7 @@ Item {
                 horizontalScrollBar.increase()
             }
         }
+        acceptedDevices: PointerDevice.AllDevices
     }
     // the QuickScintilla control
     Pepp.ScintillaAsmEditBase {
