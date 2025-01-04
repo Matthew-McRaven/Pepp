@@ -269,6 +269,9 @@ Item {
                     TabButton {
                         text: qsTr(`Symbol Table: ${textSelector.currentText}`)
                     }
+                    TabButton {
+                        text: qsTr(`Breakpoint Viewer`)
+                    }
                 }
                 StackLayout {
                     currentIndex: debugTabBar.currentIndex
@@ -286,6 +289,7 @@ Item {
                         model: textSelector.currentIndex
                                === 0 ? project?.userSymbols : project?.osSymbols
                     }
+                    BreakpointViewer {}
                 }
             }
         }
