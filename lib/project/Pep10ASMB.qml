@@ -263,6 +263,9 @@ Item {
                         TabButton {
                             text: qsTr(`Watch Expressions`)
                         }
+                        TabButton {
+                            text: qsTr(`Breakpoint Viewer`)
+                        }
                     }
                     StackLayout {
                         Layout.fillWidth: true
@@ -284,6 +287,7 @@ Item {
                             id: watchExpr
                             watchExpressions: project.watchExpressions
                         }
+                        BreakpointViewer {}
                     }
                 }
             }
