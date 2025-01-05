@@ -19,9 +19,10 @@ false:   .EQUATE 0
 ;
 ;******* System Entry Point
 retVal:  .EQUATE 0           ;Main return value #2d
-disp:    LDWA    osRAM,i     ;Load address of user stack
-         SWAPSPA             ;Switch to user stack
+disp:    MOVSPA
          STWA    initSp,d    ;Preserve system stack pointer
+         LDWA    osRAM,i     ;Load address of user stack
+         MOVASP
          SUBSP   2,i         ;Allocate @param #retVal
          LDWA    0,i         ;Initialize user main return
          STWA    0,s         ;  value to zero
@@ -32,7 +33,7 @@ mainCln: LDWA    0,s         ;Load return value
          BRNE    mainErr     ;If retval is not zero, report error
          ADDSP   2,i         ;Deallocate @param #retVal
          LDWA    initSp,d    ;Restore system stack pointer
-         SWAPSPA             ;OS Stack might be clobbered during by syscalls
+         MOVASP              ;OS Stack might be clobbered during by syscalls
 ;Write an arbitrary value to the power off port to shutdown the computer.
 shutdown:LDWA    0xDEAD,i
          STBA    pwrOff,d

@@ -11,6 +11,11 @@ If the programmer does not first MOVSPA and store A somewhere, the system will l
 
 
 ## Decision
+
+Remove SWAPSPA and re-introduce MOVASP, which sets the stack pointer to the value of the accumulator.
+
+## Previous Decision 
+
 Add a SWAPSPA unary instruction which exchanges the accumulator and stack pointer.
 
 ## Constraints
@@ -54,6 +59,8 @@ Since we have opcodes to spare, this is an easy option.
 Between the two opcodes, MOVASP has the benefit of inertia, while SWAPSPA is safer-by-default.
 Safe-by-default is generally a good design strategy.
 While SWAPSPA is not perfectly safe (you could still clear A), it is an improvement over the current implementation.
+
+That being said, we ultimately have decided to use MOVSPA because SWAPSPA introduces unnecessary asymmetry into the instruction set.
 
 ## Implications
 We have one fewer opcode available for future extensions.
