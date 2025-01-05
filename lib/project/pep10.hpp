@@ -97,6 +97,7 @@ signals:
   void message(QString message);
   void updateGUI(sim::api2::trace::FrameIterator from);
   void deferredExecution(std::function<bool()> step);
+  void overwriteEditors();
 
 protected:
   void bindToSystem();

@@ -29,6 +29,7 @@ Item {
         userList.editor.modifyLine.connect(project.onModifyUserList)
         osList.editor.modifyLine.connect(project.onModifyOSList)
         // Connect project to editors
+        project.overwriteEditors.connect(onOverwriteEditors)
         project.modifyUserSource.connect(userAsmEdit.editor.onLineAction)
         project.modifyOSSource.connect(osAsmEdit.editor.onLineAction)
         project.modifyUserList.connect(userList.editor.onLineAction)
@@ -59,6 +60,7 @@ Item {
             wrapper.actions.edit.undo.triggered.connect(list[i].onUndo)
             wrapper.actions.edit.redo.triggered.connect(list[i].onRedo)
         }
+        onOverwriteEditors()
     }
     // Will be called before project is changed on unload, so we can disconnect save-triggering signals.
     Component.onDestruction: {
@@ -71,6 +73,7 @@ Item {
             osList.editor.modifyLine.disconnect(project.onModifyOSList)
             project.errorsChanged.disconnect(displayErrors)
             project.listingChanged.connect(fixListings)
+            project.overwriteEditors.disconnect(onOverwriteEditors)
             project.modifyUserSource.disconnect(userAsmEdit.editor.onLineAction)
             project.modifyOSSource.disconnect(osAsmEdit.editor.onLineAction)
             project.modifyUserList.disconnect(userList.editor.onLineAction)
@@ -163,6 +166,13 @@ Item {
         project.userAsmText = userAsmEdit.text
         project.osAsmText = osAsmEdit.text
     }
+    function onOverwriteEditors() {
+        osAsmEdit.readOnly = false
+        userAsmEdit.text = project?.userAsmText ?? ""
+        osAsmEdit.text = project?.osAsmText ?? ""
+        osAsmEdit.readOnly = Qt.binding(
+                    () => !project.abstraction === Abstraction.OS4)
+    }
 
     SplitView {
         id: split
@@ -206,10 +216,6 @@ Item {
                     currentIndex: textSelector.currentIndex
                     SplitView.fillHeight: true
                     Text.ScintillaAsmEdit {
-                        Component.onCompleted: {
-                            text = project?.userAsmText ?? ""
-                        }
-
                         id: userAsmEdit
                         Layout.fillHeight: true
                         Layout.fillWidth: true
@@ -219,16 +225,9 @@ Item {
                     }
                     Text.ScintillaAsmEdit {
                         id: osAsmEdit
-                        Component.onCompleted: {
-                            const isOS4 = project.abstraction === Abstraction.OS4
-                            // Don't set declaratively, otherwise text will not be repainted.
-                            text = project?.osAsmText ?? ""
-                            osAsmEdit.readOnly = Qt.binding(() => !isOS4)
-                        }
                         Layout.fillHeight: true
                         Layout.fillWidth: true
                         height: parent.height
-                        // text is only an initial binding, the value diverges from there.
                         editorFont: editorFM.font
                         language: wrapper.getLexerLangauge()
                     }
@@ -243,7 +242,6 @@ Item {
                         Layout.fillHeight: true
                         Layout.fillWidth: true
                         height: parent.height
-                        // text is only an initial binding, the value diverges from there.
                         text: project?.userList ?? ""
                         editorFont: editorFM.font
                         language: wrapper.getLexerLangauge()
@@ -254,7 +252,6 @@ Item {
                         Layout.fillHeight: true
                         Layout.fillWidth: true
                         height: parent.height
-                        // text is only an initial binding, the value diverges from there.
                         text: project?.osList ?? ""
                         editorFont: editorFM.font
                         language: wrapper.getLexerLangauge()
