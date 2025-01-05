@@ -85,6 +85,7 @@ Flickable {
                 for (const list of Object.entries(optTexts))
                     proj.set(list[0], list[1])
             }
+            proj.overwriteEditors()
             onMarkActiveDirty(false)
         }
         function renameCurrentProject(string) {
