@@ -205,10 +205,7 @@ sim::api2::tick::Result targets::pep10::isa::CPU::unaryDispatch(quint8 is, quint
   case mn::MOVAFLG: writePackedCSR(a); break;
 
   case mn::MOVSPA: writeReg(Register::A, sp); break;
-  case mn::SWAPSPA:
-    writeReg(Register::A, sp);
-    writeReg(Register::SP, a);
-    break;
+  case mn::MOVASP: writeReg(Register::SP, a); break;
 
   case mn::NOP: break;
 

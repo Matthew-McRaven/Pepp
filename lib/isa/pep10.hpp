@@ -25,7 +25,7 @@ enum class Mnemonic {
   MOVFLGA = 0x3,
   MOVAFLG = 0x4,
   MOVSPA = 0x5,
-  SWAPSPA = 0x6,
+  MOVASP = 0x6,
   NOP = 0x7,
 
   // FAULTS
@@ -149,8 +149,8 @@ constexpr std::array<Opcode, 256> initOpcodes() {
       .instr = {.mnemon = M::MOVAFLG, .type = T::U_none, .unary = 1}, .mode = AM::NONE, .valid = true};
   ret[(quint8)M::MOVSPA] = {
       .instr = {.mnemon = M::MOVSPA, .type = T::U_none, .unary = 1}, .mode = AM::NONE, .valid = true};
-  ret[(quint8)M::SWAPSPA] = {
-      .instr = {.mnemon = M::SWAPSPA, .type = T::U_none, .unary = 1}, .mode = AM::NONE, .valid = true};
+  ret[(quint8)M::MOVASP] = {
+      .instr = {.mnemon = M::MOVASP, .type = T::U_none, .unary = 1}, .mode = AM::NONE, .valid = true};
   ret[(quint8)M::NOP] = {.instr = {.mnemon = M::NOP, .type = T::U_none, .unary = 1}, .mode = AM::NONE, .valid = true};
 
   // Gap
