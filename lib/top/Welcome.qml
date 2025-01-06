@@ -5,6 +5,10 @@ import edu.pepp 1.0
 
 Flickable {
     signal addProject(string arch, string abstraction, string features, bool reuse)
+    NuAppSettings {
+        id: settings
+    }
+
     ScrollView {
         anchors.fill: parent
         GridLayout {
@@ -99,7 +103,7 @@ Flickable {
                 text: "Pep/10, OS4"
                 architecture: Architecture.PEP10
                 abstraction: Abstraction.OS4
-                enabled: true
+                enabled: settings.general.showDebugComponents
             }
             WelcomeCard {
                 text: "Pep/10, Mc2, 1-byte bus"
