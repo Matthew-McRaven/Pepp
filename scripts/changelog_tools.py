@@ -142,7 +142,7 @@ def to_text(args):
     # Get version range
     cursor.execute("SELECT version FROM versions ORDER BY id;")
     all_versions = sorted([row[0] for row in cursor.fetchall()], key=version_key)
-    begin = args.begin if args.begin else all_versions[0]
+    begin = args.begin.replace("v","") if args.begin else all_versions[0]
     assert begin in all_versions, f"Version {begin} not found in database"
     end = args.end if args.end else all_versions[-1]
     assert end in all_versions, f"Version {end} not found in database"
