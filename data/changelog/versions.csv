@@ -4,6 +4,6 @@ Number,GitRef,Date,Blurb
 0.7.3,,2024-09-21,"This version includes bug fixes, a new changelog viewer in the Help mode, and tweaks to the Welcome screen."
 0.7.4,,2024-11-08,"This version includes an initial implementation of Pep/9."
 0.7.5,,2024-11-25,"This version includes improved debugging features and improved tab management."
-0.7.6,,2024-12-2,"This version focuses on improving the new user experience for Pep/9, and was the first version demo'ed to current students."
+0.7.6,,2024-12-02,"This version focuses on improving the new user experience for Pep/9, and was the first version demo'ed to current students."
 0.7.7,,2024-12-17,"This version focuses on fixing issues discovered during the student demos."
 0.8.0,,??,"This version is focused on improving the Pep/10 assembler to support the dynamic stack trace."
