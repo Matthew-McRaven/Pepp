@@ -148,6 +148,12 @@ if (ONLY STREQUAL "BUILD")
         set(CPACK_MONOLITHIC_INSTALL on)
         set(CPACK_GENERATOR "DragNDrop") # for a macOS .dmg
         # Will still need to notarize & staple the DMG in CI.
+        if(CMAKE_SYSTEM_PROCESSOR STREQUAL "arm64")
+            set(PACKAGE_SUFFIX "-darwin-arm64")
+        elseif(CMAKE_SYSTEM_PROCESSOR STREQUAL "x86_64")
+            set(PACKAGE_SUFFIX "-darwin-x86")
+        endif()
+        set(CPACK_PACKAGE_FILE_NAME "${CPACK_PACKAGE_NAME}-${CPACK_PACKAGE_VERSION}${PACKAGE_SUFFIX}")
     else ()
         set(CPACK_GENERATOR "TGZ") # for Linux, multiple generators can be specified
     endif ()

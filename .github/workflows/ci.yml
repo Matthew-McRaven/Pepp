@@ -12,7 +12,7 @@ jobs:
     outputs:
       branch_name: ${{ steps.branch.outputs.branch }}
       not_default: ${{ steps.branch.outputs.not_default }}
-      build_release: ${{ !!steps.branch.outputs.not_default  || startsWith(github.ref, 'refs/tags/') }}
+      build_release: ${{ steps.branch.outputs.build_release  }}
     steps:
       - name: set branch info
         id: branch
@@ -26,8 +26,13 @@ jobs:
           fi
           if [ "$BRANCH" = "main" ]; then
             echo "not_default=false" >> $GITHUB_OUTPUT
+            echo "build_release=true" >> $GITHUB_OUTPUT
+          elif [[ ${{ github.ref_type  }}  == "tag" ]]; then
+            echo "not_default=true" >> $GITHUB_OUTPUT
+            echo "build_release=true" >> $GITHUB_OUTPUT
           else
             echo "not_default=true" >> $GITHUB_OUTPUT
+            echo "build_release=false" >> $GITHUB_OUTPUT
           fi
           echo "branch=${BRANCH}" >> $GITHUB_OUTPUT
           echo "Output is:"
@@ -145,7 +150,7 @@ jobs:
       MAC_DEVELOPER_NAME: ${{ secrets.MAC_DEVELOPER_NAME }}
   deploy_prod_pages:
     name: Trigger deployment to production github pages
-    if: startsWith(needs.branch_info.outputs.not_default, 'false')
+    if: startsWith(needs.branch_info.outputs.build_release, 'true')
     permissions:
       contents: read
       pages: write
@@ -225,6 +230,12 @@ jobs:
         with:
           name: changelog
           path: .
+      - name: Dowload artifacts
+        uses: actions/download-artifact@v4
+        with:
+          pattern: artifact-*
+          merge-multiple: true
+          path: build
       - name: Create release
         uses: softprops/action-gh-release@v2
         with:
