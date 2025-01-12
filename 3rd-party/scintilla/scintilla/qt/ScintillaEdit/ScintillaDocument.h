@@ -10,7 +10,7 @@
 class WatcherHelper;
 
 #ifndef EXPORT_IMPORT_API
-#ifdef WIN32
+#if defined(WIN32) && !defined(SCINTILLA_STATIC)
 #ifdef MAKING_LIBRARY
 #define EXPORT_IMPORT_API __declspec(dllexport)
 #else

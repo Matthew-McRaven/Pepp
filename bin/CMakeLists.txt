@@ -84,7 +84,7 @@ elseif (APPLE)
     # Install our pepp application
     # antlr4 isn't copied by any target since it is a 3rd-party dependency.
     # we must copy it here in a platform-dependent way.
-    install(TARGETS pepp antlr4_shared
+    install(TARGETS pepp antlr4_shared scintilla_qt lexilla
             COMPONENT Pepp
             LIBRARY DESTINATION pepp.app/Contents/Frameworks
             BUNDLE DESTINATION .
@@ -97,7 +97,7 @@ elseif (APPLE)
     target_compile_definitions(pepp PRIVATE "DEFAULT_GUI=1")
 elseif(EMSCRIPTEN)
     # Otherwise use default install logic on Linux for now.
-    install(TARGETS pepp antlr4_shared
+    install(TARGETS pepp antlr4_shared scintilla_qt lexilla
             COMPONENT Pepp
             RUNTIME DESTINATION bin
             BUNDLE DESTINATION .

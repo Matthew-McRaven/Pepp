@@ -7,6 +7,7 @@ set(CMAKE_AUTORCC ON)
 
 qt_add_qml_module(scintilla_qt
     URI "scintilla"
+    STATIC
     VERSION 5.5.0
     SOURCES
         ${qt_sources}
@@ -17,7 +18,7 @@ target_include_directories(scintilla_qt PUBLIC "${CMAKE_CURRENT_LIST_DIR}/qt"
 "${CMAKE_CURRENT_LIST_DIR}/qt" "${CMAKE_CURRENT_LIST_DIR}/src" "${CMAKE_CURRENT_LIST_DIR}/include"
 )
 target_link_libraries(scintilla_qt PUBLIC lexilla Qt6::Quick Qt6::Core Qt6::Gui Qt6::Qml Qt6::Widgets)
-target_compile_definitions(scintilla_qt PRIVATE MAKING_LIBRARY=1 SCINTILLA_QT_QML=1 "SCINTILLA_LIBRARY")
+target_compile_definitions(scintilla_qt PUBLIC SCINTILLA_STATIC)
 
 file(GLOB_RECURSE scintilla_unit_sources CONFIGURE_DEPENDS "${CMAKE_CURRENT_LIST_DIR}/test/unit/*.cxx")
 add_executable(scintilla_unit_qt ${scintilla_unit_sources})
