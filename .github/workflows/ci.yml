@@ -88,9 +88,10 @@ jobs:
         with:
           lfs: 'false'
       - name: Setup ImageMagick libicns (for ICNS conversion)
-        run: sudo apt update && sudo apt install imagemagick icnsutils
+        run: sudo apt update && sudo apt install imagemagick icnsutils librsvg2-bin
+        # imagemagick is bad at convert images with gradients, so use rsvg-convert.
       - name: Convert SVG to PNG
-        run: convert -verbose icon.svg -resize 256x256 icon.png
+        run: rsvg-convert -w 256 -h 256 icon.svg -o icon.png
         working-directory: ./data/app_icon
       - name: Convert SVG to ICO
         run: convert icon.png -resize 256x256 icon.ico
