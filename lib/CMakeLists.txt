@@ -102,7 +102,6 @@ qt_add_resources(pepp-lib "help" PREFIX "/help" BASE "${PROJECT_DATA_DIR}/help" 
 # Install
   # Only add dependencies if present
 if(APPLE)
-  install(TARGETS pepp-lib LIBRARY DESTINATION pepp.app/Contents/Frameworks)
 else()
   install(TARGETS pepp-lib RUNTIME DESTINATION bin BUNDLE DESTINATION .)
 endif()
