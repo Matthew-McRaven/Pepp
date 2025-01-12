@@ -19,6 +19,7 @@ on:
       save_cache: { type: boolean, default: True }
       images_artifact: { type: string }
       artifact_key: { type: string, default: "" }
+      sign_artifacts: { type: boolean, default: False }
     secrets:
       MAC_BUILD_CERTIFICATE_BASE64:
         description: 'Contains an apple developer cert as a p12, base64 encoded.'
@@ -180,7 +181,7 @@ jobs:
         working-directory: build
         run: ls -lah && cpack -c ${{inputs.variant}} && ls -lah
 
-      - name: Codesign & Notarize Mac OS DMG
+      - name: Codesign Mac OS DMG
         shell: bash
         if: ${{ contains(inputs.name, 'MacOS') }}
         working-directory: build
@@ -191,13 +192,18 @@ jobs:
           find . -maxdepth 1   -name "*.dmg" -print0 | xargs -0 -n1 codesign --force --deep -fvvv --options=runtime --timestamp -s "$DEVELOPER_NAME"
           echo "Verify code signing on application disk image"
           find . -maxdepth 1   -name "*.dmg" -print0 | xargs -0 -n1 codesign --verify -vvv
-          echo "Notarize application disk image"
-          find . -maxdepth 1   -name "*.dmg" -print0 | xargs -0 -n1 xcrun notarytool submit --wait  --apple-id "$APPLE_ID" --password $NOTARY_PWD --team-id $DEVELOPER_TEAM_ID
-          echo "Staple notarization to application disk image"
-          find . -maxdepth 1   -name "*.dmg" -print0 | xargs -0 -n1 xcrun stapler staple
-
         env:
           DEVELOPER_NAME: ${{ secrets.MAC_DEVELOPER_NAME }}
+
+      - name: Notarize Mac OS DMG
+        shell: bash
+        if: ${{ contains(inputs.name, 'MacOS') && inputs.sign_artifacts }}
+        working-directory: build
+        # WARNING: Limited to 75 notarizations per day, which is ~37 commits+PRs per day
+        run: |
+          find . -maxdepth 1   -name "*.dmg" -print0 | xargs -0 -n1 xcrun notarytool submit --wait  --apple-id "$APPLE_ID" --password $NOTARY_PWD --team-id $DEVELOPER_TEAM_ID
+          find . -maxdepth 1   -name "*.dmg" -print0 | xargs -0 -n1 xcrun stapler staple
+        env:
           DEVELOPER_TEAM_ID: ${{ secrets.MAC_DEVELOPER_TEAM_ID }}
           APPLE_ID: ${{ secrets.MAC_APPLE_ID }}
           NOTARY_PWD: ${{ secrets.MAC_NOTARYTOOL_PASSWORD }}
