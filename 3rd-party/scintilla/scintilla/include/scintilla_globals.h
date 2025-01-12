@@ -18,8 +18,9 @@
 #pragma once
 
 #include <QtCore/QtCore>
-
-#if defined(SCINTILLA_LIBRARY)
+#if defined(SCINTILLA_STATIC)
+#define SCINTILLA_EXPORT
+#elif defined(SCINTILLA_LIBRARY)
 #define SCINTILLA_EXPORT Q_DECL_EXPORT
 #else
 #define SCINTILLA_EXPORT Q_DECL_IMPORT

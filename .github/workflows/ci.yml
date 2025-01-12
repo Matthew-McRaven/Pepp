@@ -5,14 +5,6 @@ on:
     branches:
   schedule:
     - cron: '0 21 * * 5'
-  workflow_dispatch:
-    inputs:
-      publish_release:
-        description: 'Publish this release to GitHub. If false, run throught the release pipeline, but upload not artifacts.'
-        default: false
-      tag_name:
-        description: 'Tag to use for release'
-        required: false
 jobs:
   branch_info:
     name: Gather branch info
@@ -20,9 +12,7 @@ jobs:
     outputs:
       branch_name: ${{ steps.branch.outputs.branch }}
       not_default: ${{ steps.branch.outputs.not_default }}
-      publish_release: ${{ inputs.publish_release }}
-      tag_name: ${{ inputs.tag_name }}
-      build_release: ${{ github.event_name == 'workflow_dispatch' || !!steps.branch.outputs.not_default  || startsWith(github.ref, 'refs/tags/') }}
+      build_release: ${{ steps.branch.outputs.build_release  }}
     steps:
       - name: set branch info
         id: branch
@@ -36,8 +26,13 @@ jobs:
           fi
           if [ "$BRANCH" = "main" ]; then
             echo "not_default=false" >> $GITHUB_OUTPUT
+            echo "build_release=true" >> $GITHUB_OUTPUT
+          elif [[ ${{ github.ref_type  }}  == "tag" ]]; then
+            echo "not_default=true" >> $GITHUB_OUTPUT
+            echo "build_release=true" >> $GITHUB_OUTPUT
           else
             echo "not_default=true" >> $GITHUB_OUTPUT
+            echo "build_release=false" >> $GITHUB_OUTPUT
           fi
           echo "branch=${BRANCH}" >> $GITHUB_OUTPUT
           echo "Output is:"
@@ -59,8 +54,10 @@ jobs:
         shell: bash
         # Use xargs to trim spaces
         run: |
-          tag=$(echo "${{ needs.branch_info.tag_name }}" | grep -Eo "v[0-9]+(\.[0-9]+)*$")
-          echo "VERSION_GIT=$(echo "${tag}" | cut -c3- | xargs)" >> $GITHUB_ENV
+          if [[ ${{ github.ref_type  }}  == "tag" ]]; then
+            tag=$(echo "${{ github.ref_name }}" | grep -Eo "v[0-9]+(\.[0-9]+)*$")
+            echo "VERSION_GIT=$(echo "${tag}" | cut -c3- | xargs)" >> $GITHUB_ENV
+          fi
       - name: Clone sources to extract project version
         uses: actions/checkout@v4
         if: needs.branch_info.outputs.build_release == true
@@ -91,9 +88,10 @@ jobs:
         with:
           lfs: 'false'
       - name: Setup ImageMagick libicns (for ICNS conversion)
-        run: sudo apt update && sudo apt install imagemagick icnsutils
+        run: sudo apt update && sudo apt install imagemagick icnsutils librsvg2-bin
+        # imagemagick is bad at convert images with gradients, so use rsvg-convert.
       - name: Convert SVG to PNG
-        run: convert -verbose icon.svg -resize 256x256 icon.png
+        run: rsvg-convert -w 256 -h 256 icon.svg -o icon.png
         working-directory: ./data/app_icon
       - name: Convert SVG to ICO
         run: convert icon.png -resize 256x256 icon.ico
@@ -146,14 +144,18 @@ jobs:
       not_default: ${{ needs.branch_info.outputs.not_default == 'true' }}
       images_artifact: 'icons'
       artifact_key: ${{ matrix.config.artifact_key || ''}}
+      sign_artifacts: ${{ !!needs.branch_info.outputs.build_release }}
     secrets:
       MAC_BUILD_CERTIFICATE_BASE64: ${{ secrets.MAC_BUILD_CERTIFICATE_BASE64 }}
       MAC_KEYCHAIN_PASSWORD: ${{ secrets.MAC_KEYCHAIN_PASSWORD }}
       MAC_P12_PASSWORD: ${{ secrets.MAC_P12_PASSWORD }}
       MAC_DEVELOPER_NAME: ${{ secrets.MAC_DEVELOPER_NAME }}
+      MAC_DEVELOPER_TEAM_ID: ${{ secrets.MAC_DEVELOPER_TEAM_ID }}
+      MAC_APPLE_ID: ${{ secrets.MAC_APPLE_ID }}
+      MAC_NOTARYTOOL_PASSWORD: ${{ secrets.MAC_NOTARYTOOL_PASSWORD }}
   deploy_prod_pages:
     name: Trigger deployment to production github pages
-    if: startsWith(needs.branch_info.outputs.not_default, 'false')
+    if: startsWith(needs.branch_info.outputs.build_release, 'true')
     permissions:
       contents: read
       pages: write
@@ -200,21 +202,52 @@ jobs:
       - name: Run Playwright tests
         run: npx playwright test
         working-directory: ./test/web
+  create_changelog:
+    name: Create release changelog
+    needs: [ branch_info ]
+    if: startsWith(github.ref, 'refs/tags/')
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout source code (shallow)
+        uses: actions/checkout@v4
+        with:
+          submodules: 'false'
+          lfs: 'false'
+      - name: Generate Changelog
+        run: cd scripts && python3 changelog_tools.py to_text --begin ${{ github.ref_name }} ../RELEASE.md
+      - name: Upload changelog
+        uses: actions/upload-artifact@v4
+        with:
+           name: changelog
+           path: RELEASE.md
+           retention-days: 1
+           if-no-files-found: error
   create_release:
     name: Create GitHub release
-    needs: [ build ]
+    needs: [ build, branch_info, create_changelog]
     runs-on: ubuntu-latest
     permissions:
       contents: write
     if: startsWith(github.ref, 'refs/tags/')
     steps:
+      - name: Dowload changelog
+        uses: actions/download-artifact@v4
+        with:
+          name: changelog
+          path: .
+      - name: Dowload artifacts
+        uses: actions/download-artifact@v4
+        with:
+          pattern: artifact-*
+          merge-multiple: true
+          path: build
       - name: Create release
         uses: softprops/action-gh-release@v2
         with:
-          # body_path: ${{ github.workspace }}-CHANGELOG.txt
+          body_path: RELEASE.md
           repository: matthew-mcraven/Pepp
           token: ${{ secrets.GITHUB_TOKEN }}
-          tag_name: test
-          name: test
+          tag_name: ${{ github.ref_name }}
+          name: ${{ github.ref_name }}
           files: build/*
           make_latest: false

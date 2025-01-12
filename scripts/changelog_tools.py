@@ -2,6 +2,7 @@ import pathlib
 import argparse
 import sqlite3
 import os
+import csv
 
 data_dir = pathlib.Path(__file__).parent.parent / "data" / "changelog"
 
@@ -57,7 +58,6 @@ CREATE TABLE "changes" (
         FOREIGN KEY("version") REFERENCES "versions"("id")
 );
 """
-    import csv
     cursor = conn.cursor()
 
     # Create table with info about versions
@@ -142,7 +142,7 @@ def to_text(args):
     # Get version range
     cursor.execute("SELECT version FROM versions ORDER BY id;")
     all_versions = sorted([row[0] for row in cursor.fetchall()], key=version_key)
-    begin = args.begin if args.begin else all_versions[0]
+    begin = args.begin.replace("v","") if args.begin else all_versions[0]
     assert begin in all_versions, f"Version {begin} not found in database"
     end = args.end if args.end else all_versions[-1]
     assert end in all_versions, f"Version {end} not found in database"
@@ -155,6 +155,18 @@ def to_text(args):
 
 def normalize(args): raise NotImplemented()
 
+def previous(args):
+    original = args.version.replace("v","")
+    versions = []
+    with open(data_dir/"versions.csv", "r") as f:
+        reader = csv.reader(f)
+        next(reader)
+        for vernum,ref,date,blurb in reader:
+            versions.append(vernum)
+    index_of = versions.index(original)
+    if index_of ==0 : raise ValueError("No previous version")
+    print(versions[index_of-1])
+
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Command Line Tool")
@@ -164,6 +176,11 @@ if __name__ == "__main__":
     parser_to_sql = subparsers.add_parser('to_sql', help='Convert to SQL')
     parser_to_sql.add_argument('db', help='Path to output SQLite DB')
     parser_to_sql.set_defaults(func=to_sqlite)
+
+    # Subcommand: previous
+    parser_to_prev = subparsers.add_parser('previous', help='Get ancestor version')
+    parser_to_prev.add_argument('version', help='Version whos ancestors to find')
+    parser_to_prev.set_defaults(func=previous)
 
     # Subcommand: to_text
     parser_to_text = subparsers.add_parser('to_text', help='Create a MD changelog for a range of versions')
