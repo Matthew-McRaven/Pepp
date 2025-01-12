@@ -21,17 +21,26 @@ on:
       artifact_key: { type: string, default: "" }
     secrets:
       MAC_BUILD_CERTIFICATE_BASE64:
-        description: 'Contains an apple developer cert.'
+        description: 'Contains an apple developer cert as a p12, base64 encoded.'
         required: false
       MAC_KEYCHAIN_PASSWORD:
-        description: 'Password for keychain in which developer cert will be stored..'
+        description: 'Password for keychain in which developer cert will be stored.'
         required: false
       MAC_P12_PASSWORD:
         description: 'Password for build certificate.'
         required: false
       MAC_DEVELOPER_NAME:
-        description: 'Developer name for build certificate.'
+        description: 'Developer name for code signing.'
         required: false
+      MAC_DEVELOPER_TEAM_ID:
+        description: 'Developers team ID for code signing signing.'
+        required: false
+      MAC_APPLE_ID:
+          description: 'Apple ID to use for notarization.'
+          required: false
+      MAC_NOTARYTOOL_PASSWORD:
+          description: 'Application-specific password to use for notarization.'
+          required: false
 
 jobs:
   matrix_build:
@@ -129,10 +138,10 @@ jobs:
           ${{ inputs.cmake_toolchain && format('-D CMAKE_TOOLCHAIN_FILE={0}', inputs.cmake_toolchain) || ''}}
           ${{ inputs.cmake_generator && format('-G {0}', inputs.cmake_generator) || '' }}
           ${{ inputs.cmake_xargs }}
-          -D CMAKE_BUILD_TYPE=${{inputs.variant}} -D MAC_DEVELOPER_NAME="$MAC_DEVELOPER_NAME"
+          -D CMAKE_BUILD_TYPE=${{inputs.variant}} -D MAC_DEVELOPER_NAME="$DEVELOPER_NAME"
           -D CPACK_BUILD_CONFIG=${{inputs.variant}} -D CMAKE_INSTALL_PREFIX=./install
         env:
-          MAC_DEVELOPER_NAME: ${{ secrets.MAC_DEVELOPER_NAME }}
+          DEVELOPER_NAME: ${{ secrets.MAC_DEVELOPER_TEAM_ID }}
 
 
       - name: Run build
@@ -169,7 +178,29 @@ jobs:
         shell: bash
         if: ${{ !contains(inputs.name, 'EMSDK') }}
         working-directory: build
-        run: ls -lah && cpack -c ${{inputs.variant}}
+        run: ls -lah && cpack -c ${{inputs.variant}} && ls -lah
+
+      - name: Codesign & Notarize Mac OS DMG
+        shell: bash
+        if: ${{ contains(inputs.name, 'MacOS') }}
+        working-directory: build
+        run: |
+          echo "Verify code signing on application bundle"
+          find _CPack_Packages -name "*.app" -print0 | xargs -0 -n1 codesign --verify -vvv
+          echo "Sign application disk image"
+          find . -maxdepth 1   -name "*.dmg" -print0 | xargs -0 -n1 codesign --force --deep -fvvv --options=runtime --timestamp -s "$DEVELOPER_NAME"
+          echo "Verify code signing on application disk image"
+          find . -maxdepth 1   -name "*.dmg" -print0 | xargs -0 -n1 codesign --verify -vvv
+          echo "Notarize application disk image"
+          find . -maxdepth 1   -name "*.dmg" -print0 | xargs -0 -n1 xcrun notarytool submit --wait  --apple-id "$APPLE_ID" --password $NOTARY_PWD --team-id $DEVELOPER_TEAM_ID
+          echo "Staple notarization to application disk image"
+          find . -maxdepth 1   -name "*.dmg" -print0 | xargs -0 -n1 xcrun stapler staple
+
+        env:
+          DEVELOPER_NAME: ${{ secrets.MAC_DEVELOPER_NAME }}
+          DEVELOPER_TEAM_ID: ${{ secrets.MAC_DEVELOPER_TEAM_ID }}
+          APPLE_ID: ${{ secrets.MAC_APPLE_ID }}
+          NOTARY_PWD: ${{ secrets.MAC_NOTARYTOOL_PASSWORD }}
 
       # Run tests, sign outputs, and upload artifacts
       - name: Run tests
@@ -199,3 +230,7 @@ jobs:
       - name: Perform CodeQL analysis
         if: inputs.codeql && !env.ACT
         uses: ./.github/actions/run-codeql
+
+      - name: Clean up keychain and provisioning profile
+        if: ${{ contains(inputs.name, 'MacOS') }}
+        run: security delete-keychain $RUNNER_TEMP/app-signing.keychain-db
