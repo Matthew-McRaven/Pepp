@@ -7,3 +7,4 @@ Number,GitRef,Date,Blurb
 0.7.6,,2024-12-02,"This version focuses on improving the new user experience for Pep/9, and was the first version demo'ed to current students."
 0.7.7,,2024-12-17,"This version focuses on fixing issues discovered during the student demos."
 0.8.0,,2024-01-12,"This version introduces pre-built installers for desktop (Windows, Mac OS, Ubuntu) platforms."
+0.8.1,,2024-01-12,"This version adds separate builds for x86 and arm64 for Mac OS."
