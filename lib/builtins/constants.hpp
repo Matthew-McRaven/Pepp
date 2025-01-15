@@ -17,6 +17,7 @@
 
 #pragma once
 
+#include <QString>
 #include <QtCore>
 #include <QtQmlIntegration>
 
@@ -53,7 +54,6 @@ class ArchitectureHelper : public QObject {
   QML_UNCREATABLE("Error:Only enums")
 
 public:
-  //! Describe which architecture a help item is to be used with.
   enum class Architecture {
     NONE = -1,    //! Architecture is unspecified.
     PEP8 = 80,    //! The figure must be used with the Pep/8 toolchain.
@@ -64,8 +64,15 @@ public:
   };
   Q_ENUM(Architecture)
   ArchitectureHelper(QObject *parent = nullptr);
-  Q_INVOKABLE QString string(Architecture architecture) const;
+  Q_INVOKABLE static QString string(Architecture architecture);
 };
 using Architecture = ArchitectureHelper::Architecture;
+class ArchitectureUtils : public QObject {
+  Q_OBJECT
+  QML_ELEMENT
+public:
+  ArchitectureUtils(QObject *parent = nullptr);
+  Q_INVOKABLE QString archAsString(Architecture architecture);
+};
 
 } // end namespace builtins

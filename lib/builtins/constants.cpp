@@ -23,7 +23,13 @@ QString builtins::AbstractionHelper::string(Abstraction abstraction) const {
 
 builtins::ArchitectureHelper::ArchitectureHelper(QObject *parent) : QObject(parent) {}
 
-QString builtins::ArchitectureHelper::string(Architecture architecture) const {
+QString builtins::ArchitectureHelper::string(Architecture architecture) {
   QMetaEnum metaEnum = QMetaEnum::fromType<Architecture>();
-  return metaEnum.valueToKey(static_cast<int>(architecture));
+  return QString(metaEnum.valueToKey(static_cast<int>(architecture)));
+}
+
+builtins::ArchitectureUtils::ArchitectureUtils(QObject *parent) : QObject(parent) {}
+
+QString builtins::ArchitectureUtils::archAsString(Architecture architecture) {
+  return ArchitectureHelper::string(architecture);
 }
