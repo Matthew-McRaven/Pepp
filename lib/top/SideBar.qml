@@ -31,6 +31,18 @@ Column {
             display: "Help"
         }
     }
+    function mapModeToImage(mode) {
+        switch (mode) {
+        case "welcome":
+            return "home.svg"
+        case "help":
+            return "help.svg"
+        case "debugger":
+            return "pest_control.svg"
+        case "editor":
+            return "edit.svg"
+        }
+    }
 
     Repeater {
         id: sidebarRepeater
@@ -43,6 +55,11 @@ Column {
             text: model.display ?? "ERROR"
             ButtonGroup.group: modeGroup
             onClicked: root.modeChanged(text.toLowerCase())
+            icon.source: `image://icons/modes/${root.mapModeToImage(
+                             text.toLowerCase())}`
+            icon.height: 42
+            icon.width: 42
+            display: AbstractButton.TextUnderIcon
         }
     }
 
