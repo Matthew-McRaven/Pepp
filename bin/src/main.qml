@@ -157,12 +157,21 @@ ApplicationWindow {
         anchors.right: parent.right
         actions: actions
     }
+
     Top.ProjectSelectBar {
         id: projectSelect
         requestHide: window.mode === "welcome"
         anchors.right: parent.right
         anchors.left: sidebar.right
         anchors.top: toolbar.bottom
+    }
+
+    Rectangle {
+        anchors.left: parent.left
+        anchors.right: sidebar.right
+        anchors.top: parent.top
+        anchors.bottom: footer.bottom
+        color: palette.shadow
     }
 
     Top.SideBar {
