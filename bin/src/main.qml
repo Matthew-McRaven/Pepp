@@ -141,6 +141,7 @@ ApplicationWindow {
     signal message(string message)
     footer: Label {
         anchors.left: sidebar.right
+        anchors.leftMargin: 10
         text: "test message"
         Timer {
             id: messageTimer
@@ -148,6 +149,7 @@ ApplicationWindow {
             onTriggered: window.footer.text = ""
         }
     }
+
     Loader {
         id: menuLoader
         Component.onCompleted: {
@@ -169,35 +171,26 @@ ApplicationWindow {
         }
         asynchronous: false
     }
-
-    Item {
-        id: header
+    Top.ToolBar {
+        id: toolbar
         anchors.top: parent.top
         anchors.left: sidebar.right
         anchors.right: parent.right
-        // Must explicitly set height to avoid binding loop; only account for tab bar if visibile.
-        height: toolbar.height + (projectSelect.visible ? projectSelect.height : 0)
-        Top.ToolBar {
-            id: toolbar
-            anchors.top: parent.top
-            anchors.left: parent.left
-            anchors.right: parent.right
-            actions: actions
-        }
-        Top.ProjectSelectBar {
-            id: projectSelect
-            requestHide: window.mode === "welcome"
-            anchors.right: parent.right
-            anchors.left: parent.left
-            anchors.top: toolbar.bottom
-        }
+        actions: actions
+    }
+    Top.ProjectSelectBar {
+        id: projectSelect
+        requestHide: window.mode === "welcome"
+        anchors.right: parent.right
+        anchors.left: sidebar.right
+        anchors.top: toolbar.bottom
     }
 
     Top.SideBar {
         id: sidebar
         modesModel: window.currentProject ? window.currentProject.modes(
                                                 ) : undefined
-        anchors.top: header.bottom
+        anchors.top: toolbar.bottom
         anchors.bottom: parent.bottom
         anchors.left: parent.left
         width: 100
@@ -209,7 +202,7 @@ ApplicationWindow {
 
     StackLayout {
         id: mainArea
-        anchors.top: header.bottom
+        anchors.top: projectSelect.bottom
         anchors.bottom: parent.bottom
         anchors.right: parent.right
         anchors.left: sidebar.right
