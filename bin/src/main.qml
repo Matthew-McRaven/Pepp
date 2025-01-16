@@ -150,27 +150,6 @@ ApplicationWindow {
         }
     }
 
-    Loader {
-        id: menuLoader
-        Component.onCompleted: {
-            const props = {
-                "actions": actions,
-                "project": window.currentProject
-            }
-            if (PlatformDetector.isWASM) {
-                props["window"] = window
-                setSource("qrc:/edu/pepp/menu/QMLMainMenu.qml", props)
-            } else
-                // Auto-recurses on "parent" to find "window" of correct type.
-                // If explicitly set, the menu bar will not render until hovered over.
-                setSource("qrc:/edu/pepp/menu/NativeMainMenu.qml", props)
-        }
-        onLoaded: {
-            if (PlatformDetector.isWASM)
-                window.menuBar = item
-        }
-        asynchronous: false
-    }
     Top.ToolBar {
         id: toolbar
         anchors.top: parent.top
@@ -190,9 +169,11 @@ ApplicationWindow {
         id: sidebar
         modesModel: window.currentProject ? window.currentProject.modes(
                                                 ) : undefined
-        anchors.top: toolbar.bottom
-        anchors.bottom: parent.bottom
-        anchors.left: parent.left
+        anchors {
+            top: toolbar.bottom
+            bottom: parent.bottom
+            left: parent.left
+        }
         width: 100
 
         onModeChanged: function (text) {
@@ -291,6 +272,28 @@ ApplicationWindow {
             mode: window.mode
             actions: window.actionRef
         }
+    }
+
+    Loader {
+        id: menuLoader
+        Component.onCompleted: {
+            const props = {
+                "actions": actions,
+                "project": window.currentProject
+            }
+            if (PlatformDetector.isWASM) {
+                props["window"] = window
+                setSource("qrc:/edu/pepp/menu/QMLMainMenu.qml", props)
+            } else
+                // Auto-recurses on "parent" to find "window" of correct type.
+                // If explicitly set, the menu bar will not render until hovered over.
+                setSource("qrc:/edu/pepp/menu/NativeMainMenu.qml", props)
+        }
+        onLoaded: {
+            if (PlatformDetector.isWASM)
+                window.menuBar = item
+        }
+        asynchronous: false
     }
 
 
