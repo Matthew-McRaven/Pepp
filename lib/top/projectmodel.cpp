@@ -219,6 +219,7 @@ void init_pep10(QList<ProjectType> &vec) {
               .level = Abstraction::ISA3,
               .state = CompletionState::COMPLETE});
   vec.append({.name = "Asmb3, bare metal",
+              .description = "Develop and debug assembly language programs in bare metal mode.",
               .imagePath = "image://icons/cards/p10_asmb3.svg",
               .arch = a,
               .level = Abstraction::ASMB3,
@@ -285,7 +286,7 @@ void init_riscv(QList<ProjectType> &vec) {
               .state = CompletionState::INCOMPLETE});
 }
 
-ProjectTypeModel::ProjectTypeModel(QObject *parent) : QAbstractListModel(parent) {
+ProjectTypeModel::ProjectTypeModel(QObject *parent) : QAbstractTableModel(parent) {
   init_pep10(_projects);
   init_pep9(_projects);
   init_pep8(_projects);
@@ -294,8 +295,10 @@ ProjectTypeModel::ProjectTypeModel(QObject *parent) : QAbstractListModel(parent)
 
 int ProjectTypeModel::rowCount(const QModelIndex &parent) const { return _projects.size(); }
 
+int ProjectTypeModel::columnCount(const QModelIndex &parent) const { return 3; }
+
 QVariant ProjectTypeModel::data(const QModelIndex &index, int role) const {
-  if (!index.isValid() || index.row() >= _projects.size() || index.column() != 0) return {};
+  if (!index.isValid() || index.row() >= _projects.size() || index.column() > 3) return {};
   switch (role) {
   case static_cast<int>(Roles::NameRole): return _projects[index.row()].name;
   case static_cast<int>(Roles::DescriptionRole): return _projects[index.row()].description;
@@ -304,6 +307,10 @@ QVariant ProjectTypeModel::data(const QModelIndex &index, int role) const {
   case static_cast<int>(Roles::LevelRole): return static_cast<int>(_projects[index.row()].level);
   case static_cast<int>(Roles::CompleteRole): return _projects[index.row()].state == CompletionState::COMPLETE;
   case static_cast<int>(Roles::PartiallyCompleteRole): return _projects[index.row()].state == CompletionState::PARTIAL;
+  case static_cast<int>(Roles::ColumnTypeRole): {
+    static const QString v[] = {"name", "image", "description"};
+    return v[index.column()];
+  }
   default: return {};
   }
 }
@@ -317,6 +324,7 @@ QHash<int, QByteArray> ProjectTypeModel::roleNames() const {
       {(int)ProjectTypeModel::Roles::LevelRole, "abstraction"},
       {(int)ProjectTypeModel::Roles::CompleteRole, "complete"},
       {(int)ProjectTypeModel::Roles::PartiallyCompleteRole, "partiallyComplete"},
+      {(int)ProjectTypeModel::Roles::ColumnTypeRole, "columnType"},
   };
   return ret;
 }

@@ -65,7 +65,7 @@ struct ProjectType {
   CompletionState state = CompletionState::INCOMPLETE;
 };
 
-class ProjectTypeModel : public QAbstractListModel {
+class ProjectTypeModel : public QAbstractTableModel {
   Q_OBJECT
   QML_ELEMENT
 public:
@@ -77,10 +77,12 @@ public:
     LevelRole,
     CompleteRole,
     PartiallyCompleteRole,
+    ColumnTypeRole,
   };
   Q_ENUM(Roles);
   explicit ProjectTypeModel(QObject *parent = nullptr);
   int rowCount(const QModelIndex &parent) const override;
+  int columnCount(const QModelIndex &parent) const override;
   QVariant data(const QModelIndex &index, int role) const override;
   QHash<int, QByteArray> roleNames() const override;
 

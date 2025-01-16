@@ -4,7 +4,7 @@ import edu.pepp 1.0
 
 StackLayout {
     id: root
-    signal addProject(string arch, string abstraction, string features, bool reuse)
+    signal addProject(int arch, int abstraction, string features, bool reuse)
 
     currentIndex: 1
 
