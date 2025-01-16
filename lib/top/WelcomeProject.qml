@@ -26,6 +26,8 @@ Item {
                 text: "Choose Different Architecture"
                 onReleased: root.goBack()
                 icon.source: "image://icons/navigation/arrow_back.svg"
+                icon.height: fm.height
+                icon.width: fm.height
                 display: AbstractButton.TextBesideIcon
             }
             Label {
