@@ -13,7 +13,7 @@ Rectangle {
     property alias source: image.source
 
     width: 165
-    height: visible ? 200 : 0
+    height: 200
     color: wrapper.enabled ? palette.button : palette.button.darker(1.4)
     WelcomeTitle {
         id: title

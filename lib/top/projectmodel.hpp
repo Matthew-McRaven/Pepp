@@ -51,3 +51,66 @@ private:
   };
   std::deque<Data> _projects = {};
 };
+
+enum class CompletionState {
+  INCOMPLETE,
+  PARTIAL,
+  COMPLETE,
+};
+
+struct ProjectType {
+  QString name{}, description{}, imagePath{};
+  builtins::Architecture arch = builtins::Architecture::NONE;
+  builtins::Abstraction level = builtins::Abstraction::NONE;
+  CompletionState state = CompletionState::INCOMPLETE;
+};
+
+class ProjectTypeModel : public QAbstractListModel {
+  Q_OBJECT
+  QML_ELEMENT
+public:
+  enum class Roles {
+    NameRole = Qt::UserRole + 1,
+    DescriptionRole,
+    ImagePathRole,
+    ArchitectureRole,
+    LevelRole,
+    CompleteRole,
+    PartiallyCompleteRole,
+  };
+  Q_ENUM(Roles);
+  explicit ProjectTypeModel(QObject *parent = nullptr);
+  int rowCount(const QModelIndex &parent) const override;
+  QVariant data(const QModelIndex &index, int role) const override;
+  QHash<int, QByteArray> roleNames() const override;
+
+private:
+  QList<ProjectType> _projects{};
+};
+
+class ProjectTypeFilterModel : public QSortFilterProxyModel {
+  Q_OBJECT
+  Q_PROPERTY(builtins::Architecture architecture READ architecture WRITE setArchitecture NOTIFY architectureChanged)
+  Q_PROPERTY(bool showIncomplete READ showIncomplete WRITE setShowIncomplete NOTIFY showIncompleteChanged)
+  Q_PROPERTY(bool showPartiallyComplete READ showPartial WRITE setShowPartial NOTIFY showPartialChanged)
+  QML_ELEMENT
+public:
+  explicit ProjectTypeFilterModel(QObject *parent = nullptr);
+  builtins::Architecture architecture() const { return _architecture; }
+  void setArchitecture(builtins::Architecture arch);
+  bool showIncomplete() const { return _showIncomplete; }
+  void setShowIncomplete(bool value);
+  bool showPartial() const { return _showPartial; }
+  void setShowPartial(bool value);
+
+protected:
+  bool filterAcceptsRow(int source_row, const QModelIndex &source_parent) const override;
+signals:
+  void architectureChanged();
+  void showIncompleteChanged();
+  void showPartialChanged();
+
+private:
+  builtins::Architecture _architecture = builtins::Architecture::NONE;
+  bool _showIncomplete = false, _showPartial = false;
+};
