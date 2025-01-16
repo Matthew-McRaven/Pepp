@@ -144,7 +144,7 @@ jobs:
       not_default: ${{ needs.branch_info.outputs.not_default == 'true' }}
       images_artifact: 'icons'
       artifact_key: ${{ matrix.config.artifact_key || ''}}
-      sign_artifacts: ${{ !!needs.branch_info.outputs.build_release }}
+      sign_artifacts: ${{ needs.branch_info.outputs.build_release == 'true'}}
     secrets:
       MAC_BUILD_CERTIFICATE_BASE64: ${{ secrets.MAC_BUILD_CERTIFICATE_BASE64 }}
       MAC_KEYCHAIN_PASSWORD: ${{ secrets.MAC_KEYCHAIN_PASSWORD }}
