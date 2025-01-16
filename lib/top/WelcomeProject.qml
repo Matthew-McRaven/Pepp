@@ -22,6 +22,7 @@ Item {
         anchors.fill: parent
         RowLayout {
             spacing: 20
+            Layout.leftMargin: 10
             Button {
                 text: "Choose Different Architecture"
                 onReleased: root.goBack()
@@ -46,7 +47,7 @@ Item {
             boundsBehavior: Flickable.StopAtBounds
             clip: true
             spacing: 20
-            leftMargin: 20
+            leftMargin: 10
             topMargin: 20
             bottomMargin: 20
             delegate: WelcomeCard {
