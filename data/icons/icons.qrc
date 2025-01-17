@@ -41,5 +41,12 @@
         <file>modes/pest_control.svg</file>
         <file>modes/home.svg</file>
         <file>modes/help.svg</file>
+        <file>arch/p8.svg</file>
+        <file>arch/p9.svg</file>
+        <file>arch/p10.svg</file>
+        <file>arch/riscv-black.svg</file>
+        <file>arch/riscv-color.svg</file>
+        <file>arch/riscv-white.svg</file>
+        <file>arch/riscv-yellow.svg</file>
     </qresource>
 </RCC>

@@ -20,30 +20,35 @@ Item {
         topMargin: 20
         bottomMargin: 20
         spacing: 20
+        clip: true
         model: ListModel {
             ListElement {
                 name: "Pep/10"
                 description: "Lorem ipsum dolor sit amet, consectetur adipiscing elit. Nulla nec odio nec turpis luctus tincidunt. Sed auctor, justo nec ultricies tincidunt, elit purus tincidunt purus, nec ultricies odio odio vel nunc."
                 complete: true
                 archCode: Architecture.PEP10
+                icon: "image://icons/arch/p10.svg"
             }
             ListElement {
                 name: "RISC-V"
                 description: "Lorem ipsum dolor sit amet, consectetur adipiscing elit. Nulla nec odio nec turpis luctus tincidunt. Sed auctor, justo nec ultricies tincidunt, elit purus tincidunt purus, nec ultricies odio odio vel nunc."
                 complete: false
                 archCode: Architecture.RISCV
+                icon: "image://icons/arch/riscv-color.svg"
             }
             ListElement {
                 name: "Pep/9"
                 description: "Lorem ipsum dolor sit amet, consectetur adipiscing elit. Nulla nec odio nec turpis luctus tincidunt. Sed auctor, justo nec ultricies tincidunt, elit purus tincidunt purus, nec ultricies odio odio vel nunc."
                 complete: true
                 archCode: Architecture.PEP9
+                icon: "image://icons/arch/p9.svg"
             }
             ListElement {
                 name: "Pep/8"
                 description: "Lorem ipsum dolor sit amet, consectetur adipiscing elit. Nulla nec odio nec turpis luctus tincidunt. Sed auctor, justo nec ultricies tincidunt, elit purus tincidunt purus, nec ultricies odio odio vel nunc."
                 complete: false
                 archCode: Architecture.PEP8
+                icon: "image://icons/arch/p8.svg"
             }
         }
         delegate: Item {
@@ -70,6 +75,9 @@ Item {
                         settings.general.defaultArch = model.archCode
                         root.goForward()
                     }
+                    icon.source: model.icon
+                    icon.width: 200
+                    icon.height: 200
                 }
                 Text {
                     text: model.description

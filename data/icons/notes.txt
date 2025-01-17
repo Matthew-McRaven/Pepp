@@ -1,1 +1,5 @@
 I am using: FILL0_wght400_GRAD0_opsz24
+
+My reading of the RISC-V brand guidelines seems to indicate that we can use the official RISC-V logo as long as we do not recreate/typeset it and are a non-commercial product.
+- "The RISC-V trademark (name) or the RISC-V logo may be freely used for non-commercial research and academic projects as long as the guidelines below are followed"
+For this reason, I have added the RISC-V logo vector graphic as an asset.
