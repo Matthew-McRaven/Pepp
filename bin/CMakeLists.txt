@@ -89,9 +89,10 @@ elseif (APPLE)
             LIBRARY DESTINATION pepp.app/Contents/Frameworks
             BUNDLE DESTINATION .
     )
+    set_target_properties(pepp PROPERTIES OUTPUT_NAME "Pepp")
     install(
             FILES ${CMAKE_CURRENT_BINARY_DIR}/pepp-gui
-            DESTINATION pepp.app/Contents/MacOS
+            DESTINATION Pepp.app/Contents/MacOS
             PERMISSIONS OWNER_READ OWNER_WRITE OWNER_EXECUTE GROUP_READ GROUP_EXECUTE WORLD_READ WORLD_EXECUTE
     )
     target_compile_definitions(pepp PRIVATE "DEFAULT_GUI=1")
