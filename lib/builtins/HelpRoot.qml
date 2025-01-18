@@ -95,7 +95,6 @@ Item {
                 }
                 Comp.DisableableComboBox {
                     id: architectureCombo
-                    enabled: architecture === Architecture.NONE
                     textRole: "key"
                     valueRole: "value"
                     model: ListModel {
@@ -110,7 +109,6 @@ Item {
                 }
                 Comp.DisableableComboBox {
                     id: abstractionCombo
-                    enabled: architecture === Abstraction.NONE
                     textRole: "key"
                     valueRole: "value"
                     model: ListModel {
