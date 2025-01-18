@@ -68,6 +68,7 @@ struct ProjectType {
 class ProjectTypeModel : public QAbstractTableModel {
   Q_OBJECT
   QML_ELEMENT
+
 public:
   enum class Roles {
     NameRole = Qt::UserRole + 1,
@@ -96,6 +97,7 @@ class ProjectTypeFilterModel : public QSortFilterProxyModel {
   Q_PROPERTY(bool showIncomplete READ showIncomplete WRITE setShowIncomplete NOTIFY showIncompleteChanged)
   Q_PROPERTY(bool showPartiallyComplete READ showPartial WRITE setShowPartial NOTIFY showPartialChanged)
   QML_ELEMENT
+
 public:
   explicit ProjectTypeFilterModel(QObject *parent = nullptr);
   builtins::Architecture architecture() const { return _architecture; }
