@@ -141,6 +141,7 @@ ApplicationWindow {
     signal message(string message)
     footer: Label {
         anchors.left: sidebar.right
+        anchors.leftMargin: 10
         text: "test message"
         Timer {
             id: messageTimer
@@ -148,58 +149,40 @@ ApplicationWindow {
             onTriggered: window.footer.text = ""
         }
     }
-    Loader {
-        id: menuLoader
-        Component.onCompleted: {
-            const props = {
-                "actions": actions,
-                "project": window.currentProject
-            }
-            if (PlatformDetector.isWASM) {
-                props["window"] = window
-                setSource("qrc:/edu/pepp/menu/QMLMainMenu.qml", props)
-            } else
-                // Auto-recurses on "parent" to find "window" of correct type.
-                // If explicitly set, the menu bar will not render until hovered over.
-                setSource("qrc:/edu/pepp/menu/NativeMainMenu.qml", props)
-        }
-        onLoaded: {
-            if (PlatformDetector.isWASM)
-                window.menuBar = item
-        }
-        asynchronous: false
-    }
 
-    Item {
-        id: header
+    Top.ToolBar {
+        id: toolbar
         anchors.top: parent.top
         anchors.left: sidebar.right
         anchors.right: parent.right
-        // Must explicitly set height to avoid binding loop; only account for tab bar if visibile.
-        height: toolbar.height + (projectSelect.visible ? projectSelect.height : 0)
-        Top.ToolBar {
-            id: toolbar
-            anchors.top: parent.top
-            anchors.left: parent.left
-            anchors.right: parent.right
-            actions: actions
-        }
-        Top.ProjectSelectBar {
-            id: projectSelect
-            requestHide: window.mode === "welcome"
-            anchors.right: parent.right
-            anchors.left: parent.left
-            anchors.top: toolbar.bottom
-        }
+        actions: actions
+    }
+
+    Top.ProjectSelectBar {
+        id: projectSelect
+        requestHide: window.mode === "welcome"
+        anchors.right: parent.right
+        anchors.left: sidebar.right
+        anchors.top: toolbar.bottom
+    }
+
+    Rectangle {
+        anchors.left: parent.left
+        anchors.right: sidebar.right
+        anchors.top: parent.top
+        anchors.bottom: footer.bottom
+        color: palette.shadow
     }
 
     Top.SideBar {
         id: sidebar
         modesModel: window.currentProject ? window.currentProject.modes(
                                                 ) : undefined
-        anchors.top: header.bottom
-        anchors.bottom: parent.bottom
-        anchors.left: parent.left
+        anchors {
+            top: toolbar.bottom
+            bottom: parent.bottom
+            left: parent.left
+        }
         width: 100
 
         onModeChanged: function (text) {
@@ -209,7 +192,7 @@ ApplicationWindow {
 
     StackLayout {
         id: mainArea
-        anchors.top: header.bottom
+        anchors.top: projectSelect.bottom
         anchors.bottom: parent.bottom
         anchors.right: parent.right
         anchors.left: sidebar.right
@@ -298,6 +281,28 @@ ApplicationWindow {
             mode: window.mode
             actions: window.actionRef
         }
+    }
+
+    Loader {
+        id: menuLoader
+        Component.onCompleted: {
+            const props = {
+                "actions": actions,
+                "project": window.currentProject
+            }
+            if (PlatformDetector.isWASM) {
+                props["window"] = window
+                setSource("qrc:/edu/pepp/menu/QMLMainMenu.qml", props)
+            } else
+                // Auto-recurses on "parent" to find "window" of correct type.
+                // If explicitly set, the menu bar will not render until hovered over.
+                setSource("qrc:/edu/pepp/menu/NativeMainMenu.qml", props)
+        }
+        onLoaded: {
+            if (PlatformDetector.isWASM)
+                window.menuBar = item
+        }
+        asynchronous: false
     }
 
 

@@ -83,12 +83,19 @@ Rectangle {
             left: parent.left
             right: parent.right
         }
-        ScrollBar.vertical: ScrollBar {}
-        ScrollBar.horizontal: ScrollBar {}
+        ScrollBar.vertical: ScrollBar {
+            id: ver
+            policy: list.contentHeight > list.height ? ScrollBar.AlwaysOn : ScrollBar.AsNeeded
+        }
+        ScrollBar.horizontal: ScrollBar {
+            id: hor
+            policy: list.contentWidth > list.width ? ScrollBar.AlwaysOn : ScrollBar.AsNeeded
+        }
         flickableDirection: Flickable.HorizontalAndVerticalFlick
-        contentHeight: contentItem.childrenRect.height
+        boundsBehavior: Flickable.StopAtBounds
         contentWidth: contentItem.childrenRect.width
-
+        bottomMargin: hor.height
+        leftMargin: ver.width
         clip: true
         model: filterModel
         delegate: Column {

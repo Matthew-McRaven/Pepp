@@ -208,3 +208,159 @@ void ProjectModel::onSave(int row) {
   auto index = createIndex(row, 0);
   setData(index, false, static_cast<int>(Roles::DirtyRole));
 }
+
+void init_pep10(QList<ProjectType> &vec) {
+  auto a = builtins::Architecture::PEP10;
+  using builtins::Abstraction;
+  vec.append({.name = "ISA3, bare metal",
+              .description = "Develop and debug machine language programs in bare metal mode.",
+              .imagePath = "image://icons/cards/p10_isa3.svg",
+              .arch = a,
+              .level = Abstraction::ISA3,
+              .state = CompletionState::COMPLETE});
+  vec.append({.name = "Asmb3, bare metal",
+              .description = "Develop and debug assembly language programs in bare metal mode.",
+              .imagePath = "image://icons/cards/p10_asmb3.svg",
+              .arch = a,
+              .level = Abstraction::ASMB3,
+              .state = CompletionState::COMPLETE});
+  vec.append({.name = "Asmb5, full OS",
+              .description = "Develop and debug assembly language programs alongside Pep/10's operating system. This "
+                             "level enables you to utilize OS features using system calls for enhanced functionality.",
+              .imagePath = "image://icons/cards/p10_asmb5.svg",
+              .arch = a,
+              .level = Abstraction::ASMB5,
+              .state = CompletionState::COMPLETE});
+  vec.append({.name = "OS4", .arch = a, .level = Abstraction::OS4, .state = CompletionState::PARTIAL});
+  vec.append({.name = "Mc2, 1-byte bus", .arch = a, .level = Abstraction::MC2, .state = CompletionState::INCOMPLETE});
+  vec.append({.name = "Mc2, 2-byte bus", .arch = a, .level = Abstraction::MC2, .state = CompletionState::INCOMPLETE});
+}
+void init_pep9(QList<ProjectType> &vec) {
+  auto a = builtins::Architecture::PEP9;
+  using builtins::Abstraction;
+  vec.append({.name = "ISA3",
+              .description = "Develop and debug machine language programs.",
+              .imagePath = "image://icons/cards/p9_isa3.svg",
+              .arch = a,
+              .level = Abstraction::ISA3,
+              .state = CompletionState::COMPLETE});
+  vec.append({.name = "Asmb5",
+              .description =
+                  "Develop and debug assembly language programs alongside Pep/9's operating system. This level "
+                  "enables you to utilize OS features using trap instructions for enhanced functionality.",
+              .imagePath = "image://icons/cards/p9_asmb5.svg",
+              .arch = a,
+              .level = Abstraction::ASMB5,
+              .state = CompletionState::COMPLETE});
+  vec.append({.name = "OS4", .arch = a, .level = Abstraction::OS4, .state = CompletionState::INCOMPLETE});
+  vec.append({.name = "Mc2, 1-byte bus", .arch = a, .level = Abstraction::MC2, .state = CompletionState::INCOMPLETE});
+  vec.append({.name = "Mc2, 2-byte bus", .arch = a, .level = Abstraction::MC2, .state = CompletionState::INCOMPLETE});
+}
+void init_pep8(QList<ProjectType> &vec) {
+  auto a = builtins::Architecture::PEP8;
+  using builtins::Abstraction;
+  vec.append({.name = "ISA3",
+              .description = "Develop and debug machine language programs.",
+              .imagePath = "image://icons/cards/p9_isa3.svg",
+              .arch = a,
+              .level = Abstraction::ISA3,
+              .state = CompletionState::INCOMPLETE});
+  vec.append({.name = "Asmb5",
+              .description =
+                  "Develop and debug assembly language programs alongside Pep/8's operating system. This level "
+                  "enables you to utilize OS features using trap instructions for enhanced functionality.",
+              .imagePath = "image://icons/cards/p9_asmb5.svg",
+              .arch = a,
+              .level = Abstraction::ASMB5,
+              .state = CompletionState::INCOMPLETE});
+  vec.append({.name = "OS4", .arch = a, .level = Abstraction::OS4, .state = CompletionState::INCOMPLETE});
+  vec.append({.name = "Mc2, 1-byte bus", .arch = a, .level = Abstraction::MC2, .state = CompletionState::INCOMPLETE});
+}
+void init_riscv(QList<ProjectType> &vec) {
+  auto a = builtins::Architecture::RISCV;
+  using builtins::Abstraction;
+  vec.append({.name = "Asmb3, bare metal",
+              .description = "Develop and debug machine language programs in bare metal mode.",
+              .arch = a,
+              .level = Abstraction::ASMB3,
+              .state = CompletionState::INCOMPLETE});
+}
+
+ProjectTypeModel::ProjectTypeModel(QObject *parent) : QAbstractTableModel(parent) {
+  init_pep10(_projects);
+  init_pep9(_projects);
+  init_pep8(_projects);
+  init_riscv(_projects);
+}
+
+int ProjectTypeModel::rowCount(const QModelIndex &parent) const { return _projects.size(); }
+
+int ProjectTypeModel::columnCount(const QModelIndex &parent) const { return 3; }
+
+QVariant ProjectTypeModel::data(const QModelIndex &index, int role) const {
+  if (!index.isValid() || index.row() >= _projects.size() || index.column() > 3) return {};
+  switch (role) {
+  case static_cast<int>(Roles::NameRole): return _projects[index.row()].name;
+  case static_cast<int>(Roles::DescriptionRole): return _projects[index.row()].description;
+  case static_cast<int>(Roles::ImagePathRole): return _projects[index.row()].imagePath;
+  case static_cast<int>(Roles::ArchitectureRole): return static_cast<int>(_projects[index.row()].arch);
+  case static_cast<int>(Roles::LevelRole): return static_cast<int>(_projects[index.row()].level);
+  case static_cast<int>(Roles::CompleteRole): return _projects[index.row()].state == CompletionState::COMPLETE;
+  case static_cast<int>(Roles::PartiallyCompleteRole): return _projects[index.row()].state == CompletionState::PARTIAL;
+  case static_cast<int>(Roles::ColumnTypeRole): {
+    static const QString v[] = {"name", "image", "description"};
+    return v[index.column()];
+  }
+  default: return {};
+  }
+}
+
+QHash<int, QByteArray> ProjectTypeModel::roleNames() const {
+  static const QHash<int, QByteArray> ret{
+      {(int)ProjectTypeModel::Roles::NameRole, "text"},
+      {(int)ProjectTypeModel::Roles::DescriptionRole, "description"},
+      {(int)ProjectTypeModel::Roles::ImagePathRole, "source"},
+      {(int)ProjectTypeModel::Roles::ArchitectureRole, "architecture"},
+      {(int)ProjectTypeModel::Roles::LevelRole, "abstraction"},
+      {(int)ProjectTypeModel::Roles::CompleteRole, "complete"},
+      {(int)ProjectTypeModel::Roles::PartiallyCompleteRole, "partiallyComplete"},
+      {(int)ProjectTypeModel::Roles::ColumnTypeRole, "columnType"},
+  };
+  return ret;
+}
+
+ProjectTypeFilterModel::ProjectTypeFilterModel(QObject *parent) : QSortFilterProxyModel(parent) {}
+
+void ProjectTypeFilterModel::setArchitecture(builtins::Architecture arch) {
+  if (_architecture == arch) return;
+  _architecture = arch;
+  emit architectureChanged();
+  invalidateFilter();
+}
+
+void ProjectTypeFilterModel::setShowIncomplete(bool value) {
+  if (_showIncomplete == value) return;
+  _showIncomplete = value;
+  emit showIncompleteChanged();
+  invalidateFilter();
+}
+
+void ProjectTypeFilterModel::setShowPartial(bool value) {
+  if (_showPartial == value) return;
+  _showPartial = value;
+  emit showPartialChanged();
+  invalidateFilter();
+}
+
+bool ProjectTypeFilterModel::filterAcceptsRow(int source_row, const QModelIndex &source_parent) const {
+  auto index = sourceModel()->index(source_row, 0, source_parent);
+  bool isIncomplete = !sourceModel()->data(index, static_cast<int>(ProjectTypeModel::Roles::CompleteRole)).toBool();
+  bool isPartial =
+      sourceModel()->data(index, static_cast<int>(ProjectTypeModel::Roles::PartiallyCompleteRole)).toBool();
+  auto arch = static_cast<builtins::Architecture>(
+      sourceModel()->data(index, static_cast<int>(ProjectTypeModel::Roles::ArchitectureRole)).toInt());
+  if (_architecture != builtins::Architecture::NONE && arch != _architecture) return false;
+  else if (!_showIncomplete && isIncomplete) return false;
+  else if (!_showPartial && isPartial) return false;
+  return true;
+}
