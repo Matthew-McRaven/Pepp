@@ -28,16 +28,19 @@ class Parsed : public QObject {
   Q_PROPERTY(QString body READ body CONSTANT);
   Q_PROPERTY(quint8 argCount READ argCount CONSTANT);
   Q_PROPERTY(QString architecture READ architecture CONSTANT)
+  Q_PROPERTY(bool hidden READ hidden CONSTANT)
 public:
-  Parsed(QString name, quint8 argCount, QString body, QString architecture);
+  Parsed(QString name, quint8 argCount, QString body, QString architecture, bool hidden = false);
   QString name() const;
   QString body() const;
   quint8 argCount() const;
   QString architecture() const;
+  bool hidden() const;
 
 private:
   QString _name, _body, _architecture;
   quint8 _argCount;
+  bool _hidden;
 };
 
 } // namespace macro

@@ -198,13 +198,13 @@ builtins::detail::loadMacro(QString manifestPath) {
     auto macroText = read(manifestDir.absoluteFilePath(itemPath));
     auto macroBody = macroText.sliced(macroText.indexOf("\n") + 1);
     auto parsed = macro::analyze_macro_definition(macroText);
+    bool isHidden = manifest["hidden"].toBool(false);
 
     if (!std::get<0>(
             parsed)) // Crash on failure for ease of initial prototyping
       qFatal("Invalid item");
-    auto macro = QSharedPointer<macro::Parsed>::create(
-        std::get<1>(parsed), std::get<2>(parsed), macroBody,
-        manifest["arch"].toString());
+    auto macro = QSharedPointer<macro::Parsed>::create(std::get<1>(parsed), std::get<2>(parsed), macroBody,
+                                                       manifest["arch"].toString(), isHidden);
     ret.push_back(macro);
   }
   return ret;
