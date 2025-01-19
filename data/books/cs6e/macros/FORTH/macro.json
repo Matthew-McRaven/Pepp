@@ -1,6 +1,7 @@
 {
   "type": "macro",
   "arch": "pep10",
+  "hidden": true,
   "items": {
     "DC": "{name}.pepm",
     "DCSTR": "{name}.pepm",

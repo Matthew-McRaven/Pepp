@@ -17,8 +17,8 @@
 
 #include "./macro.hpp"
 
-macro::Parsed::Parsed(QString name, quint8 argCount, QString body, QString architecture)
-    : QObject(nullptr), _name(name), _body(body), _architecture(architecture), _argCount(argCount) {}
+macro::Parsed::Parsed(QString name, quint8 argCount, QString body, QString architecture, bool hidden)
+    : QObject(nullptr), _name(name), _body(body), _architecture(architecture), _argCount(argCount), _hidden(hidden) {}
 
 QString macro::Parsed::name() const { return _name; }
 
@@ -27,3 +27,5 @@ QString macro::Parsed::body() const { return _body; }
 quint8 macro::Parsed::argCount() const { return _argCount; }
 
 QString macro::Parsed::architecture() const { return _architecture; }
+
+bool macro::Parsed::hidden() const { return _hidden; }
