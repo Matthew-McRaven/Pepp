@@ -4,6 +4,8 @@
 #include "helpmodel.hpp"
 
 using namespace Qt::StringLiterals;
+constexpr int shift = 16;
+
 QSharedPointer<HelpEntry> about_root() {
   // relative to this the directroy in which HelpRoot.qml is located.
   auto ret = QSharedPointer<HelpEntry>::create(HelpCategory::Category::About, -1, "About", "../about/About.qml");
@@ -101,6 +103,7 @@ QString removeLeading0(const QString &str) {
   // Should be unreacheable, but here for safety.
   return str;
 }
+
 QSharedPointer<HelpEntry> examples_root() {
   static builtins::Registry reg(nullptr);
   auto books = reg.books();
@@ -131,9 +134,57 @@ QSharedPointer<HelpEntry> examples_root() {
   return root;
 }
 
-QSharedPointer<HelpEntry> problems_root() { return {}; }
+QSharedPointer<HelpEntry> macros_root() {
+  auto mask = bitmask(builtins::Architecture::PEP10) << shift | 0xff;
+  static builtins::Registry reg(nullptr);
+  auto books = reg.books();
+  QList<QSharedPointer<HelpEntry>> children;
+  for (const auto &book : books) {
+    for (const auto &macro : book->macros()) {
+      // Skip explicitly hidden macros (like the C library).
+      if (macro->hidden()) continue;
+      static const auto pl = QStringLiteral("%1");
+      auto displayTitle = pl.arg(macro->name());
+      auto sortTitle = pl.arg(macro->name());
+      auto entry = QSharedPointer<HelpEntry>::create(HelpCategory::Category::Figure, mask, displayTitle,
+                                                     "../builtins/Macro.qml");
+      entry->sortName = sortTitle;
+      QVariantMap nested = {{"text", QVariant::fromValue(macro->body())}, {"description", ""}};
+      entry->props = QVariantMap{
+          {"title", displayTitle},
+          {"payload", nested},
+          {"lexerLang", "Pep/10 ASM"},
+      };
+      children.push_back(entry);
+    }
+  }
+  // Hack to add the default system calls into the macro list.
+  // This is not responsive to changes in the default operating system text.
+  int it = 0;
+  for (const QString &scall : {"DECI", "DECO", "HEXO", "STRO", "SNOP"}) {
+    static const QString pl = "LDWA %1, i\nSCALL $1, $2\n";
+    auto displayTitle = scall;
+    auto sortTitle = u"%1 %2"_s.arg(it).arg(scall);
+    static const auto scall_mask = bitmask(builtins::Architecture::PEP10, builtins::Abstraction::ASMB5);
+    auto entry = QSharedPointer<HelpEntry>::create(HelpCategory::Category::Figure, scall_mask, displayTitle,
+                                                   "../builtins/Macro.qml");
+    entry->sortName = sortTitle;
+    QVariantMap nested = {{"text", QVariant::fromValue(pl.arg(scall))},
+                          {"description", u"The %1 system call"_s.arg(scall)}};
+    entry->props = QVariantMap{
+        {"title", displayTitle},
+        {"payload", nested},
+        {"lexerLang", "Pep/10 ASM"},
+    };
+    children.push_back(entry);
+  }
+  auto root = QSharedPointer<HelpEntry>::create(HelpCategory::Category::Text, mask, "Macros", "MDText.qml");
+  root->props = QVariantMap{{"file", QVariant(u":/help/pep10/macros.md"_s)}};
+  root->addChildren(children);
+  return root;
+}
 
-QSharedPointer<HelpEntry> os_root() { return {}; }
+QSharedPointer<HelpEntry> problems_root() { return {}; }
 
 int bitmask(builtins::Architecture arch) {
   switch (arch) {
@@ -164,7 +215,6 @@ int bitmask(builtins::Abstraction level) {
   }
 }
 
-constexpr int shift = 16;
 int bitmask(builtins::Architecture arch, builtins::Abstraction level) {
   return bitmask(arch) << shift | bitmask(level);
 }

@@ -11,6 +11,7 @@ QSharedPointer<HelpEntry> greencard10_root();
 QSharedPointer<HelpEntry> examples_root();
 QSharedPointer<HelpEntry> problems_root();
 QSharedPointer<HelpEntry> os_root();
+QSharedPointer<HelpEntry> macros_root();
 int bitmask(builtins::Architecture arch);
 int bitmask(builtins::Abstraction level);
 int bitmask(builtins::Architecture arch, builtins::Abstraction level);
