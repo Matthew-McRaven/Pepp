@@ -1,6 +1,7 @@
 {
   "type": "macro",
   "arch": "pep10",
+  "family": "Rotate Left",
   "items": {
     "ROLA2": "{name}.pepm",
     "ROLA3": "{name}.pepm",

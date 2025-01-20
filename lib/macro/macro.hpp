@@ -28,17 +28,19 @@ class Parsed : public QObject {
   Q_PROPERTY(QString body READ body CONSTANT);
   Q_PROPERTY(quint8 argCount READ argCount CONSTANT);
   Q_PROPERTY(QString architecture READ architecture CONSTANT)
+  Q_PROPERTY(QString family READ architecture CONSTANT)
   Q_PROPERTY(bool hidden READ hidden CONSTANT)
 public:
-  Parsed(QString name, quint8 argCount, QString body, QString architecture, bool hidden = false);
+  Parsed(QString name, quint8 argCount, QString body, QString architecture, QString family = "", bool hidden = false);
   QString name() const;
   QString body() const;
   quint8 argCount() const;
   QString architecture() const;
+  QString family() const;
   bool hidden() const;
 
 private:
-  QString _name, _body, _architecture;
+  QString _name, _body, _architecture, _family;
   quint8 _argCount;
   bool _hidden;
 };
