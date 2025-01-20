@@ -118,16 +118,29 @@ Labs.MenuBar {
             shortcut: actions.edit.paste.shortcut
         }
         // Formatting magic!
-    }
-    Labs.Menu {
-        id: build
-        title: qsTr("&Build")
+        Labs.MenuSeparator {}
         Labs.MenuItem {
             text: actions.build.formatObject.text
             onTriggered: actions.build.formatObject.trigger()
             enabled: actions.build.formatObject.enabled
             visible: enabled
+            icon.source: fixSuffix(actions.build.formatObject.icon.source,
+                                   wrapper.darkMode)
         }
+        Labs.MenuItem {
+            text: actions.build.assembleThenFormat.text
+            onTriggered: actions.build.assembleThenFormat.trigger()
+            enabled: actions.build.assembleThenFormat.enabled
+            visible: enabled
+            icon.source: fixSuffix(
+                             actions.build.assembleThenFormat.icon.source,
+                             wrapper.darkMode)
+        }
+    }
+    Labs.Menu {
+        id: build
+        title: qsTr("&Build")
+
         Labs.MenuItem {
             text: actions.build.loadObject.text
             onTriggered: actions.build.loadObject.trigger()
@@ -154,15 +167,6 @@ Labs.MenuBar {
             icon.source: fixSuffix(actions.build.assembleThenLoad.icon.source,
                                    wrapper.darkMode)
             shortcut: actions.build.assembleThenLoad.shortcut
-        }
-        Labs.MenuItem {
-            text: actions.build.assembleThenFormat.text
-            onTriggered: actions.build.assembleThenFormat.trigger()
-            enabled: actions.build.assembleThenFormat.enabled
-            visible: enabled
-            icon.source: fixSuffix(
-                             actions.build.assembleThenFormat.icon.source,
-                             wrapper.darkMode)
         }
         Labs.MenuItem {
             text: actions.build.execute.text
