@@ -21,11 +21,56 @@ Item {
         border.width: 1
         border.color: palette.mid
     }
+    HorizontalHeaderView {
+        id: horizontalHeader
+        // Dummy value to silence warning about non-existent role.
+        textRole: "symbol"
+        anchors {
+            left: parent.left
+            right: parent.right
+            top: parent.top
+        }
+        syncView: wrapper
+        clip: true
+        delegate: Item {
+            id: headerDelegate
+            implicitHeight: symbolHead.contentHeight
+            Label {
+                id: symbolHead
+                anchors.left: parent.left
+                verticalAlignment: Text.AlignVCenter
+                horizontalAlignment: Text.AlignLeft
+                leftPadding: 5
+
+                color: palette.text
+                text: "Symbol"
+                font: tm.font
+            }
+            Label {
+                id: valueHead
+                focus: false
+                anchors.left: symbolHead.right
+                anchors.right: parent.right
+                verticalAlignment: Text.AlignVCenter
+                horizontalAlignment: Text.AlignRight
+                rightPadding: 5
+
+                color: palette.text
+                text: "Value"
+                font: tm.font
+            }
+        }
+    }
 
     TableView {
         id: wrapper
-        anchors.fill: parent
-        anchors.leftMargin: vsc.width
+        anchors {
+            top: horizontalHeader.bottom
+            bottom: parent.bottom
+            right: parent.right
+            rightMargin: vsc.width
+            left: parent.left
+        }
         contentWidth: width
         clip: true
         focus: true
@@ -90,7 +135,7 @@ Item {
             id: delegate
             required property bool selected
             required property bool current
-            implicitHeight: symbol.contentHeight + value.contentHeight
+            implicitHeight: symbol.contentHeight
             color: selected ? palette.highlight : "transparent"
 
             Label {
