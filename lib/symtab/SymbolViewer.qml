@@ -39,7 +39,7 @@ Rectangle {
 
         TextMetrics {
             id: tm
-            font: settings.extPalette.base.font
+            font: settings.extPalette.baseMono.font
             text: "W" // Dummy value to get width of widest character
         }
 
