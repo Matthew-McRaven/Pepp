@@ -5,7 +5,8 @@
 namespace ELFIO {
 class elfio;
 }
-class SymbolModel : public QAbstractListModel {
+class QItemSelectionModel;
+class SymbolModel : public QAbstractTableModel {
   Q_OBJECT
 
   Q_PROPERTY(qsizetype longest MEMBER longest_ CONSTANT)
@@ -32,9 +33,17 @@ public:
   void clearData();
   // QAbstractItemModel interface
   int rowCount(const QModelIndex &parent) const override;
-  // int columnCount(const QModelIndex &parent) const override;
+  int columnCount(const QModelIndex &parent) const override;
+  Q_INVOKABLE void setColumnCount(int count);
   QVariant data(const QModelIndex &index, int role) const override;
+  Qt::ItemFlags flags(const QModelIndex &index) const override;
+  // Helper method that is only here because I don't want another global helper class
+  Q_INVOKABLE void selectRectangle(QItemSelectionModel *selectionModel, const QModelIndex &topLeft,
+                                   const QModelIndex &bottomRight) const;
 
 protected: //  Role Names must be under protected
   QHash<int, QByteArray> roleNames() const override;
+
+private:
+  int _columnCount{2};
 };

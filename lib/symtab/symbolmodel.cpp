@@ -1,7 +1,9 @@
 #include "symbolmodel.hpp"
+#include <QItemSelection>
+#include <QItemSelectionModel>
 #include "elfio/elfio.hpp"
 
-SymbolModel::SymbolModel(QObject *parent) : QAbstractListModel(parent) {
+SymbolModel::SymbolModel(QObject *parent) : QAbstractTableModel(parent) {
   //  List column names that will appear in view
   roleNames_[SymbolRole] = "symbol";
   roleNames_[ValueRole] = "value";
@@ -38,13 +40,10 @@ void SymbolModel::setFromElf(ELFIO::elfio *elf, QString tableSection) {
     longest_ = std::max(longest_, e.name.length());
   }
 
-  qDebug() << "Longest: " << longest_;
-
   //  Sort list, case insensitive
   std::sort(entries_.begin(), entries_.end(), [&](const Entry &s1, const Entry &s2) {
     return QString::compare(s1.name, s2.name, Qt::CaseInsensitive) < 0;
   });
-
   endResetModel();
 }
 
@@ -55,11 +54,28 @@ void SymbolModel::clearData() {
   endResetModel();
 }
 
-int SymbolModel::rowCount(const QModelIndex &parent) const { return entries_.size(); }
+int SymbolModel::rowCount(const QModelIndex &parent) const {
+  return (entries_.size() + (_columnCount - 1)) / _columnCount;
+}
+
+int SymbolModel::columnCount(const QModelIndex &parent) const { return _columnCount; }
+
+void SymbolModel::setColumnCount(int count) {
+  if (count == _columnCount || count <= 0) return;
+  _columnCount = count;
+  emit layoutChanged();
+}
 
 QVariant SymbolModel::data(const QModelIndex &index, int role) const {
   if (!index.isValid()) return QVariant();
-  auto entry = entries_.at(index.row());
+  auto offset = index.row() * _columnCount + index.column();
+
+  if (offset >= entries_.size()) {
+    if (role == IndexRole) return -1;
+    else return "";
+  }
+
+  auto entry = entries_.at(offset);
   switch (role) {
   case SymbolRole: return entry.name;
   case ValueRole: return QStringLiteral("%1").arg(entry.value, 4, 16, QLatin1Char('0')).toUpper();
@@ -67,6 +83,16 @@ QVariant SymbolModel::data(const QModelIndex &index, int role) const {
   default: break;
   }
   return {};
+}
+
+Qt::ItemFlags SymbolModel::flags(const QModelIndex &index) const { return Qt::ItemIsEnabled | Qt::ItemIsSelectable; }
+
+void SymbolModel::selectRectangle(QItemSelectionModel *selectionModel, const QModelIndex &topLeft,
+                                  const QModelIndex &bottomRight) const {
+  if (!selectionModel || !topLeft.isValid() || !bottomRight.isValid()) return;
+
+  QItemSelection selection(topLeft, bottomRight);
+  selectionModel->select(selection, QItemSelectionModel::Select | QItemSelectionModel::Clear);
 }
 
 QHash<int, QByteArray> SymbolModel::roleNames() const { return roleNames_; }
