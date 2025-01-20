@@ -138,7 +138,19 @@ QSharedPointer<HelpEntry> macros_root() {
   auto mask = bitmask(builtins::Architecture::PEP10) << shift | 0xff;
   static builtins::Registry reg(nullptr);
   auto books = reg.books();
-  QList<QSharedPointer<HelpEntry>> children;
+  auto root = QSharedPointer<HelpEntry>::create(HelpCategory::Category::Text, mask, "Macros", "MDText.qml");
+  root->props = QVariantMap{{"file", QVariant(u":/help/pep10/blank.md"_s)}};
+
+  QMap<QString, QSharedPointer<HelpEntry>> families;
+  families[""] = root;
+  auto addOrGet = [&families](const QString &name, int inner_mask) {
+    if (!families.contains(name)) {
+      families[name] = QSharedPointer<HelpEntry>::create(HelpCategory::Category::Text, inner_mask, name, "MDText.qml");
+      families[name]->props = QVariantMap{{"file", QVariant(u":/help/pep10/blank.md"_s)}};
+    }
+    return families[name];
+  };
+
   for (const auto &book : books) {
     for (const auto &macro : book->macros()) {
       // Skip explicitly hidden macros (like the C library).
@@ -155,7 +167,7 @@ QSharedPointer<HelpEntry> macros_root() {
           {"payload", nested},
           {"lexerLang", "Pep/10 ASM"},
       };
-      children.push_back(entry);
+      addOrGet(macro->family(), mask)->addChild(entry);
     }
   }
   // Hack to add the default system calls into the macro list.
@@ -164,7 +176,7 @@ QSharedPointer<HelpEntry> macros_root() {
   for (const QString &scall : {"DECI", "DECO", "HEXO", "STRO", "SNOP"}) {
     static const QString pl = "LDWA %1, i\nSCALL $1, $2\n";
     auto displayTitle = scall;
-    auto sortTitle = u"%1 %2"_s.arg(it).arg(scall);
+    auto sortTitle = u"%1 %2"_s.arg(it++).arg(scall);
     static const auto scall_mask = bitmask(builtins::Architecture::PEP10, builtins::Abstraction::ASMB5);
     auto entry = QSharedPointer<HelpEntry>::create(HelpCategory::Category::Figure, scall_mask, displayTitle,
                                                    "../builtins/Macro.qml");
@@ -176,11 +188,14 @@ QSharedPointer<HelpEntry> macros_root() {
         {"payload", nested},
         {"lexerLang", "Pep/10 ASM"},
     };
-    children.push_back(entry);
+    addOrGet("System Calls", scall_mask)->addChild(entry);
   }
-  auto root = QSharedPointer<HelpEntry>::create(HelpCategory::Category::Text, mask, "Macros", "MDText.qml");
-  root->props = QVariantMap{{"file", QVariant(u":/help/pep10/macros.md"_s)}};
-  root->addChildren(children);
+
+  // Put the intersitials into the root
+  for (const auto &children : families) {
+    if (children == root) continue;
+    root->addChild(children);
+  }
   return root;
 }
 

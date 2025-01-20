@@ -205,7 +205,6 @@ Item {
             }
 
             SplitView {
-                handle: split.handle
                 orientation: Qt.Vertical
                 anchors.left: parent.left
                 anchors.right: parent.right
@@ -257,31 +256,37 @@ Item {
                         language: wrapper.getLexerLangauge()
                     }
                 }
-                TabBar {
-                    id: debugTabBar
-                    visible: mode == "debugger"
-                    TabButton {
-                        text: qsTr("Object Code")
-                    }
-                    TabButton {
-                        text: qsTr(`Symbol Table: ${textSelector.currentText}`)
-                    }
-                }
-                StackLayout {
-                    currentIndex: debugTabBar.currentIndex
+                ColumnLayout {
                     visible: mode == "debugger"
                     SplitView.minimumHeight: 100
-                    clip: true
-                    Text.ObjTextEditor {
-                        id: objView
-                        readOnly: true
-                        // text is only an initial binding, the value diverges from there.
-                        text: project?.objectCodeText ?? ""
+                    TabBar {
+                        Layout.fillWidth: true
+                        Layout.fillHeight: false
+                        id: debugTabBar
+                        visible: mode == "debugger"
+                        TabButton {
+                            text: qsTr("Object Code")
+                        }
+                        TabButton {
+                            text: qsTr(`Symbol Table: ${textSelector.currentText}`)
+                        }
                     }
-                    SymTab.SymbolViewer {
-                        id: symTab
-                        model: textSelector.currentIndex
-                               === 0 ? project?.userSymbols : project?.osSymbols
+                    StackLayout {
+                        Layout.fillWidth: true
+                        Layout.fillHeight: true
+                        currentIndex: debugTabBar.currentIndex
+                        clip: true
+                        Text.ObjTextEditor {
+                            id: objView
+                            readOnly: true
+                            // text is only an initial binding, the value diverges from there.
+                            text: project?.objectCodeText ?? ""
+                        }
+                        SymTab.SymbolViewer {
+                            id: symTab
+                            model: textSelector.currentIndex
+                                   === 0 ? project?.userSymbols : project?.osSymbols
+                        }
                     }
                 }
             }

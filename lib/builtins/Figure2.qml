@@ -122,7 +122,7 @@ Item {
                 verticalAlignment: Text.AlignVCenter
                 elide: Text.ElideRight
             }
-            onActivated: textArea.text = currentValue
+            onActivated: textArea.updateText(currentValue)
         }
         Editor.ScintillaAsmEdit {
             id: textArea
@@ -131,6 +131,13 @@ Item {
             Layout.fillWidth: true
             editorFont: editorFM.font
             language: wrapper.lexerLang
+            readOnly: false
+            Component.onCompleted: readOnly = true
+            function updateText(newText) {
+                textArea.readOnly = false
+                textArea.text = newText
+                textArea.readOnly = true
+            }
         }
         Row {
             id: copyRow

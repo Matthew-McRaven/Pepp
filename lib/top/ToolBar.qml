@@ -24,6 +24,20 @@ ToolBar {
         }
         ToolSeparator {}
         ToolButton {
+            visible: root.actions.build.assemble.enabled
+            action: root.actions.build.assemble
+            icon {
+                source: action.icon.source
+                height: root.iconHeight
+                width: root.iconHeight
+            }
+            hoverEnabled: true
+            ToolTip.visible: hovered
+            ToolTip.text: action.text.replace(/&/g, "")
+            text: ''
+        }
+
+        ToolButton {
             action: root.actions.build.execute
             icon {
                 source: action.icon.source

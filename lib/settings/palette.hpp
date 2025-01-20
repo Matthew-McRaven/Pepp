@@ -24,6 +24,7 @@ class Palette : public QObject {
 
   //  See https://doc.qt.io/qt-6/qml-qtquick-colorgroup.html for color explanation
   Q_PROPERTY(PaletteItem *base READ base CONSTANT)
+  Q_PROPERTY(PaletteItem *baseMono READ baseMono CONSTANT)
   Q_PROPERTY(PaletteItem *window READ window CONSTANT)
   Q_PROPERTY(PaletteItem *button READ button CONSTANT)
   Q_PROPERTY(PaletteItem *highlight READ highlight CONSTANT)
@@ -70,6 +71,7 @@ public:
 
   // General
   PaletteItem *base() const { return item(PaletteRole::BaseRole); }
+  PaletteItem *baseMono() const { return item(PaletteRole::BaseMonoRole); }
   PaletteItem *window() const { return item(PaletteRole::WindowRole); }
   PaletteItem *button() const { return item(PaletteRole::ButtonRole); }
   PaletteItem *highlight() const { return item(PaletteRole::HighlightRole); }

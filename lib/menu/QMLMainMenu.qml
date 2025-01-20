@@ -92,6 +92,23 @@ MenuBar {
         // Formatting magic!
         MenuSeparator {}
         ShortcutMenuItem {
+            action: actions.build.formatObject
+            enabled: action.enabled
+            visible: enabled
+            height: enabled ? implicitHeight : 0
+            onEnabledChanged: contentItem.enabled = enabled
+        }
+        ShortcutMenuItem {
+            action: actions.build.assembleThenFormat
+            enabled: action.enabled
+            visible: enabled
+            height: enabled ? implicitHeight : 0
+            icon.source: fixSuffix(
+                             actions.build.assembleThenFormat.icon.source,
+                             wrapper.darkMode)
+        }
+        MenuSeparator {}
+        ShortcutMenuItem {
             action: actions.edit.prefs
             icon.source: fixSuffix(actions.edit.prefs.icon.source,
                                    wrapper.darkMode)
@@ -103,13 +120,6 @@ MenuBar {
     Menu {
         id: build
         title: qsTr("&Build")
-        ShortcutMenuItem {
-            action: actions.build.formatObject
-            enabled: action.enabled
-            visible: enabled
-            height: enabled ? implicitHeight : 0
-            onEnabledChanged: contentItem.enabled = enabled
-        }
         ShortcutMenuItem {
             action: actions.build.loadObject
             enabled: action.enabled
@@ -134,15 +144,6 @@ MenuBar {
             height: enabled ? implicitHeight : 0
             icon.source: fixSuffix(actions.build.assembleThenLoad.icon.source,
                                    wrapper.darkMode)
-        }
-        ShortcutMenuItem {
-            action: actions.build.assembleThenFormat
-            enabled: action.enabled
-            visible: enabled
-            height: enabled ? implicitHeight : 0
-            icon.source: fixSuffix(
-                             actions.build.assembleThenFormat.icon.source,
-                             wrapper.darkMode)
         }
         ShortcutMenuItem {
             action: actions.build.execute

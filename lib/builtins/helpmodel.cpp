@@ -14,8 +14,8 @@ void HelpEntry::addChildren(QList<QSharedPointer<HelpEntry>> children) {
 
 HelpModel::HelpModel(QObject *parent) : QAbstractItemModel{parent} {
   _roots = {
-      about_root(),       writing_root(),  debugging_root(), systemcalls_root(),
-      greencard10_root(), examples_root(), macros_root(),
+      writing_root(),  debugging_root(), systemcalls_root(), greencard10_root(),
+      examples_root(), macros_root(),    about_root(),
   };
   for (auto &root : _roots) addToIndex(root);
 }

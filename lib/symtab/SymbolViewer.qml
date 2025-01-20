@@ -1,23 +1,124 @@
-import QtQuick 2.15
+import QtQuick
 import QtQuick.Controls
+import QtQml.Models
 
-Rectangle {
+Item {
+    id: root
+    property alias model: wrapper.model
     NuAppSettings {
         id: settings
     }
+    TextMetrics {
+        id: tm
+        font: settings.extPalette.baseMono.font
+        text: "W" // Dummy value to get width of widest character
+    }
+    Rectangle {
 
-    color: palette.base
-    property alias model: wrapper.model
-    //  Give object code viewer a background box
-    border.width: 1
-    border.color: palette.mid
-    GridView {
-        id: wrapper
+        color: palette.base
         anchors.fill: parent
-        anchors.leftMargin: vsc.width
-        cellHeight: tm.height
-        cellWidth: tm.width * 15 + 10 // (4 + (tm.longest == 0 ? 10 : tm.longest)) + 10
+        //  Give object code viewer a background box
+        border.width: 1
+        border.color: palette.mid
+    }
+    HorizontalHeaderView {
+        id: horizontalHeader
+        // Dummy value to silence warning about non-existent role.
+        textRole: "symbol"
+        anchors {
+            left: parent.left
+            right: parent.right
+            top: parent.top
+        }
+        syncView: wrapper
         clip: true
+        delegate: Item {
+            id: headerDelegate
+            implicitHeight: symbolHead.contentHeight
+            Label {
+                id: symbolHead
+                anchors.left: parent.left
+                verticalAlignment: Text.AlignVCenter
+                horizontalAlignment: Text.AlignLeft
+                leftPadding: tm.width * 2
+
+                color: palette.text
+                text: "Symbol"
+                font: tm.font
+            }
+            Label {
+                id: valueHead
+                focus: false
+                anchors.left: symbolHead.right
+                anchors.right: parent.right
+                verticalAlignment: Text.AlignVCenter
+                horizontalAlignment: Text.AlignRight
+                rightPadding: tm.width * 2
+
+                color: palette.text
+                text: "Value"
+                font: tm.font
+            }
+        }
+    }
+
+    TableView {
+        id: wrapper
+        anchors {
+            top: horizontalHeader.bottom
+            bottom: parent.bottom
+            right: parent.right
+            rightMargin: vsc.width
+            left: parent.left
+        }
+        contentWidth: width
+        clip: true
+        focus: true
+        MouseArea {
+            anchors.fill: parent
+            onWheel: function (event) {
+                if (event.angleDelta.y > 0) {
+                    vsc.decrease()
+                } else {
+                    vsc.increase()
+                }
+            }
+            onPressed: function (event) {
+                const cell = wrapper.cellAtPosition(event.x, event.y)
+                const index = wrapper.modelIndex(cell)
+                const m = wrapper.model
+                const sm = wrapper.selectionModel
+                if (event.button === Qt.LeftButton) {
+                    if (event.modifiers & Qt.ShiftModifier) {
+                        const pr = sm.currentIndex
+                        if (pr.valid)
+                            m.selectRectangle(sm, pr, index)
+                    } else {
+                        // Must use this variant. Setting current flag does not set currentIndex.
+                        sm.setCurrentIndex(
+                                    index,
+                                    ItemSelectionModel.ClearAndSelect | ItemSelectionModel.Current)
+                    }
+                }
+            }
+        }
+        columnWidthProvider: function (index) {
+            const header = "Symbol  Value".length + 4 // Need 2 padding  on each side
+            const row = model.longest + 4 + 2 // Symbol + space + hex value
+            return tm.width * Math.max(header, row) + 10
+        }
+        rowHeightProvider: function (index) {
+            return tm.font.pixelSize + 4
+        }
+        onWidthChanged: {
+            const actualSize = columnWidthProvider(0) + columnSpacing
+            wrapper.model.setColumnCount(width / actualSize)
+        }
+        onModelChanged: {
+            const actualSize = columnWidthProvider(0) + columnSpacing
+            wrapper.model.setColumnCount(width / actualSize)
+        }
+
         boundsBehavior: Flickable.StopAtBounds
 
         //  Disable horizontal scroll bar
@@ -31,28 +132,41 @@ Rectangle {
             policy: ScrollBar.AlwaysOn
         }
 
-        Component.onCompleted: {
-
-            //tm.longest = model.longest
-            console.log("Cell width: " + cellWidth)
+        selectionModel: ItemSelectionModel {
+            model: wrapper.model
         }
+        delegate: Rectangle {
+            id: delegate
+            required property bool selected
+            required property bool current
+            implicitHeight: symbol.contentHeight
+            color: selected ? palette.highlight : "transparent"
 
-        TextMetrics {
-            id: tm
-            font: settings.extPalette.base.font
-            text: "W" // Dummy value to get width of widest character
-        }
+            Label {
+                id: symbol
+                focus: false
+                anchors.left: parent.left
+                verticalAlignment: Text.AlignVCenter
+                horizontalAlignment: Text.AlignLeft
+                leftPadding: tm.width * 2
 
-        delegate: SymbolCell {
-            width: wrapper.cellWidth
-            height: wrapper.cellHeight
+                color: palette.text
+                text: model.symbol
+                font: tm.font
+            }
+            Label {
+                id: value
+                focus: false
+                anchors.left: symbol.right
+                anchors.right: parent.right
+                verticalAlignment: Text.AlignVCenter
+                horizontalAlignment: Text.AlignRight
+                rightPadding: tm.width * 2
 
-            symbolText: model.symbol
-            valueText: model.value
-            valueWidth: tm.width * 4
-
-            textColor: palette.text
-            font: tm.font
+                color: palette.text
+                text: model.value
+                font: tm.font
+            }
         }
     }
 }

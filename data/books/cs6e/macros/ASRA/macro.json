@@ -1,6 +1,7 @@
 {
   "type": "macro",
   "arch": "pep10",
+  "family": "Arithmetic Shift Right",
   "items": {
     "ASRA2": "{name}.pepm",
     "ASRA3": "{name}.pepm",

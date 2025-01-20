@@ -18,7 +18,7 @@ Flickable {
         id: textArea
         anchors.fill: parent
         width: parent.width
-        textFormat: Text.MarkdownText
+        textFormat: Text.PlainText
         wrapMode: Text.WordWrap
         readOnly: true
     }

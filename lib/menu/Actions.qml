@@ -149,7 +149,7 @@ QtObject {
                 window.preAssemble()
                 project.onAssembleThenLoad()
             }
-            text: qsTr("Assemble then &Load Object Code")
+            text: qsTr("Assemble &Load Object Code")
             icon.source: `image://icons/build/flash${enabled ? '' : '_disabled'}${dark ? '' : '_dark'}.svg`
             shortcut: "Ctrl+Shift+L"
             onShortcutChanged: updateNativeText(this)
@@ -162,7 +162,7 @@ QtObject {
                 window.preAssemble()
                 project.onAssembleThenFormat()
             }
-            text: qsTr("Assemble then &Format")
+            text: qsTr("&Format Assembly Code")
             // Use blank icon to force menu items to line up.
             icon.source: "image://icons/blank.svg"
             onShortcutChanged: updateNativeText(this)
