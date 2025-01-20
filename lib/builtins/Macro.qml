@@ -45,6 +45,17 @@ Item {
             editorFont: editorFM.font
             language: wrapper.lexerLang
             text: wrapper.payload.text
+            readOnly: false
+            Component.onCompleted: textArea.readOnly = true
+
+            Connections {
+                target: wrapper.payload
+                function onTextChanged() {
+                    textArea.readOnly = false
+                    textArea.text = wrapper.payload.text
+                    textArea.readOnly = true
+                }
+            }
         }
         Row {
             id: copyRow
