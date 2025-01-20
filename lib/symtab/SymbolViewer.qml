@@ -40,7 +40,7 @@ Item {
                 anchors.left: parent.left
                 verticalAlignment: Text.AlignVCenter
                 horizontalAlignment: Text.AlignLeft
-                leftPadding: 5
+                leftPadding: tm.width * 2
 
                 color: palette.text
                 text: "Symbol"
@@ -53,7 +53,7 @@ Item {
                 anchors.right: parent.right
                 verticalAlignment: Text.AlignVCenter
                 horizontalAlignment: Text.AlignRight
-                rightPadding: 5
+                rightPadding: tm.width * 2
 
                 color: palette.text
                 text: "Value"
@@ -72,7 +72,6 @@ Item {
             left: parent.left
         }
         contentWidth: width
-        columnSpacing: tm.width * 4
         clip: true
         focus: true
         MouseArea {
@@ -104,7 +103,7 @@ Item {
             }
         }
         columnWidthProvider: function (index) {
-            const header = "Symbol  Value".length
+            const header = "Symbol  Value".length + 4 // Need 2 padding  on each side
             const row = model.longest + 4 + 2 // Symbol + space + hex value
             return tm.width * Math.max(header, row) + 10
         }
@@ -149,7 +148,7 @@ Item {
                 anchors.left: parent.left
                 verticalAlignment: Text.AlignVCenter
                 horizontalAlignment: Text.AlignLeft
-                leftPadding: 5
+                leftPadding: tm.width * 2
 
                 color: palette.text
                 text: model.symbol
@@ -162,7 +161,7 @@ Item {
                 anchors.right: parent.right
                 verticalAlignment: Text.AlignVCenter
                 horizontalAlignment: Text.AlignRight
-                rightPadding: 5
+                rightPadding: tm.width * 2
 
                 color: palette.text
                 text: model.value
