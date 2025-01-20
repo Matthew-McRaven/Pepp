@@ -38,6 +38,7 @@ void SymbolModel::setFromElf(ELFIO::elfio *elf, QString tableSection) {
 
     //  Find longest key
     longest_ = std::max(longest_, e.name.length());
+    emit longestChanged();
   }
 
   //  Sort list, case insensitive

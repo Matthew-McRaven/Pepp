@@ -9,7 +9,7 @@ class QItemSelectionModel;
 class SymbolModel : public QAbstractTableModel {
   Q_OBJECT
 
-  Q_PROPERTY(qsizetype longest MEMBER longest_ CONSTANT)
+  Q_PROPERTY(qsizetype longest READ longest NOTIFY longestChanged)
 
   struct Entry {
     QString name;
@@ -41,7 +41,12 @@ public:
   Q_INVOKABLE void selectRectangle(QItemSelectionModel *selectionModel, const QModelIndex &topLeft,
                                    const QModelIndex &bottomRight) const;
 
-protected: //  Role Names must be under protected
+  qsizetype longest() const { return longest_; }
+
+signals:
+  void longestChanged();
+
+protected:
   QHash<int, QByteArray> roleNames() const override;
 
 private:

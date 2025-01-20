@@ -72,6 +72,7 @@ Item {
             left: parent.left
         }
         contentWidth: width
+        columnSpacing: tm.width * 4
         clip: true
         focus: true
         MouseArea {
@@ -103,16 +104,20 @@ Item {
             }
         }
         columnWidthProvider: function (index) {
-            return tm.width * 15 + 10
+            const header = "Symbol  Value".length
+            const row = model.longest + 4 + 2 // Symbol + space + hex value
+            return tm.width * Math.max(header, row) + 10
         }
         rowHeightProvider: function (index) {
             return tm.font.pixelSize + 4
         }
         onWidthChanged: {
-            wrapper.model.setColumnCount(width / columnWidthProvider(0))
+            const actualSize = columnWidthProvider(0) + columnSpacing
+            wrapper.model.setColumnCount(width / actualSize)
         }
         onModelChanged: {
-            wrapper.model.setColumnCount(width / columnWidthProvider(0))
+            const actualSize = columnWidthProvider(0) + columnSpacing
+            wrapper.model.setColumnCount(width / actualSize)
         }
 
         boundsBehavior: Flickable.StopAtBounds
