@@ -73,3 +73,5 @@ Changed,,0.8.3,,"In help system, freely allow users to change abstraction and ar
 Added,,0.8.3,771,"Add macro browser to Pep/10 help documentation"
 Fixed,,0.8.3,773,"Prevent editing of read-only figures in help system"
 Changed,,0.8.3,774,"Add ""Assemble"" button to toolbar"
+Changed,,0.8.3,776,"Make symbol table viewer resizable"
+Fixed,,0.8.3,776,"More tightly group symbol:value pairs in symbol table viewer"
