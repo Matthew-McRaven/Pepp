@@ -99,7 +99,7 @@ Item {
             }
             Label {
                 Layout.fillWidth: true
-                text: qsTr("Copyright © 2016 - 2024, J. Stanley Warford, Matthew McRaven, Pepperdine University\n")
+                text: qsTr("Copyright © 2016 - 2025, J. Stanley Warford, Matthew McRaven, Pepperdine University\n")
                 wrapMode: Text.WordWrap
             }
             Label {
