@@ -164,7 +164,7 @@ QSharedPointer<HelpEntry> macros_root() {
   for (const QString &scall : {"DECI", "DECO", "HEXO", "STRO", "SNOP"}) {
     static const QString pl = "LDWA %1, i\nSCALL $1, $2\n";
     auto displayTitle = scall;
-    auto sortTitle = u"%1 %2"_s.arg(it).arg(scall);
+    auto sortTitle = u"%1 %2"_s.arg(it++).arg(scall);
     static const auto scall_mask = bitmask(builtins::Architecture::PEP10, builtins::Abstraction::ASMB5);
     auto entry = QSharedPointer<HelpEntry>::create(HelpCategory::Category::Figure, scall_mask, displayTitle,
                                                    "../builtins/Macro.qml");
