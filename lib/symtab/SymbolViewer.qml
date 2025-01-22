@@ -99,6 +99,8 @@ Item {
                                     index,
                                     ItemSelectionModel.ClearAndSelect | ItemSelectionModel.Current)
                     }
+                    // Must force tableview to have focus, else copy will not work
+                    wrapper.forceActiveFocus()
                 }
             }
         }
@@ -117,6 +119,9 @@ Item {
         onModelChanged: {
             const actualSize = columnWidthProvider(0) + columnSpacing
             wrapper.model.setColumnCount(width / actualSize)
+        }
+        function copy() {
+            wrapper.model.copy(selectionModel.selectedIndexes)
         }
 
         boundsBehavior: Flickable.StopAtBounds
@@ -141,7 +146,7 @@ Item {
             required property bool current
             implicitHeight: symbol.contentHeight
             color: selected ? palette.highlight : "transparent"
-
+            focus: false
             Label {
                 id: symbol
                 focus: false

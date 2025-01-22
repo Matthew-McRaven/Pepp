@@ -52,14 +52,6 @@ Item {
                     wrapper.requestModeSwitchToDebugger)
         wrapper.actions.build.execute.triggered.connect(
                     wrapper.requestModeSwitchToDebugger)
-        const list = [userAsmEdit, osAsmEdit, userList, osList]
-        for (var i = 0; i < list.length; i++) {
-            wrapper.actions.edit.copy.triggered.connect(list[i].onCopy)
-            wrapper.actions.edit.cut.triggered.connect(list[i].onCut)
-            wrapper.actions.edit.paste.triggered.connect(list[i].onPaste)
-            wrapper.actions.edit.undo.triggered.connect(list[i].onUndo)
-            wrapper.actions.edit.redo.triggered.connect(list[i].onRedo)
-        }
         onOverwriteEditors()
     }
     // Will be called before project is changed on unload, so we can disconnect save-triggering signals.
@@ -94,15 +86,6 @@ Item {
                     wrapper.requestModeSwitchToDebugger)
         wrapper.actions.build.execute.triggered.disconnect(
                     wrapper.requestModeSwitchToDebugger)
-
-        const list = [userAsmEdit, osAsmEdit, userList, osList]
-        for (var i = 0; i < list.length; i++) {
-            wrapper.actions.edit.copy.triggered.disconnect(list[i].onCopy)
-            wrapper.actions.edit.cut.triggered.disconnect(list[i].onCut)
-            wrapper.actions.edit.paste.triggered.disconnect(list[i].onPaste)
-            wrapper.actions.edit.undo.triggered.disconnect(list[i].onUndo)
-            wrapper.actions.edit.redo.triggered.disconnect(list[i].onRedo)
-        }
     }
     signal requestModeSwitchTo(string mode)
     function requestModeSwitchToDebugger() {

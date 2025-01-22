@@ -76,16 +76,19 @@ MenuBar {
         MenuSeparator {}
         ShortcutMenuItem {
             action: actions.edit.cut
+            enabled: action.enabled
             icon.source: fixSuffix(actions.edit.cut.icon.source,
                                    wrapper.darkMode)
         }
         ShortcutMenuItem {
             action: actions.edit.copy
+            enabled: action.enabled
             icon.source: fixSuffix(actions.edit.copy.icon.source,
                                    wrapper.darkMode)
         }
         ShortcutMenuItem {
             action: actions.edit.paste
+            enabled: action.enabled
             icon.source: fixSuffix(actions.edit.paste.icon.source,
                                    wrapper.darkMode)
         }

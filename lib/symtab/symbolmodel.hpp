@@ -42,6 +42,7 @@ public:
                                    const QModelIndex &bottomRight) const;
 
   qsizetype longest() const { return longest_; }
+  Q_INVOKABLE void copy(const QList<QModelIndex> &indices) const;
 
 signals:
   void longestChanged();
