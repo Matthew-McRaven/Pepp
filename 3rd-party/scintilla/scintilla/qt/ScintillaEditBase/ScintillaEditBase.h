@@ -53,7 +53,7 @@ class SCINTILLA_EXPORT ScintillaEditBase : public
 #ifdef PLAT_QT_QML
   Q_PROPERTY(QString text READ getText WRITE setText NOTIFY textChanged)
   Q_PROPERTY(QFont font READ getFont WRITE setFont NOTIFY fontChanged)
-  Q_PROPERTY(bool readonly READ getReadonly WRITE setReadonly NOTIFY readonlyChanged)
+  Q_PROPERTY(bool readOnly READ getReadonly WRITE setReadonly NOTIFY readonlyChanged)
   Q_PROPERTY(int logicalWidth READ getLogicalWidth NOTIFY logicalWidthChanged)
   Q_PROPERTY(int logicalHeight READ getLogicalHeight NOTIFY logicalHeightChanged)
   Q_PROPERTY(int charHeight READ getCharHeight NOTIFY charHeightChanged)

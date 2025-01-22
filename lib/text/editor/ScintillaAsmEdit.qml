@@ -55,7 +55,7 @@ Item {
 
     // public properties
     property alias text: editor.text
-    property alias readOnly: editor.readonly
+    property alias readOnly: editor.readOnly
     property alias editorFont: editor.font
     property alias language: editor.language
     // private properties, used only for technical details...
@@ -98,7 +98,7 @@ Item {
         anchors.left: parent.left
         anchors.right: verticalScrollBar.left
 
-        readonly: false
+        readOnly: false
 
         Accessible.role: Accessible.EditableText
         focus: true
