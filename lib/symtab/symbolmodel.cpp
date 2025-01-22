@@ -1,4 +1,6 @@
 #include "symbolmodel.hpp"
+#include <QClipboard>
+#include <QGuiApplication>
 #include <QItemSelection>
 #include <QItemSelectionModel>
 #include "elfio/elfio.hpp"
@@ -96,4 +98,48 @@ void SymbolModel::selectRectangle(QItemSelectionModel *selectionModel, const QMo
   selectionModel->select(selection, QItemSelectionModel::Select | QItemSelectionModel::Clear);
 }
 
-QHash<int, QByteArray> SymbolModel::roleNames() const { return roleNames_; }
+using namespace Qt::StringLiterals;
+void SymbolModel::copy(const QList<QModelIndex> &indices) const {
+  if (indices.isEmpty()) return;
+  auto colCount = qMin(columnCount({}), indices.size());
+  int leftSize = qMax(longest_, 6), rightSize = 5, intraColPadding = 6;
+  auto colPlaceholder = u"%1 %2"_s;
+  auto colSpacer = u" "_s.repeated(intraColPadding);
+  auto bar = u"-"_s.repeated(colCount * (leftSize + 1 + rightSize + intraColPadding) - intraColPadding);
+  auto header = colPlaceholder.arg(u"Symbol"_s.leftJustified(leftSize, ' '), u"Value"_s.rightJustified(rightSize, ' '));
+  // Rows contains the final (output) list of columns, and wip contains the row we are currently constructing.
+  QStringList rows, wip;
+  // From now on, wip must always have columnCount elements.
+  for (int it = 0; it < colCount; it++) wip.append(header);
+
+  // Create header, resetting wip to be empty.
+  rows.append(bar);
+  rows.append(wip.join(colSpacer));
+  rows.append(bar);
+  wip.fill("");
+
+  // Track how many non-empty elements have been written to wip.
+  int colIt = 0;
+  // Write out each index to the wip buffer, flushing to rows when full.
+  for (const auto &index : indices) {
+    if (!index.isValid()) continue;
+
+    auto symbol = data(index, SymbolRole).toString(), value = data(index, ValueRole).toString();
+    wip[colIt++] = colPlaceholder.arg(symbol.leftJustified(leftSize, ' '), value.rightJustified(rightSize, ' '));
+
+    if (colIt >= colCount) {
+      rows.append(wip.join(colSpacer));
+      colIt = 0;
+      wip.fill("");
+    }
+  }
+  // Write out the last partially-filled row if it exists and create the footer
+
+  rows.append(bar);
+
+  // Only attempt clipboard access if the application has a clipboard.
+  QClipboard *clipboard = QGuiApplication::clipboard();
+  if (clipboard) clipboard->setText(rows.join("\n"));
+}
+
+QHash<int, QByteArray> SymbolModel::roleNames() const { return roleNames_; };
