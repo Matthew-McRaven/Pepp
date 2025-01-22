@@ -279,12 +279,12 @@ void ScintillaAsmEditBase::applyStyles() {
   send(SCI_SETINDICATORVALUE, 0);
 }
 
-void ScintillaAsmEditBase::onCut() { send(SCI_CUT); }
+void ScintillaAsmEditBase::cut() { send(SCI_CUT); }
 
-void ScintillaAsmEditBase::onCopy() { send(SCI_COPY); }
+void ScintillaAsmEditBase::copy() { send(SCI_COPY); }
 
-void ScintillaAsmEditBase::onPaste() { send(SCI_PASTE); }
+void ScintillaAsmEditBase::paste() { send(SCI_PASTE); }
 
-void ScintillaAsmEditBase::onUndo() { send(SCI_UNDO); }
+void ScintillaAsmEditBase::undo() { send(SCI_UNDO); }
 
-void ScintillaAsmEditBase::onRedo() { send(SCI_REDO); }
+void ScintillaAsmEditBase::redo() { send(SCI_REDO); }
