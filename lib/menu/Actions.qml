@@ -82,7 +82,7 @@ QtObject {
             icon.source: `image://icons/file/copy${dark ? '' : '_dark'}.svg`
             shortcut: StandardKey.Copy
             onShortcutChanged: updateNativeText(this)
-            enabled: (!!activeFocusItem && !!activeFocusItem["copy"])
+            enabled: !!activeFocusItem && !!activeFocusItem["copy"]
             onTriggered: activeFocusItem.copy()
         }
         readonly property var cut: Action {
@@ -91,7 +91,8 @@ QtObject {
             icon.source: `image://icons/file/cut${dark ? '' : '_dark'}.svg`
             shortcut: StandardKey.Cut
             onShortcutChanged: updateNativeText(this)
-            enabled: (!!activeFocusItem && !!activeFocusItem["cut"])
+            enabled: !!activeFocusItem && !!activeFocusItem["cut"]
+            && (!activeFocusItem.readOnly ?? true)
             onTriggered: activeFocusItem.cut()
         }
         readonly property var paste: Action {
@@ -100,7 +101,8 @@ QtObject {
             icon.source: `image://icons/file/paste${dark ? '' : '_dark'}.svg`
             shortcut: StandardKey.Paste
             onShortcutChanged: updateNativeText(this)
-            enabled: (!!activeFocusItem && !!activeFocusItem["paste"])
+            enabled: !!activeFocusItem && !!activeFocusItem["paste"]
+            && (!activeFocusItem.readOnly ?? true)
             onTriggered: activeFocusItem.paste()
         }
         readonly property var prefs: Action {
