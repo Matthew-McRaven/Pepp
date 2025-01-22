@@ -101,6 +101,7 @@ Labs.MenuBar {
             onTriggered: actions.edit.cut.trigger()
             icon.source: fixSuffix(actions.edit.cut.icon.source,
                                    wrapper.darkMode)
+            enabled: actions.edit.cut.enabled
             shortcut: actions.edit.cut.shortcut
         }
         Labs.MenuItem {
@@ -108,6 +109,7 @@ Labs.MenuBar {
             onTriggered: actions.edit.copy.trigger()
             icon.source: fixSuffix(actions.edit.copy.icon.source,
                                    wrapper.darkMode)
+            enabled: actions.edit.copy.enabled
             shortcut: actions.edit.copy.shortcut
         }
         Labs.MenuItem {
@@ -115,6 +117,7 @@ Labs.MenuBar {
             onTriggered: actions.edit.paste.trigger()
             icon.source: fixSuffix(actions.edit.paste.icon.source,
                                    wrapper.darkMode)
+            enabled: actions.edit.paste.enabled
             shortcut: actions.edit.paste.shortcut
         }
         // Formatting magic!
