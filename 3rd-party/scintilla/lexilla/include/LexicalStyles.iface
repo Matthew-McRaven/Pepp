@@ -818,9 +818,22 @@ val SCE_PEPASM_MACRO=5
 val SCE_PEPASM_CHARACTER=6
 val SCE_PEPASM_STRING=7
 val SCE_PEPASM_COMMENT=8
-val SCE_PEPASM_MACRO_START=9
-val SCE_PEPASM_MACRO_END=10
-val SCE_PEPASM_COMMENT_LINE=11
+val SCE_PEPASM_COMMENT_LINE=9
+val SCE_PEPASM_MACRO_START=10
+val SCE_PEPASM_MACRO_END=11
+# This is actually a bitmask. All of the following states should mirror the above states
+# |'ed with 0b1000. Macro start and end are always generated as comments from the assembler,
+# but are included in the non-generated states as a way to ease the implementation of the lexer.
+val SCE_PEPASM_DEFAULT_GEN=16
+val SCE_PEPASM_IDENTIFIER_GEN=17
+val SCE_PEPASM_SYMBOL_DECL_GEN=18
+val SCE_PEPASM_MNEMONIC_GEN=19
+val SCE_PEPASM_DIRECTIVE_GEN=20
+val SCE_PEPASM_MACRO_GEN=21
+val SCE_PEPASM_CHARACTER_GEN=22
+val SCE_PEPASM_STRING_GEN=23
+val SCE_PEPASM_COMMENT_GEN=24
+val SCE_PEPASM_COMMENT_LINE_GEN=25
 # Lexical states for SCLEX_ASM, SCLEX_AS
 lex Asm=SCLEX_ASM SCE_ASM_
 lex As=SCLEX_AS SCE_ASM_
