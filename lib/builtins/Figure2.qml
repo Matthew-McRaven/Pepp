@@ -28,6 +28,10 @@ Item {
     required property string lexerLang
     property string curLang: undefined
     property var curElement: undefined
+    NuAppSettings {
+        id: settings
+    }
+
     Component.onCompleted: {
         const el = payload.elements
         const langs = Object.keys(el)
@@ -173,7 +177,7 @@ Item {
     }
     FontMetrics {
         id: editorFM
-        font: editor.font
+        font: settings.extPalette.baseMono.font
     }
     signal addProject(string feats, string text, string switchToMode, var optionalOS, var tests)
     signal renameCurrentProject(string newName)
