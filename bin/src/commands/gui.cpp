@@ -75,10 +75,9 @@ int gui_main(const gui_args &args) {
   QApplication app(argc, argvs.data());
 #endif
 
-  QFontDatabase::addApplicationFont(":/fonts/mono/CourierPrime-Regular.ttf");
-  QFontDatabase::addApplicationFont(":/fonts/mono/CourierPrime-Italic.ttf");
-  QFontDatabase::addApplicationFont(":/fonts/mono/CourierPrime-Bold.ttf");
-  QFontDatabase::addApplicationFont(":/fonts/mono/CourierPrime-BoldItalic.ttf");
+  for (QDirIterator i(":/fonts/", QDirIterator::Subdirectories); i.hasNext();) {
+    if (auto f = QFileInfo(i.next()); f.isFile()) QFontDatabase::addApplicationFont(f.absoluteFilePath());
+  }
 
   QApplication::setOrganizationName("Pepperdine University");
   QApplication::setApplicationName("Pepp");
