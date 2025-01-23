@@ -75,7 +75,7 @@ ApplicationWindow {
         //  Colors when control is disabled. Overrides normal palette
         disabled {
             highlight: settings.extPalette.window.background
-            buttonText: settings.extPalette.shadow.foreground
+            buttonText: settings.extPalette.base.foreground
             text: settings.extPalette.shadow.foreground
             button: settings.extPalette.base.background
         }
