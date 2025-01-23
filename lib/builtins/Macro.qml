@@ -42,7 +42,6 @@ Item {
             Layout.alignment: Qt.AlignCenter
             Layout.fillHeight: true
             Layout.fillWidth: true
-            editorFont: editorFM.font
             language: wrapper.lexerLang
             text: wrapper.payload.text
             readOnly: false
@@ -71,6 +70,6 @@ Item {
     }
     FontMetrics {
         id: editorFM
-        font.family: "Courier Prime"
+        font: textArea.font
     }
 }

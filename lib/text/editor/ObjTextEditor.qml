@@ -25,6 +25,10 @@ ScrollView {
     property alias readOnly: editor.readOnly
     property alias text: editor.text
     signal editingFinished(string text)
+    NuAppSettings {
+        id: settings
+    }
+
     Component.onCompleted: {
         // Propogate editingFinished to containing component
         editor.editingFinished.connect(text => wrapper.editingFinished(text))
@@ -53,7 +57,7 @@ ScrollView {
             anchors.bottom: parent.bottom
             textFormat: TextEdit.PlainText
             renderType: Text.NativeRendering
-            font.family: "Courier Prime"
+            font: settings.extPalette.baseMono.font
             readOnly: wrapper.isReadOnly
             Keys.onPressed: event => {
                                 if (event.key === Qt.Key_Insert

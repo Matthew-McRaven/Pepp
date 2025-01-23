@@ -129,7 +129,6 @@ Item {
             Layout.alignment: Qt.AlignCenter
             Layout.fillHeight: true
             Layout.fillWidth: true
-            editorFont: editorFM.font
             language: wrapper.lexerLang
             readOnly: false
             Component.onCompleted: readOnly = true
@@ -174,7 +173,7 @@ Item {
     }
     FontMetrics {
         id: editorFM
-        font.family: "Courier Prime"
+        font: editor.font
     }
     signal addProject(string feats, string text, string switchToMode, var optionalOS, var tests)
     signal renameCurrentProject(string newName)

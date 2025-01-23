@@ -28,10 +28,13 @@ ColumnLayout {
     implicitWidth: layout.implicitWidth
     property alias registers: registers.model
     property alias flags: flags.model
+    NuAppSettings {
+        id: settings
+    }
 
     FontMetrics {
         id: metrics
-        font.family: "Courier Prime"
+        font: settings.extPalette.baseMono.font
     }
     TextMetrics {
         id: tm
