@@ -235,7 +235,7 @@ Item {
                 }
                 Button {
                     enabled: !root.isSystem
-                    text: root.paletteItem?.macroFont.family
+                    text: root.paletteItem?.macroFont?.family ?? "Select Font"
                     font: root.paletteItem?.macroFont
                     onPressed: {
                         //  Open dialog and set properties.

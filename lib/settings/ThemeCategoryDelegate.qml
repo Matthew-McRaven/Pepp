@@ -202,7 +202,7 @@ Item {
                         name: display
                         bgColor: paletteItem?.background ?? "transparent"
                         fgColor: paletteItem?.foreground ?? "black"
-                        font: paletteItem?.font ?? "Courier Prime"
+                        font: paletteItem?.font ?? "Monaspace Xenon"
                     }
                 }
                 PaletteDetails {

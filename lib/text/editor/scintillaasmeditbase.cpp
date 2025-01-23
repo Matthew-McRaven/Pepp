@@ -210,6 +210,7 @@ void ScintillaAsmEditBase::applyStyles() {
   auto baseBack = _theme->base()->background();
   send(SCI_STYLESETFORE, STYLE_DEFAULT, c2i(_theme->base()->foreground()));
   send(SCI_SETCARETFORE, c2i(_theme->base()->foreground()));
+  setStylesFont(_theme->baseMono()->font(), STYLE_DEFAULT);
   send(SCI_STYLESETBACK, STYLE_DEFAULT, c2i(_theme->base()->background()));
   send(SCI_STYLECLEARALL, 0, 0);
 

@@ -12,7 +12,7 @@ Item {
     property alias asciiFont: asciiFM.font
 
     property font hexFont: Qt.font({
-                                       "family": 'Courier',
+                                       "family": 'Monaspace Xenon',
                                        "weight": Font.Normal,
                                        "italic": false,
                                        "bold": false,
@@ -22,7 +22,7 @@ Item {
     FontMetrics {
         id: asciiFM
         font: Qt.font({
-                          "family": 'Courier',
+                          "family": 'Monaspace Xenon',
                           "weight": Font.Normal,
                           "italic": false,
                           "bold": false,

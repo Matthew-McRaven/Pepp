@@ -250,7 +250,7 @@ void pepp::settings::PaletteItem::emitChanged() { emit preferenceChanged(); }
 
 void pepp::settings::PaletteItem::updateFont(const QFont newFont) {
   QFontInfo fontInfo(newFont);
-  if (!fontInfo.fixedPitch() && PaletteRoleHelper::requiresMonoFont(_ownRole)) _font = QFont("Courier Prime", 12);
+  if (!fontInfo.fixedPitch() && PaletteRoleHelper::requiresMonoFont(_ownRole)) _font = QFont("Monaspace Xenon", 12);
   else _font = newFont;
 }
 
@@ -258,12 +258,12 @@ void pepp::settings::PaletteItem::preventNonMonoParent() {
   // We either have a font and do not need to care about our parent or we do not care because we don't need a mono font.
   if (hasOwnFont() || !PaletteRoleHelper::requiresMonoFont(_ownRole)) {
   } else if (!_parent) {
-    if (!hasOwnFont()) _font = QFont("Courier Prime", 12);
+    if (!hasOwnFont()) _font = QFont("Monaspace Xenon", 12);
   } else {
     // For some reason, the actual font (returned below) does not set fixed pitch, while QFontInfo does.
     auto font = _parent->font();
     QFontInfo fontInfo(font);
-    if (!fontInfo.fixedPitch()) _font = QFont("Courier Prime", 12);
+    if (!fontInfo.fixedPitch()) _font = QFont("Monaspace Xenon", 12);
   }
 }
 
