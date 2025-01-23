@@ -2,8 +2,7 @@
 #include <QSet>
 #include <qfontinfo.h>
 
-pepp::settings::PaletteItem::PaletteItem(PreferenceOptions opts, PaletteRole ownRole, QObject *parent)
-    : QObject(parent) {
+pepp::settings::PaletteItem::PaletteItem(Options opts, PaletteRole ownRole, QObject *parent) : QObject(parent) {
   _ownRole = ownRole;
   if (opts.parent) setParent(opts.parent);
   if (opts.fg.has_value()) _foreground = opts.fg;
@@ -274,4 +273,67 @@ bool pepp::settings::detail::isAncestorOf(const PaletteItem *maybeAncestor, cons
     ancestors.insert(ptr);
   }
   return ancestors.contains(maybeAncestor);
+}
+
+pepp::settings::EditorPaletteItem::EditorPaletteItem(EditorOptions opts, Options base, PaletteRole ownRole,
+                                                     QObject *parent)
+    : PaletteItem(base, ownRole, parent), _macroFont(opts.macroFont) {}
+
+QFont pepp::settings::EditorPaletteItem::macroFont() const {
+  auto parentAsEditor = dynamic_cast<const EditorPaletteItem *>(_parent);
+
+  if (parentAsEditor && !_macroFont.has_value()) {
+    auto baseline = parentAsEditor->macroFont();
+    baseline.setBold(_fontOverrides.bold.value_or(baseline.bold()));
+    baseline.setItalic(_fontOverrides.italic.value_or(baseline.italic()));
+    baseline.setUnderline(_fontOverrides.underline.value_or(baseline.underline()));
+    baseline.setStrikeOut(_fontOverrides.strikeout.value_or(baseline.strikeOut()));
+    return baseline;
+  } else return _macroFont.value_or(QFont("Courier Prime", 12));
+}
+
+void pepp::settings::EditorPaletteItem::clearMacroFont() {
+  _macroFont.reset();
+  emit preferenceChanged();
+}
+
+bool pepp::settings::EditorPaletteItem::hasOwnMacroFont() const { return _macroFont.has_value(); }
+
+void pepp::settings::EditorPaletteItem::setMacroFont(const QFont font) {
+  if (font == _macroFont) return;
+  updateMacroFont(font);
+  emit preferenceChanged();
+}
+
+bool pepp::settings::EditorPaletteItem::updateFromJson(const QJsonObject &json, PaletteRole ownRole,
+                                                       PaletteItem *parent) {
+  if (json.contains("macroFont")) updateMacroFont(QFont(json["macroFont"].toString()));
+
+  return PaletteItem::updateFromJson(json, ownRole, parent);
+}
+
+QJsonObject pepp::settings::EditorPaletteItem::toJson() {
+  auto ret = PaletteItem::toJson();
+  if (_macroFont.has_value()) ret["macroFont"] = _macroFont->toString();
+  return ret;
+}
+
+void pepp::settings::EditorPaletteItem::updateFromSettings(QSettings &settings, PaletteItem *parent) {
+  PaletteItem::updateFromSettings(settings, parent);
+  if (settings.contains("macroFont")) {
+    auto font = QFont(settings.value("macroFont").toString());
+    updateMacroFont(font);
+    _fontOverrides = {};
+  }
+}
+
+void pepp::settings::EditorPaletteItem::toSettings(QSettings &settings) const {
+  PaletteItem::toSettings(settings);
+  if (hasOwnMacroFont()) settings.setValue("macroFont", macroFont().toString());
+}
+
+void pepp::settings::EditorPaletteItem::updateMacroFont(const QFont newFont) {
+  QFontInfo fontInfo(newFont);
+  if (!fontInfo.fixedPitch() && PaletteRoleHelper::requiresMonoFont(_ownRole)) _macroFont = QFont("Courier Prime", 12);
+  else _macroFont = newFont;
 }

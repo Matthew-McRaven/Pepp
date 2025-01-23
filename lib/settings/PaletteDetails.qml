@@ -226,6 +226,39 @@ Item {
             } //  ColumnLayout
         } // fontOverrideGB
 
+        GroupBox {
+            id: macroFontGB
+            visible: root.paletteItem?.clearMacroFont !== undefined
+            RowLayout {
+                Label {
+                    text: "Macro Font "
+                }
+                Button {
+                    enabled: !root.isSystem
+                    text: root.paletteItem?.macroFont.family
+                    font: root.paletteItem?.macroFont
+                    onPressed: {
+                        //  Open dialog and set properties.
+                        macroFontDialog.open()
+                        // Must explicitly update current font, because the binding is ignored.
+                        macroFontDialog.open()
+                        macroFontDialog.currentFont = root.paletteItem.macroFont
+                        macroFontDialog.visible = true
+                    }
+                }
+                Button {
+                    text: "Reset to Parent"
+                    enabled: !root.isSystem
+                             && ((root.paletteItem?.parent
+                                  && root.paletteItem?.hasOwnMacroFont)
+                                 ?? false)
+                    onPressed: {
+                        if (enabled)
+                            root.paletteItem.clearMacroFont()
+                    }
+                }
+            }
+        } // fontGB
         Item {
             Layout.fillHeight: true
         }
@@ -239,10 +272,15 @@ Item {
             id: defaultFont
         }
         currentFont: root.paletteItem?.font ?? defaultFont.font
-        onAccepted: {
-            root.paletteItem.font = font
-        }
+        onAccepted: root.paletteItem.font = font
     }
+    Platform.FontDialog {
+        id: macroFontDialog
+        options: Platform.FontDialog.MonospacedFonts
+        currentFont: root.paletteItem?.macroFont ?? defaultFont.font
+        onAccepted: root.paletteItem.macroFont = font
+    }
+
     Platform.ColorDialog {
         id: colorDialog
         options: Platform.ColorDialog.ShowAlphaChannel

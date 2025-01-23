@@ -6,6 +6,7 @@
 #include "./constants.hpp"
 
 namespace pepp::settings {
+
 class PaletteItem : public QObject {
   Q_OBJECT
   Q_PROPERTY(PaletteItem *parent READ parent WRITE setParent NOTIFY preferenceChanged)
@@ -19,13 +20,13 @@ class PaletteItem : public QObject {
   QML_ELEMENT
 
 public:
-  struct PreferenceOptions {
+  struct Options {
     PaletteItem *parent = nullptr;
     std::optional<QColor> fg{std::nullopt};
     std::optional<QColor> bg{std::nullopt};
     std::optional<QFont> font{std::nullopt};
   };
-  explicit PaletteItem(PreferenceOptions opts, PaletteRole ownRole, QObject *parent = nullptr);
+  explicit PaletteItem(Options opts, PaletteRole ownRole, QObject *parent = nullptr);
   PaletteRole ownRole() const;
   PaletteItem *parent();
   const PaletteItem *parent() const;
@@ -50,11 +51,11 @@ public:
   Q_INVOKABLE void overrideUnderline(bool underline);
   Q_INVOKABLE void overrideStrikeout(bool strikeout);
 
-  bool updateFromJson(const QJsonObject &json, PaletteRole ownRole = PaletteRole::Invalid,
-                      PaletteItem *parent = nullptr);
-  QJsonObject toJson();
-  void updateFromSettings(QSettings &settings, PaletteItem *parent = nullptr);
-  void toSettings(QSettings &settings) const;
+  virtual bool updateFromJson(const QJsonObject &json, PaletteRole ownRole = PaletteRole::Invalid,
+                              PaletteItem *parent = nullptr);
+  virtual QJsonObject toJson();
+  virtual void updateFromSettings(QSettings &settings, PaletteItem *parent = nullptr);
+  virtual void toSettings(QSettings &settings) const;
 signals:
   void preferenceChanged();
 
@@ -62,7 +63,7 @@ public slots:
   void onParentChanged();
   void emitChanged();
 
-private:
+protected:
   PaletteItem *_parent{nullptr};
   std::optional<QColor> _foreground{std::nullopt};
   std::optional<QColor> _background{std::nullopt};
@@ -77,8 +78,35 @@ private:
   void preventNonMonoParent();
   PaletteRole _ownRole;
 };
+
+class EditorPaletteItem : public PaletteItem {
+  Q_OBJECT
+  QML_ELEMENT
+  Q_PROPERTY(QFont macroFont READ macroFont WRITE setMacroFont NOTIFY preferenceChanged);
+  Q_PROPERTY(QFont macroFont READ macroFont WRITE setMacroFont NOTIFY preferenceChanged);
+
+public:
+  struct EditorOptions {
+    std::optional<QFont> macroFont{std::nullopt};
+  };
+  explicit EditorPaletteItem(EditorOptions editor, Options base, PaletteRole ownRole, QObject *parent = nullptr);
+
+  QFont macroFont() const;
+  Q_INVOKABLE void clearMacroFont();
+  bool hasOwnMacroFont() const;
+  void setMacroFont(const QFont font);
+
+  bool updateFromJson(const QJsonObject &json, PaletteRole ownRole, PaletteItem *parent) override;
+  QJsonObject toJson() override;
+  void updateFromSettings(QSettings &settings, PaletteItem *parent) override;
+  void toSettings(QSettings &settings) const override;
+
+protected:
+  std::optional<QFont> _macroFont{std::nullopt};
+  void updateMacroFont(const QFont newFont);
+};
+
 namespace detail {
 bool isAncestorOf(const PaletteItem *maybeAncestor, const PaletteItem *maybeDescendant);
 } // namespace detail
-
 } // namespace pepp::settings
