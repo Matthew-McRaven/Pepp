@@ -156,8 +156,10 @@ int pepp::settings::Palette::itemToRole(const PaletteItem *item) const {
 }
 
 void pepp::settings::Palette::loadLightDefaults() {
-  static const auto defaultMono = QFont("Courier Prime", 12);
-  using PO = PaletteItem::PreferenceOptions;
+  static const auto defaultMono = QFont("Monaspace Xenon", 12);
+  static const auto defaultMacro = QFont("Monaspace Krypton", 12);
+  using PO = PaletteItem::Options;
+  using EO = EditorPaletteItem::EditorOptions;
   using R = PaletteRoleHelper::Role;
   for (int it = 0; it < static_cast<int>(PaletteRole::Total); it++) {
     if (_items[it] != nullptr) continue;
@@ -218,37 +220,41 @@ void pepp::settings::Palette::loadLightDefaults() {
       break;
       // Welcome to editor land
     case PaletteRoleHelper::Role::MnemonicRole:
-      pref = new PaletteItem(
+      pref = new EditorPaletteItem(
+          EO{.macroFont = defaultMacro},
           PO{.parent = _items[(int)R::BaseMonoRole], .fg = qRgb(0x25, 0x40, 0xbd), .bg = qRgba(0xff, 0xff, 0xff, 0xff)},
           r, this);
       break;
     case PaletteRoleHelper::Role::SymbolRole:
-      pref = new PaletteItem(
-          {.parent = _items[(int)R::MnemonicRole], .fg = qRgb(0xb6, 0x7b, 0xbc), .bg = qRgba(0xff, 0xff, 0xff, 0xff)},
+      pref = new EditorPaletteItem(
+          EO{},
+          PO{.parent = _items[(int)R::MnemonicRole], .fg = qRgb(0xb6, 0x7b, 0xbc), .bg = qRgba(0xff, 0xff, 0xff, 0xff)},
           r, this);
       pref->overrideBold(true);
       break;
     case PaletteRoleHelper::Role::DirectiveRole:
-      pref = new PaletteItem(PO{.parent = _items[(int)R::MnemonicRole]}, r, this);
+      pref = new EditorPaletteItem(EO{}, PO{.parent = _items[(int)R::MnemonicRole]}, r, this);
       break;
     case PaletteRoleHelper::Role::MacroRole:
-      pref = new PaletteItem(PO{.parent = _items[(int)R::MnemonicRole]}, r, this);
+      pref = new EditorPaletteItem(EO{}, PO{.parent = _items[(int)R::MnemonicRole]}, r, this);
       pref->overrideBold(false);
       pref->overrideItalic(true);
       break;
     case PaletteRoleHelper::Role::CharacterRole:
-      pref = new PaletteItem({.parent = _items[(int)R::MnemonicRole],
-                              .fg = QColor("orangered").rgba(),
-                              .bg = qRgba(0xff, 0xff, 0xff, 0xff)},
-                             r, this);
+      pref = new EditorPaletteItem(EO{},
+                                   PO{.parent = _items[(int)R::MnemonicRole],
+                                      .fg = QColor("orangered").rgba(),
+                                      .bg = qRgba(0xff, 0xff, 0xff, 0xff)},
+                                   r, this);
       pref->overrideBold(false);
       break;
     case PaletteRoleHelper::Role::StringRole:
-      pref = new PaletteItem(PO{.parent = _items[(int)R::CharacterRole]}, r, this);
+      pref = new EditorPaletteItem(EO{}, PO{.parent = _items[(int)R::CharacterRole]}, r, this);
       break;
     case PaletteRoleHelper::Role::CommentRole:
-      pref = new PaletteItem(
-          {.parent = _items[(int)R::MnemonicRole], .fg = qRgb(0x66, 0xa3, 0x33), .bg = qRgba(0xff, 0xff, 0xff, 0xff)},
+      pref = new EditorPaletteItem(
+          EO{},
+          PO{.parent = _items[(int)R::MnemonicRole], .fg = qRgb(0x66, 0xa3, 0x33), .bg = qRgba(0xff, 0xff, 0xff, 0xff)},
           r, this);
       pref->overrideBold(false);
       break;

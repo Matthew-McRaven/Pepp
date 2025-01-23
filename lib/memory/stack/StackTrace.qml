@@ -6,10 +6,13 @@ import edu.pepp 1.0
 Rectangle {
     id: root
     color: palette.base
+    NuAppSettings {
+        id: settings
+    }
 
     TextMetrics {
         id: tm
-        font.family: "Courier Prime"
+        font: settings.extPalette.baseMono.font
         text: "W" // Dummy value to get width of widest character
 
         //  Calculate widths and height based on current font

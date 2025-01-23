@@ -8,7 +8,7 @@
             "name": "BaseRole"
         },
         {
-            "font": "Courier Prime,12,-1,5,400,0,0,0,0,0,0,0,0,0,0,1",
+            "font": "Monaspace Xenon,12,-1,5,400,0,0,0,0,0,0,0,0,0,0,1",
             "name": "BaseMonoRole",
             "parent": "BaseRole"
         },
@@ -93,7 +93,8 @@
             "background": "0xffffffff",
             "foreground": "0xff2540bd",
             "name": "MnemonicRole",
-            "parent": "BaseMonoRole"
+            "parent": "BaseMonoRole",
+            "macroFont": "Monaspace Krypton,12,-1,5,400,0,0,0,0,0,0,0,0,0,0,1"
         },
         {
             "background": "0xffffffff",
@@ -133,12 +134,12 @@
         {
             "foreground": "0xff666666",
             "name": "RowNumberRole",
-            "parent": "BaseRole"
+            "parent": "BaseMonoRole"
         },
         {
             "background": "0xffffaa00",
             "name": "BreakpointRole",
-            "parent": "BaseRole"
+            "parent": "BaseMonoRole"
         },
         {
             "background": "0xffff0000",

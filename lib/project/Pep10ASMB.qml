@@ -14,6 +14,10 @@ Item {
     required property var project
     required property var actions
     required property string mode
+    NuAppSettings {
+        id: settings
+    }
+
     Component.onCompleted: {
         // Must connect and disconnect manually, otherwise project may be changed underneath us, and "save" targets wrong project.
         // Do not need to update on mode change, since mode change implies loss of focus of objEdit.
@@ -184,7 +188,7 @@ Item {
             }
             FontMetrics {
                 id: editorFM
-                font.family: "Courier Prime"
+                font: settings.extPalette.baseMono.font
             }
 
             SplitView {

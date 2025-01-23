@@ -44,6 +44,7 @@ extern LexerModule lmIndent;
 extern LexerModule lmJSON;
 extern LexerModule lmLua;
 extern LexerModule lmMarkdown;
+extern LexerModule lmNull;
 extern LexerModule lmOpal;
 extern LexerModule lmPep10;
 extern LexerModule lmPep9;
@@ -88,6 +89,7 @@ void AddEachLexer() {
 		&lmJSON,
 		&lmLua,
 		&lmMarkdown,
+		&lmNull,
 		&lmOpal,
 		&lmPep10,
 		&lmPep9,

@@ -142,7 +142,8 @@ void SCI_METHOD LexerPepAsm::Lex(Sci_PositionU startPos, Sci_Position length, in
   LexAccessor styler(pAccess);
 
   const char commentCharacter = ';';
-  static const auto macroStart = QRegularExpression(R"(^\s*;\s*@\w+)");
+  // Optional `symbol:`, followed by a required mnemonic.
+  static const auto macroStart = QRegularExpression(R"(^\s*;(\w+:)?\s+@\w+.*$)");
   static const auto macroEnd =
       QRegularExpression(R"(^\s*;\s*End\s*@\w+)", QRegularExpression::PatternOption::CaseInsensitiveOption);
   // Up to, but not including the current character, has only been white space.
@@ -153,67 +154,84 @@ void SCI_METHOD LexerPepAsm::Lex(Sci_PositionU startPos, Sci_Position length, in
   while (sc.More()) {
     if (sc.atLineStart) {
       onlyWhiteSpace = true;
-      // Lines are independent; prevent comments from bleeding one line to the next.
-      sc.ChangeState(SCE_PEPASM_DEFAULT);
+      // Use line state to store instantiation depth for macros.
+      // Must propogate depth between lines, otherwise we will spuriously reset to 0.
+      auto prevState = styler.GetLineState(qMax(0, sc.currentLine - 1));
+      styler.SetLineState(sc.currentLine, prevState);
+      // Prevent comments from bleeding one line to the next.
+      sc.ChangeState(SCE_PEPASM_DEFAULT | (prevState > 0 ? SCE_PEPASM_DEFAULT_GEN : 0));
     }
+
+    auto macroDepth = styler.GetLineState(sc.currentLine);
+    auto generated = macroDepth > 0 ? SCE_PEPASM_DEFAULT_GEN : 0;
+
     // Actions + transition table.
-    switch (sc.state) {
+    // Mask out bit that indicates if the style was generated to avoid needing ~2x the number of case statements.
+    switch (sc.state & ~SCE_PEPASM_DEFAULT_GEN) {
     case SCE_PEPASM_IDENTIFIER:
       if (sc.ch == ':') {
-        sc.ChangeState(SCE_PEPASM_SYMBOL_DECL);
-        sc.SetState(SCE_PEPASM_DEFAULT);
+        sc.ChangeState(SCE_PEPASM_SYMBOL_DECL | generated);
+        sc.SetState(SCE_PEPASM_DEFAULT | generated);
       } else if (!IsAWordChar(sc.ch)) {
         sc.GetCurrentLowered(s, sizeof(s));
-        if (mnemonics.InList(s)) sc.ChangeState(SCE_PEPASM_MNEMONIC);
-        sc.SetState(SCE_PEPASM_DEFAULT);
+        if (mnemonics.InList(s)) sc.ChangeState(SCE_PEPASM_MNEMONIC | generated);
+        sc.SetState(SCE_PEPASM_DEFAULT | generated);
         continue;
       }
       break;
     case SCE_PEPASM_DIRECTIVE:
       if (!IsAWordChar(sc.ch)) {
         sc.GetCurrentLowered(s, sizeof(s));
-        if (!directives.InList(s)) sc.ChangeState(SCE_PEPASM_IDENTIFIER);
-        sc.SetState(SCE_PEPASM_DEFAULT);
+        if (!directives.InList(s)) sc.ChangeState(SCE_PEPASM_IDENTIFIER | generated);
+        sc.SetState(SCE_PEPASM_DEFAULT | generated);
         continue;
       }
       break;
     case SCE_PEPASM_MACRO:
       if (!IsAWordChar(sc.ch)) {
-        sc.SetState(SCE_PEPASM_DEFAULT);
+        sc.SetState(SCE_PEPASM_DEFAULT | generated);
         continue;
       }
       break;
     case SCE_PEPASM_DEFAULT:
-      if (options.allowMacros && sc.ch == '@') sc.SetState(SCE_PEPASM_MACRO);
-      else if (sc.ch == ';' && !onlyWhiteSpace) sc.SetState(SCE_PEPASM_COMMENT);
-      else if (sc.ch == ';' && onlyWhiteSpace) sc.SetState(SCE_PEPASM_COMMENT_LINE);
-      else if (sc.ch == '\'') sc.SetState(SCE_PEPASM_CHARACTER);
-      else if (sc.ch == '"') sc.SetState(SCE_PEPASM_STRING);
-      else if (sc.ch == '.') sc.SetState(SCE_PEPASM_DIRECTIVE);
-      else if (IsAWordStart(sc.ch)) sc.SetState(SCE_PEPASM_IDENTIFIER);
-      else if (sc.atLineEnd) sc.SetState(SCE_PEPASM_DEFAULT);
+      if (options.allowMacros && sc.ch == '@') sc.SetState(SCE_PEPASM_MACRO | generated);
+      else if (sc.ch == ';' && !onlyWhiteSpace) sc.SetState(SCE_PEPASM_COMMENT | generated);
+      else if (sc.ch == ';' && onlyWhiteSpace) sc.SetState(SCE_PEPASM_COMMENT_LINE | (generated));
+      else if (sc.ch == '\'') sc.SetState(SCE_PEPASM_CHARACTER | generated);
+      else if (sc.ch == '"') sc.SetState(SCE_PEPASM_STRING | generated);
+      else if (sc.ch == '.') sc.SetState(SCE_PEPASM_DIRECTIVE | generated);
+      else if (IsAWordStart(sc.ch)) sc.SetState(SCE_PEPASM_IDENTIFIER | generated);
+      else if (sc.atLineEnd) sc.SetState(SCE_PEPASM_DEFAULT | generated);
       break;
     case SCE_PEPASM_CHARACTER:
-      if (sc.ch == '\'') sc.ForwardSetState(SCE_PEPASM_DEFAULT);
-      else if (sc.atLineEnd) sc.SetState(SCE_PEPASM_DEFAULT);
+      if (sc.ch == '\'') sc.ForwardSetState(SCE_PEPASM_DEFAULT | generated);
+      else if (sc.atLineEnd) sc.SetState(SCE_PEPASM_DEFAULT | generated);
       break;
     case SCE_PEPASM_STRING:
-      if (sc.ch == '"' && sc.chPrev != '\\') sc.ForwardSetState(SCE_PEPASM_DEFAULT);
-      else if (sc.atLineEnd) sc.SetState(SCE_PEPASM_DEFAULT);
+      if (sc.ch == '"' && sc.chPrev != '\\') sc.ForwardSetState(SCE_PEPASM_DEFAULT | generated);
+      else if (sc.atLineEnd) sc.SetState(SCE_PEPASM_DEFAULT | generated);
       break;
     case SCE_PEPASM_COMMENT_LINE: [[fallthrough]];
     case SCE_PEPASM_COMMENT:
       if (sc.atLineEnd || sc.ch == 0) {
         sc.GetCurrentLowered(s, sizeof(s));
-        if (macroStart.match(s).hasMatch()) sc.ChangeState(SCE_PEPASM_MACRO_START);
-        else if (macroEnd.match(s).hasMatch()) sc.ChangeState(SCE_PEPASM_MACRO_END);
-        sc.ForwardSetState(SCE_PEPASM_DEFAULT);
+        // Increment and decrement
+        if (macroStart.match(s).hasMatch()) {
+          sc.ChangeState(SCE_PEPASM_MACRO_START);
+          auto ls = styler.GetLineState(sc.currentLine) + 1;
+          styler.SetLineState(sc.currentLine, ls);
+        } else if (macroEnd.match(s).hasMatch()) {
+          sc.ChangeState(SCE_PEPASM_MACRO_END);
+          auto ls = qMax(styler.GetLineState(sc.currentLine) - 1, 0);
+          styler.SetLineState(sc.currentLine, ls);
+        }
+        sc.ForwardSetState(SCE_PEPASM_DEFAULT | generated);
         continue;
       }
       break;
     default: break;
     }
-    // Evaluate after loop so that "    ;" evaluates
+    // Evaluate after loop so that "    ;" evaluates to false.
     onlyWhiteSpace &= IsASpace(sc.ch);
     sc.Forward();
   }
@@ -246,7 +264,8 @@ void SCI_METHOD LexerPepAsm::Fold(Sci_PositionU startPos, Sci_Position length, i
     char ch = chNext;
     chNext = styler.SafeGetCharAt(i + 1);
     int stylePrev = style;
-    style = styleNext;
+    // Ignore bit used to style generated code.
+    style = styleNext & ~SCE_PEPASM_DEFAULT_GEN;
     styleNext = styler.StyleAt(i + 1);
     bool atEOL = (ch == '\r' && chNext != '\n') || (ch == '\n');
     bool atSOL = (styler.SafeGetCharAt(i - 1) == '\n');

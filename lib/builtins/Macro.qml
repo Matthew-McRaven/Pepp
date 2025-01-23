@@ -71,6 +71,6 @@ Item {
     }
     FontMetrics {
         id: editorFM
-        font.family: "Courier Prime"
+        font: textArea.font
     }
 }
