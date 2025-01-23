@@ -146,7 +146,7 @@ bool pepp::settings::PaletteItem::updateFromJson(const QJsonObject &json, Palett
   } else {
     _font.reset();
     _fontOverrides = {};
-    preventNonMonoParent();
+    if (PaletteRoleHelper::requiresMonoFont(_ownRole)) preventNonMonoParent();
     if (json.contains("overrideBold")) _fontOverrides.bold = json["overrideBold"].toBool();
     if (json.contains("overrideItalic")) _fontOverrides.italic = json["overrideItalic"].toBool();
     if (json.contains("overrideUnderline")) _fontOverrides.underline = json["overrideUnderline"].toBool();
@@ -205,7 +205,7 @@ void pepp::settings::PaletteItem::updateFromSettings(QSettings &settings, Palett
   } else {
     _font.reset();
     _fontOverrides = {};
-    preventNonMonoParent();
+    if (PaletteRoleHelper::requiresMonoFont(_ownRole)) preventNonMonoParent();
     if (settings.contains("overrides")) {
       settings.beginGroup("overrides");
       if (settings.contains("overrideBold")) _fontOverrides.bold = settings.value("overrideBold").toBool();
@@ -256,7 +256,8 @@ void pepp::settings::PaletteItem::updateFont(const QFont newFont) {
 }
 
 void pepp::settings::PaletteItem::preventNonMonoParent() {
-  if (hasOwnFont()) { // We have a font -- no need to care about our parent.
+  // We either have a font and do not need to care about our parent or we do not care because we don't need a mono font.
+  if (hasOwnFont() || !PaletteRoleHelper::requiresMonoFont(_ownRole)) {
   } else if (!_parent) {
     if (!hasOwnFont()) _font = QFont("Courier Prime", 12);
   } else {

@@ -14,34 +14,29 @@
         },
         {
             "background": "0xff7f7f7f",
-            "font": "Courier Prime,12,-1,5,400,0,0,0,0,0,0,0,0,0,0,1",
             "foreground": "0xffeeeeee",
             "name": "WindowRole",
             "parent": "BaseRole"
         },
         {
             "background": "0xff8c8c8c",
-            "font": "Courier Prime,12,-1,5,400,0,0,0,0,0,0,0,0,0,0,1",
             "foreground": "0xfff8f8f8",
             "name": "ButtonRole",
             "parent": "BaseRole"
         },
         {
             "background": "0xff0078d7",
-            "font": "Courier Prime,12,-1,5,400,0,0,0,0,0,0,0,0,0,0,1",
             "name": "HighlightRole",
             "parent": "BaseRole"
         },
         {
             "background": "0xff346792",
-            "font": "Courier Prime,12,-1,5,400,0,0,0,0,0,0,0,0,0,0,1",
             "foreground": "0xffdfe1e2",
             "name": "TooltipRole",
             "parent": "BaseRole"
         },
         {
             "background": "0xff707070",
-            "font": "Courier Prime,12,-1,5,400,0,0,0,0,0,0,0,0,0,0,1",
             "name": "AlternateBaseRole",
             "parent": "WindowRole"
         },
@@ -51,14 +46,12 @@
         },
         {
             "background": "0xffffffff",
-            "font": "Courier Prime,12,-1,5,400,0,0,0,0,0,0,0,0,0,0,1",
             "foreground": "0xff696969",
             "name": "LightRole",
             "parent": "BaseRole"
         },
         {
             "background": "0xffeeeeee",
-            "font": "Courier Prime,12,-1,5,400,0,0,0,0,0,0,0,0,0,0,1",
             "foreground": "0xff3f3f3f",
             "name": "MidLightRole",
             "parent": "BaseRole"
@@ -80,7 +73,6 @@
             "parent": "HighlightRole"
         },
         {
-            "font": "Courier Prime,12,-1,5,400,0,0,0,0,0,0,0,0,0,0,1",
             "foreground": "0xff0078d7",
             "name": "LinkRole",
             "parent": "BaseRole"
@@ -139,16 +131,14 @@
             "parent": "MnemonicRole"
         },
         {
-            "font": "Courier Prime,12,-1,5,400,0,0,0,0,0,0,0,0,0,0,1",
             "foreground": "0xff666666",
             "name": "RowNumberRole",
-            "parent": "BaseRole"
+            "parent": "BaseMonoRole"
         },
         {
             "background": "0xffffaa00",
-            "font": "Courier Prime,12,-1,5,400,0,0,0,0,0,0,0,0,0,0,1",
             "name": "BreakpointRole",
-            "parent": "BaseRole"
+            "parent": "BaseMonoRole"
         },
         {
             "background": "0xffff4500",

@@ -133,12 +133,12 @@
         {
             "foreground": "0xff666666",
             "name": "RowNumberRole",
-            "parent": "BaseRole"
+            "parent": "BaseMonoRole"
         },
         {
             "background": "0xffffaa00",
             "name": "BreakpointRole",
-            "parent": "BaseRole"
+            "parent": "BaseMonoRole"
         },
         {
             "background": "0xffff0000",
