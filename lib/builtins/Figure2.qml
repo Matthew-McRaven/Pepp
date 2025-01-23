@@ -133,6 +133,7 @@ Item {
             Layout.alignment: Qt.AlignCenter
             Layout.fillHeight: true
             Layout.fillWidth: true
+            editorFont: editorFM.font
             language: wrapper.lexerLang
             readOnly: false
             Component.onCompleted: readOnly = true
