@@ -289,7 +289,7 @@ QFont pepp::settings::EditorPaletteItem::macroFont() const {
     baseline.setUnderline(_fontOverrides.underline.value_or(baseline.underline()));
     baseline.setStrikeOut(_fontOverrides.strikeout.value_or(baseline.strikeOut()));
     return baseline;
-  } else return _macroFont.value_or(QFont("Courier Prime", 12));
+  } else return _macroFont.value_or(QFont("Monaspace Krypton", 12));
 }
 
 void pepp::settings::EditorPaletteItem::clearMacroFont() {
@@ -334,6 +334,6 @@ void pepp::settings::EditorPaletteItem::toSettings(QSettings &settings) const {
 
 void pepp::settings::EditorPaletteItem::updateMacroFont(const QFont newFont) {
   QFontInfo fontInfo(newFont);
-  if (!fontInfo.fixedPitch() && PaletteRoleHelper::requiresMonoFont(_ownRole)) _macroFont = QFont("Courier Prime", 12);
+  if (!fontInfo.fixedPitch()) _macroFont = QFont("Monaspace Krypton", 12);
   else _macroFont = newFont;
 }
