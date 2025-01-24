@@ -76,13 +76,6 @@ Item {
         focus: true
         MouseArea {
             anchors.fill: parent
-            onWheel: function (event) {
-                if (event.angleDelta.y > 0) {
-                    vsc.decrease()
-                } else {
-                    vsc.increase()
-                }
-            }
             onPressed: function (event) {
                 const cell = wrapper.cellAtPosition(event.x, event.y)
                 const index = wrapper.modelIndex(cell)
