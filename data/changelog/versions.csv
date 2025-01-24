@@ -9,4 +9,4 @@ Number,GitRef,Date,Blurb
 0.8.0,,2024-01-12,"This version introduces pre-built installers for desktop (Windows, Mac OS, Ubuntu) platforms."
 0.8.1,,2024-01-12,"This version adds separate builds for x86 and arm64 for Mac OS."
 0.8.2,,2024-01-16,"This version primarily focuses on notarization improvements for Mac OS for x86."
-0.8.3,,??,"This version streamlines the new-user experience."
+0.8.3,,2024-01-24,"This version simplifies project creation, improves the debugger's symbol table, and introduces a new default font."
