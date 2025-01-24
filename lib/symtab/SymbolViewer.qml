@@ -14,7 +14,7 @@ Item {
         text: "W" // Dummy value to get width of widest character
     }
     Rectangle {
-
+        id: outline
         color: palette.base
         anchors.fill: parent
         //  Give object code viewer a background box
@@ -26,9 +26,10 @@ Item {
         // Dummy value to silence warning about non-existent role.
         textRole: "symbol"
         anchors {
+            top: parent.top
             left: parent.left
             right: parent.right
-            top: parent.top
+            margins: outline.border.width
         }
         syncView: wrapper
         clip: true
@@ -60,12 +61,23 @@ Item {
                 font: tm.font
             }
         }
+        Rectangle {
+            anchors {
+                top: parent.top
+                bottom: parent.bottom
+                left: parent.left
+                right: parent.right
+                rightMargin: vsc.width
+            }
+            color: palette.midlight
+            z: -1
+        }
     }
-
     TableView {
         id: wrapper
         anchors {
             top: horizontalHeader.bottom
+            topMargin: rowHeightProvider(0) * 0.15
             bottom: parent.bottom
             right: parent.right
             rightMargin: vsc.width
