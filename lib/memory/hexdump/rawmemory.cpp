@@ -115,36 +115,27 @@ void SimulatorRawMemory::clearModifiedAndUpdateGUI() {
 }
 
 void SimulatorRawMemory::onUpdateGUI(sim::api2::trace::FrameIterator from) {
+  // Remove highlighted cells from previous steps.
+  auto oldHighlights = std::set{_sink->intervals()};
+  oldHighlights.insert({static_cast<quint16>(_lastSP.lower()), static_cast<quint16>(_lastSP.upper())});
+  oldHighlights.insert({static_cast<quint16>(_lastPC.lower()), static_cast<quint16>(_lastPC.upper())});
+  // Purge data from previous updates. Must be cleared before iterating and emitting events, or highlights are wrong.
+  _sink->clear();
+  // Must cache current SP/PC so that we can clear the highlighting next time.
+  _lastSP = _SP, _lastPC = _PC;
+
   // If there is no TB, then there is no data to analyze.
   // Conservatively, we assume that all data is modified.
-  auto tb = _memory->buffer();
-  if (tb == nullptr) emit dataChanged(0, 0xffff);
-
-  // Remove highlighted cells from previous steps.
-  auto oldHiglights = std::set{_sink->intervals()};
-  oldHiglights.insert({(quint16)_lastSP.lower(), (quint16)_lastSP.upper()});
-  oldHiglights.insert({(quint16)_lastPC.lower(), (quint16)_lastPC.upper()});
-  // Purge data from previous updates. Must be cleared before iterating and emitting events, or higlights are wrong.
-  _sink->clear();
-  for (auto oldHiglght : oldHiglights) emit dataChanged(oldHiglght.lower(), oldHiglght.upper());
-  for (auto frame = from; frame != tb->cend(); ++frame)
-    for (auto packet = frame.cbegin(); packet != frame.cend(); ++packet)
-      _sink->analyze(packet, sim::api2::trace::Direction::Forward);
-
-  // Must cache current SP/PC so that we can clear the highlighting next time.
-  _lastSP = _SP;
-  _lastPC = _PC;
-  // If no memory addresses changed, conservatively assume that the trace buffer was disabled and therefore any address
-  // may have changed
-  if (auto intervals = _sink->intervals(); intervals.size() == 0) return emit dataChanged(0, 0xffff);
+  if (const auto tb = _memory->buffer(); tb == nullptr) emit dataChanged(0, 0xffff);
   else {
-    // Otherwise, emit the intervals that were modified.
-    for (const auto &interval : intervals) {
+    for (auto oldHighlight : oldHighlights) emit dataChanged(oldHighlight.lower(), oldHighlight.upper());
+    for (auto frame = from; frame != tb->cend(); ++frame)
+      for (auto packet = frame.cbegin(); packet != frame.cend(); ++packet)
+        _sink->analyze(packet, sim::api2::trace::Direction::Forward);
+    for (const auto &interval : _sink->intervals())
       // Cache the previous value of the modified addresses.
-
       emit dataChanged(interval.lower(), interval.upper());
-    }
-    // And update intervals containing PC, SP to fix the higlighting.
+    // And update intervals containing PC, SP to fix the highlighting.
     emit dataChanged(this->_SP.lower(), this->_SP.upper());
     emit dataChanged(this->_PC.lower(), this->_PC.upper());
   }
