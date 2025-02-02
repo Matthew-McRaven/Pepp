@@ -21,6 +21,7 @@
 #include "asm/pas/operations/pepp/bytes.hpp"
 #include "isa/pep10.hpp"
 
+using M = isa::Pep10::Mnemonic;
 TEST_CASE("To bytes", "[scope:asm][kind:unit][arch:pep10]") {
   auto [name, source, bytes] = GENERATE(table<std::string, QString, QList<quint8>>(
       {{"BYTE 0xFF", ".BYTE 0xFF", {0xff}},
@@ -53,8 +54,8 @@ TEST_CASE("To bytes", "[scope:asm][kind:unit][arch:pep10]") {
        {"ALIGN 8 @ 1", ".BYTE 0xFF\n .ALIGN 8", {0xFF, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00}},
        {"ALIGN 8 @ 2", ".WORD 0xFFAA\n .ALIGN 8", {0xFF, 0xAA, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00}},
 
-       {"unary", "ASRA\nRET", {0x1e, 0x01}},
-       {"nonunary", "s:LDWA 0xFAAD,i\nBR s,i", {0x40, 0xfa, 0xad, 0x24, 0x00, 0x00}},
+       {"unary", "ASRA\nRET", {(uint8_t)M::ASRA, (uint8_t)M::RET}},
+       {"nonunary", "s:LDWA 0xFAAD,i\nBR s,i", {(uint8_t)M::LDWA, 0xfa, 0xad, (uint8_t)M::BR, 0x00, 0x00}},
        {".IMPORT s", ".IMPORT s", {}},
        {".EXPORT s", ".EXPORT s", {}},
        {".SCALL s", ".SCALL s", {}},

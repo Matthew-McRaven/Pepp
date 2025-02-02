@@ -32,7 +32,7 @@ endif ()
 if (ONLY STREQUAL "BUILD")
     set(LANGUAGES "CXX")
 endif ()
-project(Pepp VERSION 0.8.3 LANGUAGES ${LANGUAGES})
+project(Pepp VERSION 0.8.4 LANGUAGES ${LANGUAGES})
 # Only overwrite the install prefix if it is the default value.
 if (CMAKE_INSTALL_PREFIX_INITIALIZED_TO_DEFAULT)
     set(CMAKE_INSTALL_PREFIX "${PROJECT_BINARY_DIR}/install" CACHE PATH "Installation Directory" FORCE)
@@ -60,7 +60,6 @@ if (ONLY STREQUAL "BUILD")
       # Silence Qt's CMake warnings about policy being unset.
       qt_policy(SET QTP0004 NEW)
     endif()
-
 
     add_subdirectory(3rd-party)
     set(CMAKE_AUTOMOC ON)

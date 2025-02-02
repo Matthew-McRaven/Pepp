@@ -9,4 +9,4 @@
          LDBA    0x0015,d
          STBA    0xFFFE,d
          RET
-         LDBA    0x756E,i
+         ADDA    0x756E,i
