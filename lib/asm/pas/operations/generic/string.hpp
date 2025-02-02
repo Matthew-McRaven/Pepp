@@ -24,6 +24,7 @@ class Node;
 
 struct SourceOptions {
   bool printErrors = false;
+  int indentMnemonic = 0;
 };
 struct ListingOptions {
   SourceOptions source;
@@ -32,8 +33,9 @@ struct ListingOptions {
 
 namespace pas::ops::generic::detail {
 QString formatErrorsAsComments(const ast::Node &node);
-QString format(QString symbol, QString invoke, QStringList args, QString comment, bool spaceAfterComma = true);
-QString formatDirectiveOrMacro(const ast::Node &node, QString invoke, SourceOptions opts);
+QString format(const QString &symbol, const QString &invoke, const QStringList &args, const QString &comment,
+               int indentMnemonic = 0, bool spaceAfterComma = true);
+QString formatDirectiveOrMacro(const ast::Node &node, const QString &invoke, SourceOptions opts);
 QString formatDirective(const ast::Node &node, SourceOptions opts);
 QString formatMacro(const ast::Node &node, SourceOptions opts);
 QString formatBlank(const ast::Node &node, SourceOptions opts);

@@ -44,11 +44,14 @@ QString pas::ops::generic::detail::formatComment(const ast::Node &node, SourceOp
   return lpad.arg(node.get<ast::generic::Comment>().value);
 }
 
-QString pas::ops::generic::detail::format(QString symbol, QString invoke, QStringList args, QString comment,
-                                          bool spaceAfterComma) {
+QString pas::ops::generic::detail::format(const QString &symbol, const QString &invoke, const QStringList &args,
+                                          const QString &comment, int indentMnemonic, bool spaceAfterComma) {
   using namespace Qt::StringLiterals;
+  constexpr int defaultSymWidth = 9;
+  int symWidth = qMax(0, defaultSymWidth + indentMnemonic);
   auto joinedArgs = args.join(spaceAfterComma ? ", " : ",");
-  auto symPlaceholder = symbol.isEmpty() ? u"         "_s : u"%1"_s.arg(symbol + ":", -9, QChar(' '));
+  auto emptySymPlaceHolder = u" "_s.repeated(symWidth);
+  auto symPlaceholder = symbol.isEmpty() ? emptySymPlaceHolder : u"%1"_s.arg(symbol + ":", -symWidth, QChar(' '));
   auto ret = u"%1%2%3%4"_s.arg(symPlaceholder)
                  .arg(invoke, -9, ' ')
                  .arg(joinedArgs, -8, ' ')
@@ -56,7 +59,7 @@ QString pas::ops::generic::detail::format(QString symbol, QString invoke, QStrin
   return ret;
 }
 
-QString pas::ops::generic::detail::formatDirectiveOrMacro(const pas::ast::Node &node, QString invoke,
+QString pas::ops::generic::detail::formatDirectiveOrMacro(const pas::ast::Node &node, const QString &invoke,
                                                           SourceOptions opts) {
   QString symbol = "";
   if (node.has<pas::ast::generic::SymbolDeclaration>()) {
@@ -73,7 +76,7 @@ QString pas::ops::generic::detail::formatDirectiveOrMacro(const pas::ast::Node &
   QString comment = "";
   if (node.has<pas::ast::generic::Comment>()) comment = node.get<pas::ast::generic::Comment>().value;
   if (opts.printErrors) comment += formatErrorsAsComments(node);
-  return detail::format(symbol, invoke, args, comment);
+  return detail::format(symbol, invoke, args, comment, opts.indentMnemonic, false);
 }
 
 QString pas::ops::generic::detail::formatDirective(const ast::Node &node, SourceOptions opts) {
@@ -93,7 +96,9 @@ QString pas::ops::generic::detail::formatMacro(const ast::Node &node, SourceOpti
     qCritical(e);
     throw std::logic_error(e);
   }
-  return formatDirectiveOrMacro(node, u"@%1"_s.arg(node.get<ast::generic::Macro>().value), opts);
+  auto newOpts = opts;
+  newOpts.indentMnemonic = 1;
+  return formatDirectiveOrMacro(node, u"@%1"_s.arg(node.get<ast::generic::Macro>().value), newOpts);
 }
 
 QString pas::ops::generic::detail::formatErrorsAsComments(const ast::Node &node) {
