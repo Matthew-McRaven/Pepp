@@ -28,9 +28,9 @@ class UnaryInstr(ACode):
         self.mnemonic = mnemonic
 
     def generate_code(self) -> str:
-        match self.mnemonic.value:
+        match self.mnemonic:
             case Mnemonics.STOP:
-                return f"{self.mnemonic}"
+                return f"{self.mnemonic}\n"
         return ""
 
     def generate_listing(self) -> str:
@@ -43,11 +43,11 @@ class OneArgInstr(ACode):
         self.arg = arg
 
     def generate_code(self) -> str:
-        return f"{self.mnemonic} {self.arg.generate_code()}\n"
+        return f"{self.mnemonic}({self.arg.generate_code()})\n"
 
     def generate_listing(self) -> str:
         arg_code = self.arg.generate_code()
-        match self.mnemonic.value:
+        match self.mnemonic:
             case Mnemonics.ABS:
                 return f"{arg_code} <- |{arg_code}|\n"
             case Mnemonics.NEG:
@@ -61,13 +61,13 @@ class TwoArgInstr(ACode):
         self.arg1, self.arg2 = arg1, arg2
 
     def generate_code(self) -> str:
-        return f"{self.mnemonic} ({self.arg1.generate_code()}, {self.arg2.generate_code()})"
+        return f"{self.mnemonic}({self.arg1.generate_code()}, {self.arg2.generate_code()})\n"
 
     def generate_listing(self) -> str:
         arg1_code, arg2_code = self.arg1.generate_code(), self.arg2.generate_code()
-        match self.mnemonic.value:
+        match self.mnemonic:
             case Mnemonics.SET:
-                return f"{arg1_code} <- {arg2_code} \n"
+                return f"{arg1_code} <- {arg2_code}\n"
             case Mnemonics.ADD:
                 return f"{arg1_code} <- {arg1_code} + {arg2_code}\n"
             case Mnemonics.SUB:
