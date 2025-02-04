@@ -1,4 +1,5 @@
 import io
+import sys
 import tkinter
 from tkinter import scrolledtext
 
@@ -30,7 +31,7 @@ class MainWindow(tkinter.Tk):
         # Read from 1st row, 0th character to the end of the text box
         text = self.editor.get("1.0", tkinter.END).rstrip()
         tr = Translator(io.StringIO(text + "\n"))
-        tr.translate()
+        tr.translate(sys.stdout)
 
 
 def main():

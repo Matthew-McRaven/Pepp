@@ -108,7 +108,7 @@ class Translator:
         # TODO: advance tokenizer to start of next line if we are in an error state
         return code
 
-    def translate(self):
+    def translate(self, outfile):
         program: List[ACode] = []
         error_count = 0
 
@@ -127,13 +127,13 @@ class Translator:
             error_count += 1
 
         if error_count == 0:
-            print("Object code:")
+            print("Object code:", file=outfile)
             lines: List[str] = [line.generate_code() for line in program]
-            print(*filter(lambda l: l != "", lines), sep="")
+            print(*filter(lambda l: l != "", lines), sep="", file=outfile)
         elif error_count == 1:
-            print("One error was detected.")
+            print("One error was detected.", file=outfile)
         else:
-            print(f"{error_count} errors were detected.")
+            print(f"{error_count} errors were detected.", file=outfile)
 
-        print("Program listing:")
-        print(*(line.generate_listing() for line in program), sep="")
+        print("Program listing:", file=outfile)
+        print(*(line.generate_listing() for line in program), sep="", file=outfile)
