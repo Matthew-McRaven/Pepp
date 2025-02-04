@@ -1,0 +1,4 @@
+ADD(X,2)
+  nEG(    X   )
+stop
+END

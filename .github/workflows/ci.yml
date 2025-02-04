@@ -153,6 +153,36 @@ jobs:
       MAC_DEVELOPER_TEAM_ID: ${{ secrets.MAC_DEVELOPER_TEAM_ID }}
       MAC_APPLE_ID: ${{ secrets.MAC_APPLE_ID }}
       MAC_NOTARYTOOL_PASSWORD: ${{ secrets.MAC_NOTARYTOOL_PASSWORD }}
+
+  chapter7_fig_checks:
+    name: Lint & test python figures for CS6E
+    runs-on: ubuntu-latest
+    container:
+      image: "python:3.13"
+    steps:
+    # Perform shallow clone, which may break some other operations
+    # Must exectute before any repo-local actions
+    - name: Checkout source code (shallow)
+      uses: actions/checkout@v4
+      with:
+        submodules: 'false'
+        # LFS defaults to disabled, but accidental LFS bandwidth would be bad.
+        lfs: 'false'
+    - name: Install poetry
+      run: curl -sSL https://install.python-poetry.org | python3 -
+    - name: Install dependencies
+      working-directory: data/books/cs6e/ch07/fig0738
+      run: $HOME/.local/bin/poetry install --no-root
+    - name: Run linters
+      working-directory: data/books/cs6e/ch07/fig0738
+      run: $HOME/.local/bin/poetry run black lang
+    - name: Run unit tests with coverage
+      working-directory: data/books/cs6e/ch07/fig0738
+      run: $HOME/.local/bin/poetry run coverage run -m pytest && $HOME/.local/bin/poetry run coverage report -m
+    - name: Run mypy type checking
+      working-directory: data/books/cs6e/ch07/fig0738
+      run: $HOME/.local/bin/poetry run mypy -p lang --check-untyped-defs
+
   deploy_prod_pages:
     name: Trigger deployment to production github pages
     if: startsWith(needs.branch_info.outputs.build_release, 'true')
@@ -160,7 +190,7 @@ jobs:
       contents: read
       pages: write
       id-token: write
-    needs: [ build, branch_info ]
+    needs: [ build, branch_info, chapter7_fig_checks ]
     uses: ./.github/workflows/deploy-prod-pages.yml
 
   deploy_test_pages:
@@ -224,7 +254,7 @@ jobs:
            if-no-files-found: error
   create_release:
     name: Create GitHub release
-    needs: [ build, branch_info, create_changelog]
+    needs: [ build, branch_info, create_changelog, chapter7_fig_checks]
     runs-on: ubuntu-latest
     permissions:
       contents: write

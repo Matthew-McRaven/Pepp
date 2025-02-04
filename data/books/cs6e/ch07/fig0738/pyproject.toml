@@ -1,0 +1,23 @@
+[tool.poetry]
+name = "fig0738"
+version = "0.1.0"
+description = ""
+authors = ["Matthew McRaven <matthew.mcraven@gmail.com>"]
+readme = "README.md"
+
+[tool.poetry.dependencies]
+python = "^3.13"
+black = "==25.1.0"
+pytest = "==8.3.4"
+
+
+[tool.poetry.group.dev.dependencies]
+coverage = {extras = ["toml"], version = "^7.6.10"}
+mypy = "^1.14.1"
+
+[build-system]
+requires = ["poetry-core"]
+build-backend = "poetry.core.masonry.api"
+
+[tool.coverage.run]
+omit = [".*", "*/site-packages/*"]
