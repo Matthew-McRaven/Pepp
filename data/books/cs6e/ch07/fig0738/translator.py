@@ -33,7 +33,6 @@ class Translator:
         mnemonic: Mnemonics = Mnemonics.END
         while state != Translator.States.FINISH and type(code) is not Error:
             token_type, token_val = self.tokenizer.next_token()
-            print(token_type, token_val)
             match state:
                 case Translator.States.START:
                     if token_type == Tokens.IDENTIFIER:
@@ -124,12 +123,15 @@ class Translator:
             error_count += 1
 
         if error_count == 0:
-            print("Object code:\n")
-            print(*(line.generate_code() for line in program), sep="\n")
+            print("Object code:")
+            print(
+                *(code := line.generate_code() for line in program if code != ""),
+                sep="",
+            )
         elif error_count == 1:
             print("One error was detected.")
         else:
             print(f"{error_count} errors were detected.")
 
-        print("Program listing:\n")
-        print(*(line.generate_listing() for line in program), sep="\n")
+        print("Program listing:")
+        print(*(line.generate_listing() for line in program), sep="")
