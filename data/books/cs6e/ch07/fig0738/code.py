@@ -1,6 +1,6 @@
 import abc
 
-from arguments import AArgument
+from .arguments import AArgument
 from .mnemonics import Mnemonics
 
 
