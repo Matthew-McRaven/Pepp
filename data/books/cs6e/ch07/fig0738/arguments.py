@@ -15,7 +15,7 @@ class IdentifierArgument(AArgument):
         return self.value
 
 
-class IntegerArg(AArgument):
+class IntegerArgument(AArgument):
     def __init__(self, value: int):
         self.value = value
 
