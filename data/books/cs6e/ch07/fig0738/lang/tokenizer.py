@@ -36,7 +36,11 @@ class Tokenizer:
         as_int: int = 0
         sign: Literal[-1, 1] = 1
         state: Tokenizer.States = Tokenizer.States.START
-        token: Tuple[Tokens, int | str | None] = (Tokens.EMPTY, None)
+        token: Union[
+            Tuple[Literal[Tokens.INTEGER], int]
+            | Tuple[Literal[Tokens.IDENTIFIER], str]
+            | Tuple[Tokens, None]
+        ] = (Tokens.EMPTY, None)
 
         while state != Tokenizer.States.STOP and token[0] != Tokens.INVALID:
             prev_pos = self.buffer.tell()

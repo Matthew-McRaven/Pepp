@@ -1,10 +1,10 @@
 from io import StringIO
 from typing import cast
 
-from .arguments import IdentifierArgument, IntegerArgument
-from .code import UnaryInstr, Error, OneArgInstr, TwoArgInstr
-from .mnemonics import Mnemonics
-from .translator import Translator
+from lang.arguments import IdentifierArgument, IntegerArgument
+from lang.code import UnaryInstr, Error, OneArgInstr, TwoArgInstr
+from lang.mnemonics import Mnemonics
+from lang.translator import Translator
 
 
 def test_0arity():

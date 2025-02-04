@@ -1,4 +1,4 @@
-from .mnemonics import Mnemonics
+from lang.mnemonics import Mnemonics
 
 
 def test_to_string():

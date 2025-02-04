@@ -2,12 +2,12 @@ import enum
 import io
 from typing import List, cast
 
-from .arguments import IdentifierArgument, IntegerArgument
-from .code import ACode, Error, UnaryInstr
-from .code import EmptyInstr, OneArgInstr, TwoArgInstr
-from .mnemonics import Mnemonics
-from .tokenizer import Tokenizer
-from .tokens import Tokens
+from lang.arguments import IdentifierArgument, IntegerArgument, AArgument
+from lang.code import ACode, Error, UnaryInstr
+from lang.code import EmptyInstr, OneArgInstr, TwoArgInstr
+from lang.mnemonics import Mnemonics
+from lang.tokenizer import Tokenizer
+from lang.tokens import Tokens
 
 
 class Translator:
@@ -29,13 +29,15 @@ class Translator:
 
     def parse_line(self) -> ACode | None:
         state = Translator.States.START
-        code, arg1, arg2 = None, None, None
+        code: ACode | None = None
+        arg1: AArgument | None = None
+        arg2: AArgument | None = None
         mnemonic: Mnemonics = Mnemonics.END
         while state != Translator.States.FINISH and type(code) is not Error:
             token_type, token_val = self.tokenizer.next_token()
             match state:
                 case Translator.States.START:
-                    if token_type == Tokens.IDENTIFIER:
+                    if token_type == Tokens.IDENTIFIER and type(token_val) is str:
                         as_upper = token_val.upper()
                         try:
                             as_mnemonic: Mnemonics = Mnemonics[as_upper]
@@ -60,7 +62,7 @@ class Translator:
                         code = Error("Left parenthesis expected after function.")
 
                 case Translator.States.OPEN:
-                    if token_type == Tokens.IDENTIFIER:
+                    if token_type == Tokens.IDENTIFIER and type(token_val) is str:
                         arg1 = IdentifierArgument(token_val)
                         state = Translator.States.OPERAND_1ST
                     else:
@@ -69,7 +71,7 @@ class Translator:
                 case Translator.States.OPERAND_1ST:
                     if mnemonic in {Mnemonics.NEG, Mnemonics.ABS}:
                         if token_type == Tokens.RIGHT_PAREN:
-                            code = OneArgInstr(mnemonic, arg1)
+                            code = OneArgInstr(mnemonic, cast(AArgument, arg1))
                             state = Translator.States.NONUNARY1
                         else:
                             code = Error("Right parenthesis expected after argument.")
@@ -79,10 +81,10 @@ class Translator:
                         code = Error("Comma expected after first argument.")
 
                 case Translator.States.COMMA:
-                    if token_type == Tokens.IDENTIFIER:
+                    if token_type == Tokens.IDENTIFIER and type(token_val) is str:
                         arg2 = IdentifierArgument(token_val)
                         state = Translator.States.OPERAND_2ND
-                    elif token_type == Tokens.INTEGER:
+                    elif token_type == Tokens.INTEGER and type(token_val) is int:
                         arg2 = IntegerArgument(token_val)
                         state = Translator.States.OPERAND_2ND
                     else:
@@ -90,7 +92,9 @@ class Translator:
 
                 case Translator.States.OPERAND_2ND:
                     if token_type == Tokens.RIGHT_PAREN:
-                        code = TwoArgInstr(mnemonic, arg1, arg2)
+                        code = TwoArgInstr(
+                            mnemonic, cast(AArgument, arg1), cast(AArgument, arg2)
+                        )
                         state = Translator.States.NONUNARY2
                     else:
                         code = Error("Right parenthesis expected after argument.")

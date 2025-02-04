@@ -1,7 +1,7 @@
 from io import StringIO
 
-from .tokenizer import Tokenizer
-from .tokens import Tokens
+from lang.tokenizer import Tokenizer
+from lang.tokens import Tokens
 
 
 def test_tokenizer_empty():

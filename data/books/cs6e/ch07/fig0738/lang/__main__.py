@@ -2,7 +2,7 @@ import io
 import tkinter
 from tkinter import scrolledtext
 
-from .translator import Translator
+from lang.translator import Translator
 
 
 class MainWindow(tkinter.Tk):
@@ -12,17 +12,17 @@ class MainWindow(tkinter.Tk):
         self.geometry("640x480")
 
         # Add layout for buttons and editor
-        self.frame = tkinter.Frame(self)
-        self.frame.grid_configure(row=2, column=1)
-        self.frame.pack(fill=tkinter.BOTH, expand=True)
+        self._frame = tkinter.Frame(self)
+        self._frame.grid_configure(row=2, column=1)
+        self._frame.pack(fill=tkinter.BOTH, expand=True)
 
         # Add text editor
-        self.editor = tkinter.scrolledtext.ScrolledText(self.frame)
+        self.editor = tkinter.scrolledtext.ScrolledText(self._frame)
         self.editor.pack(fill=tkinter.BOTH, expand=True)
 
         # Add "Translate" button
         self.translate = tkinter.Button(
-            self.frame, text="Translate", command=self.translate_clicked
+            self._frame, text="Translate", command=self.translate_clicked
         )
         self.translate.pack()
 
