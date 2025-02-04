@@ -11,7 +11,13 @@ black = "==25.1.0"
 pytest = "==8.3.4"
 
 
+[tool.poetry.group.dev.dependencies]
+coverage = {extras = ["toml"], version = "^7.6.10"}
+mypy = "^1.14.1"
+
 [build-system]
 requires = ["poetry-core"]
 build-backend = "poetry.core.masonry.api"
 
+[tool.coverage.run]
+omit = [".*", "*/site-packages/*"]
