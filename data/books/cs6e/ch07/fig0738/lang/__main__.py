@@ -1,3 +1,4 @@
+import argparse
 import io
 import sys
 import tkinter
@@ -35,9 +36,18 @@ class MainWindow(tkinter.Tk):
 
 
 def main():
-    # Set up main window, and run until explicitly closed.
-    window = MainWindow()
-    window.mainloop()
+    # Call with no arguments to open the GUI, or with a single file argument to run in the terminal.
+    parser = argparse.ArgumentParser(description="Fig 07.38")
+    parser.add_argument("input_file", default=None)
+    args = parser.parse_args()
+    if args.input_file:
+        with open(args.input_file, "r") as f:
+            tr = Translator(io.StringIO("".join(f.readlines()) + "\n"))
+            tr.translate(sys.stdout)
+    else:
+        # No passed file, so set up main window, and run until explicitly closed.
+        window = MainWindow()
+        window.mainloop()
 
 
 if __name__ == "__main__":
