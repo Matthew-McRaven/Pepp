@@ -181,7 +181,7 @@ jobs:
       run: $HOME/.local/bin/poetry run coverage run -m pytest && $HOME/.local/bin/poetry run coverage report -m
     - name: Run mypy type checking
       working-directory: data/books/cs6e/ch07/fig0738
-      run: $HOME/.local/bin/poetry run mypy --check-untyped-defs .
+      run: $HOME/.local/bin/poetry run mypy -p lang --check-untyped-defs
 
   deploy_prod_pages:
     name: Trigger deployment to production github pages

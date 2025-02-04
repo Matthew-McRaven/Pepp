@@ -17,7 +17,7 @@ class ACode(abc.ABC):
 class EmptyInstr(ACode):
 
     def generate_code(self) -> str:
-        return "\n"
+        return ""
 
     def generate_listing(self) -> str:
         return ""
@@ -30,11 +30,11 @@ class UnaryInstr(ACode):
     def generate_code(self) -> str:
         match self.mnemonic:
             case Mnemonics.STOP:
-                return f"{self.mnemonic}\n"
+                return f"{self.mnemonic}"
         return ""
 
     def generate_listing(self) -> str:
-        return f"{self.mnemonic}\n"
+        return f"{self.mnemonic}"
 
 
 class OneArgInstr(ACode):
@@ -46,13 +46,13 @@ class OneArgInstr(ACode):
         arg_code = self.arg.generate_code()
         match self.mnemonic:
             case Mnemonics.ABS:
-                return f"{arg_code} <- |{arg_code}|\n"
+                return f"{arg_code} <- |{arg_code}|"
             case Mnemonics.NEG:
-                return f"{arg_code} <- -{arg_code}\n"
+                return f"{arg_code} <- -{arg_code}"
         return ""
 
     def generate_listing(self) -> str:
-        return f"{self.mnemonic}({self.arg.generate_code()})\n"
+        return f"{self.mnemonic}({self.arg.generate_code()})"
 
 
 class TwoArgInstr(ACode):
@@ -64,19 +64,21 @@ class TwoArgInstr(ACode):
         arg1_code, arg2_code = self.arg1.generate_code(), self.arg2.generate_code()
         match self.mnemonic:
             case Mnemonics.SET:
-                return f"{arg1_code} <- {arg2_code}\n"
+                return f"{arg1_code} <- {arg2_code}"
             case Mnemonics.ADD:
-                return f"{arg1_code} <- {arg1_code} + {arg2_code}\n"
+                return f"{arg1_code} <- {arg1_code} + {arg2_code}"
             case Mnemonics.SUB:
-                return f"{arg1_code} <- {arg1_code} - {arg2_code}\n"
+                return f"{arg1_code} <- {arg1_code} - {arg2_code}"
             case Mnemonics.MUL:
-                return f"{arg1_code} <- {arg1_code} * {arg2_code}\n"
+                return f"{arg1_code} <- {arg1_code} * {arg2_code}"
             case Mnemonics.DIV:
-                return f"{arg1_code} <- {arg1_code} / {arg2_code}\n"
+                return f"{arg1_code} <- {arg1_code} / {arg2_code}"
         return ""
 
     def generate_listing(self) -> str:
-        return f"{self.mnemonic}({self.arg1.generate_code()}, {self.arg2.generate_code()})\n"
+        return (
+            f"{self.mnemonic}({self.arg1.generate_code()}, {self.arg2.generate_code()})"
+        )
 
 
 class Error(ACode):
@@ -84,7 +86,7 @@ class Error(ACode):
         self.message = message
 
     def generate_code(self) -> str:
-        return f"ERROR: {self.message}\n"
+        return ""
 
     def generate_listing(self) -> str:
-        return ""
+        return f"ERROR: {self.message}"

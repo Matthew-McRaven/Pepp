@@ -1,12 +1,12 @@
 import enum
 import io
-from typing import List, cast
+from typing import List, cast, Iterator
 
 from lang.arguments import IdentifierArgument, IntegerArgument, AArgument
 from lang.code import ACode, Error, UnaryInstr
 from lang.code import EmptyInstr, OneArgInstr, TwoArgInstr
 from lang.mnemonics import Mnemonics
-from lang.tokenizer import Tokenizer
+from lang.tokenizer import Tokenizer, TokenizerIterator
 from lang.tokens import Tokens
 
 
@@ -24,23 +24,58 @@ class Translator:
         FINISH = 10
 
     def __init__(self, buffer: io.StringIO):
-        self.buffer = buffer
-        self.tokenizer = Tokenizer(self.buffer)
+        self.tokenizer = Tokenizer(buffer)
 
-    def parse_line(self) -> ACode | None:
+    def __iter__(self) -> "TranslatorIterator":
+        return TranslatorIterator(self.tokenizer)
+
+    def translate(self, outfile):
+        program: List[ACode] = []
+        error_count = 0
+        for code in self:
+            program.append(code)
+            if type(code) is Error:
+                error_count += 1
+            elif type(code) is UnaryInstr:
+                if cast(UnaryInstr, code).mnemonic == Mnemonics.END:
+                    break
+        else:  # No break
+            program.append(Error('Missing "end" sentinel'))
+            error_count += 1
+
+        if error_count == 0:
+            print("Object code:", file=outfile)
+            lines: List[str] = [line.generate_code().rstrip() for line in program]
+            print(*filter(lambda l: l != "", lines), sep="\n", file=outfile)
+        elif error_count == 1:
+            print("One error was detected.", file=outfile)
+        else:
+            print(f"{error_count} errors were detected.", file=outfile)
+
+        print("\nProgram listing:", file=outfile)
+        print(*(line.generate_listing() for line in program), sep="\n", file=outfile)
+
+
+class TranslatorIterator:
+    def __init__(self, tokenizer: Tokenizer):
+        self._iter: TokenizerIterator = tokenizer.__iter__()
+
+    def __iter__(self) -> Iterator:
+        return self
+
+    def __next__(self):
         state = Translator.States.START
         code: ACode | None = None
         arg1: AArgument | None = None
         arg2: AArgument | None = None
         mnemonic: Mnemonics = Mnemonics.END
-        while state != Translator.States.FINISH and type(code) is not Error:
-            token_type, token_val = self.tokenizer.next_token()
+        for token_type, token_val in self._iter:
             match state:
                 case Translator.States.START:
                     if token_type == Tokens.IDENTIFIER and type(token_val) is str:
                         as_upper = token_val.upper()
                         try:
-                            as_mnemonic: Mnemonics = Mnemonics[as_upper]
+                            as_mnemonic = cast(Mnemonics, Mnemonics[as_upper])
                             if as_mnemonic.is_unary():
                                 code = UnaryInstr(as_mnemonic)
                                 state = Translator.States.UNARY
@@ -101,39 +136,17 @@ class Translator:
 
                 # Unary or NonUnary1 or NonUnary2
                 case _:
-                    if token_type == Tokens.EMPTY:
+                    if token_type == Tokens.EMPTY and code is not None:
                         state = Translator.States.FINISH
                     else:
                         code = Error("Illegal trailing character.")
-        # TODO: advance tokenizer to start of next line if we are in an error state
-        return code
-
-    def translate(self, outfile):
-        program: List[ACode] = []
-        error_count = 0
-
-        while (code := self.parse_line()) is not None:
-            program.append(code)
-            if type(code) is Error:
-                error_count += 1
-            # TODO: ugly hack that should be a state variable instead. Will revisit when this becomes iterable.
-            elif (
-                type(code) is UnaryInstr
-                and cast(UnaryInstr, code).mnemonic == Mnemonics.END
-            ):
+            # Don't consume further tokens if we hit an error or if we reached the terminal state.
+            if state == Translator.States.FINISH or type(code) is Error:
                 break
-        else:  # No break
-            program.append(Error('Missing "end" sentinel'))
-            error_count += 1
-
-        if error_count == 0:
-            print("Object code:", file=outfile)
-            lines: List[str] = [line.generate_code().rstrip() for line in program]
-            print(*filter(lambda l: l != "", lines), sep="", file=outfile)
-        elif error_count == 1:
-            print("One error was detected.", file=outfile)
-        else:
-            print(f"{error_count} errors were detected.", file=outfile)
-
-        print("Program listing:", file=outfile)
-        print(*(line.generate_listing() for line in program), sep="", file=outfile)
+        # Token iterator was exhausted, else we would have created a code object.
+        if code is None:
+            raise StopIteration
+        # Parsing errors beget parsing errors; re-try parsing on the following line.
+        elif type(code) is Error:
+            self._iter.skip_to_next_line()
+        return code
