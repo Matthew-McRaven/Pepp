@@ -128,10 +128,8 @@ class Translator:
 
         if error_count == 0:
             print("Object code:")
-            print(
-                *(code := line.generate_code() for line in program if code != ""),
-                sep="",
-            )
+            lines: List[str] = [line.generate_code() for line in program]
+            print(*filter(lambda l: l != "", lines), sep="")
         elif error_count == 1:
             print("One error was detected.")
         else:
