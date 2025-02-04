@@ -128,7 +128,7 @@ class Translator:
 
         if error_count == 0:
             print("Object code:", file=outfile)
-            lines: List[str] = [line.generate_code() for line in program]
+            lines: List[str] = [line.generate_code().rstrip() for line in program]
             print(*filter(lambda l: l != "", lines), sep="", file=outfile)
         elif error_count == 1:
             print("One error was detected.", file=outfile)
