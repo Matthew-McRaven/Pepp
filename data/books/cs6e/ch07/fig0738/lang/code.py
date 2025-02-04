@@ -17,10 +17,10 @@ class ACode(abc.ABC):
 class EmptyInstr(ACode):
 
     def generate_code(self) -> str:
-        return ""
+        return "\n"
 
     def generate_listing(self) -> str:
-        return "\n"
+        return ""
 
 
 class UnaryInstr(ACode):
@@ -43,9 +43,6 @@ class OneArgInstr(ACode):
         self.arg = arg
 
     def generate_code(self) -> str:
-        return f"{self.mnemonic}({self.arg.generate_code()})\n"
-
-    def generate_listing(self) -> str:
         arg_code = self.arg.generate_code()
         match self.mnemonic:
             case Mnemonics.ABS:
@@ -54,6 +51,9 @@ class OneArgInstr(ACode):
                 return f"{arg_code} <- -{arg_code}\n"
         return ""
 
+    def generate_listing(self) -> str:
+        return f"{self.mnemonic}({self.arg.generate_code()})\n"
+
 
 class TwoArgInstr(ACode):
     def __init__(self, mnemonic: Mnemonics, arg1: AArgument, arg2: AArgument):
@@ -61,9 +61,6 @@ class TwoArgInstr(ACode):
         self.arg1, self.arg2 = arg1, arg2
 
     def generate_code(self) -> str:
-        return f"{self.mnemonic}({self.arg1.generate_code()}, {self.arg2.generate_code()})\n"
-
-    def generate_listing(self) -> str:
         arg1_code, arg2_code = self.arg1.generate_code(), self.arg2.generate_code()
         match self.mnemonic:
             case Mnemonics.SET:
@@ -78,13 +75,16 @@ class TwoArgInstr(ACode):
                 return f"{arg1_code} <- {arg1_code} / {arg2_code}\n"
         return ""
 
+    def generate_listing(self) -> str:
+        return f"{self.mnemonic}({self.arg1.generate_code()}, {self.arg2.generate_code()})\n"
+
 
 class Error(ACode):
     def __init__(self, message: str):
         self.message = message
 
     def generate_code(self) -> str:
-        return ""
+        return f"ERROR: {self.message}\n"
 
     def generate_listing(self) -> str:
-        return f"ERROR: {self.message}\n"
+        return ""
