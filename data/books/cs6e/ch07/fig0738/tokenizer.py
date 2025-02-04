@@ -44,6 +44,8 @@ class Tokenizer:
             match state:
                 case _ if len(ch) == 0:
                     state = Tokenizer.States.STOP
+                case Tokenizer.States.START if ch == "\n":
+                    state = Tokenizer.States.STOP
                 case Tokenizer.States.START if ch.isspace():
                     pass
                 case Tokenizer.States.START if ch.isalpha():

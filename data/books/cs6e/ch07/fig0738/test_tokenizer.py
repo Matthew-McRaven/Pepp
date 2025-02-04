@@ -11,11 +11,12 @@ def test_tokenizer_empty():
 
 
 def test_tokenizer_comma():
-    tk = Tokenizer(StringIO("   \n  ,  "))
+    tk = Tokenizer(StringIO("   \n  ,  \n , "))
     # TODO: I think this is a bug, and should not be commented out
-    # assert tk.next_token() == (Tokens.EMPTY, None)
+    assert tk.next_token() == (Tokens.EMPTY, None)
     assert tk.next_token() == (Tokens.COMMA, None)
     assert tk.next_token() == (Tokens.EMPTY, None)
+    assert tk.next_token() == (Tokens.COMMA, None)
 
 
 def test_tokenizer_identifier():
