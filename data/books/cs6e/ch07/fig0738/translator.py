@@ -101,7 +101,7 @@ class Translator:
                         state = Translator.States.FINISH
                     else:
                         code = Error("Illegal trailing character.")
-
+        # TODO: advance tokenizer to start of next line if we are in an error state
         return code
 
     def translate(self):
@@ -115,7 +115,7 @@ class Translator:
             # TODO: ugly hack that should be a state variable instead. Will revisit when this becomes iterable.
             elif (
                 type(code) is UnaryInstr
-                and cast(code, UnaryInstr).mnemonic == Mnemonics.END
+                and cast(UnaryInstr, code).mnemonic == Mnemonics.END
             ):
                 break
         else:  # No break
