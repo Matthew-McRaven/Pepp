@@ -1,10 +1,13 @@
+import io
 import tkinter
-from tkinter import scrolledtext, Toplevel
+from tkinter import scrolledtext
+
+from .translator import Translator
 
 
-class MainWindow(tkinter.Toplevel):
-    def __init__(self, master=None):
-        Toplevel.__init__(self, master)
+class MainWindow(tkinter.Tk):
+    def __init__(self):
+        tkinter.Tk.__init__(self)
         self.title("Figure 7.38")
         self.geometry("640x480")
 
@@ -26,13 +29,13 @@ class MainWindow(tkinter.Toplevel):
     def translate_clicked(self):
         # Read from 1st row, 0th character to the end of the text box
         text = self.editor.get("1.0", tkinter.END).rstrip()
-        print("Will translate: ", text)
+        tr = Translator(io.StringIO(text + "\n"))
+        tr.translate()
 
 
 def main():
     # Set up main window, and run until explicitly closed.
-    app = tkinter.Tk()
-    window = MainWindow(app)
+    window = MainWindow()
     window.mainloop()
 
 
