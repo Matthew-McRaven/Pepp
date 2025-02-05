@@ -153,7 +153,7 @@ Item {
                     }
                     width: treeView.width
 
-                    color: palette.base
+                    color: model.isHotLoaded ? "red" : palette.base
                     border {
                         color: treeDelegate.current ? palette.highlight : "transparent"
                         width: 2

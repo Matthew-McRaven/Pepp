@@ -14,8 +14,8 @@ void HelpEntry::addChildren(QList<QSharedPointer<HelpEntry>> children) {
 
 HelpModel::HelpModel(QObject *parent) : QAbstractItemModel{parent} {
   _roots = {
-      writing_root(),  debugging_root(), systemcalls_root(), greencard10_root(),
-      examples_root(), macros_root(),    about_root(),
+      writing_root(),      debugging_root(),  systemcalls_root(), greencard10_root(),
+      examples_root(true), macros_root(true), about_root(),
   };
   for (auto &root : _roots) addToIndex(root);
 }
@@ -64,11 +64,14 @@ QVariant HelpModel::data(const QModelIndex &index, int role) const {
   case (int)Roles::Category: return static_cast<int>(entry->category);
   case (int)Roles::Tags: return entry->tags;
   case Qt::DisplayRole: [[fallthrough]];
-  case (int)Roles::Name: return entry->displayName;
+  case (int)Roles::Name:
+    if (entry->isHotLoaded) return entry->displayName + " (External)";
+    return entry->displayName;
   case (int)Roles::Sort: return entry->sortName;
   case (int)Roles::Delegate: return entry->delegate;
   case (int)Roles::Props: return entry->props;
   case (int)Roles::WIP: return entry->isWIP;
+  case (int)Roles::HotLoaded: return entry->isHotLoaded;
   }
   return QVariant();
 }
@@ -82,6 +85,7 @@ QHash<int, QByteArray> HelpModel::roleNames() const {
   ret[static_cast<int>(Roles::Delegate)] = "delegate";
   ret[static_cast<int>(Roles::Props)] = "props";
   ret[static_cast<int>(Roles::WIP)] = "isWIP";
+  ret[static_cast<int>(Roles::HotLoaded)] = "isHotLoaded";
   return ret;
 }
 
