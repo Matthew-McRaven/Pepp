@@ -70,7 +70,6 @@ Item {
             //  Used to size dynamic text fields
             TextMetrics {
                 id: tm
-                //font: parent.font
                 text: "Overriding parent value"
             }
 

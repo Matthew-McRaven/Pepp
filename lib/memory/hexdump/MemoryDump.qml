@@ -12,7 +12,7 @@ Item {
     property alias asciiFont: asciiFM.font
 
     property font hexFont: Qt.font({
-                                       "family": 'Monaspace Xenon',
+                                       "family": settings.extPalette.baseMono.font,
                                        "weight": Font.Normal,
                                        "italic": false,
                                        "bold": false,
@@ -22,7 +22,7 @@ Item {
     FontMetrics {
         id: asciiFM
         font: Qt.font({
-                          "family": 'Monaspace Xenon',
+                          "family": settings.extPalette.baseMono.font,
                           "weight": Font.Normal,
                           "italic": false,
                           "bold": false,
@@ -38,6 +38,9 @@ Item {
     function scrollToAddress(addr) {
         const row = Math.floor(addr / root.model?.bytesPerRow)
         tableView.positionViewAtRow(row, TableView.Contain)
+    }
+    NuAppSettings {
+        id: settings
     }
 
     TableView {
