@@ -20,15 +20,21 @@
 
 class DumpBooksTask : public Task {
 public:
-  explicit DumpBooksTask(QObject *parent = nullptr);
+  explicit DumpBooksTask(QString dir, QObject *parent = nullptr);
   void run() override;
+
+private:
+  QString _dir;
 };
 
 void registerDumpBooks(auto &app, task_factory_t &task, detail::SharedFlags &flags) {
+  static std::string dirName;
   static auto books = app.add_subcommand("books", "Dump all books from help system to CWD");
+  auto dir = books->add_option("directory", dirName, "Directory into which books will be dumped");
+  dir->required();
   books->group("");
   books->callback([&]() {
     flags.kind = detail::SharedFlags::Kind::TERM;
-    task = [&](QObject *parent) { return new DumpBooksTask(parent); };
+    task = [&](QObject *parent) { return new DumpBooksTask(QString::fromStdString(dirName), parent); };
   });
 }
