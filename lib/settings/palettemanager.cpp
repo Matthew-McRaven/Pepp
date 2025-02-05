@@ -97,7 +97,7 @@ int pepp::settings::PaletteManager::copy(int row) {
   EM_ASM(FS.syncfs(function(){}););
 #endif
 
-  beginInsertRows({}, row, row);
+  beginInsertRows({}, _palettes.size() - 1, _palettes.size() - 1);
   _palettes.append(entry);
   endInsertRows();
   return _palettes.size() - 1;
