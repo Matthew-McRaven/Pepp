@@ -27,9 +27,9 @@ Item {
             leftMargin: 4 * anchors.margins
         }
         ScrollBar.vertical.policy: flickable.contentHeight
-                                   > flickable.height ? ScrollBar.AlwaysOn : ScrollBar.AsNeeded
+            > flickable.height ? ScrollBar.AlwaysOn : ScrollBar.AsNeeded
         ScrollBar.horizontal.policy: flickable.contentWidth
-                                     > flickable.width ? ScrollBar.AlwaysOn : ScrollBar.AsNeeded
+            > flickable.width ? ScrollBar.AlwaysOn : ScrollBar.AsNeeded
 
         ColumnLayout {
             GroupBox {
@@ -39,6 +39,7 @@ Item {
                     backgroundColor: bg.color
                 }
                 GridLayout {
+                    anchors.fill: parent
                     columns: 2
                     ComboBox {
                         id: defaultArchCombo
@@ -57,9 +58,10 @@ Item {
                         }
                         Connections {
                             target: category
+
                             function onDefaultArchChanged() {
                                 defaultArchCombo.currentIndex = defaultArchCombo.indexOfValue(
-                                            category.defaultArch)
+                                    category.defaultArch)
                             }
                         }
                     }
@@ -80,13 +82,14 @@ Item {
                         }
                         Component.onCompleted: {
                             currentIndex = indexOfValue(
-                                        category.defaultAbstraction)
+                                category.defaultAbstraction)
                         }
                         Connections {
                             target: category
+
                             function onDefaultAbstractionChanged() {
                                 defaultAbsCombo.currentIndex = defaultAbsCombo.indexOfValue(
-                                            category.defaultAbstraction)
+                                    category.defaultAbstraction)
                             }
                         }
                     }
@@ -99,6 +102,7 @@ Item {
                         onCheckedChanged: category.showDebugComponents = checked
                         Connections {
                             target: category
+
                             function onShowDebugComponentsChanged() {
                                 showDebug.checked = category.showDebugComponents
                             }
@@ -116,6 +120,7 @@ Item {
                 }
                 Layout.fillWidth: true
                 GridLayout {
+                    anchors.fill: parent
                     columns: 2
                     SpinBox {
                         from: 0
@@ -134,6 +139,7 @@ Item {
                         onCheckedChanged: category.showMenuHotkeys = checked
                         Connections {
                             target: category
+
                             function onShowChangeDialogChanged() {
                                 hotkeyCheck.checked = category.showMenuHotkeys
                             }
@@ -151,6 +157,7 @@ Item {
                 }
                 Layout.fillWidth: true
                 GridLayout {
+                    anchors.fill: parent
                     columns: 2
                     CheckBox {
                         id: changeDialogCheck
@@ -158,6 +165,7 @@ Item {
                         onCheckedChanged: category.showChangeDialog = checked
                         Connections {
                             target: category
+
                             function onShowMenuHotkeysChanged() {
                                 changeDialogCheck.checked = category.showChangeDialog
                             }
@@ -172,7 +180,78 @@ Item {
                         text: qsTr("Check GitHub for updates")
                         onClicked: {
                             Qt.openUrlExternally(
-                                        "https://github.com/Matthew-McRaven/Pepp/releases")
+                                "https://github.com/Matthew-McRaven/Pepp/releases")
+                        }
+                    }
+                }
+            }
+            GroupBox {
+                visible: category.showDebugComponents
+                enabled: category.showDebugComponents
+                label: GroupBoxLabel {
+                    text: qsTr("App Developer Options")
+                    backgroundColor: bg.color
+                }
+                Layout.fillWidth: true
+                GridLayout {
+                    anchors.fill: parent
+                    columns: 2
+                    CheckBox {
+                        id: allowExternFigures
+                        visible: !PlatformDetector.isWASM
+                        enabled: !PlatformDetector.isWASM
+                        Component.onCompleted: checked = category.allowExternalFigures
+                        onCheckedChanged: category.allowExternalFigures = checked
+                        Connections {
+                            target: category
+
+                            function onAllowExternalFiguresChanged() {
+                                allowExternFigures.checked = category.allowExternalFigures
+                            }
+                        }
+                    }
+                    Label {
+                        visible: !PlatformDetector.isWASM
+                        enabled: !PlatformDetector.isWASM
+                        text: "Use external figures"
+                    }
+
+                    TextField {
+                        id: externFigurePath
+                        visible: !PlatformDetector.isWASM
+                        enabled: category.allowExternalFigures && !PlatformDetector.isWASM
+                        Layout.fillWidth: true
+                        Layout.minimumWidth: 160
+                        placeholderText: "/path/to/books/directory/"
+                        text: category.externalFigureDirectory
+                    }
+
+                    Button {
+                        visible: !PlatformDetector.isWASM
+                        enabled: category.allowExternalFigures && !PlatformDetector.isWASM
+                        text: qsTr("Choose directory...")
+                        onClicked: figureLoader.item.open()
+                        Connections {
+                            target: figureLoader.item
+
+                            function onAccepted() {
+                                let path = decodeURIComponent(figureLoader.item.selectedFolder)
+                                path = path.replace(/^(file:\/{2})/, "");
+                                category.externalFigureDirectory = path
+                            }
+                        }
+
+                        Loader {
+                            id: figureLoader
+                            Component.onCompleted: {
+                                const props = {
+                                    "title": "Select Figure Directory",
+                                }
+                                if (!PlatformDetector.isWASM) {
+                                    setSource("qrc:/edu/pepp/settings/NativeFolderDialog.qml", props)
+                                }
+                            }
+                            asynchronous: false
                         }
                     }
                 }
@@ -182,44 +261,43 @@ Item {
             }
         }
     }
-
     // Duplicated from HelpRoot.qml. Must manually propogate changes between files.
     Component.onCompleted: {
         architectureModel.append({
-                                     "key": "Pep/10",
-                                     "value": Architecture.PEP10
-                                 })
+            "key": "Pep/10",
+            "value": Architecture.PEP10
+        })
         architectureModel.append({
-                                     "key": "Pep/9",
-                                     "value": Architecture.PEP9
-                                 })
+            "key": "Pep/9",
+            "value": Architecture.PEP9
+        })
         architectureModel.append({
-                                     "key": "Pep/8",
-                                     "value": Architecture.PEP8
-                                 })
+            "key": "Pep/8",
+            "value": Architecture.PEP8
+        })
         architectureModel.append({
-                                     "key": "RISC-V",
-                                     "value": Architecture.RISCV
-                                 })
+            "key": "RISC-V",
+            "value": Architecture.RISCV
+        })
         abstractionModel.append({
-                                    "key": "ASMB5",
-                                    "value": Abstraction.ASMB5
-                                })
+            "key": "ASMB5",
+            "value": Abstraction.ASMB5
+        })
         abstractionModel.append({
-                                    "key": "ASMB3",
-                                    "value": Abstraction.ASMB3
-                                })
+            "key": "ASMB3",
+            "value": Abstraction.ASMB3
+        })
         abstractionModel.append({
-                                    "key": "ISA3",
-                                    "value": Abstraction.ISA3
-                                })
+            "key": "ISA3",
+            "value": Abstraction.ISA3
+        })
         abstractionModel.append({
-                                    "key": "MC2",
-                                    "value": Abstraction.MC2
-                                })
+            "key": "MC2",
+            "value": Abstraction.MC2
+        })
         abstractionModel.append({
-                                    "key": "OS4",
-                                    "value": Abstraction.OS4
-                                })
+            "key": "OS4",
+            "value": Abstraction.OS4
+        })
     }
 }
