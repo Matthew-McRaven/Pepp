@@ -36,15 +36,14 @@ const bool is_wasm = false;
 #endif
 
 int main(int argc, char **argv) {
-  // Get the name of the executable, and see if it end in term or gui.
-  // If so, override the DEFAULT_GUI behavior.
+  // Get the name of the executable, and see if it ends in term.
+  // If so, we should present terminal help on being called with no args.
   QFile execFile(argv[0]);
   QFileInfo execInfo(execFile);
   auto name = execInfo.baseName();
-  bool default_term = name.endsWith("term", Qt::CaseInsensitive);
-  bool default_gui = name.endsWith("gui", Qt::CaseInsensitive) || DEFAULT_GUI || is_wasm;
+  bool default_term = name.endsWith("term", Qt::CaseInsensitive) && !is_wasm;
   CLI::App app{"Pepp", "pepp"};
-  app.prefix_command(default_gui);
+  app.prefix_command(!default_term);
   app.set_help_flag("-h,--help", "Display this help message and exit.");
 
   auto shared_flags = detail::SharedFlags{.kind = detail::SharedFlags::Kind::DEFAULT};
@@ -73,7 +72,7 @@ int main(int argc, char **argv) {
   try {
     app.parse(argc, argv);
     // If kind is default, then no subcommand was called, forward all arguments.
-    if (shared_flags.kind == detail::SharedFlags::Kind::DEFAULT && default_gui)
+    if (shared_flags.kind == detail::SharedFlags::Kind::DEFAULT && !default_term)
       std::transform(argv + 1, argv + argc, std::back_inserter(args.argvs), [](char *s) { return std::string(s); });
     else if (!(task || shared_flags.kind == detail::SharedFlags::Kind::GUI)) throw CLI::CallForHelp();
   } catch (const CLI::CallForHelp &e) {
@@ -84,7 +83,7 @@ int main(int argc, char **argv) {
     return 1;
   }
   if (shared_flags.kind == detail::SharedFlags::Kind::GUI ||
-      (shared_flags.kind == detail::SharedFlags::Kind::DEFAULT) && default_gui) {
+      (shared_flags.kind == detail::SharedFlags::Kind::DEFAULT) && !default_term) {
 #if INCLUDE_GUI
     return gui_main(args);
 #else
