@@ -16,34 +16,30 @@
  */
 
 #include "registry.hpp"
+#include <QDir>
+#include <QDirIterator>
+#include <QJsonDocument>
+#include <QStringConverter>
 #include "book.hpp"
 #include "elements.hpp"
 #include "figure.hpp"
 #include "macro/macro.hpp"
 #include "macro/parse.hpp"
-#include <QDir>
-#include <QDirIterator>
-#include <QJsonDocument>
-#include <QStringConverter>
 
 builtins::Registry::Registry(void *asm_toolchains) : QObject(nullptr) {
-  for (const auto &bookPath : detail::enumerateBooks(":/books")) {
+  for (const auto &bookPath : detail::enumerateBooks(book_path)) {
     auto book = detail::loadBook(bookPath);
     if (book == nullptr) // Crash on failure for ease of initial prototyping
       qFatal("Failed to load book");
-    else if (findBook(book->name()) !=
-             nullptr) // Crash on failure for ease of initial prototyping
+    else if (findBook(book->name()) != nullptr) // Crash on failure for ease of initial prototyping
       qFatal("Duplicate book");
     _books.push_back(book);
   }
 }
 
-QList<QSharedPointer<const builtins::Book>> builtins::Registry::books() const {
-  return _books;
-}
+QList<QSharedPointer<const builtins::Book>> builtins::Registry::books() const { return _books; }
 
-QSharedPointer<const builtins::Book>
-builtins::Registry::findBook(QString name) {
+QSharedPointer<const builtins::Book> builtins::Registry::findBook(QString name) {
   using namespace Qt::StringLiterals;
   QList<QSharedPointer<const builtins::Book>> temp;
   for (auto &bookPtr : _books) {
@@ -51,10 +47,8 @@ builtins::Registry::findBook(QString name) {
       temp.push_back(bookPtr);
     }
   }
-  if (auto length = temp.length(); length == 0)
-    return nullptr;
-  else if (length == 1)
-    return temp.first();
+  if (auto length = temp.length(); length == 0) return nullptr;
+  else if (length == 1) return temp.first();
   else {
     qDebug() << u"More than one copy of book {}"_s.arg(name);
     return nullptr;
@@ -78,8 +72,7 @@ builtins::Element *builtins::detail::loadElement(QString elementPath) {
   return element;
 }
 
-builtins::Element *builtins::detail::generateElement(QString fromElementPath,
-                                                     void *asm_toolchains) {
+builtins::Element *builtins::detail::generateElement(QString fromElementPath, void *asm_toolchains) {
   // TODO: Revist when assembler toolchain works
   return nullptr;
 }
@@ -97,16 +90,14 @@ builtins::Test *builtins::detail::loadTest(QString testDirPath) {
   return test;
 }
 
-QSharedPointer<builtins::Figure>
-builtins::detail::loadFigure(QString manifestPath) {
+QSharedPointer<builtins::Figure> builtins::detail::loadFigure(QString manifestPath) {
   auto manifestDir = QFileInfo(manifestPath).dir();
   // Read figure manifest get field names;
   auto manifestBytes = read(manifestPath);
   auto manifest = QJsonDocument::fromJson(manifestBytes);
   QString chFig = manifest["name"].toString();
   // Chapter and figure are separated by : in a manifest file.
-  if (chFig.indexOf(":") == -1)
-    qFatal("Invalid figure name");
+  if (chFig.indexOf(":") == -1) qFatal("Invalid figure name");
   auto chFigSplit = chFig.split(":");
   auto chapterName = chFigSplit[0];
   auto figureName = chFigSplit[1];
@@ -114,8 +105,8 @@ builtins::detail::loadFigure(QString manifestPath) {
   // Extract the architecture string and convert it to the correct enum.
   auto archStr = manifest["arch"].toString();
   bool okay = false;
-  auto archInt = QMetaEnum::fromType<builtins::Architecture>().keyToValue(
-      archStr.toUpper().toStdString().data(), &okay);
+  auto archInt =
+      QMetaEnum::fromType<builtins::Architecture>().keyToValue(archStr.toUpper().toStdString().data(), &okay);
   auto arch = static_cast<builtins::Architecture>(archInt);
   if (!okay) // Crash on failure for ease of initial prototyping
     qFatal("Invalid architecture");
@@ -147,16 +138,13 @@ builtins::detail::loadFigure(QString manifestPath) {
   }
 
   // Add elements
-  auto items =
-      manifest["items"]; // The key in the manifest which contains elements
-  auto itemsArray =
-      items.toObject(); // Get the element name:value pairs as a map
+  auto items = manifest["items"];          // The key in the manifest which contains elements
+  auto itemsArray = items.toObject();      // Get the element name:value pairs as a map
   auto itemsArrayKeys = itemsArray.keys(); // Make the name:value pairs iterable
   for (const auto &language : std::as_const(itemsArrayKeys)) {
     // Perform templatization on manifest values.
     QString itemTemplatePath = itemsArray[language].toString();
-    auto itemPath = itemTemplatePath.replace("{ch}", chapterName)
-                        .replace("{fig}", figureName);
+    auto itemPath = itemTemplatePath.replace("{ch}", chapterName).replace("{fig}", figureName);
 
     // Load the figure,
     auto item = loadElement(manifestDir.absoluteFilePath(itemPath));
@@ -175,8 +163,7 @@ builtins::detail::loadFigure(QString manifestPath) {
   return figure;
 }
 
-QList<QSharedPointer<macro::Parsed>>
-builtins::detail::loadMacro(QString manifestPath) {
+QList<QSharedPointer<macro::Parsed>> builtins::detail::loadMacro(QString manifestPath) {
   QList<QSharedPointer<macro::Parsed>> ret;
   auto manifestDir = QFileInfo(manifestPath).dir();
   // Read macro manifest get macro names;
@@ -184,10 +171,8 @@ builtins::detail::loadMacro(QString manifestPath) {
   auto manifest = QJsonDocument::fromJson(manifestBytes);
 
   // Add elements
-  auto items =
-      manifest["items"]; // The key in the manifest which contains elements
-  auto itemsArray =
-      items.toObject(); // Get the element name:value pairs as a map
+  auto items = manifest["items"];          // The key in the manifest which contains elements
+  auto itemsArray = items.toObject();      // Get the element name:value pairs as a map
   auto itemsArrayKeys = itemsArray.keys(); // Make the name:value pairs iterable
   for (const auto &name : std::as_const(itemsArrayKeys)) {
     // Perform templatization on manifest values.
@@ -201,8 +186,7 @@ builtins::detail::loadMacro(QString manifestPath) {
     bool isHidden = manifest["hidden"].toBool(false);
     auto family = manifest["family"].toString("");
 
-    if (!std::get<0>(
-            parsed)) // Crash on failure for ease of initial prototyping
+    if (!std::get<0>(parsed)) // Crash on failure for ease of initial prototyping
       qFatal("Invalid item");
     auto macro = QSharedPointer<macro::Parsed>::create(std::get<1>(parsed), std::get<2>(parsed), macroBody,
                                                        manifest["arch"].toString(), family, isHidden);
@@ -211,28 +195,23 @@ builtins::detail::loadMacro(QString manifestPath) {
   return ret;
 }
 
-void builtins::detail::linkFigureOS(QString manifestPath,
-                                    QSharedPointer<Figure> figure,
+void builtins::detail::linkFigureOS(QString manifestPath, QSharedPointer<Figure> figure,
                                     QSharedPointer<const Book> book) {
   // Read figure manifest to determine if figure is an OS, or if it links
   // against an existing figure.
   auto manifestBytes = read(manifestPath);
   auto manifest = QJsonDocument::fromJson(manifestBytes);
   auto isOs = manifest["is_os"];
-  if (isOs.isBool() && isOs.toBool())
-    return;
+  if (isOs.isBool() && isOs.toBool()) return;
   QString chFig = manifest["default_os"].toString();
-  if (chFig.isEmpty())
-    return;
+  if (chFig.isEmpty()) return;
   // Chapter and figure are separated by : in a manifest file.
-  if (chFig.indexOf(":") == -1)
-    qFatal("Invalid OS figure name");
+  if (chFig.indexOf(":") == -1) qFatal("Invalid OS figure name");
   auto osChFigSplit = chFig.split(":");
   auto osChapterName = osChFigSplit[0];
   auto osFigureName = osChFigSplit[1];
   auto os = book->findFigure(osChapterName, osFigureName);
-  if (!os)
-    qFatal("Could not find OS");
+  if (!os) qFatal("Could not find OS");
   figure->setDefaultOS(os.data());
 }
 
@@ -242,12 +221,10 @@ QSharedPointer<builtins::Book> builtins::detail::loadBook(QString tocPath) {
   auto tocBytes = read(tocPath);
   auto toc = QJsonDocument::fromJson(tocBytes);
   // And create a book object to stick figures in
-  auto book =
-      QSharedPointer<builtins::Book>::create(toc["bookName"].toString());
+  auto book = QSharedPointer<builtins::Book>::create(toc["bookName"].toString());
 
   // Explore the book's subdirectories, looking for figures and macros.
-  QDirIterator iter(QFileInfo(tocPath).dir().absolutePath(),
-                    QDirIterator::Subdirectories);
+  QDirIterator iter(QFileInfo(tocPath).dir().absolutePath(), QDirIterator::Subdirectories);
   // Maintain a list of figures that need to be linked to their default OS
   QList<std::tuple<QString, QSharedPointer<builtins::Figure>>> revisit;
   while (iter.hasNext()) {
@@ -268,8 +245,7 @@ QSharedPointer<builtins::Book> builtins::detail::loadBook(QString tocPath) {
     if (next.endsWith("problem.json")) {
       auto problem = loadFigure(next);
       // TODO: throw exception instead
-      if (problem ==
-          nullptr) // Crash on failure for ease of initial prototyping
+      if (problem == nullptr) // Crash on failure for ease of initial prototyping
         qFatal("Failed to load problem");
       revisit.push_back({next, problem});
       book->addProblem(problem);
@@ -281,8 +257,7 @@ QSharedPointer<builtins::Book> builtins::detail::loadBook(QString tocPath) {
       auto macros = loadMacro(next);
       for (auto &macro : macros) {
         // TODO: throw exception instead
-        if (macro ==
-            nullptr) // Crash on failure for ease of initial prototyping
+        if (macro == nullptr) // Crash on failure for ease of initial prototyping
           qFatal("Failed to load macro");
         book->addMacro(macro);
       }
@@ -290,8 +265,7 @@ QSharedPointer<builtins::Book> builtins::detail::loadBook(QString tocPath) {
   }
 
   // Revist all figures and attempt to link to default OS
-  for (auto &[path, figure] : revisit)
-    linkFigureOS(path, figure, book);
+  for (auto &[path, figure] : revisit) linkFigureOS(path, figure, book);
 
   return book;
 }
