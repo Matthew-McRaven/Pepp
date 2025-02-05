@@ -7,7 +7,6 @@ import "./"
 
 Labs.MenuBar {
     id: wrapper
-
     required property var project
     required property Actions actions
     property bool darkMode: Application.styleHints.colorScheme === Qt.ColorScheme.Dark
@@ -32,6 +31,9 @@ Labs.MenuBar {
     function updateDarkMode() {
         wrapper.darkMode = Qt.binding(
                     () => Application.styleHints.colorScheme === Qt.ColorScheme.Dark)
+    }
+    NuAppSettings {
+        id: settings
     }
 
     Component.onCompleted: {
@@ -265,10 +267,11 @@ Labs.MenuBar {
             text: actions.view.fullscreen.text
             onTriggered: actions.view.fullscreen.trigger()
         }
-        // Dynamic magic to mode switch!
     }
     // Only meant for testing the app, not meant for deployment to users!
     Labs.Menu {
+        visible: settings.general.showDebugComponents
+        enabled: visible
         title: qsTr("App D&ev")
         Labs.MenuItem {
             text: qsTr("Clear Changelog Cache")
