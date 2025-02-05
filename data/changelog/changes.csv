@@ -85,3 +85,4 @@ Added,,0.8.3,782,"Distinguish macro expansions from user code via different font
 Fixed,,0.8.4,785,"Improve spacing within listing's macro expansions"
 Changed,Major,0.8.4,,"Re-order Pep/10 opcodes to group together AAA-type ops"
 Changed,Major,0.8.5,788,"Convert chapter 7 figures from Java to Python for the 6th edition"
+Fixed,,0.8.5,,"Allow copying themes other than ""Dark"""

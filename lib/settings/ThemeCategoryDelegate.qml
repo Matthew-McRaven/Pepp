@@ -113,8 +113,9 @@ Item {
                     Layout.minimumWidth: root.buttonWidth
                     onPressed: {
                         if (comboBox.isSystemTheme) {
+                            const curIdx = comboBox.currentIndex
                             // Copy also creates the duplicate item for us!
-                            const index = onDisk.copy(comboBox.index)
+                            const index = onDisk.copy(comboBox.currentIndex)
                             if (index != -1) {
                                 comboBox.currentIndex = index
                                 requestRename()
