@@ -35,41 +35,41 @@ Item {
     // Duplicated in GeneralCategoryDelegate. Must manually propogate changes between files.
     Component.onCompleted: {
         architectureModel.append({
-                                     "key": "Pep/10",
-                                     "value": Architecture.PEP10
-                                 })
+            "key": "Pep/10",
+            "value": Architecture.PEP10
+        })
         architectureModel.append({
-                                     "key": "Pep/9",
-                                     "value": Architecture.PEP9
-                                 })
+            "key": "Pep/9",
+            "value": Architecture.PEP9
+        })
         architectureModel.append({
-                                     "key": "Pep/8",
-                                     "value": Architecture.PEP8
-                                 })
+            "key": "Pep/8",
+            "value": Architecture.PEP8
+        })
         architectureModel.append({
-                                     "key": "RISC-V",
-                                     "value": Architecture.RISCV
-                                 })
+            "key": "RISC-V",
+            "value": Architecture.RISCV
+        })
         abstractionModel.append({
-                                    "key": "ASMB5",
-                                    "value": Abstraction.ASMB5
-                                })
+            "key": "ASMB5",
+            "value": Abstraction.ASMB5
+        })
         abstractionModel.append({
-                                    "key": "ASMB3",
-                                    "value": Abstraction.ASMB3
-                                })
+            "key": "ASMB3",
+            "value": Abstraction.ASMB3
+        })
         abstractionModel.append({
-                                    "key": "ISA3",
-                                    "value": Abstraction.ISA3
-                                })
+            "key": "ISA3",
+            "value": Abstraction.ISA3
+        })
         abstractionModel.append({
-                                    "key": "MC2",
-                                    "value": Abstraction.MC2
-                                })
+            "key": "MC2",
+            "value": Abstraction.MC2
+        })
         abstractionModel.append({
-                                    "key": "OS4",
-                                    "value": Abstraction.OS4
-                                })
+            "key": "OS4",
+            "value": Abstraction.OS4
+        })
     }
 
     // Make sure the drawer is always at least as wide as the text
@@ -121,13 +121,15 @@ Item {
         TreeView {
             id: treeView
             Layout.minimumWidth: textMetrics.width
-            selectionModel: ItemSelectionModel {}
+            selectionModel: ItemSelectionModel {
+            }
             Layout.fillHeight: true
             clip: true
             boundsMovement: Flickable.StopAtBounds
             model: FilteredHelpModel {
                 id: helpModel
-                model: HelpModel {}
+                model: HelpModel {
+                }
                 // Sane defaults
                 architecture: architectureCombo.currentValue
                 abstraction: abstractionCombo.currentValue
@@ -170,10 +172,11 @@ Item {
                         treeView.expandRecursively(row)
                     }
                 }
+
                 function makeActive() {
                     root.selected = treeDelegate.treeView.index(row, column)
                     treeDelegate.treeView.selectionModel.setCurrentIndex(
-                                root.selected, ItemSelectionModel.NoUpdate)
+                        root.selected, ItemSelectionModel.NoUpdate)
                 }
             }
         }
@@ -192,27 +195,35 @@ Item {
             anchors.fill: parent
             Connections {
                 target: contentLoader.item
+
                 function onAddProject(feats, texts, mode, os, tests) {
                     const abs = abstractionModel.get(
-                                  abstractionCombo.currentIndex).value
+                        abstractionCombo.currentIndex).value
                     const arch = architectureModel.get(
-                                   architectureCombo.currentIndex).value
+                        architectureCombo.currentIndex).value
                     root.addProject(arch, abs, feats, texts, true)
                     if (tests && tests[0])
                         root.setCharIn(tests[0].input)
                     root.switchToMode(mode ?? "Editor")
                 }
+
                 function onRenameCurrentProject(name) {
                     root.renameCurrentProject(name)
                 }
+
                 ignoreUnknownSignals: true
             }
         }
     }
+
     signal addProject(int level, int abstraction, string feats, var text, bool reuse)
+
     signal renameCurrentProject(string name)
+
     signal setCharIn(string text)
+
     signal switchToMode(string mode)
+
     onSelectedChanged: {
         const props = helpModel.data(selected, HelpModel.Props)
         const url = helpModel.data(selected, HelpModel.Delegate)
