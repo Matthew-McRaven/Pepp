@@ -202,7 +202,8 @@ Item {
                         name: display
                         bgColor: paletteItem?.background ?? "transparent"
                         fgColor: paletteItem?.foreground ?? "black"
-                        font: paletteItem?.font ?? "Monaspace Xenon"
+                        font: paletteItem?.font
+                              ?? settings.extPalette.baseMono.font
                     }
                 }
                 PaletteDetails {
