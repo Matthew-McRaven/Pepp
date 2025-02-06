@@ -1,5 +1,6 @@
 #include "settings.hpp"
 #include <QQmlEngine>
+#include "builtins/registry.hpp"
 
 pepp::settings::Category::Category(QObject *parent) : QObject(parent) {}
 
@@ -150,6 +151,18 @@ QString pepp::settings::GeneralCategory::externalFigureDirectory() const {
 void pepp::settings::GeneralCategory::setExternalFigureDirectory(const QString &path) {
   _settings.setValue(externFigDir, path);
   emit externalFigureDirectoryChanged();
+}
+
+QString pepp::settings::GeneralCategory::figureDirectory() const {
+#if defined(Q_OS_WASM)
+  return builtins::default_book_path;
+#else
+  if (showDebugComponents() && allowExternalFigures()) {
+    auto path = externalFigureDirectory();
+    if (!path.isEmpty()) return path;
+  }
+  return builtins::default_book_path;
+#endif
 }
 
 bool pepp::settings::GeneralCategory::validateMaxRecentFiles(int max) const {

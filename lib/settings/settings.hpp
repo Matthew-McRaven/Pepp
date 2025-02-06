@@ -72,6 +72,7 @@ public:
   void setAllowExternalFigures(bool allow);
   QString externalFigureDirectory() const;
   void setExternalFigureDirectory(const QString &path);
+  QString figureDirectory() const;
 
 signals:
   void defaultArchChanged();

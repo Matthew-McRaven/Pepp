@@ -1,6 +1,7 @@
 #include "helpmodel.hpp"
 #include "./registry.hpp"
 #include "helpdata.hpp"
+#include "settings/settings.hpp"
 
 static const bool dbg = false;
 
@@ -14,12 +15,20 @@ void HelpEntry::addChildren(QList<QSharedPointer<HelpEntry>> children) {
 }
 
 HelpModel::HelpModel(QObject *parent) : QAbstractItemModel{parent} {
-  _reg = QSharedPointer<builtins::Registry>::create(nullptr);
+  auto set = pepp::settings::AppSettings();
+  auto figDirectory = set.general()->figureDirectory();
+  _reg = QSharedPointer<builtins::Registry>::create(nullptr, figDirectory);
   _roots = {
       writing_root(),       debugging_root(),   systemcalls_root(), greencard10_root(),
       examples_root(*_reg), macros_root(*_reg), about_root(),
   };
   for (auto &root : _roots) addToIndex(root);
+  QObject::connect(set.general(), &pepp::settings::GeneralCategory::showDebugComponentsChanged, this,
+                   &HelpModel::onHotReload);
+  QObject::connect(set.general(), &pepp::settings::GeneralCategory::allowExternalFiguresChanged, this,
+                   &HelpModel::onHotReload);
+  QObject::connect(set.general(), &pepp::settings::GeneralCategory::externalFigureDirectoryChanged, this,
+                   &HelpModel::onHotReload);
 }
 
 QModelIndex HelpModel::index(int row, int column, const QModelIndex &parent) const {
@@ -91,9 +100,16 @@ QHash<int, QByteArray> HelpModel::roleNames() const {
   return ret;
 }
 
+void HelpModel::onHotReload() { qDebug() << "Someone wanted a hot reload!"; }
+
 void HelpModel::addToIndex(QSharedPointer<HelpEntry> entry) {
   _indices.insert(reinterpret_cast<ptrdiff_t>(entry.data()));
   for (auto &child : entry->_children) addToIndex(child);
+}
+
+void HelpModel::removeFromIndex(QSharedPointer<HelpEntry> entry) {
+  _indices.remove(reinterpret_cast<ptrdiff_t>(entry.data()));
+  for (auto &child : entry->_children) removeFromIndex(child);
 }
 
 HelpFilterModel::HelpFilterModel(QObject *parent) : QSortFilterProxyModel(parent) {}

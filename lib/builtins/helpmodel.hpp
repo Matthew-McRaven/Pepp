@@ -61,10 +61,13 @@ public:
   int columnCount(const QModelIndex &parent) const override;
   QVariant data(const QModelIndex &index, int role) const override;
   QHash<int, QByteArray> roleNames() const override;
+protected slots:
+  void onHotReload();
 
 private:
   QList<QSharedPointer<HelpEntry>> _roots;
   void addToIndex(QSharedPointer<HelpEntry>);
+  void removeFromIndex(QSharedPointer<HelpEntry>);
   inline HelpEntry *ptr(const QModelIndex &index) const {
     if (_indices.contains(index.internalId())) return static_cast<HelpEntry *>(index.internalPointer());
     return nullptr;
