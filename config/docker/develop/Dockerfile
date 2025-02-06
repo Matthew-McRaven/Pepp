@@ -25,7 +25,7 @@ RUN wget -q -O ninja.zip "https://github.com/ninja-build/ninja/releases/download
 # Need to pick this locale otherwise Qt complains and overrides the locale anyway.
 ENV LANG="C.UTF-8"
 # Must occur after the "FROM" directive, allows choice of Qt version.
-ARG QT_VERSION="6.8.1"
+ARG QT_VERSION="6.8.2"
 # Don't cache pip internal files, reduce image size.
 ENV PIP_NO_CACHE_DIR=1
 SHELL ["/bin/bash", "-c"]
@@ -59,7 +59,7 @@ RUN apt update \
        libxcb1-dev libxext-dev libxfixes-dev libxi-dev libxkbcommon-dev libxkbcommon-x11-dev libxrender-dev\
     && rm -rf /var/lib/apt/lists/*
 # Get sources for the current version of Qt.
-RUN wget -q "https://download.qt.io/official_releases/qt/6.8/6.8.1/single/qt-everywhere-src-${QT_VERSION}.tar.xz" \
+RUN wget -q "https://download.qt.io/official_releases/qt/6.8/6.8.2/single/qt-everywhere-src-${QT_VERSION}.tar.xz" \
     && mkdir -p /build-qt \
     && tar xf qt-everywhere-src-${QT_VERSION}.tar.xz --directory /build-qt \
     && mv /build-qt/qt-everywhere-src-${QT_VERSION} /build-qt/${QT_VERSION} \
