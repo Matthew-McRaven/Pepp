@@ -18,10 +18,15 @@ HelpModel::HelpModel(QObject *parent) : QAbstractItemModel{parent} {
   auto set = pepp::settings::AppSettings();
   auto figDirectory = set.general()->figureDirectory();
   _reg = QSharedPointer<builtins::Registry>::create(nullptr, figDirectory);
+
+  // If you update the following array, YOU MUST UPDATE THE INDEX OF VARIABLE TOO!!!
   _roots = {
       writing_root(),       debugging_root(),   systemcalls_root(), greencard10_root(),
       examples_root(*_reg), macros_root(*_reg), about_root(),
   };
+  _indexOfFigs = 4;
+  _indexOfMacros = 5;
+
   for (auto &root : _roots) addToIndex(root);
   QObject::connect(set.general(), &pepp::settings::GeneralCategory::showDebugComponentsChanged, this,
                    &HelpModel::onHotReload);
@@ -71,6 +76,9 @@ QVariant HelpModel::data(const QModelIndex &index, int role) const {
   if constexpr (dbg) qDebug() << "HelpModel::data" << index << role;
   if (!index.isValid()) return QVariant();
   auto entry = ptr(index);
+  // After we do a reload, QML will still temporarily hold a pointer to the old entry.
+  // Must guard against accessing free'd memory.
+  if (entry == nullptr) return QVariant();
   switch (role) {
   case (int)Roles::Category: return static_cast<int>(entry->category);
   case (int)Roles::Tags: return entry->tags;
@@ -100,7 +108,26 @@ QHash<int, QByteArray> HelpModel::roleNames() const {
   return ret;
 }
 
-void HelpModel::onHotReload() { qDebug() << "Someone wanted a hot reload!"; }
+void HelpModel::onHotReload() {
+  beginResetModel();
+  auto &figs = _roots[_indexOfFigs];
+  auto &macros = _roots[_indexOfMacros];
+  // Must remove from index otherwise we might deref free'd in data()
+  removeFromIndex(figs);
+  removeFromIndex(macros);
+
+  // Cleanup old entries before their associated registry is destroyed to prevent dangling pointers.
+  figs.clear();
+  macros.clear();
+
+  // Construct registry with new settings
+  _reg =
+      QSharedPointer<builtins::Registry>::create(nullptr, pepp::settings::AppSettings().general()->figureDirectory());
+  // Re-construct figures and macros in-place, inserting them into our pointer index.
+  addToIndex(figs = examples_root(*_reg));
+  addToIndex(macros = macros_root(*_reg));
+  endResetModel();
+}
 
 void HelpModel::addToIndex(QSharedPointer<HelpEntry> entry) {
   _indices.insert(reinterpret_cast<ptrdiff_t>(entry.data()));

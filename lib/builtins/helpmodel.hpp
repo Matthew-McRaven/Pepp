@@ -66,6 +66,7 @@ protected slots:
 
 private:
   QList<QSharedPointer<HelpEntry>> _roots;
+  int _indexOfFigs = -1, _indexOfMacros = -1;
   void addToIndex(QSharedPointer<HelpEntry>);
   void removeFromIndex(QSharedPointer<HelpEntry>);
   inline HelpEntry *ptr(const QModelIndex &index) const {
