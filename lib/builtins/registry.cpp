@@ -81,6 +81,7 @@ builtins::Test *builtins::detail::loadTest(QString testDirPath) {
   QDirIterator dir(testDirPath);
   while (dir.hasNext()) {
     auto file = dir.next();
+    if (!QFileInfo(file).isFile() && !file.endsWith(".txt")) continue;
     QString data = read(file);
     data.replace("\r", "");
     if (file.endsWith("input.txt")) test->input = data;
