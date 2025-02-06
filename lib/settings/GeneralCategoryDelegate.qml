@@ -27,9 +27,9 @@ Item {
             leftMargin: 4 * anchors.margins
         }
         ScrollBar.vertical.policy: flickable.contentHeight
-            > flickable.height ? ScrollBar.AlwaysOn : ScrollBar.AsNeeded
+                                   > flickable.height ? ScrollBar.AlwaysOn : ScrollBar.AsNeeded
         ScrollBar.horizontal.policy: flickable.contentWidth
-            > flickable.width ? ScrollBar.AlwaysOn : ScrollBar.AsNeeded
+                                     > flickable.width ? ScrollBar.AlwaysOn : ScrollBar.AsNeeded
 
         ColumnLayout {
             GroupBox {
@@ -61,7 +61,7 @@ Item {
 
                             function onDefaultArchChanged() {
                                 defaultArchCombo.currentIndex = defaultArchCombo.indexOfValue(
-                                    category.defaultArch)
+                                            category.defaultArch)
                             }
                         }
                     }
@@ -82,14 +82,14 @@ Item {
                         }
                         Component.onCompleted: {
                             currentIndex = indexOfValue(
-                                category.defaultAbstraction)
+                                        category.defaultAbstraction)
                         }
                         Connections {
                             target: category
 
                             function onDefaultAbstractionChanged() {
                                 defaultAbsCombo.currentIndex = defaultAbsCombo.indexOfValue(
-                                    category.defaultAbstraction)
+                                            category.defaultAbstraction)
                             }
                         }
                     }
@@ -98,15 +98,8 @@ Item {
                     }
                     CheckBox {
                         id: showDebug
-                        Component.onCompleted: checked = category.showDebugComponents
-                        onCheckedChanged: category.showDebugComponents = checked
-                        Connections {
-                            target: category
-
-                            function onShowDebugComponentsChanged() {
-                                showDebug.checked = category.showDebugComponents
-                            }
-                        }
+                        checked: category.showDebugComponents
+                        onClicked: category.showDebugComponents = showDebug.checked
                     }
                     Label {
                         text: "Show work-in-progress UI components"
@@ -135,15 +128,7 @@ Item {
                     }
                     CheckBox {
                         id: hotkeyCheck
-                        Component.onCompleted: checked = category.showMenuHotkeys
-                        onCheckedChanged: category.showMenuHotkeys = checked
-                        Connections {
-                            target: category
-
-                            function onShowChangeDialogChanged() {
-                                hotkeyCheck.checked = category.showMenuHotkeys
-                            }
-                        }
+                        checked: category.showMenuHotkeys
                     }
                     Label {
                         text: "Show hotkeys in menu entries"
@@ -161,15 +146,8 @@ Item {
                     columns: 2
                     CheckBox {
                         id: changeDialogCheck
-                        Component.onCompleted: checked = category.showChangeDialog
-                        onCheckedChanged: category.showChangeDialog = checked
-                        Connections {
-                            target: category
-
-                            function onShowMenuHotkeysChanged() {
-                                changeDialogCheck.checked = category.showChangeDialog
-                            }
-                        }
+                        checked: category.showChangeDialog
+                        onClicked: category.showChangeDialog = changeDialogCheck.checked
                     }
                     Label {
                         text: "Show \"What's Changed\" dialog on update"
@@ -180,7 +158,7 @@ Item {
                         text: qsTr("Check GitHub for updates")
                         onClicked: {
                             Qt.openUrlExternally(
-                                "https://github.com/Matthew-McRaven/Pepp/releases")
+                                        "https://github.com/Matthew-McRaven/Pepp/releases")
                         }
                     }
                 }
@@ -200,15 +178,8 @@ Item {
                         id: allowExternFigures
                         visible: !PlatformDetector.isWASM
                         enabled: !PlatformDetector.isWASM
-                        Component.onCompleted: checked = category.allowExternalFigures
-                        onCheckedChanged: category.allowExternalFigures = checked
-                        Connections {
-                            target: category
-
-                            function onAllowExternalFiguresChanged() {
-                                allowExternFigures.checked = category.allowExternalFigures
-                            }
-                        }
+                        checked: category.allowExternalFigures
+                        onClicked: category.allowExternalFigures = allowExternFigures.checked
                     }
                     Label {
                         visible: !PlatformDetector.isWASM
@@ -219,7 +190,8 @@ Item {
                     TextField {
                         id: externFigurePath
                         visible: !PlatformDetector.isWASM
-                        enabled: category.allowExternalFigures && !PlatformDetector.isWASM
+                        enabled: category.allowExternalFigures
+                                 && !PlatformDetector.isWASM
                         Layout.fillWidth: true
                         Layout.minimumWidth: 160
                         placeholderText: "/path/to/books/directory/"
@@ -228,15 +200,17 @@ Item {
 
                     Button {
                         visible: !PlatformDetector.isWASM
-                        enabled: category.allowExternalFigures && !PlatformDetector.isWASM
+                        enabled: category.allowExternalFigures
+                                 && !PlatformDetector.isWASM
                         text: qsTr("Choose directory...")
                         onClicked: figureLoader.item.open()
                         Connections {
                             target: figureLoader.item
 
                             function onAccepted() {
-                                let path = decodeURIComponent(figureLoader.item.selectedFolder)
-                                path = path.replace(/^(file:\/{2})/, "");
+                                let path = decodeURIComponent(
+                                        figureLoader.item.selectedFolder)
+                                path = path.replace(/^(file:\/{2})/, "")
                                 category.externalFigureDirectory = path
                             }
                         }
@@ -245,10 +219,11 @@ Item {
                             id: figureLoader
                             Component.onCompleted: {
                                 const props = {
-                                    "title": "Select Figure Directory",
+                                    "title": "Select Figure Directory"
                                 }
                                 if (!PlatformDetector.isWASM) {
-                                    setSource("qrc:/edu/pepp/settings/NativeFolderDialog.qml", props)
+                                    setSource("qrc:/edu/pepp/settings/NativeFolderDialog.qml",
+                                              props)
                                 }
                             }
                             asynchronous: false
