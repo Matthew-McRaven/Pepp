@@ -5,7 +5,11 @@
 #include <qsortfilterproxymodel.h>
 #include "builtins/constants.hpp"
 
+namespace builtins {
+class Registry;
+}
 class HelpModel;
+
 class HelpCategory : public QObject {
   Q_OBJECT
 public:
@@ -34,7 +38,7 @@ public:
   void addChild(QSharedPointer<HelpEntry> child);
   void addChildren(QVector<QSharedPointer<HelpEntry>> children);
   // TODO: remove when all are no longer WIP.
-  bool isWIP = false;
+  bool isWIP = false, isExternal = false;
 
 private:
   friend HelpModel;
@@ -48,7 +52,7 @@ class HelpModel : public QAbstractItemModel {
   QML_ELEMENT
 
 public:
-  enum class Roles { Category = Qt::UserRole + 1, Tags, Name, Delegate, Props, Sort, WIP };
+  enum class Roles { Category = Qt::UserRole + 1, Tags, Name, Delegate, Props, Sort, WIP, External };
   Q_ENUM(Roles);
   explicit HelpModel(QObject *parent = nullptr);
   QModelIndex index(int row, int column, const QModelIndex &parent) const override;
@@ -57,17 +61,20 @@ public:
   int columnCount(const QModelIndex &parent) const override;
   QVariant data(const QModelIndex &index, int role) const override;
   QHash<int, QByteArray> roleNames() const override;
+protected slots:
+  void onReloadFigures();
 
 private:
   QList<QSharedPointer<HelpEntry>> _roots;
+  int _indexOfFigs = -1, _indexOfMacros = -1;
   void addToIndex(QSharedPointer<HelpEntry>);
+  void removeFromIndex(QSharedPointer<HelpEntry>);
   inline HelpEntry *ptr(const QModelIndex &index) const {
     if (_indices.contains(index.internalId())) return static_cast<HelpEntry *>(index.internalPointer());
-    else {
-      auto x = 5;
-      return nullptr;
-    }
+    return nullptr;
   }
+  // Registry data must outlive referrents or we get untraceable sgefaults inside QML.
+  QSharedPointer<builtins::Registry> _reg = nullptr;
   QSet<ptrdiff_t> _indices;
 };
 

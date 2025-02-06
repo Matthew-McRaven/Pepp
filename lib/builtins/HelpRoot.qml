@@ -9,6 +9,7 @@ Item {
     // Treat as read-only inputs. If changed, they should force updates to the combo boxes.
     property var architecture: 0
     property var abstraction: 0
+    signal reloadFiguresRequested
     NuAppSettings {
         id: settings
     }
@@ -136,6 +137,8 @@ Item {
                 onArchitectureChanged: root.selected = treeView.index(0, 0)
                 Component.onCompleted: {
                     helpModel.sort(0, Qt.AscendingOrder)
+                    reloadFiguresRequested.connect(
+                                helpModel.model.onReloadFigures)
                 }
             }
 
@@ -151,7 +154,7 @@ Item {
                     }
                     width: treeView.width
 
-                    color: palette.base
+                    color: model.isExternal ? "red" : palette.base
                     border {
                         color: treeDelegate.current ? palette.highlight : "transparent"
                         width: 2
@@ -170,6 +173,7 @@ Item {
                         treeView.expandRecursively(row)
                     }
                 }
+
                 function makeActive() {
                     root.selected = treeDelegate.treeView.index(row, column)
                     treeDelegate.treeView.selectionModel.setCurrentIndex(
@@ -192,6 +196,7 @@ Item {
             anchors.fill: parent
             Connections {
                 target: contentLoader.item
+
                 function onAddProject(feats, texts, mode, os, tests) {
                     const abs = abstractionModel.get(
                                   abstractionCombo.currentIndex).value
@@ -202,17 +207,24 @@ Item {
                         root.setCharIn(tests[0].input)
                     root.switchToMode(mode ?? "Editor")
                 }
+
                 function onRenameCurrentProject(name) {
                     root.renameCurrentProject(name)
                 }
+
                 ignoreUnknownSignals: true
             }
         }
     }
+
     signal addProject(int level, int abstraction, string feats, var text, bool reuse)
+
     signal renameCurrentProject(string name)
+
     signal setCharIn(string text)
+
     signal switchToMode(string mode)
+
     onSelectedChanged: {
         const props = helpModel.data(selected, HelpModel.Props)
         const url = helpModel.data(selected, HelpModel.Delegate)

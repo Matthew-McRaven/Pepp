@@ -1,5 +1,6 @@
 #include "settings.hpp"
 #include <QQmlEngine>
+#include "builtins/registry.hpp"
 
 pepp::settings::Category::Category(QObject *parent) : QObject(parent) {}
 
@@ -10,6 +11,8 @@ static const char *showDebugKey = "General/showDebug";
 static const char *maxRecentFilesKey = "General/maxRecentFiles";
 static const char *showMenuHotkeysKey = "General/showMenuHotkeys";
 static const char *showChangeDialogKey = "General/showChangeDialog";
+static const char *allowExternFigs = "General/allowExternalFigures";
+static const char *externFigDir = "General/externalFigureDirectory";
 // Editor
 static const char *visualizeWhitespaceKey = "Editor/visualizeWhitespace";
 // Palette
@@ -28,6 +31,7 @@ void pepp::settings::GeneralCategory::resetToDefault() {
   setMaxRecentFiles(defaultMaxRecentFiles);
   setShowMenuHotkeys(defaultShowMenuHotkeys);
   setShowChangeDialog(defaultShowChangeDialog);
+  setAllowExternalFigures(defaultAllowExternalFigures);
 }
 
 builtins::Architecture pepp::settings::GeneralCategory::defaultArch() const {
@@ -59,8 +63,7 @@ builtins::Abstraction pepp::settings::GeneralCategory::defaultAbstraction() cons
   }
 }
 
-bool pepp::settings::GeneralCategory::showDebugComponents() const
-{
+bool pepp::settings::GeneralCategory::showDebugComponents() const {
   auto value = _settings.value(showDebugKey);
   if (value.isValid()) return value.toBool();
   else {
@@ -69,8 +72,7 @@ bool pepp::settings::GeneralCategory::showDebugComponents() const
   }
 }
 
-void pepp::settings::GeneralCategory::setShowDebugComponents(bool show)
-{
+void pepp::settings::GeneralCategory::setShowDebugComponents(bool show) {
   _settings.setValue(showDebugKey, show);
   emit showDebugComponentsChanged();
 }
@@ -122,6 +124,45 @@ bool pepp::settings::GeneralCategory::showChangeDialog() const {
 void pepp::settings::GeneralCategory::setShowChangeDialog(bool show) {
   _settings.setValue(showChangeDialogKey, show);
   emit showChangeDialogChanged();
+}
+
+bool pepp::settings::GeneralCategory::allowExternalFigures() const {
+  auto value = _settings.value(allowExternFigs);
+  if (value.isValid()) return value.toBool();
+  else {
+    _settings.setValue(allowExternFigs, defaultAllowExternalFigures);
+    return defaultAllowExternalFigures;
+  }
+}
+void pepp::settings::GeneralCategory::setAllowExternalFigures(bool allow) {
+  _settings.setValue(allowExternFigs, allow);
+  emit allowExternalFiguresChanged();
+}
+
+QString pepp::settings::GeneralCategory::externalFigureDirectory() const {
+  auto value = _settings.value(externFigDir);
+  if (value.isValid()) return value.toString();
+  else {
+    _settings.setValue(externFigDir, "");
+    return "";
+  }
+}
+
+void pepp::settings::GeneralCategory::setExternalFigureDirectory(const QString &path) {
+  _settings.setValue(externFigDir, path);
+  emit externalFigureDirectoryChanged();
+}
+
+QString pepp::settings::GeneralCategory::figureDirectory() const {
+#if defined(Q_OS_WASM)
+  return builtins::default_book_path;
+#else
+  if (showDebugComponents() && allowExternalFigures()) {
+    auto path = externalFigureDirectory();
+    if (!path.isEmpty()) return path;
+  }
+  return builtins::default_book_path;
+#endif
 }
 
 bool pepp::settings::GeneralCategory::validateMaxRecentFiles(int max) const {
@@ -289,8 +330,7 @@ pepp::settings::detail::AppSettingsData::AppSettingsData() {
 }
 
 pepp::settings::AppSettings::AppSettings(QObject *parent)
-    : QObject(parent), _data(detail::AppSettingsData::getInstance()) {
-}
+    : QObject(parent), _data(detail::AppSettingsData::getInstance()) {}
 
 QList<pepp::settings::Category *> pepp::settings::AppSettings::categories() const { return _data->categories(); }
 pepp::settings::GeneralCategory *pepp::settings::AppSettings::general() const { return _data->general(); }

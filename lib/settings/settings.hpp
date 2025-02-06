@@ -42,6 +42,13 @@ class GeneralCategory : public Category {
 
   // "Updates" group box
   Q_PROPERTY(bool showChangeDialog READ showChangeDialog WRITE setShowChangeDialog NOTIFY showChangeDialogChanged)
+
+  // "App Developer" group box
+  Q_PROPERTY(bool allowExternalFigures READ allowExternalFigures WRITE setAllowExternalFigures NOTIFY
+                 allowExternalFiguresChanged)
+  Q_PROPERTY(QString externalFigureDirectory READ externalFigureDirectory WRITE setExternalFigureDirectory NOTIFY
+                 externalFigureDirectoryChanged)
+
 public:
   explicit GeneralCategory(QObject *parent = nullptr);
   QString name() const override { return "General"; };
@@ -61,6 +68,11 @@ public:
   void setShowMenuHotkeys(bool show);
   bool showChangeDialog() const;
   void setShowChangeDialog(bool show);
+  bool allowExternalFigures() const;
+  void setAllowExternalFigures(bool allow);
+  QString externalFigureDirectory() const;
+  void setExternalFigureDirectory(const QString &path);
+  QString figureDirectory() const;
 
 signals:
   void defaultArchChanged();
@@ -69,6 +81,8 @@ signals:
   void maxRecentFilesChanged();
   void showMenuHotkeysChanged();
   void showChangeDialogChanged();
+  void allowExternalFiguresChanged();
+  void externalFigureDirectoryChanged();
 
 private:
   mutable QSettings _settings;
@@ -79,6 +93,7 @@ private:
   const int defaultMaxRecentFiles = 5;
   const bool defaultShowMenuHotkeys = true;
   const bool defaultShowChangeDialog = true;
+  const bool defaultAllowExternalFigures = false;
 };
 
 class ThemeCategory : public Category {

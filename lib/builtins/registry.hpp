@@ -25,18 +25,17 @@ namespace macro {
 class Parsed;
 }
 namespace builtins {
-class Registry : public QObject {
-  Q_OBJECT
-  Q_PROPERTY(
-      QList<QSharedPointer<const builtins::Book>> books READ books CONSTANT);
-
+static const char *default_book_path = ":/books";
+class Registry {
 public:
   // Crawling the Qt help system to create books is handled inside CTOR.
-  explicit Registry(void *asm_toolchains);
+  explicit Registry(void *asm_toolchains, QString directory = default_book_path);
   QList<QSharedPointer<const builtins::Book>> books() const;
   QSharedPointer<const builtins::Book> findBook(QString name);
+  bool usingExternalFigures() const { return _usingExternalFigures; }
 
 private:
+  bool _usingExternalFigures = false;
   QList<QSharedPointer<const builtins::Book>> _books;
 };
 
@@ -45,13 +44,11 @@ class Figure;
 class Element;
 namespace detail {
 ::builtins::Element *loadElement(QString elementPath);
-::builtins::Element *generateElement(QString fromElementPath,
-                                     void *asm_toolchains);
+::builtins::Element *generateElement(QString fromElementPath, void *asm_toolchains);
 ::builtins::Test *loadTest(QString testDirPath);
 QSharedPointer<builtins::Figure> loadFigure(QString manifestPath);
 QSharedPointer<builtins::Figure> loadProblem(QString manifestPath);
-void linkFigureOS(QString manifestPath,
-                  QSharedPointer<::builtins::Figure> figure,
+void linkFigureOS(QString manifestPath, QSharedPointer<::builtins::Figure> figure,
                   QSharedPointer<const builtins::Book> book);
 QList<QSharedPointer<::macro::Parsed>> loadMacro(QString manifestPath);
 QSharedPointer<::builtins::Book> loadBook(QString tocPath);

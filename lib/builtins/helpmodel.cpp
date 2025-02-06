@@ -1,5 +1,7 @@
 #include "helpmodel.hpp"
+#include "./registry.hpp"
 #include "helpdata.hpp"
+#include "settings/settings.hpp"
 
 static const bool dbg = false;
 
@@ -13,11 +15,25 @@ void HelpEntry::addChildren(QList<QSharedPointer<HelpEntry>> children) {
 }
 
 HelpModel::HelpModel(QObject *parent) : QAbstractItemModel{parent} {
+  auto set = pepp::settings::AppSettings();
+  auto figDirectory = set.general()->figureDirectory();
+  _reg = QSharedPointer<builtins::Registry>::create(nullptr, figDirectory);
+
+  // If you update the following array, YOU MUST UPDATE THE INDEX OF VARIABLE TOO!!!
   _roots = {
-      writing_root(),  debugging_root(), systemcalls_root(), greencard10_root(),
-      examples_root(), macros_root(),    about_root(),
+      writing_root(),       debugging_root(),   systemcalls_root(), greencard10_root(),
+      examples_root(*_reg), macros_root(*_reg), about_root(),
   };
+  _indexOfFigs = 4;
+  _indexOfMacros = 5;
+
   for (auto &root : _roots) addToIndex(root);
+  QObject::connect(set.general(), &pepp::settings::GeneralCategory::showDebugComponentsChanged, this,
+                   &HelpModel::onReloadFigures);
+  QObject::connect(set.general(), &pepp::settings::GeneralCategory::allowExternalFiguresChanged, this,
+                   &HelpModel::onReloadFigures);
+  QObject::connect(set.general(), &pepp::settings::GeneralCategory::externalFigureDirectoryChanged, this,
+                   &HelpModel::onReloadFigures);
 }
 
 QModelIndex HelpModel::index(int row, int column, const QModelIndex &parent) const {
@@ -60,15 +76,21 @@ QVariant HelpModel::data(const QModelIndex &index, int role) const {
   if constexpr (dbg) qDebug() << "HelpModel::data" << index << role;
   if (!index.isValid()) return QVariant();
   auto entry = ptr(index);
+  // After we do a reload, QML will still temporarily hold a pointer to the old entry.
+  // Must guard against accessing free'd memory.
+  if (entry == nullptr) return QVariant();
   switch (role) {
   case (int)Roles::Category: return static_cast<int>(entry->category);
   case (int)Roles::Tags: return entry->tags;
   case Qt::DisplayRole: [[fallthrough]];
-  case (int)Roles::Name: return entry->displayName;
+  case (int)Roles::Name:
+    if (entry->isExternal) return entry->displayName + " (External)";
+    return entry->displayName;
   case (int)Roles::Sort: return entry->sortName;
   case (int)Roles::Delegate: return entry->delegate;
   case (int)Roles::Props: return entry->props;
   case (int)Roles::WIP: return entry->isWIP;
+  case (int)Roles::External: return entry->isExternal; ;
   }
   return QVariant();
 }
@@ -82,12 +104,39 @@ QHash<int, QByteArray> HelpModel::roleNames() const {
   ret[static_cast<int>(Roles::Delegate)] = "delegate";
   ret[static_cast<int>(Roles::Props)] = "props";
   ret[static_cast<int>(Roles::WIP)] = "isWIP";
+  ret[static_cast<int>(Roles::External)] = "isExternal";
   return ret;
+}
+
+void HelpModel::onReloadFigures() {
+  beginResetModel();
+  auto &figs = _roots[_indexOfFigs];
+  auto &macros = _roots[_indexOfMacros];
+  // Must remove from index otherwise we might deref free'd in data()
+  removeFromIndex(figs);
+  removeFromIndex(macros);
+
+  // Cleanup old entries before their associated registry is destroyed to prevent dangling pointers.
+  figs.clear();
+  macros.clear();
+
+  // Construct registry with new settings
+  _reg =
+      QSharedPointer<builtins::Registry>::create(nullptr, pepp::settings::AppSettings().general()->figureDirectory());
+  // Re-construct figures and macros in-place, inserting them into our pointer index.
+  addToIndex(figs = examples_root(*_reg));
+  addToIndex(macros = macros_root(*_reg));
+  endResetModel();
 }
 
 void HelpModel::addToIndex(QSharedPointer<HelpEntry> entry) {
   _indices.insert(reinterpret_cast<ptrdiff_t>(entry.data()));
   for (auto &child : entry->_children) addToIndex(child);
+}
+
+void HelpModel::removeFromIndex(QSharedPointer<HelpEntry> entry) {
+  _indices.remove(reinterpret_cast<ptrdiff_t>(entry.data()));
+  for (auto &child : entry->_children) removeFromIndex(child);
 }
 
 HelpFilterModel::HelpFilterModel(QObject *parent) : QSortFilterProxyModel(parent) {}
