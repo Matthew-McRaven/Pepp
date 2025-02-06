@@ -5,7 +5,11 @@
 #include <qsortfilterproxymodel.h>
 #include "builtins/constants.hpp"
 
+namespace builtins {
+class Registry;
+}
 class HelpModel;
+
 class HelpCategory : public QObject {
   Q_OBJECT
 public:
@@ -65,6 +69,8 @@ private:
     if (_indices.contains(index.internalId())) return static_cast<HelpEntry *>(index.internalPointer());
     return nullptr;
   }
+  // Registry data must outlive referrents or we get untraceable sgefaults inside QML.
+  QSharedPointer<builtins::Registry> _reg = nullptr;
   QSet<ptrdiff_t> _indices;
 };
 

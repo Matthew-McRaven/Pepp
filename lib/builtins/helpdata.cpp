@@ -104,8 +104,7 @@ QString removeLeading0(const QString &str) {
   return str;
 }
 
-QSharedPointer<HelpEntry> examples_root(bool hotloaded) {
-  static builtins::Registry reg(nullptr);
+QSharedPointer<HelpEntry> examples_root(const builtins::Registry &reg) {
   auto books = reg.books();
   QList<QSharedPointer<HelpEntry>> children;
   for (const auto &book : books) {
@@ -129,19 +128,18 @@ QSharedPointer<HelpEntry> examples_root(bool hotloaded) {
     }
   }
   auto root = QSharedPointer<HelpEntry>::create(HelpCategory::Category::Text, -1, "Figures", "MDText.qml");
-  root->isHotLoaded = hotloaded;
+  root->isHotLoaded = reg.usingExternalFigures();
   root->props = QVariantMap{{"file", QVariant(u":/help/pep10/figures.md"_s)}};
   root->addChildren(children);
   return root;
 }
 
-QSharedPointer<HelpEntry> macros_root(bool hotloaded) {
+QSharedPointer<HelpEntry> macros_root(const builtins::Registry &reg) {
   auto mask = bitmask(builtins::Architecture::PEP10) << shift | 0xff;
-  static builtins::Registry reg(nullptr);
   auto books = reg.books();
   auto root = QSharedPointer<HelpEntry>::create(HelpCategory::Category::Text, mask, "Macros", "MDText.qml");
   root->props = QVariantMap{{"file", QVariant(u":/help/pep10/blank.md"_s)}};
-  root->isHotLoaded = hotloaded;
+  root->isHotLoaded = reg.usingExternalFigures();
 
   QMap<QString, QSharedPointer<HelpEntry>> families;
   families[""] = root;
@@ -201,7 +199,7 @@ QSharedPointer<HelpEntry> macros_root(bool hotloaded) {
   return root;
 }
 
-QSharedPointer<HelpEntry> problems_root(bool hotloaded) { return {}; }
+QSharedPointer<HelpEntry> problems_root(const builtins::Registry &reg) { return {}; }
 
 int bitmask(builtins::Architecture arch) {
   switch (arch) {

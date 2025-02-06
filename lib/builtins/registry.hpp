@@ -32,8 +32,10 @@ public:
   explicit Registry(void *asm_toolchains, QString directory = default_book_path);
   QList<QSharedPointer<const builtins::Book>> books() const;
   QSharedPointer<const builtins::Book> findBook(QString name);
+  bool usingExternalFigures() const { return _usingExternalFigures; }
 
 private:
+  bool _usingExternalFigures = false;
   QList<QSharedPointer<const builtins::Book>> _books;
 };
 

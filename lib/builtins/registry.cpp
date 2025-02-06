@@ -27,6 +27,7 @@
 #include "macro/parse.hpp"
 using namespace Qt::StringLiterals;
 builtins::Registry::Registry(void *asm_toolchains, QString directory) {
+  _usingExternalFigures = (directory != builtins::default_book_path);
   for (const auto &bookPath : detail::enumerateBooks(directory)) {
     auto book = detail::loadBook(bookPath);
     if (book == nullptr) qWarning("%s", u"Failed to load book at %1"_s.arg(bookPath).toStdString().c_str());

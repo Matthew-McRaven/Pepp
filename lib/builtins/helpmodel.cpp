@@ -1,4 +1,5 @@
 #include "helpmodel.hpp"
+#include "./registry.hpp"
 #include "helpdata.hpp"
 
 static const bool dbg = false;
@@ -13,9 +14,10 @@ void HelpEntry::addChildren(QList<QSharedPointer<HelpEntry>> children) {
 }
 
 HelpModel::HelpModel(QObject *parent) : QAbstractItemModel{parent} {
+  _reg = QSharedPointer<builtins::Registry>::create(nullptr);
   _roots = {
-      writing_root(),      debugging_root(),  systemcalls_root(), greencard10_root(),
-      examples_root(true), macros_root(true), about_root(),
+      writing_root(),       debugging_root(),   systemcalls_root(), greencard10_root(),
+      examples_root(*_reg), macros_root(*_reg), about_root(),
   };
   for (auto &root : _roots) addToIndex(root);
 }
