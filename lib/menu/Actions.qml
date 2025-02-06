@@ -293,7 +293,7 @@ QtObject {
             text: qsTr("Clear Changelog Cache")
             icon.source: "image://icons/blank.svg"
         }
-        readonly property var hotreloadFigure: Action {
+        readonly property var reloadFigures: Action {
             text: qsTr("Reload Figures")
             icon.source: "image://icons/blank.svg"
         }

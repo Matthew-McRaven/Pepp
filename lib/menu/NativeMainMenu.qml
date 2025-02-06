@@ -280,7 +280,7 @@ Labs.MenuBar {
         // Not present in QMLMainMenu, since there is no way to get many files into that disk in WASM.
         Labs.MenuItem {
             text: qsTr("&Reload Figures")
-            onTriggered: actions.appdev.hotreloadFigure.trigger()
+            onTriggered: actions.appdev.reloadFigures.trigger()
         }
     }
 }

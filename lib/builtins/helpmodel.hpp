@@ -38,7 +38,7 @@ public:
   void addChild(QSharedPointer<HelpEntry> child);
   void addChildren(QVector<QSharedPointer<HelpEntry>> children);
   // TODO: remove when all are no longer WIP.
-  bool isWIP = false, isHotLoaded = false;
+  bool isWIP = false, isExternal = false;
 
 private:
   friend HelpModel;
@@ -52,7 +52,7 @@ class HelpModel : public QAbstractItemModel {
   QML_ELEMENT
 
 public:
-  enum class Roles { Category = Qt::UserRole + 1, Tags, Name, Delegate, Props, Sort, WIP, HotLoaded };
+  enum class Roles { Category = Qt::UserRole + 1, Tags, Name, Delegate, Props, Sort, WIP, External };
   Q_ENUM(Roles);
   explicit HelpModel(QObject *parent = nullptr);
   QModelIndex index(int row, int column, const QModelIndex &parent) const override;
@@ -62,7 +62,7 @@ public:
   QVariant data(const QModelIndex &index, int role) const override;
   QHash<int, QByteArray> roleNames() const override;
 protected slots:
-  void onHotReload();
+  void onReloadFigures();
 
 private:
   QList<QSharedPointer<HelpEntry>> _roots;

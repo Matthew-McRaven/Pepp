@@ -128,7 +128,7 @@ QSharedPointer<HelpEntry> examples_root(const builtins::Registry &reg) {
     }
   }
   auto root = QSharedPointer<HelpEntry>::create(HelpCategory::Category::Text, -1, "Figures", "MDText.qml");
-  root->isHotLoaded = reg.usingExternalFigures();
+  root->isExternal = reg.usingExternalFigures();
   root->props = QVariantMap{{"file", QVariant(u":/help/pep10/figures.md"_s)}};
   root->addChildren(children);
   return root;
@@ -139,7 +139,7 @@ QSharedPointer<HelpEntry> macros_root(const builtins::Registry &reg) {
   auto books = reg.books();
   auto root = QSharedPointer<HelpEntry>::create(HelpCategory::Category::Text, mask, "Macros", "MDText.qml");
   root->props = QVariantMap{{"file", QVariant(u":/help/pep10/blank.md"_s)}};
-  root->isHotLoaded = reg.usingExternalFigures();
+  root->isExternal = reg.usingExternalFigures();
 
   QMap<QString, QSharedPointer<HelpEntry>> families;
   families[""] = root;

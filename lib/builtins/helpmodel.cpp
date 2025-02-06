@@ -29,11 +29,11 @@ HelpModel::HelpModel(QObject *parent) : QAbstractItemModel{parent} {
 
   for (auto &root : _roots) addToIndex(root);
   QObject::connect(set.general(), &pepp::settings::GeneralCategory::showDebugComponentsChanged, this,
-                   &HelpModel::onHotReload);
+                   &HelpModel::onReloadFigures);
   QObject::connect(set.general(), &pepp::settings::GeneralCategory::allowExternalFiguresChanged, this,
-                   &HelpModel::onHotReload);
+                   &HelpModel::onReloadFigures);
   QObject::connect(set.general(), &pepp::settings::GeneralCategory::externalFigureDirectoryChanged, this,
-                   &HelpModel::onHotReload);
+                   &HelpModel::onReloadFigures);
 }
 
 QModelIndex HelpModel::index(int row, int column, const QModelIndex &parent) const {
@@ -84,13 +84,13 @@ QVariant HelpModel::data(const QModelIndex &index, int role) const {
   case (int)Roles::Tags: return entry->tags;
   case Qt::DisplayRole: [[fallthrough]];
   case (int)Roles::Name:
-    if (entry->isHotLoaded) return entry->displayName + " (External)";
+    if (entry->isExternal) return entry->displayName + " (External)";
     return entry->displayName;
   case (int)Roles::Sort: return entry->sortName;
   case (int)Roles::Delegate: return entry->delegate;
   case (int)Roles::Props: return entry->props;
   case (int)Roles::WIP: return entry->isWIP;
-  case (int)Roles::HotLoaded: return entry->isHotLoaded;
+  case (int)Roles::External: return entry->isExternal; ;
   }
   return QVariant();
 }
@@ -104,11 +104,11 @@ QHash<int, QByteArray> HelpModel::roleNames() const {
   ret[static_cast<int>(Roles::Delegate)] = "delegate";
   ret[static_cast<int>(Roles::Props)] = "props";
   ret[static_cast<int>(Roles::WIP)] = "isWIP";
-  ret[static_cast<int>(Roles::HotLoaded)] = "isHotLoaded";
+  ret[static_cast<int>(Roles::External)] = "isExternal";
   return ret;
 }
 
-void HelpModel::onHotReload() {
+void HelpModel::onReloadFigures() {
   beginResetModel();
   auto &figs = _roots[_indexOfFigs];
   auto &macros = _roots[_indexOfMacros];
