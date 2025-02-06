@@ -14,12 +14,12 @@
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 #
 
-docker buildx build --target output-gcc --push --platform=linux/amd64,linux/arm64 -t ghcr.io/matthew-mcraven/pepp/gcc:v0.14.0 develop
-docker buildx build --target output-gcc --push --build-arg="BASE_IMAGE=mcr.microsoft.com/devcontainers/base:ubuntu" --platform=linux/amd64,linux/arm64 -t ghcr.io/matthew-mcraven/pepp/dev-gcc:v0.14.0 develop
+docker buildx build --target output-gcc --push --platform=linux/amd64,linux/arm64 -t ghcr.io/matthew-mcraven/pepp/gcc:v0.14.1 develop
+docker buildx build --target output-gcc --push --build-arg="BASE_IMAGE=mcr.microsoft.com/devcontainers/base:ubuntu" --platform=linux/amd64,linux/arm64 -t ghcr.io/matthew-mcraven/pepp/dev-gcc:v0.14.1 develop
 
-docker buildx build --target output-wasm --push --platform=linux/amd64 -t ghcr.io/matthew-mcraven/pepp/wasm:v0.14.0 develop
-docker buildx build --target output-wasm --push --build-arg="QT_WASM_XARGS=-sanitize address  -sanitize undefined -device-option QT_WASM_SOURCE_MAP=1" --platform=linux/amd64 -t ghcr.io/matthew-mcraven/pepp/wasm-dbg:v0.14.0 develop
+docker buildx build --target output-wasm --push --platform=linux/amd64 -t ghcr.io/matthew-mcraven/pepp/wasm:v0.14.1 develop
+docker buildx build --target output-wasm --push --build-arg="QT_WASM_XARGS=-sanitize address  -sanitize undefined -device-option QT_WASM_SOURCE_MAP=1" --platform=linux/amd64 -t ghcr.io/matthew-mcraven/pepp/wasm-dbg:v0.14.1 develop
 
-docker buildx build --target output-wasm --push --build-arg="BASE_IMAGE=mcr.microsoft.com/devcontainers/base:ubuntu" --build-arg="QT_WASM_XARGS=-sanitize address  -sanitize undefined -device-option QT_WASM_SOURCE_MAP=1" --platform=linux/amd64 -t ghcr.io/matthew-mcraven/pepp/dev-wasm-dbg:v0.14.0 develop
+docker buildx build --target output-wasm --push --build-arg="BASE_IMAGE=mcr.microsoft.com/devcontainers/base:ubuntu" --build-arg="QT_WASM_XARGS=-sanitize address  -sanitize undefined -device-option QT_WASM_SOURCE_MAP=1" --platform=linux/amd64 -t ghcr.io/matthew-mcraven/pepp/dev-wasm-dbg:v0.14.1 develop
 
-docker buildx build --target output-clang --push --platform=linux/amd64,linux/arm64 -t ghcr.io/matthew-mcraven/pepp/clang:v0.14.0 develop
+docker buildx build --target output-clang --push --platform=linux/amd64,linux/arm64 -t ghcr.io/matthew-mcraven/pepp/clang:v0.14.1 develop
