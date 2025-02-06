@@ -38,7 +38,7 @@ class MainWindow(tkinter.Tk):
 def main():
     # Call with no arguments to open the GUI, or with a single file argument to run in the terminal.
     parser = argparse.ArgumentParser(description="Fig 07.38")
-    parser.add_argument("input_file", default=None)
+    parser.add_argument("input_file", default=None, nargs="?")
     args = parser.parse_args()
     if args.input_file:
         with open(args.input_file, "r") as f:
