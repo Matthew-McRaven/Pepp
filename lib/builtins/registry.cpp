@@ -25,15 +25,13 @@
 #include "figure.hpp"
 #include "macro/macro.hpp"
 #include "macro/parse.hpp"
-
-builtins::Registry::Registry(void *asm_toolchains) : QObject(nullptr) {
-  for (const auto &bookPath : detail::enumerateBooks(book_path)) {
+using namespace Qt::StringLiterals;
+builtins::Registry::Registry(void *asm_toolchains, QString directory) {
+  for (const auto &bookPath : detail::enumerateBooks(directory)) {
     auto book = detail::loadBook(bookPath);
-    if (book == nullptr) // Crash on failure for ease of initial prototyping
-      qFatal("Failed to load book");
-    else if (findBook(book->name()) != nullptr) // Crash on failure for ease of initial prototyping
-      qFatal("Duplicate book");
-    _books.push_back(book);
+    if (book == nullptr) qWarning("%s", u"Failed to load book at %1"_s.arg(bookPath).toStdString().c_str());
+    else if (findBook(book->name()) != nullptr) qFatal("Duplicate book");
+    else _books.push_back(book);
   }
 }
 
@@ -97,7 +95,10 @@ QSharedPointer<builtins::Figure> builtins::detail::loadFigure(QString manifestPa
   auto manifest = QJsonDocument::fromJson(manifestBytes);
   QString chFig = manifest["name"].toString();
   // Chapter and figure are separated by : in a manifest file.
-  if (chFig.indexOf(":") == -1) qFatal("Invalid figure name");
+  if (chFig.indexOf(":") == -1) {
+    qWarning("Invalid figure name %s", chFig.toStdString().c_str());
+    return nullptr;
+  }
   auto chFigSplit = chFig.split(":");
   auto chapterName = chFigSplit[0];
   auto figureName = chFigSplit[1];
@@ -108,8 +109,10 @@ QSharedPointer<builtins::Figure> builtins::detail::loadFigure(QString manifestPa
   auto archInt =
       QMetaEnum::fromType<builtins::Architecture>().keyToValue(archStr.toUpper().toStdString().data(), &okay);
   auto arch = static_cast<builtins::Architecture>(archInt);
-  if (!okay) // Crash on failure for ease of initial prototyping
-    qFatal("Invalid architecture");
+  if (!okay) {
+    qWarning("Invalid figure architecture: %s", archStr.toStdString().c_str());
+    return nullptr;
+  }
 
   builtins::Abstraction level = builtins::Abstraction::NONE;
   if (manifest.object().contains("abstraction")) {
@@ -117,8 +120,10 @@ QSharedPointer<builtins::Figure> builtins::detail::loadFigure(QString manifestPa
     auto levelInt =
         QMetaEnum::fromType<builtins::Abstraction>().keyToValue(levelStr.toUpper().toStdString().data(), &okay);
     level = static_cast<builtins::Abstraction>(levelInt);
-    if (!okay) // Crash on failure for ease of initial prototyping
-      qFatal("Invalid abstraction level");
+    if (!okay) {
+      qWarning("Invalid abstraction: %s", levelStr.toStdString().c_str());
+      return nullptr;
+    }
   }
 
   // TODO: decide between "figure" and "problem" based on type field.
@@ -132,8 +137,10 @@ QSharedPointer<builtins::Figure> builtins::detail::loadFigure(QString manifestPa
   auto iosArray = ios.toArray();
   for (auto ioDir : std::as_const(iosArray)) {
     auto io = loadTest(manifestDir.absoluteFilePath(ioDir.toString()));
-    if (io == nullptr) // Crash on failure for ease of initial prototyping
-      qFatal("Invalid IO");
+    if (io == nullptr) {
+      qWarning("Invalid IO: %s", ioDir.toString().toStdString().c_str());
+      return nullptr;
+    }
     figure->addTest(io);
   }
 
@@ -149,8 +156,10 @@ QSharedPointer<builtins::Figure> builtins::detail::loadFigure(QString manifestPa
     // Load the figure,
     auto item = loadElement(manifestDir.absoluteFilePath(itemPath));
 
-    if (item == nullptr) // Crash on failure for ease of initial prototyping
-      qFatal("Invalid item");
+    if (item == nullptr) {
+      qWarning("Invalid item: %s", itemPath.toStdString().c_str());
+      return nullptr;
+    }
     // And then assign its parent, programming language
     item->figure = figure; // Not set in addElement, must be done manually.
     item->language = language;
@@ -186,8 +195,10 @@ QList<QSharedPointer<macro::Parsed>> builtins::detail::loadMacro(QString manifes
     bool isHidden = manifest["hidden"].toBool(false);
     auto family = manifest["family"].toString("");
 
-    if (!std::get<0>(parsed)) // Crash on failure for ease of initial prototyping
-      qFatal("Invalid item");
+    if (!std::get<0>(parsed)) {
+      qWarning("Invalid macro: %s", itemPath.toStdString().c_str());
+      return {};
+    }
     auto macro = QSharedPointer<macro::Parsed>::create(std::get<1>(parsed), std::get<2>(parsed), macroBody,
                                                        manifest["arch"].toString(), family, isHidden);
     ret.push_back(macro);
@@ -211,17 +222,20 @@ void builtins::detail::linkFigureOS(QString manifestPath, QSharedPointer<Figure>
   auto osChapterName = osChFigSplit[0];
   auto osFigureName = osChFigSplit[1];
   auto os = book->findFigure(osChapterName, osFigureName);
-  if (!os) qFatal("Could not find OS");
+  if (!os) {
+    qWarning("Could not find OS for %s", chFig.toStdString().c_str());
+  }
   figure->setDefaultOS(os.data());
 }
 
 QSharedPointer<builtins::Book> builtins::detail::loadBook(QString tocPath) {
-
+  static const auto bookNameKey = "bookName";
   // Read ToC to get book name
   auto tocBytes = read(tocPath);
   auto toc = QJsonDocument::fromJson(tocBytes);
+  if (toc[bookNameKey].isUndefined()) return nullptr;
   // And create a book object to stick figures in
-  auto book = QSharedPointer<builtins::Book>::create(toc["bookName"].toString());
+  auto book = QSharedPointer<builtins::Book>::create(toc[bookNameKey].toString());
 
   // Explore the book's subdirectories, looking for figures and macros.
   QDirIterator iter(QFileInfo(tocPath).dir().absolutePath(), QDirIterator::Subdirectories);
@@ -234,21 +248,21 @@ QSharedPointer<builtins::Book> builtins::detail::loadBook(QString tocPath) {
     // into book
     if (next.endsWith("figure.json")) {
       auto figure = loadFigure(next);
-      // TODO: throw exception instead
-      if (figure == nullptr) // Crash on failure for ease of initial prototyping
-        qFatal("Failed to load figure");
-      revisit.push_back({next, figure});
-      book->addFigure(figure);
+      if (figure == nullptr) qWarning("%s", u"Failed to load figure %1"_s.arg(next).toStdString().c_str());
+      else {
+        revisit.push_back({next, figure});
+        book->addFigure(figure);
+      }
     }
     // If the file is named as a problem manifest, parse the figure and insert
     // into book
     if (next.endsWith("problem.json")) {
       auto problem = loadFigure(next);
-      // TODO: throw exception instead
-      if (problem == nullptr) // Crash on failure for ease of initial prototyping
-        qFatal("Failed to load problem");
-      revisit.push_back({next, problem});
-      book->addProblem(problem);
+      if (problem == nullptr) qWarning("%s", u"Failed to load problem %1"_s.arg(next).toStdString().c_str());
+      else {
+        revisit.push_back({next, problem});
+        book->addProblem(problem);
+      }
     }
 
     // If the file is name as a macro manifest, parse the macro and insert into
@@ -256,10 +270,8 @@ QSharedPointer<builtins::Book> builtins::detail::loadBook(QString tocPath) {
     else if (next.endsWith("macro.json")) {
       auto macros = loadMacro(next);
       for (auto &macro : macros) {
-        // TODO: throw exception instead
-        if (macro == nullptr) // Crash on failure for ease of initial prototyping
-          qFatal("Failed to load macro");
-        book->addMacro(macro);
+        if (macro == nullptr) qWarning("%s", u"Failed to load macro %1"_s.arg(next).toStdString().c_str());
+        else book->addMacro(macro);
       }
     }
   }

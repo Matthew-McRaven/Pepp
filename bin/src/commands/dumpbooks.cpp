@@ -29,7 +29,7 @@ void DumpBooksTask::run() {
     qWarning() << "Failed to create output directory: " << base_output_path.path();
     return emit finished(1);
   }
-  auto base_input_path = QDir(builtins::book_path);
+  auto base_input_path = QDir(builtins::default_book_path);
   QDirIterator i(base_input_path, QDirIterator::Subdirectories);
   while (i.hasNext()) {
     auto f = QFileInfo(i.next());

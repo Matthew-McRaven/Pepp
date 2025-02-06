@@ -25,14 +25,11 @@ namespace macro {
 class Parsed;
 }
 namespace builtins {
-static const char *book_path = ":/books";
-class Registry : public QObject {
-  Q_OBJECT
-  Q_PROPERTY(QList<QSharedPointer<const builtins::Book>> books READ books CONSTANT);
-
+static const char *default_book_path = ":/books";
+class Registry {
 public:
   // Crawling the Qt help system to create books is handled inside CTOR.
-  explicit Registry(void *asm_toolchains);
+  explicit Registry(void *asm_toolchains, QString directory = default_book_path);
   QList<QSharedPointer<const builtins::Book>> books() const;
   QSharedPointer<const builtins::Book> findBook(QString name);
 
