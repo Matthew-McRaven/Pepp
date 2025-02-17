@@ -25,6 +25,7 @@
 #include "commands/get.hpp"
 #include "commands/gui.hpp"
 #include "commands/license.hpp"
+#include "commands/ls-qrc.hpp"
 #include "commands/ls.hpp"
 #include "commands/run.hpp"
 #include "commands/selftest.hpp"
@@ -60,6 +61,7 @@ int main(int argc, char **argv) {
   registerSelfTest(app, task, shared_flags);
 
   registerList(app, task, shared_flags);
+  registerListQRC(app, task, shared_flags);
   registerGet(app, task, shared_flags);
 
   registerAsm(app, task, shared_flags);
