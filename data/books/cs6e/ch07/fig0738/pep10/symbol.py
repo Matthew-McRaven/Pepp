@@ -1,11 +1,11 @@
-from typing import Dict, Union
+from typing import Dict
 
 
 class SymbolEntry:
     def __init__(self, name: str):
         self.name: str = name
         self.definition_count: int = 0
-        self._value: SymbolEntry | int | None = None
+        self.value: int | None = None
 
     def is_undefined(self):
         return self.definition_count == 0
@@ -13,29 +13,8 @@ class SymbolEntry:
     def is_multiply_defined(self):
         return self.definition_count > 1
 
-    @property
-    def value(self):
-        return self._value
-
-    @value.setter
-    def value(self, value: Union["SymbolEntry", int]):
-        # Handle recursive base case
-        if value == self:
-            raise RecursionError()
-        else:
-            # parents is a set which contains all visited SymbolEntries
-            parents, next_value = {self}, value
-            while type(next_value) is SymbolEntry:  # Recurse on value until it is int
-                parents.add(next_value)
-                # If next_value is already in parent set, then we have a cycle which cannot be resolved.
-                if (next_value := next_value.value) in parents:
-                    raise RecursionError()
-            self._value = value
-
     def __int__(self) -> int:
-        if self.value is None:
-            return 0
-        return int(self.value)
+        return 0 if self.value is None else self.value
 
     def __str__(self):
         return self.name

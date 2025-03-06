@@ -1,5 +1,3 @@
-import pytest
-
 from pep10.symbol import SymbolTable, add_OS_symbols
 
 
@@ -44,33 +42,6 @@ def test_value_assignment():
     s0.value = 5
     assert s0.value == 5
     assert int(s0) == 5
-
-
-def test_value_pointers():
-    tb = SymbolTable()
-    s0, s1 = tb.reference("pointed"), tb.reference("pointer")
-    assert s0.value is None and s1.value is None
-    s0.value = 5
-    assert s0.value == 5 and s1.value is None
-    s1.value = s0
-    assert s0.value == 5 and s1.value == s0
-    assert int(s0) == int(s1)
-
-
-def test_value_cycles():
-    tb = SymbolTable()
-    s0, s1, s2 = tb.reference("p0"), tb.reference("p1"), tb.reference("p2")
-    s2.value = s1
-    # Create a cycle containing exactly 1 symbols
-    with pytest.raises(RecursionError):
-        s1.value = s1
-    # Create a cycle containing exactly 2 symbols
-    with pytest.raises(RecursionError):
-        s1.value = s2
-    # Create a cycle with 3 symbols
-    s1.value = s0
-    with pytest.raises(RecursionError):
-        s0.value = s1
 
 
 def tst_os_symbols():

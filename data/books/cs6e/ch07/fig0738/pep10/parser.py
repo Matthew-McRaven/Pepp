@@ -39,10 +39,10 @@ from pep10.types import ArgumentType, ParseTreeNode
 
 class Parser:
     def __init__(
-        self,
-        buffer: io.StringIO,
-        symbol_table: SymbolTable | None = None,
-        macro_registry: MacroRegistry | None = None,
+            self,
+            buffer: io.StringIO,
+            symbol_table: SymbolTable | None = None,
+            macro_registry: MacroRegistry | None = None,
     ):
         self.lexer = Lexer(buffer)
         self._buffer: deque[TokenType] = deque()
@@ -130,7 +130,7 @@ class Parser:
         return None
 
     def nonunary_instruction(
-        self, symbol: SymbolEntry | None = None
+            self, symbol: SymbolEntry | None = None
     ) -> NonUnaryNode | None:
         if not (mn := self.may_match(Tokens.IDENTIFIER)):
             return None
@@ -207,7 +207,7 @@ class Parser:
                     raise SyntaxError(".EQUATE requires an argument")
                 try:
                     if type(argument) == Identifier:
-                        symbol.value = argument.symbol
+                        raise SyntaxError(".EQUATE requires a constant argument")
                     else:
                         symbol.value = int(argument)
                 except RecursionError:
@@ -217,7 +217,7 @@ class Parser:
                 raise SyntaxError(f"Unrecognized dot command {dot_str}")
 
     def code_line(
-        self, symbol: SymbolEntry | None = None
+            self, symbol: SymbolEntry | None = None
     ) -> UnaryNode | NonUnaryNode | DotCommandIR | MacroNode | None:
         line: ParseTreeNode | None = None
         if nonunary := self.nonunary_instruction(symbol=symbol):
@@ -259,9 +259,9 @@ class Parser:
 
 
 def parse(
-    text: str,
-    symbol_table: SymbolTable | None = None,
-    macro_registry: MacroRegistry | None = None,
+        text: str,
+        symbol_table: SymbolTable | None = None,
+        macro_registry: MacroRegistry | None = None,
 ) -> List[ParseTreeNode]:
     # Remove trailing whitespace while insuring input is \n terminated.
     parser = Parser(

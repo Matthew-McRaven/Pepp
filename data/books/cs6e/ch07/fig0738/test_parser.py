@@ -224,33 +224,19 @@ def test_dot_equate() -> None:
     assert item.symbol_decl and str(item.symbol_decl) == "cat"
     assert int(item.symbol_decl) == 10
 
-    # Strings & chained symbols
-    ret = parse('cat: .EQUATE "\\x0a"\ndog: .EQUATE cat')
-    assert len(ret) == 2
+    # Strings
+    ret = parse('cat: .EQUATE "\\x0a"\n')
+    assert len(ret) == 1
     item = cast(DotEquateIR, ret[0])
     assert type(item) == DotEquateIR
     assert int(item.argument) == 10
     assert len(item) == 0
     assert item.symbol_decl and str(item.symbol_decl) == "cat"
-    assert int(item.symbol_decl) == 10
-    item = cast(DotEquateIR, ret[1])
-    assert type(item) == DotEquateIR
-    assert int(item.argument) == 10
-    assert len(item) == 0
-    assert item.symbol_decl and str(item.symbol_decl) == "dog"
     assert int(item.symbol_decl) == 10
 
-    # Cyclical references with 1 and 2 symbols
+    # Symbolic argument
     ret = parse("cat: .EQUATE cat")
     item = cast(DotEquateIR, ret[0])
-    assert type(item) == ErrorNode
-    ret = parse("cat: .EQUATE dog\ndog: .EQUATE cat")
-    assert len(ret) == 2
-    item = cast(DotEquateIR, ret[0])
-    assert type(item) == DotEquateIR
-    assert len(item) == 0
-    assert item.symbol_decl and str(item.symbol_decl) == "cat"
-    item = cast(DotEquateIR, ret[1])
     assert type(item) == ErrorNode
 
 
