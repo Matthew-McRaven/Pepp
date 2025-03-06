@@ -25,55 +25,55 @@ from pep10.parser import Parser, parse
 def test_unary_pass() -> None:
     par = Parser(io.StringIO("RET \n"))
     item: UnaryIR = cast(UnaryIR, next(par))
-    assert type(item) == UnaryIR
+    assert type(item) is UnaryIR
     assert item.mnemonic == "RET"
 
     res = parse("caT:NOTA \n")
     item = cast(UnaryIR, res[0])
-    assert type(item) == UnaryIR
+    assert type(item) is UnaryIR
     assert item.mnemonic == "NOTA"
     assert str(item.symbol_decl) == "caT"
 
 
 def test_unary_fail() -> None:
     res = parse("RETS \n")
-    assert type(res[0]) == ErrorNode
+    assert type(res[0]) is ErrorNode
 
     res = parse("RETS \n")
-    assert type(res[0]) == ErrorNode
+    assert type(res[0]) is ErrorNode
 
 
 def test_macro() -> None:
     mr = MacroRegistry()
     mr.insert("HI", 2, ";WORLD")
     res = parse("@HI 2, 4\n", macro_registry=mr)
-    assert type(res[0]) == MacroIR
+    assert type(res[0]) is MacroIR
     item: MacroNode = res[0]
     assert len(item.body) == 1
-    assert type(item.body[0]) == CommentIR
+    assert type(item.body[0]) is CommentIR
 
 
 def test_nonunary() -> None:
     par = Parser(io.StringIO("BR 10,i \n"))
     item: NonUnaryIR = cast(NonUnaryIR, next(par))
-    assert type(item) == NonUnaryIR
+    assert type(item) is NonUnaryIR
     assert item.mnemonic == "BR"
-    assert type(item.argument) == Decimal
+    assert type(item.argument) is Decimal
 
     ret = parse("cat: BR 0x10,x ;comment\n")
     item = cast(NonUnaryIR, ret[0])
-    assert type(item) == NonUnaryIR
+    assert type(item) is NonUnaryIR
     assert str(item.symbol_decl) == "cat"
     assert item.mnemonic == "BR"
-    assert type(item.argument) == Hexadecimal
+    assert type(item.argument) is Hexadecimal
     assert item.comment == "comment"
 
     ret = parse("cat: BR cat,i")
     item = cast(NonUnaryIR, ret[0])
-    assert type(item) == NonUnaryIR
+    assert type(item) is NonUnaryIR
     assert str(item.symbol_decl) == "cat"
     assert item.mnemonic == "BR"
-    assert type(item.argument) == Identifier
+    assert type(item.argument) is Identifier
     arg: Identifier = item.argument
     assert str(arg) == "cat"
     assert not arg.symbol.is_undefined()
@@ -84,7 +84,7 @@ def test_nonunary() -> None:
     assert type(item) == NonUnaryIR
     assert str(item.symbol_decl) == "cat"
     assert item.mnemonic == "BR"
-    assert type(item.argument) == StringConstant
+    assert type(item.argument) is StringConstant
     arg_str = item.argument
     assert int(arg_str).to_bytes(2) == "h'".encode("utf-8")
     assert str(arg_str) == '"h\'"'
@@ -192,13 +192,13 @@ def test_dot_byte() -> None:
     ret = parse("cat: .BYte 0x10")
     assert len(ret) == 1
     item: DotLiteralIR = cast(DotLiteralIR, ret[0])
-    assert type(item) == DotLiteralIR
+    assert type(item) is DotLiteralIR
     assert int(item.argument) == 0x10
     assert len(item) == 1
     assert item.symbol_decl and str(item.symbol_decl) == "cat"
     ret = parse(".BYte 10")
     item = cast(DotLiteralIR, ret[0])
-    assert type(item) == DotLiteralIR
+    assert type(item) is DotLiteralIR
     assert int(item.argument) == 10
     assert len(item) == 1
     ret = parse('.BYte "b"')
@@ -209,7 +209,7 @@ def test_dot_equate() -> None:
     ret = parse("cat: .EQUATE 0x10")
     assert len(ret) == 1
     item: DotEquateIR = cast(DotEquateIR, ret[0])
-    assert type(item) == DotEquateIR
+    assert type(item) is DotEquateIR
     assert int(item.argument) == 0x10
     assert len(item) == 0
     assert item.symbol_decl and str(item.symbol_decl) == "cat"
@@ -244,14 +244,14 @@ def test_dot_word() -> None:
     ret = parse("cat: .WORd 0x10")
     assert len(ret) == 1
     item: DotLiteralIR = cast(DotLiteralIR, ret[0])
-    assert type(item) == DotLiteralIR
+    assert type(item) is DotLiteralIR
     assert int(item.argument) == 0x10
     assert len(item) == 2
     assert item.symbol_decl and str(item.symbol_decl) == "cat"
     ret = parse(".woRD 10")
     item = cast(DotLiteralIR, ret[0])
-    assert type(item) == DotLiteralIR
+    assert type(item) is DotLiteralIR
     assert int(item.argument) == 10
-    assert len(item) == 2
+    assert len(item) is 2
     ret = parse('.WORD "b"')
     assert type(ret[0]) == ErrorNode

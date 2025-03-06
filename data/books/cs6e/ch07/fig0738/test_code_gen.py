@@ -34,4 +34,4 @@ def test_comment_empty():
 
     assert len(parse_tree) == 2 and len(ir) == 2
     assert program_object_code(ir) == bytes()
-    assert type(ir[0]) == EmptyIR and type(ir[1]) == CommentIR
+    assert type(ir[0]) is EmptyIR and type(ir[1]) is CommentIR
