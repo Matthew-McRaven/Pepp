@@ -31,13 +31,13 @@ size_t ProfilingATNSimulator::adaptivePredict(TokenStream *input, size_t decisio
   auto onExit = finally([this](){
     _currentDecision = 0; // Originally -1, but that makes no sense (index into a vector and init value is also 0).
   });
-
+  using namespace std::chrono;
   _sllStopIndex = -1;
   _llStopIndex = -1;
   _currentDecision = decision;
-  high_resolution_clock::time_point start = high_resolution_clock::now();
+  auto start = steady_clock::now();
   size_t alt = ParserATNSimulator::adaptivePredict(input, decision, outerContext);
-  high_resolution_clock::time_point stop = high_resolution_clock::now();
+  auto stop = steady_clock::now();
   _decisions[decision].timeInPrediction += duration_cast<nanoseconds>(stop - start).count();
   _decisions[decision].invocations++;
 
