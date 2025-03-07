@@ -1,5 +1,4 @@
 import io
-from collections import deque
 from typing import Union, cast, List
 
 from pep10.arguments import (
@@ -45,7 +44,7 @@ class Parser:
         macro_registry: MacroRegistry | None = None,
     ):
         self.lexer = Lexer(buffer)
-        self._buffer: deque[TokenType] = deque()
+        self._buffer: List[TokenType] = []
         self.symbol_table = (
             symbol_table if symbol_table else SymbolTable()
         )
@@ -58,7 +57,7 @@ class Parser:
 
     def may_match(self, expected: Tokens) -> Union[TokenType, None]:
         if (token := self.peek()) and token[0] == expected:
-            return self._buffer.popleft()
+            return self._buffer.pop(0)
         return None
 
     def must_match(self, expected: Tokens) -> TokenType:
@@ -77,10 +76,10 @@ class Parser:
     def skip_to_next_line(self):
         invalid, empty = (Tokens.INVALID, None), (Tokens.EMPTY, None)
         while self.peek() not in {invalid, empty, None}:
-            self._buffer.popleft()
+            self._buffer.pop(0)
         # Consume trailing newline, so we can begin parsing on the next line
         if len(self._buffer) and self._buffer[0] == empty:
-            self._buffer.popleft()
+            self._buffer.pop(0)
 
     def __next__(self) -> ParseTreeNode:
         if self.peek() is None:
@@ -149,10 +148,10 @@ class Parser:
             raise SyntaxError(f"Unrecognized mnemonic: {mn_str}")
         match INSTRUCTION_TYPES[mn_str]:
             case InstructionType.R | InstructionType.U:
-                self._buffer.appendleft(mn)
+                self._buffer.append(mn)
                 return None
         if not (argument := self.argument()):
-            self._buffer.appendleft(mn)
+            self._buffer.append(mn)
             return None
 
         if type(argument) is StringConstant and len(argument.value) > 2:
