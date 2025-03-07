@@ -155,7 +155,7 @@ class Parser:
             self._buffer.appendleft(mn)
             return None
 
-        if type(argument) == StringConstant and len(argument.value) > 2:
+        if type(argument) is StringConstant and len(argument.value) > 2:
             raise SyntaxError("String too large")
         else:
             as_int = int(argument)
@@ -227,7 +227,7 @@ class Parser:
                 argument = self.argument()
                 if argument is None:
                     raise SyntaxError(".EQUATE requires an argument")
-                elif type(argument) == Identifier:
+                elif type(argument) is Identifier:
                     message = ".EQUATE requires a constant argument"
                     raise SyntaxError(message)
                 else:

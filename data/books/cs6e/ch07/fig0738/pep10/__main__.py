@@ -18,7 +18,7 @@ def assemble(text: str):
     add_OS_symbols(st), add_OS_macros(mr)
     parse_tree = parse(text, symbol_table=st, macro_registry=mr)
     parse_errors = list(
-        filter(lambda n: type(n) == ErrorNode, parse_tree)
+        filter(lambda n: type(n) is ErrorNode, parse_tree)
     )
     if len(parse_errors) > 0:
         for error in parse_errors:

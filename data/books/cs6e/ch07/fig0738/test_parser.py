@@ -86,7 +86,7 @@ def test_nonunary() -> None:
 
     ret = parse('cat: BR "h\'",i')
     item = cast(NonUnaryIR, ret[0])
-    assert type(item) == NonUnaryIR
+    assert type(item) is NonUnaryIR
     assert str(item.symbol_decl) == "cat"
     assert item.mnemonic == "BR"
     assert type(item.argument) is StringConstant
@@ -96,10 +96,10 @@ def test_nonunary() -> None:
 
     ret = parse('cat: BR "\\r\\"",i')
     item = cast(NonUnaryIR, ret[0])
-    assert type(item) == NonUnaryIR
+    assert type(item) is NonUnaryIR
     assert str(item.symbol_decl) == "cat"
     assert item.mnemonic == "BR"
-    assert type(item.argument) == StringConstant
+    assert type(item.argument) is StringConstant
     arg_str = item.argument
     assert int(arg_str).to_bytes(2) == '\r"'.encode("utf-8")
     assert str(arg_str) == '"\\r\\""'
@@ -107,55 +107,55 @@ def test_nonunary() -> None:
 
 def test_nonunary_fail() -> None:
     par = Parser(io.StringIO("ADDA 10\n"))
-    assert type(next(par)) == ErrorNode
+    assert type(next(par)) is ErrorNode
 
     ret = parse("ADDA 10 ,\n")
-    assert type(ret[0]) == ErrorNode
+    assert type(ret[0]) is ErrorNode
 
     ret = parse("ADDA 10,cat\n")
-    assert type(ret[0]) == ErrorNode
+    assert type(ret[0]) is ErrorNode
 
     ret = parse("ADDA cat:,sfx\n")
-    assert type(ret[0]) == ErrorNode
+    assert type(ret[0]) is ErrorNode
 
 
 # @pytest.mark.skip(reason="Exercise for students")
 def test_nonunary_addr_optional() -> None:
     ret = parse("BR 10\n")
     item: NonUnaryIR = cast(NonUnaryIR, ret[0])
-    assert type(item) == NonUnaryIR
+    assert type(item) is NonUnaryIR
     assert item.mnemonic == "BR"
-    assert type(item.argument) == Decimal
+    assert type(item.argument) is Decimal
     assert int(item.argument) == 10
     assert item.addressing_mode == AddressingMode.I
 
 
 def test_nonunary_arg_range() -> None:
     ret = parse("BR 65535\n")
-    assert type(ret[0]) != ErrorNode
+    assert not type(ret[0]) is ErrorNode
     ret = parse("BR 65536\n")
-    assert type(ret[0]) == ErrorNode
+    assert type(ret[0]) is ErrorNode
     ret = parse("BR -32768\n")
-    assert type(ret[0]) != ErrorNode
+    assert not type(ret[0]) is ErrorNode
     ret = parse("BR -32769\n")
-    assert type(ret[0]) == ErrorNode
+    assert type(ret[0]) is ErrorNode
     ret = parse("BR 0xFFFF\n")
-    assert type(ret[0]) != ErrorNode
+    assert not type(ret[0]) is ErrorNode
     ret = parse("BR 0x10000\n")
-    assert type(ret[0]) == ErrorNode
+    assert type(ret[0]) is ErrorNode
 
 
 def test_comment() -> None:
     par = Parser(io.StringIO("  ;comment \n"))
     item: CommentNode = cast(CommentNode, next(par))
-    assert type(item) == CommentIR
+    assert type(item) is CommentIR
     assert item.comment == "comment "
 
 
 def test_empty() -> None:
     par = Parser(io.StringIO("\n"))
     item: EmptyNode = cast(EmptyNode, next(par))
-    assert type(item) == EmptyIR
+    assert type(item) is EmptyIR
 
 
 def test_parser_synchronization() -> None:
@@ -167,12 +167,12 @@ def test_dot_ASCII() -> None:
     ret = parse('cat: .ASCII "Hello World"')
     assert len(ret) == 1
     item: DotASCIIIR = cast(DotASCIIIR, ret[0])
-    assert type(item) == DotASCIIIR
+    assert type(item) is DotASCIIIR
     assert str(item.argument) == '"Hello World"'
     assert item.symbol_decl and str(item.symbol_decl) == "cat"
     ret = parse('.ASCII ""')
     item = cast(DotASCIIIR, ret[0])
-    assert type(item) == DotASCIIIR
+    assert type(item) is DotASCIIIR
     assert str(item.argument) == '""'
 
 
@@ -180,17 +180,17 @@ def test_dot_block() -> None:
     ret = parse("cat: .BLOCK 0x10")
     assert len(ret) == 1
     item: DotBlockIR = cast(DotBlockIR, ret[0])
-    assert type(item) == DotBlockIR
+    assert type(item) is DotBlockIR
     assert int(item.argument) == 0x10
     assert len(item) == 0x10
     assert item.symbol_decl and str(item.symbol_decl) == "cat"
     ret = parse(".BLOCK 10")
     item = cast(DotBlockIR, ret[0])
-    assert type(item) == DotBlockIR
+    assert type(item) is DotBlockIR
     assert int(item.argument) == 10
     assert len(item) == 10
     ret = parse('.BLOCK "b"')
-    assert type(ret[0]) == ErrorNode
+    assert type(ret[0]) is ErrorNode
 
 
 def test_dot_byte() -> None:
@@ -207,7 +207,7 @@ def test_dot_byte() -> None:
     assert int(item.argument) == 10
     assert len(item) == 1
     ret = parse('.BYte "b"')
-    assert type(ret[0]) == ErrorNode
+    assert type(ret[0]) is ErrorNode
 
 
 def test_dot_equate() -> None:
@@ -223,7 +223,7 @@ def test_dot_equate() -> None:
     ret = parse("cat: .EQUATE 10")
     assert len(ret) == 1
     item = cast(DotEquateIR, ret[0])
-    assert type(item) == DotEquateIR
+    assert type(item) is DotEquateIR
     assert int(item.argument) == 10
     assert len(item) == 0
     assert item.symbol_decl and str(item.symbol_decl) == "cat"
@@ -233,7 +233,7 @@ def test_dot_equate() -> None:
     ret = parse('cat: .EQUATE "\\x0a"\n')
     assert len(ret) == 1
     item = cast(DotEquateIR, ret[0])
-    assert type(item) == DotEquateIR
+    assert type(item) is DotEquateIR
     assert int(item.argument) == 10
     assert len(item) == 0
     assert item.symbol_decl and str(item.symbol_decl) == "cat"
@@ -242,7 +242,7 @@ def test_dot_equate() -> None:
     # Symbolic argument
     ret = parse("cat: .EQUATE cat")
     item = cast(DotEquateIR, ret[0])
-    assert type(item) == ErrorNode
+    assert type(item) is ErrorNode
 
 
 def test_dot_word() -> None:
@@ -257,6 +257,6 @@ def test_dot_word() -> None:
     item = cast(DotLiteralIR, ret[0])
     assert type(item) is DotLiteralIR
     assert int(item.argument) == 10
-    assert len(item) is 2
+    assert len(item) == 2
     ret = parse('.WORD "b"')
-    assert type(ret[0]) == ErrorNode
+    assert type(ret[0]) is ErrorNode
