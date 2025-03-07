@@ -3,8 +3,8 @@ from typing import TypeAlias, Union, Tuple, Literal
 
 
 class Tokens(Enum):
-    EMPTY, COMMA, COMMENT, IDENTIFIER, SYMBOL, DECIMAL, HEX, DOT = range(0, 8)
-    CHARACTER, STRING, MACRO = range(8, 11)
+    EMPTY, COMMA, COMMENT, IDENTIFIER, SYMBOL, DECIMAL = range(0, 6)
+    HEX, DOT, CHARACTER, STRING, MACRO = range(6, 11)
     INVALID = -1
 
 

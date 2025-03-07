@@ -17,7 +17,9 @@ def assemble(text: str):
     st, mr = SymbolTable(), MacroRegistry()
     add_OS_symbols(st), add_OS_macros(mr)
     parse_tree = parse(text, symbol_table=st, macro_registry=mr)
-    parse_errors = list(filter(lambda n: type(n) == ErrorNode, parse_tree))
+    parse_errors = list(
+        filter(lambda n: type(n) == ErrorNode, parse_tree)
+    )
     if len(parse_errors) > 0:
         for error in parse_errors:
             print(error, file=sys.stderr)
@@ -27,7 +29,11 @@ def assemble(text: str):
         for ir_error in ir_errors:
             print(ir_error, file=sys.stderr)
         raise SyntaxError("Failed to generate object code")
-    return program_object_code(ir), program_listing(ir), program_source(ir)
+    return (
+        program_object_code(ir),
+        program_listing(ir),
+        program_source(ir),
+    )
 
 
 def main():
@@ -37,7 +43,7 @@ def main():
     args = parser.parse_args()
     if args.input_file:
         with open(args.input_file, "r") as f:
-            object_code, listing, source = assemble("".join(f.readlines()))
+            code, listing, source = assemble("".join(f.readlines()))
             print("\n".join(listing))
 
 

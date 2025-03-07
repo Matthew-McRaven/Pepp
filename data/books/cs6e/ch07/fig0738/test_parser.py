@@ -1,7 +1,12 @@
 import io
 from typing import cast
 
-from pep10.arguments import Decimal, Hexadecimal, Identifier, StringConstant
+from pep10.arguments import (
+    Decimal,
+    Hexadecimal,
+    Identifier,
+    StringConstant,
+)
 from pep10.ir import (
     UnaryIR,
     NonUnaryIR,

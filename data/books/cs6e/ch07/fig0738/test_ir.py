@@ -18,7 +18,10 @@ def test_unary():
     i = UnaryIR("RET", comment="hi")
     i.address = 0
     assert i.source().rstrip() == "       RET                ;hi"
-    assert "".join(listing(i)).rstrip() == "0000 01            RET                ;hi"
+    assert (
+        "".join(listing(i)).rstrip()
+        == "0000 01            RET                ;hi"
+    )
 
 
 def test_nonunary():
@@ -27,12 +30,21 @@ def test_nonunary():
     i = NonUnaryIR("ADDA", Decimal(10), AddressingMode.SX, sym=s)
     i.address = 0
     assert i.source().rstrip() == "cat:   ADDA   10,sx"
-    assert "".join(listing(i)).rstrip() == "0000 56000A cat:   ADDA   10,sx"
+    assert (
+        "".join(listing(i)).rstrip()
+        == "0000 56000A cat:   ADDA   10,sx"
+    )
     i = NonUnaryIR("ADDA", Decimal(10), AddressingMode.SX)
     i.address = 0
     assert i.source().rstrip() == "       ADDA   10,sx"
-    assert "".join(listing(i)).rstrip() == "0000 56000A        ADDA   10,sx"
+    assert (
+        "".join(listing(i)).rstrip()
+        == "0000 56000A        ADDA   10,sx"
+    )
     i = NonUnaryIR("ADDA", Decimal(10), AddressingMode.SX, comment="hi")
     i.address = 0
     assert i.source().rstrip() == "       ADDA   10,sx       ;hi"
-    assert "".join(listing(i)).rstrip() == "0000 56000A        ADDA   10,sx       ;hi"
+    assert (
+        "".join(listing(i)).rstrip()
+        == "0000 56000A        ADDA   10,sx       ;hi"
+    )

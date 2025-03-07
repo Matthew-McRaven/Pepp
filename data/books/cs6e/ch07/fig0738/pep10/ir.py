@@ -2,7 +2,12 @@ import itertools
 from typing import List, TypeAlias, Literal
 
 from pep10.arguments import StringConstant
-from pep10.mnemonics import AddressingMode, INSTRUCTION_TYPES, BITS, as_int
+from pep10.mnemonics import (
+    AddressingMode,
+    INSTRUCTION_TYPES,
+    BITS,
+    as_int,
+)
 from pep10.symbol import SymbolEntry
 from pep10.types import ArgumentType, Listable, ParseTreeNode
 
@@ -23,7 +28,7 @@ class ErrorNode:
         self.comment: str | None = error
 
     def source(self) -> str:
-        message = self.comment if self.comment else "Failed to parse line"
+        message = self.comment or "Failed to parse line"
         return f";ERROR: {message}"
 
 
@@ -45,7 +50,10 @@ class CommentNode:
 
 class UnaryNode:
     def __init__(
-        self, mn: str, sym: SymbolEntry | None = None, comment: str | None = None
+        self,
+        mn: str,
+        sym: SymbolEntry | None = None,
+        comment: str | None = None,
     ):
         self.symbol_decl: SymbolEntry | None = sym
         mn = mn.upper()
@@ -54,7 +62,12 @@ class UnaryNode:
         self.comment: str | None = comment
 
     def source(self) -> str:
-        return source(str(self.mnemonic.upper()), [], self.symbol_decl, self.comment)
+        return source(
+            str(self.mnemonic.upper()),
+            [],
+            self.symbol_decl,
+            self.comment,
+        )
 
 
 class NonUnaryNode:
@@ -76,7 +89,9 @@ class NonUnaryNode:
 
     def source(self) -> str:
         args = [str(self.argument), self.addressing_mode.name.lower()]
-        return source(self.mnemonic.upper(), args, self.symbol_decl, self.comment)
+        return source(
+            self.mnemonic.upper(), args, self.symbol_decl, self.comment
+        )
 
 
 class DotASCIINode:
@@ -126,7 +141,12 @@ class DotBlockNode:
         self.comment: str | None = comment
 
     def source(self) -> str:
-        return source(".BLOCK", [str(self.argument)], self.symbol_decl, self.comment)
+        return source(
+            ".BLOCK",
+            [str(self.argument)],
+            self.symbol_decl,
+            self.comment,
+        )
 
 
 class DotEquateNode:
@@ -170,9 +190,18 @@ def listing(to_list: Listable) -> List[str]:
     if len(object_code) <= 3:
         line_object_code, object_code = object_code, bytearray([])
     else:
-        line_object_code, object_code = object_code[0:2], object_code[3:]
-    address = f"{to_list.address:04X}" if to_list.address is not None else 4 * " "
-    lines = [f"{address} {oc_format(line_object_code):6} {to_list.source()}"]
+        line_object_code, object_code = (
+            object_code[0:2],
+            object_code[3:],
+        )
+    address = (
+        f"{to_list.address:04X}"
+        if to_list.address is not None
+        else 4 * " "
+    )
+    lines = [
+        f"{address} {oc_format(line_object_code):6} {to_list.source()}"
+    ]
     for b in itertools.batched(object_code, 3):
         lines.append(f"{'':4} {oc_format(b): 6}")
     return lines
@@ -304,4 +333,6 @@ class MacroIR(MacroNode):
         return CommentIR(f"End @{self.name}")
 
 
-DotCommandIR: TypeAlias = DotASCIIIR | DotLiteralIR | DotBlockIR | DotEquateIR
+DotCommandIR: TypeAlias = (
+    DotASCIIIR | DotLiteralIR | DotBlockIR | DotEquateIR
+)

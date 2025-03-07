@@ -18,11 +18,11 @@ def generate_code(
             errors.append(node.source())
             continue
         elif isinstance(node, MacroIR) and isinstance(node, Listable):
-            inner_ir, inner_errors = generate_code(node.body, base_address=address)
+            inner = generate_code(node.body, base_address=address)
             ir.append(node.start_comment())
-            ir.extend(inner_ir)
+            ir.extend(inner[0])
             ir.append(node.end_comment())
-            errors.extend(inner_errors)
+            errors.extend(inner[1])
         elif isinstance(node, Listable):
             ir.append(node)
         else:
@@ -36,12 +36,16 @@ def generate_code(
             symbol: SymbolEntry = maybe_symbol
             if symbol.is_multiply_defined():
                 errors.append(f"Multiply defined symbol: {symbol}")
-            elif len(line) > 0:  # Avoid re-assigning symbol values for .EQUATEs
+            elif len(line) > 0:
+                # Avoid re-assigning symbol values for .EQUATEs
                 symbol.value = address
         # Check that symbols used as arguments are not undefined.
         if maybe_argument := getattr(line, "argument", None):
             argument: ArgumentType = maybe_argument
-            if type(argument) == Identifier and argument.symbol.is_undefined():
+            if (
+                type(argument) is Identifier
+                and argument.symbol.is_undefined()
+            ):
                 errors.append(f"Undefined symbol: {argument.symbol}")
         address += len(line)
 
@@ -57,4 +61,6 @@ def program_source(program: List[Listable]) -> List[str]:
 
 
 def program_listing(program: List[Listable]) -> List[str]:
-    return list(itertools.chain.from_iterable(listing(line) for line in program))
+    return list(
+        itertools.chain.from_iterable(listing(line) for line in program)
+    )

@@ -9,12 +9,14 @@ from pep10.tokens import Tokens, TokenType
 
 class Lexer:
     class States(Enum):
-        START, COMMENT, IDENTIFIER, MAYBE_HEX, HEX_PREFIX, HEX = range(0, 6)
-        MAYBE_SIGNED, DECIMAL, MAYBE_DOT, DOT, CHAR_OPEN = range(6, 11)
-        CHAR_AWAITING_CLOSE, CHAR_EXPECT_ESCAPE, CHAR_EXPECT_HEX0 = range(11, 14)
-        CHAR_EXPECT_HEX1, STRING_AWAITING_CLOSE, STRING_EXPECT_ESCAPE = range(14, 17)
-        STRING_EXPECT_HEX0, STRING_EXPECT_HEX1, MAYBE_MACRO, MACRO = range(17, 21)
-        STOP = -1
+
+        START, COMMENT, IDENTIFIER, MAYBE_HEX, HEX_PREFIX = range(0, 5)
+        HEX, MAYBE_SIGNED, DECIMAL, MAYBE_DOT, DOT = range(5, 10)
+        CHAR_OPEN, CHAR_AWAITING_CLOSE = 10, 11
+        CHAR_EXPECT_ESCAPE, CHAR_EXPECT_HEX0 = 12, 13
+        CHAR_EXPECT_HEX1, STRING_AWAITING_CLOSE = 14, 15
+        STRING_EXPECT_ESCAPE, STRING_EXPECT_HEX0 = 16, 17
+        STRING_EXPECT_HEX1, MAYBE_MACRO, MACRO, STOP = range(18, 22)
 
     def __init__(self, buffer) -> None:
         self.buffer: io.StringIO = buffer
@@ -47,7 +49,8 @@ class Lexer:
                     if ch == "\n":
                         state = Lexer.States.STOP
                     elif ch == ",":
-                        state, token = Lexer.States.STOP, (Tokens.COMMA, None)
+                        state = Lexer.States.STOP
+                        token = (Tokens.COMMA, None)
                     elif ch.isspace():
                         pass
                     elif ch == ";":
@@ -58,7 +61,8 @@ class Lexer:
                     elif ch == "0":
                         state = Lexer.States.MAYBE_HEX
                     elif ch.isdecimal():
-                        state, as_int = Lexer.States.DECIMAL, ord(ch) - ord("0")
+                        state = Lexer.States.DECIMAL
+                        as_int = ord(ch) - ord("0")
                     elif ch == ".":
                         state = Lexer.States.MAYBE_DOT
                     elif ch == "'":
@@ -66,7 +70,8 @@ class Lexer:
                     elif ch == '"':
                         state = Lexer.States.STRING_AWAITING_CLOSE
                     elif ch == "+" or ch == "-":
-                        state, sign = Lexer.States.MAYBE_SIGNED, -1 if ch == "-" else 1
+                        state = Lexer.States.MAYBE_SIGNED
+                        sign = -1 if ch == "-" else 1
                     elif ch == "@":
                         state = Lexer.States.MAYBE_MACRO
                     else:
@@ -89,7 +94,8 @@ class Lexer:
                     else:
                         self.buffer.seek(prev_pos, os.SEEK_SET)
                         state = Lexer.States.STOP
-                        token = (Tokens.IDENTIFIER, "".join(as_str_list))
+                        as_str = "".join(as_str_list)
+                        token = (Tokens.IDENTIFIER, as_str)
 
                 case Lexer.States.MAYBE_HEX:
                     if ch.isdigit():
@@ -99,7 +105,8 @@ class Lexer:
                         state = Lexer.States.HEX_PREFIX
                     else:
                         self.buffer.seek(prev_pos, os.SEEK_SET)
-                        state, token = Lexer.States.STOP, (Tokens.DECIMAL, 0)
+                        state = Lexer.States.STOP
+                        token = (Tokens.DECIMAL, 0)
 
                 case Lexer.States.HEX_PREFIX:
                     if ch in string.digits:
@@ -107,7 +114,8 @@ class Lexer:
                         as_int = as_int * 16 + (ord(ch) - ord("0"))
                     elif ch in string.hexdigits:
                         state = Lexer.States.HEX
-                        as_int = as_int * 16 + (10 + ord(ch.lower()) - ord("a"))
+                        digit = 10 + ord(ch.lower()) - ord("a")
+                        as_int = as_int * 16 + digit
                     else:
                         token = (Tokens.INVALID, None)
 
@@ -115,10 +123,12 @@ class Lexer:
                     if ch in string.digits:
                         as_int = as_int * 16 + (ord(ch) - ord("0"))
                     elif ch in string.hexdigits:
-                        as_int = as_int * 16 + (10 + ord(ch.lower()) - ord("a"))
+                        digit = 10 + ord(ch.lower()) - ord("a")
+                        as_int = as_int * 16 + digit
                     else:
                         self.buffer.seek(prev_pos, os.SEEK_SET)
-                        state, token = Lexer.States.STOP, (Tokens.HEX, as_int)
+                        state = Lexer.States.STOP
+                        token = (Tokens.HEX, as_int)
 
                 case Lexer.States.MAYBE_SIGNED:
                     if ch in string.digits:
@@ -173,6 +183,7 @@ class Lexer:
                         state = Lexer.States.STRING_EXPECT_ESCAPE
                     else:
                         as_bytes = as_bytes + ch.encode("utf-8")
+
                 case Lexer.States.STRING_EXPECT_ESCAPE:
                     escapes = dict(zip('rtbn"\\', '\r\t\b\n"\\'))
                     if ch in escapes:
@@ -182,13 +193,16 @@ class Lexer:
                         state = Lexer.States.STRING_EXPECT_HEX0
                     else:
                         token = (Tokens.INVALID, None)
+
                 case Lexer.States.STRING_EXPECT_HEX0:
                     if ch in string.digits:
                         state = Lexer.States.STRING_EXPECT_HEX1
                         as_int = as_int * 16 + (ord(ch) - ord("0"))
                     elif ch in string.hexdigits:
                         state = Lexer.States.STRING_EXPECT_HEX1
-                        as_int = as_int * 16 + (10 + ord(ch.lower()) - ord("a"))
+                        digit = 10 + ord(ch.lower()) - ord("a")
+                        as_int = as_int * 16 + digit
+
                 case Lexer.States.STRING_EXPECT_HEX1:
                     if ch in string.digits:
                         state = Lexer.States.STRING_AWAITING_CLOSE
@@ -196,11 +210,13 @@ class Lexer:
                         as_bytes += as_int.to_bytes(1)
                     elif ch in string.hexdigits:
                         state = Lexer.States.STRING_AWAITING_CLOSE
-                        as_int = as_int * 16 + (10 + ord(ch.lower()) - ord("a"))
+                        digit = 10 + ord(ch.lower()) - ord("a")
+                        as_int = as_int * 16 + digit
                         as_bytes += as_int.to_bytes(1)
                     elif ch == '"':
                         state = Lexer.States.STOP
-                        token = (Tokens.STRING, as_bytes + as_int.to_bytes(1))
+                        as_bytes += as_int.to_bytes(1)
+                        token = (Tokens.STRING, as_bytes)
 
                 case _:
                     token = (Tokens.INVALID, None)

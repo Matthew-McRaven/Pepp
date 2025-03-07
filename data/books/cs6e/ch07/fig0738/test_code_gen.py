@@ -10,12 +10,16 @@ def test_unary_object_code():
     assert len(errors) == 0
     assert len(parse_tree) == 3 and len(ir) == 3
     assert program_object_code(ir) == bytes([0x18, 0x18, 0x1])
-    assert ir[0].address == 0 and ir[1].address == 1 and ir[2].address == 2
+    assert (
+        ir[0].address == 0 and ir[1].address == 1 and ir[2].address == 2
+    )
 
 
 def test_nonunary_object_code():
     st = SymbolTable()
-    parse_tree = parse("cat:BR 3,i\ndog:ADDA 0x10,d\nCALL cat,i\n", symbol_table=st)
+    parse_tree = parse(
+        "cat:BR 3,i\ndog:ADDA 0x10,d\nCALL cat,i\n", symbol_table=st
+    )
     ir, errors = generate_code(parse_tree)
     assert len(errors) == 0
     assert "cat" in st and int(st["cat"]) == 0
@@ -24,7 +28,9 @@ def test_nonunary_object_code():
     assert program_object_code(ir) == bytes(
         [0x24, 0x00, 0x03, 0x51, 0x00, 0x10, 0x36, 0x00, 0x00]
     )
-    assert ir[0].address == 0 and ir[1].address == 3 and ir[2].address == 6
+    assert (
+        ir[0].address == 0 and ir[1].address == 3 and ir[2].address == 6
+    )
 
 
 def test_comment_empty():

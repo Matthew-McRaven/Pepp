@@ -26,7 +26,9 @@ def test_type_masks():
     # Mask calculations work
     assert InstructionType.A_ix.allows_addressing_mode(AddressingMode.I)
     assert InstructionType.A_ix.allows_addressing_mode(AddressingMode.X)
-    assert not InstructionType.A_ix.allows_addressing_mode(AddressingMode.D)
+    assert not InstructionType.A_ix.allows_addressing_mode(
+        AddressingMode.D
+    )
 
 
 def test_U_mnemonics():

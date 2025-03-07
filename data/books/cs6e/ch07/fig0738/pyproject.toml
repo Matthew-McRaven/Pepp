@@ -22,3 +22,6 @@ build-backend = "poetry.core.masonry.api"
 
 [tool.coverage.run]
 omit = [".*", "*/site-packages/*"]
+
+[tool.black]
+line-length = 72

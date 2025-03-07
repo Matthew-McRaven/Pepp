@@ -39,15 +39,19 @@ from pep10.types import ArgumentType, ParseTreeNode
 
 class Parser:
     def __init__(
-            self,
-            buffer: io.StringIO,
-            symbol_table: SymbolTable | None = None,
-            macro_registry: MacroRegistry | None = None,
+        self,
+        buffer: io.StringIO,
+        symbol_table: SymbolTable | None = None,
+        macro_registry: MacroRegistry | None = None,
     ):
         self.lexer = Lexer(buffer)
         self._buffer: deque[TokenType] = deque()
-        self.symbol_table = symbol_table if symbol_table else SymbolTable()
-        self.macro_registry = macro_registry if macro_registry else MacroRegistry()
+        self.symbol_table = (
+            symbol_table if symbol_table else SymbolTable()
+        )
+        self.macro_registry = (
+            macro_registry if macro_registry else MacroRegistry()
+        )
 
     def __iter__(self):
         return self
@@ -60,23 +64,21 @@ class Parser:
     def must_match(self, expected: Tokens) -> TokenType:
         if ret := self.may_match(expected):
             return ret
-        else:
-            raise SyntaxError()
+        raise SyntaxError()
 
     def peek(self) -> TokenType | None:
-        if len(self._buffer) > 0:
-            return self._buffer[0]
-        try:
-            self._buffer.append(next(self.lexer))
-        except StopIteration:
-            return None
+        if len(self._buffer) == 0:
+            try:
+                self._buffer.append(next(self.lexer))
+            except StopIteration:
+                return None
         return self._buffer[0]
 
     def skip_to_next_line(self):
         invalid, empty = (Tokens.INVALID, None), (Tokens.EMPTY, None)
         while self.peek() not in {invalid, empty, None}:
             self._buffer.popleft()
-        # Consume trailing newline so we can begin parsing on the next line
+        # Consume trailing newline, so we can begin parsing on the next line
         if len(self._buffer) and self._buffer[0] == empty:
             self._buffer.popleft()
 
@@ -88,22 +90,26 @@ class Parser:
         except SyntaxError as s:
             self.skip_to_next_line()
             return ErrorNode(error=s.msg if s.msg else None)
-        except KeyError:  # Invalid macro lookup
+        except KeyError:
             self.skip_to_next_line()
             return ErrorNode()
 
-    def macro(self, symbol: SymbolEntry | None = None) -> MacroIR | None:
+    def macro(
+        self, symbol: SymbolEntry | None = None
+    ) -> MacroIR | None:
         if not (macro := self.may_match(Tokens.MACRO)):
             return None
         elif symbol is not None:
-            raise SyntaxError("Macros do not support symbol declarations")
+            raise SyntaxError("Macros cannot declare symbols")
         name = cast(str, macro[1])
         if (arg0 := self.argument()) is None:
             return None
         self.must_match(Tokens.COMMA)
         if (arg1 := self.argument()) is None:
             return None
-        body = self.macro_registry.instantiate(name, str(arg0), str(arg1))
+        body = self.macro_registry.instantiate(
+            name, str(arg0), str(arg1)
+        )
         parse_tree = parse(body, self.symbol_table, self.macro_registry)
         return MacroIR(name, [arg0, arg1], parse_tree)
 
@@ -113,12 +119,16 @@ class Parser:
         elif dec := self.may_match(Tokens.DECIMAL):
             return Decimal(cast(int, dec[1]))
         elif ident := self.may_match(Tokens.IDENTIFIER):
-            return Identifier(self.symbol_table.reference(cast(str, ident[1])))
+            return Identifier(
+                self.symbol_table.reference(cast(str, ident[1]))
+            )
         elif str_const := self.may_match(Tokens.STRING):
             return StringConstant(cast(bytes, str_const[1]))
         return None
 
-    def unary_instruction(self, symbol: SymbolEntry | None = None) -> UnaryNode | None:
+    def unary_instruction(
+        self, symbol: SymbolEntry | None = None
+    ) -> UnaryNode | None:
         if not (mn := self.may_match(Tokens.IDENTIFIER)):
             return None
         mn_str = cast(str, mn[1]).upper()
@@ -130,7 +140,7 @@ class Parser:
         return None
 
     def nonunary_instruction(
-            self, symbol: SymbolEntry | None = None
+        self, symbol: SymbolEntry | None = None
     ) -> NonUnaryNode | None:
         if not (mn := self.may_match(Tokens.IDENTIFIER)):
             return None
@@ -156,68 +166,79 @@ class Parser:
 
         if self.may_match(Tokens.COMMA):
             # Check that addressing mode is a valid string and is allowed for the current mnemonic
-            addr_str = cast(str, self.must_match(Tokens.IDENTIFIER)[1]).upper()
+            addr_str = cast(str, self.must_match(Tokens.IDENTIFIER)[1])
+            addr_str = addr_str.upper()
             try:
                 addr = cast(AddressingMode, AddressingMode[addr_str])
-                if not INSTRUCTION_TYPES[mn_str].allows_addressing_mode(addr):
+                mn_type = INSTRUCTION_TYPES[mn_str]
+                if not mn_type.allows_addressing_mode(addr):
                     raise SyntaxError()
             except KeyError:
                 raise SyntaxError()
             return NonUnaryIR(mn_str, argument, addr, sym=symbol)
         elif mn_str in DEFAULT_ADDRESSING_MODES:
             return NonUnaryIR(
-                mn_str, argument, DEFAULT_ADDRESSING_MODES[mn_str], sym=symbol
+                mn_str,
+                argument,
+                DEFAULT_ADDRESSING_MODES[mn_str],
+                sym=symbol,
             )
         raise SyntaxError()
 
-    def directive(self, symbol: SymbolEntry | None = None) -> DotCommandIR | None:
+    def directive(
+        self, symbol: SymbolEntry | None = None
+    ) -> DotCommandIR | None:
         if not (dot := self.may_match(Tokens.DOT)):
             return None
         dot_str = cast(str, dot[1]).upper()
         argument: ArgumentType | None = None
         match dot_str:
             case "BYTE" | "WORD":
-                # TODO: allow identifier as an argument to WORD, to let it function like .ADDRSS. This requires cycle detection.
                 if dec := self.may_match(Tokens.DECIMAL):
                     argument = Decimal(cast(int, dec[1]))
                 elif _hex := self.may_match(Tokens.HEX):
                     argument = Hexadecimal(cast(int, _hex[1]))
                 else:
-                    raise SyntaxError(f"{dot_str} requires an integer argument")
-                return DotLiteralIR(
-                    argument, width=1 if dot_str == "BYTE" else 2, sym=symbol
-                )
+                    message = f"{dot_str} requires an integer argument"
+                    raise SyntaxError(message)
+                width = 1 if dot_str == "BYTE" else 2
+                return DotLiteralIR(argument, width=width, sym=symbol)
+
             case "ASCII":
                 as_str = self.must_match(Tokens.STRING)
                 argument = StringConstant(cast(bytes, as_str[1]))
                 return DotASCIIIR(argument, sym=symbol)
+
             case "BLOCK":
                 if dec := self.may_match(Tokens.DECIMAL):
                     argument = Decimal(cast(int, dec[1]))
                 elif hex := self.may_match(Tokens.HEX):
                     argument = Hexadecimal(cast(int, hex[1]))
                 else:
-                    raise SyntaxError(f"{dot_str} requires an integer argument")
+                    raise SyntaxError(
+                        f"{dot_str} requires an integer argument"
+                    )
                 return DotBlockIR(argument, sym=symbol)
+
             case "EQUATE":
                 if symbol is None:
-                    raise SyntaxError(".EQUATE requires a symbol declaration")
+                    message = ".EQUATE requires a symbol declaration"
+                    raise SyntaxError(message)
                 argument = self.argument()
                 if argument is None:
                     raise SyntaxError(".EQUATE requires an argument")
-                try:
-                    if type(argument) == Identifier:
-                        raise SyntaxError(".EQUATE requires a constant argument")
-                    else:
-                        symbol.value = int(argument)
-                except RecursionError:
-                    raise SyntaxError(f"Cyclical symbol declaration: {symbol}")
+                elif type(argument) == Identifier:
+                    message = ".EQUATE requires a constant argument"
+                    raise SyntaxError(message)
+                else:
+                    symbol.value = int(argument)
                 return DotEquateIR(argument, sym=symbol)
+
             case _:
                 raise SyntaxError(f"Unrecognized dot command {dot_str}")
 
     def code_line(
-            self, symbol: SymbolEntry | None = None
+        self, symbol: SymbolEntry | None = None
     ) -> UnaryNode | NonUnaryNode | DotCommandIR | MacroNode | None:
         line: ParseTreeNode | None = None
         if nonunary := self.nonunary_instruction(symbol=symbol):
@@ -242,11 +263,13 @@ class Parser:
         elif comment := self.may_match(Tokens.COMMENT):
             line = CommentIR(cast(str, comment[1]))
         elif symbol_token := self.may_match(Tokens.SYMBOL):
-            symbol = self.symbol_table.define(cast(str, symbol_token[1]))
+            symbol = self.symbol_table.define(
+                cast(str, symbol_token[1])
+            )
             if (code := self.code_line(symbol=symbol)) is None:
-                raise SyntaxError(
-                    "Symbol declaration must be followed by instruction or dot command"
-                )
+                message = "Symbol declaration must be followed \
+                by instruction or dot command"
+                raise SyntaxError(message)
             line = code
         elif (code := self.code_line()) is not None:
             line = code
@@ -259,9 +282,9 @@ class Parser:
 
 
 def parse(
-        text: str,
-        symbol_table: SymbolTable | None = None,
-        macro_registry: MacroRegistry | None = None,
+    text: str,
+    symbol_table: SymbolTable | None = None,
+    macro_registry: MacroRegistry | None = None,
 ) -> List[ParseTreeNode]:
     # Remove trailing whitespace while insuring input is \n terminated.
     parser = Parser(

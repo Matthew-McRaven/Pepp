@@ -14,7 +14,8 @@ class AddressingMode(Enum):
                 return 0
             case AddressingMode.X.value:
                 return 1
-        raise TypeError(f"Invalid addressing mode for A type: {self.name}")
+        message = f"Invalid addressing mode for A type: {self.name}"
+        raise TypeError(message)
 
 
 class InstructionType(Enum):
@@ -33,7 +34,8 @@ class InstructionType(Enum):
             "AAA_all": {am for am in AddressingMode},
             "AAA_i": {AddressingMode.I},
             "RAAA_all": {am for am in AddressingMode},
-            "RAAA_noi": {am for am in AddressingMode} - {AddressingMode.I},
+            "RAAA_noi": {am for am in AddressingMode}
+            - {AddressingMode.I},
         }.get(self.value, {})
 
 
