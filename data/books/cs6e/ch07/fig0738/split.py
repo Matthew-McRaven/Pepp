@@ -3,6 +3,7 @@ import pathlib
 import os
 import re
 import shutil
+import subprocess
 from typing import Set, Literal
 
 from black import Sequence
@@ -85,7 +86,8 @@ def main():
         dest.parents[0].mkdir(parents=True, exist_ok=True)
         shutil.copy2(src, dest)
         update_in_place(dest, update_type="solution")
-
+    subprocess.run(["black", solution_dir])
+    
     # Copy figures
     try:
         shutil.rmtree(figure_dir, ignore_errors=True)
@@ -97,6 +99,7 @@ def main():
         dest.parents[0].mkdir(parents=True, exist_ok=True)
         shutil.copy2(src, dest)
         update_in_place(dest, update_type="figure")
+    subprocess.run(["black", figure_dir])
 
 
 if __name__ == "__main__":
