@@ -17,12 +17,14 @@ def generate_code(
         if isinstance(node, ErrorNode):
             errors.append(node.source())
             continue
+        # SOLUTION START
         elif isinstance(node, MacroIR) and isinstance(node, Listable):
             inner = generate_code(node.body, base_address=address)
             ir.append(node.start_comment())
             ir.extend(inner[0])
             ir.append(node.end_comment())
             errors.extend(inner[1])
+        # SOLUTION END
         elif isinstance(node, Listable):
             ir.append(node)
         else:
@@ -36,9 +38,11 @@ def generate_code(
             symbol: SymbolEntry = maybe_symbol
             if symbol.is_multiply_defined():
                 errors.append(f"Multiply defined symbol: {symbol}")
+            # SOLUTION START
             elif len(line) > 0:
                 # Avoid re-assigning symbol values for .EQUATEs
                 symbol.value = address
+            # SOLUTION END
         # Check that symbols used as arguments are not undefined.
         if maybe_argument := getattr(line, "argument", None):
             argument: ArgumentType = maybe_argument

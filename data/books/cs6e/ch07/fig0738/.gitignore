@@ -1,2 +1,9 @@
 .coverage
 venv/
+.mypy_cache/
+.pytest_cache/
+pep10/__pycache__/
+__pycache__
+.idea/
+solutions/
+figures/

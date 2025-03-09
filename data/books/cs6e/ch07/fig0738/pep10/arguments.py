@@ -35,6 +35,7 @@ class Decimal:
         return f"{self.value}"
 
 
+# SOLUTION START
 class StringConstant:
     def __init__(self, value: bytes):
         self.value: bytes = value
@@ -49,3 +50,6 @@ class StringConstant:
         # Repr singles quotes our string by default, so doubles quotes are unescaped.
         ret = ret.replace('"', '\\"')
         return f'"{ret}"'
+
+
+# SOLUTION END

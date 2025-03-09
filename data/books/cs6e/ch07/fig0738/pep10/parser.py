@@ -96,6 +96,7 @@ class Parser:
     def macro(
         self, symbol: SymbolEntry | None = None
     ) -> MacroIR | None:
+        # SOLUTION START
         if not (macro := self.may_match(Tokens.MACRO)):
             return None
         elif symbol is not None:
@@ -111,6 +112,10 @@ class Parser:
         )
         parse_tree = parse(body, self.symbol_table, self.macro_registry)
         return MacroIR(name, [arg0, arg1], parse_tree)
+        # SOLUTION END
+        # FIGURE START
+        raise NotImplementedError()
+        # FIGURE END
 
     def argument(self) -> ArgumentType | None:
         if _hex := self.may_match(Tokens.HEX):
@@ -121,8 +126,10 @@ class Parser:
             return Identifier(
                 self.symbol_table.reference(cast(str, ident[1]))
             )
+        # SOLUTION START
         elif str_const := self.may_match(Tokens.STRING):
             return StringConstant(cast(bytes, str_const[1]))
+        # SOLUTION END
         return None
 
     def unary_instruction(
@@ -153,7 +160,7 @@ class Parser:
         if not (argument := self.argument()):
             self._buffer.append(mn)
             return None
-
+        # SOLUTION START
         if type(argument) is StringConstant and len(argument.value) > 2:
             raise SyntaxError("String too large")
         else:
@@ -183,6 +190,27 @@ class Parser:
                 sym=symbol,
             )
         raise SyntaxError()
+        # SOLUTION END
+        # FIGURE START
+        as_int = int(argument)
+        try:
+            as_int.to_bytes(2, signed=as_int < 0)
+        except OverflowError:
+            raise SyntaxError("Number too large")
+        self.must_match(Tokens.COMMA)
+        # Check that addressing mode is a valid string and is allowed for the current mnemonic
+        addr_str = cast(str, self.must_match(Tokens.IDENTIFIER)[1])
+        addr_str = addr_str.upper()
+        try:
+            addr = cast(AddressingMode, AddressingMode[addr_str])
+            mn_type = INSTRUCTION_TYPES[mn_str]
+            if not mn_type.allows_addressing_mode(addr):
+                raise SyntaxError()
+        except KeyError:
+            raise SyntaxError()
+
+        return NonUnaryIR(mn_str, argument, addr, sym=symbol)
+        # FIGURE END
 
     def directive(
         self, symbol: SymbolEntry | None = None
@@ -203,10 +231,12 @@ class Parser:
                 width = 1 if dot_str == "BYTE" else 2
                 return DotLiteralIR(argument, width=width, sym=symbol)
 
+            # SOLUTION START
             case "ASCII":
                 as_str = self.must_match(Tokens.STRING)
                 argument = StringConstant(cast(bytes, as_str[1]))
                 return DotASCIIIR(argument, sym=symbol)
+            # SOLUTION END
 
             case "BLOCK":
                 if dec := self.may_match(Tokens.DECIMAL):
@@ -219,6 +249,7 @@ class Parser:
                     )
                 return DotBlockIR(argument, sym=symbol)
 
+            # SOLUTION START
             case "EQUATE":
                 if symbol is None:
                     message = ".EQUATE requires a symbol declaration"
@@ -232,6 +263,7 @@ class Parser:
                 else:
                     symbol.value = int(argument)
                 return DotEquateIR(argument, sym=symbol)
+            # SOLUTION END
 
             case _:
                 raise SyntaxError(f"Unrecognized dot command {dot_str}")
@@ -246,8 +278,10 @@ class Parser:
             line = unary
         elif (dot := self.directive(symbol=symbol)) is not None:
             line = dot
+        # SOLUTION START
         elif (macro := self.macro(symbol=symbol)) is not None:
             line = macro
+        # SOLUTION END
         else:
             return None
 

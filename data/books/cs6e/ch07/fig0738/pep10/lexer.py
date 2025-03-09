@@ -67,8 +67,10 @@ class Lexer:
                         state = Lexer.States.MAYBE_DOT
                     elif ch == "'":
                         state = Lexer.States.CHAR_OPEN
+                    # SOLUTION START
                     elif ch == '"':
                         state = Lexer.States.STRING_AWAITING_CLOSE
+                    # SOLUTION END
                     elif ch == "+" or ch == "-":
                         state = Lexer.States.MAYBE_SIGNED
                         sign = -1 if ch == "-" else 1
@@ -175,6 +177,7 @@ class Lexer:
                         state = Lexer.States.STOP
                         token = (Tokens.MACRO, "".join(as_str_list))
 
+                # SOLUTION START
                 case Lexer.States.STRING_AWAITING_CLOSE:
                     if ch == '"':
                         token = (Tokens.STRING, as_bytes)
@@ -217,6 +220,7 @@ class Lexer:
                         state = Lexer.States.STOP
                         as_bytes += as_int.to_bytes(1)
                         token = (Tokens.STRING, as_bytes)
+                # SOLUTION END
 
                 case _:
                     token = (Tokens.INVALID, None)

@@ -1,5 +1,7 @@
 from io import StringIO
 
+import pytest
+
 from pep10.lexer import Lexer, Tokens
 
 
@@ -104,6 +106,7 @@ def test_lexer_dot_requires_char():
     assert next(tk) == (Tokens.INVALID, None)
 
 
+@pytest.mark.skip("Implement in Problem 7.##")  # FIGURE ONLY
 def test_lexer_unescaped_string():
     tk = Lexer(StringIO('"Hello world"'))
     assert next(tk) == (Tokens.STRING, b"Hello world")
@@ -115,6 +118,7 @@ def test_lexer_unescaped_string():
     assert next(tk) == (Tokens.STRING, b"'")
 
 
+@pytest.mark.skip("Implement in Problem 7.##")  # FIGURE ONLY
 def test_lexer_nonhex_escape_string():
     tk = Lexer(StringIO('"\\r\\t\\n\\\\\\""'))
     assert next(tk) == (Tokens.STRING, b'\r\t\n\\"')

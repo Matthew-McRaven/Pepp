@@ -94,6 +94,7 @@ class NonUnaryNode:
         )
 
 
+# SOLUTION START
 class DotASCIINode:
     def __init__(
         self,
@@ -108,6 +109,9 @@ class DotASCIINode:
     def source(self) -> str:
         args = [str(self.argument)]
         return source(".ASCII", args, self.symbol_decl, self.comment)
+
+
+# SOLUTION END
 
 
 class DotLiteralNode:
@@ -149,6 +153,7 @@ class DotBlockNode:
         )
 
 
+# SOLUTION START
 class DotEquateNode:
     def __init__(
         self,
@@ -182,6 +187,9 @@ class MacroNode:
     def source(self) -> str:
         args = [str(arg) for arg in self.arguments]
         return source(f"@{self.name}", args, None, self.comment)
+
+
+# SOLUTION END
 
 
 def listing(to_list: Listable) -> List[str]:
@@ -259,6 +267,7 @@ class NonUnaryIR(NonUnaryNode):
         return 3
 
 
+# SOLUTION START
 class DotASCIIIR(DotASCIINode):
     def __init__(self, *args, **kwargs) -> None:
         super().__init__(*args, **kwargs)
@@ -269,6 +278,9 @@ class DotASCIIIR(DotASCIINode):
 
     def __len__(self) -> int:
         return len(self.argument.value)
+
+
+# SOLUTION END
 
 
 class DotLiteralIR(DotLiteralNode):
@@ -295,6 +307,7 @@ class DotBlockIR(DotBlockNode):
         return int(self.argument)
 
 
+# SOLUTION START
 class DotEquateIR(DotEquateNode):
     def __init__(self, *args, **kwargs) -> None:
         super().__init__(*args, **kwargs)
@@ -333,6 +346,14 @@ class MacroIR(MacroNode):
         return CommentIR(f"End @{self.name}")
 
 
+# SOLUTION END
+
+
+# FIGURE START
+DotCommandIR: TypeAlias = DotLiteralIR | DotBlockIR
+# FIGURE END
+# SOLUTION START
 DotCommandIR: TypeAlias = (
     DotASCIIIR | DotLiteralIR | DotBlockIR | DotEquateIR
 )
+# SOLUTION END

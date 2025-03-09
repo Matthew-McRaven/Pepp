@@ -1,6 +1,8 @@
 import io
 from typing import cast
 
+import pytest
+
 from pep10.arguments import (
     Decimal,
     Hexadecimal,
@@ -48,6 +50,7 @@ def test_unary_fail() -> None:
     assert type(res[0]) is ErrorNode
 
 
+@pytest.mark.skip("Implement in Problem 7.##")  # FIGURE ONLY
 def test_macro() -> None:
     mr = MacroRegistry()
     mr.insert("HI", 2, ";WORLD")
@@ -84,6 +87,9 @@ def test_nonunary() -> None:
     assert not arg.symbol.is_undefined()
     assert not arg.symbol.is_multiply_defined()
 
+
+@pytest.mark.skip("Implement in Problem 7.##")  # FIGURE ONLY
+def test_nonunary_with_strings() -> None:
     ret = parse('cat: BR "h\'",i')
     item = cast(NonUnaryIR, ret[0])
     assert type(item) is NonUnaryIR
@@ -119,7 +125,7 @@ def test_nonunary_fail() -> None:
     assert type(ret[0]) is ErrorNode
 
 
-# @pytest.mark.skip(reason="Exercise for students")
+@pytest.mark.skip("Implement in Problem 7.##")  # FIGURE ONLY
 def test_nonunary_addr_optional() -> None:
     ret = parse("BR 10\n")
     item: NonUnaryIR = cast(NonUnaryIR, ret[0])
@@ -131,17 +137,17 @@ def test_nonunary_addr_optional() -> None:
 
 
 def test_nonunary_arg_range() -> None:
-    ret = parse("BR 65535\n")
+    ret = parse("BR 65535, i\n")
     assert not type(ret[0]) is ErrorNode
-    ret = parse("BR 65536\n")
+    ret = parse("BR 65536, i\n")
     assert type(ret[0]) is ErrorNode
-    ret = parse("BR -32768\n")
+    ret = parse("BR -32768, i\n")
     assert not type(ret[0]) is ErrorNode
-    ret = parse("BR -32769\n")
+    ret = parse("BR -32769, i\n")
     assert type(ret[0]) is ErrorNode
-    ret = parse("BR 0xFFFF\n")
+    ret = parse("BR 0xFFFF, i\n")
     assert not type(ret[0]) is ErrorNode
-    ret = parse("BR 0x10000\n")
+    ret = parse("BR 0x10000, i\n")
     assert type(ret[0]) is ErrorNode
 
 
@@ -163,6 +169,7 @@ def test_parser_synchronization() -> None:
     assert len(ret) == 3
 
 
+@pytest.mark.skip("Implement in Problem 7.##")  # FIGURE ONLY
 def test_dot_ASCII() -> None:
     ret = parse('cat: .ASCII "Hello World"')
     assert len(ret) == 1
@@ -189,8 +196,6 @@ def test_dot_block() -> None:
     assert type(item) is DotBlockIR
     assert int(item.argument) == 10
     assert len(item) == 10
-    ret = parse('.BLOCK "b"')
-    assert type(ret[0]) is ErrorNode
 
 
 def test_dot_byte() -> None:
@@ -206,10 +211,9 @@ def test_dot_byte() -> None:
     assert type(item) is DotLiteralIR
     assert int(item.argument) == 10
     assert len(item) == 1
-    ret = parse('.BYte "b"')
-    assert type(ret[0]) is ErrorNode
 
 
+@pytest.mark.skip("Implement in Problem 7.##")  # FIGURE ONLY
 def test_dot_equate() -> None:
     ret = parse("cat: .EQUATE 0x10")
     assert len(ret) == 1
@@ -258,5 +262,3 @@ def test_dot_word() -> None:
     assert type(item) is DotLiteralIR
     assert int(item.argument) == 10
     assert len(item) == 2
-    ret = parse('.WORD "b"')
-    assert type(ret[0]) is ErrorNode
