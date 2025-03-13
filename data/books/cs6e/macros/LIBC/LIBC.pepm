@@ -84,4 +84,4 @@ plceFix:  ADDX     2,i
 stPlcIdx: STWX     plceIdx,s
           BR       printfRs
 ;
-mBadPlce: .ASCII "Illegal placeholder %\x00"
+mBadPlce: .ASCII "Illegal placeholder %\0"

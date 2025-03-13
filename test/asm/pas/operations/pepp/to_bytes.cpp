@@ -37,11 +37,11 @@ TEST_CASE("To bytes", "[scope:asm][kind:unit][arch:pep10]") {
 
        {"ASCII short string: no escaped", ".ASCII \"hi\"", {0x68, 0x69}},
        {"ASCII short string: 1 escaped", ".ASCII\".\\n\"", {0x2E, 0x0A}},
-       {"ASCII short string: 2 escaped", ".ASCII \"\\r\\n\"", {0x0D, 0x0A}},
+       {"ASCII short string: 2 escaped", ".ASCII \"\\0\\n\"", {0x00, 0x0A}},
        {"ASCII short string: 2 hex", ".ASCII \"\\xff\\x00\"", {0xFF, 0x00}},
        {"ASCII long string: no escaped", ".ASCII \"ahi\"", {0x61, 0x68, 0x69}},
        {"ASCII long string: 1 escaped", ".ASCII\".a.\\n\"", {0x2E, 0x61, 0x2E, 0x0A}},
-       {"ASCII long string: 2 escaped", ".ASCII\"a\\r\\n\"", {0x61, 0x0D, 0x0A}},
+       {"ASCII long string: 2 escaped", ".ASCII\"a\\0\\n\"", {0x61, 0x00, 0x0A}},
        {"ASCII long string: 2 hex", ".ASCII \"a\\xff\\x00\"", {0x61, 0xFF, 0x00}},
 
        {"ALIGN 1 @ 0", ".ALIGN 1", {}},

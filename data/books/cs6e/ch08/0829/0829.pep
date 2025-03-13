@@ -25,6 +25,6 @@ main:    LDWA    27,i        ;load accumulator
          LDBA    '\n',i      
          STBA    charOut,d   
          STOP                
-msg1:    .ASCII  "num1 should equal 27. num1: \x00"
-msg2:    .ASCII  "num2 should equal 34. num2: \x00"
+msg1:    .ASCII  "num1 should equal 27. num1: \0"
+msg2:    .ASCII  "num2 should equal 34. num2: \0"
          .END                  

@@ -39,5 +39,5 @@ then2:   @STRO   msg1,d      ;printf("Qualified\n")
 else2:   @STRO   msg2,d      ;printf("Unqualified\n");
 endif2:  ADDSP   2,i         ;pop #age
          RET
-msg1:    .ASCII  "Qualified\n\x00"
-msg2:    .ASCII  "Unqualified\n\x00"
+msg1:    .ASCII  "Qualified\n\0"
+msg2:    .ASCII  "Unqualified\n\0"

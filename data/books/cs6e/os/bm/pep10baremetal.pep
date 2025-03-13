@@ -16,7 +16,7 @@ prntMore:LDBA    msg,x       ;Test next char
 exitPrnt:LDWA    0xDEAD, i
          STBA    pwrOff, d
 hang:    BR      hang
-msg:     .ASCII "Cannot use system calls in bare metal mode\x00"
+msg:     .ASCII "Cannot use system calls in bare metal mode\0"
 ;
 trpHnd:   .WORD  trp
 initPC:  .WORD   0x0000

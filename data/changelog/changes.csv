@@ -88,3 +88,4 @@ Changed,Major,0.8.5,788,"Convert chapter 7 figures from Java to Python for the 6
 Fixed,,0.8.5,,"Allow copying themes other than ""Dark"""
 Fixed,,0.8.5,,"Update entries in theme managemer after copying a theme"
 Changed,Minor,0.8.5,793,"Allow app developers to provide a custom figure directory"
+Changed,,0.8.6,797,"In Pep/10, use \0 as null terminator rather than \x00"

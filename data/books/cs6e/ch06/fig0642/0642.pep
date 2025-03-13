@@ -35,7 +35,7 @@ main:    LDWA    2,i         ;a = (int *) malloc(sizeof(int))
          @DECO   c,n
          @CHARO  '\n',i
          RET
-msg0:    .ASCII  "*a = \x00"
-msg1:    .ASCII  "*b = \x00"
-msg2:    .ASCII  "*c = \x00"
+msg0:    .ASCII  "*a = \0"
+msg1:    .ASCII  "*b = \0"
+msg2:    .ASCII  "*c = \0"
          @MALLOC

@@ -48,7 +48,7 @@ mainErr: LDWA    execErr,i   ;Load the address of the loader error address.
          CALL    numPrint
          ADDSP   2,i         ;Deallocate @param #retVal
          BR      shutdown
-execErr: .ASCII "Main failed with return value \x00"
+execErr: .ASCII "Main failed with return value \0"
          .BLOCK  64          ;Padding for possible future modification
 ;
 ;******* Trap handler
@@ -84,7 +84,7 @@ trapErr: LDWA    scErrMsg,i  ;Load the address of the loader error message.
          CALL    numPrint
          ADDSP   2,i         ;Allocate @param #num
          BR      shutdown
-scErrMsg:.ASCII "Could not find system call \x00"
+scErrMsg:.ASCII "Could not find system call \0"
 ;
 ;******* Assert valid trap addressing mode
 oldIR4:  .EQUATE 13          ;oldIR + 4 with two return addresses
@@ -106,7 +106,7 @@ addrErr: LDBA    '\n',i
          CALL    prntMsg     ;Call print subroutine
          ADDSP   2,i         ;Deallocate @param #msgAddr
          BR      shutdown    ;Halt: Fatal runtime error
-trapMsg: .ASCII  "ERROR: Invalid trap addressing mode.\x00"
+trapMsg: .ASCII  "ERROR: Invalid trap addressing mode.\0"
 ;
 ;******* Set address of trap operand
 oldX4:   .EQUATE 7           ;oldX + 4 with two return addresses
@@ -366,7 +366,7 @@ deciErr: LDBA    '\n',i
          ADDSP   2,i         ;Deallocate @param #msgAddr
          BR      shutdown    ;Fatal error: program terminates
 ;
-deciMsg: .ASCII  "ERROR: Invalid DECI input\x00"
+deciMsg: .ASCII  "ERROR: Invalid DECI input\0"
 ;
 ;******* DECO
 ;The decimal output system call.

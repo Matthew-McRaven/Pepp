@@ -91,13 +91,13 @@ TEST_CASE("Pepp character sequence lexing", "[scope:asm][kind:unit][arch:pep10]"
 
   using namespace parse;
   auto [text, type] = GENERATE(table<std::string, int>({
-      {R"('a')", PeppLexer::CHARACTER},  {R"(' ')", PeppLexer::CHARACTER},    {R"('\t')", PeppLexer::CHARACTER},
-      {R"('\r')", PeppLexer::CHARACTER}, {R"('\n')", PeppLexer::CHARACTER},   {R"('\'')", PeppLexer::CHARACTER},
-      {R"('\"')", PeppLexer::CHARACTER}, {R"('\x00')", PeppLexer::CHARACTER}, {R"('\XfF')", PeppLexer::CHARACTER},
-      {R"("")", PeppLexer::STRING}, // TODO: Determine if empty string should be valid.
-      {R"("a")", PeppLexer::STRING},     {R"(" ")", PeppLexer::STRING},       {R"("\t")", PeppLexer::STRING},
-      {R"("\r")", PeppLexer::STRING},    {R"("\n")", PeppLexer::STRING},      {R"("\'")", PeppLexer::STRING},
-      {R"("\"")", PeppLexer::STRING},    {R"("\x00")", PeppLexer::STRING},    {R"("\XfF")", PeppLexer::STRING},
+      {R"('a')", PeppLexer::CHARACTER},    {R"(' ')", PeppLexer::CHARACTER},  {R"('\t')", PeppLexer::CHARACTER},
+      {R"('\r')", PeppLexer::CHARACTER},   {R"('\n')", PeppLexer::CHARACTER}, {R"('\'')", PeppLexer::CHARACTER},
+      {R"('\0')", PeppLexer::CHARACTER},   {R"('\"')", PeppLexer::CHARACTER}, {R"('\x00')", PeppLexer::CHARACTER},
+      {R"('\XfF')", PeppLexer::CHARACTER}, {R"("")", PeppLexer::STRING},      {R"("a")", PeppLexer::STRING},
+      {R"(" ")", PeppLexer::STRING},       {R"("\t")", PeppLexer::STRING},    {R"("\0")", PeppLexer::STRING},
+      {R"("\r")", PeppLexer::STRING},      {R"("\n")", PeppLexer::STRING},    {R"("\'")", PeppLexer::STRING},
+      {R"("\"")", PeppLexer::STRING},      {R"("\x00")", PeppLexer::STRING},  {R"("\XfF")", PeppLexer::STRING},
       {R"("aa")", PeppLexer::STRING},
   }));
   single_token(text, type);

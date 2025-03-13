@@ -37,8 +37,8 @@ main:    LDWX    first,i     ;scanf("%c%c%d %c", &bill.first,
          BR      endIf
 else:    @STRO   msg4,d      ;printf("female\n")
 endIf:   RET
-msg0:    .ASCII  "Initials: \x00"
-msg1:    .ASCII  "Age: \x00"
-msg2:    .ASCII  "Gender: \x00"
-msg3:    .ASCII  "male\n\x00"
-msg4:    .ASCII  "female\n\x00"
+msg0:    .ASCII  "Initials: \0"
+msg1:    .ASCII  "Age: \0"
+msg2:    .ASCII  "Gender: \0"
+msg3:    .ASCII  "male\n\0"
+msg4:    .ASCII  "female\n\0"

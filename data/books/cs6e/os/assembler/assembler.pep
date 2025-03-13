@@ -447,12 +447,12 @@ ROT:     LDWA    0,x         ;Load TOS+0, store to TOS-1
 ;Ignoring -ROT for now since I don't (yet) need it.
 
          ;( n1 n2 -- )
-@DCSTR   "2DROP\x00", DROP2, _ROT, 0x05, 0x05
+@DCSTR   "2DROP\0", DROP2, _ROT, 0x05, 0x05
 DROP2:   ADDX    4,i         ;Drop top two elements of parameter stack
          RET
 
          ;( n1 n2 -- n2 n1 n2 n1)
-@DCSTR   "2DUP\x00", DUP2, _DROP2, 0x04, 0x0A
+@DCSTR   "2DUP\0", DUP2, _DROP2, 0x04, 0x0A
 DUP2:    LDWA    0,x         ;Load TOS+0, store to TOS-2
          STWA    -4,x
          LDWA    2,x         ;Load TOS+1, store to TOS-1
@@ -460,14 +460,14 @@ DUP2:    LDWA    0,x         ;Load TOS+0, store to TOS-2
          SUBX    4,i         ;Decrement PSP
          RET
 
-@DCSTR   "?DUP\x00", MDUP, _DUP2, 0x04, 0x07
+@DCSTR   "?DUP\0", MDUP, _DUP2, 0x04, 0x07
 MDUP:    LDWA    0,x         ;Load TOS+0
          BRNE    DUP         ;If non-0, DUP
          RET
 ;
 ;******* FORTH words: arithmetic & logic
          ;( i8 -- i16), sign extend a byte to a word
-@DCSTR   "SE\x00", SE, _MDUP, 0x02, 0x13
+@DCSTR   "SE\0", SE, _MDUP, 0x02, 0x13
          LDBA    0,x
          ANDX    0x80,i
          BREQ    seNotN
@@ -477,20 +477,20 @@ seNotN:  SUBX    1,i
          RET
 
 
-@DCSTR   "1+\x00", INCR, _SE, 0x02, 0x0A
+@DCSTR   "1+\0", INCR, _SE, 0x02, 0x0A
 INCR:    LDWA    0,x         ;Increment TOS by 1
          ADDA    1,i
          STWA    0,x
          RET
 
-@DCSTR   "1-\x00", DECR, _INCR, 0x02, 0x0A
+@DCSTR   "1-\0", DECR, _INCR, 0x02, 0x0A
 DECR:    LDWA    0,x         ;Decrement TOS by 1
          SUBA    1,i
          STWA    0,x
          RET
 
          ;( n1 n2 -- sum)
-@DCSTR   "+\x00", ADD, _DECR, 0x01, 0x0D
+@DCSTR   "+\0", ADD, _DECR, 0x01, 0x0D
 ADD:     LDWA    2,x         ;Add TOS to TOS-1
          ADDA    0,x
          STWA    2,x
@@ -498,7 +498,7 @@ ADD:     LDWA    2,x         ;Add TOS to TOS-1
          RET
 
          ;( n1 n2 -- n1-n2)
-@DCSTR   "-\x00", SUB, _ADD, 0x01, 0x0D
+@DCSTR   "-\0", SUB, _ADD, 0x01, 0x0D
 SUB:     LDWA    2,x         ;Sub TOS from TOS-1
          SUBA    0,x
          STWA    2,x
@@ -506,7 +506,7 @@ SUB:     LDWA    2,x         ;Sub TOS from TOS-1
          RET
 
          ;( n1 n2 -- product[hi] product[lo] )
-@DCSTR   "*\x00", MUL, _SUB, 0x01, 0x00
+@DCSTR   "*\0", MUL, _SUB, 0x01, 0x00
 MUL:     LDWA    2,x         ;Multiple TOS and TOS+1
          SUBSP   8,i
          STWA    0,s
@@ -523,7 +523,7 @@ MUL:     LDWA    2,x         ;Multiple TOS and TOS+1
          RET
 
          ;(divisor dividend -- remainder quotient)
-@DCSTR   "/mod\x00", DIVMOD, _MUL, 0x04, 0x00
+@DCSTR   "/mod\0", DIVMOD, _MUL, 0x04, 0x00
 DIVMOD:  LDWA    2,x         ;Divide TOS by TOS-1
          SUBSP   8,i
          STWA    0,s
@@ -540,7 +540,7 @@ DIVMOD:  LDWA    2,x         ;Divide TOS by TOS-1
          RET
 
          ;(divisor dividend -- remainder)
-@DCSTR   "%\x00", MOD, _DIVMOD, 0x01, 0x0D
+@DCSTR   "%\0", MOD, _DIVMOD, 0x01, 0x0D
          CALL    DIVMOD
          LDWA    0,x
          STWA    2,x
@@ -548,7 +548,7 @@ DIVMOD:  LDWA    2,x         ;Divide TOS by TOS-1
          RET
 
          ;(divisor dividend -- quotient)
-@DCSTR   "/\x00", DIV, _MOD, 0x01, 0x07
+@DCSTR   "/\0", DIV, _MOD, 0x01, 0x07
          CALL    DIVMOD
          ADDX    2,i
          RET
@@ -578,7 +578,7 @@ XOR:     LDWA    2,x         ;Bitwise XOR TOS and TOS-1
          RET
 
          ;( n -- -1*n)
-@DCSTR   "INVERT\x00", INV, _XOR, 0x06, 0x08
+@DCSTR   "INVERT\0", INV, _XOR, 0x06, 0x08
 INV:     LDWA    0,x          ;Bitwise NOT TOS
          NOTA
          STWA    0,x
@@ -586,7 +586,7 @@ INV:     LDWA    0,x          ;Bitwise NOT TOS
 ;
 ;******* FORTH words: comparisons
          ;( n1 n2 -- n1 == n2)
-@DCSTR   "=\x00",EQ, _INV, 0x01, 0x19
+@DCSTR   "=\0",EQ, _INV, 0x01, 0x19
          LDWA    2,x         ;Compare TOS and TOS-1
          CPWA    0,x
          BREQ    eqTrue
@@ -598,7 +598,7 @@ eqStore: STWA    0,x
          RET
 
          ;( n1 -- n ==0)
-@DCSTR   "0=\x00",EQ0, _EQ, 0x02, 0x00
+@DCSTR   "0=\0",EQ0, _EQ, 0x02, 0x00
          LDWA    2,x         ;Compare TOS to 0
          CPWA    0,i
          BREQ    eq0True
@@ -609,14 +609,14 @@ eq0True: LDWA    0xffff,i
 
 ;
 ;******* FORTH words: memory operations
-@DCSTR   "@\x00", LOAD, _EQ0, 0x01, 0x10
+@DCSTR   "@\0", LOAD, _EQ0, 0x01, 0x10
          STWX    PSP,d        ;Store PSP to global data
          LDWX    0,x          ;Get the word pointed to by PSP
          LDWA    0,x          ;Dereference that word
          LDWX    PSP,d        ;Restore PSP
          STWA    0,x          ;Store the word to TOS
          RET
-@DCSTR   "!\x00", STORE, _LOAD, 0x01, 0x10
+@DCSTR   "!\0", STORE, _LOAD, 0x01, 0x10
          LDWA    2,x          ;Load TOS-1 into A
          STWX    PSP,d        ;Store PSP to global data
          LDWX    0,x          ;Get the word pointed to by PSP
@@ -633,13 +633,13 @@ eq0True: LDWA    0xffff,i
 @DCONST  F_IMM,   _HERE,    0x05, 0x80
 @DCONST  F_HID,   _F_IMM,   0x05, 0x20
 @DCONST  F_LNMSK, _F_HID,   0x07, 0x1f
-@DCSTR   "'('\x00" , lParen, _F_LNMSK, 0x03, 0x00
+@DCSTR   "'('\0" , lParen, _F_LNMSK, 0x03, 0x00
          LDBA    '(',i
 pushba:  SUBX    1,i
          STBA    0,x
          RET
 
-@DCSTR   "')'\x00", rParen, _lParen, 0x03, 0x00
+@DCSTR   "')'\0", rParen, _lParen, 0x03, 0x00
          LDBA    ')',i
          BR      pushba
 ;
@@ -665,7 +665,7 @@ CR:      LDBA '\n',i
          RET
 
         ; ( &str -- )
-@DCSTR  "PRINTCSTR\x00", prntCStr, _CR, 0x09,0x14
+@DCSTR  "PRINTCSTR\0", prntCStr, _CR, 0x09,0x14
 prntCStr:STWX   PSP,d
          LDWX   0,x
 bPrntLp: LDBA   0,x
@@ -706,7 +706,7 @@ eWrdLoop:CPWX    0,i          ;Consume leading whitespace when buffer is empty.
          RET
 
          ;( n -- )
-@DCSTR   ".\x00", DECO, _WORD, 0x01, 0x19
+@DCSTR   ".\0", DECO, _WORD, 0x01, 0x19
 DECO:    LDWA    10,i         ;Load base into A
          SUBSP   5,i          ;@params#otTotal#otBase#otSign
          STWA    1,s          ;otBase <- 10
@@ -721,7 +721,7 @@ DECO:    LDWA    10,i         ;Load base into A
          RET
 ;
          ;(n -- )
-@DCSTR   "HEX.\x00", HEXO, _DECO, 0x04, 0x19
+@DCSTR   "HEX.\0", HEXO, _DECO, 0x04, 0x19
 HEXO:    LDWA    16,i         ;Load base into A
          SUBSP   5,i          ;@params#otTotal#otBase#otSign
          STWA    1,s          ;otBase <- 10
@@ -815,14 +815,14 @@ fEnd:    LDWA    fEnt,s
          RET
 
          ;( &fEnt -- &fEnt->code )
-@DCSTR   ">CFA\x00", CFA, _FIND, 0x04, 0x0A
+@DCSTR   ">CFA\0", CFA, _FIND, 0x04, 0x0A
 CFA:     LDWA    0,x          ;Code address is 3\4 bytes from start of link ptr
          ADDA    4,i
          STWA    0,x
          RET
 
         ;( &fEnt -- &fEnt->str )
-@DCSTR   ">STR\x00", STR, _CFA, 0x04, 0x17
+@DCSTR   ">STR\0", STR, _CFA, 0x04, 0x17
 derefStr:LDWA    0,x          ;A <- &(fEnt->len)
          ADDA    2,i
          STWA    -2,s         ;A <- fEnt->len
@@ -835,7 +835,7 @@ derefStr:LDWA    0,x          ;A <- &(fEnt->len)
          RET
 
          ;( -- )
-@DCSTR   "DUMPDICT\x00", DD, _STR, 0x08, 0x1c
+@DCSTR   "DUMPDICT\0", DD, _STR, 0x08, 0x1c
 DD:      LDWA    LATEST,d
 __subxi: SUBX    2,i
 __stwax: STWA    0,x
@@ -916,47 +916,47 @@ STWAH:   STWA    HERE,n
          STWA    HERE,d
          RET
          ;( n -- )
-@DCSTR   ",\x00", COMMA, _CREATE, 0x01, 0x00
+@DCSTR   ",\0", COMMA, _CREATE, 0x01, 0x00
 COMMA:   @POPA                ;A <- TOS
          BR      STWAH
 
 
          ;( -- )
-@DCSTR   "CALL,\x00", CALLC, _COMMA, 0x05, 0x13
+@DCSTR   "CALL,\0", CALLC, _COMMA, 0x05, 0x13
 CALLC:   LDBA    __call,d     ;**HERE <- opcode(CALL)
 storeOp: CALL    STBAH
 __call:  CALL    COMMA
          RET
 
          ; ( n -- )
-@DCSTR   "LDWAi,\x00", LDWAC, _CALLC, 0x06, 0x00
+@DCSTR   "LDWAi,\0", LDWAC, _CALLC, 0x06, 0x00
 LDWAC:   LDBA    __ldwai,d     ;**HERE <- opcode(LDWA,i)
          BR      storeOp
 
          ; ( n -- )
-@DCSTR   "STWAx,\x00", STWAXC, _LDWAC, 0x06, 0x00
+@DCSTR   "STWAx,\0", STWAXC, _LDWAC, 0x06, 0x00
 STWAXC:  LDBA    __stwax,d     ;**HERE <- opcode(STWA,x)
          BR      storeOp
 
          ; ( n -- )
-@DCSTR   "SUBXi,\x00", SUBXIC, _STWAXC, 0x06, 0x13
+@DCSTR   "SUBXi,\0", SUBXIC, _STWAXC, 0x06, 0x13
 SUBXIC:  LDBA    __subxi,d     ;**HERE <- opcode(SUBX,i)
          BR      storeOp
 
          ; ( -- )
-@DCSTR   "[\x00", LBRAC, _SUBXIC, 0x81, 0x07
+@DCSTR   "[\0", LBRAC, _SUBXIC, 0x81, 0x07
 LBRAC:   LDWA    0,i          ;STATE <- 0
          STWA    STATE,d
          RET
 
          ; ( -- )
-@DCSTR   "]\x00", RBRAC, _LBRAC, 0x01, 0x07
+@DCSTR   "]\0", RBRAC, _LBRAC, 0x01, 0x07
 RBRAC:   LDWA    1,i          ;STATE <- 1
          STWA    STATE,d
          RET
 
          ; ( -- )
-@DCSTR   "IMMEDIATE\x00",IMM,_RBRAC,0x89,0x13
+@DCSTR   "IMMEDIATE\0",IMM,_RBRAC,0x89,0x13
          LDWA    LATEST,d
          ADDA    2,i
          STWA    -2,s
@@ -966,7 +966,7 @@ RBRAC:   LDWA    1,i          ;STATE <- 1
          RET
 
          ; ( -- )
-@DCSTR   "HIDDEN\x00",HIDDEN,_IMM,0x06,0x13
+@DCSTR   "HIDDEN\0",HIDDEN,_IMM,0x06,0x13
 HIDDEN:  LDWA    LATEST,d
          ADDA    2,i
          STWA    -2,s
@@ -976,7 +976,7 @@ HIDDEN:  LDWA    LATEST,d
          RET
 
          ; ( -- )
-@DCSTR   ":\x00", COLON, _HIDDEN, 0x01, 0x0D
+@DCSTR   ":\0", COLON, _HIDDEN, 0x01, 0x0D
          CALL    WORD
          CALL    CREATE
          CALL    HIDDEN
@@ -984,7 +984,7 @@ HIDDEN:  LDWA    LATEST,d
          RET
 
          ; ( -- )
-@DCSTR   ";\x00", SEMI, _COLON, 0x81, 0x1c
+@DCSTR   ";\0", SEMI, _COLON, 0x81, 0x1c
          LDBA    __ret,d      ;**HERE <- opcode(RET)
          STBA    HERE,n
          LDWA    HERE,d       ;*HERE += 1
@@ -1106,7 +1106,7 @@ _intErr: @PUSH   _intMsg,i
          @PUSH   _BUF,i
          CALL    prntCStr
          BR      HALT
-_intMsg: .ASCII "PARSE ERROR: \x00"
+_intMsg: .ASCII "PARSE ERROR: \0"
 ;******* FORTH words: core interpreter
 cldstrt: LDWX    pStack, i
          CALL    INTERP

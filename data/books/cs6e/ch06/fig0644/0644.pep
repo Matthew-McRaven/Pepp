@@ -37,8 +37,8 @@ main:    SUBSP   6,i         ;push #a #b #c
          @CHARO  '\n',i
          ADDSP   6,i         ;pop #c #b #a
          RET
-msg0:    .ASCII  "*a = \x00"
-msg1:    .ASCII  "*b = \x00"
-msg2:    .ASCII  "*c = \x00"
+msg0:    .ASCII  "*a = \0"
+msg1:    .ASCII  "*b = \0"
+msg2:    .ASCII  "*c = \0"
 ;
          @MALLOC

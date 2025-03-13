@@ -64,9 +64,9 @@ TEST_CASE("Size", "[scope:asm][kind:unit][arch:pep10]") {
   }
   std::vector<std::tuple<std::string, QString>> ascii_cases = {
       {"short string: no escaped", "hi"},    {"short string: 1 escaped", ".\\n"},
-      {"short string: 2 escaped", "\\r\\n"}, {"short string: 2 hex", "\\xff\\x00"},
+      {"short string: 2 escaped", "\\r\\0"}, {"short string: 2 hex", "\\xff\\x00"},
       {"long string: no escaped", "ahi"},    {"long string: 1 escaped", "a.\\n"},
-      {"long string: 2 escaped", "a\\r\\n"}, {"long string: 2 hex", "a\\xff\\x00"}};
+      {"long string: 2 escaped", "a\\r\\0"}, {"long string: 2 hex", "a\\xff\\x00"}};
   for (auto [name, value] : ascii_cases) {
     DYNAMIC_SECTION(name) {
       auto ret = pas::driver::pepp::createParser<isa::Pep10, pas::driver::ANTLRParserTag>(false)(
