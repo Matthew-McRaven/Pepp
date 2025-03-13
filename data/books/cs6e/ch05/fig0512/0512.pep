@@ -17,4 +17,4 @@
          LDWA    DECO,i      ;Output the sum
          SCALL   0x0003,d
          RET
-         .ASCII  " + 1 = \x00"
+         .ASCII  " + 1 = \0"

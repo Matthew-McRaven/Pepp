@@ -60,4 +60,4 @@ ra1:     ADDSP   6,i         ;pop #k #n #retVal
          LDBA    '\n',i
          STBA    charOut,d
          RET
-msg:     .ASCII  "binCoeff(3, 1) = \x00"
+msg:     .ASCII  "binCoeff(3, 1) = \0"

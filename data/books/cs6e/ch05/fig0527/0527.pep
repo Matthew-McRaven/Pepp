@@ -19,4 +19,4 @@ main:    @DECI   exam1,d     ;scanf("%d %d", &exam1, &exam2)
          @DECO   score,d
          @CHARO  '\n',i
          RET
-msg:     .ASCII  "score = \x00"
+msg:     .ASCII  "score = \0"

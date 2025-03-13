@@ -1,6 +1,6 @@
 @DCONST 4
 $1:     .EQUATE $4
-.ASCII  "$1\x00"
+.ASCII  "$1\0"
 _$1:    .WORD $2
         .BYTE $3
         .BYTE 0x0A

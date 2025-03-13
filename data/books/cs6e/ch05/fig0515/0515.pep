@@ -17,4 +17,4 @@ main:    LDWA    DECI,i      ;Get the number
          LDWA    DECO,i      ;Output the sum
          SCALL   num,d
          RET
-msg:     .ASCII  " + 1 = \x00"
+msg:     .ASCII  " + 1 = \0"

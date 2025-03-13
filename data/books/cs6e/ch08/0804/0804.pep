@@ -10,5 +10,5 @@ main:    DECI    num,d       ;input decimal value
          STBA    charOut,d   
          STRO    msg,d       ;output message
          STOP                
-msg:     .ASCII  "That's all.\n\x00"
+msg:     .ASCII  "That's all.\n\0"
          .END                  

@@ -61,10 +61,10 @@ main:    STRO    msgFi,d     ;test immediate addressing
          STBA    charOut,d   
          CALL    bTest       
          STOP                
-msgFi:   .ASCII  "Immediate, should be false: \x00"
-msgTi:   .ASCII  "Immediate, should be true: \x00"
-msgFd:   .ASCII  "Direct, should be false: \x00"
-msgTd:   .ASCII  "Direct, should be true: \x00"
-msgFs:   .ASCII  "Stack-relative, should be false: \x00"
-msgTs:   .ASCII  "Stack-relative, should be true: \x00"
+msgFi:   .ASCII  "Immediate, should be false: \0"
+msgTi:   .ASCII  "Immediate, should be true: \0"
+msgFd:   .ASCII  "Direct, should be false: \0"
+msgTd:   .ASCII  "Direct, should be true: \0"
+msgFs:   .ASCII  "Stack-relative, should be false: \0"
+msgTs:   .ASCII  "Stack-relative, should be true: \0"
          .END                  

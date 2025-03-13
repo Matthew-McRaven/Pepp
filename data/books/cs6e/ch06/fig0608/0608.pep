@@ -16,5 +16,5 @@ if:      LDWA    num,s       ;if (num >= limit)
 else:    @STRO   msg2,d      ;printf("low\n")
 endIf:   ADDSP   2,i         ;pop #num
          RET
-msg1:    .ASCII  "high\n\x00"
-msg2:    .ASCII  "low\n\x00"
+msg1:    .ASCII  "high\n\0"
+msg2:    .ASCII  "low\n\0"

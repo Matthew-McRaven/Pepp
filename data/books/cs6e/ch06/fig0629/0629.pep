@@ -38,6 +38,6 @@ ra1:     ADDSP   6,i         ;pop #h #w #p
          @CHARO  '\n',i
          ADDSP   6,i         ;pop #height #width #perim
          RET
-msg1:    .ASCII  "Enter width: \x00"
-msg2:    .ASCII  "Enter height: \x00"
-msg3:    .ASCII  "Perimeter = \x00"
+msg1:    .ASCII  "Enter width: \0"
+msg2:    .ASCII  "Enter height: \0"
+msg3:    .ASCII  "Perimeter = \0"

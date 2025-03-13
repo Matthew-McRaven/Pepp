@@ -19,4 +19,4 @@ for:     CPWA    3,i         ;j < 3
          BR      for
 endFor:  ADDSP   2,i         ;pop #j
          RET
-msg:     .ASCII  "j = \x00"
+msg:     .ASCII  "j = \0"

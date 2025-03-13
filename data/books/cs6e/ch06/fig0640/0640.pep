@@ -25,8 +25,8 @@ case2:   @STRO   msg2,d      ;printf("Right on\n")
 case3:   @STRO   msg3,d      ;printf("Too high\n")
 endCase: ADDSP   2,i         ;pop #guess
          RET
-msgIn:   .ASCII  "Pick a number 0..3: \x00"
-msg0:    .ASCII  "Not close\n\x00"
-msg1:    .ASCII  "Close\n\x00"
-msg2:    .ASCII  "Right on\n\x00"
-msg3:    .ASCII  "Too high\n\x00"
+msgIn:   .ASCII  "Pick a number 0..3: \0"
+msg0:    .ASCII  "Not close\n\0"
+msg1:    .ASCII  "Close\n\0"
+msg2:    .ASCII  "Right on\n\0"
+msg3:    .ASCII  "Too high\n\0"

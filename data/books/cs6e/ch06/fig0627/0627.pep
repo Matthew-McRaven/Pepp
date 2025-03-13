@@ -53,6 +53,6 @@ ra1:     ADDSP   4,i         ;pop #y #x
          @DECO    b,d        ;, b)
          @CHARO   '\n',i
          RET
-msg1:    .ASCII  "Enter an integer: \x00"
-msg2:    .ASCII  "Ordered they are: \x00"
-msg3:    .ASCII  ", \x00"
+msg1:    .ASCII  "Enter an integer: \0"
+msg2:    .ASCII  "Ordered they are: \0"
+msg3:    .ASCII  ", \0"

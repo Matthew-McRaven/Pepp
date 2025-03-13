@@ -42,6 +42,8 @@ template <typename Iterator> bool charactersToByte(Iterator &start, Iterator end
       value = 9;
     } else if (head == 'v') { // vertical tab
       value = 11;
+    } else if (head == '0') { // null terminator
+      value = 0;
     } else if (head == 'x' || head == 'X') { // hex strings!
       // Need at least two more characters to consume.
       if (end - start < 2) return false;

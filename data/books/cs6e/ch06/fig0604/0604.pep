@@ -21,4 +21,4 @@ main:    SUBSP   6,i         ;push #exam1 #exam2 #score
          @CHARO  '\n',i
          ADDSP   6,i         ;pop #score #exam2 #exam1
          RET
-msg:     .ASCII  "score = \x00"
+msg:     .ASCII  "score = \0"
