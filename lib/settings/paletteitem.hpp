@@ -83,7 +83,6 @@ class EditorPaletteItem : public PaletteItem {
   Q_OBJECT
   QML_ELEMENT
   Q_PROPERTY(QFont macroFont READ macroFont WRITE setMacroFont NOTIFY preferenceChanged);
-  Q_PROPERTY(QFont macroFont READ macroFont WRITE setMacroFont NOTIFY preferenceChanged);
 
 public:
   struct EditorOptions {
