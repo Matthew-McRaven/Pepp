@@ -27,7 +27,7 @@ pepp::debug::Lexer::Token pepp::debug::Lexer::next_token() {
   } else if (auto dec_match = re::dec.matchView(_input, _offset, mt, opt); dec_match.hasMatch()) {
     _offset = dec_match.capturedEnd();
     using T = detail::T<TokenType::UnsignedConstant>;
-    return T{.format = T::Format::Dec, .value = static_cast<uint64_t>(hex_match.capturedView().toInt(nullptr, 10))};
+    return T{.format = T::Format::Dec, .value = static_cast<uint64_t>(dec_match.capturedView().toInt(nullptr, 10))};
   } else if (auto lit_match = re::literal.matchView(_input, _offset, mt, opt); lit_match.hasMatch()) {
     _offset = lit_match.capturedEnd();
     return detail::T<TokenType::Literal>{.literal = lit_match.captured()};
