@@ -23,7 +23,7 @@ using Eof = T<TokenType::Eof>;
 
 template <> struct T<TokenType::UnsignedConstant> {
   enum class Format { Dec, Hex } format;
-  uint64_t value;
+  uint64_t value = 0xFEED;
 };
 using UnsignedConstant = T<TokenType::UnsignedConstant>;
 

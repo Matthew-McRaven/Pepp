@@ -2,7 +2,7 @@
 
 namespace re {
 static const QRegularExpression whitespace("[ \r\t\n]+");
-static const QRegularExpression hex("0[xX][a-fA-F0-9]");
+static const QRegularExpression hex("0[xX][a-fA-F0-9]+");
 static const QRegularExpression dec("[+-]?[0-9]+");
 static const QRegularExpression debug(R"(\$\w+)");
 static const QRegularExpression ident(R"(\w+)");

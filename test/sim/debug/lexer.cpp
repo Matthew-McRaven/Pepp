@@ -30,7 +30,7 @@ TEST_CASE("Lexing watch expressions", "[scope:sim][kind:unit][arch:*]") {
     CHECK(narrowed.value == 1024);
   }
   SECTION("Whole Expressions") {
-    QString body = "0x5+($x *1024 )%5 + hello->yeet";
+    QString body = "0x25+($x *1024 )%5 + hello->yeet";
     Lexer l(body);
     std::vector<Lexer::Token> tokens;
     for (Lexer::Token token(l.next_token()); token.index() >= 3; token = l.next_token()) tokens.emplace_back(token);
@@ -39,7 +39,7 @@ TEST_CASE("Lexing watch expressions", "[scope:sim][kind:unit][arch:*]") {
       REQUIRE(std::holds_alternative<detail::UnsignedConstant>(tokens[0]));
       auto token = std::get<detail::UnsignedConstant>(tokens[0]);
       CHECK(token.format == detail::UnsignedConstant::Format::Hex);
-      CHECK(token.value == 0x5);
+      CHECK(token.value == 0x25);
     }
     {
       REQUIRE(std::holds_alternative<detail::Literal>(tokens[1]));
