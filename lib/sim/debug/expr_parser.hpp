@@ -27,33 +27,51 @@ struct ExpressionCache {
   }
 };
 
-struct Parser {
-  Parser(ExpressionCache &cache);
-  inline std::shared_ptr<Register> parse_register() { return nullptr; }
-  inline std::shared_ptr<Term> parse_value() { return nullptr; }
-  std::shared_ptr<Term> parse_parened();
-  std::shared_ptr<Constant> parse_constant();
-  inline std::shared_ptr<Term> parse_p5() { return nullptr; }
-  inline std::shared_ptr<Term> parse_p4() { return nullptr; }
-  inline std::shared_ptr<Term> parse_p3() { return nullptr; }
-  inline std::shared_ptr<Term> parse_p2() { return nullptr; }
-  inline std::shared_ptr<Term> parse_p1() { return nullptr; }
-  inline std::shared_ptr<Term> parse_p0() { return nullptr; }
-  inline std::shared_ptr<Term> parse_expression() { return nullptr; }
-  std::shared_ptr<Term> compile(QStringView expr, void *builtins = nullptr);
-  ExpressionCache &_cache;
-  Lexer _lex;
-  std::list<Lexer::Token> _list = {};
+struct TokenBuffer {
+  inline TokenBuffer(QStringView expr) : _lex(Lexer(expr)), _tokens(), _head(0) {}
   template <typename T> Lexer::Token match() {
     auto next = peek<T>();
-    if (std::holds_alternative<T>(next)) _list.pop_front();
+    if (std::holds_alternative<T>(next)) _head++;
     return next;
   }
   template <typename T> Lexer::Token peek() {
-    if (_list.empty()) _list.push_front(_lex.next_token());
-    if (auto l = _list.front(); std::holds_alternative<T>(l)) return l;
+    if (_head == _tokens.size()) _tokens.emplace_back(_lex.next_token());
+    if (auto l = _tokens[_head]; std::holds_alternative<T>(l)) return l;
     return std::monostate{};
   }
+  Lexer _lex;
+  std::vector<Lexer::Token> _tokens;
+  size_t _head = 0;
+};
+
+struct TokenCheckpoint {
+  inline TokenCheckpoint(TokenBuffer &buf) : _head(buf._head), _buf(buf) {}
+  template <typename T> inline std::shared_ptr<T> rollback() {
+    _buf._head = _head;
+    return nullptr;
+  }
+  size_t _head = 0;
+  TokenBuffer &_buf;
+};
+
+struct Parser {
+  Parser(ExpressionCache &cache);
+  std::shared_ptr<Register> parse_register(TokenBuffer &tok);
+  std::shared_ptr<Term> parse_value(TokenBuffer &tok);
+  std::shared_ptr<Term> parse_parened(TokenBuffer &tok);
+  std::shared_ptr<Constant> parse_constant(TokenBuffer &tok);
+  std::shared_ptr<Variable> parse_identifier(TokenBuffer &tok);
+  std::shared_ptr<Term> parse_p5(TokenBuffer &tok);
+  std::shared_ptr<Term> parse_p4(TokenBuffer &tok);
+  std::shared_ptr<Term> parse_p3(TokenBuffer &tok);
+  std::shared_ptr<Term> parse_p2(TokenBuffer &tok);
+  std::shared_ptr<Term> parse_p1(TokenBuffer &tok);
+  std::shared_ptr<Term> parse_p0(TokenBuffer &tok);
+  std::shared_ptr<Term> parse_member_access(TokenBuffer &tok);
+  std::shared_ptr<Term> parse_expression(TokenBuffer &tok);
+  std::shared_ptr<Term> compile(QStringView expr, void *builtins = nullptr);
+  ExpressionCache &_cache;
+  template <typename T> std::shared_ptr<T> accept(T &&v) { return _cache.add_or_return<T>(std::move(v)); }
 };
 
 std::shared_ptr<Expression> compile(std::string_view expr, ExpressionCache &cache, void *builtins = nullptr);

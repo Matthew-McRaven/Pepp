@@ -25,12 +25,15 @@ public:
 };
 
 struct Variable : public Term {
+  Variable(const detail::Identifier &ident);
+  Variable(QString name);
   ~Variable() = default;
   uint16_t depth() const override;
   Type type() const override;
   std::strong_ordering operator<=>(const Term &rhs) const override;
   std::strong_ordering operator<=>(const Variable &rhs) const;
   QString to_string() const override;
+  QString _name;
 };
 
 struct Register : public Term {};
@@ -47,11 +50,10 @@ struct Constant : public Term {
 };
 
 struct BinaryInfix : public Term {
-  ~BinaryInfix() = default;
   enum class Operators {
     DOT,         // a.b
     STAR_DOT,    // a->b, equivalent to (*a).b
-    MULTIPY,     // a *b
+    MULTIPLY,    // a *b
     DIVIDE,      // a / b
     MODULO,      // a % b
     ADD,         // a + b
@@ -63,12 +65,14 @@ struct BinaryInfix : public Term {
     EQUAL,
     NOT_EQUAL,
     GREATER,
-    GREATE_OR_EQUAL,
+    GREATER_OR_EQUAL,
     BIT_AND,
     BIT_OR,
     BIT_XOR
-  } op;
-  std::shared_ptr<Term> arg1, arg2;
+  } _op;
+  BinaryInfix(Operators op, std::shared_ptr<Term> arg1, std::shared_ptr<Term> arg2);
+  ~BinaryInfix() = default;
+  std::shared_ptr<Term> _arg1, _arg2;
   uint16_t depth() const override;
   Type type() const override;
   std::strong_ordering operator<=>(const Term &rhs) const override;
