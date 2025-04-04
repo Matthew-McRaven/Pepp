@@ -47,19 +47,39 @@ QString pepp::debug::Constant::to_string() const {
   }
 }
 
-uint16_t pepp::debug::UnaryPrefix::depth() const { return 0; }
+namespace {
+using namespace pepp::debug;
+using UOperators = UnaryPrefix::Operators;
+static const auto unops = std::map<UOperators, QString>{
+    {UOperators::PLUS, "+"},       {UOperators::MINUS, "-"}, {UOperators::DEREFERENCE, "*"},
+    {UOperators::ADDRESS_OF, "&"}, {UOperators::NOT, "!"},   {UOperators::NEGATE, "~"},
+};
+} // namespace
+
+pepp::debug::UnaryPrefix::UnaryPrefix(Operators op, std::shared_ptr<Term> arg) : _op(op), _arg(arg) {}
+uint16_t pepp::debug::UnaryPrefix::depth() const { return _arg->depth() + 1; }
 pepp::debug::Term::Type pepp::debug::UnaryPrefix::type() const { return Term::Type::UnaryPrefixOperator; }
+
 std::strong_ordering pepp::debug::UnaryPrefix::operator<=>(const Term &rhs) const {
   if (type() == rhs.type()) return this->operator<=>(static_cast<const UnaryPrefix &>(rhs));
   return type() <=> rhs.type();
 }
 
 std::strong_ordering pepp::debug::UnaryPrefix::operator<=>(const UnaryPrefix &rhs) const {
-  if (auto cmp = op <=> rhs.op; cmp != 0) return cmp;
-  return *_arg1 <=> *rhs._arg1;
+  if (auto cmp = _op <=> rhs._op; cmp != 0) return cmp;
+  return *_arg <=> *rhs._arg;
 }
 
-QString pepp::debug::UnaryPrefix::to_string() const { return QStringLiteral("OP"); }
+QString pepp::debug::UnaryPrefix::to_string() const {
+  using namespace Qt::StringLiterals;
+  return u"%1%2"_s.arg(unops.at(this->_op), _arg->to_string());
+}
+
+std::optional<UnaryPrefix::Operators> pepp::debug::string_to_unary_prefix(QStringView key) {
+  auto result = std::find_if(unops.cbegin(), unops.cend(), [key](const auto &it) { return it.second == key; });
+  if (result == unops.cend()) return std::nullopt;
+  return result->first;
+}
 
 pepp::debug::BinaryInfix::BinaryInfix(Operators op, std::shared_ptr<Term> arg1, std::shared_ptr<Term> arg2)
     : _op(op), _arg1(arg1), _arg2(arg2) {}

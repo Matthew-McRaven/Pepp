@@ -78,6 +78,73 @@ TEST_CASE("Parsing watch expressions", "[scope:sim][kind:unit][arch:*]") {
     CHECK(as_infix->_op == BinaryInfix::Operators::STAR_DOT);
     CHECK(as_infix->to_string().toStdString() == "s->a");
   }
+  // P1
+  SECTION("Unary Prefix: +") {
+    ExpressionCache c;
+    Parser p(c);
+    QString body = "+a";
+    auto ast = p.compile(body);
+    REQUIRE(ast != nullptr);
+    auto as_prefix = std::dynamic_pointer_cast<UnaryPrefix>(ast);
+    REQUIRE(as_prefix != nullptr);
+    CHECK(as_prefix->_op == UnaryPrefix::Operators::PLUS);
+    CHECK(as_prefix->to_string().toStdString() == "+a");
+  }
+  SECTION("Unary Prefix: -") {
+    ExpressionCache c;
+    Parser p(c);
+    QString body = "-a";
+    auto ast = p.compile(body);
+    REQUIRE(ast != nullptr);
+    auto as_prefix = std::dynamic_pointer_cast<UnaryPrefix>(ast);
+    REQUIRE(as_prefix != nullptr);
+    CHECK(as_prefix->_op == UnaryPrefix::Operators::MINUS);
+    CHECK(as_prefix->to_string().toStdString() == "-a");
+  }
+  SECTION("Unary Prefix: *") {
+    ExpressionCache c;
+    Parser p(c);
+    QString body = "*a";
+    auto ast = p.compile(body);
+    REQUIRE(ast != nullptr);
+    auto as_prefix = std::dynamic_pointer_cast<UnaryPrefix>(ast);
+    REQUIRE(as_prefix != nullptr);
+    CHECK(as_prefix->_op == UnaryPrefix::Operators::DEREFERENCE);
+    CHECK(as_prefix->to_string().toStdString() == "*a");
+  }
+  SECTION("Unary Prefix: &") {
+    ExpressionCache c;
+    Parser p(c);
+    QString body = "&a";
+    auto ast = p.compile(body);
+    REQUIRE(ast != nullptr);
+    auto as_prefix = std::dynamic_pointer_cast<UnaryPrefix>(ast);
+    REQUIRE(as_prefix != nullptr);
+    CHECK(as_prefix->_op == UnaryPrefix::Operators::ADDRESS_OF);
+    CHECK(as_prefix->to_string().toStdString() == "&a");
+  }
+  SECTION("Unary Prefix: !") {
+    ExpressionCache c;
+    Parser p(c);
+    QString body = "!a";
+    auto ast = p.compile(body);
+    REQUIRE(ast != nullptr);
+    auto as_prefix = std::dynamic_pointer_cast<UnaryPrefix>(ast);
+    REQUIRE(as_prefix != nullptr);
+    CHECK(as_prefix->_op == UnaryPrefix::Operators::NOT);
+    CHECK(as_prefix->to_string().toStdString() == "!a");
+  }
+  SECTION("Unary Prefix: ~") {
+    ExpressionCache c;
+    Parser p(c);
+    QString body = "~a";
+    auto ast = p.compile(body);
+    REQUIRE(ast != nullptr);
+    auto as_prefix = std::dynamic_pointer_cast<UnaryPrefix>(ast);
+    REQUIRE(as_prefix != nullptr);
+    CHECK(as_prefix->_op == UnaryPrefix::Operators::NEGATE);
+    CHECK(as_prefix->to_string().toStdString() == "~a");
+  }
   // P2
   SECTION("Multiply") {
     ExpressionCache c;
@@ -156,7 +223,7 @@ TEST_CASE("Parsing watch expressions", "[scope:sim][kind:unit][arch:*]") {
     CHECK(as_infix->_op == BinaryInfix::Operators::EQUAL);
     CHECK(as_infix->to_string().toStdString() == "8 == 10");
   }
-  // P6
+  // P7
   SECTION("Bitwise &") {
     ExpressionCache c;
     Parser p(c);
@@ -168,5 +235,17 @@ TEST_CASE("Parsing watch expressions", "[scope:sim][kind:unit][arch:*]") {
     REQUIRE(as_infix != nullptr);
     CHECK(as_infix->_op == BinaryInfix::Operators::BIT_AND);
     CHECK(as_infix->to_string().toStdString() == "8 & 10");
+  }
+  // Tricky nested expressions
+  SECTION("Mul-deref") {
+    ExpressionCache c;
+    Parser p(c);
+    QString body = "5 * *s";
+    auto ast = p.compile(body);
+    REQUIRE(ast != nullptr);
+    auto as_infix = std::dynamic_pointer_cast<BinaryInfix>(ast);
+    REQUIRE(as_infix != nullptr);
+    CHECK(as_infix->_op == BinaryInfix::Operators::MULTIPLY);
+    CHECK(as_infix->to_string().toStdString() == "5 * *s");
   }
 }

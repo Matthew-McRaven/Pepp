@@ -64,7 +64,19 @@ std::shared_ptr<pepp::debug::Term> pepp::debug::Parser::parse_p0(TokenBuffer &to
   return cp.rollback<pepp::debug::Term>();
 }
 
-std::shared_ptr<pepp::debug::Term> pepp::debug::Parser::parse_p1(TokenBuffer &tok) { return parse_p0(tok); }
+std::shared_ptr<pepp::debug::Term> pepp::debug::Parser::parse_p1(TokenBuffer &tok) {
+  using Lit = detail::Literal;
+  auto cp = TokenCheckpoint(tok);
+  if (auto maybe_prefix = tok.match<Lit>(); std::holds_alternative<Lit>(maybe_prefix)) {
+    auto lit = std::get<Lit>(maybe_prefix);
+    auto op = string_to_unary_prefix(lit.literal);
+    if (!op) return cp.rollback<pepp::debug::Term>();
+    auto arg = parse_p0(tok);
+    if (arg == nullptr) return cp.rollback<pepp::debug::Term>();
+    return accept(UnaryPrefix(*op, arg));
+  }
+  return parse_p0(tok);
+}
 
 std::shared_ptr<pepp::debug::Term> pepp::debug::Parser::parse_p2(TokenBuffer &tok) {
   using Operators = BinaryInfix::Operators;

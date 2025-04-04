@@ -82,15 +82,17 @@ struct BinaryInfix : public Term {
 std::optional<BinaryInfix::Operators> string_to_binary_infix(QStringView);
 
 struct UnaryPrefix : public Term {
+  enum class Operators { PLUS, MINUS, DEREFERENCE, ADDRESS_OF, NOT, NEGATE } _op;
+  UnaryPrefix(Operators op, std::shared_ptr<Term> arg);
   ~UnaryPrefix() = default;
-  enum class Operator { PLUS, MINUS, DEREFERENCE, ADDRESS_OF } op;
-  std::shared_ptr<Term> _arg1;
+  std::shared_ptr<Term> _arg;
   std::strong_ordering operator<=>(const Term &rhs) const override;
+  std::strong_ordering operator<=>(const UnaryPrefix &rhs) const;
   uint16_t depth() const override;
   Type type() const override;
-  std::strong_ordering operator<=>(const UnaryPrefix &rhs) const;
   QString to_string() const override;
 };
+std::optional<UnaryPrefix::Operators> string_to_unary_prefix(QStringView);
 
 struct Expression : public Term {};
 struct Parameters : public Term {};
