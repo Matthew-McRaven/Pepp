@@ -34,6 +34,8 @@ pepp::debug::Constant::Constant(const detail::UnsignedConstant &constant) { _val
 
 uint16_t pepp::debug::Constant::depth() const { return 0; }
 
+std::strong_ordering pepp::debug::Constant::operator<=>(const Constant &rhs) const { return _val <=> rhs._val; }
+
 pepp::debug::Term::Type pepp::debug::Constant::type() const { return Type::Constant; }
 
 QString pepp::debug::Constant::to_string() const {

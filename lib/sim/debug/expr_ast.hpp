@@ -44,7 +44,7 @@ struct Constant : public Term {
   uint16_t depth() const override;
   Type type() const override;
   std::strong_ordering operator<=>(const Term &rhs) const override;
-  inline std::strong_ordering operator<=>(const Constant &rhs) const { return std::strong_ordering::equal; }
+  std::strong_ordering operator<=>(const Constant &rhs) const;
   detail::UnsignedConstant _val;
   QString to_string() const override;
 };

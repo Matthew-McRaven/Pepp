@@ -40,3 +40,9 @@ pepp::debug::Lexer::Token pepp::debug::Lexer::next_token() {
   }
   return detail::T<TokenType::Invalid>();
 }
+
+std::strong_ordering pepp::debug::detail::T<pepp::debug::detail::TokenType::UnsignedConstant>::operator<=>(
+    const T<TokenType::UnsignedConstant> &rhs) const {
+  if (auto cmp = format <=> rhs.format; cmp != 0) return cmp;
+  return value <=> rhs.value;
+}
