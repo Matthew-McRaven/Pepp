@@ -16,7 +16,7 @@ pepp::debug::Lexer::Token pepp::debug::Lexer::next_token() {
   using namespace pepp::debug::detail;
   static const auto mt = QRegularExpression::MatchType::NormalMatch;
   static const auto opt = QRegularExpression::MatchOption::AnchorAtOffsetMatchOption;
-  if (_offset == _input.length()) return detail::T<TokenType::Invalid>{};
+  if (_offset == _input.length()) return detail::T<TokenType::Eof>{};
   if (auto space_match = re::whitespace.matchView(_input, _offset, mt, opt); space_match.hasMatch()) {
     _offset = space_match.capturedEnd();
   }
