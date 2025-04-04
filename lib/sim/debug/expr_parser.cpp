@@ -10,11 +10,8 @@ std::shared_ptr<pepp::debug::Term> pepp::debug::Parser::parse_identifier_as_term
 
 std::shared_ptr<pepp::debug::Variable> pepp::debug::Parser::parse_identifier(TokenBuffer &tok) {
   using ID = detail::Identifier;
-  if (auto maybe_ident = tok.match<ID>(); !std::holds_alternative<ID>(maybe_ident)) {
-    return nullptr;
-  } else {
-    return accept(Variable(std::get<ID>(maybe_ident)));
-  }
+  if (auto maybe_ident = tok.match<ID>(); !std::holds_alternative<ID>(maybe_ident)) return nullptr;
+  else return accept(Variable(std::get<ID>(maybe_ident)));
 }
 
 std::shared_ptr<pepp::debug::Term> pepp::debug::Parser::parse_value(TokenBuffer &tok) {
@@ -94,29 +91,21 @@ std::shared_ptr<pepp::debug::Term> pepp::debug::Parser::parse_p5(TokenBuffer &to
 std::shared_ptr<pepp::debug::Term> pepp::debug::Parser::parse_parened(TokenBuffer &tok) {
   using Lit = detail::Literal;
   auto cp = TokenCheckpoint(tok);
-  if (auto maybe_open = tok.match<Lit>(); !std::holds_alternative<Lit>(maybe_open)) {
+  if (auto maybe_open = tok.match<Lit>(); !std::holds_alternative<Lit>(maybe_open))
     return cp.rollback<pepp::debug::Term>();
-  } else if (auto open = std::get<Lit>(maybe_open); open.literal != '(') {
+  else if (auto open = std::get<Lit>(maybe_open); open.literal != '(') return cp.rollback<pepp::debug::Term>();
+  else if (auto inner = parse_expression(tok); !inner) return cp.rollback<pepp::debug::Term>();
+  else if (auto maybe_close = tok.match<Lit>(); !std::holds_alternative<Lit>(maybe_close))
     return cp.rollback<pepp::debug::Term>();
-  } else if (auto inner = parse_expression(tok); !inner) {
-    return cp.rollback<pepp::debug::Term>();
-  } else if (auto maybe_close = tok.match<Lit>(); !std::holds_alternative<Lit>(maybe_close)) {
-    return cp.rollback<pepp::debug::Term>();
-  } else if (auto close = std::get<Lit>(maybe_close); close.literal != ')') {
-    // Invalid and we cannot recover.
-    return cp.rollback<pepp::debug::Term>();
-  } else {
-    return accept(Parenthesized(inner));
-  }
+  else if (auto close = std::get<Lit>(maybe_close); close.literal != ')')
+    return cp.rollback<pepp::debug::Term>(); // Invalid and we cannot recover.
+  else return accept(Parenthesized(inner));
 }
 
 std::shared_ptr<pepp::debug::Constant> pepp::debug::Parser::parse_constant(TokenBuffer &tok) {
   using UC = detail::UnsignedConstant;
-  if (auto maybe_constant = tok.match<UC>(); !std::holds_alternative<UC>(maybe_constant)) {
-    return nullptr;
-  } else {
-    return accept(Constant(std::get<UC>(maybe_constant)));
-  }
+  if (auto maybe_constant = tok.match<UC>(); !std::holds_alternative<UC>(maybe_constant)) return nullptr;
+  else return accept(Constant(std::get<UC>(maybe_constant)));
 }
 
 std::shared_ptr<pepp::debug::Term> pepp::debug::Parser::compile(QStringView expr, void *builtins) {
