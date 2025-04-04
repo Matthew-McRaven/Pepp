@@ -94,7 +94,7 @@ static const auto padding = std::map<Operators, bool>{
     {Operators::SUBTRACT, true},  {Operators::SHIFT_LEFT, false},   {Operators::SHIFT_RIGHT, false},
     {Operators::LESS, true},      {Operators::LESS_OR_EQUAL, true}, {Operators::EQUAL, true},
     {Operators::NOT_EQUAL, true}, {Operators::GREATER, true},       {Operators::GREATER_OR_EQUAL, true},
-    {Operators::BIT_AND, false},  {Operators::BIT_OR, false},       {Operators::BIT_XOR, false},
+    {Operators::BIT_AND, true},   {Operators::BIT_OR, true},        {Operators::BIT_XOR, true},
 };
 } // namespace
 

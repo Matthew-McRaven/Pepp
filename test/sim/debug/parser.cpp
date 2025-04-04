@@ -55,6 +55,7 @@ TEST_CASE("Parsing watch expressions", "[scope:sim][kind:unit][arch:*]") {
     REQUIRE(as_ident != nullptr);
     CHECK(as_ident->to_string() == "limit");
   }
+  // P0
   SECTION("Member Access with .") {
     ExpressionCache c;
     Parser p(c);
@@ -77,6 +78,7 @@ TEST_CASE("Parsing watch expressions", "[scope:sim][kind:unit][arch:*]") {
     CHECK(as_infix->_op == BinaryInfix::Operators::STAR_DOT);
     CHECK(as_infix->to_string().toStdString() == "s->a");
   }
+  // P2
   SECTION("Multiply") {
     ExpressionCache c;
     Parser p(c);
@@ -88,6 +90,7 @@ TEST_CASE("Parsing watch expressions", "[scope:sim][kind:unit][arch:*]") {
     CHECK(as_infix->_op == BinaryInfix::Operators::MULTIPLY);
     CHECK(as_infix->to_string().toStdString() == "s * 10");
   }
+  // P3
   SECTION("Add") {
     ExpressionCache c;
     Parser p(c);
@@ -114,5 +117,56 @@ TEST_CASE("Parsing watch expressions", "[scope:sim][kind:unit][arch:*]") {
     REQUIRE(as_nested_infix != nullptr);
     CHECK(as_nested_infix->_op == BinaryInfix::Operators::MULTIPLY);
     CHECK(as_nested_infix->to_string().toStdString() == "5 * s");
+  }
+  // P4
+  SECTION("Shift Left") {
+    ExpressionCache c;
+    Parser p(c);
+    // Implicitly checks that numbers different numbers do not compare equal in expression cache
+    QString body = "8 << 10";
+    auto ast = p.compile(body);
+    REQUIRE(ast != nullptr);
+    auto as_infix = std::dynamic_pointer_cast<BinaryInfix>(ast);
+    REQUIRE(as_infix != nullptr);
+    CHECK(as_infix->_op == BinaryInfix::Operators::SHIFT_LEFT);
+  }
+  // P5
+  SECTION("Inequality") {
+    ExpressionCache c;
+    Parser p(c);
+    // Implicitly checks that numbers different numbers do not compare equal in expression cache
+    QString body = "8 >= 10";
+    auto ast = p.compile(body);
+    REQUIRE(ast != nullptr);
+    auto as_infix = std::dynamic_pointer_cast<BinaryInfix>(ast);
+    REQUIRE(as_infix != nullptr);
+    CHECK(as_infix->_op == BinaryInfix::Operators::GREATER_OR_EQUAL);
+    CHECK(as_infix->to_string().toStdString() == "8 >= 10");
+  }
+  // P6
+  SECTION("Equality") {
+    ExpressionCache c;
+    Parser p(c);
+    // Implicitly checks that numbers different numbers do not compare equal in expression cache
+    QString body = "8 == 10";
+    auto ast = p.compile(body);
+    REQUIRE(ast != nullptr);
+    auto as_infix = std::dynamic_pointer_cast<BinaryInfix>(ast);
+    REQUIRE(as_infix != nullptr);
+    CHECK(as_infix->_op == BinaryInfix::Operators::EQUAL);
+    CHECK(as_infix->to_string().toStdString() == "8 == 10");
+  }
+  // P6
+  SECTION("Bitwise &") {
+    ExpressionCache c;
+    Parser p(c);
+    // Implicitly checks that numbers different numbers do not compare equal in expression cache
+    QString body = "8 & 10";
+    auto ast = p.compile(body);
+    REQUIRE(ast != nullptr);
+    auto as_infix = std::dynamic_pointer_cast<BinaryInfix>(ast);
+    REQUIRE(as_infix != nullptr);
+    CHECK(as_infix->_op == BinaryInfix::Operators::BIT_AND);
+    CHECK(as_infix->to_string().toStdString() == "8 & 10");
   }
 }

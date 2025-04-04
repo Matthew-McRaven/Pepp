@@ -64,12 +64,14 @@ struct Parser {
   std::shared_ptr<Term> parse_parened(TokenBuffer &tok);
   std::shared_ptr<Constant> parse_constant(TokenBuffer &tok);
   std::shared_ptr<Variable> parse_identifier(TokenBuffer &tok);
-  std::shared_ptr<Term> parse_p5(TokenBuffer &tok);
-  std::shared_ptr<Term> parse_p4(TokenBuffer &tok);
-  std::shared_ptr<Term> parse_p3(TokenBuffer &tok);
-  std::shared_ptr<Term> parse_p2(TokenBuffer &tok);
-  std::shared_ptr<Term> parse_p1(TokenBuffer &tok);
-  std::shared_ptr<Term> parse_p0(TokenBuffer &tok);
+  std::shared_ptr<Term> parse_p7(TokenBuffer &tok); // Bitwise ops
+  std::shared_ptr<Term> parse_p6(TokenBuffer &tok); // Equality
+  std::shared_ptr<Term> parse_p5(TokenBuffer &tok); // Inequality
+  std::shared_ptr<Term> parse_p4(TokenBuffer &tok); // Bitwise shifts
+  std::shared_ptr<Term> parse_p3(TokenBuffer &tok); // +-
+  std::shared_ptr<Term> parse_p2(TokenBuffer &tok); // *%/
+  std::shared_ptr<Term> parse_p1(TokenBuffer &tok); // Unary prefix op
+  std::shared_ptr<Term> parse_p0(TokenBuffer &tok); // member access
   std::shared_ptr<Term> parse_expression(TokenBuffer &tok);
   std::shared_ptr<Term> compile(QStringView expr, void *builtins = nullptr);
 

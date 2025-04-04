@@ -84,10 +84,42 @@ std::shared_ptr<pepp::debug::Term> pepp::debug::Parser::parse_p3(TokenBuffer &to
   return cp.rollback<pepp::debug::Term>();
 }
 
-std::shared_ptr<pepp::debug::Term> pepp::debug::Parser::parse_p4(TokenBuffer &tok) { return parse_p3(tok); }
+std::shared_ptr<pepp::debug::Term> pepp::debug::Parser::parse_p4(TokenBuffer &tok) {
+  using Operators = BinaryInfix::Operators;
+  static const auto valid = std::set<Operators>{Operators::SHIFT_LEFT, Operators::SHIFT_RIGHT};
+  auto cp = TokenCheckpoint(tok);
+  if (auto maybe_infix = parse_binary_infix(tok, valid, &Parser::parse_p3); maybe_infix != nullptr) return maybe_infix;
+  else if (auto maybe_value = parse_p3(tok); maybe_value != nullptr) return maybe_value;
+  return cp.rollback<pepp::debug::Term>();
+}
 
-std::shared_ptr<pepp::debug::Term> pepp::debug::Parser::parse_p5(TokenBuffer &tok) { return parse_p4(tok); }
+std::shared_ptr<pepp::debug::Term> pepp::debug::Parser::parse_p5(TokenBuffer &tok) {
+  using Operators = BinaryInfix::Operators;
+  static const auto valid =
+      std::set<Operators>{Operators::LESS, Operators::LESS_OR_EQUAL, Operators::GREATER_OR_EQUAL, Operators::GREATER};
+  auto cp = TokenCheckpoint(tok);
+  if (auto maybe_infix = parse_binary_infix(tok, valid, &Parser::parse_p4); maybe_infix != nullptr) return maybe_infix;
+  else if (auto maybe_value = parse_p4(tok); maybe_value != nullptr) return maybe_value;
+  return cp.rollback<pepp::debug::Term>();
+}
 
+std::shared_ptr<pepp::debug::Term> pepp::debug::Parser::parse_p6(TokenBuffer &tok) {
+  using Operators = BinaryInfix::Operators;
+  static const auto valid = std::set<Operators>{Operators::EQUAL, Operators::NOT_EQUAL};
+  auto cp = TokenCheckpoint(tok);
+  if (auto maybe_infix = parse_binary_infix(tok, valid, &Parser::parse_p5); maybe_infix != nullptr) return maybe_infix;
+  else if (auto maybe_value = parse_p5(tok); maybe_value != nullptr) return maybe_value;
+  return cp.rollback<pepp::debug::Term>();
+}
+
+std::shared_ptr<pepp::debug::Term> pepp::debug::Parser::parse_p7(TokenBuffer &tok) {
+  using Operators = BinaryInfix::Operators;
+  static const auto valid = std::set<Operators>{Operators::BIT_AND, Operators::BIT_OR, Operators::BIT_XOR};
+  auto cp = TokenCheckpoint(tok);
+  if (auto maybe_infix = parse_binary_infix(tok, valid, &Parser::parse_p6); maybe_infix != nullptr) return maybe_infix;
+  else if (auto maybe_value = parse_p6(tok); maybe_value != nullptr) return maybe_value;
+  return cp.rollback<pepp::debug::Term>();
+}
 std::shared_ptr<pepp::debug::Term> pepp::debug::Parser::parse_parened(TokenBuffer &tok) {
   using Lit = detail::Literal;
   auto cp = TokenCheckpoint(tok);
@@ -110,7 +142,9 @@ std::shared_ptr<pepp::debug::Constant> pepp::debug::Parser::parse_constant(Token
 
 std::shared_ptr<pepp::debug::Term> pepp::debug::Parser::compile(QStringView expr, void *builtins) {
   TokenBuffer tok(expr);
-  return parse_p5(tok);
+  auto ret = parse_p7(tok);
+  auto at_end = tok.peek<detail::Eof>();
+  return (std::holds_alternative<std::monostate>(at_end)) ? nullptr : ret;
 }
 
 std::shared_ptr<pepp::debug::Expression> pepp::debug::compile(std::string_view expr, ExpressionCache &cache,

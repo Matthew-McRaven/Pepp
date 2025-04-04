@@ -1,6 +1,8 @@
-expr     = p5
-p5       = p4 ([&|^] p4)?
-p4       = p3 ([compare] p3)?
+expr     = p7
+p7       = p6 (&|^ p6)?
+p6       = p5 ([equality] p5)?
+p5       = p4 ([inequality] p4)?
+p4       = p3 (<<|>> p3)?
 p3       = p2 ([+-] p2)?
 p2       = p1 ([*/%] p1)?
 p1       = [*+-~!&]? p0
