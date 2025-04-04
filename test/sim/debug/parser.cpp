@@ -77,4 +77,42 @@ TEST_CASE("Parsing watch expressions", "[scope:sim][kind:unit][arch:*]") {
     CHECK(as_infix->_op == BinaryInfix::Operators::STAR_DOT);
     CHECK(as_infix->to_string().toStdString() == "s->a");
   }
+  SECTION("Multiply") {
+    ExpressionCache c;
+    Parser p(c);
+    QString body = "s * 10";
+    auto ast = p.compile(body);
+    REQUIRE(ast != nullptr);
+    auto as_infix = std::dynamic_pointer_cast<BinaryInfix>(ast);
+    REQUIRE(as_infix != nullptr);
+    CHECK(as_infix->_op == BinaryInfix::Operators::MULTIPLY);
+    CHECK(as_infix->to_string().toStdString() == "s * 10");
+  }
+  SECTION("Add") {
+    ExpressionCache c;
+    Parser p(c);
+    // Implicitly checks that numbers different numbers do not compare equal in expression cache
+    QString body = "8 + 10";
+    auto ast = p.compile(body);
+    REQUIRE(ast != nullptr);
+    auto as_infix = std::dynamic_pointer_cast<BinaryInfix>(ast);
+    REQUIRE(as_infix != nullptr);
+    CHECK(as_infix->_op == BinaryInfix::Operators::ADD);
+    CHECK(as_infix->to_string().toStdString() == "8 + 10");
+  }
+  SECTION("Mul-Add") {
+    ExpressionCache c;
+    Parser p(c);
+    QString body = "5 * s + 6";
+    auto ast = p.compile(body);
+    REQUIRE(ast != nullptr);
+    auto as_infix = std::dynamic_pointer_cast<BinaryInfix>(ast);
+    REQUIRE(as_infix != nullptr);
+    CHECK(as_infix->_op == BinaryInfix::Operators::ADD);
+    CHECK(as_infix->to_string().toStdString() == "5 * s + 6");
+    auto as_nested_infix = std::dynamic_pointer_cast<BinaryInfix>(as_infix->_arg1);
+    REQUIRE(as_nested_infix != nullptr);
+    CHECK(as_nested_infix->_op == BinaryInfix::Operators::MULTIPLY);
+    CHECK(as_nested_infix->to_string().toStdString() == "5 * s");
+  }
 }

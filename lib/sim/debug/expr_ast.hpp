@@ -79,6 +79,7 @@ struct BinaryInfix : public Term {
   std::strong_ordering operator<=>(const BinaryInfix &rhs) const;
   QString to_string() const override;
 };
+std::optional<BinaryInfix::Operators> string_to_binary_infix(QStringView);
 
 struct UnaryPrefix : public Term {
   ~UnaryPrefix() = default;

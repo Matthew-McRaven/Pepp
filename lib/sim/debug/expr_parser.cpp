@@ -4,6 +4,10 @@
 
 pepp::debug::Parser::Parser(ExpressionCache &cache) : _cache(cache) {}
 
+std::shared_ptr<pepp::debug::Term> pepp::debug::Parser::parse_identifier_as_term(TokenBuffer &tok) {
+  return parse_identifier(tok);
+}
+
 std::shared_ptr<pepp::debug::Variable> pepp::debug::Parser::parse_identifier(TokenBuffer &tok) {
   using ID = detail::Identifier;
   if (auto maybe_ident = tok.match<ID>(); !std::holds_alternative<ID>(maybe_ident)) {
@@ -24,41 +28,64 @@ std::shared_ptr<pepp::debug::Register> pepp::debug::Parser::parse_register(Token
 
 std::shared_ptr<pepp::debug::Term> pepp::debug::Parser::parse_expression(TokenBuffer &tok) { return nullptr; }
 
-std::shared_ptr<pepp::debug::Term> pepp::debug::Parser::parse_member_access(TokenBuffer &tok) {
-
+std::shared_ptr<pepp::debug::Term>
+pepp::debug::Parser::parse_binary_infix(TokenBuffer &tok, const std::set<BinaryInfix::Operators> &valid,
+                                        Parser::ParseFn parse) {
   using LIT = detail::Literal;
   using ID = detail::Identifier;
   using Ops = BinaryInfix::Operators;
   auto cp = TokenCheckpoint(tok);
-  auto maybe_ident = parse_identifier(tok);
 
-  if (maybe_ident == nullptr) return cp.rollback<pepp::debug::Term>();
+  // I'm sorry I'm not using std::invoke. Debugging nested binary infix parsing  (2 * s + 10) has been a pain.
+  // std::invoke adds multiple extra unnecessary call frames in debug mode and makes stepping more difficult.
+  // Sorry to the people at isocpp (https://isocpp.org/wiki/faq/pointers-to-members)
+  auto maybe_lhs = (this->*parse)(tok);
+  if (maybe_lhs == nullptr) return cp.rollback<pepp::debug::Term>();
 
   auto maybe_lit = tok.match<LIT>();
   if (!std::holds_alternative<LIT>(maybe_lit)) return cp.rollback<pepp::debug::Term>();
+  auto lit = std::get<LIT>(maybe_lit);
+  auto op = string_to_binary_infix(lit.literal);
+  if (!op) return cp.rollback<pepp::debug::Term>();
+  else if (!valid.contains(*op)) return cp.rollback<pepp::debug::Term>();
 
-  LIT lit = std::get<LIT>(maybe_lit);
-  if (auto lit = std::get<LIT>(maybe_lit); lit.literal != "." && lit.literal != "->")
-    return cp.rollback<pepp::debug::Term>();
+  // Still sorry; see above.
+  auto maybe_rhs = (this->*parse)(tok);
+  if (maybe_rhs == nullptr) return cp.rollback<pepp::debug::Term>();
 
-  auto op = lit.literal == "." ? Ops::DOT : Ops::STAR_DOT;
-  auto maybe_ident2 = parse_identifier(tok);
-  if (maybe_ident2 == nullptr) cp.rollback<pepp::debug::Term>();
-
-  return accept(BinaryInfix(op, maybe_ident, maybe_ident2));
+  return accept(BinaryInfix(*op, maybe_lhs, maybe_rhs));
 }
+
 std::shared_ptr<pepp::debug::Term> pepp::debug::Parser::parse_p0(TokenBuffer &tok) {
+  using Operators = BinaryInfix::Operators;
+  static const auto valid = std::set<Operators>{Operators::STAR_DOT, Operators::DOT};
   auto cp = TokenCheckpoint(tok);
-  if (auto maybe_member_access = parse_member_access(tok); maybe_member_access != nullptr) return maybe_member_access;
+  if (auto maybe_member_access = parse_binary_infix(tok, valid, &Parser::parse_identifier_as_term);
+      maybe_member_access != nullptr)
+    return maybe_member_access;
   else if (auto value = parse_value(tok); value != nullptr) return value;
   return cp.rollback<pepp::debug::Term>();
 }
 
 std::shared_ptr<pepp::debug::Term> pepp::debug::Parser::parse_p1(TokenBuffer &tok) { return parse_p0(tok); }
 
-std::shared_ptr<pepp::debug::Term> pepp::debug::Parser::parse_p2(TokenBuffer &tok) { return parse_p1(tok); }
+std::shared_ptr<pepp::debug::Term> pepp::debug::Parser::parse_p2(TokenBuffer &tok) {
+  using Operators = BinaryInfix::Operators;
+  static const auto valid = std::set<Operators>{Operators::MULTIPLY, Operators::DIVIDE, Operators::MODULO};
+  auto cp = TokenCheckpoint(tok);
+  if (auto maybe_infix = parse_binary_infix(tok, valid, &Parser::parse_p1); maybe_infix != nullptr) return maybe_infix;
+  else if (auto maybe_value = parse_p1(tok); maybe_value != nullptr) return maybe_value;
+  return cp.rollback<pepp::debug::Term>();
+}
 
-std::shared_ptr<pepp::debug::Term> pepp::debug::Parser::parse_p3(TokenBuffer &tok) { return parse_p2(tok); }
+std::shared_ptr<pepp::debug::Term> pepp::debug::Parser::parse_p3(TokenBuffer &tok) {
+  using Operators = BinaryInfix::Operators;
+  static const auto valid = std::set<Operators>{Operators::ADD, Operators::SUBTRACT};
+  auto cp = TokenCheckpoint(tok);
+  if (auto maybe_infix = parse_binary_infix(tok, valid, &Parser::parse_p2); maybe_infix != nullptr) return maybe_infix;
+  else if (auto maybe_value = parse_p2(tok); maybe_value != nullptr) return maybe_value;
+  return cp.rollback<pepp::debug::Term>();
+}
 
 std::shared_ptr<pepp::debug::Term> pepp::debug::Parser::parse_p4(TokenBuffer &tok) { return parse_p3(tok); }
 

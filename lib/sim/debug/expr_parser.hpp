@@ -35,7 +35,10 @@ struct TokenBuffer {
     return next;
   }
   template <typename T> Lexer::Token peek() {
-    if (_head == _tokens.size()) _tokens.emplace_back(_lex.next_token());
+    if (_head == _tokens.size()) {
+      auto token = _lex.next_token();
+      _tokens.emplace_back(token);
+    }
     if (auto l = _tokens[_head]; std::holds_alternative<T>(l)) return l;
     return std::monostate{};
   }
@@ -67,11 +70,17 @@ struct Parser {
   std::shared_ptr<Term> parse_p2(TokenBuffer &tok);
   std::shared_ptr<Term> parse_p1(TokenBuffer &tok);
   std::shared_ptr<Term> parse_p0(TokenBuffer &tok);
-  std::shared_ptr<Term> parse_member_access(TokenBuffer &tok);
   std::shared_ptr<Term> parse_expression(TokenBuffer &tok);
   std::shared_ptr<Term> compile(QStringView expr, void *builtins = nullptr);
+
+private:
   ExpressionCache &_cache;
   template <typename T> std::shared_ptr<T> accept(T &&v) { return _cache.add_or_return<T>(std::move(v)); }
+  typedef std::shared_ptr<Term> (Parser::*ParseFn)(TokenBuffer &tok);
+  std::shared_ptr<Term> parse_binary_infix(TokenBuffer &tok, const std::set<BinaryInfix::Operators> &valid,
+                                           ParseFn parse);
+  // Workaround to make parse_identifier into a ParseFn.
+  std::shared_ptr<Term> parse_identifier_as_term(TokenBuffer &tok);
 };
 
 std::shared_ptr<Expression> compile(std::string_view expr, ExpressionCache &cache, void *builtins = nullptr);

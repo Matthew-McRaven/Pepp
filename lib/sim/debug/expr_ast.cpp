@@ -77,17 +77,37 @@ std::strong_ordering pepp::debug::BinaryInfix::operator<=>(const BinaryInfix &rh
   return *_arg2 <=> *rhs._arg2;
 }
 
+namespace {
+using namespace pepp::debug;
+using Operators = BinaryInfix::Operators;
+static const auto ops = std::map<Operators, QString>{
+    {Operators::DOT, "."},        {Operators::STAR_DOT, "->"},      {Operators::MULTIPLY, "*"},
+    {Operators::DIVIDE, "/"},     {Operators::MODULO, "%"},         {Operators::ADD, "+"},
+    {Operators::SUBTRACT, "-"},   {Operators::SHIFT_LEFT, "<<"},    {Operators::SHIFT_RIGHT, ">>"},
+    {Operators::LESS, "<"},       {Operators::LESS_OR_EQUAL, "<="}, {Operators::EQUAL, "=="},
+    {Operators::NOT_EQUAL, "!="}, {Operators::GREATER, ">"},        {Operators::GREATER_OR_EQUAL, ">="},
+    {Operators::BIT_AND, "&"},    {Operators::BIT_OR, "|"},         {Operators::BIT_XOR, "^"},
+};
+static const auto padding = std::map<Operators, bool>{
+    {Operators::DOT, false},      {Operators::STAR_DOT, false},     {Operators::MULTIPLY, true},
+    {Operators::DIVIDE, true},    {Operators::MODULO, true},        {Operators::ADD, true},
+    {Operators::SUBTRACT, true},  {Operators::SHIFT_LEFT, false},   {Operators::SHIFT_RIGHT, false},
+    {Operators::LESS, true},      {Operators::LESS_OR_EQUAL, true}, {Operators::EQUAL, true},
+    {Operators::NOT_EQUAL, true}, {Operators::GREATER, true},       {Operators::GREATER_OR_EQUAL, true},
+    {Operators::BIT_AND, false},  {Operators::BIT_OR, false},       {Operators::BIT_XOR, false},
+};
+} // namespace
+
 QString pepp::debug::BinaryInfix::to_string() const {
   using namespace Qt::StringLiterals;
-  static const auto ops = std::map<BinaryInfix::Operators, QString>{
-      {Operators::DOT, "."},          {Operators::STAR_DOT, "->"},        {Operators::MULTIPLY, " * "},
-      {Operators::DIVIDE, " / "},     {Operators::MODULO, " % "},         {Operators::ADD, " + "},
-      {Operators::SUBTRACT, " - "},   {Operators::SHIFT_LEFT, "<<"},      {Operators::SHIFT_RIGHT, ">>"},
-      {Operators::LESS, " < "},       {Operators::LESS_OR_EQUAL, " <= "}, {Operators::EQUAL, " == "},
-      {Operators::NOT_EQUAL, " != "}, {Operators::GREATER, " > "},        {Operators::GREATER_OR_EQUAL, " >= "},
-      {Operators::BIT_AND, " & "},    {Operators::BIT_OR, " | "},         {Operators::BIT_XOR, " ^ "},
-  };
+  if (padding.at(this->_op)) return u"%1 %2 %3"_s.arg(_arg1->to_string(), ops.at(this->_op), _arg2->to_string());
   return u"%1%2%3"_s.arg(_arg1->to_string(), ops.at(this->_op), _arg2->to_string());
+}
+
+std::optional<pepp::debug::BinaryInfix::Operators> pepp::debug::string_to_binary_infix(QStringView key) {
+  auto result = std::find_if(ops.cbegin(), ops.cend(), [key](const auto &it) { return it.second == key; });
+  if (result == ops.cend()) return std::nullopt;
+  return result->first;
 }
 
 std::strong_ordering pepp::debug::Parenthesized::operator<=>(const Term &rhs) const {
