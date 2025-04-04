@@ -47,17 +47,41 @@ struct TokenBuffer {
   size_t _head = 0;
 };
 
-struct TokenCheckpoint {
-  inline TokenCheckpoint(TokenBuffer &buf) : _head(buf._head), _buf(buf) {}
-  template <typename T> inline std::shared_ptr<T> rollback() {
-    _buf._head = _head;
-    return nullptr;
-  }
-  size_t _head = 0;
-  TokenBuffer &_buf;
-};
+struct TokenCheckpoint;
 
 struct Parser {
+  enum class Rule : uint8_t {
+    REGISTER,
+    VALUE,
+    PAREN,
+    CONSTANT,
+    IDENT,
+    P0,
+    P1,
+    P2,
+    P3,
+    P4,
+    P5,
+    P6,
+    P7,
+    EXPRESSION,
+    INVALID
+  };
+
+  struct Memo {
+    Memo();
+    Memo(const TokenCheckpoint &cp, Rule r);
+    Parser::Rule rule;
+    uint16_t start, end;
+    std::shared_ptr<Term> term;
+    // Term is excluded from sorting, because it the payload/value, not part of the key.
+    std::strong_ordering operator<=>(const Memo &rhs) {
+      if (auto cmp = rule <=> rhs.rule; cmp != 0) return cmp;
+      else if (auto cmp = start <=> rhs.start; cmp != 0) return cmp;
+      return end <=> rhs.end;
+    }
+  };
+
   Parser(ExpressionCache &cache);
   std::shared_ptr<Register> parse_register(TokenBuffer &tok);
   std::shared_ptr<Term> parse_value(TokenBuffer &tok);
@@ -83,6 +107,21 @@ private:
                                            ParseFn parse);
   // Workaround to make parse_identifier into a ParseFn.
   std::shared_ptr<Term> parse_identifier_as_term(TokenBuffer &tok);
+};
+
+struct TokenCheckpoint {
+  inline TokenCheckpoint(TokenBuffer &buf) : _head(buf._head), _buf(buf) {}
+  template <typename T> inline std::shared_ptr<T> rollback(Parser::Rule r) {
+    _buf._head = _head;
+    return nullptr;
+  }
+  template <typename T> std::shared_ptr<T> memoize(std::shared_ptr<T> v, Parser::Rule r) {
+    Parser::Memo m(*this, r);
+    m.term = v;
+    return v;
+  }
+  size_t _head = 0;
+  TokenBuffer &_buf;
 };
 
 std::shared_ptr<Expression> compile(std::string_view expr, ExpressionCache &cache, void *builtins = nullptr);
