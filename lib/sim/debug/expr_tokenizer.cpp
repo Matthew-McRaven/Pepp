@@ -7,7 +7,7 @@ static const QRegularExpression dec("[+-]?[0-9]+");
 static const QRegularExpression debug(R"(\$\w+)");
 static const QRegularExpression ident(R"(\w+)");
 // Longest sequences must be first, because QRegularExpression stops at first match, not longest.
-static const QRegularExpression literal("==|<=|>=|!=|->|<<|>>|[=<>()/!~%^&*_+\\.|]");
+static const QRegularExpression literal("==|<=|>=|!=|->|<<|>>|[=<>()/!~%^&*\\-+\\.|]");
 } // namespace re
 
 pepp::debug::Lexer::Lexer(QStringView input) : _input(input), _offset(0) {}
