@@ -21,6 +21,8 @@ struct ExpressionCache {
     Set::iterator search = _set.find(item);
     if (search == _set.end()) {
       auto ret = std::make_shared<T>(std::forward<T>(item));
+      // Set up dependent tracking on creation.
+      ret->link();
       _set.insert(ret);
       return ret;
     } else return std::dynamic_pointer_cast<T>(*search);

@@ -25,6 +25,10 @@ std::strong_ordering pepp::debug::Variable::operator<=>(const Variable &rhs) con
 
 QString pepp::debug::Variable::to_string() const { return _name; }
 
+void pepp::debug::Variable::link() {
+  // No-op; there are no nested terms.
+}
+
 std::strong_ordering pepp::debug::Constant::operator<=>(const Term &rhs) const {
   if (type() == rhs.type()) return this->operator<=>(static_cast<const Constant &>(rhs));
   return type() <=> rhs.type();
@@ -47,9 +51,12 @@ QString pepp::debug::Constant::to_string() const {
   }
 }
 
+void pepp::debug::Constant::link() {
+  // No-op; there are no nested terms.
+}
+
 namespace {
-using namespace pepp::debug;
-using UOperators = UnaryPrefix::Operators;
+using UOperators = pepp::debug::UnaryPrefix::Operators;
 static const auto unops = std::map<UOperators, QString>{
     {UOperators::PLUS, "+"},       {UOperators::MINUS, "-"}, {UOperators::DEREFERENCE, "*"},
     {UOperators::ADDRESS_OF, "&"}, {UOperators::NOT, "!"},   {UOperators::NEGATE, "~"},
@@ -75,7 +82,9 @@ QString pepp::debug::UnaryPrefix::to_string() const {
   return u"%1%2"_s.arg(unops.at(this->_op), _arg->to_string());
 }
 
-std::optional<UnaryPrefix::Operators> pepp::debug::string_to_unary_prefix(QStringView key) {
+void pepp::debug::UnaryPrefix::link() { _arg->add_dependent(weak_from_this()); }
+
+std::optional<pepp::debug::UnaryPrefix::Operators> pepp::debug::string_to_unary_prefix(QStringView key) {
   auto result = std::find_if(unops.cbegin(), unops.cend(), [key](const auto &it) { return it.second == key; });
   if (result == unops.cend()) return std::nullopt;
   return result->first;
@@ -98,8 +107,7 @@ std::strong_ordering pepp::debug::BinaryInfix::operator<=>(const BinaryInfix &rh
 }
 
 namespace {
-using namespace pepp::debug;
-using Operators = BinaryInfix::Operators;
+using Operators = pepp::debug::BinaryInfix::Operators;
 static const auto ops = std::map<Operators, QString>{
     {Operators::DOT, "."},        {Operators::STAR_DOT, "->"},      {Operators::MULTIPLY, "*"},
     {Operators::DIVIDE, "/"},     {Operators::MODULO, "%"},         {Operators::ADD, "+"},
@@ -124,6 +132,12 @@ QString pepp::debug::BinaryInfix::to_string() const {
   return u"%1%2%3"_s.arg(_arg1->to_string(), ops.at(this->_op), _arg2->to_string());
 }
 
+void pepp::debug::BinaryInfix::link() {
+  auto weak = weak_from_this();
+  _arg1->add_dependent(weak);
+  _arg2->add_dependent(weak);
+}
+
 std::optional<pepp::debug::BinaryInfix::Operators> pepp::debug::string_to_binary_infix(QStringView key) {
   auto result = std::find_if(ops.cbegin(), ops.cend(), [key](const auto &it) { return it.second == key; });
   if (result == ops.cend()) return std::nullopt;
@@ -142,10 +156,23 @@ QString pepp::debug::Parenthesized::to_string() const {
   return u"(%1)"_s.arg(_term->to_string());
 }
 
+void pepp::debug::Parenthesized::link() { _term->add_dependent(weak_from_this()); }
+
 pepp::debug::Term::Type pepp::debug::Parenthesized::type() const { return Type::ParenExpr; }
 
 uint16_t pepp::debug::Parenthesized::depth() const { return 0; }
 
 std::strong_ordering pepp::debug::Parenthesized::operator<=>(const Parenthesized &rhs) const {
   return std::strong_ordering::equal;
+}
+
+void pepp::debug::Term::add_dependent(std::weak_ptr<Term> t) { _dependents.emplace_back(t); }
+
+bool pepp::debug::Term::dependency_of(std::shared_ptr<Term> t) {
+  auto compare = [t](const std::weak_ptr<Term> &other) {
+    if (other.expired()) return false;
+    return other.lock() == t;
+  };
+  auto it = std::find_if(_dependents.cbegin(), _dependents.cend(), compare);
+  return it != _dependents.cend();
 }

@@ -249,3 +249,54 @@ TEST_CASE("Parsing watch expressions", "[scope:sim][kind:unit][arch:*]") {
     CHECK(as_infix->to_string().toStdString() == "5 * *s");
   }
 }
+
+TEST_CASE("Evaluating watch expressions", "[scope:sim][kind:unit][arch:*]") {
+  using namespace pepp::debug;
+  SECTION("Expressions caching between compliations") {
+    ExpressionCache c;
+    Parser p(c);
+    QString body = "m * x + -b";
+    auto ast1 = p.compile(body);
+    auto ast2 = p.compile(body);
+    REQUIRE(ast1 != nullptr);
+    CHECK((void *)ast1.get() == (void *)ast2.get());
+  }
+  SECTION("Dependency track") {
+    ExpressionCache c;
+    Parser p(c);
+    QString body = "m * x + -b";
+    auto ast = p.compile(body);
+    REQUIRE(ast != nullptr);
+    auto top_plus = std::dynamic_pointer_cast<BinaryInfix>(ast);
+    REQUIRE(top_plus->_op == BinaryInfix::Operators::ADD);
+    auto mx = std::dynamic_pointer_cast<BinaryInfix>(top_plus->_arg1);
+    REQUIRE(mx != nullptr);
+    CHECK(mx->_op == BinaryInfix::Operators::MULTIPLY);
+    auto m = std::dynamic_pointer_cast<Variable>(mx->_arg1);
+    auto x = std::dynamic_pointer_cast<Variable>(mx->_arg2);
+    REQUIRE((m != nullptr && x != nullptr));
+
+    auto negb = std::dynamic_pointer_cast<UnaryPrefix>(top_plus->_arg2);
+    REQUIRE(negb != nullptr);
+    auto b = std::dynamic_pointer_cast<Variable>(negb->_arg);
+    REQUIRE(b != nullptr);
+
+    // All direct dependencies
+    CHECK(mx->dependency_of(top_plus));
+    CHECK(m->dependency_of(mx));
+    CHECK(x->dependency_of(mx));
+    CHECK(negb->dependency_of(top_plus));
+    CHECK(b->dependency_of(negb));
+    // dependency_of does not commute
+    CHECK(!top_plus->dependency_of(mx));
+    CHECK(!mx->dependency_of(m));
+    CHECK(!mx->dependency_of(x));
+    CHECK(!top_plus->dependency_of(negb));
+    CHECK(!negb->dependency_of(b));
+    // dependency_of is not transitive
+    CHECK(!top_plus->dependency_of(m));
+    CHECK(!top_plus->dependency_of(x));
+    CHECK(!top_plus->dependency_of(negb));
+    CHECK(!top_plus->dependency_of(b));
+  }
+}

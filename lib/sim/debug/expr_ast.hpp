@@ -1,11 +1,13 @@
 #pragma once
 #include <QtCore>
 #include <memory>
+#include <set>
 #include "./expr_tokenizer.hpp"
 
 namespace pepp::debug {
 
-class Term {
+// When creating a shared_ptr<Term> (or derived), must immediately call link() to link _dependents.
+class Term : public std::enable_shared_from_this<Term> {
 public:
   enum class Type {
     Variable,
@@ -21,7 +23,21 @@ public:
   virtual Type type() const = 0;
   virtual std::strong_ordering operator<=>(const Term &rhs) const = 0;
   virtual QString to_string() const = 0;
-  // std::set<std::weak_ptr<Term>> dependents;
+
+  // Add this to nested/member term's _dependents, forming a bidirectional tree.
+  // Must be called after creating a new shared_ptr!
+  virtual void link() = 0;
+  // Insert a pointer into _dependents.
+  void add_dependent(std::weak_ptr<Term> term);
+  // Returns true if t is in this _depedents set (a direct dependency).
+  // Does not account for transitive dependencies!!
+  bool dependency_of(std::shared_ptr<Term> term);
+
+protected:
+  // Track which terms may be made dirty if the current term's value changes.
+  // Use weak pointers to prevent extending lifetimes of dependents.
+  // Some dependents may be discarded during parsing,
+  std::vector<std::weak_ptr<Term>> _dependents;
 };
 
 struct Variable : public Term {
@@ -33,6 +49,7 @@ struct Variable : public Term {
   std::strong_ordering operator<=>(const Term &rhs) const override;
   std::strong_ordering operator<=>(const Variable &rhs) const;
   QString to_string() const override;
+  void link() override;
   QString _name;
 };
 
@@ -45,8 +62,9 @@ struct Constant : public Term {
   Type type() const override;
   std::strong_ordering operator<=>(const Term &rhs) const override;
   std::strong_ordering operator<=>(const Constant &rhs) const;
-  detail::UnsignedConstant _val;
   QString to_string() const override;
+  void link() override;
+  detail::UnsignedConstant _val;
 };
 
 struct BinaryInfix : public Term {
@@ -69,28 +87,34 @@ struct BinaryInfix : public Term {
     BIT_AND,
     BIT_OR,
     BIT_XOR
-  } _op;
+  };
   BinaryInfix(Operators op, std::shared_ptr<Term> arg1, std::shared_ptr<Term> arg2);
   ~BinaryInfix() = default;
-  std::shared_ptr<Term> _arg1, _arg2;
   uint16_t depth() const override;
   Type type() const override;
   std::strong_ordering operator<=>(const Term &rhs) const override;
   std::strong_ordering operator<=>(const BinaryInfix &rhs) const;
   QString to_string() const override;
+  void link() override;
+
+  Operators _op;
+  std::shared_ptr<Term> _arg1, _arg2;
 };
 std::optional<BinaryInfix::Operators> string_to_binary_infix(QStringView);
 
 struct UnaryPrefix : public Term {
-  enum class Operators { PLUS, MINUS, DEREFERENCE, ADDRESS_OF, NOT, NEGATE } _op;
+  enum class Operators { PLUS, MINUS, DEREFERENCE, ADDRESS_OF, NOT, NEGATE };
   UnaryPrefix(Operators op, std::shared_ptr<Term> arg);
   ~UnaryPrefix() = default;
-  std::shared_ptr<Term> _arg;
   std::strong_ordering operator<=>(const Term &rhs) const override;
   std::strong_ordering operator<=>(const UnaryPrefix &rhs) const;
   uint16_t depth() const override;
   Type type() const override;
   QString to_string() const override;
+  void link() override;
+
+  Operators _op;
+  std::shared_ptr<Term> _arg;
 };
 std::optional<UnaryPrefix::Operators> string_to_unary_prefix(QStringView);
 
@@ -102,10 +126,11 @@ struct Parenthesized : public Term {
   ~Parenthesized() = default;
   uint16_t depth() const override;
   Type type() const override;
-
   std::strong_ordering operator<=>(const Term &rhs) const override;
   std::strong_ordering operator<=>(const Parenthesized &rhs) const;
   QString to_string() const override;
+  void link() override;
+
   std::shared_ptr<Term> _term;
 };
 
