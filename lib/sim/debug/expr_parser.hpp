@@ -48,8 +48,10 @@ struct TokenBuffer {
 };
 
 struct TokenCheckpoint;
+struct MemoCache;
 
 struct Parser {
+  // Helper to associaite regions with parsing functions in Memo/MemoCache
   enum class Rule : uint8_t {
     REGISTER,
     VALUE,
@@ -68,60 +70,97 @@ struct Parser {
     INVALID
   };
 
-  struct Memo {
-    Memo();
-    Memo(const TokenCheckpoint &cp, Rule r);
-    Parser::Rule rule;
-    uint16_t start, end;
-    std::shared_ptr<Term> term;
-    // Term is excluded from sorting, because it the payload/value, not part of the key.
-    std::strong_ordering operator<=>(const Memo &rhs) {
-      if (auto cmp = rule <=> rhs.rule; cmp != 0) return cmp;
-      else if (auto cmp = start <=> rhs.start; cmp != 0) return cmp;
-      return end <=> rhs.end;
-    }
-  };
-
   Parser(ExpressionCache &cache);
-  std::shared_ptr<Register> parse_register(TokenBuffer &tok);
-  std::shared_ptr<Term> parse_value(TokenBuffer &tok);
-  std::shared_ptr<Term> parse_parened(TokenBuffer &tok);
-  std::shared_ptr<Constant> parse_constant(TokenBuffer &tok);
-  std::shared_ptr<Variable> parse_identifier(TokenBuffer &tok);
-  std::shared_ptr<Term> parse_p7(TokenBuffer &tok); // Bitwise ops
-  std::shared_ptr<Term> parse_p6(TokenBuffer &tok); // Equality
-  std::shared_ptr<Term> parse_p5(TokenBuffer &tok); // Inequality
-  std::shared_ptr<Term> parse_p4(TokenBuffer &tok); // Bitwise shifts
-  std::shared_ptr<Term> parse_p3(TokenBuffer &tok); // +-
-  std::shared_ptr<Term> parse_p2(TokenBuffer &tok); // *%/
-  std::shared_ptr<Term> parse_p1(TokenBuffer &tok); // Unary prefix op
-  std::shared_ptr<Term> parse_p0(TokenBuffer &tok); // member access
-  std::shared_ptr<Term> parse_expression(TokenBuffer &tok);
+  std::shared_ptr<Register> parse_register(TokenBuffer &tok, MemoCache &cache);
+  std::shared_ptr<Term> parse_value(TokenBuffer &tok, MemoCache &cache);
+  std::shared_ptr<Term> parse_parened(TokenBuffer &tok, MemoCache &cache);
+  std::shared_ptr<Constant> parse_constant(TokenBuffer &tok, MemoCache &cache);
+  std::shared_ptr<Variable> parse_identifier(TokenBuffer &tok, MemoCache &cache);
+  std::shared_ptr<Term> parse_p7(TokenBuffer &tok, MemoCache &cache); // Bitwise ops
+  std::shared_ptr<Term> parse_p6(TokenBuffer &tok, MemoCache &cache); // Equality
+  std::shared_ptr<Term> parse_p5(TokenBuffer &tok, MemoCache &cache); // Inequality
+  std::shared_ptr<Term> parse_p4(TokenBuffer &tok, MemoCache &cache); // Bitwise shifts
+  std::shared_ptr<Term> parse_p3(TokenBuffer &tok, MemoCache &cache); // +-
+  std::shared_ptr<Term> parse_p2(TokenBuffer &tok, MemoCache &cache); // *%/
+  std::shared_ptr<Term> parse_p1(TokenBuffer &tok, MemoCache &cache); // Unary prefix op
+  std::shared_ptr<Term> parse_p0(TokenBuffer &tok, MemoCache &cache); // member access
+  std::shared_ptr<Term> parse_expression(TokenBuffer &tok, MemoCache &cache);
   std::shared_ptr<Term> compile(QStringView expr, void *builtins = nullptr);
 
 private:
   ExpressionCache &_cache;
   template <typename T> std::shared_ptr<T> accept(T &&v) { return _cache.add_or_return<T>(std::move(v)); }
-  typedef std::shared_ptr<Term> (Parser::*ParseFn)(TokenBuffer &tok);
-  std::shared_ptr<Term> parse_binary_infix(TokenBuffer &tok, const std::set<BinaryInfix::Operators> &valid,
-                                           ParseFn parse);
+  typedef std::shared_ptr<Term> (Parser::*ParseFn)(TokenBuffer &tok, MemoCache &cache);
+  std::shared_ptr<Term> parse_binary_infix(TokenBuffer &tok, MemoCache &cache,
+                                           const std::set<BinaryInfix::Operators> &valid, ParseFn parse);
   // Workaround to make parse_identifier into a ParseFn.
-  std::shared_ptr<Term> parse_identifier_as_term(TokenBuffer &tok);
+  std::shared_ptr<Term> parse_identifier_as_term(TokenBuffer &tok, MemoCache &cache);
+};
+
+// Cache the results of each parsing rule to prevent exponentianl time complexity in the parser.
+struct Memo {
+  Memo();
+  // Used in memo_cache to help with match_at. Initializes start to equal end, which makes the memo empty.
+  // Then, it should compare less than any other element with the same (rule, start) for the sake of lower_bound.
+  Memo(uint16_t start_end, Parser::Rule r);
+  Memo(const TokenCheckpoint &cp, Parser::Rule r, std::shared_ptr<Term> t = nullptr);
+
+  // Term is excluded from sorting, because it the payload and not part of the key.
+  // Sorting on term WILL break usage in std::set.
+  std::strong_ordering operator<=>(const Memo &rhs) const;
+  // Makes printing with qDebug() easier.
+  operator QString() const;
+
+  Parser::Rule rule;   // To which parsing rule does this memo apply?
+  uint16_t start, end; // Token range in TokenBuffer to which memo applies.
+  // Pointer to the parsed result. Will be nullptr when trying to construct a key for MemoCache::match_at or to record a
+  // failed match.
+  // Must not be sorted on!!
+  mutable std::shared_ptr<Term> term;
+};
+
+// Mapping from (rule, start index, end index) to Term, used to reduce parsing time complexity from exponential to
+// polynomial, at the cost of quadratic memory usage. If match_at returns a nullptr, it must be interpeted as that
+// rule has not been applied to a given position yet rather than evidence that the rule failed to parse at that
+// position. This distinction is required so that this is a performance optimization rather than a correctness
+// requirement.
+struct MemoCache {
+  // If the given token index has successfully parsed under a given rule before, return the AST node.
+  // May be null, and only valid until next insert into memos set.
+  // If null, assume that you re-parse under the given rule.
+  std::tuple<std::shared_ptr<Term>, uint16_t> match_at(uint16_t position, Parser::Rule);
+  void insert(Memo &&m);
+  // Uses a set with a mutable data field because it was the first thing that came to mind.
+  std::set<Memo> memos;
 };
 
 struct TokenCheckpoint {
-  inline TokenCheckpoint(TokenBuffer &buf) : _head(buf._head), _buf(buf) {}
-  template <typename T> inline std::shared_ptr<T> rollback(Parser::Rule r) {
+  inline TokenCheckpoint(TokenBuffer &buf, MemoCache &cache) : _head(buf._head), _buf(buf), _cache(cache) {}
+  template <typename T> std::shared_ptr<T> rollback(Parser::Rule r) {
     _buf._head = _head;
     return nullptr;
   }
+  // Record that a rule successfully parsed a region of tokens from the start of this to the current position of _buf.
   template <typename T> std::shared_ptr<T> memoize(std::shared_ptr<T> v, Parser::Rule r) {
-    Parser::Memo m(*this, r);
-    m.term = v;
+    _cache.insert(Memo(*this, r, v));
     return v;
   }
+  // Method to allow skipping over already-parsed token sequences.
+  // Maybe this doesn't belong here and should be a free method, but it made for consistency in the parser having
+  // all returns be fo the form `return cp...`
+  template <typename T> std::shared_ptr<T> use_memo(std::shared_ptr<pepp::debug::Term> term, uint16_t end) {
+    // If there was no match, do not consume tokens.
+    if (term == nullptr) return nullptr;
+    // Otherwise, consume tokens and type-cast the pointer.
+    _buf._head = end;
+    // Avoid casting from T to T.
+    if constexpr (std::is_same<T, pepp::debug::Term>::value) return term;
+    else return std::dynamic_pointer_cast<T>(term);
+  }
+  inline uint16_t start() { return _head; }
   size_t _head = 0;
   TokenBuffer &_buf;
+  MemoCache &_cache;
 };
 
 std::shared_ptr<Expression> compile(std::string_view expr, ExpressionCache &cache, void *builtins = nullptr);
