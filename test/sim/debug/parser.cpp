@@ -261,7 +261,7 @@ TEST_CASE("Evaluating watch expressions", "[scope:sim][kind:unit][arch:*]") {
     REQUIRE(ast1 != nullptr);
     CHECK((void *)ast1.get() == (void *)ast2.get());
   }
-  SECTION("Dependency track") {
+  SECTION("Dependency tracking") {
     ExpressionCache c;
     Parser p(c);
     QString body = "m * x + -b";
@@ -298,5 +298,13 @@ TEST_CASE("Evaluating watch expressions", "[scope:sim][kind:unit][arch:*]") {
     CHECK(!top_plus->dependency_of(x));
     CHECK(!top_plus->dependency_of(negb));
     CHECK(!top_plus->dependency_of(b));
+  }
+  SECTION("Evaluation of constants") {
+    ExpressionCache c;
+    Parser p(c);
+    QString body = "3 * 3 + 4";
+    auto ast = p.compile(body);
+    REQUIRE(ast != nullptr);
+    CHECK(ast->evaluate(Evaluation::Mode::UseCache) == 13);
   }
 }

@@ -6,6 +6,20 @@
 
 namespace pepp::debug {
 
+namespace Evaluation {
+enum class Mode { UseCache, RecomputeSelf, RecomputeTree };
+Mode mode_for_child(Mode current);
+// Variables, registers are volatile.
+// All volatile "things" must be updated manually at the end of each simulator step
+// Then you can evaluate your top level expressions and re-generate caches if values changed.
+// This prevents having to recursively evaluate the entire tree to check for a volatile change
+enum class Volatility { NonVolatile, Volatile };
+struct State {
+  bool dirty = false;
+  std::optional<uint32_t> value = std::nullopt;
+};
+}; // namespace Evaluation
+
 // When creating a shared_ptr<Term> (or derived), must immediately call link() to link _dependents.
 class Term : public std::enable_shared_from_this<Term> {
 public:
@@ -33,6 +47,16 @@ public:
   // Does not account for transitive dependencies!!
   bool dependency_of(std::shared_ptr<Term> term);
 
+  // Evaluate this AST to a value, marking elements as not dirty as they are re-evaluated.
+  virtual uint32_t evaluate(Evaluation::Mode mode) = 0;
+
+  // Recurses upwards, marking parents as dirty as well as self.
+  void mark_tree_dirty();
+
+  // Mark self as dirty.
+  virtual void mark_dirty() = 0;
+  virtual bool dirty() const = 0;
+
 protected:
   // Track which terms may be made dirty if the current term's value changes.
   // Use weak pointers to prevent extending lifetimes of dependents.
@@ -50,6 +74,10 @@ struct Variable : public Term {
   std::strong_ordering operator<=>(const Variable &rhs) const;
   QString to_string() const override;
   void link() override;
+  uint32_t evaluate(Evaluation::Mode mode) override;
+  void mark_dirty() override;
+  bool dirty() const override;
+
   QString _name;
 };
 
@@ -64,6 +92,10 @@ struct Constant : public Term {
   std::strong_ordering operator<=>(const Constant &rhs) const;
   QString to_string() const override;
   void link() override;
+  uint32_t evaluate(Evaluation::Mode mode) override;
+  void mark_dirty() override;
+  bool dirty() const override;
+
   detail::UnsignedConstant _val;
 };
 
@@ -96,9 +128,13 @@ struct BinaryInfix : public Term {
   std::strong_ordering operator<=>(const BinaryInfix &rhs) const;
   QString to_string() const override;
   void link() override;
+  uint32_t evaluate(Evaluation::Mode mode) override;
+  void mark_dirty() override;
+  bool dirty() const override;
 
   Operators _op;
   std::shared_ptr<Term> _arg1, _arg2;
+  Evaluation::State _state;
 };
 std::optional<BinaryInfix::Operators> string_to_binary_infix(QStringView);
 
@@ -112,9 +148,13 @@ struct UnaryPrefix : public Term {
   Type type() const override;
   QString to_string() const override;
   void link() override;
+  uint32_t evaluate(Evaluation::Mode mode) override;
+  void mark_dirty() override;
+  bool dirty() const override;
 
   Operators _op;
   std::shared_ptr<Term> _arg;
+  Evaluation::State _state;
 };
 std::optional<UnaryPrefix::Operators> string_to_unary_prefix(QStringView);
 
@@ -130,6 +170,9 @@ struct Parenthesized : public Term {
   std::strong_ordering operator<=>(const Parenthesized &rhs) const;
   QString to_string() const override;
   void link() override;
+  uint32_t evaluate(Evaluation::Mode mode) override;
+  void mark_dirty() override;
+  bool dirty() const override;
 
   std::shared_ptr<Term> _term;
 };
