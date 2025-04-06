@@ -14,6 +14,8 @@ struct TypedBits {
   bool allows_address_of = false;
   ExpressionType type;
   uint64_t bits;
+
+  std::strong_ordering operator<=>(const TypedBits &rhs) const;
 };
 
 TypedBits with_bits(const TypedBits &type, uint64_t new_value);

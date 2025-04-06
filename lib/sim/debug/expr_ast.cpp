@@ -42,20 +42,21 @@ std::strong_ordering pepp::debug::Constant::operator<=>(const Term &rhs) const {
   return type() <=> rhs.type();
 }
 
-pepp::debug::Constant::Constant(const detail::UnsignedConstant &constant) { _val = constant; }
+pepp::debug::Constant::Constant(const TypedBits &bits, detail::UnsignedConstant::Format format_hint)
+    : _value(bits), _format_hint(format_hint) {}
 
 uint16_t pepp::debug::Constant::depth() const { return 0; }
 
-std::strong_ordering pepp::debug::Constant::operator<=>(const Constant &rhs) const { return _val <=> rhs._val; }
+std::strong_ordering pepp::debug::Constant::operator<=>(const Constant &rhs) const { return _value <=> rhs._value; }
 
 pepp::debug::Term::Type pepp::debug::Constant::type() const { return Type::Constant; }
 
 QString pepp::debug::Constant::to_string() const {
   using namespace Qt::Literals::StringLiterals;
   using namespace pepp::debug;
-  switch (_val.format) {
-  case detail::UnsignedConstant::Format::Dec: return u"%1"_s.arg(_val.value, 0, 10);
-  case detail::UnsignedConstant::Format::Hex: return u"0x%1"_s.arg(_val.value, 0, 16);
+  switch (_format_hint) {
+  case detail::UnsignedConstant::Format::Dec: return u"%1"_s.arg(_value.bits, 0, 10);
+  case detail::UnsignedConstant::Format::Hex: return u"0x%1"_s.arg(_value.bits, 0, 16);
   }
 }
 
@@ -63,10 +64,7 @@ void pepp::debug::Constant::link() {
   // No-op; there are no nested terms.
 }
 
-pepp::debug::TypedBits pepp::debug::Constant::evaluate(EvaluationMode) {
-  // TODO: need to gather additional type info at compile time.
-  return TypedBits{.allows_address_of = false, .type = ExpressionType::i16, .bits = this->_val.value};
-}
+pepp::debug::TypedBits pepp::debug::Constant::evaluate(EvaluationMode) { return _value; }
 
 void pepp::debug::Constant::mark_dirty() {}
 

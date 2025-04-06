@@ -27,7 +27,11 @@ std::shared_ptr<pepp::debug::Constant> pepp::debug::Parser::parse_constant(Token
   auto cp = TokenCheckpoint(tok, cache);
   if (auto [term, end] = cache.match_at(cp.start(), rule); term != nullptr) cp.use_memo<pepp::debug::Term>(term, end);
   if (auto maybe_constant = tok.match<UC>(); !std::holds_alternative<UC>(maybe_constant)) return nullptr;
-  else return cp.memoize(accept(Constant(std::get<UC>(maybe_constant))), rule);
+  else {
+    auto as_constant = std::get<UC>(maybe_constant);
+    auto bits = TypedBits{.allows_address_of = false, .type = ExpressionType::i16, .bits = as_constant.value};
+    return cp.memoize(accept(Constant(bits, as_constant.format)), rule);
+  }
 }
 
 std::shared_ptr<pepp::debug::Term> pepp::debug::Parser::parse_value(TokenBuffer &tok, MemoCache &cache) {

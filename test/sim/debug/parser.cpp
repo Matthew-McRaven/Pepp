@@ -29,8 +29,8 @@ TEST_CASE("Parsing watch expressions", "[scope:sim][kind:unit][arch:*]") {
     REQUIRE(ast != nullptr);
     auto as_const = std::dynamic_pointer_cast<Constant>(ast);
     REQUIRE(as_const != nullptr);
-    CHECK(as_const->_val.format == detail::UnsignedConstant::Format::Hex);
-    CHECK(as_const->_val.value == 0x15);
+    CHECK(as_const->_format_hint == detail::UnsignedConstant::Format::Hex);
+    CHECK(as_const->_value.bits == 0x15);
     CHECK(as_const->to_string() == "0x15");
   }
   SECTION("Unsigned Decimal constants") {
@@ -41,8 +41,8 @@ TEST_CASE("Parsing watch expressions", "[scope:sim][kind:unit][arch:*]") {
     REQUIRE(ast != nullptr);
     auto as_const = std::dynamic_pointer_cast<Constant>(ast);
     REQUIRE(as_const != nullptr);
-    CHECK(as_const->_val.format == detail::UnsignedConstant::Format::Dec);
-    CHECK(as_const->_val.value == 115);
+    CHECK(as_const->_format_hint == detail::UnsignedConstant::Format::Dec);
+    CHECK(as_const->_value.bits == 115);
     CHECK(as_const->to_string() == "115");
   }
   SECTION("Identifier") {
@@ -307,5 +307,17 @@ TEST_CASE("Evaluating watch expressions", "[scope:sim][kind:unit][arch:*]") {
     REQUIRE(ast != nullptr);
     CHECK(ast->evaluate(EvaluationMode::UseCache).type == ExpressionType::i16);
     CHECK(ast->evaluate(EvaluationMode::UseCache).bits == 13);
+  }
+  SECTION("Math with u8 and i16") {
+    ExpressionCache c;
+    auto i16 = TypedBits{.allows_address_of = false, .type = ExpressionType::i16, .bits = 257};
+    auto u8 = TypedBits{.allows_address_of = false, .type = ExpressionType::u8, .bits = 255};
+    auto lhs = c.add_or_return(Constant(i16));
+    auto rhs = c.add_or_return(Constant(u8));
+    auto plus = c.add_or_return(BinaryInfix(BinaryInfix::Operators::ADD, lhs, rhs));
+    auto eval = plus->evaluate(EvaluationMode::UseCache);
+    CHECK(eval.bits == (257 + 255));
+    CHECK(eval.type == ExpressionType::i16);
+    CHECK(rhs->evaluate(EvaluationMode::UseCache).type == ExpressionType::u8);
   }
 }

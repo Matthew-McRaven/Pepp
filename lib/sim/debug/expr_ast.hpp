@@ -71,7 +71,7 @@ struct Variable : public Term {
 struct Register : public Term {};
 
 struct Constant : public Term {
-  Constant(const detail::UnsignedConstant &constant);
+  Constant(const TypedBits &bits, detail::UnsignedConstant::Format format_hint = detail::UnsignedConstant::Format::Dec);
   ~Constant() = default;
   uint16_t depth() const override;
   Type type() const override;
@@ -83,7 +83,8 @@ struct Constant : public Term {
   void mark_dirty() override;
   bool dirty() const override;
 
-  detail::UnsignedConstant _val;
+  detail::UnsignedConstant::Format _format_hint;
+  TypedBits _value;
 };
 
 struct BinaryInfix : public Term {

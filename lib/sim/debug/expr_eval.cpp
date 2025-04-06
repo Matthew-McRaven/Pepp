@@ -48,6 +48,11 @@ pepp::debug::ExpressionType pepp::debug::common_type(ExpressionType rhs, Express
     return lhs;
   }
 }
+std::strong_ordering pepp::debug::TypedBits::operator<=>(const TypedBits &rhs) const {
+  if (auto cmp = allows_address_of <=> rhs.allows_address_of; cmp != 0) return cmp;
+  else if (auto cmp = type <=> rhs.type; cmp != 0) return cmp;
+  return bits <=> rhs.bits;
+}
 
 pepp::debug::TypedBits pepp::debug::with_bits(const TypedBits &type, uint64_t new_value) {
   return {.allows_address_of = type.allows_address_of, .type = type.type, .bits = new_value};
