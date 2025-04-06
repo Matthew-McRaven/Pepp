@@ -1,14 +1,6 @@
 #include "expr_ast.hpp"
 #include "expr_tokenizer.hpp"
 
-pepp::debug::Evaluation::Mode pepp::debug::Evaluation::mode_for_child(Mode current) {
-  switch (current) {
-  case Mode::UseCache: [[fallthrough]];
-  case Mode::RecomputeSelf: return Mode::UseCache;
-  case Mode::RecomputeTree: return Mode::RecomputeTree;
-  }
-}
-
 pepp::debug::Term::~Term() = default;
 
 std::strong_ordering pepp::debug::Variable::operator<=>(const Term &rhs) const {
@@ -37,7 +29,9 @@ void pepp::debug::Variable::link() {
   // No-op; there are no nested terms.
 }
 
-uint32_t pepp::debug::Variable::evaluate(Evaluation::Mode /*mode*/) { throw std::logic_error("Not implemented"); }
+pepp::debug::TypedBits pepp::debug::Variable::evaluate(EvaluationMode /*mode*/) {
+  throw std::logic_error("Not implemented");
+}
 
 void pepp::debug::Variable::mark_dirty() { throw std::logic_error("Not implemented"); }
 
@@ -69,7 +63,10 @@ void pepp::debug::Constant::link() {
   // No-op; there are no nested terms.
 }
 
-uint32_t pepp::debug::Constant::evaluate(Evaluation::Mode) { return this->_val.value; }
+pepp::debug::TypedBits pepp::debug::Constant::evaluate(EvaluationMode) {
+  // TODO: need to gather additional type info at compile time.
+  return TypedBits{.allows_address_of = false, .type = ExpressionType::i16, .bits = this->_val.value};
+}
 
 void pepp::debug::Constant::mark_dirty() {}
 
@@ -105,18 +102,17 @@ QString pepp::debug::UnaryPrefix::to_string() const {
 
 void pepp::debug::UnaryPrefix::link() { _arg->add_dependent(weak_from_this()); }
 
-uint32_t pepp::debug::UnaryPrefix::evaluate(Evaluation::Mode mode) {
-  if (mode == Evaluation::Mode::UseCache && !_state.dirty && _state.value.has_value()) return *_state.value;
+pepp::debug::TypedBits pepp::debug::UnaryPrefix::evaluate(EvaluationMode mode) {
+  if (mode == EvaluationMode::UseCache && !_state.dirty && _state.value.has_value()) return *_state.value;
 
-  auto child_mode = Evaluation::mode_for_child(mode);
+  auto child_mode = mode_for_child(mode);
   auto arg = _arg->evaluate(child_mode);
   _state.dirty = false;
   switch (_op) {
   case Operators::DEREFERENCE: [[fallthrough]];
   case Operators::ADDRESS_OF: throw std::logic_error("Not implemented");
-  // Probably does not work because of type cast problems, same as binary infix.
-  case Operators::PLUS: return *(_state.value = +((int32_t)arg));
-  case Operators::MINUS: return *(_state.value = -((int32_t)arg));
+  case Operators::PLUS: return *(_state.value = +arg);
+  case Operators::MINUS: return *(_state.value = -arg);
   case Operators::NOT: return *(_state.value = !arg);
   case Operators::NEGATE: return *(_state.value = ~arg);
   }
@@ -180,10 +176,12 @@ void pepp::debug::BinaryInfix::link() {
   _arg2->add_dependent(weak);
 }
 
-uint32_t pepp::debug::BinaryInfix::evaluate(Evaluation::Mode mode) {
-  if (mode == Evaluation::Mode::UseCache && !_state.dirty && _state.value.has_value()) return *_state.value;
+struct Mul {};
 
-  auto child_mode = Evaluation::mode_for_child(mode);
+pepp::debug::TypedBits pepp::debug::BinaryInfix::evaluate(EvaluationMode mode) {
+  if (mode == EvaluationMode::UseCache && !_state.dirty && _state.value.has_value()) return *_state.value;
+
+  auto child_mode = mode_for_child(mode);
   auto lhs = _arg1->evaluate(child_mode);
   auto rhs = _arg2->evaluate(child_mode);
   _state.dirty = false;
@@ -198,7 +196,6 @@ uint32_t pepp::debug::BinaryInfix::evaluate(Evaluation::Mode mode) {
   case Operators::SHIFT_LEFT: return *(_state.value = lhs << rhs);
   case Operators::SHIFT_RIGHT:
     return *(_state.value = lhs >> rhs);
-    // All comparisons are probably problematic due to sizes and types.
   case Operators::LESS: return *(_state.value = lhs < rhs);
   case Operators::LESS_OR_EQUAL: return *(_state.value = lhs <= rhs);
   case Operators::EQUAL: return *(_state.value = lhs == rhs);
@@ -235,7 +232,7 @@ QString pepp::debug::Parenthesized::to_string() const {
 
 void pepp::debug::Parenthesized::link() { _term->add_dependent(weak_from_this()); }
 
-uint32_t pepp::debug::Parenthesized::evaluate(Evaluation::Mode mode) { return _term->evaluate(mode); }
+pepp::debug::TypedBits pepp::debug::Parenthesized::evaluate(EvaluationMode mode) { return _term->evaluate(mode); }
 
 void pepp::debug::Parenthesized::mark_dirty() { _term->mark_dirty(); }
 

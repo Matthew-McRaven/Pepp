@@ -305,6 +305,7 @@ TEST_CASE("Evaluating watch expressions", "[scope:sim][kind:unit][arch:*]") {
     QString body = "3 * 3 + 4";
     auto ast = p.compile(body);
     REQUIRE(ast != nullptr);
-    CHECK(ast->evaluate(Evaluation::Mode::UseCache) == 13);
+    CHECK(ast->evaluate(EvaluationMode::UseCache).type == ExpressionType::i16);
+    CHECK(ast->evaluate(EvaluationMode::UseCache).bits == 13);
   }
 }
