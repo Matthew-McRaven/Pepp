@@ -55,6 +55,10 @@ EvaluationMode mode_for_child(EvaluationMode current);
 // This prevents having to recursively evaluate the entire tree to check for a volatile change
 enum class Volatility { NonVolatile, Volatile };
 
+struct CVQualifiers {
+  enum { Constant = 0x1, Volatile = 0x2 };
+};
+
 struct EvaluationCache {
   bool dirty = false;
   std::optional<TypedBits> value = std::nullopt;

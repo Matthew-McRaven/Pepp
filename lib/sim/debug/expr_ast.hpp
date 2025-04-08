@@ -36,6 +36,8 @@ public:
 
   // Evaluate this AST to a value, marking elements as not dirty as they are re-evaluated.
   virtual TypedBits evaluate(EvaluationMode mode) = 0;
+  // Do not recurse, only report local const/volatile qualifiers.
+  virtual int cv_qualifiers() const = 0;
 
   // Recurses upwards, marking parents as dirty as well as self.
   void mark_tree_dirty();
@@ -60,8 +62,12 @@ struct Variable : public Term {
   std::strong_ordering operator<=>(const Term &rhs) const override;
   std::strong_ordering operator<=>(const Variable &rhs) const;
   QString to_string() const override;
+
   void link() override;
+
   TypedBits evaluate(EvaluationMode mode) override;
+  int cv_qualifiers() const override;
+
   void mark_dirty() override;
   bool dirty() const override;
 
@@ -71,6 +77,19 @@ struct Variable : public Term {
 struct Register : public Term {};
 
 struct Constant : public Term {
+  template <std::integral I>
+  explicit Constant(I bits, detail::UnsignedConstant::Format format_hint = detail::UnsignedConstant::Format::Dec)
+      : _format_hint(format_hint) {
+    using T = pepp::debug::ExpressionType;
+    static_assert(sizeof(I) <= 4);
+    auto cast = static_cast<uint64_t>(bits);
+    if constexpr (std::is_same_v<I, int8_t>) _value = {.allows_address_of = false, .type = T::i8, .bits = cast};
+    else if constexpr (std::is_same_v<I, uint8_t>) _value = {.allows_address_of = false, .type = T::u8, .bits = cast};
+    else if constexpr (std::is_same_v<I, int16_t>) _value = {.allows_address_of = false, .type = T::i16, .bits = cast};
+    else if constexpr (std::is_same_v<I, uint16_t>) _value = {.allows_address_of = false, .type = T::u16, .bits = cast};
+    else if constexpr (std::is_same_v<I, int32_t>) _value = {.allows_address_of = false, .type = T::i32, .bits = cast};
+    else if constexpr (std::is_same_v<I, uint32_t>) _value = {.allows_address_of = false, .type = T::u32, .bits = cast};
+  }
   explicit Constant(const TypedBits &bits,
                     detail::UnsignedConstant::Format format_hint = detail::UnsignedConstant::Format::Dec);
   ~Constant() override = default;
@@ -81,6 +100,8 @@ struct Constant : public Term {
   QString to_string() const override;
   void link() override;
   TypedBits evaluate(EvaluationMode mode) override;
+  int cv_qualifiers() const override;
+
   void mark_dirty() override;
   bool dirty() const override;
 
@@ -118,6 +139,8 @@ struct BinaryInfix : public Term {
   QString to_string() const override;
   void link() override;
   TypedBits evaluate(EvaluationMode mode) override;
+  int cv_qualifiers() const override;
+
   void mark_dirty() override;
   bool dirty() const override;
 
@@ -138,6 +161,8 @@ struct UnaryPrefix : public Term {
   QString to_string() const override;
   void link() override;
   TypedBits evaluate(EvaluationMode mode) override;
+  int cv_qualifiers() const override;
+
   void mark_dirty() override;
   bool dirty() const override;
 
@@ -160,6 +185,8 @@ struct Parenthesized : public Term {
   QString to_string() const override;
   void link() override;
   TypedBits evaluate(EvaluationMode mode) override;
+  int cv_qualifiers() const override;
+
   void mark_dirty() override;
   bool dirty() const override;
 

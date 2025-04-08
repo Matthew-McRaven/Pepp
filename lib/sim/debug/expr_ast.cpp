@@ -32,6 +32,8 @@ pepp::debug::TypedBits pepp::debug::Variable::evaluate(EvaluationMode /*mode*/) 
   throw std::logic_error("Not implemented");
 }
 
+int pepp::debug::Variable::cv_qualifiers() const { return CVQualifiers::Volatile; }
+
 void pepp::debug::Variable::mark_dirty() { throw std::logic_error("Not implemented"); }
 
 bool pepp::debug::Variable::dirty() const { throw std::logic_error("Not implemented"); }
@@ -64,6 +66,8 @@ void pepp::debug::Constant::link() {
 }
 
 pepp::debug::TypedBits pepp::debug::Constant::evaluate(EvaluationMode) { return _value; }
+
+int pepp::debug::Constant::cv_qualifiers() const { return CVQualifiers::Constant; }
 
 void pepp::debug::Constant::mark_dirty() {}
 
@@ -112,6 +116,14 @@ pepp::debug::TypedBits pepp::debug::UnaryPrefix::evaluate(EvaluationMode mode) {
   case Operators::MINUS: return *(_state.value = -arg);
   case Operators::NOT: return *(_state.value = !arg);
   case Operators::NEGATE: return *(_state.value = ~arg);
+  }
+}
+
+int pepp::debug::UnaryPrefix::cv_qualifiers() const {
+  switch (_op) {
+  case Operators::DEREFERENCE: [[fallthrough]];
+  case Operators::ADDRESS_OF: return CVQualifiers::Volatile;
+  default: return 0;
   }
 }
 
@@ -204,6 +216,13 @@ pepp::debug::TypedBits pepp::debug::BinaryInfix::evaluate(EvaluationMode mode) {
   case Operators::BIT_XOR: return *(_state.value = lhs ^ rhs);
   }
 }
+int pepp::debug::BinaryInfix::cv_qualifiers() const {
+  switch (_op) {
+  case Operators::STAR_DOT: [[fallthrough]];
+  case Operators::DOT: return CVQualifiers::Volatile;
+  default: return 0;
+  }
+}
 
 void pepp::debug::BinaryInfix::mark_dirty() { _state.dirty = true; }
 
@@ -228,6 +247,8 @@ QString pepp::debug::Parenthesized::to_string() const {
 }
 
 void pepp::debug::Parenthesized::link() { _term->add_dependent(weak_from_this()); }
+
+int pepp::debug::Parenthesized::cv_qualifiers() const { return 0; }
 
 pepp::debug::TypedBits pepp::debug::Parenthesized::evaluate(EvaluationMode mode) { return _term->evaluate(mode); }
 
