@@ -18,7 +18,7 @@
 
 #include "sim/debug/expr_tokenizer.hpp"
 
-TEST_CASE("Lexing watch expressions", "[scope:sim][kind:unit][arch:*]") {
+TEST_CASE("Lexing watch expressions", "[scope:debug][kind:unit][arch:*]") {
   using namespace pepp::debug;
   SECTION("Decimal Constants") {
     QString body = "1024";
