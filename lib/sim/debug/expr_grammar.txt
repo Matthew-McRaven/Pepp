@@ -1,10 +1,10 @@
 expr     = p7
-p7       = p6 (&|^ p6)?
-p6       = p5 ([equality] p5)?
-p5       = p4 ([inequality] p4)?
-p4       = p3 (<<|>> p3)?
-p3       = p2 ([+-] p2)?
-p2       = p1 ([*/%] p1)?
+p7       = p6 (&|^ p7)?
+p6       = p5 ([equality] expr)?
+p5       = p4 ([inequality] expr)?
+p4       = p3 (<<|>> expr)?
+p3       = p2 ([+-] expr)?
+p2       = p1 ([*/%] expr)?
 p1       = [*+-~!&]? p0
 p0       = value | IDENT ( . | ->) IDENT
 value    = register | constant | # IDENT | IDENT | ( expr )
