@@ -45,6 +45,7 @@ std::shared_ptr<pepp::debug::Term> pepp::debug::Parser::parse_value(TokenBuffer 
     return cp.memoize(maybe_constant, rule);
   else if (auto maybe_ident = parse_identifier(tok, cache); maybe_ident != nullptr)
     return cp.memoize(maybe_ident, rule);
+  else if (auto maybe_par = parse_parened(tok, cache); maybe_par != nullptr) return cp.memoize(maybe_par, rule);
   return nullptr;
 }
 
@@ -106,10 +107,13 @@ std::shared_ptr<pepp::debug::Term> pepp::debug::Parser::parse_p1(TokenBuffer &to
   if (auto maybe_prefix = tok.match<Lit>(); std::holds_alternative<Lit>(maybe_prefix)) {
     auto lit = std::get<Lit>(maybe_prefix);
     auto op = string_to_unary_prefix(lit.literal);
-    if (!op) return cp.rollback<pepp::debug::Term>(rule);
-    auto arg = parse_p0(tok, cache);
-    if (arg == nullptr) return cp.rollback<pepp::debug::Term>(rule);
-    return cp.memoize(accept(UnaryPrefix(*op, arg)), rule);
+    // Changed from return to enable p0 to evaluate parenthetical expressions.
+    if (!op) cp.rollback<pepp::debug::Term>(rule);
+    else {
+      auto arg = parse_p0(tok, cache);
+      if (arg == nullptr) return cp.rollback<pepp::debug::Term>(rule);
+      return cp.memoize(accept(UnaryPrefix(*op, arg)), rule);
+    }
   }
   return parse_p0(tok, cache);
 }
@@ -215,7 +219,7 @@ std::shared_ptr<pepp::debug::Term> pepp::debug::Parser::parse_parened(TokenBuffe
   if (auto maybe_open = tok.match<Lit>(); !std::holds_alternative<Lit>(maybe_open))
     return cp.rollback<pepp::debug::Term>(rule);
   else if (auto open = std::get<Lit>(maybe_open); open.literal != '(') return cp.rollback<pepp::debug::Term>(rule);
-  else if (auto inner = parse_expression(tok, cache); !inner) return cp.rollback<pepp::debug::Term>(rule);
+  else if (auto inner = parse_p7(tok, cache); !inner) return cp.rollback<pepp::debug::Term>(rule);
   else if (auto maybe_close = tok.match<Lit>(); !std::holds_alternative<Lit>(maybe_close))
     return cp.rollback<pepp::debug::Term>(rule);
   else if (auto close = std::get<Lit>(maybe_close); close.literal != ')')
