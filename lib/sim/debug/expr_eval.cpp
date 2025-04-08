@@ -90,7 +90,7 @@ pepp::debug::TypedBits pepp::debug::promote(const TypedBits &value, ExpressionTy
   }
 }
 
-pepp::debug::TypedBits operator+(const pepp::debug::TypedBits &arg) {
+pepp::debug::TypedBits pepp::debug::operator+(const pepp::debug::TypedBits &arg) {
   if (pepp::debug::is_unsigned(arg.type)) return arg;
   else {
     switch (pepp::debug::bitness(arg.type)) {
@@ -101,7 +101,7 @@ pepp::debug::TypedBits operator+(const pepp::debug::TypedBits &arg) {
   }
   throw std::logic_error("Not implemented");
 }
-pepp::debug::TypedBits operator-(const pepp::debug::TypedBits &arg) {
+pepp::debug::TypedBits pepp::debug::operator-(const pepp::debug::TypedBits &arg) {
   switch (pepp::debug::bitness(arg.type)) {
   case 8: return with_bits(arg, -((int8_t)arg.bits));
   case 16: return with_bits(arg, -((int16_t)arg.bits));
@@ -109,9 +109,13 @@ pepp::debug::TypedBits operator-(const pepp::debug::TypedBits &arg) {
   }
   throw std::logic_error("Not implemented");
 }
-pepp::debug::TypedBits operator*(const pepp::debug::TypedBits &arg) { throw std::logic_error("Not implemented"); }
-pepp::debug::TypedBits operator&(const pepp::debug::TypedBits &arg) { throw std::logic_error("Not implemented"); }
-pepp::debug::TypedBits operator!(const pepp::debug::TypedBits &arg) {
+pepp::debug::TypedBits pepp::debug::_deref(const pepp::debug::TypedBits &arg) {
+  throw std::logic_error("Not implemented");
+}
+pepp::debug::TypedBits pepp::debug::_addressof(const pepp::debug::TypedBits &arg) {
+  throw std::logic_error("Not implemented");
+}
+pepp::debug::TypedBits pepp::debug::operator!(const pepp::debug::TypedBits &arg) {
   switch (pepp::debug::bitness(arg.type)) {
   case 8: return with_bits(arg, !((int8_t)arg.bits));
   case 16: return with_bits(arg, !((int16_t)arg.bits));
@@ -120,7 +124,7 @@ pepp::debug::TypedBits operator!(const pepp::debug::TypedBits &arg) {
   throw std::logic_error("Not implemented");
 }
 
-pepp::debug::TypedBits operator~(const pepp::debug::TypedBits &arg) {
+pepp::debug::TypedBits pepp::debug::operator~(const pepp::debug::TypedBits &arg) {
   switch (pepp::debug::bitness(arg.type)) {
   case 8: return with_bits(arg, ~((uint8_t)arg.bits));
   case 16: return with_bits(arg, ~((uint16_t)arg.bits));
@@ -129,97 +133,97 @@ pepp::debug::TypedBits operator~(const pepp::debug::TypedBits &arg) {
   throw std::logic_error("Not implemented");
 }
 
-pepp::debug::TypedBits operator*(const pepp::debug::TypedBits &lhs, const pepp::debug::TypedBits &rhs) {
+pepp::debug::TypedBits pepp::debug::operator*(const pepp::debug::TypedBits &lhs, const pepp::debug::TypedBits &rhs) {
   if (lhs.type == rhs.type) return pepp::debug::with_bits(lhs, lhs.bits * rhs.bits);
   auto type = pepp::debug::common_type(lhs.type, rhs.type);
-  return promote(lhs, type) > promote(rhs, type);
+  return promote(lhs, type) * promote(rhs, type);
 }
 
-pepp::debug::TypedBits operator/(const pepp::debug::TypedBits &lhs, const pepp::debug::TypedBits &rhs) {
+pepp::debug::TypedBits pepp::debug::operator/(const pepp::debug::TypedBits &lhs, const pepp::debug::TypedBits &rhs) {
   if (lhs.type == rhs.type) return pepp::debug::with_bits(lhs, lhs.bits / rhs.bits);
   auto type = pepp::debug::common_type(lhs.type, rhs.type);
   return promote(lhs, type) / promote(rhs, type);
 }
 
-pepp::debug::TypedBits operator%(const pepp::debug::TypedBits &lhs, const pepp::debug::TypedBits &rhs) {
+pepp::debug::TypedBits pepp::debug::operator%(const pepp::debug::TypedBits &lhs, const pepp::debug::TypedBits &rhs) {
   if (lhs.type == rhs.type) return pepp::debug::with_bits(lhs, lhs.bits % rhs.bits);
   auto type = pepp::debug::common_type(lhs.type, rhs.type);
   return promote(lhs, type) % promote(rhs, type);
 }
 
-pepp::debug::TypedBits operator+(const pepp::debug::TypedBits &lhs, const pepp::debug::TypedBits &rhs) {
+pepp::debug::TypedBits pepp::debug::operator+(const pepp::debug::TypedBits &lhs, const pepp::debug::TypedBits &rhs) {
   if (lhs.type == rhs.type) return pepp::debug::with_bits(lhs, lhs.bits + rhs.bits);
   auto type = pepp::debug::common_type(lhs.type, rhs.type);
   return promote(lhs, type) + promote(rhs, type);
 }
 
-pepp::debug::TypedBits operator-(const pepp::debug::TypedBits &lhs, const pepp::debug::TypedBits &rhs) {
+pepp::debug::TypedBits pepp::debug::operator-(const pepp::debug::TypedBits &lhs, const pepp::debug::TypedBits &rhs) {
   if (lhs.type == rhs.type) return pepp::debug::with_bits(lhs, lhs.bits - rhs.bits);
   auto type = pepp::debug::common_type(lhs.type, rhs.type);
   return promote(lhs, type) - promote(rhs, type);
 }
 
-pepp::debug::TypedBits operator<<(const pepp::debug::TypedBits &lhs, const pepp::debug::TypedBits &rhs) {
+pepp::debug::TypedBits pepp::debug::operator<<(const pepp::debug::TypedBits &lhs, const pepp::debug::TypedBits &rhs) {
   if (lhs.type == rhs.type) return pepp::debug::with_bits(lhs, lhs.bits << rhs.bits);
   auto type = pepp::debug::common_type(lhs.type, rhs.type);
   return promote(lhs, type) << promote(rhs, type);
 }
 
-pepp::debug::TypedBits operator>>(const pepp::debug::TypedBits &lhs, const pepp::debug::TypedBits &rhs) {
+pepp::debug::TypedBits pepp::debug::operator>>(const pepp::debug::TypedBits &lhs, const pepp::debug::TypedBits &rhs) {
   if (lhs.type == rhs.type) return pepp::debug::with_bits(lhs, lhs.bits >> rhs.bits);
   auto type = pepp::debug::common_type(lhs.type, rhs.type);
   return promote(lhs, type) >> promote(rhs, type);
 }
 
-pepp::debug::TypedBits operator<(const pepp::debug::TypedBits &lhs, const pepp::debug::TypedBits &rhs) {
+pepp::debug::TypedBits pepp::debug::_lt(const pepp::debug::TypedBits &lhs, const pepp::debug::TypedBits &rhs) {
   if (lhs.type == rhs.type) return pepp::debug::with_bits(lhs, lhs.bits < rhs.bits);
   auto type = pepp::debug::common_type(lhs.type, rhs.type);
-  return promote(lhs, type) < promote(rhs, type);
+  return _lt(promote(lhs, type), promote(rhs, type));
 }
 
-pepp::debug::TypedBits operator<=(const pepp::debug::TypedBits &lhs, const pepp::debug::TypedBits &rhs) {
+pepp::debug::TypedBits pepp::debug::_le(const pepp::debug::TypedBits &lhs, const pepp::debug::TypedBits &rhs) {
   if (lhs.type == rhs.type) return pepp::debug::with_bits(lhs, lhs.bits <= rhs.bits);
   auto type = pepp::debug::common_type(lhs.type, rhs.type);
-  return promote(lhs, type) <= promote(rhs, type);
+  return _le(promote(lhs, type), promote(rhs, type));
 }
 
-pepp::debug::TypedBits operator==(const pepp::debug::TypedBits &lhs, const pepp::debug::TypedBits &rhs) {
+pepp::debug::TypedBits pepp::debug::_eq(const pepp::debug::TypedBits &lhs, const pepp::debug::TypedBits &rhs) {
   if (lhs.type == rhs.type) return pepp::debug::with_bits(lhs, lhs.bits == rhs.bits);
   auto type = pepp::debug::common_type(lhs.type, rhs.type);
-  return promote(lhs, type) == promote(rhs, type);
+  return _eq(promote(lhs, type), promote(rhs, type));
 }
 
-pepp::debug::TypedBits operator!=(const pepp::debug::TypedBits &lhs, const pepp::debug::TypedBits &rhs) {
+pepp::debug::TypedBits pepp::debug::_ne(const pepp::debug::TypedBits &lhs, const pepp::debug::TypedBits &rhs) {
   if (lhs.type == rhs.type) return pepp::debug::with_bits(lhs, lhs.bits != rhs.bits);
   auto type = pepp::debug::common_type(lhs.type, rhs.type);
-  return promote(lhs, type) != promote(rhs, type);
+  return _ne(promote(lhs, type), promote(rhs, type));
 }
 
-pepp::debug::TypedBits operator>(const pepp::debug::TypedBits &lhs, const pepp::debug::TypedBits &rhs) {
+pepp::debug::TypedBits pepp::debug::_gt(const pepp::debug::TypedBits &lhs, const pepp::debug::TypedBits &rhs) {
   if (lhs.type == rhs.type) return pepp::debug::with_bits(lhs, lhs.bits > rhs.bits);
   auto type = pepp::debug::common_type(lhs.type, rhs.type);
-  return promote(lhs, type) > promote(rhs, type);
+  return _gt(promote(lhs, type), promote(rhs, type));
 }
 
-pepp::debug::TypedBits operator>=(const pepp::debug::TypedBits &lhs, const pepp::debug::TypedBits &rhs) {
+pepp::debug::TypedBits pepp::debug::_ge(const pepp::debug::TypedBits &lhs, const pepp::debug::TypedBits &rhs) {
   if (lhs.type == rhs.type) return pepp::debug::with_bits(lhs, lhs.bits >= rhs.bits);
   auto type = pepp::debug::common_type(lhs.type, rhs.type);
-  return promote(lhs, type) >= promote(rhs, type);
+  return _ge(promote(lhs, type), promote(rhs, type));
 }
 
-pepp::debug::TypedBits operator&(const pepp::debug::TypedBits &lhs, const pepp::debug::TypedBits &rhs) {
+pepp::debug::TypedBits pepp::debug::operator&(const pepp::debug::TypedBits &lhs, const pepp::debug::TypedBits &rhs) {
   if (lhs.type == rhs.type) return pepp::debug::with_bits(lhs, lhs.bits & rhs.bits);
   auto type = pepp::debug::common_type(lhs.type, rhs.type);
   return promote(lhs, type) & promote(rhs, type);
 }
 
-pepp::debug::TypedBits operator|(const pepp::debug::TypedBits &lhs, const pepp::debug::TypedBits &rhs) {
+pepp::debug::TypedBits pepp::debug::operator|(const pepp::debug::TypedBits &lhs, const pepp::debug::TypedBits &rhs) {
   if (lhs.type == rhs.type) return pepp::debug::with_bits(lhs, lhs.bits | rhs.bits);
   auto type = pepp::debug::common_type(lhs.type, rhs.type);
   return promote(lhs, type) | promote(rhs, type);
 }
 
-pepp::debug::TypedBits operator^(const pepp::debug::TypedBits &lhs, const pepp::debug::TypedBits &rhs) {
+pepp::debug::TypedBits pepp::debug::operator^(const pepp::debug::TypedBits &lhs, const pepp::debug::TypedBits &rhs) {
   if (lhs.type == rhs.type) return pepp::debug::with_bits(lhs, lhs.bits ^ rhs.bits);
   auto type = pepp::debug::common_type(lhs.type, rhs.type);
   return promote(lhs, type) ^ promote(rhs, type);

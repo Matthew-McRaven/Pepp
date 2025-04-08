@@ -193,12 +193,12 @@ pepp::debug::TypedBits pepp::debug::BinaryInfix::evaluate(EvaluationMode mode) {
   case Operators::SHIFT_LEFT: return *(_state.value = lhs << rhs);
   case Operators::SHIFT_RIGHT:
     return *(_state.value = lhs >> rhs);
-  case Operators::LESS: return *(_state.value = lhs < rhs);
-  case Operators::LESS_OR_EQUAL: return *(_state.value = lhs <= rhs);
-  case Operators::EQUAL: return *(_state.value = lhs == rhs);
-  case Operators::NOT_EQUAL: return *(_state.value = lhs != rhs);
-  case Operators::GREATER: return *(_state.value = lhs > rhs);
-  case Operators::GREATER_OR_EQUAL: return *(_state.value = lhs >= rhs);
+  case Operators::LESS: return *(_state.value = _lt(lhs, rhs));
+  case Operators::LESS_OR_EQUAL: return *(_state.value = _le(lhs, rhs));
+  case Operators::EQUAL: return *(_state.value = _eq(lhs, rhs));
+  case Operators::NOT_EQUAL: return *(_state.value = _ne(lhs, rhs));
+  case Operators::GREATER: return *(_state.value = _gt(lhs, rhs));
+  case Operators::GREATER_OR_EQUAL: return *(_state.value = _ge(lhs, rhs));
   case Operators::BIT_AND: return *(_state.value = lhs & rhs);
   case Operators::BIT_OR: return *(_state.value = lhs | rhs);
   case Operators::BIT_XOR: return *(_state.value = lhs ^ rhs);

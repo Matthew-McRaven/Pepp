@@ -16,6 +16,31 @@ struct TypedBits {
   uint64_t bits;
 
   std::strong_ordering operator<=>(const TypedBits &rhs) const;
+
+  friend pepp::debug::TypedBits operator+(const pepp::debug::TypedBits &arg);
+  friend pepp::debug::TypedBits operator-(const pepp::debug::TypedBits &arg);
+  // Operators I do not want to overload because I'm scared I'll break a C++ container
+  friend pepp::debug::TypedBits _deref(const pepp::debug::TypedBits &arg);
+  friend pepp::debug::TypedBits _addressof(const pepp::debug::TypedBits &arg);
+  friend pepp::debug::TypedBits operator!(const pepp::debug::TypedBits &arg);
+  friend pepp::debug::TypedBits operator~(const pepp::debug::TypedBits &arg);
+  friend pepp::debug::TypedBits operator*(const pepp::debug::TypedBits &lhs, const pepp::debug::TypedBits &rhs);
+  friend pepp::debug::TypedBits operator/(const pepp::debug::TypedBits &lhs, const pepp::debug::TypedBits &rhs);
+  friend pepp::debug::TypedBits operator%(const pepp::debug::TypedBits &lhs, const pepp::debug::TypedBits &rhs);
+  friend pepp::debug::TypedBits operator+(const pepp::debug::TypedBits &lhs, const pepp::debug::TypedBits &rhs);
+  friend pepp::debug::TypedBits operator-(const pepp::debug::TypedBits &lhs, const pepp::debug::TypedBits &rhs);
+  friend pepp::debug::TypedBits operator<<(const pepp::debug::TypedBits &lhs, const pepp::debug::TypedBits &rhs);
+  friend pepp::debug::TypedBits operator>>(const pepp::debug::TypedBits &lhs, const pepp::debug::TypedBits &rhs);
+  // Operators I do not want to overload because I'm afraid of interactions with <=> and not being a bool.
+  friend pepp::debug::TypedBits _lt(const pepp::debug::TypedBits &lhs, const pepp::debug::TypedBits &rhs);
+  friend pepp::debug::TypedBits _le(const pepp::debug::TypedBits &lhs, const pepp::debug::TypedBits &rhs);
+  friend pepp::debug::TypedBits _eq(const pepp::debug::TypedBits &lhs, const pepp::debug::TypedBits &rhs);
+  friend pepp::debug::TypedBits _ne(const pepp::debug::TypedBits &lhs, const pepp::debug::TypedBits &rhs);
+  friend pepp::debug::TypedBits _gt(const pepp::debug::TypedBits &lhs, const pepp::debug::TypedBits &rhs);
+  friend pepp::debug::TypedBits _ge(const pepp::debug::TypedBits &lhs, const pepp::debug::TypedBits &rhs);
+  friend pepp::debug::TypedBits operator&(const pepp::debug::TypedBits &lhs, const pepp::debug::TypedBits &rhs);
+  friend pepp::debug::TypedBits operator|(const pepp::debug::TypedBits &lhs, const pepp::debug::TypedBits &rhs);
+  friend pepp::debug::TypedBits operator^(const pepp::debug::TypedBits &lhs, const pepp::debug::TypedBits &rhs);
 };
 
 TypedBits with_bits(const TypedBits &type, uint64_t new_value);
@@ -36,25 +61,3 @@ struct EvaluationCache {
 };
 } // namespace pepp::debug
 
-pepp::debug::TypedBits operator+(const pepp::debug::TypedBits &arg);
-pepp::debug::TypedBits operator-(const pepp::debug::TypedBits &arg);
-pepp::debug::TypedBits operator*(const pepp::debug::TypedBits &arg);
-pepp::debug::TypedBits operator&(const pepp::debug::TypedBits &arg);
-pepp::debug::TypedBits operator!(const pepp::debug::TypedBits &arg);
-pepp::debug::TypedBits operator~(const pepp::debug::TypedBits &arg);
-pepp::debug::TypedBits operator*(const pepp::debug::TypedBits &lhs, const pepp::debug::TypedBits &rhs);
-pepp::debug::TypedBits operator/(const pepp::debug::TypedBits &lhs, const pepp::debug::TypedBits &rhs);
-pepp::debug::TypedBits operator%(const pepp::debug::TypedBits &lhs, const pepp::debug::TypedBits &rhs);
-pepp::debug::TypedBits operator+(const pepp::debug::TypedBits &lhs, const pepp::debug::TypedBits &rhs);
-pepp::debug::TypedBits operator-(const pepp::debug::TypedBits &lhs, const pepp::debug::TypedBits &rhs);
-pepp::debug::TypedBits operator<<(const pepp::debug::TypedBits &lhs, const pepp::debug::TypedBits &rhs);
-pepp::debug::TypedBits operator>>(const pepp::debug::TypedBits &lhs, const pepp::debug::TypedBits &rhs);
-pepp::debug::TypedBits operator<(const pepp::debug::TypedBits &lhs, const pepp::debug::TypedBits &rhs);
-pepp::debug::TypedBits operator<=(const pepp::debug::TypedBits &lhs, const pepp::debug::TypedBits &rhs);
-pepp::debug::TypedBits operator==(const pepp::debug::TypedBits &lhs, const pepp::debug::TypedBits &rhs);
-pepp::debug::TypedBits operator!=(const pepp::debug::TypedBits &lhs, const pepp::debug::TypedBits &rhs);
-pepp::debug::TypedBits operator>(const pepp::debug::TypedBits &lhs, const pepp::debug::TypedBits &rhs);
-pepp::debug::TypedBits operator>=(const pepp::debug::TypedBits &lhs, const pepp::debug::TypedBits &rhs);
-pepp::debug::TypedBits operator&(const pepp::debug::TypedBits &lhs, const pepp::debug::TypedBits &rhs);
-pepp::debug::TypedBits operator|(const pepp::debug::TypedBits &lhs, const pepp::debug::TypedBits &rhs);
-pepp::debug::TypedBits operator^(const pepp::debug::TypedBits &lhs, const pepp::debug::TypedBits &rhs);
