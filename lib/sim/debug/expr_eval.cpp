@@ -102,7 +102,6 @@ pepp::debug::TypedBits operator+(const pepp::debug::TypedBits &arg) {
   throw std::logic_error("Not implemented");
 }
 pepp::debug::TypedBits operator-(const pepp::debug::TypedBits &arg) {
-
   switch (pepp::debug::bitness(arg.type)) {
   case 8: return with_bits(arg, -((int8_t)arg.bits));
   case 16: return with_bits(arg, -((int16_t)arg.bits));

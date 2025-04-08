@@ -52,9 +52,9 @@ protected:
 };
 
 struct Variable : public Term {
-  Variable(const detail::Identifier &ident);
-  Variable(QString name);
-  ~Variable() = default;
+  explicit Variable(const detail::Identifier &ident);
+  explicit Variable(QString name);
+  ~Variable() override = default;
   uint16_t depth() const override;
   Type type() const override;
   std::strong_ordering operator<=>(const Term &rhs) const override;
@@ -71,8 +71,9 @@ struct Variable : public Term {
 struct Register : public Term {};
 
 struct Constant : public Term {
-  Constant(const TypedBits &bits, detail::UnsignedConstant::Format format_hint = detail::UnsignedConstant::Format::Dec);
-  ~Constant() = default;
+  explicit Constant(const TypedBits &bits,
+                    detail::UnsignedConstant::Format format_hint = detail::UnsignedConstant::Format::Dec);
+  ~Constant() override = default;
   uint16_t depth() const override;
   Type type() const override;
   std::strong_ordering operator<=>(const Term &rhs) const override;
@@ -109,7 +110,7 @@ struct BinaryInfix : public Term {
     BIT_XOR
   };
   BinaryInfix(Operators op, std::shared_ptr<Term> arg1, std::shared_ptr<Term> arg2);
-  ~BinaryInfix() = default;
+  ~BinaryInfix() override = default;
   uint16_t depth() const override;
   Type type() const override;
   std::strong_ordering operator<=>(const Term &rhs) const override;
@@ -129,7 +130,7 @@ std::optional<BinaryInfix::Operators> string_to_binary_infix(QStringView);
 struct UnaryPrefix : public Term {
   enum class Operators { PLUS, MINUS, DEREFERENCE, ADDRESS_OF, NOT, NEGATE };
   UnaryPrefix(Operators op, std::shared_ptr<Term> arg);
-  ~UnaryPrefix() = default;
+  ~UnaryPrefix() override = default;
   std::strong_ordering operator<=>(const Term &rhs) const override;
   std::strong_ordering operator<=>(const UnaryPrefix &rhs) const;
   uint16_t depth() const override;
@@ -150,8 +151,8 @@ struct Expression : public Term {};
 struct Parameters : public Term {};
 
 struct Parenthesized : public Term {
-  Parenthesized(std::shared_ptr<Term> term);
-  ~Parenthesized() = default;
+  explicit Parenthesized(std::shared_ptr<Term> term);
+  ~Parenthesized() override = default;
   uint16_t depth() const override;
   Type type() const override;
   std::strong_ordering operator<=>(const Term &rhs) const override;

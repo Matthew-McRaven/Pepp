@@ -22,7 +22,8 @@ template <> struct T<TokenType::Eof> {};
 using Eof = T<TokenType::Eof>;
 
 template <> struct T<TokenType::UnsignedConstant> {
-  enum class Format { Dec, Hex } format;
+  enum class Format { Dec, Hex };
+  Format format;
   uint64_t value = 0xFEED;
 
   std::strong_ordering operator<=>(const T<TokenType::UnsignedConstant> &rhs) const;

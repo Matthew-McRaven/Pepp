@@ -17,8 +17,7 @@ pepp::debug::Variable::Variable(QString name) : _name(name) {}
 uint16_t pepp::debug::Variable::depth() const { return 0; }
 
 std::strong_ordering pepp::debug::Variable::operator<=>(const Variable &rhs) const {
-  auto v = _name.compare(rhs._name);
-  if (v < 0) return std::strong_ordering::less;
+  if (auto v = _name.compare(rhs._name); v < 0) return std::strong_ordering::less;
   else if (v == 0) return std::strong_ordering::equal;
   return std::strong_ordering::greater;
 }
@@ -43,7 +42,7 @@ std::strong_ordering pepp::debug::Constant::operator<=>(const Term &rhs) const {
 }
 
 pepp::debug::Constant::Constant(const TypedBits &bits, detail::UnsignedConstant::Format format_hint)
-    : _value(bits), _format_hint(format_hint) {}
+    : _format_hint(format_hint), _value(bits) {}
 
 uint16_t pepp::debug::Constant::depth() const { return 0; }
 
@@ -72,7 +71,7 @@ bool pepp::debug::Constant::dirty() const { return false; }
 
 namespace {
 using UOperators = pepp::debug::UnaryPrefix::Operators;
-static const auto unops = std::map<UOperators, QString>{
+const auto unops = std::map<UOperators, QString>{
     {UOperators::PLUS, "+"},       {UOperators::MINUS, "-"}, {UOperators::DEREFERENCE, "*"},
     {UOperators::ADDRESS_OF, "&"}, {UOperators::NOT, "!"},   {UOperators::NEGATE, "~"},
 };
@@ -144,7 +143,7 @@ std::strong_ordering pepp::debug::BinaryInfix::operator<=>(const BinaryInfix &rh
 
 namespace {
 using Operators = pepp::debug::BinaryInfix::Operators;
-static const auto ops = std::map<Operators, QString>{
+const auto ops = std::map<Operators, QString>{
     {Operators::DOT, "."},        {Operators::STAR_DOT, "->"},      {Operators::MULTIPLY, "*"},
     {Operators::DIVIDE, "/"},     {Operators::MODULO, "%"},         {Operators::ADD, "+"},
     {Operators::SUBTRACT, "-"},   {Operators::SHIFT_LEFT, "<<"},    {Operators::SHIFT_RIGHT, ">>"},
@@ -152,7 +151,7 @@ static const auto ops = std::map<Operators, QString>{
     {Operators::NOT_EQUAL, "!="}, {Operators::GREATER, ">"},        {Operators::GREATER_OR_EQUAL, ">="},
     {Operators::BIT_AND, "&"},    {Operators::BIT_OR, "|"},         {Operators::BIT_XOR, "^"},
 };
-static const auto padding = std::map<Operators, bool>{
+const auto padding = std::map<Operators, bool>{
     {Operators::DOT, false},      {Operators::STAR_DOT, false},     {Operators::MULTIPLY, true},
     {Operators::DIVIDE, true},    {Operators::MODULO, true},        {Operators::ADD, true},
     {Operators::SUBTRACT, true},  {Operators::SHIFT_LEFT, false},   {Operators::SHIFT_RIGHT, false},
@@ -238,10 +237,10 @@ bool pepp::debug::Parenthesized::dirty() const { return _term->dirty(); }
 
 pepp::debug::Term::Type pepp::debug::Parenthesized::type() const { return Type::ParenExpr; }
 
-uint16_t pepp::debug::Parenthesized::depth() const { return 0; }
+uint16_t pepp::debug::Parenthesized::depth() const { return _term->depth(); }
 
 std::strong_ordering pepp::debug::Parenthesized::operator<=>(const Parenthesized &rhs) const {
-  return std::strong_ordering::equal;
+  return *_term <=> *rhs._term;
 }
 
 void pepp::debug::Term::add_dependent(std::weak_ptr<Term> t) { _dependents.emplace_back(t); }
@@ -258,7 +257,7 @@ bool pepp::debug::Term::dependency_of(std::shared_ptr<Term> t) {
 void pepp::debug::Term::mark_tree_dirty() {
   if (dirty()) return;
   mark_dirty();
-  for (auto &weak : _dependents) {
+  for (const auto &weak : _dependents) {
     if (weak.expired()) continue;
     auto shared = weak.lock();
     shared->mark_tree_dirty();
