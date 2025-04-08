@@ -54,7 +54,8 @@ std::shared_ptr<pepp::debug::Term> pepp::debug::Parser::parse_expression(TokenBu
 
 std::shared_ptr<pepp::debug::Term>
 pepp::debug::Parser::parse_binary_infix(TokenBuffer &tok, MemoCache &cache,
-                                        const std::set<BinaryInfix::Operators> &valid, Parser::ParseFn parse) {
+                                        const std::set<BinaryInfix::Operators> &valid, Parser::ParseFn parse_lhs,
+                                        Parser::ParseFn parse_rhs) {
   using LIT = detail::Literal;
   using ID = detail::Identifier;
   using Ops = BinaryInfix::Operators;
@@ -63,7 +64,7 @@ pepp::debug::Parser::parse_binary_infix(TokenBuffer &tok, MemoCache &cache,
   // I'm sorry I'm not using std::invoke. Debugging nested binary infix parsing  (2 * s + 10) has been a pain.
   // std::invoke adds multiple extra unnecessary call frames in debug mode and makes stepping more difficult.
   // Sorry to the people at isocpp (https://isocpp.org/wiki/faq/pointers-to-members)
-  auto maybe_lhs = (this->*parse)(tok, cache);
+  auto maybe_lhs = (this->*parse_lhs)(tok, cache);
   if (maybe_lhs == nullptr) return cp.rollback<pepp::debug::Term>(Rule::INVALID);
 
   auto maybe_lit = tok.match<LIT>();
@@ -74,7 +75,7 @@ pepp::debug::Parser::parse_binary_infix(TokenBuffer &tok, MemoCache &cache,
   else if (!valid.contains(*op)) return cp.rollback<pepp::debug::Term>(Rule::INVALID);
 
   // Still sorry; see above.
-  auto maybe_rhs = (this->*parse)(tok, cache);
+  auto maybe_rhs = (this->*parse_rhs)(tok, cache);
   if (maybe_rhs == nullptr) return cp.rollback<pepp::debug::Term>(Rule::INVALID);
 
   return accept(BinaryInfix(*op, maybe_lhs, maybe_rhs));
@@ -88,8 +89,8 @@ std::shared_ptr<pepp::debug::Term> pepp::debug::Parser::parse_p0(TokenBuffer &to
   if (auto [term, end] = cache.match_at(cp.start(), rule); term != nullptr)
     return cp.use_memo<pepp::debug::Term>(term, end);
 
-  if (auto maybe_member_access = parse_binary_infix(tok, cache, valid, &Parser::parse_identifier_as_term);
-      maybe_member_access != nullptr)
+  static const auto fn = &Parser::parse_identifier_as_term;
+  if (auto maybe_member_access = parse_binary_infix(tok, cache, valid, fn, fn); maybe_member_access != nullptr)
     return cp.memoize(maybe_member_access, rule);
   else if (auto value = parse_value(tok, cache); value != nullptr) return cp.memoize(value, rule);
   return cp.rollback<pepp::debug::Term>(rule);
@@ -121,7 +122,8 @@ std::shared_ptr<pepp::debug::Term> pepp::debug::Parser::parse_p2(TokenBuffer &to
   if (auto [term, end] = cache.match_at(cp.start(), rule); term != nullptr)
     return cp.use_memo<pepp::debug::Term>(term, end);
 
-  if (auto maybe_infix = parse_binary_infix(tok, cache, valid, &Parser::parse_p1); maybe_infix != nullptr)
+  if (auto maybe_infix = parse_binary_infix(tok, cache, valid, &Parser::parse_p1, &Parser::parse_p2);
+      maybe_infix != nullptr)
     return cp.memoize(maybe_infix, rule);
   else if (auto maybe_value = parse_p1(tok, cache); maybe_value != nullptr) return cp.memoize(maybe_value, rule);
   return cp.rollback<pepp::debug::Term>(rule);
@@ -135,7 +137,8 @@ std::shared_ptr<pepp::debug::Term> pepp::debug::Parser::parse_p3(TokenBuffer &to
   if (auto [term, end] = cache.match_at(cp.start(), rule); term != nullptr)
     return cp.use_memo<pepp::debug::Term>(term, end);
 
-  if (auto maybe_infix = parse_binary_infix(tok, cache, valid, &Parser::parse_p2); maybe_infix != nullptr)
+  if (auto maybe_infix = parse_binary_infix(tok, cache, valid, &Parser::parse_p2, &Parser::parse_p3);
+      maybe_infix != nullptr)
     return cp.memoize(maybe_infix, rule);
   else if (auto maybe_value = parse_p2(tok, cache); maybe_value != nullptr) return cp.memoize(maybe_value, rule);
   return cp.rollback<pepp::debug::Term>(rule);
@@ -149,7 +152,8 @@ std::shared_ptr<pepp::debug::Term> pepp::debug::Parser::parse_p4(TokenBuffer &to
   if (auto [term, end] = cache.match_at(cp.start(), rule); term != nullptr)
     return cp.use_memo<pepp::debug::Term>(term, end);
 
-  if (auto maybe_infix = parse_binary_infix(tok, cache, valid, &Parser::parse_p3); maybe_infix != nullptr)
+  if (auto maybe_infix = parse_binary_infix(tok, cache, valid, &Parser::parse_p3, &Parser::parse_p4);
+      maybe_infix != nullptr)
     return cp.memoize(maybe_infix, rule);
   else if (auto maybe_value = parse_p3(tok, cache); maybe_value != nullptr) return cp.memoize(maybe_value, rule);
   return cp.rollback<pepp::debug::Term>(rule);
@@ -164,7 +168,8 @@ std::shared_ptr<pepp::debug::Term> pepp::debug::Parser::parse_p5(TokenBuffer &to
   if (auto [term, end] = cache.match_at(cp.start(), rule); term != nullptr)
     return cp.use_memo<pepp::debug::Term>(term, end);
 
-  if (auto maybe_infix = parse_binary_infix(tok, cache, valid, &Parser::parse_p4); maybe_infix != nullptr)
+  if (auto maybe_infix = parse_binary_infix(tok, cache, valid, &Parser::parse_p4, &Parser::parse_p5);
+      maybe_infix != nullptr)
     return cp.memoize(maybe_infix, rule);
   else if (auto maybe_value = parse_p4(tok, cache); maybe_value != nullptr) return cp.memoize(maybe_value, rule);
   return cp.rollback<pepp::debug::Term>(rule);
@@ -178,7 +183,8 @@ std::shared_ptr<pepp::debug::Term> pepp::debug::Parser::parse_p6(TokenBuffer &to
   if (auto [term, end] = cache.match_at(cp.start(), rule); term != nullptr)
     return cp.use_memo<pepp::debug::Term>(term, end);
 
-  if (auto maybe_infix = parse_binary_infix(tok, cache, valid, &Parser::parse_p5); maybe_infix != nullptr)
+  if (auto maybe_infix = parse_binary_infix(tok, cache, valid, &Parser::parse_p5, &Parser::parse_p6);
+      maybe_infix != nullptr)
     return cp.memoize(maybe_infix, rule);
   else if (auto maybe_value = parse_p5(tok, cache); maybe_value != nullptr) return cp.memoize(maybe_value, rule);
   return cp.rollback<pepp::debug::Term>(rule);
@@ -192,7 +198,8 @@ std::shared_ptr<pepp::debug::Term> pepp::debug::Parser::parse_p7(TokenBuffer &to
   if (auto [term, end] = cache.match_at(cp.start(), rule); term != nullptr)
     return cp.use_memo<pepp::debug::Term>(term, end);
 
-  if (auto maybe_infix = parse_binary_infix(tok, cache, valid, &Parser::parse_p6); maybe_infix != nullptr)
+  if (auto maybe_infix = parse_binary_infix(tok, cache, valid, &Parser::parse_p6, &Parser::parse_p7);
+      maybe_infix != nullptr)
     return cp.memoize(maybe_infix, rule);
   else if (auto maybe_value = parse_p6(tok, cache); maybe_value != nullptr) return cp.memoize(maybe_value, rule);
   return cp.rollback<pepp::debug::Term>(rule);

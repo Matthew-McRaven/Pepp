@@ -94,7 +94,7 @@ private:
   template <typename T> std::shared_ptr<T> accept(T &&v) { return _cache.add_or_return<T>(std::move(v)); }
   typedef std::shared_ptr<Term> (Parser::*ParseFn)(TokenBuffer &tok, MemoCache &cache);
   std::shared_ptr<Term> parse_binary_infix(TokenBuffer &tok, MemoCache &cache,
-                                           const std::set<BinaryInfix::Operators> &valid, ParseFn parse);
+                                           const std::set<BinaryInfix::Operators> &valid, ParseFn lhs, ParseFn rhs);
   // Workaround to make parse_identifier into a ParseFn.
   std::shared_ptr<Term> parse_identifier_as_term(TokenBuffer &tok, MemoCache &cache);
 };

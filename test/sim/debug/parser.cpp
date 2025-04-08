@@ -248,6 +248,29 @@ TEST_CASE("Parsing watch expressions", "[scope:sim][kind:unit][arch:*]") {
     CHECK(as_infix->_op == BinaryInfix::Operators::MULTIPLY);
     CHECK(as_infix->to_string().toStdString() == "5 * *s");
   }
+  SECTION("Expressions at same level") {
+    ExpressionCache c;
+    Parser p(c);
+    QString body = "5 * s * 2";
+    auto ast = p.compile(body);
+    REQUIRE(ast != nullptr);
+    auto as_infix = std::dynamic_pointer_cast<BinaryInfix>(ast);
+    REQUIRE(as_infix != nullptr);
+    CHECK(as_infix->_op == BinaryInfix::Operators::MULTIPLY);
+    CHECK(as_infix->to_string().toStdString() == "5 * s * 2");
+  }
+  SECTION("Expressions at same level 2") {
+    ExpressionCache c;
+    Parser p(c);
+    // Does not work if RHS recursion is at the wrong precendence level.
+    QString body = "5 * 3 + 3 * 2";
+    auto ast = p.compile(body);
+    REQUIRE(ast != nullptr);
+    auto as_infix = std::dynamic_pointer_cast<BinaryInfix>(ast);
+    REQUIRE(as_infix != nullptr);
+    CHECK(as_infix->_op == BinaryInfix::Operators::ADD);
+    CHECK(as_infix->to_string().toStdString() == "5 * 3 + 3 * 2");
+  }
 }
 
 TEST_CASE("Evaluating watch expressions", "[scope:sim][kind:unit][arch:*]") {
