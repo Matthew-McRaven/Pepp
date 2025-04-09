@@ -7,6 +7,8 @@
 
 namespace pepp::debug {
 
+struct ConstantTermVisitor;
+struct MutatingTermVisitor;
 // When creating a shared_ptr<Term> (or derived), must immediately call link() to link _dependents.
 class Term : public std::enable_shared_from_this<Term> {
 public:
@@ -46,6 +48,9 @@ public:
   virtual void mark_dirty() = 0;
   virtual bool dirty() const = 0;
 
+  virtual void accept(MutatingTermVisitor &visitor) = 0;
+  virtual void accept(ConstantTermVisitor &visitor) const = 0;
+
 protected:
   // Track which terms may be made dirty if the current term's value changes.
   // Use weak pointers to prevent extending lifetimes of dependents.
@@ -70,6 +75,8 @@ struct Variable : public Term {
 
   void mark_dirty() override;
   bool dirty() const override;
+  virtual void accept(MutatingTermVisitor &visitor) override;
+  virtual void accept(ConstantTermVisitor &visitor) const override;
 
   QString _name;
 };
@@ -104,6 +111,8 @@ struct Constant : public Term {
 
   void mark_dirty() override;
   bool dirty() const override;
+  virtual void accept(MutatingTermVisitor &visitor) override;
+  virtual void accept(ConstantTermVisitor &visitor) const override;
 
   detail::UnsignedConstant::Format _format_hint;
   TypedBits _value;
@@ -144,6 +153,9 @@ struct BinaryInfix : public Term {
   void mark_dirty() override;
   bool dirty() const override;
 
+  virtual void accept(MutatingTermVisitor &visitor) override;
+  virtual void accept(ConstantTermVisitor &visitor) const override;
+
   Operators _op;
   std::shared_ptr<Term> _arg1, _arg2;
   EvaluationCache _state;
@@ -165,6 +177,9 @@ struct UnaryPrefix : public Term {
 
   void mark_dirty() override;
   bool dirty() const override;
+
+  virtual void accept(MutatingTermVisitor &visitor) override;
+  virtual void accept(ConstantTermVisitor &visitor) const override;
 
   Operators _op;
   std::shared_ptr<Term> _arg;
@@ -189,8 +204,26 @@ struct Parenthesized : public Term {
 
   void mark_dirty() override;
   bool dirty() const override;
+  virtual void accept(MutatingTermVisitor &visitor) override;
+  virtual void accept(ConstantTermVisitor &visitor) const override;
 
   std::shared_ptr<Term> _term;
+};
+
+// If you add a new AST node type, you'll need to add new handlers to these visitor classes.
+struct MutatingTermVisitor {
+  virtual void accept(Variable &node) = 0;
+  virtual void accept(Constant &node) = 0;
+  virtual void accept(BinaryInfix &node) = 0;
+  virtual void accept(UnaryPrefix &node) = 0;
+  virtual void accept(Parenthesized &node) = 0;
+};
+struct ConstantTermVisitor {
+  virtual void accept(const Variable &node) = 0;
+  virtual void accept(const Constant &node) = 0;
+  virtual void accept(const BinaryInfix &node) = 0;
+  virtual void accept(const UnaryPrefix &node) = 0;
+  virtual void accept(const Parenthesized &node) = 0;
 };
 
 } // namespace pepp::debug

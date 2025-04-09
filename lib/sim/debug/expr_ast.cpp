@@ -38,6 +38,10 @@ void pepp::debug::Variable::mark_dirty() { throw std::logic_error("Not implement
 
 bool pepp::debug::Variable::dirty() const { throw std::logic_error("Not implemented"); }
 
+void pepp::debug::Variable::accept(MutatingTermVisitor &visitor) { visitor.accept(*this); }
+
+void pepp::debug::Variable::accept(ConstantTermVisitor &visitor) const { visitor.accept(*this); }
+
 std::strong_ordering pepp::debug::Constant::operator<=>(const Term &rhs) const {
   if (type() == rhs.type()) return this->operator<=>(static_cast<const Constant &>(rhs));
   return type() <=> rhs.type();
@@ -72,6 +76,10 @@ int pepp::debug::Constant::cv_qualifiers() const { return CVQualifiers::Constant
 void pepp::debug::Constant::mark_dirty() {}
 
 bool pepp::debug::Constant::dirty() const { return false; }
+
+void pepp::debug::Constant::accept(MutatingTermVisitor &visitor) { visitor.accept(*this); }
+
+void pepp::debug::Constant::accept(ConstantTermVisitor &visitor) const { visitor.accept(*this); }
 
 namespace {
 using UOperators = pepp::debug::UnaryPrefix::Operators;
@@ -130,6 +138,10 @@ int pepp::debug::UnaryPrefix::cv_qualifiers() const {
 void pepp::debug::UnaryPrefix::mark_dirty() { _state.dirty = true; }
 
 bool pepp::debug::UnaryPrefix::dirty() const { return _state.dirty; }
+
+void pepp::debug::UnaryPrefix::accept(MutatingTermVisitor &visitor) { visitor.accept(*this); }
+
+void pepp::debug::UnaryPrefix::accept(ConstantTermVisitor &visitor) const { visitor.accept(*this); }
 
 std::optional<pepp::debug::UnaryPrefix::Operators> pepp::debug::string_to_unary_prefix(QStringView key) {
   auto result = std::find_if(unops.cbegin(), unops.cend(), [key](const auto &it) { return it.second == key; });
@@ -228,6 +240,10 @@ void pepp::debug::BinaryInfix::mark_dirty() { _state.dirty = true; }
 
 bool pepp::debug::BinaryInfix::dirty() const { return _state.dirty; }
 
+void pepp::debug::BinaryInfix::accept(MutatingTermVisitor &visitor) { visitor.accept(*this); }
+
+void pepp::debug::BinaryInfix::accept(ConstantTermVisitor &visitor) const { visitor.accept(*this); }
+
 std::optional<pepp::debug::BinaryInfix::Operators> pepp::debug::string_to_binary_infix(QStringView key) {
   auto result = std::find_if(ops.cbegin(), ops.cend(), [key](const auto &it) { return it.second == key; });
   if (result == ops.cend()) return std::nullopt;
@@ -255,6 +271,10 @@ pepp::debug::TypedBits pepp::debug::Parenthesized::evaluate(EvaluationMode mode)
 void pepp::debug::Parenthesized::mark_dirty() { _term->mark_dirty(); }
 
 bool pepp::debug::Parenthesized::dirty() const { return _term->dirty(); }
+
+void pepp::debug::Parenthesized::accept(MutatingTermVisitor &visitor) { visitor.accept(*this); }
+
+void pepp::debug::Parenthesized::accept(ConstantTermVisitor &visitor) const { visitor.accept(*this); }
 
 pepp::debug::Term::Type pepp::debug::Parenthesized::type() const { return Type::ParenExpr; }
 
