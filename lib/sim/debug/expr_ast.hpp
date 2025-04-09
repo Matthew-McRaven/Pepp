@@ -75,8 +75,8 @@ struct Variable : public Term {
 
   void mark_dirty() override;
   bool dirty() const override;
-  virtual void accept(MutatingTermVisitor &visitor) override;
-  virtual void accept(ConstantTermVisitor &visitor) const override;
+  void accept(MutatingTermVisitor &visitor) override;
+  void accept(ConstantTermVisitor &visitor) const override;
 
   QString _name;
 };
@@ -111,8 +111,8 @@ struct Constant : public Term {
 
   void mark_dirty() override;
   bool dirty() const override;
-  virtual void accept(MutatingTermVisitor &visitor) override;
-  virtual void accept(ConstantTermVisitor &visitor) const override;
+  void accept(MutatingTermVisitor &visitor) override;
+  void accept(ConstantTermVisitor &visitor) const override;
 
   detail::UnsignedConstant::Format _format_hint;
   TypedBits _value;
@@ -153,8 +153,8 @@ struct BinaryInfix : public Term {
   void mark_dirty() override;
   bool dirty() const override;
 
-  virtual void accept(MutatingTermVisitor &visitor) override;
-  virtual void accept(ConstantTermVisitor &visitor) const override;
+  void accept(MutatingTermVisitor &visitor) override;
+  void accept(ConstantTermVisitor &visitor) const override;
 
   Operators _op;
   std::shared_ptr<Term> _arg1, _arg2;
@@ -178,8 +178,8 @@ struct UnaryPrefix : public Term {
   void mark_dirty() override;
   bool dirty() const override;
 
-  virtual void accept(MutatingTermVisitor &visitor) override;
-  virtual void accept(ConstantTermVisitor &visitor) const override;
+  void accept(MutatingTermVisitor &visitor) override;
+  void accept(ConstantTermVisitor &visitor) const override;
 
   Operators _op;
   std::shared_ptr<Term> _arg;
@@ -204,8 +204,8 @@ struct Parenthesized : public Term {
 
   void mark_dirty() override;
   bool dirty() const override;
-  virtual void accept(MutatingTermVisitor &visitor) override;
-  virtual void accept(ConstantTermVisitor &visitor) const override;
+  void accept(MutatingTermVisitor &visitor) override;
+  void accept(ConstantTermVisitor &visitor) const override;
 
   std::shared_ptr<Term> _term;
 };
