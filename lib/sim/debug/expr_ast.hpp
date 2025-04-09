@@ -9,7 +9,8 @@ namespace pepp::debug {
 
 struct ConstantTermVisitor;
 struct MutatingTermVisitor;
-// When creating a shared_ptr<Term> (or derived), must immediately call link() to link _dependents.
+// When creating a shared_ptr<Term> (or derived), must immediately call link() to update _dependents.
+// Prefer creation through ExpressionCache, which handles this on your behalf.
 class Term : public std::enable_shared_from_this<Term> {
 public:
   enum class Type {
@@ -186,9 +187,6 @@ struct UnaryPrefix : public Term {
   EvaluationCache _state;
 };
 std::optional<UnaryPrefix::Operators> string_to_unary_prefix(QStringView);
-
-struct Expression : public Term {};
-struct Parameters : public Term {};
 
 struct Parenthesized : public Term {
   explicit Parenthesized(std::shared_ptr<Term> term);
