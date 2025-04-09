@@ -46,14 +46,14 @@ struct CountEvalVisitor : public pepp::debug::ConstantTermVisitor {
   void accept(const pepp::debug::Constant &node) override { visited.insert(&node); }
   void accept(const pepp::debug::BinaryInfix &node) override {
     visited.insert(&node);
-    node._arg1->accept(*this);
-    node._arg2->accept(*this);
+    node.lhs->accept(*this);
+    node.rhs->accept(*this);
   }
   void accept(const pepp::debug::UnaryPrefix &node) override {
     visited.insert(&node);
-    node._arg->accept(*this);
+    node.arg->accept(*this);
   }
-  void accept(const pepp::debug::Parenthesized &node) override { node._term->accept(*this); }
+  void accept(const pepp::debug::Parenthesized &node) override { node.term->accept(*this); }
 };
 
 std::size_t term_count(std::shared_ptr<const pepp::debug::Term> root) {

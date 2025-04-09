@@ -17,25 +17,25 @@ void pepp::debug::detail::IsConstantExpressionVisitor::accept(const Variable &no
 void pepp::debug::detail::IsConstantExpressionVisitor::accept(const Constant &node) {}
 
 void pepp::debug::detail::IsConstantExpressionVisitor::accept(const BinaryInfix &node) {
-  switch (node._op) {
+  switch (node.op) {
   case BinaryInfix::Operators::DOT:
   case BinaryInfix::Operators::STAR_DOT: is_constant_expression = false; return;
   default: break;
   }
-  if (node._arg1->accept(*this); !is_constant_expression) return;
-  node._arg2->accept(*this);
+  if (node.lhs->accept(*this); !is_constant_expression) return;
+  node.rhs->accept(*this);
 }
 
 void pepp::debug::detail::IsConstantExpressionVisitor::accept(const UnaryPrefix &node) {
-  switch (node._op) {
+  switch (node.op) {
   case UnaryPrefix::Operators::ADDRESS_OF:
   case UnaryPrefix::Operators::DEREFERENCE: is_constant_expression = false; return;
   default: break;
   }
-  node._arg->accept(*this);
+  node.arg->accept(*this);
 }
 
-void pepp::debug::detail::IsConstantExpressionVisitor::accept(const Parenthesized &node) { node._term->accept(*this); }
+void pepp::debug::detail::IsConstantExpressionVisitor::accept(const Parenthesized &node) { node.term->accept(*this); }
 
 void pepp::debug::detail::GatherVolatileTerms::accept(const Variable &node) {
   volatiles.insert(node.shared_from_this());
@@ -45,13 +45,13 @@ void pepp::debug::detail::GatherVolatileTerms::accept(const Constant &node) {}
 
 void pepp::debug::detail::GatherVolatileTerms::accept(const BinaryInfix &node) {
   if (node.cv_qualifiers() & CVQualifiers::Volatile) volatiles.insert(node.shared_from_this());
-  node._arg1->accept(*this);
-  node._arg2->accept(*this);
+  node.lhs->accept(*this);
+  node.rhs->accept(*this);
 }
 
 void pepp::debug::detail::GatherVolatileTerms::accept(const UnaryPrefix &node) {
   if (node.cv_qualifiers() & CVQualifiers::Volatile) volatiles.insert(node.shared_from_this());
-  node._arg->accept(*this);
+  node.arg->accept(*this);
 }
 
-void pepp::debug::detail::GatherVolatileTerms::accept(const Parenthesized &node) { node._term->accept(*this); }
+void pepp::debug::detail::GatherVolatileTerms::accept(const Parenthesized &node) { node.term->accept(*this); }

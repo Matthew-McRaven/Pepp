@@ -29,8 +29,8 @@ TEST_CASE("Parsing watch expressions", "[scope:debug][kind:unit][arch:*]") {
     REQUIRE(ast != nullptr);
     auto as_const = std::dynamic_pointer_cast<Constant>(ast);
     REQUIRE(as_const != nullptr);
-    CHECK(as_const->_format_hint == detail::UnsignedConstant::Format::Hex);
-    CHECK(as_const->_value.bits == 0x15);
+    CHECK(as_const->format_hint == detail::UnsignedConstant::Format::Hex);
+    CHECK(as_const->value.bits == 0x15);
     CHECK(as_const->to_string() == "0x15");
   }
   SECTION("Unsigned Decimal constants") {
@@ -41,8 +41,8 @@ TEST_CASE("Parsing watch expressions", "[scope:debug][kind:unit][arch:*]") {
     REQUIRE(ast != nullptr);
     auto as_const = std::dynamic_pointer_cast<Constant>(ast);
     REQUIRE(as_const != nullptr);
-    CHECK(as_const->_format_hint == detail::UnsignedConstant::Format::Dec);
-    CHECK(as_const->_value.bits == 115);
+    CHECK(as_const->format_hint == detail::UnsignedConstant::Format::Dec);
+    CHECK(as_const->value.bits == 115);
     CHECK(as_const->to_string() == "115");
   }
   SECTION("Identifier") {
@@ -63,10 +63,10 @@ TEST_CASE("Parsing watch expressions", "[scope:debug][kind:unit][arch:*]") {
     REQUIRE(ast != nullptr);
     auto as_par = std::dynamic_pointer_cast<Parenthesized>(ast);
     REQUIRE(as_par != nullptr);
-    auto as_const = std::dynamic_pointer_cast<Constant>(as_par->_term);
+    auto as_const = std::dynamic_pointer_cast<Constant>(as_par->term);
     REQUIRE(as_const != nullptr);
-    CHECK(as_const->_format_hint == detail::UnsignedConstant::Format::Dec);
-    CHECK(as_const->_value.bits == 115);
+    CHECK(as_const->format_hint == detail::UnsignedConstant::Format::Dec);
+    CHECK(as_const->value.bits == 115);
     CHECK(as_const->to_string() == "115");
   }
 
@@ -79,7 +79,7 @@ TEST_CASE("Parsing watch expressions", "[scope:debug][kind:unit][arch:*]") {
     REQUIRE(ast != nullptr);
     auto as_infix = std::dynamic_pointer_cast<BinaryInfix>(ast);
     REQUIRE(as_infix != nullptr);
-    CHECK(as_infix->_op == BinaryInfix::Operators::DOT);
+    CHECK(as_infix->op == BinaryInfix::Operators::DOT);
     CHECK(as_infix->to_string().toStdString() == "s.a");
   }
   SECTION("Member Access with ->") {
@@ -90,7 +90,7 @@ TEST_CASE("Parsing watch expressions", "[scope:debug][kind:unit][arch:*]") {
     REQUIRE(ast != nullptr);
     auto as_infix = std::dynamic_pointer_cast<BinaryInfix>(ast);
     REQUIRE(as_infix != nullptr);
-    CHECK(as_infix->_op == BinaryInfix::Operators::STAR_DOT);
+    CHECK(as_infix->op == BinaryInfix::Operators::STAR_DOT);
     CHECK(as_infix->to_string().toStdString() == "s->a");
   }
   // P1
@@ -102,7 +102,7 @@ TEST_CASE("Parsing watch expressions", "[scope:debug][kind:unit][arch:*]") {
     REQUIRE(ast != nullptr);
     auto as_prefix = std::dynamic_pointer_cast<UnaryPrefix>(ast);
     REQUIRE(as_prefix != nullptr);
-    CHECK(as_prefix->_op == UnaryPrefix::Operators::PLUS);
+    CHECK(as_prefix->op == UnaryPrefix::Operators::PLUS);
     CHECK(as_prefix->to_string().toStdString() == "+a");
   }
   SECTION("Unary Prefix: -") {
@@ -113,7 +113,7 @@ TEST_CASE("Parsing watch expressions", "[scope:debug][kind:unit][arch:*]") {
     REQUIRE(ast != nullptr);
     auto as_prefix = std::dynamic_pointer_cast<UnaryPrefix>(ast);
     REQUIRE(as_prefix != nullptr);
-    CHECK(as_prefix->_op == UnaryPrefix::Operators::MINUS);
+    CHECK(as_prefix->op == UnaryPrefix::Operators::MINUS);
     CHECK(as_prefix->to_string().toStdString() == "-a");
   }
   SECTION("Unary Prefix: *") {
@@ -124,7 +124,7 @@ TEST_CASE("Parsing watch expressions", "[scope:debug][kind:unit][arch:*]") {
     REQUIRE(ast != nullptr);
     auto as_prefix = std::dynamic_pointer_cast<UnaryPrefix>(ast);
     REQUIRE(as_prefix != nullptr);
-    CHECK(as_prefix->_op == UnaryPrefix::Operators::DEREFERENCE);
+    CHECK(as_prefix->op == UnaryPrefix::Operators::DEREFERENCE);
     CHECK(as_prefix->to_string().toStdString() == "*a");
   }
   SECTION("Unary Prefix: &") {
@@ -135,7 +135,7 @@ TEST_CASE("Parsing watch expressions", "[scope:debug][kind:unit][arch:*]") {
     REQUIRE(ast != nullptr);
     auto as_prefix = std::dynamic_pointer_cast<UnaryPrefix>(ast);
     REQUIRE(as_prefix != nullptr);
-    CHECK(as_prefix->_op == UnaryPrefix::Operators::ADDRESS_OF);
+    CHECK(as_prefix->op == UnaryPrefix::Operators::ADDRESS_OF);
     CHECK(as_prefix->to_string().toStdString() == "&a");
   }
   SECTION("Unary Prefix: !") {
@@ -146,7 +146,7 @@ TEST_CASE("Parsing watch expressions", "[scope:debug][kind:unit][arch:*]") {
     REQUIRE(ast != nullptr);
     auto as_prefix = std::dynamic_pointer_cast<UnaryPrefix>(ast);
     REQUIRE(as_prefix != nullptr);
-    CHECK(as_prefix->_op == UnaryPrefix::Operators::NOT);
+    CHECK(as_prefix->op == UnaryPrefix::Operators::NOT);
     CHECK(as_prefix->to_string().toStdString() == "!a");
   }
   SECTION("Unary Prefix: ~") {
@@ -157,7 +157,7 @@ TEST_CASE("Parsing watch expressions", "[scope:debug][kind:unit][arch:*]") {
     REQUIRE(ast != nullptr);
     auto as_prefix = std::dynamic_pointer_cast<UnaryPrefix>(ast);
     REQUIRE(as_prefix != nullptr);
-    CHECK(as_prefix->_op == UnaryPrefix::Operators::NEGATE);
+    CHECK(as_prefix->op == UnaryPrefix::Operators::NEGATE);
     CHECK(as_prefix->to_string().toStdString() == "~a");
   }
   // P2
@@ -169,7 +169,7 @@ TEST_CASE("Parsing watch expressions", "[scope:debug][kind:unit][arch:*]") {
     REQUIRE(ast != nullptr);
     auto as_infix = std::dynamic_pointer_cast<BinaryInfix>(ast);
     REQUIRE(as_infix != nullptr);
-    CHECK(as_infix->_op == BinaryInfix::Operators::MULTIPLY);
+    CHECK(as_infix->op == BinaryInfix::Operators::MULTIPLY);
     CHECK(as_infix->to_string().toStdString() == "s * 10");
   }
   // P3
@@ -182,7 +182,7 @@ TEST_CASE("Parsing watch expressions", "[scope:debug][kind:unit][arch:*]") {
     REQUIRE(ast != nullptr);
     auto as_infix = std::dynamic_pointer_cast<BinaryInfix>(ast);
     REQUIRE(as_infix != nullptr);
-    CHECK(as_infix->_op == BinaryInfix::Operators::ADD);
+    CHECK(as_infix->op == BinaryInfix::Operators::ADD);
     CHECK(as_infix->to_string().toStdString() == "8 + 10");
   }
   SECTION("Mul-Add") {
@@ -193,11 +193,11 @@ TEST_CASE("Parsing watch expressions", "[scope:debug][kind:unit][arch:*]") {
     REQUIRE(ast != nullptr);
     auto as_infix = std::dynamic_pointer_cast<BinaryInfix>(ast);
     REQUIRE(as_infix != nullptr);
-    CHECK(as_infix->_op == BinaryInfix::Operators::ADD);
+    CHECK(as_infix->op == BinaryInfix::Operators::ADD);
     CHECK(as_infix->to_string().toStdString() == "5 * s + 6");
-    auto as_nested_infix = std::dynamic_pointer_cast<BinaryInfix>(as_infix->_arg1);
+    auto as_nested_infix = std::dynamic_pointer_cast<BinaryInfix>(as_infix->lhs);
     REQUIRE(as_nested_infix != nullptr);
-    CHECK(as_nested_infix->_op == BinaryInfix::Operators::MULTIPLY);
+    CHECK(as_nested_infix->op == BinaryInfix::Operators::MULTIPLY);
     CHECK(as_nested_infix->to_string().toStdString() == "5 * s");
   }
   // P4
@@ -210,7 +210,7 @@ TEST_CASE("Parsing watch expressions", "[scope:debug][kind:unit][arch:*]") {
     REQUIRE(ast != nullptr);
     auto as_infix = std::dynamic_pointer_cast<BinaryInfix>(ast);
     REQUIRE(as_infix != nullptr);
-    CHECK(as_infix->_op == BinaryInfix::Operators::SHIFT_LEFT);
+    CHECK(as_infix->op == BinaryInfix::Operators::SHIFT_LEFT);
   }
   // P5
   SECTION("Inequality") {
@@ -222,7 +222,7 @@ TEST_CASE("Parsing watch expressions", "[scope:debug][kind:unit][arch:*]") {
     REQUIRE(ast != nullptr);
     auto as_infix = std::dynamic_pointer_cast<BinaryInfix>(ast);
     REQUIRE(as_infix != nullptr);
-    CHECK(as_infix->_op == BinaryInfix::Operators::GREATER_OR_EQUAL);
+    CHECK(as_infix->op == BinaryInfix::Operators::GREATER_OR_EQUAL);
     CHECK(as_infix->to_string().toStdString() == "8 >= 10");
   }
   // P6
@@ -235,7 +235,7 @@ TEST_CASE("Parsing watch expressions", "[scope:debug][kind:unit][arch:*]") {
     REQUIRE(ast != nullptr);
     auto as_infix = std::dynamic_pointer_cast<BinaryInfix>(ast);
     REQUIRE(as_infix != nullptr);
-    CHECK(as_infix->_op == BinaryInfix::Operators::EQUAL);
+    CHECK(as_infix->op == BinaryInfix::Operators::EQUAL);
     CHECK(as_infix->to_string().toStdString() == "8 == 10");
   }
   // P7
@@ -248,7 +248,7 @@ TEST_CASE("Parsing watch expressions", "[scope:debug][kind:unit][arch:*]") {
     REQUIRE(ast != nullptr);
     auto as_infix = std::dynamic_pointer_cast<BinaryInfix>(ast);
     REQUIRE(as_infix != nullptr);
-    CHECK(as_infix->_op == BinaryInfix::Operators::BIT_AND);
+    CHECK(as_infix->op == BinaryInfix::Operators::BIT_AND);
     CHECK(as_infix->to_string().toStdString() == "8 & 10");
   }
   // Tricky nested expressions
@@ -260,7 +260,7 @@ TEST_CASE("Parsing watch expressions", "[scope:debug][kind:unit][arch:*]") {
     REQUIRE(ast != nullptr);
     auto as_infix = std::dynamic_pointer_cast<BinaryInfix>(ast);
     REQUIRE(as_infix != nullptr);
-    CHECK(as_infix->_op == BinaryInfix::Operators::MULTIPLY);
+    CHECK(as_infix->op == BinaryInfix::Operators::MULTIPLY);
     CHECK(as_infix->to_string().toStdString() == "5 * *s");
   }
   SECTION("Expressions at same level") {
@@ -271,7 +271,7 @@ TEST_CASE("Parsing watch expressions", "[scope:debug][kind:unit][arch:*]") {
     REQUIRE(ast != nullptr);
     auto as_infix = std::dynamic_pointer_cast<BinaryInfix>(ast);
     REQUIRE(as_infix != nullptr);
-    CHECK(as_infix->_op == BinaryInfix::Operators::MULTIPLY);
+    CHECK(as_infix->op == BinaryInfix::Operators::MULTIPLY);
     CHECK(as_infix->to_string().toStdString() == "5 * s * 2");
   }
   SECTION("Expressions at same level 2") {
@@ -283,7 +283,7 @@ TEST_CASE("Parsing watch expressions", "[scope:debug][kind:unit][arch:*]") {
     REQUIRE(ast != nullptr);
     auto as_infix = std::dynamic_pointer_cast<BinaryInfix>(ast);
     REQUIRE(as_infix != nullptr);
-    CHECK(as_infix->_op == BinaryInfix::Operators::ADD);
+    CHECK(as_infix->op == BinaryInfix::Operators::ADD);
     CHECK(as_infix->to_string().toStdString() == "5 * 3 + 3 * 2");
   }
   SECTION("Now with ()") {
@@ -295,7 +295,7 @@ TEST_CASE("Parsing watch expressions", "[scope:debug][kind:unit][arch:*]") {
     REQUIRE(ast != nullptr);
     auto as_infix = std::dynamic_pointer_cast<BinaryInfix>(ast);
     REQUIRE(as_infix != nullptr);
-    CHECK(as_infix->_op == BinaryInfix::Operators::MULTIPLY);
+    CHECK(as_infix->op == BinaryInfix::Operators::MULTIPLY);
     CHECK(as_infix->to_string().toStdString() == "5 * (3 + 3) * 2");
   }
 }

@@ -78,8 +78,7 @@ struct Variable : public Term {
   bool dirty() const override;
   void accept(MutatingTermVisitor &visitor) override;
   void accept(ConstantTermVisitor &visitor) const override;
-
-  QString _name;
+  const QString name;
 };
 
 struct Register : public Term {};
@@ -87,17 +86,7 @@ struct Register : public Term {};
 struct Constant : public Term {
   template <std::integral I>
   explicit Constant(I bits, detail::UnsignedConstant::Format format_hint = detail::UnsignedConstant::Format::Dec)
-      : _format_hint(format_hint) {
-    using T = pepp::debug::ExpressionType;
-    static_assert(sizeof(I) <= 4);
-    auto cast = static_cast<uint64_t>(bits);
-    if constexpr (std::is_same_v<I, int8_t>) _value = {.allows_address_of = false, .type = T::i8, .bits = cast};
-    else if constexpr (std::is_same_v<I, uint8_t>) _value = {.allows_address_of = false, .type = T::u8, .bits = cast};
-    else if constexpr (std::is_same_v<I, int16_t>) _value = {.allows_address_of = false, .type = T::i16, .bits = cast};
-    else if constexpr (std::is_same_v<I, uint16_t>) _value = {.allows_address_of = false, .type = T::u16, .bits = cast};
-    else if constexpr (std::is_same_v<I, int32_t>) _value = {.allows_address_of = false, .type = T::i32, .bits = cast};
-    else if constexpr (std::is_same_v<I, uint32_t>) _value = {.allows_address_of = false, .type = T::u32, .bits = cast};
-  }
+      : format_hint(format_hint), value(from_int(bits)) {}
   explicit Constant(const TypedBits &bits,
                     detail::UnsignedConstant::Format format_hint = detail::UnsignedConstant::Format::Dec);
   ~Constant() override = default;
@@ -115,8 +104,8 @@ struct Constant : public Term {
   void accept(MutatingTermVisitor &visitor) override;
   void accept(ConstantTermVisitor &visitor) const override;
 
-  detail::UnsignedConstant::Format _format_hint;
-  TypedBits _value;
+  const detail::UnsignedConstant::Format format_hint;
+  const TypedBits value;
 };
 
 struct BinaryInfix : public Term {
@@ -140,7 +129,7 @@ struct BinaryInfix : public Term {
     BIT_OR,
     BIT_XOR
   };
-  BinaryInfix(Operators op, std::shared_ptr<Term> arg1, std::shared_ptr<Term> arg2);
+  BinaryInfix(Operators op, std::shared_ptr<Term> lhs, std::shared_ptr<Term> rhs);
   ~BinaryInfix() override = default;
   uint16_t depth() const override;
   Type type() const override;
@@ -157,8 +146,11 @@ struct BinaryInfix : public Term {
   void accept(MutatingTermVisitor &visitor) override;
   void accept(ConstantTermVisitor &visitor) const override;
 
-  Operators _op;
-  std::shared_ptr<Term> _arg1, _arg2;
+  const Operators op;
+  // Constant pointer to mutable object.
+  const std::shared_ptr<Term> lhs, rhs;
+
+private:
   EvaluationCache _state;
 };
 std::optional<BinaryInfix::Operators> string_to_binary_infix(QStringView);
@@ -181,9 +173,10 @@ struct UnaryPrefix : public Term {
 
   void accept(MutatingTermVisitor &visitor) override;
   void accept(ConstantTermVisitor &visitor) const override;
+  const Operators op;
+  const std::shared_ptr<Term> arg;
 
-  Operators _op;
-  std::shared_ptr<Term> _arg;
+private:
   EvaluationCache _state;
 };
 std::optional<UnaryPrefix::Operators> string_to_unary_prefix(QStringView);
@@ -205,7 +198,7 @@ struct Parenthesized : public Term {
   void accept(MutatingTermVisitor &visitor) override;
   void accept(ConstantTermVisitor &visitor) const override;
 
-  std::shared_ptr<Term> _term;
+  const std::shared_ptr<Term> term;
 };
 
 // If you add a new AST node type, you'll need to add new handlers to these visitor classes.

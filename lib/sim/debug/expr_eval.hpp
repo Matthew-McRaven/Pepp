@@ -43,6 +43,19 @@ struct TypedBits {
   friend pepp::debug::TypedBits operator^(const pepp::debug::TypedBits &lhs, const pepp::debug::TypedBits &rhs);
 };
 
+template <std::integral I> TypedBits from_int(I bits) {
+  using T = pepp::debug::ExpressionType;
+  static_assert(sizeof(I) <= 4);
+  T type;
+  auto cast = static_cast<uint64_t>(bits);
+  if constexpr (std::is_same_v<I, int8_t>) type = T::i8;
+  else if constexpr (std::is_same_v<I, uint8_t>) type = T::u8;
+  else if constexpr (std::is_same_v<I, int16_t>) type = T::i16;
+  else if constexpr (std::is_same_v<I, uint16_t>) type = T::u16;
+  else if constexpr (std::is_same_v<I, int32_t>) type = T::i32;
+  else if constexpr (std::is_same_v<I, uint32_t>) type = T::u32;
+  return TypedBits{.allows_address_of = false, .type = type, .bits = cast};
+}
 TypedBits with_bits(const TypedBits &type, uint64_t new_value);
 TypedBits promote(const TypedBits &value, ExpressionType as_type);
 

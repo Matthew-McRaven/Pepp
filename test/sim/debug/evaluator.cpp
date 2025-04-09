@@ -37,17 +37,17 @@ TEST_CASE("Evaluating watch expressions", "[scope:debug][kind:unit][arch:*]") {
     auto ast = p.compile(body);
     REQUIRE(ast != nullptr);
     auto top_plus = std::dynamic_pointer_cast<BinaryInfix>(ast);
-    REQUIRE(top_plus->_op == BinaryInfix::Operators::ADD);
-    auto mx = std::dynamic_pointer_cast<BinaryInfix>(top_plus->_arg1);
+    REQUIRE(top_plus->op == BinaryInfix::Operators::ADD);
+    auto mx = std::dynamic_pointer_cast<BinaryInfix>(top_plus->lhs);
     REQUIRE(mx != nullptr);
-    CHECK(mx->_op == BinaryInfix::Operators::MULTIPLY);
-    auto m = std::dynamic_pointer_cast<Variable>(mx->_arg1);
-    auto x = std::dynamic_pointer_cast<Variable>(mx->_arg2);
+    CHECK(mx->op == BinaryInfix::Operators::MULTIPLY);
+    auto m = std::dynamic_pointer_cast<Variable>(mx->lhs);
+    auto x = std::dynamic_pointer_cast<Variable>(mx->rhs);
     REQUIRE((m != nullptr && x != nullptr));
 
-    auto negb = std::dynamic_pointer_cast<UnaryPrefix>(top_plus->_arg2);
+    auto negb = std::dynamic_pointer_cast<UnaryPrefix>(top_plus->rhs);
     REQUIRE(negb != nullptr);
-    auto b = std::dynamic_pointer_cast<Variable>(negb->_arg);
+    auto b = std::dynamic_pointer_cast<Variable>(negb->arg);
     REQUIRE(b != nullptr);
 
     // All direct dependencies
