@@ -2,29 +2,155 @@
 
 #include "expr_ast.hpp"
 
+namespace pepp::debug::detail {
+
+struct TokenCheckpoint;
+
+struct TokenBuffer {
+  explicit inline TokenBuffer(QStringView expr) : _lex(Lexer(expr)), _tokens(), _head(0) {}
+  template <typename T> Lexer::Token match() {
+    auto next = peek<T>();
+    if (std::holds_alternative<T>(next)) _head++;
+    return next;
+  }
+  template <typename T> Lexer::Token peek() {
+    if (_head == _tokens.size()) {
+      auto token = _lex.next_token();
+      _tokens.emplace_back(token);
+    }
+    if (auto l = _tokens[_head]; std::holds_alternative<T>(l)) return l;
+    return std::monostate{};
+  }
+  Lexer _lex;
+  std::vector<Lexer::Token> _tokens;
+  size_t _head = 0;
+};
+
+// Cache the results of each parsing rule to prevent exponentianl time complexity in the parser.
+struct Memo {
+  explicit Memo();
+  explicit Memo(const TokenCheckpoint &cp, Parser::Rule r, std::shared_ptr<Term> t = nullptr);
+  // Used in memo_cache to help with match_at. Initializes start to equal end, which makes the memo empty.
+  // Then, it should compare less than any other element with the same (rule, start) for the sake of lower_bound.
+  Memo(uint16_t start_end, Parser::Rule r);
+
+  // Term is excluded from sorting, because it the payload and not part of the key.
+  // Sorting on term WILL break usage in std::set.
+  std::strong_ordering operator<=>(const Memo &rhs) const;
+  // Makes printing with qDebug() easier.
+  operator QString() const;
+
+  Parser::Rule rule;   // To which parsing rule does this memo apply?
+  uint16_t start, end; // Token range in TokenBuffer to which memo applies.
+  // Pointer to the parsed result. Will be nullptr when trying to construct a key for MemoCache::match_at or to record a
+  // failed match.
+  // Must not be sorted on!!
+  mutable std::shared_ptr<Term> term;
+};
+
+// Mapping from (rule, start index, end index) to Term, used to reduce parsing time complexity from exponential to
+// polynomial, at the cost of quadratic memory usage. If match_at returns a nullptr, it must be interpeted as that
+// rule has not been applied to a given position yet rather than evidence that the rule failed to parse at that
+// position. This distinction is required so that this is a performance optimization rather than a correctness
+// requirement.
+struct MemoCache {
+  // If the given token index has successfully parsed under a given rule before, return the AST node.
+  // May be null, and only valid until next insert into memos set.
+  // If null, assume that you re-parse under the given rule.
+  std::tuple<std::shared_ptr<Term>, uint16_t> match_at(uint16_t position, Parser::Rule);
+  void insert(Memo &&m);
+  // Uses a set with a mutable data field because it was the first thing that came to mind.
+  std::set<Memo> memos;
+};
+
+struct TokenCheckpoint {
+  inline TokenCheckpoint(TokenBuffer &buf, MemoCache &cache) : _head(buf._head), _buf(buf), _cache(cache) {}
+  template <typename T> std::shared_ptr<T> rollback([[maybe_unused]] Parser::Rule r) {
+    _buf._head = _head;
+    return nullptr;
+  }
+  // Record that a rule successfully parsed a region of tokens from the start of this to the current position of _buf.
+  template <typename T> std::shared_ptr<T> memoize(std::shared_ptr<T> v, Parser::Rule r) {
+    _cache.insert(Memo(*this, r, v));
+    return v;
+  }
+  // Method to allow skipping over already-parsed token sequences.
+  // Maybe this doesn't belong here and should be a free method, but it made for consistency in the parser having
+  // all returns be fo the form `return cp...`
+  template <typename T> std::shared_ptr<T> use_memo(std::shared_ptr<pepp::debug::Term> term, uint16_t end) {
+    // If there was no match, do not consume tokens.
+    if (term == nullptr) return nullptr;
+    // Otherwise, consume tokens and type-cast the pointer.
+    _buf._head = end;
+    // Avoid casting from T to T.
+    if constexpr (std::is_same_v<T, pepp::debug::Term>) return term;
+    else return std::dynamic_pointer_cast<T>(term);
+  }
+  inline uint16_t start() const { return _head; }
+  size_t _head = 0;
+  TokenBuffer &_buf;
+  MemoCache &_cache;
+};
+
+pepp::debug::detail::Memo::Memo() : rule(Parser::Rule::INVALID), start(0), end(0), term(nullptr) {}
+
+pepp::debug::detail::Memo::Memo(uint16_t start_end, Parser::Rule r)
+    : rule(r), start(start_end), end(start_end), term(nullptr) {}
+
+pepp::debug::detail::Memo::Memo(const TokenCheckpoint &cp, Parser::Rule r, std::shared_ptr<Term> t)
+    : rule(r), start(cp._head), end(cp._buf._head), term(t) {}
+
+std::strong_ordering pepp::debug::detail::Memo::operator<=>(const Memo &rhs) const {
+  if (auto cmp = rule <=> rhs.rule; cmp != 0) return cmp;
+  else if (auto cmp = start <=> rhs.start; cmp != 0) return cmp;
+  return end <=> rhs.end;
+}
+
+std::tuple<std::shared_ptr<pepp::debug::Term>, uint16_t> pepp::debug::detail::MemoCache::match_at(uint16_t position,
+                                                                                                  Parser::Rule rule) {
+  auto target = Memo(position, rule);
+  auto lb = memos.lower_bound(target);
+  // qDebug() << target << *lb;
+  if (lb != memos.end() && lb->rule == rule && lb->start == position) return {lb->term, lb->end};
+  return {nullptr, 0};
+}
+
+void pepp::debug::detail::MemoCache::insert(Memo &&m) { memos.insert(std::move(m)); }
+
+pepp::debug::detail::Memo::operator QString() const {
+  using namespace Qt::StringLiterals;
+  return u"%1:[%2,%3)=%4"_s.arg((int)rule, 2).arg(start, 2).arg(end, 2).arg((uint64_t)&*term, 16, 16, QChar('0'));
+}
+
+} // namespace pepp::debug::detail
+
 pepp::debug::Parser::Parser(ExpressionCache &cache) : _cache(cache) {}
 
-std::shared_ptr<pepp::debug::Term> pepp::debug::Parser::parse_identifier_as_term(TokenBuffer &tok, MemoCache &cache) {
+std::shared_ptr<pepp::debug::Term> pepp::debug::Parser::parse_identifier_as_term(detail::TokenBuffer &tok,
+                                                                                 detail::MemoCache &cache) {
   return parse_identifier(tok, cache);
 }
 
-std::shared_ptr<pepp::debug::Variable> pepp::debug::Parser::parse_identifier(TokenBuffer &tok, MemoCache &cache) {
+std::shared_ptr<pepp::debug::Variable> pepp::debug::Parser::parse_identifier(detail::TokenBuffer &tok,
+                                                                             detail::MemoCache &cache) {
   using ID = detail::Identifier;
   static const auto rule = Parser::Rule::IDENT;
-  auto cp = TokenCheckpoint(tok, cache);
+  auto cp = detail::TokenCheckpoint(tok, cache);
   if (auto [term, end] = cache.match_at(cp.start(), rule); term != nullptr)
     return cp.use_memo<pepp::debug::Variable>(term, end);
   if (auto maybe_ident = tok.match<ID>(); !std::holds_alternative<ID>(maybe_ident)) return nullptr;
   else return cp.memoize(accept(Variable(std::get<ID>(maybe_ident))), rule);
 }
-std::shared_ptr<pepp::debug::Register> pepp::debug::Parser::parse_register(TokenBuffer &tok, MemoCache &cache) {
+std::shared_ptr<pepp::debug::Register> pepp::debug::Parser::parse_register(detail::TokenBuffer &tok,
+                                                                           detail::MemoCache &cache) {
   return nullptr;
 }
 
-std::shared_ptr<pepp::debug::Constant> pepp::debug::Parser::parse_constant(TokenBuffer &tok, MemoCache &cache) {
+std::shared_ptr<pepp::debug::Constant> pepp::debug::Parser::parse_constant(detail::TokenBuffer &tok,
+                                                                           detail::MemoCache &cache) {
   using UC = detail::UnsignedConstant;
   static const auto rule = Parser::Rule::CONSTANT;
-  auto cp = TokenCheckpoint(tok, cache);
+  auto cp = detail::TokenCheckpoint(tok, cache);
   if (auto [term, end] = cache.match_at(cp.start(), rule); term != nullptr) cp.use_memo<pepp::debug::Term>(term, end);
   if (auto maybe_constant = tok.match<UC>(); !std::holds_alternative<UC>(maybe_constant)) return nullptr;
   else {
@@ -34,9 +160,10 @@ std::shared_ptr<pepp::debug::Constant> pepp::debug::Parser::parse_constant(Token
   }
 }
 
-std::shared_ptr<pepp::debug::Term> pepp::debug::Parser::parse_value(TokenBuffer &tok, MemoCache &cache) {
+std::shared_ptr<pepp::debug::Term> pepp::debug::Parser::parse_value(detail::TokenBuffer &tok,
+                                                                    detail::MemoCache &cache) {
   static const auto rule = Parser::Rule::VALUE;
-  auto cp = TokenCheckpoint(tok, cache);
+  auto cp = detail::TokenCheckpoint(tok, cache);
   if (auto [term, end] = cache.match_at(cp.start(), rule); term != nullptr)
     return cp.use_memo<pepp::debug::Term>(term, end);
 
@@ -49,18 +176,19 @@ std::shared_ptr<pepp::debug::Term> pepp::debug::Parser::parse_value(TokenBuffer 
   return nullptr;
 }
 
-std::shared_ptr<pepp::debug::Term> pepp::debug::Parser::parse_expression(TokenBuffer &tok, MemoCache &cache) {
+std::shared_ptr<pepp::debug::Term> pepp::debug::Parser::parse_expression(detail::TokenBuffer &tok,
+                                                                         detail::MemoCache &cache) {
   return nullptr;
 }
 
 std::shared_ptr<pepp::debug::Term>
-pepp::debug::Parser::parse_binary_infix(TokenBuffer &tok, MemoCache &cache,
+pepp::debug::Parser::parse_binary_infix(detail::TokenBuffer &tok, detail::MemoCache &cache,
                                         const std::set<BinaryInfix::Operators> &valid, Parser::ParseFn parse_lhs,
                                         Parser::ParseFn parse_rhs) {
   using LIT = detail::Literal;
   using ID = detail::Identifier;
   using Ops = BinaryInfix::Operators;
-  auto cp = TokenCheckpoint(tok, cache);
+  auto cp = detail::TokenCheckpoint(tok, cache);
 
   // I'm sorry I'm not using std::invoke. Debugging nested binary infix parsing  (2 * s + 10) has been a pain.
   // std::invoke adds multiple extra unnecessary call frames in debug mode and makes stepping more difficult.
@@ -82,11 +210,11 @@ pepp::debug::Parser::parse_binary_infix(TokenBuffer &tok, MemoCache &cache,
   return accept(BinaryInfix(*op, maybe_lhs, maybe_rhs));
 }
 
-std::shared_ptr<pepp::debug::Term> pepp::debug::Parser::parse_p0(TokenBuffer &tok, MemoCache &cache) {
+std::shared_ptr<pepp::debug::Term> pepp::debug::Parser::parse_p0(detail::TokenBuffer &tok, detail::MemoCache &cache) {
   using Operators = BinaryInfix::Operators;
   static const auto valid = std::set<Operators>{Operators::STAR_DOT, Operators::DOT};
   static const auto rule = Parser::Rule::P0;
-  auto cp = TokenCheckpoint(tok, cache);
+  auto cp = detail::TokenCheckpoint(tok, cache);
   if (auto [term, end] = cache.match_at(cp.start(), rule); term != nullptr)
     return cp.use_memo<pepp::debug::Term>(term, end);
 
@@ -97,10 +225,10 @@ std::shared_ptr<pepp::debug::Term> pepp::debug::Parser::parse_p0(TokenBuffer &to
   return cp.rollback<pepp::debug::Term>(rule);
 }
 
-std::shared_ptr<pepp::debug::Term> pepp::debug::Parser::parse_p1(TokenBuffer &tok, MemoCache &cache) {
+std::shared_ptr<pepp::debug::Term> pepp::debug::Parser::parse_p1(detail::TokenBuffer &tok, detail::MemoCache &cache) {
   using Lit = detail::Literal;
   static const auto rule = Parser::Rule::P1;
-  auto cp = TokenCheckpoint(tok, cache);
+  auto cp = detail::TokenCheckpoint(tok, cache);
   if (auto [term, end] = cache.match_at(cp.start(), rule); term != nullptr)
     return cp.use_memo<pepp::debug::Term>(term, end);
 
@@ -118,11 +246,11 @@ std::shared_ptr<pepp::debug::Term> pepp::debug::Parser::parse_p1(TokenBuffer &to
   return parse_p0(tok, cache);
 }
 
-std::shared_ptr<pepp::debug::Term> pepp::debug::Parser::parse_p2(TokenBuffer &tok, MemoCache &cache) {
+std::shared_ptr<pepp::debug::Term> pepp::debug::Parser::parse_p2(detail::TokenBuffer &tok, detail::MemoCache &cache) {
   using Operators = BinaryInfix::Operators;
   static const auto valid = std::set<Operators>{Operators::MULTIPLY, Operators::DIVIDE, Operators::MODULO};
   static const auto rule = Parser::Rule::P2;
-  auto cp = TokenCheckpoint(tok, cache);
+  auto cp = detail::TokenCheckpoint(tok, cache);
   if (auto [term, end] = cache.match_at(cp.start(), rule); term != nullptr)
     return cp.use_memo<pepp::debug::Term>(term, end);
 
@@ -133,11 +261,11 @@ std::shared_ptr<pepp::debug::Term> pepp::debug::Parser::parse_p2(TokenBuffer &to
   return cp.rollback<pepp::debug::Term>(rule);
 }
 
-std::shared_ptr<pepp::debug::Term> pepp::debug::Parser::parse_p3(TokenBuffer &tok, MemoCache &cache) {
+std::shared_ptr<pepp::debug::Term> pepp::debug::Parser::parse_p3(detail::TokenBuffer &tok, detail::MemoCache &cache) {
   using Operators = BinaryInfix::Operators;
   static const auto valid = std::set<Operators>{Operators::ADD, Operators::SUBTRACT};
   static const auto rule = Parser::Rule::P3;
-  auto cp = TokenCheckpoint(tok, cache);
+  auto cp = detail::TokenCheckpoint(tok, cache);
   if (auto [term, end] = cache.match_at(cp.start(), rule); term != nullptr)
     return cp.use_memo<pepp::debug::Term>(term, end);
 
@@ -148,11 +276,11 @@ std::shared_ptr<pepp::debug::Term> pepp::debug::Parser::parse_p3(TokenBuffer &to
   return cp.rollback<pepp::debug::Term>(rule);
 }
 
-std::shared_ptr<pepp::debug::Term> pepp::debug::Parser::parse_p4(TokenBuffer &tok, MemoCache &cache) {
+std::shared_ptr<pepp::debug::Term> pepp::debug::Parser::parse_p4(detail::TokenBuffer &tok, detail::MemoCache &cache) {
   using Operators = BinaryInfix::Operators;
   static const auto valid = std::set<Operators>{Operators::SHIFT_LEFT, Operators::SHIFT_RIGHT};
   static const auto rule = Parser::Rule::P4;
-  auto cp = TokenCheckpoint(tok, cache);
+  auto cp = detail::TokenCheckpoint(tok, cache);
   if (auto [term, end] = cache.match_at(cp.start(), rule); term != nullptr)
     return cp.use_memo<pepp::debug::Term>(term, end);
 
@@ -163,12 +291,12 @@ std::shared_ptr<pepp::debug::Term> pepp::debug::Parser::parse_p4(TokenBuffer &to
   return cp.rollback<pepp::debug::Term>(rule);
 }
 
-std::shared_ptr<pepp::debug::Term> pepp::debug::Parser::parse_p5(TokenBuffer &tok, MemoCache &cache) {
+std::shared_ptr<pepp::debug::Term> pepp::debug::Parser::parse_p5(detail::TokenBuffer &tok, detail::MemoCache &cache) {
   using Operators = BinaryInfix::Operators;
   static const auto valid =
       std::set<Operators>{Operators::LESS, Operators::LESS_OR_EQUAL, Operators::GREATER_OR_EQUAL, Operators::GREATER};
   static const auto rule = Parser::Rule::P5;
-  auto cp = TokenCheckpoint(tok, cache);
+  auto cp = detail::TokenCheckpoint(tok, cache);
   if (auto [term, end] = cache.match_at(cp.start(), rule); term != nullptr)
     return cp.use_memo<pepp::debug::Term>(term, end);
 
@@ -179,11 +307,11 @@ std::shared_ptr<pepp::debug::Term> pepp::debug::Parser::parse_p5(TokenBuffer &to
   return cp.rollback<pepp::debug::Term>(rule);
 }
 
-std::shared_ptr<pepp::debug::Term> pepp::debug::Parser::parse_p6(TokenBuffer &tok, MemoCache &cache) {
+std::shared_ptr<pepp::debug::Term> pepp::debug::Parser::parse_p6(detail::TokenBuffer &tok, detail::MemoCache &cache) {
   using Operators = BinaryInfix::Operators;
   static const auto valid = std::set<Operators>{Operators::EQUAL, Operators::NOT_EQUAL};
   static const auto rule = Parser::Rule::P6;
-  auto cp = TokenCheckpoint(tok, cache);
+  auto cp = detail::TokenCheckpoint(tok, cache);
   if (auto [term, end] = cache.match_at(cp.start(), rule); term != nullptr)
     return cp.use_memo<pepp::debug::Term>(term, end);
 
@@ -194,11 +322,11 @@ std::shared_ptr<pepp::debug::Term> pepp::debug::Parser::parse_p6(TokenBuffer &to
   return cp.rollback<pepp::debug::Term>(rule);
 }
 
-std::shared_ptr<pepp::debug::Term> pepp::debug::Parser::parse_p7(TokenBuffer &tok, MemoCache &cache) {
+std::shared_ptr<pepp::debug::Term> pepp::debug::Parser::parse_p7(detail::TokenBuffer &tok, detail::MemoCache &cache) {
   using Operators = BinaryInfix::Operators;
   static const auto valid = std::set<Operators>{Operators::BIT_AND, Operators::BIT_OR, Operators::BIT_XOR};
   static const auto rule = Parser::Rule::P7;
-  auto cp = TokenCheckpoint(tok, cache);
+  auto cp = detail::TokenCheckpoint(tok, cache);
   if (auto [term, end] = cache.match_at(cp.start(), rule); term != nullptr)
     return cp.use_memo<pepp::debug::Term>(term, end);
 
@@ -209,10 +337,11 @@ std::shared_ptr<pepp::debug::Term> pepp::debug::Parser::parse_p7(TokenBuffer &to
   return cp.rollback<pepp::debug::Term>(rule);
 }
 
-std::shared_ptr<pepp::debug::Term> pepp::debug::Parser::parse_parened(TokenBuffer &tok, MemoCache &cache) {
+std::shared_ptr<pepp::debug::Term> pepp::debug::Parser::parse_parened(detail::TokenBuffer &tok,
+                                                                      detail::MemoCache &cache) {
   using Lit = detail::Literal;
   static const auto rule = Parser::Rule::PAREN;
-  auto cp = TokenCheckpoint(tok, cache);
+  auto cp = detail::TokenCheckpoint(tok, cache);
   if (auto [term, end] = cache.match_at(cp.start(), rule); term != nullptr)
     return cp.use_memo<pepp::debug::Term>(term, end);
 
@@ -229,44 +358,9 @@ std::shared_ptr<pepp::debug::Term> pepp::debug::Parser::parse_parened(TokenBuffe
 }
 
 std::shared_ptr<pepp::debug::Term> pepp::debug::Parser::compile(QStringView expr, void *builtins) {
-  TokenBuffer tok(expr);
-  MemoCache cache{};
+  detail::TokenBuffer tok(expr);
+  detail::MemoCache cache{};
   auto ret = parse_p7(tok, cache);
   auto at_end = tok.peek<detail::Eof>();
   return (std::holds_alternative<std::monostate>(at_end)) ? nullptr : ret;
-}
-
-std::shared_ptr<pepp::debug::Expression> pepp::debug::compile(std::string_view expr, ExpressionCache &cache,
-                                                              void *builtins) {
-  return nullptr;
-}
-
-pepp::debug::Memo::Memo() : rule(Parser::Rule::INVALID), start(0), end(0), term(nullptr) {}
-
-pepp::debug::Memo::Memo(uint16_t start_end, Parser::Rule r)
-    : rule(r), start(start_end), end(start_end), term(nullptr) {}
-
-pepp::debug::Memo::Memo(const TokenCheckpoint &cp, Parser::Rule r, std::shared_ptr<Term> t)
-    : rule(r), start(cp._head), end(cp._buf._head), term(t) {}
-
-std::strong_ordering pepp::debug::Memo::operator<=>(const Memo &rhs) const {
-  if (auto cmp = rule <=> rhs.rule; cmp != 0) return cmp;
-  else if (auto cmp = start <=> rhs.start; cmp != 0) return cmp;
-  return end <=> rhs.end;
-}
-
-std::tuple<std::shared_ptr<pepp::debug::Term>, uint16_t> pepp::debug::MemoCache::match_at(uint16_t position,
-                                                                                          Parser::Rule rule) {
-  auto target = Memo(position, rule);
-  auto lb = memos.lower_bound(target);
-  // qDebug() << target << *lb;
-  if (lb != memos.end() && lb->rule == rule && lb->start == position) return {lb->term, lb->end};
-  return {nullptr, 0};
-}
-
-void pepp::debug::MemoCache::insert(Memo &&m) { memos.insert(std::move(m)); }
-
-pepp::debug::Memo::operator QString() const {
-  using namespace Qt::StringLiterals;
-  return u"%1:[%2,%3)=%4"_s.arg((int)rule, 2).arg(start, 2).arg(end, 2).arg((uint64_t)&*term, 16, 16, QChar('0'));
 }
