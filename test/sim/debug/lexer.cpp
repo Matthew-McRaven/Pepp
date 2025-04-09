@@ -29,6 +29,37 @@ TEST_CASE("Lexing watch expressions", "[scope:debug][kind:unit][arch:*]") {
     CHECK(narrowed.format == detail::UnsignedConstant::Format::Dec);
     CHECK(narrowed.value == 1024);
   }
+  SECTION("Decimal Constant with trailing type") {
+    QString body = "1024_u8";
+    Lexer l(body);
+    auto token = l.next_token();
+    REQUIRE(std::holds_alternative<detail::UnsignedConstant>(token));
+    auto narrowed = std::get<detail::UnsignedConstant>(token);
+    CHECK(narrowed.format == detail::UnsignedConstant::Format::Dec);
+    CHECK(narrowed.value == 1024);
+    auto token2 = l.next_token();
+    REQUIRE(std::holds_alternative<detail::ConstantType>(token2));
+    auto narrowed2 = std::get<detail::ConstantType>(token2);
+    CHECK(narrowed2.type == ExpressionType::u8);
+  }
+  SECTION("No free floating trailing types") {
+    QString body = "_u8";
+    Lexer l(body);
+    auto token = l.next_token();
+    REQUIRE(std::holds_alternative<detail::Identifier>(token));
+  }
+  SECTION("No spaces with trailing type") {
+    QString body = "1024 _u8";
+    Lexer l(body);
+    auto token = l.next_token();
+    REQUIRE(std::holds_alternative<detail::UnsignedConstant>(token));
+    auto narrowed = std::get<detail::UnsignedConstant>(token);
+    CHECK(narrowed.format == detail::UnsignedConstant::Format::Dec);
+    CHECK(narrowed.value == 1024);
+    auto token2 = l.next_token();
+    REQUIRE(std::holds_alternative<detail::Identifier>(token2));
+  }
+
   SECTION("Whole Expressions") {
     QString body = "0x25+($x *1024 )%5 + hello->yeet";
     Lexer l(body);

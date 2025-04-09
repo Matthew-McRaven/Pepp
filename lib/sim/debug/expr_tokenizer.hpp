@@ -1,11 +1,13 @@
 #pragma once
 #include <QtCore>
+#include "sim/debug/expr_types.hpp"
 
 namespace pepp::debug {
 
 namespace detail {
 enum class TokenType {
   UnsignedConstant,
+  ConstantType,
   DebugIdentifier,
   Identifier,
   Literal,
@@ -30,6 +32,12 @@ template <> struct T<TokenType::UnsignedConstant> {
 };
 using UnsignedConstant = T<TokenType::UnsignedConstant>;
 
+template <> struct T<TokenType::ConstantType> {
+  pepp::debug::ExpressionType type;
+  std::strong_ordering operator<=>(const T<TokenType::ConstantType> &rhs) const;
+};
+using ConstantType = T<TokenType::ConstantType>;
+
 template <> struct T<TokenType::Identifier> {
   QString value;
 };
@@ -45,7 +53,8 @@ template <> struct T<TokenType::Literal> {
 };
 using Literal = T<TokenType::Literal>;
 
-using Token = std::variant<std::monostate, Invalid, Eof, UnsignedConstant, Identifier, DebugIdentifier, Literal>;
+using Token =
+    std::variant<std::monostate, Invalid, Eof, UnsignedConstant, ConstantType, Identifier, DebugIdentifier, Literal>;
 } // namespace detail
 
 class Lexer {
@@ -57,6 +66,7 @@ public:
 private:
   QStringView _input;
   int _offset = 0;
+  bool _allows_trailing_type = false;
 };
 
 } // namespace pepp::debug

@@ -42,6 +42,20 @@ TEST_CASE("Parsing watch expressions", "[scope:debug][kind:unit][arch:*]") {
     auto as_const = std::dynamic_pointer_cast<Constant>(ast);
     REQUIRE(as_const != nullptr);
     CHECK(as_const->format_hint == detail::UnsignedConstant::Format::Dec);
+    CHECK(as_const->value.type == ExpressionType::i16);
+    CHECK(as_const->value.bits == 115);
+    CHECK(as_const->to_string() == "115");
+  }
+  SECTION("Decimal constant with trailing type") {
+    ExpressionCache c;
+    Parser p(c);
+    QString body = "0115_u8";
+    auto ast = p.compile(body);
+    REQUIRE(ast != nullptr);
+    auto as_const = std::dynamic_pointer_cast<Constant>(ast);
+    REQUIRE(as_const != nullptr);
+    CHECK(as_const->format_hint == detail::UnsignedConstant::Format::Dec);
+    CHECK(as_const->value.type == ExpressionType::u8);
     CHECK(as_const->value.bits == 115);
     CHECK(as_const->to_string() == "115");
   }

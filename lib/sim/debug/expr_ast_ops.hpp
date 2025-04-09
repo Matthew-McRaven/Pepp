@@ -1,5 +1,7 @@
 #pragma once
+#include <set>
 #include "sim/debug/expr_ast.hpp"
+
 namespace pepp::debug {
 bool is_constant_expression(const Term &term);
 std::vector<std::shared_ptr<const Term>> volatiles(const Term &term);

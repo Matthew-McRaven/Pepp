@@ -78,7 +78,7 @@ TEST_CASE("Evaluating watch expressions", "[scope:debug][kind:unit][arch:*]") {
     CHECK(ast->evaluate(EvaluationMode::UseCache).type == ExpressionType::i16);
     CHECK(ast->evaluate(EvaluationMode::UseCache).bits == 13);
   }
-  SECTION("Math with u8 and i16") {
+  SECTION("Math with u8 and i16 (direct construction)") {
     ExpressionCache c;
     auto i16 = TypedBits{.allows_address_of = false, .type = ExpressionType::i16, .bits = 257};
     auto u8 = TypedBits{.allows_address_of = false, .type = ExpressionType::u8, .bits = 255};
@@ -90,6 +90,21 @@ TEST_CASE("Evaluating watch expressions", "[scope:debug][kind:unit][arch:*]") {
     CHECK(eval.type == ExpressionType::i16);
     CHECK(rhs->evaluate(EvaluationMode::UseCache).type == ExpressionType::u8);
   }
+  SECTION("Parsing Math with u8 and i16 (parsing)") {
+    ExpressionCache c;
+    Parser p(c);
+    QString body = "257_i16 + 255_u8";
+    auto ast = p.compile(body);
+    REQUIRE(ast != nullptr);
+    auto as_infix = std::dynamic_pointer_cast<BinaryInfix>(ast);
+    REQUIRE(as_infix != nullptr);
+    auto eval = as_infix->evaluate(EvaluationMode::UseCache);
+    CHECK(eval.bits == (257 + 255));
+    CHECK(eval.type == ExpressionType::i16);
+    CHECK(as_infix->lhs->evaluate(EvaluationMode::UseCache).type == ExpressionType::i16);
+    CHECK(as_infix->rhs->evaluate(EvaluationMode::UseCache).type == ExpressionType::u8);
+  }
+
   SECTION("Recursive dirtying") {
     ExpressionCache c;
     Parser p(c);

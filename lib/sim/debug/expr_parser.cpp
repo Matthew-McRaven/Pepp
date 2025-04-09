@@ -149,15 +149,22 @@ std::shared_ptr<pepp::debug::Register> pepp::debug::Parser::parse_register(detai
 std::shared_ptr<pepp::debug::Constant> pepp::debug::Parser::parse_constant(detail::TokenBuffer &tok,
                                                                            detail::MemoCache &cache) {
   using UC = detail::UnsignedConstant;
+  using TYPE = detail::ConstantType;
   static const auto rule = Parser::Rule::CONSTANT;
   auto cp = detail::TokenCheckpoint(tok, cache);
   if (auto [term, end] = cache.match_at(cp.start(), rule); term != nullptr) cp.use_memo<pepp::debug::Term>(term, end);
-  if (auto maybe_constant = tok.match<UC>(); !std::holds_alternative<UC>(maybe_constant)) return nullptr;
-  else {
+  if (auto maybe_constant = tok.match<UC>(); std::holds_alternative<UC>(maybe_constant)) {
     auto as_constant = std::get<UC>(maybe_constant);
-    auto bits = TypedBits{.allows_address_of = false, .type = ExpressionType::i16, .bits = as_constant.value};
-    return cp.memoize(accept(Constant(bits, as_constant.format)), rule);
+    if (auto maybe_trailing_type = tok.match<TYPE>(); std::holds_alternative<TYPE>(maybe_trailing_type)) {
+      const auto type = std::get<TYPE>(maybe_trailing_type);
+      auto bits = TypedBits{.allows_address_of = false, .type = type.type, .bits = as_constant.value};
+      return cp.memoize(accept(Constant(bits, as_constant.format)), rule);
+    } else {
+      auto bits = TypedBits{.allows_address_of = false, .type = ExpressionType::i16, .bits = as_constant.value};
+      return cp.memoize(accept(Constant(bits, as_constant.format)), rule);
+    }
   }
+  return nullptr;
 }
 
 std::shared_ptr<pepp::debug::Term> pepp::debug::Parser::parse_value(detail::TokenBuffer &tok,
