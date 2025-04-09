@@ -3,6 +3,8 @@
 namespace pepp::debug {
 bool is_constant_expression(const Term &term);
 std::vector<std::shared_ptr<const Term>> volatiles(const Term &term);
+void mark_parents_dirty(Term &base);
+
 namespace detail {
 struct IsConstantExpressionVisitor : public ConstantTermVisitor {
   bool is_constant_expression = true;

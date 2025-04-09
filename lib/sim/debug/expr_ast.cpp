@@ -29,14 +29,15 @@ void pepp::debug::Variable::link() {
 }
 
 pepp::debug::TypedBits pepp::debug::Variable::evaluate(EvaluationMode /*mode*/) {
-  throw std::logic_error("Not implemented");
+  _state.dirty = false;
+  return *(_state.value = {.allows_address_of = true, .type = ExpressionType::i16, .bits = 0});
 }
 
 int pepp::debug::Variable::cv_qualifiers() const { return CVQualifiers::Volatile; }
 
-void pepp::debug::Variable::mark_dirty() { throw std::logic_error("Not implemented"); }
+void pepp::debug::Variable::mark_dirty() { _state.dirty = true; }
 
-bool pepp::debug::Variable::dirty() const { throw std::logic_error("Not implemented"); }
+bool pepp::debug::Variable::dirty() const { return _state.dirty; }
 
 void pepp::debug::Variable::accept(MutatingTermVisitor &visitor) { visitor.accept(*this); }
 
@@ -294,12 +295,4 @@ bool pepp::debug::Term::dependency_of(std::shared_ptr<Term> t) const {
   return it != _dependents.cend();
 }
 
-void pepp::debug::Term::mark_tree_dirty() {
-  if (dirty()) return;
-  mark_dirty();
-  for (const auto &weak : _dependents) {
-    if (weak.expired()) continue;
-    auto shared = weak.lock();
-    shared->mark_tree_dirty();
-  }
-}
+bits::span<const std::weak_ptr<pepp::debug::Term>> pepp::debug::Term::dependents() const { return _dependents; }

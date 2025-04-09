@@ -1,8 +1,8 @@
 #pragma once
 #include <QtCore>
 #include <memory>
-#include <set>
 #include "./expr_tokenizer.hpp"
+#include "bits/span.hpp"
 #include "expr_eval.hpp"
 
 namespace pepp::debug {
@@ -36,14 +36,12 @@ public:
   // Returns true if t is in this _depedents set (a direct dependency).
   // Does not account for transitive dependencies!!
   bool dependency_of(std::shared_ptr<Term> term) const;
+  bits::span<const std::weak_ptr<Term>> dependents() const;
 
   // Evaluate this AST to a value, marking elements as not dirty as they are re-evaluated.
   virtual TypedBits evaluate(EvaluationMode mode) = 0;
   // Do not recurse, only report local const/volatile qualifiers.
   virtual int cv_qualifiers() const = 0;
-
-  // Recurses upwards, marking parents as dirty as well as self.
-  void mark_tree_dirty();
 
   // Mark self as dirty.
   virtual void mark_dirty() = 0;
@@ -79,6 +77,9 @@ struct Variable : public Term {
   void accept(MutatingTermVisitor &visitor) override;
   void accept(ConstantTermVisitor &visitor) const override;
   const QString name;
+
+private:
+  EvaluationCache _state;
 };
 
 struct Register : public Term {};

@@ -16,6 +16,7 @@
 
 #include <catch.hpp>
 
+#include "sim/debug/expr_ast_ops.hpp"
 #include "sim/debug/expr_parser.hpp"
 #include "sim/debug/expr_tokenizer.hpp"
 
@@ -88,5 +89,51 @@ TEST_CASE("Evaluating watch expressions", "[scope:debug][kind:unit][arch:*]") {
     CHECK(eval.bits == (257 + 255));
     CHECK(eval.type == ExpressionType::i16);
     CHECK(rhs->evaluate(EvaluationMode::UseCache).type == ExpressionType::u8);
+  }
+  SECTION("Recursive dirtying") {
+    ExpressionCache c;
+    Parser p(c);
+    QString body = "m * x + -b";
+    auto ast = p.compile(body);
+    REQUIRE(ast != nullptr);
+    auto top_plus = std::dynamic_pointer_cast<BinaryInfix>(ast);
+    REQUIRE(top_plus->op == BinaryInfix::Operators::ADD);
+    auto mx = std::dynamic_pointer_cast<BinaryInfix>(top_plus->lhs);
+    REQUIRE(mx != nullptr);
+    CHECK(mx->op == BinaryInfix::Operators::MULTIPLY);
+    auto m = std::dynamic_pointer_cast<Variable>(mx->lhs);
+    auto x = std::dynamic_pointer_cast<Variable>(mx->rhs);
+    REQUIRE((m != nullptr && x != nullptr));
+
+    auto negb = std::dynamic_pointer_cast<UnaryPrefix>(top_plus->rhs);
+    REQUIRE(negb != nullptr);
+    auto b = std::dynamic_pointer_cast<Variable>(negb->arg);
+    REQUIRE(b != nullptr);
+
+    ast->evaluate(EvaluationMode::UseCache);
+    CHECK(top_plus->dirty() == false);
+    CHECK(negb->dirty() == false);
+    CHECK(b->dirty() == false);
+
+    // mark_dirty only impacts current node
+    b->mark_dirty();
+    CHECK(b->dirty() == true);
+    CHECK(negb->dirty() == false);
+    CHECK(top_plus->dirty() == false);
+    ast->evaluate(EvaluationMode::RecomputeTree);
+    CHECK(b->dirty() == false);
+
+    // But this helper marks all parents as dirty, without impacting siblings
+    mark_parents_dirty(*b);
+    CHECK(b->dirty() == true);
+    CHECK(negb->dirty() == true);
+    CHECK(top_plus->dirty() == true);
+    CHECK(x->dirty() == false);
+    CHECK(m->dirty() == false);
+    CHECK(mx->dirty() == false);
+    ast->evaluate(EvaluationMode::RecomputeTree);
+    CHECK(top_plus->dirty() == false);
+    CHECK(negb->dirty() == false);
+    CHECK(b->dirty() == false);
   }
 }

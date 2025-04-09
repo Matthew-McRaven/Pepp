@@ -55,3 +55,13 @@ void pepp::debug::detail::GatherVolatileTerms::accept(const UnaryPrefix &node) {
 }
 
 void pepp::debug::detail::GatherVolatileTerms::accept(const Parenthesized &node) { node.term->accept(*this); }
+
+void pepp::debug::mark_parents_dirty(Term &base) {
+  if (base.dirty()) return;
+  base.mark_dirty();
+  for (const auto &weak : base.dependents()) {
+    if (weak.expired()) continue;
+    auto shared = weak.lock();
+    mark_parents_dirty(*shared);
+  }
+}
