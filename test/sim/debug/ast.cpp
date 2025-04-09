@@ -42,18 +42,18 @@ TEST_CASE("Evaluating const/volatile qualifiers on AST nodes", "[scope:debug][ki
 
 struct CountEvalVisitor : public pepp::debug::ConstantTermVisitor {
   std::set<const pepp::debug::Term *> visited;
-  void accept(const pepp::debug::Variable &node) { visited.insert(&node); }
-  void accept(const pepp::debug::Constant &node) { visited.insert(&node); }
-  void accept(const pepp::debug::BinaryInfix &node) {
+  void accept(const pepp::debug::Variable &node) override { visited.insert(&node); }
+  void accept(const pepp::debug::Constant &node) override { visited.insert(&node); }
+  void accept(const pepp::debug::BinaryInfix &node) override {
     visited.insert(&node);
     node._arg1->accept(*this);
     node._arg2->accept(*this);
   }
-  void accept(const pepp::debug::UnaryPrefix &node) {
+  void accept(const pepp::debug::UnaryPrefix &node) override {
     visited.insert(&node);
     node._arg->accept(*this);
   }
-  void accept(const pepp::debug::Parenthesized &node) { node._term->accept(*this); }
+  void accept(const pepp::debug::Parenthesized &node) override { node._term->accept(*this); }
 };
 
 std::size_t term_count(std::shared_ptr<const pepp::debug::Term> root) {

@@ -286,7 +286,7 @@ std::strong_ordering pepp::debug::Parenthesized::operator<=>(const Parenthesized
 
 void pepp::debug::Term::add_dependent(std::weak_ptr<Term> t) { _dependents.emplace_back(t); }
 
-bool pepp::debug::Term::dependency_of(std::shared_ptr<Term> t) {
+bool pepp::debug::Term::dependency_of(std::shared_ptr<Term> t) const {
   auto compare = [t](const std::weak_ptr<Term> &other) {
     if (other.expired()) return false;
     return other.lock() == t;

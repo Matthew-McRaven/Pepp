@@ -30,7 +30,7 @@ struct ExpressionCache {
 };
 
 struct TokenBuffer {
-  inline TokenBuffer(QStringView expr) : _lex(Lexer(expr)), _tokens(), _head(0) {}
+  explicit inline TokenBuffer(QStringView expr) : _lex(Lexer(expr)), _tokens(), _head(0) {}
   template <typename T> Lexer::Token match() {
     auto next = peek<T>();
     if (std::holds_alternative<T>(next)) _head++;
@@ -72,7 +72,7 @@ struct Parser {
     INVALID
   };
 
-  Parser(ExpressionCache &cache);
+  explicit Parser(ExpressionCache &cache);
   std::shared_ptr<Register> parse_register(TokenBuffer &tok, MemoCache &cache);
   std::shared_ptr<Term> parse_value(TokenBuffer &tok, MemoCache &cache);
   std::shared_ptr<Term> parse_parened(TokenBuffer &tok, MemoCache &cache);
@@ -91,7 +91,7 @@ struct Parser {
 
 private:
   ExpressionCache &_cache;
-  template <typename T> std::shared_ptr<T> accept(T &&v) { return _cache.add_or_return<T>(std::move(v)); }
+  template <typename T> std::shared_ptr<T> accept(T &&v) { return _cache.add_or_return<T>(std::forward<T>(v)); }
   typedef std::shared_ptr<Term> (Parser::*ParseFn)(TokenBuffer &tok, MemoCache &cache);
   std::shared_ptr<Term> parse_binary_infix(TokenBuffer &tok, MemoCache &cache,
                                            const std::set<BinaryInfix::Operators> &valid, ParseFn lhs, ParseFn rhs);
@@ -101,11 +101,11 @@ private:
 
 // Cache the results of each parsing rule to prevent exponentianl time complexity in the parser.
 struct Memo {
-  Memo();
+  explicit Memo();
+  explicit Memo(const TokenCheckpoint &cp, Parser::Rule r, std::shared_ptr<Term> t = nullptr);
   // Used in memo_cache to help with match_at. Initializes start to equal end, which makes the memo empty.
   // Then, it should compare less than any other element with the same (rule, start) for the sake of lower_bound.
   Memo(uint16_t start_end, Parser::Rule r);
-  Memo(const TokenCheckpoint &cp, Parser::Rule r, std::shared_ptr<Term> t = nullptr);
 
   // Term is excluded from sorting, because it the payload and not part of the key.
   // Sorting on term WILL break usage in std::set.
@@ -138,7 +138,7 @@ struct MemoCache {
 
 struct TokenCheckpoint {
   inline TokenCheckpoint(TokenBuffer &buf, MemoCache &cache) : _head(buf._head), _buf(buf), _cache(cache) {}
-  template <typename T> std::shared_ptr<T> rollback(Parser::Rule r) {
+  template <typename T> std::shared_ptr<T> rollback([[maybe_unused]] Parser::Rule r) {
     _buf._head = _head;
     return nullptr;
   }
@@ -156,10 +156,10 @@ struct TokenCheckpoint {
     // Otherwise, consume tokens and type-cast the pointer.
     _buf._head = end;
     // Avoid casting from T to T.
-    if constexpr (std::is_same<T, pepp::debug::Term>::value) return term;
+    if constexpr (std::is_same_v<T, pepp::debug::Term>) return term;
     else return std::dynamic_pointer_cast<T>(term);
   }
-  inline uint16_t start() { return _head; }
+  inline uint16_t start() const { return _head; }
   size_t _head = 0;
   TokenBuffer &_buf;
   MemoCache &_cache;

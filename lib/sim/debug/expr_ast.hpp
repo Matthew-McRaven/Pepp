@@ -34,7 +34,7 @@ public:
   void add_dependent(std::weak_ptr<Term> term);
   // Returns true if t is in this _depedents set (a direct dependency).
   // Does not account for transitive dependencies!!
-  bool dependency_of(std::shared_ptr<Term> term);
+  bool dependency_of(std::shared_ptr<Term> term) const;
 
   // Evaluate this AST to a value, marking elements as not dirty as they are re-evaluated.
   virtual TypedBits evaluate(EvaluationMode mode) = 0;

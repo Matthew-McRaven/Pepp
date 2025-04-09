@@ -50,7 +50,7 @@ using Token = std::variant<std::monostate, Invalid, Eof, UnsignedConstant, Ident
 
 class Lexer {
 public:
-  Lexer(QStringView input);
+  explicit Lexer(QStringView input);
   using Token = detail::Token;
   Token next_token();
 
