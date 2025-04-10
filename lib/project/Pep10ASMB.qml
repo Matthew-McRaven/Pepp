@@ -7,6 +7,7 @@ import "qrc:/edu/pepp/memory/hexdump" as Memory
 import "qrc:/edu/pepp/memory/io" as IO
 import "qrc:/edu/pepp/cpu" as Cpu
 import "qrc:/edu/pepp/symtab" as SymTab
+import "qrc:/edu/pepp/sim/debug" as Debug
 import edu.pepp 1.0
 
 Item {
@@ -257,6 +258,9 @@ Item {
                         TabButton {
                             text: qsTr(`Symbol Table: ${textSelector.currentText}`)
                         }
+                        TabButton {
+                            text: qsTr(`Watch Expressions`)
+                        }
                     }
                     StackLayout {
                         Layout.fillWidth: true
@@ -273,6 +277,9 @@ Item {
                             id: symTab
                             model: textSelector.currentIndex
                                    === 0 ? project?.userSymbols : project?.osSymbols
+                        }
+                        Debug.WatchExpressions {
+                            id: watchExpr
                         }
                     }
                 }
