@@ -144,6 +144,7 @@ pepp::debug::TypedBits pepp::debug::UnaryPrefix::evaluate(CachePolicy mode, Envi
   case Operators::NOT: return *(_state.value = !v);
   case Operators::NEGATE: return *(_state.value = ~v);
   }
+  throw std::logic_error("Unimplemented");
 }
 
 int pepp::debug::UnaryPrefix::cv_qualifiers() const {
@@ -255,6 +256,7 @@ pepp::debug::TypedBits pepp::debug::BinaryInfix::evaluate(CachePolicy mode, Envi
   case Operators::BIT_OR: return *(_state.value = v_lhs | v_rhs);
   case Operators::BIT_XOR: return *(_state.value = v_lhs ^ v_rhs);
   }
+  throw std::logic_error("Unimplemented");
 }
 int pepp::debug::BinaryInfix::cv_qualifiers() const {
   switch (op) {
