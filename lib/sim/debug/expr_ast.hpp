@@ -40,7 +40,7 @@ public:
   bits::span<const std::weak_ptr<Term>> dependents() const;
 
   // Evaluate this AST to a value, marking elements as not dirty as they are re-evaluated.
-  virtual TypedBits evaluate(EvaluationMode mode) = 0;
+  virtual TypedBits evaluate(CachePolicy mode, Environment &env) = 0;
   // Do not recurse, only report local const/volatile qualifiers.
   virtual int cv_qualifiers() const = 0;
 
@@ -70,7 +70,7 @@ struct Variable : public Term {
 
   void link() override;
 
-  TypedBits evaluate(EvaluationMode mode) override;
+  TypedBits evaluate(CachePolicy mode, Environment &env) override;
   int cv_qualifiers() const override;
 
   void mark_dirty() override;
@@ -98,7 +98,7 @@ struct Constant : public Term {
   std::strong_ordering operator<=>(const Constant &rhs) const;
   QString to_string() const override;
   void link() override;
-  TypedBits evaluate(EvaluationMode mode) override;
+  TypedBits evaluate(CachePolicy mode, Environment &env) override;
   int cv_qualifiers() const override;
 
   void mark_dirty() override;
@@ -139,7 +139,7 @@ struct BinaryInfix : public Term {
   std::strong_ordering operator<=>(const BinaryInfix &rhs) const;
   QString to_string() const override;
   void link() override;
-  TypedBits evaluate(EvaluationMode mode) override;
+  TypedBits evaluate(CachePolicy mode, Environment &env) override;
   int cv_qualifiers() const override;
 
   void mark_dirty() override;
@@ -167,7 +167,7 @@ struct UnaryPrefix : public Term {
   Type type() const override;
   QString to_string() const override;
   void link() override;
-  TypedBits evaluate(EvaluationMode mode) override;
+  TypedBits evaluate(CachePolicy mode, Environment &env) override;
   int cv_qualifiers() const override;
 
   void mark_dirty() override;
@@ -192,7 +192,7 @@ struct ExplicitCast : public Term {
   Type type() const override;
   QString to_string() const override;
   void link() override;
-  TypedBits evaluate(EvaluationMode mode) override;
+  TypedBits evaluate(CachePolicy mode, Environment &env) override;
   int cv_qualifiers() const override;
 
   void mark_dirty() override;
@@ -217,7 +217,7 @@ struct Parenthesized : public Term {
   std::strong_ordering operator<=>(const Parenthesized &rhs) const;
   QString to_string() const override;
   void link() override;
-  TypedBits evaluate(EvaluationMode mode) override;
+  TypedBits evaluate(CachePolicy mode, Environment &env) override;
   int cv_qualifiers() const override;
 
   void mark_dirty() override;

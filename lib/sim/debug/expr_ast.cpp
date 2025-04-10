@@ -28,7 +28,7 @@ void pepp::debug::Variable::link() {
   // No-op; there are no nested terms.
 }
 
-pepp::debug::TypedBits pepp::debug::Variable::evaluate(EvaluationMode /*mode*/) {
+pepp::debug::TypedBits pepp::debug::Variable::evaluate(CachePolicy /*mode*/, Environment & /*env*/) {
   _state.dirty = false;
   return *(_state.value = {.allows_address_of = true, .type = ExpressionType::i16, .bits = 0});
 }
@@ -70,7 +70,7 @@ void pepp::debug::Constant::link() {
   // No-op; there are no nested terms.
 }
 
-pepp::debug::TypedBits pepp::debug::Constant::evaluate(EvaluationMode) { return value; }
+pepp::debug::TypedBits pepp::debug::Constant::evaluate(CachePolicy, Environment &) { return value; }
 
 int pepp::debug::Constant::cv_qualifiers() const { return CVQualifiers::Constant; }
 
@@ -91,7 +91,10 @@ const auto unops = std::map<UOperators, QString>{
 } // namespace
 
 pepp::debug::UnaryPrefix::UnaryPrefix(Operators op, std::shared_ptr<Term> arg)
-    : op(op), arg(arg), _state({.dirty = false, .value = std::nullopt}) {}
+    : op(op), arg(arg), _state({.dirty = false, .value = std::nullopt}) {
+  int arg_cv = arg ? arg->cv_qualifiers() : 0;
+  _state.depends_on_volatiles = (arg_cv | UnaryPrefix::cv_qualifiers()) & CVQualifiers::Volatile;
+}
 uint16_t pepp::debug::UnaryPrefix::depth() const { return arg->depth() + 1; }
 pepp::debug::Term::Type pepp::debug::UnaryPrefix::type() const { return Term::Type::UnaryPrefixOperator; }
 
@@ -112,14 +115,23 @@ QString pepp::debug::UnaryPrefix::to_string() const {
 
 void pepp::debug::UnaryPrefix::link() { arg->add_dependent(weak_from_this()); }
 
-pepp::debug::TypedBits pepp::debug::UnaryPrefix::evaluate(EvaluationMode mode) {
-  if (mode == EvaluationMode::UseCache && !_state.dirty && _state.value.has_value()) return *_state.value;
+pepp::debug::TypedBits pepp::debug::UnaryPrefix::evaluate(CachePolicy mode, Environment &env) {
+  if (!_state.dirty && _state.value.has_value()) {
+    switch (mode) {
+    case CachePolicy::UseAlways: return *_state.value;
+    case CachePolicy::UseNonVolatiles:
+      if (!_state.depends_on_volatiles) return *_state.value;
+      break;
+    default: break;
+    }
+  }
 
-  auto child_mode = mode_for_child(mode);
-  auto v = arg->evaluate(child_mode);
+  auto v = arg->evaluate(mode, env);
   _state.dirty = false;
   switch (op) {
-  case Operators::DEREFERENCE: [[fallthrough]];
+  case Operators::DEREFERENCE:
+    _state.value = TypedBits{.allows_address_of = false, .type = ExpressionType::i16, .bits = env.read_mem_u16(v.bits)};
+    return *_state.value;
   case Operators::ADDRESS_OF: throw std::logic_error("Not implemented");
   case Operators::PLUS: return *(_state.value = +v);
   case Operators::MINUS: return *(_state.value = -v);
@@ -151,7 +163,12 @@ std::optional<pepp::debug::UnaryPrefix::Operators> pepp::debug::string_to_unary_
 }
 
 pepp::debug::BinaryInfix::BinaryInfix(Operators op, std::shared_ptr<Term> lhs, std::shared_ptr<Term> rhs)
-    : op(op), lhs(lhs), rhs(rhs), _state({.dirty = false, .value = std::nullopt}) {}
+    : op(op), lhs(lhs), rhs(rhs), _state({.dirty = false, .value = std::nullopt}) {
+  int lhs_cv = lhs ? lhs->cv_qualifiers() : 0;
+  int rhs_cv = rhs ? rhs->cv_qualifiers() : 0;
+  bool is_volatile = (lhs_cv | rhs_cv | BinaryInfix::cv_qualifiers()) & CVQualifiers::Volatile;
+  _state.depends_on_volatiles = is_volatile;
+}
 
 uint16_t pepp::debug::BinaryInfix::depth() const { return std::max(lhs->depth(), rhs->depth()) + 1; }
 pepp::debug::Term::Type pepp::debug::BinaryInfix::type() const { return Type::BinaryInfixOperator; }
@@ -198,14 +215,19 @@ void pepp::debug::BinaryInfix::link() {
   rhs->add_dependent(weak);
 }
 
-struct Mul {};
+pepp::debug::TypedBits pepp::debug::BinaryInfix::evaluate(CachePolicy mode, Environment &env) {
+  if (!_state.dirty && _state.value.has_value()) {
+    switch (mode) {
+    case CachePolicy::UseAlways: return *_state.value;
+    case CachePolicy::UseNonVolatiles:
+      if (!_state.depends_on_volatiles) return *_state.value;
+      break;
+    default: break;
+    }
+  }
 
-pepp::debug::TypedBits pepp::debug::BinaryInfix::evaluate(EvaluationMode mode) {
-  if (mode == EvaluationMode::UseCache && !_state.dirty && _state.value.has_value()) return *_state.value;
-
-  auto child_mode = mode_for_child(mode);
-  auto v_lhs = lhs->evaluate(child_mode);
-  auto v_rhs = rhs->evaluate(child_mode);
+  auto v_lhs = lhs->evaluate(mode, env);
+  auto v_rhs = rhs->evaluate(mode, env);
   _state.dirty = false;
   switch (op) {
   case Operators::STAR_DOT: [[fallthrough]];
@@ -266,7 +288,9 @@ void pepp::debug::Parenthesized::link() { term->add_dependent(weak_from_this());
 
 int pepp::debug::Parenthesized::cv_qualifiers() const { return 0; }
 
-pepp::debug::TypedBits pepp::debug::Parenthesized::evaluate(EvaluationMode mode) { return term->evaluate(mode); }
+pepp::debug::TypedBits pepp::debug::Parenthesized::evaluate(CachePolicy mode, Environment &env) {
+  return term->evaluate(mode, env);
+}
 
 void pepp::debug::Parenthesized::mark_dirty() { term->mark_dirty(); }
 
@@ -298,7 +322,10 @@ bool pepp::debug::Term::dependency_of(std::shared_ptr<Term> t) const {
 bits::span<const std::weak_ptr<pepp::debug::Term>> pepp::debug::Term::dependents() const { return _dependents; }
 
 pepp::debug::ExplicitCast::ExplicitCast(ExpressionType cast_to, std::shared_ptr<Term> arg)
-    : cast_to(cast_to), arg(arg) {}
+    : cast_to(cast_to), arg(arg) {
+  int arg_cv = arg ? arg->cv_qualifiers() : 0;
+  _state.depends_on_volatiles = arg_cv & CVQualifiers::Volatile;
+}
 
 std::strong_ordering pepp::debug::ExplicitCast::operator<=>(const Term &rhs) const {
   if (type() == rhs.type()) return this->operator<=>(static_cast<const ExplicitCast &>(rhs));
@@ -321,12 +348,19 @@ QString pepp::debug::ExplicitCast::to_string() const {
 
 void pepp::debug::ExplicitCast::link() { arg->add_dependent(weak_from_this()); }
 
-pepp::debug::TypedBits pepp::debug::ExplicitCast::evaluate(EvaluationMode mode) {
-  if (mode == EvaluationMode::UseCache && !_state.dirty && _state.value.has_value()) return *_state.value;
+pepp::debug::TypedBits pepp::debug::ExplicitCast::evaluate(CachePolicy mode, Environment &env) {
+  if (!_state.dirty && _state.value.has_value()) {
+    switch (mode) {
+    case CachePolicy::UseAlways: return *_state.value;
+    case CachePolicy::UseNonVolatiles:
+      if (!_state.depends_on_volatiles) return *_state.value;
+      break;
+    default: break;
+    }
+  }
 
-  auto child_mode = mode_for_child(mode);
-  auto v = arg->evaluate(child_mode);
   _state.dirty = false;
+  auto v = arg->evaluate(mode, env);
   return *(_state.value = pepp::debug::promote(v, cast_to));
 }
 
