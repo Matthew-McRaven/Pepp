@@ -177,7 +177,7 @@ TEST_CASE("Evaluating watch expressions", "[scope:debug][kind:unit][arch:*]") {
   }
 }
 
-TEST_CASE("Evaluations with memory dereferencing", "[scope:debug][kind:unit][arch:*]") {
+TEST_CASE("Evaluations with environment access", "[scope:debug][kind:unit][arch:*]") {
   using namespace pepp::debug;
   Environment env;
   auto mem = std::vector<uint8_t>(0x1'00'00, 7);
@@ -195,5 +195,13 @@ TEST_CASE("Evaluations with memory dereferencing", "[scope:debug][kind:unit][arc
     // Ignoring requirement from volatiles to re-compute.
     CHECK(ast->evaluate(CachePolicy::UseAlways, env).bits == 0x0707);
     CHECK(ast->evaluate(CachePolicy::UseNonVolatiles, env).bits == 0x0807);
+  }
+  SECTION("Debugger Variables") {
+    ExpressionCache c;
+    Parser p(c);
+    QString body = "$x";
+    auto ast = p.compile(body);
+    REQUIRE(ast != nullptr);
+    CHECK(ast->evaluate(CachePolicy::UseNonVolatiles, env).bits == 1);
   }
 }

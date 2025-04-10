@@ -28,9 +28,15 @@ void pepp::debug::Variable::link() {
   // No-op; there are no nested terms.
 }
 
-pepp::debug::TypedBits pepp::debug::Variable::evaluate(CachePolicy /*mode*/, Environment & /*env*/) {
+pepp::debug::TypedBits pepp::debug::Variable::evaluate(CachePolicy mode, Environment &env) {
+  if (!_state.dirty && _state.value.has_value()) {
+    switch (mode) {
+    case CachePolicy::UseAlways: return *_state.value;
+    default: break;
+    }
+  }
   _state.dirty = false;
-  return *(_state.value = {.allows_address_of = true, .type = ExpressionType::i16, .bits = 0});
+  return *(_state.value = env.evaluate_variable(name));
 }
 
 int pepp::debug::Variable::cv_qualifiers() const { return CVQualifiers::Volatile; }
@@ -402,9 +408,15 @@ void pepp::debug::DebuggerVariable::link() {
   // No-op; there are no nested terms.
 }
 
-pepp::debug::TypedBits pepp::debug::DebuggerVariable::evaluate(CachePolicy /*mode*/, Environment & /*env*/) {
+pepp::debug::TypedBits pepp::debug::DebuggerVariable::evaluate(CachePolicy mode, Environment &env) {
+  if (!_state.dirty && _state.value.has_value()) {
+    switch (mode) {
+    case CachePolicy::UseAlways: return *_state.value;
+    default: break;
+    }
+  }
   _state.dirty = false;
-  return *(_state.value = {.allows_address_of = true, .type = ExpressionType::i16, .bits = 0});
+  return *(_state.value = env.evaluate_debug_variable(name));
 }
 
 int pepp::debug::DebuggerVariable::cv_qualifiers() const { return CVQualifiers::Volatile; }
