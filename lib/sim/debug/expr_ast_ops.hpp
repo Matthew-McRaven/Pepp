@@ -15,6 +15,7 @@ struct IsConstantExpressionVisitor : public ConstantTermVisitor {
   void accept(const BinaryInfix &node) override;
   void accept(const UnaryPrefix &node) override;
   void accept(const Parenthesized &node) override;
+  void accept(const ExplicitCast &node) override;
 };
 struct GatherVolatileTerms : public ConstantTermVisitor {
   // Use set to de-duplicate repeated terms.
@@ -24,6 +25,7 @@ struct GatherVolatileTerms : public ConstantTermVisitor {
   void accept(const BinaryInfix &node) override;
   void accept(const UnaryPrefix &node) override;
   void accept(const Parenthesized &node) override;
+  void accept(const ExplicitCast &node) override;
 };
 } // namespace detail
 

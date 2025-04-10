@@ -105,6 +105,30 @@ TEST_CASE("Evaluating watch expressions", "[scope:debug][kind:unit][arch:*]") {
     CHECK(as_infix->rhs->evaluate(EvaluationMode::UseCache).type == ExpressionType::u8);
   }
 
+  SECTION("Parsing with explicit casts") {
+    ExpressionCache c;
+    Parser p(c);
+    QString body = "(i8)(258 + 255)";
+    auto ast = p.compile(body);
+    REQUIRE(ast != nullptr);
+    auto as_cast = std::dynamic_pointer_cast<ExplicitCast>(ast);
+    REQUIRE(as_cast != nullptr);
+    auto as_paren = std::dynamic_pointer_cast<Parenthesized>(as_cast->arg);
+    REQUIRE(as_paren != nullptr);
+    auto as_infix = std::dynamic_pointer_cast<BinaryInfix>(as_paren->term);
+    REQUIRE(as_infix != nullptr);
+    auto eval = as_infix->evaluate(EvaluationMode::UseCache);
+    CHECK(eval.bits == (258 + 255));
+    CHECK(eval.type == ExpressionType::i16);
+    CHECK(as_infix->lhs->evaluate(EvaluationMode::UseCache).type == ExpressionType::i16);
+    CHECK(as_infix->rhs->evaluate(EvaluationMode::UseCache).type == ExpressionType::i16);
+
+    // Overflows i8, so we should wrap-around.
+    auto eval_casted = as_cast->evaluate(EvaluationMode::UseCache);
+    CHECK(eval_casted.bits == (int8_t)((258 + 255) % 256));
+    CHECK(eval_casted.type == ExpressionType::i8);
+  }
+
   SECTION("Recursive dirtying") {
     ExpressionCache c;
     Parser p(c);

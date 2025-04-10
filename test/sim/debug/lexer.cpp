@@ -59,6 +59,14 @@ TEST_CASE("Lexing watch expressions", "[scope:debug][kind:unit][arch:*]") {
     auto token2 = l.next_token();
     REQUIRE(std::holds_alternative<detail::Identifier>(token2));
   }
+  SECTION("Explicit type cast") {
+    QString body = "(u8)";
+    Lexer l(body);
+    auto token = l.next_token();
+    REQUIRE(std::holds_alternative<detail::TypeCast>(token));
+    auto narrowed = std::get<detail::TypeCast>(token);
+    CHECK(narrowed.type == ExpressionType::u8);
+  }
 
   SECTION("Whole Expressions") {
     QString body = "0x25+($x *1024 )%5 + hello->yeet";

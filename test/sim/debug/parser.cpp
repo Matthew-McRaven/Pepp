@@ -174,6 +174,17 @@ TEST_CASE("Parsing watch expressions", "[scope:debug][kind:unit][arch:*]") {
     CHECK(as_prefix->op == UnaryPrefix::Operators::NEGATE);
     CHECK(as_prefix->to_string().toStdString() == "~a");
   }
+  SECTION("Type Cast: u16") {
+    ExpressionCache c;
+    Parser p(c);
+    QString body = "(  u16 ) a";
+    auto ast = p.compile(body);
+    REQUIRE(ast != nullptr);
+    auto as_cast = std::dynamic_pointer_cast<ExplicitCast>(ast);
+    REQUIRE(as_cast != nullptr);
+    CHECK(as_cast->cast_to == ExpressionType::u16);
+    CHECK(as_cast->to_string().toStdString() == "(u16)a");
+  }
   // P2
   SECTION("Multiply") {
     ExpressionCache c;

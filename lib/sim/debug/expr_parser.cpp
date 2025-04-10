@@ -234,6 +234,7 @@ std::shared_ptr<pepp::debug::Term> pepp::debug::Parser::parse_p0(detail::TokenBu
 
 std::shared_ptr<pepp::debug::Term> pepp::debug::Parser::parse_p1(detail::TokenBuffer &tok, detail::MemoCache &cache) {
   using Lit = detail::Literal;
+  using Cast = detail::TypeCast;
   static const auto rule = Parser::Rule::P1;
   auto cp = detail::TokenCheckpoint(tok, cache);
   if (auto [term, end] = cache.match_at(cp.start(), rule); term != nullptr)
@@ -249,6 +250,11 @@ std::shared_ptr<pepp::debug::Term> pepp::debug::Parser::parse_p1(detail::TokenBu
       if (arg == nullptr) return cp.rollback<pepp::debug::Term>(rule);
       return cp.memoize(accept(UnaryPrefix(*op, arg)), rule);
     }
+  } else if (auto maybe_cast = tok.match<Cast>(); std::holds_alternative<Cast>(maybe_cast)) {
+    const auto &cast = std::get<Cast>(maybe_cast);
+    auto arg = parse_p0(tok, cache);
+    if (arg == nullptr) return cp.rollback<pepp::debug::Term>(rule);
+    return cp.memoize(accept(ExplicitCast(cast.type, arg)), rule);
   }
   return parse_p0(tok, cache);
 }

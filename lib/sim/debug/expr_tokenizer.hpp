@@ -8,6 +8,7 @@ namespace detail {
 enum class TokenType {
   UnsignedConstant,
   TypeSuffix,
+  TypeCast,
   DebugIdentifier,
   Identifier,
   Literal,
@@ -38,6 +39,12 @@ template <> struct T<TokenType::TypeSuffix> {
 };
 using TypeSuffix = T<TokenType::TypeSuffix>;
 
+template <> struct T<TokenType::TypeCast> {
+  pepp::debug::ExpressionType type;
+  std::strong_ordering operator<=>(const T<TokenType::TypeCast> &rhs) const;
+};
+using TypeCast = T<TokenType::TypeCast>;
+
 template <> struct T<TokenType::Identifier> {
   QString value;
 };
@@ -53,8 +60,8 @@ template <> struct T<TokenType::Literal> {
 };
 using Literal = T<TokenType::Literal>;
 
-using Token =
-    std::variant<std::monostate, Invalid, Eof, UnsignedConstant, TypeSuffix, Identifier, DebugIdentifier, Literal>;
+using Token = std::variant<std::monostate, Invalid, Eof, UnsignedConstant, TypeSuffix, TypeCast, Identifier,
+                           DebugIdentifier, Literal>;
 } // namespace detail
 
 class Lexer {
@@ -66,7 +73,7 @@ public:
 private:
   QStringView _input;
   int _offset = 0;
-  bool _allows_trailing_type = false;
+  bool _allows_literal_suffix = false;
 };
 
 } // namespace pepp::debug

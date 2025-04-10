@@ -212,3 +212,14 @@ pepp::debug::TypedBits pepp::debug::operator^(const pepp::debug::TypedBits &lhs,
   auto type = pepp::debug::common_type(lhs.type, rhs.type);
   return promote(lhs, type) ^ promote(rhs, type);
 }
+
+QString pepp::debug::to_string(ExpressionType type) {
+  switch (type) {
+  case ExpressionType::i8: return "i8";
+  case ExpressionType::u8: return "u8";
+  case ExpressionType::i16: return "i16";
+  case ExpressionType::u16: return "u16";
+  case ExpressionType::i32: return "i32";
+  case ExpressionType::u32: return "u32";
+  }
+}

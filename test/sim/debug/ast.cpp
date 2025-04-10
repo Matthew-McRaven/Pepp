@@ -54,6 +54,10 @@ struct CountEvalVisitor : public pepp::debug::ConstantTermVisitor {
     node.arg->accept(*this);
   }
   void accept(const pepp::debug::Parenthesized &node) override { node.term->accept(*this); }
+  void accept(const pepp::debug::ExplicitCast &node) override {
+    visited.insert(&node);
+    node.arg->accept(*this);
+  }
 };
 
 std::size_t term_count(std::shared_ptr<const pepp::debug::Term> root) {

@@ -41,6 +41,7 @@ struct Parser {
     PAREN,
     CONSTANT,
     IDENT,
+    TYPECAST,
     P0,
     P1,
     P2,

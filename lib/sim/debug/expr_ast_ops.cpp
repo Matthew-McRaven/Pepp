@@ -37,6 +37,8 @@ void pepp::debug::detail::IsConstantExpressionVisitor::accept(const UnaryPrefix 
 
 void pepp::debug::detail::IsConstantExpressionVisitor::accept(const Parenthesized &node) { node.term->accept(*this); }
 
+void pepp::debug::detail::IsConstantExpressionVisitor::accept(const ExplicitCast &node) { node.arg->accept(*this); }
+
 void pepp::debug::detail::GatherVolatileTerms::accept(const Variable &node) {
   volatiles.insert(node.shared_from_this());
 }
@@ -55,6 +57,8 @@ void pepp::debug::detail::GatherVolatileTerms::accept(const UnaryPrefix &node) {
 }
 
 void pepp::debug::detail::GatherVolatileTerms::accept(const Parenthesized &node) { node.term->accept(*this); }
+
+void pepp::debug::detail::GatherVolatileTerms::accept(const ExplicitCast &node) { node.arg->accept(*this); }
 
 void pepp::debug::mark_parents_dirty(Term &base) {
   if (base.dirty()) return;

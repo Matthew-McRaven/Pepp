@@ -21,6 +21,7 @@ public:
     UnaryPrefixOperator,
     FunctionCall,
     ParenExpr,
+    TypeCast,
   };
   virtual ~Term() = 0;
   virtual uint16_t depth() const = 0;
@@ -182,6 +183,31 @@ private:
 };
 std::optional<UnaryPrefix::Operators> string_to_unary_prefix(QStringView);
 
+struct ExplicitCast : public Term {
+  ExplicitCast(ExpressionType cast_to, std::shared_ptr<Term> arg);
+  ~ExplicitCast() override = default;
+  std::strong_ordering operator<=>(const Term &rhs) const override;
+  std::strong_ordering operator<=>(const ExplicitCast &rhs) const;
+  uint16_t depth() const override;
+  Type type() const override;
+  QString to_string() const override;
+  void link() override;
+  TypedBits evaluate(EvaluationMode mode) override;
+  int cv_qualifiers() const override;
+
+  void mark_dirty() override;
+  bool dirty() const override;
+
+  void accept(MutatingTermVisitor &visitor) override;
+  void accept(ConstantTermVisitor &visitor) const override;
+
+  const pepp::debug::ExpressionType cast_to;
+  const std::shared_ptr<Term> arg;
+
+private:
+  EvaluationCache _state;
+};
+
 struct Parenthesized : public Term {
   explicit Parenthesized(std::shared_ptr<Term> term);
   ~Parenthesized() override = default;
@@ -209,6 +235,7 @@ struct MutatingTermVisitor {
   virtual void accept(BinaryInfix &node) = 0;
   virtual void accept(UnaryPrefix &node) = 0;
   virtual void accept(Parenthesized &node) = 0;
+  virtual void accept(ExplicitCast &node) = 0;
 };
 struct ConstantTermVisitor {
   virtual void accept(const Variable &node) = 0;
@@ -216,6 +243,7 @@ struct ConstantTermVisitor {
   virtual void accept(const BinaryInfix &node) = 0;
   virtual void accept(const UnaryPrefix &node) = 0;
   virtual void accept(const Parenthesized &node) = 0;
+  virtual void accept(const ExplicitCast &node) = 0;
 };
 
 } // namespace pepp::debug

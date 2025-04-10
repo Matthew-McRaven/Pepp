@@ -296,3 +296,46 @@ bool pepp::debug::Term::dependency_of(std::shared_ptr<Term> t) const {
 }
 
 bits::span<const std::weak_ptr<pepp::debug::Term>> pepp::debug::Term::dependents() const { return _dependents; }
+
+pepp::debug::ExplicitCast::ExplicitCast(ExpressionType cast_to, std::shared_ptr<Term> arg)
+    : cast_to(cast_to), arg(arg) {}
+
+std::strong_ordering pepp::debug::ExplicitCast::operator<=>(const Term &rhs) const {
+  if (type() == rhs.type()) return this->operator<=>(static_cast<const ExplicitCast &>(rhs));
+  return type() <=> rhs.type();
+}
+
+std::strong_ordering pepp::debug::ExplicitCast::operator<=>(const ExplicitCast &rhs) const {
+  if (auto cmp = cast_to <=> rhs.cast_to; cmp != 0) return cmp;
+  return *arg <=> *rhs.arg;
+}
+
+uint16_t pepp::debug::ExplicitCast::depth() const { return arg->depth() + 1; }
+
+pepp::debug::Term::Type pepp::debug::ExplicitCast::type() const { return Type::TypeCast; }
+
+QString pepp::debug::ExplicitCast::to_string() const {
+  using namespace Qt::StringLiterals;
+  return u"(%1)%2"_s.arg(pepp::debug::to_string(cast_to), arg->to_string());
+}
+
+void pepp::debug::ExplicitCast::link() { arg->add_dependent(weak_from_this()); }
+
+pepp::debug::TypedBits pepp::debug::ExplicitCast::evaluate(EvaluationMode mode) {
+  if (mode == EvaluationMode::UseCache && !_state.dirty && _state.value.has_value()) return *_state.value;
+
+  auto child_mode = mode_for_child(mode);
+  auto v = arg->evaluate(child_mode);
+  _state.dirty = false;
+  return *(_state.value = pepp::debug::promote(v, cast_to));
+}
+
+int pepp::debug::ExplicitCast::cv_qualifiers() const { return 0; }
+
+void pepp::debug::ExplicitCast::mark_dirty() { _state.dirty = true; }
+
+bool pepp::debug::ExplicitCast::dirty() const { return _state.dirty; }
+
+void pepp::debug::ExplicitCast::accept(MutatingTermVisitor &visitor) { visitor.accept(*this); }
+
+void pepp::debug::ExplicitCast::accept(ConstantTermVisitor &visitor) const { visitor.accept(*this); }
