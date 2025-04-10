@@ -38,8 +38,8 @@ TEST_CASE("Lexing watch expressions", "[scope:debug][kind:unit][arch:*]") {
     CHECK(narrowed.format == detail::UnsignedConstant::Format::Dec);
     CHECK(narrowed.value == 1024);
     auto token2 = l.next_token();
-    REQUIRE(std::holds_alternative<detail::ConstantType>(token2));
-    auto narrowed2 = std::get<detail::ConstantType>(token2);
+    REQUIRE(std::holds_alternative<detail::TypeSuffix>(token2));
+    auto narrowed2 = std::get<detail::TypeSuffix>(token2);
     CHECK(narrowed2.type == ExpressionType::u8);
   }
   SECTION("No free floating trailing types") {

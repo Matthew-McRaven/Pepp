@@ -7,7 +7,7 @@ namespace pepp::debug {
 namespace detail {
 enum class TokenType {
   UnsignedConstant,
-  ConstantType,
+  TypeSuffix,
   DebugIdentifier,
   Identifier,
   Literal,
@@ -32,11 +32,11 @@ template <> struct T<TokenType::UnsignedConstant> {
 };
 using UnsignedConstant = T<TokenType::UnsignedConstant>;
 
-template <> struct T<TokenType::ConstantType> {
+template <> struct T<TokenType::TypeSuffix> {
   pepp::debug::ExpressionType type;
-  std::strong_ordering operator<=>(const T<TokenType::ConstantType> &rhs) const;
+  std::strong_ordering operator<=>(const T<TokenType::TypeSuffix> &rhs) const;
 };
-using ConstantType = T<TokenType::ConstantType>;
+using TypeSuffix = T<TokenType::TypeSuffix>;
 
 template <> struct T<TokenType::Identifier> {
   QString value;
@@ -54,7 +54,7 @@ template <> struct T<TokenType::Literal> {
 using Literal = T<TokenType::Literal>;
 
 using Token =
-    std::variant<std::monostate, Invalid, Eof, UnsignedConstant, ConstantType, Identifier, DebugIdentifier, Literal>;
+    std::variant<std::monostate, Invalid, Eof, UnsignedConstant, TypeSuffix, Identifier, DebugIdentifier, Literal>;
 } // namespace detail
 
 class Lexer {

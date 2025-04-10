@@ -27,7 +27,7 @@ pepp::debug::Lexer::Token pepp::debug::Lexer::next_token() {
     _allows_trailing_type = false;
     _offset = trailing_type.capturedEnd();
     auto type_str = trailing_type.capturedView().slice(1); // drop leading _
-    using T = detail::T<TokenType::ConstantType>;
+    using T = detail::T<TokenType::TypeSuffix>;
     return T{.type = re::types.at(type_str.toString())};
   } else _allows_trailing_type = false;
 

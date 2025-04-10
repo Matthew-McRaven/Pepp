@@ -149,7 +149,7 @@ std::shared_ptr<pepp::debug::Register> pepp::debug::Parser::parse_register(detai
 std::shared_ptr<pepp::debug::Constant> pepp::debug::Parser::parse_constant(detail::TokenBuffer &tok,
                                                                            detail::MemoCache &cache) {
   using UC = detail::UnsignedConstant;
-  using TYPE = detail::ConstantType;
+  using TYPE = detail::TypeSuffix;
   static const auto rule = Parser::Rule::CONSTANT;
   auto cp = detail::TokenCheckpoint(tok, cache);
   if (auto [term, end] = cache.match_at(cp.start(), rule); term != nullptr) cp.use_memo<pepp::debug::Term>(term, end);
