@@ -126,6 +126,18 @@ pepp::debug::detail::Memo::operator QString() const {
 
 pepp::debug::Parser::Parser(ExpressionCache &cache) : _cache(cache) {}
 
+std::shared_ptr<pepp::debug::Term> pepp::debug::Parser::compile(QStringView expr, void *builtins) {
+  detail::TokenBuffer tok(expr);
+  detail::MemoCache cache{};
+  auto ret = parse_p7(tok, cache);
+  auto at_end = tok.peek<detail::Eof>();
+  return (std::holds_alternative<std::monostate>(at_end)) ? nullptr : ret;
+}
+
+std::shared_ptr<pepp::debug::Term> pepp::debug::Parser::compile(QString expr, void *builtins) {
+  return compile(QStringView(expr), builtins);
+}
+
 std::shared_ptr<pepp::debug::DebuggerVariable> pepp::debug::Parser::parse_debug_identifier(detail::TokenBuffer &tok,
                                                                                            detail::MemoCache &cache) {
   using DBG = detail::DebugIdentifier;
@@ -373,10 +385,3 @@ std::shared_ptr<pepp::debug::Term> pepp::debug::Parser::parse_parened(detail::To
   else return cp.memoize(accept(Parenthesized(inner)), rule);
 }
 
-std::shared_ptr<pepp::debug::Term> pepp::debug::Parser::compile(QStringView expr, void *builtins) {
-  detail::TokenBuffer tok(expr);
-  detail::MemoCache cache{};
-  auto ret = parse_p7(tok, cache);
-  auto at_end = tok.peek<detail::Eof>();
-  return (std::holds_alternative<std::monostate>(at_end)) ? nullptr : ret;
-}

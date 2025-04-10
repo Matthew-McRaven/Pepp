@@ -1,18 +1,24 @@
 import QtQuick
 import QtQuick.Controls
-import Qt.labs.qmlmodels
+import edu.pepp
 
 Item {
+    FontMetrics {
+        id: fm
+    }
+
+    property alias watchExpressions: tableModel.watchExpressions
     HorizontalHeaderView {
         id: horizontalHeader
-        anchors.left: tableView.left
         anchors.top: parent.top
+        anchors.left: tableView.left
+        anchors.right: parent.right
         syncView: tableView
         clip: true
-        model: tableView.model
         textRole: "display"
-        delegate: TextInput {
+        delegate: Text {
             text: model.display
+            horizontalAlignment: Text.AlignLeft
         }
     }
     TableView {
@@ -23,37 +29,22 @@ Item {
         anchors.bottom: parent.bottom
         boundsBehavior: Flickable.StopAtBounds
         resizableColumns: true
-        model: TableModel {
-            TableModelColumn {
-                display: "Expression"
-            }
-            TableModelColumn {
-                display: "Value"
-            }
-            TableModelColumn {
-                display: "Type"
-            }
-
-            rows: [{
-                    "Value": 1,
-                    "Expression": "$x",
-                    "Type": "i16"
-                }, {
-                    "Value": 4,
-                    "Expression": "(u8)($x + 3)",
-                    "Type": "u8"
-                }, {
-                    "Value": 1,
-                    "Expression": "$X * $x",
-                    "Type": "i16"
-                }]
+        model: WatchExpressionTableModel {
+            id: tableModel
         }
-        delegate: TextInput {
-            text: model.display
-            selectByMouse: true
-            onAccepted: model.display = text
-            rightPadding: 10
-            leftPadding: 2
+
+        delegate: Item {
+            implicitWidth: Math.max(8 * fm.averageCharacterWidth,
+                                    label.implicitWidth + 12)
+            implicitHeight: label.implicitHeight
+
+            Text {
+                id: label
+                anchors.fill: parent
+                text: model.display
+                rightPadding: 10
+                leftPadding: 2
+            }
         }
     }
 }

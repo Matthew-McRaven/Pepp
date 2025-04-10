@@ -280,6 +280,7 @@ Item {
                         }
                         Debug.WatchExpressions {
                             id: watchExpr
+                            watchExpressions: project.watchExpressions
                         }
                     }
                 }

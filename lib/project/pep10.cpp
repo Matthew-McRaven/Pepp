@@ -740,7 +740,8 @@ project::DebugEnableFlags::DebugEnableFlags(QObject *parent) : QObject(parent) {
 project::StepEnableFlags::StepEnableFlags(QObject *parent) : QObject(parent) {}
 
 Pep_ASMB::Pep_ASMB(project::Environment env, QVariant delegate, QObject *parent)
-    : Pep_ISA(env, delegate, parent, false), _userModel(new SymbolModel(this)), _osModel(new SymbolModel(this)) {
+    : Pep_ISA(env, delegate, parent, false), _userModel(new SymbolModel(this)), _osModel(new SymbolModel(this)),
+      _watchExpressions(new pepp::debug::WatchExpressionModel(this)) {
 
   switch (_env.arch) {
   case builtins::Architecture::PEP9: _osAsmText = cs5e_os(); break;
@@ -773,7 +774,6 @@ Pep_ASMB::Pep_ASMB(project::Environment env, QVariant delegate, QObject *parent)
   }
   default: throw std::logic_error("Unimplemented architecture");
   }
-
 }
 
 void Pep_ASMB::set(int abstraction, QString value) {
@@ -825,6 +825,8 @@ bool Pep_ASMB::isEmpty() const { return _userAsmText.isEmpty(); }
 
 SymbolModel *Pep_ASMB::userSymbols() const { return _userModel; }
 SymbolModel *Pep_ASMB::osSymbols() const { return _osModel; }
+
+pepp::debug::WatchExpressionModel *Pep_ASMB::watchExpressions() const { return _watchExpressions; }
 
 int Pep_ASMB::allowedDebugging() const {
   using D = project::DebugEnableFlags;
