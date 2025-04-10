@@ -14,9 +14,9 @@ struct MutatingTermVisitor;
 class Term : public std::enable_shared_from_this<Term> {
 public:
   enum class Type {
-    Variable,
     Constant,
-    Register,
+    Variable,
+    DebuggerVariable,
     BinaryInfixOperator,
     UnaryPrefixOperator,
     FunctionCall,
@@ -83,7 +83,31 @@ private:
   EvaluationCache _state;
 };
 
-struct Register : public Term {};
+struct DebuggerVariable : public Term {
+  explicit DebuggerVariable(const detail::DebugIdentifier &ident);
+  explicit DebuggerVariable(QString name);
+  ~DebuggerVariable() override = default;
+  uint16_t depth() const override;
+  Type type() const override;
+  std::strong_ordering operator<=>(const Term &rhs) const override;
+  std::strong_ordering operator<=>(const DebuggerVariable &rhs) const;
+  QString to_string() const override;
+
+  void link() override;
+
+  TypedBits evaluate(CachePolicy mode, Environment &env) override;
+  int cv_qualifiers() const override;
+
+  void mark_dirty() override;
+  bool dirty() const override;
+
+  void accept(MutatingTermVisitor &visitor) override;
+  void accept(ConstantTermVisitor &visitor) const override;
+  const QString name;
+
+private:
+  EvaluationCache _state;
+};
 
 struct Constant : public Term {
   template <std::integral I>
@@ -231,6 +255,7 @@ struct Parenthesized : public Term {
 // If you add a new AST node type, you'll need to add new handlers to these visitor classes.
 struct MutatingTermVisitor {
   virtual void accept(Variable &node) = 0;
+  virtual void accept(DebuggerVariable &node) = 0;
   virtual void accept(Constant &node) = 0;
   virtual void accept(BinaryInfix &node) = 0;
   virtual void accept(UnaryPrefix &node) = 0;
@@ -239,6 +264,7 @@ struct MutatingTermVisitor {
 };
 struct ConstantTermVisitor {
   virtual void accept(const Variable &node) = 0;
+  virtual void accept(const DebuggerVariable &node) = 0;
   virtual void accept(const Constant &node) = 0;
   virtual void accept(const BinaryInfix &node) = 0;
   virtual void accept(const UnaryPrefix &node) = 0;

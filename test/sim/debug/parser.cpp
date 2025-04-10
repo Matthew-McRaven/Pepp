@@ -83,6 +83,16 @@ TEST_CASE("Parsing watch expressions", "[scope:debug][kind:unit][arch:*]") {
     CHECK(as_const->value.bits == 115);
     CHECK(as_const->to_string() == "115");
   }
+  SECTION("Debugger Variable") {
+    ExpressionCache c;
+    Parser p(c);
+    QString body = "$X";
+    auto ast = p.compile(body);
+    REQUIRE(ast != nullptr);
+    auto as_dbg = std::dynamic_pointer_cast<DebuggerVariable>(ast);
+    REQUIRE(as_dbg != nullptr);
+    CHECK(as_dbg->name == "X");
+  }
 
   // P0
   SECTION("Member Access with .") {

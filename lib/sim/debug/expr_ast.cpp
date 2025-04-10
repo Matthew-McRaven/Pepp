@@ -373,3 +373,46 @@ bool pepp::debug::ExplicitCast::dirty() const { return _state.dirty; }
 void pepp::debug::ExplicitCast::accept(MutatingTermVisitor &visitor) { visitor.accept(*this); }
 
 void pepp::debug::ExplicitCast::accept(ConstantTermVisitor &visitor) const { visitor.accept(*this); }
+
+pepp::debug::DebuggerVariable::DebuggerVariable(const detail::DebugIdentifier &ident) : name(ident.value) {}
+
+pepp::debug::DebuggerVariable::DebuggerVariable(QString name) : name(name) {}
+
+uint16_t pepp::debug::DebuggerVariable::depth() const { return 0; }
+
+pepp::debug::Term::Type pepp::debug::DebuggerVariable::type() const { return Type::DebuggerVariable; }
+
+std::strong_ordering pepp::debug::DebuggerVariable::operator<=>(const Term &rhs) const {
+  if (type() == rhs.type()) return this->operator<=>(static_cast<const DebuggerVariable &>(rhs));
+  return type() <=> rhs.type();
+}
+
+std::strong_ordering pepp::debug::DebuggerVariable::operator<=>(const DebuggerVariable &rhs) const {
+  if (auto v = name.compare(rhs.name); v < 0) return std::strong_ordering::less;
+  else if (v == 0) return std::strong_ordering::equal;
+  return std::strong_ordering::greater;
+}
+
+QString pepp::debug::DebuggerVariable::to_string() const {
+  using namespace Qt::StringLiterals;
+  return u"$%1"_s.arg(name);
+}
+
+void pepp::debug::DebuggerVariable::link() {
+  // No-op; there are no nested terms.
+}
+
+pepp::debug::TypedBits pepp::debug::DebuggerVariable::evaluate(CachePolicy /*mode*/, Environment & /*env*/) {
+  _state.dirty = false;
+  return *(_state.value = {.allows_address_of = true, .type = ExpressionType::i16, .bits = 0});
+}
+
+int pepp::debug::DebuggerVariable::cv_qualifiers() const { return CVQualifiers::Volatile; }
+
+void pepp::debug::DebuggerVariable::mark_dirty() { _state.dirty = true; }
+
+bool pepp::debug::DebuggerVariable::dirty() const { return _state.dirty; }
+
+void pepp::debug::DebuggerVariable::accept(MutatingTermVisitor &visitor) { visitor.accept(*this); }
+
+void pepp::debug::DebuggerVariable::accept(ConstantTermVisitor &visitor) const { visitor.accept(*this); }

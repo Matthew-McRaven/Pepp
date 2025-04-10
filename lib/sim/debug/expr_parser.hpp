@@ -36,7 +36,7 @@ struct MemoCache;
 struct Parser {
   // Helper to associate regions with parsing rules/functions in Memo/MemoCache
   enum class Rule : uint8_t {
-    REGISTER,
+    DEBUG_IDENT,
     VALUE,
     PAREN,
     CONSTANT,
@@ -50,7 +50,6 @@ struct Parser {
     P5,
     P6,
     P7,
-    EXPRESSION,
     INVALID
   };
 
@@ -60,7 +59,7 @@ struct Parser {
 private:
   ExpressionCache &_cache;
   template <typename T> std::shared_ptr<T> accept(T &&v) { return _cache.add_or_return<T>(std::forward<T>(v)); }
-  std::shared_ptr<Register> parse_register(detail::TokenBuffer &tok, detail::MemoCache &cache);
+  std::shared_ptr<DebuggerVariable> parse_debug_identifier(detail::TokenBuffer &tok, detail::MemoCache &cache);
   std::shared_ptr<Term> parse_value(detail::TokenBuffer &tok, detail::MemoCache &cache);
   std::shared_ptr<Term> parse_parened(detail::TokenBuffer &tok, detail::MemoCache &cache);
   std::shared_ptr<Constant> parse_constant(detail::TokenBuffer &tok, detail::MemoCache &cache);
@@ -75,7 +74,6 @@ private:
   std::shared_ptr<Term> parse_p2(detail::TokenBuffer &tok, detail::MemoCache &cache); // *%/
   std::shared_ptr<Term> parse_p1(detail::TokenBuffer &tok, detail::MemoCache &cache); // Unary prefix op
   std::shared_ptr<Term> parse_p0(detail::TokenBuffer &tok, detail::MemoCache &cache); // member access
-  std::shared_ptr<Term> parse_expression(detail::TokenBuffer &tok, detail::MemoCache &cache);
 
   using ParseFn = std::shared_ptr<Term> (Parser::*)(detail::TokenBuffer &tok, detail::MemoCache &cache);
   std::shared_ptr<Term> parse_binary_infix(detail::TokenBuffer &tok, detail::MemoCache &cache,

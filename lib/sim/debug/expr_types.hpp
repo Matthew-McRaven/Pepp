@@ -61,4 +61,5 @@ template <std::integral I> TypedBits from_int(I bits) {
 TypedBits with_bits(const TypedBits &type, uint64_t new_value);
 TypedBits promote(const TypedBits &value, ExpressionType as_type);
 QString to_string(ExpressionType);
+
 }; // namespace pepp::debug

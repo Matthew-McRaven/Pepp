@@ -126,6 +126,17 @@ pepp::debug::detail::Memo::operator QString() const {
 
 pepp::debug::Parser::Parser(ExpressionCache &cache) : _cache(cache) {}
 
+std::shared_ptr<pepp::debug::DebuggerVariable> pepp::debug::Parser::parse_debug_identifier(detail::TokenBuffer &tok,
+                                                                                           detail::MemoCache &cache) {
+  using DBG = detail::DebugIdentifier;
+  static const auto rule = Parser::Rule::DEBUG_IDENT;
+  auto cp = detail::TokenCheckpoint(tok, cache);
+  if (auto [term, end] = cache.match_at(cp.start(), rule); term != nullptr)
+    return cp.use_memo<pepp::debug::DebuggerVariable>(term, end);
+  if (auto maybe_debug_ident = tok.match<DBG>(); !std::holds_alternative<DBG>(maybe_debug_ident)) return nullptr;
+  else return cp.memoize(accept(DebuggerVariable(std::get<DBG>(maybe_debug_ident))), rule);
+}
+
 std::shared_ptr<pepp::debug::Term> pepp::debug::Parser::parse_identifier_as_term(detail::TokenBuffer &tok,
                                                                                  detail::MemoCache &cache) {
   return parse_identifier(tok, cache);
@@ -140,10 +151,6 @@ std::shared_ptr<pepp::debug::Variable> pepp::debug::Parser::parse_identifier(det
     return cp.use_memo<pepp::debug::Variable>(term, end);
   if (auto maybe_ident = tok.match<ID>(); !std::holds_alternative<ID>(maybe_ident)) return nullptr;
   else return cp.memoize(accept(Variable(std::get<ID>(maybe_ident))), rule);
-}
-std::shared_ptr<pepp::debug::Register> pepp::debug::Parser::parse_register(detail::TokenBuffer &tok,
-                                                                           detail::MemoCache &cache) {
-  return nullptr;
 }
 
 std::shared_ptr<pepp::debug::Constant> pepp::debug::Parser::parse_constant(detail::TokenBuffer &tok,
@@ -174,7 +181,7 @@ std::shared_ptr<pepp::debug::Term> pepp::debug::Parser::parse_value(detail::Toke
   if (auto [term, end] = cache.match_at(cp.start(), rule); term != nullptr)
     return cp.use_memo<pepp::debug::Term>(term, end);
 
-  if (auto maybe_reg = parse_register(tok, cache); maybe_reg != nullptr) return cp.memoize(maybe_reg, rule);
+  if (auto maybe_reg = parse_debug_identifier(tok, cache); maybe_reg != nullptr) return cp.memoize(maybe_reg, rule);
   else if (auto maybe_constant = parse_constant(tok, cache); maybe_constant != nullptr)
     return cp.memoize(maybe_constant, rule);
   else if (auto maybe_ident = parse_identifier(tok, cache); maybe_ident != nullptr)
@@ -183,10 +190,6 @@ std::shared_ptr<pepp::debug::Term> pepp::debug::Parser::parse_value(detail::Toke
   return nullptr;
 }
 
-std::shared_ptr<pepp::debug::Term> pepp::debug::Parser::parse_expression(detail::TokenBuffer &tok,
-                                                                         detail::MemoCache &cache) {
-  return nullptr;
-}
 
 std::shared_ptr<pepp::debug::Term>
 pepp::debug::Parser::parse_binary_infix(detail::TokenBuffer &tok, detail::MemoCache &cache,

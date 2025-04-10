@@ -14,6 +14,10 @@ std::vector<std::shared_ptr<const pepp::debug::Term>> pepp::debug::volatiles(con
 
 void pepp::debug::detail::IsConstantExpressionVisitor::accept(const Variable &node) { is_constant_expression = false; }
 
+void pepp::debug::detail::IsConstantExpressionVisitor::accept(const DebuggerVariable &node) {
+  is_constant_expression = false;
+}
+
 void pepp::debug::detail::IsConstantExpressionVisitor::accept(const Constant &node) {}
 
 void pepp::debug::detail::IsConstantExpressionVisitor::accept(const BinaryInfix &node) {
@@ -40,6 +44,10 @@ void pepp::debug::detail::IsConstantExpressionVisitor::accept(const Parenthesize
 void pepp::debug::detail::IsConstantExpressionVisitor::accept(const ExplicitCast &node) { node.arg->accept(*this); }
 
 void pepp::debug::detail::GatherVolatileTerms::accept(const Variable &node) {
+  volatiles.insert(node.shared_from_this());
+}
+
+void pepp::debug::detail::GatherVolatileTerms::accept(const DebuggerVariable &node) {
   volatiles.insert(node.shared_from_this());
 }
 

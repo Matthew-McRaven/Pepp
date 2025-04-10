@@ -43,6 +43,7 @@ TEST_CASE("Evaluating const/volatile qualifiers on AST nodes", "[scope:debug][ki
 struct CountEvalVisitor : public pepp::debug::ConstantTermVisitor {
   std::set<const pepp::debug::Term *> visited;
   void accept(const pepp::debug::Variable &node) override { visited.insert(&node); }
+  void accept(const pepp::debug::DebuggerVariable &node) override { visited.insert(&node); }
   void accept(const pepp::debug::Constant &node) override { visited.insert(&node); }
   void accept(const pepp::debug::BinaryInfix &node) override {
     visited.insert(&node);
