@@ -70,10 +70,10 @@ void pepp::debug::detail::GatherVolatileTerms::accept(const ExplicitCast &node) 
 
 void pepp::debug::mark_parents_dirty(Term &base) {
   if (base.dirty()) return;
-  base.mark_dirty();
   for (const auto &weak : base.dependents()) {
     if (weak.expired()) continue;
     auto shared = weak.lock();
     mark_parents_dirty(*shared);
   }
+  base.mark_dirty();
 }
