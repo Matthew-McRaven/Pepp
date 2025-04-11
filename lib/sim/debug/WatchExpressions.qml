@@ -6,6 +6,10 @@ Item {
     FontMetrics {
         id: fm
     }
+    signal updateGUI
+    Component.onCompleted: {
+        updateGUI.connect(tableModel.onUpdateGUI)
+    }
 
     property alias watchExpressions: tableModel.watchExpressions
     HorizontalHeaderView {
@@ -44,6 +48,7 @@ Item {
                 text: model.display
                 rightPadding: 10
                 leftPadding: 2
+                color: model.changed ? palette.brightText : palette.windowText
             }
         }
     }

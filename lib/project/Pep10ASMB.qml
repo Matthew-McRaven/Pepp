@@ -58,6 +58,7 @@ Item {
         wrapper.actions.build.execute.triggered.connect(
                     wrapper.requestModeSwitchToDebugger)
         onOverwriteEditors()
+        project.updateGUI.connect(watchExpr.updateGUI)
     }
     // Will be called before project is changed on unload, so we can disconnect save-triggering signals.
     Component.onDestruction: {
@@ -91,6 +92,7 @@ Item {
                     wrapper.requestModeSwitchToDebugger)
         wrapper.actions.build.execute.triggered.disconnect(
                     wrapper.requestModeSwitchToDebugger)
+        project.updateGUI.disconnect(watchExpr.updateGUI)
     }
     signal requestModeSwitchTo(string mode)
     function requestModeSwitchToDebugger() {

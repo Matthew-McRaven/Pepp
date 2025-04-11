@@ -12,14 +12,30 @@ class WatchExpressionModel : public QObject {
 
 public:
   explicit WatchExpressionModel(QObject *parent = nullptr);
+  std::span<const uint8_t> was_dirty() const;
   std::span<const std::shared_ptr<pepp::debug::Term>> root_terms() const;
   void add_root(std::shared_ptr<pepp::debug::Term>);
+  void update_volatile_values();
   pepp::debug::Environment &env();
 
 private:
   pepp::debug::Environment _env;
   pepp::debug::ExpressionCache _c;
+  std::vector<uint8_t> _root_was_dirty;
   std::vector<std::shared_ptr<pepp::debug::Term>> _root_terms;
+  std::vector<std::shared_ptr<pepp::debug::Term>> _volatiles;
+};
+
+class WatchExpressionRoles : public QObject {
+  Q_OBJECT
+  QML_ELEMENT
+  QML_UNCREATABLE("Error: only enums")
+
+public:
+  enum Roles {
+    Changed = Qt::UserRole + 1,
+  };
+  Q_ENUM(Roles)
 };
 
 class WatchExpressionTableModel : public QAbstractTableModel {
@@ -37,7 +53,8 @@ public:
 
   WatchExpressionModel *expressionModel();
   void setExpressionModel(WatchExpressionModel *new_model);
-
+public slots:
+  void onUpdateGUI();
 signals:
   void expressionModelChanged();
 
