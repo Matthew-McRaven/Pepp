@@ -32,6 +32,19 @@ void pepp::debug::WatchExpressionModel::update_volatile_values() {
 
 pepp::debug::Environment &pepp::debug::WatchExpressionModel::env() { return _env; }
 
+bool pepp::debug::WatchExpressionModel::recompile(const QString &new_expr, int index) {
+  if (index < 0 || index >= _root_terms.size()) return false;
+  pepp::debug::Parser p(_c);
+  auto term = p.compile(new_expr);
+  if (term == nullptr) return false;
+  _root_terms[index] = term;
+  _root_was_dirty[index] = true;
+  detail::GatherVolatileTerms vols;
+  for (const auto &ptr : _root_terms) ptr->accept(vols);
+  _volatiles = vols.to_vector();
+  return true;
+}
+
 void pepp::debug::WatchExpressionModel::add_root(std::shared_ptr<Term> term) {
   if (term == nullptr) return;
   _root_terms.emplace_back(std::move(term));
@@ -90,6 +103,25 @@ QVariant pepp::debug::WatchExpressionTableModel::data(const QModelIndex &index, 
   case (int)WER::Changed: return _expressionModel->was_dirty()[row];
   }
   return {};
+}
+
+bool pepp::debug::WatchExpressionTableModel::setData(const QModelIndex &index, const QVariant &value, int role) {
+  if (!index.isValid() || _expressionModel == nullptr) return false;
+  else if (role != Qt::EditRole && role != Qt::DisplayRole) return false;
+  else if (!value.canConvert(QMetaType::fromType<QString>())) return false;
+  auto str = value.toString();
+  auto success = _expressionModel->recompile(str, index.row());
+  if (success) {
+    auto left = index.siblingAtColumn(0), right = index.siblingAtColumn(2);
+    emit dataChanged(left, right);
+  }
+  return success;
+}
+
+Qt::ItemFlags pepp::debug::WatchExpressionTableModel::flags(const QModelIndex &index) const {
+  if (!index.isValid()) return {};
+  if (index.column() == 0) return Qt::ItemIsEnabled | Qt::ItemIsSelectable | Qt::ItemIsEditable;
+  else return Qt::ItemIsEnabled | Qt::ItemIsSelectable;
 }
 
 QHash<int, QByteArray> pepp::debug::WatchExpressionTableModel::roleNames() const {

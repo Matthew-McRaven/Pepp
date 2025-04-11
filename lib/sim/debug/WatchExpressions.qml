@@ -39,16 +39,28 @@ Item {
 
         delegate: Item {
             implicitWidth: Math.max(8 * fm.averageCharacterWidth,
-                                    label.implicitWidth + 12)
-            implicitHeight: label.implicitHeight
+                                    textView.implicitWidth + 12)
+            implicitHeight: textView.implicitHeight * 1.3
+            required property bool editing
 
             Text {
-                id: label
+                id: textView
                 anchors.fill: parent
                 text: model.display
                 rightPadding: 10
                 leftPadding: 2
                 color: model.changed ? palette.brightText : palette.windowText
+                visible: !editing
+            }
+
+            TableView.editDelegate: TextField {
+                id: textEdit
+                x: textView.x
+                y: textView.y
+                width: textView.width
+                height: textView.height
+                text: display
+                TableView.onCommit: display = text
             }
         }
     }
