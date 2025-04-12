@@ -31,7 +31,7 @@ TEST_CASE("Parsing watch expressions", "[scope:debug][kind:unit][arch:*]") {
     REQUIRE(as_const != nullptr);
     CHECK(as_const->format_hint == detail::UnsignedConstant::Format::Hex);
     CHECK(as_const->value.bits == 0x15);
-    CHECK(as_const->to_string() == "0x15");
+    CHECK(as_const->to_string().toStdString() == "0x15");
   }
   SECTION("Unsigned Decimal constants") {
     ExpressionCache c;
@@ -44,7 +44,7 @@ TEST_CASE("Parsing watch expressions", "[scope:debug][kind:unit][arch:*]") {
     CHECK(as_const->format_hint == detail::UnsignedConstant::Format::Dec);
     CHECK(as_const->value.type == ExpressionType::i16);
     CHECK(as_const->value.bits == 115);
-    CHECK(as_const->to_string() == "115");
+    CHECK(as_const->to_string().toStdString() == "115");
   }
   SECTION("Decimal constant with trailing type") {
     ExpressionCache c;
@@ -57,7 +57,7 @@ TEST_CASE("Parsing watch expressions", "[scope:debug][kind:unit][arch:*]") {
     CHECK(as_const->format_hint == detail::UnsignedConstant::Format::Dec);
     CHECK(as_const->value.type == ExpressionType::u8);
     CHECK(as_const->value.bits == 115);
-    CHECK(as_const->to_string() == "115");
+    CHECK(as_const->to_string() == "115_u8");
   }
   SECTION("Identifier") {
     ExpressionCache c;

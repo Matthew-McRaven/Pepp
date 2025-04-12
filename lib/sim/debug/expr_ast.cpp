@@ -67,8 +67,24 @@ QString pepp::debug::Constant::to_string() const {
   using namespace Qt::Literals::StringLiterals;
   using namespace pepp::debug;
   switch (format_hint) {
-  case detail::UnsignedConstant::Format::Dec: return u"%1"_s.arg(value.bits, 0, 10);
-  case detail::UnsignedConstant::Format::Hex: return u"0x%1"_s.arg(value.bits, 0, 16);
+  case detail::UnsignedConstant::Format::Dec:
+    switch (value.type) {
+    case pepp::debug::ExpressionType::i8: return u"%1_i8"_s.arg((int8_t)value.bits, 0, 10);
+    case pepp::debug::ExpressionType::u8: return u"%1_u8"_s.arg((uint8_t)value.bits, 0, 10);
+    case pepp::debug::ExpressionType::i16: return u"%1"_s.arg((int16_t)value.bits, 0, 10);
+    case pepp::debug::ExpressionType::u16: return u"%1_u16"_s.arg((uint16_t)value.bits, 0, 10);
+    case pepp::debug::ExpressionType::i32: return u"%1_i32"_s.arg((int32_t)value.bits, 0, 10);
+    case pepp::debug::ExpressionType::u32: return u"%1_u32"_s.arg((uint32_t)value.bits, 0, 10);
+    }
+  case detail::UnsignedConstant::Format::Hex:
+    switch (value.type) {
+    case pepp::debug::ExpressionType::i8: return u"0x%1_i8"_s.arg((uint8_t)value.bits, 0, 16);
+    case pepp::debug::ExpressionType::u8: return u"0x%1_u8"_s.arg((uint8_t)value.bits, 0, 16);
+    case pepp::debug::ExpressionType::i16: return u"0x%1"_s.arg((uint16_t)value.bits, 0, 16);
+    case pepp::debug::ExpressionType::u16: return u"0x%1_u16"_s.arg((uint16_t)value.bits, 0, 16);
+    case pepp::debug::ExpressionType::i32: return u"0x%1_i32"_s.arg((uint32_t)value.bits, 0, 16);
+    case pepp::debug::ExpressionType::u32: return u"0x%1_u32"_s.arg((uint32_t)value.bits, 0, 16);
+    }
   }
 }
 
