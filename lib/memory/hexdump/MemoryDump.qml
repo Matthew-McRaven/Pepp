@@ -1,9 +1,9 @@
 import QtQuick
 import QtQuick.Controls
 import QtQuick.Layouts
-import Qt.labs.qmlmodels
-
 //  For DelegateChooser
+import QtQml.Models
+
 import "." as Ui
 import edu.pepp 1.0
 
