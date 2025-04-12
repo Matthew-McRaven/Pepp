@@ -22,6 +22,7 @@ import QtQuick.Controls
 import QtQuick.Layouts
 import QtQuick.Dialogs
 import Qt.labs.qmlmodels
+import QtQml.Models
 import QtCore
 import "qrc:/edu/pepp/about" as About
 import "qrc:/edu/pepp/memory/hexdump" as Memory

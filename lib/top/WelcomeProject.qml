@@ -1,7 +1,7 @@
 import QtQuick 2.15
 import QtQuick.Controls
 import QtQuick.Layouts
-import Qt.labs.qmlmodels
+import QtQml.Models
 import edu.pepp 1.0
 
 Item {
