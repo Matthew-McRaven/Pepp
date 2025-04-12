@@ -12,4 +12,4 @@ Number,GitRef,Date,Blurb
 0.8.3,,2024-01-24,"This version simplifies project creation, improves the debugger's symbol table, and introduces a new default font."
 0.8.4,,2024-02-02,"This version re-orders Pep/10 opcodes to group all AAA-type together."
 0.8.5,,2024-02-09,"This version redefines figures from chapter 7."
-0.8.6,,??,"This version includes improved debugging features."
+0.8.6,,??,"This version includes improved debugging features, including a watch expressions pane in the debugger."
