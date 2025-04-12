@@ -32,6 +32,11 @@ void pepp::debug::WatchExpressionModel::update_volatile_values() {
 
 pepp::debug::Environment &pepp::debug::WatchExpressionModel::env() { return _env; }
 
+std::shared_ptr<pepp::debug::Term> pepp::debug::WatchExpressionModel::compile(const QString &new_expr) {
+  pepp::debug::Parser p(_c);
+  return p.compile(new_expr);
+}
+
 bool pepp::debug::WatchExpressionModel::recompile(const QString &new_expr, int index) {
   if (index < 0 || index >= _root_terms.size()) return false;
   pepp::debug::Parser p(_c);
@@ -68,7 +73,7 @@ QVariant pepp::debug::WatchExpressionTableModel::headerData(int section, Qt::Ori
 
 int pepp::debug::WatchExpressionTableModel::rowCount(const QModelIndex &parent) const {
   if (parent.isValid() || _expressionModel == nullptr) return 0;
-  return _expressionModel->root_terms().size();
+  return _expressionModel->root_terms().size() + 1;
 }
 
 int pepp::debug::WatchExpressionTableModel::columnCount(const QModelIndex &parent) const {
@@ -88,19 +93,26 @@ QVariant variant_from_bits(const pepp::debug::TypedBits &bits) {
 }
 QVariant pepp::debug::WatchExpressionTableModel::data(const QModelIndex &index, int role) const {
   using WER = WatchExpressionRoles::Roles;
-  if (!index.isValid() || _expressionModel == nullptr) return QVariant();
   int row = index.row(), col = index.column();
+  if (!index.isValid() || _expressionModel == nullptr) return {};
   auto terms = _expressionModel->root_terms();
   auto env = _expressionModel->env();
   switch (role) {
   case Qt::DisplayRole:
-    if (col == 0) return terms[row]->to_string();
+    if (row >= terms.size()) {
+      if (col == 0) return "<expr>";
+      return {};
+    } else if (col == 0) return terms[row]->to_string();
     else if (col == 1) return variant_from_bits(terms[row]->evaluate(CachePolicy::UseAlways, env));
     else {
       QMetaEnum metaEnum = QMetaEnum::fromType<ExpressionType>();
       return metaEnum.valueToKey((int)terms[row]->evaluate(CachePolicy::UseAlways, env).type);
     }
-  case (int)WER::Changed: return _expressionModel->was_dirty()[row];
+  case (int)WER::Changed:
+    if (row >= terms.size()) {
+      return false;
+    } else return _expressionModel->was_dirty()[row];
+  case (int)WER::Italicize: return row >= terms.size();
   }
   return {};
 }
@@ -110,12 +122,26 @@ bool pepp::debug::WatchExpressionTableModel::setData(const QModelIndex &index, c
   else if (role != Qt::EditRole && role != Qt::DisplayRole) return false;
   else if (!value.canConvert(QMetaType::fromType<QString>())) return false;
   auto str = value.toString();
-  auto success = _expressionModel->recompile(str, index.row());
-  if (success) {
-    auto left = index.siblingAtColumn(0), right = index.siblingAtColumn(2);
+  auto terms = _expressionModel->root_terms();
+  if (index.row() >= terms.size()) {
+    auto new_term = _expressionModel->compile(str);
+    if (!new_term) return false;
+
+    beginInsertRows(index.parent(), index.row() + 1, index.row() + 1);
+    _expressionModel->add_root(new_term);
+    endInsertRows();
+
+    auto left = index.siblingAtColumn(0), right = index.siblingAtColumn(3);
     emit dataChanged(left, right);
+    return true;
+  } else {
+    auto success = _expressionModel->recompile(str, index.row());
+    if (success) {
+      auto left = index.siblingAtColumn(0), right = index.siblingAtColumn(2);
+      emit dataChanged(left, right);
+    }
+    return success;
   }
-  return success;
 }
 
 Qt::ItemFlags pepp::debug::WatchExpressionTableModel::flags(const QModelIndex &index) const {
@@ -126,7 +152,11 @@ Qt::ItemFlags pepp::debug::WatchExpressionTableModel::flags(const QModelIndex &i
 
 QHash<int, QByteArray> pepp::debug::WatchExpressionTableModel::roleNames() const {
   using WER = WatchExpressionRoles::Roles;
-  static const QHash<int, QByteArray> roles = {{Qt::DisplayRole, "display"}, {(int)WER::Changed, "changed"}};
+  static const QHash<int, QByteArray> roles = {
+      {Qt::DisplayRole, "display"},
+      {(int)WER::Changed, "changed"},
+      {(int)WER::Italicize, "italicize"},
+  };
   return roles;
 }
 

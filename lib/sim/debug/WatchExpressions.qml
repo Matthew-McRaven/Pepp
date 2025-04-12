@@ -46,11 +46,12 @@ Item {
             Text {
                 id: textView
                 anchors.fill: parent
-                text: model.display
+                text: model.display ?? ""
                 rightPadding: 10
                 leftPadding: 2
                 color: model.changed ? palette.brightText : palette.windowText
                 visible: !editing
+                font.italic: model.italicize
             }
 
             TableView.editDelegate: TextField {
@@ -59,7 +60,7 @@ Item {
                 y: textView.y
                 width: textView.width
                 height: textView.height
-                text: display
+                text: model.italicize ? "" : display
                 TableView.onCommit: display = text
             }
         }

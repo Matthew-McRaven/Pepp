@@ -17,6 +17,8 @@ public:
   void add_root(std::shared_ptr<pepp::debug::Term>);
   void update_volatile_values();
   pepp::debug::Environment &env();
+  // Compile an expression without adding it to roots
+  std::shared_ptr<pepp::debug::Term> compile(const QString &new_expr);
   bool recompile(const QString &new_expr, int index);
 
 private:
@@ -35,6 +37,7 @@ class WatchExpressionRoles : public QObject {
 public:
   enum Roles {
     Changed = Qt::UserRole + 1,
+    Italicize,
   };
   Q_ENUM(Roles)
 };
