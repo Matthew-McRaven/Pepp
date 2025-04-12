@@ -3,6 +3,9 @@ import QtQuick.Controls
 import edu.pepp
 
 Item {
+    NuAppSettings {
+        id: settings
+    }
     FontMetrics {
         id: fm
     }
@@ -50,7 +53,7 @@ Item {
                 text: model.display ?? ""
                 rightPadding: 10
                 leftPadding: 2
-                color: model.changed ? palette.brightText : palette.windowText
+                color: model.changed ? settings.extPalette.error.background : palette.windowText
                 visible: !editing
                 font.italic: model.italicize
             }
