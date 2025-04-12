@@ -36,6 +36,7 @@ Item {
         model: WatchExpressionTableModel {
             id: tableModel
         }
+        clip: true
 
         delegate: Item {
             implicitWidth: Math.max(8 * fm.averageCharacterWidth,
