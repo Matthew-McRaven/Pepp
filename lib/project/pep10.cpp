@@ -740,7 +740,8 @@ project::DebugEnableFlags::DebugEnableFlags(QObject *parent) : QObject(parent) {
 project::StepEnableFlags::StepEnableFlags(QObject *parent) : QObject(parent) {}
 
 Pep_ASMB::Pep_ASMB(project::Environment env, QVariant delegate, QObject *parent)
-    : Pep_ISA(env, delegate, parent, false), _userModel(new SymbolModel(this)), _osModel(new SymbolModel(this)) {
+    : Pep_ISA(env, delegate, parent, false), _userModel(new SymbolModel(this)), _osModel(new SymbolModel(this)),
+      _watchExpressions(new pepp::debug::WatchExpressionModel(this, this)) {
 
   switch (_env.arch) {
   case builtins::Architecture::PEP9: _osAsmText = cs5e_os(); break;
@@ -773,7 +774,6 @@ Pep_ASMB::Pep_ASMB(project::Environment env, QVariant delegate, QObject *parent)
   }
   default: throw std::logic_error("Unimplemented architecture");
   }
-
 }
 
 void Pep_ASMB::set(int abstraction, QString value) {
@@ -826,6 +826,8 @@ bool Pep_ASMB::isEmpty() const { return _userAsmText.isEmpty(); }
 SymbolModel *Pep_ASMB::userSymbols() const { return _userModel; }
 SymbolModel *Pep_ASMB::osSymbols() const { return _osModel; }
 
+pepp::debug::WatchExpressionModel *Pep_ASMB::watchExpressions() const { return _watchExpressions; }
+
 int Pep_ASMB::allowedDebugging() const {
   using D = project::DebugEnableFlags;
   switch (_state) {
@@ -834,6 +836,64 @@ int Pep_ASMB::allowedDebugging() const {
   case State::NormalExec: return D::Stop;
   case State::DebugExec: return D::Stop;
   default: return 0b0;
+  }
+}
+
+uint8_t Pep_ASMB::read_mem_u8(uint32_t address) const {
+  if (_system == nullptr) return 0;
+  quint8 temp = 0;
+  _system->bus()->read((uint16_t)address, {&temp, 1}, gs);
+  return temp;
+}
+
+uint16_t Pep_ASMB::read_mem_u16(uint32_t address) const {
+  if (_system == nullptr) return 0;
+  quint16 temp = 0;
+  _system->bus()->read((uint16_t)address, {(quint8 *)&temp, 2}, gs);
+  if (bits::hostOrder() != bits::Order::BigEndian) temp = bits::byteswap(temp);
+  return temp;
+}
+
+pepp::debug::TypedBits Pep_ASMB::evaluate_variable(QStringView name) const {
+  using T = pepp::debug::ExpressionType;
+  return {.allows_address_of = true, .type = T::i16, .bits = (uint64_t)name.length()};
+}
+
+uint32_t Pep_ASMB::cache_debug_variable_name(QStringView name) const {
+  static const auto meta = QMetaEnum::fromType<Pep_ISA::DebugVariables>();
+  auto upper = name.toString().toUpper();
+  bool okay = false;
+  auto v = meta.keyToValue(upper.toStdString().c_str(), &okay);
+  if (!okay) return -1;
+  return v;
+}
+
+pepp::debug::TypedBits Pep_ASMB::evaluate_debug_variable(uint32_t cache_id) const {
+  using T = pepp::debug::ExpressionType;
+  using DV = Pep_ISA::DebugVariables;
+  if (_system == nullptr) return {.allows_address_of = true, .type = T::i16, .bits = (uint64_t)0};
+  uint16_t reg16;
+  auto cpu = static_cast<targets::pep10::isa::CPU *>(_system->cpu());
+  switch (cache_id) {
+  case static_cast<uint32_t>(DV::A):
+    targets::isa::readRegister<isa::Pep10>(cpu->regs(), isa::Pep10::Register::A, reg16, gs);
+    return pepp::debug::from_int((int16_t)reg16);
+  case static_cast<uint32_t>(DV::X):
+    targets::isa::readRegister<isa::Pep10>(cpu->regs(), isa::Pep10::Register::X, reg16, gs);
+    return pepp::debug::from_int((int16_t)reg16);
+  case static_cast<uint32_t>(DV::SP):
+    targets::isa::readRegister<isa::Pep10>(cpu->regs(), isa::Pep10::Register::SP, reg16, gs);
+    return pepp::debug::from_int(reg16);
+  case static_cast<uint32_t>(DV::PC):
+    targets::isa::readRegister<isa::Pep10>(cpu->regs(), isa::Pep10::Register::PC, reg16, gs);
+    return pepp::debug::from_int(reg16);
+  case static_cast<uint32_t>(DV::IS):
+    targets::isa::readRegister<isa::Pep10>(cpu->regs(), isa::Pep10::Register::IS, reg16, gs);
+    return pepp::debug::from_int((int8_t)reg16);
+  case static_cast<uint32_t>(DV::OS):
+    targets::isa::readRegister<isa::Pep10>(cpu->regs(), isa::Pep10::Register::OS, reg16, gs);
+    return pepp::debug::from_int(reg16);
+  default: return {.allows_address_of = true, .type = T::i16, .bits = (uint64_t)0};
   }
 }
 

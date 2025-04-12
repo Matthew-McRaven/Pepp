@@ -21,7 +21,7 @@
 
 TEST_CASE("Evaluating watch expressions", "[scope:debug][kind:unit][arch:*]") {
   using namespace pepp::debug;
-  Environment env;
+  ZeroEnvironment env;
   SECTION("Expressions caching between compliations") {
     ExpressionCache c;
     Parser p(c);
@@ -177,13 +177,20 @@ TEST_CASE("Evaluating watch expressions", "[scope:debug][kind:unit][arch:*]") {
   }
 }
 
+namespace {
+struct MemoryArrayEnvironment : public pepp::debug::ZeroEnvironment {
+  std::vector<uint8_t> mem = std::vector<uint8_t>(0x1'00'00, 7);
+  inline uint8_t read_mem_u8(uint32_t addr) const override { return mem[addr % 0x1'00'00]; }
+  inline uint16_t read_mem_u16(uint32_t addr) const override {
+    return (uint16_t)(mem[addr % 0x1'00'00] << 8 | mem[(addr + 1) % 0x1'00'00]);
+  }
+};
+} // namespace
+
 TEST_CASE("Evaluations with environment access", "[scope:debug][kind:unit][arch:*]") {
   using namespace pepp::debug;
-  Environment env;
-  auto mem = std::vector<uint8_t>(0x1'00'00, 7);
-  env.read_mem_u16 = [&mem](uint32_t addr) {
-    return (uint16_t)(mem[addr % 0x1'00'00] << 8 | mem[(addr + 1) % 0x1'00'00]);
-  };
+  MemoryArrayEnvironment env;
+
   SECTION("Memory Access") {
     ExpressionCache c;
     Parser p(c);
@@ -191,7 +198,7 @@ TEST_CASE("Evaluations with environment access", "[scope:debug][kind:unit][arch:
     auto ast = p.compile(body);
     REQUIRE(ast != nullptr);
     CHECK(ast->evaluate(CachePolicy::UseNonVolatiles, env).bits == 0x0707);
-    mem[0] = 8;
+    env.mem[0] = 8;
     // Ignoring requirement from volatiles to re-compute.
     CHECK(ast->evaluate(CachePolicy::UseAlways, env).bits == 0x0707);
     CHECK(ast->evaluate(CachePolicy::UseNonVolatiles, env).bits == 0x0807);
@@ -202,6 +209,6 @@ TEST_CASE("Evaluations with environment access", "[scope:debug][kind:unit][arch:
     QString body = "$x";
     auto ast = p.compile(body);
     REQUIRE(ast != nullptr);
-    CHECK(ast->evaluate(CachePolicy::UseNonVolatiles, env).bits == 1);
+    CHECK(ast->evaluate(CachePolicy::UseNonVolatiles, env).bits == 0);
   }
 }

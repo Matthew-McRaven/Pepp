@@ -55,6 +55,7 @@ struct Parser {
 
   explicit Parser(ExpressionCache &cache);
   std::shared_ptr<Term> compile(QStringView expr, void *builtins = nullptr);
+  std::shared_ptr<Term> compile(QString expr, void *builtins = nullptr);
 
 private:
   ExpressionCache &_cache;

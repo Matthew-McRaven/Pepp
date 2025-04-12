@@ -67,8 +67,24 @@ QString pepp::debug::Constant::to_string() const {
   using namespace Qt::Literals::StringLiterals;
   using namespace pepp::debug;
   switch (format_hint) {
-  case detail::UnsignedConstant::Format::Dec: return u"%1"_s.arg(value.bits, 0, 10);
-  case detail::UnsignedConstant::Format::Hex: return u"0x%1"_s.arg(value.bits, 0, 16);
+  case detail::UnsignedConstant::Format::Dec:
+    switch (value.type) {
+    case pepp::debug::ExpressionType::i8: return u"%1_i8"_s.arg((int8_t)value.bits, 0, 10);
+    case pepp::debug::ExpressionType::u8: return u"%1_u8"_s.arg((uint8_t)value.bits, 0, 10);
+    case pepp::debug::ExpressionType::i16: return u"%1"_s.arg((int16_t)value.bits, 0, 10);
+    case pepp::debug::ExpressionType::u16: return u"%1_u16"_s.arg((uint16_t)value.bits, 0, 10);
+    case pepp::debug::ExpressionType::i32: return u"%1_i32"_s.arg((int32_t)value.bits, 0, 10);
+    case pepp::debug::ExpressionType::u32: return u"%1_u32"_s.arg((uint32_t)value.bits, 0, 10);
+    }
+  case detail::UnsignedConstant::Format::Hex:
+    switch (value.type) {
+    case pepp::debug::ExpressionType::i8: return u"0x%1_i8"_s.arg((uint8_t)value.bits, 0, 16);
+    case pepp::debug::ExpressionType::u8: return u"0x%1_u8"_s.arg((uint8_t)value.bits, 0, 16);
+    case pepp::debug::ExpressionType::i16: return u"0x%1"_s.arg((uint16_t)value.bits, 0, 16);
+    case pepp::debug::ExpressionType::u16: return u"0x%1_u16"_s.arg((uint16_t)value.bits, 0, 16);
+    case pepp::debug::ExpressionType::i32: return u"0x%1_i32"_s.arg((uint32_t)value.bits, 0, 16);
+    case pepp::debug::ExpressionType::u32: return u"0x%1_u32"_s.arg((uint32_t)value.bits, 0, 16);
+    }
   }
 }
 
@@ -144,6 +160,7 @@ pepp::debug::TypedBits pepp::debug::UnaryPrefix::evaluate(CachePolicy mode, Envi
   case Operators::NOT: return *(_state.value = !v);
   case Operators::NEGATE: return *(_state.value = ~v);
   }
+  throw std::logic_error("Unimplemented");
 }
 
 int pepp::debug::UnaryPrefix::cv_qualifiers() const {
@@ -255,6 +272,7 @@ pepp::debug::TypedBits pepp::debug::BinaryInfix::evaluate(CachePolicy mode, Envi
   case Operators::BIT_OR: return *(_state.value = v_lhs | v_rhs);
   case Operators::BIT_XOR: return *(_state.value = v_lhs ^ v_rhs);
   }
+  throw std::logic_error("Unimplemented");
 }
 int pepp::debug::BinaryInfix::cv_qualifiers() const {
   switch (op) {
@@ -415,8 +433,10 @@ pepp::debug::TypedBits pepp::debug::DebuggerVariable::evaluate(CachePolicy mode,
     default: break;
     }
   }
+  if (!_name_cache_id.has_value()) _name_cache_id = env.cache_debug_variable_name(name);
+
   _state.dirty = false;
-  return *(_state.value = env.evaluate_debug_variable(name));
+  return *(_state.value = env.evaluate_debug_variable(*_name_cache_id));
 }
 
 int pepp::debug::DebuggerVariable::cv_qualifiers() const { return CVQualifiers::Volatile; }

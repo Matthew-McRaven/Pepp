@@ -6,7 +6,9 @@
 #include <type_traits>
 
 namespace pepp::debug {
+Q_NAMESPACE
 enum class ExpressionType : uint8_t { i8, u8, i16, u16, i32, u32 };
+Q_ENUM_NS(ExpressionType);
 bool is_unsigned(ExpressionType t);
 // Returns the number of bits in t.
 uint32_t bitness(ExpressionType t);
@@ -18,6 +20,7 @@ struct TypedBits {
   uint64_t bits;
 
   std::strong_ordering operator<=>(const TypedBits &rhs) const;
+  bool operator==(const TypedBits &) const = default;
 
   friend pepp::debug::TypedBits operator+(const pepp::debug::TypedBits &arg);
   friend pepp::debug::TypedBits operator-(const pepp::debug::TypedBits &arg);

@@ -47,7 +47,7 @@ target_include_directories(pepp-lib PUBLIC ${CMAKE_CURRENT_BINARY_DIR} ${ANTLR4_
 target_include_directories(pepp-lib PRIVATE
         about builtins components cpu helpers isa
         link macro memory memory/hexdump memory/stack preferences project
-        sim targets text utils text/editor menu settings top
+        sim sim/debug targets text utils text/editor menu settings top
 )
 
 # Add additional JS support files
