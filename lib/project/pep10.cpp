@@ -862,10 +862,10 @@ pepp::debug::TypedBits Pep_ASMB::evaluate_debug_variable(uint32_t cache_id) cons
   switch (cache_id) {
   case static_cast<uint32_t>(DV::A):
     targets::isa::readRegister<isa::Pep10>(cpu->regs(), isa::Pep10::Register::A, reg16, gs);
-    return pepp::debug::from_int(reg16);
+    return pepp::debug::from_int((int16_t)reg16);
   case static_cast<uint32_t>(DV::X):
     targets::isa::readRegister<isa::Pep10>(cpu->regs(), isa::Pep10::Register::X, reg16, gs);
-    return pepp::debug::from_int(reg16);
+    return pepp::debug::from_int((int16_t)reg16);
   case static_cast<uint32_t>(DV::SP):
     targets::isa::readRegister<isa::Pep10>(cpu->regs(), isa::Pep10::Register::SP, reg16, gs);
     return pepp::debug::from_int(reg16);
@@ -874,7 +874,7 @@ pepp::debug::TypedBits Pep_ASMB::evaluate_debug_variable(uint32_t cache_id) cons
     return pepp::debug::from_int(reg16);
   case static_cast<uint32_t>(DV::IS):
     targets::isa::readRegister<isa::Pep10>(cpu->regs(), isa::Pep10::Register::IS, reg16, gs);
-    return pepp::debug::from_int(reg16);
+    return pepp::debug::from_int((int8_t)reg16);
   case static_cast<uint32_t>(DV::OS):
     targets::isa::readRegister<isa::Pep10>(cpu->regs(), isa::Pep10::Register::OS, reg16, gs);
     return pepp::debug::from_int(reg16);
