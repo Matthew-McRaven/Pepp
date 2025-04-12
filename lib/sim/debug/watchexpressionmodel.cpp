@@ -20,7 +20,7 @@ void pepp::debug::WatchExpressionModel::update_volatile_values() {
   for (const auto &ptr : _volatiles) {
     auto old_v = ptr->evaluate(CachePolicy::UseAlways, *_env);
     auto new_v = ptr->evaluate(CachePolicy::UseNonVolatiles, *_env);
-    if (_ne(old_v, new_v).bits) pepp::debug::mark_parents_dirty(*ptr);
+    if (old_v != new_v) pepp::debug::mark_parents_dirty(*ptr);
   }
 
   // Later term could be a a subexpression of current one.
@@ -174,12 +174,15 @@ void pepp::debug::WatchExpressionTableModel::setExpressionModel(pepp::debug::Wat
 
 void pepp::debug::WatchExpressionTableModel::onUpdateGUI() {
   if (!_expressionModel) return;
-  _expressionModel->update_volatile_values();
+  // Span's values will change on us when we update_volatile_values(), so cache in vector<bool>.
   auto dirtied = _expressionModel->was_dirty();
+  std::vector<bool> old_dirtied(dirtied.begin(), dirtied.end());
+  _expressionModel->update_volatile_values();
   int start = -1;
   for (int i = 0; i <= dirtied.size(); i++) {
-    if (dirtied[i] && start == -1) start = i;
-    else if (!dirtied[i] && start != -1) {
+    auto dirtied_changed = dirtied[i] ^ old_dirtied[i];
+    if (dirtied_changed && start == -1) start = i;
+    else if (!dirtied_changed && start != -1) {
       emit dataChanged(index(start, 0), index(i - 1, 2));
       start = -1;
     }

@@ -20,6 +20,7 @@ struct TypedBits {
   uint64_t bits;
 
   std::strong_ordering operator<=>(const TypedBits &rhs) const;
+  bool operator==(const TypedBits &) const = default;
 
   friend pepp::debug::TypedBits operator+(const pepp::debug::TypedBits &arg);
   friend pepp::debug::TypedBits operator-(const pepp::debug::TypedBits &arg);
