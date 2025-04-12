@@ -10,6 +10,7 @@
 #include "debug/debugger.hpp"
 #include "helpers/asmb.hpp"
 #include "memory/hexdump/rawmemory.hpp"
+#include "sim/debug/watchexpressionmodel.hpp"
 #include "symtab/symbolmodel.hpp"
 #include "targets/isa3/system.hpp"
 #include "text/editor/scintillaasmeditbase.hpp"
@@ -39,6 +40,16 @@ class Pep_ISA : public QObject {
   QML_UNCREATABLE("Can only be created through Project::")
 
 public:
+  enum class DebugVariables {
+    A = 10,
+    X,
+    SP,
+    PC,
+    IS,
+    OS,
+  };
+  Q_ENUM(DebugVariables);
+
   enum class UpdateType {
     Partial,
     Full,
@@ -141,7 +152,7 @@ public:
   QString error;
 };
 
-class Pep_ASMB final : public Pep_ISA {
+class Pep_ASMB final : public Pep_ISA, public pepp::debug::Environment {
   Q_OBJECT
   Q_PROPERTY(QString userAsmText READ userAsmText WRITE setUserAsmText NOTIFY userAsmTextChanged);
   Q_PROPERTY(QString userList READ userList NOTIFY listingChanged);
@@ -152,6 +163,7 @@ class Pep_ASMB final : public Pep_ISA {
   Q_PROPERTY(QList<Error *> assemblerErrors READ errors NOTIFY errorsChanged)
   Q_PROPERTY(SymbolModel *userSymbols READ userSymbols CONSTANT)
   Q_PROPERTY(SymbolModel *osSymbols READ osSymbols CONSTANT)
+  Q_PROPERTY(pepp::debug::WatchExpressionModel *watchExpressions READ watchExpressions CONSTANT)
   QML_UNCREATABLE("Can only be created through Project::")
   using Action = ScintillaAsmEditBase::Action;
 
@@ -171,7 +183,13 @@ public:
   bool isEmpty() const override;
   Q_INVOKABLE SymbolModel *userSymbols() const;
   Q_INVOKABLE SymbolModel *osSymbols() const;
+  Q_INVOKABLE pepp::debug::WatchExpressionModel *watchExpressions() const;
   int allowedDebugging() const override;
+  uint8_t read_mem_u8(uint32_t address) const override;
+  uint16_t read_mem_u16(uint32_t address) const override;
+  pepp::debug::TypedBits evaluate_variable(QStringView name) const override;
+  uint32_t cache_debug_variable_name(QStringView name) const override;
+  pepp::debug::TypedBits evaluate_debug_variable(uint32_t name) const override;
 public slots:
   bool onDebuggingStart() override;
   bool onAssemble(bool doLoad = false);
@@ -206,4 +224,5 @@ protected:
   QString _userList = {}, _osList = {};
   QList<QPair<int, QString>> _errors = {}, _userListAnnotations = {}, _osListAnnotations = {};
   helpers::AsmHelper::Lines2Addresses _userLines2Address = {}, _osLines2Address = {};
+  pepp::debug::WatchExpressionModel *_watchExpressions = nullptr;
 };

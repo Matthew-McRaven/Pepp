@@ -7,6 +7,7 @@ import "qrc:/edu/pepp/memory/hexdump" as Memory
 import "qrc:/edu/pepp/memory/io" as IO
 import "qrc:/edu/pepp/cpu" as Cpu
 import "qrc:/edu/pepp/symtab" as SymTab
+import "qrc:/edu/pepp/sim/debug" as Debug
 import edu.pepp 1.0
 
 Item {
@@ -57,6 +58,7 @@ Item {
         wrapper.actions.build.execute.triggered.connect(
                     wrapper.requestModeSwitchToDebugger)
         onOverwriteEditors()
+        project.updateGUI.connect(watchExpr.updateGUI)
     }
     // Will be called before project is changed on unload, so we can disconnect save-triggering signals.
     Component.onDestruction: {
@@ -90,6 +92,7 @@ Item {
                     wrapper.requestModeSwitchToDebugger)
         wrapper.actions.build.execute.triggered.disconnect(
                     wrapper.requestModeSwitchToDebugger)
+        project.updateGUI.disconnect(watchExpr.updateGUI)
     }
     signal requestModeSwitchTo(string mode)
     function requestModeSwitchToDebugger() {
@@ -257,6 +260,9 @@ Item {
                         TabButton {
                             text: qsTr(`Symbol Table: ${textSelector.currentText}`)
                         }
+                        TabButton {
+                            text: qsTr(`Watch Expressions`)
+                        }
                     }
                     StackLayout {
                         Layout.fillWidth: true
@@ -273,6 +279,10 @@ Item {
                             id: symTab
                             model: textSelector.currentIndex
                                    === 0 ? project?.userSymbols : project?.osSymbols
+                        }
+                        Debug.WatchExpressions {
+                            id: watchExpr
+                            watchExpressions: project.watchExpressions
                         }
                     }
                 }
