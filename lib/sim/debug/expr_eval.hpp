@@ -33,12 +33,15 @@ struct Environment {
   // Read some bytes of memory (modulo the size of the address space) in the platform's preferred endianness
   std::function<uint8_t(uint32_t)> read_mem_u8 = [](uint32_t) { return 0; };
   std::function<uint16_t(uint32_t)> read_mem_u16 = [](uint32_t) { return 0; };
-  virtual TypedBits evaluate_variable(QStringView name) const {
-    return {.allows_address_of = true, .type = ExpressionType::i16, .bits = (uint64_t)name.length()};
-  }
-  virtual TypedBits evaluate_debug_variable(QStringView name) {
-    return {.allows_address_of = true, .type = ExpressionType::i16, .bits = (uint64_t)name.length()};
-  }
+
+  virtual TypedBits evaluate_variable(QStringView name) const = 0;
+  virtual uint32_t cache_debug_variable_name(QStringView name) const = 0;
+  virtual TypedBits evaluate_debug_variable(uint32_t cache_index) const = 0;
+};
+struct ZeroEnvironment : public Environment {
+  inline TypedBits evaluate_variable(QStringView name) const { return from_int(int16_t(0)); };
+  inline uint32_t cache_debug_variable_name(QStringView name) const { return 0; }
+  inline TypedBits evaluate_debug_variable(uint32_t cache_index) const { return from_int(int16_t(0)); };
 };
 } // namespace pepp::debug
 

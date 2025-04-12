@@ -11,18 +11,18 @@ class WatchExpressionModel : public QObject {
   QML_UNCREATABLE("");
 
 public:
-  explicit WatchExpressionModel(QObject *parent = nullptr);
+  explicit WatchExpressionModel(pepp::debug::Environment *env, QObject *parent = nullptr);
   std::span<const uint8_t> was_dirty() const;
   std::span<const std::shared_ptr<pepp::debug::Term>> root_terms() const;
   void add_root(std::shared_ptr<pepp::debug::Term>);
   void update_volatile_values();
-  pepp::debug::Environment &env();
+  pepp::debug::Environment *env();
   // Compile an expression without adding it to roots
   std::shared_ptr<pepp::debug::Term> compile(const QString &new_expr);
   bool recompile(const QString &new_expr, int index);
 
 private:
-  pepp::debug::Environment _env;
+  pepp::debug::Environment *_env;
   pepp::debug::ExpressionCache _c;
   std::vector<uint8_t> _root_was_dirty;
   std::vector<std::shared_ptr<pepp::debug::Term>> _root_terms;

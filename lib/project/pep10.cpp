@@ -741,7 +741,7 @@ project::StepEnableFlags::StepEnableFlags(QObject *parent) : QObject(parent) {}
 
 Pep_ASMB::Pep_ASMB(project::Environment env, QVariant delegate, QObject *parent)
     : Pep_ISA(env, delegate, parent, false), _userModel(new SymbolModel(this)), _osModel(new SymbolModel(this)),
-      _watchExpressions(new pepp::debug::WatchExpressionModel(this)) {
+      _watchExpressions(new pepp::debug::WatchExpressionModel(this, this)) {
 
   switch (_env.arch) {
   case builtins::Architecture::PEP9: _osAsmText = cs5e_os(); break;
@@ -836,6 +836,49 @@ int Pep_ASMB::allowedDebugging() const {
   case State::NormalExec: return D::Stop;
   case State::DebugExec: return D::Stop;
   default: return 0b0;
+  }
+}
+
+pepp::debug::TypedBits Pep_ASMB::evaluate_variable(QStringView name) const {
+  using T = pepp::debug::ExpressionType;
+  return {.allows_address_of = true, .type = T::i16, .bits = (uint64_t)name.length()};
+}
+
+uint32_t Pep_ASMB::cache_debug_variable_name(QStringView name) const {
+  static const auto meta = QMetaEnum::fromType<Pep_ISA::DebugVariables>();
+  auto upper = name.toString().toUpper();
+  bool okay = false;
+  auto v = meta.keyToValue(upper.toStdString().c_str(), &okay);
+  if (!okay) return -1;
+  return v;
+}
+
+pepp::debug::TypedBits Pep_ASMB::evaluate_debug_variable(uint32_t cache_id) const {
+  using T = pepp::debug::ExpressionType;
+  using DV = Pep_ISA::DebugVariables;
+  if (_system == nullptr) return {.allows_address_of = true, .type = T::i16, .bits = (uint64_t)0};
+  uint16_t reg16;
+  auto cpu = static_cast<targets::pep10::isa::CPU *>(_system->cpu());
+  switch (cache_id) {
+  case static_cast<uint32_t>(DV::A):
+    targets::isa::readRegister<isa::Pep10>(cpu->regs(), isa::Pep10::Register::A, reg16, gs);
+    return pepp::debug::from_int(reg16);
+  case static_cast<uint32_t>(DV::X):
+    targets::isa::readRegister<isa::Pep10>(cpu->regs(), isa::Pep10::Register::X, reg16, gs);
+    return pepp::debug::from_int(reg16);
+  case static_cast<uint32_t>(DV::SP):
+    targets::isa::readRegister<isa::Pep10>(cpu->regs(), isa::Pep10::Register::SP, reg16, gs);
+    return pepp::debug::from_int(reg16);
+  case static_cast<uint32_t>(DV::PC):
+    targets::isa::readRegister<isa::Pep10>(cpu->regs(), isa::Pep10::Register::PC, reg16, gs);
+    return pepp::debug::from_int(reg16);
+  case static_cast<uint32_t>(DV::IS):
+    targets::isa::readRegister<isa::Pep10>(cpu->regs(), isa::Pep10::Register::IS, reg16, gs);
+    return pepp::debug::from_int(reg16);
+  case static_cast<uint32_t>(DV::OS):
+    targets::isa::readRegister<isa::Pep10>(cpu->regs(), isa::Pep10::Register::OS, reg16, gs);
+    return pepp::debug::from_int(reg16);
+  default: return {.allows_address_of = true, .type = T::i16, .bits = (uint64_t)0};
   }
 }
 

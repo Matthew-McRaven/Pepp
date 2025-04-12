@@ -21,7 +21,7 @@
 
 TEST_CASE("Evaluating watch expressions", "[scope:debug][kind:unit][arch:*]") {
   using namespace pepp::debug;
-  Environment env;
+  ZeroEnvironment env;
   SECTION("Expressions caching between compliations") {
     ExpressionCache c;
     Parser p(c);
@@ -179,7 +179,7 @@ TEST_CASE("Evaluating watch expressions", "[scope:debug][kind:unit][arch:*]") {
 
 TEST_CASE("Evaluations with environment access", "[scope:debug][kind:unit][arch:*]") {
   using namespace pepp::debug;
-  Environment env;
+  ZeroEnvironment env;
   auto mem = std::vector<uint8_t>(0x1'00'00, 7);
   env.read_mem_u16 = [&mem](uint32_t addr) {
     return (uint16_t)(mem[addr % 0x1'00'00] << 8 | mem[(addr + 1) % 0x1'00'00]);
@@ -202,6 +202,6 @@ TEST_CASE("Evaluations with environment access", "[scope:debug][kind:unit][arch:
     QString body = "$x";
     auto ast = p.compile(body);
     REQUIRE(ast != nullptr);
-    CHECK(ast->evaluate(CachePolicy::UseNonVolatiles, env).bits == 1);
+    CHECK(ast->evaluate(CachePolicy::UseNonVolatiles, env).bits == 0);
   }
 }

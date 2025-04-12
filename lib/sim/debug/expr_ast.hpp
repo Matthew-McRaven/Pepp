@@ -106,6 +106,7 @@ struct DebuggerVariable : public Term {
   const QString name;
 
 private:
+  std::optional<uint32_t> _name_cache_id = std::nullopt;
   EvaluationCache _state;
 };
 

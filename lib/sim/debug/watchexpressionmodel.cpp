@@ -1,7 +1,8 @@
 #include "watchexpressionmodel.hpp"
 #include "expr_ast_ops.hpp"
 
-pepp::debug::WatchExpressionModel::WatchExpressionModel(QObject *parent) : QObject(parent) {
+pepp::debug::WatchExpressionModel::WatchExpressionModel(pepp::debug::Environment *env, QObject *parent)
+    : QObject(parent), _env(env) {
   pepp::debug::Parser p(_c);
   add_root(p.compile("1 - 3"));
   add_root(p.compile("3_u16 * (x + 2)"));
@@ -17,20 +18,19 @@ std::span<const std::shared_ptr<pepp::debug::Term>> pepp::debug::WatchExpression
 void pepp::debug::WatchExpressionModel::update_volatile_values() {
   std::fill(_root_was_dirty.begin(), _root_was_dirty.end(), 0);
   for (const auto &ptr : _volatiles) {
-    auto old_v = ptr->evaluate(CachePolicy::UseAlways, _env);
-    auto new_v = ptr->evaluate(CachePolicy::UseNonVolatiles, _env);
-    pepp::debug::mark_parents_dirty(*ptr);
-    // if (auto cmp = old_v <=> new_v; cmp != 0) pepp::debug::mark_parents_dirty(*ptr);
+    auto old_v = ptr->evaluate(CachePolicy::UseAlways, *_env);
+    auto new_v = ptr->evaluate(CachePolicy::UseNonVolatiles, *_env);
+    if (_ne(old_v, new_v).bits) pepp::debug::mark_parents_dirty(*ptr);
   }
 
   // Later term could be a a subexpression of current one.
   // We cannot re-order the terms because we want to preserve UI order.
   // Therefore must iterate over whole list once to collect all dirty terms before updating.
   for (int it = 0; it < _root_terms.size(); it++) _root_was_dirty[it] = _root_terms[it]->dirty();
-  for (const auto &ptr : _root_terms) ptr->evaluate(CachePolicy::UseNonVolatiles, _env);
+  for (const auto &ptr : _root_terms) ptr->evaluate(CachePolicy::UseNonVolatiles, *_env);
 }
 
-pepp::debug::Environment &pepp::debug::WatchExpressionModel::env() { return _env; }
+pepp::debug::Environment *pepp::debug::WatchExpressionModel::env() { return _env; }
 
 std::shared_ptr<pepp::debug::Term> pepp::debug::WatchExpressionModel::compile(const QString &new_expr) {
   pepp::debug::Parser p(_c);
@@ -103,10 +103,10 @@ QVariant pepp::debug::WatchExpressionTableModel::data(const QModelIndex &index, 
       if (col == 0) return "<expr>";
       return {};
     } else if (col == 0) return terms[row]->to_string();
-    else if (col == 1) return variant_from_bits(terms[row]->evaluate(CachePolicy::UseAlways, env));
+    else if (col == 1) return variant_from_bits(terms[row]->evaluate(CachePolicy::UseAlways, *env));
     else {
       QMetaEnum metaEnum = QMetaEnum::fromType<ExpressionType>();
-      return metaEnum.valueToKey((int)terms[row]->evaluate(CachePolicy::UseAlways, env).type);
+      return metaEnum.valueToKey((int)terms[row]->evaluate(CachePolicy::UseAlways, *env).type);
     }
   case (int)WER::Changed:
     if (row >= terms.size()) {

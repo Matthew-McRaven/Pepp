@@ -433,8 +433,10 @@ pepp::debug::TypedBits pepp::debug::DebuggerVariable::evaluate(CachePolicy mode,
     default: break;
     }
   }
+  if (!_name_cache_id.has_value()) _name_cache_id = env.cache_debug_variable_name(name);
+
   _state.dirty = false;
-  return *(_state.value = env.evaluate_debug_variable(name));
+  return *(_state.value = env.evaluate_debug_variable(*_name_cache_id));
 }
 
 int pepp::debug::DebuggerVariable::cv_qualifiers() const { return CVQualifiers::Volatile; }

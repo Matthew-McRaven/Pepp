@@ -40,6 +40,16 @@ class Pep_ISA : public QObject {
   QML_UNCREATABLE("Can only be created through Project::")
 
 public:
+  enum class DebugVariables {
+    A = 10,
+    X,
+    SP,
+    PC,
+    IS,
+    OS,
+  };
+  Q_ENUM(DebugVariables);
+
   enum class UpdateType {
     Partial,
     Full,
@@ -142,7 +152,7 @@ public:
   QString error;
 };
 
-class Pep_ASMB final : public Pep_ISA {
+class Pep_ASMB final : public Pep_ISA, public pepp::debug::Environment {
   Q_OBJECT
   Q_PROPERTY(QString userAsmText READ userAsmText WRITE setUserAsmText NOTIFY userAsmTextChanged);
   Q_PROPERTY(QString userList READ userList NOTIFY listingChanged);
@@ -175,6 +185,9 @@ public:
   Q_INVOKABLE SymbolModel *osSymbols() const;
   Q_INVOKABLE pepp::debug::WatchExpressionModel *watchExpressions() const;
   int allowedDebugging() const override;
+  pepp::debug::TypedBits evaluate_variable(QStringView name) const override;
+  uint32_t cache_debug_variable_name(QStringView name) const override;
+  pepp::debug::TypedBits evaluate_debug_variable(uint32_t name) const override;
 public slots:
   bool onDebuggingStart() override;
   bool onAssemble(bool doLoad = false);
