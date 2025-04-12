@@ -43,6 +43,7 @@ bool pepp::debug::WatchExpressionModel::recompile(const QString &new_expr, int i
   auto term = p.compile(new_expr);
   if (term == nullptr) return false;
   _root_terms[index] = term;
+  term->evaluate(CachePolicy::UseNonVolatiles, *_env);
   _root_was_dirty[index] = true;
   detail::GatherVolatileTerms vols;
   for (const auto &ptr : _root_terms) ptr->accept(vols);
@@ -52,8 +53,9 @@ bool pepp::debug::WatchExpressionModel::recompile(const QString &new_expr, int i
 
 void pepp::debug::WatchExpressionModel::add_root(std::shared_ptr<Term> term) {
   if (term == nullptr) return;
+  term->evaluate(CachePolicy::UseNonVolatiles, *_env);
   _root_terms.emplace_back(std::move(term));
-  _root_was_dirty.emplace_back(0);
+  _root_was_dirty.emplace_back(false);
   detail::GatherVolatileTerms vols;
   for (const auto &ptr : _root_terms) ptr->accept(vols);
   _volatiles = vols.to_vector();
