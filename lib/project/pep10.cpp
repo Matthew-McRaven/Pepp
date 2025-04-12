@@ -839,6 +839,21 @@ int Pep_ASMB::allowedDebugging() const {
   }
 }
 
+uint8_t Pep_ASMB::read_mem_u8(uint32_t address) const {
+  if (_system == nullptr) return 0;
+  quint8 temp = 0;
+  _system->bus()->read((uint16_t)address, {&temp, 1}, gs);
+  return temp;
+}
+
+uint16_t Pep_ASMB::read_mem_u16(uint32_t address) const {
+  if (_system == nullptr) return 0;
+  quint16 temp = 0;
+  _system->bus()->read((uint16_t)address, {(quint8 *)&temp, 2}, gs);
+  if (bits::hostOrder() != bits::Order::BigEndian) temp = bits::byteswap(temp);
+  return temp;
+}
+
 pepp::debug::TypedBits Pep_ASMB::evaluate_variable(QStringView name) const {
   using T = pepp::debug::ExpressionType;
   return {.allows_address_of = true, .type = T::i16, .bits = (uint64_t)name.length()};

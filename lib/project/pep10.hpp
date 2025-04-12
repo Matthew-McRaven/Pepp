@@ -185,6 +185,8 @@ public:
   Q_INVOKABLE SymbolModel *osSymbols() const;
   Q_INVOKABLE pepp::debug::WatchExpressionModel *watchExpressions() const;
   int allowedDebugging() const override;
+  uint8_t read_mem_u8(uint32_t address) const override;
+  uint16_t read_mem_u16(uint32_t address) const override;
   pepp::debug::TypedBits evaluate_variable(QStringView name) const override;
   uint32_t cache_debug_variable_name(QStringView name) const override;
   pepp::debug::TypedBits evaluate_debug_variable(uint32_t name) const override;
