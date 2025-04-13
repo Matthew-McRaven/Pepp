@@ -14,9 +14,8 @@ struct ExpressionCache {
     bool operator()(const Term &lhs, const Term &rhs) const { return lhs < rhs; }
   };
   using Set = std::set<std::shared_ptr<Term>, Compare>;
-  Set _set{};
-
   template <typename T> std::shared_ptr<T> add_or_return(T &&item) {
+    QMutexLocker locker(&_mut);
     Set::iterator search = _set.find(item);
     if (search == _set.end()) {
       auto ret = std::make_shared<T>(std::forward<T>(item));
@@ -26,6 +25,10 @@ struct ExpressionCache {
       return ret;
     } else return std::dynamic_pointer_cast<T>(*search);
   }
+
+private:
+  QMutex _mut;
+  Set _set{};
 };
 
 namespace detail {
