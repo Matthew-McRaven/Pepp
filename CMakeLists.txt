@@ -32,7 +32,7 @@ endif ()
 if (ONLY STREQUAL "BUILD")
     set(LANGUAGES "CXX")
 endif ()
-project(Pepp VERSION 0.8.6 LANGUAGES ${LANGUAGES})
+project(Pepp VERSION 0.9.0 LANGUAGES ${LANGUAGES})
 # Only overwrite the install prefix if it is the default value.
 if (CMAKE_INSTALL_PREFIX_INITIALIZED_TO_DEFAULT)
     set(CMAKE_INSTALL_PREFIX "${PROJECT_BINARY_DIR}/install" CACHE PATH "Installation Directory" FORCE)
@@ -51,7 +51,7 @@ if (ONLY STREQUAL "BUILD")
     set(CMAKE_CXX_STANDARD 20)
     set(CMAKE_CXX_STANDARD_REQUIRED ON)
     # We always want universal builds, so do not set on a per-target basis
-    find_package(Qt6 6.5 COMPONENTS REQUIRED Svg Quick Core Gui Qml Test Widgets QuickControls2 Xml Sql)
+    find_package(Qt6 6.9 COMPONENTS REQUIRED Svg Quick Core Gui Qml Test Widgets QuickControls2 Xml Sql)
     if(Qt6_VERSION  VERSION_GREATER_EQUAL 6.8)
       # Qt6.8/WASM stopped building without this flag being set.
       if(EMSCRIPTEN)
