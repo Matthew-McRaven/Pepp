@@ -46,7 +46,7 @@ Item {
                                     textView.implicitWidth + 12)
             implicitHeight: textView.implicitHeight * 1.3
             required property bool editing
-
+            clip: true
             Text {
                 id: textView
                 anchors.fill: parent
