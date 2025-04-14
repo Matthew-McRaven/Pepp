@@ -37,14 +37,20 @@ std::shared_ptr<pepp::debug::Term> pepp::debug::WatchExpressionModel::compile(co
   return p.compile(new_expr);
 }
 
+std::span<QString> pepp::debug::WatchExpressionModel::wip_text() { return _wip_text; }
+
 bool pepp::debug::WatchExpressionModel::recompile(const QString &new_expr, int index) {
   if (index < 0 || index >= _root_terms.size()) return false;
   pepp::debug::Parser p(_c);
   auto term = p.compile(new_expr);
-  if (term == nullptr) return false;
+  if (term == nullptr) {
+    _wip_text[index] = new_expr;
+    return false;
+  }
   _root_terms[index] = term;
   term->evaluate(CachePolicy::UseNonVolatiles, *_env);
   _root_was_dirty[index] = true;
+  _wip_text[index].clear();
   // Editing expressions may result in unused terms. Garbage collect them when we successfully compile.
   _c.collect_garbage();
 
@@ -58,6 +64,7 @@ bool pepp::debug::WatchExpressionModel::delete_at(int index) {
   if (index < 0 || index >= _root_terms.size()) return false;
   _root_terms.erase(_root_terms.begin() + index);
   _root_was_dirty.erase(_root_was_dirty.begin() + index);
+  _wip_text.erase(_wip_text.begin() + index);
   return true;
 }
 
@@ -72,6 +79,7 @@ void pepp::debug::WatchExpressionModel::add_root(std::shared_ptr<Term> term) {
   term->evaluate(CachePolicy::UseNonVolatiles, *_env);
   _root_terms.emplace_back(std::move(term));
   _root_was_dirty.emplace_back(false);
+  _wip_text.emplace_back("");
   detail::GatherVolatileTerms vols;
   for (const auto &ptr : _root_terms) ptr->accept(vols);
   _volatiles = vols.to_vector();
@@ -114,23 +122,31 @@ QVariant pepp::debug::WatchExpressionTableModel::data(const QModelIndex &index, 
   int row = index.row(), col = index.column();
   if (!index.isValid() || _expressionModel == nullptr) return {};
   auto terms = _expressionModel->root_terms();
+  auto wip = _expressionModel->wip_text();
+  bool is_wip = wip[row].size() > 0;
   auto env = _expressionModel->env();
   switch (role) {
   case Qt::DisplayRole:
     if (row >= terms.size()) {
       if (col == 0) return "<expr>";
       return {};
-    } else if (col == 0) return terms[row]->to_string();
-    else if (col == 1) return variant_from_bits(terms[row]->evaluate(CachePolicy::UseAlways, *env));
-    else {
+    } else if (col == 0) {
+      if (is_wip) return wip[row];
+      return terms[row]->to_string();
+    } else if (col == 1) {
+      if (is_wip) return "<invalid>";
+      return variant_from_bits(terms[row]->evaluate(CachePolicy::UseAlways, *env));
+    } else {
       QMetaEnum metaEnum = QMetaEnum::fromType<ExpressionType>();
+      if (is_wip) return "";
       return metaEnum.valueToKey((int)terms[row]->evaluate(CachePolicy::UseAlways, *env).type);
     }
   case (int)WER::Changed:
     if (row >= terms.size()) {
       return false;
     } else return _expressionModel->was_dirty()[row];
-  case (int)WER::Italicize: return row >= terms.size();
+    // Italicize <expr> and <invalid>
+  case (int)WER::Italicize: return row >= terms.size() || (col > 0 && is_wip);
   }
   return {};
 }
@@ -153,12 +169,10 @@ bool pepp::debug::WatchExpressionTableModel::setData(const QModelIndex &index, c
     emit dataChanged(left, right);
     return true;
   } else {
-    auto success = _expressionModel->recompile(str, index.row());
-    if (success) {
-      auto left = index.siblingAtColumn(0), right = index.siblingAtColumn(2);
-      emit dataChanged(left, right);
-    }
-    return success;
+    _expressionModel->recompile(str, index.row());
+    auto left = index.siblingAtColumn(0), right = index.siblingAtColumn(2);
+    emit dataChanged(left, right);
+    return true;
   }
 }
 
