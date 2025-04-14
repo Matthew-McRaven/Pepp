@@ -4,6 +4,7 @@ import edu.pepp
 
 // Must be focus scope or Keys.onPressed will not work
 FocusScope {
+    id: root
     NuAppSettings {
         id: settings
     }
@@ -53,7 +54,7 @@ FocusScope {
     Menu {
         id: contextMenu
         property int row: -1
-        popupType: Popup.Native
+        popupType: Qt.platform.os !== "wasm" ? Popup.Native : Popup.Item
         MenuItem {
             text: "Delete Row"
             onTriggered: {
@@ -128,7 +129,7 @@ FocusScope {
                     const index = tableView.model.index(row, column)
                     if (mouse.button === Qt.RightButton) {
                         contextMenu.row = row
-                        contextMenu.popup(mouse.scenePosition)
+                        contextMenu.popup(root, mouse.scenePosition)
                     } else {
                         const flags = ItemSelectionModel.ClearAndSelect
                                     | ItemSelectionModel.Rows | ItemSelectionModel.Current
