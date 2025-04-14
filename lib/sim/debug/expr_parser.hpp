@@ -25,9 +25,11 @@ struct ExpressionCache {
       return ret;
     } else return std::dynamic_pointer_cast<T>(*search);
   }
+  void collect_garbage();
+  std::size_t count() const;
 
 private:
-  QMutex _mut;
+  mutable QMutex _mut;
   Set _set{};
 };
 
