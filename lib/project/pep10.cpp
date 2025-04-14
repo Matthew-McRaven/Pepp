@@ -508,7 +508,7 @@ bool Pep_ISA::onDebuggingStop() {
 }
 
 bool Pep_ISA::onISARemoveAllBreakpoints() {
-  _dbg->clearBPs();
+  _dbg->bps.clearBPs();
   return true;
 }
 
@@ -608,8 +608,8 @@ void Pep_ISA::onDeferredExecution(std::function<bool()> step) {
     auto ending = _system->currentTick() + 1000;
     do {
       _system->tick(sim::api2::Scheduler::Mode::Jump);
-      if (_dbg->hit()) {
-        _dbg->clearHit();
+      if (_dbg->bps.hit()) {
+        _dbg->bps.clearHit();
         _pendingPause = true;
       }
       _pendingPause |= step();
@@ -662,7 +662,7 @@ void Pep_ISA::prepareSim() {
   onLoadObject();
   _system->init();
   _tb->clear();
-  _dbg->clearHit();
+  _dbg->bps.clearHit();
   auto pwrOff = _system->output("pwrOff");
   auto charOut = _system->output("charOut");
   charOut->clear(0);
@@ -1051,7 +1051,7 @@ void Pep_ASMB::prepareSim() {
   _system->bus()->clear(0);
   _system->init();
   _tb->clear();
-  _dbg->clearHit();
+  _dbg->bps.clearHit();
   auto pwrOff = _system->output("pwrOff");
   auto charOut = _system->output("charOut");
   charOut->clear(0);
@@ -1135,11 +1135,11 @@ void Pep_ISA::updateBPAtAddress(quint32 address, Action action) {
   auto as_quint16 = static_cast<quint16>(address);
   switch (action) {
   case ScintillaAsmEditBase::Action::ToggleBP:
-    if (_dbg->hasBP(as_quint16)) _dbg->removeBP(as_quint16);
-    else _dbg->addBP(as_quint16);
+    if (_dbg->bps.hasBP(as_quint16)) _dbg->bps.removeBP(as_quint16);
+    else _dbg->bps.addBP(as_quint16);
     break;
-  case ScintillaAsmEditBase::Action::AddBP: _dbg->addBP(as_quint16); break;
-  case ScintillaAsmEditBase::Action::RemoveBP: _dbg->removeBP(as_quint16); break;
+  case ScintillaAsmEditBase::Action::AddBP: _dbg->bps.addBP(as_quint16); break;
+  case ScintillaAsmEditBase::Action::RemoveBP: _dbg->bps.removeBP(as_quint16); break;
   default: break;
   }
 }

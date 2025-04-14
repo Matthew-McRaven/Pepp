@@ -373,7 +373,7 @@ sim::api2::tick::Result targets::pep10::isa::CPU::unaryDispatch(quint8 is, quint
     _memory->write(static_cast<quint16>(::isa::Pep10::MemoryVectors::SystemStackPtr),
                    {reinterpret_cast<quint8 *>(&tmp), 2}, rw_d);
     // Skip "normal" return path, since we've already written to PC.
-    if (_dbg) _dbg->notifyPCChanged(readReg(Register::PC));
+    if (_dbg) _dbg->bps.notifyPCChanged(readReg(Register::PC));
     decrDepth();
     return {.pause = 0, .delay = 1};
 
@@ -415,7 +415,7 @@ sim::api2::tick::Result targets::pep10::isa::CPU::unaryDispatch(quint8 is, quint
     throw std::logic_error(e);
   }
   writeReg(Register::PC, pc);
-  if (_dbg) _dbg->notifyPCChanged(pc);
+  if (_dbg) _dbg->bps.notifyPCChanged(pc);
   return {.pause = 0, .delay = 1};
 }
 
@@ -699,7 +699,7 @@ sim::api2::tick::Result targets::pep10::isa::CPU::nonunaryDispatch(quint8 is, qu
 
   // Increment PC and writeback
   writeReg(Register::PC, pc);
-  if (_dbg) _dbg->notifyPCChanged(pc);
+  if (_dbg) _dbg->bps.notifyPCChanged(pc);
   return {.pause = 0, .delay = 1};
 }
 
