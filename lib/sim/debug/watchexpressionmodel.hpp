@@ -20,6 +20,10 @@ public:
   // Compile an expression without adding it to roots
   std::shared_ptr<pepp::debug::Term> compile(const QString &new_expr);
   bool recompile(const QString &new_expr, int index);
+public slots:
+  void onSimulationStart();
+signals:
+  void fullUpdateModel();
 
 private:
   pepp::debug::Environment *_env;
@@ -60,7 +64,8 @@ public:
   WatchExpressionModel *expressionModel();
   void setExpressionModel(WatchExpressionModel *new_model);
 public slots:
-  void onUpdateGUI();
+  void onUpdateModel();
+  void onFullUpdateModel();
 signals:
   void expressionModelChanged();
 
