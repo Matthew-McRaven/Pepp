@@ -14,6 +14,14 @@ FocusScope {
     Component.onCompleted: {
         updateGUI.connect(tableModel.onUpdateModel)
     }
+    Rectangle {
+        id: outline
+        color: palette.base
+        anchors.fill: parent
+        //  Give object code viewer a background box
+        border.width: 1
+        border.color: palette.mid
+    }
 
     property alias watchExpressions: tableModel.watchExpressions
     HorizontalHeaderView {
@@ -61,6 +69,7 @@ FocusScope {
         anchors.top: horizontalHeader.bottom
         anchors.right: parent.right
         anchors.bottom: parent.bottom
+        anchors.margins: 2
         boundsBehavior: Flickable.StopAtBounds
         resizableColumns: true
         model: WatchExpressionTableModel {
