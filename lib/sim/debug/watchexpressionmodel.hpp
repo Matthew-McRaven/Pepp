@@ -19,6 +19,7 @@ public:
   pepp::debug::Environment *env();
   // Compile an expression without adding it to roots
   std::shared_ptr<pepp::debug::Term> compile(const QString &new_expr);
+  std::span<QString> wip_text();
   bool recompile(const QString &new_expr, int index);
   bool delete_at(int index);
 public slots:
@@ -32,6 +33,7 @@ private:
   std::vector<uint8_t> _root_was_dirty;
   std::vector<std::shared_ptr<pepp::debug::Term>> _root_terms;
   std::vector<std::shared_ptr<pepp::debug::Term>> _volatiles;
+  std::vector<QString> _wip_text;
 };
 
 class WatchExpressionRoles : public QObject {

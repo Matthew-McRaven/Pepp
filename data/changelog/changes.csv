@@ -95,3 +95,4 @@ Fixed,,0.9.0,803,"Prevent text clipping between columns in watch expression pane
 Fixed,,0.9.0,804,"Reduce memory usage for watch expressions"
 Fixed,,0.9.0,805,"Recompute stale watch expressions at simulation start"
 Fixed,,0.9.0,806,"Add ability to remove watch expressions"
+Fixed,,0.9.0,807,"Preserve watch expressions which contain syntactic errors"
