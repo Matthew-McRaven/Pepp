@@ -101,6 +101,8 @@ FocusScope {
                 leftPadding: 2
                 color: model.changed ? settings.extPalette.error.background : palette.windowText
                 visible: !editing
+                font.family: settings.extPalette.baseMono.font.family
+                font.pointSize: settings.extPalette.baseMono.font.pointSize
                 font.italic: model.italicize
             }
 
@@ -112,6 +114,7 @@ FocusScope {
                 height: textView.height
                 text: model.italicize ? "" : display
                 TableView.onCommit: display = text
+                font: settings.extPalette.baseMono.font
             }
 
             // Select current row on mouse press, and open editor on double click.
