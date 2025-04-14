@@ -20,6 +20,7 @@ public:
   // Compile an expression without adding it to roots
   std::shared_ptr<pepp::debug::Term> compile(const QString &new_expr);
   bool recompile(const QString &new_expr, int index);
+  bool delete_at(int index);
 public slots:
   void onSimulationStart();
 signals:
@@ -58,6 +59,7 @@ public:
   int columnCount(const QModelIndex &parent = QModelIndex()) const override;
   QVariant data(const QModelIndex &index, int role = Qt::DisplayRole) const override;
   bool setData(const QModelIndex &index, const QVariant &value, int role) override;
+  bool removeRows(int row, int count, const QModelIndex &parent) override;
   Qt::ItemFlags flags(const QModelIndex &index) const override;
   QHash<int, QByteArray> roleNames() const override;
 
