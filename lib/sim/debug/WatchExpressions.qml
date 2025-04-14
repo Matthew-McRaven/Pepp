@@ -11,7 +11,7 @@ Item {
     }
     signal updateGUI
     Component.onCompleted: {
-        updateGUI.connect(tableModel.onUpdateGUI)
+        updateGUI.connect(tableModel.onUpdateModel)
     }
 
     property alias watchExpressions: tableModel.watchExpressions

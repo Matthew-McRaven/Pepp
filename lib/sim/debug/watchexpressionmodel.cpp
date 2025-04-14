@@ -54,6 +54,12 @@ bool pepp::debug::WatchExpressionModel::recompile(const QString &new_expr, int i
   return true;
 }
 
+void pepp::debug::WatchExpressionModel::onSimulationStart() {
+  for (const auto &ptr : _root_terms) ptr->evaluate(CachePolicy::UseNonVolatiles, *_env);
+  std::fill(_root_was_dirty.begin(), _root_was_dirty.end(), 0);
+  emit fullUpdateModel();
+}
+
 void pepp::debug::WatchExpressionModel::add_root(std::shared_ptr<Term> term) {
   if (term == nullptr) return;
   term->evaluate(CachePolicy::UseNonVolatiles, *_env);
@@ -172,12 +178,17 @@ pepp::debug::WatchExpressionModel *pepp::debug::WatchExpressionTableModel::expre
 void pepp::debug::WatchExpressionTableModel::setExpressionModel(pepp::debug::WatchExpressionModel *new_model) {
   if (_expressionModel == new_model) return;
   beginResetModel();
+  if (_expressionModel)
+    disconnect(_expressionModel, &WatchExpressionModel::fullUpdateModel, this,
+               &WatchExpressionTableModel::onFullUpdateModel);
   _expressionModel = new_model;
+  connect(_expressionModel, &WatchExpressionModel::fullUpdateModel, this,
+          &WatchExpressionTableModel::onFullUpdateModel);
   emit expressionModelChanged();
   endResetModel();
 }
 
-void pepp::debug::WatchExpressionTableModel::onUpdateGUI() {
+void pepp::debug::WatchExpressionTableModel::onUpdateModel() {
   if (!_expressionModel) return;
   // Span's values will change on us when we update_volatile_values(), so cache in vector<bool>.
   auto dirtied = _expressionModel->was_dirty();
@@ -186,11 +197,18 @@ void pepp::debug::WatchExpressionTableModel::onUpdateGUI() {
   int start = -1;
   for (int i = 0; i <= dirtied.size(); i++) {
     auto dirtied_changed = dirtied[i] ^ old_dirtied[i];
-    if (dirtied_changed && start == -1) start = i;
-    else if (!dirtied_changed && start != -1) {
+    bool needs_repaint = dirtied_changed | dirtied[i];
+    if (needs_repaint && start == -1) start = i;
+    else if (!needs_repaint && start != -1) {
       emit dataChanged(index(start, 0), index(i - 1, 2));
       start = -1;
     }
   }
   if (start != -1) emit dataChanged(index(start, 0), index(dirtied.size() - 1, 2));
+}
+
+void pepp::debug::WatchExpressionTableModel::onFullUpdateModel() {
+  _expressionModel->update_volatile_values();
+  beginResetModel();
+  endResetModel();
 }

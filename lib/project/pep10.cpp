@@ -1094,6 +1094,7 @@ void Pep_ASMB::prepareSim() {
   // Repaint CPU
   _flags->onUpdateGUI();
   _registers->onUpdateGUI();
+  _watchExpressions->onSimulationStart();
 }
 
 void Pep_ASMB::prepareGUIUpdate(sim::api2::trace::FrameIterator from) {
