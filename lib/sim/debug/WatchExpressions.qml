@@ -42,6 +42,19 @@ FocusScope {
         }
         event.accepted = false
     }
+    Menu {
+        id: contextMenu
+        property int row: -1
+        popupType: Popup.Native
+        MenuItem {
+            text: "Delete Row"
+            onTriggered: {
+                tableModel.removeRows(contextMenu.row, 1)
+                contextMenu.row = -1
+            }
+        }
+    }
+
     TableView {
         id: tableView
         anchors.left: parent.left
@@ -98,17 +111,23 @@ FocusScope {
             // TODO: figure out how to make TableView handle this crap itself.
             MouseArea {
                 anchors.fill: parent
-                onClicked: {
+                acceptedButtons: Qt.LeftButton | Qt.RightButton
+                onClicked: function (mouse) {
                     const index = tableView.model.index(row, column)
-                    const flags = ItemSelectionModel.ClearAndSelect
-                                | ItemSelectionModel.Rows | ItemSelectionModel.Current
-                    // Close existing editors or we may higlight a row without editing it.
-                    tableView.closeEditor()
-                    tableView.selectionModel.select(index, flags)
-                    tableView.selectionModel.setCurrentIndex(
-                                index, ItemSelectionModel.Current)
-                    // Key events will not be processed if we don't move focus.
-                    delegate.forceActiveFocus()
+                    if (mouse.button === Qt.RightButton) {
+                        contextMenu.row = row
+                        contextMenu.popup(mouse.scenePosition)
+                    } else {
+                        const flags = ItemSelectionModel.ClearAndSelect
+                                    | ItemSelectionModel.Rows | ItemSelectionModel.Current
+                        // Close existing editors or we may higlight a row without editing it.
+                        tableView.closeEditor()
+                        tableView.selectionModel.select(index, flags)
+                        tableView.selectionModel.setCurrentIndex(
+                                    index, ItemSelectionModel.Current)
+                        // Key events will not be processed if we don't move focus.
+                        delegate.forceActiveFocus()
+                    }
                 }
                 // Now that we've hijacked clicks, we need to open the editor manually.
                 onDoubleClicked: {
