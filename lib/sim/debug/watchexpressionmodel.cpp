@@ -54,6 +54,13 @@ bool pepp::debug::WatchExpressionModel::recompile(const QString &new_expr, int i
   return true;
 }
 
+bool pepp::debug::WatchExpressionModel::delete_at(int index) {
+  if (index < 0 || index >= _root_terms.size()) return false;
+  _root_terms.erase(_root_terms.begin() + index);
+  _root_was_dirty.erase(_root_was_dirty.begin() + index);
+  return true;
+}
+
 void pepp::debug::WatchExpressionModel::onSimulationStart() {
   for (const auto &ptr : _root_terms) ptr->evaluate(CachePolicy::UseNonVolatiles, *_env);
   std::fill(_root_was_dirty.begin(), _root_was_dirty.end(), 0);
@@ -153,6 +160,15 @@ bool pepp::debug::WatchExpressionTableModel::setData(const QModelIndex &index, c
     }
     return success;
   }
+}
+
+bool pepp::debug::WatchExpressionTableModel::removeRows(int row, int count, const QModelIndex &parent) {
+  if (_expressionModel == nullptr) return false;
+  else if (row < 0 || row + count > _expressionModel->root_terms().size()) return false;
+  beginRemoveRows(parent, row, row + count);
+  for (int it = row; it < row + count; it++) _expressionModel->delete_at(it);
+  endRemoveRows();
+  return true;
 }
 
 Qt::ItemFlags pepp::debug::WatchExpressionTableModel::flags(const QModelIndex &index) const {

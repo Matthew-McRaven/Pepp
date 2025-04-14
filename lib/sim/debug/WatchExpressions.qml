@@ -2,7 +2,8 @@ import QtQuick
 import QtQuick.Controls
 import edu.pepp
 
-Item {
+// Must be focus scope or Keys.onPressed will not work
+FocusScope {
     NuAppSettings {
         id: settings
     }
@@ -28,6 +29,19 @@ Item {
             horizontalAlignment: Text.AlignLeft
         }
     }
+    focus: true
+    Keys.onPressed: function (event) {
+        // If there is not a child key handler (text editor), intercept delete+backspace
+        // keystrokes and remove the row which currently has focus.
+        if (event.key === Qt.Key_Delete || event.key === Qt.Key_Backspace) {
+            const selectedRows = tableView.selectionModel.selectedRows(0)
+            for (const idx in selectedRows) {
+                tableView.model.removeRows(selectedRows[idx].row, 1)
+            }
+            event.accepted = true
+        }
+        event.accepted = false
+    }
     TableView {
         id: tableView
         anchors.left: parent.left
@@ -40,13 +54,23 @@ Item {
             id: tableModel
         }
         clip: true
-
+        // do not focus:true, else key pressed trick will not work!
+        selectionModel: ItemSelectionModel {}
+        selectionBehavior: TableView.SelectCells
+        selectionMode: TableView.ContiguousSelection
         delegate: Item {
+            id: delegate
             implicitWidth: Math.max(8 * fm.averageCharacterWidth,
                                     textView.implicitWidth + 12)
             implicitHeight: textView.implicitHeight * 1.3
             required property bool editing
+            required property bool selected
+            required property bool current
             clip: true
+            Rectangle {
+                anchors.fill: parent
+                color: selected ? palette.highlight : "transparent"
+            }
             Text {
                 id: textView
                 anchors.fill: parent
@@ -66,6 +90,33 @@ Item {
                 height: textView.height
                 text: model.italicize ? "" : display
                 TableView.onCommit: display = text
+            }
+
+            // Select current row on mouse press, and open editor on double click.
+            // Focus + selection + editing + keyboard navigation is a pain to configure table view for.
+            // So roll our own selection mangement.
+            // TODO: figure out how to make TableView handle this crap itself.
+            MouseArea {
+                anchors.fill: parent
+                onClicked: {
+                    const index = tableView.model.index(row, column)
+                    const flags = ItemSelectionModel.ClearAndSelect
+                                | ItemSelectionModel.Rows | ItemSelectionModel.Current
+                    // Close existing editors or we may higlight a row without editing it.
+                    tableView.closeEditor()
+                    tableView.selectionModel.select(index, flags)
+                    tableView.selectionModel.setCurrentIndex(
+                                index, ItemSelectionModel.Current)
+                    // Key events will not be processed if we don't move focus.
+                    delegate.forceActiveFocus()
+                }
+                // Now that we've hijacked clicks, we need to open the editor manually.
+                onDoubleClicked: {
+                    const index = tableView.model.index(row, column)
+                    if (tableView.model.flags(index) & Qt.ItemIsEditable) {
+                        tableView.edit(index)
+                    }
+                }
             }
         }
     }
