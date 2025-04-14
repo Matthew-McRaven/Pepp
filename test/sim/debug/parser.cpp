@@ -334,3 +334,49 @@ TEST_CASE("Parsing watch expressions", "[scope:debug][kind:unit][arch:*]") {
     CHECK(as_infix->to_string().toStdString() == "5 * (3 + 3) * 2");
   }
 }
+
+TEST_CASE("Garbage collection for expressions", "[scope:debug][kind:unit][arch:*]") {
+  using namespace pepp::debug;
+  SECTION("Don't recycle living objects") {
+    ExpressionCache c;
+    Parser p(c);
+    QString body = "0x15";
+    auto ast = p.compile(body);
+    REQUIRE(ast != nullptr);
+    CHECK(c.count() == 1);
+    CHECK(ast.use_count() == 2);
+    c.collect_garbage();
+    CHECK(c.count() == 1);
+    CHECK(ast.use_count() == 2);
+    ast.reset();
+    c.collect_garbage();
+    CHECK(c.count() == 0);
+  }
+  SECTION("Don't recycle nested terms") {
+    ExpressionCache c;
+    Parser p(c);
+    QString body = "0x15 + a";
+    auto ast = p.compile(body);
+    REQUIRE(ast != nullptr);
+    CHECK(c.count() == 3);
+    c.collect_garbage();
+    CHECK(c.count() == 3);
+    ast.reset();
+    c.collect_garbage();
+    CHECK(c.count() == 0);
+  }
+  SECTION("Don't recycle shared terms") {
+    ExpressionCache c;
+    Parser p(c);
+    auto ast1 = p.compile("0x15 + a + 0x15");
+    auto ast2 = p.compile("*0x15");
+    REQUIRE(ast1 != nullptr);
+    REQUIRE(ast2 != nullptr);
+    CHECK(c.count() == 5);
+    c.collect_garbage();
+    CHECK(c.count() == 5);
+    ast1.reset();
+    c.collect_garbage();
+    CHECK(c.count() == 2);
+  }
+}

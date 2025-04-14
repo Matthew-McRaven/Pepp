@@ -45,6 +45,9 @@ bool pepp::debug::WatchExpressionModel::recompile(const QString &new_expr, int i
   _root_terms[index] = term;
   term->evaluate(CachePolicy::UseNonVolatiles, *_env);
   _root_was_dirty[index] = true;
+  // Editing expressions may result in unused terms. Garbage collect them when we successfully compile.
+  _c.collect_garbage();
+
   detail::GatherVolatileTerms vols;
   for (const auto &ptr : _root_terms) ptr->accept(vols);
   _volatiles = vols.to_vector();
