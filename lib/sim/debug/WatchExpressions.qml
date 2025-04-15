@@ -10,6 +10,7 @@ FocusScope {
     }
     FontMetrics {
         id: fm
+        font: settings.extPalette.baseMono.font
     }
     signal updateGUI
     Component.onCompleted: {
@@ -85,7 +86,8 @@ FocusScope {
             id: delegate
             implicitWidth: Math.max(8 * fm.averageCharacterWidth,
                                     textView.implicitWidth + 12)
-            implicitHeight: textView.implicitHeight * 1.3
+            implicitHeight: Math.max(textView.implicitHeight * 1.3,
+                                     fm.height * 1.7)
             required property bool editing
             required property bool selected
             required property bool current
@@ -100,11 +102,12 @@ FocusScope {
                 text: model.display ?? ""
                 rightPadding: 10
                 leftPadding: 2
-                color: model.changed ? settings.extPalette.error.background : palette.windowText
+                color: model.changed ? settings.extPalette.error.background : (selected ? palette.highlightedText : palette.windowText)
                 visible: !editing
                 font.family: settings.extPalette.baseMono.font.family
                 font.pointSize: settings.extPalette.baseMono.font.pointSize
                 font.italic: model.italicize
+                verticalAlignment: Text.AlignVCenter
             }
 
             TableView.editDelegate: TextField {
@@ -116,6 +119,7 @@ FocusScope {
                 text: model.italicize ? "" : display
                 TableView.onCommit: display = text
                 font: settings.extPalette.baseMono.font
+                verticalAlignment: Text.AlignVCenter
             }
 
             // Select current row on mouse press, and open editor on double click.
