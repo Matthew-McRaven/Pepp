@@ -74,7 +74,7 @@ public:
   // Initiator interface
   void setTarget(sim::api2::memory::Target<quint16> *target, void *port) override;
 
-  void setDebugger(pepp::sim::Debugger *debugger);
+  void setDebugger(pepp::debug::Debugger *debugger);
   void clearDebugger();
 
 private:
@@ -91,7 +91,7 @@ private:
 
   sim::api2::tick::Source *_clock = nullptr;
   sim::api2::trace::Buffer *_tb = nullptr;
-  pepp::sim::Debugger *_dbg = nullptr;
+  pepp::debug::Debugger *_dbg = nullptr;
 
   quint16 readReg(::isa::Pep9::Register reg);
   void writeReg(::isa::Pep9::Register reg, quint16 val);
