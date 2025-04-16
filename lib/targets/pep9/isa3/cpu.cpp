@@ -122,7 +122,7 @@ void targets::pep9::isa::CPU::trace(bool enabled) {
 
 void targets::pep9::isa::CPU::setTarget(sim::api2::memory::Target<quint16> *target, void *port) { _memory = target; }
 
-void targets::pep9::isa::CPU::setDebugger(pepp::sim::Debugger *debugger) { _dbg = debugger; }
+void targets::pep9::isa::CPU::setDebugger(pepp::debug::Debugger *debugger) { _dbg = debugger; }
 
 void targets::pep9::isa::CPU::clearDebugger() { _dbg = nullptr; }
 
@@ -233,7 +233,7 @@ sim::api2::tick::Result targets::pep9::isa::CPU::unaryDispatch(quint8 is, quint1
     if (swap) tmp = bits::byteswap(tmp);
     _memory->write(static_cast<quint16>(::isa::Pep9::MemoryVectors::SystemStackPtr),
                    {reinterpret_cast<quint8 *>(&tmp), 2}, rw_d);
-    if (_dbg) _dbg->bps.notifyPCChanged(readReg(Register::PC));
+    if (_dbg) _dbg->bps->notifyPCChanged(readReg(Register::PC));
     decrDepth();
     return {.pause = 0, .delay = 1};
 
@@ -427,7 +427,7 @@ sim::api2::tick::Result targets::pep9::isa::CPU::unaryDispatch(quint8 is, quint1
     throw std::logic_error(e);
   }
   writeReg(Register::PC, pc);
-  if (_dbg) _dbg->bps.notifyPCChanged(pc);
+  if (_dbg) _dbg->bps->notifyPCChanged(pc);
   return {.pause = 0, .delay = 1};
 }
 
@@ -692,7 +692,7 @@ sim::api2::tick::Result targets::pep9::isa::CPU::nonunaryDispatch(quint8 is, qui
 
   // Increment PC and writeback
   writeReg(Register::PC, pc);
-  if (_dbg) _dbg->bps.notifyPCChanged(tmp);
+  if (_dbg) _dbg->bps->notifyPCChanged(tmp);
   return {.pause = 0, .delay = 1};
 }
 

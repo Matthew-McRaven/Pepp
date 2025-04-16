@@ -1,8 +1,10 @@
 import QtQuick
 import QtQuick.Controls
 import Qt.labs.qmlmodels
+import edu.pepp
 
 Item {
+    property alias model: bpModel.breakpoints
     Rectangle {
         id: outline
         color: palette.base
@@ -32,43 +34,10 @@ Item {
         anchors.margins: 2
         boundsBehavior: Flickable.StopAtBounds
         resizableColumns: true
-        model: TableModel {
-            TableModelColumn {
-                display: "Address"
-            }
-            TableModelColumn {
-                display: "File"
-            }
-            TableModelColumn {
-                display: "Line"
-            }
-            TableModelColumn {
-                display: "Condition"
-            }
-            TableModelColumn {
-                display: "ConditionValue"
-            }
-
-            rows: [{
-                    "Address": 0,
-                    "File": "User",
-                    "Line": 0,
-                    "Condition": "",
-                    "ConditionValue": ""
-                }, {
-                    "Address": 67,
-                    "File": "User",
-                    "Line": 22,
-                    "Condition": "$X == 5",
-                    "ConditionValue": "false"
-                }, {
-                    "Address": 0xFFF5,
-                    "File": "OS",
-                    "Line": 0,
-                    "Condition": "$IsDebug",
-                    "ConditionValue": "true"
-                }]
+        model: BreakpointTableModel {
+            id: bpModel
         }
+
         delegate: TextInput {
             text: model.display
             selectByMouse: true

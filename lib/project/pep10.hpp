@@ -30,6 +30,7 @@ class Pep_ISA : public QObject {
   Q_PROPERTY(RegisterModel *registers MEMBER _registers CONSTANT)
   Q_PROPERTY(OpcodeModel *mnemonics READ mnemonics CONSTANT)
   Q_PROPERTY(FlagModel *flags MEMBER _flags CONSTANT)
+  Q_PROPERTY(pepp::debug::BreakpointSet *breakpointModel READ breakpointModel CONSTANT)
   Q_PROPERTY(int allowedDebugging READ allowedDebugging NOTIFY allowedDebuggingChanged)
   Q_PROPERTY(int allowedSteps READ allowedSteps NOTIFY allowedStepsChanged)
   // Only changed externally
@@ -70,6 +71,7 @@ public:
   }
   // Actually utils::Abstraction, but QM passes it as an int.
   Q_INVOKABLE void set(int abstraction, QString value);
+  Q_INVOKABLE pepp::debug::BreakpointSet *breakpointModel();
   Q_INVOKABLE virtual int allowedDebugging() const;
   Q_INVOKABLE virtual int allowedSteps() const;
   Q_INVOKABLE QString charIn() const;
@@ -138,7 +140,7 @@ protected:
   qint16 _currentAddress = 0;
   using Action = ScintillaAsmEditBase::Action;
   void updateBPAtAddress(quint32 address, Action action);
-  QSharedPointer<pepp::sim::Debugger> _dbg{};
+  QSharedPointer<pepp::debug::Debugger> _dbg{};
 };
 
 struct Error : public QObject {

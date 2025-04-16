@@ -287,7 +287,9 @@ Item {
                             id: watchExpr
                             watchExpressions: project.watchExpressions
                         }
-                        BreakpointViewer {}
+                        BreakpointViewer {
+                            model: project.breakpointModel
+                        }
                     }
                 }
             }
