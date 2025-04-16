@@ -13,14 +13,19 @@ runs:
       uses: lukka/get-cmake@v3.27.9
     - uses: actions/checkout@v4
       with:
-        repository: 'jurplel/install-qt-action'
-        ref: 'b4123591bcdbd2bf01b594312f8e1c062ddd8c76'
+        repository: 'Matthew-McRaven/install-qt-action'
+        ref: '0fd226b72bc5b5a74f0baa65de4eae9d32b8f7d6'
         path: 'install-qt-action'
     - uses: actions/setup-node@v4
       with:
         node-version: 20
         cache: npm
         cache-dependency-path: install-qt-action/action/
+    # Windows has an old python which causes aqt to fail at runtime.
+    - name: Force update python
+      uses: actions/setup-python@v5
+      with:
+        python-version: '3.12'
     # Must allow breaking system packages on Mac OS runners, else setup fails.
     # See: https://github.com/jurplel/install-qt-action/issues/252
     - name: Set up pip config on macOS
@@ -30,7 +35,7 @@ runs:
         echo "[global]" > ~/.config/pip/pip.conf
         echo "break-system-packages = true" >> ~/.config/pip/pip.conf
       shell: bash
-    - name: Build jurplel/install-qt-action
+    - name: Build Matthew-McRaven/install-qt-action
       run: |
         cd install-qt-action/action/
         npm ci || npm install
