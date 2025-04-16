@@ -1,6 +1,9 @@
 
 group "default" {
-  targets = ["gcc", "dev-gcc", "wasm", "wasm-dbg", "dev-wasm-dbg", "clang"]
+  targets = ["gcc", "dev-gcc", "wasm", "wasm-dbg", "dev-wasm-dbg", "clang", "image_utils"]
+}
+group "cpp" {
+  targets = ["gcc", "dev-gcc", "wasm", "wasm-dbg", "dev-wasm-dbg", "clang" ]
 }
 
 variable "VERSION" {
@@ -8,7 +11,7 @@ variable "VERSION" {
 }
 
 target "gcc" {
-  context = "./develop"
+  context = "./cpp_build"
   dockerfile = "Dockerfile"
   tags = ["ghcr.io/matthew-mcraven/pepp/gcc:${VERSION}"]
   platforms = ["linux/amd64", "linux/arm64"]
@@ -16,7 +19,7 @@ target "gcc" {
 }
 
 target "dev-gcc" {
-  context = "./develop"
+  context = "./cpp_build"
   dockerfile = "Dockerfile"
   tags = ["ghcr.io/matthew-mcraven/pepp/dev-gcc:${VERSION}"]
   platforms = ["linux/amd64", "linux/arm64"]
@@ -27,7 +30,7 @@ target "dev-gcc" {
 }
 
 target "wasm" {
-  context = "./develop"
+  context = "./cpp_build"
   dockerfile = "Dockerfile"
   tags = ["ghcr.io/matthew-mcraven/pepp/wasm:${VERSION}"]
   platforms = ["linux/amd64"]
@@ -35,7 +38,7 @@ target "wasm" {
 }
 
 target "wasm-dbg" {
-  context = "./develop"
+  context = "./cpp_build"
   dockerfile = "Dockerfile"
   tags = ["ghcr.io/matthew-mcraven/pepp/wasm-dbg:${VERSION}"]
   platforms = ["linux/amd64"]
@@ -46,7 +49,7 @@ target "wasm-dbg" {
 }
 
 target "dev-wasm-dbg" {
-  context = "./develop"
+  context = "./cpp_build"
   dockerfile = "Dockerfile"
   tags = ["ghcr.io/matthew-mcraven/pepp/dev-wasm-dbg:${VERSION}"]
   platforms = ["linux/amd64"]
@@ -58,9 +61,16 @@ target "dev-wasm-dbg" {
 }
 
 target "clang" {
-  context = "./develop"
+  context = "./cpp_build"
   dockerfile = "Dockerfile"
   tags = ["ghcr.io/matthew-mcraven/pepp/clang:${VERSION}"]
   platforms = ["linux/amd64", "linux/arm64"]
   target = "output-clang"
+}
+
+target "image_utils" {
+  context = "./image_utils"
+  dockerfile = "Dockerfile"
+  tags = ["ghcr.io/matthew-mcraven/pepp/image-utils:${VERSION}"]
+  platforms = ["linux/amd64", "linux/arm64"]
 }

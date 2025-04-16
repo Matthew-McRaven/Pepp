@@ -82,14 +82,15 @@ jobs:
   create_icons:
     name: Rasterize SVG icons
     runs-on: ubuntu-latest
+
+    container:
+      image: ghcr.io/matthew-mcraven/pepp/image-utils:v0.15.0
     steps:
       - uses: actions/checkout@v4
         # LFS defaults to disabled, but accidental LFS bandwidth would be bad.
         with:
           lfs: 'false'
-      - name: Setup ImageMagick libicns (for ICNS conversion)
-        run: sudo apt update && sudo apt install imagemagick icnsutils librsvg2-bin
-        # imagemagick is bad at convert images with gradients, so use rsvg-convert.
+        # imagemagick is bad at converting images with gradients, so use rsvg-convert.
       - name: Convert SVG to PNG
         run: rsvg-convert -w 256 -h 256 icon.svg -o icon.png
         working-directory: ./data/app_icon
