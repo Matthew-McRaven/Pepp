@@ -35,7 +35,7 @@ public:
   };
   Q_ENUM(RoleNames)
 
-  StaticSymbolModel(QObject *parent = nullptr);
+  explicit StaticSymbolModel(QObject *parent = nullptr);
   void setFromElf(ELFIO::elfio *elf);
   void clearData();
   // QAbstractItemModel interface
