@@ -1,14 +1,12 @@
 #include "./pep10.hpp"
 #include <QQmlEngine>
 #include <elfio/elfio.hpp>
-#include <sstream>
 #include "asm/pas/operations/pepp/bytes.hpp"
 #include "bits/strings.hpp"
 #include "builtins/figure.hpp"
 #include "cpu/formats.hpp"
 #include "helpers/asmb.hpp"
 #include "isa/pep10.hpp"
-#include "sim/api2/trace/buffer.hpp"
 #include "sim/device/broadcast/mmi.hpp"
 #include "sim/device/broadcast/mmo.hpp"
 #include "sim/device/broadcast/pubsub.hpp"
@@ -925,8 +923,8 @@ bool Pep_ASMB::onAssemble(bool doLoad) {
   helper.setUserText(_userAsmText);
   auto ret = helper.assemble();
   _errors = helper.errorsWithLines();
-  _userLines2Address = helper.address2Lines(false);
-  _osLines2Address = helper.address2Lines(true);
+  _dbg->line_maps["user"] = std::move(helper.address2Lines(false));
+  _dbg->line_maps["os"] = std::move(helper.address2Lines(true));
   emit clearListingBreakpoints();
   emit errorsChanged();
   if (!ret) {
@@ -993,8 +991,8 @@ bool Pep_ASMB::onAssembleThenFormat() {
   helper.setUserText(_userAsmText);
   auto ret = helper.assemble();
   _errors = helper.errorsWithLines();
-  _userLines2Address = helper.address2Lines(false);
-  _osLines2Address = helper.address2Lines(false);
+  _dbg->line_maps["user"] = std::move(helper.address2Lines(false));
+  _dbg->line_maps["os"] = std::move(helper.address2Lines(true));
   emit clearListingBreakpoints();
   emit errorsChanged();
   if (!ret) {
@@ -1021,31 +1019,31 @@ bool Pep_ASMB::onAssembleThenFormat() {
 }
 
 void Pep_ASMB::onModifyUserSource(int line, Action action) {
-  if (auto address = _userLines2Address.source2Address(line); address && action != Action::ScrollTo)
+  if (auto address = _dbg->line_maps["user"].source2Address(line); address && action != Action::ScrollTo)
     updateBPAtAddress(*address, action);
   emit modifyUserSource(line, action);
-  if (auto list = _userLines2Address.source2List(line); list) emit modifyUserList(*list, action);
+  if (auto list = _dbg->line_maps["user"].source2List(line); list) emit modifyUserList(*list, action);
 }
 
 void Pep_ASMB::onModifyOSSource(int line, Action action) {
-  if (auto address = _osLines2Address.source2Address(line); address && action != Action::ScrollTo)
+  if (auto address = _dbg->line_maps["os"].source2Address(line); address && action != Action::ScrollTo)
     updateBPAtAddress(*address, action);
   emit modifyOSSource(line, action);
-  if (auto list = _osLines2Address.source2List(line); list) emit modifyOSList(*list, action);
+  if (auto list = _dbg->line_maps["os"].source2List(line); list) emit modifyOSList(*list, action);
 }
 
 void Pep_ASMB::onModifyUserList(int line, Action action) {
-  if (auto address = _userLines2Address.list2Address(line); address && action != Action::ScrollTo)
+  if (auto address = _dbg->line_maps["user"].list2Address(line); address && action != Action::ScrollTo)
     updateBPAtAddress(*address, action);
   emit modifyUserList(line, action);
-  if (auto src = _userLines2Address.list2Source(line); src) emit modifyUserSource(*src, action);
+  if (auto src = _dbg->line_maps["user"].list2Source(line); src) emit modifyUserSource(*src, action);
 }
 
 void Pep_ASMB::onModifyOSList(int line, Action action) {
-  if (auto address = _osLines2Address.list2Address(line); address && action != Action::ScrollTo)
+  if (auto address = _dbg->line_maps["os"].list2Address(line); address && action != Action::ScrollTo)
     updateBPAtAddress(*address, action);
   emit modifyOSList(line, action);
-  if (auto src = _osLines2Address.list2Source(line); src) emit modifyOSSource(*src, action);
+  if (auto src = _dbg->line_maps["os"].list2Source(line); src) emit modifyOSSource(*src, action);
 }
 
 void Pep_ASMB::prepareSim() {
@@ -1122,13 +1120,14 @@ void Pep_ASMB::updatePCLine() {
   default: throw std::logic_error("Unimplemented");
   }
 
-  if (auto userSrc = _userLines2Address.address2Source(pc); userSrc) emit modifyUserSource(*userSrc, Action::ScrollTo);
-  if (auto userList = _userLines2Address.address2List(pc); userList) {
+  if (auto userSrc = _dbg->line_maps["user"].address2Source(pc); userSrc)
+    emit modifyUserSource(*userSrc, Action::ScrollTo);
+  if (auto userList = _dbg->line_maps["user"].address2List(pc); userList) {
     emit switchTo(false);
     emit modifyUserList(*userList, Action::HighlightExclusive);
   }
-  if (auto osSrc = _osLines2Address.address2Source(pc); osSrc) emit modifyOSSource(*osSrc, Action::ScrollTo);
-  if (auto osList = _osLines2Address.address2List(pc); osList) {
+  if (auto osSrc = _dbg->line_maps["os"].address2Source(pc); osSrc) emit modifyOSSource(*osSrc, Action::ScrollTo);
+  if (auto osList = _dbg->line_maps["os"].address2List(pc); osList) {
     emit switchTo(true);
     emit modifyOSList(*osList, Action::HighlightExclusive);
   }
