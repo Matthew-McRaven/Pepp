@@ -54,14 +54,23 @@ Item {
                                     textView.implicitWidth + 12)
             implicitHeight: Math.max(textView.implicitHeight * 1.3,
                                      fm.height * 1.7)
+            required property bool editing
+            required property bool selected
+            Rectangle {
+                anchors.fill: parent
+                color: selected ? palette.highlight : "transparent"
+            }
             Text {
                 id: textView
                 anchors.fill: parent
-                text: model.display
+                text: model.display ?? ""
                 rightPadding: 10
                 leftPadding: 2
-                clip: true
-                font: fm.font
+                color: model.changed ? settings.extPalette.error.background : (selected ? palette.highlightedText : palette.windowText)
+                visible: !editing
+                font.family: settings.extPalette.baseMono.font.family
+                font.pointSize: settings.extPalette.baseMono.font.pointSize
+                verticalAlignment: Text.AlignVCenter
             }
             // Used for editing conditions
             TableView.editDelegate: TextField {
@@ -74,6 +83,7 @@ Item {
                 TableView.onCommit: display = text
                 font: settings.extPalette.baseMono.font
                 verticalAlignment: Text.AlignVCenter
+                clip: true
             }
         }
     }
