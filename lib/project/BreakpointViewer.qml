@@ -4,7 +4,14 @@ import Qt.labs.qmlmodels
 import edu.pepp
 
 Item {
-    property alias model: bpModel.breakpoints
+    property alias model: bpModel.breakpointModel
+    NuAppSettings {
+        id: settings
+    }
+    FontMetrics {
+        id: fm
+        font: settings.extPalette.baseMono.font
+    }
     Rectangle {
         id: outline
         color: palette.base
@@ -21,8 +28,9 @@ Item {
         clip: true
         model: tableView.model
         textRole: "display"
-        delegate: TextInput {
+        delegate: Text {
             text: model.display
+            clip: true
         }
     }
     TableView {
@@ -34,17 +42,38 @@ Item {
         anchors.margins: 2
         boundsBehavior: Flickable.StopAtBounds
         resizableColumns: true
+        clip: true
         model: BreakpointTableModel {
             id: bpModel
         }
 
-        delegate: TextInput {
-            text: model.display
-            selectByMouse: true
-            onAccepted: model.display = text
-            rightPadding: 10
-            leftPadding: 2
-            clip: true
+        delegate: Item {
+            id: delegate
+            implicitWidth: Math.max(8 * fm.averageCharacterWidth,
+                                    textView.implicitWidth + 12)
+            implicitHeight: Math.max(textView.implicitHeight * 1.3,
+                                     fm.height * 1.7)
+            Text {
+                id: textView
+                anchors.fill: parent
+                text: model.display
+                rightPadding: 10
+                leftPadding: 2
+                clip: true
+                font: fm.font
+            }
+            // Used for editing conditions
+            TableView.editDelegate: TextField {
+                id: textEdit
+                x: textView.x
+                y: textView.y
+                width: textView.width
+                height: textView.height
+                text: model.display
+                TableView.onCommit: display = text
+                font: settings.extPalette.baseMono.font
+                verticalAlignment: Text.AlignVCenter
+            }
         }
     }
 }
