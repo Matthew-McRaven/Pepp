@@ -123,4 +123,5 @@ pepp::debug::Debugger::Debugger(Environment *env) : env(env) {
   cache = std::make_unique<pepp::debug::ExpressionCache>();
   watch_expressions = std::make_unique<pepp::debug::WatchExpressionModel>(&*cache, env);
   static_symbol_model = std::make_unique<StaticSymbolModel>();
+  line_maps = std::make_unique<ScopedLines2Addresses>();
 }
