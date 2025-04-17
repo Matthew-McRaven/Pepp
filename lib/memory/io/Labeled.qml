@@ -1,9 +1,14 @@
 import QtQuick 2.15
 import QtQuick.Controls
 import QtQuick.Layouts
+import edu.pepp
 
 ColumnLayout {
     id: root
+    NuAppSettings {
+        id: settings
+    }
+
     property alias label: label.text
     property alias text: area.text
     property real minimumHeight: label.height + scrollViewMinHeight
@@ -20,6 +25,7 @@ ColumnLayout {
         contentHeight: Math.max(area.contentHeight, height)
         TextArea {
             id: area
+            font: settings.extPalette.baseMono.font
             background: Rectangle {
                 color: palette.base
                 border.color: palette.text
