@@ -3,6 +3,7 @@
 #include <QtQmlIntegration>
 #include <bitset>
 #include "sim/debug/expr_parser.hpp"
+#include "sim/debug/line_map.hpp"
 #include "symtab/symbolmodel.hpp"
 #include "watchexpressionmodel.hpp"
 
@@ -69,5 +70,6 @@ public:
   std::unique_ptr<pepp::debug::ExpressionCache> cache = nullptr;
   std::unique_ptr<pepp::debug::WatchExpressionModel> watch_expressions = nullptr;
   std::unique_ptr<StaticSymbolModel> static_symbol_model = nullptr;
+  std::map<std::string, Lines2Addresses> line_maps;
 };
 }; // namespace pepp::debug
