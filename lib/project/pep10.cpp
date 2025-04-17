@@ -746,7 +746,7 @@ project::DebugEnableFlags::DebugEnableFlags(QObject *parent) : QObject(parent) {
 project::StepEnableFlags::StepEnableFlags(QObject *parent) : QObject(parent) {}
 
 Pep_ASMB::Pep_ASMB(project::Environment env, QVariant delegate, QObject *parent)
-    : Pep_ISA(env, delegate, parent, false), _userModel(new SymbolModel(this)), _osModel(new SymbolModel(this)),
+    : Pep_ISA(env, delegate, parent, false), _symbolModel(new SymbolModel(this)),
       _watchExpressions(new pepp::debug::WatchExpressionModel(this, this)) {
 
   switch (_env.arch) {
@@ -829,8 +829,7 @@ const QList<Error *> Pep_ASMB::errors() const {
 
 bool Pep_ASMB::isEmpty() const { return _userAsmText.isEmpty(); }
 
-SymbolModel *Pep_ASMB::userSymbols() const { return _userModel; }
-SymbolModel *Pep_ASMB::osSymbols() const { return _osModel; }
+SymbolModel *Pep_ASMB::staticSymbolModel() const { return _symbolModel; }
 
 pepp::debug::WatchExpressionModel *Pep_ASMB::watchExpressions() const { return _watchExpressions; }
 
@@ -933,14 +932,13 @@ bool Pep_ASMB::onAssemble(bool doLoad) {
   if (!ret) {
     emit message(utils::msg_asm_failed);
     setObjectCodeText("");
-    _userModel->clearData();
-    _osModel->clearData();
+    _symbolModel->clearData();
+
     emit listingChanged();
     return false;
   }
   auto elf = helper.elf();
-  _userModel->setFromElf(elf.get(), "usr.symtab");
-  _osModel->setFromElf(elf.get(), "os.symtab");
+  _symbolModel->setFromElf(elf.get());
   auto user = helper.splitListing(false);
   _userList = std::accumulate(user.begin(), user.end(), QString(), to_string);
   for (auto it = 0; it < user.size(); it++)

@@ -2,6 +2,7 @@
 #include <QtCore>
 #include <QtQmlIntegration>
 #include <bitset>
+#include "sim/debug/expr_parser.hpp"
 
 namespace pepp::debug {
 class BreakpointSet : public QObject {
@@ -55,11 +56,15 @@ signals:
 private:
   BreakpointSet *_breakpoints = nullptr;
 };
-
+class Environment;
+class ExpressionCache;
 class Debugger {
 public:
   Debugger();
   ~Debugger() = default;
-  std::unique_ptr<BreakpointSet> bps = nullptr;
+  pepp::debug::Environment *env = nullptr;
+  std::unique_ptr<pepp::debug::BreakpointSet> bps = nullptr;
+  std::unique_ptr<pepp::debug::ExpressionCache> cache = nullptr;
+  std::unique_ptr<int> static_symbol_model = nullptr;
 };
 }; // namespace pepp::debug

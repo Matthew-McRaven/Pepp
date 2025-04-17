@@ -280,8 +280,9 @@ Item {
                         }
                         SymTab.SymbolViewer {
                             id: symTab
-                            model: textSelector.currentIndex
-                                   === 0 ? project?.userSymbols : project?.osSymbols
+                            model: project?.staticSymbolModel
+                            scopeFilter: textSelector.currentIndex
+                                         === 0 ? "usr.symtab" : "os.symtab"
                         }
                         Debug.WatchExpressions {
                             id: watchExpr
