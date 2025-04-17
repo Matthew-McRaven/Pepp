@@ -90,7 +90,8 @@ Item {
                 id: filterModel
             }
         }
-
+        // Increase inter-column padding for legibility
+        columnSpacing: tm.width * 2
         contentWidth: width
         clip: true
         focus: true
@@ -153,7 +154,7 @@ Item {
         selectionModel: ItemSelectionModel {
             model: reshapeModel
         }
-        delegate: Rectangle {
+        delegate: Item {
             id: delegate
             required property bool selected
             required property bool current
@@ -161,7 +162,15 @@ Item {
             required property string value
 
             implicitHeight: symbol.contentHeight
-            color: selected ? palette.highlight : "transparent"
+            width: parent.width
+            Rectangle {
+                color: delegate.selected ? palette.highlight : "transparent"
+                anchors.fill: parent
+                // Draw selection rectangle over column spacing using negative margins
+                anchors.leftMargin: -wrapper.columnSpacing / 2
+                anchors.rightMargin: -wrapper.columnSpacing / 2
+            }
+
             focus: false
             Label {
                 id: symbol
