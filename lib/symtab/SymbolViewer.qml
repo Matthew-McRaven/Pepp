@@ -4,7 +4,8 @@ import QtQml.Models
 
 Item {
     id: root
-    property alias model: wrapper.model
+    property alias model: filterModel.sourceModel
+    property alias scopeFilter: filterModel.scopeFilter
     NuAppSettings {
         id: settings
     }
@@ -15,7 +16,7 @@ Item {
     }
     Rectangle {
         id: outline
-        color: palette.base
+
         anchors.fill: parent
         //  Give object code viewer a background box
         border.width: 1
@@ -83,6 +84,13 @@ Item {
             rightMargin: vsc.width
             left: parent.left
         }
+        model: StaticSymbolReshapeModel {
+            id: reshapeModel
+            sourceModel: StaticSymbolFilterModel {
+                id: filterModel
+            }
+        }
+
         contentWidth: width
         clip: true
         focus: true
@@ -94,21 +102,21 @@ Item {
                 const m = wrapper.model
                 const sm = wrapper.selectionModel
                 if (event.button === Qt.LeftButton) {
+                    const flags = ItemSelectionModel.ClearAndSelect | ItemSelectionModel.Current
                     if (event.modifiers & Qt.ShiftModifier) {
                         const pr = sm.currentIndex
                         if (pr.valid)
                             m.selectRectangle(sm, pr, index)
                     } else {
                         // Must use this variant. Setting current flag does not set currentIndex.
-                        sm.setCurrentIndex(
-                                    index,
-                                    ItemSelectionModel.ClearAndSelect | ItemSelectionModel.Current)
+                        sm.setCurrentIndex(index, flags)
                     }
                     // Must force tableview to have focus, else copy will not work
                     wrapper.forceActiveFocus()
                 }
             }
         }
+
         columnWidthProvider: function (index) {
             const header = "Symbol  Value".length + 4 // Need 2 padding  on each side
             const row = model.longest + 4 + 2 // Symbol + space + hex value
@@ -119,14 +127,14 @@ Item {
         }
         onWidthChanged: {
             const actualSize = columnWidthProvider(0) + columnSpacing
-            wrapper.model.setColumnCount(width / actualSize)
+            reshapeModel.setColumnCount(width / actualSize)
         }
         onModelChanged: {
             const actualSize = columnWidthProvider(0) + columnSpacing
-            wrapper.model.setColumnCount(width / actualSize)
+            reshapeModel.setColumnCount(width / actualSize)
         }
         function copy() {
-            wrapper.model.copy(selectionModel.selectedIndexes)
+            reshapeModel.copy(selectionModel.selectedIndexes)
         }
 
         boundsBehavior: Flickable.StopAtBounds
@@ -143,12 +151,15 @@ Item {
         }
 
         selectionModel: ItemSelectionModel {
-            model: wrapper.model
+            model: reshapeModel
         }
         delegate: Rectangle {
             id: delegate
             required property bool selected
             required property bool current
+            required property string symbol
+            required property string value
+
             implicitHeight: symbol.contentHeight
             color: selected ? palette.highlight : "transparent"
             focus: false
@@ -161,7 +172,7 @@ Item {
                 leftPadding: tm.width * 2
 
                 color: palette.text
-                text: model.symbol
+                text: delegate.symbol
                 font: tm.font
             }
             Label {
@@ -174,7 +185,7 @@ Item {
                 rightPadding: tm.width * 2
 
                 color: palette.text
-                text: model.value
+                text: delegate.value
                 font: tm.font
             }
         }
