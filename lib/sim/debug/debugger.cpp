@@ -97,6 +97,12 @@ QVariant pepp::debug::BreakpointTableModel::data(const QModelIndex &index, int r
   return u"%1"_s.arg(index.row());
 }
 
+Qt::ItemFlags pepp::debug::BreakpointTableModel::flags(const QModelIndex &index) const {
+  if (!index.isValid()) return {};
+  if (index.column() == 3) return Qt::ItemIsEnabled | Qt::ItemIsSelectable | Qt::ItemIsEditable;
+  else return Qt::ItemIsEnabled | Qt::ItemIsSelectable;
+}
+
 pepp::debug::BreakpointSet *pepp::debug::BreakpointTableModel::breakpointModel() {
   if (_breakpoints == nullptr) return nullptr;
   return _breakpoints;
