@@ -1,6 +1,7 @@
 #pragma once
 #include <QtCore>
-struct ScopedLines2Addresses;
+#include <QtQmlIntegration>
+class ScopedLines2Addresses;
 struct Lines2Addresses {
   Lines2Addresses() {};
   Lines2Addresses(QList<QPair<int, quint32>> source, QList<QPair<int, quint32>> list);
@@ -12,14 +13,17 @@ struct Lines2Addresses {
   std::optional<int> list2Source(int list);
 
 private:
-  friend struct ScopedLines2Addresses;
+  friend class ScopedLines2Addresses;
   std::map<int, quint32> _source2Addr{}, _list2Addr{};
   std::map<quint32, int> _addr2Source{}, _addr2List{};
 };
 
-struct ScopedLines2Addresses {
+class ScopedLines2Addresses : public QObject {
+  Q_OBJECT
+  QML_ELEMENT
+public:
   using scope = int;
-  ScopedLines2Addresses();
+  ScopedLines2Addresses(QObject *parent = nullptr);
   ~ScopedLines2Addresses() = default;
   void addScope(QString name, const Lines2Addresses &map);
   std::optional<QString> scope2name(scope) const;
@@ -39,6 +43,12 @@ struct ScopedLines2Addresses {
 
   std::optional<int> source2List(int source) const;
   std::optional<int> list2Source(int list) const;
+
+public slots:
+  void onReset();
+
+signals:
+  void wasReset();
 
 private:
   std::map<int, std::tuple<scope, quint32>> _source2Addr{}, _list2Addr{};

@@ -43,7 +43,7 @@ std::optional<int> Lines2Addresses::list2Source(int list) {
   return address2Source(*addr);
 }
 
-ScopedLines2Addresses::ScopedLines2Addresses() {}
+ScopedLines2Addresses::ScopedLines2Addresses(QObject *parent) : QObject(parent) {}
 
 void ScopedLines2Addresses::addScope(QString name, const Lines2Addresses &map) {
   auto scopeIndex = static_cast<scope>(_scopeNames.size());
@@ -148,6 +148,13 @@ std::optional<int> ScopedLines2Addresses::list2Source(int list) const {
   if (!addr) return std::nullopt;
   else if (auto r = address2Source(std::get<1>(*addr)); !r) return std::nullopt;
   else return std::get<1>(*r);
+}
+
+void ScopedLines2Addresses::onReset() {
+  _source2Addr.clear(), _list2Addr.clear();
+  _addr2Source.clear(), _addr2List.clear();
+  _scopeNames.clear();
+  emit wasReset();
 }
 
 std::optional<int> ScopedLines2Addresses::source2List(int source) const {
