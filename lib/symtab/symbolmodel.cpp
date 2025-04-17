@@ -74,6 +74,7 @@ QVariant StaticSymbolModel::data(const QModelIndex &index, int role) const {
   case ValueRole: return QStringLiteral("%1").arg(entry.value, 4, 16, QLatin1Char('0')).toUpper();
   case IndexRole: return index.row();
   case ScopeRole: return entry.scope;
+  case ValidRole: return true;
   default: break;
   }
   return {};
@@ -86,8 +87,11 @@ Qt::ItemFlags StaticSymbolModel::flags(const QModelIndex &index) const {
 qsizetype StaticSymbolModel::longest() const { return _longest; }
 
 QHash<int, QByteArray> StaticSymbolModel::roleNames() const {
-  static const auto roles = QHash<int, QByteArray>{
-      {(int)SymbolRole, "symbol"}, {(int)ScopeRole, "scope"}, {(int)ValueRole, "value"}, {(int)IndexRole, "index"}};
+  static const auto roles = QHash<int, QByteArray>{{(int)SymbolRole, "symbol"},
+                                                   {(int)ScopeRole, "scope"},
+                                                   {(int)ValueRole, "value"},
+                                                   {(int)IndexRole, "index"},
+                                                   {(int)ValidRole, "valid"}};
   return roles;
 }
 
@@ -267,5 +271,8 @@ QVariant StaticSymbolReshapeModel::data(const QModelIndex &index, int role) cons
   if (auto source = sourceModel(); source == nullptr) return {};
   else if (!index.isValid()) return {};
   // Convert 2D-index back to 1D before deferring to old model
-  else return source->data(mapToSource(index), role);
+  else if (auto mapped = mapToSource(index); !mapped.isValid()) {
+    if (role == (int)StaticSymbolModel::RoleNames::ValidRole) return false;
+    return {};
+  } else return source->data(mapped, role);
 }

@@ -117,6 +117,21 @@ Item {
                 }
             }
         }
+        Keys.onPressed: function (event) {
+            if (event.matches(StandardKey.SelectAll)) {
+                const m = wrapper.model
+                const tl = m.index(0, 0)
+                const br = m.index(m.rowCount(), m.columnCount())
+                const sm = wrapper.selectionModel
+
+                m.selectRectangle(sm, tl, br)
+                // Must force tableview to have focus, else copy will not work
+                wrapper.forceActiveFocus()
+                event.accepted = true
+            } else {
+                event.accepted = false
+            }
+        }
 
         columnWidthProvider: function (index) {
             const header = "Symbol  Value".length + 4 // Need 2 padding  on each side
@@ -160,11 +175,15 @@ Item {
             required property bool current
             required property string symbol
             required property string value
-
+            // There exist extra cells in the 2D grid which do not map to indices in the underlying model.
+            // The delegate does not get assigned new values, and then uses the cached text values, which are wrong.
+            // These past-the-end items should not be selectable either.
+            required property bool valid
             implicitHeight: symbol.contentHeight
             width: parent.width
             Rectangle {
-                color: delegate.selected ? palette.highlight : "transparent"
+                color: delegate.selected
+                       && valid ? palette.highlight : "transparent"
                 anchors.fill: parent
                 // Draw selection rectangle over column spacing using negative margins
                 anchors.leftMargin: -wrapper.columnSpacing / 2
@@ -181,7 +200,7 @@ Item {
                 leftPadding: tm.width * 2
 
                 color: palette.text
-                text: delegate.symbol
+                text: valid ? delegate.symbol : ""
                 font: tm.font
             }
             Label {
@@ -194,7 +213,7 @@ Item {
                 rightPadding: tm.width * 2
 
                 color: palette.text
-                text: delegate.value
+                text: valid ? delegate.value : ""
                 font: tm.font
             }
         }
