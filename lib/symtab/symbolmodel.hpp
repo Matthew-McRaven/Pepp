@@ -32,6 +32,7 @@ public:
     SymbolBindingRole,
     ScopeRole,
     IndexRole,
+    ValidRole,
   };
   Q_ENUM(RoleNames)
 
