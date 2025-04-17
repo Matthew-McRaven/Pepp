@@ -53,7 +53,7 @@ ThroughputTask::ThroughputTask(QObject *parent) : Task(parent) {}
 void ThroughputTask::run() {
   using namespace Qt::StringLiterals;
   // Add some spurious breakpoints which will not be hit
-  auto debugger = std::make_shared<pepp::debug::Debugger>();
+  auto debugger = std::make_shared<pepp::debug::Debugger>(nullptr);
   for (int it = 0; it < 128; it++) debugger->bps->addBP(2048 + it);
   auto [mem, cpu] = make();
   cpu->setDebugger(&*debugger);

@@ -9,7 +9,7 @@ namespace ELFIO {
 class elfio;
 }
 class QItemSelectionModel;
-class SymbolModel : public QAbstractTableModel {
+class StaticSymbolModel : public QAbstractTableModel {
   Q_OBJECT
 
   Q_PROPERTY(qsizetype longest READ longest NOTIFY longestChanged)
@@ -35,7 +35,7 @@ public:
   };
   Q_ENUM(RoleNames)
 
-  SymbolModel(QObject *parent = nullptr);
+  StaticSymbolModel(QObject *parent = nullptr);
   void setFromElf(ELFIO::elfio *elf);
   void clearData();
   // QAbstractItemModel interface
@@ -54,14 +54,14 @@ protected:
 
 class StaticSymbolFilterModel : public QSortFilterProxyModel {
   Q_OBJECT
-  Q_PROPERTY(SymbolModel *sourceModel READ castedSourceModel WRITE setSourceModel NOTIFY sourceModelChanged)
+  Q_PROPERTY(StaticSymbolModel *sourceModel READ castedSourceModel WRITE setSourceModel NOTIFY sourceModelChanged)
   Q_PROPERTY(QString scopeFilter READ scopeFilter WRITE setScopeFilter NOTIFY scopeFilterChanged)
   Q_PROPERTY(qsizetype longest READ longest NOTIFY longestChanged)
   QML_NAMED_ELEMENT(StaticSymbolFilterModel);
 
 public:
   explicit StaticSymbolFilterModel(QObject *parent = nullptr);
-  SymbolModel *castedSourceModel();
+  StaticSymbolModel *castedSourceModel();
   void setSourceModel(QAbstractItemModel *sourceModel) override;
   QString scopeFilter() const;
   void setScopeFilter(const QString &scopeFilter);

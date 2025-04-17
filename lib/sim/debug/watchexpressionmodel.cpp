@@ -1,9 +1,10 @@
 #include "watchexpressionmodel.hpp"
 #include "expr_ast_ops.hpp"
 
-pepp::debug::WatchExpressionModel::WatchExpressionModel(pepp::debug::Environment *env, QObject *parent)
-    : QObject(parent), _env(env) {
-  pepp::debug::Parser p(_c);
+pepp::debug::WatchExpressionModel::WatchExpressionModel(pepp::debug::ExpressionCache *cache,
+                                                        pepp::debug::Environment *env, QObject *parent)
+    : QObject(parent), _env(env), _cache(cache) {
+  pepp::debug::Parser p(*_cache);
   add_root(p.compile("1 - 3"));
   add_root(p.compile("3_u16 * (x + 2)"));
   add_root(p.compile("y + 1 ==  m * x + b"));
@@ -33,7 +34,7 @@ void pepp::debug::WatchExpressionModel::update_volatile_values() {
 pepp::debug::Environment *pepp::debug::WatchExpressionModel::env() { return _env; }
 
 std::shared_ptr<pepp::debug::Term> pepp::debug::WatchExpressionModel::compile(const QString &new_expr) {
-  pepp::debug::Parser p(_c);
+  pepp::debug::Parser p(*_cache);
   return p.compile(new_expr);
 }
 
@@ -41,7 +42,7 @@ std::span<QString> pepp::debug::WatchExpressionModel::wip_text() { return _wip_t
 
 bool pepp::debug::WatchExpressionModel::recompile(const QString &new_expr, int index) {
   if (index < 0 || index >= _root_terms.size()) return false;
-  pepp::debug::Parser p(_c);
+  pepp::debug::Parser p(*_cache);
   auto term = p.compile(new_expr);
   if (term == nullptr) {
     _wip_text[index] = new_expr;
@@ -52,7 +53,7 @@ bool pepp::debug::WatchExpressionModel::recompile(const QString &new_expr, int i
   _root_was_dirty[index] = true;
   _wip_text[index].clear();
   // Editing expressions may result in unused terms. Garbage collect them when we successfully compile.
-  _c.collect_garbage();
+  _cache->collect_garbage();
 
   detail::GatherVolatileTerms vols;
   for (const auto &ptr : _root_terms) ptr->accept(vols);
