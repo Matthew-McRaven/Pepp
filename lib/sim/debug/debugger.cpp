@@ -76,9 +76,16 @@ QVariant pepp::debug::BreakpointTableModel::data(const QModelIndex &index, int r
     if (index.column() == 0) {
       return QString::asprintf("0x%04x", span[index.row()]);
     } else if (index.column() == 1) {
-      return "User";
+      if (_lines2address == nullptr) return "";
+      auto file = _lines2address->address2List(span[index.row()]);
+      if (!file.has_value()) return "";
+      return _lines2address->scope2name(std::get<0>(*file)).value_or("");
     } else if (index.column() == 2) {
-      return index.row();
+      if (_lines2address == nullptr) return "";
+      auto file = _lines2address->address2List(span[index.row()]);
+      if (!file.has_value()) return "";
+      // Lines are 0-indexed, but displayed as 1-indexed.
+      return QString::number(std::get<1>(*file) + 1);
     } else if (index.column() == 3) {
       return "Yelp";
     } else if (index.column() == 4) {
@@ -113,6 +120,20 @@ void pepp::debug::BreakpointTableModel::setBreakpointModel(BreakpointSet *breakp
   endResetModel();
 }
 
+ScopedLines2Addresses *pepp::debug::BreakpointTableModel::lines2address() { return _lines2address; }
+
+void pepp::debug::BreakpointTableModel::setLines2Address(ScopedLines2Addresses *lines2address) {
+  if (_lines2address == lines2address) return;
+  if (_lines2address) disconnect(_lines2address, nullptr, this, nullptr);
+  beginResetModel();
+  _lines2address = lines2address;
+  if (_lines2address)
+    connect(_lines2address, &ScopedLines2Addresses::wasReset, this, &BreakpointTableModel::onBreakpointsChanged);
+
+  endResetModel();
+  emit lines2addressChanged();
+}
+
 void pepp::debug::BreakpointTableModel::onBreakpointsChanged() {
   beginResetModel();
   endResetModel();
@@ -122,6 +143,6 @@ pepp::debug::Debugger::Debugger(Environment *env) : env(env) {
   bps = std::make_unique<BreakpointSet>();
   cache = std::make_unique<pepp::debug::ExpressionCache>();
   watch_expressions = std::make_unique<pepp::debug::WatchExpressionModel>(&*cache, env);
-  static_symbol_model = std::make_unique<StaticSymbolModel>();
   line_maps = std::make_unique<ScopedLines2Addresses>();
+  static_symbol_model = std::make_unique<StaticSymbolModel>();
 }

@@ -41,6 +41,7 @@ class BreakpointTableModel : public QAbstractTableModel {
   QML_ELEMENT
   Q_PROPERTY(pepp::debug::BreakpointSet *breakpointModel READ breakpointModel WRITE setBreakpointModel NOTIFY
                  breakpointModelChanged)
+  Q_PROPERTY(ScopedLines2Addresses *lines2address READ lines2address WRITE setLines2Address NOTIFY lines2addressChanged)
 
 public:
   explicit BreakpointTableModel(QObject *parent = nullptr);
@@ -51,14 +52,18 @@ public:
 
   BreakpointSet *breakpointModel();
   void setBreakpointModel(BreakpointSet *breakpoints);
+  ScopedLines2Addresses *lines2address();
+  void setLines2Address(ScopedLines2Addresses *lines2address);
 
 public slots:
   void onBreakpointsChanged();
 signals:
   void breakpointModelChanged();
+  void lines2addressChanged();
 
 private:
   BreakpointSet *_breakpoints = nullptr;
+  ScopedLines2Addresses *_lines2address = nullptr;
 };
 
 class Environment;
@@ -71,7 +76,7 @@ public:
   std::unique_ptr<pepp::debug::BreakpointSet> bps = nullptr;
   std::unique_ptr<pepp::debug::ExpressionCache> cache = nullptr;
   std::unique_ptr<pepp::debug::WatchExpressionModel> watch_expressions = nullptr;
-  std::unique_ptr<StaticSymbolModel> static_symbol_model = nullptr;
   std::unique_ptr<ScopedLines2Addresses> line_maps = nullptr;
+  std::unique_ptr<StaticSymbolModel> static_symbol_model = nullptr;
 };
 }; // namespace pepp::debug

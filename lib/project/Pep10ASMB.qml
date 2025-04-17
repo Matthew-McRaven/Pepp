@@ -290,6 +290,7 @@ Item {
                         }
                         BreakpointViewer {
                             model: project.breakpointModel
+                            lineInfo: project.lines2addr
                         }
                     }
                 }

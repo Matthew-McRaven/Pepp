@@ -888,6 +888,8 @@ StaticSymbolModel *Pep_ASMB::staticSymbolModel() const { return _dbg->static_sym
 
 pepp::debug::WatchExpressionModel *Pep_ASMB::watchExpressions() const { return _dbg->watch_expressions.get(); }
 
+ScopedLines2Addresses *Pep_ASMB::line2addr() const { return _dbg->line_maps.get(); }
+
 int Pep_ASMB::allowedDebugging() const {
   using D = project::DebugEnableFlags;
   switch (_state) {
@@ -923,8 +925,7 @@ bool Pep_ASMB::onAssemble(bool doLoad) {
   helper.setUserText(_userAsmText);
   auto ret = helper.assemble();
   _errors = helper.errorsWithLines();
-  auto replace = std::make_unique<ScopedLines2Addresses>();
-  _dbg->line_maps.swap(replace);
+  _dbg->line_maps->onReset();
   _dbg->line_maps->addScope("user", std::move(helper.address2Lines(false)));
   _dbg->line_maps->addScope("os", std::move(helper.address2Lines(true)));
   emit clearListingBreakpoints();
@@ -993,8 +994,7 @@ bool Pep_ASMB::onAssembleThenFormat() {
   helper.setUserText(_userAsmText);
   auto ret = helper.assemble();
   _errors = helper.errorsWithLines();
-  auto replace = std::make_unique<ScopedLines2Addresses>();
-  _dbg->line_maps.swap(replace);
+  _dbg->line_maps->onReset();
   _dbg->line_maps->addScope("user", helper.address2Lines(false));
   _dbg->line_maps->addScope("os", helper.address2Lines(true));
   emit clearListingBreakpoints();

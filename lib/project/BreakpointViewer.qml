@@ -5,6 +5,7 @@ import edu.pepp
 
 Item {
     property alias model: bpModel.breakpointModel
+    property alias lineInfo: bpModel.lines2address
     NuAppSettings {
         id: settings
     }
