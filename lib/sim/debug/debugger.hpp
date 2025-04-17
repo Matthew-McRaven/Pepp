@@ -3,6 +3,8 @@
 #include <QtQmlIntegration>
 #include <bitset>
 #include "sim/debug/expr_parser.hpp"
+#include "symtab/symbolmodel.hpp"
+#include "watchexpressionmodel.hpp"
 
 namespace pepp::debug {
 class BreakpointSet : public QObject {
@@ -60,11 +62,12 @@ class Environment;
 class ExpressionCache;
 class Debugger {
 public:
-  Debugger();
+  explicit Debugger(pepp::debug::Environment *env);
   ~Debugger() = default;
   pepp::debug::Environment *env = nullptr;
   std::unique_ptr<pepp::debug::BreakpointSet> bps = nullptr;
   std::unique_ptr<pepp::debug::ExpressionCache> cache = nullptr;
-  std::unique_ptr<int> static_symbol_model = nullptr;
+  std::unique_ptr<pepp::debug::WatchExpressionModel> watch_expressions = nullptr;
+  std::unique_ptr<StaticSymbolModel> static_symbol_model = nullptr;
 };
 }; // namespace pepp::debug

@@ -5,9 +5,7 @@
 #include <QItemSelectionModel>
 #include "elfio/elfio.hpp"
 
-SymbolModel::SymbolModel(QObject *parent) : QAbstractTableModel(parent) {
-  //  List column names that will appear in view
-}
+StaticSymbolModel::StaticSymbolModel(QObject *parent) : QAbstractTableModel(parent) {}
 
 symbol::Binding bindingFromElf(unsigned char bind) {
   switch (bind) {
@@ -17,7 +15,8 @@ symbol::Binding bindingFromElf(unsigned char bind) {
   default: return symbol::Binding::kLocal;
   }
 }
-void SymbolModel::setFromElf(ELFIO::elfio *elf) {
+
+void StaticSymbolModel::setFromElf(ELFIO::elfio *elf) {
   std::string name;
   ELFIO::Elf64_Addr value;
   ELFIO::Elf_Xword size;
@@ -49,18 +48,18 @@ void SymbolModel::setFromElf(ELFIO::elfio *elf) {
   endResetModel();
 }
 
-void SymbolModel::clearData() {
+void StaticSymbolModel::clearData() {
   beginResetModel();
   _entries.clear();
   _longest = 0;
   endResetModel();
 }
 
-int SymbolModel::rowCount(const QModelIndex &parent) const { return _entries.size(); }
+int StaticSymbolModel::rowCount(const QModelIndex &parent) const { return _entries.size(); }
 
-int SymbolModel::columnCount(const QModelIndex &parent) const { return 1; }
+int StaticSymbolModel::columnCount(const QModelIndex &parent) const { return 1; }
 
-QVariant SymbolModel::data(const QModelIndex &index, int role) const {
+QVariant StaticSymbolModel::data(const QModelIndex &index, int role) const {
   if (!index.isValid()) return QVariant();
   auto offset = index.row();
 
@@ -80,11 +79,13 @@ QVariant SymbolModel::data(const QModelIndex &index, int role) const {
   return {};
 }
 
-Qt::ItemFlags SymbolModel::flags(const QModelIndex &index) const { return Qt::ItemIsEnabled | Qt::ItemIsSelectable; }
+Qt::ItemFlags StaticSymbolModel::flags(const QModelIndex &index) const {
+  return Qt::ItemIsEnabled | Qt::ItemIsSelectable;
+}
 
-qsizetype SymbolModel::longest() const { return _longest; }
+qsizetype StaticSymbolModel::longest() const { return _longest; }
 
-QHash<int, QByteArray> SymbolModel::roleNames() const {
+QHash<int, QByteArray> StaticSymbolModel::roleNames() const {
   static const auto roles = QHash<int, QByteArray>{
       {(int)SymbolRole, "symbol"}, {(int)ScopeRole, "scope"}, {(int)ValueRole, "value"}, {(int)IndexRole, "index"}};
   return roles;
@@ -92,20 +93,22 @@ QHash<int, QByteArray> SymbolModel::roleNames() const {
 
 StaticSymbolFilterModel::StaticSymbolFilterModel(QObject *parent) : QSortFilterProxyModel(parent) {}
 
-SymbolModel *StaticSymbolFilterModel::castedSourceModel() { return dynamic_cast<SymbolModel *>(sourceModel()); }
+StaticSymbolModel *StaticSymbolFilterModel::castedSourceModel() {
+  return dynamic_cast<StaticSymbolModel *>(sourceModel());
+}
 
 void StaticSymbolFilterModel::setSourceModel(QAbstractItemModel *sourceModel) {
   if (sourceModel == this->sourceModel()) return;
   auto old = castedSourceModel();
   if (old) disconnect(old, nullptr, this, nullptr);
-  if (auto casted = dynamic_cast<SymbolModel *>(sourceModel); casted != nullptr) {
+  if (auto casted = dynamic_cast<StaticSymbolModel *>(sourceModel); casted != nullptr) {
     QSortFilterProxyModel::setSourceModel(casted);
     auto reset_model = [this]() {
       beginResetModel();
       endResetModel();
     };
-    connect(casted, &SymbolModel::longestChanged, this, &StaticSymbolFilterModel::longestChanged);
-    connect(casted, &SymbolModel::modelReset, this, reset_model);
+    connect(casted, &StaticSymbolModel::longestChanged, this, &StaticSymbolFilterModel::longestChanged);
+    connect(casted, &StaticSymbolModel::modelReset, this, reset_model);
     emit sourceModelChanged();
   }
 }
@@ -120,7 +123,7 @@ void StaticSymbolFilterModel::setScopeFilter(const QString &scopeFilter) {
 }
 
 qsizetype StaticSymbolFilterModel::longest() const {
-  if (auto model = dynamic_cast<SymbolModel *>(sourceModel()); model == nullptr) return 0;
+  if (auto model = dynamic_cast<StaticSymbolModel *>(sourceModel()); model == nullptr) return 0;
   else return model->longest();
 }
 
@@ -128,9 +131,9 @@ bool StaticSymbolFilterModel::filterAcceptsRow(int source_row, const QModelIndex
   auto sm = sourceModel();
   if (!sm) return false;
   auto index = sm->index(source_row, 0, source_parent);
-  auto binding = sm->data(index, SymbolModel::SymbolBindingRole).value<symbol::Binding>();
+  auto binding = sm->data(index, StaticSymbolModel::SymbolBindingRole).value<symbol::Binding>();
   if (binding == symbol::Binding::kGlobal) return true;
-  auto scope = sm->data(index, SymbolModel::ScopeRole).toString();
+  auto scope = sm->data(index, StaticSymbolModel::ScopeRole).toString();
   return scope == _scopeFilter || _scopeFilter.isEmpty();
 }
 
@@ -201,8 +204,8 @@ void StaticSymbolReshapeModel::copy(const QList<QModelIndex> &indices) const {
   for (const auto &index : indices) {
     if (!index.isValid()) continue;
 
-    auto symbol = data(index, SymbolModel::SymbolRole).toString(),
-         value = data(index, SymbolModel::ValueRole).toString();
+    auto symbol = data(index, StaticSymbolModel::SymbolRole).toString(),
+         value = data(index, StaticSymbolModel::ValueRole).toString();
     wip[colIt++] = colPlaceholder.arg(symbol.leftJustified(leftSize, ' '), value.rightJustified(rightSize, ' '));
 
     if (colIt >= colCount) {

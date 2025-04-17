@@ -11,7 +11,8 @@ class WatchExpressionModel : public QObject {
   QML_UNCREATABLE("");
 
 public:
-  explicit WatchExpressionModel(pepp::debug::Environment *env, QObject *parent = nullptr);
+  explicit WatchExpressionModel(pepp::debug::ExpressionCache *cache, pepp::debug::Environment *env,
+                                QObject *parent = nullptr);
   std::span<const uint8_t> was_dirty() const;
   std::span<const std::shared_ptr<pepp::debug::Term>> root_terms() const;
   void add_root(std::shared_ptr<pepp::debug::Term>);
@@ -29,7 +30,7 @@ signals:
 
 private:
   pepp::debug::Environment *_env;
-  pepp::debug::ExpressionCache _c;
+  pepp::debug::ExpressionCache *_cache;
   std::vector<uint8_t> _root_was_dirty;
   std::vector<std::shared_ptr<pepp::debug::Term>> _root_terms;
   std::vector<std::shared_ptr<pepp::debug::Term>> _volatiles;

@@ -17,7 +17,7 @@
 #include "utils/opcodemodel.hpp"
 #include "utils/strings.hpp"
 
-class Pep_ISA : public QObject {
+class Pep_ISA : public QObject, public pepp::debug::Environment {
   Q_OBJECT
   Q_PROPERTY(project::Environment env READ env CONSTANT)
   Q_PROPERTY(builtins::Architecture architecture READ architecture CONSTANT)
@@ -78,6 +78,12 @@ public:
   Q_INVOKABLE void setCharIn(QString value);
   Q_INVOKABLE QString charOut() const;
   virtual bool isEmpty() const;
+
+  uint8_t read_mem_u8(uint32_t address) const override;
+  uint16_t read_mem_u16(uint32_t address) const override;
+  pepp::debug::TypedBits evaluate_variable(QStringView name) const override;
+  uint32_t cache_debug_variable_name(QStringView name) const override;
+  pepp::debug::TypedBits evaluate_debug_variable(uint32_t name) const override;
 public slots:
   bool onSaveCurrent();
   virtual bool onLoadObject();
@@ -154,7 +160,7 @@ public:
   QString error;
 };
 
-class Pep_ASMB final : public Pep_ISA, public pepp::debug::Environment {
+class Pep_ASMB final : public Pep_ISA {
   Q_OBJECT
   Q_PROPERTY(QString userAsmText READ userAsmText WRITE setUserAsmText NOTIFY userAsmTextChanged);
   Q_PROPERTY(QString userList READ userList NOTIFY listingChanged);
@@ -163,7 +169,7 @@ class Pep_ASMB final : public Pep_ISA, public pepp::debug::Environment {
   Q_PROPERTY(QString osList READ osList NOTIFY listingChanged);
   Q_PROPERTY(QList<Error *> osListAnnotations READ osListAnnotations NOTIFY listingChanged);
   Q_PROPERTY(QList<Error *> assemblerErrors READ errors NOTIFY errorsChanged)
-  Q_PROPERTY(SymbolModel *staticSymbolModel READ staticSymbolModel CONSTANT)
+  Q_PROPERTY(StaticSymbolModel *staticSymbolModel READ staticSymbolModel CONSTANT)
   Q_PROPERTY(pepp::debug::WatchExpressionModel *watchExpressions READ watchExpressions CONSTANT)
   QML_UNCREATABLE("Can only be created through Project::")
   using Action = ScintillaAsmEditBase::Action;
@@ -182,14 +188,9 @@ public:
   Q_INVOKABLE const QList<Error *> osListAnnotations() const;
   Q_INVOKABLE const QList<Error *> errors() const;
   bool isEmpty() const override;
-  Q_INVOKABLE SymbolModel *staticSymbolModel() const;
+  Q_INVOKABLE StaticSymbolModel *staticSymbolModel() const;
   Q_INVOKABLE pepp::debug::WatchExpressionModel *watchExpressions() const;
   int allowedDebugging() const override;
-  uint8_t read_mem_u8(uint32_t address) const override;
-  uint16_t read_mem_u16(uint32_t address) const override;
-  pepp::debug::TypedBits evaluate_variable(QStringView name) const override;
-  uint32_t cache_debug_variable_name(QStringView name) const override;
-  pepp::debug::TypedBits evaluate_debug_variable(uint32_t name) const override;
 public slots:
   bool onDebuggingStart() override;
   bool onAssemble(bool doLoad = false);
@@ -219,10 +220,9 @@ protected:
   void prepareSim() override;
   void prepareGUIUpdate(sim::api2::trace::FrameIterator from) override;
   void updatePCLine();
-  SymbolModel *_symbolModel = nullptr;
+
   QString _userAsmText = {}, _osAsmText = {};
   QString _userList = {}, _osList = {};
   QList<QPair<int, QString>> _errors = {}, _userListAnnotations = {}, _osListAnnotations = {};
   helpers::AsmHelper::Lines2Addresses _userLines2Address = {}, _osLines2Address = {};
-  pepp::debug::WatchExpressionModel *_watchExpressions = nullptr;
 };
