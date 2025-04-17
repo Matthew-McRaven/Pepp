@@ -28,7 +28,8 @@ template <isa::Pep9::Register target_reg, isa::Pep9::Register other_reg> void in
   // Loop over a subset of possible values for the target register.
   quint16 tmp;
   for (uint16_t opspec : {0, 0x01, 0xFE, 0xFF, 0x80, 0x8000, 0x8001, 0xFFFE, 0xFFFF}) {
-    auto endRegVal = opspec & 0xff;
+    quint16 startRegVal = 0x8687;
+    quint16 endRegVal = 0x8600 | (opspec & 0xff);
 
     // Object code for instruction under test.
     auto program = std::array<quint8, 3>{(quint8)op, static_cast<uint8_t>((opspec >> 8) & 0xff),
@@ -36,13 +37,14 @@ template <isa::Pep9::Register target_reg, isa::Pep9::Register other_reg> void in
 
     cpu->regs()->clear(0);
     cpu->csrs()->clear(0);
-    tmp = bits::hostOrder() != bits::Order::BigEndian ? bits::byteswap(opspec) : opspec;
+
+    tmp = bits::hostOrder() != bits::Order::BigEndian ? bits::byteswap(startRegVal) : startRegVal;
     cpu->regs()->write(static_cast<quint16>(target_reg) * 2, {reinterpret_cast<quint8 *>(&tmp), 2}, rw);
+    CHECK(reg(cpu, target_reg) == startRegVal);
 
     REQUIRE_NOTHROW(mem->write(0, {program.data(), program.size()}, rw));
     REQUIRE_NOTHROW(cpu->clock(0));
 
-    tmp = bits::hostOrder() != bits::Order::BigEndian ? bits::byteswap(tmp) : tmp;
     CHECK(reg(cpu, isa::Pep9::Register::SP) == 0);
     CHECK(reg(cpu, other_reg) == 0);
     CHECK(reg(cpu, isa::Pep9::Register::PC) == 0x3);
@@ -53,7 +55,7 @@ template <isa::Pep9::Register target_reg, isa::Pep9::Register other_reg> void in
     CHECK(reg(cpu, target_reg) == endRegVal);
     // Check that target status bits match RTL.
     CHECK(csr(cpu, isa::Pep9::CSR::N) == 0);
-    CHECK(!!csr(cpu, isa::Pep9::CSR::Z) == (endRegVal == 0));
+    CHECK(!!csr(cpu, isa::Pep9::CSR::Z) == ((endRegVal & 0xff) == 0));
   }
 }
 } // namespace

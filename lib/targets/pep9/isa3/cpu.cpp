@@ -438,7 +438,7 @@ sim::api2::tick::Result targets::pep9::isa::CPU::nonunaryDispatch(quint8 is, qui
 
   static const bool swap = bits::hostOrder() != bits::Order::BigEndian;
   auto mnemonic = ::isa::Pep9::opcodeLUT[is];
-  quint16 a = readReg(Register::A), sp = readReg(Register::SP), x = readReg(Register::X);
+  quint16 a = readReg(Register::A), sp = readReg(Register::SP), x = readReg(Register::X), temp = 0;
 
   quint16 operand = 0;
 
@@ -653,17 +653,19 @@ sim::api2::tick::Result targets::pep9::isa::CPU::nonunaryDispatch(quint8 is, qui
 
   // LDBx instructions depend on decodeLoadOperand to 0-fill upper byte.
   case mn::LDBA:
-    writeReg(Register::A, operand);
+    temp = (a & 0xff00) | (operand & 0x00ff);
+    writeReg(Register::A, temp);
     // LDBx always clears n.
     n = 0;
-    z = operand == 0x0000;
+    z = (temp & 0xff) == 0x0000;
     writePackedCSR(targets::isa::packCSR<ISA>(n, z, v, c));
     break;
   case mn::LDBX:
-    writeReg(Register::X, operand);
+    temp = (x & 0xff00) | (operand & 0x00ff);
+    writeReg(Register::X, temp);
     // LDBx always clears n.
     n = 0;
-    z = operand == 0x0000;
+    z = (temp & 0xff) == 0x0000;
     writePackedCSR(targets::isa::packCSR<ISA>(n, z, v, c));
     break;
 
