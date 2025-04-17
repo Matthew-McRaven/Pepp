@@ -81,7 +81,8 @@ TEST_CASE("Packet get_address", "[scope:sim][kind:unit][arch:*]") {
 
 TEST_CASE("Packet payload_length", "[scope:sim][kind:unit][arch:*]") {
   using namespace sim::api2::packet;
-  bits::span<const quint8> bytes = {{0, 1, 2, 3, 4, 5}};
+  const uint8_t payload[]{0, 1, 2, 3, 4, 5};
+  bits::span<const quint8> bytes = {payload};
   packet::Payload x = payload::Variable{.payload = payload::Variable::Bytes{6, bytes}};
   CHECK(payload_length(x) == 6);
 }
@@ -187,7 +188,8 @@ TEST_CASE("Packet serialization utilities", "[scope:sim][kind:unit][arch:*]") {
 
 TEST_CASE("Packet packet_payloads_length", "[scope:sim][kind:unit][arch:*]") {
   using namespace sim::api2::packet;
-  bits::span<const quint8> bytes = {{0, 1, 2, 3, 4, 5}};
+  const uint8_t payload[]{0, 1, 2, 3, 4, 5};
+  bits::span<const quint8> bytes = {payload};
   SECTION("ImpureRead") {
     InfiniteBuffer buf;
     buf.trace(0, true);
