@@ -1,39 +1,66 @@
 #include "watchexpressionmodel.hpp"
 #include "expr_ast_ops.hpp"
 
-pepp::debug::WatchExpressionEditor::Item::Item(TermPtr term) : term(term) {}
+pepp::debug::WatchExpressionEditor::Item::Item(TermPtr term) : _term(term) {}
 
-pepp::debug::WatchExpressionEditor::Item::Item(QString term) : wip_term(term) {}
+pepp::debug::WatchExpressionEditor::Item::Item(QString term) : _wip_term(term) {}
+
+pepp::debug::Term *pepp::debug::WatchExpressionEditor::Item::term() { return _term ? _term.get() : nullptr; }
 
 void pepp::debug::WatchExpressionEditor::Item::set_term(TermPtr term) {
-  this->term = term;
-  this->wip_term.clear();
-  this->recent_value.reset();
+  this->_term = term;
+  this->_wip_term.clear();
+  this->_recent_value.reset();
 }
 
 void pepp::debug::WatchExpressionEditor::Item::set_term(QString term) {
-  this->term.reset();
-  this->wip_term = term;
-  this->recent_value.reset();
+  this->_term.reset();
+  this->_wip_term = term;
+  this->_recent_value.reset();
 }
 
-bool pepp::debug::WatchExpressionEditor::Item::is_wip() const { return wip_term.length() > 0 || wip_type.length() > 0; }
+void pepp::debug::WatchExpressionEditor::Item::evaluate(CachePolicy policy, Environment &env) {
+  if (_term) _recent_value = _term->evaluate(CachePolicy::UseNonVolatiles, env);
+  _recent_value.reset();
+}
+
+void pepp::debug::WatchExpressionEditor::Item::clear_value() { _recent_value.reset(); }
+
+std::optional<pepp::debug::TypedBits> pepp::debug::WatchExpressionEditor::Item::value() const { return _recent_value; }
+
+bool pepp::debug::WatchExpressionEditor::Item::needs_update() const { return _needs_update; }
+
+bool pepp::debug::WatchExpressionEditor::Item::dirty() const { return _dirty; }
+
+void pepp::debug::WatchExpressionEditor::Item::make_dirty() {
+  _dirty = true;
+  _needs_update = true;
+}
+
+void pepp::debug::WatchExpressionEditor::Item::make_clean(bool force_update) {
+  _needs_update = _dirty | force_update;
+  _dirty = false;
+}
+
+bool pepp::debug::WatchExpressionEditor::Item::is_wip() const {
+  return _wip_term.length() > 0 || _wip_type.length() > 0;
+}
 
 QString pepp::debug::WatchExpressionEditor::Item::expression_text() const {
-  if (wip_term.length() > 0) return wip_term;
-  else if (term) return term->to_string();
+  if (_wip_term.length() > 0) return _wip_term;
+  else if (_term) return _term->to_string();
   else return "";
 }
 
 QString pepp::debug::WatchExpressionEditor::Item::type_text() const {
-  if (wip_term.length() > 0 || term == nullptr) return "";
-  else if (wip_type.length() > 0) return wip_type;
-  else if (type.has_value()) {
+  if (_wip_term.length() > 0 || _term == nullptr) return "";
+  else if (_wip_type.length() > 0) return _wip_type;
+  else if (_type.has_value()) {
     QMetaEnum metaEnum = QMetaEnum::fromType<ExpressionType>();
-    return QString::fromStdString(metaEnum.valueToKey((int)type.value()));
-  } else if (recent_value) {
+    return QString::fromStdString(metaEnum.valueToKey((int)_type.value()));
+  } else if (_recent_value) {
     QMetaEnum metaEnum = QMetaEnum::fromType<ExpressionType>();
-    return QString::fromStdString(metaEnum.valueToKey((int)recent_value->type));
+    return QString::fromStdString(metaEnum.valueToKey((int)_recent_value->type));
   } else return "";
 }
 
@@ -49,8 +76,8 @@ void pepp::debug::WatchExpressionEditor::add_item(const QString &new_expr, const
   pepp::debug::Parser p(*_cache);
   auto compiled = p.compile(new_expr);
   auto item = compiled ? Item(compiled) : Item(new_expr);
-  if (compiled) item.recent_value = compiled->evaluate(CachePolicy::UseNonVolatiles, *_env);
-  else item.recent_value.reset();
+  if (compiled) item.evaluate(CachePolicy::UseNonVolatiles, *_env);
+  else item.clear_value();
   gather_volatiles();
   // TODO: set type on item
   _items.emplace_back(std::move(item));
@@ -61,13 +88,13 @@ bool pepp::debug::WatchExpressionEditor::edit_term(int index, const QString &new
   auto &item = _items[index];
   pepp::debug::Parser p(*_cache);
   auto compiled = p.compile(new_expr);
-  if (compiled && item.term != compiled) {
+  if (compiled) {
     item.set_term(compiled);
-    item.dirty = item.needs_update = true;
-    item.recent_value = compiled->evaluate(CachePolicy::UseNonVolatiles, *_env);
-  } else if (compiled == nullptr && item.wip_term != new_expr) {
+    item.make_dirty();
+    item.evaluate(CachePolicy::UseNonVolatiles, *_env);
+  } else if (compiled == nullptr) {
     item.set_term(new_expr);
-    item.dirty = item.needs_update = true;
+    item.make_dirty();
   } else return false;
   gather_volatiles();
   return true;
@@ -94,23 +121,20 @@ void pepp::debug::WatchExpressionEditor::update_volatile_values() {
   // We cannot re-order the terms because we want to preserve UI order.
   // Therefore must iterate over whole list once to collect all dirty terms before updating.
   for (auto &item : _items) {
-    if (item.term == nullptr) item.dirty = false;
+    if (item.term() == nullptr) item.make_clean();
     else {
-      bool prev_dirty = item.dirty;
-      item.dirty = item.term->dirty();
-      item.needs_update = item.dirty | prev_dirty;
+      item.make_dirty();
     }
   }
   for (auto &item : _items) {
-    if (item.term != nullptr) item.recent_value = item.term->evaluate(CachePolicy::UseNonVolatiles, *_env);
+    if (auto term = item.term(); term != nullptr) term->evaluate(CachePolicy::UseNonVolatiles, *_env);
   }
 }
 
 void pepp::debug::WatchExpressionEditor::onSimulationStart() {
   for (auto &item : _items) {
-    item.dirty = false;
-    item.needs_update = true;
-    if (item.term != nullptr) item.recent_value = item.term->evaluate(CachePolicy::UseNonVolatiles, *_env);
+    item.make_clean(true);
+    item.evaluate(CachePolicy::UseNonVolatiles, *_env);
   }
   emit fullUpdateModel();
 }
@@ -118,8 +142,8 @@ void pepp::debug::WatchExpressionEditor::onSimulationStart() {
 void pepp::debug::WatchExpressionEditor::gather_volatiles() {
   // Gather the new set of volatiles, which may update any time an expression is added/removed
   detail::GatherVolatileTerms vols;
-  for (const auto &ptr : _items) {
-    if (ptr.term != nullptr) ptr.term->accept(vols);
+  for (auto &ptr : _items) {
+    if (auto term = ptr.term(); term) term->accept(vols);
   }
   auto vec = vols.to_vector();
   _volatiles.resize(vec.size());
@@ -136,6 +160,17 @@ void pepp::debug::WatchExpressionEditor::gather_volatiles() {
 
 std::span<const pepp::debug::WatchExpressionEditor::Item> pepp::debug::WatchExpressionEditor::items() const {
   return std::span<const Item>(_items.data(), _items.size());
+}
+
+QVariant pepp::debug::variant_from_bits(const TypedBits &bits) {
+  switch (bits.type) {
+  case pepp::debug::ExpressionType::i8: return QVariant::fromValue((int8_t)bits.bits);
+  case pepp::debug::ExpressionType::u8: return QVariant::fromValue((uint8_t)bits.bits);
+  case pepp::debug::ExpressionType::i16: return QVariant::fromValue((int16_t)bits.bits);
+  case pepp::debug::ExpressionType::u16: return QVariant::fromValue((uint16_t)bits.bits);
+  case pepp::debug::ExpressionType::i32: return QVariant::fromValue((int32_t)bits.bits);
+  case pepp::debug::ExpressionType::u32: return QVariant::fromValue((uint32_t)bits.bits);
+  }
 }
 
 pepp::debug::WatchExpressionTableModel::WatchExpressionTableModel(QObject *parent) : QAbstractTableModel(parent) {}
@@ -160,16 +195,6 @@ int pepp::debug::WatchExpressionTableModel::columnCount(const QModelIndex &paren
   return 3;
 }
 
-QVariant variant_from_bits(const pepp::debug::TypedBits &bits) {
-  switch (bits.type) {
-  case pepp::debug::ExpressionType::i8: return QVariant::fromValue((int8_t)bits.bits);
-  case pepp::debug::ExpressionType::u8: return QVariant::fromValue((uint8_t)bits.bits);
-  case pepp::debug::ExpressionType::i16: return QVariant::fromValue((int16_t)bits.bits);
-  case pepp::debug::ExpressionType::u16: return QVariant::fromValue((uint16_t)bits.bits);
-  case pepp::debug::ExpressionType::i32: return QVariant::fromValue((int32_t)bits.bits);
-  case pepp::debug::ExpressionType::u32: return QVariant::fromValue((uint32_t)bits.bits);
-  }
-}
 QVariant pepp::debug::WatchExpressionTableModel::data(const QModelIndex &index, int role) const {
   using WER = WatchExpressionRoles::Roles;
   int row = index.row(), col = index.column();
@@ -185,14 +210,14 @@ QVariant pepp::debug::WatchExpressionTableModel::data(const QModelIndex &index, 
       return item.expression_text();
     } else if (col == 1) {
       if (item.is_wip()) return "<invalid>";
-      return variant_from_bits(item.recent_value.value_or(pepp::debug::TypedBits()));
+      return variant_from_bits(item.value().value_or(pepp::debug::TypedBits{}));
     } else {
       return item.type_text();
     }
   case (int)WER::Changed:
     if (row >= items.size()) {
       return false;
-    } else return item.dirty;
+    } else return item.dirty();
     // Italicize <expr> and <invalid>
   case (int)WER::Italicize: return row >= items.size() || (col > 0 && item.is_wip());
   }
@@ -266,8 +291,8 @@ void pepp::debug::WatchExpressionTableModel::onUpdateModel() {
   int start = -1;
   for (int i = 0; i < items.size(); i++) {
     const auto &item = items[i];
-    if (item.needs_update && start == -1) start = i;
-    else if (!item.needs_update && start != -1) {
+    if (item.needs_update() && start == -1) start = i;
+    else if (!item.needs_update() && start != -1) {
       emit dataChanged(index(start, 0), index(i - 1, 2));
       start = -1;
     }
