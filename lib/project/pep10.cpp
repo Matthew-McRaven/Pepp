@@ -886,7 +886,7 @@ bool Pep_ASMB::isEmpty() const { return _userAsmText.isEmpty(); }
 
 StaticSymbolModel *Pep_ASMB::staticSymbolModel() const { return _dbg->static_symbol_model.get(); }
 
-pepp::debug::WatchExpressionModel *Pep_ASMB::watchExpressions() const { return _dbg->watch_expressions.get(); }
+pepp::debug::WatchExpressionEditor *Pep_ASMB::watchExpressions() const { return _dbg->watch_expressions.get(); }
 
 ScopedLines2Addresses *Pep_ASMB::line2addr() const { return _dbg->line_maps.get(); }
 

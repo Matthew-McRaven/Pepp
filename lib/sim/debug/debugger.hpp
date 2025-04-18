@@ -76,7 +76,7 @@ public:
   pepp::debug::Environment *env = nullptr;
   std::unique_ptr<pepp::debug::BreakpointSet> bps = nullptr;
   std::unique_ptr<pepp::debug::ExpressionCache> cache = nullptr;
-  std::unique_ptr<pepp::debug::WatchExpressionModel> watch_expressions = nullptr;
+  std::unique_ptr<pepp::debug::WatchExpressionEditor> watch_expressions = nullptr;
   std::unique_ptr<ScopedLines2Addresses> line_maps = nullptr;
   std::unique_ptr<StaticSymbolModel> static_symbol_model = nullptr;
 };

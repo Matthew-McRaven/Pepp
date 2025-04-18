@@ -170,7 +170,7 @@ class Pep_ASMB final : public Pep_ISA {
   Q_PROPERTY(QList<Error *> osListAnnotations READ osListAnnotations NOTIFY listingChanged);
   Q_PROPERTY(QList<Error *> assemblerErrors READ errors NOTIFY errorsChanged)
   Q_PROPERTY(StaticSymbolModel *staticSymbolModel READ staticSymbolModel CONSTANT)
-  Q_PROPERTY(pepp::debug::WatchExpressionModel *watchExpressions READ watchExpressions CONSTANT)
+  Q_PROPERTY(pepp::debug::WatchExpressionEditor *watchExpressions READ watchExpressions CONSTANT)
   Q_PROPERTY(ScopedLines2Addresses *lines2addr READ line2addr CONSTANT)
   QML_UNCREATABLE("Can only be created through Project::")
   using Action = ScintillaAsmEditBase::Action;
@@ -190,7 +190,7 @@ public:
   Q_INVOKABLE const QList<Error *> errors() const;
   bool isEmpty() const override;
   Q_INVOKABLE StaticSymbolModel *staticSymbolModel() const;
-  Q_INVOKABLE pepp::debug::WatchExpressionModel *watchExpressions() const;
+  Q_INVOKABLE pepp::debug::WatchExpressionEditor *watchExpressions() const;
   Q_INVOKABLE ScopedLines2Addresses *line2addr() const;
   int allowedDebugging() const override;
 public slots:
