@@ -5,36 +5,64 @@
 #include "sim/debug/expr_parser.hpp"
 
 namespace pepp::debug {
-class WatchExpressionModel : public QObject {
+class WatchExpressionEditor : public QObject {
   Q_OBJECT
   QML_ELEMENT
   QML_UNCREATABLE("");
 
 public:
-  explicit WatchExpressionModel(pepp::debug::ExpressionCache *cache, pepp::debug::Environment *env,
-                                QObject *parent = nullptr);
-  std::span<const uint8_t> was_dirty() const;
-  std::span<const std::shared_ptr<pepp::debug::Term>> root_terms() const;
-  void add_root(std::shared_ptr<pepp::debug::Term>);
-  void update_volatile_values();
-  pepp::debug::Environment *env();
-  // Compile an expression without adding it to roots
-  std::shared_ptr<pepp::debug::Term> compile(const QString &new_expr);
-  std::span<QString> wip_text();
-  bool recompile(const QString &new_expr, int index);
+  struct Item {
+    using TermPtr = std::shared_ptr<pepp::debug::Term>;
+    explicit Item() = default;
+    // Call if compilation was a success. Update type manually after construction.
+    explicit Item(TermPtr term);
+    // Call if compilation failed. Update type manually after construction.
+    explicit Item(QString term);
+    ~Item() = default;
+    void set_term(TermPtr term);
+    void set_term(QString term);
+    bool is_wip() const;
+    QString expression_text() const;
+    QString type_text() const;
+
+    bool dirty = false;       // On most recent update to update_volatile_values, was the term dirty?
+    bool needs_update = true; // Is the term: (currently dirty) | (dirty prior to update_volatile_values)
+    QString wip_term = "";    // Most recent text submitted to <> iff compilation failed.
+    QString wip_type = "";    // Most recent text submitted to the type compiler iff compliation failed.
+    TermPtr term = nullptr;   // The term itself, if compilation succeeded. Nullptr otherwise.
+    // If term != nullptr && wip_type.empty() && type: promote terms result to this type.
+    // If term != nullptr && wip_type.empty() && !type: use terms result type.
+    // If term != nullptr && !wip_type.empty(): do not render value, and place <invalid> in type field.
+    std::optional<ExpressionType> type = std::nullopt;
+    std::optional<TypedBits> recent_value = std::nullopt; // Most recent value of the term.
+  };
+  explicit WatchExpressionEditor(pepp::debug::ExpressionCache *cache, pepp::debug::Environment *env,
+                                 QObject *parent = nullptr);
+  std::span<const Item> items() const;
+  void add_item(const QString &new_expr, const QString new_type = "");
+  bool edit_term(int index, const QString &new_expr);
+  bool edit_type(int index, const QString &new_type);
   bool delete_at(int index);
+  void update_volatile_values();
+
 public slots:
   void onSimulationStart();
 signals:
   void fullUpdateModel();
 
 private:
+  struct VolatileCache {
+    // Preserve last evaluated value of the term.
+    // A volatile may have been updated many times by the breakpoint system before we've been given a chacne to view it.
+    // The term itself may not be dirty, but from our perspective it is different than its last rendered value.
+    TypedBits v;
+    std::shared_ptr<pepp::debug::Term> term;
+  };
+  void gather_volatiles();
   pepp::debug::Environment *_env;
   pepp::debug::ExpressionCache *_cache;
-  std::vector<uint8_t> _root_was_dirty;
-  std::vector<std::shared_ptr<pepp::debug::Term>> _root_terms;
-  std::vector<std::shared_ptr<pepp::debug::Term>> _volatiles;
-  std::vector<QString> _wip_text;
+  std::vector<VolatileCache> _volatiles;
+  std::vector<Item> _items;
 };
 
 class WatchExpressionRoles : public QObject {
@@ -52,7 +80,7 @@ public:
 
 class WatchExpressionTableModel : public QAbstractTableModel {
   Q_OBJECT
-  Q_PROPERTY(WatchExpressionModel *watchExpressions READ expressionModel WRITE setExpressionModel NOTIFY
+  Q_PROPERTY(WatchExpressionEditor *watchExpressions READ expressionModel WRITE setExpressionModel NOTIFY
                  expressionModelChanged)
   QML_ELEMENT
 public:
@@ -66,8 +94,8 @@ public:
   Qt::ItemFlags flags(const QModelIndex &index) const override;
   QHash<int, QByteArray> roleNames() const override;
 
-  WatchExpressionModel *expressionModel();
-  void setExpressionModel(WatchExpressionModel *new_model);
+  WatchExpressionEditor *expressionModel();
+  void setExpressionModel(WatchExpressionEditor *new_model);
 public slots:
   void onUpdateModel();
   void onFullUpdateModel();
@@ -76,6 +104,6 @@ signals:
 
 private:
   // Not owning!! Do not delete!!
-  WatchExpressionModel *_expressionModel = nullptr;
+  WatchExpressionEditor *_expressionModel = nullptr;
 };
 } // namespace pepp::debug

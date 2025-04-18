@@ -148,7 +148,7 @@ void pepp::debug::BreakpointTableModel::onBreakpointsChanged() {
 pepp::debug::Debugger::Debugger(Environment *env) : env(env) {
   bps = std::make_unique<BreakpointSet>();
   cache = std::make_unique<pepp::debug::ExpressionCache>();
-  watch_expressions = std::make_unique<pepp::debug::WatchExpressionModel>(&*cache, env);
+  watch_expressions = std::make_unique<pepp::debug::WatchExpressionEditor>(&*cache, env);
   line_maps = std::make_unique<ScopedLines2Addresses>();
   static_symbol_model = std::make_unique<StaticSymbolModel>();
 }
