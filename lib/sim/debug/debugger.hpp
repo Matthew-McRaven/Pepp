@@ -12,13 +12,15 @@ class BreakpointSet : public QObject {
   Q_OBJECT
 public:
   explicit BreakpointSet();
-  void addBP(quint16 address);
+  void addBP(quint16 address, pepp::debug::Term *condition = nullptr);
   void removeBP(quint16 address);
   bool hasBP(quint16 address) const;
   void clearBPs();
   void notifyPCChanged(quint16 newValue);
   std::size_t count() const;
+
   std::span<quint16> breakpoints();
+  std::span<pepp::debug::Term *> conditions();
 
   bool hit() const;
   void clearHit();
@@ -33,6 +35,8 @@ private:
   // Should consume ~1024 bytes of memory total for Pepp procesors.
   std::bitset<0x1'00'00 / 8> _bitmask;
   std::vector<quint16> _breakpoints;
+  std::vector<pepp::debug::Term *> _conditions;
+  pepp::debug::Environment *_env;
   bool _hit = false;
 };
 
@@ -49,6 +53,8 @@ public:
   int rowCount(const QModelIndex &parent) const override;
   int columnCount(const QModelIndex &parent) const override;
   QVariant data(const QModelIndex &index, int role) const override;
+  bool setData(const QModelIndex &index, const QVariant &value, int role) override;
+  bool removeRows(int row, int count, const QModelIndex &parent) override;
   Qt::ItemFlags flags(const QModelIndex &index) const override;
 
   BreakpointSet *breakpointModel();
@@ -63,6 +69,7 @@ signals:
   void lines2addressChanged();
 
 private:
+  QMap<quint16, WatchExpressionEditor::Item> _conditionEditor;
   BreakpointSet *_breakpoints = nullptr;
   ScopedLines2Addresses *_lines2address = nullptr;
 };

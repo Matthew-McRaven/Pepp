@@ -3,17 +3,31 @@
 
 pepp::debug::BreakpointSet::BreakpointSet() : QObject(nullptr) { _bitmask.reset(); }
 
-void pepp::debug::BreakpointSet::addBP(quint16 address) {
+void pepp::debug::BreakpointSet::addBP(quint16 address, pepp::debug::Term *condition) {
+  using Term = pepp::debug::Term;
   if (hasBP(address)) return;
-  _breakpoints.emplace_back(address);
-  std::sort(_breakpoints.begin(), _breakpoints.end());
+  // Last element < address, since we've confirmed address is not in _breakpoints.
+  auto lower = std::lower_bound(_breakpoints.cbegin(), _breakpoints.cend(), address);
+  auto offset = std::distance(_breakpoints.cbegin(), lower);
+  // Keep the listed sorted by inserting into correct position.
+  // Resorting would be hard, since we need sort conditions by breakpoints, which reduces to cylic permutations.
+  // Preserving order is just easier.
+  _breakpoints.insert(_breakpoints.begin() + offset, address);
+  _conditions.insert(_conditions.begin() + offset, condition);
+
   _bitmask.set(address / 8);
   emit breakpointAdded(address);
 }
 
 void pepp::debug::BreakpointSet::removeBP(quint16 address) {
   if (!hasBP(address)) return;
-  _breakpoints.erase(std::remove(_breakpoints.begin(), _breakpoints.end(), address), _breakpoints.end());
+  for (int it = 0; it < _breakpoints.size(); it++) {
+    if (_breakpoints[it] == address) {
+      _breakpoints.erase(_breakpoints.begin() + it);
+      _conditions.erase(_conditions.begin() + it);
+      break;
+    }
+  }
   // Determine boundary addresses of 8-byte chunk.
   auto lower_address = address & 0xff'f8, upper_address = address | 0x8;
   // find first address >= lower_address
@@ -33,6 +47,7 @@ bool pepp::debug::BreakpointSet::hasBP(quint16 address) const {
 void pepp::debug::BreakpointSet::clearBPs() {
   emit breakpointsCleared();
   _breakpoints.clear();
+  _conditions.clear();
 }
 
 void pepp::debug::BreakpointSet::notifyPCChanged(quint16 newValue) {
@@ -50,8 +65,8 @@ void pepp::debug::BreakpointSet::clearHit() { _hit = false; }
 pepp::debug::BreakpointTableModel::BreakpointTableModel(QObject *parent) {}
 
 namespace {
-const int col_length = 5;
-const char *col_names[col_length] = {"Address", "File", "Line", "Condition", "Value"};
+const int col_length = 6;
+const char *col_names[col_length] = {"Address", "File", "Line", "Condition", "Value", "Type"};
 } // namespace
 QVariant pepp::debug::BreakpointTableModel::headerData(int section, Qt::Orientation orientation, int role) const {
   switch (role) {
@@ -71,6 +86,7 @@ QVariant pepp::debug::BreakpointTableModel::data(const QModelIndex &index, int r
   using namespace Qt::StringLiterals;
   if (!index.isValid() || _breakpoints == nullptr) return {};
   auto span = _breakpoints->breakpoints();
+  auto bp = span[index.row()];
   switch (role) {
   case Qt::DisplayRole:
     if (index.column() == 0) {
@@ -87,15 +103,24 @@ QVariant pepp::debug::BreakpointTableModel::data(const QModelIndex &index, int r
       // Lines are 0-indexed, but displayed as 1-indexed.
       return QString::number(std::get<1>(*file) + 1);
     } else if (index.column() == 3) {
-      return "Yelp";
+      return _conditionEditor.value(bp, WatchExpressionEditor::Item{}).expression_text();
     } else if (index.column() == 4) {
-      return "0";
+      if (auto item = _conditionEditor.value(bp, WatchExpressionEditor::Item{}); item.value())
+        return variant_from_bits(*item.value());
+      return "";
+    } else if (index.column() == 5) {
+      return _conditionEditor.value(bp, WatchExpressionEditor::Item{}).type_text();
     }
     break;
   }
-
-  return u"%1"_s.arg(index.row());
+  return {};
 }
+
+bool pepp::debug::BreakpointTableModel::setData(const QModelIndex &index, const QVariant &value, int role) {
+  return false;
+}
+
+bool pepp::debug::BreakpointTableModel::removeRows(int row, int count, const QModelIndex &parent) { return false; }
 
 Qt::ItemFlags pepp::debug::BreakpointTableModel::flags(const QModelIndex &index) const {
   if (!index.isValid()) return {};
@@ -142,6 +167,15 @@ void pepp::debug::BreakpointTableModel::setLines2Address(ScopedLines2Addresses *
 
 void pepp::debug::BreakpointTableModel::onBreakpointsChanged() {
   beginResetModel();
+  auto bp_list = _breakpoints->breakpoints();
+  std::set<quint16> bp_set = std::set<quint16>(bp_list.begin(), bp_list.end());
+  // Remove our items not in their list, i.e., remove items in ours - theirs.
+  for (const auto &it : _conditionEditor.keys())
+    if (!bp_set.contains(it)) _conditionEditor.remove(it);
+  // Add items to not in our list from their list, i.e., add items in theirs - ours.
+  for (const auto &bp : bp_set)
+    if (!_conditionEditor.contains(bp)) _conditionEditor.insert(bp, WatchExpressionEditor::Item{});
+
   endResetModel();
 }
 

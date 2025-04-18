@@ -19,22 +19,33 @@ public:
     // Call if compilation failed. Update type manually after construction.
     explicit Item(QString term);
     ~Item() = default;
+    pepp::debug::Term *term();
     void set_term(TermPtr term);
     void set_term(QString term);
+    void evaluate(pepp::debug::CachePolicy policy, pepp::debug::Environment &env);
+    void clear_value();
+    std::optional<TypedBits> value() const;
+
+    bool needs_update() const;
+    bool dirty() const;
+    void make_dirty();
+    void make_clean(bool force_update = false);
+
     bool is_wip() const;
     QString expression_text() const;
     QString type_text() const;
 
-    bool dirty = false;       // On most recent update to update_volatile_values, was the term dirty?
-    bool needs_update = true; // Is the term: (currently dirty) | (dirty prior to update_volatile_values)
-    QString wip_term = "";    // Most recent text submitted to <> iff compilation failed.
-    QString wip_type = "";    // Most recent text submitted to the type compiler iff compliation failed.
-    TermPtr term = nullptr;   // The term itself, if compilation succeeded. Nullptr otherwise.
+  private:
+    bool _dirty = false;       // On most recent update to update_volatile_values, was the term dirty?
+    bool _needs_update = true; // Is the term: (currently dirty) | (dirty prior to update_volatile_values)
+    QString _wip_term = "";    // Most recent text submitted to <> iff compilation failed.
+    QString _wip_type = "";    // Most recent text submitted to the type compiler iff compliation failed.
+    TermPtr _term = nullptr;   // The term itself, if compilation succeeded. Nullptr otherwise.
     // If term != nullptr && wip_type.empty() && type: promote terms result to this type.
     // If term != nullptr && wip_type.empty() && !type: use terms result type.
     // If term != nullptr && !wip_type.empty(): do not render value, and place <invalid> in type field.
-    std::optional<ExpressionType> type = std::nullopt;
-    std::optional<TypedBits> recent_value = std::nullopt; // Most recent value of the term.
+    std::optional<ExpressionType> _type = std::nullopt;
+    std::optional<TypedBits> _recent_value = std::nullopt; // Most recent value of the term.
   };
   explicit WatchExpressionEditor(pepp::debug::ExpressionCache *cache, pepp::debug::Environment *env,
                                  QObject *parent = nullptr);
@@ -64,6 +75,8 @@ private:
   std::vector<VolatileCache> _volatiles;
   std::vector<Item> _items;
 };
+
+QVariant variant_from_bits(const pepp::debug::TypedBits &bits);
 
 class WatchExpressionRoles : public QObject {
   Q_OBJECT
