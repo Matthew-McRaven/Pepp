@@ -120,8 +120,8 @@ jobs:
           - { name: "Ubuntu 22.04; Clang 17.0", cache_name: 'ubuntu-clang', runs-on: "ubuntu-latest", image: "ghcr.io/matthew-mcraven/pepp/clang:v0.15.0",  compiler_launcher: "", compiler_c: "clang", compiler_cpp: "clang++" , cmake_generator: "Ninja" }
           - { name: "Ubuntu 22.04; EMSDK 3.1.70", cache_name: 'ubuntu-emsdk', runs-on: "ubuntu-latest", image: "ghcr.io/matthew-mcraven/pepp/wasm:v0.15.0", cmake_toolchain: '$Qt6_DIR/qt.toolchain.cmake', cmake_xargs: '-D QT_HOST_PATH=/qt/6.9.0/gcc_64', release_variant: 'MinSizeRel', debug_variant: 'MinSizeRel' }
           # See: https://bugreports.qt.io/browse/QTBUG-118086
-          - { name: "MacOS-14 ARM64; Clang 15.0.7", cache_name: 'macos-clang-arm', runs-on: "macos-14" , compiler_launcher: "ccache", compiler_c: '$(brew --prefix llvm@15)/bin/clang', compiler_cpp: '$(brew --prefix llvm@15)/bin/clang++', cmake_generator: "Ninja", artifact_key: "artifact-macos-arm", cmake_xargs: '-D CMAKE_OSX_ARCHITECTURES=arm64' }
-          - { name: "MacOS-14 x86-64; Clang 15.0.7", cache_name: 'macos-clang-x86', runs-on: "macos-14" , compiler_launcher: "ccache", compiler_c: '$(brew --prefix llvm@15)/bin/clang', compiler_cpp: '$(brew --prefix llvm@15)/bin/clang++', cmake_generator: "Ninja", artifact_key: "artifact-macos-x86", cmake_xargs: '-D CMAKE_OSX_ARCHITECTURES=x86_64' }
+          - { name: "MacOS-15 ARM64", cache_name: 'macos-clang-arm', runs-on: "macos-15" , compiler_launcher: "ccache", compiler_c: 'clang', compiler_cpp: 'clang++', cmake_generator: "Ninja", artifact_key: "artifact-macos-arm", cmake_xargs: '-D CMAKE_OSX_ARCHITECTURES=arm64' }
+          - { name: "MacOS-15 x86-64", cache_name: 'macos-clang-x86', runs-on: "macos-15" , compiler_launcher: "ccache", compiler_c: 'clang', compiler_cpp: 'clang++', cmake_generator: "Ninja", artifact_key: "artifact-macos-x86", cmake_xargs: '-D CMAKE_OSX_ARCHITECTURES=x86_64' }
           - { name: "Windows Latest; MSVC", cache_name: 'windows-msvc', runs-on: "windows-latest" , compiler_launcher: "ccache", artifact_key: "artifact-windows"}
 
     permissions:
