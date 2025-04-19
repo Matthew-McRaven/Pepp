@@ -27,6 +27,7 @@
 #include "commands/license.hpp"
 #include "commands/ls-qrc.hpp"
 #include "commands/ls.hpp"
+#include "commands/readelf/readelf.hpp"
 #include "commands/run.hpp"
 #include "commands/selftest.hpp"
 #include "commands/throughput.hpp"
@@ -66,6 +67,7 @@ int main(int argc, char **argv) {
 
   registerAsm(app, task, shared_flags);
   registerRun(app, task, shared_flags);
+  registerReadelf(app, task, shared_flags);
   gui_args args{.argvs = {argv[0]}};
   registerGUI(app, task, shared_flags, args);
   auto resetSettings = app.add_flag("--reset-settings", args.resetSettings, "Reset settings to default");
