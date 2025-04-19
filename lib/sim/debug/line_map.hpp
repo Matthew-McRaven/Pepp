@@ -21,6 +21,7 @@ private:
 class ScopedLines2Addresses : public QObject {
   Q_OBJECT
   QML_ELEMENT
+
 public:
   using scope = int;
   ScopedLines2Addresses(QObject *parent = nullptr);
