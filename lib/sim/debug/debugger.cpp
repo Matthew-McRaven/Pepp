@@ -41,7 +41,7 @@ void pepp::debug::BreakpointSet::removeBP(quint16 address) {
     }
   }
   // Determine boundary addresses of 8-byte chunk.
-  auto lower_address = address & 0xff'f8, upper_address = address | 0x8;
+  auto lower_address = address & 0xff'f8, upper_address = lower_address + 7;
   // find first address >= lower_address
   auto maybe_lower = std::lower_bound(_breakpoints.cbegin(), _breakpoints.cend(), lower_address);
   // If lower bound is above upper_address, we remove the last breakpoint for this chunk.
