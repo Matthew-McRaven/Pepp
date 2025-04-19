@@ -10,6 +10,7 @@
 namespace pepp::debug {
 class BreakpointSet : public QObject {
   Q_OBJECT
+
 public:
   explicit BreakpointSet();
   explicit BreakpointSet(pepp::debug::ExpressionCache *cache, pepp::debug::Environment *env);
