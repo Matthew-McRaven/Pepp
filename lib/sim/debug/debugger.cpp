@@ -24,6 +24,13 @@ void pepp::debug::BreakpointSet::addBP(quint16 address, pepp::debug::Term *condi
   emit breakpointAdded(address);
 }
 
+void pepp::debug::BreakpointSet::modify_condition(quint16 address, Term *condition) {
+  if (!hasBP(address)) return;
+  auto iter = std::lower_bound(_breakpoints.cbegin(), _breakpoints.cend(), address);
+  auto offset = std::distance(_breakpoints.cbegin(), iter);
+  _conditions[offset] = condition;
+}
+
 void pepp::debug::BreakpointSet::removeBP(quint16 address) {
   if (!hasBP(address)) return;
   for (int it = 0; it < _breakpoints.size(); it++) {
@@ -56,7 +63,13 @@ void pepp::debug::BreakpointSet::clearBPs() {
 }
 
 void pepp::debug::BreakpointSet::notifyPCChanged(quint16 newValue) {
-  if (hasBP(newValue)) _hit = true;
+  if (auto iter = std::lower_bound(_breakpoints.cbegin(), _breakpoints.cend(), newValue);
+      iter != _breakpoints.cend() && *iter == newValue) {
+    auto offset = std::distance(_breakpoints.cbegin(), iter);
+    if (_conditions[offset]) {
+      _hit = _conditions[offset]->evaluate(CachePolicy::UseNonVolatiles, *_env).bits != 0;
+    } else _hit = true;
+  }
 }
 
 std::size_t pepp::debug::BreakpointSet::count() const { return _breakpoints.size(); }
@@ -152,6 +165,7 @@ bool pepp::debug::BreakpointTableModel::setData(const QModelIndex &index, const 
     pepp::debug::gather_volatiles(_volatiles, *_breakpoints->env(), values.begin(), values.end());
     auto left = index.siblingAtColumn(0), right = index.siblingAtColumn(col_length - 1);
     emit dataChanged(left, right);
+    _breakpoints->modify_condition(bp, item.term());
     return true;
   } else return false;
 }

@@ -14,6 +14,7 @@ public:
   explicit BreakpointSet();
   explicit BreakpointSet(pepp::debug::ExpressionCache *cache, pepp::debug::Environment *env);
   void addBP(quint16 address, pepp::debug::Term *condition = nullptr);
+  void modify_condition(quint16 address, pepp::debug::Term *condition);
   void removeBP(quint16 address);
   bool hasBP(quint16 address) const;
   void clearBPs();
