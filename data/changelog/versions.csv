@@ -13,4 +13,4 @@ Number,GitRef,Date,Blurb
 0.8.4,,2025-02-02,"This version re-orders Pep/10 opcodes to group all AAA-type together."
 0.8.5,,2025-02-09,"This version redefines figures from chapter 7."
 0.8.6,,2025-04-12,"This version includes improved debugging features, including a watch expressions pane in the debugger."
-0.9.0,,??,"This version adds conditional breakpoints and a UI to manage them."
+0.9.0,,2025-04-19,"This version adds conditional breakpoints and a UI to manage them."
