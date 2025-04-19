@@ -195,6 +195,8 @@ Item {
                 id: symbol
                 focus: false
                 anchors.left: parent.left
+                anchors.top: parent.top
+                anchors.bottom: parent.bottom
                 verticalAlignment: Text.AlignVCenter
                 horizontalAlignment: Text.AlignLeft
                 leftPadding: tm.width * 2
@@ -206,6 +208,8 @@ Item {
             Label {
                 id: value
                 focus: false
+                anchors.top: parent.top
+                anchors.bottom: parent.bottom
                 anchors.left: symbol.right
                 anchors.right: parent.right
                 verticalAlignment: Text.AlignVCenter
