@@ -1,5 +1,4 @@
 #include "watchexpressionmodel.hpp"
-#include "expr_ast_ops.hpp"
 
 pepp::debug::EditableWatchExpression::EditableWatchExpression(TermPtr term) : _term(term) {}
 
@@ -90,7 +89,7 @@ void pepp::debug::WatchExpressionEditor::add_item(const QString &new_expr, const
   pepp::debug::Parser p(*_cache);
   auto compiled = p.compile(new_expr);
   auto item = compiled ? EditableWatchExpression(compiled) : EditableWatchExpression(new_expr);
-  if (compiled) item.evaluate(CachePolicy::UseNonVolatiles, *_env);
+  if (compiled && _env) item.evaluate(CachePolicy::UseNonVolatiles, *_env);
   else item.clear_value();
   gather_volatiles();
   // TODO: set type on item
@@ -127,6 +126,7 @@ void pepp::debug::WatchExpressionEditor::onSimulationStart() {
 }
 
 void pepp::debug::WatchExpressionEditor::gather_volatiles() {
+  if (!_env) return;
   pepp::debug::gather_volatiles(_volatiles, *_env, _items.begin(), _items.end());
   // With old volatiles cleared and new term added, now is the time we might have unused terms in the cache.
   _cache->collect_garbage();
