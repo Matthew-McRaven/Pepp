@@ -12,6 +12,7 @@ class BreakpointSet : public QObject {
   Q_OBJECT
 public:
   explicit BreakpointSet();
+  explicit BreakpointSet(pepp::debug::ExpressionCache *cache, pepp::debug::Environment *env);
   void addBP(quint16 address, pepp::debug::Term *condition = nullptr);
   void removeBP(quint16 address);
   bool hasBP(quint16 address) const;
@@ -21,6 +22,8 @@ public:
 
   std::span<quint16> breakpoints();
   std::span<pepp::debug::Term *> conditions();
+  pepp::debug::ExpressionCache *expressionCache();
+  pepp::debug::Environment *env();
 
   bool hit() const;
   void clearHit();
@@ -36,7 +39,9 @@ private:
   std::bitset<0x1'00'00 / 8> _bitmask;
   std::vector<quint16> _breakpoints;
   std::vector<pepp::debug::Term *> _conditions;
-  pepp::debug::Environment *_env;
+  // Need to be carried around because we hold terms
+  pepp::debug::ExpressionCache *_cache = nullptr;
+  pepp::debug::Environment *_env = nullptr;
   bool _hit = false;
 };
 
@@ -56,6 +61,7 @@ public:
   bool setData(const QModelIndex &index, const QVariant &value, int role) override;
   bool removeRows(int row, int count, const QModelIndex &parent) override;
   Qt::ItemFlags flags(const QModelIndex &index) const override;
+  QHash<int, QByteArray> roleNames() const override;
 
   BreakpointSet *breakpointModel();
   void setBreakpointModel(BreakpointSet *breakpoints);
@@ -64,12 +70,14 @@ public:
 
 public slots:
   void onBreakpointsChanged();
+  void onUpdateModel();
 signals:
   void breakpointModelChanged();
   void lines2addressChanged();
 
 private:
-  QMap<quint16, WatchExpressionEditor::Item> _conditionEditor;
+  std::map<quint16, EditableWatchExpression> _conditionEditor;
+  std::vector<EditableWatchExpression::VolatileCache> _volatiles;
   BreakpointSet *_breakpoints = nullptr;
   ScopedLines2Addresses *_lines2address = nullptr;
 };
@@ -81,8 +89,9 @@ public:
   explicit Debugger(pepp::debug::Environment *env);
   ~Debugger() = default;
   pepp::debug::Environment *env = nullptr;
-  std::unique_ptr<pepp::debug::BreakpointSet> bps = nullptr;
   std::unique_ptr<pepp::debug::ExpressionCache> cache = nullptr;
+  std::unique_ptr<pepp::debug::BreakpointSet> bps = nullptr;
+
   std::unique_ptr<pepp::debug::WatchExpressionEditor> watch_expressions = nullptr;
   std::unique_ptr<ScopedLines2Addresses> line_maps = nullptr;
   std::unique_ptr<StaticSymbolModel> static_symbol_model = nullptr;

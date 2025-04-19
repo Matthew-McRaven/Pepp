@@ -1,58 +1,56 @@
 #include "watchexpressionmodel.hpp"
 #include "expr_ast_ops.hpp"
 
-pepp::debug::WatchExpressionEditor::Item::Item(TermPtr term) : _term(term) {}
+pepp::debug::EditableWatchExpression::EditableWatchExpression(TermPtr term) : _term(term) {}
 
-pepp::debug::WatchExpressionEditor::Item::Item(QString term) : _wip_term(term) {}
+pepp::debug::EditableWatchExpression::EditableWatchExpression(QString term) : _wip_term(term) {}
 
-pepp::debug::Term *pepp::debug::WatchExpressionEditor::Item::term() { return _term ? _term.get() : nullptr; }
+pepp::debug::Term *pepp::debug::EditableWatchExpression::term() { return _term ? _term.get() : nullptr; }
 
-void pepp::debug::WatchExpressionEditor::Item::set_term(TermPtr term) {
+void pepp::debug::EditableWatchExpression::set_term(TermPtr term) {
   this->_term = term;
   this->_wip_term.clear();
   this->_recent_value.reset();
 }
 
-void pepp::debug::WatchExpressionEditor::Item::set_term(QString term) {
+void pepp::debug::EditableWatchExpression::set_term(QString term) {
   this->_term.reset();
   this->_wip_term = term;
   this->_recent_value.reset();
 }
 
-void pepp::debug::WatchExpressionEditor::Item::evaluate(CachePolicy policy, Environment &env) {
+void pepp::debug::EditableWatchExpression::evaluate(CachePolicy policy, Environment &env) {
   if (_term) _recent_value = _term->evaluate(CachePolicy::UseNonVolatiles, env);
-  _recent_value.reset();
+  else _recent_value.reset();
 }
 
-void pepp::debug::WatchExpressionEditor::Item::clear_value() { _recent_value.reset(); }
+void pepp::debug::EditableWatchExpression::clear_value() { _recent_value.reset(); }
 
-std::optional<pepp::debug::TypedBits> pepp::debug::WatchExpressionEditor::Item::value() const { return _recent_value; }
+std::optional<pepp::debug::TypedBits> pepp::debug::EditableWatchExpression::value() const { return _recent_value; }
 
-bool pepp::debug::WatchExpressionEditor::Item::needs_update() const { return _needs_update; }
+bool pepp::debug::EditableWatchExpression::needs_update() const { return _needs_update; }
 
-bool pepp::debug::WatchExpressionEditor::Item::dirty() const { return _dirty; }
+bool pepp::debug::EditableWatchExpression::dirty() const { return _dirty; }
 
-void pepp::debug::WatchExpressionEditor::Item::make_dirty() {
+void pepp::debug::EditableWatchExpression::make_dirty() {
   _dirty = true;
   _needs_update = true;
 }
 
-void pepp::debug::WatchExpressionEditor::Item::make_clean(bool force_update) {
+void pepp::debug::EditableWatchExpression::make_clean(bool force_update) {
   _needs_update = _dirty | force_update;
   _dirty = false;
 }
 
-bool pepp::debug::WatchExpressionEditor::Item::is_wip() const {
-  return _wip_term.length() > 0 || _wip_type.length() > 0;
-}
+bool pepp::debug::EditableWatchExpression::is_wip() const { return _wip_term.length() > 0 || _wip_type.length() > 0; }
 
-QString pepp::debug::WatchExpressionEditor::Item::expression_text() const {
+QString pepp::debug::EditableWatchExpression::expression_text() const {
   if (_wip_term.length() > 0) return _wip_term;
   else if (_term) return _term->to_string();
   else return "";
 }
 
-QString pepp::debug::WatchExpressionEditor::Item::type_text() const {
+QString pepp::debug::EditableWatchExpression::type_text() const {
   if (_wip_term.length() > 0 || _term == nullptr) return "";
   else if (_wip_type.length() > 0) return _wip_type;
   else if (_type.has_value()) {
@@ -62,6 +60,22 @@ QString pepp::debug::WatchExpressionEditor::Item::type_text() const {
     QMetaEnum metaEnum = QMetaEnum::fromType<ExpressionType>();
     return QString::fromStdString(metaEnum.valueToKey((int)_recent_value->type));
   } else return "";
+}
+
+bool pepp::debug::edit_term(EditableWatchExpression &item, ExpressionCache &cache, Environment &env,
+                            const QString &new_expr) {
+  pepp::debug::Parser p(cache);
+  auto compiled = p.compile(new_expr);
+  if (compiled) {
+    item.set_term(compiled);
+    item.make_dirty();
+    item.evaluate(CachePolicy::UseNonVolatiles, env);
+  } else if (compiled == nullptr) {
+    item.set_term(new_expr);
+    item.make_dirty();
+  } else return false;
+  cache.collect_garbage();
+  return true;
 }
 
 pepp::debug::WatchExpressionEditor::WatchExpressionEditor(ExpressionCache *cache, Environment *env, QObject *parent)
@@ -75,7 +89,7 @@ pepp::debug::WatchExpressionEditor::WatchExpressionEditor(ExpressionCache *cache
 void pepp::debug::WatchExpressionEditor::add_item(const QString &new_expr, const QString new_type) {
   pepp::debug::Parser p(*_cache);
   auto compiled = p.compile(new_expr);
-  auto item = compiled ? Item(compiled) : Item(new_expr);
+  auto item = compiled ? EditableWatchExpression(compiled) : EditableWatchExpression(new_expr);
   if (compiled) item.evaluate(CachePolicy::UseNonVolatiles, *_env);
   else item.clear_value();
   gather_volatiles();
@@ -86,18 +100,9 @@ void pepp::debug::WatchExpressionEditor::add_item(const QString &new_expr, const
 bool pepp::debug::WatchExpressionEditor::edit_term(int index, const QString &new_expr) {
   if (index < 0 || index >= _items.size()) return false;
   auto &item = _items[index];
-  pepp::debug::Parser p(*_cache);
-  auto compiled = p.compile(new_expr);
-  if (compiled) {
-    item.set_term(compiled);
-    item.make_dirty();
-    item.evaluate(CachePolicy::UseNonVolatiles, *_env);
-  } else if (compiled == nullptr) {
-    item.set_term(new_expr);
-    item.make_dirty();
-  } else return false;
-  gather_volatiles();
-  return true;
+  auto ret = pepp::debug::edit_term(item, *_cache, *_env, new_expr);
+  if (ret) gather_volatiles();
+  return ret;
 }
 
 bool pepp::debug::WatchExpressionEditor::edit_type(int index, const QString &new_type) { return false; }
@@ -110,25 +115,7 @@ bool pepp::debug::WatchExpressionEditor::delete_at(int index) {
 }
 
 void pepp::debug::WatchExpressionEditor::update_volatile_values() {
-  // Propogate dirtiness from volatiles to their parents.
-  for (auto &ptr : _volatiles) {
-    auto old_v = ptr.v;
-    ptr.v = ptr.term->evaluate(CachePolicy::UseNonVolatiles, *_env);
-    if (old_v != ptr.v) pepp::debug::mark_parents_dirty(*ptr.term);
-  }
-
-  // Later term could be a a subexpression of current one.
-  // We cannot re-order the terms because we want to preserve UI order.
-  // Therefore must iterate over whole list once to collect all dirty terms before updating.
-  for (auto &item : _items) {
-    if (item.term() == nullptr) item.make_clean();
-    else {
-      item.make_dirty();
-    }
-  }
-  for (auto &item : _items) {
-    if (auto term = item.term(); term != nullptr) term->evaluate(CachePolicy::UseNonVolatiles, *_env);
-  }
+  pepp::debug::update_volatile_values(_volatiles, *_env, _items.begin(), _items.end());
 }
 
 void pepp::debug::WatchExpressionEditor::onSimulationStart() {
@@ -140,26 +127,13 @@ void pepp::debug::WatchExpressionEditor::onSimulationStart() {
 }
 
 void pepp::debug::WatchExpressionEditor::gather_volatiles() {
-  // Gather the new set of volatiles, which may update any time an expression is added/removed
-  detail::GatherVolatileTerms vols;
-  for (auto &ptr : _items) {
-    if (auto term = ptr.term(); term) term->accept(vols);
-  }
-  auto vec = vols.to_vector();
-  _volatiles.resize(vec.size());
-
-  // Cache the most recent value for each volatile in addition to its term.
-  for (int it = 0; it < vec.size(); it++) {
-    _volatiles[it].term = vec[it];
-    _volatiles[it].v = vec[it]->evaluate(CachePolicy::UseNonVolatiles, *_env);
-  }
-
+  pepp::debug::gather_volatiles(_volatiles, *_env, _items.begin(), _items.end());
   // With old volatiles cleared and new term added, now is the time we might have unused terms in the cache.
   _cache->collect_garbage();
 }
 
-std::span<const pepp::debug::WatchExpressionEditor::Item> pepp::debug::WatchExpressionEditor::items() const {
-  return std::span<const Item>(_items.data(), _items.size());
+std::span<const pepp::debug::EditableWatchExpression> pepp::debug::WatchExpressionEditor::items() const {
+  return std::span<const EditableWatchExpression>(_items.data(), _items.size());
 }
 
 QVariant pepp::debug::variant_from_bits(const TypedBits &bits) {
