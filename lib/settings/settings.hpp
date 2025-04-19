@@ -186,6 +186,7 @@ class KeyMapCategory : public Category {
 public:
   explicit KeyMapCategory(QObject *parent = nullptr);
   QString name() const override { return "Key Map"; };
+  QString source() const override { return "KeymapCategoryDelegate.qml"; };
 };
 
 namespace detail {

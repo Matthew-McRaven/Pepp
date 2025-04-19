@@ -326,7 +326,7 @@ pepp::settings::detail::AppSettingsData::AppSettingsData() {
   _categories.append(_theme = new ThemeCategory(nullptr));
   _categories.append(_editor = new EditorCategory(nullptr));
   _categories.append(_simulator = new SimulatorCategory(nullptr));
-  /*_categories.append(*/ _keymap = new KeyMapCategory(nullptr); /*);*/
+  _categories.append(_keymap = new KeyMapCategory(nullptr));
 }
 
 pepp::settings::AppSettings::AppSettings(QObject *parent)
