@@ -52,9 +52,18 @@ ThroughputTask::ThroughputTask(QObject *parent) : Task(parent) {}
 
 void ThroughputTask::run() {
   using namespace Qt::StringLiterals;
+  auto env = nullptr;
   // Add some spurious breakpoints which will not be hit
-  auto debugger = std::make_shared<pepp::debug::Debugger>(nullptr);
+  auto debugger = std::make_shared<pepp::debug::Debugger>(env);
+  /*pepp::debug::Parser p(*debugger->cache);
   for (int it = 0; it < 128; it++) debugger->bps->addBP(2048 + it);
+  auto bp = p.compile("10 + 2");
+  if (bp == nullptr) {
+    std::cerr << "Failed to compile breakpoint expression.\n";
+    emit finished(1);
+    return;
+  }*/
+  debugger->bps->addBP(0 /*, bp.get()*/);
   auto [mem, cpu] = make();
   cpu->setDebugger(&*debugger);
   cpu->regs()->clear(0);
