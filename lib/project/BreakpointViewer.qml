@@ -6,6 +6,10 @@ import edu.pepp
 Item {
     property alias model: bpModel.breakpointModel
     property alias lineInfo: bpModel.lines2address
+    Component.onCompleted: {
+        updateGUI.connect(bpModel.onUpdateModel)
+    }
+
     NuAppSettings {
         id: settings
     }
@@ -13,6 +17,7 @@ Item {
         id: fm
         font: settings.extPalette.baseMono.font
     }
+    signal updateGUI
     Rectangle {
         id: outline
         color: palette.base

@@ -1,7 +1,12 @@
 #include "debugger.hpp"
 #include <QtQml/qqmlengine.h>
+#include <ranges>
 
 pepp::debug::BreakpointSet::BreakpointSet() : QObject(nullptr) { _bitmask.reset(); }
+
+pepp::debug::BreakpointSet::BreakpointSet(ExpressionCache *cache, Environment *env) : _cache(cache), _env(env) {
+  _bitmask.reset();
+}
 
 void pepp::debug::BreakpointSet::addBP(quint16 address, pepp::debug::Term *condition) {
   using Term = pepp::debug::Term;
@@ -58,6 +63,10 @@ std::size_t pepp::debug::BreakpointSet::count() const { return _breakpoints.size
 
 std::span<quint16> pepp::debug::BreakpointSet::breakpoints() { return _breakpoints; }
 
+pepp::debug::ExpressionCache *pepp::debug::BreakpointSet::expressionCache() { return _cache; }
+
+pepp::debug::Environment *pepp::debug::BreakpointSet::env() { return _env; }
+
 bool pepp::debug::BreakpointSet::hit() const { return _hit; }
 
 void pepp::debug::BreakpointSet::clearHit() { _hit = false; }
@@ -84,6 +93,8 @@ int pepp::debug::BreakpointTableModel::columnCount(const QModelIndex &parent) co
 
 QVariant pepp::debug::BreakpointTableModel::data(const QModelIndex &index, int role) const {
   using namespace Qt::StringLiterals;
+  using WER = WatchExpressionRoles::Roles;
+  int row = index.row(), col = index.column();
   if (!index.isValid() || _breakpoints == nullptr) return {};
   auto span = _breakpoints->breakpoints();
   auto bp = span[index.row()];
@@ -103,21 +114,46 @@ QVariant pepp::debug::BreakpointTableModel::data(const QModelIndex &index, int r
       // Lines are 0-indexed, but displayed as 1-indexed.
       return QString::number(std::get<1>(*file) + 1);
     } else if (index.column() == 3) {
-      return _conditionEditor.value(bp, WatchExpressionEditor::Item{}).expression_text();
+      return _conditionEditor.at(bp).expression_text();
     } else if (index.column() == 4) {
-      if (auto item = _conditionEditor.value(bp, WatchExpressionEditor::Item{}); item.value())
-        return variant_from_bits(*item.value());
+      if (auto item = _conditionEditor.at(bp); item.value()) return variant_from_bits(*item.value());
       return "";
     } else if (index.column() == 5) {
-      return _conditionEditor.value(bp, WatchExpressionEditor::Item{}).type_text();
+      return _conditionEditor.at(bp).type_text();
     }
     break;
+  case (int)WER::Changed:
+    if (row >= span.size()) {
+      return false;
+    } else return _conditionEditor.at(bp).dirty();
+    // Italicize <invalid>
+  case (int)WER::Italicize: return row >= span.size() || (col > 0 && _conditionEditor.at(bp).is_wip());
   }
   return {};
 }
 
+auto value_view = [](auto &map) {
+  return map | std::views::transform([](auto &p) -> pepp::debug::EditableWatchExpression & { return p.second; });
+};
+
 bool pepp::debug::BreakpointTableModel::setData(const QModelIndex &index, const QVariant &value, int role) {
-  return false;
+  if (!index.isValid() || _breakpoints == nullptr || _breakpoints->expressionCache() == nullptr ||
+      _breakpoints->env() == nullptr)
+    return false;
+  else if (role != Qt::EditRole && role != Qt::DisplayRole) return false;
+  else if (!value.canConvert(QMetaType::fromType<QString>())) return false;
+  auto str = value.toString();
+  auto span = _breakpoints->breakpoints();
+  auto bp = span[index.row()];
+  auto &item = _conditionEditor[bp];
+  if (index.column() == 3 &&
+      pepp::debug::edit_term(item, *_breakpoints->expressionCache(), *_breakpoints->env(), str)) {
+    auto values = value_view(_conditionEditor);
+    pepp::debug::gather_volatiles(_volatiles, *_breakpoints->env(), values.begin(), values.end());
+    auto left = index.siblingAtColumn(0), right = index.siblingAtColumn(col_length - 1);
+    emit dataChanged(left, right);
+    return true;
+  } else return false;
 }
 
 bool pepp::debug::BreakpointTableModel::removeRows(int row, int count, const QModelIndex &parent) { return false; }
@@ -126,6 +162,16 @@ Qt::ItemFlags pepp::debug::BreakpointTableModel::flags(const QModelIndex &index)
   if (!index.isValid()) return {};
   if (index.column() == 3) return Qt::ItemIsEnabled | Qt::ItemIsSelectable | Qt::ItemIsEditable;
   else return Qt::ItemIsEnabled | Qt::ItemIsSelectable;
+}
+
+QHash<int, QByteArray> pepp::debug::BreakpointTableModel::roleNames() const {
+  using WER = WatchExpressionRoles::Roles;
+  static const QHash<int, QByteArray> roles = {
+      {Qt::DisplayRole, "display"},
+      {(int)WER::Changed, "changed"},
+      {(int)WER::Italicize, "italicize"},
+  };
+  return roles;
 }
 
 pepp::debug::BreakpointSet *pepp::debug::BreakpointTableModel::breakpointModel() {
@@ -166,22 +212,45 @@ void pepp::debug::BreakpointTableModel::setLines2Address(ScopedLines2Addresses *
 }
 
 void pepp::debug::BreakpointTableModel::onBreakpointsChanged() {
+  if (_breakpoints == nullptr || _breakpoints->env() == nullptr) return;
   beginResetModel();
   auto bp_list = _breakpoints->breakpoints();
   std::set<quint16> bp_set = std::set<quint16>(bp_list.begin(), bp_list.end());
   // Remove our items not in their list, i.e., remove items in ours - theirs.
-  for (const auto &it : _conditionEditor.keys())
-    if (!bp_set.contains(it)) _conditionEditor.remove(it);
+  for (auto it = _conditionEditor.begin(); it != _conditionEditor.end();) {
+    if (!bp_set.contains(it->first)) it = _conditionEditor.erase(it);
+    else it++;
+  }
   // Add items to not in our list from their list, i.e., add items in theirs - ours.
   for (const auto &bp : bp_set)
-    if (!_conditionEditor.contains(bp)) _conditionEditor.insert(bp, WatchExpressionEditor::Item{});
-
+    if (!_conditionEditor.contains(bp)) _conditionEditor[bp] = EditableWatchExpression{};
+  auto values = value_view(_conditionEditor);
+  pepp::debug::gather_volatiles(_volatiles, *_breakpoints->env(), values.begin(), values.end());
   endResetModel();
 }
 
+void pepp::debug::BreakpointTableModel::onUpdateModel() {
+  static const auto last_col = col_length - 1;
+  if (!_breakpoints || !_breakpoints->env()) return;
+  auto bps = _breakpoints->breakpoints();
+  auto values = value_view(_conditionEditor);
+  pepp::debug::update_volatile_values(_volatiles, *_breakpoints->env(), values.begin(), values.end());
+  int start = -1;
+  for (int i = 0; i < bps.size(); i++) {
+    auto address = bps[i];
+    const auto &item = _conditionEditor[address];
+    if (item.needs_update() && start == -1) start = i;
+    else if (!item.needs_update() && start != -1) {
+      emit dataChanged(index(start, 0), index(i - 1, last_col));
+      start = -1;
+    }
+  }
+  if (start != -1) emit dataChanged(index(start, 0), index(bps.size() - 1, last_col));
+}
+
 pepp::debug::Debugger::Debugger(Environment *env) : env(env) {
-  bps = std::make_unique<BreakpointSet>();
   cache = std::make_unique<pepp::debug::ExpressionCache>();
+  bps = std::make_unique<BreakpointSet>(&*cache, env);
   watch_expressions = std::make_unique<pepp::debug::WatchExpressionEditor>(&*cache, env);
   line_maps = std::make_unique<ScopedLines2Addresses>();
   static_symbol_model = std::make_unique<StaticSymbolModel>();

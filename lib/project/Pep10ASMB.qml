@@ -59,6 +59,7 @@ Item {
                     wrapper.requestModeSwitchToDebugger)
         onOverwriteEditors()
         project.updateGUI.connect(watchExpr.updateGUI)
+        project.updateGUI.connect(bpViewer.updateGUI)
     }
     // Will be called before project is changed on unload, so we can disconnect save-triggering signals.
     Component.onDestruction: {
@@ -93,6 +94,7 @@ Item {
         wrapper.actions.build.execute.triggered.disconnect(
                     wrapper.requestModeSwitchToDebugger)
         project.updateGUI.disconnect(watchExpr.updateGUI)
+        project.updateGUI.disconnect(bpViewer.updateGUI)
     }
     signal requestModeSwitchTo(string mode)
     function requestModeSwitchToDebugger() {
@@ -289,6 +291,7 @@ Item {
                             watchExpressions: project.watchExpressions
                         }
                         BreakpointViewer {
+                            id: bpViewer
                             model: project.breakpointModel
                             lineInfo: project.lines2addr
                         }
