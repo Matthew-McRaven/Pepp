@@ -2,7 +2,7 @@ import QtQuick
 import QtQuick.Layouts
 import QtQuick.Controls
 
-import edu.pepp
+import edu.pepp 1.0
 
 Item {
     id: root
@@ -58,22 +58,22 @@ Item {
         Rectangle {
             width: ListView.view.width
             height: childrenRect.height
-            color: palette.button
+            color: palette.base
 
             required property string section
 
             Text {
                 text: parent.section
                 font.bold: true
-                color: palette.buttonText
+                color: palette.text
             }
         }
     }
 
-    //  Background border
+    //  Screen background and border
     Rectangle {
         id: bg
-        color: palette.base
+        color: palette.window
         anchors {
             fill: parent
             margins: border.width
@@ -83,6 +83,7 @@ Item {
             width: 1
         }
     }
+
     ColumnLayout {
         spacing: 6
         anchors {
@@ -90,12 +91,12 @@ Item {
             margins: 8 * bg.border.width
         }
 
-
-        /*Component.onCompleted: {
-            console.log(renameBtn.x + ", " + exportBtn.x)
-        }*/
+        //  Screen elements are laid out vertically
         RowLayout {
             Layout.fillWidth: true
+            Layout.minimumHeight: childrenRect.height
+            Layout.maximumHeight: childrenRect.height
+
             Label {
                 text: qsTr(" Current Mapping Scheme: ")
             }
@@ -124,6 +125,8 @@ Item {
 
         RowLayout {
             Layout.fillWidth: true
+            Layout.minimumHeight: childrenRect.height
+            Layout.maximumHeight: childrenRect.height
 
             //  Spacer to align buttons
             Label {
@@ -189,10 +192,17 @@ Item {
 
         //  Spacer to separate sections
         Rectangle {
-            height: 4
+            Layout.fillWidth: true
+            Layout.minimumHeight: 4
+            Layout.maximumHeight: 4
+
+            color: palette.window
         }
 
         RowLayout {
+            Layout.fillWidth: true
+            Layout.minimumHeight: childrenRect.height
+            Layout.maximumHeight: childrenRect.height
             Label {
                 text: qsTr("Search Shortcuts:")
             }
@@ -202,65 +212,176 @@ Item {
             }
         }
 
-        ListView {
-            id: keyMappngList
+        //  Wrap listview with rectangle to get white background. If listview
+        //  does not fill view, we get a gray backround.
+        Rectangle {
+
             Layout.fillHeight: true
             Layout.fillWidth: true
+            Layout.margins: 1
+            color: palette.base
 
-            model: keyMappingModel
-
-            header: Row {
-                bottomPadding: 2
-                Text {
-                    text: "Command"
-                    width: 110
-                    color: palette.text
-                    font.bold: true
-                }
-                Text {
-                    width: 75
-                    text: "Shortcut"
-                    color: palette.text
-                    font.bold: true
-                }
-                Text {
-                    text: "Description"
-                    color: palette.text
-                    font.bold: true
-                }
+            border {
+                width: 1
+                color: palette.text
             }
-            delegate: Row {
-                required property string name
-                required property string description
-                required property string shortcut
-                //  Spacer for left indent
-                Label {
-                    width: 10
-                }
-                Text {
-                    text: parent.name
-                    width: 100
-                    color: palette.text
-                }
-                Text {
-                    width: 75
-                    text: parent.shortcut
-                    color: palette.text
-                }
-                Text {
-                    text: parent.description
-                    color: palette.text
-                }
-            }
+            ListView {
+                id: keyMappngList
 
-            section.property: "area"
-            section.criteria: ViewSection.FullString
-            section.delegate: sectionDelegate
+                anchors.fill: parent
+                anchors.margins: 5
+
+                model: keyMappingModel
+
+                focus: true
+                focusPolicy: Qt.StrongFocus
+
+                Keys.onUpPressed: keyMappngList.currentIndex = Math.max(
+                                      0, keyMappngList.currentIndex - 1)
+                Keys.onDownPressed: keyMappngList.currentIndex = Math.min(
+                                        keyMappngList.count - 1,
+                                        keyMappngList.currentIndex + 1)
+
+                header: RowLayout {
+                    spacing: 0
+                    height: command.height + 2
+                    Layout.bottomMargin: 2
+                    Rectangle {
+                        implicitHeight: childrenRect.height
+                        implicitWidth: childrenRect.width
+                        Layout.minimumWidth: childrenRect.width
+                        Layout.maximumWidth: childrenRect.width
+                        Text {
+                            id: command
+                            text: "Command"
+                            width: 110
+                            color: palette.text
+                            font.bold: true
+                        }
+                    }
+                    Rectangle {
+                        implicitHeight: childrenRect.height
+                        implicitWidth: childrenRect.width
+                        Layout.minimumWidth: childrenRect.width
+                        Layout.maximumWidth: childrenRect.width
+                        Text {
+                            id: shortcut
+                            width: 75
+                            text: "Shortcut"
+                            color: palette.text
+                            font.bold: true
+                        }
+                    }
+                    Rectangle {
+                        implicitWidth: childrenRect.width
+                        implicitHeight: childrenRect.height
+                        Layout.minimumWidth: childrenRect.width
+                        Layout.maximumWidth: childrenRect.width
+
+                        Text {
+                            id: description
+                            text: "Description"
+                            color: palette.text
+                            font.bold: true
+                        }
+                    }
+                    //  Fill in remaining listview
+                    Rectangle {
+                        Layout.fillWidth: true
+                        Layout.fillHeight: true
+
+                        color: ListView.isCurrentItem ? palette.highlight : palette.base
+                    }
+                }
+
+                delegate: RowLayout {
+                    id: wrapper
+                    required property string name
+                    required property string description
+                    required property string shortcut
+
+                    spacing: 0
+                    height: commandName.height
+                    width: parent.width
+                    //  Spacer for left indent
+                    Rectangle {
+                        implicitWidth: 10
+                        Layout.minimumWidth: 10
+                        Layout.maximumWidth: 10
+                        Layout.fillHeight: true
+
+                        color: ListView.isCurrentItem ? palette.highlight : palette.base
+                    }
+                    Rectangle {
+                        id: commandName
+                        implicitHeight: childrenRect.height
+                        implicitWidth: childrenRect.width
+                        Layout.minimumWidth: childrenRect.width
+                        Layout.maximumWidth: childrenRect.width
+
+                        color: ListView.isCurrentItem ? palette.highlight : palette.base
+
+                        Text {
+                            width: 100
+                            text: wrapper.name
+                            color: wrapper.ListView.isCurrentItem ? palette.highlightedText : palette.text
+                        }
+                    }
+
+                    Rectangle {
+                        implicitHeight: childrenRect.height
+                        implicitWidth: childrenRect.width
+                        Layout.minimumWidth: childrenRect.width
+                        Layout.maximumWidth: childrenRect.width
+                        Layout.fillHeight: true
+
+                        color: ListView.isCurrentItem ? palette.highlight : palette.base
+
+                        Text {
+                            width: 75
+                            text: wrapper.shortcut
+                            color: wrapper.ListView.isCurrentItem ? palette.highlightedText : palette.text
+                        }
+                    }
+                    Rectangle {
+                        implicitHeight: childrenRect.height
+                        implicitWidth: childrenRect.width
+                        Layout.minimumWidth: childrenRect.width
+                        Layout.maximumWidth: childrenRect.width
+                        Layout.fillHeight: true
+
+                        color: ListView.isCurrentItem ? palette.highlight : palette.base
+
+                        Text {
+                            width: 100
+                            text: wrapper.description
+                            color: wrapper.ListView.isCurrentItem ? palette.highlightedText : palette.text
+                        }
+                    }
+
+                    //  Fill in remaining listview
+                    Rectangle {
+                        Layout.fillWidth: true
+                        Layout.fillHeight: true
+
+                        color: ListView.isCurrentItem ? palette.highlight : palette.base
+                    }
+                }
+
+                highlight: Rectangle {
+                    color: palette.highlight
+                }
+                section.property: "area"
+                section.criteria: ViewSection.FullString
+                section.delegate: sectionDelegate
+            }
         }
-
         //  Spacer to separate sections
         Rectangle {
-            height: 4
+            Layout.fillWidth: true
+            Layout.minimumHeight: 4
+            Layout.maximumHeight: 4
+            color: palette.window
         }
 
         Label {
@@ -268,6 +389,8 @@ Item {
         }
 
         RowLayout {
+            Layout.minimumHeight: childrenRect.height
+            Layout.maximumHeight: childrenRect.height
             TextField {
                 Layout.fillWidth: true
             }
