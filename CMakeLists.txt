@@ -32,7 +32,7 @@ endif ()
 if (ONLY STREQUAL "BUILD")
     set(LANGUAGES "CXX")
 endif ()
-project(Pepp VERSION 0.9.0 LANGUAGES ${LANGUAGES})
+project(Pepp VERSION 0.9.1 LANGUAGES ${LANGUAGES})
 # Only overwrite the install prefix if it is the default value.
 if (CMAKE_INSTALL_PREFIX_INITIALIZED_TO_DEFAULT)
     set(CMAKE_INSTALL_PREFIX "${PROJECT_BINARY_DIR}/install" CACHE PATH "Installation Directory" FORCE)
