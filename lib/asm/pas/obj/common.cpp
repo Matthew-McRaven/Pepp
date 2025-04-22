@@ -35,7 +35,9 @@ void pas::obj::common::writeSymtab(ELFIO::elfio &elf, symbol::Table &table, QStr
   auto findOrCreateStr = [&](const std::string &str) {
     auto tabStart = strTab->get_data();
     auto tabEnd = tabStart + strTab->get_size();
-    auto iter = std::search(tabStart, tabEnd, str.cbegin(), str.cend());
+    // Must use data/size+1 and not begin/end because we MUST include trailing null.
+    // Otherwise, `main` is pooled with `mainCln`, which is wrong.
+    auto iter = std::search(tabStart, tabEnd, str.data(), str.data() + str.size() + 1);
     if (iter != tabEnd) return (ELFIO::Elf_Word)(iter - tabStart);
     return strAc.add_string(str.data());
   };
