@@ -63,6 +63,9 @@ Item {
             required property string section
 
             Text {
+                //  Short term hack. Will be replacing Listview with TreeView
+                //  Use logic for screen presentation
+                topPadding: parent.section != "Editor" ? 10 : 0
                 text: parent.section
                 font.bold: true
                 color: palette.text
@@ -98,6 +101,7 @@ Item {
             Layout.maximumHeight: childrenRect.height
 
             Label {
+                id: textfont
                 text: qsTr(" Current Mapping Scheme: ")
             }
 
@@ -226,7 +230,7 @@ Item {
                 color: palette.text
             }
             ListView {
-                id: keyMappngList
+                id: keyMappingList
 
                 anchors.fill: parent
                 anchors.margins: 5
@@ -236,16 +240,21 @@ Item {
                 focus: true
                 focusPolicy: Qt.StrongFocus
 
-                Keys.onUpPressed: keyMappngList.currentIndex = Math.max(
-                                      0, keyMappngList.currentIndex - 1)
-                Keys.onDownPressed: keyMappngList.currentIndex = Math.min(
-                                        keyMappngList.count - 1,
-                                        keyMappngList.currentIndex + 1)
+                //  Do not select any item
+                Component.onCompleted: {
+                    currentIndex = -1
+                }
+
+                Keys.onUpPressed: keyMappingList.currentIndex = Math.max(
+                                      0, keyMappingList.currentIndex - 1)
+                Keys.onDownPressed: keyMappingList.currentIndex = Math.min(
+                                        keyMappingList.count - 1,
+                                        keyMappingList.currentIndex + 1)
 
                 header: RowLayout {
                     spacing: 0
-                    height: command.height + 2
-                    Layout.bottomMargin: 2
+                    height: command.height
+
                     Rectangle {
                         implicitHeight: childrenRect.height
                         implicitWidth: childrenRect.width
@@ -256,7 +265,8 @@ Item {
                             text: "Command"
                             width: 110
                             color: palette.text
-                            font.bold: true
+                            //font.bold: true
+                            font.pointSize: textfont.font.pointSize * 1.3
                         }
                     }
                     Rectangle {
@@ -269,7 +279,8 @@ Item {
                             width: 75
                             text: "Shortcut"
                             color: palette.text
-                            font.bold: true
+                            //font.bold: true
+                            font.pointSize: command.font.pointSize
                         }
                     }
                     Rectangle {
@@ -282,7 +293,8 @@ Item {
                             id: description
                             text: "Description"
                             color: palette.text
-                            font.bold: true
+                            //font.bold: true
+                            font.pointSize: command.font.pointSize
                         }
                     }
                     //  Fill in remaining listview
@@ -302,7 +314,8 @@ Item {
 
                     spacing: 0
                     height: commandName.height
-                    width: parent.width
+                    width: wrapper.ListView.width
+
                     //  Spacer for left indent
                     Rectangle {
                         implicitWidth: 10
@@ -343,11 +356,9 @@ Item {
                             color: wrapper.ListView.isCurrentItem ? palette.highlightedText : palette.text
                         }
                     }
+                    //  Fill in remaining listview
                     Rectangle {
-                        implicitHeight: childrenRect.height
-                        implicitWidth: childrenRect.width
-                        Layout.minimumWidth: childrenRect.width
-                        Layout.maximumWidth: childrenRect.width
+                        Layout.fillWidth: true
                         Layout.fillHeight: true
 
                         color: ListView.isCurrentItem ? palette.highlight : palette.base
@@ -357,14 +368,6 @@ Item {
                             text: wrapper.description
                             color: wrapper.ListView.isCurrentItem ? palette.highlightedText : palette.text
                         }
-                    }
-
-                    //  Fill in remaining listview
-                    Rectangle {
-                        Layout.fillWidth: true
-                        Layout.fillHeight: true
-
-                        color: ListView.isCurrentItem ? palette.highlight : palette.base
                     }
                 }
 
@@ -395,11 +398,11 @@ Item {
                 Layout.fillWidth: true
             }
             Button {
-                text: "Add"
+                text: "Set"
                 Layout.minimumWidth: root.buttonWidth
             }
             Button {
-                text: "Remove"
+                text: "Reset"
                 Layout.minimumWidth: root.buttonWidth
             }
         }
