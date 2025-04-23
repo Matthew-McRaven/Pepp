@@ -167,6 +167,7 @@ jobs:
 
   deploy_test_pages:
     name: Trigger deployment to test github pages
+    if: startsWith(needs.branch_info.outputs.build_release, 'false')
     needs: [ build, branch_info ]
     concurrency:
       group: "pages-test"
