@@ -130,7 +130,6 @@ QList<QPair<int, QString>> helpers::AsmHelper::errorsWithLines() {
 }
 
 QSharedPointer<ELFIO::elfio> helpers::AsmHelper::elf(std::optional<QList<quint8>> userObj) {
-
   switch (_arch) {
   case builtins::Architecture::PEP9:
     _elf = pas::obj::pep9::createElf();
