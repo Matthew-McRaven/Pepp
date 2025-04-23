@@ -3,6 +3,7 @@
 #include <sstream>
 #include "asm/pas/driver/pep10.hpp"
 #include "asm/pas/driver/pep9.hpp"
+#include "asm/pas/obj/common.hpp"
 #include "asm/pas/obj/pep10.hpp"
 #include "asm/pas/obj/pep9.hpp"
 #include "asm/pas/operations/generic/addr2line.hpp"
@@ -129,20 +130,26 @@ QList<QPair<int, QString>> helpers::AsmHelper::errorsWithLines() {
 }
 
 QSharedPointer<ELFIO::elfio> helpers::AsmHelper::elf(std::optional<QList<quint8>> userObj) {
+
   switch (_arch) {
   case builtins::Architecture::PEP9:
     _elf = pas::obj::pep9::createElf();
     pas::obj::pep9::writeOS(*_elf, *_osRoot);
-    if (_userRoot) pas::obj::pep9::writeUser(*_elf, *_userRoot);
-    else if (userObj) pas::obj::pep9::writeUser(*_elf, *userObj);
+    pas::obj::common::writeLineMapping(*_elf, *_osRoot);
+    if (_userRoot) {
+      pas::obj::pep9::writeUser(*_elf, *_userRoot);
+      pas::obj::common::writeLineMapping(*_elf, *_userRoot);
+    } else if (userObj) pas::obj::pep9::writeUser(*_elf, *userObj);
     break;
   case builtins::Architecture::PEP10:
     _elf = pas::obj::pep10::createElf();
     pas::obj::pep10::combineSections(*_osRoot);
     pas::obj::pep10::writeOS(*_elf, *_osRoot);
+    pas::obj::common::writeLineMapping(*_elf, *_osRoot);
     if (_userRoot) {
       pas::obj::pep10::combineSections(*_userRoot);
       pas::obj::pep10::writeUser(*_elf, *_userRoot);
+      pas::obj::common::writeLineMapping(*_elf, *_userRoot);
     } else if (userObj) pas::obj::pep10::writeUser(*_elf, *userObj);
     break;
   default: throw std::logic_error("Unimplemented arch");

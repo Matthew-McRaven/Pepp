@@ -1,8 +1,11 @@
 #include "./common.hpp"
 #include <elfio/elfio.hpp>
+#include <zpp_bits.h>
+#include "asm/pas/operations/generic/addr2line.hpp"
 #include "asm/symbol/table.hpp"
 
 static const auto strTabStr = ".strtab";
+static const auto lineMapStr = ".line";
 ELFIO::section *pas::obj::common::addStrTab(ELFIO::elfio &elf) {
   ELFIO::section *strTab = nullptr;
   for (auto &sec : elf.sections) {
@@ -69,4 +72,61 @@ void pas::obj::common::writeSymtab(ELFIO::elfio &elf, symbol::Table &table, QStr
 
   // To be elf compliant, local symbols must be before all other kinds.
   symAc.arrange_local_symbols();
+}
+
+void pas::obj::common::writeLineMapping(ELFIO::elfio &elf, ast::Node &root) {
+  auto source = pas::ops::generic::source2addr(root);
+  auto list = pas::ops::generic::list2addr(root);
+
+  std::map<uint32_t, std::tuple<uint16_t, uint16_t>> mapping;
+  for (const auto &pair : source) {
+    auto [line, address] = pair;
+    mapping[address] = {line, 0};
+  }
+  for (const auto &pair : list) {
+    auto [line, address] = pair;
+    auto it = mapping.find(address);
+    if (it != mapping.end()) std::get<1>(it->second) = line;
+    else mapping[address] = {0, line};
+  }
+  auto lineNumbers = detail::getLineMappingSection(elf);
+  if (lineNumbers == nullptr) {
+    lineNumbers = elf.sections.add(lineMapStr);
+    lineNumbers->set_type(ELFIO::SHT_PROGBITS);
+  }
+  auto [data, in, out] = zpp::bits::data_in_out();
+  (void)out(BinaryLineMapping{});
+  lineNumbers->set_entry_size(out.position() + 1);
+  out.reset();
+
+  for (const auto &[addr, pair] : mapping) {
+    auto [src, list] = pair;
+    (void)out(BinaryLineMapping{.address = (uint32_t)addr, .srcLine = (uint16_t)src, .listLine = (uint16_t)list});
+  }
+  lineNumbers->append_data((const char *)data.data(), out.position());
+}
+
+std::vector<pas::obj::common::BinaryLineMapping> pas::obj::common::getLineMappings(ELFIO::elfio &elf) {
+  auto lineNumbers = detail::getLineMappingSection(elf);
+  if (lineNumbers == nullptr) return {};
+  auto data = std::span<const char>(lineNumbers->get_data(), (std::size_t)lineNumbers->get_size());
+  zpp::bits::in in(data);
+  std::vector<BinaryLineMapping> ret;
+  while (in.position() < data.size()) {
+    BinaryLineMapping line;
+    (void)in(line);
+    ret.push_back(line);
+  }
+  return ret;
+}
+
+ELFIO::section *pas::obj::common::detail::getLineMappingSection(ELFIO::elfio &elf) {
+  ELFIO::section *lineNumbers = nullptr;
+  for (auto &sec : elf.sections) {
+    if (sec->get_name() == lineMapStr && sec->get_type() == ELFIO::SHT_PROGBITS) {
+      lineNumbers = sec.get();
+      break;
+    }
+  }
+  return lineNumbers;
 }

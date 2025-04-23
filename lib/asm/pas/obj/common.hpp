@@ -10,7 +10,16 @@
 
 namespace pas::obj::common {
 ELFIO::section *addStrTab(ELFIO::elfio &elf);
+struct BinaryLineMapping {
+  uint32_t address;
+  // 0 indicates unset; so we start counting from 1
+  uint16_t srcLine, listLine;
+  std::strong_ordering operator<=>(const BinaryLineMapping &other) const { return address <=> other.address; }
+};
+void writeLineMapping(ELFIO::elfio &elf, pas::ast::Node &root);
+std::vector<BinaryLineMapping> getLineMappings(ELFIO::elfio &elf);
 void writeSymtab(ELFIO::elfio &elf, symbol::Table &table, QString prefix);
+
 template <typename ISA> void writeTree(ELFIO::elfio &elf, pas::ast::Node &node, QString prefix, bool isOS) {
   using namespace pas;
   using namespace Qt::StringLiterals;
@@ -113,4 +122,9 @@ template <typename ISA> void writeTree(ELFIO::elfio &elf, pas::ast::Node &node, 
 
   if (node.has<ast::generic::SymbolTable>()) writeSymtab(elf, *node.get<ast::generic::SymbolTable>().value, prefix);
 }
+
+namespace detail {
+// Get line mapping section or return nullptr;
+ELFIO::section *getLineMappingSection(ELFIO::elfio &elf);
+} // namespace detail
 } // namespace pas::obj::common
