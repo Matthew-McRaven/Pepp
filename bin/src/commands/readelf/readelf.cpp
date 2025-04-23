@@ -18,6 +18,7 @@
 #include <elfio/elfio.hpp>
 #include <elfio/elfio_dump.hpp>
 #include <iostream>
+#include "asm/pas/obj/common.hpp"
 #include "builtins/figure.hpp"
 #include "helpers/asmb.hpp"
 
@@ -35,6 +36,7 @@ void ReadElfTask::run() {
   if (_opts.program_headers) programHeaders(elf);
   if (_opts.symbols) symbols(elf);
   if (_opts.notes) notes(elf);
+  if (_opts.debug) debug(elf);
 
   return emit finished(0);
 }
@@ -64,3 +66,19 @@ void ReadElfTask::symbols(ELFIO::elfio &elf) const {
 }
 
 void ReadElfTask::notes(ELFIO::elfio &elf) const { ELFIO::dump::notes(std::cout, elf); }
+
+void ReadElfTask::debug(ELFIO::elfio &elf) const {
+  using namespace Qt::StringLiterals;
+  auto sec = pas::obj::common::detail::getLineMappingSection(elf);
+  if (sec == nullptr) return;
+  std::cout << "Line mapping section (" << sec->get_name() << ")" << std::endl;
+  auto linemaps = pas::obj::common::getLineMappings(elf);
+  std::sort(linemaps.begin(), linemaps.end());
+  for (const auto &map : linemaps) {
+    std::cout << u"%1: ("_s.arg(map.address, 4, 16).toStdString();
+    if (map.srcLine == 0) std::cout << "    ,";
+    else std::cout << u"%1,"_s.arg((int)map.srcLine, 4).toStdString();
+    if (map.listLine == 0) std::cout << "    )\n";
+    else std::cout << u"%1)"_s.arg((int)map.listLine, 4).toStdString() << "\n";
+  }
+}

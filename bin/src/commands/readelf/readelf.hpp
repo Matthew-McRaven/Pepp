@@ -31,6 +31,7 @@ public:
     bool section_headers = false;
     bool symbols = false;
     bool notes = false;
+    bool debug = false;
     std::string elffile;
   };
   ReadElfTask(Options &opts, QObject *parent = nullptr);
@@ -42,6 +43,7 @@ private:
   void sectionHeaders(ELFIO::elfio &) const;
   void symbols(ELFIO::elfio &) const;
   void notes(ELFIO::elfio &) const;
+  void debug(ELFIO::elfio &) const;
   Options &_opts;
 };
 
@@ -56,13 +58,14 @@ void registerReadelf(auto &app, task_factory_t &task, detail::SharedFlags &flags
       readelf->add_flag("-S,--section-headers", opts.section_headers, "Display the section headers");
   static auto symbols = readelf->add_flag("-s,--symbols", opts.symbols, "Display the symbol tables");
   static auto notes = readelf->add_flag("-n,--notes", opts.notes, "Display the notes");
+  static auto debug = readelf->add_flag("-d,--debug", opts.debug, "Display Pepp specific debug info");
   static auto all = readelf->add_flag("-a,--all", " Equivalent to specifying --file-header, --program-headers,\
---sections, --symbols, --relocs, --dynamic, --notes,\
+--sections, --symbols, --debug, --relocs, --dynamic, --notes,\
 --version-info, --arch-specific, --unwind, --section-groups.");
   static auto file = readelf->add_option("elffile", opts.elffile, "Elf file")->expected(1)->required(true);
   readelf->callback([&]() {
     if (*all) {
-      opts.file_header = opts.program_headers = opts.section_headers = opts.symbols = opts.notes = true;
+      opts.file_header = opts.program_headers = opts.section_headers = opts.symbols = opts.notes = opts.debug = true;
     }
     flags.kind = detail::SharedFlags::Kind::TERM;
     task = [&](QObject *parent) { return new ReadElfTask(opts, parent); };
