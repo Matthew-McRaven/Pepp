@@ -74,11 +74,5 @@ void ReadElfTask::debug(ELFIO::elfio &elf) const {
   std::cout << "Line mapping section (" << sec->get_name() << ")" << std::endl;
   auto linemaps = pas::obj::common::getLineMappings(elf);
   std::sort(linemaps.begin(), linemaps.end());
-  for (const auto &map : linemaps) {
-    std::cout << u"%1: ("_s.arg(map.address, 4, 16).toStdString();
-    if (map.srcLine == 0) std::cout << "    ,";
-    else std::cout << u"%1,"_s.arg((int)map.srcLine, 4).toStdString();
-    if (map.listLine == 0) std::cout << "    )\n";
-    else std::cout << u"%1)"_s.arg((int)map.listLine, 4).toStdString() << "\n";
-  }
+  for (const auto &map : linemaps) std::cout << ((QString)map).toStdString() << std::endl;
 }

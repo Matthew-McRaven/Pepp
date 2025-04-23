@@ -15,6 +15,15 @@ struct BinaryLineMapping {
   // 0 indicates unset; so we start counting from 1
   uint16_t srcLine, listLine;
   std::strong_ordering operator<=>(const BinaryLineMapping &other) const { return address <=> other.address; }
+  operator QString() const {
+    using namespace Qt::StringLiterals;
+    static const auto format = u"%1: (%2,%3)"_s;
+    static const auto opt = [](uint16_t l) {
+      if (l == 0) return u"    "_s;
+      else return u"%1"_s.arg((int)l, 4);
+    };
+    return format.arg(address, 4, 16).arg(opt(srcLine)).arg(opt(listLine));
+  }
 };
 void writeLineMapping(ELFIO::elfio &elf, pas::ast::Node &root);
 std::vector<BinaryLineMapping> getLineMappings(ELFIO::elfio &elf);
