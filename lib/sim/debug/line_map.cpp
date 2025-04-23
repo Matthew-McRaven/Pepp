@@ -48,13 +48,15 @@ ScopedLines2Addresses::ScopedLines2Addresses(QObject *parent) : QObject(parent) 
 void ScopedLines2Addresses::addScope(QString name, const Lines2Addresses &map) {
   auto scopeIndex = static_cast<scope>(_scopeNames.size());
   _scopeNames[scopeIndex] = name;
+  _source2Addr.emplace_back();
+  _list2Addr.emplace_back();
 
   for (auto [line, addr] : map._source2Addr) {
-    _source2Addr[line] = std::make_tuple(scopeIndex, addr);
+    _source2Addr[scopeIndex][line] = addr;
     _addr2Source[addr] = std::make_tuple(scopeIndex, line);
   }
   for (auto [line, addr] : map._list2Addr) {
-    _list2Addr[line] = std::make_tuple(scopeIndex, addr);
+    _list2Addr[scopeIndex][line] = addr;
     _addr2List[addr] = std::make_tuple(scopeIndex, line);
   }
 }
@@ -71,16 +73,32 @@ std::optional<ScopedLines2Addresses::scope> ScopedLines2Addresses::name2scope(QS
   return std::nullopt;
 }
 
-std::optional<std::tuple<ScopedLines2Addresses::scope, quint32>>
-ScopedLines2Addresses::source2Address(int sourceLine) const {
-  if (_source2Addr.contains(sourceLine)) return _source2Addr.at(sourceLine);
-  return std::nullopt;
+std::optional<quint32> ScopedLines2Addresses::source2Address(int sourceLine, scope s) const {
+  if (s < 0 || s >= _source2Addr.size()) return std::nullopt;
+  auto m = _source2Addr[s];
+  if (auto r = m.find(sourceLine); r == m.cend()) return std::nullopt;
+  else return r->second;
 }
 
-std::optional<std::tuple<ScopedLines2Addresses::scope, quint32>>
-ScopedLines2Addresses::list2Address(int listLine) const {
-  if (_list2Addr.contains(listLine)) return _list2Addr.at(listLine);
-  return std::nullopt;
+std::optional<quint32> ScopedLines2Addresses::list2Address(int listLine, scope s) const {
+  if (s < 0 || s >= _list2Addr.size()) return std::nullopt;
+  auto m = _list2Addr[s];
+  if (auto r = m.find(listLine); r == m.cend()) return std::nullopt;
+  else return r->second;
+}
+
+std::optional<int> ScopedLines2Addresses::list2Source(int list, scope s) const {
+  auto addr = list2Address(list, s);
+  if (!addr) return std::nullopt;
+  else if (auto r = address2Source(*addr); !r) return std::nullopt;
+  else return std::get<1>(*r);
+}
+
+std::optional<int> ScopedLines2Addresses::source2List(int source, scope s) const {
+  auto addr = source2Address(source, s);
+  if (!addr) return std::nullopt;
+  else if (auto r = address2List(*addr); !r) return std::nullopt;
+  else return std::get<1>(*r);
 }
 
 std::optional<std::tuple<ScopedLines2Addresses::scope, int>>
@@ -95,71 +113,9 @@ ScopedLines2Addresses::address2List(quint32 address) const {
   return std::nullopt;
 }
 
-std::optional<quint32> ScopedLines2Addresses::source2Address(int sourceLine, scope s) const {
-  if (auto r = source2Address(sourceLine); !r) return std::nullopt;
-  else if (std::get<0>(*r) != s) return std::nullopt;
-  else return std::get<1>(*r);
-}
-
-std::optional<quint32> ScopedLines2Addresses::list2Address(int listLine, scope s) const {
-  if (auto r = list2Address(listLine); !r) return std::nullopt;
-  else if (std::get<0>(*r) != s) return std::nullopt;
-  else return std::get<1>(*r);
-}
-
-std::optional<int> ScopedLines2Addresses::address2Source(quint32 address, scope s) const {
-  if (auto r = address2Source(address); !r) return std::nullopt;
-  else if (std::get<0>(*r) != s) return std::nullopt;
-  else return std::get<1>(*r);
-}
-
-std::optional<int> ScopedLines2Addresses::address2List(quint32 address, scope s) const {
-  if (auto r = address2List(address); !r) return std::nullopt;
-  else if (std::get<0>(*r) != s) return std::nullopt;
-  else return std::get<1>(*r);
-}
-
-std::optional<quint32> ScopedLines2Addresses::source2Address(int sourceLine, QString scope) const {
-  if (auto s = name2scope(scope); !s) return std::nullopt;
-  else if (auto r = source2Address(sourceLine, *s); !r) return std::nullopt;
-  else return *r;
-}
-
-std::optional<quint32> ScopedLines2Addresses::list2Address(int listLine, QString scope) const {
-  if (auto s = name2scope(scope); !s) return std::nullopt;
-  else if (auto r = list2Address(listLine, *s); !r) return std::nullopt;
-  else return *r;
-}
-
-std::optional<int> ScopedLines2Addresses::address2Source(quint32 address, QString scope) const {
-  if (auto s = name2scope(scope); !s) return std::nullopt;
-  else if (auto r = address2Source(address, *s); !r) return std::nullopt;
-  else return *r;
-}
-
-std::optional<int> ScopedLines2Addresses::address2List(quint32 address, QString scope) const {
-  if (auto s = name2scope(scope); !s) return std::nullopt;
-  else if (auto r = address2List(address, *s); !r) return std::nullopt;
-  else return *r;
-}
-
-std::optional<int> ScopedLines2Addresses::list2Source(int list) const {
-  auto addr = list2Address(list);
-  if (!addr) return std::nullopt;
-  else if (auto r = address2Source(std::get<1>(*addr)); !r) return std::nullopt;
-  else return std::get<1>(*r);
-}
-
 void ScopedLines2Addresses::onReset() {
   _source2Addr.clear(), _list2Addr.clear();
   _addr2Source.clear(), _addr2List.clear();
   _scopeNames.clear();
   emit wasReset();
-}
-
-std::optional<int> ScopedLines2Addresses::source2List(int source) const {
-  auto addr = source2Address(source);
-  if (!addr) return std::nullopt;
-  else if (auto r = address2List(std::get<1>(*addr)); !r) return std::nullopt;
-  else return std::get<1>(*r);
 }
