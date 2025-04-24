@@ -26,6 +26,7 @@ public:
   using scope = int;
   ScopedLines2Addresses(QObject *parent = nullptr);
   ~ScopedLines2Addresses() = default;
+  void addScope(QString name);
   void addScope(QString name, const Lines2Addresses &map);
   std::optional<QString> scope2name(scope) const;
   std::optional<scope> name2scope(QString) const;
@@ -52,4 +53,5 @@ private:
   // Addresses are unique, so we can fuse all scopes into a single map.
   std::map<quint32, std::tuple<scope, int>> _addr2Source{}, _addr2List{};
   std::map<scope, QString> _scopeNames;
+  scope add_or_get_scope(QString name);
 };
