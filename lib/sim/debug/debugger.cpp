@@ -29,6 +29,7 @@ void pepp::debug::BreakpointSet::modify_condition(quint16 address, Term *conditi
   auto iter = std::lower_bound(_breakpoints.cbegin(), _breakpoints.cend(), address);
   auto offset = std::distance(_breakpoints.cbegin(), iter);
   _conditions[offset] = condition;
+  emit conditionChanged(address, condition != nullptr);
 }
 
 void pepp::debug::BreakpointSet::removeBP(quint16 address) {

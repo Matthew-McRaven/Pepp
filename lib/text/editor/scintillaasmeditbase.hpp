@@ -18,7 +18,7 @@ class ScintillaAsmEditBase : public ScintillaEditBase {
   QML_ELEMENT
 
 public:
-  enum class Action { ToggleBP, AddBP, RemoveBP, ScrollTo, HighlightExclusive };
+  enum class Action { ToggleBP, AddBP, RemoveBP, ScrollTo, HighlightExclusive, MakeConditional, MakeUnconditional };
   Q_ENUM(Action);
   ScintillaAsmEditBase(QQuickItem *parent = 0);
 public slots:
@@ -58,6 +58,11 @@ private:
   const int charStyle = SCE_PEPASM_CHARACTER;
   const int stringStyle = SCE_PEPASM_STRING;
   const int commentStyle = SCE_PEPASM_COMMENT;
+
+  const int BPStyle = 1;
+  const int BPStyleMask = 1 << BPStyle;
+  const int conditionalBPStyle = 2;
+  const int conditionalBPStyleMask = 1 << conditionalBPStyle;
   QString lexerLanguage() const;
   void setLexerLanguage(const QString &language);
   pepp::settings::Palette *_theme = nullptr;

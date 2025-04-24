@@ -836,6 +836,8 @@ Pep_ASMB::Pep_ASMB(project::Environment env, QVariant delegate, QObject *parent)
   }
   default: throw std::logic_error("Unimplemented architecture");
   }
+  auto bps = _dbg->bps.get();
+  connect(bps, &pepp::debug::BreakpointSet::conditionChanged, this, &Pep_ASMB::onBPConditionChanged);
 }
 
 void Pep_ASMB::set(int abstraction, QString value) {
@@ -1053,6 +1055,24 @@ void Pep_ASMB::onModifyOSList(int line, Action action) {
     updateBPAtAddress(*address, action);
   emit modifyOSList(line, action);
   if (auto src = _dbg->line_maps->list2Source(line, scope); src) emit modifyOSSource(*src, action);
+}
+
+void Pep_ASMB::onBPConditionChanged(quint16 address, bool conditional) {
+  auto os = _dbg->line_maps->name2scope("os").value();
+  auto user = _dbg->line_maps->name2scope("user").value();
+  auto action = conditional ? Action::MakeConditional : Action::MakeUnconditional;
+
+  if (auto maybeList = _dbg->line_maps->address2List(address); maybeList) {
+    auto [scope, line] = *maybeList;
+    if (scope == os) emit modifyOSList(line, action);
+    else if (scope == user) emit modifyUserList(line, action);
+  }
+
+  if (auto maybeSrc = _dbg->line_maps->address2Source(address); maybeSrc) {
+    auto [scope, line] = *maybeSrc;
+    if (scope == os) emit modifyOSSource(line, action);
+    else if (scope == user) emit modifyUserSource(line, action);
+  }
 }
 
 void Pep_ASMB::prepareSim() {
