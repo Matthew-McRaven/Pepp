@@ -1026,7 +1026,9 @@ bool Pep_ASMB::onAssembleThenFormat() {
 }
 
 void Pep_ASMB::onModifyUserSource(int line, Action action) {
-  auto scope = _dbg->line_maps->name2scope("user").value();
+  auto maybe_scope = _dbg->line_maps->name2scope("user");
+  if (!maybe_scope) return;
+  auto scope = *maybe_scope;
   if (auto address = _dbg->line_maps->source2Address(line, scope); address && action != Action::ScrollTo)
     updateBPAtAddress(*address, action);
   emit modifyUserSource(line, action);
@@ -1034,7 +1036,9 @@ void Pep_ASMB::onModifyUserSource(int line, Action action) {
 }
 
 void Pep_ASMB::onModifyOSSource(int line, Action action) {
-  auto scope = _dbg->line_maps->name2scope("os").value();
+  auto maybe_scope = _dbg->line_maps->name2scope("os");
+  if (!maybe_scope) return;
+  auto scope = *maybe_scope;
   if (auto address = _dbg->line_maps->source2Address(line, scope); address && action != Action::ScrollTo)
     updateBPAtAddress(*address, action);
   emit modifyOSSource(line, action);
@@ -1042,7 +1046,9 @@ void Pep_ASMB::onModifyOSSource(int line, Action action) {
 }
 
 void Pep_ASMB::onModifyUserList(int line, Action action) {
-  auto scope = _dbg->line_maps->name2scope("user").value();
+  auto maybe_scope = _dbg->line_maps->name2scope("user");
+  if (!maybe_scope) return;
+  auto scope = *maybe_scope;
   if (auto address = _dbg->line_maps->list2Address(line, scope); address && action != Action::ScrollTo)
     updateBPAtAddress(*address, action);
   emit modifyUserList(line, action);
@@ -1050,7 +1056,9 @@ void Pep_ASMB::onModifyUserList(int line, Action action) {
 }
 
 void Pep_ASMB::onModifyOSList(int line, Action action) {
-  auto scope = _dbg->line_maps->name2scope("os").value();
+  auto maybe_scope = _dbg->line_maps->name2scope("os");
+  if (!maybe_scope) return;
+  auto scope = *maybe_scope;
   if (auto address = _dbg->line_maps->list2Address(line, scope); address && action != Action::ScrollTo)
     updateBPAtAddress(*address, action);
   emit modifyOSList(line, action);
@@ -1058,10 +1066,11 @@ void Pep_ASMB::onModifyOSList(int line, Action action) {
 }
 
 void Pep_ASMB::onBPConditionChanged(quint16 address, bool conditional) {
-  auto os = _dbg->line_maps->name2scope("os").value();
-  auto user = _dbg->line_maps->name2scope("user").value();
+  auto maybe_os = _dbg->line_maps->name2scope("os");
+  auto maybe_user = _dbg->line_maps->name2scope("user");
   auto action = conditional ? Action::MakeConditional : Action::MakeUnconditional;
-
+  if (!maybe_os || !maybe_user) return;
+  auto os = *maybe_os, user = *maybe_user;
   if (auto maybeList = _dbg->line_maps->address2List(address); maybeList) {
     auto [scope, line] = *maybeList;
     if (scope == os) emit modifyOSList(line, action);
@@ -1148,10 +1157,13 @@ void Pep_ASMB::updatePCLine() {
   }
   default: throw std::logic_error("Unimplemented");
   }
-  auto userScope = _dbg->line_maps->name2scope("user").value();
-  auto osScope = _dbg->line_maps->name2scope("os").value();
+  auto maybe_user_scope = _dbg->line_maps->name2scope("user");
+  auto maybe_os_scope = _dbg->line_maps->name2scope("os");
   auto srcLine = _dbg->line_maps->address2Source(pc);
   auto listLine = _dbg->line_maps->address2List(pc);
+  if (!maybe_user_scope || !maybe_os_scope) return;
+  auto userScope = *maybe_user_scope, osScope = *maybe_os_scope;
+  ;
   if (srcLine) {
     auto [scope, line] = *srcLine;
     if (scope == userScope) emit modifyUserSource(line, Action::ScrollTo);
