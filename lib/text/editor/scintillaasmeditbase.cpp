@@ -90,7 +90,7 @@ void ScintillaAsmEditBase::onClearAllBreakpoints() { send(SCI_MARKERDELETEALL); 
 void ScintillaAsmEditBase::onRequestAllBreakpoints() {
   int totalLines = send(SCI_GETLINECOUNT);
   for (int line = 0; line < totalLines; ++line) {
-    if (send(SCI_MARKERGET, line) & (conditionalBPStyle | BPStyleMask)) modifyLine(line, Action::AddBP);
+    if (send(SCI_MARKERGET, line) & (conditionalBPStyleMask | BPStyleMask)) modifyLine(line, Action::AddBP);
   }
 }
 
