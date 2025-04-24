@@ -103,3 +103,4 @@ Changed,,0.9.0,,"Increase spacing between columns of (symbol, value) pairs in sy
 Added,,0.9.1,,"Add command line utility to inspect details of Pep/10 object code"
 Fixed,,0.9.1,816,"Fix a bug where OS symbols appear in the user's symbol table"
 Fixed,,0.9.1,817,"Fix a bug where some user program lines do not accept breakpoints"
+Changed,,0.9.1,820,"Differentiate conditional and unconditional breakpoints in editor"

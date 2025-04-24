@@ -838,6 +838,9 @@ Pep_ASMB::Pep_ASMB(project::Environment env, QVariant delegate, QObject *parent)
   }
   auto bps = _dbg->bps.get();
   connect(bps, &pepp::debug::BreakpointSet::conditionChanged, this, &Pep_ASMB::onBPConditionChanged);
+  // Scopes must be present to allow adding BPs on source programs before assembly
+  _dbg->line_maps->addScope("user");
+  _dbg->line_maps->addScope("os");
 }
 
 void Pep_ASMB::set(int abstraction, QString value) {

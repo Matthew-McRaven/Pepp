@@ -45,12 +45,10 @@ std::optional<int> Lines2Addresses::list2Source(int list) {
 
 ScopedLines2Addresses::ScopedLines2Addresses(QObject *parent) : QObject(parent) {}
 
-void ScopedLines2Addresses::addScope(QString name, const Lines2Addresses &map) {
-  auto scopeIndex = static_cast<scope>(_scopeNames.size());
-  _scopeNames[scopeIndex] = name;
-  _source2Addr.emplace_back();
-  _list2Addr.emplace_back();
+void ScopedLines2Addresses::addScope(QString name) { auto scopeIndex = add_or_get_scope(name); }
 
+void ScopedLines2Addresses::addScope(QString name, const Lines2Addresses &map) {
+  auto scopeIndex = add_or_get_scope(name);
   for (auto [line, addr] : map._source2Addr) {
     _source2Addr[scopeIndex][line] = addr;
     _addr2Source[addr] = std::make_tuple(scopeIndex, line);
@@ -118,4 +116,17 @@ void ScopedLines2Addresses::onReset() {
   _addr2Source.clear(), _addr2List.clear();
   _scopeNames.clear();
   emit wasReset();
+}
+
+ScopedLines2Addresses::scope ScopedLines2Addresses::add_or_get_scope(QString name) {
+  auto it = std::find_if(_scopeNames.begin(), _scopeNames.end(), [&name](const auto &it) { return it.second == name; });
+  if (it == _scopeNames.end()) {
+    auto scopeIndex = static_cast<scope>(_scopeNames.size());
+    _scopeNames[scopeIndex] = name;
+    _source2Addr.emplace_back();
+    _list2Addr.emplace_back();
+    return scopeIndex;
+  } else {
+    return it->first;
+  }
 }
