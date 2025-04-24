@@ -1,19 +1,20 @@
 #include "asmb.hpp"
 #include <iostream>
 #include <sstream>
+#include "enums/isa/pep10.hpp"
+#include "help/builtins/registry.hpp"
+#include "toolchain/macro/parse.hpp"
 #include "toolchain/pas/driver/pep10.hpp"
 #include "toolchain/pas/driver/pep9.hpp"
 #include "toolchain/pas/obj/common.hpp"
 #include "toolchain/pas/obj/pep10.hpp"
 #include "toolchain/pas/obj/pep9.hpp"
+#include "toolchain/pas/obj/trace_tags.hpp"
 #include "toolchain/pas/operations/generic/addr2line.hpp"
 #include "toolchain/pas/operations/generic/errors.hpp"
 #include "toolchain/pas/operations/pepp/bytes.hpp"
 #include "toolchain/pas/operations/pepp/string.hpp"
 #include "toolchain/pas/operations/pepp/whole_program_sanity.hpp"
-#include "help/builtins/registry.hpp"
-#include "enums/isa/pep10.hpp"
-#include "toolchain/macro/parse.hpp"
 
 QSharedPointer<const builtins::Book> helpers::book(int ed) {
   QString bookName;
@@ -137,9 +138,11 @@ QSharedPointer<ELFIO::elfio> helpers::AsmHelper::elf(std::optional<QList<quint8>
     _elf = pas::obj::pep9::createElf();
     pas::obj::pep9::writeOS(*_elf, *_osRoot);
     pas::obj::common::writeLineMapping(*_elf, *_osRoot);
+    pas::obj::common::writeDebugCommands(*_elf, *_osRoot);
     if (_userRoot) {
       pas::obj::pep9::writeUser(*_elf, *_userRoot);
       pas::obj::common::writeLineMapping(*_elf, *_userRoot);
+      pas::obj::common::writeDebugCommands(*_elf, *_userRoot);
     } else if (userObj) pas::obj::pep9::writeUser(*_elf, *userObj);
     break;
   case PEP10:
@@ -147,10 +150,12 @@ QSharedPointer<ELFIO::elfio> helpers::AsmHelper::elf(std::optional<QList<quint8>
     pas::obj::pep10::combineSections(*_osRoot);
     pas::obj::pep10::writeOS(*_elf, *_osRoot);
     pas::obj::common::writeLineMapping(*_elf, *_osRoot);
+    pas::obj::common::writeDebugCommands(*_elf, *_osRoot);
     if (_userRoot) {
       pas::obj::pep10::combineSections(*_userRoot);
       pas::obj::pep10::writeUser(*_elf, *_userRoot);
       pas::obj::common::writeLineMapping(*_elf, *_userRoot);
+      pas::obj::common::writeDebugCommands(*_elf, *_userRoot);
     } else if (userObj) pas::obj::pep10::writeUser(*_elf, *userObj);
     break;
   default: throw std::logic_error("Unimplemented arch");
