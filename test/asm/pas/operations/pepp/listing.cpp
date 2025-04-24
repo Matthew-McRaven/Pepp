@@ -25,8 +25,8 @@ TEST_CASE("Format Pepp listing", "[scope:asm][kind:unit][arch:pep10]") {
   auto [name, source, listing] = GENERATE(table<QString, QString, QStringList>({
       {"Blank", "\n", QStringList{""}},
       {"Comment", ";hello\n;world", QStringList{"             ;hello", "             ;world"}},
-      {"Unary", "asla\nasra", QStringList{"0000     1C          ASLA", "0001     1E          ASRA"}},
-      {"Unary + symbol", "abcdefg:asla", QStringList{"0000     1C abcdefg: ASLA"}},
+      {"Unary", "asla\nasra", QStringList{"0000     1A          ASLA", "0001     1C          ASRA"}},
+      {"Unary + symbol", "abcdefg:asla", QStringList{"0000     1A abcdefg: ASLA"}},
       {"Nonunary non-br", "adda 0xfaad,i\nsuba 0xbaad,sfx",
        QStringList{"0000 50FAAD          ADDA     0xFAAD,i", "0003 67BAAD          SUBA     0xBAAD,sfx"}},
       {"Nonunary br", "br 10,i\nbr 20,x",

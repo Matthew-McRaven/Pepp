@@ -31,18 +31,19 @@ enum class Mnemonic {
   // FAULTS
   UNIMPL,
 
-  NOTA = 0x18,
-  NOTX = 0x19,
-  NEGA = 0x1A,
-  NEGX = 0x1B,
-  ASLA = 0x1C,
-  ASLX = 0x1D,
-  ASRA = 0x1E,
-  ASRX = 0x1F,
+  NEGA = 0x18,
+  NEGX = 0x19,
+  ASLA = 0x1A,
+  ASLX = 0x1B,
+  ASRA = 0x1C,
+  ASRX = 0x1D,
+  NOTA = 0x1E,
+  NOTX = 0x1F,
   ROLA = 0x20,
   ROLX = 0x21,
   RORA = 0x22,
   RORX = 0x23,
+
   // STOP,
   BR = 0x24,
   BRLE = 0x26,
@@ -159,14 +160,14 @@ constexpr std::array<Opcode, 256> initOpcodes() {
   for (int it = (int)M::NOP + 1; it < (int)M::NOTA; it++)
     ret[it] = {.instr = {.mnemon = M::INVALID, .type = T::U_none, .unary = true}, .mode = AM::NONE, .valid = false};
 
-  ret[(quint8)M::NOTA] = {.instr = {.mnemon = M::NOTA, .type = T::R_none, .unary = 1}, .mode = AM::NONE, .valid = true};
-  ret[(quint8)M::NOTX] = {.instr = {.mnemon = M::NOTX, .type = T::R_none, .unary = 1}, .mode = AM::NONE, .valid = true};
   ret[(quint8)M::NEGA] = {.instr = {.mnemon = M::NEGA, .type = T::R_none, .unary = 1}, .mode = AM::NONE, .valid = true};
   ret[(quint8)M::NEGX] = {.instr = {.mnemon = M::NEGX, .type = T::R_none, .unary = 1}, .mode = AM::NONE, .valid = true};
   ret[(quint8)M::ASLA] = {.instr = {.mnemon = M::ASLA, .type = T::R_none, .unary = 1}, .mode = AM::NONE, .valid = true};
   ret[(quint8)M::ASLX] = {.instr = {.mnemon = M::ASLX, .type = T::R_none, .unary = 1}, .mode = AM::NONE, .valid = true};
   ret[(quint8)M::ASRA] = {.instr = {.mnemon = M::ASRA, .type = T::R_none, .unary = 1}, .mode = AM::NONE, .valid = true};
   ret[(quint8)M::ASRX] = {.instr = {.mnemon = M::ASRX, .type = T::R_none, .unary = 1}, .mode = AM::NONE, .valid = true};
+  ret[(quint8)M::NOTA] = {.instr = {.mnemon = M::NOTA, .type = T::R_none, .unary = 1}, .mode = AM::NONE, .valid = true};
+  ret[(quint8)M::NOTX] = {.instr = {.mnemon = M::NOTX, .type = T::R_none, .unary = 1}, .mode = AM::NONE, .valid = true};
   ret[(quint8)M::ROLA] = {.instr = {.mnemon = M::ROLA, .type = T::R_none, .unary = 1}, .mode = AM::NONE, .valid = true};
   ret[(quint8)M::ROLX] = {.instr = {.mnemon = M::ROLX, .type = T::R_none, .unary = 1}, .mode = AM::NONE, .valid = true};
   ret[(quint8)M::RORA] = {.instr = {.mnemon = M::RORA, .type = T::R_none, .unary = 1}, .mode = AM::NONE, .valid = true};
