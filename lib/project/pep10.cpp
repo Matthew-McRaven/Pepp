@@ -1166,7 +1166,6 @@ void Pep_ASMB::updatePCLine() {
   auto listLine = _dbg->line_maps->address2List(pc);
   if (!maybe_user_scope || !maybe_os_scope) return;
   auto userScope = *maybe_user_scope, osScope = *maybe_os_scope;
-  ;
   if (srcLine) {
     auto [scope, line] = *srcLine;
     if (scope == userScope) emit modifyUserSource(line, Action::ScrollTo);
