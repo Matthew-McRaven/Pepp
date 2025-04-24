@@ -32,6 +32,7 @@ public:
 signals:
   void breakpointAdded(quint16 address);
   void breakpointRemoved(quint16 address);
+  void conditionChanged(quint16 address, bool conditional);
   void breakpointsCleared();
 
 private:

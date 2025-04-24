@@ -22,6 +22,7 @@ ScintillaAsmEditBase::ScintillaAsmEditBase(QQuickItem *parent) : ScintillaEditBa
   send(SCI_SETMARGINWIDTHN, 2, getCharWidth() * 2);
   send(SCI_SETMARGINTYPEN, 2, SC_MARGIN_SYMBOL);
   send(SCI_SETMARGINMASKN, 2, SC_MASK_FOLDERS);
+  send(SCI_MARKERDEFINE, conditionalBPStyle, SC_MARK_CIRCLEPLUS);
   send(SCI_MARKERDEFINE, SC_MARKNUM_FOLDEROPEN, SC_MARK_MINUS);
   send(SCI_MARKERDEFINE, SC_MARKNUM_FOLDER, SC_MARK_PLUS);
   send(SCI_MARKERDEFINE, SC_MARKNUM_FOLDERSUB, SC_MARK_EMPTY);
@@ -43,28 +44,42 @@ void ScintillaAsmEditBase::onMarginClicked(Scintilla::Position position, Scintil
     // Get line number from position
     int line = send(SCI_LINEFROMPOSITION, position, 0);
     int markers = send(SCI_MARKERGET, line);
-    emit modifyLine(line, markers & (1 << SC_MARK_CIRCLE) ? Action::RemoveBP : Action::AddBP);
+    auto mask = BPStyleMask | conditionalBPStyleMask;
+    emit modifyLine(line, markers & mask ? Action::RemoveBP : Action::AddBP);
   }
 }
 
 void ScintillaAsmEditBase::onLineAction(int line, Action action) {
   int markers = send(SCI_MARKERGET, line);
-  auto exists = markers & (1 << SC_MARK_CIRCLE);
+  auto exists = markers & (BPStyleMask | conditionalBPStyleMask);
   int start = send(SCI_POSITIONFROMLINE, line);
   int end = send(SCI_GETLINEENDPOSITION, line);
+  if (action == Action::ToggleBP) {
+    action = exists ? Action::RemoveBP : Action::AddBP;
+  }
   switch (action) {
-  // Toggle marker on the line
-  case Action::ToggleBP: send(exists ? SCI_MARKERDELETE : SCI_MARKERADD, line, SC_MARK_CIRCLE); break;
   case Action::AddBP:
     if (exists) return;
-    send(SCI_MARKERADD, line, SC_MARK_CIRCLE);
+    send(SCI_MARKERADD, line, BPStyle);
     break;
-  case Action::RemoveBP: send(SCI_MARKERDELETE, line, SC_MARK_CIRCLE); break;
+  case Action::RemoveBP:
+    send(SCI_MARKERDELETE, line, BPStyle);
+    send(SCI_MARKERDELETE, line, conditionalBPStyle);
+    break;
   case Action::ScrollTo: send(SCI_GOTOLINE, line); break;
   case Action::HighlightExclusive:
     send(SCI_GOTOLINE, line);
     send(SCI_INDICATORCLEARRANGE, 0, send(SCI_GETLENGTH));
     send(SCI_INDICATORFILLRANGE, start, end - start);
+    break;
+  case Action::MakeConditional:
+    if (markers & conditionalBPStyleMask) return;
+    send(SCI_MARKERADD, line, conditionalBPStyle);
+    send(SCI_MARKERDELETE, line, BPStyle);
+    break;
+  case Action::MakeUnconditional:
+    send(SCI_MARKERDELETE, line, conditionalBPStyle);
+    send(SCI_MARKERADD, line, BPStyle);
     break;
   default: break;
   }
@@ -74,24 +89,10 @@ void ScintillaAsmEditBase::onClearAllBreakpoints() { send(SCI_MARKERDELETEALL); 
 
 void ScintillaAsmEditBase::onRequestAllBreakpoints() {
   int totalLines = send(SCI_GETLINECOUNT);
-
-  for (int line = 0; line < totalLines; ++line)
-    if (send(SCI_MARKERGET, line) & (1 << SC_MARK_CIRCLE)) modifyLine(line, Action::AddBP);
+  for (int line = 0; line < totalLines; ++line) {
+    if (send(SCI_MARKERGET, line) & (conditionalBPStyle | BPStyleMask)) modifyLine(line, Action::AddBP);
+  }
 }
-
-/* // I actually think this is a bad idea, but keeping code for reference.
-void ScintillaEditBase::removeMarkersOnModified(Scintilla::ModificationFlags type, Scintilla::Position position,
-                                                Scintilla::Position length, Scintilla::Position linesAdded,
-                                                const QByteArray &text, Scintilla::Position line,
-                                                Scintilla::FoldLevel foldNow, Scintilla::FoldLevel foldPrev) {
-  // Lines added is unsigned, but can contain negative values if lines were deleted.
-  // Cast to avoid signed'ness issues / trivially being true.
-  if (!FlagSet(type, ModificationFlags::DeleteText) || std::make_signed<Scintilla::Position>::type(linesAdded) >= 0)
-    return;
-  int startLine = send(SCI_LINEFROMPOSITION, position);
-  // markers are merged when lines are deleted, so we may remove markers we wished to keep.
-  for (int it = startLine + linesAdded; it <= startLine; ++it) send(SCI_MARKERDELETE, it, -1);
-}*/
 
 void ScintillaAsmEditBase::clearAllEOLAnnotations() { send(SCI_EOLANNOTATIONCLEARALL); }
 
@@ -291,8 +292,11 @@ void ScintillaAsmEditBase::applyStyles() {
   send(SCI_STYLESETBACK, SCE_PEPASM_MACRO_END, alphaBlend(_theme->comment()->background(), baseBack));
   setStylesFont(macroFont(_theme->comment()), SCE_PEPASM_MACRO_END);
 
-  send(SCI_MARKERSETFORE, SC_MARK_CIRCLE, c2i(_theme->error()->background()));
-  send(SCI_MARKERSETBACK, SC_MARK_CIRCLE, c2i(_theme->error()->background()));
+  send(SCI_MARKERSETFORE, BPStyle, c2i(_theme->error()->foreground()));
+  send(SCI_MARKERSETBACK, BPStyle, c2i(_theme->error()->background()));
+  send(SCI_MARKERSETFORE, conditionalBPStyle, c2i(_theme->error()->background()));
+  send(SCI_MARKERSETBACK, conditionalBPStyle, c2i(_theme->error()->foreground()));
+
   // Set the selection / highlighting for lines
   send(SCI_SETSELFORE, STYLE_DEFAULT, c2i(_theme->alternateBase()->foreground()));
   send(SCI_SETSELBACK, STYLE_DEFAULT, c2i(_theme->alternateBase()->background()));
