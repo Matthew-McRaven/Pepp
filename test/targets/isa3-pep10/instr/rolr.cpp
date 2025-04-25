@@ -47,8 +47,8 @@ template <isa::Pep10::Register target_reg> void inner(isa::Pep10::Mnemonic op) {
     CHECK(reg(cpu, isa::Pep10::Register::PC) == 0x1);
     CHECK(reg(cpu, isa::Pep10::Register::IS) == (quint8)op);
     CHECK(reg(cpu, isa::Pep10::Register::OS) == 0);
-    CHECK(csr(cpu, isa::Pep10::CSR::N) == 0);
-    CHECK(csr(cpu, isa::Pep10::CSR::Z) == 0);
+    CHECK(csr(cpu, isa::Pep10::CSR::N) == (endRegVal & 0x8000 ? 1 : 0));
+    CHECK(csr(cpu, isa::Pep10::CSR::Z) == (endRegVal == 0 ? 1 : 0));
     auto new_reg = reg(cpu, target_reg);
     CHECK(csr(cpu, isa::Pep10::CSR::V) == 0);
     // Carry out if high order bit was non-zero

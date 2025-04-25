@@ -209,21 +209,6 @@ sim::api2::tick::Result targets::pep10::isa::CPU::unaryDispatch(quint8 is, quint
 
   case mn::NOP: break;
 
-  case mn::NOTA:
-    tmp = ~a;
-    n = tmp & 0x8000;
-    z = tmp == 0x0000;
-    writeReg(Register::A, tmp);
-    writePackedCSR(targets::isa::packCSR<ISA>(n, z, v, c));
-    break;
-  case mn::NOTX:
-    tmp = ~x;
-    n = tmp & 0x8000;
-    z = tmp == 0x0000;
-    writeReg(Register::X, tmp);
-    writePackedCSR(targets::isa::packCSR<ISA>(n, z, v, c));
-    break;
-
   case mn::NEGA:
     tmp = ~a + 1;
     n = tmp & 0x8000;
@@ -305,9 +290,26 @@ sim::api2::tick::Result targets::pep10::isa::CPU::unaryDispatch(quint8 is, quint
     writePackedCSR(targets::isa::packCSR<ISA>(n, z, v, c));
     break;
 
+  case mn::NOTA:
+    tmp = ~a;
+    n = tmp & 0x8000;
+    z = tmp == 0x0000;
+    writeReg(Register::A, tmp);
+    writePackedCSR(targets::isa::packCSR<ISA>(n, z, v, c));
+    break;
+  case mn::NOTX:
+    tmp = ~x;
+    n = tmp & 0x8000;
+    z = tmp == 0x0000;
+    writeReg(Register::X, tmp);
+    writePackedCSR(targets::isa::packCSR<ISA>(n, z, v, c));
+    break;
+
   case mn::ROLA:
     // Shift the carry in to low order bit.
     tmp = static_cast<quint16>(a << 1 | (c ? 1 : 0));
+    n = tmp & 0x8000;
+    z = tmp == 0x0000;
     // Carry out if register starts with high order 1.
     c = a & 0x8000;
     writeReg(Register::A, tmp);
@@ -316,6 +318,8 @@ sim::api2::tick::Result targets::pep10::isa::CPU::unaryDispatch(quint8 is, quint
   case mn::ROLX:
     // Shift the carry in to low order bit.
     tmp = static_cast<quint16>(x << 1 | (c ? 1 : 0));
+    n = tmp & 0x8000;
+    z = tmp == 0x0000;
     // Carry out if register starts with high order 1.
     c = x & 0x8000;
     writeReg(Register::X, tmp);
@@ -325,6 +329,8 @@ sim::api2::tick::Result targets::pep10::isa::CPU::unaryDispatch(quint8 is, quint
   case mn::RORA:
     // Shift the carry in to high order bit.
     tmp = a >> 1 | (c ? 1 << 15 : 0);
+    n = tmp & 0x8000;
+    z = tmp == 0x0000;
     // Carry out if register starts with low order 1.
     c = a & 0x1;
     writeReg(Register::A, tmp);
@@ -333,6 +339,8 @@ sim::api2::tick::Result targets::pep10::isa::CPU::unaryDispatch(quint8 is, quint
   case mn::RORX:
     // Shift the carry in to high order bit.
     tmp = x >> 1 | (c ? 1 << 15 : 0);
+    n = tmp & 0x8000;
+    z = tmp == 0x0000;
     // Carry out if register starts with low order 1.
     c = x & 0x1;
     writeReg(Register::X, tmp);
