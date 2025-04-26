@@ -97,7 +97,7 @@
             "foreground": "0xffb0c4de",
             "name": "MnemonicRole",
             "parent": "BaseMonoRole",
-            "macroFont": "Monaspace Krypton,12,-1,5,400,0,0,0,0,0,0,0,0,0,0,1"
+            "macroFont": "Monaspace Xenon,12,-1,5,400,0,0,0,0,0,0,0,0,0,0,1"
         },
         {
             "foreground": "0xffb67bbc",
