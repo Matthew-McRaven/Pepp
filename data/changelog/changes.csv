@@ -109,3 +109,5 @@ Changed,,0.9.1,824,"Distinguish macro expansions from user code via italics rath
 Fixed,,0.9.1,825,"Fix a bug where memory dump does not use a monospaced font"
 Changed,,0.9.1,826,"Change default monospaced font to GitHub's ""Monaspace Argon"" font for increased legibility"
 Changed,,0.9.1,,"Disable slashed 0s in default monospaced font"
+Changed,,0.9.1,826,"Change default monospace font to GitHub's ""Monaspace Argon"" font for increased legibility"
+Changed,,0.9.1,,"Modernize app icon"
