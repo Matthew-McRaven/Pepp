@@ -250,20 +250,23 @@ void pepp::settings::PaletteItem::emitChanged() { emit preferenceChanged(); }
 
 void pepp::settings::PaletteItem::updateFont(const QFont newFont) {
   QFontInfo fontInfo(newFont);
-  if (!fontInfo.fixedPitch() && PaletteRoleHelper::requiresMonoFont(_ownRole)) _font = QFont("Monaspace Argon", 12);
-  else _font = newFont;
+  if (!fontInfo.fixedPitch() && PaletteRoleHelper::requiresMonoFont(_ownRole)) _font = default_mono();
+  else {
+    _font = newFont;
+    _font->setFeature("cv01", 1);
+  }
 }
 
 void pepp::settings::PaletteItem::preventNonMonoParent() {
   // We either have a font and do not need to care about our parent or we do not care because we don't need a mono font.
   if (hasOwnFont() || !PaletteRoleHelper::requiresMonoFont(_ownRole)) {
   } else if (!_parent) {
-    if (!hasOwnFont()) _font = QFont("Monaspace Argon", 12);
+    if (!hasOwnFont()) _font = default_mono();
   } else {
     // For some reason, the actual font (returned below) does not set fixed pitch, while QFontInfo does.
     auto font = _parent->font();
     QFontInfo fontInfo(font);
-    if (!fontInfo.fixedPitch()) _font = QFont("Monaspace Argon", 12);
+    if (!fontInfo.fixedPitch()) _font = default_mono();
   }
 }
 
@@ -289,8 +292,8 @@ QFont pepp::settings::EditorPaletteItem::macroFont() const {
     baseline.setUnderline(_fontOverrides.underline.value_or(baseline.underline()));
     baseline.setStrikeOut(_fontOverrides.strikeout.value_or(baseline.strikeOut()));
     return baseline;
-  } else return _macroFont.value_or(QFont("Monaspace Argon", 12));
-}
+  } else return _macroFont.value_or(default_mono());
+};
 
 void pepp::settings::EditorPaletteItem::clearMacroFont() {
   _macroFont.reset();
@@ -334,6 +337,19 @@ void pepp::settings::EditorPaletteItem::toSettings(QSettings &settings) const {
 
 void pepp::settings::EditorPaletteItem::updateMacroFont(const QFont newFont) {
   QFontInfo fontInfo(newFont);
-  if (!fontInfo.fixedPitch()) _macroFont = QFont("Monaspace Argon", 12);
+  if (!fontInfo.fixedPitch()) _macroFont = default_mono();
   else _macroFont = newFont;
+}
+
+namespace {
+auto create = []() {
+  auto f = QFont("Monaspace Argon", 12);
+  f.setFeature("cv01", 1);
+  return f;
+};
+} // namespace
+QFont pepp::settings::default_mono() {
+  // Use a helper to only initialize the font once
+  static const QFont mono = create();
+  return mono;
 }

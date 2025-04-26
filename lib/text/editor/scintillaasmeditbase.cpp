@@ -221,7 +221,7 @@ void ScintillaAsmEditBase::applyStyles() {
       f.setItalic(true);
       return f;
     }
-    return QFont("Monaspace Argon", 12, -1, true);
+    return pepp::settings::default_mono();
   };
 
   for (int mask : {0, SCE_PEPASM_DEFAULT_GEN}) {

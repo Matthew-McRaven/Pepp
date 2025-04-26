@@ -107,4 +107,5 @@ Changed,,0.9.1,820,"Differentiate conditional and unconditional breakpoints in e
 Changed,Minor,0.9.1,821,"Move `NOTr` after `ASRr` in Pep/10 ISA"
 Changed,,0.9.1,824,"Distinguish macro expansions from user code via italics rather than a different font"
 Fixed,,0.9.1,825,"Fix a bug where memory dump does not use a monospaced font"
-Changed,,0.9.1,826,"Change default monospace font to GitHub's ""Monaspace Argon"" font for increased legibility"
+Changed,,0.9.1,826,"Change default monospaced font to GitHub's ""Monaspace Argon"" font for increased legibility"
+Changed,,0.9.1,,"Disable slashed 0s in default monospaced font"
