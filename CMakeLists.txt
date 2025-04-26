@@ -6,6 +6,17 @@ cmake_minimum_required(VERSION 3.24)
 # Needs CMake 3.20, hence line 1.
 cmake_policy(SET CMP0118 NEW)
 
+include(FetchContent)
+
+
+FetchContent_Declare(
+    monaspace
+    GIT_REPOSITORY https://github.com/githubnext/monaspace.git
+    GIT_TAG 3bf3e8f7bd01462dd810bd0ab0b1b59e6674cc5c
+    # Don't fetch entire history, just the commit we care about.
+    GIT_SHALLOW 1
+)
+
 # Allow normalized paths (e.g., "asm/pas" ) without nesting that directory folder
 # inside a nested "src" hierarchy. May cause linking issues if you do not pay attention.
 include_directories(${CMAKE_CURRENT_LIST_DIR}/logic ${CMAKE_CURRENT_LIST_DIR}/ui ${CMAKE_CURRENT_LIST_DIR}/lib)
@@ -51,6 +62,7 @@ if (ONLY STREQUAL "BUILD")
     set(CMAKE_CXX_STANDARD 20)
     set(CMAKE_CXX_STANDARD_REQUIRED ON)
     SET(QT_QML_GENERATE_QMLLS_INI ON)
+    FetchContent_MakeAvailable(monaspace)
     # We always want universal builds, so do not set on a per-target basis
     find_package(Qt6 6.9 COMPONENTS REQUIRED Svg Quick Core Gui Qml Test Widgets QuickControls2 Xml Sql)
     if(Qt6_VERSION  VERSION_GREATER_EQUAL 6.8)
