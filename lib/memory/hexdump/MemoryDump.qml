@@ -14,13 +14,7 @@ Item {
     }
     FontMetrics {
         id: fm
-        font: Qt.font({
-                          "family": settings.extPalette.baseMono.font.family,
-                          "weight": Font.Normal,
-                          "italic": false,
-                          "bold": false,
-                          "pointSize": 10
-                      })
+        font: settings.extPalette.baseMono.font
     }
     property int colWidth: 25
     property int rowHeight: 20

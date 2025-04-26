@@ -108,6 +108,7 @@ public:
     pfont->setPointSizeF(fp.size);
     pfont->setBold(static_cast<int>(fp.weight) > 500);
     pfont->setItalic(fp.italic);
+    pfont->setFeature("cv01", 1);
   }
 };
 
