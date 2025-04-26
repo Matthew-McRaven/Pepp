@@ -1,108 +1,46 @@
 <?xml version="1.0" encoding="UTF-8" standalone="no"?>
-<!--
-  - Copyright (c) 2024 J. Stanley Warford, Matthew McRaven
-  - This program is free software: you can redistribute it and/or modify
-  - it under the terms of the GNU General Public License as published by
-  - the Free Software Foundation, either version 3 of the License, or
-  - (at your option) any later version.
-  -
-  - This program is distributed in the hope that it will be useful,
-  - but WITHOUT ANY WARRANTY; without even the implied warranty of
-  - MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-  - GNU General Public License for more details.
-  -
-  - You should have received a copy of the GNU General Public License
-  - along with this program.  If not, see <https://www.gnu.org/licenses/>.
-  -->
-
-<!-- Created with Inkscape (http://www.inkscape.org/) -->
-
-<svg
-        width="136"
-        height="136"
-        viewBox="0 0 135.46666 135.46667"
-        version="1.1"
-        id="svg1"
-        xmlns:xlink="http://www.w3.org/1999/xlink"
-        xmlns="http://www.w3.org/2000/svg"
-        xmlns:svg="http://www.w3.org/2000/svg">
-    <defs
-            id="defs1">
-        <linearGradient
-                id="BackgroundGradient"
-                gradientUnits="userSpaceOnUse"
-                x1="0"
-                y1="00"
-                x2="136"
-                y2="136"
-        >
-            <stop
-                    stop-color="#E1CB9E"
-                    stop-opacity="1"
-                    offset="0"
-                    id="stop1"/>
-            <stop
-                    stop-color="#E1A155"
-                    stop-opacity="1"
-                    offset="40%"
-                    id="stop2"/>
-            <stop
-                    stop-color="#E18312"
-                    stop-opacity="1"
-                    offset="100%"
-                    id="stop3"/>
-        </linearGradient>
-        <filter
-                style="color-interpolation-filters:sRGB;"
-                id="DropShadow"
-                x="-0.10301983"
-                y="-0.078480451"
-                width="1.2903382"
-                height="1.2211795">
-            <feFlood
-                    result="flood"
-                    in="SourceGraphic"
-                    flood-opacity="0.498039"
-                    flood-color="rgb(0,0,0)"
-                    id="feFlood2"/>
-            <feGaussianBlur
-                    result="blur"
-                    in="SourceGraphic"
-                    stdDeviation="3.000000"
-                    id="feGaussianBlur2"/>
-            <feOffset
-                    result="offset"
-                    in="blur"
-                    dx="6.000000"
-                    dy="6.000000"
-                    id="feOffset2"/>
-            <feComposite
-                    result="comp1"
-                    operator="in"
-                    in="flood"
-                    in2="offset"
-                    id="feComposite2"/>
-            <feComposite
-                    result="comp2"
-                    operator="over"
-                    in="SourceGraphic"
-                    in2="comp1"
-                    id="feComposite3"/>
-        </filter>
-    </defs>
-    <g
-            id="layer1">
-        <rect
-                style="fill:url(#BackgroundGradient);fill-opacity:1;stroke-width:0.255752"
-                id="Background"
-                width="136"
-                height="136"
-                x="0"
-                y="0"/>
-        <path
-                style="font-size:141.111px;font-family:'Times New Roman';-inkscape-font-specification:'Times New Roman, Normal';fill:#08003e;filter:url(#DropShadow)"
-                d="m 55.559919,67.964075 v 27.216232 q 0,8.819433 1.929252,10.955393 2.61827,3.03168 7.923713,3.03168 h 3.582896 v 2.54937 H 28.963804 v -2.54937 h 3.513995 q 5.925559,0 8.474928,-3.8585 1.378037,-2.13596 1.378037,-10.128573 V 34.822285 q 0,-8.819438 -1.86035,-10.955395 -2.687173,-3.031681 -7.992615,-3.031681 H 28.963804 V 18.28584 h 34.244221 q 12.540137,0 19.774831,2.61827 7.234695,2.549369 12.195628,8.681634 4.960936,6.132265 4.960936,14.538291 0,11.437707 -7.579206,18.603499 -7.510302,7.165793 -21.290673,7.165793 -3.37619,0 -7.303596,-0.482313 -3.927405,-0.482313 -8.406026,-1.446939 z m 0,-3.927405 q 3.651798,0.689018 6.476774,1.033527 2.824976,0.34451 4.82313,0.34451 7.165792,0 12.333431,-5.512148 5.236541,-5.58105 5.236541,-14.400487 0,-6.063363 -2.480467,-11.231002 -2.480466,-5.236541 -7.027988,-7.78591 -4.547523,-2.61827 -10.335278,-2.61827 -3.513995,0 -9.026143,1.309135 z"
-                id="text2"
-                aria-label="P"/>
-    </g>
+<svg viewBox="0 0 512 512"
+     xmlns="http://www.w3.org/2000/svg"
+     xmlns:xlink="http://www.w3.org/1999/xlink"
+     xmlns:ev="http://www.w3.org/2001/xml-events">
+  >
+ <defs
+     id="defs2">
+    <linearGradient
+       id="bg-gradient"
+       x1="0"
+       y1="0"
+       x2="0"
+       y2="1">
+      <stop
+         offset="0%"
+         stop-color="#0d3c66"
+         id="stop1" />
+      <stop
+         offset="100%"
+         stop-color="#062a4f"
+         id="stop2" />
+    </linearGradient>
+    <style
+       id="style2">
+      .bg { fill: url(#bg-gradient); }
+      .letter { fill: #f57c00; font-family: 'Montserrat', sans-serif; font-weight: 700; font-size: 320px; dominant-baseline: middle; text-anchor: middle; }
+    </style>
+  </defs>
+  <!-- Rounded square background -->
+  <rect
+     class="bg"
+     x="0"
+     y="0"
+     width="512"
+     height="512"
+     rx="96"
+     ry="96"
+     id="rect2" />
+  <!-- "P" rendered as text using Montserrat Bold -->
+  <path
+     d="m 104.45313,-71.484375 q 0,15.625 -5.468755,30.625 -5.46875,14.84375 -15.625,25 -13.90625,13.75 -31.09375,20.78125 -17.03125,7.03125 -42.5,7.03125 h -37.34375 v 75.78125 h -60 V -144.92187 h 98.75 q 22.1875,0 37.34375,3.90625 15.3125,3.75 27.03125,11.40625 14.0625,9.21874 21.40625,23.59374 7.500005,14.375005 7.500005,34.531255 z m -62.031255,1.40625 q 0,-9.84375 -5.3125,-16.875 -5.3125,-7.1875 -12.34375,-10 -9.375,-3.750005 -18.28125,-4.062505 -8.90625,-0.46875 -23.75,-0.46875 h -10.3125 v 69.687505 h 17.1875 q 15.3125,0 25.15625,-1.875 10,-1.875 16.71875,-7.5 5.78125,-5 8.28125,-11.875 2.65625,-7.03125 2.65625,-17.03125 z"
+     class="letter"
+     transform="translate(256 310) scale(1.5)"
+     aria-label="P" />
 </svg>
