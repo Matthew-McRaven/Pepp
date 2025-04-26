@@ -221,7 +221,7 @@ void ScintillaAsmEditBase::applyStyles() {
       f.setItalic(true);
       return f;
     }
-    return QFont("Monaspace Xenon", 12, -1, true);
+    return QFont("Monaspace Argon", 12, -1, true);
   };
 
   for (int mask : {0, SCE_PEPASM_DEFAULT_GEN}) {
