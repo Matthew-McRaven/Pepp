@@ -64,6 +64,14 @@ qt_add_resources(pepp-lib "fonts"
         FILES ${fonts}
 )
 
+file(GLOB_RECURSE fonts-dl CONFIGURE_DEPENDS "${monaspace_SOURCE_DIR}/fonts/otf/*")
+list(FILTER fonts-dl EXCLUDE REGEX ".*(Extra|Light|Medium|Wide|Semi).*")
+qt_add_resources(pepp-lib "fonts-dl"
+        PREFIX "/fonts/mono"
+        BASE "${monaspace_SOURCE_DIR}/fonts/otf"
+        FILES ${fonts-dl}
+)
+
 # Include default themes without having to hard-code.
 file(GLOB_RECURSE themes CONFIGURE_DEPENDS "${PROJECT_DATA_DIR}/themes/*")
 qt_add_resources(pepp-lib "themes"

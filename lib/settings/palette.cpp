@@ -156,8 +156,8 @@ int pepp::settings::Palette::itemToRole(const PaletteItem *item) const {
 }
 
 void pepp::settings::Palette::loadLightDefaults() {
-  static const auto defaultMono = QFont("Monaspace Xenon", 12);
-  static const auto defaultMacro = QFont("Monaspace Krypton", 12);
+  static const auto defaultMono = QFont("Monaspace Argon", 12);
+  static const auto defaultMacro = QFont("Monaspace Argon", 12);
   using PO = PaletteItem::Options;
   using EO = EditorPaletteItem::EditorOptions;
   using R = PaletteRoleHelper::Role;

@@ -216,8 +216,12 @@ void ScintillaAsmEditBase::applyStyles() {
   send(SCI_STYLECLEARALL, 0, 0);
   auto macroFont = [&](const pepp::settings::PaletteItem *item) {
     auto asEditorItem = qobject_cast<const pepp::settings::EditorPaletteItem *>(item);
-    if (asEditorItem) return asEditorItem->macroFont();
-    return QFont("Monaspace Xenon", 12);
+    if (asEditorItem) {
+      auto f = asEditorItem->macroFont();
+      f.setItalic(true);
+      return f;
+    }
+    return QFont("Monaspace Argon", 12, -1, true);
   };
 
   for (int mask : {0, SCE_PEPASM_DEFAULT_GEN}) {

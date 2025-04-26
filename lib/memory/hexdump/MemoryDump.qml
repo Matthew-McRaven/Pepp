@@ -9,20 +9,13 @@ import edu.pepp 1.0
 
 Item {
     id: root
-    property alias asciiFont: asciiFM.font
-
-    property font hexFont: Qt.font({
-                                       "family": settings.extPalette.baseMono.font,
-                                       "weight": Font.Normal,
-                                       "italic": false,
-                                       "bold": false,
-                                       "capitalization": Font.AllUppercase,
-                                       "pointSize": 10
-                                   })
+    NuAppSettings {
+        id: settings
+    }
     FontMetrics {
-        id: asciiFM
+        id: fm
         font: Qt.font({
-                          "family": settings.extPalette.baseMono.font,
+                          "family": settings.extPalette.baseMono.font.family,
                           "weight": Font.Normal,
                           "italic": false,
                           "bold": false,
@@ -38,9 +31,6 @@ Item {
     function scrollToAddress(addr) {
         const row = Math.floor(addr / root.model?.bytesPerRow)
         tableView.positionViewAtRow(row, TableView.Contain)
-    }
-    NuAppSettings {
-        id: settings
     }
 
     TableView {
@@ -458,7 +448,7 @@ Item {
                     }
 
                     textAlign: model.textAlign
-                    font: asciiFont
+                    font: fm.font
                 }
             }
         }
@@ -475,8 +465,8 @@ Item {
         TextField {
             id: addrField
             maximumLength: 6
-            width: asciiFM.averageCharacterWidth * maximumLength
-            font: asciiFM.font
+            width: fm.averageCharacterWidth * maximumLength
+            font: fm.font
             text: `0x${root.currentAddress.toString(16).padStart(
                       4, '0').toUpperCase()}`
             validator: RegularExpressionValidator {

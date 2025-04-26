@@ -8,7 +8,7 @@
             "name": "BaseRole"
         },
         {
-            "font": "Monaspace Xenon,12,-1,5,400,0,0,0,0,0,0,0,0,0,0,1",
+            "font": "Monaspace Argon,12,-1,5,400,0,0,0,0,0,0,0,0,0,0,1",
             "name": "BaseMonoRole",
             "parent": "BaseRole"
         },
@@ -94,7 +94,7 @@
             "foreground": "0xff2540bd",
             "name": "MnemonicRole",
             "parent": "BaseMonoRole",
-            "macroFont": "Monaspace Krypton,12,-1,5,400,0,0,0,0,0,0,0,0,0,0,1"
+            "macroFont": "Monaspace Argon,12,-1,5,400,0,0,0,0,0,0,0,0,0,0,1"
         },
         {
             "background": "0xffffffff",
