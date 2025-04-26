@@ -25,13 +25,7 @@ include_directories(${CMAKE_CURRENT_LIST_DIR}/logic ${CMAKE_CURRENT_LIST_DIR}/ui
 # BUILD: compiles the project normally
 # VERSION: output the project version to ${CMAKE_CURRENT_LIST_DIR}/version
 set(ONLY "BUILD" CACHE STRING "Only build code/documentation/version")
-# Must disable QRC logic if emscripten, because a developer may forget to set this flag.
-if (EMSCRIPTEN)
-    set(DOC_AUDIENCE "WEB")
-    add_compile_options(-O1 -gsource-map)
-    add_link_options(-sALLOW_MEMORY_GROWTH=1 -sTOTAL_MEMORY=1000000000 -sINITIAL_MEMORY=250MB -g2 -gsource-map)
-    set(QT_WASM_INITIAL_MEMORY 250MB  CACHE INTERNAL "" FORCE)
-endif ()
+
 option(SANITIZE "Enable sanitizers" OFF)
 if (SANITIZE AND CMAKE_CXX_COMPILER_ID STREQUAL "Clang")
     add_compile_options(-fsanitize=undefined -fsanitize=address)
@@ -57,6 +51,11 @@ set(CMAKE_LIBRARY_OUTPUT_DIRECTORY "${PROJECT_BINARY_DIR}/output")
 set(CMAKE_RUNTIME_OUTPUT_DIRECTORY "${PROJECT_BINARY_DIR}/output")
 
 if (ONLY STREQUAL "BUILD")
+    if (EMSCRIPTEN)
+        add_compile_options(-O1 -gsource-map)
+        add_link_options(-sALLOW_MEMORY_GROWTH=1 -sTOTAL_MEMORY=1GB -sINITIAL_MEMORY=150MB -g2 -gsource-map)
+        set(QT_WASM_INITIAL_MEMORY 150MB  CACHE INTERNAL "" FORCE)
+    endif()
     message("Performing build")
     set(PROJECT_DATA_DIR "${CMAKE_CURRENT_LIST_DIR}/data")
     set(CMAKE_CXX_STANDARD 20)
