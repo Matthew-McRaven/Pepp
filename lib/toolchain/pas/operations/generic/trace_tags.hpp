@@ -27,7 +27,12 @@ struct TraceMatch {
   QStringList args;
   operator QString() const;
 };
+// Matches type declaration (i.e., #2d) or array declaration (i.e., #2d10a)
+bool isTypeTag(const QStringView &str);
+
 std::optional<std::vector<TraceMatch>> parseTraceCommand(const QString &comment);
+
+QString infer_command(const ast::Node &node, const QStringList &args);
 
 struct Command {
   QString command;
