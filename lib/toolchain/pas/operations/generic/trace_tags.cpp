@@ -54,11 +54,8 @@ void pas::ops::generic::ExtractTraceTags::operator()(ast::Node &node) {
   using namespace pas::ast::generic;
   std::optional<std::vector<pas::ops::generic::TraceMatch>> match = std::nullopt;
 
-  /*for (const auto &[key, value] : node.attributes().asKeyValueRange()) {
-    auto v = value.toString();
-    qDebug().noquote().nospace() << key << ":" << v + ",";
-  }*/
-  if (node.has<Comment>()) match = pas::ops::generic::parseTraceCommand(node.get<Comment>().value);
+  if (node.has<IsMacroComment>()) return;
+  else if (node.has<Comment>()) match = pas::ops::generic::parseTraceCommand(node.get<Comment>().value);
   else return;
 
   if (match) {

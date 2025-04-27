@@ -26,6 +26,12 @@ struct CommentIndent {
   Level value = Level::Left;
   bool operator==(const CommentIndent &other) const = default;
 };
+struct IsMacroComment {
+  static const inline QString attributeName = "generic:comment_macro";
+  static const inline uint8_t attribute = 25;
+  bool operator==(const IsMacroComment &other) const = default;
+};
 } // namespace pas::ast::generic
 
 Q_DECLARE_METATYPE(pas::ast::generic::CommentIndent);
+Q_DECLARE_METATYPE(pas::ast::generic::IsMacroComment);
