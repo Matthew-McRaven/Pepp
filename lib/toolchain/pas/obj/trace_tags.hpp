@@ -13,5 +13,6 @@ void writeDebugCommands(ELFIO::elfio &elf, pas::ast::Node &root);
 namespace detail {
 // Get line mapping section or return nullptr;
 ELFIO::section *getTraceSection(ELFIO::elfio &elf);
+ELFIO::section *getOrAddTraceSection(ELFIO::elfio &elf);
 } // namespace detail
 } // namespace pas::obj::common
