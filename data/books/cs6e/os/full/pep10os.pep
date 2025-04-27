@@ -19,7 +19,7 @@ false:   .EQUATE 0
 ;
 ;******* System Entry Point
 retVal:  .EQUATE 0           ;Main return value #2d
-disp:    MOVSPA
+disp:    MOVSPA              ;@bp@onload@once@cond#$ifOSDebug
          STWA    initSp,d    ;Preserve system stack pointer
          LDWA    osRAM,i     ;Load address of user stack
          MOVASP

@@ -34,9 +34,11 @@ std::optional<std::vector<TraceMatch>> parseTraceCommand(const QString &comment)
 
 QString infer_command(const ast::Node &node, const QStringList &args);
 
+bool is_modifier(const QString &cmd);
+
 struct Command {
-  QString command;
-  QStringList args;
+  TraceMatch command;
+  std::vector<TraceMatch> modifiers;
   std::optional<quint32> address;
   operator QString() const;
 };

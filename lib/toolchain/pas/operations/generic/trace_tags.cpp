@@ -21,7 +21,7 @@ QString format(const QString &cmd, const QStringList &args) {
 pas::ops::generic::TraceMatch::operator QString() const { return format(command, args); }
 
 std::optional<std::vector<pas::ops::generic::TraceMatch>> pas::ops::generic::parseTraceCommand(const QString &comment) {
-  static const QRegularExpression re("[#@]\\w+");
+  static const QRegularExpression re("[#@]([=<>()/!~%^&*\\-+\\.|$]|\\w)*(\\w)+");
   static const QRegularExpression space("\\W+");
 
   auto match = re.globalMatch(comment);
@@ -112,7 +112,10 @@ void pas::ops::generic::ExtractTraceTags::operator()(ast::Node &node) {
     for (const auto &cmd : wip_commands) {
       cmd_str = cmd.command;
       if (cmd_str.isEmpty()) cmd_str = infer_command(node, cmd.args);
-      commands.push_back(Command{cmd_str, cmd.args, address});
+      TraceMatch m{.command = cmd_str, .args = cmd.args};
+      if (is_modifier(cmd_str)) {
+        if (commands.size() > 0) commands.back().modifiers.push_back(m);
+      } else commands.push_back(Command{m, {}, address});
     }
     wip_commands.clear();
   }
@@ -127,6 +130,16 @@ std::vector<pas::ops::generic::Command> pas::ops::generic::extractTraceTags(ast:
 
 pas::ops::generic::Command::operator QString() const {
   using namespace Qt::StringLiterals;
-  if (address) return u"%1: %2"_s.arg(*address, 4, 16).arg(format(command, args));
-  else return u"      %1"_s.arg(format(command, args));
+  QStringList modifiers;
+  for (const auto &mod : this->modifiers) modifiers.push_back(mod);
+  QString modifier_str = modifiers.join("←");
+  if (!modifier_str.isEmpty()) modifier_str = "←" + modifier_str;
+
+  if (address) return u"%1: %2%3"_s.arg(*address, 4, 16).arg(command).arg(modifier_str);
+  else return u"      %1%2"_s.arg(command).arg(modifier_str);
+}
+
+bool pas::ops::generic::is_modifier(const QString &cmd) {
+  static const QSet<QString> mods = {"onload", "once", "cond"};
+  return mods.contains(cmd);
 }
