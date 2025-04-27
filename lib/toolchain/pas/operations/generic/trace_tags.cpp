@@ -50,6 +50,46 @@ std::optional<std::vector<pas::ops::generic::TraceMatch>> pas::ops::generic::par
   return ret;
 }
 
+bool pas::ops::generic::isTypeTag(const QStringView &str) {
+  static const QRegularExpression re("\\d+[cdsuh](\\d+a)?");
+  if (re.matchView(str).hasMatch()) return true;
+  return false;
+}
+
+QString pas::ops::generic::infer_command(const ast::Node &node, const QStringList &args) {
+  static const auto equate_alias = QList<QString>{"EQUATE"};
+  static const auto global_alias = QList<QString>{"BLOCK", "BYTE", "WORD", "ADDRSS"};
+
+  auto equate = pas::ops::generic::isSet{};
+  equate.directiveAliases = equate_alias;
+  auto global = pas::ops::generic::isSet{};
+  global.directiveAliases = global_alias;
+  if (equate(node)) {
+    bool allTypes = true;
+    for (const auto &arg : args) allTypes &= isTypeTag(arg);
+    if (allTypes) return "type";
+    return "struct";
+  } else if (global(node)) {
+    bool allTypes = true;
+    for (const auto &arg : args) allTypes &= isTypeTag(arg);
+    if (allTypes) return "global";
+    return "struct";
+  } else if (pepp::isNonUnary<isa::Pep10>()(node)) {
+    auto instr = node.get<pas::ast::pepp::Instruction<isa::Pep10>>();
+    switch (instr.value) {
+    case isa::detail::pep10::Mnemonic::CALL: return "heap";
+    default: return "params";
+    }
+  } else if (pepp::isNonUnary<isa::Pep9>()(node)) {
+    auto instr = node.get<ast::pepp::Instruction<isa::Pep9>>();
+    switch (instr.value) {
+    case isa::detail::pep9::Mnemonic::CALL: return "heap";
+    default: return "params";
+    }
+  } else if (node.has<ast::generic::SymbolDeclaration>()) return "locals";
+  else return "params";
+}
+
 void pas::ops::generic::ExtractTraceTags::operator()(ast::Node &node) {
   using namespace pas::ast::generic;
   std::optional<std::vector<pas::ops::generic::TraceMatch>> match = std::nullopt;
@@ -68,8 +108,11 @@ void pas::ops::generic::ExtractTraceTags::operator()(ast::Node &node) {
 
   // If line is not a comment, then we assign all queued commands to this line, clearing the queue.
   if (!isComment()(node)) {
+    QString cmd_str = "";
     for (const auto &cmd : wip_commands) {
-      commands.push_back(Command{cmd.command, cmd.args, address});
+      cmd_str = cmd.command;
+      if (cmd_str.isEmpty()) cmd_str = infer_command(node, cmd.args);
+      commands.push_back(Command{cmd_str, cmd.args, address});
     }
     wip_commands.clear();
   }
