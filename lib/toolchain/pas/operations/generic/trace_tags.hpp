@@ -27,11 +27,19 @@ struct TraceMatch {
   QStringList args;
   operator QString() const;
 };
-std::optional<TraceMatch> parseTraceCommand(const QString &comment);
+std::optional<std::vector<TraceMatch>> parseTraceCommand(const QString &comment);
+
+struct Command {
+  QString command;
+  QStringList args;
+  std::optional<quint32> address;
+  operator QString() const;
+};
+
 struct ExtractTraceTags : public pas::ops::MutatingOp<void> {
-  std::map<quint32, QString> commands;
-  QString wip_command;
+  std::vector<Command> commands;
+  std::vector<TraceMatch> wip_commands;
   void operator()(ast::Node &node) override;
 };
-std::map<quint32, QString> extractTraceTags(ast::Node &node);
+std::vector<Command> extractTraceTags(ast::Node &node);
 } // namespace pas::ops::generic
