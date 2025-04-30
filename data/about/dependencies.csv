@@ -16,3 +16,4 @@ Monaspace,https://monaspace.githubnext.com,SIL Open Font License 1.1,OFL-1.1,:/a
 KDDockWidgets,https://github.com/KDAB/KDDockWidgets,GNU General Public License v3.0 only,GPL-3.0-only,:/about/dep/kddw.txt, 0
 spdlog,https://github.com/gabime/spdlog,MIT License,MIT,:/about/dep/spdlog.txt, 0
 fmt,https://github.com/fmtlib/fmt,MIT License,MIT,:/about/dep/fmt.txt, 0
+LLVM LEB128,https://llvm.org/,University of Illinois/NCSA Open Source License,NCSA,:/about/dep/llvm.txt, 0
