@@ -272,7 +272,6 @@ Pep_ISA::Pep_ISA(project::Environment env, QVariant delegate, QObject *parent, b
 }
 
 void Pep_ISA::bindToSystem() {
-
   switch (_env.arch) {
   case builtins::ArchitectureHelper::Architecture::PEP9:
     _flags = flag_model<targets::pep9::isa::CPU, isa::Pep9>(&*_system, this);
