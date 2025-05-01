@@ -19,6 +19,11 @@ Item {
     function syncEditors() {
         save()
     }
+    function preAssemble() {
+        if (project === null)
+            return
+        save()
+    }
     Component.onCompleted: {
         // Must connect and disconnect manually, otherwise project may be changed underneath us, and "save" targets wrong project.
         // Do not need to update on mode change, since mode change implies loss of focus of objEdit.
