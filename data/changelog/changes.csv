@@ -111,3 +111,4 @@ Changed,,0.9.1,826,"Change default monospaced font to GitHub's ""Monaspace Argon
 Changed,,0.9.1,,"Disable slashed 0s in default monospaced font"
 Changed,,0.9.1,826,"Change default monospace font to GitHub's ""Monaspace Argon"" font for increased legibility"
 Changed,,0.9.1,,"Modernize app icon"
+Fixed,Major,0.9.1,,"Fix a bug where ISA3 projects would not simulate"
