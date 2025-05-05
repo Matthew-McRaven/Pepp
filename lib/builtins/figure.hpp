@@ -33,8 +33,8 @@ namespace builtins {
  */
 class Figure : public QObject {
   Q_OBJECT
-  Q_PROPERTY(builtins::Architecture arch READ arch CONSTANT);
-  Q_PROPERTY(builtins::Abstraction level READ level CONSTANT);
+  Q_PROPERTY(pepp::Architecture arch READ arch CONSTANT);
+  Q_PROPERTY(pepp::Abstraction level READ level CONSTANT);
   Q_PROPERTY(QString prefix READ prefix CONSTANT);
   Q_PROPERTY(QString chapterName READ chapterName CONSTANT);
   Q_PROPERTY(QString figureName READ figureName CONSTANT);
@@ -51,11 +51,11 @@ class Figure : public QObject {
   Q_PROPERTY(QString copyToElementLanguage READ defaultElement CONSTANT);
 
 public:
-  Figure(Architecture arch, Abstraction level, QString prefix, QString chapter, QString figure);
+  Figure(pepp::Architecture arch, pepp::Abstraction level, QString prefix, QString chapter, QString figure);
   ~Figure();
 
-  builtins::Architecture arch() const;
-  builtins::Abstraction level() const;
+  pepp::Architecture arch() const;
+  pepp::Abstraction level() const;
 
   QString prefix() const;
   QString chapterName() const;
@@ -95,8 +95,8 @@ signals:
   void elementsChanged();
 
 private:
-  const Architecture _arch;
-  const Abstraction _level;
+  const pepp::Architecture _arch;
+  const pepp::Abstraction _level;
   const QString _prefix, _chapterName, _figureName;
   QString _description{};
   bool _isOS = false, _isHidden = false;

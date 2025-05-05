@@ -22,7 +22,7 @@
 #include <QtQmlIntegration>
 
 // Must be in separate file to prevent circuluar include in Qt MOC.
-namespace builtins {
+namespace pepp {
 Q_NAMESPACE;
 
 class AbstractionHelper : public QObject {
@@ -32,7 +32,7 @@ class AbstractionHelper : public QObject {
 
 public:
   enum class Abstraction {
-    NONE = -1,
+    NO_ABS = -1,
     // LG1 = 1,
     MC2 = 20,
     ISA3 = 30,
@@ -55,7 +55,7 @@ class ArchitectureHelper : public QObject {
 
 public:
   enum class Architecture {
-    NONE = -1,    //! Architecture is unspecified.
+    NO_ARCH = -1, //! Architecture is unspecified.
     PEP8 = 80,    //! The figure must be used with the Pep/8 toolchain.
     PEP9 = 90,    //! The figure must be used with the Pep/9 toolchain.
     PEP10 = 100,  //! The figure must be use with the Pep/10 toolchain
@@ -75,4 +75,4 @@ public:
   Q_INVOKABLE QString archAsString(Architecture architecture);
 };
 
-} // end namespace builtins
+} // namespace pepp

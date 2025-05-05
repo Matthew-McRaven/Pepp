@@ -17,7 +17,8 @@
 
 #include "figure.hpp"
 
-builtins::Figure::Figure(Architecture arch, Abstraction level, QString prefix, QString chapter, QString figure)
+builtins::Figure::Figure(pepp::Architecture arch, pepp::Abstraction level, QString prefix, QString chapter,
+                         QString figure)
     : QObject(nullptr), _arch(arch), _level(level), _prefix(prefix), _chapterName(chapter), _figureName(figure) {}
 
 builtins::Figure::~Figure() {
@@ -29,9 +30,9 @@ builtins::Figure::~Figure() {
   }
 }
 
-builtins::Architecture builtins::Figure::arch() const { return _arch; }
+pepp::Architecture builtins::Figure::arch() const { return _arch; }
 
-builtins::Abstraction builtins::Figure::level() const { return _level; }
+pepp::Abstraction builtins::Figure::level() const { return _level; }
 
 QString builtins::Figure::prefix() const { return _prefix; }
 

@@ -3,7 +3,7 @@
 #include <QAbstractItemModel>
 #include <QtQmlIntegration>
 #include <qsortfilterproxymodel.h>
-#include "builtins/constants.hpp"
+#include "enums/constants.hpp"
 
 namespace builtins {
 class Registry;
@@ -80,8 +80,8 @@ private:
 
 class HelpFilterModel : public QSortFilterProxyModel {
   Q_OBJECT
-  Q_PROPERTY(builtins::Architecture architecture READ architecture WRITE setArchitecture NOTIFY architectureChanged)
-  Q_PROPERTY(builtins::Abstraction abstraction READ abstraction WRITE setAbstraction NOTIFY abstractionChanged)
+  Q_PROPERTY(pepp::Architecture architecture READ architecture WRITE setArchitecture NOTIFY architectureChanged)
+  Q_PROPERTY(pepp::Abstraction abstraction READ abstraction WRITE setAbstraction NOTIFY abstractionChanged)
   Q_PROPERTY(QAbstractItemModel *model READ sourceModel WRITE setSourceModel NOTIFY sourceModelChanged)
   Q_PROPERTY(bool showWIPItems READ showWIPItems WRITE setShowWIPItems NOTIFY showWIPItemsChanged)
   QML_NAMED_ELEMENT(FilteredHelpModel)
@@ -90,10 +90,10 @@ public:
   explicit HelpFilterModel(QObject *parent = nullptr);
 
   void setSourceModel(QAbstractItemModel *sourceModel) override;
-  builtins::Architecture architecture() const;
-  void setArchitecture(builtins::Architecture architecture);
-  builtins::Abstraction abstraction() const;
-  void setAbstraction(builtins::Abstraction abstraction);
+  pepp::Architecture architecture() const;
+  void setArchitecture(pepp::Architecture architecture);
+  pepp::Abstraction abstraction() const;
+  void setAbstraction(pepp::Abstraction abstraction);
   bool showWIPItems() const;
   void setShowWIPItems(bool show);
 
@@ -107,7 +107,7 @@ signals:
   void showWIPItemsChanged();
 
 private:
-  builtins::Architecture _architecture = builtins::Architecture::NONE;
-  builtins::Abstraction _abstraction = builtins::Abstraction::NONE;
+  pepp::Architecture _architecture = pepp::Architecture::NO_ARCH;
+  pepp::Abstraction _abstraction = pepp::Abstraction::NO_ABS;
   bool _showWIPItems = false;
 };

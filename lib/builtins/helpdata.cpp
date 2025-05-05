@@ -19,9 +19,11 @@ QSharedPointer<HelpEntry> about_root() {
 }
 
 QSharedPointer<HelpEntry> writing_root() {
-  int mc10 = bitmask(builtins::Architecture::PEP10, builtins::Abstraction::MC2);
-  int oc10 = bitmask(builtins::Architecture::PEP10, builtins::Abstraction::ISA3);
-  int as10 = bitmask(builtins::Architecture::PEP10, builtins::Abstraction::ASMB5);
+  using enum pepp::Architecture;
+  using enum pepp::Abstraction;
+  int mc10 = bitmask(PEP10, MC2);
+  int oc10 = bitmask(PEP10, ISA3);
+  int as10 = bitmask(PEP10, ASMB5);
   int p10 = mc10 | oc10 | as10;
   auto microcode10_language =
       QSharedPointer<HelpEntry>::create(HelpCategory::Category::Text, mc10, "Microcode", "MDText.qml");
@@ -80,17 +82,19 @@ QSharedPointer<HelpEntry> greencard10_root() {
   return root;
 }
 
-QString lexerLang(builtins::Architecture arch, builtins::Abstraction level) {
+QString lexerLang(pepp::Architecture arch, pepp::Abstraction level) {
+  using enum pepp::Architecture;
+  using enum pepp::Abstraction;
   QString archStr = "", levelStr = "";
   switch (arch) {
-  case builtins::Architecture::PEP9: archStr = "Pep/9"; break;
-  case builtins::Architecture::PEP10: archStr = "Pep/10"; break;
+  case PEP9: archStr = "Pep/9"; break;
+  case PEP10: archStr = "Pep/10"; break;
   default: return "";
   }
   switch (level) {
-  case builtins::Abstraction::ASMB3: levelStr = "ASM"; break;
-  case builtins::Abstraction::OS4: levelStr = "ASM"; break;
-  case builtins::Abstraction::ASMB5: levelStr = "ASM"; break;
+  case ASMB3: levelStr = "ASM"; break;
+  case OS4: levelStr = "ASM"; break;
+  case ASMB5: levelStr = "ASM"; break;
   default: return "";
   }
   return QStringLiteral("%1 %2").arg(archStr, levelStr);
@@ -135,7 +139,7 @@ QSharedPointer<HelpEntry> examples_root(const builtins::Registry &reg) {
 }
 
 QSharedPointer<HelpEntry> macros_root(const builtins::Registry &reg) {
-  auto mask = bitmask(builtins::Architecture::PEP10) << shift | 0xff;
+  auto mask = bitmask(pepp::Architecture::PEP10) << shift | 0xff;
   auto books = reg.books();
   auto root = QSharedPointer<HelpEntry>::create(HelpCategory::Category::Text, mask, "Macros", "MDText.qml");
   root->props = QVariantMap{{"file", QVariant(u":/help/pep10/blank.md"_s)}};
@@ -177,7 +181,7 @@ QSharedPointer<HelpEntry> macros_root(const builtins::Registry &reg) {
     static const QString pl = "LDWA %1, i\nSCALL $1, $2\n";
     auto displayTitle = scall;
     auto sortTitle = u"%1 %2"_s.arg(it++).arg(scall);
-    static const auto scall_mask = bitmask(builtins::Architecture::PEP10, builtins::Abstraction::ASMB5);
+    static const auto scall_mask = bitmask(pepp::Architecture::PEP10, pepp::Abstraction::ASMB5);
     auto entry = QSharedPointer<HelpEntry>::create(HelpCategory::Category::Figure, scall_mask, displayTitle,
                                                    "../builtins/Macro.qml");
     entry->sortName = sortTitle;
@@ -201,13 +205,14 @@ QSharedPointer<HelpEntry> macros_root(const builtins::Registry &reg) {
 
 QSharedPointer<HelpEntry> problems_root(const builtins::Registry &reg) { return {}; }
 
-int bitmask(builtins::Architecture arch) {
+int bitmask(pepp::Architecture arch) {
+  using enum pepp::Architecture;
   switch (arch) {
-  case builtins::ArchitectureHelper::Architecture::NONE: return 0;
-  case builtins::ArchitectureHelper::Architecture::PEP8: return 1 << 0;
-  case builtins::ArchitectureHelper::Architecture::PEP9: return 1 << 1;
-  case builtins::ArchitectureHelper::Architecture::PEP10: return 1 << 2;
-  case builtins::ArchitectureHelper::Architecture::RISCV: return 1 << 3;
+  case NO_ARCH: return 0;
+  case PEP8: return 1 << 0;
+  case PEP9: return 1 << 1;
+  case PEP10: return 1 << 2;
+  case RISCV: return 1 << 3;
   default:
     static const char *const e = "Invalid architecture";
     qCritical(e);
@@ -215,14 +220,15 @@ int bitmask(builtins::Architecture arch) {
   }
 }
 
-int bitmask(builtins::Abstraction level) {
+int bitmask(pepp::Abstraction level) {
+  using enum pepp::Abstraction;
   switch (level) {
-  case builtins::AbstractionHelper::Abstraction::NONE: return 0;
-  case builtins::AbstractionHelper::Abstraction::MC2: return 1 << 0;
-  case builtins::AbstractionHelper::Abstraction::ISA3: return 1 << 1;
-  case builtins::AbstractionHelper::Abstraction::ASMB3: return 1 << 2;
-  case builtins::AbstractionHelper::Abstraction::OS4: return 1 << 3;
-  case builtins::AbstractionHelper::Abstraction::ASMB5: return 1 << 4;
+  case NO_ABS: return 0;
+  case MC2: return 1 << 0;
+  case ISA3: return 1 << 1;
+  case ASMB3: return 1 << 2;
+  case OS4: return 1 << 3;
+  case ASMB5: return 1 << 4;
   default:
     static const char *const e = "Invalid abstraction";
     qCritical(e);
@@ -230,9 +236,7 @@ int bitmask(builtins::Abstraction level) {
   }
 }
 
-int bitmask(builtins::Architecture arch, builtins::Abstraction level) {
-  return bitmask(arch) << shift | bitmask(level);
-}
+int bitmask(pepp::Architecture arch, pepp::Abstraction level) { return bitmask(arch) << shift | bitmask(level); }
 
 bool masked(int lhs, int rhs) {
   static_assert(shift >= 0);

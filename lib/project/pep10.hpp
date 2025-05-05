@@ -4,10 +4,10 @@
 #include <QStringListModel>
 #include <qabstractitemmodel.h>
 #include "aproject.hpp"
-#include "builtins/constants.hpp"
 #include "cpu/registermodel.hpp"
 #include "cpu/statusbitmodel.hpp"
 #include "debug/debugger.hpp"
+#include "enums/constants.hpp"
 #include "helpers/asmb.hpp"
 #include "memory/hexdump/rawmemory.hpp"
 #include "sim/debug/watchexpressionmodel.hpp"
@@ -20,8 +20,8 @@
 class Pep_ISA : public QObject, public pepp::debug::Environment {
   Q_OBJECT
   Q_PROPERTY(project::Environment env READ env CONSTANT)
-  Q_PROPERTY(builtins::Architecture architecture READ architecture CONSTANT)
-  Q_PROPERTY(builtins::Abstraction abstraction READ abstraction CONSTANT)
+  Q_PROPERTY(pepp::Architecture architecture READ architecture CONSTANT)
+  Q_PROPERTY(pepp::Abstraction abstraction READ abstraction CONSTANT)
   Q_PROPERTY(QVariant delegate MEMBER _delegate NOTIFY delegateChanged)
   Q_PROPERTY(QString objectCodeText READ objectCodeText WRITE setObjectCodeText NOTIFY objectCodeTextChanged);
   Q_PROPERTY(ARawMemory *memory READ memory CONSTANT)
@@ -58,8 +58,8 @@ public:
   explicit Pep_ISA(project::Environment env, QVariant delegate, QObject *parent = nullptr,
                    bool initializeSystem = true);
   virtual project::Environment env() const;
-  virtual builtins::Architecture architecture() const;
-  virtual builtins::Abstraction abstraction() const;
+  virtual pepp::Architecture architecture() const;
+  virtual pepp::Abstraction abstraction() const;
   ARawMemory *memory() const;
   OpcodeModel *mnemonics() const;
   QString objectCodeText() const;

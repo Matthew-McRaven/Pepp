@@ -148,18 +148,18 @@ void HelpFilterModel::setSourceModel(QAbstractItemModel *sourceModel) {
   emit sourceModelChanged();
 }
 
-builtins::Architecture HelpFilterModel::architecture() const { return _architecture; }
+pepp::Architecture HelpFilterModel::architecture() const { return _architecture; }
 
-void HelpFilterModel::setArchitecture(builtins::Architecture architecture) {
+void HelpFilterModel::setArchitecture(pepp::Architecture architecture) {
   if (_architecture == architecture) return;
   _architecture = architecture;
   invalidateRowsFilter();
   emit architectureChanged();
 }
 
-builtins::Abstraction HelpFilterModel::abstraction() const { return _abstraction; }
+pepp::Abstraction HelpFilterModel::abstraction() const { return _abstraction; }
 
-void HelpFilterModel::setAbstraction(builtins::Abstraction abstraction) {
+void HelpFilterModel::setAbstraction(pepp::Abstraction abstraction) {
   if (_abstraction == abstraction) return;
   _abstraction = abstraction;
   invalidateRowsFilter();

@@ -86,18 +86,19 @@ QSharedPointer<macro::Registry> cs6e_macros() {
   return helpers::registry(book, {});
 }
 SystemAssembly make_isa_system(project::Environment env) {
+  using enum pepp::Architecture;
   QSharedPointer<const builtins::Book> book;
   QSharedPointer<macro::Registry> macroRegistry;
   QString osContents;
   switch (env.arch) {
-  case builtins::ArchitectureHelper::Architecture::PEP9: {
+  case PEP9: {
     book = helpers::book(5);
     auto os = book->findFigure("os", "pep9os");
     osContents = os->typesafeElements()["pep"]->contents;
     macroRegistry = cs5e_macros();
     break;
   }
-  case builtins::ArchitectureHelper::Architecture::PEP10: {
+  case PEP10: {
     book = helpers::book(6);
     auto os = book->findFigure("os", "pep10baremetal");
     osContents = os->typesafeElements()["pep"]->contents;
@@ -137,18 +138,19 @@ QString cs5e_os() {
 
 // TODO: fix
 SystemAssembly make_asmb_system(project::Environment env, QString os) {
+  using enum pepp::Architecture;
   QSharedPointer<const builtins::Book> book;
   QSharedPointer<macro::Registry> macroRegistry;
   QString osContents;
   switch (env.arch) {
-  case builtins::ArchitectureHelper::Architecture::PEP9: {
+  case PEP9: {
     book = helpers::book(5);
     auto os = book->findFigure("os", "pep9os");
     osContents = os->typesafeElements()["pep"]->contents;
     macroRegistry = cs5e_macros();
     break;
   }
-  case builtins::ArchitectureHelper::Architecture::PEP10: {
+  case PEP10: {
     book = helpers::book(6);
     auto os = book->findFigure("os", "pep10baremetal");
     osContents = os->typesafeElements()["pep"]->contents;
@@ -272,12 +274,13 @@ Pep_ISA::Pep_ISA(project::Environment env, QVariant delegate, QObject *parent, b
 }
 
 void Pep_ISA::bindToSystem() {
+  using enum pepp::Architecture;
   switch (_env.arch) {
-  case builtins::ArchitectureHelper::Architecture::PEP9:
+  case PEP9:
     _flags = flag_model<targets::pep9::isa::CPU, isa::Pep9>(&*_system, this);
     _registers = register_model<targets::pep9::isa::CPU, isa::Pep9>(&*_system, mnemonics(), this);
     break;
-  case builtins::ArchitectureHelper::Architecture::PEP10:
+  case PEP10:
     _flags = flag_model<targets::pep10::isa::CPU, isa::Pep10>(&*_system, this);
     _registers = register_model<targets::pep10::isa::CPU, isa::Pep10>(&*_system, mnemonics(), this);
     break;
@@ -305,20 +308,21 @@ project::Environment Pep_ISA::env() const {
   return _env;
 }
 
-builtins::Architecture Pep_ISA::architecture() const { return _env.arch; }
+pepp::Architecture Pep_ISA::architecture() const { return _env.arch; }
 
-builtins::Abstraction Pep_ISA::abstraction() const { return _env.level; }
+pepp::Abstraction Pep_ISA::abstraction() const { return _env.level; }
 
 ARawMemory *Pep_ISA::memory() const { return _memory; }
 
 OpcodeModel *Pep_ISA::mnemonics() const {
+  using enum pepp::Architecture;
   switch (_env.arch) {
-  case builtins::ArchitectureHelper::Architecture::PEP9: {
+  case PEP9: {
     static OpcodeModel *model = new OpcodeModel();
     static Pep9OpcodeInit ret(model);
     return model;
   }
-  case builtins::ArchitectureHelper::Architecture::PEP10: {
+  case PEP10: {
     static OpcodeModel *model = new OpcodeModel();
     static Pep10OpcodeInit ret(model);
     return model;
@@ -336,8 +340,8 @@ void Pep_ISA::setObjectCodeText(const QString &objectCodeText) {
 }
 
 void Pep_ISA::set(int abstraction, QString value) {
-  using namespace builtins;
-  if (abstraction == static_cast<int>(Abstraction::ISA3)) {
+  using enum pepp::Abstraction;
+  if (abstraction == static_cast<int>(ISA3)) {
     setObjectCodeText(value);
   }
 }
@@ -360,6 +364,7 @@ int Pep_ISA::allowedDebugging() const {
 }
 
 int Pep_ISA::allowedSteps() const {
+  using enum pepp::Architecture;
   if (_state != State::DebugPaused) return 0b0;
   using S = project::StepEnableFlags::Value;
   // TODO: have CPU tell you if next instr can step into.
@@ -367,14 +372,14 @@ int Pep_ISA::allowedSteps() const {
   quint16 pc = 0;
   bool isCall = false;
   switch (_env.arch) {
-  case builtins::ArchitectureHelper::Architecture::PEP9: {
+  case PEP9: {
     auto cpu = static_cast<targets::pep9::isa::CPU *>(_system->cpu());
     targets::isa::readRegister<isa::Pep9>(cpu->regs(), isa::Pep9::Register::PC, pc, gs);
     _system->bus()->read(pc, {&is, 1}, gs);
     isCall = isa::Pep9::isCall(is);
     break;
   }
-  case builtins::ArchitectureHelper::Architecture::PEP10: {
+  case PEP10: {
     auto cpu = static_cast<targets::pep10::isa::CPU *>(_system->cpu());
     targets::isa::readRegister<isa::Pep10>(cpu->regs(), isa::Pep10::Register::PC, pc, gs);
     _system->bus()->read(pc, {&is, 1}, gs);
@@ -494,8 +499,9 @@ bool Pep_ISA::onLoadObject() {
   quint8 is;
   quint16 sp, pc;
   bool isUnary;
+  using enum pepp::Architecture;
   switch (_env.arch) {
-  case builtins::Architecture::PEP9: {
+  case PEP9: {
     auto cpu = static_cast<targets::pep9::isa::CPU *>(_system->cpu());
     targets::isa::readRegister<isa::Pep9>(cpu->regs(), isa::Pep9::Register::PC, pc, gs);
     targets::isa::readRegister<isa::Pep9>(cpu->regs(), isa::Pep9::Register::SP, sp, gs);
@@ -503,7 +509,7 @@ bool Pep_ISA::onLoadObject() {
     isUnary = isa::Pep9::opcodeLUT[is].instr.unary;
     break;
   }
-  case builtins::Architecture::PEP10: {
+  case PEP10: {
     auto cpu = static_cast<targets::pep10::isa::CPU *>(_system->cpu());
     targets::isa::readRegister<isa::Pep10>(cpu->regs(), isa::Pep10::Register::PC, pc, gs);
     targets::isa::readRegister<isa::Pep10>(cpu->regs(), isa::Pep10::Register::SP, sp, gs);
@@ -582,18 +588,19 @@ template <typename CPU, typename ISA> auto generateStepCondition(targets::isa::S
 }
 
 bool Pep_ISA::onISAStep() {
+  using enum pepp::Architecture;
   bool nextIsTrap = false;
   quint8 is;
   quint16 pc;
   switch (_env.arch) {
-  case builtins::ArchitectureHelper::Architecture::PEP9: {
+  case PEP9: {
     auto cpu = static_cast<targets::pep9::isa::CPU *>(_system->cpu());
     targets::isa::readRegister<isa::Pep9>(cpu->regs(), isa::Pep9::Register::PC, pc, gs);
     _system->bus()->read(pc, {&is, 1}, gs);
     nextIsTrap = isa::Pep9::isTrap(is);
     break;
   }
-  case builtins::ArchitectureHelper::Architecture::PEP10: {
+  case PEP10: {
     auto cpu = static_cast<targets::pep10::isa::CPU *>(_system->cpu());
     targets::isa::readRegister<isa::Pep10>(cpu->regs(), isa::Pep10::Register::PC, pc, gs);
     _system->bus()->read(pc, {&is, 1}, gs);
@@ -614,14 +621,15 @@ bool Pep_ISA::onISAStepInto() { return stepDepthHelper(1); }
 bool Pep_ISA::onISAStepOut() { return stepDepthHelper(-1); }
 
 bool Pep_ISA::onClearCPU() {
+  using enum pepp::Architecture;
   switch (_env.arch) {
-  case builtins::Architecture::PEP9: {
+  case PEP9: {
     auto cpu = static_cast<targets::pep9::isa::CPU *>(_system->cpu());
     cpu->csrs()->clear(0);
     cpu->regs()->clear(0);
     break;
   }
-  case builtins::Architecture::PEP10: {
+  case PEP10: {
     auto cpu = static_cast<targets::pep10::isa::CPU *>(_system->cpu());
     cpu->csrs()->clear(0);
     cpu->regs()->clear(0);
@@ -751,12 +759,13 @@ void Pep_ISA::prepareGUIUpdate(sim::api2::trace::FrameIterator from) {
 }
 
 void Pep_ISA::updateMemPCSP() const {
+  using enum pepp::Architecture;
   quint8 is;
   quint16 sp, pc;
   bool isUnary;
   // Update cpu-dependent fields in memory before triggering a GUI update.
   switch (_env.arch) {
-  case builtins::Architecture::PEP9: {
+  case PEP9: {
     auto cpu = static_cast<targets::pep9::isa::CPU *>(_system->cpu());
     targets::isa::readRegister<isa::Pep9>(cpu->regs(), isa::Pep9::Register::PC, pc, gs);
     targets::isa::readRegister<isa::Pep9>(cpu->regs(), isa::Pep9::Register::SP, sp, gs);
@@ -764,7 +773,7 @@ void Pep_ISA::updateMemPCSP() const {
     isUnary = isa::Pep9::opcodeLUT[is].instr.unary;
     break;
   }
-  case builtins::Architecture::PEP10: {
+  case PEP10: {
     auto cpu = static_cast<targets::pep10::isa::CPU *>(_system->cpu());
     targets::isa::readRegister<isa::Pep10>(cpu->regs(), isa::Pep10::Register::PC, pc, gs);
     targets::isa::readRegister<isa::Pep10>(cpu->regs(), isa::Pep10::Register::SP, sp, gs);
@@ -780,16 +789,17 @@ void Pep_ISA::updateMemPCSP() const {
 }
 
 bool Pep_ISA::stepDepthHelper(qint16 offset) {
+  using enum pepp::Architecture;
   _state = State::DebugExec;
   _stepsSinceLastInteraction = 0;
   _pendingPause = false;
   emit allowedDebuggingChanged();
   emit allowedStepsChanged();
   switch (_system->architecture()) {
-  case builtins::Architecture::PEP9:
+  case PEP9:
     emit deferredExecution(generateStepCondition<targets::pep9::isa::CPU, isa::Pep9>(&*_system, offset));
     break;
-  case builtins::Architecture::PEP10:
+  case PEP10:
     emit deferredExecution(generateStepCondition<targets::pep10::isa::CPU, isa::Pep10>(&*_system, offset));
     break;
   default: throw std::logic_error("Unimplemented architecture");
@@ -803,11 +813,12 @@ project::StepEnableFlags::StepEnableFlags(QObject *parent) : QObject(parent) {}
 
 Pep_ASMB::Pep_ASMB(project::Environment env, QVariant delegate, QObject *parent)
     : Pep_ISA(env, delegate, parent, false) {
-
+  using enum pepp::Architecture;
+  using enum pepp::Abstraction;
   switch (_env.arch) {
-  case builtins::Architecture::PEP9: _osAsmText = cs5e_os(); break;
-  case builtins::Architecture::PEP10:
-    if (_env.level == builtins::Abstraction::ASMB3) _osAsmText = cs6e_bm();
+  case PEP9: _osAsmText = cs5e_os(); break;
+  case PEP10:
+    if (_env.level == ASMB3) _osAsmText = cs6e_bm();
     else _osAsmText = cs6e_os();
     break;
   default: throw std::logic_error("Unimplemented architecture");
@@ -819,14 +830,14 @@ Pep_ASMB::Pep_ASMB(project::Environment env, QVariant delegate, QObject *parent)
   _system->bus()->setBuffer(&*_tb);
   bindToSystem();
   switch (_env.arch) {
-  case builtins::Architecture::PEP9: {
+  case PEP9: {
     auto cpu = static_cast<targets::pep9::isa::CPU *>(_system->cpu());
     static const quint8 PC = 2 * static_cast<quint8>(isa::Pep9::Register::PC);
     cpu->setBuffer(&*_tb);
     cpu->setDebugger(&*_dbg);
     break;
   }
-  case builtins::Architecture::PEP10: {
+  case PEP10: {
     auto cpu = static_cast<targets::pep10::isa::CPU *>(_system->cpu());
     static const quint8 PC = 2 * static_cast<quint8>(isa::Pep10::Register::PC);
     cpu->setBuffer(&*_tb);
@@ -843,10 +854,11 @@ Pep_ASMB::Pep_ASMB(project::Environment env, QVariant delegate, QObject *parent)
 }
 
 void Pep_ASMB::set(int abstraction, QString value) {
+  using enum pepp::Abstraction;
   using namespace builtins;
-  if (abstraction == static_cast<int>(Abstraction::ASMB5) || abstraction == static_cast<int>(Abstraction::ASMB3)) {
+  if (abstraction == static_cast<int>(ASMB5) || abstraction == static_cast<int>(ASMB3)) {
     setUserAsmText(value);
-  } else if (abstraction == static_cast<int>(Abstraction::OS4)) {
+  } else if (abstraction == static_cast<int>(OS4)) {
     setOSAsmText(value);
   }
 }
@@ -916,13 +928,15 @@ bool Pep_ASMB::onDebuggingStart() {
 static constexpr auto to_string = [](const QString &acc, const auto &pair) {
   return acc.isEmpty() ? pair.first : acc + "\n" + pair.first;
 };
+
 bool Pep_ASMB::onAssemble(bool doLoad) {
+  using enum pepp::Architecture;
   _userList = _osList = "";
   _userListAnnotations = _osListAnnotations = {};
   QSharedPointer<macro::Registry> macroRegistry = nullptr;
   switch (_env.arch) {
-  case builtins::Architecture::PEP9: macroRegistry = cs5e_macros(); break;
-  case builtins::Architecture::PEP10: macroRegistry = cs6e_macros(); break;
+  case PEP9: macroRegistry = cs5e_macros(); break;
+  case PEP10: macroRegistry = cs6e_macros(); break;
   default: throw std::logic_error("Unimplemented architecture");
   }
 
@@ -964,7 +978,7 @@ bool Pep_ASMB::onAssemble(bool doLoad) {
   // Hack to help debugger understand callViaRet.
   auto callViaRet = helper.callViaRets();
   switch (_env.arch) {
-  case builtins::Architecture::PEP10: {
+  case PEP10: {
     if (auto cpu = dynamic_cast<targets::pep10::isa::CPU *>(_system->cpu()); cpu) cpu->setCallsViaRet(callViaRet);
     break;
   }
@@ -987,12 +1001,13 @@ bool Pep_ASMB::onAssembleThenLoad() {
 }
 
 bool Pep_ASMB::onAssembleThenFormat() {
+  using enum pepp::Architecture;
   _userList = _osList = "";
   _userListAnnotations = _osListAnnotations = {};
   QSharedPointer<macro::Registry> macroRegistry = nullptr;
   switch (_env.arch) {
-  case builtins::Architecture::PEP9: macroRegistry = cs5e_macros(); break;
-  case builtins::Architecture::PEP10: macroRegistry = cs6e_macros(); break;
+  case PEP9: macroRegistry = cs5e_macros(); break;
+  case PEP10: macroRegistry = cs6e_macros(); break;
   default: throw std::logic_error("Unimplemented architecture");
   }
   helpers::AsmHelper helper(macroRegistry, _osAsmText, _env.arch);
@@ -1087,6 +1102,7 @@ void Pep_ASMB::onBPConditionChanged(quint16 address, bool conditional) {
 }
 
 void Pep_ASMB::prepareSim() {
+  using enum pepp::Architecture;
   // Must assemble first, otherwise we might load an outdated version of the OS
   // via _system->init(). Specifically, outdated memory-mapped vector values.
   if (!onAssemble(true)) return;
@@ -1110,7 +1126,7 @@ void Pep_ASMB::prepareSim() {
   quint16 sp, pc;
   bool isUnary;
   switch (_env.arch) {
-  case builtins::Architecture::PEP9: {
+  case PEP9: {
     auto cpu = static_cast<targets::pep9::isa::CPU *>(_system->cpu());
     targets::isa::readRegister<isa::Pep9>(cpu->regs(), isa::Pep9::Register::PC, pc, gs);
     targets::isa::readRegister<isa::Pep9>(cpu->regs(), isa::Pep9::Register::SP, sp, gs);
@@ -1119,7 +1135,7 @@ void Pep_ASMB::prepareSim() {
     isUnary = isa::Pep9::opcodeLUT[is].instr.unary;
     break;
   }
-  case builtins::Architecture::PEP10: {
+  case PEP10: {
     auto cpu = static_cast<targets::pep10::isa::CPU *>(_system->cpu());
     targets::isa::readRegister<isa::Pep10>(cpu->regs(), isa::Pep10::Register::PC, pc, gs);
     targets::isa::readRegister<isa::Pep10>(cpu->regs(), isa::Pep10::Register::SP, sp, gs);
@@ -1145,14 +1161,15 @@ void Pep_ASMB::prepareGUIUpdate(sim::api2::trace::FrameIterator from) {
 }
 
 void Pep_ASMB::updatePCLine() {
+  using enum pepp::Architecture;
   quint16 pc = 0;
   switch (_env.arch) {
-  case builtins::Architecture::PEP9: {
+  case PEP9: {
     auto cpu = static_cast<targets::pep9::isa::CPU *>(_system->cpu());
     targets::isa::readRegister<isa::Pep9>(cpu->regs(), isa::Pep9::Register::PC, pc, gs);
     break;
   }
-  case builtins::Architecture::PEP10: {
+  case PEP10: {
     auto cpu = static_cast<targets::pep10::isa::CPU *>(_system->cpu());
     targets::isa::readRegister<isa::Pep10>(cpu->regs(), isa::Pep10::Register::PC, pc, gs);
     break;

@@ -14,22 +14,22 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 #include "constants.hpp"
-builtins::AbstractionHelper::AbstractionHelper(QObject *parent) : QObject(parent) {}
+pepp::AbstractionHelper::AbstractionHelper(QObject *parent) : QObject(parent) {}
 
-QString builtins::AbstractionHelper::string(Abstraction abstraction) const {
+QString pepp::AbstractionHelper::string(Abstraction abstraction) const {
   QMetaEnum metaEnum = QMetaEnum::fromType<Abstraction>();
   return metaEnum.valueToKey(static_cast<int>(abstraction));
 }
 
-builtins::ArchitectureHelper::ArchitectureHelper(QObject *parent) : QObject(parent) {}
+pepp::ArchitectureHelper::ArchitectureHelper(QObject *parent) : QObject(parent) {}
 
-QString builtins::ArchitectureHelper::string(Architecture architecture) {
+QString pepp::ArchitectureHelper::string(Architecture architecture) {
   QMetaEnum metaEnum = QMetaEnum::fromType<Architecture>();
   return QString(metaEnum.valueToKey(static_cast<int>(architecture)));
 }
 
-builtins::ArchitectureUtils::ArchitectureUtils(QObject *parent) : QObject(parent) {}
+pepp::ArchitectureUtils::ArchitectureUtils(QObject *parent) : QObject(parent) {}
 
-QString builtins::ArchitectureUtils::archAsString(Architecture architecture) {
+QString pepp::ArchitectureUtils::archAsString(Architecture architecture) {
   return ArchitectureHelper::string(architecture);
 }

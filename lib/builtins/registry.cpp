@@ -108,20 +108,18 @@ QSharedPointer<builtins::Figure> builtins::detail::loadFigure(QString manifestPa
   // Extract the architecture string and convert it to the correct enum.
   auto archStr = manifest["arch"].toString();
   bool okay = false;
-  auto archInt =
-      QMetaEnum::fromType<builtins::Architecture>().keyToValue(archStr.toUpper().toStdString().data(), &okay);
-  auto arch = static_cast<builtins::Architecture>(archInt);
+  auto archInt = QMetaEnum::fromType<pepp::Architecture>().keyToValue(archStr.toUpper().toStdString().data(), &okay);
+  auto arch = static_cast<pepp::Architecture>(archInt);
   if (!okay) {
     qWarning("Invalid figure architecture: %s", archStr.toStdString().c_str());
     return nullptr;
   }
 
-  builtins::Abstraction level = builtins::Abstraction::NONE;
+  pepp::Abstraction level = pepp::Abstraction::NO_ABS;
   if (manifest.object().contains("abstraction")) {
     auto levelStr = manifest["abstraction"].toString();
-    auto levelInt =
-        QMetaEnum::fromType<builtins::Abstraction>().keyToValue(levelStr.toUpper().toStdString().data(), &okay);
-    level = static_cast<builtins::Abstraction>(levelInt);
+    auto levelInt = QMetaEnum::fromType<pepp::Abstraction>().keyToValue(levelStr.toUpper().toStdString().data(), &okay);
+    level = static_cast<pepp::Abstraction>(levelInt);
     if (!okay) {
       qWarning("Invalid abstraction: %s", levelStr.toStdString().c_str());
       return nullptr;

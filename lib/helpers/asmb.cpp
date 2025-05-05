@@ -49,15 +49,16 @@ void helpers::addMacros(::macro::Registry &registry, const std::list<std::string
   for (auto &dir : dirs) addMacro(registry, dir, arch);
 }
 
-helpers::AsmHelper::AsmHelper(QSharedPointer<::macro::Registry> registry, QString os, builtins::Architecture arch)
+helpers::AsmHelper::AsmHelper(QSharedPointer<::macro::Registry> registry, QString os, pepp::Architecture arch)
     : _arch(arch), _reg(registry), _os(os) {}
 
 void helpers::AsmHelper::setUserText(QString user) { _user = user; }
 
 bool helpers::AsmHelper::assemble() {
+  using enum pepp::Architecture;
   _callViaRets.clear();
   switch (_arch) {
-  case builtins::Architecture::PEP9: {
+  case PEP9: {
     QList<QPair<QString, pas::driver::pep9::Features>> targets = {{{_os, {.isOS = true}}}};
     if (_user) targets.push_back({*_user, {.isOS = false}});
     auto pipeline = pas::driver::pep9::pipeline<pas::driver::ANTLRParserTag>(targets, _reg);
@@ -70,7 +71,7 @@ bool helpers::AsmHelper::assemble() {
     }
     return result;
   };
-  case builtins::Architecture::PEP10: {
+  case PEP10: {
     QList<QPair<QString, pas::driver::pep10::Features>> targets = {{{_os, {.isOS = true}}}};
     if (_user) targets.push_back({*_user, {.isOS = false}});
     auto pipeline = pas::driver::pep10::pipeline<pas::driver::ANTLRParserTag>(targets, _reg);
@@ -130,8 +131,9 @@ QList<QPair<int, QString>> helpers::AsmHelper::errorsWithLines() {
 }
 
 QSharedPointer<ELFIO::elfio> helpers::AsmHelper::elf(std::optional<QList<quint8>> userObj) {
+  using enum pepp::Architecture;
   switch (_arch) {
-  case builtins::Architecture::PEP9:
+  case PEP9:
     _elf = pas::obj::pep9::createElf();
     pas::obj::pep9::writeOS(*_elf, *_osRoot);
     pas::obj::common::writeLineMapping(*_elf, *_osRoot);
@@ -140,7 +142,7 @@ QSharedPointer<ELFIO::elfio> helpers::AsmHelper::elf(std::optional<QList<quint8>
       pas::obj::common::writeLineMapping(*_elf, *_userRoot);
     } else if (userObj) pas::obj::pep9::writeUser(*_elf, *userObj);
     break;
-  case builtins::Architecture::PEP10:
+  case PEP10:
     _elf = pas::obj::pep10::createElf();
     pas::obj::pep10::combineSections(*_osRoot);
     pas::obj::pep10::writeOS(*_elf, *_osRoot);
@@ -164,12 +166,13 @@ QSharedPointer<ELFIO::elfio> helpers::AsmHelper::elf(std::optional<QList<quint8>
 }
 
 QStringList helpers::AsmHelper::listing(bool os) {
+  using enum pepp::Architecture;
   try {
     switch (_arch) {
-    case builtins::Architecture::PEP9:
+    case PEP9:
       if (os && !_osRoot.isNull()) return pas::ops::pepp::formatListing<isa::Pep9>(*_osRoot);
       else if (!os && !_userRoot.isNull()) return pas::ops::pepp::formatListing<isa::Pep9>(*_userRoot);
-    case builtins::Architecture::PEP10:
+    case PEP10:
       if (os && !_osRoot.isNull()) return pas::ops::pepp::formatListing<isa::Pep10>(*_osRoot);
       else if (!os && !_userRoot.isNull()) return pas::ops::pepp::formatListing<isa::Pep10>(*_userRoot);
     default: throw std::logic_error("Unimplemented arch");
@@ -180,12 +183,13 @@ QStringList helpers::AsmHelper::listing(bool os) {
 }
 
 QList<QPair<QString, QString>> helpers::AsmHelper::splitListing(bool os) {
+  using enum pepp::Architecture;
   try {
     switch (_arch) {
-    case builtins::Architecture::PEP9:
+    case PEP9:
       if (os && !_osRoot.isNull()) return pas::ops::pepp::formatSplitListing<isa::Pep9>(*_osRoot);
       else if (!os && !_userRoot.isNull()) return pas::ops::pepp::formatSplitListing<isa::Pep9>(*_userRoot);
-    case builtins::Architecture::PEP10:
+    case PEP10:
       if (os && !_osRoot.isNull()) return pas::ops::pepp::formatSplitListing<isa::Pep10>(*_osRoot);
       else if (!os && !_userRoot.isNull()) return pas::ops::pepp::formatSplitListing<isa::Pep10>(*_userRoot);
     default: throw std::logic_error("Unimplemented arch");
@@ -196,12 +200,13 @@ QList<QPair<QString, QString>> helpers::AsmHelper::splitListing(bool os) {
 }
 
 QStringList helpers::AsmHelper::formattedSource(bool os) {
+  using enum pepp::Architecture;
   try {
     switch (_arch) {
-    case builtins::Architecture::PEP9:
+    case PEP9:
       if (os && !_osRoot.isNull()) return pas::ops::pepp::formatSource<isa::Pep9>(*_osRoot);
       else if (!os && !_userRoot.isNull()) return pas::ops::pepp::formatSource<isa::Pep9>(*_userRoot);
-    case builtins::Architecture::PEP10:
+    case PEP10:
       if (os && !_osRoot.isNull()) return pas::ops::pepp::formatSource<isa::Pep10>(*_osRoot);
       else if (!os && !_userRoot.isNull()) return pas::ops::pepp::formatSource<isa::Pep10>(*_userRoot);
     default: throw std::logic_error("Unimplemented arch");
@@ -212,12 +217,13 @@ QStringList helpers::AsmHelper::formattedSource(bool os) {
 }
 
 QList<quint8> helpers::AsmHelper::bytes(bool os) {
+  using enum pepp::Architecture;
   try {
     switch (_arch) {
-    case builtins::Architecture::PEP9:
+    case PEP9:
       if (os && !_osRoot.isNull()) return pas::ops::pepp::toBytes<isa::Pep9>(*_osRoot);
       else if (!os && !_userRoot.isNull()) return pas::ops::pepp::toBytes<isa::Pep9>(*_userRoot);
-    case builtins::Architecture::PEP10:
+    case PEP10:
       if (os && !_osRoot.isNull()) return pas::ops::pepp::toBytes<isa::Pep10>(*_osRoot);
       else if (!os && !_userRoot.isNull()) return pas::ops::pepp::toBytes<isa::Pep10>(*_userRoot);
     default: throw std::logic_error("Unimplemented arch");

@@ -68,7 +68,7 @@ struct User {
 };
 
 QSharedPointer<ELFIO::elfio> assemble(QString os, User user, QSharedPointer<macro::Registry> reg) {
-  helpers::AsmHelper helper(reg, os, builtins::Architecture::PEP9);
+  helpers::AsmHelper helper(reg, os, pepp::Architecture::PEP9);
   if (!user.pep.isEmpty()) helper.setUserText(user.pep);
   CHECK(helper.assemble());
   CHECK(helper.errors().isEmpty());

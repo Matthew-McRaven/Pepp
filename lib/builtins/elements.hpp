@@ -21,7 +21,7 @@
 #include <QString>
 #include <QtCore>
 #include <optional>
-#include "constants.hpp"
+#include "enums/constants.hpp"
 namespace builtins {
 
 class Figure;
@@ -71,12 +71,12 @@ public:
 struct Macro : public QObject {
 private:
   Q_OBJECT
-  Q_PROPERTY(Architecture arch MEMBER arch);
+  Q_PROPERTY(pepp::Architecture arch MEMBER arch);
   Q_PROPERTY(QString name MEMBER name);
   Q_PROPERTY(QString text MEMBER text);
 
 public:
-  Architecture arch;
+  pepp::Architecture arch;
   QString name;
   QString text;
 };

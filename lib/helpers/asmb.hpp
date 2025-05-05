@@ -2,7 +2,7 @@
 #include <elfio/elfio.hpp>
 #include "asm/pas/ast/node.hpp"
 #include "builtins/book.hpp"
-#include "builtins/constants.hpp"
+#include "enums/constants.hpp"
 #include "macro/registry.hpp"
 #include "sim/debug/line_map.hpp"
 
@@ -14,8 +14,7 @@ void addMacros(macro::Registry &registry, const std::list<std::string> &dirs, QS
 
 class AsmHelper {
 public:
-  AsmHelper(QSharedPointer<macro::Registry> registry, QString os,
-            builtins::Architecture arch = builtins::Architecture::PEP10);
+  AsmHelper(QSharedPointer<macro::Registry> registry, QString os, pepp::Architecture arch = pepp::Architecture::PEP10);
   void setUserText(QString user);
   bool assemble();
   QStringList errors();
@@ -29,7 +28,7 @@ public:
   QSet<quint16> callViaRets();
 
 private:
-  builtins::Architecture _arch;
+  pepp::Architecture _arch;
   QSharedPointer<macro::Registry> _reg;
   QString _os;
   std::optional<QString> _user = std::nullopt;
