@@ -69,7 +69,7 @@ if (ONLY STREQUAL "BUILD")
       if(EMSCRIPTEN)
         add_link_options(--bind)
       endif()
-      # Silence Qt's CMake warnings about policy being unset.
+      qt_policy(SET QTP0001 NEW)
       qt_policy(SET QTP0004 NEW)
     endif()
 

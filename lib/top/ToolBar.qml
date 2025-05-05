@@ -2,7 +2,7 @@ import QtQuick 2.15
 import QtQuick.Controls
 import QtQuick.Layouts
 import edu.pepp 1.0
-import "qrc:/edu/pepp/components" as Comp
+import "qrc:/qt/qml/edu/pepp/components" as Comp
 
 ToolBar {
     id: root

@@ -222,7 +222,7 @@ Item {
                                     "title": "Select Figure Directory"
                                 }
                                 if (!PlatformDetector.isWASM) {
-                                    setSource("qrc:/edu/pepp/settings/NativeFolderDialog.qml",
+                                    setSource("qrc:/qt/qml/edu/pepp/settings/NativeFolderDialog.qml",
                                               props)
                                 }
                             }

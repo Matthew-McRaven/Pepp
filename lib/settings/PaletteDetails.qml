@@ -3,7 +3,7 @@ import QtQuick.Controls
 import QtQuick.Layouts
 import edu.pepp 1.0
 import "." as Ui
-import "qrc:/edu/pepp/components" as Comp
+import "qrc:/qt/qml/edu/pepp/components" as Comp
 import Qt.labs.platform as Platform
 
 Item {

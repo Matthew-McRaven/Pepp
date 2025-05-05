@@ -1,13 +1,13 @@
 import QtQuick 2.15
 import QtQuick.Controls
 import QtQuick.Layouts
-import "qrc:/edu/pepp/text/editor" as Text
-import "qrc:/edu/pepp/memory/stack" as Stack
-import "qrc:/edu/pepp/memory/hexdump" as Memory
-import "qrc:/edu/pepp/memory/io" as IO
-import "qrc:/edu/pepp/cpu" as Cpu
-import "qrc:/edu/pepp/symtab" as SymTab
-import "qrc:/edu/pepp/sim/debug" as Debug
+import "qrc:/qt/qml/edu/pepp/text/editor" as Text
+import "qrc:/qt/qml/edu/pepp/memory/stack" as Stack
+import "qrc:/qt/qml/edu/pepp/memory/hexdump" as Memory
+import "qrc:/qt/qml/edu/pepp/memory/io" as IO
+import "qrc:/qt/qml/edu/pepp/cpu" as Cpu
+import "qrc:/qt/qml/edu/pepp/symtab" as SymTab
+import "qrc:/qt/qml/edu/pepp/sim/debug" as Debug
 import edu.pepp 1.0
 
 Item {
@@ -376,7 +376,7 @@ Item {
                         // Construction sets current address to 0, which propogates back to project.
                         // Must reject changes in current address until component is fully rendered.
                         con.enabled = false
-                        setSource("qrc:/edu/pepp/memory/hexdump/MemoryDump.qml",
+                        setSource("qrc:/qt/qml/edu/pepp/memory/hexdump/MemoryDump.qml",
                                   props)
                     }
                     asynchronous: true

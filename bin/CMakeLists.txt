@@ -1,4 +1,3 @@
-qt_policy(SET QTP0001 NEW)
 file(GLOB_RECURSE sources_and_tests CONFIGURE_DEPENDS "${CMAKE_CURRENT_LIST_DIR}/*.cpp")
 file(GLOB_RECURSE tests CONFIGURE_DEPENDS "test/*.cpp" "test/*.hpp")
 list(APPEND sources ${sources_and_tests})

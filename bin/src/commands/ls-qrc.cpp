@@ -23,6 +23,7 @@ void ListQRCTask::run() {
   QDirIterator i(":/" + _path, QDirIterator::Subdirectories);
   while (i.hasNext()) {
     auto f = QFileInfo(i.next());
+    if (f.isDir()) continue;
     std::cout << f.filePath().toStdString() << std::endl;
   }
   return emit finished(0);

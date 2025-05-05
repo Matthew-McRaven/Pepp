@@ -19,7 +19,7 @@ import QtQuick
 import QtQuick.Controls
 import QtQuick.Layouts
 import edu.pepp 1.0
-import "qrc:/edu/pepp/text/editor" as Editor
+import "qrc:/qt/qml/edu/pepp/text/editor" as Editor
 
 Item {
     id: wrapper
