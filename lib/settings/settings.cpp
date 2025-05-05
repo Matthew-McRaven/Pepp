@@ -1,6 +1,6 @@
 #include "settings.hpp"
 #include <QQmlEngine>
-#include "builtins/registry.hpp"
+#include "help/builtins/registry.hpp"
 
 pepp::settings::Category::Category(QObject *parent) : QObject(parent) {}
 

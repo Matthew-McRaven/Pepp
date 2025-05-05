@@ -15,7 +15,7 @@
  */
 
 #include <catch.hpp>
-#include "builtins/changelogmodel.hpp"
+#include "help/builtins/changelogmodel.hpp"
 
 TEST_CASE("Changelog", "[scope:help.bi][kind:unit][arch:*]") {
   auto model = new ChangelogModel();

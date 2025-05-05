@@ -3,9 +3,8 @@
 #include <elfio/elfio.hpp>
 #include "asm/pas/obj/common.hpp"
 #include "asm/pas/operations/pepp/bytes.hpp"
-#include "utils/bits/strings.hpp"
-#include "builtins/figure.hpp"
 #include "cpu/formats.hpp"
+#include "help/builtins/figure.hpp"
 #include "helpers/asmb.hpp"
 #include "isa/pep10.hpp"
 #include "sim/device/broadcast/mmi.hpp"
@@ -18,6 +17,7 @@
 #include "targets/pep10/isa3/cpu.hpp"
 #include "targets/pep9/isa3/cpu.hpp"
 #include "text/editor/object.hpp"
+#include "utils/bits/strings.hpp"
 #include "utils/strings.hpp"
 
 // Prevent WASM-ld error due to multiply defined symbol in static lib.

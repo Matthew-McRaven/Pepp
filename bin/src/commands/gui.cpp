@@ -24,7 +24,7 @@
 #include <QQuickStyle>
 #include <QTimer>
 #include "../iconprovider.hpp"
-#include "about/version.hpp"
+#include "help/about/version.hpp"
 //  Testing only
 #include <QDirIterator>
 

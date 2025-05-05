@@ -18,7 +18,7 @@
 #include <QDir>
 #include <iostream>
 #include "../shared.hpp"
-#include "builtins/registry.hpp"
+#include "help/builtins/registry.hpp"
 
 DumpBooksTask::DumpBooksTask(QString dir, QObject *parent) : Task(parent), _dir(dir) {}
 

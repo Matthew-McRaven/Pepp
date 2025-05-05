@@ -1,6 +1,6 @@
 #include "helpdata.hpp"
-#include <builtins/figure.hpp>
-#include <builtins/registry.hpp>
+#include "help/builtins/figure.hpp"
+#include "help/builtins/registry.hpp"
 #include "helpmodel.hpp"
 
 using namespace Qt::StringLiterals;

@@ -16,7 +16,7 @@
 
 #include <QTemporaryDir>
 #include <catch.hpp>
-#include "builtins/registry.hpp"
+#include "help/builtins/registry.hpp"
 
 QString toc = "{"
               "\"bookName\" : \"Test\","

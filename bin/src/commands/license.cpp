@@ -16,8 +16,8 @@
 
 #include "./license.hpp"
 #include <iostream>
-#include "about/dependencies.hpp"
 #include "catch.hpp"
+#include "help/about/dependencies.hpp"
 
 LicenseTask::LicenseTask(QObject *parent) : Task(parent) {}
 

@@ -17,7 +17,7 @@
 #include <iostream>
 #include "../../shared.hpp"
 #include "asm/pas/operations/pepp/bytes.hpp"
-#include "builtins/figure.hpp"
+#include "help/builtins/figure.hpp"
 #include "helpers/asmb.hpp"
 #include "isa/pep10.hpp"
 #include "macro/registry.hpp"

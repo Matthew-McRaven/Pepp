@@ -14,7 +14,7 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-#include "about/pepp.hpp"
+#include "help/about/pepp.hpp"
 #include <catch.hpp>
 
 TEST_CASE("About Pepp", "[scope:help.about][kind:unit][arch:*]") {
