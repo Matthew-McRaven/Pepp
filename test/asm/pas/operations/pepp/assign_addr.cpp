@@ -23,7 +23,7 @@
 #include "asm/pas/operations/pepp/addressable.hpp"
 #include "asm/pas/operations/pepp/size.hpp"
 #include "asm/pas/operations/pepp/string.hpp"
-#include "bits/strings.hpp"
+#include "utils/bits/strings.hpp"
 #include "isa/pep10.hpp"
 #include "macro/macro.hpp"
 #include "macro/registry.hpp"

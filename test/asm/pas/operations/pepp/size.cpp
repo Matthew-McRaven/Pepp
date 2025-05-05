@@ -17,7 +17,7 @@
 #include <catch.hpp>
 #include "asm/pas/driver/pepp.hpp"
 #include "asm/pas/operations/generic/include_macros.hpp"
-#include "bits/strings.hpp"
+#include "utils/bits/strings.hpp"
 #include "isa/pep10.hpp"
 #include "macro/macro.hpp"
 #include "macro/registry.hpp"

@@ -16,7 +16,7 @@
 
 #include "run.hpp"
 #include "../shared.hpp"
-#include "bits/strings.hpp"
+#include "utils/bits/strings.hpp"
 #include "builtins/figure.hpp"
 #include "helpers/asmb.hpp"
 #include "link/mmio.hpp"

@@ -15,9 +15,9 @@
  */
 
 #include "cpu.hpp"
-#include "bits/operations/swap.hpp"
 #include "sim/device/broadcast/mmo.hpp"
 #include "targets/isa3/helpers.hpp"
+#include "utils/bits/swap.hpp"
 
 namespace {
 sim::api2::memory::Operation rw_d = {

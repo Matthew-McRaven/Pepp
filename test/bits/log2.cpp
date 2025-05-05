@@ -14,7 +14,7 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-#include "bits/operations/log2.hpp"
+#include "utils/bits/log2.hpp"
 
 #include <catch.hpp>
 #include <qtypes.h>

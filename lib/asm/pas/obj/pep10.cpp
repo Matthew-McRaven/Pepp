@@ -20,9 +20,9 @@
 #include "asm/pas/ast/generic/attr_children.hpp"
 #include "asm/pas/ast/generic/attr_sec.hpp"
 #include "asm/pas/operations/pepp/gather_ios.hpp"
-#include "bits/operations/copy.hpp"
 #include "isa/pep10.hpp"
 #include "link/mmio.hpp"
+#include "utils/bits/copy.hpp"
 
 void pas::obj::pep10::combineSections(ast::Node &root) {
   QList<QSharedPointer<pas::ast::Node>> newChildren{};

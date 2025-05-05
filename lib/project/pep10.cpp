@@ -3,7 +3,7 @@
 #include <elfio/elfio.hpp>
 #include "asm/pas/obj/common.hpp"
 #include "asm/pas/operations/pepp/bytes.hpp"
-#include "bits/strings.hpp"
+#include "utils/bits/strings.hpp"
 #include "builtins/figure.hpp"
 #include "cpu/formats.hpp"
 #include "helpers/asmb.hpp"

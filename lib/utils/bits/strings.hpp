@@ -17,7 +17,7 @@
 
 #pragma once
 #include <QtCore>
-#include "bits/span.hpp"
+#include "utils/bits/span.hpp"
 namespace bits {
 template <typename Iterator> bool charactersToByte(Iterator &start, Iterator end, uint8_t &value) {
   // If start == end, then there are no characters to parse!

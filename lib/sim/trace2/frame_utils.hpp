@@ -1,7 +1,7 @@
 #pragma once
-#include "bits/operations/copy.hpp"
 #include "sim/api2.hpp"
 #include "sim/utils.hpp"
+#include "utils/bits/copy.hpp"
 namespace sim::trace2 {
 
 template <typename T>

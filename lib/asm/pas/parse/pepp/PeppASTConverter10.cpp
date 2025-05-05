@@ -19,7 +19,7 @@
 #include "asm/pas/ast/value/symbolic.hpp"
 #include "asm/pas/errors.hpp"
 #include "asm/symbol/table.hpp"
-#include "bits/strings.hpp"
+#include "utils/bits/strings.hpp"
 #include "isa/pep10.hpp"
 
 using namespace pas::ast;

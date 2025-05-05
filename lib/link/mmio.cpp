@@ -16,7 +16,7 @@
  */
 
 #include "./mmio.hpp"
-#include "bits/operations/copy.hpp"
+#include "utils/bits/copy.hpp"
 const ELFIO::section *obj::getMMIONoteSection(const ELFIO::elfio &elf) {
   for (auto &sec : elf.sections)
     if (sec->get_type() == ELFIO::SHT_NOTE) return &*sec;

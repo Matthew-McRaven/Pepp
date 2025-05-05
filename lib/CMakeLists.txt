@@ -114,7 +114,7 @@ foreach (f-abs IN LISTS help-res-abs)
 endforeach ()
 qt_add_resources(pepp-lib "help" PREFIX "/help" BASE "${PROJECT_DATA_DIR}/help" FILES ${help-res})
 # Install
-  # Only add dependencies if present
+
 if(APPLE)
 else()
   install(TARGETS pepp-lib RUNTIME DESTINATION bin BUNDLE DESTINATION .)

@@ -20,8 +20,8 @@
 #include "asm/pas/ast/generic/attr_argument.hpp"
 #include "asm/pas/ast/generic/attr_directive.hpp"
 #include "asm/pas/ast/value/base.hpp"
-#include "bits/operations/copy.hpp"
-#include "bits/strings.hpp"
+#include "utils/bits/copy.hpp"
+#include "utils/bits/strings.hpp"
 
 quint16 alignToBytes(const pas::ast::Node &node, bits::span<quint8> dest) {
   auto address = node.get<pas::ast::generic::Address>().value;

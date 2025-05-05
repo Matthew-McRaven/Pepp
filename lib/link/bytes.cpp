@@ -16,7 +16,7 @@
  */
 
 #include "./bytes.hpp"
-#include "bits/strings.hpp"
+#include "utils/bits/strings.hpp"
 
 struct Buffer {
   quint64 srcLength = 0, dstLength;

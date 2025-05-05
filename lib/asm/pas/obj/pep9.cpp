@@ -19,9 +19,9 @@
 #include "./common.hpp"
 #include "asm/pas/ast/generic/attr_children.hpp"
 #include "asm/pas/operations/pepp/gather_ios.hpp"
-#include "bits/operations/copy.hpp"
 #include "isa/pep9.hpp"
 #include "link/mmio.hpp"
+#include "utils/bits/copy.hpp"
 
 namespace {
 void writeTree(ELFIO::elfio &elf, pas::ast::Node &node, QString prefix, bool isOS) {

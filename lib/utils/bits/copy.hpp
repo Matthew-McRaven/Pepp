@@ -18,8 +18,8 @@
 #pragma once
 #include <QtCore>
 #include <cstring>
-#include "../order.hpp"
-#include "bits/span.hpp"
+#include "./order.hpp"
+#include "./span.hpp"
 
 namespace bits {
 template <typename T, typename U, std::size_t destSize = std::dynamic_extent, std::size_t srcSize = std::dynamic_extent>

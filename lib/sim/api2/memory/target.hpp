@@ -18,7 +18,7 @@
 #include "../path.hpp"
 #include "./access.hpp"
 #include "./address.hpp"
-#include "bits/span.hpp"
+#include "utils/bits/span.hpp"
 namespace sim::api2::memory {
 template <typename Address> struct Target {
   virtual ~Target() = default;

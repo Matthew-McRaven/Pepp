@@ -17,7 +17,7 @@
 #include <catch.hpp>
 
 #include "./api.hpp"
-#include "bits/operations/swap.hpp"
+#include "utils/bits/swap.hpp"
 #include "sim/device/dense.hpp"
 #include "targets/pep9/isa3/cpu.hpp"
 #include "targets/isa3/helpers.hpp"

@@ -16,8 +16,8 @@
  */
 
 #include "character.hpp"
-#include "bits/operations/copy.hpp"
-#include "bits/strings.hpp"
+#include "utils/bits/copy.hpp"
+#include "utils/bits/strings.hpp"
 pas::ast::value::Character::Character() : Base() {}
 
 pas::ast::value::Character::Character(QString value) : Base(), _value(value), _valueAsBytes({}) {

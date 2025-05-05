@@ -16,7 +16,7 @@
  */
 
 #include "numeric.hpp"
-#include "bits/operations/copy.hpp"
+#include "utils/bits/copy.hpp"
 pas::ast::value::Numeric::Numeric() : Base() {}
 
 pas::ast::value::Numeric::Numeric(qint64 value, quint8 size) : _size(size), _value(value) {
