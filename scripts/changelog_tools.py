@@ -3,9 +3,43 @@ import argparse
 import sqlite3
 import os
 import csv
+import tempfile, hashlib, shutil
 
 data_dir = pathlib.Path(__file__).parent.parent / "data" / "changelog"
 
+create_ver_table ="""
+CREATE TABLE "versions" (
+    "id"	INTEGER UNIQUE,
+    "major"	INTEGER NOT NULL,
+    "minor"	INTEGER NOT NULL,
+    "patch"	INTEGER NOT NULL,
+    "ref"	TEXT,
+    "date"	TEXT,
+    "blurb"	TEXT,
+    "version" TEXT GENERATED ALWAYS AS (major || '.' || minor || '.' || patch) STORED,
+    PRIMARY KEY("id" AUTOINCREMENT),
+    UNIQUE(major, minor, patch)
+);
+"""
+
+create_types_table="""
+CREATE TABLE "types" (
+    "name"	TEXT UNIQUE COLLATE NOCASE,
+    PRIMARY KEY("name")
+);
+"""
+
+create_changes_table="""
+CREATE TABLE "changes" (
+    "version"	INTEGER,
+    "ref"           INTEGER,
+    "type"	INTEGER NOT NULL,
+    "priority"	INTEGER,
+    "message"	TEXT,
+    FOREIGN KEY("type") REFERENCES "types"("rowid"),
+    FOREIGN KEY("version") REFERENCES "versions"("id")
+);
+"""
 def compare_versions(version1: str, version2: str) -> int:
     # Split the version strings into parts
     v1_parts = [int(part) for part in version1.split('.')]
@@ -25,39 +59,6 @@ def version_key(version: str):
     return tuple(int(part) for part in version.split('.'))
 
 def to_sqlite_helper(conn):
-    create_ver_table ="""
-CREATE TABLE "versions" (
-        "id"	INTEGER UNIQUE, 
-        "major"	INTEGER NOT NULL,
-        "minor"	INTEGER NOT NULL,
-        "patch"	INTEGER NOT NULL,
-        "ref"	TEXT,
-        "date"	TEXT,
-        "blurb"	TEXT,
-        "version" TEXT GENERATED ALWAYS AS (major || '.' || minor || '.' || patch) STORED,
-        PRIMARY KEY("id" AUTOINCREMENT),
-        UNIQUE(major, minor, patch)
-);
-"""
-
-    create_types_table="""
-CREATE TABLE "types" (
-        "name"	TEXT UNIQUE COLLATE NOCASE,
-        PRIMARY KEY("name")
-);
-"""
-
-    create_changes_table="""
-CREATE TABLE "changes" (
-        "version"	INTEGER,
-        "ref"           INTEGER,
-        "type"	INTEGER NOT NULL,
-        "priority"	INTEGER,
-        "message"	TEXT,
-        FOREIGN KEY("type") REFERENCES "types"("rowid"),
-        FOREIGN KEY("version") REFERENCES "versions"("id")
-);
-"""
     cursor = conn.cursor()
 
     # Create table with info about versions
@@ -104,13 +105,49 @@ CREATE TABLE "changes" (
                            (ver_id, type_id, priority_int, msg,ref))
     conn.commit()
 
+
+
+def hash_database(conn):
+    # Must sort all hashed rows for stable outputs.
+    h = hashlib.sha256()
+    cursor = conn.cursor()
+    cursor.execute("SELECT name FROM sqlite_master WHERE type='table' ORDER BY name")
+    for (table,) in cursor:
+        # Hash schema
+        cursor.execute("SELECT sql FROM sqlite_master WHERE type='table' AND name=?", (table,))
+        h.update(cursor.fetchone()[0].encode('utf-8'))
+        cursor.execute(f"SELECT * FROM {table} ORDER BY rowid")
+
+        for row in cursor.fetchall():
+            for value in row:h.update(repr(value).encode('utf-8'))
+            h.update(b'\1')  # Row separator
+        h.update(b'\2')  # Table separator
+    return h.digest()
+
+
 def to_sqlite(args):
-    try: os.remove(args.db)
-    except OSError: pass
-    f = pathlib.Path(args.db)
-    conn = sqlite3.connect(f)
-    to_sqlite_helper(conn)
-    conn.close()
+    with tempfile.TemporaryDirectory() as newdir:
+        conn = sqlite3.connect(newdir+"/temp.db")
+        conn.commit()
+        to_sqlite_helper(conn)
+
+        # If database does not already exist, copy it to target location
+        if not os.path.exists(args.db):
+            conn.commit()
+            conn.close()
+            shutil.move(newdir+"/temp.db", args.db)
+            return
+
+        # If database does exist, hash both databases and compare their hashes.
+        existing_db = sqlite3.connect(args.db)
+        new_hash, existing_hash = hash_database(conn), hash_database(existing_db)
+        conn.close(), existing_db.close()
+
+        # If they do not match, copy the new DB over the old one, which will cause the QRC to rebuild.
+        if new_hash != existing_hash:
+            try: os.remove(args.db)
+            except OSError: pass
+            shutil.move(newdir+"/temp.db", args.db)
 
 
 def stringize_version(conn, version):
