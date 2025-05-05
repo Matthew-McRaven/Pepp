@@ -36,6 +36,7 @@ qt_add_qml_module(pepp-lib
         CLASS_NAME PeppLibPlugin
         SOURCES ${sources} "${CMAKE_CURRENT_BINARY_DIR}/version_gen.cpp" "${CMAKE_SOURCE_DIR}/resource_license.qrc"
         QML_FILES ${rel_qml_sources}
+        OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/edu/pepp"
 )
 
 target_link_libraries(pepp-lib PUBLIC Qt6::Core Qt6::Gui Qt6::Quick Qt6::Sql antlr4_shared elfio lru-cache scintilla_qt zpp_bits)

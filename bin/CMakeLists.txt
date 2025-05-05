@@ -139,6 +139,8 @@ qt_add_qml_module(pepp
         VERSION 0.2
         QML_FILES ${rel_qml_sources}
         SOURCES ${guis} ${demos}
+        # Must be set since we overrode OUTPUT_DIRECTORY in library
+        IMPORT_PATH "${CMAKE_BINARY_DIR}/edu/pepp"
 
 )
 qt6_add_resources(pepp "pepp"

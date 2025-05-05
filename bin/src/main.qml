@@ -20,22 +20,14 @@ import QtQuick
 import QtQuick.Window
 import QtQuick.Controls
 import QtQuick.Layouts
-import QtQuick.Dialogs
-import Qt.labs.qmlmodels
-import QtQml.Models
 import QtCore
 import "qrc:/qt/qml/edu/pepp/about" as About
-import "qrc:/qt/qml/edu/pepp/memory/hexdump" as Memory
-import "qrc:/qt/qml/edu/pepp/cpu" as Cpu
-import "qrc:/qt/qml/edu/pepp/text/editor" as Editor
 import "qrc:/qt/qml/edu/pepp/project" as Project
 import "qrc:/qt/qml/edu/pepp/top" as Top
 import "qrc:/qt/qml/edu/pepp/settings" as AppSettings
 import "qrc:/qt/qml/edu/pepp/builtins" as Builtins
-import edu.pepp 1.0
 import "qrc:/qt/qml/edu/pepp/menu" as Menu
-//  Native menu for apple, linux, and windows
-import Qt.labs.platform as Labs
+import edu.pepp 1.0
 
 ApplicationWindow {
     id: window
