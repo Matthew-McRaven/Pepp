@@ -25,7 +25,7 @@ class Maintainer : public QObject {
   Q_PROPERTY(QString name READ name CONSTANT)
   Q_PROPERTY(QString email READ email CONSTANT)
   QML_ELEMENT
-  QML_UNCREATABLE("Must be created from C++")
+  QML_UNCREATABLE("")
 
 public:
   Maintainer(QString name, QString email, QObject *parent = nullptr);
@@ -40,13 +40,11 @@ private:
 class MaintainerList : public QAbstractListModel {
   Q_OBJECT
   QML_ELEMENT
-  QML_SINGLETON
 
 public:
   enum { NAME = Qt::UserRole, EMAIL = Qt::UserRole + 1, ITEM };
-  explicit MaintainerList(QList<Maintainer *> list, QObject *parent = nullptr);
+  explicit MaintainerList(QObject *parent = nullptr);
   ~MaintainerList() override = default;
-  static MaintainerList *create(QQmlEngine *, QJSEngine *);
 
   int rowCount(const QModelIndex &parent) const override;
   QVariant data(const QModelIndex &index, int role) const override;

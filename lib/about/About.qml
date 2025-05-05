@@ -1,4 +1,3 @@
-
 /*
  * Copyright (c) 2024 J. Stanley Warford, Matthew McRaven
  * This program is free software: you can redistribute it and/or modify
@@ -14,6 +13,7 @@
  * You should have received a copy of the GNU General Public License
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
+pragma ComponentBehavior: Bound
 import QtQuick
 import QtQuick.Layouts
 import QtQuick.Controls
@@ -41,42 +41,39 @@ Item {
         ColumnLayout {
             anchors.fill: parent
             Text {
-                color: palette.windowText
                 id: title
+                color: palette.windowText
                 onLinkActivated: link => {
-                                     Qt.openUrlExternally(link)
-                                 }
+                    Qt.openUrlExternally(link);
+                }
                 // Too much text to assign in binding, so build it inline instead.
                 Component.onCompleted: {
-                    let line0 = "<h2>Pepp version %1</h2> <a href=\"https://github.com/Matthew-McRaven/Pepp/releases\">Check for updates</a>.  ".arg(
-                            Version.version_str_full)
-                    let url = "https://github.com/Matthew-McRaven/Pepp/commit/" + Version.git_sha
-                    let line1 = "Based on <a href=\"" + url + "\">"
-                    line1 += Version.git_tag
-                            !== "unknown" ? Version.git_tag : Version.git_sha.substring(
-                                                0, 7)
-                    line1 += "</a>."
-                    text = line0 + line1
+                    let line0 = "<h2>Pepp version %1</h2> <a href=\"https://github.com/Matthew-McRaven/Pepp/releases\">Check for updates</a>.  ".arg(Version.version_str_full);
+                    let url = "https://github.com/Matthew-McRaven/Pepp/commit/" + Version.git_sha;
+                    let line1 = "Based on <a href=\"" + url + "\">";
+                    line1 += Version.git_tag !== "unknown" ? Version.git_tag : Version.git_sha.substring(0, 7);
+                    line1 += "</a>.";
+                    text = line0 + line1;
                 }
             }
             Label {
                 Layout.fillWidth: true
                 text: qsTr("Programmed By:")
                 font.bold: true
-                font.pixelSize: Qt.application.font.pixelSize
             }
             Column {
                 Layout.fillWidth: true
                 Layout.fillHeight: true
                 Repeater {
-                    model: MaintainerList
+                    model: MaintainerList {}
+
                     Label {
                         width: parent.width
                         height: fontMetrics.height
                         required property var item
                         text: item.name + "  <" + item.email + ">"
                     }
-                    height: MaintainerList.rowCount * fontMetrics.height
+                    height: model.rowCount() * fontMetrics.height
                 }
             }
             Label {
@@ -104,7 +101,7 @@ Item {
             }
             Label {
                 Layout.fillWidth: true
-                width: parent.width
+                Layout.preferredWidth: parent.width
                 wrapMode: Text.WordWrap
                 text: qsTr("This program is free software: you can redistribute it and/or modify it under the terms of the GNU General Public License as published by the Free Software Foundation, either version 3 of the License, or (at your option) any later version.\n\n")
             }
@@ -113,9 +110,9 @@ Item {
                 Layout.fillWidth: true
                 text: qsTr("<html>This program is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU General Public License for more details.\n\nYou should have received a copy of the GNU General Public License along with this program. If not, see <a href=\"https://www.gnu.org/licenses/.\">https://www.gnu.org/licenses/</a><br/></html>")
 
-                width: parent.width
+                Layout.preferredWidth: parent.width
                 wrapMode: Text.WordWrap
-                onLinkActivated: Qt.openUrlExternally(link)
+                onLinkActivated: link => Qt.openUrlExternally(link)
                 MouseArea {
                     anchors.fill: parent
                     acceptedButtons: Qt.NoButton // Don't eat the mouse clicks
@@ -129,38 +126,36 @@ Item {
                 wrapMode: Text.WordWrap
             }
             ComboBox {
+                id: projectCombo
                 Component.onCompleted: {
                     // Force the correct license to be selected on load.
-                    projectCombo.onCurrentIndexChanged()
+                    projectCombo.onCurrentIndexChanged();
                     // onCurrentIndexChanged not called automatically, so we must connect to the appropriate signal.
-                    projectCombo.currentIndexChanged.connect(
-                                projectCombo.onCurrentIndexChanged)
+                    projectCombo.currentIndexChanged.connect(projectCombo.onCurrentIndexChanged);
                 }
 
                 Layout.fillWidth: true
-                id: projectCombo
                 model: Dependencies
                 currentIndex: 0
                 textRole: "name"
                 function onCurrentIndexChanged() {
-                    let index = model.index(currentIndex, 0)
-                    projectLicense.text = model.data(
-                                index, DependencyRoles.LicenseText)
-                    let url = model.data(index, DependencyRoles.URL)
-                    projectUrl.text = "<a href=\"" + url + "\">" + url + "</a>"
+                    let index = model.index(currentIndex, 0);
+                    projectLicense.text = model.data(index, DependencyRoles.LicenseText);
+                    let url = model.data(index, DependencyRoles.URL);
+                    projectUrl.text = "<a href=\"" + url + "\">" + url + "</a>";
                 }
             }
             Text {
+                id: projectUrl
                 Layout.fillWidth: true
                 color: palette.windowText
-                id: projectUrl
                 onLinkActivated: link => {
-                                     Qt.openUrlExternally(link)
-                                 }
+                    Qt.openUrlExternally(link);
+                }
             }
             TextArea {
-                Layout.fillWidth: true
                 id: projectLicense
+                Layout.fillWidth: true
                 readOnly: true
                 wrapMode: Text.WordWrap
             }

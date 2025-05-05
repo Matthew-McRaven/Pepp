@@ -36,6 +36,8 @@ qt_add_qml_module(pepp-lib
         CLASS_NAME PeppLibPlugin
         SOURCES ${sources} "${CMAKE_CURRENT_BINARY_DIR}/version_gen.cpp" "${CMAKE_SOURCE_DIR}/resource_license.qrc"
         QML_FILES ${rel_qml_sources}
+        DEPENDENCIES
+          QtQuick
         OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/edu/pepp"
 )
 

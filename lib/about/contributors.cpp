@@ -22,22 +22,13 @@ Maintainer::Maintainer(QString name, QString email, QObject *parent) : QObject(p
 QString Maintainer::name() { return _name; }
 QString Maintainer::email() { return _email; }
 
-MaintainerList::MaintainerList(QList<Maintainer *> list, QObject *parent) : QAbstractListModel(parent), _list(list) {
-  // Must re-parent to avoid memory leaks.
-  for (auto *item : list) item->setParent(this);
-}
-
-MaintainerList *MaintainerList::create(QQmlEngine *eng, QJSEngine *) {
+MaintainerList::MaintainerList(QObject *parent) {
   // Need global scope ::, or it picks up about::Maintainer
-  QList<::Maintainer *> maintainers{};
   for (const auto &maintainer : about::maintainers()) {
-    auto *item = new ::Maintainer(maintainer.name, maintainer.email, eng);
-    maintainers.push_back(item);
+    auto *item = new ::Maintainer(maintainer.name, maintainer.email, this);
+    _list.push_back(item);
   }
-  // Class assumes ownership of objects via modifying parent pointer.
-  auto owning = new MaintainerList(maintainers);
-  return owning;
-};
+}
 
 int MaintainerList::rowCount(const QModelIndex &parent) const { return _list.size(); }
 

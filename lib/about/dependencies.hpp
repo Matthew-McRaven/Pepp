@@ -12,7 +12,7 @@ QList<Dependency> dependencies();
 class DependencyRoles : public QObject {
   Q_OBJECT
   QML_ELEMENT
-  QML_UNCREATABLE("Error: Only enums")
+  QML_UNCREATABLE("")
 public:
   enum RoleNames {
     Name = Qt::UserRole,
