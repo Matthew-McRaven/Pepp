@@ -124,7 +124,7 @@ void pas::ops::generic::ExtractTraceTags::operator()(ast::Node &node) {
 std::vector<pas::ops::generic::Command> pas::ops::generic::extractTraceTags(ast::Node &node) {
   ExtractTraceTags visitor;
   pas::ast::apply_recurse(node, visitor);
-  for (const auto &cmd : visitor.commands) qDebug().noquote() << (QString)cmd;
+  // for (const auto &cmd : visitor.commands) qDebug().noquote() << (QString)cmd;
   return visitor.commands;
 }
 
