@@ -1,5 +1,3 @@
-
-
 /*
  * Copyright (c) 2024 J. Stanley Warford, Matthew McRaven
  * This program is free software: you can redistribute it and/or modify
@@ -107,17 +105,16 @@ ColumnLayout {
                     Layout.preferredWidth: childrenRect.width
                     color: "transparent"
                     function updateFlagMargin() {
-                        flags.overrideLeftMargin = Qt.binding(
-                                    () => x + Layout.leftMargin + spacing)
+                        flags.overrideLeftMargin = Qt.binding(() => x + Layout.leftMargin + spacing);
                     }
 
                     onXChanged: {
                         if (column == 1 && row == 0)
-                            updateFlagMargin()
+                            updateFlagMargin();
                     }
                     onWidthChanged: {
                         if (column == 1 && row == 0)
-                            updateFlagMargin()
+                            updateFlagMargin();
                     }
 
                     TextField {
@@ -130,8 +127,7 @@ ColumnLayout {
                         }
                         font: metrics.font
                         readOnly: true
-                        maximumLength: 2 + registers.model.columnCharWidth(
-                                           column)
+                        maximumLength: 2 + registers.model.columnCharWidth(column)
                         anchors.centerIn: columnDelegate
                         text: columnDelegate.display
                         color: palette.windowText
@@ -142,31 +138,26 @@ ColumnLayout {
                         onPressed: function (mouse) {
                             if (mouse.button === Qt.RightButton) {
                                 while (contextMenu.count) {
-                                    contextMenu.removeItem(
-                                                contextMenu.itemAt(0))
+                                    contextMenu.removeItem(contextMenu.itemAt(0));
                                 }
                                 if (!choices)
-                                    return
+                                    return;
                                 for (var i = 0; i < choices.length; i++) {
-                                    var menuItem = menuItemComponent.createObject(
-                                                contextMenu.contentItem, {
-                                                    "text": qsTr(choices[i]),
-                                                    "checkable": true,
-                                                    "checked": i === selected
-                                                })
+                                    var menuItem = menuItemComponent.createObject(contextMenu.contentItem, {
+                                        "text": qsTr(choices[i]),
+                                        "checkable": true,
+                                        "checked": i === selected
+                                    });
                                     // Stupid QML formatter keeps resetting i to var, and changes its scope.
-                                    const idx = i
-                                    const mindex = registers.model.index(row,
-                                                                         column)
+                                    const idx = i;
+                                    const mindex = registers.model.index(row, column);
                                     menuItem.onTriggered.connect(function () {
-                                        registers.model.setData(
-                                                    mindex, idx,
-                                                    registers.model.Selected)
-                                    })
-                                    contextMenu.addItem(menuItem)
+                                        registers.model.setData(mindex, idx, registers.model.Selected);
+                                    });
+                                    contextMenu.addItem(menuItem);
                                 }
                                 if (contextMenu.count > 0)
-                                    contextMenu.popup(textField)
+                                    contextMenu.popup(textField);
                             }
                         }
                     }
