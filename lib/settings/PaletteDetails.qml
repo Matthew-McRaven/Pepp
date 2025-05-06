@@ -3,7 +3,7 @@ import QtQuick.Controls
 import QtQuick.Layouts
 import edu.pepp 1.0
 import "." as Ui
-import "qrc:/qt/qml/edu/pepp/components" as Comp
+import "qrc:/qt/qml/edu/pepp/utils" as Comp
 import Qt.labs.platform as Platform
 
 Item {
@@ -45,19 +45,17 @@ Item {
                     enabled: !root.isSystem
                     textRole: "display"
                     valueRole: "id"
-                    currentIndex: root.ePalette.itemToRole(
-                                      root.paletteItem?.parent)
+                    currentIndex: root.ePalette.itemToRole(root.paletteItem?.parent)
                     onActivated: {
-                        const parent = root.ePalette.item(currentIndex)
-                        root.paletteItem.parent = parent
+                        const parent = root.ePalette.item(currentIndex);
+                        root.paletteItem.parent = parent;
                     }
                 }
                 Button {
                     text: "Clear Parent"
-                    enabled: !root.isSystem
-                             && (root.paletteItem?.parent ?? false)
+                    enabled: !root.isSystem && (root.paletteItem?.parent ?? false)
                     onPressed: {
-                        root.paletteItem.clearParent()
+                        root.paletteItem.clearParent();
                     }
                 }
             }
@@ -98,7 +96,7 @@ Item {
                     checked: enabled && root.paletteItem?.hasOwnForeground
                     onCheckedChanged: {
                         if (enabled && !checked && root.paletteItem) {
-                            root.paletteItem.clearForeground()
+                            root.paletteItem.clearForeground();
                         }
                         //console.log("Text " + tm.width)
                     }
@@ -118,7 +116,7 @@ Item {
                     checked: enabled && root.paletteItem?.hasOwnBackground
                     onCheckedChanged: {
                         if (enabled && !checked && root.paletteItem)
-                            root.paletteItem.clearBackground()
+                            root.paletteItem.clearBackground();
                     }
                 }
             }
@@ -135,21 +133,19 @@ Item {
                     font: root.paletteItem?.font
                     onPressed: {
                         //  Open dialog and set properties.
-                        fontDialog.open()
+                        fontDialog.open();
                         // Must explicitly update current font, because the binding is ignored.
-                        fontDialog.open()
-                        fontDialog.currentFont = root.paletteItem.font
-                        fontDialog.visible = true
+                        fontDialog.open();
+                        fontDialog.currentFont = root.paletteItem.font;
+                        fontDialog.visible = true;
                     }
                 }
                 Button {
                     text: "Reset to Parent"
-                    enabled: !root.isSystem
-                             && ((root.paletteItem?.parent
-                                  && root.paletteItem?.hasOwnFont) ?? false)
+                    enabled: !root.isSystem && ((root.paletteItem?.parent && root.paletteItem?.hasOwnFont) ?? false)
                     onPressed: {
                         if (enabled)
-                            root.paletteItem.clearFont()
+                            root.paletteItem.clearFont();
                     }
                 }
             }
@@ -163,8 +159,7 @@ Item {
                 textColor: palette.windowText
                 backgroundColor: bg.color
                 text: "Font Overrides"
-                enabled: (!root.isSystem
-                          && root.paletteItem) ? !root.paletteItem.hasOwnFont : false
+                enabled: (!root.isSystem && root.paletteItem) ? !root.paletteItem.hasOwnFont : false
             }
             GridLayout {
                 id: layout
@@ -173,51 +168,45 @@ Item {
                 rowSpacing: 2
                 CheckBox {
                     text: "Bold"
-                    enabled: (!root.isSystem
-                              && root.paletteItem) ? !root.paletteItem.hasOwnFont : false
+                    enabled: (!root.isSystem && root.paletteItem) ? !root.paletteItem.hasOwnFont : false
                     checked: root.paletteItem?.font.bold ?? false
                     onReleased: {
-                        root.paletteItem.overrideBold(checked)
+                        root.paletteItem.overrideBold(checked);
                     }
                 }
                 CheckBox {
                     text: "Italic"
-                    enabled: (!root.isSystem
-                              && root.paletteItem) ? !root.paletteItem.hasOwnFont : false
+                    enabled: (!root.isSystem && root.paletteItem) ? !root.paletteItem.hasOwnFont : false
                     checked: root.paletteItem?.font.italic ?? false
                     onReleased: {
-                        root.paletteItem.overrideItalic(checked)
+                        root.paletteItem.overrideItalic(checked);
                     }
                 }
                 CheckBox {
                     text: "Underline"
-                    enabled: (!root.isSystem
-                              && root.paletteItem) ? !root.paletteItem.hasOwnFont : false
+                    enabled: (!root.isSystem && root.paletteItem) ? !root.paletteItem.hasOwnFont : false
                     checked: root.paletteItem?.font.underline ?? false
                     onReleased: {
-                        root.paletteItem.overrideUnderline(checked)
+                        root.paletteItem.overrideUnderline(checked);
                     }
                 }
                 CheckBox {
                     text: "Strikeout"
-                    enabled: (!root.isSystem
-                              && root.paletteItem) ? !root.paletteItem.hasOwnFont : false
+                    enabled: (!root.isSystem && root.paletteItem) ? !root.paletteItem.hasOwnFont : false
                     checked: root.paletteItem?.font.strikeout ?? false
                     onReleased: {
-                        root.paletteItem.overrideStrikeout(checked)
+                        root.paletteItem.overrideStrikeout(checked);
                     }
                 }
                 RowLayout {
                     Layout.columnSpan: 2
                     Label {
                         text: "Size"
-                        enabled: !root.isSystem
-                                 && (root.paletteItem ? !root.paletteItem.hasOwnFont : false)
+                        enabled: !root.isSystem && (root.paletteItem ? !root.paletteItem.hasOwnFont : false)
                     }
                     SpinBox {
                         id: sizeSB
-                        enabled: !root.isSystem
-                                 && (root.paletteItem ? !root.paletteItem.hasOwnFont : false)
+                        enabled: !root.isSystem && (root.paletteItem ? !root.paletteItem.hasOwnFont : false)
                         value: root.paletteItem?.font.pixelSize ?? 12
                         from: 1
                     }
@@ -238,22 +227,19 @@ Item {
                     font: root.paletteItem?.macroFont
                     onPressed: {
                         //  Open dialog and set properties.
-                        macroFontDialog.open()
+                        macroFontDialog.open();
                         // Must explicitly update current font, because the binding is ignored.
-                        macroFontDialog.open()
-                        macroFontDialog.currentFont = root.paletteItem.macroFont
-                        macroFontDialog.visible = true
+                        macroFontDialog.open();
+                        macroFontDialog.currentFont = root.paletteItem.macroFont;
+                        macroFontDialog.visible = true;
                     }
                 }
                 Button {
                     text: "Reset to Parent"
-                    enabled: !root.isSystem
-                             && ((root.paletteItem?.parent
-                                  && root.paletteItem?.hasOwnMacroFont)
-                                 ?? false)
+                    enabled: !root.isSystem && ((root.paletteItem?.parent && root.paletteItem?.hasOwnMacroFont) ?? false)
                     onPressed: {
                         if (enabled)
-                            root.paletteItem.clearMacroFont()
+                            root.paletteItem.clearMacroFont();
                     }
                 }
             }
@@ -286,28 +272,28 @@ Item {
         property var setCallback: color => {}
         function onRequestBackground(_color) {
             if (_color)
-                currentColor = Qt.binding(() => _color)
+                currentColor = Qt.binding(() => _color);
             setCallback = newColor => {
-                root.paletteItem.background = newColor
-            }
-            colorDialog.open()
+                root.paletteItem.background = newColor;
+            };
+            colorDialog.open();
         }
         function onRequestForeground(_color) {
             if (_color)
-                currentColor = Qt.binding(() => _color)
+                currentColor = Qt.binding(() => _color);
             setCallback = newColor => {
-                root.paletteItem.foreground = newColor
-            }
-            colorDialog.open()
+                root.paletteItem.foreground = newColor;
+            };
+            colorDialog.open();
         }
         //  Signal parent control that color has changed
         onAccepted: {
-            setCallback(colorDialog.color)
-            setCallback = color => {}
+            setCallback(colorDialog.color);
+            setCallback = color => {};
         }
     }
     Component.onCompleted: {
-        fgPicker.requestColorChange.connect(colorDialog.onRequestForeground)
-        bgPicker.requestColorChange.connect(colorDialog.onRequestBackground)
+        fgPicker.requestColorChange.connect(colorDialog.onRequestForeground);
+        bgPicker.requestColorChange.connect(colorDialog.onRequestBackground);
     }
 }

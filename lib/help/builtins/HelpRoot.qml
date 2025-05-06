@@ -2,7 +2,7 @@ import QtQuick
 import QtQuick.Controls
 import QtQuick.Layouts
 import edu.pepp 1.0
-import "qrc:/qt/qml/edu/pepp/components" as Comp
+import "qrc:/qt/qml/edu/pepp/utils" as Comp
 
 Item {
     id: root
@@ -15,62 +15,62 @@ Item {
     }
 
     onArchitectureChanged: {
-        var idx = 0
+        var idx = 0;
         for (var i = 0; i < architectureModel.count; i++) {
             if (architectureModel.get(i).value === architecture)
-                idx = i
+                idx = i;
         }
-        architectureCombo.currentIndex = idx
-        architectureCombo.activated(idx)
+        architectureCombo.currentIndex = idx;
+        architectureCombo.activated(idx);
     }
     onAbstractionChanged: {
-        var idx = 0
+        var idx = 0;
         for (var i = 0; i < abstractionModel.count; i++) {
             if (abstractionModel.get(i).value === abstraction)
-                idx = i
+                idx = i;
         }
-        abstractionCombo.currentIndex = idx
-        abstractionCombo.activated(idx)
+        abstractionCombo.currentIndex = idx;
+        abstractionCombo.activated(idx);
     }
     property var selected
     // Duplicated in GeneralCategoryDelegate. Must manually propogate changes between files.
     Component.onCompleted: {
         architectureModel.append({
-                                     "key": "Pep/10",
-                                     "value": Architecture.PEP10
-                                 })
+            "key": "Pep/10",
+            "value": Architecture.PEP10
+        });
         architectureModel.append({
-                                     "key": "Pep/9",
-                                     "value": Architecture.PEP9
-                                 })
+            "key": "Pep/9",
+            "value": Architecture.PEP9
+        });
         architectureModel.append({
-                                     "key": "Pep/8",
-                                     "value": Architecture.PEP8
-                                 })
+            "key": "Pep/8",
+            "value": Architecture.PEP8
+        });
         architectureModel.append({
-                                     "key": "RISC-V",
-                                     "value": Architecture.RISCV
-                                 })
+            "key": "RISC-V",
+            "value": Architecture.RISCV
+        });
         abstractionModel.append({
-                                    "key": "ASMB5",
-                                    "value": Abstraction.ASMB5
-                                })
+            "key": "ASMB5",
+            "value": Abstraction.ASMB5
+        });
         abstractionModel.append({
-                                    "key": "ASMB3",
-                                    "value": Abstraction.ASMB3
-                                })
+            "key": "ASMB3",
+            "value": Abstraction.ASMB3
+        });
         abstractionModel.append({
-                                    "key": "ISA3",
-                                    "value": Abstraction.ISA3
-                                })
+            "key": "ISA3",
+            "value": Abstraction.ISA3
+        });
         abstractionModel.append({
-                                    "key": "MC2",
-                                    "value": Abstraction.MC2
-                                })
+            "key": "MC2",
+            "value": Abstraction.MC2
+        });
         abstractionModel.append({
-                                    "key": "OS4",
-                                    "value": Abstraction.OS4
-                                })
+            "key": "OS4",
+            "value": Abstraction.OS4
+        });
     }
 
     // Make sure the drawer is always at least as wide as the text
@@ -136,9 +136,8 @@ Item {
                 onAbstractionChanged: root.selected = treeView.index(0, 0)
                 onArchitectureChanged: root.selected = treeView.index(0, 0)
                 Component.onCompleted: {
-                    helpModel.sort(0, Qt.AscendingOrder)
-                    reloadFiguresRequested.connect(
-                                helpModel.model.onReloadFigures)
+                    helpModel.sort(0, Qt.AscendingOrder);
+                    reloadFiguresRequested.connect(helpModel.model.onReloadFigures);
                 }
             }
 
@@ -162,22 +161,21 @@ Item {
                 }
                 onCurrentChanged: {
                     if (current) {
-                        makeActive()
+                        makeActive();
                     }
                 }
                 onClicked: {
-                    makeActive()
+                    makeActive();
                     if (treeView.isExpanded(row)) {
-                        treeView.collapseRecursively(row)
+                        treeView.collapseRecursively(row);
                     } else {
-                        treeView.expandRecursively(row)
+                        treeView.expandRecursively(row);
                     }
                 }
 
                 function makeActive() {
-                    root.selected = treeDelegate.treeView.index(row, column)
-                    treeDelegate.treeView.selectionModel.setCurrentIndex(
-                                root.selected, ItemSelectionModel.NoUpdate)
+                    root.selected = treeDelegate.treeView.index(row, column);
+                    treeDelegate.treeView.selectionModel.setCurrentIndex(root.selected, ItemSelectionModel.NoUpdate);
                 }
             }
         }
@@ -198,18 +196,16 @@ Item {
                 target: contentLoader.item
 
                 function onAddProject(feats, texts, mode, os, tests) {
-                    const abs = abstractionModel.get(
-                                  abstractionCombo.currentIndex).value
-                    const arch = architectureModel.get(
-                                   architectureCombo.currentIndex).value
-                    root.addProject(arch, abs, feats, texts, true)
+                    const abs = abstractionModel.get(abstractionCombo.currentIndex).value;
+                    const arch = architectureModel.get(architectureCombo.currentIndex).value;
+                    root.addProject(arch, abs, feats, texts, true);
                     if (tests && tests[0])
-                        root.setCharIn(tests[0].input)
-                    root.switchToMode(mode ?? "Editor")
+                        root.setCharIn(tests[0].input);
+                    root.switchToMode(mode ?? "Editor");
                 }
 
                 function onRenameCurrentProject(name) {
-                    root.renameCurrentProject(name)
+                    root.renameCurrentProject(name);
                 }
 
                 ignoreUnknownSignals: true
@@ -226,9 +222,9 @@ Item {
     signal switchToMode(string mode)
 
     onSelectedChanged: {
-        const props = helpModel.data(selected, HelpModel.Props)
-        const url = helpModel.data(selected, HelpModel.Delegate)
+        const props = helpModel.data(selected, HelpModel.Props);
+        const url = helpModel.data(selected, HelpModel.Delegate);
         if (url !== undefined)
-            contentLoader.setSource(url, props)
+            contentLoader.setSource(url, props);
     }
 }
