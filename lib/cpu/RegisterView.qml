@@ -125,7 +125,7 @@ ColumnLayout {
                             border.width: box ? 1 : 0
                             radius: 2
                         }
-                        font: metrics.font
+                        font: column == 0 ? settings.extPalette.base.font : metrics.font
                         readOnly: true
                         maximumLength: 2 + registers.model.columnCharWidth(column)
                         anchors.centerIn: columnDelegate
