@@ -18,7 +18,7 @@
 #include <catch.hpp>
 #include "toolchain/pas/ast/node.hpp"
 #include "toolchain/pas/driver/pep10.hpp"
-#include "isa/pep10.hpp"
+#include "enums/isa/pep10.hpp"
 using namespace Qt::StringLiterals;
 
 TEST_CASE("Addressable", "[scope:asm][kind:unit][arch:pep10]") {

@@ -170,5 +170,5 @@ template <typename ISA> void pas::ops::pepp::assignAddresses(ast::Node &root) {
 }
 
 // Special-case code for Pep/9.
-#include "isa/pep9.hpp"
+#include "enums/isa/pep9.hpp"
 template <> void pas::ops::pepp::assignAddresses<isa::Pep9>(ast::Node &root);

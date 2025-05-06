@@ -6,7 +6,7 @@
 #include "cpu/formats.hpp"
 #include "help/builtins/figure.hpp"
 #include "toolchain/helpers/asmb.hpp"
-#include "isa/pep10.hpp"
+#include "enums/isa/pep10.hpp"
 #include "sim/device/broadcast/mmi.hpp"
 #include "sim/device/broadcast/mmo.hpp"
 #include "sim/device/broadcast/pubsub.hpp"

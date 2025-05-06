@@ -22,7 +22,7 @@
 #include "toolchain/pas/operations/generic/group.hpp"
 #include "toolchain/pas/operations/pepp/addressable.hpp"
 #include "toolchain/pas/operations/pepp/assign_addr.hpp"
-#include "isa/pep10.hpp"
+#include "enums/isa/pep10.hpp"
 #include "toolchain/macro/registry.hpp"
 
 namespace E = pas::errors::pepp;

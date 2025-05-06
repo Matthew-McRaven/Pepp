@@ -18,7 +18,7 @@
 #include "toolchain/pas/driver/pepp.hpp"
 #include "toolchain/pas/operations/generic/include_macros.hpp"
 #include "utils/bits/strings.hpp"
-#include "isa/pep10.hpp"
+#include "enums/isa/pep10.hpp"
 #include "toolchain/macro/macro.hpp"
 #include "toolchain/macro/registry.hpp"
 

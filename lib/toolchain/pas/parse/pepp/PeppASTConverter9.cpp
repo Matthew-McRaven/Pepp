@@ -20,7 +20,7 @@
 #include "toolchain/pas/errors.hpp"
 #include "toolchain/symbol/table.hpp"
 #include "utils/bits/strings.hpp"
-#include "isa/pep9.hpp"
+#include "enums/isa/pep9.hpp"
 
 using namespace pas::ast;
 namespace {

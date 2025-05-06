@@ -19,7 +19,7 @@
 #include "toolchain/pas/ast/generic/attr_children.hpp"
 #include "toolchain/pas/driver/pep10.hpp"
 #include "toolchain/pas/driver/pepp.hpp"
-#include "isa/pep10.hpp"
+#include "enums/isa/pep10.hpp"
 #include "toolchain/macro/macro.hpp"
 #include "toolchain/macro/registered.hpp"
 #include "toolchain/macro/registry.hpp"

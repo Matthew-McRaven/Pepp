@@ -12,7 +12,7 @@
 #include "toolchain/pas/operations/pepp/string.hpp"
 #include "toolchain/pas/operations/pepp/whole_program_sanity.hpp"
 #include "help/builtins/registry.hpp"
-#include "isa/pep10.hpp"
+#include "enums/isa/pep10.hpp"
 #include "toolchain/macro/parse.hpp"
 
 QSharedPointer<const builtins::Book> helpers::book(int ed) {

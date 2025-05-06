@@ -19,7 +19,7 @@
 #include "toolchain/pas/operations/pepp/bytes.hpp"
 #include "help/builtins/figure.hpp"
 #include "toolchain/helpers/asmb.hpp"
-#include "isa/pep10.hpp"
+#include "enums/isa/pep10.hpp"
 #include "toolchain/macro/registry.hpp"
 
 AsmTask::AsmTask(int ed, std::string userFname, QObject *parent) : Task(parent), ed(ed), userIn(userFname) {}

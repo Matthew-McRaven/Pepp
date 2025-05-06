@@ -22,7 +22,7 @@
 #include "help/builtins/book.hpp"
 #include "help/builtins/figure.hpp"
 #include "help/builtins/registry.hpp"
-#include "isa/pep10.hpp"
+#include "enums/isa/pep10.hpp"
 #include "toolchain/link/memmap.hpp"
 #include "toolchain/link/mmio.hpp"
 #include "toolchain/macro/registry.hpp"

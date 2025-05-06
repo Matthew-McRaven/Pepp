@@ -4,8 +4,8 @@
 #include "LexillaAccess.h"
 #include "SciLexer.h"
 #include "ScintillaEditBase/PlatQt.h"
-#include "isa/pep10.hpp"
-#include "isa/pep9.hpp"
+#include "enums/isa/pep10.hpp"
+#include "enums/isa/pep9.hpp"
 #include "settings/palette.hpp"
 #include "settings/paletteitem.hpp"
 

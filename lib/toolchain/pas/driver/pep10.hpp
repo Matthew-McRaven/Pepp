@@ -18,10 +18,10 @@
 #pragma once
 #include "./common.hpp"
 #include "./pepp.hpp"
+#include "enums/isa/pep10.hpp"
+#include "toolchain/macro/registry.hpp"
 #include "toolchain/pas/operations/generic/include_macros.hpp"
 #include "toolchain/symbol/table.hpp"
-#include "isa/pep10.hpp"
-#include "toolchain/macro/registry.hpp"
 
 namespace pas::driver::pep10 {
 Q_NAMESPACE;

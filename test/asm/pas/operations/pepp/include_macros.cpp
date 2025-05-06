@@ -21,7 +21,7 @@
 #include "toolchain/pas/driver/pepp.hpp"
 #include "toolchain/pas/errors.hpp"
 #include "toolchain/pas/operations/generic/errors.hpp"
-#include "isa/pep10.hpp"
+#include "enums/isa/pep10.hpp"
 #include "toolchain/macro/macro.hpp"
 #include "toolchain/macro/registry.hpp"
 

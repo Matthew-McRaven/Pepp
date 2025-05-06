@@ -46,7 +46,7 @@ target_link_libraries(pepp-lib PUBLIC Qt6::Core Qt6::Gui Qt6::Quick Qt6::Sql ant
 get_target_property(ANTLR4_INCLUDE_DIR antlr4_shared INCLUDE_DIRECTORIES)
 target_include_directories(pepp-lib PUBLIC ${CMAKE_CURRENT_BINARY_DIR} ${ANTLR4_INCLUDE_DIR})
 target_include_directories(pepp-lib PRIVATE
-        enums cpu helpers help/about help/builtins isa
+        enums cpu helpers help/about help/builtins enums/isa
         toolchain/link toolchain/macro memory memory/hexdump memory/stack preferences project
         sim sim/debug targets text utils text/editor menu settings top
 )
