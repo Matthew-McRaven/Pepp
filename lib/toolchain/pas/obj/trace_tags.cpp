@@ -1,11 +1,15 @@
 #include "trace_tags.hpp"
 #include "toolchain/pas/operations/generic/trace_tags.hpp"
+#include "zpp_bits.h"
 
 static const auto traceStr = ".debug_trace";
 
 void pas::obj::common::writeDebugCommands(ELFIO::elfio &elf, ast::Node &root) {
   auto trace = detail::getOrAddTraceSection(elf);
   auto tt = ops::generic::extractTraceTags(root);
+  auto [data, in, out] = zpp::bits::data_in_out();
+  (void)out(tt);
+  trace->append_data((const char *)data.data(), data.size());
 }
 
 ELFIO::section *pas::obj::common::detail::getTraceSection(ELFIO::elfio &elf) {
