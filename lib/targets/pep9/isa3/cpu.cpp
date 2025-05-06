@@ -176,6 +176,7 @@ sim::api2::tick::Result targets::pep9::isa::CPU::unaryDispatch(quint8 is, quint1
   static const bool swap = bits::hostOrder() != bits::Order::BigEndian;
   auto mnemonic = ::isa::Pep9::opcodeLUT[is];
   quint16 a = readReg(Register::A), sp = readReg(Register::SP), x = readReg(Register::X);
+  quint16 startPC = pc - 1; // Needed to notify debugger on traps.
   quint16 tmp = 0;
   bits::span<const quint8> tmpSpan = {reinterpret_cast<const quint8 *>(&tmp), sizeof(tmp)};
   quint8 tmp8 = 0;
@@ -193,6 +194,7 @@ sim::api2::tick::Result targets::pep9::isa::CPU::unaryDispatch(quint8 is, quint1
 
   case mn::RET:
     _memory->read(sp, {reinterpret_cast<quint8 *>(&tmp), 2}, rw_d);
+    if (_dbg) _dbg->notifyRet(pc - 1);
     // Must byteswap tmp if on big endian host, as _memory stores in little
     // endian
     if (swap) tmp = bits::byteswap(tmp);
@@ -233,7 +235,10 @@ sim::api2::tick::Result targets::pep9::isa::CPU::unaryDispatch(quint8 is, quint1
     if (swap) tmp = bits::byteswap(tmp);
     _memory->write(static_cast<quint16>(::isa::Pep9::MemoryVectors::SystemStackPtr),
                    {reinterpret_cast<quint8 *>(&tmp), 2}, rw_d);
-    if (_dbg) _dbg->bps->notifyPCChanged(readReg(Register::PC));
+    if (_dbg) {
+      _dbg->bps->notifyPCChanged(readReg(Register::PC));
+      _dbg->notifyTrapRet(pc - 1);
+    }
     decrDepth();
     return {.pause = 0, .delay = 1};
 
@@ -410,6 +415,7 @@ sim::api2::tick::Result targets::pep9::isa::CPU::unaryDispatch(quint8 is, quint1
     // Read trap handler pc.
     _memory->read(static_cast<quint16>(::isa::Pep9::MemoryVectors::TrapHandler), {reinterpret_cast<quint8 *>(&tmp), 2},
                   rw_d);
+    if (_dbg) _dbg->notifyTrapCall(startPC);
     if (swap) tmp = bits::byteswap(tmp);
     pc = tmp;
     // Though not part of the specification, clear out the index register to
@@ -461,6 +467,7 @@ sim::api2::tick::Result targets::pep9::isa::CPU::nonunaryDispatch(quint8 is, qui
   case mn::BRV: pc = v ? operand : pc; break;
   case mn::BRC: pc = c ? operand : pc; break;
   case mn::CALL:
+    if (_dbg) _dbg->notifyCall(pc - 3);
     // Write PC to stack
     tmp = swap ? bits::byteswap(pc) : pc;
     _memory->write(sp -= 2, {reinterpret_cast<quint8 *>(&tmp), 2}, rw_d);
@@ -469,8 +476,14 @@ sim::api2::tick::Result targets::pep9::isa::CPU::nonunaryDispatch(quint8 is, qui
     incrDepth();
     break;
 
-  case mn::ADDSP: writeReg(Register::SP, sp + operand); break;
-  case mn::SUBSP: writeReg(Register::SP, sp - operand); break;
+  case mn::ADDSP:
+    writeReg(Register::SP, sp + operand);
+    if (_dbg) _dbg->notifyAddSP(pc - 3);
+    break;
+  case mn::SUBSP:
+    writeReg(Register::SP, sp - operand);
+    if (_dbg) _dbg->notifySubSP(pc - 3);
+    break;
 
   case mn::ADDA:
     // The result is the decoded operand specifier plus the accumulator

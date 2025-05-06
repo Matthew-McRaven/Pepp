@@ -270,3 +270,18 @@ pepp::debug::Debugger::Debugger(Environment *env) : env(env) {
   line_maps = std::make_unique<ScopedLines2Addresses>();
   static_symbol_model = std::make_unique<StaticSymbolModel>();
 }
+
+using namespace Qt::StringLiterals;
+void pepp::debug::Debugger::notifyCall(quint16 pc) { qDebug().noquote() << u"CALL  at %1"_s.arg(pc, 4, 16, '0'); }
+
+void pepp::debug::Debugger::notifyRet(quint16 pc) { qDebug().noquote() << u"RET   at %1"_s.arg(pc, 4, 16, '0'); }
+
+void pepp::debug::Debugger::notifyTrapCall(quint16 pc) { qDebug().noquote() << u"SCALL at %1"_s.arg(pc, 4, 16, '0'); }
+
+void pepp::debug::Debugger::notifyTrapRet(quint16 pc) { qDebug().noquote() << u"SRET  at %1"_s.arg(pc, 4, 16, '0'); }
+
+void pepp::debug::Debugger::notifyAddSP(quint16 pc) { qDebug().noquote() << u"ADD   at %1"_s.arg(pc, 4, 16, '0'); }
+
+void pepp::debug::Debugger::notifySubSP(quint16 pc) { qDebug().noquote() << u"SUB   at %1"_s.arg(pc, 4, 16, '0'); }
+
+void pepp::debug::Debugger::notifySetSP(quint16 pc) { qDebug().noquote() << u"SET   at %1"_s.arg(pc, 4, 16, '0'); }
