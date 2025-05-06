@@ -14,10 +14,10 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-#include "macro/registry.hpp"
+#include "toolchain/macro/registry.hpp"
 #include <catch.hpp>
-#include "macro/macro.hpp"
-#include "macro/registered.hpp"
+#include "toolchain/macro/macro.hpp"
+#include "toolchain/macro/registered.hpp"
 TEST_CASE("Macro registry", "[scope:macro][kind:unit][arch:*]") {
   SECTION("Register Macros") {
     macro::Registry reg;

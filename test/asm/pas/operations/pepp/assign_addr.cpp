@@ -14,19 +14,19 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-#include "asm/pas/operations/pepp/assign_addr.hpp"
+#include "toolchain/pas/operations/pepp/assign_addr.hpp"
 #include <catch.hpp>
-#include "asm/pas/ast/generic/attr_address.hpp"
-#include "asm/pas/driver/pep10.hpp"
-#include "asm/pas/driver/pepp.hpp"
-#include "asm/pas/operations/generic/group.hpp"
-#include "asm/pas/operations/pepp/addressable.hpp"
-#include "asm/pas/operations/pepp/size.hpp"
-#include "asm/pas/operations/pepp/string.hpp"
-#include "bits/strings.hpp"
-#include "isa/pep10.hpp"
-#include "macro/macro.hpp"
-#include "macro/registry.hpp"
+#include "toolchain/pas/ast/generic/attr_address.hpp"
+#include "toolchain/pas/driver/pep10.hpp"
+#include "toolchain/pas/driver/pepp.hpp"
+#include "toolchain/pas/operations/generic/group.hpp"
+#include "toolchain/pas/operations/pepp/addressable.hpp"
+#include "toolchain/pas/operations/pepp/size.hpp"
+#include "toolchain/pas/operations/pepp/string.hpp"
+#include "utils/bits/strings.hpp"
+#include "enums/isa/pep10.hpp"
+#include "toolchain/macro/macro.hpp"
+#include "toolchain/macro/registry.hpp"
 
 using isa::Pep10;
 using pas::ops::pepp::Direction;

@@ -18,9 +18,9 @@
 #include "./system.hpp"
 #include "api2/memory/address.hpp"
 #include "device/ide.hpp"
-#include "link/bytes.hpp"
-#include "link/memmap.hpp"
-#include "link/mmio.hpp"
+#include "toolchain/link/bytes.hpp"
+#include "toolchain/link/memmap.hpp"
+#include "toolchain/link/mmio.hpp"
 #include "sim/device/broadcast/mmi.hpp"
 #include "sim/device/broadcast/mmo.hpp"
 #include "sim/device/readonly.hpp"
@@ -55,18 +55,18 @@ const auto gs = sim::api2::memory::Operation{
     .kind = sim::api2::memory::Operation::Kind::data,
 };
 
-QSharedPointer<sim::api2::tick::Recipient> create_cpu(builtins::Architecture arch, sim::api2::device::Descriptor desc,
+QSharedPointer<sim::api2::tick::Recipient> create_cpu(pepp::Architecture arch, sim::api2::device::Descriptor desc,
                                                       sim::api2::device::IDGenerator gen) {
+  using enum pepp::Architecture;
   switch (arch) {
-  case builtins::Architecture::PEP9: return QSharedPointer<targets::pep9::isa::CPU>::create(desc, gen);
-  case builtins::Architecture::PEP10: return QSharedPointer<targets::pep10::isa::CPU>::create(desc, gen);
+  case PEP9: return QSharedPointer<targets::pep9::isa::CPU>::create(desc, gen);
+  case PEP10: return QSharedPointer<targets::pep10::isa::CPU>::create(desc, gen);
   default: throw std::logic_error("Unimplemented");
   }
 }
 } // namespace
 
-targets::isa::System::System(builtins::Architecture arch, QList<obj::MemoryRegion> regions,
-                             QList<obj::AddressedIO> mmios)
+targets::isa::System::System(pepp::Architecture arch, QList<obj::MemoryRegion> regions, QList<obj::AddressedIO> mmios)
     : _regions(), _arch(arch), _cpu(create_cpu(arch, desc_cpu(nextID()), _nextIDGenerator)),
       _bus(QSharedPointer<sim::memory::SimpleBus<quint16>>::create(desc_bus(nextID()), AddressSpan(0, 0xFFFF))),
       _paths(QSharedPointer<sim::api2::Paths>::create()) {
@@ -106,6 +106,7 @@ void targets::isa::System::setBuffer(sim::api2::trace::Buffer *buffer) {
 QSharedPointer<const sim::api2::Paths> targets::isa::System::pathManager() const { return _paths; }
 
 void targets::isa::System::init() {
+  using enum pepp::Architecture;
   quint8 buf[2];
   bits::span<quint8> bufSpan = {buf};
   // Reload default values into DDR.
@@ -115,7 +116,7 @@ void targets::isa::System::init() {
   // 3. Update cached initial PC.
   // Use braces to limit scope of variables in switch.
   switch (_arch) {
-  case builtins::Architecture::PEP9: {
+  case PEP9: {
     using ISA = ::isa::Pep9;
     targets::pep9::isa::CPU *cpu = dynamic_cast<targets::pep9::isa::CPU *>(_cpu.data());
     auto regs = cpu->regs(), csrs = cpu->csrs();
@@ -127,7 +128,7 @@ void targets::isa::System::init() {
     cpu->updateStartingPC();
     break;
   }
-  case builtins::Architecture::PEP10: {
+  case PEP10: {
     using ISA = ::isa::Pep10;
     targets::pep10::isa::CPU *cpu = dynamic_cast<targets::pep10::isa::CPU *>(_cpu.data());
     auto regs = cpu->regs(), csrs = cpu->csrs();
@@ -143,7 +144,7 @@ void targets::isa::System::init() {
   }
 }
 
-builtins::Architecture targets::isa::System::architecture() const { return _arch; }
+pepp::Architecture targets::isa::System::architecture() const { return _arch; }
 
 sim::api2::tick::Recipient *targets::isa::System::cpu() { return &*_cpu; }
 
@@ -180,15 +181,16 @@ void targets::isa::System::doReloadEntries() {
 
 // Duplicated logic from systemFromElf to get the params to pass to reconfigure.
 void targets::isa::System::reconfigure(const ELFIO::elfio &elf) {
+
   using size_type = bits::span<const quint8>::size_type;
   auto segs = obj::getLoadableSegments(elf);
   auto memmap = obj::mergeSegmentRegions(segs);
   auto mmios = obj::getMMIODeclarations(elf);
-  builtins::Architecture arch = builtins::Architecture::NONE;
+  pepp::Architecture arch = pepp::Architecture::NO_ARCH;
   // determine arch from ELF.
   switch (elf.get_machine()) {
-  case (((quint16)'p') << 8) | ((quint16)'9'): arch = builtins::Architecture::PEP9; break;
-  case (((quint16)'p') << 8) | ((quint16)'x'): arch = builtins::Architecture::PEP10; break;
+  case (((quint16)'p') << 8) | ((quint16)'9'): arch = pepp::Architecture::PEP9; break;
+  case (((quint16)'p') << 8) | ((quint16)'x'): arch = pepp::Architecture::PEP10; break;
   default: throw std::logic_error("Unimplemented architecture");
   }
 
@@ -233,8 +235,9 @@ QSharedPointer<sim::memory::Dense<quint16>> allocate(QVector<QSharedPointer<sim:
   return ret;
 }
 
-void targets::isa::System::reconfigure(builtins::Architecture arch, QList<obj::MemoryRegion> regions,
+void targets::isa::System::reconfigure(pepp::Architecture arch, QList<obj::MemoryRegion> regions,
                                        QList<obj::AddressedIO> mmios) {
+  using enum pepp::Architecture;
   // Take underlying memory and reuse it for new devices.
   using std::swap;
   decltype(_rawMemory) rawPool = {};
@@ -299,7 +302,7 @@ void targets::isa::System::reconfigure(builtins::Architecture arch, QList<obj::M
   }
   // Use braces to limit scope of variables in switch.
   switch (arch) {
-  case builtins::Architecture::PEP9: {
+  case PEP9: {
     targets::pep9::isa::CPU *cpu = dynamic_cast<targets::pep9::isa::CPU *>(_cpu.data());
     addDevice(cpu->device());
     addDevice(cpu->csrs()->device());
@@ -314,7 +317,7 @@ void targets::isa::System::reconfigure(builtins::Architecture arch, QList<obj::M
     cpu->setTarget(&*_bus, nullptr);
     break;
   }
-  case builtins::Architecture::PEP10: {
+  case PEP10: {
     targets::pep10::isa::CPU *cpu = dynamic_cast<targets::pep10::isa::CPU *>(_cpu.data());
     addDevice(cpu->device());
     addDevice(cpu->csrs()->device());
@@ -349,11 +352,11 @@ QSharedPointer<targets::isa::System> targets::isa::systemFromElf(const ELFIO::el
   auto segs = obj::getLoadableSegments(elf);
   auto memmap = obj::mergeSegmentRegions(segs);
   auto mmios = obj::getMMIODeclarations(elf);
-  builtins::Architecture arch = builtins::Architecture::NONE;
+  pepp::Architecture arch = pepp::Architecture::NO_ARCH;
   // determine arch from ELF.
   switch (elf.get_machine()) {
-  case (((quint16)'p') << 8) | ((quint16)'9'): arch = builtins::Architecture::PEP9; break;
-  case (((quint16)'p') << 8) | ((quint16)'x'): arch = builtins::Architecture::PEP10; break;
+  case (((quint16)'p') << 8) | ((quint16)'9'): arch = pepp::Architecture::PEP9; break;
+  case (((quint16)'p') << 8) | ((quint16)'x'): arch = pepp::Architecture::PEP10; break;
   default: throw std::logic_error("Unimplemented architecture");
   }
 

@@ -1,5 +1,3 @@
-
-
 /*
  * Copyright (c) 2023-2024 J. Stanley Warford, Matthew McRaven
  * This program is free software: you can redistribute it and/or modify
@@ -20,22 +18,14 @@ import QtQuick
 import QtQuick.Window
 import QtQuick.Controls
 import QtQuick.Layouts
-import QtQuick.Dialogs
-import Qt.labs.qmlmodels
-import QtQml.Models
 import QtCore
-import "qrc:/edu/pepp/about" as About
-import "qrc:/edu/pepp/memory/hexdump" as Memory
-import "qrc:/edu/pepp/cpu" as Cpu
-import "qrc:/edu/pepp/text/editor" as Editor
-import "qrc:/edu/pepp/project" as Project
-import "qrc:/edu/pepp/top" as Top
-import "qrc:/edu/pepp/settings" as AppSettings
-import "qrc:/edu/pepp/builtins" as Builtins
+import "qrc:/qt/qml/edu/pepp/help/about" as About
+import "qrc:/qt/qml/edu/pepp/project" as Project
+import "qrc:/qt/qml/edu/pepp/top" as Top
+import "qrc:/qt/qml/edu/pepp/settings" as AppSettings
+import "qrc:/qt/qml/edu/pepp/help/builtins" as Builtins
+import "qrc:/qt/qml/edu/pepp/menu" as Menu
 import edu.pepp 1.0
-import "qrc:/edu/pepp/menu" as Menu
-//  Native menu for apple, linux, and windows
-import Qt.labs.platform as Labs
 
 ApplicationWindow {
     id: window
@@ -89,37 +79,34 @@ ApplicationWindow {
     property string mode: "welcome"
     function setProjectCharIn(charIn) {
         if (currentProject)
-            currentProject.charIn = charIn
+            currentProject.charIn = charIn;
     }
 
     Component.onCompleted: {
         // Allow welcome mode to create a new project, and switch to it on creation.
-        welcome.addProject.connect(pm.onAddProject)
-        welcome.addProject.connect(() => projectSelect.switchToProject(
-                                       pm.count - 1))
-        welcome.addProject.connect(() => sidebar.switchToMode("Editor"))
-        help.addProject.connect(pm.onAddProject)
-        help.addProject.connect(() => projectSelect.switchToProject(
-                                    pm.count - 1))
-        help.switchToMode.connect(sidebar.switchToMode)
-        help.setCharIn.connect(i => setProjectCharIn(i))
-        help.renameCurrentProject.connect(pm.renameCurrentProject)
-        currentProjectChanged.connect(projectLoader.onCurrentProjectChanged)
+        welcome.addProject.connect(pm.onAddProject);
+        welcome.addProject.connect(() => projectSelect.switchToProject(pm.count - 1));
+        welcome.addProject.connect(() => sidebar.switchToMode("Editor"));
+        help.addProject.connect(pm.onAddProject);
+        help.addProject.connect(() => projectSelect.switchToProject(pm.count - 1));
+        help.switchToMode.connect(sidebar.switchToMode);
+        help.setCharIn.connect(i => setProjectCharIn(i));
+        help.renameCurrentProject.connect(pm.renameCurrentProject);
+        currentProjectChanged.connect(projectLoader.onCurrentProjectChanged);
 
-        actions.edit.prefs.triggered.connect(preferencesDialog.open)
-        actions.help.about.triggered.connect(aboutDialog.open)
-        actions.view.fullscreen.triggered.connect(onToggleFullScreen)
+        actions.edit.prefs.triggered.connect(preferencesDialog.open);
+        actions.help.about.triggered.connect(aboutDialog.open);
+        actions.view.fullscreen.triggered.connect(onToggleFullScreen);
         actions.file.save.triggered.connect(() => {
-                                                preAssemble()
-                                                pm.onSave(currentProjectRow)
-                                            })
-        actions.appdev.reloadFigures.triggered.connect(
-                    help.reloadFiguresRequested)
-        projectSelect.message.connect(message)
-        message.connect(text => footer.text = text)
-        message.connect(() => messageTimer.restart())
-        messageTimer.restart()
-        sidebar.switchToMode("Welcome")
+            preAssemble();
+            pm.onSave(currentProjectRow);
+        });
+        actions.appdev.reloadFigures.triggered.connect(help.reloadFiguresRequested);
+        projectSelect.message.connect(message);
+        message.connect(text => footer.text = text);
+        message.connect(() => messageTimer.restart());
+        messageTimer.restart();
+        sidebar.switchToMode("Welcome");
     }
 
     // Provide a default font for menu items.
@@ -128,13 +115,13 @@ ApplicationWindow {
     }
     function syncEditors() {
         if (projectLoader.item)
-            projectLoader.item.syncEditors()
+            projectLoader.item.syncEditors();
     }
 
     // Helper to propogate to current delegate.
     function preAssemble() {
         if (projectLoader.item)
-            projectLoader.item.preAssemble()
+            projectLoader.item.preAssemble();
     }
 
     Menu.Actions {
@@ -181,8 +168,7 @@ ApplicationWindow {
 
     Top.SideBar {
         id: sidebar
-        modesModel: window.currentProject ? window.currentProject.modes(
-                                                ) : undefined
+        modesModel: window.currentProject ? window.currentProject.modes() : undefined
         anchors {
             top: toolbar.bottom
             bottom: parent.bottom
@@ -191,7 +177,7 @@ ApplicationWindow {
         width: 100
 
         onModeChanged: function (text) {
-            window.mode = text.toLowerCase()
+            window.mode = text.toLowerCase();
         }
     }
 
@@ -220,32 +206,32 @@ ApplicationWindow {
             sourceComponent: null
             // Must unload the previous component to properly trigger save.
             function onCurrentProjectChanged() {
-                sourceComponent = null
-                sourceComponent = window.currentProject?.delegate
+                sourceComponent = null;
+                sourceComponent = window.currentProject?.delegate;
             }
             Connections {
                 target: projectLoader.item
                 function onRequestModeSwitchTo(mode) {
-                    sidebar.switchToMode(mode)
+                    sidebar.switchToMode(mode);
                 }
             }
         }
         Component.onCompleted: {
-            window.modeChanged.connect(onModeChanged)
-            onModeChanged()
+            window.modeChanged.connect(onModeChanged);
+            onModeChanged();
         }
         function onModeChanged() {
             switch (window.mode.toLowerCase()) {
             case "welcome":
-                mainArea.currentIndex = 0
-                break
+                mainArea.currentIndex = 0;
+                break;
             case "help":
-                mainArea.currentIndex = 1
-                break
+                mainArea.currentIndex = 1;
+                break;
             default:
-                mainArea.currentIndex = 2
+                mainArea.currentIndex = 2;
                 // TODO: update loader delegate for selected mode.
-                break
+                break;
             }
         }
     }
@@ -294,22 +280,21 @@ ApplicationWindow {
             const props = {
                 "actions": actions,
                 "project": window.currentProject
-            }
+            };
             if (PlatformDetector.isWASM) {
-                props["window"] = window
-                setSource("qrc:/edu/pepp/menu/QMLMainMenu.qml", props)
+                props["window"] = window;
+                setSource("qrc:/qt/qml/edu/pepp/menu/QMLMainMenu.qml", props);
             } else
                 // Auto-recurses on "parent" to find "window" of correct type.
                 // If explicitly set, the menu bar will not render until hovered over.
-                setSource("qrc:/edu/pepp/menu/NativeMainMenu.qml", props)
+                setSource("qrc:/qt/qml/edu/pepp/menu/NativeMainMenu.qml", props);
         }
         onLoaded: {
             if (PlatformDetector.isWASM)
-                window.menuBar = item
+                window.menuBar = item;
         }
         asynchronous: false
     }
-
 
     /*
      * Top-level dialogs
@@ -332,14 +317,14 @@ ApplicationWindow {
             // Do not create binding to settings directly, so that we don't get modified when the setting is updated.
             min: {
                 // By making a copy of the value before binding, we can avoid propogating updates to settings.
-                var copy
+                var copy;
                 if (whatsNewDialogSettings.lastOpenedVersion === "")
-                    copy = Version.version_str_full
+                    copy = Version.version_str_full;
                 else {
-                    copy = whatsNewDialogSettings.lastOpenedVersion
+                    copy = whatsNewDialogSettings.lastOpenedVersion;
                 }
                 // We still need to use a binding, or the model filtering will be unlinked from combo boxes.
-                min = Qt.binding(() => copy)
+                min = Qt.binding(() => copy);
             }
         }
         standardButtons: Dialog.Close
@@ -348,15 +333,14 @@ ApplicationWindow {
             property string lastOpenedVersion
         }
         function onClearLastVersion() {
-            whatsNewDialogSettings.lastOpenedVersion = ""
-            whatsNewDialogSettings.sync()
+            whatsNewDialogSettings.lastOpenedVersion = "";
+            whatsNewDialogSettings.sync();
         }
         Component.onCompleted: {
-            actions.appdev.clearChangelogCache.triggered.connect(
-                        onClearLastVersion)
+            actions.appdev.clearChangelogCache.triggered.connect(onClearLastVersion);
             if (whatsNewDialogSettings.lastOpenedVersion !== Version.version_str_full)
-                open()
-            whatsNewDialogSettings.lastOpenedVersion = Version.version_str_full
+                open();
+            whatsNewDialogSettings.lastOpenedVersion = Version.version_str_full;
         }
     }
 
@@ -383,12 +367,15 @@ ApplicationWindow {
         onClosed: prefs.closed()
     }
     function onNew() {
-        pm.onAddProject(Architecture.PEP9, Abstraction.ASMB5, "", false)
+        pm.onAddProject(Architecture.PEP9, Abstraction.ASMB5, "", false);
     }
-    function onOpenDialog() {}
-    function onCloseAllProjects(excludeCurrent: bool) {}
+    function onOpenDialog() {
+    }
+    function onCloseAllProjects(excludeCurrent: bool) {
+    }
     function onQuit() {
-        window.close()
+        window.close();
     }
-    function onToggleFullScreen() {}
+    function onToggleFullScreen() {
+    }
 }

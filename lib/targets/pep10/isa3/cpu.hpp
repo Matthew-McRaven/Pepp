@@ -16,7 +16,7 @@
  */
 
 #pragma once
-#include "isa/pep10.hpp"
+#include "enums/isa/pep10.hpp"
 #include "sim/api2.hpp"
 #include "sim/debug/debugger.hpp"
 #include "sim/device/dense.hpp"

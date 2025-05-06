@@ -18,9 +18,9 @@
 #include <iostream>
 #include "antlr4-runtime.h"
 
-#include "asm/parse/PeppLexer.h"
-#include "asm/parse/PeppLexerErrorListener.h"
-#include "asm/parse/PeppParser.h"
+#include "toolchain/parse/PeppLexer.h"
+#include "toolchain/parse/PeppLexerErrorListener.h"
+#include "toolchain/parse/PeppParser.h"
 
 using namespace antlr4;
 using namespace parse;

@@ -14,15 +14,15 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-#include "asm/pas/operations/generic/link_globals.hpp"
+#include "toolchain/pas/operations/generic/link_globals.hpp"
 #include <catch.hpp>
-#include "asm/pas/ast/generic/attr_symbol.hpp"
-#include "asm/pas/driver/common.hpp"
-#include "asm/pas/driver/pepp.hpp"
-#include "asm/symbol/entry.hpp"
-#include "asm/symbol/table.hpp"
-#include "asm/symbol/value.hpp"
-#include "isa/pep10.hpp"
+#include "toolchain/pas/ast/generic/attr_symbol.hpp"
+#include "toolchain/pas/driver/common.hpp"
+#include "toolchain/pas/driver/pepp.hpp"
+#include "toolchain/symbol/entry.hpp"
+#include "toolchain/symbol/table.hpp"
+#include "toolchain/symbol/value.hpp"
+#include "enums/isa/pep10.hpp"
 using isa::Pep10;
 TEST_CASE("Link Globals", "[scope:asm][kind:unit][arch:pep10]") {
   SECTION("Intra-tree link") {

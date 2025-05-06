@@ -16,10 +16,10 @@
 
 #include "./about.hpp"
 #include <iostream>
-#include "about/dependencies.hpp"
-#include "about/pepp.hpp"
-#include "about/version.hpp"
 #include "catch.hpp"
+#include "help/about/dependencies.hpp"
+#include "help/about/pepp.hpp"
+#include "help/about/version.hpp"
 
 AboutTask::AboutTask(QObject *parent) : Task(parent) {}
 

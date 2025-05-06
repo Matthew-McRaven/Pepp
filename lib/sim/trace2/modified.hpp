@@ -1,10 +1,10 @@
 #pragma once
 #include <ostream>
 #include <set>
-#include "bits/mask.hpp"
 #include "packet_utils.hpp"
 #include "sim/api2.hpp"
 #include "sim/api2/memory/address.hpp"
+#include "utils/bits/mask.hpp"
 namespace sim::trace2 {
 template <typename T> using Interval = sim::api2::memory::Interval<T>;
 

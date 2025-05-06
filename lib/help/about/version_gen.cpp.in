@@ -1,0 +1,37 @@
+/*
+ * Copyright (c) 2023-2024 J. Stanley Warford, Matthew McRaven
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program.  If not, see <https://www.gnu.org/licenses/>.
+ */
+
+#include "help/about/version.hpp"
+#define GIT_SHA1 "@GIT_SHA1@"
+const char GIT_SHA1_tmp[] = GIT_SHA1;
+const char *const about::g_GIT_SHA1() { return GIT_SHA1_tmp; }
+
+#define GIT_TAG "@GIT_TAG@"
+const char GIT_TAG_tmp[] = GIT_TAG;
+const char *const about::g_GIT_TAG() { return GIT_TAG_tmp; }
+// Must suppress formatting, or `@` will be separated from name, preventing
+// CMake substitutions.
+// clang-format off
+#define VERSION_MAJOR @Pepp_VERSION_MAJOR@
+#define VERSION_MINOR @Pepp_VERSION_MINOR@
+#define VERSION_PATCH @Pepp_VERSION_PATCH@
+#define CLEAN @GIT_CLEAN@
+// clang-format on
+
+int about::g_MAJOR_VERSION() { return VERSION_MAJOR; }
+int about::g_MINOR_VERSION() { return VERSION_MINOR; }
+int about::g_PATCH_VERSION() { return VERSION_PATCH; }
+bool about::g_GIT_LOCAL_CHANGES() { return CLEAN; }

@@ -1,13 +1,13 @@
 import QtQuick 2.15
 import QtQuick.Controls
 import QtQuick.Layouts
-import "qrc:/edu/pepp/text/editor" as Text
-import "qrc:/edu/pepp/memory/stack" as Stack
-import "qrc:/edu/pepp/memory/hexdump" as Memory
-import "qrc:/edu/pepp/memory/io" as IO
-import "qrc:/edu/pepp/cpu" as Cpu
-import "qrc:/edu/pepp/symtab" as SymTab
-import "qrc:/edu/pepp/sim/debug" as Debug
+import "qrc:/qt/qml/edu/pepp/text/editor" as Text
+import "qrc:/qt/qml/edu/pepp/memory/stack" as Stack
+import "qrc:/qt/qml/edu/pepp/memory/hexdump" as Memory
+import "qrc:/qt/qml/edu/pepp/memory/io" as IO
+import "qrc:/qt/qml/edu/pepp/cpu" as Cpu
+import "qrc:/qt/qml/edu/pepp/toolchain/symtab" as SymTab
+import "qrc:/qt/qml/edu/pepp/sim/debug" as Debug
 import edu.pepp 1.0
 
 Item {
@@ -22,148 +22,135 @@ Item {
     Component.onCompleted: {
         // Must connect and disconnect manually, otherwise project may be changed underneath us, and "save" targets wrong project.
         // Do not need to update on mode change, since mode change implies loss of focus of objEdit.
-        userAsmEdit.editingFinished.connect(save)
-        osAsmEdit.editingFinished.connect(save)
-        project.errorsChanged.connect(displayErrors)
-        project.listingChanged.connect(fixListings)
-        onProjectChanged.connect(fixListings)
-        project.charInChanged.connect(() => batchInput.setInput(project.charIn))
+        userAsmEdit.editingFinished.connect(save);
+        osAsmEdit.editingFinished.connect(save);
+        project.errorsChanged.connect(displayErrors);
+        project.listingChanged.connect(fixListings);
+        onProjectChanged.connect(fixListings);
+        project.charInChanged.connect(() => batchInput.setInput(project.charIn));
         // Connect editor BPs to project
-        userAsmEdit.editor.modifyLine.connect(project.onModifyUserSource)
-        osAsmEdit.editor.modifyLine.connect(project.onModifyOSSource)
-        userList.editor.modifyLine.connect(project.onModifyUserList)
-        osList.editor.modifyLine.connect(project.onModifyOSList)
+        userAsmEdit.editor.modifyLine.connect(project.onModifyUserSource);
+        osAsmEdit.editor.modifyLine.connect(project.onModifyOSSource);
+        userList.editor.modifyLine.connect(project.onModifyUserList);
+        osList.editor.modifyLine.connect(project.onModifyOSList);
         // Connect project to editors
-        project.overwriteEditors.connect(onOverwriteEditors)
-        project.modifyUserSource.connect(userAsmEdit.editor.onLineAction)
-        project.modifyOSSource.connect(osAsmEdit.editor.onLineAction)
-        project.modifyUserList.connect(userList.editor.onLineAction)
-        project.modifyOSList.connect(osList.editor.onLineAction)
+        project.overwriteEditors.connect(onOverwriteEditors);
+        project.modifyUserSource.connect(userAsmEdit.editor.onLineAction);
+        project.modifyOSSource.connect(osAsmEdit.editor.onLineAction);
+        project.modifyUserList.connect(userList.editor.onLineAction);
+        project.modifyOSList.connect(osList.editor.onLineAction);
         // Update breakpoints on switch
-        project.clearListingBreakpoints.connect(
-                    userList.editor.onClearAllBreakpoints)
-        project.clearListingBreakpoints.connect(
-                    osList.editor.onClearAllBreakpoints)
-        project.requestSourceBreakpoints.connect(
-                    userAsmEdit.editor.onRequestAllBreakpoints)
-        project.requestSourceBreakpoints.connect(
-                    osAsmEdit.editor.onRequestAllBreakpoints)
-        project.switchTo.connect(wrapper.onSwitchTo)
+        project.clearListingBreakpoints.connect(userList.editor.onClearAllBreakpoints);
+        project.clearListingBreakpoints.connect(osList.editor.onClearAllBreakpoints);
+        project.requestSourceBreakpoints.connect(userAsmEdit.editor.onRequestAllBreakpoints);
+        project.requestSourceBreakpoints.connect(osAsmEdit.editor.onRequestAllBreakpoints);
+        project.switchTo.connect(wrapper.onSwitchTo);
         if (project)
-            fixListings()
+            fixListings();
         // Can't modify our mode directly because it would break binding with parent.
         // i.e., we can't be notified if editor is entered ever again.
-        wrapper.actions.debug.start.triggered.connect(
-                    wrapper.requestModeSwitchToDebugger)
-        wrapper.actions.build.execute.triggered.connect(
-                    wrapper.requestModeSwitchToDebugger)
-        onOverwriteEditors()
-        project.updateGUI.connect(watchExpr.updateGUI)
-        project.updateGUI.connect(bpViewer.updateGUI)
+        wrapper.actions.debug.start.triggered.connect(wrapper.requestModeSwitchToDebugger);
+        wrapper.actions.build.execute.triggered.connect(wrapper.requestModeSwitchToDebugger);
+        onOverwriteEditors();
+        project.updateGUI.connect(watchExpr.updateGUI);
+        project.updateGUI.connect(bpViewer.updateGUI);
     }
     // Will be called before project is changed on unload, so we can disconnect save-triggering signals.
     Component.onDestruction: {
-        userAsmEdit.editingFinished.disconnect(save)
-        osAsmEdit.editingFinished.disconnect(save)
+        userAsmEdit.editingFinished.disconnect(save);
+        osAsmEdit.editingFinished.disconnect(save);
         if (project) {
-            userAsmEdit.editor.modifyLine.disconnect(project.onModifyUserSource)
-            osAsmEdit.editor.modifyLine.disconnect(project.onModifyOSSource)
-            userList.editor.modifyLine.disconnect(project.onModifyUserList)
-            osList.editor.modifyLine.disconnect(project.onModifyOSList)
-            project.errorsChanged.disconnect(displayErrors)
-            project.listingChanged.connect(fixListings)
-            project.overwriteEditors.disconnect(onOverwriteEditors)
-            project.modifyUserSource.disconnect(userAsmEdit.editor.onLineAction)
-            project.modifyOSSource.disconnect(osAsmEdit.editor.onLineAction)
-            project.modifyUserList.disconnect(userList.editor.onLineAction)
-            project.modifyOSList.disconnect(osList.editor.onLineAction)
-            project.clearListingBreakpoints.disconnect(
-                        userList.editor.onClearAllBreakpoints)
-            project.clearListingBreakpoints.disconnect(
-                        osList.editor.onClearAllBreakpoints)
-            project.requestSourceBreakpoints.disconnect(
-                        userAsmEdit.editor.onRequestAllBreakpoints)
-            project.requestSourceBreakpoints.disconnect(
-                        osAsmEdit.editor.onRequestAllBreakpoints)
-            project.switchTo.disconnect(wrapper.onSwitchTo)
+            userAsmEdit.editor.modifyLine.disconnect(project.onModifyUserSource);
+            osAsmEdit.editor.modifyLine.disconnect(project.onModifyOSSource);
+            userList.editor.modifyLine.disconnect(project.onModifyUserList);
+            osList.editor.modifyLine.disconnect(project.onModifyOSList);
+            project.errorsChanged.disconnect(displayErrors);
+            project.listingChanged.connect(fixListings);
+            project.overwriteEditors.disconnect(onOverwriteEditors);
+            project.modifyUserSource.disconnect(userAsmEdit.editor.onLineAction);
+            project.modifyOSSource.disconnect(osAsmEdit.editor.onLineAction);
+            project.modifyUserList.disconnect(userList.editor.onLineAction);
+            project.modifyOSList.disconnect(osList.editor.onLineAction);
+            project.clearListingBreakpoints.disconnect(userList.editor.onClearAllBreakpoints);
+            project.clearListingBreakpoints.disconnect(osList.editor.onClearAllBreakpoints);
+            project.requestSourceBreakpoints.disconnect(userAsmEdit.editor.onRequestAllBreakpoints);
+            project.requestSourceBreakpoints.disconnect(osAsmEdit.editor.onRequestAllBreakpoints);
+            project.switchTo.disconnect(wrapper.onSwitchTo);
         }
-        onProjectChanged.disconnect(fixListings)
+        onProjectChanged.disconnect(fixListings);
 
-        wrapper.actions.debug.start.triggered.disconnect(
-                    wrapper.requestModeSwitchToDebugger)
-        wrapper.actions.build.execute.triggered.disconnect(
-                    wrapper.requestModeSwitchToDebugger)
-        project.updateGUI.disconnect(watchExpr.updateGUI)
-        project.updateGUI.disconnect(bpViewer.updateGUI)
+        wrapper.actions.debug.start.triggered.disconnect(wrapper.requestModeSwitchToDebugger);
+        wrapper.actions.build.execute.triggered.disconnect(wrapper.requestModeSwitchToDebugger);
+        project.updateGUI.disconnect(watchExpr.updateGUI);
+        project.updateGUI.disconnect(bpViewer.updateGUI);
     }
     signal requestModeSwitchTo(string mode)
     function requestModeSwitchToDebugger() {
-        wrapper.requestModeSwitchTo("debugger")
+        wrapper.requestModeSwitchTo("debugger");
     }
     function getLexerLangauge() {
         switch (project?.architecture) {
         case Architecture.PEP9:
-            return "Pep/9 ASM"
+            return "Pep/9 ASM";
         case Architecture.PEP10:
-            return "Pep/10 ASM"
+            return "Pep/10 ASM";
         default:
-            return "Pep/10 ASM"
+            return "Pep/10 ASM";
         }
     }
 
     function onSwitchTo(os) {
-        textSelector.currentIndex = Qt.binding(() => os ? 1 : 0)
+        textSelector.currentIndex = Qt.binding(() => os ? 1 : 0);
     }
 
     function displayErrors() {
-        userAsmEdit.addEOLAnnotations(project.assemblerErrors)
+        userAsmEdit.addEOLAnnotations(project.assemblerErrors);
     }
     function fixListings() {
         if (!project)
-            return
+            return;
         if (userList) {
-            const curURO = userList.readOnly
-            userList.readOnly = false
-            userList.text = project.userList ?? ""
-            userList.addListingAnnotations(project.userListAnnotations)
-            userList.readOnly = curURO
+            const curURO = userList.readOnly;
+            userList.readOnly = false;
+            userList.text = project.userList ?? "";
+            userList.addListingAnnotations(project.userListAnnotations);
+            userList.readOnly = curURO;
         }
         if (osList) {
-            const curORO = osList.readOnly
-            osList.readOnly = false
-            osList.text = project.osList
-            osList.addListingAnnotations(project.osListAnnotations)
-            osList.readOnly = curORO
+            const curORO = osList.readOnly;
+            osList.readOnly = false;
+            osList.text = project.osList;
+            osList.addListingAnnotations(project.osListAnnotations);
+            osList.readOnly = curORO;
         }
     }
     // TODO: replace preAssemble someday...
     function syncEditors() {
-        save()
+        save();
     }
     function save() {
         // Supress saving messages when there is no project.
         if (project === null)
-            return
+            return;
         if (!userAsmEdit.readOnly) {
-            project.userAsmText = userAsmEdit.text
+            project.userAsmText = userAsmEdit.text;
         }
         if (!osAsmEdit.readOnly) {
-            project.osAsmText = osAsmEdit.text
+            project.osAsmText = osAsmEdit.text;
         }
     }
 
     function preAssemble() {
         if (project === null)
-            return
-        project.userAsmText = userAsmEdit.text
-        project.osAsmText = osAsmEdit.text
+            return;
+        project.userAsmText = userAsmEdit.text;
+        project.osAsmText = osAsmEdit.text;
     }
     function onOverwriteEditors() {
-        osAsmEdit.readOnly = false
-        userAsmEdit.text = project?.userAsmText ?? ""
-        osAsmEdit.text = project?.osAsmText ?? ""
-        osAsmEdit.readOnly = Qt.binding(
-                    () => !project.abstraction === Abstraction.OS4)
+        osAsmEdit.readOnly = false;
+        userAsmEdit.text = project?.userAsmText ?? "";
+        osAsmEdit.text = project?.osAsmText ?? "";
+        osAsmEdit.readOnly = Qt.binding(() => !project.abstraction === Abstraction.OS4);
     }
 
     SplitView {
@@ -252,9 +239,9 @@ Item {
                     visible: mode == "debugger"
                     SplitView.minimumHeight: 100
                     TabBar {
+                        id: debugTabBar
                         Layout.fillWidth: true
                         Layout.fillHeight: false
-                        id: debugTabBar
                         visible: mode == "debugger"
                         TabButton {
                             text: qsTr("Object Code")
@@ -283,8 +270,7 @@ Item {
                         SymTab.SymbolViewer {
                             id: symTab
                             model: project?.staticSymbolModel
-                            scopeFilter: textSelector.currentIndex
-                                         === 0 ? "usr.symtab" : "os.symtab"
+                            scopeFilter: textSelector.currentIndex === 0 ? "usr.symtab" : "os.symtab"
                         }
                         Debug.WatchExpressions {
                             id: watchExpr
@@ -302,9 +288,7 @@ Item {
 
         SplitView {
             visible: mode === "debugger"
-            SplitView.minimumWidth: Math.max(registers.implicitWidth,
-                                             batchInput.implicitWidth,
-                                             batchOutput.implicitWidth) + 20
+            SplitView.minimumWidth: Math.max(registers.implicitWidth, batchInput.implicitWidth, batchOutput.implicitWidth) + 20
             orientation: Qt.Vertical
             Cpu.RegisterView {
                 id: registers
@@ -314,28 +298,28 @@ Item {
                 flags: project?.flags ?? null
             }
             IO.Labeled {
+                id: batchInput
                 SplitView.minimumHeight: batchInput.minimumHeight
                 SplitView.preferredHeight: (parent.height - registers.height) / 2
-                id: batchInput
                 width: parent.width
                 label: "Input"
                 property bool ignoreTextChange: false
                 Component.onCompleted: {
                     onTextChanged.connect(() => {
-                                              if (!ignoreTextChange)
-                                              project.charIn = text
-                                          })
+                        if (!ignoreTextChange)
+                            project.charIn = text;
+                    });
                 }
                 function setInput(input) {
-                    ignoreTextChange = true
-                    batchInput.text = input
-                    ignoreTextChange = false
+                    ignoreTextChange = true;
+                    batchInput.text = input;
+                    ignoreTextChange = false;
                 }
             }
             IO.Labeled {
+                id: batchOutput
                 SplitView.minimumHeight: batchOutput.minimumHeight
                 SplitView.preferredHeight: (parent.height - registers.height) / 2
-                id: batchOutput
                 width: parent.width
                 label: "Output"
                 text: project?.charOut ?? ""
@@ -372,17 +356,16 @@ Item {
                         const props = {
                             "memory": project.memory,
                             "mnemonics": project.mnemonics
-                        }
+                        };
                         // Construction sets current address to 0, which propogates back to project.
                         // Must reject changes in current address until component is fully rendered.
-                        con.enabled = false
-                        setSource("qrc:/edu/pepp/memory/hexdump/MemoryDump.qml",
-                                  props)
+                        con.enabled = false;
+                        setSource("qrc:/qt/qml/edu/pepp/memory/hexdump/MemoryDump.qml", props);
                     }
                     asynchronous: true
                     onLoaded: {
-                        loader.item.scrollToAddress(project.currentAddress)
-                        con.enabled = true
+                        loader.item.scrollToAddress(project.currentAddress);
+                        con.enabled = true;
                     }
                 }
                 Stack.StackTrace {}
@@ -394,7 +377,7 @@ Item {
         enabled: false
         target: loader.item
         function onCurrentAddressChanged() {
-            project.currentAddress = loader.item.currentAddress
+            project.currentAddress = loader.item.currentAddress;
         }
     }
 }

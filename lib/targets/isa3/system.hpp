@@ -17,9 +17,9 @@
 
 #pragma once
 #include <elfio/elfio.hpp>
-#include "builtins/constants.hpp"
-#include "link/memmap.hpp"
+#include "enums/constants.hpp"
 #include "sim/api2.hpp"
+#include "toolchain/link/memmap.hpp"
 
 namespace obj {
 struct MemoryRegion;
@@ -39,7 +39,7 @@ template <typename Address> class ReadOnly;
 namespace targets::isa {
 class System : public sim::api2::System<quint16> {
 public:
-  System(builtins::Architecture arch, QList<obj::MemoryRegion> regions, QList<obj::AddressedIO> mmios);
+  System(pepp::Architecture arch, QList<obj::MemoryRegion> regions, QList<obj::AddressedIO> mmios);
   // System interface
   std::pair<sim::api2::tick::Type, sim::api2::tick::Result> tick(sim::api2::Scheduler::Mode mode) override;
   sim::api2::tick::Type currentTick() const override;
@@ -53,7 +53,7 @@ public:
   // Set default register values.
   void init();
 
-  builtins::Architecture architecture() const;
+  pepp::Architecture architecture() const;
   sim::api2::tick::Recipient *cpu();
 
   sim::memory::SimpleBus<quint16> *bus();
@@ -68,7 +68,7 @@ public:
   void reconfigure(const ELFIO::elfio &elf);
 
 private:
-  void reconfigure(builtins::Architecture arch, QList<obj::MemoryRegion> regions, QList<obj::AddressedIO> mmios);
+  void reconfigure(pepp::Architecture arch, QList<obj::MemoryRegion> regions, QList<obj::AddressedIO> mmios);
   sim::api2::device::ID _nextID = 0;
   sim::api2::device::IDGenerator _nextIDGenerator = [this]() { return _nextID++; };
   sim::api2::tick::Type _tick = 0;
@@ -81,7 +81,7 @@ private:
                            quint16 baseOffset = 0);
   QList<ReloadHelper> _regions;
 
-  const builtins::Architecture _arch = builtins::Architecture::NONE;
+  const pepp::Architecture _arch = pepp::Architecture::NO_ARCH;
   QSharedPointer<sim::api2::tick::Recipient> _cpu = nullptr;
   QSharedPointer<sim::memory::SimpleBus<quint16>> _bus = nullptr;
   QSharedPointer<sim::api2::Paths> _paths = nullptr;

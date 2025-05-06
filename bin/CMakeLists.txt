@@ -1,4 +1,3 @@
-qt_policy(SET QTP0001 NEW)
 file(GLOB_RECURSE sources_and_tests CONFIGURE_DEPENDS "${CMAKE_CURRENT_LIST_DIR}/*.cpp")
 file(GLOB_RECURSE tests CONFIGURE_DEPENDS "test/*.cpp" "test/*.hpp")
 list(APPEND sources ${sources_and_tests})
@@ -140,6 +139,8 @@ qt_add_qml_module(pepp
         VERSION 0.2
         QML_FILES ${rel_qml_sources}
         SOURCES ${guis} ${demos}
+        # Must be set since we overrode OUTPUT_DIRECTORY in library
+        IMPORT_PATH "${CMAKE_BINARY_DIR}/edu/pepp"
 
 )
 qt6_add_resources(pepp "pepp"

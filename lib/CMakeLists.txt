@@ -5,7 +5,7 @@ inject_dwarf_debug()
 inject_code_coverage()
 
 # Extract git info
-include(about/git.cmake)
+include(help/about/git.cmake)
 get_git_head_revision(GIT_REFSPEC GIT_SHA1)
 git_get_exact_tag(GIT_TAG)
 if (GIT_TAG MATCHES ".*NOTFOUND")
@@ -19,7 +19,7 @@ if (GIT_CLEAN_RAW MATCHES "CLEAN")
 else ()
     set(GIT_CLEAN "0")
 endif ()
-configure_file("${CMAKE_CURRENT_SOURCE_DIR}/about/version_gen.cpp.in" "${CMAKE_CURRENT_BINARY_DIR}/version_gen.cpp" @ONLY)
+configure_file("${CMAKE_CURRENT_SOURCE_DIR}/help/about/version_gen.cpp.in" "${CMAKE_CURRENT_BINARY_DIR}/version_gen.cpp" @ONLY)
 
 file(GLOB_RECURSE sources CONFIGURE_DEPENDS "${CMAKE_CURRENT_LIST_DIR}/*.cpp" "${CMAKE_CURRENT_LIST_DIR}/*.hpp")
 # GLOB_RECURSE uses abs paths, QML_FILES expects relative paths. This blob converts from abs to rel.
@@ -36,8 +36,9 @@ qt_add_qml_module(pepp-lib
         CLASS_NAME PeppLibPlugin
         SOURCES ${sources} "${CMAKE_CURRENT_BINARY_DIR}/version_gen.cpp" "${CMAKE_SOURCE_DIR}/resource_license.qrc"
         QML_FILES ${rel_qml_sources}
-        RESOURCE_PREFIX /
-        OUTPUT_DIRECTORY "${CMAKE_CURRENT_BINARY_DIR}/edu/pepp"
+        DEPENDENCIES
+          QtQuick
+        OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/edu/pepp"
 )
 
 target_link_libraries(pepp-lib PUBLIC Qt6::Core Qt6::Gui Qt6::Quick Qt6::Sql antlr4_shared elfio lru-cache scintilla_qt zpp_bits)
@@ -45,8 +46,8 @@ target_link_libraries(pepp-lib PUBLIC Qt6::Core Qt6::Gui Qt6::Quick Qt6::Sql ant
 get_target_property(ANTLR4_INCLUDE_DIR antlr4_shared INCLUDE_DIRECTORIES)
 target_include_directories(pepp-lib PUBLIC ${CMAKE_CURRENT_BINARY_DIR} ${ANTLR4_INCLUDE_DIR})
 target_include_directories(pepp-lib PRIVATE
-        about builtins components cpu helpers isa
-        link macro memory memory/hexdump memory/stack preferences project
+        enums cpu helpers help/about help/builtins enums/isa
+        toolchain/link toolchain/macro memory memory/hexdump memory/stack preferences project
         sim sim/debug targets text utils text/editor menu settings top
 )
 
@@ -114,7 +115,7 @@ foreach (f-abs IN LISTS help-res-abs)
 endforeach ()
 qt_add_resources(pepp-lib "help" PREFIX "/help" BASE "${PROJECT_DATA_DIR}/help" FILES ${help-res})
 # Install
-  # Only add dependencies if present
+
 if(APPLE)
 else()
   install(TARGETS pepp-lib RUNTIME DESTINATION bin BUNDLE DESTINATION .)

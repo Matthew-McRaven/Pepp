@@ -17,10 +17,10 @@
 
 #pragma once
 #include <QtCore>
-#include "bits/operations/swap.hpp"
-#include "bits/order.hpp"
 #include "sim/api2/memory/access.hpp"
 #include "sim/api2/memory/target.hpp"
+#include "utils/bits/order.hpp"
+#include "utils/bits/swap.hpp"
 
 namespace targets::isa {
 template <typename ISA, typename Address>

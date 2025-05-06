@@ -16,16 +16,16 @@
 
 #include "run.hpp"
 #include "../shared.hpp"
-#include "bits/strings.hpp"
-#include "builtins/figure.hpp"
-#include "helpers/asmb.hpp"
-#include "link/mmio.hpp"
+#include "help/builtins/figure.hpp"
+#include "toolchain/helpers/asmb.hpp"
+#include "toolchain/link/mmio.hpp"
 #include "sim/device/broadcast/mmi.hpp"
 #include "sim/device/broadcast/mmo.hpp"
 #include "sim/device/simple_bus.hpp"
 #include "targets/isa3/helpers.hpp"
 #include "targets/isa3/system.hpp"
 #include "targets/pep10/isa3/cpu.hpp"
+#include "utils/bits/strings.hpp"
 
 auto gs = sim::api2::memory::Operation{
     .type = sim::api2::memory::Operation::Type::Application,

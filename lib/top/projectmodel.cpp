@@ -38,7 +38,7 @@ const auto fmt = QStringLiteral("Unnamed %1");
 #endif
 
 Pep_ISA *ProjectModel::pep10ISA(QVariant delegate) {
-  static const project::Environment env{.arch = builtins::Architecture::PEP10, .level = builtins::Abstraction::ISA3};
+  static const project::Environment env{.arch = pepp::Architecture::PEP10, .level = pepp::Abstraction::ISA3};
   auto ptr = std::make_unique<Pep_ISA>(env, delegate, nullptr);
   auto ret = &*ptr;
   QQmlEngine::setObjectOwnership(ret, QQmlEngine::CppOwnership);
@@ -50,7 +50,7 @@ Pep_ISA *ProjectModel::pep10ISA(QVariant delegate) {
 }
 
 Pep_ISA *ProjectModel::pep9ISA(QVariant delegate) {
-  static const project::Environment env{.arch = builtins::Architecture::PEP9, .level = builtins::Abstraction::ISA3};
+  static const project::Environment env{.arch = pepp::Architecture::PEP9, .level = pepp::Abstraction::ISA3};
   auto ptr = std::make_unique<Pep_ISA>(env, delegate, nullptr);
   auto ret = &*ptr;
   QQmlEngine::setObjectOwnership(ret, QQmlEngine::CppOwnership);
@@ -61,8 +61,8 @@ Pep_ISA *ProjectModel::pep9ISA(QVariant delegate) {
   return ret;
 }
 
-Pep_ASMB *ProjectModel::pep10ASMB(QVariant delegate, builtins::Abstraction abstraction) {
-  project::Environment env{.arch = builtins::Architecture::PEP10, .level = abstraction};
+Pep_ASMB *ProjectModel::pep10ASMB(QVariant delegate, pepp::Abstraction abstraction) {
+  project::Environment env{.arch = pepp::Architecture::PEP10, .level = abstraction};
   auto ptr = std::make_unique<Pep_ASMB>(env, delegate, nullptr);
   auto ret = &*ptr;
   QQmlEngine::setObjectOwnership(ret, QQmlEngine::CppOwnership);
@@ -74,7 +74,7 @@ Pep_ASMB *ProjectModel::pep10ASMB(QVariant delegate, builtins::Abstraction abstr
 }
 
 Pep_ASMB *ProjectModel::pep9ASMB(QVariant delegate) {
-  project::Environment env{.arch = builtins::Architecture::PEP9, .level = builtins::Abstraction::ASMB5};
+  project::Environment env{.arch = pepp::Architecture::PEP9, .level = pepp::Abstraction::ASMB5};
   auto ptr = std::make_unique<Pep_ASMB>(env, delegate, nullptr);
   auto ret = &*ptr;
   QQmlEngine::setObjectOwnership(ret, QQmlEngine::CppOwnership);
@@ -111,16 +111,17 @@ QHash<int, QByteArray> ProjectModel::roleNames() const {
 }
 
 QString ProjectModel::describe(int index) const {
+  using enum pepp::Architecture;
   if (index < 0 || index >= _projects.size()) return {};
-  QMap<builtins::Architecture, QString> arch_map = {
-      {builtins::Architecture::PEP10, "Pep/10"},
-      {builtins::Architecture::PEP9, "Pep/9"},
-      {builtins::Architecture::PEP8, "Pep/8"},
-      {builtins::Architecture::RISCV, "RISC-V"},
+  QMap<pepp::Architecture, QString> arch_map = {
+      {PEP10, "Pep/10"},
+      {PEP9, "Pep/9"},
+      {PEP8, "Pep/8"},
+      {RISCV, "RISC-V"},
   };
-  auto abs_enum = QMetaEnum::fromType<builtins::Abstraction>();
-  builtins::Architecture arch;
-  builtins::Abstraction abs;
+  auto abs_enum = QMetaEnum::fromType<pepp::Abstraction>();
+  pepp::Architecture arch;
+  pepp::Abstraction abs;
   if (auto isa = dynamic_cast<Pep_ISA *>(_projects[index].impl.get())) {
     arch = isa->architecture();
     abs = isa->abstraction();
@@ -138,21 +139,21 @@ int ProjectModel::rowOf(const QObject *item) const {
   }
   return -1;
 }
-const std::map<std::pair<builtins::Abstraction, builtins::Architecture>, const char *> extensions = {
-    {{builtins::Abstraction::ISA3, builtins::Architecture::PEP10}, "Pep/10 Object Code (*.pepo)"},
-    {{builtins::Abstraction::ASMB3, builtins::Architecture::PEP10}, "Pep/10 Assembly Code (*.pep)"},
-    {{builtins::Abstraction::ASMB5, builtins::Architecture::PEP10}, "Pep/10 Assembly Code (*.pep)"},
-    {{builtins::Abstraction::ISA3, builtins::Architecture::PEP9}, "Pep/9 Object Code (*.pepo)"},
-    {{builtins::Abstraction::ASMB5, builtins::Architecture::PEP9}, "Pep/9 Assembly Code (*.pep)"},
+const std::map<std::pair<pepp::Abstraction, pepp::Architecture>, const char *> extensions = {
+    {{pepp::Abstraction::ISA3, pepp::Architecture::PEP10}, "Pep/10 Object Code (*.pepo)"},
+    {{pepp::Abstraction::ASMB3, pepp::Architecture::PEP10}, "Pep/10 Assembly Code (*.pep)"},
+    {{pepp::Abstraction::ASMB5, pepp::Architecture::PEP10}, "Pep/10 Assembly Code (*.pep)"},
+    {{pepp::Abstraction::ISA3, pepp::Architecture::PEP9}, "Pep/9 Object Code (*.pepo)"},
+    {{pepp::Abstraction::ASMB5, pepp::Architecture::PEP9}, "Pep/9 Assembly Code (*.pep)"},
 };
 
-std::pair<builtins::Abstraction, builtins::Architecture> envFromPtr(const QObject *item) {
+std::pair<pepp::Abstraction, pepp::Architecture> envFromPtr(const QObject *item) {
   if (auto asmb = qobject_cast<const Pep_ASMB *>(item)) {
     return {asmb->abstraction(), asmb->architecture()};
   } else if (auto isa = qobject_cast<const Pep_ISA *>(item)) {
     return {isa->abstraction(), isa->architecture()};
   }
-  return {builtins::Abstraction::NONE, builtins::Architecture::NONE};
+  return {pepp::Abstraction::NO_ABS, pepp::Architecture::NO_ARCH};
 }
 QByteArray primaryTextFromPtr(const QObject *item) {
   if (auto asmb = qobject_cast<const Pep_ASMB *>(item)) {
@@ -169,7 +170,7 @@ void ProjectModel::onSave(int row) {
   using enum QStandardPaths::StandardLocation;
   auto ptr = _projects[row].impl.get();
   auto env = envFromPtr(ptr);
-  if (env.first == builtins::Abstraction::NONE) {
+  if (env.first == pepp::Abstraction::NO_ABS) {
     qDebug() << "Unrecognized abstraction";
     return;
   }
@@ -177,9 +178,9 @@ void ProjectModel::onSave(int row) {
 #ifdef __EMSCRIPTEN__
   QString fname = "user.o";
   switch (env.first) {
-  case builtins::Abstraction::ISA3: fname = "user.pepo"; break;
-  case builtins::Abstraction::ASMB3: [[fallthrough]];
-  case builtins::Abstraction::ASMB5: fname = "user.pep"; break;
+  case pepp::Abstraction::ISA3: fname = "user.pepo"; break;
+  case pepp::Abstraction::ASMB3: [[fallthrough]];
+  case pepp::Abstraction::ASMB5: fname = "user.pep"; break;
   default: qDebug() << "No default for abstraction"; return;
   }
   QFileDialog::saveFileContent(contents, fname);
@@ -210,8 +211,8 @@ void ProjectModel::onSave(int row) {
 }
 
 void init_pep10(QList<ProjectType> &vec) {
-  auto a = builtins::Architecture::PEP10;
-  using builtins::Abstraction;
+  auto a = pepp::Architecture::PEP10;
+  using pepp::Abstraction;
   vec.append({.name = "ISA3, bare metal",
               .description = "Develop and debug machine language programs in bare metal mode.",
               .imagePath = "image://icons/cards/p10_isa3.svg",
@@ -236,8 +237,8 @@ void init_pep10(QList<ProjectType> &vec) {
   vec.append({.name = "Mc2, 2-byte bus", .arch = a, .level = Abstraction::MC2, .state = CompletionState::INCOMPLETE});
 }
 void init_pep9(QList<ProjectType> &vec) {
-  auto a = builtins::Architecture::PEP9;
-  using builtins::Abstraction;
+  auto a = pepp::Architecture::PEP9;
+  using pepp::Abstraction;
   vec.append({.name = "ISA3",
               .description = "Develop and debug machine language programs.",
               .imagePath = "image://icons/cards/p9_isa3.svg",
@@ -257,8 +258,8 @@ void init_pep9(QList<ProjectType> &vec) {
   vec.append({.name = "Mc2, 2-byte bus", .arch = a, .level = Abstraction::MC2, .state = CompletionState::INCOMPLETE});
 }
 void init_pep8(QList<ProjectType> &vec) {
-  auto a = builtins::Architecture::PEP8;
-  using builtins::Abstraction;
+  auto a = pepp::Architecture::PEP8;
+  using pepp::Abstraction;
   vec.append({.name = "ISA3",
               .description = "Develop and debug machine language programs.",
               .imagePath = "image://icons/cards/p9_isa3.svg",
@@ -277,8 +278,8 @@ void init_pep8(QList<ProjectType> &vec) {
   vec.append({.name = "Mc2, 1-byte bus", .arch = a, .level = Abstraction::MC2, .state = CompletionState::INCOMPLETE});
 }
 void init_riscv(QList<ProjectType> &vec) {
-  auto a = builtins::Architecture::RISCV;
-  using builtins::Abstraction;
+  auto a = pepp::Architecture::RISCV;
+  using pepp::Abstraction;
   vec.append({.name = "Asmb3, bare metal",
               .description = "Develop and debug machine language programs in bare metal mode.",
               .arch = a,
@@ -331,7 +332,7 @@ QHash<int, QByteArray> ProjectTypeModel::roleNames() const {
 
 ProjectTypeFilterModel::ProjectTypeFilterModel(QObject *parent) : QSortFilterProxyModel(parent) {}
 
-void ProjectTypeFilterModel::setArchitecture(builtins::Architecture arch) {
+void ProjectTypeFilterModel::setArchitecture(pepp::Architecture arch) {
   if (_architecture == arch) return;
   _architecture = arch;
   emit architectureChanged();
@@ -357,9 +358,9 @@ bool ProjectTypeFilterModel::filterAcceptsRow(int source_row, const QModelIndex 
   bool isIncomplete = !sourceModel()->data(index, static_cast<int>(ProjectTypeModel::Roles::CompleteRole)).toBool();
   bool isPartial =
       sourceModel()->data(index, static_cast<int>(ProjectTypeModel::Roles::PartiallyCompleteRole)).toBool();
-  auto arch = static_cast<builtins::Architecture>(
+  auto arch = static_cast<pepp::Architecture>(
       sourceModel()->data(index, static_cast<int>(ProjectTypeModel::Roles::ArchitectureRole)).toInt());
-  if (_architecture != builtins::Architecture::NONE && arch != _architecture) return false;
+  if (_architecture != pepp::Architecture::NO_ARCH && arch != _architecture) return false;
   else if (!_showIncomplete && isIncomplete) return false;
   else if (!_showPartial && isPartial) return false;
   return true;

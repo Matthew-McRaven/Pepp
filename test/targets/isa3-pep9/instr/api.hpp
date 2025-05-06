@@ -16,7 +16,7 @@
 
 #pragma once
 #include <qtypes.h>
-#include "bits/operations/swap.hpp"
+#include "utils/bits/swap.hpp"
 #include "sim/device/dense.hpp"
 #include "targets/isa3/helpers.hpp"
 #include "targets/pep9/isa3/cpu.hpp"

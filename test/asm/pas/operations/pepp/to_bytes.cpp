@@ -15,11 +15,11 @@
  */
 
 #include <catch.hpp>
-#include "asm/pas/driver/pep10.hpp"
-#include "asm/pas/driver/pepp.hpp"
-#include "asm/pas/operations/pepp/assign_addr.hpp"
-#include "asm/pas/operations/pepp/bytes.hpp"
-#include "isa/pep10.hpp"
+#include "toolchain/pas/driver/pep10.hpp"
+#include "toolchain/pas/driver/pepp.hpp"
+#include "toolchain/pas/operations/pepp/assign_addr.hpp"
+#include "toolchain/pas/operations/pepp/bytes.hpp"
+#include "enums/isa/pep10.hpp"
 
 using M = isa::Pep10::Mnemonic;
 TEST_CASE("To bytes", "[scope:asm][kind:unit][arch:pep10]") {

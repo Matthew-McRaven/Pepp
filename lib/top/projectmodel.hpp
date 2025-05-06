@@ -29,7 +29,7 @@ public:
   bool setData(const QModelIndex &index, const QVariant &value, int role) override;
   Q_INVOKABLE Pep_ISA *pep10ISA(QVariant delegate);
   Q_INVOKABLE Pep_ISA *pep9ISA(QVariant delegate);
-  Q_INVOKABLE Pep_ASMB *pep10ASMB(QVariant delegate, builtins::Abstraction abstraction);
+  Q_INVOKABLE Pep_ASMB *pep10ASMB(QVariant delegate, pepp::Abstraction abstraction);
   Q_INVOKABLE Pep_ASMB *pep9ASMB(QVariant delegate);
   bool removeRows(int row, int count, const QModelIndex &parent) override;
   bool moveRows(const QModelIndex &sourceParent, int sourceRow, int count, const QModelIndex &destinationParent,
@@ -60,8 +60,8 @@ enum class CompletionState {
 
 struct ProjectType {
   QString name{}, description{}, imagePath{};
-  builtins::Architecture arch = builtins::Architecture::NONE;
-  builtins::Abstraction level = builtins::Abstraction::NONE;
+  pepp::Architecture arch = pepp::Architecture::NO_ARCH;
+  pepp::Abstraction level = pepp::Abstraction::NO_ABS;
   CompletionState state = CompletionState::INCOMPLETE;
 };
 
@@ -93,15 +93,15 @@ private:
 
 class ProjectTypeFilterModel : public QSortFilterProxyModel {
   Q_OBJECT
-  Q_PROPERTY(builtins::Architecture architecture READ architecture WRITE setArchitecture NOTIFY architectureChanged)
+  Q_PROPERTY(pepp::Architecture architecture READ architecture WRITE setArchitecture NOTIFY architectureChanged)
   Q_PROPERTY(bool showIncomplete READ showIncomplete WRITE setShowIncomplete NOTIFY showIncompleteChanged)
   Q_PROPERTY(bool showPartiallyComplete READ showPartial WRITE setShowPartial NOTIFY showPartialChanged)
   QML_ELEMENT
 
 public:
   explicit ProjectTypeFilterModel(QObject *parent = nullptr);
-  builtins::Architecture architecture() const { return _architecture; }
-  void setArchitecture(builtins::Architecture arch);
+  pepp::Architecture architecture() const { return _architecture; }
+  void setArchitecture(pepp::Architecture arch);
   bool showIncomplete() const { return _showIncomplete; }
   void setShowIncomplete(bool value);
   bool showPartial() const { return _showPartial; }
@@ -115,6 +115,6 @@ signals:
   void showPartialChanged();
 
 private:
-  builtins::Architecture _architecture = builtins::Architecture::NONE;
+  pepp::Architecture _architecture = pepp::Architecture::NO_ARCH;
   bool _showIncomplete = false, _showPartial = false;
 };

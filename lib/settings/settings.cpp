@@ -1,6 +1,6 @@
 #include "settings.hpp"
 #include <QQmlEngine>
-#include "builtins/registry.hpp"
+#include "help/builtins/registry.hpp"
 
 pepp::settings::Category::Category(QObject *parent) : QObject(parent) {}
 
@@ -34,29 +34,29 @@ void pepp::settings::GeneralCategory::resetToDefault() {
   setAllowExternalFigures(defaultAllowExternalFigures);
 }
 
-builtins::Architecture pepp::settings::GeneralCategory::defaultArch() const {
+pepp::Architecture pepp::settings::GeneralCategory::defaultArch() const {
   bool casted = false;
-  auto archEnum = QMetaEnum::fromType<builtins::Architecture>();
+  auto archEnum = QMetaEnum::fromType<pepp::Architecture>();
   auto value = _settings.value(defaultArchKey);
   if (auto asInt = value.toInt(&casted); value.isValid() && casted && archEnum.valueToKey(asInt) != nullptr)
-    return static_cast<builtins::Architecture>(asInt);
+    return static_cast<pepp::Architecture>(asInt);
   else {
     _settings.setValue(defaultArchKey, (int)defaultDefaultArch);
     return defaultDefaultArch;
   }
 }
 
-void pepp::settings::GeneralCategory::setDefaultArch(builtins::Architecture arch) {
+void pepp::settings::GeneralCategory::setDefaultArch(pepp::Architecture arch) {
   _settings.setValue(defaultArchKey, (int)arch);
   emit defaultArchChanged();
 }
 
-builtins::Abstraction pepp::settings::GeneralCategory::defaultAbstraction() const {
+pepp::Abstraction pepp::settings::GeneralCategory::defaultAbstraction() const {
   bool casted = false;
-  auto absEnum = QMetaEnum::fromType<builtins::Abstraction>();
+  auto absEnum = QMetaEnum::fromType<pepp::Abstraction>();
   auto value = _settings.value(defaultAbstractionKey);
   if (auto asInt = value.toInt(&casted); value.isValid() && casted && absEnum.valueToKey(asInt) != nullptr)
-    return static_cast<builtins::Abstraction>(asInt);
+    return static_cast<pepp::Abstraction>(asInt);
   else {
     _settings.setValue(defaultAbstractionKey, (int)defaultDefaultAbstraction);
     return defaultDefaultAbstraction;
@@ -77,7 +77,7 @@ void pepp::settings::GeneralCategory::setShowDebugComponents(bool show) {
   emit showDebugComponentsChanged();
 }
 
-void pepp::settings::GeneralCategory::setDefaultAbstraction(builtins::Abstraction abstraction) {
+void pepp::settings::GeneralCategory::setDefaultAbstraction(pepp::Abstraction abstraction) {
   _settings.setValue(defaultAbstractionKey, (int)abstraction);
   emit defaultAbstractionChanged();
 }

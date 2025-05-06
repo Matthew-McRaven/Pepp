@@ -17,7 +17,7 @@ FetchContent_Declare(
     GIT_SHALLOW 1
 )
 
-# Allow normalized paths (e.g., "asm/pas" ) without nesting that directory folder
+# Allow normalized paths (e.g., "toolchain/pas" ) without nesting that directory folder
 # inside a nested "src" hierarchy. May cause linking issues if you do not pay attention.
 include_directories(${CMAKE_CURRENT_LIST_DIR}/logic ${CMAKE_CURRENT_LIST_DIR}/ui ${CMAKE_CURRENT_LIST_DIR}/lib)
 
@@ -37,7 +37,7 @@ endif ()
 if (ONLY STREQUAL "BUILD")
     set(LANGUAGES "CXX")
 endif ()
-project(Pepp VERSION 0.9.1 LANGUAGES ${LANGUAGES})
+project(Pepp VERSION 0.9.2 LANGUAGES ${LANGUAGES})
 # Only overwrite the install prefix if it is the default value.
 if (CMAKE_INSTALL_PREFIX_INITIALIZED_TO_DEFAULT)
     set(CMAKE_INSTALL_PREFIX "${PROJECT_BINARY_DIR}/install" CACHE PATH "Installation Directory" FORCE)
@@ -69,7 +69,7 @@ if (ONLY STREQUAL "BUILD")
       if(EMSCRIPTEN)
         add_link_options(--bind)
       endif()
-      # Silence Qt's CMake warnings about policy being unset.
+      qt_policy(SET QTP0001 NEW)
       qt_policy(SET QTP0004 NEW)
     endif()
 

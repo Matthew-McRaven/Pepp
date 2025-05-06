@@ -236,9 +236,9 @@ Item {
             }
 
             if (PlatformDetector.isWASM) {
-                setSource("qrc:/edu/pepp/settings/QMLFileDialog.qml", props)
+                setSource("qrc:/qt/qml/edu/pepp/settings/QMLFileDialog.qml", props)
             } else {
-                setSource("qrc:/edu/pepp/settings/NativeFileDialog.qml", props)
+                setSource("qrc:/qt/qml/edu/pepp/settings/NativeFileDialog.qml", props)
             }
         }
         asynchronous: false
@@ -262,9 +262,9 @@ Item {
             }
 
             if (PlatformDetector.isWASM) {
-                setSource("qrc:/edu/pepp/settings/QMLFileDialog.qml", props)
+                setSource("qrc:/qt/qml/edu/pepp/settings/QMLFileDialog.qml", props)
             } else {
-                setSource("qrc:/edu/pepp/settings/NativeFileDialog.qml", props)
+                setSource("qrc:/qt/qml/edu/pepp/settings/NativeFileDialog.qml", props)
             }
         }
         asynchronous: false

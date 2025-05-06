@@ -14,7 +14,7 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-#include "about/dependencies.hpp"
+#include "help/about/dependencies.hpp"
 #include <catch.hpp>
 
 TEST_CASE("About Dependencies", "[scope:help.about][kind:unit][arch:*]") {

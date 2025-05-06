@@ -1,6 +1,6 @@
 #include <QObject>
 #include <QtQmlIntegration>
-#include "builtins/constants.hpp"
+#include "enums/constants.hpp"
 #include "palette.hpp"
 
 class QJSEngine;
@@ -31,8 +31,8 @@ class GeneralCategory : public Category {
   QML_NAMED_ELEMENT(GeneralCategory)
   // "Defaults" group box
   // When given a file with an ambiguous extension, interpret it using this architecture.
-  Q_PROPERTY(builtins::Architecture defaultArch READ defaultArch WRITE setDefaultArch NOTIFY defaultArchChanged)
-  Q_PROPERTY(builtins::Abstraction defaultAbstraction READ defaultAbstraction WRITE setDefaultAbstraction NOTIFY
+  Q_PROPERTY(pepp::Architecture defaultArch READ defaultArch WRITE setDefaultArch NOTIFY defaultArchChanged)
+  Q_PROPERTY(pepp::Abstraction defaultAbstraction READ defaultAbstraction WRITE setDefaultAbstraction NOTIFY
                  defaultAbstractionChanged)
   Q_PROPERTY(
       bool showDebugComponents READ showDebugComponents WRITE setShowDebugComponents NOTIFY showDebugComponentsChanged)
@@ -56,12 +56,12 @@ public:
   void sync() override;
   void resetToDefault() override;
 
-  builtins::Architecture defaultArch() const;
-  void setDefaultArch(builtins::Architecture arch);
-  builtins::Abstraction defaultAbstraction() const;
+  pepp::Architecture defaultArch() const;
+  void setDefaultArch(pepp::Architecture arch);
+  pepp::Abstraction defaultAbstraction() const;
   bool showDebugComponents() const;
   void setShowDebugComponents(bool show);
-  void setDefaultAbstraction(builtins::Abstraction abstraction);
+  void setDefaultAbstraction(pepp::Abstraction abstraction);
   int maxRecentFiles() const;
   void setMaxRecentFiles(int max);
   bool showMenuHotkeys() const;
@@ -86,8 +86,8 @@ signals:
 
 private:
   mutable QSettings _settings;
-  const builtins::Architecture defaultDefaultArch = builtins::Architecture::PEP10;
-  const builtins::Abstraction defaultDefaultAbstraction = builtins::Abstraction::ASMB5;
+  const pepp::Architecture defaultDefaultArch = pepp::Architecture::PEP10;
+  const pepp::Abstraction defaultDefaultAbstraction = pepp::Abstraction::ASMB5;
   const bool defaultShowDebugComponents = false;
   bool validateMaxRecentFiles(int max) const;
   const int defaultMaxRecentFiles = 5;

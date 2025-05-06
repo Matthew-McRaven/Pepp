@@ -1,5 +1,5 @@
 #include "formats.hpp"
-#include "bits/mask.hpp"
+#include "utils/bits/mask.hpp"
 using namespace Qt::StringLiterals;
 
 TextFormatter::TextFormatter(QString value) : _value(value) {}

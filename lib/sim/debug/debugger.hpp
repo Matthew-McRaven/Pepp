@@ -4,7 +4,7 @@
 #include <bitset>
 #include "sim/debug/expr_parser.hpp"
 #include "sim/debug/line_map.hpp"
-#include "symtab/symbolmodel.hpp"
+#include "toolchain/symtab/symbolmodel.hpp"
 #include "watchexpressionmodel.hpp"
 
 namespace pepp::debug {

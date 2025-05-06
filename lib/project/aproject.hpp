@@ -3,7 +3,7 @@
 #include <QStringListModel>
 #include <QtQmlIntegration>
 #include <qabstractitemmodel.h>
-#include "builtins/constants.hpp"
+#include "enums/constants.hpp"
 #include "targets/isa3/system.hpp"
 
 namespace sim {
@@ -63,8 +63,8 @@ public:
 
 // TODO: Expose values on AProject directly
 struct Environment {
-  builtins::Architecture arch;
-  builtins::Abstraction level;
+  pepp::Architecture arch;
+  pepp::Abstraction level;
   Features features;
 };
 } // namespace project

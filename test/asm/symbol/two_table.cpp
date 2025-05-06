@@ -16,9 +16,9 @@
  */
 
 #include <catch.hpp>
-#include "asm/symbol/table.hpp"
-#include "asm/symbol/types.hpp"
-#include "asm/symbol/visit.hpp"
+#include "toolchain/symbol/table.hpp"
+#include "toolchain/symbol/types.hpp"
+#include "toolchain/symbol/visit.hpp"
 
 TEST_CASE("Two symbol tables", "[scope:asm.sym][kind:unit][arch:*]") {
   SECTION("Independent References") {

@@ -16,16 +16,14 @@
 
 #include <catch.hpp>
 #include <elfio/elfio.hpp>
-#include "asm/pas/driver/pep10.hpp"
-#include "asm/pas/obj/pep10.hpp"
-#include "asm/pas/operations/generic/errors.hpp"
-#include "bits/operations/swap.hpp"
-#include "bits/strings.hpp"
-#include "builtins/book.hpp"
-#include "builtins/figure.hpp"
-#include "builtins/registry.hpp"
-#include "link/mmio.hpp"
-#include "macro/registry.hpp"
+#include "toolchain/pas/driver/pep10.hpp"
+#include "toolchain/pas/obj/pep10.hpp"
+#include "toolchain/pas/operations/generic/errors.hpp"
+#include "help/builtins/book.hpp"
+#include "help/builtins/figure.hpp"
+#include "help/builtins/registry.hpp"
+#include "toolchain/link/mmio.hpp"
+#include "toolchain/macro/registry.hpp"
 #include "sim/device/broadcast/mmi.hpp"
 #include "sim/device/broadcast/mmo.hpp"
 #include "sim/device/dense.hpp"
@@ -34,6 +32,8 @@
 #include "targets/isa3/helpers.hpp"
 #include "targets/isa3/system.hpp"
 #include "targets/pep10/isa3/cpu.hpp"
+#include "utils/bits/strings.hpp"
+#include "utils/bits/swap.hpp"
 
 namespace {
 static const auto lf = QRegularExpression("\r");
