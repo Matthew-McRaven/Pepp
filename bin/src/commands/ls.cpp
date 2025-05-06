@@ -18,7 +18,7 @@
 #include <iostream>
 #include "../shared.hpp"
 #include "help/builtins/figure.hpp"
-#include "helpers/asmb.hpp"
+#include "toolchain/helpers/asmb.hpp"
 
 ListTask::ListTask(int ed, QObject *parent) : Task(parent), ed(ed) {}
 

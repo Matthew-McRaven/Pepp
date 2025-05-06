@@ -23,8 +23,8 @@
 #include "book.hpp"
 #include "elements.hpp"
 #include "figure.hpp"
-#include "macro/macro.hpp"
-#include "macro/parse.hpp"
+#include "toolchain/macro/macro.hpp"
+#include "toolchain/macro/parse.hpp"
 using namespace Qt::StringLiterals;
 builtins::Registry::Registry(void *asm_toolchains, QString directory) {
   _usingExternalFigures = (directory != builtins::default_book_path);

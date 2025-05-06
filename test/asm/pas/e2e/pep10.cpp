@@ -14,18 +14,18 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-#include "asm/pas/driver/pep10.hpp"
+#include "toolchain/pas/driver/pep10.hpp"
 #include <catch.hpp>
-#include "asm/pas/obj/pep10.hpp"
-#include "asm/pas/operations/generic/errors.hpp"
-#include "asm/pas/operations/pepp/string.hpp"
+#include "toolchain/pas/obj/pep10.hpp"
+#include "toolchain/pas/operations/generic/errors.hpp"
+#include "toolchain/pas/operations/pepp/string.hpp"
 #include "help/builtins/book.hpp"
 #include "help/builtins/figure.hpp"
 #include "help/builtins/registry.hpp"
 #include "isa/pep10.hpp"
-#include "link/memmap.hpp"
-#include "link/mmio.hpp"
-#include "macro/registry.hpp"
+#include "toolchain/link/memmap.hpp"
+#include "toolchain/link/mmio.hpp"
+#include "toolchain/macro/registry.hpp"
 #include "sim/device/simple_bus.hpp"
 #include "targets/isa3/system.hpp"
 

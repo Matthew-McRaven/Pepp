@@ -18,7 +18,7 @@
 #include "book.hpp"
 #include "figure.hpp"
 
-#include "macro/macro.hpp"
+#include "toolchain/macro/macro.hpp"
 builtins::Book::Book(QString name) : QObject(nullptr), _name(name) {}
 
 QString builtins::Book::name() const { return _name; }

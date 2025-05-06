@@ -14,16 +14,16 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-#include "asm/pas/operations/generic/include_macros.hpp"
+#include "toolchain/pas/operations/generic/include_macros.hpp"
 #include <catch.hpp>
-#include "asm/pas/ast/generic/attr_children.hpp"
-#include "asm/pas/driver/pep10.hpp"
-#include "asm/pas/driver/pepp.hpp"
-#include "asm/pas/errors.hpp"
-#include "asm/pas/operations/generic/errors.hpp"
+#include "toolchain/pas/ast/generic/attr_children.hpp"
+#include "toolchain/pas/driver/pep10.hpp"
+#include "toolchain/pas/driver/pepp.hpp"
+#include "toolchain/pas/errors.hpp"
+#include "toolchain/pas/operations/generic/errors.hpp"
 #include "isa/pep10.hpp"
-#include "macro/macro.hpp"
-#include "macro/registry.hpp"
+#include "toolchain/macro/macro.hpp"
+#include "toolchain/macro/registry.hpp"
 
 using namespace Qt::StringLiterals;
 

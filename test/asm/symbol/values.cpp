@@ -16,8 +16,8 @@
  */
 
 #include <catch.hpp>
-#include "asm/symbol/types.hpp"
-#include "asm/symbol/value.hpp"
+#include "toolchain/symbol/types.hpp"
+#include "toolchain/symbol/value.hpp"
 
 TEST_CASE("Symbol values", "[scope:asm.sym][kind:unit][arch:*]") {
   SECTION("Bit masking") {

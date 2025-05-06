@@ -17,7 +17,7 @@ FetchContent_Declare(
     GIT_SHALLOW 1
 )
 
-# Allow normalized paths (e.g., "asm/pas" ) without nesting that directory folder
+# Allow normalized paths (e.g., "toolchain/pas" ) without nesting that directory folder
 # inside a nested "src" hierarchy. May cause linking issues if you do not pay attention.
 include_directories(${CMAKE_CURRENT_LIST_DIR}/logic ${CMAKE_CURRENT_LIST_DIR}/ui ${CMAKE_CURRENT_LIST_DIR}/lib)
 

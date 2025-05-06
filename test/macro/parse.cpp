@@ -15,7 +15,7 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-#include "macro/parse.hpp"
+#include "toolchain/macro/parse.hpp"
 #include <catch.hpp>
 #include <tuple>
 using namespace Qt::StringLiterals;

@@ -14,10 +14,10 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-#include "asm/pas/operations/pepp/addressable.hpp"
+#include "toolchain/pas/operations/pepp/addressable.hpp"
 #include <catch.hpp>
-#include "asm/pas/ast/node.hpp"
-#include "asm/pas/driver/pep10.hpp"
+#include "toolchain/pas/ast/node.hpp"
+#include "toolchain/pas/driver/pep10.hpp"
 #include "isa/pep10.hpp"
 using namespace Qt::StringLiterals;
 

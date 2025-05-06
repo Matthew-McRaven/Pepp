@@ -18,8 +18,8 @@
 #pragma once
 #include <elfio/elfio.hpp>
 #include "enums/constants.hpp"
-#include "link/memmap.hpp"
 #include "sim/api2.hpp"
+#include "toolchain/link/memmap.hpp"
 
 namespace obj {
 struct MemoryRegion;

@@ -17,17 +17,17 @@
 #include <catch.hpp>
 #include "antlr4-runtime.h"
 
-#include "asm/pas/ast/generic/attr_symbol.hpp"
-#include "asm/pas/driver/pep10.hpp"
-#include "asm/pas/operations/generic/errors.hpp"
-#include "asm/pas/operations/generic/is.hpp"
-#include "asm/pas/operations/pepp/is.hpp"
-#include "asm/pas/parse/pepp/PeppASTConverter10.h"
+#include "toolchain/pas/ast/generic/attr_symbol.hpp"
+#include "toolchain/pas/driver/pep10.hpp"
+#include "toolchain/pas/operations/generic/errors.hpp"
+#include "toolchain/pas/operations/generic/is.hpp"
+#include "toolchain/pas/operations/pepp/is.hpp"
+#include "toolchain/pas/parse/pepp/PeppASTConverter10.h"
 #include "isa/pep10.hpp"
 
-#include "asm/parse/PeppLexer.h"
-#include "asm/parse/PeppLexerErrorListener.h"
-#include "asm/parse/PeppParser.h"
+#include "toolchain/parse/PeppLexer.h"
+#include "toolchain/parse/PeppLexerErrorListener.h"
+#include "toolchain/parse/PeppParser.h"
 
 using namespace antlr4;
 using namespace parse;

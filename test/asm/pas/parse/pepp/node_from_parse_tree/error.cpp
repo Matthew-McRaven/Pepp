@@ -16,18 +16,18 @@
 
 #include <catch.hpp>
 
-#include "asm/pas/ast/generic/attr_error.hpp"
-#include "asm/pas/ast/generic/attr_location.hpp"
-#include "asm/pas/driver/pep10.hpp"
-#include "asm/pas/errors.hpp"
-#include "asm/pas/operations/generic/errors.hpp"
+#include "toolchain/pas/ast/generic/attr_error.hpp"
+#include "toolchain/pas/ast/generic/attr_location.hpp"
+#include "toolchain/pas/driver/pep10.hpp"
+#include "toolchain/pas/errors.hpp"
+#include "toolchain/pas/operations/generic/errors.hpp"
 #include "isa/pep10.hpp"
 
 #undef emit
-#include "asm/parse/PeppLexer.h"
-#include "asm/parse/PeppLexerErrorListener.h"
-#include "asm/parse/PeppParser.h"
-#include "asm/pas/parse/pepp/PeppASTConverter10.h"
+#include "toolchain/parse/PeppLexer.h"
+#include "toolchain/parse/PeppLexerErrorListener.h"
+#include "toolchain/parse/PeppParser.h"
+#include "toolchain/pas/parse/pepp/PeppASTConverter10.h"
 using namespace Qt::StringLiterals;
 using namespace antlr4;
 using namespace parse;

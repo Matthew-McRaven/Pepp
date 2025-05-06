@@ -13,14 +13,14 @@
  * You should have received a copy of the GNU General Public License
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
-#include "asm/pas/operations/pepp/size.hpp"
+#include "toolchain/pas/operations/pepp/size.hpp"
 #include <catch.hpp>
-#include "asm/pas/driver/pepp.hpp"
-#include "asm/pas/operations/generic/include_macros.hpp"
+#include "toolchain/pas/driver/pepp.hpp"
+#include "toolchain/pas/operations/generic/include_macros.hpp"
 #include "utils/bits/strings.hpp"
 #include "isa/pep10.hpp"
-#include "macro/macro.hpp"
-#include "macro/registry.hpp"
+#include "toolchain/macro/macro.hpp"
+#include "toolchain/macro/registry.hpp"
 
 using pas::ops::pepp::Direction;
 using pas::ops::pepp::explicitSize;

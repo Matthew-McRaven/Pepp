@@ -14,11 +14,11 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 #include <catch.hpp>
-#include "asm/pas/driver/pepp.hpp"
-#include "asm/pas/operations/generic/group.hpp"
-#include "asm/pas/operations/pepp/addressable.hpp"
-#include "asm/pas/operations/pepp/assign_addr.hpp"
-#include "asm/pas/operations/pepp/string.hpp"
+#include "toolchain/pas/driver/pepp.hpp"
+#include "toolchain/pas/operations/generic/group.hpp"
+#include "toolchain/pas/operations/pepp/addressable.hpp"
+#include "toolchain/pas/operations/pepp/assign_addr.hpp"
+#include "toolchain/pas/operations/pepp/string.hpp"
 #include "isa/pep10.hpp"
 
 TEST_CASE("Format Pepp listing", "[scope:asm][kind:unit][arch:pep10]") {

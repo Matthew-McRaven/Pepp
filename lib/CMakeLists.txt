@@ -47,7 +47,7 @@ get_target_property(ANTLR4_INCLUDE_DIR antlr4_shared INCLUDE_DIRECTORIES)
 target_include_directories(pepp-lib PUBLIC ${CMAKE_CURRENT_BINARY_DIR} ${ANTLR4_INCLUDE_DIR})
 target_include_directories(pepp-lib PRIVATE
         enums cpu helpers help/about help/builtins isa
-        link macro memory memory/hexdump memory/stack preferences project
+        toolchain/link toolchain/macro memory memory/hexdump memory/stack preferences project
         sim sim/debug targets text utils text/editor menu settings top
 )
 

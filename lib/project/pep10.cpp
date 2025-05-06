@@ -1,11 +1,11 @@
 #include "./pep10.hpp"
 #include <QQmlEngine>
 #include <elfio/elfio.hpp>
-#include "asm/pas/obj/common.hpp"
-#include "asm/pas/operations/pepp/bytes.hpp"
+#include "toolchain/pas/obj/common.hpp"
+#include "toolchain/pas/operations/pepp/bytes.hpp"
 #include "cpu/formats.hpp"
 #include "help/builtins/figure.hpp"
-#include "helpers/asmb.hpp"
+#include "toolchain/helpers/asmb.hpp"
 #include "isa/pep10.hpp"
 #include "sim/device/broadcast/mmi.hpp"
 #include "sim/device/broadcast/mmo.hpp"

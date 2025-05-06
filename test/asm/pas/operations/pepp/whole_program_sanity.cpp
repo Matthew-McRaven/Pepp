@@ -14,16 +14,16 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-#include "asm/pas/operations/pepp/whole_program_sanity.hpp"
+#include "toolchain/pas/operations/pepp/whole_program_sanity.hpp"
 #include <catch.hpp>
-#include "asm/pas/driver/pep10.hpp"
-#include "asm/pas/driver/pepp.hpp"
-#include "asm/pas/errors.hpp"
-#include "asm/pas/operations/generic/group.hpp"
-#include "asm/pas/operations/pepp/addressable.hpp"
-#include "asm/pas/operations/pepp/assign_addr.hpp"
+#include "toolchain/pas/driver/pep10.hpp"
+#include "toolchain/pas/driver/pepp.hpp"
+#include "toolchain/pas/errors.hpp"
+#include "toolchain/pas/operations/generic/group.hpp"
+#include "toolchain/pas/operations/pepp/addressable.hpp"
+#include "toolchain/pas/operations/pepp/assign_addr.hpp"
 #include "isa/pep10.hpp"
-#include "macro/registry.hpp"
+#include "toolchain/macro/registry.hpp"
 
 namespace E = pas::errors::pepp;
 namespace {
