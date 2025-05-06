@@ -15,6 +15,7 @@
  */
 import QtQuick
 import QtQuick.Controls
+import QtQuick.Controls.impl
 import QtQuick.Layouts
 import Qt.labs.qmlmodels
 import "../cpu" as Ui
@@ -61,11 +62,39 @@ ColumnLayout {
         Layout.minimumWidth: contentItem.childrenRect.width
         Layout.minimumHeight: contentItem.childrenRect.height
         orientation: Qt.Horizontal
-        delegate: CheckBox {
+        delegate: Row {
+            id: del
             Layout.alignment: Qt.AlignVCenter
-            enabled: false
-            text: model.text
-            checked: model.checked
+            required property bool checked
+            required property string text
+            Rectangle {
+                implicitWidth: innerText.implicitWidth + 2 * border.width + 2 * innerText.anchors.margins
+                implicitHeight: innerText.implicitHeight + 2 * border.width + 2 * innerText.anchors.margins
+                Text {
+                    id: innerText
+                    anchors.fill: parent
+                    anchors.margins: 1
+                    text: del.checked ? "1" : "0"
+                    horizontalAlignment: Qt.AlignHCenter
+                    verticalAlignment: Qt.AlignVCenter
+                    font: settings.extPalette.baseMono.font
+                }
+                color: "transparent"
+                border {
+                    color: palette.windowText
+                    width: 1
+                }
+            }
+            Label {
+                leftPadding: 2
+                text: del.text
+                horizontalAlignment: Qt.AlignHCenter
+                verticalAlignment: Qt.AlignVCenter
+            }
+            Item {
+                implicitHeight: 1
+                implicitWidth: 8
+            }
         }
     }
     ListView {
