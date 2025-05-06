@@ -98,5 +98,13 @@ public:
   std::unique_ptr<pepp::debug::WatchExpressionEditor> watch_expressions = nullptr;
   std::unique_ptr<ScopedLines2Addresses> line_maps = nullptr;
   std::unique_ptr<StaticSymbolModel> static_symbol_model = nullptr;
+
+  void notifyCall(quint16 pc);
+  void notifyRet(quint16 pc);
+  void notifyTrapCall(quint16 pc);
+  void notifyTrapRet(quint16 pc);
+  void notifyAddSP(quint16 pc);
+  void notifySubSP(quint16 pc);
+  void notifySetSP(quint16 pc);
 };
 }; // namespace pepp::debug
