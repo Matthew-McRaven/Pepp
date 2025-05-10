@@ -42,8 +42,8 @@ struct Pep10OpcodeInit {
       if (op.mode == isa::Pep10::AddressingMode::NONE) {
         formatted = QString(mnemonicEnum.valueToKey((int)op.instr.mnemon)).toUpper();
       } else {
-        formatted = u"%1, %2"_s.arg(QString(mnemonicEnum.valueToKey((int)op.instr.mnemon)).toUpper(),
-                                    QString(addressEnum.valueToKey((int)op.mode)).toLower());
+        formatted = u"%1,%2"_s.arg(QString(mnemonicEnum.valueToKey((int)op.instr.mnemon)).toUpper(),
+                                   QString(addressEnum.valueToKey((int)op.mode)).toLower());
       }
       model->appendRow(formatted, it);
     }
