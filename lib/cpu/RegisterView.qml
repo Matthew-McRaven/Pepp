@@ -1,5 +1,3 @@
-
-
 /*
  * Copyright (c) 2024 J. Stanley Warford, Matthew McRaven
  * This program is free software: you can redistribute it and/or modify
@@ -17,6 +15,7 @@
  */
 import QtQuick
 import QtQuick.Controls
+import QtQuick.Controls.impl
 import QtQuick.Layouts
 import Qt.labs.qmlmodels
 import "../cpu" as Ui
@@ -63,11 +62,39 @@ ColumnLayout {
         Layout.minimumWidth: contentItem.childrenRect.width
         Layout.minimumHeight: contentItem.childrenRect.height
         orientation: Qt.Horizontal
-        delegate: CheckBox {
+        delegate: Row {
+            id: del
             Layout.alignment: Qt.AlignVCenter
-            enabled: false
-            text: model.text
-            checked: model.checked
+            required property bool checked
+            required property string text
+            Rectangle {
+                implicitWidth: innerText.implicitWidth + 2 * border.width + 2 * innerText.anchors.margins
+                implicitHeight: innerText.implicitHeight + 2 * border.width + 2 * innerText.anchors.margins
+                Text {
+                    id: innerText
+                    anchors.fill: parent
+                    anchors.margins: 1
+                    text: del.checked ? "1" : "0"
+                    horizontalAlignment: Qt.AlignHCenter
+                    verticalAlignment: Qt.AlignVCenter
+                    font: settings.extPalette.baseMono.font
+                }
+                color: "transparent"
+                border {
+                    color: palette.windowText
+                    width: 1
+                }
+            }
+            Label {
+                leftPadding: 2
+                text: del.text
+                horizontalAlignment: Qt.AlignHCenter
+                verticalAlignment: Qt.AlignVCenter
+            }
+            Item {
+                implicitHeight: 1
+                implicitWidth: 8
+            }
         }
     }
     ListView {
@@ -107,17 +134,16 @@ ColumnLayout {
                     Layout.preferredWidth: childrenRect.width
                     color: "transparent"
                     function updateFlagMargin() {
-                        flags.overrideLeftMargin = Qt.binding(
-                                    () => x + Layout.leftMargin + spacing)
+                        flags.overrideLeftMargin = Qt.binding(() => x + Layout.leftMargin + spacing);
                     }
 
                     onXChanged: {
                         if (column == 1 && row == 0)
-                            updateFlagMargin()
+                            updateFlagMargin();
                     }
                     onWidthChanged: {
                         if (column == 1 && row == 0)
-                            updateFlagMargin()
+                            updateFlagMargin();
                     }
 
                     TextField {
@@ -128,10 +154,9 @@ ColumnLayout {
                             border.width: box ? 1 : 0
                             radius: 2
                         }
-                        font: metrics.font
+                        font: column == 0 ? settings.extPalette.base.font : metrics.font
                         readOnly: true
-                        maximumLength: 2 + registers.model.columnCharWidth(
-                                           column)
+                        maximumLength: 2 + registers.model.columnCharWidth(column)
                         anchors.centerIn: columnDelegate
                         text: columnDelegate.display
                         color: palette.windowText
@@ -142,31 +167,26 @@ ColumnLayout {
                         onPressed: function (mouse) {
                             if (mouse.button === Qt.RightButton) {
                                 while (contextMenu.count) {
-                                    contextMenu.removeItem(
-                                                contextMenu.itemAt(0))
+                                    contextMenu.removeItem(contextMenu.itemAt(0));
                                 }
                                 if (!choices)
-                                    return
+                                    return;
                                 for (var i = 0; i < choices.length; i++) {
-                                    var menuItem = menuItemComponent.createObject(
-                                                contextMenu.contentItem, {
-                                                    "text": qsTr(choices[i]),
-                                                    "checkable": true,
-                                                    "checked": i === selected
-                                                })
+                                    var menuItem = menuItemComponent.createObject(contextMenu.contentItem, {
+                                        "text": qsTr(choices[i]),
+                                        "checkable": true,
+                                        "checked": i === selected
+                                    });
                                     // Stupid QML formatter keeps resetting i to var, and changes its scope.
-                                    const idx = i
-                                    const mindex = registers.model.index(row,
-                                                                         column)
+                                    const idx = i;
+                                    const mindex = registers.model.index(row, column);
                                     menuItem.onTriggered.connect(function () {
-                                        registers.model.setData(
-                                                    mindex, idx,
-                                                    registers.model.Selected)
-                                    })
-                                    contextMenu.addItem(menuItem)
+                                        registers.model.setData(mindex, idx, registers.model.Selected);
+                                    });
+                                    contextMenu.addItem(menuItem);
                                 }
                                 if (contextMenu.count > 0)
-                                    contextMenu.popup(textField)
+                                    contextMenu.popup(textField);
                             }
                         }
                     }
