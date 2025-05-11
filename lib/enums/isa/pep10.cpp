@@ -146,6 +146,18 @@ bool isa::Pep10::isValidAddressingMode(Mnemonic mnemonic, AddressingMode addr) {
   return false;
 }
 
+bool isa::Pep10::decodeOperandAsSigned(quint8 opcode) {
+  using enum detail::pep10::AddressingMode;
+  switch (opcodeLUT[opcode].mode) {
+  case I: [[fallthrough]];
+  case S: [[fallthrough]];
+  case SF: [[fallthrough]];
+  case SX: [[fallthrough]];
+  case SFX: return true;
+  default: return false;
+  }
+}
+
 bool isa::Pep10::requiresAddressingMode(Mnemonic mnemonic) { return isAAAType(mnemonic) | isRAAAType(mnemonic); }
 
 bool isa::Pep10::canElideAddressingMode(Mnemonic mnemonic, AddressingMode addr) {

@@ -196,3 +196,42 @@ const RegisterFormatter *ChoiceFormatter::current() const {
   if (_currentChoice < _formatters.size()) return _formatters[_currentChoice].get();
   return nullptr;
 }
+
+AutoChoice::AutoChoice(QVector<QSharedPointer<RegisterFormatter>> formatters, std::function<qsizetype()> choice)
+    : _formatters(formatters), _currentChoice(choice) {}
+
+QString AutoChoice::format() const {
+  auto active = current();
+  return active ? active->format() : "";
+}
+
+QString AutoChoice::format(quint8 byteCount) const {
+  auto active = current();
+  return active ? active->format(byteCount) : "";
+}
+
+bool AutoChoice::readOnly() const {
+  auto active = current();
+  return active ? active->readOnly() : true;
+}
+
+qsizetype AutoChoice::length() const {
+  auto active = current();
+  return active ? active->length() : 0;
+}
+
+qsizetype AutoChoice::length(quint8 byteCount) const {
+  auto active = current();
+  return active ? active->length(byteCount) : 0;
+}
+
+QString AutoChoice::describe() const {
+  auto active = current();
+  return active ? active->describe() : "";
+}
+
+const RegisterFormatter *AutoChoice::current() const {
+  auto index = _currentChoice();
+  if (index < _formatters.size()) return _formatters[index].get();
+  return nullptr;
+}
