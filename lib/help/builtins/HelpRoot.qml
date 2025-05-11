@@ -195,8 +195,8 @@ Item {
                 target: contentLoader.item
 
                 function onAddProject(feats, texts, mode, os, tests) {
-                    const abs = filterModel.get(filterCombo.currentIndex).value.architecture;
-                    const arch = filterModel.get(filterCombo.currentIndex).value.abstraction;
+                    const abs = filterModel.get(filterCombo.currentIndex).value.abstraction;
+                    const arch = filterModel.get(filterCombo.currentIndex).value.architecture;
                     root.addProject(arch, abs, feats, texts, true);
                     if (tests && tests[0])
                         root.setCharIn(tests[0].input);
