@@ -1,4 +1,3 @@
-
 /*
  * Copyright (c) 2024 J. Stanley Warford, Matthew McRaven
  * This program is free software: you can redistribute it and/or modify
@@ -31,7 +30,7 @@ ScrollView {
 
     Component.onCompleted: {
         // Propogate editingFinished to containing component
-        editor.editingFinished.connect(text => wrapper.editingFinished(text))
+        editor.editingFinished.connect(text => wrapper.editingFinished(text));
     }
     Rectangle {
         anchors.fill: parent
@@ -51,6 +50,7 @@ ScrollView {
         anchors.fill: parent
         TextArea {
             id: editor
+            focus: true
             anchors.left: parent.left
             anchors.right: parent.right
             anchors.top: parent.top
@@ -59,15 +59,16 @@ ScrollView {
             renderType: Text.NativeRendering
             font: settings.extPalette.baseMono.font
             readOnly: wrapper.isReadOnly
+            // Allow actions to be triggered before the TextArea processes the key event
+            Keys.priority: Keys.AfterItem
             Keys.onPressed: event => {
-                                if (event.key === Qt.Key_Insert
-                                    && event.modifiers === Qt.NoModifier)
-                                editor.overwriteMode = !editor.overwriteMode
-                                else
-                                // If event is accepted, it won't reach the actual TextArea
-                                // Use that behavior to filter out "wrong" keys.
-                                event.accepted = !utils.valid(event.key)
-                            }
+                if (event.key === Qt.Key_Insert && event.modifiers === Qt.NoModifier)
+                    editor.overwriteMode = !editor.overwriteMode;
+                else
+                    // If event is accepted, it won't reach the actual TextArea
+                    // Use that behavior to filter out "wrong" keys.
+                    event.accepted = !utils.valid(event.key);
+            }
         }
     }
 }
