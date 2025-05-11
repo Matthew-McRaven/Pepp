@@ -19,88 +19,74 @@ Flickable {
     ProjectModel {
         id: pm
         function onAddProject(arch, level, feats, optTexts, reuse) {
-            var proj = null
-            var cur = currentProject
+            var proj = null;
+            var cur = currentProject;
             // Attach a delegate to the project which can render its edit/debug modes. Since it is a C++ property,
             // binding changes propogate automatically.
             switch (Number(arch)) {
             case Architecture.PEP10:
                 if (Number(level) === Abstraction.ISA3) {
-                    if (cur && cur.architecture === Architecture.PEP10
-                            && cur.abstraction === Abstraction.ISA3
-                            && cur.isEmpty && reuse)
-                        proj = cur
+                    if (cur && cur.architecture === Architecture.PEP10 && cur.abstraction === Abstraction.ISA3 && cur.isEmpty && reuse)
+                        proj = cur;
                     else
-                        proj = pm.pep10ISA(pep10isaComponent)
+                        proj = pm.pep10ISA(pep10isaComponent);
                 } else if (Number(level) === Abstraction.ASMB3) {
-                    if (cur && cur.architecture === Architecture.PEP10
-                            && cur.abstraction === Abstraction.ASMB3
-                            && cur.isEmpty && reuse)
-                        proj = cur
+                    if (cur && cur.architecture === Architecture.PEP10 && cur.abstraction === Abstraction.ASMB3 && cur.isEmpty && reuse)
+                        proj = cur;
                     else
-                        proj = pm.pep10ASMB(pep10asmbComponent,
-                                            Abstraction.ASMB3)
+                        proj = pm.pep10ASMB(pep10asmbComponent, Abstraction.ASMB3);
                 } else if (Number(level) === Abstraction.ASMB5) {
-                    if (cur && cur.architecture === Architecture.PEP10
-                            && cur.abstraction === Abstraction.ASMB5
-                            && cur.isEmpty && reuse)
-                        proj = cur
+                    if (cur && cur.architecture === Architecture.PEP10 && cur.abstraction === Abstraction.ASMB5 && cur.isEmpty && reuse)
+                        proj = cur;
                     else
-                        proj = pm.pep10ASMB(pep10asmbComponent,
-                                            Abstraction.ASMB5)
+                        proj = pm.pep10ASMB(pep10asmbComponent, Abstraction.ASMB5);
                 } else if (Number(level) === Abstraction.OS4) {
-                    if (cur && cur.architecture === Architecture.PEP10
-                            && cur.abstraction === Abstraction.OS4
-                            && cur.isEmpty && reuse)
-                        proj = cur
+                    if (cur && cur.architecture === Architecture.PEP10 && cur.abstraction === Abstraction.OS4 && cur.isEmpty && reuse)
+                        proj = cur;
                     else
-                        proj = pm.pep10ASMB(pep10asmbComponent, Abstraction.OS4)
+                        proj = pm.pep10ASMB(pep10asmbComponent, Abstraction.OS4);
                 }
-                break
-                break
+                break;
+                break;
             case Architecture.PEP9:
                 if (Number(level) === Abstraction.ISA3) {
-                    if (cur && cur.architecture === Architecture.PEP9
-                            && cur.abstraction === Abstraction.ISA3
-                            && cur.isEmpty && reuse)
-                        proj = cur
+                    if (cur && cur.architecture === Architecture.PEP9 && cur.abstraction === Abstraction.ISA3 && cur.isEmpty && reuse)
+                        proj = cur;
                     else
-                        proj = pm.pep9ISA(pep9isaComponent)
+                        proj = pm.pep9ISA(pep9isaComponent);
                 } else if (Number(level) === Abstraction.ASMB5) {
-                    if (cur && cur.architecture === Architecture.PEP9
-                            && cur.abstraction === Abstraction.ASMB5
-                            && cur.isEmpty && reuse)
-                        proj = cur
+                    if (cur && cur.architecture === Architecture.PEP9 && cur.abstraction === Abstraction.ASMB5 && cur.isEmpty && reuse)
+                        proj = cur;
                     else
-                        proj = pm.pep9ASMB(pep9asmbComponent)
+                        proj = pm.pep9ASMB(pep9asmbComponent);
                 }
-                break
+                break;
             }
 
             if (optTexts === undefined || optTexts === null)
-                return onMarkActiveDirty(false)
+                return onMarkActiveDirty(false);
             else if (typeof (optTexts) === "string")
-                proj.set(level, optTexts)
+                proj.set(level, optTexts);
             else {
                 for (const list of Object.entries(optTexts))
-                    proj.set(list[0], list[1])
+                    proj.set(list[0], list[1]);
             }
-            proj.overwriteEditors()
-            onMarkActiveDirty(false)
+            proj.overwriteEditors();
+            onMarkActiveDirty(false);
         }
         function renameCurrentProject(string) {
-            const row = pm.rowOf(currentProject)
+            const row = pm.rowOf(currentProject);
             if (row == -1)
-                return
-            const index = pm.index(row, 0)
-            pm.setData(index, string, ProjectModel.NameRole)
+                return;
+            const index = pm.index(row, 0);
+            pm.setData(index, string, ProjectModel.NameRole);
         }
         function onMarkActiveDirty(dirtyValue) {
-            const row = pm.rowOf(currentProject)
+            const row = pm.rowOf(currentProject);
             if (row == -1)
-                return
-            const index = pm.index(row, 0)
-            pm.setData(index, dirtyValue, ProjectModel.DirtyRole)
+                return;
+            const index = pm.index(row, 0);
+            pm.setData(index, dirtyValue, ProjectModel.DirtyRole);
         }
     }
 
@@ -144,8 +130,7 @@ Flickable {
                         pixelSize: Math.min(16, menuFont.font.pixelSize)
                         italic: tabButton.isDirty
                     }
-                    width: Math.max(200, projectSelect.width / 4,
-                                    implicitContentWidth)
+                    width: Math.max(200, projectSelect.width / 4, implicitContentWidth)
                     Button {
                         text: "X"
                         anchors.right: parent.right
@@ -176,9 +161,8 @@ Flickable {
                 radius: 4
             }
             onClicked: {
-                pm.onAddProject(root.currentProject.architecture,
-                                root.currentProject.abstraction, "")
-                root.switchToProject(pm.count - 1)
+                pm.onAddProject(root.currentProject.architecture, root.currentProject.abstraction, "");
+                root.switchToProject(pm.count - 1);
             }
         }
     }
@@ -186,42 +170,41 @@ Flickable {
     Connections {
         target: root.currentProject ?? null
         function onObjectCodeTextChanged() {
-            pm.onMarkActiveDirty(true)
+            pm.onMarkActiveDirty(true);
         }
         function onUserAsmTextChanged() {
-            pm.onMarkActiveDirty(true)
+            pm.onMarkActiveDirty(true);
         }
         ignoreUnknownSignals: true
     }
 
     function setCurrentProject(index) {
         if (root.currentProject?.message !== undefined) {
-            root.currentProject.message.disconnect(root.message)
+            root.currentProject.message.disconnect(root.message);
         }
-        const proj = pm.data(pm.index(index, 0), ProjectModel.ProjectPtrRole)
+        const proj = pm.data(pm.index(index, 0), ProjectModel.ProjectPtrRole);
         if (proj)
-            root.currentProject = proj
+            root.currentProject = proj;
         if (root.currentProject?.message)
-            root.currentProject.message.connect(root.message)
+            root.currentProject.message.connect(root.message);
     }
 
     function switchToProject(index, force) {
-        var needsManualUpdate = (force ?? false)
-                && projectBar.currentIndex === index
+        var needsManualUpdate = (force ?? false) && projectBar.currentIndex === index;
         if (needsManualUpdate)
-            setCurrentProject(index)
+            setCurrentProject(index);
         else
-            projectBar.currentIndex = index
+            projectBar.currentIndex = index;
     }
 
     function closeProject(index) {
         // TODO: add logic to save project before closing or reject change entirely.
-        pm.removeRows(index, 1)
+        pm.removeRows(index, 1);
         if (pm.rowCount() === 0)
-            return
+            return;
         else if (index < pm.rowCount())
-            switchToProject(index, true)
+            switchToProject(index, true);
         else
-            switchToProject(pm.rowCount() - 1)
+            switchToProject(pm.rowCount() - 1);
     }
 }
