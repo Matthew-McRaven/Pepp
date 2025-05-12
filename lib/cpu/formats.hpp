@@ -153,6 +153,22 @@ private:
   std::function<quint8()> _bytes;
 };
 
+struct AutoChoice : public RegisterFormatter {
+  explicit AutoChoice(QVector<QSharedPointer<RegisterFormatter>> formatters, std::function<qsizetype()> choice);
+  ~AutoChoice() override = default;
+  QString format() const override;
+  QString format(quint8 byteCount) const override;
+  bool readOnly() const override;
+  qsizetype length() const override;
+  qsizetype length(quint8 byteCount) const override;
+  QString describe() const override;
+  const RegisterFormatter *current() const;
+
+private:
+  QVector<QSharedPointer<RegisterFormatter>> _formatters;
+  std::function<qsizetype()> _currentChoice;
+};
+
 struct ChoiceFormatter : public RegisterFormatter {
   explicit ChoiceFormatter(QVector<QSharedPointer<RegisterFormatter>> formatters, qsizetype currentChoice = 0);
   ~ChoiceFormatter() override = default;

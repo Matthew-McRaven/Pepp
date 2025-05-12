@@ -16,60 +16,73 @@ Item {
 
     onArchitectureChanged: {
         var idx = 0;
-        for (var i = 0; i < architectureModel.count; i++) {
-            if (architectureModel.get(i).value === architecture)
+        for (var i = 0; i < filterModel.count; i++) {
+            const v = filterModel.get(i).value;
+            if (root.abstraction === v.abstraction && root.architecture === v.architecture)
                 idx = i;
         }
-        architectureCombo.currentIndex = idx;
-        architectureCombo.activated(idx);
+        filterCombo.currentIndex = idx;
+        filterCombo.activated(idx);
     }
     onAbstractionChanged: {
         var idx = 0;
-        for (var i = 0; i < abstractionModel.count; i++) {
-            if (abstractionModel.get(i).value === abstraction)
+        for (var i = 0; i < filterModel.count; i++) {
+            const v = filterModel.get(i).value;
+            if (root.abstraction === v.abstraction && root.architecture === v.architecture)
                 idx = i;
         }
-        abstractionCombo.currentIndex = idx;
-        abstractionCombo.activated(idx);
+        filterCombo.currentIndex = idx;
+        filterCombo.activated(idx);
     }
     property var selected
+    function make(arch, abs) {
+        return {
+            "architecture": arch,
+            "abstraction": abs
+        };
+    }
+
     // Duplicated in GeneralCategoryDelegate. Must manually propogate changes between files.
     Component.onCompleted: {
-        architectureModel.append({
-            "key": "Pep/10",
-            "value": Architecture.PEP10
+        filterModel.append({
+            "key": "Pep/10, ISA3",
+            "value": make(Architecture.PEP10, Abstraction.ISA3)
         });
-        architectureModel.append({
-            "key": "Pep/9",
-            "value": Architecture.PEP9
+        filterModel.append({
+            "key": "Pep/10, ASMB3",
+            "value": make(Architecture.PEP10, Abstraction.ASMB3)
         });
-        architectureModel.append({
-            "key": "Pep/8",
-            "value": Architecture.PEP8
+        filterModel.append({
+            "key": "Pep/10, ASMB5",
+            "value": make(Architecture.PEP10, Abstraction.ASMB5)
         });
-        architectureModel.append({
-            "key": "RISC-V",
-            "value": Architecture.RISCV
+        filterModel.append({
+            "key": "Pep/10, OS4",
+            "value": make(Architecture.PEP10, Abstraction.OS4)
         });
-        abstractionModel.append({
-            "key": "ASMB5",
-            "value": Abstraction.ASMB5
+        filterModel.append({
+            "key": "Pep/10, MC2",
+            "value": make(Architecture.PEP10, Abstraction.MC2)
         });
-        abstractionModel.append({
-            "key": "ASMB3",
-            "value": Abstraction.ASMB3
+        filterModel.append({
+            "key": "RISC-V, ASMB3",
+            "value": make(Architecture.RISCV, Abstraction.ASMB3)
         });
-        abstractionModel.append({
-            "key": "ISA3",
-            "value": Abstraction.ISA3
+        filterModel.append({
+            "key": "Pep/9, ISA3",
+            "value": make(Architecture.PEP9, Abstraction.ISA3)
         });
-        abstractionModel.append({
-            "key": "MC2",
-            "value": Abstraction.MC2
+        filterModel.append({
+            "key": "Pep/9, ASMB5",
+            "value": make(Architecture.PEP9, Abstraction.ASMB5)
         });
-        abstractionModel.append({
-            "key": "OS4",
-            "value": Abstraction.OS4
+        filterModel.append({
+            "key": "Pep/9, OS4",
+            "value": make(Architecture.PEP9, Abstraction.OS4)
+        });
+        filterModel.append({
+            "key": "Pep/9, MC2",
+            "value": make(Architecture.PEP9, Abstraction.MC2)
         });
     }
 
@@ -92,28 +105,14 @@ Item {
             Column {
                 Layout.fillWidth: false
                 Label {
-                    text: "Architecture"
+                    text: "Filter to: "
                 }
                 Comp.DisableableComboBox {
-                    id: architectureCombo
+                    id: filterCombo
                     textRole: "key"
                     valueRole: "value"
                     model: ListModel {
-                        id: architectureModel
-                    }
-                }
-            }
-            Column {
-                Layout.fillWidth: false
-                Label {
-                    text: "Abstraction"
-                }
-                Comp.DisableableComboBox {
-                    id: abstractionCombo
-                    textRole: "key"
-                    valueRole: "value"
-                    model: ListModel {
-                        id: abstractionModel
+                        id: filterModel
                     }
                 }
             }
@@ -130,8 +129,8 @@ Item {
                 id: helpModel
                 model: HelpModel {}
                 // Sane defaults
-                architecture: architectureCombo.currentValue
-                abstraction: abstractionCombo.currentValue
+                architecture: filterCombo.currentValue.architecture
+                abstraction: filterCombo.currentValue.abstraction
                 showWIPItems: settings.general.showDebugComponents
                 onAbstractionChanged: root.selected = treeView.index(0, 0)
                 onArchitectureChanged: root.selected = treeView.index(0, 0)
@@ -196,8 +195,8 @@ Item {
                 target: contentLoader.item
 
                 function onAddProject(feats, texts, mode, os, tests) {
-                    const abs = abstractionModel.get(abstractionCombo.currentIndex).value;
-                    const arch = architectureModel.get(architectureCombo.currentIndex).value;
+                    const abs = filterModel.get(filterCombo.currentIndex).value.abstraction;
+                    const arch = filterModel.get(filterCombo.currentIndex).value.architecture;
                     root.addProject(arch, abs, feats, texts, true);
                     if (tests && tests[0])
                         root.setCharIn(tests[0].input);

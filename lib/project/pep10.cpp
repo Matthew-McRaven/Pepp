@@ -220,8 +220,16 @@ RegisterModel *register_model(targets::isa::System *system, OpcodeModel *opcodes
   ret->appendFormatters({TF::create("Stack Pointer"), HF::create(SP, 2), cf(SP, 1)});
   ret->appendFormatters({TF::create("Program Counter"), HF::create(PC, 2), cf(PC, 1)});
   ret->appendFormatters({TF::create("Instruction Specifier"), BF::create(IS, 1), MF::create(IS_TEXT)});
+  // OS display format changes between signed & unsigned depending on if adressing mode is I or stack-relative.
+  auto os_signed = SF::create(OS, 2);
+  auto os_unsigned = UF::create(OS, 2);
+  auto os_chooser = [=]() {
+    auto is = _register(ISA::Register::IS, system);
+    return (qsizetype)ISA::decodeOperandAsSigned(is);
+  };
+  auto os_choice = QSharedPointer<AutoChoice>::create(VecF{os_unsigned, os_signed}, os_chooser);
   ret->appendFormatters(
-      {TF::create("Operand Specifier"), OF::create(HF::create(OS, 2), notU), OF::create(SF::create(OS, 2), notU)});
+      {TF::create("Operand Specifier"), OF::create(HF::create(OS, 2), notU), OF::create(os_choice, notU)});
   auto length = [=]() {
     auto is = _register(ISA::Register::IS, system);
     return ISA::operandBytes(is);

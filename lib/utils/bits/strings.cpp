@@ -65,15 +65,31 @@ qsizetype bits::bytesToAsciiHex(span<char> out, span<const quint8> in, QVector<S
   return outIt;
 }
 
+qint8 hex_to_int(char c) {
+  if (c >= '0' && c <= '9') return c - '0';
+  if (c >= 'A' && c <= 'F') return c - 'A' + 10;
+  if (c >= 'a' && c <= 'f') return c - 'a' + 10;
+  return -1;
+}
 std::optional<QList<quint8>> bits::asciiHexToByte(span<const char> in) {
   QList<quint8> ret = {};
+  // We typically expect 3 bytes per octet (hex char, hex char, space), so allocate storage for the common case.
   ret.reserve(in.size() / 3 + 2);
   qsizetype inIt = 0;
-  char *endptr = nullptr;
   while (inIt < in.size()) {
-    ret.push_back(strtol(in.subspan(inIt).data(), &endptr, 16));
-    if (endptr > in.subspan(inIt + 2).data()) return std::nullopt;
-    inIt += 3;
+    // Consume all whitespace between octets
+    if (auto c = in[inIt]; c == ' ' || c == '\t' || c == '\n' || c == '\r') inIt++;
+    else if (inIt + 1 >= in.size()) return std::nullopt; // Not enough chars to make a byte.
+    else {
+      // Parse the next two chars into a single byte. Can't use strtol; there may be no gaps between octets.
+      auto span = in.subspan(inIt, 2);
+      // If either character is not a hex digit, hex_to_int returns -1 (bitpattern all 1s). By expading the intermediate
+      // to 16-bits, I can examine the sign bit to check if either char was invalid.
+      qint16 byte = hex_to_int(span[0]) << 4 | hex_to_int(span[1]);
+      if (byte < 0) break;
+      ret.push_back(byte);
+      inIt += 2;
+    }
   }
   return ret;
 }
