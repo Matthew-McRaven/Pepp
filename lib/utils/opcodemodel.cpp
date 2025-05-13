@@ -66,24 +66,25 @@ QVariant GreencardModel::data(const QModelIndex &index, int role) const {
   return {};
 }
 
-GreencardModel::Row from_mn(isa::detail::pep10::Mnemonic mn) {
+GreencardModel::Row from_mn(isa::detail::pep10::Mnemonic mn, QString bits = "") {
   using namespace isa::detail::pep10;
   using enum isa::Pep10::InstructionType;
   auto mn_str = isa::Pep10::string(mn);
   auto type = isa::Pep10::opcodeLUT[static_cast<quint8>(mn)].instr.type;
   // If instruction has register field, replace specific register with r
   if (type == RAAA_all || type == RAAA_noi || type == R_none) mn_str[mn_str.length() - 1] = 'r';
+
   return GreencardModel::Row{
       .sort_order = static_cast<quint8>(mn),
       .bit_pattern = isa::Pep10::instructionSpecifierWithPlaceholders(mn),
       .mnemonic = mn_str,
       .instruction = isa::Pep10::describeMnemonicUsingPlaceholders(mn),
       .addressing = "",
-      .status_bits = "",
+      .status_bits = bits,
   };
 }
 
-GreencardModel::Row from_mn(isa::detail::pep9::Mnemonic mn) {
+GreencardModel::Row from_mn(isa::detail::pep9::Mnemonic mn, QString bits = "") {
   using namespace isa::detail::pep9;
   using enum isa::Pep9::InstructionType;
   auto mn_str = isa::Pep9::string(mn);
@@ -98,7 +99,7 @@ GreencardModel::Row from_mn(isa::detail::pep9::Mnemonic mn) {
       .mnemonic = mn_str,
       .instruction = isa::Pep9::describeMnemonicUsingPlaceholders(mn),
       .addressing = "",
-      .status_bits = "",
+      .status_bits = bits,
   };
 }
 
@@ -118,16 +119,16 @@ void GreencardModel::make_pep10() {
   _rows.emplace_back(from_mn(RET));
   _rows.emplace_back(from_mn(SRET));
   _rows.emplace_back(from_mn(MOVFLGA));
-  _rows.emplace_back(from_mn(MOVAFLG));
+  _rows.emplace_back(from_mn(MOVAFLG, "NZVC"));
   _rows.emplace_back(from_mn(MOVSPA));
   _rows.emplace_back(from_mn(MOVASP));
   _rows.emplace_back(from_mn(NOP));
-  _rows.emplace_back(from_mn(NEGX));
-  _rows.emplace_back(from_mn(ASLX));
-  _rows.emplace_back(from_mn(ASRX));
-  _rows.emplace_back(from_mn(NOTX));
-  _rows.emplace_back(from_mn(ROLX));
-  _rows.emplace_back(from_mn(RORX));
+  _rows.emplace_back(from_mn(NEGX, "NZVC"));
+  _rows.emplace_back(from_mn(ASLX, "NZVC"));
+  _rows.emplace_back(from_mn(ASRX, "NZVC"));
+  _rows.emplace_back(from_mn(NOTX, "NZ"));
+  _rows.emplace_back(from_mn(ROLX, "NZC"));
+  _rows.emplace_back(from_mn(RORX, "NZC"));
   _rows.emplace_back(from_mn(BR));
   _rows.emplace_back(from_mn(BRLE));
   _rows.emplace_back(from_mn(BRLT));
@@ -141,15 +142,15 @@ void GreencardModel::make_pep10() {
   _rows.emplace_back(from_mn(SCALL));
   _rows.emplace_back(from_mn(ADDSP));
   _rows.emplace_back(from_mn(SUBSP));
-  _rows.emplace_back(from_mn(ADDX));
-  _rows.emplace_back(from_mn(SUBX));
-  _rows.emplace_back(from_mn(ANDX));
-  _rows.emplace_back(from_mn(ORX));
-  _rows.emplace_back(from_mn(XORX));
-  _rows.emplace_back(from_mn(CPWX));
-  _rows.emplace_back(from_mn(CPBX));
-  _rows.emplace_back(from_mn(LDWX));
-  _rows.emplace_back(from_mn(LDBX));
+  _rows.emplace_back(from_mn(ADDX, "NZVC"));
+  _rows.emplace_back(from_mn(SUBX, "NZVC"));
+  _rows.emplace_back(from_mn(ANDX, "NZ"));
+  _rows.emplace_back(from_mn(ORX, "NZ"));
+  _rows.emplace_back(from_mn(XORX, "NZ"));
+  _rows.emplace_back(from_mn(CPWX, "NZVC"));
+  _rows.emplace_back(from_mn(CPBX, "NZVC"));
+  _rows.emplace_back(from_mn(LDWX, "NZ"));
+  _rows.emplace_back(from_mn(LDBX, "NZ"));
   _rows.emplace_back(from_mn(STWX));
   _rows.emplace_back(from_mn(STBX));
   endResetModel();
@@ -167,13 +168,13 @@ void GreencardModel::make_pep9() {
   _rows.emplace_back(from_mn(RETTR));
   _rows.emplace_back(from_mn(MOVSPA));
   _rows.emplace_back(from_mn(MOVFLGA));
-  _rows.emplace_back(from_mn(MOVAFLG));
-  _rows.emplace_back(from_mn(NOTX));
-  _rows.emplace_back(from_mn(NEGX));
-  _rows.emplace_back(from_mn(ASLX));
-  _rows.emplace_back(from_mn(ASRX));
-  _rows.emplace_back(from_mn(ROLX));
-  _rows.emplace_back(from_mn(RORX));
+  _rows.emplace_back(from_mn(MOVAFLG, "NZVC"));
+  _rows.emplace_back(from_mn(NOTX, "NZ"));
+  _rows.emplace_back(from_mn(NEGX, "NZV"));
+  _rows.emplace_back(from_mn(ASLX, "NZVC"));
+  _rows.emplace_back(from_mn(ASRX, "NZC"));
+  _rows.emplace_back(from_mn(ROLX, "C"));
+  _rows.emplace_back(from_mn(RORX, "C"));
   _rows.emplace_back(from_mn(BR));
   _rows.emplace_back(from_mn(BRLE));
   _rows.emplace_back(from_mn(BRLT));
@@ -186,22 +187,22 @@ void GreencardModel::make_pep9() {
 
   _rows.emplace_back(from_mn(NOP0));
   _rows.emplace_back(from_mn(NOP));
-  _rows.emplace_back(from_mn(DECI));
+  _rows.emplace_back(from_mn(DECI, "NZV"));
   _rows.emplace_back(from_mn(DECO));
   _rows.emplace_back(from_mn(HEXO));
   _rows.emplace_back(from_mn(STRO));
 
-  _rows.emplace_back(from_mn(ADDSP));
-  _rows.emplace_back(from_mn(SUBSP));
+  _rows.emplace_back(from_mn(ADDSP, "NZVC"));
+  _rows.emplace_back(from_mn(SUBSP, "NZVC"));
 
-  _rows.emplace_back(from_mn(ADDX));
-  _rows.emplace_back(from_mn(SUBX));
-  _rows.emplace_back(from_mn(ANDX));
-  _rows.emplace_back(from_mn(ORX));
-  _rows.emplace_back(from_mn(CPWX));
-  _rows.emplace_back(from_mn(CPBX));
-  _rows.emplace_back(from_mn(LDWX));
-  _rows.emplace_back(from_mn(LDBX));
+  _rows.emplace_back(from_mn(ADDX, "NZVC"));
+  _rows.emplace_back(from_mn(SUBX, "NZVC"));
+  _rows.emplace_back(from_mn(ANDX, "NZ"));
+  _rows.emplace_back(from_mn(ORX, "NZ"));
+  _rows.emplace_back(from_mn(CPWX, "NZVC"));
+  _rows.emplace_back(from_mn(CPBX, "NZVC"));
+  _rows.emplace_back(from_mn(LDWX, "NZ"));
+  _rows.emplace_back(from_mn(LDBX, "NZ"));
   _rows.emplace_back(from_mn(STWX));
   _rows.emplace_back(from_mn(STBX));
   endResetModel();
