@@ -14,43 +14,39 @@ Item {
     required property string mode
     signal requestModeSwitchTo(string mode)
     function requestModeSwitchToDebugger() {
-        wrapper.requestModeSwitchTo("debugger")
+        wrapper.requestModeSwitchTo("debugger");
     }
     function syncEditors() {
-        save()
+        save();
     }
     function preAssemble() {
         if (project === null)
-            return
-        save()
+            return;
+        save();
     }
     Component.onCompleted: {
         // Must connect and disconnect manually, otherwise project may be changed underneath us, and "save" targets wrong project.
         // Do not need to update on mode change, since mode change implies loss of focus of objEdit.
-        objEdit.editingFinished.connect(save)
+        objEdit.editingFinished.connect(save);
         // Can't modify our mode directly because it would break binding with parent.
         // i.e., we can't be notified if editor is entered ever again.
-        wrapper.actions.debug.start.triggered.connect(
-                    wrapper.requestModeSwitchToDebugger)
-        wrapper.actions.build.execute.triggered.connect(
-                    wrapper.requestModeSwitchToDebugger)
-        project.charInChanged.connect(() => batchInput.setInput(project.charIn))
+        wrapper.actions.debug.start.triggered.connect(wrapper.requestModeSwitchToDebugger);
+        wrapper.actions.build.execute.triggered.connect(wrapper.requestModeSwitchToDebugger);
+        project.charInChanged.connect(() => batchInput.setInput(project.charIn));
     }
     // Will be called before project is changed on unload, so we can disconnect save-triggering signals.
     Component.onDestruction: {
-        objEdit.editingFinished.disconnect(save)
-        wrapper.actions.debug.start.triggered.disconnect(
-                    wrapper.requestModeSwitchToDebugger)
-        wrapper.actions.build.execute.triggered.disconnect(
-                    wrapper.requestModeSwitchToDebugger)
+        objEdit.editingFinished.disconnect(save);
+        wrapper.actions.debug.start.triggered.disconnect(wrapper.requestModeSwitchToDebugger);
+        wrapper.actions.build.execute.triggered.disconnect(wrapper.requestModeSwitchToDebugger);
     }
 
     function save() {
         // Supress saving messages when there is no project.
         if (project === null)
-            return
+            return;
         else if (!objEdit.readOnly)
-            project.objectCodeText = objEdit.text
+            project.objectCodeText = objEdit.text;
     }
 
     SplitView {
@@ -76,9 +72,7 @@ Item {
         }
         SplitView {
             visible: mode === "debugger"
-            SplitView.minimumWidth: Math.max(registers.implicitWidth,
-                                             batchInput.implicitWidth,
-                                             batchOutput.implicitWidth) + 20
+            SplitView.minimumWidth: Math.max(registers.implicitWidth, batchInput.implicitWidth, batchOutput.implicitWidth) + 20
             orientation: Qt.Vertical
             Cpu.RegisterView {
                 id: registers
@@ -88,28 +82,28 @@ Item {
                 flags: project?.flags ?? null
             }
             IO.Labeled {
+                id: batchInput
                 SplitView.minimumHeight: batchInput.minimumHeight
                 SplitView.preferredHeight: (parent.height - registers.height) / 2
-                id: batchInput
                 width: parent.width
                 label: "Input"
                 property bool ignoreTextChange: false
                 Component.onCompleted: {
                     onTextChanged.connect(() => {
-                                              if (!ignoreTextChange)
-                                              project.charIn = text
-                                          })
+                        if (!ignoreTextChange)
+                            project.charIn = text;
+                    });
                 }
                 function setInput(input) {
-                    ignoreTextChange = true
-                    batchInput.text = input
-                    ignoreTextChange = false
+                    ignoreTextChange = true;
+                    batchInput.text = input;
+                    ignoreTextChange = false;
                 }
             }
             IO.Labeled {
+                id: batchOutput
                 SplitView.minimumHeight: batchOutput.minimumHeight
                 SplitView.preferredHeight: (parent.height - registers.height) / 2
-                id: batchOutput
                 width: parent.width
                 label: "Output"
                 text: project?.charOut ?? ""
@@ -121,18 +115,18 @@ Item {
                 const props = {
                     "memory": project.memory,
                     "mnemonics": project.mnemonics
-                }
+                };
                 // Construction sets current address to 0, which propogates back to project.
                 // Must reject changes in current address until component is fully rendered.
-                con.enabled = false
-                setSource("qrc:/qt/qml/edu/pepp/memory/hexdump/MemoryDump.qml", props)
+                con.enabled = false;
+                setSource("qrc:/qt/qml/edu/pepp/memory/hexdump/MemoryDump.qml", props);
             }
             visible: mode === "debugger"
             asynchronous: true
             SplitView.minimumWidth: 340
             onLoaded: {
-                loader.item.scrollToAddress(project.currentAddress)
-                con.enabled = true
+                loader.item.scrollToAddress(project.currentAddress);
+                con.enabled = true;
             }
         }
     }
@@ -141,7 +135,7 @@ Item {
         enabled: false
         target: loader.item
         function onCurrentAddressChanged() {
-            project.currentAddress = loader.item.currentAddress
+            project.currentAddress = loader.item.currentAddress;
         }
     }
 }
