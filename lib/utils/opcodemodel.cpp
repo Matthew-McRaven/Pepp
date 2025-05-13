@@ -1,4 +1,6 @@
 #include "opcodemodel.hpp"
+#include "enums/isa/pep10.hpp"
+#include "enums/isa/pep9.hpp"
 OpcodeModel::OpcodeModel(QObject *parent) : QAbstractListModel(parent) {}
 
 int OpcodeModel::rowCount(const QModelIndex &parent) const {
@@ -40,4 +42,155 @@ void OpcodeModel::appendRow(QString mnemonic, quint8 opcode) {
         return pair.mnemonic_only < toInsert.mnemonic_only;
       });
   _mnemonics.insert(index, toInsert);
+}
+
+GreencardModel::GreencardModel(QObject *parent) : QAbstractTableModel(parent) {}
+
+int GreencardModel::columnCount(const QModelIndex &parent) const { return 5; }
+
+int GreencardModel::rowCount(const QModelIndex &parent) const { return _rows.size(); }
+
+QVariant GreencardModel::data(const QModelIndex &index, int role) const {
+  if (!index.isValid()) return QVariant();
+  switch (role) {
+  case Qt::DisplayRole:
+    switch (index.column()) {
+    case 0: return _rows[index.row()].bit_pattern;
+    case 1: return _rows[index.row()].mnemonic;
+    case 2: return _rows[index.row()].instruction;
+    case 3: return _rows[index.row()].addressing;
+    case 4: return _rows[index.row()].status_bits; ;
+    }
+    break;
+  }
+  return {};
+}
+
+GreencardModel::Row from_mn(isa::detail::pep10::Mnemonic mn) {
+  using namespace isa::detail::pep10;
+  return GreencardModel::Row{
+      .sort_order = static_cast<quint8>(mn),
+      .bit_pattern = isa::Pep10::instructionSpecifierWithPlaceholders(mn),
+      .mnemonic = isa::Pep10::string(mn),
+      .instruction = isa::Pep10::describeMnemonicUsingPlaceholders(mn),
+      .addressing = "",
+      .status_bits = "",
+  };
+}
+
+GreencardModel::Row from_mn(isa::detail::pep9::Mnemonic mn) {
+  using namespace isa::detail::pep9;
+  return GreencardModel::Row{
+      .sort_order = static_cast<quint8>(mn),
+      .bit_pattern = isa::Pep9::instructionSpecifierWithPlaceholders(mn),
+      .mnemonic = isa::Pep9::string(mn),
+      .instruction = isa::Pep9::describeMnemonicUsingPlaceholders(mn),
+      .addressing = "",
+      .status_bits = "",
+  };
+}
+
+void GreencardModel::make_pep10() {
+  using enum isa::detail::pep10::Mnemonic;
+  if (_arch == pepp::Architecture::PEP10) return;
+
+  beginResetModel();
+  _arch = pepp::Architecture::PEP10;
+  _rows.clear();
+  _rows.emplace_back(Row{.sort_order = 0,
+                         .bit_pattern = "00000000",
+                         .mnemonic = "",
+                         .instruction = "Illegal Instruction",
+                         .addressing = "",
+                         .status_bits = ""});
+  _rows.emplace_back(from_mn(RET));
+  _rows.emplace_back(from_mn(SRET));
+  _rows.emplace_back(from_mn(MOVFLGA));
+  _rows.emplace_back(from_mn(MOVAFLG));
+  _rows.emplace_back(from_mn(MOVSPA));
+  _rows.emplace_back(from_mn(MOVASP));
+  _rows.emplace_back(from_mn(NOP));
+  _rows.emplace_back(from_mn(NEGX));
+  _rows.emplace_back(from_mn(ASLX));
+  _rows.emplace_back(from_mn(ASRX));
+  _rows.emplace_back(from_mn(NOTX));
+  _rows.emplace_back(from_mn(ROLX));
+  _rows.emplace_back(from_mn(RORX));
+  _rows.emplace_back(from_mn(BR));
+  _rows.emplace_back(from_mn(BRLE));
+  _rows.emplace_back(from_mn(BRLT));
+  _rows.emplace_back(from_mn(BREQ));
+  _rows.emplace_back(from_mn(BRNE));
+  _rows.emplace_back(from_mn(BRGE));
+  _rows.emplace_back(from_mn(BRGT));
+  _rows.emplace_back(from_mn(BRV));
+  _rows.emplace_back(from_mn(BRC));
+  _rows.emplace_back(from_mn(CALL));
+  _rows.emplace_back(from_mn(SCALL));
+  _rows.emplace_back(from_mn(ADDSP));
+  _rows.emplace_back(from_mn(SUBSP));
+  _rows.emplace_back(from_mn(ADDX));
+  _rows.emplace_back(from_mn(SUBX));
+  _rows.emplace_back(from_mn(ANDX));
+  _rows.emplace_back(from_mn(ORX));
+  _rows.emplace_back(from_mn(XORX));
+  _rows.emplace_back(from_mn(CPWX));
+  _rows.emplace_back(from_mn(CPBX));
+  _rows.emplace_back(from_mn(LDWX));
+  _rows.emplace_back(from_mn(LDBX));
+  _rows.emplace_back(from_mn(STWX));
+  _rows.emplace_back(from_mn(STBX));
+  endResetModel();
+}
+
+void GreencardModel::make_pep9() {
+  using enum isa::detail::pep9::Mnemonic;
+  if (_arch == pepp::Architecture::PEP9) return;
+
+  beginResetModel();
+  _arch = pepp::Architecture::PEP9;
+  _rows.clear();
+  _rows.emplace_back(from_mn(STOP));
+  _rows.emplace_back(from_mn(RET));
+  _rows.emplace_back(from_mn(RETTR));
+  _rows.emplace_back(from_mn(MOVSPA));
+  _rows.emplace_back(from_mn(MOVFLGA));
+  _rows.emplace_back(from_mn(MOVAFLG));
+  _rows.emplace_back(from_mn(NOTX));
+  _rows.emplace_back(from_mn(NEGX));
+  _rows.emplace_back(from_mn(ASLX));
+  _rows.emplace_back(from_mn(ASRX));
+  _rows.emplace_back(from_mn(ROLX));
+  _rows.emplace_back(from_mn(RORX));
+  _rows.emplace_back(from_mn(BR));
+  _rows.emplace_back(from_mn(BRLE));
+  _rows.emplace_back(from_mn(BRLT));
+  _rows.emplace_back(from_mn(BREQ));
+  _rows.emplace_back(from_mn(BRNE));
+  _rows.emplace_back(from_mn(BRGE));
+  _rows.emplace_back(from_mn(BRGT));
+  _rows.emplace_back(from_mn(BRV));
+  _rows.emplace_back(from_mn(BRC));
+
+  _rows.emplace_back(from_mn(NOP0));
+  _rows.emplace_back(from_mn(NOP));
+  _rows.emplace_back(from_mn(DECI));
+  _rows.emplace_back(from_mn(DECO));
+  _rows.emplace_back(from_mn(HEXO));
+  _rows.emplace_back(from_mn(STRO));
+
+  _rows.emplace_back(from_mn(ADDSP));
+  _rows.emplace_back(from_mn(SUBSP));
+
+  _rows.emplace_back(from_mn(ADDX));
+  _rows.emplace_back(from_mn(SUBX));
+  _rows.emplace_back(from_mn(ANDX));
+  _rows.emplace_back(from_mn(ORX));
+  _rows.emplace_back(from_mn(CPWX));
+  _rows.emplace_back(from_mn(CPBX));
+  _rows.emplace_back(from_mn(LDWX));
+  _rows.emplace_back(from_mn(LDBX));
+  _rows.emplace_back(from_mn(STWX));
+  _rows.emplace_back(from_mn(STBX));
+  endResetModel();
 }

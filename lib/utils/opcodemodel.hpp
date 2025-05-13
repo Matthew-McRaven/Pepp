@@ -3,6 +3,7 @@
 #include <QAbstractListModel>
 #include <QtCore>
 #include <QtQmlIntegration>
+#include "enums/constants.hpp"
 
 class OpcodeModel : public QAbstractListModel {
   Q_OBJECT
@@ -35,4 +36,31 @@ private:
   // N^2 performance of repeated insertion should be acceptable. This assumption will likely be broken for RISC-V, but I
   // will deal with that later.
   std::vector<Opcode> _mnemonics = {};
+};
+
+class GreencardModel : public QAbstractTableModel {
+  Q_OBJECT
+  QML_ELEMENT
+
+public:
+  struct Row {
+    quint8 sort_order;
+    QString bit_pattern;
+    QString mnemonic;
+    QString instruction;
+    QString addressing;
+    QString status_bits;
+  };
+  explicit GreencardModel(QObject *parent = nullptr);
+
+  int columnCount(const QModelIndex &parent = QModelIndex()) const override;
+  int rowCount(const QModelIndex &parent = QModelIndex()) const override;
+  QVariant data(const QModelIndex &index, int role = Qt::DisplayRole) const override;
+
+  Q_INVOKABLE void make_pep10();
+  Q_INVOKABLE void make_pep9();
+
+private:
+  std::vector<Row> _rows = {};
+  pepp::Architecture _arch = pepp::Architecture::NO_ARCH;
 };

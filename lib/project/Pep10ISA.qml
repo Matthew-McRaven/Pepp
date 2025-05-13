@@ -5,6 +5,7 @@ import "qrc:/qt/qml/edu/pepp/text/editor" as Text
 import "qrc:/qt/qml/edu/pepp/memory/hexdump" as Memory
 import "qrc:/qt/qml/edu/pepp/memory/io" as IO
 import "qrc:/qt/qml/edu/pepp/cpu" as Cpu
+import "qrc:/qt/qml/edu/pepp/utils" as Utils
 import edu.pepp 1.0
 
 Item {
@@ -70,6 +71,14 @@ Item {
             text: project?.objectCodeText ?? ""
             SplitView.minimumWidth: 100
             SplitView.fillWidth: true
+        }
+        Utils.GreencardView {
+            id: greencard
+            architecture: project?.architecture ?? Architecture.PEP10
+            visible: mode === "editor"
+            SplitView.minimumWidth: 200
+            SplitView.fillWidth: true
+            SplitView.preferredWidth: 600
         }
         SplitView {
             visible: mode === "debugger"

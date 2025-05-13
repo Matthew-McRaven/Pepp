@@ -186,6 +186,88 @@ bool isa::Pep9::decodeOperandAsSigned(quint8 opcode) {
   }
 }
 
+QString isa::Pep9::describeMnemonicUsingPlaceholders(Mnemonic mnemonic) {
+  switch (mnemonic) {
+  case detail::pep9::Mnemonic::STOP: return "Stop execution";
+  case detail::pep9::Mnemonic::RET: return "Return from CALL";
+  case detail::pep9::Mnemonic::RETTR: return "Return from trap";
+  case detail::pep9::Mnemonic::MOVSPA: return "Move SP to A";
+  case detail::pep9::Mnemonic::MOVFLGA: return "Move NZVC flags to A<12..15>";
+  case detail::pep9::Mnemonic::MOVAFLG: return "Move A<12..15> to NZVC flags";
+  case detail::pep9::Mnemonic::NOTA: [[fallthrough]];
+  case detail::pep9::Mnemonic::NOTX: return "Bitwise invert r";
+  case detail::pep9::Mnemonic::NEGA: [[fallthrough]];
+  case detail::pep9::Mnemonic::NEGX: return "Negate r";
+  case detail::pep9::Mnemonic::ASLA: [[fallthrough]];
+  case detail::pep9::Mnemonic::ASLX: return "Arithmetic shift left r";
+  case detail::pep9::Mnemonic::ASRA: [[fallthrough]];
+  case detail::pep9::Mnemonic::ASRX: return "Arithmetic shift right r";
+  case detail::pep9::Mnemonic::ROLA: [[fallthrough]];
+  case detail::pep9::Mnemonic::ROLX: return "Rotate left r";
+  case detail::pep9::Mnemonic::RORA: [[fallthrough]];
+  case detail::pep9::Mnemonic::RORX: return "Rotate right r";
+  case detail::pep9::Mnemonic::BR: return "Branch unconditional";
+  case detail::pep9::Mnemonic::BRLE: return "Branch if less than or equal to";
+  case detail::pep9::Mnemonic::BRLT: return "Branch if less than";
+  case detail::pep9::Mnemonic::BREQ: return "Branch if equal to";
+  case detail::pep9::Mnemonic::BRNE: return "Branch if not equal to";
+  case detail::pep9::Mnemonic::BRGE: return "Branch if greater than or equal to";
+  case detail::pep9::Mnemonic::BRGT: return "Branch if greater than";
+  case detail::pep9::Mnemonic::BRV: return "Branch if V";
+  case detail::pep9::Mnemonic::BRC: return "Branch if C	";
+  case detail::pep9::Mnemonic::CALL: return "Call subroutine	";
+  case detail::pep9::Mnemonic::NOP0: [[fallthrough]];
+  case detail::pep9::Mnemonic::NOP1: return "Unary no operation trap";
+  case detail::pep9::Mnemonic::NOP: return "Nonunary no operation trap";
+  case detail::pep9::Mnemonic::DECI: return "Decimal input trap";
+  case detail::pep9::Mnemonic::DECO: return "Decimal output trap";
+  case detail::pep9::Mnemonic::HEXO: return "Hexadecimal output trap";
+  case detail::pep9::Mnemonic::STRO: return "String output trap";
+  case detail::pep9::Mnemonic::ADDSP: return "Add to stack pointer (SP)";
+  case detail::pep9::Mnemonic::SUBSP: return "Subtract from stack pointer (SP)";
+  case detail::pep9::Mnemonic::ADDA: [[fallthrough]];
+  case detail::pep9::Mnemonic::ADDX: return "Add to r";
+  case detail::pep9::Mnemonic::SUBA: [[fallthrough]];
+  case detail::pep9::Mnemonic::SUBX: return "Subtract from r";
+  case detail::pep9::Mnemonic::ANDA: [[fallthrough]];
+  case detail::pep9::Mnemonic::ANDX: return "Bitwise AND to r";
+  case detail::pep9::Mnemonic::ORA: [[fallthrough]];
+  case detail::pep9::Mnemonic::ORX: return "Bitwise OR to r";
+  case detail::pep9::Mnemonic::CPWA: [[fallthrough]];
+  case detail::pep9::Mnemonic::CPWX: return "Compare word to r";
+  case detail::pep9::Mnemonic::CPBA: [[fallthrough]];
+  case detail::pep9::Mnemonic::CPBX: return "Compare byte to r<8..15>";
+  case detail::pep9::Mnemonic::LDWA: [[fallthrough]];
+  case detail::pep9::Mnemonic::LDWX: return "Load word r from memory";
+  case detail::pep9::Mnemonic::LDBA: [[fallthrough]];
+  case detail::pep9::Mnemonic::LDBX: return "Load byte r<8..15> from memory";
+  case detail::pep9::Mnemonic::STWA: [[fallthrough]];
+  case detail::pep9::Mnemonic::STWX: return "Store word r to memory";
+  case detail::pep9::Mnemonic::STBA: [[fallthrough]];
+  case detail::pep9::Mnemonic::STBX: return "Store byte r<8..15> to memory";
+  case detail::pep9::Mnemonic::INVALID: return "Illegal instruction";
+  }
+}
+
+QString isa::Pep9::instructionSpecifierWithPlaceholders(Mnemonic mnemonic) {
+  using enum detail::pep9::InstructionType;
+  quint8 opcode = static_cast<quint8>(mnemonic);
+  QString asBinary = ("00000000" + QString::number(opcode, 2)).right(8);
+  switch (opcodeLUT[opcode].instr.type) {
+  case R_none: asBinary[7] = 'r'; break;
+  case A_ix: asBinary[7] = 'a'; break;
+  case AAA_all: [[fallthrough]];
+  case AAA_i: asBinary[7] = asBinary[6] = asBinary[5] = 'a'; break;
+  case RAAA_all: [[fallthrough]];
+  case RAAA_noi:
+    asBinary[7] = asBinary[6] = asBinary[5] = 'a';
+    asBinary[4] = 'r';
+    break;
+  default: break;
+  }
+  return asBinary;
+}
+
 bool isa::Pep9::requiresAddressingMode(Mnemonic mnemonic) { return isAAAType(mnemonic) | isRAAAType(mnemonic); }
 
 bool isa::Pep9::canElideAddressingMode(Mnemonic mnemonic, AddressingMode addr) {

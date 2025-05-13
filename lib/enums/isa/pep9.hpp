@@ -300,6 +300,10 @@ struct Pep9 {
   static bool isValidAddressingMode(Mnemonic mnemonic, AddressingMode addr);
   // Operand specifier should be treated as signed iff addressing mode is in {i, s, sf, sx, sfx}
   static bool decodeOperandAsSigned(quint8 opcode);
+  // Describe the mnemonic, replacing specific registers with the placeholder R
+  static QString describeMnemonicUsingPlaceholders(Mnemonic mnemonic);
+  // Return the binary instruction specifier, with placeholders for registers & addressing modes
+  static QString instructionSpecifierWithPlaceholders(Mnemonic mnemonic);
 
   static bool requiresAddressingMode(Mnemonic mnemonic);
   static bool canElideAddressingMode(Mnemonic mnemonic, AddressingMode addr);
