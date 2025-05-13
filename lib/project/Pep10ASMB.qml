@@ -10,11 +10,12 @@ import "qrc:/qt/qml/edu/pepp/toolchain/symtab" as SymTab
 import "qrc:/qt/qml/edu/pepp/sim/debug" as Debug
 import edu.pepp 1.0
 
-Item {
+FocusScope {
     id: wrapper
     required property var project
     required property var actions
     required property string mode
+    focus: true
     NuAppSettings {
         id: settings
     }
@@ -54,6 +55,7 @@ Item {
         onOverwriteEditors();
         project.updateGUI.connect(watchExpr.updateGUI);
         project.updateGUI.connect(bpViewer.updateGUI);
+        userAsmEdit.forceActiveFocus();
     }
     // Will be called before project is changed on unload, so we can disconnect save-triggering signals.
     Component.onDestruction: {
@@ -200,6 +202,7 @@ Item {
                         height: parent.height
                         editorFont: editorFM.font
                         language: wrapper.getLexerLangauge()
+                        focus: mode === "editor" && textSelector.currentIndex === 0
                     }
                     Text.ScintillaAsmEdit {
                         id: osAsmEdit
@@ -208,6 +211,7 @@ Item {
                         height: parent.height
                         editorFont: editorFM.font
                         language: wrapper.getLexerLangauge()
+                        focus: mode === "editor" && textSelector.currentIndex === 1
                     }
                 }
                 StackLayout {
@@ -223,6 +227,7 @@ Item {
                         text: project?.userList ?? ""
                         editorFont: editorFM.font
                         language: wrapper.getLexerLangauge()
+                        focus: mode === "debugger" && textSelector.currentIndex === 0
                     }
                     Text.ScintillaAsmEdit {
                         id: osList
@@ -233,6 +238,7 @@ Item {
                         text: project?.osList ?? ""
                         editorFont: editorFM.font
                         language: wrapper.getLexerLangauge()
+                        focus: mode === "debugger" && textSelector.currentIndex === 1
                     }
                 }
                 ColumnLayout {

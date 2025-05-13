@@ -38,7 +38,12 @@ ColumnLayout {
     TextMetrics {
         id: tm
         font: metrics.font
-        text: 'W'
+        text: '0'
+    }
+    TextMetrics {
+        id: pm
+        font: settings.extPalette.base.font
+        text: 'Instruction Specifier'
     }
     Menu {
         id: contextMenu
@@ -57,6 +62,7 @@ ColumnLayout {
         property real overrideLeftMargin: 0
         Layout.leftMargin: overrideLeftMargin
         Layout.alignment: Qt.AlignVCenter
+        spacing: metrics.averageCharacterWidth * 1.5
         clip: true
         boundsMovement: Flickable.StopAtBounds
         Layout.minimumWidth: contentItem.childrenRect.width
@@ -68,12 +74,13 @@ ColumnLayout {
             required property bool checked
             required property string text
             Rectangle {
+                id: borderRect
                 implicitWidth: innerText.implicitWidth + 2 * border.width + 2 * innerText.anchors.margins
                 implicitHeight: innerText.implicitHeight + 2 * border.width + 2 * innerText.anchors.margins
                 Text {
                     id: innerText
                     anchors.fill: parent
-                    anchors.margins: 1
+                    anchors.margins: 3
                     text: del.checked ? "1" : "0"
                     horizontalAlignment: Qt.AlignHCenter
                     verticalAlignment: Qt.AlignVCenter
@@ -85,12 +92,19 @@ ColumnLayout {
                     width: 1
                 }
             }
-            Label {
-                leftPadding: 2
-                text: del.text
-                horizontalAlignment: Qt.AlignHCenter
-                verticalAlignment: Qt.AlignVCenter
+            // Wrap label in item as work-around for Label not expanding to match height of borderRect
+            Item {
+                Layout.fillHeight: true
+                implicitWidth: label.implicitWidth
+                implicitHeight: innerText.implicitHeight + 2 * borderRect.border.width + 2 * innerText.anchors.margins
+                Label {
+                    id: label
+                    leftPadding: 2
+                    text: del.text
+                    anchors.centerIn: parent
+                }
             }
+
             Item {
                 implicitHeight: 1
                 implicitWidth: 8
@@ -101,6 +115,7 @@ ColumnLayout {
         id: registers
         Layout.alignment: Qt.AlignHCenter | Qt.AlignVCenter
         Layout.fillHeight: true
+        Layout.fillWidth: true
         clip: true
         spacing: 1
         boundsMovement: Flickable.StopAtBounds
@@ -132,9 +147,10 @@ ColumnLayout {
                     Layout.minimumWidth: textField.width
                     Layout.minimumHeight: textField.height + 1
                     Layout.preferredWidth: childrenRect.width
+                    Layout.fillWidth: true
                     color: "transparent"
                     function updateFlagMargin() {
-                        flags.overrideLeftMargin = Qt.binding(() => x + Layout.leftMargin + spacing);
+                        flags.overrideLeftMargin = Qt.binding(() => x + Layout.leftMargin + registers.spacing);
                     }
 
                     onXChanged: {
@@ -154,16 +170,18 @@ ColumnLayout {
                             border.width: box ? 1 : 0
                             radius: 2
                         }
-                        font: column == 0 ? settings.extPalette.base.font : metrics.font
+                        font: column == 0 ? pm.font : metrics.font
                         readOnly: true
-                        maximumLength: 2 + registers.model.columnCharWidth(column)
+                        // Minimum length == len(ADDSP,SFX)
+                        maximumLength: 2 + Math.max(registers.model.columnCharWidth(column), 9)
                         anchors.centerIn: columnDelegate
                         text: columnDelegate.display
                         color: palette.windowText
                         horizontalAlignment: rightJustify ? Qt.AlignRight : Qt.AlignLeft
                         // 'W' is a wide character, and tm contains a single 'W' in the current font.
                         // All characters should be same width in mono font, but previous experience (#604) tell me this is a lie.
-                        width: tm.width * (maximumLength)
+                        // Now adjusts for different fonts in each column.
+                        width: (column == 0 ? pm.width * 1.2 : (metrics.averageCharacterWidth * maximumLength)) + (2)
                         onPressed: function (mouse) {
                             if (mouse.button === Qt.RightButton) {
                                 while (contextMenu.count) {

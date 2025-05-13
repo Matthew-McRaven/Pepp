@@ -1,4 +1,3 @@
-
 /***************************************************************************
  *
  * SciteQt - a port of SciTE to Qt Quick/QML
@@ -11,7 +10,7 @@ import QtQuick.Controls
 import QtQml.Models
 import edu.pepp 1.0 as Pepp
 
-Item {
+FocusScope {
     id: root
     NuAppSettings {
         id: settings
@@ -21,27 +20,27 @@ Item {
     Component.onCompleted: {
         editor.onActiveFocusChanged.connect(function () {
             if (!editor.activeFocus)
-                root.editingFinished(editor.text)
-        })
+                root.editingFinished(editor.text);
+        });
     }
     // List has {line:#, message:str}
     function addEOLAnnotations(lst) {
-        editor.clearAllEOLAnnotations()
+        editor.clearAllEOLAnnotations();
         // See styles at: https://scintilla.org/ScintillaDoc.html#EndOfLineAnnotations
-        let style = lst.length === 0 ? 0x0 : 0x2
-        editor.setEOLAnnotationsVisible(style)
+        let style = lst.length === 0 ? 0x0 : 0x2;
+        editor.setEOLAnnotationsVisible(style);
         for (var i = 0; i < lst.length; i++) {
-            editor.addEOLAnnotation(lst[i].line, lst[i].message)
+            editor.addEOLAnnotation(lst[i].line, lst[i].message);
         }
     }
     // List has {line:#, message:str}
     function addListingAnnotations(lst) {
-        editor.clearAllInlineAnnotations()
+        editor.clearAllInlineAnnotations();
         // See styles at: https://scintilla.org/ScintillaDoc.html#EndOfLineAnnotations
-        let style = lst.length === 0 ? 0x0 : 0x1
-        editor.setInlineAnnotationsVisible(style)
+        let style = lst.length === 0 ? 0x0 : 0x1;
+        editor.setInlineAnnotationsVisible(style);
         for (var i = 0; i < lst.length; i++) {
-            editor.addInlineAnnotation(lst[i].line, lst[i].message)
+            editor.addInlineAnnotation(lst[i].line, lst[i].message);
         }
     }
 
@@ -66,33 +65,32 @@ Item {
 
     focus: true
     onFocusChanged: {
-        quickScintillaEditor.focus = focus
+        editor.focus = focus;
     }
 
     WheelHandler {
         target: editor
         onWheel: function (event) {
             if (event.angleDelta.y > 0) {
-                verticalScrollBar.decrease()
+                verticalScrollBar.decrease();
             } else if (event.angleDelta.y < 0) {
-                verticalScrollBar.increase()
+                verticalScrollBar.increase();
             }
 
             if (event.angleDelta.x > 0) {
-                horizontalScrollBar.decrease()
+                horizontalScrollBar.decrease();
             } else if (event.angleDelta.x < 0) {
-                horizontalScrollBar.increase()
+                horizontalScrollBar.increase();
             }
         }
         acceptedDevices: PointerDevice.AllDevices
     }
     // the QuickScintilla control
     Pepp.ScintillaAsmEditBase {
-        Component.onCompleted: {
-            settings.extPalette.itemChanged.connect(editor.applyStyles)
-        }
-
         id: editor
+        Component.onCompleted: {
+            settings.extPalette.itemChanged.connect(editor.applyStyles);
+        }
         anchors.top: parent.top
         anchors.bottom: horizontalScrollBar.top
         anchors.left: parent.left
@@ -116,9 +114,9 @@ Item {
         stepSize: 3.0 / editor.totalLines
         position: editor.firstVisibleLine / editor.totalLines
         onPositionChanged: {
-            editor.enableUpdate(false)
-            editor.scrollRowAbsolute(Math.round(position * editor.totalLines))
-            editor.enableUpdate(true)
+            editor.enableUpdate(false);
+            editor.scrollRowAbsolute(Math.round(position * editor.totalLines));
+            editor.enableUpdate(true);
         }
     }
 
