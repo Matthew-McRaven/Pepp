@@ -66,6 +66,21 @@ QVariant GreencardModel::data(const QModelIndex &index, int role) const {
   return {};
 }
 
+QVariant GreencardModel::headerData(int section, Qt::Orientation orientation, int role) const {
+  switch (role) {
+  case Qt::DisplayRole:
+    switch (section) {
+    case 0: return "Instruction Specifier";
+    case 1: return "Mnemonic";
+    case 2: return "Instruction";
+    case 3: return "Addressing Modes";
+    case 4: return "Status Bits";
+    }
+    break;
+  }
+  return {};
+}
+
 GreencardModel::Row from_mn(isa::detail::pep10::Mnemonic mn, QString bits = "") {
   using namespace isa::detail::pep10;
   using enum isa::Pep10::InstructionType;
