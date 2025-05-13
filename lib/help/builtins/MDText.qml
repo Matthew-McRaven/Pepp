@@ -4,9 +4,10 @@ import edu.pepp 1.0
 
 Flickable {
     required property string file
+    property int architecture: Architecture.PEP10 // Silence QML warning about non-existent property
     Component.onCompleted: {
-        const content = FileReader.readFile(file)
-        textArea.text = content
+        const content = FileReader.readFile(file);
+        textArea.text = content;
     }
     ScrollBar.vertical: ScrollBar {}
     property alias editorHeight: textArea.implicitHeight
