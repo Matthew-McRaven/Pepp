@@ -57,6 +57,7 @@ ColumnLayout {
         property real overrideLeftMargin: 0
         Layout.leftMargin: overrideLeftMargin
         Layout.alignment: Qt.AlignVCenter
+        spacing: metrics.averageCharacterWidth * 1.5
         clip: true
         boundsMovement: Flickable.StopAtBounds
         Layout.minimumWidth: contentItem.childrenRect.width
@@ -68,12 +69,13 @@ ColumnLayout {
             required property bool checked
             required property string text
             Rectangle {
+                id: borderRect
                 implicitWidth: innerText.implicitWidth + 2 * border.width + 2 * innerText.anchors.margins
                 implicitHeight: innerText.implicitHeight + 2 * border.width + 2 * innerText.anchors.margins
                 Text {
                     id: innerText
                     anchors.fill: parent
-                    anchors.margins: 1
+                    anchors.margins: 3
                     text: del.checked ? "1" : "0"
                     horizontalAlignment: Qt.AlignHCenter
                     verticalAlignment: Qt.AlignVCenter
@@ -85,12 +87,19 @@ ColumnLayout {
                     width: 1
                 }
             }
-            Label {
-                leftPadding: 2
-                text: del.text
-                horizontalAlignment: Qt.AlignHCenter
-                verticalAlignment: Qt.AlignVCenter
+            // Wrap label in item as work-around for Label not expanding to match height of borderRect
+            Item {
+                Layout.fillHeight: true
+                implicitWidth: label.implicitWidth
+                implicitHeight: innerText.implicitHeight + 2 * borderRect.border.width + 2 * innerText.anchors.margins
+                Label {
+                    id: label
+                    leftPadding: 2
+                    text: del.text
+                    anchors.centerIn: parent
+                }
             }
+
             Item {
                 implicitHeight: 1
                 implicitWidth: 8
@@ -134,7 +143,7 @@ ColumnLayout {
                     Layout.preferredWidth: childrenRect.width
                     color: "transparent"
                     function updateFlagMargin() {
-                        flags.overrideLeftMargin = Qt.binding(() => x + Layout.leftMargin + spacing);
+                        flags.overrideLeftMargin = Qt.binding(() => x + Layout.leftMargin + registers.spacing);
                     }
 
                     onXChanged: {
