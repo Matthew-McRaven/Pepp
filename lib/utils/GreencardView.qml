@@ -7,13 +7,21 @@ TableView {
         id: settings
     }
     required property int architecture
-    model: GreencardModel {}
+    property bool hideStatus: false
+    property bool hideMnemonic: false
+    model: GreencardFilterModel {
+        hideStatus: root.hideStatus
+        hideMnemonic: root.hideMnemonic
+        sourceModel: GreencardModel {
+            id: innerModel
+        }
+    }
     columnSpacing: 5
     onArchitectureChanged: {
         if (root.architecture === Architecture.PEP10)
-            model.make_pep10();
+            innerModel.make_pep10();
         else if (root.architecture === Architecture.PEP9)
-            model.make_pep9();
+            innerModel.make_pep9();
     }
     delegate: Text {
         text: model.display

@@ -75,6 +75,8 @@ Item {
         Utils.GreencardView {
             id: greencard
             architecture: project?.architecture ?? Architecture.PEP10
+            hideStatus: true
+            hideMnemonic: true
             visible: mode === "editor"
             SplitView.minimumWidth: 200
             SplitView.fillWidth: true

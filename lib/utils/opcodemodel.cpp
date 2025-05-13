@@ -59,7 +59,7 @@ QVariant GreencardModel::data(const QModelIndex &index, int role) const {
     case 1: return _rows[index.row()].mnemonic;
     case 2: return _rows[index.row()].instruction;
     case 3: return _rows[index.row()].addressing;
-    case 4: return _rows[index.row()].status_bits; ;
+    case 4: return _rows[index.row()].status_bits;
     }
     break;
   }
@@ -229,4 +229,35 @@ void GreencardModel::make_pep9() {
   _rows.emplace_back(from_mn(STWX));
   _rows.emplace_back(from_mn(STBX));
   endResetModel();
+}
+
+GreencardFilterModel::GreencardFilterModel(QObject *parent) : QSortFilterProxyModel(parent) {}
+
+void GreencardFilterModel::setSourceModel(QAbstractItemModel *sourceModel) {
+  if (this->sourceModel() == sourceModel) return;
+  else if (auto casted = qobject_cast<GreencardModel *>(sourceModel); casted == nullptr)
+    qFatal("GreencardFilterModel only accepts GreencardModel as sourceModel");
+  QSortFilterProxyModel::setSourceModel(sourceModel);
+}
+
+bool GreencardFilterModel::hideStatus() const { return _hideStatus; }
+
+void GreencardFilterModel::setHideStatus(bool hide) {
+  if (hide == _hideStatus) return;
+  _hideStatus = hide;
+  invalidateFilter();
+}
+
+bool GreencardFilterModel::hideMnemonic() const { return _hideMnemonic; }
+
+void GreencardFilterModel::setHideMnemonic(bool hide) {
+  if (hide == _hideMnemonic) return;
+  _hideMnemonic = hide;
+  invalidateFilter();
+}
+
+bool GreencardFilterModel::filterAcceptsColumn(int source_column, const QModelIndex &source_parent) const {
+  if (source_column == 1 && _hideMnemonic) return false;
+  if (source_column == 4 && _hideStatus) return false;
+  return true;
 }

@@ -64,3 +64,28 @@ private:
   std::vector<Row> _rows = {};
   pepp::Architecture _arch = pepp::Architecture::NO_ARCH;
 };
+
+class GreencardFilterModel : public QSortFilterProxyModel {
+  Q_OBJECT
+  QML_ELEMENT
+  Q_PROPERTY(bool hideStatus READ hideStatus WRITE setHideStatus NOTIFY hideStatusChanged)
+  Q_PROPERTY(bool hideMnemonic READ hideMnemonic WRITE setHideMnemonic NOTIFY hideMnemonicChanged)
+public:
+  explicit GreencardFilterModel(QObject *parent = nullptr);
+  void setSourceModel(QAbstractItemModel *sourceModel) override;
+  bool hideStatus() const;
+  void setHideStatus(bool hide);
+  bool hideMnemonic() const;
+  void setHideMnemonic(bool hide);
+
+signals:
+  void hideStatusChanged();
+  void hideMnemonicChanged();
+
+protected:
+  bool filterAcceptsColumn(int source_column, const QModelIndex &source_parent) const override;
+
+private:
+  bool _hideStatus = false;
+  bool _hideMnemonic = false;
+};
