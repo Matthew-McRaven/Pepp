@@ -165,7 +165,8 @@ ColumnLayout {
                         }
                         font: column == 0 ? settings.extPalette.base.font : metrics.font
                         readOnly: true
-                        maximumLength: 2 + registers.model.columnCharWidth(column)
+                        // Minimum length == len(ADDSP,SFX)
+                        maximumLength: 2 + Math.max(registers.model.columnCharWidth(column), 9)
                         anchors.centerIn: columnDelegate
                         text: columnDelegate.display
                         color: palette.windowText
