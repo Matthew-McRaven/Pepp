@@ -109,6 +109,7 @@ enum class InstructionType {
   Invalid,
   U_none,   //?
   R_none,   //?
+  N_none,   //?
   A_ix,     //?
   AAA_noi,  //?
   AAA_stro, //? d, n, s, sf, x
@@ -185,8 +186,8 @@ constexpr std::array<Opcode, 256> initOpcodes() {
   add_ix({.mnemon = M::BRC, .type = T::A_ix, .unary = 0});
   add_ix({.mnemon = M::CALL, .type = T::A_ix, .unary = 0});
   // Add unary traps
-  ret[(quint8)M::NOP0] = {.instr = {.mnemon = M::NOP0, .type = T::R_none, .unary = 1}, .mode = AM::NONE, .valid = true};
-  ret[(quint8)M::NOP1] = {.instr = {.mnemon = M::NOP1, .type = T::R_none, .unary = 1}, .mode = AM::NONE, .valid = true};
+  ret[(quint8)M::NOP0] = {.instr = {.mnemon = M::NOP0, .type = T::N_none, .unary = 1}, .mode = AM::NONE, .valid = true};
+  ret[(quint8)M::NOP1] = {.instr = {.mnemon = M::NOP1, .type = T::N_none, .unary = 1}, .mode = AM::NONE, .valid = true};
   // Add non-unary traps, and patch up the non-unary traps' addressing modes.
   add_all({.mnemon = M::NOP, .type = T::AAA_all, .unary = 1});
   add_all({.mnemon = M::DECI, .type = T::AAA_noi, .unary = 1});

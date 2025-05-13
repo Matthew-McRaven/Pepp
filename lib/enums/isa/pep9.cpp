@@ -158,6 +158,7 @@ bool isa::Pep9::isValidAddressingMode(Mnemonic mnemonic, AddressingMode addr) {
   switch (type) {
   case detail::pep9::InstructionType::Invalid: [[fallthrough]];
   case detail::pep9::InstructionType::U_none: [[fallthrough]];
+  case detail::pep9::InstructionType::N_none: [[fallthrough]];
   case detail::pep9::InstructionType::R_none: return false;
   case detail::pep9::InstructionType::A_ix: return addr == AM::X || addr == AM::I;
 
@@ -214,8 +215,8 @@ QString isa::Pep9::describeMnemonicUsingPlaceholders(Mnemonic mnemonic) {
   case detail::pep9::Mnemonic::BRGE: return "Branch if greater than or equal to";
   case detail::pep9::Mnemonic::BRGT: return "Branch if greater than";
   case detail::pep9::Mnemonic::BRV: return "Branch if V";
-  case detail::pep9::Mnemonic::BRC: return "Branch if C	";
-  case detail::pep9::Mnemonic::CALL: return "Call subroutine	";
+  case detail::pep9::Mnemonic::BRC: return "Branch if C";
+  case detail::pep9::Mnemonic::CALL: return "Call subroutine";
   case detail::pep9::Mnemonic::NOP0: [[fallthrough]];
   case detail::pep9::Mnemonic::NOP1: return "Unary no operation trap";
   case detail::pep9::Mnemonic::NOP: return "Nonunary no operation trap";

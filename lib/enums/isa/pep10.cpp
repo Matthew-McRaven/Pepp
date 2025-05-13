@@ -211,7 +211,7 @@ QString isa::Pep10::describeMnemonicUsingPlaceholders(Mnemonic mnemonic) {
   case detail::pep10::Mnemonic::LDBA: [[fallthrough]];
   case detail::pep10::Mnemonic::LDBX: return "Load byte r[8:15] from memory";
   case detail::pep10::Mnemonic::STWA: [[fallthrough]];
-  case detail::pep10::Mnemonic::STWX: return "Store word r to memory ";
+  case detail::pep10::Mnemonic::STWX: return "Store word r to memory";
   case detail::pep10::Mnemonic::STBA: [[fallthrough]];
   case detail::pep10::Mnemonic::STBX: return "Store byte r[8:15] to memory";
   default: return "Illegal instruction";

@@ -68,10 +68,15 @@ QVariant GreencardModel::data(const QModelIndex &index, int role) const {
 
 GreencardModel::Row from_mn(isa::detail::pep10::Mnemonic mn) {
   using namespace isa::detail::pep10;
+  using enum isa::Pep10::InstructionType;
+  auto mn_str = isa::Pep10::string(mn);
+  auto type = isa::Pep10::opcodeLUT[static_cast<quint8>(mn)].instr.type;
+  // If instruction has register field, replace specific register with r
+  if (type == RAAA_all || type == RAAA_noi || type == R_none) mn_str[mn_str.length() - 1] = 'r';
   return GreencardModel::Row{
       .sort_order = static_cast<quint8>(mn),
       .bit_pattern = isa::Pep10::instructionSpecifierWithPlaceholders(mn),
-      .mnemonic = isa::Pep10::string(mn),
+      .mnemonic = mn_str,
       .instruction = isa::Pep10::describeMnemonicUsingPlaceholders(mn),
       .addressing = "",
       .status_bits = "",
@@ -80,10 +85,17 @@ GreencardModel::Row from_mn(isa::detail::pep10::Mnemonic mn) {
 
 GreencardModel::Row from_mn(isa::detail::pep9::Mnemonic mn) {
   using namespace isa::detail::pep9;
+  using enum isa::Pep9::InstructionType;
+  auto mn_str = isa::Pep9::string(mn);
+  auto type = isa::Pep9::opcodeLUT[static_cast<quint8>(mn)].instr.type;
+  // If instruction has register field, replace specific register with r
+  if (type == RAAA_all || type == RAAA_noi || type == R_none) mn_str[mn_str.length() - 1] = 'r';
+  else if (type == N_none) mn_str[mn_str.length() - 1] = 'n';
+
   return GreencardModel::Row{
       .sort_order = static_cast<quint8>(mn),
       .bit_pattern = isa::Pep9::instructionSpecifierWithPlaceholders(mn),
-      .mnemonic = isa::Pep9::string(mn),
+      .mnemonic = mn_str,
       .instruction = isa::Pep9::describeMnemonicUsingPlaceholders(mn),
       .addressing = "",
       .status_bits = "",
