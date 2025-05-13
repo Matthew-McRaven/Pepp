@@ -10,7 +10,7 @@ import QtQuick.Controls
 import QtQml.Models
 import edu.pepp 1.0 as Pepp
 
-Item {
+FocusScope {
     id: root
     NuAppSettings {
         id: settings
@@ -62,9 +62,6 @@ Item {
     property bool actionFromKeyboard: false
 
     property var menuCommandDelegate: undefined
-    function forceEditorFocus() {
-        editor.forceActiveFocus();
-    }
 
     focus: true
     onFocusChanged: {
