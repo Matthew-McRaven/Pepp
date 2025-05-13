@@ -68,6 +68,7 @@ ColumnLayout {
             required property bool checked
             required property string text
             Rectangle {
+                id: borderRect
                 implicitWidth: innerText.implicitWidth + 2 * border.width + 2 * innerText.anchors.margins
                 implicitHeight: innerText.implicitHeight + 2 * border.width + 2 * innerText.anchors.margins
                 Text {
@@ -85,12 +86,19 @@ ColumnLayout {
                     width: 1
                 }
             }
-            Label {
-                leftPadding: 2
-                text: del.text
-                horizontalAlignment: Qt.AlignHCenter
-                verticalAlignment: Qt.AlignVCenter
+            // Wrap label in item as work-around for Label not expanding to match height of borderRect
+            Item {
+                Layout.fillHeight: true
+                implicitWidth: label.implicitWidth
+                implicitHeight: innerText.implicitHeight + 2 * borderRect.border.width + 2 * innerText.anchors.margins
+                Label {
+                    id: label
+                    leftPadding: 2
+                    text: del.text
+                    anchors.centerIn: parent
+                }
             }
+
             Item {
                 implicitHeight: 1
                 implicitWidth: 8
