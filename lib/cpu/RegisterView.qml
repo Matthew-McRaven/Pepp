@@ -38,7 +38,12 @@ ColumnLayout {
     TextMetrics {
         id: tm
         font: metrics.font
-        text: 'W'
+        text: '0'
+    }
+    TextMetrics {
+        id: pm
+        font: settings.extPalette.base.font
+        text: 'Instruction Specifier'
     }
     Menu {
         id: contextMenu
@@ -110,6 +115,7 @@ ColumnLayout {
         id: registers
         Layout.alignment: Qt.AlignHCenter | Qt.AlignVCenter
         Layout.fillHeight: true
+        Layout.fillWidth: true
         clip: true
         spacing: 1
         boundsMovement: Flickable.StopAtBounds
@@ -141,6 +147,7 @@ ColumnLayout {
                     Layout.minimumWidth: textField.width
                     Layout.minimumHeight: textField.height + 1
                     Layout.preferredWidth: childrenRect.width
+                    Layout.fillWidth: true
                     color: "transparent"
                     function updateFlagMargin() {
                         flags.overrideLeftMargin = Qt.binding(() => x + Layout.leftMargin + registers.spacing);
@@ -163,7 +170,7 @@ ColumnLayout {
                             border.width: box ? 1 : 0
                             radius: 2
                         }
-                        font: column == 0 ? settings.extPalette.base.font : metrics.font
+                        font: column == 0 ? pm.font : metrics.font
                         readOnly: true
                         // Minimum length == len(ADDSP,SFX)
                         maximumLength: 2 + Math.max(registers.model.columnCharWidth(column), 9)
@@ -173,7 +180,8 @@ ColumnLayout {
                         horizontalAlignment: rightJustify ? Qt.AlignRight : Qt.AlignLeft
                         // 'W' is a wide character, and tm contains a single 'W' in the current font.
                         // All characters should be same width in mono font, but previous experience (#604) tell me this is a lie.
-                        width: tm.width * (maximumLength)
+                        // Now adjusts for different fonts in each column.
+                        width: (column == 0 ? pm.width * 1.2 : (metrics.averageCharacterWidth * maximumLength)) + (2)
                         onPressed: function (mouse) {
                             if (mouse.button === Qt.RightButton) {
                                 while (contextMenu.count) {
