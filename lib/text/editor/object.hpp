@@ -11,6 +11,8 @@ public:
   explicit ObjectUtilities(QObject *parent = nullptr);
   Q_INVOKABLE static bool valid(int key);
   Q_INVOKABLE QString format(QString input, bool includeZZ = true) const;
+  // Remove spaces and non space/hex chars
+  Q_INVOKABLE QString normalize(QString input) const;
 public slots:
   void setBytesPerRow(int bytes);
   int bytesPerRow() const;

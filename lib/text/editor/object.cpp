@@ -29,8 +29,11 @@ bool ObjectUtilities::valid(int key) {
 }
 
 QString ObjectUtilities::format(QString input, bool includeZZ) const {
-  static const auto re = QRegularExpression(R"(\s+|[zZ]+)");
+  // Remove non-hex characters, the zz sentinel, and any spaces.
+  static const auto re = QRegularExpression(R"(([^0-9a-fA-F]|[zZ]|\s)+)");
   static const auto space = [](int offset, int bytes) { return (offset % bytes == 0) ? '\n' : ' '; };
+  // Avoid double-replace by merging original zz|\s regex with the one from normalize.
+  // Failure to remove non-hex characters results in really weird object code,
   input = input.replace(re, "");
   // If there is an incomplete octet, add space to 0-pad it.
   bool trailingNibble = input.size() % 2 == 1;
@@ -73,6 +76,11 @@ QString ObjectUtilities::format(QString input, bool includeZZ) const {
     result[result.size() - 1] = 'Z';
   }
   return result;
+}
+
+QString ObjectUtilities::normalize(QString input) const {
+  static const auto re = QRegularExpression(R"([^0-9a-fA-FzZ]|\s)");
+  return input.replace(re, "");
 }
 
 void ObjectUtilities::setBytesPerRow(int bytes) {

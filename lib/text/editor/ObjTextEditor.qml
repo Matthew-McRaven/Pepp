@@ -27,9 +27,12 @@ ScrollView {
     NuAppSettings {
         id: settings
     }
+    function normalize() {
+        const i = utils.normalize(editor.text);
+        editor.text = Qt.binding(() => i);
+    }
 
     Component.onCompleted: {
-        // Propogate editingFinished to containing component
         editor.editingFinished.connect(text => wrapper.editingFinished(text));
     }
     Rectangle {
@@ -60,11 +63,12 @@ ScrollView {
             font: settings.extPalette.baseMono.font
             readOnly: wrapper.isReadOnly
             // Allow actions to be triggered before the TextArea processes the key event
-            Keys.priority: Keys.AfterItem
             Keys.onPressed: event => {
+                // TODO: Need to ask shortcut model if we had a hit -- if so, don't accept event.
+                // If it doesn't "hit" a shortcut, then we can apply normal is hex logic
                 if (event.key === Qt.Key_Insert && event.modifiers === Qt.NoModifier)
                     editor.overwriteMode = !editor.overwriteMode;
-                else
+                else if (event.modifiers === Qt.NoModifier || event.modifiers == Qt.ShiftModifier)
                     // If event is accepted, it won't reach the actual TextArea
                     // Use that behavior to filter out "wrong" keys.
                     event.accepted = !utils.valid(event.key);
