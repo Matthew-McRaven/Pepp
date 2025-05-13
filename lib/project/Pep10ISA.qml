@@ -33,6 +33,7 @@ Item {
         wrapper.actions.debug.start.triggered.connect(wrapper.requestModeSwitchToDebugger);
         wrapper.actions.build.execute.triggered.connect(wrapper.requestModeSwitchToDebugger);
         project.charInChanged.connect(() => batchInput.setInput(project.charIn));
+        objEdit.forceActiveFocus();
     }
     // Will be called before project is changed on unload, so we can disconnect save-triggering signals.
     Component.onDestruction: {
