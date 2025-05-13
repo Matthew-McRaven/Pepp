@@ -57,6 +57,7 @@ ColumnLayout {
         property real overrideLeftMargin: 0
         Layout.leftMargin: overrideLeftMargin
         Layout.alignment: Qt.AlignVCenter
+        spacing: metrics.averageCharacterWidth * 1.5
         clip: true
         boundsMovement: Flickable.StopAtBounds
         Layout.minimumWidth: contentItem.childrenRect.width
