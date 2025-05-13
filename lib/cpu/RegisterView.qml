@@ -73,7 +73,7 @@ ColumnLayout {
                 Text {
                     id: innerText
                     anchors.fill: parent
-                    anchors.margins: 1
+                    anchors.margins: 3
                     text: del.checked ? "1" : "0"
                     horizontalAlignment: Qt.AlignHCenter
                     verticalAlignment: Qt.AlignVCenter
