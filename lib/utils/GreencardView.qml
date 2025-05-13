@@ -44,7 +44,8 @@ Item {
         }
         columnSpacing: 5
         delegate: Text {
-            text: model.display
+            // Prevent 0-width columns, which causes many errors to be emitted to the console.
+            text: model.display ? model.display : " "
             font: settings.extPalette.baseMono.font
             Layout.fillWidth: column == 0
         }
