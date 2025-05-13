@@ -73,13 +73,23 @@ GreencardModel::Row from_mn(isa::detail::pep10::Mnemonic mn, QString bits = "") 
   auto type = isa::Pep10::opcodeLUT[static_cast<quint8>(mn)].instr.type;
   // If instruction has register field, replace specific register with r
   if (type == RAAA_all || type == RAAA_noi || type == R_none) mn_str[mn_str.length() - 1] = 'r';
-
+  QString addr_modes;
+  switch (type) {
+  case Invalid: [[fallthrough]];
+  case U_none: [[fallthrough]];
+  case R_none: addr_modes = "Monadic"; break;
+  case A_ix: addr_modes = "i,x"; break;
+  case AAA_i: addr_modes = "i"; break;
+  case AAA_all: [[fallthrough]];
+  case RAAA_all: addr_modes = "i,d,n,s,sf,x,sx,sfx"; break;
+  case RAAA_noi: addr_modes = "d,n,s,sf,x,sx,sfx"; break;
+  }
   return GreencardModel::Row{
       .sort_order = static_cast<quint8>(mn),
       .bit_pattern = isa::Pep10::instructionSpecifierWithPlaceholders(mn),
       .mnemonic = mn_str,
       .instruction = isa::Pep10::describeMnemonicUsingPlaceholders(mn),
-      .addressing = "",
+      .addressing = addr_modes,
       .status_bits = bits,
   };
 }
@@ -92,13 +102,26 @@ GreencardModel::Row from_mn(isa::detail::pep9::Mnemonic mn, QString bits = "") {
   // If instruction has register field, replace specific register with r
   if (type == RAAA_all || type == RAAA_noi || type == R_none) mn_str[mn_str.length() - 1] = 'r';
   else if (type == N_none) mn_str[mn_str.length() - 1] = 'n';
-
+  QString addr_modes;
+  switch (type) {
+  case Invalid: [[fallthrough]];
+  case U_none: [[fallthrough]];
+  case N_none: [[fallthrough]];
+  case R_none: addr_modes = "U"; break;
+  case A_ix: addr_modes = "i,x"; break;
+  case AAA_i: addr_modes = "i"; break;
+  case AAA_all: [[fallthrough]];
+  case RAAA_all: addr_modes = "i,d,n,s,sf,x,sx,sfx"; break;
+  case AAA_noi: [[fallthrough]];
+  case RAAA_noi: addr_modes = "d,n,s,sf,x,sx,sfx"; break;
+  case AAA_stro: addr_modes = "d,n,s,sf,x"; break;
+  }
   return GreencardModel::Row{
       .sort_order = static_cast<quint8>(mn),
       .bit_pattern = isa::Pep9::instructionSpecifierWithPlaceholders(mn),
       .mnemonic = mn_str,
       .instruction = isa::Pep9::describeMnemonicUsingPlaceholders(mn),
-      .addressing = "",
+      .addressing = addr_modes,
       .status_bits = bits,
   };
 }
