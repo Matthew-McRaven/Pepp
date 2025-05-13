@@ -73,7 +73,8 @@ QSharedPointer<HelpEntry> greencard10_root() {
   mmio->props = QVariantMap{{"file", QVariant(u":/help/pep10/debugging_progs.md"_s)}};
   auto alu = QSharedPointer<HelpEntry>::create(HelpCategory::Category::Text, -1, "ALU Functions", "MDText.qml");
   alu->props = QVariantMap{{"file", QVariant(u":/help/pep10/debugging_progs.md"_s)}};
-  auto root = QSharedPointer<HelpEntry>::create(HelpCategory::Category::ISAGreenCard, -1, "Pep/10 Reference", "ISA");
+  auto root =
+      QSharedPointer<HelpEntry>::create(HelpCategory::Category::ISAGreenCard, -1, "Pep/10 Reference", "Greencard.qml");
   QVector<QSharedPointer<HelpEntry>> children{c_bit, n_bit, addr, reg, mmio, alu};
   for (auto &c : children) c->isWIP = true;
   root->addChildren(children);

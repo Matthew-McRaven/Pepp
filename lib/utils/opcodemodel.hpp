@@ -3,6 +3,7 @@
 #include <QAbstractListModel>
 #include <QtCore>
 #include <QtQmlIntegration>
+#include "enums/constants.hpp"
 
 class OpcodeModel : public QAbstractListModel {
   Q_OBJECT
@@ -35,4 +36,57 @@ private:
   // N^2 performance of repeated insertion should be acceptable. This assumption will likely be broken for RISC-V, but I
   // will deal with that later.
   std::vector<Opcode> _mnemonics = {};
+};
+
+class GreencardModel : public QAbstractTableModel {
+  Q_OBJECT
+  QML_ELEMENT
+
+public:
+  struct Row {
+    quint8 sort_order;
+    QString bit_pattern;
+    QString mnemonic;
+    QString instruction;
+    QString addressing;
+    QString status_bits;
+  };
+  explicit GreencardModel(QObject *parent = nullptr);
+
+  int columnCount(const QModelIndex &parent = QModelIndex()) const override;
+  int rowCount(const QModelIndex &parent = QModelIndex()) const override;
+  QVariant data(const QModelIndex &index, int role = Qt::DisplayRole) const override;
+  QVariant headerData(int section, Qt::Orientation orientation, int role = Qt::DisplayRole) const override;
+
+  Q_INVOKABLE void make_pep10();
+  Q_INVOKABLE void make_pep9();
+
+private:
+  std::vector<Row> _rows = {};
+  pepp::Architecture _arch = pepp::Architecture::NO_ARCH;
+};
+
+class GreencardFilterModel : public QSortFilterProxyModel {
+  Q_OBJECT
+  QML_ELEMENT
+  Q_PROPERTY(bool hideStatus READ hideStatus WRITE setHideStatus NOTIFY hideStatusChanged)
+  Q_PROPERTY(bool hideMnemonic READ hideMnemonic WRITE setHideMnemonic NOTIFY hideMnemonicChanged)
+public:
+  explicit GreencardFilterModel(QObject *parent = nullptr);
+  void setSourceModel(QAbstractItemModel *sourceModel) override;
+  bool hideStatus() const;
+  void setHideStatus(bool hide);
+  bool hideMnemonic() const;
+  void setHideMnemonic(bool hide);
+
+signals:
+  void hideStatusChanged();
+  void hideMnemonicChanged();
+
+protected:
+  bool filterAcceptsColumn(int source_column, const QModelIndex &source_parent) const override;
+
+private:
+  bool _hideStatus = false;
+  bool _hideMnemonic = false;
 };
