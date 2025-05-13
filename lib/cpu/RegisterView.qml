@@ -143,7 +143,7 @@ ColumnLayout {
                     Layout.preferredWidth: childrenRect.width
                     color: "transparent"
                     function updateFlagMargin() {
-                        flags.overrideLeftMargin = Qt.binding(() => x + Layout.leftMargin + spacing);
+                        flags.overrideLeftMargin = Qt.binding(() => x + Layout.leftMargin + registers.spacing);
                     }
 
                     onXChanged: {
