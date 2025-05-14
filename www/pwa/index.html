@@ -1,0 +1,115 @@
+<!--
+Copyright (C) 2024 The Qt Company Ltd.
+SPDX-License-Identifier: LicenseRef-Qt-Commercial OR GPL-3.0-only
+-->
+
+<!doctype html>
+<html lang="en-us">
+  <head>
+    <meta charset="utf-8">
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8">
+
+    <!--Set visual viewport size for mobile devices to the device size, which results in a scale of 1 and a 1:1 mapping between CSS pixels
+        and Qt device independent pixels. -->
+    <meta name="viewport" content="width=device-width, height=device-height, user-scalable=0"/>
+
+    <title>pepp</title>
+    <style>
+      /* Make the html body cover the entire (visual) viewport with no scroll bars. */
+      html, body { padding: 0; margin: 0; overflow: hidden; height: 100% }
+      #screen { width: 100%; height: 100%; }
+    </style>
+    <link rel="manifest" href="manifest.json" />
+  </head>
+  <body>
+    <figure style="overflow:visible;" id="qtspinner">
+      <center style="margin-top:1.5em; line-height:150%">
+        <img src="qtlogo.svg" width="320" height="200" style="display:block" />
+        <strong>Pepp IDE for Web Assembly</strong>
+        <div id="qtstatus"></div>
+        <noscript>JavaScript is disabled. Please enable JavaScript to use this application.</noscript>
+      </center>
+    </figure>
+    <div id="screen"></div>
+
+    <script type="text/javascript">
+      async function initApp() {
+        const spinner = document.querySelector('#qtspinner');
+        const screen = document.querySelector('#screen');
+        const status = document.querySelector('#qtstatus');
+
+        const showUi = (ui) => {
+          [spinner, screen].forEach(element => element.style.display = 'none');
+          if (screen === ui) screen.style.position = 'default';
+          ui.style.display = 'block';
+        };
+
+        try {
+          showUi(spinner);
+          status.innerHTML = 'Loading...';
+
+          const instance = await qtLoad({
+            qt: {
+              onLoaded: () => showUi(screen),
+              onExit: exitData => {
+                status.innerHTML = 'Application exit';
+                if (exitData.code !== undefined)
+                  status.innerHTML += ` with code ${exitData.code}`;
+                if (exitData.text !== undefined)
+                  status.innerHTML += ` (${exitData.text})`;
+                showUi(spinner);
+              },
+              entryFunction: window.pepp_entry,
+              containerElements: [screen]
+            }
+          });
+        } catch (e) {
+          console.error(e);
+          console.error(e.stack);
+        }
+      }
+
+      if ('serviceWorker' in navigator) {
+        navigator.serviceWorker.register('serviceworker.js', { scope: './' })
+          .then(() => navigator.serviceWorker.ready)
+          .then(() => {
+            console.log('Service worker ready and controlling');
+            // Now that the service worker is active, load the app
+            const peppScript = document.createElement('script');
+            peppScript.src = 'pepp.js';
+            peppScript.onload = () => {
+              const qtScript = document.createElement('script');
+              qtScript.src = 'qtloader.js';
+              qtScript.onload = initApp;
+              document.body.appendChild(qtScript);
+            };
+            document.body.appendChild(peppScript);
+          })
+          .catch(err => {
+            console.error('Service worker setup failed:', err);
+            // fallback: proceed anyway
+            const fallback = document.createElement('script');
+            fallback.src = 'pepp.js';
+            fallback.onload = () => {
+              const qtScript = document.createElement('script');
+              qtScript.src = 'qtloader.js';
+              qtScript.onload = initApp;
+              document.body.appendChild(qtScript);
+            };
+            document.body.appendChild(fallback);
+          });
+      } else {
+        // Service worker not supported, load immediately
+        const peppScript = document.createElement('script');
+        peppScript.src = 'pepp.js';
+        peppScript.onload = () => {
+          const qtScript = document.createElement('script');
+          qtScript.src = 'qtloader.js';
+          qtScript.onload = initApp;
+          document.body.appendChild(qtScript);
+        };
+        document.body.appendChild(peppScript);
+      }
+    </script>
+  </body>
+</html>

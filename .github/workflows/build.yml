@@ -150,14 +150,19 @@ jobs:
 
       - name: Rename HTML
         if: ${{ contains(inputs.name, 'EMSDK') }}
-        run: mv build/output/pepp.html build/output/index.html
+        run: |
+          cp www/pwa/index.html build/output/index.html
+          cp www/pwa/manifest.json build/output/manifest.json
+          cp www/pwa/serviceworker.js build/output/serviceworker.js
 
       - name: Replace default Qt logo
         if: ${{ contains(inputs.name, 'EMSDK') }}
         run: mv data/app_icon/icon.svg build/output/qtlogo.svg
       - name: Copy favicon
         if: ${{ contains(inputs.name, 'EMSDK') }}
-        run: mv data/app_icon/icon.ico build/output/favicon.ico
+        run: |
+          mv data/app_icon/icon.ico build/output/favicon.ico
+          mv data/app_icon/icon.png build/output/favicon.png
       - name: Gather WASM build artifacts
         uses: actions/upload-artifact@v4
         if: ${{ contains(inputs.name, 'EMSDK') }}
@@ -166,12 +171,15 @@ jobs:
            # TODO: replace fake logo with real Pepp one.
            path: |
              build/output/index.html
+             build/output/manifest.json
+             build/output/serviceworker.js
              build/output/pepp.js
              build/output/pepp.wasm
              build/output/pepp.wasm.map
              build/output/qtloader.js
              build/output/qtlogo.svg
              build/output/favicon.ico
+             build/output/favicon.png
            retention-days: 1
            if-no-files-found: error
 
