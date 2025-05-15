@@ -347,6 +347,12 @@ void Pep_ISA::setObjectCodeText(const QString &objectCodeText) {
   emit objectCodeTextChanged();
 }
 
+QStringListModel *Pep_ISA::modes() {
+  static QStringListModel ret({"Welcome", "Editor", "Debugger", "Help"});
+  QQmlEngine::setObjectOwnership(&ret, QQmlEngine::CppOwnership);
+  return &ret;
+}
+
 void Pep_ISA::set(int abstraction, QString value) {
   using enum pepp::Abstraction;
   if (abstraction == static_cast<int>(ISA3)) {
@@ -861,6 +867,12 @@ Pep_ASMB::Pep_ASMB(project::Environment env, QVariant delegate, QObject *parent)
   _dbg->line_maps->addScope("os");
 }
 
+QStringListModel *Pep_ASMB::modes() {
+  static QStringListModel ret({"Welcome", "Editor", "Assembler", "Debugger", "Help"});
+  QQmlEngine::setObjectOwnership(&ret, QQmlEngine::CppOwnership);
+  return &ret;
+}
+
 void Pep_ASMB::set(int abstraction, QString value) {
   using enum pepp::Abstraction;
   using namespace builtins;
@@ -925,7 +937,6 @@ int Pep_ASMB::allowedDebugging() const {
   default: return 0b0;
   }
 }
-
 
 bool Pep_ASMB::onDebuggingStart() {
   Pep_ISA::onDebuggingStart();

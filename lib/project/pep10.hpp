@@ -64,11 +64,7 @@ public:
   OpcodeModel *mnemonics() const;
   QString objectCodeText() const;
   void setObjectCodeText(const QString &objectCodeText);
-  Q_INVOKABLE static QStringListModel *modes() {
-    static QStringListModel ret({"Welcome", "Editor", "Debugger", "Help"});
-    QQmlEngine::setObjectOwnership(&ret, QQmlEngine::CppOwnership);
-    return &ret;
-  }
+  Q_INVOKABLE virtual QStringListModel *modes();
   // Actually utils::Abstraction, but QM passes it as an int.
   Q_INVOKABLE void set(int abstraction, QString value);
   Q_INVOKABLE pepp::debug::BreakpointSet *breakpointModel();
@@ -177,6 +173,7 @@ class Pep_ASMB final : public Pep_ISA {
 
 public:
   explicit Pep_ASMB(project::Environment env, QVariant delegate, QObject *parent = nullptr);
+  Q_INVOKABLE QStringListModel *modes() override;
   // Actually utils::Abstraction, but QM passes it as an int.
   Q_INVOKABLE void set(int abstraction, QString value);
   Q_INVOKABLE QString userAsmText() const;

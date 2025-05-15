@@ -192,7 +192,7 @@ FocusScope {
                 anchors.top: textSelector.bottom
                 anchors.bottom: parent.bottom
                 StackLayout {
-                    visible: mode == "editor"
+                    visible: ["editor", "assembler"].includes(mode)
                     currentIndex: textSelector.currentIndex
                     SplitView.fillHeight: true
                     Text.ScintillaAsmEdit {
@@ -202,7 +202,7 @@ FocusScope {
                         height: parent.height
                         editorFont: editorFM.font
                         language: wrapper.getLexerLangauge()
-                        focus: mode === "editor" && textSelector.currentIndex === 0
+                        focus: ["editor", "assembler"].includes(mode) && textSelector.currentIndex === 0
                     }
                     Text.ScintillaAsmEdit {
                         id: osAsmEdit
@@ -211,7 +211,7 @@ FocusScope {
                         height: parent.height
                         editorFont: editorFM.font
                         language: wrapper.getLexerLangauge()
-                        focus: mode === "editor" && textSelector.currentIndex === 1
+                        focus: ["editor", "assembler"].includes(mode) && textSelector.currentIndex === 1
                     }
                 }
                 StackLayout {
@@ -248,13 +248,6 @@ FocusScope {
                         id: debugTabBar
                         Layout.fillWidth: true
                         Layout.fillHeight: false
-                        visible: mode == "debugger"
-                        TabButton {
-                            text: qsTr("Object Code")
-                        }
-                        TabButton {
-                            text: qsTr(`Symbol Table: ${textSelector.currentText}`)
-                        }
                         TabButton {
                             text: qsTr(`Watch Expressions`)
                         }
@@ -267,17 +260,6 @@ FocusScope {
                         Layout.fillHeight: true
                         currentIndex: debugTabBar.currentIndex
                         clip: true
-                        Text.ObjTextEditor {
-                            id: objView
-                            readOnly: true
-                            // text is only an initial binding, the value diverges from there.
-                            text: project?.objectCodeText ?? ""
-                        }
-                        SymTab.SymbolViewer {
-                            id: symTab
-                            model: project?.staticSymbolModel
-                            scopeFilter: textSelector.currentIndex === 0 ? "usr.symtab" : "os.symtab"
-                        }
                         Debug.WatchExpressions {
                             id: watchExpr
                             watchExpressions: project.watchExpressions
@@ -291,7 +273,24 @@ FocusScope {
                 }
             }
         }
-
+        SplitView {
+            visible: mode === "assembler"
+            SplitView.minimumWidth: Math.max(objView.implicitWidth, symTab.implicitWidth, 250) + 20
+            orientation: Qt.Vertical
+            Text.ObjTextEditor {
+                id: objView
+                readOnly: true
+                // text is only an initial binding, the value diverges from there.
+                text: project?.objectCodeText ?? ""
+                SplitView.minimumHeight: Math.max(objView.implicitWidth, 150)
+                SplitView.preferredHeight: parent.height / 2
+            }
+            SymTab.SymbolViewer {
+                id: symTab
+                model: project?.staticSymbolModel
+                scopeFilter: textSelector.currentIndex === 0 ? "usr.symtab" : "os.symtab"
+            }
+        }
         SplitView {
             visible: mode === "debugger"
             SplitView.minimumWidth: Math.max(registers.implicitWidth, batchInput.implicitWidth, batchOutput.implicitWidth) + 20

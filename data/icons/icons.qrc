@@ -48,5 +48,6 @@
         <file>arch/riscv-color.svg</file>
         <file>arch/riscv-white.svg</file>
         <file>arch/riscv-yellow.svg</file>
+        <file>modes/precision_manufacturing.svg</file>
     </qresource>
 </RCC>
