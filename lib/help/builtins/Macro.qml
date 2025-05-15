@@ -26,6 +26,7 @@ Item {
     required property string title
     required property var payload
     required property string lexerLang
+    property int architecture: Architecture.PEP10 // Silence QML warning about non-existent property
 
     ColumnLayout {
         id: figureLayout
