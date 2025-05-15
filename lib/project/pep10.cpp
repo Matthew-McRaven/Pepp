@@ -868,7 +868,8 @@ Pep_ASMB::Pep_ASMB(project::Environment env, QVariant delegate, QObject *parent)
 }
 
 QStringListModel *Pep_ASMB::modes() {
-  static QStringListModel ret({"Welcome", "Editor", "Assembler", "Debugger", "Help"});
+  static QStringListModel ret(
+      {"Welcome", "Configuration", "Editor", "Assembler", "Debugger", "Tester", "Statistics", "Help"});
   QQmlEngine::setObjectOwnership(&ret, QQmlEngine::CppOwnership);
   return &ret;
 }

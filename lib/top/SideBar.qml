@@ -43,6 +43,14 @@ Column {
             return "edit.svg";
         case "assembler":
             return "precision_manufacturing.svg";
+        case "tester":
+            return "science.svg";
+        case "configuration":
+            return "memory.svg";
+        case "tester":
+            return "science.svg";
+        case "statistics":
+            return "calculate.svg";
         }
     }
 
