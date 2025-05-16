@@ -88,9 +88,10 @@ ColumnLayout {
                 }
                 color: "transparent"
                 border {
-                    color: palette.windowText
+                    color: palette.shadow
                     width: 1
                 }
+                radius: 2
             }
             // Wrap label in item as work-around for Label not expanding to match height of borderRect
             Item {
