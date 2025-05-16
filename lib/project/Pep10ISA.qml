@@ -86,13 +86,7 @@ Item {
             visible: mode === "debugger"
             SplitView.minimumWidth: Math.max(registers.implicitWidth, batchInput.implicitWidth, batchOutput.implicitWidth) + 20
             orientation: Qt.Vertical
-            Cpu.RegisterView {
-                id: registers
-                SplitView.minimumHeight: registers.implicitHeight + 20
-                SplitView.maximumHeight: registers.implicitHeight + 20
-                registers: project?.registers ?? null
-                flags: project?.flags ?? null
-            }
+
             IO.Labeled {
                 id: batchInput
                 SplitView.minimumHeight: batchInput.minimumHeight
@@ -121,24 +115,45 @@ Item {
                 text: project?.charOut ?? ""
             }
         }
-        Loader {
-            id: loader
-            Component.onCompleted: {
-                const props = {
-                    "memory": project.memory,
-                    "mnemonics": project.mnemonics
-                };
-                // Construction sets current address to 0, which propogates back to project.
-                // Must reject changes in current address until component is fully rendered.
-                con.enabled = false;
-                setSource("qrc:/qt/qml/edu/pepp/memory/hexdump/MemoryDump.qml", props);
-            }
-            visible: mode === "debugger"
-            asynchronous: true
+        Item {
             SplitView.minimumWidth: 340
-            onLoaded: {
-                loader.item.scrollToAddress(project.currentAddress);
-                con.enabled = true;
+            SplitView.fillWidth: true
+            visible: mode === "debugger" || mode === "editor"
+            Cpu.RegisterView {
+                id: registers
+                visible: mode == "debugger"
+                anchors {
+                    top: parent.top
+                    left: parent.left
+                    right: parent.right
+                }
+                height: visible ? registers.implicitHeight : 0
+                registers: project?.registers ?? null
+                flags: project?.flags ?? null
+            }
+            Loader {
+                id: loader
+                anchors {
+                    top: registers.bottom
+                    left: parent.left
+                    right: parent.right
+                    bottom: parent.bottom
+                }
+                Component.onCompleted: {
+                    const props = {
+                        "memory": project.memory,
+                        "mnemonics": project.mnemonics
+                    };
+                    // Construction sets current address to 0, which propogates back to project.
+                    // Must reject changes in current address until component is fully rendered.
+                    con.enabled = false;
+                    setSource("qrc:/qt/qml/edu/pepp/memory/hexdump/MemoryDump.qml", props);
+                }
+                asynchronous: true
+                onLoaded: {
+                    loader.item.scrollToAddress(project.currentAddress);
+                    con.enabled = true;
+                }
             }
         }
     }

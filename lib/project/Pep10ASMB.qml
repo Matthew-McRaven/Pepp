@@ -296,13 +296,7 @@ FocusScope {
             visible: mode === "debugger"
             SplitView.minimumWidth: Math.max(registers.implicitWidth, batchInput.implicitWidth, batchOutput.implicitWidth) + 20
             orientation: Qt.Vertical
-            Cpu.RegisterView {
-                id: registers
-                SplitView.minimumHeight: registers.implicitHeight + 20
-                SplitView.maximumHeight: registers.implicitHeight + 20
-                registers: project?.registers ?? null
-                flags: project?.flags ?? null
-            }
+
             IO.Labeled {
                 id: batchInput
                 SplitView.minimumHeight: batchInput.minimumHeight
@@ -334,9 +328,20 @@ FocusScope {
         Item {
             SplitView.minimumWidth: 340
             visible: mode === "debugger"
+            Cpu.RegisterView {
+                id: registers
+                anchors {
+                    top: parent.top
+                    left: parent.left
+                    right: parent.right
+                }
+
+                registers: project?.registers ?? null
+                flags: project?.flags ?? null
+            }
             TabBar {
                 id: memoryTab
-                anchors.top: parent.top
+                anchors.top: registers.bottom
                 anchors.left: parent.left
                 anchors.right: parent.right
                 TabButton {
