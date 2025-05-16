@@ -15,4 +15,4 @@ Number,GitRef,Date,Blurb
 0.8.6,,2025-04-12,"This version includes improved debugging features, including a watch expressions pane in the debugger."
 0.9.0,,2025-04-19,"This version adds conditional breakpoints and a UI to manage them."
 0.9.1,,2025-05-04,"This version fixes bugs around symbol tables and conditional breakpoints."
-0.9.2,,??,"This version improves the layout of the debugger mode, improves focus management for text editors, and enables hotkeys/shortcuts in ISA3 projects"
+0.9.2,,2025-05-15,"This version improves the layout of the debugger mode, improves focus management for text editors, and enables hotkeys/shortcuts in ISA3 projects"
