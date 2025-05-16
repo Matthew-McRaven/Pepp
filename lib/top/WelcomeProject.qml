@@ -39,15 +39,13 @@ Item {
         }
         Label {
             Layout.fillWidth: true
-            text: `Choose a project for ${utils.archAsString(
-                      settings.general.defaultArch)}`
+            text: `Choose a project for ${utils.archAsString(settings.general.defaultArch)}`
             font: fm.font
         }
     }
 
-    TableView {
+    GridLayout {
         id: list
-        model: projects
         anchors {
             top: header.bottom
             topMargin: 20
@@ -58,61 +56,45 @@ Item {
             rightMargin: 10
         }
 
-        boundsBehavior: Flickable.StopAtBounds
         clip: true
-        rowSpacing: 10
+        rowSpacing: 55
         columnSpacing: 5
-        contentWidth: width
-        delegate: DelegateChooser {
-            role: "columnType"
-            DelegateChoice {
-                roleValue: "name"
+        columns: 3
+        Repeater {
+            model: projects
+            delegate: RowLayout {
+                required property var model
+                Layout.alignment: Qt.AlignHCenter | Qt.AlignTop
+                Layout.preferredWidth: list.width / list.columns
+                Image {
+                    id: image
+                    fillMode: Image.PreserveAspectFit
+                    verticalAlignment: Image.AlignVCenter
+                    horizontalAlignment: Image.AlignHCenter
+                    source: model.source ? model.source : "image://icons/blank.svg"
+                    clip: true
+                }
                 Button {
-                    required property var model
+                    Layout.fillWidth: true
                     text: model.text
                     font: fm.font
                     onReleased: {
-                        root.addProject(model.architecture, model.abstraction,
-                                        "", false)
+                        root.addProject(model.architecture, model.abstraction, "", false);
                     }
                     enabled: model.complete || model.partiallyComplete
                     palette.disabled.button: parent.palette.shadow
+                    hoverEnabled: true
+                    ToolTip.visible: (hovered || down) && model.description
+                    ToolTip.delay: 500
+                    ToolTip.text: qsTr(model.description)
                 }
             }
-            DelegateChoice {
-                roleValue: "image"
-                Item {
-                    required property var model
-                    implicitWidth: 150
-                    implicitHeight: 120
-                    Image {
-                        id: image
-                        anchors.fill: parent
-                        fillMode: Image.PreserveAspectFit
-                        verticalAlignment: Image.AlignTop
-                        horizontalAlignment: Image.AlignHCenter
-                        source: model.source ? model.source : "image://icons/blank.svg"
-                        clip: true
-                    }
-                }
-            }
-            DelegateChoice {
-                roleValue: "description"
-                Item {
-                    // Use Item wrapper to prevent Text from setting implicitWidth/height poorly
-                    required property var model
-                    implicitWidth: list.width - list.columnWidth(
-                                       0) - list.columnWidth(
-                                       1) - 2 * list.columnSpacing
-                    implicitHeight: desc.contentHeight
-                    Text {
-                        id: desc
-                        anchors.fill: parent
-                        text: model.description
-                        wrapMode: Text.Wrap
-                    }
-                }
-            }
+        }
+        Item {
+            id: spacer
+            Layout.fillHeight: true
+            Layout.fillWidth: true
+            Layout.columnSpan: list.columns
         }
     }
     ProjectTypeFilterModel {

@@ -213,74 +213,79 @@ void ProjectModel::onSave(int row) {
 void init_pep10(QList<ProjectType> &vec) {
   auto a = pepp::Architecture::PEP10;
   using pepp::Abstraction;
-  vec.append({.name = "ISA3, bare metal",
+  vec.append({.name = "Pep/10\nISA3\nbare metal",
               .description = "Develop and debug machine language programs in bare metal mode.",
               .imagePath = "image://icons/cards/p10_isa3.svg",
               .arch = a,
               .level = Abstraction::ISA3,
               .state = CompletionState::COMPLETE});
-  vec.append({.name = "Asmb3, bare metal",
+  vec.append({.name = "Pep/10\nAsmb3\nbare metal",
               .description = "Develop and debug assembly language programs in bare metal mode.",
               .imagePath = "image://icons/cards/p10_asmb3.svg",
               .arch = a,
               .level = Abstraction::ASMB3,
               .state = CompletionState::COMPLETE});
-  vec.append({.name = "Asmb5, full OS",
-              .description = "Develop and debug assembly language programs alongside Pep/10's operating system. This "
+  vec.append({.name = "Pep/10\nAsmb5\nfull OS",
+              .description = "Develop and debug assembly language programs alongside Pep/10's operating system.\nThis "
                              "level enables you to utilize OS features using system calls for enhanced functionality.",
               .imagePath = "image://icons/cards/p10_asmb5.svg",
               .arch = a,
               .level = Abstraction::ASMB5,
               .state = CompletionState::COMPLETE});
-  vec.append({.name = "OS4", .arch = a, .level = Abstraction::OS4, .state = CompletionState::PARTIAL});
-  vec.append({.name = "Mc2, 1-byte bus", .arch = a, .level = Abstraction::MC2, .state = CompletionState::INCOMPLETE});
-  vec.append({.name = "Mc2, 2-byte bus", .arch = a, .level = Abstraction::MC2, .state = CompletionState::INCOMPLETE});
+  vec.append({.name = "Pep/10\nOS4", .arch = a, .level = Abstraction::OS4, .state = CompletionState::PARTIAL});
+  vec.append(
+      {.name = "Pep/10\nMc2\n1-byte bus", .arch = a, .level = Abstraction::MC2, .state = CompletionState::INCOMPLETE});
+  vec.append(
+      {.name = "Pep/10\nMc2\n2-byte bus", .arch = a, .level = Abstraction::MC2, .state = CompletionState::INCOMPLETE});
 }
 void init_pep9(QList<ProjectType> &vec) {
   auto a = pepp::Architecture::PEP9;
   using pepp::Abstraction;
-  vec.append({.name = "ISA3",
+  vec.append({.name = "Pep/9\nISA3",
               .description = "Develop and debug machine language programs.",
               .imagePath = "image://icons/cards/p9_isa3.svg",
               .arch = a,
               .level = Abstraction::ISA3,
               .state = CompletionState::COMPLETE});
-  vec.append({.name = "Asmb5",
+  vec.append({.name = "Pep/9\nAsmb5",
               .description =
-                  "Develop and debug assembly language programs alongside Pep/9's operating system. This level "
+                  "Develop and debug assembly language programs alongside Pep/9's operating system.\nThis level "
                   "enables you to utilize OS features using trap instructions for enhanced functionality.",
               .imagePath = "image://icons/cards/p9_asmb5.svg",
               .arch = a,
               .level = Abstraction::ASMB5,
               .state = CompletionState::COMPLETE});
-  vec.append({.name = "OS4", .arch = a, .level = Abstraction::OS4, .state = CompletionState::INCOMPLETE});
-  vec.append({.name = "Mc2, 1-byte bus", .arch = a, .level = Abstraction::MC2, .state = CompletionState::INCOMPLETE});
-  vec.append({.name = "Mc2, 2-byte bus", .arch = a, .level = Abstraction::MC2, .state = CompletionState::INCOMPLETE});
+  vec.append({.name = "Pep/9\nOS4", .arch = a, .level = Abstraction::OS4, .state = CompletionState::INCOMPLETE});
+  vec.append(
+      {.name = "Pep/9\nMc2\n1-byte bus", .arch = a, .level = Abstraction::MC2, .state = CompletionState::INCOMPLETE});
+  vec.append(
+      {.name = "Pep/9\nMc2\n2-byte bus", .arch = a, .level = Abstraction::MC2, .state = CompletionState::INCOMPLETE});
 }
 void init_pep8(QList<ProjectType> &vec) {
   auto a = pepp::Architecture::PEP8;
   using pepp::Abstraction;
-  vec.append({.name = "ISA3",
+  vec.append({.name = "Pep/8\nISA3",
               .description = "Develop and debug machine language programs.",
               .imagePath = "image://icons/cards/p9_isa3.svg",
               .arch = a,
               .level = Abstraction::ISA3,
               .state = CompletionState::INCOMPLETE});
-  vec.append({.name = "Asmb5",
+  vec.append({.name = "Pep/8\nAsmb5",
               .description =
-                  "Develop and debug assembly language programs alongside Pep/8's operating system. This level "
+                  "Develop and debug assembly language programs alongside Pep/8's operating system.\nThis level "
                   "enables you to utilize OS features using trap instructions for enhanced functionality.",
               .imagePath = "image://icons/cards/p9_asmb5.svg",
               .arch = a,
               .level = Abstraction::ASMB5,
               .state = CompletionState::INCOMPLETE});
-  vec.append({.name = "OS4", .arch = a, .level = Abstraction::OS4, .state = CompletionState::INCOMPLETE});
-  vec.append({.name = "Mc2, 1-byte bus", .arch = a, .level = Abstraction::MC2, .state = CompletionState::INCOMPLETE});
+  vec.append({.name = "Pep/8\nOS4", .arch = a, .level = Abstraction::OS4, .state = CompletionState::INCOMPLETE});
+  vec.append(
+      {.name = "Pep/8\nMc2\n 1-byte bus", .arch = a, .level = Abstraction::MC2, .state = CompletionState::INCOMPLETE});
 }
 void init_riscv(QList<ProjectType> &vec) {
   auto a = pepp::Architecture::RISCV;
   using pepp::Abstraction;
-  vec.append({.name = "Asmb3, bare metal",
+  vec.append({.name = "RISC-V\nAsmb3\nbare metal",
               .description = "Develop and debug machine language programs in bare metal mode.",
               .arch = a,
               .level = Abstraction::ASMB3,
@@ -296,10 +301,10 @@ ProjectTypeModel::ProjectTypeModel(QObject *parent) : QAbstractTableModel(parent
 
 int ProjectTypeModel::rowCount(const QModelIndex &parent) const { return _projects.size(); }
 
-int ProjectTypeModel::columnCount(const QModelIndex &parent) const { return 3; }
+int ProjectTypeModel::columnCount(const QModelIndex &parent) const { return 1; }
 
 QVariant ProjectTypeModel::data(const QModelIndex &index, int role) const {
-  if (!index.isValid() || index.row() >= _projects.size() || index.column() > 3) return {};
+  if (!index.isValid() || index.row() >= _projects.size() || index.column() > 1) return {};
   switch (role) {
   case static_cast<int>(Roles::NameRole): return _projects[index.row()].name;
   case static_cast<int>(Roles::DescriptionRole): return _projects[index.row()].description;
@@ -308,10 +313,6 @@ QVariant ProjectTypeModel::data(const QModelIndex &index, int role) const {
   case static_cast<int>(Roles::LevelRole): return static_cast<int>(_projects[index.row()].level);
   case static_cast<int>(Roles::CompleteRole): return _projects[index.row()].state == CompletionState::COMPLETE;
   case static_cast<int>(Roles::PartiallyCompleteRole): return _projects[index.row()].state == CompletionState::PARTIAL;
-  case static_cast<int>(Roles::ColumnTypeRole): {
-    static const QString v[] = {"name", "image", "description"};
-    return v[index.column()];
-  }
   default: return {};
   }
 }
