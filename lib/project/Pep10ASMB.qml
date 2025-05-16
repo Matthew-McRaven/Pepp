@@ -121,7 +121,7 @@ FocusScope {
         if (osList) {
             const curORO = osList.readOnly;
             osList.readOnly = false;
-            osList.text = project.osList;
+            osList.text = project.osList ?? "";
             osList.addListingAnnotations(project.osListAnnotations);
             osList.readOnly = curORO;
         }
@@ -275,17 +275,17 @@ FocusScope {
                         }
                         SymTab.SymbolViewer {
                             id: symTab
-                            model: project?.staticSymbolModel
+                            model: project?.staticSymbolModel ?? null
                             scopeFilter: textSelector.currentIndex === 0 ? "usr.symtab" : "os.symtab"
                         }
                         Debug.WatchExpressions {
                             id: watchExpr
-                            watchExpressions: project.watchExpressions
+                            watchExpressions: project.watchExpressions ?? null
                         }
                         BreakpointViewer {
                             id: bpViewer
                             model: project.breakpointModel
-                            lineInfo: project.lines2addr
+                            lineInfo: project.lines2addr ?? null
                         }
                     }
                 }
