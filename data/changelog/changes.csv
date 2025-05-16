@@ -120,3 +120,4 @@ Fixed,,0.9.2,837,"In Debugger's CPU pane, modify alignment between status bits a
 Fixed,,0.9.2,838,"Give focus to text editors on creating new project or changing mode"
 Changed,Major,0.9.2,841,"In ISA3 object code editor, add table showing instruction descriptions and their bit patterns"
 Added,Major,0.9.2,,"Make WASM version available offline by installing as a progressive web app (PWA)"
+Fixed,,0.9.2,841,"In Debugger's CPU pane, center registers and status bits horizontally on resize"

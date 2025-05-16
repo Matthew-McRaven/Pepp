@@ -116,17 +116,30 @@ ColumnLayout {
         id: registers
         Layout.alignment: Qt.AlignHCenter | Qt.AlignVCenter
         Layout.fillHeight: true
-        Layout.fillWidth: true
         clip: true
         spacing: 1
         boundsMovement: Flickable.StopAtBounds
         Layout.minimumWidth: contentItem.childrenRect.width
         Layout.minimumHeight: contentItem.childrenRect.height
+        property int innerSpacing: 5
+
+        function updateFlagMargin() {
+            // I don't know _why_ I need an offset of 1.5x. I must be missing some edge-padding factor of the flags
+            flags.overrideLeftMargin = Qt.binding(() => registers.x + pm.width * 1.2 + 1.5 * registers.innerSpacing);
+        }
+        onWidthChanged: {
+            updateFlagMargin();
+        }
+        onXChanged: {
+            updateFlagMargin();
+        }
+
         delegate: RowLayout {
             id: rowDelegate
             required property int index
             Layout.alignment: Qt.AlignHCenter
             Layout.fillWidth: true
+            spacing: registers.innerSpacing
             Repeater {
                 model: TransposeProxyModel {
                     sourceModel: RowFilterModel {
@@ -148,20 +161,7 @@ ColumnLayout {
                     Layout.minimumWidth: textField.width
                     Layout.minimumHeight: textField.height + 1
                     Layout.preferredWidth: childrenRect.width
-                    Layout.fillWidth: true
                     color: "transparent"
-                    function updateFlagMargin() {
-                        flags.overrideLeftMargin = Qt.binding(() => x + Layout.leftMargin + registers.spacing);
-                    }
-
-                    onXChanged: {
-                        if (column == 1 && row == 0)
-                            updateFlagMargin();
-                    }
-                    onWidthChanged: {
-                        if (column == 1 && row == 0)
-                            updateFlagMargin();
-                    }
 
                     TextField {
                         id: textField
