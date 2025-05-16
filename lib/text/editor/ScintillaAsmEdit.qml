@@ -37,9 +37,10 @@ FocusScope {
     function addListingAnnotations(lst) {
         editor.clearAllInlineAnnotations();
         // See styles at: https://scintilla.org/ScintillaDoc.html#EndOfLineAnnotations
-        let style = lst.length === 0 ? 0x0 : 0x1;
+        const len = lst?.length ?? 0;
+        let style = len === 0 ? 0x0 : 0x1;
         editor.setInlineAnnotationsVisible(style);
-        for (var i = 0; i < lst.length; i++) {
+        for (var i = 0; i < len; i++) {
             editor.addInlineAnnotation(lst[i].line, lst[i].message);
         }
     }
