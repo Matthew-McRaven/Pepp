@@ -19,3 +19,25 @@ target_include_directories(zpp_bits INTERFACE zpp_bits)
 
 add_subdirectory(lru)
 add_subdirectory(scintilla)
+
+set(KDDockWidgets_FRONTENDS "qtquick" CACHE STRING "" FORCE)
+set(KDDW_FRONTEND_QTQUICK ON CACHE BOOL "" FORCE)
+if(EMSCRIPTEN)
+    set(KDDockWidgets_STATIC TRUE CACHE BOOL "" FORCE)
+endif()
+
+add_subdirectory(KDDockWidgets/)
+
+# Inject --bind flag into KDDockWidgets targets on WASM builds
+if(EMSCRIPTEN)
+    get_directory_property(submodule_targets DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/KDDockWidgets BUILDSYSTEM_TARGETS)
+    foreach(tgt IN LISTS submodule_targets)
+        get_target_property(existing_flags ${tgt} LINK_FLAGS)
+        if(NOT existing_flags)
+            set(existing_flags "")
+        endif()
+        set_target_properties(${tgt} PROPERTIES LINK_FLAGS "${existing_flags} --bind")
+    endforeach()
+endif()
+
+
