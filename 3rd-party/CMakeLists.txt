@@ -19,3 +19,7 @@ target_include_directories(zpp_bits INTERFACE zpp_bits)
 
 add_subdirectory(lru)
 add_subdirectory(scintilla)
+
+set(KDDockWidgets_FRONTENDS "qtquick")
+set(KDDockWidgets_STATIC TRUE)
+add_subdirectory(KDDockWidgets/)
