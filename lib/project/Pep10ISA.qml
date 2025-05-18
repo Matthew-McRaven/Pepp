@@ -26,16 +26,17 @@ FocusScope {
     function dock() {
         const StartHidden = 1;
         const PreserveCurrent = 2;
-        const memcolwidth = registers.implicitWidth;
-        const memdumpheight = parent.height - registers.implicitHeight;
-        const gcwidth = parent.width * .3;
-        const ioheight = 200;
-        dockWidgetArea.addDockWidget(dock_object, KDDW.KDDockWidgets.Location_OnLeft, dockWidgetArea, Qt.size(parent.width - gcwidth - memcolwidth, parent.height - ioheight));
-        dockWidgetArea.addDockWidget(dock_greencard, KDDW.KDDockWidgets.Location_OnRight, dockWidgetArea, Qt.size(gcwidth, parent.height - ioheight));
-        dockWidgetArea.addDockWidget(dock_input, KDDW.KDDockWidgets.Location_OnBottom, dockWidgetArea, Qt.size(parent.width - memcolwidth, ioheight));
+        const reg_height = registers.childrenRect.height;
+        const regmemcol_width = registers.implicitWidth;
+        const memdump_height = parent.height - registers.implicitHeight;
+        const greencard_width = parent.width * .3;
+        const io_height = Math.max(200, parent.height * .1);
+        dockWidgetArea.addDockWidget(dock_object, KDDW.KDDockWidgets.Location_OnLeft, dockWidgetArea, Qt.size(parent.width - greencard_width - regmemcol_width, parent.height - io_height));
+        dockWidgetArea.addDockWidget(dock_greencard, KDDW.KDDockWidgets.Location_OnRight, dockWidgetArea, Qt.size(greencard_width, parent.height - io_height));
+        dockWidgetArea.addDockWidget(dock_input, KDDW.KDDockWidgets.Location_OnBottom, dockWidgetArea, Qt.size(parent.width - regmemcol_width, io_height));
         dock_input.addDockWidgetAsTab(dock_output, PreserveCurrent);
-        dockWidgetArea.addDockWidget(dock_cpu, KDDW.KDDockWidgets.Location_OnRight, dockWidgetArea, Qt.size(memcolwidth, registers.childrenRect.height));
-        dockWidgetArea.addDockWidget(dock_hexdump, KDDW.KDDockWidgets.Location_OnBottom, dock_cpu, Qt.size(memcolwidth, parent.height - registers.childrenRect.height));
+        dockWidgetArea.addDockWidget(dock_cpu, KDDW.KDDockWidgets.Location_OnRight, dockWidgetArea, Qt.size(regmemcol_width, reg_height));
+        dockWidgetArea.addDockWidget(dock_hexdump, KDDW.KDDockWidgets.Location_OnBottom, dock_cpu, Qt.size(regmemcol_width, memdump_height));
         wrapper.needsDock = Qt.binding(() => false);
     }
 

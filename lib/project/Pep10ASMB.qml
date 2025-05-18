@@ -27,21 +27,30 @@ FocusScope {
     function dock() {
         const StartHidden = 1;
         const PreserveCurrent = 2;
-        const memcolwidth = registers.implicitWidth;
-        const memdumpheight = parent.height - registers.implicitHeight;
-        const gcwidth = parent.width * .3;
-        const ioheight = 200;
-        // Dock source editors
-        dockWidgetArea.addDockWidget(dock_source, KDDW.KDDockWidgets.Location_OnLeft, dockWidgetArea);
-        dockWidgetArea.addDockWidget(dock_listing, KDDW.KDDockWidgets.Location_OnBottom, dock_source);
-        dockWidgetArea.addDockWidget(dock_object, KDDW.KDDockWidgets.Location_OnBottom, null);
+
+        const reg_height = registers.childrenRect.height;
+        const regmemcol_width = registers.implicitWidth;
+        const memdump_height = parent.height - registers.implicitHeight;
+
+        const bottom_height = Math.max(200, parent.height * .1);
+        const io_width = Math.max(300, parent.width * .2);
+        const editor_height = (parent.height - bottom_height) / 2;
+        const editor_width = parent.width - regmemcol_width - io_width;
+        // Dock text
+        dockWidgetArea.addDockWidget(dock_source, KDDW.KDDockWidgets.Location_OnLeft, dockWidgetArea, Qt.size(editor_width, editor_height));
+        dockWidgetArea.addDockWidget(dock_listing, KDDW.KDDockWidgets.Location_OnBottom, dock_source, Qt.size(editor_width, editor_height));
+        // Dock IOs to right of editors
+        dockWidgetArea.addDockWidget(dock_input, KDDW.KDDockWidgets.Location_OnRight, dockWidgetArea, Qt.size(io_width, editor_height));
+        dockWidgetArea.addDockWidget(dock_output, KDDW.KDDockWidgets.Location_OnBottom, dock_input, Qt.size(io_width, editor_height));
+        // Dock "helpers" below everything
+        dockWidgetArea.addDockWidget(dock_object, KDDW.KDDockWidgets.Location_OnBottom, null, Qt.size(editor_width, bottom_height));
         dock_object.addDockWidgetAsTab(dock_symbol, PreserveCurrent);
         dock_object.addDockWidgetAsTab(dock_watch, PreserveCurrent);
         dock_object.addDockWidgetAsTab(dock_breakpoints, PreserveCurrent);
-        dock_object.addDockWidgetAsTab(dock_input);
-        dock_object.addDockWidgetAsTab(dock_output, PreserveCurrent);
-        dockWidgetArea.addDockWidget(dock_cpu, KDDW.KDDockWidgets.Location_OnRight, null);
-        dockWidgetArea.addDockWidget(dock_hexdump, KDDW.KDDockWidgets.Location_OnBottom, dock_cpu);
+
+        // Setup memory area
+        dockWidgetArea.addDockWidget(dock_cpu, KDDW.KDDockWidgets.Location_OnRight, null, Qt.size(regmemcol_width, reg_height));
+        dockWidgetArea.addDockWidget(dock_hexdump, KDDW.KDDockWidgets.Location_OnBottom, dock_cpu, Qt.size(regmemcol_width, memdump_height));
         dock_hexdump.addDockWidgetAsTab(dock_stack, PreserveCurrent);
         wrapper.needsDock = Qt.binding(() => false);
     }
