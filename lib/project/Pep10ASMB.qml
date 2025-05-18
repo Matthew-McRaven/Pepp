@@ -48,23 +48,14 @@ FocusScope {
         project.switchTo.connect(wrapper.onSwitchTo);
         if (project)
             fixListings();
-        // Can't modify our mode directly because it would break binding with parent.
-        // i.e., we can't be notified if editor is entered ever again.
-        wrapper.actions.debug.start.triggered.connect(wrapper.requestModeSwitchToDebugger);
-        wrapper.actions.build.execute.triggered.connect(wrapper.requestModeSwitchToDebugger);
         onOverwriteEditors();
         project.updateGUI.connect(watchExpr.updateGUI);
         project.updateGUI.connect(bpViewer.updateGUI);
         userAsmEdit.forceActiveFocus();
     }
-    Component.onDestruction: {
-        wrapper.actions.debug.start.triggered.disconnect(wrapper.requestModeSwitchToDebugger);
-        wrapper.actions.build.execute.triggered.disconnect(wrapper.requestModeSwitchToDebugger);
-    }
+
     signal requestModeSwitchTo(string mode)
-    function requestModeSwitchToDebugger() {
-        wrapper.requestModeSwitchTo("debugger");
-    }
+
     function getLexerLangauge() {
         switch (project?.architecture) {
         case Architecture.PEP9:
@@ -346,17 +337,33 @@ FocusScope {
                         loader.item.scrollToAddress(project.currentAddress);
                         con.enabled = true;
                     }
+                    Connections {
+                        id: con
+                        enabled: false
+                        target: loader.item
+                        function onCurrentAddressChanged() {
+                            project.currentAddress = loader.item.currentAddress;
+                        }
+                    }
                 }
                 Stack.StackTrace {}
             }
         }
     }
+
+    // Only enable binding from the actions to this project if this project is focused.
     Connections {
-        id: con
-        enabled: false
-        target: loader.item
-        function onCurrentAddressChanged() {
-            project.currentAddress = loader.item.currentAddress;
+        enabled: wrapper.activeFocus
+        target: wrapper.actions.debug.start
+        function onTriggered() {
+            wrapper.requestModeSwitchTo("debugger");
+        }
+    }
+    Connections {
+        enabled: wrapper.activeFocus
+        target: wrapper.actions.build.execute
+        function onTriggered() {
+            wrapper.requestModeSwitchTo("debugger");
         }
     }
 }

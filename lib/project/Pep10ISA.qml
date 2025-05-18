@@ -8,34 +8,21 @@ import "qrc:/qt/qml/edu/pepp/cpu" as Cpu
 import "qrc:/qt/qml/edu/pepp/utils" as Utils
 import edu.pepp 1.0
 
-Item {
+FocusScope {
     id: wrapper
     required property var project
     required property var actions
     required property string mode
     signal requestModeSwitchTo(string mode)
-    function requestModeSwitchToDebugger() {
-        wrapper.requestModeSwitchTo("debugger");
-    }
+
     function syncEditors() {
-        if (project)
-            save();
+        project ? save() : null;
     }
 
     Component.onCompleted: {
-        // Must connect and disconnect manually, otherwise project may be changed underneath us, and "save" targets wrong project.
-        // Do not need to update on mode change, since mode change implies loss of focus of objEdit.
-        objEdit.editingFinished.connect(save);
-        // Can't modify our mode directly because it would break binding with parent.
-        // i.e., we can't be notified if editor is entered ever again.
-        wrapper.actions.debug.start.triggered.connect(wrapper.requestModeSwitchToDebugger);
-        wrapper.actions.build.execute.triggered.connect(wrapper.requestModeSwitchToDebugger);
         project.charInChanged.connect(() => batchInput.setInput(project.charIn));
+        objEdit.editingFinished.connect(save);
         objEdit.forceActiveFocus();
-    }
-    Component.onDestruction: {
-        wrapper.actions.debug.start.triggered.disconnect(wrapper.requestModeSwitchToDebugger);
-        wrapper.actions.build.execute.triggered.disconnect(wrapper.requestModeSwitchToDebugger);
     }
 
     function save() {
@@ -75,38 +62,33 @@ Item {
             SplitView.fillWidth: true
             SplitView.preferredWidth: 600
         }
-        SplitView {
-            visible: mode === "debugger"
-            SplitView.minimumWidth: Math.max(registers.implicitWidth, batchInput.implicitWidth, batchOutput.implicitWidth) + 20
-            orientation: Qt.Vertical
 
-            IO.Labeled {
-                id: batchInput
-                SplitView.minimumHeight: batchInput.minimumHeight
-                SplitView.preferredHeight: (parent.height - registers.height) / 2
-                width: parent.width
-                label: "Input"
-                property bool ignoreTextChange: false
-                Component.onCompleted: {
-                    onTextChanged.connect(() => {
-                        if (!ignoreTextChange)
-                            project.charIn = text;
-                    });
-                }
-                function setInput(input) {
-                    ignoreTextChange = true;
-                    batchInput.text = input;
-                    ignoreTextChange = false;
-                }
+        IO.Labeled {
+            id: batchInput
+            SplitView.minimumHeight: batchInput.minimumHeight
+            SplitView.preferredHeight: (parent.height - registers.height) / 2
+            width: parent.width
+            label: "Input"
+            property bool ignoreTextChange: false
+            Component.onCompleted: {
+                onTextChanged.connect(() => {
+                    if (!ignoreTextChange)
+                        project.charIn = text;
+                });
             }
-            IO.Labeled {
-                id: batchOutput
-                SplitView.minimumHeight: batchOutput.minimumHeight
-                SplitView.preferredHeight: (parent.height - registers.height) / 2
-                width: parent.width
-                label: "Output"
-                text: project?.charOut ?? ""
+            function setInput(input) {
+                ignoreTextChange = true;
+                batchInput.text = input;
+                ignoreTextChange = false;
             }
+        }
+        IO.Labeled {
+            id: batchOutput
+            SplitView.minimumHeight: batchOutput.minimumHeight
+            SplitView.preferredHeight: (parent.height - registers.height) / 2
+            width: parent.width
+            label: "Output"
+            text: project?.charOut ?? ""
         }
         Item {
             SplitView.minimumWidth: 340
@@ -147,15 +129,32 @@ Item {
                     loader.item.scrollToAddress(project.currentAddress);
                     con.enabled = true;
                 }
+                Connections {
+                    id: con
+                    enabled: false
+                    target: loader.item
+                    function onCurrentAddressChanged() {
+                        project.currentAddress = loader.item.currentAddress;
+                    }
+                }
             }
         }
     }
+    // Only enable binding from the actions to this project if this project is focused.
     Connections {
-        id: con
-        enabled: false
-        target: loader.item
-        function onCurrentAddressChanged() {
-            project.currentAddress = loader.item.currentAddress;
+        enabled: wrapper.activeFocus
+        target: wrapper.actions.debug.start
+        function onTriggered() {
+            console.log("I was called");
+            wrapper.requestModeSwitchTo("debugger");
+        }
+    }
+    Connections {
+        enabled: wrapper.activeFocus
+        target: wrapper.actions.build.execute
+        function onTriggered() {
+            console.log("I was called");
+            wrapper.requestModeSwitchTo("debugger");
         }
     }
 }
