@@ -157,7 +157,7 @@ FocusScope {
         anchors.fill: parent
         // Need application-wide unique ID, otherwise opening a new project will confuse the global name resolution algorithm.
         // TODO: Not gauranteed to be unique, but should be good enough for our purposes.
-        uniqueName: `${Math.ceil(Math.random() * 1_000_000_000).toString(16)}`
+        uniqueName: Math.ceil(Math.random() * 1000000000).toString(16)
         KDDW.DockWidget {
             id: dock_source
             title: "Source Editor"
