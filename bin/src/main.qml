@@ -127,7 +127,6 @@ ApplicationWindow {
 
     signal message(string message)
     footer: Label {
-        anchors.left: sidebar.right
         anchors.leftMargin: 10
         text: "test message"
         Timer {
@@ -157,7 +156,7 @@ ApplicationWindow {
         anchors.left: parent.left
         anchors.right: sidebar.right
         anchors.top: parent.top
-        anchors.bottom: footer.bottom
+        anchors.bottom: parent.bottom
         color: palette.shadow
     }
 
