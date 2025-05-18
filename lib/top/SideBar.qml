@@ -30,9 +30,6 @@ Column {
         ListElement {
             display: "Help"
         }
-        ListElement {
-            display: "Dock"
-        }
     }
     function mapModeToImage(mode) {
         switch (mode) {

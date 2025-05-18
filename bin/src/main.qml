@@ -237,29 +237,6 @@ ApplicationWindow {
                 }
             }
         }
-        KDDW.DockingArea {
-            id: dockWidgetArea
-            Layout.fillHeight: true
-            Layout.fillWidth: true
-
-            uniqueName: "MyMainLayout"
-
-            KDDW.DockWidget {
-                id: dock1
-                uniqueName: "dock1"
-                source: "qrc:/qt/qml/edu/pepp/top/Guest1.qml"
-            }
-            KDDW.DockWidget {
-                id: dock2
-                uniqueName: "dock2"
-                source: "qrc:/qt/qml/edu/pepp/top/Guest2.qml"
-            }
-
-            Component.onCompleted: {
-                addDockWidget(dock1, KDDW.KDDockWidgets.Location_OnTop);
-                addDockWidget(dock2, KDDW.KDDockWidgets.Location_OnBottom);
-            }
-        }
         Component.onCompleted: {
             window.modeChanged.connect(onModeChanged);
             onModeChanged();
@@ -271,9 +248,6 @@ ApplicationWindow {
                 break;
             case "help":
                 mainArea.currentIndex = 1;
-                break;
-            case "dock":
-                mainArea.currentIndex = 3;
                 break;
             default:
                 mainArea.currentIndex = 2;
