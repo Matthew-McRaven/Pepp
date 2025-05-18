@@ -92,7 +92,6 @@ ApplicationWindow {
         help.switchToMode.connect(sidebar.switchToMode);
         help.setCharIn.connect(i => setProjectCharIn(i));
         help.renameCurrentProject.connect(pm.renameCurrentProject);
-        currentProjectChanged.connect(projectLoader.onCurrentProjectChanged);
 
         actions.edit.prefs.triggered.connect(preferencesDialog.open);
         actions.help.about.triggered.connect(aboutDialog.open);
@@ -114,14 +113,16 @@ ApplicationWindow {
         id: menuFont
     }
     function syncEditors() {
-        if (projectLoader.item)
-            projectLoader.item.syncEditors();
+        const loader = delegateRepeater.itemAt(innerLayout.currentIndex);
+        if (loader.item)
+            loader.item.syncEditors();
     }
 
     // Helper to propogate to current delegate.
     function preAssemble() {
-        if (projectLoader.item)
-            projectLoader.item.preAssemble();
+        const loader = delegateRepeater.itemAt(innerLayout.currentIndex);
+        if (loader.item)
+            loader.item.preAssemble();
     }
 
     Menu.Actions {
@@ -199,23 +200,38 @@ ApplicationWindow {
             abstraction: currentProject?.abstraction ?? Abstraction.NONE
             architecture: currentProject?.architecture ?? Architecture.NONE
         }
-        Loader {
-            id: projectLoader
+        StackLayout {
+            id: innerLayout
+            currentIndex: projectSelect.currentProjectRow
             Layout.fillHeight: true
             Layout.fillWidth: true
-            sourceComponent: null
-            // Must unload the previous component to properly trigger save.
-            function onCurrentProjectChanged() {
-                sourceComponent = null;
-                sourceComponent = window.currentProject?.delegate;
-            }
-            Connections {
-                target: projectLoader.item
-                function onRequestModeSwitchTo(mode) {
-                    sidebar.switchToMode(mode);
+            Repeater {
+                id: delegateRepeater
+                model: pm
+                delegate: Loader {
+                    id: projectLoader
+                    Layout.fillHeight: true
+                    Layout.fillWidth: true
+                    Component.onCompleted: {
+                        const delegate = model.project.delegatePath();
+                        setSource(delegate, {
+                            "project": model.project,
+                            "mode": Qt.binding(() => window.mode),
+                            "actions": window.actionRef
+                        });
+                    }
+
+                    Connections {
+                        target: projectLoader.item
+                        enabled: model.row == projectSelect.currentProjectRow
+                        function onRequestModeSwitchTo(mode) {
+                            sidebar.switchToMode(mode);
+                        }
+                    }
                 }
             }
         }
+
         Component.onCompleted: {
             window.modeChanged.connect(onModeChanged);
             onModeChanged();
@@ -233,44 +249,6 @@ ApplicationWindow {
                 // TODO: update loader delegate for selected mode.
                 break;
             }
-        }
-    }
-
-    // Helpers to render central component via Loader.
-    Component {
-        id: pep10isaComponent
-        Project.Pep10ISA {
-            project: window.currentProject
-            anchors.fill: parent
-            mode: window.mode
-            actions: window.actionRef
-        }
-    }
-    Component {
-        id: pep9isaComponent
-        Project.Pep10ISA {
-            project: window.currentProject
-            anchors.fill: parent
-            mode: window.mode
-            actions: window.actionRef
-        }
-    }
-    Component {
-        id: pep10asmbComponent
-        Project.Pep10ASMB {
-            project: window.currentProject
-            anchors.fill: parent
-            mode: window.mode
-            actions: window.actionRef
-        }
-    }
-    Component {
-        id: pep9asmbComponent
-        Project.Pep10ASMB {
-            project: window.currentProject
-            anchors.fill: parent
-            mode: window.mode
-            actions: window.actionRef
         }
     }
 

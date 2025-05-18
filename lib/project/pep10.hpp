@@ -22,7 +22,6 @@ class Pep_ISA : public QObject, public pepp::debug::Environment {
   Q_PROPERTY(project::Environment env READ env CONSTANT)
   Q_PROPERTY(pepp::Architecture architecture READ architecture CONSTANT)
   Q_PROPERTY(pepp::Abstraction abstraction READ abstraction CONSTANT)
-  Q_PROPERTY(QVariant delegate MEMBER _delegate NOTIFY delegateChanged)
   Q_PROPERTY(QString objectCodeText READ objectCodeText WRITE setObjectCodeText NOTIFY objectCodeTextChanged);
   Q_PROPERTY(ARawMemory *memory READ memory CONSTANT)
   // Preserve the current address in the memory dump pane on tab-switch.
@@ -55,11 +54,11 @@ public:
     Partial,
     Full,
   };
-  explicit Pep_ISA(project::Environment env, QVariant delegate, QObject *parent = nullptr,
-                   bool initializeSystem = true);
+  explicit Pep_ISA(project::Environment env, QObject *parent = nullptr, bool initializeSystem = true);
   virtual project::Environment env() const;
   virtual pepp::Architecture architecture() const;
   virtual pepp::Abstraction abstraction() const;
+  Q_INVOKABLE virtual QString delegatePath() const;
   ARawMemory *memory() const;
   OpcodeModel *mnemonics() const;
   QString objectCodeText() const;
@@ -106,7 +105,6 @@ public slots:
 
 signals:
   void objectCodeTextChanged();
-  void delegateChanged();
   void currentAddressChanged();
   void allowedDebuggingChanged();
   void allowedStepsChanged();
@@ -135,7 +133,6 @@ protected:
   project::Environment _env;
   QString _charIn = {};
   QString _objectCodeText = {};
-  QVariant _delegate = {};
   QSharedPointer<sim::trace2::InfiniteBuffer> _tb = {};
   QSharedPointer<targets::isa::System> _system = {};
   QSharedPointer<ELFIO::elfio> _elf = {};
@@ -176,7 +173,8 @@ class Pep_ASMB final : public Pep_ISA {
   using Action = ScintillaAsmEditBase::Action;
 
 public:
-  explicit Pep_ASMB(project::Environment env, QVariant delegate, QObject *parent = nullptr);
+  explicit Pep_ASMB(project::Environment env, QObject *parent = nullptr);
+  Q_INVOKABLE QString delegatePath() const override;
   // Actually utils::Abstraction, but QM passes it as an int.
   Q_INVOKABLE void set(int abstraction, QString value);
   Q_INVOKABLE QString userAsmText() const;

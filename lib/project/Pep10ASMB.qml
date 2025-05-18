@@ -78,13 +78,13 @@ FocusScope {
             project.requestSourceBreakpoints.disconnect(userAsmEdit.editor.onRequestAllBreakpoints);
             project.requestSourceBreakpoints.disconnect(osAsmEdit.editor.onRequestAllBreakpoints);
             project.switchTo.disconnect(wrapper.onSwitchTo);
+            project.updateGUI.disconnect(watchExpr.updateGUI);
+            project.updateGUI.disconnect(bpViewer.updateGUI);
         }
         onProjectChanged.disconnect(fixListings);
 
         wrapper.actions.debug.start.triggered.disconnect(wrapper.requestModeSwitchToDebugger);
         wrapper.actions.build.execute.triggered.disconnect(wrapper.requestModeSwitchToDebugger);
-        project.updateGUI.disconnect(watchExpr.updateGUI);
-        project.updateGUI.disconnect(bpViewer.updateGUI);
     }
     signal requestModeSwitchTo(string mode)
     function requestModeSwitchToDebugger() {
@@ -152,7 +152,7 @@ FocusScope {
         osAsmEdit.readOnly = false;
         userAsmEdit.text = project?.userAsmText ?? "";
         osAsmEdit.text = project?.osAsmText ?? "";
-        osAsmEdit.readOnly = Qt.binding(() => !project.abstraction === Abstraction.OS4);
+        osAsmEdit.readOnly = Qt.binding(() => !project?.abstraction === Abstraction.OS4);
     }
 
     SplitView {
@@ -280,12 +280,12 @@ FocusScope {
                         }
                         Debug.WatchExpressions {
                             id: watchExpr
-                            watchExpressions: project.watchExpressions ?? null
+                            watchExpressions: project?.watchExpressions ?? null
                         }
                         BreakpointViewer {
                             id: bpViewer
-                            model: project.breakpointModel
-                            lineInfo: project.lines2addr ?? null
+                            model: project?.breakpointModel ?? null
+                            lineInfo: project?.lines2addr ?? null
                         }
                     }
                 }
