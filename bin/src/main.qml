@@ -98,7 +98,7 @@ ApplicationWindow {
         actions.help.about.triggered.connect(aboutDialog.open);
         actions.view.fullscreen.triggered.connect(onToggleFullScreen);
         actions.file.save.triggered.connect(() => {
-            preAssemble();
+            syncEditors();
             pm.onSave(currentProjectRow);
         });
         actions.appdev.reloadFigures.triggered.connect(help.reloadFiguresRequested);
@@ -117,13 +117,6 @@ ApplicationWindow {
         const loader = delegateRepeater.itemAt(innerLayout.currentIndex);
         if (loader.item)
             loader.item.syncEditors();
-    }
-
-    // Helper to propogate to current delegate.
-    function preAssemble() {
-        const loader = delegateRepeater.itemAt(innerLayout.currentIndex);
-        if (loader.item)
-            loader.item.preAssemble();
     }
 
     Menu.Actions {

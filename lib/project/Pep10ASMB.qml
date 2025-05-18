@@ -101,28 +101,21 @@ FocusScope {
             osList.readOnly = curORO;
         }
     }
-    // TODO: replace preAssemble someday...
     function syncEditors() {
         save();
     }
     function save() {
         // Supress saving messages when there is no project.
-        if (project === null)
-            return;
-        if (!userAsmEdit.readOnly) {
-            project.userAsmText = userAsmEdit.text;
-        }
-        if (!osAsmEdit.readOnly) {
-            project.osAsmText = osAsmEdit.text;
+        if (project) {
+            if (!userAsmEdit.readOnly) {
+                project.userAsmText = userAsmEdit.text;
+            }
+            if (!osAsmEdit.readOnly) {
+                project.osAsmText = osAsmEdit.text;
+            }
         }
     }
 
-    function preAssemble() {
-        if (project === null)
-            return;
-        project.userAsmText = userAsmEdit.text;
-        project.osAsmText = osAsmEdit.text;
-    }
     function onOverwriteEditors() {
         osAsmEdit.readOnly = false;
         userAsmEdit.text = project?.userAsmText ?? "";

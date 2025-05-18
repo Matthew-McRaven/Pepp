@@ -18,13 +18,10 @@ Item {
         wrapper.requestModeSwitchTo("debugger");
     }
     function syncEditors() {
-        save();
+        if (project)
+            save();
     }
-    function preAssemble() {
-        if (project === null)
-            return;
-        save();
-    }
+
     Component.onCompleted: {
         // Must connect and disconnect manually, otherwise project may be changed underneath us, and "save" targets wrong project.
         // Do not need to update on mode change, since mode change implies loss of focus of objEdit.
@@ -43,9 +40,7 @@ Item {
 
     function save() {
         // Supress saving messages when there is no project.
-        if (project === null)
-            return;
-        else if (!objEdit.readOnly)
+        if (project && !objEdit.readOnly)
             project.objectCodeText = objEdit.text;
     }
 
