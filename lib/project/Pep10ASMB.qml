@@ -9,17 +9,42 @@ import "qrc:/qt/qml/edu/pepp/cpu" as Cpu
 import "qrc:/qt/qml/edu/pepp/toolchain/symtab" as SymTab
 import "qrc:/qt/qml/edu/pepp/sim/debug" as Debug
 import edu.pepp 1.0
+import com.kdab.dockwidgets 2 as KDDW
 
 FocusScope {
     id: wrapper
     required property var project
     required property var actions
     required property string mode
+    property bool needsDock: true
     focus: true
     NuAppSettings {
         id: settings
     }
 
+    // Call when the height, width have been finalized.
+    // Otherwise, we attempt to layout when height/width == 0, and all our requests are ignored.
+    function dock() {
+        const StartHidden = 1;
+        const PreserveCurrent = 2;
+        const memcolwidth = registers.implicitWidth;
+        const memdumpheight = parent.height - registers.implicitHeight;
+        const gcwidth = parent.width * .3;
+        const ioheight = 200;
+        // Dock source editors
+        dockWidgetArea.addDockWidget(dock_source, KDDW.KDDockWidgets.Location_OnLeft, dockWidgetArea);
+        dockWidgetArea.addDockWidget(dock_listing, KDDW.KDDockWidgets.Location_OnBottom, dock_source);
+        dockWidgetArea.addDockWidget(dock_object, KDDW.KDDockWidgets.Location_OnBottom, null);
+        dock_object.addDockWidgetAsTab(dock_symbol, PreserveCurrent);
+        dock_object.addDockWidgetAsTab(dock_watch, PreserveCurrent);
+        dock_object.addDockWidgetAsTab(dock_breakpoints, PreserveCurrent);
+        dock_object.addDockWidgetAsTab(dock_input);
+        dock_object.addDockWidgetAsTab(dock_output, PreserveCurrent);
+        dockWidgetArea.addDockWidget(dock_cpu, KDDW.KDDockWidgets.Location_OnRight, null);
+        dockWidgetArea.addDockWidget(dock_hexdump, KDDW.KDDockWidgets.Location_OnBottom, dock_cpu);
+        dock_hexdump.addDockWidgetAsTab(dock_stack, PreserveCurrent);
+        wrapper.needsDock = Qt.binding(() => false);
+    }
     Component.onCompleted: {
         // Must connect and disconnect manually, otherwise project may be changed underneath us, and "save" targets wrong project.
         // Do not need to update on mode change, since mode change implies loss of focus of objEdit.
@@ -68,7 +93,7 @@ FocusScope {
     }
 
     function onSwitchTo(os) {
-        textSelector.currentIndex = Qt.binding(() => os ? 1 : 0);
+        sourceSelector.currentIndex = Qt.binding(() => os ? 1 : 0);
     }
 
     function displayErrors() {
@@ -106,7 +131,6 @@ FocusScope {
             }
         }
     }
-
     function onOverwriteEditors() {
         osAsmEdit.readOnly = false;
         userAsmEdit.text = project?.userAsmText ?? "";
@@ -114,46 +138,32 @@ FocusScope {
         osAsmEdit.readOnly = Qt.binding(() => !project?.abstraction === Abstraction.OS4);
     }
 
-    SplitView {
-        id: split
+    FontMetrics {
+        id: editorFM
+        font: settings.extPalette.baseMono.font
+    }
+
+    KDDW.DockingArea {
+        id: dockWidgetArea
         anchors.fill: parent
-        orientation: Qt.Horizontal
-        handle: Item {
-            implicitWidth: 4
-            Rectangle {
-                implicitWidth: 4
-                anchors.horizontalCenter: parent.horizontalCenter
-                height: parent.height
-                // TODO: add color for handle
-                color: palette.base
-            }
-        }
-
-        Item {
-            SplitView.minimumWidth: 100
-            SplitView.fillWidth: true
-            ComboBox {
-                id: textSelector
-                anchors.left: parent.left
-                anchors.right: parent.right
-                anchors.top: parent.top
-                model: ["User", "OS"]
-            }
-            FontMetrics {
-                id: editorFM
-                font: settings.extPalette.baseMono.font
-            }
-
-            SplitView {
-                orientation: Qt.Vertical
-                anchors.left: parent.left
-                anchors.right: parent.right
-                anchors.top: textSelector.bottom
-                anchors.bottom: parent.bottom
+        uniqueName: "ASMBLayout"
+        KDDW.DockWidget {
+            id: dock_source
+            uniqueName: "Source Editor"
+            ColumnLayout {
+                anchors.fill: parent
+                ComboBox {
+                    id: sourceSelector
+                    model: ["User", "OS"]
+                    Layout.fillWidth: true
+                    onActivated: function (new_index) {
+                        listingSelector.currentIndex = Qt.binding(() => new_index);
+                    }
+                }
                 StackLayout {
-                    visible: mode == "editor"
-                    currentIndex: textSelector.currentIndex
-                    SplitView.fillHeight: true
+                    currentIndex: sourceSelector.currentIndex
+                    Layout.fillWidth: true
+                    Layout.fillHeight: true
                     Text.ScintillaAsmEdit {
                         id: userAsmEdit
                         Layout.fillHeight: true
@@ -161,7 +171,7 @@ FocusScope {
                         height: parent.height
                         editorFont: editorFM.font
                         language: wrapper.getLexerLangauge()
-                        focus: mode === "editor" && textSelector.currentIndex === 0
+                        focus: mode === "editor" && sourceSelector.currentIndex === -1
                     }
                     Text.ScintillaAsmEdit {
                         id: osAsmEdit
@@ -170,13 +180,30 @@ FocusScope {
                         height: parent.height
                         editorFont: editorFM.font
                         language: wrapper.getLexerLangauge()
-                        focus: mode === "editor" && textSelector.currentIndex === 1
+                        focus: mode === "editor" && sourceSelector.currentIndex === 1
+                    }
+                }
+            }
+        }
+        KDDW.DockWidget {
+            id: dock_listing
+            uniqueName: "Listing"
+            ColumnLayout {
+                anchors.fill: parent
+                ComboBox {
+                    id: listingSelector
+                    model: ["User", "OS"]
+                    Layout.fillWidth: true
+                    visible: !dock_source.visible
+                    onActivated: function (new_index) {
+                        sourceSelector.currentIndex = Qt.binding(() => new_index);
                     }
                 }
                 StackLayout {
-                    visible: mode == "debugger"
-                    currentIndex: textSelector.currentIndex
-                    SplitView.fillHeight: true
+                    currentIndex: sourceSelector.currentIndex
+
+                    Layout.fillWidth: true
+                    Layout.fillHeight: true
                     Text.ScintillaAsmEdit {
                         id: userList
                         readOnly: true
@@ -186,7 +213,7 @@ FocusScope {
                         text: project?.userList ?? ""
                         editorFont: editorFM.font
                         language: wrapper.getLexerLangauge()
-                        focus: mode === "debugger" && textSelector.currentIndex === 0
+                        focus: mode === "debugger" && sourceSelector.currentIndex === 0
                     }
                     Text.ScintillaAsmEdit {
                         id: osList
@@ -197,71 +224,59 @@ FocusScope {
                         text: project?.osList ?? ""
                         editorFont: editorFM.font
                         language: wrapper.getLexerLangauge()
-                        focus: mode === "debugger" && textSelector.currentIndex === 1
-                    }
-                }
-                ColumnLayout {
-                    visible: mode == "debugger"
-                    SplitView.minimumHeight: 100
-                    TabBar {
-                        id: debugTabBar
-                        Layout.fillWidth: true
-                        Layout.fillHeight: false
-                        visible: mode == "debugger"
-                        TabButton {
-                            text: qsTr("Object Code")
-                        }
-                        TabButton {
-                            text: qsTr(`Symbol Table: ${textSelector.currentText}`)
-                        }
-                        TabButton {
-                            text: qsTr(`Watch Expressions`)
-                        }
-                        TabButton {
-                            text: qsTr(`Breakpoint Viewer`)
-                        }
-                    }
-                    StackLayout {
-                        Layout.fillWidth: true
-                        Layout.fillHeight: true
-                        currentIndex: debugTabBar.currentIndex
-                        clip: true
-                        Text.ObjTextEditor {
-                            id: objView
-                            readOnly: true
-                            // text is only an initial binding, the value diverges from there.
-                            text: project?.objectCodeText ?? ""
-                        }
-                        SymTab.SymbolViewer {
-                            id: symTab
-                            model: project?.staticSymbolModel ?? null
-                            scopeFilter: textSelector.currentIndex === 0 ? "usr.symtab" : "os.symtab"
-                        }
-                        Debug.WatchExpressions {
-                            id: watchExpr
-                            watchExpressions: project?.watchExpressions ?? null
-                        }
-                        BreakpointViewer {
-                            id: bpViewer
-                            model: project?.breakpointModel ?? null
-                            lineInfo: project?.lines2addr ?? null
-                        }
+                        focus: mode === "debugger" && sourceSelector.currentIndex === 1
                     }
                 }
             }
         }
-
-        SplitView {
-            visible: mode === "debugger"
-            SplitView.minimumWidth: Math.max(registers.implicitWidth, batchInput.implicitWidth, batchOutput.implicitWidth) + 20
-            orientation: Qt.Vertical
-
+        KDDW.DockWidget {
+            id: dock_object
+            uniqueName: "Object Code"
+            Text.ObjTextEditor {
+                id: objEdit
+                anchors.fill: parent
+                readOnly: true
+                // text is only an initial binding, the value diverges from there.
+                text: project?.objectCodeText ?? ""
+            }
+        }
+        KDDW.DockWidget {
+            id: dock_symbol
+            uniqueName: "Symbol Table"
+            title: qsTr(`Symbol Table: ${sourceSelector.currentText}`)
+            SymTab.SymbolViewer {
+                id: symTab
+                anchors.fill: parent
+                model: project?.staticSymbolModel ?? null
+                scopeFilter: sourceSelector.currentIndex === 0 ? "usr.symtab" : "os.symtab"
+            }
+        }
+        KDDW.DockWidget {
+            id: dock_watch
+            uniqueName: qsTr(`Watch Expressions`)
+            Debug.WatchExpressions {
+                id: watchExpr
+                anchors.fill: parent
+                watchExpressions: project?.watchExpressions ?? null
+            }
+        }
+        KDDW.DockWidget {
+            id: dock_breakpoints
+            uniqueName: qsTr(`Breakpoint Viewer`)
+            BreakpointViewer {
+                id: bpViewer
+                anchors.fill: parent
+                model: project?.breakpointModel ?? null
+                lineInfo: project?.lines2addr ?? null
+            }
+        }
+        KDDW.DockWidget {
+            id: dock_input
+            uniqueName: "Batch Input"
             IO.Labeled {
                 id: batchInput
-                SplitView.minimumHeight: batchInput.minimumHeight
-                SplitView.preferredHeight: (parent.height - registers.height) / 2
-                width: parent.width
-                label: "Input"
+                anchors.fill: parent
+                label: ""
                 property bool ignoreTextChange: false
                 Component.onCompleted: {
                     onTextChanged.connect(() => {
@@ -275,77 +290,69 @@ FocusScope {
                     ignoreTextChange = false;
                 }
             }
+        }
+        KDDW.DockWidget {
+            id: dock_output
+            uniqueName: "Batch Output"
             IO.Labeled {
                 id: batchOutput
-                SplitView.minimumHeight: batchOutput.minimumHeight
-                SplitView.preferredHeight: (parent.height - registers.height) / 2
-                width: parent.width
-                label: "Output"
+                anchors.fill: parent
+                label: ""
                 text: project?.charOut ?? ""
             }
         }
-        Item {
-            SplitView.minimumWidth: 340
-            visible: mode === "debugger"
-            Cpu.RegisterView {
-                id: registers
-                anchors {
-                    top: parent.top
-                    horizontalCenter: parent.horizontalCenter
-                }
+        KDDW.DockWidget {
+            id: dock_cpu
+            uniqueName: "Register Dump"
+            ColumnLayout {
+                anchors.fill: parent
+                property size kddockwidgets_min_size: Qt.size(registers.implicitWidth, registers.implicitHeight)
+                Cpu.RegisterView {
+                    id: registers
+                    Layout.fillWidth: false
+                    Layout.alignment: Qt.AlignHCenter
 
-                registers: project?.registers ?? null
-                flags: project?.flags ?? null
-            }
-            TabBar {
-                id: memoryTab
-                anchors.top: registers.bottom
-                anchors.left: parent.left
-                anchors.right: parent.right
-                TabButton {
-                    text: qsTr("Hex Dump")
-                }
-                TabButton {
-                    visible: settings.general.showDebugComponents
-                    enabled: visible
-                    text: qsTr("Stack Trace")
+                    registers: project?.registers ?? null
+                    flags: project?.flags ?? null
                 }
             }
-            StackLayout {
-                anchors {
-                    top: memoryTab.bottom
-                    left: parent.left
-                    right: parent.right
-                    bottom: parent.bottom
+        }
+        KDDW.DockWidget {
+            id: dock_hexdump
+            uniqueName: "Memory Dump"
+            Loader {
+                id: loader
+                anchors.fill: parent
+                Component.onCompleted: {
+                    const props = {
+                        "memory": project.memory,
+                        "mnemonics": project.mnemonics
+                    };
+                    // Construction sets current address to 0, which propogates back to project.
+                    // Must reject changes in current address until component is fully rendered.
+                    con.enabled = false;
+                    setSource("qrc:/qt/qml/edu/pepp/memory/hexdump/MemoryDump.qml", props);
                 }
-                currentIndex: memoryTab.currentIndex
-                Loader {
-                    id: loader
-                    Component.onCompleted: {
-                        const props = {
-                            "memory": project.memory,
-                            "mnemonics": project.mnemonics
-                        };
-                        // Construction sets current address to 0, which propogates back to project.
-                        // Must reject changes in current address until component is fully rendered.
-                        con.enabled = false;
-                        setSource("qrc:/qt/qml/edu/pepp/memory/hexdump/MemoryDump.qml", props);
-                    }
-                    asynchronous: true
-                    onLoaded: {
-                        loader.item.scrollToAddress(project.currentAddress);
-                        con.enabled = true;
-                    }
-                    Connections {
-                        id: con
-                        enabled: false
-                        target: loader.item
-                        function onCurrentAddressChanged() {
-                            project.currentAddress = loader.item.currentAddress;
-                        }
+                asynchronous: true
+                onLoaded: {
+                    loader.item.scrollToAddress(project.currentAddress);
+                    con.enabled = true;
+                }
+                Connections {
+                    id: con
+                    enabled: false
+                    target: loader.item
+                    function onCurrentAddressChanged() {
+                        project.currentAddress = loader.item.currentAddress;
                     }
                 }
-                Stack.StackTrace {}
+            }
+        }
+        KDDW.DockWidget {
+            id: dock_stack
+            uniqueName: "Stack Trace"
+            Stack.StackTrace {
+                anchors.fill: parent
             }
         }
     }

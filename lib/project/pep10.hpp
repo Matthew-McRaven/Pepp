@@ -64,7 +64,7 @@ public:
   QString objectCodeText() const;
   void setObjectCodeText(const QString &objectCodeText);
   Q_INVOKABLE static QStringListModel *modes() {
-    static QStringListModel ret({"Welcome", "Editor", "Debugger", "Help"});
+    static QStringListModel ret({"Welcome", "Help", "Editor", "Debugger"});
     QQmlEngine::setObjectOwnership(&ret, QQmlEngine::CppOwnership);
     return &ret;
   }

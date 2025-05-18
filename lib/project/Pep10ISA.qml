@@ -15,6 +15,7 @@ FocusScope {
     required property var actions
     required property string mode
     property bool needsDock: true
+    focus: true
     signal requestModeSwitchTo(string mode)
 
     function syncEditors() {
@@ -23,17 +24,19 @@ FocusScope {
     // Call when the height, width have been finalized.
     // Otherwise, we attempt to layout when height/width == 0, and all our requests are ignored.
     function dock() {
+        const StartHidden = 1;
+        const PreserveCurrent = 2;
         const memcolwidth = registers.implicitWidth;
         const memdumpheight = parent.height - registers.implicitHeight;
         const gcwidth = parent.width * .3;
         const ioheight = 200;
         dockWidgetArea.addDockWidget(dock_object, KDDW.KDDockWidgets.Location_OnLeft, dockWidgetArea, Qt.size(parent.width - gcwidth - memcolwidth, parent.height - ioheight));
         dockWidgetArea.addDockWidget(dock_greencard, KDDW.KDDockWidgets.Location_OnRight, dockWidgetArea, Qt.size(gcwidth, parent.height - ioheight));
-        wrapper.needsDock = Qt.binding(() => false);
         dockWidgetArea.addDockWidget(dock_input, KDDW.KDDockWidgets.Location_OnBottom, dockWidgetArea, Qt.size(parent.width - memcolwidth, ioheight));
-        dock_input.addDockWidgetAsTab(dock_output);
+        dock_input.addDockWidgetAsTab(dock_output, PreserveCurrent);
         dockWidgetArea.addDockWidget(dock_cpu, KDDW.KDDockWidgets.Location_OnRight, null, Qt.size(memcolwidth, registers.childrenRect.height));
         dockWidgetArea.addDockWidget(dock_hexdump, KDDW.KDDockWidgets.Location_OnBottom, dock_cpu, Qt.size(memcolwidth, parent.height - registers.childrenRect.height));
+        wrapper.needsDock = Qt.binding(() => false);
     }
 
     Component.onCompleted: {
@@ -104,7 +107,6 @@ FocusScope {
             IO.Labeled {
                 id: batchOutput
                 anchors.fill: parent
-                width: parent.width
                 label: ""
                 text: project?.charOut ?? ""
             }
