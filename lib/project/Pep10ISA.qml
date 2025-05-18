@@ -87,10 +87,9 @@ FocusScope {
             id: dock_input
             title: "Batch Input"
             uniqueName: `BatchInput-${dockWidgetArea.uniqueName}`
-            IO.Labeled {
+            IO.Batch {
                 id: batchInput
                 anchors.fill: parent
-                label: ""
                 property bool ignoreTextChange: false
                 Component.onCompleted: {
                     onTextChanged.connect(() => {
@@ -109,11 +108,11 @@ FocusScope {
             id: dock_output
             title: "Batch Output"
             uniqueName: `BatchOutput-${dockWidgetArea.uniqueName}`
-            IO.Labeled {
+            IO.Batch {
                 id: batchOutput
                 anchors.fill: parent
-                label: ""
                 text: project?.charOut ?? ""
+                readOnly: true
             }
         }
         KDDW.DockWidget {
