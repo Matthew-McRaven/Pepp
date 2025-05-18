@@ -207,7 +207,7 @@ FocusScope {
                     id: listingSelector
                     model: ["User", "OS"]
                     Layout.fillWidth: true
-                    visible: !dock_source.visible
+                    visible: !sourceSelector.visible
                     onActivated: function (new_index) {
                         sourceSelector.currentIndex = Qt.binding(() => new_index);
                     }
