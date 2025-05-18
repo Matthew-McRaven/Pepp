@@ -7,16 +7,33 @@ import "qrc:/qt/qml/edu/pepp/memory/io" as IO
 import "qrc:/qt/qml/edu/pepp/cpu" as Cpu
 import "qrc:/qt/qml/edu/pepp/utils" as Utils
 import edu.pepp 1.0
+import com.kdab.dockwidgets 2 as KDDW
 
 FocusScope {
     id: wrapper
     required property var project
     required property var actions
     required property string mode
+    property bool needsDock: true
     signal requestModeSwitchTo(string mode)
 
     function syncEditors() {
         project ? save() : null;
+    }
+    // Call when the height, width have been finalized.
+    // Otherwise, we attempt to layout when height/width == 0, and all our requests are ignored.
+    function dock() {
+        const memcolwidth = registers.implicitWidth;
+        const memdumpheight = parent.height - registers.implicitHeight;
+        const gcwidth = parent.width * .3;
+        const ioheight = 200;
+        dockWidgetArea.addDockWidget(dock_object, KDDW.KDDockWidgets.Location_OnLeft, dockWidgetArea, Qt.size(parent.width - gcwidth - memcolwidth, parent.height - ioheight));
+        dockWidgetArea.addDockWidget(dock_greencard, KDDW.KDDockWidgets.Location_OnRight, dockWidgetArea, Qt.size(gcwidth, parent.height - ioheight));
+        wrapper.needsDock = Qt.binding(() => false);
+        dockWidgetArea.addDockWidget(dock_input, KDDW.KDDockWidgets.Location_OnBottom, dockWidgetArea, Qt.size(parent.width - memcolwidth, ioheight));
+        dock_input.addDockWidgetAsTab(dock_output);
+        dockWidgetArea.addDockWidget(dock_cpu, KDDW.KDDockWidgets.Location_OnRight, null, Qt.size(memcolwidth, registers.childrenRect.height));
+        dockWidgetArea.addDockWidget(dock_hexdump, KDDW.KDDockWidgets.Location_OnBottom, dock_cpu, Qt.size(memcolwidth, parent.height - registers.childrenRect.height));
     }
 
     Component.onCompleted: {
@@ -30,90 +47,90 @@ FocusScope {
         if (project && !objEdit.readOnly)
             project.objectCodeText = objEdit.text;
     }
-
-    SplitView {
+    KDDW.DockingArea {
+        id: dockWidgetArea
         anchors.fill: parent
-        orientation: Qt.Horizontal
-        handle: Item {
-            implicitWidth: 4
-            Rectangle {
-                implicitWidth: 4
-                anchors.horizontalCenter: parent.horizontalCenter
-                height: parent.height
-                // TODO: add color for handle
-                color: palette.base
-            }
-        }
-        Text.ObjTextEditor {
-            id: objEdit
-            readOnly: mode !== "editor"
-            // text is only an initial binding, the value diverges from there.
-            text: project?.objectCodeText ?? ""
-            SplitView.minimumWidth: 100
-            SplitView.fillWidth: true
-        }
-        Utils.GreencardView {
-            id: greencard
-            architecture: project?.architecture ?? Architecture.PEP10
-            hideStatus: true
-            hideMnemonic: true
-            visible: mode === "editor"
-            SplitView.minimumWidth: 200
-            SplitView.fillWidth: true
-            SplitView.preferredWidth: 600
-        }
 
-        IO.Labeled {
-            id: batchInput
-            SplitView.minimumHeight: batchInput.minimumHeight
-            SplitView.preferredHeight: (parent.height - registers.height) / 2
-            width: parent.width
-            label: "Input"
-            property bool ignoreTextChange: false
-            Component.onCompleted: {
-                onTextChanged.connect(() => {
-                    if (!ignoreTextChange)
-                        project.charIn = text;
-                });
-            }
-            function setInput(input) {
-                ignoreTextChange = true;
-                batchInput.text = input;
-                ignoreTextChange = false;
+        uniqueName: "ISA3Layout"
+
+        KDDW.DockWidget {
+            id: dock_object
+            uniqueName: "Object Code"
+            Text.ObjTextEditor {
+                id: objEdit
+                anchors.fill: parent
+                readOnly: mode !== "editor"
+                // text is only an initial binding, the value diverges from there.
+                text: project?.objectCodeText ?? ""
             }
         }
-        IO.Labeled {
-            id: batchOutput
-            SplitView.minimumHeight: batchOutput.minimumHeight
-            SplitView.preferredHeight: (parent.height - registers.height) / 2
-            width: parent.width
-            label: "Output"
-            text: project?.charOut ?? ""
+        KDDW.DockWidget {
+            id: dock_greencard
+            uniqueName: "Instructions"
+            Utils.GreencardView {
+                id: greencard
+                // property size kddockwidgets_min_size: Qt.size(300, 100)
+                anchors.fill: parent
+                architecture: project?.architecture ?? Architecture.PEP10
+                hideStatus: true
+                hideMnemonic: true
+                //visible: mode === "editor"
+            }
         }
-        Item {
-            SplitView.minimumWidth: 340
-            SplitView.fillWidth: true
-            visible: mode === "debugger" || mode === "editor"
-            Cpu.RegisterView {
-                id: registers
-                visible: mode == "debugger"
-                anchors {
-                    top: parent.top
-                    left: parent.left
-                    right: parent.right
+        KDDW.DockWidget {
+            id: dock_input
+            uniqueName: "Batch Input"
+            IO.Labeled {
+                id: batchInput
+                anchors.fill: parent
+                label: ""
+                property bool ignoreTextChange: false
+                Component.onCompleted: {
+                    onTextChanged.connect(() => {
+                        if (!ignoreTextChange)
+                            project.charIn = text;
+                    });
                 }
-                height: visible ? registers.implicitHeight : 0
-                registers: project?.registers ?? null
-                flags: project?.flags ?? null
+                function setInput(input) {
+                    ignoreTextChange = true;
+                    batchInput.text = input;
+                    ignoreTextChange = false;
+                }
             }
+        }
+        KDDW.DockWidget {
+            id: dock_output
+            uniqueName: "Batch Output"
+            IO.Labeled {
+                id: batchOutput
+                anchors.fill: parent
+                width: parent.width
+                label: ""
+                text: project?.charOut ?? ""
+            }
+        }
+        KDDW.DockWidget {
+            id: dock_cpu
+            uniqueName: "Register Dump"
+            ColumnLayout {
+                anchors.fill: parent
+                property size kddockwidgets_min_size: Qt.size(registers.implicitWidth, registers.implicitHeight)
+                Cpu.RegisterView {
+                    id: registers
+                    Layout.fillWidth: false
+                    Layout.alignment: Qt.AlignHCenter
+
+                    registers: project?.registers ?? null
+                    flags: project?.flags ?? null
+                }
+            }
+        }
+        KDDW.DockWidget {
+            id: dock_hexdump
+            uniqueName: "Memory Dump"
             Loader {
                 id: loader
-                anchors {
-                    top: registers.bottom
-                    left: parent.left
-                    right: parent.right
-                    bottom: parent.bottom
-                }
+                anchors.fill: parent
                 Component.onCompleted: {
                     const props = {
                         "memory": project.memory,
@@ -140,12 +157,12 @@ FocusScope {
             }
         }
     }
+
     // Only enable binding from the actions to this project if this project is focused.
     Connections {
         enabled: wrapper.activeFocus
         target: wrapper.actions.debug.start
         function onTriggered() {
-            console.log("I was called");
             wrapper.requestModeSwitchTo("debugger");
         }
     }
@@ -153,7 +170,6 @@ FocusScope {
         enabled: wrapper.activeFocus
         target: wrapper.actions.build.execute
         function onTriggered() {
-            console.log("I was called");
             wrapper.requestModeSwitchTo("debugger");
         }
     }

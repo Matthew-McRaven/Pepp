@@ -213,6 +213,18 @@ ApplicationWindow {
                             "mode": Qt.binding(() => window.mode),
                             "actions": window.actionRef
                         });
+                        // Do not attempt to put docking widgets in main area until size is non-0.
+                        // Instead, listen for updates in attemptDock, and perform docking as soon as we have real sizes.
+                        widthChanged.connect(attemptDock);
+                        heightChanged.connect(attemptDock);
+                    }
+                    function attemptDock() {
+                        if (height == 0 || width == 0) {} else if (item !== null && item.needsDock) {
+                            item.dock();
+                            // Once docked, stop handling docking attempts for each resize.
+                            widthChanged.disconnect(attemptDock);
+                            heightChanged.disconnect(attemptDock);
+                        }
                     }
 
                     Connections {
