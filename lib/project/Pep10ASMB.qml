@@ -27,14 +27,14 @@ FocusScope {
     function dock() {
         const StartHidden = 1;
         const PreserveCurrent = 2;
-
+        const total_height = parent.height - visibilityBar.height;
         const reg_height = registers.childrenRect.height;
         const regmemcol_width = registers.implicitWidth;
-        const memdump_height = parent.height - registers.implicitHeight;
+        const memdump_height = total_height - registers.implicitHeight;
 
-        const bottom_height = Math.max(200, parent.height * .1);
+        const bottom_height = Math.max(200, total_height * .1);
         const io_width = Math.max(300, parent.width * .2);
-        const editor_height = (parent.height - bottom_height) / 2;
+        const editor_height = (total_height - bottom_height) / 2;
         const editor_width = parent.width - regmemcol_width - io_width;
         // Dock text
         dockWidgetArea.addDockWidget(dock_source, KDDW.KDDockWidgets.Location_OnLeft, dockWidgetArea, Qt.size(editor_width, editor_height));
@@ -154,7 +154,12 @@ FocusScope {
 
     KDDW.DockingArea {
         id: dockWidgetArea
-        anchors.fill: parent
+        anchors {
+            top: parent.top
+            left: parent.left
+            right: parent.right
+            bottom: visibilityBar.top
+        }
         // Need application-wide unique ID, otherwise opening a new project will confuse the global name resolution algorithm.
         // TODO: Not gauranteed to be unique, but should be good enough for our purposes.
         uniqueName: Math.ceil(Math.random() * 1000000000).toString(16)
@@ -374,6 +379,23 @@ FocusScope {
             Stack.StackTrace {
                 anchors.fill: parent
             }
+        }
+    }
+    ListView {
+        id: visibilityBar
+        anchors {
+            left: parent.left
+            right: parent.right
+            bottom: parent.bottom
+        }
+        height: 15
+        orientation: Qt.Horizontal
+        model: [dock_source, dock_listing, dock_object, dock_symbol, dock_watch, dock_breakpoints, dock_input, dock_output, dock_cpu, dock_hexdump, dock_stack]
+        delegate: CheckBox {
+            text: modelData.title
+            checked: modelData.isOpen
+            onClicked: checked ? modelData.open() : modelData.close()
+            Layout.alignment: Qt.AlignBottom
         }
     }
 

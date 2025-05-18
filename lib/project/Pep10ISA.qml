@@ -26,11 +26,17 @@ FocusScope {
     function dock() {
         const StartHidden = 1;
         const PreserveCurrent = 2;
+
+        const total_height = parent.height - visibilityBar.height;
+
         const reg_height = registers.childrenRect.height;
         const regmemcol_width = registers.implicitWidth;
-        const memdump_height = parent.height - registers.implicitHeight;
+
+        const memdump_height = total_height - registers.implicitHeight;
         const greencard_width = parent.width * .3;
-        const io_height = Math.max(200, parent.height * .1);
+
+        const io_height = Math.max(200, total_height * .1);
+
         dockWidgetArea.addDockWidget(dock_object, KDDW.KDDockWidgets.Location_OnLeft, dockWidgetArea, Qt.size(parent.width - greencard_width - regmemcol_width, parent.height - io_height));
         dockWidgetArea.addDockWidget(dock_greencard, KDDW.KDDockWidgets.Location_OnRight, dockWidgetArea, Qt.size(greencard_width, parent.height - io_height));
         dockWidgetArea.addDockWidget(dock_input, KDDW.KDDockWidgets.Location_OnBottom, dockWidgetArea, Qt.size(parent.width - regmemcol_width, io_height));
@@ -53,7 +59,12 @@ FocusScope {
     }
     KDDW.DockingArea {
         id: dockWidgetArea
-        anchors.fill: parent
+        anchors {
+            top: parent.top
+            left: parent.left
+            right: parent.right
+            bottom: visibilityBar.top
+        }
         // Need application-wide unique ID, otherwise opening a new project will confuse the global name resolution algorithm.
         // TODO: Not gauranteed to be unique, but should be good enough for our purposes.
         uniqueName: Math.ceil(Math.random() * 1000000000).toString(16)
@@ -164,6 +175,23 @@ FocusScope {
                     }
                 }
             }
+        }
+    }
+    ListView {
+        id: visibilityBar
+        anchors {
+            left: parent.left
+            right: parent.right
+            bottom: parent.bottom
+        }
+        height: 15
+        orientation: Qt.Horizontal
+        model: [dock_object, dock_greencard, dock_input, dock_output, dock_cpu, dock_hexdump]
+        delegate: CheckBox {
+            text: modelData.title
+            checked: modelData.isOpen
+            onClicked: checked ? modelData.open() : modelData.close()
+            Layout.alignment: Qt.AlignBottom
         }
     }
 
