@@ -747,6 +747,7 @@ void Pep_ISA::prepareSim() {
   auto charOut = _system->output("charOut");
   charOut->clear(0);
   pwrOff->clear(0);
+  emit charOutChanged();
 
   auto charIn = _system->input("charIn");
   charIn->clear(0);
@@ -1125,6 +1126,7 @@ void Pep_ASMB::prepareSim() {
   auto charOut = _system->output("charOut");
   charOut->clear(0);
   pwrOff->clear(0);
+  emit charOutChanged();
 
   auto charIn = _system->input("charIn");
   charIn->clear(0);
