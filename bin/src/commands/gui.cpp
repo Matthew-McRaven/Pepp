@@ -28,6 +28,7 @@
 #include <kddockwidgets/core/FloatingWindow.h>
 #include <kddockwidgets/core/TitleBar.h>
 #include <kddockwidgets/qtquick/Platform.h>
+#include <kddockwidgets/qtquick/ViewFactory.h>
 #include <kddockwidgets/qtquick/views/DockWidget.h>
 #include <kddockwidgets/qtquick/views/MainWindow.h>
 #include "../iconprovider.hpp"
@@ -46,9 +47,15 @@ struct default_data : public gui_globals {
   QTimer interval;
 };
 
-void default_init(QQmlApplicationEngine &engine, default_data *data) {
-  auto *ctx = engine.rootContext();
-}
+void default_init(QQmlApplicationEngine &engine, default_data *data) { auto *ctx = engine.rootContext(); }
+
+class CustomViewFactory : public KDDockWidgets::QtQuick::ViewFactory {
+public:
+  ~CustomViewFactory() override;
+
+  QUrl titleBarFilename() const override { return QUrl("qrc:/qt/qml/edu/pepp/top/DockTitleBar.qml"); }
+};
+CustomViewFactory::~CustomViewFactory() = default;
 
 #ifdef __EMSCRIPTEN__
 #include <emscripten.h>
@@ -152,6 +159,7 @@ int gui_main(const gui_args &args) {
   // flags.setFlag(KDDockWidgets::Config::Flag_DontUseUtilityFloatingWindows, true);
   flags |= KDDockWidgets::Config::Flag_HideTitleBarWhenTabsVisible;
   config.setFlags(flags);
+  config.setViewFactory(new CustomViewFactory());
   KDDockWidgets::QtQuick::Platform::instance()->setQmlEngine(&engine);
 
   // Don't block the event loop in WASM, especially important if wasm-exceptions are enabled.
