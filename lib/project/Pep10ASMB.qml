@@ -146,10 +146,13 @@ FocusScope {
     KDDW.DockingArea {
         id: dockWidgetArea
         anchors.fill: parent
-        uniqueName: "ASMBLayout"
+        // Need application-wide unique ID, otherwise opening a new project will confuse the global name resolution algorithm.
+        // TODO: Not gauranteed to be unique, but should be good enough for our purposes.
+        uniqueName: `${Math.ceil(Math.random() * 1_000_000_000).toString(16)}`
         KDDW.DockWidget {
             id: dock_source
-            uniqueName: "Source Editor"
+            title: "Source Editor"
+            uniqueName: `SourceEditor-${dockWidgetArea.uniqueName}`
             ColumnLayout {
                 anchors.fill: parent
                 ComboBox {
@@ -187,7 +190,8 @@ FocusScope {
         }
         KDDW.DockWidget {
             id: dock_listing
-            uniqueName: "Listing"
+            title: "Listing"
+            uniqueName: `Listing-${dockWidgetArea.uniqueName}`
             ColumnLayout {
                 anchors.fill: parent
                 ComboBox {
@@ -231,7 +235,8 @@ FocusScope {
         }
         KDDW.DockWidget {
             id: dock_object
-            uniqueName: "Object Code"
+            title: "Object Code"
+            uniqueName: `ObjectCode-${dockWidgetArea.uniqueName}`
             Text.ObjTextEditor {
                 id: objEdit
                 anchors.fill: parent
@@ -242,8 +247,8 @@ FocusScope {
         }
         KDDW.DockWidget {
             id: dock_symbol
-            uniqueName: "Symbol Table"
             title: qsTr(`Symbol Table: ${sourceSelector.currentText}`)
+            uniqueName: `SymbolTable-${dockWidgetArea.uniqueName}`
             SymTab.SymbolViewer {
                 id: symTab
                 anchors.fill: parent
@@ -253,7 +258,8 @@ FocusScope {
         }
         KDDW.DockWidget {
             id: dock_watch
-            uniqueName: qsTr(`Watch Expressions`)
+            title: qsTr(`Watch Expressions`)
+            uniqueName: `WatchExpressions-${dockWidgetArea.uniqueName}`
             Debug.WatchExpressions {
                 id: watchExpr
                 anchors.fill: parent
@@ -262,7 +268,8 @@ FocusScope {
         }
         KDDW.DockWidget {
             id: dock_breakpoints
-            uniqueName: qsTr(`Breakpoint Viewer`)
+            title: qsTr(`Breakpoint Viewer`)
+            uniqueName: `BreakpointViewer-${dockWidgetArea.uniqueName}`
             BreakpointViewer {
                 id: bpViewer
                 anchors.fill: parent
@@ -272,7 +279,8 @@ FocusScope {
         }
         KDDW.DockWidget {
             id: dock_input
-            uniqueName: "Batch Input"
+            title: "Batch Input"
+            uniqueName: `BatchInput-${dockWidgetArea.uniqueName}`
             IO.Labeled {
                 id: batchInput
                 anchors.fill: parent
@@ -293,7 +301,8 @@ FocusScope {
         }
         KDDW.DockWidget {
             id: dock_output
-            uniqueName: "Batch Output"
+            title: "Batch Output"
+            uniqueName: `BatchOutput-${dockWidgetArea.uniqueName}`
             IO.Labeled {
                 id: batchOutput
                 anchors.fill: parent
@@ -303,7 +312,8 @@ FocusScope {
         }
         KDDW.DockWidget {
             id: dock_cpu
-            uniqueName: "Register Dump"
+            title: "Register Dump"
+            uniqueName: `RegisterDump-${dockWidgetArea.uniqueName}`
             ColumnLayout {
                 anchors.fill: parent
                 property size kddockwidgets_min_size: Qt.size(registers.implicitWidth, registers.implicitHeight)
@@ -319,7 +329,8 @@ FocusScope {
         }
         KDDW.DockWidget {
             id: dock_hexdump
-            uniqueName: "Memory Dump"
+            title: "Memory Dump"
+            uniqueName: `MemoryDump-${dockWidgetArea.uniqueName}`
             Loader {
                 id: loader
                 anchors.fill: parent
@@ -350,7 +361,8 @@ FocusScope {
         }
         KDDW.DockWidget {
             id: dock_stack
-            uniqueName: "Stack Trace"
+            title: "Stack Trace"
+            uniqueName: `StackTrace-${dockWidgetArea.uniqueName}`
             Stack.StackTrace {
                 anchors.fill: parent
             }

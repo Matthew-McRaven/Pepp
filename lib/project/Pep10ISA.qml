@@ -34,7 +34,7 @@ FocusScope {
         dockWidgetArea.addDockWidget(dock_greencard, KDDW.KDDockWidgets.Location_OnRight, dockWidgetArea, Qt.size(gcwidth, parent.height - ioheight));
         dockWidgetArea.addDockWidget(dock_input, KDDW.KDDockWidgets.Location_OnBottom, dockWidgetArea, Qt.size(parent.width - memcolwidth, ioheight));
         dock_input.addDockWidgetAsTab(dock_output, PreserveCurrent);
-        dockWidgetArea.addDockWidget(dock_cpu, KDDW.KDDockWidgets.Location_OnRight, null, Qt.size(memcolwidth, registers.childrenRect.height));
+        dockWidgetArea.addDockWidget(dock_cpu, KDDW.KDDockWidgets.Location_OnRight, dockWidgetArea, Qt.size(memcolwidth, registers.childrenRect.height));
         dockWidgetArea.addDockWidget(dock_hexdump, KDDW.KDDockWidgets.Location_OnBottom, dock_cpu, Qt.size(memcolwidth, parent.height - registers.childrenRect.height));
         wrapper.needsDock = Qt.binding(() => false);
     }
@@ -53,12 +53,14 @@ FocusScope {
     KDDW.DockingArea {
         id: dockWidgetArea
         anchors.fill: parent
-
-        uniqueName: "ISA3Layout"
-
+        // Need application-wide unique ID, otherwise opening a new project will confuse the global name resolution algorithm.
+        // TODO: Not gauranteed to be unique, but should be good enough for our purposes.
+        uniqueName: `${Math.ceil(Math.random() * 1_000_000_000).toString(16)}`
         KDDW.DockWidget {
             id: dock_object
-            uniqueName: "Object Code"
+            title: "Object Code"
+            uniqueName: `ObjectCode-${dockWidgetArea.uniqueName}`
+
             Text.ObjTextEditor {
                 id: objEdit
                 anchors.fill: parent
@@ -69,7 +71,8 @@ FocusScope {
         }
         KDDW.DockWidget {
             id: dock_greencard
-            uniqueName: "Instructions"
+            title: "Instructions"
+            uniqueName: `Instructions-${dockWidgetArea.uniqueName}`
             Utils.GreencardView {
                 id: greencard
                 // property size kddockwidgets_min_size: Qt.size(300, 100)
@@ -82,7 +85,8 @@ FocusScope {
         }
         KDDW.DockWidget {
             id: dock_input
-            uniqueName: "Batch Input"
+            title: "Batch Input"
+            uniqueName: `BatchInput-${dockWidgetArea.uniqueName}`
             IO.Labeled {
                 id: batchInput
                 anchors.fill: parent
@@ -103,7 +107,8 @@ FocusScope {
         }
         KDDW.DockWidget {
             id: dock_output
-            uniqueName: "Batch Output"
+            title: "Batch Output"
+            uniqueName: `BatchOutput-${dockWidgetArea.uniqueName}`
             IO.Labeled {
                 id: batchOutput
                 anchors.fill: parent
@@ -113,7 +118,8 @@ FocusScope {
         }
         KDDW.DockWidget {
             id: dock_cpu
-            uniqueName: "Register Dump"
+            title: "Register Dump"
+            uniqueName: `RegisterDump-${dockWidgetArea.uniqueName}`
             ColumnLayout {
                 anchors.fill: parent
                 property size kddockwidgets_min_size: Qt.size(registers.implicitWidth, registers.implicitHeight)
@@ -129,7 +135,8 @@ FocusScope {
         }
         KDDW.DockWidget {
             id: dock_hexdump
-            uniqueName: "Memory Dump"
+            title: "Memory Dump"
+            uniqueName: `MemoryDump-${dockWidgetArea.uniqueName}`
             Loader {
                 id: loader
                 anchors.fill: parent
