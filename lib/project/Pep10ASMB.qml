@@ -57,32 +57,7 @@ FocusScope {
         project.updateGUI.connect(bpViewer.updateGUI);
         userAsmEdit.forceActiveFocus();
     }
-    // Will be called before project is changed on unload, so we can disconnect save-triggering signals.
     Component.onDestruction: {
-        userAsmEdit.editingFinished.disconnect(save);
-        osAsmEdit.editingFinished.disconnect(save);
-        if (project) {
-            userAsmEdit.editor.modifyLine.disconnect(project.onModifyUserSource);
-            osAsmEdit.editor.modifyLine.disconnect(project.onModifyOSSource);
-            userList.editor.modifyLine.disconnect(project.onModifyUserList);
-            osList.editor.modifyLine.disconnect(project.onModifyOSList);
-            project.errorsChanged.disconnect(displayErrors);
-            project.listingChanged.connect(fixListings);
-            project.overwriteEditors.disconnect(onOverwriteEditors);
-            project.modifyUserSource.disconnect(userAsmEdit.editor.onLineAction);
-            project.modifyOSSource.disconnect(osAsmEdit.editor.onLineAction);
-            project.modifyUserList.disconnect(userList.editor.onLineAction);
-            project.modifyOSList.disconnect(osList.editor.onLineAction);
-            project.clearListingBreakpoints.disconnect(userList.editor.onClearAllBreakpoints);
-            project.clearListingBreakpoints.disconnect(osList.editor.onClearAllBreakpoints);
-            project.requestSourceBreakpoints.disconnect(userAsmEdit.editor.onRequestAllBreakpoints);
-            project.requestSourceBreakpoints.disconnect(osAsmEdit.editor.onRequestAllBreakpoints);
-            project.switchTo.disconnect(wrapper.onSwitchTo);
-            project.updateGUI.disconnect(watchExpr.updateGUI);
-            project.updateGUI.disconnect(bpViewer.updateGUI);
-        }
-        onProjectChanged.disconnect(fixListings);
-
         wrapper.actions.debug.start.triggered.disconnect(wrapper.requestModeSwitchToDebugger);
         wrapper.actions.build.execute.triggered.disconnect(wrapper.requestModeSwitchToDebugger);
     }
