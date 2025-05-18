@@ -23,6 +23,13 @@
 #include <QQmlContext>
 #include <QQuickStyle>
 #include <QTimer>
+#include <kddockwidgets/Config.h>
+#include <kddockwidgets/core/DockRegistry.h>
+#include <kddockwidgets/core/FloatingWindow.h>
+#include <kddockwidgets/core/TitleBar.h>
+#include <kddockwidgets/qtquick/Platform.h>
+#include <kddockwidgets/qtquick/views/DockWidget.h>
+#include <kddockwidgets/qtquick/views/MainWindow.h>
 #include "../iconprovider.hpp"
 #include "help/about/version.hpp"
 //  Testing only
@@ -31,6 +38,7 @@
 #include "settings/settings.hpp"
 
 Q_IMPORT_PLUGIN(PeppLibPlugin)
+// Q_IMPORT_PLUGIN(KDDockWidgetsPlugin);
 
 struct default_data : public gui_globals {
   default_data() = default;
@@ -111,7 +119,6 @@ int gui_main(const gui_args &args) {
 
   // TODO: connect to PreferenceModel, read field corresponding to QPalette (Disabled, Text) field.
   engine.addImageProvider(QLatin1String("icons"), new PreferenceAwareImageProvider);
-
   static const auto default_entry = u"qrc:/qt/qml/Pepp/src/main.qml"_s;
   const QUrl url(args.QMLEntry.isEmpty() ? default_entry : args.QMLEntry);
 #ifdef __EMSCRIPTEN__
@@ -126,10 +133,31 @@ int gui_main(const gui_args &args) {
         if (!obj && url == objUrl) QCoreApplication::exit(-1);
       },
       Qt::QueuedConnection);
-  engine.load(url);
+  // Configure dock widgets to use QML
+  KDDockWidgets::initFrontend(KDDockWidgets::FrontendType::QtQuick);
+  auto &config = KDDockWidgets::Config::self();
+
+  // I dislike floating windows. This prevents windows from staying in a floating state after being dragged.
+  KDDockWidgets::Config::self().setDragEndedFunc([] {
+    const auto floatingWindows = KDDockWidgets::DockRegistry::self()->floatingWindows();
+    for (auto fw : floatingWindows) {
+      if (!fw->beingDeleted()) fw->titleBar()->onFloatClicked();
+    }
+  });
+  // Make it impossible for a docking widget to be closed / maximized / floated.
+  auto flags = config.flags() | KDDockWidgets::Config::Flag_TitleBarIsFocusable;
+  flags.setFlag(KDDockWidgets::Config::Flag_TabsHaveCloseButton, false);
+  flags.setFlag(KDDockWidgets::Config::Flag_TitleBarHasMaximizeButton, false);
+  flags.setFlag(KDDockWidgets::Config::Flag_DoubleClickMaximizes, false);
+  flags.setFlag(KDDockWidgets::Config::Flag_DontUseUtilityFloatingWindows, true);
+  flags |= KDDockWidgets::Config::Flag_HideTitleBarWhenTabsVisible;
+  config.setFlags(flags);
+  KDDockWidgets::QtQuick::Platform::instance()->setQmlEngine(&engine);
+
   // Don't block the event loop in WASM, especially important if wasm-exceptions are enabled.
   // See: https://doc.qt.io/qt-6/wasm.html#wasm-exceptions
   // See: https://doc.qt.io/qt-6/wasm.html#application-startup-and-the-event-loop
+  engine.load(url);
 #ifdef __EMSCRIPTEN__
   return 0;
 #else

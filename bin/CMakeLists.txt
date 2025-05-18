@@ -2,7 +2,6 @@ file(GLOB_RECURSE sources_and_tests CONFIGURE_DEPENDS "${CMAKE_CURRENT_LIST_DIR}
 file(GLOB_RECURSE tests CONFIGURE_DEPENDS "test/*.cpp" "test/*.hpp")
 list(APPEND sources ${sources_and_tests})
 list(REMOVE_ITEM sources ${tests})
-
 # Set icon for the application if it exists.
 if (EXISTS "${PROJECT_DATA_DIR}/app_icon/icon.ico" AND WIN32)
     LIST(APPEND sources "${PROJECT_DATA_DIR}/app_icon/res.rc")
@@ -17,12 +16,14 @@ else ()
 endif ()
 
 qt6_add_executable(pepp ${sources} ${guis} ${CMAKE_SOURCE_DIR}/data/icons/icons.qrc)
-qt_import_qml_plugins(pepp)
+
+
 target_link_libraries(pepp PRIVATE cli catch Qt6::Core Qt6::Gui
     Qt::Qml Qt::Quick  Qt::QuickControls2 Qt6::Svg Qt6::Xml Qt::Widgets
-    test-lib-all pepp-lib pepp-libplugin KDAB::kddockwidgets
+    test-lib-all pepp-lib pepp-libplugin KDAB::kddockwidgets kddockwidgetsplugin
 )
-qt_import_plugins(pepp INCLUDE pepp-libplugin)
+qt_import_qml_plugins(pepp)
+qt_import_plugins(pepp INCLUDE pepp-libplugin kddockwidgetsplugin)
 target_compile_definitions(pepp PRIVATE "INCLUDE_GUI=1")
 # Must occur before install scripts, otherwise MacOS builds will fail.
 set_target_properties(pepp PROPERTIES

@@ -22,9 +22,8 @@ add_subdirectory(scintilla)
 
 set(KDDockWidgets_FRONTENDS "qtquick" CACHE STRING "" FORCE)
 set(KDDW_FRONTEND_QTQUICK ON CACHE BOOL "" FORCE)
-if(EMSCRIPTEN)
-    set(KDDockWidgets_STATIC TRUE CACHE BOOL "" FORCE)
-endif()
+set(KDDockWidgets_STATIC TRUE CACHE BOOL "" FORCE)
+set(KDDockWidgets_QML_MODULE TRUE CACHE BOOL "" FORCE)
 
 add_subdirectory(KDDockWidgets/)
 
