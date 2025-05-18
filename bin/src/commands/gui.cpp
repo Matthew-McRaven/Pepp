@@ -156,6 +156,7 @@ int gui_main(const gui_args &args) {
   flags.setFlag(KDDockWidgets::Config::Flag_TabsHaveCloseButton, false);
   flags.setFlag(KDDockWidgets::Config::Flag_TitleBarHasMaximizeButton, false);
   flags.setFlag(KDDockWidgets::Config::Flag_DoubleClickMaximizes, false);
+  flags.setFlag(KDDockWidgets::Config::Flag_DisableDoubleClick, true);
   // flags.setFlag(KDDockWidgets::Config::Flag_DontUseUtilityFloatingWindows, true);
   flags |= KDDockWidgets::Config::Flag_HideTitleBarWhenTabsVisible;
   config.setFlags(flags);
