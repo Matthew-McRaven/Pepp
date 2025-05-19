@@ -26,7 +26,7 @@
 #include "toolchain/pas/operations/pepp/size.hpp"
 
 namespace pas::ops::pepp {
-QString bytesToObject(const QList<quint8> &bytes, quint8 bytesPerLine = 8);
+QString bytesToObject(const QList<quint8> &bytes, quint8 bytesPerLine = 8, bool includeZZ = true);
 template <typename ISA> QList<quint8> toBytes(const pas::ast::Node &node);
 namespace detail {
 template <typename ISA> quint16 nodeToBytes(const pas::ast::Node &node, bits::span<quint8> dest);

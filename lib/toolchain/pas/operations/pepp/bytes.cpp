@@ -77,15 +77,16 @@ quint16 pas::ops::pepp::detail::directiveToBytes(const ast::Node &node, bits::sp
   else return 0;
 }
 
-QString pas::ops::pepp::bytesToObject(const QList<quint8> &bytes, quint8 bytesPerLine) {
+QString pas::ops::pepp::bytesToObject(const QList<quint8> &bytes, quint8 bytesPerLine, bool includeZZ) {
   static const char *term = "zz";
   static const bits::span<const char> termSpan = {term, 3};
-  auto obj = QList<char>((bytes.size()) * 3 + 2);
+  // Should be -1 if not zz because we need to remove trailing space, but I don't want to complicate the algorithm.
+  auto obj = QList<char>((bytes.size()) * 3 + (includeZZ ? 2 : 0));
   auto objSpan = std::span<char>{obj.data(), std::size_t(obj.size())};
   QList<bits::SeparatorRule> rules = {{.skipFirst = true, .separator = '\n', .modulus = bytesPerLine},
                                       {.skipFirst = false, .separator = ' ', .modulus = 1}};
   auto it = bits::bytesToAsciiHex(objSpan, {bytes.constData(), static_cast<std::size_t>(bytes.size())}, rules);
 
-  bits::memcpy(objSpan.subspan(it), termSpan);
+  if (includeZZ) bits::memcpy(objSpan.subspan(it), termSpan);
   return QString::fromLocal8Bit(obj.data(), obj.size());
 }
