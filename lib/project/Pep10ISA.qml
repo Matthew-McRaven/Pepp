@@ -21,6 +21,29 @@ FocusScope {
     function syncEditors() {
         project ? save() : null;
     }
+    onModeChanged: modeVisibilityChange()
+
+    function modeVisibilityChange() {
+        // Don't allow triggering before initial docking, otherwise the layout can be 1) slow and 2) wrong.
+        if (needsDock) {
+            return;
+        } else if (mode === "editor") {
+            dock_object.open();
+            dock_greencard.open();
+            dock_input.open();
+            dock_output.close();
+            dock_cpu.close();
+            dock_hexdump.open();
+        } else if (mode === "debugger") {
+            dock_object.open();
+            dock_greencard.close();
+            dock_input.open();
+            dock_output.open();
+            dock_cpu.open();
+            dock_hexdump.open();
+        }
+    }
+
     // Call when the height, width have been finalized.
     // Otherwise, we attempt to layout when height/width == 0, and all our requests are ignored.
     function dock() {
@@ -40,10 +63,11 @@ FocusScope {
         dockWidgetArea.addDockWidget(dock_object, KDDW.KDDockWidgets.Location_OnLeft, dockWidgetArea, Qt.size(parent.width - greencard_width - regmemcol_width, parent.height - io_height));
         dockWidgetArea.addDockWidget(dock_greencard, KDDW.KDDockWidgets.Location_OnRight, dockWidgetArea, Qt.size(greencard_width, parent.height - io_height));
         dockWidgetArea.addDockWidget(dock_input, KDDW.KDDockWidgets.Location_OnBottom, dockWidgetArea, Qt.size(parent.width - regmemcol_width, io_height));
-        dock_input.addDockWidgetAsTab(dock_output, PreserveCurrent);
+        dock_input.addDockWidgetAsTab(dock_output, StartHidden);
         dockWidgetArea.addDockWidget(dock_cpu, KDDW.KDDockWidgets.Location_OnRight, dockWidgetArea, Qt.size(regmemcol_width, reg_height));
         dockWidgetArea.addDockWidget(dock_hexdump, KDDW.KDDockWidgets.Location_OnBottom, dock_cpu, Qt.size(regmemcol_width, memdump_height));
         wrapper.needsDock = Qt.binding(() => false);
+        modeVisibilityChange();
     }
 
     Component.onCompleted: {

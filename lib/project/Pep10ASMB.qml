@@ -21,7 +21,39 @@ FocusScope {
     NuAppSettings {
         id: settings
     }
+    onModeChanged: modeVisibilityChange()
 
+    function modeVisibilityChange() {
+        // Don't allow triggering before initial docking, otherwise the layout can be 1) slow and 2) wrong.
+        if (needsDock) {
+            return;
+        } else if (mode === "editor") {
+            dock_source.open();
+            dock_listing.close();
+            dock_input.open();
+            dock_output.close();
+            dock_object.close();
+            dock_symbol.open();
+            dock_watch.close();
+            dock_breakpoints.close();
+            dock_cpu.close();
+            dock_stack.close();
+            dock_hexdump.close();
+        } else if (mode === "debugger") {
+            dock_source.close();
+            dock_listing.open();
+            dock_input.open();
+            dock_output.open();
+            dock_object.open();
+            dock_symbol.open();
+            dock_watch.open();
+            dock_breakpoints.open();
+            dock_cpu.open();
+            // Most recently opened tab is made active, so open hex dump last.
+            dock_stack.open();
+            dock_hexdump.open();
+        }
+    }
     // Call when the height, width have been finalized.
     // Otherwise, we attempt to layout when height/width == 0, and all our requests are ignored.
     function dock() {
@@ -53,6 +85,7 @@ FocusScope {
         dockWidgetArea.addDockWidget(dock_hexdump, KDDW.KDDockWidgets.Location_OnBottom, dock_cpu, Qt.size(regmemcol_width, memdump_height));
         dock_hexdump.addDockWidgetAsTab(dock_stack, PreserveCurrent);
         wrapper.needsDock = Qt.binding(() => false);
+        modeVisibilityChange();
     }
     Component.onCompleted: {
         // Must connect and disconnect manually, otherwise project may be changed underneath us, and "save" targets wrong project.
