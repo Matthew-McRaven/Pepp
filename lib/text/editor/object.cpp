@@ -20,11 +20,11 @@
 ObjectUtilities::ObjectUtilities(QObject *parent) : QObject(parent) {}
 
 bool ObjectUtilities::valid(int key) {
-  static const QSet<int> valids = {
-      Qt::Key_0,    Qt::Key_1, Qt::Key_2,         Qt::Key_3,      Qt::Key_4,    Qt::Key_5,     Qt::Key_6,
-      Qt::Key_7,    Qt::Key_8, Qt::Key_9,         Qt::Key_A,      Qt::Key_B,    Qt::Key_C,     Qt::Key_D,
-      Qt::Key_E,    Qt::Key_F, Qt::Key_Backspace, Qt::Key_Delete, Qt::Key_Left, Qt::Key_Right, Qt::Key_Up,
-      Qt::Key_Down, Qt::Key_Z, Qt::Key_Space,     Qt::Key_Return, Qt::Key_Enter};
+  static const auto valids =
+      QSet<int>{Qt::Key_0,    Qt::Key_1,     Qt::Key_2,         Qt::Key_3,      Qt::Key_4,    Qt::Key_5,     Qt::Key_6,
+                Qt::Key_7,    Qt::Key_8,     Qt::Key_9,         Qt::Key_A,      Qt::Key_B,    Qt::Key_C,     Qt::Key_D,
+                Qt::Key_E,    Qt::Key_F,     Qt::Key_Backspace, Qt::Key_Delete, Qt::Key_Left, Qt::Key_Right, Qt::Key_Up,
+                Qt::Key_Down, Qt::Key_Space, Qt::Key_Return,    Qt::Key_Enter};
   return valids.contains(key);
 }
 
