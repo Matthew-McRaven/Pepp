@@ -19,6 +19,8 @@ target_include_directories(zpp_bits INTERFACE zpp_bits)
 
 add_subdirectory(lru)
 add_subdirectory(scintilla)
+add_subdirectory(fmt)
+add_subdirectory(spdlog)
 
 set(KDDockWidgets_FRONTENDS "qtquick" CACHE STRING "" FORCE)
 set(KDDW_FRONTEND_QTQUICK ON CACHE BOOL "" FORCE)
