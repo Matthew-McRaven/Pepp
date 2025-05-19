@@ -41,7 +41,7 @@ qt_add_qml_module(pepp-lib
         OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/edu/pepp"
 )
 
-target_link_libraries(pepp-lib PUBLIC Qt6::Core Qt6::Gui Qt6::Quick Qt6::Sql antlr4_shared elfio lru-cache scintilla_qt zpp_bits)
+target_link_libraries(pepp-lib PUBLIC Qt6::Core Qt6::Gui Qt6::Quick Qt6::Sql antlr4_shared elfio lru-cache scintilla_qt zpp_bits fmt spdlog)
 # Will fail to find hpp files without this, see https://bugreports.qt.io/browse/QTBUG-101146.
 get_target_property(ANTLR4_INCLUDE_DIR antlr4_shared INCLUDE_DIRECTORIES)
 target_include_directories(pepp-lib PUBLIC ${CMAKE_CURRENT_BINARY_DIR} ${ANTLR4_INCLUDE_DIR})

@@ -7,3 +7,9 @@
 [submodule "3rd-party/KDDockWidgets"]
 	path = 3rd-party/KDDockWidgets
 	url = https://github.com/Matthew-McRaven/KDDockWidgets
+[submodule "3rd-party/fmt"]
+	path = 3rd-party/fmt
+	url = https://github.com/fmtlib/fmt.git
+[submodule "3rd-party/spdlog"]
+	path = 3rd-party/spdlog
+	url = https://github.com/gabime/spdlog.git
