@@ -20,7 +20,7 @@ import edu.pepp 1.0 as Pepp
 
 ScrollView {
     id: wrapper
-    property int bytesPerRow: 16
+    property int bytesPerRow: 8
     property alias readOnly: editor.readOnly
     property alias text: editor.text
     signal editingFinished(string text)

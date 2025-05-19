@@ -536,7 +536,7 @@ bool Pep_ISA::onLoadObject() {
 
 bool Pep_ISA::onFormatObject() {
   ObjectUtilities utils;
-  utils.setBytesPerRow(16);
+  utils.setBytesPerRow(8);
   auto fmt = utils.format(_objectCodeText, true);
   setObjectCodeText(fmt);
   return true;
@@ -978,7 +978,7 @@ bool Pep_ASMB::onAssemble(bool doLoad) {
   emit listingChanged();
 
   auto userBytes = helper.bytes(false);
-  QString objectCodeText = pas::ops::pepp::bytesToObject(userBytes, 16);
+  QString objectCodeText = pas::ops::pepp::bytesToObject(userBytes, 8);
 
   _system->reconfigure(*elf);
   if (doLoad) _system->bus()->write(0, {userBytes.data(), std::size_t(userBytes.length())}, gs);
@@ -1034,7 +1034,7 @@ bool Pep_ASMB::onAssembleThenFormat() {
     auto source = helper.formattedSource(false);
     setUserAsmText(source.join("\n"));
     auto userBytes = helper.bytes(false);
-    QString objectCodeText = pas::ops::pepp::bytesToObject(userBytes, 16);
+    QString objectCodeText = pas::ops::pepp::bytesToObject(userBytes, 8);
     setObjectCodeText(objectCodeText);
   }
   emit requestSourceBreakpoints();
