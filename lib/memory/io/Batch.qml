@@ -9,13 +9,11 @@ ColumnLayout {
         id: settings
     }
 
-    property alias label: label.text
     property alias text: area.text
-    property real minimumHeight: label.height + scrollViewMinHeight
+    property alias readOnly: area.readOnly
+    property real minimumHeight: scrollViewMinHeight
     property real scrollViewMinHeight: 100
-    Label {
-        id: label
-    }
+
     ScrollView {
         id: scrollView
         Layout.minimumHeight: root.scrollViewMinHeight

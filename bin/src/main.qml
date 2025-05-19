@@ -26,6 +26,7 @@ import "qrc:/qt/qml/edu/pepp/settings" as AppSettings
 import "qrc:/qt/qml/edu/pepp/help/builtins" as Builtins
 import "qrc:/qt/qml/edu/pepp/menu" as Menu
 import edu.pepp 1.0
+import com.kdab.dockwidgets 2 as KDDW
 
 ApplicationWindow {
     id: window
@@ -92,13 +93,12 @@ ApplicationWindow {
         help.switchToMode.connect(sidebar.switchToMode);
         help.setCharIn.connect(i => setProjectCharIn(i));
         help.renameCurrentProject.connect(pm.renameCurrentProject);
-        currentProjectChanged.connect(projectLoader.onCurrentProjectChanged);
 
         actions.edit.prefs.triggered.connect(preferencesDialog.open);
         actions.help.about.triggered.connect(aboutDialog.open);
         actions.view.fullscreen.triggered.connect(onToggleFullScreen);
         actions.file.save.triggered.connect(() => {
-            preAssemble();
+            syncEditors();
             pm.onSave(currentProjectRow);
         });
         actions.appdev.reloadFigures.triggered.connect(help.reloadFiguresRequested);
@@ -114,14 +114,9 @@ ApplicationWindow {
         id: menuFont
     }
     function syncEditors() {
-        if (projectLoader.item)
-            projectLoader.item.syncEditors();
-    }
-
-    // Helper to propogate to current delegate.
-    function preAssemble() {
-        if (projectLoader.item)
-            projectLoader.item.preAssemble();
+        const loader = delegateRepeater.itemAt(innerLayout.currentIndex);
+        if (loader.item)
+            loader.item.syncEditors();
     }
 
     Menu.Actions {
@@ -132,7 +127,6 @@ ApplicationWindow {
 
     signal message(string message)
     footer: Label {
-        anchors.left: sidebar.right
         anchors.leftMargin: 10
         text: "test message"
         Timer {
@@ -162,7 +156,7 @@ ApplicationWindow {
         anchors.left: parent.left
         anchors.right: sidebar.right
         anchors.top: parent.top
-        anchors.bottom: footer.bottom
+        anchors.bottom: parent.bottom
         color: palette.shadow
     }
 
@@ -199,20 +193,46 @@ ApplicationWindow {
             abstraction: currentProject?.abstraction ?? Abstraction.NONE
             architecture: currentProject?.architecture ?? Architecture.NONE
         }
-        Loader {
-            id: projectLoader
+        StackLayout {
+            id: innerLayout
+            currentIndex: projectSelect.currentProjectRow
             Layout.fillHeight: true
             Layout.fillWidth: true
-            sourceComponent: null
-            // Must unload the previous component to properly trigger save.
-            function onCurrentProjectChanged() {
-                sourceComponent = null;
-                sourceComponent = window.currentProject?.delegate;
-            }
-            Connections {
-                target: projectLoader.item
-                function onRequestModeSwitchTo(mode) {
-                    sidebar.switchToMode(mode);
+            Repeater {
+                id: delegateRepeater
+                model: pm
+                delegate: Loader {
+                    id: projectLoader
+                    Layout.fillHeight: true
+                    Layout.fillWidth: true
+                    Component.onCompleted: {
+                        const delegate = model.project.delegatePath();
+                        setSource(delegate, {
+                            "project": model.project,
+                            "mode": Qt.binding(() => window.mode),
+                            "actions": window.actionRef
+                        });
+                        // Do not attempt to put docking widgets in main area until size is non-0.
+                        // Instead, listen for updates in attemptDock, and perform docking as soon as we have real sizes.
+                        widthChanged.connect(attemptDock);
+                        heightChanged.connect(attemptDock);
+                    }
+                    function attemptDock() {
+                        if (height == 0 || width == 0) {} else if (item !== null && item.needsDock) {
+                            item.dock();
+                            // Once docked, stop handling docking attempts for each resize.
+                            widthChanged.disconnect(attemptDock);
+                            heightChanged.disconnect(attemptDock);
+                        }
+                    }
+
+                    Connections {
+                        target: projectLoader.item
+                        enabled: model.row == projectSelect.currentProjectRow
+                        function onRequestModeSwitchTo(mode) {
+                            sidebar.switchToMode(mode);
+                        }
+                    }
                 }
             }
         }
@@ -233,44 +253,6 @@ ApplicationWindow {
                 // TODO: update loader delegate for selected mode.
                 break;
             }
-        }
-    }
-
-    // Helpers to render central component via Loader.
-    Component {
-        id: pep10isaComponent
-        Project.Pep10ISA {
-            project: window.currentProject
-            anchors.fill: parent
-            mode: window.mode
-            actions: window.actionRef
-        }
-    }
-    Component {
-        id: pep9isaComponent
-        Project.Pep10ISA {
-            project: window.currentProject
-            anchors.fill: parent
-            mode: window.mode
-            actions: window.actionRef
-        }
-    }
-    Component {
-        id: pep10asmbComponent
-        Project.Pep10ASMB {
-            project: window.currentProject
-            anchors.fill: parent
-            mode: window.mode
-            actions: window.actionRef
-        }
-    }
-    Component {
-        id: pep9asmbComponent
-        Project.Pep10ASMB {
-            project: window.currentProject
-            anchors.fill: parent
-            mode: window.mode
-            actions: window.actionRef
         }
     }
 

@@ -7,8 +7,7 @@ QtObject {
     required property var project
     property bool dark: window.palette.text.hslLightness < 0.5
     function updateNativeText(obj) {
-        obj.nativeText = Qt.binding(() => SequenceConverter.toNativeText(
-                                        obj.shortcut))
+        obj.nativeText = Qt.binding(() => SequenceConverter.toNativeText(obj.shortcut));
     }
 
     readonly property var file: QtObject {
@@ -91,8 +90,7 @@ QtObject {
             icon.source: `image://icons/file/cut${dark ? '' : '_dark'}.svg`
             shortcut: StandardKey.Cut
             onShortcutChanged: updateNativeText(this)
-            enabled: !!activeFocusItem && !!activeFocusItem["cut"]
-            && (!activeFocusItem.readOnly ?? true)
+            enabled: !!activeFocusItem && !!activeFocusItem["cut"] && (!activeFocusItem.readOnly ?? true)
             onTriggered: activeFocusItem.cut()
         }
         readonly property var paste: Action {
@@ -101,8 +99,7 @@ QtObject {
             icon.source: `image://icons/file/paste${dark ? '' : '_dark'}.svg`
             shortcut: StandardKey.Paste
             onShortcutChanged: updateNativeText(this)
-            enabled: !!activeFocusItem && !!activeFocusItem["paste"]
-            && (!activeFocusItem.readOnly ?? true)
+            enabled: !!activeFocusItem && !!activeFocusItem["paste"] && (!activeFocusItem.readOnly ?? true)
             onTriggered: activeFocusItem.paste()
         }
         readonly property var prefs: Action {
@@ -116,8 +113,8 @@ QtObject {
             enabled: project?.allowedDebugging & DebugEnableFlags.LoadObject
             property string nativeText: ""
             onTriggered: {
-                window.syncEditors()
-                project.onFormatObject()
+                window.syncEditors();
+                project.onFormatObject();
             }
             text: "&Format Object Code"
             icon.source: "image://icons/blank.svg"
@@ -128,8 +125,8 @@ QtObject {
             enabled: project?.allowedDebugging & DebugEnableFlags.LoadObject
             property string nativeText: ""
             onTriggered: {
-                window.syncEditors()
-                project.onLoadObject()
+                window.syncEditors();
+                project.onLoadObject();
             }
             text: qsTr("&Load Object Code")
             icon.source: `image://icons/build/flash${enabled ? '' : '_disabled'}${dark ? '' : '_dark'}.svg`
@@ -141,8 +138,8 @@ QtObject {
             property string nativeText: ""
             onTriggered: {
                 // New editor does not lose focus before "assemble" is triggered, so we must save manually.
-                window.preAssemble()
-                project.onAssemble()
+                window.syncEditors();
+                project.onAssemble();
             }
             text: qsTr("&Assemble")
             icon.source: `image://icons/build/build${enabled ? '' : '_disabled'}${dark ? '' : '_dark'}.svg`
@@ -154,8 +151,8 @@ QtObject {
             property string nativeText: ""
             onTriggered: {
                 // New editor does not lose focus before "assemble" is triggered, so we must save manually.
-                window.preAssemble()
-                project.onAssembleThenLoad()
+                window.syncEditors();
+                project.onAssembleThenLoad();
             }
             text: qsTr("Assemble &Load Object Code")
             icon.source: `image://icons/build/flash${enabled ? '' : '_disabled'}${dark ? '' : '_dark'}.svg`
@@ -167,8 +164,8 @@ QtObject {
             property string nativeText: ""
             onTriggered: {
                 // New editor does not lose focus before "assemble" is triggered, so we must save manually.
-                window.preAssemble()
-                project.onAssembleThenFormat()
+                window.syncEditors();
+                project.onAssembleThenFormat();
             }
             text: qsTr("&Format Assembly Code")
             // Use blank icon to force menu items to line up.
@@ -180,8 +177,8 @@ QtObject {
             property string nativeText: ""
             onTriggered: {
                 // New editor does not lose focus before "assemble" is triggered, so we must save manually.
-                window.preAssemble()
-                project.onExecute()
+                window.syncEditors();
+                project.onExecute();
             }
             text: qsTr("&Execute")
             icon.source: `image://icons/debug/start_normal${enabled ? '' : '_disabled'}${dark ? '' : '_dark'}.svg`
@@ -196,8 +193,8 @@ QtObject {
             property string nativeText: ""
             onTriggered: {
                 // New editor does not lose focus before "assemble" is triggered, so we must save manually.
-                window.preAssemble()
-                project.onDebuggingStart()
+                window.syncEditors();
+                project.onDebuggingStart();
             }
             text: qsTr("Start &Debugging")
             icon.source: `image://icons/debug/start_debug${enabled ? '' : '_disabled'}${dark ? '' : '_dark'}.svg`

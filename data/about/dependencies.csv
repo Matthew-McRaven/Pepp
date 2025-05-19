@@ -13,3 +13,4 @@ Scintilla,https://www.scintilla.org/,MIT License,MIT,:/about/dep/scintilla.txt, 
 SciTEQt,https://github.com/mneuroth/SciTEQt,MIT License,MIT,:/about/dep/scintilla.txt, 1
 Courier Prime,https://github.com/quoteunquoteapps/CourierPrime,SIL Open Font License 1.1,OFL-1.1,:/about/dep/ofl-prime.txt, 0
 Monaspace,https://monaspace.githubnext.com,SIL Open Font License 1.1,OFL-1.1,:/about/dep/ofl-mona.txt, 0
+KDDockWidgets,https://github.com/KDAB/KDDockWidgets,GNU General Public License v3.0 only,GPL-3.0-only,:/about/dep/kddw.txt, 0

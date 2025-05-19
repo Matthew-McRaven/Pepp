@@ -37,9 +37,9 @@ const auto fmt = QStringLiteral("Project %1");
 const auto fmt = QStringLiteral("Unnamed %1");
 #endif
 
-Pep_ISA *ProjectModel::pep10ISA(QVariant delegate) {
+Pep_ISA *ProjectModel::pep10ISA() {
   static const project::Environment env{.arch = pepp::Architecture::PEP10, .level = pepp::Abstraction::ISA3};
-  auto ptr = std::make_unique<Pep_ISA>(env, delegate, nullptr);
+  auto ptr = std::make_unique<Pep_ISA>(env, nullptr);
   auto ret = &*ptr;
   QQmlEngine::setObjectOwnership(ret, QQmlEngine::CppOwnership);
   beginInsertRows(QModelIndex(), _projects.size(), _projects.size());
@@ -49,9 +49,9 @@ Pep_ISA *ProjectModel::pep10ISA(QVariant delegate) {
   return ret;
 }
 
-Pep_ISA *ProjectModel::pep9ISA(QVariant delegate) {
+Pep_ISA *ProjectModel::pep9ISA() {
   static const project::Environment env{.arch = pepp::Architecture::PEP9, .level = pepp::Abstraction::ISA3};
-  auto ptr = std::make_unique<Pep_ISA>(env, delegate, nullptr);
+  auto ptr = std::make_unique<Pep_ISA>(env, nullptr);
   auto ret = &*ptr;
   QQmlEngine::setObjectOwnership(ret, QQmlEngine::CppOwnership);
   beginInsertRows(QModelIndex(), _projects.size(), _projects.size());
@@ -61,9 +61,9 @@ Pep_ISA *ProjectModel::pep9ISA(QVariant delegate) {
   return ret;
 }
 
-Pep_ASMB *ProjectModel::pep10ASMB(QVariant delegate, pepp::Abstraction abstraction) {
+Pep_ASMB *ProjectModel::pep10ASMB(pepp::Abstraction abstraction) {
   project::Environment env{.arch = pepp::Architecture::PEP10, .level = abstraction};
-  auto ptr = std::make_unique<Pep_ASMB>(env, delegate, nullptr);
+  auto ptr = std::make_unique<Pep_ASMB>(env, nullptr);
   auto ret = &*ptr;
   QQmlEngine::setObjectOwnership(ret, QQmlEngine::CppOwnership);
   beginInsertRows(QModelIndex(), _projects.size(), _projects.size());
@@ -73,9 +73,9 @@ Pep_ASMB *ProjectModel::pep10ASMB(QVariant delegate, pepp::Abstraction abstracti
   return ret;
 }
 
-Pep_ASMB *ProjectModel::pep9ASMB(QVariant delegate) {
+Pep_ASMB *ProjectModel::pep9ASMB() {
   project::Environment env{.arch = pepp::Architecture::PEP9, .level = pepp::Abstraction::ASMB5};
-  auto ptr = std::make_unique<Pep_ASMB>(env, delegate, nullptr);
+  auto ptr = std::make_unique<Pep_ASMB>(env, nullptr);
   auto ret = &*ptr;
   QQmlEngine::setObjectOwnership(ret, QQmlEngine::CppOwnership);
   beginInsertRows(QModelIndex(), _projects.size(), _projects.size());
@@ -89,6 +89,15 @@ bool ProjectModel::removeRows(int row, int count, const QModelIndex &parent) {
   if (row < 0 || row + count > _projects.size() || count <= 0) return false;
   // row+count is one past the last element to be removed.
   beginRemoveRows(QModelIndex(), row, row + count - 1);
+  // Take all pointers from project, and delete them at some point in the future rather than now.
+  // This avoids a CTD where the project's data has already been deleted but that data is still bound to something in
+  // QML.
+  for (int i = 0; i < count; ++i) {
+    auto *ptr = _projects[row].impl.release();
+    ptr->setParent(this);
+    // Will be deleted after re-entering event loop, which will be after the model is no longer in use.
+    ptr->deleteLater();
+  }
   _projects.erase(_projects.begin() + row, _projects.begin() + row + count);
   endRemoveRows();
   emit rowCountChanged(_projects.size());

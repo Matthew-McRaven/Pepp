@@ -265,9 +265,9 @@ template <typename CPU, typename ISA> FlagModel *flag_model(targets::isa::System
   return ret;
 }
 
-Pep_ISA::Pep_ISA(project::Environment env, QVariant delegate, QObject *parent, bool initializeSystem)
-    : QObject(parent), _env(env), _delegate(delegate), _tb(QSharedPointer<sim::trace2::InfiniteBuffer>::create()),
-      _memory(nullptr), _registers(nullptr), _flags(nullptr) {
+Pep_ISA::Pep_ISA(project::Environment env, QObject *parent, bool initializeSystem)
+    : QObject(parent), _env(env), _tb(QSharedPointer<sim::trace2::InfiniteBuffer>::create()), _memory(nullptr),
+      _registers(nullptr), _flags(nullptr) {
   _system.clear();
   assert(_system.isNull());
   _dbg = QSharedPointer<pepp::debug::Debugger>::create(this);
@@ -319,6 +319,8 @@ project::Environment Pep_ISA::env() const {
 pepp::Architecture Pep_ISA::architecture() const { return _env.arch; }
 
 pepp::Abstraction Pep_ISA::abstraction() const { return _env.level; }
+
+QString Pep_ISA::delegatePath() const { return "qrc:/qt/qml/edu/pepp/project/Pep10ISA.qml"; }
 
 ARawMemory *Pep_ISA::memory() const { return _memory; }
 
@@ -745,6 +747,7 @@ void Pep_ISA::prepareSim() {
   auto charOut = _system->output("charOut");
   charOut->clear(0);
   pwrOff->clear(0);
+  emit charOutChanged();
 
   auto charIn = _system->input("charIn");
   charIn->clear(0);
@@ -819,8 +822,7 @@ project::DebugEnableFlags::DebugEnableFlags(QObject *parent) : QObject(parent) {
 
 project::StepEnableFlags::StepEnableFlags(QObject *parent) : QObject(parent) {}
 
-Pep_ASMB::Pep_ASMB(project::Environment env, QVariant delegate, QObject *parent)
-    : Pep_ISA(env, delegate, parent, false) {
+Pep_ASMB::Pep_ASMB(project::Environment env, QObject *parent) : Pep_ISA(env, parent, false) {
   using enum pepp::Architecture;
   using enum pepp::Abstraction;
   switch (_env.arch) {
@@ -860,6 +862,8 @@ Pep_ASMB::Pep_ASMB(project::Environment env, QVariant delegate, QObject *parent)
   _dbg->line_maps->addScope("user");
   _dbg->line_maps->addScope("os");
 }
+
+QString Pep_ASMB::delegatePath() const { return "qrc:/qt/qml/edu/pepp/project/Pep10ASMB.qml"; }
 
 void Pep_ASMB::set(int abstraction, QString value) {
   using enum pepp::Abstraction;
@@ -1122,6 +1126,7 @@ void Pep_ASMB::prepareSim() {
   auto charOut = _system->output("charOut");
   charOut->clear(0);
   pwrOff->clear(0);
+  emit charOutChanged();
 
   auto charIn = _system->input("charIn");
   charIn->clear(0);

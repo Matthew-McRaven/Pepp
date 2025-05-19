@@ -8,17 +8,17 @@ Column {
     property var modesModel: undefined
     function switchToMode(mode) {
         // Match the button, case insensitive.
-        const re = new RegExp(mode, "i")
+        const re = new RegExp(mode, "i");
         // Children of sidebar are the repeater's delegates
         for (var button of root.children) {
             if (re.test(button.text)) {
-                button.clicked()
+                button.clicked();
                 // Must set checked in order for ButtonGroup to match current mode.
-                button.checked = true
-                return
+                button.checked = true;
+                return;
             }
         }
-        console.error(`Did not find mode ${mode}`)
+        console.error(`Did not find mode ${mode}`);
     }
     signal modeChanged(string mode)
 
@@ -34,13 +34,13 @@ Column {
     function mapModeToImage(mode) {
         switch (mode) {
         case "welcome":
-            return "home.svg"
+            return "home.svg";
         case "help":
-            return "help.svg"
+            return "help.svg";
         case "debugger":
-            return "pest_control.svg"
+            return "pest_control.svg";
         case "editor":
-            return "edit.svg"
+            return "edit.svg";
         }
     }
 
@@ -55,8 +55,7 @@ Column {
             text: model.display ?? "ERROR"
             ButtonGroup.group: modeGroup
             onClicked: root.modeChanged(text.toLowerCase())
-            icon.source: `image://icons/modes/${root.mapModeToImage(
-                             text.toLowerCase())}`
+            icon.source: `image://icons/modes/${root.mapModeToImage(text.toLowerCase())}`
             icon.height: 42
             icon.width: 42
             display: AbstractButton.TextUnderIcon

@@ -7,92 +7,132 @@ import "qrc:/qt/qml/edu/pepp/memory/io" as IO
 import "qrc:/qt/qml/edu/pepp/cpu" as Cpu
 import "qrc:/qt/qml/edu/pepp/utils" as Utils
 import edu.pepp 1.0
+import com.kdab.dockwidgets 2 as KDDW
 
-Item {
+FocusScope {
     id: wrapper
     required property var project
     required property var actions
     required property string mode
+    property bool needsDock: true
+    focus: true
     signal requestModeSwitchTo(string mode)
-    function requestModeSwitchToDebugger() {
-        wrapper.requestModeSwitchTo("debugger");
-    }
+
     function syncEditors() {
-        save();
+        project ? save() : null;
     }
-    function preAssemble() {
-        if (project === null)
+    onModeChanged: modeVisibilityChange()
+
+    function modeVisibilityChange() {
+        // Don't allow triggering before initial docking, otherwise the layout can be 1) slow and 2) wrong.
+        if (needsDock) {
             return;
-        save();
+        } else if (!(mode === "editor" || mode === "debugger")) {
+            return;
+        }
+        // visibility model preserves user changes within a mode.
+        for (const x of visibilityBar.model) {
+            const visible = x.visibility[mode];
+            if (visible && !x.isOpen)
+                x.open();
+            else if (!visible && x.isOpen)
+                x.close();
+        }
     }
+
+    // Call when the height, width have been finalized.
+    // Otherwise, we attempt to layout when height/width == 0, and all our requests are ignored.
+    function dock() {
+        const StartHidden = 1;
+        const PreserveCurrent = 2;
+
+        const total_height = parent.height - visibilityBar.height;
+
+        const reg_height = registers.childrenRect.height;
+        const regmemcol_width = registers.implicitWidth;
+
+        const memdump_height = total_height - registers.implicitHeight;
+        const greencard_width = parent.width * .3;
+
+        const io_height = Math.max(200, total_height * .1);
+
+        dockWidgetArea.addDockWidget(dock_object, KDDW.KDDockWidgets.Location_OnLeft, dockWidgetArea, Qt.size(parent.width - greencard_width - regmemcol_width, parent.height - io_height));
+        dockWidgetArea.addDockWidget(dock_greencard, KDDW.KDDockWidgets.Location_OnRight, dockWidgetArea, Qt.size(greencard_width, parent.height - io_height));
+        dockWidgetArea.addDockWidget(dock_input, KDDW.KDDockWidgets.Location_OnBottom, dockWidgetArea, Qt.size(parent.width - regmemcol_width, io_height));
+        dock_input.addDockWidgetAsTab(dock_output, StartHidden);
+        dockWidgetArea.addDockWidget(dock_cpu, KDDW.KDDockWidgets.Location_OnRight, dockWidgetArea, Qt.size(regmemcol_width, reg_height));
+        dockWidgetArea.addDockWidget(dock_hexdump, KDDW.KDDockWidgets.Location_OnBottom, dock_cpu, Qt.size(regmemcol_width, memdump_height));
+        wrapper.needsDock = Qt.binding(() => false);
+        modeVisibilityChange();
+    }
+
     Component.onCompleted: {
-        // Must connect and disconnect manually, otherwise project may be changed underneath us, and "save" targets wrong project.
-        // Do not need to update on mode change, since mode change implies loss of focus of objEdit.
-        objEdit.editingFinished.connect(save);
-        // Can't modify our mode directly because it would break binding with parent.
-        // i.e., we can't be notified if editor is entered ever again.
-        wrapper.actions.debug.start.triggered.connect(wrapper.requestModeSwitchToDebugger);
-        wrapper.actions.build.execute.triggered.connect(wrapper.requestModeSwitchToDebugger);
         project.charInChanged.connect(() => batchInput.setInput(project.charIn));
+        objEdit.editingFinished.connect(save);
         objEdit.forceActiveFocus();
-    }
-    // Will be called before project is changed on unload, so we can disconnect save-triggering signals.
-    Component.onDestruction: {
-        objEdit.editingFinished.disconnect(save);
-        wrapper.actions.debug.start.triggered.disconnect(wrapper.requestModeSwitchToDebugger);
-        wrapper.actions.build.execute.triggered.disconnect(wrapper.requestModeSwitchToDebugger);
     }
 
     function save() {
         // Supress saving messages when there is no project.
-        if (project === null)
-            return;
-        else if (!objEdit.readOnly)
+        if (project && !objEdit.readOnly)
             project.objectCodeText = objEdit.text;
     }
-
-    SplitView {
-        anchors.fill: parent
-        orientation: Qt.Horizontal
-        handle: Item {
-            implicitWidth: 4
-            Rectangle {
-                implicitWidth: 4
-                anchors.horizontalCenter: parent.horizontalCenter
-                height: parent.height
-                // TODO: add color for handle
-                color: palette.base
+    KDDW.DockingArea {
+        id: dockWidgetArea
+        anchors {
+            top: parent.top
+            left: parent.left
+            right: parent.right
+            bottom: visibilityBar.top
+        }
+        // Need application-wide unique ID, otherwise opening a new project will confuse the global name resolution algorithm.
+        // TODO: Not gauranteed to be unique, but should be good enough for our purposes.
+        uniqueName: Math.ceil(Math.random() * 1000000000).toString(16)
+        KDDW.DockWidget {
+            id: dock_object
+            title: "Object Code"
+            uniqueName: `ObjectCode-${dockWidgetArea.uniqueName}`
+            property var visibility: {
+                "editor": true,
+                "debugger": true
+            }
+            Text.ObjTextEditor {
+                id: objEdit
+                anchors.fill: parent
+                readOnly: mode !== "editor"
+                // text is only an initial binding, the value diverges from there.
+                text: project?.objectCodeText ?? ""
             }
         }
-        Text.ObjTextEditor {
-            id: objEdit
-            readOnly: mode !== "editor"
-            // text is only an initial binding, the value diverges from there.
-            text: project?.objectCodeText ?? ""
-            SplitView.minimumWidth: 100
-            SplitView.fillWidth: true
+        KDDW.DockWidget {
+            id: dock_greencard
+            title: "Instructions"
+            uniqueName: `Instructions-${dockWidgetArea.uniqueName}`
+            property var visibility: {
+                "editor": true,
+                "debugger": false
+            }
+            Utils.GreencardView {
+                id: greencard
+                // property size kddockwidgets_min_size: Qt.size(300, 100)
+                anchors.fill: parent
+                architecture: project?.architecture ?? Architecture.PEP10
+                hideStatus: true
+                hideMnemonic: true
+                //visible: mode === "editor"
+            }
         }
-        Utils.GreencardView {
-            id: greencard
-            architecture: project?.architecture ?? Architecture.PEP10
-            hideStatus: true
-            hideMnemonic: true
-            visible: mode === "editor"
-            SplitView.minimumWidth: 200
-            SplitView.fillWidth: true
-            SplitView.preferredWidth: 600
-        }
-        SplitView {
-            visible: mode === "debugger"
-            SplitView.minimumWidth: Math.max(registers.implicitWidth, batchInput.implicitWidth, batchOutput.implicitWidth) + 20
-            orientation: Qt.Vertical
-
-            IO.Labeled {
+        KDDW.DockWidget {
+            id: dock_input
+            title: "Batch Input"
+            uniqueName: `BatchInput-${dockWidgetArea.uniqueName}`
+            property var visibility: {
+                "editor": true,
+                "debugger": true
+            }
+            IO.Batch {
                 id: batchInput
-                SplitView.minimumHeight: batchInput.minimumHeight
-                SplitView.preferredHeight: (parent.height - registers.height) / 2
-                width: parent.width
-                label: "Input"
+                anchors.fill: parent
                 property bool ignoreTextChange: false
                 Component.onCompleted: {
                     onTextChanged.connect(() => {
@@ -106,39 +146,54 @@ Item {
                     ignoreTextChange = false;
                 }
             }
-            IO.Labeled {
+        }
+        KDDW.DockWidget {
+            id: dock_output
+            title: "Batch Output"
+            uniqueName: `BatchOutput-${dockWidgetArea.uniqueName}`
+            property var visibility: {
+                "editor": false,
+                "debugger": true
+            }
+            IO.Batch {
                 id: batchOutput
-                SplitView.minimumHeight: batchOutput.minimumHeight
-                SplitView.preferredHeight: (parent.height - registers.height) / 2
-                width: parent.width
-                label: "Output"
+                anchors.fill: parent
                 text: project?.charOut ?? ""
+                readOnly: true
             }
         }
-        Item {
-            SplitView.minimumWidth: 340
-            SplitView.fillWidth: true
-            visible: mode === "debugger" || mode === "editor"
-            Cpu.RegisterView {
-                id: registers
-                visible: mode == "debugger"
-                anchors {
-                    top: parent.top
-                    left: parent.left
-                    right: parent.right
+        KDDW.DockWidget {
+            id: dock_cpu
+            title: "Register Dump"
+            uniqueName: `RegisterDump-${dockWidgetArea.uniqueName}`
+            property var visibility: {
+                "editor": false,
+                "debugger": true
+            }
+            ColumnLayout {
+                anchors.fill: parent
+                property size kddockwidgets_min_size: Qt.size(registers.implicitWidth, registers.implicitHeight)
+                Cpu.RegisterView {
+                    id: registers
+                    Layout.fillWidth: false
+                    Layout.alignment: Qt.AlignHCenter
+
+                    registers: project?.registers ?? null
+                    flags: project?.flags ?? null
                 }
-                height: visible ? registers.implicitHeight : 0
-                registers: project?.registers ?? null
-                flags: project?.flags ?? null
+            }
+        }
+        KDDW.DockWidget {
+            id: dock_hexdump
+            title: "Memory Dump"
+            uniqueName: `MemoryDump-${dockWidgetArea.uniqueName}`
+            property var visibility: {
+                "editor": true,
+                "debugger": true
             }
             Loader {
                 id: loader
-                anchors {
-                    top: registers.bottom
-                    left: parent.left
-                    right: parent.right
-                    bottom: parent.bottom
-                }
+                anchors.fill: parent
                 Component.onCompleted: {
                     const props = {
                         "memory": project.memory,
@@ -154,15 +209,51 @@ Item {
                     loader.item.scrollToAddress(project.currentAddress);
                     con.enabled = true;
                 }
+                Connections {
+                    id: con
+                    enabled: false
+                    target: loader.item
+                    function onCurrentAddressChanged() {
+                        project.currentAddress = loader.item.currentAddress;
+                    }
+                }
             }
         }
     }
+    ListView {
+        id: visibilityBar
+        anchors {
+            left: parent.left
+            right: parent.right
+            bottom: parent.bottom
+        }
+        height: 15
+        orientation: Qt.Horizontal
+        model: [dock_object, dock_greencard, dock_input, dock_output, dock_cpu, dock_hexdump]
+        delegate: CheckBox {
+            text: modelData.title
+            checked: modelData.isOpen
+            onClicked: {
+                modelData.visibility[wrapper.mode] = checked;
+                checked ? modelData.open() : modelData.close();
+            }
+            Layout.alignment: Qt.AlignBottom
+        }
+    }
+
+    // Only enable binding from the actions to this project if this project is focused.
     Connections {
-        id: con
-        enabled: false
-        target: loader.item
-        function onCurrentAddressChanged() {
-            project.currentAddress = loader.item.currentAddress;
+        enabled: wrapper.activeFocus
+        target: wrapper.actions.debug.start
+        function onTriggered() {
+            wrapper.requestModeSwitchTo("debugger");
+        }
+    }
+    Connections {
+        enabled: wrapper.activeFocus
+        target: wrapper.actions.build.execute
+        function onTriggered() {
+            wrapper.requestModeSwitchTo("debugger");
         }
     }
 }

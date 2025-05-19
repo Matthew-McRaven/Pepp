@@ -21,10 +21,8 @@ import Qt.labs.qmlmodels
 import "../cpu" as Ui
 import edu.pepp
 
-ColumnLayout {
+Column {
     id: layout
-    implicitHeight: layout.implicitHeight
-    implicitWidth: layout.implicitWidth
     property alias registers: registers.model
     property alias flags: flags.model
     NuAppSettings {
@@ -56,76 +54,70 @@ ColumnLayout {
 
         MenuItem {}
     }
-
-    ListView {
-        id: flags
+    Row {
+        id: flagsContainer
         property real overrideLeftMargin: 0
-        Layout.leftMargin: overrideLeftMargin
-        Layout.alignment: Qt.AlignVCenter
         spacing: metrics.averageCharacterWidth * 1.5
-        clip: true
-        boundsMovement: Flickable.StopAtBounds
-        Layout.minimumWidth: contentItem.childrenRect.width
-        Layout.minimumHeight: contentItem.childrenRect.height
-        orientation: Qt.Horizontal
-        delegate: Row {
-            id: del
-            Layout.alignment: Qt.AlignVCenter
-            required property bool checked
-            required property string text
-            Rectangle {
-                id: borderRect
-                implicitWidth: innerText.implicitWidth + 2 * border.width + 2 * innerText.anchors.margins
-                implicitHeight: innerText.implicitHeight + 2 * border.width + 2 * innerText.anchors.margins
-                Text {
-                    id: innerText
-                    anchors.fill: parent
-                    anchors.margins: 3
-                    text: del.checked ? "1" : "0"
-                    horizontalAlignment: Qt.AlignHCenter
-                    verticalAlignment: Qt.AlignVCenter
-                    font: settings.extPalette.baseMono.font
-                }
-                color: "transparent"
-                border {
-                    color: palette.shadow
-                    width: 1
-                }
-                radius: 2
-            }
-            // Wrap label in item as work-around for Label not expanding to match height of borderRect
-            Item {
-                Layout.fillHeight: true
-                implicitWidth: label.implicitWidth
-                implicitHeight: innerText.implicitHeight + 2 * borderRect.border.width + 2 * innerText.anchors.margins
-                Label {
-                    id: label
-                    leftPadding: 2
-                    text: del.text
-                    anchors.centerIn: parent
-                }
-            }
+        Item {
+            width: flagsContainer.overrideLeftMargin
+            height: 1
+        }
 
-            Item {
-                implicitHeight: 1
-                implicitWidth: 8
+        Repeater {
+            id: flags
+            clip: true
+            delegate: Row {
+                id: del
+                required property bool checked
+                required property string text
+                Rectangle {
+                    id: borderRect
+                    implicitWidth: innerText.implicitWidth + 2 * border.width + 2 * innerText.anchors.margins
+                    implicitHeight: innerText.implicitHeight + 2 * border.width + 2 * innerText.anchors.margins
+                    Text {
+                        id: innerText
+                        anchors.fill: parent
+                        anchors.margins: 3
+                        text: del.checked ? "1" : "0"
+                        horizontalAlignment: Qt.AlignHCenter
+                        verticalAlignment: Qt.AlignVCenter
+                        font: settings.extPalette.baseMono.font
+                    }
+                    color: "transparent"
+                    border {
+                        color: palette.shadow
+                        width: 1
+                    }
+                    radius: 2
+                }
+                // Wrap label in item as work-around for Label not expanding to match height of borderRect
+                Item {
+                    Layout.fillHeight: true
+                    implicitWidth: label.implicitWidth
+                    implicitHeight: innerText.implicitHeight + 2 * borderRect.border.width + 2 * innerText.anchors.margins
+                    Label {
+                        id: label
+                        leftPadding: 2
+                        text: del.text
+                        anchors.centerIn: parent
+                    }
+                }
+
+                Item {
+                    implicitHeight: 1
+                    implicitWidth: 8
+                }
             }
         }
     }
-    ListView {
+    Repeater {
         id: registers
-        Layout.alignment: Qt.AlignHCenter | Qt.AlignVCenter
-        Layout.fillHeight: true
         clip: true
-        spacing: 1
-        boundsMovement: Flickable.StopAtBounds
-        Layout.minimumWidth: contentItem.childrenRect.width
-        Layout.minimumHeight: contentItem.childrenRect.height
         property int innerSpacing: 5
 
         function updateFlagMargin() {
-            // I don't know _why_ I need an offset of 1.5x. I must be missing some edge-padding factor of the flags
-            flags.overrideLeftMargin = Qt.binding(() => registers.x + pm.width * 1.2 + 1.5 * registers.innerSpacing);
+            // Need an offset of 3 to account for border width of 1 + radius 2, maybe?
+            flagsContainer.overrideLeftMargin = Qt.binding(() => registers.x + pm.width * 1.2 - 3);
         }
         onWidthChanged: {
             updateFlagMargin();
@@ -162,6 +154,10 @@ ColumnLayout {
                     Layout.minimumHeight: textField.height + 1
                     Layout.preferredWidth: childrenRect.width
                     color: "transparent"
+                    Component.onCompleted: {
+                        if (column == 1 && row == 0)
+                            registers.updateFlagMargin();
+                    }
 
                     TextField {
                         id: textField
@@ -215,6 +211,6 @@ ColumnLayout {
     }
     // Provide some padding at the bottom
     Item {
-        height: 10
+        Layout.fillHeight: true
     }
 }

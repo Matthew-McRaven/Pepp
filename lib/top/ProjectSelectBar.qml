@@ -29,22 +29,22 @@ Flickable {
                     if (cur && cur.architecture === Architecture.PEP10 && cur.abstraction === Abstraction.ISA3 && cur.isEmpty && reuse)
                         proj = cur;
                     else
-                        proj = pm.pep10ISA(pep10isaComponent);
+                        proj = pm.pep10ISA();
                 } else if (Number(level) === Abstraction.ASMB3) {
                     if (cur && cur.architecture === Architecture.PEP10 && cur.abstraction === Abstraction.ASMB3 && cur.isEmpty && reuse)
                         proj = cur;
                     else
-                        proj = pm.pep10ASMB(pep10asmbComponent, Abstraction.ASMB3);
+                        proj = pm.pep10ASMB(Abstraction.ASMB3);
                 } else if (Number(level) === Abstraction.ASMB5) {
                     if (cur && cur.architecture === Architecture.PEP10 && cur.abstraction === Abstraction.ASMB5 && cur.isEmpty && reuse)
                         proj = cur;
                     else
-                        proj = pm.pep10ASMB(pep10asmbComponent, Abstraction.ASMB5);
+                        proj = pm.pep10ASMB(Abstraction.ASMB5);
                 } else if (Number(level) === Abstraction.OS4) {
                     if (cur && cur.architecture === Architecture.PEP10 && cur.abstraction === Abstraction.OS4 && cur.isEmpty && reuse)
                         proj = cur;
                     else
-                        proj = pm.pep10ASMB(pep10asmbComponent, Abstraction.OS4);
+                        proj = pm.pep10ASMB(Abstraction.OS4);
                 }
                 break;
                 break;
@@ -53,12 +53,12 @@ Flickable {
                     if (cur && cur.architecture === Architecture.PEP9 && cur.abstraction === Abstraction.ISA3 && cur.isEmpty && reuse)
                         proj = cur;
                     else
-                        proj = pm.pep9ISA(pep9isaComponent);
+                        proj = pm.pep9ISA();
                 } else if (Number(level) === Abstraction.ASMB5) {
                     if (cur && cur.architecture === Architecture.PEP9 && cur.abstraction === Abstraction.ASMB5 && cur.isEmpty && reuse)
                         proj = cur;
                     else
-                        proj = pm.pep9ASMB(pep9asmbComponent);
+                        proj = pm.pep9ASMB();
                 }
                 break;
             }
