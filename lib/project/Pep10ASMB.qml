@@ -27,33 +27,19 @@ FocusScope {
         // Don't allow triggering before initial docking, otherwise the layout can be 1) slow and 2) wrong.
         if (needsDock) {
             return;
-        } else if (mode === "editor") {
-            dock_source.open();
-            dock_listing.close();
-            dock_input.open();
-            dock_output.close();
-            dock_object.close();
-            dock_symbol.open();
-            dock_watch.close();
-            dock_breakpoints.close();
-            dock_cpu.close();
-            dock_stack.close();
-            dock_hexdump.close();
-        } else if (mode === "debugger") {
-            dock_source.close();
-            dock_listing.open();
-            dock_input.open();
-            dock_output.open();
-            dock_object.open();
-            dock_symbol.open();
-            dock_watch.open();
-            dock_breakpoints.open();
-            dock_cpu.open();
-            // Most recently opened tab is made active, so open hex dump last.
-            dock_stack.open();
-            dock_hexdump.open();
+        } else if (!(mode === "editor" || mode === "debugger")) {
+            return;
+        }
+        // visibility model preserves user changes within a mode.
+        for (const x of visibilityBar.model) {
+            const visible = x.visibility[mode];
+            if (visible && !x.isOpen)
+                x.open();
+            else if (!visible && x.isOpen)
+                x.close();
         }
     }
+
     // Call when the height, width have been finalized.
     // Otherwise, we attempt to layout when height/width == 0, and all our requests are ignored.
     function dock() {
@@ -200,6 +186,10 @@ FocusScope {
             id: dock_source
             title: "Source Editor"
             uniqueName: `SourceEditor-${dockWidgetArea.uniqueName}`
+            property var visibility: {
+                "editor": true,
+                "debugger": false
+            }
             ColumnLayout {
                 anchors.fill: parent
                 ComboBox {
@@ -239,6 +229,10 @@ FocusScope {
             id: dock_listing
             title: "Listing"
             uniqueName: `Listing-${dockWidgetArea.uniqueName}`
+            property var visibility: {
+                "editor": false,
+                "debugger": true
+            }
             ColumnLayout {
                 anchors.fill: parent
                 ComboBox {
@@ -284,6 +278,10 @@ FocusScope {
             id: dock_object
             title: "Object Code"
             uniqueName: `ObjectCode-${dockWidgetArea.uniqueName}`
+            property var visibility: {
+                "editor": false,
+                "debugger": true
+            }
             Text.ObjTextEditor {
                 id: objEdit
                 anchors.fill: parent
@@ -296,6 +294,10 @@ FocusScope {
             id: dock_symbol
             title: qsTr(`Symbol Table: ${sourceSelector.currentText}`)
             uniqueName: `SymbolTable-${dockWidgetArea.uniqueName}`
+            property var visibility: {
+                "editor": false,
+                "debugger": true
+            }
             SymTab.SymbolViewer {
                 id: symTab
                 anchors.fill: parent
@@ -307,6 +309,10 @@ FocusScope {
             id: dock_watch
             title: qsTr(`Watch Expressions`)
             uniqueName: `WatchExpressions-${dockWidgetArea.uniqueName}`
+            property var visibility: {
+                "editor": false,
+                "debugger": true
+            }
             Debug.WatchExpressions {
                 id: watchExpr
                 anchors.fill: parent
@@ -317,6 +323,10 @@ FocusScope {
             id: dock_breakpoints
             title: qsTr(`Breakpoint Viewer`)
             uniqueName: `BreakpointViewer-${dockWidgetArea.uniqueName}`
+            property var visibility: {
+                "editor": false,
+                "debugger": true
+            }
             BreakpointViewer {
                 id: bpViewer
                 anchors.fill: parent
@@ -328,6 +338,10 @@ FocusScope {
             id: dock_input
             title: "Batch Input"
             uniqueName: `BatchInput-${dockWidgetArea.uniqueName}`
+            property var visibility: {
+                "editor": true,
+                "debugger": true
+            }
             IO.Batch {
                 id: batchInput
                 anchors.fill: parent
@@ -349,6 +363,10 @@ FocusScope {
             id: dock_output
             title: "Batch Output"
             uniqueName: `BatchOutput-${dockWidgetArea.uniqueName}`
+            property var visibility: {
+                "editor": false,
+                "debugger": true
+            }
             IO.Batch {
                 id: batchOutput
                 anchors.fill: parent
@@ -360,6 +378,10 @@ FocusScope {
             id: dock_cpu
             title: "Register Dump"
             uniqueName: `RegisterDump-${dockWidgetArea.uniqueName}`
+            property var visibility: {
+                "editor": false,
+                "debugger": true
+            }
             ColumnLayout {
                 anchors.fill: parent
                 property size kddockwidgets_min_size: Qt.size(registers.implicitWidth, registers.implicitHeight)
@@ -377,6 +399,10 @@ FocusScope {
             id: dock_hexdump
             title: "Memory Dump"
             uniqueName: `MemoryDump-${dockWidgetArea.uniqueName}`
+            property var visibility: {
+                "editor": false,
+                "debugger": true
+            }
             Loader {
                 id: loader
                 anchors.fill: parent
@@ -409,6 +435,10 @@ FocusScope {
             id: dock_stack
             title: "Stack Trace"
             uniqueName: `StackTrace-${dockWidgetArea.uniqueName}`
+            property var visibility: {
+                "editor": false,
+                "debugger": true
+            }
             Stack.StackTrace {
                 anchors.fill: parent
             }
@@ -423,11 +453,14 @@ FocusScope {
         }
         height: 15
         orientation: Qt.Horizontal
-        model: [dock_source, dock_listing, dock_object, dock_symbol, dock_watch, dock_breakpoints, dock_input, dock_output, dock_cpu, dock_hexdump, dock_stack]
+        model: [dock_source, dock_listing, dock_object, dock_symbol, dock_watch, dock_breakpoints, dock_input, dock_output, dock_cpu, dock_stack, dock_hexdump]
         delegate: CheckBox {
             text: modelData.title
             checked: modelData.isOpen
-            onClicked: checked ? modelData.open() : modelData.close()
+            onClicked: {
+                modelData.visibility[wrapper.mode] = checked;
+                checked ? modelData.open() : modelData.close();
+            }
             Layout.alignment: Qt.AlignBottom
         }
     }

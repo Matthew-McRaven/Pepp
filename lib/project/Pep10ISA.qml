@@ -27,20 +27,16 @@ FocusScope {
         // Don't allow triggering before initial docking, otherwise the layout can be 1) slow and 2) wrong.
         if (needsDock) {
             return;
-        } else if (mode === "editor") {
-            dock_object.open();
-            dock_greencard.open();
-            dock_input.open();
-            dock_output.close();
-            dock_cpu.close();
-            dock_hexdump.open();
-        } else if (mode === "debugger") {
-            dock_object.open();
-            dock_greencard.close();
-            dock_input.open();
-            dock_output.open();
-            dock_cpu.open();
-            dock_hexdump.open();
+        } else if (!(mode === "editor" || mode === "debugger")) {
+            return;
+        }
+        // visibility model preserves user changes within a mode.
+        for (const x of visibilityBar.model) {
+            const visible = x.visibility[mode];
+            if (visible && !x.isOpen)
+                x.open();
+            else if (!visible && x.isOpen)
+                x.close();
         }
     }
 
@@ -96,7 +92,10 @@ FocusScope {
             id: dock_object
             title: "Object Code"
             uniqueName: `ObjectCode-${dockWidgetArea.uniqueName}`
-
+            property var visibility: {
+                "editor": true,
+                "debugger": true
+            }
             Text.ObjTextEditor {
                 id: objEdit
                 anchors.fill: parent
@@ -109,6 +108,10 @@ FocusScope {
             id: dock_greencard
             title: "Instructions"
             uniqueName: `Instructions-${dockWidgetArea.uniqueName}`
+            property var visibility: {
+                "editor": true,
+                "debugger": false
+            }
             Utils.GreencardView {
                 id: greencard
                 // property size kddockwidgets_min_size: Qt.size(300, 100)
@@ -123,6 +126,10 @@ FocusScope {
             id: dock_input
             title: "Batch Input"
             uniqueName: `BatchInput-${dockWidgetArea.uniqueName}`
+            property var visibility: {
+                "editor": true,
+                "debugger": true
+            }
             IO.Batch {
                 id: batchInput
                 anchors.fill: parent
@@ -144,6 +151,10 @@ FocusScope {
             id: dock_output
             title: "Batch Output"
             uniqueName: `BatchOutput-${dockWidgetArea.uniqueName}`
+            property var visibility: {
+                "editor": false,
+                "debugger": true
+            }
             IO.Batch {
                 id: batchOutput
                 anchors.fill: parent
@@ -155,6 +166,10 @@ FocusScope {
             id: dock_cpu
             title: "Register Dump"
             uniqueName: `RegisterDump-${dockWidgetArea.uniqueName}`
+            property var visibility: {
+                "editor": false,
+                "debugger": true
+            }
             ColumnLayout {
                 anchors.fill: parent
                 property size kddockwidgets_min_size: Qt.size(registers.implicitWidth, registers.implicitHeight)
@@ -172,6 +187,10 @@ FocusScope {
             id: dock_hexdump
             title: "Memory Dump"
             uniqueName: `MemoryDump-${dockWidgetArea.uniqueName}`
+            property var visibility: {
+                "editor": true,
+                "debugger": true
+            }
             Loader {
                 id: loader
                 anchors.fill: parent
@@ -214,7 +233,10 @@ FocusScope {
         delegate: CheckBox {
             text: modelData.title
             checked: modelData.isOpen
-            onClicked: checked ? modelData.open() : modelData.close()
+            onClicked: {
+                modelData.visibility[wrapper.mode] = checked;
+                checked ? modelData.open() : modelData.close();
+            }
             Layout.alignment: Qt.AlignBottom
         }
     }
