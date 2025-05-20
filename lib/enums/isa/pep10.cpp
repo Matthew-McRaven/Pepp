@@ -174,7 +174,7 @@ QString isa::Pep10::describeMnemonicUsingPlaceholders(Mnemonic mnemonic) {
   case detail::pep10::Mnemonic::ASRA: [[fallthrough]];
   case detail::pep10::Mnemonic::ASRX: return "Arithmetic shift right r";
   case detail::pep10::Mnemonic::NOTA: [[fallthrough]];
-  case detail::pep10::Mnemonic::NOTX: return "Bitwise NOT r";
+  case detail::pep10::Mnemonic::NOTX: return "Bitwise Not r";
   case detail::pep10::Mnemonic::ROLA: [[fallthrough]];
   case detail::pep10::Mnemonic::ROLX: return "Rotate left r";
   case detail::pep10::Mnemonic::RORA: [[fallthrough]];
@@ -197,11 +197,11 @@ QString isa::Pep10::describeMnemonicUsingPlaceholders(Mnemonic mnemonic) {
   case detail::pep10::Mnemonic::SUBA: [[fallthrough]];
   case detail::pep10::Mnemonic::SUBX: return "Subtract from r";
   case detail::pep10::Mnemonic::ANDA: [[fallthrough]];
-  case detail::pep10::Mnemonic::ANDX: return "Bitwise AND to r";
+  case detail::pep10::Mnemonic::ANDX: return "Bitwise And to r";
   case detail::pep10::Mnemonic::ORA: [[fallthrough]];
-  case detail::pep10::Mnemonic::ORX: return "Bitwise OR to r";
+  case detail::pep10::Mnemonic::ORX: return "Bitwise Or to r";
   case detail::pep10::Mnemonic::XORA: [[fallthrough]];
-  case detail::pep10::Mnemonic::XORX: return "Bitwise XOR to r";
+  case detail::pep10::Mnemonic::XORX: return "Bitwise Exclusive Or to r";
   case detail::pep10::Mnemonic::CPWA: [[fallthrough]];
   case detail::pep10::Mnemonic::CPWX: return "Compare word to r";
   case detail::pep10::Mnemonic::CPBA: [[fallthrough]];
