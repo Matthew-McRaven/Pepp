@@ -66,7 +66,7 @@ Item {
                 required property var model
                 Layout.alignment: Qt.AlignHCenter | Qt.AlignTop
                 Layout.preferredWidth: list.width / list.columns
-                Button {
+                RoundButton {
                     Layout.fillWidth: true
                     text: model.text
                     font: fm.font
@@ -79,6 +79,7 @@ Item {
                     ToolTip.visible: (hovered || down) && model.description
                     ToolTip.delay: 500
                     ToolTip.text: qsTr(model.description)
+                    radius: fm.font.pointSize / 2
                 }
             }
         }
