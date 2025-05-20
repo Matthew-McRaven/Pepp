@@ -356,7 +356,7 @@ QHash<int, QByteArray> ProjectTypeModel::roleNames() const {
       {(int)ProjectTypeModel::Roles::NameRole, "text"},
       {(int)ProjectTypeModel::Roles::DescriptionRole, "description"},
       {(int)ProjectTypeModel::Roles::ArchitectureRole, "architecture"},
-      {(int)ProjectTypeModel::Roles::EditionRole, "Edition"},
+      {(int)ProjectTypeModel::Roles::EditionRole, "edition"},
       {(int)ProjectTypeModel::Roles::LevelRole, "abstraction"},
       {(int)ProjectTypeModel::Roles::CompleteRole, "complete"},
       {(int)ProjectTypeModel::Roles::PartiallyCompleteRole, "partiallyComplete"},

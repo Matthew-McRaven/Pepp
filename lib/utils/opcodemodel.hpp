@@ -77,6 +77,7 @@ class GreencardFilterModel : public QSortFilterProxyModel {
   Q_PROPERTY(bool hideStatus READ hideStatus WRITE setHideStatus NOTIFY hideStatusChanged)
   Q_PROPERTY(bool hideMnemonic READ hideMnemonic WRITE setHideMnemonic NOTIFY hideMnemonicChanged)
   Q_PROPERTY(bool dyadicAddressing READ dyadicAddressing WRITE setDyadicAddressing NOTIFY dyadicAddressingChanged)
+
 public:
   explicit GreencardFilterModel(QObject *parent = nullptr);
   void setSourceModel(QAbstractItemModel *sourceModel) override;

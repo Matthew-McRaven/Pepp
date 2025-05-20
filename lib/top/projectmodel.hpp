@@ -94,6 +94,7 @@ private:
 
 class ProjectTypeFilterModel : public QSortFilterProxyModel {
   Q_OBJECT
+  // Filter may either be architecture OR edition. Setting one clears the other.
   Q_PROPERTY(pepp::Architecture architecture READ architecture WRITE setArchitecture NOTIFY architectureChanged)
   Q_PROPERTY(int edition READ edition WRITE setEdition NOTIFY editionChanged)
   Q_PROPERTY(bool showIncomplete READ showIncomplete WRITE setShowIncomplete NOTIFY showIncompleteChanged)
