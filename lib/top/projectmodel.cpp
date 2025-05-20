@@ -222,72 +222,84 @@ void ProjectModel::onSave(int row) {
 void init_pep10(QList<ProjectType> &vec) {
   auto a = pepp::Architecture::PEP10;
   using pepp::Abstraction;
-  vec.append({.name = "Pep/10\nISA3\nbare metal",
+  vec.append({.name = "Pep/10\nLevel ISA3\nBare Metal",
               .description = "Develop and debug machine language programs in bare metal mode.",
               .arch = a,
               .level = Abstraction::ISA3,
               .state = CompletionState::COMPLETE});
-  vec.append({.name = "Pep/10\nAsmb3\nbare metal",
+  vec.append({.name = "Pep/10\nLevel Asmb3\nBare Metal",
               .description = "Develop and debug assembly language programs in bare metal mode.",
               .arch = a,
               .level = Abstraction::ASMB3,
               .state = CompletionState::COMPLETE});
-  vec.append({.name = "Pep/10\nAsmb5\nfull OS",
+  vec.append({.name = "Pep/10\nLevel Asmb5\nFull OS",
               .description = "Develop and debug assembly language programs alongside Pep/10's operating system.\nThis "
                              "level enables you to utilize OS features using system calls for enhanced functionality.",
               .arch = a,
               .level = Abstraction::ASMB5,
               .state = CompletionState::COMPLETE});
-  vec.append({.name = "Pep/10\nOS4", .arch = a, .level = Abstraction::OS4, .state = CompletionState::PARTIAL});
-  vec.append(
-      {.name = "Pep/10\nMc2\n1-byte bus", .arch = a, .level = Abstraction::MC2, .state = CompletionState::INCOMPLETE});
-  vec.append(
-      {.name = "Pep/10\nMc2\n2-byte bus", .arch = a, .level = Abstraction::MC2, .state = CompletionState::INCOMPLETE});
+  vec.append({.name = "Pep/10\nOS4\n", .arch = a, .level = Abstraction::OS4, .state = CompletionState::PARTIAL});
+  vec.append({.name = "Pep/10\nLevel Mc2\n1-Byte Bus",
+              .arch = a,
+              .level = Abstraction::MC2,
+              .state = CompletionState::INCOMPLETE});
+  vec.append({.name = "Pep/10\nLevel Mc2\n2-Byte Bus",
+              .arch = a,
+              .level = Abstraction::MC2,
+              .state = CompletionState::INCOMPLETE});
 }
 void init_pep9(QList<ProjectType> &vec) {
   auto a = pepp::Architecture::PEP9;
   using pepp::Abstraction;
-  vec.append({.name = "Pep/9\nISA3",
+  vec.append({.name = "Pep/9\nLevel ISA3\n",
               .description = "Develop and debug machine language programs.",
               .arch = a,
               .level = Abstraction::ISA3,
               .state = CompletionState::COMPLETE});
-  vec.append({.name = "Pep/9\nAsmb5",
+  vec.append({.name = "Pep/9\nLevel Asmb5\n",
               .description =
                   "Develop and debug assembly language programs alongside Pep/9's operating system.\nThis level "
                   "enables you to utilize OS features using trap instructions for enhanced functionality.",
               .arch = a,
               .level = Abstraction::ASMB5,
               .state = CompletionState::COMPLETE});
-  vec.append({.name = "Pep/9\nOS4", .arch = a, .level = Abstraction::OS4, .state = CompletionState::INCOMPLETE});
   vec.append(
-      {.name = "Pep/9\nMc2\n1-byte bus", .arch = a, .level = Abstraction::MC2, .state = CompletionState::INCOMPLETE});
-  vec.append(
-      {.name = "Pep/9\nMc2\n2-byte bus", .arch = a, .level = Abstraction::MC2, .state = CompletionState::INCOMPLETE});
+      {.name = "Pep/9\nLevel OS4\n", .arch = a, .level = Abstraction::OS4, .state = CompletionState::INCOMPLETE});
+  vec.append({.name = "Pep/9\nLevel Mc2\n1-Byte Bus\n",
+              .arch = a,
+              .level = Abstraction::MC2,
+              .state = CompletionState::INCOMPLETE});
+  vec.append({.name = "Pep/9\nLevel Mc2\n2-Byte Bus\n",
+              .arch = a,
+              .level = Abstraction::MC2,
+              .state = CompletionState::INCOMPLETE});
 }
 void init_pep8(QList<ProjectType> &vec) {
   auto a = pepp::Architecture::PEP8;
   using pepp::Abstraction;
-  vec.append({.name = "Pep/8\nISA3",
+  vec.append({.name = "Pep/8\nLevel ISA3\n",
               .description = "Develop and debug machine language programs.",
               .arch = a,
               .level = Abstraction::ISA3,
               .state = CompletionState::INCOMPLETE});
-  vec.append({.name = "Pep/8\nAsmb5",
+  vec.append({.name = "Pep/8\nLevel Asmb5\n",
               .description =
                   "Develop and debug assembly language programs alongside Pep/8's operating system.\nThis level "
                   "enables you to utilize OS features using trap instructions for enhanced functionality.",
               .arch = a,
               .level = Abstraction::ASMB5,
               .state = CompletionState::INCOMPLETE});
-  vec.append({.name = "Pep/8\nOS4", .arch = a, .level = Abstraction::OS4, .state = CompletionState::INCOMPLETE});
   vec.append(
-      {.name = "Pep/8\nMc2\n 1-byte bus", .arch = a, .level = Abstraction::MC2, .state = CompletionState::INCOMPLETE});
+      {.name = "Pep/8\nLevel OS4\n", .arch = a, .level = Abstraction::OS4, .state = CompletionState::INCOMPLETE});
+  vec.append({.name = "Pep/8\nLevel Mc2\n 1-Byte Bus",
+              .arch = a,
+              .level = Abstraction::MC2,
+              .state = CompletionState::INCOMPLETE});
 }
 void init_riscv(QList<ProjectType> &vec) {
   auto a = pepp::Architecture::RISCV;
   using pepp::Abstraction;
-  vec.append({.name = "RISC-V\nAsmb3\nbare metal",
+  vec.append({.name = "RISC-V\nLevel Asmb3\nBare Metal",
               .description = "Develop and debug machine language programs in bare metal mode.",
               .arch = a,
               .level = Abstraction::ASMB3,
