@@ -19,9 +19,7 @@ Item {
         font.pointSize: 48
     }
     signal addProject(int arch, int abstraction, string features, bool reuse)
-    ButtonGroup {
-        buttons: header.children
-    }
+
     component EditionButton: Button {
         id: control
         required property int edition
