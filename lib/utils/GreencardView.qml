@@ -27,6 +27,15 @@ Item {
             font.bold: true
         }
     }
+    TextMetrics {
+        id: tm
+        text: "Instruction"
+        font: settings.extPalette.base.font
+    }
+    FontMetrics {
+        id: fm
+        font: settings.extPalette.baseMono.font
+    }
 
     TableView {
         id: tableView
@@ -44,6 +53,14 @@ Item {
             sourceModel: GreencardModel {
                 id: innerModel
             }
+        }
+        columnWidthProvider: function (column) {
+            if (column === 0) {
+                // Pick the largest of 9 monospaced characters OR the size of "Instruction"
+                return Math.max(tm.width, 9 * fm.averageCharacterWidth) + 10;
+            }
+            // Auto-compute other columns
+            return -1;
         }
 
         delegate: Text {
