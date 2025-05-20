@@ -8,6 +8,7 @@ Item {
     required property int architecture
     property bool hideStatus: false
     property bool hideMnemonic: false
+    property bool dyadicAddressing: false
     NuAppSettings {
         id: settings
     }
@@ -38,6 +39,7 @@ Item {
         model: GreencardFilterModel {
             hideStatus: root.hideStatus
             hideMnemonic: root.hideMnemonic
+            dyadicAddressing: root.dyadicAddressing
             sourceModel: GreencardModel {
                 id: innerModel
             }

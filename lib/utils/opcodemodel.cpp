@@ -262,6 +262,7 @@ bool GreencardFilterModel::hideStatus() const { return _hideStatus; }
 void GreencardFilterModel::setHideStatus(bool hide) {
   if (hide == _hideStatus) return;
   _hideStatus = hide;
+  emit hideStatusChanged();
   invalidateFilter();
 }
 
@@ -270,7 +271,34 @@ bool GreencardFilterModel::hideMnemonic() const { return _hideMnemonic; }
 void GreencardFilterModel::setHideMnemonic(bool hide) {
   if (hide == _hideMnemonic) return;
   _hideMnemonic = hide;
+  emit hideMnemonicChanged();
   invalidateFilter();
+}
+
+bool GreencardFilterModel::dyadicAddressing() const { return _dyadicAddressing; }
+
+void GreencardFilterModel::setDyadicAddressing(bool simplify) {
+  if (simplify == _dyadicAddressing) return;
+  _dyadicAddressing = simplify;
+  emit dyadicAddressingChanged();
+  invalidateFilter();
+}
+
+QVariant GreencardFilterModel::data(const QModelIndex &index, int role) const {
+  if (!index.isValid()) return QVariant();
+  else if (auto d = QSortFilterProxyModel::data(index, role); !d.isValid()) return d;
+  // If column == addressing, and dyadicAddressing is true, return "monadic" if that was the value in that column, else
+  // return dyadic. Otherwise, return the data from the source model.
+  else if (auto sourceIndex = mapToSource(index);
+           sourceIndex.isValid() && sourceIndex.column() == 3 && role == Qt::DisplayRole && _dyadicAddressing) {
+    auto data = d.toString();
+    auto sm = sourceModel();
+    auto casted = qobject_cast<GreencardModel *>(sm);
+    if (data.compare("monadic", Qt::CaseSensitivity::CaseInsensitive) == 0) return data;
+    else if (data.compare("U", Qt::CaseSensitivity::CaseInsensitive) == 0) return data;
+    else if (casted && casted->arch() == pepp::Architecture::PEP10) return "Dyadic";
+    else return "Nonunary";
+  } else return d;
 }
 
 bool GreencardFilterModel::filterAcceptsColumn(int source_column, const QModelIndex &source_parent) const {

@@ -119,6 +119,7 @@ FocusScope {
                 architecture: project?.architecture ?? Architecture.PEP10
                 hideStatus: true
                 hideMnemonic: true
+                dyadicAddressing: true
                 //visible: mode === "editor"
             }
         }

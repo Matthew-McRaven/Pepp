@@ -61,6 +61,8 @@ public:
   Q_INVOKABLE void make_pep10();
   Q_INVOKABLE void make_pep9();
 
+  pepp::Architecture arch() const { return _arch; }
+
 private:
   std::vector<Row> _rows = {};
   pepp::Architecture _arch = pepp::Architecture::NO_ARCH;
@@ -71,6 +73,7 @@ class GreencardFilterModel : public QSortFilterProxyModel {
   QML_ELEMENT
   Q_PROPERTY(bool hideStatus READ hideStatus WRITE setHideStatus NOTIFY hideStatusChanged)
   Q_PROPERTY(bool hideMnemonic READ hideMnemonic WRITE setHideMnemonic NOTIFY hideMnemonicChanged)
+  Q_PROPERTY(bool dyadicAddressing READ dyadicAddressing WRITE setDyadicAddressing NOTIFY dyadicAddressingChanged)
 public:
   explicit GreencardFilterModel(QObject *parent = nullptr);
   void setSourceModel(QAbstractItemModel *sourceModel) override;
@@ -78,10 +81,14 @@ public:
   void setHideStatus(bool hide);
   bool hideMnemonic() const;
   void setHideMnemonic(bool hide);
+  bool dyadicAddressing() const;
+  void setDyadicAddressing(bool simplify);
 
+  QVariant data(const QModelIndex &index, int role) const override;
 signals:
   void hideStatusChanged();
   void hideMnemonicChanged();
+  void dyadicAddressingChanged();
 
 protected:
   bool filterAcceptsColumn(int source_column, const QModelIndex &source_parent) const override;
@@ -89,4 +96,5 @@ protected:
 private:
   bool _hideStatus = false;
   bool _hideMnemonic = false;
+  bool _dyadicAddressing = false;
 };
