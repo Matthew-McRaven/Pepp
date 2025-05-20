@@ -25,6 +25,8 @@ Column {
     id: layout
     property alias registers: registers.model
     property alias flags: flags.model
+    leftPadding: 4
+    rightPadding: 4
     NuAppSettings {
         id: settings
     }
