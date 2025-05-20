@@ -62,10 +62,10 @@ QVariant GreencardModel::data(const QModelIndex &index, int role) const {
     case 4: return _rows[index.row()].status_bits;
     }
     break;
-  case (int)Roles::UseMonoRole:
-    if (index.column() == 2) return false;
-    return true;
+  case (int)Roles::UseMonoRole: return index.column() != 2;
+  case (int)Roles::UseMarkdown: return index.column() == 2;
   }
+
   return {};
 }
 
@@ -89,7 +89,7 @@ QHash<int, QByteArray> GreencardModel::roleNames() const {
   static const auto ret = QHash<int, QByteArray>{
       {(int)Qt::DisplayRole, "display"},
       {(int)UseMonoRole, "useMonoRole"},
-
+      {(int)UseMarkdown, "useMarkdown"},
   };
   return ret;
 }

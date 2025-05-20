@@ -43,9 +43,7 @@ class GreencardModel : public QAbstractTableModel {
   QML_ELEMENT
 
 public:
-  enum class Roles {
-    UseMonoRole = Qt::UserRole + 1,
-  };
+  enum class Roles { UseMonoRole = Qt::UserRole + 1, UseMarkdown };
   Q_ENUM(Roles);
   struct Row {
     quint8 sort_order;

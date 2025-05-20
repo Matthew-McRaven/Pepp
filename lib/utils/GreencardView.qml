@@ -68,6 +68,7 @@ Item {
             text: model.display ? model.display : " "
             font: model.useMonoRole ? settings.extPalette.baseMono.font : settings.extPalette.base.font
             Layout.fillWidth: column == 0
+            textFormat: model.useMarkdown ? Text.MarkdownText : Text.Text.PlainText
         }
         ScrollBar.vertical: ScrollBar {
             policy: tableView.contentHeight + horizontalHeader.height > root.height ? ScrollBar.AlwaysOn : ScrollBar.AsNeeded
