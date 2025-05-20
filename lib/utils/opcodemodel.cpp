@@ -80,7 +80,16 @@ QVariant GreencardModel::headerData(int section, Qt::Orientation orientation, in
   }
   return {};
 }
-
+GreencardModel::Row blank() {
+  return GreencardModel::Row{
+      .sort_order = 255,
+      .bit_pattern = "",
+      .mnemonic = "",
+      .instruction = "",
+      .addressing = "",
+      .status_bits = "",
+  };
+}
 GreencardModel::Row from_mn(isa::detail::pep10::Mnemonic mn, QString bits = "") {
   using namespace isa::detail::pep10;
   using enum isa::Pep10::InstructionType;
@@ -163,12 +172,16 @@ void GreencardModel::make_pep10() {
   _rows.emplace_back(from_mn(MOVSPA));
   _rows.emplace_back(from_mn(MOVASP));
   _rows.emplace_back(from_mn(NOP));
+  _rows.emplace_back(blank());
+
   _rows.emplace_back(from_mn(NEGX, "NZVC"));
   _rows.emplace_back(from_mn(ASLX, "NZVC"));
   _rows.emplace_back(from_mn(ASRX, "NZVC"));
   _rows.emplace_back(from_mn(NOTX, "NZ"));
   _rows.emplace_back(from_mn(ROLX, "NZC"));
   _rows.emplace_back(from_mn(RORX, "NZC"));
+  _rows.emplace_back(blank());
+
   _rows.emplace_back(from_mn(BR));
   _rows.emplace_back(from_mn(BRLE));
   _rows.emplace_back(from_mn(BRLT));
@@ -179,9 +192,13 @@ void GreencardModel::make_pep10() {
   _rows.emplace_back(from_mn(BRV));
   _rows.emplace_back(from_mn(BRC));
   _rows.emplace_back(from_mn(CALL));
+  _rows.emplace_back(blank());
+
   _rows.emplace_back(from_mn(SCALL));
   _rows.emplace_back(from_mn(ADDSP));
   _rows.emplace_back(from_mn(SUBSP));
+  _rows.emplace_back(blank());
+
   _rows.emplace_back(from_mn(ADDX, "NZVC"));
   _rows.emplace_back(from_mn(SUBX, "NZVC"));
   _rows.emplace_back(from_mn(ANDX, "NZ"));
@@ -209,12 +226,16 @@ void GreencardModel::make_pep9() {
   _rows.emplace_back(from_mn(MOVSPA));
   _rows.emplace_back(from_mn(MOVFLGA));
   _rows.emplace_back(from_mn(MOVAFLG, "NZVC"));
+  _rows.emplace_back(blank());
+
   _rows.emplace_back(from_mn(NOTX, "NZ"));
   _rows.emplace_back(from_mn(NEGX, "NZV"));
   _rows.emplace_back(from_mn(ASLX, "NZVC"));
   _rows.emplace_back(from_mn(ASRX, "NZC"));
   _rows.emplace_back(from_mn(ROLX, "C"));
   _rows.emplace_back(from_mn(RORX, "C"));
+  _rows.emplace_back(blank());
+
   _rows.emplace_back(from_mn(BR));
   _rows.emplace_back(from_mn(BRLE));
   _rows.emplace_back(from_mn(BRLT));
@@ -224,6 +245,7 @@ void GreencardModel::make_pep9() {
   _rows.emplace_back(from_mn(BRGT));
   _rows.emplace_back(from_mn(BRV));
   _rows.emplace_back(from_mn(BRC));
+  _rows.emplace_back(blank());
 
   _rows.emplace_back(from_mn(NOP0));
   _rows.emplace_back(from_mn(NOP));
@@ -231,9 +253,11 @@ void GreencardModel::make_pep9() {
   _rows.emplace_back(from_mn(DECO));
   _rows.emplace_back(from_mn(HEXO));
   _rows.emplace_back(from_mn(STRO));
+  _rows.emplace_back(blank());
 
   _rows.emplace_back(from_mn(ADDSP, "NZVC"));
   _rows.emplace_back(from_mn(SUBSP, "NZVC"));
+  _rows.emplace_back(blank());
 
   _rows.emplace_back(from_mn(ADDX, "NZVC"));
   _rows.emplace_back(from_mn(SUBX, "NZVC"));
@@ -291,12 +315,11 @@ QVariant GreencardFilterModel::data(const QModelIndex &index, int role) const {
   // return dyadic. Otherwise, return the data from the source model.
   else if (auto sourceIndex = mapToSource(index);
            sourceIndex.isValid() && sourceIndex.column() == 3 && role == Qt::DisplayRole && _dyadicAddressing) {
-    auto data = d.toString();
-    auto sm = sourceModel();
-    auto casted = qobject_cast<GreencardModel *>(sm);
-    if (data.compare("monadic", Qt::CaseSensitivity::CaseInsensitive) == 0) return data;
-    else if (data.compare("U", Qt::CaseSensitivity::CaseInsensitive) == 0) return data;
-    else if (casted && casted->arch() == pepp::Architecture::PEP10) return "Dyadic";
+    auto data = d.toString().toLower();
+    if (data == "" || data == "monadic" || data == "u") return d;
+    else if (auto casted = qobject_cast<GreencardModel *>(sourceModel());
+             casted && casted->arch() == pepp::Architecture::PEP10)
+      return "Dyadic";
     else return "Nonunary";
   } else return d;
 }
