@@ -36,6 +36,7 @@ Item {
         anchors.left: parent.left
         anchors.right: parent.right
         boundsBehavior: Flickable.StopAtBounds
+        columnSpacing: 5
         model: GreencardFilterModel {
             hideStatus: root.hideStatus
             hideMnemonic: root.hideMnemonic
@@ -44,12 +45,18 @@ Item {
                 id: innerModel
             }
         }
-        columnSpacing: 5
+
         delegate: Text {
             // Prevent 0-width columns, which causes many errors to be emitted to the console.
             text: model.display ? model.display : " "
             font: model.useMonoRole ? settings.extPalette.baseMono.font : settings.extPalette.base.font
             Layout.fillWidth: column == 0
+        }
+        ScrollBar.vertical: ScrollBar {
+            policy: tableView.contentHeight + horizontalHeader.height > root.height ? ScrollBar.AlwaysOn : ScrollBar.AsNeeded
+        }
+        ScrollBar.horizontal: ScrollBar {
+            policy: tableView.contentWidth > root.width ? ScrollBar.AlwaysOn : ScrollBar.AsNeeded
         }
     }
     onArchitectureChanged: {
