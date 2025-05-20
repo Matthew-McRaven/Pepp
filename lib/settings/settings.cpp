@@ -5,6 +5,7 @@
 pepp::settings::Category::Category(QObject *parent) : QObject(parent) {}
 
 // General
+static const char *defaultEditionKey = "General/defaultEdition";
 static const char *defaultArchKey = "General/defaultArch";
 static const char *defaultAbstractionKey = "General/defaultAbstraction";
 static const char *showDebugKey = "General/showDebug";
@@ -32,6 +33,22 @@ void pepp::settings::GeneralCategory::resetToDefault() {
   setShowMenuHotkeys(defaultShowMenuHotkeys);
   setShowChangeDialog(defaultShowChangeDialog);
   setAllowExternalFigures(defaultAllowExternalFigures);
+}
+
+int pepp::settings::GeneralCategory::defaultEdition() const {
+  bool casted = false;
+
+  auto value = _settings.value(defaultEditionKey);
+  if (auto asInt = value.toInt(&casted); value.isValid() && casted) return (asInt);
+  else {
+    _settings.setValue(defaultEditionKey, (int)defaultDefaultEdition);
+    return defaultDefaultEdition;
+  }
+}
+
+void pepp::settings::GeneralCategory::setDefaultEdition(int edition) {
+  _settings.setValue(defaultEditionKey, (int)edition);
+  emit defaultEditionChanged();
 }
 
 pepp::Architecture pepp::settings::GeneralCategory::defaultArch() const {

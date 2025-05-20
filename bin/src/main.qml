@@ -184,15 +184,17 @@ ApplicationWindow {
         anchors.left: sidebar.right
         Top.Welcome {
             id: welcome
+            topOffset: toolbar.height
             Layout.fillHeight: true
             Layout.fillWidth: true
         }
         Builtins.HelpRoot {
             id: help
-            Layout.fillHeight: true
-            Layout.fillWidth: true
             abstraction: currentProject?.abstraction ?? Abstraction.NONE
             architecture: currentProject?.architecture ?? Architecture.NONE
+            topOffset: toolbar.height
+            Layout.fillHeight: true
+            Layout.fillWidth: true
         }
         StackLayout {
             id: innerLayout

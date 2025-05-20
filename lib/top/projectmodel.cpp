@@ -226,27 +226,33 @@ void init_pep10(QList<ProjectType> &vec) {
               .description = "Develop and debug machine language programs in bare metal mode.",
               .arch = a,
               .level = Abstraction::ISA3,
-              .state = CompletionState::COMPLETE});
+              .state = CompletionState::COMPLETE,
+              .edition = 6});
   vec.append({.name = "Pep/10\nLevel Asmb3\nBare Metal",
               .description = "Develop and debug assembly language programs in bare metal mode.",
               .arch = a,
               .level = Abstraction::ASMB3,
-              .state = CompletionState::COMPLETE});
+              .state = CompletionState::COMPLETE,
+              .edition = 6});
   vec.append({.name = "Pep/10\nLevel Asmb5\nFull OS",
               .description = "Develop and debug assembly language programs alongside Pep/10's operating system.\nThis "
                              "level enables you to utilize OS features using system calls for enhanced functionality.",
               .arch = a,
               .level = Abstraction::ASMB5,
-              .state = CompletionState::COMPLETE});
-  vec.append({.name = "Pep/10\nOS4\n", .arch = a, .level = Abstraction::OS4, .state = CompletionState::PARTIAL});
+              .state = CompletionState::COMPLETE,
+              .edition = 6});
+  vec.append(
+      {.name = "Pep/10\nOS4\n", .arch = a, .level = Abstraction::OS4, .state = CompletionState::PARTIAL, .edition = 6});
   vec.append({.name = "Pep/10\nLevel Mc2\n1-Byte Bus",
               .arch = a,
               .level = Abstraction::MC2,
-              .state = CompletionState::INCOMPLETE});
+              .state = CompletionState::INCOMPLETE,
+              .edition = 6});
   vec.append({.name = "Pep/10\nLevel Mc2\n2-Byte Bus",
               .arch = a,
               .level = Abstraction::MC2,
-              .state = CompletionState::INCOMPLETE});
+              .state = CompletionState::INCOMPLETE,
+              .edition = 6});
 }
 void init_pep9(QList<ProjectType> &vec) {
   auto a = pepp::Architecture::PEP9;
@@ -255,24 +261,31 @@ void init_pep9(QList<ProjectType> &vec) {
               .description = "Develop and debug machine language programs.",
               .arch = a,
               .level = Abstraction::ISA3,
-              .state = CompletionState::COMPLETE});
+              .state = CompletionState::COMPLETE,
+              .edition = 5});
   vec.append({.name = "Pep/9\nLevel Asmb5\n",
               .description =
                   "Develop and debug assembly language programs alongside Pep/9's operating system.\nThis level "
                   "enables you to utilize OS features using trap instructions for enhanced functionality.",
               .arch = a,
               .level = Abstraction::ASMB5,
-              .state = CompletionState::COMPLETE});
-  vec.append(
-      {.name = "Pep/9\nLevel OS4\n", .arch = a, .level = Abstraction::OS4, .state = CompletionState::INCOMPLETE});
+              .state = CompletionState::COMPLETE,
+              .edition = 5});
+  vec.append({.name = "Pep/9\nLevel OS4\n",
+              .arch = a,
+              .level = Abstraction::OS4,
+              .state = CompletionState::INCOMPLETE,
+              .edition = 5});
   vec.append({.name = "Pep/9\nLevel Mc2\n1-Byte Bus\n",
               .arch = a,
               .level = Abstraction::MC2,
-              .state = CompletionState::INCOMPLETE});
+              .state = CompletionState::INCOMPLETE,
+              .edition = 5});
   vec.append({.name = "Pep/9\nLevel Mc2\n2-Byte Bus\n",
               .arch = a,
               .level = Abstraction::MC2,
-              .state = CompletionState::INCOMPLETE});
+              .state = CompletionState::INCOMPLETE,
+              .edition = 5});
 }
 void init_pep8(QList<ProjectType> &vec) {
   auto a = pepp::Architecture::PEP8;
@@ -281,20 +294,26 @@ void init_pep8(QList<ProjectType> &vec) {
               .description = "Develop and debug machine language programs.",
               .arch = a,
               .level = Abstraction::ISA3,
-              .state = CompletionState::INCOMPLETE});
+              .state = CompletionState::INCOMPLETE,
+              .edition = 4});
   vec.append({.name = "Pep/8\nLevel Asmb5\n",
               .description =
                   "Develop and debug assembly language programs alongside Pep/8's operating system.\nThis level "
                   "enables you to utilize OS features using trap instructions for enhanced functionality.",
               .arch = a,
               .level = Abstraction::ASMB5,
-              .state = CompletionState::INCOMPLETE});
-  vec.append(
-      {.name = "Pep/8\nLevel OS4\n", .arch = a, .level = Abstraction::OS4, .state = CompletionState::INCOMPLETE});
+              .state = CompletionState::INCOMPLETE,
+              .edition = 4});
+  vec.append({.name = "Pep/8\nLevel OS4\n",
+              .arch = a,
+              .level = Abstraction::OS4,
+              .state = CompletionState::INCOMPLETE,
+              .edition = 4});
   vec.append({.name = "Pep/8\nLevel Mc2\n 1-Byte Bus",
               .arch = a,
               .level = Abstraction::MC2,
-              .state = CompletionState::INCOMPLETE});
+              .state = CompletionState::INCOMPLETE,
+              .edition = 4});
 }
 void init_riscv(QList<ProjectType> &vec) {
   auto a = pepp::Architecture::RISCV;
@@ -303,7 +322,8 @@ void init_riscv(QList<ProjectType> &vec) {
               .description = "Develop and debug machine language programs in bare metal mode.",
               .arch = a,
               .level = Abstraction::ASMB3,
-              .state = CompletionState::INCOMPLETE});
+              .state = CompletionState::INCOMPLETE,
+              .edition = 6});
 }
 
 ProjectTypeModel::ProjectTypeModel(QObject *parent) : QAbstractTableModel(parent) {
@@ -323,6 +343,7 @@ QVariant ProjectTypeModel::data(const QModelIndex &index, int role) const {
   case static_cast<int>(Roles::NameRole): return _projects[index.row()].name;
   case static_cast<int>(Roles::DescriptionRole): return _projects[index.row()].description;
   case static_cast<int>(Roles::ArchitectureRole): return static_cast<int>(_projects[index.row()].arch);
+  case static_cast<int>(Roles::EditionRole): return static_cast<int>(_projects[index.row()].edition);
   case static_cast<int>(Roles::LevelRole): return static_cast<int>(_projects[index.row()].level);
   case static_cast<int>(Roles::CompleteRole): return _projects[index.row()].state == CompletionState::COMPLETE;
   case static_cast<int>(Roles::PartiallyCompleteRole): return _projects[index.row()].state == CompletionState::PARTIAL;
@@ -335,6 +356,7 @@ QHash<int, QByteArray> ProjectTypeModel::roleNames() const {
       {(int)ProjectTypeModel::Roles::NameRole, "text"},
       {(int)ProjectTypeModel::Roles::DescriptionRole, "description"},
       {(int)ProjectTypeModel::Roles::ArchitectureRole, "architecture"},
+      {(int)ProjectTypeModel::Roles::EditionRole, "Edition"},
       {(int)ProjectTypeModel::Roles::LevelRole, "abstraction"},
       {(int)ProjectTypeModel::Roles::CompleteRole, "complete"},
       {(int)ProjectTypeModel::Roles::PartiallyCompleteRole, "partiallyComplete"},
@@ -348,7 +370,16 @@ ProjectTypeFilterModel::ProjectTypeFilterModel(QObject *parent) : QSortFilterPro
 void ProjectTypeFilterModel::setArchitecture(pepp::Architecture arch) {
   if (_architecture == arch) return;
   _architecture = arch;
+  _edition = 0;
   emit architectureChanged();
+  invalidateFilter();
+}
+
+void ProjectTypeFilterModel::setEdition(int edition) {
+  if (_edition == edition) return;
+  _architecture = pepp::Architecture::NO_ARCH;
+  _edition = edition;
+  emit editionChanged();
   invalidateFilter();
 }
 
@@ -373,7 +404,9 @@ bool ProjectTypeFilterModel::filterAcceptsRow(int source_row, const QModelIndex 
       sourceModel()->data(index, static_cast<int>(ProjectTypeModel::Roles::PartiallyCompleteRole)).toBool();
   auto arch = static_cast<pepp::Architecture>(
       sourceModel()->data(index, static_cast<int>(ProjectTypeModel::Roles::ArchitectureRole)).toInt());
+  auto edition = sourceModel()->data(index, static_cast<int>(ProjectTypeModel::Roles::EditionRole)).toInt();
   if (_architecture != pepp::Architecture::NO_ARCH && arch != _architecture) return false;
+  else if (_edition != 0 && edition != _edition) return false;
   else if (!_showIncomplete && isIncomplete) return false;
   else if (!_showPartial && isPartial) return false;
   return true;
