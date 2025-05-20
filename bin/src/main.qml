@@ -138,6 +138,7 @@ ApplicationWindow {
 
     Top.ToolBar {
         id: toolbar
+        visible: !(window.mode === "welcome" || window.mode === "help")
         anchors.top: parent.top
         anchors.left: sidebar.right
         anchors.right: parent.right
