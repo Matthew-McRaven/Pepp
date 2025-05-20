@@ -48,7 +48,7 @@ Item {
         delegate: Text {
             // Prevent 0-width columns, which causes many errors to be emitted to the console.
             text: model.display ? model.display : " "
-            font: settings.extPalette.baseMono.font
+            font: model.useMonoRole ? settings.extPalette.baseMono.font : settings.extPalette.base.font
             Layout.fillWidth: column == 0
         }
     }

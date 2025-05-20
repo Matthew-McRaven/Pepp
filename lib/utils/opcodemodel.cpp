@@ -62,6 +62,9 @@ QVariant GreencardModel::data(const QModelIndex &index, int role) const {
     case 4: return _rows[index.row()].status_bits;
     }
     break;
+  case (int)Roles::UseMonoRole:
+    if (index.column() == 2) return false;
+    return true;
   }
   return {};
 }
@@ -79,6 +82,16 @@ QVariant GreencardModel::headerData(int section, Qt::Orientation orientation, in
     break;
   }
   return {};
+}
+
+QHash<int, QByteArray> GreencardModel::roleNames() const {
+  using enum Roles;
+  static const auto ret = QHash<int, QByteArray>{
+      {(int)Qt::DisplayRole, "display"},
+      {(int)UseMonoRole, "useMonoRole"},
+
+  };
+  return ret;
 }
 GreencardModel::Row blank() {
   return GreencardModel::Row{

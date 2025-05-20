@@ -43,6 +43,10 @@ class GreencardModel : public QAbstractTableModel {
   QML_ELEMENT
 
 public:
+  enum class Roles {
+    UseMonoRole = Qt::UserRole + 1,
+  };
+  Q_ENUM(Roles);
   struct Row {
     quint8 sort_order;
     QString bit_pattern;
@@ -57,6 +61,7 @@ public:
   int rowCount(const QModelIndex &parent = QModelIndex()) const override;
   QVariant data(const QModelIndex &index, int role = Qt::DisplayRole) const override;
   QVariant headerData(int section, Qt::Orientation orientation, int role = Qt::DisplayRole) const override;
+  QHash<int, QByteArray> roleNames() const override;
 
   Q_INVOKABLE void make_pep10();
   Q_INVOKABLE void make_pep9();
