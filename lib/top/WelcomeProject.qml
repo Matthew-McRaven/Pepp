@@ -66,14 +66,6 @@ Item {
                 required property var model
                 Layout.alignment: Qt.AlignHCenter | Qt.AlignTop
                 Layout.preferredWidth: list.width / list.columns
-                Image {
-                    id: image
-                    fillMode: Image.PreserveAspectFit
-                    verticalAlignment: Image.AlignVCenter
-                    horizontalAlignment: Image.AlignHCenter
-                    source: model.source ? model.source : "image://icons/blank.svg"
-                    clip: true
-                }
                 Button {
                     Layout.fillWidth: true
                     text: model.text

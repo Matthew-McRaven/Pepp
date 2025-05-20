@@ -59,7 +59,7 @@ enum class CompletionState {
 };
 
 struct ProjectType {
-  QString name{}, description{}, imagePath{};
+  QString name{}, description{};
   pepp::Architecture arch = pepp::Architecture::NO_ARCH;
   pepp::Abstraction level = pepp::Abstraction::NO_ABS;
   CompletionState state = CompletionState::INCOMPLETE;
@@ -73,7 +73,6 @@ public:
   enum class Roles {
     NameRole = Qt::UserRole + 1,
     DescriptionRole,
-    ImagePathRole,
     ArchitectureRole,
     LevelRole,
     CompleteRole,

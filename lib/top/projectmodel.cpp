@@ -224,20 +224,17 @@ void init_pep10(QList<ProjectType> &vec) {
   using pepp::Abstraction;
   vec.append({.name = "Pep/10\nISA3\nbare metal",
               .description = "Develop and debug machine language programs in bare metal mode.",
-              .imagePath = "image://icons/cards/p10_isa3.svg",
               .arch = a,
               .level = Abstraction::ISA3,
               .state = CompletionState::COMPLETE});
   vec.append({.name = "Pep/10\nAsmb3\nbare metal",
               .description = "Develop and debug assembly language programs in bare metal mode.",
-              .imagePath = "image://icons/cards/p10_asmb3.svg",
               .arch = a,
               .level = Abstraction::ASMB3,
               .state = CompletionState::COMPLETE});
   vec.append({.name = "Pep/10\nAsmb5\nfull OS",
               .description = "Develop and debug assembly language programs alongside Pep/10's operating system.\nThis "
                              "level enables you to utilize OS features using system calls for enhanced functionality.",
-              .imagePath = "image://icons/cards/p10_asmb5.svg",
               .arch = a,
               .level = Abstraction::ASMB5,
               .state = CompletionState::COMPLETE});
@@ -252,7 +249,6 @@ void init_pep9(QList<ProjectType> &vec) {
   using pepp::Abstraction;
   vec.append({.name = "Pep/9\nISA3",
               .description = "Develop and debug machine language programs.",
-              .imagePath = "image://icons/cards/p9_isa3.svg",
               .arch = a,
               .level = Abstraction::ISA3,
               .state = CompletionState::COMPLETE});
@@ -260,7 +256,6 @@ void init_pep9(QList<ProjectType> &vec) {
               .description =
                   "Develop and debug assembly language programs alongside Pep/9's operating system.\nThis level "
                   "enables you to utilize OS features using trap instructions for enhanced functionality.",
-              .imagePath = "image://icons/cards/p9_asmb5.svg",
               .arch = a,
               .level = Abstraction::ASMB5,
               .state = CompletionState::COMPLETE});
@@ -275,7 +270,6 @@ void init_pep8(QList<ProjectType> &vec) {
   using pepp::Abstraction;
   vec.append({.name = "Pep/8\nISA3",
               .description = "Develop and debug machine language programs.",
-              .imagePath = "image://icons/cards/p9_isa3.svg",
               .arch = a,
               .level = Abstraction::ISA3,
               .state = CompletionState::INCOMPLETE});
@@ -283,7 +277,6 @@ void init_pep8(QList<ProjectType> &vec) {
               .description =
                   "Develop and debug assembly language programs alongside Pep/8's operating system.\nThis level "
                   "enables you to utilize OS features using trap instructions for enhanced functionality.",
-              .imagePath = "image://icons/cards/p9_asmb5.svg",
               .arch = a,
               .level = Abstraction::ASMB5,
               .state = CompletionState::INCOMPLETE});
@@ -317,7 +310,6 @@ QVariant ProjectTypeModel::data(const QModelIndex &index, int role) const {
   switch (role) {
   case static_cast<int>(Roles::NameRole): return _projects[index.row()].name;
   case static_cast<int>(Roles::DescriptionRole): return _projects[index.row()].description;
-  case static_cast<int>(Roles::ImagePathRole): return _projects[index.row()].imagePath;
   case static_cast<int>(Roles::ArchitectureRole): return static_cast<int>(_projects[index.row()].arch);
   case static_cast<int>(Roles::LevelRole): return static_cast<int>(_projects[index.row()].level);
   case static_cast<int>(Roles::CompleteRole): return _projects[index.row()].state == CompletionState::COMPLETE;
@@ -330,7 +322,6 @@ QHash<int, QByteArray> ProjectTypeModel::roleNames() const {
   static const QHash<int, QByteArray> ret{
       {(int)ProjectTypeModel::Roles::NameRole, "text"},
       {(int)ProjectTypeModel::Roles::DescriptionRole, "description"},
-      {(int)ProjectTypeModel::Roles::ImagePathRole, "source"},
       {(int)ProjectTypeModel::Roles::ArchitectureRole, "architecture"},
       {(int)ProjectTypeModel::Roles::LevelRole, "abstraction"},
       {(int)ProjectTypeModel::Roles::CompleteRole, "complete"},

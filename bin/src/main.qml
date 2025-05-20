@@ -296,6 +296,7 @@ ApplicationWindow {
         clip: true
         height: 700
         contentItem: Builtins.ChangelogViewer {
+            focus: true
             // Do not create binding to settings directly, so that we don't get modified when the setting is updated.
             min: {
                 // By making a copy of the value before binding, we can avoid propogating updates to settings.
@@ -336,12 +337,16 @@ ApplicationWindow {
         width: 3 * 320 //Math.min(prefs.contentWidth + 100, 640)
         contentItem: AppSettings.TopLevel {
             id: prefs
+            focus: true
             anchors {
                 margins: parent.padding
                 left: parent.left
                 right: parent.right
                 top: parent.header.bottom
                 bottom: parent.footer.top
+            }
+            Keys.onEscapePressed: {
+                preferencesDialog.close();
             }
         }
         standardButtons: Dialog.Close
