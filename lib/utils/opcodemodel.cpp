@@ -99,9 +99,10 @@ GreencardModel::Row from_mn(isa::detail::pep10::Mnemonic mn, QString bits = "") 
   case RAAA_all: addr_modes = "i,d,n,s,sf,x,sx,sfx"; break;
   case RAAA_noi: addr_modes = "d,n,s,sf,x,sx,sfx"; break;
   }
+  auto is_bits = isa::Pep10::instructionSpecifierWithPlaceholders(mn);
   return GreencardModel::Row{
       .sort_order = static_cast<quint8>(mn),
-      .bit_pattern = isa::Pep10::instructionSpecifierWithPlaceholders(mn),
+      .bit_pattern = is_bits.left(4) + " " + is_bits.right(4),
       .mnemonic = mn_str,
       .instruction = isa::Pep10::describeMnemonicUsingPlaceholders(mn),
       .addressing = addr_modes,
@@ -131,9 +132,10 @@ GreencardModel::Row from_mn(isa::detail::pep9::Mnemonic mn, QString bits = "") {
   case RAAA_noi: addr_modes = "d,n,s,sf,x,sx,sfx"; break;
   case AAA_stro: addr_modes = "d,n,s,sf,x"; break;
   }
+  auto is_bits = isa::Pep9::instructionSpecifierWithPlaceholders(mn);
   return GreencardModel::Row{
       .sort_order = static_cast<quint8>(mn),
-      .bit_pattern = isa::Pep9::instructionSpecifierWithPlaceholders(mn),
+      .bit_pattern = is_bits.left(4) + " " + is_bits.right(4),
       .mnemonic = mn_str,
       .instruction = isa::Pep9::describeMnemonicUsingPlaceholders(mn),
       .addressing = addr_modes,
@@ -149,7 +151,7 @@ void GreencardModel::make_pep10() {
   _arch = pepp::Architecture::PEP10;
   _rows.clear();
   _rows.emplace_back(Row{.sort_order = 0,
-                         .bit_pattern = "00000000",
+                         .bit_pattern = "0000 0000",
                          .mnemonic = "",
                          .instruction = "Illegal Instruction",
                          .addressing = "",
