@@ -138,6 +138,7 @@ ApplicationWindow {
 
     Top.ToolBar {
         id: toolbar
+        visible: !(window.mode === "welcome" || window.mode === "help")
         anchors.top: parent.top
         anchors.left: sidebar.right
         anchors.right: parent.right
@@ -183,15 +184,17 @@ ApplicationWindow {
         anchors.left: sidebar.right
         Top.Welcome {
             id: welcome
+            topOffset: toolbar.height
             Layout.fillHeight: true
             Layout.fillWidth: true
         }
         Builtins.HelpRoot {
             id: help
-            Layout.fillHeight: true
-            Layout.fillWidth: true
             abstraction: currentProject?.abstraction ?? Abstraction.NONE
             architecture: currentProject?.architecture ?? Architecture.NONE
+            topOffset: toolbar.height
+            Layout.fillHeight: true
+            Layout.fillWidth: true
         }
         StackLayout {
             id: innerLayout
@@ -296,6 +299,7 @@ ApplicationWindow {
         clip: true
         height: 700
         contentItem: Builtins.ChangelogViewer {
+            focus: true
             // Do not create binding to settings directly, so that we don't get modified when the setting is updated.
             min: {
                 // By making a copy of the value before binding, we can avoid propogating updates to settings.
@@ -336,12 +340,16 @@ ApplicationWindow {
         width: 3 * 320 //Math.min(prefs.contentWidth + 100, 640)
         contentItem: AppSettings.TopLevel {
             id: prefs
+            focus: true
             anchors {
                 margins: parent.padding
                 left: parent.left
                 right: parent.right
                 top: parent.header.bottom
                 bottom: parent.footer.top
+            }
+            Keys.onEscapePressed: {
+                preferencesDialog.close();
             }
         }
         standardButtons: Dialog.Close

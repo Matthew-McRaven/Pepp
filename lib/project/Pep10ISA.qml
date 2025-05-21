@@ -116,9 +116,12 @@ FocusScope {
                 id: greencard
                 // property size kddockwidgets_min_size: Qt.size(300, 100)
                 anchors.fill: parent
+                anchors.leftMargin: 4
+                anchors.rightMargin: 4
                 architecture: project?.architecture ?? Architecture.PEP10
                 hideStatus: true
                 hideMnemonic: true
+                dyadicAddressing: true
                 //visible: mode === "editor"
             }
         }

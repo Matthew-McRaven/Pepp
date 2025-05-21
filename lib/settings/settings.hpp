@@ -31,6 +31,7 @@ class GeneralCategory : public Category {
   QML_NAMED_ELEMENT(GeneralCategory)
   // "Defaults" group box
   // When given a file with an ambiguous extension, interpret it using this architecture.
+  Q_PROPERTY(int defaultEdition READ defaultEdition WRITE setDefaultEdition NOTIFY defaultEditionChanged)
   Q_PROPERTY(pepp::Architecture defaultArch READ defaultArch WRITE setDefaultArch NOTIFY defaultArchChanged)
   Q_PROPERTY(pepp::Abstraction defaultAbstraction READ defaultAbstraction WRITE setDefaultAbstraction NOTIFY
                  defaultAbstractionChanged)
@@ -56,6 +57,8 @@ public:
   void sync() override;
   void resetToDefault() override;
 
+  int defaultEdition() const;
+  void setDefaultEdition(int edition);
   pepp::Architecture defaultArch() const;
   void setDefaultArch(pepp::Architecture arch);
   pepp::Abstraction defaultAbstraction() const;
@@ -75,6 +78,7 @@ public:
   QString figureDirectory() const;
 
 signals:
+  void defaultEditionChanged();
   void defaultArchChanged();
   void defaultAbstractionChanged();
   void showDebugComponentsChanged();
@@ -86,6 +90,7 @@ signals:
 
 private:
   mutable QSettings _settings;
+  const int defaultDefaultEdition = 6;
   const pepp::Architecture defaultDefaultArch = pepp::Architecture::PEP10;
   const pepp::Abstraction defaultDefaultAbstraction = pepp::Abstraction::ASMB5;
   const bool defaultShowDebugComponents = false;

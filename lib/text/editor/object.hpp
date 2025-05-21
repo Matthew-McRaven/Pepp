@@ -20,5 +20,5 @@ signals:
   void bytesPerRowChanged();
 
 private:
-  int _bytesPerRow = 8;
+  int _bytesPerRow = 16;
 };

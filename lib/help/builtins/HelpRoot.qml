@@ -6,6 +6,7 @@ import "qrc:/qt/qml/edu/pepp/utils" as Comp
 
 Item {
     id: root
+    property real topOffset: 0
     // Treat as read-only inputs. If changed, they should force updates to the combo boxes.
     property var architecture: 0
     property var abstraction: 0
@@ -98,6 +99,7 @@ Item {
             left: parent.left
             top: parent.top
             bottom: parent.bottom
+            topMargin: -root.topOffset
         }
         RowLayout {
             id: comboBoxes

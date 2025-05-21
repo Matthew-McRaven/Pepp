@@ -59,10 +59,11 @@ enum class CompletionState {
 };
 
 struct ProjectType {
-  QString name{}, description{}, imagePath{};
+  QString name{}, description{};
   pepp::Architecture arch = pepp::Architecture::NO_ARCH;
   pepp::Abstraction level = pepp::Abstraction::NO_ABS;
   CompletionState state = CompletionState::INCOMPLETE;
+  int edition = 0;
 };
 
 class ProjectTypeModel : public QAbstractTableModel {
@@ -73,12 +74,12 @@ public:
   enum class Roles {
     NameRole = Qt::UserRole + 1,
     DescriptionRole,
-    ImagePathRole,
     ArchitectureRole,
     LevelRole,
     CompleteRole,
     PartiallyCompleteRole,
     ColumnTypeRole,
+    EditionRole,
   };
   Q_ENUM(Roles);
   explicit ProjectTypeModel(QObject *parent = nullptr);
@@ -93,7 +94,9 @@ private:
 
 class ProjectTypeFilterModel : public QSortFilterProxyModel {
   Q_OBJECT
+  // Filter may either be architecture OR edition. Setting one clears the other.
   Q_PROPERTY(pepp::Architecture architecture READ architecture WRITE setArchitecture NOTIFY architectureChanged)
+  Q_PROPERTY(int edition READ edition WRITE setEdition NOTIFY editionChanged)
   Q_PROPERTY(bool showIncomplete READ showIncomplete WRITE setShowIncomplete NOTIFY showIncompleteChanged)
   Q_PROPERTY(bool showPartiallyComplete READ showPartial WRITE setShowPartial NOTIFY showPartialChanged)
   QML_ELEMENT
@@ -101,7 +104,9 @@ class ProjectTypeFilterModel : public QSortFilterProxyModel {
 public:
   explicit ProjectTypeFilterModel(QObject *parent = nullptr);
   pepp::Architecture architecture() const { return _architecture; }
+  int edition() const { return _edition; }
   void setArchitecture(pepp::Architecture arch);
+  void setEdition(int edition);
   bool showIncomplete() const { return _showIncomplete; }
   void setShowIncomplete(bool value);
   bool showPartial() const { return _showPartial; }
@@ -111,10 +116,12 @@ protected:
   bool filterAcceptsRow(int source_row, const QModelIndex &source_parent) const override;
 signals:
   void architectureChanged();
+  void editionChanged();
   void showIncompleteChanged();
   void showPartialChanged();
 
 private:
   pepp::Architecture _architecture = pepp::Architecture::NO_ARCH;
+  int _edition = 0;
   bool _showIncomplete = false, _showPartial = false;
 };
