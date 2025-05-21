@@ -19,6 +19,8 @@ import QtQuick.Window
 import QtQuick.Controls
 import QtQuick.Layouts
 import QtCore
+import Qt.labs.platform as P// Make sure app fails to start if this is missing.
+import Qt.labs.qmlmodels as M// "
 import "qrc:/qt/qml/edu/pepp/help/about" as About
 import "qrc:/qt/qml/edu/pepp/project" as Project
 import "qrc:/qt/qml/edu/pepp/top" as Top
