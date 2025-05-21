@@ -57,7 +57,7 @@ if (NOT (WIN32 OR EMSCRIPTEN))
 endif ()
 
 # Skip term target on platforms where it is not needed.
-if(NOT EMSCRIPTEN)
+if(NOT (EMSCRIPTEN OR IOS) )
     qt6_add_executable(pepp-term ${sources} ${CMAKE_SOURCE_DIR}/data/icons/icons.qrc)
     target_link_libraries(pepp-term PRIVATE cli Qt6::Core catch test-lib-all pepp-lib catch)
     set_target_properties(pepp-term PROPERTIES FOLDER "qtc_runnable")
@@ -153,7 +153,7 @@ qt6_add_resources(pepp "pepp"
 )
 
 # Set pepp/pepp-term as a test target.
-if (NOT EMSCRIPTEN)
+if (NOT (EMSCRIPTEN OR IOS))
     set(count 2)
     catch_test_count(count)
     catch_add_sharded_tests(pepp-term ADDTL_ARGS "selftest" SHARD_COUNT ${count})

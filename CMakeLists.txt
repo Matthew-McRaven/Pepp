@@ -46,9 +46,12 @@ set_property(GLOBAL PROPERTY USE_FOLDERS ON)
 
 # Use to all output object files (applications, libraries, etc) in a single directory.
 # Without this, Windows does a bad job of copying DLLs on change for the terminal application.
-set(CMAKE_ARCHIVE_OUTPUT_DIRECTORY "${PROJECT_BINARY_DIR}/output")
-set(CMAKE_LIBRARY_OUTPUT_DIRECTORY "${PROJECT_BINARY_DIR}/output")
-set(CMAKE_RUNTIME_OUTPUT_DIRECTORY "${PROJECT_BINARY_DIR}/output")
+# However, it confuses iOS builds and must be disabled there.
+if(NOT IOS)
+    set(CMAKE_ARCHIVE_OUTPUT_DIRECTORY "${PROJECT_BINARY_DIR}/output")
+    set(CMAKE_LIBRARY_OUTPUT_DIRECTORY "${PROJECT_BINARY_DIR}/output")
+    set(CMAKE_RUNTIME_OUTPUT_DIRECTORY "${PROJECT_BINARY_DIR}/output")
+endif()
 
 if (ONLY STREQUAL "BUILD")
     if (EMSCRIPTEN)
