@@ -1,12 +1,19 @@
 #include "selftest.hpp"
 #include <catch.hpp>
 
-SelfTest::SelfTest(QObject *parent) : QAbstractListModel(parent) {}
+SelfTest::SelfTest(QObject *parent) : QAbstractTableModel(parent) {}
 
 QVariant SelfTest::headerData(int section, Qt::Orientation orientation, int role) const {
-  // FIXME: Implement me!
+  switch (role) {
+  case Qt::DisplayRole:
+    if (section == 0) return QString("Test Name");
+    else if (section == 1) return QString("Tags");
+  default: break;
+  }
   return {};
 }
+
+int SelfTest::columnCount(const QModelIndex &parent) const { return 2; }
 
 int SelfTest::rowCount(const QModelIndex &parent) const {
   // For list models only the root node (an invalid parent) should return the list's size. For all
@@ -20,5 +27,10 @@ QVariant SelfTest::data(const QModelIndex &index, int role) const {
   if (!index.isValid()) return QVariant();
   const auto &hub = Catch::getRegistryHub();
   auto tc = hub.getTestCaseRegistry().getAllTests().at(index.row());
-  return QString::fromStdString(tc.getTestCaseInfo().name);
+
+  switch (index.column()) {
+  case 0: return QString::fromStdString(tc.getTestCaseInfo().name);
+  case 1: return QString::fromStdString(tc.getTestCaseInfo().tagsAsString());
+  }
+  return {};
 }
