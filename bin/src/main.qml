@@ -245,7 +245,10 @@ ApplicationWindow {
                 }
             }
         }
-        Top.SelfTest {}
+        Top.SelfTest {
+            Layout.fillHeight: true
+            Layout.fillWidth: true
+        }
 
         Component.onCompleted: {
             window.modeChanged.connect(onModeChanged);
