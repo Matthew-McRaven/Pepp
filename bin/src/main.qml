@@ -241,6 +241,8 @@ ApplicationWindow {
                 }
             }
         }
+        Top.SelfTest {}
+
         Component.onCompleted: {
             window.modeChanged.connect(onModeChanged);
             onModeChanged();
@@ -256,6 +258,9 @@ ApplicationWindow {
             default:
                 mainArea.currentIndex = 2;
                 // TODO: update loader delegate for selected mode.
+                break;
+            case "self test":
+                mainArea.currentIndex = 3;
                 break;
             }
         }
