@@ -45,6 +45,8 @@ Column {
             return "pest_control.svg";
         case "editor":
             return "edit.svg";
+        case "self test":
+            return "robot.svg";
         }
     }
 
