@@ -60,15 +60,16 @@ Item {
                 }
             }
             border.color: Qt.darker(palette.button, 1.1)
+            border.width: 1
         }
         onReleased: {
             settings.general.defaultEdition = control.edition;
         }
     }
 
-    RowLayout {
+    Flow {
         id: header
-        spacing: 0
+        spacing: fm.averageCharacterWidth
         anchors {
             top: parent.top
             left: parent.left
@@ -79,30 +80,31 @@ Item {
         Label {
             text: `Computer Systems`
             font: fm.font
-            rightPadding: fm.averageCharacterWidth
         }
+        Row {
 
-        EditionButton {
-            text: "Sixth"
-            edition: 6
-            leftRadius: fm.font.pointSize / 4
-        }
-        EditionButton {
-            text: "Fifth"
-            edition: 5
-            rightRadius: settings.general.showDebugComponents ? 0 : fm.font.pointSize / 4
-        }
-        EditionButton {
-            visible: settings.general.showDebugComponents
-            text: "Fourth"
-            edition: 4
-            rightRadius: fm.font.pointSize / 4
+            spacing: -1 // -border.width
+            EditionButton {
+                text: "Sixth"
+                edition: 6
+                leftRadius: fm.font.pointSize / 4
+            }
+            EditionButton {
+                text: "Fifth"
+                edition: 5
+                rightRadius: settings.general.showDebugComponents ? 0 : fm.font.pointSize / 4
+            }
+            EditionButton {
+                visible: settings.general.showDebugComponents
+                text: "Fourth"
+                edition: 4
+                rightRadius: fm.font.pointSize / 4
+            }
         }
         Label {
             Layout.fillWidth: true
             text: `Edition`
             font: fm.font
-            leftPadding: fm.averageCharacterWidth
         }
     }
 
