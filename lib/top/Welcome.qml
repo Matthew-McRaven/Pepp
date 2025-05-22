@@ -18,6 +18,19 @@ Item {
         id: fm
         font.pointSize: 48
     }
+    FontMetrics {
+        id: projectFM
+        font {
+            family: fm.font.family
+            pointSize: fm.font.pointSize * 2 / 3
+        }
+    }
+    TextMetrics {
+        id: projectTM
+        font: projectFM.font
+        text: "Level Asmb5"
+    }
+
     signal addProject(int arch, int abstraction, string features, bool reuse)
 
     component EditionButton: Button {
@@ -115,12 +128,13 @@ Item {
                 required property var model
                 Layout.alignment: Qt.AlignHCenter | Qt.AlignTop
                 Layout.preferredWidth: list.width / list.columns
+                Layout.minimumWidth: projectTM.width * 1.1
                 RoundButton {
                     id: button
+                    font: projectFM.font
                     visible: !model.placeholder
                     Layout.fillWidth: true
                     text: model.text
-                    font: fm.font
                     onReleased: {
                         root.addProject(model.architecture, model.abstraction, "", false);
                     }
