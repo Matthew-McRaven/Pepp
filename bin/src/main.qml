@@ -375,4 +375,9 @@ ApplicationWindow {
     }
     function onToggleFullScreen() {
     }
+    onCurrentProjectChanged: {
+        // Must defer mode switch since this handler is called before sidebar is updated to new model.
+        if (!currentProject)
+            Qt.callLater(() => sidebar.switchToMode("welcome"));
+    }
 }
