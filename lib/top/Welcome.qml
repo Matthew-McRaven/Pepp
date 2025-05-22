@@ -77,8 +77,10 @@ Item {
         EditionButton {
             text: "Fifth"
             edition: 5
+            rightRadius: settings.general.showDebugComponents ? 0 : fm.font.pointSize / 4
         }
         EditionButton {
+            visible: settings.general.showDebugComponents
             text: "Fourth"
             edition: 4
             rightRadius: fm.font.pointSize / 4
