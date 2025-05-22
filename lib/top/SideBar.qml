@@ -34,6 +34,10 @@ Column {
         ListElement {
             display: "Help"
         }
+        ListElement {
+            display: "Self Test"
+            debugComponent: true
+        }
     }
     function mapModeToImage(mode) {
         switch (mode) {
@@ -56,6 +60,7 @@ Column {
             property int borderSize: 2
             enabled: root.enabled
             checkable: true
+            visible: settings.general.showDebugComponents || !(model.debugComponent ?? false)
             width: 100
             height: 65
             text: model.display ?? "ERROR"
