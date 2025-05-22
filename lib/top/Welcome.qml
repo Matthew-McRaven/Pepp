@@ -114,6 +114,8 @@ Item {
                 Layout.alignment: Qt.AlignHCenter | Qt.AlignTop
                 Layout.preferredWidth: list.width / list.columns
                 RoundButton {
+                    id: button
+                    visible: !model.placeholder
                     Layout.fillWidth: true
                     text: model.text
                     font: fm.font
@@ -127,6 +129,10 @@ Item {
                     ToolTip.delay: 500
                     ToolTip.text: qsTr(model.description)
                     radius: fm.font.pointSize / 2
+                }
+                Item {
+                    visible: model.placeholder
+                    Layout.fillWidth: true
                 }
             }
         }

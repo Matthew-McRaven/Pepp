@@ -263,6 +263,8 @@ void init_pep9(QList<ProjectType> &vec) {
               .level = Abstraction::ISA3,
               .state = CompletionState::COMPLETE,
               .edition = 5});
+  vec.append(
+      {.arch = a, .level = Abstraction::ASMB3, .state = CompletionState::COMPLETE, .edition = 5, .placeholder = true});
   vec.append({.name = "Pep/9\nLevel Asmb5\n",
               .description =
                   "Develop and debug assembly language programs alongside Pep/9's operating system.\nThis level "
@@ -276,12 +278,12 @@ void init_pep9(QList<ProjectType> &vec) {
               .level = Abstraction::OS4,
               .state = CompletionState::INCOMPLETE,
               .edition = 5});
-  vec.append({.name = "Pep/9\nLevel Mc2\n1-Byte Bus\n",
+  vec.append({.name = "Pep/9\nLevel Mc2\n1-Byte Bus",
               .arch = a,
               .level = Abstraction::MC2,
               .state = CompletionState::INCOMPLETE,
               .edition = 5});
-  vec.append({.name = "Pep/9\nLevel Mc2\n2-Byte Bus\n",
+  vec.append({.name = "Pep/9\nLevel Mc2\n2-Byte Bus",
               .arch = a,
               .level = Abstraction::MC2,
               .state = CompletionState::INCOMPLETE,
@@ -296,6 +298,8 @@ void init_pep8(QList<ProjectType> &vec) {
               .level = Abstraction::ISA3,
               .state = CompletionState::INCOMPLETE,
               .edition = 4});
+  vec.append(
+      {.arch = a, .level = Abstraction::ISA3, .state = CompletionState::INCOMPLETE, .edition = 4, .placeholder = true});
   vec.append({.name = "Pep/8\nLevel Asmb5\n",
               .description =
                   "Develop and debug assembly language programs alongside Pep/8's operating system.\nThis level "
@@ -318,6 +322,11 @@ void init_pep8(QList<ProjectType> &vec) {
 void init_riscv(QList<ProjectType> &vec) {
   auto a = pepp::Architecture::RISCV;
   using pepp::Abstraction;
+  vec.append({.arch = a,
+              .level = Abstraction::ASMB3,
+              .state = CompletionState::INCOMPLETE,
+              .edition = 6,
+              .placeholder = true});
   vec.append({.name = "RISC-V\nLevel Asmb3\nBare Metal",
               .description = "Develop and debug machine language programs in bare metal mode.",
               .arch = a,
@@ -347,6 +356,7 @@ QVariant ProjectTypeModel::data(const QModelIndex &index, int role) const {
   case static_cast<int>(Roles::LevelRole): return static_cast<int>(_projects[index.row()].level);
   case static_cast<int>(Roles::CompleteRole): return _projects[index.row()].state == CompletionState::COMPLETE;
   case static_cast<int>(Roles::PartiallyCompleteRole): return _projects[index.row()].state == CompletionState::PARTIAL;
+  case static_cast<int>(Roles::PlaceholderRole): return static_cast<int>(_projects[index.row()].placeholder);
   default: return {};
   }
 }
@@ -361,6 +371,7 @@ QHash<int, QByteArray> ProjectTypeModel::roleNames() const {
       {(int)ProjectTypeModel::Roles::CompleteRole, "complete"},
       {(int)ProjectTypeModel::Roles::PartiallyCompleteRole, "partiallyComplete"},
       {(int)ProjectTypeModel::Roles::ColumnTypeRole, "columnType"},
+      {(int)ProjectTypeModel::Roles::PlaceholderRole, "placeholder"},
   };
   return ret;
 }
