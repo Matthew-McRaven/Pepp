@@ -25,6 +25,7 @@ Item {
             horizontalAlignment: Text.AlignHCenter
             wrapMode: Text.WordWrap
             font.bold: true
+            color: palette.text
         }
     }
     TextMetrics {
@@ -69,6 +70,7 @@ Item {
             font: model.useMonoRole ? settings.extPalette.baseMono.font : settings.extPalette.base.font
             Layout.fillWidth: column == 0
             textFormat: model.useMarkdown ? Text.MarkdownText : Text.PlainText
+            color: palette.text
         }
         ScrollBar.vertical: ScrollBar {
             policy: tableView.contentHeight + horizontalHeader.height > root.height ? ScrollBar.AlwaysOn : ScrollBar.AsNeeded
