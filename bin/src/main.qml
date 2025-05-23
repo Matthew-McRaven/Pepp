@@ -215,7 +215,8 @@ ApplicationWindow {
                         setSource(delegate, {
                             "project": model.project,
                             "mode": Qt.binding(() => window.mode),
-                            "actions": window.actionRef
+                            "actions": window.actionRef,
+                            "isActive": false
                         });
                         // Do not attempt to put docking widgets in main area until size is non-0.
                         // Instead, listen for updates in attemptDock, and perform docking as soon as we have real sizes.
@@ -229,6 +230,9 @@ ApplicationWindow {
                             widthChanged.disconnect(attemptDock);
                             heightChanged.disconnect(attemptDock);
                         }
+                    }
+                    onLoaded: {
+                        projectLoader.item.isActive = Qt.binding(() => model.row === projectSelect.currentProjectRow);
                     }
 
                     Connections {

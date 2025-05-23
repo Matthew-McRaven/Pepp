@@ -16,6 +16,8 @@ FocusScope {
     required property var project
     required property var actions
     required property string mode
+    // WASM version's active focus is broken with docks.
+    required property bool isActive
     property bool needsDock: true
     focus: true
     NuAppSettings {
@@ -472,14 +474,14 @@ FocusScope {
 
     // Only enable binding from the actions to this project if this project is focused.
     Connections {
-        enabled: wrapper.activeFocus
+        enabled: wrapper.activeFocus || wrapper.isActive
         target: wrapper.actions.debug.start
         function onTriggered() {
             wrapper.requestModeSwitchTo("debugger");
         }
     }
     Connections {
-        enabled: wrapper.activeFocus
+        enabled: wrapper.activeFocus || wrapper.isActive
         target: wrapper.actions.build.execute
         function onTriggered() {
             wrapper.requestModeSwitchTo("debugger");
