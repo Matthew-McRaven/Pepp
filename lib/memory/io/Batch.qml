@@ -8,7 +8,9 @@ ColumnLayout {
     NuAppSettings {
         id: settings
     }
-
+    function forceFocusEditor() {
+        area.forceActiveFocus();
+    }
     property alias text: area.text
     property alias readOnly: area.readOnly
     property real minimumHeight: scrollViewMinHeight

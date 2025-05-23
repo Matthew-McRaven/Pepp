@@ -72,6 +72,12 @@ FocusScope {
         dock_hexdump.addDockWidgetAsTab(dock_stack, PreserveCurrent);
         wrapper.needsDock = Qt.binding(() => false);
         modeVisibilityChange();
+        // WASM version doesn't seem to give focus to editor without giving focus to something else first.
+        // Without this workaround the text editor will not receive focus on subsequent key presses.
+        if (PlatformDetector.isWASM)
+            batchInput.forceFocusEditor();
+        // Delay giving focus to editor until the next frame to ensure that ou
+        Qt.callLater(() => userAsmEdit.forceEditorFocus());
     }
     Component.onCompleted: {
         // Must connect and disconnect manually, otherwise project may be changed underneath us, and "save" targets wrong project.
@@ -104,7 +110,6 @@ FocusScope {
         onOverwriteEditors();
         project.updateGUI.connect(watchExpr.updateGUI);
         project.updateGUI.connect(bpViewer.updateGUI);
-        userAsmEdit.forceActiveFocus();
     }
 
     signal requestModeSwitchTo(string mode)

@@ -23,6 +23,10 @@ FocusScope {
                 root.editingFinished(editor.text);
         });
     }
+    function forceEditorFocus() {
+        editor.forceActiveFocus();
+    }
+
     // List has {line:#, message:str}
     function addEOLAnnotations(lst) {
         editor.clearAllEOLAnnotations();
