@@ -30,18 +30,17 @@ QString pas::ops::generic::detail::formatBlank(const ast::Node &node, SourceOpti
 
 QString pas::ops::generic::detail::formatComment(const ast::Node &node, SourceOptions opts) {
   QString lpad = "%1;%2";
-
+  QString nopad = ";%1";
+  const auto comment = node.get<ast::generic::Comment>().value;
   // TODO: Allow "size" of instruction ident to be variable
   if (node.has<ast::generic::CommentIndent>()) {
     switch (node.get<ast::generic::CommentIndent>().value) {
-    case ast::generic::CommentIndent::Level::Left: lpad = lpad.arg(" ", 0); break;
-    case ast::generic::CommentIndent::Level::Instruction: lpad = lpad.arg(" ", 8); break;
+    case ast::generic::CommentIndent::Level::Left: return nopad.arg(comment);
+    case ast::generic::CommentIndent::Level::Instruction: return lpad.arg(" ", 8).arg(comment);
     }
-  } else {
-    // Default to left-aligned.
-    lpad = lpad.arg(" ", 0);
   }
-  return lpad.arg(node.get<ast::generic::Comment>().value);
+  // Default to left-aligned.
+  return nopad.arg(comment);
 }
 
 QString pas::ops::generic::detail::format(const QString &symbol, const QString &invoke, const QStringList &args,
@@ -53,8 +52,8 @@ QString pas::ops::generic::detail::format(const QString &symbol, const QString &
   auto emptySymPlaceHolder = u" "_s.repeated(symWidth);
   auto symPlaceholder = symbol.isEmpty() ? emptySymPlaceHolder : u"%1"_s.arg(symbol + ":", -symWidth, QChar(' '));
   auto ret = u"%1%2%3%4"_s.arg(symPlaceholder)
-                 .arg(invoke, -9, ' ')
-                 .arg(joinedArgs, -8, ' ')
+                 .arg(invoke, -8, ' ')
+                 .arg(joinedArgs, -12, ' ')
                  .arg(comment.isEmpty() ? "" : ";" + comment);
   return ret;
 }
