@@ -64,6 +64,7 @@ struct ProjectType {
   pepp::Abstraction level = pepp::Abstraction::NO_ABS;
   CompletionState state = CompletionState::INCOMPLETE;
   int edition = 0;
+  bool placeholder = false;
 };
 
 class ProjectTypeModel : public QAbstractTableModel {
@@ -80,6 +81,7 @@ public:
     PartiallyCompleteRole,
     ColumnTypeRole,
     EditionRole,
+    PlaceholderRole
   };
   Q_ENUM(Roles);
   explicit ProjectTypeModel(QObject *parent = nullptr);

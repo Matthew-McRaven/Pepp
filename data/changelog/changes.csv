@@ -125,3 +125,6 @@ Changed,Major,0.10.0,854,"Allow users to change the layout of the editor and deb
 Changed,,0.10.0,843,"No longer require sentinel ZZ in object code editor"
 Changed,Major,0.10.0,856,"In ""Welcome"" view, emphasize editions of book rather than architectures"
 Fixed,,0.10.0,844,"In ISA3 editor, match instruction table formatting to that of the book"
+Fixed,,0.10.0,,"Enable iOS builds"
+Changed,,0.10.0,861,"Refactor ""Welcome"" view's layout to be responsive to window size"
+Fixed,,0.10.0,,"Re-enable theming in WASM builds"
