@@ -22,7 +22,7 @@ Item {
         id: projectFM
         font {
             family: fm.font.family
-            pointSize: fm.font.pointSize * 2 / 3
+            pointSize: 3 * fm.font.pointSize / 4
         }
     }
     TextMetrics {
@@ -108,59 +108,61 @@ Item {
         }
     }
 
-    GridLayout {
-        id: list
+    ScrollView {
+        id: sv
+        clip: true
         anchors {
             top: header.bottom
             topMargin: 20
             bottom: parent.bottom
             left: parent.left
-            leftMargin: 10
             right: parent.right
-            rightMargin: 10
+            margins: 10
         }
-
-        clip: true
-        rowSpacing: 55
-        columnSpacing: 5
-        columns: 3
-        Repeater {
-            model: projects
-            delegate: RowLayout {
-                required property var model
-                Layout.alignment: Qt.AlignHCenter | Qt.AlignTop
-                Layout.preferredWidth: list.width / list.columns
-                Layout.minimumWidth: projectTM.width * 1.1
-                RoundButton {
-                    id: button
-                    font: projectFM.font
-                    visible: !model.placeholder
+        GridLayout {
+            id: list
+            width: sv.width
+            rowSpacing: 35
+            columnSpacing: 5
+            columns: Math.min(3, Math.max(2, sv.width / (projectTM.width * 1.1)))
+            Repeater {
+                model: projects
+                delegate: RowLayout {
+                    required property var model
+                    Layout.alignment: Qt.AlignHCenter | Qt.AlignTop
+                    Layout.minimumWidth: projectTM.width * 1.1
+                    Layout.maximumWidth: projectTM.width * 3.3
                     Layout.fillWidth: true
-                    text: model.text
-                    onReleased: {
-                        root.addProject(model.architecture, model.abstraction, "", false);
+                    RoundButton {
+                        id: button
+                        Layout.fillWidth: true
+                        font: projectFM.font
+                        visible: !model.placeholder
+                        text: model.text
+                        onReleased: root.addProject(model.architecture, model.abstraction, "", false)
+                        enabled: model.complete || model.partiallyComplete
+                        palette.disabled.button: parent.palette.shadow
+                        hoverEnabled: true
+                        ToolTip.visible: (hovered || down) && model.description
+                        ToolTip.delay: 500
+                        ToolTip.text: qsTr(model.description)
+                        radius: fm.font.pointSize / 2
                     }
-                    enabled: model.complete || model.partiallyComplete
-                    palette.disabled.button: parent.palette.shadow
-                    hoverEnabled: true
-                    ToolTip.visible: (hovered || down) && model.description
-                    ToolTip.delay: 500
-                    ToolTip.text: qsTr(model.description)
-                    radius: fm.font.pointSize / 2
-                }
-                Item {
-                    visible: model.placeholder
-                    Layout.fillWidth: true
+                    Item {
+                        visible: model.placeholder
+                        Layout.fillWidth: true
+                    }
                 }
             }
-        }
-        Item {
-            id: spacer
-            Layout.fillHeight: true
-            Layout.fillWidth: true
-            Layout.columnSpan: list.columns
+            Item {
+                id: spacer
+                Layout.fillHeight: true
+                Layout.fillWidth: true
+                Layout.columnSpan: list.columns
+            }
         }
     }
+
     ProjectTypeFilterModel {
         id: projects
         edition: settings.general.defaultEdition ?? 6
