@@ -116,7 +116,7 @@ template <typename ISA> QStringList pas::ops::pepp::list(const pas::ast::Node &n
   while (bytesEmitted < opts.bytesPerLine && static_cast<qsizetype>(bytesEmitted) < bytes.size())
     prettyBytes += u"%1"_s.arg(QString::number(bytes[bytesEmitted++], 16), 2, QChar('0')).toUpper();
 
-  auto tempString = u"%1 %2 %3"_s.arg(address, 4).arg(prettyBytes, byteCharCount).arg(format<ISA>(node, opts.source));
+  auto tempString = u"%1 %2 %3"_s.arg(address, 4).arg(prettyBytes, -byteCharCount).arg(format<ISA>(node, opts.source));
   // Perform right-strip of string. `QString::trimmed() const` trims both ends.
   qsizetype lastIndex = tempString.size() - 1;
   while (QChar(tempString[lastIndex]).isSpace() && lastIndex > 0) lastIndex--;
@@ -131,13 +131,13 @@ template <typename ISA> QStringList pas::ops::pepp::list(const pas::ast::Node &n
   while (static_cast<qsizetype>(bytesEmitted) < bytes.size()) {
     prettyBytes += u"%1"_s.arg(QString::number(bytes[bytesEmitted++], 16), 2, QChar('0')).toUpper();
     if (bytesEmitted % opts.bytesPerLine == 0) {
-      ret.push_back(u"%1 %2"_s.arg("", 4).arg(prettyBytes, byteCharCount));
+      ret.push_back(u"%1 %2"_s.arg("", 4).arg(prettyBytes, -byteCharCount));
       prettyBytes = "";
     }
   }
 
   // Handle any bytes in excess of % bytesPerLine.
-  if (prettyBytes.size() > 0) ret.push_back(u"%1 %2"_s.arg("", 4).arg(prettyBytes, byteCharCount));
+  if (prettyBytes.size() > 0) ret.push_back(u"%1 %2"_s.arg("", 4).arg(prettyBytes, -byteCharCount));
   return ret;
 }
 
