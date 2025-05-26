@@ -83,6 +83,9 @@ class StaticSymbolReshapeModel : public QAbstractProxyModel {
   Q_OBJECT
   Q_PROPERTY(StaticSymbolFilterModel *sourceModel READ castedSourceModel WRITE setSourceModel NOTIFY sourceModelChanged)
   Q_PROPERTY(qsizetype longest READ longest NOTIFY longestChanged)
+  // Explicitly override # of columns to use for copying
+  // If set to 0, uses the same number of columns as the model itself.
+  Q_PROPERTY(int copyColumnCount READ copyColumnCount WRITE setCopyColumnCount NOTIFY copyColumnCountChanged)
   QML_NAMED_ELEMENT(StaticSymbolReshapeModel);
 
 public:
@@ -91,6 +94,8 @@ public:
 
   StaticSymbolFilterModel *castedSourceModel();
   void setSourceModel(QAbstractItemModel *sourceModel) override;
+  int copyColumnCount() const;
+  void setCopyColumnCount(int count);
 
   qsizetype longest() const;
   // Helper method that is only here because I don't want another global helper class
@@ -110,7 +115,8 @@ public:
 signals:
   void longestChanged();
   void sourceModelChanged();
+  void copyColumnCountChanged();
 
 private:
-  int _columnCount{1};
+  int _columnCount{1}, _copyColumnCount{0};
 };

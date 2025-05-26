@@ -86,6 +86,7 @@ Item {
         }
         model: StaticSymbolReshapeModel {
             id: reshapeModel
+            copyColumnCount: 2
             sourceModel: StaticSymbolFilterModel {
                 id: filterModel
             }
