@@ -185,7 +185,8 @@ void StaticSymbolReshapeModel::copy(const QList<QModelIndex> &indices) const {
   if (indices.isEmpty()) return;
   else if (sourceModel() == nullptr) return;
   auto _longest = longest();
-  auto colCount = qMin(columnCount({}), indices.size());
+  auto numModelColumns = copyColumnCount() > 0 ? copyColumnCount() : columnCount({});
+  auto colCount = qMin(numModelColumns, indices.size());
   int leftSize = qMax(_longest, 6), rightSize = 5, intraColPadding = 6;
   auto colPlaceholder = u"%1 %2"_s;
   auto colSpacer = u" "_s.repeated(intraColPadding);
@@ -233,6 +234,14 @@ int StaticSymbolReshapeModel::rowCount(const QModelIndex &parent) const {
 }
 
 int StaticSymbolReshapeModel::columnCount(const QModelIndex &parent) const { return _columnCount; }
+
+int StaticSymbolReshapeModel::copyColumnCount() const { return _copyColumnCount; }
+
+void StaticSymbolReshapeModel::setCopyColumnCount(int count) {
+  if (count == _copyColumnCount) return;
+  _copyColumnCount = count;
+  emit copyColumnCountChanged();
+}
 
 void StaticSymbolReshapeModel::setColumnCount(int count) {
   if (count == _columnCount || count <= 0) return;
