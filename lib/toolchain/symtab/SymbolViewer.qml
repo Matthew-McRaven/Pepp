@@ -122,7 +122,7 @@ Item {
             if (event.matches(StandardKey.SelectAll)) {
                 const m = wrapper.model;
                 const tl = m.index(0, 0);
-                const br = m.index(m.rowCount(), m.columnCount());
+                const br = m.index(m.rowCount() - 1, m.columnCount() - 1);
                 const sm = wrapper.selectionModel;
 
                 m.selectRectangle(sm, tl, br);
