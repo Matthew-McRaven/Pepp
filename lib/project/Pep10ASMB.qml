@@ -141,14 +141,12 @@ FocusScope {
             const curURO = userList.readOnly;
             userList.readOnly = false;
             userList.text = project.userList ?? "";
-            userList.addListingAnnotations(project.userListAnnotations);
             userList.readOnly = curURO;
         }
         if (osList) {
             const curORO = osList.readOnly;
             osList.readOnly = false;
             osList.text = project.osList ?? "";
-            osList.addListingAnnotations(project.osListAnnotations);
             osList.readOnly = curORO;
         }
     }

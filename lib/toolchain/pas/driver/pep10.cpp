@@ -71,7 +71,14 @@ bool pas::driver::pep10::TransformWholeProgramSanity::operator()(QSharedPointer<
   auto sections = pas::ast::children(*root);
   for (auto &section : sections) {
     auto children = pas::ast::children(*section);
-    for (auto &child : children) child->set(ast::generic::ListingLocation{it++});
+    for (auto &child : children) {
+      child->set(ast::generic::ListingLocation{it});
+      if (child->has<ast::generic::Hide>() &&
+          child->get<ast::generic::Hide>().value.object != ast::generic::Hide::In::Object::Emit) {
+        it += 1;
+      } else if (auto size = ops::pepp::implicitSize<isa::Pep10>(*child); size <= 3) it += 1;
+      else it += (size + 2) / 3;
+    }
   }
   // TODO: tie class variable to OS features.
   return pas::ops::pepp::checkWholeProgramSanity<isa::Pep10>(

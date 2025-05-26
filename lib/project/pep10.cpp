@@ -886,12 +886,6 @@ void Pep_ASMB::setUserAsmText(const QString &userAsmText) {
 
 QString Pep_ASMB::userList() const { return _userList; }
 
-const QList<Error *> Pep_ASMB::userListAnnotations() const {
-  QList<Error *> ret;
-  for (auto [line, str] : _userListAnnotations) ret.push_back(new Error{line, str});
-  return ret;
-}
-
 QString Pep_ASMB::osAsmText() const { return _osAsmText; }
 
 void Pep_ASMB::setOSAsmText(const QString &osAsmText) {
@@ -901,11 +895,6 @@ void Pep_ASMB::setOSAsmText(const QString &osAsmText) {
 }
 QString Pep_ASMB::osList() const { return _osList; }
 
-const QList<Error *> Pep_ASMB::osListAnnotations() const {
-  QList<Error *> ret;
-  for (auto [line, str] : _osListAnnotations) ret.push_back(new Error{line, str});
-  return ret;
-}
 const QList<Error *> Pep_ASMB::errors() const {
   QList<Error *> ret;
   for (auto [line, str] : _errors) ret.push_back(new Error{line, str});
@@ -938,14 +927,13 @@ bool Pep_ASMB::onDebuggingStart() {
   return true;
 }
 
-static constexpr auto to_string = [](const QString &acc, const auto &pair) {
-  return acc.isEmpty() ? pair.first : acc + "\n" + pair.first;
+static constexpr auto to_string = [](const QString &acc, const auto &line) {
+  return acc.isEmpty() ? line : acc + "\n" + line;
 };
 
 bool Pep_ASMB::onAssemble(bool doLoad) {
   using enum pepp::Architecture;
   _userList = _osList = "";
-  _userListAnnotations = _osListAnnotations = {};
   QSharedPointer<macro::Registry> macroRegistry = nullptr;
   switch (_env.arch) {
   case PEP9: macroRegistry = cs5e_macros(); break;
@@ -972,14 +960,10 @@ bool Pep_ASMB::onAssemble(bool doLoad) {
   _dbg->line_maps->addScope("user", std::move(helper.address2Lines(false)));
   _dbg->line_maps->addScope("os", std::move(helper.address2Lines(true)));
   _dbg->static_symbol_model->setFromElf(elf.get());
-  auto user = helper.splitListing(false);
+  auto user = helper.listing(false), os = helper.listing(true);
   _userList = std::accumulate(user.begin(), user.end(), QString(), to_string);
-  for (auto it = 0; it < user.size(); it++)
-    if (auto pair = user[it]; !pair.second.isEmpty()) _userListAnnotations.push_back({it, pair.second});
-  auto os = helper.splitListing(true);
   _osList = std::accumulate(os.begin(), os.end(), QString(), to_string);
-  for (auto it = 0; it < os.size(); it++)
-    if (auto pair = os[it]; !pair.second.isEmpty()) _osListAnnotations.push_back({it, pair.second});
+
   emit listingChanged();
 
   auto userBytes = helper.bytes(false);
@@ -1016,7 +1000,6 @@ bool Pep_ASMB::onAssembleThenLoad() {
 bool Pep_ASMB::onAssembleThenFormat() {
   using enum pepp::Architecture;
   _userList = _osList = "";
-  _userListAnnotations = _osListAnnotations = {};
   QSharedPointer<macro::Registry> macroRegistry = nullptr;
   switch (_env.arch) {
   case PEP9: macroRegistry = cs5e_macros(); break;
@@ -1043,14 +1026,9 @@ bool Pep_ASMB::onAssembleThenFormat() {
     setObjectCodeText(objectCodeText);
   }
   emit requestSourceBreakpoints();
-  auto user = helper.splitListing(false);
+  auto user = helper.listing(false), os = helper.listing(true);
   _userList = std::accumulate(user.begin(), user.end(), QString(), to_string);
-  for (auto it = 0; it < user.size(); it++)
-    if (auto pair = user[it]; !pair.second.isEmpty()) _userListAnnotations.push_back({it, pair.second});
-  auto os = helper.splitListing(true);
   _osList = std::accumulate(os.begin(), os.end(), QString(), to_string);
-  for (auto it = 0; it < os.size(); it++)
-    if (auto pair = os[it]; !pair.second.isEmpty()) _osListAnnotations.push_back({it, pair.second});
   emit listingChanged();
   return true;
 }
