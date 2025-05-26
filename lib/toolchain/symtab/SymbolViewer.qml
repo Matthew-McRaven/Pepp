@@ -98,59 +98,59 @@ Item {
         MouseArea {
             anchors.fill: parent
             onPressed: function (event) {
-                const cell = wrapper.cellAtPosition(event.x, event.y)
-                const index = wrapper.modelIndex(cell)
-                const m = wrapper.model
-                const sm = wrapper.selectionModel
+                const cell = wrapper.cellAtPosition(event.x, event.y);
+                const index = wrapper.modelIndex(cell);
+                const m = wrapper.model;
+                const sm = wrapper.selectionModel;
                 if (event.button === Qt.LeftButton) {
-                    const flags = ItemSelectionModel.ClearAndSelect | ItemSelectionModel.Current
+                    const flags = ItemSelectionModel.ClearAndSelect | ItemSelectionModel.Current;
                     if (event.modifiers & Qt.ShiftModifier) {
-                        const pr = sm.currentIndex
+                        const pr = sm.currentIndex;
                         if (pr.valid)
-                            m.selectRectangle(sm, pr, index)
+                            m.selectRectangle(sm, pr, index);
                     } else {
                         // Must use this variant. Setting current flag does not set currentIndex.
-                        sm.setCurrentIndex(index, flags)
+                        sm.setCurrentIndex(index, flags);
                     }
                     // Must force tableview to have focus, else copy will not work
-                    wrapper.forceActiveFocus()
+                    wrapper.forceActiveFocus();
                 }
             }
         }
         Keys.onPressed: function (event) {
             if (event.matches(StandardKey.SelectAll)) {
-                const m = wrapper.model
-                const tl = m.index(0, 0)
-                const br = m.index(m.rowCount(), m.columnCount())
-                const sm = wrapper.selectionModel
+                const m = wrapper.model;
+                const tl = m.index(0, 0);
+                const br = m.index(m.rowCount(), m.columnCount());
+                const sm = wrapper.selectionModel;
 
-                m.selectRectangle(sm, tl, br)
+                m.selectRectangle(sm, tl, br);
                 // Must force tableview to have focus, else copy will not work
-                wrapper.forceActiveFocus()
-                event.accepted = true
+                wrapper.forceActiveFocus();
+                event.accepted = true;
             } else {
-                event.accepted = false
+                event.accepted = false;
             }
         }
 
         columnWidthProvider: function (index) {
-            const header = "Symbol  Value".length + 4 // Need 2 padding  on each side
-            const row = model.longest + 4 + 2 // Symbol + space + hex value
-            return tm.width * Math.max(header, row) + 10
+            const header = "Symbol  Value".length + 4; // Need 2 padding  on each side
+            const row = model.longest + 4 + 2; // Symbol + space + hex value
+            return tm.width * Math.max(header, row) + 10;
         }
         rowHeightProvider: function (index) {
-            return tm.font.pixelSize + 4
+            return tm.font.pixelSize + 4;
         }
         onWidthChanged: {
-            const actualSize = columnWidthProvider(0) + columnSpacing
-            reshapeModel.setColumnCount(width / actualSize)
+            const actualSize = columnWidthProvider(0) + columnSpacing;
+            reshapeModel.setColumnCount(width / actualSize);
         }
         onModelChanged: {
-            const actualSize = columnWidthProvider(0) + columnSpacing
-            reshapeModel.setColumnCount(width / actualSize)
+            const actualSize = columnWidthProvider(0) + columnSpacing;
+            reshapeModel.setColumnCount(width / actualSize);
         }
         function copy() {
-            reshapeModel.copy(selectionModel.selectedIndexes)
+            reshapeModel.copy(selectionModel.selectedIndexes);
         }
 
         boundsBehavior: Flickable.StopAtBounds
@@ -182,8 +182,7 @@ Item {
             implicitHeight: symbol.contentHeight
             width: parent.width
             Rectangle {
-                color: delegate.selected
-                       && valid ? palette.highlight : "transparent"
+                color: delegate.selected && valid ? palette.highlight : "transparent"
                 anchors.fill: parent
                 // Draw selection rectangle over column spacing using negative margins
                 anchors.leftMargin: -wrapper.columnSpacing / 2
