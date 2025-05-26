@@ -16,7 +16,7 @@ Item {
     }
     Rectangle {
         id: outline
-
+        color: palette.base
         anchors.fill: parent
         //  Give object code viewer a background box
         border.width: 1
@@ -70,7 +70,7 @@ Item {
                 right: parent.right
                 rightMargin: vsc.width
             }
-            color: palette.midlight
+            color: palette.button
             z: -1
         }
     }
