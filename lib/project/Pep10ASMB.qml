@@ -129,6 +129,7 @@ FocusScope {
 
     function onSwitchTo(os) {
         sourceSelector.currentIndex = Qt.binding(() => os ? 1 : 0);
+        listingSelector.currentIndex = Qt.binding(() => os ? 1 : 0);
     }
 
     function displayErrors() {
