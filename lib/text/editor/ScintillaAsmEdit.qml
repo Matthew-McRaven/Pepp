@@ -37,17 +37,6 @@ FocusScope {
             editor.addEOLAnnotation(lst[i].line, lst[i].message);
         }
     }
-    // List has {line:#, message:str}
-    function addListingAnnotations(lst) {
-        editor.clearAllInlineAnnotations();
-        // See styles at: https://scintilla.org/ScintillaDoc.html#EndOfLineAnnotations
-        const len = lst?.length ?? 0;
-        let style = len === 0 ? 0x0 : 0x1;
-        editor.setInlineAnnotationsVisible(style);
-        for (var i = 0; i < len; i++) {
-            editor.addInlineAnnotation(lst[i].line, lst[i].message);
-        }
-    }
 
     property real charHeight: editor.charHeight
 
