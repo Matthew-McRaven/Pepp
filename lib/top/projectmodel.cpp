@@ -32,9 +32,9 @@ bool ProjectModel::setData(const QModelIndex &index, const QVariant &value, int 
 }
 
 #ifdef __EMSCRIPTEN__
-const auto fmt = QStringLiteral("Project %1");
+const auto placeholder = QStringLiteral("Project %1");
 #else
-const auto fmt = QStringLiteral("Unnamed %1");
+const auto placeholder = QStringLiteral("Unnamed %1");
 #endif
 
 Pep_ISA *ProjectModel::pep10ISA() {
@@ -43,7 +43,7 @@ Pep_ISA *ProjectModel::pep10ISA() {
   auto ret = &*ptr;
   QQmlEngine::setObjectOwnership(ret, QQmlEngine::CppOwnership);
   beginInsertRows(QModelIndex(), _projects.size(), _projects.size());
-  _projects.push_back({.impl = std::move(ptr), .name = fmt.arg(_projects.size() + 1)});
+  _projects.push_back({.impl = std::move(ptr), .name = placeholder.arg(_projects.size() + 1)});
   endInsertRows();
   emit rowCountChanged(_projects.size());
   return ret;
@@ -55,7 +55,7 @@ Pep_ISA *ProjectModel::pep9ISA() {
   auto ret = &*ptr;
   QQmlEngine::setObjectOwnership(ret, QQmlEngine::CppOwnership);
   beginInsertRows(QModelIndex(), _projects.size(), _projects.size());
-  _projects.push_back({.impl = std::move(ptr), .name = fmt.arg(_projects.size() + 1)});
+  _projects.push_back({.impl = std::move(ptr), .name = placeholder.arg(_projects.size() + 1)});
   endInsertRows();
   emit rowCountChanged(_projects.size());
   return ret;
@@ -67,7 +67,7 @@ Pep_ASMB *ProjectModel::pep10ASMB(pepp::Abstraction abstraction) {
   auto ret = &*ptr;
   QQmlEngine::setObjectOwnership(ret, QQmlEngine::CppOwnership);
   beginInsertRows(QModelIndex(), _projects.size(), _projects.size());
-  _projects.push_back({.impl = std::move(ptr), .name = fmt.arg(_projects.size() + 1)});
+  _projects.push_back({.impl = std::move(ptr), .name = placeholder.arg(_projects.size() + 1)});
   endInsertRows();
   emit rowCountChanged(_projects.size());
   return ret;
@@ -79,7 +79,7 @@ Pep_ASMB *ProjectModel::pep9ASMB() {
   auto ret = &*ptr;
   QQmlEngine::setObjectOwnership(ret, QQmlEngine::CppOwnership);
   beginInsertRows(QModelIndex(), _projects.size(), _projects.size());
-  _projects.push_back({.impl = std::move(ptr), .name = fmt.arg(_projects.size() + 1)});
+  _projects.push_back({.impl = std::move(ptr), .name = placeholder.arg(_projects.size() + 1)});
   endInsertRows();
   emit rowCountChanged(_projects.size());
   return ret;

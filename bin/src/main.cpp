@@ -17,6 +17,8 @@
 #include <CLI11.hpp>
 #include <QtCore>
 #include <iostream>
+#include <spdlog/sinks/stdout_sinks.h>
+#include <spdlog/spdlog.h>
 #include "./shared.hpp"
 #include "./task.hpp"
 #include "commands/about.hpp"
@@ -39,6 +41,16 @@ const bool is_wasm = false;
 #endif
 
 int main(int argc, char **argv) {
+  // Set up some useful loggers
+  auto sink = std::make_shared<spdlog::sinks::stdout_sink_mt>();
+  auto create = [&](const char *name) {
+    auto logger = std::make_shared<spdlog::logger>(name, sink);
+    spdlog::register_logger(logger);
+    return logger;
+  };
+  auto logger_debugger = create("debugger");
+  logger_debugger->set_level(spdlog::level::warn);
+
   // Get the name of the executable, and see if it ends in term.
   // If so, we should present terminal help on being called with no args.
   QFile execFile(argv[0]);

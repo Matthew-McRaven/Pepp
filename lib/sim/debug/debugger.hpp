@@ -2,6 +2,7 @@
 #include <QtCore>
 #include <QtQmlIntegration>
 #include <bitset>
+#include <spdlog/logger.h>
 #include "sim/debug/expr_parser.hpp"
 #include "sim/debug/line_map.hpp"
 #include "toolchain/symtab/symbolmodel.hpp"
@@ -106,5 +107,8 @@ public:
   void notifyAddSP(quint16 pc);
   void notifySubSP(quint16 pc);
   void notifySetSP(quint16 pc);
+
+private:
+  std::shared_ptr<spdlog::logger> _logger;
 };
 }; // namespace pepp::debug

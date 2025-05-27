@@ -1,6 +1,7 @@
 #include "debugger.hpp"
 #include <QtQml/qqmlengine.h>
 #include <ranges>
+#include <spdlog/spdlog.h>
 
 pepp::debug::BreakpointSet::BreakpointSet() : QObject(nullptr) { _bitmask.reset(); }
 
@@ -263,7 +264,7 @@ void pepp::debug::BreakpointTableModel::onUpdateModel() {
   if (start != -1) emit dataChanged(index(start, 0), index(bps.size() - 1, last_col));
 }
 
-pepp::debug::Debugger::Debugger(Environment *env) : env(env) {
+pepp::debug::Debugger::Debugger(Environment *env) : env(env), _logger(spdlog::get("debugger")) {
   cache = std::make_unique<pepp::debug::ExpressionCache>();
   bps = std::make_unique<BreakpointSet>(&*cache, env);
   watch_expressions = std::make_unique<pepp::debug::WatchExpressionEditor>(&*cache, env);
@@ -272,16 +273,16 @@ pepp::debug::Debugger::Debugger(Environment *env) : env(env) {
 }
 
 using namespace Qt::StringLiterals;
-void pepp::debug::Debugger::notifyCall(quint16 pc) { qDebug().noquote() << u"CALL  at %1"_s.arg(pc, 4, 16, '0'); }
+void pepp::debug::Debugger::notifyCall(quint16 pc) { _logger->info("CALL  at {:#04x}", pc); }
 
-void pepp::debug::Debugger::notifyRet(quint16 pc) { qDebug().noquote() << u"RET   at %1"_s.arg(pc, 4, 16, '0'); }
+void pepp::debug::Debugger::notifyRet(quint16 pc) { _logger->info("RET   at {:#04x}", pc); }
 
-void pepp::debug::Debugger::notifyTrapCall(quint16 pc) { qDebug().noquote() << u"SCALL at %1"_s.arg(pc, 4, 16, '0'); }
+void pepp::debug::Debugger::notifyTrapCall(quint16 pc) { _logger->info("SCALL at {:#04x}", pc); }
 
-void pepp::debug::Debugger::notifyTrapRet(quint16 pc) { qDebug().noquote() << u"SRET  at %1"_s.arg(pc, 4, 16, '0'); }
+void pepp::debug::Debugger::notifyTrapRet(quint16 pc) { _logger->info("SRET at {:#04x}", pc); }
 
-void pepp::debug::Debugger::notifyAddSP(quint16 pc) { qDebug().noquote() << u"ADD   at %1"_s.arg(pc, 4, 16, '0'); }
+void pepp::debug::Debugger::notifyAddSP(quint16 pc) { _logger->info("ADD   at {:#04x}", pc); }
 
-void pepp::debug::Debugger::notifySubSP(quint16 pc) { qDebug().noquote() << u"SUB   at %1"_s.arg(pc, 4, 16, '0'); }
+void pepp::debug::Debugger::notifySubSP(quint16 pc) { _logger->info("SUB   at {:#04x}", pc); }
 
-void pepp::debug::Debugger::notifySetSP(quint16 pc) { qDebug().noquote() << u"SET   at %1"_s.arg(pc, 4, 16, '0'); }
+void pepp::debug::Debugger::notifySetSP(quint16 pc) { _logger->info("SET   at {:#04x}", pc); }
