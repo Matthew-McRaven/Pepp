@@ -17,14 +17,23 @@
 
 #pragma once
 #include <QtCore>
+#include "enums/isa/pep10.hpp"
+#include "enums/isa/pep9.hpp"
+
+namespace detail {
+template <typename ISA> constexpr uint8_t attr() { return 19; }
+template <> constexpr uint8_t attr<isa::Pep10>() { return 191; };
+template <> constexpr uint8_t attr<isa::Pep9>() { return 190; };
+} // namespace detail
 
 namespace pas::ast::pepp {
 template <typename ISA> struct Instruction {
   static const inline QString attributeName = "pepp:instr";
-  static const inline uint8_t attribute = 19;
+  static const inline uint8_t attribute = detail::attr<ISA>();
   typename ISA::Mnemonic value = {};
   bool operator==(const Instruction<ISA> &other) const = default;
 };
+
 } // namespace pas::ast::pepp
 // Must add this to ISA declaration.
 // Q_DECLARE_METATYPE(pas::ast::pepp::Instruction<T>);

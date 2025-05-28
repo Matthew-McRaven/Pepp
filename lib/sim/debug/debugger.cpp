@@ -1,6 +1,7 @@
 #include "debugger.hpp"
 #include <QtQml/qqmlengine.h>
 #include <ranges>
+#include <spdlog/spdlog.h>
 
 pepp::debug::BreakpointSet::BreakpointSet() : QObject(nullptr) { _bitmask.reset(); }
 
@@ -263,10 +264,25 @@ void pepp::debug::BreakpointTableModel::onUpdateModel() {
   if (start != -1) emit dataChanged(index(start, 0), index(bps.size() - 1, last_col));
 }
 
-pepp::debug::Debugger::Debugger(Environment *env) : env(env) {
+pepp::debug::Debugger::Debugger(Environment *env) : env(env), _logger(spdlog::get("debugger")) {
   cache = std::make_unique<pepp::debug::ExpressionCache>();
   bps = std::make_unique<BreakpointSet>(&*cache, env);
   watch_expressions = std::make_unique<pepp::debug::WatchExpressionEditor>(&*cache, env);
   line_maps = std::make_unique<ScopedLines2Addresses>();
   static_symbol_model = std::make_unique<StaticSymbolModel>();
 }
+
+using namespace Qt::StringLiterals;
+void pepp::debug::Debugger::notifyCall(quint16 pc) { _logger->info("CALL  at {:#04x}", pc); }
+
+void pepp::debug::Debugger::notifyRet(quint16 pc) { _logger->info("RET   at {:#04x}", pc); }
+
+void pepp::debug::Debugger::notifyTrapCall(quint16 pc) { _logger->info("SCALL at {:#04x}", pc); }
+
+void pepp::debug::Debugger::notifyTrapRet(quint16 pc) { _logger->info("SRET at {:#04x}", pc); }
+
+void pepp::debug::Debugger::notifyAddSP(quint16 pc) { _logger->info("ADD   at {:#04x}", pc); }
+
+void pepp::debug::Debugger::notifySubSP(quint16 pc) { _logger->info("SUB   at {:#04x}", pc); }
+
+void pepp::debug::Debugger::notifySetSP(quint16 pc) { _logger->info("SET   at {:#04x}", pc); }

@@ -194,6 +194,7 @@ sim::api2::tick::Result targets::pep10::isa::CPU::unaryDispatch(quint8 is, quint
     else decrDepth();
 
     _memory->read(sp, {reinterpret_cast<quint8 *>(&tmp), 2}, rw_d);
+    if (_dbg) _dbg->notifyRet(pc - 1);
     // Must byteswap tmp if on big endian host, as _memory stores in little
     // endian
     if (swap) tmp = bits::byteswap(tmp);
@@ -205,7 +206,10 @@ sim::api2::tick::Result targets::pep10::isa::CPU::unaryDispatch(quint8 is, quint
   case mn::MOVAFLG: writePackedCSR(a); break;
 
   case mn::MOVSPA: writeReg(Register::A, sp); break;
-  case mn::MOVASP: writeReg(Register::SP, a); break;
+  case mn::MOVASP:
+    writeReg(Register::SP, a);
+    if (_dbg) _dbg->notifySetSP(pc - 1);
+    break;
 
   case mn::NOP: break;
 
@@ -381,7 +385,10 @@ sim::api2::tick::Result targets::pep10::isa::CPU::unaryDispatch(quint8 is, quint
     _memory->write(static_cast<quint16>(::isa::Pep10::MemoryVectors::SystemStackPtr),
                    {reinterpret_cast<quint8 *>(&tmp), 2}, rw_d);
     // Skip "normal" return path, since we've already written to PC.
-    if (_dbg) _dbg->bps->notifyPCChanged(readReg(Register::PC));
+    if (_dbg) {
+      _dbg->bps->notifyPCChanged(readReg(Register::PC));
+      _dbg->notifyRet(pc - 1);
+    }
     decrDepth();
     return {.pause = 0, .delay = 1};
 
@@ -412,6 +419,7 @@ sim::api2::tick::Result targets::pep10::isa::CPU::unaryDispatch(quint8 is, quint
     _memory->read(static_cast<quint16>(::isa::Pep10::MemoryVectors::TrapHandler), {reinterpret_cast<quint8 *>(&tmp), 2},
                   rw_d);
     if (swap) tmp = bits::byteswap(tmp);
+    if (_dbg) _dbg->notifyTrapCall(pc - 1);
     pc = tmp;
     incrDepth();
     break;
@@ -460,6 +468,7 @@ sim::api2::tick::Result targets::pep10::isa::CPU::nonunaryDispatch(quint8 is, qu
     // Write PC to stack
     tmp = swap ? bits::byteswap(pc) : pc;
     _memory->write(sp -= 2, {reinterpret_cast<quint8 *>(&tmp), 2}, rw_d);
+    if (_dbg) _dbg->notifyCall(pc - 3);
     pc = operand;
     writeReg(Register::SP, sp);
     incrDepth();
@@ -697,8 +706,14 @@ sim::api2::tick::Result targets::pep10::isa::CPU::nonunaryDispatch(quint8 is, qu
     writePackedCSR(targets::isa::packCSR<ISA>(n, z, v, c));
     break;
 
-  case mn::ADDSP: writeReg(Register::SP, sp + operand); break;
-  case mn::SUBSP: writeReg(Register::SP, sp - operand); break;
+  case mn::ADDSP:
+    writeReg(Register::SP, sp + operand);
+    if (_dbg) _dbg->notifyAddSP(pc - 3);
+    break;
+  case mn::SUBSP:
+    writeReg(Register::SP, sp - operand);
+    if (_dbg) _dbg->notifySubSP(pc - 3);
+    break;
   default:
     writeReg(Register::PC, pc);
     _status = Status::IllegalOpcode;

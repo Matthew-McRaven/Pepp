@@ -110,6 +110,7 @@ void pas::ops::generic::IncludeMacros::addExtraChildren(ast::Node &node) {
 
   // Must generate start comment before removing symbol declaration.
   auto start = QSharedPointer<ast::Node>::create(commentType);
+  start->set(ast::generic::IsMacroComment{});
   start->set(ast::generic::CommentIndent{.value = ast::generic::CommentIndent::Level::Left});
   // Align the macro commen as if it were an instruction.
   auto formattedMacro = detail::formatMacro(node, {}).mid(3);
@@ -128,6 +129,7 @@ void pas::ops::generic::IncludeMacros::addExtraChildren(ast::Node &node) {
   children.push_front(start);
 
   auto end = QSharedPointer<ast::Node>::create(commentType);
+  end->set(ast::generic::IsMacroComment{});
   end->set(ast::generic::CommentIndent{.value = ast::generic::CommentIndent::Level::Left});
   // TODO: enable translations.
   end->set(ast::generic::Comment{.value = u"End @%1"_s.arg(node.get<ast::generic::Macro>().value)});
