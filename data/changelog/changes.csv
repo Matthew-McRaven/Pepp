@@ -128,3 +128,7 @@ Fixed,,0.10.0,844,"In ISA3 editor, match instruction table formatting to that of
 Fixed,,0.10.0,,"Enable iOS builds"
 Changed,,0.10.0,861,"Refactor ""Welcome"" view's layout to be responsive to window size"
 Fixed,,0.10.0,,"Re-enable theming in WASM builds"
+Fixed,,0.10.0,863,"Standardize listing to 79 characters per line"
+Fixed,,0.10.0,864,"Use current theme in symbol table"
+Changed,,0.10.0,865,"Copying from symbol table always formats to 2 columns"
+Fixed,,0.10.0,867,"Add line numbers to object code only lines"
