@@ -112,8 +112,9 @@ void pas::ops::generic::IncludeMacros::addExtraChildren(ast::Node &node) {
   auto start = QSharedPointer<ast::Node>::create(commentType);
   start->set(ast::generic::IsMacroComment{});
   start->set(ast::generic::CommentIndent{.value = ast::generic::CommentIndent::Level::Left});
-  // Align the macro commen as if it were an instruction.
-  auto formattedMacro = detail::formatMacro(node, {}).mid(3);
+  // Align the macro comment as if it were an instruction.
+  // Need a -2 indent to accomodate the ;@ characters.
+  auto formattedMacro = detail::formatMacro(node, {.indentMnemonic = -2});
   start->set(ast::generic::Comment{.value = formattedMacro});
 
   // Use an empty .BLOCK to avoid having to complex line manipulations.

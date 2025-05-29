@@ -96,7 +96,7 @@ QString pas::ops::generic::detail::formatMacro(const ast::Node &node, SourceOpti
     throw std::logic_error(e);
   }
   auto newOpts = opts;
-  newOpts.indentMnemonic = 1;
+  newOpts.indentMnemonic = 1 + opts.indentMnemonic;
   return formatDirectiveOrMacro(node, u"@%1"_s.arg(node.get<ast::generic::Macro>().value), newOpts);
 }
 
