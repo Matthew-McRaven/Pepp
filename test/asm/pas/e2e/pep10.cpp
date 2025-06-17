@@ -180,3 +180,46 @@ TEST_CASE("CS6E figure assembly", "[scope:asm][kind:e2e][arch:pep10]") {
     }
   }
 }
+
+static const char *hexlist = "0000     D1FFFD ;Load byte first char from input port\n"
+                             "0003     F10015 ;Store byte first char to 0015\n"
+                             "0006     D1FFFD ;Load byte from input port\n"
+                             "0009     F1FFFE ;Store byte to output port\n"
+                             "000C     D10015 ;Load byte first char from 0015\n"
+                             "000F     F1FFFE ;Store byte first char to output port\n"
+                             "0012     F1FFFF ;Store byte to power off port\n"
+                             "0015     00     ;One byte storage for first char";
+TEST_CASE("CS6E hex listing", "[scope:asm][kind:e2e][arch:pep10]") {
+  auto book_registry = builtins::Registry(nullptr);
+  auto book = book_registry.findBook("Computer Systems, 6th Edition");
+
+  REQUIRE_FALSE(book.isNull());
+  auto registry = QSharedPointer<macro::Registry>::create();
+  auto fig = book->findFigure("04", "35");
+  auto defaultOS = fig->defaultOS();
+  REQUIRE(defaultOS != nullptr);
+  QString osBody = defaultOS->typesafeElements()["pep"]->contents;
+  QString userBody = fig->typesafeElements()["pep"]->contents;
+
+  auto pipeline = pas::driver::pep10::pipeline<pas::driver::ANTLRParserTag>(
+      {{osBody, {.isOS = true, .ignoreUndefinedSymbols = false}},
+       {userBody, {.isOS = false, .ignoreUndefinedSymbols = false}}},
+      registry);
+  auto result = pipeline->assemble(pas::driver::pep10::Stage::End);
+
+  CHECK(pipeline->pipelines.size() == 2);
+
+  auto osTarget = pipeline->pipelines[0].first;
+  REQUIRE(osTarget->bodies.contains(pas::driver::repr::Nodes::name));
+  auto osRoot = osTarget->bodies[pas::driver::repr::Nodes::name].value<pas::driver::repr::Nodes>().value;
+  if (pipeline->pipelines[0].first->stage != pas::driver::pep10::Stage::End) {
+    for (auto &error : pas::ops::generic::collectErrors(*osRoot)) qCritical() << "OS:   " << error.second.message;
+    REQUIRE(false);
+  }
+  auto userTarget = pipeline->pipelines[1].first;
+  REQUIRE(userTarget->bodies.contains(pas::driver::repr::Nodes::name));
+  auto userRoot = userTarget->bodies[pas::driver::repr::Nodes::name].value<pas::driver::repr::Nodes>().value;
+
+  auto hexListing = pas::ops::pepp::formatHexListing<isa::Pep10>(*userRoot);
+  CHECK(hexListing.join("\n").toStdString() == hexlist);
+}

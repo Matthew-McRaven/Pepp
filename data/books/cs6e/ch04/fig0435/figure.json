@@ -10,6 +10,7 @@
     "io0"
   ],
   "items": {
-    "pepo": "{ch}{fig}.pepo"
+    "pepo": "{ch}{fig}.pepo",
+    "pep": "{ch}{fig}.pep"
   }
 }
