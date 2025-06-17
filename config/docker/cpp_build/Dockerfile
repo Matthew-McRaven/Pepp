@@ -25,7 +25,14 @@ RUN wget -q -O ninja.zip "https://github.com/ninja-build/ninja/releases/download
 # Need to pick this locale otherwise Qt complains and overrides the locale anyway.
 ENV LANG="C.UTF-8"
 # Must occur after the "FROM" directive, allows choice of Qt version.
-ARG QT_VERSION="6.9.0"
+ARG QT_MINOR="9"
+ARG QT_PATCH="1"
+# major/minor
+ARG QT_RELEASE="6.${QT_MINOR}"
+# major/minor/patch
+ARG QT_VERSION="6.${QT_MINOR}.${QT_PATCH}"
+# Depends on major/minor
+ARG EMSDK_VERSION="3.1.70"
 # Don't cache pip internal files, reduce image size.
 ENV PIP_NO_CACHE_DIR=1
 SHELL ["/bin/bash", "-c"]
@@ -41,7 +48,7 @@ RUN apt update \
     && rm -rf /var/lib/apt/lists/*
 RUN git clone https://github.com/emscripten-core/emsdk.git /emsdk
 # Must combine, otherwise a layer is the same in multi-arch builds, breaking everything
-RUN cd /emsdk && git pull && ./emsdk install 3.1.70  && ./emsdk activate 3.1.70 && echo uname -a /emsdk.arch
+RUN cd /emsdk && git pull && ./emsdk install ${EMSDK_VERSION} && ./emsdk activate ${EMSDK_VERSION} && echo uname -a /emsdk.arch
 # Install shadertools and 3d modules otherwise building from sources will fail.
 RUN pip install aqtinstall \
     && aqt install-qt linux desktop ${QT_VERSION} -m qtshadertools qtquick3d qt3d --outputdir /qt  \
@@ -59,7 +66,7 @@ RUN apt update \
        libxcb1-dev libxext-dev libxfixes-dev libxi-dev libxkbcommon-dev libxkbcommon-x11-dev libxrender-dev\
     && rm -rf /var/lib/apt/lists/*
 # Get sources for the current version of Qt.
-RUN wget -q "https://download.qt.io/official_releases/qt/6.9/6.9.0/single/qt-everywhere-src-${QT_VERSION}.tar.xz" \
+RUN wget -q "https://download.qt.io/official_releases/qt/${QT_RELEASE}/${QT_VERSION}/single/qt-everywhere-src-${QT_VERSION}.tar.xz" \
     && mkdir -p /build-qt \
     && tar xf qt-everywhere-src-${QT_VERSION}.tar.xz --directory /build-qt \
     && mv /build-qt/qt-everywhere-src-${QT_VERSION} /build-qt/${QT_VERSION} \
