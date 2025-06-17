@@ -20,10 +20,11 @@
 #include "./registered.hpp"
 macro::Registry::Registry(QObject *parent) : QObject{parent} {}
 
-bool macro::Registry::contains(QString name) const { return _macros.constFind(name) != _macros.constEnd(); }
+bool macro::Registry::contains(QString name) const { return findMacro(name) != nullptr; }
 
 const macro::Registered *macro::Registry::findMacro(QString name) const {
-  if (auto macro = _macros.constFind(name); macro != _macros.constEnd()) return macro->data();
+  auto asUpper = name.toUpper();
+  if (auto macro = _macros.constFind(asUpper); macro != _macros.constEnd()) return macro->data();
   else return nullptr;
 }
 
@@ -45,13 +46,14 @@ QSharedPointer<const macro::Registered> macro::Registry::registerMacro(types::Ty
     return nullptr;
   }
   auto registered = QSharedPointer<Registered>::create(type, macro);
-  _macros[macro->name()] = registered;
+  _macros[macro->name().toUpper()] = registered;
   emit macrosChanged();
   return registered;
 }
 
 void macro::Registry::removeMacro(QString name) {
-  if (!contains(name)) return;
-  _macros.remove(name);
+  auto asUpper = name.toUpper();
+  if (!contains(asUpper)) return;
+  _macros.remove(asUpper);
   emit macrosChanged();
 }

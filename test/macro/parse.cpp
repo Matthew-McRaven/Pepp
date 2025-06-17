@@ -38,11 +38,18 @@ TEST_CASE("Macro parser", "[scope:macro][kind:unit][arch:*]") {
     auto _0ar = macro::analyze_macro_definition(u"@deci 0"_s);
     auto _8ar = macro::analyze_macro_definition(u"@deco 8"_s);
     REQUIRE(std::get<0>(_0ar));
-    CHECK(std::get<1>(_0ar).toUtf8().toStdString() == "deci");
+    CHECK(std::get<1>(_0ar).toUtf8().toStdString() == "DECI");
     CHECK(std::get<2>(_0ar) == 0);
     REQUIRE(std::get<0>(_8ar));
-    CHECK(std::get<1>(_8ar).toUtf8().toStdString() == "deco");
+    CHECK(std::get<1>(_8ar).toUtf8().toStdString() == "DECO");
     CHECK(std::get<2>(_8ar) == 8);
   }
   SECTION("Rejects comments") { CHECK_FALSE(std::get<0>(macro::analyze_macro_definition("@deci 2 ;fail"))); }
+  SECTION("Ignores case") {
+    auto lower = macro::analyze_macro_definition(u"@deci 0"_s);
+    auto mixed = macro::analyze_macro_definition(u"@DeCi 0"_s);
+    auto upper = macro::analyze_macro_definition(u"@DECI 0"_s);
+    CHECK(lower == mixed);
+    CHECK(mixed == upper);
+  }
 }

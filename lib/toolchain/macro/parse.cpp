@@ -74,5 +74,5 @@ std::tuple<bool, QString, quint8> macro::analyze_macro_definition(QString macro_
   bool arg_convert = true;
   auto arg_count = QString ::fromStdString(tree->UNSIGNED_DECIMAL()->getText()).toInt(&arg_convert, 10);
 
-  return {arg_convert, name, arg_count};
+  return {arg_convert, name.toUpper(), arg_count};
 }
