@@ -7,7 +7,7 @@ group "cpp" {
 }
 
 variable "VERSION" {
-  default = "v0.15.0"
+  default = "v0.15.2"
 }
 
 target "gcc" {
