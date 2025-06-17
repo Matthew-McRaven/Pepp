@@ -181,6 +181,7 @@ TEST_CASE("CS6E figure assembly", "[scope:asm][kind:e2e][arch:pep10]") {
   }
 }
 
+namespace {
 static const char *hexlist = "0000     D1FFFD ;Load byte first char from input port\n"
                              "0003     F10015 ;Store byte first char to 0015\n"
                              "0006     D1FFFD ;Load byte from input port\n"
@@ -189,7 +190,16 @@ static const char *hexlist = "0000     D1FFFD ;Load byte first char from input p
                              "000F     F1FFFE ;Store byte first char to output port\n"
                              "0012     F1FFFF ;Store byte to power off port\n"
                              "0015     00     ;One byte storage for first char";
-TEST_CASE("CS6E hex listing", "[scope:asm][kind:e2e][arch:pep10]") {
+static const char *binlist = "0000     1101 0001 1111 1111 1111 1101\n"
+                             "0003     1111 0001 0000 0000 0001 0101\n"
+                             "0006     1101 0001 1111 1111 1111 1101\n"
+                             "0009     1111 0001 1111 1111 1111 1110\n"
+                             "000C     1101 0001 0000 0000 0001 0101\n"
+                             "000F     1111 0001 1111 1111 1111 1110\n"
+                             "0012     1111 0001 1111 1111 1111 1111\n"
+                             "0015     0000 0000";
+}; // namespace
+TEST_CASE("CS6E hex/bin listing", "[scope:asm][kind:e2e][arch:pep10]") {
   auto book_registry = builtins::Registry(nullptr);
   auto book = book_registry.findBook("Computer Systems, 6th Edition");
 
@@ -222,4 +232,7 @@ TEST_CASE("CS6E hex listing", "[scope:asm][kind:e2e][arch:pep10]") {
 
   auto hexListing = pas::ops::pepp::formatHexListing<isa::Pep10>(*userRoot);
   CHECK(hexListing.join("\n").toStdString() == hexlist);
+
+  auto binListing = pas::ops::pepp::formatBinListing<isa::Pep10>(*userRoot);
+  CHECK(binListing.join("\n").toStdString() == binlist);
 }
