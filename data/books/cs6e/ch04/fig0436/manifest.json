@@ -17,20 +17,6 @@
       "from": {
         "file": "{ch}{fig}.pepo"
       }
-    },
-    {
-      "name": "pepb",
-      "format": "pepb",
-      "from": {
-        "element": "pep"
-      }
-    },
-    {
-      "name": "peph",
-      "format": "peph",
-      "from": {
-        "element": "pep"
-      }
     }
   ]
 }
