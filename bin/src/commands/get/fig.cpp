@@ -18,6 +18,7 @@
 #include <iostream>
 #include "help/builtins/figure.hpp"
 #include "toolchain/helpers/asmb.hpp"
+#include "toolchain/helpers/assemblerregistry.hpp"
 
 GetFigTask::GetFigTask(int ed, std::string ch, std::string fig, std::string type, bool isFigure, QObject *parent)
     : Task(parent), ed(ed), isFigure(isFigure), ch(ch), fig(fig), type(type) {}
@@ -26,8 +27,8 @@ void GetFigTask::run() {
   using namespace Qt::StringLiterals;
   static const auto err_noitem = u"%1 %2.%3 does not exist.\n"_s;
   static const auto err_novar = u"%1 %2.%3 does not contain a \"%4\" variant.\n"_s;
-
-  auto book = helpers::book(ed);
+  auto books = helpers::builtins_registry(false);
+  auto book = helpers::book(ed, &*books);
   if (book.isNull())
     return emit finished(1);
   QSharedPointer<const builtins::Figure> item = nullptr;

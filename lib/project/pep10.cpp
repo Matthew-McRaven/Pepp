@@ -1,12 +1,9 @@
 #include "./pep10.hpp"
 #include <QQmlEngine>
 #include <elfio/elfio.hpp>
-#include "toolchain/pas/obj/common.hpp"
-#include "toolchain/pas/operations/pepp/bytes.hpp"
 #include "cpu/formats.hpp"
-#include "help/builtins/figure.hpp"
-#include "toolchain/helpers/asmb.hpp"
 #include "enums/isa/pep10.hpp"
+#include "help/builtins/figure.hpp"
 #include "sim/device/broadcast/mmi.hpp"
 #include "sim/device/broadcast/mmo.hpp"
 #include "sim/device/broadcast/pubsub.hpp"
@@ -17,6 +14,10 @@
 #include "targets/pep10/isa3/cpu.hpp"
 #include "targets/pep9/isa3/cpu.hpp"
 #include "text/editor/object.hpp"
+#include "toolchain/helpers/asmb.hpp"
+#include "toolchain/helpers/assemblerregistry.hpp"
+#include "toolchain/pas/obj/common.hpp"
+#include "toolchain/pas/operations/pepp/bytes.hpp"
 #include "utils/bits/strings.hpp"
 #include "utils/strings.hpp"
 
@@ -76,33 +77,24 @@ struct SystemAssembly {
   QSharedPointer<targets::isa::System> system;
 };
 
-QSharedPointer<macro::Registry> cs5e_macros() {
-  auto book = helpers::book(5);
-  return helpers::registry(book, {});
-}
-
-QSharedPointer<macro::Registry> cs6e_macros() {
-  auto book = helpers::book(6);
-  return helpers::registry(book, {});
-}
-SystemAssembly make_isa_system(project::Environment env) {
+SystemAssembly make_isa_system(project::Environment env, const builtins::Registry *books) {
   using enum pepp::Architecture;
   QSharedPointer<const builtins::Book> book;
   QSharedPointer<macro::Registry> macroRegistry;
   QString osContents;
   switch (env.arch) {
   case PEP9: {
-    book = helpers::book(5);
+    book = helpers::book(5, &*books);
     auto os = book->findFigure("os", "pep9os");
     osContents = os->typesafeElements()["pep"]->contents();
-    macroRegistry = cs5e_macros();
+    macroRegistry = helpers::cs5e_macros(&*books);
     break;
   }
   case PEP10: {
-    book = helpers::book(6);
+    book = helpers::book(6, &*books);
     auto os = book->findFigure("os", "pep10baremetal");
     osContents = os->typesafeElements()["pep"]->contents();
-    macroRegistry = cs6e_macros();
+    macroRegistry = helpers::cs6e_macros(&*books);
     break;
   }
   default: throw std::logic_error("Unimplemented");
@@ -119,42 +111,42 @@ SystemAssembly make_isa_system(project::Environment env) {
   return ret;
 }
 
-QString cs6e_bm() {
-  auto book = helpers::book(6);
+QString cs6e_bm(const builtins::Registry *books) {
+  auto book = helpers::book(6, books);
   auto os = book->findFigure("os", "pep10baremetal");
   return os->typesafeElements()["pep"]->contents();
 }
-QString cs6e_os() {
-  auto book = helpers::book(6);
+QString cs6e_os(const builtins::Registry *books) {
+  auto book = helpers::book(6, books);
   auto os = book->findFigure("os", "pep10os");
   return os->typesafeElements()["pep"]->contents();
 }
 
-QString cs5e_os() {
-  auto book = helpers::book(5);
+QString cs5e_os(const builtins::Registry *books) {
+  auto book = helpers::book(5, books);
   auto os = book->findFigure("os", "pep9os");
   return os->typesafeElements()["pep"]->contents();
 }
 
 // TODO: fix
-SystemAssembly make_asmb_system(project::Environment env, QString os) {
+SystemAssembly make_asmb_system(project::Environment env, QString os, const builtins::Registry *books) {
   using enum pepp::Architecture;
   QSharedPointer<const builtins::Book> book;
   QSharedPointer<macro::Registry> macroRegistry;
   QString osContents;
   switch (env.arch) {
   case PEP9: {
-    book = helpers::book(5);
+    book = helpers::book(5, &*books);
     auto os = book->findFigure("os", "pep9os");
     osContents = os->typesafeElements()["pep"]->contents();
-    macroRegistry = cs5e_macros();
+    macroRegistry = helpers::cs5e_macros(&*books);
     break;
   }
   case PEP10: {
-    book = helpers::book(6);
+    book = helpers::book(6, &*books);
     auto os = book->findFigure("os", "pep10baremetal");
     osContents = os->typesafeElements()["pep"]->contents();
-    macroRegistry = cs6e_macros();
+    macroRegistry = helpers::cs6e_macros(&*books);
     break;
   }
   default: throw std::logic_error("Unimplemented");
@@ -267,12 +259,12 @@ template <typename CPU, typename ISA> FlagModel *flag_model(targets::isa::System
 
 Pep_ISA::Pep_ISA(project::Environment env, QObject *parent, bool initializeSystem)
     : QObject(parent), _env(env), _tb(QSharedPointer<sim::trace2::InfiniteBuffer>::create()), _memory(nullptr),
-      _registers(nullptr), _flags(nullptr) {
+      _registers(nullptr), _flags(nullptr), _books(helpers::builtins_registry(true)) {
   _system.clear();
   assert(_system.isNull());
   _dbg = QSharedPointer<pepp::debug::Debugger>::create(this);
   if (initializeSystem) {
-    auto elfsys = make_isa_system(env);
+    auto elfsys = make_isa_system(env, &*_books);
     _elf = elfsys.elf;
     _system = elfsys.system;
     _system->bus()->setBuffer(&*_tb);
@@ -827,15 +819,15 @@ Pep_ASMB::Pep_ASMB(project::Environment env, QObject *parent) : Pep_ISA(env, par
   using enum pepp::Architecture;
   using enum pepp::Abstraction;
   switch (_env.arch) {
-  case PEP9: _osAsmText = cs5e_os(); break;
+  case PEP9: _osAsmText = cs5e_os(&*_books); break;
   case PEP10:
-    if (_env.level == ASMB3) _osAsmText = cs6e_bm();
-    else _osAsmText = cs6e_os();
+    if (_env.level == ASMB3) _osAsmText = cs6e_bm(&*_books);
+    else _osAsmText = cs6e_os(&*_books);
     break;
   default: throw std::logic_error("Unimplemented architecture");
   }
 
-  auto elfsys = make_asmb_system(_env, _osAsmText);
+  auto elfsys = make_asmb_system(_env, _osAsmText, &*_books);
   _elf = elfsys.elf;
   _system = elfsys.system;
   _system->bus()->setBuffer(&*_tb);
@@ -936,8 +928,8 @@ bool Pep_ASMB::onAssemble(bool doLoad) {
   _userList = _osList = "";
   QSharedPointer<macro::Registry> macroRegistry = nullptr;
   switch (_env.arch) {
-  case PEP9: macroRegistry = cs5e_macros(); break;
-  case PEP10: macroRegistry = cs6e_macros(); break;
+  case PEP9: macroRegistry = helpers::cs5e_macros(&*_books); break;
+  case PEP10: macroRegistry = helpers::cs6e_macros(&*_books); break;
   default: throw std::logic_error("Unimplemented architecture");
   }
 
@@ -1002,8 +994,8 @@ bool Pep_ASMB::onAssembleThenFormat() {
   _userList = _osList = "";
   QSharedPointer<macro::Registry> macroRegistry = nullptr;
   switch (_env.arch) {
-  case PEP9: macroRegistry = cs5e_macros(); break;
-  case PEP10: macroRegistry = cs6e_macros(); break;
+  case PEP9: macroRegistry = helpers::cs5e_macros(&*_books); break;
+  case PEP10: macroRegistry = helpers::cs6e_macros(&*_books); break;
   default: throw std::logic_error("Unimplemented architecture");
   }
   helpers::AsmHelper helper(macroRegistry, _osAsmText, _env.arch);

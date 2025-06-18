@@ -19,12 +19,14 @@
 #include "../shared.hpp"
 #include "help/builtins/figure.hpp"
 #include "toolchain/helpers/asmb.hpp"
+#include "toolchain/helpers/assemblerregistry.hpp"
 
 ListTask::ListTask(int ed, QObject *parent) : Task(parent), ed(ed) {}
 
 void ListTask::run() {
   using namespace Qt::StringLiterals;
-  auto book = helpers::book(ed);
+  auto books = helpers::builtins_registry(false);
+  auto book = helpers::book(ed, &*books);
   if (book.isNull())
     return emit finished(1);
   auto figures = book->figures();

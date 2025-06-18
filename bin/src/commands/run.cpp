@@ -17,14 +17,15 @@
 #include "run.hpp"
 #include "../shared.hpp"
 #include "help/builtins/figure.hpp"
-#include "toolchain/helpers/asmb.hpp"
-#include "toolchain/link/mmio.hpp"
 #include "sim/device/broadcast/mmi.hpp"
 #include "sim/device/broadcast/mmo.hpp"
 #include "sim/device/simple_bus.hpp"
 #include "targets/isa3/helpers.hpp"
 #include "targets/isa3/system.hpp"
 #include "targets/pep10/isa3/cpu.hpp"
+#include "toolchain/helpers/asmb.hpp"
+#include "toolchain/helpers/assemblerregistry.hpp"
+#include "toolchain/link/mmio.hpp"
 #include "utils/bits/strings.hpp"
 
 auto gs = sim::api2::memory::Operation{
@@ -40,7 +41,8 @@ bool RunTask::loadToElf() {
     _elf = ret;
     return true;
   }
-  auto book = helpers::book(_ed);
+  auto books = helpers::builtins_registry(false);
+  auto book = helpers::book(_ed, &*books);
   if (book.isNull())
     return false;
   QString osContents;

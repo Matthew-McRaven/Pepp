@@ -7,8 +7,6 @@
 #include "sim/debug/line_map.hpp"
 
 namespace helpers {
-QSharedPointer<const builtins::Book> book(int ed);
-QSharedPointer<macro::Registry> registry(QSharedPointer<const builtins::Book> book, QStringList directory);
 void addMacro(macro::Registry &registry, std::string directory, QString arch);
 void addMacros(macro::Registry &registry, const std::list<std::string> &dirs, QString arch);
 
@@ -26,6 +24,8 @@ public:
   QList<quint8> bytes(bool os);
   Lines2Addresses address2Lines(bool os);
   QSet<quint16> callViaRets();
+
+  QSharedPointer<const pas::ast::Node> userRoot() const { return _userRoot; }
 
 private:
   pepp::Architecture _arch;

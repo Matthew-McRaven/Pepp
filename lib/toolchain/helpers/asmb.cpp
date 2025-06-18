@@ -17,20 +17,6 @@
 #include "toolchain/pas/operations/pepp/string.hpp"
 #include "toolchain/pas/operations/pepp/whole_program_sanity.hpp"
 
-QSharedPointer<const builtins::Book> helpers::book(int ed) {
-  QString bookName;
-  switch (ed) {
-  case 4: bookName = "Computer Systems, 4th Edition"; break;
-  case 5: bookName = "Computer Systems, 5th Edition"; break;
-  case 6: bookName = "Computer Systems, 6th Edition"; break;
-  default: return nullptr;
-  }
-
-  auto reg = helpers::registry_with_assemblers();
-  auto book = reg->findBook(bookName);
-  return book;
-}
-
 void helpers::addMacro(::macro::Registry &registry, std::string directory, QString arch) {
   QDirIterator it(QString::fromStdString(directory), {"*.pepm"}, QDir::Files);
   while (it.hasNext()) {

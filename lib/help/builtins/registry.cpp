@@ -48,7 +48,7 @@ builtins::Registry::Registry(QString directory) {
 
 QList<QSharedPointer<const builtins::Book>> builtins::Registry::books() const { return _books; }
 
-QSharedPointer<const builtins::Book> builtins::Registry::findBook(QString name) {
+QSharedPointer<const builtins::Book> builtins::Registry::findBook(QString name) const {
   using namespace Qt::StringLiterals;
   QList<QSharedPointer<const builtins::Book>> temp;
   for (auto &bookPtr : _books) {
@@ -81,16 +81,53 @@ QString builtins::Registry::contentFor(Element2 &element) {
   return _contents[&element];
 }
 
+void builtins::Registry::addAssembler(pepp::Architecture arch, std::unique_ptr<Assembler> &&assembler) {
+  _assemblers[arch] = std::move(assembler);
+}
+
+void builtins::Registry::addFormatter(pepp::Architecture arch, QString format, std::unique_ptr<Formatter> &&formatter) {
+  auto p = QPair<pepp::Architecture, QString>(arch, format);
+  _formatters[p] = std::move(formatter);
+}
+
 void builtins::Registry::computeDependencies(const Element2 *dependee) {
   // Compute dependee's value using correct assembler/compiler toolchain.
   if (!_dependees.contains(dependee)) return;
 
   auto dependents = _dependees.value(dependee);
   if (dependents.isEmpty()) return;
+  auto figure = dependee->figure.lock();
+  if (figure == nullptr) {
+    qWarning("Dependee %s has no figure", dependee->name.toStdString().c_str());
+    return;
+  }
+  auto assembler = _assemblers.find(figure->arch());
+  if (assembler == _assemblers.end()) {
+    qWarning("No assembler for architecture %s",
+             QMetaEnum::fromType<pepp::Architecture>().valueToKey(static_cast<int>(dependee->figure.lock()->arch())));
+    return;
+  }
+  auto os = figure->defaultOS();
+  auto os_text = os->findElement(os->defaultElement())->contents();
+  auto assembled = (*assembler).second->operator()(os_text, dependee->contents());
   // For each dependent of the thing being assembled, compute the desired output.
   // This avoids needing to assemble the same dependee multiple times.
   for (const auto &dependent : std::as_const(dependents)) {
-    if (!_contents.contains(dependent)) _contents[dependent] = "";
+    auto figure = dependent->figure.lock();
+    if (figure == nullptr) {
+      qWarning("Dependent %s has no figure", dependent->name.toStdString().c_str());
+      _contents[dependent] = "";
+      continue;
+    }
+    auto formatter = _formatters.find({figure->arch(), dependent->language});
+    if (formatter == _formatters.end()) {
+      qWarning("No formatter for architecture %s and format %s",
+               QMetaEnum::fromType<pepp::Architecture>().valueToKey(static_cast<int>(figure->arch())),
+               dependent->language.toStdString().c_str());
+      _contents[dependent] = "";
+      continue;
+    }
+    if (!_contents.contains(dependent)) _contents[dependent] = (*formatter).second->operator()(assembled);
   }
 }
 
@@ -285,6 +322,7 @@ builtins::Registry::loadManifestV2(const QJsonDocument &manifest, const QString 
         qWarning("Failed to load element %s", itemObject["name"].toString("").toStdString().c_str());
         continue;
       }
+      item->figure = figure;
       figure->addElement(item->name, item);
       if (item->isDefault && !_default.has_value()) _default = item->language;
     }

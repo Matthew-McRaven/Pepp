@@ -34,8 +34,7 @@
           "format": "pepb",
           "export": "path/to/{ch}{fig}.peph",
           "from": {
-              "element": "pep",
-              "lines": [3, -1]
+              "element": "pep"
           }
       },
       {
@@ -43,8 +42,7 @@
           "format": "peph",
           "export": "path/to/{ch}{fig}.pepb",
           "from": {
-              "element": "pep",
-              "lines": [3, -1]
+              "element": "pep"
           }
       }
   ]
