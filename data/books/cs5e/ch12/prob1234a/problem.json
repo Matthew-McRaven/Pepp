@@ -1,8 +1,0 @@
-{
-  "type": "figure",
-  "name": "12:34a",
-  "arch": "pep9",
-  "items": {
-    "pepcpu": "{ch}{fig}.pepcpu"
-  }
-}

@@ -41,6 +41,7 @@ class Figure : public QObject {
   Q_PROPERTY(QString description READ description CONSTANT);
   Q_PROPERTY(bool isOS READ isOS WRITE setIsOS NOTIFY isOSChanged);
   Q_PROPERTY(bool isHidden READ isHidden NOTIFY isHiddenChanged);
+  Q_PROPERTY(bool isProblem READ isProblem CONSTANT);
   Q_PROPERTY(const Figure *defaultOS READ defaultOS WRITE setDefaultOS NOTIFY defaultOSChanged);
   // Must use variants if we want these to be accessed from QML.
   // We provide a type safe version, which should be used instead if in C++.
@@ -51,7 +52,8 @@ class Figure : public QObject {
   Q_PROPERTY(QString copyToElementLanguage READ defaultElement CONSTANT);
 
 public:
-  Figure(pepp::Architecture arch, pepp::Abstraction level, QString prefix, QString chapter, QString figure);
+  Figure(pepp::Architecture arch, pepp::Abstraction level, QString prefix, QString chapter, QString figure,
+         bool isProblem = false);
   ~Figure();
 
   pepp::Architecture arch() const;
@@ -60,6 +62,7 @@ public:
   QString prefix() const;
   QString chapterName() const;
   QString figureName() const;
+  bool isProblem() const;
 
   QString description() const;
   void setDescription(QString description);
@@ -99,6 +102,7 @@ private:
   const pepp::Architecture _arch;
   const pepp::Abstraction _level;
   const QString _prefix, _chapterName, _figureName;
+  const bool _isProblem = false;
   QString _description{};
   bool _isOS = false, _isHidden = false;
   // Non-owning

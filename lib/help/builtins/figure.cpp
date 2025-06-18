@@ -18,8 +18,9 @@
 #include "figure.hpp"
 
 builtins::Figure::Figure(pepp::Architecture arch, pepp::Abstraction level, QString prefix, QString chapter,
-                         QString figure)
-    : QObject(nullptr), _arch(arch), _level(level), _prefix(prefix), _chapterName(chapter), _figureName(figure) {}
+                         QString figure, bool isProblem)
+    : QObject(nullptr), _arch(arch), _level(level), _prefix(prefix), _chapterName(chapter), _figureName(figure),
+      _isProblem(isProblem) {}
 
 builtins::Figure::~Figure() {
   for (auto value : _tests) {
@@ -39,6 +40,8 @@ QString builtins::Figure::prefix() const { return _prefix; }
 QString builtins::Figure::chapterName() const { return _chapterName; }
 
 QString builtins::Figure::figureName() const { return _figureName; }
+
+bool builtins::Figure::isProblem() const { return _isProblem; }
 
 QString builtins::Figure::description() const { return _description; }
 

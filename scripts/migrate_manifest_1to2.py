@@ -2,11 +2,11 @@ import argparse
 import os
 import json
 
-def migrate_figure(path: str):
+def migrate_figure(type: str, path: str):
     with open(path, 'r') as f: figure = json.load(f)
     out = {
         "version": 2,
-        "type": "figure",
+        "type": type,
         "name": figure.get("name"),
         "arch": figure.get("arch"),
     }
@@ -16,6 +16,7 @@ def migrate_figure(path: str):
     elif "cs4e" in path and "ch04" in path: out["abstraction"] = "ISA3"
     elif "cs4e" in path and "ch05" in path: out["abstraction"] = "ASMB5"
     elif "cs4e" in path and "ch06" in path: out["abstraction"] = "ASMB5"
+    elif type == "problem" and "cs4e" in path and "ch08" in path: out["abstraction"] = "OS4"
     if "default_os" in figure: out["default_os"] = figure["default_os"]
     if "description" in figure: out["description"] = figure["description"]
     if "ios" in figure: out["tests"] = figure["ios"]
@@ -80,7 +81,9 @@ def main():
             try:
                 match file:
                     case "figure.json":
-                        migrate_figure(os.path.join(root, file))
+                        migrate_figure("figure", os.path.join(root, file))
+                    case "problem.json":
+                            migrate_figure("problem", os.path.join(root, file))
                     case _:
                         continue
             except FileNotFoundError:

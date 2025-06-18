@@ -276,7 +276,7 @@ std::variant<std::monostate, builtins::Registry::_Figure, builtins::Registry::_M
 builtins::Registry::loadManifestV2(const QJsonDocument &manifest, const QString &path) {
   const auto manifestDir = QFileInfo(path).dir();
   const auto type = manifest["type"].toString("").toLower();
-  if (type == "figure") {
+  if (type == "figure" || type == "problem") {
     // Extract chapter/figure name
     auto chFig = ch_fig_from_str(manifest["name"].toString());
     if (!chFig) return std::monostate();
@@ -291,7 +291,8 @@ builtins::Registry::loadManifestV2(const QJsonDocument &manifest, const QString 
     else level = *maybeLevel;
 
     // TODO: decide between "figure" and "problem" based on type field.
-    auto figure = QSharedPointer<builtins::Figure>::create(arch, level, "Figure", chapterName, figureName);
+    auto figure =
+        QSharedPointer<builtins::Figure>::create(arch, level, "Figure", chapterName, figureName, type == "problem");
     figure->setIsOS(manifest["isOS"].toBool(false));
     figure->setIsHidden(manifest["hidden"].toBool(false));
     if (manifest["description"].isString()) figure->setDescription(manifest["description"].toString());
@@ -382,7 +383,6 @@ QSharedPointer<builtins::Book> builtins::Registry::loadBook(QString tocPath) {
     }
     // If the file is named as a problem manifest, parse the figure and insert into book
     if (next.endsWith("problem.json")) {
-      continue;
       auto problem = detail::loadFigure(next);
       if (problem == nullptr) qWarning("%s", u"Failed to load problem %1"_s.arg(next).toStdString().c_str());
       else {

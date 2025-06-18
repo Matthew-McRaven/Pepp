@@ -1,0 +1,16 @@
+{
+  "version": 2,
+  "type": "problem",
+  "name": "12:31g",
+  "arch": "pep9",
+  "abstraction": "MC2",
+  "items": [
+    {
+      "name": "pepcpu",
+      "format": "pepcpu",
+      "from": {
+        "file": "{ch}{fig}.pepcpu"
+      }
+    }
+  ]
+}
