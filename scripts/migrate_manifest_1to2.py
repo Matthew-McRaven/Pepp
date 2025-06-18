@@ -21,8 +21,7 @@ def migrate_figure(path: str):
         ret["format"] = format
         if hidden: ret["isHidden"] = True
         if copy is not None: ret["copy"] = copy
-        if "default_element" in figure and figure["default_element"] == format:
-            ret["isDefault"] = True
+        if "default_element" in figure and figure["default_element"] == format: ret["isDefault"] = True
         return ret
     def add_from_file(item, path): item["from"] = {"file":path}
     def add_from_element(item, element): item["from"] = {"element": element}
@@ -36,13 +35,28 @@ def migrate_figure(path: str):
             add_from_file(el, figure["items"][format])
             out["items"].append(el)
         # Insert pepb/peph
-        pepb, peph = make_item("pepb", name="pepb"), make_item("peph", name="peph")
-        add_from_element(pepb, "pep"), add_from_element(peph, "pep")
-        out["items"].extend([pepb, peph])
+        if "pep" in figure["items"]:
+          pepb, peph = make_item("pepb", name="pepb"), make_item("peph", name="peph")
+          add_from_element(pepb, "pep"), add_from_element(peph, "pep")
+          out["items"].extend([pepb, peph])
+    elif out["abstraction"] == "ASMB3" or out["abstraction"] == "ASMB5":
+        out["items"]=[]
+        # Add existing figures
+        for format in figure.get("items", []):
+            el = make_item(format, name=format)
+            if format == "pep": el["copy"] ="assembly"
+            add_from_file(el, figure["items"][format])
+            out["items"].append(el)
+        # Insert pepl/pepo
+        if "pep" in figure["items"]:
+          pepl, pepo = make_item("pepl", name="pepl"), make_item("pepo", name="pepo")
+          add_from_element(pepl, "pep"), add_from_element(pepo, "pep")
+          out["items"].extend([pepl, pepo])
     else:
         assert False, "Unknown abstraction: " + out["abstraction"]
     manifest = os.path.join(os.path.dirname(path),"manifest.json")
     with open(manifest, 'w') as f: json.dump(out, f, indent=2)
+    os.remove(path)
 
 def main():
     parser = argparse.ArgumentParser(description="Migrate figure manifest versions")

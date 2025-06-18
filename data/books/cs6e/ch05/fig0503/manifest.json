@@ -1,0 +1,37 @@
+{
+  "version": 2,
+  "type": "figure",
+  "name": "05:03",
+  "arch": "pep10",
+  "abstraction": "ASMB3",
+  "default_os": "os:pep10baremetal",
+  "description": "An assembly-language program to output <code>Hi</code>. It is the assembly-language version of Figure 4.33.",
+  "tests": [
+    "io0"
+  ],
+  "items": [
+    {
+      "name": "pep",
+      "format": "pep",
+      "isDefault": true,
+      "copy": "assembly",
+      "from": {
+        "file": "{ch}{fig}.pep"
+      }
+    },
+    {
+      "name": "pepl",
+      "format": "pepl",
+      "from": {
+        "element": "pep"
+      }
+    },
+    {
+      "name": "pepo",
+      "format": "pepo",
+      "from": {
+        "element": "pep"
+      }
+    }
+  ]
+}
