@@ -4,6 +4,7 @@
   "kind": "mmap",
   "arch": "pep10",
   "is_os": true,
+  "default_element": "pep",
   "items": {
     "pep": "assembler.pep"
   },

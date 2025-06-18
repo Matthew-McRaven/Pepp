@@ -5,6 +5,7 @@
   "arch": "pep10",
   "is_os": true,
   "abstraction": "OS4",
+  "default_element": "pep",
   "items": {
     "pep": "{fig}.pep"
   }
