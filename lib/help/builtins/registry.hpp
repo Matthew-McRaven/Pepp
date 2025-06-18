@@ -29,6 +29,7 @@ namespace builtins {
 class Test;
 class Figure;
 class Element;
+class Element2;
 static const char *default_book_path = ":/books";
 class Registry {
 public:
@@ -37,6 +38,8 @@ public:
   QList<QSharedPointer<const builtins::Book>> books() const;
   QSharedPointer<const builtins::Book> findBook(QString name);
   bool usingExternalFigures() const { return _usingExternalFigures; }
+  void addDependency(const Element2 *dependent, const Element2 *dependee);
+  QString contentFor(Element2 &element);
 
 private:
   using _Figure = QSharedPointer<builtins::Figure>;
@@ -45,6 +48,12 @@ private:
   QSharedPointer<::builtins::Book> loadBook(QString tocPath);
   bool _usingExternalFigures = false;
   QList<QSharedPointer<const builtins::Book>> _books;
+  // Given an element, determine which element it depends on.
+  QMap<const Element2 * /*dependent*/, const Element2 * /*dependee*/> _dependencies;
+  // Given an element, determine which elements depend on it.
+  QMap<const Element2 * /*dependee*/, QList<const Element2 *> /*dependents*/> _dependees;
+  void computeDependencies(const Element2 *dependee);
+  QMap<const Element2 *, QString> _contents;
 };
 
 namespace detail {

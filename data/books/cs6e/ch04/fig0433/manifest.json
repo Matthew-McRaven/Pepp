@@ -30,6 +30,7 @@
           }
       },
       {
+          "name": "pepb",
           "format": "pepb",
           "export": "path/to/{ch}{fig}.peph",
           "from": {
@@ -38,6 +39,7 @@
           }
       },
       {
+          "name": "peph",
           "format": "peph",
           "export": "path/to/{ch}{fig}.pepb",
           "from": {

@@ -79,6 +79,7 @@ public:
   // Transfer ownership to this. Must be deleted in this object's destructor
   void addTest(const builtins::Test *test);
 
+  const builtins::Element *findElement(QString name) const;
   const QMap<QString, const builtins::Element *> typesafeElements() const;
   // Creates variant map on-the-fly, please limit # of calls.
   QVariantMap elements() const;
@@ -105,7 +106,8 @@ private:
   // Owns pointers
   QList<const builtins::Test *> _tests = {};
   // Owns pointers
-  QMap<QString, const builtins::Element *> _elements = {};
+  using ElementMap = QMap<QString, const builtins::Element *>;
+  ElementMap _elements = {};
   QString _defaultElement = {};
 };
 } // end namespace builtins

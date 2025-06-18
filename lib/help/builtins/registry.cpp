@@ -64,6 +64,36 @@ QSharedPointer<const builtins::Book> builtins::Registry::findBook(QString name) 
   }
 }
 
+void builtins::Registry::addDependency(const Element2 *dependent, const Element2 *dependee) {
+  _dependencies[dependent] = dependee;
+  if (!_dependees.contains(dependee)) _dependees[dependee] = QList<const Element2 *>();
+  _dependees[dependee].append(dependent);
+}
+
+QString builtins::Registry::contentFor(Element2 &element) {
+  // If the element has already been computed, use that value.
+  if (_contents.contains(&element)) return _contents[&element];
+
+  // Otherwise find the element that we depend on, and assemble it.
+  auto dependee = _dependencies.value(&element, nullptr);
+  if (dependee == nullptr) return _contents[&element] = "";
+  else computeDependencies(dependee);
+  return _contents[&element];
+}
+
+void builtins::Registry::computeDependencies(const Element2 *dependee) {
+  // Compute dependee's value using correct assembler/compiler toolchain.
+  if (!_dependees.contains(dependee)) return;
+
+  auto dependents = _dependees.value(dependee);
+  if (dependents.isEmpty()) return;
+  // For each dependent of the thing being assembled, compute the desired output.
+  // This avoids needing to assemble the same dependee multiple times.
+  for (const auto &dependent : std::as_const(dependents)) {
+    if (!_contents.contains(dependent)) _contents[dependent] = "";
+  }
+}
+
 namespace {
 
 int absolute_index(QList<int> &list, int index, int _default = 0) {
@@ -135,7 +165,8 @@ std::optional<pepp::Abstraction> abs_from_str(const QString &key) {
   return static_cast<pepp::Abstraction>(archInt);
 }
 
-::builtins::Element2 *loadElement2(const QJsonObject &item, const QDir &manifestDir) {
+::builtins::Element2 *loadElement2(const QJsonObject &item, const QDir &manifestDir, builtins::Figure *parent,
+                                   builtins::Registry *registry) {
   // Use smart pointer to avoid cleanup on error paths.
   auto element = std::make_unique<builtins::Element2>();
   element->name = item["name"].toString("");
@@ -165,8 +196,20 @@ std::optional<pepp::Abstraction> abs_from_str(const QString &key) {
       auto absPath = manifestDir.absoluteFilePath(from["file"].toString());
       element->contentsFn = [=]() { return loadFromFile(absPath); };
     } else if (from["element"].isString()) {
-      qWarning("Only supports file loads!! %s", element->language.toStdString().c_str());
-      return nullptr;
+      auto dependee = parent->findElement(from["element"].toString());
+      if (dependee == nullptr) {
+        qWarning("Element %s not found in figure %s", from["element"].toString().toStdString().c_str(),
+                 parent->figureName().toStdString().c_str());
+        return nullptr;
+      }
+      auto casted = dynamic_cast<const builtins::Element2 *>(dependee);
+      if (casted == nullptr) {
+        qWarning("Element %s is not of type Element2", from["element"].toString().toStdString().c_str());
+        return nullptr;
+      }
+      registry->addDependency(element.get(), casted);
+      auto elementPtr = element.get();
+      element->contentsFn = [registry, elementPtr]() { return registry->contentFor(*elementPtr); };
     } else {
       qWarning("Did not specify a valid source");
       return nullptr;
@@ -237,7 +280,7 @@ builtins::Registry::loadManifestV2(const QJsonDocument &manifest, const QString 
       // Perform templatization on manifest values.
       auto itemObject = itemIter.toObject();
       templateize(itemObject, substitutions);
-      auto item = loadElement2(itemObject, manifestDir);
+      auto item = loadElement2(itemObject, manifestDir, &*figure, this);
       if (item == nullptr) {
         qWarning("Failed to load element %s", itemObject["name"].toString("").toStdString().c_str());
         continue;

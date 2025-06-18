@@ -99,6 +99,11 @@ void builtins::Figure::addTest(const Test *test) {
   emit testsChanged();
 }
 
+const builtins::Element *builtins::Figure::findElement(QString name) const {
+  if (auto ret = _elements.constFind(name); ret != _elements.constEnd()) return ret.value();
+  else return nullptr;
+}
+
 const QMap<QString, const builtins::Element *>
 builtins::Figure::typesafeElements() const {
   return _elements;
