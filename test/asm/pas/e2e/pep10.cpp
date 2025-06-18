@@ -65,7 +65,7 @@ TEST_CASE("CS6E figure assembly", "[scope:asm][kind:e2e][arch:pep10]") {
       if (!fig->typesafeElements().contains("pep")) continue;
       QString chapter = fig->chapterName();
       QString figName = fig->figureName();
-      QString body = fig->typesafeElements()["pep"]->contents;
+      QString body = fig->typesafeElements()["pep"]->contents();
       bool isOS = fig->isOS();
       DYNAMIC_SECTION(chapter.toStdString() << "." << figName.toStdString()) {
         loadBookMacros(book, registry);
@@ -102,8 +102,8 @@ TEST_CASE("CS6E figure assembly", "[scope:asm][kind:e2e][arch:pep10]") {
       else if (!defaultOS->typesafeElements().contains("pep")) continue;
       QString chapter = fig->chapterName();
       QString figName = fig->figureName();
-      QString osBody = defaultOS->typesafeElements()["pep"]->contents;
-      QString userBody = fig->typesafeElements()["pep"]->contents;
+      QString osBody = defaultOS->typesafeElements()["pep"]->contents();
+      QString userBody = fig->typesafeElements()["pep"]->contents();
       bool isFullOS = bool(defaultOS->figureName() == "full");
 
       DYNAMIC_SECTION(chapter.toStdString() << "." << figName.toStdString()) {
@@ -208,8 +208,8 @@ TEST_CASE("CS6E hex/bin listing", "[scope:asm][kind:e2e][arch:pep10]") {
   auto fig = book->findFigure("04", "35");
   auto defaultOS = fig->defaultOS();
   REQUIRE(defaultOS != nullptr);
-  QString osBody = defaultOS->typesafeElements()["pep"]->contents;
-  QString userBody = fig->typesafeElements()["pep"]->contents;
+  QString osBody = defaultOS->typesafeElements()["pep"]->contents();
+  QString userBody = fig->typesafeElements()["pep"]->contents();
 
   auto pipeline = pas::driver::pep10::pipeline<pas::driver::ANTLRParserTag>(
       {{osBody, {.isOS = true, .ignoreUndefinedSymbols = false}},

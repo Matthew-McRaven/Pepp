@@ -24,7 +24,11 @@
 namespace macro {
 class Parsed;
 }
+
 namespace builtins {
+class Test;
+class Figure;
+class Element;
 static const char *default_book_path = ":/books";
 class Registry {
 public:
@@ -35,13 +39,14 @@ public:
   bool usingExternalFigures() const { return _usingExternalFigures; }
 
 private:
+  using _Figure = QSharedPointer<builtins::Figure>;
+  using _Macro = QSharedPointer<macro::Parsed>;
+  std::variant<std::monostate, _Figure, _Macro> loadManifestV2(const QJsonDocument &manifest, const QString &path);
+  QSharedPointer<::builtins::Book> loadBook(QString tocPath);
   bool _usingExternalFigures = false;
   QList<QSharedPointer<const builtins::Book>> _books;
 };
 
-class Test;
-class Figure;
-class Element;
 namespace detail {
 ::builtins::Element *loadElement(QString elementPath);
 ::builtins::Element *generateElement(QString fromElementPath, void *asm_toolchains);
@@ -51,7 +56,8 @@ QSharedPointer<builtins::Figure> loadProblem(QString manifestPath);
 void linkFigureOS(QString manifestPath, QSharedPointer<::builtins::Figure> figure,
                   QSharedPointer<const builtins::Book> book);
 QList<QSharedPointer<::macro::Parsed>> loadMacro(QString manifestPath);
-QSharedPointer<::builtins::Book> loadBook(QString tocPath);
+
 QList<QString> enumerateBooks(QString prefix);
+
 } // end namespace detail
 } // end namespace builtins

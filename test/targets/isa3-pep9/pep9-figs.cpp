@@ -131,10 +131,10 @@ TEST_CASE("Pep/9 Figure Assembly", "[scope:asm][kind:e2e][arch:pep9]") {
     else if (figure->isOS()) continue;
     QString userPep = {}, userPepo = {};
     if (figure->typesafeElements().contains("pep"))
-      userPep = QString(figure->typesafeElements()["pep"]->contents).replace(lf, "");
+      userPep = QString(figure->typesafeElements()["pep"]->contents()).replace(lf, "");
     else if (figure->typesafeElements().contains("pepo"))
-      userPepo = QString(figure->typesafeElements()["pepo"]->contents).replace(lf, "");
-    auto os = QString(figure->defaultOS()->typesafeElements()["pep"]->contents).replace(lf, "");
+      userPepo = QString(figure->typesafeElements()["pepo"]->contents()).replace(lf, "");
+    auto os = QString(figure->defaultOS()->typesafeElements()["pep"]->contents()).replace(lf, "");
     auto ch = figure->chapterName(), fig = figure->figureName();
     int num = 0;
     for (auto io : figure->typesafeTests()) {

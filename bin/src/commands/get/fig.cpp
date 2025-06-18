@@ -50,7 +50,7 @@ void GetFigTask::run() {
     return emit finished(2);
   }
 
-  auto body = item->typesafeElements()[type]->contents;
+  auto body = item->typesafeElements()[type]->contents();
   std::cout << body.toStdString() << std::endl;
 
   return emit finished(0);

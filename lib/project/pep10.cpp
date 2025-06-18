@@ -94,14 +94,14 @@ SystemAssembly make_isa_system(project::Environment env) {
   case PEP9: {
     book = helpers::book(5);
     auto os = book->findFigure("os", "pep9os");
-    osContents = os->typesafeElements()["pep"]->contents;
+    osContents = os->typesafeElements()["pep"]->contents();
     macroRegistry = cs5e_macros();
     break;
   }
   case PEP10: {
     book = helpers::book(6);
     auto os = book->findFigure("os", "pep10baremetal");
-    osContents = os->typesafeElements()["pep"]->contents;
+    osContents = os->typesafeElements()["pep"]->contents();
     macroRegistry = cs6e_macros();
     break;
   }
@@ -122,18 +122,18 @@ SystemAssembly make_isa_system(project::Environment env) {
 QString cs6e_bm() {
   auto book = helpers::book(6);
   auto os = book->findFigure("os", "pep10baremetal");
-  return os->typesafeElements()["pep"]->contents;
+  return os->typesafeElements()["pep"]->contents();
 }
 QString cs6e_os() {
   auto book = helpers::book(6);
   auto os = book->findFigure("os", "pep10os");
-  return os->typesafeElements()["pep"]->contents;
+  return os->typesafeElements()["pep"]->contents();
 }
 
 QString cs5e_os() {
   auto book = helpers::book(5);
   auto os = book->findFigure("os", "pep9os");
-  return os->typesafeElements()["pep"]->contents;
+  return os->typesafeElements()["pep"]->contents();
 }
 
 // TODO: fix
@@ -146,14 +146,14 @@ SystemAssembly make_asmb_system(project::Environment env, QString os) {
   case PEP9: {
     book = helpers::book(5);
     auto os = book->findFigure("os", "pep9os");
-    osContents = os->typesafeElements()["pep"]->contents;
+    osContents = os->typesafeElements()["pep"]->contents();
     macroRegistry = cs5e_macros();
     break;
   }
   case PEP10: {
     book = helpers::book(6);
     auto os = book->findFigure("os", "pep10baremetal");
-    osContents = os->typesafeElements()["pep"]->contents;
+    osContents = os->typesafeElements()["pep"]->contents();
     macroRegistry = cs6e_macros();
     break;
   }

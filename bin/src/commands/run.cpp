@@ -46,10 +46,10 @@ bool RunTask::loadToElf() {
   QString osContents;
   if (_forceBm && _ed == 6) {
     auto os = book->findFigure("os", "pep10baremetal");
-    osContents = os->typesafeElements()["pep"]->contents;
+    osContents = os->typesafeElements()["pep"]->contents();
   } else if (!_osIn.has_value()) {
     auto os = book->findFigure("os", "pep10os");
-    osContents = os->typesafeElements()["pep"]->contents;
+    osContents = os->typesafeElements()["pep"]->contents();
   } else {
     QFile oIn(QString::fromStdString(*_osIn)); // auto-closes
     oIn.open(QIODevice::ReadOnly | QIODevice::Text);
