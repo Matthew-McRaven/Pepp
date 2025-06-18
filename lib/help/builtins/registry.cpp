@@ -64,13 +64,13 @@ QSharedPointer<const builtins::Book> builtins::Registry::findBook(QString name) 
   }
 }
 
-void builtins::Registry::addDependency(const Element2 *dependent, const Element2 *dependee) {
+void builtins::Registry::addDependency(const Element *dependent, const Element *dependee) {
   _dependencies[dependent] = dependee;
-  if (!_dependees.contains(dependee)) _dependees[dependee] = QList<const Element2 *>();
+  if (!_dependees.contains(dependee)) _dependees[dependee] = QList<const Element *>();
   _dependees[dependee].append(dependent);
 }
 
-QString builtins::Registry::contentFor(Element2 &element) {
+QString builtins::Registry::contentFor(Element &element) {
   // If the element has already been computed, use that value.
   if (_contents.contains(&element)) return _contents[&element];
 
@@ -90,7 +90,7 @@ void builtins::Registry::addFormatter(pepp::Architecture arch, QString format, s
   _formatters[p] = std::move(formatter);
 }
 
-void builtins::Registry::computeDependencies(const Element2 *dependee) {
+void builtins::Registry::computeDependencies(const Element *dependee) {
   // Compute dependee's value using correct assembler/compiler toolchain.
   if (!_dependees.contains(dependee)) return;
 
@@ -205,10 +205,10 @@ std::optional<pepp::Abstraction> abs_from_str(const QString &key) {
   return static_cast<pepp::Abstraction>(archInt);
 }
 
-::builtins::Element2 *loadElement2(const QJsonObject &item, const QDir &manifestDir, builtins::Figure *parent,
-                                   builtins::Registry *registry) {
+::builtins::Element *loadElement(const QJsonObject &item, const QDir &manifestDir, builtins::Figure *parent,
+                                 builtins::Registry *registry) {
   // Use smart pointer to avoid cleanup on error paths.
-  auto element = std::make_unique<builtins::Element2>();
+  auto element = std::make_unique<builtins::Element>();
   element->name = item["name"].toString("");
   if (!item["format"].isString()) {
     qWarning("Invalid element format for %s", element->name.toStdString().c_str());
@@ -242,12 +242,8 @@ std::optional<pepp::Abstraction> abs_from_str(const QString &key) {
                  parent->figureName().toStdString().c_str());
         return nullptr;
       }
-      auto casted = dynamic_cast<const builtins::Element2 *>(dependee);
-      if (casted == nullptr) {
-        qWarning("Element %s is not of type Element2", from["element"].toString().toStdString().c_str());
-        return nullptr;
-      }
-      registry->addDependency(element.get(), casted);
+
+      registry->addDependency(element.get(), dependee);
       auto elementPtr = element.get();
       element->contentsFn = [registry, elementPtr]() { return registry->contentFor(*elementPtr); };
     } else {
@@ -277,7 +273,6 @@ std::optional<pepp::Abstraction> abs_from_str(const QString &key) {
 
 std::variant<std::monostate, builtins::Registry::_Figure, builtins::Registry::_Macro>
 builtins::Registry::loadManifestV2(const QJsonDocument &manifest, const QString &path) {
-  const auto manifestDir = QFileInfo(path).dir();
   const auto type = manifest["type"].toString("").toLower();
   if (type == "figure" || type == "problem") return loadFigureV2(manifest, path);
   else if (type == "macro") return loadMacroV2(manifest, path);
@@ -329,7 +324,7 @@ builtins::Registry::loadFigureV2(const QJsonDocument &manifest, const QString &p
     // Perform templatization on manifest values.
     auto itemObject = itemIter.toObject();
     templateize(itemObject, substitutions);
-    auto item = loadElement2(itemObject, manifestDir, &*figure, this);
+    auto item = loadElement(itemObject, manifestDir, &*figure, this);
     if (item == nullptr) {
       qWarning("Failed to load element %s", itemObject["name"].toString("").toStdString().c_str());
       continue;

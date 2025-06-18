@@ -30,7 +30,6 @@ namespace builtins {
 class Test;
 class Figure;
 class Element;
-class Element2;
 static const char *default_book_path = ":/books";
 
 class Registry {
@@ -48,8 +47,8 @@ public:
   QList<QSharedPointer<const builtins::Book>> books() const;
   QSharedPointer<const builtins::Book> findBook(QString name) const;
   bool usingExternalFigures() const { return _usingExternalFigures; }
-  void addDependency(const Element2 *dependent, const Element2 *dependee);
-  QString contentFor(Element2 &element);
+  void addDependency(const Element *dependent, const Element *dependee);
+  QString contentFor(Element &element);
   void addAssembler(pepp::Architecture arch, std::unique_ptr<Assembler> &&assembler);
   void addFormatter(pepp::Architecture arch, QString format, std::unique_ptr<Formatter> &&formatter);
 
@@ -64,11 +63,11 @@ private:
   bool _usingExternalFigures = false;
   QList<QSharedPointer<const builtins::Book>> _books;
   // Given an element, determine which element it depends on.
-  QMap<const Element2 * /*dependent*/, const Element2 * /*dependee*/> _dependencies;
+  QMap<const Element * /*dependent*/, const Element * /*dependee*/> _dependencies;
   // Given an element, determine which elements depend on it.
-  QMap<const Element2 * /*dependee*/, QList<const Element2 *> /*dependents*/> _dependees;
-  void computeDependencies(const Element2 *dependee);
-  QMap<const Element2 *, QString> _contents;
+  QMap<const Element * /*dependee*/, QList<const Element *> /*dependents*/> _dependees;
+  void computeDependencies(const Element *dependee);
+  QMap<const Element *, QString> _contents;
   // Use std::map so that unique pointers are less painful. QMap COW features do not interact well.
   std::map<pepp::Architecture, std::unique_ptr<Assembler>> _assemblers;
   std::map<QPair<pepp::Architecture, QString>, std::unique_ptr<Formatter>> _formatters;
