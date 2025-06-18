@@ -150,6 +150,11 @@ QString selectLines(QString &input, int startLine, int endLine) {
 
 QString loadFromFile(QString path) { return read(path); }
 
+QString templatize(QString input, QMap<QString, QString> substitutions) {
+  for (const auto &[key, value] : substitutions.asKeyValueRange()) input.replace(u"{%1}"_s.arg(key), value);
+  return input;
+}
+
 void templateize(QJsonObject &object, QMap<QString, QString> substitutions) {
   auto keys = object.keys();
   for (const auto &key : std::as_const(keys)) {
@@ -159,9 +164,7 @@ void templateize(QJsonObject &object, QMap<QString, QString> substitutions) {
       templateize(innerObject, substitutions);
       object[key] = innerObject;
     } else if (value.isString()) {
-      auto newValue = value.toString();
-      for (const auto &[key, value] : substitutions.asKeyValueRange()) newValue.replace(u"{%1}"_s.arg(key), value);
-      object[key] = newValue;
+      object[key] = templatize(value.toString(), substitutions);
     }
   }
 }
@@ -276,63 +279,100 @@ std::variant<std::monostate, builtins::Registry::_Figure, builtins::Registry::_M
 builtins::Registry::loadManifestV2(const QJsonDocument &manifest, const QString &path) {
   const auto manifestDir = QFileInfo(path).dir();
   const auto type = manifest["type"].toString("").toLower();
-  if (type == "figure" || type == "problem") {
-    // Extract chapter/figure name
-    auto chFig = ch_fig_from_str(manifest["name"].toString());
-    if (!chFig) return std::monostate();
-    auto [chapterName, figureName] = *chFig;
+  if (type == "figure" || type == "problem") return loadFigureV2(manifest, path);
+  else if (type == "macro") return loadMacroV2(manifest, path);
+  else return std::monostate();
+}
 
-    // Extract architecture / abstraction from manifest into enumerated constants
-    pepp::Architecture arch = pepp::Architecture::NO_ARCH;
-    pepp::Abstraction level = pepp::Abstraction::NO_ABS;
-    if (auto maybeArch = arch_from_str(manifest["arch"].toString("")); !maybeArch) return std::monostate();
-    else arch = *maybeArch;
-    if (auto maybeLevel = abs_from_str(manifest["abstraction"].toString("")); !maybeLevel) return std::monostate();
-    else level = *maybeLevel;
+std::variant<std::monostate, builtins::Registry::_Figure, builtins::Registry::_Macro>
+builtins::Registry::loadFigureV2(const QJsonDocument &manifest, const QString &path) {
+  const auto manifestDir = QFileInfo(path).dir();
+  const auto type = manifest["type"].toString("").toLower();
+  // Extract chapter/figure name
+  auto chFig = ch_fig_from_str(manifest["name"].toString());
+  if (!chFig) return std::monostate();
+  auto [chapterName, figureName] = *chFig;
 
-    // TODO: decide between "figure" and "problem" based on type field.
-    auto figure =
-        QSharedPointer<builtins::Figure>::create(arch, level, "Figure", chapterName, figureName, type == "problem");
-    figure->setIsOS(manifest["isOS"].toBool(false));
-    figure->setIsHidden(manifest["hidden"].toBool(false));
-    if (manifest["description"].isString()) figure->setDescription(manifest["description"].toString());
+  // Extract architecture / abstraction from manifest into enumerated constants
+  pepp::Architecture arch = pepp::Architecture::NO_ARCH;
+  pepp::Abstraction level = pepp::Abstraction::NO_ABS;
+  if (auto maybeArch = arch_from_str(manifest["arch"].toString("")); !maybeArch) return std::monostate();
+  else arch = *maybeArch;
+  if (auto maybeLevel = abs_from_str(manifest["abstraction"].toString("")); !maybeLevel) return std::monostate();
+  else level = *maybeLevel;
 
-    // Add tests
-    auto ios = manifest["tests"];
-    auto iosArray = ios.toArray();
-    for (auto ioDir : std::as_const(iosArray)) {
-      auto io = detail::loadTest(manifestDir.absoluteFilePath(ioDir.toString()));
-      if (io == nullptr) {
-        qWarning("Invalid IO: %s", ioDir.toString().toStdString().c_str());
-        return std::monostate();
-      }
-      figure->addTest(io);
+  // TODO: decide between "figure" and "problem" based on type field.
+  auto figure =
+      QSharedPointer<builtins::Figure>::create(arch, level, "Figure", chapterName, figureName, type == "problem");
+  figure->setIsOS(manifest["isOS"].toBool(false));
+  figure->setIsHidden(manifest["hidden"].toBool(false));
+  if (manifest["description"].isString()) figure->setDescription(manifest["description"].toString());
+
+  // Add tests
+  auto ios = manifest["tests"];
+  auto iosArray = ios.toArray();
+  for (auto ioDir : std::as_const(iosArray)) {
+    auto io = detail::loadTest(manifestDir.absoluteFilePath(ioDir.toString()));
+    if (io == nullptr) {
+      qWarning("Invalid IO: %s", ioDir.toString().toStdString().c_str());
+      return std::monostate();
     }
-
-    auto substitutions = QMap<QString, QString>{{"ch", chapterName}, {"fig", figureName}};
-
-    // Add elements
-    auto itemsArray = manifest["items"].toArray();
-    std::optional<QString> _default = std::nullopt;
-    for (const auto &itemIter : std::as_const(itemsArray)) {
-      // Perform templatization on manifest values.
-      auto itemObject = itemIter.toObject();
-      templateize(itemObject, substitutions);
-      auto item = loadElement2(itemObject, manifestDir, &*figure, this);
-      if (item == nullptr) {
-        qWarning("Failed to load element %s", itemObject["name"].toString("").toStdString().c_str());
-        continue;
-      }
-      item->figure = figure;
-      figure->addElement(item->name, item);
-      if (item->isDefault && !_default.has_value()) _default = item->language;
-    }
-
-    figure->setDefaultElement(_default.value_or("pepo"));
-
-    return figure;
+    figure->addTest(io);
   }
-  return std::monostate();
+
+  auto substitutions = QMap<QString, QString>{{"ch", chapterName}, {"fig", figureName}};
+
+  // Add elements
+  std::optional<QString> _default = std::nullopt;
+  auto itemsArray = manifest["items"].toArray();
+  for (const auto &itemIter : std::as_const(itemsArray)) {
+    // Perform templatization on manifest values.
+    auto itemObject = itemIter.toObject();
+    templateize(itemObject, substitutions);
+    auto item = loadElement2(itemObject, manifestDir, &*figure, this);
+    if (item == nullptr) {
+      qWarning("Failed to load element %s", itemObject["name"].toString("").toStdString().c_str());
+      continue;
+    }
+    item->figure = figure;
+    figure->addElement(item->name, item);
+    if (item->isDefault && !_default.has_value()) _default = item->language;
+  }
+
+  figure->setDefaultElement(_default.value_or("pepo"));
+
+  return figure;
+}
+
+std::variant<std::monostate, builtins::Registry::_Figure, builtins::Registry::_Macro>
+builtins::Registry::loadMacroV2(const QJsonDocument &manifest, const QString &path) {
+  QList<QSharedPointer<macro::Parsed>> ret;
+  auto manifestDir = QFileInfo(path).dir();
+
+  // Add elements
+  auto itemsObject = manifest["items"].toObject();
+  auto itemsKeys = itemsObject.keys();
+  for (const auto &itemIter : std::as_const(itemsKeys)) {
+    // Perform templatization on manifest values.
+    auto substitutions = QMap<QString, QString>{{"name", itemIter}};
+    auto path = templatize(itemsObject[itemIter].toString(), substitutions);
+
+    // Load the macro
+    auto macroText = read(manifestDir.absoluteFilePath(path));
+    auto macroBody = macroText.sliced(macroText.indexOf("\n") + 1);
+    auto parsed = macro::analyze_macro_definition(macroText);
+    bool isHidden = manifest["isHidden"].toBool(false);
+    auto family = manifest["family"].toString("");
+
+    if (!std::get<0>(parsed)) {
+      qWarning("Invalid macro: %s", path.toStdString().c_str());
+      return {};
+    }
+    auto macro = QSharedPointer<macro::Parsed>::create(std::get<1>(parsed), std::get<2>(parsed), macroBody,
+                                                       manifest["arch"].toString(), family, isHidden);
+    ret.push_back(macro);
+  }
+  return ret;
 }
 
 QSharedPointer<builtins::Book> builtins::Registry::loadBook(QString tocPath) {
@@ -361,10 +401,14 @@ QSharedPointer<builtins::Book> builtins::Registry::loadBook(QString tocPath) {
         } else if (std::holds_alternative<_Figure>(item)) {
           auto figure = std::get<_Figure>(item);
           revisit.push_back({next, figure});
-          // TODO: delineate between figures and problems
-          book->addFigure(figure);
+          if (figure->isProblem()) book->addProblem(figure);
+          else book->addFigure(figure);
         } else if (std::holds_alternative<_Macro>(item)) {
-          qFatal("Failed to load macros using manifest v2");
+          auto macros = std::get<_Macro>(item);
+          for (auto &macro : macros) {
+            if (macro == nullptr) qWarning("%s", u"Failed to load macro %1"_s.arg(next).toStdString().c_str());
+            else book->addMacro(macro);
+          }
         }
       } else {
         qWarning(
@@ -372,32 +416,9 @@ QSharedPointer<builtins::Book> builtins::Registry::loadBook(QString tocPath) {
             u"Unknown manifest version %1 for %2"_s.arg(manifest["version"].toInt(0)).arg(next).toStdString().c_str());
       }
     }
-    // If the file is named as a figure manifest, parse the figure and insert into book
-    else if (next.endsWith("figure.json")) {
-      auto figure = detail::loadFigure(next);
-      if (figure == nullptr) qWarning("%s", u"Failed to load figure %1"_s.arg(next).toStdString().c_str());
-      else {
-        revisit.push_back({next, figure});
-        book->addFigure(figure);
-      }
-    }
-    // If the file is named as a problem manifest, parse the figure and insert into book
-    if (next.endsWith("problem.json")) {
-      auto problem = detail::loadFigure(next);
-      if (problem == nullptr) qWarning("%s", u"Failed to load problem %1"_s.arg(next).toStdString().c_str());
-      else {
-        revisit.push_back({next, problem});
-        book->addProblem(problem);
-      }
-    }
-
     // If the file is name as a macro manifest, parse the macro and insert into book
     else if (next.endsWith("macro.json")) {
-      auto macros = detail::loadMacro(next);
-      for (auto &macro : macros) {
-        if (macro == nullptr) qWarning("%s", u"Failed to load macro %1"_s.arg(next).toStdString().c_str());
-        else book->addMacro(macro);
-      }
+      qFatal("Should not be called");
     }
   }
 
@@ -405,14 +426,6 @@ QSharedPointer<builtins::Book> builtins::Registry::loadBook(QString tocPath) {
   for (auto &[path, figure] : revisit) detail::linkFigureOS(path, figure, book);
 
   return book;
-}
-
-builtins::Element *builtins::detail::loadElement(QString elementPath) {
-  qFatal("loadElement should no longer be reachable, but called with %s", elementPath.toStdString().c_str());
-}
-
-builtins::Element *builtins::detail::generateElement(QString fromElementPath, void *asm_toolchains) {
-  qFatal("generateElement should no longer be reachable, but called with %s", fromElementPath.toStdString().c_str());
 }
 
 builtins::Test *builtins::detail::loadTest(QString testDirPath) {
@@ -427,44 +440,6 @@ builtins::Test *builtins::detail::loadTest(QString testDirPath) {
     else if (file.endsWith("output.txt")) test->output = data;
   }
   return test;
-}
-
-QSharedPointer<builtins::Figure> builtins::detail::loadFigure(QString manifestPath) {
-  qFatal("loadFigure should no longer be reachable, but called with %s", manifestPath.toStdString().c_str());
-}
-
-QList<QSharedPointer<macro::Parsed>> builtins::detail::loadMacro(QString manifestPath) {
-  QList<QSharedPointer<macro::Parsed>> ret;
-  auto manifestDir = QFileInfo(manifestPath).dir();
-  // Read macro manifest get macro names;
-  auto manifestBytes = read(manifestPath);
-  auto manifest = QJsonDocument::fromJson(manifestBytes);
-
-  // Add elements
-  auto items = manifest["items"];          // The key in the manifest which contains elements
-  auto itemsArray = items.toObject();      // Get the element name:value pairs as a map
-  auto itemsArrayKeys = itemsArray.keys(); // Make the name:value pairs iterable
-  for (const auto &name : std::as_const(itemsArrayKeys)) {
-    // Perform templatization on manifest values.
-    QString itemTemplatePath = itemsArray[name].toString();
-    auto itemPath = itemTemplatePath.replace("{name}", name);
-
-    // Load the macro
-    auto macroText = read(manifestDir.absoluteFilePath(itemPath));
-    auto macroBody = macroText.sliced(macroText.indexOf("\n") + 1);
-    auto parsed = macro::analyze_macro_definition(macroText);
-    bool isHidden = manifest["hidden"].toBool(false);
-    auto family = manifest["family"].toString("");
-
-    if (!std::get<0>(parsed)) {
-      qWarning("Invalid macro: %s", itemPath.toStdString().c_str());
-      return {};
-    }
-    auto macro = QSharedPointer<macro::Parsed>::create(std::get<1>(parsed), std::get<2>(parsed), macroBody,
-                                                       manifest["arch"].toString(), family, isHidden);
-    ret.push_back(macro);
-  }
-  return ret;
 }
 
 void builtins::detail::linkFigureOS(QString manifestPath, QSharedPointer<Figure> figure,

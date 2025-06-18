@@ -1,4 +1,5 @@
 {
+  "version": 2,
   "type": "macro",
   "arch": "pep10",
   "family": "Arithmetic Shift Left",

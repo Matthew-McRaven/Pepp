@@ -71,6 +71,25 @@ def migrate_figure(type: str, path: str):
     with open(manifest, 'w') as f: json.dump(out, f, indent=2)
     os.remove(path)
 
+
+
+def migrate_macro(path: str):
+    with open(path, 'r') as f: figure = json.load(f)
+    out = {
+        "version": 2,
+        "type": "macro",
+        "arch": figure.get("arch"),
+
+    }
+    if "family" in figure: out["family"] = figure["family"]
+    if "hidden" in figure: out["isHidden"] = figure["hidden"]
+    out["items"]={}
+    for name in figure.get("items", []):
+        out["items"][name] = figure["items"][name]
+    manifest = os.path.join(os.path.dirname(path),"manifest.json")
+    with open(manifest, 'w') as f: json.dump(out, f, indent=2)
+    os.remove(path)
+
 def main():
     parser = argparse.ArgumentParser(description="Migrate figure manifest versions")
     parser.add_argument("path", type=str, help="Path to the book manifest file.")
@@ -83,7 +102,9 @@ def main():
                     case "figure.json":
                         migrate_figure("figure", os.path.join(root, file))
                     case "problem.json":
-                            migrate_figure("problem", os.path.join(root, file))
+                        migrate_figure("problem", os.path.join(root, file))
+                    case "macro.json":
+                        migrate_macro(os.path.join(root, file))
                     case _:
                         continue
             except FileNotFoundError:
