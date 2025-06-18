@@ -1,0 +1,33 @@
+{
+  "version": 2,
+  "type": "figure",
+  "name": "05:07",
+  "arch": "pep8",
+  "abstraction": "ASMB5",
+  "default_os": "os:pep8os",
+  "items": [
+    {
+      "name": "pep",
+      "format": "pep",
+      "isDefault": true,
+      "copy": "assembly",
+      "from": {
+        "file": "{ch}{fig}.pep"
+      }
+    },
+    {
+      "name": "pepl",
+      "format": "pepl",
+      "from": {
+        "element": "pep"
+      }
+    },
+    {
+      "name": "pepo",
+      "format": "pepo",
+      "from": {
+        "element": "pep"
+      }
+    }
+  ]
+}

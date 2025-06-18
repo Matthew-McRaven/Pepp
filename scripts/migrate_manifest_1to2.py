@@ -13,6 +13,9 @@ def migrate_figure(path: str):
     if "abstraction" in figure: out["abstraction"] = figure["abstraction"]
     elif "ch12" in path: out["abstraction"] = "MC2"
     elif "os" in path: out["abstraction"] = "OS4"
+    elif "cs4e" in path and "ch04" in path: out["abstraction"] = "ISA3"
+    elif "cs4e" in path and "ch05" in path: out["abstraction"] = "ASMB5"
+    elif "cs4e" in path and "ch06" in path: out["abstraction"] = "ASMB5"
     if "default_os" in figure: out["default_os"] = figure["default_os"]
     if "description" in figure: out["description"] = figure["description"]
     if "ios" in figure: out["tests"] = figure["ios"]
