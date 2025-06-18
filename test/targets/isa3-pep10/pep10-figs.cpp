@@ -176,7 +176,7 @@ TEST_CASE("Pep/10 Assembler Assembly", "[scope:asm][kind:e2e][arch:pep10]") {
   auto bookPtr = book(bookReg);
   auto assemblerFig = bookPtr->findFigure("os", "assembler");
   REQUIRE(!assemblerFig.isNull());
-  auto os = QString(assemblerFig->typesafeElements()["pep"]->contents()).replace(lf, "");
+  auto os = QString(assemblerFig->typesafeNamedElements()["pep"]->contents()).replace(lf, "");
   auto reg = registry(bookPtr, {});
   auto elf = pas::obj::pep10::createElf();
   assemble(*elf, os, {.pep = IDE_test}, reg);
@@ -242,14 +242,14 @@ TEST_CASE("Pep/10 Figure Assembly", "[scope:asm][kind:e2e][arch:pep10]") {
   auto bookPtr = book(bookReg);
   auto figures = bookPtr->figures();
   for (auto &figure : figures) {
-    if (!figure->typesafeElements().contains("pep") && !figure->typesafeElements().contains("pepo")) continue;
+    if (!figure->typesafeNamedElements().contains("pep") && !figure->typesafeNamedElements().contains("pepo")) continue;
     else if (figure->isOS()) continue;
     QString userPep = "", userPepo = "";
-    if (figure->typesafeElements().contains("pep"))
-      userPep = QString(figure->typesafeElements()["pep"]->contents()).replace(lf, "");
-    else if (figure->typesafeElements().contains("pepo"))
-      userPepo = QString(figure->typesafeElements()["pepo"]->contents()).replace(lf, "");
-    auto os = QString(figure->defaultOS()->typesafeElements()["pep"]->contents()).replace(lf, "");
+    if (figure->typesafeNamedElements().contains("pep"))
+      userPep = QString(figure->typesafeNamedElements()["pep"]->contents()).replace(lf, "");
+    else if (figure->typesafeNamedElements().contains("pepo"))
+      userPepo = QString(figure->typesafeNamedElements()["pepo"]->contents()).replace(lf, "");
+    auto os = QString(figure->defaultOS()->typesafeNamedElements()["pep"]->contents()).replace(lf, "");
     auto ch = figure->chapterName(), fig = figure->figureName();
     int num = 0;
     for (auto io : figure->typesafeTests()) {

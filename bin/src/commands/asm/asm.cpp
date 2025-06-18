@@ -62,10 +62,10 @@ void AsmTask::run() {
   QString osContents;
   if (this->forceBm) {
     auto os = book->findFigure("os", "pep10baremetal");
-    osContents = os->typesafeElements()["pep"]->contents();
+    osContents = os->typesafeNamedElements()["pep"]->contents();
   } else if (!osIn || osIn->empty()) {
     auto os = book->findFigure("os", "pep10os");
-    osContents = os->typesafeElements()["pep"]->contents();
+    osContents = os->typesafeNamedElements()["pep"]->contents();
   } else {
     QFile oIn(QString::fromStdString(*osIn)); // auto-closes
     if (!oIn.exists()) {

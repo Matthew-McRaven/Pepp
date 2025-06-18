@@ -48,7 +48,7 @@ class Figure : public QObject {
   // See builtins::Test for properties
   Q_PROPERTY(QVariantList tests READ tests NOTIFY testsChanged);
   // See builtins::Element for available properties
-  Q_PROPERTY(QVariantMap elements READ elements NOTIFY elementsChanged);
+  Q_PROPERTY(QVariantMap elements READ namedElements NOTIFY elementsChanged);
   Q_PROPERTY(QString copyToElementLanguage READ defaultElement CONSTANT);
 
 public:
@@ -83,11 +83,12 @@ public:
   void addTest(const builtins::Test *test);
 
   const builtins::Element *findElement(QString name) const;
-  const QMap<QString, const builtins::Element *> typesafeElements() const;
+  const QMap<QString, const builtins::Element *> typesafeNamedElements() const;
+  const QList<const Element *> &typesafeElements() const;
   // Creates variant map on-the-fly, please limit # of calls.
-  QVariantMap elements() const;
+  QVariantMap namedElements() const;
   // Transfer ownership to this. Must be deleted in this object's destructor
-  bool addElement(QString name, const builtins::Element *element);
+  bool addElement(const builtins::Element *element);
   QString defaultElement() const;
   void setDefaultElement(QString lang);
 
@@ -110,8 +111,8 @@ private:
   // Owns pointers
   QList<const builtins::Test *> _tests = {};
   // Owns pointers
-  using ElementMap = QMap<QString, const builtins::Element *>;
-  ElementMap _elements = {};
+  QMap<QString, const Element *> _namedElements = {};
+  QList<const Element *> _allElements = {};
   QString _defaultElement = {};
 };
 } // end namespace builtins

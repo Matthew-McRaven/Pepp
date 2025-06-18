@@ -330,7 +330,7 @@ builtins::Registry::loadFigureV2(const QJsonDocument &manifest, const QString &p
       continue;
     }
     item->figure = figure;
-    figure->addElement(item->name, item);
+    figure->addElement(item);
     if (item->isDefault && !_default.has_value()) _default = item->language;
   }
 

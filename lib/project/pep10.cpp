@@ -86,14 +86,14 @@ SystemAssembly make_isa_system(project::Environment env, const builtins::Registr
   case PEP9: {
     book = helpers::book(5, &*books);
     auto os = book->findFigure("os", "pep9os");
-    osContents = os->typesafeElements()["pep"]->contents();
+    osContents = os->typesafeNamedElements()["pep"]->contents();
     macroRegistry = helpers::cs5e_macros(&*books);
     break;
   }
   case PEP10: {
     book = helpers::book(6, &*books);
     auto os = book->findFigure("os", "pep10baremetal");
-    osContents = os->typesafeElements()["pep"]->contents();
+    osContents = os->typesafeNamedElements()["pep"]->contents();
     macroRegistry = helpers::cs6e_macros(&*books);
     break;
   }
@@ -114,18 +114,18 @@ SystemAssembly make_isa_system(project::Environment env, const builtins::Registr
 QString cs6e_bm(const builtins::Registry *books) {
   auto book = helpers::book(6, books);
   auto os = book->findFigure("os", "pep10baremetal");
-  return os->typesafeElements()["pep"]->contents();
+  return os->typesafeNamedElements()["pep"]->contents();
 }
 QString cs6e_os(const builtins::Registry *books) {
   auto book = helpers::book(6, books);
   auto os = book->findFigure("os", "pep10os");
-  return os->typesafeElements()["pep"]->contents();
+  return os->typesafeNamedElements()["pep"]->contents();
 }
 
 QString cs5e_os(const builtins::Registry *books) {
   auto book = helpers::book(5, books);
   auto os = book->findFigure("os", "pep9os");
-  return os->typesafeElements()["pep"]->contents();
+  return os->typesafeNamedElements()["pep"]->contents();
 }
 
 // TODO: fix
@@ -138,14 +138,14 @@ SystemAssembly make_asmb_system(project::Environment env, QString os, const buil
   case PEP9: {
     book = helpers::book(5, &*books);
     auto os = book->findFigure("os", "pep9os");
-    osContents = os->typesafeElements()["pep"]->contents();
+    osContents = os->typesafeNamedElements()["pep"]->contents();
     macroRegistry = helpers::cs5e_macros(&*books);
     break;
   }
   case PEP10: {
     book = helpers::book(6, &*books);
     auto os = book->findFigure("os", "pep10baremetal");
-    osContents = os->typesafeElements()["pep"]->contents();
+    osContents = os->typesafeNamedElements()["pep"]->contents();
     macroRegistry = helpers::cs6e_macros(&*books);
     break;
   }

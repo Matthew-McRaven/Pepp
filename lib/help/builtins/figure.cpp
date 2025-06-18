@@ -26,7 +26,8 @@ builtins::Figure::~Figure() {
   for (auto value : _tests) {
     delete value;
   }
-  for (auto value : _elements) {
+  _namedElements.clear();
+  for (auto value : _allElements) {
     delete value;
   }
 }
@@ -103,33 +104,39 @@ void builtins::Figure::addTest(const Test *test) {
 }
 
 const builtins::Element *builtins::Figure::findElement(QString name) const {
-  if (auto ret = _elements.constFind(name); ret != _elements.constEnd()) return ret.value();
+  if (auto ret = _namedElements.constFind(name); ret != _namedElements.constEnd()) return ret.value();
   else return nullptr;
 }
 
-const QMap<QString, const builtins::Element *>
-builtins::Figure::typesafeElements() const {
-  return _elements;
+const QList<const builtins::Element *> &builtins::Figure::typesafeElements() const { return _allElements; }
+
+const QMap<QString, const builtins::Element *> builtins::Figure::typesafeNamedElements() const {
+  return _namedElements;
 }
 
-QVariantMap builtins::Figure::elements() const {
+QVariantMap builtins::Figure::namedElements() const {
   // Convert type-correct map to a QVariantMap, which can be accessed natively
   // in QML
   QVariantMap v;
-  for (auto key = _elements.keyBegin(); key != _elements.keyEnd(); key++)
-    v[*key] = QVariant::fromValue(_elements[*key]);
+  for (auto key = _namedElements.keyBegin(); key != _namedElements.keyEnd(); key++)
+    v[*key] = QVariant::fromValue(_namedElements[*key]);
   return v;
 }
 
-bool builtins::Figure::addElement(QString name, const Element *element) {
+bool builtins::Figure::addElement(const Element *element) {
+  QString name = element->name;
+
   // Only signal update if the figure does not already contain an element of the
   // same name (e.g., programming language)
-  if (auto it = _elements.constFind(name); it == _elements.constEnd()) {
-    _elements[name] = element;
+  if (name.isEmpty()) {
+    _allElements.push_back(element);
+    return true;
+  } else if (auto it = _namedElements.constFind(name); it == _namedElements.constEnd()) {
+    _allElements.push_back(element);
+    _namedElements[name] = element;
     emit elementsChanged();
     return true;
-  }
-  return false;
+  } else return false;
 }
 
 QString builtins::Figure::defaultElement() const { return _defaultElement; }
