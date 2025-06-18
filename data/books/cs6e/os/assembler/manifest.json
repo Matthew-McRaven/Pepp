@@ -1,0 +1,19 @@
+{
+  "version": 2,
+  "type": "figure",
+  "name": "os:assembler",
+  "arch": "pep10",
+  "abstraction": "OS4",
+  "isOS": true,
+  "items": [
+    {
+      "name": "pep",
+      "format": "pep",
+      "isDefault": true,
+      "copy": "assembly",
+      "from": {
+        "file": "assembler.pep"
+      }
+    }
+  ]
+}

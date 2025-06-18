@@ -292,7 +292,7 @@ builtins::Registry::loadManifestV2(const QJsonDocument &manifest, const QString 
 
     // TODO: decide between "figure" and "problem" based on type field.
     auto figure = QSharedPointer<builtins::Figure>::create(arch, level, "Figure", chapterName, figureName);
-    figure->setIsOS(manifest["is_os"].toBool(false));
+    figure->setIsOS(manifest["isOS"].toBool(false));
     figure->setIsHidden(manifest["hidden"].toBool(false));
     if (manifest["description"].isString()) figure->setDescription(manifest["description"].toString());
 

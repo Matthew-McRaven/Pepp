@@ -11,6 +11,8 @@ def migrate_figure(path: str):
         "arch": figure.get("arch"),
     }
     if "abstraction" in figure: out["abstraction"] = figure["abstraction"]
+    elif "ch12" in path: out["abstraction"] = "MC2"
+    elif "os" in path: out["abstraction"] = "OS4"
     if "default_os" in figure: out["default_os"] = figure["default_os"]
     if "description" in figure: out["description"] = figure["description"]
     if "ios" in figure: out["tests"] = figure["ios"]
@@ -39,7 +41,7 @@ def migrate_figure(path: str):
           pepb, peph = make_item("pepb", name="pepb"), make_item("peph", name="peph")
           add_from_element(pepb, "pep"), add_from_element(peph, "pep")
           out["items"].extend([pepb, peph])
-    elif out["abstraction"] == "ASMB3" or out["abstraction"] == "ASMB5":
+    elif out["abstraction"] == "ASMB3" or out["abstraction"] == "ASMB5" or out["abstraction"] == "OS4":
         out["items"]=[]
         # Add existing figures
         for format in figure.get("items", []):
@@ -48,10 +50,17 @@ def migrate_figure(path: str):
             add_from_file(el, figure["items"][format])
             out["items"].append(el)
         # Insert pepl/pepo
-        if "pep" in figure["items"]:
+        if "pep" in figure["items"] and out["abstraction"] != "OS4":
           pepl, pepo = make_item("pepl", name="pepl"), make_item("pepo", name="pepo")
           add_from_element(pepl, "pep"), add_from_element(pepo, "pep")
           out["items"].extend([pepl, pepo])
+    elif out["abstraction"] == "MC2":
+        out["items"]=[]
+        for format in figure.get("items", []):
+            el = make_item(format, name=format)
+            if format == "MC2": el["copy"] ="microcode"
+            add_from_file(el, figure["items"][format])
+            out["items"].append(el)
     else:
         assert False, "Unknown abstraction: " + out["abstraction"]
     manifest = os.path.join(os.path.dirname(path),"manifest.json")
