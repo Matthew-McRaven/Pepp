@@ -1,0 +1,66 @@
+import argparse
+import os
+import json
+
+def migrate_figure(path: str):
+    with open(path, 'r') as f: figure = json.load(f)
+    out = {
+        "version": 2,
+        "type": "figure",
+        "name": figure.get("name"),
+        "arch": figure.get("arch"),
+    }
+    if "abstraction" in figure: out["abstraction"] = figure["abstraction"]
+    if "default_os" in figure: out["default_os"] = figure["default_os"]
+    if "description" in figure: out["description"] = figure["description"]
+    if "ios" in figure: out["tests"] = figure["ios"]
+
+    def make_item(format, name=None, hidden=False, copy=None):
+        ret = dict()
+        if name is not None: ret["name"]=name
+        ret["format"] = format
+        if hidden: ret["isHidden"] = True
+        if copy is not None: ret["copy"] = copy
+        if "default_element" in figure and figure["default_element"] == format:
+            ret["isDefault"] = True
+        return ret
+    def add_from_file(item, path): item["from"] = {"file":path}
+    def add_from_element(item, element): item["from"] = {"element": element}
+    assert "abstraction" in out, f"Need an abstraction for {path}"
+    if out["abstraction"] == "ISA3":
+        out["items"]=[]
+        # Add existing figures
+        for format in figure.get("items", []):
+            el = make_item(format, name=format)
+            if format == "ISA3": el["copy"] ="object"
+            add_from_file(el, figure["items"][format])
+            out["items"].append(el)
+        # Insert pepb/peph
+        pepb, peph = make_item("pepb", name="pepb"), make_item("peph", name="peph")
+        add_from_element(pepb, "pep"), add_from_element(peph, "pep")
+        out["items"].extend([pepb, peph])
+    else:
+        assert False, "Unknown abstraction: " + out["abstraction"]
+    manifest = os.path.join(os.path.dirname(path),"manifest.json")
+    with open(manifest, 'w') as f: json.dump(out, f, indent=2)
+
+def main():
+    parser = argparse.ArgumentParser(description="Migrate figure manifest versions")
+    parser.add_argument("path", type=str, help="Path to the book manifest file.")
+    args = parser.parse_args()
+    # Recursively enumerate all figures/problems/macros in the directory
+    for root, subFolders, files in os.walk(args.path):
+        for file in files:
+            try:
+                match file:
+                    case "figure.json":
+                        migrate_figure(os.path.join(root, file))
+                    case _:
+                        continue
+            except FileNotFoundError:
+                print(f"Error: File '{filename}' not found.")
+            except json.JSONDecodeError:
+                print(f"Error: Invalid JSON format in '{filename}'.")
+
+if __name__ == "__main__":
+    main()
