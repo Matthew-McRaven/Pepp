@@ -1,3 +1,6 @@
 #include "elements.hpp"
 
-// Don't delete file, or AUTOMOC won't run on elements
+QString builtins::Element::contents() const {
+  if (!_contents.has_value()) _contents = contentsFn();
+  return *_contents;
+}

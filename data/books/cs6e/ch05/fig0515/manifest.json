@@ -1,0 +1,37 @@
+{
+  "version": 2,
+  "type": "figure",
+  "name": "05:15",
+  "arch": "pep10",
+  "abstraction": "ASMB5",
+  "default_os": "os:pep10os",
+  "description": "A program that adds 1 to a decimal value. It is identical to Figure 5.12 except that it uses symbols.",
+  "tests": [
+    "io0"
+  ],
+  "items": [
+    {
+      "name": "pep",
+      "format": "pep",
+      "isDefault": true,
+      "copy": "assembly",
+      "from": {
+        "file": "{ch}{fig}.pep"
+      }
+    },
+    {
+      "name": "pepl",
+      "format": "pepl",
+      "from": {
+        "element": "pep"
+      }
+    },
+    {
+      "name": "pepo",
+      "format": "pepo",
+      "from": {
+        "element": "pep"
+      }
+    }
+  ]
+}

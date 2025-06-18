@@ -2,6 +2,7 @@
 #include "./registry.hpp"
 #include "helpdata.hpp"
 #include "settings/settings.hpp"
+#include "toolchain/helpers/assemblerregistry.hpp"
 
 static const bool dbg = false;
 
@@ -17,7 +18,7 @@ void HelpEntry::addChildren(QList<QSharedPointer<HelpEntry>> children) {
 HelpModel::HelpModel(QObject *parent) : QAbstractItemModel{parent} {
   auto set = pepp::settings::AppSettings();
   auto figDirectory = set.general()->figureDirectory();
-  _reg = QSharedPointer<builtins::Registry>::create(nullptr, figDirectory);
+  _reg = helpers::registry_with_assemblers(figDirectory);
 
   // If you update the following array, YOU MUST UPDATE THE INDEX OF VARIABLE TOO!!!
   _roots = {
@@ -121,8 +122,7 @@ void HelpModel::onReloadFigures() {
   macros.clear();
 
   // Construct registry with new settings
-  _reg =
-      QSharedPointer<builtins::Registry>::create(nullptr, pepp::settings::AppSettings().general()->figureDirectory());
+  _reg = helpers::registry_with_assemblers(pepp::settings::AppSettings().general()->figureDirectory());
   // Re-construct figures and macros in-place, inserting them into our pointer index.
   addToIndex(figs = examples_root(*_reg));
   addToIndex(macros = macros_root(*_reg));

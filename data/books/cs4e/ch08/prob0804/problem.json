@@ -1,9 +1,0 @@
-{
-  "type": "figure",
-  "name": "08:04",
-  "arch": "pep8",
-  "default_os": "os:pep8os",
-  "items": {
-    "pep": "{ch}{fig}.pep"
-  }
-}

@@ -17,7 +17,7 @@
 #include "fig.hpp"
 #include <iostream>
 #include "help/builtins/figure.hpp"
-#include "toolchain/helpers/asmb.hpp"
+#include "toolchain/helpers/assemblerregistry.hpp"
 
 GetFigTask::GetFigTask(int ed, std::string ch, std::string fig, std::string type, bool isFigure, QObject *parent)
     : Task(parent), ed(ed), isFigure(isFigure), ch(ch), fig(fig), type(type) {}
@@ -26,8 +26,8 @@ void GetFigTask::run() {
   using namespace Qt::StringLiterals;
   static const auto err_noitem = u"%1 %2.%3 does not exist.\n"_s;
   static const auto err_novar = u"%1 %2.%3 does not contain a \"%4\" variant.\n"_s;
-
-  auto book = helpers::book(ed);
+  auto books = helpers::builtins_registry(false);
+  auto book = helpers::book(ed, &*books);
   if (book.isNull())
     return emit finished(1);
   QSharedPointer<const builtins::Figure> item = nullptr;
@@ -43,14 +43,14 @@ void GetFigTask::run() {
   }
 
   auto type = QString::fromStdString(this->type);
-  if (!item->typesafeElements().contains(type)) {
+  if (!item->typesafeNamedElements().contains(type)) {
     std::cerr << err_novar.arg(isFigure ? "Figure" : "Problem")
                      .arg(QString::fromStdString(ch), QString::fromStdString(fig), type)
                      .toStdString();
     return emit finished(2);
   }
 
-  auto body = item->typesafeElements()[type]->contents;
+  auto body = item->typesafeNamedElements()[type]->contents();
   std::cout << body.toStdString() << std::endl;
 
   return emit finished(0);

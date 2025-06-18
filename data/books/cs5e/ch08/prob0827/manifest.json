@@ -1,0 +1,18 @@
+{
+  "version": 2,
+  "type": "problem",
+  "name": "08:27",
+  "arch": "pep9",
+  "abstraction": "OS4",
+  "default_os": "os:pep9os",
+  "items": [
+    {
+      "name": "pep",
+      "format": "pep",
+      "copy": "assembly",
+      "from": {
+        "file": "{ch}{fig}.pep"
+      }
+    }
+  ]
+}

@@ -1,8 +1,0 @@
-{
-  "type": "macro",
-  "arch": "pep10",
-  "family": "C Library",
-  "items": {
-    "MALLOC": "{name}.pepm"
-  }
-}

@@ -1,5 +1,3 @@
-
-
 /*
  * Copyright (c) 2024 J. Stanley Warford, Matthew McRaven
  * This program is free software: you can redistribute it and/or modify
@@ -52,9 +50,9 @@ Item {
             Connections {
                 target: wrapper.payload
                 function onTextChanged() {
-                    textArea.readOnly = false
-                    textArea.text = wrapper.payload.text
-                    textArea.readOnly = true
+                    textArea.readOnly = false;
+                    textArea.text = wrapper.payload.text;
+                    textArea.readOnly = true;
                 }
             }
         }
@@ -72,6 +70,6 @@ Item {
     }
     FontMetrics {
         id: editorFM
-        font: textArea.font
+        font: settings.extPalette.baseMono.font
     }
 }

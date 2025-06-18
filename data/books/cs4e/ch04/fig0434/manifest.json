@@ -1,0 +1,32 @@
+{
+  "version": 2,
+  "type": "figure",
+  "name": "04:34",
+  "arch": "pep8",
+  "abstraction": "ISA3",
+  "default_os": "os:pep8os",
+  "items": [
+    {
+      "name": "pepb",
+      "format": "pepb",
+      "from": {
+        "file": "{ch}{fig}.pepb"
+      }
+    },
+    {
+      "name": "peph",
+      "format": "peph",
+      "from": {
+        "file": "{ch}{fig}.peph"
+      }
+    },
+    {
+      "name": "pepo",
+      "format": "pepo",
+      "isDefault": true,
+      "from": {
+        "file": "{ch}{fig}.pepo"
+      }
+    }
+  ]
+}

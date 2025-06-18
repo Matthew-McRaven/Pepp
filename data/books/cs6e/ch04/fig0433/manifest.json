@@ -1,0 +1,49 @@
+{
+  "version": 2,
+  "type": "figure",
+  "name": "04:33",
+  "arch": "pep10",
+  "abstraction": "ISA3",
+  "default_os": "os:pep10baremetal",
+  "description": "A machine language program to output the characters <code>Hi</code>.",
+  "tests": [
+    "io0"
+  ],
+  "items": [
+      {
+          "name": "pep",
+          "format": "pep",
+          "hidden": true,
+          "copy":"assembly",
+          "from": {
+              "file": "{ch}{fig}.pep"
+          }
+      },
+      {
+          "name": "pepo",
+          "format": "pepo",
+          "default": true,
+          "copy":"object",
+          "export": "path/to/{ch}{fig}.pepo",
+          "from": {
+              "file": "{ch}{fig}.pepo"
+          }
+      },
+      {
+          "name": "pepb",
+          "format": "pepb",
+          "export": "path/to/{ch}{fig}.peph",
+          "from": {
+              "element": "pep"
+          }
+      },
+      {
+          "name": "peph",
+          "format": "peph",
+          "export": "path/to/{ch}{fig}.pepb",
+          "from": {
+              "element": "pep"
+          }
+      }
+  ]
+}

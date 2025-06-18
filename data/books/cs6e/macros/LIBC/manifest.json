@@ -1,0 +1,9 @@
+{
+  "version": 2,
+  "type": "macro",
+  "arch": "pep10",
+  "isHidden": true,
+  "items": {
+    "LIBC": "{name}.pepm"
+  }
+}

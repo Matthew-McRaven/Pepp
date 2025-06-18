@@ -1,0 +1,44 @@
+{
+  "version": 2,
+  "type": "figure",
+  "name": "05:19",
+  "arch": "pep9",
+  "abstraction": "ASMB5",
+  "default_os": "os:pep9os",
+  "description": "The <code>printf()</code> function.",
+  "tests": [
+    "io0"
+  ],
+  "items": [
+    {
+      "name": "pep",
+      "format": "pep",
+      "isDefault": true,
+      "copy": "assembly",
+      "from": {
+        "file": "{ch}{fig}.pep"
+      }
+    },
+    {
+      "name": "c",
+      "format": "c",
+      "from": {
+        "file": "{ch}{fig}.c"
+      }
+    },
+    {
+      "name": "pepl",
+      "format": "pepl",
+      "from": {
+        "element": "pep"
+      }
+    },
+    {
+      "name": "pepo",
+      "format": "pepo",
+      "from": {
+        "element": "pep"
+      }
+    }
+  ]
+}

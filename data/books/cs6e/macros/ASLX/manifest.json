@@ -1,0 +1,12 @@
+{
+  "version": 2,
+  "type": "macro",
+  "arch": "pep10",
+  "family": "Arithmetic Shift Left",
+  "items": {
+    "ASLX2": "{name}.pepm",
+    "ASLX3": "{name}.pepm",
+    "ASLX4": "{name}.pepm",
+    "ASLX5": "{name}.pepm"
+  }
+}

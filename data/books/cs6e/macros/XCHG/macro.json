@@ -1,9 +1,0 @@
-{
-  "type": "macro",
-  "arch": "pep10",
-  "hidden": true,
-  "items": {
-    "XCHGA": "{name}.pepm",
-    "XCHGX": "{name}.pepm"
-  }
-}

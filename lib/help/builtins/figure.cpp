@@ -18,14 +18,16 @@
 #include "figure.hpp"
 
 builtins::Figure::Figure(pepp::Architecture arch, pepp::Abstraction level, QString prefix, QString chapter,
-                         QString figure)
-    : QObject(nullptr), _arch(arch), _level(level), _prefix(prefix), _chapterName(chapter), _figureName(figure) {}
+                         QString figure, bool isProblem)
+    : QObject(nullptr), _arch(arch), _level(level), _prefix(prefix), _chapterName(chapter), _figureName(figure),
+      _isProblem(isProblem) {}
 
 builtins::Figure::~Figure() {
   for (auto value : _tests) {
     delete value;
   }
-  for (auto value : _elements) {
+  _namedElements.clear();
+  for (auto value : _allElements) {
     delete value;
   }
 }
@@ -39,6 +41,8 @@ QString builtins::Figure::prefix() const { return _prefix; }
 QString builtins::Figure::chapterName() const { return _chapterName; }
 
 QString builtins::Figure::figureName() const { return _figureName; }
+
+bool builtins::Figure::isProblem() const { return _isProblem; }
 
 QString builtins::Figure::description() const { return _description; }
 
@@ -99,29 +103,40 @@ void builtins::Figure::addTest(const Test *test) {
   emit testsChanged();
 }
 
-const QMap<QString, const builtins::Element *>
-builtins::Figure::typesafeElements() const {
-  return _elements;
+const builtins::Element *builtins::Figure::findElement(QString name) const {
+  if (auto ret = _namedElements.constFind(name); ret != _namedElements.constEnd()) return ret.value();
+  else return nullptr;
 }
 
-QVariantMap builtins::Figure::elements() const {
+const QList<const builtins::Element *> &builtins::Figure::typesafeElements() const { return _allElements; }
+
+const QMap<QString, const builtins::Element *> builtins::Figure::typesafeNamedElements() const {
+  return _namedElements;
+}
+
+QVariantMap builtins::Figure::namedElements() const {
   // Convert type-correct map to a QVariantMap, which can be accessed natively
   // in QML
   QVariantMap v;
-  for (auto key = _elements.keyBegin(); key != _elements.keyEnd(); key++)
-    v[*key] = QVariant::fromValue(_elements[*key]);
+  for (auto key = _namedElements.keyBegin(); key != _namedElements.keyEnd(); key++)
+    v[*key] = QVariant::fromValue(_namedElements[*key]);
   return v;
 }
 
-bool builtins::Figure::addElement(QString name, const Element *element) {
+bool builtins::Figure::addElement(const Element *element) {
+  QString name = element->name;
+
   // Only signal update if the figure does not already contain an element of the
   // same name (e.g., programming language)
-  if (auto it = _elements.constFind(name); it == _elements.constEnd()) {
-    _elements[name] = element;
+  if (name.isEmpty()) {
+    _allElements.push_back(element);
+    return true;
+  } else if (auto it = _namedElements.constFind(name); it == _namedElements.constEnd()) {
+    _allElements.push_back(element);
+    _namedElements[name] = element;
     emit elementsChanged();
     return true;
-  }
-  return false;
+  } else return false;
 }
 
 QString builtins::Figure::defaultElement() const { return _defaultElement; }

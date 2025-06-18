@@ -1,0 +1,41 @@
+{
+  "version": 2,
+  "type": "figure",
+  "name": "06:32",
+  "arch": "pep10",
+  "abstraction": "ASMB5",
+  "default_os": "os:pep10os",
+  "description": "Translation of a boolean type.",
+  "tests": [
+    "io0",
+    "io1",
+    "io2",
+    "io3",
+    "io4"
+  ],
+  "items": [
+    {
+      "name": "pep",
+      "format": "pep",
+      "isDefault": true,
+      "copy": "assembly",
+      "from": {
+        "file": "{ch}{fig}.pep"
+      }
+    },
+    {
+      "name": "pepl",
+      "format": "pepl",
+      "from": {
+        "element": "pep"
+      }
+    },
+    {
+      "name": "pepo",
+      "format": "pepo",
+      "from": {
+        "element": "pep"
+      }
+    }
+  ]
+}

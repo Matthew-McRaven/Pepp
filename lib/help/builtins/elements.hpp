@@ -31,22 +31,30 @@ class Figure;
 struct Element : public QObject {
 private:
   Q_OBJECT
-  Q_PROPERTY(bool generated MEMBER generated);
+  Q_PROPERTY(QString name MEMBER name);
+  Q_PROPERTY(bool isDefault MEMBER isDefault)
+  Q_PROPERTY(bool isHidden MEMBER isHidden)
+  Q_PROPERTY(QString copyType MEMBER copyType);
   Q_PROPERTY(QString language MEMBER language);
-  Q_PROPERTY(QString content MEMBER contents);
+  Q_PROPERTY(QString content READ contents);
   Q_PROPERTY(QWeakPointer<Figure> figure MEMBER figure);
 
 public:
-  //! Is the element created dynamicaly at runtime (e.g., pepo/pepb/peph/pepl),
-  //! or is it "baked in" to the QRC (pep/c)
-  bool generated;
   //! The programming language this element is written in
   QString language;
   //! The textual contents of the element
-  QString contents;
+  QString contents() const;
+  std::function<QString()> contentsFn = Element::empty;
   //! The figure which contains this element. Needed to access default OS / test
   //! items.
   QWeakPointer<Figure> figure;
+  QString name, copyType;
+  bool isDefault = false, isHidden = false;
+  QString exportPath = "";
+
+protected:
+  static inline QString empty() { return ""; }
+  mutable std::optional<QString> _contents;
 };
 
 /*!

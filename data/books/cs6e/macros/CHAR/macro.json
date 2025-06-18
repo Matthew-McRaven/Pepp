@@ -1,9 +1,0 @@
-{
-  "type": "macro",
-  "arch": "pep10",
-  "family": "Character Input/Output",
-  "items": {
-    "CHARI": "{name}.pepm",
-    "CHARO": "{name}.pepm"
-  }
-}

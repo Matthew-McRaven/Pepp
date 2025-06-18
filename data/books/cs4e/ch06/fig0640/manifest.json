@@ -1,0 +1,40 @@
+{
+  "version": 2,
+  "type": "figure",
+  "name": "06:40",
+  "arch": "pep8",
+  "abstraction": "ASMB5",
+  "default_os": "os:pep8os",
+  "items": [
+    {
+      "name": "pep",
+      "format": "pep",
+      "isDefault": true,
+      "copy": "assembly",
+      "from": {
+        "file": "{ch}{fig}.pep"
+      }
+    },
+    {
+      "name": "cpp",
+      "format": "cpp",
+      "from": {
+        "file": "{ch}{fig}.cpp"
+      }
+    },
+    {
+      "name": "pepl",
+      "format": "pepl",
+      "from": {
+        "element": "pep"
+      }
+    },
+    {
+      "name": "pepo",
+      "format": "pepo",
+      "from": {
+        "element": "pep"
+      }
+    }
+  ]
+}

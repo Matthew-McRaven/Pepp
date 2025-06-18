@@ -17,6 +17,9 @@
 #include "utils/opcodemodel.hpp"
 #include "utils/strings.hpp"
 
+namespace builtins {
+class Registry;
+}
 class Pep_ISA : public QObject, public pepp::debug::Environment {
   Q_OBJECT
   Q_PROPERTY(project::Environment env READ env CONSTANT)
@@ -144,6 +147,7 @@ protected:
   using Action = ScintillaAsmEditBase::Action;
   void updateBPAtAddress(quint32 address, Action action);
   QSharedPointer<pepp::debug::Debugger> _dbg{};
+  QSharedPointer<builtins::Registry> _books = {};
 };
 
 struct Error : public QObject {

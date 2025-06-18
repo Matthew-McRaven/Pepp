@@ -41,17 +41,19 @@ class Figure : public QObject {
   Q_PROPERTY(QString description READ description CONSTANT);
   Q_PROPERTY(bool isOS READ isOS WRITE setIsOS NOTIFY isOSChanged);
   Q_PROPERTY(bool isHidden READ isHidden NOTIFY isHiddenChanged);
+  Q_PROPERTY(bool isProblem READ isProblem CONSTANT);
   Q_PROPERTY(const Figure *defaultOS READ defaultOS WRITE setDefaultOS NOTIFY defaultOSChanged);
   // Must use variants if we want these to be accessed from QML.
   // We provide a type safe version, which should be used instead if in C++.
   // See builtins::Test for properties
   Q_PROPERTY(QVariantList tests READ tests NOTIFY testsChanged);
   // See builtins::Element for available properties
-  Q_PROPERTY(QVariantMap elements READ elements NOTIFY elementsChanged);
+  Q_PROPERTY(QVariantMap elements READ namedElements NOTIFY elementsChanged);
   Q_PROPERTY(QString copyToElementLanguage READ defaultElement CONSTANT);
 
 public:
-  Figure(pepp::Architecture arch, pepp::Abstraction level, QString prefix, QString chapter, QString figure);
+  Figure(pepp::Architecture arch, pepp::Abstraction level, QString prefix, QString chapter, QString figure,
+         bool isProblem = false);
   ~Figure();
 
   pepp::Architecture arch() const;
@@ -60,6 +62,7 @@ public:
   QString prefix() const;
   QString chapterName() const;
   QString figureName() const;
+  bool isProblem() const;
 
   QString description() const;
   void setDescription(QString description);
@@ -79,11 +82,13 @@ public:
   // Transfer ownership to this. Must be deleted in this object's destructor
   void addTest(const builtins::Test *test);
 
-  const QMap<QString, const builtins::Element *> typesafeElements() const;
+  const builtins::Element *findElement(QString name) const;
+  const QMap<QString, const builtins::Element *> typesafeNamedElements() const;
+  const QList<const Element *> &typesafeElements() const;
   // Creates variant map on-the-fly, please limit # of calls.
-  QVariantMap elements() const;
+  QVariantMap namedElements() const;
   // Transfer ownership to this. Must be deleted in this object's destructor
-  bool addElement(QString name, const builtins::Element *element);
+  bool addElement(const builtins::Element *element);
   QString defaultElement() const;
   void setDefaultElement(QString lang);
 
@@ -98,6 +103,7 @@ private:
   const pepp::Architecture _arch;
   const pepp::Abstraction _level;
   const QString _prefix, _chapterName, _figureName;
+  const bool _isProblem = false;
   QString _description{};
   bool _isOS = false, _isHidden = false;
   // Non-owning
@@ -105,7 +111,8 @@ private:
   // Owns pointers
   QList<const builtins::Test *> _tests = {};
   // Owns pointers
-  QMap<QString, const builtins::Element *> _elements = {};
+  QMap<QString, const Element *> _namedElements = {};
+  QList<const Element *> _allElements = {};
   QString _defaultElement = {};
 };
 } // end namespace builtins

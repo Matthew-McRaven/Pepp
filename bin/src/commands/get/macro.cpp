@@ -18,11 +18,13 @@
 #include <iostream>
 #include "../../shared.hpp"
 #include "toolchain/helpers/asmb.hpp"
+#include "toolchain/helpers/assemblerregistry.hpp"
 
 GetMacroTask::GetMacroTask(int ed, std::string name, QObject *parent) : Task(parent), ed(ed), name(name) {}
 
 void GetMacroTask::run() {
-  auto book = helpers::book(ed);
+  auto books = helpers::builtins_registry(false);
+  auto book = helpers::book(ed, &*books);
   if (book.isNull())
     return emit finished(1);
 

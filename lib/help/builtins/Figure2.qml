@@ -1,5 +1,3 @@
-
-
 /*
  * Copyright (c) 2024 J. Stanley Warford, Matthew McRaven
  * This program is free software: you can redistribute it and/or modify
@@ -34,21 +32,23 @@ Item {
     }
 
     Component.onCompleted: {
-        const el = payload.elements
-        const langs = Object.keys(el)
-        var defaultElementIndex = 0
+        const el = payload.elements;
+        const langs = Object.keys(el);
+        var defaultElementIndex = 0;
         Object.keys(el).map(lang => {
-                                languageModel.append({
-                                                         "key": lang,
-                                                         "value": el[lang].content
-                                                     })
-                                if (lang === wrapper.payload.copyToElementLanguage)
-                                defaultElementIndex = languageModel.count - 1
-                            })
-        wrapper.curLang = Qt.binding(() => Object.keys(el)[defaultElementIndex])
-        wrapper.curElement = Qt.binding(() => payload.elements[wrapper.curLang])
-        langSelector.currentIndex = Qt.binding(() => defaultElementIndex)
-        langSelector.activated(defaultElementIndex)
+            if (el[lang].isHidden)
+                return;
+            languageModel.append({
+                "key": lang,
+                "value": el[lang].content
+            });
+            if (lang === wrapper.payload.copyToElementLanguage)
+                defaultElementIndex = languageModel.count - 1;
+        });
+        wrapper.curLang = Qt.binding(() => Object.keys(el)[defaultElementIndex]);
+        wrapper.curElement = Qt.binding(() => payload.elements[wrapper.curLang]);
+        langSelector.currentIndex = Qt.binding(() => defaultElementIndex);
+        langSelector.activated(defaultElementIndex);
     }
 
     ColumnLayout {
@@ -104,18 +104,18 @@ Item {
                 Connections {
                     target: langSelector
                     function onPressedChanged() {
-                        canvas.requestPaint()
+                        canvas.requestPaint();
                     }
                 }
 
                 onPaint: {
-                    context.reset()
-                    context.moveTo(0, 0)
-                    context.lineTo(width, 0)
-                    context.lineTo(width / 2, height)
-                    context.closePath()
-                    context.fillStyle = langSelector.pressed ? Qt.black : "#ff7d33"
-                    context.fill()
+                    context.reset();
+                    context.moveTo(0, 0);
+                    context.lineTo(width, 0);
+                    context.lineTo(width / 2, height);
+                    context.closePath();
+                    context.fillStyle = langSelector.pressed ? Qt.black : "#ff7d33";
+                    context.fill();
                 }
             }
             contentItem: Text {
@@ -139,9 +139,9 @@ Item {
             readOnly: false
             Component.onCompleted: readOnly = true
             function updateText(newText) {
-                textArea.readOnly = false
-                textArea.text = newText
-                textArea.readOnly = true
+                textArea.readOnly = false;
+                textArea.text = newText;
+                textArea.readOnly = true;
             }
         }
         Row {
@@ -159,13 +159,11 @@ Item {
                 text: "Copy to New Project"
                 anchors.horizontalCenter: copyRow.center
                 onClicked: {
-                    const pl = wrapper.payload
-                    const lang = pl.copyToElementLanguage
-                    const text = pl.elements[lang].content
-                    wrapper.addProject("", text, "Editor",
-                                       pl?.defaultOS?.elements["pep"]?.content,
-                                       pl?.tests)
-                    wrapper.renameCurrentProject(wrapper.title)
+                    const pl = wrapper.payload;
+                    const lang = pl.copyToElementLanguage;
+                    const text = pl.elements[lang].content;
+                    wrapper.addProject("", text, "Editor", pl?.defaultOS?.elements["pep"]?.content, pl?.tests);
+                    wrapper.renameCurrentProject(wrapper.title);
                 }
             }
             //  Figure title

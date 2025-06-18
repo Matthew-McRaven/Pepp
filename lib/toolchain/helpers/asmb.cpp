@@ -3,6 +3,7 @@
 #include <sstream>
 #include "enums/isa/pep10.hpp"
 #include "help/builtins/registry.hpp"
+#include "toolchain/helpers/assemblerregistry.hpp"
 #include "toolchain/macro/parse.hpp"
 #include "toolchain/pas/driver/pep10.hpp"
 #include "toolchain/pas/driver/pep9.hpp"
@@ -15,20 +16,6 @@
 #include "toolchain/pas/operations/pepp/bytes.hpp"
 #include "toolchain/pas/operations/pepp/string.hpp"
 #include "toolchain/pas/operations/pepp/whole_program_sanity.hpp"
-
-QSharedPointer<const builtins::Book> helpers::book(int ed) {
-  QString bookName;
-  switch (ed) {
-  case 4: bookName = "Computer Systems, 4th Edition"; break;
-  case 5: bookName = "Computer Systems, 5th Edition"; break;
-  case 6: bookName = "Computer Systems, 6th Edition"; break;
-  default: return nullptr;
-  }
-
-  auto reg = builtins::Registry(nullptr);
-  auto book = reg.findBook(bookName);
-  return book;
-}
 
 void helpers::addMacro(::macro::Registry &registry, std::string directory, QString arch) {
   QDirIterator it(QString::fromStdString(directory), {"*.pepm"}, QDir::Files);

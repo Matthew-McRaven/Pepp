@@ -1,8 +1,0 @@
-{
-  "type": "macro",
-  "arch": "pep10",
-  "items": {
-    "XNORA": "{name}.pepm",
-    "XNORX": "{name}.pepm"
-  }
-}

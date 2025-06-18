@@ -1,0 +1,37 @@
+{
+  "version": 2,
+  "type": "figure",
+  "name": "06:01",
+  "arch": "pep10",
+  "abstraction": "ASMB5",
+  "default_os": "os:pep10os",
+  "description": "Stack-relative addressing.",
+  "tests": [
+    "io0"
+  ],
+  "items": [
+    {
+      "name": "pep",
+      "format": "pep",
+      "isDefault": true,
+      "copy": "assembly",
+      "from": {
+        "file": "{ch}{fig}.pep"
+      }
+    },
+    {
+      "name": "pepl",
+      "format": "pepl",
+      "from": {
+        "element": "pep"
+      }
+    },
+    {
+      "name": "pepo",
+      "format": "pepo",
+      "from": {
+        "element": "pep"
+      }
+    }
+  ]
+}

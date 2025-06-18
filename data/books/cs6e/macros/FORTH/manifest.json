@@ -1,0 +1,18 @@
+{
+  "version": 2,
+  "type": "macro",
+  "arch": "pep10",
+  "isHidden": true,
+  "items": {
+    "DC": "{name}.pepm",
+    "DCSTR": "{name}.pepm",
+    "DVAR": "{name}.pepm",
+    "DCONST": "{name}.pepm",
+    "POP": "{name}.pepm",
+    "POPA": "{name}.pepm",
+    "POPCA": "{name}.pepm",
+    "PUSH": "{name}.pepm",
+    "PUSHA": "{name}.pepm",
+    "PUSHC": "{name}.pepm"
+  }
+}

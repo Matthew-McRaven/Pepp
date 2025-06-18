@@ -1,0 +1,18 @@
+{
+  "version": 2,
+  "type": "figure",
+  "name": "os:pep8os",
+  "arch": "pep8",
+  "abstraction": "OS4",
+  "isOS": true,
+  "items": [
+    {
+      "name": "pep",
+      "format": "pep",
+      "copy": "assembly",
+      "from": {
+        "file": "{fig}.pep"
+      }
+    }
+  ]
+}

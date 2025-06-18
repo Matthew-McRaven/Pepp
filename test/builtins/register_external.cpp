@@ -31,11 +31,11 @@ TEST_CASE("Registry using external data", "[scope:help.bi][kind:unit][arch:*]") 
     REQUIRE(toc_file.open(QIODevice::WriteOnly));
     toc_file.write(toc.toUtf8());
     toc_file.close();
-    auto reg = builtins::Registry(nullptr, dir.path());
+    auto reg = builtins::Registry(dir.path());
     REQUIRE(reg.books().size() == 1);
   }
   SECTION("Can load default books") {
-    auto reg = builtins::Registry(nullptr, builtins::default_book_path);
+    auto reg = builtins::Registry(builtins::default_book_path);
     REQUIRE(reg.books().size() == 3);
     // TODO: CS4E still has no figures and would fail the next line.
     // for (const auto &book : reg.books()) CHECK(!book->figures().empty());
@@ -47,7 +47,7 @@ TEST_CASE("Registry using external data", "[scope:help.bi][kind:unit][arch:*]") 
     REQUIRE(toc_file.open(QIODevice::WriteOnly));
     toc_file.write("{");
     toc_file.close();
-    auto reg = builtins::Registry(nullptr, dir.path());
+    auto reg = builtins::Registry(dir.path());
     REQUIRE(reg.books().size() == 0);
   }
   SECTION("Does not crash on malformed figure") {
@@ -58,11 +58,11 @@ TEST_CASE("Registry using external data", "[scope:help.bi][kind:unit][arch:*]") 
     toc_file.write(toc.toUtf8());
     toc_file.close();
     REQUIRE(QDir(dir.path()).mkdir("csde/ch01"));
-    QFile figure_file(dir.filePath("csde/ch01/figure.json"));
+    QFile figure_file(dir.filePath("csde/ch01/manifest.json"));
     REQUIRE(figure_file.open(QIODevice::WriteOnly));
     figure_file.write("{");
     figure_file.close();
-    auto reg = builtins::Registry(nullptr, dir.path());
+    auto reg = builtins::Registry(dir.path());
     REQUIRE(reg.books().size() == 1);
     auto book = reg.findBook("Test");
     REQUIRE(book != nullptr);

@@ -1,0 +1,12 @@
+{
+  "version": 2,
+  "type": "macro",
+  "arch": "pep10",
+  "family": "Arithmetic Shift Left",
+  "items": {
+    "ASLA2": "{name}.pepm",
+    "ASLA3": "{name}.pepm",
+    "ASLA4": "{name}.pepm",
+    "ASLA5": "{name}.pepm"
+  }
+}

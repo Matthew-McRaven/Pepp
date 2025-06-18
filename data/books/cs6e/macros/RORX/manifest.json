@@ -1,0 +1,12 @@
+{
+  "version": 2,
+  "type": "macro",
+  "arch": "pep10",
+  "family": "Rotate Right",
+  "items": {
+    "RORX2": "{name}.pepm",
+    "RORX3": "{name}.pepm",
+    "RORX4": "{name}.pepm",
+    "RORX5": "{name}.pepm"
+  }
+}

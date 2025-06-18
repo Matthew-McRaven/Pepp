@@ -1,0 +1,37 @@
+{
+  "version": 2,
+  "type": "figure",
+  "name": "06:29",
+  "arch": "pep10",
+  "abstraction": "ASMB5",
+  "default_os": "os:pep10os",
+  "description": "Call-by-reference parameters with local variables.",
+  "tests": [
+    "io0"
+  ],
+  "items": [
+    {
+      "name": "pep",
+      "format": "pep",
+      "isDefault": true,
+      "copy": "assembly",
+      "from": {
+        "file": "{ch}{fig}.pep"
+      }
+    },
+    {
+      "name": "pepl",
+      "format": "pepl",
+      "from": {
+        "element": "pep"
+      }
+    },
+    {
+      "name": "pepo",
+      "format": "pepo",
+      "from": {
+        "element": "pep"
+      }
+    }
+  ]
+}

@@ -16,11 +16,12 @@
 #include "asm.hpp"
 #include <iostream>
 #include "../../shared.hpp"
-#include "toolchain/pas/operations/pepp/bytes.hpp"
+#include "enums/isa/pep10.hpp"
 #include "help/builtins/figure.hpp"
 #include "toolchain/helpers/asmb.hpp"
-#include "enums/isa/pep10.hpp"
+#include "toolchain/helpers/assemblerregistry.hpp"
 #include "toolchain/macro/registry.hpp"
+#include "toolchain/pas/operations/pepp/bytes.hpp"
 
 AsmTask::AsmTask(int ed, std::string userFname, QObject *parent) : Task(parent), ed(ed), userIn(userFname) {}
 
@@ -39,7 +40,8 @@ void AsmTask::setMacroDirs(std::list<std::string> dirs) { macroDirs = dirs; }
 void AsmTask::emitElfTo(std::string fname) { elfOut = fname; }
 
 void AsmTask::run() {
-  auto book = helpers::book(ed);
+  auto books = helpers::builtins_registry(false);
+  auto book = helpers::book(ed, &*books);
   if (book.isNull())
     return emit finished(2);
   auto macroRegistry = helpers::registry(book, {});
@@ -60,10 +62,10 @@ void AsmTask::run() {
   QString osContents;
   if (this->forceBm) {
     auto os = book->findFigure("os", "pep10baremetal");
-    osContents = os->typesafeElements()["pep"]->contents;
+    osContents = os->typesafeNamedElements()["pep"]->contents();
   } else if (!osIn || osIn->empty()) {
     auto os = book->findFigure("os", "pep10os");
-    osContents = os->typesafeElements()["pep"]->contents;
+    osContents = os->typesafeNamedElements()["pep"]->contents();
   } else {
     QFile oIn(QString::fromStdString(*osIn)); // auto-closes
     if (!oIn.exists()) {

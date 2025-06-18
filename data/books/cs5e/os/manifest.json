@@ -1,0 +1,19 @@
+{
+  "version": 2,
+  "type": "figure",
+  "name": "os:pep9os",
+  "arch": "pep9",
+  "abstraction": "OS4",
+  "isOS": true,
+  "items": [
+    {
+      "name": "pep",
+      "format": "pep",
+      "copy": "assembly",
+      "isDefault": true,
+      "from": {
+        "file": "{fig}.pep"
+      }
+    }
+  ]
+}
