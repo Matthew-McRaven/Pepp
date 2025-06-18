@@ -68,6 +68,71 @@ struct Pep10OFormatter : public builtins::Registry::Formatter {
   }
 };
 
+struct Pep9Assembler : public builtins::Registry::Assembler {
+  Pep9Assembler(const builtins::Registry *registry) : _registry(registry) {}
+  QVariant operator()(const QString &os, const QString &user) override {
+    helpers::AsmHelper assembler(helpers::cs6e_macros(_registry), os, pepp::Architecture::PEP9);
+    assembler.setUserText(user);
+    if (!assembler.assemble()) {
+      qWarning("Failed to assemble!!");
+      return {};
+    }
+    auto root = assembler.userRoot();
+    if (root.isNull()) {
+      qWarning("Assembler returned a null user root");
+      return {};
+    }
+    return QVariant::fromValue(root);
+  }
+
+private:
+  const builtins::Registry *_registry;
+};
+struct Pep9HFormatter : public builtins::Registry::Formatter {
+  QString operator()(QVariant assembled) override {
+    if (!assembled.canConvert<QSharedPointer<const pas::ast::Node>>()) {
+      qWarning("Unexpected variant type");
+      return "";
+    }
+    auto node = assembled.value<QSharedPointer<const pas::ast::Node>>();
+    auto listing = pas::ops::pepp::formatHexListing<isa::Pep9>(*node);
+    return listing.join("\n");
+  }
+};
+struct Pep9BFormatter : public builtins::Registry::Formatter {
+  QString operator()(QVariant assembled) override {
+    if (!assembled.canConvert<QSharedPointer<const pas::ast::Node>>()) {
+      qWarning("Unexpected variant type");
+      return "";
+    }
+    auto node = assembled.value<QSharedPointer<const pas::ast::Node>>();
+    auto listing = pas::ops::pepp::formatBinListing<isa::Pep9>(*node);
+    return listing.join("\n");
+  }
+};
+struct Pep9LFormatter : public builtins::Registry::Formatter {
+  QString operator()(QVariant assembled) override {
+    if (!assembled.canConvert<QSharedPointer<const pas::ast::Node>>()) {
+      qWarning("Unexpected variant type");
+      return "";
+    }
+    auto node = assembled.value<QSharedPointer<const pas::ast::Node>>();
+    auto listing = pas::ops::pepp::formatListing<isa::Pep9>(*node);
+    return listing.join("\n");
+  }
+};
+struct Pep9OFormatter : public builtins::Registry::Formatter {
+  QString operator()(QVariant assembled) override {
+    if (!assembled.canConvert<QSharedPointer<const pas::ast::Node>>()) {
+      qWarning("Unexpected variant type");
+      return "";
+    }
+    auto node = assembled.value<QSharedPointer<const pas::ast::Node>>();
+    auto bytes = pas::ops::pepp::toBytes<isa::Pep9>(*node);
+    return pas::ops::pepp::bytesToObject(bytes, 16, true);
+  }
+};
+
 QSharedPointer<builtins::Registry> helpers::builtins_registry(bool use_app_settings, QString directory) {
   using R = QSharedPointer<builtins::Registry>;
   if (use_app_settings) return R::create(pepp::settings::AppSettings().general()->figureDirectory());
@@ -81,6 +146,11 @@ QSharedPointer<builtins::Registry> helpers::registry_with_assemblers(QString dir
   registry->addFormatter(pepp::Architecture::PEP10, "pepb", std::make_unique<Pep10BFormatter>());
   registry->addFormatter(pepp::Architecture::PEP10, "pepl", std::make_unique<Pep10LFormatter>());
   registry->addFormatter(pepp::Architecture::PEP10, "pepo", std::make_unique<Pep10OFormatter>());
+  registry->addAssembler(pepp::Architecture::PEP9, std::make_unique<Pep9Assembler>(&*registry));
+  registry->addFormatter(pepp::Architecture::PEP9, "peph", std::make_unique<Pep9HFormatter>());
+  registry->addFormatter(pepp::Architecture::PEP9, "pepb", std::make_unique<Pep9BFormatter>());
+  registry->addFormatter(pepp::Architecture::PEP9, "pepl", std::make_unique<Pep9LFormatter>());
+  registry->addFormatter(pepp::Architecture::PEP9, "pepo", std::make_unique<Pep9OFormatter>());
   return registry;
 }
 

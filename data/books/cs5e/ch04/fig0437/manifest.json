@@ -1,0 +1,36 @@
+{
+  "version": 2,
+  "type": "figure",
+  "name": "04:37",
+  "arch": "pep9",
+  "abstraction": "ISA3",
+  "default_os": "os:pep9os",
+  "description": "A machine language program that modifies itself. The add accumulator instruction changes to a subtract instruction.",
+  "tests": [
+    "io0"
+  ],
+  "items": [
+    {
+      "name": "pepb",
+      "format": "pepb",
+      "from": {
+        "file": "{ch}{fig}.pepb"
+      }
+    },
+    {
+      "name": "peph",
+      "format": "peph",
+      "from": {
+        "file": "{ch}{fig}.peph"
+      }
+    },
+    {
+      "name": "pepo",
+      "format": "pepo",
+      "isDefault": true,
+      "from": {
+        "file": "{ch}{fig}.pepo"
+      }
+    }
+  ]
+}

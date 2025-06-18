@@ -1,0 +1,37 @@
+{
+  "version": 2,
+  "type": "figure",
+  "name": "05:06",
+  "arch": "pep9",
+  "abstraction": "ASMB5",
+  "default_os": "os:pep9os",
+  "description": "An assembly language program to input two characters and output them in reverse order. It is the assembly language version of Figure 4.35.",
+  "tests": [
+    "io0"
+  ],
+  "items": [
+    {
+      "name": "pep",
+      "format": "pep",
+      "isDefault": true,
+      "copy": "assembly",
+      "from": {
+        "file": "{ch}{fig}.pep"
+      }
+    },
+    {
+      "name": "pepl",
+      "format": "pepl",
+      "from": {
+        "element": "pep"
+      }
+    },
+    {
+      "name": "pepo",
+      "format": "pepo",
+      "from": {
+        "element": "pep"
+      }
+    }
+  ]
+}
