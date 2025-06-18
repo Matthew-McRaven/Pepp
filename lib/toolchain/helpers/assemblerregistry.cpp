@@ -45,6 +45,28 @@ struct Pep10BFormatter : public builtins::Registry::Formatter {
     return listing.join("\n");
   }
 };
+struct Pep10LFormatter : public builtins::Registry::Formatter {
+  QString operator()(QVariant assembled) override {
+    if (!assembled.canConvert<QSharedPointer<const pas::ast::Node>>()) {
+      qWarning("Unexpected variant type");
+      return "";
+    }
+    auto node = assembled.value<QSharedPointer<const pas::ast::Node>>();
+    auto listing = pas::ops::pepp::formatListing<isa::Pep10>(*node);
+    return listing.join("\n");
+  }
+};
+struct Pep10OFormatter : public builtins::Registry::Formatter {
+  QString operator()(QVariant assembled) override {
+    if (!assembled.canConvert<QSharedPointer<const pas::ast::Node>>()) {
+      qWarning("Unexpected variant type");
+      return "";
+    }
+    auto node = assembled.value<QSharedPointer<const pas::ast::Node>>();
+    auto bytes = pas::ops::pepp::toBytes<isa::Pep10>(*node);
+    return pas::ops::pepp::bytesToObject(bytes, 16, false);
+  }
+};
 
 QSharedPointer<builtins::Registry> helpers::builtins_registry(bool use_app_settings, QString directory) {
   using R = QSharedPointer<builtins::Registry>;
@@ -57,6 +79,8 @@ QSharedPointer<builtins::Registry> helpers::registry_with_assemblers(QString dir
   registry->addAssembler(pepp::Architecture::PEP10, std::make_unique<Pep10Assembler>(&*registry));
   registry->addFormatter(pepp::Architecture::PEP10, "peph", std::make_unique<Pep10HFormatter>());
   registry->addFormatter(pepp::Architecture::PEP10, "pepb", std::make_unique<Pep10BFormatter>());
+  registry->addFormatter(pepp::Architecture::PEP10, "pepl", std::make_unique<Pep10LFormatter>());
+  registry->addFormatter(pepp::Architecture::PEP10, "pepo", std::make_unique<Pep10OFormatter>());
   return registry;
 }
 
