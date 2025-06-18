@@ -3,6 +3,7 @@
 #include <sstream>
 #include "enums/isa/pep10.hpp"
 #include "help/builtins/registry.hpp"
+#include "toolchain/helpers/assemblerregistry.hpp"
 #include "toolchain/macro/parse.hpp"
 #include "toolchain/pas/driver/pep10.hpp"
 #include "toolchain/pas/driver/pep9.hpp"
@@ -25,8 +26,8 @@ QSharedPointer<const builtins::Book> helpers::book(int ed) {
   default: return nullptr;
   }
 
-  auto reg = builtins::Registry(nullptr);
-  auto book = reg.findBook(bookName);
+  auto reg = helpers::registry_with_assemblers();
+  auto book = reg->findBook(bookName);
   return book;
 }
 

@@ -36,7 +36,7 @@ QByteArray read(QString path) {
 }
 
 using namespace Qt::StringLiterals;
-builtins::Registry::Registry(void *asm_toolchains, QString directory) {
+builtins::Registry::Registry(QString directory) {
   _usingExternalFigures = (directory != builtins::default_book_path);
   for (const auto &bookPath : detail::enumerateBooks(directory)) {
     auto book = loadBook(bookPath);

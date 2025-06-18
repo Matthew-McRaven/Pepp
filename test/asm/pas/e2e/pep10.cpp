@@ -54,7 +54,7 @@ void injectFakeSCallMacros(QSharedPointer<macro::Registry> registry) {
 } // namespace
 
 TEST_CASE("CS6E figure assembly", "[scope:asm][kind:e2e][arch:pep10]") {
-  auto book_registry = builtins::Registry(nullptr);
+  auto book_registry = builtins::Registry();
   auto book = book_registry.findBook("Computer Systems, 6th Edition");
   SECTION("Standalone") {
     // Load macros on each iteration to prevent macros from migrating between
@@ -200,7 +200,7 @@ static const char *binlist = "0000     1101 0001 1111 1111 1111 1101\n"
                              "0015     0000 0000";
 }; // namespace
 TEST_CASE("CS6E hex/bin listing", "[scope:asm][kind:e2e][arch:pep10]") {
-  auto book_registry = builtins::Registry(nullptr);
+  auto book_registry = builtins::Registry();
   auto book = book_registry.findBook("Computer Systems, 6th Edition");
 
   REQUIRE_FALSE(book.isNull());

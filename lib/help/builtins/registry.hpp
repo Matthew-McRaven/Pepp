@@ -34,7 +34,7 @@ static const char *default_book_path = ":/books";
 class Registry {
 public:
   // Crawling the Qt help system to create books is handled inside CTOR.
-  explicit Registry(void *asm_toolchains, QString directory = default_book_path);
+  explicit Registry(QString directory = default_book_path);
   QList<QSharedPointer<const builtins::Book>> books() const;
   QSharedPointer<const builtins::Book> findBook(QString name);
   bool usingExternalFigures() const { return _usingExternalFigures; }

@@ -50,7 +50,6 @@ static const auto gs = sim::api2::memory::Operation{
 
 QSharedPointer<const builtins::Book> book(builtins::Registry &reg) {
   QString bookName = "Computer Systems, 6th Edition";
-
   auto book = reg.findBook(bookName);
   return book;
 }
@@ -95,7 +94,7 @@ void assemble(ELFIO::elfio &elf, QString os, User user, QSharedPointer<macro::Re
 }
 
 QSharedPointer<ELFIO::elfio> smoke(QString os, QString userPep, QString userPepo, QString input, QByteArray output) {
-  auto bookReg = builtins::Registry(nullptr);
+  auto bookReg = builtins::Registry();
   // Load book contents, macros.
   auto bookPtr = book(bookReg);
   auto reg = registry(bookPtr, {});
@@ -173,7 +172,7 @@ da: .WORD 0xFEED\n\
 ";
 TEST_CASE("Pep/10 Assembler Assembly", "[scope:asm][kind:e2e][arch:pep10]") {
   using namespace Qt::StringLiterals;
-  auto bookReg = builtins::Registry(nullptr);
+  auto bookReg = builtins::Registry();
   auto bookPtr = book(bookReg);
   auto assemblerFig = bookPtr->findFigure("os", "assembler");
   REQUIRE(!assemblerFig.isNull());
@@ -239,7 +238,7 @@ TEST_CASE("Pep/10 Assembler Assembly", "[scope:asm][kind:e2e][arch:pep10]") {
 
 TEST_CASE("Pep/10 Figure Assembly", "[scope:asm][kind:e2e][arch:pep10]") {
   using namespace Qt::StringLiterals;
-  auto bookReg = builtins::Registry(nullptr);
+  auto bookReg = builtins::Registry();
   auto bookPtr = book(bookReg);
   auto figures = bookPtr->figures();
   for (auto &figure : figures) {
