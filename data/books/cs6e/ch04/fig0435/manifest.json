@@ -21,6 +21,7 @@
     {
       "name": "pep",
       "format": "pep",
+      "isHidden":true,
       "from": {
         "file": "{ch}{fig}.pep"
       }
