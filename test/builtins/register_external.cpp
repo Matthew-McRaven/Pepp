@@ -58,7 +58,7 @@ TEST_CASE("Registry using external data", "[scope:help.bi][kind:unit][arch:*]") 
     toc_file.write(toc.toUtf8());
     toc_file.close();
     REQUIRE(QDir(dir.path()).mkdir("csde/ch01"));
-    QFile figure_file(dir.filePath("csde/ch01/figure.json"));
+    QFile figure_file(dir.filePath("csde/ch01/manifest.json"));
     REQUIRE(figure_file.open(QIODevice::WriteOnly));
     figure_file.write("{");
     figure_file.close();

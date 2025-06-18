@@ -382,6 +382,7 @@ QSharedPointer<builtins::Book> builtins::Registry::loadBook(QString tocPath) {
     }
     // If the file is named as a problem manifest, parse the figure and insert into book
     if (next.endsWith("problem.json")) {
+      continue;
       auto problem = detail::loadFigure(next);
       if (problem == nullptr) qWarning("%s", u"Failed to load problem %1"_s.arg(next).toStdString().c_str());
       else {
@@ -407,16 +408,11 @@ QSharedPointer<builtins::Book> builtins::Registry::loadBook(QString tocPath) {
 }
 
 builtins::Element *builtins::detail::loadElement(QString elementPath) {
-  auto element = new builtins::Element();
-  QString data = read(elementPath);
-  element->contentsFn = [=]() { return data; };
-  element->generated = false;
-  return element;
+  qFatal("loadElement should no longer be reachable, but called with %s", elementPath.toStdString().c_str());
 }
 
 builtins::Element *builtins::detail::generateElement(QString fromElementPath, void *asm_toolchains) {
-  // TODO: Revist when assembler toolchain works
-  return nullptr;
+  qFatal("generateElement should no longer be reachable, but called with %s", fromElementPath.toStdString().c_str());
 }
 
 builtins::Test *builtins::detail::loadTest(QString testDirPath) {
@@ -434,85 +430,7 @@ builtins::Test *builtins::detail::loadTest(QString testDirPath) {
 }
 
 QSharedPointer<builtins::Figure> builtins::detail::loadFigure(QString manifestPath) {
-  auto manifestDir = QFileInfo(manifestPath).dir();
-  // Read figure manifest get field names;
-  auto manifestBytes = read(manifestPath);
-  auto manifest = QJsonDocument::fromJson(manifestBytes);
-  QString chFig = manifest["name"].toString();
-  // Chapter and figure are separated by : in a manifest file.
-  if (chFig.indexOf(":") == -1) {
-    qWarning("Invalid figure name %s", chFig.toStdString().c_str());
-    return nullptr;
-  }
-  auto chFigSplit = chFig.split(":");
-  auto chapterName = chFigSplit[0];
-  auto figureName = chFigSplit[1];
-
-  // Extract the architecture string and convert it to the correct enum.
-  auto archStr = manifest["arch"].toString();
-  bool okay = false;
-  auto archInt = QMetaEnum::fromType<pepp::Architecture>().keyToValue(archStr.toUpper().toStdString().data(), &okay);
-  auto arch = static_cast<pepp::Architecture>(archInt);
-  if (!okay) {
-    qWarning("Invalid figure architecture: %s", archStr.toStdString().c_str());
-    return nullptr;
-  }
-
-  pepp::Abstraction level = pepp::Abstraction::NO_ABS;
-  if (manifest.object().contains("abstraction")) {
-    auto levelStr = manifest["abstraction"].toString();
-    auto levelInt = QMetaEnum::fromType<pepp::Abstraction>().keyToValue(levelStr.toUpper().toStdString().data(), &okay);
-    level = static_cast<pepp::Abstraction>(levelInt);
-    if (!okay) {
-      qWarning("Invalid abstraction: %s", levelStr.toStdString().c_str());
-      return nullptr;
-    }
-  }
-
-  // TODO: decide between "figure" and "problem" based on type field.
-  auto figure = QSharedPointer<builtins::Figure>::create(arch, level, "Figure", chapterName, figureName);
-  figure->setIsOS(manifest["is_os"].toBool(false));
-  figure->setIsHidden(manifest["hidden"].toBool(false));
-  if (manifest["description"].isString()) figure->setDescription(manifest["description"].toString());
-
-  // Add tests
-  auto ios = manifest["ios"];
-  auto iosArray = ios.toArray();
-  for (auto ioDir : std::as_const(iosArray)) {
-    auto io = loadTest(manifestDir.absoluteFilePath(ioDir.toString()));
-    if (io == nullptr) {
-      qWarning("Invalid IO: %s", ioDir.toString().toStdString().c_str());
-      return nullptr;
-    }
-    figure->addTest(io);
-  }
-
-  // Add elements
-  auto items = manifest["items"];          // The key in the manifest which contains elements
-  auto itemsArray = items.toObject();      // Get the element name:value pairs as a map
-  auto itemsArrayKeys = itemsArray.keys(); // Make the name:value pairs iterable
-  for (const auto &language : std::as_const(itemsArrayKeys)) {
-    // Perform templatization on manifest values.
-    QString itemTemplatePath = itemsArray[language].toString();
-    auto itemPath = itemTemplatePath.replace("{ch}", chapterName).replace("{fig}", figureName);
-
-    // Load the figure,
-    auto item = loadElement(manifestDir.absoluteFilePath(itemPath));
-
-    if (item == nullptr) {
-      qWarning("Invalid item: %s", itemPath.toStdString().c_str());
-      return nullptr;
-    }
-    // And then assign its parent, programming language
-    item->figure = figure; // Not set in addElement, must be done manually.
-    item->language = language;
-    figure->addElement(language, item);
-  }
-
-  auto default_element = manifest["default_element"];
-  figure->setDefaultElement(default_element.toString());
-
-  return figure;
+  qFatal("loadFigure should no longer be reachable, but called with %s", manifestPath.toStdString().c_str());
 }
 
 QList<QSharedPointer<macro::Parsed>> builtins::detail::loadMacro(QString manifestPath) {
