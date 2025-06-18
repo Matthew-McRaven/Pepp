@@ -103,8 +103,8 @@ QSharedPointer<builtins::Registry> helpers::builtins_registry(bool use_app_setti
   else return R::create(directory);
 }
 
-QSharedPointer<builtins::Registry> helpers::registry_with_assemblers(QString directory) {
-  auto registry = builtins_registry(true, directory);
+QSharedPointer<builtins::Registry> helpers::registry_with_assemblers(bool use_app_settings, QString directory) {
+  auto registry = builtins_registry(use_app_settings, directory);
   registry->addAssembler(pepp::Architecture::PEP10,
                          std::make_unique<PepAssembler>(&*registry, pepp::Architecture::PEP10));
   registry->addFormatter(pepp::Architecture::PEP10, "peph", std::make_unique<Pep10HFormatter>());
