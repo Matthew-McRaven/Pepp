@@ -44,7 +44,7 @@ bool parseLine(const QStringView &line, typename ParseResult<uarch>::Line &code,
 template <typename uarch> ParseResult<uarch> parse(const QString &source) {
   ParseResult<uarch> result;
   int startIdx = 0, endIdx = 0, lineNumber = 0, addressCounter = 0;
-  while (true) {
+  do {
     endIdx = source.indexOf('\n', startIdx);
     QStringView line;
     // Allows us to operate without a trailing \n
@@ -65,8 +65,7 @@ template <typename uarch> ParseResult<uarch> parse(const QString &source) {
     } else result.errors.emplace_back(std::make_pair(lineNumber, error));
     startIdx = endIdx + 1;
     lineNumber++;
-    if (endIdx == -1) break;
-  }
+  } while (endIdx != -1);
   // Populate deferred values for all lines
   for (auto &line : result.program) {
     auto range = line.deferredValues.asKeyValueRange();
