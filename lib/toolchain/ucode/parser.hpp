@@ -40,8 +40,12 @@ bool parseLine(const QStringView &line, typename ParseResult<uarch>::Line &code,
 template <typename uarch> ParseResult<uarch> parse(const QString &source) {
   ParseResult<uarch> result;
   int startIdx = 0, endIdx = 0, lineNumber = 0, addressCounter = 0;
-  while ((endIdx = source.indexOf('\n', startIdx)) != -1) {
-    auto line = QStringView(source).mid(startIdx, endIdx - startIdx);
+  while (true) {
+    endIdx = source.indexOf('\n', startIdx);
+    QStringView line;
+    // Allows us to operate without a trailing \n
+    if (endIdx == -1) line = QStringView(source).mid(startIdx);
+    else line = QStringView(source).mid(startIdx, endIdx - startIdx);
     typename ParseResult<uarch>::Line codeLine;
     QString error;
     if (detail::parseLine<uarch>(line, codeLine, error)) {
@@ -57,6 +61,7 @@ template <typename uarch> ParseResult<uarch> parse(const QString &source) {
     } else result.errors.emplace_back(std::make_pair(lineNumber, error));
     startIdx = endIdx + 1;
     lineNumber++;
+    if (endIdx == -1) break;
   }
   // Populate deferred values for all lines
   for (auto &line : result.program) {
