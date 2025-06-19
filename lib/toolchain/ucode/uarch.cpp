@@ -66,6 +66,8 @@ uint8_t pepp::ucode::Pep9ByteBus::Code::get(Signals s) const {
   return 0;
 }
 
+void pepp::ucode::Pep9ByteBus::CodeWithEnables::enable(Signals s) { enables.set(static_cast<int>(s)); }
+
 bool pepp::ucode::Pep9ByteBus::CodeWithEnables::enabled(Signals s) const { return enables.test(static_cast<int>(s)); }
 
 void pepp::ucode::Pep9ByteBus::CodeWithEnables::clear(Signals s) {
@@ -170,6 +172,8 @@ uint8_t pepp::ucode::Pep9WordBus::Code::get(Signals s) const {
   }
   return 0;
 }
+
+void pepp::ucode::Pep9WordBus::CodeWithEnables::enable(Signals s) { enables.set(static_cast<int>(s)); }
 
 bool pepp::ucode::Pep9WordBus::CodeWithEnables::enabled(Signals s) const { return enables.test(static_cast<int>(s)); }
 
@@ -284,6 +288,8 @@ uint8_t pepp::ucode::Pep9WordBusControl::Code::get(Signals s) const {
   default: return Pep9WordBus::Code::get(static_cast<Pep9WordBus::Signals>(static_cast<int>(s)));
   }
 }
+
+void pepp::ucode::Pep9WordBusControl::CodeWithEnables::enable(Signals s) { enables.set(static_cast<int>(s)); }
 
 bool pepp::ucode::Pep9WordBusControl::CodeWithEnables::enabled(Signals s) const {
   return enables.test(static_cast<int>(s));

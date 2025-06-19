@@ -24,6 +24,7 @@ template <typename uarch> struct ParseResult {
     typename uarch::CodeWithEnables controls;
     std::optional<QString> comment, symbolDecl;
     uint16_t address = -1;
+    QMap<typename uarch::Signals, QString> deferredValues;
   };
 
   using Program = std::vector<Line>;
@@ -56,6 +57,17 @@ template <typename uarch> ParseResult<uarch> parse(const QString &source) {
     } else result.errors.emplace_back(std::make_pair(lineNumber, error));
     startIdx = endIdx + 1;
     lineNumber++;
+  }
+  // Populate deferred values for all lines
+  for (auto &line : result.program) {
+    auto range = line.deferredValues.asKeyValueRange();
+    for (auto [signal, symbol] : std::as_const(range)) {
+      if (result.symbols.contains(symbol)) {
+        auto value = result.symbols[symbol];
+        if (value.has_value()) line.controls.set(signal, *value);
+        else result.errors.emplace_back(std::make_pair(line.address, "Undefined symbol: " + symbol));
+      } else result.errors.emplace_back(std::make_pair(line.address, "Undefined symbol: " + symbol));
+    }
   }
   return result;
 }
@@ -106,8 +118,7 @@ bool detail::parseLine(const QStringView &line, typename ParseResult<uarch>::Lin
   while (buf.inputRemains()) {
     if (buf.match(Token::Symbol, &current)) {
       if (!uarch::allows_symbols()) return error = "Symbols are forbidden", false;
-      // Remove trailing :
-      code.symbolDecl = current.left(current.size() - 1).toString();
+      code.symbolDecl = current.left(current.size() - 1).toString(); // Remove trailing :
       if (!buf.peek(Token::Identifier)) return error = "Expected identifier after symbol declaration", false;
     } else if (buf.match(Token::Semicolon)) {
       current_group++;
@@ -129,14 +140,17 @@ bool detail::parseLine(const QStringView &line, typename ParseResult<uarch>::Lin
       } else {
         if (uarch::signal_group(s) != current_group) return error = "Unexpected signal " + current, false;
         else if (!buf.match(Token::Equals)) return error = "Expected '=' after signal", false;
-        else if (!buf.match(Token::Decimal, &current)) return error = "Expected decimal value for signal", false;
-
-        bool ok = false;
-        if (int value = current.toInt(&ok); !ok) return error = "Failed to parse signal value", false;
-        else if (code.controls.enabled(s)) return error = "Signal already defined", false;
-        else if (uarch::signal_bit_size(s) < (value == 0 ? 1 : bits::ceil_log2(value)))
-          return error = "Signal value too large", false;
-        else code.controls.set(s, value);
+        else if (uarch::signal_allows_symbolic_argument(s) && buf.match(Token::Identifier, &current)) {
+          code.controls.enable(s); // Ensure that the line is flagged as a code line if this is the only signal.
+          code.deferredValues[s] = current.toString();
+        } else if (buf.match(Token::Decimal, &current)) {
+          bool ok = false;
+          if (int value = current.toInt(&ok); !ok) return error = "Failed to parse signal value", false;
+          else if (code.controls.enabled(s)) return error = "Signal already defined", false;
+          else if (uarch::signal_bit_size(s) < (value == 0 ? 1 : bits::ceil_log2(value)))
+            return error = "Signal value too large", false;
+          else code.controls.set(s, value);
+        } else return error = "Expected value for signal", false;
 
         if (buf.match(Token::Comma) || buf.match(Token::Empty)) continue;
         else if (buf.match(Token::Comment, &current)) code.comment = current.toString();

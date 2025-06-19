@@ -82,6 +82,7 @@ struct Pep9ByteBus {
   static std::optional<Signals> parse_signal(const QString &name);
   static std::optional<Signals> parse_signal(const QStringView &name);
   inline static constexpr bool allows_symbols() { return false; }
+  inline static constexpr bool signal_allows_symbolic_argument(Signals s) { return false; }
   struct Code {
     uint8_t MemRead : signal_bit_size_helper(Signals::MemRead) = 0;
     uint8_t MemWrite : signal_bit_size_helper(Signals::MemWrite) = 0;
@@ -108,6 +109,7 @@ struct Pep9ByteBus {
   struct CodeWithEnables {
     Code code;
     std::bitset<static_cast<int>(Signals::MDRCk) + 1> enables;
+    void enable(Signals s);
     bool enabled(Signals s) const;
     void clear(Signals s);
     void set(Signals s, uint8_t value);
@@ -166,6 +168,7 @@ struct Pep9WordBus {
   static std::optional<Signals> parse_signal(const QString &name);
   static std::optional<Signals> parse_signal(const QStringView &name);
   inline static constexpr bool allows_symbols() { return false; }
+  inline static constexpr bool signal_allows_symbolic_argument(Signals s) { return false; }
   struct Code {
     uint8_t MemRead : signal_bit_size_helper(Signals::MemRead) = 0;
     uint8_t MemWrite : signal_bit_size_helper(Signals::MemWrite) = 0;
@@ -197,6 +200,7 @@ struct Pep9WordBus {
   struct CodeWithEnables {
     Code code;
     std::bitset<static_cast<int>(Signals::MDRECk) + 1> enables;
+    void enable(Signals s);
     bool enabled(Signals s) const;
     void clear(Signals s);
     void set(Signals s, uint8_t value);
@@ -266,6 +270,9 @@ struct Pep9WordBusControl {
   static std::optional<Signals> parse_signal(const QString &name);
   static std::optional<Signals> parse_signal(const QStringView &name);
   inline static constexpr bool allows_symbols() { return true; }
+  inline static constexpr bool signal_allows_symbolic_argument(Signals s) {
+    return s == Signals::TrueT || s == Signals::FalseT;
+  }
   struct Code : public Pep9WordBus::Code {
     uint8_t PreValid : signal_bit_size_helper(Signals::PreValid) = 0;
     uint8_t stopCPU : signal_bit_size_helper(Signals::stopCPU) = 0;
@@ -279,6 +286,7 @@ struct Pep9WordBusControl {
   struct CodeWithEnables {
     Code code;
     std::bitset<static_cast<int>(Signals::FalseT) + 1> enables;
+    void enable(Signals s);
     bool enabled(Signals s) const;
     void clear(Signals s);
     void set(Signals s, uint8_t value);
