@@ -249,9 +249,9 @@ static constexpr uint8_t signal_bit_size_helper(Signals s) {
   switch (s) {
   case Signals::A: [[fallthrough]];
   case Signals::B: [[fallthrough]];
-  case Signals::C: [[fallthrough]];
-  case Signals::BR: return 5;
-  case Signals::ALU: return 4;
+  case Signals::C: return 5;
+  case Signals::ALU: [[fallthrough]];
+  case Signals::BR: return 4;
   case Signals::TrueT: [[fallthrough]];
   case Signals::FalseT: return 8;
   default: return 1;
