@@ -82,6 +82,25 @@ void pepp::ucode::Pep9ByteBus::CodeWithEnables::set(Signals s, uint8_t value) {
 
 uint8_t pepp::ucode::Pep9ByteBus::CodeWithEnables::get(Signals s) const { return code.get(s); }
 
+QString pepp::ucode::Pep9ByteBus::CodeWithEnables::toString() const {
+  static const QMetaEnum meta_enum = QMetaEnum::fromType<Signals>();
+  QStringList ret;
+  QStringList group;
+  for (int it = 0; it < meta_enum.keyCount(); it++) {
+    auto signal = static_cast<Signals>(meta_enum.value(it));
+    if (enabled(signal)) {
+      if (is_clock(signal)) group.append(meta_enum.key(it));
+      else group.append(QString("%1=%2").arg(meta_enum.key(it), QString::number(get(signal))));
+    }
+    if (signal == Signals::MDRMux && !group.empty()) {
+      ret.append(group.join(", "));
+      group.clear();
+    }
+  }
+  if (!group.empty()) ret.append(group.join(", "));
+  return ret.join("; ");
+}
+
 uint8_t pepp::ucode::Pep9ByteBus::signal_group(Signals s) {
   using enum Signals;
   if (static_cast<int>(s) < static_cast<int>(NCk)) return 0;
@@ -188,6 +207,25 @@ void pepp::ucode::Pep9WordBus::CodeWithEnables::set(Signals s, uint8_t value) {
 }
 
 uint8_t pepp::ucode::Pep9WordBus::CodeWithEnables::get(Signals s) const { return code.get(s); }
+
+QString pepp::ucode::Pep9WordBus::CodeWithEnables::toString() const {
+  static const QMetaEnum meta_enum = QMetaEnum::fromType<Signals>();
+  QStringList ret;
+  QStringList group;
+  for (int it = 0; it < meta_enum.keyCount(); it++) {
+    auto signal = static_cast<Signals>(meta_enum.value(it));
+    if (enabled(signal)) {
+      if (is_clock(signal)) group.append(meta_enum.key(it));
+      else group.append(QString("%1=%2").arg(meta_enum.key(it), QString::number(get(signal))));
+    }
+    if (signal == Signals::MDREMux && !group.empty()) {
+      ret.append(group.join(", "));
+      group.clear();
+    }
+  }
+  if (!group.empty()) ret.append(group.join(", "));
+  return ret.join("; ");
+}
 
 uint8_t pepp::ucode::Pep9WordBus::signal_group(Signals s) {
   using enum Signals;
@@ -306,3 +344,30 @@ void pepp::ucode::Pep9WordBusControl::CodeWithEnables::set(Signals s, uint8_t va
 }
 
 uint8_t pepp::ucode::Pep9WordBusControl::CodeWithEnables::get(Signals s) const { return code.get(s); }
+
+QString pepp::ucode::Pep9WordBusControl::CodeWithEnables::toString() const {
+  static const QMetaEnum meta_enum = QMetaEnum::fromType<Signals>();
+  QStringList ret;
+  QStringList group;
+  for (int it = 0; it < meta_enum.keyCount(); it++) {
+    auto signal = static_cast<Signals>(meta_enum.value(it));
+    if (signal == Signals::PreValid) continue;
+
+    if (enabled(signal)) {
+      if (is_clock(signal)) group.append(meta_enum.key(it));
+      else group.append(QString("%1=%2").arg(meta_enum.key(it), QString::number(get(signal))));
+    }
+    if (auto pv = Signals::PreValid; signal == Signals::MDREMux && enabled(pv))
+      group.append(QString("%1=%2").arg(meta_enum.key(static_cast<int>(pv)), QString::number(get(pv))));
+
+    if (signal == Signals::MDREMux && !group.empty()) {
+      ret.append(group.join(", "));
+      group.clear();
+    } else if (signal == Signals::stopCPU && !group.empty()) {
+      ret.append(group.join(", "));
+      group.clear();
+    }
+  }
+  if (!group.empty()) ret.append(group.join(", "));
+  return ret.join("; ");
+}

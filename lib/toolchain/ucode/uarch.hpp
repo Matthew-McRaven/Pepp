@@ -114,6 +114,7 @@ struct Pep9ByteBus {
     void clear(Signals s);
     void set(Signals s, uint8_t value);
     uint8_t get(Signals s) const;
+    QString toString() const;
   };
   using NamedRegisters = detail::pep9_1byte::NamedRegisters;
   static uint8_t register_byte_size(NamedRegisters reg);
@@ -205,6 +206,7 @@ struct Pep9WordBus {
     void clear(Signals s);
     void set(Signals s, uint8_t value);
     uint8_t get(Signals s) const;
+    QString toString() const;
   };
   using NamedRegisters = detail::pep9_1byte::NamedRegisters;
   static uint8_t register_byte_size(NamedRegisters reg);
@@ -237,8 +239,9 @@ enum class Signals {
   MDROCk,
   MDRECk,
   // Append only to maintain compatibility with the 2-byte data section.
-  PreValid,
+  // Placed before PreValid so that all clocks are together, simplifying formatting logic.
   stopCPU,
+  PreValid,
   BR,
   TrueT,
   FalseT,
@@ -291,6 +294,7 @@ struct Pep9WordBusControl {
     void clear(Signals s);
     void set(Signals s, uint8_t value);
     uint8_t get(Signals s) const;
+    QString toString() const;
   };
   using NamedRegisters = detail::pep9_1byte::NamedRegisters;
   static uint8_t register_byte_size(NamedRegisters reg);

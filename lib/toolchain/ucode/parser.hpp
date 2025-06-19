@@ -31,7 +31,12 @@ template <typename uarch> struct ParseResult {
   QMap<QString, std::optional<uint16_t>> symbols;
   Program program;
 };
-template <typename uarch> std::optional<std::string> format(const std::string &source) { return std::nullopt; }
+template <typename uarch> QString format(const typename ParseResult<uarch>::Line &line) {
+  QString symbolDecl;
+  if (line.symbolDecl.has_value()) symbolDecl = *line.symbolDecl + ": ";
+  auto _signals = line.controls.toString();
+  return QString("%1%2%3").arg(symbolDecl, _signals, line.comment.has_value() ? *line.comment : "");
+}
 namespace detail {
 template <typename uarch>
 bool parseLine(const QStringView &line, typename ParseResult<uarch>::Line &code, QString &error);

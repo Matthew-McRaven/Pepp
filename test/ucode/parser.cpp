@@ -137,4 +137,24 @@ TEST_CASE("Microassemble 1-byte bus", "[scope:ucode][kind:unit][arch:*]") {
     auto result = pepp::ucode::parse<uarch>(source);
     CHECK(result.errors.size() == 1);
   }
+  SECTION("Yay formatting") {
+    {
+      QString source = "C  =    2, A=1;sck,nCk";
+      auto result = pepp::ucode::parse<uarch>(source);
+      CHECK(result.errors.size() == 0);
+      REQUIRE(result.program.size() == 1);
+      auto &line = result.program[0];
+      auto text = pepp::ucode::format<uarch>(line);
+      CHECK(text.toStdString() == "A=1, C=2; NCk, SCk");
+    }
+    {
+      QString source = "x:C  =    2, A=1;;BR=5";
+      auto result = pepp::ucode::parse<uarch2c>(source);
+      CHECK(result.errors.size() == 0);
+      REQUIRE(result.program.size() == 1);
+      auto &line = result.program[0];
+      auto text = pepp::ucode::format<uarch2c>(line);
+      CHECK(text.toStdString() == "x: A=1, C=2; BR=5");
+    }
+  }
 }
