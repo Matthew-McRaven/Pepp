@@ -80,4 +80,61 @@ TEST_CASE("Microassemble 1-byte bus", "[scope:ucode][kind:unit][arch:*]") {
     CHECK(line.controls.get(uarch::Signals::A) == 15);
     CHECK(line.controls.get(uarch::Signals::CCk) == 1);
   }
+  SECTION("No duplicate signals") {
+    QString source = "C=3;C=3";
+    auto result = pepp::ucode::parse<uarch>(source);
+    CHECK(result.errors.size() == 1);
+  }
+  SECTION("Clocks do not accept values") {
+    QString source = "C=1;CCk=1";
+    auto result = pepp::ucode::parse<uarch>(source);
+    CHECK(result.errors.size() == 1);
+  }
+  SECTION("Enforce max values for signals (1 bit)") {
+    QString source = "AMux=2";
+    auto result = pepp::ucode::parse<uarch>(source);
+    CHECK(result.errors.size() == 1);
+  }
+  SECTION("Enforce max values for signals (5 bits)") {
+    {
+      QString source = "C=31";
+      auto result = pepp::ucode::parse<uarch>(source);
+      CHECK(result.errors.size() == 0);
+    }
+    {
+      QString source = "C=32";
+      auto result = pepp::ucode::parse<uarch>(source);
+      CHECK(result.errors.size() == 1);
+    }
+  }
+  SECTION("No symbol declarations") {
+    QString source = "x:C=0";
+    auto result = pepp::ucode::parse<uarch>(source);
+    CHECK(result.errors.size() == 1);
+  }
+  SECTION("No symbol arguments") {
+    QString source = "C=x";
+    auto result = pepp::ucode::parse<uarch>(source);
+    CHECK(result.errors.size() == 1);
+  }
+  SECTION("No trailing ;") {
+    QString source = "C=0;CCk;";
+    auto result = pepp::ucode::parse<uarch>(source);
+    CHECK(result.errors.size() == 1);
+  }
+  SECTION("Needs , between signals") {
+    QString source = "C=0 A=1";
+    auto result = pepp::ucode::parse<uarch>(source);
+    CHECK(result.errors.size() == 1);
+  }
+  SECTION("No unknown signals") {
+    QString source = "cat=1";
+    auto result = pepp::ucode::parse<uarch>(source);
+    CHECK(result.errors.size() == 1);
+  }
+  SECTION("Signals require value") {
+    QString source = "C=,A=5";
+    auto result = pepp::ucode::parse<uarch>(source);
+    CHECK(result.errors.size() == 1);
+  }
 }

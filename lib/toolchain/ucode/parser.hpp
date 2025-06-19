@@ -15,7 +15,6 @@
  */
 #pragma once
 #include <QRegularExpression>
-#include "utils/bits/log2.hpp"
 namespace pepp::ucode {
 template <typename uarch> struct ParseResult {
   using Error = std::pair<int, QString>;
@@ -127,7 +126,7 @@ bool detail::parseLine(const QStringView &line, typename ParseResult<uarch>::Lin
       if (!buf.peek(Token::Identifier)) return error = "Expected identifier after symbol declaration", false;
     } else if (buf.match(Token::Semicolon)) {
       current_group++;
-      if (current_group > uarch::max_signal_groups()) return error = "Unexpected semicolon", false;
+      if (current_group >= uarch::max_signal_groups()) return error = "Unexpected semicolon", false;
     } else if (buf.match(Token::Identifier, &current)) {
       auto maybe_signal = uarch::parse_signal(current);
       if (!maybe_signal.has_value()) return error = "Unknown signal: " + current, false;
@@ -152,8 +151,7 @@ bool detail::parseLine(const QStringView &line, typename ParseResult<uarch>::Lin
           bool ok = false;
           if (int value = current.toInt(&ok); !ok) return error = "Failed to parse signal value", false;
           else if (code.controls.enabled(s)) return error = "Signal already defined", false;
-          else if (uarch::signal_bit_size(s) < (value == 0 ? 1 : bits::ceil_log2(value)))
-            return error = "Signal value too large", false;
+          else if ((1 << uarch::signal_bit_size(s)) - 1 < value) return error = "Signal value too large", false;
           else code.controls.set(s, value);
         } else return error = "Expected value for signal", false;
 
