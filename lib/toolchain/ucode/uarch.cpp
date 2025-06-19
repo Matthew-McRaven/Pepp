@@ -1,3 +1,18 @@
+/*
+ * Copyright (c) 2023-2025 J. Stanley Warford, Matthew McRaven
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program.  If not, see <https://www.gnu.org/licenses/>.
+ */
 #include "uarch.hpp"
 
 void pepp::ucode::Pep9ByteBus::Code::set(Signals s, uint8_t value) {
@@ -69,6 +84,24 @@ uint8_t pepp::ucode::Pep9ByteBus::signal_group(Signals s) {
   using enum Signals;
   if (static_cast<int>(s) < static_cast<int>(NCk)) return 0;
   else return 1;
+}
+
+bool pepp::ucode::Pep9ByteBus::is_clock(Signals s) {
+  using enum Signals;
+  if (static_cast<int>(s) >= static_cast<int>(NCk)) return true;
+  else return false;
+}
+
+std::optional<pepp::ucode::Pep9ByteBus::Signals> pepp::ucode::Pep9ByteBus::parse_signal(const QString &name) {
+  QStringView v(name);
+  return parse_signal(v);
+}
+
+std::optional<pepp::ucode::Pep9ByteBus::Signals> pepp::ucode::Pep9ByteBus::parse_signal(const QStringView &name) {
+  QMetaEnum meta_enum = QMetaEnum::fromType<Signals>();
+  for (int it = 0; it < meta_enum.keyCount(); it++)
+    if (name.compare(meta_enum.key(it), Qt::CaseInsensitive) == 0) return static_cast<Signals>(meta_enum.value(it));
+  return std::nullopt;
 }
 
 uint8_t pepp::ucode::Pep9ByteBus::register_byte_size(NamedRegisters reg) {
@@ -156,6 +189,24 @@ uint8_t pepp::ucode::Pep9WordBus::signal_group(Signals s) {
   using enum Signals;
   if (static_cast<int>(s) < static_cast<int>(NCk)) return 0;
   else return 1;
+}
+
+bool pepp::ucode::Pep9WordBus::is_clock(Signals s) {
+  using enum Signals;
+  if (static_cast<int>(s) >= static_cast<int>(NCk)) return true;
+  else return false;
+}
+
+std::optional<pepp::ucode::Pep9WordBus::Signals> pepp::ucode::Pep9WordBus::parse_signal(const QString &name) {
+  QStringView v(name);
+  return parse_signal(v);
+}
+
+std::optional<pepp::ucode::Pep9WordBus::Signals> pepp::ucode::Pep9WordBus::parse_signal(const QStringView &name) {
+  QMetaEnum meta_enum = QMetaEnum::fromType<Signals>();
+  for (int it = 0; it < meta_enum.keyCount(); it++)
+    if (name.compare(meta_enum.key(it), Qt::CaseInsensitive) == 0) return static_cast<Signals>(meta_enum.value(it));
+  return std::nullopt;
 }
 
 uint8_t pepp::ucode::Pep9WordBus::register_byte_size(NamedRegisters reg) {
