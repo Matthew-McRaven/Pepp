@@ -72,9 +72,12 @@ template <typename uarch> ParseResult<uarch> parse(const QString &source) {
     for (auto [signal, symbol] : std::as_const(range)) {
       if (result.symbols.contains(symbol)) {
         auto value = result.symbols[symbol];
-        if (value.has_value()) line.controls.set(signal, *value);
-        else result.errors.emplace_back(std::make_pair(line.address, "Undefined symbol: " + symbol));
-      } else result.errors.emplace_back(std::make_pair(line.address, "Undefined symbol: " + symbol));
+        if (value.has_value()) {
+          line.controls.set(signal, *value);
+          continue;
+        }
+      }
+      result.errors.emplace_back(std::make_pair(line.address, "Undefined symbol: " + symbol));
     }
   }
   return result;
