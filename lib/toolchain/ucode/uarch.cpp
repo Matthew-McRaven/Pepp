@@ -263,7 +263,6 @@ uint8_t pepp::ucode::Pep9WordBusControl::signal_group(Signals s) {
   using enum Signals;
   switch (s) {
   case PreValid: return 0;
-  case stopCPU: return 1;
   case BR: [[fallthrough]];
   case TrueT: [[fallthrough]];
   case FalseT: return 2;
@@ -277,7 +276,6 @@ uint8_t pepp::ucode::Pep9WordBusControl::signal_group(Signals s) {
 bool pepp::ucode::Pep9WordBusControl::is_clock(Signals s) {
   using enum Signals;
   if (auto i = static_cast<int>(s); static_cast<int>(NCk) <= i && i <= static_cast<int>(MDRECk)) return true;
-  else if (s == stopCPU) return true;
   else return false;
 }
 
@@ -307,7 +305,6 @@ void pepp::ucode::Pep9WordBusControl::Code::set(Signals s, uint8_t value) {
   using enum Signals;
   switch (s) {
   case PreValid: this->PreValid = value; break;
-  case stopCPU: this->stopCPU = value; break;
   case BR: this->BR = value; break;
   case TrueT: this->TrueT = value; break;
   case FalseT: this->FalseT = value; break;
@@ -319,7 +316,6 @@ uint8_t pepp::ucode::Pep9WordBusControl::Code::get(Signals s) const {
   using enum Signals;
   switch (s) {
   case PreValid: return this->PreValid;
-  case stopCPU: return this->stopCPU;
   case BR: return this->BR;
   case TrueT: return this->TrueT;
   case FalseT: return this->FalseT;
@@ -363,7 +359,7 @@ QString pepp::ucode::Pep9WordBusControl::CodeWithEnables::toString() const {
     if (signal == Signals::MDREMux && !group.empty()) {
       ret.append(group.join(", "));
       group.clear();
-    } else if (signal == Signals::stopCPU && !group.empty()) {
+    } else if (signal == Signals::MDRECk && !group.empty()) {
       ret.append(group.join(", "));
       group.clear();
     }

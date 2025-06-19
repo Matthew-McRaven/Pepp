@@ -239,8 +239,6 @@ enum class Signals {
   MDROCk,
   MDRECk,
   // Append only to maintain compatibility with the 2-byte data section.
-  // Placed before PreValid so that all clocks are together, simplifying formatting logic.
-  stopCPU,
   PreValid,
   BR,
   TrueT,
@@ -278,7 +276,6 @@ struct Pep9WordBusControl {
   }
   struct Code : public Pep9WordBus::Code {
     uint8_t PreValid : signal_bit_size_helper(Signals::PreValid) = 0;
-    uint8_t stopCPU : signal_bit_size_helper(Signals::stopCPU) = 0;
     uint8_t BR : signal_bit_size_helper(Signals::BR) = 0;
     uint8_t TrueT : signal_bit_size_helper(Signals::TrueT) = 0;
     uint8_t FalseT : signal_bit_size_helper(Signals::FalseT) = 0;
