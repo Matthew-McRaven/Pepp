@@ -124,6 +124,7 @@ private:
 template <typename uarch>
 bool detail::parseLine(const QStringView &line, typename ParseResult<uarch>::Line &code, QString &error) {
   int current_group = 0;
+  int signals_in_group = 0;
   TokenBuffer buf(line);
   QStringView current;
   while (buf.inputRemains()) {
@@ -133,24 +134,32 @@ bool detail::parseLine(const QStringView &line, typename ParseResult<uarch>::Lin
       if (!buf.peek(Token::Identifier)) return error = "Expected identifier after symbol declaration", false;
     } else if (buf.match(Token::Semicolon)) {
       current_group++;
+      signals_in_group = 0;
       if (current_group >= uarch::max_signal_groups()) return error = "Unexpected semicolon", false;
     } else if (buf.match(Token::Identifier, &current)) {
+
       auto maybe_signal = uarch::parse_signal(current);
       if (!maybe_signal.has_value()) return error = "Unknown signal: " + current, false;
       typename uarch::Signals s = *maybe_signal;
 
       if (uarch::is_clock(s)) {
         if (code.controls.enabled(s)) return error = "Clock signal already defined", false;
-        else if (uarch::signal_group(s) != current_group) return error = "Unexpected signal " + current, false;
-        else code.controls.set(s, 1);
-
+        else if (auto group = uarch::signal_group(s); group != current_group) {
+          if (signals_in_group == 0) current_group = group;
+          else return error = "Unexpected signal " + current, false;
+        }
+        code.controls.set(s, 1), signals_in_group++;
         if (buf.match(Token::Comma) || buf.match(Token::Empty)) continue;
         else if (buf.match(Token::Comment, &current)) code.comment = current.toString();
         else if (buf.peek(Token::Semicolon) || !buf.inputRemains()) continue;
         else return (error = "Unexpected token after clock signal"), false;
       } else {
-        if (uarch::signal_group(s) != current_group) return error = "Unexpected signal " + current, false;
-        else if (!buf.match(Token::Equals)) return error = "Expected '=' after signal", false;
+        if (auto group = uarch::signal_group(s); group != current_group) {
+          if (signals_in_group == 0) current_group = group;
+          else return error = "Unexpected signal " + current, false;
+        }
+
+        if (!buf.match(Token::Equals)) return error = "Expected '=' after signal", false;
         else if (uarch::signal_allows_symbolic_argument(s) && buf.match(Token::Identifier, &current)) {
           code.controls.enable(s); // Ensure that the line is flagged as a code line if this is the only signal.
           code.deferredValues[s] = current.toString();

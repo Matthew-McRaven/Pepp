@@ -171,4 +171,34 @@ TEST_CASE("Microassemble 1-byte bus", "[scope:ucode][kind:unit][arch:*]") {
       CHECK(text.toStdString() == "A=1//comments");
     }
   }
+  SECTION("Allow skipping groups") {
+    {
+      QString source = "CCk";
+      auto result = pepp::ucode::parse<uarch>(source);
+      CHECK(result.errors.size() == 0);
+      REQUIRE(result.program.size() == 1);
+      auto &line = result.program[0];
+      CHECK(line.controls.enables.count() == 1);
+      CHECK(line.controls.get(uarch::Signals::CCk) == 1);
+    }
+    {
+      QString source = "CCk; Br=5";
+      auto result = pepp::ucode::parse<uarch2c>(source);
+      CHECK(result.errors.size() == 0);
+      REQUIRE(result.program.size() == 1);
+      auto &line = result.program[0];
+      CHECK(line.controls.enables.count() == 2);
+      CHECK(line.controls.get(uarch2c::Signals::CCk) == 1);
+      CHECK(line.controls.get(uarch2c::Signals::BR) == 5);
+    }
+    {
+      QString source = "Br=5";
+      auto result = pepp::ucode::parse<uarch2c>(source);
+      CHECK(result.errors.size() == 0);
+      REQUIRE(result.program.size() == 1);
+      auto &line = result.program[0];
+      CHECK(line.controls.enables.count() == 1);
+      CHECK(line.controls.get(uarch2c::Signals::BR) == 5);
+    }
+  }
 }
