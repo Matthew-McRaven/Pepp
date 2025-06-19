@@ -156,5 +156,14 @@ TEST_CASE("Microassemble 1-byte bus", "[scope:ucode][kind:unit][arch:*]") {
       auto text = pepp::ucode::format<uarch2c>(line);
       CHECK(text.toStdString() == "x: A=1, C=2; BR=5");
     }
+    {
+      QString source = "A=1    //comments";
+      auto result = pepp::ucode::parse<uarch>(source);
+      CHECK(result.errors.size() == 0);
+      REQUIRE(result.program.size() == 1);
+      auto &line = result.program[0];
+      auto text = pepp::ucode::format<uarch>(line);
+      CHECK(text.toStdString() == "A=1//comments");
+    }
   }
 }

@@ -19,7 +19,7 @@ const QRegularExpression pepp::ucode::detail::TokenBuffer::_identifier("[a-zA-Z]
 const QRegularExpression pepp::ucode::detail::TokenBuffer::_symbol("[a-zA-Z_][a-zA-Z0-9_]*:");
 const QRegularExpression pepp::ucode::detail::TokenBuffer::_decimal("[0-9]+");
 const QRegularExpression pepp::ucode::detail::TokenBuffer::_hexadecimal("0[xX][0-9a-fA-F]+");
-const QRegularExpression pepp::ucode::detail::TokenBuffer::_comment(";[^\n]*");
+const QRegularExpression pepp::ucode::detail::TokenBuffer::_comment("//[^\n]*");
 
 pepp::ucode::detail::TokenBuffer::TokenBuffer(const QStringView &line) : _data(line) {}
 
