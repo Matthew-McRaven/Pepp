@@ -137,6 +137,11 @@ TEST_CASE("Microassemble 1-byte bus", "[scope:ucode][kind:unit][arch:*]") {
     auto result = pepp::ucode::parse<uarch>(source);
     CHECK(result.errors.size() == 1);
   }
+  SECTION("Disallow undefined symbols") {
+    QString source = "a=5;CCk;TrueT=x";
+    auto result = pepp::ucode::parse<uarch2c>(source);
+    CHECK(result.errors.size() == 1);
+  }
   SECTION("Yay formatting") {
     {
       QString source = "C  =    2, A=1;sck,nCk";
