@@ -81,6 +81,7 @@ struct Pep9ByteBus {
   static bool is_clock(Signals s);
   static std::optional<Signals> parse_signal(const QString &name);
   static std::optional<Signals> parse_signal(const QStringView &name);
+  inline static constexpr bool allows_symbols() { return false; }
   struct Code {
     uint8_t MemRead : signal_bit_size_helper(Signals::MemRead) = 0;
     uint8_t MemWrite : signal_bit_size_helper(Signals::MemWrite) = 0;
@@ -155,6 +156,7 @@ static constexpr uint8_t signal_bit_size_helper(Signals s) {
   }
 }
 } // namespace detail::pep9_2byte
+
 struct Pep9WordBus {
   using Signals = detail::pep9_2byte::Signals;
   inline static constexpr uint8_t signal_bit_size(Signals s) { return detail::pep9_2byte::signal_bit_size_helper(s); }
@@ -163,6 +165,7 @@ struct Pep9WordBus {
   static bool is_clock(Signals s);
   static std::optional<Signals> parse_signal(const QString &name);
   static std::optional<Signals> parse_signal(const QStringView &name);
+  inline static constexpr bool allows_symbols() { return false; }
   struct Code {
     uint8_t MemRead : signal_bit_size_helper(Signals::MemRead) = 0;
     uint8_t MemWrite : signal_bit_size_helper(Signals::MemWrite) = 0;
@@ -194,6 +197,88 @@ struct Pep9WordBus {
   struct CodeWithEnables {
     Code code;
     std::bitset<static_cast<int>(Signals::MDRECk) + 1> enables;
+    bool enabled(Signals s) const;
+    void clear(Signals s);
+    void set(Signals s, uint8_t value);
+    uint8_t get(Signals s) const;
+  };
+  using NamedRegisters = detail::pep9_1byte::NamedRegisters;
+  static uint8_t register_byte_size(NamedRegisters reg);
+};
+
+namespace detail::pep9_2byte_control {
+Q_NAMESPACE
+enum class Signals {
+  MemRead = 0,
+  MemWrite,
+  A,
+  B,
+  EOMux,
+  MARMux,
+  AMux,
+  ALU,
+  CSMux,
+  AndZ,
+  CMux,
+  C,
+  MDROMux,
+  MDREMux,
+  NCk,
+  ZCk,
+  VCk,
+  CCk,
+  SCk,
+  MARCk,
+  LoadCk,
+  MDROCk,
+  MDRECk,
+  // Append only to maintain compatibility with the 2-byte data section.
+  PreValid,
+  stopCPU,
+  BR,
+  TrueT,
+  FalseT,
+};
+Q_ENUM_NS(Signals);
+
+static constexpr uint8_t signal_bit_size_helper(Signals s) {
+  switch (s) {
+  case Signals::A: [[fallthrough]];
+  case Signals::B: [[fallthrough]];
+  case Signals::C: [[fallthrough]];
+  case Signals::BR: return 5;
+  case Signals::ALU: return 4;
+  case Signals::TrueT: [[fallthrough]];
+  case Signals::FalseT: return 8;
+  default: return 1;
+  }
+}
+} // namespace detail::pep9_2byte_control
+
+struct Pep9WordBusControl {
+  using Signals = detail::pep9_2byte_control::Signals;
+  inline static constexpr uint8_t signal_bit_size(Signals s) {
+    return detail::pep9_2byte_control::signal_bit_size_helper(s);
+  }
+  static uint8_t signal_group(Signals s);
+  inline static constexpr uint8_t max_signal_groups() { return 3; }
+  static bool is_clock(Signals s);
+  static std::optional<Signals> parse_signal(const QString &name);
+  static std::optional<Signals> parse_signal(const QStringView &name);
+  inline static constexpr bool allows_symbols() { return true; }
+  struct Code : public Pep9WordBus::Code {
+    uint8_t PreValid : signal_bit_size_helper(Signals::PreValid) = 0;
+    uint8_t stopCPU : signal_bit_size_helper(Signals::stopCPU) = 0;
+    uint8_t BR : signal_bit_size_helper(Signals::BR) = 0;
+    uint8_t TrueT : signal_bit_size_helper(Signals::TrueT) = 0;
+    uint8_t FalseT : signal_bit_size_helper(Signals::FalseT) = 0;
+
+    void set(Signals s, uint8_t value);
+    uint8_t get(Signals s) const;
+  };
+  struct CodeWithEnables {
+    Code code;
+    std::bitset<static_cast<int>(Signals::FalseT) + 1> enables;
     bool enabled(Signals s) const;
     void clear(Signals s);
     void set(Signals s, uint8_t value);

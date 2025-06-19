@@ -98,7 +98,7 @@ std::optional<pepp::ucode::Pep9ByteBus::Signals> pepp::ucode::Pep9ByteBus::parse
 }
 
 std::optional<pepp::ucode::Pep9ByteBus::Signals> pepp::ucode::Pep9ByteBus::parse_signal(const QStringView &name) {
-  QMetaEnum meta_enum = QMetaEnum::fromType<Signals>();
+  static const QMetaEnum meta_enum = QMetaEnum::fromType<Signals>();
   for (int it = 0; it < meta_enum.keyCount(); it++)
     if (name.compare(meta_enum.key(it), Qt::CaseInsensitive) == 0) return static_cast<Signals>(meta_enum.value(it));
   return std::nullopt;
@@ -203,7 +203,7 @@ std::optional<pepp::ucode::Pep9WordBus::Signals> pepp::ucode::Pep9WordBus::parse
 }
 
 std::optional<pepp::ucode::Pep9WordBus::Signals> pepp::ucode::Pep9WordBus::parse_signal(const QStringView &name) {
-  QMetaEnum meta_enum = QMetaEnum::fromType<Signals>();
+  static const QMetaEnum meta_enum = QMetaEnum::fromType<Signals>();
   for (int it = 0; it < meta_enum.keyCount(); it++)
     if (name.compare(meta_enum.key(it), Qt::CaseInsensitive) == 0) return static_cast<Signals>(meta_enum.value(it));
   return std::nullopt;
@@ -216,3 +216,87 @@ uint8_t pepp::ucode::Pep9WordBus::register_byte_size(NamedRegisters reg) {
   default: return 2;
   }
 }
+
+uint8_t pepp::ucode::Pep9WordBusControl::signal_group(Signals s) {
+  using enum Signals;
+  switch (s) {
+  case PreValid: return 0;
+  case stopCPU: return 1;
+  case BR: [[fallthrough]];
+  case TrueT: [[fallthrough]];
+  case FalseT: return 2;
+  default: break;
+  }
+
+  if (static_cast<int>(s) < static_cast<int>(NCk)) return 0;
+  else return 1;
+}
+
+bool pepp::ucode::Pep9WordBusControl::is_clock(Signals s) {
+  using enum Signals;
+  if (auto i = static_cast<int>(s); static_cast<int>(NCk) <= i && i <= static_cast<int>(MDRECk)) return true;
+  else if (s == stopCPU) return true;
+  else return false;
+}
+
+uint8_t pepp::ucode::Pep9WordBusControl::register_byte_size(NamedRegisters reg) {
+  switch (reg) {
+  case NamedRegisters::T1: return 1;
+  case NamedRegisters::IR: return 3;
+  default: return 2;
+  }
+}
+
+std::optional<pepp::ucode::Pep9WordBusControl::Signals>
+pepp::ucode::Pep9WordBusControl::parse_signal(const QString &name) {
+  QStringView v(name);
+  return parse_signal(v);
+}
+
+std::optional<pepp::ucode::Pep9WordBusControl::Signals>
+pepp::ucode::Pep9WordBusControl::parse_signal(const QStringView &name) {
+  static const QMetaEnum meta_enum = QMetaEnum::fromType<Signals>();
+  for (int it = 0; it < meta_enum.keyCount(); it++)
+    if (name.compare(meta_enum.key(it), Qt::CaseInsensitive) == 0) return static_cast<Signals>(meta_enum.value(it));
+  return std::nullopt;
+}
+
+void pepp::ucode::Pep9WordBusControl::Code::set(Signals s, uint8_t value) {
+  using enum Signals;
+  switch (s) {
+  case PreValid: this->PreValid = value; break;
+  case stopCPU: this->stopCPU = value; break;
+  case BR: this->BR = value; break;
+  case TrueT: this->TrueT = value; break;
+  case FalseT: this->FalseT = value; break;
+  default: Pep9WordBus::Code::set(static_cast<Pep9WordBus::Signals>(static_cast<int>(s)), value);
+  }
+}
+
+uint8_t pepp::ucode::Pep9WordBusControl::Code::get(Signals s) const {
+  using enum Signals;
+  switch (s) {
+  case PreValid: return this->PreValid;
+  case stopCPU: return this->stopCPU;
+  case BR: return this->BR;
+  case TrueT: return this->TrueT;
+  case FalseT: return this->FalseT;
+  default: return Pep9WordBus::Code::get(static_cast<Pep9WordBus::Signals>(static_cast<int>(s)));
+  }
+}
+
+bool pepp::ucode::Pep9WordBusControl::CodeWithEnables::enabled(Signals s) const {
+  return enables.test(static_cast<int>(s));
+}
+
+void pepp::ucode::Pep9WordBusControl::CodeWithEnables::clear(Signals s) {
+  enables.set(static_cast<int>(s), false);
+  code.set(s, 0);
+}
+
+void pepp::ucode::Pep9WordBusControl::CodeWithEnables::set(Signals s, uint8_t value) {
+  enables.set(static_cast<int>(s), true);
+  code.set(s, value);
+}
+
+uint8_t pepp::ucode::Pep9WordBusControl::CodeWithEnables::get(Signals s) const { return code.get(s); }
