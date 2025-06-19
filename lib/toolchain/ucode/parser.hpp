@@ -22,12 +22,13 @@ template <typename uarch> struct ParseResult {
   using Errors = std::vector<Error>;
   struct Line {
     typename uarch::CodeWithEnables controls;
-    std::optional<QString> comment;
+    std::optional<QString> comment, symbolDecl;
+    uint16_t address = -1;
   };
 
   using Program = std::vector<Line>;
   Errors errors;
-  void *symbols;
+  QMap<QString, std::optional<uint16_t>> symbols;
   Program program;
 };
 template <typename uarch> std::optional<std::string> format(const std::string &source) { return std::nullopt; }
@@ -37,14 +38,22 @@ bool parseLine(const QStringView &line, typename ParseResult<uarch>::Line &code,
 } // namespace detail
 template <typename uarch> ParseResult<uarch> parse(const QString &source) {
   ParseResult<uarch> result;
-  result.symbols = nullptr; // Placeholder for symbols, if needed
-  int startIdx = 0, endIdx = 0, lineNumber = 0;
+  int startIdx = 0, endIdx = 0, lineNumber = 0, addressCounter = 0;
   while ((endIdx = source.indexOf('\n', startIdx)) != -1) {
     auto line = QStringView(source).mid(startIdx, endIdx - startIdx);
     typename ParseResult<uarch>::Line codeLine;
     QString error;
-    if (detail::parseLine<uarch>(line, codeLine, error)) result.program.emplace_back(codeLine);
-    else result.errors.emplace_back(std::make_pair(lineNumber, error));
+    if (detail::parseLine<uarch>(line, codeLine, error)) {
+      // Handle address assignment, assigning symbol values.
+      if (codeLine.controls.enables.any()) codeLine.address = addressCounter++;
+      if (codeLine.symbolDecl.has_value()) {
+        auto symbol = *codeLine.symbolDecl;
+        if (result.symbols.contains(symbol))
+          result.errors.emplace_back(std::make_pair(lineNumber, "Symbol already defined: " + symbol));
+        else result.symbols[symbol] = codeLine.address;
+      }
+      result.program.emplace_back(codeLine);
+    } else result.errors.emplace_back(std::make_pair(lineNumber, error));
     startIdx = endIdx + 1;
     lineNumber++;
   }
@@ -63,6 +72,7 @@ enum class Token {
   Comment,
   Decimal,
   Hexadecimal,
+  Symbol,
   Invalid
 };
 class TokenBuffer {
@@ -75,6 +85,7 @@ public:
 
 private:
   static const QRegularExpression _identifier;
+  static const QRegularExpression _symbol;
   static const QRegularExpression _decimal;
   static const QRegularExpression _hexadecimal;
   static const QRegularExpression _comment;
@@ -93,7 +104,12 @@ bool detail::parseLine(const QStringView &line, typename ParseResult<uarch>::Lin
   TokenBuffer buf(line);
   QStringView current;
   while (buf.inputRemains()) {
-    if (buf.match(Token::Semicolon)) {
+    if (buf.match(Token::Symbol, &current)) {
+      if (!uarch::allows_symbols()) return error = "Symbols are forbidden", false;
+      // Remove trailing :
+      code.symbolDecl = current.left(current.size() - 1).toString();
+      if (!buf.peek(Token::Identifier)) return error = "Expected identifier after symbol declaration", false;
+    } else if (buf.match(Token::Semicolon)) {
       current_group++;
       if (current_group > uarch::max_signal_groups()) return error = "Unexpected semicolon", false;
     } else if (buf.match(Token::Identifier, &current)) {

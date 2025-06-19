@@ -50,7 +50,7 @@ TEST_CASE("Microassemble 1-byte bus", "[scope:ucode][kind:unit][arch:*]") {
   }
 
   SECTION("Microcoded control section") {
-    QString source = "C=3;CCk;BR=7, TrueT=6\n";
+    QString source = "x:C=3;CCk;BR=7, TrueT=6\n";
     auto result = pepp::ucode::parse<uarch2c>(source);
     CHECK(result.errors.empty());
     REQUIRE(result.program.size() == 1);
@@ -61,5 +61,7 @@ TEST_CASE("Microassemble 1-byte bus", "[scope:ucode][kind:unit][arch:*]") {
     CHECK(line.controls.get(uarch2c::Signals::CCk) == 1);
     CHECK(line.controls.get(uarch2c::Signals::BR) == 7);
     CHECK(line.controls.get(uarch2c::Signals::TrueT) == 6);
+    CHECK(line.symbolDecl.has_value());
+    CHECK(result.symbols.value("x", -1) == 0);
   }
 }

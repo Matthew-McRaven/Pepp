@@ -16,6 +16,7 @@
 #include "./parser.hpp"
 
 const QRegularExpression pepp::ucode::detail::TokenBuffer::_identifier("[a-zA-Z]+");
+const QRegularExpression pepp::ucode::detail::TokenBuffer::_symbol("[a-zA-Z_][a-zA-Z0-9_]*:");
 const QRegularExpression pepp::ucode::detail::TokenBuffer::_decimal("[0-9]+");
 const QRegularExpression pepp::ucode::detail::TokenBuffer::_hexadecimal("0[xX][0-9a-fA-F]+");
 const QRegularExpression pepp::ucode::detail::TokenBuffer::_comment(";[^\n]*");
@@ -60,6 +61,9 @@ bool pepp::ucode::detail::TokenBuffer::peek(Token token, QStringView *out) {
       break;
     } else if (nextCh == ";") {
       _end = _start + 1, _currentToken = Token::Semicolon;
+      break;
+    } else if (auto maybeSymbol = _symbol.matchView(_data, _start, NormalMatch, Anchored); maybeSymbol.hasMatch()) {
+      _end = maybeSymbol.capturedEnd(0), _currentToken = Token::Symbol;
       break;
     } else if (auto maybeIdent = _identifier.matchView(_data, _start, NormalMatch, Anchored); maybeIdent.hasMatch()) {
       _end = maybeIdent.capturedEnd(0), _currentToken = Token::Identifier;
