@@ -204,7 +204,7 @@ TEST_CASE("CS6E hex/bin listing", "[scope:asm][kind:e2e][arch:pep10]") {
 
   REQUIRE_FALSE(book.isNull());
   auto registry = QSharedPointer<macro::Registry>::create();
-  auto fig = book->findFigure("04", "35");
+  auto fig = book->findFigure("04", "24");
   auto defaultOS = fig->defaultOS();
   REQUIRE(defaultOS != nullptr);
   QString osBody = defaultOS->typesafeNamedElements()["pep"]->contents();

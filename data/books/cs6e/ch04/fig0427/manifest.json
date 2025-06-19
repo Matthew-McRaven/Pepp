@@ -1,0 +1,45 @@
+{
+  "version": 2,
+  "type": "figure",
+  "name": "04:27",
+  "arch": "pep10",
+  "abstraction": "ISA3",
+  "default_os": "os:pep10baremetal",
+  "description": "A machine language program to input two numbers and output their sum.",
+  "tests": [
+    "io0"
+  ],
+  "items": [
+    {
+      "name": "pepo",
+      "format": "pepo",
+      "isDefault": true,
+      "from": {
+        "file": "{ch}{fig}.pepo"
+      }
+    },
+    {
+      "name": "pep",
+      "format": "pep",
+      "hidden":true,
+      "from": {
+        "file": "{ch}{fig}.pep"
+      }
+    },
+    {
+        "name": "pepb",
+        "format": "pepb",
+        "from": {
+            "element": "pep"
+        }
+    },
+    {
+        "name": "peph",
+        "format": "peph",
+        "export": "ch-Computer-Architecture/fig{ch}{fig}.peph",
+        "from": {
+            "element": "pep"
+        }
+    }
+  ]
+}

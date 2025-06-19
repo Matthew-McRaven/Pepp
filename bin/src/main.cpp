@@ -24,6 +24,7 @@
 #include "commands/about.hpp"
 #include "commands/asm.hpp"
 #include "commands/dumpbooks.hpp"
+#include "commands/dumptex.hpp"
 #include "commands/get.hpp"
 #include "commands/gui.hpp"
 #include "commands/license.hpp"
@@ -87,6 +88,7 @@ int main(int argc, char **argv) {
   // Hidden commands
   registerThroughput(app, task, shared_flags);
   registerDumpBooks(app, task, shared_flags);
+  registerDumpTex(app, task, shared_flags);
   try {
     app.parse(argc, argv);
     // If kind is default, then no subcommand was called, forward all arguments.
