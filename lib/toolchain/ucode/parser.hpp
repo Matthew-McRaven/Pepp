@@ -20,14 +20,14 @@ struct MemValue {
   quint8 value = 0;
   quint16 address = 0;
 };
-template <typename uarch> struct RegisterValue {
-  typename uarch::NamedRegisters reg;
+template <typename registers> struct RegisterValue {
+  typename registers::NamedRegisters reg;
   // Based on the size of the register, you MUST mask this down to [1-3] bytes
   quint32 value = 0;
 };
-template <typename uarch> using Test = std::variant<MemValue, RegisterValue<uarch>>;
+template <typename registers> using Test = std::variant<MemValue, RegisterValue<registers>>;
 
-template <typename uarch> struct ParseResult {
+template <typename uarch, typename registers> struct ParseResult {
   using Error = std::pair<int, QString>;
   using Errors = std::vector<Error>;
   struct Line {
@@ -36,7 +36,7 @@ template <typename uarch> struct ParseResult {
     uint16_t address = -1;
     QMap<typename uarch::Signals, QString> deferredValues;
     enum class Type { Code, Pre, Post } type = Type::Code;
-    QList<Test<uarch>> tests;
+    QList<Test<registers>> tests;
   };
 
   using Program = std::vector<Line>;
@@ -44,18 +44,18 @@ template <typename uarch> struct ParseResult {
   QMap<QString, std::optional<uint16_t>> symbols;
   Program program;
 };
-template <typename uarch> QString format(const typename ParseResult<uarch>::Line &line) {
+template <typename uarch, typename registers> QString format(const typename ParseResult<uarch, registers>::Line &line) {
   QString symbolDecl;
   if (line.symbolDecl.has_value()) symbolDecl = *line.symbolDecl + ": ";
   auto _signals = line.controls.toString();
   return QString("%1%2%3").arg(symbolDecl, _signals, line.comment.has_value() ? *line.comment : "");
 }
 namespace detail {
-template <typename uarch>
-bool parseLine(const QStringView &line, typename ParseResult<uarch>::Line &code, QString &error);
+template <typename uarch, typename registers>
+bool parseLine(const QStringView &line, typename ParseResult<uarch, registers>::Line &code, QString &error);
 } // namespace detail
-template <typename uarch> ParseResult<uarch> parse(const QString &source) {
-  ParseResult<uarch> result;
+template <typename uarch, typename registers> ParseResult<uarch, registers> parse(const QString &source) {
+  ParseResult<uarch, registers> result;
   int startIdx = 0, endIdx = 0, lineNumber = 0, addressCounter = 0;
   do {
     endIdx = source.indexOf('\n', startIdx);
@@ -63,9 +63,9 @@ template <typename uarch> ParseResult<uarch> parse(const QString &source) {
     // Allows us to operate without a trailing \n
     if (endIdx == -1) line = QStringView(source).mid(startIdx);
     else line = QStringView(source).mid(startIdx, endIdx - startIdx);
-    typename ParseResult<uarch>::Line codeLine;
+    typename ParseResult<uarch, registers>::Line codeLine;
     QString error;
-    if (detail::parseLine<uarch>(line, codeLine, error)) {
+    if (detail::parseLine<uarch, registers>(line, codeLine, error)) {
       // Handle address assignment, assigning symbol values.
       if (codeLine.controls.enables.any()) codeLine.address = addressCounter++;
       if (codeLine.symbolDecl.has_value()) {
@@ -129,9 +129,9 @@ private:
 
 } // namespace detail
 
-template <typename uarch>
-bool detail::parseLine(const QStringView &line, typename ParseResult<uarch>::Line &code, QString &error) {
-  using Line = ParseResult<uarch>::Line;
+template <typename uarch, typename registers>
+bool detail::parseLine(const QStringView &line, typename ParseResult<uarch, registers>::Line &code, QString &error) {
+  using Line = ParseResult<uarch, registers>::Line;
   int current_group = 0;
   int signals_in_group = 0;
   TokenBuffer buf(line);
@@ -158,16 +158,16 @@ bool detail::parseLine(const QStringView &line, typename ParseResult<uarch>::Lin
         else if (value < 0 || value > 255) return error = "Value too large", false;
         else code.tests.emplace_back(MemValue{static_cast<quint8>(value), static_cast<quint16>(address)});
       } else { // Match identifer=value
-        auto maybe_register = uarch::parse_register(current);
+        auto maybe_register = registers::parse_register(current);
         if (!maybe_register.has_value()) return error = "Unknown register: " + current, false;
         else if (!buf.match(Token::Equals)) return error = "Expected '=' after register", false;
         else if (!buf.match(t = Token::Hexadecimal, &current) && !buf.match(t = Token::Decimal, &current))
           return error = "Expected value after '='", false;
         else if (value = current.toInt(&ok, t == Token::Hexadecimal ? 16 : 10); !ok)
           return error = "Failed to parse value", false;
-        else if (value < 0 || (1 << 8 * uarch::register_byte_size(*maybe_register)) - 1 < value)
+        else if (value < 0 || (1 << 8 * registers::register_byte_size(*maybe_register)) - 1 < value)
           return error = "Register value too large", false;
-        else code.tests.emplace_back(RegisterValue<uarch>{*maybe_register, static_cast<quint32>(value)});
+        else code.tests.emplace_back(RegisterValue<registers>{*maybe_register, static_cast<quint32>(value)});
       }
 
       if (buf.match(Token::Comma) || buf.match(Token::Empty) || !buf.inputRemains()) continue;

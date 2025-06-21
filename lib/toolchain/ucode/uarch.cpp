@@ -125,7 +125,7 @@ std::optional<pepp::ucode::Pep9ByteBus::Signals> pepp::ucode::Pep9ByteBus::parse
   return std::nullopt;
 }
 
-uint8_t pepp::ucode::Pep9ByteBus::register_byte_size(NamedRegisters reg) {
+uint8_t pepp::ucode::Pep9Registers::register_byte_size(NamedRegisters reg) {
   switch (reg) {
   case NamedRegisters::T1: return 1;
   case NamedRegisters::IR: return 3;
@@ -133,13 +133,14 @@ uint8_t pepp::ucode::Pep9ByteBus::register_byte_size(NamedRegisters reg) {
   }
 }
 
-std::optional<pepp::ucode::Pep9ByteBus::NamedRegisters> pepp::ucode::Pep9ByteBus::parse_register(const QString &name) {
+std::optional<pepp::ucode::Pep9Registers::NamedRegisters>
+pepp::ucode::Pep9Registers::parse_register(const QString &name) {
   QStringView v(name);
   return parse_register(v);
 }
 
-std::optional<pepp::ucode::Pep9ByteBus::NamedRegisters>
-pepp::ucode::Pep9ByteBus::parse_register(const QStringView &name) {
+std::optional<pepp::ucode::Pep9Registers::NamedRegisters>
+pepp::ucode::Pep9Registers::parse_register(const QStringView &name) {
   static const QMetaEnum meta_enum = QMetaEnum::fromType<NamedRegisters>();
   for (int it = 0; it < meta_enum.keyCount(); it++)
     if (name.compare(meta_enum.key(it), Qt::CaseInsensitive) == 0)
@@ -265,28 +266,6 @@ std::optional<pepp::ucode::Pep9WordBus::Signals> pepp::ucode::Pep9WordBus::parse
   return std::nullopt;
 }
 
-uint8_t pepp::ucode::Pep9WordBus::register_byte_size(NamedRegisters reg) {
-  switch (reg) {
-  case NamedRegisters::T1: return 1;
-  case NamedRegisters::IR: return 3;
-  default: return 2;
-  }
-}
-
-std::optional<pepp::ucode::Pep9WordBus::NamedRegisters> pepp::ucode::Pep9WordBus::parse_register(const QString &name) {
-  QStringView v(name);
-  return parse_register(v);
-}
-
-std::optional<pepp::ucode::Pep9WordBus::NamedRegisters>
-pepp::ucode::Pep9WordBus::parse_register(const QStringView &name) {
-  static const QMetaEnum meta_enum = QMetaEnum::fromType<NamedRegisters>();
-  for (int it = 0; it < meta_enum.keyCount(); it++)
-    if (name.compare(meta_enum.key(it), Qt::CaseInsensitive) == 0)
-      return static_cast<NamedRegisters>(meta_enum.value(it));
-  return std::nullopt;
-}
-
 uint8_t pepp::ucode::Pep9WordBusControl::signal_group(Signals s) {
   using enum Signals;
   switch (s) {
@@ -305,29 +284,6 @@ bool pepp::ucode::Pep9WordBusControl::is_clock(Signals s) {
   using enum Signals;
   if (auto i = static_cast<int>(s); static_cast<int>(NCk) <= i && i <= static_cast<int>(MDRECk)) return true;
   else return false;
-}
-
-uint8_t pepp::ucode::Pep9WordBusControl::register_byte_size(NamedRegisters reg) {
-  switch (reg) {
-  case NamedRegisters::T1: return 1;
-  case NamedRegisters::IR: return 3;
-  default: return 2;
-  }
-}
-
-std::optional<pepp::ucode::Pep9WordBusControl::NamedRegisters>
-pepp::ucode::Pep9WordBusControl::parse_register(const QString &name) {
-  QStringView v(name);
-  return parse_register(v);
-}
-
-std::optional<pepp::ucode::Pep9WordBusControl::NamedRegisters>
-pepp::ucode::Pep9WordBusControl::parse_register(const QStringView &name) {
-  static const QMetaEnum meta_enum = QMetaEnum::fromType<NamedRegisters>();
-  for (int it = 0; it < meta_enum.keyCount(); it++)
-    if (name.compare(meta_enum.key(it), Qt::CaseInsensitive) == 0)
-      return static_cast<NamedRegisters>(meta_enum.value(it));
-  return std::nullopt;
 }
 
 std::optional<pepp::ucode::Pep9WordBusControl::Signals>

@@ -18,6 +18,35 @@
 #include <bitset>
 #include <stdint.h>
 namespace pepp::ucode {
+namespace detail::pep9_registers {
+Q_NAMESPACE
+enum class NamedRegisters {
+  A = 0,
+  X = 2,
+  SP = 4,
+  PC = 6,
+  IR = 8,
+  T1 = 11,
+  T2 = 12,
+  T3 = 14,
+  T4 = 16,
+  T5 = 18,
+  T6 = 20,
+  M1 = 22,
+  M2 = 24,
+  M3 = 26,
+  M4 = 28,
+  M5 = 30,
+};
+Q_ENUM_NS(NamedRegisters);
+} // namespace detail::pep9_registers
+struct Pep9Registers {
+  using NamedRegisters = detail::pep9_registers::NamedRegisters;
+  static uint8_t register_byte_size(NamedRegisters reg);
+  static std::optional<NamedRegisters> parse_register(const QString &name);
+  static std::optional<NamedRegisters> parse_register(const QStringView &name);
+};
+
 namespace detail::pep9_1byte {
 Q_NAMESPACE
 enum class Signals {
@@ -42,25 +71,6 @@ enum class Signals {
   MDRCk
 };
 Q_ENUM_NS(Signals);
-enum class NamedRegisters {
-  A = 0,
-  X = 2,
-  SP = 4,
-  PC = 6,
-  IR = 8,
-  T1 = 11,
-  T2 = 12,
-  T3 = 14,
-  T4 = 16,
-  T5 = 18,
-  T6 = 20,
-  M1 = 22,
-  M2 = 24,
-  M3 = 26,
-  M4 = 28,
-  M5 = 30,
-};
-Q_ENUM_NS(NamedRegisters);
 
 static constexpr uint8_t signal_bit_size_helper(Signals s) {
   switch (s) {
@@ -116,10 +126,6 @@ struct Pep9ByteBus {
     uint8_t get(Signals s) const;
     QString toString() const;
   };
-  using NamedRegisters = detail::pep9_1byte::NamedRegisters;
-  static uint8_t register_byte_size(NamedRegisters reg);
-  static std::optional<NamedRegisters> parse_register(const QString &name);
-  static std::optional<NamedRegisters> parse_register(const QStringView &name);
 };
 
 namespace detail::pep9_2byte {
@@ -210,10 +216,6 @@ struct Pep9WordBus {
     uint8_t get(Signals s) const;
     QString toString() const;
   };
-  using NamedRegisters = detail::pep9_1byte::NamedRegisters;
-  static uint8_t register_byte_size(NamedRegisters reg);
-  static std::optional<NamedRegisters> parse_register(const QString &name);
-  static std::optional<NamedRegisters> parse_register(const QStringView &name);
 };
 
 namespace detail::pep9_2byte_control {
@@ -297,9 +299,5 @@ struct Pep9WordBusControl {
     uint8_t get(Signals s) const;
     QString toString() const;
   };
-  using NamedRegisters = detail::pep9_1byte::NamedRegisters;
-  static uint8_t register_byte_size(NamedRegisters reg);
-  static std::optional<NamedRegisters> parse_register(const QString &name);
-  static std::optional<NamedRegisters> parse_register(const QStringView &name);
 };
 } // namespace pepp::ucode
