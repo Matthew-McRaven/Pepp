@@ -48,7 +48,7 @@ void ListTask::run() {
   for (auto &figure : figures) {
     std::cout
         << u"%1.%2"_s.arg(figure->chapterName(), figure->figureName()).leftJustified(maxFigWidth + 2).toStdString();
-    std::cout << figure->typesafeNamedElements().keys().join(", ").toStdString();
+    std::cout << figure->typesafeNamedFragments().keys().join(", ").toStdString();
     std::cout << std::endl;
   }
 
@@ -57,7 +57,7 @@ void ListTask::run() {
     for (auto &problem : problems) {
       std::cout
           << u"%1.%2"_s.arg(problem->chapterName(), problem->figureName()).leftJustified(maxFigWidth + 2).toStdString();
-      std::cout << problem->typesafeNamedElements().keys().join(", ").toStdString();
+      std::cout << problem->typesafeNamedFragments().keys().join(", ").toStdString();
       std::cout << std::endl;
     }
   }

@@ -25,30 +25,30 @@ Item {
     required property var payload
     required property string lexerLang
     property int architecture: Architecture.PEP10 // Silence QML warning about non-existent property
-    property string curLang: undefined
-    property var curElement: undefined
+    property string curFragName: undefined
+    property var curFragment: undefined
     NuAppSettings {
         id: settings
     }
 
     Component.onCompleted: {
-        const el = payload.elements;
-        const langs = Object.keys(el);
-        var defaultElementIndex = 0;
-        Object.keys(el).map(lang => {
-            if (el[lang].isHidden)
+        const frags = payload.fragments;
+        const names = Object.keys(frags);
+        var defaultFragmentIndex = 0;
+        Object.keys(frags).map(name => {
+            if (frags[name].isHidden)
                 return;
-            languageModel.append({
-                "key": lang,
-                "value": el[lang].content
+            fragmentModel.append({
+                "key": name,
+                "value": frags[name].content
             });
-            if (lang === wrapper.payload.copyToElementLanguage)
-                defaultElementIndex = languageModel.count - 1;
+            if (frags[name].isDefault)
+                defaultFragmentIndex = fragmentModel.count - 1;
         });
-        wrapper.curLang = Qt.binding(() => Object.keys(el)[defaultElementIndex]);
-        wrapper.curElement = Qt.binding(() => payload.elements[wrapper.curLang]);
-        langSelector.currentIndex = Qt.binding(() => defaultElementIndex);
-        langSelector.activated(defaultElementIndex);
+        wrapper.curFragName = Qt.binding(() => Object.keys(frags)[defaultFragmentIndex]);
+        wrapper.curFragment = Qt.binding(() => payload.fragments[wrapper.curFragName]);
+        fragmentSelector.currentIndex = Qt.binding(() => defaultFragmentIndex);
+        fragmentSelector.activated(defaultFragmentIndex);
     }
 
     ColumnLayout {
@@ -62,47 +62,47 @@ Item {
             fill: parent
         }
         ComboBox {
-            id: langSelector
+            id: fragmentSelector
             Layout.alignment: Qt.AlignTop
-            Layout.preferredHeight: Math.max(35, langSelectorFM.height)
+            Layout.preferredHeight: Math.max(35, fragmentSelectorFM.height)
             Layout.preferredWidth: parent.width
             Layout.fillWidth: true
             textRole: "key"
             valueRole: "value"
-            font: langSelectorFM.font
+            font: fragmentSelectorFM.font
             FontMetrics {
-                id: langSelectorFM
+                id: fragmentSelectorFM
                 font.pointSize: 25
             }
 
             model: ListModel {
-                id: languageModel
+                id: fragmentModel
             }
             delegate: ItemDelegate {
                 id: delegate
                 required property var model
                 required property int index
-                width: langSelector.width
+                width: fragmentSelector.width
                 contentItem: Text {
-                    text: delegate.model[langSelector.textRole]
+                    text: delegate.model[fragmentSelector.textRole]
                     //  Text color in dropdown
-                    color: langSelector.highlightedIndex === index ? palette.window : palette.dark
+                    color: fragmentSelector.highlightedIndex === index ? palette.window : palette.dark
                     font.pointSize: 12
                     elide: Text.ElideRight
                     verticalAlignment: Text.AlignVCenter
                 }
-                highlighted: langSelector.highlightedIndex === index
+                highlighted: fragmentSelector.highlightedIndex === index
             }
             indicator: Canvas {
                 id: canvas
-                x: langSelector.width - width - langSelector.rightPadding
-                y: langSelector.topPadding + (langSelector.availableHeight - height) / 2
+                x: fragmentSelector.width - width - fragmentSelector.rightPadding
+                y: fragmentSelector.topPadding + (fragmentSelector.availableHeight - height) / 2
                 width: 12
                 height: 8
                 contextType: "2d"
 
                 Connections {
-                    target: langSelector
+                    target: fragmentSelector
                     function onPressedChanged() {
                         canvas.requestPaint();
                     }
@@ -114,15 +114,15 @@ Item {
                     context.lineTo(width, 0);
                     context.lineTo(width / 2, height);
                     context.closePath();
-                    context.fillStyle = langSelector.pressed ? Qt.black : "#ff7d33";
+                    context.fillStyle = fragmentSelector.pressed ? Qt.black : "#ff7d33";
                     context.fill();
                 }
             }
             contentItem: Text {
                 leftPadding: 0
-                rightPadding: langSelector.indicator.width + langSelector.spacing
-                text: langSelector.displayText
-                font: langSelector.font
+                rightPadding: fragmentSelector.indicator.width + fragmentSelector.spacing
+                text: fragmentSelector.displayText
+                font: fragmentSelector.font
                 color: palette.text
                 verticalAlignment: Text.AlignVCenter
                 elide: Text.ElideRight
@@ -155,14 +155,14 @@ Item {
             Button {
                 id: button
                 visible: enabled
-                enabled: wrapper.payload.copyToElementLanguage.length > 0
+                enabled: wrapper.payload.defaultFragmentName.length > 0
                 text: "Copy to New Project"
                 anchors.horizontalCenter: copyRow.center
                 onClicked: {
                     const pl = wrapper.payload;
-                    const lang = pl.copyToElementLanguage;
-                    const text = pl.elements[lang].content;
-                    wrapper.addProject("", text, "Editor", pl?.defaultOS?.elements["pep"]?.content, pl?.tests);
+                    const name = pl.defaultFragmentName;
+                    const text = pl.fragments[name].content;
+                    wrapper.addProject("", text, "Editor", pl?.defaultOS?.fragments["pep"]?.content, pl?.tests);
                     wrapper.renameCurrentProject(wrapper.title);
                 }
             }

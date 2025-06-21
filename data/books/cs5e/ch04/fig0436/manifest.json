@@ -9,7 +9,7 @@
   "tests": [
     "io0"
   ],
-  "items": [
+  "fragments": [
     {
       "name": "pepb",
       "format": "pepb",

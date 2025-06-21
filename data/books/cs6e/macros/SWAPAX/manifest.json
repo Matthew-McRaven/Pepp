@@ -3,7 +3,7 @@
   "type": "macro",
   "arch": "pep10",
   "isHidden": true,
-  "items": {
+  "fragments": {
     "SWAPAX": "{name}.pepm"
   }
 }

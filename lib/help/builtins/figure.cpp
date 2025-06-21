@@ -23,13 +23,9 @@ builtins::Figure::Figure(pepp::Architecture arch, pepp::Abstraction level, QStri
       _isProblem(isProblem) {}
 
 builtins::Figure::~Figure() {
-  for (auto value : _tests) {
-    delete value;
-  }
-  _namedElements.clear();
-  for (auto value : _allElements) {
-    delete value;
-  }
+  for (auto value : _tests) delete value;
+  _namedFragments.clear();
+  for (auto value : _allFragments) delete value;
 }
 
 pepp::Architecture builtins::Figure::arch() const { return _arch; }
@@ -90,55 +86,52 @@ const QList<const builtins::Test *> builtins::Figure::typesafeTests() const {
 }
 
 QVariantList builtins::Figure::tests() const {
-  // Convert type-correct map to a QVariantMap, which can be accessed natively
-  // in QML
+  // Convert type-correct map to a QVariantMap, which can be accessed natively in QML
   QVariantList v;
   for (auto x : _tests) v.push_back(QVariant::fromValue(x));
   return v;
 }
 void builtins::Figure::addTest(const Test *test) {
-  // Unlike elements, do not de-duplicate tests, as this appears to be
-  // difficult.
+  // Unlike fragments, do not de-duplicate tests, as this appears to be difficult.
   _tests.push_back(test);
   emit testsChanged();
 }
 
-const builtins::Element *builtins::Figure::findElement(QString name) const {
-  if (auto ret = _namedElements.constFind(name); ret != _namedElements.constEnd()) return ret.value();
+const builtins::Fragment *builtins::Figure::findFragment(QString name) const {
+  if (auto ret = _namedFragments.constFind(name); ret != _namedFragments.constEnd()) return ret.value();
   else return nullptr;
 }
 
-const QList<const builtins::Element *> &builtins::Figure::typesafeElements() const { return _allElements; }
+const QList<const builtins::Fragment *> &builtins::Figure::typesafeFragments() const { return _allFragments; }
 
-const QMap<QString, const builtins::Element *> builtins::Figure::typesafeNamedElements() const {
-  return _namedElements;
+const QMap<QString, const builtins::Fragment *> builtins::Figure::typesafeNamedFragments() const {
+  return _namedFragments;
 }
 
-QVariantMap builtins::Figure::namedElements() const {
-  // Convert type-correct map to a QVariantMap, which can be accessed natively
-  // in QML
+QVariantMap builtins::Figure::namedFragments() const {
+  // Convert type-correct map to a QVariantMap, which can be accessed natively in QML
   QVariantMap v;
-  for (auto key = _namedElements.keyBegin(); key != _namedElements.keyEnd(); key++)
-    v[*key] = QVariant::fromValue(_namedElements[*key]);
+  for (auto key = _namedFragments.keyBegin(); key != _namedFragments.keyEnd(); key++)
+    v[*key] = QVariant::fromValue(_namedFragments[*key]);
   return v;
 }
 
-bool builtins::Figure::addElement(const Element *element) {
-  QString name = element->name;
+bool builtins::Figure::addFragment(const Fragment *frag) {
+  QString name = frag->name;
 
   // Only signal update if the figure does not already contain an element of the
   // same name (e.g., programming language)
   if (name.isEmpty()) {
-    _allElements.push_back(element);
+    _allFragments.push_back(frag);
     return true;
-  } else if (auto it = _namedElements.constFind(name); it == _namedElements.constEnd()) {
-    _allElements.push_back(element);
-    _namedElements[name] = element;
-    emit elementsChanged();
+  } else if (auto it = _namedFragments.constFind(name); it == _namedFragments.constEnd()) {
+    _allFragments.push_back(frag);
+    _namedFragments[name] = frag;
+    emit fragmentsChanged();
     return true;
   } else return false;
 }
 
-QString builtins::Figure::defaultElement() const { return _defaultElement; }
+QString builtins::Figure::defaultFragmentName() const { return _defaultFragmentName; }
 
-void builtins::Figure::setDefaultElement(QString lang) { _defaultElement = lang; }
+void builtins::Figure::setDefaultFragmentName(QString name) { _defaultFragmentName = name; }

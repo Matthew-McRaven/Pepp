@@ -4,7 +4,7 @@
   "name": "12:07i",
   "arch": "pep8",
   "abstraction": "MC2",
-  "items": [
+  "fragments": [
     {
       "name": "pepcpu",
       "format": "pepcpu",

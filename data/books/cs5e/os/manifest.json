@@ -5,7 +5,7 @@
   "arch": "pep9",
   "abstraction": "OS4",
   "isOS": true,
-  "items": [
+  "fragments": [
     {
       "name": "pep",
       "format": "pep",

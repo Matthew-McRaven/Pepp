@@ -3,7 +3,7 @@
   "type": "macro",
   "arch": "pep10",
   "family": "Character Input/Output",
-  "items": {
+  "fragments": {
     "CHARI": "{name}.pepm",
     "CHARO": "{name}.pepm"
   }

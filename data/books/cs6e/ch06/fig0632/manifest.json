@@ -13,7 +13,7 @@
     "io3",
     "io4"
   ],
-  "items": [
+  "fragments": [
     {
       "name": "pep",
       "format": "pep",

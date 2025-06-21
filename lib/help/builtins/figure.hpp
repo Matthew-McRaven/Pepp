@@ -16,19 +16,19 @@
  */
 
 #pragma once
-#include "elements.hpp"
 #include <QtCore>
+#include "fragment.hpp"
 namespace builtins {
 
 /*!
  * \brief Represents a single figure in a textbook
  *
- * A figure is composed of multiple textual elements, and may include a set of
+ * A figure is composed of multiple textual fragments, and may include a set of
  * test input:output pairs.
  *
  * This class is meant to be usable in both C++ and QML, so some Q_PROPERTYs
  * have a public API as a variant, but also provide a typesafe API for C++.
- * \see builtins::Figure#_tests \see builtins::Figure#_elements
+ * \see builtins::Figure#_tests \see builtins::Figure#_namedFragments
  *
  */
 class Figure : public QObject {
@@ -48,8 +48,8 @@ class Figure : public QObject {
   // See builtins::Test for properties
   Q_PROPERTY(QVariantList tests READ tests NOTIFY testsChanged);
   // See builtins::Element for available properties
-  Q_PROPERTY(QVariantMap elements READ namedElements NOTIFY elementsChanged);
-  Q_PROPERTY(QString copyToElementLanguage READ defaultElement CONSTANT);
+  Q_PROPERTY(QVariantMap fragments READ namedFragments NOTIFY fragmentsChanged);
+  Q_PROPERTY(QString defaultFragmentName READ defaultFragmentName CONSTANT);
 
 public:
   Figure(pepp::Architecture arch, pepp::Abstraction level, QString prefix, QString chapter, QString figure,
@@ -82,22 +82,22 @@ public:
   // Transfer ownership to this. Must be deleted in this object's destructor
   void addTest(const builtins::Test *test);
 
-  const builtins::Element *findElement(QString name) const;
-  const QMap<QString, const builtins::Element *> typesafeNamedElements() const;
-  const QList<const Element *> &typesafeElements() const;
+  const builtins::Fragment *findFragment(QString name) const;
+  const QMap<QString, const builtins::Fragment *> typesafeNamedFragments() const;
+  const QList<const Fragment *> &typesafeFragments() const;
   // Creates variant map on-the-fly, please limit # of calls.
-  QVariantMap namedElements() const;
+  QVariantMap namedFragments() const;
   // Transfer ownership to this. Must be deleted in this object's destructor
-  bool addElement(const builtins::Element *element);
-  QString defaultElement() const;
-  void setDefaultElement(QString lang);
+  bool addFragment(const builtins::Fragment *fragment);
+  QString defaultFragmentName() const;
+  void setDefaultFragmentName(QString name);
 
 signals:
   void isOSChanged();
   void isHiddenChanged();
   void defaultOSChanged();
   void testsChanged();
-  void elementsChanged();
+  void fragmentsChanged();
 
 private:
   const pepp::Architecture _arch;
@@ -111,9 +111,9 @@ private:
   // Owns pointers
   QList<const builtins::Test *> _tests = {};
   // Owns pointers
-  QMap<QString, const Element *> _namedElements = {};
-  QList<const Element *> _allElements = {};
-  QString _defaultElement = {};
+  QMap<QString, const Fragment *> _namedFragments = {};
+  QList<const Fragment *> _allFragments = {};
+  QString _defaultFragmentName = {};
 };
 } // end namespace builtins
 Q_DECLARE_METATYPE(builtins::Figure);
