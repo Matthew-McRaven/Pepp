@@ -56,7 +56,7 @@ TEST_CASE("Sanity Tests for 1 Byte ucode", "[scope:ucode][kind:unit][arch:*]") {
     CHECK(read<quint8>(*cpu.bankRegs(), 3) == 0);
     CHECK(read<quint8>(*cpu.bankRegs(), 30) == 0);
     CHECK(read<quint16>(mem, 0xFFFE) == 0);
-    cpu.loadConstantRegisters();
+    cpu.setConstantRegisters();
     cpu.applyPreconditions(result.program[0].tests);
     CHECK(read<quint8>(*cpu.bankRegs(), 2) == 0x23);
     CHECK(read<quint8>(*cpu.bankRegs(), 3) == 0x45);
@@ -66,7 +66,7 @@ TEST_CASE("Sanity Tests for 1 Byte ucode", "[scope:ucode][kind:unit][arch:*]") {
   SECTION("ALU addition") {
     auto [mem, cpu] = make();
     cpu.setTarget(&mem, nullptr);
-    cpu.loadConstantRegisters();
+    cpu.setConstantRegisters();
     std::vector<Code> microcode = {Code{
         .A = 28,
         .B = 22,
@@ -89,7 +89,7 @@ TEST_CASE("Sanity Tests for 1 Byte ucode", "[scope:ucode][kind:unit][arch:*]") {
     auto result = pepp::ucode::parse<uarch, regs>(source);
     CHECK(result.program.size() == 1);
     CHECK(read<quint8>(*cpu.bankRegs(), 0) == 0x0);
-    cpu.loadConstantRegisters();
+    cpu.setConstantRegisters();
     cpu.applyPreconditions(result.program[0].tests);
     auto microcode = std::vector<Code>{{Code{.A = 30, .B = 31, .MARCk = 1}, Code{.MemRead = 1}, Code{.MemRead = 1},
                                         Code{.MemRead = 1, .MDRMux = 0, .MDRCk = 1},
@@ -107,7 +107,7 @@ TEST_CASE("Sanity Tests for 1 Byte ucode", "[scope:ucode][kind:unit][arch:*]") {
   SECTION("memwrite") {
     auto [mem, cpu] = make();
     cpu.setTarget(&mem, nullptr);
-    cpu.loadConstantRegisters();
+    cpu.setConstantRegisters();
     auto microcode = std::vector<Code>{{
         Code{.A = 30, .B = 31, .MARCk = 1},
         Code{.MemWrite = 1, .A = 30, .AMux = 1, .ALU = 0, .CMux = 1, .MDRMux = 1, .MDRCk = 1},
@@ -122,7 +122,7 @@ TEST_CASE("Sanity Tests for 1 Byte ucode", "[scope:ucode][kind:unit][arch:*]") {
   SECTION("Halted memwrite") {
     auto [mem, cpu] = make();
     cpu.setTarget(&mem, nullptr);
-    cpu.loadConstantRegisters();
+    cpu.setConstantRegisters();
     auto microcode =
         std::vector<Code>{{Code{.A = 30, .B = 31, .MARCk = 1},
                            Code{.MemWrite = 1, .A = 30, .AMux = 1, .ALU = 0, .CMux = 1, .MDRMux = 1, .MDRCk = 1},

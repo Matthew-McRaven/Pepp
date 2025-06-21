@@ -16,8 +16,6 @@
  */
 
 #pragma once
-#include "enums/isa/pep9.hpp"
-#include "sim/api2.hpp"
 #include "sim/debug/debugger.hpp"
 #include "sim/device/dense.hpp"
 #include "toolchain/ucode/parser.hpp" // TODO: Stop including the parser in the simulator!!
@@ -34,7 +32,7 @@ class CPUByteBus : public sim::api2::tick::Recipient,
                    public sim::api2::memory::Initiator<quint16> {
 public:
   using CSRs = pepp::ucode::Pep9Registers::CSRs;
-  enum class HiddenRegisters { MARA = 0, MARB, MDR };
+  using HiddenRegisters = pepp::ucode::Pep9ByteBus::HiddenRegisters;
   CPUByteBus(sim::api2::device::Descriptor device, sim::api2::device::IDGenerator gen);
   ~CPUByteBus() = default;
   CPUByteBus(CPUByteBus &&other) noexcept = default;
@@ -54,7 +52,7 @@ public:
   std::vector<bool> testPostconditions(const QList<pepp::ucode::Test<pepp::ucode::Pep9Registers>> &tests);
 
   Status status() const;
-  void loadConstantRegisters();
+  void setConstantRegisters();
   void resetMicroPC();
 
   // Target interface

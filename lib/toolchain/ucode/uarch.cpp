@@ -113,6 +113,11 @@ bool pepp::ucode::Pep9ByteBus::is_clock(Signals s) {
   else return false;
 }
 
+uint8_t pepp::ucode::Pep9ByteBus::hidden_register_count() {
+  static const QMetaEnum meta_enum = QMetaEnum::fromType<detail::pep9_1byte::HiddenRegisters>();
+  return meta_enum.keyCount();
+}
+
 std::optional<pepp::ucode::Pep9ByteBus::Signals> pepp::ucode::Pep9ByteBus::parse_signal(const QString &name) {
   QStringView v(name);
   return parse_signal(v);
@@ -252,6 +257,11 @@ bool pepp::ucode::Pep9WordBus::is_clock(Signals s) {
   using enum Signals;
   if (static_cast<int>(s) >= static_cast<int>(NCk)) return true;
   else return false;
+}
+
+uint8_t pepp::ucode::Pep9WordBus::hidden_register_count() {
+  static const QMetaEnum meta_enum = QMetaEnum::fromType<detail::pep9_2byte::HiddenRegisters>();
+  return meta_enum.keyCount();
 }
 
 std::optional<pepp::ucode::Pep9WordBus::Signals> pepp::ucode::Pep9WordBus::parse_signal(const QString &name) {

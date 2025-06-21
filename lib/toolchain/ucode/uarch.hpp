@@ -86,6 +86,8 @@ static constexpr uint8_t signal_bit_size_helper(Signals s) {
   default: return 1;
   }
 }
+enum class HiddenRegisters { MARA = 0, MARB, MDR };
+Q_ENUM_NS(HiddenRegisters)
 } // namespace detail::pep9_1byte
 
 struct Pep9ByteBus {
@@ -98,6 +100,8 @@ struct Pep9ByteBus {
   static std::optional<Signals> parse_signal(const QStringView &name);
   inline static constexpr bool allows_symbols() { return false; }
   inline static constexpr bool signal_allows_symbolic_argument(Signals s) { return false; }
+  using HiddenRegisters = detail::pep9_1byte::HiddenRegisters;
+  static uint8_t hidden_register_count();
   struct Code {
     uint8_t MemRead : signal_bit_size_helper(Signals::MemRead) = 0;
     uint8_t MemWrite : signal_bit_size_helper(Signals::MemWrite) = 0;
@@ -171,6 +175,8 @@ static constexpr uint8_t signal_bit_size_helper(Signals s) {
   default: return 1;
   }
 }
+enum class HiddenRegisters { MARA = 0, MARB, MDRE, MDRO };
+Q_ENUM_NS(HiddenRegisters)
 } // namespace detail::pep9_2byte
 
 struct Pep9WordBus {
@@ -183,6 +189,8 @@ struct Pep9WordBus {
   static std::optional<Signals> parse_signal(const QStringView &name);
   inline static constexpr bool allows_symbols() { return false; }
   inline static constexpr bool signal_allows_symbolic_argument(Signals s) { return false; }
+  using HiddenRegisters = detail::pep9_2byte::HiddenRegisters;
+  static uint8_t hidden_register_count();
   struct Code {
     uint8_t MemRead : signal_bit_size_helper(Signals::MemRead) = 0;
     uint8_t MemWrite : signal_bit_size_helper(Signals::MemWrite) = 0;
@@ -285,6 +293,8 @@ struct Pep9WordBusControl {
   inline static constexpr bool signal_allows_symbolic_argument(Signals s) {
     return s == Signals::TrueT || s == Signals::FalseT;
   }
+  using HiddenRegisters = detail::pep9_2byte::HiddenRegisters; // No idea what all registers the control section has.
+  static uint8_t hidden_register_count() { throw std::logic_error("Not implemented"); };
   struct Code : public Pep9WordBus::Code {
     uint8_t PreValid : signal_bit_size_helper(Signals::PreValid) = 0;
     uint8_t BR : signal_bit_size_helper(Signals::BR) = 0;

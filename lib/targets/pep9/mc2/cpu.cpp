@@ -60,7 +60,7 @@ targets::pep9::mc2::CPUByteBus::testPostconditions(const QList<pepp::ucode::Test
   return {};
 }
 
-void targets::pep9::mc2::CPUByteBus::loadConstantRegisters() {
+void targets::pep9::mc2::CPUByteBus::setConstantRegisters() {
   writeReg(22, 0x00);
   writeReg(23, 0x01);
   writeReg(24, 0x02);
