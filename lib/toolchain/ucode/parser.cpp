@@ -15,22 +15,23 @@
  */
 #include "./parser.hpp"
 
-const QRegularExpression pepp::ucode::detail::TokenBuffer::_identifier("[a-zA-Z]+");
-const QRegularExpression pepp::ucode::detail::TokenBuffer::_symbol("[a-zA-Z_][a-zA-Z0-9_]*:");
-const QRegularExpression pepp::ucode::detail::TokenBuffer::_decimal("[0-9]+");
-const QRegularExpression pepp::ucode::detail::TokenBuffer::_hexadecimal("0[xX][0-9a-fA-F]+");
-const QRegularExpression pepp::ucode::detail::TokenBuffer::_comment("//[^\n]*");
-
 pepp::ucode::detail::TokenBuffer::TokenBuffer(const QStringView &line) : _data(line) {}
+
+int pepp::ucode::detail::TokenBuffer::matchCount() const { return _matchCount; }
 
 bool pepp::ucode::detail::TokenBuffer::inputRemains() const { return _start < _data.size(); }
 
 bool pepp::ucode::detail::TokenBuffer::match(Token token, QStringView *out) {
-  if (peek(token, out)) return _start = _end, _currentToken.reset(), true;
+  if (peek(token, out)) return _start = _end, _currentToken.reset(), _matchCount++, true;
   else return false;
 }
 
 bool pepp::ucode::detail::TokenBuffer::peek(Token token, QStringView *out) {
+  static const QRegularExpression identifier("[a-zA-Z][a-zA-Z0-9_]*");
+  static const QRegularExpression symbol("[a-zA-Z_][a-zA-Z0-9_]*:");
+  static const QRegularExpression decimal("[0-9]+");
+  static const QRegularExpression hexadecimal("0[xX][0-9a-fA-F]+");
+  static const QRegularExpression comment("//[^\n]*");
   static const auto NormalMatch = QRegularExpression::NormalMatch;
   static const auto Anchored = QRegularExpression::AnchorAtOffsetMatchOption;
   if (_currentToken) {
@@ -62,19 +63,23 @@ bool pepp::ucode::detail::TokenBuffer::peek(Token token, QStringView *out) {
     } else if (nextCh == ";") {
       _end = _start + 1, _currentToken = Token::Semicolon;
       break;
-    } else if (auto maybeSymbol = _symbol.matchView(_data, _start, NormalMatch, Anchored); maybeSymbol.hasMatch()) {
-      _end = maybeSymbol.capturedEnd(0), _currentToken = Token::Symbol;
+    } else if (auto maybeSymbol = symbol.matchView(_data, _start, NormalMatch, Anchored); maybeSymbol.hasMatch()) {
+      _end = maybeSymbol.capturedEnd(0);
+      if (maybeSymbol.capturedView(0).compare("UnitPre:", Qt::CaseInsensitive) == 0) _currentToken = Token::UnitPre;
+      else if (maybeSymbol.capturedView(0).compare("UnitPost:", Qt::CaseInsensitive) == 0)
+        _currentToken = Token::UnitPost;
+      else _currentToken = Token::Symbol;
       break;
-    } else if (auto maybeIdent = _identifier.matchView(_data, _start, NormalMatch, Anchored); maybeIdent.hasMatch()) {
+    } else if (auto maybeIdent = identifier.matchView(_data, _start, NormalMatch, Anchored); maybeIdent.hasMatch()) {
       _end = maybeIdent.capturedEnd(0), _currentToken = Token::Identifier;
       break;
-    } else if (auto maybeDec = _decimal.matchView(_data, _start, NormalMatch, Anchored); maybeDec.hasMatch()) {
-      _end = maybeDec.capturedEnd(0), _currentToken = Token::Decimal;
-      break;
-    } else if (auto maybeHex = _hexadecimal.matchView(_data, _start, NormalMatch, Anchored); maybeHex.hasMatch()) {
+    } else if (auto maybeHex = hexadecimal.matchView(_data, _start, NormalMatch, Anchored); maybeHex.hasMatch()) {
       _end = maybeHex.capturedEnd(0), _currentToken = Token::Hexadecimal;
       break;
-    } else if (auto maybeComment = _comment.matchView(_data, _start, NormalMatch, Anchored); maybeComment.hasMatch()) {
+    } else if (auto maybeDec = decimal.matchView(_data, _start, NormalMatch, Anchored); maybeDec.hasMatch()) {
+      _end = maybeDec.capturedEnd(0), _currentToken = Token::Decimal;
+      break;
+    } else if (auto maybeComment = comment.matchView(_data, _start, NormalMatch, Anchored); maybeComment.hasMatch()) {
       _end = maybeComment.capturedEnd(0), _currentToken = Token::Comment;
       break;
     } else {

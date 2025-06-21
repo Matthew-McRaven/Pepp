@@ -16,6 +16,17 @@
 #pragma once
 #include <QRegularExpression>
 namespace pepp::ucode {
+struct MemValue {
+  quint8 value = 0;
+  quint16 address = 0;
+};
+template <typename uarch> struct RegisterValue {
+  typename uarch::NamedRegisters reg;
+  // Based on the size of the register, you MUST mask this down to [1-3] bytes
+  quint32 value = 0;
+};
+template <typename uarch> using Test = std::variant<MemValue, RegisterValue<uarch>>;
+
 template <typename uarch> struct ParseResult {
   using Error = std::pair<int, QString>;
   using Errors = std::vector<Error>;
@@ -24,6 +35,8 @@ template <typename uarch> struct ParseResult {
     std::optional<QString> comment, symbolDecl;
     uint16_t address = -1;
     QMap<typename uarch::Signals, QString> deferredValues;
+    enum class Type { Code, Pre, Post } type = Type::Code;
+    QList<Test<uarch>> tests;
   };
 
   using Program = std::vector<Line>;
@@ -95,40 +108,74 @@ enum class Token {
   Comment,
   Decimal,
   Hexadecimal,
+  UnitPre,
+  UnitPost,
   Symbol,
   Invalid
 };
 class TokenBuffer {
 public:
   TokenBuffer(const QStringView &line);
+  int matchCount() const;
   bool inputRemains() const;
   bool match(Token token, QStringView *out = nullptr);
   bool peek(Token token, QStringView *out = nullptr);
   QStringView rest();
-
 private:
-  static const QRegularExpression _identifier;
-  static const QRegularExpression _symbol;
-  static const QRegularExpression _decimal;
-  static const QRegularExpression _hexadecimal;
-  static const QRegularExpression _comment;
-
   const QStringView &_data;
-  int _start = 0, _end = 0;
+  int _start = 0, _end = 0, _matchCount = 0;
   std::optional<Token> _currentToken = std::nullopt;
-  ;
 };
 
 } // namespace detail
 
 template <typename uarch>
 bool detail::parseLine(const QStringView &line, typename ParseResult<uarch>::Line &code, QString &error) {
+  using Line = ParseResult<uarch>::Line;
   int current_group = 0;
   int signals_in_group = 0;
   TokenBuffer buf(line);
   QStringView current;
   while (buf.inputRemains()) {
-    if (buf.match(Token::Symbol, &current)) {
+    if (code.type == Line::Type::Pre || code.type == Line::Type::Post) {
+      bool ok;
+      int address = 0, value = 0;
+      // Rely on operator short-circuiting to ensure that the first match is put into t.
+      // Used to decide between hex/decimal values.
+      Token t;
+      if (!buf.match(Token::Identifier, &current)) return error = "Expected identifier after pre/post unit", false;
+      else if (current.compare("mem", Qt::CaseInsensitive) == 0) { // Match Mem[numeric]=value
+        if (!buf.match(Token::LeftBracket)) return error = "Expected '[' after 'Mem'", false;
+        else if (!buf.match(Token::Hexadecimal, &current)) return error = "Expected address after '['", false;
+        else if (address = current.mid(2).toInt(&ok, 16); !ok) return error = "Failed to parse address", false;
+        else if (address < 0 || address > 0xFFFF) return error = "Address out of range", false;
+        else if (!buf.match(Token::RightBracket)) return error = "Expected ']' after address", false;
+        else if (!buf.match(Token::Equals)) return error = "Expected '=' after Mem", false;
+        else if (!buf.match(t = Token::Hexadecimal, &current) && !buf.match(t = Token::Decimal, &current))
+          return error = "Expected value after '='", false;
+        else if (value = current.toInt(&ok, t == Token::Hexadecimal ? 16 : 10); !ok)
+          return error = "Failed to parse value", false;
+        else if (value < 0 || value > 255) return error = "Value too large", false;
+        else code.tests.emplace_back(MemValue{static_cast<quint8>(value), static_cast<quint16>(address)});
+      } else { // Match identifer=value
+        auto maybe_register = uarch::parse_register(current);
+        if (!maybe_register.has_value()) return error = "Unknown register: " + current, false;
+        else if (!buf.match(Token::Equals)) return error = "Expected '=' after register", false;
+        else if (!buf.match(t = Token::Hexadecimal, &current) && !buf.match(t = Token::Decimal, &current))
+          return error = "Expected value after '='", false;
+        else if (value = current.toInt(&ok, t == Token::Hexadecimal ? 16 : 10); !ok)
+          return error = "Failed to parse value", false;
+        else if (value < 0 || (1 << 8 * uarch::register_byte_size(*maybe_register)) - 1 < value)
+          return error = "Register value too large", false;
+        else code.tests.emplace_back(RegisterValue<uarch>{*maybe_register, static_cast<quint32>(value)});
+      }
+
+      if (buf.match(Token::Comma) || buf.match(Token::Empty) || !buf.inputRemains()) continue;
+      else if (buf.match(Token::Comment, &current)) code.comment = current.toString();
+      else return error = "Unexpected comma, newline, or comment after test", false;
+    } else if (buf.matchCount() == 0 && buf.match(Token::UnitPre)) code.type = Line::Type::Pre;
+    else if (buf.matchCount() == 0 && buf.match(Token::UnitPost)) code.type = Line::Type::Post;
+    else if (buf.match(Token::Symbol, &current)) {
       if (!uarch::allows_symbols()) return error = "Symbols are forbidden", false;
       code.symbolDecl = current.left(current.size() - 1).toString(); // Remove trailing :
       if (!buf.peek(Token::Identifier)) return error = "Expected identifier after symbol declaration", false;
@@ -137,7 +184,6 @@ bool detail::parseLine(const QStringView &line, typename ParseResult<uarch>::Lin
       signals_in_group = 0;
       if (current_group >= uarch::max_signal_groups()) return error = "Unexpected semicolon", false;
     } else if (buf.match(Token::Identifier, &current)) {
-
       auto maybe_signal = uarch::parse_signal(current);
       if (!maybe_signal.has_value()) return error = "Unknown signal: " + current, false;
       typename uarch::Signals s = *maybe_signal;
@@ -149,9 +195,9 @@ bool detail::parseLine(const QStringView &line, typename ParseResult<uarch>::Lin
           else return error = "Unexpected signal " + current, false;
         }
         code.controls.set(s, 1), signals_in_group++;
-        if (buf.match(Token::Comma) || buf.match(Token::Empty)) continue;
+        if (buf.match(Token::Comma) || buf.match(Token::Empty) || !buf.inputRemains()) continue;
         else if (buf.match(Token::Comment, &current)) code.comment = current.toString();
-        else if (buf.peek(Token::Semicolon) || !buf.inputRemains()) continue;
+        else if (buf.peek(Token::Semicolon)) continue;
         else return (error = "Unexpected token after clock signal"), false;
       } else {
         if (auto group = uarch::signal_group(s); group != current_group) {
@@ -171,9 +217,9 @@ bool detail::parseLine(const QStringView &line, typename ParseResult<uarch>::Lin
           else code.controls.set(s, value);
         } else return error = "Expected value for signal", false;
 
-        if (buf.match(Token::Comma) || buf.match(Token::Empty)) continue;
+        if (buf.match(Token::Comma) || buf.match(Token::Empty) || !buf.inputRemains()) continue;
         else if (buf.match(Token::Comment, &current)) code.comment = current.toString();
-        else if (buf.peek(Token::Semicolon) || !buf.inputRemains()) continue;
+        else if (buf.peek(Token::Semicolon)) continue;
         else return error = "Unexpected token after signal", false;
       }
     } else if (buf.match(Token::Comment, &current)) return code.comment = current.toString(), true;

@@ -118,6 +118,8 @@ struct Pep9ByteBus {
   };
   using NamedRegisters = detail::pep9_1byte::NamedRegisters;
   static uint8_t register_byte_size(NamedRegisters reg);
+  static std::optional<NamedRegisters> parse_register(const QString &name);
+  static std::optional<NamedRegisters> parse_register(const QStringView &name);
 };
 
 namespace detail::pep9_2byte {
@@ -210,6 +212,8 @@ struct Pep9WordBus {
   };
   using NamedRegisters = detail::pep9_1byte::NamedRegisters;
   static uint8_t register_byte_size(NamedRegisters reg);
+  static std::optional<NamedRegisters> parse_register(const QString &name);
+  static std::optional<NamedRegisters> parse_register(const QStringView &name);
 };
 
 namespace detail::pep9_2byte_control {
@@ -295,5 +299,7 @@ struct Pep9WordBusControl {
   };
   using NamedRegisters = detail::pep9_1byte::NamedRegisters;
   static uint8_t register_byte_size(NamedRegisters reg);
+  static std::optional<NamedRegisters> parse_register(const QString &name);
+  static std::optional<NamedRegisters> parse_register(const QStringView &name);
 };
 } // namespace pepp::ucode

@@ -201,4 +201,95 @@ TEST_CASE("Microassemble 1-byte bus", "[scope:ucode][kind:unit][arch:*]") {
       CHECK(line.controls.get(uarch2c::Signals::BR) == 5);
     }
   }
+  SECTION("Valid pre/post") {
+    {
+      QString source = "UnitPost: X=5, Mem[0x1]=27";
+      auto result = pepp::ucode::parse<uarch>(source);
+      CHECK(result.errors.size() == 0);
+      REQUIRE(result.program.size() == 1);
+      auto &line = result.program[0];
+      CHECK(line.controls.enables.count() == 0);
+      CHECK(line.type == pepp::ucode::ParseResult<uarch>::Line::Type::Post);
+      CHECK(line.tests.size() == 2);
+    }
+    {
+      QString source = "UnitPre: IR=0x123456, Mem[0x1]=0xFE";
+      auto result = pepp::ucode::parse<uarch>(source);
+      CHECK(result.errors.size() == 0);
+      REQUIRE(result.program.size() == 1);
+      auto &line = result.program[0];
+      CHECK(line.controls.enables.count() == 0);
+      CHECK(line.type == pepp::ucode::ParseResult<uarch>::Line::Type::Pre);
+      CHECK(line.tests.size() == 2);
+    }
+  }
+
+  SECTION("Test missing ,") {
+    QString source = "UnitPost: X=5 Mem[0x1]=27";
+    auto result = pepp::ucode::parse<uarch>(source);
+    CHECK(result.errors.size() == 1);
+    CHECK(result.program.size() == 0);
+  }
+  SECTION("Test missing =") {
+    QString source = "UnitPost: X 5";
+    auto result = pepp::ucode::parse<uarch>(source);
+    CHECK(result.errors.size() == 1);
+    CHECK(result.program.size() == 0);
+  }
+  SECTION("Test no symbols") {
+    QString source = "UnitPost: x:X=5";
+    auto result = pepp::ucode::parse<uarch>(source);
+    CHECK(result.errors.size() == 1);
+    CHECK(result.program.size() == 0);
+  }
+  SECTION("Test missing number") {
+    QString source = "UnitPost: X=X";
+    auto result = pepp::ucode::parse<uarch>(source);
+    CHECK(result.errors.size() == 1);
+    CHECK(result.program.size() == 0);
+  }
+  SECTION("Test memory address out-of-range") {
+    QString source = "UnitPost: Mem[0x10000]=0";
+    auto result = pepp::ucode::parse<uarch>(source);
+    CHECK(result.errors.size() == 1);
+    CHECK(result.program.size() == 0);
+  }
+  SECTION("Test memory value out-of-range") {
+    QString source = "UnitPost: Mem[0xFFFF]=0x100";
+    auto result = pepp::ucode::parse<uarch>(source);
+    CHECK(result.errors.size() == 1);
+    CHECK(result.program.size() == 0);
+  }
+  SECTION("Test register value out-of-range") {
+    {
+      QString good_source = "UnitPost: T1=0xFF";
+      auto result = pepp::ucode::parse<uarch>(good_source);
+      CHECK(result.errors.size() == 0);
+      CHECK(result.program.size() == 1);
+      QString bad_source = "UnitPost: T1=0x100";
+      result = pepp::ucode::parse<uarch>(bad_source);
+      CHECK(result.errors.size() == 1);
+      CHECK(result.program.size() == 0);
+    }
+    {
+      QString good_source = "UnitPost: X=0xFFFF";
+      auto result = pepp::ucode::parse<uarch>(good_source);
+      CHECK(result.errors.size() == 0);
+      CHECK(result.program.size() == 1);
+      QString bad_source = "UnitPost: X=0x10000";
+      result = pepp::ucode::parse<uarch>(bad_source);
+      CHECK(result.errors.size() == 1);
+      CHECK(result.program.size() == 0);
+    }
+    {
+      QString good_source = "UnitPost: IR=0xFFFFFF";
+      auto result = pepp::ucode::parse<uarch>(good_source);
+      CHECK(result.errors.size() == 0);
+      CHECK(result.program.size() == 1);
+      QString bad_source = "UnitPost: IR=0x1000000";
+      result = pepp::ucode::parse<uarch>(bad_source);
+      CHECK(result.errors.size() == 1);
+      CHECK(result.program.size() == 0);
+    }
+  }
 }
