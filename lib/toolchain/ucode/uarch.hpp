@@ -39,12 +39,17 @@ enum class NamedRegisters {
   M5 = 30,
 };
 Q_ENUM_NS(NamedRegisters);
+enum class CSRs { N, Z, V, C, S };
+Q_ENUM_NS(CSRs);
 } // namespace detail::pep9_registers
 struct Pep9Registers {
   using NamedRegisters = detail::pep9_registers::NamedRegisters;
   static uint8_t register_byte_size(NamedRegisters reg);
   static std::optional<NamedRegisters> parse_register(const QString &name);
   static std::optional<NamedRegisters> parse_register(const QStringView &name);
+  static constexpr quint8 register_count() { return 32; }
+  using CSRs = detail::pep9_registers::CSRs;
+  static constexpr quint8 csr_count() { return 5; }
 };
 
 namespace detail::pep9_1byte {
