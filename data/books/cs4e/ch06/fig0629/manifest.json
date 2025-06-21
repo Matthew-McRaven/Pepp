@@ -5,7 +5,7 @@
   "arch": "pep8",
   "abstraction": "ASMB5",
   "default_os": "os:pep8os",
-  "items": [
+  "fragments": [
     {
       "name": "pep",
       "format": "pep",

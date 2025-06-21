@@ -3,7 +3,7 @@
   "type": "macro",
   "arch": "pep10",
   "family": "Arithmetic Shift Left",
-  "items": {
+  "fragments": {
     "ASLX2": "{name}.pepm",
     "ASLX3": "{name}.pepm",
     "ASLX4": "{name}.pepm",

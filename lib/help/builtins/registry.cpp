@@ -319,14 +319,14 @@ builtins::Registry::loadFigureV2(const QJsonDocument &manifest, const QString &p
 
   // Add elements
   std::optional<QString> _default = std::nullopt;
-  auto itemsArray = manifest["items"].toArray();
-  for (const auto &itemIter : std::as_const(itemsArray)) {
+  auto fragmentArray = manifest["fragments"].toArray();
+  for (const auto &fragmentIter : std::as_const(fragmentArray)) {
     // Perform templatization on manifest values.
-    auto itemObject = itemIter.toObject();
-    templateize(itemObject, substitutions);
-    auto item = loadElement(itemObject, manifestDir, &*figure, this);
+    auto fragmentObject = fragmentIter.toObject();
+    templateize(fragmentObject, substitutions);
+    auto item = loadElement(fragmentObject, manifestDir, &*figure, this);
     if (item == nullptr) {
-      qWarning("Failed to load element %s", itemObject["name"].toString("").toStdString().c_str());
+      qWarning("Failed to load element %s", fragmentObject["name"].toString("").toStdString().c_str());
       continue;
     }
     item->figure = figure;
@@ -345,12 +345,12 @@ builtins::Registry::loadMacroV2(const QJsonDocument &manifest, const QString &pa
   auto manifestDir = QFileInfo(path).dir();
 
   // Add elements
-  auto itemsObject = manifest["items"].toObject();
-  auto itemsKeys = itemsObject.keys();
-  for (const auto &itemIter : std::as_const(itemsKeys)) {
+  auto fragmentObject = manifest["fragments"].toObject();
+  auto fragmentKeys = fragmentObject.keys();
+  for (const auto &fragmentIter : std::as_const(fragmentKeys)) {
     // Perform templatization on manifest values.
-    auto substitutions = QMap<QString, QString>{{"name", itemIter}};
-    auto path = templatize(itemsObject[itemIter].toString(), substitutions);
+    auto substitutions = QMap<QString, QString>{{"name", fragmentIter}};
+    auto path = templatize(fragmentObject[fragmentIter].toString(), substitutions);
 
     // Load the macro
     auto macroText = read(manifestDir.absoluteFilePath(path));

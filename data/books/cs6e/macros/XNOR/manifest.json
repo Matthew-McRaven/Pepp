@@ -2,7 +2,7 @@
   "version": 2,
   "type": "macro",
   "arch": "pep10",
-  "items": {
+  "fragments": {
     "XNORA": "{name}.pepm",
     "XNORX": "{name}.pepm"
   }

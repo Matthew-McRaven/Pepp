@@ -5,7 +5,7 @@
   "arch": "pep8",
   "abstraction": "ISA3",
   "default_os": "os:pep8os",
-  "items": [
+  "fragments": [
     {
       "name": "pepb",
       "format": "pepb",

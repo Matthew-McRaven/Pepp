@@ -3,7 +3,7 @@
   "type": "macro",
   "arch": "pep10",
   "family": "Rotate Left",
-  "items": {
+  "fragments": {
     "ROLX2": "{name}.pepm",
     "ROLX3": "{name}.pepm",
     "ROLX4": "{name}.pepm",

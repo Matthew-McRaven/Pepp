@@ -3,7 +3,7 @@
   "type": "macro",
   "arch": "pep10",
   "family": "C Library",
-  "items": {
+  "fragments": {
     "MALLOC": "{name}.pepm"
   }
 }
