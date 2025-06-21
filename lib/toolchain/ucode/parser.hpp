@@ -16,34 +16,48 @@
 #pragma once
 #include <QRegularExpression>
 namespace pepp::ucode {
-struct MemValue {
+// A test condition which gets/sets a memory address
+struct MemTest {
   quint8 value = 0;
   quint16 address = 0;
 };
-template <typename registers> struct RegisterValue {
+// A test condition which gets/sets a variable-sized register
+template <typename registers> struct RegisterTest {
   typename registers::NamedRegisters reg;
-  // Based on the size of the register, you MUST mask this down to [1-3] bytes
+  // Based on the size of the register, you MUST mask this down to [1-3] bytes.
+  // You will also need to byteswap and shift depending on the architecture
   quint32 value = 0;
 };
-template <typename registers> using Test = std::variant<MemValue, RegisterValue<registers>>;
+// A UnitPre or UnitPost is a comma-deliited set of memory tests or register tests
+template <typename registers> using Test = std::variant<MemTest, RegisterTest<registers>>;
 
 template <typename uarch, typename registers> struct ParseResult {
+  // 0-indexed line number and an error message for that line.
   using Error = std::pair<int, QString>;
+  // All errors encountered while parsing the source program. May have multiple errors per-line.
   using Errors = std::vector<Error>;
+  // Wrap control signals (e.g., our object code) with some assembler IR
   struct Line {
     typename uarch::CodeWithEnables controls;
     std::optional<QString> comment, symbolDecl;
-    uint16_t address = -1;
+    uint16_t address = -1; // Needed to compute branch targets in control section
+    // Some signals allow symbolic values, whose values are only known after parsing completes.
+    // This records which signals must be updated after all lines have been parsed.
     QMap<typename uarch::Signals, QString> deferredValues;
+    // Will always be code unless this is a UnitPre or UnitPost.
     enum class Type { Code, Pre, Post } type = Type::Code;
+    // List of all tests defined in UnitPre/UnitPost. See type to determine which.
     QList<Test<registers>> tests;
   };
-
-  using Program = std::vector<Line>;
   Errors errors;
-  QMap<QString, std::optional<uint16_t>> symbols;
+  // All symbol declarations and their associated addresses.
+  // If a symbol is referenced but not defined, it will not be present in the map.
+  // This behavior is the opposite of our ASMB symbol table.
+  QMap<QString, uint16_t> symbols;
+  using Program = std::vector<Line>;
   Program program;
 };
+// Given an assembled line, produce the cannonical formatted representation of that line.
 template <typename uarch, typename registers> QString format(const typename ParseResult<uarch, registers>::Line &line) {
   QString symbolDecl;
   if (line.symbolDecl.has_value()) symbolDecl = *line.symbolDecl + ": ";
@@ -51,6 +65,7 @@ template <typename uarch, typename registers> QString format(const typename Pars
   return QString("%1%2%3").arg(symbolDecl, _signals, line.comment.has_value() ? *line.comment : "");
 }
 namespace detail {
+// Forward declare a helper to do the actual parsing.
 template <typename uarch, typename registers>
 bool parseLine(const QStringView &line, typename ParseResult<uarch, registers>::Line &code, QString &error);
 } // namespace detail
@@ -67,20 +82,27 @@ std::vector<typename uarch::Code> microcodeFor(const ParseResult<uarch, register
   return ret;
 }
 
+// Given some source code, parse it as a microcode program.
+// We assume that not language constructs span multiple lines, so we defer the real parsing work to parseLine.
+// This means parse() is mostly responsible for splitting the source into lines, updating address & symbol values, and
+// associating errors with line numbers.
 template <typename uarch, typename registers> ParseResult<uarch, registers> parse(const QString &source) {
   ParseResult<uarch, registers> result;
   int startIdx = 0, endIdx = 0, lineNumber = 0, addressCounter = 0;
+  // Rather than split the source on \n and create a temporary heap-allocated vector, we will iteratively find newlines
+  // and take substrings. Use do/while with special handline for endIdx==-1 to allow non-\n terminated programs.
   do {
-    endIdx = source.indexOf('\n', startIdx);
     QStringView line;
+    typename ParseResult<uarch, registers>::Line codeLine;
+    QString error;
+    endIdx = source.indexOf('\n', startIdx);
     // Allows us to operate without a trailing \n
     if (endIdx == -1) line = QStringView(source).mid(startIdx);
     else line = QStringView(source).mid(startIdx, endIdx - startIdx);
-    typename ParseResult<uarch, registers>::Line codeLine;
-    QString error;
     if (detail::parseLine<uarch, registers>(line, codeLine, error)) {
-      // Handle address assignment, assigning symbol values.
+      // If a line defines control signals, it can be branched to and needs a unique address
       if (codeLine.controls.enables.any()) codeLine.address = addressCounter++;
+      // With address assignment complete, we can update the symbol table.
       if (codeLine.symbolDecl.has_value()) {
         auto symbol = *codeLine.symbolDecl;
         if (result.symbols.contains(symbol))
@@ -92,24 +114,19 @@ template <typename uarch, typename registers> ParseResult<uarch, registers> pars
     startIdx = endIdx + 1;
     lineNumber++;
   } while (endIdx != -1);
-  // Populate deferred values for all lines
+  // For signals with symbolic values, substitute symbol for integer.
   for (auto &line : result.program) {
     auto range = line.deferredValues.asKeyValueRange();
     for (auto [signal, symbol] : std::as_const(range)) {
-      if (result.symbols.contains(symbol)) {
-        auto value = result.symbols[symbol];
-        if (value.has_value()) {
-          line.controls.set(signal, *value);
-          continue;
-        }
-      }
-      result.errors.emplace_back(std::make_pair(line.address, "Undefined symbol: " + symbol));
+      if (result.symbols.contains(symbol)) line.controls.set(signal, result.symbols[symbol]);
+      else result.errors.emplace_back(std::make_pair(line.address, "Undefined symbol: " + symbol));
     }
   }
   return result;
 }
 
 namespace detail {
+// More or less ripped off from Pep9Suite
 enum class Token {
   Empty = 0,
   Comma,
@@ -126,14 +143,20 @@ enum class Token {
   Symbol,
   Invalid
 };
+// Token buffer which I use to implement recursive descent parsing.
 class TokenBuffer {
 public:
   TokenBuffer(const QStringView &line);
+  // Number of tokens match()'ed so far.
   int matchCount() const;
   bool inputRemains() const;
+  // Same as peek(), except it advances _start, clears _currentToken, and increments _matchCount.
   bool match(Token token, QStringView *out = nullptr);
+  // Returns true if the next token is token, false otherwise.
+  // If true and out!=nullptr, out will contain the data of the token.
   bool peek(Token token, QStringView *out = nullptr);
-  QStringView rest();
+  inline QStringView rest() { return _data.mid(_end); }
+
 private:
   const QStringView &_data;
   int _start = 0, _end = 0, _matchCount = 0;
@@ -145,44 +168,49 @@ private:
 template <typename uarch, typename registers>
 bool detail::parseLine(const QStringView &line, typename ParseResult<uarch, registers>::Line &code, QString &error) {
   using Line = ParseResult<uarch, registers>::Line;
-  int current_group = 0;
-  int signals_in_group = 0;
+  int current_group = 0, signals_in_group = 0;
   TokenBuffer buf(line);
   QStringView current;
   while (buf.inputRemains()) {
+    // If we've already determined that the current line is a test case, enter this special state which
+    // handles memory and register tests
     if (code.type == Line::Type::Pre || code.type == Line::Type::Post) {
       bool ok;
-      int address = 0, value = 0;
+      quint32 address = 0, value = 0;
       // Rely on operator short-circuiting to ensure that the first match is put into t.
-      // Used to decide between hex/decimal values.
+      // Used to decide how to parse hex/decimal values.
       Token t;
+      // Nested logical MUST not call continue/return on success. There is shared book keeping logic between tests
       if (!buf.match(Token::Identifier, &current)) return error = "Expected identifier after pre/post unit", false;
       else if (current.compare("mem", Qt::CaseInsensitive) == 0) { // Match Mem[numeric]=value
         if (!buf.match(Token::LeftBracket)) return error = "Expected '[' after 'Mem'", false;
         else if (!buf.match(Token::Hexadecimal, &current)) return error = "Expected address after '['", false;
-        else if (address = current.mid(2).toInt(&ok, 16); !ok) return error = "Failed to parse address", false;
-        else if (address < 0 || address > 0xFFFF) return error = "Address out of range", false;
+        else if (address = current.toInt(&ok, 16); !ok) return error = "Failed to parse address", false;
+        else if (address > 0xFFFF) return error = "Address out of range", false;
         else if (!buf.match(Token::RightBracket)) return error = "Expected ']' after address", false;
         else if (!buf.match(Token::Equals)) return error = "Expected '=' after Mem", false;
+        // Short circuiting used to ensure t has the token of the matched value.
         else if (!buf.match(t = Token::Hexadecimal, &current) && !buf.match(t = Token::Decimal, &current))
           return error = "Expected value after '='", false;
         else if (value = current.toInt(&ok, t == Token::Hexadecimal ? 16 : 10); !ok)
           return error = "Failed to parse value", false;
-        else if (value < 0 || value > 255) return error = "Value too large", false;
-        else code.tests.emplace_back(MemValue{static_cast<quint8>(value), static_cast<quint16>(address)});
+        else if (value > 255) return error = "Value too large", false;
+        else code.tests.emplace_back(MemTest{static_cast<quint8>(value), static_cast<quint16>(address)});
       } else { // Match identifer=value
         auto maybe_register = registers::parse_register(current);
         if (!maybe_register.has_value()) return error = "Unknown register: " + current, false;
         else if (!buf.match(Token::Equals)) return error = "Expected '=' after register", false;
+        // Short circuiting used to ensure t has the token of the matched value.
         else if (!buf.match(t = Token::Hexadecimal, &current) && !buf.match(t = Token::Decimal, &current))
           return error = "Expected value after '='", false;
         else if (value = current.toInt(&ok, t == Token::Hexadecimal ? 16 : 10); !ok)
           return error = "Failed to parse value", false;
-        else if (value < 0 || (1 << 8 * registers::register_byte_size(*maybe_register)) - 1 < value)
+        else if ((1 << 8 * registers::register_byte_size(*maybe_register)) - 1 < value)
           return error = "Register value too large", false;
-        else code.tests.emplace_back(RegisterValue<registers>{*maybe_register, static_cast<quint32>(value)});
+        else code.tests.emplace_back(RegisterTest<registers>{*maybe_register, static_cast<quint32>(value)});
       }
 
+      // Ensure that each item is followed by some seperator or a comment, prevent constructs like A=7 B=2
       if (buf.match(Token::Comma) || buf.match(Token::Empty) || !buf.inputRemains()) continue;
       else if (buf.match(Token::Comment, &current)) code.comment = current.toString();
       else return error = "Unexpected comma, newline, or comment after test", false;
@@ -200,41 +228,37 @@ bool detail::parseLine(const QStringView &line, typename ParseResult<uarch, regi
       auto maybe_signal = uarch::parse_signal(current);
       if (!maybe_signal.has_value()) return error = "Unknown signal: " + current, false;
       typename uarch::Signals s = *maybe_signal;
+      // If no signals are in this group, allow "jumping" to a higher group.
+      // Do not allow jumping backward, and do not allow signals with conflicting groups numbers.
+      if (auto group = uarch::signal_group(s); group != current_group) {
+        if (signals_in_group == 0 && group >= current_group) current_group = group;
+        else return error = "Unexpected signal " + current, false;
+      }
 
+      // Handle clocks vs control signals.
       if (uarch::is_clock(s)) {
         if (code.controls.enabled(s)) return error = "Clock signal already defined", false;
-        else if (auto group = uarch::signal_group(s); group != current_group) {
-          if (signals_in_group == 0) current_group = group;
-          else return error = "Unexpected signal " + current, false;
-        }
         code.controls.set(s, 1), signals_in_group++;
-        if (buf.match(Token::Comma) || buf.match(Token::Empty) || !buf.inputRemains()) continue;
-        else if (buf.match(Token::Comment, &current)) code.comment = current.toString();
-        else if (buf.peek(Token::Semicolon)) continue;
-        else return (error = "Unexpected token after clock signal"), false;
       } else {
-        if (auto group = uarch::signal_group(s); group != current_group) {
-          if (signals_in_group == 0) current_group = group;
-          else return error = "Unexpected signal " + current, false;
-        }
-
-        if (!buf.match(Token::Equals)) return error = "Expected '=' after signal", false;
+        // Nested logical MUST not call continue/return on success, even if at EOL.
+        if (code.controls.enabled(s)) return error = "Control signal already defined", false;
+        else if (!buf.match(Token::Equals)) return error = "Expected '=' after signal", false;
         else if (uarch::signal_allows_symbolic_argument(s) && buf.match(Token::Identifier, &current)) {
           code.controls.enable(s); // Ensure that the line is flagged as a code line if this is the only signal.
           code.deferredValues[s] = current.toString();
         } else if (buf.match(Token::Decimal, &current)) {
           bool ok = false;
           if (int value = current.toInt(&ok); !ok) return error = "Failed to parse signal value", false;
-          else if (code.controls.enabled(s)) return error = "Signal already defined", false;
           else if ((1 << uarch::signal_bit_size(s)) - 1 < value) return error = "Signal value too large", false;
           else code.controls.set(s, value);
         } else return error = "Expected value for signal", false;
-
-        if (buf.match(Token::Comma) || buf.match(Token::Empty) || !buf.inputRemains()) continue;
-        else if (buf.match(Token::Comment, &current)) code.comment = current.toString();
-        else if (buf.peek(Token::Semicolon)) continue;
-        else return error = "Unexpected token after signal", false;
       }
+
+      // Ensure that each item is followed by some seperator or a comment, prevent constructs like A=7 B=2
+      if (buf.match(Token::Comment, &current)) code.comment = current.toString();
+      else if (buf.peek(Token::Semicolon) || buf.match(Token::Comma) || buf.match(Token::Empty) || !buf.inputRemains())
+        continue;
+      else return (error = "Unexpected  seperator after signal"), false;
     } else if (buf.match(Token::Comment, &current)) return code.comment = current.toString(), true;
     else if (buf.match(Token::Empty)) return true;
     else return error = "Unexpected token: " + buf.rest(), false;

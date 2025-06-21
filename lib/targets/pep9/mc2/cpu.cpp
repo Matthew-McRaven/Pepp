@@ -39,11 +39,11 @@ const std::span<const pepp::ucode::Pep9ByteBus::Code> targets::pep9::mc2::CPUByt
 void targets::pep9::mc2::CPUByteBus::applyPreconditions(
     const QList<pepp::ucode::Test<pepp::ucode::Pep9Registers>> &tests) {
   for (const auto &test : tests) {
-    if (std::holds_alternative<pepp::ucode::MemValue>(test)) {
-      auto memTest = std::get<pepp::ucode::MemValue>(test);
+    if (std::holds_alternative<pepp::ucode::MemTest>(test)) {
+      auto memTest = std::get<pepp::ucode::MemTest>(test);
       _memory->write(memTest.address, {reinterpret_cast<const quint8 *>(&memTest.value), 2}, gs_d);
-    } else if (std::holds_alternative<pepp::ucode::RegisterValue<pepp::ucode::Pep9Registers>>(test)) {
-      auto regTest = std::get<pepp::ucode::RegisterValue<pepp::ucode::Pep9Registers>>(test);
+    } else if (std::holds_alternative<pepp::ucode::RegisterTest<pepp::ucode::Pep9Registers>>(test)) {
+      auto regTest = std::get<pepp::ucode::RegisterTest<pepp::ucode::Pep9Registers>>(test);
       const quint8 size = pepp::ucode::Pep9Registers::register_byte_size(regTest.reg);
       quint32 regValue = regTest.value;
       if (bits::hostOrder() != bits::Order::BigEndian) {

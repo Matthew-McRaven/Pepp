@@ -34,12 +34,14 @@ bool pepp::ucode::detail::TokenBuffer::peek(Token token, QStringView *out) {
   static const QRegularExpression comment("//[^\n]*");
   static const auto NormalMatch = QRegularExpression::NormalMatch;
   static const auto Anchored = QRegularExpression::AnchorAtOffsetMatchOption;
+  // If we already have a token, check if it matches the requested token.
   if (_currentToken) {
     if (*_currentToken == token) {
       if (out) *out = _data.sliced(_start, _end - _start);
       return true;
     } else return false;
   } else if (!inputRemains()) return false;
+  // No current token, so we need to read _data.
   while (inputRemains()) {
     auto nextCh = _data[_start];
     if (nextCh == "\n") {
@@ -65,6 +67,7 @@ bool pepp::ucode::detail::TokenBuffer::peek(Token token, QStringView *out) {
       break;
     } else if (auto maybeSymbol = symbol.matchView(_data, _start, NormalMatch, Anchored); maybeSymbol.hasMatch()) {
       _end = maybeSymbol.capturedEnd(0);
+      // UnitPre and UnitPost are constructs that look like symbols. Hijacking symbol code to avoid 2 extra regexs
       if (maybeSymbol.capturedView(0).compare("UnitPre:", Qt::CaseInsensitive) == 0) _currentToken = Token::UnitPre;
       else if (maybeSymbol.capturedView(0).compare("UnitPost:", Qt::CaseInsensitive) == 0)
         _currentToken = Token::UnitPost;
@@ -89,5 +92,3 @@ bool pepp::ucode::detail::TokenBuffer::peek(Token token, QStringView *out) {
   }
   return peek(token, out);
 }
-
-QStringView pepp::ucode::detail::TokenBuffer::rest() { return _data.mid(_end); }
