@@ -54,6 +54,19 @@ namespace detail {
 template <typename uarch, typename registers>
 bool parseLine(const QStringView &line, typename ParseResult<uarch, registers>::Line &code, QString &error);
 } // namespace detail
+
+// The vector of lines produced by parse is hard to execute, since there may be gaps between executable lines.
+// This method extract only lines which contain control signals, ignoring comment-only lines, test lines, etc.
+// The result is usable by a microcode simulator without any further post-processing.
+template <typename uarch, typename registers>
+std::vector<typename uarch::Code> microcodeFor(const ParseResult<uarch, registers> &result) {
+  std::vector<typename uarch::Code> ret;
+  for (const auto &line : result.program)
+    if (line.type == ParseResult<uarch, registers>::Line::Type::Code && line.controls.enables.any())
+      ret.emplace_back(line.controls.code);
+  return ret;
+}
+
 template <typename uarch, typename registers> ParseResult<uarch, registers> parse(const QString &source) {
   ParseResult<uarch, registers> result;
   int startIdx = 0, endIdx = 0, lineNumber = 0, addressCounter = 0;

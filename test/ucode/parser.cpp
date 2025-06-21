@@ -224,6 +224,16 @@ TEST_CASE("Microassemble 1-byte bus", "[scope:ucode][kind:unit][arch:*]") {
       CHECK(line.tests.size() == 2);
     }
   }
+  SECTION("Extract microcode lines") {
+    QString source = "UnitPost: X=5, Mem[0x1]=27\n//test comment\nA=7\n\nB=3";
+    auto result = pepp::ucode::parse<uarch, regs>(source);
+    CHECK(result.errors.size() == 0);
+    CHECK(result.program.size() == 5);
+    auto code = pepp::ucode::microcodeFor<uarch, regs>(result);
+    REQUIRE(code.size() == 2);
+    CHECK(code[0].A == 7);
+    CHECK(code[1].B == 3);
+  }
 
   SECTION("Test missing ,") {
     QString source = "UnitPost: X=5 Mem[0x1]=27";
