@@ -376,3 +376,75 @@ QString pepp::ucode::Pep9WordBusControl::CodeWithEnables::toString() const {
   if (!group.empty()) ret.append(group.join(", "));
   return ret.join("; ");
 }
+
+quint8 pepp::ucode::detail::pep9_1byte::computeALU(quint8 fn, quint8 a, quint8 b, bool cin, bool &n, bool &z, bool &v,
+                                                   bool &c) {
+  quint8 ret = 0;
+  // Common case, saves many lines of code.
+  v = c = false;
+  // switch case over 16 functions (0-indexed)
+  switch (static_cast<ALUFunc>(fn)) {
+  case ALUFunc::A: // A
+    ret = a;
+    break;
+    // Re-arrange these functions to avoid duplicate math.
+  case ALUFunc::AB_plus: // A plus B
+    cin = 0;
+    // Makes this easier to read, sorry everyone.
+    goto _case2;
+  case ALUFunc::ANotB1_plus: // A plus ~B plus 1
+    cin = 1;
+    [[fallthrough]];
+  case ALUFunc::ANotBCin_plus: // A plus ~B plus Cin
+    b = ~b;
+    [[fallthrough]];
+  case ALUFunc::ABCin_plus: // A plus B plus Cin
+  _case2:
+    ret = a + b + cin;
+    v = ((a ^ ret) & (b ^ ret)) & 0x80; // overflow if sign bits of a and b are the same, but different from result
+    c = ret < a || ret < b;             // carry if result is less than either operand
+    break;
+  case ALUFunc::AB_AND: // A AND B
+    ret = a & b;
+    break;
+  case ALUFunc::AB_NAND: // A NAND B
+    ret = !(a & b);
+    break;
+  case ALUFunc::AB_OR: // A OR B
+    ret = a | b;
+    break;
+  case ALUFunc::AB_NOR: // A NOR B
+    ret = !(a | b);
+    break;
+  case ALUFunc::AB_XOR: // A XOR B
+    ret = a ^ b;
+    break;
+  case ALUFunc::NegA: // ~ A
+    ret = ~a;
+    break;
+  case ALUFunc::A_ASL: // ASL A
+    ret = a << 1;
+    c = a & 0x80;
+    v = ((a << 1) ^ a) & 0x80; // overflow if a[0] != a[1]
+    break;
+  case ALUFunc::A_ROL: // ROL A
+    ret = a << 1 | (cin ? 1 : 0);
+    c = a & 0x80;
+  case ALUFunc::A_ASR: // ASR A
+    cin = a & 128;
+    [[fallthrough]];
+  case ALUFunc::A_ROR: // ROR A
+    ret = (a >> 1) | (cin ? 0x80 : 0);
+    c = a & 1;
+  case ALUFunc::Zero: // 0
+    n = a & 0x8;
+    z = a & 0x4;
+    v = a & 0x2;
+    c = a & 0x1;
+    return 0;
+  default: throw std::logic_error("Illegal function code");
+  }
+  n = ret & 0x80;
+  z = ret == 0;
+  return ret;
+}

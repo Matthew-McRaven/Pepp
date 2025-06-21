@@ -76,6 +76,26 @@ enum class Signals {
   MDRCk
 };
 Q_ENUM_NS(Signals);
+enum class ALUFunc : quint8 {
+  A = 0,
+  AB_plus = 1,
+  ABCin_plus = 2,
+  ANotB1_plus = 3,
+  ANotBCin_plus = 4,
+  AB_AND = 5,
+  AB_NAND = 6,
+  AB_OR = 7,
+  AB_NOR = 8,
+  AB_XOR = 9,
+  NegA = 10,
+  A_ASL = 11,
+  A_ROL = 12,
+  A_ASR = 13,
+  A_ROR = 14,
+  Zero = 15
+};
+Q_ENUM_NS(ALUFunc);
+quint8 computeALU(quint8 fn, quint8 a, quint8 b, bool cin, bool &n, bool &z, bool &v, bool &c);
 
 static constexpr uint8_t signal_bit_size_helper(Signals s) {
   switch (s) {
