@@ -21,8 +21,8 @@
 #include <QJsonDocument>
 #include <QStringConverter>
 #include "book.hpp"
-#include "elements.hpp"
 #include "figure.hpp"
+#include "fragment.hpp"
 #include "toolchain/macro/macro.hpp"
 #include "toolchain/macro/parse.hpp"
 
@@ -64,13 +64,13 @@ QSharedPointer<const builtins::Book> builtins::Registry::findBook(QString name) 
   }
 }
 
-void builtins::Registry::addDependency(const Element *dependent, const Element *dependee) {
+void builtins::Registry::addDependency(const Fragment *dependent, const Fragment *dependee) {
   _dependencies[dependent] = dependee;
-  if (!_dependees.contains(dependee)) _dependees[dependee] = QList<const Element *>();
+  if (!_dependees.contains(dependee)) _dependees[dependee] = QList<const Fragment *>();
   _dependees[dependee].append(dependent);
 }
 
-QString builtins::Registry::contentFor(Element &element) {
+QString builtins::Registry::contentFor(Fragment &element) {
   // If the element has already been computed, use that value.
   if (_contents.contains(&element)) return _contents[&element];
 
@@ -90,7 +90,7 @@ void builtins::Registry::addFormatter(pepp::Architecture arch, QString format, s
   _formatters[p] = std::move(formatter);
 }
 
-void builtins::Registry::computeDependencies(const Element *dependee) {
+void builtins::Registry::computeDependencies(const Fragment *dependee) {
   // Compute dependee's value using correct assembler/compiler toolchain.
   if (!_dependees.contains(dependee)) return;
 
@@ -108,7 +108,7 @@ void builtins::Registry::computeDependencies(const Element *dependee) {
     return;
   }
   auto os = figure->defaultOS();
-  auto os_text = os->findElement(os->defaultElement())->contents();
+  auto os_text = os->findFragment(os->defaultFragmentName())->contents();
   auto assembled = (*assembler).second->operator()(os_text, dependee->contents());
   // For each dependent of the thing being assembled, compute the desired output.
   // This avoids needing to assemble the same dependee multiple times.
@@ -205,47 +205,47 @@ std::optional<pepp::Abstraction> abs_from_str(const QString &key) {
   return static_cast<pepp::Abstraction>(archInt);
 }
 
-::builtins::Element *loadElement(const QJsonObject &item, const QDir &manifestDir, builtins::Figure *parent,
-                                 builtins::Registry *registry) {
+::builtins::Fragment *loadFragment(const QJsonObject &item, const QDir &manifestDir, builtins::Figure *parent,
+                                   builtins::Registry *registry) {
   // Use smart pointer to avoid cleanup on error paths.
-  auto element = std::make_unique<builtins::Element>();
-  element->name = item["name"].toString("");
+  auto fragment = std::make_unique<builtins::Fragment>();
+  fragment->name = item["name"].toString("");
   if (!item["format"].isString()) {
-    qWarning("Invalid element format for %s", element->name.toStdString().c_str());
+    qWarning("Invalid fragment format for %s", fragment->name.toStdString().c_str());
     return nullptr;
-  } else element->language = item["format"].toString();
+  } else fragment->language = item["format"].toString();
 
-  element->isHidden = item["hidden"].toBool(false);
-  if (auto isDefault = item["isDefault"].toBool(false); isDefault && element->isHidden) {
-    qWarning("isDefault is incompatible with isHidden for %s", element->name.toStdString().c_str());
+  fragment->isHidden = item["hidden"].toBool(false);
+  if (auto isDefault = item["isDefault"].toBool(false); isDefault && fragment->isHidden) {
+    qWarning("isDefault is incompatible with isHidden for %s", fragment->name.toStdString().c_str());
     return nullptr;
-  } else if (isDefault && element->name.isEmpty()) {
-    qWarning("Default element must be named %s", element->name.toStdString().c_str());
+  } else if (isDefault && fragment->name.isEmpty()) {
+    qWarning("Default fragment must be named %s", fragment->name.toStdString().c_str());
     return nullptr;
-  } else element->isDefault = isDefault;
+  } else fragment->isDefault = isDefault;
 
-  element->copyType = item["copyType"].toString("");
-  element->exportPath = item["export"].toString("");
+  fragment->copyType = item["copyType"].toString("");
+  fragment->exportPath = item["export"].toString("");
 
   if (!item["from"].isObject()) {
-    qWarning("from element must be an object %s", element->name.toStdString().c_str());
+    qWarning("from element must be an object %s", fragment->name.toStdString().c_str());
     return nullptr;
   } else if (auto from = item["from"].toObject(); true) {
     // Require one of "element" or "file" to be present.
     if (from["file"].isString()) {
       auto absPath = manifestDir.absoluteFilePath(from["file"].toString());
-      element->contentsFn = [=]() { return loadFromFile(absPath); };
+      fragment->contentsFn = [=]() { return loadFromFile(absPath); };
     } else if (from["element"].isString()) {
-      auto dependee = parent->findElement(from["element"].toString());
+      auto dependee = parent->findFragment(from["element"].toString());
       if (dependee == nullptr) {
-        qWarning("Element %s not found in figure %s", from["element"].toString().toStdString().c_str(),
+        qWarning("Fragment %s not found in figure %s", from["element"].toString().toStdString().c_str(),
                  parent->figureName().toStdString().c_str());
         return nullptr;
       }
 
-      registry->addDependency(element.get(), dependee);
-      auto elementPtr = element.get();
-      element->contentsFn = [registry, elementPtr]() { return registry->contentFor(*elementPtr); };
+      registry->addDependency(fragment.get(), dependee);
+      auto elementPtr = fragment.get();
+      fragment->contentsFn = [registry, elementPtr]() { return registry->contentFor(*elementPtr); };
     } else {
       qWarning("Did not specify a valid source");
       return nullptr;
@@ -253,13 +253,13 @@ std::optional<pepp::Abstraction> abs_from_str(const QString &key) {
 
     // Extract a subset of lines from the file.
     if (from["lines"].isArray()) {
-      auto contentsFn = element->contentsFn;
+      auto contentsFn = fragment->contentsFn;
       if (auto lines = from["lines"].toArray(); !lines[0].isDouble() || !lines[1].isDouble()) {
-        qWarning("Invalid line numbers for %s", element->name.toStdString().c_str());
+        qWarning("Invalid line numbers for %s", fragment->name.toStdString().c_str());
         return nullptr;
       } else {
         auto startLine = lines[0].toInt(0), endLine = lines[1].toInt(-1);
-        element->contentsFn = [=]() {
+        fragment->contentsFn = [=]() {
           auto contents = contentsFn();
           return selectLines(contents, startLine, endLine);
         };
@@ -267,7 +267,7 @@ std::optional<pepp::Abstraction> abs_from_str(const QString &key) {
     }
   }
 
-  return element.release();
+  return fragment.release();
 }
 } // namespace
 
@@ -324,17 +324,17 @@ builtins::Registry::loadFigureV2(const QJsonDocument &manifest, const QString &p
     // Perform templatization on manifest values.
     auto fragmentObject = fragmentIter.toObject();
     templateize(fragmentObject, substitutions);
-    auto item = loadElement(fragmentObject, manifestDir, &*figure, this);
+    auto item = loadFragment(fragmentObject, manifestDir, &*figure, this);
     if (item == nullptr) {
       qWarning("Failed to load element %s", fragmentObject["name"].toString("").toStdString().c_str());
       continue;
     }
     item->figure = figure;
-    figure->addElement(item);
+    figure->addFragment(item);
     if (item->isDefault && !_default.has_value()) _default = item->language;
   }
 
-  figure->setDefaultElement(_default.value_or("pepo"));
+  figure->setDefaultFragmentName(_default.value_or("pepo"));
 
   return figure;
 }

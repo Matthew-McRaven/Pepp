@@ -34,7 +34,7 @@ void DumpTexTask::run() {
   if (book.isNull()) return emit finished(1);
 
   for (const auto &figure : book->figures()) {
-    for (const auto &element : figure->typesafeElements()) {
+    for (const auto &element : figure->typesafeFragments()) {
       if (element->exportPath.isEmpty()) continue;
       auto disk_path = base_output_path.absoluteFilePath(element->exportPath);
       auto contents = element->contents().trimmed() + "\n";

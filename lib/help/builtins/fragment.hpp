@@ -28,7 +28,7 @@ class Figure;
 /*!
  * \brief Contains a unit of content that makes up a help item
  */
-struct Element : public QObject {
+struct Fragment : public QObject {
 private:
   Q_OBJECT
   Q_PROPERTY(QString name MEMBER name);
@@ -44,7 +44,7 @@ public:
   QString language;
   //! The textual contents of the element
   QString contents() const;
-  std::function<QString()> contentsFn = Element::empty;
+  std::function<QString()> contentsFn = Fragment::empty;
   //! The figure which contains this element. Needed to access default OS / test
   //! items.
   QWeakPointer<Figure> figure;

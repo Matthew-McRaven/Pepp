@@ -62,10 +62,10 @@ TEST_CASE("CS6E figure assembly", "[scope:asm][kind:e2e][arch:pep10]") {
     auto registry = QSharedPointer<macro::Registry>::create();
     REQUIRE_FALSE(book.isNull());
     for (auto &fig : book->figures()) {
-      if (!fig->typesafeNamedElements().contains("pep")) continue;
+      if (!fig->typesafeNamedFragments().contains("pep")) continue;
       QString chapter = fig->chapterName();
       QString figName = fig->figureName();
-      QString body = fig->typesafeNamedElements()["pep"]->contents();
+      QString body = fig->typesafeNamedFragments()["pep"]->contents();
       bool isOS = fig->isOS();
       DYNAMIC_SECTION(chapter.toStdString() << "." << figName.toStdString()) {
         loadBookMacros(book, registry);
@@ -95,14 +95,14 @@ TEST_CASE("CS6E figure assembly", "[scope:asm][kind:e2e][arch:pep10]") {
     loadBookMacros(book, registry);
     for (auto &fig : book->figures()) {
       auto defaultOS = fig->defaultOS();
-      if (!fig->typesafeNamedElements().contains("pep")) continue;
+      if (!fig->typesafeNamedFragments().contains("pep")) continue;
       else if (fig->isOS()) continue;
       else if (defaultOS == nullptr) continue;
-      else if (!defaultOS->typesafeNamedElements().contains("pep")) continue;
+      else if (!defaultOS->typesafeNamedFragments().contains("pep")) continue;
       QString chapter = fig->chapterName();
       QString figName = fig->figureName();
-      QString osBody = defaultOS->typesafeNamedElements()["pep"]->contents();
-      QString userBody = fig->typesafeNamedElements()["pep"]->contents();
+      QString osBody = defaultOS->typesafeNamedFragments()["pep"]->contents();
+      QString userBody = fig->typesafeNamedFragments()["pep"]->contents();
       bool isFullOS = bool(defaultOS->figureName() == "full");
 
       DYNAMIC_SECTION(chapter.toStdString() << "." << figName.toStdString()) {
@@ -207,8 +207,8 @@ TEST_CASE("CS6E hex/bin listing", "[scope:asm][kind:e2e][arch:pep10]") {
   auto fig = book->findFigure("04", "24");
   auto defaultOS = fig->defaultOS();
   REQUIRE(defaultOS != nullptr);
-  QString osBody = defaultOS->typesafeNamedElements()["pep"]->contents();
-  QString userBody = fig->typesafeNamedElements()["pep"]->contents();
+  QString osBody = defaultOS->typesafeNamedFragments()["pep"]->contents();
+  QString userBody = fig->typesafeNamedFragments()["pep"]->contents();
 
   auto pipeline = pas::driver::pep10::pipeline<pas::driver::ANTLRParserTag>(
       {{osBody, {.isOS = true, .ignoreUndefinedSymbols = false}},

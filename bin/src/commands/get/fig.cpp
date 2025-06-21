@@ -43,14 +43,14 @@ void GetFigTask::run() {
   }
 
   auto type = QString::fromStdString(this->type);
-  if (!item->typesafeNamedElements().contains(type)) {
+  if (!item->typesafeNamedFragments().contains(type)) {
     std::cerr << err_novar.arg(isFigure ? "Figure" : "Problem")
                      .arg(QString::fromStdString(ch), QString::fromStdString(fig), type)
                      .toStdString();
     return emit finished(2);
   }
 
-  auto body = item->typesafeNamedElements()[type]->contents();
+  auto body = item->typesafeNamedFragments()[type]->contents();
   std::cout << body.toStdString() << std::endl;
 
   return emit finished(0);

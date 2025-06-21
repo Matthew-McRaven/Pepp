@@ -127,14 +127,14 @@ TEST_CASE("Pep/9 Figure Assembly", "[scope:asm][kind:e2e][arch:pep9]") {
   for (auto &figure : figures) {
     // if (!(figure->chapterName() == "06" && figure->figureName() == "08")) continue;
     // if (!(figure->chapterName() == "06" && figure->figureName() == "25")) continue;
-    if (!figure->typesafeNamedElements().contains("pep") && !figure->typesafeNamedElements().contains("pepo")) continue;
+    if (!figure->typesafeNamedFragments().contains("pep") && !figure->typesafeNamedFragments().contains("pepo")) continue;
     else if (figure->isOS()) continue;
     QString userPep = {}, userPepo = {};
-    if (figure->typesafeNamedElements().contains("pep"))
-      userPep = QString(figure->typesafeNamedElements()["pep"]->contents()).replace(lf, "");
-    else if (figure->typesafeNamedElements().contains("pepo"))
-      userPepo = QString(figure->typesafeNamedElements()["pepo"]->contents()).replace(lf, "");
-    auto os = QString(figure->defaultOS()->typesafeNamedElements()["pep"]->contents()).replace(lf, "");
+    if (figure->typesafeNamedFragments().contains("pep"))
+      userPep = QString(figure->typesafeNamedFragments()["pep"]->contents()).replace(lf, "");
+    else if (figure->typesafeNamedFragments().contains("pepo"))
+      userPepo = QString(figure->typesafeNamedFragments()["pepo"]->contents()).replace(lf, "");
+    auto os = QString(figure->defaultOS()->typesafeNamedFragments()["pep"]->contents()).replace(lf, "");
     auto ch = figure->chapterName(), fig = figure->figureName();
     int num = 0;
     for (auto io : figure->typesafeTests()) {
