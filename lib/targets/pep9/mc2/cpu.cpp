@@ -61,7 +61,29 @@ void targets::pep9::mc2::CPUByteBus::applyPreconditions(
 
 std::vector<bool>
 targets::pep9::mc2::CPUByteBus::testPostconditions(const QList<pepp::ucode::Test<pepp::ucode::Pep9Registers>> &tests) {
-  return {};
+  std::vector<bool> ret(tests.size(), true);
+  quint8 temp[4] = {0, 0, 0, 0};
+  int num = 0;
+  for (const auto &test : tests) {
+    if (std::holds_alternative<pepp::ucode::MemTest>(test)) {
+      auto memTest = std::get<pepp::ucode::MemTest>(test);
+      _memory->read(memTest.address, {&temp[0], memTest.size}, gs_d);
+      bool match = true;
+      for (int it = 0; it < memTest.size; it++) match &= temp[it] != memTest.value[it];
+      ret[num++] = match;
+    } else if (std::holds_alternative<pepp::ucode::RegisterTest<pepp::ucode::Pep9Registers>>(test)) {
+      auto regTest = std::get<pepp::ucode::RegisterTest<pepp::ucode::Pep9Registers>>(test);
+      const quint8 size = pepp::ucode::Pep9Registers::register_byte_size(regTest.reg);
+      quint32 regValue = regTest.value;
+      if (bits::hostOrder() != bits::Order::BigEndian) {
+        regValue = bits::byteswap(regTest.value);
+        regValue >>= (8 * (4 - size)); // Must move bytes around since we are only using part of regValue.
+      };
+      _bankRegs.read(static_cast<quint8>(regTest.reg), {temp, size}, gs_d);
+      ret[num++] = std::memcmp(temp, reinterpret_cast<const quint8 *>(&regValue), size) == 0;
+    }
+  }
+  return ret;
 }
 
 void targets::pep9::mc2::CPUByteBus::setConstantRegisters() {
@@ -247,7 +269,29 @@ void targets::pep9::mc2::CPUWordBus::applyPreconditions(
 
 std::vector<bool>
 targets::pep9::mc2::CPUWordBus::testPostconditions(const QList<pepp::ucode::Test<pepp::ucode::Pep9Registers>> &tests) {
-  return {};
+  std::vector<bool> ret(tests.size(), true);
+  quint8 temp[4] = {0, 0, 0, 0};
+  int num = 0;
+  for (const auto &test : tests) {
+    if (std::holds_alternative<pepp::ucode::MemTest>(test)) {
+      auto memTest = std::get<pepp::ucode::MemTest>(test);
+      _memory->read(memTest.address, {&temp[0], memTest.size}, gs_d);
+      bool match = true;
+      for (int it = 0; it < memTest.size; it++) match &= temp[it] != memTest.value[it];
+      ret[num++] = match;
+    } else if (std::holds_alternative<pepp::ucode::RegisterTest<pepp::ucode::Pep9Registers>>(test)) {
+      auto regTest = std::get<pepp::ucode::RegisterTest<pepp::ucode::Pep9Registers>>(test);
+      const quint8 size = pepp::ucode::Pep9Registers::register_byte_size(regTest.reg);
+      quint32 regValue = regTest.value;
+      if (bits::hostOrder() != bits::Order::BigEndian) {
+        regValue = bits::byteswap(regTest.value);
+        regValue >>= (8 * (4 - size)); // Must move bytes around since we are only using part of regValue.
+      };
+      _bankRegs.read(static_cast<quint8>(regTest.reg), {temp, size}, gs_d);
+      ret[num++] = std::memcmp(temp, reinterpret_cast<const quint8 *>(&regValue), size) == 0;
+    }
+  }
+  return ret;
 }
 
 void targets::pep9::mc2::CPUWordBus::setConstantRegisters() {
