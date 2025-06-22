@@ -1,0 +1,2 @@
+UnitPre: IR=0x8000FF, A=0xABCD, N=1, Z=0
+UnitPost: A=0x00CD, N=0, Z=0

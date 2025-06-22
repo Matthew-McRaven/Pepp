@@ -15,6 +15,21 @@
  */
 #include "./parser.hpp"
 
+pepp::ucode::MemTest::MemTest(quint16 addr, quint8 value) : address(addr), size(1) {
+  this->value[0] = value;
+  this->value[1] = 0;
+}
+
+pepp::ucode::MemTest::operator QString() const {
+  if (size == 2)
+    return QString("Mem[0x%1]=0x%2%3")
+        .arg(QString::number(address, 16), QString::number(value[0], 16), QString::number(value[1], 16));
+  else return QString("Mem[0x%1]=0x%2").arg(QString::number(address, 16), QString::number(value[0], 16));
+}
+pepp::ucode::MemTest::MemTest(quint16 addr, quint16 value) : address(addr), size(2) {
+  this->value[0] = (value >> 8) & 0xFF;
+  this->value[1] = value & 0xff;
+}
 pepp::ucode::detail::TokenBuffer::TokenBuffer(const QStringView &line) : _data(line) {}
 
 int pepp::ucode::detail::TokenBuffer::matchCount() const { return _matchCount; }
@@ -27,6 +42,7 @@ bool pepp::ucode::detail::TokenBuffer::match(Token token, QStringView *out) {
 }
 
 bool pepp::ucode::detail::TokenBuffer::peek(Token token, QStringView *out) {
+  static const QRegularExpression lineNum("[0-9]+\\.");
   static const QRegularExpression identifier("[a-zA-Z][a-zA-Z0-9_]*");
   static const QRegularExpression symbol("[a-zA-Z_][a-zA-Z0-9_]*:");
   static const QRegularExpression decimal("[0-9]+");
@@ -75,6 +91,9 @@ bool pepp::ucode::detail::TokenBuffer::peek(Token token, QStringView *out) {
       break;
     } else if (auto maybeIdent = identifier.matchView(_data, _start, NormalMatch, Anchored); maybeIdent.hasMatch()) {
       _end = maybeIdent.capturedEnd(0), _currentToken = Token::Identifier;
+      break;
+    } else if (auto maybeLine = lineNum.matchView(_data, _start, NormalMatch, Anchored); maybeLine.hasMatch()) {
+      _end = maybeLine.capturedEnd(0), _currentToken = Token::LineNumber;
       break;
     } else if (auto maybeHex = hexadecimal.matchView(_data, _start, NormalMatch, Anchored); maybeHex.hasMatch()) {
       _end = maybeHex.capturedEnd(0), _currentToken = Token::Hexadecimal;

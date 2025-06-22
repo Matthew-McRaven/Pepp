@@ -18,8 +18,18 @@
 namespace pepp::ucode {
 // A test condition which gets/sets a memory address
 struct MemTest {
-  quint8 value = 0;
+  MemTest() = default;
+  MemTest(quint16 addr, quint16 value);
+  MemTest(quint16 addr, quint8 value);
+  ~MemTest() = default;
+  MemTest(const MemTest &) = default;
+  MemTest(MemTest &&) = default;
+  MemTest &operator=(const MemTest &) = default;
+  MemTest &operator=(MemTest &&) = default;
+  quint8 value[2] = {0, 0};
   quint16 address = 0;
+  quint8 size = 1; // Either 1 or 2 bytes.
+  operator QString() const;
 };
 // A test condition which gets/sets a variable-sized register
 template <typename registers> struct RegisterTest {
@@ -27,9 +37,29 @@ template <typename registers> struct RegisterTest {
   // Based on the size of the register, you MUST mask this down to [1-3] bytes.
   // You will also need to byteswap and shift depending on the architecture
   quint32 value = 0;
+  operator QString() const {
+    const auto size = registers::register_byte_size(reg);
+    static const quint32 masks[4] = {0, 0xFF, 0xFF'FF, 0xFF'FF'FF'FF};
+    return QString("%1=0x%2")
+        .arg(registers::register_name(reg))
+        .arg(QString::number(value & masks[size], 16).rightJustified(2 * size, '0'));
+  }
 };
+// A test condition which gets/sets a variable-sized register
+template <typename registers> struct CSRTest {
+  typename registers::CSRs reg;
+  bool value = false;
+  operator QString() const { return QString("%1=0x%2").arg(registers::csr_name(reg)).arg(QString::number(value)); }
+};
+
 // A UnitPre or UnitPost is a comma-deliited set of memory tests or register tests
-template <typename registers> using Test = std::variant<MemTest, RegisterTest<registers>>;
+template <typename registers> using Test = std::variant<MemTest, RegisterTest<registers>, CSRTest<registers>>;
+template <typename registers> QString toString(const Test<registers> &test) {
+  if (std::holds_alternative<MemTest>(test)) return std::get<MemTest>(test);
+  else if (std::holds_alternative<RegisterTest<registers>>(test)) return std::get<RegisterTest<registers>>(test);
+  else if (std::holds_alternative<CSRTest<registers>>(test)) return std::get<CSRTest<registers>>(test);
+  else return QString();
+}
 
 template <typename uarch, typename registers> struct ParseResult {
   // 0-indexed line number and an error message for that line.
@@ -69,6 +99,21 @@ namespace detail {
 template <typename uarch, typename registers>
 bool parseLine(const QStringView &line, typename ParseResult<uarch, registers>::Line &code, QString &error);
 } // namespace detail
+
+template <typename registers> struct ExtractedTests {
+  QList<Test<registers>> pre, post;
+};
+// The vector of lines produced by parse is hard to execute, since there may be gaps between executable lines.
+// This method extract only lines which contain control signals, ignoring comment-only lines, test lines, etc.
+// The result is usable by a microcode simulator without any further post-processing.
+template <typename uarch, typename registers>
+ExtractedTests<registers> tests(const ParseResult<uarch, registers> &result) {
+  ExtractedTests<registers> ret;
+  for (const auto &line : result.program)
+    if (line.type == ParseResult<uarch, registers>::Line::Type::Pre) ret.pre.append(line.tests);
+    else if (line.type == ParseResult<uarch, registers>::Line::Type::Post) ret.post.append(line.tests);
+  return ret;
+}
 
 // The vector of lines produced by parse is hard to execute, since there may be gaps between executable lines.
 // This method extract only lines which contain control signals, ignoring comment-only lines, test lines, etc.
@@ -141,6 +186,7 @@ enum class Token {
   UnitPre,
   UnitPost,
   Symbol,
+  LineNumber,
   Invalid
 };
 // Token buffer which I use to implement recursive descent parsing.
@@ -156,6 +202,7 @@ public:
   // If true and out!=nullptr, out will contain the data of the token.
   bool peek(Token token, QStringView *out = nullptr);
   inline QStringView rest() { return _data.mid(_end); }
+  inline bool atStart() { return _start == 0; }
 
 private:
   const QStringView &_data;
@@ -167,14 +214,16 @@ private:
 
 template <typename uarch, typename registers>
 bool detail::parseLine(const QStringView &line, typename ParseResult<uarch, registers>::Line &code, QString &error) {
+  using namespace Qt::StringLiterals;
   using Line = ParseResult<uarch, registers>::Line;
   int current_group = 0, signals_in_group = 0;
   TokenBuffer buf(line);
   QStringView current;
   while (buf.inputRemains()) {
+    if (buf.atStart() && buf.match(Token::LineNumber, &current)) continue;
     // If we've already determined that the current line is a test case, enter this special state which
     // handles memory and register tests
-    if (code.type == Line::Type::Pre || code.type == Line::Type::Post) {
+    else if (code.type == Line::Type::Pre || code.type == Line::Type::Post) {
       bool ok;
       quint32 address = 0, value = 0;
       // Rely on operator short-circuiting to ensure that the first match is put into t.
@@ -194,20 +243,27 @@ bool detail::parseLine(const QStringView &line, typename ParseResult<uarch, regi
           return error = "Expected value after '='", false;
         else if (value = current.toInt(&ok, t == Token::Hexadecimal ? 16 : 10); !ok)
           return error = "Failed to parse value", false;
-        else if (value > 255) return error = "Value too large", false;
-        else code.tests.emplace_back(MemTest{static_cast<quint8>(value), static_cast<quint16>(address)});
-      } else { // Match identifer=value
-        auto maybe_register = registers::parse_register(current);
-        if (!maybe_register.has_value()) return error = "Unknown register: " + current, false;
-        else if (!buf.match(Token::Equals)) return error = "Expected '=' after register", false;
-        // Short circuiting used to ensure t has the token of the matched value.
-        else if (!buf.match(t = Token::Hexadecimal, &current) && !buf.match(t = Token::Decimal, &current))
-          return error = "Expected value after '='", false;
-        else if (value = current.toInt(&ok, t == Token::Hexadecimal ? 16 : 10); !ok)
-          return error = "Failed to parse value", false;
-        else if ((1 << 8 * registers::register_byte_size(*maybe_register)) - 1 < value)
-          return error = "Register value too large", false;
-        else code.tests.emplace_back(RegisterTest<registers>{*maybe_register, static_cast<quint32>(value)});
+        else if (value > 0xFFFF) return error = "Value too large", false;
+        else if (value < 256) code.tests.emplace_back(MemTest((quint16)address, (quint8)value));
+        else code.tests.emplace_back(MemTest((quint16)address, (quint16)value));
+      } else { // Match identifer=value for registers
+        if (auto maybe_register = registers::parse_register(current); maybe_register.has_value()) {
+          if (!buf.match(Token::Equals)) return error = "Expected '=' after register", false;
+          // Short circuiting used to ensure t has the token of the matched value.
+          else if (!buf.match(t = Token::Hexadecimal, &current) && !buf.match(t = Token::Decimal, &current))
+            return error = "Expected value after '='", false;
+          else if (value = current.toInt(&ok, t == Token::Hexadecimal ? 16 : 10); !ok)
+            return error = "Failed to parse value", false;
+          else if ((1 << (8 * registers::register_byte_size(*maybe_register))) - 1 < value)
+            return error = "Register value too large" + u"%1"_s.arg(value, 16), false;
+          else code.tests.emplace_back(RegisterTest<registers>{*maybe_register, static_cast<quint32>(value)});
+        } else if (auto maybe_csr = registers::parse_csr(current); maybe_csr.has_value()) {
+          if (!buf.match(Token::Equals)) return error = "Expected '=' after register", false;
+          else if (!buf.match(t = Token::Decimal, &current)) return error = "Expected value after '='", false;
+          else if (value = current.toInt(&ok); !ok) return error = "Failed to parse value", false;
+          else if (value > 1) return error = "Register value too large", false;
+          else code.tests.emplace_back(CSRTest<registers>{*maybe_csr, (bool)value});
+        } else return error = "Unknown register: " + current, false;
       }
 
       // Ensure that each item is followed by some seperator or a comment, prevent constructs like A=7 B=2

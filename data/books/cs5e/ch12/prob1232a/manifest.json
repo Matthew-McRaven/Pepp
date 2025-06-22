@@ -4,10 +4,13 @@
   "name": "12:32a",
   "arch": "pep9",
   "abstraction": "MC2",
+  "tests": [
+    "test0", "test1", "test2"
+  ],
   "fragments": [
     {
       "name": "pepcpu",
-      "format": "pepcpu",
+      "format": "pepcpu1",
       "from": {
         "file": "{ch}{fig}.pepcpu"
       }

@@ -110,7 +110,7 @@ uint8_t pepp::ucode::Pep9ByteBus::signal_group(Signals s) {
 bool pepp::ucode::Pep9ByteBus::is_clock(Signals s) {
   using enum Signals;
   if (static_cast<int>(s) >= static_cast<int>(NCk)) return true;
-  else return false;
+  else return s == Signals::MemRead || s == Signals::MemWrite;
 }
 
 uint8_t pepp::ucode::Pep9ByteBus::hidden_register_count() {
@@ -136,6 +136,28 @@ uint8_t pepp::ucode::Pep9Registers::register_byte_size(NamedRegisters reg) {
   case NamedRegisters::IR: return 3;
   default: return 2;
   }
+}
+
+QString pepp::ucode::Pep9Registers::register_name(NamedRegisters reg) {
+  static const QMetaEnum meta_enum = QMetaEnum::fromType<NamedRegisters>();
+  return meta_enum.key(static_cast<int>(reg));
+}
+
+QString pepp::ucode::Pep9Registers::csr_name(CSRs reg) {
+  static const QMetaEnum meta_enum = QMetaEnum::fromType<CSRs>();
+  return meta_enum.key(static_cast<int>(reg));
+}
+
+std::optional<pepp::ucode::Pep9Registers::CSRs> pepp::ucode::Pep9Registers::parse_csr(const QStringView &name) {
+  static const QMetaEnum meta_enum = QMetaEnum::fromType<CSRs>();
+  for (int it = 0; it < meta_enum.keyCount(); it++)
+    if (name.compare(meta_enum.key(it), Qt::CaseInsensitive) == 0) return static_cast<CSRs>(meta_enum.value(it));
+  return std::nullopt;
+}
+
+std::optional<pepp::ucode::Pep9Registers::CSRs> pepp::ucode::Pep9Registers::parse_csr(const QString &name) {
+  QStringView v(name);
+  return parse_csr(v);
 }
 
 std::optional<pepp::ucode::Pep9Registers::NamedRegisters>
@@ -256,7 +278,7 @@ uint8_t pepp::ucode::Pep9WordBus::signal_group(Signals s) {
 bool pepp::ucode::Pep9WordBus::is_clock(Signals s) {
   using enum Signals;
   if (static_cast<int>(s) >= static_cast<int>(NCk)) return true;
-  else return false;
+  else return s == Signals::MemRead || s == Signals::MemWrite;
 }
 
 uint8_t pepp::ucode::Pep9WordBus::hidden_register_count() {
@@ -293,7 +315,7 @@ uint8_t pepp::ucode::Pep9WordBusControl::signal_group(Signals s) {
 bool pepp::ucode::Pep9WordBusControl::is_clock(Signals s) {
   using enum Signals;
   if (auto i = static_cast<int>(s); static_cast<int>(NCk) <= i && i <= static_cast<int>(MDRECk)) return true;
-  else return false;
+  else return s == Signals::MemRead || s == Signals::MemWrite;
 }
 
 std::optional<pepp::ucode::Pep9WordBusControl::Signals>

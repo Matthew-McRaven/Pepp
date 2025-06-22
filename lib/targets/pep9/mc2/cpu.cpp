@@ -13,54 +13,28 @@ sim::api2::memory::Operation rw_d = {
     .kind = sim::api2::memory::Operation::Kind::data,
 };
 } // namespace
-targets::pep9::mc2::CPUByteBus::CPUByteBus(sim::api2::device::Descriptor device, sim::api2::device::IDGenerator gen)
+
+targets::pep9::mc2::BaseCPU::BaseCPU(sim::api2::device::Descriptor device, sim::api2::device::IDGenerator gen,
+                                     quint8 hiddenRegCount)
     : _device(device),
       _bankRegs({.id = gen(), .baseName = "regs", .fullName = _device.fullName + "/regs"},
                 sim::api2::memory::AddressSpan<quint8>(0, quint8(::pepp::ucode::Pep9Registers::register_count() - 1))),
       _hiddenRegs({.id = gen(), .baseName = "hidden", .fullName = _device.fullName + "/hidden"},
-                  sim::api2::memory::AddressSpan<quint8>(0, ::pepp::ucode::Pep9ByteBus::hidden_register_count() - 1)),
+                  sim::api2::memory::AddressSpan<quint8>(0, hiddenRegCount - 1)),
       _csrs({.id = gen(), .baseName = "csrs", .fullName = _device.fullName + "/csrs"},
             sim::api2::memory::AddressSpan<quint8>(0, quint8(::pepp::ucode::Pep9Registers::csr_count() - 1))) {}
 
-sim::api2::memory::Target<quint8> *targets::pep9::mc2::CPUByteBus::bankRegs() { return &_bankRegs; }
+targets::pep9::mc2::BaseCPU::~BaseCPU() = default;
 
-sim::api2::memory::Target<quint8> *targets::pep9::mc2::CPUByteBus::hiddenRegs() { return &_hiddenRegs; }
+sim::api2::memory::Target<quint8> *targets::pep9::mc2::BaseCPU::bankRegs() { return &_bankRegs; }
 
-sim::api2::memory::Target<quint8> *targets::pep9::mc2::CPUByteBus::csrs() { return &_csrs; }
+sim::api2::memory::Target<quint8> *targets::pep9::mc2::BaseCPU::hiddenRegs() { return &_hiddenRegs; }
 
-sim::api2::device::Descriptor targets::pep9::mc2::CPUByteBus::device() const { return _device; }
+sim::api2::memory::Target<quint8> *targets::pep9::mc2::BaseCPU::csrs() { return &_csrs; }
 
-void targets::pep9::mc2::CPUByteBus::setMicrocode(std::vector<pepp::ucode::Pep9ByteBus::Code> &&code) {
-  _microcode = std::move(code);
-}
+sim::api2::device::Descriptor targets::pep9::mc2::BaseCPU::device() const { return _device; }
 
-const std::span<const pepp::ucode::Pep9ByteBus::Code> targets::pep9::mc2::CPUByteBus::microcode() { return _microcode; }
-
-void targets::pep9::mc2::CPUByteBus::applyPreconditions(
-    const QList<pepp::ucode::Test<pepp::ucode::Pep9Registers>> &tests) {
-  for (const auto &test : tests) {
-    if (std::holds_alternative<pepp::ucode::MemTest>(test)) {
-      auto memTest = std::get<pepp::ucode::MemTest>(test);
-      _memory->write(memTest.address, {reinterpret_cast<const quint8 *>(&memTest.value), 2}, gs_d);
-    } else if (std::holds_alternative<pepp::ucode::RegisterTest<pepp::ucode::Pep9Registers>>(test)) {
-      auto regTest = std::get<pepp::ucode::RegisterTest<pepp::ucode::Pep9Registers>>(test);
-      const quint8 size = pepp::ucode::Pep9Registers::register_byte_size(regTest.reg);
-      quint32 regValue = regTest.value;
-      if (bits::hostOrder() != bits::Order::BigEndian) {
-        regValue = bits::byteswap(regTest.value);
-        regValue >>= (8 * (4 - size)); // Must move bytes around since we are only using part of regValue.
-      };
-      _bankRegs.write(static_cast<quint8>(regTest.reg), {reinterpret_cast<quint8 *>(&regValue), size}, gs_d);
-    }
-  }
-}
-
-std::vector<bool>
-targets::pep9::mc2::CPUByteBus::testPostconditions(const QList<pepp::ucode::Test<pepp::ucode::Pep9Registers>> &tests) {
-  return {};
-}
-
-void targets::pep9::mc2::CPUByteBus::setConstantRegisters() {
+void targets::pep9::mc2::BaseCPU::setConstantRegisters() {
   writeReg(22, 0x00);
   writeReg(23, 0x01);
   writeReg(24, 0x02);
@@ -73,13 +47,113 @@ void targets::pep9::mc2::CPUByteBus::setConstantRegisters() {
   writeReg(31, 0xFF);
 }
 
-targets::pep9::mc2::CPUByteBus::Status targets::pep9::mc2::CPUByteBus::status() const { return _status; }
+targets::pep9::mc2::BaseCPU::Status targets::pep9::mc2::BaseCPU::status() const { return _status; }
 
-void targets::pep9::mc2::CPUByteBus::resetMicroPC() { _microPC = 0; }
+void targets::pep9::mc2::BaseCPU::resetMicroPC() { _microPC = 0; }
 
-const sim::api2::tick::Source *targets::pep9::mc2::CPUByteBus::getSource() { return _clock; }
+const sim::api2::tick::Source *targets::pep9::mc2::BaseCPU::getSource() { return _clock; }
 
-void targets::pep9::mc2::CPUByteBus::setSource(sim::api2::tick::Source *clock) { _clock = clock; }
+void targets::pep9::mc2::BaseCPU::setSource(sim::api2::tick::Source *clock) { _clock = clock; }
+
+void targets::pep9::mc2::BaseCPU::trace(bool enabled) {
+  if (_tb) _tb->trace(_device.id, enabled);
+  _bankRegs.trace(enabled);
+  _hiddenRegs.trace(enabled);
+  _csrs.trace(enabled);
+}
+
+void targets::pep9::mc2::BaseCPU::setBuffer(sim::api2::trace::Buffer *tb) {
+  _tb = tb;
+  _bankRegs.setBuffer(tb);
+  _hiddenRegs.setBuffer(tb);
+  _csrs.setBuffer(tb);
+}
+
+void targets::pep9::mc2::BaseCPU::setTarget(sim::api2::memory::Target<quint16> *target, void *port) {
+  _memory = target;
+}
+
+void targets::pep9::mc2::BaseCPU::setDebugger(pepp::debug::Debugger *debugger) { _dbg = debugger; }
+
+void targets::pep9::mc2::BaseCPU::clearDebugger() { _dbg = nullptr; }
+
+quint8 targets::pep9::mc2::BaseCPU::readReg(quint8 reg) {
+  quint8 ret = 0;
+  (void)_bankRegs.read(reg, {&ret, 1}, rw_d);
+  return ret;
+}
+
+void targets::pep9::mc2::BaseCPU::writeReg(quint8 reg, quint8 val) { (void)_bankRegs.write(reg, {&val, 1}, rw_d); }
+
+bool targets::pep9::mc2::BaseCPU::readCSR(CSRs reg) {
+  quint8 ret = 0;
+  (void)_csrs.read(static_cast<quint8>(reg), {&ret, 1}, rw_d);
+  return ret;
+}
+
+void targets::pep9::mc2::BaseCPU::writeCSR(CSRs reg, bool val) {
+  quint8 tmp = val ? 1 : 0;
+  (void)_csrs.write(static_cast<quint8>(reg), {&tmp, 1}, rw_d);
+}
+
+targets::pep9::mc2::CPUByteBus::CPUByteBus(sim::api2::device::Descriptor device, sim::api2::device::IDGenerator gen)
+    : BaseCPU(device, gen, ::pepp::ucode::Pep9ByteBus::hidden_register_count()) {}
+
+void targets::pep9::mc2::CPUByteBus::setMicrocode(std::vector<pepp::ucode::Pep9ByteBus::Code> &&code) {
+  _microcode = std::move(code);
+}
+
+const std::span<const pepp::ucode::Pep9ByteBus::Code> targets::pep9::mc2::CPUByteBus::microcode() { return _microcode; }
+
+void targets::pep9::mc2::CPUByteBus::applyPreconditions(
+    const QList<pepp::ucode::Test<pepp::ucode::Pep9Registers>> &tests) {
+  for (const auto &test : tests) {
+    if (std::holds_alternative<pepp::ucode::MemTest>(test)) {
+      auto memTest = std::get<pepp::ucode::MemTest>(test);
+      _memory->write(memTest.address, {memTest.value, memTest.size}, gs_d);
+    } else if (std::holds_alternative<pepp::ucode::RegisterTest<pepp::ucode::Pep9Registers>>(test)) {
+      auto regTest = std::get<pepp::ucode::RegisterTest<pepp::ucode::Pep9Registers>>(test);
+      const quint8 size = pepp::ucode::Pep9Registers::register_byte_size(regTest.reg);
+      quint32 regValue = regTest.value;
+      if (bits::hostOrder() != bits::Order::BigEndian) {
+        regValue = bits::byteswap(regTest.value);
+        regValue >>= (8 * (4 - size)); // Must move bytes around since we are only using part of regValue.
+      };
+      _bankRegs.write(static_cast<quint8>(regTest.reg), {reinterpret_cast<quint8 *>(&regValue), size}, gs_d);
+    } else if (std::holds_alternative<pepp::ucode::CSRTest<pepp::ucode::Pep9Registers>>(test)) {
+      auto csrTest = std::get<pepp::ucode::CSRTest<pepp::ucode::Pep9Registers>>(test);
+      quint8 value = csrTest.value ? 1 : 0;
+      _csrs.write(static_cast<quint8>(csrTest.reg), {reinterpret_cast<quint8 *>(&value), 1}, gs_d);
+    }
+  }
+}
+
+std::vector<bool>
+targets::pep9::mc2::CPUByteBus::testPostconditions(const QList<pepp::ucode::Test<pepp::ucode::Pep9Registers>> &tests) {
+  std::vector<bool> ret(tests.size(), true);
+  quint8 temp[4] = {0, 0, 0, 0};
+  int num = 0;
+  for (const auto &test : tests) {
+    if (std::holds_alternative<pepp::ucode::MemTest>(test)) {
+      auto memTest = std::get<pepp::ucode::MemTest>(test);
+      _memory->read(memTest.address, {&temp[0], memTest.size}, gs_d);
+      bool match = true;
+      for (int it = 0; it < memTest.size; it++) match &= temp[it] != memTest.value[it];
+      ret[num++] = match;
+    } else if (std::holds_alternative<pepp::ucode::RegisterTest<pepp::ucode::Pep9Registers>>(test)) {
+      auto regTest = std::get<pepp::ucode::RegisterTest<pepp::ucode::Pep9Registers>>(test);
+      const quint8 size = pepp::ucode::Pep9Registers::register_byte_size(regTest.reg);
+      quint32 regValue = regTest.value;
+      if (bits::hostOrder() != bits::Order::BigEndian) {
+        regValue = bits::byteswap(regTest.value);
+        regValue >>= (8 * (4 - size)); // Must move bytes around since we are only using part of regValue.
+      };
+      _bankRegs.read(static_cast<quint8>(regTest.reg), {temp, size}, gs_d);
+      ret[num++] = std::memcmp(temp, reinterpret_cast<const quint8 *>(&regValue), size) == 0;
+    }
+  }
+  return ret;
+}
 
 struct alu_result {
   bool n = false, z = false, v = false, c = false;
@@ -144,36 +218,6 @@ bool targets::pep9::mc2::CPUByteBus::analyze(sim::api2::trace::PacketIterator it
   return false;
 }
 
-void targets::pep9::mc2::CPUByteBus::trace(bool enabled) {
-  if (_tb) _tb->trace(_device.id, enabled);
-  _bankRegs.trace(enabled);
-  _hiddenRegs.trace(enabled);
-  _csrs.trace(enabled);
-}
-
-void targets::pep9::mc2::CPUByteBus::setBuffer(sim::api2::trace::Buffer *tb) {
-  _tb = tb;
-  _bankRegs.setBuffer(tb);
-  _hiddenRegs.setBuffer(tb);
-  _csrs.setBuffer(tb);
-}
-
-void targets::pep9::mc2::CPUByteBus::setTarget(sim::api2::memory::Target<quint16> *target, void *port) {
-  _memory = target;
-}
-
-void targets::pep9::mc2::CPUByteBus::setDebugger(pepp::debug::Debugger *debugger) { _dbg = debugger; }
-
-void targets::pep9::mc2::CPUByteBus::clearDebugger() { _dbg = nullptr; }
-
-quint8 targets::pep9::mc2::CPUByteBus::readReg(quint8 reg) {
-  quint8 ret = 0;
-  (void)_bankRegs.read(reg, {&ret, 1}, rw_d);
-  return ret;
-}
-
-void targets::pep9::mc2::CPUByteBus::writeReg(quint8 reg, quint8 val) { (void)_bankRegs.write(reg, {&val, 1}, rw_d); }
-
 quint8 targets::pep9::mc2::CPUByteBus::readHidden(HiddenRegisters reg) {
   quint8 ret = 0;
   (void)_hiddenRegs.read(static_cast<quint8>(reg), {&ret, 1}, rw_d);
@@ -184,33 +228,8 @@ void targets::pep9::mc2::CPUByteBus::writeHidden(HiddenRegisters reg, quint8 val
   (void)_hiddenRegs.write(static_cast<quint8>(reg), {&val, 1}, rw_d);
 }
 
-bool targets::pep9::mc2::CPUByteBus::readCSR(CSRs reg) {
-  quint8 ret = 0;
-  (void)_csrs.read(static_cast<quint8>(reg), {&ret, 1}, rw_d);
-  return ret;
-}
-
-void targets::pep9::mc2::CPUByteBus::writeCSR(CSRs reg, bool val) {
-  quint8 tmp = val ? 1 : 0;
-  (void)_csrs.write(static_cast<quint8>(reg), {&tmp, 1}, rw_d);
-}
-
 targets::pep9::mc2::CPUWordBus::CPUWordBus(sim::api2::device::Descriptor device, sim::api2::device::IDGenerator gen)
-    : _device(device),
-      _bankRegs({.id = gen(), .baseName = "regs", .fullName = _device.fullName + "/regs"},
-                sim::api2::memory::AddressSpan<quint8>(0, quint8(::pepp::ucode::Pep9Registers::register_count() - 1))),
-      _hiddenRegs({.id = gen(), .baseName = "hidden", .fullName = _device.fullName + "/hidden"},
-                  sim::api2::memory::AddressSpan<quint8>(0, ::pepp::ucode::Pep9WordBus::hidden_register_count() - 1)),
-      _csrs({.id = gen(), .baseName = "csrs", .fullName = _device.fullName + "/csrs"},
-            sim::api2::memory::AddressSpan<quint8>(0, quint8(::pepp::ucode::Pep9Registers::csr_count() - 1))) {}
-
-sim::api2::memory::Target<quint8> *targets::pep9::mc2::CPUWordBus::bankRegs() { return &_bankRegs; }
-
-sim::api2::memory::Target<quint8> *targets::pep9::mc2::CPUWordBus::hiddenRegs() { return &_hiddenRegs; }
-
-sim::api2::memory::Target<quint8> *targets::pep9::mc2::CPUWordBus::csrs() { return &_csrs; }
-
-sim::api2::device::Descriptor targets::pep9::mc2::CPUWordBus::device() const { return _device; }
+    : BaseCPU(device, gen, ::pepp::ucode::Pep9WordBus::hidden_register_count()) {}
 
 void targets::pep9::mc2::CPUWordBus::setMicrocode(std::vector<pepp::ucode::Pep9WordBus::Code> &&code) {
   _microcode = std::move(code);
@@ -223,7 +242,7 @@ void targets::pep9::mc2::CPUWordBus::applyPreconditions(
   for (const auto &test : tests) {
     if (std::holds_alternative<pepp::ucode::MemTest>(test)) {
       auto memTest = std::get<pepp::ucode::MemTest>(test);
-      _memory->write(memTest.address, {reinterpret_cast<const quint8 *>(&memTest.value), 2}, gs_d);
+      _memory->write(memTest.address, {memTest.value, memTest.size}, gs_d);
     } else if (std::holds_alternative<pepp::ucode::RegisterTest<pepp::ucode::Pep9Registers>>(test)) {
       auto regTest = std::get<pepp::ucode::RegisterTest<pepp::ucode::Pep9Registers>>(test);
       const quint8 size = pepp::ucode::Pep9Registers::register_byte_size(regTest.reg);
@@ -233,35 +252,40 @@ void targets::pep9::mc2::CPUWordBus::applyPreconditions(
         regValue >>= (8 * (4 - size)); // Must move bytes around since we are only using part of regValue.
       };
       _bankRegs.write(static_cast<quint8>(regTest.reg), {reinterpret_cast<quint8 *>(&regValue), size}, gs_d);
+    } else if (std::holds_alternative<pepp::ucode::CSRTest<pepp::ucode::Pep9Registers>>(test)) {
+      auto csrTest = std::get<pepp::ucode::CSRTest<pepp::ucode::Pep9Registers>>(test);
+      quint8 value = csrTest.value ? 1 : 0;
+      _csrs.write(static_cast<quint8>(csrTest.reg), {reinterpret_cast<quint8 *>(&value), 1}, gs_d);
     }
   }
 }
 
 std::vector<bool>
 targets::pep9::mc2::CPUWordBus::testPostconditions(const QList<pepp::ucode::Test<pepp::ucode::Pep9Registers>> &tests) {
-  return {};
+  std::vector<bool> ret(tests.size(), true);
+  quint8 temp[4] = {0, 0, 0, 0};
+  int num = 0;
+  for (const auto &test : tests) {
+    if (std::holds_alternative<pepp::ucode::MemTest>(test)) {
+      auto memTest = std::get<pepp::ucode::MemTest>(test);
+      _memory->read(memTest.address, {&temp[0], memTest.size}, gs_d);
+      bool match = true;
+      for (int it = 0; it < memTest.size; it++) match &= temp[it] != memTest.value[it];
+      ret[num++] = match;
+    } else if (std::holds_alternative<pepp::ucode::RegisterTest<pepp::ucode::Pep9Registers>>(test)) {
+      auto regTest = std::get<pepp::ucode::RegisterTest<pepp::ucode::Pep9Registers>>(test);
+      const quint8 size = pepp::ucode::Pep9Registers::register_byte_size(regTest.reg);
+      quint32 regValue = regTest.value;
+      if (bits::hostOrder() != bits::Order::BigEndian) {
+        regValue = bits::byteswap(regTest.value);
+        regValue >>= (8 * (4 - size)); // Must move bytes around since we are only using part of regValue.
+      };
+      _bankRegs.read(static_cast<quint8>(regTest.reg), {temp, size}, gs_d);
+      ret[num++] = std::memcmp(temp, reinterpret_cast<const quint8 *>(&regValue), size) == 0;
+    }
+  }
+  return ret;
 }
-
-void targets::pep9::mc2::CPUWordBus::setConstantRegisters() {
-  writeReg(22, 0x00);
-  writeReg(23, 0x01);
-  writeReg(24, 0x02);
-  writeReg(25, 0x03);
-  writeReg(26, 0x04);
-  writeReg(27, 0x08);
-  writeReg(28, 0xF0);
-  writeReg(29, 0xF6);
-  writeReg(30, 0xFE);
-  writeReg(31, 0xFF);
-}
-
-targets::pep9::mc2::CPUWordBus::Status targets::pep9::mc2::CPUWordBus::status() const { return _status; }
-
-void targets::pep9::mc2::CPUWordBus::resetMicroPC() { _microPC = 0; }
-
-const sim::api2::tick::Source *targets::pep9::mc2::CPUWordBus::getSource() { return _clock; }
-
-void targets::pep9::mc2::CPUWordBus::setSource(sim::api2::tick::Source *clock) { _clock = clock; }
 
 sim::api2::tick::Result targets::pep9::mc2::CPUWordBus::clock(sim::api2::tick::Type currentTick) {
   sim::api2::tick::Result ret;
@@ -337,35 +361,6 @@ bool targets::pep9::mc2::CPUWordBus::analyze(sim::api2::trace::PacketIterator it
   return false;
 }
 
-void targets::pep9::mc2::CPUWordBus::trace(bool enabled) {
-  if (_tb) _tb->trace(_device.id, enabled);
-  _bankRegs.trace(enabled);
-  _hiddenRegs.trace(enabled);
-  _csrs.trace(enabled);
-}
-
-void targets::pep9::mc2::CPUWordBus::setBuffer(sim::api2::trace::Buffer *tb) {
-  _tb = tb;
-  _bankRegs.setBuffer(tb);
-  _hiddenRegs.setBuffer(tb);
-  _csrs.setBuffer(tb);
-}
-
-void targets::pep9::mc2::CPUWordBus::setTarget(sim::api2::memory::Target<quint16> *target, void *port) {
-  _memory = target;
-}
-
-void targets::pep9::mc2::CPUWordBus::setDebugger(pepp::debug::Debugger *debugger) { _dbg = debugger; }
-
-void targets::pep9::mc2::CPUWordBus::clearDebugger() { _dbg = nullptr; }
-
-quint8 targets::pep9::mc2::CPUWordBus::readReg(quint8 reg) {
-  quint8 ret = 0;
-  (void)_bankRegs.read(reg, {&ret, 1}, rw_d);
-  return ret;
-}
-
-void targets::pep9::mc2::CPUWordBus::writeReg(quint8 reg, quint8 val) { (void)_bankRegs.write(reg, {&val, 1}, rw_d); }
 
 quint8 targets::pep9::mc2::CPUWordBus::readHidden(HiddenRegisters reg) {
   quint8 ret = 0;
@@ -375,15 +370,4 @@ quint8 targets::pep9::mc2::CPUWordBus::readHidden(HiddenRegisters reg) {
 
 void targets::pep9::mc2::CPUWordBus::writeHidden(HiddenRegisters reg, quint8 val) {
   (void)_hiddenRegs.write(static_cast<quint8>(reg), {&val, 1}, rw_d);
-}
-
-bool targets::pep9::mc2::CPUWordBus::readCSR(CSRs reg) {
-  quint8 ret = 0;
-  (void)_csrs.read(static_cast<quint8>(reg), {&ret, 1}, rw_d);
-  return ret;
-}
-
-void targets::pep9::mc2::CPUWordBus::writeCSR(CSRs reg, bool val) {
-  quint8 tmp = val ? 1 : 0;
-  (void)_csrs.write(static_cast<quint8>(reg), {&tmp, 1}, rw_d);
 }
