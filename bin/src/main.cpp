@@ -63,11 +63,11 @@ int main(int argc, char **argv) {
   app.set_help_flag("-h,--help", "Display this help message and exit.");
 
   auto shared_flags = detail::SharedFlags{.kind = detail::SharedFlags::Kind::DEFAULT};
-  auto ed = app.add_flag("-e,--edition", shared_flags.edValue,
-                         "Which edition of Computer Systems to target. "
-                         "Possible values are 4, 5, and 6.")
+  auto ed = app.add_option("-e,--edition", shared_flags.edValue,
+                           "Which edition of Computer Systems to target. "
+                           "Possible values are 4, 5, and 6.")
                 ->default_val(6)
-                ->expected(4, 6);
+                ->check(CLI::Bound(4, 6));
   task_factory_t task = nullptr;
 
   registerLicense(app, task, shared_flags);
