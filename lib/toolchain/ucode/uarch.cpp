@@ -110,7 +110,7 @@ uint8_t pepp::ucode::Pep9ByteBus::signal_group(Signals s) {
 bool pepp::ucode::Pep9ByteBus::is_clock(Signals s) {
   using enum Signals;
   if (static_cast<int>(s) >= static_cast<int>(NCk)) return true;
-  else return false;
+  else return s == Signals::MemRead || s == Signals::MemWrite;
 }
 
 uint8_t pepp::ucode::Pep9ByteBus::hidden_register_count() {
@@ -268,7 +268,7 @@ uint8_t pepp::ucode::Pep9WordBus::signal_group(Signals s) {
 bool pepp::ucode::Pep9WordBus::is_clock(Signals s) {
   using enum Signals;
   if (static_cast<int>(s) >= static_cast<int>(NCk)) return true;
-  else return false;
+  else return s == Signals::MemRead || s == Signals::MemWrite;
 }
 
 uint8_t pepp::ucode::Pep9WordBus::hidden_register_count() {
@@ -305,7 +305,7 @@ uint8_t pepp::ucode::Pep9WordBusControl::signal_group(Signals s) {
 bool pepp::ucode::Pep9WordBusControl::is_clock(Signals s) {
   using enum Signals;
   if (auto i = static_cast<int>(s); static_cast<int>(NCk) <= i && i <= static_cast<int>(MDRECk)) return true;
-  else return false;
+  else return s == Signals::MemRead || s == Signals::MemWrite;
 }
 
 std::optional<pepp::ucode::Pep9WordBusControl::Signals>

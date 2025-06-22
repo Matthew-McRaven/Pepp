@@ -15,6 +15,14 @@
  */
 #include "./parser.hpp"
 
+pepp::ucode::MemTest::MemTest(quint16 addr, quint8 value) : address(addr), size(1) {
+  this->value[0] = value;
+  this->value[1] = 0;
+}
+pepp::ucode::MemTest::MemTest(quint16 addr, quint16 value) : address(addr), size(1) {
+  this->value[0] = (value >> 8) & 0xFF;
+  this->value[1] = value & 0xff;
+}
 pepp::ucode::detail::TokenBuffer::TokenBuffer(const QStringView &line) : _data(line) {}
 
 int pepp::ucode::detail::TokenBuffer::matchCount() const { return _matchCount; }

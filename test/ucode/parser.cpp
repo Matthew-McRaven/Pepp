@@ -18,13 +18,13 @@
 #include "toolchain/ucode/parser.hpp"
 #include "toolchain/ucode/uarch.hpp"
 
-TEST_CASE("Microassemble 1-byte bus", "[scope:ucode][kind:unit][arch:*]") {
+TEST_CASE("Microassemble 1-byte bus", "[scope:mc2][kind:unit][arch:*]") {
   using uarch = pepp::ucode::Pep9ByteBus;
   using uarch2c = pepp::ucode::Pep9WordBusControl;
   using regs = pepp::ucode::Pep9Registers;
   SECTION("Integer signals") {
     // Play with spacing on =
-    QString source = "A\t= 1, B = 2, MemRead =1, MemWrite= 0  , AMux=0, ALU = 1\n";
+    QString source = "A\t= 1, B = 2, MemRead, MemWrite  , AMux=0, ALU = 1\n";
     auto result = pepp::ucode::parse<uarch, regs>(source);
     CHECK(result.errors.empty());
     REQUIRE(result.program.size() == 2);
@@ -34,7 +34,7 @@ TEST_CASE("Microassemble 1-byte bus", "[scope:ucode][kind:unit][arch:*]") {
     CHECK(line.controls.get(uarch::Signals::A) == 1);
     CHECK(line.controls.get(uarch::Signals::B) == 2);
     CHECK(line.controls.get(uarch::Signals::MemRead) == 1);
-    CHECK(line.controls.get(uarch::Signals::MemWrite) == 0);
+    CHECK(line.controls.get(uarch::Signals::MemWrite) == 1);
     CHECK(line.controls.get(uarch::Signals::AMux) == 0);
     CHECK(line.controls.get(uarch::Signals::ALU) == 1);
   }
@@ -266,7 +266,7 @@ TEST_CASE("Microassemble 1-byte bus", "[scope:ucode][kind:unit][arch:*]") {
     CHECK(result.program.size() == 0);
   }
   SECTION("Test memory value out-of-range") {
-    QString source = "UnitPost: Mem[0xFFFF]=0x100";
+    QString source = "UnitPost: Mem[0xFFFF]=0x10000";
     auto result = pepp::ucode::parse<uarch, regs>(source);
     CHECK(result.errors.size() == 1);
     CHECK(result.program.size() == 0);

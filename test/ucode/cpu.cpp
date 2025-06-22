@@ -40,7 +40,7 @@ template <typename T> quint8 read(sim::api2::memory::Target<T> &mem, T addr) {
   return value;
 }
 } // namespace
-TEST_CASE("Sanity Tests for 1 Byte ucode", "[scope:ucode][kind:unit][arch:*]") {
+TEST_CASE("Sanity Tests for 1 Byte ucode", "[scope:mc2][kind:unit][arch:*]") {
   using uarch = pepp::ucode::Pep9ByteBus;
   using regs = pepp::ucode::Pep9Registers;
   using Code = pepp::ucode::Pep9ByteBus::Code;
@@ -132,7 +132,7 @@ TEST_CASE("Sanity Tests for 1 Byte ucode", "[scope:ucode][kind:unit][arch:*]") {
   }
 }
 
-TEST_CASE("Sanity Tests for 2 Byte ucode", "[scope:ucode][kind:unit][arch:*]") {
+TEST_CASE("Sanity Tests for 2 Byte ucode", "[scope:mc2][kind:unit][arch:*]") {
   using uarch = pepp::ucode::Pep9WordBus;
   using regs = pepp::ucode::Pep9Registers;
   using Code = pepp::ucode::Pep9WordBus::Code;

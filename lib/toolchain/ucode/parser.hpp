@@ -18,8 +18,17 @@
 namespace pepp::ucode {
 // A test condition which gets/sets a memory address
 struct MemTest {
-  quint8 value = 0;
+  MemTest() = default;
+  MemTest(quint16 addr, quint16 value);
+  MemTest(quint16 addr, quint8);
+  ~MemTest() = default;
+  MemTest(const MemTest &) = default;
+  MemTest(MemTest &&) = default;
+  MemTest &operator=(const MemTest &) = default;
+  MemTest &operator=(MemTest &&) = default;
+  quint8 value[2] = {0, 0};
   quint16 address = 0;
+  quint8 size = 1; // Either 1 or 2 bytes.
 };
 // A test condition which gets/sets a variable-sized register
 template <typename registers> struct RegisterTest {
@@ -189,6 +198,7 @@ private:
 
 template <typename uarch, typename registers>
 bool detail::parseLine(const QStringView &line, typename ParseResult<uarch, registers>::Line &code, QString &error) {
+  using namespace Qt::StringLiterals;
   using Line = ParseResult<uarch, registers>::Line;
   int current_group = 0, signals_in_group = 0;
   TokenBuffer buf(line);
@@ -217,8 +227,9 @@ bool detail::parseLine(const QStringView &line, typename ParseResult<uarch, regi
           return error = "Expected value after '='", false;
         else if (value = current.toInt(&ok, t == Token::Hexadecimal ? 16 : 10); !ok)
           return error = "Failed to parse value", false;
-        else if (value > 255) return error = "Value too large", false;
-        else code.tests.emplace_back(MemTest{static_cast<quint8>(value), static_cast<quint16>(address)});
+        else if (value > 0xFFFF) return error = "Value too large", false;
+        else if (value < 256) code.tests.emplace_back(MemTest((quint16)address, (quint8)value));
+        else code.tests.emplace_back(MemTest((quint16)address, (quint16)value));
       } else { // Match identifer=value for registers
         if (auto maybe_register = registers::parse_register(current); maybe_register.has_value()) {
           if (!buf.match(Token::Equals)) return error = "Expected '=' after register", false;
@@ -227,8 +238,8 @@ bool detail::parseLine(const QStringView &line, typename ParseResult<uarch, regi
             return error = "Expected value after '='", false;
           else if (value = current.toInt(&ok, t == Token::Hexadecimal ? 16 : 10); !ok)
             return error = "Failed to parse value", false;
-          else if ((1 << 8 * registers::register_byte_size(*maybe_register)) - 1 < value)
-            return error = "Register value too large", false;
+          else if ((1 << (8 * registers::register_byte_size(*maybe_register))) - 1 < value)
+            return error = "Register value too large" + u"%1"_s.arg(value, 16), false;
           else code.tests.emplace_back(RegisterTest<registers>{*maybe_register, static_cast<quint32>(value)});
         } else if (auto maybe_csr = registers::parse_csr(current); maybe_csr.has_value()) {
           if (!buf.match(Token::Equals)) return error = "Expected '=' after register", false;
