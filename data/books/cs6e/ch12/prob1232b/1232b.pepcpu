@@ -1,0 +1,6 @@
+// File: prob1232b.pepcpu
+// Computer Systems, Fifth Edition
+// Problem 12.32(b)
+// LDWA here,s
+// RTL: A <- Oprnd; N <- A<0, Z <- A=0
+// Stack-relative addressing: Oprnd = Mem[SP + OprndSpec]

@@ -1,0 +1,11 @@
+// File: fig1211.pepcpu
+// Computer Systems, Fifth Edition
+// Figure 12.11
+// ADDA this,i
+// RTL: A <- A + Oprnd; N <- A<0, Z <- A=0, V <- {overflow}, C <- {carry}
+// Immediate addressing: Oprnd = OprndSpec
+
+// A<low> <- A<low> + Oprnd<low>, Save shadow carry.
+1. A=1, B=10, AMux=1, ALU=1, AndZ=0, CMux=1, C=1; ZCk, SCk, LoadCk
+// A<high> <- A<high> plus Oprnd<high> plus saved carry.
+2. A=0, B=9, AMux=1, CSMux=1, ALU=2, AndZ=1, CMux=1, C=0; NCk, ZCk, VCk, CCk, LoadCk

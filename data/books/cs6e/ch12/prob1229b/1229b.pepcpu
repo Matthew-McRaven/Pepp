@@ -1,0 +1,5 @@
+// File: prob1229b.pepcpu
+// Computer Systems, Fifth Edition
+// Problem 12.29(b)
+// MOVFLGA
+// RTL: A<8..11> <- 0, A<12..15> <- NZVC

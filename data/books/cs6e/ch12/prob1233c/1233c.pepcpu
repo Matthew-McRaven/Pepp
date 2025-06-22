@@ -1,0 +1,6 @@
+// File: prob1233c.pepcpu
+// Computer Systems, Fifth Edition
+// Problem 12.33(c)
+// CALL alpha
+// RTL: SP <- SP-2; Mem[SP] <- PC; PC <- Oprnd
+// Immediate addressing: Oprnd = OprndSpec

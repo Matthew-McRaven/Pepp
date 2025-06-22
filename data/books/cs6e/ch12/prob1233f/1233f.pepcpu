@@ -1,0 +1,5 @@
+// File: prob1233f.pepcpu
+// Computer Systems, Fifth Edition
+// Problem 12.33(f), See Figure 8.5
+// RETTR
+// RTL: NZVC <- Mem[SP]<4..7>; A <- Mem[SP+1]; X <- Mem[SP+3]; PC <- Mem[SP+5]; SP <- Mem[SP+7]

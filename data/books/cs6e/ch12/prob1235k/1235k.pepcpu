@@ -1,0 +1,7 @@
+// File: prob1235k.pepcpu
+// Computer Systems, Fifth Edition
+// Problem 12.35(k)
+// Two-byte data bus
+// STWA there,sx
+// RTL: Oprnd <- A
+// Stack-indexed addressing: Oprnd = Mem[SP + OprndSpec + X]

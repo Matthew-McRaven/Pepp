@@ -1,0 +1,7 @@
+// File: prob1236f.pepcpu
+// Computer Systems, Fifth Edition
+// Problem 12.36(f), See Figure 8.5
+// Two-byte data bus
+// RETTR
+// RTL: NZVC <- Mem[SP]<12..15>; A <- Mem[SP+2]; X <- Mem[SP+4];
+// PC <- Mem[SP+6]; SP <- Mem[SP+8]

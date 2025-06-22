@@ -1,0 +1,9 @@
+// File: prob1236e.pepcpu
+// Computer Systems, Fifth Edition
+// Problem 12.36(e), See Memory Alignment in Section 12.2
+// Two-byte data bus
+// All items stored at even address, right justified
+// DECO 0x0003,d trap
+// RTL: T <- Mem[0xFFF6]; Mem[T-2]<8..15> <- IR<0..7>; Mem[T-4] <- SP;
+// Mem[T-6] <- PC; Mem[T-8] <- X; Mem[T-10] <- A; Mem[T-12]<12..15> <- NZVC;
+// SP <- T-12; PC <- Mem[0xFFFE]

@@ -1,0 +1,6 @@
+// File: prob1233b.pepcpu
+// Computer Systems, Fifth Edition
+// Problem 12.33(b)
+// BR guessJT,x
+// RTL: PC <- Oprnd
+// Indexed addressing: Oprnd = Mem[OprndSpec + X]

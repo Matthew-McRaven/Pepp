@@ -1,0 +1,6 @@
+// File: prob1231c.pepcpu
+// Computer Systems, Fifth Edition
+// Problem 12.31(c)
+// ORA this,i
+// RTL: A <- A OR Oprnd; N <- A<0, Z <- A=0
+// Immediate addressing: Oprnd = OprndSpec

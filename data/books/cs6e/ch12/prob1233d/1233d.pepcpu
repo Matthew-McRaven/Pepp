@@ -1,0 +1,5 @@
+// File: prob1233d.pepcpu
+// Computer Systems, Fifth Edition
+// Problem 12.33(d)
+// RET
+// RTL: PC <- Mem[SP]; SP <- SP+2

@@ -1,0 +1,5 @@
+// File: prob1229a.pepcpu
+// Computer Systems, Fifth Edition
+// Problem 12.29(a)
+// MOVSPA
+// RTL: A <- SP

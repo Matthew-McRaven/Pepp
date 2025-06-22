@@ -1,0 +1,7 @@
+// File: prob1235b.pepcpu
+// Computer Systems, Fifth Edition
+// Problem 12.35(b)
+// Two-byte data bus
+// LDWA here,s
+// RTL: A <- Oprnd; N <- A<0, Z <- A=0
+// Stack-relative addressing: Oprnd = Mem[SP + OprndSpec]

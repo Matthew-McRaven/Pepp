@@ -1,0 +1,6 @@
+// File: prob1232a.pepcpu
+// Computer Systems, Fifth Edition
+// Problem 12.32(a)
+// LDWA here,d
+// RTL: A <- Oprnd; N <- A<0, Z <- A=0
+// Direct addressing: Oprnd = Mem[OprndSpec]

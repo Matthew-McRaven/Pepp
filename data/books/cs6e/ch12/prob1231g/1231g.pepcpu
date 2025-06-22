@@ -1,0 +1,6 @@
+// File: prob1231g.pepcpu
+// Computer Systems, Fifth Edition
+// Problem 12.31(g)
+// LDBA this,i
+// RTL: A<8..15> <- byte Oprnd; N <- 0, Z <- A<8..15>=0
+// Immediate addressing: Oprnd = OprndSpec

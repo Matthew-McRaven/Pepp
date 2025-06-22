@@ -1,0 +1,5 @@
+// File: prob1229d.pepcpu
+// Computer Systems, Fifth Edition
+// Problem 12.29(d)
+// NOTA
+// RTL: A <- ~A; N <- A<0, Z <- A=0

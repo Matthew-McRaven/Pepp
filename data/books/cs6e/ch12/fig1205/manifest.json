@@ -1,0 +1,19 @@
+{
+  "version": 2,
+  "type": "figure",
+  "name": "12:05",
+  "arch": "pep10",
+  "abstraction": "MC2",
+  "tests": [
+    "test0"
+  ],
+  "fragments": [
+    {
+      "name": "pepcpu",
+      "format": "pepcpu1",
+      "from": {
+        "file": "{ch}{fig}.pepcpu"
+      }
+    }
+  ]
+}

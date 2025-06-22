@@ -1,0 +1,6 @@
+// File: prob1233a.pepcpu
+// Computer Systems, Fifth Edition
+// Problem 12.33(a)
+// BR main
+// RTL: PC <- Oprnd
+// Immediate addressing: Oprnd = OprndSpec

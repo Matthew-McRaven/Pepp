@@ -1,0 +1,6 @@
+// File: prob1232e.pepcpu
+// Computer Systems, Fifth Edition
+// Problem 12.32(e)
+// LDWA here,sx
+// RTL: A <- Oprnd; N <- A<0, Z <- A=0
+// Stack-indexed addressing: Oprnd = Mem[SP + OprndSpec + X]

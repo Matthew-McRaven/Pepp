@@ -1,0 +1,6 @@
+// File: prob1232k.pepcpu
+// Computer Systems, Fifth Edition
+// Problem 12.32(k)
+// STWA there,sx
+// RTL: Oprnd <- A
+// Stack-indexed addressing: Oprnd = Mem[SP + OprndSpec + X]

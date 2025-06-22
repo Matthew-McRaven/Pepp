@@ -1,0 +1,6 @@
+// File: prob1231a.pepcpu
+// Computer Systems, Fifth Edition
+// Problem 12.31(a)
+// SUBA this,i
+// RTL: A <- A-Oprnd; N <- A<0, Z <- A=0, V <- {overflow}, C <- {carry}
+// Immediate addressing: Oprnd = OprndSpec

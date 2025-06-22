@@ -1,0 +1,5 @@
+// File: prob1230.pepcpu
+// Computer Systems, Fifth Edition
+// Problem 12.30
+// ASLA
+// RTL: C <- A<0>, A<0..14> <- A<1..15>, A<15> <- 0; N <- A<0, Z <- A=0, V <- {overflow}

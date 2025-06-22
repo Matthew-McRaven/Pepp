@@ -1,0 +1,6 @@
+// File: prob1232c.pepcpu
+// Computer Systems, Fifth Edition
+// Problem 12.32(c)
+// LDWA here,sf
+// RTL: A <- Oprnd; N <- A<0, Z <- A=0
+// Stack-relative deferred addressing: Oprnd = Mem[Mem[SP + OprndSpec]]

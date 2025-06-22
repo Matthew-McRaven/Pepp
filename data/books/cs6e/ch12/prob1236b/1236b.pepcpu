@@ -1,0 +1,7 @@
+// File: prob1236b.pepcpu
+// Computer Systems, Fifth Edition
+// Problem 12.36(b)
+// Two-byte data bus
+// BR guessJT,x
+// RTL: PC <- Oprnd
+// Indexed addressing: Oprnd = Mem[OprndSpec + X]

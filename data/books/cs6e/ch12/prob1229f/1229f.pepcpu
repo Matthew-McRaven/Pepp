@@ -1,0 +1,5 @@
+// File: prob1229f.pepcpu
+// Computer Systems, Fifth Edition
+// Problem 12.29(f)
+// ROLA
+// RTL: C <- A<0>, A<0..14> <- A<1..15>, A<15> <- C

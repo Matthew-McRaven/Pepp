@@ -1,0 +1,7 @@
+// File: prob1236c.pepcpu
+// Computer Systems, Fifth Edition
+// Problem 12.36(c)
+// Two-byte data bus
+// CALL alpha
+// RTL: SP <- SP-2; Mem[SP] <- PC; PC <- Oprnd
+// Immediate addressing: Oprnd = OprndSpec

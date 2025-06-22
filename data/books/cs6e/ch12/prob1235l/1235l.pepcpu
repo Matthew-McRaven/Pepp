@@ -1,0 +1,7 @@
+// File: prob1235l.pepcpu
+// Computer Systems, Fifth Edition
+// Problem 12.35(l)
+// Two-byte data bus
+// STWA there,sfx
+// RTL: Oprnd <- A
+// Stack-indexed deferred addressing: Oprnd = Mem[Mem[SP + OprndSpec] + X]

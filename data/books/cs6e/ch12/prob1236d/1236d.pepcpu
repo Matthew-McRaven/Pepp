@@ -1,0 +1,6 @@
+// File: prob1236d.pepcpu
+// Computer Systems, Fifth Edition
+// Problem 12.36(d)
+// Two-byte data bus
+// RET
+// RTL: PC <- Mem[SP]; SP <- SP+2

@@ -1,0 +1,5 @@
+// File: prob1229e.pepcpu
+// Computer Systems, Fifth Edition
+// Problem 12.29(e)
+// NEGA
+// RTL: A <- -A; N <- A<0, Z <- A=0, V <- {overflow}

@@ -1,0 +1,6 @@
+// File: prob1232g.pepcpu
+// Computer Systems, Fifth Edition
+// Problem 12.32(g)
+// STWA there,n
+// RTL: Oprnd <- A
+// Indirect addressing: Oprnd = Mem[Mem[OprndSpec]]

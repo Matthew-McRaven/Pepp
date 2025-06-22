@@ -1,0 +1,19 @@
+{
+  "version": 2,
+  "type": "problem",
+  "name": "12:32i",
+  "arch": "pep10",
+  "abstraction": "MC2",
+  "tests": [
+    "test0", "test1"
+  ],
+  "fragments": [
+    {
+      "name": "pepcpu",
+      "format": "pepcpu1",
+      "from": {
+        "file": "{ch}{fig}.pepcpu"
+      }
+    }
+  ]
+}

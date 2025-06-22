@@ -1,0 +1,7 @@
+// File: prob1235g.pepcpu
+// Computer Systems, Fifth Edition
+// Problem 12.35(g)
+// Two-byte data bus
+// STWA there,n
+// RTL: Oprnd <- A
+// Indirect addressing: Oprnd = Mem[Mem[OprndSpec]]
