@@ -41,7 +41,7 @@ void targets::pep9::mc2::CPUByteBus::applyPreconditions(
   for (const auto &test : tests) {
     if (std::holds_alternative<pepp::ucode::MemTest>(test)) {
       auto memTest = std::get<pepp::ucode::MemTest>(test);
-      _memory->write(memTest.address, {reinterpret_cast<const quint8 *>(&memTest.value), 2}, gs_d);
+      _memory->write(memTest.address, {reinterpret_cast<const quint8 *>(&memTest.value), 1}, gs_d);
     } else if (std::holds_alternative<pepp::ucode::RegisterTest<pepp::ucode::Pep9Registers>>(test)) {
       auto regTest = std::get<pepp::ucode::RegisterTest<pepp::ucode::Pep9Registers>>(test);
       const quint8 size = pepp::ucode::Pep9Registers::register_byte_size(regTest.reg);
@@ -51,6 +51,10 @@ void targets::pep9::mc2::CPUByteBus::applyPreconditions(
         regValue >>= (8 * (4 - size)); // Must move bytes around since we are only using part of regValue.
       };
       _bankRegs.write(static_cast<quint8>(regTest.reg), {reinterpret_cast<quint8 *>(&regValue), size}, gs_d);
+    } else if (std::holds_alternative<pepp::ucode::CSRTest<pepp::ucode::Pep9Registers>>(test)) {
+      auto csrTest = std::get<pepp::ucode::CSRTest<pepp::ucode::Pep9Registers>>(test);
+      quint8 value = csrTest.value ? 1 : 0;
+      _csrs.write(static_cast<quint8>(csrTest.reg), {reinterpret_cast<quint8 *>(&value), 1}, gs_d);
     }
   }
 }
@@ -223,7 +227,7 @@ void targets::pep9::mc2::CPUWordBus::applyPreconditions(
   for (const auto &test : tests) {
     if (std::holds_alternative<pepp::ucode::MemTest>(test)) {
       auto memTest = std::get<pepp::ucode::MemTest>(test);
-      _memory->write(memTest.address, {reinterpret_cast<const quint8 *>(&memTest.value), 2}, gs_d);
+      _memory->write(memTest.address, {reinterpret_cast<const quint8 *>(&memTest.value), 1}, gs_d);
     } else if (std::holds_alternative<pepp::ucode::RegisterTest<pepp::ucode::Pep9Registers>>(test)) {
       auto regTest = std::get<pepp::ucode::RegisterTest<pepp::ucode::Pep9Registers>>(test);
       const quint8 size = pepp::ucode::Pep9Registers::register_byte_size(regTest.reg);
@@ -233,6 +237,10 @@ void targets::pep9::mc2::CPUWordBus::applyPreconditions(
         regValue >>= (8 * (4 - size)); // Must move bytes around since we are only using part of regValue.
       };
       _bankRegs.write(static_cast<quint8>(regTest.reg), {reinterpret_cast<quint8 *>(&regValue), size}, gs_d);
+    } else if (std::holds_alternative<pepp::ucode::CSRTest<pepp::ucode::Pep9Registers>>(test)) {
+      auto csrTest = std::get<pepp::ucode::CSRTest<pepp::ucode::Pep9Registers>>(test);
+      quint8 value = csrTest.value ? 1 : 0;
+      _csrs.write(static_cast<quint8>(csrTest.reg), {reinterpret_cast<quint8 *>(&value), 1}, gs_d);
     }
   }
 }

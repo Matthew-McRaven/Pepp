@@ -28,8 +28,13 @@ template <typename registers> struct RegisterTest {
   // You will also need to byteswap and shift depending on the architecture
   quint32 value = 0;
 };
+// A test condition which gets/sets a variable-sized register
+template <typename registers> struct CSRTest {
+  typename registers::CSRs reg;
+  bool value = false;
+};
 // A UnitPre or UnitPost is a comma-deliited set of memory tests or register tests
-template <typename registers> using Test = std::variant<MemTest, RegisterTest<registers>>;
+template <typename registers> using Test = std::variant<MemTest, RegisterTest<registers>, CSRTest<registers>>;
 
 template <typename uarch, typename registers> struct ParseResult {
   // 0-indexed line number and an error message for that line.
@@ -69,6 +74,21 @@ namespace detail {
 template <typename uarch, typename registers>
 bool parseLine(const QStringView &line, typename ParseResult<uarch, registers>::Line &code, QString &error);
 } // namespace detail
+
+template <typename registers> struct ExtractedTests {
+  QList<Test<registers>> pre, post;
+};
+// The vector of lines produced by parse is hard to execute, since there may be gaps between executable lines.
+// This method extract only lines which contain control signals, ignoring comment-only lines, test lines, etc.
+// The result is usable by a microcode simulator without any further post-processing.
+template <typename uarch, typename registers>
+ExtractedTests<registers> tests(const ParseResult<uarch, registers> &result) {
+  ExtractedTests<registers> ret;
+  for (const auto &line : result.program)
+    if (line.type == ParseResult<uarch, registers>::Line::Type::Pre) ret.pre.append(line.tests);
+    else if (line.type == ParseResult<uarch, registers>::Line::Type::Post) ret.post.append(line.tests);
+  return ret;
+}
 
 // The vector of lines produced by parse is hard to execute, since there may be gaps between executable lines.
 // This method extract only lines which contain control signals, ignoring comment-only lines, test lines, etc.
@@ -141,6 +161,7 @@ enum class Token {
   UnitPre,
   UnitPost,
   Symbol,
+  LineNumber,
   Invalid
 };
 // Token buffer which I use to implement recursive descent parsing.
@@ -156,6 +177,7 @@ public:
   // If true and out!=nullptr, out will contain the data of the token.
   bool peek(Token token, QStringView *out = nullptr);
   inline QStringView rest() { return _data.mid(_end); }
+  inline bool atStart() { return _start == 0; }
 
 private:
   const QStringView &_data;
@@ -172,9 +194,10 @@ bool detail::parseLine(const QStringView &line, typename ParseResult<uarch, regi
   TokenBuffer buf(line);
   QStringView current;
   while (buf.inputRemains()) {
+    if (buf.atStart() && buf.match(Token::LineNumber, &current)) continue;
     // If we've already determined that the current line is a test case, enter this special state which
     // handles memory and register tests
-    if (code.type == Line::Type::Pre || code.type == Line::Type::Post) {
+    else if (code.type == Line::Type::Pre || code.type == Line::Type::Post) {
       bool ok;
       quint32 address = 0, value = 0;
       // Rely on operator short-circuiting to ensure that the first match is put into t.
@@ -196,18 +219,24 @@ bool detail::parseLine(const QStringView &line, typename ParseResult<uarch, regi
           return error = "Failed to parse value", false;
         else if (value > 255) return error = "Value too large", false;
         else code.tests.emplace_back(MemTest{static_cast<quint8>(value), static_cast<quint16>(address)});
-      } else { // Match identifer=value
-        auto maybe_register = registers::parse_register(current);
-        if (!maybe_register.has_value()) return error = "Unknown register: " + current, false;
-        else if (!buf.match(Token::Equals)) return error = "Expected '=' after register", false;
-        // Short circuiting used to ensure t has the token of the matched value.
-        else if (!buf.match(t = Token::Hexadecimal, &current) && !buf.match(t = Token::Decimal, &current))
-          return error = "Expected value after '='", false;
-        else if (value = current.toInt(&ok, t == Token::Hexadecimal ? 16 : 10); !ok)
-          return error = "Failed to parse value", false;
-        else if ((1 << 8 * registers::register_byte_size(*maybe_register)) - 1 < value)
-          return error = "Register value too large", false;
-        else code.tests.emplace_back(RegisterTest<registers>{*maybe_register, static_cast<quint32>(value)});
+      } else { // Match identifer=value for registers
+        if (auto maybe_register = registers::parse_register(current); maybe_register.has_value()) {
+          if (!buf.match(Token::Equals)) return error = "Expected '=' after register", false;
+          // Short circuiting used to ensure t has the token of the matched value.
+          else if (!buf.match(t = Token::Hexadecimal, &current) && !buf.match(t = Token::Decimal, &current))
+            return error = "Expected value after '='", false;
+          else if (value = current.toInt(&ok, t == Token::Hexadecimal ? 16 : 10); !ok)
+            return error = "Failed to parse value", false;
+          else if ((1 << 8 * registers::register_byte_size(*maybe_register)) - 1 < value)
+            return error = "Register value too large", false;
+          else code.tests.emplace_back(RegisterTest<registers>{*maybe_register, static_cast<quint32>(value)});
+        } else if (auto maybe_csr = registers::parse_csr(current); maybe_csr.has_value()) {
+          if (!buf.match(Token::Equals)) return error = "Expected '=' after register", false;
+          else if (!buf.match(t = Token::Decimal, &current)) return error = "Expected value after '='", false;
+          else if (value = current.toInt(&ok); !ok) return error = "Failed to parse value", false;
+          else if (value > 1) return error = "Register value too large", false;
+          else code.tests.emplace_back(CSRTest<registers>{*maybe_csr, (bool)value});
+        } else return error = "Unknown register: " + current, false;
       }
 
       // Ensure that each item is followed by some seperator or a comment, prevent constructs like A=7 B=2

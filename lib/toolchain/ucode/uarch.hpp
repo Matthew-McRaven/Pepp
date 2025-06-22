@@ -49,6 +49,8 @@ struct Pep9Registers {
   static std::optional<NamedRegisters> parse_register(const QStringView &name);
   static constexpr quint8 register_count() { return 32; }
   using CSRs = detail::pep9_registers::CSRs;
+  static std::optional<CSRs> parse_csr(const QString &name);
+  static std::optional<CSRs> parse_csr(const QStringView &name);
   static constexpr quint8 csr_count() { return 5; }
 };
 

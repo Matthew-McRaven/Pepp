@@ -27,6 +27,7 @@ bool pepp::ucode::detail::TokenBuffer::match(Token token, QStringView *out) {
 }
 
 bool pepp::ucode::detail::TokenBuffer::peek(Token token, QStringView *out) {
+  static const QRegularExpression lineNum("[0-9]+\\.");
   static const QRegularExpression identifier("[a-zA-Z][a-zA-Z0-9_]*");
   static const QRegularExpression symbol("[a-zA-Z_][a-zA-Z0-9_]*:");
   static const QRegularExpression decimal("[0-9]+");
@@ -75,6 +76,9 @@ bool pepp::ucode::detail::TokenBuffer::peek(Token token, QStringView *out) {
       break;
     } else if (auto maybeIdent = identifier.matchView(_data, _start, NormalMatch, Anchored); maybeIdent.hasMatch()) {
       _end = maybeIdent.capturedEnd(0), _currentToken = Token::Identifier;
+      break;
+    } else if (auto maybeLine = lineNum.matchView(_data, _start, NormalMatch, Anchored); maybeLine.hasMatch()) {
+      _end = maybeLine.capturedEnd(0), _currentToken = Token::LineNumber;
       break;
     } else if (auto maybeHex = hexadecimal.matchView(_data, _start, NormalMatch, Anchored); maybeHex.hasMatch()) {
       _end = maybeHex.capturedEnd(0), _currentToken = Token::Hexadecimal;
