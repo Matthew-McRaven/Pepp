@@ -1,0 +1,2 @@
+UnitPre: IR=0xE100FF, A=0xABCD, S=0
+UnitPost: Mem[0x00FF]=0xABCD

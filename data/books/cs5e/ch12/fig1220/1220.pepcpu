@@ -5,9 +5,6 @@
 // Fetch the instruction specifier and increment PC by 1
 // Assume: PC is even and pre-fetch the next byte
 
-UnitPre: IR=0x000000, PC=0x00FE, Mem[0x00FE]=0xABCD, S=1
-UnitPost: IR=0xAB0000, PC=0x00FF, T1=0xCD
-
 // MAR <- PC.
 1. A=6, B=7, MARMux=1; MARCk
 // Initiate fetch, PC <- PC + 1.

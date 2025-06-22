@@ -1,0 +1,3 @@
+UnitPre: IR=0x13000E, X=0x0010, Mem[0x001E]=0xD126
+UnitPre: N=0, Z=1, V=0, C=1, S=1
+UnitPost: PC=0xD126, N=0, Z=1, V=0, C=1
