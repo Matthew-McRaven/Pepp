@@ -138,6 +138,16 @@ uint8_t pepp::ucode::Pep9Registers::register_byte_size(NamedRegisters reg) {
   }
 }
 
+QString pepp::ucode::Pep9Registers::register_name(NamedRegisters reg) {
+  static const QMetaEnum meta_enum = QMetaEnum::fromType<NamedRegisters>();
+  return meta_enum.key(static_cast<int>(reg));
+}
+
+QString pepp::ucode::Pep9Registers::csr_name(CSRs reg) {
+  static const QMetaEnum meta_enum = QMetaEnum::fromType<CSRs>();
+  return meta_enum.key(static_cast<int>(reg));
+}
+
 std::optional<pepp::ucode::Pep9Registers::CSRs> pepp::ucode::Pep9Registers::parse_csr(const QStringView &name) {
   static const QMetaEnum meta_enum = QMetaEnum::fromType<CSRs>();
   for (int it = 0; it < meta_enum.keyCount(); it++)

@@ -19,7 +19,14 @@ pepp::ucode::MemTest::MemTest(quint16 addr, quint8 value) : address(addr), size(
   this->value[0] = value;
   this->value[1] = 0;
 }
-pepp::ucode::MemTest::MemTest(quint16 addr, quint16 value) : address(addr), size(1) {
+
+pepp::ucode::MemTest::operator QString() const {
+  if (size == 2)
+    return QString("Mem[0x%1]=0x%2%3")
+        .arg(QString::number(address, 16), QString::number(value[0], 16), QString::number(value[1], 16));
+  else return QString("Mem[0x%1]=0x%2").arg(QString::number(address, 16), QString::number(value[0], 16));
+}
+pepp::ucode::MemTest::MemTest(quint16 addr, quint16 value) : address(addr), size(2) {
   this->value[0] = (value >> 8) & 0xFF;
   this->value[1] = value & 0xff;
 }
