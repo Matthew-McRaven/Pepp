@@ -26,7 +26,7 @@ void helpers::addMacro(::macro::Registry &registry, std::string directory, QStri
       auto macroExpanded = ::macro::analyze_macro_definition(macroContents);
       if (!std::get<0>(macroExpanded)) continue;
       auto macroBody = macroContents.sliced(macroContents.indexOf("\n"));
-      auto macro = QSharedPointer<::macro::Parsed>::create(std::get<1>(macroExpanded), std::get<2>(macroExpanded),
+      auto macro = QSharedPointer<::macro::Declaration>::create(std::get<1>(macroExpanded), std::get<2>(macroExpanded),
                                                            macroBody, arch);
       registry.registerMacro(::macro::types::User, macro);
     }

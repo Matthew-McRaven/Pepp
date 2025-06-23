@@ -16,14 +16,14 @@
 
 #include "toolchain/pas/operations/generic/include_macros.hpp"
 #include <catch.hpp>
+#include "enums/isa/pep10.hpp"
+#include "toolchain/macro/declaration.hpp"
+#include "toolchain/macro/registry.hpp"
 #include "toolchain/pas/ast/generic/attr_children.hpp"
 #include "toolchain/pas/driver/pep10.hpp"
 #include "toolchain/pas/driver/pepp.hpp"
 #include "toolchain/pas/errors.hpp"
 #include "toolchain/pas/operations/generic/errors.hpp"
-#include "enums/isa/pep10.hpp"
-#include "toolchain/macro/macro.hpp"
-#include "toolchain/macro/registry.hpp"
 
 using namespace Qt::StringLiterals;
 
@@ -105,7 +105,7 @@ TEST_CASE("Include macros", "[scope:asm][kind:unit][arch:pep10]") {
   // Valid non-nesting
   SECTION("Valid non-nesting") {
     auto registry = QSharedPointer<macro::Registry>::create();
-    auto macro = QSharedPointer<macro::Parsed>::create(u"alpa"_s, 0, u".block 1"_s, u"pep/10"_s);
+    auto macro = QSharedPointer<macro::Declaration>::create(u"alpa"_s, 0, u".block 1"_s, u"pep/10"_s);
     registry->registerMacro(macro::types::Core, macro);
     QString input = "@alpa";
     smoke(registry, input, &success_test, false, false);
@@ -116,7 +116,7 @@ TEST_CASE("Include macros", "[scope:asm][kind:unit][arch:pep10]") {
   SECTION("Error on incorrect arg count") {
     auto registry = QSharedPointer<macro::Registry>::create();
 
-    auto macro = QSharedPointer<macro::Parsed>::create(u"alpa"_s, 2, u".END"_s, u"pep/10"_s);
+    auto macro = QSharedPointer<macro::Declaration>::create(u"alpa"_s, 2, u".END"_s, u"pep/10"_s);
     registry->registerMacro(macro::types::Core, macro);
     QString input = "@alpa";
     smoke(registry, input, &errorOnIncorrectArgCount_test, false, true);
@@ -134,9 +134,9 @@ TEST_CASE("Include macros", "[scope:asm][kind:unit][arch:pep10]") {
   // Valid nesting
   SECTION("Valid nesting") {
     auto registry = QSharedPointer<macro::Registry>::create();
-    auto macro = QSharedPointer<macro::Parsed>::create(u"alpa"_s, 0, u"@beta"_s, u"pep/10"_s);
+    auto macro = QSharedPointer<macro::Declaration>::create(u"alpa"_s, 0, u"@beta"_s, u"pep/10"_s);
     registry->registerMacro(macro::types::Core, macro);
-    auto macro1 = QSharedPointer<macro::Parsed>::create(u"beta"_s, 0, u".block 1"_s, u"pep/10"_s);
+    auto macro1 = QSharedPointer<macro::Declaration>::create(u"beta"_s, 0, u".block 1"_s, u"pep/10"_s);
     registry->registerMacro(macro::types::Core, macro1);
     QString input = "@alpa";
     smoke(registry, input, &validNesting_test, false, false);

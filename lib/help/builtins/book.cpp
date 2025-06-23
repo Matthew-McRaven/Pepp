@@ -18,7 +18,7 @@
 #include "book.hpp"
 #include "figure.hpp"
 
-#include "toolchain/macro/macro.hpp"
+#include "toolchain/macro/declaration.hpp"
 builtins::Book::Book(QString name) : QObject(nullptr), _name(name) {}
 
 QString builtins::Book::name() const { return _name; }
@@ -90,14 +90,14 @@ bool builtins::Book::addProblem(QSharedPointer<Figure> problem) {
     return false;
 }
 
-const QList<QSharedPointer<macro::Parsed>> builtins::Book::macros() const {
+const QList<QSharedPointer<macro::Declaration>> builtins::Book::macros() const {
   return _macros;
 }
 
-QSharedPointer<const macro::Parsed>
+QSharedPointer<const macro::Declaration>
 builtins::Book::findMacro(QString name) const {
   using namespace Qt::StringLiterals;
-  QList<QSharedPointer<const macro::Parsed>> temp;
+  QList<QSharedPointer<const macro::Declaration>> temp;
   for (const auto &macroPtr : _macros) {
     if (macroPtr->name() == name)
       temp.push_back(macroPtr);
@@ -112,7 +112,7 @@ builtins::Book::findMacro(QString name) const {
   }
 }
 
-bool builtins::Book::addMacro(QSharedPointer<macro::Parsed> macro) {
+bool builtins::Book::addMacro(QSharedPointer<macro::Declaration> macro) {
   // TODO: Adding N macros will take N^2 time because of the calls to find.
   // Will be necessary to speed this up for large N.
   if (findMacro(macro->name()) == nullptr) {

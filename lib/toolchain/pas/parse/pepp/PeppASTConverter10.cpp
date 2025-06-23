@@ -230,7 +230,7 @@ std::any parse::PeppASTConverter::visitDirectiveLine(PeppParser::DirectiveLineCo
       {"IMPORT", &PeppASTConverter::import}, {"INPUT", &PeppASTConverter::input},
       {"OUTPUT", &PeppASTConverter::output}, {"ORG", &PeppASTConverter::org},
       {"SCALL", &PeppASTConverter::scall},   {"SECTION", &PeppASTConverter::section},
-      {"USCALL", &PeppASTConverter::uscall}, {"WORD", &PeppASTConverter::word},
+      {"WORD", &PeppASTConverter::word},
   };
 
   auto identifier = *_lineInfo.identifier;
@@ -511,10 +511,6 @@ void parse::PeppASTConverter::section(QSharedPointer<pas::ast::Node> node, PeppP
     if (!flagArg->isText()) addError(node, {.severity = S::Fatal, .message = EP::sectionFlagsString});
     else node->set(generic::ArgumentList{.value = {arg, flagArg}});
   } else node->set(generic::Argument{.value = arg});
-}
-
-void parse::PeppASTConverter::uscall(QSharedPointer<pas::ast::Node> node, PeppParser::DirectiveLineContext *context) {
-  io_scall_helper(node, context, "USCALL");
 }
 
 void parse::PeppASTConverter::word(QSharedPointer<pas::ast::Node> node, PeppParser::DirectiveLineContext *context) {

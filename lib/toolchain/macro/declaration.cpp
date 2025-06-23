@@ -15,28 +15,20 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-#pragma once
+#include "./declaration.hpp"
 
-#include <QObject>
+macro::Declaration::Declaration(QString name, quint8 argCount, QString body, QString architecture, QString family, bool hidden)
+    : QObject(nullptr), _name(name), _body(body), _architecture(architecture), _family(family), _argCount(argCount),
+      _hidden(hidden) {}
 
-#include "./types.hpp"
+QString macro::Declaration::name() const { return _name; }
 
-namespace macro {
-class Parsed;
-class Registered : public QObject {
-  Q_OBJECT
-  Q_PROPERTY(const Parsed *contents READ contentsPtr CONSTANT)
-  Q_PROPERTY(types::Type type READ type CONSTANT)
-public:
-  // Takes ownership of contents and changes its parent to this
-  Registered(types::Type type, QSharedPointer<const Parsed> contents);
-  // Needed to access from QML.
-  const Parsed *contentsPtr() const;
-  QSharedPointer<const Parsed> contents() const;
-  types::Type type() const;
+QString macro::Declaration::body() const { return _body; }
 
-private:
-  QSharedPointer<const Parsed> _contents;
-  types::Type _type;
-};
-} // namespace macro
+quint8 macro::Declaration::argCount() const { return _argCount; }
+
+QString macro::Declaration::architecture() const { return _architecture; }
+
+QString macro::Declaration::family() const { return _family; }
+
+bool macro::Declaration::hidden() const { return _hidden; }

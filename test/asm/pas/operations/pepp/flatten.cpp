@@ -16,6 +16,9 @@
 
 #include "toolchain/pas/operations/generic/flatten.hpp"
 #include <catch.hpp>
+#include "enums/isa/pep10.hpp"
+#include "toolchain/macro/declaration.hpp"
+#include "toolchain/macro/registry.hpp"
 #include "toolchain/pas/ast/generic/attr_children.hpp"
 #include "toolchain/pas/driver/pep10.hpp"
 #include "toolchain/pas/driver/pepp.hpp"
@@ -23,9 +26,6 @@
 #include "toolchain/pas/operations/generic/include_macros.hpp"
 #include "toolchain/pas/operations/generic/is.hpp"
 #include "toolchain/pas/operations/pepp/string.hpp"
-#include "enums/isa/pep10.hpp"
-#include "toolchain/macro/macro.hpp"
-#include "toolchain/macro/registry.hpp"
 
 using isa::Pep10;
 using namespace Qt::StringLiterals;
@@ -56,7 +56,7 @@ TEST_CASE("Flatten macros", "[scope:asm][kind:unit][arch:pep10]") {
   // Valid non-nesting
   {
     auto registry = QSharedPointer<macro::Registry>::create();
-    auto macro = QSharedPointer<macro::Parsed>::create(u"alpa"_s, 0, u".block 1"_s, u"pep/10"_s);
+    auto macro = QSharedPointer<macro::Declaration>::create(u"alpa"_s, 0, u".block 1"_s, u"pep/10"_s);
     registry->registerMacro(macro::types::Core, macro);
     QString input = "@alpa";
     items.push_front({"valid non-nesting: visitor", registry, input, &single_test, false});
@@ -66,9 +66,9 @@ TEST_CASE("Flatten macros", "[scope:asm][kind:unit][arch:pep10]") {
   // Valid nesting
   {
     auto registry = QSharedPointer<macro::Registry>::create();
-    auto macro = QSharedPointer<macro::Parsed>::create(u"alpa"_s, 0, u"@beta"_s, u"pep/10"_s);
+    auto macro = QSharedPointer<macro::Declaration>::create(u"alpa"_s, 0, u"@beta"_s, u"pep/10"_s);
     registry->registerMacro(macro::types::Core, macro);
-    auto macro2 = QSharedPointer<macro::Parsed>::create(u"beta"_s, 0, u".block 1"_s, u"pep/10"_s);
+    auto macro2 = QSharedPointer<macro::Declaration>::create(u"beta"_s, 0, u".block 1"_s, u"pep/10"_s);
     registry->registerMacro(macro::types::Core, macro2);
     QString input = "@alpa";
     items.push_front({"valid nesting: visitor", registry, input, &nesting_test, false});

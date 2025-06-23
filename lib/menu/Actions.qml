@@ -154,7 +154,7 @@ QtObject {
                 window.syncEditors();
                 project.onAssembleThenLoad();
             }
-            text: qsTr("Assemble &Load Object Code")
+            text: qsTr("Assemble && &Load Object Code")
             icon.source: `image://icons/build/flash${enabled ? '' : '_disabled'}${dark ? '' : '_dark'}.svg`
             shortcut: "Ctrl+Shift+L"
             onShortcutChanged: updateNativeText(this)
@@ -166,8 +166,9 @@ QtObject {
                 // New editor does not lose focus before "assemble" is triggered, so we must save manually.
                 window.syncEditors();
                 project.onAssembleThenFormat();
+                project.onOverwriteEditors();
             }
-            text: qsTr("&Format Assembly Code")
+            text: qsTr("&Format Source Code")
             // Use blank icon to force menu items to line up.
             icon.source: "image://icons/blank.svg"
             onShortcutChanged: updateNativeText(this)

@@ -19,10 +19,9 @@
 
 #include <QObject>
 
-#include "./types.hpp"
-
 namespace macro {
-class Parsed : public QObject {
+// Represents a parsed macro declaration.
+class Declaration : public QObject {
   Q_OBJECT
   Q_PROPERTY(QString name READ name CONSTANT);
   Q_PROPERTY(QString body READ body CONSTANT);
@@ -31,7 +30,8 @@ class Parsed : public QObject {
   Q_PROPERTY(QString family READ architecture CONSTANT)
   Q_PROPERTY(bool hidden READ hidden CONSTANT)
 public:
-  Parsed(QString name, quint8 argCount, QString body, QString architecture, QString family = "", bool hidden = false);
+  Declaration(QString name, quint8 argCount, QString body, QString architecture, QString family = "",
+              bool hidden = false);
   QString name() const;
   QString body() const;
   quint8 argCount() const;

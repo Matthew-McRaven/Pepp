@@ -148,6 +148,7 @@ protected:
   void updateBPAtAddress(quint32 address, Action action);
   QSharedPointer<pepp::debug::Debugger> _dbg{};
   QSharedPointer<builtins::Registry> _books = {};
+  void loadCharIn();
 };
 
 struct Error : public QObject {

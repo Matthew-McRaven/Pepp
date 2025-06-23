@@ -16,13 +16,12 @@
 
 #include "toolchain/pas/operations/pepp/register_system_calls.hpp"
 #include <catch.hpp>
+#include "enums/isa/pep10.hpp"
+#include "toolchain/macro/declaration.hpp"
+#include "toolchain/macro/registry.hpp"
 #include "toolchain/pas/ast/generic/attr_children.hpp"
 #include "toolchain/pas/driver/pep10.hpp"
 #include "toolchain/pas/driver/pepp.hpp"
-#include "enums/isa/pep10.hpp"
-#include "toolchain/macro/macro.hpp"
-#include "toolchain/macro/registered.hpp"
-#include "toolchain/macro/registry.hpp"
 
 using testFn = void (*)(macro::Registry *);
 using isa::Pep10;

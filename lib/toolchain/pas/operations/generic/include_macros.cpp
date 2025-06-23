@@ -16,6 +16,9 @@
  */
 
 #include "include_macros.hpp"
+#include "is.hpp"
+#include "toolchain/macro/declaration.hpp"
+#include "toolchain/macro/registry.hpp"
 #include "toolchain/pas/ast/generic/attr_argument.hpp"
 #include "toolchain/pas/ast/generic/attr_children.hpp"
 #include "toolchain/pas/ast/generic/attr_comment_indent.hpp"
@@ -29,10 +32,6 @@
 #include "toolchain/pas/errors.hpp"
 #include "toolchain/pas/operations/generic/errors.hpp"
 #include "toolchain/pas/operations/generic/string.hpp"
-#include "is.hpp"
-#include "toolchain/macro/macro.hpp"
-#include "toolchain/macro/registered.hpp"
-#include "toolchain/macro/registry.hpp"
 
 #include <toolchain/pas/ast/generic/attr_comment.hpp>
 
@@ -133,7 +132,10 @@ void pas::ops::generic::IncludeMacros::addExtraChildren(ast::Node &node) {
   end->set(ast::generic::IsMacroComment{});
   end->set(ast::generic::CommentIndent{.value = ast::generic::CommentIndent::Level::Left});
   // TODO: enable translations.
-  end->set(ast::generic::Comment{.value = u"End @%1"_s.arg(node.get<ast::generic::Macro>().value)});
+  auto spacing = u" "_s.repeated(indents::defaultSymWidth - 1);
+  // Align the macro comment as if it were an instruction.
+  // Need a -1 indent to accomodate the ; character.
+  end->set(ast::generic::Comment{.value = u"%1End @%2"_s.arg(spacing, node.get<ast::generic::Macro>().value)});
   children.push_back(end);
 
   node.set<ast::generic::Children>(ast::generic::Children{.value = children});

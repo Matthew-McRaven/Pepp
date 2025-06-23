@@ -23,7 +23,7 @@
 #include "book.hpp"
 #include "enums/constants.hpp"
 namespace macro {
-class Parsed;
+class Declaration;
 }
 
 namespace builtins {
@@ -54,7 +54,7 @@ public:
 
 private:
   using _Figure = QSharedPointer<builtins::Figure>;
-  using _Macro = QList<QSharedPointer<macro::Parsed>>;
+  using _Macro = QList<QSharedPointer<macro::Declaration>>;
   std::variant<std::monostate, _Figure, _Macro> loadManifestV2(const QJsonDocument &manifest, const QString &path);
   std::variant<std::monostate, _Figure, _Macro> loadFigureV2(const QJsonDocument &manifest, const QString &path);
   std::variant<std::monostate, _Figure, _Macro> loadMacroV2(const QJsonDocument &manifest, const QString &path);

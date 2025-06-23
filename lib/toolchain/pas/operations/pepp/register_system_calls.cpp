@@ -16,17 +16,16 @@
  */
 
 #include "./register_system_calls.hpp"
+#include "toolchain/macro/declaration.hpp"
 #include "toolchain/pas/ast/generic/attr_argument.hpp"
 #include "toolchain/pas/ast/generic/attr_directive.hpp"
 #include "toolchain/pas/ast/value/base.hpp"
 #include "toolchain/pas/operations/generic/is.hpp"
 #include "toolchain/pas/operations/pepp/is.hpp"
-#include "toolchain/macro/macro.hpp"
 
 #include <toolchain/pas/ast/value/symbolic.hpp>
 
 // TODO: Determine if 1-indexed of 0-indexed.
-const QString unarySCallMacro = "LDWA %1, i\nUSCALL\n";
 // Must manually add %1, %2 later. Macro syntax conflicts with QString::arg, and
 // can't escape %#.
 const QString nonunarySCallMacro = "LDWA %1, i\nSCALL ";
@@ -35,7 +34,7 @@ using pas::ast::generic::Message;
 bool pas::ops::pepp::RegisterSystemCalls::operator()(ast::Node &node) {
   using namespace Qt::StringLiterals;
   auto macroKind = node.get<ast::generic::Directive>().value;
-  QSharedPointer<macro::Parsed> parsed = {};
+  QSharedPointer<macro::Declaration> parsed = {};
 
   // Validate that directive has correct argument types, then construct correct
   // macro kind (unary/non-unary)
@@ -49,10 +48,7 @@ bool pas::ops::pepp::RegisterSystemCalls::operator()(ast::Node &node) {
                          .message = u"%1 expected a identifier argument."_s.arg(macroKind)});
   } else if (macroKind.toUpper() == "SCALL") {
     auto name = argument->string();
-    parsed = QSharedPointer<macro::Parsed>::create(name, 2, nonunarySCallMacro.arg(name) + "$1, $2\n", "pep/10");
-  } else if (macroKind.toUpper() == "USCALL") {
-    auto name = argument->string();
-    parsed = QSharedPointer<macro::Parsed>::create(name, 0, unarySCallMacro.arg(name), "pep/10");
+    parsed = QSharedPointer<macro::Declaration>::create(name, 2, nonunarySCallMacro.arg(name) + "$1, $2\n", "pep/10");
   } else {
     addedError = true;
     ast::addError(node, {.severity = Message::Severity::Fatal, .message = u"Unspecified error."_s});
@@ -67,7 +63,7 @@ bool pas::ops::pepp::RegisterSystemCalls::operator()(ast::Node &node) {
 }
 
 bool pas::ops::pepp::registerSystemCalls(ast::Node &node, QSharedPointer<macro::Registry> registry) {
-  auto is = pas::ops::generic::Or<pas::ops::pepp::isSCall, pas::ops::pepp::isUSCall>();
+  auto is = pas::ops::pepp::isSCall();
   auto visit = RegisterSystemCalls();
   visit.registry = registry;
   ast::apply_recurse_if(node, is, visit);

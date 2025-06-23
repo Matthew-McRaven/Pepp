@@ -18,4 +18,4 @@ Number,GitRef,Date,Blurb
 0.9.2,,2025-05-15,"This version improves the layout of the debugger mode, improves focus management for text editors, and enables hotkeys/shortcuts in ISA3 projects"
 0.10.0,,2025-05-28,"This version introduces a new method of laying out the editor and debugger"
 0.10.1,,2025-05-29,"This version makes minor changes to macro formatting"
-0.10.2,,??,"This version is still a WIP"
+0.10.2,,2025-06-22,"This version adds a CLI tool to assemble and run microcode programs"

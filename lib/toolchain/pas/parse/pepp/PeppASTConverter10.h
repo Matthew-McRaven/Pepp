@@ -63,7 +63,6 @@ private:
   void org(QSharedPointer<pas::ast::Node> node, PeppParser::DirectiveLineContext *context);
   void scall(QSharedPointer<pas::ast::Node> node, PeppParser::DirectiveLineContext *context);
   void section(QSharedPointer<pas::ast::Node> node, PeppParser::DirectiveLineContext *context);
-  void uscall(QSharedPointer<pas::ast::Node> node, PeppParser::DirectiveLineContext *context);
   void word(QSharedPointer<pas::ast::Node> node, PeppParser::DirectiveLineContext *context);
   void io_scall_helper(QSharedPointer<pas::ast::Node> node, PeppParser::DirectiveLineContext *context, QString name);
 };

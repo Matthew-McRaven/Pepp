@@ -23,8 +23,23 @@
 
 namespace macro {
 
-class Parsed;
-class Registered;
+class Declaration;
+class Registration : public QObject {
+  Q_OBJECT
+  Q_PROPERTY(const Declaration *contents READ contentsPtr CONSTANT)
+  Q_PROPERTY(types::Type type READ type CONSTANT)
+public:
+  // Takes ownership of contents and changes its parent to this
+  Registration(types::Type type, QSharedPointer<const Declaration> contents);
+  // Needed to access from QML.
+  const Declaration *contentsPtr() const;
+  QSharedPointer<const Declaration> contents() const;
+  types::Type type() const;
+
+private:
+  QSharedPointer<const Declaration> _contents;
+  types::Type _type;
+};
 
 class Registry : public QObject {
   Q_OBJECT
@@ -32,15 +47,15 @@ public:
   explicit Registry(QObject *parent = nullptr);
   bool contains(QString name) const;
   // Returns nullptr if not found.
-  const Registered *findMacro(QString name) const;
+  const Registration *findMacro(QString name) const;
   // FIXME: Replace with an iterator so as not to force additional memory
   // allocations.
-  QList<const Registered *> findMacrosByType(types::Type type) const;
+  QList<const Registration *> findMacrosByType(types::Type type) const;
   void clear();
   // Ownership of macro is always transfered to this.
   // Returns nullptr if the macro already exists in the registry.
   // Returned pointer is non-owning
-  QSharedPointer<const Registered> registerMacro(types::Type type, QSharedPointer<Parsed> macro);
+  QSharedPointer<const Registration> registerMacro(types::Type type, QSharedPointer<Declaration> macro);
   void removeMacro(QString name);
 
 signals:
@@ -51,6 +66,6 @@ signals:
 
 private:
   //
-  QMap<QString, QSharedPointer<Registered>> _macros;
+  QMap<QString, QSharedPointer<Registration>> _macros;
 };
 } // namespace macro

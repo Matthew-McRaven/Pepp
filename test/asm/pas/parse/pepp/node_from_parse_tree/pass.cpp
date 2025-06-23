@@ -80,7 +80,6 @@ QSharedPointer<pas::ops::ConstOp<bool>> isOutput = QSharedPointer<pas::ops::pepp
 QSharedPointer<pas::ops::ConstOp<bool>> isOrg = QSharedPointer<pas::ops::generic::isOrg>::create();
 QSharedPointer<pas::ops::ConstOp<bool>> isSCall = QSharedPointer<pas::ops::pepp::isSCall>::create();
 QSharedPointer<pas::ops::ConstOp<bool>> isSection = QSharedPointer<pas::ops::pepp::isSection>::create();
-QSharedPointer<pas::ops::ConstOp<bool>> isUSCall = QSharedPointer<pas::ops::pepp::isUSCall>::create();
 QSharedPointer<pas::ops::ConstOp<bool>> isWord = []() {
   auto ret = QSharedPointer<pas::ops::generic::isByte2>::create();
   ret->allowMultiple = false;
@@ -230,9 +229,6 @@ TEST_CASE("Passing Pepp AST conversions", "[scope:asm][kind:unit][arch:pep10]") 
           {".SECTION: mixed case", ".SeCtIoN \"data\"", isSection, false},
           {".SECTION: comment", ".SECTION \"hi\";10", isSection, false},
           // TODO: Implement
-          // USCALL
-          {".USCALL: mixed case", ".UsCaLl hi", isUSCall, false},
-          {".USCALL: comment", ".USCALL hi;10", isUSCall, false},
           // WORD
           {".WORD: mixed case", ".WoRd 10", isWord, false},
           {".WORD: symbol", "s:.WORD 10", isWord, true},
