@@ -26,7 +26,6 @@
 #include <toolchain/pas/ast/value/symbolic.hpp>
 
 // TODO: Determine if 1-indexed of 0-indexed.
-const QString unarySCallMacro = "LDWA %1, i\nUSCALL\n";
 // Must manually add %1, %2 later. Macro syntax conflicts with QString::arg, and
 // can't escape %#.
 const QString nonunarySCallMacro = "LDWA %1, i\nSCALL ";
@@ -50,9 +49,6 @@ bool pas::ops::pepp::RegisterSystemCalls::operator()(ast::Node &node) {
   } else if (macroKind.toUpper() == "SCALL") {
     auto name = argument->string();
     parsed = QSharedPointer<macro::Parsed>::create(name, 2, nonunarySCallMacro.arg(name) + "$1, $2\n", "pep/10");
-  } else if (macroKind.toUpper() == "USCALL") {
-    auto name = argument->string();
-    parsed = QSharedPointer<macro::Parsed>::create(name, 0, unarySCallMacro.arg(name), "pep/10");
   } else {
     addedError = true;
     ast::addError(node, {.severity = Message::Severity::Fatal, .message = u"Unspecified error."_s});
@@ -67,7 +63,7 @@ bool pas::ops::pepp::RegisterSystemCalls::operator()(ast::Node &node) {
 }
 
 bool pas::ops::pepp::registerSystemCalls(ast::Node &node, QSharedPointer<macro::Registry> registry) {
-  auto is = pas::ops::generic::Or<pas::ops::pepp::isSCall, pas::ops::pepp::isUSCall>();
+  auto is = pas::ops::pepp::isSCall();
   auto visit = RegisterSystemCalls();
   visit.registry = registry;
   ast::apply_recurse_if(node, is, visit);

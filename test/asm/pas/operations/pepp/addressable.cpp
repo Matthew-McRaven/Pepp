@@ -44,7 +44,6 @@ TEST_CASE("Addressable", "[scope:asm][kind:unit][arch:pep10]") {
       {".ORG", u".ORG 0xFAAD"_s, false},
       {".SCALL", u".SCALL s"_s, false},
       {".SECTION", u".SECTION \".text\""_s, false},
-      {".USCALL", u".USCALL s"_s, false},
       {".WORD", u".WORD 10"_s, true},
   }));
   auto pipeline = pas::driver::pep10::pipeline<pas::driver::ANTLRParserTag>({{body, {.isOS = true}}});

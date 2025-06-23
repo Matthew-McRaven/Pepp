@@ -245,7 +245,7 @@ bool isa::Pep10::canElideAddressingMode(Mnemonic mnemonic, AddressingMode addr) 
 
 QSet<QString> isa::Pep10::legalDirectives() {
   static const auto valid = QSet<QString>{"ALIGN", "ASCII",  "BLOCK", "BYTE",  "EQUATE",  "EXPORT", "IMPORT",
-                                          "INPUT", "OUTPUT", "ORG",   "SCALL", "SECTION", "USCALL", "WORD"};
+                                          "INPUT", "OUTPUT", "ORG",   "SCALL", "SECTION", "WORD"};
   return valid;
 }
 

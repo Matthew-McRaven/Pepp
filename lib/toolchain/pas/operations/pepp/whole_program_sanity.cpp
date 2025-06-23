@@ -24,7 +24,7 @@
 #include <toolchain/pas/ast/generic/attr_symbol.hpp>
 
 bool pas::ops::pepp::IsOSFeature::operator()(const ast::Node &node) {
-  static const auto osDirectives = QSet<QString>{"BURN", "EXPORT", "IMPORT", "INPUT", "OUTPUT", "SCALL", "USCALL"};
+  static const auto osDirectives = QSet<QString>{"BURN", "EXPORT", "IMPORT", "INPUT", "OUTPUT", "SCALL"};
   return ast::type(node).value == ast::generic::Type::Directive &&
          osDirectives.contains(node.get<ast::generic::Directive>().value);
 }

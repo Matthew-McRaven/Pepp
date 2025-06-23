@@ -49,7 +49,7 @@ TEST_CASE("Size", "[scope:asm][kind:unit][arch:pep10]") {
       CHECK(explicitSize<isa::Pep10>(*ret.root, base, Direction::Backward) == 6);
     }
   }
-  for (auto name : {".IMPORT", ".EXPORT", ".SCALL", ".USCALL", ".INPUT", ".OUTPUT"}) {
+  for (auto name : {".IMPORT", ".EXPORT", ".SCALL", ".INPUT", ".OUTPUT"}) {
     DYNAMIC_SECTION(name) {
       auto ret =
           pas::driver::pepp::createParser<isa::Pep10, pas::driver::ANTLRParserTag>(false)(u"%1 s"_s.arg(name), nullptr);

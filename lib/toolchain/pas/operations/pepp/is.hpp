@@ -84,10 +84,6 @@ struct isSection : public pas::ops::ConstOp<bool> {
   bool operator()(const ast::Node &node);
 };
 
-struct isUSCall : public pas::ops::ConstOp<bool> {
-  bool operator()(const ast::Node &node);
-};
-
 } // namespace pas::ops::pepp
 
 template <typename ISA> bool pas::ops::pepp::isUnary<ISA>::operator()(const ast::Node &node) {

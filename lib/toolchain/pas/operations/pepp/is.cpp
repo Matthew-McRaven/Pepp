@@ -46,5 +46,3 @@ bool pas::ops::pepp::isSection::operator()(const ast::Node &node) {
          (node.get<ast::generic::Directive>().value.toUpper() == "SECTION") &&
          (node.has<ast::generic::ArgumentList>() || node.has<ast::generic::Argument>());
 }
-
-bool pas::ops::pepp::isUSCall::operator()(const ast::Node &node) { return isArgumentedDirective(node, "USCALL"); }
