@@ -18,7 +18,7 @@ void MicroAsmTask::run() {
     QFile sIn(QString::fromStdString(this->in)); // auto-closes
     if (!sIn.exists()) {
       std::cerr << "Source file does not exist.\n";
-      emit finished(3);
+      return emit finished(3);
     }
     sIn.open(QIODevice::ReadOnly | QIODevice::Text);
     source = sIn.readAll();
