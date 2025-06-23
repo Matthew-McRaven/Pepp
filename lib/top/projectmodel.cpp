@@ -241,8 +241,11 @@ void init_pep10(QList<ProjectType> &vec) {
               .level = Abstraction::ASMB5,
               .state = CompletionState::COMPLETE,
               .edition = 6});
-  vec.append(
-      {.name = "Pep/10\nOS4\n", .arch = a, .level = Abstraction::OS4, .state = CompletionState::PARTIAL, .edition = 6});
+  vec.append({.name = "Pep/10\nLevel OS4\n",
+              .arch = a,
+              .level = Abstraction::OS4,
+              .state = CompletionState::PARTIAL,
+              .edition = 6});
   vec.append({.name = "Pep/10\nLevel Mc2\n1-Byte Bus",
               .arch = a,
               .level = Abstraction::MC2,
