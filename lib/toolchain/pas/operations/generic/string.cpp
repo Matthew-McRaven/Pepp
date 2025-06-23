@@ -36,7 +36,7 @@ QString pas::ops::generic::detail::formatComment(const ast::Node &node, SourceOp
   if (node.has<ast::generic::CommentIndent>()) {
     switch (node.get<ast::generic::CommentIndent>().value) {
     case ast::generic::CommentIndent::Level::Left: return nopad.arg(comment);
-    case ast::generic::CommentIndent::Level::Instruction: return lpad.arg(" ", 8).arg(comment);
+    case ast::generic::CommentIndent::Level::Instruction: return lpad.arg(" ", indents::instruction).arg(comment);
     }
   }
   // Default to left-aligned.
@@ -46,14 +46,13 @@ QString pas::ops::generic::detail::formatComment(const ast::Node &node, SourceOp
 QString pas::ops::generic::detail::format(const QString &symbol, const QString &invoke, const QStringList &args,
                                           const QString &comment, int indentMnemonic, bool spaceAfterComma) {
   using namespace Qt::StringLiterals;
-  constexpr int defaultSymWidth = 9;
-  int symWidth = qMax(0, defaultSymWidth + indentMnemonic);
+  int symWidth = qMax(0, indents::defaultSymWidth + indentMnemonic);
   auto joinedArgs = args.join(spaceAfterComma ? ", " : ",");
   auto emptySymPlaceHolder = u" "_s.repeated(symWidth);
   auto symPlaceholder = symbol.isEmpty() ? emptySymPlaceHolder : u"%1"_s.arg(symbol + ":", -symWidth, QChar(' '));
   auto ret = u"%1%2%3%4"_s.arg(symPlaceholder)
-                 .arg(invoke, -8, ' ')
-                 .arg(joinedArgs, -12, ' ')
+                 .arg(invoke, -indents::instruction, ' ')
+                 .arg(joinedArgs, -indents::arguments, ' ')
                  .arg(comment.isEmpty() ? "" : ";" + comment);
   return ret;
 }

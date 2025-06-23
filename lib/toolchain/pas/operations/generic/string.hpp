@@ -22,6 +22,14 @@ namespace pas::ast {
 class Node;
 }
 
+// Relative indents for each "column" in the listing.
+// Moved to header for use in other operations.
+namespace indents {
+static constexpr int defaultSymWidth = 9;
+static constexpr int instruction = 8;
+static constexpr int arguments = 12;
+} // namespace indents
+
 struct SourceOptions {
   bool printErrors = false;
   int indentMnemonic = 0;
