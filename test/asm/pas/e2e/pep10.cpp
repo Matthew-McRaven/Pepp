@@ -49,7 +49,7 @@ void injectFakeSCallMacros(QSharedPointer<macro::Registry> registry) {
   static const QStringList nonunary = {"DECI", "CHARI", "CHARO", "STRO", "DECO", "PRINTF"};
   for (auto &macro : nonunary)
     registry->registerMacro(macro::types::Core,
-                            QSharedPointer<macro::Parsed>::create(macro, 2, "LDWA 0,i\nSCALL $1, $2", "pep/10"));
+                            QSharedPointer<macro::Declaration>::create(macro, 2, "LDWA 0,i\nSCALL $1, $2", "pep/10"));
 }
 } // namespace
 

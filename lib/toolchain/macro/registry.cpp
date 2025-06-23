@@ -16,20 +16,29 @@
  */
 
 #include "./registry.hpp"
-#include "./macro.hpp"
-#include "./registered.hpp"
+#include "./declaration.hpp"
+
+macro::Registration::Registration(types::Type type, QSharedPointer<const Declaration> contents)
+    : QObject(nullptr), _contents(contents), _type(type) {}
+
+QSharedPointer<const macro::Declaration> macro::Registration::contents() const { return _contents; }
+
+const macro::Declaration *macro::Registration::contentsPtr() const { return _contents.data(); }
+
+macro::types::Type macro::Registration::type() const { return _type; }
+
 macro::Registry::Registry(QObject *parent) : QObject{parent} {}
 
 bool macro::Registry::contains(QString name) const { return findMacro(name) != nullptr; }
 
-const macro::Registered *macro::Registry::findMacro(QString name) const {
+const macro::Registration *macro::Registry::findMacro(QString name) const {
   auto asUpper = name.toUpper();
   if (auto macro = _macros.constFind(asUpper); macro != _macros.constEnd()) return macro->data();
   else return nullptr;
 }
 
-QList<const macro::Registered *> macro::Registry::findMacrosByType(types::Type type) const {
-  QList<const Registered *> ret;
+QList<const macro::Registration *> macro::Registry::findMacrosByType(types::Type type) const {
+  QList<const Registration *> ret;
   for (const auto &macro : _macros) {
     if (macro->type() == type) ret.push_back(&(*macro));
   }
@@ -41,11 +50,11 @@ void macro::Registry::clear() {
   emit cleared();
 }
 
-QSharedPointer<const macro::Registered> macro::Registry::registerMacro(types::Type type, QSharedPointer<Parsed> macro) {
+QSharedPointer<const macro::Registration> macro::Registry::registerMacro(types::Type type, QSharedPointer<Declaration> macro) {
   if (contains(macro->name())) {
     return nullptr;
   }
-  auto registered = QSharedPointer<Registered>::create(type, macro);
+  auto registered = QSharedPointer<Registration>::create(type, macro);
   _macros[macro->name().toUpper()] = registered;
   emit macrosChanged();
   return registered;

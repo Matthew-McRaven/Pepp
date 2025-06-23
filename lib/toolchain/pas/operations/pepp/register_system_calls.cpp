@@ -16,12 +16,12 @@
  */
 
 #include "./register_system_calls.hpp"
+#include "toolchain/macro/declaration.hpp"
 #include "toolchain/pas/ast/generic/attr_argument.hpp"
 #include "toolchain/pas/ast/generic/attr_directive.hpp"
 #include "toolchain/pas/ast/value/base.hpp"
 #include "toolchain/pas/operations/generic/is.hpp"
 #include "toolchain/pas/operations/pepp/is.hpp"
-#include "toolchain/macro/macro.hpp"
 
 #include <toolchain/pas/ast/value/symbolic.hpp>
 
@@ -34,7 +34,7 @@ using pas::ast::generic::Message;
 bool pas::ops::pepp::RegisterSystemCalls::operator()(ast::Node &node) {
   using namespace Qt::StringLiterals;
   auto macroKind = node.get<ast::generic::Directive>().value;
-  QSharedPointer<macro::Parsed> parsed = {};
+  QSharedPointer<macro::Declaration> parsed = {};
 
   // Validate that directive has correct argument types, then construct correct
   // macro kind (unary/non-unary)
@@ -48,7 +48,7 @@ bool pas::ops::pepp::RegisterSystemCalls::operator()(ast::Node &node) {
                          .message = u"%1 expected a identifier argument."_s.arg(macroKind)});
   } else if (macroKind.toUpper() == "SCALL") {
     auto name = argument->string();
-    parsed = QSharedPointer<macro::Parsed>::create(name, 2, nonunarySCallMacro.arg(name) + "$1, $2\n", "pep/10");
+    parsed = QSharedPointer<macro::Declaration>::create(name, 2, nonunarySCallMacro.arg(name) + "$1, $2\n", "pep/10");
   } else {
     addedError = true;
     ast::addError(node, {.severity = Message::Severity::Fatal, .message = u"Unspecified error."_s});

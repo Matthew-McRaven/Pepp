@@ -16,6 +16,9 @@
  */
 
 #include "include_macros.hpp"
+#include "is.hpp"
+#include "toolchain/macro/declaration.hpp"
+#include "toolchain/macro/registry.hpp"
 #include "toolchain/pas/ast/generic/attr_argument.hpp"
 #include "toolchain/pas/ast/generic/attr_children.hpp"
 #include "toolchain/pas/ast/generic/attr_comment_indent.hpp"
@@ -29,10 +32,6 @@
 #include "toolchain/pas/errors.hpp"
 #include "toolchain/pas/operations/generic/errors.hpp"
 #include "toolchain/pas/operations/generic/string.hpp"
-#include "is.hpp"
-#include "toolchain/macro/macro.hpp"
-#include "toolchain/macro/registered.hpp"
-#include "toolchain/macro/registry.hpp"
 
 #include <toolchain/pas/ast/generic/attr_comment.hpp>
 

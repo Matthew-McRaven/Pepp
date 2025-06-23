@@ -15,12 +15,12 @@
  */
 #include "toolchain/pas/operations/pepp/size.hpp"
 #include <catch.hpp>
+#include "enums/isa/pep10.hpp"
+#include "toolchain/macro/declaration.hpp"
+#include "toolchain/macro/registry.hpp"
 #include "toolchain/pas/driver/pepp.hpp"
 #include "toolchain/pas/operations/generic/include_macros.hpp"
 #include "utils/bits/strings.hpp"
-#include "enums/isa/pep10.hpp"
-#include "toolchain/macro/macro.hpp"
-#include "toolchain/macro/registry.hpp"
 
 using pas::ops::pepp::Direction;
 using pas::ops::pepp::explicitSize;
@@ -146,7 +146,7 @@ TEST_CASE("Size", "[scope:asm][kind:unit][arch:pep10]") {
   }
   SECTION("Macro") {
     auto registry = QSharedPointer<macro::Registry>::create();
-    auto macro = QSharedPointer<macro::Parsed>::create(u"alpha"_s, 0, u".BYTE 1\n.WORD 2"_s, u"pep/10"_s);
+    auto macro = QSharedPointer<macro::Declaration>::create(u"alpha"_s, 0, u".BYTE 1\n.WORD 2"_s, u"pep/10"_s);
     registry->registerMacro(macro::types::Core, macro);
     auto parseRoot = pas::driver::pepp::createParser<isa::Pep10, pas::driver::ANTLRParserTag>(false);
     auto res = parseRoot(u"@alpha\n.END"_s, nullptr);

@@ -23,7 +23,7 @@
 #include "book.hpp"
 #include "figure.hpp"
 #include "fragment.hpp"
-#include "toolchain/macro/macro.hpp"
+#include "toolchain/macro/declaration.hpp"
 #include "toolchain/macro/parse.hpp"
 
 // Helper method to open a file and read all of its bytes
@@ -341,7 +341,7 @@ builtins::Registry::loadFigureV2(const QJsonDocument &manifest, const QString &p
 
 std::variant<std::monostate, builtins::Registry::_Figure, builtins::Registry::_Macro>
 builtins::Registry::loadMacroV2(const QJsonDocument &manifest, const QString &path) {
-  QList<QSharedPointer<macro::Parsed>> ret;
+  QList<QSharedPointer<macro::Declaration>> ret;
   auto manifestDir = QFileInfo(path).dir();
 
   // Add elements
@@ -363,7 +363,7 @@ builtins::Registry::loadMacroV2(const QJsonDocument &manifest, const QString &pa
       qWarning("Invalid macro: %s", path.toStdString().c_str());
       return {};
     }
-    auto macro = QSharedPointer<macro::Parsed>::create(std::get<1>(parsed), std::get<2>(parsed), macroBody,
+    auto macro = QSharedPointer<macro::Declaration>::create(std::get<1>(parsed), std::get<2>(parsed), macroBody,
                                                        manifest["arch"].toString(), family, isHidden);
     ret.push_back(macro);
   }

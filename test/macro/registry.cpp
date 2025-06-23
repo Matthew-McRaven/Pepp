@@ -16,19 +16,18 @@
 
 #include "toolchain/macro/registry.hpp"
 #include <catch.hpp>
-#include "toolchain/macro/macro.hpp"
-#include "toolchain/macro/registered.hpp"
+#include "toolchain/macro/declaration.hpp"
 TEST_CASE("Macro registry", "[scope:macro][kind:unit][arch:*]") {
   SECTION("Register Macros") {
     macro::Registry reg;
-    auto parsed = QSharedPointer<macro::Parsed>::create("alpha", 0, "body", "none");
+    auto parsed = QSharedPointer<macro::Declaration>::create("alpha", 0, "body", "none");
     auto registered = reg.registerMacro(macro::types::Type::Core, parsed);
     CHECK(registered != nullptr);
     CHECK(registered->contents() == parsed);
   }
   SECTION("Find by name") {
     macro::Registry reg;
-    auto parsed = QSharedPointer<macro::Parsed>::create("alpha", 0, "body", "none");
+    auto parsed = QSharedPointer<macro::Declaration>::create("alpha", 0, "body", "none");
     auto registered = reg.registerMacro(macro::types::Type::Core, parsed);
     CHECK(registered != nullptr);
     CHECK(registered->contents() == parsed);
@@ -36,16 +35,16 @@ TEST_CASE("Macro registry", "[scope:macro][kind:unit][arch:*]") {
   }
   SECTION("Reject duplicate names") {
     macro::Registry reg;
-    auto parsed = QSharedPointer<macro::Parsed>::create("alpha", 0, "body", "none");
-    auto parsed2 = QSharedPointer<macro::Parsed>::create("alpha", 0, "body", "none");
+    auto parsed = QSharedPointer<macro::Declaration>::create("alpha", 0, "body", "none");
+    auto parsed2 = QSharedPointer<macro::Declaration>::create("alpha", 0, "body", "none");
     auto registered = reg.registerMacro(macro::types::Type::Core, parsed);
     CHECK(registered != nullptr);
     CHECK(reg.registerMacro(macro::types::Type::Core, parsed2) == nullptr);
   }
   SECTION("Delineates macro types") {
     macro::Registry reg;
-    auto parsed = QSharedPointer<macro::Parsed>::create("alpha", 0, "body", "none");
-    auto parsed2 = QSharedPointer<macro::Parsed>::create("beta", 0, "body", "none");
+    auto parsed = QSharedPointer<macro::Declaration>::create("alpha", 0, "body", "none");
+    auto parsed2 = QSharedPointer<macro::Declaration>::create("beta", 0, "body", "none");
     REQUIRE(reg.registerMacro(macro::types::Type::Core, parsed) != nullptr);
     REQUIRE(reg.registerMacro(macro::types::Type::System, parsed2) != nullptr);
     REQUIRE(reg.findMacrosByType(macro::types::Type::Core).size() == 1);
