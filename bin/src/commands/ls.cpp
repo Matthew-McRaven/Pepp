@@ -27,42 +27,44 @@ void ListTask::run() {
   using namespace Qt::StringLiterals;
   auto books = helpers::builtins_registry(false);
   auto book = helpers::book(ed, &*books);
-  if (book.isNull())
-    return emit finished(1);
+  if (book.isNull()) return emit finished(1);
   auto figures = book->figures();
   auto problems = book->problems();
   auto macros = book->macros();
 
   // Prevent figure name from overlapping with file types. See #305.
   int maxFigWidth = 10;
-  for (auto figure : figures)
+  for (auto &figure : figures)
     maxFigWidth = std::max<int>(figure->chapterName().length() + 1 /*.*/ + figure->figureName().length(), maxFigWidth);
-  for (auto problem : problems)
+  for (auto &problem : problems)
     maxFigWidth =
         std::max<int>(problem->chapterName().length() + 1 /*.*/ + problem->figureName().length(), maxFigWidth);
 
   int maxMacroWidth = 6;
-  for (auto macro : macros)
-    maxMacroWidth = std::max<int>(macro->name().length(), maxMacroWidth);
-  std::cout << "Figures: " << std::endl;
-  for (auto &figure : figures) {
-    std::cout
-        << u"%1.%2"_s.arg(figure->chapterName(), figure->figureName()).leftJustified(maxFigWidth + 2).toStdString();
-    std::cout << figure->typesafeNamedFragments().keys().join(", ").toStdString();
-    std::cout << std::endl;
+  for (auto macro : macros) maxMacroWidth = std::max<int>(macro->name().length(), maxMacroWidth);
+  if (this->showFigs) {
+    std::cout << "Figures: " << std::endl;
+    for (auto &figure : figures) {
+      std::cout
+          << u"%1.%2"_s.arg(figure->chapterName(), figure->figureName()).leftJustified(maxFigWidth + 2).toStdString();
+      if (this->showTestCount) std::cout << u"%1"_s.arg(figure->tests().size(), -4).toStdString();
+      std::cout << figure->typesafeNamedFragments().keys().join(", ").toStdString();
+      std::cout << std::endl;
+    }
   }
 
-  if (problems.size() > 0) {
+  if (problems.size() > 0 && this->showProbs) {
     std::cout << "\nProblems: \n";
     for (auto &problem : problems) {
       std::cout
           << u"%1.%2"_s.arg(problem->chapterName(), problem->figureName()).leftJustified(maxFigWidth + 2).toStdString();
+      if (this->showTestCount) std::cout << u"%1"_s.arg(problem->tests().size(), -4).toStdString();
       std::cout << problem->typesafeNamedFragments().keys().join(", ").toStdString();
       std::cout << std::endl;
     }
   }
 
-  if (macros.size() > 0) {
+  if (macros.size() > 0 && this->showMacros) {
     std::cout << "\nMacros: \n";
     for (auto &macro : macros)
       std::cout << u"%1"_s.arg(macro->name()).leftJustified(maxMacroWidth + 2).toStdString()
