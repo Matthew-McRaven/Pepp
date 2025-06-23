@@ -741,11 +741,8 @@ void Pep_ISA::prepareSim() {
   charOut->clear(0);
   pwrOff->clear(0);
   emit charOutChanged();
+  loadCharIn();
 
-  auto charIn = _system->input("charIn");
-  charIn->clear(0);
-  auto charInEndpoint = charIn->endpoint();
-  for (int it = 0; it < _charIn.size(); it++) charInEndpoint->append_value(_charIn[it].toLatin1());
   _pendingPause = false;
 
   // Repaint CPU & Memory panes
@@ -1098,11 +1095,7 @@ void Pep_ASMB::prepareSim() {
   charOut->clear(0);
   pwrOff->clear(0);
   emit charOutChanged();
-
-  auto charIn = _system->input("charIn");
-  charIn->clear(0);
-  auto charInEndpoint = charIn->endpoint();
-  for (int it = 0; it < _charIn.size(); it++) charInEndpoint->append_value(_charIn[it].toLatin1());
+  loadCharIn();
 
   _pendingPause = false;
 
@@ -1195,6 +1188,15 @@ void Pep_ISA::updateBPAtAddress(quint32 address, Action action) {
   case ScintillaAsmEditBase::Action::RemoveBP: _dbg->bps->removeBP(as_quint16); break;
   default: break;
   }
+}
+
+void Pep_ISA::loadCharIn() {
+  auto charIn = _system->input("charIn");
+  charIn->clear(0);
+  auto charInEndpoint = charIn->endpoint();
+  for (int it = 0; it < _charIn.size(); it++) charInEndpoint->append_value(_charIn[it].toLatin1());
+  // Ensure charIn is always padded with a trailing whitespace so that DECI does not hang.
+  charInEndpoint->append_value(' ');
 }
 
 Error::Error(int line, QString error, QObject *parent) : QObject(parent), line(line), error(error) {}
