@@ -168,7 +168,7 @@ QtObject {
                 project.onAssembleThenFormat();
                 project.onOverwriteEditors();
             }
-            text: qsTr("&Format Assembly Code")
+            text: qsTr("&Format Source Code")
             // Use blank icon to force menu items to line up.
             icon.source: "image://icons/blank.svg"
             onShortcutChanged: updateNativeText(this)
