@@ -14,6 +14,3 @@
 // IR <- MDREven, T1 <- MDROdd.
 5. EOMux=0, AMux=0, ALU=0, CMux=1, C=8; LoadCk
 6. EOMux=1, AMux=0, ALU=0, CMux=1, C=11; LoadCk
-
-
-
