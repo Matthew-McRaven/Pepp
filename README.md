@@ -47,7 +47,7 @@ This build step must be added to each build configuration (e.g., build, release)
 
 | Line              | Value                                               | Description                                              |
 |-------------------|-----------------------------------------------------|----------------------------------------------------------|
-| Command           | `<QT_ROOT>/bin/windeployqt6.exe`                    | On my PC, `<QT_ROOT>` is `C:/Qt/6.6.0/msvc2019_64`       |
+| Command           | `<QT_ROOT>/bin/windeployqt6.exe`                    | On my PC, `<QT_ROOT>` is `C:/Qt/6.9.1/msvc2022_64`       |
 | Arguments         | `%{buildDir}\output\pepp.exe --qmldir %{sourceDir}` | `--qmldir` is required for discovery of our dependencies |
 | Working Directory | (blank)                                             | This value does not matter and is unused                 |
 
@@ -62,7 +62,24 @@ deprecate older repos.
 The goal for this new project is to reduce cross-generation maintenance, improve reliability, and reduce turn-around
 time for new features.
 
-# What are Pep/9 and Pep/10
+# What are Pep/10 and Pep/9
+
+## Pep/10
+
+The Pep/10 computer is a 16-bit complex instruction set computer (CISC).
+It is designed to teach computer architecture, assembly language programming, and computer organization principles as
+described in a future book.
+Pep/10 instructions are based on an expanding opcode and are either unary (one byte) or nonunary (three bytes).
+The eight addressing modes and six dot commands are designed for straightforward translation from C to assembly
+language.
+<!--- 
+  Technically 12, but 5 of them are only meant to be used in the OS
+  ALIGN,  ASCII,  BLOCK,   BYTE,
+  EQUATE, EXPORT, IMPORT,  INPUT, 
+  OUTPUT, ORG,    SECTION, WORD
+--->
+It includes macros facilities to ease translation from C to assembly language.
+
 
 ## Pep/9
 
@@ -74,15 +91,6 @@ Pep/9 instructions are based on an expanding opcode and are either unary (one by
 The eight addressing modes and eight dot commands are designed for straightforward translation from C to assembly
 language.
 
-## Pep/10
-
-The Pep/10 computer is a 16-bit complex instruction set computer (CISC).
-It is designed to teach computer architecture, assembly language programming, and computer organization principles as
-described in a future book.
-Pep/10 instructions are based on an expanding opcode and are either unary (one byte) or nonunary (three bytes).
-The eight addressing modes and eight dot commands are designed for straightforward translation from C to assembly
-language.
-The inclusion of macros facilities ease this translation from C to assembly language.
 
 # What is Pepp?
 
