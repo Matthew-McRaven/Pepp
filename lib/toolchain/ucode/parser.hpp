@@ -67,7 +67,6 @@ using Error = std::pair<int, QString>;
 using Errors = std::vector<Error>;
 
 template <typename uarch, typename registers> struct ParseResult {
-
   // Wrap control signals (e.g., our object code) with some assembler IR
   struct Line {
     typename uarch::CodeWithEnables controls;
