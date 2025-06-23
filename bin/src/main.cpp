@@ -30,6 +30,7 @@
 #include "commands/license.hpp"
 #include "commands/ls-qrc.hpp"
 #include "commands/ls.hpp"
+#include "commands/microasm.hpp"
 #include "commands/readelf/readelf.hpp"
 #include "commands/run.hpp"
 #include "commands/selftest.hpp"
@@ -79,6 +80,7 @@ int main(int argc, char **argv) {
   registerGet(app, task, shared_flags);
 
   registerAsm(app, task, shared_flags);
+  registerMicroAsm(app, task, shared_flags);
   registerRun(app, task, shared_flags);
   registerReadelf(app, task, shared_flags);
   gui_args args{.argvs = {argv[0]}};

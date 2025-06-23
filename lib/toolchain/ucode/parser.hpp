@@ -61,11 +61,13 @@ template <typename registers> QString toString(const Test<registers> &test) {
   else return QString();
 }
 
+// 0-indexed line number and an error message for that line.
+using Error = std::pair<int, QString>;
+// All errors encountered while parsing the source program. May have multiple errors per-line.
+using Errors = std::vector<Error>;
+
 template <typename uarch, typename registers> struct ParseResult {
-  // 0-indexed line number and an error message for that line.
-  using Error = std::pair<int, QString>;
-  // All errors encountered while parsing the source program. May have multiple errors per-line.
-  using Errors = std::vector<Error>;
+
   // Wrap control signals (e.g., our object code) with some assembler IR
   struct Line {
     typename uarch::CodeWithEnables controls;
