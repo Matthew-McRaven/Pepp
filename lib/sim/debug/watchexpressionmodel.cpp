@@ -1,6 +1,7 @@
 #include "watchexpressionmodel.hpp"
 
-pepp::debug::EditableWatchExpression::EditableWatchExpression(TermPtr term) : _term(term) {}
+pepp::debug::EditableWatchExpression::EditableWatchExpression(TermPtr term)
+    : _term(term), _evaluator(term->evaluator()) {}
 
 pepp::debug::EditableWatchExpression::EditableWatchExpression(QString term) : _wip_term(term) {}
 
@@ -8,18 +9,20 @@ pepp::debug::Term *pepp::debug::EditableWatchExpression::term() { return _term ?
 
 void pepp::debug::EditableWatchExpression::set_term(TermPtr term) {
   this->_term = term;
+  this->_evaluator = term->evaluator();
   this->_wip_term.clear();
   this->_recent_value.reset();
 }
 
 void pepp::debug::EditableWatchExpression::set_term(QString term) {
   this->_term.reset();
+  this->_evaluator = {};
   this->_wip_term = term;
   this->_recent_value.reset();
 }
 
-void pepp::debug::EditableWatchExpression::evaluate(CachePolicy policy, Environment &env) {
-  if (_term) _recent_value = _term->evaluate(CachePolicy::UseNonVolatiles, env);
+void pepp::debug::EditableWatchExpression::evaluate(CachePolicy mode, Environment &env) {
+  if (_term) _recent_value = _evaluator.evaluate(mode, env);
   else _recent_value.reset();
 }
 

@@ -3,16 +3,15 @@
 #include "expr_types.hpp"
 namespace pepp::debug {
 
-// Controls how previously computed & cached values should be used for future evaluations.
+// Controls how previously computed values will be used for future evaluations.
 enum class CachePolicy {
-  // If the cache is not dirty, uncoditionally return it. This applies even if this term or one of its dependencies is
-  // volatile.
+  // Use cache if it is set, ignoring dirtiness and (recursive) voltatility.
+  UseDirtyAlways,
+  // Use cache if the term is not dirty, ignoring (recursive) voltatility.
   UseAlways,
-  // If the cache is not dirty and neither this term nor its dependencies are volatile, use the cache.
-  // If either this term or its dependencies are volatile, we will recursively re-evaluate the volatile portions and use
-  // non-dirty cache values for non-volatile dependencies.
+  // Use cache if the term is not dirty and not (recursively) volatile.
   UseNonVolatiles,
-  // Ignore the cache, recompute the entire tree from scratch and rebuild caches
+  // Ignore any cached value -- recompute the entire tree.
   UseNever,
 };
 
@@ -25,7 +24,15 @@ struct CVQualifiers {
 };
 
 struct EvaluationCache {
-  bool dirty = false, depends_on_volatiles = false;
+  explicit EvaluationCache(TypedBits value) : dirty(false), depends_on_volatiles(false), version(0), value(value) {}
+  EvaluationCache() = default;
+  EvaluationCache(const EvaluationCache &other) = default;
+  EvaluationCache &operator=(const EvaluationCache &other) = default;
+  EvaluationCache(EvaluationCache &&other) = default;
+  EvaluationCache &operator=(EvaluationCache &&other) = default;
+  bool dirty = false;
+  bool depends_on_volatiles = false;
+  uint32_t version = 0;
   std::optional<TypedBits> value = std::nullopt;
 };
 
@@ -43,6 +50,28 @@ struct ZeroEnvironment : public Environment {
   inline TypedBits evaluate_variable(QStringView name) const override { return from_int(int16_t(0)); };
   inline uint32_t cache_debug_variable_name(QStringView name) const override { return 0; }
   inline TypedBits evaluate_debug_variable(uint32_t cache_index) const override { return from_int(int16_t(0)); };
+};
+
+class Term;
+// Helper which caches the last (locally) evaluated value for a term.
+// Can check how outdated the value is by comparing EvaluationCache::version
+struct CachedEvaluator {
+  CachedEvaluator() = default;
+  explicit CachedEvaluator(std::shared_ptr<Term> term);
+  CachedEvaluator(const CachedEvaluator &) = default;
+  CachedEvaluator &operator=(const CachedEvaluator &) = default;
+  CachedEvaluator(CachedEvaluator &&) = default;
+  CachedEvaluator &operator=(CachedEvaluator &&) = default;
+
+  // term.cache().version != _cache.version
+  bool dirty();
+  EvaluationCache cache() const;
+  TypedBits evaluate(CachePolicy mode, Environment &env);
+  std::shared_ptr<Term> term();
+
+private:
+  EvaluationCache _cache = {};
+  std::shared_ptr<Term> _term = nullptr;
 };
 } // namespace pepp::debug
 
