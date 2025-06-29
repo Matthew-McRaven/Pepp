@@ -1,7 +1,10 @@
 #include "expr_ast.hpp"
+#include "expr_eval.hpp"
 #include "expr_tokenizer.hpp"
 
 pepp::debug::Term::~Term() = default;
+
+pepp::debug::CachedEvaluator pepp::debug::Term::evaluator() { return CachedEvaluator(shared_from_this()); }
 
 std::strong_ordering pepp::debug::Variable::operator<=>(const Term &rhs) const {
   if (type() == rhs.type()) return this->operator<=>(static_cast<const Variable &>(rhs));
@@ -29,15 +32,24 @@ void pepp::debug::Variable::link() {
 }
 
 pepp::debug::TypedBits pepp::debug::Variable::evaluate(CachePolicy mode, Environment &env) {
-  if (!_state.dirty && _state.value.has_value()) {
+  if (_state.value.has_value()) {
+    using enum CachePolicy;
     switch (mode) {
-    case CachePolicy::UseAlways: return *_state.value;
-    default: break;
+    case UseNever: break;
+    case UseNonVolatiles: break;
+    case UseAlways:
+      if (_state.dirty) break;
+    case UseDirtyAlways: return *_state.value;
     }
   }
+
+  auto new_value = env.evaluate_variable(name);
+  if (new_value != _state.value) _state.version++;
   _state.dirty = false;
-  return *(_state.value = env.evaluate_variable(name));
+  return *(_state.value = new_value);
 }
+
+pepp::debug::EvaluationCache pepp::debug::Variable::cached() const { return _state; }
 
 int pepp::debug::Variable::cv_qualifiers() const { return CVQualifiers::Volatile; }
 
@@ -94,6 +106,8 @@ void pepp::debug::Constant::link() {
 
 pepp::debug::TypedBits pepp::debug::Constant::evaluate(CachePolicy, Environment &) { return value; }
 
+pepp::debug::EvaluationCache pepp::debug::Constant::cached() const { return EvaluationCache(value); }
+
 int pepp::debug::Constant::cv_qualifiers() const { return CVQualifiers::Constant; }
 
 void pepp::debug::Constant::mark_dirty() {}
@@ -112,8 +126,7 @@ const auto unops = std::map<UOperators, QString>{
 };
 } // namespace
 
-pepp::debug::UnaryPrefix::UnaryPrefix(Operators op, std::shared_ptr<Term> arg)
-    : op(op), arg(arg), _state({.dirty = false, .value = std::nullopt}) {
+pepp::debug::UnaryPrefix::UnaryPrefix(Operators op, std::shared_ptr<Term> arg) : op(op), arg(arg) {
   int arg_cv = arg ? arg->cv_qualifiers() : 0;
   _state.depends_on_volatiles = (arg_cv | UnaryPrefix::cv_qualifiers()) & CVQualifiers::Volatile;
 }
@@ -138,18 +151,21 @@ QString pepp::debug::UnaryPrefix::to_string() const {
 void pepp::debug::UnaryPrefix::link() { arg->add_dependent(weak_from_this()); }
 
 pepp::debug::TypedBits pepp::debug::UnaryPrefix::evaluate(CachePolicy mode, Environment &env) {
-  if (!_state.dirty && _state.value.has_value()) {
+  if (_state.value.has_value()) {
+    using enum CachePolicy;
     switch (mode) {
-    case CachePolicy::UseAlways: return *_state.value;
-    case CachePolicy::UseNonVolatiles:
-      if (!_state.depends_on_volatiles) return *_state.value;
-      break;
-    default: break;
+    case UseNever: break;
+    case UseNonVolatiles:
+      if (_state.depends_on_volatiles) break;
+    case UseAlways:
+      if (_state.dirty) break;
+    case UseDirtyAlways: return *_state.value;
     }
   }
 
-  auto v = arg->evaluate(mode, env);
-  _state.dirty = false;
+  auto eval = arg->evaluator();
+  auto v = eval.evaluate(mode, env);
+  _state.dirty = false, _state.version++;
   switch (op) {
   case Operators::DEREFERENCE:
     _state.value = TypedBits{.allows_address_of = false, .type = ExpressionType::i16, .bits = env.read_mem_u16(v.bits)};
@@ -162,6 +178,8 @@ pepp::debug::TypedBits pepp::debug::UnaryPrefix::evaluate(CachePolicy mode, Envi
   }
   throw std::logic_error("Unimplemented");
 }
+
+pepp::debug::EvaluationCache pepp::debug::UnaryPrefix::cached() const { return _state; }
 
 int pepp::debug::UnaryPrefix::cv_qualifiers() const {
   switch (op) {
@@ -186,7 +204,7 @@ std::optional<pepp::debug::UnaryPrefix::Operators> pepp::debug::string_to_unary_
 }
 
 pepp::debug::BinaryInfix::BinaryInfix(Operators op, std::shared_ptr<Term> lhs, std::shared_ptr<Term> rhs)
-    : op(op), lhs(lhs), rhs(rhs), _state({.dirty = false, .value = std::nullopt}) {
+    : op(op), lhs(lhs), rhs(rhs) {
   int lhs_cv = lhs ? lhs->cv_qualifiers() : 0;
   int rhs_cv = rhs ? rhs->cv_qualifiers() : 0;
   bool is_volatile = (lhs_cv | rhs_cv | BinaryInfix::cv_qualifiers()) & CVQualifiers::Volatile;
@@ -239,19 +257,21 @@ void pepp::debug::BinaryInfix::link() {
 }
 
 pepp::debug::TypedBits pepp::debug::BinaryInfix::evaluate(CachePolicy mode, Environment &env) {
-  if (!_state.dirty && _state.value.has_value()) {
+  if (_state.value.has_value()) {
+    using enum CachePolicy;
     switch (mode) {
-    case CachePolicy::UseAlways: return *_state.value;
-    case CachePolicy::UseNonVolatiles:
-      if (!_state.depends_on_volatiles) return *_state.value;
-      break;
-    default: break;
+    case UseNever: break;
+    case UseNonVolatiles:
+      if (_state.depends_on_volatiles) break;
+    case UseAlways:
+      if (_state.dirty) break;
+    case UseDirtyAlways: return *_state.value;
     }
   }
-
-  auto v_lhs = lhs->evaluate(mode, env);
-  auto v_rhs = rhs->evaluate(mode, env);
-  _state.dirty = false;
+  auto eval_lhs = lhs->evaluator(), rhs_eval = rhs->evaluator();
+  auto v_lhs = eval_lhs.evaluate(mode, env);
+  auto v_rhs = rhs_eval.evaluate(mode, env);
+  _state.dirty = false, _state.version++;
   switch (op) {
   case Operators::STAR_DOT: [[fallthrough]];
   case Operators::DOT: throw std::logic_error("Not Implemented");
@@ -274,6 +294,9 @@ pepp::debug::TypedBits pepp::debug::BinaryInfix::evaluate(CachePolicy mode, Envi
   }
   throw std::logic_error("Unimplemented");
 }
+
+pepp::debug::EvaluationCache pepp::debug::BinaryInfix::cached() const { return _state; }
+
 int pepp::debug::BinaryInfix::cv_qualifiers() const {
   switch (op) {
   case Operators::STAR_DOT: [[fallthrough]];
@@ -313,8 +336,13 @@ void pepp::debug::Parenthesized::link() { term->add_dependent(weak_from_this());
 int pepp::debug::Parenthesized::cv_qualifiers() const { return 0; }
 
 pepp::debug::TypedBits pepp::debug::Parenthesized::evaluate(CachePolicy mode, Environment &env) {
-  return term->evaluate(mode, env);
+  auto eval = term->evaluator();
+  auto v = eval.evaluate(mode, env);
+  _state = eval.cache();
+  return v;
 }
+
+pepp::debug::EvaluationCache pepp::debug::Parenthesized::cached() const { return _state; }
 
 void pepp::debug::Parenthesized::mark_dirty() { term->mark_dirty(); }
 
@@ -373,20 +401,24 @@ QString pepp::debug::ExplicitCast::to_string() const {
 void pepp::debug::ExplicitCast::link() { arg->add_dependent(weak_from_this()); }
 
 pepp::debug::TypedBits pepp::debug::ExplicitCast::evaluate(CachePolicy mode, Environment &env) {
-  if (!_state.dirty && _state.value.has_value()) {
+  if (_state.value.has_value()) {
+    using enum CachePolicy;
     switch (mode) {
-    case CachePolicy::UseAlways: return *_state.value;
-    case CachePolicy::UseNonVolatiles:
-      if (!_state.depends_on_volatiles) return *_state.value;
-      break;
-    default: break;
+    case UseNever: break;
+    case UseNonVolatiles: break;
+    case UseAlways:
+      if (_state.dirty) break;
+    case UseDirtyAlways: return *_state.value;
     }
   }
 
-  _state.dirty = false;
-  auto v = arg->evaluate(mode, env);
+  _state.dirty = false, _state.version++;
+  auto eval = arg->evaluator();
+  auto v = eval.evaluate(mode, env);
   return *(_state.value = pepp::debug::promote(v, cast_to));
 }
+
+pepp::debug::EvaluationCache pepp::debug::ExplicitCast::cached() const { return _state; }
 
 int pepp::debug::ExplicitCast::cv_qualifiers() const { return 0; }
 
@@ -427,17 +459,23 @@ void pepp::debug::DebuggerVariable::link() {
 }
 
 pepp::debug::TypedBits pepp::debug::DebuggerVariable::evaluate(CachePolicy mode, Environment &env) {
-  if (!_state.dirty && _state.value.has_value()) {
+  if (!_name_cache_id.has_value()) _name_cache_id = env.cache_debug_variable_name(name);
+  else if (_state.value.has_value()) {
+    using enum CachePolicy;
     switch (mode) {
-    case CachePolicy::UseAlways: return *_state.value;
-    default: break;
+    case UseNever: break;
+    case UseNonVolatiles: break;
+    case UseAlways:
+      if (_state.dirty) break;
+    case UseDirtyAlways: return *_state.value;
     }
   }
-  if (!_name_cache_id.has_value()) _name_cache_id = env.cache_debug_variable_name(name);
 
-  _state.dirty = false;
+  _state.dirty = false, _state.version++;
   return *(_state.value = env.evaluate_debug_variable(*_name_cache_id));
 }
+
+pepp::debug::EvaluationCache pepp::debug::DebuggerVariable::cached() const { return _state; }
 
 int pepp::debug::DebuggerVariable::cv_qualifiers() const { return CVQualifiers::Volatile; }
 

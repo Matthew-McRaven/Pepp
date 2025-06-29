@@ -75,8 +75,11 @@ TEST_CASE("Evaluating watch expressions", "[scope:debug][kind:unit][arch:*]") {
     QString body = "3 * 3 + 4";
     auto ast = p.compile(body);
     REQUIRE(ast != nullptr);
-    CHECK(ast->evaluate(CachePolicy::UseAlways, env).type == ExpressionType::i16);
-    CHECK(ast->evaluate(CachePolicy::UseAlways, env).bits == 13);
+    auto ev = ast->evaluator();
+    CHECK(ev.cache().version == 0); // Though a constant expression, computation still performed and cache will update.
+    CHECK(ev.evaluate(CachePolicy::UseAlways, env).type == ExpressionType::i16);
+    CHECK(ev.evaluate(CachePolicy::UseAlways, env).bits == 13);
+    CHECK(ev.cache().version == 1);
   }
   SECTION("Math with u8 and i16 (direct construction)") {
     ExpressionCache c;
@@ -85,10 +88,15 @@ TEST_CASE("Evaluating watch expressions", "[scope:debug][kind:unit][arch:*]") {
     auto lhs = c.add_or_return(Constant(i16));
     auto rhs = c.add_or_return(Constant(u8));
     auto plus = c.add_or_return(BinaryInfix(BinaryInfix::Operators::ADD, lhs, rhs));
-    auto eval = plus->evaluate(CachePolicy::UseAlways, env);
+    auto plus_ev = plus->evaluator(), rhs_eval = rhs->evaluator();
+    CHECK(plus_ev.cache().version == 0);
+    auto eval = plus_ev.evaluate(CachePolicy::UseAlways, env);
+    CHECK(plus_ev.cache().version == 1);
     CHECK(eval.bits == (257 + 255));
     CHECK(eval.type == ExpressionType::i16);
-    CHECK(rhs->evaluate(CachePolicy::UseAlways, env).type == ExpressionType::u8);
+    CHECK(rhs_eval.cache().version == 0); // Version of constant never changes.
+    CHECK(rhs_eval.evaluate(CachePolicy::UseAlways, env).type == ExpressionType::u8);
+    CHECK(rhs_eval.cache().version == 0);
   }
   SECTION("Parsing Math with u8 and i16 (parsing)") {
     ExpressionCache c;
@@ -98,11 +106,14 @@ TEST_CASE("Evaluating watch expressions", "[scope:debug][kind:unit][arch:*]") {
     REQUIRE(ast != nullptr);
     auto as_infix = std::dynamic_pointer_cast<BinaryInfix>(ast);
     REQUIRE(as_infix != nullptr);
-    auto eval = as_infix->evaluate(CachePolicy::UseAlways, env);
+    auto as_infix_eval = as_infix->evaluator();
+    auto eval = as_infix_eval.evaluate(CachePolicy::UseAlways, env);
     CHECK(eval.bits == (257 + 255));
     CHECK(eval.type == ExpressionType::i16);
-    CHECK(as_infix->lhs->evaluate(CachePolicy::UseAlways, env).type == ExpressionType::i16);
-    CHECK(as_infix->rhs->evaluate(CachePolicy::UseAlways, env).type == ExpressionType::u8);
+    auto lhs_eval = as_infix->lhs->evaluator();
+    auto rhs_eval = as_infix->rhs->evaluator();
+    CHECK(lhs_eval.evaluate(CachePolicy::UseAlways, env).type == ExpressionType::i16);
+    CHECK(rhs_eval.evaluate(CachePolicy::UseAlways, env).type == ExpressionType::u8);
   }
 
   SECTION("Parsing with explicit casts") {
@@ -117,14 +128,18 @@ TEST_CASE("Evaluating watch expressions", "[scope:debug][kind:unit][arch:*]") {
     REQUIRE(as_paren != nullptr);
     auto as_infix = std::dynamic_pointer_cast<BinaryInfix>(as_paren->term);
     REQUIRE(as_infix != nullptr);
-    auto eval = as_infix->evaluate(CachePolicy::UseAlways, env);
+    auto as_infix_eval = as_infix->evaluator();
+    auto eval = as_infix_eval.evaluate(CachePolicy::UseAlways, env);
     CHECK(eval.bits == (258 + 255));
     CHECK(eval.type == ExpressionType::i16);
-    CHECK(as_infix->lhs->evaluate(CachePolicy::UseAlways, env).type == ExpressionType::i16);
-    CHECK(as_infix->rhs->evaluate(CachePolicy::UseAlways, env).type == ExpressionType::i16);
+    auto lhs_eval = as_infix->lhs->evaluator();
+    auto rhs_eval = as_infix->rhs->evaluator();
+    CHECK(lhs_eval.evaluate(CachePolicy::UseAlways, env).type == ExpressionType::i16);
+    CHECK(rhs_eval.evaluate(CachePolicy::UseAlways, env).type == ExpressionType::i16);
 
     // Overflows i8, so we should wrap-around.
-    auto eval_casted = as_cast->evaluate(CachePolicy::UseAlways, env);
+    auto as_cast_eval = as_cast->evaluator();
+    auto eval_casted = as_cast_eval.evaluate(CachePolicy::UseAlways, env);
     CHECK(eval_casted.bits == (int8_t)((258 + 255) % 256));
     CHECK(eval_casted.type == ExpressionType::i8);
   }
@@ -148,8 +163,8 @@ TEST_CASE("Evaluating watch expressions", "[scope:debug][kind:unit][arch:*]") {
     REQUIRE(negb != nullptr);
     auto b = std::dynamic_pointer_cast<Variable>(negb->arg);
     REQUIRE(b != nullptr);
-
-    ast->evaluate(CachePolicy::UseAlways, env);
+    auto ast_eval = ast->evaluator();
+    ast_eval.evaluate(CachePolicy::UseAlways, env);
     CHECK(top_plus->dirty() == false);
     CHECK(negb->dirty() == false);
     CHECK(b->dirty() == false);
@@ -159,7 +174,7 @@ TEST_CASE("Evaluating watch expressions", "[scope:debug][kind:unit][arch:*]") {
     CHECK(b->dirty() == true);
     CHECK(negb->dirty() == false);
     CHECK(top_plus->dirty() == false);
-    ast->evaluate(CachePolicy::UseNever, env);
+    ast_eval.evaluate(CachePolicy::UseNever, env);
     CHECK(b->dirty() == false);
 
     // But this helper marks all parents as dirty, without impacting siblings
@@ -170,10 +185,25 @@ TEST_CASE("Evaluating watch expressions", "[scope:debug][kind:unit][arch:*]") {
     CHECK(x->dirty() == false);
     CHECK(m->dirty() == false);
     CHECK(mx->dirty() == false);
-    ast->evaluate(CachePolicy::UseNever, env);
+    ast_eval.evaluate(CachePolicy::UseNever, env);
     CHECK(top_plus->dirty() == false);
     CHECK(negb->dirty() == false);
     CHECK(b->dirty() == false);
+
+    // This time don't attempt to recompute anything!
+    mark_parents_dirty(*b);
+    CHECK(b->dirty() == true);
+    CHECK(negb->dirty() == true);
+    CHECK(top_plus->dirty() == true);
+    CHECK(x->dirty() == false);
+    CHECK(m->dirty() == false);
+    CHECK(mx->dirty() == false);
+    ast_eval.evaluate(CachePolicy::UseDirtyAlways, env);
+    CHECK(top_plus->dirty() == true);
+    CHECK(negb->dirty() == true);
+    CHECK(b->dirty() == true);
+    CHECK(m->dirty() == false);
+    CHECK(mx->dirty() == false);
   }
 }
 
@@ -197,11 +227,12 @@ TEST_CASE("Evaluations with environment access", "[scope:debug][kind:unit][arch:
     QString body = "*0";
     auto ast = p.compile(body);
     REQUIRE(ast != nullptr);
-    CHECK(ast->evaluate(CachePolicy::UseNonVolatiles, env).bits == 0x0707);
+    auto ast_eval = ast->evaluator();
+    CHECK(ast_eval.evaluate(CachePolicy::UseNonVolatiles, env).bits == 0x0707);
     env.mem[0] = 8;
     // Ignoring requirement from volatiles to re-compute.
-    CHECK(ast->evaluate(CachePolicy::UseAlways, env).bits == 0x0707);
-    CHECK(ast->evaluate(CachePolicy::UseNonVolatiles, env).bits == 0x0807);
+    CHECK(ast_eval.evaluate(CachePolicy::UseAlways, env).bits == 0x0707);
+    CHECK(ast_eval.evaluate(CachePolicy::UseNonVolatiles, env).bits == 0x0807);
   }
   SECTION("Debugger Variables") {
     ExpressionCache c;
@@ -209,6 +240,7 @@ TEST_CASE("Evaluations with environment access", "[scope:debug][kind:unit][arch:
     QString body = "$x";
     auto ast = p.compile(body);
     REQUIRE(ast != nullptr);
-    CHECK(ast->evaluate(CachePolicy::UseNonVolatiles, env).bits == 0);
+    auto ast_eval = ast->evaluator();
+    CHECK(ast_eval.evaluate(CachePolicy::UseNonVolatiles, env).bits == 0);
   }
 }

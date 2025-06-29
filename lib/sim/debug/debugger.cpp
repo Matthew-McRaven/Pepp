@@ -19,7 +19,9 @@ void pepp::debug::BreakpointSet::addBP(quint16 address, pepp::debug::Term *condi
   // Resorting would be hard, since we need sort conditions by breakpoints, which reduces to cylic permutations.
   // Preserving order is just easier.
   _breakpoints.insert(_breakpoints.begin() + offset, address);
-  _conditions.insert(_conditions.begin() + offset, condition);
+  std::unique_ptr<CachedEvaluator> eval = nullptr;
+  if (condition) eval = std::make_unique<CachedEvaluator>(condition->evaluator());
+  _conditions.insert(_conditions.begin() + offset, std::move(eval));
 
   _bitmask.set(address / 8);
   emit breakpointAdded(address);
@@ -29,7 +31,8 @@ void pepp::debug::BreakpointSet::modify_condition(quint16 address, Term *conditi
   if (!hasBP(address)) return;
   auto iter = std::lower_bound(_breakpoints.cbegin(), _breakpoints.cend(), address);
   auto offset = std::distance(_breakpoints.cbegin(), iter);
-  _conditions[offset] = condition;
+  if (condition) _conditions[offset] = std::make_unique<CachedEvaluator>(condition->evaluator());
+  else _conditions[offset].reset();
   emit conditionChanged(address, condition != nullptr);
 }
 
@@ -68,15 +71,18 @@ void pepp::debug::BreakpointSet::notifyPCChanged(quint16 newValue) {
   if (auto iter = std::lower_bound(_breakpoints.cbegin(), _breakpoints.cend(), newValue);
       iter != _breakpoints.cend() && *iter == newValue) {
     auto offset = std::distance(_breakpoints.cbegin(), iter);
-    if (_conditions[offset]) {
-      _hit = _conditions[offset]->evaluate(CachePolicy::UseNonVolatiles, *_env).bits != 0;
-    } else _hit = true;
+    if (_conditions[offset]) _hit = _conditions[offset]->evaluate(CachePolicy::UseNonVolatiles, *_env).bits != 0;
+    else _hit = true;
   }
 }
 
 std::size_t pepp::debug::BreakpointSet::count() const { return _breakpoints.size(); }
 
 std::span<quint16> pepp::debug::BreakpointSet::breakpoints() { return _breakpoints; }
+
+std::span<std::unique_ptr<pepp::debug::CachedEvaluator>> pepp::debug::BreakpointSet::conditions() {
+  return std::span(_conditions);
+}
 
 pepp::debug::ExpressionCache *pepp::debug::BreakpointSet::expressionCache() { return _cache; }
 
