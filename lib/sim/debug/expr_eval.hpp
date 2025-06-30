@@ -1,8 +1,8 @@
 #pragma once
 #include <QtCore>
-#include "expr_types.hpp"
-namespace pepp::debug {
+#include "expr_value.hpp"
 
+namespace pepp::debug {
 // Controls how previously computed values will be used for future evaluations.
 enum class CachePolicy {
   // Use cache if it is set, ignoring dirtiness and (recursive) voltatility.

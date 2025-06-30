@@ -1,6 +1,6 @@
 #pragma once
 #include <QtCore>
-#include "sim/debug/expr_types.hpp"
+#include "sim/debug/expr_value.hpp"
 
 namespace pepp::debug {
 
