@@ -1,4 +1,5 @@
 #include "expr_value.hpp"
+#include <stdexcept>
 
 uint32_t pepp::debug::bitness(ExpressionType t) {
   switch (t) {
