@@ -30,6 +30,7 @@ using namespace Qt::StringLiterals;
 using testFn = void (*)(QSharedPointer<pas::ast::Node>);
 namespace {
 
+auto test = pas::driver::pep10::isDirectiveAddressed;
 void success_test(QSharedPointer<pas::ast::Node> root) {
   REQUIRE(root->has<pas::ast::generic::Children>());
   auto children = root->get<pas::ast::generic::Children>().value;
@@ -91,7 +92,7 @@ void smoke(QSharedPointer<macro::Registry> registry, QString input, testFn valid
     auto res = parseRoot(input, nullptr);
     REQUIRE(!res.hadError);
     auto ret = pas::ops::generic::includeMacros(
-        *res.root, pas::driver::pepp::createParser<isa::Pep10, pas::driver::ANTLRParserTag>(true), registry);
+        *res.root, pas::driver::pepp::createParser<isa::Pep10, pas::driver::ANTLRParserTag>(true), registry, test);
     REQUIRE(ret == !errors);
 
     root = res.root;

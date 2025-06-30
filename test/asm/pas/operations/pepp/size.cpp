@@ -18,6 +18,7 @@
 #include "enums/isa/pep10.hpp"
 #include "toolchain/macro/declaration.hpp"
 #include "toolchain/macro/registry.hpp"
+#include "toolchain/pas/driver/pep10.hpp"
 #include "toolchain/pas/driver/pepp.hpp"
 #include "toolchain/pas/operations/generic/include_macros.hpp"
 #include "utils/bits/strings.hpp"
@@ -26,6 +27,9 @@ using pas::ops::pepp::Direction;
 using pas::ops::pepp::explicitSize;
 using namespace Qt::StringLiterals;
 
+namespace {
+auto test = pas::driver::pep10::isDirectiveAddressed;
+}
 TEST_CASE("Size", "[scope:asm][kind:unit][arch:pep10]") {
   SECTION("Unary") {
     QString body = "rola\nrolx";
@@ -153,7 +157,7 @@ TEST_CASE("Size", "[scope:asm][kind:unit][arch:pep10]") {
 
     REQUIRE_FALSE(res.hadError);
     auto ret = pas::ops::generic::includeMacros(
-        *res.root, pas::driver::pepp::createParser<isa::Pep10, pas::driver::ANTLRParserTag>(true), registry);
+        *res.root, pas::driver::pepp::createParser<isa::Pep10, pas::driver::ANTLRParserTag>(true), registry, test);
     REQUIRE(ret);
     CHECK(explicitSize<isa::Pep10>(*res.root, 0, Direction::Forward) == 3);
     CHECK(explicitSize<isa::Pep10>(*res.root, 0, Direction::Backward) == 3);
