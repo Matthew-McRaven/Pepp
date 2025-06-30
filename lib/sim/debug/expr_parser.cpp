@@ -124,7 +124,7 @@ pepp::debug::detail::Memo::operator QString() const {
 
 } // namespace pepp::debug::detail
 
-pepp::debug::Parser::Parser(ExpressionCache &cache, types::TypeCache *types) : _cache(cache), _types(types) {}
+pepp::debug::Parser::Parser(ExpressionCache &cache, types::NamedTypes *types) : _cache(cache), _types(types) {}
 
 std::shared_ptr<pepp::debug::types::Type> pepp::debug::Parser::compile_type(QString expr, void *builtins) {
   return compile_type(QStringView(expr), builtins);
