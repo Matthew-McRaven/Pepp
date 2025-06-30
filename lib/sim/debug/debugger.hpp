@@ -87,7 +87,6 @@ private:
 };
 
 class Environment;
-class ExpressionCache;
 class Debugger {
 public:
   explicit Debugger(pepp::debug::Environment *env);

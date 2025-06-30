@@ -124,27 +124,6 @@ pepp::debug::detail::Memo::operator QString() const {
 
 } // namespace pepp::debug::detail
 
-// While the (code) complexity of this  algorithm is low, runtime complexity may be high.
-// For a cache of size N, it may need to recurse up to N times if there is only one long expression with no repeated
-// portions. With erase_if having linear complexity, this could make garbage collection O(N^2). That being said, I
-// expect N to be small (~30) and for there to be repeated subexpressions.
-void pepp::debug::ExpressionCache::collect_garbage() {
-  std::size_t old_size = -1, current_size = 0;
-  { // Limit scope of locker so that we do not need to enable recursion in the mutex/locker
-    QMutexLocker locker(&_mut);
-    old_size = _set.size();
-    // Remove all pointers whose only reference is the cache itself.
-    std::erase_if(_set, [](const std::shared_ptr<Term> &ptr) { return ptr.use_count() == 1; });
-    current_size = _set.size();
-  }
-  if (old_size != current_size) return collect_garbage();
-}
-
-std::size_t pepp::debug::ExpressionCache::count() const {
-  QMutexLocker locker(&_mut);
-  return _set.size();
-}
-
 pepp::debug::Parser::Parser(ExpressionCache &cache) : _cache(cache) {}
 
 std::shared_ptr<pepp::debug::Term> pepp::debug::Parser::compile(QStringView expr, void *builtins) {
