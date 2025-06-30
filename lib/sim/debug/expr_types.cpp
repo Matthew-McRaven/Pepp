@@ -2,6 +2,25 @@
 
 #include <stdexcept>
 
+pepp::debug::types::NamedTypes::NamedTypes(std::shared_ptr<TypeCache> cache) : _cache(cache) {}
+
+std::shared_ptr<const pepp::debug::types::Type> pepp::debug::types::NamedTypes::get(const QString &name) const {
+  if (auto f = _types.find(name); f != _types.end()) return f->second;
+  else throw std::logic_error("Type not found: " + name.toStdString());
+}
+
+std::shared_ptr<pepp::debug::types::Type> pepp::debug::types::NamedTypes::get(const QString &name) {
+  if (auto f = _types.find(name); f != _types.end()) return f->second;
+  else throw std::logic_error("Type not found: " + name.toStdString());
+}
+
+void pepp::debug::types::NamedTypes::add(const QString &name, std::shared_ptr<Type> type) {
+  if (_types.contains(name)) throw std::logic_error("Type already exists: " + name.toStdString());
+  // Ensure that we don't accidentally create a duplicate type.
+  auto deduplicated = _cache->add_or_return<Type>(type);
+  _types[name] = deduplicated;
+}
+
 pepp::debug::types::Type::~Type() = default;
 
 pepp::debug::types::Type::NodeType pepp::debug::types::Pointer::node_type() const { return NodeType::Primitive; }

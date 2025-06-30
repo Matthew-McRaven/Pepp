@@ -10,7 +10,24 @@ Q_NAMESPACE
 enum class Primitives : uint8_t { i8, u8, i16, u16, i32, u32 };
 Q_ENUM_NS(Primitives);
 class Type;
+
+// Used to ensure that no two equal types have different pointers.
 using TypeCache = pepp::debug::Cache<Type>;
+
+class NamedTypes {
+public:
+  explicit NamedTypes(std::shared_ptr<TypeCache> cache);
+  NamedTypes(const NamedTypes &other) = default;
+  ~NamedTypes() = default;
+
+  std::shared_ptr<Type> get(const QString &name);
+  std::shared_ptr<const Type> get(const QString &name) const;
+  void add(const QString &name, std::shared_ptr<Type> type);
+
+private:
+  std::shared_ptr<TypeCache> _cache;
+  std::map<QString, std::shared_ptr<Type>> _types;
+};
 
 class Type : public std::enable_shared_from_this<Type> {
 public:
