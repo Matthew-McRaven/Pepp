@@ -20,10 +20,19 @@
 #include "./pepp.hpp"
 #include "enums/isa/pep10.hpp"
 #include "toolchain/macro/registry.hpp"
+#include "toolchain/pas/ast/generic/attr_directive.hpp"
 #include "toolchain/pas/operations/generic/include_macros.hpp"
 #include "toolchain/symbol/table.hpp"
 
 namespace pas::driver::pep10 {
+static bool isDirectiveAddressed(ast::Node &node) {
+  static const QSet<QString> dirs{"ALIGN", "ASCII", "WORD", "BYTE", "BLOCK"};
+  if (node.get<ast::generic::Type>().value == ast::generic::Type::Directive && node.has<ast::generic::Directive>()) {
+    auto directive = node.get<ast::generic::Directive>().value.toUpper();
+    return dirs.contains(directive);
+  }
+  return false;
+}
 Q_NAMESPACE;
 enum class Stage {
   Start,
@@ -62,8 +71,9 @@ template <typename ParserTag> class TransformIncludeMacros : public driver::Tran
 public:
   bool operator()(QSharedPointer<Globals> globals, QSharedPointer<pas::driver::Target<Stage>> target) override {
     auto root = target->bodies[repr::Nodes::name].value<repr::Nodes>().value;
+
     return pas::ops::generic::includeMacros(*root, pas::driver::pepp::createParser<isa::Pep10, ParserTag>(true),
-                                            globals->macroRegistry);
+                                            globals->macroRegistry, isDirectiveAddressed);
   }
   Stage toStage() override { return Stage::FlattenMacros; }
 };

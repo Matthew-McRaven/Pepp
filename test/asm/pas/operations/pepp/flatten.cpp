@@ -33,6 +33,7 @@ using namespace Qt::StringLiterals;
 using testFn = void (*)(QSharedPointer<pas::ast::Node>);
 namespace {
 
+auto test = pas::driver::pep10::isDirectiveAddressed;
 void single_test(QSharedPointer<pas::ast::Node> root) {
   // qWarning() << pas::ops::pepp::formatSource<isa::Pep10>(*root).join("\n");
   REQUIRE(root->has<pas::ast::generic::Children>());
@@ -96,7 +97,7 @@ TEST_CASE("Flatten macros", "[scope:asm][kind:unit][arch:pep10]") {
         auto res = parseRoot(input, nullptr);
         REQUIRE(!res.hadError);
         auto ret = pas::ops::generic::includeMacros(
-            *res.root, pas::driver::pepp::createParser<isa::Pep10, pas::driver::ANTLRParserTag>(true), registery);
+            *res.root, pas::driver::pepp::createParser<isa::Pep10, pas::driver::ANTLRParserTag>(true), registery, test);
         root = res.root;
         pas::ops::generic::flattenMacros(*root);
       }

@@ -35,6 +35,7 @@ class Registry;
 }
 
 namespace pas::ops::generic {
+using IsAddressedDirective = std::function<bool(ast::Node &)>;
 struct IncludeMacros : public pas::ops::MutatingOp<bool> {
   struct MacroInvocation {
     QString macroName;
@@ -47,6 +48,9 @@ struct IncludeMacros : public pas::ops::MutatingOp<bool> {
     }
   };
   QSharedPointer<macro::Registry> registry;
+  // When we hit a directive inside a macro, function returns true if the directive has an address
+  // e.g., BLOCK, BYTE. Must be an "argument" to this struct because different architectures allow different directives.
+  IsAddressedDirective isDirectiveAddressed = [](auto &) { return false; };
   using node_t = QSharedPointer<pas::ast::Node>;
   std::function<driver::ParseResult(QString, node_t)> convertFn;
   bool operator()(ast::Node &node) override;
@@ -61,11 +65,12 @@ private:
 // BUG: Shouldn't be inline, but MSVC refuses to find this function in a CPP file, when GCC and clang can.
 inline bool includeMacros(ast::Node &root,
                           std::function<pas::driver::ParseResult(QString, QSharedPointer<ast::Node>)> convertFn,
-                          QSharedPointer<macro::Registry> registry) {
+                          QSharedPointer<macro::Registry> registry, IsAddressedDirective isDirectiveAddressed) {
   static auto isMacro = pas::ops::generic::isMacro();
   auto converter = IncludeMacros();
   converter.convertFn = convertFn;
   converter.registry = registry;
+  converter.isDirectiveAddressed = isDirectiveAddressed;
   ast::apply_recurse_if(root, isMacro, converter);
   auto errors = pas::ops::generic::CollectErrors();
   ast::apply_recurse(root, errors);
