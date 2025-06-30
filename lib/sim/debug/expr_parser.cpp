@@ -124,7 +124,18 @@ pepp::debug::detail::Memo::operator QString() const {
 
 } // namespace pepp::debug::detail
 
-pepp::debug::Parser::Parser(ExpressionCache &cache) : _cache(cache) {}
+pepp::debug::Parser::Parser(ExpressionCache &cache, types::TypeCache *types) : _cache(cache), _types(types) {}
+
+std::shared_ptr<pepp::debug::types::Type> pepp::debug::Parser::compile_type(QString expr, void *builtins) {
+  return compile_type(QStringView(expr), builtins);
+}
+
+std::shared_ptr<pepp::debug::types::Type> pepp::debug::Parser::compile_type(QStringView expr, void *builtins) {
+  detail::TokenBuffer tok(expr);
+  detail::MemoCache cache{};
+  // TODO: add helper to parse a typecast, which MUST be used by our ExplicitCast Term.
+  return nullptr;
+}
 
 std::shared_ptr<pepp::debug::Term> pepp::debug::Parser::compile(QStringView expr, void *builtins) {
   detail::TokenBuffer tok(expr);
