@@ -2,224 +2,188 @@
 
 #include <stdexcept>
 
-uint32_t pepp::debug::bitness(ExpressionType t) {
-  switch (t) {
-  case pepp::debug::ExpressionType::i8: [[fallthrough]];
-  case pepp::debug::ExpressionType::u8: return 8;
-  case pepp::debug::ExpressionType::i16: [[fallthrough]];
-  case pepp::debug::ExpressionType::u16: return 16;
-  case pepp::debug::ExpressionType::i32: [[fallthrough]];
-  case pepp::debug::ExpressionType::u32: return 32;
+pepp::debug::types::Type::~Type() = default;
+
+pepp::debug::types::Type::NodeType pepp::debug::types::Pointer::node_type() const { return NodeType::Primitive; }
+
+pepp::debug::types::Pointer::Pointer(std::shared_ptr<Type> value) : value(value) {}
+
+bool pepp::debug::types::Pointer::is_unsigned() const { return true; }
+
+uint32_t pepp::debug::types::Pointer::bitness() const {
+  // TODO: handle 32 bit pointer (aka RISC-V)
+  return 16;
+}
+
+QString pepp::debug::types::Pointer::to_string() const { return ""; }
+
+std::strong_ordering pepp::debug::types::Pointer::operator<=>(const Type &rhs) const {
+  if (node_type() == rhs.node_type()) return this->operator<=>(static_cast<const Pointer &>(rhs));
+  return node_type() <=> rhs.node_type();
+}
+
+std::strong_ordering pepp::debug::types::Pointer::operator<=>(const Pointer &rhs) const { return value <=> rhs.value; }
+
+pepp::debug::types::Type::NodeType pepp::debug::types::Primitive::node_type() const { return NodeType::Primitive; }
+
+pepp::debug::types::Primitive::Primitive(Primitives value) : value(value) {}
+
+bool pepp::debug::types::Primitive::is_unsigned() const {
+  using enum pepp::debug::types::Primitives;
+  switch (value) {
+  case i8: [[fallthrough]];
+  case i16: [[fallthrough]];
+  case i32: return false;
+  case u8: [[fallthrough]];
+  case u16: [[fallthrough]];
+  case u32: return true;
   }
 }
-pepp::debug::ExpressionType pepp::debug::common_type(ExpressionType rhs, ExpressionType lhs) {
-  if (lhs == rhs) return lhs;
 
-  auto lhs_bitness = bitness(lhs), rhs_bitness = bitness(rhs);
-  auto lhs_unsigned = is_unsigned(lhs), rhs_unsigned = is_unsigned(rhs);
+uint32_t pepp::debug::types::Primitive::bitness() const {
+  using enum pepp::debug::types::Primitives;
+  switch (value) {
+  case i8: [[fallthrough]];
+  case u8: return 8;
+  case i16: [[fallthrough]];
+  case u16: return 16;
+  case i32: [[fallthrough]];
+  case u32: return 32;
+  }
+}
+
+QString pepp::debug::types::Primitive::to_string() const {
+  using enum pepp::debug::types::Primitives;
+  switch (value) {
+  case i8: return "i8";
+  case u8: return "u8";
+  case i16: return "i16";
+  case u16: return "u16";
+  case i32: return "i32";
+  case u32: return "u32";
+  }
+}
+
+std::shared_ptr<pepp::debug::types::Type> pepp::debug::types::Pointer::common_type(const Type &other,
+                                                                                   TypeCache &cache) const {
+  return nullptr;
+}
+
+std::shared_ptr<pepp::debug::types::Type> pepp::debug::types::Primitive::common_type(const Type &other,
+                                                                                     TypeCache &cache) const {
+  return nullptr;
+}
+
+std::shared_ptr<pepp::debug::types::Type> pepp::debug::types::Primitive::common_type(const Primitive &rhs,
+                                                                                     TypeCache &cache) const {
+  const auto &lhs = *this;
+  if (lhs <=> rhs == std::strong_ordering::equal) return cache.add_or_return<const Primitive &, Type>(lhs);
+  auto lhs_bitness = lhs.bitness(), rhs_bitness = rhs.bitness();
+  auto lhs_unsigned = lhs.is_unsigned(), rhs_unsigned = rhs.is_unsigned();
   // TODO: I think these rules can be simplified to reduce the amount of branching.
   // If both share a sign, pick the larger of the two types.
   if (lhs_unsigned == rhs_unsigned) {
-    if (lhs_bitness > rhs_bitness) return lhs;
-    return rhs;
+    if (lhs_bitness > rhs_bitness) return cache.add_or_return<const Primitive &, Type>(lhs);
+    return cache.add_or_return<const Primitive &, Type>(rhs);
   }
   // If only one is signed, prefer the unsigned type unless the signed type is bigger.
   else if (lhs_unsigned) {
-    if (lhs_bitness >= rhs_bitness) return lhs;
-    return rhs;
+    if (lhs_bitness >= rhs_bitness) return cache.add_or_return<const Primitive &, Type>(lhs);
+    return cache.add_or_return<const Primitive &, Type>(rhs);
   } else {
-    if (rhs_bitness >= lhs_bitness) return rhs;
-    return lhs;
-  }
-}
-std::strong_ordering pepp::debug::TypedBits::operator<=>(const TypedBits &rhs) const {
-  if (auto cmp = allows_address_of <=> rhs.allows_address_of; cmp != 0) return cmp;
-  else if (auto cmp = type <=> rhs.type; cmp != 0) return cmp;
-  return bits <=> rhs.bits;
-}
-
-pepp::debug::TypedBits pepp::debug::with_bits(const TypedBits &type, uint64_t new_value) {
-  return {.allows_address_of = type.allows_address_of, .type = type.type, .bits = new_value};
-  switch (type.type) {
-  case ExpressionType::i8:
-    return {.allows_address_of = type.allows_address_of, .type = type.type, .bits = uint64_t((int8_t)new_value)};
-  case ExpressionType::u8:
-    return {.allows_address_of = type.allows_address_of, .type = type.type, .bits = uint64_t((uint8_t)new_value)};
-  case ExpressionType::i16:
-    return {.allows_address_of = type.allows_address_of, .type = type.type, .bits = uint64_t((int16_t)new_value)};
-  case ExpressionType::u16:
-    return {.allows_address_of = type.allows_address_of, .type = type.type, .bits = uint64_t((uint16_t)new_value)};
-  case ExpressionType::i32:
-    return {.allows_address_of = type.allows_address_of, .type = type.type, .bits = uint64_t((int32_t)new_value)};
-  case ExpressionType::u32:
-    return {.allows_address_of = type.allows_address_of, .type = type.type, .bits = uint64_t((uint32_t)new_value)};
+    if (rhs_bitness >= lhs_bitness) return cache.add_or_return<const Primitive &, Type>(rhs);
+    return cache.add_or_return<const Primitive &, Type>(lhs);
   }
 }
 
-pepp::debug::TypedBits pepp::debug::promote(const TypedBits &value, ExpressionType as_type) {
-  if (as_type == value.type) return value;
-  switch (as_type) {
-  case ExpressionType::i8:
-    return {.allows_address_of = value.allows_address_of, .type = as_type, .bits = uint64_t((int8_t)value.bits)};
-  case ExpressionType::u8:
-    return {.allows_address_of = value.allows_address_of, .type = as_type, .bits = uint64_t((uint8_t)value.bits)};
-  case ExpressionType::i16:
-    return {.allows_address_of = value.allows_address_of, .type = as_type, .bits = uint64_t((int16_t)value.bits)};
-  case ExpressionType::u16:
-    return {.allows_address_of = value.allows_address_of, .type = as_type, .bits = uint64_t((uint16_t)value.bits)};
-  case ExpressionType::i32:
-    return {.allows_address_of = value.allows_address_of, .type = as_type, .bits = uint64_t((int32_t)value.bits)};
-  case ExpressionType::u32:
-    return {.allows_address_of = value.allows_address_of, .type = as_type, .bits = uint64_t((uint32_t)value.bits)};
-  }
+std::strong_ordering pepp::debug::types::Primitive::operator<=>(const Type &rhs) const {
+  if (node_type() == rhs.node_type()) return this->operator<=>(static_cast<const Primitive &>(rhs));
+  return node_type() <=> rhs.node_type();
 }
 
-pepp::debug::TypedBits pepp::debug::operator+(const pepp::debug::TypedBits &arg) {
-  if (pepp::debug::is_unsigned(arg.type)) return arg;
-  else {
-    switch (pepp::debug::bitness(arg.type)) {
-    case 8: return with_bits(arg, +((int8_t)arg.bits));
-    case 16: return with_bits(arg, +((int16_t)arg.bits));
-    case 32: return with_bits(arg, +((int32_t)arg.bits));
-    }
-  }
-  throw std::logic_error("Not implemented");
-}
-pepp::debug::TypedBits pepp::debug::operator-(const pepp::debug::TypedBits &arg) {
-  switch (pepp::debug::bitness(arg.type)) {
-  case 8: return with_bits(arg, -((int8_t)arg.bits));
-  case 16: return with_bits(arg, -((int16_t)arg.bits));
-  case 32: return with_bits(arg, -((int32_t)arg.bits));
-  }
-  throw std::logic_error("Not implemented");
-}
-pepp::debug::TypedBits pepp::debug::_deref(const pepp::debug::TypedBits &arg) {
-  throw std::logic_error("Not implemented");
-}
-pepp::debug::TypedBits pepp::debug::_addressof(const pepp::debug::TypedBits &arg) {
-  throw std::logic_error("Not implemented");
-}
-pepp::debug::TypedBits pepp::debug::operator!(const pepp::debug::TypedBits &arg) {
-  switch (pepp::debug::bitness(arg.type)) {
-  case 8: return with_bits(arg, !((int8_t)arg.bits));
-  case 16: return with_bits(arg, !((int16_t)arg.bits));
-  case 32: return with_bits(arg, !((int32_t)arg.bits));
-  }
-  throw std::logic_error("Not implemented");
+std::strong_ordering pepp::debug::types::Primitive::operator<=>(const Primitive &rhs) const {
+  return value <=> rhs.value;
 }
 
-pepp::debug::TypedBits pepp::debug::operator~(const pepp::debug::TypedBits &arg) {
-  switch (pepp::debug::bitness(arg.type)) {
-  case 8: return with_bits(arg, ~((uint8_t)arg.bits));
-  case 16: return with_bits(arg, ~((uint16_t)arg.bits));
-  case 32: return with_bits(arg, ~((uint32_t)arg.bits));
-  }
-  throw std::logic_error("Not implemented");
+pepp::debug::types::Array::Array(std::shared_ptr<Type> type, quint16 size) : size(size), value(type) {}
+
+pepp::debug::types::Type::NodeType pepp::debug::types::Array::node_type() const { return NodeType::Array; }
+
+bool pepp::debug::types::Array::is_unsigned() const { return value->is_unsigned(); }
+
+uint32_t pepp::debug::types::Array::bitness() const {
+  // TODO: IDK how we want this to work?
+  // Size of the pointer or size of the items?
+  return 0;
 }
 
-pepp::debug::TypedBits pepp::debug::operator*(const pepp::debug::TypedBits &lhs, const pepp::debug::TypedBits &rhs) {
-  if (lhs.type == rhs.type) return pepp::debug::with_bits(lhs, lhs.bits * rhs.bits);
-  auto type = pepp::debug::common_type(lhs.type, rhs.type);
-  return promote(lhs, type) * promote(rhs, type);
+QString pepp::debug::types::Array::to_string() const { return ""; }
+
+std::shared_ptr<pepp::debug::types::Type> pepp::debug::types::Array::common_type(const Type &other,
+                                                                                 TypeCache &cache) const {
+  return nullptr;
 }
 
-pepp::debug::TypedBits pepp::debug::operator/(const pepp::debug::TypedBits &lhs, const pepp::debug::TypedBits &rhs) {
-  if (lhs.type == rhs.type) return pepp::debug::with_bits(lhs, lhs.bits / rhs.bits);
-  auto type = pepp::debug::common_type(lhs.type, rhs.type);
-  return promote(lhs, type) / promote(rhs, type);
+std::shared_ptr<pepp::debug::types::Type> pepp::debug::types::Array::common_type(const Array &other,
+                                                                                 TypeCache &cache) const {
+  return nullptr;
 }
 
-pepp::debug::TypedBits pepp::debug::operator%(const pepp::debug::TypedBits &lhs, const pepp::debug::TypedBits &rhs) {
-  if (lhs.type == rhs.type) return pepp::debug::with_bits(lhs, lhs.bits % rhs.bits);
-  auto type = pepp::debug::common_type(lhs.type, rhs.type);
-  return promote(lhs, type) % promote(rhs, type);
+std::strong_ordering pepp::debug::types::Array::operator<=>(const Type &rhs) const {
+  if (node_type() == rhs.node_type()) return this->operator<=>(static_cast<const Array &>(rhs));
+  return node_type() <=> rhs.node_type();
 }
 
-pepp::debug::TypedBits pepp::debug::operator+(const pepp::debug::TypedBits &lhs, const pepp::debug::TypedBits &rhs) {
-  if (lhs.type == rhs.type) return pepp::debug::with_bits(lhs, lhs.bits + rhs.bits);
-  auto type = pepp::debug::common_type(lhs.type, rhs.type);
-  return promote(lhs, type) + promote(rhs, type);
+std::strong_ordering pepp::debug::types::Array::operator<=>(const Array &rhs) const {
+  if (auto v = value <=> rhs.value; v != std::strong_ordering::equal) return v;
+  return size <=> rhs.size;
 }
 
-pepp::debug::TypedBits pepp::debug::operator-(const pepp::debug::TypedBits &lhs, const pepp::debug::TypedBits &rhs) {
-  if (lhs.type == rhs.type) return pepp::debug::with_bits(lhs, lhs.bits - rhs.bits);
-  auto type = pepp::debug::common_type(lhs.type, rhs.type);
-  return promote(lhs, type) - promote(rhs, type);
+pepp::debug::types::Struct::Struct(std::vector<std::shared_ptr<const Type>> members) : members(members) {}
+
+pepp::debug::types::Type::NodeType pepp::debug::types::Struct::node_type() const { return NodeType::Struct; }
+
+uint32_t pepp::debug::types::Struct::bitness() const { return 0; }
+
+QString pepp::debug::types::Struct::to_string() const { return ""; }
+
+std::shared_ptr<pepp::debug::types::Type> pepp::debug::types::Struct::common_type(const Type &other,
+                                                                                  TypeCache &cache) const {
+  return nullptr;
 }
 
-pepp::debug::TypedBits pepp::debug::operator<<(const pepp::debug::TypedBits &lhs, const pepp::debug::TypedBits &rhs) {
-  if (lhs.type == rhs.type) return pepp::debug::with_bits(lhs, lhs.bits << rhs.bits);
-  auto type = pepp::debug::common_type(lhs.type, rhs.type);
-  return promote(lhs, type) << promote(rhs, type);
+std::shared_ptr<pepp::debug::types::Type> pepp::debug::types::Struct::common_type(const Struct &other,
+                                                                                  TypeCache &cache) const {
+  return nullptr;
 }
 
-pepp::debug::TypedBits pepp::debug::operator>>(const pepp::debug::TypedBits &lhs, const pepp::debug::TypedBits &rhs) {
-  if (lhs.type == rhs.type) return pepp::debug::with_bits(lhs, lhs.bits >> rhs.bits);
-  auto type = pepp::debug::common_type(lhs.type, rhs.type);
-  return promote(lhs, type) >> promote(rhs, type);
+std::strong_ordering pepp::debug::types::Struct::operator<=>(const Type &rhs) const {
+  if (node_type() == rhs.node_type()) return this->operator<=>(static_cast<const Struct &>(rhs));
+  return node_type() <=> rhs.node_type();
 }
 
-pepp::debug::TypedBits pepp::debug::_lt(const pepp::debug::TypedBits &lhs, const pepp::debug::TypedBits &rhs) {
-  if (lhs.type == rhs.type) return pepp::debug::with_bits(lhs, lhs.bits < rhs.bits);
-  auto type = pepp::debug::common_type(lhs.type, rhs.type);
-  return _lt(promote(lhs, type), promote(rhs, type));
+std::strong_ordering pepp::debug::types::Struct::operator<=>(const Struct &rhs) const {
+  return members <=> rhs.members;
 }
 
-pepp::debug::TypedBits pepp::debug::_le(const pepp::debug::TypedBits &lhs, const pepp::debug::TypedBits &rhs) {
-  if (lhs.type == rhs.type) return pepp::debug::with_bits(lhs, lhs.bits <= rhs.bits);
-  auto type = pepp::debug::common_type(lhs.type, rhs.type);
-  return _le(promote(lhs, type), promote(rhs, type));
+std::shared_ptr<pepp::debug::types::Type> pepp::debug::types::Never::common_type(const Type &other,
+                                                                                 TypeCache &cache) const {
+  return cache.add_or_return(Never{});
 }
 
-pepp::debug::TypedBits pepp::debug::_eq(const pepp::debug::TypedBits &lhs, const pepp::debug::TypedBits &rhs) {
-  if (lhs.type == rhs.type) return pepp::debug::with_bits(lhs, lhs.bits == rhs.bits);
-  auto type = pepp::debug::common_type(lhs.type, rhs.type);
-  return _eq(promote(lhs, type), promote(rhs, type));
+pepp::debug::types::Type::NodeType pepp::debug::types::Never::node_type() const { return NodeType::Never; }
+
+bool pepp::debug::types::Never::is_unsigned() const { return false; }
+
+uint32_t pepp::debug::types::Never::bitness() const { return 0; }
+
+QString pepp::debug::types::Never::to_string() const { return "(void*)"; }
+
+std::strong_ordering pepp::debug::types::Never::operator<=>(const Type &rhs) const {
+  if (node_type() == rhs.node_type()) return this->operator<=>(static_cast<const Never &>(rhs));
+  return node_type() <=> rhs.node_type();
 }
 
-pepp::debug::TypedBits pepp::debug::_ne(const pepp::debug::TypedBits &lhs, const pepp::debug::TypedBits &rhs) {
-  if (lhs.type == rhs.type) return pepp::debug::with_bits(lhs, lhs.bits != rhs.bits);
-  auto type = pepp::debug::common_type(lhs.type, rhs.type);
-  return _ne(promote(lhs, type), promote(rhs, type));
-}
-
-pepp::debug::TypedBits pepp::debug::_gt(const pepp::debug::TypedBits &lhs, const pepp::debug::TypedBits &rhs) {
-  if (lhs.type == rhs.type) return pepp::debug::with_bits(lhs, lhs.bits > rhs.bits);
-  auto type = pepp::debug::common_type(lhs.type, rhs.type);
-  return _gt(promote(lhs, type), promote(rhs, type));
-}
-
-pepp::debug::TypedBits pepp::debug::_ge(const pepp::debug::TypedBits &lhs, const pepp::debug::TypedBits &rhs) {
-  if (lhs.type == rhs.type) return pepp::debug::with_bits(lhs, lhs.bits >= rhs.bits);
-  auto type = pepp::debug::common_type(lhs.type, rhs.type);
-  return _ge(promote(lhs, type), promote(rhs, type));
-}
-
-pepp::debug::TypedBits pepp::debug::operator&(const pepp::debug::TypedBits &lhs, const pepp::debug::TypedBits &rhs) {
-  if (lhs.type == rhs.type) return pepp::debug::with_bits(lhs, lhs.bits & rhs.bits);
-  auto type = pepp::debug::common_type(lhs.type, rhs.type);
-  return promote(lhs, type) & promote(rhs, type);
-}
-
-pepp::debug::TypedBits pepp::debug::operator|(const pepp::debug::TypedBits &lhs, const pepp::debug::TypedBits &rhs) {
-  if (lhs.type == rhs.type) return pepp::debug::with_bits(lhs, lhs.bits | rhs.bits);
-  auto type = pepp::debug::common_type(lhs.type, rhs.type);
-  return promote(lhs, type) | promote(rhs, type);
-}
-
-pepp::debug::TypedBits pepp::debug::operator^(const pepp::debug::TypedBits &lhs, const pepp::debug::TypedBits &rhs) {
-  if (lhs.type == rhs.type) return pepp::debug::with_bits(lhs, lhs.bits ^ rhs.bits);
-  auto type = pepp::debug::common_type(lhs.type, rhs.type);
-  return promote(lhs, type) ^ promote(rhs, type);
-}
-
-QString pepp::debug::to_string(ExpressionType type) {
-  switch (type) {
-  case ExpressionType::i8: return "i8";
-  case ExpressionType::u8: return "u8";
-  case ExpressionType::i16: return "i16";
-  case ExpressionType::u16: return "u16";
-  case ExpressionType::i32: return "i32";
-  case ExpressionType::u32: return "u32";
-  }
+std::strong_ordering pepp::debug::types::Never::operator<=>(const Never &rhs) const {
+  return std::strong_ordering::equal;
 }
