@@ -75,7 +75,8 @@ if (ONLY STREQUAL "BUILD")
       qt_policy(SET QTP0001 NEW)
       qt_policy(SET QTP0004 NEW)
     endif()
-
+    # Set the default log level to TRACE for all targets while I debug ELF issues.
+    add_compile_options(-DSPDLOG_ACTIVE_LEVEL=0)
     add_subdirectory(3rd-party)
     set(CMAKE_AUTOMOC ON)
     set(CMAKE_AUTORCC ON)

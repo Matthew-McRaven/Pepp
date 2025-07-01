@@ -16,6 +16,7 @@
  */
 
 #include "./mmio.hpp"
+#include <spdlog/spdlog.h>
 #include "utils/bits/copy.hpp"
 const ELFIO::section *obj::getMMIONoteSection(const ELFIO::elfio &elf) {
   for (auto &sec : elf.sections)
@@ -51,6 +52,7 @@ void addNoteSeg(ELFIO::elfio &elf) {
 }
 
 void obj::addMMIODeclarations(ELFIO::elfio &elf, ELFIO::section *symTab, QList<IO> mmios) {
+  SPDLOG_INFO("Creating MMIO declarations");
   ELFIO::symbol_section_accessor symTabAc(elf, symTab);
   auto noteSec = addMMIONoteSection(elf);
   addNoteSeg(elf);
@@ -65,18 +67,17 @@ void obj::addMMIODeclarations(ELFIO::elfio &elf, ELFIO::section *symTab, QList<I
     // Skip to next iteration if it does not name a valid symbol
     if (!symTabAc.get_symbol(it, name, value, size, bind, type, index, other)) continue;
 
-    // Search the MMIO list for a matching entry, skip to next iteration if no
-    // match.
+    // Search the MMIO list for a matching entry, skip to next iteration if no match.
     QString nameQs = QString::fromStdString(name);
     auto target =
         std::find_if(mmios.cbegin(), mmios.cend(), [&nameQs](const ::obj::IO &io) { return io.name == nameQs; });
     if (target == mmios.cend()) continue;
 
-    // Must use copy helper to maintain stable bit order between host
-    // platforms.
-    quint8 desc[2 + 4]; // ELF_half (16b for symtab section index) and
-                        // ELF32_WORD (32b for symbol index)
+    // Must use copy helper to maintain stable bit order between host platforms.
+    // ELF_half (16b for symtab section index) and ELF32_WORD (32b for symbol index)
+    quint8 desc[2 + 4];
     bits::span descSpan = {desc};
+    SPDLOG_TRACE("MMIO note: {:0x}{:0x}", *(quint32 *)desc, *(quint16 *)(desc + 4));
     auto stIndex = symTab->get_index();
     bits::memcpy_endian(descSpan.first(2), bits::Order::BigEndian, stIndex);
     bits::memcpy_endian(descSpan.subspan(2), bits::Order::BigEndian, it);
@@ -106,10 +107,9 @@ void obj::addIDEDeclaration(ELFIO::elfio &elf, ELFIO::section *symTab, QString s
     QString nameQs = QString::fromStdString(name);
     if (symbol != nameQs) continue;
 
-    // Must use copy helper to maintain stable bit order between host
-    // platforms.
-    quint8 desc[2 + 4]; // ELF_half (16b for symtab section index) and
-                        // ELF32_WORD (32b for symbol index)
+    // Must use copy helper to maintain stable bit order between host platforms.
+    // ELF_half (16b for symtab section index) and ELF32_WORD (32b for symbol index)
+    quint8 desc[2 + 4];
     bits::span descSpan = {desc};
     auto stIndex = symTab->get_index();
     bits::memcpy_endian(descSpan.first(2), bits::Order::BigEndian, stIndex);
