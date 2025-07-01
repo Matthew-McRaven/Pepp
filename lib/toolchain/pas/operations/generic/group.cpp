@@ -97,15 +97,7 @@ void pas::ops::generic::groupSections(ast::Node &root, std::function<bool(const 
   GroupSections sections(".text", addressable);
 
   // Can't apply_recurse, because visitor modifies children.
-  for (auto &child : children(root)) {
-    if (child->has<ast::generic::Children>() && ast::children(*child).size() > 0) {
-      static const char *const e = "Not allowed to have nested children.";
-      qCritical(e);
-      throw std::logic_error(e);
-    }
-
-    child->apply_self(sections);
-  }
+  for (auto &child : children(root)) child->apply_self(sections);
 
   // Fix parent-child relationships between new intermediate nodes and root.
   root.set(sections.newChildren);

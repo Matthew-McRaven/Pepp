@@ -17,7 +17,6 @@
 
 #include "toolchain/pas/driver/pep9.hpp"
 #include "toolchain/pas/operations/generic/combine.hpp"
-#include "toolchain/pas/operations/generic/flatten.hpp"
 #include "toolchain/pas/operations/generic/link_globals.hpp"
 #include "toolchain/pas/operations/pepp/assign_addr.hpp"
 #include "toolchain/pas/operations/pepp/whole_program_sanity.hpp"

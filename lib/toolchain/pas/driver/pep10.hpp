@@ -38,7 +38,6 @@ enum class Stage {
   Start,
   Parse,
   IncludeMacros,
-  FlattenMacros,
   GroupNodes,
   RegisterExports,
   AssignAddresses,
@@ -75,13 +74,7 @@ public:
     return pas::ops::generic::includeMacros(*root, pas::driver::pepp::createParser<isa::Pep10, ParserTag>(true),
                                             globals->macroRegistry, isDirectiveAddressed);
   }
-  Stage toStage() override { return Stage::FlattenMacros; }
-};
-
-class TransformFlattenMacros : public driver::Transform<Stage> {
-public:
-  bool operator()(QSharedPointer<Globals>, QSharedPointer<pas::driver::Target<Stage>> target) override;
-  Stage toStage() override;
+  Stage toStage() override { return Stage::GroupNodes; }
 };
 
 // Currently no-op
@@ -140,7 +133,6 @@ QPair<QSharedPointer<Target<Stage>>, QList<QSharedPointer<Transform<Stage>>>> st
   QList<QSharedPointer<Transform<Stage>>> pipe;
   pipe.push_back(QSharedPointer<TransformParse<ParserTag>>::create());
   pipe.push_back(QSharedPointer<TransformIncludeMacros<ParserTag>>::create());
-  pipe.push_back(QSharedPointer<TransformFlattenMacros>::create());
   pipe.push_back(QSharedPointer<TransformGroup>::create());
   pipe.push_back(QSharedPointer<TransformRegisterExports>::create());
   pipe.push_back(QSharedPointer<TransformAssignAddresses>::create());

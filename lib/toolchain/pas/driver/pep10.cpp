@@ -17,22 +17,12 @@
 
 #include "toolchain/pas/driver/pep10.hpp"
 #include "toolchain/pas/operations/generic/combine.hpp"
-#include "toolchain/pas/operations/generic/flatten.hpp"
 #include "toolchain/pas/operations/generic/group.hpp"
 #include "toolchain/pas/operations/generic/link_globals.hpp"
 #include "toolchain/pas/operations/pepp/addressable.hpp"
 #include "toolchain/pas/operations/pepp/assign_addr.hpp"
 #include "toolchain/pas/operations/pepp/register_system_calls.hpp"
 #include "toolchain/pas/operations/pepp/whole_program_sanity.hpp"
-
-bool pas::driver::pep10::TransformFlattenMacros::operator()(QSharedPointer<Globals>,
-                                                            QSharedPointer<pas::driver::Target<Stage>> target) {
-  auto root = target->bodies[repr::Nodes::name].value<repr::Nodes>().value;
-  pas::ops::generic::flattenMacros(*root);
-  return true;
-}
-
-pas::driver::pep10::Stage pas::driver::pep10::TransformFlattenMacros::toStage() { return Stage::GroupNodes; }
 
 bool pas::driver::pep10::TransformGroup::operator()(QSharedPointer<Globals>,
                                                     QSharedPointer<pas::driver::Target<Stage>> target) {

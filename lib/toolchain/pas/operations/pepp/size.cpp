@@ -61,10 +61,7 @@ quint16 pas::ops::pepp::baseAddress(const ast::Node &node) {
 
 qsizetype pas::ops::pepp::sizeFromAddress(const ast::Node &node) {
   qsizetype ret = 0;
-
   if (node.has<ast::generic::Address>()) ret += node.get<ast::generic::Address>().value.size;
-
   for (auto &child : ast::children(node)) ret += sizeFromAddress(*child);
-
   return ret;
 }

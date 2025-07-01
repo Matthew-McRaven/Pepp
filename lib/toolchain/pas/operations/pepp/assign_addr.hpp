@@ -45,44 +45,38 @@ template <typename ISA> void assignAddresses(ast::Node &root);
 
 template <typename ISA>
 void pas::ops::pepp::detail::assignAddressesImpl(ast::Node &node, quint16 &base, Direction direction) {
+  static const auto isEquate = []() {
+    auto isEquate = pas::ops::generic::isSet();
+    isEquate.directiveAliases = {"EQUATE"};
+    return isEquate;
+  };
+  // Don't skip ORG, because it updates the base address. Also do not skip EQUATE, because it modifies symbols.
+  static const auto addresslessDirectives =
+      QSet<QString>{"END", "EXPORT", "IMPORT", "INPUT", "OUTPUT", "SCALL", "SECTION", "SECTION"};
+
   auto size = pepp::explicitSize<ISA>(node, base, direction);
   auto symBase = base;
   quint16 newBase = base;
   // Skip over nodes where addresses make no sense
   auto type = pas::ast::type(node).value;
   if (type == pas::ast::generic::Type::Blank || type == pas::ast::generic::Type::Comment) return;
-  /*quint16 alignSize = 0;
-  if(type == pas::ast::generic::Type::Directive &&
-  node.get<ast::generic::Directive>().value == "ALIGN") { auto arg =
-  node.get<ast::generic::ArgumentList>().value[0];
-    arg->value((quint8*)(&alignSize), 2, pas::bits::hostOrder()) ;
-  }
-  if(type == pas::ast::generic::Type::Directive &&
-  node.get<ast::generic::Directive>().value == "ALIGN" && base % alignSize ==
-  0){
-
-  }*/
-
-  static const QSet<QString> addresslessDirectives = {
-      "END",    "EXPORT", "IMPORT",  "INPUT",
-      "OUTPUT", "SCALL",  "SECTION", "SECTION"}; // Don't skip ORG, because it updates the base
-                                                 // address. Also do not skip EQUATE, because it
-                                                 // modifies symbols.
-  if (type == pas::ast::generic::Type::Directive &&
-      addresslessDirectives.contains(node.get<pas::ast::generic::Directive>().value)) {
+  else if (type == pas::ast::generic::Type::MacroInvoke) {
+    for (const auto &child : pas::ast::children(node)) {
+      detail::assignAddressesImpl<ISA>(*child, base, direction);
+    }
+    return;
+  } else if (type == pas::ast::generic::Type::Directive &&
+             addresslessDirectives.contains(node.get<pas::ast::generic::Directive>().value)) {
     pas::ast::generic::Hide hide;
     if (node.has<ast::generic::Hide>()) hide = node.get<ast::generic::Hide>();
     hide.value.addressInListing = true;
     node.set(hide);
     return;
-  }
-  auto isEquate = pas::ops::generic::isSet();
-  isEquate.directiveAliases = {"EQUATE"};
-  if (generic::isOrg()(node)) {
+  } else if (generic::isOrg()(node)) {
     auto arg = node.get<ast::generic::Argument>().value;
     arg->value(bits::span<quint8>{reinterpret_cast<quint8 *>(&base), 2}, bits::hostOrder());
     newBase = symBase = base;
-  } else if (node.has<ast::generic::Directive>() && isEquate(node)) {
+  } else if (node.has<ast::generic::Directive>() && isEquate()(node)) {
     // EQUATEs don't use addresses, and must be handled differently
     auto symbol = node.get<ast::generic::SymbolDeclaration>().value;
     auto argument = node.get<ast::generic::Argument>().value;
