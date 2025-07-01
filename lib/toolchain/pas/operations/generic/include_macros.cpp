@@ -23,6 +23,7 @@
 #include "toolchain/pas/ast/generic/attr_children.hpp"
 #include "toolchain/pas/ast/generic/attr_comment_indent.hpp"
 #include "toolchain/pas/ast/generic/attr_directive.hpp"
+#include "toolchain/pas/ast/generic/attr_hide.hpp"
 #include "toolchain/pas/ast/generic/attr_macro.hpp"
 #include "toolchain/pas/ast/generic/attr_symbol.hpp"
 #include "toolchain/pas/ast/node.hpp"
@@ -75,8 +76,7 @@ bool pas::ops::generic::IncludeMacros::operator()(ast::Node &node) {
   auto macroText = macroContents->body();
   for (int it = 0; it < args.size(); it++) macroText = macroText.replace(u"$"_s + QString::number(it + 1), args[it]);
 
-  // Function handles parenting macroText's nodes as node's children.
-  // Parent/child relationships also established.
+  // Function handles parenting macroText's nodes as node's children. Parent/child relationships also established.
   auto converted = convertFn(macroText, node.sharedFromThis());
 
   if (converted.hadError) {
@@ -86,7 +86,7 @@ bool pas::ops::generic::IncludeMacros::operator()(ast::Node &node) {
 
   popMacroInvocation(macroInvoke);
 
-  // Add start / end comment and bind symbol to line (or equate) if present
+  // Add start / end comment and bind symbol to line (or equate) if present. Must also set SourceHidden on children.
   addExtraChildren(node);
 
   return true;
@@ -154,6 +154,14 @@ void pas::ops::generic::IncludeMacros::addExtraChildren(ast::Node &node) {
   end->set(
       ast::generic::Comment{.value = u"%1End @%2"_s.arg(spacing, node.get<ast::generic::Macro>().value.toUpper())});
   children.push_back(end);
-
+  // Mark all children of the macro as hidden so that "Format Source Code" does not perform macro expansion.
+  for (auto &child : children) {
+    auto new_hide = ast::generic::Hide{.value = {.source = true}};
+    if (child->has<ast::generic::Hide>()) {
+      new_hide = child->get<ast::generic::Hide>();
+      new_hide.value.source = true;
+    }
+    child->set(new_hide);
+  }
   node.set<ast::generic::Children>(ast::generic::Children{.value = children});
 }

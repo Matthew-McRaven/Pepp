@@ -324,8 +324,7 @@ template <typename ISA> void pas::ops::pepp::FormatBinListing<ISA>::operator()(c
 template <typename ISA> QStringList pas::ops::pepp::formatSource(const ast::Node &node, SourceOptions opts) {
   auto visit = FormatSource<ISA>();
   visit.opts = opts;
-  // Do not visit structural nodes, because this will inject unneeded newlines.
-  // Do not visit hidden nodes.
+  // Do not visit structural nodes, because this will inject unneeded newlines. Do not visit hidden nodes.
   auto is = generic::And<generic::Negate<generic::isStructural>, generic::Negate<generic::SourceHidden>>();
   ast::apply_recurse_if(node, is, visit);
   return visit.ret;
