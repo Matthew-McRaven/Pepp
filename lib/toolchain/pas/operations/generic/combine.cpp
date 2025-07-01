@@ -27,21 +27,27 @@
 
 bool pas::ops::generic::detail::isOrgSection(const ast::Node &section) {
   bool accumulator = false;
-  for (const auto &child : ast::children(section)) accumulator |= pas::ops::generic::isOrg()(*child);
+  auto children = ast::children(section);
+  for (const auto &child : std::as_const(children))
+    accumulator |= pas::ops::generic::isOrg()(*child) || isOrgSection(*child);
   return accumulator;
 }
 
 quint64 pas::ops::generic::detail::minAddress(const ast::Node &section) {
   quint64 ret = -1;
   for (auto &child : ast::children(section))
-    if (child->has<ast::generic::Address>()) ret = qMin(ret, child->get<ast::generic::Address>().value.start);
+    if (child->has<ast::generic::Address>())
+      ret = qMin(ret, qMin(child->get<ast::generic::Address>().value.start, minAddress(*child)));
   return ret;
 }
 
-pas::ops::generic::detail::Traits pas::ops::generic::detail::getTraits(const ast::Node &section) {
-  quint64 start = -1, size = 0, align = 1;
-  for (const auto &child : ast::children(section)) {
-    if (!child->has<ast::generic::Address>()) continue;
+void getTraitsRecurse(const pas::ast::Node &node, quint64 &start, quint64 &size, quint64 &align) {
+  using namespace pas;
+  for (const auto &child : ast::children(node)) {
+    if (!child->has<ast::generic::Address>()) {
+      getTraitsRecurse(*child, start, size, align);
+      continue;
+    }
     auto address = child->get<ast::generic::Address>().value;
     start = qMin(address.start, start);
     size += address.size;
@@ -53,12 +59,18 @@ pas::ops::generic::detail::Traits pas::ops::generic::detail::getTraits(const ast
       align = qMax(dest, align);
     }
   }
+}
+pas::ops::generic::detail::Traits pas::ops::generic::detail::getTraits(const ast::Node &section) {
+  quint64 start = -1, size = 0, align = 1;
+  getTraitsRecurse(section, start, size, align);
   // If start is 0xFF..F, then ther is no addressable bytes in the section.
   if (std::cmp_equal(start, -1)) return {.base = 0, .size = 0, .alignment = 1};
   else return {.base = start, .size = size, .alignment = align};
 }
-void pas::ops::generic::detail::addOffset(ast::Node &section, qsizetype offset) {
-  for (auto &child : ast::children(section)) {
+
+void addOffsetRecurse(pas::ast::Node &node, qsizetype offset) {
+  using namespace pas;
+  for (auto &child : ast::children(node)) {
     if (child->has<ast::generic::Address>()) {
       auto address = child->get<ast::generic::Address>().value;
       address.start += offset;
@@ -70,11 +82,12 @@ void pas::ops::generic::detail::addOffset(ast::Node &section, qsizetype offset) 
       if (auto asLocation = dynamic_cast<symbol::value::Location *>(&*sym->value); asLocation != nullptr)
         asLocation->addToOffset(offset);
     }
+    addOffsetRecurse(*child, offset);
   }
 }
+void pas::ops::generic::detail::addOffset(ast::Node &section, qsizetype offset) { addOffsetRecurse(section, offset); }
 
 bool pas::ops::generic::concatSectionAddresses(ast::Node &root) {
-
   QMap<qsizetype, QSharedPointer<pas::ast::Node>> orgSections{};
   quint64 nextBase = 0;
   auto children = ast::children(root);
