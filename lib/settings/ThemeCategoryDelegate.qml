@@ -14,6 +14,9 @@ Item {
     NuAppSettings {
         id: settings
     }
+    FileIO {
+        id: fileio
+    }
 
     PaletteFilterModel {
         id: paletteModel
@@ -117,7 +120,7 @@ Item {
                                 requestRename();
                             }
                         } else {
-                            FileIO.save(comboBox.currentValue, settings.extPalette.jsonString());
+                            fileio.save(comboBox.currentValue, settings.extPalette.jsonString());
                         }
                     }
                     signal requestRename
@@ -232,7 +235,7 @@ Item {
             target: exportLoader.item
             function onAccepted() {
                 const path = decodeURIComponent(exportLoader.item.selectedFile);
-                FileIO.save(path, settings.extPalette.jsonString());
+                fileio.save(path, settings.extPalette.jsonString());
             }
         }
     }

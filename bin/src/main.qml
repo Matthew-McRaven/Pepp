@@ -362,10 +362,19 @@ ApplicationWindow {
         onAccepted: prefs.closed()
         onClosed: prefs.closed()
     }
+    FileIO {
+        id: fileio
+        onFileLoaded: function (name, content, arch, abs) {
+            console.log(`Will load ${name}`);
+            console.log(`(arch, abs)=(${arch},${abs})`);
+        }
+    }
+
     function onNew() {
-        pm.onAddProject(Architecture.PEP9, Abstraction.ASMB5, "", false);
+        pm.onAddProject(Architecture.PEP10, Abstraction.ASMB5, "", false);
     }
     function onOpenDialog() {
+        fileio.load("");
     }
     function onCloseAllProjects(excludeCurrent: bool) {
     }
