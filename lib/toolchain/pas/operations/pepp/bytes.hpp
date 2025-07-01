@@ -49,20 +49,16 @@ quint16 pas::ops::pepp::detail::nodeToBytes(const pas::ast::Node &node, bits::sp
   // If line has requested object code to be surpressed, don't emit.
   if (node.has<ast::generic::Hide>() &&
       node.get<ast::generic::Hide>().value.object != ast::generic::Hide::In::Object::Emit)
-    return true;
-  if (pas::ops::generic::isStructural()(node)) {
-    std::size_t skipped = 0;
-    for (auto &child : node.get<ast::generic::Children>().value) {
-      auto size = nodeToBytes<ISA>(*child, dest.subspan(skipped));
-      skipped += size;
-    }
-    return true;
+    return 0;
+  if (pas::ops::generic::isStructural()(node) || pas::ops::generic::isMacro()(node)) {
+    std::size_t offset = 0;
+    for (auto &child : node.get<ast::generic::Children>().value)
+      offset += nodeToBytes<ISA>(*child, dest.subspan(offset));
+    return offset;
   } else if (pas::ops::generic::isDirective()(node)) return detail::directiveToBytes(node, dest);
   else if (pas::ops::pepp::isUnary<ISA>()(node)) return detail::unaryToBytes<ISA>(node, dest);
   else if (pas::ops::pepp::isNonUnary<ISA>()(node)) return detail::nonUnaryToBytes<ISA>(node, dest);
-  else {
-    return 0;
-  }
+  else return 0;
 }
 
 template <typename ISA>

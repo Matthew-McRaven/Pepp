@@ -53,6 +53,9 @@ int main(int argc, char **argv) {
   };
   auto logger_debugger = create("debugger");
   logger_debugger->set_level(spdlog::level::warn);
+#if defined(SPDLOG_ACTIVE_LEVEL)
+  spdlog::set_level((spdlog::level::level_enum)SPDLOG_ACTIVE_LEVEL);
+#endif
 
   // Get the name of the executable, and see if it ends in term.
   // If so, we should present terminal help on being called with no args.

@@ -1,6 +1,7 @@
 #pragma once
 #include <QtCore>
 #include <elfio/elfio.hpp>
+#include <spdlog/spdlog.h>
 #include "toolchain/pas/ast/generic/attr_sec.hpp"
 #include "toolchain/pas/ast/generic/attr_symbol.hpp"
 #include "toolchain/pas/ast/node.hpp"
@@ -72,6 +73,8 @@ template <typename ISA> void writeTree(ELFIO::elfio &elf, pas::ast::Node &node, 
     auto secName = astSec->get<ast::generic::SectionName>().value;
     if (secName.startsWith(".")) secName = secName.mid(1);
     auto secFlags = astSec->get<ast::generic::SectionFlags>().value;
+    auto fullName = u"%1.%2"_s.arg(prefix, secName).toStdString();
+    SPDLOG_INFO("{} creating", fullName);
     auto traits = pas::ops::generic::detail::getTraits(*astSec);
     auto align = traits.alignment;
     ELFIO::Elf64_Addr baseAddr = traits.base;
@@ -79,18 +82,21 @@ template <typename ISA> void writeTree(ELFIO::elfio &elf, pas::ast::Node &node, 
     auto bytes = pas::ops::pepp::toBytes<ISA>(*astSec);
     if (size == 0) continue; // 0-sized sections are meaningless, do not emit.
 
-    auto sec = elf.sections.add(u"%1.%2"_s.arg(prefix, secName).toStdString());
+    auto sec = elf.sections.add(fullName);
     // All sections from AST correspond to bits in Pep/10 memory, so alloc
     auto shFlags = ELFIO::SHF_ALLOC;
     shFlags |= secFlags.X ? ELFIO::SHF_EXECINSTR : 0;
     shFlags |= secFlags.W ? ELFIO::SHF_WRITE : 0;
     sec->set_flags(shFlags);
     sec->set_addr_align(align);
+    SPDLOG_TRACE("{} sized at {:x}", fullName, size);
 
     if (secFlags.Z) {
+      SPDLOG_TRACE("{} zeroed", fullName);
       sec->set_type(ELFIO::SHT_NOBITS);
       sec->set_size(size);
     } else {
+      SPDLOG_TRACE("{} assigned {:x} bytes", fullName, bytes.size());
       Q_ASSERT(bytes.size() == size);
       sec->set_type(ELFIO::SHT_PROGBITS);
       sec->set_data((const char *)bytes.constData(), size);
@@ -98,6 +104,7 @@ template <typename ISA> void writeTree(ELFIO::elfio &elf, pas::ast::Node &node, 
 
     // If we are before the first segment of the OS, add the user address space.
     if (isOS && activeSeg == nullptr) {
+      SPDLOG_TRACE("{} created user segment with defaults", fullName);
       auto userSeg = elf.segments.add();
       userSeg->set_align(1);
       userSeg->set_file_size(0);
@@ -116,9 +123,9 @@ template <typename ISA> void writeTree(ELFIO::elfio &elf, pas::ast::Node &node, 
     activeSeg->add_section(sec, align);
     activeSeg->set_physical_address(std::min(activeSeg->get_physical_address(), baseAddr));
     activeSeg->set_virtual_address(std::min(activeSeg->get_virtual_address(), baseAddr));
+    SPDLOG_TRACE("{} base address set to {:x}", fullName, baseAddr);
 
-    // Field not re-computed on its own. Failure to compute will cause readelf
-    // to crash.
+    // Field not re-computed on its own. Failure to compute will cause readelf to crash.
     // TODO: in the future, handle alignment correctly?
     if (isOS) activeSeg->set_memory_size(activeSeg->get_memory_size() + size);
 

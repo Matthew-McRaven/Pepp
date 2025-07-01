@@ -121,9 +121,14 @@ template <typename ISA> QString pas::ops::pepp::format(const ast::Node &node, So
 
 template <typename ISA> QStringList pas::ops::pepp::list(const pas::ast::Node &node, ListingOptions opts) {
   using namespace Qt::StringLiterals;
+  QStringList ret;
   auto type = node.get<ast::generic::Type>().value;
   if (type == ast::generic::Type::Structural) return {};
-  QStringList ret;
+  else if (type == ast::generic::Type::MacroInvoke) {
+    for (const auto &child : children(node)) ret.append(hexList<ISA>(*child));
+    return ret;
+  }
+
   QList<quint8> bytes = {};
   const auto byteCharCount = 2 * opts.bytesPerLine;
   // If the node wants to hide object code, leave the bytes empty.
@@ -174,10 +179,14 @@ template <typename ISA> QStringList pas::ops::pepp::hexList(const pas::ast::Node
   using namespace Qt::StringLiterals;
   const auto bytesPerLine = 3;
   const auto byteCharCount = 6;
-
+  QStringList ret;
   auto type = node.get<ast::generic::Type>().value;
   if (type == ast::generic::Type::Structural) return {};
-  QStringList ret;
+  else if (type == ast::generic::Type::MacroInvoke) {
+    for (const auto &child : children(node)) ret.append(hexList<ISA>(*child));
+    return ret;
+  }
+
   QList<quint8> bytes = {};
 
   // If the node wants to hide object code, leave the bytes empty.
@@ -232,10 +241,15 @@ template <typename ISA> QStringList pas::ops::pepp::binList(const pas::ast::Node
   const auto bytesPerLine = 3;
   // 8 chars per byte with n-1 spaces
   const auto byteCharCount = 8 * bytesPerLine + (bytesPerLine - 1);
+  QStringList ret;
 
   auto type = node.get<ast::generic::Type>().value;
   if (type == ast::generic::Type::Structural) return {};
-  QStringList ret;
+  else if (type == ast::generic::Type::MacroInvoke) {
+    for (const auto &child : children(node)) ret.append(binList<ISA>(*child));
+    return ret;
+  }
+
   QList<quint8> bytes = {};
 
   // If the node wants to hide object code, leave the bytes empty.
@@ -310,8 +324,7 @@ template <typename ISA> void pas::ops::pepp::FormatBinListing<ISA>::operator()(c
 template <typename ISA> QStringList pas::ops::pepp::formatSource(const ast::Node &node, SourceOptions opts) {
   auto visit = FormatSource<ISA>();
   visit.opts = opts;
-  // Do not visit structural nodes, because this will inject unneeded newlines.
-  // Do not visit hidden nodes.
+  // Do not visit structural nodes, because this will inject unneeded newlines. Do not visit hidden nodes.
   auto is = generic::And<generic::Negate<generic::isStructural>, generic::Negate<generic::SourceHidden>>();
   ast::apply_recurse_if(node, is, visit);
   return visit.ret;

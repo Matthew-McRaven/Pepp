@@ -37,7 +37,7 @@ endif ()
 if (ONLY STREQUAL "BUILD")
     set(LANGUAGES "CXX")
 endif ()
-project(Pepp VERSION 0.10.2 LANGUAGES ${LANGUAGES})
+project(Pepp VERSION 0.10.3 LANGUAGES ${LANGUAGES})
 # Only overwrite the install prefix if it is the default value.
 if (CMAKE_INSTALL_PREFIX_INITIALIZED_TO_DEFAULT)
     set(CMAKE_INSTALL_PREFIX "${PROJECT_BINARY_DIR}/install" CACHE PATH "Installation Directory" FORCE)
@@ -75,7 +75,8 @@ if (ONLY STREQUAL "BUILD")
       qt_policy(SET QTP0001 NEW)
       qt_policy(SET QTP0004 NEW)
     endif()
-
+    # 0 is TRACE, which enables all logging in every location. Only works if set as a global compile option and before 3rd-party.
+    # add_compile_options(-DSPDLOG_ACTIVE_LEVEL=0)
     add_subdirectory(3rd-party)
     set(CMAKE_AUTOMOC ON)
     set(CMAKE_AUTORCC ON)

@@ -141,3 +141,6 @@ Fixed,,0.10.2,880,"Prevent DECI hangs by adding padding whitespace to batch inpu
 Fixed,,0.10.2,879,"Align macro end comments to listing columns"
 Fixed,,0.10.2,882,"Reenable ""Assemble then Format"" menu action"
 Added,,0.10.2,876,"Add CLI tool to synchronize textbook figures with this repo"
+Fixed,,0.10.3,602,"Reduce macro expansion size for macro invocations with symbol declarations"
+Fixed,,0.10.3,888,"Macro names use SCREAMING_SNAKE case in comments"
+Fixed,,0.10.3,889,"Prevent macro expansion when formatting source code"

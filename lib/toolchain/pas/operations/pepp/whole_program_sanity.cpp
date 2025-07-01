@@ -70,7 +70,9 @@ bool annotateUndefinedArgument(pas::ast::Node &node, pas::ast::value::Base *arg)
 }
 
 void pas::ops::pepp::ErrorOnUndefinedSymbolicArgument::operator()(ast::Node &node) {
-  if (node.has<ast::generic::Argument>())
+  if (node.get<ast::generic::Type>().value == ast::generic::Type::MacroInvoke)
+    return; // Don't check macro arguments since they are textually substituted.
+  else if (node.has<ast::generic::Argument>())
     hadError |= annotateUndefinedArgument(node, node.get<ast::generic::Argument>().value.data());
   else if (node.has<ast::generic::ArgumentList>())
     for (auto arg : node.get<ast::generic::ArgumentList>().value)
@@ -86,8 +88,7 @@ bool pas::ops::pepp::errorOnUndefinedSymbolicArgument(ast::Node &node) {
 void pas::ops::pepp::ErrorOnMultipleSymbolDefiniton::operator()(ast::Node &node) {
   if (node.has<ast::generic::SymbolDeclaration>()) {
     auto symbol = node.get<ast::generic::SymbolDeclaration>().value;
-    // Don't need to check for undefined. Undefined is impossible if we have a
-    // symbol declaration.
+    // Don't need to check for undefined. Undefined is impossible if we have a symbol declaration.
     if (symbol->state == symbol::DefinitionState::kSingle) return;
     hadError |= true;
     ast::addError(node, {.severity = pas::ast::generic::Message::Severity::Fatal,

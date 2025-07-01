@@ -52,6 +52,7 @@ void pas::obj::pep10::combineSections(ast::Node &root) {
 }
 
 QSharedPointer<ELFIO::elfio> pas::obj::pep10::createElf() {
+  SPDLOG_INFO("Creating pep/10 ELF");
   static const char p10mac[2] = {'p', 'x'};
   quint16 mac;
   bits::memcpy_endian({(quint8 *)&mac, 2}, bits::hostOrder(), {(const quint8 *)p10mac, 2}, bits::Order::BigEndian);
