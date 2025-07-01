@@ -54,22 +54,31 @@ bool pas::driver::pep10::TransformAssignAddresses::operator()(QSharedPointer<Glo
 
 pas::driver::pep10::Stage pas::driver::pep10::TransformAssignAddresses::toStage() { return Stage::WholeProgramSanity; }
 
+void recurseAssign(pas::ast::Node &node, int &ctr) {
+  using namespace pas;
+  auto children = ast::children(node);
+  for (auto &child : children) {
+    // Do not assign listing line numbers or update counters for macro nodes.
+    // Only recurse into their children.
+    if (child->get<ast::generic::Type>().value == ast::generic::Type::MacroInvoke) {
+      recurseAssign(*child, ctr);
+      continue;
+    }
+    child->set(ast::generic::ListingLocation{ctr});
+    if (child->has<ast::generic::Hide>() &&
+        child->get<ast::generic::Hide>().value.object != ast::generic::Hide::In::Object::Emit) {
+      ctr += 1;
+    } else if (auto size = ops::pepp::implicitSize<isa::Pep10>(*child); size <= 3) ctr += 1;
+    else ctr += (size + 2) / 3;
+  }
+}
 bool pas::driver::pep10::TransformWholeProgramSanity::operator()(QSharedPointer<Globals>,
                                                                  QSharedPointer<pas::driver::Target<Stage>> target) {
   auto root = target->bodies[repr::Nodes::name].value<repr::Nodes>().value;
   int it = 0;
   auto sections = pas::ast::children(*root);
-  for (auto &section : sections) {
-    auto children = pas::ast::children(*section);
-    for (auto &child : children) {
-      child->set(ast::generic::ListingLocation{it});
-      if (child->has<ast::generic::Hide>() &&
-          child->get<ast::generic::Hide>().value.object != ast::generic::Hide::In::Object::Emit) {
-        it += 1;
-      } else if (auto size = ops::pepp::implicitSize<isa::Pep10>(*child); size <= 3) it += 1;
-      else it += (size + 2) / 3;
-    }
-  }
+  for (auto &section : sections) recurseAssign(*section, it);
+
   // TODO: tie class variable to OS features.
   return pas::ops::pepp::checkWholeProgramSanity<isa::Pep10>(
       *root, {.allowOSFeatures = isOS, .ignoreUndefinedSymbols = ignoreUndefinedSymbols});
