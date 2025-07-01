@@ -5,9 +5,13 @@ group "default" {
 group "cpp" {
   targets = ["gcc", "dev-gcc", "wasm", "wasm-dbg", "dev-wasm-dbg", "clang" ]
 }
+group "img" {
+  targets = ["image_utils" ]
+}
+
 
 variable "VERSION" {
-  default = "v0.15.2"
+  default = "v0.15.3"
 }
 
 target "gcc" {
@@ -73,4 +77,5 @@ target "image_utils" {
   dockerfile = "Dockerfile"
   tags = ["ghcr.io/matthew-mcraven/pepp/image-utils:${VERSION}"]
   platforms = ["linux/amd64", "linux/arm64"]
+  target = "output"
 }
