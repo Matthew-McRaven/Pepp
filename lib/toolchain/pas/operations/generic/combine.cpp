@@ -76,8 +76,10 @@ void addOffsetRecurse(pas::ast::Node &node, qsizetype offset) {
       address.start += offset;
       child->set(pas::ast::generic::Address{.value = address});
     }
-    // Relocate symbols so that symtab will have latest address
-    if (child->has<ast::generic::SymbolDeclaration>()) {
+    // Relocate symbols so that symtab will have latest address, skipping over macro invocations because those aren't
+    // "real" symbols.
+    if (child->get<pas::ast::generic::Type>().value == pas::ast::generic::Type::MacroInvoke) {
+    } else if (child->has<ast::generic::SymbolDeclaration>()) {
       auto sym = child->get<ast::generic::SymbolDeclaration>().value;
       if (auto asLocation = dynamic_cast<symbol::value::Location *>(&*sym->value); asLocation != nullptr)
         asLocation->addToOffset(offset);

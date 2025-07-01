@@ -61,10 +61,8 @@ void pas::ops::pepp::detail::assignAddressesImpl(ast::Node &node, quint16 &base,
   auto type = pas::ast::type(node).value;
   if (type == pas::ast::generic::Type::Blank || type == pas::ast::generic::Type::Comment) return;
   else if (type == pas::ast::generic::Type::MacroInvoke) {
-    for (const auto &child : pas::ast::children(node)) {
-      detail::assignAddressesImpl<ISA>(*child, base, direction);
-    }
-    return;
+    for (const auto &child : pas::ast::children(node)) detail::assignAddressesImpl<ISA>(*child, base, direction);
+    return; // Prevent symbol value assingment for triggering on macro invocations via early return.
   } else if (type == pas::ast::generic::Type::Directive &&
              addresslessDirectives.contains(node.get<pas::ast::generic::Directive>().value)) {
     pas::ast::generic::Hide hide;
