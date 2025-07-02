@@ -89,9 +89,11 @@ Labs.MenuBar {
         Component {
             id: saveAsComponent
             Labs.MenuItem {
-                required property string thing
-                text: `Save ${thing} as...`
-                onTriggered: console.log(`Saving ${thing}`)
+                required property string extension
+                text: `Save ${extension} as...`
+                onTriggered: {
+                    actions.window.onSaveAs(extension);
+                }
             }
         }
 
@@ -107,10 +109,10 @@ Labs.MenuBar {
                     saveAsMenu.clear();
                     const newCount = model.length;
                     for (let it = 0; it < newCount; it++) {
-                        let item = saveAsComponent.createObject(saveAsMenu, {
-                            thing: model[it]
-                        });
-                        saveAsMenu.addItem(item);
+                        const props = {
+                            extension: model[it]
+                        };
+                        saveAsMenu.addItem(saveAsComponent.createObject(saveAsMenu, props));
                     }
                 }
 

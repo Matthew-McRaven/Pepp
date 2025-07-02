@@ -439,6 +439,9 @@ ApplicationWindow {
     function onOpenFile(filename) {
         fileio.loadCodeFromFile(filename);
     }
+    function onSaveAs(extension) {
+        pm.onSaveAs(currentProjectRow, extension);
+    }
     function onCloseAllProjects(excludeCurrent: bool) {
     }
     function onQuit() {

@@ -2,6 +2,7 @@
 #include <QFileDialog>
 #include <QStringLiteral>
 #include <qstringliteral.h>
+#include "settings/settings.hpp"
 
 int ProjectModel::rowCount(const QModelIndex &parent) const { return _projects.size(); }
 
@@ -148,12 +149,23 @@ int ProjectModel::rowOf(const QObject *item) const {
   }
   return -1;
 }
-const std::map<std::pair<pepp::Abstraction, pepp::Architecture>, const char *> extensions = {
-    {{pepp::Abstraction::ISA3, pepp::Architecture::PEP10}, "Pep/10 Object Code (*.pepo)"},
-    {{pepp::Abstraction::ASMB3, pepp::Architecture::PEP10}, "Pep/10 Assembly Code (*.pep)"},
-    {{pepp::Abstraction::ASMB5, pepp::Architecture::PEP10}, "Pep/10 Assembly Code (*.pep)"},
-    {{pepp::Abstraction::ISA3, pepp::Architecture::PEP9}, "Pep/9 Object Code (*.pepo)"},
-    {{pepp::Abstraction::ASMB5, pepp::Architecture::PEP9}, "Pep/9 Assembly Code (*.pep)"},
+
+const std::map<std::tuple<pepp::Abstraction, pepp::Architecture, const char *>, const char *> extensions = {
+    {{pepp::Abstraction::ISA3, pepp::Architecture::PEP10, "pepo"}, "Pep/10 Object Code (*.pepo)"},
+
+    {{pepp::Abstraction::ASMB3, pepp::Architecture::PEP10, "pep"}, "Pep/10 Assembly Code (*.pep)"},
+    {{pepp::Abstraction::ASMB3, pepp::Architecture::PEP10, "pepo"}, "Pep/10 Object Code (*.pepo)"},
+    {{pepp::Abstraction::ASMB3, pepp::Architecture::PEP10, "pepl"}, "Pep/10 Assembly Listing (*.pepl)"},
+
+    {{pepp::Abstraction::ASMB5, pepp::Architecture::PEP10, "pep"}, "Pep/10 Assembly Code (*.pep)"},
+    {{pepp::Abstraction::ASMB5, pepp::Architecture::PEP10, "pepo"}, "Pep/10 Object Code (*.pepo)"},
+    {{pepp::Abstraction::ASMB5, pepp::Architecture::PEP10, "pepl"}, "Pep/10 Assembly Listing (*.pepl)"},
+
+    {{pepp::Abstraction::ISA3, pepp::Architecture::PEP9, "pepo"}, "Pep/9 Object Code (*.pepo)"},
+
+    {{pepp::Abstraction::ASMB5, pepp::Architecture::PEP9, "pep"}, "Pep/9 Assembly Code (*.pep)"},
+    {{pepp::Abstraction::ASMB5, pepp::Architecture::PEP9, "pepo"}, "Pep/9 Object Code (*.pepo)"},
+    {{pepp::Abstraction::ASMB5, pepp::Architecture::PEP9, "pepl"}, "Pep/9 Assembly Listing (*.pepl)"},
 };
 
 std::pair<pepp::Abstraction, pepp::Architecture> envFromPtr(const QObject *item) {
@@ -164,6 +176,7 @@ std::pair<pepp::Abstraction, pepp::Architecture> envFromPtr(const QObject *item)
   }
   return {pepp::Abstraction::NO_ABS, pepp::Architecture::NO_ARCH};
 }
+
 QByteArray primaryTextFromPtr(const QObject *item) {
   if (auto asmb = qobject_cast<const Pep_ASMB *>(item)) {
     return asmb->userAsmText().toUtf8();
@@ -172,6 +185,43 @@ QByteArray primaryTextFromPtr(const QObject *item) {
   }
   return "";
 }
+
+QByteArray contentsFromExtension(const QObject *item, const QString &extension) {
+  if (auto asmb = qobject_cast<const Pep_ASMB *>(item)) {
+    return asmb->contentsForExtension(extension).toUtf8();
+  } else if (auto isa = qobject_cast<const Pep_ISA *>(item)) {
+    return isa->contentsForExtension(extension).toUtf8();
+  }
+  return "";
+}
+
+bool defaultFromExtension(const QObject *item, const QString &extension) {
+  if (auto asmb = qobject_cast<const Pep_ASMB *>(item)) {
+    return extension.compare("pep", Qt::CaseInsensitive) == 0;
+  } else if (auto isa = qobject_cast<const Pep_ISA *>(item)) {
+    return extension.compare("pepo", Qt::CaseInsensitive) == 0;
+  }
+  return false;
+}
+const char *defaulEtxtensionFor(const QObject *item) {
+  if (auto asmb = qobject_cast<const Pep_ASMB *>(item)) {
+    return "pep";
+  } else if (auto isa = qobject_cast<const Pep_ISA *>(item)) {
+    return "pepo";
+  }
+  return "pep";
+}
+
+void prependRecent(const QString &fname) {
+  auto settings = pepp::settings::detail::AppSettingsData::getInstance();
+  settings->general()->pushRecentFile(fname);
+}
+
+QStringList recentFiles() {
+  auto settings = pepp::settings::detail::AppSettingsData::getInstance();
+  return settings->general()->recentFiles();
+}
+
 const char *recentProjectsDirKey = "recentProjectsDir";
 void ProjectModel::onSave(int row) {
   if (row < 0 || row >= _projects.size()) return;
@@ -184,6 +234,10 @@ void ProjectModel::onSave(int row) {
     return;
   }
   auto contents = primaryTextFromPtr(ptr);
+  if (contents.isEmpty()) {
+    qDebug() << "No contents to save";
+    return;
+  }
 #ifdef __EMSCRIPTEN__
   QString fname = "user.o";
   switch (env.first) {
@@ -194,16 +248,17 @@ void ProjectModel::onSave(int row) {
   }
   QFileDialog::saveFileContent(contents, fname);
 #else
+  auto default_ext = defaulEtxtensionFor(ptr);
   if (_projects[row].path.isEmpty()) {
     // Determine appropriate filter for project.
-    auto filterIter = extensions.find(env);
+    auto filterIter = extensions.find(std::make_tuple(env.first, env.second, default_ext));
     // Get last directory into which we stored files
     QSettings settings;
     settings.beginGroup("projects");
     auto d = settings.value(recentProjectsDirKey, QStandardPaths::writableLocation(DocumentsLocation)).toString();
     // Path may be empty if it is canceled, in which case we need to return early.
     _projects[row].path = QFileDialog::getSaveFileName(
-        nullptr, "Save", d, filterIter != extensions.cend() ? filterIter->second : "IDK (*.pep)");
+        nullptr, "Save", d, filterIter != extensions.cend() ? filterIter->second : "Text Files (*.txt)");
     if (_projects[row].path.isEmpty()) return;
     // Update the name field to reflect the underlying file name.
     _projects[row].name = QFileInfo(_projects[row].path).fileName();
@@ -213,10 +268,69 @@ void ProjectModel::onSave(int row) {
   if (!file.open(QIODevice::WriteOnly)) return;
   file.write(contents);
   file.close();
+  prependRecent(_projects[row].path);
 #endif
 
   auto index = createIndex(row, 0);
   setData(index, false, static_cast<int>(Roles::DirtyRole));
+}
+
+void ProjectModel::onSaveAs(int row, const QString &extension) {
+  using namespace Qt::StringLiterals;
+  using enum QStandardPaths::StandardLocation;
+
+  if (row < 0 || row >= _projects.size()) return;
+
+  auto ptr = _projects[row].impl.get();
+  auto env = envFromPtr(ptr);
+  if (env.first == pepp::Abstraction::NO_ABS) {
+    qDebug() << "Unrecognized abstraction";
+    return;
+  }
+  auto contents = contentsFromExtension(ptr, extension);
+  bool isDefaultExtension = defaultFromExtension(ptr, extension);
+  if (contents.isEmpty()) {
+    qDebug() << "No contents to save";
+    return;
+  }
+#ifdef __EMSCRIPTEN__
+  QString fname = "user.o";
+  switch (env.first) {
+  case pepp::Abstraction::ISA3: fname = "user.pepo"; break;
+  case pepp::Abstraction::ASMB3: [[fallthrough]];
+  case pepp::Abstraction::ASMB5: fname = "user.pep"; break;
+  default: qDebug() << "No default for abstraction"; return;
+  }
+  QFileDialog::saveFileContent(contents, fname);
+#else
+
+  // Determine appropriate filter for project.
+  auto ext_as_std = extension.toStdString();
+  auto filterIter = extensions.find(std::make_tuple(env.first, env.second, ext_as_std.c_str()));
+
+  QString starting_fname = "";
+  if (!_projects[row].path.isEmpty()) {
+    auto fname = _projects[row].path;
+    QFileInfo info(fname);
+    starting_fname = info.path() + "/" + info.completeBaseName() + "." + extension;
+  } else if (auto recents = recentFiles(); !recents.isEmpty()) {
+    auto fname = recents.front();
+    QFileInfo info(fname);
+    starting_fname = info.path() + "/" + info.completeBaseName() + "." + extension;
+  }
+  // Path may be empty if it is canceled, in which case we need to return early.
+  auto fname = QFileDialog::getSaveFileName(nullptr, u"Save %1 As"_s.arg(extension), starting_fname,
+                                            filterIter != extensions.cend() ? filterIter->second : "Text Files (*.*)");
+  QFile file(fname);
+  if (!file.open(QIODevice::WriteOnly)) return;
+  file.write(contents);
+  file.close();
+  if (isDefaultExtension) {
+    prependRecent(fname);
+    auto index = createIndex(row, 0);
+    setData(index, false, static_cast<int>(Roles::DirtyRole));
+  }
+#endif
 }
 
 void init_pep10(QList<ProjectType> &vec) {

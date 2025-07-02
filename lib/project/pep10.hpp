@@ -89,8 +89,8 @@ public:
   pepp::debug::TypedBits evaluate_debug_variable(uint32_t name) const override;
 
   virtual QStringList saveAsOptions() const { return {"pepo"}; }
+  virtual QString contentsForExtension(const QString &ext) const;
 public slots:
-  bool onSaveCurrent();
   virtual bool onLoadObject();
   bool onFormatObject();
   bool onExecute();
@@ -196,6 +196,7 @@ public:
   Q_INVOKABLE ScopedLines2Addresses *line2addr() const;
   int allowedDebugging() const override;
   QStringList saveAsOptions() const override { return {"pep", "pepl", "pepo"}; }
+  QString contentsForExtension(const QString &ext) const override;
 public slots:
   bool onDebuggingStart() override;
   bool onAssemble(bool doLoad = false);

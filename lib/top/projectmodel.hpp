@@ -39,6 +39,7 @@ public:
   Q_INVOKABLE int rowOf(const QObject *item) const;
 public slots:
   Q_INVOKABLE void onSave(int index);
+  Q_INVOKABLE void onSaveAs(int index, const QString &extension);
 signals:
   void rowCountChanged(int);
 
