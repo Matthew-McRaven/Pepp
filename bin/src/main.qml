@@ -109,6 +109,7 @@ ApplicationWindow {
         message.connect(() => messageTimer.restart());
         messageTimer.restart();
         sidebar.switchToMode("Welcome");
+        pm.rowCountChanged.connect(noOpenProjectCheck);
     }
 
     // Provide a default font for menu items.
@@ -119,6 +120,10 @@ ApplicationWindow {
         const loader = delegateRepeater.itemAt(innerLayout.currentIndex);
         if (loader.item)
             loader.item.syncEditors();
+    }
+    function noOpenProjectCheck() {
+        if (pm.rowCount() === 0)
+            sidebar.switchToMode("Welcome");
     }
 
     Menu.Actions {
