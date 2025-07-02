@@ -57,8 +57,9 @@ void FileIO::loadCodeFromFile(const QString &name) {
 QByteArray FileIO::load(const QString &fileName) {
   QFile file(fileName);
   QByteArray ret;
-  if (file.size() > 1'000'000) qWarning() << "File size exceeds 1MB. Will not load.";
-  if (file.open(QIODevice::ReadOnly)) {
+  if (file.size() > 1'000'000) {
+    qWarning() << "File size exceeds 1MB. Will not load.";
+  } else if (file.open(QIODevice::ReadOnly)) {
     ret = file.readAll();
     file.close();
   } else qWarning() << "Could not open file for reading";
