@@ -108,7 +108,7 @@
 			<string>Pep Assembly Source File</string>
 			<key>UTTypeConformsTo</key>
 			<array>
-				<string>public.text</string>
+			        <string>public.plain-text</string>
 			</array>
 			<key>UTTypeTagSpecification</key>
 			<dict>
@@ -125,7 +125,7 @@
 			<string>Pep Object Code File</string>
 			<key>UTTypeConformsTo</key>
 			<array>
-				<string>public.text</string>
+			        <string>public.plain-text</string>
 			</array>
 			<key>UTTypeTagSpecification</key>
 			<dict>
@@ -142,7 +142,7 @@
 			<string>Pep Microcode File</string>
 			<key>UTTypeConformsTo</key>
 			<array>
-				<string>public.text</string>
+			        <string>public.plain-text</string>
 			</array>
 			<key>UTTypeTagSpecification</key>
 			<dict>
@@ -159,7 +159,7 @@
 			<string>Pep Macro Declaration File</string>
 			<key>UTTypeConformsTo</key>
 			<array>
-				<string>public.text</string>
+			        <string>public.plain-text</string>
 			</array>
 			<key>UTTypeTagSpecification</key>
 			<dict>
