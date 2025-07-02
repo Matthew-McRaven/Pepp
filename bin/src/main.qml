@@ -370,7 +370,7 @@ ApplicationWindow {
             sidebar.visible = true;
             welcome.loadingFileName = Qt.binding(() => "");
             welcome.loadingFileContent = Qt.binding(() => "");
-            welcome.filterAbstraction = Qt.binding(() => 0);
+            welcome.filterAbstraction = Qt.binding(() => []);
             welcome.filterEdition = Qt.binding(() => 0);
         }
     }
@@ -389,8 +389,8 @@ ApplicationWindow {
             if (arch != 0 && abs != 0) {
                 welcome.addProject(arch, abs, "", content, true);
             } else {
-                welcome.filterAbstraction = Qt.binding(() => 0);
-                welcome.filterEdition = Qt.binding(() => 5);
+                welcome.filterAbstraction = Qt.binding(() => [Abstraction.ASMB5, Abstraction.ASMB3, Abstraction.OS4]);
+                welcome.filterEdition = Qt.binding(() => 6);
             }
         }
     }

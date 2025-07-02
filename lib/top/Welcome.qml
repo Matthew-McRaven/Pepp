@@ -10,9 +10,8 @@ Item {
     property string loadingFileName: ""
     property var loadingFileContent: ""
     property int filterEdition: 0
-
-    property int filterAbstraction: 0
-    readonly property bool filtering: filterEdition !== 0 && filterAbstraction !== 0
+    property list<int> filterAbstraction: []
+    readonly property bool filtering: filterEdition !== 0 && filterAbstraction.length !== 0
     NuAppSettings {
         id: settings
     }
@@ -180,7 +179,7 @@ Item {
                         visible: !model.placeholder
                         text: model.text
                         onReleased: root.addProject(model.architecture, model.abstraction, "", root.loadingFileContent, false)
-                        enabled: model.complete || model.partiallyComplete
+                        enabled: (model.complete || model.partiallyComplete) && (root.filterAbstraction.length === 0 || root.filterAbstraction.includes(model.abstraction))
                         palette.disabled.button: parent.palette.shadow
                         hoverEnabled: true
                         ToolTip.visible: (hovered || down) && model.description
