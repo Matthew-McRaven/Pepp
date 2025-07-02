@@ -3,7 +3,7 @@ import QtQuick.Controls
 import QtQuick.Layouts
 import edu.pepp 1.0
 
-Flickable {
+Item {
     id: root
     property bool requestHide: false
     property var currentProject: undefined
@@ -13,9 +13,7 @@ Flickable {
     signal message(string message)
     clip: true
     visible: !requestHide && (pm.count > 0)
-    contentWidth: projectBar.width + addProjectButton.width
-    contentHeight: projectBar.height
-    height: contentHeight
+    implicitHeight: flickable.contentHeight
     NuAppSettings {
         id: settings
     }
@@ -109,70 +107,74 @@ Flickable {
             }
         }
     }
-
-    // Use a row layout to handle proper sizing of tab bar and buttons.
-    Row {
-        TabBar {
-            id: projectBar
-            Layout.fillWidth: true
-            Layout.fillHeight: true
-            onCurrentIndexChanged: root.setCurrentProject(currentIndex)
-            Repeater {
-                model: pm
-                anchors.fill: parent
-                delegate: TabButton {
-                    id: tabButton
-                    required property string name
-                    required property string description
-                    required property string path
-                    required property int row
-                    required property bool isDirty
-                    text: `${tabButton.name} ${tabButton.isDirty ? " *" : ''}<br>${tabButton.description}`
-                    ToolTip.text: path
-                    hoverEnabled: true
-                    ToolTip.visible: hovered && path
-                    font {
-                        family: menuFont.font.family
-                        pixelSize: Math.min(16, menuFont.font.pixelSize)
-                        italic: tabButton.isDirty
-                    }
-                    width: Math.max(200, projectSelect.width / 4, implicitContentWidth)
-                    Button {
-                        text: "X"
-                        anchors.right: parent.right
-                        anchors.verticalCenter: parent.verticalCenter
-                        height: Math.max(20, parent.height - 2)
-                        width: height
-                        onClicked: root.closeProject(tabButton.row)
+    Flickable {
+        id: flickable
+        anchors.fill: parent
+        contentWidth: projectBar.width + addProjectButton.width
+        contentHeight: projectBar.height
+        // Use a row layout to handle proper sizing of tab bar and buttons.
+        Row {
+            TabBar {
+                id: projectBar
+                Layout.fillWidth: true
+                Layout.fillHeight: true
+                onCurrentIndexChanged: root.setCurrentProject(currentIndex)
+                Repeater {
+                    model: pm
+                    anchors.fill: parent
+                    delegate: TabButton {
+                        id: tabButton
+                        required property string name
+                        required property string description
+                        required property string path
+                        required property int row
+                        required property bool isDirty
+                        text: `${tabButton.name} ${tabButton.isDirty ? " *" : ''}<br>${tabButton.description}`
+                        ToolTip.text: path
+                        hoverEnabled: true
+                        ToolTip.visible: hovered && path
+                        font {
+                            family: menuFont.font.family
+                            pixelSize: Math.min(16, menuFont.font.pixelSize)
+                            italic: tabButton.isDirty
+                        }
+                        width: Math.max(200, projectSelect.width / 4, implicitContentWidth)
+                        Button {
+                            text: "X"
+                            anchors.right: parent.right
+                            anchors.verticalCenter: parent.verticalCenter
+                            height: Math.max(20, parent.height - 2)
+                            width: height
+                            onClicked: root.closeProject(tabButton.row)
+                        }
                     }
                 }
             }
-        }
-        Button {
-            id: addProjectButton
-            text: "+"
-            Layout.fillHeight: true
-            width: plusTM.width
-            font: menuFont.font
-            height: projectBar.height // Border may clip into main area if unset.
-            TextMetrics {
-                id: plusTM
-                font: addProjectButton.font
-                text: `+${' '.repeat(10)}`
-            }
-            background: Rectangle {
-                color: "transparent"
-                border.color: addProjectButton.hovered ? palette.link : "transparent"
-                border.width: 2
-                radius: 4
-            }
-            onClicked: {
-                pm.onAddProject(root.currentProject.architecture, root.currentProject.abstraction, "");
-                root.switchToProject(pm.count - 1);
+            Button {
+                id: addProjectButton
+                text: "+"
+                Layout.fillHeight: true
+                width: plusTM.width
+                font: menuFont.font
+                height: projectBar.height // Border may clip into main area if unset.
+                TextMetrics {
+                    id: plusTM
+                    font: addProjectButton.font
+                    text: `+${' '.repeat(10)}`
+                }
+                background: Rectangle {
+                    color: "transparent"
+                    border.color: addProjectButton.hovered ? palette.link : "transparent"
+                    border.width: 2
+                    radius: 4
+                }
+                onClicked: {
+                    pm.onAddProject(root.currentProject.architecture, root.currentProject.abstraction, "");
+                    root.switchToProject(pm.count - 1);
+                }
             }
         }
     }
-
     Connections {
         target: root.currentProject ?? null
         function onObjectCodeTextChanged() {
