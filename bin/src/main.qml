@@ -276,7 +276,7 @@ ApplicationWindow {
         Component.onCompleted: {
             const props = {
                 "actions": actions,
-                "project": window.currentProject
+                "project": Qt.binding(() => window.currentProject)
             };
             if (PlatformDetector.isWASM) {
                 props["window"] = window;

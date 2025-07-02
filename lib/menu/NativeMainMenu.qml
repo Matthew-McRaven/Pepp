@@ -56,7 +56,7 @@ Labs.MenuBar {
 
         Labs.Menu {
             id: recentFilesMenu
-            title: qsTr("&Recent Files")
+            title: qsTr("&Recent Files...")
             Instantiator {
                 id: recentFilesInstantiator
                 model: settings.general.recentFiles
@@ -85,6 +85,39 @@ Labs.MenuBar {
             onTriggered: actions.file.save.trigger()
             icon.source: fixSuffix(actions.file.save.icon.source, wrapper.darkMode)
             shortcut: actions.file.save.shortcut
+        }
+        Component {
+            id: saveAsComponent
+            Labs.MenuItem {
+                required property string thing
+                text: `Save ${thing} as...`
+                onTriggered: console.log(`Saving ${thing}`)
+            }
+        }
+
+        Labs.Menu {
+            id: saveAsMenu
+            title: qsTr("Save as...")
+            visible: saveAsInstantiator.model.length > 0
+            Instantiator {
+                id: saveAsInstantiator
+                model: project?.saveAsOptions ?? []
+                onModelChanged: update()
+                function update() {
+                    saveAsMenu.clear();
+                    const newCount = model.length;
+                    for (let it = 0; it < newCount; it++) {
+                        let item = saveAsComponent.createObject(saveAsMenu, {
+                            thing: model[it]
+                        });
+                        saveAsMenu.addItem(item);
+                    }
+                }
+
+                Component.onCompleted: {
+                    wrapper.onProjectChanged.connect(update);
+                }
+            }
         }
         Labs.MenuSeparator {}
         Labs.MenuItem {

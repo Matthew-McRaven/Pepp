@@ -35,6 +35,7 @@ class Pep_ISA : public QObject, public pepp::debug::Environment {
   Q_PROPERTY(pepp::debug::BreakpointSet *breakpointModel READ breakpointModel CONSTANT)
   Q_PROPERTY(int allowedDebugging READ allowedDebugging NOTIFY allowedDebuggingChanged)
   Q_PROPERTY(int allowedSteps READ allowedSteps NOTIFY allowedStepsChanged)
+  Q_PROPERTY(QStringList saveAsOptions READ saveAsOptions CONSTANT)
   // Only changed externally
   Q_PROPERTY(QString charIn READ charIn WRITE setCharIn NOTIFY charInChanged)
   // Only changed internally.
@@ -86,6 +87,8 @@ public:
   pepp::debug::TypedBits evaluate_variable(QStringView name) const override;
   uint32_t cache_debug_variable_name(QStringView name) const override;
   pepp::debug::TypedBits evaluate_debug_variable(uint32_t name) const override;
+
+  virtual QStringList saveAsOptions() const { return {"pepo"}; }
 public slots:
   bool onSaveCurrent();
   virtual bool onLoadObject();
@@ -192,6 +195,7 @@ public:
   Q_INVOKABLE pepp::debug::WatchExpressionEditor *watchExpressions() const;
   Q_INVOKABLE ScopedLines2Addresses *line2addr() const;
   int allowedDebugging() const override;
+  QStringList saveAsOptions() const override { return {"pep", "pepl", "pepo"}; }
 public slots:
   bool onDebuggingStart() override;
   bool onAssemble(bool doLoad = false);
