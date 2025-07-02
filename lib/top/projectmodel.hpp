@@ -21,6 +21,7 @@ public:
     PathRole,
   };
   Q_ENUM(Roles);
+  Q_INVOKABLE int roleForName(const QString &name) const;
   explicit ProjectModel(QObject *parent = nullptr) : QAbstractListModel(parent) {};
   // Helper to expose rowCount as a property to QML.
   int _rowCount() const { return rowCount({}); }
@@ -39,6 +40,7 @@ public:
   Q_INVOKABLE int rowOf(const QObject *item) const;
 public slots:
   Q_INVOKABLE void onSave(int index);
+  Q_INVOKABLE void onSaveAs(int index, const QString &extension);
 signals:
   void rowCountChanged(int);
 

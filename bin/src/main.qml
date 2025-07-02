@@ -130,6 +130,7 @@ ApplicationWindow {
         id: actions
         project: window.currentProject
         window: window
+        settings: settings
     }
 
     signal message(string message)
@@ -275,7 +276,7 @@ ApplicationWindow {
         Component.onCompleted: {
             const props = {
                 "actions": actions,
-                "project": window.currentProject
+                "project": Qt.binding(() => window.currentProject)
             };
             if (PlatformDetector.isWASM) {
                 props["window"] = window;
@@ -367,6 +368,7 @@ ApplicationWindow {
         onAccepted: prefs.closed()
         onClosed: prefs.closed()
     }
+
     Dialog {
         id: fileDisambiguateDialog
         title: qsTr("Determine file type")
@@ -382,7 +384,10 @@ ApplicationWindow {
                 fileDisambiguateDialog.close();
             }
             onAddProject: function (arch, abs, feats, content, reuse) {
-                window.pm.onAddProject(arch, abs, feats, content, reuse);
+                const prj = window.pm.onAddProject(arch, abs, feats, content, reuse);
+                const name = welcomeForFOpen.loadingFileName;
+                const idx = window.pm.index(window.pm.currentProjectRow, 0);
+                window.pm.setData(idx, name, window.pm.roleForName("path"));
                 sidebar.switchToMode("Editor");
                 welcomeForFOpen.loadingFileName = Qt.binding(() => "");
                 welcomeForFOpen.loadingFileContent = Qt.binding(() => "");
@@ -400,7 +405,9 @@ ApplicationWindow {
             if (!name || !content)
                 return;
             if (arch !== 0 && abs !== 0) {
-                window.pm.onAddProject(arch, abs, "", content, true);
+                const prj = window.pm.onAddProject(arch, abs, "", content, true);
+                const idx = window.pm.index(window.pm.currentProjectRow, 0);
+                window.pm.setData(idx, name, window.pm.roleForName("path"));
                 return;
             } else if (name.match(/pep$/i)) {
                 welcomeForFOpen.filterAbstraction = Qt.binding(() => [Abstraction.ASMB3, Abstraction.OS4, Abstraction.ASMB5]);
@@ -420,6 +427,7 @@ ApplicationWindow {
             }
 
             sidebar.switchToMode("Welcome");
+            settings.general.pushRecentFile(name);
             welcomeForFOpen.loadingFileName = Qt.binding(() => name);
             welcomeForFOpen.loadingFileContent = Qt.binding(() => content);
             fileDisambiguateDialog.open();
@@ -436,6 +444,9 @@ ApplicationWindow {
     // must be named onOpenFile, or `gui.cpp` must be updated!
     function onOpenFile(filename) {
         fileio.loadCodeFromFile(filename);
+    }
+    function onSaveAs(extension) {
+        pm.onSaveAs(currentProjectRow, extension);
     }
     function onCloseAllProjects(excludeCurrent: bool) {
     }

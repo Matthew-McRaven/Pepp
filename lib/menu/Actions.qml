@@ -5,6 +5,7 @@ import edu.pepp 1.0
 QtObject {
     required property var window
     required property var project
+    required property var settings
     property bool dark: window.palette.text.hslLightness < 0.5
     function updateNativeText(obj) {
         obj.nativeText = Qt.binding(() => SequenceConverter.toNativeText(obj.shortcut));
@@ -25,6 +26,12 @@ QtObject {
             onTriggered: window.onOpenDialog()
             icon.source: `image://icons/file/open${dark ? '' : '_dark'}.svg`
             shortcut: StandardKey.Open
+            onShortcutChanged: updateNativeText(this)
+        }
+        readonly property var clearRecents: Action {
+            property string nativeText: ""
+            text: qsTr("&Clear Recent Files")
+            onTriggered: settings.general.clearRecentFiles()
             onShortcutChanged: updateNativeText(this)
         }
         readonly property var save: Action {

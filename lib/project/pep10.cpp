@@ -478,7 +478,11 @@ pepp::debug::TypedBits Pep_ISA::evaluate_debug_variable(uint32_t cache_id) const
   }
 }
 
-bool Pep_ISA::onSaveCurrent() { return false; }
+QString Pep_ISA::contentsForExtension(const QString &ext) const {
+  if (ext.compare("pepo", Qt::CaseInsensitive) == 0) {
+    return _objectCodeText;
+  } else return "";
+}
 
 bool Pep_ISA::onLoadObject() {
   static ObjectUtilities utils;
@@ -909,6 +913,15 @@ int Pep_ASMB::allowedDebugging() const {
   }
 }
 
+QString Pep_ASMB::contentsForExtension(const QString &ext) const {
+  if (ext.compare("pepo", Qt::CaseInsensitive) == 0) {
+    return _objectCodeText;
+  } else if (ext.compare("pep", Qt::CaseInsensitive) == 0) {
+    return _userAsmText;
+  } else if (ext.compare("pepl", Qt::CaseInsensitive) == 0) {
+    return _userList;
+  } else return "";
+}
 
 bool Pep_ASMB::onDebuggingStart() {
   Pep_ISA::onDebuggingStart();

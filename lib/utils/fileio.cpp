@@ -1,6 +1,7 @@
 #include "fileio.hpp"
 #include <QtWidgets/qfiledialog.h>
 #include "constants.hpp"
+#include "settings/settings.hpp"
 #ifdef __EMSCRIPTEN__
 #include <emscripten.h>
 #endif
@@ -41,7 +42,15 @@ void FileIO::loadCodeViaDialog(const QString &filters) {
   QFileDialog::getOpenFileContent(filters2.join(";;"), ready);
 #else
   QString selectedFilter;
-  auto fileName = QFileDialog::getOpenFileName(nullptr, "Open Source Code", "", filters2.join(";;"), &selectedFilter);
+  auto settings = pepp::settings::detail::AppSettingsData::getInstance();
+  auto recents = settings->general()->recentFiles();
+  QString startDir = "";
+  if (!recents.empty()) {
+    QFileInfo fi(recents.first());
+    startDir = fi.absoluteDir().absolutePath();
+  }
+  auto fileName =
+      QFileDialog::getOpenFileName(nullptr, "Open Source Code", startDir, filters2.join(";;"), &selectedFilter);
   if (fileName.isEmpty()) return;
   QByteArray ret = load(fileName);
   auto [arch, abs] = filters3.value(selectedFilter, {0, 0});
@@ -52,6 +61,7 @@ void FileIO::loadCodeViaDialog(const QString &filters) {
 #ifndef __EMSCRIPTEN__
 void FileIO::loadCodeFromFile(const QString &name) {
   auto ret = load(name);
+  if (ret.isEmpty()) return;
   emit codeLoaded(name, ret, 0, 0);
 }
 QByteArray FileIO::load(const QString &fileName) {

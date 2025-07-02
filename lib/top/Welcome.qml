@@ -79,10 +79,16 @@ Item {
         }
     }
 
+    MouseArea { // Can't be inside filenameHeader with anchors.fill:parent because it is a layout.
+        id: mouseArea
+        anchors.fill: filenameHeader
+        hoverEnabled: filenameHeader.visible
+    }
     RowLayout {
         id: filenameHeader
         spacing: fm.averageCharacterWidth
         visible: !!root.loadingFileName
+
         anchors {
             top: parent.top
             left: parent.left
@@ -90,15 +96,20 @@ Item {
             right: parent.right
             topMargin: visible ? -root.topOffset : 0
         }
+
         Label {
             text: `Loading from file:`
             font: fm.font
             Layout.alignment: Qt.AlignVCenter
         }
         Text {
-            text: root.loadingFileName
+            text: settings.general.fileNameFor(root.loadingFileName)
             font: fnameFM.font
             Layout.alignment: Qt.AlignVCenter | Qt.AlignLeft
+            // Put tooltip near the text rather than the whole row. Tooltip placement can be bad on the row.
+            ToolTip.visible: mouseArea.containsMouse && root.loadingFileName
+            ToolTip.text: root.loadingFileName
+            color: palette.link
         }
         Item {
             Layout.fillWidth: true
