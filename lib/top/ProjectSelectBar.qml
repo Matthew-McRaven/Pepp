@@ -78,6 +78,7 @@ Flickable {
             }
             proj.overwriteEditors();
             onMarkActiveDirty(false);
+            root.switchToProject(pm.rowOf(proj), true);
         }
         function renameCurrentProject(string) {
             const row = pm.rowOf(currentProject);
