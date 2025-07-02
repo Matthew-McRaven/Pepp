@@ -364,6 +364,7 @@ ApplicationWindow {
     }
 
     Connections {
+        id: welcomeConnections
         target: welcome
         function onAddProject() {
             sidebar.enabled = true;
@@ -371,32 +372,47 @@ ApplicationWindow {
             welcome.loadingFileName = Qt.binding(() => "");
             welcome.loadingFileContent = Qt.binding(() => "");
             welcome.filterAbstraction = Qt.binding(() => []);
-            welcome.filterEdition = Qt.binding(() => 0);
+            welcome.filterEdition = Qt.binding(() => []);
+            enabled = false;
         }
+        enabled: false
     }
     FileIO {
         id: fileio
         onCodeLoaded: function (name, content, arch, abs) {
             if (!name || !content)
                 return;
-            console.log(`Will load ${name}`);
-            console.log(`(arch, abs)=(${arch},${abs})`);
+            if (arch !== 0 && abs !== 0) {
+                root.pm.onAddProject(arch, abs, "", content, true);
+                return;
+            } else if (name.match(/pep$/i)) {
+                welcome.filterAbstraction = Qt.binding(() => [Abstraction.ASMB3, Abstraction.OS4, Abstraction.ASMB5]);
+                welcome.filterEdition = Qt.binding(() => [6, 5, 4]);
+            } else if (name.match(/pepo$/i)) {
+                welcome.filterAbstraction = Qt.binding(() => [Abstraction.ISA3]);
+                welcome.filterEdition = Qt.binding(() => [6, 5, 4]);
+            } else if (name.match(/pepcpu$/i)) {
+                welcome.filterAbstraction = Qt.binding(() => [Abstraction.MC2]);
+                welcome.filterEdition = Qt.binding(() => [6, 5, 4]);
+            } else if (name.match(/pepm$/i)) {
+                welcome.filterAbstraction = Qt.binding(() => [Abstraction.ASMB3, Abstraction.OS4, Abstraction.ASMB5]);
+                welcome.filterEdition = Qt.binding(() => [6]);
+            } else {
+                welcome.filterAbstraction = Qt.binding(() => []);
+                welcome.filterEdition = Qt.binding(() => []);
+            }
+
+            welcomeConnections.enabled = true;
             sidebar.switchToMode("Welcome");
             welcome.loadingFileName = Qt.binding(() => name);
             welcome.loadingFileContent = Qt.binding(() => content);
             sidebar.enabled = false;
             sidebar.visible = false;
-            if (arch != 0 && abs != 0) {
-                welcome.addProject(arch, abs, "", content, true);
-            } else {
-                welcome.filterAbstraction = Qt.binding(() => [Abstraction.ASMB5, Abstraction.ASMB3, Abstraction.OS4]);
-                welcome.filterEdition = Qt.binding(() => 6);
-            }
         }
     }
 
     function onNew() {
-        pm.onAddProject(Architecture.PEP10, Abstraction.ASMB5, "", false);
+        pm.onAddProject(Architecture.PEP10, Abstraction.ASMB5, "", "", false);
     }
     function onOpenDialog() {
         fileio.loadCodeViaDialog("");
