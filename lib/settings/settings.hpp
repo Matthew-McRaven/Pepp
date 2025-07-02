@@ -51,6 +51,7 @@ class GeneralCategory : public Category {
                  externalFigureDirectoryChanged)
   // Non-GUI properties
   Q_PROPERTY(QStringList recentFiles READ recentFiles NOTIFY recentFilesChanges)
+
 public:
   explicit GeneralCategory(QObject *parent = nullptr);
   QString name() const override { return "General"; };

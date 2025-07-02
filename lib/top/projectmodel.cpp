@@ -162,7 +162,7 @@ int ProjectModel::rowOf(const QObject *item) const {
   return -1;
 }
 
-const std::map<std::tuple<pepp::Abstraction, pepp::Architecture, const char *>, const char *> extensions = {
+const std::map<std::tuple<pepp::Abstraction, pepp::Architecture, std::string>, const char *> extensions = {
     {{pepp::Abstraction::ISA3, pepp::Architecture::PEP10, "pepo"}, "Pep/10 Object Code (*.pepo)"},
 
     {{pepp::Abstraction::ASMB3, pepp::Architecture::PEP10, "pep"}, "Pep/10 Assembly Code (*.pep)"},
@@ -215,7 +215,7 @@ bool defaultFromExtension(const QObject *item, const QString &extension) {
   }
   return false;
 }
-const char *defaulEtxtensionFor(const QObject *item) {
+std::string defaultExtensionFor(const QObject *item) {
   if (auto asmb = qobject_cast<const Pep_ASMB *>(item)) {
     return "pep";
   } else if (auto isa = qobject_cast<const Pep_ISA *>(item)) {
@@ -260,7 +260,7 @@ void ProjectModel::onSave(int row) {
   }
   QFileDialog::saveFileContent(contents, fname);
 #else
-  auto default_ext = defaulEtxtensionFor(ptr);
+  auto default_ext = defaultExtensionFor(ptr);
   if (_projects[row].path.isEmpty()) {
     // Determine appropriate filter for project.
     auto filterIter = extensions.find(std::make_tuple(env.first, env.second, default_ext));
@@ -318,7 +318,7 @@ void ProjectModel::onSaveAs(int row, const QString &extension) {
 
   // Determine appropriate filter for project.
   auto ext_as_std = extension.toStdString();
-  auto filterIter = extensions.find(std::make_tuple(env.first, env.second, ext_as_std.c_str()));
+  auto filterIter = extensions.find(std::make_tuple(env.first, env.second, ext_as_std));
 
   QString starting_fname = "";
   if (!_projects[row].path.isEmpty()) {

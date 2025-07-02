@@ -185,12 +185,12 @@ QString pepp::settings::GeneralCategory::figureDirectory() const {
 
 void pepp::settings::GeneralCategory::pushRecentFile(const QString &fileName) {
   if (_recentFileCache.empty()) refreshRecentFileCache();
-  // Limit number of recent files if we are using the cached version.
-  else
-    while (_recentFileCache.size() >= maxRecentFiles() && !_recentFileCache.isEmpty()) _recentFileCache.removeLast();
+
   if (_recentFileCache.contains(fileName)) _recentFileCache.removeAll(fileName);
   else if (_recentFileCache.size() >= maxRecentFiles()) _recentFileCache.removeLast();
   _recentFileCache.prepend(fileName);
+  // Ensure that we don't violate max # of recent files.
+  while (_recentFileCache.size() > maxRecentFiles() && !_recentFileCache.isEmpty()) _recentFileCache.removeLast();
   _settings.setValue(recentFilesKey, _recentFileCache);
   emit recentFilesChanges();
 }
@@ -213,7 +213,7 @@ void pepp::settings::GeneralCategory::refreshRecentFileCache() const {
   if (!value.isValid()) _recentFileCache = {};
   else if (!value.canConvert<QStringList>()) _recentFileCache = {};
   else _recentFileCache = value.toStringList();
-  while (_recentFileCache.size() >= maxRecentFiles() && !_recentFileCache.isEmpty()) _recentFileCache.removeLast();
+  while (_recentFileCache.size() > maxRecentFiles() && !_recentFileCache.isEmpty()) _recentFileCache.removeLast();
 }
 
 bool pepp::settings::GeneralCategory::validateMaxRecentFiles(int max) const {
