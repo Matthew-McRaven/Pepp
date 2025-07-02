@@ -376,6 +376,13 @@ ApplicationWindow {
     function onOpenDialog() {
         fileio.load("");
     }
+    // must be named onOpenFile, or `gui.cpp` must be updated!
+    function onOpenFile(filename) {
+        console.log(`QML loading file ${filename}`);
+        // Changes the window coloring
+        window.palette.window = Qt.binding(() => Qt.rgba(1, 0, 0, 1));
+        window.palette.windowText = Qt.binding(() => Qt.rgba(0, 1, 0, 1));
+    }
     function onCloseAllProjects(excludeCurrent: bool) {
     }
     function onQuit() {
