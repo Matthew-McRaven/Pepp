@@ -7,6 +7,10 @@ Column {
     id: root
     property var modesModel: undefined
     function switchToMode(mode) {
+        if (!root.enabled) {
+            console.warn("Cannot switch modes when sidebar is disabled.");
+            return;
+        }
         // Match the button, case insensitive.
         const re = new RegExp(mode, "i");
         // Children of sidebar are the repeater's delegates
@@ -49,6 +53,7 @@ Column {
         // If there is no current project, display a Welcome mode.
         model: root.modesModel ?? defaultSidebarModel
         delegate: Button {
+            enabled: root.enabled
             checkable: true
             width: 100
             height: 65

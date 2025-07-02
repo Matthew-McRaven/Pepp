@@ -7,6 +7,11 @@ import edu.pepp 1.0
 Item {
     id: root
     property real topOffset: 0
+    property string loadingFileName: ""
+    property var loadingFileContent: ""
+    property list<int> filterEdition: []
+    property list<int> filterAbstraction: []
+    readonly property bool filtering: filterEdition.length !== 0 && filterAbstraction.length !== 0
     NuAppSettings {
         id: settings
     }
@@ -25,26 +30,33 @@ Item {
             pointSize: 3 * fm.font.pointSize / 4
         }
     }
+    FontMetrics {
+        id: fnameFM
+        font {
+            family: fm.font.family
+            pointSize: 3 * fm.font.pointSize / 4
+        }
+    }
     TextMetrics {
         id: projectTM
         font: projectFM.font
         text: "Level Asmb5"
     }
 
-    signal addProject(int arch, int abstraction, string features, bool reuse)
+    signal addProject(int arch, int abstraction, string features, string optText, bool reuse)
 
     component EditionButton: Button {
         id: control
         required property int edition
         property real leftRadius: 0
         property real rightRadius: 0
-
+        readonly property var p: enabled ? root.palette : root.palette.disabled
         down: settings.general.defaultEdition == control.edition
+        enabled: root.filterEdition.length === 0 || root.filterEdition.includes(control.edition)
         font: fm.font
-
         background: Rectangle {
             id: background
-            color: control.down ? palette.highlight : (control.hovered ? palette.light : palette.button)
+            color: control.enabled ? (control.down ? palette.highlight : (control.hovered ? palette.light : palette.button)) : palette.shadow
             topLeftRadius: control.leftRadius
             topRightRadius: control.rightRadius
             bottomLeftRadius: control.leftRadius
@@ -67,22 +79,49 @@ Item {
         }
     }
 
-    Flow {
-        id: header
+    RowLayout {
+        id: filenameHeader
         spacing: fm.averageCharacterWidth
+        visible: !!root.loadingFileName
         anchors {
             top: parent.top
             left: parent.left
             leftMargin: 10
             right: parent.right
-            topMargin: -root.topOffset
+            topMargin: visible ? -root.topOffset : 0
+        }
+        Label {
+            text: `Loading from file:`
+            font: fm.font
+            Layout.alignment: Qt.AlignVCenter
+        }
+        Text {
+            text: root.loadingFileName
+            font: fnameFM.font
+            Layout.alignment: Qt.AlignVCenter | Qt.AlignLeft
+        }
+        Item {
+            Layout.fillWidth: true
+        }
+
+        height: visible ? implicitHeight : 0
+    }
+
+    Flow {
+        id: header
+        spacing: fm.averageCharacterWidth
+        anchors {
+            top: filenameHeader.bottom
+            left: parent.left
+            leftMargin: 10
+            right: parent.right
+            topMargin: filenameHeader.visible ? 0 : -root.topOffset
         }
         Label {
             text: `Computer Systems`
             font: fm.font
         }
         Row {
-
             spacing: -1 // -border.width
             EditionButton {
                 text: "Sixth"
@@ -139,8 +178,8 @@ Item {
                         font: projectFM.font
                         visible: !model.placeholder
                         text: model.text
-                        onReleased: root.addProject(model.architecture, model.abstraction, "", false)
-                        enabled: model.complete || model.partiallyComplete
+                        onReleased: root.addProject(model.architecture, model.abstraction, "", root.loadingFileContent, false)
+                        enabled: (model.complete || model.partiallyComplete) && (root.filterAbstraction.length === 0 || root.filterAbstraction.includes(model.abstraction))
                         palette.disabled.button: parent.palette.shadow
                         hoverEnabled: true
                         ToolTip.visible: (hovered || down) && model.description
@@ -169,5 +208,11 @@ Item {
         showIncomplete: settings.general.showDebugComponents
         showPartiallyComplete: settings.general.showDebugComponents
         sourceModel: ProjectTypeModel {}
+    }
+
+    onFilterEditionChanged: {
+        if (filterEdition === 0) {} else if (4 <= filterEdition && filterEdition <= 6) {
+            settings.general.defaultEdition = filterEdition;
+        }
     }
 }

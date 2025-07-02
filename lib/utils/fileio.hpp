@@ -6,9 +6,18 @@
 class FileIO : public QObject {
   Q_OBJECT
   QML_NAMED_ELEMENT(FileIO)
-  QML_SINGLETON
 
 public:
   FileIO(QObject *parent = nullptr);
   Q_INVOKABLE void save(const QString &filename, const QString &data);
+  Q_INVOKABLE void loadCodeViaDialog(const QString &filters);
+#ifndef __EMSCRIPTEN__
+  Q_INVOKABLE void loadCodeFromFile(const QString &name);
+
+private:
+  QByteArray load(const QString &fileName);
+#endif
+
+signals:
+  Q_INVOKABLE void codeLoaded(const QString &fileName, const QString &fileContent, int arch, int abstraction);
 };

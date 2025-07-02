@@ -28,79 +28,88 @@
 	<string>${MACOSX_BUNDLE_BUNDLE_VERSION}</string>
 	<key>CSResourcesFileMapped</key>
 	<true/>
-	<key>NSHumanReadableCopyright</key>
-	<string>${MACOSX_BUNDLE_COPYRIGHT}</string>
-	<key>CFBundleTypeExtensions</key>
-	<array>
-		<string>pep</string>
-		<string>pepo</string>
-		<string>pepcpu</string>
-		<string>pepm</string>
-	</array>
 	<key>NSHighResolutionCapable</key>
 	<string>True</string>
+	<key>NSHumanReadableCopyright</key>
+	<string>${MACOSX_BUNDLE_COPYRIGHT}</string>
 	<key>CFBundleDocumentTypes</key>
 	<array>
 		<dict>
-			<key>CFBundleTypeExtensions</key>
-			<array>
-				<string>pepo</string>
-			</array>
-			<key>CFBundleTypeName</key>
-			<string>Pep Microcode File</string>
-			<key>LSHandlerRank</key>
-			<string>Owner</string>
-			<key>CFBundleTypeRole</key>
-			<string>Editor</string>
-			<key>LSTypeIsPackage</key>
-			<false/>
-		</dict>
-		<dict>
-			<key>CFBundleTypeExtensions</key>
-			<array>
-				<string>pep</string>
-			</array>
-			<key>CFBundleTypeName</key>
-			<string>Pep Object Code File</string>
-			<key>LSHandlerRank</key>
-			<string>Owner</string>
-			<key>CFBundleTypeRole</key>
-			<string>Editor</string>
-			<key>LSTypeIsPackage</key>
-			<false/>
-		</dict>
-		<dict>
-			<key>CFBundleTypeExtensions</key>
-			<array>
-				<string>pep</string>
-			</array>
 			<key>CFBundleTypeName</key>
 			<string>Pep Assembly Source File</string>
-			<key>LSHandlerRank</key>
-			<string>Owner</string>
 			<key>CFBundleTypeRole</key>
 			<string>Editor</string>
+			<key>LSHandlerRank</key>
+			<string>Default</string>
 			<key>LSTypeIsPackage</key>
 			<false/>
+			<key>CFBundleTypeIconFile</key>
+			<string>${MACOSX_BUNDLE_ICON_FILE}</string>
+			<key>LSItemContentTypes</key>
+			<array>
+				<string>edu.cslab.pepperdine.pep</string>
+			</array>
 		</dict>
 		<dict>
-			<key>CFBundleTypeExtensions</key>
-			<array>
-				<string>pepm</string>
-			</array>
 			<key>CFBundleTypeName</key>
-			<string>Pep Macro Declaration File</string>
-			<key>LSHandlerRank</key>
-			<string>Owner</string>
+			<string>Pep Object Code File</string>
 			<key>CFBundleTypeRole</key>
 			<string>Editor</string>
+			<key>LSHandlerRank</key>
+			<string>Default</string>
 			<key>LSTypeIsPackage</key>
 			<false/>
+			<key>CFBundleTypeIconFile</key>
+			<string>${MACOSX_BUNDLE_ICON_FILE}</string>
+			<key>LSItemContentTypes</key>
+			<array>
+				<string>edu.cslab.pepperdine.pepo</string>
+			</array>
+		</dict>
+		<dict>
+			<key>CFBundleTypeName</key>
+			<string>Pep Microcode File</string>
+			<key>CFBundleTypeRole</key>
+			<string>Editor</string>
+			<key>LSHandlerRank</key>
+			<string>Default</string>
+			<key>LSTypeIsPackage</key>
+			<false/>
+			<key>CFBundleTypeIconFile</key>
+			<string>${MACOSX_BUNDLE_ICON_FILE}</string>
+			<key>LSItemContentTypes</key>
+			<array>
+				<string>edu.cslab.pepperdine.pepcpu</string>
+			</array>
+		</dict>
+		<dict>
+			<key>CFBundleTypeName</key>
+			<string>Pep Macro Declaration File</string>
+			<key>CFBundleTypeRole</key>
+			<string>Editor</string>
+			<key>LSHandlerRank</key>
+			<string>Default</string>
+			<key>LSTypeIsPackage</key>
+			<false/>
+			<key>CFBundleTypeIconFile</key>
+			<string>${MACOSX_BUNDLE_ICON_FILE}</string>
+			<key>LSItemContentTypes</key>
+			<array>
+				<string>edu.cslab.pepperdine.pepm</string>
+			</array>
 		</dict>
 	</array>
 	<key>UTExportedTypeDeclarations</key>
 	<array>
 		<dict>
+			<key>UTTypeIdentifier</key>
+			<string>edu.cslab.pepperdine.pep</string>
+			<key>UTTypeDescription</key>
+			<string>Pep Assembly Source File</string>
+			<key>UTTypeConformsTo</key>
+			<array>
+			        <string>public.plain-text</string>
+			</array>
 			<key>UTTypeTagSpecification</key>
 			<dict>
 				<key>public.filename-extension</key>
@@ -108,16 +117,16 @@
 					<string>pep</string>
 				</array>
 			</dict>
-			<key>UTTypeIdentifier</key>
-			<string>edu.cslab.pepperdine.pep</string>
-			<key>UTTypeConformsTo</key>
-			<array>
-				<string>public.data</string>
-			</array>
-			<key>UTTypeDescription</key>
-			<string>Pep Assembly Source File</string>
 		</dict>
 		<dict>
+			<key>UTTypeIdentifier</key>
+			<string>edu.cslab.pepperdine.pepo</string>
+			<key>UTTypeDescription</key>
+			<string>Pep Object Code File</string>
+			<key>UTTypeConformsTo</key>
+			<array>
+			        <string>public.plain-text</string>
+			</array>
 			<key>UTTypeTagSpecification</key>
 			<dict>
 				<key>public.filename-extension</key>
@@ -125,16 +134,16 @@
 					<string>pepo</string>
 				</array>
 			</dict>
-			<key>UTTypeIdentifier</key>
-			<string>edu.cslab.pepperdine.pepo</string>
-			<key>UTTypeConformsTo</key>
-			<array>
-				<string>public.data</string>
-			</array>
-			<key>UTTypeDescription</key>
-			<string>Pep Object Code File</string>
 		</dict>
 		<dict>
+			<key>UTTypeIdentifier</key>
+			<string>edu.cslab.pepperdine.pepcpu</string>
+			<key>UTTypeDescription</key>
+			<string>Pep Microcode File</string>
+			<key>UTTypeConformsTo</key>
+			<array>
+			        <string>public.plain-text</string>
+			</array>
 			<key>UTTypeTagSpecification</key>
 			<dict>
 				<key>public.filename-extension</key>
@@ -142,16 +151,16 @@
 					<string>pepcpu</string>
 				</array>
 			</dict>
-			<key>UTTypeIdentifier</key>
-			<string>edu.cslab.pepperdine.pepcpu</string>
-			<key>UTTypeConformsTo</key>
-			<array>
-				<string>public.data</string>
-			</array>
-			<key>UTTypeDescription</key>
-			<string>Pep Microcode File</string>
 		</dict>
 		<dict>
+			<key>UTTypeIdentifier</key>
+			<string>edu.cslab.pepperdine.pepm</string>
+			<key>UTTypeDescription</key>
+			<string>Pep Macro Declaration File</string>
+			<key>UTTypeConformsTo</key>
+			<array>
+			        <string>public.plain-text</string>
+			</array>
 			<key>UTTypeTagSpecification</key>
 			<dict>
 				<key>public.filename-extension</key>
@@ -159,14 +168,6 @@
 					<string>pepm</string>
 				</array>
 			</dict>
-			<key>UTTypeIdentifier</key>
-			<string>edu.cslab.pepperdine.pepm</string>
-			<key>UTTypeConformsTo</key>
-			<array>
-				<string>public.data</string>
-			</array>
-			<key>UTTypeDescription</key>
-			<string>Pep Macro Declaration File</string>
 		</dict>
 	</array>
 </dict>

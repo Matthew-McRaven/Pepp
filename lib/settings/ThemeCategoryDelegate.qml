@@ -5,14 +5,17 @@ import QtQuick.Controls
 import edu.pepp
 
 Item {
+    id: root
     property var category: undefined
     property int activeCategory: 0
     property int buttonWidth: 50
-    id: root
     implicitHeight: childrenRect.height
     implicitWidth: childrenRect.width
     NuAppSettings {
         id: settings
+    }
+    FileIO {
+        id: fileio
     }
 
     PaletteFilterModel {
@@ -42,10 +45,8 @@ Item {
             leftMargin: 4 * anchors.margins
             topMargin: anchors.leftMargin
         }
-        ScrollBar.vertical.policy: flickable.contentHeight
-                                   > flickable.height ? ScrollBar.AlwaysOn : ScrollBar.AsNeeded
-        ScrollBar.horizontal.policy: flickable.contentWidth
-                                     > flickable.width ? ScrollBar.AlwaysOn : ScrollBar.AsNeeded
+        ScrollBar.vertical.policy: flickable.contentHeight > flickable.height ? ScrollBar.AlwaysOn : ScrollBar.AsNeeded
+        ScrollBar.horizontal.policy: flickable.contentWidth > flickable.width ? ScrollBar.AlwaysOn : ScrollBar.AsNeeded
         ColumnLayout {
             id: layout
             anchors.fill: parent
@@ -61,19 +62,19 @@ Item {
                         id: onDisk
                     }
                     Component.onCompleted: {
-                        const startTheme = settings.theme.themePath
+                        const startTheme = settings.theme.themePath;
                         for (var row = 0; row < onDisk.rowCount(); row++) {
-                            const index = onDisk.index(row, 0)
-                            const rowPath = onDisk.data(index, onDisk.path)
+                            const index = onDisk.index(row, 0);
+                            const rowPath = onDisk.data(index, onDisk.path);
                             // As a side-effect, will reload from disk
                             if (rowPath === startTheme) {
-                                currentIndex = row
-                                break
+                                currentIndex = row;
+                                break;
                             }
                         }
                         // Reset to default theme if previously selected theme does not exist.
                         if (currentIndex === -1)
-                            currentIndex = 0
+                            currentIndex = 0;
                     }
 
                     textRole: "display"
@@ -86,11 +87,9 @@ Item {
                     currentIndex: -1
                     onCurrentValueChanged: settings.loadPalette(currentValue)
                     onCurrentIndexChanged: {
-                        const idx = onDisk.index(currentIndex, 0)
-                        isSystemTheme = Qt.binding(() => onDisk.data(
-                                                       idx, onDisk.isSystem))
-                        isMonoFont = Qt.binding(() => onDisk.data(
-                                                    idx, onDisk.isMonoFont))
+                        const idx = onDisk.index(currentIndex, 0);
+                        isSystemTheme = Qt.binding(() => onDisk.data(idx, onDisk.isSystem));
+                        isMonoFont = Qt.binding(() => onDisk.data(idx, onDisk.isMonoFont));
                     }
                 }
                 Button {
@@ -101,7 +100,7 @@ Item {
                         buttonText: comboBox.isSystemTheme ? root.palette.placeholderText : root.palette.buttonText
                     }
                     onPressed: {
-                        renameDialog.open()
+                        renameDialog.open();
                     }
                 }
                 Item {}
@@ -113,16 +112,15 @@ Item {
                     Layout.minimumWidth: root.buttonWidth
                     onPressed: {
                         if (comboBox.isSystemTheme) {
-                            const curIdx = comboBox.currentIndex
+                            const curIdx = comboBox.currentIndex;
                             // Copy also creates the duplicate item for us!
-                            const index = onDisk.copy(comboBox.currentIndex)
+                            const index = onDisk.copy(comboBox.currentIndex);
                             if (index != -1) {
-                                comboBox.currentIndex = index
-                                requestRename()
+                                comboBox.currentIndex = index;
+                                requestRename();
                             }
                         } else {
-                            FileIO.save(comboBox.currentValue,
-                                        settings.extPalette.jsonString())
+                            fileio.save(comboBox.currentValue, settings.extPalette.jsonString());
                         }
                     }
                     signal requestRename
@@ -133,11 +131,10 @@ Item {
                     Layout.minimumWidth: root.buttonWidth
                     enabled: !comboBox.isSystemTheme
                     onClicked: {
-                        const index = comboBox.currentIndex
+                        const index = comboBox.currentIndex;
                         if (index != -1) {
-                            onDisk.deleteTheme(index)
-                            comboBox.currentIndex = Math.min(index,
-                                                             comboBox.count - 1)
+                            onDisk.deleteTheme(index);
+                            comboBox.currentIndex = Math.min(index, comboBox.count - 1);
                         }
                     }
                     palette {
@@ -169,7 +166,7 @@ Item {
                         required property variant model
                         text: model.display
                         onClicked: {
-                            root.activeCategory = Qt.binding(() => model.value)
+                            root.activeCategory = Qt.binding(() => model.value);
                         }
                     }
                 }
@@ -182,19 +179,12 @@ Item {
                     id: listView
                     clip: true
                     Layout.fillHeight: true
-                    Layout.minimumHeight: Math.max(100,
-                                                   modifyArea.implicitHeight)
-                    Layout.minimumWidth: Math.max(
-                                             100,
-                                             contentItem.childrenRect.width + 5,
-                                             childrenRect.width)
+                    Layout.minimumHeight: Math.max(100, modifyArea.implicitHeight)
+                    Layout.minimumWidth: Math.max(100, contentItem.childrenRect.width + 5, childrenRect.width)
                     focus: true
                     focusPolicy: Qt.StrongFocus
-                    Keys.onUpPressed: listView.currentIndex = Math.max(
-                                          0, listView.currentIndex - 1)
-                    Keys.onDownPressed: listView.currentIndex = Math.min(
-                                            listView.count - 1,
-                                            listView.currentIndex + 1)
+                    Keys.onUpPressed: listView.currentIndex = Math.max(0, listView.currentIndex - 1)
+                    Keys.onDownPressed: listView.currentIndex = Math.min(listView.count - 1, listView.currentIndex + 1)
                     model: paletteModel
                     delegate: BoxedText {
                         required property string display
@@ -203,8 +193,7 @@ Item {
                         name: display
                         bgColor: paletteItem?.background ?? "transparent"
                         fgColor: paletteItem?.foreground ?? "black"
-                        font: paletteItem?.font
-                              ?? settings.extPalette.baseMono.font
+                        font: paletteItem?.font ?? settings.extPalette.baseMono.font
                     }
                 }
                 PaletteDetails {
@@ -221,7 +210,7 @@ Item {
         }
     }
     Component.onCompleted: {
-        copyButton.requestRename.connect(renameDialog.open)
+        copyButton.requestRename.connect(renameDialog.open);
     }
     Loader {
         id: exportLoader
@@ -233,20 +222,20 @@ Item {
                 "selectedNameFilter_index": 0,
                 "defaultSuffix": "theme",
                 "selectedFile": "default.theme"
-            }
+            };
 
             if (PlatformDetector.isWASM) {
-                setSource("qrc:/qt/qml/edu/pepp/settings/QMLFileDialog.qml", props)
+                setSource("qrc:/qt/qml/edu/pepp/settings/QMLFileDialog.qml", props);
             } else {
-                setSource("qrc:/qt/qml/edu/pepp/settings/NativeFileDialog.qml", props)
+                setSource("qrc:/qt/qml/edu/pepp/settings/NativeFileDialog.qml", props);
             }
         }
         asynchronous: false
         Connections {
             target: exportLoader.item
             function onAccepted() {
-                const path = decodeURIComponent(exportLoader.item.selectedFile)
-                FileIO.save(path, settings.extPalette.jsonString())
+                const path = decodeURIComponent(exportLoader.item.selectedFile);
+                fileio.save(path, settings.extPalette.jsonString());
             }
         }
     }
@@ -259,24 +248,24 @@ Item {
                 "nameFilters": ["Pep Theme files (*.theme)"],
                 "selectedNameFilter_index": 0,
                 "defaultSuffix": "theme"
-            }
+            };
 
             if (PlatformDetector.isWASM) {
-                setSource("qrc:/qt/qml/edu/pepp/settings/QMLFileDialog.qml", props)
+                setSource("qrc:/qt/qml/edu/pepp/settings/QMLFileDialog.qml", props);
             } else {
-                setSource("qrc:/qt/qml/edu/pepp/settings/NativeFileDialog.qml", props)
+                setSource("qrc:/qt/qml/edu/pepp/settings/NativeFileDialog.qml", props);
             }
         }
         asynchronous: false
         Connections {
             target: importLoader.item
             function onAccepted() {
-                const model = comboBox.model
-                const uri = decodeURIComponent(importLoader.item.selectedFile)
-                const file = uri.replace("file:///", "")
-                const index = model.importTheme(file)
+                const model = comboBox.model;
+                const uri = decodeURIComponent(importLoader.item.selectedFile);
+                const file = uri.replace("file:///", "");
+                const index = model.importTheme(file);
                 if (index != -1)
-                    comboBox.currentIndex = index
+                    comboBox.currentIndex = index;
             }
         }
     }
@@ -305,9 +294,9 @@ Item {
         }
 
         onAccepted: {
-            const model = comboBox.model
-            const index = model.index(comboBox.currentIndex, 0)
-            model.setData(index, name.text, model.display)
+            const model = comboBox.model;
+            const index = model.index(comboBox.currentIndex, 0);
+            model.setData(index, name.text, model.display);
         }
     }
 }

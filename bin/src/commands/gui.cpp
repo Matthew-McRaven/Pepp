@@ -57,9 +57,29 @@ public:
 };
 CustomViewFactory::~CustomViewFactory() = default;
 
+class PeppApplication : public QApplication {
+public:
+  PeppApplication(int &argc, char **argv) : QApplication(argc, argv) {}
+
+  bool event(QEvent *event) override {
+    if (event->type() == QEvent::FileOpen) {
+      QFileOpenEvent *openEvent = static_cast<QFileOpenEvent *>(event);
+      const QUrl url = openEvent->url();
+      if (url.isLocalFile()) {
+        auto root = engine->rootObjects().at(0);
+        auto ret =
+            QMetaObject::invokeMethod(root, "onOpenFile", Q_ARG(QVariant, QVariant::fromValue(url.toLocalFile())));
+      }
+    }
+
+    return QApplication::event(event);
+  }
+  QQmlApplicationEngine *engine = nullptr;
+};
+
 #ifdef __EMSCRIPTEN__
 #include <emscripten.h>
-QApplication *g_app = nullptr;
+PeppApplication *g_app = nullptr;
 gui_globals *g_globals = nullptr;
 QQmlApplicationEngine *g_engine = nullptr;
 #endif
@@ -85,9 +105,9 @@ int gui_main(const gui_args &args) {
     });
   );
   // clang-format on
-  g_app = new QApplication(argc, argvs.data());
+  g_app = new PeppApplication(argc, argvs.data());
 #else
-  QApplication app(argc, argvs.data());
+  PeppApplication app(argc, argvs.data());
 #endif
 
   for (QDirIterator i(":/fonts/", QDirIterator::Subdirectories); i.hasNext();) {
@@ -129,9 +149,9 @@ int gui_main(const gui_args &args) {
   static const auto default_entry = u"qrc:/qt/qml/Pepp/src/main.qml"_s;
   const QUrl url(args.QMLEntry.isEmpty() ? default_entry : args.QMLEntry);
 #ifdef __EMSCRIPTEN__
-  QApplication *app_ptr = g_app;
+  PeppApplication *app_ptr = g_app;
 #else
-  QApplication *app_ptr = &app;
+  PeppApplication *app_ptr = &app;
 #endif
 
   QObject::connect(
@@ -167,6 +187,7 @@ int gui_main(const gui_args &args) {
   // See: https://doc.qt.io/qt-6/wasm.html#wasm-exceptions
   // See: https://doc.qt.io/qt-6/wasm.html#application-startup-and-the-event-loop
   engine.load(url);
+  app_ptr->engine = &engine;
 #ifdef __EMSCRIPTEN__
   return 0;
 #else

@@ -16,11 +16,16 @@ Flickable {
     contentWidth: projectBar.width + addProjectButton.width
     contentHeight: projectBar.height
     height: contentHeight
+    NuAppSettings {
+        id: settings
+    }
     ProjectModel {
         id: pm
         function onAddProject(arch, level, feats, optTexts, reuse) {
             var proj = null;
             var cur = currentProject;
+            settings.general.defaultArch = Number(arch);
+            settings.general.defaultAbstraction = Number(level);
             // Attach a delegate to the project which can render its edit/debug modes. Since it is a C++ property,
             // binding changes propogate automatically.
             switch (Number(arch)) {
@@ -63,7 +68,7 @@ Flickable {
                 break;
             }
 
-            if (optTexts === undefined || optTexts === null)
+            if (optTexts === undefined || optTexts === null || optTexts === "")
                 return onMarkActiveDirty(false);
             else if (typeof (optTexts) === "string")
                 proj.set(level, optTexts);

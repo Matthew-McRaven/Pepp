@@ -109,6 +109,7 @@ ApplicationWindow {
         message.connect(() => messageTimer.restart());
         messageTimer.restart();
         sidebar.switchToMode("Welcome");
+        pm.rowCountChanged.connect(noOpenProjectCheck);
     }
 
     // Provide a default font for menu items.
@@ -119,6 +120,10 @@ ApplicationWindow {
         const loader = delegateRepeater.itemAt(innerLayout.currentIndex);
         if (loader.item)
             loader.item.syncEditors();
+    }
+    function noOpenProjectCheck() {
+        if (pm.rowCount() === 0)
+            sidebar.switchToMode("Welcome");
     }
 
     Menu.Actions {
@@ -362,10 +367,75 @@ ApplicationWindow {
         onAccepted: prefs.closed()
         onClosed: prefs.closed()
     }
+    Dialog {
+        id: fileDisambiguateDialog
+        title: qsTr("Determine file type")
+        parent: Overlay.overlay
+        anchors.centerIn: parent
+        modal: true
+        height: parent.height
+        width: parent.width
+        contentItem: Top.Welcome {
+            id: welcomeForFOpen
+            focus: true
+            Keys.onEscapePressed: {
+                fileDisambiguateDialog.close();
+            }
+            onAddProject: function (arch, abs, feats, content, reuse) {
+                window.pm.onAddProject(arch, abs, feats, content, reuse);
+                sidebar.switchToMode("Editor");
+                welcomeForFOpen.loadingFileName = Qt.binding(() => "");
+                welcomeForFOpen.loadingFileContent = Qt.binding(() => "");
+                welcomeForFOpen.filterAbstraction = Qt.binding(() => []);
+                welcomeForFOpen.filterEdition = Qt.binding(() => []);
+                fileDisambiguateDialog.accept();
+            }
+        }
+        standardButtons: Dialog.Close
+    }
+
+    FileIO {
+        id: fileio
+        onCodeLoaded: function (name, content, arch, abs) {
+            if (!name || !content)
+                return;
+            if (arch !== 0 && abs !== 0) {
+                window.pm.onAddProject(arch, abs, "", content, true);
+                return;
+            } else if (name.match(/pep$/i)) {
+                welcomeForFOpen.filterAbstraction = Qt.binding(() => [Abstraction.ASMB3, Abstraction.OS4, Abstraction.ASMB5]);
+                welcomeForFOpen.filterEdition = Qt.binding(() => [6, 5, 4]);
+            } else if (name.match(/pepo$/i)) {
+                welcomeForFOpen.filterAbstraction = Qt.binding(() => [Abstraction.ISA3]);
+                welcomeForFOpen.filterEdition = Qt.binding(() => [6, 5, 4]);
+            } else if (name.match(/pepcpu$/i)) {
+                welcomeForFOpen.filterAbstraction = Qt.binding(() => [Abstraction.MC2]);
+                welcomeForFOpen.filterEdition = Qt.binding(() => [6, 5, 4]);
+            } else if (name.match(/pepm$/i)) {
+                welcomeForFOpen.filterAbstraction = Qt.binding(() => [Abstraction.ASMB3, Abstraction.OS4, Abstraction.ASMB5]);
+                welcomeForFOpen.filterEdition = Qt.binding(() => [6]);
+            } else {
+                welcomeForFOpen.filterAbstraction = Qt.binding(() => []);
+                welcomeForFOpen.filterEdition = Qt.binding(() => []);
+            }
+
+            sidebar.switchToMode("Welcome");
+            welcomeForFOpen.loadingFileName = Qt.binding(() => name);
+            welcomeForFOpen.loadingFileContent = Qt.binding(() => content);
+            fileDisambiguateDialog.open();
+        }
+    }
+
     function onNew() {
-        pm.onAddProject(Architecture.PEP9, Abstraction.ASMB5, "", false);
+        pm.onAddProject(settings.general.defaultArch, settings.general.defaultAbstraction, "", "", true);
+        sidebar.switchToMode("Editor");
     }
     function onOpenDialog() {
+        fileio.loadCodeViaDialog("");
+    }
+    // must be named onOpenFile, or `gui.cpp` must be updated!
+    function onOpenFile(filename) {
+        fileio.loadCodeFromFile(filename);
     }
     function onCloseAllProjects(excludeCurrent: bool) {
     }
