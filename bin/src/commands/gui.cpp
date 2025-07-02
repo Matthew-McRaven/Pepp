@@ -59,11 +59,7 @@ CustomViewFactory::~CustomViewFactory() = default;
 
 class PeppApplication : public QApplication {
 public:
-  PeppApplication(int &argc, char **argv) : QApplication(argc, argv) {
-    // Try to save files before app is closed
-    connect(this, &QCoreApplication::aboutToQuit, this, &PeppApplication::onAboutToQuit);
-  }
-
+  PeppApplication(int &argc, char **argv) : QApplication(argc, argv) {}
   bool event(QEvent *event) override {
     if (event->type() == QEvent::FileOpen) {
       QFileOpenEvent *openEvent = static_cast<QFileOpenEvent *>(event);
@@ -72,18 +68,31 @@ public:
         auto root = engine->rootObjects().at(0);
         auto ret =
             QMetaObject::invokeMethod(root, "onOpenFile", Q_ARG(QVariant, QVariant::fromValue(url.toLocalFile())));
+        return true;
       }
     }
 
     return QApplication::event(event);
   }
   QQmlApplicationEngine *engine = nullptr;
-public slots:
-  void onAboutToQuit() {
-    auto root = engine->rootObjects().at(0);
-    auto ret = QMetaObject::invokeMethod(root, "onCloseAllProjects", Q_ARG(bool, true));
+};
+
+class QuitInterceptor : public QObject {
+  Q_OBJECT
+public:
+  QQmlApplicationEngine *engine;
+
+  bool eventFilter(QObject *obj, QEvent *event) override {
+    if (event->type() == QEvent::Close) {
+      QObject *root = engine->rootObjects().value(0, nullptr);
+      if (root) QMetaObject::invokeMethod(root, "onQuit");
+      event->ignore(); // block close
+      return true;
+    }
+    return QObject::eventFilter(obj, event);
   }
 };
+#include "gui.moc"
 
 #ifdef __EMSCRIPTEN__
 #include <emscripten.h>
@@ -196,6 +205,11 @@ int gui_main(const gui_args &args) {
   // See: https://doc.qt.io/qt-6/wasm.html#application-startup-and-the-event-loop
   engine.load(url);
   app_ptr->engine = &engine;
+  // Intercept close events so that we can prompt to save changes.
+  auto window = qobject_cast<QWindow *>(engine.rootObjects().value(0));
+  auto filter = new QuitInterceptor;
+  filter->engine = &engine;
+  window->installEventFilter(filter);
 #ifdef __EMSCRIPTEN__
   return 0;
 #else

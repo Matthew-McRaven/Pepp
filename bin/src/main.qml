@@ -448,12 +448,45 @@ ApplicationWindow {
     function onSaveAs(extension) {
         pm.onSaveAs(currentProjectRow, extension);
     }
-    function onCloseAllProjects(excludeCurrent: bool) {
-        console.log("Will close all projects!");
+    // You (the caller) must set inRecurseClose if you call recurseClose.
+    // You will be notified that iteration/recursion stopped via onRecurseCloseFinished.
+    // When you receive that signal, you must set inRecurseClose back to false.
+    // We have to used chained events rather than iterations since dialogs are asynchronous,
+    // and closing projects may spawn dialogs.
+    property bool inRecurseClose: false
+    signal onRecurseCloseFinished
+    function recurseClose(eat_arg) {
+        if (pm.rowCount() == 0)
+            onRecurseCloseFinished();
+        projectSelect.closeProject(0, true);
     }
+
+    function onCloseAllProjects(excludeCurrent: bool) {
+        // Cleanup all the connections we made, otherwise adding another project will cause all projects to close
+        // due to rowCountChanged.
+        const cleanup = () => {
+            pm.rowCountChanged.disconnect(recurseClose);
+            onRecurseCloseFinished.disconnect(cleanup);
+            inRecurseClose = Qt.binding(() => false);
+        };
+        // Recursively call recurseClose every time the row count changes.
+        // Again, close is async, so we have to use this chaining style.
+        pm.rowCountChanged.connect(recurseClose);
+        inRecurseClose = Qt.binding(() => true);
+        // When recursion terminates, perform previously listed cleanup.
+        onRecurseCloseFinished.connect(cleanup);
+        // Begin recursion
+        recurseClose();
+    }
+
     function onQuit() {
-        onCloseAllProjects(false);
-        window.close();
+        // Let users escape saving hell by quiting a second time.
+        if (inRecurseClose)
+            Qt.quit();
+        else {
+            onRecurseCloseFinished.connect(() => Qt.quit());
+            onCloseAllProjects(false);
+        }
     }
     function onToggleFullScreen() {
     }

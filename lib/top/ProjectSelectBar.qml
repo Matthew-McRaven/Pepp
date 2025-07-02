@@ -191,20 +191,21 @@ Item {
     Dialog {
         id: unsavedDialog
         property int index: -1
+        property bool force: false
         modal: true
         title: "Unsaved Changes"
-        standardButtons: Dialog.Save | Dialog.Discard | Dialog.Cancel
+        standardButtons: force ? (Dialog.Save | Dialog.Discard) : (Dialog.Save | Dialog.Discard | Dialog.Cancel)
         visible: false
         height: 240
         width: 320
         onAccepted: {
             const didSave = pm.onSave(unsavedDialog.index);
             if (didSave)
-                root.closeProject(unsavedDialog.index, true);
+                root.discardProject(unsavedDialog.index);
         }
 
         onDiscarded: {
-            root.closeProject(unsavedDialog.index, true);
+            root.discardProject(unsavedDialog.index);
         }
 
         contentItem: Label {
@@ -234,23 +235,29 @@ Item {
             projectBar.currentIndex = index;
     }
 
+    // Try to save the contents of the project it it is dirty.
+    // If force is true, no cancel button is provided.
     function closeProject(index, force) {
         const dirty = pm.data(pm.index(index, 0), ProjectModel.DirtyRole);
-        if (dirty && !force) {
+        if (dirty) {
             root.switchToProject(index, true);
             unsavedDialog.index = index;
+            unsavedDialog.force = force;
             unsavedDialog.x = root.popupX;
             unsavedDialog.y = root.popupX;
             unsavedDialog.visible = true;
             unsavedDialog.open();
-        } else {
-            pm.removeRows(index, 1);
-            if (pm.rowCount() === 0)
-                return;
-            else if (index < pm.rowCount())
-                switchToProject(index, true);
-            else
-                switchToProject(pm.rowCount() - 1);
-        }
+        } else
+            discardProject(index);
+    }
+    // Unconditionally discard the project at the given index.
+    function discardProject(index) {
+        pm.removeRows(index, 1);
+        if (pm.rowCount() === 0)
+            return;
+        else if (index < pm.rowCount())
+            switchToProject(index, true);
+        else
+            switchToProject(pm.rowCount() - 1);
     }
 }
