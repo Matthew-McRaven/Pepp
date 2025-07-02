@@ -362,52 +362,62 @@ ApplicationWindow {
         onAccepted: prefs.closed()
         onClosed: prefs.closed()
     }
-
-    Connections {
-        id: welcomeConnections
-        target: welcome
-        function onAddProject() {
-            sidebar.enabled = true;
-            sidebar.visible = true;
-            welcome.loadingFileName = Qt.binding(() => "");
-            welcome.loadingFileContent = Qt.binding(() => "");
-            welcome.filterAbstraction = Qt.binding(() => []);
-            welcome.filterEdition = Qt.binding(() => []);
-            enabled = false;
+    Dialog {
+        id: fileDisambiguateDialog
+        title: qsTr("Determine file type")
+        parent: Overlay.overlay
+        anchors.centerIn: parent
+        modal: true
+        height: parent.height
+        width: parent.width
+        contentItem: Top.Welcome {
+            id: welcomeForFOpen
+            focus: true
+            Keys.onEscapePressed: {
+                fileDisambiguateDialog.close();
+            }
+            onAddProject: function (arch, abs, feats, content, reuse) {
+                window.pm.onAddProject(arch, abs, feats, content, reuse);
+                sidebar.switchToMode("Editor");
+                welcomeForFOpen.loadingFileName = Qt.binding(() => "");
+                welcomeForFOpen.loadingFileContent = Qt.binding(() => "");
+                welcomeForFOpen.filterAbstraction = Qt.binding(() => []);
+                welcomeForFOpen.filterEdition = Qt.binding(() => []);
+                fileDisambiguateDialog.accept();
+            }
         }
-        enabled: false
+        standardButtons: Dialog.Close
     }
+
     FileIO {
         id: fileio
         onCodeLoaded: function (name, content, arch, abs) {
             if (!name || !content)
                 return;
             if (arch !== 0 && abs !== 0) {
-                root.pm.onAddProject(arch, abs, "", content, true);
+                window.pm.onAddProject(arch, abs, "", content, true);
                 return;
             } else if (name.match(/pep$/i)) {
-                welcome.filterAbstraction = Qt.binding(() => [Abstraction.ASMB3, Abstraction.OS4, Abstraction.ASMB5]);
-                welcome.filterEdition = Qt.binding(() => [6, 5, 4]);
+                welcomeForFOpen.filterAbstraction = Qt.binding(() => [Abstraction.ASMB3, Abstraction.OS4, Abstraction.ASMB5]);
+                welcomeForFOpen.filterEdition = Qt.binding(() => [6, 5, 4]);
             } else if (name.match(/pepo$/i)) {
-                welcome.filterAbstraction = Qt.binding(() => [Abstraction.ISA3]);
-                welcome.filterEdition = Qt.binding(() => [6, 5, 4]);
+                welcomeForFOpen.filterAbstraction = Qt.binding(() => [Abstraction.ISA3]);
+                welcomeForFOpen.filterEdition = Qt.binding(() => [6, 5, 4]);
             } else if (name.match(/pepcpu$/i)) {
-                welcome.filterAbstraction = Qt.binding(() => [Abstraction.MC2]);
-                welcome.filterEdition = Qt.binding(() => [6, 5, 4]);
+                welcomeForFOpen.filterAbstraction = Qt.binding(() => [Abstraction.MC2]);
+                welcomeForFOpen.filterEdition = Qt.binding(() => [6, 5, 4]);
             } else if (name.match(/pepm$/i)) {
-                welcome.filterAbstraction = Qt.binding(() => [Abstraction.ASMB3, Abstraction.OS4, Abstraction.ASMB5]);
-                welcome.filterEdition = Qt.binding(() => [6]);
+                welcomeForFOpen.filterAbstraction = Qt.binding(() => [Abstraction.ASMB3, Abstraction.OS4, Abstraction.ASMB5]);
+                welcomeForFOpen.filterEdition = Qt.binding(() => [6]);
             } else {
-                welcome.filterAbstraction = Qt.binding(() => []);
-                welcome.filterEdition = Qt.binding(() => []);
+                welcomeForFOpen.filterAbstraction = Qt.binding(() => []);
+                welcomeForFOpen.filterEdition = Qt.binding(() => []);
             }
 
-            welcomeConnections.enabled = true;
             sidebar.switchToMode("Welcome");
-            welcome.loadingFileName = Qt.binding(() => name);
-            welcome.loadingFileContent = Qt.binding(() => content);
-            sidebar.enabled = false;
-            sidebar.visible = false;
+            welcomeForFOpen.loadingFileName = Qt.binding(() => name);
+            welcomeForFOpen.loadingFileContent = Qt.binding(() => content);
+            fileDisambiguateDialog.open();
         }
     }
 
