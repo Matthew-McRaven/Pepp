@@ -255,7 +255,7 @@ bool ProjectModel::onSave(int row) {
   case pepp::Abstraction::ISA3: fname = "user.pepo"; break;
   case pepp::Abstraction::ASMB3: [[fallthrough]];
   case pepp::Abstraction::ASMB5: fname = "user.pep"; break;
-  default: qDebug() << "No default for abstraction"; return;
+  default: qDebug() << "No default for abstraction"; return false;
   }
   QFileDialog::saveFileContent(contents, fname);
 #else
@@ -312,7 +312,7 @@ bool ProjectModel::onSaveAs(int row, const QString &extension) {
   case pepp::Abstraction::ISA3: fname = "user.pepo"; break;
   case pepp::Abstraction::ASMB3: [[fallthrough]];
   case pepp::Abstraction::ASMB5: fname = "user.pep"; break;
-  default: qDebug() << "No default for abstraction"; return;
+  default: qDebug() << "No default for abstraction"; return false;
   }
   QFileDialog::saveFileContent(contents, fname);
 #else

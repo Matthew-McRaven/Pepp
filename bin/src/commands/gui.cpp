@@ -59,7 +59,10 @@ CustomViewFactory::~CustomViewFactory() = default;
 
 class PeppApplication : public QApplication {
 public:
-  PeppApplication(int &argc, char **argv) : QApplication(argc, argv) {}
+  PeppApplication(int &argc, char **argv) : QApplication(argc, argv) {
+    // Try to save files before app is closed
+    connect(this, &QCoreApplication::aboutToQuit, this, &PeppApplication::onAboutToQuit);
+  }
 
   bool event(QEvent *event) override {
     if (event->type() == QEvent::FileOpen) {
@@ -75,6 +78,11 @@ public:
     return QApplication::event(event);
   }
   QQmlApplicationEngine *engine = nullptr;
+public slots:
+  void onAboutToQuit() {
+    auto root = engine->rootObjects().at(0);
+    auto ret = QMetaObject::invokeMethod(root, "onCloseAllProjects", Q_ARG(bool, true));
+  }
 };
 
 #ifdef __EMSCRIPTEN__

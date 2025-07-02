@@ -449,8 +449,10 @@ ApplicationWindow {
         pm.onSaveAs(currentProjectRow, extension);
     }
     function onCloseAllProjects(excludeCurrent: bool) {
+        console.log("Will close all projects!");
     }
     function onQuit() {
+        onCloseAllProjects(false);
         window.close();
     }
     function onToggleFullScreen() {
