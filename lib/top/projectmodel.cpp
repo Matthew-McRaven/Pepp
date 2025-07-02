@@ -234,20 +234,20 @@ QStringList recentFiles() {
   return settings->general()->recentFiles();
 }
 
-void ProjectModel::onSave(int row) {
-  if (row < 0 || row >= _projects.size()) return;
+bool ProjectModel::onSave(int row) {
+  if (row < 0 || row >= _projects.size()) return false;
 
   using enum QStandardPaths::StandardLocation;
   auto ptr = _projects[row].impl.get();
   auto env = envFromPtr(ptr);
   if (env.first == pepp::Abstraction::NO_ABS) {
     qDebug() << "Unrecognized abstraction";
-    return;
+    return false;
   }
   auto contents = primaryTextFromPtr(ptr);
   if (contents.isEmpty()) {
     qDebug() << "No contents to save";
-    return;
+    return false;
   }
 #ifdef __EMSCRIPTEN__
   QString fname = "user.o";
@@ -273,38 +273,38 @@ void ProjectModel::onSave(int row) {
     // Path may be empty if it is canceled, in which case we need to return early.
     _projects[row].path = QFileDialog::getSaveFileName(
         nullptr, "Save", starting_dir, filterIter != extensions.cend() ? filterIter->second : "Text Files (*.txt)");
-    if (_projects[row].path.isEmpty()) return;
+    if (_projects[row].path.isEmpty()) return false;
     // Update the name field to reflect the underlying file name.
     _projects[row].name = QFileInfo(_projects[row].path).fileName();
   }
   QFile file(_projects[row].path);
-  if (!file.open(QIODevice::WriteOnly)) return;
+  if (!file.open(QIODevice::WriteOnly)) return false;
   file.write(contents);
   file.close();
   prependRecent(_projects[row].path);
 #endif
-
   auto index = createIndex(row, 0);
   setData(index, false, static_cast<int>(Roles::DirtyRole));
+  return true;
 }
 
-void ProjectModel::onSaveAs(int row, const QString &extension) {
+bool ProjectModel::onSaveAs(int row, const QString &extension) {
   using namespace Qt::StringLiterals;
   using enum QStandardPaths::StandardLocation;
 
-  if (row < 0 || row >= _projects.size()) return;
+  if (row < 0 || row >= _projects.size()) return false;
 
   auto ptr = _projects[row].impl.get();
   auto env = envFromPtr(ptr);
   if (env.first == pepp::Abstraction::NO_ABS) {
     qDebug() << "Unrecognized abstraction";
-    return;
+    return false;
   }
   auto contents = contentsFromExtension(ptr, extension);
   bool isDefaultExtension = defaultFromExtension(ptr, extension);
   if (contents.isEmpty()) {
     qDebug() << "No contents to save";
-    return;
+    return false;
   }
 #ifdef __EMSCRIPTEN__
   QString fname = "user.o";
@@ -335,16 +335,15 @@ void ProjectModel::onSaveAs(int row, const QString &extension) {
   auto fname = QFileDialog::getSaveFileName(nullptr, u"Save %1 As"_s.arg(extension), starting_fname,
                                             filterIter != extensions.cend() ? filterIter->second : "Text Files (*.*)");
   QFile file(fname);
-  if (!file.open(QIODevice::WriteOnly)) return;
+  if (!file.open(QIODevice::WriteOnly)) return false;
   file.write(contents);
   file.close();
   // Do not mark as clean, since we didn't save the original source file.
   // If it is an extension that we could open again as a project, add it to the recent files list.
   // This will cause our next save to "start" in the same directory, which makes sense to me.
-  if (isDefaultExtension) {
-    prependRecent(fname);
-  }
+  if (isDefaultExtension) prependRecent(fname);
 #endif
+  return true;
 }
 
 void init_pep10(QList<ProjectType> &vec) {

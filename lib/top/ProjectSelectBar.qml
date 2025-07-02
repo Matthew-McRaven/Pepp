@@ -9,6 +9,8 @@ Item {
     property var currentProject: undefined
     property int currentProjectRow: pm.rowOf(currentProject)
     property var projectModel: pm
+    property int popupX: 0
+    property int popupY: 0
     // Propogate a status message from current project to main window.
     signal message(string message)
     clip: true
@@ -186,6 +188,33 @@ Item {
         ignoreUnknownSignals: true
     }
 
+    Dialog {
+        id: unsavedDialog
+        property int index: -1
+        modal: true
+        title: "Unsaved Changes"
+        standardButtons: Dialog.Save | Dialog.Discard | Dialog.Cancel
+        visible: false
+        height: 240
+        width: 320
+        onAccepted: {
+            const didSave = pm.onSave(unsavedDialog.index);
+            if (didSave)
+                root.closeProject(unsavedDialog.index, true);
+        }
+
+        onDiscarded: {
+            root.closeProject(unsavedDialog.index, true);
+        }
+
+        contentItem: Label {
+            text: "You have unsaved changes.\nWhat would you like to do?"
+            wrapMode: Text.Wrap
+            padding: 10
+            horizontalAlignment: Text.AlignHCenter
+            verticalAlignment: Text.AlignVCenter
+        }
+    }
     function setCurrentProject(index) {
         if (root.currentProject?.message !== undefined) {
             root.currentProject.message.disconnect(root.message);
@@ -205,14 +234,23 @@ Item {
             projectBar.currentIndex = index;
     }
 
-    function closeProject(index) {
-        // TODO: add logic to save project before closing or reject change entirely.
-        pm.removeRows(index, 1);
-        if (pm.rowCount() === 0)
-            return;
-        else if (index < pm.rowCount())
-            switchToProject(index, true);
-        else
-            switchToProject(pm.rowCount() - 1);
+    function closeProject(index, force) {
+        const dirty = pm.data(pm.index(index, 0), ProjectModel.DirtyRole);
+        if (dirty && !force) {
+            root.switchToProject(index, true);
+            unsavedDialog.index = index;
+            unsavedDialog.x = root.popupX;
+            unsavedDialog.y = root.popupX;
+            unsavedDialog.visible = true;
+            unsavedDialog.open();
+        } else {
+            pm.removeRows(index, 1);
+            if (pm.rowCount() === 0)
+                return;
+            else if (index < pm.rowCount())
+                switchToProject(index, true);
+            else
+                switchToProject(pm.rowCount() - 1);
+        }
     }
 }

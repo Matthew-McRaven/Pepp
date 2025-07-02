@@ -157,6 +157,8 @@ ApplicationWindow {
         anchors.right: parent.right
         anchors.left: sidebar.right
         anchors.top: toolbar.bottom
+        popupX: mainArea.x
+        popupY: mainArea.y
     }
 
     Rectangle {
