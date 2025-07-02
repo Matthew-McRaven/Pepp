@@ -49,7 +49,8 @@ class GeneralCategory : public Category {
                  allowExternalFiguresChanged)
   Q_PROPERTY(QString externalFigureDirectory READ externalFigureDirectory WRITE setExternalFigureDirectory NOTIFY
                  externalFigureDirectoryChanged)
-
+  // Non-GUI properties
+  Q_PROPERTY(QStringList recentFiles READ recentFiles NOTIFY recentFilesChanges)
 public:
   explicit GeneralCategory(QObject *parent = nullptr);
   QString name() const override { return "General"; };
@@ -76,7 +77,11 @@ public:
   QString externalFigureDirectory() const;
   void setExternalFigureDirectory(const QString &path);
   QString figureDirectory() const;
-
+  Q_INVOKABLE void pushRecentFile(const QString &fileName);
+  Q_INVOKABLE void clearRecentFiles();
+  // Really should be in a seperate class, but I only use it when touching recent files.
+  Q_INVOKABLE QString fileNameFor(const QString &fullPath);
+  QStringList recentFiles() const;
 signals:
   void defaultEditionChanged();
   void defaultArchChanged();
@@ -87,9 +92,12 @@ signals:
   void showChangeDialogChanged();
   void allowExternalFiguresChanged();
   void externalFigureDirectoryChanged();
+  void recentFilesChanges();
 
 private:
   mutable QSettings _settings;
+  void refreshRecentFileCache() const;
+  mutable QStringList _recentFileCache;
   const int defaultDefaultEdition = 6;
   const pepp::Architecture defaultDefaultArch = pepp::Architecture::PEP10;
   const pepp::Abstraction defaultDefaultAbstraction = pepp::Abstraction::ASMB5;

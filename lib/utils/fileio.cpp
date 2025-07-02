@@ -1,6 +1,7 @@
 #include "fileio.hpp"
 #include <QtWidgets/qfiledialog.h>
 #include "constants.hpp"
+#include "settings/settings.hpp"
 #ifdef __EMSCRIPTEN__
 #include <emscripten.h>
 #endif
@@ -52,6 +53,7 @@ void FileIO::loadCodeViaDialog(const QString &filters) {
 #ifndef __EMSCRIPTEN__
 void FileIO::loadCodeFromFile(const QString &name) {
   auto ret = load(name);
+  if (ret.isEmpty()) return;
   emit codeLoaded(name, ret, 0, 0);
 }
 QByteArray FileIO::load(const QString &fileName) {

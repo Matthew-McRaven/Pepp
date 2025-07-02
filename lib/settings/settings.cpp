@@ -14,6 +14,7 @@ static const char *showMenuHotkeysKey = "General/showMenuHotkeys";
 static const char *showChangeDialogKey = "General/showChangeDialog";
 static const char *allowExternFigs = "General/allowExternalFigures";
 static const char *externFigDir = "General/externalFigureDirectory";
+static const char *recentFilesKey = "General/recentFiles";
 // Editor
 static const char *visualizeWhitespaceKey = "Editor/visualizeWhitespace";
 // Palette
@@ -180,6 +181,39 @@ QString pepp::settings::GeneralCategory::figureDirectory() const {
   }
   return builtins::default_book_path;
 #endif
+}
+
+void pepp::settings::GeneralCategory::pushRecentFile(const QString &fileName) {
+  if (_recentFileCache.empty()) refreshRecentFileCache();
+  // Limit number of recent files if we are using the cached version.
+  else
+    while (_recentFileCache.size() >= maxRecentFiles() && !_recentFileCache.isEmpty()) _recentFileCache.removeLast();
+  if (_recentFileCache.contains(fileName)) _recentFileCache.removeAll(fileName);
+  else if (_recentFileCache.size() >= maxRecentFiles()) _recentFileCache.removeLast();
+  _recentFileCache.prepend(fileName);
+  _settings.setValue(recentFilesKey, _recentFileCache);
+  emit recentFilesChanges();
+}
+
+void pepp::settings::GeneralCategory::clearRecentFiles() {
+  _recentFileCache.clear();
+  _settings.setValue(recentFilesKey, QStringList{});
+  emit recentFilesChanges();
+}
+
+QString pepp::settings::GeneralCategory::fileNameFor(const QString &fullPath) { return QFileInfo(fullPath).fileName(); }
+
+QStringList pepp::settings::GeneralCategory::recentFiles() const {
+  if (_recentFileCache.empty()) refreshRecentFileCache();
+  return _recentFileCache;
+}
+
+void pepp::settings::GeneralCategory::refreshRecentFileCache() const {
+  auto value = _settings.value(recentFilesKey, QStringList{});
+  if (!value.isValid()) _recentFileCache = {};
+  else if (!value.canConvert<QStringList>()) _recentFileCache = {};
+  else _recentFileCache = value.toStringList();
+  while (_recentFileCache.size() >= maxRecentFiles() && !_recentFileCache.isEmpty()) _recentFileCache.removeLast();
 }
 
 bool pepp::settings::GeneralCategory::validateMaxRecentFiles(int max) const {

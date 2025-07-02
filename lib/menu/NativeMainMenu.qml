@@ -54,6 +54,31 @@ Labs.MenuBar {
             shortcut: actions.file.open.shortcut
         }
 
+        Labs.Menu {
+            id: recentFilesMenu
+            title: qsTr("&Recent Files")
+            Instantiator {
+                id: recentFilesInstantiator
+                model: settings.general.recentFiles
+                delegate: Labs.MenuItem {
+                    required property var model
+                    text: settings.general.fileNameFor(model.modelData)
+                    onTriggered: {
+                        actions.window.onOpenFile(model.modelData);
+                    }
+                }
+                onObjectAdded: (index, object) => recentFilesMenu.insertItem(index, object)
+                onObjectRemoved: (index, object) => recentFilesMenu.removeItem(object)
+            }
+            Labs.MenuSeparator {}
+            Labs.MenuItem {
+                text: actions.file.clearRecents.text
+                onTriggered: actions.file.clearRecents.trigger()
+                icon.source: fixSuffix(actions.file.clearRecents.icon.source, wrapper.darkMode)
+                shortcut: actions.file.clearRecents.shortcut
+            }
+        }
+
         Labs.MenuSeparator {}
         Labs.MenuItem {
             text: actions.file.save.text

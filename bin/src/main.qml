@@ -130,6 +130,7 @@ ApplicationWindow {
         id: actions
         project: window.currentProject
         window: window
+        settings: settings
     }
 
     signal message(string message)
@@ -420,6 +421,7 @@ ApplicationWindow {
             }
 
             sidebar.switchToMode("Welcome");
+            settings.general.pushRecentFile(name);
             welcomeForFOpen.loadingFileName = Qt.binding(() => name);
             welcomeForFOpen.loadingFileContent = Qt.binding(() => content);
             fileDisambiguateDialog.open();
