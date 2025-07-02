@@ -41,7 +41,7 @@ void FileIO::loadCodeViaDialog(const QString &filters) {
   QFileDialog::getOpenFileContent(filters2.join(";;"), ready);
 #else
   QString selectedFilter;
-  auto fileName = QFileDialog::getOpenFileName(nullptr, "Need a caption", "", filters2.join(";;"), &selectedFilter);
+  auto fileName = QFileDialog::getOpenFileName(nullptr, "Open Source Code", "", filters2.join(";;"), &selectedFilter);
   if (fileName.isEmpty()) return;
   QByteArray ret = load(fileName);
   auto [arch, abs] = filters3.value(selectedFilter, {0, 0});
