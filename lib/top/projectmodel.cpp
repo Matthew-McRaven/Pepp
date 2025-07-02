@@ -234,7 +234,6 @@ QStringList recentFiles() {
   return settings->general()->recentFiles();
 }
 
-const char *recentProjectsDirKey = "recentProjectsDir";
 void ProjectModel::onSave(int row) {
   if (row < 0 || row >= _projects.size()) return;
 
@@ -262,19 +261,21 @@ void ProjectModel::onSave(int row) {
 #else
   auto default_ext = defaultExtensionFor(ptr);
   if (_projects[row].path.isEmpty()) {
+    // Try to use recent files as a starting directory, otherwise default to documents
+    QString starting_dir = QStandardPaths::writableLocation(DocumentsLocation);
+    if (auto recents = recentFiles(); !recents.isEmpty()) {
+      auto fname = recents.front();
+      QFileInfo info(fname);
+      starting_dir = info.path();
+    }
     // Determine appropriate filter for project.
     auto filterIter = extensions.find(std::make_tuple(env.first, env.second, default_ext));
-    // Get last directory into which we stored files
-    QSettings settings;
-    settings.beginGroup("projects");
-    auto d = settings.value(recentProjectsDirKey, QStandardPaths::writableLocation(DocumentsLocation)).toString();
     // Path may be empty if it is canceled, in which case we need to return early.
     _projects[row].path = QFileDialog::getSaveFileName(
-        nullptr, "Save", d, filterIter != extensions.cend() ? filterIter->second : "Text Files (*.txt)");
+        nullptr, "Save", starting_dir, filterIter != extensions.cend() ? filterIter->second : "Text Files (*.txt)");
     if (_projects[row].path.isEmpty()) return;
     // Update the name field to reflect the underlying file name.
     _projects[row].name = QFileInfo(_projects[row].path).fileName();
-    settings.setValue(recentProjectsDirKey, QFileInfo(_projects[row].path).absolutePath());
   }
   QFile file(_projects[row].path);
   if (!file.open(QIODevice::WriteOnly)) return;
@@ -337,10 +338,11 @@ void ProjectModel::onSaveAs(int row, const QString &extension) {
   if (!file.open(QIODevice::WriteOnly)) return;
   file.write(contents);
   file.close();
+  // Do not mark as clean, since we didn't save the original source file.
+  // If it is an extension that we could open again as a project, add it to the recent files list.
+  // This will cause our next save to "start" in the same directory, which makes sense to me.
   if (isDefaultExtension) {
     prependRecent(fname);
-    auto index = createIndex(row, 0);
-    setData(index, false, static_cast<int>(Roles::DirtyRole));
   }
 #endif
 }
