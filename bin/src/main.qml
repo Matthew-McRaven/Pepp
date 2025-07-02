@@ -427,7 +427,8 @@ ApplicationWindow {
     }
 
     function onNew() {
-        pm.onAddProject(Architecture.PEP10, Abstraction.ASMB5, "", "", false);
+        pm.onAddProject(settings.general.defaultArch, settings.general.defaultAbstraction, "", "", true);
+        sidebar.switchToMode("Editor");
     }
     function onOpenDialog() {
         fileio.loadCodeViaDialog("");
