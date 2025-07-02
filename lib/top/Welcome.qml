@@ -9,9 +9,9 @@ Item {
     property real topOffset: 0
     property string loadingFileName: ""
     property var loadingFileContent: ""
-    property int filterEdition: 0
+    property list<int> filterEdition: []
     property list<int> filterAbstraction: []
-    readonly property bool filtering: filterEdition !== 0 && filterAbstraction.length !== 0
+    readonly property bool filtering: filterEdition.length !== 0 && filterAbstraction.length !== 0
     NuAppSettings {
         id: settings
     }
@@ -52,7 +52,7 @@ Item {
         property real rightRadius: 0
         readonly property var p: enabled ? root.palette : root.palette.disabled
         down: settings.general.defaultEdition == control.edition
-        enabled: root.filterEdition === 0 || control.edition === root.filterEdition
+        enabled: root.filterEdition.length === 0 || root.filterEdition.includes(control.edition)
         font: fm.font
         background: Rectangle {
             id: background
