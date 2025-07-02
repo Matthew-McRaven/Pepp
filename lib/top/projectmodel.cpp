@@ -4,6 +4,14 @@
 #include <qstringliteral.h>
 #include "settings/settings.hpp"
 
+int ProjectModel::roleForName(const QString &name) const {
+  auto role = roleNames();
+  for (auto it = role.cbegin(); it != role.cend(); ++it) {
+    if (it.value() == name.toUtf8()) return it.key();
+  }
+  return Qt::DisplayRole;
+}
+
 int ProjectModel::rowCount(const QModelIndex &parent) const { return _projects.size(); }
 
 QVariant ProjectModel::data(const QModelIndex &index, int role) const {
@@ -25,6 +33,10 @@ bool ProjectModel::setData(const QModelIndex &index, const QVariant &value, int 
   switch (role) {
   case static_cast<int>(Roles::NameRole): _projects[index.row()].name = value.toString(); break;
   case static_cast<int>(Roles::DirtyRole): _projects[index.row()].isDirty = value.toBool(); break;
+  case static_cast<int>(Roles::PathRole):
+    _projects[index.row()].path = value.toString();
+    _projects[index.row()].name = QFileInfo(_projects[index.row()].path).fileName();
+    break;
   default: return false;
   }
 

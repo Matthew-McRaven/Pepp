@@ -368,6 +368,7 @@ ApplicationWindow {
         onAccepted: prefs.closed()
         onClosed: prefs.closed()
     }
+
     Dialog {
         id: fileDisambiguateDialog
         title: qsTr("Determine file type")
@@ -383,7 +384,10 @@ ApplicationWindow {
                 fileDisambiguateDialog.close();
             }
             onAddProject: function (arch, abs, feats, content, reuse) {
-                window.pm.onAddProject(arch, abs, feats, content, reuse);
+                const prj = window.pm.onAddProject(arch, abs, feats, content, reuse);
+                const name = welcomeForFOpen.loadingFileName;
+                const idx = window.pm.index(window.pm.currentProjectRow, 0);
+                window.pm.setData(idx, name, window.pm.roleForName("path"));
                 sidebar.switchToMode("Editor");
                 welcomeForFOpen.loadingFileName = Qt.binding(() => "");
                 welcomeForFOpen.loadingFileContent = Qt.binding(() => "");
@@ -401,7 +405,9 @@ ApplicationWindow {
             if (!name || !content)
                 return;
             if (arch !== 0 && abs !== 0) {
-                window.pm.onAddProject(arch, abs, "", content, true);
+                const prj = window.pm.onAddProject(arch, abs, "", content, true);
+                const idx = window.pm.index(window.pm.currentProjectRow, 0);
+                window.pm.setData(idx, name, window.pm.roleForName("path"));
                 return;
             } else if (name.match(/pep$/i)) {
                 welcomeForFOpen.filterAbstraction = Qt.binding(() => [Abstraction.ASMB3, Abstraction.OS4, Abstraction.ASMB5]);
