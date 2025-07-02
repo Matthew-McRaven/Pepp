@@ -21,7 +21,7 @@ void FileIO::save(const QString &filename, const QString &data) {
 #endif
 }
 
-void FileIO::load(const QString &filters) {
+void FileIO::loadCodeViaDialog(const QString &filters) {
   // arch, abstraction
   using enum pepp::Architecture;
   using enum pepp::Abstraction;
@@ -36,12 +36,25 @@ void FileIO::load(const QString &filters) {
   static const QStringList filters2 = filters3.keys();
 #ifdef __EMSCRIPTEN__
   auto ready = [this](const QString &fileName, const QByteArray &fileContent) {
-    emit fileLoaded(fileName, fileContent, 0, 0);
+    emit codeLoaded(fileName, fileContent, 0, 0);
   };
   QFileDialog::getOpenFileContent(filters2.join(";;"), ready);
 #else
   QString selectedFilter;
   auto fileName = QFileDialog::getOpenFileName(nullptr, "Need a caption", "", filters2.join(";;"), &selectedFilter);
+  if (fileName.isEmpty()) return;
+  QByteArray ret = load(fileName);
+  auto [arch, abs] = filters3.value(selectedFilter, {0, 0});
+  emit codeLoaded(fileName, ret, arch, abs);
+#endif
+}
+
+#ifndef __EMSCRIPTEN__
+void FileIO::loadCodeFromFile(const QString &name) {
+  auto ret = load(name);
+  emit codeLoaded(name, ret, 0, 0);
+}
+QByteArray FileIO::load(const QString &fileName) {
   QFile file(fileName);
   QByteArray ret;
   if (file.size() > 1'000'000) qWarning() << "File size exceeds 1MB. Will not load.";
@@ -49,7 +62,6 @@ void FileIO::load(const QString &filters) {
     ret = file.readAll();
     file.close();
   } else qWarning() << "Could not open file for reading";
-  auto [arch, abs] = filters3.value(selectedFilter, {0, 0});
-  emit fileLoaded(fileName, ret, arch, abs);
-#endif
+  return ret;
 }
+#endif
