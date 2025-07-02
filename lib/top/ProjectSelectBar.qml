@@ -63,7 +63,7 @@ Flickable {
                 break;
             }
 
-            if (optTexts === undefined || optTexts === null)
+            if (optTexts === undefined || optTexts === null || optTexts === "")
                 return onMarkActiveDirty(false);
             else if (typeof (optTexts) === "string")
                 proj.set(level, optTexts);
