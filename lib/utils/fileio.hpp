@@ -12,5 +12,5 @@ public:
   Q_INVOKABLE void save(const QString &filename, const QString &data);
   Q_INVOKABLE void load(const QString &filters);
 signals:
-  Q_INVOKABLE void fileLoaded(const QString &fileName, const QByteArray &fileContent, int arch, int abstraction);
+  Q_INVOKABLE void codeLoaded(const QString &fileName, const QString &fileContent, int arch, int abstraction);
 };

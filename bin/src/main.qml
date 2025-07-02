@@ -362,11 +362,36 @@ ApplicationWindow {
         onAccepted: prefs.closed()
         onClosed: prefs.closed()
     }
+
+    Connections {
+        target: welcome
+        function onAddProject() {
+            sidebar.enabled = true;
+            sidebar.visible = true;
+            welcome.loadingFileName = Qt.binding(() => "");
+            welcome.loadingFileContent = Qt.binding(() => "");
+            welcome.filterAbstraction = Qt.binding(() => 0);
+            welcome.filterEdition = Qt.binding(() => 0);
+        }
+    }
     FileIO {
         id: fileio
-        onFileLoaded: function (name, content, arch, abs) {
+        onCodeLoaded: function (name, content, arch, abs) {
+            if (!name || !content)
+                return;
             console.log(`Will load ${name}`);
             console.log(`(arch, abs)=(${arch},${abs})`);
+            sidebar.switchToMode("Welcome");
+            welcome.loadingFileName = Qt.binding(() => name);
+            welcome.loadingFileContent = Qt.binding(() => content);
+            sidebar.enabled = false;
+            sidebar.visible = false;
+            if (arch != 0 && abs != 0) {
+                welcome.addProject(arch, abs, "", content, true);
+            } else {
+                welcome.filterAbstraction = Qt.binding(() => 0);
+                welcome.filterEdition = Qt.binding(() => 5);
+            }
         }
     }
 
