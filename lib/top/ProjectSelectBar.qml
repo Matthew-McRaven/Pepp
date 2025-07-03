@@ -52,7 +52,6 @@ Item {
                         proj = pm.pep10ASMB(Abstraction.OS4);
                 }
                 break;
-                break;
             case Architecture.PEP9:
                 if (Number(level) === Abstraction.ISA3) {
                     if (cur && cur.architecture === Architecture.PEP9 && cur.abstraction === Abstraction.ISA3 && cur.isEmpty && reuse)
@@ -68,6 +67,7 @@ Item {
                 break;
             }
 
+            root.switchToProject(pm.rowOf(proj), true);
             if (optTexts === undefined || optTexts === null || optTexts === "")
                 return onMarkActiveDirty(false);
             else if (typeof (optTexts) === "string")
@@ -78,7 +78,6 @@ Item {
             }
             proj.overwriteEditors();
             onMarkActiveDirty(false);
-            root.switchToProject(pm.rowOf(proj), true);
         }
         function renameCurrentProject(string) {
             const row = pm.rowOf(currentProject);
@@ -221,8 +220,10 @@ Item {
             root.currentProject.message.disconnect(root.message);
         }
         const proj = pm.data(pm.index(index, 0), ProjectModel.ProjectPtrRole);
-        if (proj)
-            root.currentProject = proj;
+        if (proj) {
+            root.currentProject = Qt.binding(() => proj);
+            projectBar.currentIndex = index;
+        }
         if (root.currentProject?.message)
             root.currentProject.message.connect(root.message);
     }
@@ -257,7 +258,8 @@ Item {
             return;
         else if (index < pm.rowCount())
             switchToProject(index, true);
-        else
-            switchToProject(pm.rowCount() - 1);
+        else {
+            switchToProject(pm.rowCount() - 1, true);
+        }
     }
 }
