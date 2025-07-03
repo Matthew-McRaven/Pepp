@@ -62,11 +62,17 @@ Labs.MenuBar {
                 model: settings.general.recentFiles
                 delegate: Labs.MenuItem {
                     required property var model
-                    text: settings.general.fileNameFor(model.modelData)
+                    text: settings.general.fileNameFor(model.path)
                     onTriggered: {
-                        actions.window.onOpenFile(model.modelData);
+                        const {
+                            path,
+                            arch,
+                            abstraction
+                        } = model;
+                        actions.window.onOpenFile(path, arch, abstraction);
                     }
                 }
+
                 onObjectAdded: (index, object) => recentFilesMenu.insertItem(index, object)
                 onObjectRemoved: (index, object) => recentFilesMenu.removeItem(object)
             }
@@ -92,7 +98,15 @@ Labs.MenuBar {
                 required property string extension
                 text: `Save ${extension} as...`
                 onTriggered: {
-                    actions.window.onSaveAs(extension);
+                    actions.window.syncEditors();
+                    // Defer execution because force-quiting after sync but before onSaveAs causes a nested event loop failure.
+                    // This tells me something about sync or save as is cursed, but I don't care to debug it at this time.
+                    Qt.callLater(() => actions.window.onSaveAs(extension));
+                }
+                Component.onCompleted: {
+                    if (extension === project.defaultExtension()) {
+                        shortcut = actions.file.saveAs.shortcut;
+                    }
                 }
             }
         }
@@ -290,7 +304,7 @@ Labs.MenuBar {
             onTriggered: actions.sim.clearCPU.trigger()
         }
         Labs.MenuItem {
-            enabled: actions.sim.clearMemory.enabled
+            enabled: wrapper.actions.sim.clearMemory.enabled
             text: actions.sim.clearMemory.text
             onTriggered: actions.sim.clearMemory.trigger()
         }

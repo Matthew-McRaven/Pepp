@@ -112,9 +112,19 @@ FocusScope {
         onOverwriteEditors();
         project.updateGUI.connect(watchExpr.updateGUI);
         project.updateGUI.connect(bpViewer.updateGUI);
+        project.markedClean.connect(wrapper.markClean);
+        userAsmEdit.onDirtiedChanged.connect(wrapper.markDirty);
     }
 
     signal requestModeSwitchTo(string mode)
+    // Must be called when the project in the model is marked non-dirty
+    function markClean() {
+        userAsmEdit.dirtied = Qt.binding(() => false);
+    }
+    function markDirty() {
+        if (userAsmEdit.dirtied)
+            project.markDirty();
+    }
 
     function getLexerLangauge() {
         switch (project?.architecture) {

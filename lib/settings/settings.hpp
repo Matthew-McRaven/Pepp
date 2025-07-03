@@ -25,6 +25,33 @@ public:
   virtual void reload() {};
 };
 
+class RecentFile {
+  Q_GADGET
+  Q_PROPERTY(QString path MEMBER _path CONSTANT)
+  Q_PROPERTY(pepp::Architecture arch MEMBER _arch CONSTANT)
+  Q_PROPERTY(pepp::Abstraction abstraction MEMBER _level CONSTANT)
+  QML_UNCREATABLE("")
+  QML_VALUE_TYPE(recent_file)
+public:
+  RecentFile() = default;
+  explicit RecentFile(const QString &filePath, pepp::Architecture arch, pepp::Abstraction level)
+      : _path(filePath), _arch(arch), _level(level) {};
+  RecentFile(const RecentFile &other) noexcept : _path(other._path), _arch(other._arch), _level(other._level) {}
+  QString path() const { return _path; }
+  pepp::Architecture arch() const { return _arch; }
+  pepp::Abstraction abstraction() const { return _level; }
+
+  Qt::strong_ordering operator<=>(const RecentFile &other) const;
+
+private:
+  QString _path = "";
+  pepp::Architecture _arch = pepp::Architecture::NO_ARCH;
+  pepp::Abstraction _level = pepp::Abstraction::NO_ABS;
+};
+QDataStream &operator<<(QDataStream &out, const pepp::settings::RecentFile &rf);
+
+QDataStream &operator>>(QDataStream &in, pepp::settings::RecentFile &rf);
+
 class GeneralCategory : public Category {
   Q_OBJECT
   QML_UNCREATABLE("")
@@ -50,7 +77,7 @@ class GeneralCategory : public Category {
   Q_PROPERTY(QString externalFigureDirectory READ externalFigureDirectory WRITE setExternalFigureDirectory NOTIFY
                  externalFigureDirectoryChanged)
   // Non-GUI properties
-  Q_PROPERTY(QStringList recentFiles READ recentFiles NOTIFY recentFilesChanges)
+  Q_PROPERTY(QList<RecentFile> recentFiles READ recentFiles NOTIFY recentFilesChanges)
 
 public:
   explicit GeneralCategory(QObject *parent = nullptr);
@@ -78,11 +105,11 @@ public:
   QString externalFigureDirectory() const;
   void setExternalFigureDirectory(const QString &path);
   QString figureDirectory() const;
-  Q_INVOKABLE void pushRecentFile(const QString &fileName);
+  Q_INVOKABLE void pushRecentFile(const QString &fileName, pepp::Architecture arch, pepp::Abstraction level);
   Q_INVOKABLE void clearRecentFiles();
   // Really should be in a seperate class, but I only use it when touching recent files.
   Q_INVOKABLE QString fileNameFor(const QString &fullPath);
-  QStringList recentFiles() const;
+  QList<RecentFile> recentFiles() const;
 signals:
   void defaultEditionChanged();
   void defaultArchChanged();
@@ -98,7 +125,7 @@ signals:
 private:
   mutable QSettings _settings;
   void refreshRecentFileCache() const;
-  mutable QStringList _recentFileCache;
+  mutable QList<RecentFile> _recentFileCache;
   const int defaultDefaultEdition = 6;
   const pepp::Architecture defaultDefaultArch = pepp::Architecture::PEP10;
   const pepp::Abstraction defaultDefaultAbstraction = pepp::Abstraction::ASMB5;
@@ -265,3 +292,4 @@ private:
   detail::AppSettingsData *_data = nullptr;
 };
 } // namespace pepp::settings
+Q_DECLARE_METATYPE(pepp::settings::RecentFile)

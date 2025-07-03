@@ -39,8 +39,8 @@ public:
   Q_INVOKABLE QString describe(int index) const;
   Q_INVOKABLE int rowOf(const QObject *item) const;
 public slots:
-  Q_INVOKABLE void onSave(int index);
-  Q_INVOKABLE void onSaveAs(int index, const QString &extension);
+  Q_INVOKABLE bool onSave(int index);
+  Q_INVOKABLE bool onSaveAs(int index, const QString &extension);
 signals:
   void rowCountChanged(int);
 
@@ -52,6 +52,8 @@ private:
     QString path = "";
   };
   std::deque<Data> _projects = {};
+  // Emplace obj at end of _projects and register obj->markDirty to setData dirty;
+  void appendProject(std::unique_ptr<QObject> &&obj);
 };
 
 enum class CompletionState {

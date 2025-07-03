@@ -88,10 +88,8 @@ ApplicationWindow {
     Component.onCompleted: {
         // Allow welcome mode to create a new project, and switch to it on creation.
         welcome.addProject.connect(pm.onAddProject);
-        welcome.addProject.connect(() => projectSelect.switchToProject(pm.count - 1));
         welcome.addProject.connect(() => sidebar.switchToMode("Editor"));
         help.addProject.connect(pm.onAddProject);
-        help.addProject.connect(() => projectSelect.switchToProject(pm.count - 1));
         help.switchToMode.connect(sidebar.switchToMode);
         help.setCharIn.connect(i => setProjectCharIn(i));
         help.renameCurrentProject.connect(pm.renameCurrentProject);
@@ -159,6 +157,8 @@ ApplicationWindow {
         anchors.right: parent.right
         anchors.left: sidebar.right
         anchors.top: toolbar.bottom
+        popupX: mainArea.x
+        popupY: mainArea.y
     }
 
     Rectangle {
@@ -388,6 +388,7 @@ ApplicationWindow {
                 const name = welcomeForFOpen.loadingFileName;
                 const idx = window.pm.index(window.pm.currentProjectRow, 0);
                 window.pm.setData(idx, name, window.pm.roleForName("path"));
+                settings.general.pushRecentFile(name, arch, abs);
                 sidebar.switchToMode("Editor");
                 welcomeForFOpen.loadingFileName = Qt.binding(() => "");
                 welcomeForFOpen.loadingFileContent = Qt.binding(() => "");
@@ -408,6 +409,8 @@ ApplicationWindow {
                 const prj = window.pm.onAddProject(arch, abs, "", content, true);
                 const idx = window.pm.index(window.pm.currentProjectRow, 0);
                 window.pm.setData(idx, name, window.pm.roleForName("path"));
+                settings.general.pushRecentFile(name, arch, abs);
+                sidebar.switchToMode("Editor");
                 return;
             } else if (name.match(/pep$/i)) {
                 welcomeForFOpen.filterAbstraction = Qt.binding(() => [Abstraction.ASMB3, Abstraction.OS4, Abstraction.ASMB5]);
@@ -427,7 +430,6 @@ ApplicationWindow {
             }
 
             sidebar.switchToMode("Welcome");
-            settings.general.pushRecentFile(name);
             welcomeForFOpen.loadingFileName = Qt.binding(() => name);
             welcomeForFOpen.loadingFileContent = Qt.binding(() => content);
             fileDisambiguateDialog.open();
@@ -442,16 +444,52 @@ ApplicationWindow {
         fileio.loadCodeViaDialog("");
     }
     // must be named onOpenFile, or `gui.cpp` must be updated!
-    function onOpenFile(filename) {
-        fileio.loadCodeFromFile(filename);
+    function onOpenFile(filename, arch, abs) {
+        fileio.loadCodeFromFile(filename, arch, abs);
     }
     function onSaveAs(extension) {
         pm.onSaveAs(currentProjectRow, extension);
     }
-    function onCloseAllProjects(excludeCurrent: bool) {
+    // You (the caller) must set inRecurseClose if you call recurseClose.
+    // You will be notified that iteration/recursion stopped via onRecurseCloseFinished.
+    // When you receive that signal, you must set inRecurseClose back to false.
+    // We have to used chained events rather than iterations since dialogs are asynchronous,
+    // and closing projects may spawn dialogs.
+    property bool inRecurseClose: false
+    signal onRecurseCloseFinished
+    function recurseClose(eat_arg) {
+        if (pm.rowCount() == 0)
+            onRecurseCloseFinished();
+        // Must defer execution until re-entering the event loop, or dialogs may be lost.
+        Qt.callLater(() => projectSelect.closeProject(0, true));
     }
+
+    function onCloseAllProjects(excludeCurrent: bool) {
+        // Cleanup all the connections we made, otherwise adding another project will cause all projects to close
+        // due to rowCountChanged.
+        const cleanup = () => {
+            pm.rowCountChanged.disconnect(recurseClose);
+            onRecurseCloseFinished.disconnect(cleanup);
+            inRecurseClose = Qt.binding(() => false);
+        };
+        // Recursively call recurseClose every time the row count changes.
+        // Again, close is async, so we have to use this chaining style.
+        pm.rowCountChanged.connect(recurseClose);
+        inRecurseClose = Qt.binding(() => true);
+        // When recursion terminates, perform previously listed cleanup.
+        onRecurseCloseFinished.connect(cleanup);
+        // Begin recursion
+        recurseClose();
+    }
+
     function onQuit() {
-        window.close();
+        // Let users escape saving hell by quiting a second time.
+        if (inRecurseClose)
+            Qt.quit();
+        else {
+            onRecurseCloseFinished.connect(() => Qt.quit());
+            onCloseAllProjects(false);
+        }
     }
     function onToggleFullScreen() {
     }

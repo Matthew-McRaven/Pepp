@@ -1,7 +1,6 @@
 #include "projectmodel.hpp"
 #include <QFileDialog>
 #include <QStringLiteral>
-#include <qstringliteral.h>
 #include "settings/settings.hpp"
 
 int ProjectModel::roleForName(const QString &name) const {
@@ -28,11 +27,22 @@ QVariant ProjectModel::data(const QModelIndex &index, int role) const {
   return {};
 }
 
+namespace {
+void markClean(QObject *item) {
+  if (auto isa = qobject_cast<Pep_ISA *>(item)) {
+    emit isa->markedClean();
+  }
+}
+} // namespace
+
 bool ProjectModel::setData(const QModelIndex &index, const QVariant &value, int role) {
   if (!index.isValid() || index.row() >= _projects.size() || index.column() != 0) return {};
   switch (role) {
   case static_cast<int>(Roles::NameRole): _projects[index.row()].name = value.toString(); break;
-  case static_cast<int>(Roles::DirtyRole): _projects[index.row()].isDirty = value.toBool(); break;
+  case static_cast<int>(Roles::DirtyRole):
+    _projects[index.row()].isDirty = value.toBool();
+    if (!_projects[index.row()].isDirty) markClean(&*_projects[index.row()].impl);
+    break;
   case static_cast<int>(Roles::PathRole):
     _projects[index.row()].path = value.toString();
     _projects[index.row()].name = QFileInfo(_projects[index.row()].path).fileName();
@@ -56,7 +66,7 @@ Pep_ISA *ProjectModel::pep10ISA() {
   auto ret = &*ptr;
   QQmlEngine::setObjectOwnership(ret, QQmlEngine::CppOwnership);
   beginInsertRows(QModelIndex(), _projects.size(), _projects.size());
-  _projects.push_back({.impl = std::move(ptr), .name = placeholder.arg(_projects.size() + 1)});
+  appendProject(std::move(ptr));
   endInsertRows();
   emit rowCountChanged(_projects.size());
   return ret;
@@ -68,7 +78,7 @@ Pep_ISA *ProjectModel::pep9ISA() {
   auto ret = &*ptr;
   QQmlEngine::setObjectOwnership(ret, QQmlEngine::CppOwnership);
   beginInsertRows(QModelIndex(), _projects.size(), _projects.size());
-  _projects.push_back({.impl = std::move(ptr), .name = placeholder.arg(_projects.size() + 1)});
+  appendProject(std::move(ptr));
   endInsertRows();
   emit rowCountChanged(_projects.size());
   return ret;
@@ -80,7 +90,7 @@ Pep_ASMB *ProjectModel::pep10ASMB(pepp::Abstraction abstraction) {
   auto ret = &*ptr;
   QQmlEngine::setObjectOwnership(ret, QQmlEngine::CppOwnership);
   beginInsertRows(QModelIndex(), _projects.size(), _projects.size());
-  _projects.push_back({.impl = std::move(ptr), .name = placeholder.arg(_projects.size() + 1)});
+  appendProject(std::move(ptr));
   endInsertRows();
   emit rowCountChanged(_projects.size());
   return ret;
@@ -92,7 +102,7 @@ Pep_ASMB *ProjectModel::pep9ASMB() {
   auto ret = &*ptr;
   QQmlEngine::setObjectOwnership(ret, QQmlEngine::CppOwnership);
   beginInsertRows(QModelIndex(), _projects.size(), _projects.size());
-  _projects.push_back({.impl = std::move(ptr), .name = placeholder.arg(_projects.size() + 1)});
+  appendProject(std::move(ptr));
   endInsertRows();
   emit rowCountChanged(_projects.size());
   return ret;
@@ -215,6 +225,7 @@ bool defaultFromExtension(const QObject *item, const QString &extension) {
   }
   return false;
 }
+
 std::string defaultExtensionFor(const QObject *item) {
   if (auto asmb = qobject_cast<const Pep_ASMB *>(item)) {
     return "pep";
@@ -224,30 +235,30 @@ std::string defaultExtensionFor(const QObject *item) {
   return "pep";
 }
 
-void prependRecent(const QString &fname) {
+void prependRecent(const QString &fname, pepp::Architecture arch, pepp::Abstraction level) {
   auto settings = pepp::settings::detail::AppSettingsData::getInstance();
-  settings->general()->pushRecentFile(fname);
+  settings->general()->pushRecentFile(fname, arch, level);
 }
 
-QStringList recentFiles() {
+auto recentFiles() {
   auto settings = pepp::settings::detail::AppSettingsData::getInstance();
   return settings->general()->recentFiles();
 }
 
-void ProjectModel::onSave(int row) {
-  if (row < 0 || row >= _projects.size()) return;
+bool ProjectModel::onSave(int row) {
+  if (row < 0 || row >= _projects.size()) return false;
 
   using enum QStandardPaths::StandardLocation;
   auto ptr = _projects[row].impl.get();
   auto env = envFromPtr(ptr);
   if (env.first == pepp::Abstraction::NO_ABS) {
     qDebug() << "Unrecognized abstraction";
-    return;
+    return false;
   }
   auto contents = primaryTextFromPtr(ptr);
   if (contents.isEmpty()) {
     qDebug() << "No contents to save";
-    return;
+    return false;
   }
 #ifdef __EMSCRIPTEN__
   QString fname = "user.o";
@@ -255,7 +266,7 @@ void ProjectModel::onSave(int row) {
   case pepp::Abstraction::ISA3: fname = "user.pepo"; break;
   case pepp::Abstraction::ASMB3: [[fallthrough]];
   case pepp::Abstraction::ASMB5: fname = "user.pep"; break;
-  default: qDebug() << "No default for abstraction"; return;
+  default: qDebug() << "No default for abstraction"; return false;
   }
   QFileDialog::saveFileContent(contents, fname);
 #else
@@ -265,7 +276,7 @@ void ProjectModel::onSave(int row) {
     QString starting_dir = QStandardPaths::writableLocation(DocumentsLocation);
     if (auto recents = recentFiles(); !recents.isEmpty()) {
       auto fname = recents.front();
-      QFileInfo info(fname);
+      QFileInfo info(fname.path());
       starting_dir = info.path();
     }
     // Determine appropriate filter for project.
@@ -273,38 +284,38 @@ void ProjectModel::onSave(int row) {
     // Path may be empty if it is canceled, in which case we need to return early.
     _projects[row].path = QFileDialog::getSaveFileName(
         nullptr, "Save", starting_dir, filterIter != extensions.cend() ? filterIter->second : "Text Files (*.txt)");
-    if (_projects[row].path.isEmpty()) return;
+    if (_projects[row].path.isEmpty()) return false;
     // Update the name field to reflect the underlying file name.
     _projects[row].name = QFileInfo(_projects[row].path).fileName();
   }
   QFile file(_projects[row].path);
-  if (!file.open(QIODevice::WriteOnly)) return;
+  if (!file.open(QIODevice::WriteOnly)) return false;
   file.write(contents);
   file.close();
-  prependRecent(_projects[row].path);
+  prependRecent(_projects[row].path, env.second, env.first);
 #endif
-
   auto index = createIndex(row, 0);
   setData(index, false, static_cast<int>(Roles::DirtyRole));
+  return true;
 }
 
-void ProjectModel::onSaveAs(int row, const QString &extension) {
+bool ProjectModel::onSaveAs(int row, const QString &extension) {
   using namespace Qt::StringLiterals;
   using enum QStandardPaths::StandardLocation;
 
-  if (row < 0 || row >= _projects.size()) return;
+  if (row < 0 || row >= _projects.size()) return false;
 
   auto ptr = _projects[row].impl.get();
   auto env = envFromPtr(ptr);
   if (env.first == pepp::Abstraction::NO_ABS) {
     qDebug() << "Unrecognized abstraction";
-    return;
+    return false;
   }
   auto contents = contentsFromExtension(ptr, extension);
   bool isDefaultExtension = defaultFromExtension(ptr, extension);
   if (contents.isEmpty()) {
     qDebug() << "No contents to save";
-    return;
+    return false;
   }
 #ifdef __EMSCRIPTEN__
   QString fname = "user.o";
@@ -312,7 +323,7 @@ void ProjectModel::onSaveAs(int row, const QString &extension) {
   case pepp::Abstraction::ISA3: fname = "user.pepo"; break;
   case pepp::Abstraction::ASMB3: [[fallthrough]];
   case pepp::Abstraction::ASMB5: fname = "user.pep"; break;
-  default: qDebug() << "No default for abstraction"; return;
+  default: qDebug() << "No default for abstraction"; return false;
   }
   QFileDialog::saveFileContent(contents, fname);
 #else
@@ -328,23 +339,41 @@ void ProjectModel::onSaveAs(int row, const QString &extension) {
     starting_fname = info.path() + "/" + info.completeBaseName() + "." + extension;
   } else if (auto recents = recentFiles(); !recents.isEmpty()) {
     auto fname = recents.front();
-    QFileInfo info(fname);
+    QFileInfo info(fname.path());
     starting_fname = info.path() + "/" + info.completeBaseName() + "." + extension;
   }
   // Path may be empty if it is canceled, in which case we need to return early.
   auto fname = QFileDialog::getSaveFileName(nullptr, u"Save %1 As"_s.arg(extension), starting_fname,
                                             filterIter != extensions.cend() ? filterIter->second : "Text Files (*.*)");
   QFile file(fname);
-  if (!file.open(QIODevice::WriteOnly)) return;
+  if (!file.open(QIODevice::WriteOnly)) return false;
   file.write(contents);
   file.close();
   // Do not mark as clean, since we didn't save the original source file.
   // If it is an extension that we could open again as a project, add it to the recent files list.
   // This will cause our next save to "start" in the same directory, which makes sense to me.
-  if (isDefaultExtension) {
-    prependRecent(fname);
-  }
+  if (isDefaultExtension) prependRecent(fname, env.second, env.first);
 #endif
+  return true;
+}
+
+void ProjectModel::appendProject(std::unique_ptr<QObject> &&obj) {
+  // Capture pointer before we move out of the unique_ptr;
+  auto ptr = obj.get();
+  _projects.push_back({.impl = std::move(obj), .name = placeholder.arg(_projects.size() + 1)});
+  // Helper to set the recently inserted object as deleted. Lambda should be freed whenever ptr is freed by Qt.
+  auto lambda = [this, ptr]() {
+    // Cannot cache index, since items may have been inserted/deleted since this was created.
+    auto index = this->index(this->rowOf(ptr));
+    setData(index, true, (int)ProjectModel::Roles::DirtyRole);
+  };
+  if (auto asmb = qobject_cast<Pep_ASMB *>(ptr)) {
+    connect(asmb, &Pep_ASMB::markDirty, this, lambda);
+  } else if (auto isa = qobject_cast<Pep_ISA *>(ptr)) {
+    connect(isa, &Pep_ISA::markDirty, this, lambda);
+  } else {
+    qDebug() << "Fast dirtying logic will not work, pointer cast failed";
+  }
 }
 
 void init_pep10(QList<ProjectType> &vec) {

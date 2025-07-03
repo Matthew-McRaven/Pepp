@@ -60,15 +60,15 @@ CustomViewFactory::~CustomViewFactory() = default;
 class PeppApplication : public QApplication {
 public:
   PeppApplication(int &argc, char **argv) : QApplication(argc, argv) {}
-
   bool event(QEvent *event) override {
     if (event->type() == QEvent::FileOpen) {
       QFileOpenEvent *openEvent = static_cast<QFileOpenEvent *>(event);
       const QUrl url = openEvent->url();
       if (url.isLocalFile()) {
         auto root = engine->rootObjects().at(0);
-        auto ret =
-            QMetaObject::invokeMethod(root, "onOpenFile", Q_ARG(QVariant, QVariant::fromValue(url.toLocalFile())));
+        auto ret = QMetaObject::invokeMethod(
+            root, "onOpenFile", Q_ARG(QVariant, QVariant::fromValue(url.toLocalFile())), QVariant{}, QVariant{});
+        return true;
       }
     }
 
@@ -76,6 +76,23 @@ public:
   }
   QQmlApplicationEngine *engine = nullptr;
 };
+
+class QuitInterceptor : public QObject {
+  Q_OBJECT
+public:
+  QQmlApplicationEngine *engine;
+
+  bool eventFilter(QObject *obj, QEvent *event) override {
+    if (event->type() == QEvent::Close) {
+      QObject *root = engine->rootObjects().value(0, nullptr);
+      if (root) QMetaObject::invokeMethod(root, "onQuit");
+      event->ignore(); // block close
+      return true;
+    }
+    return QObject::eventFilter(obj, event);
+  }
+};
+#include "gui.moc"
 
 #ifdef __EMSCRIPTEN__
 #include <emscripten.h>
@@ -188,6 +205,11 @@ int gui_main(const gui_args &args) {
   // See: https://doc.qt.io/qt-6/wasm.html#application-startup-and-the-event-loop
   engine.load(url);
   app_ptr->engine = &engine;
+  // Intercept close events so that we can prompt to save changes.
+  auto window = qobject_cast<QWindow *>(engine.rootObjects().value(0));
+  auto filter = new QuitInterceptor;
+  filter->engine = &engine;
+  window->installEventFilter(filter);
 #ifdef __EMSCRIPTEN__
   return 0;
 #else
