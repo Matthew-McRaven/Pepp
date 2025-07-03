@@ -460,7 +460,8 @@ ApplicationWindow {
     function recurseClose(eat_arg) {
         if (pm.rowCount() == 0)
             onRecurseCloseFinished();
-        projectSelect.closeProject(0, true);
+        // Must defer execution until re-entering the event loop, or dialogs may be lost.
+        Qt.callLater(() => projectSelect.closeProject(0, true));
     }
 
     function onCloseAllProjects(excludeCurrent: bool) {
