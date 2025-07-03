@@ -26,7 +26,7 @@ static const char *maxStepbackBufferKBKey = "Simulator/maxStepbackBufferKB";
 
 Qt::strong_ordering pepp::settings::RecentFile::operator<=>(const RecentFile &other) const {
   if (_arch != other._arch) return qCompareThreeWay(_arch, other._arch);
-  else if (_level != other._level) qCompareThreeWay(_level, other._level);
+  else if (_level != other._level) return qCompareThreeWay(_level, other._level);
   auto cmp = _path.compare(other._path);
   if (cmp == 0) return Qt::strong_ordering::equal;
   else return cmp < 0 ? Qt::strong_ordering::less : Qt::strong_ordering::greater;

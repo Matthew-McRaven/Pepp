@@ -245,7 +245,7 @@ Item {
             unsavedDialog.index = index;
             unsavedDialog.force = force;
             unsavedDialog.x = root.popupX;
-            unsavedDialog.y = root.popupX;
+            unsavedDialog.y = root.popupY;
             unsavedDialog.visible = true;
             unsavedDialog.open();
         } else

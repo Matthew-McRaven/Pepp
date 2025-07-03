@@ -27,11 +27,13 @@ QVariant ProjectModel::data(const QModelIndex &index, int role) const {
   return {};
 }
 
+namespace {
 void markClean(QObject *item) {
   if (auto isa = qobject_cast<Pep_ISA *>(item)) {
     emit isa->markedClean();
   }
 }
+} // namespace
 
 bool ProjectModel::setData(const QModelIndex &index, const QVariant &value, int role) {
   if (!index.isValid() || index.row() >= _projects.size() || index.column() != 0) return {};
