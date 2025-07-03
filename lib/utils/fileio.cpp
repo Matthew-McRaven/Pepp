@@ -46,7 +46,7 @@ void FileIO::loadCodeViaDialog(const QString &filters) {
   auto recents = settings->general()->recentFiles();
   QString startDir = "";
   if (!recents.empty()) {
-    QFileInfo fi(recents.first());
+    QFileInfo fi(recents.first().path());
     startDir = fi.absoluteDir().absolutePath();
   }
   auto fileName =
@@ -59,10 +59,10 @@ void FileIO::loadCodeViaDialog(const QString &filters) {
 }
 
 #ifndef __EMSCRIPTEN__
-void FileIO::loadCodeFromFile(const QString &name) {
+void FileIO::loadCodeFromFile(const QString &name, int arch, int abs) {
   auto ret = load(name);
   if (ret.isEmpty()) return;
-  emit codeLoaded(name, ret, 0, 0);
+  emit codeLoaded(name, ret, arch, abs);
 }
 QByteArray FileIO::load(const QString &fileName) {
   QFile file(fileName);

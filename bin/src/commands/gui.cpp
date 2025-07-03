@@ -66,8 +66,8 @@ public:
       const QUrl url = openEvent->url();
       if (url.isLocalFile()) {
         auto root = engine->rootObjects().at(0);
-        auto ret =
-            QMetaObject::invokeMethod(root, "onOpenFile", Q_ARG(QVariant, QVariant::fromValue(url.toLocalFile())));
+        auto ret = QMetaObject::invokeMethod(
+            root, "onOpenFile", Q_ARG(QVariant, QVariant::fromValue(url.toLocalFile())), QVariant{}, QVariant{});
         return true;
       }
     }

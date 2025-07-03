@@ -1,5 +1,6 @@
 #include "settings.hpp"
 #include <QQmlEngine>
+#include <QtCompare>
 #include "help/builtins/registry.hpp"
 
 pepp::settings::Category::Category(QObject *parent) : QObject(parent) {}
@@ -23,7 +24,36 @@ static const char *themePathKey = "Theme/activePath";
 // Simulator
 static const char *maxStepbackBufferKBKey = "Simulator/maxStepbackBufferKB";
 
-pepp::settings::GeneralCategory::GeneralCategory(QObject *parent) : Category(parent) {}
+Qt::strong_ordering pepp::settings::RecentFile::operator<=>(const RecentFile &other) const {
+  if (_arch != other._arch) return qCompareThreeWay(_arch, other._arch);
+  else if (_level != other._level) qCompareThreeWay(_level, other._level);
+  auto cmp = _path.compare(other._path);
+  if (cmp == 0) return Qt::strong_ordering::equal;
+  else return cmp < 0 ? Qt::strong_ordering::less : Qt::strong_ordering::greater;
+}
+
+QDataStream &pepp::settings::operator<<(QDataStream &out, const RecentFile &rf) {
+  out << rf.path();
+  out << static_cast<qint32>(rf.arch());
+  out << static_cast<qint32>(rf.abstraction());
+  return out;
+}
+
+QDataStream &pepp::settings::operator>>(QDataStream &in, RecentFile &rf) {
+  QString path;
+  qint32 archInt, absInt;
+
+  in >> path >> archInt >> absInt;
+  rf = pepp::settings::RecentFile(path, static_cast<pepp::Architecture>(archInt),
+                                  static_cast<pepp::Abstraction>(absInt));
+  return in;
+}
+
+pepp::settings::GeneralCategory::GeneralCategory(QObject *parent) : Category(parent) {
+  // Must register RecentFile with QVariant before it is used.
+  // All instance are created by this class, this is as good a place as any to register it.
+  qRegisterMetaType<pepp::settings::RecentFile>();
+}
 
 void pepp::settings::GeneralCategory::sync() { _settings.sync(); }
 
@@ -183,36 +213,44 @@ QString pepp::settings::GeneralCategory::figureDirectory() const {
 #endif
 }
 
-void pepp::settings::GeneralCategory::pushRecentFile(const QString &fileName) {
+void pepp::settings::GeneralCategory::pushRecentFile(const QString &fileName, pepp::Architecture arch,
+                                                     pepp::Abstraction level) {
   if (_recentFileCache.empty()) refreshRecentFileCache();
-
-  if (_recentFileCache.contains(fileName)) _recentFileCache.removeAll(fileName);
-  else if (_recentFileCache.size() >= maxRecentFiles()) _recentFileCache.removeLast();
-  _recentFileCache.prepend(fileName);
+  auto from = std::remove_if(_recentFileCache.begin(), _recentFileCache.end(),
+                             [&fileName](auto &i) { return i.path() == fileName; });
+  _recentFileCache.erase(from, _recentFileCache.end());
+  if (_recentFileCache.size() >= maxRecentFiles()) _recentFileCache.removeLast();
+  _recentFileCache.prepend(RecentFile{fileName, arch, level});
   // Ensure that we don't violate max # of recent files.
   while (_recentFileCache.size() > maxRecentFiles() && !_recentFileCache.isEmpty()) _recentFileCache.removeLast();
-  _settings.setValue(recentFilesKey, _recentFileCache);
+  QVariantList out;
+  for (const auto &item : std::as_const(_recentFileCache)) out.emplaceBack(QVariant::fromValue(item));
+  _settings.setValue(recentFilesKey, out);
   emit recentFilesChanges();
 }
 
 void pepp::settings::GeneralCategory::clearRecentFiles() {
   _recentFileCache.clear();
-  _settings.setValue(recentFilesKey, QStringList{});
+  _settings.setValue(recentFilesKey, QVariantList{});
   emit recentFilesChanges();
 }
 
 QString pepp::settings::GeneralCategory::fileNameFor(const QString &fullPath) { return QFileInfo(fullPath).fileName(); }
 
-QStringList pepp::settings::GeneralCategory::recentFiles() const {
+QList<pepp::settings::RecentFile> pepp::settings::GeneralCategory::recentFiles() const {
   if (_recentFileCache.empty()) refreshRecentFileCache();
   return _recentFileCache;
 }
 
 void pepp::settings::GeneralCategory::refreshRecentFileCache() const {
-  auto value = _settings.value(recentFilesKey, QStringList{});
+  auto value = _settings.value(recentFilesKey, QVariantList{});
   if (!value.isValid()) _recentFileCache = {};
-  else if (!value.canConvert<QStringList>()) _recentFileCache = {};
-  else _recentFileCache = value.toStringList();
+  else if (!value.canConvert<QVariantList>()) _recentFileCache = {};
+  QVariantList tmpList = value.toList();
+  for (auto &item : tmpList) {
+    if (item.canConvert<RecentFile>()) _recentFileCache.append(item.value<RecentFile>());
+    else qWarning() << "Invalid item in recent files cache:" << item;
+  }
   while (_recentFileCache.size() > maxRecentFiles() && !_recentFileCache.isEmpty()) _recentFileCache.removeLast();
 }
 

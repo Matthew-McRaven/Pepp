@@ -388,6 +388,7 @@ ApplicationWindow {
                 const name = welcomeForFOpen.loadingFileName;
                 const idx = window.pm.index(window.pm.currentProjectRow, 0);
                 window.pm.setData(idx, name, window.pm.roleForName("path"));
+                settings.general.pushRecentFile(name, arch, abs);
                 sidebar.switchToMode("Editor");
                 welcomeForFOpen.loadingFileName = Qt.binding(() => "");
                 welcomeForFOpen.loadingFileContent = Qt.binding(() => "");
@@ -408,6 +409,8 @@ ApplicationWindow {
                 const prj = window.pm.onAddProject(arch, abs, "", content, true);
                 const idx = window.pm.index(window.pm.currentProjectRow, 0);
                 window.pm.setData(idx, name, window.pm.roleForName("path"));
+                settings.general.pushRecentFile(name, arch, abs);
+                sidebar.switchToMode("Editor");
                 return;
             } else if (name.match(/pep$/i)) {
                 welcomeForFOpen.filterAbstraction = Qt.binding(() => [Abstraction.ASMB3, Abstraction.OS4, Abstraction.ASMB5]);
@@ -427,7 +430,6 @@ ApplicationWindow {
             }
 
             sidebar.switchToMode("Welcome");
-            settings.general.pushRecentFile(name);
             welcomeForFOpen.loadingFileName = Qt.binding(() => name);
             welcomeForFOpen.loadingFileContent = Qt.binding(() => content);
             fileDisambiguateDialog.open();
@@ -442,8 +444,8 @@ ApplicationWindow {
         fileio.loadCodeViaDialog("");
     }
     // must be named onOpenFile, or `gui.cpp` must be updated!
-    function onOpenFile(filename) {
-        fileio.loadCodeFromFile(filename);
+    function onOpenFile(filename, arch, abs) {
+        fileio.loadCodeFromFile(filename, arch, abs);
     }
     function onSaveAs(extension) {
         pm.onSaveAs(currentProjectRow, extension);

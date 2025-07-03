@@ -1,7 +1,6 @@
 #include "projectmodel.hpp"
 #include <QFileDialog>
 #include <QStringLiteral>
-#include <qstringliteral.h>
 #include "settings/settings.hpp"
 
 int ProjectModel::roleForName(const QString &name) const {
@@ -234,12 +233,12 @@ std::string defaultExtensionFor(const QObject *item) {
   return "pep";
 }
 
-void prependRecent(const QString &fname) {
+void prependRecent(const QString &fname, pepp::Architecture arch, pepp::Abstraction level) {
   auto settings = pepp::settings::detail::AppSettingsData::getInstance();
-  settings->general()->pushRecentFile(fname);
+  settings->general()->pushRecentFile(fname, arch, level);
 }
 
-QStringList recentFiles() {
+auto recentFiles() {
   auto settings = pepp::settings::detail::AppSettingsData::getInstance();
   return settings->general()->recentFiles();
 }
@@ -275,7 +274,7 @@ bool ProjectModel::onSave(int row) {
     QString starting_dir = QStandardPaths::writableLocation(DocumentsLocation);
     if (auto recents = recentFiles(); !recents.isEmpty()) {
       auto fname = recents.front();
-      QFileInfo info(fname);
+      QFileInfo info(fname.path());
       starting_dir = info.path();
     }
     // Determine appropriate filter for project.
@@ -291,7 +290,7 @@ bool ProjectModel::onSave(int row) {
   if (!file.open(QIODevice::WriteOnly)) return false;
   file.write(contents);
   file.close();
-  prependRecent(_projects[row].path);
+  prependRecent(_projects[row].path, env.second, env.first);
 #endif
   auto index = createIndex(row, 0);
   setData(index, false, static_cast<int>(Roles::DirtyRole));
@@ -338,7 +337,7 @@ bool ProjectModel::onSaveAs(int row, const QString &extension) {
     starting_fname = info.path() + "/" + info.completeBaseName() + "." + extension;
   } else if (auto recents = recentFiles(); !recents.isEmpty()) {
     auto fname = recents.front();
-    QFileInfo info(fname);
+    QFileInfo info(fname.path());
     starting_fname = info.path() + "/" + info.completeBaseName() + "." + extension;
   }
   // Path may be empty if it is canceled, in which case we need to return early.
@@ -351,7 +350,7 @@ bool ProjectModel::onSaveAs(int row, const QString &extension) {
   // Do not mark as clean, since we didn't save the original source file.
   // If it is an extension that we could open again as a project, add it to the recent files list.
   // This will cause our next save to "start" in the same directory, which makes sense to me.
-  if (isDefaultExtension) prependRecent(fname);
+  if (isDefaultExtension) prependRecent(fname, env.second, env.first);
 #endif
   return true;
 }
