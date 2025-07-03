@@ -147,7 +147,7 @@ Item {
                             anchors.verticalCenter: parent.verticalCenter
                             height: Math.max(20, parent.height - 2)
                             width: height
-                            onClicked: root.closeProject(tabButton.row)
+                            onClicked: root.closeProject(tabButton.row, false)
                         }
                     }
                 }
