@@ -98,7 +98,15 @@ Labs.MenuBar {
                 required property string extension
                 text: `Save ${extension} as...`
                 onTriggered: {
-                    actions.window.onSaveAs(extension);
+                    actions.window.syncEditors();
+                    // Defer execution because force-quiting after sync but before onSaveAs causes a nested event loop failure.
+                    // This tells me something about sync or save as is cursed, but I don't care to debug it at this time.
+                    Qt.callLater(() => actions.window.onSaveAs(extension));
+                }
+                Component.onCompleted: {
+                    if (extension === project.defaultExtension()) {
+                        shortcut = actions.file.saveAs.shortcut;
+                    }
                 }
             }
         }

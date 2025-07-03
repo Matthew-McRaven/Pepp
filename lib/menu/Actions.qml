@@ -41,6 +41,13 @@ QtObject {
             shortcut: StandardKey.Save
             onShortcutChanged: updateNativeText(this)
         }
+        readonly property var saveAs: Action {
+            property string nativeText: ""
+            text: qsTr("Save as")
+            icon.source: `image://icons/file/save${dark ? '' : '_dark'}.svg`
+            shortcut: StandardKey.SaveAs
+            onShortcutChanged: updateNativeText(this)
+        }
         readonly property var print_: Action {
             text: qsTr("&Print")
             onTriggered: console.log(this.text)
