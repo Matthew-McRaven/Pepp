@@ -28,11 +28,20 @@ QVariant ProjectModel::data(const QModelIndex &index, int role) const {
   return {};
 }
 
+void markClean(QObject *item) {
+  if (auto isa = qobject_cast<Pep_ISA *>(item)) {
+    emit isa->markedClean();
+  }
+}
+
 bool ProjectModel::setData(const QModelIndex &index, const QVariant &value, int role) {
   if (!index.isValid() || index.row() >= _projects.size() || index.column() != 0) return {};
   switch (role) {
   case static_cast<int>(Roles::NameRole): _projects[index.row()].name = value.toString(); break;
-  case static_cast<int>(Roles::DirtyRole): _projects[index.row()].isDirty = value.toBool(); break;
+  case static_cast<int>(Roles::DirtyRole):
+    _projects[index.row()].isDirty = value.toBool();
+    if (!_projects[index.row()].isDirty) markClean(&*_projects[index.row()].impl);
+    break;
   case static_cast<int>(Roles::PathRole):
     _projects[index.row()].path = value.toString();
     _projects[index.row()].name = QFileInfo(_projects[index.row()].path).fileName();
@@ -56,7 +65,7 @@ Pep_ISA *ProjectModel::pep10ISA() {
   auto ret = &*ptr;
   QQmlEngine::setObjectOwnership(ret, QQmlEngine::CppOwnership);
   beginInsertRows(QModelIndex(), _projects.size(), _projects.size());
-  _projects.push_back({.impl = std::move(ptr), .name = placeholder.arg(_projects.size() + 1)});
+  appendProject(std::move(ptr));
   endInsertRows();
   emit rowCountChanged(_projects.size());
   return ret;
@@ -68,7 +77,7 @@ Pep_ISA *ProjectModel::pep9ISA() {
   auto ret = &*ptr;
   QQmlEngine::setObjectOwnership(ret, QQmlEngine::CppOwnership);
   beginInsertRows(QModelIndex(), _projects.size(), _projects.size());
-  _projects.push_back({.impl = std::move(ptr), .name = placeholder.arg(_projects.size() + 1)});
+  appendProject(std::move(ptr));
   endInsertRows();
   emit rowCountChanged(_projects.size());
   return ret;
@@ -80,7 +89,7 @@ Pep_ASMB *ProjectModel::pep10ASMB(pepp::Abstraction abstraction) {
   auto ret = &*ptr;
   QQmlEngine::setObjectOwnership(ret, QQmlEngine::CppOwnership);
   beginInsertRows(QModelIndex(), _projects.size(), _projects.size());
-  _projects.push_back({.impl = std::move(ptr), .name = placeholder.arg(_projects.size() + 1)});
+  appendProject(std::move(ptr));
   endInsertRows();
   emit rowCountChanged(_projects.size());
   return ret;
@@ -92,7 +101,7 @@ Pep_ASMB *ProjectModel::pep9ASMB() {
   auto ret = &*ptr;
   QQmlEngine::setObjectOwnership(ret, QQmlEngine::CppOwnership);
   beginInsertRows(QModelIndex(), _projects.size(), _projects.size());
-  _projects.push_back({.impl = std::move(ptr), .name = placeholder.arg(_projects.size() + 1)});
+  appendProject(std::move(ptr));
   endInsertRows();
   emit rowCountChanged(_projects.size());
   return ret;
@@ -215,6 +224,7 @@ bool defaultFromExtension(const QObject *item, const QString &extension) {
   }
   return false;
 }
+
 std::string defaultExtensionFor(const QObject *item) {
   if (auto asmb = qobject_cast<const Pep_ASMB *>(item)) {
     return "pep";
@@ -344,6 +354,25 @@ bool ProjectModel::onSaveAs(int row, const QString &extension) {
   if (isDefaultExtension) prependRecent(fname);
 #endif
   return true;
+}
+
+void ProjectModel::appendProject(std::unique_ptr<QObject> &&obj) {
+  // Capture pointer before we move out of the unique_ptr;
+  auto ptr = obj.get();
+  _projects.push_back({.impl = std::move(obj), .name = placeholder.arg(_projects.size() + 1)});
+  // Helper to set the recently inserted object as deleted. Lambda should be freed whenever ptr is freed by Qt.
+  auto lambda = [this, ptr]() {
+    // Cannot cache index, since items may have been inserted/deleted since this was created.
+    auto index = this->index(this->rowOf(ptr));
+    setData(index, true, (int)ProjectModel::Roles::DirtyRole);
+  };
+  if (auto asmb = qobject_cast<Pep_ASMB *>(ptr)) {
+    connect(asmb, &Pep_ASMB::markDirty, this, lambda);
+  } else if (auto isa = qobject_cast<Pep_ISA *>(ptr)) {
+    connect(isa, &Pep_ISA::markDirty, this, lambda);
+  } else {
+    qDebug() << "Fast dirtying logic will not work, pointer cast failed";
+  }
 }
 
 void init_pep10(QList<ProjectType> &vec) {

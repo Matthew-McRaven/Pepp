@@ -41,6 +41,14 @@ FocusScope {
                 x.close();
         }
     }
+    // Must be called when the project in the model is marked non-dirty
+    function markClean() {
+        objEdit.dirtied = Qt.binding(() => false);
+    }
+    function markDirty() {
+        if (objEdit.dirtied)
+            project.markDirty();
+    }
 
     // Call when the height, width have been finalized.
     // Otherwise, we attempt to layout when height/width == 0, and all our requests are ignored.
@@ -72,6 +80,8 @@ FocusScope {
         project.charInChanged.connect(() => batchInput.setInput(project.charIn));
         objEdit.editingFinished.connect(save);
         objEdit.forceActiveFocus();
+        project.markedClean.connect(wrapper.markClean);
+        objEdit.onDirtiedChanged.connect(wrapper.markDirty);
     }
 
     function save() {

@@ -122,6 +122,11 @@ signals:
   void deferredExecution(std::function<bool()> step);
   void overwriteEditors();
 
+  // Propogated  C++ project model => C++ project => QML project wrapper => QML editor
+  void markedClean();
+  // Propogate  QML editor => QML project wrapper => C++ project => C++ project model
+  void markDirty();
+
 protected:
   void bindToSystem();
   bool _pendingPause = false;

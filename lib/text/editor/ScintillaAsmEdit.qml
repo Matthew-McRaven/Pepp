@@ -56,6 +56,7 @@ FocusScope {
     property bool actionFromKeyboard: false
 
     property var menuCommandDelegate: undefined
+    property bool dirtied: false
 
     focus: true
     onFocusChanged: {
@@ -96,6 +97,13 @@ FocusScope {
         focus: true
         theme: settings.extPalette
         lineNumbersVisible: true
+        Connections {
+            target: editor
+            enabled: !root.dirtied
+            function onNotifyChange() {
+                root.dirtied = Qt.binding(() => true);
+            }
+        }
     }
     ScrollBar {
         id: verticalScrollBar

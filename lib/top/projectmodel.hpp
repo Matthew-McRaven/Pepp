@@ -52,6 +52,8 @@ private:
     QString path = "";
   };
   std::deque<Data> _projects = {};
+  // Emplace obj at end of _projects and register obj->markDirty to setData dirty;
+  void appendProject(std::unique_ptr<QObject> &&obj);
 };
 
 enum class CompletionState {

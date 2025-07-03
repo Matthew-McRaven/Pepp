@@ -23,6 +23,7 @@ ScrollView {
     property int bytesPerRow: 16
     property alias readOnly: editor.readOnly
     property alias text: editor.text
+    property bool dirtied: false
     signal editingFinished(string text)
     NuAppSettings {
         id: settings
@@ -68,10 +69,13 @@ ScrollView {
                 // If it doesn't "hit" a shortcut, then we can apply normal is hex logic
                 if (event.key === Qt.Key_Insert && event.modifiers === Qt.NoModifier)
                     editor.overwriteMode = !editor.overwriteMode;
-                else if (event.modifiers === Qt.NoModifier || event.modifiers == Qt.ShiftModifier)
+                else if (event.modifiers === Qt.NoModifier || event.modifiers == Qt.ShiftModifier) {
                     // If event is accepted, it won't reach the actual TextArea
                     // Use that behavior to filter out "wrong" keys.
                     event.accepted = !utils.valid(event.key);
+                }
+                if (!wrapper.dirtied)
+                    wrapper.dirtied = Qt.binding(() => true);
             }
         }
     }
