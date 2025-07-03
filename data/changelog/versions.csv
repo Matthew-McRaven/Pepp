@@ -19,4 +19,4 @@ Number,GitRef,Date,Blurb
 0.10.0,,2025-05-28,"This version introduces a new method of laying out the editor and debugger"
 0.10.1,,2025-05-29,"This version makes minor changes to macro formatting"
 0.10.2,,2025-06-22,"This version adds a CLI tool to assemble and run microcode programs"
-0.10.3,,??,"This version includes various macro formatting fixes"
+0.10.3,,2025-07-02,"This version includes various macro formatting fixes and Mac OS integrations"
