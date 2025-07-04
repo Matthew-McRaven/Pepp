@@ -76,7 +76,8 @@ if (ONLY STREQUAL "BUILD")
       qt_policy(SET QTP0004 NEW)
     endif()
     # 0 is TRACE, which enables all logging in every location. Only works if set as a global compile option and before 3rd-party.
-    # add_compile_options(-DSPDLOG_ACTIVE_LEVEL=0)
+    # Default to 3, since I am tired of seeing all of my  info messages.
+    add_compile_options(-DSPDLOG_ACTIVE_LEVEL=3)
     add_subdirectory(3rd-party)
     set(CMAKE_AUTOMOC ON)
     set(CMAKE_AUTORCC ON)
