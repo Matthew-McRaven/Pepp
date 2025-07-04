@@ -59,13 +59,12 @@ oldA:    .EQUATE 1           ;Stack address of A on trap
 ;
 trap:    LDWA    0,i
          MOVAFLG             ;Clear user supplied NZVC bits
-         LDWX    0,i
          LDWX    oldA,s
          BRLT    trapErr     ;System calls must be non-negative
          CPWX    ESCJT, i
          BRGE    trapErr     ;System calls must be within the table
          ASLX                ;Multiply index by 2 for word size
-         CALL    SCJT, x     ;
+         CALL    SCJT, x
          SRET
 ;
 trapErr: LDWA    scErrMsg,i  ;Load the address of the loader error message.
@@ -82,15 +81,19 @@ trapErr: LDWA    scErrMsg,i  ;Load the address of the loader error message.
 scErrMsg:.ASCII "Could not find system call \0"
 ;
 ;******* Assert valid trap addressing mode
+i2mask:  .BYTE   0x01        ;Immediate addressing
+         .BYTE   0x02        ;Direct addressing
+         .BYTE   0x04        ;Indirect addressing
+         .BYTE   0x08        ;Stack-relative addressing
+         .BYTE   0x10        ;Stack-relative deferred addressing
+         .BYTE   0x20        ;Indexed addressing
+         .BYTE   0x40        ;Stack-indexed addressing
+         .BYTE   0x80        ;Stack-deferred indexed addressing
 oldIR4:  .EQUATE 13          ;oldIR + 4 with two return addresses
-assertAd:LDBA    1,i         ;A <- 1
-         LDBX    oldIR4,s    ;X <- OldIR
+assertAd:LDBX    oldIR4,s    ;X <- OldIR
          ANDX    0x0007,i    ;Keep only the addressing mode bits
-         BREQ    testAd      ;000 = immediate addressing
-loop:    ASLA                ;Shift the 1 bit left
-         SUBX    1,i         ;Subtract from addressing mode count
-         BRNE    loop        ;Try next addressing mode
-testAd:  ANDA    addrMask,d  ;AND the 1 bit with legal modes
+         LDBA    i2mask,x    ;A <- addressing mode mask
+         ANDA    addrMask, d ;AND legal addressing modes with actual
          BREQ    addrErr
          RET                 ;Legal addressing mode, return
 addrErr: LDBA    '\n',i
@@ -123,7 +126,7 @@ addrJT:  .WORD addrI       ;Immediate addressing
 ;
 ;We compute the address of operands rather than their values
 ;except for immediate, where we compute its value, which unifies I and D.
-addrI:   .BLOCK  0           ;OprndSpec
+addrI:   .BLOCK  0           ;Immediate addressing
 addrD:   LDWX    oldOpr4,s   ;Direct addressing
          STWX    opAddr,d    ;Oprnd = Mem[OprndSpec]
          RET
