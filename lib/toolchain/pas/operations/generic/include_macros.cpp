@@ -112,8 +112,8 @@ void pas::ops::generic::IncludeMacros::addExtraChildren(ast::Node &node) {
   start->set(ast::generic::IsMacroComment{});
   start->set(ast::generic::CommentIndent{.value = ast::generic::CommentIndent::Level::Left});
   // Align the macro comment as if it were an instruction.
-  // Need a -2 indent to accomodate the ;@ characters.
-  auto formattedMacro = detail::formatMacro(node, {.indentMnemonic = -2});
+  // Need a -1 indent to accomodate the ; character.
+  auto formattedMacro = detail::formatMacro(node, {.indentMnemonic = -1});
   start->set(ast::generic::Comment{.value = formattedMacro});
 
   // If the macro declares a symbol, find the first addressable line and attempt to move our symbol to that line.

@@ -94,9 +94,7 @@ QString pas::ops::generic::detail::formatMacro(const ast::Node &node, SourceOpti
     qCritical(e);
     throw std::logic_error(e);
   }
-  auto newOpts = opts;
-  newOpts.indentMnemonic = 1 + opts.indentMnemonic;
-  return formatDirectiveOrMacro(node, u"@%1"_s.arg(node.get<ast::generic::Macro>().value.toUpper()), newOpts);
+  return formatDirectiveOrMacro(node, u"@%1"_s.arg(node.get<ast::generic::Macro>().value.toUpper()), opts);
 }
 
 QString pas::ops::generic::detail::formatErrorsAsComments(const ast::Node &node) {
