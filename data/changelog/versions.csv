@@ -20,3 +20,4 @@ Number,GitRef,Date,Blurb
 0.10.1,,2025-05-29,"This version makes minor changes to macro formatting"
 0.10.2,,2025-06-22,"This version adds a CLI tool to assemble and run microcode programs"
 0.10.3,,2025-07-02,"This version includes various macro formatting fixes and Mac OS integrations"
+0.10.4,,??,"This version modifies the Pep/10 process control block and fixes Mac OS file saving"
