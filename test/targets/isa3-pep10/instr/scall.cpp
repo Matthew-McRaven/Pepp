@@ -27,9 +27,11 @@ TEST_CASE("SCALL", "[scope:targets][kind:int][target:pep10]") {
 
   quint16 tmp = 0;
   auto tmpSpan = bits::span<quint8>{reinterpret_cast<quint8 *>(tmp), sizeof(tmp)};
-  const quint8 truth[] = {
-      /*NZVC*/ 0b1101, /*A*/ 0x11, 0x22,        /*X*/ 0xBA, 0xAD,
-      /*PC*/ 0x00,     0x01,       /*sp*/ 0xFE, 0xED,       (quint8)isa::Pep10::Mnemonic::SCALL};
+  const quint8 truth[] = {/*NZVC*/ 0b1101,
+                          /*A*/ 0x11,      0x22,
+                          /*X*/ 0xBA,      0xAD,
+                          /*PC*/ 0x00,     0x01,
+                          /*sp*/ 0xFE,     0xED, (quint8)isa::Pep10::Mnemonic::SCALL, 0xCA, 0xBE};
   quint8 buf[sizeof(truth)];
 
   auto program = std::array<quint8, 3>{(quint8)isa::Pep10::Mnemonic::SCALL, 0xCA, 0xBE};
@@ -51,7 +53,7 @@ TEST_CASE("SCALL", "[scope:targets][kind:int][target:pep10]") {
   REQUIRE_NOTHROW(cpu->clock(0));
 
   REQUIRE_NOTHROW(targets::isa::readRegister<isa::Pep10>(cpu->regs(), isa::Pep10::Register::SP, tmp, rw));
-  CHECK(tmp + 10 == 0x8086);
+  CHECK(tmp + 12 == 0x8086);
   REQUIRE_NOTHROW(mem->read(tmp, {buf, sizeof(buf)}, rw));
 
   for (int it = 0; it < sizeof(truth); it++)

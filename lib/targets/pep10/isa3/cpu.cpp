@@ -183,7 +183,7 @@ sim::api2::tick::Result targets::pep10::isa::CPU::unaryDispatch(quint8 is, quint
   quint8 tmp8 = 0;
   // Long enough to either hold all regs or one ctx switch block.
   static constexpr quint8 registersBytes = 2 * ::isa::Pep10::RegisterCount;
-  quint8 ctx[std::max<std::size_t>(registersBytes, 10)];
+  quint8 ctx[std::max<std::size_t>(registersBytes, 12)];
   auto ctxSpan = bits::span<quint8>{ctx, sizeof(ctx)};
   auto [n, z, v, c] = ::targets::isa::unpackCSR<ISA>(readPackedCSR());
 
@@ -379,7 +379,7 @@ sim::api2::tick::Result targets::pep10::isa::CPU::unaryDispatch(quint8 is, quint
     // Bulk write-back regs, saving a number of bits on trace metadata.
     _regs.write(0, {ctx, registersBytes}, rw_d);
 
-    tmp = sp + 10;
+    tmp = sp + 12;
     // Using "host"'s variables, so byte swap if necessary.
     if (swap) tmp = bits::byteswap(tmp);
     _memory->write(static_cast<quint16>(::isa::Pep10::MemoryVectors::SystemStackPtr),
@@ -404,6 +404,8 @@ sim::api2::tick::Result targets::pep10::isa::CPU::unaryDispatch(quint8 is, quint
     tmp = swap ? bits::byteswap(sp) : sp;
     bits::memcpy(ctxSpan.subspan(7, 2), tmpSpan);
     ctx[9] = is;
+    _memory->read(pc, {reinterpret_cast<quint8 *>(&tmp), 2}, rw_i);
+    bits::memcpy(ctxSpan.subspan(10, 2), tmpSpan);
 
     // Read system stack address.
     _memory->read(static_cast<quint16>(::isa::Pep10::MemoryVectors::SystemStackPtr),
@@ -411,7 +413,7 @@ sim::api2::tick::Result targets::pep10::isa::CPU::unaryDispatch(quint8 is, quint
     if (swap) tmp = bits::byteswap(tmp);
 
     // Allocate ctx frame with -=.
-    _memory->write(tmp -= 10, {ctx, 10}, rw_d);
+    _memory->write(tmp -= 12, {ctx, 12}, rw_d);
     // And update SP with OS's SP.
     writeReg(Register::SP, tmp);
 

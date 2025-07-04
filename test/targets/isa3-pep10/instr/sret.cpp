@@ -39,9 +39,9 @@ TEST_CASE("SRET", "[scope:targets][kind:int][target:pep10]") {
   cpu->regs()->clear(0);
   cpu->csrs()->clear(0);
 
-  REQUIRE_NOTHROW(targets::isa::writeRegister<isa::Pep10>(cpu->regs(), isa::Pep10::Register::SP, 0x8086 - 10, rw));
+  REQUIRE_NOTHROW(targets::isa::writeRegister<isa::Pep10>(cpu->regs(), isa::Pep10::Register::SP, 0x8086 - 12, rw));
   REQUIRE_NOTHROW(mem->write(0x0000, {program.data(), program.size()}, rw));
-  REQUIRE_NOTHROW(mem->write(0x8086 - 10, {truth, sizeof(truth)}, rw));
+  REQUIRE_NOTHROW(mem->write(0x8086 - 12, {truth, sizeof(truth)}, rw));
 
   REQUIRE_NOTHROW(cpu->clock(0));
 
