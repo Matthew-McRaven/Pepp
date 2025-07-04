@@ -55,47 +55,43 @@ execErr: .ASCII "Main failed with return value \0"
 ;NZVC bits, A and X registers contain user data after SCALL.
 ;From an OS perspective, these registers are unitialized values,
 ;and must be explicity set to prevent impacts on OS correctness.
-oldIR:   .EQUATE 9           ;Stack address of IR on trap
-oldPC:   .EQUATE 5           ;Stack address of PC on trap
 oldA:    .EQUATE 1           ;Stack address of A on trap
 ;
 trap:    LDWA    0,i
          MOVAFLG             ;Clear user supplied NZVC bits
-         LDWX    0,i
-         LDWA    oldPC,s     ;Must increment program counter
-         ADDA    2,i
-         STWA    oldPC,s
          LDWX    oldA,s
          BRLT    trapErr     ;System calls must be non-negative
          CPWX    ESCJT, i
          BRGE    trapErr     ;System calls must be within the table
          ASLX                ;Multiply index by 2 for word size
-         CALL    SCJT, x     ;
+         CALL    SCJT, x
          SRET
 ;
 trapErr: LDWA    scErrMsg,i  ;Load the address of the loader error message.
          STWA    -2,s        ;Push address of error message
          SUBSP   2,i         ;Allocate @param #msgAddr
          CALL    prntMsg
-         ADDSP   2,i         ;Deallocate @param #msgAddr
          LDWA    oldA,s
-         STWA    -2,s
-         SUBSP   2,i         ;Allocate @param #num
+         STWA    0,s         ;Re-Allocate @param #num
          CALL    numPrint
-         ADDSP   2,i         ;Allocate @param #num
+         ADDSP   2,i         ;Deallocate @param #num
          BR      shutdown
 scErrMsg:.ASCII "Could not find system call \0"
 ;
 ;******* Assert valid trap addressing mode
+i2mask:  .BYTE   0x01        ;Immediate addressing
+         .BYTE   0x02        ;Direct addressing
+         .BYTE   0x04        ;Indirect addressing
+         .BYTE   0x08        ;Stack-relative addressing
+         .BYTE   0x10        ;Stack-relative deferred addressing
+         .BYTE   0x20        ;Indexed addressing
+         .BYTE   0x40        ;Stack-indexed addressing
+         .BYTE   0x80        ;Stack-deferred indexed addressing
 oldIR4:  .EQUATE 13          ;oldIR + 4 with two return addresses
-assertAd:LDBA    1,i         ;A <- 1
-         LDBX    oldIR4,s    ;X <- OldIR
+assertAd:LDBX    oldIR4,s    ;X <- OldIR
          ANDX    0x0007,i    ;Keep only the addressing mode bits
-         BREQ    testAd      ;000 = immediate addressing
-loop:    ASLA                ;Shift the 1 bit left
-         SUBX    1,i         ;Subtract from addressing mode count
-         BRNE    loop        ;Try next addressing mode
-testAd:  ANDA    addrMask,d  ;AND the 1 bit with legal modes
+         LDBA    i2mask,x    ;A <- addressing mode mask
+         ANDA    addrMask, d ;AND legal addressing modes with actual
          BREQ    addrErr
          RET                 ;Legal addressing mode, return
 addrErr: LDBA    '\n',i
@@ -112,6 +108,7 @@ trapMsg: .ASCII  "ERROR: Invalid trap addressing mode.\0"
 oldX4:   .EQUATE 7           ;oldX + 4 with two return addresses
 oldPC4:  .EQUATE 9           ;oldPC + 4 with two return address
 oldSP4:  .EQUATE 11          ;oldSP + 4 with two return address
+oldOpr4: .EQUATE 14          ;oldOS + 4 with two return address
 setAddr: LDBX    oldIR4,s    ;X <- old instruction register
          ANDX    0x0007,i    ;Keep only the addressing mode bits
          ASLX                ;Two bytes per address
@@ -125,58 +122,42 @@ addrJT:  .WORD addrI       ;Immediate addressing
          .WORD addrSX      ;Stack-indexed addressing
          .WORD addrSFX     ;Stack-deferred indexed addressing
 ;
-addrI:   LDWX    oldPC4,s    ;Immediate addressing
-         SUBX    2,i         ;Oprnd = OprndSpec
+;We compute the address of operands rather than their values
+;except for immediate, where we compute its value, which unifies I and D.
+addrI:   .BLOCK  0           ;Immediate addressing
+addrD:   LDWX    oldOpr4,s   ;Direct addressing
+         STWX    opAddr,d    ;Oprnd = Mem[OprndSpec]
+         RET
+;
+addrN:   LDWX    oldOpr4,s   ;Indirect addressing
+         LDWX    0,x         ;Oprnd = Mem[Mem[OprndSpec]]
          STWX    opAddr,d
          RET
 ;
-addrD:   LDWX    oldPC4,s    ;Direct addressing
-         SUBX    2,i         ;Oprnd = Mem[OprndSpec]
+addrS:   LDWX    oldOpr4,s   ;Stack-relative addressing
+         ADDX    oldSP4,s    ;Oprnd = Mem[SP + OprndSpec]
+         STWX    opAddr,d
+         RET
+;
+addrSF:  LDWX    oldOpr4,s   ;Stack-relative deferred addressing
+         ADDX    oldSP4,s    ;Oprnd = Mem[Mem[SP + OprndSpec]]
          LDWX    0,x
          STWX    opAddr,d
          RET
 ;
-addrN:   LDWX    oldPC4,s    ;Indirect addressing
-         SUBX    2,i         ;Oprnd = Mem[Mem[OprndSpec]]
-         LDWX    0,x
-         LDWX    0,x
+addrX:   LDWX    oldOpr4,s   ;Indexed addressing
+         ADDX    oldX4,s     ;Oprnd = Mem[OprndSpec + X]
          STWX    opAddr,d
          RET
 ;
-addrS:   LDWX    oldPC4,s    ;Stack-relative addressing
-         SUBX    2,i         ;Oprnd = Mem[SP + OprndSpec]
-         LDWX    0,x
+addrSX:  LDWX    oldOpr4,s   ;Stack-indexed addressing
+         ADDX    oldX4,s     ;Oprnd = Mem[SP + OprndSpec + X]
          ADDX    oldSP4,s
          STWX    opAddr,d
          RET
 ;
-addrSF:  LDWX    oldPC4,s    ;Stack-relative deferred addressing
-         SUBX    2,i         ;Oprnd = Mem[Mem[SP + OprndSpec]]
-         LDWX    0,x
-         ADDX    oldSP4,s
-         LDWX    0,x
-         STWX    opAddr,d
-         RET
-;
-addrX:   LDWX    oldPC4,s    ;Indexed addressing
-         SUBX    2,i         ;Oprnd = Mem[OprndSpec + X]
-         LDWX    0,x
-         ADDX    oldX4,s
-         STWX    opAddr,d
-         RET
-;
-addrSX:  LDWX    oldPC4,s    ;Stack-indexed addressing
-         SUBX    2,i         ;Oprnd = Mem[SP + OprndSpec + X]
-         LDWX    0,x
-         ADDX    oldX4,s
-         ADDX    oldSP4,s
-         STWX    opAddr,d
-         RET
-;
-addrSFX: LDWX    oldPC4,s    ;Stack-deferred indexed addressing
-         SUBX    2,i         ;Oprnd = Mem[Mem[SP + OprndSpec] + X]
-         LDWX    0,x
-         ADDX    oldSP4,s
+addrSFX: LDWX    oldOpr4,s   ;Stack-deferred indexed addressing
+         ADDX    oldSP4,s    ;Oprnd = Mem[Mem[SP + OprndSpec] + X]
          LDWX    0,x
          ADDX    oldX4,s
          STWX    opAddr,d
