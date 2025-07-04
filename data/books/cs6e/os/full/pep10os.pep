@@ -112,6 +112,7 @@ trapMsg: .ASCII  "ERROR: Invalid trap addressing mode.\0"
 oldX4:   .EQUATE 7           ;oldX + 4 with two return addresses
 oldPC4:  .EQUATE 9           ;oldPC + 4 with two return address
 oldSP4:  .EQUATE 11          ;oldSP + 4 with two return address
+oldOpr4: .EQUATE 14          ;oldOS + 4 with two return address
 setAddr: LDBX    oldIR4,s    ;X <- old instruction register
          ANDX    0x0007,i    ;Keep only the addressing mode bits
          ASLX                ;Two bytes per address
@@ -125,58 +126,42 @@ addrJT:  .WORD addrI       ;Immediate addressing
          .WORD addrSX      ;Stack-indexed addressing
          .WORD addrSFX     ;Stack-deferred indexed addressing
 ;
-addrI:   LDWX    oldPC4,s    ;Immediate addressing
-         SUBX    2,i         ;Oprnd = OprndSpec
+;We compute the address of operands rather than their values
+;except for immediate, where we compute its value, which unifies I and D.
+addrI:   .BLOCK  0           ;OprndSpec
+addrD:   LDWX    oldOpr4,s   ;Direct addressing
+         STWX    opAddr,d    ;Oprnd = Mem[OprndSpec]
+         RET
+;
+addrN:   LDWX    oldOpr4,s   ;Indirect addressing
+         LDWX    0,x         ;Oprnd = Mem[Mem[OprndSpec]]
          STWX    opAddr,d
          RET
 ;
-addrD:   LDWX    oldPC4,s    ;Direct addressing
-         SUBX    2,i         ;Oprnd = Mem[OprndSpec]
+addrS:   LDWX    oldOpr4,s   ;Stack-relative addressing
+         ADDX    oldSP4,s    ;Oprnd = Mem[SP + OprndSpec]
+         STWX    opAddr,d
+         RET
+;
+addrSF:  LDWX    oldOpr4,s   ;Stack-relative deferred addressing
+         ADDX    oldSP4,s    ;Oprnd = Mem[Mem[SP + OprndSpec]]
          LDWX    0,x
          STWX    opAddr,d
          RET
 ;
-addrN:   LDWX    oldPC4,s    ;Indirect addressing
-         SUBX    2,i         ;Oprnd = Mem[Mem[OprndSpec]]
-         LDWX    0,x
-         LDWX    0,x
+addrX:   LDWX    oldOpr4,s   ;Indexed addressing
+         ADDX    oldX4,s     ;Oprnd = Mem[OprndSpec + X]
          STWX    opAddr,d
          RET
 ;
-addrS:   LDWX    oldPC4,s    ;Stack-relative addressing
-         SUBX    2,i         ;Oprnd = Mem[SP + OprndSpec]
-         LDWX    0,x
+addrSX:  LDWX    oldOpr4,s   ;Stack-indexed addressing
+         ADDX    oldX4,s     ;Oprnd = Mem[SP + OprndSpec + X]
          ADDX    oldSP4,s
          STWX    opAddr,d
          RET
 ;
-addrSF:  LDWX    oldPC4,s    ;Stack-relative deferred addressing
-         SUBX    2,i         ;Oprnd = Mem[Mem[SP + OprndSpec]]
-         LDWX    0,x
-         ADDX    oldSP4,s
-         LDWX    0,x
-         STWX    opAddr,d
-         RET
-;
-addrX:   LDWX    oldPC4,s    ;Indexed addressing
-         SUBX    2,i         ;Oprnd = Mem[OprndSpec + X]
-         LDWX    0,x
-         ADDX    oldX4,s
-         STWX    opAddr,d
-         RET
-;
-addrSX:  LDWX    oldPC4,s    ;Stack-indexed addressing
-         SUBX    2,i         ;Oprnd = Mem[SP + OprndSpec + X]
-         LDWX    0,x
-         ADDX    oldX4,s
-         ADDX    oldSP4,s
-         STWX    opAddr,d
-         RET
-;
-addrSFX: LDWX    oldPC4,s    ;Stack-deferred indexed addressing
-         SUBX    2,i         ;Oprnd = Mem[Mem[SP + OprndSpec] + X]
-         LDWX    0,x
-         ADDX    oldSP4,s
+addrSFX: LDWX    oldOpr4,s   ;Stack-deferred indexed addressing
+         ADDX    oldSP4,s    ;Oprnd = Mem[Mem[SP + OprndSpec] + X]
          LDWX    0,x
          ADDX    oldX4,s
          STWX    opAddr,d
