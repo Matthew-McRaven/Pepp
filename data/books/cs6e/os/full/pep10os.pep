@@ -55,16 +55,11 @@ execErr: .ASCII "Main failed with return value \0"
 ;NZVC bits, A and X registers contain user data after SCALL.
 ;From an OS perspective, these registers are unitialized values,
 ;and must be explicity set to prevent impacts on OS correctness.
-oldIR:   .EQUATE 9           ;Stack address of IR on trap
-oldPC:   .EQUATE 5           ;Stack address of PC on trap
 oldA:    .EQUATE 1           ;Stack address of A on trap
 ;
 trap:    LDWA    0,i
          MOVAFLG             ;Clear user supplied NZVC bits
          LDWX    0,i
-         LDWA    oldPC,s     ;Must increment program counter
-         ADDA    2,i
-         STWA    oldPC,s
          LDWX    oldA,s
          BRLT    trapErr     ;System calls must be non-negative
          CPWX    ESCJT, i

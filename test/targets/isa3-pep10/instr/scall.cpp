@@ -30,7 +30,7 @@ TEST_CASE("SCALL", "[scope:targets][kind:int][target:pep10]") {
   const quint8 truth[] = {/*NZVC*/ 0b1101,
                           /*A*/ 0x11,      0x22,
                           /*X*/ 0xBA,      0xAD,
-                          /*PC*/ 0x00,     0x01,
+                          /*PC*/ 0x00,     0x03,
                           /*sp*/ 0xFE,     0xED, (quint8)isa::Pep10::Mnemonic::SCALL, 0xCA, 0xBE};
   quint8 buf[sizeof(truth)];
 

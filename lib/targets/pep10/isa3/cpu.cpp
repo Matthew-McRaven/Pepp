@@ -399,7 +399,9 @@ sim::api2::tick::Result targets::pep10::isa::CPU::unaryDispatch(quint8 is, quint
     bits::memcpy(ctxSpan.subspan(1, 2), tmpSpan);
     tmp = swap ? bits::byteswap(x) : x;
     bits::memcpy(ctxSpan.subspan(3, 2), tmpSpan);
-    tmp = swap ? bits::byteswap(pc) : pc;
+    // Must increment PC by 2 since we are ISA3 dyadic but MC2 mondadic
+    tmp = pc + 2;
+    tmp = swap ? bits::byteswap(tmp) : tmp;
     bits::memcpy(ctxSpan.subspan(5, 2), tmpSpan);
     tmp = swap ? bits::byteswap(sp) : sp;
     bits::memcpy(ctxSpan.subspan(7, 2), tmpSpan);
