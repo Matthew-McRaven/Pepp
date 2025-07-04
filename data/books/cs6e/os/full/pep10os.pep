@@ -71,12 +71,10 @@ trapErr: LDWA    scErrMsg,i  ;Load the address of the loader error message.
          STWA    -2,s        ;Push address of error message
          SUBSP   2,i         ;Allocate @param #msgAddr
          CALL    prntMsg
-         ADDSP   2,i         ;Deallocate @param #msgAddr
          LDWA    oldA,s
-         STWA    -2,s
-         SUBSP   2,i         ;Allocate @param #num
+         STWA    0,s         ;Re-Allocate @param #num
          CALL    numPrint
-         ADDSP   2,i         ;Allocate @param #num
+         ADDSP   2,i         ;Deallocate @param #num
          BR      shutdown
 scErrMsg:.ASCII "Could not find system call \0"
 ;
