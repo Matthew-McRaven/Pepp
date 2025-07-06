@@ -1,47 +1,43 @@
 #include "./expr_value2.hpp"
 
+namespace detail {
+using namespace pepp::debug;
 // Try to swap order of arguments. If you do not want the arguments to be swapped, you will need to poison those
 // overloads.
 template <typename T> struct SwapDispatch {
-  pepp::debug::Value operator()(const auto &lhs, const auto &rhs) const {
-    if constexpr (requires { T{}(lhs, rhs); }) {
-      return T{}(lhs, rhs);
-    } else if constexpr (requires { T{}(rhs, lhs); }) return T{}(rhs, lhs);
+  const types::RuntimeTypeInfo &info;
+  Value operator()(const auto &lhs, const auto &rhs) const {
+    if constexpr (requires { T{info}(lhs, rhs); }) {
+      return T{info}(lhs, rhs);
+    } else if constexpr (requires { T{info}(rhs, lhs); }) return T{}(rhs, lhs);
     else throw std::runtime_error("unsupported operand types for operation");
   }
 };
 
 struct BinaryUnimplmenetedVisitor {
-  pepp::debug::Value operator()(const auto &, const auto &) const { return pepp::debug::VNever{}; }
+  Value operator()(const auto &, const auto &) const { return VNever{}; }
 };
 template <typename Op> struct BinaryArithVisitor {
-  pepp::debug::Value operator()(const pepp::debug::VNever &lhs, const auto &rhs) const { return pepp::debug::VNever{}; }
-  pepp::debug::Value operator()(const pepp::debug::VPrimitive &lhs, const pepp::debug::VPrimitive &rhs) const {
-    if (lhs.primitive == rhs.primitive) return pepp::debug::VPrimitive::with_bits(lhs, Op{}(lhs.bits, rhs.bits));
-    auto common = pepp::debug::types::common_type(lhs.primitive, rhs.primitive);
-    return (*this)(pepp::debug::VPrimitive::promote(lhs, common), pepp::debug::VPrimitive::promote(rhs, common));
+  const types::RuntimeTypeInfo &info;
+  Value operator()(const VNever &lhs, const auto &rhs) const { return VNever{}; }
+  Value operator()(const VPrimitive &lhs, const VPrimitive &rhs) const {
+    if (lhs.primitive == rhs.primitive) return VPrimitive::with_bits(lhs, Op{}(lhs.bits, rhs.bits));
+    auto common = types::common_type(lhs.primitive, rhs.primitive);
+    return (*this)(VPrimitive::promote(lhs, common), VPrimitive::promote(rhs, common));
   }
-  pepp::debug::Value operator()(const auto &, const auto &) const { return pepp::debug::VNever{}; }
+  Value operator()(const auto &, const auto &) const { return VNever{}; }
 };
 
 struct BinaryPlusVisitor : public BinaryArithVisitor<std::plus<uint64_t>> {
   using BinaryArithVisitor<std::plus<uint64_t>>::operator();
-  pepp::debug::Value operator()(const pepp::debug::VPointer &lhs, const pepp::debug::VPrimitive &rhs) const {
-    return pepp::debug::VNever{};
-  }
-  pepp::debug::Value operator()(const pepp::debug::VArray &lhs, const pepp::debug::VPrimitive &rhs) const {
-    return pepp::debug::VNever{};
-  }
+  Value operator()(const VPointer &lhs, const VPrimitive &rhs) const { return VNever{}; }
+  Value operator()(const VArray &lhs, const VPrimitive &rhs) const { return VNever{}; }
 };
 
 struct BinaryMinusVisitor : public BinaryArithVisitor<std::minus<uint64_t>> {
   using BinaryArithVisitor<std::minus<uint64_t>>::operator();
-  pepp::debug::Value operator()(const pepp::debug::VPointer &lhs, const pepp::debug::VPrimitive &rhs) const {
-    return pepp::debug::VNever{};
-  }
-  pepp::debug::Value operator()(const pepp::debug::VArray &lhs, const pepp::debug::VPrimitive &rhs) const {
-    return pepp::debug::VNever{};
-  }
+  Value operator()(const VPointer &lhs, const VPrimitive &rhs) const { return VNever{}; }
+  Value operator()(const VArray &lhs, const VPrimitive &rhs) const { return VNever{}; }
 };
 
 struct BinaryTimesVisitor : public BinaryArithVisitor<std::multiplies<uint64_t>> {
@@ -83,85 +79,103 @@ struct BinaryORVisitor : public BinaryArithVisitor<std::bit_or<uint64_t>> {
 struct BinaryXORVisitor : public BinaryArithVisitor<std::bit_xor<uint64_t>> {
   using BinaryArithVisitor<std::bit_xor<uint64_t>>::operator();
 };
+} // namespace detail
 
-pepp::debug::Value pepp::debug::operators::operator+(const Value &lhs, const Value &rhs) {
-  return std::visit(SwapDispatch<BinaryPlusVisitor>{}, lhs, rhs);
+pepp::debug::Value pepp::debug::operators::op2_add(const types::RuntimeTypeInfo &info, const Value &lhs,
+                                                   const Value &rhs) {
+  return std::visit(detail::SwapDispatch<detail::BinaryPlusVisitor>{info}, lhs, rhs);
 }
 
-pepp::debug::Value pepp::debug::operators::operator-(const Value &lhs, const Value &rhs) {
-  return std::visit(BinaryMinusVisitor{}, lhs, rhs);
+pepp::debug::Value pepp::debug::operators::op2_sub(const types::RuntimeTypeInfo &info, const Value &lhs,
+                                                   const Value &rhs) {
+  return std::visit(detail::BinaryMinusVisitor{info}, lhs, rhs);
 }
 
-pepp::debug::Value pepp::debug::operators::operator*(const Value &lhs, const Value &rhs) {
-  return std::visit(SwapDispatch<BinaryTimesVisitor>{}, lhs, rhs);
+pepp::debug::Value pepp::debug::operators::op2_mul(const types::RuntimeTypeInfo &info, const Value &lhs,
+                                                   const Value &rhs) {
+  return std::visit(detail::SwapDispatch<detail::BinaryTimesVisitor>{info}, lhs, rhs);
 }
 
-pepp::debug::Value pepp::debug::operators::operator/(const Value &lhs, const Value &rhs) {
-  return std::visit(BinaryDivideVisitor{}, lhs, rhs);
+pepp::debug::Value pepp::debug::operators::op2_div(const types::RuntimeTypeInfo &info, const Value &lhs,
+                                                   const Value &rhs) {
+  return std::visit(detail::BinaryDivideVisitor{info}, lhs, rhs);
 }
 
-pepp::debug::Value pepp::debug::operators::operator%(const Value &lhs, const Value &rhs) {
-  return std::visit(BinaryModuloVisitor{}, lhs, rhs);
+pepp::debug::Value pepp::debug::operators::op2_mod(const types::RuntimeTypeInfo &info, const Value &lhs,
+                                                   const Value &rhs) {
+  return std::visit(detail::BinaryModuloVisitor{info}, lhs, rhs);
 }
 
-pepp::debug::Value pepp::debug::operators::operator<<(const Value &lhs, const Value &rhs) {
-  return std::visit(BinaryShiftLeftVisitor{}, lhs, rhs);
+pepp::debug::Value pepp::debug::operators::op2_bsl(const types::RuntimeTypeInfo &info, const Value &lhs,
+                                                   const Value &rhs) {
+  return std::visit(detail::BinaryShiftLeftVisitor{info}, lhs, rhs);
 }
 
-pepp::debug::Value pepp::debug::operators::operator>>(const Value &lhs, const Value &rhs) {
-  return std::visit(BinaryShiftRightVisitor{}, lhs, rhs);
+pepp::debug::Value pepp::debug::operators::op2_bsr(const types::RuntimeTypeInfo &info, const Value &lhs,
+                                                   const Value &rhs) {
+  return std::visit(detail::BinaryShiftRightVisitor{info}, lhs, rhs);
 }
 
-pepp::debug::Value pepp::debug::operators::operator&(const Value &lhs, const Value &rhs) {
-  return std::visit(SwapDispatch<BinaryANDVisitor>{}, lhs, rhs);
+pepp::debug::Value pepp::debug::operators::op2_bitand(const types::RuntimeTypeInfo &info, const Value &lhs,
+                                                      const Value &rhs) {
+  return std::visit(detail::SwapDispatch<detail::BinaryANDVisitor>{info}, lhs, rhs);
 }
 
-pepp::debug::Value pepp::debug::operators::operator|(const Value &lhs, const Value &rhs) {
-  return std::visit(SwapDispatch<BinaryORVisitor>{}, lhs, rhs);
+pepp::debug::Value pepp::debug::operators::op2_bitor(const types::RuntimeTypeInfo &info, const Value &lhs,
+                                                     const Value &rhs) {
+  return std::visit(detail::SwapDispatch<detail::BinaryORVisitor>{info}, lhs, rhs);
 }
 
-pepp::debug::Value pepp::debug::operators::operator^(const Value &lhs, const Value &rhs) {
-  return std::visit(SwapDispatch<BinaryXORVisitor>{}, lhs, rhs);
+pepp::debug::Value pepp::debug::operators::op2_bitxor(const types::RuntimeTypeInfo &info, const Value &lhs,
+                                                      const Value &rhs) {
+  return std::visit(detail::SwapDispatch<detail::BinaryXORVisitor>{info}, lhs, rhs);
 }
 
-pepp::debug::Value pepp::debug::compare::operator<=>(const Value &lhs, const Value &rhs) {
+pepp::debug::Value pepp::debug::operators::op2_spaceship(const types::RuntimeTypeInfo &info, const Value &lhs,
+                                                         const Value &rhs) {
   auto ret = ::pepp::debug::operator<=>(lhs, rhs);
   int8_t result = ret == std::strong_ordering::less ? -1 : (ret == std::strong_ordering::equal ? 0 : 1);
-  return pepp::debug::VPrimitive::i8(result);
+  return VPrimitive::i8(result);
 }
 
-pepp::debug::Value pepp::debug::compare::operator<(const Value &lhs, const Value &rhs) {
+pepp::debug::Value pepp::debug::operators::op2_lt(const types::RuntimeTypeInfo &info, const Value &lhs,
+                                                  const Value &rhs) {
   auto ret = ::pepp::debug::operator<=>(lhs, rhs);
-  if (ret == std::strong_ordering::less) return pepp::debug::VPrimitive::True();
-  else return pepp::debug::VPrimitive::False();
+  if (ret == std::strong_ordering::less) return VPrimitive::True();
+  else return VPrimitive::False();
 }
 
-pepp::debug::Value pepp::debug::compare::operator<=(const Value &lhs, const Value &rhs) {
+pepp::debug::Value pepp::debug::operators::op2_le(const types::RuntimeTypeInfo &info, const Value &lhs,
+                                                  const Value &rhs) {
   auto ret = ::pepp::debug::operator<=>(lhs, rhs);
-  if (ret != std::strong_ordering::greater) return pepp::debug::VPrimitive::True();
-  else return pepp::debug::VPrimitive::False();
+  if (ret != std::strong_ordering::greater) return VPrimitive::True();
+  else return VPrimitive::False();
 }
 
-pepp::debug::Value pepp::debug::compare::operator==(const Value &lhs, const Value &rhs) {
+pepp::debug::Value pepp::debug::operators::op2_eq(const types::RuntimeTypeInfo &info, const Value &lhs,
+                                                  const Value &rhs) {
   auto ret = ::pepp::debug::operator<=>(lhs, rhs);
-  if (ret == std::strong_ordering::equal) return pepp::debug::VPrimitive::True();
-  else return pepp::debug::VPrimitive::False();
+  if (ret == std::strong_ordering::equal) return VPrimitive::True();
+  else return VPrimitive::False();
 }
 
-pepp::debug::Value pepp::debug::compare::operator!=(const Value &lhs, const Value &rhs) {
+pepp::debug::Value pepp::debug::operators::op2_ne(const types::RuntimeTypeInfo &info, const Value &lhs,
+                                                  const Value &rhs) {
   auto ret = ::pepp::debug::operator<=>(lhs, rhs);
-  if (ret != std::strong_ordering::equal) return pepp::debug::VPrimitive::True();
-  else return pepp::debug::VPrimitive::False();
+  if (ret != std::strong_ordering::equal) return VPrimitive::True();
+  else return VPrimitive::False();
 }
 
-pepp::debug::Value pepp::debug::compare::operator>=(const Value &lhs, const Value &rhs) {
+pepp::debug::Value pepp::debug::operators::op2_ge(const types::RuntimeTypeInfo &info, const Value &lhs,
+                                                  const Value &rhs) {
   auto ret = ::pepp::debug::operator<=>(lhs, rhs);
-  if (ret != std::strong_ordering::less) return pepp::debug::VPrimitive::True();
-  else return pepp::debug::VPrimitive::False();
+  if (ret != std::strong_ordering::less) return VPrimitive::True();
+  else return VPrimitive::False();
 }
 
-pepp::debug::Value pepp::debug::compare::operator>(const Value &lhs, const Value &rhs) {
+pepp::debug::Value pepp::debug::operators::op2_gt(const types::RuntimeTypeInfo &info, const Value &lhs,
+                                                  const Value &rhs) {
   auto ret = ::pepp::debug::operator<=>(lhs, rhs);
-  if (ret == std::strong_ordering::greater) return pepp::debug::VPrimitive::True();
-  else return pepp::debug::VPrimitive::False();
+  if (ret == std::strong_ordering::greater) return VPrimitive::True();
+  else return VPrimitive::False();
 }

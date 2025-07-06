@@ -58,15 +58,3 @@ std::strong_ordering pepp::debug::operator<=>(const Value &lhs, const Value &rhs
   return std::visit(OrderingVisitor{}, lhs, rhs);
 }
 
-struct TypeofVisitor {
-  const pepp::debug::types::RuntimeTypeInfo &info;
-  pepp::debug::types::Type operator()(const pepp::debug::VNever &) const { return pepp::debug::types::Never{}; }
-  pepp::debug::types::Type operator()(const pepp::debug::VPrimitive &v) const { return pepp::debug::types::Type{v}; }
-  pepp::debug::types::Type operator()(const pepp::debug::VPointer &v) const { return unbox(info.from(v.type_handle)); }
-  pepp::debug::types::Type operator()(const pepp::debug::VArray &v) const { return unbox(info.from(v.type_handle)); }
-  pepp::debug::types::Type operator()(const pepp::debug::VStruct &v) const { return unbox(info.from(v.type_handle)); }
-};
-
-pepp::debug::types::Type pepp::debug::_typeof(const types::RuntimeTypeInfo &info, const Value &v) {
-  return std::visit(TypeofVisitor{.info = info}, v);
-}
