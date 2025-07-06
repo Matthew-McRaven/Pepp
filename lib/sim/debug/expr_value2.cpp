@@ -4,12 +4,12 @@ pepp::debug::VPrimitive pepp::debug::VPrimitive::with_bits(const VPrimitive &typ
   using enum pepp::debug::types::Primitives;
   auto hnd = types::RuntimeTypeInfo::Handle(type.primitive);
   switch (type.primitive) {
-  case i8: return VPrimitive{TPrimitive{.primitive = type.primitive}, hnd, uint64_t((int8_t)new_value)};
-  case u8: return VPrimitive{TPrimitive{.primitive = type.primitive}, hnd, uint64_t((uint8_t)new_value)};
-  case i16: return VPrimitive{TPrimitive{.primitive = type.primitive}, hnd, uint64_t((int16_t)new_value)};
-  case u16: return VPrimitive{TPrimitive{.primitive = type.primitive}, hnd, uint64_t((uint16_t)new_value)};
-  case i32: return VPrimitive{TPrimitive{.primitive = type.primitive}, hnd, uint64_t((int32_t)new_value)};
-  case u32: return VPrimitive{TPrimitive{.primitive = type.primitive}, hnd, uint64_t((uint32_t)new_value)};
+  case i8: return VPrimitive{Primitive{.primitive = type.primitive}, hnd, uint64_t((int8_t)new_value)};
+  case u8: return VPrimitive{Primitive{.primitive = type.primitive}, hnd, uint64_t((uint8_t)new_value)};
+  case i16: return VPrimitive{Primitive{.primitive = type.primitive}, hnd, uint64_t((int16_t)new_value)};
+  case u16: return VPrimitive{Primitive{.primitive = type.primitive}, hnd, uint64_t((uint16_t)new_value)};
+  case i32: return VPrimitive{Primitive{.primitive = type.primitive}, hnd, uint64_t((int32_t)new_value)};
+  case u32: return VPrimitive{Primitive{.primitive = type.primitive}, hnd, uint64_t((uint32_t)new_value)};
   }
 }
 
@@ -30,18 +30,18 @@ pepp::debug::VPrimitive pepp::debug::VPrimitive::promote(const VPrimitive &value
 pepp::debug::VPrimitive pepp::debug::VPrimitive::True() {
   using enum pepp::debug::types::Primitives;
   static const auto hnd = types::RuntimeTypeInfo::Handle(u8);
-  return VPrimitive{TPrimitive{.primitive = u8}, hnd, 1};
+  return VPrimitive{Primitive{.primitive = u8}, hnd, 1};
 }
 pepp::debug::VPrimitive pepp::debug::VPrimitive::False() {
   using enum pepp::debug::types::Primitives;
   static const auto hnd = types::RuntimeTypeInfo::Handle(u8);
-  return VPrimitive{TPrimitive{.primitive = u8}, hnd, 0};
+  return VPrimitive{Primitive{.primitive = u8}, hnd, 0};
 }
 
 pepp::debug::VPrimitive pepp::debug::VPrimitive::i8(int8_t v) {
   using enum pepp::debug::types::Primitives;
   static const auto hnd = types::RuntimeTypeInfo::Handle(u8);
-  return VPrimitive{TPrimitive{.primitive = u8}, hnd, (uint64_t)v};
+  return VPrimitive{Primitive{.primitive = u8}, hnd, (uint64_t)v};
 }
 
 struct OrderingVisitor {
@@ -60,7 +60,7 @@ std::strong_ordering pepp::debug::operator<=>(const Value &lhs, const Value &rhs
 
 struct TypeofVisitor {
   const pepp::debug::types::RuntimeTypeInfo &info;
-  pepp::debug::types::Type operator()(const pepp::debug::VNever &) const { return pepp::debug::types::TNever{}; }
+  pepp::debug::types::Type operator()(const pepp::debug::VNever &) const { return pepp::debug::types::Never{}; }
   pepp::debug::types::Type operator()(const pepp::debug::VPrimitive &v) const { return pepp::debug::types::Type{v}; }
   pepp::debug::types::Type operator()(const pepp::debug::VPointer &v) const { return unbox(info.from(v.type_handle)); }
   pepp::debug::types::Type operator()(const pepp::debug::VArray &v) const { return unbox(info.from(v.type_handle)); }
