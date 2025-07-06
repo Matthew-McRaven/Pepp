@@ -38,6 +38,10 @@ void pepp::debug::detail::IsConstantExpressionVisitor::accept(const UnaryPrefix 
   node.arg->accept(*this);
 }
 
+void pepp::debug::detail::IsConstantExpressionVisitor::accept(const MemoryRead &node) {
+  is_constant_expression = false;
+}
+
 void pepp::debug::detail::IsConstantExpressionVisitor::accept(const Parenthesized &node) { node.term->accept(*this); }
 
 void pepp::debug::detail::IsConstantExpressionVisitor::accept(const DirectCast &node) { node.arg->accept(*this); }
@@ -62,6 +66,11 @@ void pepp::debug::detail::GatherVolatileTerms::accept(BinaryInfix &node) {
 
 void pepp::debug::detail::GatherVolatileTerms::accept(UnaryPrefix &node) {
   if (node.cv_qualifiers() & CVQualifiers::Volatile) volatiles.insert(node.shared_from_this());
+  node.arg->accept(*this);
+}
+
+void pepp::debug::detail::GatherVolatileTerms::accept(MemoryRead &node) {
+  volatiles.insert(node.shared_from_this());
   node.arg->accept(*this);
 }
 

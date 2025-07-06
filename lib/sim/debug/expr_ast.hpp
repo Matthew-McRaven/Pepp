@@ -20,6 +20,7 @@ public:
     DebuggerVariable,
     BinaryInfixOperator,
     UnaryPrefixOperator,
+    MemoryAccess,
     FunctionCall,
     ParenExpr,
     TypeCast,
@@ -230,6 +231,32 @@ private:
 };
 std::optional<UnaryPrefix::Operators> string_to_unary_prefix(QStringView);
 
+struct MemoryRead : public Term {
+  MemoryRead(std::shared_ptr<Term> arg);
+  ~MemoryRead() override = default;
+  std::strong_ordering operator<=>(const Term &rhs) const override;
+  std::strong_ordering operator<=>(const MemoryRead &rhs) const;
+  uint16_t depth() const override;
+  Type type() const override;
+  QString to_string() const override;
+  void link() override;
+  int cv_qualifiers() const override;
+
+  void mark_dirty() override;
+  bool dirty() const override;
+
+  void accept(MutatingTermVisitor &visitor) override;
+  void accept(ConstantTermVisitor &visitor) const override;
+  const std::shared_ptr<Term> arg;
+
+protected:
+  Value evaluate(CachePolicy mode, Environment &env) override;
+  EvaluationCache cached() const override;
+
+private:
+  EvaluationCache _state{};
+};
+
 struct DirectCast : public Term {
   DirectCast(types::Primitives cast_to, std::shared_ptr<Term> arg);
   ~DirectCast() override = default;
@@ -292,6 +319,7 @@ struct MutatingTermVisitor {
   virtual void accept(Constant &node) = 0;
   virtual void accept(BinaryInfix &node) = 0;
   virtual void accept(UnaryPrefix &node) = 0;
+  virtual void accept(MemoryRead &node) = 0;
   virtual void accept(Parenthesized &node) = 0;
   virtual void accept(DirectCast &node) = 0;
 };
@@ -301,6 +329,7 @@ struct ConstantTermVisitor {
   virtual void accept(const Constant &node) = 0;
   virtual void accept(const BinaryInfix &node) = 0;
   virtual void accept(const UnaryPrefix &node) = 0;
+  virtual void accept(const MemoryRead &node) = 0;
   virtual void accept(const Parenthesized &node) = 0;
   virtual void accept(const DirectCast &node) = 0;
 };
