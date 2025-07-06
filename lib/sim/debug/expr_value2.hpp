@@ -1,12 +1,13 @@
 #pragma once
+#include "./expr_rtti.hpp"
 #include "./expr_types.hpp"
 
 namespace pepp::debug {
 
-struct VNever : public types::TNever {
+struct VNever : public types::Never {
   types::RuntimeTypeInfo::Handle type_handle = types::RuntimeTypeInfo::Handle();
 };
-struct VPrimitive : public types::TPrimitive {
+struct VPrimitive : public types::Primitive {
   types::RuntimeTypeInfo::Handle type_handle;
   uint64_t bits;
   static VPrimitive with_bits(const VPrimitive &type, quint64);

@@ -26,8 +26,8 @@ TEST_CASE("Value classes & operators", "[scope:debug][kind:unit][arch:*]") {
     auto rtti = types::RuntimeTypeInfo();
     VPrimitive lhs = VPrimitive::from_int<int8_t>(-5), rhs = VPrimitive::from_int<int8_t>(16);
     auto type = _typeof(rtti, lhs + rhs);
-    REQUIRE(std::holds_alternative<types::TPrimitive>(type));
-    CHECK(std::get<types::TPrimitive>(type) == pepp::debug::types::TPrimitive{types::Primitives::i8});
+    REQUIRE(std::holds_alternative<types::Primitive>(type));
+    CHECK(std::get<types::Primitive>(type) == pepp::debug::types::Primitive{types::Primitives::i8});
     CHECK(value_bits<int8_t>(lhs + rhs) == (int8_t)11);
     CHECK(value_bits<int8_t>(lhs - rhs) == (int8_t)-21);
     CHECK(value_bits<int8_t>(lhs * rhs) == (int8_t)-80);
