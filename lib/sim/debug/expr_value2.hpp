@@ -45,6 +45,7 @@ struct VStruct {
 };
 using Value = std::variant<VNever, VPrimitive, VPointer, VArray, VStruct>;
 std::strong_ordering operator<=>(const Value &lhs, const Value &rhs);
+
 namespace details {
 struct BitVisitor {
   uint64_t operator()(const VNever &v) const { return 0; }
@@ -58,40 +59,38 @@ template <std::integral T> T value_bits(const Value &v) {
   auto ret = std::visit(details::BitVisitor{}, v);
   return static_cast<T>(ret);
 }
-types::Type _typeof(const types::RuntimeTypeInfo &info, const Value &v);
-// Since these operators are in their own namespace, I'm less terrified about operator overloading
+
+// Overloading not possible since they need an extra argument
 namespace operators {
+types::Type op1_typeof(const types::RuntimeTypeInfo &info, const Value &v);
 // Unary arithmetic ops
-Value operator+(const Value &v);
-Value operator-(const Value &v);
+Value op1_plus(const types::RuntimeTypeInfo &info, const Value &v);
+Value op1_minus(const types::RuntimeTypeInfo &info, const Value &v);
 // Unary bitwise ops
-Value operator!(const Value &v);
-Value operator~(const Value &v);
+Value op1_not(const types::RuntimeTypeInfo &info, const Value &v);
+Value op1_negate(const types::RuntimeTypeInfo &info, const Value &v);
 // Unary memory ops
-Value operator*(const Value &v);
-Value operator&(const Value &v);
+Value op1_dereference(const types::RuntimeTypeInfo &info, const Value &v);
+Value op1_addressof(const types::RuntimeTypeInfo &info, const Value &v);
 // Binary arithmetic ops
-Value operator+(const Value &lhs, const Value &rhs);
-Value operator-(const Value &lhs, const Value &rhs);
-Value operator*(const Value &lhs, const Value &rhs);
-Value operator/(const Value &lhs, const Value &rhs);
-Value operator%(const Value &lhs, const Value &rhs);
+Value op2_add(const types::RuntimeTypeInfo &info, const Value &lhs, const Value &rhs);
+Value op2_sub(const types::RuntimeTypeInfo &info, const Value &lhs, const Value &rhs);
+Value op2_mul(const types::RuntimeTypeInfo &info, const Value &lhs, const Value &rhs);
+Value op2_div(const types::RuntimeTypeInfo &info, const Value &lhs, const Value &rhs);
+Value op2_mod(const types::RuntimeTypeInfo &info, const Value &lhs, const Value &rhs);
 // Binary Bitwise ops
-Value operator<<(const Value &lhs, const Value &rhs);
-Value operator>>(const Value &lhs, const Value &rhs);
-Value operator&(const Value &lhs, const Value &rhs);
-Value operator|(const Value &lhs, const Value &rhs);
-Value operator^(const Value &lhs, const Value &rhs);
-} // namespace operators
-// Seperate namespace so you can use operators without all bin ops catching on fire.
-namespace compare {
+Value op2_bsl(const types::RuntimeTypeInfo &info, const Value &lhs, const Value &rhs);
+Value op2_bsr(const types::RuntimeTypeInfo &info, const Value &lhs, const Value &rhs);
+Value op2_bitand(const types::RuntimeTypeInfo &info, const Value &lhs, const Value &rhs);
+Value op2_bitor(const types::RuntimeTypeInfo &info, const Value &lhs, const Value &rhs);
+Value op2_bitxor(const types::RuntimeTypeInfo &info, const Value &lhs, const Value &rhs);
 // Binary comparison ops, all implemented in terms of <=>
-Value operator<=>(const Value &lhs, const Value &rhs);
-Value operator<(const Value &lhs, const Value &rhs);
-Value operator<=(const Value &lhs, const Value &rhs);
-Value operator==(const Value &lhs, const Value &rhs);
-Value operator!=(const Value &lhs, const Value &rhs);
-Value operator>=(const Value &lhs, const Value &rhs);
-Value operator>(const Value &lhs, const Value &rhs);
-} // namespace compare
+Value op2_spaceship(const types::RuntimeTypeInfo &info, const Value &lhs, const Value &rhs);
+Value op2_lt(const types::RuntimeTypeInfo &info, const Value &lhs, const Value &rhs);
+Value op2_le(const types::RuntimeTypeInfo &info, const Value &lhs, const Value &rhs);
+Value op2_eq(const types::RuntimeTypeInfo &info, const Value &lhs, const Value &rhs);
+Value op2_ne(const types::RuntimeTypeInfo &info, const Value &lhs, const Value &rhs);
+Value op2_ge(const types::RuntimeTypeInfo &info, const Value &lhs, const Value &rhs);
+Value op2_gt(const types::RuntimeTypeInfo &info, const Value &lhs, const Value &rhs);
+} // namespace operators
 } // namespace pepp::debug

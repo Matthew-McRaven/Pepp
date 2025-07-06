@@ -23,13 +23,13 @@ TEST_CASE("Value classes & operators", "[scope:debug][kind:unit][arch:*]") {
   using namespace pepp::debug;
   SECTION("Same-width integers") {
     using namespace pepp::debug::operators;
-    auto rtti = types::RuntimeTypeInfo();
+    auto i = types::RuntimeTypeInfo();
     VPrimitive lhs = VPrimitive::from_int<int8_t>(-5), rhs = VPrimitive::from_int<int8_t>(16);
-    auto type = _typeof(rtti, lhs + rhs);
+    auto type = op1_typeof(i, op2_add(i, lhs, rhs));
     REQUIRE(std::holds_alternative<types::Primitive>(type));
     CHECK(std::get<types::Primitive>(type) == pepp::debug::types::Primitive{types::Primitives::i8});
-    CHECK(value_bits<int8_t>(lhs + rhs) == (int8_t)11);
-    CHECK(value_bits<int8_t>(lhs - rhs) == (int8_t)-21);
-    CHECK(value_bits<int8_t>(lhs * rhs) == (int8_t)-80);
+    CHECK(value_bits<int8_t>(op2_add(i, lhs, rhs)) == (int8_t)11);
+    CHECK(value_bits<int8_t>(op2_sub(i, lhs, rhs)) == (int8_t)-21);
+    CHECK(value_bits<int8_t>(op2_mul(i, lhs, rhs)) == (int8_t)-80);
   }
 }
