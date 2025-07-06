@@ -17,7 +17,7 @@
 #include <catch.hpp>
 
 #include "sim/debug/expr_ast_ops.hpp"
-#include "sim/debug/expr_value2.hpp"
+#include "sim/debug/expr_value.hpp"
 
 TEST_CASE("Value classes & operators", "[scope:debug][kind:unit][arch:*]") {
   using namespace pepp::debug;

@@ -435,9 +435,9 @@ uint16_t Pep_ISA::read_mem_u16(uint32_t address) const {
   return temp;
 }
 
-pepp::debug::TypedBits Pep_ISA::evaluate_variable(QStringView name) const {
-  using T = pepp::debug::ExpressionType;
-  return {.allows_address_of = true, .type = T::i16, .bits = (uint64_t)name.length()};
+pepp::debug::Value Pep_ISA::evaluate_variable(QStringView name) const {
+  using T = pepp::debug::types::Primitives;
+  return pepp::debug::VPrimitive::from_int((int16_t)name.length());
 }
 
 uint32_t Pep_ISA::cache_debug_variable_name(QStringView name) const {
@@ -449,33 +449,34 @@ uint32_t Pep_ISA::cache_debug_variable_name(QStringView name) const {
   return v;
 }
 
-pepp::debug::TypedBits Pep_ISA::evaluate_debug_variable(uint32_t cache_id) const {
-  using T = pepp::debug::ExpressionType;
+pepp::debug::Value Pep_ISA::evaluate_debug_variable(uint32_t cache_id) const {
+  using T = pepp::debug::types::Primitives;
   using DV = Pep_ISA::DebugVariables;
-  if (_system == nullptr) return {.allows_address_of = true, .type = T::i16, .bits = (uint64_t)0};
+  if (_system == nullptr) return pepp::debug::VPrimitive::from_int((int16_t)0);
   uint16_t reg16;
   auto cpu = static_cast<targets::pep10::isa::CPU *>(_system->cpu());
   switch (cache_id) {
   case static_cast<uint32_t>(DV::A):
     targets::isa::readRegister<isa::Pep10>(cpu->regs(), isa::Pep10::Register::A, reg16, gs);
-    return pepp::debug::from_int((int16_t)reg16);
+    break;
   case static_cast<uint32_t>(DV::X):
     targets::isa::readRegister<isa::Pep10>(cpu->regs(), isa::Pep10::Register::X, reg16, gs);
-    return pepp::debug::from_int((int16_t)reg16);
+    break;
   case static_cast<uint32_t>(DV::SP):
     targets::isa::readRegister<isa::Pep10>(cpu->regs(), isa::Pep10::Register::SP, reg16, gs);
-    return pepp::debug::from_int(reg16);
+    break;
   case static_cast<uint32_t>(DV::PC):
     targets::isa::readRegister<isa::Pep10>(cpu->regs(), isa::Pep10::Register::PC, reg16, gs);
-    return pepp::debug::from_int(reg16);
+    break;
   case static_cast<uint32_t>(DV::IS):
     targets::isa::readRegister<isa::Pep10>(cpu->regs(), isa::Pep10::Register::IS, reg16, gs);
-    return pepp::debug::from_int((int8_t)reg16);
+    break;
   case static_cast<uint32_t>(DV::OS):
     targets::isa::readRegister<isa::Pep10>(cpu->regs(), isa::Pep10::Register::OS, reg16, gs);
-    return pepp::debug::from_int(reg16);
-  default: return {.allows_address_of = true, .type = T::i16, .bits = (uint64_t)0};
+    break;
+  default: return pepp::debug::VPrimitive::from_int((int16_t)0);
   }
+  return pepp::debug::VPrimitive::from_int((int16_t)reg16);
 }
 
 QString Pep_ISA::contentsForExtension(const QString &ext) const {

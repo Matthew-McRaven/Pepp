@@ -28,7 +28,7 @@ void pepp::debug::EditableWatchExpression::evaluate(CachePolicy mode, Environmen
 
 void pepp::debug::EditableWatchExpression::clear_value() { _recent_value.reset(); }
 
-std::optional<pepp::debug::TypedBits> pepp::debug::EditableWatchExpression::value() const { return _recent_value; }
+std::optional<pepp::debug::Value> pepp::debug::EditableWatchExpression::value() const { return _recent_value; }
 
 bool pepp::debug::EditableWatchExpression::needs_update() const { return _needs_update; }
 
@@ -56,11 +56,11 @@ QString pepp::debug::EditableWatchExpression::type_text() const {
   if (_wip_term.length() > 0 || _term == nullptr) return "";
   else if (_wip_type.length() > 0) return _wip_type;
   else if (_type.has_value()) {
-    QMetaEnum metaEnum = QMetaEnum::fromType<ExpressionType>();
+    QMetaEnum metaEnum = QMetaEnum::fromType<types::Primitives>();
     return QString::fromStdString(metaEnum.valueToKey((int)_type.value()));
   } else if (_recent_value) {
-    QMetaEnum metaEnum = QMetaEnum::fromType<ExpressionType>();
-    return QString::fromStdString(metaEnum.valueToKey((int)_recent_value->type));
+    // TODO: extract type name from via helper
+    return "";
   } else return "";
 }
 
@@ -139,17 +139,6 @@ std::span<const pepp::debug::EditableWatchExpression> pepp::debug::WatchExpressi
   return std::span<const EditableWatchExpression>(_items.data(), _items.size());
 }
 
-QVariant pepp::debug::variant_from_bits(const TypedBits &bits) {
-  switch (bits.type) {
-  case pepp::debug::ExpressionType::i8: return QVariant::fromValue((int8_t)bits.bits);
-  case pepp::debug::ExpressionType::u8: return QVariant::fromValue((uint8_t)bits.bits);
-  case pepp::debug::ExpressionType::i16: return QVariant::fromValue((int16_t)bits.bits);
-  case pepp::debug::ExpressionType::u16: return QVariant::fromValue((uint16_t)bits.bits);
-  case pepp::debug::ExpressionType::i32: return QVariant::fromValue((int32_t)bits.bits);
-  case pepp::debug::ExpressionType::u32: return QVariant::fromValue((uint32_t)bits.bits);
-  }
-}
-
 pepp::debug::WatchExpressionTableModel::WatchExpressionTableModel(QObject *parent) : QAbstractTableModel(parent) {}
 
 namespace {
@@ -187,7 +176,7 @@ QVariant pepp::debug::WatchExpressionTableModel::data(const QModelIndex &index, 
       return item.expression_text();
     } else if (col == 1) {
       if (item.is_wip()) return "<invalid>";
-      return variant_from_bits(item.value().value_or(pepp::debug::TypedBits{}));
+      return from_bits(item.value().value_or(pepp::debug::VNever{}));
     } else {
       return item.type_text();
     }

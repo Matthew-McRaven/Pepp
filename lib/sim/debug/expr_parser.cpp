@@ -187,10 +187,10 @@ std::shared_ptr<pepp::debug::Constant> pepp::debug::Parser::parse_constant(detai
     auto as_constant = std::get<UC>(maybe_constant);
     if (auto maybe_trailing_type = tok.match<TYPE>(); std::holds_alternative<TYPE>(maybe_trailing_type)) {
       const auto type = std::get<TYPE>(maybe_trailing_type);
-      auto bits = TypedBits{.allows_address_of = false, .type = type.type, .bits = as_constant.value};
+      auto bits = VPrimitive::from(type.type, as_constant.value);
       return cp.memoize(accept(Constant(bits, as_constant.format)), rule);
     } else {
-      auto bits = TypedBits{.allows_address_of = false, .type = ExpressionType::i16, .bits = as_constant.value};
+      auto bits = VPrimitive::from_int((int16_t)as_constant.value);
       return cp.memoize(accept(Constant(bits, as_constant.format)), rule);
     }
   }

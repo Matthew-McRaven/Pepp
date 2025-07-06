@@ -24,7 +24,7 @@ struct CVQualifiers {
 };
 
 struct EvaluationCache {
-  explicit EvaluationCache(TypedBits value) : dirty(false), depends_on_volatiles(false), version(0), value(value) {}
+  explicit EvaluationCache(Value value) : dirty(false), depends_on_volatiles(false), version(0), value(value) {}
   EvaluationCache() = default;
   EvaluationCache(const EvaluationCache &other) = default;
   EvaluationCache &operator=(const EvaluationCache &other) = default;
@@ -33,23 +33,25 @@ struct EvaluationCache {
   bool dirty = false;
   bool depends_on_volatiles = false;
   uint32_t version = 0;
-  std::optional<TypedBits> value = std::nullopt;
+  std::optional<Value> value = std::nullopt;
 };
 
 struct Environment {
   // Read some bytes of memory (modulo the size of the address space) in the platform's preferred endianness
   virtual uint8_t read_mem_u8(uint32_t address) const = 0;
   virtual uint16_t read_mem_u16(uint32_t address) const = 0;
-  virtual TypedBits evaluate_variable(QStringView name) const = 0;
+  virtual Value evaluate_variable(QStringView name) const = 0;
   virtual uint32_t cache_debug_variable_name(QStringView name) const = 0;
-  virtual TypedBits evaluate_debug_variable(uint32_t cache_index) const = 0;
+  virtual Value evaluate_debug_variable(uint32_t cache_index) const = 0;
 };
 struct ZeroEnvironment : public Environment {
   inline uint8_t read_mem_u8(uint32_t address) const override { return 0; }
   inline uint16_t read_mem_u16(uint32_t address) const override { return 0; }
-  inline TypedBits evaluate_variable(QStringView name) const override { return from_int(int16_t(0)); };
+  inline Value evaluate_variable(QStringView name) const override { return VPrimitive::from_int(int16_t(0)); };
   inline uint32_t cache_debug_variable_name(QStringView name) const override { return 0; }
-  inline TypedBits evaluate_debug_variable(uint32_t cache_index) const override { return from_int(int16_t(0)); };
+  inline Value evaluate_debug_variable(uint32_t cache_index) const override {
+    return VPrimitive::from_int(int16_t(0));
+  };
 };
 
 class Term;
@@ -66,7 +68,7 @@ struct CachedEvaluator {
   // term.cache().version != _cache.version
   bool dirty();
   EvaluationCache cache() const;
-  TypedBits evaluate(CachePolicy mode, Environment &env);
+  Value evaluate(CachePolicy mode, Environment &env);
   std::shared_ptr<Term> term();
 
 private:

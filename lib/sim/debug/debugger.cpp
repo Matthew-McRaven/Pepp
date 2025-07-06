@@ -71,8 +71,10 @@ void pepp::debug::BreakpointSet::notifyPCChanged(quint16 newValue) {
   if (auto iter = std::lower_bound(_breakpoints.cbegin(), _breakpoints.cend(), newValue);
       iter != _breakpoints.cend() && *iter == newValue) {
     auto offset = std::distance(_breakpoints.cbegin(), iter);
-    if (_conditions[offset]) _hit = _conditions[offset]->evaluate(CachePolicy::UseNonVolatiles, *_env).bits != 0;
-    else _hit = true;
+    if (_conditions[offset]) {
+      auto bits = pepp::debug::value_bits<uint64_t>(_conditions[offset]->evaluate(CachePolicy::UseNonVolatiles, *_env));
+      _hit = bits != 0;
+    } else _hit = true;
   }
 }
 
@@ -137,7 +139,7 @@ QVariant pepp::debug::BreakpointTableModel::data(const QModelIndex &index, int r
     } else if (index.column() == 3) {
       return _conditionEditor.at(bp).expression_text();
     } else if (index.column() == 4) {
-      if (auto item = _conditionEditor.at(bp); item.value()) return variant_from_bits(*item.value());
+      if (auto item = _conditionEditor.at(bp); item.value()) return from_bits(*item.value());
       return "";
     } else if (index.column() == 5) {
       return _conditionEditor.at(bp).type_text();

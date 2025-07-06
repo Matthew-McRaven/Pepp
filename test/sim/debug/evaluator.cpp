@@ -21,7 +21,9 @@
 
 TEST_CASE("Evaluating watch expressions", "[scope:debug][kind:unit][arch:*]") {
   using namespace pepp::debug;
+  using P = types::Primitives;
   ZeroEnvironment env;
+  types::RuntimeTypeInfo fake_rtti;
   SECTION("Expressions caching between compliations") {
     ExpressionCache c;
     Parser p(c);
@@ -76,15 +78,16 @@ TEST_CASE("Evaluating watch expressions", "[scope:debug][kind:unit][arch:*]") {
     auto ast = p.compile(body);
     REQUIRE(ast != nullptr);
     auto ev = ast->evaluator();
+    auto expected_type = types::Primitive{P::i16};
     CHECK(ev.cache().version == 0); // Though a constant expression, computation still performed and cache will update.
-    CHECK(ev.evaluate(CachePolicy::UseAlways, env).type == ExpressionType::i16);
-    CHECK(ev.evaluate(CachePolicy::UseAlways, env).bits == 13);
+    CHECK(operators::op1_typeof(fake_rtti, ev.evaluate(CachePolicy::UseAlways, env)) == expected_type);
+    CHECK(value_bits(ev.evaluate(CachePolicy::UseAlways, env)) == 13);
     CHECK(ev.cache().version == 1);
   }
   SECTION("Math with u8 and i16 (direct construction)") {
     ExpressionCache c;
-    auto i16 = TypedBits{.allows_address_of = false, .type = ExpressionType::i16, .bits = 257};
-    auto u8 = TypedBits{.allows_address_of = false, .type = ExpressionType::u8, .bits = 255};
+    auto i16 = VPrimitive::from_int((int16_t)257);
+    auto u8 = VPrimitive::from_int((uint8_t)255);
     auto lhs = c.add_or_return(Constant(i16));
     auto rhs = c.add_or_return(Constant(u8));
     auto plus = c.add_or_return(BinaryInfix(BinaryInfix::Operators::ADD, lhs, rhs));
@@ -92,10 +95,10 @@ TEST_CASE("Evaluating watch expressions", "[scope:debug][kind:unit][arch:*]") {
     CHECK(plus_ev.cache().version == 0);
     auto eval = plus_ev.evaluate(CachePolicy::UseAlways, env);
     CHECK(plus_ev.cache().version == 1);
-    CHECK(eval.bits == (257 + 255));
-    CHECK(eval.type == ExpressionType::i16);
+    CHECK(value_bits(eval) == (257 + 255));
+    CHECK(operators::op1_typeof(fake_rtti, eval) == types::Primitive{P::i16});
     CHECK(rhs_eval.cache().version == 0); // Version of constant never changes.
-    CHECK(rhs_eval.evaluate(CachePolicy::UseAlways, env).type == ExpressionType::u8);
+    CHECK(operators::op1_typeof(fake_rtti, rhs_eval.evaluate(CachePolicy::UseAlways, env)) == types::Primitive{P::u8});
     CHECK(rhs_eval.cache().version == 0);
   }
   SECTION("Parsing Math with u8 and i16 (parsing)") {
@@ -108,12 +111,12 @@ TEST_CASE("Evaluating watch expressions", "[scope:debug][kind:unit][arch:*]") {
     REQUIRE(as_infix != nullptr);
     auto as_infix_eval = as_infix->evaluator();
     auto eval = as_infix_eval.evaluate(CachePolicy::UseAlways, env);
-    CHECK(eval.bits == (257 + 255));
-    CHECK(eval.type == ExpressionType::i16);
+    CHECK(value_bits(eval) == (257 + 255));
+    CHECK(operators::op1_typeof(fake_rtti, eval) == types::Primitive{P::i16});
     auto lhs_eval = as_infix->lhs->evaluator();
     auto rhs_eval = as_infix->rhs->evaluator();
-    CHECK(lhs_eval.evaluate(CachePolicy::UseAlways, env).type == ExpressionType::i16);
-    CHECK(rhs_eval.evaluate(CachePolicy::UseAlways, env).type == ExpressionType::u8);
+    CHECK(operators::op1_typeof(fake_rtti, lhs_eval.evaluate(CachePolicy::UseAlways, env)) == types::Primitive{P::i16});
+    CHECK(operators::op1_typeof(fake_rtti, rhs_eval.evaluate(CachePolicy::UseAlways, env)) == types::Primitive{P::u8});
   }
 
   SECTION("Parsing with explicit casts") {
@@ -130,18 +133,18 @@ TEST_CASE("Evaluating watch expressions", "[scope:debug][kind:unit][arch:*]") {
     REQUIRE(as_infix != nullptr);
     auto as_infix_eval = as_infix->evaluator();
     auto eval = as_infix_eval.evaluate(CachePolicy::UseAlways, env);
-    CHECK(eval.bits == (258 + 255));
-    CHECK(eval.type == ExpressionType::i16);
+    CHECK(value_bits(eval) == (258 + 255));
+    CHECK(operators::op1_typeof(fake_rtti, eval) == types::Primitive{P::i16});
     auto lhs_eval = as_infix->lhs->evaluator();
     auto rhs_eval = as_infix->rhs->evaluator();
-    CHECK(lhs_eval.evaluate(CachePolicy::UseAlways, env).type == ExpressionType::i16);
-    CHECK(rhs_eval.evaluate(CachePolicy::UseAlways, env).type == ExpressionType::i16);
+    CHECK(operators::op1_typeof(fake_rtti, lhs_eval.evaluate(CachePolicy::UseAlways, env)) == types::Primitive{P::i16});
+    CHECK(operators::op1_typeof(fake_rtti, rhs_eval.evaluate(CachePolicy::UseAlways, env)) == types::Primitive{P::i16});
 
     // Overflows i8, so we should wrap-around.
     auto as_cast_eval = as_cast->evaluator();
     auto eval_casted = as_cast_eval.evaluate(CachePolicy::UseAlways, env);
-    CHECK(eval_casted.bits == (int8_t)((258 + 255) % 256));
-    CHECK(eval_casted.type == ExpressionType::i8);
+    CHECK(value_bits(eval_casted) == (int8_t)((258 + 255) % 256));
+    CHECK(operators::op1_typeof(fake_rtti, eval_casted) == types::Primitive{P::i8});
   }
 
   SECTION("Recursive dirtying") {
@@ -228,11 +231,11 @@ TEST_CASE("Evaluations with environment access", "[scope:debug][kind:unit][arch:
     auto ast = p.compile(body);
     REQUIRE(ast != nullptr);
     auto ast_eval = ast->evaluator();
-    CHECK(ast_eval.evaluate(CachePolicy::UseNonVolatiles, env).bits == 0x0707);
+    CHECK(value_bits(ast_eval.evaluate(CachePolicy::UseNonVolatiles, env)) == 0x0707);
     env.mem[0] = 8;
     // Ignoring requirement from volatiles to re-compute.
-    CHECK(ast_eval.evaluate(CachePolicy::UseAlways, env).bits == 0x0707);
-    CHECK(ast_eval.evaluate(CachePolicy::UseNonVolatiles, env).bits == 0x0807);
+    CHECK(value_bits(ast_eval.evaluate(CachePolicy::UseAlways, env)) == 0x0707);
+    CHECK(value_bits(ast_eval.evaluate(CachePolicy::UseNonVolatiles, env)) == 0x0807);
   }
   SECTION("Debugger Variables") {
     ExpressionCache c;
@@ -241,6 +244,6 @@ TEST_CASE("Evaluations with environment access", "[scope:debug][kind:unit][arch:
     auto ast = p.compile(body);
     REQUIRE(ast != nullptr);
     auto ast_eval = ast->evaluator();
-    CHECK(ast_eval.evaluate(CachePolicy::UseNonVolatiles, env).bits == 0);
+    CHECK(value_bits(ast_eval.evaluate(CachePolicy::UseNonVolatiles, env)) == 0);
   }
 }

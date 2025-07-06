@@ -59,7 +59,7 @@ protected:
   // Must add classes which contain Term as a member.
   virtual EvaluationCache cached() const = 0;
   // Evaluate this AST to a value, marking elements as not dirty as they are re-evaluated.
-  virtual TypedBits evaluate(CachePolicy mode, Environment &env) = 0;
+  virtual Value evaluate(CachePolicy mode, Environment &env) = 0;
   // Track which terms may be made dirty if the current term's value changes.
   // Use weak pointers to prevent extending lifetimes of dependents.
   // Some dependents may be discarded during parsing,
@@ -87,7 +87,7 @@ struct Variable : public Term {
   const QString name;
 
 protected:
-  TypedBits evaluate(CachePolicy mode, Environment &env) override;
+  Value evaluate(CachePolicy mode, Environment &env) override;
   EvaluationCache cached() const override;
 
 private:
@@ -115,7 +115,7 @@ struct DebuggerVariable : public Term {
   const QString name;
 
 protected:
-  TypedBits evaluate(CachePolicy mode, Environment &env) override;
+  Value evaluate(CachePolicy mode, Environment &env) override;
   EvaluationCache cached() const override;
 
 private:
@@ -126,8 +126,8 @@ private:
 struct Constant : public Term {
   template <std::integral I>
   explicit Constant(I bits, detail::UnsignedConstant::Format format_hint = detail::UnsignedConstant::Format::Dec)
-      : format_hint(format_hint), value(from_int(bits)) {}
-  explicit Constant(const TypedBits &bits,
+      : format_hint(format_hint), value(VPrimitive::from_int(bits)) {}
+  explicit Constant(const VPrimitive &bits,
                     detail::UnsignedConstant::Format format_hint = detail::UnsignedConstant::Format::Dec);
   ~Constant() override = default;
   uint16_t depth() const override;
@@ -144,10 +144,10 @@ struct Constant : public Term {
   void accept(ConstantTermVisitor &visitor) const override;
 
   const detail::UnsignedConstant::Format format_hint;
-  const TypedBits value;
+  const VPrimitive value;
 
 protected:
-  TypedBits evaluate(CachePolicy mode, Environment &env) override;
+  Value evaluate(CachePolicy mode, Environment &env) override;
   EvaluationCache cached() const override;
 };
 
@@ -193,7 +193,7 @@ struct BinaryInfix : public Term {
   const std::shared_ptr<Term> lhs, rhs;
 
 protected:
-  TypedBits evaluate(CachePolicy mode, Environment &env) override;
+  Value evaluate(CachePolicy mode, Environment &env) override;
   EvaluationCache cached() const override;
 
 private:
@@ -222,7 +222,7 @@ struct UnaryPrefix : public Term {
   const std::shared_ptr<Term> arg;
 
 protected:
-  TypedBits evaluate(CachePolicy mode, Environment &env) override;
+  Value evaluate(CachePolicy mode, Environment &env) override;
   EvaluationCache cached() const override;
 
 private:
@@ -231,7 +231,7 @@ private:
 std::optional<UnaryPrefix::Operators> string_to_unary_prefix(QStringView);
 
 struct ExplicitCast : public Term {
-  ExplicitCast(ExpressionType cast_to, std::shared_ptr<Term> arg);
+  ExplicitCast(types::Primitives cast_to, std::shared_ptr<Term> arg);
   ~ExplicitCast() override = default;
   std::strong_ordering operator<=>(const Term &rhs) const override;
   std::strong_ordering operator<=>(const ExplicitCast &rhs) const;
@@ -248,11 +248,11 @@ struct ExplicitCast : public Term {
   void accept(MutatingTermVisitor &visitor) override;
   void accept(ConstantTermVisitor &visitor) const override;
 
-  const pepp::debug::ExpressionType cast_to;
+  const pepp::debug::types::Primitives cast_to;
   const std::shared_ptr<Term> arg;
 
 protected:
-  TypedBits evaluate(CachePolicy mode, Environment &env) override;
+  Value evaluate(CachePolicy mode, Environment &env) override;
   EvaluationCache cached() const override;
 
 private:
@@ -278,7 +278,7 @@ struct Parenthesized : public Term {
   const std::shared_ptr<Term> term;
 
 protected:
-  TypedBits evaluate(CachePolicy mode, Environment &env) override;
+  Value evaluate(CachePolicy mode, Environment &env) override;
   EvaluationCache cached() const override;
 
 private:

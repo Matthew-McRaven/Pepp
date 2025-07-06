@@ -10,7 +10,7 @@ static const QRegularExpression debug(R"(\$\w+)");
 static const QRegularExpression ident(R"(\w+)");
 // Longest sequences must be first, because QRegularExpression stops at first match, not longest.
 static const QRegularExpression literal("==|<=|>=|!=|->|<<|>>|[=<>()/!~%^&*\\-+\\.|]");
-using T = pepp::debug::ExpressionType;
+using T = pepp::debug::types::Primitives;
 const std::map<QString, T> types = {
     {"i8", T::i8}, {"u8", T::u8}, {"i16", T::i16}, {"u16", T::u16}, {"i32", T::i32}, {"u32", T::u32},
 };
