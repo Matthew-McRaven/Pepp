@@ -82,6 +82,7 @@ public:
   Q_INVOKABLE QString charOut() const;
   virtual bool isEmpty() const;
 
+  pepp::debug::types::RuntimeTypeInfo const *type_info() override;
   uint8_t read_mem_u8(uint32_t address) const override;
   uint16_t read_mem_u16(uint32_t address) const override;
   pepp::debug::Value evaluate_variable(QStringView name) const override;
@@ -158,6 +159,8 @@ protected:
   QSharedPointer<pepp::debug::Debugger> _dbg{};
   QSharedPointer<builtins::Registry> _books = {};
   void loadCharIn();
+  // TODO: at some point this type info needs to be extracted from the assembler + loader.
+  pepp::debug::types::RuntimeTypeInfo _info;
 };
 
 struct Error : public QObject {
