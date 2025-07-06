@@ -36,14 +36,28 @@ template <typename T> struct Versioned : public T {
 };
 
 template <typename T> struct Cached : public T {
-  template <typename U> explicit Cached(U value) : T(value), dirty(false), depends_on_volatiles(false) {}
+  template <typename U> explicit Cached(U value) : T(value), _dirty(false), _depends_on_volatiles(false) {}
   Cached() = default;
   Cached(const Cached &other) = default;
   Cached &operator=(const Cached &other) = default;
   Cached(Cached &&other) = default;
   Cached &operator=(Cached &&other) = default;
-  bool dirty = false;
-  bool depends_on_volatiles = false;
+
+  bool dirty() const { return _dirty; }
+  // Increment version on dirty and not clean, which means we should have fewer places where we need to touch version.
+  void mark_dirty() { _dirty = true; }
+  void mark_clean(bool increment_version = true) {
+    _dirty = false;
+    if constexpr (requires { this->version++; }) {
+      if (increment_version) this->version++;
+    }
+  }
+  bool depends_on_volatiles() const { return _depends_on_volatiles; }
+  void set_depends_on_volatiles(bool depends) { _depends_on_volatiles = depends; }
+
+protected:
+  bool _dirty = true;
+  bool _depends_on_volatiles = false;
 };
 
 // Combined above definitions to cache an optional value with versioning.

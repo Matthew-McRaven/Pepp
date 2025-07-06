@@ -39,14 +39,14 @@ pepp::debug::Value pepp::debug::Variable::evaluate(CachePolicy mode, Environment
     case UseNever: break;
     case UseNonVolatiles: break;
     case UseAlways:
-      if (_state.dirty) break;
+      if (_state.dirty()) break;
     case UseDirtyAlways: return *_state.value;
     }
   }
 
   auto new_value = env.evaluate_variable(name);
-  if (new_value != _state.value) _state.version++;
-  _state.dirty = false;
+  _state.mark_clean(new_value != _state.value);
+
   return *(_state.value = new_value);
 }
 
@@ -54,9 +54,9 @@ pepp::debug::EvaluationCache pepp::debug::Variable::cached() const { return _sta
 
 int pepp::debug::Variable::cv_qualifiers() const { return CVQualifiers::Volatile; }
 
-void pepp::debug::Variable::mark_dirty() { _state.dirty = true; }
+void pepp::debug::Variable::mark_dirty() { _state.mark_dirty(); }
 
-bool pepp::debug::Variable::dirty() const { return _state.dirty; }
+bool pepp::debug::Variable::dirty() const { return _state.dirty(); }
 
 void pepp::debug::Variable::accept(MutatingTermVisitor &visitor) { visitor.accept(*this); }
 
@@ -130,7 +130,8 @@ const auto unops = std::map<UOperators, QString>{
 
 pepp::debug::UnaryPrefix::UnaryPrefix(Operators op, std::shared_ptr<Term> arg) : op(op), arg(arg) {
   int arg_cv = arg ? arg->cv_qualifiers() : 0;
-  _state.depends_on_volatiles = (arg_cv | UnaryPrefix::cv_qualifiers()) & CVQualifiers::Volatile;
+  bool is_volatile = (arg_cv | UnaryPrefix::cv_qualifiers()) & CVQualifiers::Volatile;
+  _state.set_depends_on_volatiles(is_volatile);
 }
 uint16_t pepp::debug::UnaryPrefix::depth() const { return arg->depth() + 1; }
 pepp::debug::Term::Type pepp::debug::UnaryPrefix::type() const { return Term::Type::UnaryPrefixOperator; }
@@ -160,16 +161,16 @@ pepp::debug::Value pepp::debug::UnaryPrefix::evaluate(CachePolicy mode, Environm
     switch (mode) {
     case UseNever: break;
     case UseNonVolatiles:
-      if (_state.depends_on_volatiles) break;
+      if (_state.depends_on_volatiles()) break;
     case UseAlways:
-      if (_state.dirty) break;
+      if (_state.dirty()) break;
     case UseDirtyAlways: return *_state.value;
     }
   }
 
   auto eval = arg->evaluator();
   auto v = eval.evaluate(mode, env);
-  _state.dirty = false, _state.version++;
+  _state.mark_clean();
   switch (op) {
   case Operators::DEREFERENCE: throw std::logic_error("Use MemoryAccess instead");
   case Operators::ADDRESS_OF: throw std::logic_error("Not implemented");
@@ -191,9 +192,9 @@ int pepp::debug::UnaryPrefix::cv_qualifiers() const {
   }
 }
 
-void pepp::debug::UnaryPrefix::mark_dirty() { _state.dirty = true; }
+void pepp::debug::UnaryPrefix::mark_dirty() { _state.mark_dirty(); }
 
-bool pepp::debug::UnaryPrefix::dirty() const { return _state.dirty; }
+bool pepp::debug::UnaryPrefix::dirty() const { return _state.dirty(); }
 
 void pepp::debug::UnaryPrefix::accept(MutatingTermVisitor &visitor) { visitor.accept(*this); }
 
@@ -205,7 +206,7 @@ std::optional<pepp::debug::UnaryPrefix::Operators> pepp::debug::string_to_unary_
   return result->first;
 }
 
-pepp::debug::MemoryRead::MemoryRead(std::shared_ptr<Term> arg) : arg(arg) { _state.depends_on_volatiles = true; }
+pepp::debug::MemoryRead::MemoryRead(std::shared_ptr<Term> arg) : arg(arg) { _state.set_depends_on_volatiles(true); }
 
 std::strong_ordering pepp::debug::MemoryRead::operator<=>(const Term &rhs) const {
   if (type() == rhs.type()) return this->operator<=>(static_cast<const MemoryRead &>(rhs));
@@ -227,9 +228,9 @@ void pepp::debug::MemoryRead::link() { arg->add_dependent(weak_from_this()); }
 
 int pepp::debug::MemoryRead::cv_qualifiers() const { return CVQualifiers::Volatile; }
 
-void pepp::debug::MemoryRead::mark_dirty() { _state.dirty = true; }
+void pepp::debug::MemoryRead::mark_dirty() { _state.mark_dirty(); }
 
-bool pepp::debug::MemoryRead::dirty() const { return _state.dirty; }
+bool pepp::debug::MemoryRead::dirty() const { return _state.dirty(); }
 
 void pepp::debug::MemoryRead::accept(MutatingTermVisitor &visitor) { visitor.accept(*this); }
 
@@ -244,14 +245,14 @@ pepp::debug::Value pepp::debug::MemoryRead::evaluate(CachePolicy mode, Environme
     case UseNever: break;
     case UseNonVolatiles: break;
     case UseAlways:
-      if (_state.dirty) break;
+      if (_state.dirty()) break;
     case UseDirtyAlways: return *_state.value;
     }
   }
 
   auto eval = arg->evaluator();
   auto v = eval.evaluate(mode, env);
-  _state.dirty = false, _state.version++;
+  _state.mark_clean();
 
   _state.value = VPrimitive::from_int((int16_t)env.read_mem_u16(0));
   return *_state.value;
@@ -264,7 +265,7 @@ pepp::debug::BinaryInfix::BinaryInfix(Operators op, std::shared_ptr<Term> lhs, s
   int lhs_cv = lhs ? lhs->cv_qualifiers() : 0;
   int rhs_cv = rhs ? rhs->cv_qualifiers() : 0;
   bool is_volatile = (lhs_cv | rhs_cv | BinaryInfix::cv_qualifiers()) & CVQualifiers::Volatile;
-  _state.depends_on_volatiles = is_volatile;
+  _state.set_depends_on_volatiles(is_volatile);
 }
 
 uint16_t pepp::debug::BinaryInfix::depth() const { return std::max(lhs->depth(), rhs->depth()) + 1; }
@@ -321,15 +322,15 @@ pepp::debug::Value pepp::debug::BinaryInfix::evaluate(CachePolicy mode, Environm
     switch (mode) {
     case UseNever: break;
     case UseNonVolatiles:
-      if (_state.depends_on_volatiles) break;
+      if (_state.depends_on_volatiles()) break;
     case UseAlways:
-      if (_state.dirty) break;
+      if (_state.dirty()) break;
     case UseDirtyAlways: return *_state.value;
     }
   }
   auto eval_lhs = lhs->evaluator(), eval_rhs = rhs->evaluator();
   auto v_lhs = eval_lhs.evaluate(mode, env), v_rhs = eval_rhs.evaluate(mode, env);
-  _state.dirty = false, _state.version++;
+  _state.mark_clean();
   switch (op) {
   case Operators::STAR_DOT: [[fallthrough]];
   case Operators::DOT: throw std::logic_error("Not Implemented");
@@ -363,9 +364,9 @@ int pepp::debug::BinaryInfix::cv_qualifiers() const {
   }
 }
 
-void pepp::debug::BinaryInfix::mark_dirty() { _state.dirty = true; }
+void pepp::debug::BinaryInfix::mark_dirty() { _state.mark_dirty(); }
 
-bool pepp::debug::BinaryInfix::dirty() const { return _state.dirty; }
+bool pepp::debug::BinaryInfix::dirty() const { return _state.dirty(); }
 
 void pepp::debug::BinaryInfix::accept(MutatingTermVisitor &visitor) { visitor.accept(*this); }
 
@@ -434,7 +435,8 @@ bits::span<const std::weak_ptr<pepp::debug::Term>> pepp::debug::Term::dependents
 pepp::debug::DirectCast::DirectCast(pepp::debug::types::Primitives cast_to, std::shared_ptr<Term> arg)
     : cast_to(cast_to), arg(arg) {
   int arg_cv = arg ? arg->cv_qualifiers() : 0;
-  _state.depends_on_volatiles = arg_cv & CVQualifiers::Volatile;
+  auto is_volatile = arg_cv & CVQualifiers::Volatile;
+  _state.set_depends_on_volatiles(is_volatile);
 }
 
 std::strong_ordering pepp::debug::DirectCast::operator<=>(const Term &rhs) const {
@@ -465,14 +467,14 @@ pepp::debug::Value pepp::debug::DirectCast::evaluate(CachePolicy mode, Environme
     case UseNever: break;
     case UseNonVolatiles: break;
     case UseAlways:
-      if (_state.dirty) break;
+      if (_state.dirty()) break;
     case UseDirtyAlways: return *_state.value;
     }
   }
 
-  _state.dirty = false, _state.version++;
   auto eval = arg->evaluator();
   auto v = eval.evaluate(mode, env);
+  _state.mark_clean();
   return *(_state.value = VPrimitive::from(cast_to, value_bits(v)));
 }
 
@@ -480,9 +482,9 @@ pepp::debug::EvaluationCache pepp::debug::DirectCast::cached() const { return _s
 
 int pepp::debug::DirectCast::cv_qualifiers() const { return 0; }
 
-void pepp::debug::DirectCast::mark_dirty() { _state.dirty = true; }
+void pepp::debug::DirectCast::mark_dirty() { _state.mark_dirty(); }
 
-bool pepp::debug::DirectCast::dirty() const { return _state.dirty; }
+bool pepp::debug::DirectCast::dirty() const { return _state.dirty(); }
 
 void pepp::debug::DirectCast::accept(MutatingTermVisitor &visitor) { visitor.accept(*this); }
 
@@ -524,12 +526,12 @@ pepp::debug::Value pepp::debug::DebuggerVariable::evaluate(CachePolicy mode, Env
     case UseNever: break;
     case UseNonVolatiles: break;
     case UseAlways:
-      if (_state.dirty) break;
+      if (_state.dirty()) break;
     case UseDirtyAlways: return *_state.value;
     }
   }
 
-  _state.dirty = false, _state.version++;
+  _state.mark_clean();
   return *(_state.value = env.evaluate_debug_variable(*_name_cache_id));
 }
 
@@ -537,9 +539,9 @@ pepp::debug::EvaluationCache pepp::debug::DebuggerVariable::cached() const { ret
 
 int pepp::debug::DebuggerVariable::cv_qualifiers() const { return CVQualifiers::Volatile; }
 
-void pepp::debug::DebuggerVariable::mark_dirty() { _state.dirty = true; }
+void pepp::debug::DebuggerVariable::mark_dirty() { _state.mark_dirty(); }
 
-bool pepp::debug::DebuggerVariable::dirty() const { return _state.dirty; }
+bool pepp::debug::DebuggerVariable::dirty() const { return _state.dirty(); }
 
 void pepp::debug::DebuggerVariable::accept(MutatingTermVisitor &visitor) { visitor.accept(*this); }
 

@@ -27,7 +27,7 @@ pepp::debug::Value pepp::debug::CachedEvaluator::evaluate(CachePolicy mode, Envi
     if (hasCachedValue && !isDirty) return *_cache.value;
     break;
   case CachePolicy::UseNonVolatiles:
-    if (hasCachedValue && !isDirty && !_cache.depends_on_volatiles) return *_cache.value;
+    if (hasCachedValue && !isDirty && !_cache.depends_on_volatiles()) return *_cache.value;
     break;
   case CachePolicy::UseNever: break;
   }
