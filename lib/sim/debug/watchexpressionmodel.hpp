@@ -27,7 +27,7 @@ public:
   void set_term(QString term);
   void evaluate(CachePolicy mode, pepp::debug::Environment &env);
   void clear_value();
-  std::optional<TypedBits> value() const;
+  std::optional<Value> value() const;
 
   bool needs_update() const;
   bool dirty() const;
@@ -48,8 +48,8 @@ private:
   // If term != nullptr && wip_type.empty() && type: promote terms result to this type.
   // If term != nullptr && wip_type.empty() && !type: use terms result type.
   // If term != nullptr && !wip_type.empty(): do not render value, and place <invalid> in type field.
-  std::optional<ExpressionType> _type = std::nullopt;
-  std::optional<TypedBits> _recent_value = std::nullopt; // Most recent value of the term.
+  std::optional<types::Primitives> _type = std::nullopt;
+  std::optional<Value> _recent_value = std::nullopt; // Most recent value of the term.
 };
 
 bool edit_term(EditableWatchExpression &term, pepp::debug::ExpressionCache &cache, pepp::debug::Environment &env,
@@ -65,7 +65,7 @@ void update_volatile_values(std::vector<EditableWatchExpression::VolatileCache> 
   for (auto &ptr : volatiles) {
     auto old_v = ptr.evaluator.cache();
     auto new_v = ptr.evaluator.evaluate(CachePolicy::UseNonVolatiles, env);
-    if (old_v.value != new_v) pepp::debug::mark_parents_dirty(*ptr.evaluator.term());
+    if (*old_v.value == new_v) pepp::debug::mark_parents_dirty(*ptr.evaluator.term());
   }
 
   // Later term could be a a subexpression of current one.
@@ -132,8 +132,6 @@ private:
   std::vector<EditableWatchExpression::VolatileCache> _volatiles;
   std::vector<EditableWatchExpression> _items;
 };
-
-QVariant variant_from_bits(const pepp::debug::TypedBits &bits);
 
 class WatchExpressionRoles : public QObject {
   Q_OBJECT

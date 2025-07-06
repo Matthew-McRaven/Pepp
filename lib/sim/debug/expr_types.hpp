@@ -21,7 +21,9 @@ enum class Primitives : uint8_t { i8, u8, i16, u16, i32, u32 };
 Q_ENUM_NS(Primitives);
 uint32_t bitness(Primitives t);
 bool is_unsigned(Primitives t);
+Primitives make_unsigned(Primitives);
 Primitives common_type(Primitives lhs, Primitives rhs);
+QString to_string(Primitives);
 
 enum class MetaType : quint16 { Never = 0, Primitive = 1, Pointer = 2, Array = 3, Struct = 4 };
 struct Never {
@@ -74,5 +76,9 @@ std::strong_ordering operator<=>(const Type &lhs, const Type &rhs);
 std::strong_ordering operator<=>(const BoxedType &lhs, const BoxedType &rhs);
 std::strong_ordering operator<=>(const BoxedType &lhs, const Type &rhs);
 std::strong_ordering operator<=>(const Type &lhs, const BoxedType &rhs);
+bool operator==(const Type &lhs, const Type &rhs);
+bool operator==(const BoxedType &lhs, const BoxedType &rhs);
+bool operator==(const BoxedType &lhs, const Type &rhs);
+bool operator==(const Type &lhs, const BoxedType &rhs);
 
 } // namespace pepp::debug::types

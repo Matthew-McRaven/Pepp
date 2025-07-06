@@ -42,7 +42,7 @@ TEST_CASE("Parsing watch expressions", "[scope:debug][kind:unit][arch:*]") {
     auto as_const = std::dynamic_pointer_cast<Constant>(ast);
     REQUIRE(as_const != nullptr);
     CHECK(as_const->format_hint == detail::UnsignedConstant::Format::Dec);
-    CHECK(as_const->value.type == ExpressionType::i16);
+    CHECK(as_const->value.primitive == types::Primitives::i16);
     CHECK(as_const->value.bits == 115);
     CHECK(as_const->to_string().toStdString() == "115");
   }
@@ -55,7 +55,7 @@ TEST_CASE("Parsing watch expressions", "[scope:debug][kind:unit][arch:*]") {
     auto as_const = std::dynamic_pointer_cast<Constant>(ast);
     REQUIRE(as_const != nullptr);
     CHECK(as_const->format_hint == detail::UnsignedConstant::Format::Dec);
-    CHECK(as_const->value.type == ExpressionType::u8);
+    CHECK(as_const->value.primitive == types::Primitives::u8);
     CHECK(as_const->value.bits == 115);
     CHECK(as_const->to_string() == "115_u8");
   }
@@ -192,7 +192,7 @@ TEST_CASE("Parsing watch expressions", "[scope:debug][kind:unit][arch:*]") {
     REQUIRE(ast != nullptr);
     auto as_cast = std::dynamic_pointer_cast<ExplicitCast>(ast);
     REQUIRE(as_cast != nullptr);
-    CHECK(as_cast->cast_to == ExpressionType::u16);
+    CHECK(as_cast->cast_to == types::Primitives::u16);
     CHECK(as_cast->to_string().toStdString() == "(u16)a");
   }
   // P2

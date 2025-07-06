@@ -19,8 +19,8 @@
 #include "sim/debug/expr_eval.hpp"
 
 TEST_CASE("Integer promotion rules", "[scope:debug][kind:unit][arch:*]") {
-  using namespace pepp::debug;
-  using T = ExpressionType;
+  using namespace pepp::debug::types;
+  using T = Primitives;
   CHECK(common_type(T::i8, T::i8) == T::i8);
   CHECK(common_type(T::i8, T::u8) == T::u8);
   CHECK(common_type(T::u8, T::i8) == T::u8);

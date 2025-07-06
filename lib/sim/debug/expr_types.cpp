@@ -16,32 +16,49 @@ uint32_t pepp::debug::types::bitness(Primitives t) {
 bool pepp::debug::types::is_unsigned(Primitives t) {
   using enum pepp::debug::types::Primitives;
   switch (t) {
+  case u8: [[fallthrough]];
+  case u16: [[fallthrough]];
+  case u32: return true;
   case i8: [[fallthrough]];
-  case u8: return 8;
   case i16: [[fallthrough]];
-  case u16: return 16;
-  case i32: [[fallthrough]];
-  case u32: return 32;
+  case i32: return false;
   }
 }
 
+pepp::debug::types::Primitives pepp::debug::types::make_unsigned(Primitives t) {
+  using enum pepp::debug::types::Primitives;
+  switch (t) {
+  case i8: [[fallthrough]];
+  case u8: return u8;
+  case i16: [[fallthrough]];
+  case u16: return u16;
+  case i32: [[fallthrough]];
+  case u32: return u32;
+  }
+}
 pepp::debug::types::Primitives pepp::debug::types::common_type(Primitives lhs, Primitives rhs) {
   if (lhs == rhs) return lhs;
   auto lhs_bitness = bitness(lhs), rhs_bitness = bitness(rhs);
   auto lhs_unsigned = is_unsigned(lhs), rhs_unsigned = is_unsigned(rhs);
-  // TODO: I think these rules can be simplified to reduce the amount of branching.
-  // If both share a sign, pick the larger of the two types.
-  if (lhs_unsigned == rhs_unsigned) {
-    if (lhs_bitness > rhs_bitness) return lhs;
-    return rhs;
-  }
+
+  // Same signedness, prefer the larger type.
+  if (lhs_unsigned == rhs_unsigned) return (lhs_bitness >= rhs_bitness) ? lhs : rhs;
   // If only one is signed, prefer the unsigned type unless the signed type is bigger.
-  else if (lhs_unsigned) {
-    if (lhs_bitness >= rhs_bitness) return lhs;
-    return rhs;
-  } else {
-    if (rhs_bitness >= lhs_bitness) return rhs;
-    return lhs;
+  else if (!lhs_unsigned && lhs_bitness > rhs_bitness) return lhs;
+  else if (!rhs_unsigned && rhs_bitness > lhs_bitness) return rhs;
+  // Promote larger type to unsigned.
+  return make_unsigned((lhs_bitness >= rhs_bitness) ? lhs : rhs);
+}
+
+QString pepp::debug::types::to_string(Primitives t) {
+  using enum pepp::debug::types::Primitives;
+  switch (t) {
+  case i8: return "i8";
+  case u8: return "u8";
+  case i16: return "i16";
+  case u16: return "u16";
+  case i32: return "i32";
+  case u32: return "u32";
   }
 }
 
@@ -244,4 +261,20 @@ std::strong_ordering pepp::debug::types::operator<=>(const pepp::debug::types::B
 std::strong_ordering pepp::debug::types::operator<=>(const pepp::debug::types::Type &lhs,
                                                      const pepp::debug::types::BoxedType &rhs) {
   return std::visit(detail::OrderingVisitor{}, lhs, rhs);
+}
+
+bool pepp::debug::types::operator==(const Type &lhs, const Type &rhs) {
+  return (lhs <=> rhs) == std::strong_ordering::equal;
+}
+
+bool pepp::debug::types::operator==(const BoxedType &lhs, const Type &rhs) {
+  return (lhs <=> rhs) == std::strong_ordering::equal;
+}
+
+bool pepp::debug::types::operator==(const BoxedType &lhs, const BoxedType &rhs) {
+  return (lhs <=> rhs) == std::strong_ordering::equal;
+}
+
+bool pepp::debug::types::operator==(const Type &lhs, const BoxedType &rhs) {
+  return (lhs <=> rhs) == std::strong_ordering::equal;
 }

@@ -1,17 +1,6 @@
 #include "expr_eval.hpp"
 #include "expr_ast.hpp"
 
-bool pepp::debug::is_unsigned(ExpressionType t) {
-  switch (t) {
-  case pepp::debug::ExpressionType::i8: [[fallthrough]];
-  case pepp::debug::ExpressionType::i16: [[fallthrough]];
-  case pepp::debug::ExpressionType::i32: return false;
-  case pepp::debug::ExpressionType::u8: [[fallthrough]];
-  case pepp::debug::ExpressionType::u16: [[fallthrough]];
-  case pepp::debug::ExpressionType::u32: return true;
-  }
-}
-
 pepp::debug::CachedEvaluator::CachedEvaluator(std::shared_ptr<Term> term)
     : _cache(term->cached()), _term(std::move(term)) {}
 
@@ -24,8 +13,8 @@ std::shared_ptr<pepp::debug::Term> pepp::debug::CachedEvaluator::term() { return
 
 pepp::debug::EvaluationCache pepp::debug::CachedEvaluator::cache() const { return _cache; }
 
-pepp::debug::TypedBits pepp::debug::CachedEvaluator::evaluate(CachePolicy mode, Environment &env) {
-  if (!_term) return TypedBits{};
+pepp::debug::Value pepp::debug::CachedEvaluator::evaluate(CachePolicy mode, Environment &env) {
+  if (!_term) return VNever{};
 
   auto other = _term->cached();
   auto hasCachedValue = _cache.value.has_value();

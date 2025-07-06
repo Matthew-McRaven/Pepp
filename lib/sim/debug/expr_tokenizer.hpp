@@ -34,13 +34,13 @@ template <> struct T<TokenType::UnsignedConstant> {
 using UnsignedConstant = T<TokenType::UnsignedConstant>;
 
 template <> struct T<TokenType::TypeSuffix> {
-  pepp::debug::ExpressionType type;
+  pepp::debug::types::Primitives type;
   std::strong_ordering operator<=>(const T<TokenType::TypeSuffix> &rhs) const;
 };
 using TypeSuffix = T<TokenType::TypeSuffix>;
 
 template <> struct T<TokenType::TypeCast> {
-  pepp::debug::ExpressionType type;
+  pepp::debug::types::Primitives type;
   std::strong_ordering operator<=>(const T<TokenType::TypeCast> &rhs) const;
 };
 using TypeCast = T<TokenType::TypeCast>;

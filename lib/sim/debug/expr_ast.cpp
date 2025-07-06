@@ -1,4 +1,5 @@
 #include "expr_ast.hpp"
+#include <stdexcept>
 #include "expr_eval.hpp"
 #include "expr_tokenizer.hpp"
 
@@ -31,7 +32,7 @@ void pepp::debug::Variable::link() {
   // No-op; there are no nested terms.
 }
 
-pepp::debug::TypedBits pepp::debug::Variable::evaluate(CachePolicy mode, Environment &env) {
+pepp::debug::Value pepp::debug::Variable::evaluate(CachePolicy mode, Environment &env) {
   if (_state.value.has_value()) {
     using enum CachePolicy;
     switch (mode) {
@@ -66,7 +67,7 @@ std::strong_ordering pepp::debug::Constant::operator<=>(const Term &rhs) const {
   return type() <=> rhs.type();
 }
 
-pepp::debug::Constant::Constant(const TypedBits &bits, detail::UnsignedConstant::Format format_hint)
+pepp::debug::Constant::Constant(const VPrimitive &bits, detail::UnsignedConstant::Format format_hint)
     : format_hint(format_hint), value(bits) {}
 
 uint16_t pepp::debug::Constant::depth() const { return 0; }
@@ -78,24 +79,25 @@ pepp::debug::Term::Type pepp::debug::Constant::type() const { return Type::Const
 QString pepp::debug::Constant::to_string() const {
   using namespace Qt::Literals::StringLiterals;
   using namespace pepp::debug;
+  using enum pepp::debug::types::Primitives;
   switch (format_hint) {
   case detail::UnsignedConstant::Format::Dec:
-    switch (value.type) {
-    case pepp::debug::ExpressionType::i8: return u"%1_i8"_s.arg((int8_t)value.bits, 0, 10);
-    case pepp::debug::ExpressionType::u8: return u"%1_u8"_s.arg((uint8_t)value.bits, 0, 10);
-    case pepp::debug::ExpressionType::i16: return u"%1"_s.arg((int16_t)value.bits, 0, 10);
-    case pepp::debug::ExpressionType::u16: return u"%1_u16"_s.arg((uint16_t)value.bits, 0, 10);
-    case pepp::debug::ExpressionType::i32: return u"%1_i32"_s.arg((int32_t)value.bits, 0, 10);
-    case pepp::debug::ExpressionType::u32: return u"%1_u32"_s.arg((uint32_t)value.bits, 0, 10);
+    switch (value.primitive) {
+    case i8: return u"%1_i8"_s.arg((int8_t)value.bits, 0, 10);
+    case u8: return u"%1_u8"_s.arg((uint8_t)value.bits, 0, 10);
+    case i16: return u"%1"_s.arg((int16_t)value.bits, 0, 10);
+    case u16: return u"%1_u16"_s.arg((uint16_t)value.bits, 0, 10);
+    case i32: return u"%1_i32"_s.arg((int32_t)value.bits, 0, 10);
+    case u32: return u"%1_u32"_s.arg((uint32_t)value.bits, 0, 10);
     }
   case detail::UnsignedConstant::Format::Hex:
-    switch (value.type) {
-    case pepp::debug::ExpressionType::i8: return u"0x%1_i8"_s.arg((uint8_t)value.bits, 0, 16);
-    case pepp::debug::ExpressionType::u8: return u"0x%1_u8"_s.arg((uint8_t)value.bits, 0, 16);
-    case pepp::debug::ExpressionType::i16: return u"0x%1"_s.arg((uint16_t)value.bits, 0, 16);
-    case pepp::debug::ExpressionType::u16: return u"0x%1_u16"_s.arg((uint16_t)value.bits, 0, 16);
-    case pepp::debug::ExpressionType::i32: return u"0x%1_i32"_s.arg((uint32_t)value.bits, 0, 16);
-    case pepp::debug::ExpressionType::u32: return u"0x%1_u32"_s.arg((uint32_t)value.bits, 0, 16);
+    switch (value.primitive) {
+    case i8: return u"0x%1_i8"_s.arg((uint8_t)value.bits, 0, 16);
+    case u8: return u"0x%1_u8"_s.arg((uint8_t)value.bits, 0, 16);
+    case i16: return u"0x%1"_s.arg((uint16_t)value.bits, 0, 16);
+    case u16: return u"0x%1_u16"_s.arg((uint16_t)value.bits, 0, 16);
+    case i32: return u"0x%1_i32"_s.arg((uint32_t)value.bits, 0, 16);
+    case u32: return u"0x%1_u32"_s.arg((uint32_t)value.bits, 0, 16);
     }
   }
 }
@@ -104,7 +106,7 @@ void pepp::debug::Constant::link() {
   // No-op; there are no nested terms.
 }
 
-pepp::debug::TypedBits pepp::debug::Constant::evaluate(CachePolicy, Environment &) { return value; }
+pepp::debug::Value pepp::debug::Constant::evaluate(CachePolicy, Environment &) { return value; }
 
 pepp::debug::EvaluationCache pepp::debug::Constant::cached() const { return EvaluationCache(value); }
 
@@ -150,7 +152,9 @@ QString pepp::debug::UnaryPrefix::to_string() const {
 
 void pepp::debug::UnaryPrefix::link() { arg->add_dependent(weak_from_this()); }
 
-pepp::debug::TypedBits pepp::debug::UnaryPrefix::evaluate(CachePolicy mode, Environment &env) {
+pepp::debug::Value pepp::debug::UnaryPrefix::evaluate(CachePolicy mode, Environment &env) {
+  using namespace pepp::debug::operators;
+  types::RuntimeTypeInfo fake_rtti;
   if (_state.value.has_value()) {
     using enum CachePolicy;
     switch (mode) {
@@ -168,13 +172,14 @@ pepp::debug::TypedBits pepp::debug::UnaryPrefix::evaluate(CachePolicy mode, Envi
   _state.dirty = false, _state.version++;
   switch (op) {
   case Operators::DEREFERENCE:
-    _state.value = TypedBits{.allows_address_of = false, .type = ExpressionType::i16, .bits = env.read_mem_u16(v.bits)};
+    // TODO: need to compute the bits for `v.bits`.
+    _state.value = VPrimitive::from_int((int16_t)env.read_mem_u16(0));
     return *_state.value;
   case Operators::ADDRESS_OF: throw std::logic_error("Not implemented");
-  case Operators::PLUS: return *(_state.value = +v);
-  case Operators::MINUS: return *(_state.value = -v);
-  case Operators::NOT: return *(_state.value = !v);
-  case Operators::NEGATE: return *(_state.value = ~v);
+  case Operators::PLUS: return *(_state.value = op1_plus(fake_rtti, v));
+  case Operators::MINUS: return *(_state.value = op1_minus(fake_rtti, v));
+  case Operators::NOT: return *(_state.value = op1_not(fake_rtti, v));
+  case Operators::NEGATE: return *(_state.value = op1_negate(fake_rtti, v));
   }
   throw std::logic_error("Unimplemented");
 }
@@ -256,7 +261,10 @@ void pepp::debug::BinaryInfix::link() {
   rhs->add_dependent(weak);
 }
 
-pepp::debug::TypedBits pepp::debug::BinaryInfix::evaluate(CachePolicy mode, Environment &env) {
+pepp::debug::Value pepp::debug::BinaryInfix::evaluate(CachePolicy mode, Environment &env) {
+  using namespace pepp::debug::operators;
+  types::RuntimeTypeInfo fake_rtti;
+
   if (_state.value.has_value()) {
     using enum CachePolicy;
     switch (mode) {
@@ -268,29 +276,28 @@ pepp::debug::TypedBits pepp::debug::BinaryInfix::evaluate(CachePolicy mode, Envi
     case UseDirtyAlways: return *_state.value;
     }
   }
-  auto eval_lhs = lhs->evaluator(), rhs_eval = rhs->evaluator();
-  auto v_lhs = eval_lhs.evaluate(mode, env);
-  auto v_rhs = rhs_eval.evaluate(mode, env);
+  auto eval_lhs = lhs->evaluator(), eval_rhs = rhs->evaluator();
+  auto v_lhs = eval_lhs.evaluate(mode, env), v_rhs = eval_rhs.evaluate(mode, env);
   _state.dirty = false, _state.version++;
   switch (op) {
   case Operators::STAR_DOT: [[fallthrough]];
   case Operators::DOT: throw std::logic_error("Not Implemented");
-  case Operators::MULTIPLY: return *(_state.value = v_lhs * v_rhs);
-  case Operators::DIVIDE: return *(_state.value = v_lhs / v_rhs);
-  case Operators::MODULO: return *(_state.value = v_lhs % v_rhs);
-  case Operators::ADD: return *(_state.value = v_lhs + v_rhs);
-  case Operators::SUBTRACT: return *(_state.value = v_lhs - v_rhs);
-  case Operators::SHIFT_LEFT: return *(_state.value = v_lhs << v_rhs);
-  case Operators::SHIFT_RIGHT: return *(_state.value = v_lhs >> v_rhs);
-  case Operators::LESS: return *(_state.value = _lt(v_lhs, v_rhs));
-  case Operators::LESS_OR_EQUAL: return *(_state.value = _le(v_lhs, v_rhs));
-  case Operators::EQUAL: return *(_state.value = _eq(v_lhs, v_rhs));
-  case Operators::NOT_EQUAL: return *(_state.value = _ne(v_lhs, v_rhs));
-  case Operators::GREATER: return *(_state.value = _gt(v_lhs, v_rhs));
-  case Operators::GREATER_OR_EQUAL: return *(_state.value = _ge(v_lhs, v_rhs));
-  case Operators::BIT_AND: return *(_state.value = v_lhs & v_rhs);
-  case Operators::BIT_OR: return *(_state.value = v_lhs | v_rhs);
-  case Operators::BIT_XOR: return *(_state.value = v_lhs ^ v_rhs);
+  case Operators::MULTIPLY: return *(_state.value = op2_mul(fake_rtti, v_lhs, v_rhs));
+  case Operators::DIVIDE: return *(_state.value = op2_div(fake_rtti, v_lhs, v_rhs));
+  case Operators::MODULO: return *(_state.value = op2_mod(fake_rtti, v_lhs, v_rhs));
+  case Operators::ADD: return *(_state.value = op2_add(fake_rtti, v_lhs, v_rhs));
+  case Operators::SUBTRACT: return *(_state.value = op2_sub(fake_rtti, v_lhs, v_rhs));
+  case Operators::SHIFT_LEFT: return *(_state.value = op2_bsl(fake_rtti, v_lhs, v_rhs));
+  case Operators::SHIFT_RIGHT: return *(_state.value = op2_bsr(fake_rtti, v_lhs, v_rhs));
+  case Operators::LESS: return *(_state.value = op2_lt(fake_rtti, v_lhs, v_rhs));
+  case Operators::LESS_OR_EQUAL: return *(_state.value = op2_le(fake_rtti, v_lhs, v_rhs));
+  case Operators::EQUAL: return *(_state.value = op2_eq(fake_rtti, v_lhs, v_rhs));
+  case Operators::NOT_EQUAL: return *(_state.value = op2_ne(fake_rtti, v_lhs, v_rhs));
+  case Operators::GREATER: return *(_state.value = op2_gt(fake_rtti, v_lhs, v_rhs));
+  case Operators::GREATER_OR_EQUAL: return *(_state.value = op2_ge(fake_rtti, v_lhs, v_rhs));
+  case Operators::BIT_AND: return *(_state.value = op2_bitand(fake_rtti, v_lhs, v_rhs));
+  case Operators::BIT_OR: return *(_state.value = op2_bitor(fake_rtti, v_lhs, v_rhs));
+  case Operators::BIT_XOR: return *(_state.value = op2_bitxor(fake_rtti, v_lhs, v_rhs));
   }
   throw std::logic_error("Unimplemented");
 }
@@ -335,7 +342,7 @@ void pepp::debug::Parenthesized::link() { term->add_dependent(weak_from_this());
 
 int pepp::debug::Parenthesized::cv_qualifiers() const { return 0; }
 
-pepp::debug::TypedBits pepp::debug::Parenthesized::evaluate(CachePolicy mode, Environment &env) {
+pepp::debug::Value pepp::debug::Parenthesized::evaluate(CachePolicy mode, Environment &env) {
   auto eval = term->evaluator();
   auto v = eval.evaluate(mode, env);
   _state = eval.cache();
@@ -373,7 +380,7 @@ bool pepp::debug::Term::dependency_of(std::shared_ptr<Term> t) const {
 
 bits::span<const std::weak_ptr<pepp::debug::Term>> pepp::debug::Term::dependents() const { return _dependents; }
 
-pepp::debug::ExplicitCast::ExplicitCast(ExpressionType cast_to, std::shared_ptr<Term> arg)
+pepp::debug::ExplicitCast::ExplicitCast(pepp::debug::types::Primitives cast_to, std::shared_ptr<Term> arg)
     : cast_to(cast_to), arg(arg) {
   int arg_cv = arg ? arg->cv_qualifiers() : 0;
   _state.depends_on_volatiles = arg_cv & CVQualifiers::Volatile;
@@ -395,12 +402,12 @@ pepp::debug::Term::Type pepp::debug::ExplicitCast::type() const { return Type::T
 
 QString pepp::debug::ExplicitCast::to_string() const {
   using namespace Qt::StringLiterals;
-  return u"(%1)%2"_s.arg(pepp::debug::to_string(cast_to), arg->to_string());
+  return u"(%1)%2"_s.arg(pepp::debug::types::to_string(cast_to), arg->to_string());
 }
 
 void pepp::debug::ExplicitCast::link() { arg->add_dependent(weak_from_this()); }
 
-pepp::debug::TypedBits pepp::debug::ExplicitCast::evaluate(CachePolicy mode, Environment &env) {
+pepp::debug::Value pepp::debug::ExplicitCast::evaluate(CachePolicy mode, Environment &env) {
   if (_state.value.has_value()) {
     using enum CachePolicy;
     switch (mode) {
@@ -415,7 +422,7 @@ pepp::debug::TypedBits pepp::debug::ExplicitCast::evaluate(CachePolicy mode, Env
   _state.dirty = false, _state.version++;
   auto eval = arg->evaluator();
   auto v = eval.evaluate(mode, env);
-  return *(_state.value = pepp::debug::promote(v, cast_to));
+  return *(_state.value = VPrimitive::from(cast_to, value_bits(v)));
 }
 
 pepp::debug::EvaluationCache pepp::debug::ExplicitCast::cached() const { return _state; }
@@ -458,7 +465,7 @@ void pepp::debug::DebuggerVariable::link() {
   // No-op; there are no nested terms.
 }
 
-pepp::debug::TypedBits pepp::debug::DebuggerVariable::evaluate(CachePolicy mode, Environment &env) {
+pepp::debug::Value pepp::debug::DebuggerVariable::evaluate(CachePolicy mode, Environment &env) {
   if (!_name_cache_id.has_value()) _name_cache_id = env.cache_debug_variable_name(name);
   else if (_state.value.has_value()) {
     using enum CachePolicy;

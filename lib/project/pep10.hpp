@@ -84,9 +84,9 @@ public:
 
   uint8_t read_mem_u8(uint32_t address) const override;
   uint16_t read_mem_u16(uint32_t address) const override;
-  pepp::debug::TypedBits evaluate_variable(QStringView name) const override;
+  pepp::debug::Value evaluate_variable(QStringView name) const override;
   uint32_t cache_debug_variable_name(QStringView name) const override;
-  pepp::debug::TypedBits evaluate_debug_variable(uint32_t name) const override;
+  pepp::debug::Value evaluate_debug_variable(uint32_t name) const override;
 
   virtual QStringList saveAsOptions() const { return {"pepo"}; }
   Q_INVOKABLE virtual QString defaultExtension() const { return "pepo"; }
