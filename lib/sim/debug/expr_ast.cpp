@@ -100,6 +100,7 @@ QString pepp::debug::Constant::to_string() const {
     case u32: return u"0x%1_u32"_s.arg((uint32_t)value.bits, 0, 16);
     }
   }
+  throw std::logic_error("Unreachable");
 }
 
 void pepp::debug::Constant::link() {
