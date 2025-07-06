@@ -16,7 +16,7 @@ struct IsConstantExpressionVisitor : public ConstantTermVisitor {
   void accept(const BinaryInfix &node) override;
   void accept(const UnaryPrefix &node) override;
   void accept(const Parenthesized &node) override;
-  void accept(const ExplicitCast &node) override;
+  void accept(const DirectCast &node) override;
 };
 
 // Mutating because used may want to evaluate() on gathered terms, which is non-const
@@ -30,7 +30,7 @@ struct GatherVolatileTerms : public MutatingTermVisitor {
   void accept(BinaryInfix &node) override;
   void accept(UnaryPrefix &node) override;
   void accept(Parenthesized &node) override;
-  void accept(ExplicitCast &node) override;
+  void accept(DirectCast &node) override;
 };
 } // namespace detail
 

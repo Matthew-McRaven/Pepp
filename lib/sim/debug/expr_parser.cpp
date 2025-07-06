@@ -133,7 +133,7 @@ std::shared_ptr<pepp::debug::types::Type> pepp::debug::Parser::compile_type(QStr
 std::shared_ptr<pepp::debug::types::Type> pepp::debug::Parser::compile_type(QStringView expr, void *builtins) {
   detail::TokenBuffer tok(expr);
   detail::MemoCache cache{};
-  // TODO: add helper to parse a typecast, which MUST be used by our ExplicitCast Term.
+  // TODO: add helper to parse a typecast, which MUST be used by our DirectCast Term.
   return nullptr;
 }
 
@@ -280,7 +280,7 @@ std::shared_ptr<pepp::debug::Term> pepp::debug::Parser::parse_p1(detail::TokenBu
     const auto &cast = std::get<Cast>(maybe_cast);
     auto arg = parse_p0(tok, cache);
     if (arg == nullptr) return cp.rollback<pepp::debug::Term>(rule);
-    return cp.memoize(accept(ExplicitCast(cast.type, arg)), rule);
+    return cp.memoize(accept(DirectCast(cast.type, arg)), rule);
   }
   return parse_p0(tok, cache);
 }

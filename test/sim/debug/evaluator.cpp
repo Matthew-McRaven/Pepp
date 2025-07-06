@@ -125,7 +125,7 @@ TEST_CASE("Evaluating watch expressions", "[scope:debug][kind:unit][arch:*]") {
     QString body = "(i8)(258 + 255)";
     auto ast = p.compile(body);
     REQUIRE(ast != nullptr);
-    auto as_cast = std::dynamic_pointer_cast<ExplicitCast>(ast);
+    auto as_cast = std::dynamic_pointer_cast<DirectCast>(ast);
     REQUIRE(as_cast != nullptr);
     auto as_paren = std::dynamic_pointer_cast<Parenthesized>(as_cast->arg);
     REQUIRE(as_paren != nullptr);

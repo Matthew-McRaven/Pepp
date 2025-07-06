@@ -55,7 +55,7 @@ struct CountEvalVisitor : public pepp::debug::ConstantTermVisitor {
     node.arg->accept(*this);
   }
   void accept(const pepp::debug::Parenthesized &node) override { node.term->accept(*this); }
-  void accept(const pepp::debug::ExplicitCast &node) override {
+  void accept(const pepp::debug::DirectCast &node) override {
     visited.insert(&node);
     node.arg->accept(*this);
   }

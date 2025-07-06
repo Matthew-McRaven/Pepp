@@ -380,34 +380,34 @@ bool pepp::debug::Term::dependency_of(std::shared_ptr<Term> t) const {
 
 bits::span<const std::weak_ptr<pepp::debug::Term>> pepp::debug::Term::dependents() const { return _dependents; }
 
-pepp::debug::ExplicitCast::ExplicitCast(pepp::debug::types::Primitives cast_to, std::shared_ptr<Term> arg)
+pepp::debug::DirectCast::DirectCast(pepp::debug::types::Primitives cast_to, std::shared_ptr<Term> arg)
     : cast_to(cast_to), arg(arg) {
   int arg_cv = arg ? arg->cv_qualifiers() : 0;
   _state.depends_on_volatiles = arg_cv & CVQualifiers::Volatile;
 }
 
-std::strong_ordering pepp::debug::ExplicitCast::operator<=>(const Term &rhs) const {
-  if (type() == rhs.type()) return this->operator<=>(static_cast<const ExplicitCast &>(rhs));
+std::strong_ordering pepp::debug::DirectCast::operator<=>(const Term &rhs) const {
+  if (type() == rhs.type()) return this->operator<=>(static_cast<const DirectCast &>(rhs));
   return type() <=> rhs.type();
 }
 
-std::strong_ordering pepp::debug::ExplicitCast::operator<=>(const ExplicitCast &rhs) const {
+std::strong_ordering pepp::debug::DirectCast::operator<=>(const DirectCast &rhs) const {
   if (auto cmp = cast_to <=> rhs.cast_to; cmp != 0) return cmp;
   return *arg <=> *rhs.arg;
 }
 
-uint16_t pepp::debug::ExplicitCast::depth() const { return arg->depth() + 1; }
+uint16_t pepp::debug::DirectCast::depth() const { return arg->depth() + 1; }
 
-pepp::debug::Term::Type pepp::debug::ExplicitCast::type() const { return Type::TypeCast; }
+pepp::debug::Term::Type pepp::debug::DirectCast::type() const { return Type::TypeCast; }
 
-QString pepp::debug::ExplicitCast::to_string() const {
+QString pepp::debug::DirectCast::to_string() const {
   using namespace Qt::StringLiterals;
   return u"(%1)%2"_s.arg(pepp::debug::types::to_string(cast_to), arg->to_string());
 }
 
-void pepp::debug::ExplicitCast::link() { arg->add_dependent(weak_from_this()); }
+void pepp::debug::DirectCast::link() { arg->add_dependent(weak_from_this()); }
 
-pepp::debug::Value pepp::debug::ExplicitCast::evaluate(CachePolicy mode, Environment &env) {
+pepp::debug::Value pepp::debug::DirectCast::evaluate(CachePolicy mode, Environment &env) {
   if (_state.value.has_value()) {
     using enum CachePolicy;
     switch (mode) {
@@ -425,17 +425,17 @@ pepp::debug::Value pepp::debug::ExplicitCast::evaluate(CachePolicy mode, Environ
   return *(_state.value = VPrimitive::from(cast_to, value_bits(v)));
 }
 
-pepp::debug::EvaluationCache pepp::debug::ExplicitCast::cached() const { return _state; }
+pepp::debug::EvaluationCache pepp::debug::DirectCast::cached() const { return _state; }
 
-int pepp::debug::ExplicitCast::cv_qualifiers() const { return 0; }
+int pepp::debug::DirectCast::cv_qualifiers() const { return 0; }
 
-void pepp::debug::ExplicitCast::mark_dirty() { _state.dirty = true; }
+void pepp::debug::DirectCast::mark_dirty() { _state.dirty = true; }
 
-bool pepp::debug::ExplicitCast::dirty() const { return _state.dirty; }
+bool pepp::debug::DirectCast::dirty() const { return _state.dirty; }
 
-void pepp::debug::ExplicitCast::accept(MutatingTermVisitor &visitor) { visitor.accept(*this); }
+void pepp::debug::DirectCast::accept(MutatingTermVisitor &visitor) { visitor.accept(*this); }
 
-void pepp::debug::ExplicitCast::accept(ConstantTermVisitor &visitor) const { visitor.accept(*this); }
+void pepp::debug::DirectCast::accept(ConstantTermVisitor &visitor) const { visitor.accept(*this); }
 
 pepp::debug::DebuggerVariable::DebuggerVariable(const detail::DebugIdentifier &ident) : name(ident.value) {}
 

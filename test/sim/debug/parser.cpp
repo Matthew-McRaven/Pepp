@@ -190,7 +190,7 @@ TEST_CASE("Parsing watch expressions", "[scope:debug][kind:unit][arch:*]") {
     QString body = "(  u16 ) a";
     auto ast = p.compile(body);
     REQUIRE(ast != nullptr);
-    auto as_cast = std::dynamic_pointer_cast<ExplicitCast>(ast);
+    auto as_cast = std::dynamic_pointer_cast<DirectCast>(ast);
     REQUIRE(as_cast != nullptr);
     CHECK(as_cast->cast_to == types::Primitives::u16);
     CHECK(as_cast->to_string().toStdString() == "(u16)a");
