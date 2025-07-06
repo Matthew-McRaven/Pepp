@@ -23,18 +23,40 @@ struct CVQualifiers {
   enum { Constant = 0x1, Volatile = 0x2 };
 };
 
-struct EvaluationCache {
-  explicit EvaluationCache(Value value) : dirty(false), depends_on_volatiles(false), version(0), value(value) {}
-  EvaluationCache() = default;
-  EvaluationCache(const EvaluationCache &other) = default;
-  EvaluationCache &operator=(const EvaluationCache &other) = default;
-  EvaluationCache(EvaluationCache &&other) = default;
-  EvaluationCache &operator=(EvaluationCache &&other) = default;
+// Split versioning logic from storing the value using CRTP so that the same classes can be used for values and types
+template <typename T> struct Versioned : public T {
+  uint32_t version = 0;
+  // Used so that Versioned<OptVal>(Value) works without any explicit casts
+  template <typename U> explicit Versioned(U value) : T(value), version(0) {}
+  Versioned() = default;
+  Versioned(const Versioned &other) = default;
+  Versioned &operator=(const Versioned &other) = default;
+  Versioned(Versioned &&other) = default;
+  Versioned &operator=(Versioned &&other) = default;
+};
+
+template <typename T> struct Cached : public T {
+  template <typename U> explicit Cached(U value) : T(value), dirty(false), depends_on_volatiles(false) {}
+  Cached() = default;
+  Cached(const Cached &other) = default;
+  Cached &operator=(const Cached &other) = default;
+  Cached(Cached &&other) = default;
+  Cached &operator=(Cached &&other) = default;
   bool dirty = false;
   bool depends_on_volatiles = false;
-  uint32_t version = 0;
+};
+
+// Combined above definitions to cache an optional value with versioning.
+struct OptVal {
+  OptVal() = default;
+  explicit OptVal(Value value) : value(value) {}
+  OptVal(const OptVal &other) = default;
+  OptVal &operator=(const OptVal &other) = default;
+  OptVal(OptVal &&other) = default;
+  OptVal &operator=(OptVal &&other) = default;
   std::optional<Value> value = std::nullopt;
 };
+using EvaluationCache = Cached<Versioned<OptVal>>;
 
 struct Environment {
   // Read some bytes of memory (modulo the size of the address space) in the platform's preferred endianness
