@@ -271,7 +271,11 @@ std::shared_ptr<pepp::debug::Term> pepp::debug::Parser::parse_p1(detail::TokenBu
     auto op = string_to_unary_prefix(lit.literal);
     // Changed from return to enable p0 to evaluate parenthetical expressions.
     if (!op) cp.rollback<pepp::debug::Term>(rule);
-    else {
+    else if (op == UnaryPrefix::Operators::DEREFERENCE) {
+      auto arg = parse_p0(tok, cache);
+      if (arg == nullptr) return cp.rollback<pepp::debug::Term>(rule);
+      return cp.memoize(accept(MemoryRead(arg)), rule);
+    } else {
       auto arg = parse_p0(tok, cache);
       if (arg == nullptr) return cp.rollback<pepp::debug::Term>(rule);
       return cp.memoize(accept(UnaryPrefix(*op, arg)), rule);

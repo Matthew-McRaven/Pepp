@@ -141,15 +141,15 @@ TEST_CASE("Parsing watch expressions", "[scope:debug][kind:unit][arch:*]") {
     CHECK(as_prefix->to_string().toStdString() == "-a");
   }
   SECTION("Unary Prefix: *") {
+    // Lol it's really a MemoryRead, but it looks like a unary prefix op!
     ExpressionCache c;
     Parser p(c);
     QString body = "*a";
     auto ast = p.compile(body);
     REQUIRE(ast != nullptr);
-    auto as_prefix = std::dynamic_pointer_cast<UnaryPrefix>(ast);
-    REQUIRE(as_prefix != nullptr);
-    CHECK(as_prefix->op == UnaryPrefix::Operators::DEREFERENCE);
-    CHECK(as_prefix->to_string().toStdString() == "*a");
+    auto as_mem = std::dynamic_pointer_cast<MemoryRead>(ast);
+    REQUIRE(as_mem != nullptr);
+    CHECK(as_mem->to_string().toStdString() == "*a");
   }
   SECTION("Unary Prefix: &") {
     ExpressionCache c;

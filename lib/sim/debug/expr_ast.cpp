@@ -171,10 +171,7 @@ pepp::debug::Value pepp::debug::UnaryPrefix::evaluate(CachePolicy mode, Environm
   auto v = eval.evaluate(mode, env);
   _state.dirty = false, _state.version++;
   switch (op) {
-  case Operators::DEREFERENCE:
-    // TODO: need to compute the bits for `v.bits`.
-    _state.value = VPrimitive::from_int((int16_t)env.read_mem_u16(0));
-    return *_state.value;
+  case Operators::DEREFERENCE: throw std::logic_error("Use MemoryAccess instead");
   case Operators::ADDRESS_OF: throw std::logic_error("Not implemented");
   case Operators::PLUS: return *(_state.value = op1_plus(fake_rtti, v));
   case Operators::MINUS: return *(_state.value = op1_minus(fake_rtti, v));
@@ -207,6 +204,60 @@ std::optional<pepp::debug::UnaryPrefix::Operators> pepp::debug::string_to_unary_
   if (result == unops.cend()) return std::nullopt;
   return result->first;
 }
+
+pepp::debug::MemoryRead::MemoryRead(std::shared_ptr<Term> arg) : arg(arg) { _state.depends_on_volatiles = true; }
+
+std::strong_ordering pepp::debug::MemoryRead::operator<=>(const Term &rhs) const {
+  if (type() == rhs.type()) return this->operator<=>(static_cast<const MemoryRead &>(rhs));
+  return type() <=> rhs.type();
+}
+
+std::strong_ordering pepp::debug::MemoryRead::operator<=>(const MemoryRead &rhs) const { return *arg <=> *rhs.arg; }
+
+uint16_t pepp::debug::MemoryRead::depth() const { return arg->depth() + 1; }
+
+pepp::debug::Term::Type pepp::debug::MemoryRead::type() const { return Term::Type::MemoryAccess; }
+
+QString pepp::debug::MemoryRead::to_string() const {
+  using namespace Qt::StringLiterals;
+  return u"*%1"_s.arg(arg->to_string());
+}
+
+void pepp::debug::MemoryRead::link() { arg->add_dependent(weak_from_this()); }
+
+int pepp::debug::MemoryRead::cv_qualifiers() const { return CVQualifiers::Volatile; }
+
+void pepp::debug::MemoryRead::mark_dirty() { _state.dirty = true; }
+
+bool pepp::debug::MemoryRead::dirty() const { return _state.dirty; }
+
+void pepp::debug::MemoryRead::accept(MutatingTermVisitor &visitor) { visitor.accept(*this); }
+
+void pepp::debug::MemoryRead::accept(ConstantTermVisitor &visitor) const { visitor.accept(*this); }
+
+pepp::debug::Value pepp::debug::MemoryRead::evaluate(CachePolicy mode, Environment &env) {
+  using namespace pepp::debug::operators;
+  types::RuntimeTypeInfo fake_rtti;
+  if (_state.value.has_value()) {
+    using enum CachePolicy;
+    switch (mode) {
+    case UseNever: break;
+    case UseNonVolatiles: break;
+    case UseAlways:
+      if (_state.dirty) break;
+    case UseDirtyAlways: return *_state.value;
+    }
+  }
+
+  auto eval = arg->evaluator();
+  auto v = eval.evaluate(mode, env);
+  _state.dirty = false, _state.version++;
+
+  _state.value = VPrimitive::from_int((int16_t)env.read_mem_u16(0));
+  return *_state.value;
+}
+
+pepp::debug::EvaluationCache pepp::debug::MemoryRead::cached() const { return _state; }
 
 pepp::debug::BinaryInfix::BinaryInfix(Operators op, std::shared_ptr<Term> lhs, std::shared_ptr<Term> rhs)
     : op(op), lhs(lhs), rhs(rhs) {
@@ -493,3 +544,4 @@ bool pepp::debug::DebuggerVariable::dirty() const { return _state.dirty; }
 void pepp::debug::DebuggerVariable::accept(MutatingTermVisitor &visitor) { visitor.accept(*this); }
 
 void pepp::debug::DebuggerVariable::accept(ConstantTermVisitor &visitor) const { visitor.accept(*this); }
+
