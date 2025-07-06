@@ -230,11 +230,11 @@ private:
 };
 std::optional<UnaryPrefix::Operators> string_to_unary_prefix(QStringView);
 
-struct ExplicitCast : public Term {
-  ExplicitCast(types::Primitives cast_to, std::shared_ptr<Term> arg);
-  ~ExplicitCast() override = default;
+struct DirectCast : public Term {
+  DirectCast(types::Primitives cast_to, std::shared_ptr<Term> arg);
+  ~DirectCast() override = default;
   std::strong_ordering operator<=>(const Term &rhs) const override;
-  std::strong_ordering operator<=>(const ExplicitCast &rhs) const;
+  std::strong_ordering operator<=>(const DirectCast &rhs) const;
   uint16_t depth() const override;
   Type type() const override;
   QString to_string() const override;
@@ -293,7 +293,7 @@ struct MutatingTermVisitor {
   virtual void accept(BinaryInfix &node) = 0;
   virtual void accept(UnaryPrefix &node) = 0;
   virtual void accept(Parenthesized &node) = 0;
-  virtual void accept(ExplicitCast &node) = 0;
+  virtual void accept(DirectCast &node) = 0;
 };
 struct ConstantTermVisitor {
   virtual void accept(const Variable &node) = 0;
@@ -302,7 +302,7 @@ struct ConstantTermVisitor {
   virtual void accept(const BinaryInfix &node) = 0;
   virtual void accept(const UnaryPrefix &node) = 0;
   virtual void accept(const Parenthesized &node) = 0;
-  virtual void accept(const ExplicitCast &node) = 0;
+  virtual void accept(const DirectCast &node) = 0;
 };
 
 } // namespace pepp::debug
