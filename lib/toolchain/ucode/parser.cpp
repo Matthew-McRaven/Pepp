@@ -63,6 +63,9 @@ bool pepp::ucode::detail::TokenBuffer::peek(Token token, QStringView *out) {
     if (nextCh == "\n") {
       _end = _start + 1, _currentToken = Token::Empty;
       break;
+    } else if (nextCh == "\r") {
+      _start++, _currentToken = Token::Empty;
+      continue;
     } else if (nextCh.isSpace()) {
       _start++;
       continue;
