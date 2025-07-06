@@ -30,13 +30,16 @@ struct UnaryMinusVisitor {
 };
 
 struct UnaryNotVisitor {
+  pepp::debug::types::RuntimeTypeInfo *info;
   pepp::debug::Value operator()(const pepp::debug::VNever &arg) const { return pepp::debug::VNever{}; }
   pepp::debug::Value operator()(const auto &arg) const {
     using enum pepp::debug::types::Primitives;
-    switch (bitness(arg)) {
-    case 8: return pepp::debug::VPrimitive{{.primitive = i8}, !((int8_t)arg.bits)};
-    case 16: return pepp::debug::VPrimitive{{.primitive = i8}, !((int16_t)arg.bits)};
-    case 32: return pepp::debug::VPrimitive{{.primitive = i8}, !((int32_t)arg.bits)};
+    static const auto ret_hnd = pepp::debug::types::RuntimeTypeInfo::Handle(i8);
+    auto type = unbox(info->from(arg.type_handle));
+    switch (bitness(type)) {
+    case 8: return pepp::debug::VPrimitive{{.primitive = i8}, ret_hnd, !((int8_t)arg.bits)};
+    case 16: return pepp::debug::VPrimitive{{.primitive = i8}, ret_hnd, !((int16_t)arg.bits)};
+    case 32: return pepp::debug::VPrimitive{{.primitive = i8}, ret_hnd, !((int32_t)arg.bits)};
     }
     return pepp::debug::VNever{};
   }

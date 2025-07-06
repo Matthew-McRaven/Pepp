@@ -23,8 +23,9 @@ TEST_CASE("Value classes & operators", "[scope:debug][kind:unit][arch:*]") {
   using namespace pepp::debug;
   SECTION("Same-width integers") {
     using namespace pepp::debug::operators;
+    auto rtti = types::RuntimeTypeInfo();
     VPrimitive lhs = VPrimitive::from_int<int8_t>(-5), rhs = VPrimitive::from_int<int8_t>(16);
-    auto type = _typeof((lhs + rhs));
+    auto type = _typeof(rtti, lhs + rhs);
     REQUIRE(std::holds_alternative<types::TPrimitive>(type));
     CHECK(std::get<types::TPrimitive>(type) == pepp::debug::types::TPrimitive{types::Primitives::i8});
     CHECK(value_bits<int8_t>(lhs + rhs) == (int8_t)11);
