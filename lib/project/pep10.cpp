@@ -420,6 +420,8 @@ QString Pep_ISA::charOut() const {
 
 bool Pep_ISA::isEmpty() const { return _objectCodeText.isEmpty(); }
 
+pepp::debug::types::RuntimeTypeInfo const *Pep_ISA::type_info() { return &_info; }
+
 uint8_t Pep_ISA::read_mem_u8(uint32_t address) const {
   if (_system == nullptr) return 0;
   quint8 temp = 0;

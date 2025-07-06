@@ -155,7 +155,6 @@ void pepp::debug::UnaryPrefix::link() { arg->add_dependent(weak_from_this()); }
 
 pepp::debug::Value pepp::debug::UnaryPrefix::evaluate(CachePolicy mode, Environment &env) {
   using namespace pepp::debug::operators;
-  types::RuntimeTypeInfo fake_rtti;
   if (_state.value.has_value()) {
     using enum CachePolicy;
     switch (mode) {
@@ -167,17 +166,17 @@ pepp::debug::Value pepp::debug::UnaryPrefix::evaluate(CachePolicy mode, Environm
     case UseDirtyAlways: return *_state.value;
     }
   }
-
+  auto &rtti = *env.type_info();
   auto eval = arg->evaluator();
   auto v = eval.evaluate(mode, env);
   _state.mark_clean();
   switch (op) {
   case Operators::DEREFERENCE: throw std::logic_error("Use MemoryAccess instead");
   case Operators::ADDRESS_OF: throw std::logic_error("Not implemented");
-  case Operators::PLUS: return *(_state.value = op1_plus(fake_rtti, v));
-  case Operators::MINUS: return *(_state.value = op1_minus(fake_rtti, v));
-  case Operators::NOT: return *(_state.value = op1_not(fake_rtti, v));
-  case Operators::NEGATE: return *(_state.value = op1_negate(fake_rtti, v));
+  case Operators::PLUS: return *(_state.value = op1_plus(rtti, v));
+  case Operators::MINUS: return *(_state.value = op1_minus(rtti, v));
+  case Operators::NOT: return *(_state.value = op1_not(rtti, v));
+  case Operators::NEGATE: return *(_state.value = op1_negate(rtti, v));
   }
   throw std::logic_error("Unimplemented");
 }
@@ -238,7 +237,6 @@ void pepp::debug::MemoryRead::accept(ConstantTermVisitor &visitor) const { visit
 
 pepp::debug::Value pepp::debug::MemoryRead::evaluate(CachePolicy mode, Environment &env) {
   using namespace pepp::debug::operators;
-  types::RuntimeTypeInfo fake_rtti;
   if (_state.value.has_value()) {
     using enum CachePolicy;
     switch (mode) {
@@ -315,8 +313,6 @@ void pepp::debug::BinaryInfix::link() {
 
 pepp::debug::Value pepp::debug::BinaryInfix::evaluate(CachePolicy mode, Environment &env) {
   using namespace pepp::debug::operators;
-  types::RuntimeTypeInfo fake_rtti;
-
   if (_state.value.has_value()) {
     using enum CachePolicy;
     switch (mode) {
@@ -328,28 +324,29 @@ pepp::debug::Value pepp::debug::BinaryInfix::evaluate(CachePolicy mode, Environm
     case UseDirtyAlways: return *_state.value;
     }
   }
+  auto &rtti = *env.type_info();
   auto eval_lhs = lhs->evaluator(), eval_rhs = rhs->evaluator();
   auto v_lhs = eval_lhs.evaluate(mode, env), v_rhs = eval_rhs.evaluate(mode, env);
   _state.mark_clean();
   switch (op) {
   case Operators::STAR_DOT: [[fallthrough]];
   case Operators::DOT: throw std::logic_error("Not Implemented");
-  case Operators::MULTIPLY: return *(_state.value = op2_mul(fake_rtti, v_lhs, v_rhs));
-  case Operators::DIVIDE: return *(_state.value = op2_div(fake_rtti, v_lhs, v_rhs));
-  case Operators::MODULO: return *(_state.value = op2_mod(fake_rtti, v_lhs, v_rhs));
-  case Operators::ADD: return *(_state.value = op2_add(fake_rtti, v_lhs, v_rhs));
-  case Operators::SUBTRACT: return *(_state.value = op2_sub(fake_rtti, v_lhs, v_rhs));
-  case Operators::SHIFT_LEFT: return *(_state.value = op2_bsl(fake_rtti, v_lhs, v_rhs));
-  case Operators::SHIFT_RIGHT: return *(_state.value = op2_bsr(fake_rtti, v_lhs, v_rhs));
-  case Operators::LESS: return *(_state.value = op2_lt(fake_rtti, v_lhs, v_rhs));
-  case Operators::LESS_OR_EQUAL: return *(_state.value = op2_le(fake_rtti, v_lhs, v_rhs));
-  case Operators::EQUAL: return *(_state.value = op2_eq(fake_rtti, v_lhs, v_rhs));
-  case Operators::NOT_EQUAL: return *(_state.value = op2_ne(fake_rtti, v_lhs, v_rhs));
-  case Operators::GREATER: return *(_state.value = op2_gt(fake_rtti, v_lhs, v_rhs));
-  case Operators::GREATER_OR_EQUAL: return *(_state.value = op2_ge(fake_rtti, v_lhs, v_rhs));
-  case Operators::BIT_AND: return *(_state.value = op2_bitand(fake_rtti, v_lhs, v_rhs));
-  case Operators::BIT_OR: return *(_state.value = op2_bitor(fake_rtti, v_lhs, v_rhs));
-  case Operators::BIT_XOR: return *(_state.value = op2_bitxor(fake_rtti, v_lhs, v_rhs));
+  case Operators::MULTIPLY: return *(_state.value = op2_mul(rtti, v_lhs, v_rhs));
+  case Operators::DIVIDE: return *(_state.value = op2_div(rtti, v_lhs, v_rhs));
+  case Operators::MODULO: return *(_state.value = op2_mod(rtti, v_lhs, v_rhs));
+  case Operators::ADD: return *(_state.value = op2_add(rtti, v_lhs, v_rhs));
+  case Operators::SUBTRACT: return *(_state.value = op2_sub(rtti, v_lhs, v_rhs));
+  case Operators::SHIFT_LEFT: return *(_state.value = op2_bsl(rtti, v_lhs, v_rhs));
+  case Operators::SHIFT_RIGHT: return *(_state.value = op2_bsr(rtti, v_lhs, v_rhs));
+  case Operators::LESS: return *(_state.value = op2_lt(rtti, v_lhs, v_rhs));
+  case Operators::LESS_OR_EQUAL: return *(_state.value = op2_le(rtti, v_lhs, v_rhs));
+  case Operators::EQUAL: return *(_state.value = op2_eq(rtti, v_lhs, v_rhs));
+  case Operators::NOT_EQUAL: return *(_state.value = op2_ne(rtti, v_lhs, v_rhs));
+  case Operators::GREATER: return *(_state.value = op2_gt(rtti, v_lhs, v_rhs));
+  case Operators::GREATER_OR_EQUAL: return *(_state.value = op2_ge(rtti, v_lhs, v_rhs));
+  case Operators::BIT_AND: return *(_state.value = op2_bitand(rtti, v_lhs, v_rhs));
+  case Operators::BIT_OR: return *(_state.value = op2_bitor(rtti, v_lhs, v_rhs));
+  case Operators::BIT_XOR: return *(_state.value = op2_bitxor(rtti, v_lhs, v_rhs));
   }
   throw std::logic_error("Unimplemented");
 }
