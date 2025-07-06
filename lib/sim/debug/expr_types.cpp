@@ -1,5 +1,6 @@
 #include "expr_types.hpp"
 #include <QList>
+#include <stdexcept>
 
 uint32_t pepp::debug::types::bitness(Primitives t) {
   using enum pepp::debug::types::Primitives;
@@ -11,6 +12,7 @@ uint32_t pepp::debug::types::bitness(Primitives t) {
   case i32: [[fallthrough]];
   case u32: return 32;
   }
+  throw std::logic_error("Unreachable");
 }
 
 bool pepp::debug::types::is_unsigned(Primitives t) {
@@ -23,6 +25,7 @@ bool pepp::debug::types::is_unsigned(Primitives t) {
   case i16: [[fallthrough]];
   case i32: return false;
   }
+  throw std::logic_error("Unreachable");
 }
 
 pepp::debug::types::Primitives pepp::debug::types::make_unsigned(Primitives t) {
@@ -35,6 +38,7 @@ pepp::debug::types::Primitives pepp::debug::types::make_unsigned(Primitives t) {
   case i32: [[fallthrough]];
   case u32: return u32;
   }
+  throw std::logic_error("Unreachable");
 }
 pepp::debug::types::Primitives pepp::debug::types::common_type(Primitives lhs, Primitives rhs) {
   if (lhs == rhs) return lhs;
@@ -60,6 +64,7 @@ QString pepp::debug::types::to_string(Primitives t) {
   case i32: return "i32";
   case u32: return "u32";
   }
+  throw std::logic_error("Unreachable");
 }
 
 std::strong_ordering pepp::debug::types::Never::operator<=>(const Never &) const {
@@ -158,6 +163,7 @@ struct QStringVisitor {
     case i32: return "i32";
     case u32: return "u32";
     }
+    throw std::logic_error("Unreachable");
   }
 
   QString operator()(const Pointer &v) const {

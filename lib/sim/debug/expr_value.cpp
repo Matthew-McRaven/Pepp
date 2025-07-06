@@ -1,4 +1,5 @@
 #include "expr_value.hpp"
+#include <stdexcept>
 
 std::strong_ordering pepp::debug::VNever::operator<=>(const VNever &other) const { return std::strong_ordering::equal; }
 
@@ -15,6 +16,7 @@ pepp::debug::VPrimitive pepp::debug::VPrimitive::with_bits(const VPrimitive &typ
   case i32: return VPrimitive{Primitive{.primitive = type.primitive}, hnd, uint64_t((int32_t)new_value)};
   case u32: return VPrimitive{Primitive{.primitive = type.primitive}, hnd, uint64_t((uint32_t)new_value)};
   }
+  throw std::logic_error("Unreachable");
 }
 
 pepp::debug::VPrimitive pepp::debug::VPrimitive::promote(const VPrimitive &value, types::Primitives new_type) {
@@ -35,6 +37,7 @@ pepp::debug::VPrimitive pepp::debug::VPrimitive::from(types::Primitives new_type
   case i32: return VPrimitive{{.primitive = new_type}, hnd, uint64_t((int32_t)bits)};
   case u32: return VPrimitive{{.primitive = new_type}, hnd, uint64_t((uint32_t)bits)};
   }
+  throw std::logic_error("Unreachable");
 }
 
 pepp::debug::VPrimitive pepp::debug::VPrimitive::True() {
