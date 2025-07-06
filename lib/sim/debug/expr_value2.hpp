@@ -3,8 +3,11 @@
 
 namespace pepp::debug {
 
-struct VNever : public types::TNever {};
+struct VNever : public types::TNever {
+  types::RuntimeTypeInfo::Handle type_handle = types::RuntimeTypeInfo::Handle();
+};
 struct VPrimitive : public types::TPrimitive {
+  types::RuntimeTypeInfo::Handle type_handle;
   uint64_t bits;
   static VPrimitive with_bits(const VPrimitive &type, quint64);
   static VPrimitive promote(const VPrimitive &value, types::Primitives new_type);
@@ -22,24 +25,27 @@ struct VPrimitive : public types::TPrimitive {
     else if constexpr (std::is_same_v<I, uint16_t>) type = T::u16;
     else if constexpr (std::is_same_v<I, int32_t>) type = T::i32;
     else if constexpr (std::is_same_v<I, uint32_t>) type = T::u32;
-    return VPrimitive{{type}, cast};
+    return VPrimitive{{type}, types::RuntimeTypeInfo::Handle(type), cast};
   }
 };
 
-struct VPointer : public types::TPointer {
+struct VPointer {
+  types::RuntimeTypeInfo::Handle type_handle;
   uint64_t bits;
   uint8_t width;
 };
-struct VArray : public types::TArray {
+struct VArray {
+  types::RuntimeTypeInfo::Handle type_handle;
   uint64_t bits;
 };
-struct VStruct : public types::TStruct {
+struct VStruct {
+  types::RuntimeTypeInfo::Handle type_handle;
   uint64_t bits;
 };
 using Value = std::variant<VNever, VPrimitive, VPointer, VArray, VStruct>;
 std::strong_ordering operator<=>(const Value &lhs, const Value &rhs);
 namespace details {
-struct Bitvisitor {
+struct BitVisitor {
   uint64_t operator()(const VNever &v) const { return 0; }
   uint64_t operator()(const VPrimitive &v) const { return v.bits; }
   uint64_t operator()(const VPointer &v) const { return v.bits; }
@@ -48,10 +54,10 @@ struct Bitvisitor {
 };
 } // namespace details
 template <std::integral T> T value_bits(const Value &v) {
-  auto ret = std::visit(details::Bitvisitor{}, v);
+  auto ret = std::visit(details::BitVisitor{}, v);
   return static_cast<T>(ret);
 }
-types::Type _typeof(const Value &v);
+types::Type _typeof(const types::RuntimeTypeInfo &info, const Value &v);
 // Since these operators are in their own namespace, I'm less terrified about operator overloading
 namespace operators {
 // Unary arithmetic ops
