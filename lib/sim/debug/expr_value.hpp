@@ -1,4 +1,5 @@
 #pragma once
+#include <QVariant>
 #include "./expr_rtti.hpp"
 #include "./expr_types.hpp"
 

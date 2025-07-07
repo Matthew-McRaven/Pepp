@@ -1,5 +1,5 @@
 #pragma once
-#include <QtCore>
+#include <QtCore/qmutex.h>
 #include <map>
 #include "expr_types.hpp"
 
