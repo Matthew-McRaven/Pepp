@@ -73,7 +73,8 @@ struct OptVal {
 using EvaluationCache = Cached<Versioned<OptVal>>;
 
 struct Environment {
-  virtual types::RuntimeTypeInfo const *type_info() = 0;
+  virtual types::RuntimeTypeInfo *type_info() = 0;
+  virtual types::RuntimeTypeInfo const *type_info() const = 0;
   // Read some bytes of memory (modulo the size of the address space) in the platform's preferred endianness
   virtual uint8_t read_mem_u8(uint32_t address) const = 0;
   virtual uint16_t read_mem_u16(uint32_t address) const = 0;
@@ -82,7 +83,8 @@ struct Environment {
   virtual Value evaluate_debug_variable(uint32_t cache_index) const = 0;
 };
 struct ZeroEnvironment : public Environment {
-  inline types::RuntimeTypeInfo const *type_info() override { return &_info; }
+  inline types::RuntimeTypeInfo *type_info() override { return &_info; }
+  inline types::RuntimeTypeInfo const *type_info() const override { return &_info; }
   inline uint8_t read_mem_u8(uint32_t address) const override { return 0; }
   inline uint16_t read_mem_u16(uint32_t address) const override { return 0; }
   inline Value evaluate_variable(QStringView name) const override { return VPrimitive::from_int(int16_t(0)); };

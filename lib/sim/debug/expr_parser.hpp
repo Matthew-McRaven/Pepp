@@ -34,7 +34,7 @@ struct Parser {
     INVALID
   };
 
-  explicit Parser(ExpressionCache &cache, void *types = nullptr);
+  explicit Parser(ExpressionCache &cache, types::RuntimeTypeInfo &types);
   std::shared_ptr<Term> compile(QStringView expr, void *builtins = nullptr);
   std::shared_ptr<Term> compile(QString expr, void *builtins = nullptr);
   std::shared_ptr<types::Type> compile_type(QStringView expr, void *builtins = nullptr);
@@ -42,6 +42,7 @@ struct Parser {
 
 private:
   ExpressionCache &_cache;
+  types::RuntimeTypeInfo &_types;
   template <typename T> std::shared_ptr<T> accept(T &&v) { return _cache.add_or_return<T>(std::forward<T>(v)); }
   std::shared_ptr<DebuggerVariable> parse_debug_identifier(detail::TokenBuffer &tok, detail::MemoCache &cache);
   std::shared_ptr<Term> parse_value(detail::TokenBuffer &tok, detail::MemoCache &cache);

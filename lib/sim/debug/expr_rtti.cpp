@@ -44,3 +44,12 @@ std::optional<pepp::debug::types::RuntimeTypeInfo::Handle> pepp::debug::types::R
   if (auto search = _type_to_handle.find(t); search == _type_to_handle.end()) return std::nullopt;
   else return search->second;
 }
+
+pepp::debug::types::RuntimeTypeInfo::Handle pepp::debug::types::RuntimeTypeInfo::from(types::Primitives t) {
+  return from(types::Primitive{t});
+}
+
+std::optional<pepp::debug::types::RuntimeTypeInfo::Handle>
+pepp::debug::types::RuntimeTypeInfo::from(types::Primitives t) const {
+  return from(types::Primitive{t});
+}
