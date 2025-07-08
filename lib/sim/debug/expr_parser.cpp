@@ -124,7 +124,7 @@ pepp::debug::detail::Memo::operator QString() const {
 
 } // namespace pepp::debug::detail
 
-pepp::debug::Parser::Parser(ExpressionCache &cache, void *types) : _cache(cache) {}
+pepp::debug::Parser::Parser(ExpressionCache &cache, types::RuntimeTypeInfo &types) : _cache(cache), _types(types) {}
 
 std::shared_ptr<pepp::debug::types::Type> pepp::debug::Parser::compile_type(QString expr, void *builtins) {
   return compile_type(QStringView(expr), builtins);
@@ -284,8 +284,9 @@ std::shared_ptr<pepp::debug::Term> pepp::debug::Parser::parse_p1(detail::TokenBu
     const auto &cast = std::get<Cast>(maybe_cast);
     auto arg = parse_p0(tok, cache);
     if (arg == nullptr) return cp.rollback<pepp::debug::Term>(rule);
-    auto boxed = types::box(types::Primitive(cast.type));
-    return cp.memoize(accept(DirectCast(boxed, arg)), rule);
+    auto hnd = this->_types.from(cast.type);
+    auto type = this->_types.from(hnd);
+    return cp.memoize(accept(DirectCast(type, arg)), rule);
   }
   return parse_p0(tok, cache);
 }

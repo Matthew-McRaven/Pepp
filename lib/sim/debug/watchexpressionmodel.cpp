@@ -66,7 +66,7 @@ QString pepp::debug::EditableWatchExpression::type_text() const {
 
 bool pepp::debug::edit_term(EditableWatchExpression &item, ExpressionCache &cache, Environment &env,
                             const QString &new_expr) {
-  pepp::debug::Parser p(cache);
+  pepp::debug::Parser p(cache, *env.type_info());
   auto compiled = p.compile(new_expr);
   if (compiled) {
     item.set_term(compiled);
@@ -82,14 +82,14 @@ bool pepp::debug::edit_term(EditableWatchExpression &item, ExpressionCache &cach
 
 pepp::debug::WatchExpressionEditor::WatchExpressionEditor(ExpressionCache *cache, Environment *env, QObject *parent)
     : QObject(parent), _env(env), _cache(cache), _items(0) {
-  pepp::debug::Parser p(*_cache);
+  pepp::debug::Parser p(*_cache, *env->type_info());
   add_item("1 - 3");
   add_item("3_u16 * (x + 2)");
   add_item("y + 1 ==  m * x + b");
 }
 
 void pepp::debug::WatchExpressionEditor::add_item(const QString &new_expr, const QString new_type) {
-  pepp::debug::Parser p(*_cache);
+  pepp::debug::Parser p(*_cache, *_env->type_info());
   auto compiled = p.compile(new_expr);
   auto item = compiled ? EditableWatchExpression(compiled) : EditableWatchExpression(new_expr);
   if (compiled && _env) item.evaluate(CachePolicy::UseNonVolatiles, *_env);

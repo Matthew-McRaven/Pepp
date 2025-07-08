@@ -8,8 +8,8 @@ class RuntimeTypeInfo {
 public:
   class Handle {
   public:
-    Handle();
-    Handle(types::Primitives t);
+    explicit Handle();
+    explicit Handle(types::Primitives t);
     bool operator==(const Handle &rhs) const;
     std::strong_ordering operator<=>(const Handle &rhs) const;
     MetaType metatype() const;
@@ -25,6 +25,9 @@ public:
   Handle from(Type);
   std::optional<Handle> from(Type) const;
   BoxedType from(Handle) const;
+  // Convenience overloads for common types
+  Handle from(types::Primitives);
+  std::optional<Handle> from(types::Primitives) const;
 
 private:
   struct Compare {
