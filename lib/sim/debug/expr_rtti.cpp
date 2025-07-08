@@ -38,3 +38,9 @@ pepp::debug::types::BoxedType pepp::debug::types::RuntimeTypeInfo::from(Handle h
   if (it == _handle_to_type.end()) return {};
   return it->second;
 }
+
+std::optional<pepp::debug::types::RuntimeTypeInfo::Handle> pepp::debug::types::RuntimeTypeInfo::from(Type t) const {
+  QMutexLocker locker(&_mut);
+  if (auto search = _type_to_handle.find(t); search == _type_to_handle.end()) return std::nullopt;
+  else return search->second;
+}

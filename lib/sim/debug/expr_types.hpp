@@ -44,6 +44,7 @@ struct Pointer {
   BoxedType to = std::shared_ptr<Never>{nullptr};
   std::strong_ordering operator<=>(const Pointer &) const;
   bool operator==(const Pointer &) const;
+  inline uint64_t pad_bits(uint64_t bits) const { return bits & ~(static_cast<uint64_t>(pointer_size) * 8 - 1); }
 };
 
 struct Array {
@@ -53,6 +54,7 @@ struct Array {
   BoxedType of = std::shared_ptr<Never>{nullptr};
   std::strong_ordering operator<=>(const Array &) const;
   bool operator==(const Array &) const;
+  inline uint64_t pad_bits(uint64_t bits) const { return bits & ~(static_cast<uint64_t>(pointer_size) * 8 - 1); }
 };
 
 struct Struct {
@@ -62,6 +64,7 @@ struct Struct {
   std::vector<std::tuple<std::string, BoxedType, uint16_t>> members;
   std::strong_ordering operator<=>(const Struct &) const;
   bool operator==(const Struct &) const;
+  inline uint64_t pad_bits(uint64_t bits) const { return bits & ~(static_cast<uint64_t>(pointer_size) * 8 - 1); }
 };
 
 using Type = std::variant<Never, Primitive, Pointer, Array, Struct>;

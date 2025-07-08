@@ -430,8 +430,7 @@ bool pepp::debug::Term::dependency_of(std::shared_ptr<Term> t) const {
 
 bits::span<const std::weak_ptr<pepp::debug::Term>> pepp::debug::Term::dependents() const { return _dependents; }
 
-pepp::debug::DirectCast::DirectCast(pepp::debug::types::Primitives cast_to, std::shared_ptr<Term> arg)
-    : cast_to(cast_to), arg(arg) {
+pepp::debug::DirectCast::DirectCast(types::BoxedType cast_to, std::shared_ptr<Term> arg) : _cast_to(cast_to), arg(arg) {
   int arg_cv = arg ? arg->cv_qualifiers() : 0;
   auto is_volatile = arg_cv & CVQualifiers::Volatile;
   _state.set_depends_on_volatiles(is_volatile);
@@ -443,7 +442,7 @@ std::strong_ordering pepp::debug::DirectCast::operator<=>(const Term &rhs) const
 }
 
 std::strong_ordering pepp::debug::DirectCast::operator<=>(const DirectCast &rhs) const {
-  if (auto cmp = cast_to <=> rhs.cast_to; cmp != 0) return cmp;
+  if (auto cmp = _cast_to <=> rhs._cast_to; cmp != 0) return cmp;
   return *arg <=> *rhs.arg;
 }
 
@@ -453,7 +452,8 @@ pepp::debug::Term::Type pepp::debug::DirectCast::type() const { return Type::Typ
 
 QString pepp::debug::DirectCast::to_string() const {
   using namespace Qt::StringLiterals;
-  return u"(%1)%2"_s.arg(pepp::debug::types::to_string(cast_to), arg->to_string());
+  auto u = types::unbox(_cast_to);
+  return u"(%1)%2"_s.arg(pepp::debug::types::to_string(u), arg->to_string());
 }
 
 void pepp::debug::DirectCast::link() { arg->add_dependent(weak_from_this()); }
@@ -473,7 +473,7 @@ pepp::debug::Value pepp::debug::DirectCast::evaluate(CachePolicy mode, Environme
   auto eval = arg->evaluator();
   auto v = eval.evaluate(mode, env);
   _state.mark_clean();
-  return *(_state.value = VPrimitive::from(cast_to, value_bits(v)));
+  return *(_state.value = operators::op2_typecast(*env.type_info(), v, this->_cast_to));
 }
 
 pepp::debug::EvaluationCache pepp::debug::DirectCast::cached() const { return _state; }
@@ -487,6 +487,8 @@ bool pepp::debug::DirectCast::dirty() const { return _state.dirty(); }
 void pepp::debug::DirectCast::accept(MutatingTermVisitor &visitor) { visitor.accept(*this); }
 
 void pepp::debug::DirectCast::accept(ConstantTermVisitor &visitor) const { visitor.accept(*this); }
+
+const pepp::debug::types::Type pepp::debug::DirectCast::cast_to() const { return types::unbox(_cast_to); }
 
 pepp::debug::DebuggerVariable::DebuggerVariable(const detail::DebugIdentifier &ident) : name(ident.value) {}
 
