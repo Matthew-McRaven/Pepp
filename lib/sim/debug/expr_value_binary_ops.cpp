@@ -114,57 +114,57 @@ struct BinaryXORVisitor : public BinaryArithVisitor<std::bit_xor<uint64_t>> {
 pepp::debug::Value pepp::debug::operators::op2_typecast(const types::RuntimeTypeInfo &info, const Value &from,
                                                         const types::BoxedType &to) {
   auto type = types::unbox(to);
-  return std::visit(detail::BinaryTypecastVisitor{info}, from, type);
+  return std::visit(::detail::BinaryTypecastVisitor{info}, from, type);
 }
 
 pepp::debug::Value pepp::debug::operators::op2_add(const types::RuntimeTypeInfo &info, const Value &lhs,
                                                    const Value &rhs) {
-  return std::visit(detail::SwapDispatch<detail::BinaryPlusVisitor>{info}, lhs, rhs);
+  return std::visit(::detail::SwapDispatch<::detail::BinaryPlusVisitor>{info}, lhs, rhs);
 }
 
 pepp::debug::Value pepp::debug::operators::op2_sub(const types::RuntimeTypeInfo &info, const Value &lhs,
                                                    const Value &rhs) {
-  return std::visit(detail::BinaryMinusVisitor{info}, lhs, rhs);
+  return std::visit(::detail::BinaryMinusVisitor{info}, lhs, rhs);
 }
 
 pepp::debug::Value pepp::debug::operators::op2_mul(const types::RuntimeTypeInfo &info, const Value &lhs,
                                                    const Value &rhs) {
-  return std::visit(detail::SwapDispatch<detail::BinaryTimesVisitor>{info}, lhs, rhs);
+  return std::visit(::detail::SwapDispatch<::detail::BinaryTimesVisitor>{info}, lhs, rhs);
 }
 
 pepp::debug::Value pepp::debug::operators::op2_div(const types::RuntimeTypeInfo &info, const Value &lhs,
                                                    const Value &rhs) {
-  return std::visit(detail::BinaryDivideVisitor{info}, lhs, rhs);
+  return std::visit(::detail::BinaryDivideVisitor{info}, lhs, rhs);
 }
 
 pepp::debug::Value pepp::debug::operators::op2_mod(const types::RuntimeTypeInfo &info, const Value &lhs,
                                                    const Value &rhs) {
-  return std::visit(detail::BinaryModuloVisitor{info}, lhs, rhs);
+  return std::visit(::detail::BinaryModuloVisitor{info}, lhs, rhs);
 }
 
 pepp::debug::Value pepp::debug::operators::op2_bsl(const types::RuntimeTypeInfo &info, const Value &lhs,
                                                    const Value &rhs) {
-  return std::visit(detail::BinaryShiftLeftVisitor{info}, lhs, rhs);
+  return std::visit(::detail::BinaryShiftLeftVisitor{info}, lhs, rhs);
 }
 
 pepp::debug::Value pepp::debug::operators::op2_bsr(const types::RuntimeTypeInfo &info, const Value &lhs,
                                                    const Value &rhs) {
-  return std::visit(detail::BinaryShiftRightVisitor{info}, lhs, rhs);
+  return std::visit(::detail::BinaryShiftRightVisitor{info}, lhs, rhs);
 }
 
 pepp::debug::Value pepp::debug::operators::op2_bitand(const types::RuntimeTypeInfo &info, const Value &lhs,
                                                       const Value &rhs) {
-  return std::visit(detail::SwapDispatch<detail::BinaryANDVisitor>{info}, lhs, rhs);
+  return std::visit(::detail::SwapDispatch<::detail::BinaryANDVisitor>{info}, lhs, rhs);
 }
 
 pepp::debug::Value pepp::debug::operators::op2_bitor(const types::RuntimeTypeInfo &info, const Value &lhs,
                                                      const Value &rhs) {
-  return std::visit(detail::SwapDispatch<detail::BinaryORVisitor>{info}, lhs, rhs);
+  return std::visit(::detail::SwapDispatch<::detail::BinaryORVisitor>{info}, lhs, rhs);
 }
 
 pepp::debug::Value pepp::debug::operators::op2_bitxor(const types::RuntimeTypeInfo &info, const Value &lhs,
                                                       const Value &rhs) {
-  return std::visit(detail::SwapDispatch<detail::BinaryXORVisitor>{info}, lhs, rhs);
+  return std::visit(::detail::SwapDispatch<::detail::BinaryXORVisitor>{info}, lhs, rhs);
 }
 
 pepp::debug::Value pepp::debug::operators::op2_spaceship(const types::RuntimeTypeInfo &info, const Value &lhs,

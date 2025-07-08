@@ -71,24 +71,24 @@ struct UnaryNegateVisitor {
 } // namespace detail
 
 pepp::debug::types::Type pepp::debug::operators::op1_typeof(const types::RuntimeTypeInfo &info, const Value &v) {
-  return std::visit(detail::TypeofVisitor{.info = info}, v);
+  return std::visit(::detail::TypeofVisitor{.info = info}, v);
 }
 
 pepp::debug::Value pepp::debug::operators::op1_plus(const types::RuntimeTypeInfo &info, const Value &v) {
-  return std::visit(detail::UnaryPlusVisitor{}, v);
+  return std::visit(::detail::UnaryPlusVisitor{}, v);
 }
 pepp::debug::Value pepp::debug::operators::op1_minus(const types::RuntimeTypeInfo &info, const Value &v) {
-  return std::visit(detail::UnaryMinusVisitor{}, v);
+  return std::visit(::detail::UnaryMinusVisitor{}, v);
 }
 pepp::debug::Value pepp::debug::operators::op1_not(const types::RuntimeTypeInfo &info, const Value &v) {
-  return std::visit(detail::UnaryNotVisitor{.info = info}, v);
+  return std::visit(::detail::UnaryNotVisitor{.info = info}, v);
 }
 pepp::debug::Value pepp::debug::operators::op1_negate(const types::RuntimeTypeInfo &info, const Value &v) {
-  return std::visit(detail::UnaryNegateVisitor{}, v);
+  return std::visit(::detail::UnaryNegateVisitor{}, v);
 }
 pepp::debug::Value pepp::debug::operators::op1_dereference(const types::RuntimeTypeInfo &info, const Value &v) {
-  return std::visit(detail::UnaryUnimplementedVisitor{}, v);
+  return std::visit(::detail::UnaryUnimplementedVisitor{}, v);
 }
 pepp::debug::Value pepp::debug::operators::op1_addressof(const types::RuntimeTypeInfo &info, const Value &v) {
-  return std::visit(detail::UnaryUnimplementedVisitor{}, v);
+  return std::visit(::detail::UnaryUnimplementedVisitor{}, v);
 }

@@ -126,11 +126,11 @@ struct FromBitsVisitor {
 };
 } // namespace detail
 std::strong_ordering pepp::debug::operator<=>(const Value &lhs, const Value &rhs) {
-  return std::visit(detail::OrderingVisitor{}, lhs, rhs);
+  return std::visit(::detail::OrderingVisitor{}, lhs, rhs);
 }
 
 bool pepp::debug::operator==(const Value &lhs, const Value &rhs) {
   return (lhs <=> rhs) == std::strong_ordering::equal;
 }
 
-QVariant pepp::debug::from_bits(const Value &v) { return std::visit(detail::FromBitsVisitor{}, v); }
+QVariant pepp::debug::from_bits(const Value &v) { return std::visit(::detail::FromBitsVisitor{}, v); }
