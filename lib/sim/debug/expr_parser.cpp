@@ -284,7 +284,8 @@ std::shared_ptr<pepp::debug::Term> pepp::debug::Parser::parse_p1(detail::TokenBu
     const auto &cast = std::get<Cast>(maybe_cast);
     auto arg = parse_p0(tok, cache);
     if (arg == nullptr) return cp.rollback<pepp::debug::Term>(rule);
-    return cp.memoize(accept(DirectCast(cast.type, arg)), rule);
+    auto boxed = types::box(types::Primitive(cast.type));
+    return cp.memoize(accept(DirectCast(boxed, arg)), rule);
   }
   return parse_p0(tok, cache);
 }

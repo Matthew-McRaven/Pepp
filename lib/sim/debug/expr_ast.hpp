@@ -258,7 +258,7 @@ private:
 };
 
 struct DirectCast : public Term {
-  DirectCast(types::Primitives cast_to, std::shared_ptr<Term> arg);
+  DirectCast(types::BoxedType cast_to, std::shared_ptr<Term> arg);
   ~DirectCast() override = default;
   std::strong_ordering operator<=>(const Term &rhs) const override;
   std::strong_ordering operator<=>(const DirectCast &rhs) const;
@@ -274,8 +274,8 @@ struct DirectCast : public Term {
 
   void accept(MutatingTermVisitor &visitor) override;
   void accept(ConstantTermVisitor &visitor) const override;
+  const types::Type cast_to() const;
 
-  const pepp::debug::types::Primitives cast_to;
   const std::shared_ptr<Term> arg;
 
 protected:
@@ -284,6 +284,7 @@ protected:
 
 private:
   EvaluationCache _state{};
+  const types::BoxedType _cast_to;
 };
 
 struct Parenthesized : public Term {

@@ -18,6 +18,35 @@ template <typename T> struct SwapDispatch {
 struct BinaryUnimplmenetedVisitor {
   Value operator()(const auto &, const auto &) const { return VNever{}; }
 };
+
+struct BinaryTypecastVisitor {
+  const types::RuntimeTypeInfo &info;
+  Value operator()(const VNever &from, const auto &to) const { return VNever{}; }
+  Value operator()(const VPrimitive &from, const types::Primitive &to) const {
+    if (from.primitive == to.primitive) return from;
+    return VPrimitive::from(to.primitive, from.bits);
+  }
+  Value operator()(const VPrimitive &from, const types::Pointer &to) const {
+    auto hnd = info.from(to);
+    if (!hnd) return VNever{};
+    auto bits = to.pad_bits(from.bits);
+    return VPointer{*hnd, bits};
+  }
+  Value operator()(const VPrimitive &from, const types::Array &to) const {
+    auto hnd = info.from(to);
+    if (!hnd) return VNever{};
+    auto bits = to.pad_bits(from.bits);
+    return VArray{*hnd, bits};
+  }
+  Value operator()(const VPrimitive &from, const types::Struct &to) const {
+    auto hnd = info.from(to);
+    if (!hnd) return VNever{};
+    auto bits = to.pad_bits(from.bits);
+    return VStruct{*hnd, bits};
+  }
+  Value operator()(const auto &, const auto &) const { return VNever{}; }
+};
+
 template <typename Op> struct BinaryArithVisitor {
   const types::RuntimeTypeInfo &info;
   Value operator()(const VNever &lhs, const auto &rhs) const { return VNever{}; }
@@ -81,6 +110,12 @@ struct BinaryXORVisitor : public BinaryArithVisitor<std::bit_xor<uint64_t>> {
   using BinaryArithVisitor<std::bit_xor<uint64_t>>::operator();
 };
 } // namespace detail
+
+pepp::debug::Value pepp::debug::operators::op2_typecast(const types::RuntimeTypeInfo &info, const Value &from,
+                                                        const types::BoxedType &to) {
+  auto type = types::unbox(to);
+  return std::visit(detail::BinaryTypecastVisitor{info}, from, type);
+}
 
 pepp::debug::Value pepp::debug::operators::op2_add(const types::RuntimeTypeInfo &info, const Value &lhs,
                                                    const Value &rhs) {

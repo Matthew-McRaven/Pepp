@@ -76,7 +76,9 @@ QVariant from_bits(const Value &v);
 
 // Overloading not possible since they need an extra argument
 namespace operators {
+// Type ops
 types::Type op1_typeof(const types::RuntimeTypeInfo &info, const Value &v);
+Value op2_typecast(const types::RuntimeTypeInfo &info, const Value &from, const types::BoxedType &to);
 // Unary arithmetic ops
 Value op1_plus(const types::RuntimeTypeInfo &info, const Value &v);
 Value op1_minus(const types::RuntimeTypeInfo &info, const Value &v);

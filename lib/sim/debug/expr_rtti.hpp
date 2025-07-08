@@ -23,6 +23,7 @@ public:
     quint16 _type : 13;
   };
   Handle from(Type);
+  std::optional<Handle> from(Type) const;
   BoxedType from(Handle) const;
 
 private:
