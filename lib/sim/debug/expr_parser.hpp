@@ -22,8 +22,8 @@ struct Parser {
     PAREN,
     CONSTANT,
     IDENT,
-    TYPECAST,
     P0,
+    CAST,
     P1,
     P2,
     P3,
@@ -51,6 +51,7 @@ private:
   std::shared_ptr<Variable> parse_identifier(detail::TokenBuffer &tok, detail::MemoCache &cache);
   // Workaround to make parse_identifier into a ParseFn.
   std::shared_ptr<Term> parse_identifier_as_term(detail::TokenBuffer &tok, detail::MemoCache &cache);
+  std::shared_ptr<Term> parse_cast(detail::TokenBuffer &tok, detail::MemoCache &cache);
   std::shared_ptr<Term> parse_p7(detail::TokenBuffer &tok, detail::MemoCache &cache); // Bitwise ops
   std::shared_ptr<Term> parse_p6(detail::TokenBuffer &tok, detail::MemoCache &cache); // Equality
   std::shared_ptr<Term> parse_p5(detail::TokenBuffer &tok, detail::MemoCache &cache); // Inequality
