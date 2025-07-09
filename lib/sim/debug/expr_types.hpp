@@ -69,6 +69,7 @@ struct Struct {
 
 using Type = std::variant<Never, Primitive, Pointer, Array, Struct>;
 
+BoxedType box(Primitives type);
 BoxedType box(const Type &type);
 Type unbox(const BoxedType &type);
 bool is_unsigned(const Type &type);

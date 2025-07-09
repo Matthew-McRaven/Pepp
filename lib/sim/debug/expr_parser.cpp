@@ -13,6 +13,12 @@ struct TokenBuffer {
     if (std::holds_alternative<T>(next)) _head++;
     return next;
   }
+  Lexer::Token match_literal(const QString &literal) {
+    auto next = peek<Literal>();
+    // Only return token if it is a Literal and it matches!
+    if (std::holds_alternative<Literal>(next) && std::get<Literal>(next).literal == literal) return _head++, next;
+    else return std::monostate{};
+  }
   template <typename T> Lexer::Token peek() {
     if (_head == _tokens.size()) {
       auto token = _lex.next_token();
@@ -243,6 +249,29 @@ pepp::debug::Parser::parse_binary_infix(detail::TokenBuffer &tok, detail::MemoCa
   return accept(BinaryInfix(*op, maybe_lhs, maybe_rhs));
 }
 
+std::shared_ptr<pepp::debug::Term> pepp::debug::Parser::parse_cast(detail::TokenBuffer &tok, detail::MemoCache &cache) {
+  using Lit = detail::Literal;
+  static const auto rule = Parser::Rule::CAST;
+  auto cp = detail::TokenCheckpoint(tok, cache);
+  if (auto [term, end] = cache.match_at(cp.start(), rule); term != nullptr)
+    return cp.use_memo<pepp::debug::Term>(term, end);
+
+  if (auto open = tok.match_literal("("); std::holds_alternative<Lit>(open)) {
+    // Types are stored as identifiers so that "u8" can still be used as an identifier in other contexts.
+    auto maybe_type_name = tok.match<detail::Identifier>();
+    if (!std::holds_alternative<detail::Identifier>(maybe_type_name)) return cp.rollback<pepp::debug::DirectCast>(rule);
+    auto maybe_prim = tok._lex.primitive_from_string(std::get<detail::Identifier>(maybe_type_name).value);
+    if (!maybe_prim.has_value()) return cp.rollback<pepp::debug::DirectCast>(rule);
+
+    if (auto close = tok.match_literal(")"); !std::holds_alternative<Lit>(close))
+      return cp.rollback<pepp::debug::DirectCast>(rule);
+
+    auto arg = parse_p0(tok, cache);
+    return cp.memoize(accept(DirectCast(types::box(*maybe_prim), arg)), rule);
+  }
+  return cp.rollback<pepp::debug::Term>(rule);
+}
+
 std::shared_ptr<pepp::debug::Term> pepp::debug::Parser::parse_p0(detail::TokenBuffer &tok, detail::MemoCache &cache) {
   using Operators = BinaryInfix::Operators;
   static const auto valid = std::set<Operators>{Operators::STAR_DOT, Operators::DOT};
@@ -260,13 +289,13 @@ std::shared_ptr<pepp::debug::Term> pepp::debug::Parser::parse_p0(detail::TokenBu
 
 std::shared_ptr<pepp::debug::Term> pepp::debug::Parser::parse_p1(detail::TokenBuffer &tok, detail::MemoCache &cache) {
   using Lit = detail::Literal;
-  using Cast = detail::TypeCast;
   static const auto rule = Parser::Rule::P1;
   auto cp = detail::TokenCheckpoint(tok, cache);
   if (auto [term, end] = cache.match_at(cp.start(), rule); term != nullptr)
     return cp.use_memo<pepp::debug::Term>(term, end);
 
-  if (auto maybe_prefix = tok.match<Lit>(); std::holds_alternative<Lit>(maybe_prefix)) {
+  if (auto as_cast = parse_cast(tok, cache); as_cast) return cp.memoize(as_cast, rule);
+  else if (auto maybe_prefix = tok.match<Lit>(); std::holds_alternative<Lit>(maybe_prefix)) {
     const auto &lit = std::get<Lit>(maybe_prefix);
     auto op = string_to_unary_prefix(lit.literal);
     // Changed from return to enable p0 to evaluate parenthetical expressions.
@@ -280,13 +309,6 @@ std::shared_ptr<pepp::debug::Term> pepp::debug::Parser::parse_p1(detail::TokenBu
       if (arg == nullptr) return cp.rollback<pepp::debug::Term>(rule);
       return cp.memoize(accept(UnaryPrefix(*op, arg)), rule);
     }
-  } else if (auto maybe_cast = tok.match<Cast>(); std::holds_alternative<Cast>(maybe_cast)) {
-    const auto &cast = std::get<Cast>(maybe_cast);
-    auto arg = parse_p0(tok, cache);
-    if (arg == nullptr) return cp.rollback<pepp::debug::Term>(rule);
-    auto hnd = this->_types.from(cast.type);
-    auto type = this->_types.from(hnd);
-    return cp.memoize(accept(DirectCast(type, arg)), rule);
   }
   return parse_p0(tok, cache);
 }
@@ -390,14 +412,10 @@ std::shared_ptr<pepp::debug::Term> pepp::debug::Parser::parse_parened(detail::To
   if (auto [term, end] = cache.match_at(cp.start(), rule); term != nullptr)
     return cp.use_memo<pepp::debug::Term>(term, end);
 
-  if (auto maybe_open = tok.match<Lit>(); !std::holds_alternative<Lit>(maybe_open))
-    return cp.rollback<pepp::debug::Term>(rule);
-  else if (const auto &open = std::get<Lit>(maybe_open); open.literal != '(')
+  if (auto open = tok.match_literal("("); !std::holds_alternative<Lit>(open))
     return cp.rollback<pepp::debug::Term>(rule);
   else if (auto inner = parse_p7(tok, cache); !inner) return cp.rollback<pepp::debug::Term>(rule);
-  else if (auto maybe_close = tok.match<Lit>(); !std::holds_alternative<Lit>(maybe_close))
-    return cp.rollback<pepp::debug::Term>(rule);
-  else if (const auto &close = std::get<Lit>(maybe_close); close.literal != ')')
+  else if (auto close = tok.match_literal(")"); !std::holds_alternative<Lit>(close))
     return cp.rollback<pepp::debug::Term>(rule); // Invalid and we cannot recover.
   else return cp.memoize(accept(Parenthesized(inner)), rule);
 }

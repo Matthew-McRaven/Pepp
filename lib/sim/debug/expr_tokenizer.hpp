@@ -8,7 +8,6 @@ namespace detail {
 enum class TokenType {
   UnsignedConstant,
   TypeSuffix,
-  TypeCast,
   DebugIdentifier,
   Identifier,
   Literal,
@@ -39,12 +38,6 @@ template <> struct T<TokenType::TypeSuffix> {
 };
 using TypeSuffix = T<TokenType::TypeSuffix>;
 
-template <> struct T<TokenType::TypeCast> {
-  pepp::debug::types::Primitives type;
-  std::strong_ordering operator<=>(const T<TokenType::TypeCast> &rhs) const;
-};
-using TypeCast = T<TokenType::TypeCast>;
-
 template <> struct T<TokenType::Identifier> {
   QString value;
 };
@@ -60,8 +53,8 @@ template <> struct T<TokenType::Literal> {
 };
 using Literal = T<TokenType::Literal>;
 
-using Token = std::variant<std::monostate, Invalid, Eof, UnsignedConstant, TypeSuffix, TypeCast, Identifier,
-                           DebugIdentifier, Literal>;
+using Token =
+    std::variant<std::monostate, Invalid, Eof, UnsignedConstant, TypeSuffix, Identifier, DebugIdentifier, Literal>;
 } // namespace detail
 
 class Lexer {
@@ -69,6 +62,7 @@ public:
   explicit Lexer(QStringView input);
   using Token = detail::Token;
   Token next_token();
+  static std::optional<types::Primitives> primitive_from_string(const QString &str);
 
 private:
   QStringView _input;

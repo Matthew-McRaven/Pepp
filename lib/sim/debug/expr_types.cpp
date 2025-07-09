@@ -232,6 +232,8 @@ struct OrderingVisitor {
 
 } // namespace detail
 
+pepp::debug::types::BoxedType pepp::debug::types::box(Primitives type) { return box(types::Primitive{type}); }
+
 pepp::debug::types::BoxedType pepp::debug::types::box(const Type &type) {
   return std::visit(::detail::BoxVisitor{}, type);
 }

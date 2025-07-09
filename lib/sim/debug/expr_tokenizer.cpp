@@ -5,7 +5,6 @@ static const QRegularExpression whitespace("[ \r\t\n]+");
 static const QRegularExpression hex("0[xX][a-fA-F0-9]+");
 static const QRegularExpression dec("[+-]?[0-9]+");
 static const QRegularExpression integer_literal_suffix("_[iu](8|16|32)");
-static const QRegularExpression type_cast("\\(\\W*([iu](8|16|32))\\W*\\)");
 static const QRegularExpression debug(R"(\$\w+)");
 static const QRegularExpression ident(R"(\w+)");
 // Longest sequences must be first, because QRegularExpression stops at first match, not longest.
@@ -17,6 +16,13 @@ const std::map<QString, T> types = {
 } // namespace re
 
 pepp::debug::Lexer::Lexer(QStringView input) : _input(input), _offset(0) {}
+
+std::optional<pepp::debug::types::Primitives> pepp::debug::Lexer::primitive_from_string(const QString &str) {
+  using T = detail::T<detail::TokenType::TypeSuffix>;
+  auto it = re::types.find(str);
+  if (it != re::types.end()) return it->second;
+  return std::nullopt;
+}
 pepp::debug::Lexer::Token pepp::debug::Lexer::next_token() {
   using namespace pepp::debug::detail;
   static const auto mt = QRegularExpression::MatchType::NormalMatch;
@@ -28,7 +34,8 @@ pepp::debug::Lexer::Token pepp::debug::Lexer::next_token() {
     _offset = integer_literal_suffix.capturedEnd();
     auto type_str = integer_literal_suffix.capturedView().slice(1); // drop leading _
     using T = detail::T<TokenType::TypeSuffix>;
-    return T{.type = re::types.at(type_str.toString())};
+    if (auto type = primitive_from_string(type_str.toString()); type.has_value()) return T{.type = *type};
+    else return detail::T<TokenType::Invalid>{}; // Invalid type suffix, e.g., "_u7"
   } else _allows_literal_suffix = false;
 
   if (auto space_match = re::whitespace.matchView(_input, _offset, mt, opt); space_match.hasMatch()) {
@@ -45,11 +52,6 @@ pepp::debug::Lexer::Token pepp::debug::Lexer::next_token() {
     _allows_literal_suffix = true;
     using T = detail::T<TokenType::UnsignedConstant>;
     return T{.format = T::Format::Dec, .value = static_cast<uint64_t>(dec_match.capturedView().toInt(nullptr, 10))};
-  } else if (auto type_cast_match = re::type_cast.matchView(_input, _offset, mt, opt); type_cast_match.hasMatch()) {
-    _offset = type_cast_match.capturedEnd();
-    auto type_str = type_cast_match.capturedView(1);
-    using T = detail::T<TokenType::TypeCast>;
-    return T{.type = re::types.at(type_str.toString())};
   } else if (auto lit_match = re::literal.matchView(_input, _offset, mt, opt); lit_match.hasMatch()) {
     _offset = lit_match.capturedEnd();
     return detail::T<TokenType::Literal>{.literal = lit_match.captured()};
@@ -70,10 +72,5 @@ std::strong_ordering pepp::debug::detail::T<pepp::debug::detail::TokenType::Unsi
 }
 std::strong_ordering pepp::debug::detail::T<pepp::debug::detail::TokenType::TypeSuffix>::operator<=>(
     const T<TokenType::TypeSuffix> &rhs) const {
-  return type <=> rhs.type;
-}
-
-std::strong_ordering
-pepp::debug::detail::T<pepp::debug::detail::TokenType::TypeCast>::operator<=>(const T<TokenType::TypeCast> &rhs) const {
   return type <=> rhs.type;
 }
