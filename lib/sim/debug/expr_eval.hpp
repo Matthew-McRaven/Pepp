@@ -37,8 +37,8 @@ struct OptVal {
 using EvaluationCache = Cached<Versioned<OptVal>>;
 
 struct Environment {
-  virtual types::RuntimeTypeInfo *type_info() = 0;
-  virtual types::RuntimeTypeInfo const *type_info() const = 0;
+  virtual types::NamedTypeInfo *type_info() = 0;
+  virtual types::NamedTypeInfo const *type_info() const = 0;
   // Read some bytes of memory (modulo the size of the address space) in the platform's preferred endianness
   virtual uint8_t read_mem_u8(uint32_t address) const = 0;
   virtual uint16_t read_mem_u16(uint32_t address) const = 0;
@@ -47,8 +47,8 @@ struct Environment {
   virtual Value evaluate_debug_variable(uint32_t cache_index) const = 0;
 };
 struct ZeroEnvironment : public Environment {
-  inline types::RuntimeTypeInfo *type_info() override { return &_info; }
-  inline types::RuntimeTypeInfo const *type_info() const override { return &_info; }
+  inline types::NamedTypeInfo *type_info() override { return &_namedInfo; }
+  inline types::NamedTypeInfo const *type_info() const override { return &_namedInfo; }
   inline uint8_t read_mem_u8(uint32_t address) const override { return 0; }
   inline uint16_t read_mem_u16(uint32_t address) const override { return 0; }
   inline Value evaluate_variable(QStringView name) const override { return VPrimitive::from_int(int16_t(0)); };
@@ -58,7 +58,8 @@ struct ZeroEnvironment : public Environment {
   };
 
 protected:
-  types::RuntimeTypeInfo _info;
+  types::RuntimeTypeInfo _types = {};
+  types::NamedTypeInfo _namedInfo{_types};
 };
 
 class Term;

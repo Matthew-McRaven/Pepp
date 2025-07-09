@@ -88,6 +88,8 @@ public:
   void set_type(const OpaqueHandle &, const BoxedType &);
   void set_type(const QString &, const BoxedType &);
   std::pair<uint32_t, BoxedType> type(const OpaqueHandle &) const;
+  Versioned<OptType> versioned_type(const OpaqueHandle &) const;
+  inline RuntimeTypeInfo &info() { return _info; }
 
 private:
   types::RuntimeTypeInfo &_info;

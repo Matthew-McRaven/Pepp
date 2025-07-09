@@ -22,12 +22,10 @@
 TEST_CASE("Evaluating watch expressions", "[scope:debug][kind:unit][arch:*]") {
   using namespace pepp::debug;
   using P = types::Primitives;
-  ZeroEnvironment env;
-  types::RuntimeTypeInfo fake_rtti;
   SECTION("Expressions caching between compliations") {
     ExpressionCache c;
-    types::RuntimeTypeInfo t;
-    Parser p(c, t);
+    ZeroEnvironment env;
+    Parser p(c, env.type_info()->info());
     QString body = "m * x + -b";
     auto ast1 = p.compile(body);
     auto ast2 = p.compile(body);
@@ -75,20 +73,21 @@ TEST_CASE("Evaluating watch expressions", "[scope:debug][kind:unit][arch:*]") {
   }
   SECTION("Evaluation of constants") {
     ExpressionCache c;
-    types::RuntimeTypeInfo t;
-    Parser p(c, t);
+    ZeroEnvironment env;
+    Parser p(c, env.type_info()->info());
     QString body = "3 * 3 + 4";
     auto ast = p.compile(body);
     REQUIRE(ast != nullptr);
     auto ev = ast->evaluator();
     auto expected_type = types::Primitive{P::i16};
     CHECK(ev.cache().version == 0); // Though a constant expression, computation still performed and cache will update.
-    CHECK(operators::op1_typeof(fake_rtti, ev.evaluate(CachePolicy::UseAlways, env)) == expected_type);
+    CHECK(operators::op1_typeof(env.type_info()->info(), ev.evaluate(CachePolicy::UseAlways, env)) == expected_type);
     CHECK(value_bits(ev.evaluate(CachePolicy::UseAlways, env)) == 13);
     CHECK(ev.cache().version == 1);
   }
   SECTION("Math with u8 and i16 (direct construction)") {
     ExpressionCache c;
+    ZeroEnvironment env;
     auto i16 = VPrimitive::from_int((int16_t)257);
     auto u8 = VPrimitive::from_int((uint8_t)255);
     auto lhs = c.add_or_return(Constant(i16));
@@ -99,15 +98,16 @@ TEST_CASE("Evaluating watch expressions", "[scope:debug][kind:unit][arch:*]") {
     auto eval = plus_ev.evaluate(CachePolicy::UseAlways, env);
     CHECK(plus_ev.cache().version == 1);
     CHECK(value_bits(eval) == (257 + 255));
-    CHECK(operators::op1_typeof(fake_rtti, eval) == types::Primitive{P::i16});
+    CHECK(operators::op1_typeof(env.type_info()->info(), eval) == types::Primitive{P::i16});
     CHECK(rhs_eval.cache().version == 0); // Version of constant never changes.
-    CHECK(operators::op1_typeof(fake_rtti, rhs_eval.evaluate(CachePolicy::UseAlways, env)) == types::Primitive{P::u8});
+    CHECK(operators::op1_typeof(env.type_info()->info(), rhs_eval.evaluate(CachePolicy::UseAlways, env)) ==
+          types::Primitive{P::u8});
     CHECK(rhs_eval.cache().version == 0);
   }
   SECTION("Parsing Math with u8 and i16 (parsing)") {
     ExpressionCache c;
-    types::RuntimeTypeInfo t;
-    Parser p(c, t);
+    ZeroEnvironment env;
+    Parser p(c, env.type_info()->info());
     QString body = "257_i16 + 255_u8";
     auto ast = p.compile(body);
     REQUIRE(ast != nullptr);
@@ -116,17 +116,18 @@ TEST_CASE("Evaluating watch expressions", "[scope:debug][kind:unit][arch:*]") {
     auto as_infix_eval = as_infix->evaluator();
     auto eval = as_infix_eval.evaluate(CachePolicy::UseAlways, env);
     CHECK(value_bits(eval) == (257 + 255));
-    CHECK(operators::op1_typeof(fake_rtti, eval) == types::Primitive{P::i16});
+    CHECK(operators::op1_typeof(env.type_info()->info(), eval) == types::Primitive{P::i16});
     auto lhs_eval = as_infix->lhs->evaluator();
     auto rhs_eval = as_infix->rhs->evaluator();
-    CHECK(operators::op1_typeof(fake_rtti, lhs_eval.evaluate(CachePolicy::UseAlways, env)) == types::Primitive{P::i16});
-    CHECK(operators::op1_typeof(fake_rtti, rhs_eval.evaluate(CachePolicy::UseAlways, env)) == types::Primitive{P::u8});
+    CHECK(operators::op1_typeof(env.type_info()->info(), lhs_eval.evaluate(CachePolicy::UseAlways, env)) ==
+          types::Primitive{P::i16});
+    CHECK(operators::op1_typeof(env.type_info()->info(), rhs_eval.evaluate(CachePolicy::UseAlways, env)) ==
+          types::Primitive{P::u8});
   }
-
-  SECTION("Parsing with explicit casts") {
+  SECTION("Parsing with direct casts") {
     ExpressionCache c;
-    types::RuntimeTypeInfo t;
-    Parser p(c, t);
+    ZeroEnvironment env;
+    Parser p(c, env.type_info()->info());
     QString body = "(i8)(258 + 255)";
     auto ast = p.compile(body);
     REQUIRE(ast != nullptr);
@@ -139,23 +140,51 @@ TEST_CASE("Evaluating watch expressions", "[scope:debug][kind:unit][arch:*]") {
     auto as_infix_eval = as_infix->evaluator();
     auto eval = as_infix_eval.evaluate(CachePolicy::UseAlways, env);
     CHECK(value_bits(eval) == (258 + 255));
-    CHECK(operators::op1_typeof(fake_rtti, eval) == types::Primitive{P::i16});
+    CHECK(operators::op1_typeof(env.type_info()->info(), eval) == types::Primitive{P::i16});
     auto lhs_eval = as_infix->lhs->evaluator();
     auto rhs_eval = as_infix->rhs->evaluator();
-    CHECK(operators::op1_typeof(fake_rtti, lhs_eval.evaluate(CachePolicy::UseAlways, env)) == types::Primitive{P::i16});
-    CHECK(operators::op1_typeof(fake_rtti, rhs_eval.evaluate(CachePolicy::UseAlways, env)) == types::Primitive{P::i16});
+    CHECK(operators::op1_typeof(env.type_info()->info(), lhs_eval.evaluate(CachePolicy::UseAlways, env)) ==
+          types::Primitive{P::i16});
+    CHECK(operators::op1_typeof(env.type_info()->info(), rhs_eval.evaluate(CachePolicy::UseAlways, env)) ==
+          types::Primitive{P::i16});
 
     // Overflows i8, so we should wrap-around.
     auto as_cast_eval = as_cast->evaluator();
     auto eval_casted = as_cast_eval.evaluate(CachePolicy::UseAlways, env);
     CHECK(value_bits(eval_casted) == (int8_t)((258 + 255) % 256));
-    CHECK(operators::op1_typeof(fake_rtti, eval_casted) == types::Primitive{P::i8});
+    CHECK(operators::op1_typeof(env.type_info()->info(), eval_casted) == types::Primitive{P::i8});
+  }
+  SECTION("Evaluation with indirect cast") {
+    ExpressionCache c;
+    ZeroEnvironment env;
+    auto &nti = *env.type_info();
+    auto value = c.add_or_return(Constant{VPrimitive::from_int((uint16_t)257)});
+    auto myint_hnd = env.type_info()->register_name("my_int");
+    auto cast = c.add_or_return(IndirectCast(myint_hnd.second, value));
+    auto eval_value = value->evaluator();
+    auto res_value = eval_value.evaluate(CachePolicy::UseNonVolatiles, env);
+    CHECK(value_bits(res_value) == 257);
+    CHECK(operators::op1_typeof(env.type_info()->info(), res_value) == types::Primitive{P::u16});
+    auto eval_cast = cast->evaluator();
+    // Type has been declared but not defined. Should evaluate to never/undefined
+    auto res_cast = eval_cast.evaluate(CachePolicy::UseNonVolatiles, env);
+    CHECK(res_cast == VNever{});
+    // As u8, should invalidate cache
+    nti.set_type(myint_hnd.second, env.type_info()->info().box(types::Primitive{types::Primitives::u8}));
+    res_cast = eval_cast.evaluate(CachePolicy::UseNonVolatiles, env);
+    CHECK(operators::op1_typeof(env.type_info()->info(), res_cast) == types::Primitive{P::u8});
+    CHECK(value_bits(res_cast) == (uint8_t)(257 % 256));
+    // As i16, should invalidate cache
+    nti.set_type(myint_hnd.second, env.type_info()->info().box(types::Primitive{types::Primitives::i16}));
+    res_cast = eval_cast.evaluate(CachePolicy::UseNonVolatiles, env);
+    CHECK(operators::op1_typeof(env.type_info()->info(), res_cast) == types::Primitive{P::i16});
+    CHECK(value_bits(res_cast) == 257);
   }
 
   SECTION("Recursive dirtying") {
     ExpressionCache c;
-    types::RuntimeTypeInfo t;
-    Parser p(c, t);
+    ZeroEnvironment env;
+    Parser p(c, env.type_info()->info());
     QString body = "m * x + -b";
     auto ast = p.compile(body);
     REQUIRE(ast != nullptr);
@@ -232,8 +261,7 @@ TEST_CASE("Evaluations with environment access", "[scope:debug][kind:unit][arch:
 
   SECTION("Memory Access") {
     ExpressionCache c;
-    types::RuntimeTypeInfo t;
-    Parser p(c, t);
+    Parser p(c, env.type_info()->info());
     QString body = "*0";
     auto ast = p.compile(body);
     REQUIRE(ast != nullptr);
@@ -246,8 +274,7 @@ TEST_CASE("Evaluations with environment access", "[scope:debug][kind:unit][arch:
   }
   SECTION("Debugger Variables") {
     ExpressionCache c;
-    types::RuntimeTypeInfo t;
-    Parser p(c, t);
+    Parser p(c, env.type_info()->info());
     QString body = "$x";
     auto ast = p.compile(body);
     REQUIRE(ast != nullptr);

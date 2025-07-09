@@ -167,7 +167,7 @@ pepp::debug::Value pepp::debug::UnaryPrefix::evaluate(CachePolicy mode, Environm
     case UseDirtyAlways: return *_state.value;
     }
   }
-  auto &rtti = *env.type_info();
+  auto &rtti = env.type_info()->info();
   auto eval = arg->evaluator();
   auto v = eval.evaluate(mode, env);
   _state.mark_clean();
@@ -325,7 +325,7 @@ pepp::debug::Value pepp::debug::BinaryInfix::evaluate(CachePolicy mode, Environm
     case UseDirtyAlways: return *_state.value;
     }
   }
-  auto &rtti = *env.type_info();
+  auto &rtti = env.type_info()->info();
   auto eval_lhs = lhs->evaluator(), eval_rhs = rhs->evaluator();
   auto v_lhs = eval_lhs.evaluate(mode, env), v_rhs = eval_rhs.evaluate(mode, env);
   _state.mark_clean();
@@ -473,7 +473,7 @@ pepp::debug::Value pepp::debug::DirectCast::evaluate(CachePolicy mode, Environme
   auto eval = arg->evaluator();
   auto v = eval.evaluate(mode, env);
   _state.mark_clean();
-  return *(_state.value = operators::op2_typecast(*env.type_info(), v, this->_cast_to));
+  return *(_state.value = operators::op2_typecast(env.type_info()->info(), v, this->_cast_to));
 }
 
 pepp::debug::EvaluationCache pepp::debug::DirectCast::cached() const { return _state; }
@@ -521,21 +521,23 @@ QString pepp::debug::IndirectCast::to_string() const {
 void pepp::debug::IndirectCast::link() { arg->add_dependent(weak_from_this()); }
 
 pepp::debug::Value pepp::debug::IndirectCast::evaluate(CachePolicy mode, Environment &env) {
+  auto versioned_type = env.type_info()->versioned_type(_hnd);
   if (_state.value.has_value()) {
     using enum CachePolicy;
     switch (mode) {
     case UseNever: break;
     case UseNonVolatiles: break;
     case UseAlways:
-      if (_state.dirty()) break;
+      if (_state.dirty() || _cast_to.version != versioned_type.version) break;
     case UseDirtyAlways: return *_state.value;
     }
   }
+  if (versioned_type.version != _cast_to.version) _cast_to = versioned_type;
 
   auto eval = arg->evaluator();
   auto v = eval.evaluate(mode, env);
   _state.mark_clean();
-  return *(_state.value = operators::op2_typecast(*env.type_info(), v, types::box(types::Never{})));
+  return *(_state.value = operators::op2_typecast(env.type_info()->info(), v, versioned_type.type));
 }
 
 pepp::debug::EvaluationCache pepp::debug::IndirectCast::cached() const { return _state; }
