@@ -448,7 +448,7 @@ std::strong_ordering pepp::debug::DirectCast::operator<=>(const DirectCast &rhs)
 
 uint16_t pepp::debug::DirectCast::depth() const { return arg->depth() + 1; }
 
-pepp::debug::Term::Type pepp::debug::DirectCast::type() const { return Type::TypeCast; }
+pepp::debug::Term::Type pepp::debug::DirectCast::type() const { return Type::DirectTypeCast; }
 
 QString pepp::debug::DirectCast::to_string() const {
   using namespace Qt::StringLiterals;
@@ -489,6 +489,68 @@ void pepp::debug::DirectCast::accept(MutatingTermVisitor &visitor) { visitor.acc
 void pepp::debug::DirectCast::accept(ConstantTermVisitor &visitor) const { visitor.accept(*this); }
 
 const pepp::debug::types::Type pepp::debug::DirectCast::cast_to() const { return types::unbox(_cast_to); }
+
+pepp::debug::IndirectCast::IndirectCast(types::NamedTypeInfo::OpaqueHandle cast_to, std::shared_ptr<Term> arg)
+    : _hnd(cast_to), _cast_to(), arg(arg) {
+  _state.set_depends_on_volatiles(true);
+}
+
+std::strong_ordering pepp::debug::IndirectCast::operator<=>(const Term &rhs) const {
+  if (type() == rhs.type()) return this->operator<=>(static_cast<const IndirectCast &>(rhs));
+  return type() <=> rhs.type();
+}
+
+std::strong_ordering pepp::debug::IndirectCast::operator<=>(const IndirectCast &rhs) const {
+  // Do not compare actual type, since that is a value derived from (handle, version).
+  if (auto cmp = _hnd <=> _hnd; cmp != 0) return cmp;
+  else if (cmp = _cast_to.version <=> rhs._cast_to.version; cmp != 0) return cmp;
+  return *arg <=> *rhs.arg;
+}
+
+uint16_t pepp::debug::IndirectCast::depth() const { return arg->depth() + 1; }
+
+pepp::debug::Term::Type pepp::debug::IndirectCast::type() const { return Type::DirectTypeCast; }
+
+QString pepp::debug::IndirectCast::to_string() const {
+  using namespace Qt::StringLiterals;
+  // auto u = types::unbox(_cast_to);
+  auto u = types::Never{};
+  return u"(%1)%2"_s.arg(pepp::debug::types::to_string(u), arg->to_string());
+}
+
+void pepp::debug::IndirectCast::link() { arg->add_dependent(weak_from_this()); }
+
+pepp::debug::Value pepp::debug::IndirectCast::evaluate(CachePolicy mode, Environment &env) {
+  if (_state.value.has_value()) {
+    using enum CachePolicy;
+    switch (mode) {
+    case UseNever: break;
+    case UseNonVolatiles: break;
+    case UseAlways:
+      if (_state.dirty()) break;
+    case UseDirtyAlways: return *_state.value;
+    }
+  }
+
+  auto eval = arg->evaluator();
+  auto v = eval.evaluate(mode, env);
+  _state.mark_clean();
+  return *(_state.value = operators::op2_typecast(*env.type_info(), v, types::box(types::Never{})));
+}
+
+pepp::debug::EvaluationCache pepp::debug::IndirectCast::cached() const { return _state; }
+
+int pepp::debug::IndirectCast::cv_qualifiers() const { return 0; }
+
+void pepp::debug::IndirectCast::mark_dirty() { _state.mark_dirty(); }
+
+bool pepp::debug::IndirectCast::dirty() const { return _state.dirty(); }
+
+void pepp::debug::IndirectCast::accept(MutatingTermVisitor &visitor) { visitor.accept(*this); }
+
+void pepp::debug::IndirectCast::accept(ConstantTermVisitor &visitor) const { visitor.accept(*this); }
+
+const pepp::debug::types::Type pepp::debug::IndirectCast::cast_to(Environment &env) const { return types::Never{}; }
 
 pepp::debug::DebuggerVariable::DebuggerVariable(const detail::DebugIdentifier &ident) : name(ident.value) {}
 

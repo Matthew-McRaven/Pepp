@@ -46,6 +46,10 @@ void pepp::debug::detail::IsConstantExpressionVisitor::accept(const Parenthesize
 
 void pepp::debug::detail::IsConstantExpressionVisitor::accept(const DirectCast &node) { node.arg->accept(*this); }
 
+void pepp::debug::detail::IsConstantExpressionVisitor::accept(const IndirectCast &node) {
+  is_constant_expression = false;
+}
+
 std::vector<std::shared_ptr<pepp::debug::Term>> pepp::debug::detail::GatherVolatileTerms::to_vector() {
   return std::vector<std::shared_ptr<pepp::debug::Term>>(volatiles.cbegin(), volatiles.cend());
 }
@@ -77,6 +81,11 @@ void pepp::debug::detail::GatherVolatileTerms::accept(MemoryRead &node) {
 void pepp::debug::detail::GatherVolatileTerms::accept(Parenthesized &node) { node.term->accept(*this); }
 
 void pepp::debug::detail::GatherVolatileTerms::accept(DirectCast &node) { node.arg->accept(*this); }
+
+void pepp::debug::detail::GatherVolatileTerms::accept(IndirectCast &node) {
+  volatiles.insert(node.shared_from_this());
+  node.arg->accept(*this);
+}
 
 void pepp::debug::mark_parents_dirty(Term &base) {
   if (base.dirty()) return;
