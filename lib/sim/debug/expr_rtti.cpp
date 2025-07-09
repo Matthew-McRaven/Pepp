@@ -1,4 +1,5 @@
 #include "./expr_rtti.hpp"
+#include <stdexcept>
 
 pepp::debug::types::RuntimeTypeInfo::Handle::Handle() : _metatype((int)types::MetaType::Never), _type(0) {}
 
@@ -89,7 +90,11 @@ pepp::debug::types::NamedTypeInfo::handle(const QString &name) const {
 }
 
 void pepp::debug::types::NamedTypeInfo::set_type(const OpaqueHandle &hnd, const BoxedType &type) {
-  if (hnd._index < 1 || hnd._index >= _handles.size()) throw std::out_of_range("Invalid handle index");
+  if (hnd._index < 1 || hnd._index >= _handles.size()) {
+    throw std::out_of_range("Invalid handle index");
+  }
+
+  if (auto &item = _handles[hnd._index]; item.type != type) item.type = type, item.version++;
 }
 
 void pepp::debug::types::NamedTypeInfo::set_type(const QString &name, const BoxedType &type) {
@@ -98,10 +103,19 @@ void pepp::debug::types::NamedTypeInfo::set_type(const QString &name, const Boxe
   return set_type(*hnd, type);
 }
 
-std::pair<uint32_t, pepp::debug::types::BoxedType>
+pepp::debug::Versioned<pepp::debug::types::OptType>
+pepp::debug::types::NamedTypeInfo::versioned_type(const OpaqueHandle &hnd) const {
+  if (hnd._index < 0 || hnd._index >= _handles.size()) {
+    throw std::out_of_range("Invalid handle index");
+  }
+  return _handles[hnd._index];
+}
 
+std::pair<uint32_t, pepp::debug::types::BoxedType>
 pepp::debug::types::NamedTypeInfo::type(const OpaqueHandle &hnd) const {
-  if (hnd._index < 0 || hnd._index >= _handles.size()) throw std::out_of_range("Invalid handle index");
+  if (hnd._index < 0 || hnd._index >= _handles.size()) {
+    throw std::out_of_range("Invalid handle index");
+  }
   auto item = _handles[hnd._index];
   return {item.version, item.type};
 }
