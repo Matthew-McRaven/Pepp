@@ -168,7 +168,7 @@ struct QStringVisitor {
 
   QString operator()(const Pointer &v) const {
     using namespace Qt::StringLiterals;
-    return u"*%1"_s.arg(std::visit(*this, v.to));
+    return u"%1*"_s.arg(std::visit(*this, v.to));
   }
   QString operator()(const Array &v) const {
     using namespace Qt::StringLiterals;

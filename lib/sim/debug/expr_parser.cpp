@@ -259,15 +259,25 @@ std::shared_ptr<pepp::debug::Term> pepp::debug::Parser::parse_cast(detail::Token
   if (auto open = tok.match_literal("("); std::holds_alternative<Lit>(open)) {
     // Types are stored as identifiers so that "u8" can still be used as an identifier in other contexts.
     auto maybe_type_name = tok.match<detail::Identifier>();
-    if (!std::holds_alternative<detail::Identifier>(maybe_type_name)) return cp.rollback<pepp::debug::DirectCast>(rule);
+    if (!std::holds_alternative<detail::Identifier>(maybe_type_name)) return cp.rollback<pepp::debug::Term>(rule);
     auto maybe_prim = tok._lex.primitive_from_string(std::get<detail::Identifier>(maybe_type_name).value);
-    if (!maybe_prim.has_value()) return cp.rollback<pepp::debug::DirectCast>(rule);
+    // Direct cast, we already know the type
+    if (maybe_prim.has_value()) {
+      auto type = _types.from(maybe_prim.value());
 
-    if (auto close = tok.match_literal(")"); !std::holds_alternative<Lit>(close))
-      return cp.rollback<pepp::debug::DirectCast>(rule);
+      for (auto ptr_to = tok.match_literal("*"); std::holds_alternative<Lit>(ptr_to); ptr_to = tok.match_literal("*")) {
+        auto old_boxed = _types.from(type);
+        auto new_type = types::Pointer{2, old_boxed};
+        type = _types.from(new_type);
+      }
+      if (auto close = tok.match_literal(")"); !std::holds_alternative<Lit>(close))
+        return cp.rollback<pepp::debug::Term>(rule);
 
-    auto arg = parse_p0(tok, cache);
-    return cp.memoize(accept(DirectCast(types::box(*maybe_prim), arg)), rule);
+      auto arg = parse_p0(tok, cache);
+      return cp.memoize(accept(DirectCast(_types.from(type), arg)), rule);
+    } else {
+      // Indirect cast, we will need to look up type at runtime.
+    }
   }
   return cp.rollback<pepp::debug::Term>(rule);
 }
