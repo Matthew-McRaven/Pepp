@@ -73,11 +73,13 @@ template <std::integral T = uint64_t> T value_bits(const Value &v) {
   return static_cast<T>(ret);
 }
 QVariant from_bits(const Value &v);
+Value from_bits(const types::Type &, quint64 bits);
 
 // Overloading not possible since they need an extra argument
 namespace operators {
 // Type ops
 types::Type op1_typeof(const types::RuntimeTypeInfo &info, const Value &v);
+types::BoxedType op1_dereference_typeof(const types::RuntimeTypeInfo &info, const Value &v);
 Value op2_typecast(const types::RuntimeTypeInfo &info, const Value &from, const types::BoxedType &to);
 // Unary arithmetic ops
 Value op1_plus(const types::RuntimeTypeInfo &info, const Value &v);
