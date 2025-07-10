@@ -242,11 +242,20 @@ pepp::debug::Parser::parse_binary_infix(detail::TokenBuffer &tok, detail::MemoCa
   if (!op) return cp.rollback<pepp::debug::Term>(Rule::INVALID);
   else if (!valid.contains(*op)) return cp.rollback<pepp::debug::Term>(Rule::INVALID);
 
-  // Still sorry; see above.
-  auto maybe_rhs = (this->*parse_rhs)(tok, cache);
-  if (maybe_rhs == nullptr) return cp.rollback<pepp::debug::Term>(Rule::INVALID);
-
-  return accept(BinaryInfix(*op, maybe_lhs, maybe_rhs));
+  switch (*op) {
+  case BinaryInfix::Operators::DOT: [[fallthrough]];
+  case BinaryInfix::Operators::STAR_DOT: {
+    auto maybe_rhs = tok.match<ID>();
+    if (!std::holds_alternative<ID>(maybe_rhs)) return cp.rollback<pepp::debug::Term>(Rule::INVALID);
+    return accept(MemberAccess(*op, maybe_lhs, std::get<ID>(maybe_rhs).value));
+  }
+  default: {
+    // Still sorry; see above.
+    auto maybe_rhs = (this->*parse_rhs)(tok, cache);
+    if (maybe_rhs == nullptr) return cp.rollback<pepp::debug::Term>(Rule::INVALID);
+    return accept(BinaryInfix(*op, maybe_lhs, maybe_rhs));
+  }
+  }
 }
 
 std::shared_ptr<pepp::debug::Term> pepp::debug::Parser::parse_cast(detail::TokenBuffer &tok, detail::MemoCache &cache) {

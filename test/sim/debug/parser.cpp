@@ -115,7 +115,7 @@ TEST_CASE("Parsing watch expressions", "[scope:debug][kind:unit][arch:*]") {
     QString body = "s.a";
     auto ast = p.compile(body);
     REQUIRE(ast != nullptr);
-    auto as_infix = std::dynamic_pointer_cast<BinaryInfix>(ast);
+    auto as_infix = std::dynamic_pointer_cast<MemberAccess>(ast);
     REQUIRE(as_infix != nullptr);
     CHECK(as_infix->op == BinaryInfix::Operators::DOT);
     CHECK(as_infix->to_string().toStdString() == "s.a");
@@ -128,7 +128,7 @@ TEST_CASE("Parsing watch expressions", "[scope:debug][kind:unit][arch:*]") {
     QString body = "s->a";
     auto ast = p.compile(body);
     REQUIRE(ast != nullptr);
-    auto as_infix = std::dynamic_pointer_cast<BinaryInfix>(ast);
+    auto as_infix = std::dynamic_pointer_cast<MemberAccess>(ast);
     REQUIRE(as_infix != nullptr);
     CHECK(as_infix->op == BinaryInfix::Operators::STAR_DOT);
     CHECK(as_infix->to_string().toStdString() == "s->a");

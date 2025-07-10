@@ -14,6 +14,7 @@ struct IsConstantExpressionVisitor : public ConstantTermVisitor {
   void accept(const DebuggerVariable &node) override;
   void accept(const Constant &node) override;
   void accept(const BinaryInfix &node) override;
+  void accept(const MemberAccess &node) override;
   void accept(const UnaryPrefix &node) override;
   void accept(const MemoryRead &node) override;
   void accept(const Parenthesized &node) override;
@@ -30,6 +31,7 @@ struct GatherVolatileTerms : public MutatingTermVisitor {
   void accept(DebuggerVariable &node) override;
   void accept(Constant &node) override;
   void accept(BinaryInfix &node) override;
+  void accept(MemberAccess &node) override;
   void accept(UnaryPrefix &node) override;
   void accept(MemoryRead &node) override;
   void accept(Parenthesized &node) override;

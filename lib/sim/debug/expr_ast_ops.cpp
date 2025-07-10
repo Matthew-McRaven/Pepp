@@ -29,6 +29,10 @@ void pepp::debug::detail::IsConstantExpressionVisitor::accept(const BinaryInfix 
   node.rhs->accept(*this);
 }
 
+void pepp::debug::detail::IsConstantExpressionVisitor::accept(const MemberAccess &node) {
+  is_constant_expression = false;
+}
+
 void pepp::debug::detail::IsConstantExpressionVisitor::accept(const UnaryPrefix &node) {
   switch (node.op) {
   case UnaryPrefix::Operators::ADDRESS_OF:
@@ -66,6 +70,11 @@ void pepp::debug::detail::GatherVolatileTerms::accept(BinaryInfix &node) {
   if (node.cv_qualifiers() & CVQualifiers::Volatile) volatiles.insert(node.shared_from_this());
   node.lhs->accept(*this);
   node.rhs->accept(*this);
+}
+
+void pepp::debug::detail::GatherVolatileTerms::accept(MemberAccess &node) {
+  volatiles.insert(node.shared_from_this());
+  node.lhs->accept(*this);
 }
 
 void pepp::debug::detail::GatherVolatileTerms::accept(UnaryPrefix &node) {
