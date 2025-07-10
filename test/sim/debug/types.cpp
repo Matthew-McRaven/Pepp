@@ -47,3 +47,14 @@ TEST_CASE("Watch expression types", "[scope:debug][kind:unit][arch:*]") {
     CHECK(nti.type_from(hnd) == types::Never{});
   }
 }
+
+TEST_CASE("Serialize type info", "[scope:debug][kind:unit][arch:*]") {
+  using namespace pepp::debug;
+  using P = types::Primitives;
+  SECTION("Redefinitions have same handle") {
+    types::TypeInfo nti;
+    auto [data, in, out] = zpp::bits::data_in_out();
+    CHECK(nti.serialize(out, nti) == std::errc());
+    CHECK(data.size() > 4);
+  }
+}

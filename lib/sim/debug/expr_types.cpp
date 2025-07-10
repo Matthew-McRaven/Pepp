@@ -249,33 +249,33 @@ pepp::debug::types::Type pepp::debug::types::unbox(const pepp::debug::types::Box
   return std::visit(::detail::UnboxVisitor{}, type);
 }
 
-bool pepp::debug::types::is_unsigned(const Type &type) { return std::visit(detail::IsUnsignedVisitor{}, type); }
+bool pepp::debug::types::is_unsigned(const Type &type) { return std::visit(::detail::IsUnsignedVisitor{}, type); }
 
-quint8 pepp::debug::types::bitness(const Type &type) { return std::visit(detail::BitnessVisitor{}, type); }
+quint8 pepp::debug::types::bitness(const Type &type) { return std::visit(::detail::BitnessVisitor{}, type); }
 
-QString pepp::debug::types::to_string(const Type &type) { return std::visit(detail::QStringVisitor{}, type); }
+QString pepp::debug::types::to_string(const Type &type) { return std::visit(::detail::QStringVisitor{}, type); }
 
 pepp::debug::types::MetaType pepp::debug::types::metatype(const Type &type) {
-  return std::visit(detail::MetatypeVisitor{}, type);
+  return std::visit(::detail::MetatypeVisitor{}, type);
 }
 
 std::strong_ordering pepp::debug::types::operator<=>(const pepp::debug::types::Type &lhs,
                                                      const pepp::debug::types::Type &rhs) {
-  return std::visit(detail::OrderingVisitor{}, lhs, rhs);
+  return std::visit(::detail::OrderingVisitor{}, lhs, rhs);
 }
 std::strong_ordering pepp::debug::types::operator<=>(const pepp::debug::types::BoxedType &lhs,
                                                      const pepp::debug::types::BoxedType &rhs) {
-  return std::visit(detail::OrderingVisitor{}, lhs, rhs);
+  return std::visit(::detail::OrderingVisitor{}, lhs, rhs);
 }
 
 std::strong_ordering pepp::debug::types::operator<=>(const pepp::debug::types::BoxedType &lhs,
                                                      const pepp::debug::types::Type &rhs) {
-  return std::visit(detail::OrderingVisitor{}, lhs, rhs);
+  return std::visit(::detail::OrderingVisitor{}, lhs, rhs);
 }
 
 std::strong_ordering pepp::debug::types::operator<=>(const pepp::debug::types::Type &lhs,
                                                      const pepp::debug::types::BoxedType &rhs) {
-  return std::visit(detail::OrderingVisitor{}, lhs, rhs);
+  return std::visit(::detail::OrderingVisitor{}, lhs, rhs);
 }
 
 bool pepp::debug::types::operator==(const Type &lhs, const Type &rhs) {

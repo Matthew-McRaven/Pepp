@@ -114,5 +114,32 @@ private:
   std::map<QString, IndirectHandle> _nameToIndirect;
   // [0] must always be Never, because I have trust issues with null objects.
   std::vector<Versioned<OptType>> _indirectTypes;
+
+public:
+  static zpp::bits::errc serialize(auto &archive, auto &self) {
+    if (archive.kind() == zpp::bits::kind::out) {
+      SerializationHelper h;
+      // Extract toplological sorting info into SerializationHelper
+      for (const auto &[key, value] : self._directTypes) h._type_to_index[key] = value.second;
+      // Extract & sort boxed types by their topological index.
+      std::vector<BoxedType> b;
+      std::transform(self._directTypes.begin(), self._directTypes.end(), std::back_inserter(b),
+                     [](auto &i) { return i.first; });
+      std::sort(b.begin(), b.end(), [&](const auto &lhs, const auto &rhs) {
+        return self._directTypes[lhs].second < self._directTypes[rhs].second;
+      });
+
+      // Hand-serialize the vector. First the length, then all members.
+      if (auto errc = archive((quint16)b.size()); errc.code != std::errc()) return errc;
+      for (const auto &item : b) {
+        auto t = unbox(item); // Unbox first because otherwise we can't take a ref.
+        if (auto errc = types::serialize(archive, t, &h); errc.code != std::errc()) return errc;
+      }
+      return std::errc();
+    } else if (archive.kind() == zpp::bits::kind::in && !std::is_const<decltype(self)>()) {
+      return std::errc{};
+    } else if (archive.kind() == zpp::bits::kind::in) throw std::logic_error("Can't read into const");
+    throw std::logic_error("Unreachable");
+  }
 };
 } // namespace pepp::debug::types
