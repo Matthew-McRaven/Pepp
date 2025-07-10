@@ -130,7 +130,7 @@ pepp::debug::detail::Memo::operator QString() const {
 
 } // namespace pepp::debug::detail
 
-pepp::debug::Parser::Parser(ExpressionCache &cache, types::RuntimeTypeInfo &types) : _cache(cache), _types(types) {}
+pepp::debug::Parser::Parser(ExpressionCache &cache, types::NamedTypeInfo &types) : _cache(cache), _types(types) {}
 
 std::shared_ptr<pepp::debug::types::Type> pepp::debug::Parser::compile_type(QString expr, void *builtins) {
   return compile_type(QStringView(expr), builtins);
@@ -263,18 +263,19 @@ std::shared_ptr<pepp::debug::Term> pepp::debug::Parser::parse_cast(detail::Token
     auto maybe_prim = tok._lex.primitive_from_string(std::get<detail::Identifier>(maybe_type_name).value);
     // Direct cast, we already know the type
     if (maybe_prim.has_value()) {
-      auto type = _types.from(maybe_prim.value());
+      auto &rtti = _types.info();
+      auto type = rtti.from(maybe_prim.value());
 
       for (auto ptr_to = tok.match_literal("*"); std::holds_alternative<Lit>(ptr_to); ptr_to = tok.match_literal("*")) {
-        auto old_boxed = _types.from(type);
+        auto old_boxed = rtti.from(type);
         auto new_type = types::Pointer{2, old_boxed};
-        type = _types.from(new_type);
+        type = rtti.from(new_type);
       }
       if (auto close = tok.match_literal(")"); !std::holds_alternative<Lit>(close))
         return cp.rollback<pepp::debug::Term>(rule);
 
       auto arg = parse_p0(tok, cache);
-      return cp.memoize(accept(DirectCast(_types.from(type), arg)), rule);
+      return cp.memoize(accept(DirectCast(rtti.from(type), arg)), rule);
     } else {
       // Indirect cast, we will need to look up type at runtime.
     }
