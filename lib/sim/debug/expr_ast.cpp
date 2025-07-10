@@ -490,8 +490,9 @@ void pepp::debug::DirectCast::accept(ConstantTermVisitor &visitor) const { visit
 
 const pepp::debug::types::Type pepp::debug::DirectCast::cast_to() const { return types::unbox(_cast_to); }
 
-pepp::debug::IndirectCast::IndirectCast(types::NamedTypeInfo::OpaqueHandle cast_to, std::shared_ptr<Term> arg)
-    : _hnd(cast_to), _cast_to(), arg(arg) {
+pepp::debug::IndirectCast::IndirectCast(QString name, types::NamedTypeInfo::OpaqueHandle cast_to,
+                                        std::shared_ptr<Term> arg)
+    : _name(name), _hnd(cast_to), _cast_to(), arg(arg) {
   _state.set_depends_on_volatiles(true);
 }
 
@@ -513,9 +514,7 @@ pepp::debug::Term::Type pepp::debug::IndirectCast::type() const { return Type::D
 
 QString pepp::debug::IndirectCast::to_string() const {
   using namespace Qt::StringLiterals;
-  // auto u = types::unbox(_cast_to);
-  auto u = types::Never{};
-  return u"(%1)%2"_s.arg(pepp::debug::types::to_string(u), arg->to_string());
+  return u"(%1*)%2"_s.arg(_name, arg->to_string());
 }
 
 void pepp::debug::IndirectCast::link() { arg->add_dependent(weak_from_this()); }
@@ -552,7 +551,13 @@ void pepp::debug::IndirectCast::accept(MutatingTermVisitor &visitor) { visitor.a
 
 void pepp::debug::IndirectCast::accept(ConstantTermVisitor &visitor) const { visitor.accept(*this); }
 
-const pepp::debug::types::Type pepp::debug::IndirectCast::cast_to(Environment &env) const { return types::Never{}; }
+const pepp::debug::types::Type pepp::debug::IndirectCast::cast_to(const types::NamedTypeInfo &nti) const {
+  return types::unbox(nti.type(_hnd).second);
+}
+
+const pepp::debug::types::Type pepp::debug::IndirectCast::cast_to(Environment &env) const {
+  return cast_to(*env.type_info());
+}
 
 pepp::debug::DebuggerVariable::DebuggerVariable(const detail::DebugIdentifier &ident) : name(ident.value) {}
 

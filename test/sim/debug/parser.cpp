@@ -259,6 +259,24 @@ TEST_CASE("Parsing watch expressions", "[scope:debug][kind:unit][arch:*]") {
     CHECK(as_cast->cast_to() == derived2);
     CHECK(as_cast->to_string().toStdString() == "(u16**)a");
   }
+
+  SECTION("Type Cast: deferred MyStruct*") {
+    ExpressionCache c;
+    types::RuntimeTypeInfo t;
+    types::NamedTypeInfo nti{t};
+    Parser p(c, nti);
+    QString body = "(  mystruct *) a";
+    auto ast = p.compile(body);
+    REQUIRE(ast != nullptr);
+    auto as_cast = std::dynamic_pointer_cast<IndirectCast>(ast);
+    REQUIRE(as_cast != nullptr);
+    CHECK(as_cast->cast_to(nti) == types::Never{});
+    CHECK(as_cast->to_string().toStdString() == "(mystruct*)a");
+    auto i16 = types::Primitive{types::Primitives::i16};
+    nti.set_type("mystruct", t.box(i16));
+    CHECK(as_cast->cast_to(nti) == i16);
+    CHECK(as_cast->to_string().toStdString() == "(mystruct*)a");
+  }
   // P2
   SECTION("Multiply") {
     ExpressionCache c;
