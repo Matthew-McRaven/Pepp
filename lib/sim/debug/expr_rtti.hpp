@@ -1,55 +1,11 @@
 #pragma once
 #include <QtCore/qmutex.h>
 #include <map>
+#include <zpp_bits.h>
 #include "expr_cache.hpp"
 #include "expr_types.hpp"
 
 namespace pepp::debug::types {
-class RuntimeTypeInfo {
-public:
-  class Handle {
-  public:
-    explicit Handle();
-    explicit Handle(types::Primitives t);
-    bool operator==(const Handle &rhs) const;
-    std::strong_ordering operator<=>(const Handle &rhs) const;
-    MetaType metatype() const;
-
-  private:
-    friend class RuntimeTypeInfo;
-    Handle(MetaType, quint16);
-    // Can cast to MetaType
-    quint16 _metatype : 3;
-    // Remaining 13 bits to distingush
-    quint16 _type : 13;
-  };
-  Handle from(Type);
-  std::optional<Handle> from(Type) const;
-  BoxedType from(Handle) const;
-  BoxedType box(Type);
-  std::optional<BoxedType> box(Type) const;
-  // Convenience overloads for common types
-  Handle from(types::Primitives);
-  std::optional<Handle> from(types::Primitives) const;
-
-private:
-  struct Compare {
-    using is_transparent = void;
-    bool operator()(const BoxedType &lhs, const BoxedType &rhs) const { return lhs < rhs; }
-    bool operator()(const Type &lhs, const BoxedType &rhs) const { return lhs < rhs; }
-    bool operator()(const BoxedType &lhs, const Type &rhs) const { return lhs < rhs; }
-    bool operator()(const Type &lhs, const Type &rhs) const { return lhs < rhs; }
-  };
-  // Unifies from/box implemementations.
-  std::pair<BoxedType, Handle> add_or_get_type(Type t);
-
-  mutable QMutex _mut;
-  using ForwardTypeMap = std::map<BoxedType, Handle, Compare>;
-  ForwardTypeMap _type_to_handle;
-  std::vector<quint16> _type_next_free_handle = std::vector<quint16>(int(MetaType::Struct) + 1, 0);
-  std::map<Handle, BoxedType> _handle_to_type;
-};
-
 // Combined with structs from expr_cache to provide a versioned type.
 struct OptType {
   OptType() = default;
@@ -61,40 +17,98 @@ struct OptType {
   BoxedType type;
 };
 
-class NamedTypeInfo {
+class TypeInfo {
 public:
-  // A "token" you can give back to this class to get a type in the future.
-  // Secretly an index into the _handles vector.
-  struct OpaqueHandle {
-    OpaqueHandle() = default;
-    OpaqueHandle(const OpaqueHandle &) = default;
-    OpaqueHandle &operator=(const OpaqueHandle &) = default;
-    OpaqueHandle(OpaqueHandle &&) = default;
-    OpaqueHandle &operator=(OpaqueHandle &&) = default;
-    bool operator==(const OpaqueHandle &rhs) const { return _index == rhs._index; }
-    std::strong_ordering operator<=>(const OpaqueHandle &rhs) const { return _index <=> rhs._index; }
+  explicit TypeInfo();
+  // A token you can give back to this class to get a type in the future.
+  // Used to compress the type information in pointers into 16-bits instead of 64+ bits.
+  // After creation, the type for a direct handle will never change.
+  class DirectHandle {
+  public:
+    explicit DirectHandle();
+    explicit DirectHandle(types::Primitives t);
+    DirectHandle(const DirectHandle &) = default;
+    DirectHandle &operator=(const DirectHandle &) = default;
+    DirectHandle(DirectHandle &&) = default;
+    DirectHandle &operator=(DirectHandle &&) = default;
+    bool operator==(const DirectHandle &rhs) const;
+    std::strong_ordering operator<=>(const DirectHandle &rhs) const;
+    MetaType metatype() const;
 
   private:
-    OpaqueHandle(quint16 index) : _index(index) {}
-    friend class NamedTypeInfo;
+    friend class TypeInfo;
+    DirectHandle(MetaType, quint16);
+    // Must be allowed to cast to MetaType
+    quint16 _metatype : 3;
+    // Remaining 13 bits to distingush within the metatype.
+    // Each metatype can figure out what to do with these bits individually.
+    quint16 _type : 13;
+  };
+  DirectHandle register_direct(Type);
+  DirectHandle register_direct(types::Primitives);
+  std::optional<DirectHandle> get_direct(Type) const;
+  std::optional<DirectHandle> get_direct(types::Primitives) const;
+  // Helper to avoid pattern: type_for_handle(register_direct_type(...))
+  BoxedType box(Type);                      // this variant will register a type if it does not exist yet.
+  std::optional<BoxedType> box(Type) const; // while this variant will return nullopt.
+
+  // A "token" you can give back to this class to get a type in the future.
+  // Secretly an index into the _handles vector.
+  // The underlying type for the indirect handle can be changed at any time.
+  // Essentially enables forward declared types.
+  struct IndirectHandle {
+    IndirectHandle() = default;
+    IndirectHandle(const IndirectHandle &) = default;
+    IndirectHandle &operator=(const IndirectHandle &) = default;
+    IndirectHandle(IndirectHandle &&) = default;
+    IndirectHandle &operator=(IndirectHandle &&) = default;
+    bool operator==(const IndirectHandle &rhs) const;
+    std::strong_ordering operator<=>(const IndirectHandle &rhs) const;
+
+  private:
+    IndirectHandle(quint16 index);
+    friend class TypeInfo;
     quint16 _index = 0;
   };
-  explicit NamedTypeInfo(types::RuntimeTypeInfo &info);
   // [0] is true if the name was not yet registered.
   // [1] unconditionally contains the handle for that name, regardless of registration status.
-  std::pair<bool, OpaqueHandle> register_name(const QString &);
+  std::pair<bool, IndirectHandle> register_indirect(const QString &);
   // Return handle for a name if it exists, else nullopt.
-  std::optional<OpaqueHandle> handle(const QString &) const;
-  void set_type(const OpaqueHandle &, const BoxedType &);
-  void set_type(const QString &, const BoxedType &);
-  std::pair<uint32_t, BoxedType> type(const OpaqueHandle &) const;
-  Versioned<OptType> versioned_type(const OpaqueHandle &) const;
-  inline RuntimeTypeInfo &info() { return _info; }
+  std::optional<IndirectHandle> get_indirect(const QString &) const;
+  // While DirectHandle will be converted to a BoxedType internally, it prevents you from passing any old pointer in.
+  void set_indirect_type(const IndirectHandle &, const DirectHandle &);
+  void set_indirect_type(const QString &, const DirectHandle &);
+  // Set all indirect types to Never.
+  void clear_indirect_types();
+
+  // Helpers to extract types from handles.
+  // If (somehow) the handle is invalid, these will return Never.
+  BoxedType type_from(DirectHandle) const;
+  BoxedType type_from(IndirectHandle) const;
+  Versioned<OptType> versioned_from(IndirectHandle) const;
+  uint32_t version_of(IndirectHandle) const;
 
 private:
-  types::RuntimeTypeInfo &_info;
-  std::map<QString, OpaqueHandle> _name_to_handle;
+  struct CompareType {
+    using is_transparent = void;
+    bool operator()(const BoxedType &lhs, const BoxedType &rhs) const { return lhs < rhs; }
+    bool operator()(const Type &lhs, const BoxedType &rhs) const { return lhs < rhs; }
+    bool operator()(const BoxedType &lhs, const Type &rhs) const { return lhs < rhs; }
+    bool operator()(const Type &lhs, const Type &rhs) const { return lhs < rhs; }
+  };
+  // Unifies direct accessor implemementations. Assumes you already hold !!_mut!!!
+  std::pair<BoxedType, DirectHandle> add_or_get_direct(Type t);
+
+  mutable QMutex _mut;
+
+  // Members for direct types
+  using DirectTypeMap = std::map<BoxedType, DirectHandle, CompareType>;
+  DirectTypeMap _directTypes;
+  std::vector<quint16> _nextDirectHandle = std::vector<quint16>(int(MetaType::Struct) + 1, 0);
+
+  // Members for indirect types
+  std::map<QString, IndirectHandle> _nameToIndirect;
   // [0] must always be Never, because I have trust issues with null objects.
-  std::vector<Versioned<OptType>> _handles;
+  std::vector<Versioned<OptType>> _indirectTypes;
 };
 } // namespace pepp::debug::types

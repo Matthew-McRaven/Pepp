@@ -23,30 +23,27 @@ TEST_CASE("Watch expression types", "[scope:debug][kind:unit][arch:*]") {
   using namespace pepp::debug;
   using P = types::Primitives;
   SECTION("Redefinitions have same handle") {
-    types::RuntimeTypeInfo rtti;
-    types::NamedTypeInfo nti(rtti);
-    auto _1 = nti.register_name("mystruct");
-    auto _2 = nti.register_name("mystruct");
+    types::TypeInfo nti;
+    auto _1 = nti.register_indirect("mystruct");
+    auto _2 = nti.register_indirect("mystruct");
     CHECK(_1.first);
     CHECK(!_2.first);
     CHECK(_1.second == _2.second);
   }
   SECTION("Lookups to same handle work") {
-    types::RuntimeTypeInfo rtti;
-    types::NamedTypeInfo nti(rtti);
-    auto _1 = nti.register_name("mystruct");
+    types::TypeInfo nti;
+    auto _1 = nti.register_indirect("mystruct");
     CHECK(_1.first);
-    auto maybe_hnd = nti.handle("mystruct");
+    auto maybe_hnd = nti.get_indirect("mystruct");
     REQUIRE(maybe_hnd);
     CHECK(*maybe_hnd == _1.second);
   }
   SECTION("Type definitions stick to handles") {
-    types::RuntimeTypeInfo rtti;
-    types::NamedTypeInfo nti(rtti);
-    auto _1 = nti.register_name("mystruct");
+    types::TypeInfo nti;
+    auto _1 = nti.register_indirect("mystruct");
     CHECK(_1.first);
     auto hnd = _1.second;
-    CHECK(nti.type(hnd).first == 0);
-    CHECK(nti.type(hnd).second == types::Never{});
+    CHECK(nti.versioned_from(hnd).version == 0);
+    CHECK(nti.type_from(hnd) == types::Never{});
   }
 }

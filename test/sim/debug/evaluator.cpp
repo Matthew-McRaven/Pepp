@@ -52,9 +52,8 @@ TEST_CASE("Evaluating watch expressions", "[scope:debug][kind:unit][arch:*]") {
   }
   SECTION("Dependency tracking") {
     ExpressionCache c;
-    types::RuntimeTypeInfo t;
-    types::NamedTypeInfo nti{t};
-    Parser p(c, nti);
+    types::TypeInfo info;
+    Parser p(c, info);
     QString body = "m * x + -b";
     auto ast = p.compile(body);
     REQUIRE(ast != nullptr);
@@ -100,7 +99,7 @@ TEST_CASE("Evaluating watch expressions", "[scope:debug][kind:unit][arch:*]") {
     auto ev = ast->evaluator();
     auto expected_type = types::Primitive{P::i16};
     CHECK(ev.cache().version == 0); // Though a constant expression, computation still performed and cache will update.
-    CHECK(operators::op1_typeof(env.type_info()->info(), ev.evaluate(CachePolicy::UseAlways, env)) == expected_type);
+    CHECK(operators::op1_typeof(*env.type_info(), ev.evaluate(CachePolicy::UseAlways, env)) == expected_type);
     CHECK(value_bits(ev.evaluate(CachePolicy::UseAlways, env)) == 13);
     CHECK(ev.cache().version == 1);
   }
@@ -117,9 +116,9 @@ TEST_CASE("Evaluating watch expressions", "[scope:debug][kind:unit][arch:*]") {
     auto eval = plus_ev.evaluate(CachePolicy::UseAlways, env);
     CHECK(plus_ev.cache().version == 1);
     CHECK(value_bits(eval) == (257 + 255));
-    CHECK(operators::op1_typeof(env.type_info()->info(), eval) == types::Primitive{P::i16});
+    CHECK(operators::op1_typeof(*env.type_info(), eval) == types::Primitive{P::i16});
     CHECK(rhs_eval.cache().version == 0); // Version of constant never changes.
-    CHECK(operators::op1_typeof(env.type_info()->info(), rhs_eval.evaluate(CachePolicy::UseAlways, env)) ==
+    CHECK(operators::op1_typeof(*env.type_info(), rhs_eval.evaluate(CachePolicy::UseAlways, env)) ==
           types::Primitive{P::u8});
     CHECK(rhs_eval.cache().version == 0);
   }
@@ -135,12 +134,12 @@ TEST_CASE("Evaluating watch expressions", "[scope:debug][kind:unit][arch:*]") {
     auto as_infix_eval = as_infix->evaluator();
     auto eval = as_infix_eval.evaluate(CachePolicy::UseAlways, env);
     CHECK(value_bits(eval) == (257 + 255));
-    CHECK(operators::op1_typeof(env.type_info()->info(), eval) == types::Primitive{P::i16});
+    CHECK(operators::op1_typeof(*env.type_info(), eval) == types::Primitive{P::i16});
     auto lhs_eval = as_infix->lhs->evaluator();
     auto rhs_eval = as_infix->rhs->evaluator();
-    CHECK(operators::op1_typeof(env.type_info()->info(), lhs_eval.evaluate(CachePolicy::UseAlways, env)) ==
+    CHECK(operators::op1_typeof(*env.type_info(), lhs_eval.evaluate(CachePolicy::UseAlways, env)) ==
           types::Primitive{P::i16});
-    CHECK(operators::op1_typeof(env.type_info()->info(), rhs_eval.evaluate(CachePolicy::UseAlways, env)) ==
+    CHECK(operators::op1_typeof(*env.type_info(), rhs_eval.evaluate(CachePolicy::UseAlways, env)) ==
           types::Primitive{P::u8});
   }
   SECTION("Parsing with direct casts") {
@@ -159,19 +158,19 @@ TEST_CASE("Evaluating watch expressions", "[scope:debug][kind:unit][arch:*]") {
     auto as_infix_eval = as_infix->evaluator();
     auto eval = as_infix_eval.evaluate(CachePolicy::UseAlways, env);
     CHECK(value_bits(eval) == (258 + 255));
-    CHECK(operators::op1_typeof(env.type_info()->info(), eval) == types::Primitive{P::i16});
+    CHECK(operators::op1_typeof(*env.type_info(), eval) == types::Primitive{P::i16});
     auto lhs_eval = as_infix->lhs->evaluator();
     auto rhs_eval = as_infix->rhs->evaluator();
-    CHECK(operators::op1_typeof(env.type_info()->info(), lhs_eval.evaluate(CachePolicy::UseAlways, env)) ==
+    CHECK(operators::op1_typeof(*env.type_info(), lhs_eval.evaluate(CachePolicy::UseAlways, env)) ==
           types::Primitive{P::i16});
-    CHECK(operators::op1_typeof(env.type_info()->info(), rhs_eval.evaluate(CachePolicy::UseAlways, env)) ==
+    CHECK(operators::op1_typeof(*env.type_info(), rhs_eval.evaluate(CachePolicy::UseAlways, env)) ==
           types::Primitive{P::i16});
 
     // Overflows i8, so we should wrap-around.
     auto as_cast_eval = as_cast->evaluator();
     auto eval_casted = as_cast_eval.evaluate(CachePolicy::UseAlways, env);
     CHECK(value_bits(eval_casted) == (int8_t)((258 + 255) % 256));
-    CHECK(operators::op1_typeof(env.type_info()->info(), eval_casted) == types::Primitive{P::i8});
+    CHECK(operators::op1_typeof(*env.type_info(), eval_casted) == types::Primitive{P::i8});
   }
   SECTION("Parsing with indirect cast") {
     ExpressionCache c;
@@ -190,23 +189,23 @@ TEST_CASE("Evaluating watch expressions", "[scope:debug][kind:unit][arch:*]") {
     auto const_eval = as_const->evaluator();
     auto const_value = const_eval.evaluate(CachePolicy::UseNonVolatiles, env);
     CHECK(value_bits(const_value) == 257);
-    CHECK(operators::op1_typeof(env.type_info()->info(), const_value) == types::Primitive{P::i16});
+    CHECK(operators::op1_typeof(*env.type_info(), const_value) == types::Primitive{P::i16});
 
     // Parent node
     auto cast_eval = ast->evaluator();
     // Type has been declared but not defined. Should evaluate to never/undefined
     auto cast_value = cast_eval.evaluate(CachePolicy::UseNonVolatiles, env);
-    auto hnd = nti.register_name("my_int");
+    auto hnd = nti.register_indirect("my_int");
     CHECK(cast_value == VNever{});
     // As u8, should invalidate cache
-    nti.set_type(hnd.second, env.type_info()->info().box(types::Primitive{types::Primitives::u8}));
+    nti.set_indirect_type(hnd.second, nti.register_direct(types::Primitive{types::Primitives::u8}));
     cast_value = cast_eval.evaluate(CachePolicy::UseNonVolatiles, env);
-    CHECK(operators::op1_typeof(env.type_info()->info(), cast_value) == types::Primitive{P::u8});
+    CHECK(operators::op1_typeof(*env.type_info(), cast_value) == types::Primitive{P::u8});
     CHECK(value_bits(cast_value) == (uint8_t)(257 % 256));
     // As i16, should invalidate cache
-    nti.set_type(hnd.second, env.type_info()->info().box(types::Primitive{types::Primitives::i16}));
+    nti.set_indirect_type(hnd.second, nti.register_direct(types::Primitive{types::Primitives::i16}));
     cast_value = cast_eval.evaluate(CachePolicy::UseNonVolatiles, env);
-    CHECK(operators::op1_typeof(env.type_info()->info(), cast_value) == types::Primitive{P::i16});
+    CHECK(operators::op1_typeof(*env.type_info(), cast_value) == types::Primitive{P::i16});
     CHECK(value_bits(cast_value) == 257);
   }
   SECTION("Parsing with member access") {
@@ -215,13 +214,13 @@ TEST_CASE("Evaluating watch expressions", "[scope:debug][kind:unit][arch:*]") {
     auto &nti = *env.type_info();
     Parser p(c, nti);
     auto i8 = types::Primitive{types::Primitives::i8};
-    auto boxed_i8 = nti.info().box(i8);
+    auto boxed_i8 = nti.box(i8);
     auto i8p = types::Pointer{2, boxed_i8};
-    auto boxed_i8p = nti.info().box(i8p);
+    auto boxed_i8p = nti.box(i8p);
     types::Struct mystruct;
     mystruct.members.emplace_back(types::Struct::Tuple{"m1", boxed_i8, 0});
     mystruct.members.emplace_back(types::Struct::Tuple{"b", boxed_i8, 2});
-    auto hnd_struct = nti.info().from(mystruct);
+    auto hnd_struct = nti.register_direct(mystruct);
     QString body = "a.b";
     auto ast = p.compile(body);
     REQUIRE(ast != nullptr);
@@ -241,9 +240,9 @@ TEST_CASE("Evaluating watch expressions", "[scope:debug][kind:unit][arch:*]") {
     for (int it = 0; it < 5; it++) env.mem[it + 2] = it + 3;
     auto eval_var = as_var->evaluator();
     auto value_var = eval_var.evaluate(CachePolicy::UseNonVolatiles, env);
-    CHECK(operators::op1_typeof(nti.info(), value_var) == mystruct);
+    CHECK(operators::op1_typeof(nti, value_var) == mystruct);
     value_cast = eval_cast.evaluate(CachePolicy::UseNonVolatiles, env);
-    CHECK(operators::op1_typeof(nti.info(), value_cast) == i8p);
+    CHECK(operators::op1_typeof(nti, value_cast) == i8p);
     CHECK(value_bits(value_cast) == 0x4);
   }
   SECTION("Deref member access ") {
@@ -252,11 +251,11 @@ TEST_CASE("Evaluating watch expressions", "[scope:debug][kind:unit][arch:*]") {
     auto &nti = *env.type_info();
     Parser p(c, nti);
     auto i8 = types::Primitive{types::Primitives::i8};
-    auto boxed_i8 = nti.info().box(i8);
-    auto boxed_i8p = nti.info().box(types::Pointer{2, boxed_i8});
+    auto boxed_i8 = nti.box(i8);
+    auto boxed_i8p = nti.box(types::Pointer{2, boxed_i8});
     types::Struct mystruct;
     mystruct.members.emplace_back(types::Struct::Tuple{"b", boxed_i8, 2});
-    auto hnd_struct = nti.info().from(mystruct);
+    auto hnd_struct = nti.register_direct(mystruct);
     // Update variable type in environment. A has base address of 2, so a.b should touch only address 4.
     env.variables["a"] = pepp::debug::VStruct{hnd_struct, 0x02};
     auto ast = p.compile("*(a.b)");
@@ -265,7 +264,7 @@ TEST_CASE("Evaluating watch expressions", "[scope:debug][kind:unit][arch:*]") {
     for (int it = 0; it < 5; it++) env.mem[it + 2] = it + 3;
     auto eval_ast = ast->evaluator();
     auto value_ast = eval_ast.evaluate(CachePolicy::UseNonVolatiles, env);
-    CHECK(operators::op1_typeof(nti.info(), value_ast) == i8);
+    CHECK(operators::op1_typeof(nti, value_ast) == i8);
     CHECK(value_bits(value_ast) == 0x5);
   }
 
@@ -337,8 +336,8 @@ TEST_CASE("Evaluating watch expressions", "[scope:debug][kind:unit][arch:*]") {
 TEST_CASE("Evaluations with environment access", "[scope:debug][kind:unit][arch:*]") {
   using namespace pepp::debug;
   MemoryArrayEnvironment env;
-  env.type_info()->info().box(types::Primitive{types::Primitives::u16});
-  env.type_info()->info().box(types::Primitive{types::Primitives::i16});
+  env.type_info()->box(types::Primitive{types::Primitives::u16});
+  env.type_info()->box(types::Primitive{types::Primitives::i16});
   env.mem[0] = 7;
   env.mem[1] = 7;
   SECTION("Memory Access") {

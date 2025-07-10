@@ -167,17 +167,17 @@ pepp::debug::Value pepp::debug::UnaryPrefix::evaluate(CachePolicy mode, Environm
     case UseDirtyAlways: return *_state.value;
     }
   }
-  auto &rtti = env.type_info()->info();
+  auto rtti = env.type_info();
   auto eval = arg->evaluator();
   auto v = eval.evaluate(mode, env);
   _state.mark_clean();
   switch (op) {
   case Operators::DEREFERENCE: throw std::logic_error("Use MemoryAccess instead");
   case Operators::ADDRESS_OF: throw std::logic_error("Not implemented");
-  case Operators::PLUS: return *(_state.value = op1_plus(rtti, v));
-  case Operators::MINUS: return *(_state.value = op1_minus(rtti, v));
-  case Operators::NOT: return *(_state.value = op1_not(rtti, v));
-  case Operators::NEGATE: return *(_state.value = op1_negate(rtti, v));
+  case Operators::PLUS: return *(_state.value = op1_plus(*rtti, v));
+  case Operators::MINUS: return *(_state.value = op1_minus(*rtti, v));
+  case Operators::NOT: return *(_state.value = op1_not(*rtti, v));
+  case Operators::NEGATE: return *(_state.value = op1_negate(*rtti, v));
   }
   throw std::logic_error("Unimplemented");
 }
@@ -249,10 +249,10 @@ pepp::debug::Value pepp::debug::MemoryRead::evaluate(CachePolicy mode, Environme
     }
   }
 
-  auto &rtti = env.type_info()->info();
+  auto rtti = env.type_info();
   auto eval = arg->evaluator();
   auto v = eval.evaluate(mode, env);
-  auto ret_type = operators::op1_dereference_typeof(rtti, v);
+  auto ret_type = operators::op1_dereference_typeof(*rtti, v);
   auto address = value_bits(v);
   auto bytecount = bitness(types::unbox(ret_type)) / 8;
   quint64 readBuf = 0;
@@ -341,29 +341,29 @@ pepp::debug::Value pepp::debug::BinaryInfix::evaluate(CachePolicy mode, Environm
     case UseDirtyAlways: return *_state.value;
     }
   }
-  auto &rtti = env.type_info()->info();
+  auto rtti = env.type_info();
   auto eval_lhs = lhs->evaluator(), eval_rhs = rhs->evaluator();
   auto v_lhs = eval_lhs.evaluate(mode, env), v_rhs = eval_rhs.evaluate(mode, env);
   _state.mark_clean();
   switch (op) {
   case Operators::STAR_DOT: [[fallthrough]];
   case Operators::DOT: throw std::logic_error("Not Implemented");
-  case Operators::MULTIPLY: return *(_state.value = op2_mul(rtti, v_lhs, v_rhs));
-  case Operators::DIVIDE: return *(_state.value = op2_div(rtti, v_lhs, v_rhs));
-  case Operators::MODULO: return *(_state.value = op2_mod(rtti, v_lhs, v_rhs));
-  case Operators::ADD: return *(_state.value = op2_add(rtti, v_lhs, v_rhs));
-  case Operators::SUBTRACT: return *(_state.value = op2_sub(rtti, v_lhs, v_rhs));
-  case Operators::SHIFT_LEFT: return *(_state.value = op2_bsl(rtti, v_lhs, v_rhs));
-  case Operators::SHIFT_RIGHT: return *(_state.value = op2_bsr(rtti, v_lhs, v_rhs));
-  case Operators::LESS: return *(_state.value = op2_lt(rtti, v_lhs, v_rhs));
-  case Operators::LESS_OR_EQUAL: return *(_state.value = op2_le(rtti, v_lhs, v_rhs));
-  case Operators::EQUAL: return *(_state.value = op2_eq(rtti, v_lhs, v_rhs));
-  case Operators::NOT_EQUAL: return *(_state.value = op2_ne(rtti, v_lhs, v_rhs));
-  case Operators::GREATER: return *(_state.value = op2_gt(rtti, v_lhs, v_rhs));
-  case Operators::GREATER_OR_EQUAL: return *(_state.value = op2_ge(rtti, v_lhs, v_rhs));
-  case Operators::BIT_AND: return *(_state.value = op2_bitand(rtti, v_lhs, v_rhs));
-  case Operators::BIT_OR: return *(_state.value = op2_bitor(rtti, v_lhs, v_rhs));
-  case Operators::BIT_XOR: return *(_state.value = op2_bitxor(rtti, v_lhs, v_rhs));
+  case Operators::MULTIPLY: return *(_state.value = op2_mul(*rtti, v_lhs, v_rhs));
+  case Operators::DIVIDE: return *(_state.value = op2_div(*rtti, v_lhs, v_rhs));
+  case Operators::MODULO: return *(_state.value = op2_mod(*rtti, v_lhs, v_rhs));
+  case Operators::ADD: return *(_state.value = op2_add(*rtti, v_lhs, v_rhs));
+  case Operators::SUBTRACT: return *(_state.value = op2_sub(*rtti, v_lhs, v_rhs));
+  case Operators::SHIFT_LEFT: return *(_state.value = op2_bsl(*rtti, v_lhs, v_rhs));
+  case Operators::SHIFT_RIGHT: return *(_state.value = op2_bsr(*rtti, v_lhs, v_rhs));
+  case Operators::LESS: return *(_state.value = op2_lt(*rtti, v_lhs, v_rhs));
+  case Operators::LESS_OR_EQUAL: return *(_state.value = op2_le(*rtti, v_lhs, v_rhs));
+  case Operators::EQUAL: return *(_state.value = op2_eq(*rtti, v_lhs, v_rhs));
+  case Operators::NOT_EQUAL: return *(_state.value = op2_ne(*rtti, v_lhs, v_rhs));
+  case Operators::GREATER: return *(_state.value = op2_gt(*rtti, v_lhs, v_rhs));
+  case Operators::GREATER_OR_EQUAL: return *(_state.value = op2_ge(*rtti, v_lhs, v_rhs));
+  case Operators::BIT_AND: return *(_state.value = op2_bitand(*rtti, v_lhs, v_rhs));
+  case Operators::BIT_OR: return *(_state.value = op2_bitor(*rtti, v_lhs, v_rhs));
+  case Operators::BIT_XOR: return *(_state.value = op2_bitxor(*rtti, v_lhs, v_rhs));
   }
   throw std::logic_error("Unimplemented");
 }
@@ -424,23 +424,23 @@ struct MemberAccessVisitor {
     return pepp::debug::VNever{};
   }
   pepp::debug::Value operator()(const std::shared_ptr<pepp::debug::types::Primitive> &type) const {
-    auto &info = env.type_info()->info();
-    auto hnd = info.from(pepp::debug::types::Pointer{2, type});
+    auto info = env.type_info();
+    auto hnd = info->register_direct(pepp::debug::types::Pointer{2, type});
     return pepp::debug::VPointer{hnd, v};
   }
   pepp::debug::Value operator()(const std::shared_ptr<pepp::debug::types::Pointer> &type) {
-    auto &info = env.type_info()->info();
-    auto hnd = info.from(pepp::debug::types::Pointer{2, type});
+    auto info = env.type_info();
+    auto hnd = info->register_direct(pepp::debug::types::Pointer{2, type});
     return pepp::debug::VPointer{hnd, v};
   }
   pepp::debug::Value operator()(const std::shared_ptr<pepp::debug::types::Array> &type) {
-    auto &info = env.type_info()->info();
-    auto hnd = info.from(pepp::debug::types::Pointer{2, type});
+    auto info = env.type_info();
+    auto hnd = info->register_direct(pepp::debug::types::Pointer{2, type});
     return pepp::debug::VPointer{hnd, v};
   }
   pepp::debug::Value operator()(const std::shared_ptr<pepp::debug::types::Struct> &type) {
-    auto &info = env.type_info()->info();
-    auto hnd = info.from(pepp::debug::types::Pointer{2, type});
+    auto info = env.type_info();
+    auto hnd = info->register_direct(pepp::debug::types::Pointer{2, type});
     return pepp::debug::VPointer{hnd, v};
   }
 };
@@ -468,11 +468,11 @@ pepp::debug::Value pepp::debug::MemberAccess::evaluate(CachePolicy mode, Environ
 
   _state.mark_clean();
 
-  auto &rtti = env.type_info()->info();
+  auto rtti = env.type_info();
   auto lhs_eval = lhs->evaluator();
   auto lhs_value = lhs_eval.evaluate(mode, env);
   // Confirm that LHS is a actually a struct and that RHS is a member of that struct
-  auto lhs_type = op1_typeof(rtti, lhs_value);
+  auto lhs_type = op1_typeof(*rtti, lhs_value);
   if (!std::holds_alternative<types::Struct>(lhs_type)) return *(_state.value = VNever{});
   auto lhs_struct = std::get<types::Struct>(lhs_type);
   auto maybe_rhs = lhs_struct.find(rhs);
@@ -601,7 +601,7 @@ pepp::debug::Value pepp::debug::DirectCast::evaluate(CachePolicy mode, Environme
   auto eval = arg->evaluator();
   auto v = eval.evaluate(mode, env);
   _state.mark_clean();
-  return *(_state.value = operators::op2_typecast(env.type_info()->info(), v, this->_cast_to));
+  return *(_state.value = operators::op2_typecast(*env.type_info(), v, this->_cast_to));
 }
 
 pepp::debug::EvaluationCache pepp::debug::DirectCast::cached() const { return _state; }
@@ -618,7 +618,7 @@ void pepp::debug::DirectCast::accept(ConstantTermVisitor &visitor) const { visit
 
 const pepp::debug::types::Type pepp::debug::DirectCast::cast_to() const { return types::unbox(_cast_to); }
 
-pepp::debug::IndirectCast::IndirectCast(QString name, types::NamedTypeInfo::OpaqueHandle cast_to,
+pepp::debug::IndirectCast::IndirectCast(QString name, types::TypeInfo::IndirectHandle cast_to,
                                         std::shared_ptr<Term> arg)
     : _name(name), _hnd(cast_to), _cast_to(), arg(arg) {
   _state.set_depends_on_volatiles(true);
@@ -648,7 +648,7 @@ QString pepp::debug::IndirectCast::to_string() const {
 void pepp::debug::IndirectCast::link() { arg->add_dependent(weak_from_this()); }
 
 pepp::debug::Value pepp::debug::IndirectCast::evaluate(CachePolicy mode, Environment &env) {
-  auto versioned_type = env.type_info()->versioned_type(_hnd);
+  auto versioned_type = env.type_info()->versioned_from(_hnd);
   if (_state.value.has_value()) {
     using enum CachePolicy;
     switch (mode) {
@@ -664,7 +664,7 @@ pepp::debug::Value pepp::debug::IndirectCast::evaluate(CachePolicy mode, Environ
   auto eval = arg->evaluator();
   auto v = eval.evaluate(mode, env);
   _state.mark_clean();
-  return *(_state.value = operators::op2_typecast(env.type_info()->info(), v, versioned_type.type));
+  return *(_state.value = operators::op2_typecast(*env.type_info(), v, versioned_type.type));
 }
 
 pepp::debug::EvaluationCache pepp::debug::IndirectCast::cached() const { return _state; }
@@ -679,8 +679,8 @@ void pepp::debug::IndirectCast::accept(MutatingTermVisitor &visitor) { visitor.a
 
 void pepp::debug::IndirectCast::accept(ConstantTermVisitor &visitor) const { visitor.accept(*this); }
 
-const pepp::debug::types::Type pepp::debug::IndirectCast::cast_to(const types::NamedTypeInfo &nti) const {
-  return types::unbox(nti.type(_hnd).second);
+const pepp::debug::types::Type pepp::debug::IndirectCast::cast_to(const types::TypeInfo &nti) const {
+  return types::unbox(nti.type_from(_hnd));
 }
 
 const pepp::debug::types::Type pepp::debug::IndirectCast::cast_to(Environment &env) const {

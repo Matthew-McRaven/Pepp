@@ -23,7 +23,7 @@ TEST_CASE("Value classes & operators", "[scope:debug][kind:unit][arch:*]") {
   using namespace pepp::debug;
   SECTION("Same-width integers") {
     using namespace pepp::debug::operators;
-    auto i = types::RuntimeTypeInfo();
+    auto i = types::TypeInfo();
     VPrimitive lhs = VPrimitive::from_int<int8_t>(-5), rhs = VPrimitive::from_int<int8_t>(16);
     auto type = op1_typeof(i, op2_add(i, lhs, rhs));
     REQUIRE(std::holds_alternative<types::Primitive>(type));

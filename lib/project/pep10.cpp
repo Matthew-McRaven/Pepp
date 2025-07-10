@@ -420,9 +420,9 @@ QString Pep_ISA::charOut() const {
 
 bool Pep_ISA::isEmpty() const { return _objectCodeText.isEmpty(); }
 
-pepp::debug::types::NamedTypeInfo *Pep_ISA::type_info() { return &_nti; }
+pepp::debug::types::TypeInfo *Pep_ISA::type_info() { return &_typeInfo; }
 
-pepp::debug::types::NamedTypeInfo const *Pep_ISA::type_info() const { return &_nti; }
+pepp::debug::types::TypeInfo const *Pep_ISA::type_info() const { return &_typeInfo; }
 
 uint8_t Pep_ISA::read_mem_u8(uint32_t address) const {
   if (_system == nullptr) return 0;
