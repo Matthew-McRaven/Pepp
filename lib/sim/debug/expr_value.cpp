@@ -7,7 +7,7 @@ bool pepp::debug::VNever::operator==(const VNever &other) const { return true; }
 
 pepp::debug::VPrimitive pepp::debug::VPrimitive::with_bits(const VPrimitive &type, quint64 new_value) {
   using enum pepp::debug::types::Primitives;
-  auto hnd = types::RuntimeTypeInfo::Handle(type.primitive);
+  auto hnd = types::TypeInfo::DirectHandle(type.primitive);
   switch (type.primitive) {
   case i8: return VPrimitive{Primitive{.primitive = type.primitive}, hnd, uint64_t((int8_t)new_value)};
   case u8: return VPrimitive{Primitive{.primitive = type.primitive}, hnd, uint64_t((uint8_t)new_value)};
@@ -21,14 +21,14 @@ pepp::debug::VPrimitive pepp::debug::VPrimitive::with_bits(const VPrimitive &typ
 
 pepp::debug::VPrimitive pepp::debug::VPrimitive::promote(const VPrimitive &value, types::Primitives new_type) {
   using enum pepp::debug::types::Primitives;
-  auto hnd = types::RuntimeTypeInfo::Handle(new_type);
+  auto hnd = types::TypeInfo::DirectHandle(new_type);
   if (new_type == value.primitive) return value;
   return from(new_type, value.bits);
 }
 
 pepp::debug::VPrimitive pepp::debug::VPrimitive::from(types::Primitives new_type, quint64 bits) {
   using enum pepp::debug::types::Primitives;
-  auto hnd = types::RuntimeTypeInfo::Handle(new_type);
+  auto hnd = types::TypeInfo::DirectHandle(new_type);
   switch (new_type) {
   case i8: return VPrimitive{{.primitive = new_type}, hnd, uint64_t((int8_t)bits)};
   case u8: return VPrimitive{{.primitive = new_type}, hnd, uint64_t((uint8_t)bits)};
@@ -42,19 +42,19 @@ pepp::debug::VPrimitive pepp::debug::VPrimitive::from(types::Primitives new_type
 
 pepp::debug::VPrimitive pepp::debug::VPrimitive::True() {
   using enum pepp::debug::types::Primitives;
-  static const auto hnd = types::RuntimeTypeInfo::Handle(u8);
+  auto hnd = types::TypeInfo::DirectHandle(u8);
   return VPrimitive{Primitive{.primitive = u8}, hnd, 1};
 }
 pepp::debug::VPrimitive pepp::debug::VPrimitive::False() {
   using enum pepp::debug::types::Primitives;
-  static const auto hnd = types::RuntimeTypeInfo::Handle(u8);
+  auto hnd = types::TypeInfo::DirectHandle(u8);
   return VPrimitive{Primitive{.primitive = u8}, hnd, 0};
 }
 
 pepp::debug::VPrimitive pepp::debug::VPrimitive::i8(int8_t v) {
   using enum pepp::debug::types::Primitives;
-  static const auto hnd = types::RuntimeTypeInfo::Handle(u8);
-  return VPrimitive{Primitive{.primitive = u8}, hnd, (uint64_t)v};
+  auto hnd = types::TypeInfo::DirectHandle(i8);
+  return VPrimitive{Primitive{.primitive = i8}, hnd, (uint64_t)v};
 }
 
 std::strong_ordering pepp::debug::VPrimitive::operator<=>(const VPrimitive &other) const {
