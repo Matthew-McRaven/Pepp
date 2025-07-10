@@ -6,7 +6,7 @@ pepp::debug::types::TypeInfo::TypeInfo() {
   auto register_primitive = [this](types::Primitives t) {
     auto hnd = DirectHandle(t);
     auto shared = pepp::debug::types::box(t);
-    _directTypes[shared] = hnd;
+    _directTypes[shared] = {hnd, _directTypes.size()};
   };
   // Ensure that all primitives are always registered by default.
   // This allows you to create DirectHandles to primitives w/o a TypeInfo instance.
@@ -67,7 +67,7 @@ pepp::debug::types::TypeInfo::DirectHandle pepp::debug::types::TypeInfo::registe
 std::optional<pepp::debug::types::TypeInfo::DirectHandle> pepp::debug::types::TypeInfo::get_direct(Type t) const {
   QMutexLocker locker(&_mut);
   if (auto search = _directTypes.find(t); search == _directTypes.end()) return std::nullopt;
-  else return search->second;
+  else return search->second.first;
 }
 
 std::optional<pepp::debug::types::TypeInfo::DirectHandle> pepp::debug::types::TypeInfo::get_direct(Primitives t) const {
@@ -144,8 +144,8 @@ pepp::debug::types::BoxedType pepp::debug::types::TypeInfo::type_from(IndirectHa
 
 pepp::debug::types::BoxedType pepp::debug::types::TypeInfo::type_from(DirectHandle handle) const {
   QMutexLocker locker(&_mut);
-  for (const auto &[key, value] : _directTypes)
-    if (value == handle) return key;
+  for (const auto &[key, pair] : _directTypes)
+    if (auto [value, _] = pair; value == handle) return key;
   return {};
 }
 
@@ -160,15 +160,35 @@ uint32_t pepp::debug::types::TypeInfo::version_of(IndirectHandle) const {
   return versioned_from(IndirectHandle{}).version;
 }
 
+namespace {
+struct RegisterDependentsVisitor {
+  std::function<void(pepp::debug::types::Type)> recurse;
+  void operator()(auto &) {}
+  void operator()(pepp::debug::types::Pointer type) { recurse(unbox(type.to)); }
+  void operator()(pepp::debug::types::Array type) { recurse(unbox(type.of)); }
+  void operator()(pepp::debug::types::Struct type) {
+    for (const auto &[name, member_type, offset] : type.members) recurse(unbox(member_type));
+  }
+};
+} // namespace
+void pepp::debug::types::TypeInfo::register_dependents(Type t) {
+  auto recurse = [this](pepp::debug::types::Type t) { add_or_get_direct(t); };
+  std::visit(RegisterDependentsVisitor{recurse}, t);
+}
+
 std::pair<pepp::debug::types::BoxedType, pepp::debug::types::TypeInfo::DirectHandle>
 pepp::debug::types::TypeInfo::add_or_get_direct(Type t) {
   // Per function precondition, it is assumed you already hold _mut.
   if (typename DirectTypeMap::iterator search = _directTypes.find(t); search == _directTypes.end()) {
+    // Ensure that for types like `struct F {G* _}` that G is registered before F. Explodes if there is a cycle.
+    // I've added this registration constraint so that Types are topologically sorted on insertion into TypeInfo.
+    // This makes it much easier to serialize types and their dependencies, because DirectHandles
+    register_dependents(t);
     auto meta = metatype(t);
     auto free_index = ++(_nextDirectHandle[(int)meta]);
     auto hnd = DirectHandle(meta, free_index);
     auto shared = pepp::debug::types::box(t);
-    _directTypes[shared] = hnd;
+    _directTypes[shared] = {hnd, _directTypes.size()};
     return {shared, hnd};
-  } else return {search->first, search->second};
+  } else return {search->first, search->second.first};
 }

@@ -98,11 +98,15 @@ private:
   };
   // Unifies direct accessor implemementations. Assumes you already hold !!_mut!!!
   std::pair<BoxedType, DirectHandle> add_or_get_direct(Type t);
+  // Helper that ensures dependent types inside t are registered before t.
+  // Assume you already hold _mut, and that t does not depend on t.
+  void register_dependents(Type t);
 
   mutable QMutex _mut;
 
   // Members for direct types
-  using DirectTypeMap = std::map<BoxedType, DirectHandle, CompareType>;
+  // Second member in pair is the topological sort index. When serializing, sort items by this value before writing out.
+  using DirectTypeMap = std::map<BoxedType, std::pair<DirectHandle, uint16_t>, CompareType>;
   DirectTypeMap _directTypes;
   std::vector<quint16> _nextDirectHandle = std::vector<quint16>(int(MetaType::Struct) + 1, 0);
 
