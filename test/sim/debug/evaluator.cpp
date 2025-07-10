@@ -155,31 +155,41 @@ TEST_CASE("Evaluating watch expressions", "[scope:debug][kind:unit][arch:*]") {
     CHECK(value_bits(eval_casted) == (int8_t)((258 + 255) % 256));
     CHECK(operators::op1_typeof(env.type_info()->info(), eval_casted) == types::Primitive{P::i8});
   }
-  SECTION("Evaluation with indirect cast") {
+  SECTION("Parsing with indirect cast") {
     ExpressionCache c;
     ZeroEnvironment env;
     auto &nti = *env.type_info();
-    auto value = c.add_or_return(Constant{VPrimitive::from_int((uint16_t)257)});
-    auto myint_hnd = env.type_info()->register_name("my_int");
-    auto cast = c.add_or_return(IndirectCast("my_int", myint_hnd.second, value));
-    auto eval_value = value->evaluator();
-    auto res_value = eval_value.evaluate(CachePolicy::UseNonVolatiles, env);
-    CHECK(value_bits(res_value) == 257);
-    CHECK(operators::op1_typeof(env.type_info()->info(), res_value) == types::Primitive{P::u16});
-    auto eval_cast = cast->evaluator();
+    Parser p(c, nti);
+    QString body = "(my_int*)257";
+    auto ast = p.compile(body);
+    REQUIRE(ast != nullptr);
+    auto as_cast = std::dynamic_pointer_cast<IndirectCast>(ast);
+    REQUIRE(as_cast != nullptr);
+    auto as_const = std::dynamic_pointer_cast<Constant>(as_cast->arg);
+    REQUIRE(as_const != nullptr);
+
+    // Leaf node has right type
+    auto const_eval = as_const->evaluator();
+    auto const_value = const_eval.evaluate(CachePolicy::UseNonVolatiles, env);
+    CHECK(value_bits(const_value) == 257);
+    CHECK(operators::op1_typeof(env.type_info()->info(), const_value) == types::Primitive{P::i16});
+
+    // Parent node
+    auto cast_eval = ast->evaluator();
     // Type has been declared but not defined. Should evaluate to never/undefined
-    auto res_cast = eval_cast.evaluate(CachePolicy::UseNonVolatiles, env);
-    CHECK(res_cast == VNever{});
+    auto cast_value = cast_eval.evaluate(CachePolicy::UseNonVolatiles, env);
+    auto hnd = nti.register_name("my_int");
+    CHECK(cast_value == VNever{});
     // As u8, should invalidate cache
-    nti.set_type(myint_hnd.second, env.type_info()->info().box(types::Primitive{types::Primitives::u8}));
-    res_cast = eval_cast.evaluate(CachePolicy::UseNonVolatiles, env);
-    CHECK(operators::op1_typeof(env.type_info()->info(), res_cast) == types::Primitive{P::u8});
-    CHECK(value_bits(res_cast) == (uint8_t)(257 % 256));
+    nti.set_type(hnd.second, env.type_info()->info().box(types::Primitive{types::Primitives::u8}));
+    cast_value = cast_eval.evaluate(CachePolicy::UseNonVolatiles, env);
+    CHECK(operators::op1_typeof(env.type_info()->info(), cast_value) == types::Primitive{P::u8});
+    CHECK(value_bits(cast_value) == (uint8_t)(257 % 256));
     // As i16, should invalidate cache
-    nti.set_type(myint_hnd.second, env.type_info()->info().box(types::Primitive{types::Primitives::i16}));
-    res_cast = eval_cast.evaluate(CachePolicy::UseNonVolatiles, env);
-    CHECK(operators::op1_typeof(env.type_info()->info(), res_cast) == types::Primitive{P::i16});
-    CHECK(value_bits(res_cast) == 257);
+    nti.set_type(hnd.second, env.type_info()->info().box(types::Primitive{types::Primitives::i16}));
+    cast_value = cast_eval.evaluate(CachePolicy::UseNonVolatiles, env);
+    CHECK(operators::op1_typeof(env.type_info()->info(), cast_value) == types::Primitive{P::i16});
+    CHECK(value_bits(cast_value) == 257);
   }
 
   SECTION("Recursive dirtying") {
