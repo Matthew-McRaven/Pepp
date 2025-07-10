@@ -161,7 +161,7 @@ TEST_CASE("Evaluating watch expressions", "[scope:debug][kind:unit][arch:*]") {
     auto &nti = *env.type_info();
     auto value = c.add_or_return(Constant{VPrimitive::from_int((uint16_t)257)});
     auto myint_hnd = env.type_info()->register_name("my_int");
-    auto cast = c.add_or_return(IndirectCast(myint_hnd.second, value));
+    auto cast = c.add_or_return(IndirectCast("my_int", myint_hnd.second, value));
     auto eval_value = value->evaluator();
     auto res_value = eval_value.evaluate(CachePolicy::UseNonVolatiles, env);
     CHECK(value_bits(res_value) == 257);

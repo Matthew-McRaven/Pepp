@@ -289,7 +289,7 @@ private:
 };
 
 struct IndirectCast : public Term {
-  IndirectCast(types::NamedTypeInfo::OpaqueHandle cast_to, std::shared_ptr<Term> arg);
+  IndirectCast(QString name, types::NamedTypeInfo::OpaqueHandle cast_to, std::shared_ptr<Term> arg);
   ~IndirectCast() override = default;
   std::strong_ordering operator<=>(const Term &rhs) const override;
   std::strong_ordering operator<=>(const IndirectCast &rhs) const;
@@ -306,6 +306,7 @@ struct IndirectCast : public Term {
   void accept(MutatingTermVisitor &visitor) override;
   void accept(ConstantTermVisitor &visitor) const override;
   const types::Type cast_to(Environment &env) const;
+  const types::Type cast_to(const types::NamedTypeInfo &nti) const;
 
   const std::shared_ptr<Term> arg;
 
@@ -315,6 +316,7 @@ protected:
 
 private:
   EvaluationCache _state{};
+  QString _name;
   types::NamedTypeInfo::OpaqueHandle _hnd;
   Versioned<types::OptType> _cast_to;
 };

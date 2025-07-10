@@ -277,7 +277,15 @@ std::shared_ptr<pepp::debug::Term> pepp::debug::Parser::parse_cast(detail::Token
       auto arg = parse_p0(tok, cache);
       return cp.memoize(accept(DirectCast(rtti.from(type), arg)), rule);
     } else {
-      // Indirect cast, we will need to look up type at runtime.
+      auto name = std::get<detail::Identifier>(maybe_type_name).value;
+      auto handle = _types.register_name(name);
+      if (auto ptr = tok.match_literal("*"); !std::holds_alternative<Lit>(ptr))
+        return cp.rollback<pepp::debug::Term>(rule);
+      else if (auto close = tok.match_literal(")"); !std::holds_alternative<Lit>(close))
+        return cp.rollback<pepp::debug::Term>(rule);
+
+      auto arg = parse_p0(tok, cache);
+      return cp.memoize(accept(IndirectCast(name, handle.second, arg)), rule);
     }
   }
   return cp.rollback<pepp::debug::Term>(rule);
