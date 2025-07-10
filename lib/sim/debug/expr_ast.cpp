@@ -217,7 +217,7 @@ std::strong_ordering pepp::debug::MemoryRead::operator<=>(const MemoryRead &rhs)
 
 uint16_t pepp::debug::MemoryRead::depth() const { return arg->depth() + 1; }
 
-pepp::debug::Term::Type pepp::debug::MemoryRead::type() const { return Term::Type::MemoryAccess; }
+pepp::debug::Term::Type pepp::debug::MemoryRead::type() const { return Term::Type::MemoryRead; }
 
 QString pepp::debug::MemoryRead::to_string() const {
   using namespace Qt::StringLiterals;
@@ -261,9 +261,14 @@ pepp::debug::EvaluationCache pepp::debug::MemoryRead::cached() const { return _s
 
 pepp::debug::BinaryInfix::BinaryInfix(Operators op, std::shared_ptr<Term> lhs, std::shared_ptr<Term> rhs)
     : op(op), lhs(lhs), rhs(rhs) {
+  switch (op) {
+  case Operators::STAR_DOT: [[fallthrough]];
+  case Operators::DOT: throw std::logic_error("Use MemberAccess for member access");
+  default: break;
+  }
   int lhs_cv = lhs ? lhs->cv_qualifiers() : 0;
   int rhs_cv = rhs ? rhs->cv_qualifiers() : 0;
-  bool is_volatile = (lhs_cv | rhs_cv | BinaryInfix::cv_qualifiers()) & CVQualifiers::Volatile;
+  bool is_volatile = (lhs_cv | rhs_cv) & CVQualifiers::Volatile;
   _state.set_depends_on_volatiles(is_volatile);
 }
 
@@ -354,13 +359,7 @@ pepp::debug::Value pepp::debug::BinaryInfix::evaluate(CachePolicy mode, Environm
 
 pepp::debug::EvaluationCache pepp::debug::BinaryInfix::cached() const { return _state; }
 
-int pepp::debug::BinaryInfix::cv_qualifiers() const {
-  switch (op) {
-  case Operators::STAR_DOT: [[fallthrough]];
-  case Operators::DOT: return CVQualifiers::Volatile;
-  default: return 0;
-  }
-}
+int pepp::debug::BinaryInfix::cv_qualifiers() const { return 0; }
 
 void pepp::debug::BinaryInfix::mark_dirty() { _state.mark_dirty(); }
 
@@ -369,6 +368,78 @@ bool pepp::debug::BinaryInfix::dirty() const { return _state.dirty(); }
 void pepp::debug::BinaryInfix::accept(MutatingTermVisitor &visitor) { visitor.accept(*this); }
 
 void pepp::debug::BinaryInfix::accept(ConstantTermVisitor &visitor) const { visitor.accept(*this); }
+
+pepp::debug::MemberAccess::MemberAccess(BinaryInfix::Operators op, std::shared_ptr<Term> lhs, QString rhs)
+    : op(op), lhs(lhs), rhs(rhs) {
+  switch (op) {
+    _state.set_depends_on_volatiles(true);
+  case BinaryInfix::Operators::DOT:
+  case BinaryInfix::Operators::STAR_DOT: break;
+  default: throw std::logic_error("Invalid operator for member access");
+  }
+}
+
+uint16_t pepp::debug::MemberAccess::depth() const { return lhs->depth() + 1; }
+pepp::debug::Term::Type pepp::debug::MemberAccess::type() const { return Type::MemberAccess; }
+std::strong_ordering pepp::debug::MemberAccess::operator<=>(const Term &rhs) const {
+  if (type() == rhs.type()) return this->operator<=>(static_cast<const MemberAccess &>(rhs));
+  return type() <=> rhs.type();
+}
+
+std::strong_ordering pepp::debug::MemberAccess::operator<=>(const MemberAccess &rhs) const {
+  if (auto cmp = op <=> rhs.op; cmp != 0) return cmp;
+  else if (cmp = *this->lhs <=> *rhs.lhs; cmp != 0) return cmp;
+  else if (auto str_cmp = this->rhs.compare(rhs.rhs); str_cmp < 0) return std::strong_ordering::less;
+  else if (str_cmp == 0) return std::strong_ordering::equal;
+  else return std::strong_ordering::greater;
+}
+
+QString pepp::debug::MemberAccess::to_string() const {
+  using namespace Qt::StringLiterals;
+  if (padding.at(this->op)) return u"%1 %2 %3"_s.arg(lhs->to_string(), ops.at(this->op), rhs);
+  return u"%1%2%3"_s.arg(lhs->to_string(), ops.at(this->op), rhs);
+}
+
+void pepp::debug::MemberAccess::link() {
+  auto weak = weak_from_this();
+  lhs->add_dependent(weak);
+}
+
+pepp::debug::Value pepp::debug::MemberAccess::evaluate(CachePolicy mode, Environment &env) {
+  using namespace pepp::debug::operators;
+  if (_state.value.has_value()) {
+    using enum CachePolicy;
+    switch (mode) {
+    case UseNever: break;
+    case UseNonVolatiles:
+      if (_state.depends_on_volatiles()) break;
+    case UseAlways:
+      if (_state.dirty()) break;
+    case UseDirtyAlways: return *_state.value;
+    }
+  }
+  auto &rtti = env.type_info()->info();
+  auto eval_lhs = lhs->evaluator();
+  auto v_lhs = eval_lhs.evaluate(mode, env);
+  _state.mark_clean();
+  switch (op) {
+  case Operators::STAR_DOT: [[fallthrough]];
+  case Operators::DOT: throw std::logic_error("Not Implemented");
+  default: throw std::logic_error("Use BinaryInfix for non-member-acces binary operators");
+  }
+}
+
+pepp::debug::EvaluationCache pepp::debug::MemberAccess::cached() const { return _state; }
+
+int pepp::debug::MemberAccess::cv_qualifiers() const { return CVQualifiers::Volatile; }
+
+void pepp::debug::MemberAccess::mark_dirty() { _state.mark_dirty(); }
+
+bool pepp::debug::MemberAccess::dirty() const { return _state.dirty(); }
+
+void pepp::debug::MemberAccess::accept(MutatingTermVisitor &visitor) { visitor.accept(*this); }
+
+void pepp::debug::MemberAccess::accept(ConstantTermVisitor &visitor) const { visitor.accept(*this); }
 
 std::optional<pepp::debug::BinaryInfix::Operators> pepp::debug::string_to_binary_infix(QStringView key) {
   auto result = std::find_if(ops.cbegin(), ops.cend(), [key](const auto &it) { return it.second == key; });

@@ -19,8 +19,9 @@ public:
     Variable,
     DebuggerVariable,
     BinaryInfixOperator,
+    MemberAccess, // Used for a.b and a->b
     UnaryPrefixOperator,
-    MemoryAccess,
+    MemoryRead,
     FunctionCall,
     ParenExpr,
     DirectTypeCast,
@@ -203,6 +204,36 @@ private:
 };
 std::optional<BinaryInfix::Operators> string_to_binary_infix(QStringView);
 
+struct MemberAccess : public Term {
+  MemberAccess(BinaryInfix::Operators op, std::shared_ptr<Term> lhs, QString rhs);
+  ~MemberAccess() override = default;
+  uint16_t depth() const override;
+  Type type() const override;
+  std::strong_ordering operator<=>(const Term &rhs) const override;
+  std::strong_ordering operator<=>(const MemberAccess &rhs) const;
+  QString to_string() const override;
+  void link() override;
+  int cv_qualifiers() const override;
+
+  void mark_dirty() override;
+  bool dirty() const override;
+
+  void accept(MutatingTermVisitor &visitor) override;
+  void accept(ConstantTermVisitor &visitor) const override;
+
+  const BinaryInfix::Operators op;
+  // Constant pointer to mutable object.
+  const std::shared_ptr<Term> lhs;
+  const QString rhs;
+
+protected:
+  Value evaluate(CachePolicy mode, Environment &env) override;
+  EvaluationCache cached() const override;
+
+private:
+  EvaluationCache _state{};
+};
+
 struct UnaryPrefix : public Term {
   enum class Operators { PLUS, MINUS, DEREFERENCE, ADDRESS_OF, NOT, NEGATE };
   UnaryPrefix(Operators op, std::shared_ptr<Term> arg);
@@ -353,6 +384,7 @@ struct MutatingTermVisitor {
   virtual void accept(DebuggerVariable &node) = 0;
   virtual void accept(Constant &node) = 0;
   virtual void accept(BinaryInfix &node) = 0;
+  virtual void accept(MemberAccess &node) = 0;
   virtual void accept(UnaryPrefix &node) = 0;
   virtual void accept(MemoryRead &node) = 0;
   virtual void accept(Parenthesized &node) = 0;
@@ -364,6 +396,7 @@ struct ConstantTermVisitor {
   virtual void accept(const DebuggerVariable &node) = 0;
   virtual void accept(const Constant &node) = 0;
   virtual void accept(const BinaryInfix &node) = 0;
+  virtual void accept(const MemberAccess &node) = 0;
   virtual void accept(const UnaryPrefix &node) = 0;
   virtual void accept(const MemoryRead &node) = 0;
   virtual void accept(const Parenthesized &node) = 0;
