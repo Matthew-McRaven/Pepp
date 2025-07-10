@@ -24,7 +24,8 @@ TEST_CASE("Parsing watch expressions", "[scope:debug][kind:unit][arch:*]") {
   SECTION("Hex constants") {
     ExpressionCache c;
     types::RuntimeTypeInfo t;
-    Parser p(c, t);
+    types::NamedTypeInfo nti{t};
+    Parser p(c, nti);
     QString body = "0x15";
     auto ast = p.compile(body);
     REQUIRE(ast != nullptr);
@@ -37,7 +38,8 @@ TEST_CASE("Parsing watch expressions", "[scope:debug][kind:unit][arch:*]") {
   SECTION("Unsigned Decimal constants") {
     ExpressionCache c;
     types::RuntimeTypeInfo t;
-    Parser p(c, t);
+    types::NamedTypeInfo nti{t};
+    Parser p(c, nti);
     QString body = "0115";
     auto ast = p.compile(body);
     REQUIRE(ast != nullptr);
@@ -51,7 +53,8 @@ TEST_CASE("Parsing watch expressions", "[scope:debug][kind:unit][arch:*]") {
   SECTION("Decimal constant with trailing type") {
     ExpressionCache c;
     types::RuntimeTypeInfo t;
-    Parser p(c, t);
+    types::NamedTypeInfo nti{t};
+    Parser p(c, nti);
     QString body = "0115_u8";
     auto ast = p.compile(body);
     REQUIRE(ast != nullptr);
@@ -65,7 +68,8 @@ TEST_CASE("Parsing watch expressions", "[scope:debug][kind:unit][arch:*]") {
   SECTION("Identifier") {
     ExpressionCache c;
     types::RuntimeTypeInfo t;
-    Parser p(c, t);
+    types::NamedTypeInfo nti{t};
+    Parser p(c, nti);
     QString body = "limit";
     auto ast = p.compile(body);
     REQUIRE(ast != nullptr);
@@ -76,7 +80,8 @@ TEST_CASE("Parsing watch expressions", "[scope:debug][kind:unit][arch:*]") {
   SECTION("(Unsigned decimal constants)") {
     ExpressionCache c;
     types::RuntimeTypeInfo t;
-    Parser p(c, t);
+    types::NamedTypeInfo nti{t};
+    Parser p(c, nti);
     QString body = "(0115)";
     auto ast = p.compile(body);
     REQUIRE(ast != nullptr);
@@ -91,7 +96,8 @@ TEST_CASE("Parsing watch expressions", "[scope:debug][kind:unit][arch:*]") {
   SECTION("Debugger Variable") {
     ExpressionCache c;
     types::RuntimeTypeInfo t;
-    Parser p(c, t);
+    types::NamedTypeInfo nti{t};
+    Parser p(c, nti);
     QString body = "$X";
     auto ast = p.compile(body);
     REQUIRE(ast != nullptr);
@@ -104,7 +110,8 @@ TEST_CASE("Parsing watch expressions", "[scope:debug][kind:unit][arch:*]") {
   SECTION("Member Access with .") {
     ExpressionCache c;
     types::RuntimeTypeInfo t;
-    Parser p(c, t);
+    types::NamedTypeInfo nti{t};
+    Parser p(c, nti);
     QString body = "s.a";
     auto ast = p.compile(body);
     REQUIRE(ast != nullptr);
@@ -116,7 +123,8 @@ TEST_CASE("Parsing watch expressions", "[scope:debug][kind:unit][arch:*]") {
   SECTION("Member Access with ->") {
     ExpressionCache c;
     types::RuntimeTypeInfo t;
-    Parser p(c, t);
+    types::NamedTypeInfo nti{t};
+    Parser p(c, nti);
     QString body = "s->a";
     auto ast = p.compile(body);
     REQUIRE(ast != nullptr);
@@ -129,7 +137,8 @@ TEST_CASE("Parsing watch expressions", "[scope:debug][kind:unit][arch:*]") {
   SECTION("Unary Prefix: +") {
     ExpressionCache c;
     types::RuntimeTypeInfo t;
-    Parser p(c, t);
+    types::NamedTypeInfo nti{t};
+    Parser p(c, nti);
     QString body = "+a";
     auto ast = p.compile(body);
     REQUIRE(ast != nullptr);
@@ -141,7 +150,8 @@ TEST_CASE("Parsing watch expressions", "[scope:debug][kind:unit][arch:*]") {
   SECTION("Unary Prefix: -") {
     ExpressionCache c;
     types::RuntimeTypeInfo t;
-    Parser p(c, t);
+    types::NamedTypeInfo nti{t};
+    Parser p(c, nti);
     QString body = "-a";
     auto ast = p.compile(body);
     REQUIRE(ast != nullptr);
@@ -154,7 +164,8 @@ TEST_CASE("Parsing watch expressions", "[scope:debug][kind:unit][arch:*]") {
     // Lol it's really a MemoryRead, but it looks like a unary prefix op!
     ExpressionCache c;
     types::RuntimeTypeInfo t;
-    Parser p(c, t);
+    types::NamedTypeInfo nti{t};
+    Parser p(c, nti);
     QString body = "*a";
     auto ast = p.compile(body);
     REQUIRE(ast != nullptr);
@@ -165,7 +176,8 @@ TEST_CASE("Parsing watch expressions", "[scope:debug][kind:unit][arch:*]") {
   SECTION("Unary Prefix: &") {
     ExpressionCache c;
     types::RuntimeTypeInfo t;
-    Parser p(c, t);
+    types::NamedTypeInfo nti{t};
+    Parser p(c, nti);
     QString body = "&a";
     auto ast = p.compile(body);
     REQUIRE(ast != nullptr);
@@ -177,7 +189,8 @@ TEST_CASE("Parsing watch expressions", "[scope:debug][kind:unit][arch:*]") {
   SECTION("Unary Prefix: !") {
     ExpressionCache c;
     types::RuntimeTypeInfo t;
-    Parser p(c, t);
+    types::NamedTypeInfo nti{t};
+    Parser p(c, nti);
     QString body = "!a";
     auto ast = p.compile(body);
     REQUIRE(ast != nullptr);
@@ -189,7 +202,8 @@ TEST_CASE("Parsing watch expressions", "[scope:debug][kind:unit][arch:*]") {
   SECTION("Unary Prefix: ~") {
     ExpressionCache c;
     types::RuntimeTypeInfo t;
-    Parser p(c, t);
+    types::NamedTypeInfo nti{t};
+    Parser p(c, nti);
     QString body = "~a";
     auto ast = p.compile(body);
     REQUIRE(ast != nullptr);
@@ -201,7 +215,8 @@ TEST_CASE("Parsing watch expressions", "[scope:debug][kind:unit][arch:*]") {
   SECTION("Type Cast: u16") {
     ExpressionCache c;
     types::RuntimeTypeInfo t;
-    Parser p(c, t);
+    types::NamedTypeInfo nti{t};
+    Parser p(c, nti);
     QString body = "(  u16 ) a";
     auto ast = p.compile(body);
     REQUIRE(ast != nullptr);
@@ -213,7 +228,8 @@ TEST_CASE("Parsing watch expressions", "[scope:debug][kind:unit][arch:*]") {
   SECTION("Type Cast: *u16") {
     ExpressionCache c;
     types::RuntimeTypeInfo t;
-    Parser p(c, t);
+    types::NamedTypeInfo nti{t};
+    Parser p(c, nti);
     QString body = "(  u16 * ) a";
     auto ast = p.compile(body);
     REQUIRE(ast != nullptr);
@@ -228,7 +244,8 @@ TEST_CASE("Parsing watch expressions", "[scope:debug][kind:unit][arch:*]") {
   SECTION("Type Cast: **u16") {
     ExpressionCache c;
     types::RuntimeTypeInfo t;
-    Parser p(c, t);
+    types::NamedTypeInfo nti{t};
+    Parser p(c, nti);
     QString body = "(  u16 * *) a";
     auto ast = p.compile(body);
     REQUIRE(ast != nullptr);
@@ -246,7 +263,8 @@ TEST_CASE("Parsing watch expressions", "[scope:debug][kind:unit][arch:*]") {
   SECTION("Multiply") {
     ExpressionCache c;
     types::RuntimeTypeInfo t;
-    Parser p(c, t);
+    types::NamedTypeInfo nti{t};
+    Parser p(c, nti);
     QString body = "s * 10";
     auto ast = p.compile(body);
     REQUIRE(ast != nullptr);
@@ -259,7 +277,8 @@ TEST_CASE("Parsing watch expressions", "[scope:debug][kind:unit][arch:*]") {
   SECTION("Add") {
     ExpressionCache c;
     types::RuntimeTypeInfo t;
-    Parser p(c, t);
+    types::NamedTypeInfo nti{t};
+    Parser p(c, nti);
     // Implicitly checks that numbers different numbers do not compare equal in expression cache
     QString body = "8 + 10";
     auto ast = p.compile(body);
@@ -272,7 +291,8 @@ TEST_CASE("Parsing watch expressions", "[scope:debug][kind:unit][arch:*]") {
   SECTION("Mul-Add") {
     ExpressionCache c;
     types::RuntimeTypeInfo t;
-    Parser p(c, t);
+    types::NamedTypeInfo nti{t};
+    Parser p(c, nti);
     QString body = "5 * s + 6";
     auto ast = p.compile(body);
     REQUIRE(ast != nullptr);
@@ -289,7 +309,8 @@ TEST_CASE("Parsing watch expressions", "[scope:debug][kind:unit][arch:*]") {
   SECTION("Shift Left") {
     ExpressionCache c;
     types::RuntimeTypeInfo t;
-    Parser p(c, t);
+    types::NamedTypeInfo nti{t};
+    Parser p(c, nti);
     // Implicitly checks that numbers different numbers do not compare equal in expression cache
     QString body = "8 << 10";
     auto ast = p.compile(body);
@@ -302,7 +323,8 @@ TEST_CASE("Parsing watch expressions", "[scope:debug][kind:unit][arch:*]") {
   SECTION("Inequality") {
     ExpressionCache c;
     types::RuntimeTypeInfo t;
-    Parser p(c, t);
+    types::NamedTypeInfo nti{t};
+    Parser p(c, nti);
     // Implicitly checks that numbers different numbers do not compare equal in expression cache
     QString body = "8 >= 10";
     auto ast = p.compile(body);
@@ -316,7 +338,8 @@ TEST_CASE("Parsing watch expressions", "[scope:debug][kind:unit][arch:*]") {
   SECTION("Equality") {
     ExpressionCache c;
     types::RuntimeTypeInfo t;
-    Parser p(c, t);
+    types::NamedTypeInfo nti{t};
+    Parser p(c, nti);
     // Implicitly checks that numbers different numbers do not compare equal in expression cache
     QString body = "8 == 10";
     auto ast = p.compile(body);
@@ -330,7 +353,8 @@ TEST_CASE("Parsing watch expressions", "[scope:debug][kind:unit][arch:*]") {
   SECTION("Bitwise &") {
     ExpressionCache c;
     types::RuntimeTypeInfo t;
-    Parser p(c, t);
+    types::NamedTypeInfo nti{t};
+    Parser p(c, nti);
     // Implicitly checks that numbers different numbers do not compare equal in expression cache
     QString body = "8 & 10";
     auto ast = p.compile(body);
@@ -344,7 +368,8 @@ TEST_CASE("Parsing watch expressions", "[scope:debug][kind:unit][arch:*]") {
   SECTION("Mul-deref") {
     ExpressionCache c;
     types::RuntimeTypeInfo t;
-    Parser p(c, t);
+    types::NamedTypeInfo nti{t};
+    Parser p(c, nti);
     QString body = "5 * *s";
     auto ast = p.compile(body);
     REQUIRE(ast != nullptr);
@@ -356,7 +381,8 @@ TEST_CASE("Parsing watch expressions", "[scope:debug][kind:unit][arch:*]") {
   SECTION("Expressions at same level") {
     ExpressionCache c;
     types::RuntimeTypeInfo t;
-    Parser p(c, t);
+    types::NamedTypeInfo nti{t};
+    Parser p(c, nti);
     QString body = "5 * s * 2";
     auto ast = p.compile(body);
     REQUIRE(ast != nullptr);
@@ -368,7 +394,8 @@ TEST_CASE("Parsing watch expressions", "[scope:debug][kind:unit][arch:*]") {
   SECTION("Expressions at same level 2") {
     ExpressionCache c;
     types::RuntimeTypeInfo t;
-    Parser p(c, t);
+    types::NamedTypeInfo nti{t};
+    Parser p(c, nti);
     // Does not work if RHS recursion is at the wrong precendence level.
     QString body = "5 * 3 + 3 * 2";
     auto ast = p.compile(body);
@@ -381,7 +408,8 @@ TEST_CASE("Parsing watch expressions", "[scope:debug][kind:unit][arch:*]") {
   SECTION("Now with ()") {
     ExpressionCache c;
     types::RuntimeTypeInfo t;
-    Parser p(c, t);
+    types::NamedTypeInfo nti{t};
+    Parser p(c, nti);
     // Does not work if RHS recursion is at the wrong precendence level.
     QString body = "5 * (3 + 3) * 2";
     auto ast = p.compile(body);
@@ -398,7 +426,8 @@ TEST_CASE("Garbage collection for expressions", "[scope:debug][kind:unit][arch:*
   SECTION("Don't recycle living objects") {
     ExpressionCache c;
     types::RuntimeTypeInfo t;
-    Parser p(c, t);
+    types::NamedTypeInfo nti{t};
+    Parser p(c, nti);
     QString body = "0x15";
     auto ast = p.compile(body);
     REQUIRE(ast != nullptr);
@@ -414,7 +443,8 @@ TEST_CASE("Garbage collection for expressions", "[scope:debug][kind:unit][arch:*
   SECTION("Don't recycle nested terms") {
     ExpressionCache c;
     types::RuntimeTypeInfo t;
-    Parser p(c, t);
+    types::NamedTypeInfo nti{t};
+    Parser p(c, nti);
     QString body = "0x15 + a";
     auto ast = p.compile(body);
     REQUIRE(ast != nullptr);
@@ -428,7 +458,8 @@ TEST_CASE("Garbage collection for expressions", "[scope:debug][kind:unit][arch:*
   SECTION("Don't recycle shared terms") {
     ExpressionCache c;
     types::RuntimeTypeInfo t;
-    Parser p(c, t);
+    types::NamedTypeInfo nti{t};
+    Parser p(c, nti);
     auto ast1 = p.compile("0x15 + a + 0x15");
     auto ast2 = p.compile("*0x15");
     REQUIRE(ast1 != nullptr);

@@ -25,7 +25,7 @@ TEST_CASE("Evaluating watch expressions", "[scope:debug][kind:unit][arch:*]") {
   SECTION("Expressions caching between compliations") {
     ExpressionCache c;
     ZeroEnvironment env;
-    Parser p(c, env.type_info()->info());
+    Parser p(c, *env.type_info());
     QString body = "m * x + -b";
     auto ast1 = p.compile(body);
     auto ast2 = p.compile(body);
@@ -35,7 +35,8 @@ TEST_CASE("Evaluating watch expressions", "[scope:debug][kind:unit][arch:*]") {
   SECTION("Dependency tracking") {
     ExpressionCache c;
     types::RuntimeTypeInfo t;
-    Parser p(c, t);
+    types::NamedTypeInfo nti{t};
+    Parser p(c, nti);
     QString body = "m * x + -b";
     auto ast = p.compile(body);
     REQUIRE(ast != nullptr);
@@ -74,7 +75,7 @@ TEST_CASE("Evaluating watch expressions", "[scope:debug][kind:unit][arch:*]") {
   SECTION("Evaluation of constants") {
     ExpressionCache c;
     ZeroEnvironment env;
-    Parser p(c, env.type_info()->info());
+    Parser p(c, *env.type_info());
     QString body = "3 * 3 + 4";
     auto ast = p.compile(body);
     REQUIRE(ast != nullptr);
@@ -107,7 +108,7 @@ TEST_CASE("Evaluating watch expressions", "[scope:debug][kind:unit][arch:*]") {
   SECTION("Parsing Math with u8 and i16 (parsing)") {
     ExpressionCache c;
     ZeroEnvironment env;
-    Parser p(c, env.type_info()->info());
+    Parser p(c, *env.type_info());
     QString body = "257_i16 + 255_u8";
     auto ast = p.compile(body);
     REQUIRE(ast != nullptr);
@@ -127,7 +128,7 @@ TEST_CASE("Evaluating watch expressions", "[scope:debug][kind:unit][arch:*]") {
   SECTION("Parsing with direct casts") {
     ExpressionCache c;
     ZeroEnvironment env;
-    Parser p(c, env.type_info()->info());
+    Parser p(c, *env.type_info());
     QString body = "(i8)(258 + 255)";
     auto ast = p.compile(body);
     REQUIRE(ast != nullptr);
@@ -184,7 +185,7 @@ TEST_CASE("Evaluating watch expressions", "[scope:debug][kind:unit][arch:*]") {
   SECTION("Recursive dirtying") {
     ExpressionCache c;
     ZeroEnvironment env;
-    Parser p(c, env.type_info()->info());
+    Parser p(c, *env.type_info());
     QString body = "m * x + -b";
     auto ast = p.compile(body);
     REQUIRE(ast != nullptr);
@@ -261,7 +262,7 @@ TEST_CASE("Evaluations with environment access", "[scope:debug][kind:unit][arch:
 
   SECTION("Memory Access") {
     ExpressionCache c;
-    Parser p(c, env.type_info()->info());
+    Parser p(c, *env.type_info());
     QString body = "*0";
     auto ast = p.compile(body);
     REQUIRE(ast != nullptr);
@@ -274,7 +275,7 @@ TEST_CASE("Evaluations with environment access", "[scope:debug][kind:unit][arch:
   }
   SECTION("Debugger Variables") {
     ExpressionCache c;
-    Parser p(c, env.type_info()->info());
+    Parser p(c, *env.type_info());
     QString body = "$x";
     auto ast = p.compile(body);
     REQUIRE(ast != nullptr);
