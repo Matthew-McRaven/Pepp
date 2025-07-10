@@ -249,12 +249,23 @@ pepp::debug::Value pepp::debug::MemoryRead::evaluate(CachePolicy mode, Environme
     }
   }
 
+  auto &rtti = env.type_info()->info();
   auto eval = arg->evaluator();
   auto v = eval.evaluate(mode, env);
+  auto ret_type = operators::op1_dereference_typeof(rtti, v);
+  auto address = value_bits(v);
+  auto bytecount = bitness(types::unbox(ret_type)) / 8;
+  quint64 readBuf = 0;
+  switch (bytecount) {
+  case 1: readBuf = env.read_mem_u8(address); break;
+  case 4: readBuf |= (quint32)(env.read_mem_u16(address += 2) << 16); [[fallthrough]];
+  case 2: readBuf |= env.read_mem_u16(address); break;
+  default: throw std::logic_error("MemoryRead: Unsupported size");
+  }
+
   _state.mark_clean();
 
-  _state.value = VPrimitive::from_int((int16_t)env.read_mem_u16(0));
-  return *_state.value;
+  return *(_state.value = from_bits(unbox(ret_type), readBuf));
 }
 
 pepp::debug::EvaluationCache pepp::debug::MemoryRead::cached() const { return _state; }
@@ -371,8 +382,8 @@ void pepp::debug::BinaryInfix::accept(ConstantTermVisitor &visitor) const { visi
 
 pepp::debug::MemberAccess::MemberAccess(BinaryInfix::Operators op, std::shared_ptr<Term> lhs, QString rhs)
     : op(op), lhs(lhs), rhs(rhs) {
+  _state.set_depends_on_volatiles(true);
   switch (op) {
-    _state.set_depends_on_volatiles(true);
   case BinaryInfix::Operators::DOT:
   case BinaryInfix::Operators::STAR_DOT: break;
   default: throw std::logic_error("Invalid operator for member access");
@@ -405,6 +416,36 @@ void pepp::debug::MemberAccess::link() {
   lhs->add_dependent(weak);
 }
 
+namespace {
+struct MemberAccessVisitor {
+  quint64 v;
+  pepp::debug::Environment &env;
+  pepp::debug::Value operator()(const std::shared_ptr<pepp::debug::types::Never> &type) const {
+    return pepp::debug::VNever{};
+  }
+  pepp::debug::Value operator()(const std::shared_ptr<pepp::debug::types::Primitive> &type) const {
+    auto &info = env.type_info()->info();
+    auto hnd = info.from(pepp::debug::types::Pointer{2, type});
+    return pepp::debug::VPointer{hnd, v};
+  }
+  pepp::debug::Value operator()(const std::shared_ptr<pepp::debug::types::Pointer> &type) {
+    auto &info = env.type_info()->info();
+    auto hnd = info.from(pepp::debug::types::Pointer{2, type});
+    return pepp::debug::VPointer{hnd, v};
+  }
+  pepp::debug::Value operator()(const std::shared_ptr<pepp::debug::types::Array> &type) {
+    auto &info = env.type_info()->info();
+    auto hnd = info.from(pepp::debug::types::Pointer{2, type});
+    return pepp::debug::VPointer{hnd, v};
+  }
+  pepp::debug::Value operator()(const std::shared_ptr<pepp::debug::types::Struct> &type) {
+    auto &info = env.type_info()->info();
+    auto hnd = info.from(pepp::debug::types::Pointer{2, type});
+    return pepp::debug::VPointer{hnd, v};
+  }
+};
+} // namespace
+
 pepp::debug::Value pepp::debug::MemberAccess::evaluate(CachePolicy mode, Environment &env) {
   using namespace pepp::debug::operators;
   if (_state.value.has_value()) {
@@ -418,15 +459,31 @@ pepp::debug::Value pepp::debug::MemberAccess::evaluate(CachePolicy mode, Environ
     case UseDirtyAlways: return *_state.value;
     }
   }
-  auto &rtti = env.type_info()->info();
-  auto eval_lhs = lhs->evaluator();
-  auto v_lhs = eval_lhs.evaluate(mode, env);
-  _state.mark_clean();
+
   switch (op) {
   case Operators::STAR_DOT: [[fallthrough]];
-  case Operators::DOT: throw std::logic_error("Not Implemented");
+  case Operators::DOT: break;
   default: throw std::logic_error("Use BinaryInfix for non-member-acces binary operators");
   }
+
+  _state.mark_clean();
+
+  auto &rtti = env.type_info()->info();
+  auto lhs_eval = lhs->evaluator();
+  auto lhs_value = lhs_eval.evaluate(mode, env);
+  // Confirm that LHS is a actually a struct and that RHS is a member of that struct
+  auto lhs_type = op1_typeof(rtti, lhs_value);
+  if (!std::holds_alternative<types::Struct>(lhs_type)) return *(_state.value = VNever{});
+  auto lhs_struct = std::get<types::Struct>(lhs_type);
+  auto maybe_rhs = lhs_struct.find(rhs);
+  if (!maybe_rhs.has_value()) return *(_state.value = VNever{});
+  auto [rhs_type, rhs_offset] = *maybe_rhs;
+  auto lhs_bits = value_bits(lhs_value);
+
+  // Create pointer to RHS member, return it as a pointer to RHS's type
+  auto rhs_ptr = lhs_bits + rhs_offset;
+  auto rhs = std::visit(MemberAccessVisitor{rhs_ptr, env}, rhs_type);
+  return *(_state.value = rhs);
 }
 
 pepp::debug::EvaluationCache pepp::debug::MemberAccess::cached() const { return _state; }

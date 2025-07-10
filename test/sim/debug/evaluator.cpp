@@ -19,6 +19,24 @@
 #include "sim/debug/expr_ast_ops.hpp"
 #include "sim/debug/expr_parser.hpp"
 
+namespace {
+struct MemoryArrayEnvironment : public pepp::debug::ZeroEnvironment {
+  mutable std::map<quint32, uint8_t> mem;
+  mutable std::map<QString, pepp::debug::Value> variables;
+  inline uint8_t read_mem_u8(uint32_t addr) const override {
+    if (mem.contains(addr)) return mem[addr];
+    return 0;
+  }
+  inline uint16_t read_mem_u16(uint32_t addr) const override {
+    return (uint16_t)(read_mem_u8(addr) << 8 | read_mem_u8(addr + 1));
+  }
+  inline pepp::debug::Value evaluate_variable(QStringView name) const override {
+    if (variables.contains(QString{name})) return variables[QString{name}];
+    else return pepp::debug::VPrimitive::from_int(int16_t(0));
+  };
+};
+} // namespace
+
 TEST_CASE("Evaluating watch expressions", "[scope:debug][kind:unit][arch:*]") {
   using namespace pepp::debug;
   using P = types::Primitives;
@@ -191,6 +209,65 @@ TEST_CASE("Evaluating watch expressions", "[scope:debug][kind:unit][arch:*]") {
     CHECK(operators::op1_typeof(env.type_info()->info(), cast_value) == types::Primitive{P::i16});
     CHECK(value_bits(cast_value) == 257);
   }
+  SECTION("Parsing with member access") {
+    ExpressionCache c;
+    MemoryArrayEnvironment env;
+    auto &nti = *env.type_info();
+    Parser p(c, nti);
+    auto i8 = types::Primitive{types::Primitives::i8};
+    auto boxed_i8 = nti.info().box(i8);
+    auto i8p = types::Pointer{2, boxed_i8};
+    auto boxed_i8p = nti.info().box(i8p);
+    types::Struct mystruct;
+    mystruct.members.emplace_back(types::Struct::Tuple{"m1", boxed_i8, 0});
+    mystruct.members.emplace_back(types::Struct::Tuple{"b", boxed_i8, 2});
+    auto hnd_struct = nti.info().from(mystruct);
+    QString body = "a.b";
+    auto ast = p.compile(body);
+    REQUIRE(ast != nullptr);
+    auto as_cast = std::dynamic_pointer_cast<MemberAccess>(ast);
+    REQUIRE(as_cast != nullptr);
+    CHECK(as_cast->rhs == "b");
+    auto as_var = std::dynamic_pointer_cast<Variable>(as_cast->lhs);
+    REQUIRE(as_var != nullptr);
+    CHECK(as_var->name == "a");
+    // No bound types means we get back never
+    auto eval_cast = as_cast->evaluator();
+    auto value_cast = eval_cast.evaluate(CachePolicy::UseNonVolatiles, env);
+    CHECK(value_cast == VNever{});
+    // Update variable type in environment. A has base address of 2, so a.b should touch only address 4.
+    env.variables["a"] = pepp::debug::VStruct{hnd_struct, 0x02};
+    // memory addresses from 2 to 7 will have non-0 values
+    for (int it = 0; it < 5; it++) env.mem[it + 2] = it + 3;
+    auto eval_var = as_var->evaluator();
+    auto value_var = eval_var.evaluate(CachePolicy::UseNonVolatiles, env);
+    CHECK(operators::op1_typeof(nti.info(), value_var) == mystruct);
+    value_cast = eval_cast.evaluate(CachePolicy::UseNonVolatiles, env);
+    CHECK(operators::op1_typeof(nti.info(), value_cast) == i8p);
+    CHECK(value_bits(value_cast) == 0x4);
+  }
+  SECTION("Deref member access ") {
+    ExpressionCache c;
+    MemoryArrayEnvironment env;
+    auto &nti = *env.type_info();
+    Parser p(c, nti);
+    auto i8 = types::Primitive{types::Primitives::i8};
+    auto boxed_i8 = nti.info().box(i8);
+    auto boxed_i8p = nti.info().box(types::Pointer{2, boxed_i8});
+    types::Struct mystruct;
+    mystruct.members.emplace_back(types::Struct::Tuple{"b", boxed_i8, 2});
+    auto hnd_struct = nti.info().from(mystruct);
+    // Update variable type in environment. A has base address of 2, so a.b should touch only address 4.
+    env.variables["a"] = pepp::debug::VStruct{hnd_struct, 0x02};
+    auto ast = p.compile("*(a.b)");
+    REQUIRE(ast != nullptr);
+    // memory addresses from 2 to 7 will have non-0 values
+    for (int it = 0; it < 5; it++) env.mem[it + 2] = it + 3;
+    auto eval_ast = ast->evaluator();
+    auto value_ast = eval_ast.evaluate(CachePolicy::UseNonVolatiles, env);
+    CHECK(operators::op1_typeof(nti.info(), value_ast) == i8);
+    CHECK(value_bits(value_ast) == 0x5);
+  }
 
   SECTION("Recursive dirtying") {
     ExpressionCache c;
@@ -256,20 +333,14 @@ TEST_CASE("Evaluating watch expressions", "[scope:debug][kind:unit][arch:*]") {
   }
 }
 
-namespace {
-struct MemoryArrayEnvironment : public pepp::debug::ZeroEnvironment {
-  std::vector<uint8_t> mem = std::vector<uint8_t>(0x1'00'00, 7);
-  inline uint8_t read_mem_u8(uint32_t addr) const override { return mem[addr % 0x1'00'00]; }
-  inline uint16_t read_mem_u16(uint32_t addr) const override {
-    return (uint16_t)(mem[addr % 0x1'00'00] << 8 | mem[(addr + 1) % 0x1'00'00]);
-  }
-};
-} // namespace
 
 TEST_CASE("Evaluations with environment access", "[scope:debug][kind:unit][arch:*]") {
   using namespace pepp::debug;
   MemoryArrayEnvironment env;
-
+  env.type_info()->info().box(types::Primitive{types::Primitives::u16});
+  env.type_info()->info().box(types::Primitive{types::Primitives::i16});
+  env.mem[0] = 7;
+  env.mem[1] = 7;
   SECTION("Memory Access") {
     ExpressionCache c;
     Parser p(c, *env.type_info());

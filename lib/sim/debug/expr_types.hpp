@@ -61,10 +61,12 @@ struct Struct {
   static const MetaType meta = MetaType::Struct;
   quint8 pointer_size = 2;
   // Map names to types + offsets
-  std::vector<std::tuple<std::string, BoxedType, uint16_t>> members;
+  using Tuple = std::tuple<QString, BoxedType, uint16_t>;
+  std::vector<std::tuple<QString, BoxedType, uint16_t>> members;
   std::strong_ordering operator<=>(const Struct &) const;
   bool operator==(const Struct &) const;
   inline uint64_t pad_bits(uint64_t bits) const { return bits & ~(static_cast<uint64_t>(pointer_size) * 8 - 1); }
+  std::optional<std::pair<BoxedType, uint16_t>> find(const QString &member);
 };
 
 using Type = std::variant<Never, Primitive, Pointer, Array, Struct>;

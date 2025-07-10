@@ -105,7 +105,7 @@ struct OrderingVisitor {
   }
 };
 
-struct FromBitsVisitor {
+struct VariantFromBitsVisitor {
   QVariant operator()(const VNever &v) const { return QVariant::fromValue((int8_t)0); }
   QVariant operator()(const VPrimitive &v) const {
     using enum types::Primitives;
@@ -124,6 +124,15 @@ struct FromBitsVisitor {
   QVariant operator()(const VArray &v) const { return QVariant::fromValue((uint16_t)0); }
   QVariant operator()(const VStruct &v) const { return QVariant::fromValue((uint16_t)0); }
 };
+struct ValueFromBitsVisitor {
+  quint64 bits;
+  pepp::debug::Value operator()(const types::Never &type) const { return VNever{}; }
+  pepp::debug::Value operator()(const types::Primitive &type) const { return VPrimitive::from(type.primitive, bits); }
+  // TODO: these actually need RTTI
+  pepp::debug::Value operator()(const types::Pointer &v) const { return VNever{}; }
+  pepp::debug::Value operator()(const types::Array &v) const { return VNever{}; }
+  pepp::debug::Value operator()(const types::Struct &v) const { return VNever{}; }
+};
 } // namespace detail
 std::strong_ordering pepp::debug::operator<=>(const Value &lhs, const Value &rhs) {
   return std::visit(::detail::OrderingVisitor{}, lhs, rhs);
@@ -133,4 +142,8 @@ bool pepp::debug::operator==(const Value &lhs, const Value &rhs) {
   return (lhs <=> rhs) == std::strong_ordering::equal;
 }
 
-QVariant pepp::debug::from_bits(const Value &v) { return std::visit(::detail::FromBitsVisitor{}, v); }
+QVariant pepp::debug::from_bits(const Value &v) { return std::visit(::detail::VariantFromBitsVisitor{}, v); }
+
+pepp::debug::Value pepp::debug::from_bits(const types::Type &type, quint64 bits) {
+  return std::visit(::detail::ValueFromBitsVisitor{bits}, type);
+}

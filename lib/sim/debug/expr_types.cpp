@@ -106,8 +106,9 @@ std::strong_ordering pepp::debug::types::Struct::operator<=>(const Struct &other
   auto lhs = std::next(members.cbegin(), 0);
   auto rhs = std::next(other.members.cbegin(), 0);
   while (lhs != members.cend() && rhs != other.members.cend()) {
-    if (auto r = std::get<0>(*lhs) <=> std::get<0>(*rhs); r != 0) return r;
-    else if (r = std::get<1>(*lhs) <=> std::get<1>(*rhs); r != 0) return r;
+    if (auto str_cmp = std::get<0>(*lhs).compare(std::get<0>(*rhs)); str_cmp < 0) return std::strong_ordering::less;
+    else if (str_cmp > 0) return std::strong_ordering::greater;
+    else if (auto r = std::get<1>(*lhs) <=> std::get<1>(*rhs); r != 0) return r;
     else if (r = std::get<2>(*lhs) <=> std::get<2>(*rhs); r != 0) return r;
     ++lhs, ++rhs;
   }
@@ -116,6 +117,13 @@ std::strong_ordering pepp::debug::types::Struct::operator<=>(const Struct &other
 
 bool pepp::debug::types::Struct::operator==(const Struct &other) const {
   return (*this <=> other) == std::strong_ordering::equal;
+}
+
+std::optional<std::pair<pepp::debug::types::BoxedType, uint16_t>>
+pepp::debug::types::Struct::find(const QString &member) {
+  for (const auto &[name, boxed_type, offset] : members)
+    if (member == name) return {{boxed_type, offset}};
+  return std::nullopt;
 }
 
 namespace detail {
@@ -177,8 +185,7 @@ struct QStringVisitor {
   QString operator()(const Struct &v) const {
     using namespace Qt::StringLiterals;
     QStringList members;
-    for (const auto &[name, type, offset] : v.members)
-      members.append(u"%1 %2;"_s.arg(std::visit(*this, type), QString::fromStdString(name)));
+    for (const auto &[name, type, offset] : v.members) members.append(u"%1 %2;"_s.arg(std::visit(*this, type), name));
     return u"struct {\n%1\n}"_s.arg(members.join(u"\n "_s));
   }
   template <typename T> QString operator()(const std::shared_ptr<T> &v) const { return (*this)(*v); }

@@ -1,3 +1,4 @@
+#include <stdexcept>
 #include "./expr_value.hpp"
 
 namespace detail {
@@ -10,6 +11,27 @@ struct TypeofVisitor {
   types::Type operator()(const VPointer &v) const { return unbox(info.from(v.type_handle)); }
   types::Type operator()(const VArray &v) const { return unbox(info.from(v.type_handle)); }
   types::Type operator()(const VStruct &v) const { return unbox(info.from(v.type_handle)); }
+};
+
+struct DerefTypeofVisitor {
+  const types::RuntimeTypeInfo &info;
+  types::BoxedType operator()(const types::Never &) const {
+    auto ret = info.box(types::Never{});
+    if (!ret.has_value()) throw std::runtime_error("Dereferencing never type");
+    return *ret;
+  }
+  types::BoxedType operator()(const types::Primitive &v) const {
+    auto ret = info.box(types::Primitive{types::Primitives::i16});
+    if (!ret.has_value()) throw std::runtime_error("Dereferencing never type");
+    return *ret;
+  }
+  types::BoxedType operator()(const types::Pointer &v) const { return v.to; }
+  types::BoxedType operator()(const types::Array &v) const { return v.of; }
+  types::BoxedType operator()(const types::Struct &v) const {
+    auto ret = info.box(types::Never{});
+    if (!ret.has_value()) throw std::runtime_error("Dereferencing never type");
+    return *ret;
+  }
 };
 
 struct UnaryUnimplementedVisitor {
@@ -72,6 +94,12 @@ struct UnaryNegateVisitor {
 
 pepp::debug::types::Type pepp::debug::operators::op1_typeof(const types::RuntimeTypeInfo &info, const Value &v) {
   return std::visit(::detail::TypeofVisitor{.info = info}, v);
+}
+
+pepp::debug::types::BoxedType pepp::debug::operators::op1_dereference_typeof(const types::RuntimeTypeInfo &info,
+                                                                             const Value &v) {
+  auto _typeof = std::visit(::detail::TypeofVisitor{.info = info}, v);
+  return std::visit(::detail::DerefTypeofVisitor{.info = info}, _typeof);
 }
 
 pepp::debug::Value pepp::debug::operators::op1_plus(const types::RuntimeTypeInfo &info, const Value &v) {
