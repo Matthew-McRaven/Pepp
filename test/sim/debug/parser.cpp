@@ -210,6 +210,38 @@ TEST_CASE("Parsing watch expressions", "[scope:debug][kind:unit][arch:*]") {
     CHECK(as_cast->cast_to() == types::Primitive(types::Primitives::u16));
     CHECK(as_cast->to_string().toStdString() == "(u16)a");
   }
+  SECTION("Type Cast: *u16") {
+    ExpressionCache c;
+    types::RuntimeTypeInfo t;
+    Parser p(c, t);
+    QString body = "(  u16 * ) a";
+    auto ast = p.compile(body);
+    REQUIRE(ast != nullptr);
+    auto as_cast = std::dynamic_pointer_cast<DirectCast>(ast);
+    REQUIRE(as_cast != nullptr);
+    auto base = types::Primitive(types::Primitives::u16);
+    auto boxed_based = t.box(base);
+    auto derived = types::Pointer{2, boxed_based};
+    CHECK(as_cast->cast_to() == derived);
+    CHECK(as_cast->to_string().toStdString() == "(u16*)a");
+  }
+  SECTION("Type Cast: **u16") {
+    ExpressionCache c;
+    types::RuntimeTypeInfo t;
+    Parser p(c, t);
+    QString body = "(  u16 * *) a";
+    auto ast = p.compile(body);
+    REQUIRE(ast != nullptr);
+    auto as_cast = std::dynamic_pointer_cast<DirectCast>(ast);
+    REQUIRE(as_cast != nullptr);
+    auto base = types::Primitive(types::Primitives::u16);
+    auto boxed_based = t.box(base);
+    auto derived = types::Pointer{2, boxed_based};
+    auto boxed_derived = t.box(derived);
+    auto derived2 = types::Pointer{2, boxed_derived};
+    CHECK(as_cast->cast_to() == derived2);
+    CHECK(as_cast->to_string().toStdString() == "(u16**)a");
+  }
   // P2
   SECTION("Multiply") {
     ExpressionCache c;
