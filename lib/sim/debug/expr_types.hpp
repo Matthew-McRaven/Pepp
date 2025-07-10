@@ -2,7 +2,10 @@
 #include <QString>
 #include <compare>
 #include <cstdint>
+#include <map>
 #include <memory>
+#include <stdexcept>
+#include <zpp_bits.h>
 
 // Forward declare all below types so I can create the variant of shared ptrs.
 namespace pepp::debug::types {
@@ -13,6 +16,17 @@ struct Array;
 struct Struct;
 using BoxedType = std::variant<std::shared_ptr<Never>, std::shared_ptr<Primitive>, std::shared_ptr<Pointer>,
                                std::shared_ptr<Array>, std::shared_ptr<Struct>>;
+struct SerializationHelper {
+  quint16 get_index_for(const BoxedType &type) const {
+    auto it = _type_to_index.find(type);
+    if (it != _type_to_index.end()) return it->second;
+    throw std::out_of_range("Type not registered in SerializationHelper");
+  }
+  friend class TypeInfo;
+
+private:
+  std::map<BoxedType, quint16> _type_to_index;
+};
 } // namespace pepp::debug::types
 
 namespace pepp::debug::types {
@@ -30,12 +44,29 @@ struct Never {
   static const MetaType meta = MetaType::Never;
   std::strong_ordering operator<=>(const Never &) const;
   bool operator==(const Never &) const;
+  constexpr static zpp::bits::errc serialize(auto &archive, auto &self, SerializationHelper *helper) {
+    return std::errc{};
+  }
 };
+
 struct Primitive {
   static const MetaType meta = MetaType::Primitive;
   Primitives primitive;
   std::strong_ordering operator<=>(const Primitive &) const;
   bool operator==(const Primitive &) const;
+  constexpr static zpp::bits::errc serialize(auto &archive, auto &self, SerializationHelper *helper) {
+    if (archive.kind() == zpp::bits::kind::out) {
+      quint8 tmp = static_cast<quint8>(self.primitive);
+      return archive(tmp);
+    } else if (archive.kind() == zpp::bits::kind::in && !std::is_const<decltype(self)>()) {
+      quint8 tmp;
+      auto ret = archive(tmp);
+      self.primitive = static_cast<Primitives>(tmp);
+      return ret;
+    } else if (archive.kind() == zpp::bits::kind::in) throw std::logic_error("Can't read into const");
+
+    throw std::logic_error("Unreachable");
+  }
 };
 
 struct Pointer {
@@ -45,6 +76,17 @@ struct Pointer {
   std::strong_ordering operator<=>(const Pointer &) const;
   bool operator==(const Pointer &) const;
   inline uint64_t pad_bits(uint64_t bits) const { return bits & ~(static_cast<uint64_t>(pointer_size) * 8 - 1); }
+  constexpr static zpp::bits::errc serialize(auto &archive, auto &self, SerializationHelper *helper) {
+    if (archive.kind() == zpp::bits::kind::out) {
+      if (auto errc = archive(self.pointer_size); errc.code != std::errc()) return errc;
+      return archive(helper->get_index_for(self.to)); // Use helper to convert our pointer to an index!
+    } else if (archive.kind() == zpp::bits::kind::in && !std::is_const<decltype(self)>()) {
+      if (auto errc = archive(self.pointer_size); errc.code != std::errc()) return errc;
+      // TODO: use helper to convert int/index to a ptr.
+      return std::errc{};
+    } else if (archive.kind() == zpp::bits::kind::in) throw std::logic_error("Can't read into const");
+    throw std::logic_error("Unreachable");
+  }
 };
 
 struct Array {
@@ -55,6 +97,19 @@ struct Array {
   std::strong_ordering operator<=>(const Array &) const;
   bool operator==(const Array &) const;
   inline uint64_t pad_bits(uint64_t bits) const { return bits & ~(static_cast<uint64_t>(pointer_size) * 8 - 1); }
+  constexpr static zpp::bits::errc serialize(auto &archive, auto &self, SerializationHelper *helper) {
+    if (archive.kind() == zpp::bits::kind::out) {
+      if (auto errc = archive(self.pointer_size); errc.code != std::errc()) return errc;
+      else if (errc = archive(self.length); errc.code != std::errc()) return errc;
+      return archive(helper->get_index_for(self.of)); // Use  helper to convert our pointer to an index!
+    } else if (archive.kind() == zpp::bits::kind::in && !std::is_const<decltype(self)>()) {
+      if (auto errc = archive(self.pointer_size); errc.code != std::errc()) return errc;
+      else if (errc = archive(self.length); errc.code != std::errc()) return errc;
+      // TODO: use helper to convert int/index to a ptr.
+      return std::errc{};
+    } else if (archive.kind() == zpp::bits::kind::in) throw std::logic_error("Can't read into const");
+    throw std::logic_error("Unreachable");
+  }
 };
 
 struct Struct {
@@ -67,6 +122,10 @@ struct Struct {
   bool operator==(const Struct &) const;
   inline uint64_t pad_bits(uint64_t bits) const { return bits & ~(static_cast<uint64_t>(pointer_size) * 8 - 1); }
   std::optional<std::pair<BoxedType, uint16_t>> find(const QString &member);
+  constexpr static zpp::bits::errc serialize(auto &archive, auto &self, SerializationHelper *helper) {
+    throw std::logic_error("I am not smart enough to figure this out");
+    return std::errc{};
+  }
 };
 
 using Type = std::variant<Never, Primitive, Pointer, Array, Struct>;
@@ -78,6 +137,21 @@ bool is_unsigned(const Type &type);
 quint8 bitness(const Type &type);
 QString to_string(const Type &type);
 MetaType metatype(const Type &type);
+namespace detail {
+template <typename T> struct SerializeVistor {
+  T &archive;
+  SerializationHelper *helper;
+  template <typename U> std::errc operator()(U &v) { return v.serialize(archive, v, helper); }
+};
+} // namespace detail
+static zpp::bits::errc serialize(auto &archive, auto &type, SerializationHelper *helper = nullptr) {
+  if (archive.kind() == zpp::bits::kind::out) {
+    if (auto errc = archive((quint8)type.index()); errc.code != std::errc()) return errc;
+    return std::visit(detail::SerializeVistor{archive, helper}, type);
+  }
+  throw std::logic_error("Not implemented");
+}
+
 std::strong_ordering operator<=>(const Type &lhs, const Type &rhs);
 std::strong_ordering operator<=>(const BoxedType &lhs, const BoxedType &rhs);
 std::strong_ordering operator<=>(const BoxedType &lhs, const Type &rhs);
