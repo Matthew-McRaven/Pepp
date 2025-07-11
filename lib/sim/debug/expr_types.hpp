@@ -4,9 +4,9 @@
 #include <cstdint>
 #include <map>
 #include <memory>
-#include <set>
 #include <stdexcept>
 #include <zpp_bits.h>
+#include "./expr_serialize.hpp"
 
 // Forward declare all below types so I can create the variant of shared ptrs.
 namespace pepp::debug::types {
@@ -17,17 +17,6 @@ struct Array;
 struct Struct;
 using BoxedType = std::variant<std::shared_ptr<Never>, std::shared_ptr<Primitive>, std::shared_ptr<Pointer>,
                                std::shared_ptr<Array>, std::shared_ptr<Struct>>;
-struct StringInternPool {
-  quint32 add(const QString &);
-  const char *at(quint32);
-  quint32 size() const;
-  const char *data() const;
-
-private:
-  std::map<QString, quint32> _added;
-  std::vector<char> _data = {0};
-};
-
 struct SerializationHelper {
   quint16 get_index_for(const BoxedType &type) const {
     auto it = _type_to_index.find(type);
