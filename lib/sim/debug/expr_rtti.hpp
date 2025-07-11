@@ -114,11 +114,17 @@ private:
   std::map<QString, IndirectHandle> _nameToIndirect;
   // [0] must always be Never, because I have trust issues with null objects.
   std::vector<Versioned<OptType>> _indirectTypes;
+  void extract_strings(StringInternPool &f) const;
 
 public:
   static zpp::bits::errc serialize(auto &archive, auto &self) {
     if (archive.kind() == zpp::bits::kind::out) {
       SerializationHelper h;
+      // Pool & intern strings before serializing.
+      self.extract_strings(h._strs);
+      auto s = std::span(h._strs.data(), h._strs.size());
+      if (auto errc = archive(s); errc.code != std::errc()) return errc;
+
       // Extract toplological sorting info into SerializationHelper
       for (const auto &[key, value] : self._directTypes) h._type_to_index[key] = value.second;
       // Extract & sort boxed types by their topological index.
@@ -129,14 +135,23 @@ public:
         return self._directTypes[lhs].second < self._directTypes[rhs].second;
       });
 
-      // Hand-serialize the vector. First the length, then all members.
+      // Hand-serialize the vector of boxed types. First the length, then all members.
       if (auto errc = archive((quint16)b.size()); errc.code != std::errc()) return errc;
       for (const auto &item : b) {
         auto t = unbox(item); // Unbox first because otherwise we can't take a ref.
         if (auto errc = types::serialize(archive, t, &h); errc.code != std::errc()) return errc;
       }
+
+      // Serialize registrations for indirect types. Don't serialize the types because these are probably tied to
+      // simulator state.
+      if (auto errc = archive((quint16)self._nameToIndirect.size()); errc.code != std::errc()) return errc;
+      for (const auto &[name, hnd] : self._nameToIndirect) {
+        if (auto errc = archive(h.string_index_for(name)); errc.code != std::errc()) return errc;
+        if (auto errc = archive(hnd._index); errc.code != std::errc()) return errc;
+      }
       return std::errc();
     } else if (archive.kind() == zpp::bits::kind::in && !std::is_const<decltype(self)>()) {
+      // Extract
       return std::errc{};
     } else if (archive.kind() == zpp::bits::kind::in) throw std::logic_error("Can't read into const");
     throw std::logic_error("Unreachable");
