@@ -4,6 +4,7 @@
 #include <cstdint>
 #include <map>
 #include <memory>
+#include <set>
 #include <stdexcept>
 #include <zpp_bits.h>
 
@@ -16,15 +17,28 @@ struct Array;
 struct Struct;
 using BoxedType = std::variant<std::shared_ptr<Never>, std::shared_ptr<Primitive>, std::shared_ptr<Pointer>,
                                std::shared_ptr<Array>, std::shared_ptr<Struct>>;
+struct StringInternPool {
+  quint32 add(const QString &);
+  const char *at(quint32);
+  quint32 size() const;
+  const char *data() const;
+
+private:
+  std::map<QString, quint32> _added;
+  std::vector<char> _data = {0};
+};
+
 struct SerializationHelper {
   quint16 get_index_for(const BoxedType &type) const {
     auto it = _type_to_index.find(type);
     if (it != _type_to_index.end()) return it->second;
     throw std::out_of_range("Type not registered in SerializationHelper");
   }
+  quint32 string_index_for(const QString &);
   friend class TypeInfo;
 
 private:
+  StringInternPool _strs;
   std::map<BoxedType, quint16> _type_to_index;
 };
 } // namespace pepp::debug::types
@@ -123,8 +137,20 @@ struct Struct {
   inline uint64_t pad_bits(uint64_t bits) const { return bits & ~(static_cast<uint64_t>(pointer_size) * 8 - 1); }
   std::optional<std::pair<BoxedType, uint16_t>> find(const QString &member);
   constexpr static zpp::bits::errc serialize(auto &archive, auto &self, SerializationHelper *helper) {
-    throw std::logic_error("I am not smart enough to figure this out");
-    return std::errc{};
+    if (archive.kind() == zpp::bits::kind::out) {
+      if (auto errc = archive(self.pointer_size); errc.code != std::errc()) return errc;
+      for (const auto &[name, type, offset] : self.members) {
+        if (auto errc = archive(helper->string_index_for(name)); errc.code != std::errc()) return errc;
+        if (auto errc = archive(helper->get_index_for(type)); errc.code != std::errc()) return errc;
+        if (auto errc = archive(offset); errc.code != std::errc()) return errc;
+      }
+      return std::errc{};
+    } else if (archive.kind() == zpp::bits::kind::in && !std::is_const<decltype(self)>()) {
+      if (auto errc = archive(self.pointer_size); errc.code != std::errc()) return errc;
+      // TODO: use helper to convert int/index to a ptr.
+      return std::errc{};
+    } else if (archive.kind() == zpp::bits::kind::in) throw std::logic_error("Can't read into const");
+    throw std::logic_error("Unreachable");
   }
 };
 

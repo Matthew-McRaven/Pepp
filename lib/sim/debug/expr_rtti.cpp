@@ -1,4 +1,5 @@
 #include "./expr_rtti.hpp"
+#include <QDebug>
 #include <stdexcept>
 
 pepp::debug::types::TypeInfo::TypeInfo() {
@@ -170,10 +171,28 @@ struct RegisterDependentsVisitor {
     for (const auto &[name, member_type, offset] : type.members) recurse(unbox(member_type));
   }
 };
+struct ExtractStringsVisitor {
+  pepp::debug::types::StringInternPool &f;
+  void operator()(const auto &type) {}
+  void operator()(const pepp::debug::types::Struct &type) {
+    for (const auto &[name, member_type, offset] : type.members) {
+      f.add(name);
+      auto unboxed = unbox(member_type);
+      this->operator()(unboxed);
+    }
+  }
+};
 } // namespace
 void pepp::debug::types::TypeInfo::register_dependents(Type t) {
   auto recurse = [this](pepp::debug::types::Type t) { add_or_get_direct(t); };
   std::visit(RegisterDependentsVisitor{recurse}, t);
+}
+
+void pepp::debug::types::TypeInfo::extract_strings(StringInternPool &f) const {
+  QMutexLocker locker(&_mut);
+  auto v = ExtractStringsVisitor{f};
+  for (const auto &[item, _] : _directTypes) std::visit(v, unbox(item));
+  for (const auto &item : _nameToIndirect) f.add(item.first);
 }
 
 std::pair<pepp::debug::types::BoxedType, pepp::debug::types::TypeInfo::DirectHandle>
