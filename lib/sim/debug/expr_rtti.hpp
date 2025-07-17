@@ -118,7 +118,8 @@ private:
 
 public:
   static zpp::bits::errc serialize(auto &archive, auto &self) {
-    if (archive.kind() == zpp::bits::kind::out) {
+    using archive_type = std::remove_cvref_t<decltype(archive)>;
+    if constexpr (archive_type::kind() == zpp::bits::kind::out) {
       SerializationHelper h;
       // Pool & intern strings before serializing.
       self.extract_strings(h._strs);
@@ -150,10 +151,10 @@ public:
         if (auto errc = archive(hnd._index); errc.code != std::errc()) return errc;
       }
       return std::errc();
-    } else if (archive.kind() == zpp::bits::kind::in && !std::is_const<decltype(self)>()) {
+    } else if constexpr (archive_type::kind() == zpp::bits::kind::in && !std::is_const<decltype(self)>()) {
       // Extract
       return std::errc{};
-    } else if (archive.kind() == zpp::bits::kind::in) throw std::logic_error("Can't read into const");
+    } else if constexpr (archive_type::kind() == zpp::bits::kind::in) throw std::logic_error("Can't read into const");
     throw std::logic_error("Unreachable");
   }
 };
