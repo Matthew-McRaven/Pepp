@@ -12,6 +12,7 @@ void pepp::debug::EditableWatchExpression::set_term(TermPtr term) {
   this->_evaluator = term->evaluator();
   this->_wip_term.clear();
   this->_recent_value.reset();
+  this->_type_info = nullptr;
 }
 
 void pepp::debug::EditableWatchExpression::set_term(QString term) {
@@ -22,11 +23,19 @@ void pepp::debug::EditableWatchExpression::set_term(QString term) {
 }
 
 void pepp::debug::EditableWatchExpression::evaluate(CachePolicy mode, Environment &env) {
-  if (_term) _recent_value = _evaluator.evaluate(mode, env);
-  else _recent_value.reset();
+  if (_term) {
+    _recent_value = _evaluator.evaluate(mode, env);
+    _type_info = env.type_info();
+  } else {
+    _type_info = nullptr;
+    _recent_value.reset();
+  }
 }
 
-void pepp::debug::EditableWatchExpression::clear_value() { _recent_value.reset(); }
+void pepp::debug::EditableWatchExpression::clear_value() {
+  _recent_value.reset();
+  _type_info = nullptr;
+}
 
 std::optional<pepp::debug::Value> pepp::debug::EditableWatchExpression::value() const { return _recent_value; }
 
@@ -55,13 +64,11 @@ QString pepp::debug::EditableWatchExpression::expression_text() const {
 QString pepp::debug::EditableWatchExpression::type_text() const {
   if (_wip_term.length() > 0 || _term == nullptr) return "";
   else if (_wip_type.length() > 0) return _wip_type;
-  else if (_type.has_value()) {
-    QMetaEnum metaEnum = QMetaEnum::fromType<types::Primitives>();
-    return QString::fromStdString(metaEnum.valueToKey((int)_type.value()));
-  } else if (_recent_value) {
-    // TODO: extract type name from via helper
-    return "";
-  } else return "";
+  else if (_recent_value && _type_info) {
+    auto type = operators::op1_typeof(*_type_info, *_recent_value);
+    return types::to_string(type);
+  }
+  return "";
 }
 
 bool pepp::debug::edit_term(EditableWatchExpression &item, ExpressionCache &cache, Environment &env,
@@ -95,7 +102,6 @@ void pepp::debug::WatchExpressionEditor::add_item(const QString &new_expr, const
   if (compiled && _env) item.evaluate(CachePolicy::UseNonVolatiles, *_env);
   else item.clear_value();
   gather_volatiles();
-  // TODO: set type on item
   _items.emplace_back(std::move(item));
 }
 

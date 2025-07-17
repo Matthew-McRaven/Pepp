@@ -48,7 +48,7 @@ private:
   // If term != nullptr && wip_type.empty() && type: promote terms result to this type.
   // If term != nullptr && wip_type.empty() && !type: use terms result type.
   // If term != nullptr && !wip_type.empty(): do not render value, and place <invalid> in type field.
-  std::optional<types::Primitives> _type = std::nullopt;
+  types::TypeInfo *_type_info = nullptr;             // Type info from most recent invocation of `evaluate()`.
   std::optional<Value> _recent_value = std::nullopt; // Most recent value of the term.
 };
 
