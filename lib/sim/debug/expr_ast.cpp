@@ -14,9 +14,11 @@ std::strong_ordering pepp::debug::Variable::operator<=>(const Term &rhs) const {
 
 pepp::debug::Term::Type pepp::debug::Variable::type() const { return Type::Variable; }
 
-pepp::debug::Variable::Variable(const detail::Identifier &ident) : name(ident.value) {}
+pepp::debug::Variable::Variable(const detail::Identifier &ident) : name(ident.value) {
+  _state.set_depends_on_volatiles(true);
+}
 
-pepp::debug::Variable::Variable(QString name) : name(name) {}
+pepp::debug::Variable::Variable(QString name) : name(name) { _state.set_depends_on_volatiles(true); }
 
 uint16_t pepp::debug::Variable::depth() const { return 0; }
 
@@ -687,9 +689,11 @@ const pepp::debug::types::Type pepp::debug::IndirectCast::cast_to(Environment &e
   return cast_to(*env.type_info());
 }
 
-pepp::debug::DebuggerVariable::DebuggerVariable(const detail::DebugIdentifier &ident) : name(ident.value) {}
+pepp::debug::DebuggerVariable::DebuggerVariable(const detail::DebugIdentifier &ident) : name(ident.value) {
+  _state.set_depends_on_volatiles(true);
+}
 
-pepp::debug::DebuggerVariable::DebuggerVariable(QString name) : name(name) {}
+pepp::debug::DebuggerVariable::DebuggerVariable(QString name) : name(name) { _state.set_depends_on_volatiles(true); }
 
 uint16_t pepp::debug::DebuggerVariable::depth() const { return 0; }
 
