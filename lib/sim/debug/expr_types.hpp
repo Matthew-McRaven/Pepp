@@ -80,14 +80,15 @@ struct Pointer {
   bool operator==(const Pointer &) const;
   inline uint64_t pad_bits(uint64_t bits) const { return bits & ~(static_cast<uint64_t>(pointer_size) * 8 - 1); }
   constexpr static zpp::bits::errc serialize(auto &archive, auto &self, SerializationHelper *helper) {
-    if (archive.kind() == zpp::bits::kind::out) {
+    using archive_type = std::remove_cvref_t<decltype(archive)>;
+    if constexpr (archive_type::kind() == zpp::bits::kind::out) {
       if (auto errc = archive(self.pointer_size); errc.code != std::errc()) return errc;
       return archive(helper->get_index_for(self.to)); // Use helper to convert our pointer to an index!
-    } else if (archive.kind() == zpp::bits::kind::in && !std::is_const<decltype(self)>()) {
+    } else if constexpr (archive_type::kind() == zpp::bits::kind::in && !std::is_const<decltype(self)>()) {
       if (auto errc = archive(self.pointer_size); errc.code != std::errc()) return errc;
       // TODO: use helper to convert int/index to a ptr.
       return std::errc{};
-    } else if (archive.kind() == zpp::bits::kind::in) throw std::logic_error("Can't read into const");
+    } else if constexpr (archive_type::kind() == zpp::bits::kind::in) throw std::logic_error("Can't read into const");
     throw std::logic_error("Unreachable");
   }
 };
@@ -101,16 +102,17 @@ struct Array {
   bool operator==(const Array &) const;
   inline uint64_t pad_bits(uint64_t bits) const { return bits & ~(static_cast<uint64_t>(pointer_size) * 8 - 1); }
   constexpr static zpp::bits::errc serialize(auto &archive, auto &self, SerializationHelper *helper) {
-    if (archive.kind() == zpp::bits::kind::out) {
+    using archive_type = std::remove_cvref_t<decltype(archive)>;
+    if constexpr (archive_type::kind() == zpp::bits::kind::out) {
       if (auto errc = archive(self.pointer_size); errc.code != std::errc()) return errc;
       else if (errc = archive(self.length); errc.code != std::errc()) return errc;
       return archive(helper->get_index_for(self.of)); // Use  helper to convert our pointer to an index!
-    } else if (archive.kind() == zpp::bits::kind::in && !std::is_const<decltype(self)>()) {
+    } else if constexpr (archive_type::kind() == zpp::bits::kind::in && !std::is_const<decltype(self)>()) {
       if (auto errc = archive(self.pointer_size); errc.code != std::errc()) return errc;
       else if (errc = archive(self.length); errc.code != std::errc()) return errc;
       // TODO: use helper to convert int/index to a ptr.
       return std::errc{};
-    } else if (archive.kind() == zpp::bits::kind::in) throw std::logic_error("Can't read into const");
+    } else if constexpr (archive_type::kind() == zpp::bits::kind::in) throw std::logic_error("Can't read into const");
     throw std::logic_error("Unreachable");
   }
 };
@@ -126,7 +128,8 @@ struct Struct {
   inline uint64_t pad_bits(uint64_t bits) const { return bits & ~(static_cast<uint64_t>(pointer_size) * 8 - 1); }
   std::optional<std::pair<BoxedType, uint16_t>> find(const QString &member);
   constexpr static zpp::bits::errc serialize(auto &archive, auto &self, SerializationHelper *helper) {
-    if (archive.kind() == zpp::bits::kind::out) {
+    using archive_type = std::remove_cvref_t<decltype(archive)>;
+    if constexpr (archive_type::kind() == zpp::bits::kind::out) {
       if (auto errc = archive(self.pointer_size); errc.code != std::errc()) return errc;
       for (const auto &[name, type, offset] : self.members) {
         if (auto errc = archive(helper->string_index_for(name)); errc.code != std::errc()) return errc;
@@ -134,11 +137,11 @@ struct Struct {
         if (auto errc = archive(offset); errc.code != std::errc()) return errc;
       }
       return std::errc{};
-    } else if (archive.kind() == zpp::bits::kind::in && !std::is_const<decltype(self)>()) {
+    } else if constexpr (archive_type::kind() == zpp::bits::kind::in && !std::is_const<decltype(self)>()) {
       if (auto errc = archive(self.pointer_size); errc.code != std::errc()) return errc;
       // TODO: use helper to convert int/index to a ptr.
       return std::errc{};
-    } else if (archive.kind() == zpp::bits::kind::in) throw std::logic_error("Can't read into const");
+    } else if constexpr (archive_type::kind() == zpp::bits::kind::in) throw std::logic_error("Can't read into const");
     throw std::logic_error("Unreachable");
   }
 };
