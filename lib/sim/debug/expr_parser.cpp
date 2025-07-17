@@ -276,7 +276,7 @@ std::shared_ptr<pepp::debug::Term> pepp::debug::Parser::parse_cast(detail::Token
 
       for (auto ptr_to = tok.match_literal("*"); std::holds_alternative<Lit>(ptr_to); ptr_to = tok.match_literal("*")) {
         auto old_boxed = _types.type_from(type);
-        auto new_type = types::Pointer{2, old_boxed};
+        types::Type new_type = types::Pointer{2, old_boxed};
         type = _types.register_direct(new_type);
       }
       if (auto close = tok.match_literal(")"); !std::holds_alternative<Lit>(close))

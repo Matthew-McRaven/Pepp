@@ -198,12 +198,12 @@ TEST_CASE("Evaluating watch expressions", "[scope:debug][kind:unit][arch:*]") {
     auto hnd = nti.register_indirect("my_int");
     CHECK(cast_value == VNever{});
     // As u8, should invalidate cache
-    nti.set_indirect_type(hnd.second, nti.register_direct(types::Primitive{types::Primitives::u8}));
+    nti.set_indirect_type(hnd.second, nti.register_direct(types::Primitives::u8));
     cast_value = cast_eval.evaluate(CachePolicy::UseNonVolatiles, env);
     CHECK(operators::op1_typeof(*env.type_info(), cast_value) == types::Primitive{P::u8});
     CHECK(value_bits(cast_value) == (uint8_t)(257 % 256));
     // As i16, should invalidate cache
-    nti.set_indirect_type(hnd.second, nti.register_direct(types::Primitive{types::Primitives::i16}));
+    nti.set_indirect_type(hnd.second, nti.register_direct(types::Primitives::i16));
     cast_value = cast_eval.evaluate(CachePolicy::UseNonVolatiles, env);
     CHECK(operators::op1_typeof(*env.type_info(), cast_value) == types::Primitive{P::i16});
     CHECK(value_bits(cast_value) == 257);
@@ -213,14 +213,14 @@ TEST_CASE("Evaluating watch expressions", "[scope:debug][kind:unit][arch:*]") {
     MemoryArrayEnvironment env;
     auto &nti = *env.type_info();
     Parser p(c, nti);
-    auto i8 = types::Primitive{types::Primitives::i8};
-    auto boxed_i8 = nti.box(i8);
-    auto i8p = types::Pointer{2, boxed_i8};
+    auto boxed_i8 = nti.box(types::Primitives::i8);
+    pepp::debug::types::Type i8p = types::Pointer{2, boxed_i8};
     auto boxed_i8p = nti.box(i8p);
     types::Struct mystruct;
     mystruct.members.emplace_back(types::Struct::Tuple{"m1", boxed_i8, 0});
     mystruct.members.emplace_back(types::Struct::Tuple{"b", boxed_i8, 2});
-    auto hnd_struct = nti.register_direct(mystruct);
+    pepp::debug::types::Type mystruct_type = mystruct;
+    auto hnd_struct = nti.register_direct(mystruct_type);
     QString body = "a.b";
     auto ast = p.compile(body);
     REQUIRE(ast != nullptr);
@@ -251,11 +251,13 @@ TEST_CASE("Evaluating watch expressions", "[scope:debug][kind:unit][arch:*]") {
     auto &nti = *env.type_info();
     Parser p(c, nti);
     auto i8 = types::Primitive{types::Primitives::i8};
-    auto boxed_i8 = nti.box(i8);
-    auto boxed_i8p = nti.box(types::Pointer{2, boxed_i8});
+    auto boxed_i8 = nti.box(types::Primitives::i8);
+    types::Type wrapped_i8p = types::Pointer{2, boxed_i8};
+    auto boxed_i8p = nti.box(wrapped_i8p);
     types::Struct mystruct;
     mystruct.members.emplace_back(types::Struct::Tuple{"b", boxed_i8, 2});
-    auto hnd_struct = nti.register_direct(mystruct);
+    pepp::debug::types::Type wrapped_struct = mystruct;
+    auto hnd_struct = nti.register_direct(wrapped_struct);
     // Update variable type in environment. A has base address of 2, so a.b should touch only address 4.
     env.variables["a"] = pepp::debug::VStruct{hnd_struct, 0x02};
     auto ast = p.compile("*(a.b)");
@@ -336,8 +338,8 @@ TEST_CASE("Evaluating watch expressions", "[scope:debug][kind:unit][arch:*]") {
 TEST_CASE("Evaluations with environment access", "[scope:debug][kind:unit][arch:*]") {
   using namespace pepp::debug;
   MemoryArrayEnvironment env;
-  env.type_info()->box(types::Primitive{types::Primitives::u16});
-  env.type_info()->box(types::Primitive{types::Primitives::i16});
+  env.type_info()->box(types::Primitives::u16);
+  env.type_info()->box(types::Primitives::i16);
   env.mem[0] = 7;
   env.mem[1] = 7;
   SECTION("Memory Access") {

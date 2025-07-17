@@ -264,7 +264,7 @@ private:
 std::optional<UnaryPrefix::Operators> string_to_unary_prefix(QStringView);
 
 struct MemoryRead : public Term {
-  MemoryRead(std::shared_ptr<Term> arg);
+  explicit MemoryRead(std::shared_ptr<Term> arg);
   ~MemoryRead() override = default;
   std::strong_ordering operator<=>(const Term &rhs) const override;
   std::strong_ordering operator<=>(const MemoryRead &rhs) const;
@@ -347,9 +347,9 @@ protected:
 
 private:
   EvaluationCache _state{};
-  QString _name;
-  types::TypeInfo::IndirectHandle _hnd;
-  Versioned<types::OptType> _cast_to;
+  QString _name{};
+  types::TypeInfo::IndirectHandle _hnd{};
+  Versioned<types::OptType> _cast_to{};
 };
 
 struct Parenthesized : public Term {

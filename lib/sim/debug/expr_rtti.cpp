@@ -3,7 +3,8 @@
 #include <stdexcept>
 
 pepp::debug::types::TypeInfo::TypeInfo() {
-  _indirectTypes.emplace_back(box(types::Never{}));
+  Type never = types::Never{};
+  _indirectTypes.emplace_back(box(never));
   auto register_primitive = [this](types::Primitives t) {
     auto hnd = DirectHandle(t);
     auto shared = pepp::debug::types::box(t);
@@ -56,34 +57,42 @@ std::strong_ordering pepp::debug::types::TypeInfo::DirectHandle::operator<=>(con
   return _type <=> rhs._type;
 }
 
-pepp::debug::types::TypeInfo::DirectHandle pepp::debug::types::TypeInfo::register_direct(Type t) {
+pepp::debug::types::TypeInfo::DirectHandle pepp::debug::types::TypeInfo::register_direct(Type &t) {
   QMutexLocker locker(&_mut);
   return add_or_get_direct(t).second;
 }
 
 pepp::debug::types::TypeInfo::DirectHandle pepp::debug::types::TypeInfo::register_direct(Primitives t) {
-  return register_direct(types::Primitive{t});
+  Type tmp = types::Primitive{t};
+  return register_direct(tmp);
 }
 
-std::optional<pepp::debug::types::TypeInfo::DirectHandle> pepp::debug::types::TypeInfo::get_direct(Type t) const {
+std::optional<pepp::debug::types::TypeInfo::DirectHandle> pepp::debug::types::TypeInfo::get_direct(Type &t) const {
   QMutexLocker locker(&_mut);
   if (auto search = _directTypes.find(t); search == _directTypes.end()) return std::nullopt;
   else return search->second.first;
 }
 
 std::optional<pepp::debug::types::TypeInfo::DirectHandle> pepp::debug::types::TypeInfo::get_direct(Primitives t) const {
-  return get_direct(types::Primitive{t});
+  Type tmp = types::Primitive{t};
+  return get_direct(tmp);
 }
 
-pepp::debug::types::BoxedType pepp::debug::types::TypeInfo::box(Type t) {
+pepp::debug::types::BoxedType pepp::debug::types::TypeInfo::box(Type &t) {
   QMutexLocker locker(&_mut);
   return add_or_get_direct(t).first;
 }
 
-std::optional<pepp::debug::types::BoxedType> pepp::debug::types::TypeInfo::box(Type t) const {
+std::optional<pepp::debug::types::BoxedType> pepp::debug::types::TypeInfo::box(Type &t) const {
   QMutexLocker locker(&_mut);
   if (const auto &search = _directTypes.find(t); search == _directTypes.end()) return std::nullopt;
   else return search->first;
+}
+
+pepp::debug::types::BoxedType pepp::debug::types::TypeInfo::box(Primitives prim) {
+  QMutexLocker locker(&_mut);
+  Type t = types::Primitive{prim};
+  return add_or_get_direct(t).first;
 }
 
 bool pepp::debug::types::TypeInfo::IndirectHandle::operator==(const IndirectHandle &rhs) const {
@@ -102,7 +111,8 @@ pepp::debug::types::TypeInfo::register_indirect(const QString &name) {
   if (const auto it = _nameToIndirect.find(name); it != _nameToIndirect.end()) return {false, it->second};
   else {
     IndirectHandle hnd((quint16)_indirectTypes.size());
-    auto [boxed_type, _] = add_or_get_direct(types::Never{});
+    Type t = types::Never{};
+    auto [boxed_type, _] = add_or_get_direct(t);
     _indirectTypes.emplace_back(Versioned<OptType>{boxed_type});
     _nameToIndirect[name] = hnd;
     return {true, hnd};
@@ -133,7 +143,8 @@ void pepp::debug::types::TypeInfo::set_indirect_type(const QString &name, const 
 
 void pepp::debug::types::TypeInfo::clear_indirect_types() {
   QMutexLocker locker(&_mut);
-  auto never = box(types::Never{}); // Reset all indirect types to Never.
+  Type t = types::Never{};
+  auto never = box(t); // Reset all indirect types to Never.
   std::fill(_indirectTypes.begin(), _indirectTypes.end(), Versioned<OptType>{never});
 }
 
@@ -206,7 +217,7 @@ bool pepp::debug::types::TypeInfo::operator==(const TypeInfo &rhs) const {
 }
 
 std::pair<pepp::debug::types::BoxedType, pepp::debug::types::TypeInfo::DirectHandle>
-pepp::debug::types::TypeInfo::add_or_get_direct(Type t) {
+pepp::debug::types::TypeInfo::add_or_get_direct(Type &t) {
   // Per function precondition, it is assumed you already hold _mut.
   if (typename DirectTypeMap::iterator search = _directTypes.find(t); search == _directTypes.end()) {
     // Ensure that for types like `struct F {G* _}` that G is registered before F. Explodes if there is a cycle.

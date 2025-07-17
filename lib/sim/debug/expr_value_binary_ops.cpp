@@ -27,19 +27,22 @@ struct BinaryTypecastVisitor {
     return VPrimitive::from(to.primitive, from.bits);
   }
   Value operator()(const VPrimitive &from, const types::Pointer &to) const {
-    auto hnd = info.get_direct(to);
+    types::Type to_copy = to;
+    auto hnd = info.get_direct(to_copy);
     if (!hnd) return VNever{};
     auto bits = pepp::debug::types::mask_pointer_bits(to.pointer_size, from.bits);
     return VPointer{*hnd, bits};
   }
   Value operator()(const VPrimitive &from, const types::Array &to) const {
-    auto hnd = info.get_direct(to);
+    types::Type to_copy = to;
+    auto hnd = info.get_direct(to_copy);
     if (!hnd) return VNever{};
     auto bits = pepp::debug::types::mask_pointer_bits(to.pointer_size, from.bits);
     return VArray{*hnd, bits};
   }
   Value operator()(const VPrimitive &from, const types::Struct &to) const {
-    auto hnd = info.get_direct(to);
+    types::Type to_copy = to;
+    auto hnd = info.get_direct(to_copy);
     if (!hnd) return VNever{};
     auto bits = pepp::debug::types::mask_pointer_bits(to.pointer_size, from.bits);
     return VStruct{*hnd, bits};
