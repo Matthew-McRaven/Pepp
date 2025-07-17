@@ -16,19 +16,22 @@ struct TypeofVisitor {
 struct DerefTypeofVisitor {
   const types::TypeInfo &info;
   types::BoxedType operator()(const types::Never &) const {
-    auto ret = info.box(types::Never{});
+    types::Type never = types::Never{};
+    auto ret = info.box(never);
     if (!ret.has_value()) throw std::runtime_error("Dereferencing never type");
     return *ret;
   }
   types::BoxedType operator()(const types::Primitive &v) const {
-    auto ret = info.box(types::Primitive{types::Primitives::i16});
+    types::Type i16 = types::Primitive{types::Primitives::i16};
+    auto ret = info.box(i16);
     if (!ret.has_value()) throw std::runtime_error("Dereferencing never type");
     return *ret;
   }
   types::BoxedType operator()(const types::Pointer &v) const { return v.to; }
   types::BoxedType operator()(const types::Array &v) const { return v.of; }
   types::BoxedType operator()(const types::Struct &v) const {
-    auto ret = info.box(types::Never{});
+    types::Type never = types::Never{};
+    auto ret = info.box(never);
     if (!ret.has_value()) throw std::runtime_error("Dereferencing never type");
     return *ret;
   }
@@ -68,7 +71,7 @@ struct UnaryNotVisitor {
   Value operator()(const VNever &arg) const { return VNever{}; }
   Value operator()(const auto &arg) const {
     using enum types::Primitives;
-    auto ret_hnd = info.get_direct(types::Primitive{i8});
+    auto ret_hnd = info.get_direct(i8);
     if (!ret_hnd) return VNever{};
     auto type = unbox(info.type_from(arg.type_handle));
     switch (bitness(type)) {

@@ -72,7 +72,7 @@ struct CachedEvaluator {
   CachedEvaluator(CachedEvaluator &&) = default;
   CachedEvaluator &operator=(CachedEvaluator &&) = default;
 
-  // term.cache().version != _cache.version
+  // True when term.cache().version != _cache.version
   bool dirty();
   EvaluationCache cache() const;
   Value evaluate(CachePolicy mode, Environment &env);

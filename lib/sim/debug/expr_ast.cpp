@@ -394,15 +394,15 @@ pepp::debug::MemberAccess::MemberAccess(BinaryInfix::Operators op, std::shared_p
 
 uint16_t pepp::debug::MemberAccess::depth() const { return lhs->depth() + 1; }
 pepp::debug::Term::Type pepp::debug::MemberAccess::type() const { return Type::MemberAccess; }
-std::strong_ordering pepp::debug::MemberAccess::operator<=>(const Term &rhs) const {
-  if (type() == rhs.type()) return this->operator<=>(static_cast<const MemberAccess &>(rhs));
-  return type() <=> rhs.type();
+std::strong_ordering pepp::debug::MemberAccess::operator<=>(const Term &other) const {
+  if (type() == other.type()) return this->operator<=>(static_cast<const MemberAccess &>(other));
+  return type() <=> other.type();
 }
 
-std::strong_ordering pepp::debug::MemberAccess::operator<=>(const MemberAccess &rhs) const {
-  if (auto cmp = op <=> rhs.op; cmp != 0) return cmp;
-  else if (cmp = *this->lhs <=> *rhs.lhs; cmp != 0) return cmp;
-  else if (auto str_cmp = this->rhs.compare(rhs.rhs); str_cmp < 0) return std::strong_ordering::less;
+std::strong_ordering pepp::debug::MemberAccess::operator<=>(const MemberAccess &other) const {
+  if (auto cmp = op <=> other.op; cmp != 0) return cmp;
+  else if (cmp = *this->lhs <=> *other.lhs; cmp != 0) return cmp;
+  else if (auto str_cmp = this->rhs.compare(other.rhs); str_cmp < 0) return std::strong_ordering::less;
   else if (str_cmp == 0) return std::strong_ordering::equal;
   else return std::strong_ordering::greater;
 }
@@ -427,22 +427,26 @@ struct MemberAccessVisitor {
   }
   pepp::debug::Value operator()(const std::shared_ptr<pepp::debug::types::Primitive> &type) const {
     auto info = env.type_info();
-    auto hnd = info->register_direct(pepp::debug::types::Pointer{2, type});
+    pepp::debug::types::Type var_type = pepp::debug::types::Pointer{2, type};
+    auto hnd = info->register_direct(var_type);
     return pepp::debug::VPointer{hnd, v};
   }
   pepp::debug::Value operator()(const std::shared_ptr<pepp::debug::types::Pointer> &type) {
     auto info = env.type_info();
-    auto hnd = info->register_direct(pepp::debug::types::Pointer{2, type});
+    pepp::debug::types::Type var_type = pepp::debug::types::Pointer{2, type};
+    auto hnd = info->register_direct(var_type);
     return pepp::debug::VPointer{hnd, v};
   }
   pepp::debug::Value operator()(const std::shared_ptr<pepp::debug::types::Array> &type) {
     auto info = env.type_info();
-    auto hnd = info->register_direct(pepp::debug::types::Pointer{2, type});
+    pepp::debug::types::Type var_type = pepp::debug::types::Pointer{2, type};
+    auto hnd = info->register_direct(var_type);
     return pepp::debug::VPointer{hnd, v};
   }
   pepp::debug::Value operator()(const std::shared_ptr<pepp::debug::types::Struct> &type) {
     auto info = env.type_info();
-    auto hnd = info->register_direct(pepp::debug::types::Pointer{2, type});
+    pepp::debug::types::Type var_type = pepp::debug::types::Pointer{2, type};
+    auto hnd = info->register_direct(var_type);
     return pepp::debug::VPointer{hnd, v};
   }
 };
@@ -622,7 +626,7 @@ const pepp::debug::types::Type pepp::debug::DirectCast::cast_to() const { return
 
 pepp::debug::IndirectCast::IndirectCast(QString name, types::TypeInfo::IndirectHandle cast_to,
                                         std::shared_ptr<Term> arg)
-    : _name(name), _hnd(cast_to), _cast_to(), arg(arg) {
+    : _name(name), _hnd(cast_to), arg(arg) {
   _state.set_depends_on_volatiles(true);
 }
 
@@ -633,7 +637,7 @@ std::strong_ordering pepp::debug::IndirectCast::operator<=>(const Term &rhs) con
 
 std::strong_ordering pepp::debug::IndirectCast::operator<=>(const IndirectCast &rhs) const {
   // Do not compare actual type, since that is a value derived from (handle, version).
-  if (auto cmp = _hnd <=> _hnd; cmp != 0) return cmp;
+  if (auto cmp = _hnd <=> rhs._hnd; cmp != 0) return cmp;
   else if (cmp = _cast_to.version <=> rhs._cast_to.version; cmp != 0) return cmp;
   return *arg <=> *rhs.arg;
 }

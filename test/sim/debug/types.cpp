@@ -54,11 +54,12 @@ TEST_CASE("Serialize type info", "[scope:debug][kind:unit][arch:*]") {
   SECTION("Emits non-zero bytes") {
     types::TypeInfo nti;
     auto members = std::vector<std::tuple<QString, types::BoxedType, quint16>>{
-        {"alpha", nti.box(types::Primitive{types::Primitives::u8}), 0},
-        {"beta", nti.box(types::Primitive{types::Primitives::u16}), 1},
-        {"gamma", nti.box(types::Primitive{types::Primitives::i32}), 3},
+        {"alpha", nti.box(types::Primitives::u8), 0},
+        {"beta", nti.box(types::Primitives::u16), 1},
+        {"gamma", nti.box(types::Primitives::i32), 3},
     };
-    nti.register_direct(types::Struct{2, members});
+    pepp::debug::types::Type _struct = types::Struct{2, members};
+    nti.register_direct(_struct);
     auto [data, in, out] = zpp::bits::data_in_out();
     CHECK(nti.serialize(out, nti) == std::errc());
     CHECK(data.size() > 4);

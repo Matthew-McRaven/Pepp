@@ -46,13 +46,14 @@ public:
     // Each metatype can figure out what to do with these bits individually.
     quint16 _type : 13;
   };
-  DirectHandle register_direct(Type);
+  DirectHandle register_direct(Type &);
   DirectHandle register_direct(types::Primitives);
-  std::optional<DirectHandle> get_direct(Type) const;
+  std::optional<DirectHandle> get_direct(Type &) const;
   std::optional<DirectHandle> get_direct(types::Primitives) const;
   // Helper to avoid pattern: type_for_handle(register_direct_type(...))
-  BoxedType box(Type);                      // this variant will register a type if it does not exist yet.
-  std::optional<BoxedType> box(Type) const; // while this variant will return nullopt.
+  BoxedType box(Type &);                      // this variant will register a type if it does not exist yet.
+  std::optional<BoxedType> box(Type &) const; // while this variant will return nullopt.
+  BoxedType box(types::Primitives);           // Primitive types should be registered by default in CTOR.
 
   // A token you can give back to this class to get a type in the future.
   // Secretly an index into the _handles vector.
@@ -68,7 +69,7 @@ public:
     std::strong_ordering operator<=>(const IndirectHandle &rhs) const;
 
   private:
-    IndirectHandle(quint16 index);
+    explicit IndirectHandle(quint16 index);
     friend class TypeInfo;
     quint16 _index = 0;
   };
@@ -99,7 +100,7 @@ private:
     bool operator()(const Type &lhs, const Type &rhs) const { return lhs < rhs; }
   };
   // Unifies direct accessor implemementations. Assumes you already hold !!_mut!!!
-  std::pair<BoxedType, DirectHandle> add_or_get_direct(Type t);
+  std::pair<BoxedType, DirectHandle> add_or_get_direct(Type &t);
   // Helper that ensures dependent types inside t are registered before t.
   // Assume you already hold _mut, and that t does not depend on t.
   void register_dependents(Type t);
