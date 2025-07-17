@@ -76,8 +76,8 @@ template <typename T> struct Versioned : public T {
   Versioned() = default;
   Versioned(const Versioned &other) = default;
   Versioned &operator=(const Versioned &other) = default;
-  Versioned(Versioned &&other) = default;
-  Versioned &operator=(Versioned &&other) = default;
+  Versioned(Versioned &&other) noexcept = default;
+  Versioned &operator=(Versioned &&other) noexcept = default;
   std::weak_ordering operator<=>(const Versioned &other) const {
     if (auto r = version <=> other.version; r != 0) return r;
     return static_cast<const T &>(*this) <=> static_cast<const T &>(other);
@@ -90,8 +90,8 @@ template <typename T> struct Cached : public T {
   Cached() = default;
   Cached(const Cached &other) = default;
   Cached &operator=(const Cached &other) = default;
-  Cached(Cached &&other) = default;
-  Cached &operator=(Cached &&other) = default;
+  Cached(Cached &&other) noexcept = default;
+  Cached &operator=(Cached &&other) noexcept = default;
 
   bool dirty() const { return _dirty; }
   // Increment version on dirty and not clean, which means we should have fewer places where we need to touch version.
