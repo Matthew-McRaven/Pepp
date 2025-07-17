@@ -65,7 +65,7 @@ void update_volatile_values(std::vector<EditableWatchExpression::VolatileCache> 
   for (auto &ptr : volatiles) {
     auto old_v = ptr.evaluator.cache();
     auto new_v = ptr.evaluator.evaluate(CachePolicy::UseNonVolatiles, env);
-    if (*old_v.value == new_v) pepp::debug::mark_parents_dirty(*ptr.evaluator.term());
+    if (*old_v.value != new_v) pepp::debug::mark_parents_dirty(*ptr.evaluator.term());
   }
 
   // Later term could be a a subexpression of current one.
