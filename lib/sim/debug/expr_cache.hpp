@@ -78,6 +78,11 @@ template <typename T> struct Versioned : public T {
   Versioned &operator=(const Versioned &other) = default;
   Versioned(Versioned &&other) = default;
   Versioned &operator=(Versioned &&other) = default;
+  std::weak_ordering operator<=>(const Versioned &other) const {
+    if (auto r = version <=> other.version; r != 0) return r;
+    return static_cast<const T &>(*this) <=> static_cast<const T &>(other);
+  }
+  bool operator==(const Versioned &other) const { return (*this <=> other) == std::weak_ordering::equivalent; }
 };
 
 template <typename T> struct Cached : public T {

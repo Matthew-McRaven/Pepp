@@ -62,5 +62,8 @@ TEST_CASE("Serialize type info", "[scope:debug][kind:unit][arch:*]") {
     auto [data, in, out] = zpp::bits::data_in_out();
     CHECK(nti.serialize(out, nti) == std::errc());
     CHECK(data.size() > 4);
+    types::TypeInfo reread;
+    CHECK(reread.serialize(in, reread) == std::errc());
+    CHECK(nti == reread);
   }
 }

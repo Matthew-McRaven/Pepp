@@ -9,6 +9,8 @@ struct StringInternPool {
   const char *at(quint32);
   quint32 size() const;
   const char *data() const;
+  // Helper so you can load directly from zpp::bits archive into this pool.
+  std::vector<char> &container();
 
 private:
   std::map<QString, quint32> _added;

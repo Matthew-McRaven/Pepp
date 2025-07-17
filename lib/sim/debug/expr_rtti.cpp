@@ -195,6 +195,16 @@ void pepp::debug::types::TypeInfo::extract_strings(StringInternPool &f) const {
   for (const auto &item : _nameToIndirect) f.add(item.first);
 }
 
+std::weak_ordering pepp::debug::types::TypeInfo::operator<=>(const TypeInfo &rhs) const {
+  if (auto r = _directTypes <=> rhs._directTypes; r != 0) return r;
+  return _nameToIndirect <=> rhs._nameToIndirect;
+}
+
+bool pepp::debug::types::TypeInfo::operator==(const TypeInfo &rhs) const {
+  auto cmp = (*this <=> rhs);
+  return cmp == std::weak_ordering::equivalent;
+}
+
 std::pair<pepp::debug::types::BoxedType, pepp::debug::types::TypeInfo::DirectHandle>
 pepp::debug::types::TypeInfo::add_or_get_direct(Type t) {
   // Per function precondition, it is assumed you already hold _mut.
@@ -211,3 +221,7 @@ pepp::debug::types::TypeInfo::add_or_get_direct(Type t) {
     return {shared, hnd};
   } else return {search->first, search->second.first};
 }
+
+std::strong_ordering pepp::debug::types::OptType::operator<=>(const OptType &rhs) const { return type <=> rhs.type; }
+
+bool pepp::debug::types::OptType::operator==(const OptType &rhs) const { return type == rhs.type; }
