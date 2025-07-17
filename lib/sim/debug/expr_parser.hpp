@@ -2,36 +2,12 @@
 #include <QtCore>
 #include <set>
 #include "expr_ast.hpp"
+#include "expr_cache.hpp"
+#include "expr_types.hpp"
 
 namespace pepp::debug {
 
-struct ExpressionCache {
-  struct Compare {
-    using is_transparent = void;
-    bool operator()(const std::shared_ptr<Term> &lhs, const std::shared_ptr<Term> &rhs) const { return *lhs < *rhs; }
-    bool operator()(const Term &lhs, const std::shared_ptr<Term> &rhs) const { return lhs < *rhs; }
-    bool operator()(const std::shared_ptr<Term> &lhs, const Term &rhs) const { return *lhs < rhs; }
-    bool operator()(const Term &lhs, const Term &rhs) const { return lhs < rhs; }
-  };
-  using Set = std::set<std::shared_ptr<Term>, Compare>;
-  template <typename T> std::shared_ptr<T> add_or_return(T &&item) {
-    QMutexLocker locker(&_mut);
-    Set::iterator search = _set.find(item);
-    if (search == _set.end()) {
-      auto ret = std::make_shared<T>(std::forward<T>(item));
-      // Set up dependent tracking on creation.
-      ret->link();
-      _set.insert(ret);
-      return ret;
-    } else return std::dynamic_pointer_cast<T>(*search);
-  }
-  void collect_garbage();
-  std::size_t count() const;
-
-private:
-  mutable QMutex _mut;
-  Set _set{};
-};
+using ExpressionCache = Cache<Term>;
 
 namespace detail {
 struct TokenBuffer;
@@ -46,8 +22,8 @@ struct Parser {
     PAREN,
     CONSTANT,
     IDENT,
-    TYPECAST,
     P0,
+    CAST,
     P1,
     P2,
     P3,
@@ -58,12 +34,15 @@ struct Parser {
     INVALID
   };
 
-  explicit Parser(ExpressionCache &cache);
+  explicit Parser(ExpressionCache &cache, types::TypeInfo &types);
   std::shared_ptr<Term> compile(QStringView expr, void *builtins = nullptr);
   std::shared_ptr<Term> compile(QString expr, void *builtins = nullptr);
+  std::shared_ptr<types::Type> compile_type(QStringView expr, void *builtins = nullptr);
+  std::shared_ptr<types::Type> compile_type(QString expr, void *builtins = nullptr);
 
 private:
   ExpressionCache &_cache;
+  types::TypeInfo &_types;
   template <typename T> std::shared_ptr<T> accept(T &&v) { return _cache.add_or_return<T>(std::forward<T>(v)); }
   std::shared_ptr<DebuggerVariable> parse_debug_identifier(detail::TokenBuffer &tok, detail::MemoCache &cache);
   std::shared_ptr<Term> parse_value(detail::TokenBuffer &tok, detail::MemoCache &cache);
@@ -72,6 +51,7 @@ private:
   std::shared_ptr<Variable> parse_identifier(detail::TokenBuffer &tok, detail::MemoCache &cache);
   // Workaround to make parse_identifier into a ParseFn.
   std::shared_ptr<Term> parse_identifier_as_term(detail::TokenBuffer &tok, detail::MemoCache &cache);
+  std::shared_ptr<Term> parse_cast(detail::TokenBuffer &tok, detail::MemoCache &cache);
   std::shared_ptr<Term> parse_p7(detail::TokenBuffer &tok, detail::MemoCache &cache); // Bitwise ops
   std::shared_ptr<Term> parse_p6(detail::TokenBuffer &tok, detail::MemoCache &cache); // Equality
   std::shared_ptr<Term> parse_p5(detail::TokenBuffer &tok, detail::MemoCache &cache); // Inequality

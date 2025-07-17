@@ -95,13 +95,14 @@ void pas::obj::common::writeLineMapping(ELFIO::elfio &elf, ast::Node &root) {
     lineNumbers->set_type(ELFIO::SHT_PROGBITS);
   }
   auto [data, in, out] = zpp::bits::data_in_out();
-  (void)out(BinaryLineMapping{});
-  lineNumbers->set_entry_size(out.position() + 1);
-  out.reset();
 
+  BinaryLineMapping prev;
+  bool first = true;
   for (const auto &[addr, pair] : mapping) {
     auto [src, list] = pair;
-    (void)out(BinaryLineMapping{.address = (uint32_t)addr, .srcLine = (uint16_t)src, .listLine = (uint16_t)list});
+    auto current = BinaryLineMapping{.address = (uint32_t)addr, .srcLine = (uint16_t)src, .listLine = (uint16_t)list};
+    (void)current.serialize(out, current, &prev, first);
+    prev = current, first = false;
   }
   lineNumbers->append_data((const char *)data.data(), out.position());
 }
@@ -112,10 +113,11 @@ std::vector<pas::obj::common::BinaryLineMapping> pas::obj::common::getLineMappin
   auto data = std::span<const char>(lineNumbers->get_data(), (std::size_t)lineNumbers->get_size());
   zpp::bits::in in(data);
   std::vector<BinaryLineMapping> ret;
+  BinaryLineMapping prev;
   while (in.position() < data.size()) {
-    BinaryLineMapping line;
-    (void)in(line);
-    ret.push_back(line);
+    BinaryLineMapping current;
+    (void)current.serialize(in, current, &prev);
+    ret.push_back(prev = current);
   }
   return ret;
 }

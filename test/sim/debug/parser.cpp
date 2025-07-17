@@ -23,7 +23,8 @@ TEST_CASE("Parsing watch expressions", "[scope:debug][kind:unit][arch:*]") {
   using namespace pepp::debug;
   SECTION("Hex constants") {
     ExpressionCache c;
-    Parser p(c);
+    types::TypeInfo types;
+    Parser p(c, types);
     QString body = "0x15";
     auto ast = p.compile(body);
     REQUIRE(ast != nullptr);
@@ -35,33 +36,36 @@ TEST_CASE("Parsing watch expressions", "[scope:debug][kind:unit][arch:*]") {
   }
   SECTION("Unsigned Decimal constants") {
     ExpressionCache c;
-    Parser p(c);
+    types::TypeInfo types;
+    Parser p(c, types);
     QString body = "0115";
     auto ast = p.compile(body);
     REQUIRE(ast != nullptr);
     auto as_const = std::dynamic_pointer_cast<Constant>(ast);
     REQUIRE(as_const != nullptr);
     CHECK(as_const->format_hint == detail::UnsignedConstant::Format::Dec);
-    CHECK(as_const->value.type == ExpressionType::i16);
+    CHECK(as_const->value.primitive == types::Primitives::i16);
     CHECK(as_const->value.bits == 115);
     CHECK(as_const->to_string().toStdString() == "115");
   }
   SECTION("Decimal constant with trailing type") {
     ExpressionCache c;
-    Parser p(c);
+    types::TypeInfo types;
+    Parser p(c, types);
     QString body = "0115_u8";
     auto ast = p.compile(body);
     REQUIRE(ast != nullptr);
     auto as_const = std::dynamic_pointer_cast<Constant>(ast);
     REQUIRE(as_const != nullptr);
     CHECK(as_const->format_hint == detail::UnsignedConstant::Format::Dec);
-    CHECK(as_const->value.type == ExpressionType::u8);
+    CHECK(as_const->value.primitive == types::Primitives::u8);
     CHECK(as_const->value.bits == 115);
     CHECK(as_const->to_string() == "115_u8");
   }
   SECTION("Identifier") {
     ExpressionCache c;
-    Parser p(c);
+    types::TypeInfo types;
+    Parser p(c, types);
     QString body = "limit";
     auto ast = p.compile(body);
     REQUIRE(ast != nullptr);
@@ -71,7 +75,8 @@ TEST_CASE("Parsing watch expressions", "[scope:debug][kind:unit][arch:*]") {
   }
   SECTION("(Unsigned decimal constants)") {
     ExpressionCache c;
-    Parser p(c);
+    types::TypeInfo types;
+    Parser p(c, types);
     QString body = "(0115)";
     auto ast = p.compile(body);
     REQUIRE(ast != nullptr);
@@ -85,7 +90,8 @@ TEST_CASE("Parsing watch expressions", "[scope:debug][kind:unit][arch:*]") {
   }
   SECTION("Debugger Variable") {
     ExpressionCache c;
-    Parser p(c);
+    types::TypeInfo types;
+    Parser p(c, types);
     QString body = "$X";
     auto ast = p.compile(body);
     REQUIRE(ast != nullptr);
@@ -93,26 +99,27 @@ TEST_CASE("Parsing watch expressions", "[scope:debug][kind:unit][arch:*]") {
     REQUIRE(as_dbg != nullptr);
     CHECK(as_dbg->name == "X");
   }
-
   // P0
   SECTION("Member Access with .") {
     ExpressionCache c;
-    Parser p(c);
+    types::TypeInfo types;
+    Parser p(c, types);
     QString body = "s.a";
     auto ast = p.compile(body);
     REQUIRE(ast != nullptr);
-    auto as_infix = std::dynamic_pointer_cast<BinaryInfix>(ast);
+    auto as_infix = std::dynamic_pointer_cast<MemberAccess>(ast);
     REQUIRE(as_infix != nullptr);
     CHECK(as_infix->op == BinaryInfix::Operators::DOT);
     CHECK(as_infix->to_string().toStdString() == "s.a");
   }
   SECTION("Member Access with ->") {
     ExpressionCache c;
-    Parser p(c);
+    types::TypeInfo types;
+    Parser p(c, types);
     QString body = "s->a";
     auto ast = p.compile(body);
     REQUIRE(ast != nullptr);
-    auto as_infix = std::dynamic_pointer_cast<BinaryInfix>(ast);
+    auto as_infix = std::dynamic_pointer_cast<MemberAccess>(ast);
     REQUIRE(as_infix != nullptr);
     CHECK(as_infix->op == BinaryInfix::Operators::STAR_DOT);
     CHECK(as_infix->to_string().toStdString() == "s->a");
@@ -120,7 +127,8 @@ TEST_CASE("Parsing watch expressions", "[scope:debug][kind:unit][arch:*]") {
   // P1
   SECTION("Unary Prefix: +") {
     ExpressionCache c;
-    Parser p(c);
+    types::TypeInfo types;
+    Parser p(c, types);
     QString body = "+a";
     auto ast = p.compile(body);
     REQUIRE(ast != nullptr);
@@ -131,7 +139,8 @@ TEST_CASE("Parsing watch expressions", "[scope:debug][kind:unit][arch:*]") {
   }
   SECTION("Unary Prefix: -") {
     ExpressionCache c;
-    Parser p(c);
+    types::TypeInfo types;
+    Parser p(c, types);
     QString body = "-a";
     auto ast = p.compile(body);
     REQUIRE(ast != nullptr);
@@ -141,19 +150,21 @@ TEST_CASE("Parsing watch expressions", "[scope:debug][kind:unit][arch:*]") {
     CHECK(as_prefix->to_string().toStdString() == "-a");
   }
   SECTION("Unary Prefix: *") {
+    // Lol it's really a MemoryRead, but it looks like a unary prefix op!
     ExpressionCache c;
-    Parser p(c);
+    types::TypeInfo types;
+    Parser p(c, types);
     QString body = "*a";
     auto ast = p.compile(body);
     REQUIRE(ast != nullptr);
-    auto as_prefix = std::dynamic_pointer_cast<UnaryPrefix>(ast);
-    REQUIRE(as_prefix != nullptr);
-    CHECK(as_prefix->op == UnaryPrefix::Operators::DEREFERENCE);
-    CHECK(as_prefix->to_string().toStdString() == "*a");
+    auto as_mem = std::dynamic_pointer_cast<MemoryRead>(ast);
+    REQUIRE(as_mem != nullptr);
+    CHECK(as_mem->to_string().toStdString() == "*a");
   }
   SECTION("Unary Prefix: &") {
     ExpressionCache c;
-    Parser p(c);
+    types::TypeInfo types;
+    Parser p(c, types);
     QString body = "&a";
     auto ast = p.compile(body);
     REQUIRE(ast != nullptr);
@@ -164,7 +175,8 @@ TEST_CASE("Parsing watch expressions", "[scope:debug][kind:unit][arch:*]") {
   }
   SECTION("Unary Prefix: !") {
     ExpressionCache c;
-    Parser p(c);
+    types::TypeInfo types;
+    Parser p(c, types);
     QString body = "!a";
     auto ast = p.compile(body);
     REQUIRE(ast != nullptr);
@@ -175,7 +187,8 @@ TEST_CASE("Parsing watch expressions", "[scope:debug][kind:unit][arch:*]") {
   }
   SECTION("Unary Prefix: ~") {
     ExpressionCache c;
-    Parser p(c);
+    types::TypeInfo types;
+    Parser p(c, types);
     QString body = "~a";
     auto ast = p.compile(body);
     REQUIRE(ast != nullptr);
@@ -186,19 +199,68 @@ TEST_CASE("Parsing watch expressions", "[scope:debug][kind:unit][arch:*]") {
   }
   SECTION("Type Cast: u16") {
     ExpressionCache c;
-    Parser p(c);
+    types::TypeInfo types;
+    Parser p(c, types);
     QString body = "(  u16 ) a";
     auto ast = p.compile(body);
     REQUIRE(ast != nullptr);
-    auto as_cast = std::dynamic_pointer_cast<ExplicitCast>(ast);
+    auto as_cast = std::dynamic_pointer_cast<DirectCast>(ast);
     REQUIRE(as_cast != nullptr);
-    CHECK(as_cast->cast_to == ExpressionType::u16);
+    CHECK(as_cast->cast_to() == types::Primitive(types::Primitives::u16));
     CHECK(as_cast->to_string().toStdString() == "(u16)a");
+  }
+  SECTION("Type Cast: *u16") {
+    ExpressionCache c;
+    types::TypeInfo types;
+    Parser p(c, types);
+    QString body = "(  u16 * ) a";
+    auto ast = p.compile(body);
+    REQUIRE(ast != nullptr);
+    auto as_cast = std::dynamic_pointer_cast<DirectCast>(ast);
+    REQUIRE(as_cast != nullptr);
+    auto boxed_based = types.box(types::Primitives::u16);
+    auto derived = types::Pointer{2, boxed_based};
+    CHECK(as_cast->cast_to() == derived);
+    CHECK(as_cast->to_string().toStdString() == "(u16*)a");
+  }
+  SECTION("Type Cast: **u16") {
+    ExpressionCache c;
+    types::TypeInfo types;
+    Parser p(c, types);
+    QString body = "(  u16 * *) a";
+    auto ast = p.compile(body);
+    REQUIRE(ast != nullptr);
+    auto as_cast = std::dynamic_pointer_cast<DirectCast>(ast);
+    REQUIRE(as_cast != nullptr);
+    auto boxed_based = types.box(types::Primitives::u16);
+    pepp::debug::types::Type derived = types::Pointer{2, boxed_based};
+    auto boxed_derived = types.box(derived);
+    auto derived2 = types::Pointer{2, boxed_derived};
+    CHECK(as_cast->cast_to() == derived2);
+    CHECK(as_cast->to_string().toStdString() == "(u16**)a");
+  }
+
+  SECTION("Type Cast: deferred MyStruct*") {
+    ExpressionCache c;
+    types::TypeInfo types;
+    Parser p(c, types);
+    QString body = "(  mystruct *) a";
+    auto ast = p.compile(body);
+    REQUIRE(ast != nullptr);
+    auto as_cast = std::dynamic_pointer_cast<IndirectCast>(ast);
+    REQUIRE(as_cast != nullptr);
+    CHECK(as_cast->cast_to(types) == types::Never{});
+    CHECK(as_cast->to_string().toStdString() == "(mystruct*)a");
+    auto i16 = types::Primitive{types::Primitives::i16};
+    types.set_indirect_type("mystruct", types.register_direct(types::Primitives::i16));
+    CHECK(as_cast->cast_to(types) == i16);
+    CHECK(as_cast->to_string().toStdString() == "(mystruct*)a");
   }
   // P2
   SECTION("Multiply") {
     ExpressionCache c;
-    Parser p(c);
+    types::TypeInfo types;
+    Parser p(c, types);
     QString body = "s * 10";
     auto ast = p.compile(body);
     REQUIRE(ast != nullptr);
@@ -210,7 +272,8 @@ TEST_CASE("Parsing watch expressions", "[scope:debug][kind:unit][arch:*]") {
   // P3
   SECTION("Add") {
     ExpressionCache c;
-    Parser p(c);
+    types::TypeInfo types;
+    Parser p(c, types);
     // Implicitly checks that numbers different numbers do not compare equal in expression cache
     QString body = "8 + 10";
     auto ast = p.compile(body);
@@ -222,7 +285,8 @@ TEST_CASE("Parsing watch expressions", "[scope:debug][kind:unit][arch:*]") {
   }
   SECTION("Mul-Add") {
     ExpressionCache c;
-    Parser p(c);
+    types::TypeInfo types;
+    Parser p(c, types);
     QString body = "5 * s + 6";
     auto ast = p.compile(body);
     REQUIRE(ast != nullptr);
@@ -238,7 +302,8 @@ TEST_CASE("Parsing watch expressions", "[scope:debug][kind:unit][arch:*]") {
   // P4
   SECTION("Shift Left") {
     ExpressionCache c;
-    Parser p(c);
+    types::TypeInfo types;
+    Parser p(c, types);
     // Implicitly checks that numbers different numbers do not compare equal in expression cache
     QString body = "8 << 10";
     auto ast = p.compile(body);
@@ -250,7 +315,8 @@ TEST_CASE("Parsing watch expressions", "[scope:debug][kind:unit][arch:*]") {
   // P5
   SECTION("Inequality") {
     ExpressionCache c;
-    Parser p(c);
+    types::TypeInfo types;
+    Parser p(c, types);
     // Implicitly checks that numbers different numbers do not compare equal in expression cache
     QString body = "8 >= 10";
     auto ast = p.compile(body);
@@ -263,7 +329,8 @@ TEST_CASE("Parsing watch expressions", "[scope:debug][kind:unit][arch:*]") {
   // P6
   SECTION("Equality") {
     ExpressionCache c;
-    Parser p(c);
+    types::TypeInfo types;
+    Parser p(c, types);
     // Implicitly checks that numbers different numbers do not compare equal in expression cache
     QString body = "8 == 10";
     auto ast = p.compile(body);
@@ -276,7 +343,8 @@ TEST_CASE("Parsing watch expressions", "[scope:debug][kind:unit][arch:*]") {
   // P7
   SECTION("Bitwise &") {
     ExpressionCache c;
-    Parser p(c);
+    types::TypeInfo types;
+    Parser p(c, types);
     // Implicitly checks that numbers different numbers do not compare equal in expression cache
     QString body = "8 & 10";
     auto ast = p.compile(body);
@@ -289,7 +357,8 @@ TEST_CASE("Parsing watch expressions", "[scope:debug][kind:unit][arch:*]") {
   // Tricky nested expressions
   SECTION("Mul-deref") {
     ExpressionCache c;
-    Parser p(c);
+    types::TypeInfo types;
+    Parser p(c, types);
     QString body = "5 * *s";
     auto ast = p.compile(body);
     REQUIRE(ast != nullptr);
@@ -300,7 +369,8 @@ TEST_CASE("Parsing watch expressions", "[scope:debug][kind:unit][arch:*]") {
   }
   SECTION("Expressions at same level") {
     ExpressionCache c;
-    Parser p(c);
+    types::TypeInfo types;
+    Parser p(c, types);
     QString body = "5 * s * 2";
     auto ast = p.compile(body);
     REQUIRE(ast != nullptr);
@@ -311,7 +381,8 @@ TEST_CASE("Parsing watch expressions", "[scope:debug][kind:unit][arch:*]") {
   }
   SECTION("Expressions at same level 2") {
     ExpressionCache c;
-    Parser p(c);
+    types::TypeInfo types;
+    Parser p(c, types);
     // Does not work if RHS recursion is at the wrong precendence level.
     QString body = "5 * 3 + 3 * 2";
     auto ast = p.compile(body);
@@ -323,7 +394,8 @@ TEST_CASE("Parsing watch expressions", "[scope:debug][kind:unit][arch:*]") {
   }
   SECTION("Now with ()") {
     ExpressionCache c;
-    Parser p(c);
+    types::TypeInfo types;
+    Parser p(c, types);
     // Does not work if RHS recursion is at the wrong precendence level.
     QString body = "5 * (3 + 3) * 2";
     auto ast = p.compile(body);
@@ -339,7 +411,8 @@ TEST_CASE("Garbage collection for expressions", "[scope:debug][kind:unit][arch:*
   using namespace pepp::debug;
   SECTION("Don't recycle living objects") {
     ExpressionCache c;
-    Parser p(c);
+    types::TypeInfo types;
+    Parser p(c, types);
     QString body = "0x15";
     auto ast = p.compile(body);
     REQUIRE(ast != nullptr);
@@ -354,7 +427,8 @@ TEST_CASE("Garbage collection for expressions", "[scope:debug][kind:unit][arch:*
   }
   SECTION("Don't recycle nested terms") {
     ExpressionCache c;
-    Parser p(c);
+    types::TypeInfo types;
+    Parser p(c, types);
     QString body = "0x15 + a";
     auto ast = p.compile(body);
     REQUIRE(ast != nullptr);
@@ -367,7 +441,8 @@ TEST_CASE("Garbage collection for expressions", "[scope:debug][kind:unit][arch:*
   }
   SECTION("Don't recycle shared terms") {
     ExpressionCache c;
-    Parser p(c);
+    types::TypeInfo types;
+    Parser p(c, types);
     auto ast1 = p.compile("0x15 + a + 0x15");
     auto ast2 = p.compile("*0x15");
     REQUIRE(ast1 != nullptr);

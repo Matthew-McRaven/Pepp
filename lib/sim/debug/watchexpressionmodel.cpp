@@ -1,6 +1,7 @@
 #include "watchexpressionmodel.hpp"
 
-pepp::debug::EditableWatchExpression::EditableWatchExpression(TermPtr term) : _term(term) {}
+pepp::debug::EditableWatchExpression::EditableWatchExpression(TermPtr term)
+    : _term(term), _evaluator(term->evaluator()) {}
 
 pepp::debug::EditableWatchExpression::EditableWatchExpression(QString term) : _wip_term(term) {}
 
@@ -8,24 +9,35 @@ pepp::debug::Term *pepp::debug::EditableWatchExpression::term() { return _term ?
 
 void pepp::debug::EditableWatchExpression::set_term(TermPtr term) {
   this->_term = term;
+  this->_evaluator = term->evaluator();
   this->_wip_term.clear();
   this->_recent_value.reset();
+  this->_type_info = nullptr;
 }
 
 void pepp::debug::EditableWatchExpression::set_term(QString term) {
   this->_term.reset();
+  this->_evaluator = {};
   this->_wip_term = term;
   this->_recent_value.reset();
 }
 
-void pepp::debug::EditableWatchExpression::evaluate(CachePolicy policy, Environment &env) {
-  if (_term) _recent_value = _term->evaluate(CachePolicy::UseNonVolatiles, env);
-  else _recent_value.reset();
+void pepp::debug::EditableWatchExpression::evaluate(CachePolicy mode, Environment &env) {
+  if (_term) {
+    _recent_value = _evaluator.evaluate(mode, env);
+    _type_info = env.type_info();
+  } else {
+    _type_info = nullptr;
+    _recent_value.reset();
+  }
 }
 
-void pepp::debug::EditableWatchExpression::clear_value() { _recent_value.reset(); }
+void pepp::debug::EditableWatchExpression::clear_value() {
+  _recent_value.reset();
+  _type_info = nullptr;
+}
 
-std::optional<pepp::debug::TypedBits> pepp::debug::EditableWatchExpression::value() const { return _recent_value; }
+std::optional<pepp::debug::Value> pepp::debug::EditableWatchExpression::value() const { return _recent_value; }
 
 bool pepp::debug::EditableWatchExpression::needs_update() const { return _needs_update; }
 
@@ -52,18 +64,16 @@ QString pepp::debug::EditableWatchExpression::expression_text() const {
 QString pepp::debug::EditableWatchExpression::type_text() const {
   if (_wip_term.length() > 0 || _term == nullptr) return "";
   else if (_wip_type.length() > 0) return _wip_type;
-  else if (_type.has_value()) {
-    QMetaEnum metaEnum = QMetaEnum::fromType<ExpressionType>();
-    return QString::fromStdString(metaEnum.valueToKey((int)_type.value()));
-  } else if (_recent_value) {
-    QMetaEnum metaEnum = QMetaEnum::fromType<ExpressionType>();
-    return QString::fromStdString(metaEnum.valueToKey((int)_recent_value->type));
-  } else return "";
+  else if (_recent_value && _type_info) {
+    auto type = operators::op1_typeof(*_type_info, *_recent_value);
+    return types::to_string(type);
+  }
+  return "";
 }
 
 bool pepp::debug::edit_term(EditableWatchExpression &item, ExpressionCache &cache, Environment &env,
                             const QString &new_expr) {
-  pepp::debug::Parser p(cache);
+  pepp::debug::Parser p(cache, *env.type_info());
   auto compiled = p.compile(new_expr);
   if (compiled) {
     item.set_term(compiled);
@@ -79,20 +89,18 @@ bool pepp::debug::edit_term(EditableWatchExpression &item, ExpressionCache &cach
 
 pepp::debug::WatchExpressionEditor::WatchExpressionEditor(ExpressionCache *cache, Environment *env, QObject *parent)
     : QObject(parent), _env(env), _cache(cache), _items(0) {
-  pepp::debug::Parser p(*_cache);
-  add_item("1 - 3");
-  add_item("3_u16 * (x + 2)");
-  add_item("y + 1 ==  m * x + b");
+  pepp::debug::Parser p(*_cache, *env->type_info());
+  add_item("$pc");
+  add_item("*((u8*)($pc))");
 }
 
 void pepp::debug::WatchExpressionEditor::add_item(const QString &new_expr, const QString new_type) {
-  pepp::debug::Parser p(*_cache);
+  pepp::debug::Parser p(*_cache, *_env->type_info());
   auto compiled = p.compile(new_expr);
   auto item = compiled ? EditableWatchExpression(compiled) : EditableWatchExpression(new_expr);
   if (compiled && _env) item.evaluate(CachePolicy::UseNonVolatiles, *_env);
   else item.clear_value();
   gather_volatiles();
-  // TODO: set type on item
   _items.emplace_back(std::move(item));
 }
 
@@ -136,17 +144,6 @@ std::span<const pepp::debug::EditableWatchExpression> pepp::debug::WatchExpressi
   return std::span<const EditableWatchExpression>(_items.data(), _items.size());
 }
 
-QVariant pepp::debug::variant_from_bits(const TypedBits &bits) {
-  switch (bits.type) {
-  case pepp::debug::ExpressionType::i8: return QVariant::fromValue((int8_t)bits.bits);
-  case pepp::debug::ExpressionType::u8: return QVariant::fromValue((uint8_t)bits.bits);
-  case pepp::debug::ExpressionType::i16: return QVariant::fromValue((int16_t)bits.bits);
-  case pepp::debug::ExpressionType::u16: return QVariant::fromValue((uint16_t)bits.bits);
-  case pepp::debug::ExpressionType::i32: return QVariant::fromValue((int32_t)bits.bits);
-  case pepp::debug::ExpressionType::u32: return QVariant::fromValue((uint32_t)bits.bits);
-  }
-}
-
 pepp::debug::WatchExpressionTableModel::WatchExpressionTableModel(QObject *parent) : QAbstractTableModel(parent) {}
 
 namespace {
@@ -184,7 +181,10 @@ QVariant pepp::debug::WatchExpressionTableModel::data(const QModelIndex &index, 
       return item.expression_text();
     } else if (col == 1) {
       if (item.is_wip()) return "<invalid>";
-      return variant_from_bits(item.value().value_or(pepp::debug::TypedBits{}));
+      // This has no local copy of type info; the editor does but it just might be null.
+      types::TypeInfo *info = nullptr;
+      if (auto env = _expressionModel->env(); env) info = env->type_info();
+      return from_bits(item.value().value_or(pepp::debug::VNever{}), info);
     } else {
       return item.type_text();
     }

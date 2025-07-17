@@ -32,8 +32,8 @@ TEST_CASE("Evaluating const/volatile qualifiers on AST nodes", "[scope:debug][ki
     CHECK(UnaryPrefix(UnaryPrefix::Operators::DEREFERENCE, nullptr).cv_qualifiers() & CVQualifiers::Volatile);
     CHECK(UnaryPrefix(UnaryPrefix::Operators::MINUS, nullptr).cv_qualifiers() == 0);
     CHECK(UnaryPrefix(UnaryPrefix::Operators::NEGATE, nullptr).cv_qualifiers() == 0);
-    CHECK(BinaryInfix(BinaryInfix::Operators::STAR_DOT, nullptr, nullptr).cv_qualifiers() & CVQualifiers::Volatile);
-    CHECK(BinaryInfix(BinaryInfix::Operators::DOT, nullptr, nullptr).cv_qualifiers() & CVQualifiers::Volatile);
+    CHECK(MemberAccess(BinaryInfix::Operators::STAR_DOT, nullptr, "").cv_qualifiers() & CVQualifiers::Volatile);
+    CHECK(MemberAccess(BinaryInfix::Operators::DOT, nullptr, "").cv_qualifiers() & CVQualifiers::Volatile);
     CHECK(BinaryInfix(BinaryInfix::Operators::ADD, nullptr, nullptr).cv_qualifiers() == 0);
     CHECK(BinaryInfix(BinaryInfix::Operators::GREATER, nullptr, nullptr).cv_qualifiers() == 0);
     CHECK(Parenthesized(nullptr).cv_qualifiers() == 0);
@@ -50,12 +50,24 @@ struct CountEvalVisitor : public pepp::debug::ConstantTermVisitor {
     node.lhs->accept(*this);
     node.rhs->accept(*this);
   }
+  void accept(const pepp::debug::MemberAccess &node) override {
+    visited.insert(&node);
+    node.lhs->accept(*this);
+  }
   void accept(const pepp::debug::UnaryPrefix &node) override {
     visited.insert(&node);
     node.arg->accept(*this);
   }
+  void accept(const pepp::debug::MemoryRead &node) override {
+    visited.insert(&node);
+    node.arg->accept(*this);
+  }
   void accept(const pepp::debug::Parenthesized &node) override { node.term->accept(*this); }
-  void accept(const pepp::debug::ExplicitCast &node) override {
+  void accept(const pepp::debug::DirectCast &node) override {
+    visited.insert(&node);
+    node.arg->accept(*this);
+  }
+  void accept(const pepp::debug::IndirectCast &node) override {
     visited.insert(&node);
     node.arg->accept(*this);
   }
@@ -98,12 +110,12 @@ TEST_CASE("Recursive CV visitors", "[scope:debug][kind:unit][arch:*]") {
     CHECK(!is_constant_expression(UnaryPrefix(UnaryPrefix::Operators::MINUS, variable)));
     auto unary_constant = c.add_or_return(UnaryPrefix(UnaryPrefix::Operators::MINUS, constant));
 
-    CHECK(!is_constant_expression(BinaryInfix(BinaryInfix::Operators::STAR_DOT, constant, constant)));
-    CHECK(!is_constant_expression(BinaryInfix(BinaryInfix::Operators::DOT, constant, unary_constant)));
+    CHECK(!is_constant_expression(MemberAccess(BinaryInfix::Operators::STAR_DOT, constant, "cat")));
+    CHECK(!is_constant_expression(MemberAccess(BinaryInfix::Operators::DOT, constant, "cat")));
     CHECK(is_constant_expression(BinaryInfix(BinaryInfix::Operators::ADD, constant, unary_constant)));
     CHECK(is_constant_expression(BinaryInfix(BinaryInfix::Operators::GREATER, constant, unary_constant)));
-    CHECK(!is_constant_expression(BinaryInfix(BinaryInfix::Operators::STAR_DOT, variable, constant)));
-    CHECK(!is_constant_expression(BinaryInfix(BinaryInfix::Operators::DOT, variable, unary_constant)));
+    CHECK(!is_constant_expression(MemberAccess(BinaryInfix::Operators::STAR_DOT, variable, "cat")));
+    CHECK(!is_constant_expression(MemberAccess(BinaryInfix::Operators::DOT, variable, "cat")));
     CHECK(!is_constant_expression(BinaryInfix(BinaryInfix::Operators::ADD, variable, unary_constant)));
     CHECK(!is_constant_expression(BinaryInfix(BinaryInfix::Operators::GREATER, variable, unary_constant)));
 
@@ -117,7 +129,7 @@ TEST_CASE("Recursive CV visitors", "[scope:debug][kind:unit][arch:*]") {
     auto unary_constant = c.add_or_return(UnaryPrefix(UnaryPrefix::Operators::MINUS, constant));
     auto unary_volatile = c.add_or_return(UnaryPrefix(UnaryPrefix::Operators::ADDRESS_OF, unary_constant));
     auto binary_contains_v = c.add_or_return(BinaryInfix(BinaryInfix::Operators::ADD, unary_volatile, variable));
-    auto binary_volatile = c.add_or_return(BinaryInfix(BinaryInfix::Operators::STAR_DOT, constant, constant));
+    auto binary_volatile = c.add_or_return(MemberAccess(BinaryInfix::Operators::STAR_DOT, constant, "cat"));
     auto top = c.add_or_return(BinaryInfix(BinaryInfix::Operators::ADD, binary_volatile, binary_contains_v));
     auto v = volatiles(*top);
     auto contains = [v](std::shared_ptr<Term> term) {

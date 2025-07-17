@@ -29,6 +29,10 @@ void pepp::debug::detail::IsConstantExpressionVisitor::accept(const BinaryInfix 
   node.rhs->accept(*this);
 }
 
+void pepp::debug::detail::IsConstantExpressionVisitor::accept(const MemberAccess &node) {
+  is_constant_expression = false;
+}
+
 void pepp::debug::detail::IsConstantExpressionVisitor::accept(const UnaryPrefix &node) {
   switch (node.op) {
   case UnaryPrefix::Operators::ADDRESS_OF:
@@ -38,9 +42,17 @@ void pepp::debug::detail::IsConstantExpressionVisitor::accept(const UnaryPrefix 
   node.arg->accept(*this);
 }
 
+void pepp::debug::detail::IsConstantExpressionVisitor::accept(const MemoryRead &node) {
+  is_constant_expression = false;
+}
+
 void pepp::debug::detail::IsConstantExpressionVisitor::accept(const Parenthesized &node) { node.term->accept(*this); }
 
-void pepp::debug::detail::IsConstantExpressionVisitor::accept(const ExplicitCast &node) { node.arg->accept(*this); }
+void pepp::debug::detail::IsConstantExpressionVisitor::accept(const DirectCast &node) { node.arg->accept(*this); }
+
+void pepp::debug::detail::IsConstantExpressionVisitor::accept(const IndirectCast &node) {
+  is_constant_expression = false;
+}
 
 std::vector<std::shared_ptr<pepp::debug::Term>> pepp::debug::detail::GatherVolatileTerms::to_vector() {
   return std::vector<std::shared_ptr<pepp::debug::Term>>(volatiles.cbegin(), volatiles.cend());
@@ -60,14 +72,29 @@ void pepp::debug::detail::GatherVolatileTerms::accept(BinaryInfix &node) {
   node.rhs->accept(*this);
 }
 
+void pepp::debug::detail::GatherVolatileTerms::accept(MemberAccess &node) {
+  volatiles.insert(node.shared_from_this());
+  node.lhs->accept(*this);
+}
+
 void pepp::debug::detail::GatherVolatileTerms::accept(UnaryPrefix &node) {
   if (node.cv_qualifiers() & CVQualifiers::Volatile) volatiles.insert(node.shared_from_this());
   node.arg->accept(*this);
 }
 
+void pepp::debug::detail::GatherVolatileTerms::accept(MemoryRead &node) {
+  volatiles.insert(node.shared_from_this());
+  node.arg->accept(*this);
+}
+
 void pepp::debug::detail::GatherVolatileTerms::accept(Parenthesized &node) { node.term->accept(*this); }
 
-void pepp::debug::detail::GatherVolatileTerms::accept(ExplicitCast &node) { node.arg->accept(*this); }
+void pepp::debug::detail::GatherVolatileTerms::accept(DirectCast &node) { node.arg->accept(*this); }
+
+void pepp::debug::detail::GatherVolatileTerms::accept(IndirectCast &node) {
+  volatiles.insert(node.shared_from_this());
+  node.arg->accept(*this);
+}
 
 void pepp::debug::mark_parents_dirty(Term &base) {
   if (base.dirty()) return;

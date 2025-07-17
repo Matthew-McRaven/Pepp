@@ -40,7 +40,7 @@ TEST_CASE("Lexing watch expressions", "[scope:debug][kind:unit][arch:*]") {
     auto token2 = l.next_token();
     REQUIRE(std::holds_alternative<detail::TypeSuffix>(token2));
     auto narrowed2 = std::get<detail::TypeSuffix>(token2);
-    CHECK(narrowed2.type == ExpressionType::u8);
+    CHECK(narrowed2.type == types::Primitives::u8);
   }
   SECTION("No free floating trailing types") {
     QString body = "_u8";
@@ -62,10 +62,14 @@ TEST_CASE("Lexing watch expressions", "[scope:debug][kind:unit][arch:*]") {
   SECTION("Explicit type cast") {
     QString body = "(u8)";
     Lexer l(body);
-    auto token = l.next_token();
-    REQUIRE(std::holds_alternative<detail::TypeCast>(token));
-    auto narrowed = std::get<detail::TypeCast>(token);
-    CHECK(narrowed.type == ExpressionType::u8);
+    auto token1 = l.next_token();
+    REQUIRE(std::holds_alternative<detail::Literal>(token1));
+    auto token2 = l.next_token();
+    REQUIRE(std::holds_alternative<detail::Identifier>(token2));
+    auto narrowed2 = std::get<detail::Identifier>(token2);
+    CHECK(narrowed2.value == "u8");
+    auto token3 = l.next_token();
+    REQUIRE(std::holds_alternative<detail::Literal>(token3));
   }
   SECTION("Debug Identifier") {
     QString body = "$X$A$lala";

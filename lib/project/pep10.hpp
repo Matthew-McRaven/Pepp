@@ -82,11 +82,13 @@ public:
   Q_INVOKABLE QString charOut() const;
   virtual bool isEmpty() const;
 
+  pepp::debug::types::TypeInfo *type_info() override;
+  pepp::debug::types::TypeInfo const *type_info() const override;
   uint8_t read_mem_u8(uint32_t address) const override;
   uint16_t read_mem_u16(uint32_t address) const override;
-  pepp::debug::TypedBits evaluate_variable(QStringView name) const override;
+  pepp::debug::Value evaluate_variable(QStringView name) const override;
   uint32_t cache_debug_variable_name(QStringView name) const override;
-  pepp::debug::TypedBits evaluate_debug_variable(uint32_t name) const override;
+  pepp::debug::Value evaluate_debug_variable(uint32_t name) const override;
 
   virtual QStringList saveAsOptions() const { return {"pepo"}; }
   Q_INVOKABLE virtual QString defaultExtension() const { return "pepo"; }
@@ -158,6 +160,8 @@ protected:
   QSharedPointer<pepp::debug::Debugger> _dbg{};
   QSharedPointer<builtins::Registry> _books = {};
   void loadCharIn();
+  // TODO: at some point this type info needs to be extracted from the assembler + loader.
+  pepp::debug::types::TypeInfo _typeInfo;
 };
 
 struct Error : public QObject {

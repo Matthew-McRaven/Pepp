@@ -13,6 +13,12 @@ struct TokenBuffer {
     if (std::holds_alternative<T>(next)) _head++;
     return next;
   }
+  Lexer::Token match_literal(const QString &literal) {
+    auto next = peek<Literal>();
+    // Only return token if it is a Literal and it matches!
+    if (std::holds_alternative<Literal>(next) && std::get<Literal>(next).literal == literal) return _head++, next;
+    else return std::monostate{};
+  }
   template <typename T> Lexer::Token peek() {
     if (_head == _tokens.size()) {
       auto token = _lex.next_token();
@@ -124,28 +130,18 @@ pepp::debug::detail::Memo::operator QString() const {
 
 } // namespace pepp::debug::detail
 
-// While the (code) complexity of this  algorithm is low, runtime complexity may be high.
-// For a cache of size N, it may need to recurse up to N times if there is only one long expression with no repeated
-// portions. With erase_if having linear complexity, this could make garbage collection O(N^2). That being said, I
-// expect N to be small (~30) and for there to be repeated subexpressions.
-void pepp::debug::ExpressionCache::collect_garbage() {
-  std::size_t old_size = -1, current_size = 0;
-  { // Limit scope of locker so that we do not need to enable recursion in the mutex/locker
-    QMutexLocker locker(&_mut);
-    old_size = _set.size();
-    // Remove all pointers whose only reference is the cache itself.
-    std::erase_if(_set, [](const std::shared_ptr<Term> &ptr) { return ptr.use_count() == 1; });
-    current_size = _set.size();
-  }
-  if (old_size != current_size) return collect_garbage();
+pepp::debug::Parser::Parser(ExpressionCache &cache, types::TypeInfo &types) : _cache(cache), _types(types) {}
+
+std::shared_ptr<pepp::debug::types::Type> pepp::debug::Parser::compile_type(QString expr, void *builtins) {
+  return compile_type(QStringView(expr), builtins);
 }
 
-std::size_t pepp::debug::ExpressionCache::count() const {
-  QMutexLocker locker(&_mut);
-  return _set.size();
+std::shared_ptr<pepp::debug::types::Type> pepp::debug::Parser::compile_type(QStringView expr, void *builtins) {
+  detail::TokenBuffer tok(expr);
+  detail::MemoCache cache{};
+  // TODO: add helper to parse a typecast, which MUST be used by our DirectCast Term.
+  return nullptr;
 }
-
-pepp::debug::Parser::Parser(ExpressionCache &cache) : _cache(cache) {}
 
 std::shared_ptr<pepp::debug::Term> pepp::debug::Parser::compile(QStringView expr, void *builtins) {
   detail::TokenBuffer tok(expr);
@@ -197,10 +193,10 @@ std::shared_ptr<pepp::debug::Constant> pepp::debug::Parser::parse_constant(detai
     auto as_constant = std::get<UC>(maybe_constant);
     if (auto maybe_trailing_type = tok.match<TYPE>(); std::holds_alternative<TYPE>(maybe_trailing_type)) {
       const auto type = std::get<TYPE>(maybe_trailing_type);
-      auto bits = TypedBits{.allows_address_of = false, .type = type.type, .bits = as_constant.value};
+      auto bits = VPrimitive::from(type.type, as_constant.value);
       return cp.memoize(accept(Constant(bits, as_constant.format)), rule);
     } else {
-      auto bits = TypedBits{.allows_address_of = false, .type = ExpressionType::i16, .bits = as_constant.value};
+      auto bits = VPrimitive::from_int((int16_t)as_constant.value);
       return cp.memoize(accept(Constant(bits, as_constant.format)), rule);
     }
   }
@@ -246,11 +242,61 @@ pepp::debug::Parser::parse_binary_infix(detail::TokenBuffer &tok, detail::MemoCa
   if (!op) return cp.rollback<pepp::debug::Term>(Rule::INVALID);
   else if (!valid.contains(*op)) return cp.rollback<pepp::debug::Term>(Rule::INVALID);
 
-  // Still sorry; see above.
-  auto maybe_rhs = (this->*parse_rhs)(tok, cache);
-  if (maybe_rhs == nullptr) return cp.rollback<pepp::debug::Term>(Rule::INVALID);
+  switch (*op) {
+  case BinaryInfix::Operators::DOT: [[fallthrough]];
+  case BinaryInfix::Operators::STAR_DOT: {
+    auto maybe_rhs = tok.match<ID>();
+    if (!std::holds_alternative<ID>(maybe_rhs)) return cp.rollback<pepp::debug::Term>(Rule::INVALID);
+    return accept(MemberAccess(*op, maybe_lhs, std::get<ID>(maybe_rhs).value));
+  }
+  default: {
+    // Still sorry; see above.
+    auto maybe_rhs = (this->*parse_rhs)(tok, cache);
+    if (maybe_rhs == nullptr) return cp.rollback<pepp::debug::Term>(Rule::INVALID);
+    return accept(BinaryInfix(*op, maybe_lhs, maybe_rhs));
+  }
+  }
+}
 
-  return accept(BinaryInfix(*op, maybe_lhs, maybe_rhs));
+std::shared_ptr<pepp::debug::Term> pepp::debug::Parser::parse_cast(detail::TokenBuffer &tok, detail::MemoCache &cache) {
+  using Lit = detail::Literal;
+  static const auto rule = Parser::Rule::CAST;
+  auto cp = detail::TokenCheckpoint(tok, cache);
+  if (auto [term, end] = cache.match_at(cp.start(), rule); term != nullptr)
+    return cp.use_memo<pepp::debug::Term>(term, end);
+
+  if (auto open = tok.match_literal("("); std::holds_alternative<Lit>(open)) {
+    // Types are stored as identifiers so that "u8" can still be used as an identifier in other contexts.
+    auto maybe_type_name = tok.match<detail::Identifier>();
+    if (!std::holds_alternative<detail::Identifier>(maybe_type_name)) return cp.rollback<pepp::debug::Term>(rule);
+    auto maybe_prim = tok._lex.primitive_from_string(std::get<detail::Identifier>(maybe_type_name).value);
+    // Direct cast, we already know the type
+    if (maybe_prim.has_value()) {
+      auto type = _types.register_direct(maybe_prim.value());
+
+      for (auto ptr_to = tok.match_literal("*"); std::holds_alternative<Lit>(ptr_to); ptr_to = tok.match_literal("*")) {
+        auto old_boxed = _types.type_from(type);
+        types::Type new_type = types::Pointer{2, old_boxed};
+        type = _types.register_direct(new_type);
+      }
+      if (auto close = tok.match_literal(")"); !std::holds_alternative<Lit>(close))
+        return cp.rollback<pepp::debug::Term>(rule);
+
+      auto arg = parse_p0(tok, cache);
+      return cp.memoize(accept(DirectCast(_types.type_from(type), arg)), rule);
+    } else {
+      auto name = std::get<detail::Identifier>(maybe_type_name).value;
+      auto handle = _types.register_indirect(name);
+      if (auto ptr = tok.match_literal("*"); !std::holds_alternative<Lit>(ptr))
+        return cp.rollback<pepp::debug::Term>(rule);
+      else if (auto close = tok.match_literal(")"); !std::holds_alternative<Lit>(close))
+        return cp.rollback<pepp::debug::Term>(rule);
+
+      auto arg = parse_p0(tok, cache);
+      return cp.memoize(accept(IndirectCast(name, handle.second, arg)), rule);
+    }
+  }
+  return cp.rollback<pepp::debug::Term>(rule);
 }
 
 std::shared_ptr<pepp::debug::Term> pepp::debug::Parser::parse_p0(detail::TokenBuffer &tok, detail::MemoCache &cache) {
@@ -270,27 +316,26 @@ std::shared_ptr<pepp::debug::Term> pepp::debug::Parser::parse_p0(detail::TokenBu
 
 std::shared_ptr<pepp::debug::Term> pepp::debug::Parser::parse_p1(detail::TokenBuffer &tok, detail::MemoCache &cache) {
   using Lit = detail::Literal;
-  using Cast = detail::TypeCast;
   static const auto rule = Parser::Rule::P1;
   auto cp = detail::TokenCheckpoint(tok, cache);
   if (auto [term, end] = cache.match_at(cp.start(), rule); term != nullptr)
     return cp.use_memo<pepp::debug::Term>(term, end);
 
-  if (auto maybe_prefix = tok.match<Lit>(); std::holds_alternative<Lit>(maybe_prefix)) {
+  if (auto as_cast = parse_cast(tok, cache); as_cast) return cp.memoize(as_cast, rule);
+  else if (auto maybe_prefix = tok.match<Lit>(); std::holds_alternative<Lit>(maybe_prefix)) {
     const auto &lit = std::get<Lit>(maybe_prefix);
     auto op = string_to_unary_prefix(lit.literal);
     // Changed from return to enable p0 to evaluate parenthetical expressions.
     if (!op) cp.rollback<pepp::debug::Term>(rule);
-    else {
+    else if (op == UnaryPrefix::Operators::DEREFERENCE) {
+      auto arg = parse_p0(tok, cache);
+      if (arg == nullptr) return cp.rollback<pepp::debug::Term>(rule);
+      return cp.memoize(accept(MemoryRead(arg)), rule);
+    } else {
       auto arg = parse_p0(tok, cache);
       if (arg == nullptr) return cp.rollback<pepp::debug::Term>(rule);
       return cp.memoize(accept(UnaryPrefix(*op, arg)), rule);
     }
-  } else if (auto maybe_cast = tok.match<Cast>(); std::holds_alternative<Cast>(maybe_cast)) {
-    const auto &cast = std::get<Cast>(maybe_cast);
-    auto arg = parse_p0(tok, cache);
-    if (arg == nullptr) return cp.rollback<pepp::debug::Term>(rule);
-    return cp.memoize(accept(ExplicitCast(cast.type, arg)), rule);
   }
   return parse_p0(tok, cache);
 }
@@ -394,14 +439,10 @@ std::shared_ptr<pepp::debug::Term> pepp::debug::Parser::parse_parened(detail::To
   if (auto [term, end] = cache.match_at(cp.start(), rule); term != nullptr)
     return cp.use_memo<pepp::debug::Term>(term, end);
 
-  if (auto maybe_open = tok.match<Lit>(); !std::holds_alternative<Lit>(maybe_open))
-    return cp.rollback<pepp::debug::Term>(rule);
-  else if (const auto &open = std::get<Lit>(maybe_open); open.literal != '(')
+  if (auto open = tok.match_literal("("); !std::holds_alternative<Lit>(open))
     return cp.rollback<pepp::debug::Term>(rule);
   else if (auto inner = parse_p7(tok, cache); !inner) return cp.rollback<pepp::debug::Term>(rule);
-  else if (auto maybe_close = tok.match<Lit>(); !std::holds_alternative<Lit>(maybe_close))
-    return cp.rollback<pepp::debug::Term>(rule);
-  else if (const auto &close = std::get<Lit>(maybe_close); close.literal != ')')
+  else if (auto close = tok.match_literal(")"); !std::holds_alternative<Lit>(close))
     return cp.rollback<pepp::debug::Term>(rule); // Invalid and we cannot recover.
   else return cp.memoize(accept(Parenthesized(inner)), rule);
 }

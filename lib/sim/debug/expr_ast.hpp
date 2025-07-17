@@ -9,6 +9,7 @@ namespace pepp::debug {
 
 struct ConstantTermVisitor;
 struct MutatingTermVisitor;
+struct CachedEvaluator;
 // When creating a shared_ptr<Term> (or derived), must immediately call link() to update _dependents.
 // Prefer creation through ExpressionCache, which handles this on your behalf.
 class Term : public std::enable_shared_from_this<Term> {
@@ -18,10 +19,13 @@ public:
     Variable,
     DebuggerVariable,
     BinaryInfixOperator,
+    MemberAccess, // Used for a.b and a->b
     UnaryPrefixOperator,
+    MemoryRead,
     FunctionCall,
     ParenExpr,
-    TypeCast,
+    DirectTypeCast,
+    IndirectTypeCast,
   };
   virtual ~Term() = 0;
   virtual uint16_t depth() const = 0;
@@ -39,8 +43,10 @@ public:
   bool dependency_of(std::shared_ptr<Term> term) const;
   bits::span<const std::weak_ptr<Term>> dependents() const;
 
-  // Evaluate this AST to a value, marking elements as not dirty as they are re-evaluated.
-  virtual TypedBits evaluate(CachePolicy mode, Environment &env) = 0;
+  // You are not allowed to evaluate a node directly, you must used CachedEvaluator.
+  // This is to prevent accidentally evaluating a node in one place (e.g., a breakpoint condition)
+  // and losing the dirty bit when attempting to render to the UI later (e.g., in a watch expression).
+  CachedEvaluator evaluator();
   // Do not recurse, only report local const/volatile qualifiers.
   virtual int cv_qualifiers() const = 0;
 
@@ -52,6 +58,11 @@ public:
   virtual void accept(ConstantTermVisitor &visitor) const = 0;
 
 protected:
+  friend class CachedEvaluator;
+  // Must add classes which contain Term as a member.
+  virtual EvaluationCache cached() const = 0;
+  // Evaluate this AST to a value, marking elements as not dirty as they are re-evaluated.
+  virtual Value evaluate(CachePolicy mode, Environment &env) = 0;
   // Track which terms may be made dirty if the current term's value changes.
   // Use weak pointers to prevent extending lifetimes of dependents.
   // Some dependents may be discarded during parsing,
@@ -70,7 +81,6 @@ struct Variable : public Term {
 
   void link() override;
 
-  TypedBits evaluate(CachePolicy mode, Environment &env) override;
   int cv_qualifiers() const override;
 
   void mark_dirty() override;
@@ -79,8 +89,12 @@ struct Variable : public Term {
   void accept(ConstantTermVisitor &visitor) const override;
   const QString name;
 
+protected:
+  Value evaluate(CachePolicy mode, Environment &env) override;
+  EvaluationCache cached() const override;
+
 private:
-  EvaluationCache _state;
+  EvaluationCache _state{};
 };
 
 struct DebuggerVariable : public Term {
@@ -94,8 +108,6 @@ struct DebuggerVariable : public Term {
   QString to_string() const override;
 
   void link() override;
-
-  TypedBits evaluate(CachePolicy mode, Environment &env) override;
   int cv_qualifiers() const override;
 
   void mark_dirty() override;
@@ -105,16 +117,20 @@ struct DebuggerVariable : public Term {
   void accept(ConstantTermVisitor &visitor) const override;
   const QString name;
 
+protected:
+  Value evaluate(CachePolicy mode, Environment &env) override;
+  EvaluationCache cached() const override;
+
 private:
   std::optional<uint32_t> _name_cache_id = std::nullopt;
-  EvaluationCache _state;
+  EvaluationCache _state{};
 };
 
 struct Constant : public Term {
   template <std::integral I>
   explicit Constant(I bits, detail::UnsignedConstant::Format format_hint = detail::UnsignedConstant::Format::Dec)
-      : format_hint(format_hint), value(from_int(bits)) {}
-  explicit Constant(const TypedBits &bits,
+      : format_hint(format_hint), value(VPrimitive::from_int(bits)) {}
+  explicit Constant(const VPrimitive &bits,
                     detail::UnsignedConstant::Format format_hint = detail::UnsignedConstant::Format::Dec);
   ~Constant() override = default;
   uint16_t depth() const override;
@@ -123,7 +139,6 @@ struct Constant : public Term {
   std::strong_ordering operator<=>(const Constant &rhs) const;
   QString to_string() const override;
   void link() override;
-  TypedBits evaluate(CachePolicy mode, Environment &env) override;
   int cv_qualifiers() const override;
 
   void mark_dirty() override;
@@ -132,7 +147,11 @@ struct Constant : public Term {
   void accept(ConstantTermVisitor &visitor) const override;
 
   const detail::UnsignedConstant::Format format_hint;
-  const TypedBits value;
+  const VPrimitive value;
+
+protected:
+  Value evaluate(CachePolicy mode, Environment &env) override;
+  EvaluationCache cached() const override;
 };
 
 struct BinaryInfix : public Term {
@@ -164,7 +183,6 @@ struct BinaryInfix : public Term {
   std::strong_ordering operator<=>(const BinaryInfix &rhs) const;
   QString to_string() const override;
   void link() override;
-  TypedBits evaluate(CachePolicy mode, Environment &env) override;
   int cv_qualifiers() const override;
 
   void mark_dirty() override;
@@ -177,10 +195,44 @@ struct BinaryInfix : public Term {
   // Constant pointer to mutable object.
   const std::shared_ptr<Term> lhs, rhs;
 
+protected:
+  Value evaluate(CachePolicy mode, Environment &env) override;
+  EvaluationCache cached() const override;
+
 private:
-  EvaluationCache _state;
+  EvaluationCache _state{};
 };
 std::optional<BinaryInfix::Operators> string_to_binary_infix(QStringView);
+
+struct MemberAccess : public Term {
+  MemberAccess(BinaryInfix::Operators op, std::shared_ptr<Term> lhs, QString rhs);
+  ~MemberAccess() override = default;
+  uint16_t depth() const override;
+  Type type() const override;
+  std::strong_ordering operator<=>(const Term &rhs) const override;
+  std::strong_ordering operator<=>(const MemberAccess &rhs) const;
+  QString to_string() const override;
+  void link() override;
+  int cv_qualifiers() const override;
+
+  void mark_dirty() override;
+  bool dirty() const override;
+
+  void accept(MutatingTermVisitor &visitor) override;
+  void accept(ConstantTermVisitor &visitor) const override;
+
+  const BinaryInfix::Operators op;
+  // Constant pointer to mutable object.
+  const std::shared_ptr<Term> lhs;
+  const QString rhs;
+
+protected:
+  Value evaluate(CachePolicy mode, Environment &env) override;
+  EvaluationCache cached() const override;
+
+private:
+  EvaluationCache _state{};
+};
 
 struct UnaryPrefix : public Term {
   enum class Operators { PLUS, MINUS, DEREFERENCE, ADDRESS_OF, NOT, NEGATE };
@@ -192,7 +244,6 @@ struct UnaryPrefix : public Term {
   Type type() const override;
   QString to_string() const override;
   void link() override;
-  TypedBits evaluate(CachePolicy mode, Environment &env) override;
   int cv_qualifiers() const override;
 
   void mark_dirty() override;
@@ -203,21 +254,24 @@ struct UnaryPrefix : public Term {
   const Operators op;
   const std::shared_ptr<Term> arg;
 
+protected:
+  Value evaluate(CachePolicy mode, Environment &env) override;
+  EvaluationCache cached() const override;
+
 private:
-  EvaluationCache _state;
+  EvaluationCache _state{};
 };
 std::optional<UnaryPrefix::Operators> string_to_unary_prefix(QStringView);
 
-struct ExplicitCast : public Term {
-  ExplicitCast(ExpressionType cast_to, std::shared_ptr<Term> arg);
-  ~ExplicitCast() override = default;
+struct MemoryRead : public Term {
+  explicit MemoryRead(std::shared_ptr<Term> arg);
+  ~MemoryRead() override = default;
   std::strong_ordering operator<=>(const Term &rhs) const override;
-  std::strong_ordering operator<=>(const ExplicitCast &rhs) const;
+  std::strong_ordering operator<=>(const MemoryRead &rhs) const;
   uint16_t depth() const override;
   Type type() const override;
   QString to_string() const override;
   void link() override;
-  TypedBits evaluate(CachePolicy mode, Environment &env) override;
   int cv_qualifiers() const override;
 
   void mark_dirty() override;
@@ -225,12 +279,77 @@ struct ExplicitCast : public Term {
 
   void accept(MutatingTermVisitor &visitor) override;
   void accept(ConstantTermVisitor &visitor) const override;
-
-  const pepp::debug::ExpressionType cast_to;
   const std::shared_ptr<Term> arg;
 
+protected:
+  Value evaluate(CachePolicy mode, Environment &env) override;
+  EvaluationCache cached() const override;
+
 private:
-  EvaluationCache _state;
+  EvaluationCache _state{};
+};
+
+struct DirectCast : public Term {
+  DirectCast(types::BoxedType cast_to, std::shared_ptr<Term> arg);
+  ~DirectCast() override = default;
+  std::strong_ordering operator<=>(const Term &rhs) const override;
+  std::strong_ordering operator<=>(const DirectCast &rhs) const;
+  uint16_t depth() const override;
+  Type type() const override;
+  QString to_string() const override;
+  void link() override;
+
+  int cv_qualifiers() const override;
+
+  void mark_dirty() override;
+  bool dirty() const override;
+
+  void accept(MutatingTermVisitor &visitor) override;
+  void accept(ConstantTermVisitor &visitor) const override;
+  const types::Type cast_to() const;
+
+  const std::shared_ptr<Term> arg;
+
+protected:
+  Value evaluate(CachePolicy mode, Environment &env) override;
+  EvaluationCache cached() const override;
+
+private:
+  EvaluationCache _state{};
+  const types::BoxedType _cast_to;
+};
+
+struct IndirectCast : public Term {
+  IndirectCast(QString name, types::TypeInfo::IndirectHandle cast_to, std::shared_ptr<Term> arg);
+  ~IndirectCast() override = default;
+  std::strong_ordering operator<=>(const Term &rhs) const override;
+  std::strong_ordering operator<=>(const IndirectCast &rhs) const;
+  uint16_t depth() const override;
+  Type type() const override;
+  QString to_string() const override;
+  void link() override;
+
+  int cv_qualifiers() const override;
+
+  void mark_dirty() override;
+  bool dirty() const override;
+
+  void accept(MutatingTermVisitor &visitor) override;
+  void accept(ConstantTermVisitor &visitor) const override;
+  const types::Type cast_to(Environment &env) const;
+  const types::Type cast_to(const types::TypeInfo &nti) const;
+
+  const std::shared_ptr<Term> arg;
+
+protected:
+  Value evaluate(CachePolicy mode, Environment &env) override;
+  EvaluationCache cached() const override;
+
+private:
+  EvaluationCache _state{};
+  QString _name{};
+  types::TypeInfo::IndirectHandle _hnd{};
+  Versioned<types::OptType> _cast_to{};
 };
 
 struct Parenthesized : public Term {
@@ -242,7 +361,6 @@ struct Parenthesized : public Term {
   std::strong_ordering operator<=>(const Parenthesized &rhs) const;
   QString to_string() const override;
   void link() override;
-  TypedBits evaluate(CachePolicy mode, Environment &env) override;
   int cv_qualifiers() const override;
 
   void mark_dirty() override;
@@ -251,6 +369,13 @@ struct Parenthesized : public Term {
   void accept(ConstantTermVisitor &visitor) const override;
 
   const std::shared_ptr<Term> term;
+
+protected:
+  Value evaluate(CachePolicy mode, Environment &env) override;
+  EvaluationCache cached() const override;
+
+private:
+  EvaluationCache _state{};
 };
 
 // If you add a new AST node type, you'll need to add new handlers to these visitor classes.
@@ -259,18 +384,24 @@ struct MutatingTermVisitor {
   virtual void accept(DebuggerVariable &node) = 0;
   virtual void accept(Constant &node) = 0;
   virtual void accept(BinaryInfix &node) = 0;
+  virtual void accept(MemberAccess &node) = 0;
   virtual void accept(UnaryPrefix &node) = 0;
+  virtual void accept(MemoryRead &node) = 0;
   virtual void accept(Parenthesized &node) = 0;
-  virtual void accept(ExplicitCast &node) = 0;
+  virtual void accept(DirectCast &node) = 0;
+  virtual void accept(IndirectCast &node) = 0;
 };
 struct ConstantTermVisitor {
   virtual void accept(const Variable &node) = 0;
   virtual void accept(const DebuggerVariable &node) = 0;
   virtual void accept(const Constant &node) = 0;
   virtual void accept(const BinaryInfix &node) = 0;
+  virtual void accept(const MemberAccess &node) = 0;
   virtual void accept(const UnaryPrefix &node) = 0;
+  virtual void accept(const MemoryRead &node) = 0;
   virtual void accept(const Parenthesized &node) = 0;
-  virtual void accept(const ExplicitCast &node) = 0;
+  virtual void accept(const DirectCast &node) = 0;
+  virtual void accept(const IndirectCast &node) = 0;
 };
 
 } // namespace pepp::debug

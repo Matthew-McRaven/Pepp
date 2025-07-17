@@ -12,8 +12,7 @@ public:
     // Preserve last evaluated value of the term.
     // A volatile may have been updated many times by the breakpoint system before we've been given a chacne to view it.
     // The term itself may not be dirty, but from our perspective it is different than its last rendered value.
-    TypedBits v;
-    std::shared_ptr<pepp::debug::Term> term;
+    CachedEvaluator evaluator;
   };
 
   using TermPtr = std::shared_ptr<pepp::debug::Term>;
@@ -26,9 +25,9 @@ public:
   pepp::debug::Term *term();
   void set_term(TermPtr term);
   void set_term(QString term);
-  void evaluate(pepp::debug::CachePolicy policy, pepp::debug::Environment &env);
+  void evaluate(CachePolicy mode, pepp::debug::Environment &env);
   void clear_value();
-  std::optional<TypedBits> value() const;
+  std::optional<Value> value() const;
 
   bool needs_update() const;
   bool dirty() const;
@@ -45,11 +44,12 @@ private:
   QString _wip_term = "";    // Most recent text submitted to <> iff compilation failed.
   QString _wip_type = "";    // Most recent text submitted to the type compiler iff compliation failed.
   TermPtr _term = nullptr;   // The term itself, if compilation succeeded. Nullptr otherwise.
+  CachedEvaluator _evaluator = {}; // Evaluator for the term, if compilation succeeded.
   // If term != nullptr && wip_type.empty() && type: promote terms result to this type.
   // If term != nullptr && wip_type.empty() && !type: use terms result type.
   // If term != nullptr && !wip_type.empty(): do not render value, and place <invalid> in type field.
-  std::optional<ExpressionType> _type = std::nullopt;
-  std::optional<TypedBits> _recent_value = std::nullopt; // Most recent value of the term.
+  types::TypeInfo *_type_info = nullptr;             // Type info from most recent invocation of `evaluate()`.
+  std::optional<Value> _recent_value = std::nullopt; // Most recent value of the term.
 };
 
 bool edit_term(EditableWatchExpression &term, pepp::debug::ExpressionCache &cache, pepp::debug::Environment &env,
@@ -63,9 +63,9 @@ void update_volatile_values(std::vector<EditableWatchExpression::VolatileCache> 
   static_assert(std::is_same_v<std::remove_cvref_t<Ref>, EditableWatchExpression>);
   // Propogate dirtiness from volatiles to their parents.
   for (auto &ptr : volatiles) {
-    auto old_v = ptr.v;
-    ptr.v = ptr.term->evaluate(CachePolicy::UseNonVolatiles, env);
-    if (old_v != ptr.v) pepp::debug::mark_parents_dirty(*ptr.term);
+    auto old_v = ptr.evaluator.cache();
+    auto new_v = ptr.evaluator.evaluate(CachePolicy::UseNonVolatiles, env);
+    if (*old_v.value != new_v) pepp::debug::mark_parents_dirty(*ptr.evaluator.term());
   }
 
   // Later term could be a a subexpression of current one.
@@ -100,8 +100,8 @@ void gather_volatiles(std::vector<EditableWatchExpression::VolatileCache> &into,
 
   // Cache the most recent value for each volatile in addition to its term.
   for (int it = 0; it < vec.size(); it++) {
-    into[it].term = vec[it];
-    into[it].v = vec[it]->evaluate(CachePolicy::UseNonVolatiles, env);
+    into[it].evaluator = vec[it]->evaluator();
+    into[it].evaluator.evaluate(CachePolicy::UseNonVolatiles, env);
   }
 }
 
@@ -119,6 +119,7 @@ public:
   bool edit_type(int index, const QString &new_type);
   bool delete_at(int index);
   void update_volatile_values();
+  pepp::debug::Environment *env() { return _env; }
 
 public slots:
   void onSimulationStart();
@@ -132,8 +133,6 @@ private:
   std::vector<EditableWatchExpression::VolatileCache> _volatiles;
   std::vector<EditableWatchExpression> _items;
 };
-
-QVariant variant_from_bits(const pepp::debug::TypedBits &bits);
 
 class WatchExpressionRoles : public QObject {
   Q_OBJECT

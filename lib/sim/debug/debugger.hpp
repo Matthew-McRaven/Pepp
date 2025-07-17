@@ -24,7 +24,7 @@ public:
   std::size_t count() const;
 
   std::span<quint16> breakpoints();
-  std::span<pepp::debug::Term *> conditions();
+  std::span<std::unique_ptr<pepp::debug::CachedEvaluator>> conditions();
   pepp::debug::ExpressionCache *expressionCache();
   pepp::debug::Environment *env();
 
@@ -42,7 +42,7 @@ private:
   // Should consume ~1024 bytes of memory total for Pepp procesors.
   std::bitset<0x1'00'00 / 8> _bitmask;
   std::vector<quint16> _breakpoints;
-  std::vector<pepp::debug::Term *> _conditions;
+  std::vector<std::unique_ptr<pepp::debug::CachedEvaluator>> _conditions;
   // Need to be carried around because we hold terms
   pepp::debug::ExpressionCache *_cache = nullptr;
   pepp::debug::Environment *_env = nullptr;
@@ -87,7 +87,6 @@ private:
 };
 
 class Environment;
-class ExpressionCache;
 class Debugger {
 public:
   explicit Debugger(pepp::debug::Environment *env);

@@ -19,7 +19,9 @@ void pepp::debug::BreakpointSet::addBP(quint16 address, pepp::debug::Term *condi
   // Resorting would be hard, since we need sort conditions by breakpoints, which reduces to cylic permutations.
   // Preserving order is just easier.
   _breakpoints.insert(_breakpoints.begin() + offset, address);
-  _conditions.insert(_conditions.begin() + offset, condition);
+  std::unique_ptr<CachedEvaluator> eval = nullptr;
+  if (condition) eval = std::make_unique<CachedEvaluator>(condition->evaluator());
+  _conditions.insert(_conditions.begin() + offset, std::move(eval));
 
   _bitmask.set(address / 8);
   emit breakpointAdded(address);
@@ -29,7 +31,8 @@ void pepp::debug::BreakpointSet::modify_condition(quint16 address, Term *conditi
   if (!hasBP(address)) return;
   auto iter = std::lower_bound(_breakpoints.cbegin(), _breakpoints.cend(), address);
   auto offset = std::distance(_breakpoints.cbegin(), iter);
-  _conditions[offset] = condition;
+  if (condition) _conditions[offset] = std::make_unique<CachedEvaluator>(condition->evaluator());
+  else _conditions[offset].reset();
   emit conditionChanged(address, condition != nullptr);
 }
 
@@ -69,7 +72,8 @@ void pepp::debug::BreakpointSet::notifyPCChanged(quint16 newValue) {
       iter != _breakpoints.cend() && *iter == newValue) {
     auto offset = std::distance(_breakpoints.cbegin(), iter);
     if (_conditions[offset]) {
-      _hit = _conditions[offset]->evaluate(CachePolicy::UseNonVolatiles, *_env).bits != 0;
+      auto bits = pepp::debug::value_bits<uint64_t>(_conditions[offset]->evaluate(CachePolicy::UseNonVolatiles, *_env));
+      _hit = bits != 0;
     } else _hit = true;
   }
 }
@@ -77,6 +81,10 @@ void pepp::debug::BreakpointSet::notifyPCChanged(quint16 newValue) {
 std::size_t pepp::debug::BreakpointSet::count() const { return _breakpoints.size(); }
 
 std::span<quint16> pepp::debug::BreakpointSet::breakpoints() { return _breakpoints; }
+
+std::span<std::unique_ptr<pepp::debug::CachedEvaluator>> pepp::debug::BreakpointSet::conditions() {
+  return std::span(_conditions);
+}
 
 pepp::debug::ExpressionCache *pepp::debug::BreakpointSet::expressionCache() { return _cache; }
 
@@ -131,7 +139,8 @@ QVariant pepp::debug::BreakpointTableModel::data(const QModelIndex &index, int r
     } else if (index.column() == 3) {
       return _conditionEditor.at(bp).expression_text();
     } else if (index.column() == 4) {
-      if (auto item = _conditionEditor.at(bp); item.value()) return variant_from_bits(*item.value());
+      // TODO: need to get type info from Debugger so I can pass non-null
+      if (auto item = _conditionEditor.at(bp); item.value()) return from_bits(*item.value(), nullptr);
       return "";
     } else if (index.column() == 5) {
       return _conditionEditor.at(bp).type_text();
