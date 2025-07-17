@@ -14,3 +14,5 @@ const char *pepp::debug::types::StringInternPool::at(quint32 i) { return _data.d
 quint32 pepp::debug::types::StringInternPool::size() const { return _data.size(); }
 
 const char *pepp::debug::types::StringInternPool::data() const { return _data.data(); }
+
+std::vector<char> &pepp::debug::types::StringInternPool::container() { return _data; }

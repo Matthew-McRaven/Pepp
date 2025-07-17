@@ -15,6 +15,8 @@ struct OptType {
   OptType(OptType &&other) = default;
   OptType &operator=(OptType &&other) = default;
   BoxedType type;
+  std::strong_ordering operator<=>(const OptType &rhs) const;
+  bool operator==(const OptType &rhs) const;
 };
 
 class TypeInfo {
@@ -52,7 +54,7 @@ public:
   BoxedType box(Type);                      // this variant will register a type if it does not exist yet.
   std::optional<BoxedType> box(Type) const; // while this variant will return nullopt.
 
-  // A "token" you can give back to this class to get a type in the future.
+  // A token you can give back to this class to get a type in the future.
   // Secretly an index into the _handles vector.
   // The underlying type for the indirect handle can be changed at any time.
   // Essentially enables forward declared types.
@@ -117,6 +119,11 @@ private:
   void extract_strings(StringInternPool &f) const;
 
 public:
+  // Only order over _directTypes and _nameToIndirect. Mostly used to check the deserialize(serialize(...)) is
+  // idempotent. _indirectTypes are ignored because they are tied to simulator state and not the set of declared types.
+  std::weak_ordering operator<=>(const TypeInfo &rhs) const;
+  bool operator==(const TypeInfo &rhs) const;
+
   static zpp::bits::errc serialize(auto &archive, auto &self) {
     using archive_type = std::remove_cvref_t<decltype(archive)>;
     if constexpr (archive_type::kind() == zpp::bits::kind::out) {
@@ -143,16 +150,41 @@ public:
         if (auto errc = types::serialize(archive, t, &h); errc.code != std::errc()) return errc;
       }
 
-      // Serialize registrations for indirect types. Don't serialize the types because these are probably tied to
-      // simulator state.
+      // Serialize indirect types registrations. Don't serialize the types because these are tied to simulator state.
       if (auto errc = archive((quint16)self._nameToIndirect.size()); errc.code != std::errc()) return errc;
       for (const auto &[name, hnd] : self._nameToIndirect) {
-        if (auto errc = archive(h.string_index_for(name)); errc.code != std::errc()) return errc;
+        if (auto errc = archive(h.index_for_string(name)); errc.code != std::errc()) return errc;
         if (auto errc = archive(hnd._index); errc.code != std::errc()) return errc;
       }
       return std::errc();
     } else if constexpr (archive_type::kind() == zpp::bits::kind::in && !std::is_const<decltype(self)>()) {
-      // Extract
+      SerializationHelper h;
+      quint16 type_count = 0;
+      // Load string pool.
+      if (auto errc = archive(h._strs.container()); errc.code != std::errc()) return errc;
+
+      // Load type count, then load each type.
+      else if (auto errc = archive(type_count); errc.code != std::errc()) return errc;
+      for (int it = 0; it < type_count; ++it) {
+        Type t;
+        if (auto errc = types::serialize(archive, t, &h); errc.code != std::errc()) return errc;
+        h._type_to_index[self.box(t)] = it;
+      }
+
+      // Load indirect types.
+      quint16 indirect_handle_count = 0;
+      if (auto errc = archive(indirect_handle_count); errc.code != std::errc()) return errc;
+      self._indirectTypes.resize(indirect_handle_count);
+      for (int it = 0; it < indirect_handle_count; ++it) {
+        quint32 string_idx = 0;
+        if (auto errc = archive(string_idx); errc.code != std::errc()) return errc;
+        QString name = h.string_for_index(string_idx);
+
+        quint16 index = 0;
+        if (auto errc = archive(index); errc.code != std::errc()) return errc;
+
+        self._nameToIndirect[name] = IndirectHandle{index};
+      }
       return std::errc{};
     } else if constexpr (archive_type::kind() == zpp::bits::kind::in) throw std::logic_error("Can't read into const");
     throw std::logic_error("Unreachable");

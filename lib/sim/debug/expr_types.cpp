@@ -294,4 +294,6 @@ bool pepp::debug::types::operator==(const Type &lhs, const BoxedType &rhs) {
   return (lhs <=> rhs) == std::strong_ordering::equal;
 }
 
-quint32 pepp::debug::types::SerializationHelper::string_index_for(const QString &str) { return _strs.add(str); }
+quint32 pepp::debug::types::SerializationHelper::index_for_string(const QString &str) { return _strs.add(str); }
+
+QString pepp::debug::types::SerializationHelper::string_for_index(quint32 index) { return _strs.at(index); }

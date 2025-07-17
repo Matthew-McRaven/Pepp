@@ -15,15 +15,22 @@ struct Primitive;
 struct Pointer;
 struct Array;
 struct Struct;
+// Changes to arg list must be mirrored in `using Type=...` later in file.
 using BoxedType = std::variant<std::shared_ptr<Never>, std::shared_ptr<Primitive>, std::shared_ptr<Pointer>,
                                std::shared_ptr<Array>, std::shared_ptr<Struct>>;
 struct SerializationHelper {
-  quint16 get_index_for(const BoxedType &type) const {
+  quint16 index_for_type(const BoxedType &type) const {
     auto it = _type_to_index.find(type);
     if (it != _type_to_index.end()) return it->second;
     throw std::out_of_range("Type not registered in SerializationHelper");
   }
-  quint32 string_index_for(const QString &);
+  BoxedType type_for_index(quint16 index) const {
+    for (const auto &[type, idx] : _type_to_index)
+      if (idx == index) return type;
+    throw std::out_of_range("No type found for index in SerializationHelper");
+  }
+  quint32 index_for_string(const QString &);
+  QString string_for_index(quint32);
   friend class TypeInfo;
 
 private:
@@ -83,10 +90,12 @@ struct Pointer {
     using archive_type = std::remove_cvref_t<decltype(archive)>;
     if constexpr (archive_type::kind() == zpp::bits::kind::out) {
       if (auto errc = archive(self.pointer_size); errc.code != std::errc()) return errc;
-      return archive(helper->get_index_for(self.to)); // Use helper to convert our pointer to an index!
+      return archive(helper->index_for_type(self.to)); // Use helper to convert our pointer to an index!
     } else if constexpr (archive_type::kind() == zpp::bits::kind::in && !std::is_const<decltype(self)>()) {
       if (auto errc = archive(self.pointer_size); errc.code != std::errc()) return errc;
-      // TODO: use helper to convert int/index to a ptr.
+      quint16 index;
+      if (auto errc = archive(index); errc.code != std::errc()) return errc;
+      self.to = helper->type_for_index(index);
       return std::errc{};
     } else if constexpr (archive_type::kind() == zpp::bits::kind::in) throw std::logic_error("Can't read into const");
     throw std::logic_error("Unreachable");
@@ -106,11 +115,13 @@ struct Array {
     if constexpr (archive_type::kind() == zpp::bits::kind::out) {
       if (auto errc = archive(self.pointer_size); errc.code != std::errc()) return errc;
       else if (errc = archive(self.length); errc.code != std::errc()) return errc;
-      return archive(helper->get_index_for(self.of)); // Use  helper to convert our pointer to an index!
+      return archive(helper->index_for_type(self.of)); // Use  helper to convert our pointer to an index!
     } else if constexpr (archive_type::kind() == zpp::bits::kind::in && !std::is_const<decltype(self)>()) {
       if (auto errc = archive(self.pointer_size); errc.code != std::errc()) return errc;
       else if (errc = archive(self.length); errc.code != std::errc()) return errc;
-      // TODO: use helper to convert int/index to a ptr.
+      quint16 index;
+      if (auto errc = archive(index); errc.code != std::errc()) return errc;
+      self.of = helper->type_for_index(index);
       return std::errc{};
     } else if constexpr (archive_type::kind() == zpp::bits::kind::in) throw std::logic_error("Can't read into const");
     throw std::logic_error("Unreachable");
@@ -127,25 +138,43 @@ struct Struct {
   bool operator==(const Struct &) const;
   inline uint64_t pad_bits(uint64_t bits) const { return bits & ~(static_cast<uint64_t>(pointer_size) * 8 - 1); }
   std::optional<std::pair<BoxedType, uint16_t>> find(const QString &member);
-  constexpr static zpp::bits::errc serialize(auto &archive, auto &self, SerializationHelper *helper) {
+  static zpp::bits::errc serialize(auto &archive, auto &self, SerializationHelper *helper) {
     using archive_type = std::remove_cvref_t<decltype(archive)>;
     if constexpr (archive_type::kind() == zpp::bits::kind::out) {
       if (auto errc = archive(self.pointer_size); errc.code != std::errc()) return errc;
+      else if (errc = archive((quint8)self.members.size()); errc.code != std::errc()) return errc;
       for (const auto &[name, type, offset] : self.members) {
-        if (auto errc = archive(helper->string_index_for(name)); errc.code != std::errc()) return errc;
-        if (auto errc = archive(helper->get_index_for(type)); errc.code != std::errc()) return errc;
-        if (auto errc = archive(offset); errc.code != std::errc()) return errc;
+        if (auto errc = archive(helper->index_for_string(name)); errc.code != std::errc()) return errc;
+        else if (errc = archive(helper->index_for_type(type)); errc.code != std::errc()) return errc;
+        else if (errc = archive(offset); errc.code != std::errc()) return errc;
       }
       return std::errc{};
     } else if constexpr (archive_type::kind() == zpp::bits::kind::in && !std::is_const<decltype(self)>()) {
       if (auto errc = archive(self.pointer_size); errc.code != std::errc()) return errc;
-      // TODO: use helper to convert int/index to a ptr.
+      quint8 tmp = 0;
+      if (auto errc = archive(tmp); errc.code != std::errc()) return errc;
+      self.members.resize(tmp);
+      for (int it = 0; it < tmp; ++it) {
+        quint32 string_idx = 0;
+        if (auto errc = archive(string_idx); errc.code != std::errc()) return errc;
+        QString name = helper->string_for_index(string_idx);
+
+        quint16 type_index = 0;
+        if (auto errc = archive(type_index); errc.code != std::errc()) return errc;
+        auto boxed_type = helper->type_for_index(type_index);
+
+        quint16 offset = 0;
+        if (auto errc = archive(offset); errc.code != std::errc()) return errc;
+
+        self.members[it] = std::make_tuple(name, boxed_type, offset);
+      }
       return std::errc{};
     } else if constexpr (archive_type::kind() == zpp::bits::kind::in) throw std::logic_error("Can't read into const");
     throw std::logic_error("Unreachable");
   }
 };
 
+// Updating order or # of types requires a change to our serialization switch below.
 using Type = std::variant<Never, Primitive, Pointer, Array, Struct>;
 
 BoxedType box(Primitives type);
@@ -163,9 +192,41 @@ template <typename T> struct SerializeVistor {
 };
 } // namespace detail
 static zpp::bits::errc serialize(auto &archive, auto &type, SerializationHelper *helper = nullptr) {
-  if (archive.kind() == zpp::bits::kind::out) {
+  using archive_type = std::remove_cvref_t<decltype(archive)>;
+  if constexpr (archive_type::kind() == zpp::bits::kind::out) {
     if (auto errc = archive((quint8)type.index()); errc.code != std::errc()) return errc;
     return std::visit(detail::SerializeVistor{archive, helper}, type);
+  } else {
+    quint8 index = 0;
+    if (auto errc = archive(index); errc.code != std::errc()) return errc;
+    switch (index) {
+    case 0: type = Never{}; return std::errc();
+    case 1: {
+      Primitive tmp;
+      if (auto errc = tmp.serialize(archive, tmp, helper); errc.code != std::errc()) return errc;
+      type = std::move(tmp);
+      return std::errc();
+    }
+    case 2: {
+      Pointer tmp;
+      if (auto errc = tmp.serialize(archive, tmp, helper); errc.code != std::errc()) return errc;
+      type = std::move(tmp);
+      return std::errc();
+    }
+    case 3: {
+      Array tmp;
+      if (auto errc = tmp.serialize(archive, tmp, helper); errc.code != std::errc()) return errc;
+      type = std::move(tmp);
+      return std::errc();
+    }
+    case 4: {
+      Struct tmp;
+      if (auto errc = tmp.serialize(archive, tmp, helper); errc.code != std::errc()) return errc;
+      type = std::move(tmp);
+      return std::errc();
+    }
+    default: return std::errc::protocol_error;
+    }
   }
   throw std::logic_error("Not implemented");
 }
