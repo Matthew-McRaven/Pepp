@@ -297,3 +297,9 @@ bool pepp::debug::types::operator==(const Type &lhs, const BoxedType &rhs) {
 quint32 pepp::debug::types::SerializationHelper::index_for_string(const QString &str) { return _strs.add(str); }
 
 QString pepp::debug::types::SerializationHelper::string_for_index(quint32 index) { return _strs.at(index); }
+
+uint64_t pepp::debug::types::mask_pointer_bits(uint8_t pointer_byte_size, uint64_t bits) {
+  if (pointer_byte_size == 8) return bits;
+  const uint64_t mask = (1 << static_cast<uint64_t>(pointer_byte_size * 8)) - 1;
+  return bits & mask;
+}

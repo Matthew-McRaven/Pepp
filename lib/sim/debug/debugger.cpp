@@ -139,7 +139,8 @@ QVariant pepp::debug::BreakpointTableModel::data(const QModelIndex &index, int r
     } else if (index.column() == 3) {
       return _conditionEditor.at(bp).expression_text();
     } else if (index.column() == 4) {
-      if (auto item = _conditionEditor.at(bp); item.value()) return from_bits(*item.value());
+      // TODO: need to get type info from Debugger so I can pass non-null
+      if (auto item = _conditionEditor.at(bp); item.value()) return from_bits(*item.value(), nullptr);
       return "";
     } else if (index.column() == 5) {
       return _conditionEditor.at(bp).type_text();
