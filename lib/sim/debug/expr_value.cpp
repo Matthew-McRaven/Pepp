@@ -106,6 +106,7 @@ struct OrderingVisitor {
 };
 
 struct VariantFromBitsVisitor {
+  const types::TypeInfo *info = nullptr;
   QVariant operator()(const VNever &v) const { return QVariant::fromValue((int8_t)0); }
   QVariant operator()(const VPrimitive &v) const {
     using enum types::Primitives;
@@ -120,9 +121,42 @@ struct VariantFromBitsVisitor {
     return QVariant::fromValue((int8_t)0);
   }
   // TODO: these actually need RTTI
-  QVariant operator()(const VPointer &v) const { return QVariant::fromValue((uint16_t)0); }
-  QVariant operator()(const VArray &v) const { return QVariant::fromValue((uint16_t)0); }
-  QVariant operator()(const VStruct &v) const { return QVariant::fromValue((uint16_t)0); }
+  QVariant operator()(const VPointer &v) const {
+    if (!info) return QVariant::fromValue((uint16_t)v.bits);
+    auto type = info->type_from(v.type_handle);
+    if (!std::holds_alternative<types::Pointer>(unbox(type))) return QVariant::fromValue((uint16_t)0);
+    auto ptr_type = std::get<types::Pointer>(unbox(type));
+    switch (ptr_type.pointer_size) {
+    case 1: return QVariant::fromValue((uint8_t)v.bits);
+    case 2: return QVariant::fromValue((uint16_t)v.bits);
+    case 4: return QVariant::fromValue((uint32_t)v.bits);
+    default: return QVariant::fromValue((uint16_t)v.bits);
+    }
+  }
+  QVariant operator()(const VArray &v) const {
+    if (!info) return QVariant::fromValue((uint16_t)v.bits);
+    auto type = info->type_from(v.type_handle);
+    if (!std::holds_alternative<types::Array>(unbox(type))) return QVariant::fromValue((uint16_t)0);
+    auto array_type = std::get<types::Array>(unbox(type));
+    switch (array_type.pointer_size) {
+    case 1: return QVariant::fromValue((uint8_t)v.bits);
+    case 2: return QVariant::fromValue((uint16_t)v.bits);
+    case 4: return QVariant::fromValue((uint32_t)v.bits);
+    default: return QVariant::fromValue((uint16_t)v.bits);
+    }
+  }
+  QVariant operator()(const VStruct &v) const {
+    if (!info) return QVariant::fromValue((uint16_t)v.bits);
+    auto type = info->type_from(v.type_handle);
+    if (!std::holds_alternative<types::Array>(unbox(type))) return QVariant::fromValue((uint16_t)0);
+    auto struct_type = std::get<types::Array>(unbox(type));
+    switch (struct_type.pointer_size) {
+    case 1: return QVariant::fromValue((uint8_t)v.bits);
+    case 2: return QVariant::fromValue((uint16_t)v.bits);
+    case 4: return QVariant::fromValue((uint32_t)v.bits);
+    default: return QVariant::fromValue((uint16_t)v.bits);
+    }
+  }
 };
 struct ValueFromBitsVisitor {
   quint64 bits;
@@ -142,7 +176,9 @@ bool pepp::debug::operator==(const Value &lhs, const Value &rhs) {
   return (lhs <=> rhs) == std::strong_ordering::equal;
 }
 
-QVariant pepp::debug::from_bits(const Value &v) { return std::visit(::detail::VariantFromBitsVisitor{}, v); }
+QVariant pepp::debug::from_bits(const Value &v, const types::TypeInfo *info) {
+  return std::visit(::detail::VariantFromBitsVisitor{info}, v);
+}
 
 pepp::debug::Value pepp::debug::from_bits(const types::Type &type, quint64 bits) {
   return std::visit(::detail::ValueFromBitsVisitor{bits}, type);

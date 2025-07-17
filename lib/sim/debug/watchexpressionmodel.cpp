@@ -90,9 +90,8 @@ bool pepp::debug::edit_term(EditableWatchExpression &item, ExpressionCache &cach
 pepp::debug::WatchExpressionEditor::WatchExpressionEditor(ExpressionCache *cache, Environment *env, QObject *parent)
     : QObject(parent), _env(env), _cache(cache), _items(0) {
   pepp::debug::Parser p(*_cache, *env->type_info());
-  add_item("1 - 3");
-  add_item("3_u16 * (x + 2)");
-  add_item("y + 1 ==  m * x + b");
+  add_item("$pc");
+  add_item("*((u8*)($pc))");
 }
 
 void pepp::debug::WatchExpressionEditor::add_item(const QString &new_expr, const QString new_type) {
@@ -182,7 +181,10 @@ QVariant pepp::debug::WatchExpressionTableModel::data(const QModelIndex &index, 
       return item.expression_text();
     } else if (col == 1) {
       if (item.is_wip()) return "<invalid>";
-      return from_bits(item.value().value_or(pepp::debug::VNever{}));
+      // This has no local copy of type info; the editor does but it just might be null.
+      types::TypeInfo *info = nullptr;
+      if (auto env = _expressionModel->env(); env) info = env->type_info();
+      return from_bits(item.value().value_or(pepp::debug::VNever{}), info);
     } else {
       return item.type_text();
     }

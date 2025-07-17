@@ -72,7 +72,7 @@ template <std::integral T = uint64_t> T value_bits(const Value &v) {
   auto ret = std::visit(details::BitVisitor{}, v);
   return static_cast<T>(ret);
 }
-QVariant from_bits(const Value &v);
+QVariant from_bits(const Value &v, const types::TypeInfo *info);
 Value from_bits(const types::Type &, quint64 bits);
 
 // Overloading not possible since they need an extra argument

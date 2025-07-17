@@ -119,6 +119,7 @@ public:
   bool edit_type(int index, const QString &new_type);
   bool delete_at(int index);
   void update_volatile_values();
+  pepp::debug::Environment *env() { return _env; }
 
 public slots:
   void onSimulationStart();

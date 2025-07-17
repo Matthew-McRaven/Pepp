@@ -85,7 +85,6 @@ struct Pointer {
   BoxedType to = std::shared_ptr<Never>{nullptr};
   std::strong_ordering operator<=>(const Pointer &) const;
   bool operator==(const Pointer &) const;
-  inline uint64_t pad_bits(uint64_t bits) const { return bits & ~(static_cast<uint64_t>(pointer_size) * 8 - 1); }
   constexpr static zpp::bits::errc serialize(auto &archive, auto &self, SerializationHelper *helper) {
     using archive_type = std::remove_cvref_t<decltype(archive)>;
     if constexpr (archive_type::kind() == zpp::bits::kind::out) {
@@ -109,7 +108,7 @@ struct Array {
   BoxedType of = std::shared_ptr<Never>{nullptr};
   std::strong_ordering operator<=>(const Array &) const;
   bool operator==(const Array &) const;
-  inline uint64_t pad_bits(uint64_t bits) const { return bits & ~(static_cast<uint64_t>(pointer_size) * 8 - 1); }
+
   constexpr static zpp::bits::errc serialize(auto &archive, auto &self, SerializationHelper *helper) {
     using archive_type = std::remove_cvref_t<decltype(archive)>;
     if constexpr (archive_type::kind() == zpp::bits::kind::out) {
@@ -136,7 +135,7 @@ struct Struct {
   std::vector<std::tuple<QString, BoxedType, uint16_t>> members;
   std::strong_ordering operator<=>(const Struct &) const;
   bool operator==(const Struct &) const;
-  inline uint64_t pad_bits(uint64_t bits) const { return bits & ~(static_cast<uint64_t>(pointer_size) * 8 - 1); }
+
   std::optional<std::pair<BoxedType, uint16_t>> find(const QString &member);
   static zpp::bits::errc serialize(auto &archive, auto &self, SerializationHelper *helper) {
     using archive_type = std::remove_cvref_t<decltype(archive)>;
@@ -173,6 +172,8 @@ struct Struct {
     throw std::logic_error("Unreachable");
   }
 };
+
+uint64_t mask_pointer_bits(uint8_t pointer_byte_size, uint64_t bits);
 
 // Updating order or # of types requires a change to our serialization switch below.
 using Type = std::variant<Never, Primitive, Pointer, Array, Struct>;
