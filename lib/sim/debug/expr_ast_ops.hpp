@@ -4,12 +4,27 @@
 
 namespace pepp::debug {
 bool is_constant_expression(const Term &term);
+// Check if the term is recursivley volatile.
+bool is_volatile_expression(const Term &term);
 std::vector<std::shared_ptr<Term>> volatiles(Term &term);
 void mark_parents_dirty(Term &base);
 
 namespace detail {
 struct IsConstantExpressionVisitor : public ConstantTermVisitor {
   bool is_constant_expression = true;
+  void accept(const Variable &node) override;
+  void accept(const DebuggerVariable &node) override;
+  void accept(const Constant &node) override;
+  void accept(const BinaryInfix &node) override;
+  void accept(const MemberAccess &node) override;
+  void accept(const UnaryPrefix &node) override;
+  void accept(const MemoryRead &node) override;
+  void accept(const Parenthesized &node) override;
+  void accept(const DirectCast &node) override;
+  void accept(const IndirectCast &node) override;
+};
+struct IsVolatileExpressionVisitor : public ConstantTermVisitor {
+  bool is_volatile_expression = false;
   void accept(const Variable &node) override;
   void accept(const DebuggerVariable &node) override;
   void accept(const Constant &node) override;
