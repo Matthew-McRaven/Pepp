@@ -5,6 +5,13 @@ bool pepp::debug::is_constant_expression(const Term &term) {
   term.accept(v);
   return v.is_constant_expression;
 }
+
+bool pepp::debug::is_volatile_expression(const Term &term) {
+  detail::IsVolatileExpressionVisitor v;
+  term.accept(v);
+  return v.is_volatile_expression;
+}
+
 std::vector<std::shared_ptr<pepp::debug::Term>> pepp::debug::volatiles(Term &term) {
   detail::GatherVolatileTerms v;
   term.accept(v);
@@ -52,6 +59,47 @@ void pepp::debug::detail::IsConstantExpressionVisitor::accept(const DirectCast &
 
 void pepp::debug::detail::IsConstantExpressionVisitor::accept(const IndirectCast &node) {
   is_constant_expression = false;
+}
+
+void pepp::debug::detail::IsVolatileExpressionVisitor::accept(const Variable &node) { is_volatile_expression = true; }
+
+void pepp::debug::detail::IsVolatileExpressionVisitor::accept(const DebuggerVariable &node) {
+  is_volatile_expression = true;
+}
+
+void pepp::debug::detail::IsVolatileExpressionVisitor::accept(const Constant &node) {}
+
+void pepp::debug::detail::IsVolatileExpressionVisitor::accept(const BinaryInfix &node) {
+  switch (node.op) {
+  case BinaryInfix::Operators::DOT:
+  case BinaryInfix::Operators::STAR_DOT: is_volatile_expression = true; return;
+  default: break;
+  }
+  if (node.lhs->accept(*this); !is_volatile_expression) return;
+  node.rhs->accept(*this);
+}
+
+void pepp::debug::detail::IsVolatileExpressionVisitor::accept(const MemberAccess &node) {
+  is_volatile_expression = true;
+}
+
+void pepp::debug::detail::IsVolatileExpressionVisitor::accept(const UnaryPrefix &node) {
+  switch (node.op) {
+  case UnaryPrefix::Operators::ADDRESS_OF:
+  case UnaryPrefix::Operators::DEREFERENCE: is_volatile_expression = true; return;
+  default: break;
+  }
+  node.arg->accept(*this);
+}
+
+void pepp::debug::detail::IsVolatileExpressionVisitor::accept(const MemoryRead &node) { is_volatile_expression = true; }
+
+void pepp::debug::detail::IsVolatileExpressionVisitor::accept(const Parenthesized &node) { node.term->accept(*this); }
+
+void pepp::debug::detail::IsVolatileExpressionVisitor::accept(const DirectCast &node) { node.arg->accept(*this); }
+
+void pepp::debug::detail::IsVolatileExpressionVisitor::accept(const IndirectCast &node) {
+  is_volatile_expression = true;
 }
 
 std::vector<std::shared_ptr<pepp::debug::Term>> pepp::debug::detail::GatherVolatileTerms::to_vector() {

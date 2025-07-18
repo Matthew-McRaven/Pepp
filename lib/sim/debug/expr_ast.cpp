@@ -1,5 +1,6 @@
 #include "expr_ast.hpp"
 #include <stdexcept>
+#include "expr_ast_ops.hpp"
 #include "expr_eval.hpp"
 #include "expr_tokenizer.hpp"
 
@@ -132,8 +133,8 @@ const auto unops = std::map<UOperators, QString>{
 } // namespace
 
 pepp::debug::UnaryPrefix::UnaryPrefix(Operators op, std::shared_ptr<Term> arg) : op(op), arg(arg) {
-  int arg_cv = arg ? arg->cv_qualifiers() : 0;
-  bool is_volatile = (arg_cv | UnaryPrefix::cv_qualifiers()) & CVQualifiers::Volatile;
+  bool is_arg_volatile = arg ? is_volatile_expression(*arg) : false;
+  bool is_volatile = is_arg_volatile || (UnaryPrefix::cv_qualifiers() & CVQualifiers::Volatile);
   _state.set_depends_on_volatiles(is_volatile);
 }
 uint16_t pepp::debug::UnaryPrefix::depth() const { return arg->depth() + 1; }
@@ -279,9 +280,9 @@ pepp::debug::BinaryInfix::BinaryInfix(Operators op, std::shared_ptr<Term> lhs, s
   case Operators::DOT: throw std::logic_error("Use MemberAccess for member access");
   default: break;
   }
-  int lhs_cv = lhs ? lhs->cv_qualifiers() : 0;
-  int rhs_cv = rhs ? rhs->cv_qualifiers() : 0;
-  bool is_volatile = (lhs_cv | rhs_cv) & CVQualifiers::Volatile;
+  bool is_lhs_volatile = lhs ? is_volatile_expression(*lhs) : false;
+  bool is_rhs_volatile = rhs ? is_volatile_expression(*rhs) : false;
+  bool is_volatile = is_lhs_volatile || is_rhs_volatile || (BinaryInfix::cv_qualifiers() & CVQualifiers::Volatile);
   _state.set_depends_on_volatiles(is_volatile);
 }
 
@@ -515,7 +516,10 @@ std::strong_ordering pepp::debug::Parenthesized::operator<=>(const Term &rhs) co
   return type() <=> rhs.type();
 }
 
-pepp::debug::Parenthesized::Parenthesized(std::shared_ptr<Term> term) : term(term) {}
+pepp::debug::Parenthesized::Parenthesized(std::shared_ptr<Term> term) : term(term) {
+  bool is_arg_volatile = term ? is_volatile_expression(*term) : false;
+  _state.set_depends_on_volatiles(is_arg_volatile);
+}
 
 QString pepp::debug::Parenthesized::to_string() const {
   using namespace Qt::Literals::StringLiterals;
@@ -565,9 +569,8 @@ bool pepp::debug::Term::dependency_of(std::shared_ptr<Term> t) const {
 bits::span<const std::weak_ptr<pepp::debug::Term>> pepp::debug::Term::dependents() const { return _dependents; }
 
 pepp::debug::DirectCast::DirectCast(types::BoxedType cast_to, std::shared_ptr<Term> arg) : _cast_to(cast_to), arg(arg) {
-  int arg_cv = arg ? arg->cv_qualifiers() : 0;
-  auto is_volatile = arg_cv & CVQualifiers::Volatile;
-  _state.set_depends_on_volatiles(is_volatile);
+  bool is_arg_volatile = arg ? is_volatile_expression(*arg) : false;
+  _state.set_depends_on_volatiles(is_arg_volatile);
 }
 
 std::strong_ordering pepp::debug::DirectCast::operator<=>(const Term &rhs) const {
