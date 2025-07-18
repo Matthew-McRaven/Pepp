@@ -114,10 +114,3 @@ foreach (f-abs IN LISTS help-res-abs)
     list(APPEND help-res "${f-rel}")
 endforeach ()
 qt_add_resources(pepp-lib "help" PREFIX "/help" BASE "${PROJECT_DATA_DIR}/help" FILES ${help-res})
-# Install
-
-if(APPLE)
-else()
-  install(TARGETS pepp-lib RUNTIME DESTINATION bin BUNDLE DESTINATION .)
-endif()
-
