@@ -18,7 +18,8 @@ pepp::debug::Value pepp::debug::CachedEvaluator::evaluate(CachePolicy mode, Envi
 
   auto other = _term->cached();
   auto hasCachedValue = _cache.value.has_value();
-  bool isDirty = _cache.version == other.version && !_term->dirty();
+  // If the term has already been updated, or if the term needs to be updated.
+  bool isDirty = _cache.version == other.version || !_term->dirty();
   switch (mode) {
   case CachePolicy::UseDirtyAlways:
     if (hasCachedValue) return *_cache.value;
