@@ -9,7 +9,7 @@
 #include "toolchain/symbol/entry.hpp"
 
 namespace pas::obj::common {
-void writeDebugCommands(ELFIO::elfio &elf, pas::ast::Node &root);
+void writeDebugCommands(ELFIO::elfio &elf, std::list<pas::ast::Node *> roots);
 namespace detail {
 // Get line mapping section or return nullptr;
 ELFIO::section *getTraceSection(ELFIO::elfio &elf);
