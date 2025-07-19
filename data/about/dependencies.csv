@@ -17,3 +17,4 @@ KDDockWidgets,https://github.com/KDAB/KDDockWidgets,GNU General Public License v
 spdlog,https://github.com/gabime/spdlog,MIT License,MIT,:/about/dep/spdlog.txt, 0
 fmt,https://github.com/fmtlib/fmt,MIT License,MIT,:/about/dep/fmt.txt, 0
 LLVM LEB128,https://llvm.org/,University of Illinois/NCSA Open Source License,NCSA,:/about/dep/llvm.txt, 0
+CXXGrpah,https://github.com/ZigRazor/CXXGraph,Mozilla Public License Version 2.0,MPL-2.0,:/about/dep/cxxgraph.txt, 0
