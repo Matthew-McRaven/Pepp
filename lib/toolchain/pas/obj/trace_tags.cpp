@@ -4,11 +4,14 @@
 
 static const auto traceStr = ".debug_trace";
 
-void pas::obj::common::writeDebugCommands(ELFIO::elfio &elf, ast::Node &root) {
+void pas::obj::common::writeDebugCommands(ELFIO::elfio &elf, std::list<ast::Node *> roots) {
   auto trace = detail::getOrAddTraceSection(elf);
-  auto tt = ops::generic::extractTraceTags(root);
   auto [data, in, out] = zpp::bits::data_in_out();
-  (void)out(tt);
+  for (const auto &root : roots) {
+    auto tt = ops::generic::extractTraceTags(*root);
+    (void)out(tt);
+  }
+
   trace->append_data((const char *)data.data(), data.size());
 }
 
