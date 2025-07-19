@@ -154,3 +154,5 @@ Fixed,,0.10.4,878,"Pep/10's SCALL now pushes the whole IR rather than only the l
 Changed,,0.10.4,895,"Optimized system call dispatch in the Pep/10 OS"
 Fixed,,0.10.4,,"Saving files is now possible on Mac OS"
 Fixed,,0.10.4,897, "Fix off-by-1 formatting bug for macro source code"
+Fixed,,0.10.5,,"Add file type associations for Windows"
+Added,,0.10.5,899,"Add robust type system to expression evaluators"

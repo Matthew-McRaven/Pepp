@@ -171,13 +171,23 @@ QVariant pepp::debug::WatchExpressionTableModel::data(const QModelIndex &index, 
   int row = index.row(), col = index.column();
   if (!index.isValid() || _expressionModel == nullptr) return {};
   auto items = _expressionModel->items();
+  // Prevent out-of-bounds access on items which occurs for last row
+  if (row == items.size()) {
+    switch (role) {
+    case Qt::DisplayRole:
+      if (col == 0) return "<expr>";
+      else return "";
+    case Qt::EditRole: return "";
+    case (int)WER::Changed: return false;
+    case (int)WER::Italicize: return true;
+    default: return {};
+    }
+  }
+
   auto &item = items[row];
   switch (role) {
   case Qt::DisplayRole:
-    if (row >= items.size()) {
-      if (col == 0) return "<expr>";
-      return {};
-    } else if (col == 0) {
+    if (col == 0) {
       return item.expression_text();
     } else if (col == 1) {
       if (item.is_wip()) return "<invalid>";
@@ -189,11 +199,9 @@ QVariant pepp::debug::WatchExpressionTableModel::data(const QModelIndex &index, 
       return item.type_text();
     }
   case (int)WER::Changed:
-    if (row >= items.size()) {
-      return false;
-    } else return item.dirty();
-    // Italicize <expr> and <invalid>
-  case (int)WER::Italicize: return row >= items.size() || (col > 0 && item.is_wip());
+    return item.dirty();
+    // Italicize <invalid>
+  case (int)WER::Italicize: return (col > 0 && item.is_wip());
   }
   return {};
 }
