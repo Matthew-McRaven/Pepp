@@ -19,6 +19,6 @@
 
 TEST_CASE("About Dependencies", "[scope:help.about][kind:unit][arch:*]") {
   auto deps = about::dependencies();
-  CHECK(deps.length() == 18);
+  CHECK(deps.length() == 19);
   for (const auto &dep : deps) CHECK(dep.licenseText.size() != 0);
 };
