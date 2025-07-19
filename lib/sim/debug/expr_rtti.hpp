@@ -56,9 +56,11 @@ public:
   BoxedType box(types::Primitives);           // Primitive types should be registered by default in CTOR.
 
   // A token you can give back to this class to get a type in the future.
-  // Secretly an index into the _handles vector.
-  // The underlying type for the indirect handle can be changed at any time.
-  // Essentially enables forward declared types. IndirectHandle{0} must always correspond to never.
+  // The underlying type for the indirect handle may be changed at any time.
+  // IndirectHandle{0} must always correspond to never.
+  // I expect it to be used one of two ways:
+  // 1) forward declarations. types are initialized to Never and filled in as we reach declarations.
+  // 2) Association names to types (e.g., trace tags and typedefs), types should be filled immediately.
   struct IndirectHandle {
     IndirectHandle() = default;
     IndirectHandle(const IndirectHandle &) = default;
@@ -84,7 +86,7 @@ public:
   std::pair<bool, IndirectHandle> register_indirect(const QString &);
   // Return handle for a name if it exists, else nullopt.
   std::optional<IndirectHandle> get_indirect(const QString &) const;
-  // While DirectHandle will be converted to a BoxedType internally, it prevents you from passing any old pointer in.
+  // While DirectHandle will be converted to a BoxedType internally, it prevents you from passing any pointer in.
   void set_indirect_type(const IndirectHandle &, const DirectHandle &);
   void set_indirect_type(const QString &, const DirectHandle &);
   // Set all indirect types to Never.
@@ -156,11 +158,19 @@ public:
         if (auto errc = types::serialize(archive, t, &h); errc.code != std::errc()) return errc;
       }
 
-      // Serialize indirect types registrations. Don't serialize the types because these are tied to simulator state.
+      // Serialize indirect types registrations.
       if (auto errc = archive((quint16)self._nameToIndirect.size()); errc.code != std::errc()) return errc;
       for (const auto &[name, hnd] : self._nameToIndirect) {
         if (auto errc = archive(h.index_for_string(name)); errc.code != std::errc()) return errc;
         if (auto errc = archive(hnd._index); errc.code != std::errc()) return errc;
+      }
+
+      // Serialize the indirect types for each scope
+      if (auto errc = archive((quint16)self._indirectTypes.indirectTypes.size()); errc.code != std::errc()) return errc;
+      for (const auto &[hnd, type] : self._indirectTypes.indirectTypes) {
+        if (auto errc = archive(hnd._index); errc.code != std::errc()) return errc;
+        auto type_index = h.index_for_type(type.type);
+        if (auto errc = archive(type_index); errc.code != std::errc()) return errc;
       }
       return std::errc();
     } else if constexpr (archive_type::kind() == zpp::bits::kind::in && !std::is_const<decltype(self)>()) {
@@ -177,7 +187,7 @@ public:
         h._type_to_index[self.box(t)] = it;
       }
 
-      // Load indirect types.
+      // Load indirect type registrations.
       quint16 indirect_handle_count = 0;
       if (auto errc = archive(indirect_handle_count); errc.code != std::errc()) return errc;
       for (int it = 0; it < indirect_handle_count; ++it) {
@@ -190,6 +200,19 @@ public:
 
         self._nameToIndirect[name] = IndirectHandle{index};
       }
+
+      // Load indirect types for each scope
+      quint16 tmp = 0;
+      if (auto errc = archive(tmp); errc.code != std::errc()) return errc;
+      for (auto it = 0; it < tmp; it++) {
+        IndirectHandle hnd;
+        if (auto errc = archive(hnd._index); errc.code != std::errc()) return errc;
+        quint16 type_index = 0;
+        if (auto errc = archive(type_index); errc.code != std::errc()) return errc;
+        auto type = h.type_for_index(type_index);
+        self._indirectTypes.indirectTypes[hnd] = Versioned<OptType>{type};
+      }
+
       return std::errc{};
     } else if constexpr (archive_type::kind() == zpp::bits::kind::in) throw std::logic_error("Can't read into const");
     throw std::logic_error("Unreachable");
