@@ -23,18 +23,26 @@ struct gui_args {
   bool resetSettings = false;
 #if INCLUDE_GUI
   QUrl QMLEntry{};              // If empty, pick "GUI" default.
+  QUrl OpenFile{};              // If empty, no file is opened.
 #endif
 };
 
 int gui_main(const gui_args &);
 
 void registerGUI(auto &app, task_factory_t &task, detail::SharedFlags &flags, gui_args &gui_args) {
+  static std::string open_file;
   static auto gui = app.add_subcommand("gui", "Start Pepp GUI");
   gui->prefix_command(true);
+  static auto launch_file = gui->add_option("open-file", open_file);
   gui->set_help_flag();
   gui->callback([&]() {
     flags.kind = detail::SharedFlags::Kind::GUI;
     gui_args.argvs = gui->remaining_for_passthrough();
     std::reverse(gui_args.argvs.begin(), gui_args.argvs.end());
+#if INCLUDE_GUI
+    if (!open_file.empty()) {
+      gui_args.OpenFile = QUrl::fromLocalFile(QString::fromStdString(open_file));
+    }
+#endif
   });
 }

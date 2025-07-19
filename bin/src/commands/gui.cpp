@@ -210,6 +210,15 @@ int gui_main(const gui_args &args) {
   auto filter = new QuitInterceptor;
   filter->engine = &engine;
   window->installEventFilter(filter);
+  // Windows signals for file open events by passing file as arg to application.
+  // I already have a system to deal with file open events, so let's post an event instead.
+  if (args.OpenFile.isLocalFile()) {
+    auto file_string = args.OpenFile.toLocalFile();
+    // Event must be heap allocated; ownership is assumed by event queue.
+    // https://doc.qt.io/qt-6/qcoreapplication.html#postEvent
+    QFileOpenEvent *ev = new QFileOpenEvent(file_string);
+    QCoreApplication::postEvent(QCoreApplication::instance(), ev);
+  }
 #ifdef __EMSCRIPTEN__
   return 0;
 #else
