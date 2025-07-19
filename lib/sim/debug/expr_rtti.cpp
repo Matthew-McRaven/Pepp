@@ -4,7 +4,8 @@
 
 pepp::debug::types::TypeInfo::TypeInfo() {
   Type never = types::Never{};
-  _indirectTypes.emplace_back(box(never));
+  _indirectTypes.indirectTypes[IndirectHandle(0)] = Versioned<OptType>{box(never)};
+  _nameToIndirect[0] = IndirectHandle(0);
   auto register_primitive = [this](types::Primitives t) {
     auto hnd = DirectHandle(t);
     auto shared = pepp::debug::types::box(t);
@@ -110,10 +111,10 @@ pepp::debug::types::TypeInfo::register_indirect(const QString &name) {
   QMutexLocker locker(&_mut);
   if (const auto it = _nameToIndirect.find(name); it != _nameToIndirect.end()) return {false, it->second};
   else {
-    IndirectHandle hnd((quint16)_indirectTypes.size());
+    IndirectHandle hnd((quint16)_nameToIndirect.size());
     Type t = types::Never{};
     auto [boxed_type, _] = add_or_get_direct(t);
-    _indirectTypes.emplace_back(Versioned<OptType>{boxed_type});
+    _indirectTypes.indirectTypes[hnd] = (Versioned<OptType>{boxed_type});
     _nameToIndirect[name] = hnd;
     return {true, hnd};
   }
@@ -129,9 +130,11 @@ pepp::debug::types::TypeInfo::get_indirect(const QString &name) const {
 void pepp::debug::types::TypeInfo::set_indirect_type(const IndirectHandle &indirect, const DirectHandle &direct) {
   auto type = type_from(direct); // Locks a mutex so it must occur before our critical section
   QMutexLocker locker(&_mut);
-  if (indirect._index < 1 || indirect._index >= _indirectTypes.size())
+  if (indirect._index < 1 || indirect._index >= _nameToIndirect.size())
     throw std::out_of_range("Invalid indirect handle");
-  else if (auto &item = _indirectTypes[indirect._index]; item.type != type) item.type = type, item.version++;
+  else if (auto it = _indirectTypes.indirectTypes.find(indirect); it == _indirectTypes.indirectTypes.end())
+    _indirectTypes.indirectTypes[indirect] = Versioned<OptType>{type};
+  else it->second.type = type, it->second.version++;
 }
 
 void pepp::debug::types::TypeInfo::set_indirect_type(const QString &name, const DirectHandle &direct) {
@@ -144,14 +147,20 @@ void pepp::debug::types::TypeInfo::set_indirect_type(const QString &name, const 
 void pepp::debug::types::TypeInfo::clear_indirect_types() {
   QMutexLocker locker(&_mut);
   Type t = types::Never{};
-  auto never = box(t); // Reset all indirect types to Never.
-  std::fill(_indirectTypes.begin(), _indirectTypes.end(), Versioned<OptType>{never});
+  auto never = box(t);
+  _indirectTypes.indirectTypes.clear();
+  _indirectTypes.indirectTypes[IndirectHandle(0)] = Versioned<OptType>{never};
 }
 
 pepp::debug::types::BoxedType pepp::debug::types::TypeInfo::type_from(IndirectHandle handle) const {
-  QMutexLocker locker(&_mut);
-  if (handle._index < 0 || handle._index >= _indirectTypes.size()) throw std::out_of_range("Invalid handle index");
-  else return _indirectTypes[handle._index].type;
+  Type t = types::Never{};
+  {
+    QMutexLocker locker(&_mut); // box uses a mutex, so we need to free the mutex before that return.
+    if (handle._index < 0 || handle._index >= _nameToIndirect.size()) throw std::out_of_range("Invalid handle index");
+    else if (auto it = _indirectTypes.indirectTypes.find(handle); it != _indirectTypes.indirectTypes.end())
+      return it->second.type;
+  }
+  return box(t).value();
 }
 
 pepp::debug::types::BoxedType pepp::debug::types::TypeInfo::type_from(DirectHandle handle) const {
@@ -163,9 +172,14 @@ pepp::debug::types::BoxedType pepp::debug::types::TypeInfo::type_from(DirectHand
 
 pepp::debug::Versioned<pepp::debug::types::OptType>
 pepp::debug::types::TypeInfo::versioned_from(IndirectHandle handle) const {
-  QMutexLocker locker(&_mut);
-  if (handle._index < 0 || handle._index >= _indirectTypes.size()) throw std::out_of_range("Invalid handle index");
-  else return _indirectTypes[handle._index];
+  Type t = types::Never{};
+  {
+    QMutexLocker locker(&_mut); // box uses a mutex, so we need to free the mutex before that return.
+    if (handle._index < 0 || handle._index >= _nameToIndirect.size()) throw std::out_of_range("Invalid handle index");
+    else if (auto it = _indirectTypes.indirectTypes.find(handle); it != _indirectTypes.indirectTypes.end())
+      return it->second;
+  }
+  return Versioned<OptType>{box(t).value()};
 }
 
 uint32_t pepp::debug::types::TypeInfo::version_of(IndirectHandle) const {

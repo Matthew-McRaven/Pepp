@@ -254,6 +254,7 @@ TEST_CASE("Parsing watch expressions", "[scope:debug][kind:unit][arch:*]") {
     auto i16 = types::Primitive{types::Primitives::i16};
     types.set_indirect_type("mystruct", types.register_direct(types::Primitives::i16));
     CHECK(as_cast->cast_to(types) == i16);
+    CHECK(types::to_string(as_cast->cast_to(types)).toStdString() == types::to_string(i16).toStdString());
     CHECK(as_cast->to_string().toStdString() == "(mystruct*)a");
   }
   // P2
