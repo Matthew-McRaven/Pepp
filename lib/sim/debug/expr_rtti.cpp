@@ -40,7 +40,7 @@ pepp::debug::types::TypeInfo::DirectHandle::DirectHandle(Primitives t)
   case Primitives::u32: break;
   default:
     // If you hit this, you need to update TypeInfo CTOR to register the primitive and then add a case
-    throw std::logic_error("Unreachable cae in DirectHandle CTOR");
+    throw std::logic_error("Unreachable case in DirectHandle CTOR");
   }
 }
 
@@ -222,7 +222,17 @@ void pepp::debug::types::TypeInfo::extract_strings(StringInternPool &f) const {
 
 std::weak_ordering pepp::debug::types::TypeInfo::operator<=>(const TypeInfo &rhs) const {
   if (auto r = _directTypes <=> rhs._directTypes; r != 0) return r;
-  return _nameToIndirect <=> rhs._nameToIndirect;
+  else if (auto r = _nameToIndirect <=> rhs._nameToIndirect; r != 0) return r;
+  // Roll our own comparison for this map so that I can ignore versions for indirect types.
+  // Iterators are already sorted by key using std::less, so direct comparison is fine.
+  else if (auto r = _indirectTypes.indirectTypes.size() <=> rhs._indirectTypes.indirectTypes.size(); r != 0) return r;
+  auto lhs_it = _indirectTypes.indirectTypes.begin(), rhs_it = rhs._indirectTypes.indirectTypes.begin();
+  while (lhs_it != _indirectTypes.indirectTypes.end() && rhs_it != rhs._indirectTypes.indirectTypes.end()) {
+    if (auto cmp = lhs_it->first <=> rhs_it->first; cmp != 0) return cmp;
+    else if (auto cmp = lhs_it->second.type <=> rhs_it->second.type; cmp != 0) return cmp;
+    ++lhs_it, ++rhs_it;
+  }
+  return std::weak_ordering::equivalent;
 }
 
 bool pepp::debug::types::TypeInfo::operator==(const TypeInfo &rhs) const {
