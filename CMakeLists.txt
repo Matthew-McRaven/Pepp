@@ -140,7 +140,29 @@ if (ONLY STREQUAL "BUILD")
     # Assuming you're targeting multiple platforms, you might want to conditionally set the generator
     if (WIN32)
         set(CPACK_GENERATOR "IFW") # or "ZIP" for a simple zip archive
-        set(CPACK_IFW_ROOT "${Qt6_DIR}/../../../../Tools/QtInstallerFramework/4.6")
+
+        # QT IFW could be installed at a couple of locations. Try and detect recent versions first at any location.
+        set(VERSIONS "4.10;4.9;4.8;4.7,4.6")
+        set(BASE_PATHS
+            "${Qt6_DIR}/../../../../Tools/QtInstallerFramework"
+            "${Qt6_DIR}/../../../../../Tools/QtInstallerFramework"
+        )
+        foreach(ver IN LISTS VERSIONS)
+            foreach(base IN LISTS BASE_PATHS)
+            set(candidate "${base}/${ver}")
+            cmake_path(NORMAL_PATH candidate OUTPUT_VARIABLE candidate_norm)
+            if(IS_DIRECTORY "${candidate_norm}")
+                set(CPACK_IFW_ROOT "${candidate_norm}")
+                set(_found TRUE)           # break out of both loops
+                break()
+            endif()
+            endforeach()
+            if(_found)
+                break()
+            endif()
+        endforeach()
+        message("Using IFW at: ${CPACK_IFW_ROOT}")
+
         set(CPACK_IFW_PRODUCT_URL "https://github.com/Matthew-McRaven/Pepp/")
         if (EXISTS "${PROJECT_DATA_DIR}/app_icon/icon.ico")
             set(CPACK_IFW_PACKAGE_ICON "${PROJECT_DATA_DIR}/app_icon/icon.ico")
@@ -148,17 +170,32 @@ if (ONLY STREQUAL "BUILD")
         if (EXISTS "${PROJECT_DATA_DIR}/app_icon/icon.png")
             set(CPACK_IFW_PACKAGE_WINDOW_ICON "${PROJECT_DATA_DIR}/app_icon/icon.png")
         endif ()
+
+        set(INSTALLER_SCRIPT "${CMAKE_CURRENT_LIST_DIR}/config/installer/installscript.qs")
+        if(NOT EXISTS "${INSTALLER_SCRIPT}")
+            message(FATAL_ERROR "Installer script file not found!")
+        else()
+            message("Using installer script: ${INSTALLER_SCRIPT}")
+        endif()
+
+
         include(CPackIFW)
         cpack_add_component(Pepp
                 DISPLAY_NAME Pepp
                 REQUIRED
         )
+        # For single component projects, must set CPACK_COMPONENTS_ALL per this issue, else SCRIPT is unset
+        # https://gitlab.kitware.com/cmake/cmake/-/issues/22528
+        set (CPACK_COMPONENTS_ALL Pepp)
         cpack_ifw_configure_component(Pepp
                 FORCED_INSTALLATION
                 REQUIRES_ADMIN_RIGHTS
                 NAME "Pepp"
                 LICENSES "GPL-3.0" "${PROJECT_SOURCE_DIR}/LICENSE"
+                SCRIPT       "${INSTALLER_SCRIPT}"
         )
+
+
     elseif (APPLE)
         # Need monolithic install to keep directory structure stable.
         set(CPACK_MONOLITHIC_INSTALL on)
