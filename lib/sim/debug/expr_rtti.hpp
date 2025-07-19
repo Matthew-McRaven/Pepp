@@ -58,7 +58,7 @@ public:
   // A token you can give back to this class to get a type in the future.
   // Secretly an index into the _handles vector.
   // The underlying type for the indirect handle can be changed at any time.
-  // Essentially enables forward declared types.
+  // Essentially enables forward declared types. IndirectHandle{0} must always correspond to never.
   struct IndirectHandle {
     IndirectHandle() = default;
     IndirectHandle(const IndirectHandle &) = default;
@@ -72,6 +72,12 @@ public:
     explicit IndirectHandle(quint16 index);
     friend class TypeInfo;
     quint16 _index = 0;
+  };
+
+  // Allows us to have multiple sets of {name:type} bindings, which will be useful when switching between source files.
+  struct IndirectScope {
+    // [0] must always be set, and must always be Never.
+    std::map<TypeInfo::IndirectHandle, Versioned<OptType>> indirectTypes;
   };
   // [0] is true if the name was not yet registered.
   // [1] unconditionally contains the handle for that name, regardless of registration status.
@@ -115,8 +121,7 @@ private:
 
   // Members for indirect types
   std::map<QString, IndirectHandle> _nameToIndirect;
-  // [0] must always be Never, because I have trust issues with null objects.
-  std::vector<Versioned<OptType>> _indirectTypes;
+  IndirectScope _indirectTypes;
   void extract_strings(StringInternPool &f) const;
 
 public:
@@ -175,7 +180,6 @@ public:
       // Load indirect types.
       quint16 indirect_handle_count = 0;
       if (auto errc = archive(indirect_handle_count); errc.code != std::errc()) return errc;
-      self._indirectTypes.resize(indirect_handle_count);
       for (int it = 0; it < indirect_handle_count; ++it) {
         quint32 string_idx = 0;
         if (auto errc = archive(string_idx); errc.code != std::errc()) return errc;
