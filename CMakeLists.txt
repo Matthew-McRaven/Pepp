@@ -142,7 +142,7 @@ if (ONLY STREQUAL "BUILD")
         set(CPACK_GENERATOR "IFW") # or "ZIP" for a simple zip archive
 
         # QT IFW could be installed at a couple of locations. Try and detect recent versions first at any location.
-        set(VERSIONS "4.10;4.9;4.8;4.7,4.6")
+        set(VERSIONS "4.10;4.9;4.8;4.7;4.6")
         set(BASE_PATHS
             "${Qt6_DIR}/../../../../Tools/QtInstallerFramework"
             "${Qt6_DIR}/../../../../../Tools/QtInstallerFramework"
