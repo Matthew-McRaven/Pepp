@@ -39,6 +39,7 @@ public:
     MetaType metatype() const;
     // Helper to pretty-print the handle.
     quint16 index() const { return ((_metatype & 0x7) << 13) | (_type & 0x1FFF); }
+    inline operator QString() const { return QStringLiteral("DirectHandle(%1)").arg(index()); }
 
   private:
     friend class TypeInfo;
@@ -77,6 +78,7 @@ public:
     friend std::istream &operator>>(std::istream &is, IndirectHandle &h);
     // Helper to pretty-print the handle.
     inline quint16 index() const { return _index; }
+    inline operator QString() const { return QStringLiteral("IndirectHandle(%1)").arg(_index); }
 
   private:
     explicit IndirectHandle(quint16 index);

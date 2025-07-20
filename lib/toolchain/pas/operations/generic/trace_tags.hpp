@@ -42,6 +42,7 @@ struct Command {
   std::vector<TraceMatch> modifiers;
   std::optional<quint32> address;
   std::optional<QString> symbolDecl;
+  bool isPush = false;
   operator QString() const;
 };
 

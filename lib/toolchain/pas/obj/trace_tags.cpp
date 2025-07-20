@@ -1,4 +1,5 @@
 #include "trace_tags.hpp"
+#include "./stack_ops.hpp"
 #include "CXXGraph/CXXGraph.hpp"
 #include "expr_rtti.hpp"
 #include "toolchain/pas/operations/generic/trace_tags.hpp"
@@ -20,12 +21,14 @@ std::optional<pepp::debug::types::Primitives> primitive_from_arg(const QStringVi
   else if (view.compare("1c", case_ins) == 0) return i8;
   return std::nullopt;
 }
+using cmd_list = decltype(pas::ops::generic::extractTraceTags(std::declval<pas::ast::Node &>()));
 using IndirectHandle = pepp::debug::types::TypeInfo::IndirectHandle;
+using CmdIterator = cmd_list::iterator;
 
 // Add named nodes into the graph for the struct and all of its members.
 // Add edge from member name to struct name.
 // Member name should not have any "in" edges unless it is a struct itself.
-void updateStructGraph(auto &it, pepp::debug::types::TypeInfo &info, CXXGraph::Graph<IndirectHandle> &depends_on,
+void updateStructGraph(CmdIterator &it, pepp::debug::types::TypeInfo &info, CXXGraph::Graph<IndirectHandle> &depends_on,
                        CXXGraph::id_t &nextID) {
 
   auto indirect = info.register_indirect(*it->symbolDecl);
@@ -107,6 +110,50 @@ void createTypesAndContractGraph(pepp::debug::types::TypeInfo &info, CXXGraph::G
   }
 }
 
+using CommandMap = QMap<quint32, pepp::debug::CommandFrame>;
+void parseNonGlobal(CmdIterator &it, pepp::debug::types::TypeInfo &info, CommandMap &commands) {
+
+  const auto &cmd = it->command.command;
+  const auto &args = it->command.args;
+  using namespace pepp::debug;
+  auto packet = pepp::debug::CommandPacket{};
+  bool is_push = it->isPush;
+
+  // Add stack frame init or deinit ops, since params create/delete a stack frame.
+  if (cmd == "param") {
+    if (is_push) packet.ops.emplace_back(StackOp{FrameManagement{Opcodes::ADD_FRAME}});
+    else packet.ops.emplace_back(StackOp{FrameActive{false}});
+  }
+
+  if (cmd == "locals" || cmd == "param") {
+    const auto opcode = is_push ? Opcodes::PUSH : Opcodes::POP;
+    for (const auto &arg : std::as_const(args)) {
+      auto [success, ihnd] = info.register_indirect(arg);
+      if (success) { // Type should already be registered
+        qDebug() << "Did not find type for: " << arg;
+        continue;
+      }
+      auto boxed_type = info.type_from(ihnd);
+      auto unboxed = unbox(boxed_type);
+      auto dhnd = info.get_direct(unboxed);
+      packet.ops.emplace_back(StackOp{MemoryOp{opcode, ihnd, dhnd.value()}});
+    }
+  } else return;
+
+  // Add stack frame init or deinit ops, since params create/delete a stack frame.
+  if (cmd == "param") {
+    if (is_push) packet.ops.emplace_back(StackOp{FrameActive{true}});
+    else packet.ops.emplace_back(StackOp{FrameManagement{Opcodes::REMOVE_FRAME}});
+  }
+
+  const auto maybe_address = it->address;
+  if (maybe_address) {
+    auto address = *maybe_address;
+    if (!commands.contains(address)) commands[address] = {};
+    commands[address].commands.push_back(packet);
+  }
+}
+
 void pas::obj::common::writeDebugCommands(ELFIO::elfio &elf, std::list<ast::Node *> roots) {
   static const auto is_type_decl = [](const ops::generic::Command &cmd) {
     auto str = cmd.command.command;
@@ -118,7 +165,7 @@ void pas::obj::common::writeDebugCommands(ELFIO::elfio &elf, std::list<ast::Node
   };
   auto trace = detail::getOrAddTraceSection(elf);
   auto [data, in, out] = zpp::bits::data_in_out();
-  using cmd_list = decltype(ops::generic::extractTraceTags(std::declval<ast::Node &>()));
+
   cmd_list type_decls, global_decls, rest_decls;
   pepp::debug::types::TypeInfo info;
 
@@ -136,9 +183,9 @@ void pas::obj::common::writeDebugCommands(ELFIO::elfio &elf, std::list<ast::Node
   CXXGraph::id_t nextID = 0;
   QMap<std::string, QStringList> deferredStructs;
 
-  // for (const auto &cmd : as_const(type_decls)) qDebug().noquote() << cmd;
-  // for (const auto &cmd : as_const(global_decls)) qDebug().noquote() << cmd;
-  // for (const auto &cmd : as_const(rest_decls)) qDebug().noquote() << cmd;
+  for (const auto &cmd : as_const(type_decls)) qDebug().noquote() << cmd;
+  for (const auto &cmd : as_const(global_decls)) qDebug().noquote() << cmd;
+  for (const auto &cmd : as_const(rest_decls)) qDebug().noquote() << cmd;
 
   // Perform type declarations immediately, and produce a directed graph of struct definitions.
   for (auto it = type_decls.begin(); it != type_decls.end(); it++) {
@@ -162,8 +209,13 @@ void pas::obj::common::writeDebugCommands(ELFIO::elfio &elf, std::list<ast::Node
   // Resolve directed graph into Struct{} types.
   createTypesAndContractGraph(info, depends_on, deferredStructs);
 
-  qDebug() << info;
+  // Parse local/params into command packets.
+  CommandMap commands;
+  for (auto it = rest_decls.begin(); it != rest_decls.end(); it++) parseNonGlobal(it, info, commands);
+
+  // qDebug() << info;
   (void)info.serialize(out, info);
+  for (const auto &addr : commands.keys()) qDebug().noquote() << addr << commands[addr];
 
   trace->append_data((const char *)data.data(), data.size());
 }
