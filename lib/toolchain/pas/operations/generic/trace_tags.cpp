@@ -91,6 +91,27 @@ QString pas::ops::generic::infer_command(const ast::Node &node, const QStringLis
   else return "params";
 }
 
+bool isPush(const pas::ast::Node &node) {
+  using namespace pas::ast::generic;
+  using namespace pas::ops;
+  if (pepp::isNonUnary<isa::Pep10>()(node)) {
+    auto instr = node.get<pas::ast::pepp::Instruction<isa::Pep10>>();
+    switch (instr.value) {
+    case isa::Pep10::Mnemonic::SUBSP: [[fallthrough]];
+    case isa::Pep10::Mnemonic::CALL: return true;
+    default: break;
+    }
+  } else if (pepp::isNonUnary<isa::Pep9>()(node)) {
+    auto instr = node.get<pas::ast::pepp::Instruction<isa::Pep9>>();
+    switch (instr.value) {
+    case isa::Pep9::Mnemonic::SUBSP: [[fallthrough]];
+    case isa::Pep9::Mnemonic::CALL: return true;
+    default: break;
+    }
+  }
+  return false;
+}
+
 void pas::ops::generic::ExtractTraceTags::operator()(ast::Node &node) {
   using namespace pas::ast::generic;
   std::optional<std::list<pas::ops::generic::TraceMatch>> match = std::nullopt;
@@ -118,7 +139,7 @@ void pas::ops::generic::ExtractTraceTags::operator()(ast::Node &node) {
       TraceMatch m{.command = cmd_str, .args = cmd.args};
       if (is_modifier(cmd_str)) {
         if (commands.size() > 0) commands.back().modifiers.push_back(m);
-      } else commands.push_back(Command{m, {}, address, symbol_decl});
+      } else commands.push_back(Command{m, {}, address, symbol_decl, isPush(node)});
     }
     wip_commands.clear();
   }
