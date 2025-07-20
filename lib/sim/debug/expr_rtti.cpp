@@ -260,3 +260,30 @@ pepp::debug::types::TypeInfo::add_or_get_direct(Type &t) {
 std::strong_ordering pepp::debug::types::OptType::operator<=>(const OptType &rhs) const { return type <=> rhs.type; }
 
 bool pepp::debug::types::OptType::operator==(const OptType &rhs) const { return type == rhs.type; }
+
+// Replace all literal \n characters with "\n" literally.
+QString sanitize_bash_n(QString str) { return str.replace("\n", "\\n"); }
+
+QDebug pepp::debug::types::operator<<(QDebug debug, const TypeInfo &h) {
+  debug.noquote() << "Direct Types:\n";
+  for (const auto &[key, value] : h._directTypes) {
+    debug.noquote()
+        << QStringLiteral("%1 -> %2\n").arg(value.first.index(), 5).arg(sanitize_bash_n(types::to_string(unbox(key))));
+  }
+  debug.noquote() << "\nIndirect Types:\n";
+  for (const auto &[key, value] : h._nameToIndirect) {
+    auto it = h._indirectTypes.indirectTypes.find(value);
+    QString filler = "(not registered)";
+    if (it != h._indirectTypes.indirectTypes.end()) filler = sanitize_bash_n(types::to_string(unbox(it->second.type)));
+    debug.noquote() << QStringLiteral("%1 (%2) -> %3\n").arg(value.index(), 3).arg(key.toStdString(), 10).arg(filler);
+  }
+  return debug;
+}
+
+std::ostream &pepp::debug::types::operator<<(std::ostream &os, const TypeInfo::IndirectHandle &h) {
+  return os << "IndirectHandle(" << h._index << ")";
+}
+
+std::istream &pepp::debug::types::operator>>(std::istream &, TypeInfo::IndirectHandle &) {
+  throw std::runtime_error("IndirectHandle does not support input");
+}
