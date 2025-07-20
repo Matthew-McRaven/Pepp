@@ -112,9 +112,40 @@ bool isPush(const pas::ast::Node &node) {
   return false;
 }
 
+bool isCall(const pas::ast::Node &node) {
+  using namespace pas::ast::generic;
+  using namespace pas::ops;
+  if (pepp::isNonUnary<isa::Pep10>()(node))
+    return node.get<pas::ast::pepp::Instruction<isa::Pep10>>().value == isa::Pep10::Mnemonic::CALL;
+  else if (pepp::isNonUnary<isa::Pep9>()(node))
+    return node.get<pas::ast::pepp::Instruction<isa::Pep9>>().value == isa::Pep9::Mnemonic::CALL;
+  return false;
+}
+
+bool isRet(const pas::ast::Node &node) {
+  using namespace pas::ast::generic;
+  using namespace pas::ops;
+  if (pepp::isUnary<isa::Pep10>()(node))
+    return node.get<pas::ast::pepp::Instruction<isa::Pep10>>().value == isa::Pep10::Mnemonic::RET;
+  else if (pepp::isUnary<isa::Pep9>()(node))
+    return node.get<pas::ast::pepp::Instruction<isa::Pep9>>().value == isa::Pep9::Mnemonic::RET;
+  return false;
+}
+
 void pas::ops::generic::ExtractTraceTags::operator()(ast::Node &node) {
   using namespace pas::ast::generic;
   std::optional<std::list<pas::ops::generic::TraceMatch>> match = std::nullopt;
+
+  std::optional<uint32_t> address = std::nullopt;
+  if (node.has<Address>()) address = node.get<Address>().value.start;
+
+  if (isCall(node)) {
+    commands.push_back(Command{{"call", {}}, {}, address, {}, true});
+    qDebug() << "This is a call";
+  } else if (isRet(node)) {
+    commands.push_back(Command{{"ret", {}}, {}, address, {}, false});
+    qDebug() << "This is a ret";
+  }
 
   if (node.has<IsMacroComment>()) return;
   else if (node.has<Comment>()) match = pas::ops::generic::parseTraceCommand(node.get<Comment>().value);
@@ -124,9 +155,6 @@ void pas::ops::generic::ExtractTraceTags::operator()(ast::Node &node) {
     wip_commands.insert(wip_commands.end(), std::make_move_iterator(match->begin()),
                         std::make_move_iterator(match->end()));
   } else return;
-
-  std::optional<uint32_t> address = std::nullopt;
-  if (node.has<Address>()) address = node.get<Address>().value.start;
 
   // If line is not a comment, then we assign all queued commands to this line, clearing the queue.
   if (!isComment()(node)) {
