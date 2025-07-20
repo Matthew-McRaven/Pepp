@@ -1,4 +1,5 @@
 #pragma once
+#include <QtCore/qdebug.h>
 #include <QtCore/qmutex.h>
 #include <map>
 #include <zpp_bits.h>
@@ -36,10 +37,13 @@ public:
     bool operator==(const DirectHandle &rhs) const;
     std::strong_ordering operator<=>(const DirectHandle &rhs) const;
     MetaType metatype() const;
+    // Helper to pretty-print the handle.
+    quint16 index() const { return ((_metatype & 0x7) << 13) | (_type & 0x1FFF); }
 
   private:
     friend class TypeInfo;
     DirectHandle(MetaType, quint16);
+
     // Must be allowed to cast to MetaType
     quint16 _metatype : 3;
     // Remaining 13 bits to distingush within the metatype.
@@ -69,6 +73,10 @@ public:
     IndirectHandle &operator=(IndirectHandle &&) = default;
     bool operator==(const IndirectHandle &rhs) const;
     std::strong_ordering operator<=>(const IndirectHandle &rhs) const;
+    friend std::ostream &operator<<(std::ostream &, const IndirectHandle &);
+    friend std::istream &operator>>(std::istream &is, IndirectHandle &h);
+    // Helper to pretty-print the handle.
+    inline quint16 index() const { return _index; }
 
   private:
     explicit IndirectHandle(quint16 index);
@@ -131,7 +139,7 @@ public:
   // idempotent. _indirectTypes are ignored because they are tied to simulator state and not the set of declared types.
   std::weak_ordering operator<=>(const TypeInfo &rhs) const;
   bool operator==(const TypeInfo &rhs) const;
-
+  friend QDebug operator<<(QDebug debug, const TypeInfo &h);
   static zpp::bits::errc serialize(auto &archive, auto &self) {
     using archive_type = std::remove_cvref_t<decltype(archive)>;
     if constexpr (archive_type::kind() == zpp::bits::kind::out) {
@@ -218,4 +226,9 @@ public:
     throw std::logic_error("Unreachable");
   }
 };
+
+QDebug operator<<(QDebug debug, const TypeInfo &h);
+std::ostream &operator<<(std::ostream &os, const TypeInfo::IndirectHandle &h);
+std::istream &operator>>(std::istream &, TypeInfo::IndirectHandle &);
+
 } // namespace pepp::debug::types
