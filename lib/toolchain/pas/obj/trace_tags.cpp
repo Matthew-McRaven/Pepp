@@ -119,13 +119,18 @@ void parseNonGlobal(CmdIterator &it, pepp::debug::types::TypeInfo &info, Command
   auto packet = pepp::debug::CommandPacket{};
   bool is_push = it->isPush;
 
-  // Add stack frame init or deinit ops, since params create/delete a stack frame.
-  if (cmd == "param") {
-    if (is_push) packet.ops.emplace_back(StackOp{FrameManagement{Opcodes::ADD_FRAME}});
-    else packet.ops.emplace_back(StackOp{FrameActive{false}});
-  }
+  if (cmd == "call" || cmd == "ret") {
+    Opcodes opcode = cmd == "call" ? Opcodes::CALL : Opcodes::RET;
+    auto [_, ihnd] = info.register_indirect("retAddr");
+    auto dhnd = info.get_direct(pepp::debug::types::Primitives::u16);
+    packet.ops.emplace_back(StackOp{MemoryOp{opcode, ihnd, dhnd.value()}});
+  } else if (cmd == "locals" || cmd == "param") {
+    // Add stack frame init or deinit ops, since params create/delete a stack frame.
+    if (cmd == "param") {
+      if (is_push) packet.ops.emplace_back(StackOp{FrameManagement{Opcodes::ADD_FRAME}});
+      else packet.ops.emplace_back(StackOp{FrameActive{false}});
+    }
 
-  if (cmd == "locals" || cmd == "param") {
     const auto opcode = is_push ? Opcodes::PUSH : Opcodes::POP;
     for (const auto &arg : std::as_const(args)) {
       auto [success, ihnd] = info.register_indirect(arg);
@@ -138,16 +143,15 @@ void parseNonGlobal(CmdIterator &it, pepp::debug::types::TypeInfo &info, Command
       auto dhnd = info.get_direct(unboxed);
       packet.ops.emplace_back(StackOp{MemoryOp{opcode, ihnd, dhnd.value()}});
     }
+
+    // Add stack frame init or deinit ops, since params create/delete a stack frame.
+    if (cmd == "param") {
+      if (is_push) packet.ops.emplace_back(StackOp{FrameActive{true}});
+      else packet.ops.emplace_back(StackOp{FrameManagement{Opcodes::REMOVE_FRAME}});
+    }
   } else return;
 
-  // Add stack frame init or deinit ops, since params create/delete a stack frame.
-  if (cmd == "param") {
-    if (is_push) packet.ops.emplace_back(StackOp{FrameActive{true}});
-    else packet.ops.emplace_back(StackOp{FrameManagement{Opcodes::REMOVE_FRAME}});
-  }
-
-  const auto maybe_address = it->address;
-  if (maybe_address) {
+  if (const auto maybe_address = it->address; maybe_address) {
     auto address = *maybe_address;
     if (!commands.contains(address)) commands[address] = {};
     commands[address].commands.push_back(packet);
@@ -183,8 +187,8 @@ void pas::obj::common::writeDebugCommands(ELFIO::elfio &elf, std::list<ast::Node
   CXXGraph::id_t nextID = 0;
   QMap<std::string, QStringList> deferredStructs;
 
-  for (const auto &cmd : as_const(type_decls)) qDebug().noquote() << cmd;
-  for (const auto &cmd : as_const(global_decls)) qDebug().noquote() << cmd;
+  // for (const auto &cmd : as_const(type_decls)) qDebug().noquote() << cmd;
+  // for (const auto &cmd : as_const(global_decls)) qDebug().noquote() << cmd;
   for (const auto &cmd : as_const(rest_decls)) qDebug().noquote() << cmd;
 
   // Perform type declarations immediately, and produce a directed graph of struct definitions.

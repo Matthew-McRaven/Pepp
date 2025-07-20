@@ -7,6 +7,8 @@ enum class Opcodes : quint8 {
   INVALID = 0,
   PUSH,
   POP,
+  CALL, // Special case of push
+  RET,  // Special case of ret
   MARK_ACTIVE,
   ADD_FRAME,
   REMOVE_FRAME,
@@ -14,7 +16,7 @@ enum class Opcodes : quint8 {
 Q_ENUM_NS(Opcodes)
 
 struct MemoryOp {
-  Opcodes op; // Either PUSH or Pop
+  Opcodes op; // Either PUSH, POP, CALL, or RET
   // Indirect handle gives us the name, direct gives us type info.
   types::TypeInfo::IndirectHandle name;
   types::TypeInfo::DirectHandle type;
