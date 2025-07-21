@@ -191,7 +191,7 @@ if (ONLY STREQUAL "BUILD")
                 FORCED_INSTALLATION
                 REQUIRES_ADMIN_RIGHTS
                 NAME "Pepp"
-                LICENSES "GPL-3.0" "${PROJECT_SOURCE_DIR}/LICENSE"
+                LICENSES "GPL-3.0" "${PROJECT_SOURCE_DIR}/LICENSE.md"
                 SCRIPT       "${INSTALLER_SCRIPT}"
         )
 
