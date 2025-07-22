@@ -139,13 +139,8 @@ void pas::ops::generic::ExtractTraceTags::operator()(ast::Node &node) {
   std::optional<uint32_t> address = std::nullopt;
   if (node.has<Address>()) address = node.get<Address>().value.start;
 
-  if (isCall(node)) {
-    commands.push_back(Command{{"call", {}}, {}, address, {}, true});
-    qDebug() << "This is a call";
-  } else if (isRet(node)) {
-    commands.push_back(Command{{"ret", {}}, {}, address, {}, false});
-    qDebug() << "This is a ret";
-  }
+  if (isCall(node)) commands.push_back(Command{{"call", {}}, {}, address, {}, true});
+  else if (isRet(node)) commands.push_back(Command{{"ret", {}}, {}, address, {}, false});
 
   if (node.has<IsMacroComment>()) return;
   else if (node.has<Comment>()) match = pas::ops::generic::parseTraceCommand(node.get<Comment>().value);

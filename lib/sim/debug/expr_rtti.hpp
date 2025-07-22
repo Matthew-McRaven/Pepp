@@ -142,17 +142,19 @@ public:
   std::weak_ordering operator<=>(const TypeInfo &rhs) const;
   bool operator==(const TypeInfo &rhs) const;
   friend QDebug operator<<(QDebug debug, const TypeInfo &h);
-  static zpp::bits::errc serialize(auto &archive, auto &self) {
+  static zpp::bits::errc serialize(auto &archive, auto &self, SerializationHelper *h = nullptr) {
+    SerializationHelper tmp;
+    if (!h) h = &tmp; // If no helper is provided, use a temporary one.
     using archive_type = std::remove_cvref_t<decltype(archive)>;
     if constexpr (archive_type::kind() == zpp::bits::kind::out) {
-      SerializationHelper h;
+
       // Pool & intern strings before serializing.
-      self.extract_strings(h._strs);
-      auto s = std::span(h._strs.data(), h._strs.size());
+      self.extract_strings(h->_strs);
+      auto s = std::span(h->_strs.data(), h->_strs.size());
       if (auto errc = archive(s); errc.code != std::errc()) return errc;
 
       // Extract toplological sorting info into SerializationHelper
-      for (const auto &[key, value] : self._directTypes) h._type_to_index[key] = value.second;
+      for (const auto &[key, value] : self._directTypes) h->_type_to_index[key] = value.second;
       // Extract & sort boxed types by their topological index.
       std::vector<BoxedType> b;
       std::transform(self._directTypes.begin(), self._directTypes.end(), std::back_inserter(b),
@@ -165,13 +167,13 @@ public:
       if (auto errc = archive((quint16)b.size()); errc.code != std::errc()) return errc;
       for (const auto &item : b) {
         auto t = unbox(item); // Unbox first because otherwise we can't take a ref.
-        if (auto errc = types::serialize(archive, t, &h); errc.code != std::errc()) return errc;
+        if (auto errc = types::serialize(archive, t, h); errc.code != std::errc()) return errc;
       }
 
       // Serialize indirect types registrations.
       if (auto errc = archive((quint16)self._nameToIndirect.size()); errc.code != std::errc()) return errc;
       for (const auto &[name, hnd] : self._nameToIndirect) {
-        if (auto errc = archive(h.index_for_string(name)); errc.code != std::errc()) return errc;
+        if (auto errc = archive(h->index_for_string(name)); errc.code != std::errc()) return errc;
         if (auto errc = archive(hnd._index); errc.code != std::errc()) return errc;
       }
 
@@ -179,22 +181,21 @@ public:
       if (auto errc = archive((quint16)self._indirectTypes.indirectTypes.size()); errc.code != std::errc()) return errc;
       for (const auto &[hnd, type] : self._indirectTypes.indirectTypes) {
         if (auto errc = archive(hnd._index); errc.code != std::errc()) return errc;
-        auto type_index = h.index_for_type(type.type);
+        auto type_index = h->index_for_type(type.type);
         if (auto errc = archive(type_index); errc.code != std::errc()) return errc;
       }
       return std::errc();
     } else if constexpr (archive_type::kind() == zpp::bits::kind::in && !std::is_const<decltype(self)>()) {
-      SerializationHelper h;
       quint16 type_count = 0;
       // Load string pool.
-      if (auto errc = archive(h._strs.container()); errc.code != std::errc()) return errc;
+      if (auto errc = archive(h->_strs.container()); errc.code != std::errc()) return errc;
 
       // Load type count, then load each type.
       else if (auto errc = archive(type_count); errc.code != std::errc()) return errc;
       for (int it = 0; it < type_count; ++it) {
         Type t;
-        if (auto errc = types::serialize(archive, t, &h); errc.code != std::errc()) return errc;
-        h._type_to_index[self.box(t)] = it;
+        if (auto errc = types::serialize(archive, t, h); errc.code != std::errc()) return errc;
+        h->_type_to_index[self.box(t)] = it;
       }
 
       // Load indirect type registrations.
@@ -203,7 +204,7 @@ public:
       for (int it = 0; it < indirect_handle_count; ++it) {
         quint32 string_idx = 0;
         if (auto errc = archive(string_idx); errc.code != std::errc()) return errc;
-        QString name = h.string_for_index(string_idx);
+        QString name = h->string_for_index(string_idx);
 
         quint16 index = 0;
         if (auto errc = archive(index); errc.code != std::errc()) return errc;
@@ -219,7 +220,7 @@ public:
         if (auto errc = archive(hnd._index); errc.code != std::errc()) return errc;
         quint16 type_index = 0;
         if (auto errc = archive(type_index); errc.code != std::errc()) return errc;
-        auto type = h.type_for_index(type_index);
+        auto type = h->type_for_index(type_index);
         self._indirectTypes.indirectTypes[hnd] = Versioned<OptType>{type};
       }
 

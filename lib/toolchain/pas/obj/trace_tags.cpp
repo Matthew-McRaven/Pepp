@@ -121,9 +121,10 @@ void parseNonGlobal(CmdIterator &it, pepp::debug::types::TypeInfo &info, Command
 
   if (cmd == "call" || cmd == "ret") {
     Opcodes opcode = cmd == "call" ? Opcodes::CALL : Opcodes::RET;
-    auto [_, ihnd] = info.register_indirect("retAddr");
-    auto dhnd = info.get_direct(pepp::debug::types::Primitives::u16);
-    packet.ops.emplace_back(StackOp{MemoryOp{opcode, ihnd, dhnd.value()}});
+    static const QString name = "retAddr";
+    auto [_, ihnd] = info.register_indirect(name);
+    auto type = info.box(pepp::debug::types::Primitives::u16);
+    packet.ops.emplace_back(StackOp{MemoryOp{opcode, name, type}});
   } else if (cmd == "locals" || cmd == "param") {
     // Add stack frame init or deinit ops, since params create/delete a stack frame.
     if (cmd == "param") {
@@ -141,7 +142,7 @@ void parseNonGlobal(CmdIterator &it, pepp::debug::types::TypeInfo &info, Command
       auto boxed_type = info.type_from(ihnd);
       auto unboxed = unbox(boxed_type);
       auto dhnd = info.get_direct(unboxed);
-      packet.ops.emplace_back(StackOp{MemoryOp{opcode, ihnd, dhnd.value()}});
+      packet.ops.emplace_back(StackOp{MemoryOp{opcode, arg, boxed_type}});
     }
 
     // Add stack frame init or deinit ops, since params create/delete a stack frame.
@@ -154,8 +155,22 @@ void parseNonGlobal(CmdIterator &it, pepp::debug::types::TypeInfo &info, Command
   if (const auto maybe_address = it->address; maybe_address) {
     auto address = *maybe_address;
     if (!commands.contains(address)) commands[address] = {};
-    commands[address].commands.push_back(packet);
+    commands[address].packets.push_back(packet);
   }
+}
+
+[[nodiscard]] std::errc serialize(auto &archive, auto &commands, pepp::debug::types::SerializationHelper &h) {
+  using archive_type = std::remove_cvref_t<decltype(archive)>;
+  if constexpr (archive_type::kind() == zpp::bits::kind::out) {
+    if (auto errc = archive((quint16)commands.size()); errc.code != std::errc()) return errc;
+    for (const auto &[addr, frame] : commands.asKeyValueRange()) {
+      if (auto errc = archive(addr); errc.code != std::errc()) return errc;
+      if (auto errc = frame.serialize(archive, frame, h); errc.code != std::errc()) return errc;
+    }
+  } else if constexpr (archive_type::kind() == zpp::bits::kind::in &&
+                       !std::is_const_v<std::remove_reference_t<decltype(commands)>>)
+    return std::errc{};
+  return std::errc{};
 }
 
 void pas::obj::common::writeDebugCommands(ELFIO::elfio &elf, std::list<ast::Node *> roots) {
@@ -218,7 +233,9 @@ void pas::obj::common::writeDebugCommands(ELFIO::elfio &elf, std::list<ast::Node
   for (auto it = rest_decls.begin(); it != rest_decls.end(); it++) parseNonGlobal(it, info, commands);
 
   // qDebug() << info;
-  (void)info.serialize(out, info);
+  pepp::debug::types::SerializationHelper h;
+  (void)info.serialize(out, info, &h);
+  (void)serialize(out, commands, h);
   for (const auto &addr : commands.keys()) qDebug().noquote() << addr << commands[addr];
 
   trace->append_data((const char *)data.data(), data.size());
