@@ -192,7 +192,7 @@ template <typename T> struct SerializeVistor {
   template <typename U> std::errc operator()(U &v) { return v.serialize(archive, v, helper); }
 };
 } // namespace detail
-static zpp::bits::errc serialize(auto &archive, auto &type, SerializationHelper *helper = nullptr) {
+static zpp::bits::errc serialize(auto &archive, auto &type, SerializationHelper *helper) {
   using archive_type = std::remove_cvref_t<decltype(archive)>;
   if constexpr (archive_type::kind() == zpp::bits::kind::out) {
     if (auto errc = archive((quint8)type.index()); errc.code != std::errc()) return errc;
