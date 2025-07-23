@@ -234,10 +234,12 @@ void pas::obj::common::writeDebugCommands(ELFIO::elfio &elf, std::list<ast::Node
 
   // qDebug() << info;
   pepp::debug::types::SerializationHelper h;
+  // TODO: extract all strings from commands into h. Info will serialize them for us. Then we can use those indices in
+  // stack_ops serialization.
   (void)info.serialize(out, info, &h);
   (void)serialize(out, commands, h);
-  for (const auto &addr : commands.keys()) qDebug().noquote() << addr << commands[addr];
-
+  for (auto addr = commands.keyBegin(); addr != commands.keyEnd(); addr++)
+    qDebug().noquote() << *addr << commands[*addr];
   trace->append_data((const char *)data.data(), data.size());
 }
 

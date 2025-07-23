@@ -121,7 +121,16 @@ struct CommandPacket {
       for (const auto &op : self.ops) {
         if (auto errc = serialize_op(archive, op, h); errc.code != std::errc()) return errc;
       }
-    } // TODO: still need to do "in" side
+    } else if constexpr (archive_type::kind() == zpp::bits::kind::in && !std::is_const<decltype(self)>()) {
+      quint16 size = 0;
+      if (auto errc = archive(size); errc.code != std::errc()) return errc;
+      for (int i = 0; i < size; ++i) {
+        StackOp op;
+        if (auto errc = serialize_op(archive, op, h); errc.code != std::errc()) return errc;
+        self.ops.push_back(std::move(op));
+      }
+    } else if constexpr (archive_type::kind() == zpp::bits::kind::in) throw std::logic_error("Can't read into const");
+    else throw std::logic_error("Unreachable");
     return std::errc{};
   }
 };
@@ -143,7 +152,16 @@ struct CommandFrame {
       for (const auto &packet : self.packets) {
         if (auto errc = packet.serialize(archive, packet, h); errc.code != std::errc()) return errc;
       }
-    } // TODO: still need to do "in" side
+    } else if constexpr (archive_type::kind() == zpp::bits::kind::in && !std::is_const<decltype(self)>()) {
+      quint16 size = 0;
+      if (auto errc = archive(size); errc.code != std::errc()) return errc;
+      for (int i = 0; i < size; ++i) {
+        CommandPacket packet;
+        if (auto errc = packet.serialize(archive, packet, h); errc.code != std::errc()) return errc;
+        self.packets.push_back(std::move(packet));
+      }
+    } else if constexpr (archive_type::kind() == zpp::bits::kind::in) throw std::logic_error("Can't read into const");
+    else throw std::logic_error("Unreachable");
     return std::errc{};
   }
 };
